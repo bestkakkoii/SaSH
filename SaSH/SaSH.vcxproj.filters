@@ -1,0 +1,321 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>qml;cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>qrc;rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="Form Files">
+      <UniqueIdentifier>{99349809-55BA-4b9d-BF79-8FDBB0286EB3}</UniqueIdentifier>
+      <Extensions>ui</Extensions>
+    </Filter>
+    <Filter Include="Translation Files">
+      <UniqueIdentifier>{639EADAA-A684-42e4-A9AD-28FC9BCB8F7C}</UniqueIdentifier>
+      <Extensions>ts</Extensions>
+    </Filter>
+    <Filter Include="Source Files\main">
+      <UniqueIdentifier>{2a91ab24-ef06-4a62-9a0e-680e7599fd9b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\model">
+      <UniqueIdentifier>{ee0351bb-b35f-47d5-92d6-601eec5ed91e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\forms">
+      <UniqueIdentifier>{e835f35a-6bb1-41d9-92d9-b87ac29a94c9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\3rdparty">
+      <UniqueIdentifier>{83059031-dc11-45c4-bac0-ed82ec6f2a78}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\util">
+      <UniqueIdentifier>{e3028531-c791-4635-a410-7e5f7f95f5b7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\net">
+      <UniqueIdentifier>{072814de-a817-4730-8a4d-e1069e87dbb4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\forms\Info">
+      <UniqueIdentifier>{d608319f-e249-48f6-9591-b5c9ea4f9973}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\forms\Info\sub">
+      <UniqueIdentifier>{d4a9e5c4-cc65-45f0-b4d1-c2df6c3c2501}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\forms\dialog">
+      <UniqueIdentifier>{f1d0e2ba-8eac-4f7b-82f0-5443ea86c0ae}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\forms\general">
+      <UniqueIdentifier>{49e05adf-ea1d-4a53-ba55-2a1107f39176}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\forms\other">
+      <UniqueIdentifier>{02887335-d8f1-40a5-bcc6-63a2468e2191}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\forms\afk">
+      <UniqueIdentifier>{aae7247e-bf2c-4187-b641-c85506c59251}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\forms\map">
+      <UniqueIdentifier>{21504f18-d4b4-4b57-b242-cdab0111ad89}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\forms\script">
+      <UniqueIdentifier>{f84308ce-4652-41a6-ae75-572e7c91be06}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\forms\script_setting">
+      <UniqueIdentifier>{75b5d882-887f-4bd5-bbbd-bbe9d4ad517e}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <QtRcc Include="resource.qrc">
+      <Filter>Resource Files</Filter>
+    </QtRcc>
+    <QtUic Include="mainform.ui">
+      <Filter>Form Files</Filter>
+    </QtUic>
+    <None Include="SaSH.ico">
+      <Filter>Resource Files</Filter>
+    </None>
+    <ResourceCompile Include="SaSH.rc">
+      <Filter>Resource Files</Filter>
+    </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="main.cpp">
+      <Filter>Source Files\main</Filter>
+    </ClCompile>
+    <ClCompile Include="mainform.cpp">
+      <Filter>Source Files\main</Filter>
+    </ClCompile>
+    <ClCompile Include="stdafx.cpp">
+      <Filter>Source Files\main</Filter>
+    </ClCompile>
+    <ClCompile Include="model\progressbar.cpp">
+      <Filter>Source Files\model</Filter>
+    </ClCompile>
+    <ClCompile Include="3rdparty\simplecrypt.cpp">
+      <Filter>Source Files\3rdparty</Filter>
+    </ClCompile>
+    <ClCompile Include="net\webauthenticator.cpp">
+      <Filter>Source Files\net</Filter>
+    </ClCompile>
+    <ClCompile Include="util.cpp">
+      <Filter>Source Files\util</Filter>
+    </ClCompile>
+    <ClCompile Include="qscopedhandle.cpp">
+      <Filter>Source Files\util</Filter>
+    </ClCompile>
+    <ClCompile Include="mainthread.cpp">
+      <Filter>Source Files\main</Filter>
+    </ClCompile>
+    <ClCompile Include="net\tcpserver.cpp">
+      <Filter>Source Files\net</Filter>
+    </ClCompile>
+    <ClCompile Include="net\autil.cpp">
+      <Filter>Source Files\net</Filter>
+    </ClCompile>
+    <ClCompile Include="form\battleinfoform.cpp">
+      <Filter>Source Files\forms\Info\sub</Filter>
+    </ClCompile>
+    <ClCompile Include="form\chatinfoform.cpp">
+      <Filter>Source Files\forms\Info\sub</Filter>
+    </ClCompile>
+    <ClCompile Include="form\iteminfoform.cpp">
+      <Filter>Source Files\forms\Info\sub</Filter>
+    </ClCompile>
+    <ClCompile Include="form\infoform.cpp">
+      <Filter>Source Files\forms\Info</Filter>
+    </ClCompile>
+    <ClCompile Include="form\mailinfoform.cpp">
+      <Filter>Source Files\forms\Info\sub</Filter>
+    </ClCompile>
+    <ClCompile Include="form\playerinfoform.cpp">
+      <Filter>Source Files\forms\Info\sub</Filter>
+    </ClCompile>
+    <ClCompile Include="form\petinfoform.cpp">
+      <Filter>Source Files\forms\Info\sub</Filter>
+    </ClCompile>
+    <ClCompile Include="form\selectobjectform.cpp">
+      <Filter>Source Files\forms\dialog</Filter>
+    </ClCompile>
+    <ClCompile Include="form\selecttargetform.cpp">
+      <Filter>Source Files\forms\dialog</Filter>
+    </ClCompile>
+    <ClCompile Include="form\generalform.cpp">
+      <Filter>Source Files\forms\general</Filter>
+    </ClCompile>
+    <ClCompile Include="form\otherform.cpp">
+      <Filter>Source Files\forms\other</Filter>
+    </ClCompile>
+    <ClCompile Include="form\afkform.cpp">
+      <Filter>Source Files\forms\afk</Filter>
+    </ClCompile>
+    <ClCompile Include="form\mapform.cpp">
+      <Filter>Source Files\forms\map</Filter>
+    </ClCompile>
+    <ClCompile Include="form\scriptform.cpp">
+      <Filter>Source Files\forms\script</Filter>
+    </ClCompile>
+    <ClCompile Include="form\scriptsettingform.cpp">
+      <Filter>Source Files\forms\script_setting</Filter>
+    </ClCompile>
+    <ClCompile Include="form\afkinfoform.cpp">
+      <Filter>Source Files\forms\Info\sub</Filter>
+    </ClCompile>
+    <ClCompile Include="form\abilityform.cpp">
+      <Filter>Source Files\forms\dialog</Filter>
+    </ClCompile>
+    <ClCompile Include="injector.cpp">
+      <Filter>Source Files\util</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <QtMoc Include="mainform.h">
+      <Filter>Source Files\main</Filter>
+    </QtMoc>
+    <QtMoc Include="model\progressbar.h">
+      <Filter>Source Files\model</Filter>
+    </QtMoc>
+    <QtMoc Include="net\webauthenticator.h">
+      <Filter>Source Files\net</Filter>
+    </QtMoc>
+    <QtMoc Include="model\signaldispatcher.h">
+      <Filter>Source Files\model</Filter>
+    </QtMoc>
+    <QtMoc Include="mainthread.h">
+      <Filter>Source Files\main</Filter>
+    </QtMoc>
+    <QtMoc Include="net\tcpserver.h">
+      <Filter>Source Files\net</Filter>
+    </QtMoc>
+    <QtMoc Include="form\battleinfoform.h">
+      <Filter>Source Files\forms\Info\sub</Filter>
+    </QtMoc>
+    <QtMoc Include="form\chatinfoform.h">
+      <Filter>Source Files\forms\Info\sub</Filter>
+    </QtMoc>
+    <QtMoc Include="form\iteminfoform.h">
+      <Filter>Source Files\forms\Info\sub</Filter>
+    </QtMoc>
+    <QtMoc Include="form\infoform.h">
+      <Filter>Source Files\forms\Info</Filter>
+    </QtMoc>
+    <QtMoc Include="form\mailinfoform.h">
+      <Filter>Source Files\forms\Info\sub</Filter>
+    </QtMoc>
+    <QtMoc Include="form\playerinfoform.h">
+      <Filter>Source Files\forms\Info\sub</Filter>
+    </QtMoc>
+    <QtMoc Include="form\petinfoform.h">
+      <Filter>Source Files\forms\Info\sub</Filter>
+    </QtMoc>
+    <QtMoc Include="form\selectobjectform.h">
+      <Filter>Source Files\forms\dialog</Filter>
+    </QtMoc>
+    <QtMoc Include="form\selecttargetform.h">
+      <Filter>Source Files\forms\dialog</Filter>
+    </QtMoc>
+    <QtMoc Include="form\generalform.h">
+      <Filter>Source Files\forms\general</Filter>
+    </QtMoc>
+    <QtMoc Include="form\otherform.h">
+      <Filter>Source Files\forms\other</Filter>
+    </QtMoc>
+    <QtMoc Include="form\afkform.h">
+      <Filter>Source Files\forms\afk</Filter>
+    </QtMoc>
+    <QtMoc Include="form\mapform.h">
+      <Filter>Source Files\forms\map</Filter>
+    </QtMoc>
+    <QtMoc Include="form\scriptform.h">
+      <Filter>Source Files\forms\script</Filter>
+    </QtMoc>
+    <QtMoc Include="form\scriptsettingform.h">
+      <Filter>Source Files\forms\script_setting</Filter>
+    </QtMoc>
+    <QtMoc Include="form\afkinfoform.h">
+      <Filter>Source Files\forms\Info\sub</Filter>
+    </QtMoc>
+    <QtMoc Include="form\abilityform.h">
+      <Filter>Source Files\forms\dialog</Filter>
+    </QtMoc>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="stdafx.h">
+      <Filter>Source Files\main</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\simplecrypt.h">
+      <Filter>Source Files\3rdparty</Filter>
+    </ClInclude>
+    <ClInclude Include="util.h">
+      <Filter>Source Files\util</Filter>
+    </ClInclude>
+    <ClInclude Include="qscopedhandle.h">
+      <Filter>Source Files\util</Filter>
+    </ClInclude>
+    <ClInclude Include="net\autil.h">
+      <Filter>Source Files\net</Filter>
+    </ClInclude>
+    <ClInclude Include="injector.h">
+      <Filter>Source Files\util</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <QtUic Include="form\selecttargetform.ui">
+      <Filter>Form Files</Filter>
+    </QtUic>
+    <QtUic Include="form\selectobjectform.ui">
+      <Filter>Form Files</Filter>
+    </QtUic>
+    <QtUic Include="form\infoform.ui">
+      <Filter>Form Files</Filter>
+    </QtUic>
+    <QtUic Include="form\generalform.ui">
+      <Filter>Form Files</Filter>
+    </QtUic>
+    <QtUic Include="form\mapform.ui">
+      <Filter>Form Files</Filter>
+    </QtUic>
+    <QtUic Include="form\afkform.ui">
+      <Filter>Form Files</Filter>
+    </QtUic>
+    <QtUic Include="form\otherform.ui">
+      <Filter>Form Files</Filter>
+    </QtUic>
+    <QtUic Include="form\scriptform.ui">
+      <Filter>Form Files</Filter>
+    </QtUic>
+    <QtUic Include="form\scriptsettingform.ui">
+      <Filter>Form Files</Filter>
+    </QtUic>
+    <QtUic Include="form\battleinfoform.ui">
+      <Filter>Form Files</Filter>
+    </QtUic>
+    <QtUic Include="form\iteminfoform.ui">
+      <Filter>Form Files</Filter>
+    </QtUic>
+    <QtUic Include="form\playerinfoform.ui">
+      <Filter>Form Files</Filter>
+    </QtUic>
+    <QtUic Include="form\chatinfoform.ui">
+      <Filter>Form Files</Filter>
+    </QtUic>
+    <QtUic Include="form\mailinfoform.ui">
+      <Filter>Form Files</Filter>
+    </QtUic>
+    <QtUic Include="form\petinfoform.ui">
+      <Filter>Form Files</Filter>
+    </QtUic>
+    <QtUic Include="form\afkinfoform.ui">
+      <Filter>Form Files</Filter>
+    </QtUic>
+    <QtUic Include="form\abilityform.ui">
+      <Filter>Form Files</Filter>
+    </QtUic>
+  </ItemGroup>
+  <ItemGroup>
+    <QtTranslation Include="translations\qt_zh_TW.ts">
+      <Filter>Translation Files</Filter>
+    </QtTranslation>
+    <QtTranslation Include="translations\qt_zh_CN.ts">
+      <Filter>Translation Files</Filter>
+    </QtTranslation>
+  </ItemGroup>
+</Project>
