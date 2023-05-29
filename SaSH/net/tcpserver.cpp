@@ -7850,7 +7850,7 @@ void Server::sendBattlePlayerSwitchPetAct(int petIndex)
 	lssproto_B_send(sockfd_, const_cast<char*>(str.c_str()));
 
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
-	emit signalDispatcher.updateLabelPlayerAction(tr("switch pet to %1")
+	emit signalDispatcher.updateLabelPlayerAction(QString(tr("switch pet to %1"))
 		.arg(!pet[petIndex].freeName.isEmpty() ? pet[petIndex].freeName : pet[petIndex].name));
 }
 
