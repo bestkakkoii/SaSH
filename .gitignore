@@ -52,3 +52,9 @@ compile_commands.json
 *creator.user*
 
 *_qmlcache.qrc
+/.vs/SaSH
+/sadll/Debug
+/sadll/Release
+/SaSH/Debug
+/SaSH/Release
+/Debug/settings
