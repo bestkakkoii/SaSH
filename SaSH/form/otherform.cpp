@@ -1,7 +1,7 @@
 ﻿#include "stdafx.h"
 #include "otherform.h"
-#include "util.h"
-#include "injector.h"
+#include <util.h>
+#include <injector.h>
 #include "signaldispatcher.h"
 
 OtherForm::OtherForm(QWidget* parent)
@@ -10,6 +10,9 @@ OtherForm::OtherForm(QWidget* parent)
 	ui.setupUi(this);
 	util::setTab(ui.tabWidge_other);
 	util::setTab(ui.tabWidget_lock);
+
+	connect(this, &OtherForm::resetControlTextLanguage, this, &OtherForm::onResetControlTextLanguage, Qt::UniqueConnection);
+
 
 	QList<QPushButton*> buttonList = util::findWidgets<QPushButton>(this);
 	for (auto& button : buttonList)
@@ -32,11 +35,21 @@ OtherForm::OtherForm(QWidget* parent)
 			connect(spinBox, SIGNAL(valueChanged(int)), this, SLOT(onSpinBoxValueChanged(int)), Qt::UniqueConnection);
 	}
 
-	QList <QComboBox*> comboBoxList = util::findWidgets<QComboBox>(this);
+	QList <ComboBox*> comboBoxList = util::findWidgets<ComboBox>(this);
 	for (auto& comboBox : comboBoxList)
 	{
 		if (comboBox)
 			connect(comboBox, SIGNAL(currentIndexChanged(int)), this, SLOT(onComboBoxCurrentIndexChanged(int)), Qt::UniqueConnection);
+	}
+
+	QList <ComboBox*> ccomboBoxList = util::findWidgets<ComboBox>(this);
+	for (auto& comboBox : ccomboBoxList)
+	{
+		if (comboBox)
+		{
+			connect(comboBox, &ComboBox::clicked, this, &OtherForm::onComboBoxClicked, Qt::UniqueConnection);
+			connect(comboBox, &ComboBox::currentTextChanged, this, &OtherForm::onComboBoxTextChanged, Qt::UniqueConnection);
+		}
 	}
 
 	QList <QLineEdit*> lineEditList = util::findWidgets<QLineEdit>(this);
@@ -48,6 +61,9 @@ OtherForm::OtherForm(QWidget* parent)
 
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
 	connect(&signalDispatcher, &SignalDispatcher::applyHashSettingsToUI, this, &OtherForm::onApplyHashSettingsToUI, Qt::UniqueConnection);
+	connect(&signalDispatcher, &SignalDispatcher::updateTeamInfo, this, &OtherForm::onUpdateTeamInfo, Qt::UniqueConnection);
+
+	emit signalDispatcher.applyHashSettingsToUI();
 }
 
 OtherForm::~OtherForm()
@@ -78,6 +94,8 @@ void OtherForm::onCheckBoxStateChanged(int state)
 		return;
 
 	Injector& injector = Injector::getInstance();
+
+
 }
 
 void OtherForm::onSpinBoxValueChanged(int value)
@@ -95,7 +113,7 @@ void OtherForm::onSpinBoxValueChanged(int value)
 
 void OtherForm::onComboBoxCurrentIndexChanged(int value)
 {
-	QComboBox* pComboBox = qobject_cast<QComboBox*>(sender());
+	ComboBox* pComboBox = qobject_cast<ComboBox*>(sender());
 	if (!pComboBox)
 		return;
 
@@ -104,6 +122,55 @@ void OtherForm::onComboBoxCurrentIndexChanged(int value)
 		return;
 
 	Injector& injector = Injector::getInstance();
+
+	//group
+	if (name == "comboBox_autofuntype")
+	{
+		injector.setValueHash(util::kAutoFunTypeValue, value != -1 ? value : 0);
+	}
+
+}
+
+void OtherForm::onComboBoxTextChanged(const QString& text)
+{
+	ComboBox* pComboBox = qobject_cast<ComboBox*>(sender());
+	if (!pComboBox)
+		return;
+
+	QString name = pComboBox->objectName();
+	if (name.isEmpty())
+		return;
+
+	QString newText = text.simplified();
+
+	Injector& injector = Injector::getInstance();
+
+	if (name == "comboBox_autofunname")
+	{
+		injector.setStringHash(util::kAutoFunNameString, newText);
+	}
+}
+
+void OtherForm::onComboBoxClicked()
+{
+	ComboBox* pComboBox = qobject_cast<ComboBox*>(sender());
+	if (!pComboBox)
+		return;
+
+	QString name = pComboBox->objectName();
+	if (name.isEmpty())
+		return;
+
+	Injector& injector = Injector::getInstance();
+
+	if (name == "comboBox_autofunname")
+	{
+		if (injector.server.isNull())
+			return;
+
+		QStringList unitList = injector.server->getJoinableUnitList();
+		updateComboboxAutoFunNameList(unitList);
+	}
 }
 
 void OtherForm::onLineEditTextChanged(const QString& text)
@@ -135,6 +202,21 @@ void OtherForm::onLineEditTextChanged(const QString& text)
 	}
 }
 
+void OtherForm::updateComboboxAutoFunNameList(const QStringList& autoFunNameList)
+{
+	QString currentText = ui.comboBox_autofunname->currentText();
+	ui.comboBox_autofunname->clear();
+	ui.comboBox_autofunname->addItems(autoFunNameList);
+	ui.comboBox_autofunname->setCurrentText(currentText);
+}
+
+void OtherForm::onResetControlTextLanguage()
+{
+	ui.comboBox_autofuntype->clear();
+	const QStringList autoFunList = { tr("auto join"), tr("auto follow"), tr("auto pk"), tr("auto watch") };
+	ui.comboBox_autofuntype->addItems(autoFunList);
+}
+
 void OtherForm::onApplyHashSettingsToUI()
 {
 	Injector& injector = Injector::getInstance();
@@ -142,8 +224,28 @@ void OtherForm::onApplyHashSettingsToUI()
 	util::SafeHash<util::UserSetting, int> valueHash = injector.getValueHash();
 	util::SafeHash<util::UserSetting, QString> stringHash = injector.getStringHash();
 
+
+	//group
+	ui.comboBox_autofuntype->setCurrentIndex(valueHash.value(util::kAutoFunTypeValue));
+	ui.comboBox_autofunname->setCurrentText(stringHash.value(util::kAutoFunNameString));
+
 	//other2
 	ui.lineEdit_gameaccount->setText(stringHash.value(util::UserSetting::kGameAccountString));
 	ui.lineEdit_gamepassword->setText(stringHash.value(util::UserSetting::kGamePasswordString));
 	ui.lineEdit_gamesecuritycode->setText(stringHash.value(util::UserSetting::kGameSecurityCodeString));
+}
+
+void OtherForm::onUpdateTeamInfo(const QStringList& strList)
+{
+	for (int i = 0; i <= MAX_PARTY; ++i)
+	{
+		QString objName = QString("label_teammate%1").arg(i);
+		QLabel* label = ui.groupBox_team->findChild<QLabel*>(objName);
+		if (!label)
+			continue;
+		if (i >= strList.size())
+			break;
+
+		label->setText(strList[i]);
+	}
 }

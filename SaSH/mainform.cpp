@@ -9,14 +9,130 @@
 #include "form/otherform.h"
 #include "form/scriptform.h"
 #include "form/infoform.h"
+#include "form/mapwidget.h"
 
 //menu action forms
 #include "form/scriptsettingform.h"
 
 //utilities
 #include "signaldispatcher.h"
-#include "util.h"
-#include "injector.h"
+#include <util.h>
+#include <injector.h>
+
+void createMenu(QMenuBar* pMenuBar)
+{
+	if (!pMenuBar)
+		return;
+
+#pragma region StyleSheet
+	constexpr const char* styleText = u8R"(
+				QMenu {
+					background-color: rgb(249, 249, 249); /*整個背景*/
+					border: 0px;
+					/*item寬度*/
+					width: 150px;
+				
+				}
+				QMenu::item {
+					font-size: 9pt;
+					/*color: rgb(225, 225, 225); 字體顏色*/
+					border: 2px; solid rgb(249, 249, 249); /*item選框*/
+					background-color: rgb(249, 249, 249);
+					padding: 10px 10px; /*設置菜單項文字上下和左右的內邊距，效果就是菜單中的條目左右上下有了間隔*/
+					margin: 2px 2px; /*設置菜單項的外邊距*/
+					/*item高度*/	
+					height: 10px;
+				}
+				QMenu::item:selected {
+					background-color: rgb(240, 240, 240); /*選中的樣式*/
+					border: 2px solid rgb(249, 249, 249); /*选中状态下的边框*/
+				}
+				QMenu::item:pressed {
+					/*菜單項按下效果
+					border: 0px; /*solid rgb(60, 60, 61);*/
+					background-color: rgb(50, 130, 246);
+				}
+			)";
+#pragma endregion
+
+	pMenuBar->setStyleSheet(styleText);
+	pMenuBar->setAttribute(Qt::WA_StyledBackground, true);
+	pMenuBar->clear();
+
+	auto createAction = [](QMenu* parent, const QString& text = "", const QString& name = "")->void
+	{
+		if (!parent)
+			return;
+
+		QAction* pAction = new QAction(text, parent);
+		if (!pAction)
+			return;
+		if (!text.isEmpty() && !name.isEmpty())
+		{
+			pAction->setObjectName(name);
+		}
+		else
+			pAction->setSeparator(true);
+		parent->addAction(pAction);
+	};
+
+	auto create = [&createAction](const QVector<QPair<QString, QString>>& table, QMenu* pMenu)
+	{
+		for (auto& pair : table)
+		{
+			if (pair.first.isEmpty() || pair.second.isEmpty())
+			{
+				createAction(pMenu);
+				continue;
+			}
+			createAction(pMenu, pair.first, pair.second);
+		}
+	};
+
+	const QVector<QPair<QString, QString>> systemTable = {
+		{ QObject::tr("hide"), "actionHide" },
+		{ "","" },
+		{ QObject::tr("website"), "actionWebsite" },
+		{ QObject::tr("info"), "actionInfo" },
+		{ "", "" },
+		{ QObject::tr("close"), "actionClose" },
+		{ QObject::tr("close game"), "actionCloseGame" },
+	};
+
+	const QVector<QPair<QString, QString>> otherTable = {
+		{ QObject::tr("otherinfo"), "actionOtherInfo" },
+		{ QObject::tr("map"), "actionMap" },
+		{ "","" },
+		{ QObject::tr("script settings"), "actionScriptSettings" }
+	};
+
+	const QVector<QPair<QString, QString>> fileTable = {
+		{ QObject::tr("save"), "actionSave" },
+		{ QObject::tr("load"), "actionLoad" },
+	};
+
+	QMenu* pMenuSystem = new QMenu(QObject::tr("system"));
+	if (!pMenuSystem)
+		return;
+	pMenuSystem->setStyleSheet(styleText);
+	pMenuBar->addMenu(pMenuSystem);
+
+	QMenu* pMenuOther = new QMenu(QObject::tr("other"));
+	if (!pMenuOther)
+		return;
+	pMenuOther->setStyleSheet(styleText);
+	pMenuBar->addMenu(pMenuOther);
+
+	QMenu* pMenuFile = new QMenu(QObject::tr("file"));
+	if (!pMenuFile)
+		return;
+	pMenuFile->setStyleSheet(styleText);
+	pMenuBar->addMenu(pMenuFile);
+
+	create(systemTable, pMenuSystem);
+	create(otherTable, pMenuOther);
+	create(fileTable, pMenuFile);
+}
 
 //接收原生的窗口消息
 bool MainForm::nativeEvent(const QByteArray& eventType, void* message, long* result)
@@ -48,6 +164,9 @@ MainForm::MainForm(QWidget* parent)
 	setAttribute(Qt::WA_StaticContents, true);
 
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
+
+	connect(&signalDispatcher, &SignalDispatcher::saveHashSettings, this, &MainForm::onSaveHashSettings, Qt::UniqueConnection);
+	connect(&signalDispatcher, &SignalDispatcher::loadHashSettings, this, &MainForm::onLoadHashSettings, Qt::UniqueConnection);
 
 	QMenuBar* pMenuBar = new QMenuBar(this);
 	if (pMenuBar)
@@ -132,7 +251,7 @@ MainForm::MainForm(QWidget* parent)
 
 MainForm::~MainForm()
 {
-	MINT::NtTerminateProcess(Injector::getInstance().getProcess(), 0);
+	Injector::getInstance().close();
 	MINT::NtTerminateProcess(GetCurrentProcess(), 0);
 	qDebug() << "MainForm::~MainForm()";
 }
@@ -173,31 +292,30 @@ void MainForm::onMenuActionTriggered()
 		//if (g_Authenticator.Login(username, encode_password))
 		//	g_Authenticator.Logout();
 
-
-
-		return;
 	}
 
-	if (actionName == "actionInfo")
+	else if (actionName == "actionInfo")
 	{
 
-		return;
 	}
 
-	if (actionName == "actionWibsite")
+	else if (actionName == "actionWibsite")
 	{
 		QDesktopServices::openUrl(QUrl("https://www.lovesa.cc"));
-		return;
 	}
 
 	if (actionName == "actionClose")
 	{
 		close();
-		return;
+	}
+
+	else if (actionName == "actionCloseGame")
+	{
+		Injector::getInstance().close();
 	}
 
 	//other
-	if (actionName == "actionOtherInfo")
+	else if (actionName == "actionOtherInfo")
 	{
 		if (!pInfoForm_)
 		{
@@ -210,10 +328,19 @@ void MainForm::onMenuActionTriggered()
 				pInfoForm_->show();
 			}
 		}
-		return;
 	}
 
-	if (actionName == "actionScriptSettings")
+	else if (actionName == "actionMap")
+	{
+		MapWidget* mapWidget = new MapWidget(nullptr);
+		if (mapWidget)
+		{
+			mapWidget->setAttribute(Qt::WA_DeleteOnClose);
+			mapWidget->show();
+		}
+	}
+
+	else if (actionName == "actionScriptSettings")
 	{
 		ScriptSettingForm* pScriptSettingForm = new ScriptSettingForm;
 		if (pScriptSettingForm)
@@ -221,7 +348,26 @@ void MainForm::onMenuActionTriggered()
 			pScriptSettingForm->setAttribute(Qt::WA_DeleteOnClose);
 			pScriptSettingForm->show();
 		}
-		return;
+	}
+
+	else if (actionName == "actionSave")
+	{
+		QString fileName;
+		Injector& injector = Injector::getInstance();
+		if (!injector.server.isNull())
+			fileName = injector.server->pc.name;
+		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
+		emit signalDispatcher.saveHashSettings(fileName);
+	}
+
+	else if (actionName == "actionLoad")
+	{
+		QString fileName;
+		Injector& injector = Injector::getInstance();
+		if (!injector.server.isNull())
+			fileName = injector.server->pc.name;
+		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
+		emit signalDispatcher.loadHashSettings(fileName);
 	}
 }
 
@@ -243,7 +389,7 @@ void MainForm::resetControlTextLanguage()
 	default:
 		translator_.load(QString("%1/translations/qt_en_US.qm").arg(QApplication::applicationDirPath()));
 		break;
-}
+	}
 #else
 	switch (acp)
 	{
@@ -273,7 +419,7 @@ void MainForm::resetControlTextLanguage()
 
 	if (pMenuBar_)
 	{
-		util::createMenu(pMenuBar_);
+		createMenu(pMenuBar_);
 		QList<QAction*> actions = pMenuBar_->actions();
 		for (auto action : actions)
 		{
@@ -314,12 +460,15 @@ void MainForm::resetControlTextLanguage()
 	if (pAfkForm_)
 		emit pAfkForm_->resetControlTextLanguage();
 
+	if (pOtherForm_)
+		emit pOtherForm_->resetControlTextLanguage();
+
 }
 
 void MainForm::onUpdateStatusLabelTextChanged(int status)
 {
 	/*
-			kLabelStatusNotUsed = 0,//未知
+		kLabelStatusNotUsed = 0,//未知
 		kLabelStatusNotOpen,//未開啟石器
 		kLabelStatusOpening,//開啟石器中
 		kLabelStatusOpened,//已開啟石器
@@ -365,4 +514,163 @@ void MainForm::onUpdateCursorLabelTextChanged(const QString& text)
 void MainForm::onUpdateCoordsPosLabelTextChanged(const QString& text)
 {
 	ui.label_coords->setText(tr("coordis:") + text);
+}
+
+
+void MainForm::onSaveHashSettings(const QString& name)
+{
+	QString newFileName = name;
+	if (newFileName.isEmpty())
+		newFileName = "default";
+
+	newFileName += ".json";
+
+	QString directory = QCoreApplication::applicationDirPath() + "/settings/";
+	QString fileName(directory + newFileName);
+
+	QDir dir(directory);
+	if (!dir.exists())
+	{
+		dir.mkpath(directory);
+	}
+
+	QFileDialog dialog(this);
+	dialog.setFileMode(QFileDialog::AnyFile);
+	dialog.setAcceptMode(QFileDialog::AcceptSave);
+	dialog.setDirectory(directory);
+	dialog.setNameFilter(tr("Json Files (*.json)"));
+	dialog.selectFile(newFileName);
+
+	if (dialog.exec() == QDialog::Accepted)
+	{
+		QStringList fileNames = dialog.selectedFiles();
+		if (fileNames.size() > 0)
+		{
+			fileName = fileNames[0];
+		}
+	}
+	else
+		return;
+
+	util::Config config(fileName);
+
+	Injector& injector = Injector::getInstance();
+	util::SafeHash<util::UserSetting, bool> enableHash = injector.getEnableHash();
+	util::SafeHash<util::UserSetting, int> valueHash = injector.getValueHash();
+	util::SafeHash<util::UserSetting, QString> stringHash = injector.getStringHash();
+
+	QHash<util::UserSetting, QString> jsonKeyHash = util::user_setting_string_hash;
+
+	for (QHash < util::UserSetting, bool>::const_iterator iter = enableHash.begin(); iter != enableHash.end(); ++iter)
+	{
+		util::UserSetting hkey = iter.key();
+		bool hvalue = iter.value();
+		QString key = jsonKeyHash.value(hkey, "Invalid");
+		if (key.endsWith("Enable"))
+			config.write("User", "Enable", key, hvalue);
+	}
+
+	for (QHash<util::UserSetting, int>::const_iterator iter = valueHash.begin(); iter != valueHash.end(); ++iter)
+	{
+		util::UserSetting hkey = iter.key();
+		int hvalue = iter.value();
+		QString key = jsonKeyHash.value(hkey, "Invalid");
+		if (key.endsWith("Value"))
+			config.write("User", "Value", key, hvalue);
+	}
+
+	for (QHash < util::UserSetting, QString>::const_iterator iter = stringHash.begin(); iter != stringHash.end(); ++iter)
+	{
+		util::UserSetting hkey = iter.key();
+		QString hvalue = iter.value();
+		QString key = jsonKeyHash.value(hkey, "Invalid");
+		if (key.endsWith("String"))
+			config.write("User", "String", key, hvalue);
+	}
+
+}
+
+void MainForm::onLoadHashSettings(const QString& name)
+{
+	QString newFileName = name;
+	if (newFileName.isEmpty())
+		newFileName = "default";
+
+	newFileName += ".json";
+
+	QString directory = QCoreApplication::applicationDirPath() + "/settings/";
+	QString fileName(directory + newFileName);
+
+	QDir dir(directory);
+	if (!dir.exists())
+	{
+		dir.mkpath(directory);
+	}
+
+	QFileDialog dialog(this);
+	dialog.setFileMode(QFileDialog::ExistingFile);
+	dialog.setAcceptMode(QFileDialog::AcceptOpen);
+	dialog.setDirectory(directory);
+	dialog.setNameFilter(tr("Json Files (*.json)"));
+	dialog.selectFile(newFileName);
+
+	if (dialog.exec() == QDialog::Accepted)
+	{
+		QStringList fileNames = dialog.selectedFiles();
+		if (fileNames.size() > 0)
+		{
+			fileName = fileNames[0];
+		}
+	}
+	else
+		return;
+
+	if (!QFile::exists(fileName))
+		return;
+
+	util::Config config(fileName);
+
+	Injector& injector = Injector::getInstance();
+	util::SafeHash<util::UserSetting, bool> enableHash;
+	util::SafeHash<util::UserSetting, int> valueHash;
+	util::SafeHash<util::UserSetting, QString> stringHash;
+
+	QHash<util::UserSetting, QString> jsonKeyHash = util::user_setting_string_hash;
+
+	for (QHash < util::UserSetting, QString>::const_iterator iter = jsonKeyHash.begin(); iter != jsonKeyHash.end(); ++iter)
+	{
+		QString key = iter.value();
+		if (!key.endsWith("Enable"))
+			continue;
+		bool value = config.readBool("User", "Enable", key);
+		util::UserSetting hkey = iter.key();
+		enableHash.insert(hkey, value);
+	}
+
+	for (QHash < util::UserSetting, QString>::const_iterator iter = jsonKeyHash.begin(); iter != jsonKeyHash.end(); ++iter)
+	{
+		QString key = iter.value();
+		if (!key.endsWith("Value"))
+			continue;
+		int value = config.readInt("User", "Value", key);
+		util::UserSetting hkey = iter.key();
+		valueHash.insert(hkey, value);
+	}
+
+	for (QHash < util::UserSetting, QString>::const_iterator iter = jsonKeyHash.begin(); iter != jsonKeyHash.end(); ++iter)
+	{
+		QString key = iter.value();
+		if (!key.endsWith("String"))
+			continue;
+		QString value = config.readString("User", "String", key);
+		util::UserSetting hkey = iter.key();
+		stringHash.insert(hkey, value);
+	}
+
+	injector.setEnableHash(enableHash);
+	injector.setValueHash(valueHash);
+	injector.setStringHash(stringHash);
+
+	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
+	emit signalDispatcher.applyHashSettingsToUI();
 }

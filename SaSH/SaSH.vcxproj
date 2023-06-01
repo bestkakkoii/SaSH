@@ -34,12 +34,12 @@
   </ImportGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|Win32'" Label="QtSettings">
     <QtInstall>5.15.2_msvc2019</QtInstall>
-    <QtModules>core;network;gui;widgets;concurrent</QtModules>
+    <QtModules>core;opengl;network;gui;widgets;concurrent</QtModules>
     <QtBuildConfig>debug</QtBuildConfig>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|Win32'" Label="QtSettings">
     <QtInstall>5.15.2_msvc2019</QtInstall>
-    <QtModules>core;network;gui;widgets;concurrent</QtModules>
+    <QtModules>core;opengl;network;gui;widgets;concurrent</QtModules>
     <QtBuildConfig>release</QtBuildConfig>
   </PropertyGroup>
   <Target Name="QtMsBuildNotFound" BeforeTargets="CustomBuild;ClCompile" Condition="!Exists('$(QtMsBuild)\qt.targets') or !Exists('$(QtMsBuild)\qt.props')">
@@ -71,6 +71,9 @@
       <UACExecutionLevel>RequireAdministrator</UACExecutionLevel>
       <AdditionalLibraryDirectories>$(SolutionDir)$(ProjectName)\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
+    <QtTranslation>
+      <BuildAction>lupdate</BuildAction>
+    </QtTranslation>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -134,6 +137,7 @@
     <ClCompile Include="form\iteminfoform.cpp" />
     <ClCompile Include="form\mailinfoform.cpp" />
     <ClCompile Include="form\mapform.cpp" />
+    <ClCompile Include="form\mapwidget.cpp" />
     <ClCompile Include="form\otherform.cpp" />
     <ClCompile Include="form\petinfoform.cpp" />
     <ClCompile Include="form\playerinfoform.cpp" />
@@ -146,6 +150,10 @@
       <DynamicSource Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">input</DynamicSource>
       <QtMocFileName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">%(Filename).moc</QtMocFileName>
     </ClCompile>
+    <ClCompile Include="map\astar.cpp" />
+    <ClCompile Include="map\mapanalyzer.cpp" />
+    <ClCompile Include="model\combobox.cpp" />
+    <ClCompile Include="model\mapglwidget.cpp" />
     <ClCompile Include="net\autil.cpp" />
     <ClCompile Include="net\tcpserver.cpp" />
     <ClCompile Include="net\webauthenticator.cpp">
@@ -176,7 +184,12 @@
     <QtMoc Include="form\petinfoform.h" />
     <QtMoc Include="form\afkinfoform.h" />
     <QtMoc Include="form\abilityform.h" />
+    <QtMoc Include="form\mapwidget.h" />
     <ClInclude Include="injector.h" />
+    <ClInclude Include="map\astar.h" />
+    <ClInclude Include="map\mapanalyzer.h" />
+    <QtMoc Include="model\mapglwidget.h" />
+    <QtMoc Include="model\combobox.h" />
     <ClInclude Include="net\autil.h" />
     <ClInclude Include="qscopedhandle.h" />
     <ClInclude Include="util.h" />
@@ -191,6 +204,7 @@
     <QtUic Include="form\iteminfoform.ui" />
     <QtUic Include="form\mailinfoform.ui" />
     <QtUic Include="form\mapform.ui" />
+    <QtUic Include="form\mapwidget.ui" />
     <QtUic Include="form\otherform.ui" />
     <QtUic Include="form\petinfoform.ui" />
     <QtUic Include="form\playerinfoform.ui" />

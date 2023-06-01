@@ -1,7 +1,30 @@
 ﻿#include "stdafx.h"
-#include "injector.h"
+#include <injector.h>
 
 Injector* Injector::instance = nullptr;
+
+void Injector::clear()//static
+{
+	if (instance != nullptr)
+	{
+		instance->server.reset();
+		instance->hModule_ = NULL;
+		instance->hookdllModule_ = NULL;
+		instance->pi_ = {  };
+		instance->processHandle_.reset();
+		util::SafeHash<util::UserSetting, int> valueHash = instance->getValueHash();
+		util::SafeHash<util::UserSetting, bool> enableHash = instance->getEnableHash();
+		util::SafeHash<util::UserSetting, QString> stringHash = instance->getStringHash();
+		delete instance;
+		instance = new Injector();
+		if (instance)
+		{
+			instance->setValueHash(valueHash);
+			instance->setEnableHash(enableHash);
+			instance->setStringHash(stringHash);
+		}
+	}
+}
 
 bool Injector::createProcess(Injector::process_information_t& pi)
 {
@@ -66,7 +89,7 @@ bool Injector::createProcess(Injector::process_information_t& pi)
 	};
 
 	QStringList commandList;
-	commandList.append(path);
+	//commandList.append(path);
 	commandList.append("update");
 	commandList.append(mkcmd("realbin", nRealBin));
 	commandList.append(mkcmd("adrnbin", nAdrnBin));
@@ -82,10 +105,10 @@ bool Injector::createProcess(Injector::process_information_t& pi)
 	process.setArguments(commandList);
 	process.setProgram(path);
 	process.setWorkingDirectory(QFileInfo(path).absolutePath());
-	process.startDetached(&pid);
-	process.waitForFinished();
-	if (pid)
+
+	if (process.startDetached(&pid) && pid)
 	{
+
 		pi.dwProcessId = pid;
 		if (canSave)
 		{
@@ -199,7 +222,7 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 		if (!processHandle_.isValid())
 			processHandle_.reset(pi.dwProcessId);
 
-		const util::VMemory lpParameter(processHandle_, dllPath, util::VMemory::V_UNICODE, true);
+		const util::VirtualMemory lpParameter(processHandle_, dllPath, util::VirtualMemory::kUnicode, true);
 		if (!lpParameter)
 		{
 			if (pReason)
@@ -214,7 +237,7 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 			timer.restart();
 			for (;;)
 			{
-				hModule = mem::GetRemoteModuleHandle(pi.dwProcessId, fileNameOnly);
+				hModule = mem::getRemoteModuleHandle(pi.dwProcessId, fileNameOnly);
 				if (hModule)
 					break;
 
@@ -259,7 +282,7 @@ void Injector::remoteFreeModule()
 	if (!kernel32Module) return;
 	FARPROC freeLibraryProc = GetProcAddress(kernel32Module, "FreeLibrary");
 
-	const util::VMemory lpParameter(processHandle_, sizeof(int), true);
+	const util::VirtualMemory lpParameter(processHandle_, sizeof(int), true);
 	if (!lpParameter)
 	{
 		return;
@@ -279,6 +302,7 @@ bool Injector::isWindowAlive() const
 		return false;
 
 #ifndef _DEBUG
+	//CE下斷點時會自動關閉遊戲所以DEBUG時不檢查
 	if (SendMessageTimeoutW(pi_.hWnd, WM_NULL, 0, 0, SMTO_ABORTIFHUNG | SMTO_ERRORONEXIT, 3000, nullptr) == 0)
 		return false;
 #endif

@@ -251,7 +251,7 @@ void Autil::util_SendMesg(int fd, int func, char* buffer)
 	//	size += 1;
 	//
 	//	HANDLE hProcess = injector.getProcess();
-	//	util::VMemory ptr(hProcess, size, true);
+	//	util::VirtualMemory ptr(hProcess, size, true);
 	//	mem::write(hProcess, ptr, t2, size);
 	//	injector.sendMessage(Injector::kSendPacket, ptr, size);
 	//#ifdef _VMP_

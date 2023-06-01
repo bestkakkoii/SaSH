@@ -35,6 +35,9 @@ private:
 private slots:
 	void onMenuActionTriggered();
 
+	void onSaveHashSettings(const QString& name = "default");
+	void onLoadHashSettings(const QString& name = "default");
+
 	void onUpdateStatusLabelTextChanged(int status);
 	void onUpdateMapLabelTextChanged(const QString& text);
 	void onUpdateCursorLabelTextChanged(const QString& text);

@@ -18,7 +18,7 @@ private slots:
 	void onUpdatePlayerInfoColContents(int col, const QVariant& data);
 	void onUpdatePlayerInfoStone(int stone);
 	void onHeaderClicked(int logicalIndex);
-
+	void onUpdatePlayerInfoPetState(int petIndex, int state);
 private:
 	Ui::PlayerInfoFormClass ui;
 };

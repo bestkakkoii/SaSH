@@ -10,12 +10,13 @@
 #include <QMenuBar>
 #include <QAction>
 #include <QTabBar>
+#include <QLocale>
+#include <QCollator>
 #include "3rdparty/simplecrypt.h"
 
 constexpr int SASH_VERSION_MAJOR = 1;
 constexpr int SASH_VERSION_MINOR = 0;
 constexpr int SASH_VERSION_PATCH = 0;
-
 
 namespace mem
 {
@@ -31,11 +32,847 @@ namespace mem
 	Q_REQUIRED_RESULT int virtualAlloc(HANDLE hProcess, int size);
 	Q_REQUIRED_RESULT int virtualAllocW(HANDLE hProcess, const QString& str);
 	Q_REQUIRED_RESULT int virtualAllocA(HANDLE hProcess, const QString& str);
-	DWORD GetRemoteModuleHandle(DWORD dwProcessId, const QString& moduleName);
+	Q_REQUIRED_RESULT DWORD getRemoteModuleHandle(DWORD dwProcessId, const QString& moduleName);
+	void freeUnuseMemory(HANDLE hProcess);
 }
 
 namespace util
 {
+	constexpr const char* SA_NAME = u8"sa_8001.exe";
+
+
+	typedef enum
+	{
+		REASON_NO_ERROR,
+		//Thread
+		REASON_CLOSE_BEFORE_START,
+		REASON_PID_INVALID,
+		REASON_FAILED_TO_INIT,
+		REASON_MEMBERSHIP_INVALID,
+		REASON_REQUEST_STOP,
+		REASON_TARGET_WINDOW_DISAPPEAR,
+		REASON_FAILED_READ_DATA,
+
+		//TCP
+		REASON_TCP_PRECONNECTION_TIMEOUT,
+		REASON_TCP_CONNECTION_TIMEOUT,
+		REASON_TCP_CREATE_SOCKET_FAIL,
+		REASON_TCP_IPV6_CONNECT_FAIL,
+		REASON_TCP_IPV4_CONNECT_FAIL,
+		REASON_TCP_EVENT_SELECT_FAIL,
+		REASON_TCP_KEEPALIVE_FAIL,
+
+		//CreateProcess
+		REASON_DIRECTORY_EMPTY,
+		REASON_ARGUMENT_EMPTY,
+		REASON_IMAGE_PATH_NOFOUND,
+		REASON_EXECUTABLE_FILE_PATH_EMPTY,
+		REASON_FAILED_TO_START,
+
+		//Injection
+		REASON_ENUM_WINDOWS_FAIL,
+		REASON_HOOK_DLL_SHA512_FAIL,
+		REASON_GET_KERNEL32_FAIL,
+		REASON_GET_KERNEL32_UNDOCUMENT_API_FAIL,
+		REASON_OPEN_PROCESS_FAIL,
+		REASON_VIRTUAL_ALLOC_FAIL,
+		REASON_INJECT_LIBRARY_FAIL,
+		REASON_CLOSE_MUTEX_FAIL,
+		REASON_REMOTE_LIBRARY_INIT_FAIL,
+	}REMOVE_THREAD_REASON, * LPREMOVE_THREAD_REASON;
+
+	enum UserStatus
+	{
+		kLabelStatusNotUsed = 0,//未知
+		kLabelStatusNotOpen,//未開啟石器
+		kLabelStatusOpening,//開啟石器中
+		kLabelStatusOpened,//已開啟石器
+		kLabelStatusLogining,//登入
+		kLabelStatusSignning,//簽入中
+		kLabelStatusSelectServer,//選擇伺服器
+		kLabelStatusSelectSubServer,//選擇分伺服器
+		kLabelStatusGettingPlayerList,//取得人物中
+		kLabelStatusSelectPosition,//選擇人物中
+		kLabelStatusLoginSuccess,//登入成功
+		kLabelStatusInNormal,//平時
+		kLabelStatusInBattle,//戰鬥中
+		kLabelStatusBusy,//忙碌中
+		kLabelStatusTimeout,//連線逾時
+		kLabelNoUserNameOrPassword,//無帳號密碼
+		kLabelStatusDisconnected,//斷線
+	};
+
+	enum UserData
+	{
+		kUserDataNotUsed = 0x0,
+		kUserItemNames = 0x1,
+		kUserEnemyNames = 0x2,
+		kUserPetNames = 0x4,
+	};
+
+	enum ComboBoxUpdateType
+	{
+		kComboBoxCharAction,
+		kComboBoxPetAction,
+		kComboBoxItem,
+	};
+
+	enum SelectTarget
+	{
+		kSelectSelf = 0x1,            // 己 (Self)
+		kSelectPet = 0x2,             // 寵 (Pet)
+		kSelectAllieAny = 0x4,        // 我任 (Any ally)
+		kSelectAllieAll = 0x8,        // 我全 (All allies)
+		kSelectEnemyAny = 0x10,       // 敵任 (Any enemy)
+		kSelectEnemyAll = 0x20,       // 敵全 (All enemies)
+		kSelectEnemyFront = 0x40,     // 敵前 (Front enemy)
+		kSelectEnemyBack = 0x80,      // 敵後 (Back enemy)
+		kSelectLeader = 0x100,        // 隊 (Leader)
+		kSelectLeaderPet = 0x200,     // 隊寵 (Leader's pet)
+		kSelectTeammate1 = 0x400,     // 隊1 (Teammate 1)
+		kSelectTeammate1Pet = 0x800,  // 隊1寵 (Teammate 1's pet)
+		kSelectTeammate2 = 0x1000,    // 隊2 (Teammate 2)
+		kSelectTeammate2Pet = 0x2000, // 隊2寵 (Teammate 2's pet)
+		kSelectTeammate3 = 0x4000,    // 隊3 (Teammate 3)
+		kSelectTeammate3Pet = 0x8000, // 隊3寵 (Teammate 3's pet)
+		kSelectTeammate4 = 0x10000,   // 隊4 (Teammate 4)
+		kSelectTeammate4Pet = 0x20000 // 隊4寵 (Teammate 4's pet)
+	};
+
+	enum UnLoginStatus
+	{
+		kStatusUnknown,
+		kStatusInputUser,
+		kStatusSelectServer,
+		kStatusSelectSubServer,
+		kStatusSelectCharacter,
+		kStatusLogined,
+		kStatusDisconnect,
+		kStatusTimeout,
+		kNoUserNameOrPassword,
+		kStatusBusy,
+	};
+
+	enum UserSetting
+	{
+		kSettingNotUsed = 0,
+
+		///////////////////
+
+		kSettingMinValue,
+
+		kServerValue,
+		kSubServerValue,
+		kPositionValue,
+		kLockTimeValue,
+
+		//afk->battle button
+		kBattleCharRoundActionTargetValue,
+		kBattleCharCrossActionTargetValue,
+		kBattleCharNormalActionTargetValue,
+		kBattlePetNormalActionTargetValue,
+
+		kBattlePetRoundActionTargetValue,
+		kBattlePetCrossActionTargetValue,
+
+		//afk->battle combobox
+		kBattleCharRoundActionRoundValue,
+		kBattleCharRoundActionTypeValue,
+		kBattleCharRoundActionEnemyValue,
+		kBattleCharRoundActionLevelValue,
+
+		kBattleCharCrossActionTypeValue,
+		kBattleCharCrossActionRoundValue,
+
+		kBattleCharNormalActionTypeValue,
+		kBattleCharNormalActionEnemyValue,
+		kBattleCharNormalActionLevelValue,
+
+		kBattlePetRoundActionRoundValue,
+		kBattlePetRoundActionTypeValue,
+		kBattlePetRoundActionEnemyValue,
+		kBattlePetRoundActionLevelValue,
+
+		kBattlePetCrossActionTypeValue,
+		kBattlePetCrossActionRoundValue,
+
+		kBattlePetNormalActionTypeValue,
+		kBattlePetNormalActionEnemyValue,
+		kBattlePetNormalActionLevelValue,
+
+		//afk->heal button
+		kBattleMagicHealTargetValue,
+		kBattleItemHealTargetValue,
+		kBattleMagicReviveTargetValue,
+		kBattleItemReviveTargetValue,
+
+		//afk->heal combobox
+		kBattleMagicHealMagicValue,
+		kBattleMagicReviveMagicValue,
+		kNormalMagicHealMagicValue,
+
+		//afk->heal spinbox
+		kMagicHealCharValue,
+		kMagicHealPetValue,
+		kMagicHealAllieValue,
+
+		kItemHealCharValue,
+		kItemHealPetValue,
+		kItemHealAllieValue,
+
+		kItemHealMpValue,
+
+		kMagicHealCharNormalValue,
+		kMagicHealPetNormalValue,
+		kMagicHealAllieNormalValue,
+
+		kItemHealCharNormalValue,
+		kItemHealPetNormalValue,
+		kItemHealAllieNormalValue,
+
+		kItemHealMpNormalValue,
+
+		//afk->walk
+		kAutoWalkDelayValue,
+		kAutoWalkDistanceValue,
+		kAutoWalkDirectionValue,
+
+		//afk->catch
+		kBattleCatchModeValue,
+		kBattleCatchTargetLevelValue,
+		kBattleCatchTargetMaxHpValue,
+		kBattleCatchTargetMagicHpValue,
+		kBattleCatchTargetItemHpValue,
+		kBattleCatchPlayerMagicValue,
+		kBattleCatchPetSkillValue,
+
+		kDropPetStrValue,
+		kDropPetDefValue,
+		kDropPetAgiValue,
+		kDropPetHpValue,
+		kDropPetAggregateValue,
+
+		//general
+		kSpeedBoostValue,
+
+
+		//other->group
+		kAutoFunTypeValue,
+
+		kSettingMaxValue,
+
+		///////////////////
+
+		kSettingMinEnable,
+
+		kAutoLoginEnable,
+		kAutoReconnectEnable,
+		kLogOutEnable,
+		kLogBackEnable,
+		kEchoEnable,
+		kHideCharacterEnable,
+		kCloseEffectEnable,
+		kOptimizeEnable,
+		kHideWindowEnable,
+		kMuteEnable,
+		kAutoJoinEnable,
+		kLockTimeEnable,
+		kAutoFreeMemoryEnable,
+		kFastWalkEnable,
+		kPassWallEnable,
+		kLockMoveEnable,
+		kLockImageEnable,
+		kAutoDropMeatEnable,
+		kAutoDropEnable,
+		kAutoStackEnable,
+		kKNPCEnable,
+		kAutoAnswerEnable,
+		kForceLeaveBattleEnable,
+		kAutoWalkEnable,
+		kFastAutoWalkEnable,
+		kFastBattleEnable,
+		kAutoBattleEnable,
+		kAutoCatchEnable,
+		kLockAttackEnable,
+		kAutoEscapeEnable,
+		kLockEscapeEnable,
+		kBattleTimeExtendEnable,
+		kFallDownEscapeEnable,
+
+		//switcher
+		kSwitcherTeamEnable,
+		kSwitcherPKEnable,
+		kSwitcherCardEnable,
+		kSwitcherTradeEnable,
+		kSwitcherFamilyEnable,
+		kSwitcherJobEnable,
+		kSwitcherWorldEnable,
+
+		//afk->battle
+		kCrossActionCharEnable,
+		kCrossActionPetEnable,
+
+		//afk->heal
+		kBattleMagicHealEnable,
+		kBattleItemHealEnable,
+		kBattleItemHealMeatPriorityEnable,
+		kBattleItemHealMpEnable,
+		kBattleMagicReviveEnable,
+		kBattleItemReviveEnable,
+
+		kNormalMagicHealEnable,
+		kNormalItemHealEnable,
+		kNormalItemHealMeatPriorityEnable,
+		kNormalItemHealMpEnable,
+
+		//afk->catch
+		kBattleCatchTargetLevelEnable,
+		kBattleCatchTargetMaxHpEnable,
+		kBattleCatchPlayerMagicEnable,
+		kBattleCatchPlayerItemEnable,
+		kBattleCatchPetSkillEnable,
+
+		kDropPetEnable,
+		kDropPetStrEnable,
+		kDropPetDefEnable,
+		kDropPetAgiEnable,
+		kDropPetHpEnable,
+		kDropPetAggregateEnable,
+
+		kSettingMaxEnable,
+
+		//////////////////
+
+		kSettingMinString,
+
+		//global
+		kAutoDropItemString,
+		kLockAttackString,
+		kLockEscapeString,
+
+		//afk->heal
+		kBattleItemHealItemString,
+		kBattleItemHealMpIteamString,
+		kBattleItemReviveItemString,
+
+		kNormalItemHealItemString,
+		kNormalItemHealMpItemString,
+
+		//afk->catch
+		kBattleCatchPetNameString,
+		kBattleCatchPlayerItemString,
+		kDropPetNameString,
+
+
+		//other->group
+		kAutoFunNameString,
+
+		//other->other2
+		kGameAccountString,
+		kGamePasswordString,
+		kGameSecurityCodeString,
+
+
+
+		kSettingMaxString,
+	};
+
+	enum ObjectType
+	{
+		OBJ_UNKNOWN,
+		OBJ_ROAD,
+		OBJ_UP,
+		OBJ_DOWN,
+		OBJ_JUMP,
+		OBJ_WARP,
+		OBJ_WALL,
+		OBJ_ROCK,
+		OBJ_ROCKEX,
+		OBJ_BOUNDARY,
+		OBJ_WATER,
+		OBJ_EMPTY,
+		OBJ_HUMAN,
+		OBJ_NPC,
+		OBJ_BUILDING,
+		OBJ_ITEM,
+		OBJ_PET,
+		OBJ_GOLD,
+		OBJ_GM,
+	};
+
+	//用於將枚舉直轉換為字符串，提供給json當作key
+	static const QHash<UserSetting, QString> user_setting_string_hash = {
+		{ kSettingNotUsed, "SettingNotUsed" },
+
+		{ kSettingMinValue, "SettingMinValue" },
+
+		{ kServerValue, "ServerValue" },
+		{ kSubServerValue, "SubServerValue" },
+		{ kPositionValue, "PositionValue" },
+		{ kLockTimeValue, "LockTimeValue" },
+		{ kSpeedBoostValue, "SpeedBoostValue" },
+
+		//afk->battle combobox
+		{ kBattleCharRoundActionRoundValue, "BattleCharRoundActionRoundValue" },
+		{ kBattleCharRoundActionTypeValue, "BattleCharRoundActionTypeValue" },
+		{ kBattleCharRoundActionEnemyValue, "BattleCharRoundActionEnemyValue" },
+		{ kBattleCharRoundActionLevelValue, "BattleCharRoundActionLevelValue" },
+
+		{ kBattleCharCrossActionTypeValue, "BattleCharCrossActionTypeValue" },
+		{ kBattleCharCrossActionRoundValue, "BattleCharCrossActionRoundValue" },
+
+		{ kBattleCharNormalActionTypeValue, "BattleCharNormalActionTypeValue" },
+		{ kBattleCharNormalActionEnemyValue, "BattleCharNormalActionEnemyValue" },
+		{ kBattleCharNormalActionLevelValue, "BattleCharNormalActionLevelValue" },
+
+		{ kBattlePetRoundActionRoundValue, "BattlePetRoundActionRoundValue" },
+		{ kBattlePetRoundActionTypeValue, "BattlePetRoundActionTypeValue" },
+		{ kBattlePetRoundActionEnemyValue, "BattlePetRoundActionEnemyValue" },
+		{ kBattlePetRoundActionLevelValue, "BattlePetRoundActionLevelValue" },
+
+		{ kBattlePetCrossActionTypeValue, "BattlePetCrossActionTypeValue" },
+		{ kBattlePetCrossActionRoundValue, "BattlePetCrossActionRoundValue" },
+
+		{ kBattlePetNormalActionTypeValue, "BattlePetNormalActionTypeValue" },
+		{ kBattlePetNormalActionEnemyValue, "BattlePetNormalActionEnemyValue" },
+		{ kBattlePetNormalActionLevelValue, "BattlePetNormalActionLevelValue" },
+
+		//afk->battle buttom
+		{ kBattleCharRoundActionTargetValue, "BattleCharRoundActionTargetValue" },
+		{ kBattleCharCrossActionTargetValue, "BattleCharCrossActionTargetValue" },
+		{ kBattleCharNormalActionTargetValue, "BattleCharNormalActionTargetValue" },
+
+		{ kBattlePetRoundActionTargetValue, "BattlePetRoundActionTargetValue" },
+		{ kBattlePetCrossActionTargetValue, "BattlePetCrossActionTargetValue" },
+		{ kBattlePetNormalActionTargetValue, "BattlePetNormalActionTargetValue" },
+
+		//afk->heal button
+		{ kBattleMagicHealTargetValue, "BattleMagicHealTargetValue" },
+		{ kBattleItemHealTargetValue, "BattleItemHealTargetValue" },
+		{ kBattleMagicReviveTargetValue, "BattleMagicReviveTargetValue" },
+		{ kBattleItemReviveTargetValue, "BattleItemReviveTargetValue" },
+
+		//afk->heal combobox
+		{ kBattleMagicHealMagicValue, "BattleMagicHealMagicValue" },
+		{ kBattleMagicReviveMagicValue, "BattleMagicReviveMagicValue" },
+		{ kNormalMagicHealMagicValue, "NormalMagicHealMagicValue" },
+
+
+		//afk->heal spinbox
+		{ kMagicHealCharValue, "MagicHealCharValue" },
+		{ kMagicHealPetValue, "MagicHealPetValue" },
+		{ kMagicHealAllieValue, "MagicHealAllieValue" },
+
+		{ kItemHealCharValue, "ItemHealCharValue" },
+		{ kItemHealPetValue, "ItemHealPetValue" },
+		{ kItemHealAllieValue, "ItemHealAllieValue" },
+
+		{ kItemHealMpValue, "ItemHealMpValue" },
+
+		{ kMagicHealCharNormalValue, "MagicHealCharNormalValue" },
+		{ kMagicHealPetNormalValue, "MagicHealPetNormalValue" },
+		{ kMagicHealAllieNormalValue, "MagicHealAllieNormalValue" },
+
+		{ kItemHealCharNormalValue, "ItemHealCharNormalValue" },
+		{ kItemHealPetNormalValue, "ItemHealPetNormalValue" },
+		{ kItemHealAllieNormalValue, "ItemHealAllieNormalValue" },
+
+		{ kItemHealMpNormalValue, "ItemHealMpNormalValue" },
+
+		//afk->walk
+		{ kAutoWalkDelayValue, "AutoWalkDelayValue" },
+		{ kAutoWalkDistanceValue, "AutoWalkDistanceValue" },
+		{ kAutoWalkDirectionValue, "AutoWalkDirectionValue" },
+
+		//afk->catch
+		{ kBattleCatchModeValue, "BattleCatchModeValue" },
+		{ kBattleCatchTargetLevelValue, "BattleCatchTargetLevelValue" },
+		{ kBattleCatchTargetMaxHpValue, "BattleCatchTargetMaxHpValue" },
+		{ kBattleCatchTargetMagicHpValue, "BattleCatchTargetMagicHpValue" },
+		{ kBattleCatchTargetItemHpValue, "BattleCatchTargetItemHpValue" },
+		{ kBattleCatchPlayerMagicValue, "BattleCatchPlayerMagicValue" },
+		{ kBattleCatchPetSkillValue, "BattleCatchPetSkillValue" },
+
+		{ kDropPetStrValue, "DropPetStrValue" },
+		{ kDropPetDefValue, "DropPetDefValue" },
+		{ kDropPetAgiValue, "DropPetAgiValue" },
+		{ kDropPetHpValue, "DropPetHpValue" },
+		{ kDropPetAggregateValue, "DropPetAggregateValue" },
+
+		{ kSettingMaxValue, "SettingMaxValue" },
+
+		//check
+		{ kSettingMinEnable, "SettingMinEnable" },
+		{ kAutoLoginEnable, "AutoLoginEnable" },
+		{ kAutoReconnectEnable, "AutoReconnectEnable" },
+		{ kLogOutEnable, "LogOutEnable" },
+		{ kLogBackEnable, "LogBackEnable" },
+		{ kEchoEnable, "EchoEnable" },
+		{ kHideCharacterEnable, "HideCharacterEnable" },
+		{ kCloseEffectEnable, "CloseEffectEnable" },
+		{ kOptimizeEnable, "OptimizeEnable" },
+		{ kHideWindowEnable, "HideWindowEnable" },
+		{ kMuteEnable, "MuteEnable" },
+		{ kAutoJoinEnable, "AutoJoinEnable" },
+		{ kLockTimeEnable, "LockTimeEnable" },
+		{ kAutoFreeMemoryEnable, "AutoFreeMemoryEnable" },
+		{ kFastWalkEnable, "FastWalkEnable" },
+		{ kPassWallEnable, "PassWallEnable" },
+		{ kLockMoveEnable, "LockMoveEnable" },
+		{ kLockImageEnable, "LockImageEnable" },
+		{ kAutoDropMeatEnable, "AutoDropMeatEnable" },
+		{ kAutoDropEnable, "AutoDropEnable" },
+		{ kAutoStackEnable, "AutoStackEnable" },
+		{ kKNPCEnable, "KNPCEnable" },
+		{ kAutoAnswerEnable, "AutoAnswerEnable" },
+		{ kForceLeaveBattleEnable, "ForceLeaveBattleEnable" },
+		{ kAutoWalkEnable, "AutoWalkEnable" },
+		{ kFastAutoWalkEnable, "FastAutoWalkEnable" },
+		{ kFastBattleEnable, "FastBattleEnable" },
+		{ kAutoBattleEnable, "AutoBattleEnable" },
+		{ kAutoCatchEnable, "AutoCatchEnable" },
+		{ kLockAttackEnable, "LockAttackEnable" },
+		{ kAutoEscapeEnable, "AutoEscapeEnable" },
+		{ kLockEscapeEnable, "LockEscapeEnable" },
+		{ kBattleTimeExtendEnable, "BattleTimeExtendEnable" },
+		{ kFallDownEscapeEnable, "FallDownEscapeEnable" },
+		{ kSettingMaxEnable, "SettingMaxEnable" },
+
+		//switcher
+		{ kSwitcherTeamEnable, "SwitcherTeamEnable" },
+		{ kSwitcherPKEnable, "SwitcherPKEnable" },
+		{ kSwitcherCardEnable, "SwitcherCardEnable" },
+		{ kSwitcherTradeEnable, "SwitcherTradeEnable" },
+		{ kSwitcherFamilyEnable, "SwitcherFamilyEnable" },
+		{ kSwitcherJobEnable, "SwitcherJobEnable" },
+		{ kSwitcherWorldEnable, "SwitcherWorldEnable" },
+		//afk->battle
+		{ kCrossActionCharEnable, "CrossActionCharEnable" },
+		{ kCrossActionPetEnable, "CrossActionPetEnable" },
+
+		//afk->heal
+		{ kBattleMagicHealEnable, "BattleMagicHealEnable" },
+		{ kBattleItemHealEnable, "BattleItemHealEnable" },
+		{ kBattleItemHealMeatPriorityEnable, "BattleItemHealMeatPriorityEnable" },
+		{ kBattleItemHealMpEnable, "BattleItemHealMpEnable" },
+		{ kBattleMagicReviveEnable, "BattleMagicReviveEnable" },
+		{ kBattleItemReviveEnable, "BattleItemReviveEnable" },
+
+		{ kNormalMagicHealEnable, "NormalMagicHealEnable" },
+		{ kNormalItemHealEnable, "NormalItemHealEnable" },
+		{ kNormalItemHealMeatPriorityEnable, "NormalItemHealMeatPriorityEnable" },
+		{ kNormalItemHealMpEnable, "NormalItemHealMpEnable" },
+
+		//afk->catch
+		{ kBattleCatchTargetLevelEnable, "BattleCatchTargetLevelEnable" },
+		{ kBattleCatchTargetMaxHpEnable, "BattleCatchTargetMaxHpEnable" },
+		{ kBattleCatchPlayerMagicEnable, "BattleCatchPlayerMagicEnable" },
+		{ kBattleCatchPlayerItemEnable, "BattleCatchPlayerItemEnable" },
+		{ kBattleCatchPetSkillEnable, "BattleCatchPetSkillEnable" },
+
+		{ kDropPetEnable, "DropPetEnable" },
+		{ kDropPetStrEnable, "DropPetStrEnable" },
+		{ kDropPetDefEnable, "DropPetDefEnable" },
+		{ kDropPetAgiEnable, "DropPetAgiEnable" },
+		{ kDropPetHpEnable, "DropPetHpEnable" },
+		{ kDropPetAggregateEnable, "DropPetAggregateEnable" },
+
+		//other->group
+		{ kAutoFunTypeValue, "AutoFunTypeValue" },
+
+		//other->group
+
+
+		//string
+		{ kSettingMinString, "SettingMinString" },
+
+		{ kAutoDropItemString, "AutoDropItemString" },
+		{ kLockAttackString, "LockAttackString" },
+		{ kLockEscapeString, "LockEscapeString" },
+
+		//afk->heal
+		{ kBattleItemHealItemString, "BattleItemHealItemString" },
+		{ kBattleItemHealMpIteamString, "BattleItemHealMpIteamString" },
+		{ kBattleItemReviveItemString, "BattleItemReviveItemString" },
+		{ kNormalItemHealItemString, "NormalItemHealItemString" },
+		{ kNormalItemHealMpItemString, "NormalItemHealMpItemString" },
+
+		//afk->catch
+		{ kBattleCatchPetNameString, "BattleCatchPetNameString" },
+		{ kBattleCatchPlayerItemString, "BattleCatchPlayerItemString" },
+		{ kDropPetNameString, "DropPetNameString" },
+
+
+		//other->group
+		{ kAutoFunNameString, "AutoFunNameString" },
+
+		{ kGameAccountString, "GameAccountString" },
+		{ kGamePasswordString, "GamePasswordString" },
+		{ kGameSecurityCodeString, "GameSecurityCodeString" },
+
+		{ kSettingMaxString, "SettingMaxString" }
+	};
+
+	//8方位坐標補正
+	const static QVector<QPoint> fix_point = {
+		{0, -1},  //北0
+		{1, -1},  //東北1
+		{1, 0},	  //東2
+		{1, 1},	  //東南3
+		{0, 1},	  //南4
+		{-1, 1},  //西南0
+		{-1, 0},  //西1
+		{-1, -1}, //西北2
+	};
+
+	static inline const int __vectorcall percent(int value, int total)
+	{
+		double d = std::floor(static_cast<double>(value) * 100.0 / static_cast<double>(total));
+		if ((value > 0) && (d < 1.0))
+			return 1;
+		else
+			return static_cast<int>(d);
+	}
+
+	static Q_REQUIRED_RESULT QString toUnicode(const char* str, bool ext = true)
+	{
+		static QTextCodec* codec = QTextCodec::codecForName("GB2312");
+
+		QString qstr = codec->toUnicode(str);
+		std::wstring wstr = qstr.toStdWString();
+		UINT ACP = ::GetACP();
+		if (950 == ACP && ext)
+		{
+			// 繁體系統地圖名要轉繁體否則遊戲視窗標題會亂碼
+			int size = lstrlenW(wstr.c_str());
+			QScopedArrayPointer <wchar_t> wbuf(new wchar_t[size + 1]());
+			LCMapStringEx(LOCALE_NAME_SYSTEM_DEFAULT, LCMAP_TRADITIONAL_CHINESE, wstr.c_str(), size, wbuf.data(), size, NULL, NULL, NULL);
+			qstr = QString::fromWCharArray(wbuf.data());
+		}
+
+		return qstr;
+	}
+
+	static Q_REQUIRED_RESULT std::string fromUnicode(const QString& str)
+	{
+		static QTextCodec* codec = QTextCodec::codecForName("GB2312");
+		QString qstr = str;
+		std::wstring wstr = qstr.toStdWString();
+		UINT ACP = ::GetACP();
+		if (950 == ACP)
+		{
+			// 繁體系統要轉回簡體體否則遊戲視窗會亂碼
+			int size = lstrlenW(wstr.c_str());
+			QScopedArrayPointer <wchar_t> wbuf(new wchar_t[size + 1]());
+			LCMapStringEx(LOCALE_NAME_SYSTEM_DEFAULT, LCMAP_SIMPLIFIED_CHINESE, wstr.c_str(), size, wbuf.data(), size, NULL, NULL, NULL);
+			wstr = wbuf.data();
+			qstr = QString::fromWCharArray(wstr.c_str());
+		}
+
+		QByteArray bytes = codec->fromUnicode(qstr);
+
+		std::string s = bytes.data();
+
+		return s;
+	}
+
+	static void setTab(QTabWidget* pTab)
+	{
+		QString styleSheet = R"(
+			QTabWidget{
+				background-color:rgb(249, 249, 249);
+				background-clip:rgb(31, 31, 31);
+				background-origin:rgb(31, 31, 31);
+			}
+
+			QTabWidget::pane{
+				top:0px;
+				border-top:2px solid #7160E8;
+				border-bottom:1px solid rgb(61,61,61);
+				border-right:1px solid rgb(61,61,61);
+				border-left:1px solid rgb(61,61,61);
+			}
+
+			QTabWidget::tab-bar
+			{
+				alignment: left;
+				top:0px;
+				left:5px;
+				border:none;
+			}
+
+			QTabBar::tab:first{
+				/*color:rgb(178,178,178);*/
+				background:rgb(249, 249, 249);
+
+				padding-left:0px;
+				padding-right:0px;
+				/*width:100px;*/
+				height:24px;
+				margin-left:0px;
+				margin-right:0px;
+
+				border-top:2px solid rgb(31, 31, 31);
+			}
+
+			QTabBar::tab:middle{
+				/*color:rgb(178,178,178);*/
+				background:rgb(249, 249, 249);
+				padding-left:0px;
+				padding-right:0px;
+				/*width:100px;*/
+				height:24px;
+				margin-left:0px;
+				margin-right:0px;
+
+				border-top:2px solid rgb(31, 31, 31);
+
+			}
+
+			QTabBar::tab:last{
+				/*color:rgb(178,178,178);*/
+				background:rgb(249, 249, 249);
+
+				padding-left:0px;
+				padding-right:0px;
+				/*width:100px;*/
+				height:24px;
+				margin-left:0px;
+				margin-right:0px;
+
+				border-top:2px solid rgb(31, 31, 31);
+			}
+
+			QTabBar::tab:selected{
+				background:rgb(50, 130, 246);
+				border-top:2px solid rgb(50, 130, 246);
+
+			}
+
+			QTabBar::tab:hover{
+				background:rgb(50, 130, 246);
+				border-top:2px solid rgb(50, 130, 246);
+				padding-left:0px;
+				padding-right:0px;
+				/*width:100px;*/
+				height:24px;
+				margin-left:0px;
+				margin-right:0px;
+			}
+		)";
+		pTab->setStyleSheet(styleSheet);
+
+		QTabBar* pTabBar = pTab->tabBar();
+
+		pTabBar->setDocumentMode(true);
+		pTabBar->setExpanding(true);
+	}
+
+	static bool createFileDialog(const QString& name, QString* retstring, QWidget* parent)
+	{
+		QFileDialog dialog(parent);
+		dialog.setModal(true);
+		dialog.setFileMode(QFileDialog::ExistingFile);
+		dialog.setViewMode(QFileDialog::Detail);
+		dialog.setOption(QFileDialog::ReadOnly, true);
+		dialog.setOption(QFileDialog::DontResolveSymlinks, true);
+		dialog.setOption(QFileDialog::DontConfirmOverwrite, true);
+		dialog.setAcceptMode(QFileDialog::AcceptOpen);
+
+
+		//check suffix
+		if (!name.isEmpty())
+		{
+			QStringList filters;
+			filters << name;
+			dialog.setNameFilters(filters);
+		}
+
+		//directory
+		//自身目錄往上一層
+		QString directory = QCoreApplication::applicationDirPath();
+		directory = QDir::toNativeSeparators(directory);
+		directory = QDir::cleanPath(directory + QDir::separator() + "..");
+		dialog.setDirectory(directory);
+
+		if (dialog.exec() == QDialog::Accepted)
+		{
+			QStringList fileNames = dialog.selectedFiles();
+			if (fileNames.size() > 0)
+			{
+				QString fileName = fileNames.at(0);
+				if (retstring)
+					*retstring = fileName;
+
+				return true;
+			}
+		}
+		return false;
+	}
+
+	static bool customStringCompare(const QString& str1, const QString& str2)
+	{
+		//中文locale
+		QLocale locale;
+		QCollator collator(locale);
+
+		// 按照數字進行排序
+		if (str1.contains(QRegularExpression("\\d")) && str2.contains(QRegularExpression("\\d")))
+		{
+			return str1.toInt() < str2.toInt();
+		}
+
+		// 按照字母進行排序
+		if (str1.contains(QRegularExpression("[A-Za-z]")) && str2.contains(QRegularExpression("[A-Za-z]")))
+		{
+			return str1.localeAwareCompare(str2) < 0;
+		}
+
+		// 按照中文進行排序
+		return collator.compare(str1, str2) < 0;
+	}
+
+	template<typename T>
+	QList<T*> findWidgets(QWidget* widget)
+	{
+		QList<T*> widgets;
+
+		if (widget)
+		{
+			// 檢查 widget 是否為指定類型的控件，如果是，則添加到結果列表中
+			T* typedWidget = qobject_cast<T*>(widget);
+			if (typedWidget)
+			{
+				widgets.append(typedWidget);
+			}
+
+			// 遍歷 widget 的子控件並遞歸查找
+			QList<QWidget*> childWidgets = widget->findChildren<QWidget*>();
+			for (QWidget* childWidget : childWidgets)
+			{
+				// 遞歸調用 findWidgets 函數並將結果合並到 widgets 列表中
+				QList<T*> childResult = findWidgets<T>(childWidget);
+				widgets += childResult;
+			}
+		}
+
+		return widgets;
+	}
+
+	static QString formatMilliseconds(qint64 milliseconds)
+	{
+		qint64 totalSeconds = milliseconds / 1000ll;
+		qint64 days = totalSeconds / (24ll * 60ll * 60ll);
+		qint64 hours = (totalSeconds % (24ll * 60ll * 60ll)) / (60ll * 60ll);
+		qint64 minutes = (totalSeconds % (60ll * 60ll)) / 60ll;
+		qint64 seconds = totalSeconds % 60ll;
+		qint64 remainingMilliseconds = milliseconds % 1000ll;
+
+		return QString(QObject::tr("%1 day %2 hour %3 min %4 sec %5 msec"))
+			.arg(days).arg(hours).arg(minutes).arg(seconds).arg(remainingMilliseconds);
+	}
+
+	//基於Qt QHash 的線程安全Hash容器
 	template <typename K, typename V>
 	class SafeHash
 	{
@@ -203,75 +1040,7 @@ namespace util
 		mutable QReadWriteLock lock;
 	};
 
-	static Q_REQUIRED_RESULT QString toUnicode(const char* str, bool ext = true)
-	{
-		static QTextCodec* codec = QTextCodec::codecForName("GB2312");
-
-		QString qstr = codec->toUnicode(str);
-		std::wstring wstr = qstr.toStdWString();
-		UINT ACP = ::GetACP();
-		if (950 == ACP && ext)
-		{
-			// 繁體系統地圖名要轉繁體否則遊戲視窗標題會亂碼
-			int size = lstrlenW(wstr.c_str());
-			QScopedArrayPointer <wchar_t> wbuf(new wchar_t[size + 1]());
-			LCMapStringEx(LOCALE_NAME_SYSTEM_DEFAULT, LCMAP_TRADITIONAL_CHINESE, wstr.c_str(), size, wbuf.data(), size, NULL, NULL, NULL);
-			qstr = QString::fromWCharArray(wbuf.data());
-		}
-
-		return qstr;
-	}
-
-	static Q_REQUIRED_RESULT std::string fromUnicode(const QString& str)
-	{
-		static QTextCodec* codec = QTextCodec::codecForName("GB2312");
-		QString qstr = str;
-		std::wstring wstr = qstr.toStdWString();
-		UINT ACP = ::GetACP();
-		if (950 == ACP)
-		{
-			// 繁體系統要轉回簡體體否則遊戲視窗會亂碼
-			int size = lstrlenW(wstr.c_str());
-			QScopedArrayPointer <wchar_t> wbuf(new wchar_t[size + 1]());
-			LCMapStringEx(LOCALE_NAME_SYSTEM_DEFAULT, LCMAP_SIMPLIFIED_CHINESE, wstr.c_str(), size, wbuf.data(), size, NULL, NULL, NULL);
-			wstr = wbuf.data();
-			qstr = QString::fromWCharArray(wstr.c_str());
-		}
-
-		QByteArray bytes = codec->fromUnicode(qstr);
-
-		std::string s = bytes.data();
-
-		return s;
-	}
-
-	template<typename T>
-	QList<T*> findWidgets(QWidget* widget)
-	{
-		QList<T*> widgets;
-
-		if (widget)
-		{
-			// 檢查 widget 是否為指定類型的控件，如果是，則添加到結果列表中
-			T* typedWidget = qobject_cast<T*>(widget);
-			if (typedWidget)
-			{
-				widgets.append(typedWidget);
-			}
-
-			// 遍歷 widget 的子控件並遞歸查找
-			QList<QWidget*> childWidgets = widget->findChildren<QWidget*>();
-			for (QWidget* childWidget : childWidgets)
-			{
-				// 遞歸調用 findWidgets 函數並將結果合並到 widgets 列表中
-				QList<T*> childResult = findWidgets<T>(childWidget);
-				widgets += childResult;
-			}
-		}
-
-		return widgets;
-	}
-
+	//Json配置讀寫
 	class Config
 	{
 	public:
@@ -320,6 +1089,7 @@ namespace util
 		bool hasChanged_ = false;
 	};
 
+	//簡易字符串加解密 主要用於將一些二進制數據轉換為可視字符串方便保存json
 	class Crypt
 	{
 	public:
@@ -381,6 +1151,7 @@ namespace util
 
 	};
 
+	//介面排版或配置管理 主用於保存窗口狀態
 	class FormSettingManager
 	{
 	public:
@@ -394,311 +1165,18 @@ namespace util
 		QMainWindow* mainwindow_ = nullptr;
 	};
 
-	static void createMenu(QMenuBar* pMenuBar, QHash<QString, QAction*>* phash = nullptr)
-	{
-		if (!pMenuBar)
-			return;
-
-		auto setMenuStyleSheet = [](QMenu* menu)->void
-		{
-			menu->setStyleSheet(R"(
-				QMenu {
-					background-color: rgb(249, 249, 249); /*整個背景*/
-					border: 0px;
-					/*item寬度*/
-					width: 150px;
-				
-				}
-				QMenu::item {
-					font-size: 9pt;
-					/*color: rgb(225, 225, 225); 字體顏色*/
-					border: 2px; solid rgb(249, 249, 249); /*item選框*/
-					background-color: rgb(249, 249, 249);
-					padding: 10px 10px; /*設置菜單項文字上下和左右的內邊距，效果就是菜單中的條目左右上下有了間隔*/
-					margin: 2px 2px; /*設置菜單項的外邊距*/
-					/*item高度*/	
-					height: 10px;
-				}
-				QMenu::item:selected {
-					background-color: rgb(240, 240, 240); /*選中的樣式*/
-					border: 2px solid rgb(249, 249, 249); /*选中状态下的边框*/
-				}
-				QMenu::item:pressed {
-					/*菜單項按下效果
-					border: 0px; /*solid rgb(60, 60, 61);*/
-					background-color: rgb(50, 130, 246);
-				}
-			)");
-		};
-
-		pMenuBar->setAttribute(Qt::WA_StyledBackground, true);
-
-		pMenuBar->clear();
-
-		QHash<QString, QAction*> hash;
-		QMenu* pMenuSystem = nullptr;
-		QAction* pActionHide = nullptr;
-		QAction* pSeparator = nullptr;
-		QAction* pActionInfo = nullptr;
-		QAction* pActionWibsite = nullptr;
-		QAction* pSeparator2 = nullptr;
-		QAction* pActionClose = nullptr;
-
-		QMenu* pMenuOther = nullptr;
-		QAction* pActionOtherInfo = nullptr;
-		QAction* pSeparator3 = nullptr;
-		QAction* pActionSettings = nullptr;
-
-		do
-		{
-			pMenuSystem = new QMenu(QObject::tr("system"));
-			if (!pMenuSystem)
-				break;
-			setMenuStyleSheet(pMenuSystem);
-
-			pActionHide = new QAction(QObject::tr("hide"), pMenuSystem);
-			if (!pActionHide)
-				break;
-			pActionHide->setObjectName("actionHide");
-			hash.insert("actionHide", pActionHide);
-
-			pSeparator = new QAction(pMenuSystem);
-			if (!pSeparator)
-				break;
-			pSeparator->setSeparator(true);
-
-			pActionInfo = new QAction(QObject::tr("info"), pMenuSystem);
-			if (!pActionInfo)
-				break;
-			pActionInfo->setObjectName("actionInfo");
-			hash.insert("actionInfo", pActionInfo);
-
-			pActionWibsite = new QAction(QObject::tr("website"), pMenuSystem);
-			if (!pActionWibsite)
-				break;
-			pActionWibsite->setObjectName("actionWibsite");
-			hash.insert("actionWibsite", pActionWibsite);
-
-			pSeparator2 = new QAction(pMenuSystem);
-			if (!pSeparator2)
-				break;
-			pSeparator2->setSeparator(true);
-
-			pActionClose = new QAction(QObject::tr("close"), pMenuSystem);
-			if (!pActionClose)
-				break;
-			pActionClose->setObjectName("actionClose");
-			hash.insert("actionClose", pActionClose);
-
-			pMenuSystem->addAction(pActionHide);
-			pMenuSystem->addAction(pSeparator);
-			pMenuSystem->addAction(pActionInfo);
-			pMenuSystem->addAction(pActionWibsite);
-			pMenuSystem->addAction(pSeparator2);
-			pMenuSystem->addAction(pActionClose);
-
-			pMenuBar->addMenu(pMenuSystem);
-
-			pMenuOther = new QMenu(QObject::tr("other"));
-			if (!pMenuOther)
-				break;
-			setMenuStyleSheet(pMenuOther);
-
-			pActionOtherInfo = new QAction(QObject::tr("otherinfo"), pMenuOther);
-			if (!pActionOtherInfo)
-				break;
-			pActionOtherInfo->setObjectName("actionOtherInfo");
-			hash.insert("actionOtherInfo", pActionOtherInfo);
-
-			pSeparator3 = new QAction(pMenuOther);
-			if (!pSeparator3)
-				break;
-			pSeparator3->setSeparator(true);
-
-			pActionSettings = new QAction(QObject::tr("script settings"), pMenuOther);
-			if (!pActionSettings)
-				break;
-			pActionSettings->setObjectName("actionScriptSettings");
-			hash.insert("actionScriptSettings", pActionSettings);
-
-			pMenuOther->addAction(pActionOtherInfo);
-			pMenuOther->addAction(pSeparator3);
-			pMenuOther->addAction(pActionSettings);
-
-			pMenuBar->addMenu(pMenuOther);
-
-			if (phash)
-				*phash = hash;
-			return;
-		} while (false);
-
-		if (pMenuSystem)
-			delete pMenuSystem;
-		if (pActionHide)
-			delete pActionHide;
-		if (pSeparator)
-			delete pSeparator;
-		if (pActionInfo)
-			delete pActionInfo;
-		if (pActionWibsite)
-			delete pActionWibsite;
-		if (pSeparator2)
-			delete pSeparator2;
-		if (pActionClose)
-			delete pActionClose;
-		if (pMenuOther)
-			delete pMenuOther;
-		if (pActionOtherInfo)
-			delete pActionOtherInfo;
-		if (pSeparator3)
-			delete pSeparator3;
-		if (pActionSettings)
-			delete pActionSettings;
-	}
-
-	static void setTab(QTabWidget* pTab)
-	{
-		QString styleSheet = R"(
-			QTabWidget{
-				background-color:rgb(249, 249, 249);
-				background-clip:rgb(31, 31, 31);
-				background-origin:rgb(31, 31, 31);
-			}
-
-			QTabWidget::pane{
-				top:0px;
-				border-top:2px solid #7160E8;
-				border-bottom:1px solid rgb(61,61,61);
-				border-right:1px solid rgb(61,61,61);
-				border-left:1px solid rgb(61,61,61);
-			}
-
-			QTabWidget::tab-bar
-			{
-				alignment: left;
-				top:0px;
-				left:5px;
-				border:none;
-			}
-
-			QTabBar::tab:first{
-				/*color:rgb(178,178,178);*/
-				background:rgb(249, 249, 249);
-
-				padding-left:0px;
-				padding-right:0px;
-				/*width:100px;*/
-				height:24px;
-				margin-left:0px;
-				margin-right:0px;
-
-				border-top:2px solid rgb(31, 31, 31);
-			}
-
-			QTabBar::tab:middle{
-				/*color:rgb(178,178,178);*/
-				background:rgb(249, 249, 249);
-				padding-left:0px;
-				padding-right:0px;
-				/*width:100px;*/
-				height:24px;
-				margin-left:0px;
-				margin-right:0px;
-
-				border-top:2px solid rgb(31, 31, 31);
-
-			}
-
-			QTabBar::tab:last{
-				/*color:rgb(178,178,178);*/
-				background:rgb(249, 249, 249);
-
-				padding-left:0px;
-				padding-right:0px;
-				/*width:100px;*/
-				height:24px;
-				margin-left:0px;
-				margin-right:0px;
-
-				border-top:2px solid rgb(31, 31, 31);
-			}
-
-			QTabBar::tab:selected{
-				background:rgb(50, 130, 246);
-				border-top:2px solid rgb(50, 130, 246);
-
-			}
-
-			QTabBar::tab:hover{
-				background:rgb(50, 130, 246);
-				border-top:2px solid rgb(50, 130, 246);
-				padding-left:0px;
-				padding-right:0px;
-				/*width:100px;*/
-				height:24px;
-				margin-left:0px;
-				margin-right:0px;
-			}
-		)";
-		pTab->setStyleSheet(styleSheet);
-
-		QTabBar* pTabBar = pTab->tabBar();
-
-		pTabBar->setDocumentMode(true);
-		pTabBar->setExpanding(true);
-	}
-
-	typedef enum
-	{
-		REASON_NO_ERROR,
-		//Thread
-		REASON_CLOSE_BEFORE_START,
-		REASON_PID_INVALID,
-		REASON_FAILED_TO_INIT,
-		REASON_MEMBERSHIP_INVALID,
-		REASON_REQUEST_STOP,
-		REASON_TARGET_WINDOW_DISAPPEAR,
-		REASON_FAILED_READ_DATA,
-
-		//TCP
-		REASON_TCP_PRECONNECTION_TIMEOUT,
-		REASON_TCP_CONNECTION_TIMEOUT,
-		REASON_TCP_CREATE_SOCKET_FAIL,
-		REASON_TCP_IPV6_CONNECT_FAIL,
-		REASON_TCP_IPV4_CONNECT_FAIL,
-		REASON_TCP_EVENT_SELECT_FAIL,
-		REASON_TCP_KEEPALIVE_FAIL,
-
-		//CreateProcess
-		REASON_DIRECTORY_EMPTY,
-		REASON_ARGUMENT_EMPTY,
-		REASON_IMAGE_PATH_NOFOUND,
-		REASON_EXECUTABLE_FILE_PATH_EMPTY,
-		REASON_FAILED_TO_START,
-
-		//Injection
-		REASON_ENUM_WINDOWS_FAIL,
-		REASON_HOOK_DLL_SHA512_FAIL,
-		REASON_GET_KERNEL32_FAIL,
-		REASON_GET_KERNEL32_UNDOCUMENT_API_FAIL,
-		REASON_OPEN_PROCESS_FAIL,
-		REASON_VIRTUAL_ALLOC_FAIL,
-		REASON_INJECT_LIBRARY_FAIL,
-		REASON_CLOSE_MUTEX_FAIL,
-		REASON_REMOTE_LIBRARY_INIT_FAIL,
-	}REMOVE_THREAD_REASON, * LPREMOVE_THREAD_REASON;
-
-	class VMemory
+	//遠程虛擬內存申請、釋放、或申請+寫入字符串(ANSI | UNICODE)
+	class VirtualMemory
 	{
 	public:
-		typedef enum
+		enum VirtualEncode
 		{
-			V_ANSI,
-			V_UNICODE,
-		}VENCODE;
-		VMemory() = default;
+			kAnsi,
+			kUnicode,
+		};
+		VirtualMemory() = default;
 
-		explicit VMemory(HANDLE h, int size, bool autoclear)
+		explicit VirtualMemory(HANDLE h, int size, bool autoclear)
 			: autoclear(autoclear)
 			, hProcess(h)
 		{
@@ -706,11 +1184,11 @@ namespace util
 			lpAddress = mem::virtualAlloc(h, size);
 		}
 
-		explicit VMemory(HANDLE h, const QString& str, VENCODE use_unicode, bool autoclear)
+		explicit VirtualMemory(HANDLE h, const QString& str, VirtualEncode use_unicode, bool autoclear)
 			: autoclear(autoclear)
 		{
 
-			lpAddress = (use_unicode) == VMemory::V_UNICODE ? (mem::virtualAllocW(h, str)) : (mem::virtualAllocA(h, str));
+			lpAddress = (use_unicode) == VirtualMemory::kUnicode ? (mem::virtualAllocW(h, str)) : (mem::virtualAllocA(h, str));
 			hProcess = h;
 		}
 
@@ -719,25 +1197,25 @@ namespace util
 			return this->lpAddress;
 		}
 
-		VMemory& operator=(int other)
+		VirtualMemory& operator=(int other)
 		{
 			this->lpAddress = other;
 			return *this;
 		}
 
-		VMemory* operator&()
+		VirtualMemory* operator&()
 		{
 			return this;
 		}
 
 		// copy constructor
-		VMemory(const VMemory& other)
+		VirtualMemory(const VirtualMemory& other)
 			: autoclear(other.autoclear)
 			, lpAddress(other.lpAddress)
 		{
 		}
 		//copy assignment
-		VMemory& operator=(const VMemory& other)
+		VirtualMemory& operator=(const VirtualMemory& other)
 		{
 			this->lpAddress = other.lpAddress;
 			this->autoclear = other.autoclear;
@@ -745,7 +1223,7 @@ namespace util
 			return *this;
 		}
 		// move constructor
-		VMemory(VMemory&& other) noexcept
+		VirtualMemory(VirtualMemory&& other) noexcept
 			: autoclear(other.autoclear)
 			, lpAddress(other.lpAddress)
 			, hProcess(other.hProcess)
@@ -754,7 +1232,7 @@ namespace util
 			other.lpAddress = 0;
 		}
 		// move assignment
-		VMemory& operator=(VMemory&& other) noexcept
+		VirtualMemory& operator=(VirtualMemory&& other) noexcept
 		{
 			this->lpAddress = other.lpAddress;
 			this->autoclear = other.autoclear;
@@ -763,16 +1241,16 @@ namespace util
 			return *this;
 		}
 
-		friend constexpr inline bool operator==(const VMemory& p1, const VMemory& p2)
+		friend constexpr inline bool operator==(const VirtualMemory& p1, const VirtualMemory& p2)
 		{
 			return p1.lpAddress == p2.lpAddress;
 		}
-		friend constexpr inline bool operator!=(const VMemory& p1, const VMemory& p2)
+		friend constexpr inline bool operator!=(const VirtualMemory& p1, const VirtualMemory& p2)
 		{
 			return p1.lpAddress != p2.lpAddress;
 		}
 
-		virtual ~VMemory()
+		virtual ~VirtualMemory()
 		{
 			do
 			{
@@ -811,370 +1289,65 @@ namespace util
 		HANDLE hProcess = NULL;
 	};
 
+	//智能文件句柄類
+	class QScopedFile : public QFile
+	{
+	public:
+		QScopedFile(const QString& filename, OpenMode ioFlags)
+			: QFile(filename)
+		{
+			QFile::open(ioFlags);
+		}
+
+		~QScopedFile()
+		{
+			if (m_maps.size())
+			{
+				for (uchar* map : m_maps)
+				{
+					QFile::unmap(map);
+				}
+				m_maps.clear();
+			}
+			if (QFile::isOpen())
+				QFile::close();
+		}
+
+		template <typename T>
+		bool __fastcall  mmap(T*& p, int offset, int size, QFile::MemoryMapFlags flags = QFileDevice::MapPrivateOption)//QFile::NoOptions
+		{
+			uchar* uc = QFile::map(offset, size, flags);
+			if (uc)
+			{
+				m_maps.insert(uc);
+				p = reinterpret_cast<T*>(uc);
+			}
+			return uc != nullptr;
+		}
+
+		QFile& __fastcall  file() { return *this; }
+
+	private:
+		QSet<uchar*> m_maps;
+	};
+
+	//用於掛機訊息紀錄
+	typedef struct tagAfkRecorder
+	{
+		int levelrecord = 0;
+		int leveldifference = 0;
+		int exprecord = 0;
+		int expdifference = 0;
+		int goldearn = 0;
+		int deadthcount = 0;
+	}AfkRecorder;
 #pragma warning(push)
 #pragma warning(disable:304)
-	Q_DECLARE_METATYPE(VMemory);
-	Q_DECLARE_TYPEINFO(VMemory, Q_MOVABLE_TYPE);
+	Q_DECLARE_METATYPE(VirtualMemory);
+	Q_DECLARE_TYPEINFO(VirtualMemory, Q_MOVABLE_TYPE);
 #pragma warning(pop)
 
-	enum UnLoginStatus
-	{
-		kStatusUnknown,
-		kStatusInputUser,
-		kStatusSelectServer,
-		kStatusSelectSubServer,
-		kStatusSelectCharacter,
-		kStatusLogined,
-		kStatusDisconnect,
-		kStatusTimeout,
-		kNoUserNameOrPassword,
-		kStatusBusy,
-	};
-
-	enum UserSetting
-	{
-		kSettingNotUsed = 0,
-
-		///////////////////
-
-		kSettingMinValue,
-
-		kServerValue,
-		kSubServerValue,
-		kPositionValue,
-		kLockTimeValue,
-
-		//afk->walk
-		kAutoWalkDelayValue,
-		kAutoWalkDistanceValue,
-		kAutoWalkDirectionValue,
-
-		kSpeedBoostValue,
-
-		kSettingMaxValue,
-
-		///////////////////
-
-		kSettingMinEnable,
-
-		kAutoLoginEnable,
-		kAutoReconnectEnable,
-		kLogOutEnable,
-		kLogBackEnable,
-		kEchoEnable,
-		kHideCharacterEnable,
-		kCloseEffectEnable,
-		kOptimizeEnable,
-		kHideWindowEnable,
-		kMuteEnable,
-		kAutoJoinEnable,
-		kLockTimeEnable,
-		kAutoFreeMemoryEnable,
-		kFastWalkEnable,
-		kPassWallEnable,
-		kLockMoveEnable,
-		kLockImageEnable,
-		kAutoDropMeatEnable,
-		kAutoDropEnable,
-		kAutoStackEnable,
-		kKNPCEnable,
-		kAutoAnswerEnable,
-		kForceLeaveBattleEnable,
-		kAutoWalkEnable,
-		kFastAutoWalkEnable,
-		kFastBattleEnable,
-		kAutoBattleEnable,
-		kAutoCatchEnable,
-		kLockAttackEnable,
-		kAutoEscapeEnable,
-		kLockEscapeEnable,
-		kBattleTimeExtendEnable,
-		kFallDownEscapeEnable,
-
-		//switcher
-		kSwitcherTeamEnable,
-		kSwitcherPKEnable,
-		kSwitcherCardEnable,
-		kSwitcherTradeEnable,
-		kSwitcherFamilyEnable,
-		kSwitcherJobEnable,
-		kSwitcherWorldEnable,
-
-
-		kSettingMaxEnable,
-
-		//////////////////
-
-		kSettingMinString,
-
-		kAutoDropItemString,
-		kLockAttackString,
-		kLockEscapeString,
-
-		kGameAccountString,
-		kGamePasswordString,
-		kGameSecurityCodeString,
-
-
-		kSettingMaxString,
-	};
-
-
-	//用於將枚舉直轉換為字符串，提供給json當作key
-	static const QHash<UserSetting, QString> user_setting_string_hash = {
-		{ kSettingNotUsed, "SettingNotUsed" },
-
-		{ kSettingMinValue, "SettingMinValue" },
-
-		{ kServerValue, "ServerValue" },
-		{ kSubServerValue, "SubServerValue" },
-		{ kPositionValue, "PositionValue" },
-		{ kLockTimeValue, "LockTimeValue" },
-		{ kSpeedBoostValue, "SpeedBoostValue" },
-
-		//afk->walk
-		{ kAutoWalkDelayValue, "AutoWalkDelayValue" },
-		{ kAutoWalkDistanceValue, "AutoWalkDistanceValue" },
-		{ kAutoWalkDirectionValue, "AutoWalkDirectionValue" },
-
-		{ kSettingMaxValue, "SettingMaxValue" },
-
-		{ kSettingMinEnable, "SettingMinEnable" },
-		{ kAutoLoginEnable, "AutoLoginEnable" },
-		{ kAutoReconnectEnable, "AutoReconnectEnable" },
-		{ kLogOutEnable, "LogOutEnable" },
-		{ kLogBackEnable, "LogBackEnable" },
-		{ kEchoEnable, "EchoEnable" },
-		{ kHideCharacterEnable, "HideCharacterEnable" },
-		{ kCloseEffectEnable, "CloseEffectEnable" },
-		{ kOptimizeEnable, "OptimizeEnable" },
-		{ kHideWindowEnable, "HideWindowEnable" },
-		{ kMuteEnable, "MuteEnable" },
-		{ kAutoJoinEnable, "AutoJoinEnable" },
-		{ kLockTimeEnable, "LockTimeEnable" },
-		{ kAutoFreeMemoryEnable, "AutoFreeMemoryEnable" },
-		{ kFastWalkEnable, "FastWalkEnable" },
-		{ kPassWallEnable, "PassWallEnable" },
-		{ kLockMoveEnable, "LockMoveEnable" },
-		{ kLockImageEnable, "LockImageEnable" },
-		{ kAutoDropMeatEnable, "AutoDropMeatEnable" },
-		{ kAutoDropEnable, "AutoDropEnable" },
-		{ kAutoStackEnable, "AutoStackEnable" },
-		{ kKNPCEnable, "KNPCEnable" },
-		{ kAutoAnswerEnable, "AutoAnswerEnable" },
-		{ kForceLeaveBattleEnable, "ForceLeaveBattleEnable" },
-		{ kAutoWalkEnable, "AutoWalkEnable" },
-		{ kFastAutoWalkEnable, "FastAutoWalkEnable" },
-		{ kFastBattleEnable, "FastBattleEnable" },
-		{ kAutoBattleEnable, "AutoBattleEnable" },
-		{ kAutoCatchEnable, "AutoCatchEnable" },
-		{ kLockAttackEnable, "LockAttackEnable" },
-		{ kAutoEscapeEnable, "AutoEscapeEnable" },
-		{ kLockEscapeEnable, "LockEscapeEnable" },
-		{ kBattleTimeExtendEnable, "BattleTimeExtendEnable" },
-		{ kFallDownEscapeEnable, "FallDownEscapeEnable" },
-		{ kSettingMaxEnable, "SettingMaxEnable" },
-
-		//switcher
-		{ kSwitcherTeamEnable, "SwitcherTeamEnable" },
-		{ kSwitcherPKEnable, "SwitcherPKEnable" },
-		{ kSwitcherCardEnable, "SwitcherCardEnable" },
-		{ kSwitcherTradeEnable, "SwitcherTradeEnable" },
-		{ kSwitcherFamilyEnable, "SwitcherFamilyEnable" },
-		{ kSwitcherJobEnable, "SwitcherJobEnable" },
-		{ kSwitcherWorldEnable, "SwitcherWorldEnable" },
-
-		{ kSettingMinString, "SettingMinString" },
-
-		{ kAutoDropItemString, "AutoDropItemString" },
-		{ kLockAttackString, "LockAttackString" },
-		{ kLockEscapeString, "LockEscapeString" },
-
-		{ kGameAccountString, "GameAccountString" },
-		{ kGamePasswordString, "GamePasswordString" },
-		{ kGameSecurityCodeString, "GameSecurityCodeString" },
-
-		{ kSettingMaxString, "SettingMaxString" }
-	};
-
-	enum UserStatus
-	{
-		kLabelStatusNotUsed = 0,//未知
-		kLabelStatusNotOpen,//未開啟石器
-		kLabelStatusOpening,//開啟石器中
-		kLabelStatusOpened,//已開啟石器
-		kLabelStatusLogining,//登入
-		kLabelStatusSignning,//簽入中
-		kLabelStatusSelectServer,//選擇伺服器
-		kLabelStatusSelectSubServer,//選擇分伺服器
-		kLabelStatusGettingPlayerList,//取得人物中
-		kLabelStatusSelectPosition,//選擇人物中
-		kLabelStatusLoginSuccess,//登入成功
-		kLabelStatusInNormal,//平時
-		kLabelStatusInBattle,//戰鬥中
-		kLabelStatusBusy,//忙碌中
-		kLabelStatusTimeout,//連線逾時
-		kLabelNoUserNameOrPassword,//無帳號密碼
-		kLabelStatusDisconnected,//斷線
-	};
-
-
-	enum UserData
-	{
-		kUserDataNotUsed = 0,
-		kUserItemNames,
-		kUserEnemyNames,
-	};
-
-	static bool createFileDialog(const QString& name, QString* retstring, QWidget* parent)
-	{
-		QScopedPointer<QFileDialog> dialog(new QFileDialog(parent));
-		if (dialog.isNull())
-		{
-			return false;
-		}
-
-		dialog->setModal(true);
-		dialog->setAttribute(Qt::WA_QuitOnClose);
-		dialog->setFileMode(QFileDialog::ExistingFile);
-		dialog->setViewMode(QFileDialog::Detail);
-		dialog->setOption(QFileDialog::ReadOnly, true);
-		dialog->setOption(QFileDialog::DontResolveSymlinks, true);
-		dialog->setOption(QFileDialog::DontConfirmOverwrite, true);
-		dialog->setAcceptMode(QFileDialog::AcceptOpen);
-
-
-		//check suffix
-		if (!name.isEmpty())
-		{
-			QStringList filters;
-			filters << name;
-			dialog->setNameFilters(filters);
-		}
-
-		//directory
-		//自身目錄往上一層
-		QString directory = QCoreApplication::applicationDirPath();
-		directory = QDir::toNativeSeparators(directory);
-		directory = QDir::cleanPath(directory + QDir::separator() + "..");
-		dialog->setDirectory(directory);
-
-		if (dialog->exec() == QDialog::Accepted)
-		{
-			QStringList fileNames = dialog->selectedFiles();
-			if (fileNames.size() > 0)
-			{
-				QString fileName = fileNames.at(0);
-				if (retstring)
-					*retstring = fileName;
-
-				return true;
-			}
-		}
-		return false;
-	}
-
-	static int safe_memcmp(const void* s1, size_t len1, const void* s2, size_t len2)
-	{
-		if (!s1 || !s2)
-		{
-			return INT_MIN;
-		}
-
-		size_t min_len = (len1 < len2) ? len1 : len2;
-
-		const unsigned char* p1 = (const unsigned char*)s1;
-		const unsigned char* p2 = (const unsigned char*)s2;
-
-		int result = 0;
-		try
-		{
-			for (size_t i = 0; i < min_len && result == 0; i++)
-			{
-				result = p1[i] - p2[i];
-			}
-
-			if (result == 0)
-			{
-				if (len1 < len2)
-				{
-					return -1;
-				}
-				else if (len1 > len2)
-				{
-					return 1;
-				}
-				else
-				{
-					return 0;
-				}
-			}
-			else
-			{
-				return result;
-			}
-		}
-		catch (...)
-		{
-			return INT_MIN;
-		}
-	}
-
-	static char* safe_strstr(char* src, size_t srclen, const char* target, size_t targetlen)
-	{
-		if (srclen < targetlen || !src || !target)
-		{
-			return nullptr;
-		}
-
-		try
-		{
-			for (size_t i = 0; i <= srclen - targetlen; ++i)
-			{
-				if (safe_memcmp(src + i, targetlen, target, targetlen) == 0)
-				{
-					return src + i;
-				}
-			}
-		}
-		catch (...)
-		{
-			return nullptr;
-		}
-
-		return nullptr;
-	}
-
-	static int safe_atoi(const char* str)
-	{
-		if (!str)
-		{
-			return 0;
-		}
-		long result = 0ul;
-		try
-		{
-			char* end;
-			result = strtol(str, &end, 10);
-
-			if (end == str || *end != '\0')
-			{
-				// invalid conversion
-				return 0;
-			}
-		}
-		catch (...)
-		{
-			return 0;
-		}
-
-		if (result > INT_MAX || result < INT_MIN)
-		{
-			// overflow or underflow
-			return 0;
-		}
-
-		return static_cast<int>(result);
-	}
+	static const QRegularExpression rexOR(R"(\s*\|\s*)");
+	static const QRegularExpression rexComma(R"(\s*,\s*)");
 }
 

@@ -1,6 +1,6 @@
 ﻿#include "stdafx.h"
 #include "selectobjectform.h"
-#include "../util.h"
+#include <util.h>
 
 SelectObjectForm::SelectObjectForm(TitleType type, QWidget* parent)
 	: QDialog(parent), type_(type)
@@ -109,7 +109,7 @@ void SelectObjectForm::deleteItem()
 
 void SelectObjectForm::appendItem()
 {
-	QString currentText = ui.comboBox->currentText();
+	QString currentText = ui.comboBox->currentText().simplified();
 	if (currentText.isEmpty())
 	{
 		return;

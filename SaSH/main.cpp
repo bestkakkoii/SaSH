@@ -9,7 +9,7 @@ int main(int argc, char* argv[])
 	QApplication::setAttribute(Qt::AA_ShareOpenGLContexts);
 	QApplication::setAttribute(Qt::AA_UseDesktopOpenGL);
 	QApplication a(argc, argv);
-	qSetMessagePattern("> [%{threadid} | @%{line} | (%{type})%{function}]: %{message}");//%{file} 
+	qSetMessagePattern("[%{threadid}] [@%{line}] [%{function}] [%{type}] %{message}");//%{file} 
 
 	SetConsoleCP(CP_UTF8);
 	SetConsoleOutputCP(CP_UTF8);

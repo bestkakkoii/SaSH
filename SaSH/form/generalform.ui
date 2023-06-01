@@ -79,7 +79,7 @@
              </widget>
             </item>
             <item>
-             <widget class="QComboBox" name="comboBox_server">
+             <widget class="ComboBox" name="comboBox_server">
               <property name="sizePolicy">
                <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
                 <horstretch>0</horstretch>
@@ -109,7 +109,7 @@
              </widget>
             </item>
             <item>
-             <widget class="QComboBox" name="comboBox_subserver">
+             <widget class="ComboBox" name="comboBox_subserver">
               <property name="sizePolicy">
                <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
                 <horstretch>0</horstretch>
@@ -139,7 +139,7 @@
              </widget>
             </item>
             <item>
-             <widget class="QComboBox" name="comboBox_position">
+             <widget class="ComboBox" name="comboBox_position">
               <property name="sizePolicy">
                <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
                 <horstretch>0</horstretch>
@@ -349,7 +349,7 @@
               <item>
                <widget class="QCheckBox" name="checkBox_autodropmeat">
                 <property name="enabled">
-                 <bool>false</bool>
+                 <bool>true</bool>
                 </property>
                 <property name="text">
                  <string>auto dpmeat</string>
@@ -376,7 +376,7 @@
               <item>
                <widget class="QCheckBox" name="checkBox_autostack">
                 <property name="enabled">
-                 <bool>false</bool>
+                 <bool>true</bool>
                 </property>
                 <property name="text">
                  <string>auto stack</string>
@@ -475,7 +475,7 @@
             <item>
              <widget class="QCheckBox" name="checkBox_optimize">
               <property name="enabled">
-               <bool>false</bool>
+               <bool>true</bool>
               </property>
               <property name="text">
                <string>optimize</string>
@@ -503,7 +503,7 @@
             <item>
              <widget class="QCheckBox" name="checkBox_autojoin">
               <property name="enabled">
-               <bool>false</bool>
+               <bool>true</bool>
               </property>
               <property name="text">
                <string>auto join</string>
@@ -522,7 +522,7 @@
              </widget>
             </item>
             <item>
-             <widget class="QComboBox" name="comboBox_locktime"/>
+             <widget class="ComboBox" name="comboBox_locktime"/>
             </item>
            </layout>
           </item>
@@ -531,7 +531,7 @@
             <item>
              <widget class="QCheckBox" name="checkBox_autofreememory">
               <property name="enabled">
-               <bool>false</bool>
+               <bool>true</bool>
               </property>
               <property name="text">
                <string>auto freememory</string>
@@ -639,7 +639,7 @@
             <item>
              <widget class="QCheckBox" name="checkBox_autocatch">
               <property name="enabled">
-               <bool>false</bool>
+               <bool>true</bool>
               </property>
               <property name="text">
                <string>auto catch</string>
@@ -703,7 +703,7 @@
             <item>
              <widget class="QCheckBox" name="checkBox_falldownescape">
               <property name="enabled">
-               <bool>false</bool>
+               <bool>true</bool>
               </property>
               <property name="text">
                <string>fall escape</string>
@@ -825,7 +825,7 @@
          <item>
           <widget class="QPushButton" name="pushButton_joingroup">
            <property name="enabled">
-            <bool>false</bool>
+            <bool>true</bool>
            </property>
            <property name="maximumSize">
             <size>
@@ -972,6 +972,13 @@
   </layout>
  </widget>
  <layoutdefault spacing="6" margin="11"/>
+ <customwidgets>
+  <customwidget>
+   <class>ComboBox</class>
+   <extends>QComboBox</extends>
+   <header location="global">combobox.h</header>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections/>
 </ui>

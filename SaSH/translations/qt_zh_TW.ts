@@ -62,6 +62,82 @@
         <source>random</source>
         <translation>隨機</translation>
     </message>
+    <message>
+        <source>at round %1</source>
+        <translation>第 %1 回合</translation>
+    </message>
+    <message>
+        <source>not use</source>
+        <translation>不限</translation>
+    </message>
+    <message>
+        <source>enemy amount &gt; %1</source>
+        <translation>敵人 &gt; %1 隻</translation>
+    </message>
+    <message>
+        <source>every %1 round</source>
+        <translation>每隔 %1 回合</translation>
+    </message>
+    <message>
+        <source>enemy level &gt; %1</source>
+        <translation>敵人等級 &gt; %1</translation>
+    </message>
+    <message>
+        <source>attack</source>
+        <translation>攻擊</translation>
+    </message>
+    <message>
+        <source>defense</source>
+        <translation>防禦</translation>
+    </message>
+    <message>
+        <source>escape</source>
+        <translation>逃跑</translation>
+    </message>
+    <message>
+        <source>head</source>
+        <translation>頭部</translation>
+    </message>
+    <message>
+        <source>body</source>
+        <translation>身體</translation>
+    </message>
+    <message>
+        <source>righthand</source>
+        <translation>右手</translation>
+    </message>
+    <message>
+        <source>leftacc</source>
+        <translation>左飾</translation>
+    </message>
+    <message>
+        <source>rightacc</source>
+        <translation>右飾</translation>
+    </message>
+    <message>
+        <source>belt</source>
+        <translation>腰帶</translation>
+    </message>
+    <message>
+        <source>lefthand</source>
+        <translation>左手</translation>
+    </message>
+    <message>
+        <source>shoes</source>
+        <translation>鞋子</translation>
+    </message>
+    <message>
+        <source>gloves</source>
+        <translation>手套</translation>
+    </message>
+    <message>
+        <source>escape from encounter</source>
+        <translation>遇敵逃跑</translation>
+    </message>
+    <message>
+        <source>engage in encounter</source>
+        <translation>遇敵攻擊</translation>
+    </message>
 </context>
 <context>
     <name>AfkFormClass</name>
@@ -335,6 +411,41 @@
     </message>
 </context>
 <context>
+    <name>AfkInfoForm</name>
+    <message>
+        <source>duration</source>
+        <translation>在線經過時間</translation>
+    </message>
+    <message>
+        <source>level difference</source>
+        <translation>人物等級提升</translation>
+    </message>
+    <message>
+        <source>exp difference</source>
+        <translation>人物經驗獲得</translation>
+    </message>
+    <message>
+        <source>deadth count</source>
+        <translation>人物死亡次數</translation>
+    </message>
+    <message>
+        <source>gold difference</source>
+        <translation>人物石幣獲得</translation>
+    </message>
+    <message>
+        <source>pet %1 level difference</source>
+        <translation>寵物 %1 等級提升</translation>
+    </message>
+    <message>
+        <source>pet %1 exp difference</source>
+        <translation>寵物 %1 經驗獲得</translation>
+    </message>
+    <message>
+        <source>pet %1 deadth count</source>
+        <translation>寵物 %1 死亡次數</translation>
+    </message>
+</context>
+<context>
     <name>AfkInfoFormClass</name>
     <message>
         <source>AfkInfoForm</source>
@@ -547,10 +658,6 @@
     <message>
         <source>Are you sure you want to logback now?</source>
         <translation>您確定要回點嗎？</translation>
-    </message>
-    <message>
-        <source>Json Files (*.json)</source>
-        <translation></translation>
     </message>
 </context>
 <context>
@@ -798,6 +905,10 @@
     <message>
         <source>WD</source>
         <translation>世</translation>
+    </message>
+    <message>
+        <source>K</source>
+        <translation type="vanished">踢</translation>
     </message>
 </context>
 <context>
@@ -1173,6 +1284,10 @@
         <source>no username or password</source>
         <translation>缺少帳號或密碼</translation>
     </message>
+    <message>
+        <source>Json Files (*.json)</source>
+        <translation>Json 文件 (*.json)</translation>
+    </message>
 </context>
 <context>
     <name>MainFormClass</name>
@@ -1239,6 +1354,18 @@
         <source>%1 count    no %2 round    duration: %3 sec    total time: %4 minues</source>
         <translation>第 %1 局&#x3000;&#x3000;第 %2 回合&#x3000;&#x3000;回合時間: %3 秒&#x3000;&#x3000;累積時間: %4 分鐘</translation>
     </message>
+    <message>
+        <source>%1 (avg exp: %2)</source>
+        <translation>%1 (平均每小時經驗: %2)</translation>
+    </message>
+    <message>
+        <source>%1 (avg gold: %2)</source>
+        <translation>%1 (平均每小時石幣: %2)</translation>
+    </message>
+    <message>
+        <source>%1→%2 (avg level: %3)</source>
+        <translation>%1→%2 (平均每小時等級: %3)</translation>
+    </message>
 </context>
 <context>
     <name>MapFormClass</name>
@@ -1265,6 +1392,115 @@
     <message>
         <source>stop</source>
         <translation>停止</translation>
+    </message>
+</context>
+<context>
+    <name>MapWidget</name>
+    <message>
+        <source>%1 map:%2 floor:%3 [%4,%5] file:%6 mouse:%7,%8</source>
+        <translation>%1 地圖:%2 編號:%3 [%4,%5] 檔案:%6 坐標:%7,%8</translation>
+    </message>
+    <message>
+        <source>downloading(%1%2)</source>
+        <translation>下載中(%1%2)</translation>
+    </message>
+    <message>
+        <source>UP</source>
+        <translation>上樓</translation>
+    </message>
+    <message>
+        <source>DWON</source>
+        <translation>下樓</translation>
+    </message>
+    <message>
+        <source>JUMP</source>
+        <translation>傳點</translation>
+    </message>
+    <message>
+        <source>WARP</source>
+        <translation>轉移</translation>
+    </message>
+    <message>
+        <source>UNKNOWN</source>
+        <translation>未知</translation>
+    </message>
+    <message>
+        <source>X[%1]%2</source>
+        <translation>隱藏[%1]%2</translation>
+    </message>
+    <message>
+        <source>[I]%1</source>
+        <translation>[道具]%1</translation>
+    </message>
+    <message>
+        <source>[G]%1</source>
+        <translation>[石幣]%1</translation>
+    </message>
+    <message>
+        <source>[P]%2</source>
+        <translation>[寵物]%2</translation>
+    </message>
+    <message>
+        <source>X[P]%2</source>
+        <translation>隱藏[寵物]%2</translation>
+    </message>
+    <message>
+        <source>[H]%1</source>
+        <translation>[玩家]%1</translation>
+    </message>
+    <message>
+        <source>X[H]%1</source>
+        <translation>隱藏[玩家]%1</translation>
+    </message>
+    <message>
+        <source>X[NPC]%1</source>
+        <translation>隱藏[NPC]%1</translation>
+    </message>
+</context>
+<context>
+    <name>MapWidgetClass</name>
+    <message>
+        <source>MAPFORM</source>
+        <translation>大地圖</translation>
+    </message>
+    <message>
+        <source>DOWNLOAD</source>
+        <translation>下載</translation>
+    </message>
+    <message>
+        <source>ROUTE</source>
+        <translation>尋路</translation>
+    </message>
+    <message>
+        <source>LOGBACK</source>
+        <translation>回點</translation>
+    </message>
+    <message>
+        <source>NAME</source>
+        <translation>名稱</translation>
+    </message>
+    <message>
+        <source>LOCATE</source>
+        <translation>坐標</translation>
+    </message>
+</context>
+<context>
+    <name>OtherForm</name>
+    <message>
+        <source>auto join</source>
+        <translation>自動組隊</translation>
+    </message>
+    <message>
+        <source>auto follow</source>
+        <translation>自動跟隨</translation>
+    </message>
+    <message>
+        <source>auto pk</source>
+        <translation>自動跟隨PK</translation>
+    </message>
+    <message>
+        <source>auto watch</source>
+        <translation>自動跟隨觀戰</translation>
     </message>
 </context>
 <context>
@@ -1323,7 +1559,7 @@
     </message>
     <message>
         <source>auto</source>
-        <translation>自動</translation>
+        <translation type="vanished">自動</translation>
     </message>
     <message>
         <source>auto kick teammate if later then</source>
@@ -1531,6 +1767,30 @@
         <source>leftexp</source>
         <translation>剩餘</translation>
     </message>
+    <message>
+        <source>battle</source>
+        <translation>戰鬥</translation>
+    </message>
+    <message>
+        <source>standby</source>
+        <translation>等待</translation>
+    </message>
+    <message>
+        <source>mail</source>
+        <translation>郵件</translation>
+    </message>
+    <message>
+        <source>rest</source>
+        <translation>休息</translation>
+    </message>
+    <message>
+        <source>ride</source>
+        <translation>騎乘</translation>
+    </message>
+    <message>
+        <source>pet%1 (%2)</source>
+        <translation>寵物%1 (%2)</translation>
+    </message>
 </context>
 <context>
     <name>PlayerInfoFormClass</name>
@@ -1613,6 +1873,206 @@ NAME：%3<byte value="xd"/>
 MESSAGE：<byte value="xd"/>
 %4</source>
         <translation></translation>
+    </message>
+    <message>
+        <source>use %1 to %2</source>
+        <translation>對 %2 使用 %1</translation>
+    </message>
+    <message>
+        <source>attack %1</source>
+        <translation type="vanished">攻擊 %1</translation>
+    </message>
+    <message>
+        <source>use magic %1 to %2</source>
+        <translation type="vanished">對 %2 使用精靈 %1</translation>
+    </message>
+    <message>
+        <source>use skill %1 to %2</source>
+        <translation type="vanished">對 %2 使用技能 %1</translation>
+    </message>
+    <message>
+        <source>use item %1 to %2</source>
+        <translation type="vanished">對 %2 使用 道具 %1</translation>
+    </message>
+    <message>
+        <source>defense</source>
+        <translation>防禦</translation>
+    </message>
+    <message>
+        <source>escape</source>
+        <translation>逃跑</translation>
+    </message>
+    <message>
+        <source>catch %1</source>
+        <translation type="vanished">捕捉 %1</translation>
+    </message>
+    <message>
+        <source>switch pet to %1</source>
+        <translation>戰寵切換成 %1</translation>
+    </message>
+    <message>
+        <source>do nothing</source>
+        <translation>什麼都不做</translation>
+    </message>
+    <message>
+        <source>player exp:</source>
+        <translation>人物經驗:</translation>
+    </message>
+    <message>
+        <source>ride exp:</source>
+        <translation>騎寵經驗:</translation>
+    </message>
+    <message>
+        <source>pet exp:</source>
+        <translation>戰寵經驗:</translation>
+    </message>
+    <message>
+        <source>rewards:</source>
+        <translation>掉落物品:</translation>
+    </message>
+    <message>
+        <source>server response time:%1ms</source>
+        <translation>伺服器響應時間:%1ms</translation>
+    </message>
+    <message>
+        <source>Tell you:</source>
+        <translation>告訴你：</translation>
+    </message>
+    <message>
+        <source>%1(%2tr)</source>
+        <translation>%1(%2轉)</translation>
+    </message>
+    <message>
+        <source>head</source>
+        <translation>頭部</translation>
+    </message>
+    <message>
+        <source>body</source>
+        <translation>身體</translation>
+    </message>
+    <message>
+        <source>righthand</source>
+        <translation>右手</translation>
+    </message>
+    <message>
+        <source>leftacc</source>
+        <translation>左飾</translation>
+    </message>
+    <message>
+        <source>rightacc</source>
+        <translation>右飾</translation>
+    </message>
+    <message>
+        <source>belt</source>
+        <translation>腰帶</translation>
+    </message>
+    <message>
+        <source>lefthand</source>
+        <translation>左手</translation>
+    </message>
+    <message>
+        <source>shoes</source>
+        <translation>鞋子</translation>
+    </message>
+    <message>
+        <source>gloves</source>
+        <translation>手套</translation>
+    </message>
+    <message>
+        <source>use attack [%1]%2</source>
+        <translation>對 [%1]%2 使用 攻擊</translation>
+    </message>
+    <message>
+        <source>use magic %1 to [%2]%3</source>
+        <translation>對 [%2]%3 使用精靈 %1</translation>
+    </message>
+    <message>
+        <source>use skill %1 to [%2]%3</source>
+        <translation>對 [%2]%3 使用技能 %1</translation>
+    </message>
+    <message>
+        <source>use item %1 to [%2]%3</source>
+        <translation>對 [%2]%3 使用道具 %1</translation>
+    </message>
+    <message>
+        <source>catch [%1]%2</source>
+        <translation>捕捉 [%1]%2</translation>
+    </message>
+    <message>
+        <source>use %1 to [%2]%3</source>
+        <translation>對 [%2]%3 使用 %1</translation>
+    </message>
+    <message>
+        <source>all allies</source>
+        <translation>我方全體</translation>
+    </message>
+    <message>
+        <source>all enemies</source>
+        <translation>敵方全體</translation>
+    </message>
+    <message>
+        <source>all field</source>
+        <translation>場地</translation>
+    </message>
+    <message>
+        <source>unknown</source>
+        <translation>未知</translation>
+    </message>
+    <message>
+        <source>close game</source>
+        <translation>關閉遊戲</translation>
+    </message>
+    <message>
+        <source>map</source>
+        <translation>大地圖</translation>
+    </message>
+    <message>
+        <source>%1 day %2 hour %3 min %4 sec %5 msec</source>
+        <translation>%1 日 %2 時 %3 分 %4 秒 %5 毫秒</translation>
+    </message>
+    <message>
+        <source>save</source>
+        <translation>儲存設置</translation>
+    </message>
+    <message>
+        <source>load</source>
+        <translation>讀取設置</translation>
+    </message>
+    <message>
+        <source>file</source>
+        <translation>檔案</translation>
+    </message>
+    <message>
+        <source>dead</source>
+        <translation>陣亡</translation>
+    </message>
+    <message>
+        <source>poisoned</source>
+        <translation>中毒</translation>
+    </message>
+    <message>
+        <source>paralyzed</source>
+        <translation>麻痺</translation>
+    </message>
+    <message>
+        <source>sleep</source>
+        <translation>昏睡</translation>
+    </message>
+    <message>
+        <source>petrified</source>
+        <translation>石化</translation>
+    </message>
+    <message>
+        <source>dizzy</source>
+        <translation>酒醉</translation>
+    </message>
+    <message>
+        <source>confused</source>
+        <translation>混亂</translation>
+    </message>
+    <message>
+        <source>hidden</source>
+        <translation>隱藏</translation>
     </message>
 </context>
 <context>
@@ -1708,6 +2168,125 @@ MESSAGE：<byte value="xd"/>
     </message>
 </context>
 <context>
+    <name>SelectTargetForm</name>
+    <message>
+        <source>player specific round action</source>
+        <translation>人物特定回合動作</translation>
+    </message>
+    <message>
+        <source>Player alternating round action</source>
+        <translation>人物間隔回合動作</translation>
+    </message>
+    <message>
+        <source>player normal round action</source>
+        <translation>人物一般回合動作</translation>
+    </message>
+    <message>
+        <source>pet specific round action</source>
+        <translation>戰寵特定回合動作</translation>
+    </message>
+    <message>
+        <source>pet alternating round action</source>
+        <translation>戰寵間隔回合動作</translation>
+    </message>
+    <message>
+        <source>pet normal round action</source>
+        <translation>戰寵一般回合動作</translation>
+    </message>
+    <message>
+        <source>magic healing target</source>
+        <translation>精靈補血對象</translation>
+    </message>
+    <message>
+        <source>item healing target</source>
+        <translation>道具補血對象</translation>
+    </message>
+    <message>
+        <source>magic revival target</source>
+        <translation>精靈復活對象</translation>
+    </message>
+    <message>
+        <source>item revival target</source>
+        <translation>道具復活對象</translation>
+    </message>
+    <message>
+        <source>unknown</source>
+        <translation>未知</translation>
+    </message>
+    <message>
+        <source>S</source>
+        <translation>己</translation>
+    </message>
+    <message>
+        <source>P</source>
+        <translation>寵</translation>
+    </message>
+    <message>
+        <source>ANY</source>
+        <translation>我任</translation>
+    </message>
+    <message>
+        <source>ALL</source>
+        <translation>我全</translation>
+    </message>
+    <message>
+        <source>EANY</source>
+        <translation>敵任</translation>
+    </message>
+    <message>
+        <source>EALL</source>
+        <translation>敵全</translation>
+    </message>
+    <message>
+        <source>EF</source>
+        <translation>敵前</translation>
+    </message>
+    <message>
+        <source>EB</source>
+        <translation>敵後</translation>
+    </message>
+    <message>
+        <source>L</source>
+        <translation>隊</translation>
+    </message>
+    <message>
+        <source>LP</source>
+        <translation>隊寵</translation>
+    </message>
+    <message>
+        <source>T1</source>
+        <translation>隊1</translation>
+    </message>
+    <message>
+        <source>T1P</source>
+        <translation>隊1寵</translation>
+    </message>
+    <message>
+        <source>T2</source>
+        <translation>隊2</translation>
+    </message>
+    <message>
+        <source>T2P</source>
+        <translation>隊2寵</translation>
+    </message>
+    <message>
+        <source>T3</source>
+        <translation>隊3</translation>
+    </message>
+    <message>
+        <source>T3P</source>
+        <translation>隊3寵</translation>
+    </message>
+    <message>
+        <source>T4</source>
+        <translation>隊4</translation>
+    </message>
+    <message>
+        <source>T4P</source>
+        <translation>隊4寵</translation>
+    </message>
+</context>
+<context>
     <name>SelectTargetFormClass</name>
     <message>
         <source>SelectTargetForm</source>
@@ -1723,19 +2302,19 @@ MESSAGE：<byte value="xd"/>
     </message>
     <message>
         <source>any(N)</source>
-        <translation>我方任意(我任)</translation>
+        <translation type="vanished">我方任意(我任)</translation>
     </message>
     <message>
         <source>all(A)</source>
-        <translation>all(我全)</translation>
+        <translation type="vanished">all(我全)</translation>
     </message>
     <message>
         <source>enemy(E)</source>
-        <translation>敵人(敵)</translation>
+        <translation type="vanished">敵人(敵)</translation>
     </message>
     <message>
         <source>enemy all(EA)</source>
-        <translation>敵方全體(敵全)</translation>
+        <translation type="vanished">敵方全體(敵全)</translation>
     </message>
     <message>
         <source>enemy front(EF)</source>
@@ -1773,20 +2352,104 @@ MESSAGE：<byte value="xd"/>
         <source>teammate4:</source>
         <translation>隊員4:</translation>
     </message>
+    <message>
+        <source>any(ANY)</source>
+        <translation>我方任意(我任)</translation>
+    </message>
+    <message>
+        <source>all(ALL)</source>
+        <translation>我方全體(我全)</translation>
+    </message>
+    <message>
+        <source>enemy(EANY)</source>
+        <translation>敵方任意(敵任)</translation>
+    </message>
+    <message>
+        <source>enemy all(EALL)</source>
+        <translation>敵方全體(敵全)</translation>
+    </message>
 </context>
 <context>
     <name>Server</name>
     <message>
         <source>Tell you:</source>
-        <translation>告訴你：</translation>
+        <translation type="vanished">告訴你：</translation>
     </message>
     <message>
         <source>%1(%2tr)</source>
-        <translation>%1(%2轉)</translation>
+        <translation type="vanished">%1(%2轉)</translation>
     </message>
     <message>
         <source>server response time:%1ms</source>
-        <translation>伺服器響應時間:%1ms</translation>
+        <translation type="vanished">伺服器響應時間:%1ms</translation>
+    </message>
+    <message>
+        <source>1st//Acticity</source>
+        <translation>1線//活動互動</translation>
+    </message>
+    <message>
+        <source>2nd///Market</source>
+        <translation>2線//擺攤交易</translation>
+    </message>
+    <message>
+        <source>3rd//Family</source>
+        <translation>3線//莊園族戰</translation>
+    </message>
+    <message>
+        <source>4th//Away</source>
+        <translation>4線//練級掛機</translation>
+    </message>
+    <message>
+        <source>5th//Away</source>
+        <translation>5//練級掛機</translation>
+    </message>
+    <message>
+        <source>6th//Away</source>
+        <translation>6//練級掛機</translation>
+    </message>
+    <message>
+        <source>7th//Away</source>
+        <translation>7//練級掛機</translation>
+    </message>
+    <message>
+        <source>8th//Away</source>
+        <translation>8//練級掛機</translation>
+    </message>
+    <message>
+        <source>9th//Away</source>
+        <translation>9//練級掛機</translation>
+    </message>
+    <message>
+        <source>15th//Company</source>
+        <translation>15//公司專線</translation>
+    </message>
+    <message>
+        <source>21th//Member</source>
+        <translation>21線//會員專線</translation>
+    </message>
+    <message>
+        <source>22th//Member</source>
+        <translation>22線//會員專線</translation>
+    </message>
+    <message>
+        <source>Telecom</source>
+        <translation>電信</translation>
+    </message>
+    <message>
+        <source>UnitedNetwork</source>
+        <translation>聯通</translation>
+    </message>
+    <message>
+        <source>Easyown</source>
+        <translation>移動</translation>
+    </message>
+    <message>
+        <source>Oversea</source>
+        <translation>海外</translation>
+    </message>
+    <message>
+        <source>Backup</source>
+        <translation>備份</translation>
     </message>
 </context>
 </TS>

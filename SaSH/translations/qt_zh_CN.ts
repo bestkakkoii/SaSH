@@ -63,17 +63,126 @@
 <context>
     <name>AfkForm</name>
     <message>
-        <location filename="../form/afkform.cpp" line="127"/>
+        <location filename="../form/afkform.cpp" line="689"/>
+        <source>at round %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../form/afkform.cpp" line="686"/>
+        <location filename="../form/afkform.cpp" line="700"/>
+        <location filename="../form/afkform.cpp" line="727"/>
+        <source>not use</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../form/afkform.cpp" line="703"/>
+        <source>enemy amount &gt; %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../form/afkform.cpp" line="716"/>
+        <source>every %1 round</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../form/afkform.cpp" line="730"/>
+        <source>enemy level &gt; %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../form/afkform.cpp" line="742"/>
+        <location filename="../form/afkform.cpp" line="963"/>
+        <source>attack</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../form/afkform.cpp" line="742"/>
+        <location filename="../form/afkform.cpp" line="963"/>
+        <source>defense</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../form/afkform.cpp" line="742"/>
+        <location filename="../form/afkform.cpp" line="963"/>
+        <source>escape</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../form/afkform.cpp" line="743"/>
+        <location filename="../form/afkform.cpp" line="964"/>
+        <source>head</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../form/afkform.cpp" line="743"/>
+        <location filename="../form/afkform.cpp" line="964"/>
+        <source>body</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../form/afkform.cpp" line="743"/>
+        <location filename="../form/afkform.cpp" line="964"/>
+        <source>righthand</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../form/afkform.cpp" line="743"/>
+        <location filename="../form/afkform.cpp" line="964"/>
+        <source>leftacc</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../form/afkform.cpp" line="744"/>
+        <location filename="../form/afkform.cpp" line="965"/>
+        <source>rightacc</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../form/afkform.cpp" line="744"/>
+        <location filename="../form/afkform.cpp" line="965"/>
+        <source>belt</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../form/afkform.cpp" line="744"/>
+        <location filename="../form/afkform.cpp" line="965"/>
+        <source>lefthand</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../form/afkform.cpp" line="744"/>
+        <location filename="../form/afkform.cpp" line="965"/>
+        <source>shoes</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../form/afkform.cpp" line="745"/>
+        <location filename="../form/afkform.cpp" line="966"/>
+        <source>gloves</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../form/afkform.cpp" line="808"/>
+        <source>escape from encounter</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../form/afkform.cpp" line="808"/>
+        <source>engage in encounter</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../form/afkform.cpp" line="811"/>
         <source>↖↘</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/afkform.cpp" line="127"/>
+        <location filename="../form/afkform.cpp" line="811"/>
         <source>↗↙</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/afkform.cpp" line="127"/>
+        <location filename="../form/afkform.cpp" line="811"/>
         <source>random</source>
         <translation type="unfinished"></translation>
     </message>
@@ -97,348 +206,391 @@
     </message>
     <message>
         <location filename="../form/afkform.ui" line="99"/>
-        <location filename="../form/afkform.ui" line="243"/>
+        <location filename="../form/afkform.ui" line="264"/>
         <source>cross rd</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../form/afkform.ui" line="112"/>
-        <location filename="../form/afkform.ui" line="256"/>
+        <location filename="../form/afkform.ui" line="277"/>
         <source>normal</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/afkform.ui" line="181"/>
-        <location filename="../form/afkform.ui" line="188"/>
-        <location filename="../form/afkform.ui" line="195"/>
-        <location filename="../form/afkform.ui" line="325"/>
-        <location filename="../form/afkform.ui" line="332"/>
-        <location filename="../form/afkform.ui" line="339"/>
+        <location filename="../form/afkform.ui" line="202"/>
+        <location filename="../form/afkform.ui" line="209"/>
+        <location filename="../form/afkform.ui" line="216"/>
+        <location filename="../form/afkform.ui" line="367"/>
+        <location filename="../form/afkform.ui" line="374"/>
+        <location filename="../form/afkform.ui" line="381"/>
         <source>E</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/afkform.ui" line="209"/>
+        <location filename="../form/afkform.ui" line="230"/>
         <source>pet action</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/afkform.ui" line="353"/>
+        <location filename="../form/afkform.ui" line="395"/>
         <source>delay</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/afkform.ui" line="398"/>
+        <location filename="../form/afkform.ui" line="440"/>
         <source>1st rd delay</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/afkform.ui" line="421"/>
-        <location filename="../form/afkform.ui" line="484"/>
-        <location filename="../form/afkform.ui" line="1457"/>
+        <location filename="../form/afkform.ui" line="463"/>
+        <location filename="../form/afkform.ui" line="526"/>
+        <location filename="../form/afkform.ui" line="1703"/>
         <source>s</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/afkform.ui" line="433"/>
+        <location filename="../form/afkform.ui" line="475"/>
         <source>first round delay until min</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/afkform.ui" line="461"/>
+        <location filename="../form/afkform.ui" line="503"/>
         <source>eh rd delay</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/afkform.ui" line="496"/>
+        <location filename="../form/afkform.ui" line="538"/>
         <source>each round delay until min</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/afkform.ui" line="513"/>
+        <location filename="../form/afkform.ui" line="555"/>
         <source>num of enemy&lt;=</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/afkform.ui" line="533"/>
+        <location filename="../form/afkform.ui" line="575"/>
         <source>delay until minmun</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/afkform.ui" line="547"/>
+        <location filename="../form/afkform.ui" line="589"/>
         <source>disable delay/escape while lockattack is disabled</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/afkform.ui" line="564"/>
+        <location filename="../form/afkform.ui" line="606"/>
         <source>heal</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/afkform.ui" line="590"/>
+        <location filename="../form/afkform.ui" line="632"/>
         <source>battle heal setting</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/afkform.ui" line="621"/>
-        <location filename="../form/afkform.ui" line="1004"/>
+        <location filename="../form/afkform.ui" line="675"/>
+        <location filename="../form/afkform.ui" line="1174"/>
         <source>magic heal</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/afkform.ui" line="631"/>
-        <location filename="../form/afkform.ui" line="764"/>
-        <location filename="../form/afkform.ui" line="935"/>
-        <location filename="../form/afkform.ui" line="959"/>
+        <location filename="../form/afkform.ui" line="685"/>
+        <location filename="../form/afkform.ui" line="847"/>
+        <location filename="../form/afkform.ui" line="1077"/>
+        <location filename="../form/afkform.ui" line="1117"/>
         <source>CP</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/afkform.ui" line="650"/>
-        <location filename="../form/afkform.ui" line="790"/>
-        <location filename="../form/afkform.ui" line="1026"/>
-        <location filename="../form/afkform.ui" line="1159"/>
+        <location filename="../form/afkform.ui" line="717"/>
+        <location filename="../form/afkform.ui" line="898"/>
+        <location filename="../form/afkform.ui" line="1209"/>
+        <location filename="../form/afkform.ui" line="1383"/>
         <source>char:</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/afkform.ui" line="670"/>
-        <location filename="../form/afkform.ui" line="704"/>
-        <location filename="../form/afkform.ui" line="738"/>
-        <location filename="../form/afkform.ui" line="810"/>
-        <location filename="../form/afkform.ui" line="844"/>
-        <location filename="../form/afkform.ui" line="878"/>
-        <location filename="../form/afkform.ui" line="1046"/>
-        <location filename="../form/afkform.ui" line="1080"/>
-        <location filename="../form/afkform.ui" line="1114"/>
-        <location filename="../form/afkform.ui" line="1179"/>
-        <location filename="../form/afkform.ui" line="1213"/>
-        <location filename="../form/afkform.ui" line="1247"/>
-        <location filename="../form/afkform.ui" line="1757"/>
-        <location filename="../form/afkform.ui" line="1798"/>
+        <location filename="../form/afkform.ui" line="737"/>
+        <location filename="../form/afkform.ui" line="771"/>
+        <location filename="../form/afkform.ui" line="805"/>
+        <location filename="../form/afkform.ui" line="918"/>
+        <location filename="../form/afkform.ui" line="952"/>
+        <location filename="../form/afkform.ui" line="986"/>
+        <location filename="../form/afkform.ui" line="1229"/>
+        <location filename="../form/afkform.ui" line="1263"/>
+        <location filename="../form/afkform.ui" line="1297"/>
+        <location filename="../form/afkform.ui" line="1403"/>
+        <location filename="../form/afkform.ui" line="1437"/>
+        <location filename="../form/afkform.ui" line="1471"/>
+        <location filename="../form/afkform.ui" line="2079"/>
+        <location filename="../form/afkform.ui" line="2142"/>
         <source>%</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/afkform.ui" line="684"/>
+        <location filename="../form/afkform.ui" line="751"/>
         <source>pet</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/afkform.ui" line="718"/>
-        <location filename="../form/afkform.ui" line="858"/>
-        <location filename="../form/afkform.ui" line="1094"/>
-        <location filename="../form/afkform.ui" line="1227"/>
+        <location filename="../form/afkform.ui" line="785"/>
+        <location filename="../form/afkform.ui" line="966"/>
+        <location filename="../form/afkform.ui" line="1277"/>
+        <location filename="../form/afkform.ui" line="1451"/>
         <source>team:</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/afkform.ui" line="754"/>
-        <location filename="../form/afkform.ui" line="1130"/>
+        <location filename="../form/afkform.ui" line="833"/>
+        <location filename="../form/afkform.ui" line="1325"/>
         <source>item heal</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/afkform.ui" line="771"/>
-        <location filename="../form/afkform.ui" line="1140"/>
+        <location filename="../form/afkform.ui" line="866"/>
+        <location filename="../form/afkform.ui" line="1351"/>
         <source>meat priority</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/afkform.ui" line="824"/>
-        <location filename="../form/afkform.ui" line="1060"/>
-        <location filename="../form/afkform.ui" line="1193"/>
+        <location filename="../form/afkform.ui" line="932"/>
+        <location filename="../form/afkform.ui" line="1243"/>
+        <location filename="../form/afkform.ui" line="1417"/>
         <source>pet:</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/afkform.ui" line="894"/>
-        <location filename="../form/afkform.ui" line="1263"/>
+        <location filename="../form/afkform.ui" line="1014"/>
+        <location filename="../form/afkform.ui" line="1499"/>
         <source>item heal mp</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/afkform.ui" line="904"/>
-        <location filename="../form/afkform.ui" line="1273"/>
+        <location filename="../form/afkform.ui" line="1034"/>
+        <location filename="../form/afkform.ui" line="1519"/>
         <source>char</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/afkform.ui" line="925"/>
+        <location filename="../form/afkform.ui" line="1067"/>
         <source>magic revive</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/afkform.ui" line="949"/>
+        <location filename="../form/afkform.ui" line="1103"/>
         <source>item revive</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/afkform.ui" line="973"/>
+        <location filename="../form/afkform.ui" line="1131"/>
         <source>normal heal setting</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/afkform.ui" line="1297"/>
+        <location filename="../form/afkform.ui" line="1543"/>
         <source>autowalk</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/afkform.ui" line="1339"/>
+        <location filename="../form/afkform.ui" line="1585"/>
         <source>walk delay:</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/afkform.ui" line="1385"/>
+        <location filename="../form/afkform.ui" line="1631"/>
         <source>walk dir:</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/afkform.ui" line="1410"/>
+        <location filename="../form/afkform.ui" line="1656"/>
         <source>walk len:</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/afkform.ui" line="1440"/>
+        <location filename="../form/afkform.ui" line="1686"/>
         <source>no combat until</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/afkform.ui" line="1471"/>
+        <location filename="../form/afkform.ui" line="1720"/>
         <source>Cod</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/afkform.ui" line="1510"/>
-        <location filename="../form/afkform.ui" line="1575"/>
+        <location filename="../form/afkform.ui" line="1762"/>
+        <location filename="../form/afkform.ui" line="1827"/>
         <source>Map</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/afkform.ui" line="1526"/>
+        <location filename="../form/afkform.ui" line="1778"/>
         <source>get cod</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/afkform.ui" line="1549"/>
+        <location filename="../form/afkform.ui" line="1801"/>
         <source>↓</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/afkform.ui" line="1565"/>
+        <location filename="../form/afkform.ui" line="1817"/>
         <source>X</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/afkform.ui" line="1570"/>
+        <location filename="../form/afkform.ui" line="1822"/>
         <source>Y</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/afkform.ui" line="1580"/>
+        <location filename="../form/afkform.ui" line="1832"/>
         <source>MapName</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/afkform.ui" line="1591"/>
+        <location filename="../form/afkform.ui" line="1843"/>
         <source>catch</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/afkform.ui" line="1617"/>
+        <location filename="../form/afkform.ui" line="1869"/>
         <source>catch pet</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/afkform.ui" line="1648"/>
+        <location filename="../form/afkform.ui" line="1906"/>
         <source>mode</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/afkform.ui" line="1672"/>
+        <location filename="../form/afkform.ui" line="1939"/>
         <source>target</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/afkform.ui" line="1682"/>
-        <location filename="../form/afkform.ui" line="1990"/>
+        <location filename="../form/afkform.ui" line="1956"/>
+        <location filename="../form/afkform.ui" line="2426"/>
         <source>select</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/afkform.ui" line="1696"/>
+        <location filename="../form/afkform.ui" line="1973"/>
         <source>catch level</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/afkform.ui" line="1706"/>
+        <location filename="../form/afkform.ui" line="1993"/>
         <source>lv</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/afkform.ui" line="1713"/>
+        <location filename="../form/afkform.ui" line="2003"/>
         <source>catch hp&gt;</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/afkform.ui" line="1730"/>
+        <location filename="../form/afkform.ui" line="2036"/>
         <source>char use</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/afkform.ui" line="1747"/>
-        <location filename="../form/afkform.ui" line="1788"/>
+        <location filename="../form/afkform.ui" line="2056"/>
+        <location filename="../form/afkform.ui" line="2119"/>
         <source>until hp &lt;</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/afkform.ui" line="1771"/>
+        <location filename="../form/afkform.ui" line="2096"/>
         <source>ues item</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/afkform.ui" line="1812"/>
+        <location filename="../form/afkform.ui" line="2159"/>
         <source>pet use</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/afkform.ui" line="1836"/>
+        <location filename="../form/afkform.ui" line="2186"/>
         <source>drop pet</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/afkform.ui" line="1867"/>
+        <location filename="../form/afkform.ui" line="2220"/>
         <source>auto drop pet with conditions below</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/afkform.ui" line="1886"/>
+        <location filename="../form/afkform.ui" line="2242"/>
         <source>str</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/afkform.ui" line="1903"/>
+        <location filename="../form/afkform.ui" line="2275"/>
         <source>def</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/afkform.ui" line="1920"/>
+        <location filename="../form/afkform.ui" line="2308"/>
         <source>agi</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/afkform.ui" line="1937"/>
+        <location filename="../form/afkform.ui" line="2341"/>
         <source>hp</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/afkform.ui" line="1956"/>
+        <location filename="../form/afkform.ui" line="2373"/>
         <source>str+def+agi&lt;</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/afkform.ui" line="1980"/>
+        <location filename="../form/afkform.ui" line="2409"/>
         <source>pet name</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>AfkInfoForm</name>
+    <message>
+        <location filename="../form/afkinfoform.cpp" line="120"/>
+        <source>duration</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../form/afkinfoform.cpp" line="122"/>
+        <source>level difference</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../form/afkinfoform.cpp" line="123"/>
+        <source>exp difference</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../form/afkinfoform.cpp" line="124"/>
+        <source>deadth count</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../form/afkinfoform.cpp" line="125"/>
+        <source>gold difference</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../form/afkinfoform.cpp" line="131"/>
+        <source>pet %1 level difference</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../form/afkinfoform.cpp" line="132"/>
+        <source>pet %1 exp difference</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../form/afkinfoform.cpp" line="133"/>
+        <source>pet %1 deadth count</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -450,22 +602,22 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/afkinfoform.ui" line="25"/>
+        <location filename="../form/afkinfoform.ui" line="31"/>
         <source>section</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/afkinfoform.ui" line="30"/>
+        <location filename="../form/afkinfoform.ui" line="36"/>
         <source>value</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/afkinfoform.ui" line="57"/>
+        <location filename="../form/afkinfoform.ui" line="63"/>
         <source>Please note that the death statistics only account for deaths that occur on the battlefield, and do not include deaths from being knocked out</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/afkinfoform.ui" line="70"/>
+        <location filename="../form/afkinfoform.ui" line="76"/>
         <source>recalculate</source>
         <translation type="unfinished"></translation>
     </message>
@@ -473,12 +625,12 @@
 <context>
     <name>BattleInfoForm</name>
     <message>
-        <location filename="../form/battleinfoform.cpp" line="89"/>
+        <location filename="../form/battleinfoform.cpp" line="106"/>
         <source>char action:</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/battleinfoform.cpp" line="94"/>
+        <location filename="../form/battleinfoform.cpp" line="111"/>
         <source>pet action:</source>
         <translation type="unfinished"></translation>
     </message>
@@ -569,132 +721,132 @@
 <context>
     <name>GeneralForm</name>
     <message>
-        <location filename="../form/generalform.cpp" line="67"/>
+        <location filename="../form/generalform.cpp" line="68"/>
         <source>1st//Acticity</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/generalform.cpp" line="67"/>
+        <location filename="../form/generalform.cpp" line="68"/>
         <source>2nd///Market</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/generalform.cpp" line="67"/>
+        <location filename="../form/generalform.cpp" line="68"/>
         <source>3rd//Family</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/generalform.cpp" line="67"/>
+        <location filename="../form/generalform.cpp" line="68"/>
         <source>4th//Away</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/generalform.cpp" line="68"/>
+        <location filename="../form/generalform.cpp" line="69"/>
         <source>5th//Away</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/generalform.cpp" line="68"/>
+        <location filename="../form/generalform.cpp" line="69"/>
         <source>6th//Away</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/generalform.cpp" line="68"/>
+        <location filename="../form/generalform.cpp" line="69"/>
         <source>7th//Away</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/generalform.cpp" line="68"/>
+        <location filename="../form/generalform.cpp" line="69"/>
         <source>8th//Away</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/generalform.cpp" line="69"/>
+        <location filename="../form/generalform.cpp" line="70"/>
         <source>9th//Away</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/generalform.cpp" line="69"/>
+        <location filename="../form/generalform.cpp" line="70"/>
         <source>15th//Company</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/generalform.cpp" line="69"/>
+        <location filename="../form/generalform.cpp" line="70"/>
         <source>21th//Member</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/generalform.cpp" line="69"/>
+        <location filename="../form/generalform.cpp" line="70"/>
         <source>22th//Member</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/generalform.cpp" line="79"/>
+        <location filename="../form/generalform.cpp" line="80"/>
         <source>Telecom</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/generalform.cpp" line="79"/>
+        <location filename="../form/generalform.cpp" line="80"/>
         <source>UnitedNetwork</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/generalform.cpp" line="79"/>
+        <location filename="../form/generalform.cpp" line="80"/>
         <source>Easyown</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/generalform.cpp" line="79"/>
+        <location filename="../form/generalform.cpp" line="80"/>
         <source>Oversea</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/generalform.cpp" line="79"/>
+        <location filename="../form/generalform.cpp" line="80"/>
         <source>Backup</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/generalform.cpp" line="85"/>
+        <location filename="../form/generalform.cpp" line="86"/>
         <source>Left</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/generalform.cpp" line="85"/>
+        <location filename="../form/generalform.cpp" line="86"/>
         <source>Right</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/generalform.cpp" line="88"/>
+        <location filename="../form/generalform.cpp" line="89"/>
         <source>Afternoon</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/generalform.cpp" line="88"/>
+        <location filename="../form/generalform.cpp" line="89"/>
         <source>Dusk</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/generalform.cpp" line="88"/>
+        <location filename="../form/generalform.cpp" line="89"/>
         <source>Midnight</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/generalform.cpp" line="88"/>
+        <location filename="../form/generalform.cpp" line="89"/>
         <source>Morning</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/generalform.cpp" line="88"/>
+        <location filename="../form/generalform.cpp" line="89"/>
         <source>Noon</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/generalform.cpp" line="118"/>
+        <location filename="../form/generalform.cpp" line="119"/>
         <source>logout</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/generalform.cpp" line="118"/>
+        <location filename="../form/generalform.cpp" line="119"/>
         <source>Are you sure you want to logout now?</source>
         <translation type="unfinished"></translation>
     </message>
@@ -706,12 +858,6 @@
     <message>
         <location filename="../form/generalform.cpp" line="133"/>
         <source>Are you sure you want to logback now?</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../form/generalform.cpp" line="658"/>
-        <location filename="../form/generalform.cpp" line="728"/>
-        <source>Json Files (*.json)</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -1079,47 +1225,47 @@
 <context>
     <name>ItemInfoForm</name>
     <message>
-        <location filename="../form/iteminfoform.cpp" line="69"/>
+        <location filename="../form/iteminfoform.cpp" line="86"/>
         <source>head</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/iteminfoform.cpp" line="69"/>
+        <location filename="../form/iteminfoform.cpp" line="86"/>
         <source>body</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/iteminfoform.cpp" line="69"/>
+        <location filename="../form/iteminfoform.cpp" line="86"/>
         <source>righthand</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/iteminfoform.cpp" line="69"/>
+        <location filename="../form/iteminfoform.cpp" line="86"/>
         <source>leftacc</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/iteminfoform.cpp" line="69"/>
+        <location filename="../form/iteminfoform.cpp" line="86"/>
         <source>rightacc</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/iteminfoform.cpp" line="69"/>
+        <location filename="../form/iteminfoform.cpp" line="86"/>
         <source>belt</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/iteminfoform.cpp" line="69"/>
+        <location filename="../form/iteminfoform.cpp" line="86"/>
         <source>lefthand</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/iteminfoform.cpp" line="69"/>
+        <location filename="../form/iteminfoform.cpp" line="86"/>
         <source>shoes</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/iteminfoform.cpp" line="69"/>
+        <location filename="../form/iteminfoform.cpp" line="86"/>
         <source>gloves</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1349,159 +1495,165 @@
 <context>
     <name>MainForm</name>
     <message>
-        <location filename="../mainform.cpp" line="87"/>
-        <location filename="../mainform.cpp" line="301"/>
+        <location filename="../mainform.cpp" line="206"/>
+        <location filename="../mainform.cpp" line="447"/>
         <source>general</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../mainform.cpp" line="94"/>
-        <location filename="../mainform.cpp" line="302"/>
+        <location filename="../mainform.cpp" line="213"/>
+        <location filename="../mainform.cpp" line="448"/>
         <source>map</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../mainform.cpp" line="100"/>
-        <location filename="../mainform.cpp" line="303"/>
+        <location filename="../mainform.cpp" line="219"/>
+        <location filename="../mainform.cpp" line="449"/>
         <source>afk</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../mainform.cpp" line="106"/>
-        <location filename="../mainform.cpp" line="304"/>
+        <location filename="../mainform.cpp" line="225"/>
+        <location filename="../mainform.cpp" line="450"/>
         <source>other</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../mainform.cpp" line="112"/>
-        <location filename="../mainform.cpp" line="305"/>
+        <location filename="../mainform.cpp" line="231"/>
+        <location filename="../mainform.cpp" line="451"/>
         <source>script</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../mainform.cpp" line="272"/>
+        <location filename="../mainform.cpp" line="418"/>
         <source>SaSH - Beta %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../mainform.cpp" line="295"/>
+        <location filename="../mainform.cpp" line="441"/>
         <source>char</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../mainform.cpp" line="297"/>
+        <location filename="../mainform.cpp" line="443"/>
         <source>pet</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../mainform.cpp" line="298"/>
+        <location filename="../mainform.cpp" line="444"/>
         <source>ride</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../mainform.cpp" line="337"/>
-        <location filename="../mainform.cpp" line="355"/>
+        <location filename="../mainform.cpp" line="486"/>
+        <location filename="../mainform.cpp" line="504"/>
         <source>unknown</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../mainform.cpp" line="338"/>
+        <location filename="../mainform.cpp" line="487"/>
         <source>not open</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../mainform.cpp" line="339"/>
+        <location filename="../mainform.cpp" line="488"/>
         <source>opening</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../mainform.cpp" line="340"/>
+        <location filename="../mainform.cpp" line="489"/>
         <source>opened</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../mainform.cpp" line="341"/>
+        <location filename="../mainform.cpp" line="490"/>
         <source>logining</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../mainform.cpp" line="342"/>
+        <location filename="../mainform.cpp" line="491"/>
         <source>signning</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../mainform.cpp" line="343"/>
+        <location filename="../mainform.cpp" line="492"/>
         <source>select server</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../mainform.cpp" line="344"/>
+        <location filename="../mainform.cpp" line="493"/>
         <source>select sub server</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../mainform.cpp" line="345"/>
+        <location filename="../mainform.cpp" line="494"/>
         <source>getting player list</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../mainform.cpp" line="346"/>
+        <location filename="../mainform.cpp" line="495"/>
         <source>select position</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../mainform.cpp" line="347"/>
+        <location filename="../mainform.cpp" line="496"/>
         <source>login success</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../mainform.cpp" line="348"/>
+        <location filename="../mainform.cpp" line="497"/>
         <source>in normal</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../mainform.cpp" line="349"/>
+        <location filename="../mainform.cpp" line="498"/>
         <source>in battle</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../mainform.cpp" line="350"/>
+        <location filename="../mainform.cpp" line="499"/>
         <source>busy</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../mainform.cpp" line="351"/>
+        <location filename="../mainform.cpp" line="500"/>
         <source>timeout</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../mainform.cpp" line="352"/>
+        <location filename="../mainform.cpp" line="501"/>
         <source>no username or password</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../mainform.cpp" line="353"/>
+        <location filename="../mainform.cpp" line="502"/>
         <source>disconnected</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../mainform.cpp" line="355"/>
+        <location filename="../mainform.cpp" line="504"/>
         <source>status:</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../mainform.cpp" line="359"/>
+        <location filename="../mainform.cpp" line="508"/>
         <source>map:</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../mainform.cpp" line="363"/>
+        <location filename="../mainform.cpp" line="512"/>
         <source>cursor:</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../mainform.cpp" line="367"/>
+        <location filename="../mainform.cpp" line="516"/>
         <source>coordis:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../mainform.cpp" line="541"/>
+        <location filename="../mainform.cpp" line="614"/>
+        <source>Json Files (*.json)</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -1549,32 +1701,49 @@
 <context>
     <name>MainObject</name>
     <message>
-        <location filename="../mainthread.cpp" line="197"/>
+        <location filename="../mainthread.cpp" line="283"/>
         <source>Welcome to use SaSH，For more information please visit %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../mainthread.cpp" line="198"/>
+        <location filename="../mainthread.cpp" line="284"/>
         <source>You are using %1 account, due date is:%2</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../mainthread.cpp" line="198"/>
+        <location filename="../mainthread.cpp" line="284"/>
         <source>trial</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../mainthread.cpp" line="198"/>
+        <location filename="../mainthread.cpp" line="284"/>
         <source>subscribed</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../mainthread.cpp" line="199"/>
+        <location filename="../mainthread.cpp" line="285"/>
         <source>StoneAge SaSH forum url:%1, newest version is %2</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../mainthread.cpp" line="241"/>
+        <location filename="../mainthread.cpp" line="394"/>
+        <location filename="../mainthread.cpp" line="421"/>
+        <source>%1→%2 (avg level: %3)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../mainthread.cpp" line="401"/>
+        <location filename="../mainthread.cpp" line="427"/>
+        <source>%1 (avg exp: %2)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../mainthread.cpp" line="409"/>
+        <source>%1 (avg gold: %2)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../mainthread.cpp" line="459"/>
         <source>%1 count    no %2 round    duration: %3 sec    total time: %4 minues</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1613,6 +1782,146 @@
     </message>
 </context>
 <context>
+    <name>MapWidget</name>
+    <message>
+        <location filename="../form/mapwidget.cpp" line="217"/>
+        <source>%1 map:%2 floor:%3 [%4,%5] file:%6 mouse:%7,%8</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../form/mapwidget.cpp" line="225"/>
+        <source>downloading(%1%2)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../form/mapwidget.cpp" line="273"/>
+        <location filename="../form/mapwidget.cpp" line="375"/>
+        <source>UP</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../form/mapwidget.cpp" line="276"/>
+        <location filename="../form/mapwidget.cpp" line="378"/>
+        <source>DWON</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../form/mapwidget.cpp" line="279"/>
+        <location filename="../form/mapwidget.cpp" line="381"/>
+        <source>JUMP</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../form/mapwidget.cpp" line="282"/>
+        <location filename="../form/mapwidget.cpp" line="384"/>
+        <source>WARP</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../form/mapwidget.cpp" line="285"/>
+        <location filename="../form/mapwidget.cpp" line="387"/>
+        <source>UNKNOWN</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../form/mapwidget.cpp" line="302"/>
+        <source>X[%1]%2</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../form/mapwidget.cpp" line="329"/>
+        <source>[I]%1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../form/mapwidget.cpp" line="335"/>
+        <source>[G]%1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../form/mapwidget.cpp" line="342"/>
+        <location filename="../form/mapwidget.cpp" line="344"/>
+        <source>[P]%2</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../form/mapwidget.cpp" line="344"/>
+        <source>X[P]%2</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../form/mapwidget.cpp" line="351"/>
+        <source>[H]%1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../form/mapwidget.cpp" line="353"/>
+        <source>X[H]%1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../form/mapwidget.cpp" line="362"/>
+        <source>X[NPC]%1</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>MapWidgetClass</name>
+    <message>
+        <location filename="../form/mapwidget.ui" line="14"/>
+        <source>MAPFORM</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../form/mapwidget.ui" line="97"/>
+        <source>DOWNLOAD</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../form/mapwidget.ui" line="222"/>
+        <source>ROUTE</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../form/mapwidget.ui" line="263"/>
+        <source>LOGBACK</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../form/mapwidget.ui" line="469"/>
+        <source>NAME</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../form/mapwidget.ui" line="474"/>
+        <source>LOCATE</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>OtherForm</name>
+    <message>
+        <location filename="../form/otherform.cpp" line="216"/>
+        <source>auto join</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../form/otherform.cpp" line="216"/>
+        <source>auto follow</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../form/otherform.cpp" line="216"/>
+        <source>auto pk</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../form/otherform.cpp" line="216"/>
+        <source>auto watch</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>OtherFormClass</name>
     <message>
         <location filename="../form/otherform.ui" line="14"/>
@@ -1630,169 +1939,164 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/otherform.ui" line="108"/>
+        <location filename="../form/otherform.ui" line="114"/>
         <source>leader:</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/otherform.ui" line="115"/>
+        <location filename="../form/otherform.ui" line="140"/>
         <source>L</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/otherform.ui" line="135"/>
+        <location filename="../form/otherform.ui" line="166"/>
         <source>teammate1:</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/otherform.ui" line="142"/>
-        <location filename="../form/otherform.ui" line="169"/>
-        <location filename="../form/otherform.ui" line="196"/>
-        <location filename="../form/otherform.ui" line="223"/>
+        <location filename="../form/otherform.ui" line="192"/>
+        <location filename="../form/otherform.ui" line="244"/>
+        <location filename="../form/otherform.ui" line="296"/>
+        <location filename="../form/otherform.ui" line="348"/>
         <source>K</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/otherform.ui" line="162"/>
+        <location filename="../form/otherform.ui" line="218"/>
         <source>teammate2:</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/otherform.ui" line="189"/>
+        <location filename="../form/otherform.ui" line="270"/>
         <source>teammate3:</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/otherform.ui" line="216"/>
+        <location filename="../form/otherform.ui" line="322"/>
         <source>teammate4:</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/otherform.ui" line="247"/>
+        <location filename="../form/otherform.ui" line="375"/>
         <source>white list</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/otherform.ui" line="257"/>
-        <location filename="../form/otherform.ui" line="281"/>
+        <location filename="../form/otherform.ui" line="392"/>
+        <location filename="../form/otherform.ui" line="426"/>
         <source>select</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/otherform.ui" line="271"/>
+        <location filename="../form/otherform.ui" line="409"/>
         <source>black list</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/otherform.ui" line="295"/>
-        <source>auto</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../form/otherform.ui" line="322"/>
+        <location filename="../form/otherform.ui" line="466"/>
         <source>auto kick teammate if later then</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/otherform.ui" line="332"/>
+        <location filename="../form/otherform.ui" line="480"/>
         <source>s</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/otherform.ui" line="372"/>
+        <location filename="../form/otherform.ui" line="520"/>
         <source>lockpet</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/otherform.ui" line="398"/>
+        <location filename="../form/otherform.ui" line="546"/>
         <source>lock pet</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/otherform.ui" line="429"/>
+        <location filename="../form/otherform.ui" line="580"/>
         <source>lock pet after battle</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/otherform.ui" line="446"/>
+        <location filename="../form/otherform.ui" line="604"/>
         <source>lock ride after battle</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/otherform.ui" line="467"/>
+        <location filename="../form/otherform.ui" line="629"/>
         <source>pet</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/otherform.ui" line="488"/>
+        <location filename="../form/otherform.ui" line="653"/>
         <source>pet switch</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/otherform.ui" line="545"/>
-        <location filename="../form/otherform.ui" line="682"/>
+        <location filename="../form/otherform.ui" line="710"/>
+        <location filename="../form/otherform.ui" line="850"/>
         <source>↑</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/otherform.ui" line="564"/>
-        <location filename="../form/otherform.ui" line="701"/>
+        <location filename="../form/otherform.ui" line="729"/>
+        <location filename="../form/otherform.ui" line="869"/>
         <source>↓</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/otherform.ui" line="586"/>
-        <location filename="../form/otherform.ui" line="723"/>
+        <location filename="../form/otherform.ui" line="751"/>
+        <location filename="../form/otherform.ui" line="891"/>
         <source>1.------------- target level:</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/otherform.ui" line="604"/>
+        <location filename="../form/otherform.ui" line="769"/>
         <source>ride</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/otherform.ui" line="625"/>
+        <location filename="../form/otherform.ui" line="793"/>
         <source>ride switch</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/otherform.ui" line="747"/>
+        <location filename="../form/otherform.ui" line="915"/>
         <source>exception</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/otherform.ui" line="752"/>
+        <location filename="../form/otherform.ui" line="920"/>
         <source>other</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/otherform.ui" line="757"/>
+        <location filename="../form/otherform.ui" line="925"/>
         <source>other2</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/otherform.ui" line="783"/>
+        <location filename="../form/otherform.ui" line="951"/>
         <source>security</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/otherform.ui" line="819"/>
+        <location filename="../form/otherform.ui" line="987"/>
         <source>account</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/otherform.ui" line="836"/>
+        <location filename="../form/otherform.ui" line="1004"/>
         <source>password</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/otherform.ui" line="855"/>
+        <location filename="../form/otherform.ui" line="1023"/>
         <source>security code</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/otherform.ui" line="872"/>
+        <location filename="../form/otherform.ui" line="1043"/>
         <source>anti-anti-bot</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1878,73 +2182,103 @@
 <context>
     <name>PlayerInfoForm</name>
     <message>
-        <location filename="../form/playerinfoform.cpp" line="70"/>
+        <location filename="../form/playerinfoform.cpp" line="90"/>
         <source>name</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/playerinfoform.cpp" line="70"/>
+        <location filename="../form/playerinfoform.cpp" line="90"/>
         <source>freename</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/playerinfoform.cpp" line="71"/>
+        <location filename="../form/playerinfoform.cpp" line="91"/>
         <source>level</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/playerinfoform.cpp" line="71"/>
+        <location filename="../form/playerinfoform.cpp" line="91"/>
         <source>exp</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/playerinfoform.cpp" line="71"/>
+        <location filename="../form/playerinfoform.cpp" line="91"/>
         <source>nextexp</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/playerinfoform.cpp" line="71"/>
+        <location filename="../form/playerinfoform.cpp" line="91"/>
         <source>leftexp</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/playerinfoform.cpp" line="72"/>
+        <location filename="../form/playerinfoform.cpp" line="92"/>
         <source>hp</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/playerinfoform.cpp" line="72"/>
+        <location filename="../form/playerinfoform.cpp" line="92"/>
         <source>mp</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/playerinfoform.cpp" line="72"/>
+        <location filename="../form/playerinfoform.cpp" line="92"/>
         <source>chasma/loyal</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/playerinfoform.cpp" line="73"/>
+        <location filename="../form/playerinfoform.cpp" line="93"/>
         <source>atk</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/playerinfoform.cpp" line="73"/>
+        <location filename="../form/playerinfoform.cpp" line="93"/>
         <source>def</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/playerinfoform.cpp" line="73"/>
+        <location filename="../form/playerinfoform.cpp" line="93"/>
         <source>agi</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/playerinfoform.cpp" line="73"/>
+        <location filename="../form/playerinfoform.cpp" line="93"/>
         <source>luck</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/playerinfoform.cpp" line="155"/>
+        <location filename="../form/playerinfoform.cpp" line="175"/>
         <source>stone:%1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../form/playerinfoform.cpp" line="185"/>
+        <source>battle</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../form/playerinfoform.cpp" line="185"/>
+        <source>standby</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../form/playerinfoform.cpp" line="185"/>
+        <source>mail</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../form/playerinfoform.cpp" line="185"/>
+        <source>rest</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../form/playerinfoform.cpp" line="185"/>
+        <source>ride</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../form/playerinfoform.cpp" line="193"/>
+        <source>pet%1 (%2)</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -2004,43 +2338,273 @@ MESSAGE：<byte value="xd"/>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../util.h" line="454"/>
+        <location filename="../mainform.cpp" line="114"/>
         <source>system</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../util.h" line="459"/>
+        <location filename="../mainform.cpp" line="93"/>
         <source>hide</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../util.h" line="470"/>
+        <location filename="../mainform.cpp" line="96"/>
         <source>info</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../util.h" line="476"/>
+        <location filename="../mainform.cpp" line="95"/>
         <source>website</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../util.h" line="487"/>
+        <location filename="../mainform.cpp" line="98"/>
         <source>close</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../util.h" line="502"/>
+        <location filename="../mainform.cpp" line="99"/>
+        <source>close game</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../mainform.cpp" line="110"/>
+        <source>save</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../mainform.cpp" line="111"/>
+        <source>load</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../mainform.cpp" line="120"/>
         <source>other</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../util.h" line="507"/>
+        <location filename="../mainform.cpp" line="126"/>
+        <source>file</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../mainform.cpp" line="103"/>
         <source>otherinfo</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../util.h" line="518"/>
+        <location filename="../mainform.cpp" line="104"/>
+        <source>map</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../mainform.cpp" line="106"/>
         <source>script settings</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../util.h" line="871"/>
+        <source>%1 day %2 hour %3 min %4 sec %5 msec</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../net/tcpserver.cpp" line="1964"/>
+        <source>player exp:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../net/tcpserver.cpp" line="1997"/>
+        <source>ride exp:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../net/tcpserver.cpp" line="2009"/>
+        <source>pet exp:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../net/tcpserver.cpp" line="2047"/>
+        <source>rewards:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../net/tcpserver.cpp" line="2496"/>
+        <source>dead</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../net/tcpserver.cpp" line="2498"/>
+        <source>poisoned</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../net/tcpserver.cpp" line="2500"/>
+        <source>paralyzed</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../net/tcpserver.cpp" line="2502"/>
+        <source>sleep</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../net/tcpserver.cpp" line="2504"/>
+        <source>petrified</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../net/tcpserver.cpp" line="2506"/>
+        <source>dizzy</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../net/tcpserver.cpp" line="2508"/>
+        <source>confused</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../net/tcpserver.cpp" line="2510"/>
+        <source>hidden</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../net/tcpserver.cpp" line="3400"/>
+        <source>server response time:%1ms</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../net/tcpserver.cpp" line="3813"/>
+        <source>Tell you:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../net/tcpserver.cpp" line="5474"/>
+        <location filename="../net/tcpserver.cpp" line="5865"/>
+        <source>%1(%2tr)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../net/tcpserver.cpp" line="7641"/>
+        <source>head</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../net/tcpserver.cpp" line="7641"/>
+        <source>body</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../net/tcpserver.cpp" line="7641"/>
+        <source>righthand</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../net/tcpserver.cpp" line="7641"/>
+        <source>leftacc</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../net/tcpserver.cpp" line="7642"/>
+        <source>rightacc</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../net/tcpserver.cpp" line="7642"/>
+        <source>belt</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../net/tcpserver.cpp" line="7642"/>
+        <source>lefthand</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../net/tcpserver.cpp" line="7642"/>
+        <source>shoes</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../net/tcpserver.cpp" line="7643"/>
+        <source>gloves</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../net/tcpserver.cpp" line="9327"/>
+        <source>all allies</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../net/tcpserver.cpp" line="9329"/>
+        <source>all enemies</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../net/tcpserver.cpp" line="9331"/>
+        <source>all field</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../net/tcpserver.cpp" line="9333"/>
+        <source>unknown</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../net/tcpserver.cpp" line="9946"/>
+        <source>use attack [%1]%2</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../net/tcpserver.cpp" line="9976"/>
+        <source>use magic %1 to [%2]%3</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../net/tcpserver.cpp" line="10012"/>
+        <source>use skill %1 to [%2]%3</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../net/tcpserver.cpp" line="10049"/>
+        <source>use item %1 to [%2]%3</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../net/tcpserver.cpp" line="10117"/>
+        <source>catch [%1]%2</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../net/tcpserver.cpp" line="10195"/>
+        <source>use %1 to [%2]%3</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../net/tcpserver.cpp" line="10075"/>
+        <source>defense</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../net/tcpserver.cpp" line="10095"/>
+        <source>escape</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../net/tcpserver.cpp" line="10140"/>
+        <source>switch pet to %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../net/tcpserver.cpp" line="10162"/>
+        <location filename="../net/tcpserver.cpp" line="10221"/>
+        <source>do nothing</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../net/tcpserver.cpp" line="9982"/>
+        <location filename="../net/tcpserver.cpp" line="10018"/>
+        <location filename="../net/tcpserver.cpp" line="10055"/>
+        <location filename="../net/tcpserver.cpp" line="10199"/>
+        <source>use %1 to %2</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -2157,6 +2721,154 @@ MESSAGE：<byte value="xd"/>
     </message>
 </context>
 <context>
+    <name>SelectTargetForm</name>
+    <message>
+        <location filename="../form/selecttargetform.cpp" line="29"/>
+        <source>player specific round action</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../form/selecttargetform.cpp" line="30"/>
+        <source>Player alternating round action</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../form/selecttargetform.cpp" line="31"/>
+        <source>player normal round action</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../form/selecttargetform.cpp" line="33"/>
+        <source>pet specific round action</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../form/selecttargetform.cpp" line="34"/>
+        <source>pet alternating round action</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../form/selecttargetform.cpp" line="35"/>
+        <source>pet normal round action</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../form/selecttargetform.cpp" line="38"/>
+        <source>magic healing target</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../form/selecttargetform.cpp" line="39"/>
+        <source>item healing target</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../form/selecttargetform.cpp" line="40"/>
+        <source>magic revival target</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../form/selecttargetform.cpp" line="41"/>
+        <source>item revival target</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../form/selecttargetform.cpp" line="44"/>
+        <source>unknown</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../form/selecttargetform.cpp" line="195"/>
+        <source>S</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../form/selecttargetform.cpp" line="199"/>
+        <source>P</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../form/selecttargetform.cpp" line="203"/>
+        <source>ANY</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../form/selecttargetform.cpp" line="207"/>
+        <source>ALL</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../form/selecttargetform.cpp" line="211"/>
+        <source>EANY</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../form/selecttargetform.cpp" line="215"/>
+        <source>EALL</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../form/selecttargetform.cpp" line="219"/>
+        <source>EF</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../form/selecttargetform.cpp" line="223"/>
+        <source>EB</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../form/selecttargetform.cpp" line="227"/>
+        <source>L</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../form/selecttargetform.cpp" line="231"/>
+        <source>LP</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../form/selecttargetform.cpp" line="235"/>
+        <source>T1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../form/selecttargetform.cpp" line="239"/>
+        <source>T1P</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../form/selecttargetform.cpp" line="243"/>
+        <source>T2</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../form/selecttargetform.cpp" line="247"/>
+        <source>T2P</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../form/selecttargetform.cpp" line="251"/>
+        <source>T3</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../form/selecttargetform.cpp" line="255"/>
+        <source>T3P</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../form/selecttargetform.cpp" line="259"/>
+        <source>T4</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../form/selecttargetform.cpp" line="263"/>
+        <source>T4P</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>SelectTargetFormClass</name>
     <message>
         <location filename="../form/selecttargetform.ui" line="20"/>
@@ -2175,22 +2887,22 @@ MESSAGE：<byte value="xd"/>
     </message>
     <message>
         <location filename="../form/selecttargetform.ui" line="65"/>
-        <source>any(N)</source>
+        <source>any(ANY)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../form/selecttargetform.ui" line="72"/>
-        <source>all(A)</source>
+        <source>all(ALL)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../form/selecttargetform.ui" line="86"/>
-        <source>enemy(E)</source>
+        <source>enemy(EANY)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../form/selecttargetform.ui" line="93"/>
-        <source>enemy all(EA)</source>
+        <source>enemy all(EALL)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -2209,36 +2921,36 @@ MESSAGE：<byte value="xd"/>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/selecttargetform.ui" line="159"/>
+        <location filename="../form/selecttargetform.ui" line="162"/>
         <source>leader:</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/selecttargetform.ui" line="166"/>
-        <location filename="../form/selecttargetform.ui" line="193"/>
-        <location filename="../form/selecttargetform.ui" line="220"/>
-        <location filename="../form/selecttargetform.ui" line="247"/>
-        <location filename="../form/selecttargetform.ui" line="274"/>
+        <location filename="../form/selecttargetform.ui" line="172"/>
+        <location filename="../form/selecttargetform.ui" line="205"/>
+        <location filename="../form/selecttargetform.ui" line="238"/>
+        <location filename="../form/selecttargetform.ui" line="271"/>
+        <location filename="../form/selecttargetform.ui" line="304"/>
         <source>pet</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/selecttargetform.ui" line="186"/>
+        <location filename="../form/selecttargetform.ui" line="195"/>
         <source>teammate1:</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/selecttargetform.ui" line="213"/>
+        <location filename="../form/selecttargetform.ui" line="228"/>
         <source>teammate2:</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/selecttargetform.ui" line="240"/>
+        <location filename="../form/selecttargetform.ui" line="261"/>
         <source>teammate3:</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/selecttargetform.ui" line="267"/>
+        <location filename="../form/selecttargetform.ui" line="294"/>
         <source>teammate4:</source>
         <translation type="unfinished"></translation>
     </message>
@@ -2246,19 +2958,88 @@ MESSAGE：<byte value="xd"/>
 <context>
     <name>Server</name>
     <message>
-        <location filename="../net/tcpserver.cpp" line="2955"/>
-        <source>server response time:%1ms</source>
+        <location filename="../net/tcpserver.cpp" line="5511"/>
+        <source>1st//Acticity</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="3966"/>
-        <source>Tell you:</source>
+        <location filename="../net/tcpserver.cpp" line="5511"/>
+        <source>2nd///Market</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="5680"/>
-        <location filename="../net/tcpserver.cpp" line="6038"/>
-        <source>%1(%2tr)</source>
+        <location filename="../net/tcpserver.cpp" line="5511"/>
+        <source>3rd//Family</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../net/tcpserver.cpp" line="5511"/>
+        <source>4th//Away</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../net/tcpserver.cpp" line="5512"/>
+        <source>5th//Away</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../net/tcpserver.cpp" line="5512"/>
+        <source>6th//Away</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../net/tcpserver.cpp" line="5512"/>
+        <source>7th//Away</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../net/tcpserver.cpp" line="5512"/>
+        <source>8th//Away</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../net/tcpserver.cpp" line="5513"/>
+        <source>9th//Away</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../net/tcpserver.cpp" line="5513"/>
+        <source>15th//Company</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../net/tcpserver.cpp" line="5513"/>
+        <source>21th//Member</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../net/tcpserver.cpp" line="5513"/>
+        <source>22th//Member</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../net/tcpserver.cpp" line="5517"/>
+        <source>Telecom</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../net/tcpserver.cpp" line="5517"/>
+        <source>UnitedNetwork</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../net/tcpserver.cpp" line="5517"/>
+        <source>Easyown</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../net/tcpserver.cpp" line="5517"/>
+        <source>Oversea</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../net/tcpserver.cpp" line="5517"/>
+        <source>Backup</source>
         <translation type="unfinished"></translation>
     </message>
 </context>

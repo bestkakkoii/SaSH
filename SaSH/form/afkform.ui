@@ -32,7 +32,7 @@
    <item row="0" column="0">
     <widget class="QTabWidget" name="tabWidget_afk">
      <property name="currentIndex">
-      <number>0</number>
+      <number>3</number>
      </property>
      <widget class="QWidget" name="tab_afk_battle">
       <attribute name="title">
@@ -91,10 +91,10 @@
                  <number>1</number>
                 </property>
                 <item>
-                 <widget class="QComboBox" name="comboBox_afk_battle_char_roundaction_round"/>
+                 <widget class="ComboBox" name="comboBox_roundaction_char_round"/>
                 </item>
                 <item>
-                 <widget class="QCheckBox" name="checkBox_afk_battle_char_crossaction">
+                 <widget class="QCheckBox" name="checkBox_crossaction_char">
                   <property name="text">
                    <string>cross rd</string>
                   </property>
@@ -124,13 +124,34 @@
                  <number>1</number>
                 </property>
                 <item>
-                 <widget class="QComboBox" name="comboBox_afk_battle_char_roundaction_action"/>
+                 <widget class="ComboBox" name="comboBox_roundaction_char_action">
+                  <property name="minimumSize">
+                   <size>
+                    <width>0</width>
+                    <height>0</height>
+                   </size>
+                  </property>
+                 </widget>
                 </item>
                 <item>
-                 <widget class="QComboBox" name="comboBox_afk_battle_char_crossaction_action"/>
+                 <widget class="ComboBox" name="comboBox_crossaction_char_action">
+                  <property name="minimumSize">
+                   <size>
+                    <width>0</width>
+                    <height>0</height>
+                   </size>
+                  </property>
+                 </widget>
                 </item>
                 <item>
-                 <widget class="QComboBox" name="comboBox_battle_char_nornalaction_action"/>
+                 <widget class="ComboBox" name="comboBox_normalaction_char_action">
+                  <property name="minimumSize">
+                   <size>
+                    <width>0</width>
+                    <height>0</height>
+                   </size>
+                  </property>
+                 </widget>
                 </item>
                </layout>
               </item>
@@ -145,15 +166,15 @@
                    <number>1</number>
                   </property>
                   <item>
-                   <widget class="QComboBox" name="comboBox_afk_battle_char_roundaction_min"/>
+                   <widget class="ComboBox" name="comboBox_roundaction_char_enemy"/>
                   </item>
                   <item>
-                   <widget class="QComboBox" name="comboBox_afk_battle_char_roundaction_max"/>
+                   <widget class="ComboBox" name="comboBox_roundaction_char_level"/>
                   </item>
                  </layout>
                 </item>
                 <item>
-                 <widget class="QComboBox" name="comboBox_afk_battle_char_crossaction_round"/>
+                 <widget class="ComboBox" name="comboBox_crossaction_char_round"/>
                 </item>
                 <item>
                  <layout class="QHBoxLayout" name="horizontalLayout_30">
@@ -161,10 +182,10 @@
                    <number>1</number>
                   </property>
                   <item>
-                   <widget class="QComboBox" name="comboBox_battle_char_nornalaction_min"/>
+                   <widget class="ComboBox" name="comboBox_normalaction_char_enemy"/>
                   </item>
                   <item>
-                   <widget class="QComboBox" name="comboBox_battle_char_nornalaction_max"/>
+                   <widget class="ComboBox" name="comboBox_normalaction_char_level"/>
                   </item>
                  </layout>
                 </item>
@@ -176,21 +197,21 @@
                  <number>1</number>
                 </property>
                 <item>
-                 <widget class="QPushButton" name="pushButton_afk_battle_char_roundaction_target">
+                 <widget class="QPushButton" name="pushButton_roundaction_char">
                   <property name="text">
                    <string>E</string>
                   </property>
                  </widget>
                 </item>
                 <item>
-                 <widget class="QPushButton" name="pushButton_afk_battle_char_crossaction_target">
+                 <widget class="QPushButton" name="pushButton_crossaction_char">
                   <property name="text">
                    <string>E</string>
                   </property>
                  </widget>
                 </item>
                 <item>
-                 <widget class="QPushButton" name="pushButton_afk_battle_char_normalaction_target">
+                 <widget class="QPushButton" name="pushButton_normalaction_char">
                   <property name="text">
                    <string>E</string>
                   </property>
@@ -235,10 +256,10 @@
                  <number>1</number>
                 </property>
                 <item>
-                 <widget class="QComboBox" name="comboBox_afk_battle_pet_roundaction_round"/>
+                 <widget class="ComboBox" name="comboBox_roundaction_pet_round"/>
                 </item>
                 <item>
-                 <widget class="QCheckBox" name="checkBox_afk_battle_pet_crossaction">
+                 <widget class="QCheckBox" name="checkBox_crossaction_pet">
                   <property name="text">
                    <string>cross rd</string>
                   </property>
@@ -268,13 +289,34 @@
                  <number>1</number>
                 </property>
                 <item>
-                 <widget class="QComboBox" name="comboBox_afk_battle_pet_roundaction_action"/>
+                 <widget class="ComboBox" name="comboBox_roundaction_pet_action">
+                  <property name="minimumSize">
+                   <size>
+                    <width>0</width>
+                    <height>0</height>
+                   </size>
+                  </property>
+                 </widget>
                 </item>
                 <item>
-                 <widget class="QComboBox" name="comboBox_afk_battle_pet_crossaction_action"/>
+                 <widget class="ComboBox" name="comboBox_crossaction_pet_action">
+                  <property name="minimumSize">
+                   <size>
+                    <width>0</width>
+                    <height>0</height>
+                   </size>
+                  </property>
+                 </widget>
                 </item>
                 <item>
-                 <widget class="QComboBox" name="comboBox_battle_pet_nornalaction_action"/>
+                 <widget class="ComboBox" name="comboBox_normalaction_pet_action">
+                  <property name="minimumSize">
+                   <size>
+                    <width>0</width>
+                    <height>0</height>
+                   </size>
+                  </property>
+                 </widget>
                 </item>
                </layout>
               </item>
@@ -289,15 +331,15 @@
                    <number>1</number>
                   </property>
                   <item>
-                   <widget class="QComboBox" name="comboBox_afk_battle_pet_roundaction_min"/>
+                   <widget class="ComboBox" name="comboBox_roundaction_pet_enemy"/>
                   </item>
                   <item>
-                   <widget class="QComboBox" name="comboBox_afk_battle_pet_roundaction_max"/>
+                   <widget class="ComboBox" name="comboBox_roundaction_pet_level"/>
                   </item>
                  </layout>
                 </item>
                 <item>
-                 <widget class="QComboBox" name="comboBox_afk_battle_pet_crossaction_round"/>
+                 <widget class="ComboBox" name="comboBox_crossaction_pet_round"/>
                 </item>
                 <item>
                  <layout class="QHBoxLayout" name="horizontalLayout_34">
@@ -305,10 +347,10 @@
                    <number>1</number>
                   </property>
                   <item>
-                   <widget class="QComboBox" name="comboBox_battle_pet_nornalaction_min"/>
+                   <widget class="ComboBox" name="comboBox_normalaction_pet_enemy"/>
                   </item>
                   <item>
-                   <widget class="QComboBox" name="comboBox_battle_pet_nornalaction_max"/>
+                   <widget class="ComboBox" name="comboBox_normalaction_pet_level"/>
                   </item>
                  </layout>
                 </item>
@@ -320,21 +362,21 @@
                  <number>1</number>
                 </property>
                 <item>
-                 <widget class="QPushButton" name="pushButton_afk_battle_pet_roundaction_target">
+                 <widget class="QPushButton" name="pushButton_roundaction_pet">
                   <property name="text">
                    <string>E</string>
                   </property>
                  </widget>
                 </item>
                 <item>
-                 <widget class="QPushButton" name="pushButton_afk_battle_pet_crossaction_target">
+                 <widget class="QPushButton" name="pushButton_crossaction_pet">
                   <property name="text">
                    <string>E</string>
                   </property>
                  </widget>
                 </item>
                 <item>
-                 <widget class="QPushButton" name="pushButton_afk_battle_pet_normalaction_target">
+                 <widget class="QPushButton" name="pushButton_normalaction_pet">
                   <property name="text">
                    <string>E</string>
                   </property>
@@ -616,17 +658,29 @@
                  <number>1</number>
                 </property>
                 <item>
-                 <widget class="QCheckBox" name="checkBox">
+                 <widget class="QCheckBox" name="checkBox_magicheal">
+                  <property name="minimumSize">
+                   <size>
+                    <width>70</width>
+                    <height>0</height>
+                   </size>
+                  </property>
+                  <property name="maximumSize">
+                   <size>
+                    <width>70</width>
+                    <height>16777215</height>
+                   </size>
+                  </property>
                   <property name="text">
                    <string>magic heal</string>
                   </property>
                  </widget>
                 </item>
                 <item>
-                 <widget class="QComboBox" name="comboBox"/>
+                 <widget class="ComboBox" name="comboBox_magicheal"/>
                 </item>
                 <item>
-                 <widget class="QPushButton" name="pushButton">
+                 <widget class="QPushButton" name="pushButton_magicheal">
                   <property name="text">
                    <string>CP</string>
                   </property>
@@ -645,6 +699,19 @@
                    <number>1</number>
                   </property>
                   <item>
+                   <spacer name="horizontalSpacer_2">
+                    <property name="orientation">
+                     <enum>Qt::Horizontal</enum>
+                    </property>
+                    <property name="sizeHint" stdset="0">
+                     <size>
+                      <width>40</width>
+                      <height>20</height>
+                     </size>
+                    </property>
+                   </spacer>
+                  </item>
+                  <item>
                    <widget class="QLabel" name="label_2">
                     <property name="text">
                      <string>char:</string>
@@ -652,7 +719,7 @@
                    </widget>
                   </item>
                   <item>
-                   <widget class="QSpinBox" name="spinBox_2">
+                   <widget class="QSpinBox" name="spinBox_magicheal_char">
                     <property name="minimumSize">
                      <size>
                       <width>50</width>
@@ -686,7 +753,7 @@
                    </widget>
                   </item>
                   <item>
-                   <widget class="QSpinBox" name="spinBox_3">
+                   <widget class="QSpinBox" name="spinBox_magicheal_pet">
                     <property name="minimumSize">
                      <size>
                       <width>50</width>
@@ -720,7 +787,7 @@
                    </widget>
                   </item>
                   <item>
-                   <widget class="QSpinBox" name="spinBox_4">
+                   <widget class="QSpinBox" name="spinBox_magicheal_allie">
                     <property name="minimumSize">
                      <size>
                       <width>50</width>
@@ -749,24 +816,52 @@
                  <number>1</number>
                 </property>
                 <item>
-                 <widget class="QCheckBox" name="checkBox_2">
+                 <widget class="QCheckBox" name="checkBox_itemheal">
+                  <property name="minimumSize">
+                   <size>
+                    <width>70</width>
+                    <height>0</height>
+                   </size>
+                  </property>
+                  <property name="maximumSize">
+                   <size>
+                    <width>70</width>
+                    <height>16777215</height>
+                   </size>
+                  </property>
                   <property name="text">
                    <string>item heal</string>
                   </property>
                  </widget>
                 </item>
                 <item>
-                 <widget class="QComboBox" name="comboBox_2"/>
+                 <widget class="ComboBox" name="comboBox_itemheal">
+                  <property name="editable">
+                   <bool>true</bool>
+                  </property>
+                 </widget>
                 </item>
                 <item>
-                 <widget class="QPushButton" name="pushButton_4">
+                 <widget class="QPushButton" name="pushButton_itemheal">
                   <property name="text">
                    <string>CP</string>
                   </property>
                  </widget>
                 </item>
                 <item>
-                 <widget class="QCheckBox" name="checkBox_6">
+                 <widget class="QCheckBox" name="checkBox_itemheal_meatpriority">
+                  <property name="minimumSize">
+                   <size>
+                    <width>70</width>
+                    <height>0</height>
+                   </size>
+                  </property>
+                  <property name="maximumSize">
+                   <size>
+                    <width>70</width>
+                    <height>16777215</height>
+                   </size>
+                  </property>
                   <property name="text">
                    <string>meat priority</string>
                   </property>
@@ -785,6 +880,19 @@
                    <number>1</number>
                   </property>
                   <item>
+                   <spacer name="horizontalSpacer_3">
+                    <property name="orientation">
+                     <enum>Qt::Horizontal</enum>
+                    </property>
+                    <property name="sizeHint" stdset="0">
+                     <size>
+                      <width>40</width>
+                      <height>20</height>
+                     </size>
+                    </property>
+                   </spacer>
+                  </item>
+                  <item>
                    <widget class="QLabel" name="label_9">
                     <property name="text">
                      <string>char:</string>
@@ -792,7 +900,7 @@
                    </widget>
                   </item>
                   <item>
-                   <widget class="QSpinBox" name="spinBox_5">
+                   <widget class="QSpinBox" name="spinBox_itemheal_char">
                     <property name="minimumSize">
                      <size>
                       <width>50</width>
@@ -826,7 +934,7 @@
                    </widget>
                   </item>
                   <item>
-                   <widget class="QSpinBox" name="spinBox_6">
+                   <widget class="QSpinBox" name="spinBox_itemheal_pet">
                     <property name="minimumSize">
                      <size>
                       <width>50</width>
@@ -860,7 +968,7 @@
                    </widget>
                   </item>
                   <item>
-                   <widget class="QSpinBox" name="spinBox_7">
+                   <widget class="QSpinBox" name="spinBox_itemheal_allie">
                     <property name="minimumSize">
                      <size>
                       <width>50</width>
@@ -889,24 +997,46 @@
                  <number>1</number>
                 </property>
                 <item>
-                 <widget class="QCheckBox" name="checkBox_3">
+                 <widget class="QCheckBox" name="checkBox_itemhealmp">
+                  <property name="minimumSize">
+                   <size>
+                    <width>70</width>
+                    <height>0</height>
+                   </size>
+                  </property>
+                  <property name="maximumSize">
+                   <size>
+                    <width>70</width>
+                    <height>16777215</height>
+                   </size>
+                  </property>
                   <property name="text">
                    <string>item heal mp</string>
                   </property>
                  </widget>
                 </item>
                 <item>
-                 <widget class="QComboBox" name="comboBox_3"/>
+                 <widget class="ComboBox" name="comboBox_itemhealmp">
+                  <property name="editable">
+                   <bool>true</bool>
+                  </property>
+                 </widget>
                 </item>
                 <item>
                  <widget class="QLabel" name="label">
+                  <property name="maximumSize">
+                   <size>
+                    <width>23</width>
+                    <height>16777215</height>
+                   </size>
+                  </property>
                   <property name="text">
                    <string>char</string>
                   </property>
                  </widget>
                 </item>
                 <item>
-                 <widget class="QSpinBox" name="spinBox">
+                 <widget class="QSpinBox" name="spinBox_itemhealmp">
                   <property name="maximum">
                    <number>1500</number>
                   </property>
@@ -920,17 +1050,29 @@
                  <number>1</number>
                 </property>
                 <item>
-                 <widget class="QCheckBox" name="checkBox_4">
+                 <widget class="QCheckBox" name="checkBox_magicrevive">
+                  <property name="minimumSize">
+                   <size>
+                    <width>70</width>
+                    <height>0</height>
+                   </size>
+                  </property>
+                  <property name="maximumSize">
+                   <size>
+                    <width>70</width>
+                    <height>16777215</height>
+                   </size>
+                  </property>
                   <property name="text">
                    <string>magic revive</string>
                   </property>
                  </widget>
                 </item>
                 <item>
-                 <widget class="QComboBox" name="comboBox_4"/>
+                 <widget class="ComboBox" name="comboBox_magicrevive"/>
                 </item>
                 <item>
-                 <widget class="QPushButton" name="pushButton_3">
+                 <widget class="QPushButton" name="pushButton_magicrevive">
                   <property name="text">
                    <string>CP</string>
                   </property>
@@ -944,17 +1086,33 @@
                  <number>1</number>
                 </property>
                 <item>
-                 <widget class="QCheckBox" name="checkBox_5">
+                 <widget class="QCheckBox" name="checkBox_itemrevive">
+                  <property name="minimumSize">
+                   <size>
+                    <width>70</width>
+                    <height>0</height>
+                   </size>
+                  </property>
+                  <property name="maximumSize">
+                   <size>
+                    <width>70</width>
+                    <height>16777215</height>
+                   </size>
+                  </property>
                   <property name="text">
                    <string>item revive</string>
                   </property>
                  </widget>
                 </item>
                 <item>
-                 <widget class="QComboBox" name="comboBox_5"/>
+                 <widget class="ComboBox" name="comboBox_itemrevive">
+                  <property name="editable">
+                   <bool>true</bool>
+                  </property>
+                 </widget>
                 </item>
                 <item>
-                 <widget class="QPushButton" name="pushButton_2">
+                 <widget class="QPushButton" name="pushButton_itemrevive">
                   <property name="text">
                    <string>CP</string>
                   </property>
@@ -999,14 +1157,26 @@
                  <number>1</number>
                 </property>
                 <item>
-                 <widget class="QCheckBox" name="checkBox_7">
+                 <widget class="QCheckBox" name="checkBox_magicheal_normal">
+                  <property name="minimumSize">
+                   <size>
+                    <width>70</width>
+                    <height>0</height>
+                   </size>
+                  </property>
+                  <property name="maximumSize">
+                   <size>
+                    <width>70</width>
+                    <height>16777215</height>
+                   </size>
+                  </property>
                   <property name="text">
                    <string>magic heal</string>
                   </property>
                  </widget>
                 </item>
                 <item>
-                 <widget class="QComboBox" name="comboBox_6"/>
+                 <widget class="ComboBox" name="comboBox_magicheal_normal"/>
                 </item>
                </layout>
               </item>
@@ -1021,6 +1191,19 @@
                    <number>1</number>
                   </property>
                   <item>
+                   <spacer name="horizontalSpacer_4">
+                    <property name="orientation">
+                     <enum>Qt::Horizontal</enum>
+                    </property>
+                    <property name="sizeHint" stdset="0">
+                     <size>
+                      <width>40</width>
+                      <height>20</height>
+                     </size>
+                    </property>
+                   </spacer>
+                  </item>
+                  <item>
                    <widget class="QLabel" name="label_15">
                     <property name="text">
                      <string>char:</string>
@@ -1028,7 +1211,7 @@
                    </widget>
                   </item>
                   <item>
-                   <widget class="QSpinBox" name="spinBox_8">
+                   <widget class="QSpinBox" name="spinBox_magicheal_normal_char">
                     <property name="minimumSize">
                      <size>
                       <width>50</width>
@@ -1062,7 +1245,7 @@
                    </widget>
                   </item>
                   <item>
-                   <widget class="QSpinBox" name="spinBox_9">
+                   <widget class="QSpinBox" name="spinBox_magicheal_normal_pet">
                     <property name="minimumSize">
                      <size>
                       <width>50</width>
@@ -1096,7 +1279,7 @@
                    </widget>
                   </item>
                   <item>
-                   <widget class="QSpinBox" name="spinBox_10">
+                   <widget class="QSpinBox" name="spinBox_magicheal_normal_allie">
                     <property name="minimumSize">
                      <size>
                       <width>50</width>
@@ -1125,17 +1308,45 @@
                  <number>1</number>
                 </property>
                 <item>
-                 <widget class="QCheckBox" name="checkBox_8">
+                 <widget class="QCheckBox" name="checkBox_itemheal_normal">
+                  <property name="minimumSize">
+                   <size>
+                    <width>70</width>
+                    <height>0</height>
+                   </size>
+                  </property>
+                  <property name="maximumSize">
+                   <size>
+                    <width>70</width>
+                    <height>16777215</height>
+                   </size>
+                  </property>
                   <property name="text">
                    <string>item heal</string>
                   </property>
                  </widget>
                 </item>
                 <item>
-                 <widget class="QComboBox" name="comboBox_8"/>
+                 <widget class="QComboBox" name="comboBox_itemheal_normal">
+                  <property name="editable">
+                   <bool>true</bool>
+                  </property>
+                 </widget>
                 </item>
                 <item>
-                 <widget class="QCheckBox" name="checkBox_10">
+                 <widget class="QCheckBox" name="checkBox_itemheal_normal_meatpriority">
+                  <property name="minimumSize">
+                   <size>
+                    <width>70</width>
+                    <height>0</height>
+                   </size>
+                  </property>
+                  <property name="maximumSize">
+                   <size>
+                    <width>70</width>
+                    <height>16777215</height>
+                   </size>
+                  </property>
                   <property name="text">
                    <string>meat priority</string>
                   </property>
@@ -1154,6 +1365,19 @@
                    <number>1</number>
                   </property>
                   <item>
+                   <spacer name="horizontalSpacer_5">
+                    <property name="orientation">
+                     <enum>Qt::Horizontal</enum>
+                    </property>
+                    <property name="sizeHint" stdset="0">
+                     <size>
+                      <width>40</width>
+                      <height>20</height>
+                     </size>
+                    </property>
+                   </spacer>
+                  </item>
+                  <item>
                    <widget class="QLabel" name="label_21">
                     <property name="text">
                      <string>char:</string>
@@ -1161,7 +1385,7 @@
                    </widget>
                   </item>
                   <item>
-                   <widget class="QSpinBox" name="spinBox_11">
+                   <widget class="QSpinBox" name="spinBox_itemheal_normal_char">
                     <property name="minimumSize">
                      <size>
                       <width>50</width>
@@ -1195,7 +1419,7 @@
                    </widget>
                   </item>
                   <item>
-                   <widget class="QSpinBox" name="spinBox_12">
+                   <widget class="QSpinBox" name="spinBox_itemheal_normal_pet">
                     <property name="minimumSize">
                      <size>
                       <width>50</width>
@@ -1229,7 +1453,7 @@
                    </widget>
                   </item>
                   <item>
-                   <widget class="QSpinBox" name="spinBox_13">
+                   <widget class="QSpinBox" name="spinBox_itemheal_normal_allie">
                     <property name="minimumSize">
                      <size>
                       <width>50</width>
@@ -1258,24 +1482,46 @@
                  <number>1</number>
                 </property>
                 <item>
-                 <widget class="QCheckBox" name="checkBox_9">
+                 <widget class="QCheckBox" name="checkBox_itemhealmp_normal">
+                  <property name="minimumSize">
+                   <size>
+                    <width>70</width>
+                    <height>0</height>
+                   </size>
+                  </property>
+                  <property name="maximumSize">
+                   <size>
+                    <width>70</width>
+                    <height>16777215</height>
+                   </size>
+                  </property>
                   <property name="text">
                    <string>item heal mp</string>
                   </property>
                  </widget>
                 </item>
                 <item>
-                 <widget class="QComboBox" name="comboBox_7"/>
+                 <widget class="ComboBox" name="comboBox_itemhealmp_normal">
+                  <property name="editable">
+                   <bool>true</bool>
+                  </property>
+                 </widget>
                 </item>
                 <item>
                  <widget class="QLabel" name="label_27">
+                  <property name="maximumSize">
+                   <size>
+                    <width>23</width>
+                    <height>16777215</height>
+                   </size>
+                  </property>
                   <property name="text">
                    <string>char</string>
                   </property>
                  </widget>
                 </item>
                 <item>
-                 <widget class="QSpinBox" name="spinBox_14">
+                 <widget class="QSpinBox" name="spinBox_itemhealmp_normal">
                   <property name="maximum">
                    <number>1500</number>
                   </property>
@@ -1355,7 +1601,7 @@
                 <enum>QAbstractSpinBox::AdaptiveDecimalStepType</enum>
                </property>
                <property name="value">
-                <number>10</number>
+                <number>0</number>
                </property>
               </widget>
              </item>
@@ -1387,7 +1633,7 @@
               </widget>
              </item>
              <item>
-              <widget class="QComboBox" name="comboBox_autowalkdir"/>
+              <widget class="ComboBox" name="comboBox_autowalkdir"/>
              </item>
             </layout>
            </item>
@@ -1467,6 +1713,9 @@
            </property>
            <item>
             <widget class="QLabel" name="label_32">
+             <property name="enabled">
+              <bool>false</bool>
+             </property>
              <property name="text">
               <string>Cod</string>
              </property>
@@ -1506,6 +1755,9 @@
            </item>
            <item>
             <widget class="QLabel" name="label_33">
+             <property name="enabled">
+              <bool>false</bool>
+             </property>
              <property name="text">
               <string>Map</string>
              </property>
@@ -1644,13 +1896,22 @@
                 </property>
                 <item>
                  <widget class="QLabel" name="label_34">
+                  <property name="minimumSize">
+                   <size>
+                    <width>70</width>
+                    <height>0</height>
+                   </size>
+                  </property>
                   <property name="text">
                    <string>mode</string>
                   </property>
                  </widget>
                 </item>
                 <item>
-                 <widget class="QComboBox" name="comboBox_autocatchpet">
+                 <widget class="ComboBox" name="comboBox_autocatchpet_mode">
+                  <property name="enabled">
+                   <bool>true</bool>
+                  </property>
                   <property name="sizePolicy">
                    <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
                     <horstretch>0</horstretch>
@@ -1668,16 +1929,29 @@
                 </property>
                 <item>
                  <widget class="QLabel" name="label_35">
+                  <property name="minimumSize">
+                   <size>
+                    <width>70</width>
+                    <height>0</height>
+                   </size>
+                  </property>
                   <property name="text">
                    <string>target</string>
                   </property>
                  </widget>
                 </item>
                 <item>
-                 <widget class="QLineEdit" name="lineEdit_autocatchpet"/>
+                 <widget class="QLineEdit" name="lineEdit_autocatchpet">
+                  <property name="enabled">
+                   <bool>true</bool>
+                  </property>
+                 </widget>
                 </item>
                 <item>
                  <widget class="QPushButton" name="pushButton_autocatchpet">
+                  <property name="enabled">
+                   <bool>true</bool>
+                  </property>
                   <property name="text">
                    <string>select</string>
                   </property>
@@ -1692,13 +1966,26 @@
                 </property>
                 <item>
                  <widget class="QCheckBox" name="checkBox_autocatchpet_level">
+                  <property name="enabled">
+                   <bool>true</bool>
+                  </property>
                   <property name="text">
                    <string>catch level</string>
                   </property>
                  </widget>
                 </item>
                 <item>
-                 <widget class="QSpinBox" name="spinBox_autocatchpet_level"/>
+                 <widget class="QSpinBox" name="spinBox_autocatchpet_level">
+                  <property name="enabled">
+                   <bool>true</bool>
+                  </property>
+                  <property name="minimum">
+                   <number>1</number>
+                  </property>
+                  <property name="maximum">
+                   <number>255</number>
+                  </property>
+                 </widget>
                 </item>
                 <item>
                  <widget class="QLabel" name="label_40">
@@ -1709,13 +1996,29 @@
                 </item>
                 <item>
                  <widget class="QCheckBox" name="checkBox_autocatchpet_hp">
+                  <property name="enabled">
+                   <bool>true</bool>
+                  </property>
                   <property name="text">
                    <string>catch hp&gt;</string>
                   </property>
                  </widget>
                 </item>
                 <item>
-                 <widget class="QSpinBox" name="spinBox_autocatchpet_hp"/>
+                 <widget class="QSpinBox" name="spinBox_autocatchpet_hp">
+                  <property name="enabled">
+                   <bool>true</bool>
+                  </property>
+                  <property name="minimum">
+                   <number>1</number>
+                  </property>
+                  <property name="maximum">
+                   <number>10000</number>
+                  </property>
+                  <property name="value">
+                   <number>1</number>
+                  </property>
+                 </widget>
                 </item>
                </layout>
               </item>
@@ -1725,14 +2028,20 @@
                  <number>1</number>
                 </property>
                 <item>
-                 <widget class="QCheckBox" name="checkBox_autocatchpet_skill">
+                 <widget class="QCheckBox" name="checkBox_autocatchpet_magic">
+                  <property name="enabled">
+                   <bool>true</bool>
+                  </property>
                   <property name="text">
                    <string>char use</string>
                   </property>
                  </widget>
                 </item>
                 <item>
-                 <widget class="QComboBox" name="comboBox_autocatchpet_skill">
+                 <widget class="ComboBox" name="comboBox_autocatchpet_magic">
+                  <property name="enabled">
+                   <bool>true</bool>
+                  </property>
                   <property name="sizePolicy">
                    <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
                     <horstretch>0</horstretch>
@@ -1749,7 +2058,20 @@
                  </widget>
                 </item>
                 <item>
-                 <widget class="QSpinBox" name="spinBox_autocatchpet_skill"/>
+                 <widget class="QSpinBox" name="spinBox_autocatchpet_magic">
+                  <property name="enabled">
+                   <bool>true</bool>
+                  </property>
+                  <property name="minimum">
+                   <number>2</number>
+                  </property>
+                  <property name="maximum">
+                   <number>100</number>
+                  </property>
+                  <property name="value">
+                   <number>2</number>
+                  </property>
+                 </widget>
                 </item>
                 <item>
                  <widget class="QLabel" name="label_38">
@@ -1767,18 +2089,27 @@
                 </property>
                 <item>
                  <widget class="QCheckBox" name="checkBox_autocatchpet_item">
+                  <property name="enabled">
+                   <bool>true</bool>
+                  </property>
                   <property name="text">
                    <string>ues item</string>
                   </property>
                  </widget>
                 </item>
                 <item>
-                 <widget class="QComboBox" name="comboBox_autocatchpet_item">
+                 <widget class="ComboBox" name="comboBox_autocatchpet_item">
+                  <property name="enabled">
+                   <bool>true</bool>
+                  </property>
                   <property name="sizePolicy">
                    <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
                     <horstretch>0</horstretch>
                     <verstretch>0</verstretch>
                    </sizepolicy>
+                  </property>
+                  <property name="editable">
+                   <bool>true</bool>
                   </property>
                  </widget>
                 </item>
@@ -1790,7 +2121,20 @@
                  </widget>
                 </item>
                 <item>
-                 <widget class="QSpinBox" name="spinBox_autocatchpet_item"/>
+                 <widget class="QSpinBox" name="spinBox_autocatchpet_item">
+                  <property name="enabled">
+                   <bool>true</bool>
+                  </property>
+                  <property name="minimum">
+                   <number>2</number>
+                  </property>
+                  <property name="maximum">
+                   <number>100</number>
+                  </property>
+                  <property name="value">
+                   <number>2</number>
+                  </property>
+                 </widget>
                 </item>
                 <item>
                  <widget class="QLabel" name="label_39">
@@ -1808,13 +2152,19 @@
                 </property>
                 <item>
                  <widget class="QCheckBox" name="checkBox_autocatchpet_petskill">
+                  <property name="enabled">
+                   <bool>true</bool>
+                  </property>
                   <property name="text">
                    <string>pet use</string>
                   </property>
                  </widget>
                 </item>
                 <item>
-                 <widget class="QComboBox" name="comboBox_autocatchpet_petskill">
+                 <widget class="ComboBox" name="comboBox_autocatchpet_petskill">
+                  <property name="enabled">
+                   <bool>true</bool>
+                  </property>
                   <property name="sizePolicy">
                    <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
                     <horstretch>0</horstretch>
@@ -1863,6 +2213,9 @@
                 </property>
                 <item>
                  <widget class="QCheckBox" name="checkBox_autodroppet">
+                  <property name="enabled">
+                   <bool>true</bool>
+                  </property>
                   <property name="text">
                    <string>auto drop pet with conditions below</string>
                   </property>
@@ -1882,13 +2235,29 @@
                   </property>
                   <item>
                    <widget class="QCheckBox" name="checkBox_autodroppet_str">
+                    <property name="enabled">
+                     <bool>true</bool>
+                    </property>
                     <property name="text">
                      <string>str</string>
                     </property>
                    </widget>
                   </item>
                   <item>
-                   <widget class="QSpinBox" name="spinBox_autodroppet_str"/>
+                   <widget class="QSpinBox" name="spinBox_autodroppet_str">
+                    <property name="enabled">
+                     <bool>true</bool>
+                    </property>
+                    <property name="minimum">
+                     <number>1</number>
+                    </property>
+                    <property name="maximum">
+                     <number>10000</number>
+                    </property>
+                    <property name="value">
+                     <number>1</number>
+                    </property>
+                   </widget>
                   </item>
                  </layout>
                 </item>
@@ -1899,13 +2268,29 @@
                   </property>
                   <item>
                    <widget class="QCheckBox" name="checkBox_autodroppet_def">
+                    <property name="enabled">
+                     <bool>true</bool>
+                    </property>
                     <property name="text">
                      <string>def</string>
                     </property>
                    </widget>
                   </item>
                   <item>
-                   <widget class="QSpinBox" name="spinBox_autodroppet_def"/>
+                   <widget class="QSpinBox" name="spinBox_autodroppet_def">
+                    <property name="enabled">
+                     <bool>true</bool>
+                    </property>
+                    <property name="minimum">
+                     <number>1</number>
+                    </property>
+                    <property name="maximum">
+                     <number>10000</number>
+                    </property>
+                    <property name="value">
+                     <number>1</number>
+                    </property>
+                   </widget>
                   </item>
                  </layout>
                 </item>
@@ -1916,13 +2301,29 @@
                   </property>
                   <item>
                    <widget class="QCheckBox" name="checkBox_autodroppet_agi">
+                    <property name="enabled">
+                     <bool>true</bool>
+                    </property>
                     <property name="text">
                      <string>agi</string>
                     </property>
                    </widget>
                   </item>
                   <item>
-                   <widget class="QSpinBox" name="spinBox_autodroppet_agi"/>
+                   <widget class="QSpinBox" name="spinBox_autodroppet_agi">
+                    <property name="enabled">
+                     <bool>true</bool>
+                    </property>
+                    <property name="minimum">
+                     <number>1</number>
+                    </property>
+                    <property name="maximum">
+                     <number>10000</number>
+                    </property>
+                    <property name="value">
+                     <number>1</number>
+                    </property>
+                   </widget>
                   </item>
                  </layout>
                 </item>
@@ -1933,13 +2334,29 @@
                   </property>
                   <item>
                    <widget class="QCheckBox" name="checkBox_autodroppet_hp">
+                    <property name="enabled">
+                     <bool>true</bool>
+                    </property>
                     <property name="text">
                      <string>hp</string>
                     </property>
                    </widget>
                   </item>
                   <item>
-                   <widget class="QSpinBox" name="spinBox_autodroppet_hp"/>
+                   <widget class="QSpinBox" name="spinBox_autodroppet_hp">
+                    <property name="enabled">
+                     <bool>true</bool>
+                    </property>
+                    <property name="minimum">
+                     <number>1</number>
+                    </property>
+                    <property name="maximum">
+                     <number>10000</number>
+                    </property>
+                    <property name="value">
+                     <number>1</number>
+                    </property>
+                   </widget>
                   </item>
                  </layout>
                 </item>
@@ -1951,19 +2368,31 @@
                  <number>1</number>
                 </property>
                 <item>
-                 <widget class="QCheckBox" name="checkBox_autodroppet_total">
+                 <widget class="QCheckBox" name="checkBox_autodroppet_aggregate">
                   <property name="text">
                    <string>str+def+agi&lt;</string>
                   </property>
                  </widget>
                 </item>
                 <item>
-                 <widget class="QSpinBox" name="spinBox_autodroppet_total">
+                 <widget class="QSpinBox" name="spinBox_autodroppet_aggregate">
+                  <property name="enabled">
+                   <bool>true</bool>
+                  </property>
                   <property name="sizePolicy">
                    <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
                     <horstretch>0</horstretch>
                     <verstretch>0</verstretch>
                    </sizepolicy>
+                  </property>
+                  <property name="minimum">
+                   <number>3</number>
+                  </property>
+                  <property name="maximum">
+                   <number>30000</number>
+                  </property>
+                  <property name="value">
+                   <number>3</number>
                   </property>
                  </widget>
                 </item>
@@ -1982,10 +2411,17 @@
                  </widget>
                 </item>
                 <item>
-                 <widget class="QLineEdit" name="lineEdit_autodroppet_name"/>
+                 <widget class="QLineEdit" name="lineEdit_autodroppet_name">
+                  <property name="enabled">
+                   <bool>true</bool>
+                  </property>
+                 </widget>
                 </item>
                 <item>
                  <widget class="QPushButton" name="pushButton_autodroppet">
+                  <property name="enabled">
+                   <bool>true</bool>
+                  </property>
                   <property name="text">
                    <string>select</string>
                   </property>
@@ -2000,6 +2436,19 @@
          </item>
         </layout>
        </item>
+       <item row="1" column="0">
+        <spacer name="verticalSpacer">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>40</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
       </layout>
      </widget>
     </widget>
@@ -2007,6 +2456,13 @@
   </layout>
  </widget>
  <layoutdefault spacing="6" margin="11"/>
+ <customwidgets>
+  <customwidget>
+   <class>ComboBox</class>
+   <extends>QComboBox</extends>
+   <header location="global">combobox.h</header>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections/>
 </ui>

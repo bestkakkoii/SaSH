@@ -2,6 +2,7 @@
 #include "battleinfoform.h"
 
 #include "signaldispatcher.h"
+#include "injector.h"
 
 constexpr int max_col = 2;
 constexpr int max_row = 10;
@@ -56,6 +57,22 @@ BattleInfoForm::BattleInfoForm(QWidget* parent)
 
 	setTableWidget(ui.tableWidget_top);
 	setTableWidget(ui.tableWidget_bottom);
+
+	Injector& injector = Injector::getInstance();
+	if (!injector.server.isNull())
+	{
+		QVariant topInfoContents = injector.server->topInfoContents;
+		QVariant bottomInfoContents = injector.server->bottomInfoContents;
+		QString timeLabelContents = injector.server->timeLabelContents;
+		QString labelPlayerAction = injector.server->labelPlayerAction;
+		QString labelPetAction = injector.server->labelPetAction;
+
+		onUpdateTopInfoContents(topInfoContents);
+		onUpdateBottomInfoContents(bottomInfoContents);
+		onUpdateTimeLabelContents(timeLabelContents);
+		onUpdateLabelPlayerAction(labelPlayerAction);
+		onUpdateLabelPetAction(labelPetAction);
+	}
 
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
 	connect(&signalDispatcher, &SignalDispatcher::updateTopInfoContents, this, &BattleInfoForm::onUpdateTopInfoContents, Qt::UniqueConnection);
@@ -207,7 +224,7 @@ void BattleInfoForm::updateItemInfoRowContents(QTableWidget* tableWidget, const 
 			continue;
 		}
 
-		const QString text = item.at(1);
+		QString text = item.at(1);
 		const QString ride = item.at(2);
 
 		const QPair<int, int> fill = fill_hash.value(pos, QPair<int, int>{ -1, -1 });
@@ -218,7 +235,9 @@ void BattleInfoForm::updateItemInfoRowContents(QTableWidget* tableWidget, const 
 
 
 		if (fill.first % 2)
+		{
 			setText(fill.first, fill.second, "    " + text);
+		}
 		else
 			setText(fill.first, fill.second, text);
 

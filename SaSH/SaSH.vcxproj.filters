@@ -62,6 +62,12 @@
     <Filter Include="Source Files\forms\script_setting">
       <UniqueIdentifier>{75b5d882-887f-4bd5-bbbd-bbe9d4ad517e}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\map">
+      <UniqueIdentifier>{be3ca5ac-95d1-4c20-9fbe-b10be8033cbe}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\forms\NewFilter1">
+      <UniqueIdentifier>{d5635540-f899-4e0f-a98c-967df57686df}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <QtRcc Include="resource.qrc">
@@ -165,6 +171,21 @@
     <ClCompile Include="injector.cpp">
       <Filter>Source Files\util</Filter>
     </ClCompile>
+    <ClCompile Include="map\astar.cpp">
+      <Filter>Source Files\map</Filter>
+    </ClCompile>
+    <ClCompile Include="map\mapanalyzer.cpp">
+      <Filter>Source Files\map</Filter>
+    </ClCompile>
+    <ClCompile Include="model\mapglwidget.cpp">
+      <Filter>Source Files\model</Filter>
+    </ClCompile>
+    <ClCompile Include="form\mapwidget.cpp">
+      <Filter>Source Files\forms\map</Filter>
+    </ClCompile>
+    <ClCompile Include="model\combobox.cpp">
+      <Filter>Source Files\model</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="mainform.h">
@@ -236,6 +257,15 @@
     <QtMoc Include="form\abilityform.h">
       <Filter>Source Files\forms\dialog</Filter>
     </QtMoc>
+    <QtMoc Include="model\mapglwidget.h">
+      <Filter>Source Files\model</Filter>
+    </QtMoc>
+    <QtMoc Include="form\mapwidget.h">
+      <Filter>Source Files\forms\map</Filter>
+    </QtMoc>
+    <QtMoc Include="model\combobox.h">
+      <Filter>Source Files\model</Filter>
+    </QtMoc>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stdafx.h">
@@ -255,6 +285,12 @@
     </ClInclude>
     <ClInclude Include="injector.h">
       <Filter>Source Files\util</Filter>
+    </ClInclude>
+    <ClInclude Include="map\astar.h">
+      <Filter>Source Files\map</Filter>
+    </ClInclude>
+    <ClInclude Include="map\mapanalyzer.h">
+      <Filter>Source Files\map</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -307,6 +343,9 @@
       <Filter>Form Files</Filter>
     </QtUic>
     <QtUic Include="form\abilityform.ui">
+      <Filter>Form Files</Filter>
+    </QtUic>
+    <QtUic Include="form\mapwidget.ui">
       <Filter>Form Files</Filter>
     </QtUic>
   </ItemGroup>

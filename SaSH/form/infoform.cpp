@@ -1,6 +1,6 @@
 ﻿#include "stdafx.h"
 #include "infoform.h"
-#include "../util.h"
+#include <util.h>
 
 #include "battleinfoform.h"
 #include "playerinfoform.h"

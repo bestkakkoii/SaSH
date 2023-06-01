@@ -1,5 +1,5 @@
 ﻿#include "stdafx.h"
-#include "util.h"
+#include <util.h>
 
 
 util::Config::Config(const QString& fileName)
@@ -553,7 +553,7 @@ void util::FormSettingManager::loadSettings()
 	QSize size;
 	if (!strSize.isEmpty())
 	{
-		QStringList list = strSize.split(",", Qt::SkipEmptyParts);
+		QStringList list = strSize.split(util::rexComma, Qt::SkipEmptyParts);
 		if (list.size() == 2)
 		{
 			size.setWidth(list.at(0).toInt());
@@ -795,7 +795,7 @@ bool mem::virtualFree(HANDLE hProcess, int baseAddress)
 	//return static_cast<int>(this->VirtualFreeEx(m_pi.nWnd, static_cast<qlonglong>(baseAddress)));
 }
 
-DWORD mem::GetRemoteModuleHandle(DWORD dwProcessId, const QString& moduleName)
+DWORD mem::getRemoteModuleHandle(DWORD dwProcessId, const QString& moduleName)
 {
 	MODULEENTRY32 moduleEntry;
 	//  获取进程快照中包含在th32ProcessID中指定的进程的所有的模块。
@@ -822,3 +822,8 @@ DWORD mem::GetRemoteModuleHandle(DWORD dwProcessId, const QString& moduleName)
 	return NULL;
 }
 
+void mem::freeUnuseMemory(HANDLE hProcess)
+{
+	SetProcessWorkingSetSizeEx(hProcess, -1, -1, 0);
+	K32EmptyWorkingSet(hProcess);
+}

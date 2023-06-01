@@ -20,6 +20,12 @@
       <enum>Qt::Horizontal</enum>
      </property>
      <widget class="QTableWidget" name="tableWidget">
+      <property name="editTriggers">
+       <set>QAbstractItemView::NoEditTriggers</set>
+      </property>
+      <attribute name="verticalHeaderVisible">
+       <bool>false</bool>
+      </attribute>
       <column>
        <property name="text">
         <string>section</string>

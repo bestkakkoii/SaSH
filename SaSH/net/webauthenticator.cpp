@@ -1,6 +1,6 @@
 ﻿#include "stdafx.h"
 #include "webauthenticator.h"
-#include "../util.h"
+#include <util.h>
 
 #include <curl/curl.h>
 #include <cpr/cpr.h>

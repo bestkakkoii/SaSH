@@ -15,8 +15,6 @@ signals:
 	void resetControlTextLanguage();
 
 public slots:
-	void onSaveHashSettings(const QString& name = "default");
-	void onLoadHashSettings(const QString& name = "default");
 	void onApplyHashSettingsToUI();
 private slots:
 	void onButtonClicked();

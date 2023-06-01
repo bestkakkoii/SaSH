@@ -19,10 +19,19 @@ private slots:
 	void onCheckBoxStateChanged(int state);
 	void onSpinBoxValueChanged(int value);
 	void onComboBoxCurrentIndexChanged(int value);
+	void onComboBoxClicked();
+	void onComboBoxTextChanged(const QString& text);
 
 	void onApplyHashSettingsToUI();
 
 	void onResetControlTextLanguage();
+
+	void onUpdateComboBoxItemText(int type, const QStringList& textList);
+
+
+private:
+	void updateTargetButtonText();
+
 private:
 	Ui::AfkFormClass ui;
 };

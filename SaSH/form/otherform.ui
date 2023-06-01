@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>348</width>
-    <height>376</height>
+    <width>423</width>
+    <height>280</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -38,7 +38,7 @@
       </size>
      </property>
      <property name="currentIndex">
-      <number>4</number>
+      <number>0</number>
      </property>
      <widget class="QWidget" name="tab_other_group">
       <attribute name="title">
@@ -66,7 +66,7 @@
           <number>1</number>
          </property>
          <item>
-          <widget class="QGroupBox" name="groupBox_3">
+          <widget class="QGroupBox" name="groupBox_team">
            <property name="title">
             <string>team info</string>
            </property>
@@ -97,12 +97,18 @@
                  <number>1</number>
                 </property>
                 <item>
-                 <widget class="QLabel" name="label_42">
-                  <property name="sizePolicy">
-                   <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
-                    <horstretch>0</horstretch>
-                    <verstretch>0</verstretch>
-                   </sizepolicy>
+                 <widget class="QLabel" name="label">
+                  <property name="minimumSize">
+                   <size>
+                    <width>35</width>
+                    <height>0</height>
+                   </size>
+                  </property>
+                  <property name="maximumSize">
+                   <size>
+                    <width>35</width>
+                    <height>16777215</height>
+                   </size>
                   </property>
                   <property name="text">
                    <string>leader:</string>
@@ -110,7 +116,26 @@
                  </widget>
                 </item>
                 <item>
-                 <widget class="QPushButton" name="pushButton_9">
+                 <widget class="QLabel" name="label_teammate0">
+                  <property name="enabled">
+                   <bool>true</bool>
+                  </property>
+                  <property name="sizePolicy">
+                   <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
+                    <horstretch>0</horstretch>
+                    <verstretch>0</verstretch>
+                   </sizepolicy>
+                  </property>
+                  <property name="text">
+                   <string/>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QPushButton" name="pushButton_leaderleave">
+                  <property name="enabled">
+                   <bool>false</bool>
+                  </property>
                   <property name="text">
                    <string>L</string>
                   </property>
@@ -124,12 +149,18 @@
                  <number>1</number>
                 </property>
                 <item>
-                 <widget class="QLabel" name="label_43">
-                  <property name="sizePolicy">
-                   <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
-                    <horstretch>0</horstretch>
-                    <verstretch>0</verstretch>
-                   </sizepolicy>
+                 <widget class="QLabel" name="label_2">
+                  <property name="minimumSize">
+                   <size>
+                    <width>35</width>
+                    <height>0</height>
+                   </size>
+                  </property>
+                  <property name="maximumSize">
+                   <size>
+                    <width>35</width>
+                    <height>16777215</height>
+                   </size>
                   </property>
                   <property name="text">
                    <string>teammate1:</string>
@@ -137,7 +168,26 @@
                  </widget>
                 </item>
                 <item>
-                 <widget class="QPushButton" name="pushButton_10">
+                 <widget class="QLabel" name="label_teammate1">
+                  <property name="enabled">
+                   <bool>true</bool>
+                  </property>
+                  <property name="sizePolicy">
+                   <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
+                    <horstretch>0</horstretch>
+                    <verstretch>0</verstretch>
+                   </sizepolicy>
+                  </property>
+                  <property name="text">
+                   <string/>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QPushButton" name="pushButton_teammate1kick">
+                  <property name="enabled">
+                   <bool>false</bool>
+                  </property>
                   <property name="text">
                    <string>K</string>
                   </property>
@@ -151,12 +201,18 @@
                  <number>1</number>
                 </property>
                 <item>
-                 <widget class="QLabel" name="label_44">
-                  <property name="sizePolicy">
-                   <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
-                    <horstretch>0</horstretch>
-                    <verstretch>0</verstretch>
-                   </sizepolicy>
+                 <widget class="QLabel" name="label_3">
+                  <property name="minimumSize">
+                   <size>
+                    <width>35</width>
+                    <height>0</height>
+                   </size>
+                  </property>
+                  <property name="maximumSize">
+                   <size>
+                    <width>35</width>
+                    <height>16777215</height>
+                   </size>
                   </property>
                   <property name="text">
                    <string>teammate2:</string>
@@ -164,7 +220,26 @@
                  </widget>
                 </item>
                 <item>
-                 <widget class="QPushButton" name="pushButton_11">
+                 <widget class="QLabel" name="label_teammate2">
+                  <property name="enabled">
+                   <bool>true</bool>
+                  </property>
+                  <property name="sizePolicy">
+                   <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
+                    <horstretch>0</horstretch>
+                    <verstretch>0</verstretch>
+                   </sizepolicy>
+                  </property>
+                  <property name="text">
+                   <string/>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QPushButton" name="pushButton_teammate2kick">
+                  <property name="enabled">
+                   <bool>false</bool>
+                  </property>
                   <property name="text">
                    <string>K</string>
                   </property>
@@ -178,12 +253,18 @@
                  <number>1</number>
                 </property>
                 <item>
-                 <widget class="QLabel" name="label_45">
-                  <property name="sizePolicy">
-                   <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
-                    <horstretch>0</horstretch>
-                    <verstretch>0</verstretch>
-                   </sizepolicy>
+                 <widget class="QLabel" name="label_4">
+                  <property name="minimumSize">
+                   <size>
+                    <width>35</width>
+                    <height>0</height>
+                   </size>
+                  </property>
+                  <property name="maximumSize">
+                   <size>
+                    <width>35</width>
+                    <height>16777215</height>
+                   </size>
                   </property>
                   <property name="text">
                    <string>teammate3:</string>
@@ -191,7 +272,26 @@
                  </widget>
                 </item>
                 <item>
-                 <widget class="QPushButton" name="pushButton_12">
+                 <widget class="QLabel" name="label_teammate3">
+                  <property name="enabled">
+                   <bool>true</bool>
+                  </property>
+                  <property name="sizePolicy">
+                   <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
+                    <horstretch>0</horstretch>
+                    <verstretch>0</verstretch>
+                   </sizepolicy>
+                  </property>
+                  <property name="text">
+                   <string/>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QPushButton" name="pushButton_teammate3kick">
+                  <property name="enabled">
+                   <bool>false</bool>
+                  </property>
                   <property name="text">
                    <string>K</string>
                   </property>
@@ -205,12 +305,18 @@
                  <number>1</number>
                 </property>
                 <item>
-                 <widget class="QLabel" name="label_46">
-                  <property name="sizePolicy">
-                   <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
-                    <horstretch>0</horstretch>
-                    <verstretch>0</verstretch>
-                   </sizepolicy>
+                 <widget class="QLabel" name="label_5">
+                  <property name="minimumSize">
+                   <size>
+                    <width>35</width>
+                    <height>0</height>
+                   </size>
+                  </property>
+                  <property name="maximumSize">
+                   <size>
+                    <width>35</width>
+                    <height>16777215</height>
+                   </size>
                   </property>
                   <property name="text">
                    <string>teammate4:</string>
@@ -218,7 +324,26 @@
                  </widget>
                 </item>
                 <item>
-                 <widget class="QPushButton" name="pushButton_13">
+                 <widget class="QLabel" name="label_teammate4">
+                  <property name="enabled">
+                   <bool>true</bool>
+                  </property>
+                  <property name="sizePolicy">
+                   <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
+                    <horstretch>0</horstretch>
+                    <verstretch>0</verstretch>
+                   </sizepolicy>
+                  </property>
+                  <property name="text">
+                   <string/>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QPushButton" name="pushButton_teammate4kick">
+                  <property name="enabled">
+                   <bool>false</bool>
+                  </property>
                   <property name="text">
                    <string>K</string>
                   </property>
@@ -243,16 +368,26 @@
              </property>
              <item>
               <widget class="QCheckBox" name="checkBox_31">
+               <property name="enabled">
+                <bool>false</bool>
+               </property>
                <property name="text">
                 <string>white list</string>
                </property>
               </widget>
              </item>
              <item>
-              <widget class="QLineEdit" name="lineEdit_4"/>
+              <widget class="QLineEdit" name="lineEdit_4">
+               <property name="enabled">
+                <bool>false</bool>
+               </property>
+              </widget>
              </item>
              <item>
               <widget class="QPushButton" name="pushButton_14">
+               <property name="enabled">
+                <bool>false</bool>
+               </property>
                <property name="text">
                 <string>select</string>
                </property>
@@ -267,16 +402,26 @@
              </property>
              <item>
               <widget class="QCheckBox" name="checkBox_32">
+               <property name="enabled">
+                <bool>false</bool>
+               </property>
                <property name="text">
                 <string>black list</string>
                </property>
               </widget>
              </item>
              <item>
-              <widget class="QLineEdit" name="lineEdit_5"/>
+              <widget class="QLineEdit" name="lineEdit_5">
+               <property name="enabled">
+                <bool>false</bool>
+               </property>
+              </widget>
              </item>
              <item>
               <widget class="QPushButton" name="pushButton_15">
+               <property name="enabled">
+                <bool>false</bool>
+               </property>
                <property name="text">
                 <string>select</string>
                </property>
@@ -290,22 +435,18 @@
               <number>1</number>
              </property>
              <item>
-              <widget class="QCheckBox" name="checkBox_33">
-               <property name="text">
-                <string>auto</string>
-               </property>
-              </widget>
+              <widget class="ComboBox" name="comboBox_autofuntype"/>
              </item>
              <item>
-              <widget class="QComboBox" name="comboBox_14"/>
-             </item>
-             <item>
-              <widget class="QComboBox" name="comboBox_15">
+              <widget class="ComboBox" name="comboBox_autofunname">
                <property name="sizePolicy">
                 <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
                  <horstretch>0</horstretch>
                  <verstretch>0</verstretch>
                 </sizepolicy>
+               </property>
+               <property name="editable">
+                <bool>true</bool>
                </property>
               </widget>
              </item>
@@ -318,13 +459,20 @@
              </property>
              <item>
               <widget class="QCheckBox" name="checkBox_34">
+               <property name="enabled">
+                <bool>false</bool>
+               </property>
                <property name="text">
                 <string>auto kick teammate if later then</string>
                </property>
               </widget>
              </item>
              <item>
-              <widget class="QSpinBox" name="spinBox_30"/>
+              <widget class="QSpinBox" name="spinBox_30">
+               <property name="enabled">
+                <bool>false</bool>
+               </property>
+              </widget>
              </item>
              <item>
               <widget class="QLabel" name="label_47">
@@ -425,13 +573,20 @@
                 </property>
                 <item>
                  <widget class="QCheckBox" name="checkBox_35">
+                  <property name="enabled">
+                   <bool>false</bool>
+                  </property>
                   <property name="text">
                    <string>lock pet after battle</string>
                   </property>
                  </widget>
                 </item>
                 <item>
-                 <widget class="QComboBox" name="comboBox_16"/>
+                 <widget class="ComboBox" name="comboBox_16">
+                  <property name="enabled">
+                   <bool>false</bool>
+                  </property>
+                 </widget>
                 </item>
                </layout>
               </item>
@@ -442,13 +597,20 @@
                 </property>
                 <item>
                  <widget class="QCheckBox" name="checkBox_36">
+                  <property name="enabled">
+                   <bool>false</bool>
+                  </property>
                   <property name="text">
                    <string>lock ride after battle</string>
                   </property>
                  </widget>
                 </item>
                 <item>
-                 <widget class="QComboBox" name="comboBox_17"/>
+                 <widget class="ComboBox" name="comboBox_17">
+                  <property name="enabled">
+                   <bool>false</bool>
+                  </property>
+                 </widget>
                 </item>
                </layout>
               </item>
@@ -484,6 +646,9 @@
              </property>
              <item row="0" column="0">
               <widget class="QGroupBox" name="groupBox_5">
+               <property name="enabled">
+                <bool>false</bool>
+               </property>
                <property name="title">
                 <string>pet switch</string>
                </property>
@@ -621,6 +786,9 @@
              </property>
              <item row="0" column="0">
               <widget class="QGroupBox" name="groupBox_6">
+               <property name="enabled">
+                <bool>false</bool>
+               </property>
                <property name="title">
                 <string>ride switch</string>
                </property>
@@ -868,6 +1036,9 @@
                 </property>
                 <item>
                  <widget class="QCheckBox" name="checkBox_antiantibot">
+                  <property name="enabled">
+                   <bool>false</bool>
+                  </property>
                   <property name="text">
                    <string>anti-anti-bot</string>
                   </property>
@@ -902,6 +1073,13 @@
   </layout>
  </widget>
  <layoutdefault spacing="6" margin="11"/>
+ <customwidgets>
+  <customwidget>
+   <class>ComboBox</class>
+   <extends>QComboBox</extends>
+   <header location="global">combobox.h</header>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections/>
 </ui>

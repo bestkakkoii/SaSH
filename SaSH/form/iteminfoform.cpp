@@ -1,6 +1,7 @@
 ﻿#include "stdafx.h"
 #include "iteminfoform.h"
 
+#include "injector.h"
 #include "signaldispatcher.h"
 
 ItemInfoForm::ItemInfoForm(QWidget* parent)
@@ -51,6 +52,21 @@ ItemInfoForm::ItemInfoForm(QWidget* parent)
 
 	onResetControlTextLanguage();
 
+	Injector& injector = Injector::getInstance();
+	if (!injector.server.isNull())
+	{
+		util::SafeHash<int, QVariant> hashItem = injector.server->itemInfoRowContents;
+		for (auto it = hashItem.begin(); it != hashItem.end(); ++it)
+		{
+			onUpdateItemInfoRowContents(it.key(), it.value());
+		}
+
+		util::SafeHash<int, QVariant> hashEquip = injector.server->equipInfoRowContents;
+		for (auto it = hashEquip.begin(); it != hashEquip.end(); ++it)
+		{
+			onUpdateEquipInfoRowContents(it.key(), it.value());
+		}
+	}
 
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
 	connect(&signalDispatcher, &SignalDispatcher::updateEquipInfoRowContents, this, &ItemInfoForm::onUpdateEquipInfoRowContents, Qt::UniqueConnection);
@@ -61,6 +77,7 @@ ItemInfoForm::ItemInfoForm(QWidget* parent)
 
 ItemInfoForm::~ItemInfoForm()
 {
+
 }
 
 void ItemInfoForm::onResetControlTextLanguage()

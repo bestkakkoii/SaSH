@@ -1,7 +1,7 @@
 ﻿#pragma once
 #include <QObject>
 #include "net/tcpserver.h"
-#include "util.h"
+#include <util.h>
 
 class Injector : public QObject
 {
@@ -23,19 +23,9 @@ public:
 		}
 		return *instance;
 	}
-	static void clear()
-	{
-		if (instance != nullptr)
-		{
-			instance->server.reset();
-			instance->hModule_ = NULL;
-			instance->hookdllModule_ = NULL;
-			instance->pi_ = {  };
-			instance->processHandle_.reset();
-			delete instance;
-			instance = nullptr;
-		}
-	}
+
+	static void clear();
+
 public:
 
 	enum UserMessage
@@ -66,7 +56,6 @@ public:
 		kSetMove,
 	};
 
-
 	typedef struct process_information_s
 	{
 		qint64 dwProcessId = NULL;
@@ -74,30 +63,21 @@ public:
 		HWND hWnd = nullptr;
 	} process_information_t, * pprocess_information_t, * lpprocess_information_t;
 
-	HANDLE getProcess() const
+	inline void close() const
 	{
-		return processHandle_;
+		if (processHandle_)
+			MINT::NtTerminateProcess(processHandle_, 0);
 	}
 
-	HWND getProcessWindow() const
-	{
-		return pi_.hWnd;
-	}
+	Q_REQUIRED_RESULT inline HANDLE getProcess() const { return processHandle_; }
 
-	DWORD getProcessId() const
-	{
-		return pi_.dwProcessId;
-	}
+	Q_REQUIRED_RESULT inline HWND getProcessWindow() const { return pi_.hWnd; }
 
-	int getProcessModule() const
-	{
-		return hModule_;
-	}
+	Q_REQUIRED_RESULT inline DWORD getProcessId() const { return pi_.dwProcessId; }
 
-	bool isValid() const
-	{
-		return hModule_ != NULL && pi_.dwProcessId != NULL && pi_.hWnd != nullptr && processHandle_.isValid();
-	}
+	Q_REQUIRED_RESULT inline int getProcessModule() const { return hModule_; }
+
+	Q_REQUIRED_RESULT inline bool isValid() const { return hModule_ != NULL && pi_.dwProcessId != NULL && pi_.hWnd != nullptr && processHandle_.isValid(); }
 
 	bool createProcess(process_information_t& pi);
 
@@ -128,75 +108,33 @@ public:
 		return  ret == TRUE;
 	}
 
-	void setValueHash(util::UserSetting setting, int value)
-	{
-		userSetting_value_hash_.insert(setting, value);
-	}
+	inline void setValueHash(util::UserSetting setting, int value) { userSetting_value_hash_.insert(setting, value); }
 
-	void setEnableHash(util::UserSetting setting, bool enable)
-	{
-		userSetting_enable_hash_.insert(setting, enable);
-	}
+	inline void setEnableHash(util::UserSetting setting, bool enable) { userSetting_enable_hash_.insert(setting, enable); }
 
-	void setStringHash(util::UserSetting setting, const QString& string)
-	{
-		userSetting_string_hash_.insert(setting, string);
-	}
+	inline void setStringHash(util::UserSetting setting, const QString& string) { userSetting_string_hash_.insert(setting, string); }
 
-	int getValueHash(util::UserSetting setting) const
-	{
-		return userSetting_value_hash_.value(setting);
-	}
+	Q_REQUIRED_RESULT inline int getValueHash(util::UserSetting setting) const { return userSetting_value_hash_.value(setting); }
 
-	bool getEnableHash(util::UserSetting setting) const
-	{
-		return userSetting_enable_hash_.value(setting);
-	}
+	Q_REQUIRED_RESULT inline bool getEnableHash(util::UserSetting setting) const { return userSetting_enable_hash_.value(setting); }
 
-	QString getStringHash(util::UserSetting setting) const
-	{
-		return userSetting_string_hash_.value(setting);
-	}
+	Q_REQUIRED_RESULT inline QString getStringHash(util::UserSetting setting) const { return userSetting_string_hash_.value(setting); }
 
-	util::SafeHash<util::UserSetting, int> getValueHash() const
-	{
-		return userSetting_value_hash_;
-	}
+	Q_REQUIRED_RESULT inline util::SafeHash<util::UserSetting, int> getValueHash() const { return userSetting_value_hash_; }
 
-	util::SafeHash<util::UserSetting, bool> getEnableHash() const
-	{
-		return userSetting_enable_hash_;
-	}
+	Q_REQUIRED_RESULT inline util::SafeHash<util::UserSetting, bool> getEnableHash() const { return userSetting_enable_hash_; }
 
-	util::SafeHash<util::UserSetting, QString> getStringHash() const
-	{
-		return userSetting_string_hash_;
-	}
+	Q_REQUIRED_RESULT inline util::SafeHash<util::UserSetting, QString> getStringHash() const { return userSetting_string_hash_; }
 
-	void setValueHash(const util::SafeHash<util::UserSetting, int>& hash)
-	{
-		userSetting_value_hash_ = hash;
-	}
+	inline void setValueHash(const util::SafeHash<util::UserSetting, int>& hash) { userSetting_value_hash_ = hash; }
 
-	void setEnableHash(const util::SafeHash<util::UserSetting, bool>& hash)
-	{
-		userSetting_enable_hash_ = hash;
-	}
+	inline void setEnableHash(const util::SafeHash<util::UserSetting, bool>& hash) { userSetting_enable_hash_ = hash; }
 
-	void setStringHash(const util::SafeHash<util::UserSetting, QString>& hash)
-	{
-		userSetting_string_hash_ = hash;
-	}
+	inline void setStringHash(const util::SafeHash<util::UserSetting, QString>& hash) { userSetting_string_hash_ = hash; }
 
-	QVariant getUserData(util::UserData type) const
-	{
-		return userData_hash_.value(type);
-	}
+	Q_REQUIRED_RESULT inline QVariant getUserData(util::UserData type) const { return userData_hash_.value(type); }
 
-	void setUserData(util::UserData type, const QVariant& data)
-	{
-		userData_hash_.insert(type, QVariant::fromValue(data));
-	}
+	inline void setUserData(util::UserData type, const QVariant& data) { userData_hash_.insert(type, QVariant::fromValue(data)); }
 
 private:
 	static BOOL CALLBACK EnumWindowsCallback(HWND handle, LPARAM lParam)
@@ -256,10 +194,91 @@ private:
 		{ util::kLockTimeValue, 0 },
 		{ util::kSpeedBoostValue, 10 },
 
+		//afk->battle button
+		{ util::kBattleCharRoundActionTargetValue, util::kSelectEnemyAny },
+		{ util::kBattleCharCrossActionTargetValue, util::kSelectEnemyAny },
+		{ util::kBattleCharNormalActionTargetValue, util::kSelectEnemyAny },
+		{ util::kBattlePetNormalActionTargetValue, util::kSelectEnemyAny },
+
+		{ util::kBattlePetRoundActionTargetValue, util::kSelectEnemyAny },
+		{ util::kBattlePetCrossActionTargetValue, util::kSelectEnemyAny },
+
+		//afk->battle combobox
+		{ util::kBattleCharRoundActionRoundValue, 0 },
+		{ util::kBattleCharRoundActionTypeValue, 0 },
+		{ util::kBattleCharRoundActionEnemyValue, 0 },
+		{ util::kBattleCharRoundActionLevelValue, 0 },
+
+		{ util::kBattleCharCrossActionTypeValue, 0 },
+		{ util::kBattleCharCrossActionRoundValue, 0 },
+
+		{ util::kBattleCharNormalActionTypeValue, 0 },
+		{ util::kBattleCharNormalActionEnemyValue, 0 },
+		{ util::kBattleCharNormalActionLevelValue, 0 },
+
+		{ util::kBattlePetRoundActionRoundValue, 0 },
+		{ util::kBattlePetRoundActionTypeValue, 0 },
+		{ util::kBattlePetRoundActionEnemyValue, 0 },
+		{ util::kBattlePetRoundActionLevelValue, 0 },
+
+		{ util::kBattlePetCrossActionTypeValue, 0 },
+		{ util::kBattlePetCrossActionRoundValue, 0 },
+
+		{ util::kBattlePetNormalActionTypeValue, 0 },
+		{ util::kBattlePetNormalActionEnemyValue, 0 },
+		{ util::kBattlePetNormalActionLevelValue, 0 },
+
+		//afk->heal button
+		{ util::kBattleMagicHealTargetValue, util::kSelectSelf | util::kSelectPet },
+		{ util::kBattleItemHealTargetValue, util::kSelectSelf | util::kSelectPet },
+		{ util::kBattleMagicReviveTargetValue, util::kSelectSelf | util::kSelectPet },
+		{ util::kBattleItemReviveTargetValue, util::kSelectSelf | util::kSelectPet },
+
+		//afk->heal combobox
+		{ util::kBattleMagicHealMagicValue, 0 },
+		{ util::kBattleMagicReviveMagicValue, 0 },
+
+		{ util::kNormalMagicHealMagicValue, 0 },
+
+		//afk->heal spinbox
+		{ util::kMagicHealCharValue, 50 },
+		{ util::kMagicHealPetValue, 50 },
+		{ util::kMagicHealAllieValue, 50 },
+		{ util::kItemHealCharValue, 50 },
+		{ util::kItemHealPetValue, 50 },
+		{ util::kItemHealAllieValue, 50 },
+		{ util::kItemHealMpValue, 50 },
+
+		{ util::kMagicHealCharNormalValue, 50 },
+		{ util::kMagicHealPetNormalValue, 50 },
+		{ util::kMagicHealAllieNormalValue, 50 },
+		{ util::kItemHealCharNormalValue, 50 },
+		{ util::kItemHealPetNormalValue, 50 },
+		{ util::kItemHealAllieNormalValue, 50 },
+		{ util::kItemHealMpNormalValue, 50 },
+
 		//afk->walk
 		{ util::kAutoWalkDelayValue, 10 },
-		{ util::kAutoWalkDistanceValue, 1 },
+		{ util::kAutoWalkDistanceValue, 2 },
 		{ util::kAutoWalkDirectionValue, 0 },
+
+		//afk->catch
+		{ util::kBattleCatchModeValue, 0 },
+		{ util::kBattleCatchTargetLevelValue, 1 },
+		{ util::kBattleCatchTargetMaxHpValue, 10 },
+		{ util::kBattleCatchTargetMagicHpValue, 10 },
+		{ util::kBattleCatchTargetItemHpValue, 10 },
+		{ util::kBattleCatchPlayerMagicValue, 0 },
+		{ util::kBattleCatchPetSkillValue, 0 },
+
+		{ util::kDropPetStrValue, 10 },
+		{ util::kDropPetDefValue, 10 },
+		{ util::kDropPetAgiValue, 10 },
+		{ util::kDropPetHpValue, 50 },
+		{ util::kDropPetAggregateValue, 10 },
+
+		//other->group
+		{ util::kAutoFunTypeValue, 0 },
 
 		{ util::kSettingMaxValue, util::kSettingMaxValue },
 		{ util::kSettingMinString, util::kSettingMinString },
@@ -268,31 +287,31 @@ private:
 
 	util::SafeHash<util::UserSetting, bool> userSetting_enable_hash_ = {
 		{ util::kAutoLoginEnable, false },
-		{ util::kAutoReconnectEnable, false },
+		{ util::kAutoReconnectEnable, true },
 		{ util::kLogOutEnable, false },
 		{ util::kLogBackEnable, false },
 		{ util::kEchoEnable, false },
 		{ util::kHideCharacterEnable, false },
 		{ util::kCloseEffectEnable, false },
-		{ util::kOptimizeEnable, false },
+		{ util::kOptimizeEnable, true },
 		{ util::kHideWindowEnable, false },
 		{ util::kMuteEnable, false },
 		{ util::kAutoJoinEnable, false },
 		{ util::kLockTimeEnable, false },
-		{ util::kAutoFreeMemoryEnable, false },
-		{ util::kFastWalkEnable, false },
+		{ util::kAutoFreeMemoryEnable, true },
+		{ util::kFastWalkEnable, true },
 		{ util::kPassWallEnable, false },
 		{ util::kLockMoveEnable, false },
 		{ util::kLockImageEnable, false },
-		{ util::kAutoDropMeatEnable, false },
+		{ util::kAutoDropMeatEnable, true },
 		{ util::kAutoDropEnable, false },
-		{ util::kAutoStackEnable, false },
+		{ util::kAutoStackEnable, true },
 		{ util::kKNPCEnable, false },
 		{ util::kAutoAnswerEnable, false },
 		{ util::kForceLeaveBattleEnable, false },
 		{ util::kAutoWalkEnable, false },
 		{ util::kFastAutoWalkEnable, false },
-		{ util::kFastBattleEnable, false },
+		{ util::kFastBattleEnable, true },
 		{ util::kAutoBattleEnable, false },
 		{ util::kAutoCatchEnable, false },
 		{ util::kLockAttackEnable, false },
@@ -309,12 +328,59 @@ private:
 		{ util::kSwitcherFamilyEnable, false },
 		{ util::kSwitcherJobEnable, false },
 		{ util::kSwitcherWorldEnable, false },
+
+		//afk->battle
+		{ util::kCrossActionCharEnable, false },
+		{ util::kCrossActionPetEnable, false },
+
+		//afk->heal
+		{ util::kBattleMagicHealEnable, false },
+		{ util::kBattleItemHealEnable, false },
+		{ util::kBattleItemHealMeatPriorityEnable, false },
+		{ util::kBattleItemHealMpEnable, false },
+		{ util::kBattleMagicReviveEnable, false },
+		{ util::kBattleItemReviveEnable, false },
+
+		{ util::kNormalMagicHealEnable, false },
+		{ util::kNormalItemHealEnable, false },
+		{ util::kNormalItemHealMeatPriorityEnable, false },
+		{ util::kNormalItemHealMpEnable, false },
+
+		//afk->catch
+		{ util::kBattleCatchTargetLevelEnable, false },
+		{ util::kBattleCatchTargetMaxHpEnable, false },
+		{ util::kBattleCatchPlayerMagicEnable, false },
+		{ util::kBattleCatchPlayerItemEnable, false },
+		{ util::kBattleCatchPetSkillEnable, false },
+
+		{ util::kDropPetEnable, false },
+		{ util::kDropPetStrEnable, false },
+		{ util::kDropPetDefEnable, false },
+		{ util::kDropPetAgiEnable, false },
+		{ util::kDropPetHpEnable, false },
+		{ util::kDropPetAggregateEnable, false },
+
+		//other->group
+
 	};
 
 	util::SafeHash<util::UserSetting, QString> userSetting_string_hash_ = {
 		{ util::kAutoDropItemString, "" },
 		{ util::kLockAttackString, "" },
 		{ util::kLockEscapeString, "" },
+
+		{ util::kBattleItemHealItemString, "" },
+		{ util::kBattleItemHealMpIteamString, "" },
+		{ util::kBattleItemReviveItemString, "" },
+		{ util::kNormalItemHealItemString, "" },
+		{ util::kNormalItemHealMpItemString, "" },
+
+		//afk->catch
+		{ util::kBattleCatchPetNameString, "" },
+		{ util::kBattleCatchPlayerItemString, "" },
+		{ util::kDropPetNameString, "" },
+
+		{ util::kAutoFunNameString, "" },
 
 		{ util::kGameAccountString, "" },
 		{ util::kGamePasswordString, "" },

@@ -1,7 +1,7 @@
 ﻿#include "stdafx.h"
 #include "abilityform.h"
-#include "util.h"
-#include "injector.h"
+#include <util.h>
+#include <injector.h>
 
 AbilityForm::AbilityForm(QWidget* parent)
 	: QDialog(parent)

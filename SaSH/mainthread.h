@@ -1,6 +1,6 @@
 ﻿#pragma once
 #include <QObject>
-#include "util.h"
+#include <util.h>
 
 class QThread;
 class Server;
@@ -34,6 +34,7 @@ private:
 
 	void mainProc();
 
+	void updateAfkInfos();
 	void setUserDatas();
 
 	int checkAndRunFunctions();
@@ -42,15 +43,32 @@ private:
 	void checkEtcFlag();
 	void checkAutoWalk();
 	void checkAutoDropItems();
-
+	void checkAutoJoin();
+	void checkAutoHeal();
+	void checkAutoDropPet();
 
 private:
+	void battleTimeThread();
 
+private:
+	util::REMOVE_THREAD_REASON remove_thread_reason = util::REASON_NO_ERROR;
 
 	std::atomic_bool isRequestInterrupted = false;
 
 	QFuture<void> autowalk_future_;
 	std::atomic_bool autowalk_future_cancel_flag_ = false;
+
+	QFuture<void> autojoin_future_;
+	std::atomic_bool autojoin_future_cancel_flag_ = false;
+
+	QFuture<void> battleTime_future_;
+	std::atomic_bool battleTime_future_cancel_flag_ = false;
+
+	QFuture<void> autoheal_future_;
+	std::atomic_bool autoheal_future_cancel_flag_ = false;
+
+	QFuture<void> autodroppet_future_;
+	std::atomic_bool autodroppet_future_cancel_flag_ = false;
 
 	bool login_run_once_flag_ = false;
 	bool battle_run_once_flag_ = false;
