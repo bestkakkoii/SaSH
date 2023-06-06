@@ -741,7 +741,7 @@ QString mem::readString(HANDLE hProcess, DWORD desiredAccess, int size, bool ena
 	if (!desiredAccess) return "\0";
 
 	QScopedArrayPointer <char> p(q_check_ptr(new char[size + 1]));
-	ZeroMemory(p.get(), size + 1);
+	memset(p.get(), 0, size + 1);
 	SIZE_T sizet = size;
 	BOOL ret = read(hProcess, desiredAccess, sizet, p.get());
 	const QString retstring((ret == TRUE) ? (util::toUnicode(p.get(), false)) : "");
@@ -792,7 +792,7 @@ bool mem::writeString(HANDLE hProcess, DWORD baseAddress, const QString& str)
 	char* pBuffer = ba.data();
 	SIZE_T len = ba.size();
 	QScopedArrayPointer <char> p(q_check_ptr(new char[len + 1]()));
-	ZeroMemory(p.get(), len + 1);
+	memset(p.get(), 0, len + 1);
 	_snprintf_s(p.get(), len + 1, _TRUNCATE, "%s\0", pBuffer);
 	BOOL ret = write(hProcess, baseAddress, p.get(), len + 1);
 	p.reset(nullptr);
@@ -876,9 +876,9 @@ DWORD mem::getRemoteModuleHandle(DWORD dwProcessId, const QString& moduleName)
 	QScopedHandle hSnapshot(QScopedHandle::CREATE_TOOLHELP32_SNAPSHOT, TH32CS_SNAPMODULE, dwProcessId);
 	if (!hSnapshot.isValid()) return NULL;
 
-	ZeroMemory(&moduleEntry, sizeof(MODULEENTRY32));
-	moduleEntry.dwSize = sizeof(MODULEENTRY32);
-	if (!Module32First(hSnapshot, &moduleEntry))
+	memset(&moduleEntry, 0, sizeof(MODULEENTRY32W));
+	moduleEntry.dwSize = sizeof(MODULEENTRY32W);
+	if (!Module32FirstW(hSnapshot, &moduleEntry))
 		return NULL;
 	else
 	{
@@ -892,7 +892,7 @@ DWORD mem::getRemoteModuleHandle(DWORD dwProcessId, const QString& moduleName)
 		const QString str(QString::fromWCharArray(moduleEntry.szModule));
 		if (str == moduleName)
 			return reinterpret_cast<DWORD>(moduleEntry.hModule);
-	} while (Module32Next(hSnapshot, &moduleEntry));
+	} while (Module32NextW(hSnapshot, &moduleEntry));
 	return NULL;
 }
 

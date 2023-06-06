@@ -28,7 +28,7 @@ void Server::clearNetBuffer()
 #pragma endregion
 
 #pragma region StringControl
-int a62toi(const QString& a)
+int __fastcall a62toi(const QString& a)
 {
 	int ret = 0;
 	int sign = 1;
@@ -56,7 +56,7 @@ int a62toi(const QString& a)
 	return ret * sign;
 }
 
-int getStringToken(const QString& src, const QString& delim, int count, QString& out)
+int __fastcall getStringToken(const QString& src, const QString& delim, int count, QString& out)
 {
 	int c = 1;
 	int i = 0;
@@ -91,7 +91,7 @@ int getStringToken(const QString& src, const QString& delim, int count, QString&
 	return 0;
 }
 
-int getIntegerToken(const QString& src, const QString& delim, int count)
+int __fastcall getIntegerToken(const QString& src, const QString& delim, int count)
 {
 	QString s;
 	if (getStringToken(src, delim, count, s) == 1)
@@ -104,7 +104,7 @@ int getIntegerToken(const QString& src, const QString& delim, int count)
 	return -1;
 }
 
-int getInteger62Token(const QString& src, const QString& delim, int count)
+int __fastcall getInteger62Token(const QString& src, const QString& delim, int count)
 {
 	QString s;
 	getStringToken(src, delim, count, s);
@@ -113,21 +113,21 @@ int getInteger62Token(const QString& src, const QString& delim, int count)
 	return a62toi(s);
 }
 
-struct EscapeChar
+QString __fastcall makeStringFromEscaped(const QString& src)
 {
-	QChar escapechar;
-	QChar escapedchar;
-};
+	struct EscapeChar
+	{
+		QChar escapechar;
+		QChar escapedchar;
+	};
 
-static const EscapeChar escapeChar[] = {
-	{ QChar('n'), QChar('\n') },
-	{ QChar('c'), QChar(',')},
-	{ QChar('z'), QChar('|')},
-	{ QChar('y'), QChar('\\') },
-};
+	static const EscapeChar escapeChar[] = {
+		{ QChar('n'), QChar('\n') },
+		{ QChar('c'), QChar(',')},
+		{ QChar('z'), QChar('|')},
+		{ QChar('y'), QChar('\\') },
+	};
 
-QString makeStringFromEscaped(const QString& src)
-{
 	QString result;
 	int srclen = src.length();
 
@@ -168,7 +168,7 @@ QString makeStringFromEscaped(const QString& src)
 }
 
 // 0-9,a-z(10-35),A-Z(36-61)
-int a62toi(char* a)
+int __fastcall a62toi(char* a)
 {
 	int ret = 0;
 	int fugo = 1;
@@ -194,8 +194,7 @@ int a62toi(char* a)
 	return ret * fugo;
 }
 
-
-int appendReadBuf(char* buf, int size)
+int __fastcall appendReadBuf(char* buf, int size)
 {
 	if ((net_readbuflen + size) > Autil::NETBUFSIZ)
 		return -1;
@@ -205,7 +204,7 @@ int appendReadBuf(char* buf, int size)
 	return 0;
 }
 
-int shiftReadBuf(int size)
+int __fastcall shiftReadBuf(int size)
 {
 	int i;
 
@@ -219,7 +218,7 @@ int shiftReadBuf(int size)
 	return 0;
 }
 
-int getLineFromReadBuf(char* output, int maxlen)
+int __fastcall getLineFromReadBuf(char* output, int maxlen)
 {
 	int i, j;
 	if (net_readbuflen >= Autil::NETBUFSIZ)
@@ -252,11 +251,10 @@ int getLineFromReadBuf(char* output, int maxlen)
 	return -1;
 }
 
-
 #pragma endregion
 
 #pragma region GlobalMap
-unsigned short CheckCRC(unsigned char* p, int size)
+unsigned short __fastcall CheckCRC(unsigned char* p, int size)
 {
 	unsigned short	crc = 0;
 	int		i;
@@ -269,7 +267,7 @@ unsigned short CheckCRC(unsigned char* p, int size)
 	return crc;
 }
 
-bool readMap(int floor, int x1, int y1, int x2, int y2, unsigned short* tile, unsigned short* parts, unsigned short* event)
+bool __fastcall readMap(int floor, int x1, int y1, int x2, int y2, unsigned short* tile, unsigned short* parts, unsigned short* event)
 {
 	//	FILE* fp;
 	//	char filename[255];
@@ -380,7 +378,6 @@ bool readMap(int floor, int x1, int y1, int x2, int y2, unsigned short* tile, un
 
 	return true;
 }
-
 
 #pragma endregion
 
@@ -675,7 +672,7 @@ void Server::handleData(QTcpSocket* clientSocket, QByteArray badata)
 	QMutexLocker locker(&mutex_);
 	int len = badata.size();
 	QScopedArrayPointer <char> sendBuf(new char[len]());
-	ZeroMemory(rpc_linebuffer, LINEBUFSIZ);
+	memset(rpc_linebuffer, 0, LINEBUFSIZ);
 	memcpy_s(rpc_linebuffer, LINEBUFSIZ, badata.data(), len);
 	memcpy_s(sendBuf.data(), len, rpc_linebuffer, len);
 
@@ -701,7 +698,7 @@ void Server::handleData(QTcpSocket* clientSocket, QByteArray badata)
 		if (isInterruptionRequested())
 			break;
 
-		RtlZeroMemory(&rpc_linebuffer, sizeof(rpc_linebuffer));
+		memset(rpc_linebuffer, 0, sizeof(rpc_linebuffer));
 		// get line from read buffer
 		if (!getLineFromReadBuf(rpc_linebuffer, sizeof(rpc_linebuffer)))
 		{
@@ -2917,6 +2914,8 @@ void Server::lssproto_B_recv(char* ccommand)
 		{
 			setBattleFlag(true);
 		}
+
+		setWindowTitle();
 	}
 
 	else if (first == "P")
@@ -5609,7 +5608,7 @@ void Server::lssproto_S_recv(char* cdata)
 
 		playerInfoColContents.insert(0, var);
 		emit signalDispatcher.updatePlayerInfoColContents(0, var);
-
+		setWindowTitle();
 		//#ifdef _STONDEBUG_
 		//		char title[128];
 		//		sprintf_s(title, "%s %s [%s  %s:%s]", DEF_APPNAME, "調試版本",
@@ -5631,26 +5630,7 @@ void Server::lssproto_S_recv(char* cdata)
 		//#endif
 		//		extern int 編碼;
 		//		extern char* GB2312ToBIG5(const char* szGBString);
-		Injector& injector = Injector::getInstance();
-		int server = injector.getValueHash(util::kServerValue);
-		int subserver = injector.getValueHash(util::kSubServerValue);
-		int position = injector.getValueHash(util::kPositionValue);
 
-		QStringList serverList = {
-			tr("1st//Acticity"), tr("2nd///Market"), tr("3rd//Family"), tr("4th//Away"),
-			tr("5th//Away"), tr("6th//Away"), tr("7th//Away"), tr("8th//Away"),
-			tr("9th//Away"), tr("15th//Company"), tr("21th//Member"), tr("22th//Member"),
-		};
-
-		QStringList subServerList = QStringList{
-			tr("Telecom"), tr("UnitedNetwork"), tr("Easyown"), tr("Oversea"), tr("Backup"),
-		};
-
-		int ser = mem::readInt(injector.getProcess(), injector.getProcessModule() + 0xC4288, sizeof(int));
-		QString title = QString("SaSH [%1:%2:%3] - %4 LV:%5(%6/%7) MP:%8/%9")
-			.arg(server).arg(subserver).arg(position).arg(pc.name).arg(pc.level).arg(pc.hp).arg(pc.maxHp).arg(pc.mp).arg(pc.maxMp);
-		std::wstring wtitle = title.toStdWString();
-		SetWindowTextW(injector.getProcessWindow(), wtitle.c_str());
 		//if ((bNewServer & 0xf000000) == 0xf000000 && sPetStatFlag == 1)
 		//	saveUserSetting();
 	}
@@ -7635,6 +7615,30 @@ void Server::lssproto_TK_send(const QPoint& pos, char* message, int color, int a
 	iChecksum += Autil::util_mkint(buffer, area);
 	Autil::util_mkint(buffer, iChecksum);
 	Autil::util_SendMesg(LSSPROTO_TK_SEND, buffer);
+}
+
+void Server::setWindowTitle()
+{
+	Injector& injector = Injector::getInstance();
+	int server = injector.getValueHash(util::kServerValue);
+	int subserver = injector.getValueHash(util::kSubServerValue);
+	int position = injector.getValueHash(util::kPositionValue);
+
+	QStringList serverList = {
+		tr("1st//Acticity"), tr("2nd///Market"), tr("3rd//Family"), tr("4th//Away"),
+		tr("5th//Away"), tr("6th//Away"), tr("7th//Away"), tr("8th//Away"),
+		tr("9th//Away"), tr("15th//Company"), tr("21th//Member"), tr("22th//Member"),
+	};
+
+	QStringList subServerList = QStringList{
+		tr("Telecom"), tr("UnitedNetwork"), tr("Easyown"), tr("Oversea"), tr("Backup"),
+	};
+
+	int ser = mem::readInt(injector.getProcess(), injector.getProcessModule() + 0xC4288, sizeof(int));
+	QString title = QString("SaSH [%1:%2:%3] - %4 LV:%5(%6/%7) MP:%8/%9")
+		.arg(server).arg(subserver).arg(position).arg(pc.name).arg(pc.level).arg(pc.hp).arg(pc.maxHp).arg(pc.mp).arg(pc.maxMp);
+	std::wstring wtitle = title.toStdWString();
+	SetWindowTextW(injector.getProcessWindow(), wtitle.c_str());
 }
 
 //設置戰鬥結束

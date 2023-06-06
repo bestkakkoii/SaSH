@@ -177,6 +177,41 @@ bool Injector::isHandleValid(qint64 pid)
 	return true;
 }
 
+inline __declspec(naked) DWORD* getKernel32()
+{
+	__asm
+	{
+		mov eax, fs: [0x30] ;
+		mov eax, [eax + 0xC];
+		mov eax, [eax + 0x1C];
+		mov eax, [eax];
+		mov eax, [eax];
+		mov eax, [eax + 8];
+		ret;
+	}
+}
+
+DWORD WINAPI getFunAddr(const DWORD* DllBase, const char* FunName)
+{
+	// 遍歷導出表
+	PIMAGE_DOS_HEADER pDos = (PIMAGE_DOS_HEADER)DllBase;
+	PIMAGE_NT_HEADERS pNt = (PIMAGE_NT_HEADERS)(pDos->e_lfanew + (DWORD)pDos);
+	PIMAGE_OPTIONAL_HEADER pOt = (PIMAGE_OPTIONAL_HEADER)&pNt->OptionalHeader;
+	PIMAGE_EXPORT_DIRECTORY pExport = (PIMAGE_EXPORT_DIRECTORY)(pOt->DataDirectory[0].VirtualAddress + (DWORD)DllBase);
+	// 獲取到ENT、EOT、EAT
+	DWORD* pENT = (DWORD*)(pExport->AddressOfNames + (DWORD)DllBase);
+	WORD* pEOT = (WORD*)(pExport->AddressOfNameOrdinals + (DWORD)DllBase);
+	DWORD* pEAT = (DWORD*)(pExport->AddressOfFunctions + (DWORD)DllBase);
+
+	for (DWORD i = 0; i < pExport->NumberOfNames; ++i)
+	{
+		char* Name = (char*)(pENT[i] + (DWORD)DllBase);
+		if (!strncmp(Name, FunName, MAX_PATH))
+			return pEAT[pEOT[i]] + (DWORD)DllBase;
+	}
+	return (DWORD)NULL;
+}
+
 bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short port, util::LPREMOVE_THREAD_REASON pReason)
 {
 	if (!pi.dwProcessId) return false;
@@ -185,8 +220,8 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 	constexpr qint64 MAX_TIMEOUT = 30000;
 	bool bret = 0;
 	QElapsedTimer timer;
-	HMODULE kernel32Module = NULL;
-	FARPROC loadLibraryProc = NULL;
+	DWORD* kernel32Module = nullptr;
+	FARPROC loadLibraryProc = nullptr;
 	DWORD hModule = NULL;
 	QString dllPath = "\0";
 	QFileInfo fi;
@@ -243,14 +278,14 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 		pi.dwThreadId = ::GetWindowThreadProcessId(pi.hWnd, nullptr);
 
 
-		kernel32Module = ::GetModuleHandleW(L"kernel32.dll");
+		kernel32Module = getKernel32();//::GetModuleHandleW(L"kernel32.dll");
 		if (nullptr == kernel32Module)
 		{
 			*pReason = util::REASON_GET_KERNEL32_FAIL;
 			break;
 		}
 
-		loadLibraryProc = ::GetProcAddress(kernel32Module, u8"LoadLibraryW");
+		loadLibraryProc = reinterpret_cast<FARPROC>(getFunAddr(kernel32Module, u8"LoadLibraryW"));
 		if (nullptr == loadLibraryProc)
 		{
 			*pReason = util::REASON_GET_KERNEL32_UNDOCUMENT_API_FAIL;
@@ -321,9 +356,9 @@ void Injector::remoteFreeModule()
 		processHandle_.reset(pi_.dwProcessId);
 
 	sendMessage(kUninitialize, NULL, NULL);
-	HMODULE kernel32Module = GetModuleHandleW(L"kernel32.dll");
-	if (!kernel32Module) return;
-	FARPROC freeLibraryProc = GetProcAddress(kernel32Module, u8"FreeLibrary");
+	DWORD* kernel32Module = getKernel32();//::GetModuleHandleW(L"kernel32.dll");
+	if (kernel32Module == nullptr) return;
+	FARPROC freeLibraryProc = reinterpret_cast<FARPROC>(getFunAddr(kernel32Module, u8"FreeLibrary"));
 
 	const util::VirtualMemory lpParameter(processHandle_, sizeof(int), true);
 	if (NULL == lpParameter)

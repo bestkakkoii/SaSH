@@ -22,14 +22,14 @@ char Autil::PersonalKey[32];
 // -------------------------------------------------------------------
 // Initialize utilities
 //
-void Autil::util_Init()
+void __fastcall Autil::util_Init()
 {
 	memset(MesgSlice, 0, sizeof(MesgSlice));
 	SliceCount = 0;
 }
 
 
-void Autil::util_Release()
+void __fastcall Autil::util_Release()
 {
 	memset(MesgSlice, 0, sizeof(MesgSlice));
 	SliceCount = 0;
@@ -41,7 +41,7 @@ void Autil::util_Release()
 //
 // arg: source=message string;  separator=message separator (1 byte)
 // ret: (none)
-bool Autil::util_SplitMessage(char* source, size_t dstlen, char* separator)
+bool __fastcall Autil::util_SplitMessage(char* source, size_t dstlen, char* separator)
 {
 	if (source && separator)
 	{	// NULL input is invalid.
@@ -71,7 +71,7 @@ bool Autil::util_SplitMessage(char* source, size_t dstlen, char* separator)
 //
 // arg: dst=output  src=input
 // ret: (none)
-void Autil::util_EncodeMessage(char* dst, size_t dstlen, char* src)
+void __fastcall Autil::util_EncodeMessage(char* dst, size_t dstlen, char* src)
 {
 	std::mt19937 generator(std::random_device{}());
 	std::uniform_int_distribution<int> distribution(0, 99);
@@ -102,7 +102,7 @@ void Autil::util_EncodeMessage(char* dst, size_t dstlen, char* src)
 //
 // arg: dst=output  src=input
 // ret: (none)
-void Autil::util_DecodeMessage(char* dst, size_t dstlen, char* src)
+void __fastcall Autil::util_DecodeMessage(char* dst, size_t dstlen, char* src)
 {
 	//  strcpy(dst, src);
 	//  util_xorstring(dst, src);
@@ -151,7 +151,7 @@ void Autil::util_DecodeMessage(char* dst, size_t dstlen, char* src)
 //
 // arg: func=return function ID    fieldcount=return fields of the function
 // ret: 1=success  0=failed (function not complete)
-int Autil::util_GetFunctionFromSlice(int* func, int* fieldcount)
+int __fastcall Autil::util_GetFunctionFromSlice(int* func, int* fieldcount)
 {
 	char t1[16384];
 	memset(t1, 0, sizeof(t1));
@@ -179,7 +179,7 @@ int Autil::util_GetFunctionFromSlice(int* func, int* fieldcount)
 // -------------------------------------------------------------------
 // Discard a message from MesgSlice.
 //
-void Autil::util_DiscardMessage(void)
+void __fastcall Autil::util_DiscardMessage(void)
 {
 	SliceCount = 0;
 }
@@ -188,7 +188,7 @@ void Autil::util_DiscardMessage(void)
 // Send a message
 //
 // arg: fd=socket fd   func=function ID   buffer=data to send
-void Autil::util_SendMesg(int func, char* buffer)
+void __fastcall Autil::util_SendMesg(int func, char* buffer)
 {
 #ifdef _VMP_
 	VMProtectBegin("util_SendMesg");
@@ -227,7 +227,7 @@ void Autil::util_SendMesg(int func, char* buffer)
 // arg: dst=8-bit string;  src=6-bit string;  len=src strlen;
 //      table=mapping table
 // ret: 0=failed  >0=bytes converted
-int Autil::util_256to64(char* dst, char* src, int len, char* table)
+int __fastcall Autil::util_256to64(char* dst, char* src, int len, char* table)
 {
 	unsigned int dw = 0u, dwcounter = 0u;
 	int i = 0;
@@ -266,7 +266,7 @@ int Autil::util_256to64(char* dst, char* src, int len, char* table)
 //
 // arg: dst=6-bit string;  src=8-bit string;  table=mapping table
 // ret: 0=failed  >0=bytes converted
-int Autil::util_64to256(char* dst, char* src, char* table)
+int __fastcall Autil::util_64to256(char* dst, char* src, char* table)
 {
 	unsigned int i = 0u, j = 0u;
 	char* ptr = nullptr;
@@ -318,7 +318,7 @@ int Autil::util_64to256(char* dst, char* src, char* table)
 // arg: dst=6-bit string;  src=8-bit string;  len=src strlen;
 //      table=mapping table;  key=rotate key;
 // ret: 0=failed  >0=bytes converted
-int Autil::util_256to64_shr(char* dst, char* src, int len, char* table, char* key)
+int __fastcall Autil::util_256to64_shr(char* dst, char* src, int len, char* table, char* key)
 {
 	unsigned int j = 0u;
 	int i = 0u;
@@ -371,7 +371,7 @@ int Autil::util_256to64_shr(char* dst, char* src, int len, char* table, char* ke
 // arg: dst=8-bit string;  src=6-bit string;  table=mapping table;
 //      key=rotate key;
 // ret: 0=failed  >0=bytes converted
-int Autil::util_shl_64to256(char* dst, char* src, char* table, char* key)
+int __fastcall Autil::util_shl_64to256(char* dst, char* src, char* table, char* key)
 {
 	unsigned int i = 0u, j = 0u, k = 0u;
 	char* ptr = nullptr;
@@ -442,7 +442,7 @@ int Autil::util_shl_64to256(char* dst, char* src, char* table, char* key)
 // arg: dst=6-bit string;  src=8-bit string;  len=src strlen;
 //      table=mapping table;  key=rotate key;
 // ret: 0=failed  >0=bytes converted
-int Autil::util_256to64_shl(char* dst, char* src, int len, char* table, char* key)
+int __fastcall Autil::util_256to64_shl(char* dst, char* src, int len, char* table, char* key)
 {
 	int i = 0, j = 0;
 
@@ -494,7 +494,7 @@ int Autil::util_256to64_shl(char* dst, char* src, int len, char* table, char* ke
 // arg: dst=8-bit string;  src=6-bit string;  table=mapping table;
 //      key=rotate key;
 // ret: 0=failed  >0=bytes converted
-int Autil::util_shr_64to256(char* dst, char* src, char* table, char* key)
+int __fastcall Autil::util_shr_64to256(char* dst, char* src, char* table, char* key)
 {
 	unsigned int i, k;
 	char* ptr = nullptr;
@@ -561,7 +561,7 @@ int Autil::util_shr_64to256(char* dst, char* src, char* table, char* key)
 // The value "rule" indicates the swaping rule.  It's a 4 byte string
 // such as "1324" or "2431".
 //
-void Autil::util_swapint(int* dst, int* src, char* rule)
+void __fastcall Autil::util_swapint(int* dst, int* src, char* rule)
 {
 	int i = 0;
 	char* ptr = reinterpret_cast<char*>(src);
@@ -574,7 +574,7 @@ void Autil::util_swapint(int* dst, int* src, char* rule)
 // Xor a string.  Be careful that your string contains '0xff'.  Your
 // data may lose.
 //
-void Autil::util_xorstring(char* dst, char* src)
+void __fastcall Autil::util_xorstring(char* dst, char* src)
 {
 	unsigned int i = 0;
 
@@ -587,7 +587,7 @@ void Autil::util_xorstring(char* dst, char* src)
 // -------------------------------------------------------------------
 // Shift the string right.
 //
-void Autil::util_shrstring(char* dst, size_t dstlen, char* src, int offs)
+void __fastcall Autil::util_shrstring(char* dst, size_t dstlen, char* src, int offs)
 {
 	char* ptr = nullptr;
 	int len = strlen(src);
@@ -605,7 +605,7 @@ void Autil::util_shrstring(char* dst, size_t dstlen, char* src, int offs)
 // -------------------------------------------------------------------
 // Shift the string left.
 //
-void Autil::util_shlstring(char* dst, size_t dstlen, char* src, int offs)
+void __fastcall Autil::util_shlstring(char* dst, size_t dstlen, char* src, int offs)
 {
 	char* ptr = nullptr;
 	if (!dst || !src || (strlen(src) < 1))
@@ -623,7 +623,7 @@ void Autil::util_shlstring(char* dst, size_t dstlen, char* src, int offs)
 //
 // arg: sliceno=slice index in MesgSlice    value=result
 // ret: checksum, this value must match the one generated by util_mkint
-int Autil::util_deint(int sliceno, int* value)
+int __fastcall Autil::util_deint(int sliceno, int* value)
 {
 	int* t1 = nullptr;
 	int t2 = 0;
@@ -646,7 +646,7 @@ int Autil::util_deint(int sliceno, int* value)
 //
 // arg: buffer=output   value=data to pack
 // ret: checksum, this value must match the one generated by util_deint
-int Autil::util_mkint(char* buffer, int value)
+int __fastcall Autil::util_mkint(char* buffer, int value)
 {
 	int t1 = 0, t2 = 0;
 	char t3[4096];	// This buffer is enough for an integer.
@@ -670,7 +670,7 @@ int Autil::util_mkint(char* buffer, int value)
 //
 // arg: sliceno=slice index in MesgSlice    value=result
 // ret: checksum, this value must match the one generated by util_mkstring
-int Autil::util_destring(int sliceno, char* value)
+int __fastcall Autil::util_destring(int sliceno, char* value)
 {
 	Autil::util_shr_64to256(value, MesgSlice[sliceno], const_cast<char*>(Autil::DEFAULTTABLE), PersonalKey);
 
@@ -682,7 +682,7 @@ int Autil::util_destring(int sliceno, char* value)
 //
 // arg: buffer=output   value=data to pack
 // ret: checksum, this value must match the one generated by util_destring
-int Autil::util_mkstring(char* buffer, char* value)
+int __fastcall Autil::util_mkstring(char* buffer, char* value)
 {
 	char t1[Autil::SLICE_SIZE];
 	memset(t1, 0, sizeof(t1));

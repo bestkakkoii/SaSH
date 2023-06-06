@@ -1612,7 +1612,7 @@ private slots:
 private:
 	inline bool isInterruptionRequested() const { return isRequestInterrupted.load(std::memory_order_acquire); }
 
-	int SaDispatchMessage(char* encoded);
+	int __fastcall SaDispatchMessage(char* encoded);
 
 	void handleData(QTcpSocket* clientSocket, QByteArray data);
 
@@ -1751,6 +1751,7 @@ public://actions
 	void setPlayerFreeName(const QString& name);
 	void setPetFreeName(int petIndex, const QString& name);
 private:
+	void setWindowTitle();
 	void setBattleEnd();
 	void refreshItemInfo(int index);
 	void refreshItemInfo();

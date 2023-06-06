@@ -21,8 +21,8 @@ public:
 	void writeSettings();
 
 private:
-	void downloadNextBlock();
-	void updateNpcListAllContents(const QVariant& d);
+	void __fastcall downloadNextBlock();
+	void __fastcall updateNpcListAllContents(const QVariant& d);
 	void readSettings();
 private:
 

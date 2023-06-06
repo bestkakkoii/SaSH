@@ -5,6 +5,8 @@
 #pragma comment(lib, "detours.lib")
 #pragma comment(lib, "ws2_32.lib")
 
+constexpr const char* IPV6_DEFAULT = "::1";
+
 WNDPROC g_OldWndProc = nullptr;
 HWND g_MainHwnd = nullptr;
 HMODULE g_hGameModule = nullptr;
@@ -15,15 +17,52 @@ HANDLE g_MainThreadHandle = nullptr;
 HWND g_ParenthWnd = nullptr;
 
 template<typename T>
-static inline T CONVERT_GAMEVAR(DWORD offset) { return (T)((reinterpret_cast<ULONG_PTR>(g_hGameModule) + offset)); }
+static inline T __fastcall CONVERT_GAMEVAR(DWORD offset) { return (T)((reinterpret_cast<ULONG_PTR>(g_hGameModule) + offset)); }
 
+
+void __fastcall hideModule(HMODULE hLibrary)
+{
+	using namespace MINT;
+	PPEB_LDR_DATA pLdr = nullptr;
+	PLDR_DATA_TABLE_ENTRY FirstModule = nullptr;
+	PLDR_DATA_TABLE_ENTRY GurrentModule = nullptr;
+	__try
+	{
+		__asm {
+			mov esi, fs: [0x30]
+			mov esi, [esi + 0x0C]
+			mov pLdr, esi
+		}
+
+		FirstModule = reinterpret_cast<PLDR_DATA_TABLE_ENTRY>(pLdr->InLoadOrderModuleList.Flink);
+		GurrentModule = FirstModule;
+		while (!(GurrentModule->DllBase == hLibrary))
+		{
+			GurrentModule = reinterpret_cast<PLDR_DATA_TABLE_ENTRY>(GurrentModule->InLoadOrderLinks.Blink);
+			if (GurrentModule == FirstModule)
+				break;
+		}
+		if (GurrentModule->DllBase != hLibrary)
+			return;
+
+		(reinterpret_cast<PLDR_DATA_TABLE_ENTRY>((GurrentModule->InLoadOrderLinks.Flink))->InLoadOrderLinks.Blink) = GurrentModule->InLoadOrderLinks.Blink;
+		(reinterpret_cast<PLDR_DATA_TABLE_ENTRY>((GurrentModule->InLoadOrderLinks.Blink))->InLoadOrderLinks.Flink) = GurrentModule->InLoadOrderLinks.Flink;
+
+		memset(GurrentModule->FullDllName.Buffer, 0, GurrentModule->FullDllName.Length);
+		memset(GurrentModule, 0, sizeof(PLDR_DATA_TABLE_ENTRY));
+	}
+	__except (EXCEPTION_EXECUTE_HANDLER)
+	{
+		return;
+	}
+}
 
 constexpr size_t LINEBUFSIZ = 8192;
 int net_readbuflen = 0;
 char net_readbuf[LINEBUFSIZ] = {};
 char rpc_linebuffer[Autil::NETBUFSIZ] = {};
 
-void clearNetBuffer()
+void __fastcall clearNetBuffer()
 {
 	net_readbuflen = 0;
 	memset(net_readbuf, 0, sizeof(net_readbuf));
@@ -31,7 +70,7 @@ void clearNetBuffer()
 	Autil::util_Release();
 }
 
-int appendReadBuf(char* buf, int size)
+int __fastcall appendReadBuf(char* buf, int size)
 {
 	if ((net_readbuflen + size) > Autil::NETBUFSIZ)
 		return -1;
@@ -41,7 +80,7 @@ int appendReadBuf(char* buf, int size)
 	return 0;
 }
 
-int shiftReadBuf(int size)
+int __fastcall shiftReadBuf(int size)
 {
 	int i;
 
@@ -55,7 +94,7 @@ int shiftReadBuf(int size)
 	return 0;
 }
 
-int getLineFromReadBuf(char* output, int maxlen)
+int __fastcall getLineFromReadBuf(char* output, int maxlen)
 {
 	int i, j;
 	if (net_readbuflen >= Autil::NETBUFSIZ)
@@ -90,7 +129,7 @@ int getLineFromReadBuf(char* output, int maxlen)
 }
 
 #ifdef _DEBUG
-void CreateConsole()
+void __fastcall CreateConsole()
 {
 	if (!AllocConsole())
 	{
@@ -137,7 +176,7 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID)
 		if (hWnd)
 		{
 			g_MainHwnd = hWnd;
-			g_OldWndProc = reinterpret_cast<WNDPROC>(GetWindowLongPtrA(hWnd, GWL_WNDPROC));
+			g_OldWndProc = reinterpret_cast<WNDPROC>(GetWindowLongPtrW(hWnd, GWL_WNDPROC));
 			SetWindowLongPtrW(hWnd, GWL_WNDPROC, reinterpret_cast<LONG_PTR>(WndProc));
 #ifdef _DEBUG
 			CreateConsole();
@@ -155,7 +194,6 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID)
 	return TRUE;
 }
 
-wchar_t g_szGameTitle[1024] = { 0 };
 int CALLBACK WndProc(HWND hWnd, DWORD message, LPARAM wParam, LPARAM lParam)
 {
 	using namespace util;
@@ -374,6 +412,12 @@ extern "C"
 		STATICINS(GameService);
 		return g_GameService.New_BattleCommandReady();
 	}
+
+	BOOL WINAPI New_SetWindowTextA(HWND hWnd, LPCSTR lpString)
+	{
+		STATICINS(GameService);
+		return g_GameService.New_SetWindowTextA(hWnd, lpString);
+	}
 }
 
 class SyncClient
@@ -391,11 +435,12 @@ private:
 public:
 	SyncClient()
 	{
-
 		WSADATA data;
 		if (WSAStartup(MAKEWORD(2, 2), &data) != 0)
 		{
+#ifdef _DEBUG
 			std::cout << "WSAStartup failed with error: " << WSAGetLastError() << std::endl;
+#endif
 			return;
 		}
 	}
@@ -406,16 +451,19 @@ public:
 
 		closesocket(instance.clientSocket);
 		WSACleanup();
+
 	}
 
-	bool Connect(const std::string& serverIP, unsigned short serverPort)
+	bool __fastcall Connect(const std::string& serverIP, unsigned short serverPort)
 	{
 		STATICINS(GameService);
 		SyncClient& instance = getInstance();
 		instance.clientSocket = g_GameService.psocket(AF_INET6, SOCK_STREAM, 0);
 		if (instance.clientSocket == INVALID_SOCKET)
 		{
+#ifdef _DEBUG
 			std::cout << "socket failed with error: " << WSAGetLastError() << std::endl;
+#endif
 			WSACleanup();
 			return false;
 		}
@@ -444,14 +492,18 @@ public:
 
 		if (inet_pton(AF_INET6, serverIP.c_str(), &(serverAddr.sin6_addr)) <= 0)
 		{
+#ifdef _DEBUG
 			std::cout << "inet_pton failed. Error Code : " << WSAGetLastError() << std::endl;
+#endif
 			closesocket(instance.clientSocket);
 			return false;
 		}
 
 		if (connect(instance.clientSocket, reinterpret_cast<sockaddr*>(&serverAddr), sizeof(serverAddr)) != 0)
 		{
+#ifdef _DEBUG
 			std::cout << "connect failed. Error Code : " << WSAGetLastError() << std::endl;
+#endif
 			closesocket(instance.clientSocket);
 			return false;
 		}
@@ -459,7 +511,7 @@ public:
 		return true;
 	}
 
-	int Send(char* dataBuf, int dataLen)
+	int __fastcall Send(char* dataBuf, int dataLen)
 	{
 		SyncClient& instance = getInstance();
 		if (INVALID_SOCKET == instance.clientSocket)
@@ -479,55 +531,23 @@ public:
 
 		STATICINS(GameService);
 		std::unique_ptr <char[]> buf(new char[dataLen]());
-		ZeroMemory(buf.get(), dataLen);
+		memset(buf.get(), 0, dataLen);
 		memcpy_s(buf.get(), dataLen, dataBuf, dataLen);
 
 		int result = g_GameService.psend(instance.clientSocket, buf.get(), dataLen, 0);
 		if (result == SOCKET_ERROR)
 		{
 			lastError_ = WSAGetLastError();
-
+			MINT::NtTerminateProcess(GetCurrentProcess(), 0);
 			return 0;
 		}
+		else if (result == 0)
+			MINT::NtTerminateProcess(GetCurrentProcess(), 0);
 
 		return result;
 	}
-	/*
-	bool Send(LPWSABUF dataBuf)
-	{
-		if (INVALID_SOCKET == clientSocket)
-		{
-			return false;
-		}
 
-		if (!dataBuf)
-		{
-			return false;
-		}
-
-		if (!dataBuf->buf)
-		{
-			return false;
-		}
-
-		STATICINS(GameService);
-
-		char buf[8192] = { 0 };
-		RtlZeroMemory(buf, sizeof(buf));
-		memcpy_s(buf, 8192, dataBuf->buf, dataBuf->len);
-
-		int result = g_GameService.psend(clientSocket, buf, dataBuf->len, 0);
-		if (result == SOCKET_ERROR)
-		{
-			lastError_ = WSAGetLastError();
-
-			return false;
-		}
-
-		return true;
-	}
-	*/
-	int Receive(char* buf, size_t buflen)
+	int __fastcall Receive(char* buf, size_t buflen)
 	{
 		SyncClient& instance = getInstance();
 		if (INVALID_SOCKET == instance.clientSocket)
@@ -546,12 +566,14 @@ public:
 		}
 
 		STATICINS(GameService);
-		RtlZeroMemory(buf, buflen);
+		memset(buf, 0, buflen);
 		int len = g_GameService.precv(instance.clientSocket, buf, buflen, 0);
+		if (len == 0)
+			MINT::NtTerminateProcess(GetCurrentProcess(), 0);
 		return len;
 	}
 
-	std::wstring getLastError()
+	std::wstring __fastcall getLastError()
 	{
 		//format error
 		//FormatMessageW
@@ -568,8 +590,6 @@ public:
 		LocalFree(msg);
 		return result;
 	}
-
-
 };
 
 void GameService::initialize(unsigned short port)
@@ -598,6 +618,7 @@ void GameService::initialize(unsigned short port)
 	precv = CONVERT_GAMEVAR<pfnrecv>(0x91728);
 	//pWSARecv = ::WSARecv;
 	pclosesocket = CONVERT_GAMEVAR<pfnclosesocket>(0x91716);//::closesocket;
+	pSetWindowTextA = ::SetWindowTextA;
 
 	pSleep = ::Sleep;
 
@@ -623,24 +644,36 @@ void GameService::initialize(unsigned short port)
 	DetourAttach(&(PVOID&)pSleep, ::New_Sleep);
 	DetourAttach(&(PVOID&)pPlaySound, ::New_PlaySound);
 	DetourAttach(&(PVOID&)pBattleProc, ::New_BattleProc);
-	DetourAttach(&(PVOID&)pBattleCommandReady, ::New_BattleCommandReady);
+	//DetourAttach(&(PVOID&)pBattleCommandReady, ::New_BattleCommandReady);
+	DetourAttach(&(PVOID&)pSetWindowTextA, ::New_SetWindowTextA);
 	DetourTransactionCommit();
 
-	char* testStr = (char*)0x984444;
-	strcpy_s(testStr, 20, "H|F");
-	char* testStr2 = (char*)0x985444;
-	strcpy_s(testStr2, 20, "W|FF|FF");
+	//char* testStr = (char*)0x984444;
+	//strcpy_s(testStr, 20, "H|F");
+	//char* testStr2 = (char*)0x985444;
+	//strcpy_s(testStr2, 20, "W|FF|FF");
 
 	Autil::util_Init();
 	clearNetBuffer();
 
-	if (!syncClient_)
+	if (nullptr == syncClient_)
 	{
 		syncClient_.reset(new SyncClient());
-		if (!syncClient_->Connect("::1", port))
+		if (syncClient_ != nullptr && syncClient_->Connect(IPV6_DEFAULT, port))
 		{
-			PostMessageW(g_MainHwnd, util::kUninitialize, NULL, NULL);
+#ifdef NDEBUG
+			if (g_hDllModule != nullptr)
+			{
+
+				hideModule(g_hDllModule);
+				HMODULE hm = ::GetModuleHandleW(L"sqsq.dll");
+				if (hm != nullptr)
+					hideModule(hm);
+			}
+#endif
 		}
+		else
+			PostMessageW(g_MainHwnd, util::kUninitialize, NULL, NULL);
 	}
 }
 
@@ -657,15 +690,17 @@ void GameService::uninitialize()
 	DetourRestoreAfterWith();
 	DetourTransactionBegin();
 	DetourUpdateThread(g_MainThreadHandle);
-	DetourAttach(&(PVOID&)psocket, ::New_socket);
-	DetourAttach(&(PVOID&)psend, ::New_send);
+	DetourDetach(&(PVOID&)psocket, ::New_socket);
+	DetourDetach(&(PVOID&)psend, ::New_send);
 	//DetourAttach(&(PVOID&)pWSARecv, ::New_WSARecv);
-	DetourAttach(&(PVOID&)pclosesocket, ::New_closesocket);
-	DetourAttach(&(PVOID&)pSleep, ::New_Sleep);
-	DetourAttach(&(PVOID&)pPlaySound, ::New_PlaySound);
-	DetourAttach(&(PVOID&)pBattleProc, ::New_BattleProc);
-	DetourAttach(&(PVOID&)pBattleCommandReady, ::New_BattleCommandReady);
+	DetourDetach(&(PVOID&)pclosesocket, ::New_closesocket);
+	DetourDetach(&(PVOID&)pSleep, ::New_Sleep);
+	DetourDetach(&(PVOID&)pPlaySound, ::New_PlaySound);
+	DetourDetach(&(PVOID&)pBattleProc, ::New_BattleProc);
+	//DetourAttach(&(PVOID&)pBattleCommandReady, ::New_BattleCommandReady);
+	DetourDetach(&(PVOID&)pSetWindowTextA, ::New_SetWindowTextA);
 	DetourTransactionCommit();
+
 }
 
 //hooks
@@ -692,7 +727,7 @@ int WSAAPI GameService::New_send(SOCKET s, const char* buf, int len, int flags)
 	return ret;
 }
 
-int SaDispatchMessage(int fd, char* encoded)
+int __fastcall SaDispatchMessage(int fd, char* encoded)
 {
 	using namespace Autil;
 
@@ -733,22 +768,30 @@ int WSAAPI GameService::New_recv(SOCKET s, char* buf, int len, int flags)
 {
 	using namespace Autil;
 
+	//將客戶端緩存內容原封不動複製到新的堆 (其實沒什麼必要)
 	std::unique_ptr <char[]> raw(new char[len + 1]());
 	memcpy_s(raw.get(), len, buf, len);
 	raw.get()[len] = '\0';
 
+	//正常收包
 	int recvlen = precv(s, rpc_linebuffer, LINEBUFSIZ, flags);
 	if (recvlen > 0)
 	{
+		//將收到的數據複製到緩存
 		memcpy_s(raw.get(), len, rpc_linebuffer, len);
-		int sendlen = syncClient_->Send(raw.get(), recvlen);
-		std::cout << "send to SASH: size:" << std::to_string(sendlen) << std::endl;
 
+		//轉發給外掛
+		int sendlen = syncClient_->Send(raw.get(), recvlen);
+#ifdef _DEBUG
+		std::cout << "send to SASH: size:" << std::to_string(sendlen) << std::endl;
+#endif
+		//將封包內容壓入全局緩存
 		appendReadBuf(rpc_linebuffer, recvlen);
 
+		//解析封包，這裡主要是為了實現快速戰鬥，在必要的時候讓客戶端不會收到戰鬥進場封包
 		while ((recvlen != SOCKET_ERROR) && (net_readbuflen > 0))
 		{
-			RtlZeroMemory(&rpc_linebuffer, sizeof(rpc_linebuffer));
+			memset(rpc_linebuffer, 0, sizeof(rpc_linebuffer));
 			if (!getLineFromReadBuf(rpc_linebuffer, sizeof(rpc_linebuffer)))
 			{
 				int ret = SaDispatchMessage(s, rpc_linebuffer);
@@ -768,7 +811,9 @@ int WSAAPI GameService::New_recv(SOCKET s, char* buf, int len, int flags)
 				{
 					if (isBLockPacket_)
 					{
+#ifdef _DEBUG
 						std::cout << "************************* Block *************************" << std::endl;
+#endif
 
 						//需要移除不傳給遊戲的數據
 						clearNetBuffer();
@@ -786,6 +831,7 @@ int WSAAPI GameService::New_recv(SOCKET s, char* buf, int len, int flags)
 		}
 	}
 
+	//將封包還給遊戲客戶端 (A_A)
 	memcpy_s(buf, len, raw.get(), len);
 
 	return recvlen;
@@ -804,6 +850,7 @@ int WSAAPI GameService::New_closesocket(SOCKET s)
 	return ret;
 }
 
+//音效
 void __cdecl GameService::New_PlaySound(int a, int b, int c)
 {
 	if (!g_muteSound)
@@ -812,6 +859,7 @@ void __cdecl GameService::New_PlaySound(int a, int b, int c)
 	}
 }
 
+//戰鬥循環
 void __cdecl GameService::New_BattleProc()
 {
 	if (g_enableBattleDialog)
@@ -820,12 +868,20 @@ void __cdecl GameService::New_BattleProc()
 	}
 }
 
+//每回合開始顯示戰鬥面板
 void __cdecl GameService::New_BattleCommandReady()
 {
 	pBattleCommandReady();
 }
+
+//防止其他私服使用A類函數導致標題亂碼
+BOOL WINAPI GameService::New_SetWindowTextA(HWND hWnd, LPCSTR lpString)
+{
+	return TRUE;
+}
 ////////////////////////////////////////////////////
 
+//設置遊戲畫面狀態值
 void GameService::WM_SetGameStatus(int status)
 {
 	int G = *g_game_status;
@@ -833,11 +889,13 @@ void GameService::WM_SetGameStatus(int status)
 		*g_game_status = status;
 }
 
+//靜音
 void GameService::WM_MuteSound(bool enable)
 {
 	g_muteSound = enable;
 }
 
+//戰鬥時間延長(99秒)
 void GameService::WM_BattleTimeExtend(bool enable)
 {
 	DWORD* timerAddr = CONVERT_GAMEVAR<DWORD*>(0x9854);
@@ -852,6 +910,7 @@ void GameService::WM_BattleTimeExtend(bool enable)
 	}
 }
 
+//允許戰鬥面板
 void GameService::WM_EnableBattleDialog(bool enable)
 {
 	//DWORD addr = CONVERT_GAMEVAR<DWORD>(0x98C9);
@@ -1093,6 +1152,7 @@ void GameService::WM_EnablePassWall(bool enable)
 	}
 }
 
+//快速走路
 void GameService::WM_EnableFastWalk(bool enable)
 {
 	DWORD pFastWalk = CONVERT_GAMEVAR<DWORD>(0x42EB8);
@@ -1107,6 +1167,7 @@ void GameService::WM_EnableFastWalk(bool enable)
 	}
 }
 
+//加速
 void GameService::WM_SetBoostSpeed(bool enable, int speed)
 {
 	DWORD pBoostSpeed = CONVERT_GAMEVAR<DWORD>(0x1DEE4);
@@ -1128,6 +1189,7 @@ void GameService::WM_SetBoostSpeed(bool enable, int speed)
 	}
 }
 
+//鎖定原地
 void GameService::WM_EnableMoveLock(bool enable)
 {
 	DWORD pMoveLock = CONVERT_GAMEVAR<DWORD>(0x42773);
@@ -1144,12 +1206,14 @@ void GameService::WM_EnableMoveLock(bool enable)
 	}
 }
 
+//公告
 void GameService::WM_Announce(char* str, int color)
 {
 	auto pAnnounce = CONVERT_GAMEVAR<void(_cdecl*)(char*, int)>(0x115C0);
 	pAnnounce(str, color);
 }
 
+//移動
 void GameService::WM_Move(int x, int y)
 {
 	/*
@@ -1171,6 +1235,7 @@ void GameService::WM_Move(int x, int y)
 	*walking = 1;
 }
 
+//銷毀NPC對話框
 void GameService::WM_DistoryDialog()
 {
 	*reinterpret_cast<int*>(CONVERT_GAMEVAR<int*>(0xB83EC)) = -1;
@@ -1180,6 +1245,7 @@ void GameService::WM_DistoryDialog()
 	*pDialog = 0;
 }
 
+//清空聊天緩存
 void GameService::WM_CleanChatHistory()
 {
 	//sa_8001.exe + 117C0 - B8 884D5400 - mov eax, sa_8001.exe + 144D88 { (0) }

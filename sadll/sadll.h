@@ -21,8 +21,8 @@
     DISABLE_MOVE(Class) \
 public:\
 	static Class& get_instance() {\
-		static Class instance;\
-		return instance;\
+		static Class *instance = new Class();\
+		return *instance;\
 	}
 #endif
 #ifndef STATICINS
@@ -164,9 +164,15 @@ public://hook
 	int WSAAPI New_send(SOCKET s, const char* buf, int len, int flags);
 	int WSAAPI New_recv(SOCKET s, char* buf, int len, int flags);
 
+	BOOL WINAPI New_SetWindowTextA(HWND hWnd, LPCSTR lpString);
+
 	void __cdecl New_PlaySound(int a, int b, int c);
 	void __cdecl New_BattleProc();
 	void __cdecl New_BattleCommandReady();
+
+	//setwindowtexta
+	using pfnSetWindowTextA = BOOL(WINAPI*)(HWND hWnd, LPCSTR lpString);
+	pfnSetWindowTextA pSetWindowTextA = nullptr;
 
 	//Sleep
 	using pfnSleep = void(WINAPI*)(DWORD dwMilliseconds);
