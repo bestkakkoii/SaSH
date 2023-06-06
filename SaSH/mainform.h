@@ -35,7 +35,7 @@ private:
 private slots:
 	void onMenuActionTriggered();
 
-	void onSaveHashSettings(const QString& name = "default");
+	void onSaveHashSettings(const QString& name = "default", bool isFullPath = false);
 	void onLoadHashSettings(const QString& name = "default", bool isFullPath = false);
 
 	void onUpdateStatusLabelTextChanged(int status);
@@ -43,6 +43,8 @@ private slots:
 	void onUpdateCursorLabelTextChanged(const QString& text);
 	void onUpdateCoordsPosLabelTextChanged(const QString& text);
 
+	void onMessageBoxShow(const QString& text, int type = 0);
+	void onInputBoxShow(const QString& text, int type, QVariant* retvalue);
 private:
 	Ui::MainFormClass ui;
 	QMenuBar* pMenuBar_ = nullptr;

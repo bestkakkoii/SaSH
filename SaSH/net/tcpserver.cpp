@@ -2307,6 +2307,8 @@ void Server::lssproto_WN_recv(int windowtype, int buttontype, int seqno, int obj
 	if (data.isEmpty())
 		return;
 
+	data.replace("\\n", "\n");
+
 	dialog_t dialog = { windowtype, buttontype, seqno, objindex, data, data.split("\n") };
 	currentDialog = dialog;
 
@@ -2327,7 +2329,6 @@ void Server::lssproto_WN_recv(int windowtype, int buttontype, int seqno, int obj
 		static const QStringList kKNPCList = {
 			"如果能贏過我的"/*院藏*/, "如果想通過"/*近藏*/, "吼"/*紅暴*/, "你想找麻煩"/*七兄弟*/,
 
-
 		};
 
 		for (const QString& str : kKNPCList)
@@ -2337,6 +2338,11 @@ void Server::lssproto_WN_recv(int windowtype, int buttontype, int seqno, int obj
 				press(BUTTON_YES);
 				break;
 			}
+		}
+
+		if (data.contains(u8"新人提醒"))
+		{
+			press(BUTTON_OK);
 		}
 	}
 
@@ -7528,6 +7534,42 @@ void Server::setPlayerFaceDirection(int dir)
 	}
 }
 
+void Server::setPlayerFaceDirection(const QString& dirStr)
+{
+	if (!IS_ONLINE_FLAG)
+		return;
+
+	if (IS_BATTLE_FLAG)
+		return;
+
+	static const QHash<QString, QString> dirhash = {
+		{ "北", "A" }, { "東北", "B" }, { "東", "C" }, { "東南", "D" },
+		{ "南", "E" }, { "西南", "F" }, { "西", "G" }, { "西北", "H" },
+		{ "北", "A" }, { "东北", "B" }, { "东", "C" }, { "东南", "D" },
+		{ "南", "E" }, { "西南", "F" }, { "西", "G" }, { "西北", "H" }
+	};
+
+	if (!dirhash.contains(dirStr))
+		return;
+	const QString dirchr = u8"ABCDEFGH";
+	int dir = dirchr.indexOf(dirhash.value(dirStr));
+	QString qdirStr = dirhash.value(dirStr);
+	std::string sdirStr = qdirStr.toUpper().toStdString();
+	lssproto_W2_send(nowPoint, const_cast<char*>(sdirStr.c_str()));
+
+	//這裡是用來使遊戲動畫跟著轉向
+	Injector& injector = Injector::getInstance();
+	HANDLE hProcess = injector.getProcess();
+	int hModule = injector.getProcessModule();
+	int newdir = (dir + 3) % 8;
+	int p = mem::readInt(hProcess, hModule + 0x422E3AC, sizeof(int));
+	if (p)
+	{
+		mem::writeInt(hProcess, hModule + 0x422BE94, newdir, sizeof(int));
+		mem::writeInt(hProcess, p + 0x150, newdir, sizeof(int));
+	}
+}
+
 //移動轉向封包 (a-h方向移動 A-H轉向)
 void Server::lssproto_W2_send(const QPoint& pos, char* direction)
 {
@@ -7550,12 +7592,20 @@ void Server::announce(const QString& msg, int color)
 		return;
 
 	Injector& injector = Injector::getInstance();
-
-	std::string str = util::fromUnicode(msg);
 	HANDLE hProcess = injector.getProcess();
-	util::VirtualMemory ptr(hProcess, str.size(), true);
-	mem::write(hProcess, ptr, const_cast<char*>(str.c_str()), str.size());
-	injector.sendMessage(Injector::kSendAnnounce, ptr, color);
+	if (!msg.isEmpty())
+	{
+		std::string str = util::fromUnicode(msg);
+		util::VirtualMemory ptr(hProcess, str.size(), true);
+		mem::write(hProcess, ptr, const_cast<char*>(str.c_str()), str.size());
+		injector.sendMessage(Injector::kSendAnnounce, ptr, color);
+	}
+	else
+	{
+		util::VirtualMemory ptr(hProcess, "", util::VirtualMemory::kAnsi, true);
+		injector.sendMessage(Injector::kSendAnnounce, ptr, color);
+	}
+
 }
 
 //喊話
@@ -8041,6 +8091,19 @@ void Server::lssproto_SP_send(const QPoint& pos, int dir)
 	Autil::util_SendMesg(LSSPROTO_SP_SEND, buffer);
 }
 
+//人物改名
+void Server::setPlayerFreeName(const QString& name)
+{
+	if (!IS_ONLINE_FLAG)
+		return;
+
+	if (IS_BATTLE_FLAG)
+		return;
+
+	std::string sname = util::fromUnicode(name);
+	lssproto_FT_send(const_cast<char*> (sname.c_str()));
+}
+
 //人物改名封包 (freename)
 void Server::lssproto_FT_send(char* data)
 {
@@ -8052,6 +8115,22 @@ void Server::lssproto_FT_send(char* data)
 	iChecksum += Autil::util_mkstring(buffer, data);
 	Autil::util_mkint(buffer, iChecksum);
 	Autil::util_SendMesg(LSSPROTO_FT_SEND, buffer);
+}
+
+//寵物改名
+void Server::setPetFreeName(int petIndex, const QString& name)
+{
+	if (!IS_ONLINE_FLAG)
+		return;
+
+	if (IS_BATTLE_FLAG)
+		return;
+
+	if (petIndex < 0 || petIndex >= MAX_PET)
+		return;
+
+	std::string sname = util::fromUnicode(name);
+	lssproto_KN_send(petIndex, const_cast<char*> (sname.c_str()));
 }
 
 //寵物改名封包 (freename)
@@ -8069,7 +8148,7 @@ void Server::lssproto_KN_send(int havepetindex, char* data)
 }
 
 //檢查指定任務狀態，並同步等待封包返回
-bool Server::checkJobDailyState(const QString& missionName, const QString& state)
+int Server::checkJobDailyState(const QString& missionName)
 {
 	if (!IS_ONLINE_FLAG)
 		return false;
@@ -8077,7 +8156,7 @@ bool Server::checkJobDailyState(const QString& missionName, const QString& state
 	if (IS_BATTLE_FLAG)
 		return false;
 
-	if (state.isEmpty() || missionName.isEmpty())
+	if (missionName.isEmpty())
 		return false;
 
 	IS_WAITFOR_JOBDAILY_FLAG = true;
@@ -8095,13 +8174,23 @@ bool Server::checkJobDailyState(const QString& missionName, const QString& state
 		QThread::msleep(100);
 	}
 
-	for (const JOBDAILY& it : jobdaily)
+	bool isExact = true;
+	QString newMissionName = missionName;
+	if (newMissionName.startsWith("?"))
 	{
-		if (it.explain.contains(missionName) && it.state == state)
-			return true;
+		isExact = false;
+		newMissionName = newMissionName.mid(1);
 	}
 
-	return false;
+	for (const JOBDAILY& it : jobdaily)
+	{
+		if (!isExact && (it.explain == newMissionName))
+			return it.state == QString(u8"已完成") ? 1 : 2;
+		else if (!isExact && it.explain.contains(newMissionName))
+			return it.state == QString(u8"已完成") ? 1 : 2;
+	}
+
+	return 0;
 }
 
 //請求任務日誌封包  data = "dyedye"
@@ -8259,6 +8348,46 @@ int Server::getPetSkillIndexByName(int& petIndex, const QString& name) const
 	}
 
 	return -1;
+}
+
+bool Server::getPetIndexsByName(const QString& name, QVector<int>* pv) const
+{
+	QVector<int> v;
+	QStringList nameList = name.simplified().split(util::rexOR, Qt::SkipEmptyParts);
+
+	for (int i = 0; i < MAX_PET; ++i)
+	{
+		if (v.contains(i))
+			continue;
+
+		PET _pet = pet[i];
+		if (_pet.name.isEmpty() || _pet.useFlag == 0)
+			continue;
+
+		for (const QString name : nameList)
+		{
+			if (name == _pet.name)
+			{
+				v.append(i);
+				break;
+			}
+			else if (name.startsWith("?"))
+			{
+				QString newName = name;
+				newName.remove(0, 1);
+				if (_pet.name.contains(newName))
+				{
+					v.append(i);
+					break;
+				}
+			}
+		}
+	}
+
+	if (pv)
+		*pv = v;
+
+	return !v.isEmpty();
 }
 
 //滑鼠移動 + 左鍵 

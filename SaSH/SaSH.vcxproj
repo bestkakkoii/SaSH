@@ -171,9 +171,13 @@
       <QtMocFileName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">%(Filename).moc</QtMocFileName>
     </ClCompile>
     <ClCompile Include="qscopedhandle.cpp" />
+    <ClCompile Include="script\action.cpp" />
+    <ClCompile Include="script\check.cpp" />
     <ClCompile Include="script\interpreter.cpp" />
     <ClCompile Include="script\lexer.cpp" />
+    <ClCompile Include="script\move.cpp" />
     <ClCompile Include="script\parser.cpp" />
+    <ClCompile Include="script\system.cpp" />
     <ClCompile Include="util.cpp" />
     <ClInclude Include="3rdparty\simplecrypt.h" />
     <QtMoc Include="form\infoform.h" />

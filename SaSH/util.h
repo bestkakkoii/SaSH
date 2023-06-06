@@ -638,7 +638,7 @@ namespace util
 	};
 
 	//8方位坐標補正
-	const static QVector<QPoint> fix_point = {
+	static const QVector<QPoint> fix_point = {
 		{0, -1},  //北0
 		{1, -1},  //東北1
 		{1, 0},	  //東2
@@ -1479,5 +1479,6 @@ namespace util
 
 	static const QRegularExpression rexOR(R"(\s*\|\s*)");
 	static const QRegularExpression rexComma(R"(\s*,\s*)");
+	static const QRegularExpression rexDec(R"(\s*-\s*)");
 }
 

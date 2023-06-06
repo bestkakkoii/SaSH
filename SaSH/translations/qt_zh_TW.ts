@@ -912,7 +912,7 @@
     </message>
     <message>
         <source>set</source>
-        <translation type="unfinished">應用</translation>
+        <translation>應用</translation>
     </message>
 </context>
 <context>
@@ -1202,7 +1202,7 @@
     </message>
     <message>
         <source>SaSH - Beta %1</source>
-        <translation>SsH - Beta %1</translation>
+        <translation type="unfinished">石器助手 - Beta %1</translation>
     </message>
     <message>
         <source>unknown</source>
@@ -1291,6 +1291,18 @@
     <message>
         <source>Json Files (*.json)</source>
         <translation>Json 文件 (*.json)</translation>
+    </message>
+    <message>
+        <source>info</source>
+        <translation>資訊</translation>
+    </message>
+    <message>
+        <source>warning</source>
+        <translation>警告</translation>
+    </message>
+    <message>
+        <source>critical</source>
+        <translation>錯誤</translation>
     </message>
 </context>
 <context>
@@ -2133,6 +2145,54 @@ MESSAGE：<byte value="xd"/>
         <source>&lt;findpath&gt;stop finding path due to map changed</source>
         <translation>&lt;尋路&gt;地圖已變更，放棄尋路</translation>
     </message>
+    <message>
+        <source>self</source>
+        <translation>自己</translation>
+    </message>
+    <message>
+        <source>battlepet</source>
+        <translation>戰寵</translation>
+    </message>
+    <message>
+        <source>leader</source>
+        <translation>隊長</translation>
+    </message>
+    <message>
+        <source>pet</source>
+        <translation>寵物</translation>
+    </message>
+    <message>
+        <source>teammate</source>
+        <translation>隊友</translation>
+    </message>
+    <message>
+        <source>player</source>
+        <translation>人物</translation>
+    </message>
+    <message>
+        <source>ride</source>
+        <translation>騎乘</translation>
+    </message>
+    <message>
+        <source>battle</source>
+        <translation>戰鬥</translation>
+    </message>
+    <message>
+        <source>standby</source>
+        <translation>等待</translation>
+    </message>
+    <message>
+        <source>mail</source>
+        <translation>郵件</translation>
+    </message>
+    <message>
+        <source>rest</source>
+        <translation>休息</translation>
+    </message>
+    <message>
+        <source>set var [%1] value</source>
+        <translation>設置變數 [%1] 的數值</translation>
+    </message>
 </context>
 <context>
     <name>ScriptForm</name>
@@ -2193,7 +2253,7 @@ MESSAGE：<byte value="xd"/>
     </message>
     <message>
         <source>scripts</source>
-        <translation>腳本</translation>
+        <translation type="vanished">腳本</translation>
     </message>
     <message>
         <source>current row:</source>
@@ -2210,6 +2270,10 @@ MESSAGE：<byte value="xd"/>
     <message>
         <source>params</source>
         <translation>內容</translation>
+    </message>
+    <message>
+        <source>refresh</source>
+        <translation>刷新腳本列表</translation>
     </message>
 </context>
 <context>

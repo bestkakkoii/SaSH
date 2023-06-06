@@ -8,6 +8,32 @@ using CommandRegistry = std::function<int(const QMap<int, Token>&)>;
 //callbak
 using ParserCallBack = std::function<int(int currentLine, const QMap<int, Token>&)>;
 
+static const QSet<RESERVE> operatorTypes = {
+	TK_ADD, //"+"
+	TK_SUB, // '-'
+	TK_MUL, // '*'
+	TK_DIV, // '/'
+	TK_MOD, // '%'
+	TK_SHL, // "<<"
+	TK_SHR, // ">>"
+	TK_AND, // "&"
+	TK_OR, // "|"
+	TK_NOT, // "~"
+	TK_XOR, // "^"
+	TK_NEG, //"!" (與C++的 ! 同義)
+	TK_INC, // "++" (與C++的 ++ 同義)
+	TK_DEC, // "--" (與C++的 -- 同義)
+};
+
+static const QSet<RESERVE> relationalOperatorTypes = {
+	TK_EQ, // "=="
+	TK_NEQ, // "!="
+	TK_GT, // ">"
+	TK_LT, // "<"
+	TK_GEQ, // ">="
+	TK_LEQ, // "<="
+};
+
 class Parser
 {
 public:
@@ -31,6 +57,7 @@ public:
 		kHasJump = 0,
 		kNoChange,
 		kError,
+		kArgError,
 	};
 
 public:
@@ -60,12 +87,13 @@ public:
 	T getVar(const QString& name)
 	{
 		QString newName = name;
-		if (newName.startsWith("?"))
+		if (newName.startsWith(kVariablePrefix))
 			newName.remove(0, 1);
 
-
 		if (variables_.contains(newName))
+		{
 			return variables_.value(newName).value<T>();
+		}
 		else
 		{
 			lastError_ = kUndefinedVariable;
@@ -75,7 +103,7 @@ public:
 	}
 
 	void jump(int line);
-	void jump(const QString& name);
+	bool jump(const QString& name);
 public:
 
 	//解析腳本
@@ -84,7 +112,8 @@ public:
 private:
 	void processTokens();
 	int processCommand();
-	void processVariable();
+	void processVariable(RESERVE type);
+	void processFormation();
 	bool processCall();
 	bool processJump();
 	void processReturn();

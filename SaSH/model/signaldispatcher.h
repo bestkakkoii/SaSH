@@ -17,8 +17,11 @@ private:
 
 signals:
 	//global
+	void messageBoxShow(const QString& text, int type = 0);
+	void inputBoxShow(const QString& text, int type, QVariant* retvalue);
+
 	void applyHashSettingsToUI();
-	void saveHashSettings(const QString& name = "default");
+	void saveHashSettings(const QString& name = "default", bool isFullPath = false);
 	void loadHashSettings(const QString& name = "default", bool isFullPath = false);
 
 	//mainform

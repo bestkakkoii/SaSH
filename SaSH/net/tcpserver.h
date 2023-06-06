@@ -1567,6 +1567,20 @@ static const QHash<QString, BUTTON_TYPE> buttonMap = {
 	{"下一页", BUTTON_NEXT},
 };
 
+static const QHash<QString, PetState> petStateMap = {
+	{ "戰鬥", kBattle },
+	{ "等待", kStandby },
+	{ "郵件", kMail },
+	{ "休息", kRest },
+	{ "騎乘", kRide },
+
+	{ "战斗", kBattle },
+	{ "等待", kStandby },
+	{ "邮件", kMail },
+	{ "休息", kRest },
+	{ "骑乘", kRide },
+};
+
 class MapAnalyzer;
 class Server : public QObject
 {
@@ -1680,13 +1694,31 @@ public://actions
 					*unit = it;
 					return true;
 				}
+				else if (name.startsWith("?") && (it.objType == type))
+				{
+					QString newName = name.mid(1);
+					if (it.name.contains(newName))
+					{
+						*unit = it;
+						return true;
+					}
+				}
 			}
 			else
 			{
-				if ((it.name == name) && (it.freeName == freename) && (it.objType == type))
+				if ((it.name == name) && (it.freeName.contains(freename)) && (it.objType == type))
 				{
 					*unit = it;
 					return true;
+				}
+				else if (name.startsWith("?") && (it.objType == type))
+				{
+					QString newName = name.mid(1);
+					if (it.name.contains(newName) && (it.freeName.contains(freename)))
+					{
+						*unit = it;
+						return true;
+					}
 				}
 			}
 		}
@@ -1697,11 +1729,13 @@ public://actions
 
 	void setPlayerFaceToPoint(const QPoint& pos);
 	void setPlayerFaceDirection(int dir);
+	void setPlayerFaceDirection(const QString& dirStr);
 
 	QStringList getJoinableUnitList() const;
 	bool getItemIndexsByName(const QString& name, const QString& memo, QVector<int>* pv) const;
 	int getItemIndexByName(const QString& name, bool isExact = true, const QString& memo = "") const;
 	int getPetSkillIndexByName(int& petIndex, const QString& name) const;
+	bool getPetIndexsByName(const QString& name, QVector<int>* pv) const;
 	int getMagicIndexByName(const QString& name, bool isExact = true) const;
 
 	void clear();
@@ -1712,7 +1746,10 @@ public://actions
 	bool checkPartyHp(int cmpvalue, int* target);
 
 	bool isPetSpotEmpty() const;
-	bool checkJobDailyState(const QString& missionName, const QString& state);
+	int checkJobDailyState(const QString& missionName);
+
+	void setPlayerFreeName(const QString& name);
+	void setPetFreeName(int petIndex, const QString& name);
 private:
 	void setBattleEnd();
 	void refreshItemInfo(int index);

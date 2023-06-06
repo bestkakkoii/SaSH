@@ -51,7 +51,7 @@
            </property>
            <column>
             <property name="text">
-             <string>scripts</string>
+             <string>refresh</string>
             </property>
            </column>
           </widget>

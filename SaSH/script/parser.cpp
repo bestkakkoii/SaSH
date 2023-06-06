@@ -1,27 +1,7 @@
 ﻿#include "stdafx.h"
 #include "parser.h"
 
-enum VarSubCommand
-{
-	kVarSet,
-	kVarCaclulate,
-	kVarCancel,
-	kVarClear,
-};
-
-const QHash<QString, VarSubCommand> VarSubCommandHash = {
-	//big5
-	{ "設置", kVarSet },
-	{ "運算", kVarCaclulate },
-	{ "取消", kVarCancel },
-	{ "清空", kVarClear },
-
-	//gb2312
-	{ "设置", kVarSet },
-	{ "运算", kVarCaclulate },
-	{ "取消", kVarCancel },
-	{ "清空", kVarClear },
-};
+#include "signaldispatcher.h"
 
 void Parser::parse(int line)
 {
@@ -54,11 +34,17 @@ T calc(const QVariant& a, const QVariant& b, RESERVE operatorType)
 	}
 	else if (operatorType == TK_INC)
 	{
-		return a.value<T>() + 1;
+		if constexpr (std::is_integral<T>::value)
+			return a.value<T>() + 1;
+		else
+			return a.value<T>() + 1.0;
 	}
 	else if (operatorType == TK_DEC)
 	{
-		return a.value<T>() - 1;
+		if constexpr (std::is_integral<T>::value)
+			return a.value<T>() - 1;
+		else
+			return a.value<T>() - 1.0;
 	}
 
 	Q_UNREACHABLE();
@@ -77,18 +63,19 @@ void Parser::jump(int line)
 	lineNumber_ += line;
 }
 
-void Parser::jump(const QString& name)
+bool Parser::jump(const QString& name)
 {
 	int jumpLineCount = 0;
 	int jumpLine = matchLineFromLabel(name);
 	if (jumpLine == -1)
 	{
-		return;
+		return false;
 	}
 
 	jumpLineCount = jumpLine - lineNumber_;
 
 	jump(jumpLineCount);
+	return true;
 }
 
 void Parser::processTokens()
@@ -132,8 +119,13 @@ void Parser::processTokens()
 				}
 				break;
 			}
-			case TK_VAR:
-				processVariable();
+			case TK_VARDECL:
+			case TK_VARFREE:
+			case TK_VARCLR:
+				processVariable(type);
+				break;
+			case TK_FORMAT:
+				processFormation();
 				break;
 			case TK_CALL:
 			{
@@ -196,56 +188,73 @@ int Parser::processCommand()
 	return status;
 }
 
-void Parser::processVariable()
+void Parser::processVariable(RESERVE type)
 {
-	RESERVE type = getTokenType(1);
-	if (type != TK_SUBCMD)
-	{
-		qDebug() << "Unexpected subcmd type name:";
-		return;
-	}
 
-	int n = 1;
-	VarSubCommand subcmd = VarSubCommandHash.value(getToken<QString>(n));
-	switch (subcmd)
+	switch (type)
 	{
-	case kVarSet:
+	case TK_VARDECL:
 	{
-		QString varName = getToken<QString>(++n);
+		QString varName = getToken<QString>(1);
 		if (varName.isEmpty())
 			break;
 
-		QVariant varValue = getToken<QVariant>(++n);
+		QVariant varValue = getToken<QVariant>(2);
 		if (!varValue.isValid())
 			break;
 
-		variables_.insert(varName, varValue);
-		break;
-	}
-	case kVarCaclulate:
-	{
-		QString varName = getToken<QString>(++n);
-		if (varName.isEmpty())
+		RESERVE op = getTokenType(2);
+		if (!operatorTypes.contains(op))
+		{
+			SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
+			if (varValue.type() == QVariant::Type::String)
+			{
+				QString valueStr = varValue.toString();
+				QString msg = QObject::tr("set var [%1] value").arg(varName);
+				if (valueStr.startsWith(kFuzzyPrefix + QString("2")))
+				{
+					varValue.clear();
+					emit signalDispatcher.inputBoxShow(msg, QInputDialog::IntInput, &varValue);
+					if (!varValue.isValid())
+						break;
+				}
+				else if (valueStr.startsWith(kFuzzyPrefix + QString("3")))
+				{
+					varValue.clear();
+					emit signalDispatcher.inputBoxShow(msg, QInputDialog::DoubleInput, &varValue);
+					if (!varValue.isValid())
+						break;
+				}
+				else if (valueStr.startsWith(kFuzzyPrefix) && valueStr.endsWith(kFuzzyPrefix) || valueStr.startsWith(kFuzzyPrefix + QString("1")))
+				{
+					varValue.clear();
+					emit signalDispatcher.inputBoxShow(msg, QInputDialog::TextInput, &varValue);
+					if (!varValue.isValid())
+						break;
+				}
+			}
+
+			variables_.insert(varName, varValue);
 			break;
+		}
 
 		if (!variables_.contains(varName))
 			break;
 
-		RESERVE op = getTokenType(++n);
 		if (op == TK_UNK)
 			break;
 
-		QVariant varValue = getToken<QVariant>(++n);
-		if (!varValue.isValid())
+		varValue = getToken<QVariant>(3);
+		if (!varValue.isValid() && op != TK_DEC && op != TK_INC)
 			break;
 
 		QVariant& var = variables_[varName];
 		variableCalculate(varName, op, &var, varValue);
 		break;
 	}
-	case kVarCancel:
+	case TK_VARFREE:
 	{
-		QString varName = getToken<QString>(++n);
+		QString varName = getToken<QString>(1);
 		if (varName.isEmpty())
 			break;
 
@@ -253,7 +262,7 @@ void Parser::processVariable()
 			variables_.remove(varName);
 		break;
 	}
-	case kVarClear:
+	case TK_VARCLR:
 	{
 		variables_.clear();
 		break;
@@ -261,52 +270,192 @@ void Parser::processVariable()
 	}
 }
 
+void Parser::processFormation()
+{
+	do
+	{
+		QString varName = getToken<QString>(1);
+		if (varName.isEmpty())
+			break;
+
+		QVariant varValue = getToken<QVariant>(2);
+		if (!varValue.isValid())
+			break;
+
+		QString formatStr = varValue.toString();
+		if (formatStr.isEmpty())
+			break;
+
+		//查找字符串中包含 {:變數名} 全部替換成變數數值
+		for (auto it = variables_.begin(); it != variables_.cend(); ++it)
+		{
+			QString key = QString("{:%1}").arg(it.key());
+			if (formatStr.contains(key))
+				formatStr.replace(key, it.value().toString());
+		}
+
+		int argsize = tokens_.size();
+		for (int i = 3; i < argsize; ++i)
+		{
+			varValue = getToken<QVariant>(i);
+			if (!varValue.isValid())
+				continue;
+
+			RESERVE type = getTokenType(i);
+			if (type == TK_INT || type == TK_STRING)
+			{
+				QString key = QString("{:%1}").arg(i - 3 + 1);
+				if (formatStr.contains(key))
+					formatStr.replace(key, varValue.toString());
+			}
+			else if (type == TK_REF)
+			{
+				QString subVarName = varValue.toString().mid(1);
+				if (subVarName.isEmpty() || !subVarName.startsWith(kVariablePrefix))
+					continue;
+
+				subVarName = subVarName.mid(1);
+
+				if (!variables_.contains(subVarName))
+					continue;
+
+				QVariant subVarValue = variables_.value(subVarName);
+
+				QString key = QString("{:%1}").arg(subVarName);
+				if (formatStr.contains(key))
+					formatStr.replace(key, subVarValue.toString());
+			}
+		}
+
+		variables_[varName] = QVariant::fromValue(formatStr);
+	} while (false);
+}
+
 bool Parser::processCall()
 {
-	if (getTokenType(1) != TK_NAME)
-		return false;
-	QString functionName = getToken<QString>(1);
-	if (functionName.isEmpty())
-		return false;
-
-	int jumpLine = matchLineFromLabel(functionName);
-	if (jumpLine == -1)
+	RESERVE type = getTokenType(1);
+	do
 	{
-		qDebug() << "Function not found:" << functionName;
-		return false;
-	}
+		if (type != TK_NAME && type != TK_REF)
+			break;
 
-	callStack_.push(lineNumber_ + 1); // Push the next line index to the call stack
-	jump(jumpLine);
-	return true;
+		if (type == TK_REF)
+		{
+			QString varName = getToken<QString>(1);
+			if (varName.isEmpty() || !varName.startsWith(kVariablePrefix) || varName == QString(kVariablePrefix))
+				break;
+
+			varName = varName.mid(1);
+
+			if (!variables_.contains(varName))
+				break;
+
+			QVariant var = variables_.value(varName);
+			if (!var.isValid())
+				break;
+
+			bool ok;
+			int jumpLineCount = var.toInt(&ok);
+			if (ok)
+			{
+				callStack_.push(lineNumber_ + 1);
+				jump(jumpLineCount);
+				return true;
+			}
+			else
+			{
+				QString functionName = var.toString();
+				if (functionName.isEmpty())
+					break;
+
+				if (!jump(functionName))
+					break;
+
+				callStack_.push(lineNumber_ + 1);
+				return true;
+			}
+		}
+		else
+		{
+			QString functionName = getToken<QString>(1);
+			if (functionName.isEmpty())
+				break;
+
+			int jumpLine = matchLineFromLabel(functionName);
+			if (jumpLine == -1)
+				break;
+
+			callStack_.push(lineNumber_ + 1); // Push the next line index to the call stack
+			jump(jumpLine);
+
+			return true;
+		}
+	} while (false);
+	return false;
 }
 
 bool Parser::processJump()
 {
 	RESERVE type = getTokenType(1);
-	if (type != TK_NAME && type != TK_INT)
+	do
 	{
-		return false;
-	}
+		if (type != TK_NAME && type != TK_INT && type != TK_REF)
+			break;
 
-	if (type == TK_NAME)
-	{
-		QString labelName = getToken<QString>(1);
-		if (labelName.isEmpty())
-			return false;
+		if (type == TK_NAME)
+		{
+			QString labelName = getToken<QString>(1);
+			if (labelName.isEmpty())
+				break;
 
+			jump(labelName);
+		}
+		else if (type == TK_REF)
+		{
+			QString varName = getToken<QString>(1);
+			if (varName.isEmpty() || !varName.startsWith(kVariablePrefix) || varName == QString(kVariablePrefix))
+				break;
 
-		jump(labelName);
-	}
-	else
-	{
-		int jumpLineCount = getToken<int>(1);
-		if (jumpLineCount == -1)
-			return false;
+			varName = varName.mid(1);
 
-		jump(jumpLineCount);
-	}
-	return true;
+			if (!variables_.contains(varName))
+				break;
+
+			QVariant var = variables_.value(varName);
+			if (!var.isValid())
+				break;
+
+			bool ok;
+			int jumpLineCount = var.toInt(&ok);
+			if (ok)
+			{
+				jump(jumpLineCount);
+				return true;
+			}
+			else
+			{
+				QString labelName = var.toString();
+				if (labelName.isEmpty())
+					break;
+
+				if (!jump(labelName))
+					break;
+
+				return true;
+			}
+		}
+		else
+		{
+			int jumpLineCount = getToken<int>(1);
+			if (jumpLineCount == -1)
+				break;
+
+			jump(jumpLineCount);
+			return true;
+		}
+
+	} while (false);
+	return false;
 }
 
 void Parser::processReturn()
@@ -316,6 +465,8 @@ void Parser::processReturn()
 		int returnIndex = callStack_.pop();
 		jump(returnIndex);
 	}
+	else
+		lineNumber_ = 0;
 }
 
 void Parser::variableCalculate(const QString& varName, RESERVE op, QVariant* pvar, const QVariant& varValue)
@@ -351,6 +502,18 @@ void Parser::variableCalculate(const QString& varName, RESERVE op, QVariant* pva
 		else
 			*pvar = calc<int>(*pvar, varValue, op);
 		break;
+	case TK_INC:
+		if (type == QVariant::Double)
+			*pvar = calc<double>(*pvar, varValue, op);
+		else
+			*pvar = calc<int>(*pvar, varValue, op);
+		break;
+	case TK_DEC:
+		if (type == QVariant::Double)
+			*pvar = calc<double>(*pvar, varValue, op);
+		else
+			*pvar = calc<int>(*pvar, varValue, op);
+		break;
 	case TK_MOD:
 		*pvar = pvar->toInt() % varValue.toInt();
 		break;
@@ -371,5 +534,6 @@ void Parser::variableCalculate(const QString& varName, RESERVE op, QVariant* pva
 		break;
 	default:
 		Q_UNREACHABLE();
+		break;
 	}
 }

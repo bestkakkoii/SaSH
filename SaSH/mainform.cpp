@@ -165,10 +165,15 @@ MainForm::MainForm(QWidget* parent)
 		QMainWindow{ border-radius: 10px; }
 	)");
 
+	qRegisterMetaType<QVariant>("QVariant");
+	qRegisterMetaType<QVariant>("QVariant&");
+
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
 
 	connect(&signalDispatcher, &SignalDispatcher::saveHashSettings, this, &MainForm::onSaveHashSettings, Qt::UniqueConnection);
 	connect(&signalDispatcher, &SignalDispatcher::loadHashSettings, this, &MainForm::onLoadHashSettings, Qt::UniqueConnection);
+	connect(&signalDispatcher, &SignalDispatcher::messageBoxShow, this, &MainForm::onMessageBoxShow, Qt::BlockingQueuedConnection);
+	connect(&signalDispatcher, &SignalDispatcher::inputBoxShow, this, &MainForm::onInputBoxShow, Qt::BlockingQueuedConnection);
 
 	QMenuBar* pMenuBar = new QMenuBar(this);
 	if (pMenuBar)
@@ -196,6 +201,8 @@ MainForm::MainForm(QWidget* parent)
 		connect(&signalDispatcher, &SignalDispatcher::updateCursorLabelTextChanged, this, &MainForm::onUpdateCursorLabelTextChanged);
 		connect(&signalDispatcher, &SignalDispatcher::updateCoordsPosLabelTextChanged, this, &MainForm::onUpdateCoordsPosLabelTextChanged);
 	}
+
+
 
 	ui.tabWidget_main->clear();
 	util::setTab(ui.tabWidget_main);
@@ -518,41 +525,48 @@ void MainForm::onUpdateCoordsPosLabelTextChanged(const QString& text)
 	ui.label_coords->setText(tr("coordis:") + text);
 }
 
-
-void MainForm::onSaveHashSettings(const QString& name)
+void MainForm::onSaveHashSettings(const QString& name, bool isFullPath)
 {
-	QString newFileName = name;
-	if (newFileName.isEmpty())
-		newFileName = "default";
-
-	newFileName += ".json";
-
-	QString directory = QCoreApplication::applicationDirPath() + "/settings/";
-	QString fileName(directory + newFileName);
-
-	QDir dir(directory);
-	if (!dir.exists())
+	QString fileName;
+	if (isFullPath)
 	{
-		dir.mkpath(directory);
-	}
-
-	QFileDialog dialog(this);
-	dialog.setFileMode(QFileDialog::AnyFile);
-	dialog.setAcceptMode(QFileDialog::AcceptSave);
-	dialog.setDirectory(directory);
-	dialog.setNameFilter(tr("Json Files (*.json)"));
-	dialog.selectFile(newFileName);
-
-	if (dialog.exec() == QDialog::Accepted)
-	{
-		QStringList fileNames = dialog.selectedFiles();
-		if (fileNames.size() > 0)
-		{
-			fileName = fileNames[0];
-		}
+		fileName = name;
 	}
 	else
-		return;
+	{
+		QString newFileName = name;
+		if (newFileName.isEmpty())
+			newFileName = "default";
+
+		newFileName += ".json";
+
+		QString directory = QCoreApplication::applicationDirPath() + "/settings/";
+		fileName = QString(directory + newFileName);
+
+		QDir dir(directory);
+		if (!dir.exists())
+		{
+			dir.mkpath(directory);
+		}
+
+		QFileDialog dialog(this);
+		dialog.setFileMode(QFileDialog::AnyFile);
+		dialog.setAcceptMode(QFileDialog::AcceptSave);
+		dialog.setDirectory(directory);
+		dialog.setNameFilter(tr("Json Files (*.json)"));
+		dialog.selectFile(newFileName);
+
+		if (dialog.exec() == QDialog::Accepted)
+		{
+			QStringList fileNames = dialog.selectedFiles();
+			if (fileNames.size() > 0)
+			{
+				fileName = fileNames[0];
+			}
+		}
+		else
+			return;
+	}
 
 	util::Config config(fileName);
 
@@ -683,4 +697,40 @@ void MainForm::onLoadHashSettings(const QString& name, bool isFullPath)
 
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
 	emit signalDispatcher.applyHashSettingsToUI();
+}
+
+void MainForm::onMessageBoxShow(const QString& text, int type)
+{
+	if (type == 2)
+		QMessageBox::warning(this, tr("warning"), text);
+	else if (type == 3)
+		QMessageBox::critical(this, tr("critical"), text);
+	else
+		QMessageBox::information(this, tr("info"), text);
+}
+
+void MainForm::onInputBoxShow(const QString& text, int type, QVariant* retvalue)
+{
+	if (retvalue == nullptr)
+		return;
+
+	QInputDialog inputDialog(this);
+	inputDialog.setLabelText(text);
+	inputDialog.setInputMode(static_cast<QInputDialog::InputMode>(type));
+	auto ret = inputDialog.exec();
+	if (ret != QDialog::Accepted)
+		return;
+
+	switch (type)
+	{
+	case QInputDialog::IntInput:
+		*retvalue = inputDialog.intValue();
+		break;
+	case QInputDialog::DoubleInput:
+		*retvalue = inputDialog.doubleValue();
+		break;
+	case QInputDialog::TextInput:
+		*retvalue = inputDialog.textValue();
+		break;
+	}
 }

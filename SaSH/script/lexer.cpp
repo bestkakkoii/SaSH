@@ -11,13 +11,14 @@ static const QHash<QString, RESERVE> keywords = {
 	{ u8"行數", TK_JMP },
 	{ u8"跳轉", TK_JMP },
 	{ u8"返回", TK_RETURN },
-	{ u8"判斷變數", TK_CMP },
 	{ u8"結束", TK_END },
 	{ u8"暫停", TK_PAUSE },
 	{ u8"執行", TK_RUN },
 	{ u8"標記", TK_LABEL, },
-	{ u8"變數", TK_VAR },
-	{ u8"設置", TK_SUBCMD },
+	{ u8"變數", TK_VARDECL },
+	{ u8"變數移除", TK_VARFREE },
+	{ u8"變數清空", TK_VARCLR },
+	{ u8"格式化", TK_FORMAT },
 
 	//system
 	{ u8"延時", TK_CMD },
@@ -37,12 +38,14 @@ static const QHash<QString, RESERVE> keywords = {
 	{ u8"清屏", TK_CMD },
 	{ u8"改時間", TK_CMD },
 	{ u8"允許開關", TK_CMD },
-	{ u8"OC", TK_CMD },
+	{ u8"設置", TK_CMD },
+	{ u8"判斷", TK_CMD },
 
 
 	//check info
 	{ u8"戰鬥中", TK_CMD },
 	{ u8"查坐標", TK_CMD },
+	{ u8"查座標", TK_CMD },
 	{ u8"地圖", TK_CMD },
 	{ u8"地圖快判", TK_CMD },
 	{ u8"對話", TK_CMD },
@@ -63,11 +66,11 @@ static const QHash<QString, RESERVE> keywords = {
 	{ u8"使用咒術", TK_CMD },
 	{ u8"寵物改名", TK_CMD },
 	{ u8"寵物郵件", TK_CMD },
-	{ u8"更煥寵物", TK_CMD },
+	{ u8"更換寵物", TK_CMD },
 	{ u8"丟棄寵物", TK_CMD },
 	{ u8"購買", TK_CMD },
 	{ u8"售賣", TK_CMD },
-	{ u8"賣肉", TK_CMD },
+	//{ u8"賣肉", TK_CMD },
 	{ u8"使用道具", TK_CMD },
 	{ u8"丟棄道具", TK_CMD },
 	{ u8"撿物", TK_CMD },
@@ -89,26 +92,30 @@ static const QHash<QString, RESERVE> keywords = {
 
 	//action with sub cmd
 	{ u8"組隊", TK_CMD },
-	{ u8"加入", TK_SUBCMD },
-	{ u8"離隊", TK_SUBCMD },
-	{ u8"狀態", TK_SUBCMD },
-	{ u8"人數", TK_SUBCMD },
+	{ u8"離隊", TK_CMD },
+	{ u8"組隊有", TK_CMD },
+	{ u8"組隊人數", TK_CMD },
+	//{ u8"加入", TK_SUBCMD },
+	//{ u8"離隊", TK_SUBCMD },
+	//{ u8"狀態", TK_SUBCMD },
+	//{ u8"人數", TK_SUBCMD },
 
-	{ u8"捉寵設定", TK_CMD },
-	{ u8"捉寵模式", TK_SUBCMD },
-	{ u8"捉寵目標寵物", TK_SUBCMD },
-	{ u8"捉寵等級", TK_SUBCMD },
-	{ u8"捉寵血量", TK_SUBCMD },
-	{ u8"捉寵人物技能", TK_SUBCMD },
-	{ u8"捉寵寵物技能", TK_SUBCMD },
+	//{ u8"捉寵設定", TK_CMD },
+	//{ u8"捉寵模式", TK_SUBCMD },
+	//{ u8"捉寵目標寵物", TK_SUBCMD },
+	//{ u8"捉寵等級", TK_SUBCMD },
+	//{ u8"捉寵血量", TK_SUBCMD },
+	//{ u8"捉寵人物技能", TK_SUBCMD },
+	//{ u8"捉寵寵物技能", TK_SUBCMD },
 
 	{ u8"切換掛機座標", TK_CMD },
-	{ u8"加入", TK_SUBCMD },
-	{ u8"清空", TK_SUBCMD },
-	{ u8"間隔時間", TK_SUBCMD },
+	//{ u8"加入", TK_SUBCMD },
+	//{ u8"清空", TK_SUBCMD },
+	//{ u8"間隔時間", TK_SUBCMD },
 
 	//move
 	{ u8"坐標", TK_CMD },
+	{ u8"座標", TK_CMD },
 	{ u8"移動", TK_CMD },
 	{ u8"封包移動", TK_CMD },
 	{ u8"方向", TK_CMD },
@@ -272,7 +279,7 @@ bool Lexer::isString(const QString& str) const
 
 bool Lexer::isVariable(const QString& str) const
 {
-	return str.startsWith('&') && !str.endsWith('&');
+	return str.startsWith(kVariablePrefix) && !str.endsWith(kVariablePrefix);
 }
 
 bool Lexer::isLabel(const QString& str) const
@@ -353,7 +360,15 @@ RESERVE Lexer::getTokenType(int& pos, RESERVE previous, QString& str, const QStr
 	{
 		return TK_ADD;
 	}
+	else if (str == "++")
+	{
+		return TK_INC;
+	}
 	else if (str == "-")
+	{
+		return TK_SUB;
+	}
+	else if (str == "--")
 	{
 		return TK_DEC;
 	}
@@ -389,11 +404,11 @@ RESERVE Lexer::getTokenType(int& pos, RESERVE previous, QString& str, const QStr
 	{
 		return TK_NEG;
 	}
-	else if (str == "?")
+	else if (str == kFuzzyPrefix)
 	{
 		return TK_FUZZY;
 	}
-	else if (str.startsWith("&"))
+	else if (isVariable(str))
 	{
 		QChar nextChar = next(raw, index);
 		if (nextChar.isLetterOrNumber() || nextChar == '\0')
@@ -425,19 +440,9 @@ RESERVE Lexer::getTokenType(int& pos, RESERVE previous, QString& str, const QStr
 	{
 		return TK_NAME;
 	}
-	else if (isVariable(str))
-	{
-		return TK_REF;
-	}
 	else if (str.startsWith("//"))
 	{
 		return TK_COMMENT;
-	}
-	else if (previous == TK_VAR)
-	{
-		QString previousToken = tokens_.value(pos - 1).raw;
-		if ((previousToken == u8"變數") || (previousToken == u8"变量") || (previousToken == u8"var"))
-			return TK_SUBCMD;
 	}
 
 	return TK_STRING;

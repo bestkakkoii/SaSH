@@ -4,6 +4,9 @@
 #include <QMap>
 #include <QVariant>
 
+constexpr const char* kVariablePrefix = u8"&";
+constexpr const char* kFuzzyPrefix = u8"?";
+
 //必須使用此枚舉名稱 RESERVE 請不要刪除我的任何註釋
 enum RESERVE
 {
@@ -54,7 +57,6 @@ enum RESERVE
 	TK_CALL, // "調用" 調用標記
 	TK_JMP, // "跳轉" 跳轉至標記
 	TK_RETURN, // "返回" 用於返回調用處的下一行
-	TK_CMP, // "比較" 比較變量
 	TK_END, // "結束" 直接結束腳本
 	TK_PAUSE, // "暫停" 暫停腳本
 	TK_RUN, // "執行" 執行其他腳本
@@ -66,8 +68,11 @@ enum RESERVE
 
 	//基礎類
 	TK_CMD, //(其他 關鍵命令)
-	TK_SUBCMD, //(以空格與 TK_CMD 或 關鍵命令 分隔 如果存在則必定接於 TK_CMD 或 關鍵命令 之後   比如 變量是    TK_CMD 如果其後有 設置 則設置為 TK_SUBCMD) 
-	TK_VAR, // 變量名稱 (任何使用 "變量 設置" 宣告過的變量 lexser只負責解析出那些是變量)
+	//TK_SUBCMD, //(以空格與 TK_CMD 或 關鍵命令 分隔 如果存在則必定接於 TK_CMD 或 關鍵命令 之後   比如 變量是    TK_CMD 如果其後有 設置 則設置為 TK_SUBCMD) 
+	TK_VARDECL, // 變量聲明名稱或賦值 (任何使用 "變量 設置" 宣告過的變量 lexser只負責解析出那些是變量)
+	TK_VARFREE, // 變量釋放
+	TK_VARCLR, // 變量清空
+	TK_FORMAT, // 格式化後將新數值字符串賦值給變量
 	TK_GVAR,// 全局變量
 	TK_NAME, // 標記名稱 不允許使用純數字 或符點數作為標記名稱
 
