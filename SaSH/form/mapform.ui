@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>293</width>
+    <width>317</width>
     <height>308</height>
    </rect>
   </property>
@@ -16,6 +16,15 @@
   <layout class="QGridLayout" name="gridLayout">
    <item row="0" column="0">
     <widget class="QTableWidget" name="tableWidget_map">
+     <property name="editTriggers">
+      <set>QAbstractItemView::NoEditTriggers</set>
+     </property>
+     <property name="selectionMode">
+      <enum>QAbstractItemView::SingleSelection</enum>
+     </property>
+     <property name="selectionBehavior">
+      <enum>QAbstractItemView::SelectRows</enum>
+     </property>
      <attribute name="verticalHeaderVisible">
       <bool>false</bool>
      </attribute>
@@ -44,10 +53,18 @@
       </widget>
      </item>
      <item>
-      <widget class="QSpinBox" name="spinBox_findpath_x"/>
+      <widget class="QSpinBox" name="spinBox_findpath_x">
+       <property name="maximum">
+        <number>1500</number>
+       </property>
+      </widget>
      </item>
      <item>
-      <widget class="QSpinBox" name="spinBox_findpath_y"/>
+      <widget class="QSpinBox" name="spinBox_findpath_y">
+       <property name="maximum">
+        <number>1500</number>
+       </property>
+      </widget>
      </item>
      <item>
       <widget class="QPushButton" name="pushButton_findpath_start">
@@ -58,6 +75,9 @@
      </item>
      <item>
       <widget class="QPushButton" name="pushButton_findpath_stop">
+       <property name="enabled">
+        <bool>false</bool>
+       </property>
        <property name="text">
         <string>stop</string>
        </property>

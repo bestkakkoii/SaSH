@@ -114,7 +114,7 @@ void MapGLWidget::paintGL()
 	glDisable(GL_DEPTH_TEST);
 	QPainter paintImage;
 	paintImage.begin(this);
-	paintImage.drawPixmap(m_rectangle_dst, m_image, m_rectangle_src);
+	paintImage.drawPixmap(rectangle_dst_, m_image, rectangle_src_);
 	paintImage.end();
 
 	//畫刷。填充幾何圖形的調色板，由顏色和填充風格組成
@@ -199,17 +199,17 @@ void MapGLWidget::setPix(const QPixmap& image, const QRectF& src, const QRectF& 
 {
 	m_image = image;
 
-	m_rectangle_src = src;//{ 0.0, 0.0, static_cast<qreal>(image.width()), static_cast<qreal>(image.height()) };
-	m_rectangle_dst = dst;
+	rectangle_src_ = src;//{ 0.0, 0.0, static_cast<qreal>(image.width()), static_cast<qreal>(image.height()) };
+	rectangle_dst_ = dst;
 }
 
 void MapGLWidget::mouseMoveEvent(QMouseEvent* event)
 {
 	emit notifyMouseMove(event->button(), event->globalPos(), event->pos());
-	if (m_bClicked)
+	if (bClicked_)
 	{
-		offest = event->pos() - pLast;
-		pLast = event->pos();
+		offest = event->pos() - pLast_;
+		pLast_ = event->pos();
 		glFlush();
 		update();
 	}
@@ -234,17 +234,17 @@ void MapGLWidget::mousePressEvent(QMouseEvent* event)
 	}
 	else if (event->button() == Qt::LeftButton)
 	{
-		if (!m_bClicked)
-			m_bClicked = true;
-		pLast = event->globalPos();
+		if (!bClicked_)
+			bClicked_ = true;
+		pLast_ = event->globalPos();
 		emit notifyLeftClick(event->globalPos(), event->pos());
 	}
 }
 
 void MapGLWidget::mouseReleaseEvent(QMouseEvent*)
 {
-	if (m_bClicked)
-		m_bClicked = false;
+	if (bClicked_)
+		bClicked_ = false;
 	emit notifyLeftRelease();
 }
 

@@ -27,6 +27,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <PlatformToolset>v143</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Condition="Exists('$(QtMsBuild)\qt_defaults.props')">
@@ -66,10 +67,17 @@
       <WarningLevel>Level3</WarningLevel>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <ExceptionHandling>Async</ExceptionHandling>
+      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <OmitFramePointers>true</OmitFramePointers>
+      <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
+      <WholeProgramOptimization>true</WholeProgramOptimization>
     </ClCompile>
     <Link>
       <UACExecutionLevel>RequireAdministrator</UACExecutionLevel>
       <AdditionalLibraryDirectories>$(SolutionDir)$(ProjectName)\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
     </Link>
     <QtTranslation>
       <BuildAction>lupdate</BuildAction>
@@ -163,11 +171,13 @@
       <QtMocFileName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">%(Filename).moc</QtMocFileName>
     </ClCompile>
     <ClCompile Include="qscopedhandle.cpp" />
+    <ClCompile Include="script\interpreter.cpp" />
+    <ClCompile Include="script\lexer.cpp" />
+    <ClCompile Include="script\parser.cpp" />
     <ClCompile Include="util.cpp" />
     <ClInclude Include="3rdparty\simplecrypt.h" />
     <QtMoc Include="form\infoform.h" />
     <QtMoc Include="form\generalform.h" />
-    <QtMoc Include="form\mapform.h" />
     <QtMoc Include="form\afkform.h" />
     <QtMoc Include="form\otherform.h" />
     <QtMoc Include="form\scriptform.h" />
@@ -185,13 +195,18 @@
     <QtMoc Include="form\afkinfoform.h" />
     <QtMoc Include="form\abilityform.h" />
     <QtMoc Include="form\mapwidget.h" />
+    <QtMoc Include="form\mapform.h" />
     <ClInclude Include="injector.h" />
     <ClInclude Include="map\astar.h" />
     <ClInclude Include="map\mapanalyzer.h" />
     <QtMoc Include="model\mapglwidget.h" />
     <QtMoc Include="model\combobox.h" />
+    <ClInclude Include="model\treewidgetitem.h" />
     <ClInclude Include="net\autil.h" />
     <ClInclude Include="qscopedhandle.h" />
+    <QtMoc Include="script\interpreter.h" />
+    <ClInclude Include="script\lexer.h" />
+    <ClInclude Include="script\parser.h" />
     <ClInclude Include="util.h" />
     <QtRcc Include="resource.qrc" />
     <QtUic Include="form\abilityform.ui" />

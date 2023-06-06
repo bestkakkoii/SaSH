@@ -309,6 +309,7 @@ int MainObject::checkAndRunFunctions()
 			recorder.deadthcount = 0;
 			injector.server->recorder[i + 1] = recorder;
 		}
+		emit signalDispatcher.updateNpcList(injector.server->nowFloor);
 		return 1;
 	}
 
@@ -341,6 +342,9 @@ int MainObject::checkAndRunFunctions()
 			battle_run_once_flag_ = true;
 			emit signalDispatcher.updateStatusLabelTextChanged(util::kLabelStatusInNormal);
 			injector.server->normalDurationTimer.restart();
+
+			//自動鎖寵
+			checkAutoLockPet();
 		}
 
 		//檢查開關 (隊伍、交易、名片...等等)
@@ -591,23 +595,31 @@ void MainObject::checkControl()
 		injector.postMessage(Injector::kEnableImageLock, bChecked, NULL);
 	}
 
+	//戰鬥99秒
+	bChecked = injector.getEnableHash(util::kBattleTimeExtendEnable);
+	if (flagBattleTimeExtendEnable_ != bChecked)
+	{
+		flagBattleTimeExtendEnable_ = bChecked;
+		injector.postMessage(Injector::kBattleTimeExtend, bChecked, NULL);
+	}
+
 	//鎖定移動
 	bChecked = injector.getEnableHash(util::kLockMoveEnable);
 	bool isFastBattle = injector.getEnableHash(util::kFastBattleEnable);
 	if (!bChecked && isFastBattle && injector.server->IS_BATTLE_FLAG)//如果有開啟快速戰鬥，那必須在戰鬥時鎖定移動
 	{
 		flagLockMoveEnable_ = true;
-		injector.postMessage(Injector::kEnableMoveLock, true, NULL);
+		injector.sendMessage(Injector::kEnableMoveLock, true, NULL);
 	}
 	else if (!bChecked && isFastBattle && !injector.server->IS_BATTLE_FLAG) //如果有開啟快速戰鬥，但是不在戰鬥時，那就不鎖定移動
 	{
 		flagLockMoveEnable_ = false;
-		injector.postMessage(Injector::kEnableMoveLock, false, NULL);
+		injector.sendMessage(Injector::kEnableMoveLock, false, NULL);
 	}
 	else if (flagLockMoveEnable_ != bChecked) //如果沒有開啟快速戰鬥，那就照常
 	{
 		flagLockMoveEnable_ = bChecked;
-		injector.postMessage(Injector::kEnableMoveLock, bChecked, NULL);
+		injector.sendMessage(Injector::kEnableMoveLock, bChecked, NULL);
 	}
 
 	//快速戰鬥
@@ -739,7 +751,7 @@ void MainObject::checkAutoWalk()
 		//重置停止標誌
 		autowalk_future_cancel_flag_.store(false, std::memory_order_release);
 		//紀錄當前人物座標
-		QPoint current_pos = QPoint{ injector.server->nowGx, injector.server->nowGy };
+		QPoint current_pos = injector.server->nowPoint;
 
 		autowalk_future_ = QtConcurrent::run([&injector, current_pos, this]()
 			{
@@ -984,7 +996,7 @@ void MainObject::checkAutoJoin()
 						return;
 
 					//如果和目標人物處於同一個坐標則向隨機方向移動一格
-					current_point = QPoint(injector.server->nowGx, injector.server->nowGy);
+					current_point = injector.server->nowPoint;
 					if (current_point == unit.p)
 					{
 						injector.server->move(current_point + util::fix_point.at(QRandomGenerator::global()->bounded(0, 7)));
@@ -1426,6 +1438,39 @@ void MainObject::checkAutoDropPet()
 			autodroppet_future_cancel_flag_.store(true, std::memory_order_release);
 			autodroppet_future_.cancel();
 			autodroppet_future_.waitForFinished();
+		}
+	}
+}
+
+//自動鎖寵
+void MainObject::checkAutoLockPet()
+{
+	Injector& injector = Injector::getInstance();
+	bool enableLockPet = injector.getEnableHash(util::kLockPetEnable);
+	if (enableLockPet)
+	{
+		int lockPetIndex = injector.getValueHash(util::kLockPetValue);
+		if (lockPetIndex >= 0 && lockPetIndex < MAX_PET)
+		{
+			PET pet = injector.server->pet[lockPetIndex];
+			if (pet.state != PetState::kBattle)
+			{
+				injector.server->setPetState(lockPetIndex, kBattle);
+			}
+		}
+	}
+
+	bool enableLockRide = injector.getEnableHash(util::kLockRideEnable);
+	if (enableLockRide)
+	{
+		int lockRideIndex = injector.getValueHash(util::kLockRideValue);
+		if (lockRideIndex >= 0 && lockRideIndex < MAX_PET)
+		{
+			PET pet = injector.server->pet[lockRideIndex];
+			if (pet.state != PetState::kRide)
+			{
+				injector.server->setPetState(lockRideIndex, kRide);
+			}
 		}
 	}
 }

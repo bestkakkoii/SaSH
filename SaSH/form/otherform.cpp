@@ -39,14 +39,8 @@ OtherForm::OtherForm(QWidget* parent)
 	for (auto& comboBox : comboBoxList)
 	{
 		if (comboBox)
-			connect(comboBox, SIGNAL(currentIndexChanged(int)), this, SLOT(onComboBoxCurrentIndexChanged(int)), Qt::UniqueConnection);
-	}
-
-	QList <ComboBox*> ccomboBoxList = util::findWidgets<ComboBox>(this);
-	for (auto& comboBox : ccomboBoxList)
-	{
-		if (comboBox)
 		{
+			connect(comboBox, SIGNAL(currentIndexChanged(int)), this, SLOT(onComboBoxCurrentIndexChanged(int)), Qt::UniqueConnection);
 			connect(comboBox, &ComboBox::clicked, this, &OtherForm::onComboBoxClicked, Qt::UniqueConnection);
 			connect(comboBox, &ComboBox::currentTextChanged, this, &OtherForm::onComboBoxTextChanged, Qt::UniqueConnection);
 		}
@@ -95,7 +89,15 @@ void OtherForm::onCheckBoxStateChanged(int state)
 
 	Injector& injector = Injector::getInstance();
 
-
+	//lockpet
+	if (name == "checkBox_lockpet")
+	{
+		injector.setEnableHash(util::kLockPetEnable, isChecked);
+	}
+	else if (name == "checkBox_lockride")
+	{
+		injector.setEnableHash(util::kLockRideEnable, isChecked);
+	}
 }
 
 void OtherForm::onSpinBoxValueChanged(int value)
@@ -127,6 +129,16 @@ void OtherForm::onComboBoxCurrentIndexChanged(int value)
 	if (name == "comboBox_autofuntype")
 	{
 		injector.setValueHash(util::kAutoFunTypeValue, value != -1 ? value : 0);
+	}
+
+	//lockpet
+	else if (name == "comboBox_lockpet")
+	{
+		injector.setValueHash(util::kLockPetValue, value != -1 ? value : 0);
+	}
+	else if (name == "comboBox_lockride")
+	{
+		injector.setValueHash(util::kLockRideValue, value != -1 ? value : 0);
 	}
 
 }
@@ -170,6 +182,45 @@ void OtherForm::onComboBoxClicked()
 
 		QStringList unitList = injector.server->getJoinableUnitList();
 		updateComboboxAutoFunNameList(unitList);
+	}
+	//lockpet
+	else if (name == "comboBox_lockpet")
+	{
+		QStringList list;
+		if (!injector.server.isNull() && injector.server->IS_ONLINE_FLAG)
+		{
+			for (int i = 0; i < MAX_PET; ++i)
+			{
+				PET pet = injector.server->pet[i];
+				if (pet.name.isEmpty() || pet.useFlag == 0)
+				{
+					list.append(QString("%1:").arg(i + 1));
+					continue;
+				}
+				list.append(QString("%1:%2").arg(i + 1).arg(pet.name));
+			}
+		}
+		ui.comboBox_lockpet->clear();
+		ui.comboBox_lockpet->addItems(list);
+	}
+	else if (name == "comboBox_lockride")
+	{
+		QStringList list;
+		if (!injector.server.isNull() && injector.server->IS_ONLINE_FLAG)
+		{
+			for (int i = 0; i < MAX_PET; ++i)
+			{
+				PET pet = injector.server->pet[i];
+				if (pet.name.isEmpty() || pet.useFlag == 0)
+				{
+					list.append(QString("%1:").arg(i + 1));
+					continue;
+				}
+				list.append(QString("%1:%2").arg(i + 1).arg(pet.name));
+			}
+		}
+		ui.comboBox_lockride->clear();
+		ui.comboBox_lockride->addItems(list);
 	}
 }
 
@@ -233,6 +284,12 @@ void OtherForm::onApplyHashSettingsToUI()
 	ui.lineEdit_gameaccount->setText(stringHash.value(util::UserSetting::kGameAccountString));
 	ui.lineEdit_gamepassword->setText(stringHash.value(util::UserSetting::kGamePasswordString));
 	ui.lineEdit_gamesecuritycode->setText(stringHash.value(util::UserSetting::kGameSecurityCodeString));
+
+	//lockpet
+	ui.comboBox_lockpet->setCurrentIndex(valueHash.value(util::kLockPetValue));
+	ui.comboBox_lockride->setCurrentIndex(valueHash.value(util::kLockRideValue));
+	ui.checkBox_lockpet->setChecked(enableHash.value(util::kLockPetEnable));
+	ui.checkBox_lockride->setChecked(enableHash.value(util::kLockRideEnable));
 }
 
 void OtherForm::onUpdateTeamInfo(const QStringList& strList)

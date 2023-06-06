@@ -65,8 +65,8 @@
     <Filter Include="Source Files\map">
       <UniqueIdentifier>{be3ca5ac-95d1-4c20-9fbe-b10be8033cbe}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source Files\forms\NewFilter1">
-      <UniqueIdentifier>{d5635540-f899-4e0f-a98c-967df57686df}</UniqueIdentifier>
+    <Filter Include="Source Files\script">
+      <UniqueIdentifier>{6f340115-dccf-4873-92f4-a203398dd783}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -153,9 +153,6 @@
     <ClCompile Include="form\afkform.cpp">
       <Filter>Source Files\forms\afk</Filter>
     </ClCompile>
-    <ClCompile Include="form\mapform.cpp">
-      <Filter>Source Files\forms\map</Filter>
-    </ClCompile>
     <ClCompile Include="form\scriptform.cpp">
       <Filter>Source Files\forms\script</Filter>
     </ClCompile>
@@ -185,6 +182,18 @@
     </ClCompile>
     <ClCompile Include="model\combobox.cpp">
       <Filter>Source Files\model</Filter>
+    </ClCompile>
+    <ClCompile Include="script\lexer.cpp">
+      <Filter>Source Files\script</Filter>
+    </ClCompile>
+    <ClCompile Include="script\parser.cpp">
+      <Filter>Source Files\script</Filter>
+    </ClCompile>
+    <ClCompile Include="script\interpreter.cpp">
+      <Filter>Source Files\script</Filter>
+    </ClCompile>
+    <ClCompile Include="form\mapform.cpp">
+      <Filter>Source Files\forms\map</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -242,9 +251,6 @@
     <QtMoc Include="form\afkform.h">
       <Filter>Source Files\forms\afk</Filter>
     </QtMoc>
-    <QtMoc Include="form\mapform.h">
-      <Filter>Source Files\forms\map</Filter>
-    </QtMoc>
     <QtMoc Include="form\scriptform.h">
       <Filter>Source Files\forms\script</Filter>
     </QtMoc>
@@ -265,6 +271,12 @@
     </QtMoc>
     <QtMoc Include="model\combobox.h">
       <Filter>Source Files\model</Filter>
+    </QtMoc>
+    <QtMoc Include="script\interpreter.h">
+      <Filter>Source Files\script</Filter>
+    </QtMoc>
+    <QtMoc Include="form\mapform.h">
+      <Filter>Source Files\forms\map</Filter>
     </QtMoc>
   </ItemGroup>
   <ItemGroup>
@@ -292,6 +304,15 @@
     <ClInclude Include="map\mapanalyzer.h">
       <Filter>Source Files\map</Filter>
     </ClInclude>
+    <ClInclude Include="script\lexer.h">
+      <Filter>Source Files\script</Filter>
+    </ClInclude>
+    <ClInclude Include="script\parser.h">
+      <Filter>Source Files\script</Filter>
+    </ClInclude>
+    <ClInclude Include="model\treewidgetitem.h">
+      <Filter>Source Files\model</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <QtUic Include="form\selecttargetform.ui">
@@ -304,9 +325,6 @@
       <Filter>Form Files</Filter>
     </QtUic>
     <QtUic Include="form\generalform.ui">
-      <Filter>Form Files</Filter>
-    </QtUic>
-    <QtUic Include="form\mapform.ui">
       <Filter>Form Files</Filter>
     </QtUic>
     <QtUic Include="form\afkform.ui">
@@ -346,6 +364,9 @@
       <Filter>Form Files</Filter>
     </QtUic>
     <QtUic Include="form\mapwidget.ui">
+      <Filter>Form Files</Filter>
+    </QtUic>
+    <QtUic Include="form\mapform.ui">
       <Filter>Form Files</Filter>
     </QtUic>
   </ItemGroup>

@@ -46,6 +46,7 @@ private:
 	void checkAutoJoin();
 	void checkAutoHeal();
 	void checkAutoDropPet();
+	void checkAutoLockPet();
 
 private:
 	void battleTimeThread();

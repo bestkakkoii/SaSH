@@ -4,22 +4,24 @@
 #include "injector.h"
 #include "net/tcpserver.h"
 #include "map/mapanalyzer.h"
+#include "script/interpreter.h"
 
-constexpr int MAP_REFRESH_TIME = 50;
+constexpr int MAP_REFRESH_TIME = 100;
+constexpr int MAX_BLOCK_SIZE = 24;
 
 MapWidget::MapWidget(QWidget* parent)
 	: QWidget(parent)
 
 {
 	ui.setupUi(this);
-	this->setAttribute(Qt::WA_DeleteOnClose);
-	this->setStyleSheet("background-color:rgb(0,0,1)");
-	//this->setAttribute(Qt::WA_PaintOnScreen, true);
-	//this->setAttribute(Qt::WA_OpaquePaintEvent, true);
-	//this->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-	//this->setAttribute(Qt::WA_NoSystemBackground);
-	//this->setAttribute(Qt::WA_WState_WindowOpacitySet);
-	//this->setWindowOpacity(0.9);
+	setAttribute(Qt::WA_DeleteOnClose);
+	setStyleSheet("background-color:rgb(0,0,1)");
+	//setAttribute(Qt::WA_PaintOnScreen, true);
+	setAttribute(Qt::WA_OpaquePaintEvent, true);
+	//setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+	setAttribute(Qt::WA_NoSystemBackground);
+	setAttribute(Qt::WA_WState_WindowOpacitySet);
+	//setWindowOpacity(0.9);
 
 	//set header text
 	ui.tableWidget_NPCList->setColumnCount(2);
@@ -35,19 +37,20 @@ MapWidget::MapWidget(QWidget* parent)
 	ui.openGLWidget->close();
 	connect(&m_timer, &QTimer::timeout, [this]()
 		{
-			this->update();
+			update();
 		}
 	);
 	m_timer.start(1000);
 #else
-	connect(&gltimer, &QTimer::timeout, this, &MapWidget::on_timeOut);
-	gltimer.start(MAP_REFRESH_TIME);
+	connect(&gltimer_, &QTimer::timeout, this, &MapWidget::onRefreshTimeOut);
+	gltimer_.start(MAP_REFRESH_TIME);
 #endif
 
-	connect(&downloadMapTimer, &QTimer::timeout, this, &MapWidget::on_downloadMapTimeout);
-	downloadMapTimer.start(100);
+	connect(&downloadMapTimer_, &QTimer::timeout, this, &MapWidget::onDownloadMapTimeout);
+	downloadMapTimer_.start(500);
 
-
+	util::FormSettingManager formManager(this);
+	formManager.loadSettings();
 }
 
 MapWidget::~MapWidget()
@@ -71,12 +74,14 @@ void MapWidget::readSettings()
 
 void MapWidget::closeEvent(QCloseEvent*)
 {
-	m_IsDownloadingMap = false;
-	gltimer.stop();
-	downloadMapTimer.stop();
+	isDownloadingMap_ = false;
+	gltimer_.stop();
+	downloadMapTimer_.stop();
 	writeSettings();
-	this->on_clear();
-	//emit on_close(m_index);
+	onClear();
+	util::FormSettingManager formManager(this);
+	formManager.saveSettings();
+
 	qDebug() << "";
 }
 
@@ -136,7 +141,7 @@ void MapWidget::paintEvent(QPaintEvent* paint)
 {
 	if (!qasm)
 	{
-		this->close();
+		close();
 		return;
 	}
 
@@ -158,7 +163,7 @@ void MapWidget::paintEvent(QPaintEvent* paint)
 	Char* _ch = _CHAR_getChar(qasm);
 	QPoint qp_current = _ch->p;
 
-	this->setWindowTitle(QString("map:%1 floor:%2 [%3,%4] file:%5").arg(_ch->map).arg(_ch->floor).arg(qp_current.x()).arg(qp_current.y()).arg(map_current_fileName));
+	setWindowTitle(QString("map:%1 floor:%2 [%3,%4] file:%5").arg(_ch->map).arg(_ch->floor).arg(qp_current.x()).arg(qp_current.y()).arg(map_current_fileName));
 
 	if (!qasm._MAP_ReadFromBinary(qasm, true))
 		return;
@@ -167,16 +172,16 @@ void MapWidget::paintEvent(QPaintEvent* paint)
 
 	qreal zoom_value = 0.0;
 
-	qreal m_scaleWidth = this->width();
-	qreal m_scalHeight = this->height();
+	qreal scaleWidth_ = width();
+	qreal m_scalHeight = height();
 
-	zoom(this, m_pix, &m_scaleWidth, &m_scalHeight, &zoom_value);
-	//this->resize(static_cast<int>(m_scaleWidth), static_cast<int>(m_scalHeight));
-	//this->setUpdatesEnabled(false);
+	zoom(this, m_pix, &scaleWidth_, &m_scalHeight, &zoom_value);
+	//resize(static_cast<int>(scaleWidth_), static_cast<int>(m_scalHeight));
+	//setUpdatesEnabled(false);
 
 	QPainter paintImage;
 	paintImage.begin(this);
-	paintImage.drawPixmap(0, 0, static_cast<int>(m_scaleWidth), static_cast<int>(m_scalHeight), m_pix);
+	paintImage.drawPixmap(0, 0, static_cast<int>(scaleWidth_), static_cast<int>(m_scalHeight), m_pix);
 	paintImage.end();
 
 	//畫刷。填充幾何圖形的調色板，由顏色和填充風格組成
@@ -186,8 +191,8 @@ void MapWidget::paintEvent(QPaintEvent* paint)
 	lineChar.begin(this);
 	lineChar.setBrush(m_brushBlue);
 	lineChar.setPen(m_penBlue);
-	lineChar.drawLine(0, (qp_current.y() * zoom_value), this->width(), qp_current.y() * zoom_value);//繪制橫向線
-	lineChar.drawLine(qp_current.x() * zoom_value, 0, (qp_current.x() * zoom_value), this->height());	//繪制縱向線
+	lineChar.drawLine(0, (qp_current.y() * zoom_value), width(), qp_current.y() * zoom_value);//繪制橫向線
+	lineChar.drawLine(qp_current.x() * zoom_value, 0, (qp_current.x() * zoom_value), height());	//繪制縱向線
 	lineChar.end();
 
 	QPainter rectChar;
@@ -198,12 +203,13 @@ void MapWidget::paintEvent(QPaintEvent* paint)
 	rectChar.setPen(m_penRed);
 	rectChar.drawRect((qp_current.x() * zoom_value) + 1, ((qp_current.y() - 1) * zoom_value), zoom_value, zoom_value);//繪制橫向線
 	rectChar.end();
-	//this->setUpdatesEnabled(true);
+	//setUpdatesEnabled(true);
 }
 #else
 
-void MapWidget::on_timeOut()
+void MapWidget::onRefreshTimeOut()
 {
+
 	Injector& injector = Injector::getInstance();
 	if (injector.server.isNull()) return;
 
@@ -212,20 +218,18 @@ void MapWidget::on_timeOut()
 
 	PC _ch = injector.server->pc;
 	int floor = injector.server->nowFloor;
-	const QPointF qp_current = QPoint(injector.server->nowGx, injector.server->nowGy);
+	const QPointF qp_current = injector.server->nowPoint;
 
-	QString caption = QString(tr("%1 map:%2 floor:%3 [%4,%5] file:%6 mouse:%7,%8")) \
-		.arg(_ch.name).arg(injector.server->nowFloorName).arg(floor) \
-		.arg(qp_current.x()).arg(qp_current.y()) \
-		.arg(QString("./map/%1.dat").arg(floor)) \
-		.arg(qFloor(m_curMousePos.x())).arg(qFloor(m_curMousePos.y()));
+	QString caption(tr("%1 map:%2 floor:%3 [%4,%5] mouse:%6,%7")
+		.arg(_ch.name)
+		.arg(injector.server->nowFloorName)
+		.arg(floor)
+		.arg(qp_current.x()).arg(qp_current.y())
+		.arg(qFloor(curMousePos_.x())).arg(qFloor(curMousePos_.y())));
 
-	if (m_IsDownloadingMap)
-	{
-		caption += " " + QString(tr("downloading(%1%2)")).arg(QString::number(m_downloadMapProgress, 'f', 2)).arg("%");
-	}
-
-	this->setWindowTitle(caption);
+	if (isDownloadingMap_)
+		caption += " " + tr("downloading(%1%2)").arg(QString::number(downloadMapProgress_, 'f', 2)).arg("%");
+	setWindowTitle(caption);
 
 	int map_ret = injector.server->mapAnalyzer->readFromBinary(floor, injector.server->nowFloorName, true);
 	if (map_ret <= 0)
@@ -441,72 +445,91 @@ void MapWidget::on_timeOut()
 	//if (MAP_TPYE_NORMAL == m_map.ismaze)
 	vlist.append(vSTAIR);
 	dataVar.setValue(vlist);
-	this->on_NPCListUpdateAllContent(dataVar);
+	updateNpcListAllContents(dataVar);
 #endif
 
-	zoom(ui.widget, ppix, &m_scaleWidth, &m_scaleHeight, &m_zoom_value, m_fix_zoom_value);
+	zoom(ui.widget, ppix, &scaleWidth_, &scaleHeight_, &zoom_value_, fix_zoom_value_);
 
-	if (ui.openGLWidget->width() != static_cast<int>(m_scaleWidth) || ui.openGLWidget->height() != static_cast<int>(m_scaleHeight))
-		ui.openGLWidget->resize(m_scaleWidth, m_scaleHeight);
+	if (ui.openGLWidget->width() != static_cast<int>(scaleWidth_) || ui.openGLWidget->height() != static_cast<int>(scaleHeight_))
+		ui.openGLWidget->resize(scaleWidth_, scaleHeight_);
 
 
-	m_rectangle_src = QRectF{ 0.0, 0.0, static_cast<qreal>(ppix.width()), static_cast<qreal>(ppix.height()) };
-	m_rectangle_dst = QRectF(0.0, 0.0, m_scaleWidth, m_scaleHeight);
-	ui.openGLWidget->setPix(ppix, m_rectangle_src, m_rectangle_dst);
+	rectangle_src_ = QRectF{ 0.0, 0.0, static_cast<qreal>(ppix.width()), static_cast<qreal>(ppix.height()) };
+	rectangle_dst_ = QRectF(0.0, 0.0, scaleWidth_, scaleHeight_);
+	ui.openGLWidget->setPix(ppix, rectangle_src_, rectangle_dst_);
 
 	//人物座標十字
-	ui.openGLWidget->setLineH({ 0.0, (qp_current.y() * m_zoom_value) }, { static_cast<qreal>(ui.openGLWidget->width()), qp_current.y() * m_zoom_value });
-	ui.openGLWidget->setLineV({ qp_current.x() * m_zoom_value, 0.0 }, { (qp_current.x() * m_zoom_value), static_cast<qreal>(ui.openGLWidget->height()) });
+	ui.openGLWidget->setLineH({ 0.0, (qp_current.y() * zoom_value_) }, { static_cast<qreal>(ui.openGLWidget->width()), qp_current.y() * zoom_value_ });
+	ui.openGLWidget->setLineV({ qp_current.x() * zoom_value_, 0.0 }, { (qp_current.x() * zoom_value_), static_cast<qreal>(ui.openGLWidget->height()) });
 	//人物座標方格
-	ui.openGLWidget->setRect({ (qp_current.x() * m_zoom_value) + 0.5, ((qp_current.y() - 1.0) * m_zoom_value) + m_zoom_value + 0.5, m_zoom_value, m_zoom_value });
+	ui.openGLWidget->setRect({ (qp_current.x() * zoom_value_) + 0.5, ((qp_current.y() - 1.0) * zoom_value_) + zoom_value_ + 0.5, zoom_value_, zoom_value_ });
 
 	ui.openGLWidget->repaint(); //窗口重绘，repaint会调用paintEvent函数，paintEvent会调用paintGL函数实现重绘
 }
 
 void MapWidget::on_openGLWidget_notifyMouseMove(Qt::MouseButton, const QPointF& gpos, const QPointF& pos)
 {
-	if (m_bClicked)
+	if (bClicked_)
 	{
-		m_MovePoint = gpos;
+		movePoint_ = gpos;
 		ui.openGLWidget->repaint();
 	}
-	const QPointF dst(pos / m_zoom_value);
-	m_curMousePos = dst;
+	const QPointF dst(pos / zoom_value_);
+	curMousePos_ = dst;
 
 	//滑鼠十字
-	ui.openGLWidget->setCurLineH({ 0.0, (m_curMousePos.y() * m_zoom_value) }, { static_cast<qreal>(ui.openGLWidget->width()), m_curMousePos.y() * m_zoom_value });
-	ui.openGLWidget->setCurLineV({ m_curMousePos.x() * m_zoom_value, 0.0 }, { (m_curMousePos.x() * m_zoom_value), static_cast<qreal>(ui.openGLWidget->height()) });
+	ui.openGLWidget->setCurLineH({ 0.0, (curMousePos_.y() * zoom_value_) }, { static_cast<qreal>(ui.openGLWidget->width()), curMousePos_.y() * zoom_value_ });
+	ui.openGLWidget->setCurLineV({ curMousePos_.x() * zoom_value_, 0.0 }, { (curMousePos_.x() * zoom_value_), static_cast<qreal>(ui.openGLWidget->height()) });
 
 	ui.openGLWidget->repaint();
 }
 
 void MapWidget::leaveEvent(QEvent*)
 {
-	m_curMousePos = QPointF(-1, -1);
+	curMousePos_ = QPointF(-1, -1);
 }
 
 void MapWidget::on_openGLWidget_notifyRightClick()
 {
-	this->on_clear();
+	onClear();
 }
 
 void MapWidget::on_openGLWidget_notifyMousePosition(const QPointF& pos)
 {
-	const QPointF predst(pos / m_zoom_value);
+	Injector& injector = Injector::getInstance();
+	if (injector.server.isNull())
+		return;
+
+	if (!injector.server->IS_ONLINE_FLAG)
+		return;
+
+	if (!interpreter_.isNull() && interpreter_->isRunning())
+		return;
+
+	interpreter_.reset(new Interpreter());
+
+
+	const QPointF predst(pos / zoom_value_);
 	const QPoint dst(predst.toPoint());
 
-	//findpath(dst);
+	int x = dst.x();
+	int y = dst.y();
+
+	if (x < 0 || x > 1500 || y < 0 || y > 1500)
+		return;
+
+	interpreter_->doString(QString(u8"尋路 %1, %2, 1").arg(x).arg(y));
 }
 
 void MapWidget::on_openGLWidget_notifyLeftClick(const QPointF& gpos, const QPointF& pos)
 {
-	m_bClicked = true;
-	pLast = gpos - pos;
+	bClicked_ = true;
+	pLast_ = gpos - pos;
 	/*if (!ThreadManager::isValid(m_index)) return;
-	QSharedPointer<MainThread> thread = ThreadManager::value(this->m_index);
+	QSharedPointer<MainThread> thread = ThreadManager::value(m_index);
 	if (thread.isNull()) return;
 	QString retstring("\0");
-	const QPointF predst(pos / m_zoom_value);
+	const QPointF predst(pos / zoom_value_);
 	const QPoint dst(predst.toPoint());
 	thread->_MAP_ReadFromBinary(dst, &retstring);
 	if (!retstring.isEmpty())
@@ -518,13 +541,13 @@ void MapWidget::on_openGLWidget_notifyLeftClick(const QPointF& gpos, const QPoin
 
 void MapWidget::on_openGLWidget_notifyLeftRelease()
 {
-	m_bClicked = false;
+	bClicked_ = false;
 }
 
 void MapWidget::on_openGLWidget_notifyWheelMove(const QPointF& zoom, const QPointF&)
 {
-	m_fix_zoom_value += (zoom.y() > 0) ? 0.1 : -0.1;
-	on_timeOut();
+	fix_zoom_value_ += (zoom.y() > 0) ? 0.1 : -0.1;
+	onRefreshTimeOut();
 }
 
 #if 0
@@ -538,7 +561,7 @@ bool MapWidget::CHECK_BATTLE_THEN_WAITFOR(QAsm& qa)
 		{
 			if (!qa.IsWindowAlive())
 				break;
-			if (!this->isVisible())
+			if (!isVisible())
 				break;
 			QThread::msleep(100UL);
 		} while (qa.IS_BATTLE_FLAG);
@@ -550,7 +573,7 @@ bool MapWidget::CHECK_BATTLE_THEN_WAITFOR(QAsm& qa)
 bool MapWidget::findpath(QPoint dst)
 {
 	if (!ThreadManager::isValid(m_index)) return false;
-	QSharedPointer<MainThread> thread = ThreadManager::value(this->m_index);
+	QSharedPointer<MainThread> thread = ThreadManager::value(m_index);
 	if (thread.isNull()) return false;
 
 
@@ -573,9 +596,27 @@ bool MapWidget::findpath(QPoint dst)
 }
 #endif
 
-void MapWidget::on_downloadMapTimeout()
+void MapWidget::downloadNextBlock()
 {
-	if (!m_IsDownloadingMap)
+	int blockWidth = qMin(MAX_BLOCK_SIZE, downloadMapXSize_ - downloadMapX_);
+	int blockHeight = qMin(MAX_BLOCK_SIZE, downloadMapYSize_ - downloadMapY_);
+
+	// 移除一個小區塊
+	downloadMapX_ += blockWidth;
+	if (downloadMapX_ >= downloadMapXSize_)
+	{
+		downloadMapX_ = 0;
+		downloadMapY_ += blockHeight;
+	}
+
+	// 更新下載進度
+	downloadCount_++;
+	downloadMapProgress_ = static_cast<qreal>(downloadCount_) / totalMapBlocks_ * 100.0;
+}
+
+void MapWidget::onDownloadMapTimeout()
+{
+	if (!isDownloadingMap_)
 	{
 		if (!ui.pushButton_download->isEnabled())
 			ui.pushButton_download->setEnabled(true);
@@ -586,37 +627,53 @@ void MapWidget::on_downloadMapTimeout()
 
 	if (injector.server.isNull())
 	{
-		m_IsDownloadingMap = false;
+		isDownloadingMap_ = false;
 		return;
 	}
 
-	injector.server->downloadMap(m_downloadMapX, m_downloadMapY);
+	injector.server->downloadMap(downloadMapX_, downloadMapY_);
 	int floor = injector.server->nowFloor;
 	QString name = injector.server->nowFloorName;
 
-	m_downloadMapX += 24;
+	//downloadMapX_ += 24;
 
-	if (m_downloadMapX > m_downloadMapXSize)
-	{
-		m_downloadMapX = 0;
-		m_downloadMapY += 24;
-	}
+	//if (downloadMapX_ > downloadMapXSize_)
+	//{
+	//	downloadMapX_ = 0;
+	//	downloadMapY_ += 24;
+	//}
 
-	if (m_downloadMapY > m_downloadMapYSize)
+	downloadNextBlock();
+
+	//downloadMapProgress_ = (static_cast<qreal>(downloadMapY_) / static_cast<qreal>(downloadMapYSize_)) * 100.0;
+
+	if (downloadMapProgress_ >= 100.0)
 	{
-		m_IsDownloadingMap = false;
-		m_downloadMapProgress = 100.0;
+		//downloadMapProgress_ = 100.0;
+		const QPoint qp_current = injector.server->nowPoint;
+		QString caption(tr("%1 map:%2 floor:%3 [%4,%5] mouse:%6,%7")
+			.arg(injector.server->pc.name)
+			.arg(injector.server->nowFloorName)
+			.arg(injector.server->nowFloor)
+			.arg(qp_current.x()).arg(qp_current.y())
+			.arg(qFloor(curMousePos_.x())).arg(qFloor(curMousePos_.y())));
+		caption += " " + tr("downloading(%1%2)").arg(QString::number(downloadMapProgress_, 'f', 2)).arg("%");
+		setWindowTitle(caption);
+
 		injector.server->mapAnalyzer->clear(floor);
-		//thread->_MAP_GetUnitsFromMemory();
+		const QString fileName(QCoreApplication::applicationDirPath() + "/map/" + QString::number(floor) + ".dat");
+		QFile file(fileName);
+		if (file.exists())
+		{
+			file.remove();
+		}
+		isDownloadingMap_ = false;
 		injector.server->EO();
 		injector.server->mapAnalyzer->readFromBinary(floor, name, true);
 	}
 
-	//計算百分比
-	m_downloadMapProgress = (static_cast<qreal>(m_downloadMapY) / static_cast<qreal>(m_downloadMapYSize)) * 100.0;
 }
 
-int max_download_count = 50;
 void MapWidget::on_pushButton_download_clicked()
 {
 
@@ -632,12 +689,18 @@ void MapWidget::on_pushButton_download_clicked()
 	map_t map = {};
 	injector.server->mapAnalyzer->getMapDataByFloor(injector.server->nowFloor, &map);
 
-	m_downloadMapXSize = map.width;
-	m_downloadMapYSize = map.height;
-	m_downloadMapX = 0;
-	m_downloadMapY = 0;
-	m_downloadMapProgress = 0.0;
-	m_IsDownloadingMap = true;
+	downloadCount_ = 0;
+	downloadMapXSize_ = map.width;
+	downloadMapYSize_ = map.height;
+	downloadMapX_ = 0;
+	downloadMapY_ = 0;
+	downloadMapProgress_ = 0.0;
+
+	int numBlocksX = (downloadMapXSize_ + MAX_BLOCK_SIZE - 1) / MAX_BLOCK_SIZE;
+	int numBlocksY = (downloadMapYSize_ + MAX_BLOCK_SIZE - 1) / MAX_BLOCK_SIZE;
+	totalMapBlocks_ = static_cast<qreal>(numBlocksX * numBlocksY);
+
+	isDownloadingMap_ = true;
 
 }
 
@@ -653,35 +716,44 @@ void MapWidget::on_pushButton_returnBase_clicked()
 	injector.server->logBack();
 
 	//if (!ThreadManager::isValid(m_index)) return;
-	//QSharedPointer<MainThread> thread = ThreadManager::value(this->m_index);
+	//QSharedPointer<MainThread> thread = ThreadManager::value(m_index);
 	//thread->_SYS_returnbase();
 }
 
 void MapWidget::on_pushButton_findPath_clicked()
 {
+	Injector& injector = Injector::getInstance();
+	if (injector.server.isNull())
+		return;
+
+	if (!injector.server->IS_ONLINE_FLAG)
+		return;
+
+	if (!interpreter_.isNull() && interpreter_->isRunning())
+		return;
+
+	interpreter_.reset(new Interpreter());
+
 	int x = ui.spinBox_findPathX->value();
 	int y = ui.spinBox_findPathY->value();
+	if (x < 0 || x > 1500 || y < 0 || y > 1500)
+		return;
 
-	const QPoint dst(x, y);
+	interpreter_->doString(QString(u8"尋路 %1, %2, 1").arg(x).arg(y));
 
 	//findpath(dst);
 }
 
-void MapWidget::on_clear()
+void MapWidget::onClear()
 {
-	//if (!m_thread.isNull())
-	//{
-	//	m_thread->on_pause(false);
-	//	m_thread->on_stop(QLuaBase::WORKINT_FROM_USER_STOP_REQUEST_STATE);
-	//	m_thread->wait();
-	//	m_thread.clear();
-	//	m_thread = nullptr;
-	//	qDebug() << "thread finished";
-	//}
+	if (!interpreter_.isNull() && interpreter_->isRunning())
+	{
+		interpreter_->stop();
+	}
 }
 #endif
 
-void MapWidget::on_NPCListUpdateAllContent(const QVariant& d)
+void MapWidget::updateNpcListAllContents(const QVariant& d)
 {
 	int col = 0;
 	int row = 0;
@@ -737,13 +809,117 @@ void MapWidget::on_NPCListUpdateAllContent(const QVariant& d)
 
 void MapWidget::on_tableWidget_NPCList_cellDoubleClicked(int row, int)
 {
-	//QTableWidgetItem* item = ui.tableWidget_NPCList->item(row, 1);
-	//QTableWidgetItem* item_name = ui.tableWidget_NPCList->item(row, 0);
-	//if (item && item_name)
-	//{
-	//	QString name(item_name->text());
-	//	QString text(item->text());
-	//	QStringList list(text.split(rexComma));
+	QTableWidgetItem* item = ui.tableWidget_NPCList->item(row, 1);
+	QTableWidgetItem* item_name = ui.tableWidget_NPCList->item(row, 0);
+	if (!item || !item_name)
+	{
+		return;
+	}
+
+	Injector& injector = Injector::getInstance();
+	if (injector.server.isNull())
+		return;
+
+	if (!injector.server->IS_ONLINE_FLAG)
+		return;
+
+	if (!interpreter_.isNull() && interpreter_->isRunning())
+		return;
+
+	interpreter_.reset(new Interpreter());
+
+	QString name(item_name->text());
+	QString text(item->text());
+	QStringList list(text.split(util::rexComma));
+	if (list.size() != 2)
+		return;
+
+	bool okx, oky;
+	int x = list.at(0).toInt(&okx);
+	int y = list.at(1).toInt(&oky);
+	if (!okx || !oky)
+		return;
+
+	if (x < 0 || x > 1500 || y < 0 || y > 1500)
+		return;
+
+	mapunit_t unit;
+	if (name.contains("NPC"))
+	{
+		name = name.remove("[NPC]");
+		if (!injector.server->findUnit(name, util::OBJ_NPC, &unit))
+			return;
+	}
+	else if (name.contains(tr("[P]")))
+	{
+		name = name.remove(tr("[P]"));
+		if (!injector.server->findUnit(name, util::OBJ_PET, &unit))
+			return;
+	}
+	else if (name.contains(tr("[H]")))
+	{
+		name = name.remove(tr("[H]"));
+		if (!injector.server->findUnit(name, util::OBJ_HUMAN, &unit))
+			return;
+	}
+	else if (name.contains(tr("[I]")))
+	{
+		name = name.remove(tr("[I]"));
+		if (!injector.server->findUnit(name, util::OBJ_ITEM, &unit))
+			return;
+	}
+	else if (name.contains(tr("[G]")))
+	{
+		name = name.remove(tr("[G]"));
+		if (!injector.server->findUnit(name, util::OBJ_GOLD, &unit))
+			return;
+	}
+	else
+		return;
+	int floor = injector.server->nowFloor;
+	QPoint point = injector.server->nowPoint;
+	//npc前方一格
+	QPoint newPoint = util::fix_point.at(unit.dir) + unit.p;
+	//檢查是否可走
+	if (injector.server->mapAnalyzer->isPassable(floor, point, newPoint))
+	{
+		x = newPoint.x();
+		y = newPoint.y();
+	}
+	else
+	{
+		//再往前一格
+		QPoint additionPoint = util::fix_point.at(unit.dir) + newPoint;
+		//檢查是否可走
+		if (injector.server->mapAnalyzer->isPassable(floor, point, additionPoint))
+		{
+			x = additionPoint.x();
+			y = additionPoint.y();
+		}
+		else
+		{
+			//檢查NPC周圍8格
+			bool flag = false;
+			for (int i = 0; i < 8; i++)
+			{
+				newPoint = util::fix_point.at(i) + unit.p;
+				if (injector.server->mapAnalyzer->isPassable(floor, point, newPoint))
+				{
+					x = newPoint.x();
+					y = newPoint.y();
+					flag = true;
+					break;
+				}
+			}
+			if (!flag)
+			{
+				return;
+			}
+		}
+	}
+
+	interpreter_->doString(QString(u8"尋路 %1, %2, 1").arg(x).arg(y));
+
 	//	if (list.size() == 2)
 	//	{
 	//		bool okx, oky;
@@ -753,7 +929,7 @@ void MapWidget::on_tableWidget_NPCList_cellDoubleClicked(int row, int)
 	//		{
 	//			QPoint dst(x, y);
 	//			if (!ThreadManager::isValid(m_index)) return;
-	//			QSharedPointer<MainThread> thread = ThreadManager::value(this->m_index);
+	//			QSharedPointer<MainThread> thread = ThreadManager::value(m_index);
 	//			if (thread.isNull()) return;
 
 

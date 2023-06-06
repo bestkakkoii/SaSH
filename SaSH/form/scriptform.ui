@@ -39,13 +39,16 @@
        <property name="orientation">
         <enum>Qt::Vertical</enum>
        </property>
-       <widget class="QWidget" name="">
+       <widget class="QWidget" name="layoutWidget">
         <layout class="QVBoxLayout" name="verticalLayout">
          <property name="spacing">
           <number>1</number>
          </property>
          <item>
           <widget class="QTreeWidget" name="treeWidget_script">
+           <property name="editTriggers">
+            <set>QAbstractItemView::NoEditTriggers</set>
+           </property>
            <column>
             <property name="text">
              <string>scripts</string>
@@ -66,12 +69,39 @@
             </widget>
            </item>
            <item>
+            <widget class="QLabel" name="label_path">
+             <property name="text">
+              <string/>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <spacer name="horizontalSpacer">
+             <property name="orientation">
+              <enum>Qt::Horizontal</enum>
+             </property>
+             <property name="sizeHint" stdset="0">
+              <size>
+               <width>40</width>
+               <height>20</height>
+              </size>
+             </property>
+            </spacer>
+           </item>
+           <item>
             <widget class="QLabel" name="label_script_row">
              <property name="text">
-              <string>current row: 0/0</string>
+              <string>current row:</string>
              </property>
              <property name="alignment">
               <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QLabel" name="label_row">
+             <property name="text">
+              <string>0/0</string>
              </property>
             </widget>
            </item>
@@ -79,7 +109,21 @@
          </item>
         </layout>
        </widget>
-       <widget class="QTableWidget" name="tableWidget_script"/>
+       <widget class="QTableWidget" name="tableWidget_script">
+        <property name="editTriggers">
+         <set>QAbstractItemView::NoEditTriggers</set>
+        </property>
+        <column>
+         <property name="text">
+          <string>command</string>
+         </property>
+        </column>
+        <column>
+         <property name="text">
+          <string>params</string>
+         </property>
+        </column>
+       </widget>
       </widget>
      </item>
      <item>
@@ -96,6 +140,9 @@
        </item>
        <item>
         <widget class="QPushButton" name="pushButton_script_pause">
+         <property name="enabled">
+          <bool>false</bool>
+         </property>
          <property name="text">
           <string>pause</string>
          </property>
@@ -103,6 +150,9 @@
        </item>
        <item>
         <widget class="QPushButton" name="pushButton_script_stop">
+         <property name="enabled">
+          <bool>false</bool>
+         </property>
          <property name="text">
           <string>stop</string>
          </property>

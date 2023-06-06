@@ -38,7 +38,7 @@
       </size>
      </property>
      <property name="currentIndex">
-      <number>0</number>
+      <number>1</number>
      </property>
      <widget class="QWidget" name="tab_other_group">
       <attribute name="title">
@@ -572,9 +572,9 @@
                  <number>0</number>
                 </property>
                 <item>
-                 <widget class="QCheckBox" name="checkBox_35">
+                 <widget class="QCheckBox" name="checkBox_lockpet">
                   <property name="enabled">
-                   <bool>false</bool>
+                   <bool>true</bool>
                   </property>
                   <property name="text">
                    <string>lock pet after battle</string>
@@ -582,9 +582,9 @@
                  </widget>
                 </item>
                 <item>
-                 <widget class="ComboBox" name="comboBox_16">
+                 <widget class="ComboBox" name="comboBox_lockpet">
                   <property name="enabled">
-                   <bool>false</bool>
+                   <bool>true</bool>
                   </property>
                  </widget>
                 </item>
@@ -596,9 +596,9 @@
                  <number>0</number>
                 </property>
                 <item>
-                 <widget class="QCheckBox" name="checkBox_36">
+                 <widget class="QCheckBox" name="checkBox_lockride">
                   <property name="enabled">
-                   <bool>false</bool>
+                   <bool>true</bool>
                   </property>
                   <property name="text">
                    <string>lock ride after battle</string>
@@ -606,9 +606,9 @@
                  </widget>
                 </item>
                 <item>
-                 <widget class="ComboBox" name="comboBox_17">
+                 <widget class="ComboBox" name="comboBox_lockride">
                   <property name="enabled">
-                   <bool>false</bool>
+                   <bool>true</bool>
                   </property>
                  </widget>
                 </item>

@@ -276,6 +276,11 @@ int CALLBACK WndProc(HWND hWnd, DWORD message, LPARAM wParam, LPARAM lParam)
 		g_GameService.WM_SetBLockPacket(wParam);
 		return 1;
 	}
+	case kBattleTimeExtend:
+	{
+		g_GameService.WM_BattleTimeExtend(wParam);
+		return 1;
+	}
 	//action
 	case kSendAnnounce:
 	{
@@ -285,6 +290,16 @@ int CALLBACK WndProc(HWND hWnd, DWORD message, LPARAM wParam, LPARAM lParam)
 	case kSetMove:
 	{
 		g_GameService.WM_Move(wParam, lParam);
+		return 1;
+	}
+	case kDistoryDialog:
+	{
+		g_GameService.WM_DistoryDialog();
+		return 1;
+	}
+	case kCleanChatHistory:
+	{
+		g_GameService.WM_CleanChatHistory();
 		return 1;
 	}
 	default:
@@ -823,18 +838,32 @@ void GameService::WM_MuteSound(bool enable)
 	g_muteSound = enable;
 }
 
+void GameService::WM_BattleTimeExtend(bool enable)
+{
+	DWORD* timerAddr = CONVERT_GAMEVAR<DWORD*>(0x9854);
+	//sa_8001.exe+9853 - 05 30750000           - add eax,00007530 { 30000 }
+	if (!enable)
+	{
+		*timerAddr = 30UL * 1000UL;
+	}
+	else
+	{
+		*timerAddr = 100UL * 1000UL;
+	}
+}
+
 void GameService::WM_EnableBattleDialog(bool enable)
 {
-	DWORD addr = CONVERT_GAMEVAR<DWORD>(0x98C9);
-	DWORD addr2 = CONVERT_GAMEVAR<DWORD>(0x9D07);
-	DWORD addrSoundCharOpen = CONVERT_GAMEVAR<DWORD>(0x98DA);
-	DWORD addrSoundCharOpen2 = CONVERT_GAMEVAR<DWORD>(0x9D13);
-	DWORD addrSoundCharClose = CONVERT_GAMEVAR<DWORD>(0x667D);
-	DWORD addrSoundCharClose2 = CONVERT_GAMEVAR<DWORD>(0x93C9);
-	int* timerAddr = CONVERT_GAMEVAR<int*>(0xE21E0);
-	DWORD timerAddr2 = CONVERT_GAMEVAR<DWORD>(0x9841);
-	DWORD timerAddr3 = CONVERT_GAMEVAR<DWORD>(0x9DB6);
-	DWORD mainLoopAddr = CONVERT_GAMEVAR<DWORD>(0xA914);
+	//DWORD addr = CONVERT_GAMEVAR<DWORD>(0x98C9);
+	//DWORD addr2 = CONVERT_GAMEVAR<DWORD>(0x9D07);
+	//DWORD addrSoundCharOpen = CONVERT_GAMEVAR<DWORD>(0x98DA);
+	//DWORD addrSoundCharOpen2 = CONVERT_GAMEVAR<DWORD>(0x9D13);
+	//DWORD addrSoundCharClose = CONVERT_GAMEVAR<DWORD>(0x667D);
+	//DWORD addrSoundCharClose2 = CONVERT_GAMEVAR<DWORD>(0x93C9);
+	//int* timerAddr = CONVERT_GAMEVAR<int*>(0xE21E0);
+	//DWORD timerAddr2 = CONVERT_GAMEVAR<DWORD>(0x9841);
+	//DWORD timerAddr3 = CONVERT_GAMEVAR<DWORD>(0x9DB6);
+	DWORD battleLoopAddr = CONVERT_GAMEVAR<DWORD>(0xA914);
 	if (enable)
 	{
 		////sa_8001sf.exe+98C9 - A3 E4214E00           - mov [sa_8001sf.exe+E21E4],eax { (0) }
@@ -857,7 +886,7 @@ void GameService::WM_EnableBattleDialog(bool enable)
 		//util::MemoryMove(timerAddr3, "\x89\x2D\xE0\x21\x4E\x00", 6);
 		//sa_8001sf.exe+A914 - EB 0C                 - jmp sa_8001sf.exe+A922 //最重要的
 		//sa_8001sf.exe+A914 - 75 0C                 - jne sa_8001sf.exe+A922 //原始
-		util::MemoryMove(mainLoopAddr, "\xEB\x0C", 2);
+		util::MemoryMove(battleLoopAddr, "\xEB\x0C", 2);
 		g_enableBattleDialog = true;
 
 	}
@@ -872,7 +901,7 @@ void GameService::WM_EnableBattleDialog(bool enable)
 		//*timerAddr = 0;
 		//util::MemoryMove(timerAddr2, "\x90\x90\x90\x90\x90\x90", 6);
 		//util::MemoryMove(timerAddr3, "\x90\x90\x90\x90\x90\x90", 6);
-		util::MemoryMove(mainLoopAddr, "\x90\x90", 2);
+		util::MemoryMove(battleLoopAddr, "\x90\x90", 2);
 		g_enableBattleDialog = false;
 	}
 }
@@ -1140,6 +1169,37 @@ void GameService::WM_Move(int x, int y)
 	*goalX = x;
 	*goalY = y;
 	*walking = 1;
+}
+
+void GameService::WM_DistoryDialog()
+{
+	*reinterpret_cast<int*>(CONVERT_GAMEVAR<int*>(0xB83EC)) = -1;
+	auto distory = CONVERT_GAMEVAR<void(_cdecl*)(int)>(0x11C0);
+	int* pDialog = CONVERT_GAMEVAR<int*>(0x415EF98);
+	distory(*pDialog);
+	*pDialog = 0;
+}
+
+void GameService::WM_CleanChatHistory()
+{
+	//sa_8001.exe + 117C0 - B8 884D5400 - mov eax, sa_8001.exe + 144D88 { (0) }
+	//sa_8001.exe + 117C5 - C6 00 00 - mov byte ptr[eax], 00 { 0 }
+	//sa_8001.exe + 117C8 - 05 0C010000 - add eax, 0000010C { 268 }
+	//sa_8001.exe + 117CD - 3D 78625400 - cmp eax, sa_8001.exe + 146278 { (652401777) }
+	//sa_8001.exe + 117D2 - 7C F1 - jl sa_8001.exe + 117C5
+	//	sa_8001.exe + 117D4 - C7 05 F8A45400 00000000 - mov[sa_8001.exe + 14A4F8], 00000000 { (0), 0 }
+	//sa_8001.exe + 117DE - C3 - ret
+	char* chatbuffer = CONVERT_GAMEVAR<char*>(0x144D88);
+	char* pmaxchatbuffer = CONVERT_GAMEVAR<char*>(0x146278);
+	int* pchatsize = CONVERT_GAMEVAR<int*>(0x14A4F8);
+	constexpr size_t bufsize = 268;
+	const size_t count = pmaxchatbuffer - chatbuffer;
+	for (size_t i = 0; i < count; i += bufsize)
+	{
+		*chatbuffer = '\0';
+		chatbuffer += bufsize;
+	}
+	*pchatsize = 0;
 }
 
 ////接收伺服器發來已經送出戰鬥封包則切換標誌

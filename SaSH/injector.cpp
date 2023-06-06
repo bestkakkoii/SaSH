@@ -3,6 +3,14 @@
 
 Injector* Injector::instance = nullptr;
 
+constexpr const char* InjectDllName = u8"sadll.dll";
+constexpr int MessageTimeout = 3000;
+
+Injector::~Injector()
+{
+	qDebug() << "Injector is destroyed";
+}
+
 void Injector::clear()//static
 {
 	if (instance != nullptr)
@@ -47,23 +55,25 @@ bool Injector::createProcess(Injector::process_information_t& pi)
 	int nAdrnTrue = 5;
 	int nEncode = 0;
 
-
 	bool canSave = false;
 	int tmp = config.readInt("System", "Command", "realbin");
 	if (tmp)
 		nRealBin = tmp;
 	else
 		canSave = true;
+
 	tmp = config.readInt("System", "Command", "adrnbin");
 	if (tmp)
 		nAdrnBin = tmp;
 	else
 		canSave = true;
+
 	tmp = config.readInt("System", "Command", "sprbin");
 	if (tmp)
 		nSprBin = tmp;
 	else
 		canSave = true;
+
 	tmp = config.readInt("System", "Command", "spradrnbin");
 	if (tmp)
 		nSprAdrnBin = tmp;
@@ -72,11 +82,13 @@ bool Injector::createProcess(Injector::process_information_t& pi)
 		nRealTrue = tmp;
 	else
 		canSave = true;
+
 	tmp = config.readInt("System", "Command", "adrntrue");
 	if (tmp)
 		nAdrnTrue = tmp;
 	else
 		canSave = true;
+
 	tmp = config.readInt("System", "Command", "encode");
 	if (tmp)
 		nEncode = tmp;
@@ -89,7 +101,7 @@ bool Injector::createProcess(Injector::process_information_t& pi)
 	};
 
 	QStringList commandList;
-	//commandList.append(path);
+	//啟動參數
 	commandList.append("update");
 	commandList.append(mkcmd("realbin", nRealBin));
 	commandList.append(mkcmd("adrnbin", nAdrnBin));
@@ -112,6 +124,7 @@ bool Injector::createProcess(Injector::process_information_t& pi)
 		pi.dwProcessId = pid;
 		if (canSave)
 		{
+			//保存啟動參數
 			config.write("System", "Command", "DirPath", path);
 			config.write("System", "Command", "realbin", nRealBin);
 			config.write("System", "Command", "adrnbin", nAdrnBin);
@@ -128,10 +141,46 @@ bool Injector::createProcess(Injector::process_information_t& pi)
 	return false;
 }
 
+int Injector::sendMessage(int msg, int wParam, int lParam) const
+{
+	if (msg < 0) return 0;
+#ifdef _WIN64
+	DWORD_PTR dwResult = NULL;
+#else
+	DWORD dwResult = NULL;
+#endif
+	SendMessageTimeoutW(pi_.hWnd, msg, wParam, lParam, SMTO_ABORTIFHUNG | SMTO_ERRORONEXIT | SMTO_BLOCK, MessageTimeout, &dwResult);
+
+	return static_cast<int>(dwResult);
+}
+
+bool Injector::postMessage(int msg, int wParam, int lParam) const
+{
+	if (msg < 0) return false;
+	BOOL ret = PostMessageW(pi_.hWnd, msg, wParam, lParam);
+	return  ret == TRUE;
+}
+
+bool Injector::isHandleValid(qint64 pid)
+{
+	if (NULL == pid)
+		pid = pi_.dwProcessId;
+
+	if (NULL == pid)
+		return false;
+
+	if (!processHandle_.isValid())
+	{
+		processHandle_.reset(pid);
+		return processHandle_.isValid();
+	}
+	return true;
+}
+
 bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short port, util::LPREMOVE_THREAD_REASON pReason)
 {
 	if (!pi.dwProcessId) return false;
-	if (!pReason) return false;
+	if (nullptr == pReason) return false;
 
 	constexpr qint64 MAX_TIMEOUT = 30000;
 	bool bret = 0;
@@ -144,11 +193,10 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 	QString fileNameOnly;
 	DWORD parent = NULL;
 
-
 	do
 	{
 #if QT_NO_DEBUG
-		dllPath = QCoreApplication::applicationDirPath() + "/sadll.dll";
+		dllPath = QCoreApplication::applicationDirPath() + "/" + InjectDllName;
 #else
 		dllPath = R"(D:\Users\bestkakkoii\Desktop\vs_project\SaSH\Debug\sadll.dll)";
 #endif
@@ -158,7 +206,7 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 
 		timer.start();
 
-		if (!pi.hWnd)
+		if (nullptr == pi.hWnd)
 		{
 			for (;;)//超過N秒自動退出
 			{
@@ -176,10 +224,9 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 			}
 		}
 
-		if (NULL == pi.hWnd)
+		if (nullptr == pi.hWnd)
 		{
-			if (pReason)
-				*pReason = util::REASON_ENUM_WINDOWS_FAIL;
+			*pReason = util::REASON_ENUM_WINDOWS_FAIL;
 			break;
 		}
 
@@ -191,31 +238,28 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 		//去除改變窗口大小的屬性
 		LONG dwStyle = ::GetWindowLongPtrW(pi.hWnd, GWL_STYLE);
 		dwStyle &= ~(WS_SIZEBOX | WS_MAXIMIZEBOX);
-		::SetWindowLongPtr(pi.hWnd, GWL_STYLE, dwStyle);
+		::SetWindowLongPtrW(pi.hWnd, GWL_STYLE, dwStyle);
 
 		pi.dwThreadId = ::GetWindowThreadProcessId(pi.hWnd, nullptr);
 
 
 		kernel32Module = ::GetModuleHandleW(L"kernel32.dll");
-		if (!kernel32Module)
+		if (nullptr == kernel32Module)
 		{
-			if (pReason)
-				*pReason = util::REASON_GET_KERNEL32_FAIL;
+			*pReason = util::REASON_GET_KERNEL32_FAIL;
 			break;
 		}
 
-		loadLibraryProc = ::GetProcAddress(kernel32Module, "LoadLibraryW");
-		if (!loadLibraryProc)
+		loadLibraryProc = ::GetProcAddress(kernel32Module, u8"LoadLibraryW");
+		if (nullptr == loadLibraryProc)
 		{
-			if (pReason)
-				*pReason = util::REASON_GET_KERNEL32_UNDOCUMENT_API_FAIL;
+			*pReason = util::REASON_GET_KERNEL32_UNDOCUMENT_API_FAIL;
 			break;
 		}
 
 		if (!isHandleValid(pi.dwProcessId))
 		{
-			if (pReason)
-				*pReason = util::REASON_OPEN_PROCESS_FAIL;
+			*pReason = util::REASON_OPEN_PROCESS_FAIL;
 			break;
 		}
 
@@ -223,15 +267,15 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 			processHandle_.reset(pi.dwProcessId);
 
 		const util::VirtualMemory lpParameter(processHandle_, dllPath, util::VirtualMemory::kUnicode, true);
-		if (!lpParameter)
+		if (NULL == lpParameter)
 		{
-			if (pReason)
-				*pReason = util::REASON_VIRTUAL_ALLOC_FAIL;
+			*pReason = util::REASON_VIRTUAL_ALLOC_FAIL;
 			break;
 		}
 
 		QScopedHandle hThreadHandle(QScopedHandle::CREATE_REMOTE_THREAD, processHandle_,
-			(PVOID)(LPTHREAD_START_ROUTINE)loadLibraryProc, (LPVOID)(DWORD)lpParameter);
+			static_cast<PVOID>(reinterpret_cast<LPTHREAD_START_ROUTINE>(loadLibraryProc)),
+			reinterpret_cast<LPVOID>(static_cast<DWORD>(lpParameter)));
 		if (hThreadHandle.isValid())
 		{
 			timer.restart();
@@ -247,10 +291,9 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 			}
 		}
 
-		if (!hModule)
+		if (NULL == hModule)
 		{
-			if (pReason)
-				*pReason = util::REASON_INJECT_LIBRARY_FAIL;
+			*pReason = util::REASON_INJECT_LIBRARY_FAIL;
 			return false;
 		}
 
@@ -258,10 +301,10 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 		parent = qgetenv("SASH_HWND").toULong();
 		sendMessage(kInitialize, port, parent);
 
-		while (!hModule_)
+		while (NULL == hModule_)
 			hModule_ = sendMessage(kGetModule, NULL, NULL);
 
-		hookdllModule_ = (HMODULE)hModule;
+		hookdllModule_ = reinterpret_cast<HMODULE>(hModule);
 		qDebug() << ":Inject OK!";
 		bret = true;
 	} while (false);
@@ -278,21 +321,21 @@ void Injector::remoteFreeModule()
 		processHandle_.reset(pi_.dwProcessId);
 
 	sendMessage(kUninitialize, NULL, NULL);
-	HMODULE kernel32Module = GetModuleHandle(L"kernel32.dll");
+	HMODULE kernel32Module = GetModuleHandleW(L"kernel32.dll");
 	if (!kernel32Module) return;
-	FARPROC freeLibraryProc = GetProcAddress(kernel32Module, "FreeLibrary");
+	FARPROC freeLibraryProc = GetProcAddress(kernel32Module, u8"FreeLibrary");
 
 	const util::VirtualMemory lpParameter(processHandle_, sizeof(int), true);
-	if (!lpParameter)
+	if (NULL == lpParameter)
 	{
 		return;
 	}
 
-
 	mem::writeInt(processHandle_, lpParameter, (int)hookdllModule_, 0);
 
 	QScopedHandle hThreadHandle(QScopedHandle::CREATE_REMOTE_THREAD, processHandle_,
-		(PVOID)(LPTHREAD_START_ROUTINE)freeLibraryProc, (LPVOID)(DWORD)lpParameter);
+		static_cast<LPVOID>(reinterpret_cast<LPTHREAD_START_ROUTINE>(freeLibraryProc)),
+		reinterpret_cast<LPVOID>(static_cast<DWORD>(lpParameter)));
 	WaitForSingleObject(hThreadHandle, 1000);
 }
 
@@ -303,7 +346,7 @@ bool Injector::isWindowAlive() const
 
 #ifndef _DEBUG
 	//CE下斷點時會自動關閉遊戲所以DEBUG時不檢查
-	if (SendMessageTimeoutW(pi_.hWnd, WM_NULL, 0, 0, SMTO_ABORTIFHUNG | SMTO_ERRORONEXIT, 3000, nullptr) == 0)
+	if (SendMessageTimeoutW(pi_.hWnd, WM_NULL, 0, 0, SMTO_ABORTIFHUNG | SMTO_ERRORONEXIT, MessageTimeout, nullptr) == 0)
 		return false;
 #endif
 
@@ -319,8 +362,8 @@ bool Injector::isWindowAlive() const
 
 	PROCESSENTRY32W program_info = {};
 	program_info.dwSize = sizeof(PROCESSENTRY32W);
-	int bResult = Process32First(hSnapshop, &program_info);
-	if (!bResult)
+	BOOL bResult = Process32FirstW(hSnapshop, &program_info);
+	if (FALSE == bResult)
 	{
 		return false;
 	}
@@ -332,12 +375,12 @@ bool Injector::isWindowAlive() const
 		}
 	}
 
-	while (bResult)
+	while (TRUE == bResult)
 	{
 		if (program_info.th32ProcessID == pi_.dwProcessId)
 			return true;
 
-		bResult = Process32Next(hSnapshop, &program_info);
+		bResult = Process32NextW(hSnapshop, &program_info);
 	}
 	return false;
 }

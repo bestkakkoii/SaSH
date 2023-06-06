@@ -461,7 +461,7 @@
     </message>
     <message>
         <source>Please note that the death statistics only account for deaths that occur on the battlefield, and do not include deaths from being knocked out</source>
-        <translation>請注意：死亡統計只會計算在戰場上死亡的情況，被打飛的話不會計算在內。</translation>
+        <translation>請注意：死亡統計只會計算在戰場上死亡的情況，被打飛的話不會計算在內</translation>
     </message>
     <message>
         <source>recalculate</source>
@@ -525,14 +525,6 @@
         <translation>自動說話</translation>
     </message>
     <message>
-        <source>Tab 1</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Tab 2</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>mic</source>
         <translation>開麥克風</translation>
     </message>
@@ -543,6 +535,14 @@
     <message>
         <source>add</source>
         <translation>加入</translation>
+    </message>
+    <message>
+        <source>frq talk</source>
+        <translation>常用對話</translation>
+    </message>
+    <message>
+        <source>auto talk</source>
+        <translation>自動說話</translation>
     </message>
 </context>
 <context>
@@ -910,6 +910,10 @@
         <source>K</source>
         <translation type="vanished">踢</translation>
     </message>
+    <message>
+        <source>set</source>
+        <translation type="unfinished">應用</translation>
+    </message>
 </context>
 <context>
     <name>InfoForm</name>
@@ -1198,7 +1202,7 @@
     </message>
     <message>
         <source>SaSH - Beta %1</source>
-        <translation>石器聖手 - Beta %1</translation>
+        <translation>SsH - Beta %1</translation>
     </message>
     <message>
         <source>unknown</source>
@@ -1368,6 +1372,17 @@
     </message>
 </context>
 <context>
+    <name>MapForm</name>
+    <message>
+        <source>location</source>
+        <translation>地點</translation>
+    </message>
+    <message>
+        <source>cod</source>
+        <translation>坐標</translation>
+    </message>
+</context>
+<context>
     <name>MapFormClass</name>
     <message>
         <source>MapForm</source>
@@ -1398,7 +1413,7 @@
     <name>MapWidget</name>
     <message>
         <source>%1 map:%2 floor:%3 [%4,%5] file:%6 mouse:%7,%8</source>
-        <translation>%1 地圖:%2 編號:%3 [%4,%5] 檔案:%6 坐標:%7,%8</translation>
+        <translation type="vanished">%1 地圖:%2 編號:%3 [%4,%5] 檔案:%6 坐標:%7,%8</translation>
     </message>
     <message>
         <source>downloading(%1%2)</source>
@@ -1455,6 +1470,26 @@
     <message>
         <source>X[NPC]%1</source>
         <translation>隱藏[NPC]%1</translation>
+    </message>
+    <message>
+        <source>%1 map:%2 floor:%3 [%4,%5] mouse:%6,%7</source>
+        <translation>%1 地圖:%2 編號:%3 [%4,%5] 滑鼠:%6,%7</translation>
+    </message>
+    <message>
+        <source>[P]</source>
+        <translation>[寵物]</translation>
+    </message>
+    <message>
+        <source>[H]</source>
+        <translation>[玩家]</translation>
+    </message>
+    <message>
+        <source>[I]</source>
+        <translation>[道具]</translation>
+    </message>
+    <message>
+        <source>[G]</source>
+        <translation>[石幣]</translation>
     </message>
 </context>
 <context>
@@ -2074,6 +2109,61 @@ MESSAGE：<byte value="xd"/>
         <source>hidden</source>
         <translation>隱藏</translation>
     </message>
+    <message>
+        <source>&lt;findpath&gt;start searching the path</source>
+        <translation>&lt;尋路&gt;開始搜尋路徑</translation>
+    </message>
+    <message>
+        <source>&lt;findpath&gt;unable to findpath</source>
+        <translation>&lt;尋路&gt;找不到路徑</translation>
+    </message>
+    <message>
+        <source>&lt;findpath&gt;path found, cost:%1</source>
+        <translation>&lt;尋路&gt;成功找到路徑，耗時：%1</translation>
+    </message>
+    <message>
+        <source>&lt;findpath&gt;arrived destination, cost:%1</source>
+        <translation>&lt;尋路&gt;已到達目的地，耗時：%1</translation>
+    </message>
+    <message>
+        <source>&lt;findpath&gt;stop finding path due to timeout</source>
+        <translation>&lt;尋路&gt;超時，放棄尋路</translation>
+    </message>
+    <message>
+        <source>&lt;findpath&gt;stop finding path due to map changed</source>
+        <translation>&lt;尋路&gt;地圖已變更，放棄尋路</translation>
+    </message>
+</context>
+<context>
+    <name>ScriptForm</name>
+    <message>
+        <source>command</source>
+        <translation>指令</translation>
+    </message>
+    <message>
+        <source>params</source>
+        <translation>內容</translation>
+    </message>
+    <message>
+        <source>script:</source>
+        <translation type="vanished">腳本:</translation>
+    </message>
+    <message>
+        <source>start</source>
+        <translation>開始</translation>
+    </message>
+    <message>
+        <source>mid-start</source>
+        <translation>中間開始</translation>
+    </message>
+    <message>
+        <source>pause</source>
+        <translation>暫停</translation>
+    </message>
+    <message>
+        <source>resume</source>
+        <translation>恢復</translation>
+    </message>
 </context>
 <context>
     <name>ScriptFormClass</name>
@@ -2087,7 +2177,7 @@ MESSAGE：<byte value="xd"/>
     </message>
     <message>
         <source>current row: 0/0</source>
-        <translation>正在運行行數:0/0</translation>
+        <translation type="vanished">正在運行行數:0/0</translation>
     </message>
     <message>
         <source>start</source>
@@ -2104,6 +2194,22 @@ MESSAGE：<byte value="xd"/>
     <message>
         <source>scripts</source>
         <translation>腳本</translation>
+    </message>
+    <message>
+        <source>current row:</source>
+        <translation>正在運行行數:</translation>
+    </message>
+    <message>
+        <source>0/0</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>command</source>
+        <translation>指令</translation>
+    </message>
+    <message>
+        <source>params</source>
+        <translation>內容</translation>
     </message>
 </context>
 <context>

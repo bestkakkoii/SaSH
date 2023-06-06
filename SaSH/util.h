@@ -12,7 +12,9 @@
 #include <QTabBar>
 #include <QLocale>
 #include <QCollator>
+#include <QHash>
 #include "3rdparty/simplecrypt.h"
+#include "model/treewidgetitem.h"
 
 constexpr int SASH_VERSION_MAJOR = 1;
 constexpr int SASH_VERSION_MINOR = 0;
@@ -39,7 +41,8 @@ namespace mem
 namespace util
 {
 	constexpr const char* SA_NAME = u8"sa_8001.exe";
-
+	constexpr const char* CODEPAGE_DEFAULT = "UTF-8";
+	constexpr const char* SCRIPT_SUFFIX_DEFAULT = ".txt";
 
 	typedef enum
 	{
@@ -153,6 +156,12 @@ namespace util
 		kStatusBusy,
 	};
 
+	enum CraftType
+	{
+		kCraftFood,
+		kCraftItem
+	};
+
 	enum UserSetting
 	{
 		kSettingNotUsed = 0,
@@ -259,6 +268,10 @@ namespace util
 		//other->group
 		kAutoFunTypeValue,
 
+		//lockpet
+		kLockPetValue,
+		kLockRideValue,
+
 		kSettingMaxValue,
 
 		///////////////////
@@ -338,6 +351,11 @@ namespace util
 		kDropPetAgiEnable,
 		kDropPetHpEnable,
 		kDropPetAggregateEnable,
+
+
+		//lockpet
+		kLockPetEnable,
+		kLockRideEnable,
 
 		kSettingMaxEnable,
 
@@ -499,6 +517,13 @@ namespace util
 		{ kDropPetHpValue, "DropPetHpValue" },
 		{ kDropPetAggregateValue, "DropPetAggregateValue" },
 
+		//other->group
+		{ kAutoFunTypeValue, "AutoFunTypeValue" },
+
+		//lockpet
+		{ kLockPetValue, "LockPetValue" },
+		{ kLockRideValue, "LockRideValue" },
+
 		{ kSettingMaxValue, "SettingMaxValue" },
 
 		//check
@@ -577,10 +602,9 @@ namespace util
 		{ kDropPetHpEnable, "DropPetHpEnable" },
 		{ kDropPetAggregateEnable, "DropPetAggregateEnable" },
 
-		//other->group
-		{ kAutoFunTypeValue, "AutoFunTypeValue" },
-
-		//other->group
+		//lockpet
+		{ kLockPetEnable, "LockPetEnable" },
+		{ kLockRideEnable, "LockRideEnable" },
 
 
 		//string
@@ -832,6 +856,10 @@ namespace util
 		return collator.compare(str1, str2) < 0;
 	}
 
+	QFileInfoList loadAllFileLists(TreeWidgetItem* root, const QString& path, QStringList* list = nullptr);
+
+	bool enumAllFiles(const QString dir, const QString suffix, QVector<QPair<QString, QString>>* result);
+
 	template<typename T>
 	QList<T*> findWidgets(QWidget* widget)
 	{
@@ -1040,6 +1068,106 @@ namespace util
 		mutable QReadWriteLock lock;
 	};
 
+	template <typename V>
+	class SafeQueue
+	{
+	public:
+		explicit SafeQueue(int maxSize = 20)
+			: maxSize_(maxSize)
+		{
+		}
+		virtual ~SafeQueue() = default;
+
+		void clear()
+		{
+			QWriteLocker locker(&lock_);
+			queue_.clear();
+		}
+
+		QVector<V> values() const
+		{
+			QReadLocker locker(&lock_);
+			return queue_.toVector();
+
+		}
+
+		int size() const
+		{
+			QReadLocker locker(&lock_);
+			return queue_.size();
+		}
+
+		bool isEmpty() const
+		{
+			QReadLocker locker(&lock_);
+			return queue_.isEmpty();
+		}
+
+		void enqueue(const V& value)
+		{
+			QWriteLocker locker(&lock_);
+			if (queue_.size() >= maxSize_)
+			{
+				queue_.dequeue();
+			}
+			queue_.enqueue(value);
+		}
+
+		bool dequeue(V* pvalue)
+		{
+			QWriteLocker locker(&lock_);
+			if (queue_.isEmpty())
+			{
+				return false;
+			}
+			if (pvalue)
+				*pvalue = queue_.dequeue();
+			return true;
+		}
+
+		V front() const
+		{
+			QReadLocker locker(&lock_);
+			return queue_.head();
+		}
+
+		void setMaxSize(int maxSize)
+		{
+			QWriteLocker locker(&lock_);
+			queue_.setMaxSize(maxSize);
+		}
+
+	private:
+		QQueue<V> queue_;
+		int maxSize_;
+		mutable QReadWriteLock lock_;
+	};;
+
+	struct MapData
+	{
+		int floor;
+		QString name;
+		int x;
+		int y;
+	};
+
+	static inline QString getPointFileName()
+	{
+		UINT acp = ::GetACP();
+		if (acp == 950)
+		{
+			return (QCoreApplication::applicationDirPath() + QString(u8"/map/point_zh_TW.json"));
+		}
+		else if (acp == 936)
+		{
+			return (QCoreApplication::applicationDirPath() + QString(u8"/map/point_zh_CN.json"));
+		}
+		else
+		{
+			return (QCoreApplication::applicationDirPath() + QString(u8"/map/point.json"));
+		}
+	}
+
 	//Json配置讀寫
 	class Config
 	{
@@ -1059,10 +1187,6 @@ namespace util
 		void WriteHash(const QString& sec, const QString& key, QMap<QString, QPair<bool, QString>>& hash);
 		QMap<QString, QPair<bool, QString>> EnumString(const QString& sec, const QString& key) const;
 
-		void writeStringList(const QString& key, const QStringList& value);
-		void writeStringList(const QString& sec, const QString& key, const QStringList& value);
-		void writeStringList(const QString& sec, const QString& key, const QString& sub, const QStringList& value);
-
 		QString readString(const QString& sec, const QString& key, const QString& sub) const;
 		QString readString(const QString& sec, const QString& key) const;
 		QString readString(const QString& key) const;
@@ -1074,8 +1198,14 @@ namespace util
 		int readInt(const QString& sec, const QString& key, const QString& sub) const;
 		qreal readDouble(const QString& sec, const QString& key, qreal retnot) const;
 		int readInt(const QString& sec, const QString& key, int retnot) const;
-		QStringList readStringList(const QString& sec, const QString& key, const QString& sub) const;
-		QStringList readStringList(const QString& sec, const QString& key) const;
+
+		void writeIntArray(const QString& sec, const QString& key, const QList<int>& values);
+		void writeIntArray(const QString& sec, const QString& key, const QString& sub, const QList<int>& values);
+		QList<int> readIntArray(const QString& sec, const QString& key, const QString& sub) const;
+
+		void util::Config::writeMapData(const QString& sec, const util::MapData& data);
+
+		QList<util::MapData> util::Config::readMapData(const QString& key) const;
 
 	private:
 		QLockFile lock_;

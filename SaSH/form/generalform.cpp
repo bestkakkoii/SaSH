@@ -44,7 +44,10 @@ GeneralForm::GeneralForm(QWidget* parent)
 	for (auto& comboBox : comboBoxList)
 	{
 		if (comboBox)
+		{
 			connect(comboBox, SIGNAL(currentIndexChanged(int)), this, SLOT(onComboBoxCurrentIndexChanged(int)), Qt::UniqueConnection);
+			connect(comboBox, &ComboBox::clicked, this, &GeneralForm::onComboBoxClicked, Qt::UniqueConnection);
+		}
 	}
 
 	emit signalDispatcher.applyHashSettingsToUI();
@@ -61,7 +64,7 @@ void GeneralForm::onResetControlTextLanguage()
 {
 	const QString fileName(qgetenv("JSON_PATH"));
 	util::Config config(fileName);
-	QStringList serverList = config.readStringList("System", "ServerList");
+	QStringList serverList = config.readString("System", "ServerList").split(util::rexOR, Qt::SkipEmptyParts);
 	if (serverList.isEmpty())
 	{
 		serverList = QStringList{
@@ -73,7 +76,7 @@ void GeneralForm::onResetControlTextLanguage()
 		config.write("System", "ServerList", serverList.join("|"));
 	}
 
-	QStringList subServerList = config.readStringList("System", "SubServerList");
+	QStringList subServerList = config.readString("System", "SubServerList").split(util::rexOR, Qt::SkipEmptyParts);
 	if (subServerList.isEmpty())
 	{
 		subServerList = QStringList{
@@ -99,6 +102,30 @@ void GeneralForm::onResetControlTextLanguage()
 	ui.comboBox_locktime->addItems(timeList);
 }
 
+void GeneralForm::onComboBoxClicked()
+{
+	ComboBox* pComboBox = qobject_cast<ComboBox*>(sender());
+	if (!pComboBox)
+		return;
+
+	QString name = pComboBox->objectName();
+	if (name.isEmpty())
+		return;
+
+	if (name == "comboBox_setting")
+	{
+		QVector<QPair<QString, QString>> fileList;
+		if (!util::enumAllFiles(QCoreApplication::applicationDirPath() + "/settings", ".json", &fileList))
+			return;
+
+		ui.comboBox_setting->clear();
+		for (const QPair<QString, QString>& pair : fileList)
+		{
+			ui.comboBox_setting->addItem(pair.first, pair.second);
+		}
+	}
+}
+
 void GeneralForm::onButtonClicked()
 {
 	QPushButton* pPushButton = qobject_cast<QPushButton*>(sender());
@@ -111,7 +138,19 @@ void GeneralForm::onButtonClicked()
 
 	Injector& injector = Injector::getInstance();
 
-	if (name == "pushButton_logout")
+	if (name == "pushButton_setting")
+	{
+		if (ui.comboBox_setting->currentText().isEmpty())
+			return;
+
+		QString fileName = ui.comboBox_setting->currentData().toString();
+		if (fileName.isEmpty())
+			return;
+
+		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
+		emit signalDispatcher.loadHashSettings(fileName, true);
+	}
+	else if (name == "pushButton_logout")
 	{
 		bool flag = injector.getEnableHash(util::kLogOutEnable);
 		if (injector.isValid())
@@ -187,7 +226,7 @@ void GeneralForm::onButtonClicked()
 
 	else if (name == "pushButton_joingroup")
 	{
-
+		injector.server->craft(util::kCraftFood, QStringList{ "?青椒","?包心" });
 		return;
 	}
 
@@ -205,7 +244,6 @@ void GeneralForm::onButtonClicked()
 
 	else if (name == "pushButton_pick")
 	{
-
 		return;
 	}
 

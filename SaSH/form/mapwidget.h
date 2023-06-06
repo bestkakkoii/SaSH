@@ -10,7 +10,7 @@
 #if OPEN_GL_ON
 //#include "mapglwidget.h"
 #endif
-
+class Interpreter;
 class MapWidget : public QWidget
 {
 	Q_OBJECT;
@@ -19,43 +19,48 @@ public:
 	virtual ~MapWidget();
 
 	void writeSettings();
+
+private:
+	void downloadNextBlock();
+	void updateNpcListAllContents(const QVariant& d);
+	void readSettings();
 private:
 
-	bool m_bClicked = false;
-	QPointF pLast = { 0.0, 0.0 };
-	QPointF m_MovePoint = { 0.0, 0.0 };
-	QRectF m_rectangle_src = { 0.0, 0.0, 0.0, 0.0 };
-	QRectF m_rectangle_dst = { 0.0, 0.0, 0.0, 0.0 };
+	bool bClicked_ = false;
+	QPointF pLast_ = { 0.0, 0.0 };
+	QPointF movePoint_ = { 0.0, 0.0 };
+	QRectF rectangle_src_ = { 0.0, 0.0, 0.0, 0.0 };
+	QRectF rectangle_dst_ = { 0.0, 0.0, 0.0, 0.0 };
 
-	bool m_IsDownloadingMap = false;
-	int m_downloadMapX = 0;
-	int m_downloadMapY = 0;
-	int m_downloadMapXSize = 0;
-	int m_downloadMapYSize = 0;
-	qreal m_downloadMapProgress = 0.0;
+	bool isDownloadingMap_ = false;
+	int downloadMapX_ = 0;
+	int downloadMapY_ = 0;
+	int downloadMapXSize_ = 0;
+	int downloadMapYSize_ = 0;
+	int downloadCount_ = 0;
+	qreal totalMapBlocks_ = 0;
+	qreal downloadMapProgress_ = 0.0;
 
-	QTimer downloadMapTimer;
+	QTimer downloadMapTimer_;
 
-	qreal m_fix_zoom_value = 0.0;
-	qreal m_zoom_value = 0.0;
-	qreal m_scaleWidth = 0.0;
-	qreal m_scaleHeight = 0.0;
+	qreal fix_zoom_value_ = 0.0;
+	qreal zoom_value_ = 0.0;
+	qreal scaleWidth_ = 0.0;
+	qreal scaleHeight_ = 0.0;
 
 	Ui::MapWidgetClass ui;
 
-	QPointF m_curMousePos = { 0,0 };
+	QScopedPointer<Interpreter> interpreter_;
 
-	int m_counter = 10;
+	QPointF curMousePos_ = { 0,0 };
 
-	void on_NPCListUpdateAllContent(const QVariant& d);
-
-	void readSettings();
+	int counter_ = 10;
 
 #if OPEN_GL_ON
 
-	QTimer gltimer;
+	QTimer gltimer_;
 
-	//qreal m_zoom_value = 0.0;
+	//qreal zoom_value_ = 0.0;
 protected:
 	void leaveEvent(QEvent*) override;
 
@@ -69,12 +74,12 @@ protected:
 		QWidget::showEvent(e);
 	}
 private slots:
+	void onRefreshTimeOut();
+	void onClear();
+
+	void onDownloadMapTimeout();
+
 	void on_tableWidget_NPCList_cellDoubleClicked(int row, int column);
-
-	void on_timeOut();
-	void on_clear();
-
-	void on_downloadMapTimeout();
 
 	void on_openGLWidget_notifyMouseMove(Qt::MouseButton button, const QPointF& gpos, const QPointF& pos);
 	void on_openGLWidget_notifyMousePosition(const QPointF& pos);

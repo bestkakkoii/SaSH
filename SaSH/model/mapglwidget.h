@@ -65,10 +65,10 @@ signals:
 	void notifyWheelMove(const QPointF& zoom, const QPointF& pos);
 
 private:
-	bool m_bClicked = false;
+	bool bClicked_ = false;
 
-	QPointF pLast = { 0.0, 0.0 };
-	QPointF m_MovePoint = { 0.0, 0.0 };
+	QPointF pLast_ = { 0.0, 0.0 };
+	QPointF movePoint_ = { 0.0, 0.0 };
 	QPointF offest = { 0.0, 0.0 };
 
 	QVector<QVector3D> vertices;
@@ -85,8 +85,8 @@ private:
 
 	QPixmap m_image;
 
-	GLfloat m_scaleWidth = 0.0;
-	GLfloat m_scaleHeight = 0.0;
+	GLfloat scaleWidth_ = 0.0;
+	GLfloat scaleHeight_ = 0.0;
 
 	QPointF m_vStart = { 0.0, 0.0 };
 	QPointF m_vEnd = { 0.0, 0.0 };
@@ -102,8 +102,8 @@ private:
 
 	QRectF m_rect = { 0.0, 0.0, 0.0, 0.0 };
 
-	QRectF m_rectangle_dst = { 0.0, 0.0, 0.0, 0.0 };
-	QRectF m_rectangle_src = { 0.0, 0.0, 0.0, 0.0 };
+	QRectF rectangle_dst_ = { 0.0, 0.0, 0.0, 0.0 };
+	QRectF rectangle_src_ = { 0.0, 0.0, 0.0, 0.0 };
 
 	GLuint m_imageTexture = 0;
 };

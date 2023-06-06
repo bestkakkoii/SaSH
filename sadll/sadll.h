@@ -53,10 +53,13 @@ namespace util
 		kEnableBattleDialog,
 		kSetGameStatus,
 		kSetBLockPacket,
+		kBattleTimeExtend,
 
 		//Action
 		kSendAnnounce,
 		kSetMove,
+		kDistoryDialog,
+		kCleanChatHistory,
 	};
 
 	using handle_data = struct
@@ -134,11 +137,14 @@ public:
 	void WM_SetBoostSpeed(bool enable, int speed);
 	void WM_EnableMoveLock(bool enable);
 	void WM_MuteSound(bool enable);
+	void WM_BattleTimeExtend(bool enable);
 	void WM_EnableBattleDialog(bool enable);
 	void WM_SetGameStatus(int status);
 
 	void WM_Announce(char* str, int color);
 	void WM_Move(int x, int y);
+	void WM_DistoryDialog();
+	void WM_CleanChatHistory();
 
 	void WM_SetBLockPacket(bool enable) { isBLockPacket_ = enable; }
 public://g-var

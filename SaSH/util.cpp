@@ -17,9 +17,21 @@ util::Config::~Config()
 bool util::Config::open(const QString& fileName)
 {
 	QFile file(fileName);
-	if (!file.open(QIODevice::ReadOnly))
+	if (!file.exists())
 	{
-		return false;
+		// 文件不存在，创建新文件
+		if (!file.open(QIODevice::ReadWrite | QIODevice::Append))
+		{
+			return false;
+		}
+	}
+	else
+	{
+		// 文件存在，以只读模式打开
+		if (!file.open(QIODevice::ReadOnly))
+		{
+			return false;
+		}
 	}
 	QByteArray allData = file.readAll();
 	file.close();
@@ -265,157 +277,6 @@ int util::Config::readInt(const QString& sec, const QString& key, int retnot) co
 	return retnot;
 }
 
-QStringList util::Config::readStringList(const QString& sec, const QString& key, const QString& sub) const
-{
-	if (!cache_.contains(sec))
-	{
-		return QStringList();
-	}
-	QJsonObject json = cache_[sec].toJsonObject();
-	if (!json.contains(key))
-	{
-		return QStringList();
-	}
-	QJsonObject subjson = json[key].toObject();
-	if (!subjson.contains(sub))
-	{
-		return QStringList();
-	}
-	QJsonArray array = subjson[sub].toArray();
-	QStringList ret;
-	for (int i = 0; i < array.size(); ++i)
-	{
-		ret << array[i].toString();
-	}
-	return ret;
-}
-
-QStringList util::Config::readStringList(const QString& sec, const QString& key) const
-{
-	QStringList ret;
-	if (cache_.contains(sec))
-	{
-		QJsonObject json = cache_.value(sec).toJsonObject();
-		if (json.contains(key))
-		{
-			QJsonArray array = json.value(key).toArray();
-
-			for (int i = 0; i < array.size(); ++i)
-			{
-				ret << array[i].toString();
-			}
-			return ret;
-		}
-	}
-
-	return ret;
-}
-
-void util::Config::writeStringList(const QString& key, const QStringList& value)
-{
-	if (cache_.contains(key))
-	{
-		QJsonArray array;
-		for (int i = 0; i < value.size(); ++i)
-		{
-			array << value[i];
-		}
-		cache_.insert(key, QJsonValue(array));
-	}
-	else
-	{
-		QJsonArray array;
-		for (int i = 0; i < value.size(); ++i)
-		{
-			array << value[i];
-		}
-		cache_.insert(key, QJsonValue(array));
-	}
-}
-void util::Config::writeStringList(const QString& sec, const QString& key, const QStringList& value)
-{
-	if (cache_.contains(sec))
-	{
-		QJsonObject json = cache_.value(sec).toJsonObject();
-		if (json.contains(key))
-		{
-			QJsonArray array;
-			for (int i = 0; i < value.size(); ++i)
-			{
-				array << value[i];
-			}
-			json.insert(key, array);
-			cache_.insert(sec, QJsonValue(json));
-		}
-		else
-		{
-			QJsonArray array;
-			for (int i = 0; i < value.size(); ++i)
-			{
-				array << value[i];
-			}
-			json.insert(key, array);
-			cache_.insert(sec, QJsonValue(json));
-		}
-	}
-	else
-	{
-		QJsonObject json;
-		QJsonArray array;
-		for (int i = 0; i < value.size(); ++i)
-		{
-			array << value[i];
-		}
-		json.insert(key, array);
-		cache_.insert(sec, QJsonValue(json));
-	}
-}
-void util::Config::writeStringList(const QString& sec, const QString& key, const QString& sub, const QStringList& value)
-{
-	if (cache_.contains(sec))
-	{
-		QJsonObject json = cache_[sec].toJsonObject();
-		if (json.contains(key))
-		{
-			QJsonObject subjson = json[key].toObject();
-			QJsonArray array;
-			for (int i = 0; i < value.size(); ++i)
-			{
-				array << value[i];
-			}
-			subjson.insert(sub, array);
-			json.insert(key, subjson);
-			cache_.insert(sec, QJsonValue(json));
-		}
-		else
-		{
-			QJsonObject subjson;
-			QJsonArray array;
-			for (int i = 0; i < value.size(); ++i)
-			{
-				array << value[i];
-			}
-			subjson.insert(sub, array);
-			json.insert(key, subjson);
-			cache_.insert(sec, QJsonValue(json));
-		}
-	}
-	else
-	{
-		QJsonObject json;
-		QJsonObject subjson;
-		QJsonArray array;
-		for (int i = 0; i < value.size(); ++i)
-		{
-			array << value[i];
-		}
-		subjson.insert(sub, array);
-		json.insert(key, subjson);
-		cache_.insert(sec, QJsonValue(json));
-	}
-
-}
-
 
 qreal util::Config::readDouble(const QString& sec, const QString& key, qreal retnot) const
 {
@@ -524,7 +385,220 @@ int util::Config::readInt(const QString& key) const
 	return 0;
 }
 
-//
+QList<int> util::Config::readIntArray(const QString& sec, const QString& key, const QString& sub) const
+{
+	QList<int> result;
+
+	if (cache_.contains(sec))
+	{
+		QJsonObject json = cache_[sec].toJsonObject();
+
+		if (json.contains(key))
+		{
+			QJsonObject subJson = json[key].toObject();
+
+			if (subJson.contains(sub))
+			{
+				QJsonArray jsonArray = subJson[sub].toArray();
+
+				for (const QJsonValue& value : jsonArray)
+				{
+					result.append(value.toInt());
+				}
+			}
+		}
+	}
+
+	return result;
+}
+
+void util::Config::writeIntArray(const QString& sec, const QString& key, const QList<int>& values)
+{
+	if (!cache_.contains(sec))
+	{
+		cache_[sec] = QJsonObject();
+	}
+	QVariantList variantList;
+	for (int value : values)
+	{
+		variantList.append(value);
+	}
+	QJsonObject json = cache_[sec].toJsonObject();
+	json[key] = QJsonArray::fromVariantList(variantList);
+	cache_[sec] = json;
+	if (!hasChanged_)
+		hasChanged_ = true;
+}
+
+void util::Config::writeIntArray(const QString& sec, const QString& key, const QString& sub, const QList<int>& values)
+{
+	if (!cache_.contains(sec))
+	{
+		cache_[sec] = QJsonObject();
+	}
+
+	QJsonObject json = cache_[sec].toJsonObject();
+	QJsonArray jsonArray;
+
+	for (int value : values)
+	{
+		jsonArray.append(value);
+	}
+
+	QJsonObject subJson;
+	subJson[sub] = jsonArray;
+
+	json[key] = subJson;
+	cache_[sec] = json;
+	if (!hasChanged_)
+		hasChanged_ = true;
+}
+
+void util::Config::writeMapData(const QString& sec, const util::MapData& data)
+{
+	QString key = QString::number(data.floor);
+	QJsonArray jarray;
+	if (cache_.contains(key))
+	{
+		jarray = cache_[key].toJsonArray();
+	}
+
+	QString text = QString("%1|%2,%3").arg(data.name).arg(data.x).arg(data.y);
+
+	if (!jarray.contains(text))
+	{
+		jarray.append(text);
+	}
+
+	cache_[key] = jarray;
+
+	if (!hasChanged_)
+		hasChanged_ = true;
+}
+
+// 读取数据
+QList<util::MapData> util::Config::readMapData(const QString& key) const
+{
+	QList<MapData> result;
+
+	if (cache_.contains(key))
+	{
+		QJsonArray jarray = cache_[key].toJsonArray();
+
+		for (const QJsonValue& value : jarray)
+		{
+			QStringList list = value.toString().split(util::rexOR);
+			if (list.size() == 2)
+			{
+				MapData data;
+				data.name = list[0];
+				QString pos = list[1];
+				if (pos.count(",") == 1)
+				{
+					QStringList posList = pos.split(",");
+					if (posList.size() == 2)
+					{
+						data.x = posList[0].toInt();
+						data.y = posList[1].toInt();
+					}
+					else
+						continue;
+				}
+				else
+				{
+					continue;
+				}
+
+				result.append(data);
+			}
+		}
+
+
+	}
+
+	return result;
+}
+
+QFileInfoList util::loadAllFileLists(TreeWidgetItem* root, const QString& path, QStringList* list)
+{
+	/*添加path路徑文件*/
+	QDir dir(path); //遍歷各級子目錄
+	QDir dir_file(path); //遍歷子目錄中所有文件
+	dir_file.setFilter(QDir::Files | QDir::Hidden | QDir::NoSymLinks); //獲取當前所有文件
+	dir_file.setSorting(QDir::Size | QDir::Reversed);
+	const QStringList filters = { QString("*%1").arg(util::SCRIPT_SUFFIX_DEFAULT) };
+	dir_file.setNameFilters(filters);
+	QFileInfoList list_file = dir_file.entryInfoList();
+	for (const QFileInfo& item : list_file)
+	{ //將當前目錄中所有文件添加到treewidget中
+		if (list)
+			list->append(item.fileName());
+		TreeWidgetItem* child = q_check_ptr(new TreeWidgetItem(QStringList{ item.fileName() }, 1));
+		//child->setIcon(0, QIcon(QPixmap(":/image/icon_lua.png")));
+
+		root->addChild(child);
+	}
+
+	QFileInfoList file_list = dir.entryInfoList(QDir::Files | QDir::Hidden | QDir::NoSymLinks);
+	const QFileInfoList folder_list = dir.entryInfoList(QDir::Dirs | QDir::NoDotAndDotDot); //獲取當前所有目錄
+	int count = folder_list.size();
+	for (int i = 0; i != count; ++i) //自動遞歸添加各目錄到上一級目錄
+	{
+		const QString namepath = folder_list.at(i).absoluteFilePath(); //獲取路徑
+		const QFileInfo folderinfo = folder_list.at(i);
+		const QString name = folderinfo.fileName(); //獲取目錄名
+		if (list)
+			list->append(name);
+		TreeWidgetItem* childroot = q_check_ptr(new TreeWidgetItem(QStringList{ name }, 0));
+		//childroot->setIcon(0, QIcon(QPixmap(":/image/icon_directory.png")));
+		root->addChild(childroot); //將當前目錄添加成path的子項
+		const QFileInfoList child_file_list = loadAllFileLists(childroot, namepath); //進行遞歸
+		file_list.append(child_file_list);
+	}
+	return file_list;
+}
+
+bool util::enumAllFiles(const QString dir, const QString suffix, QVector<QPair<QString, QString>>* result)
+{
+	QDir directory(dir);
+
+	if (!directory.exists())
+	{
+		return false; // 目錄不存在，返回失敗
+	}
+
+	QFileInfoList fileList = directory.entryInfoList(QDir::Files | QDir::NoDotAndDotDot);
+	QFileInfoList dirList = directory.entryInfoList(QDir::Dirs | QDir::NoDotAndDotDot);
+
+	// 遍歷並匹配文件
+	for (const QFileInfo& fileInfo : fileList)
+	{
+		QString fileName = fileInfo.fileName();
+		QString filePath = fileInfo.filePath();
+
+		// 如果suffix不為空且文件名不以suffix結尾，則跳過
+		if (!suffix.isEmpty() && !fileName.endsWith(suffix, Qt::CaseInsensitive))
+		{
+			continue;
+		}
+
+		// 將匹配的文件信息添加到結果中
+		result->append(QPair<QString, QString>(fileName, filePath));
+	}
+
+	// 遞歸遍歷子目錄
+	for (const QFileInfo& dirInfo : dirList)
+	{
+		QString subDir = dirInfo.filePath();
+		bool success = enumAllFiles(subDir, suffix, result);
+		if (!success)
+		{
+			return false; // 遞歸遍歷失敗，返回失敗
+		}
+	}
+
+	return true; // 遍歷成功，返回成功
+}
 
 void util::FormSettingManager::loadSettings()
 {

@@ -18,6 +18,7 @@ public slots:
 	void onApplyHashSettingsToUI();
 private slots:
 	void onButtonClicked();
+	void onComboBoxClicked();
 	void onCheckBoxStateChanged(int state);
 	void onSpinBoxValueChanged(int value);
 	void onComboBoxCurrentIndexChanged(int value);

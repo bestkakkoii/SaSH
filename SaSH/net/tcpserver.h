@@ -272,9 +272,9 @@ constexpr const char* CANCLE = u8"cancle";
 constexpr int BATTLE_MAP_FILES = 220;
 constexpr int GRID_SIZE = 64;
 
-constexpr int LSTIME_SECONDS_PER_DAY = 5400;
-constexpr int LSTIME_HOURS_PER_DAY = 1024;
-constexpr int LSTIME_DAYS_PER_YEAR = 100;
+constexpr unsigned long long LSTIME_SECONDS_PER_DAY = 5400ULL;
+constexpr unsigned long long LSTIME_HOURS_PER_DAY = 1024ULL;
+constexpr unsigned long long LSTIME_DAYS_PER_YEAR = 100ULL;
 
 #if 0
 
@@ -923,12 +923,23 @@ enum PetState
 {
 	kNoneState,
 	kBattle,
-	kStandy,
+	kStandby,
 	kMail,
 	kRest,
 	kRide
 };
 
+enum BUTTON_TYPE
+{
+	BUTTON_NOTUSED = 0,
+	BUTTON_OK = 1,	   //確定
+	BUTTON_CANCEL = 2, //取消
+	BUTTON_YES = 4,	   //是
+	BUTTON_NO = 8,	   //否
+	BUTTON_CLOSE = 9,  //關閉
+	BUTTON_PREVIOUS = 16,  //上一頁
+	BUTTON_NEXT = 32,
+};
 #pragma endregion
 
 #pragma region Structs
@@ -1455,6 +1466,17 @@ typedef struct tagJOBDAILY
 	QString state = "";							// 狀態
 }JOBDAILY;
 
+typedef struct dialog_s
+{
+	int windowtype = 0;
+	int buttontype = 0;
+	int seqno = 0;
+	int objindex = 0;
+	QString data = "";
+	QStringList linedatas;
+}dialog_t;
+
+
 typedef struct battleobject_s
 {
 	int pos = -1;
@@ -1488,7 +1510,7 @@ typedef struct battledata_s
 
 typedef struct mapunit_s
 {
-	CHAR_TYPE type;
+	CHAR_TYPE type = CHAR_TYPENONE;
 	int id = 0;
 	int graNo = 0;
 	int x = 0;
@@ -1508,15 +1530,42 @@ typedef struct mapunit_s
 	int classNo = 0;
 	QString item_name = "";
 	int gold = 0;
-	int profession_class;
-	int profession_level;
-	int profession_skill_point;
+	int profession_class = 0;
+	int profession_level = 0;
+	int profession_skill_point = 0;
 	util::ObjectType objType = util::ObjectType::OBJ_UNKNOWN;
 	bool isvisible = false;
 	CHR_STATUS status = CHR_STATUS::CHR_STATUS_NONE;
 } mapunit_t;
 
 #pragma endregion
+
+static const QHash<QString, BUTTON_TYPE> buttonMap = {
+	{"OK", BUTTON_OK},
+	{"CANCEL", BUTTON_CANCEL},
+	{"YES", BUTTON_YES},
+	{"NO", BUTTON_NO},
+	{"CLOSE", BUTTON_CLOSE},
+	{"PREVIOUS", BUTTON_PREVIOUS},
+	{"NEXT", BUTTON_NEXT},
+
+	{"確認", BUTTON_YES},
+	{"確定", BUTTON_YES},
+	{"取消", BUTTON_NO},
+	{"關閉", BUTTON_CLOSE},
+	{"上一頁", BUTTON_PREVIOUS},
+	{"上一步", BUTTON_PREVIOUS},
+	{"下一頁", BUTTON_NEXT},
+	{"下一步", BUTTON_NEXT},
+
+
+	{"确认", BUTTON_YES},
+	{"确定", BUTTON_YES},
+	{"取消", BUTTON_NO},
+	{"关闭", BUTTON_CLOSE},
+	{"上一页", BUTTON_PREVIOUS},
+	{"下一页", BUTTON_NEXT},
+};
 
 class MapAnalyzer;
 class Server : public QObject
@@ -1549,7 +1598,7 @@ private slots:
 private:
 	inline bool isInterruptionRequested() const { return isRequestInterrupted.load(std::memory_order_acquire); }
 
-	int SaDispatchMessage(int fd, char* encoded);
+	int SaDispatchMessage(char* encoded);
 
 	void handleData(QTcpSocket* clientSocket, QByteArray data);
 
@@ -1583,6 +1632,7 @@ public://actions
 	void EO();
 
 	void dropItem(int index);
+	void dropItem(QVector<int> index);
 
 	void useItem(int itemIndex, int target);
 
@@ -1596,6 +1646,19 @@ public://actions
 
 	void setSwitcher(int flg);
 
+	void press(BUTTON_TYPE select, int seqno = -1, int objindex = -1);
+	void press(int row, int seqno = -1, int objindex = -1);
+
+	void buy(int index, int amt, int seqno = -1, int objindex = -1);
+	void sell(const QVector<int>& indexs, int seqno = -1, int objindex = -1);
+	void sell(int index, int seqno = -1, int objindex = -1);
+	void sell(const QString& name, const QString& memo = "", int seqno = -1, int objindex = -1);
+	void learn(int skillIndex, int petIndex, int spot, int seqno = -1, int objindex = -1);
+
+	void craft(util::CraftType type, const QStringList& ingres);
+
+	void setPetState(int petIndex, PetState state);
+
 	void updateDatasFromMemory();
 
 	void asyncBattleWork(bool wait = true);
@@ -1603,15 +1666,28 @@ public://actions
 	void downloadMap();
 	void downloadMap(int x, int y);
 
-	bool findUnit(const QString& name, int type, mapunit_t* unit) const
+	void cleanChatHistory();
+
+	bool findUnit(const QString& name, int type, mapunit_t* unit, const QString freename = "") const
 	{
 		QList<mapunit_t> units = mapUnitHash.values();
 		for (const mapunit_t& it : units)
 		{
-			if (it.name == name && (it.objType == type))
+			if (freename.isEmpty())
 			{
-				*unit = it;
-				return true;
+				if ((it.name == name) && (it.objType == type))
+				{
+					*unit = it;
+					return true;
+				}
+			}
+			else
+			{
+				if ((it.name == name) && (it.freeName == freename) && (it.objType == type))
+				{
+					*unit = it;
+					return true;
+				}
 			}
 		}
 		return false;
@@ -1619,10 +1695,15 @@ public://actions
 
 	void setTeamState(bool join);
 
+	void setPlayerFaceToPoint(const QPoint& pos);
 	void setPlayerFaceDirection(int dir);
 
 	QStringList getJoinableUnitList() const;
+	bool getItemIndexsByName(const QString& name, const QString& memo, QVector<int>* pv) const;
 	int getItemIndexByName(const QString& name, bool isExact = true, const QString& memo = "") const;
+	int getPetSkillIndexByName(int& petIndex, const QString& name) const;
+	int getMagicIndexByName(const QString& name, bool isExact = true) const;
+
 	void clear();
 
 	bool checkPlayerMp(int cmpvalue, int* target = nullptr, bool useequal = false);
@@ -1631,6 +1712,7 @@ public://actions
 	bool checkPartyHp(int cmpvalue, int* target);
 
 	bool isPetSpotEmpty() const;
+	bool checkJobDailyState(const QString& missionName, const QString& state);
 private:
 	void setBattleEnd();
 	void refreshItemInfo(int index);
@@ -1640,7 +1722,6 @@ private:
 	void setBattleFlag(bool enable);
 	void sortItem();
 
-	int getMagicIndexByName(const QString& name, bool isExact = true) const;
 	void getPlayerMaxCarryingCapacity();
 	inline Q_REQUIRED_RESULT constexpr bool isItemStackable(int flg) { return ((flg >> 2) & 1); }
 	QString getAreaString(int target);
@@ -1700,10 +1781,10 @@ private:
 
 	void updateMapArea(void)
 	{
-		mapAreaX1 = nowGx + MAP_TILE_GRID_X1;
-		mapAreaY1 = nowGy + MAP_TILE_GRID_Y1;
-		mapAreaX2 = nowGx + MAP_TILE_GRID_X2;
-		mapAreaY2 = nowGy + MAP_TILE_GRID_Y2;
+		mapAreaX1 = nowPoint.x() + MAP_TILE_GRID_X1;
+		mapAreaY1 = nowPoint.y() + MAP_TILE_GRID_Y1;
+		mapAreaX2 = nowPoint.x() + MAP_TILE_GRID_X2;
+		mapAreaY2 = nowPoint.y() + MAP_TILE_GRID_Y2;
 
 		if (mapAreaX1 < 0)
 			mapAreaX1 = 0;
@@ -1720,20 +1801,21 @@ private:
 
 	void resetMap(void)
 	{
-		nowGx = (int)(nowX / GRID_SIZE);
-		nowGy = (int)(nowY / GRID_SIZE);
-		nextGx = nowGx;
-		nextGy = nowGy;
-		nowX = (float)nowGx * GRID_SIZE;
-		nowY = (float)nowGy * GRID_SIZE;
+		//nowGx = (int)(nowX / GRID_SIZE);
+		//nowGy = (int)(nowY / GRID_SIZE);
+		nowPoint = QPoint(nowX / GRID_SIZE, nowY / GRID_SIZE);
+		nextGx = nowPoint.x();
+		nextGy = nowPoint.y();
+		nowX = (float)nowPoint.x() * GRID_SIZE;
+		nowY = (float)nowPoint.y() * GRID_SIZE;
 		oldGx = -1;
 		oldGy = -1;
 		oldNextGx = -1;
 		oldNextGy = -1;
-		mapAreaX1 = nowGx + MAP_TILE_GRID_X1;
-		mapAreaY1 = nowGy + MAP_TILE_GRID_Y1;
-		mapAreaX2 = nowGx + MAP_TILE_GRID_X2;
-		mapAreaY2 = nowGy + MAP_TILE_GRID_Y2;
+		mapAreaX1 = nowPoint.x() + MAP_TILE_GRID_X1;
+		mapAreaY1 = nowPoint.y() + MAP_TILE_GRID_Y1;
+		mapAreaX2 = nowPoint.x() + MAP_TILE_GRID_X2;
+		mapAreaY2 = nowPoint.y() + MAP_TILE_GRID_Y2;
 
 		if (mapAreaX1 < 0)
 			mapAreaX1 = 0;
@@ -1768,17 +1850,18 @@ private:
 
 	bool writeMap(int floor, int x1, int y1, int x2, int y2, unsigned short* tile, unsigned short* parts, unsigned short* event);
 
-	void setEventMemory(int x, int y, unsigned short ev);
+	void setEventMemory(const QPoint& pos, unsigned short ev);
 
 	inline void redrawMap(void) { oldGx = -1; oldGy = -1; }
 
-	inline void setPcWarpPoint(int gx, int gy) { setWarpMap(gx, gy); }
+	inline void setPcWarpPoint(const QPoint& pos) { setWarpMap(pos); }
 
 	inline void resetPc(void) { pc.status &= (~CHR_STATUS_LEADER); }
 
-	inline void setMap(int floor, int gx, int gy) { nowFloor = floor; setWarpMap(gx, gy); }
+	inline void setMap(int floor, const QPoint& pos) { nowFloor = floor; setWarpMap(pos); }
 
-	inline unsigned int TimeGetTime(void)
+
+	inline unsigned long long TimeGetTime(void)
 	{
 #ifdef _TIME_GET_TIME
 		static __int64 time;
@@ -1786,18 +1869,19 @@ private:
 		return (unsigned int)(time = CurrentTick.QuadPart / tickCount.QuadPart);
 		//return GetTickCount();
 #else
-		return GetTickCount();
+		return GetTickCount64();
 #endif
 	}
 
-	inline void setWarpMap(int gx, int gy)
+	inline void setWarpMap(const QPoint& pos)
 	{
-		nowGx = gx;
-		nowGy = gy;
-		nowX = (float)nowGx * GRID_SIZE;
-		nowY = (float)nowGy * GRID_SIZE;
-		nextGx = nowGx;
-		nextGy = nowGy;
+		//nowGx = gx;
+		//nowGy = gy;
+		nowPoint = pos;
+		nowX = (float)nowPoint.x() * GRID_SIZE;
+		nowY = (float)nowPoint.y() * GRID_SIZE;
+		nextGx = nowPoint.x();
+		nextGy = nowPoint.y();
 		nowVx = 0;
 		nowVy = 0;
 		nowSpdRate = 1;
@@ -1838,177 +1922,177 @@ private:
 
 private://lssproto
 #pragma region lssproto
-	void lssproto_W_send(int fd, int x, int y, char* direction);
-	void lssproto_W2_send(int fd, int x, int y, char* direction);
+	void lssproto_W_send(const QPoint& pos, char* direction);
+	void lssproto_W2_send(const QPoint& pos, char* direction);
 	//Cary say 戰鬥結束後的大地圖座標
-	void lssproto_XYD_recv(int fd, int x, int y, int dir);
-	void lssproto_EV_send(int fd, int event, int seqno, int x, int y, int dir);
-	void lssproto_EV_recv(int fd, int seqno, int result);
-	void lssproto_EN_send(int fd, int x, int y);
-	void lssproto_DU_send(int fd, int x, int y);
-	void lssproto_EN_recv(int fd, int result, int field);
-	void lssproto_EO_send(int fd, int dummy);
-	void lssproto_BU_send(int fd, int dummy);
-	void lssproto_JB_send(int fd, int x, int y);
-	void lssproto_LB_send(int fd, int x, int y);
-	void lssproto_RS_recv(int fd, char* data);
-	void lssproto_RD_recv(int fd, char* data);
-	void lssproto_B_send(int fd, char* command);
-	void lssproto_B_recv(int fd, char* command);
-	void lssproto_SKD_send(int fd, int dir, int index);
-	void lssproto_ID_send(int fd, int x, int y, int haveitemindex, int toindex);
-	void lssproto_PI_send(int fd, int x, int y, int dir);
-	void lssproto_DI_send(int fd, int x, int y, int itemindex);
-	void lssproto_DG_send(int fd, int x, int y, int amount);
-	void lssproto_DP_send(int fd, int x, int y, int petindex);
-	void lssproto_I_recv(int fd, char* data);
-	void lssproto_MI_send(int fd, int fromindex, int toindex);
-	void lssproto_SI_recv(int fd, int fromindex, int toindex);
-	void lssproto_MSG_send(int fd, int index, char* message, int color);
+	void lssproto_XYD_recv(const QPoint& pos, int dir);
+	void lssproto_EV_send(int event, int seqno, const QPoint& pos, int dir);
+	void lssproto_EV_recv(int seqno, int result);
+	void lssproto_EN_send(const QPoint& pos);
+	void lssproto_DU_send(const QPoint& pos);
+	void lssproto_EN_recv(int result, int field);
+	void lssproto_EO_send(int dummy);
+	void lssproto_BU_send(int dummy);
+	void lssproto_JB_send(const QPoint& pos);
+	void lssproto_LB_send(const QPoint& pos);
+	void lssproto_RS_recv(char* data);
+	void lssproto_RD_recv(char* data);
+	void lssproto_B_send(char* command);
+	void lssproto_B_recv(char* command);
+	void lssproto_SKD_send(int dir, int index);
+	void lssproto_ID_send(const QPoint& pos, int haveitemindex, int toindex);
+	void lssproto_PI_send(const QPoint& pos, int dir);
+	void lssproto_DI_send(const QPoint& pos, int itemindex);
+	void lssproto_DG_send(const QPoint& pos, int amount);
+	void lssproto_DP_send(const QPoint& pos, int petindex);
+	void lssproto_I_recv(char* data);
+	void lssproto_MI_send(int fromindex, int toindex);
+	void lssproto_SI_recv(int fromindex, int toindex);
+	void lssproto_MSG_send(int index, char* message, int color);
 	//Cary say 收到普通郵件或寵物郵件
-	void lssproto_MSG_recv(int fd, int aindex, char* text, int color);
-	void lssproto_PMSG_send(int fd, int index, int petindex, int itemindex, char* message, int color);
-	void lssproto_PME_recv(int fd, int objindex, int graphicsno, int x, int y, int dir, int flg, int no, char* cdata);
+	void lssproto_MSG_recv(int aindex, char* text, int color);
+	void lssproto_PMSG_send(int index, int petindex, int itemindex, char* message, int color);
+	void lssproto_PME_recv(int objindex, int graphicsno, const QPoint& pos, int dir, int flg, int no, char* cdata);
 	void lssproto_AB_send(int fd);
-	void lssproto_AB_recv(int fd, char* data);
-	void lssproto_ABI_recv(int fd, int num, char* data);
-	void lssproto_DAB_send(int fd, int index);
-	void lssproto_AAB_send(int fd, int x, int y);
-	void lssproto_L_send(int fd, int dir);
-	void lssproto_TK_send(int fd, int x, int y, char* message, int color, int area);
-	void lssproto_TK_recv(int fd, int index, char* message, int color);
-	void lssproto_MC_recv(int fd, int fl, int x1, int y1, int x2, int y2, int tilesum, int objsum, int eventsum, char* data);
-	void lssproto_M_send(int fd, int fl, int x1, int y1, int x2, int y2);
-	void lssproto_M_recv(int fd, int fl, int x1, int y1, int x2, int y2, char* data);
-	void lssproto_C_send(int fd, int index);
-	void lssproto_C_recv(int fd, char* data);
-	void lssproto_CA_recv(int fd, char* data);
-	void lssproto_CD_recv(int fd, char* data);
-	void lssproto_R_recv(int fd, char* data);
-	void lssproto_S_send(int fd, char* category);
-	void lssproto_S_recv(int fd, char* data);
-	void lssproto_D_recv(int fd, int category, int dx, int dy, char* data);
-	void lssproto_FS_send(int fd, int flg);
-	void lssproto_FS_recv(int fd, int flg);
-	void lssproto_HL_send(int fd, int flg);
+	void lssproto_AB_recv(char* data);
+	void lssproto_ABI_recv(int num, char* data);
+	void lssproto_DAB_send(int index);
+	void lssproto_AAB_send(const QPoint& pos);
+	void lssproto_L_send(int dir);
+	void lssproto_TK_send(const QPoint& pos, char* message, int color, int area);
+	void lssproto_TK_recv(int index, char* message, int color);
+	void lssproto_MC_recv(int fl, int x1, int y1, int x2, int y2, int tilesum, int objsum, int eventsum, char* data);
+	void lssproto_M_send(int fl, int x1, int y1, int x2, int y2);
+	void lssproto_M_recv(int fl, int x1, int y1, int x2, int y2, char* data);
+	void lssproto_C_send(int index);
+	void lssproto_C_recv(char* data);
+	void lssproto_CA_recv(char* data);
+	void lssproto_CD_recv(char* data);
+	void lssproto_R_recv(char* data);
+	void lssproto_S_send(char* category);
+	void lssproto_S_recv(char* data);
+	void lssproto_D_recv(int category, int dx, int dy, char* data);
+	void lssproto_FS_send(int flg);
+	void lssproto_FS_recv(int flg);
+	void lssproto_HL_send(int flg);
 	//戰鬥中是否要Help
-	void lssproto_HL_recv(int fd, int flg);
-	void lssproto_PR_send(int fd, int x, int y, int request);
-	void lssproto_PR_recv(int fd, int request, int result);
-	void lssproto_KS_send(int fd, int petarray);
+	void lssproto_HL_recv(int flg);
+	void lssproto_PR_send(const QPoint& pos, int request);
+	void lssproto_PR_recv(int request, int result);
+	void lssproto_KS_send(int petarray);
 	//Cary say 指定那一只寵物出場戰鬥
-	void lssproto_KS_recv(int fd, int petarray, int result);
+	void lssproto_KS_recv(int petarray, int result);
 
 #ifdef _STANDBYPET
-	void lssproto_SPET_send(int fd, int standbypet);
-	void lssproto_SPET_recv(int fd, int standbypet, int result);
+	void lssproto_SPET_send(int standbypet);
+	void lssproto_SPET_recv(int standbypet, int result);
 #endif
 
-	void lssproto_AC_send(int fd, int x, int y, int actionno);
-	void lssproto_MU_send(int fd, int x, int y, int array, int toindex);
-	void lssproto_PS_send(int fd, int havepetindex, int havepetskill, int toindex, char* data);
+	void lssproto_AC_send(const QPoint& pos, int actionno);
+	void lssproto_MU_send(const QPoint& pos, int array, int toindex);
+	void lssproto_PS_send(int havepetindex, int havepetskill, int toindex, char* data);
 	//Cary say 寵物合成
-	void lssproto_PS_recv(int fd, int result, int havepetindex, int havepetskill, int toindex);
-	void lssproto_ST_send(int fd, int titleindex);
-	void lssproto_DT_send(int fd, int titleindex);
-	void lssproto_FT_send(int fd, char* data);
+	void lssproto_PS_recv(int result, int havepetindex, int havepetskill, int toindex);
+	void lssproto_ST_send(int titleindex);
+	void lssproto_DT_send(int titleindex);
+	void lssproto_FT_send(char* data);
 	//Cary say 取得可加的屬性點數
-	void lssproto_SKUP_recv(int fd, int point);
-	void lssproto_SKUP_send(int fd, int skillid);
-	void lssproto_KN_send(int fd, int havepetindex, char* data);
-	void lssproto_WN_recv(int fd, int windowtype, int buttontype, int seqno, int objindex, char* data);
-	void lssproto_WN_send(int fd, int x, int y, int seqno, int objindex, int select, char* data);
-	void lssproto_EF_recv(int fd, int effect, int level, char* option);
-	void lssproto_SE_recv(int fd, int x, int y, int senumber, int sw);
-	void lssproto_SP_send(int fd, int x, int y, int dir);
+	void lssproto_SKUP_recv(int point);
+	void lssproto_SKUP_send(int skillid);
+	void lssproto_KN_send(int havepetindex, char* data);
+	void lssproto_WN_recv(int windowtype, int buttontype, int seqno, int objindex, char* data);
+	void lssproto_WN_send(const QPoint& pos, int seqno, int objindex, int select, char* data);
+	void lssproto_EF_recv(int effect, int level, char* option);
+	void lssproto_SE_recv(const QPoint& pos, int senumber, int sw);
+	void lssproto_SP_send(const QPoint& pos, int dir);
 #ifdef _NEW_CLIENT_LOGIN
-	void lssproto_ClientLogin_send(int fd, char* cdkey, char* passwd, char* mac, int selectServerIndex, char* ip);
+	void lssproto_ClientLogin_send(char* cdkey, char* passwd, char* mac, int selectServerIndex, char* ip);
 #else
-	void lssproto_ClientLogin_send(int fd, char* cdkey, char* passwd);
+	void lssproto_ClientLogin_send(char* cdkey, char* passwd);
 #endif
-	void lssproto_ClientLogin_recv(int fd, char* result);
+	void lssproto_ClientLogin_recv(char* result);
 
-	void lssproto_CreateNewChar_send(int fd, int dataplacenum, char* charname, int imgno, int faceimgno, int vital, int str, int tgh, int dex, int earth, int water, int fire, int wind, int hometown);
-	void lssproto_CreateNewChar_recv(int fd, char* result, char* data);
-	void lssproto_CharDelete_send(int fd, char* charname);
-	void lssproto_CharDelete_recv(int fd, char* result, char* data);
-	void lssproto_CharLogin_send(int fd, char* charname);
-	void lssproto_CharLogin_recv(int fd, char* result, char* data);
+	void lssproto_CreateNewChar_send(int dataplacenum, char* charname, int imgno, int faceimgno, int vital, int str, int tgh, int dex, int earth, int water, int fire, int wind, int hometown);
+	void lssproto_CreateNewChar_recv(char* result, char* data);
+	void lssproto_CharDelete_send(char* charname);
+	void lssproto_CharDelete_recv(char* result, char* data);
+	void lssproto_CharLogin_send(char* charname);
+	void lssproto_CharLogin_recv(char* result, char* data);
 	void lssproto_CharList_send(int fd);
-	void lssproto_CharList_recv(int fd, char* result, char* data);
-	void lssproto_CharLogout_send(int fd, int Flg);
-	void lssproto_CharLogout_recv(int fd, char* result, char* data);
+	void lssproto_CharList_recv(char* result, char* data);
+	void lssproto_CharLogout_send(int Flg);
+	void lssproto_CharLogout_recv(char* result, char* data);
 	void lssproto_ProcGet_send(int fd);
-	void lssproto_ProcGet_recv(int fd, char* data);
+	void lssproto_ProcGet_recv(char* data);
 	void lssproto_PlayerNumGet_send(int fd);
-	void lssproto_PlayerNumGet_recv(int fd, int logincount, int player);
-	void lssproto_Echo_send(int fd, char* test);
-	void lssproto_Echo_recv(int fd, char* test);
-	void lssproto_Shutdown_send(int fd, char* passwd, int min);
-	void lssproto_NU_recv(int fd, int AddCount);
-	void lssproto_TD_send(int fd, char* data);
-	void lssproto_TD_recv(int fd, char* data);
-	void lssproto_FM_send(int fd, char* data);
-	void lssproto_FM_recv(int fd, char* data);
+	void lssproto_PlayerNumGet_recv(int logincount, int player);
+	void lssproto_Echo_send(char* test);
+	void lssproto_Echo_recv(char* test);
+	void lssproto_Shutdown_send(char* passwd, int min);
+	void lssproto_NU_recv(int AddCount);
+	void lssproto_TD_send(char* data);
+	void lssproto_TD_recv(char* data);
+	void lssproto_FM_send(char* data);
+	void lssproto_FM_recv(char* data);
 	//Cary say 取得轉生的特效
-	void lssproto_WO_recv(int fd, int effect);
-	void lssproto_PETST_send(int fd, int nPet, int sPet);// sPet  0:休息 1:等待 4:郵件
-	void lssproto_BM_send(int fd, int iindex);             // _BLACK_MARKET
+	void lssproto_WO_recv(int effect);
+	void lssproto_PETST_send(int nPet, int sPet);// sPet  0:休息 1:等待 4:郵件
+	void lssproto_BM_send(int iindex);             // _BLACK_MARKET
 #ifdef _FIX_DEL_MAP
 	void lssproto_DM_send(int fd);                         // WON ADD 玩家抽地圖送監獄
 #endif
 #ifdef _MIND_ICON 
-	void lssproto_MA_send(int fd, int x, int y, int nMind);
+	void lssproto_MA_send(const QPoint& pos, int nMind);
 #endif
 #ifdef _ITEM_CRACKER 
-	void lssproto_IC_recv(int fd, int x, int y);
+	void lssproto_IC_recv(const QPoint& pos);
 #endif
 #ifdef _MAGIC_NOCAST//沈默
-	void lssproto_NC_recv(int fd, int flg);
+	void lssproto_NC_recv(int flg);
 #endif
 
 #ifdef _CHECK_GAMESPEED
 	void lssproto_CS_send(int fd);
-	void lssproto_CS_recv(int fd, int deltimes);
+	void lssproto_CS_recv(int deltimes);
 	int lssproto_getdelaytimes();
 	void lssproto_setdelaytimes(int delays);
 #endif
 
 #ifdef _TEAM_KICKPARTY
-	void lssproto_KTEAM_send(int fd, int si);
+	void lssproto_KTEAM_send(int si);
 #endif
 
 #ifdef _PETS_SELECTCON
-	void lssproto_PETST_recv(int fd, int petarray, int result);
+	void lssproto_PETST_recv(int petarray, int result);
 #endif
 #ifdef _CHATROOMPROTOCOL			// (不可開) Syu ADD 聊天室頻道
-	void lssproto_CHATROOM_send(int fd, char* data);
-	void lssproto_CHATROOM_recv(int fd, char* data);
+	void lssproto_CHATROOM_send(char* data);
+	void lssproto_CHATROOM_recv(char* data);
 #endif
 #ifdef _NEWREQUESTPROTOCOL			// (不可開) Syu ADD 新增Protocol要求細項
-	void lssproto_RESIST_send(int fd, char* data);
-	void lssproto_RESIST_recv(int fd, char* data);
+	void lssproto_RESIST_send(char* data);
+	void lssproto_RESIST_recv(char* data);
 #endif
 
 #ifdef _ALCHEPLUS
-	void lssproto_ALCHEPLUS_send(int fd, char* data);
-	void lssproto_ALCHEPLUS_recv(int fd, char* data);
+	void lssproto_ALCHEPLUS_send(char* data);
+	void lssproto_ALCHEPLUS_recv(char* data);
 #endif
 
 #ifdef _OUTOFBATTLESKILL			// (不可開) Syu ADD 非戰鬥時技能Protocol
-	void lssproto_BATTLESKILL_send(int fd, int SkillNum);
-	void lssproto_BATTLESKILL_recv(int fd, char* data);
+	void lssproto_BATTLESKILL_send(int SkillNum);
+	void lssproto_BATTLESKILL_recv(char* data);
 #endif
-	void lssproto_CHAREFFECT_recv(int fd, char* data);
+	void lssproto_CHAREFFECT_recv(char* data);
 
 #ifdef _STREET_VENDOR
-	void lssproto_STREET_VENDOR_send(int fd, char* data);	// 擺攤功能
-	void lssproto_STREET_VENDOR_recv(int fd, char* data);	// 擺攤功能
+	void lssproto_STREET_VENDOR_send(char* data);	// 擺攤功能
+	void lssproto_STREET_VENDOR_recv(char* data);	// 擺攤功能
 #endif
 
 #ifdef _JOBDAILY
-	void lssproto_JOBDAILY_send(int fd, char* data);
-	void lssproto_JOBDAILY_recv(int fd, char* data);
+	void lssproto_JOBDAILY_send(char* data);
+	void lssproto_JOBDAILY_recv(char* data);
 #endif
 
 #ifdef _FAMILYBADGE_
@@ -2017,38 +2101,38 @@ private://lssproto
 #endif
 
 #ifdef _TEACHER_SYSTEM
-	void lssproto_TEACHER_SYSTEM_send(int fd, char* data);	// 導師功能
-	void lssproto_TEACHER_SYSTEM_recv(int fd, char* data);
+	void lssproto_TEACHER_SYSTEM_send(char* data);	// 導師功能
+	void lssproto_TEACHER_SYSTEM_recv(char* data);
 #endif
 
 #ifdef _ADD_STATUS_2
-	void lssproto_S2_send(int fd, char* data);
-	void lssproto_S2_recv(int fd, char* data);
+	void lssproto_S2_send(char* data);
+	void lssproto_S2_recv(char* data);
 #endif
 
 #ifdef _ITEM_FIREWORK
-	void lssproto_Firework_recv(int fd, int nCharaindex, int nType, int nActionNum);	// 煙火功能
+	void lssproto_Firework_recv(int nCharaindex, int nType, int nActionNum);	// 煙火功能
 #endif
 #ifdef _PET_ITEM
-	void lssproto_PetItemEquip_send(int fd, int nGx, int nGy, int nPetNo, int nItemNo, int nDestNO);	// 寵物裝備功能
+	void lssproto_PetItemEquip_send(int nGx, int nGy, int nPetNo, int nItemNo, int nDestNO);	// 寵物裝備功能
 #endif
 #ifdef _THEATER
-	void lssproto_TheaterData_recv(int fd, char* pData);
+	void lssproto_TheaterData_recv(char* pData);
 #endif
 #ifdef _MOVE_SCREEN
-	void lssproto_MoveScreen_recv(int fd, BOOL bMoveScreenMode, int iXY);	// client 移動熒幕
+	void lssproto_MoveScreen_recv(BOOL bMoveScreenMode, int iXY);	// client 移動熒幕
 #endif
 #ifdef _GET_HOSTNAME
 	void lssproto_HostName_send(int fd);
 #endif
 
 #ifdef _NPC_MAGICCARD
-	void lssproto_MagiccardAction_recv(int fd, char* data);	//魔法牌功能
-	void lssproto_MagiccardDamage_recv(int fd, int position, int damage, int offsetx, int offsety);
+	void lssproto_MagiccardAction_recv(char* data);	//魔法牌功能
+	void lssproto_MagiccardDamage_recv(int position, int damage, int offsetx, int offsety);
 #endif
 
 #ifdef  _NPC_DANCE
-	void lssproto_DancemanOption_recv(int fd, int option);	//動一動狀態
+	void lssproto_DancemanOption_recv(int option);	//動一動狀態
 #endif
 
 #ifdef _ANNOUNCEMENT_
@@ -2056,19 +2140,19 @@ private://lssproto
 	void lssproto_DENGON_recv(char* data, int colors, int nums);
 #endif
 #ifdef _HUNDRED_KILL
-	void lssproto_hundredkill_recv(int fd, int flag);
+	void lssproto_hundredkill_recv(int flag);
 #endif
 #ifdef _PK2007
 	void lssproto_pkList_send(int fd);
-	void lssproto_pkList_recv(int fd, int count, char* data);
+	void lssproto_pkList_recv(int count, char* data);
 #endif
 #ifdef _NEW_SYSTEM_MENU
-	void lssproto_SaMenu_send(int fd, int index);
+	void lssproto_SaMenu_send(int index);
 #endif
 
 
 #ifdef _PETBLESS_
-	void lssproto_petbless_send(int fd, int petpos, int type);
+	void lssproto_petbless_send(int petpos, int type);
 #endif
 #ifdef _RIDEQUERY_
 	void lssproto_RideQuery_send(int fd);
@@ -2089,6 +2173,8 @@ public:
 	bool IS_ONLINE_FLAG = false;
 	bool IS_BATTLE_FLAG = false;
 
+	bool IS_SCRIPT_FLAG = false;
+
 	std::atomic_bool isPacketAutoClear = false;
 	bool disconnectflag = false;
 
@@ -2098,6 +2184,8 @@ public:
 
 	bool petEscapeEnableTempFlag = false;
 	int tempCatchPetTargetIndex = -1;
+
+	bool IS_WAITFOR_JOBDAILY_FLAG = false;
 
 	QFuture<void> ayncBattleCommand;
 	std::atomic_bool ayncBattleCommandFlag = false;
@@ -2133,8 +2221,8 @@ public:
 	int BattleMapNo = 0;
 
 	LSTIME SaTime = { 0 };
-	long serverTime = 0L;
-	long FirstTime = 0L;
+	unsigned long long serverTime = 0ULL;
+	unsigned long long FirstTime = 0ULL;
 	int SaTimeZoneNo = 0;
 
 	short charDelStatus = 0;
@@ -2198,9 +2286,11 @@ public:
 	int nowFloorGxSize = 0, nowFloorGySize = 0;
 	int oldGx = -1, oldGy = -1;
 	int mapAreaX1 = 0, mapAreaY1 = 0, mapAreaX2 = 0, mapAreaY2 = 0;
-	int nowGx = 0, nowGy = 0;
+	//int nowGx = 0, nowGy = 0;
+	QPoint nowPoint;
 	int mapAreaWidth = 0, mapAreaHeight = 0;
-	float nowX = (float)nowGx * GRID_SIZE, nowY = (float)nowGy * GRID_SIZE;
+	float nowX = (float)0 * GRID_SIZE;
+	float nowY = (float)0 * GRID_SIZE;
 	int nextGx = 0, nextGy = 0;
 	float nowVx = 0.0f, nowVy = 0.0f, nowSpdRate = 1.0f;
 	int oldNextGx = -1, oldNextGy = -1;
@@ -2268,12 +2358,17 @@ public:
 
 	PET_SKILL petSkill[MAX_PET][MAX_SKILL] = {};
 
+	dialog_t currentDialog = {};
+
 	JOBDAILY jobdaily[MAXMISSION] = {};
 	int JobdailyGetMax = 0;  //是否有接收到資料
 
 	util::SafeHash<int, mapunit_t> mapUnitHash;
+	util::SafeHash<QPoint, mapunit_t> npcUnitPointHash;
 
 	QScopedPointer<MapAnalyzer> mapAnalyzer;
+
+	util::SafeQueue<QString> chatQueue;
 
 	util::AfkRecorder recorder[6] = {};
 	QStringList enemyNameListCache;
@@ -2291,7 +2386,7 @@ private:
 	QFutureSynchronizer <void> sync_;
 	QMutex mutex_;
 	std::atomic_bool isRequestInterrupted = false;
-	int sockfd_ = 0;
+	//int sockfd_ = 0;
 	unsigned short port_ = 0;
 	QScopedPointer<QTcpServer> server_;
 	QList<QTcpSocket*> clientSockets_;

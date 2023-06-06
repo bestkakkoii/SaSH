@@ -1495,164 +1495,164 @@
 <context>
     <name>MainForm</name>
     <message>
-        <location filename="../mainform.cpp" line="206"/>
-        <location filename="../mainform.cpp" line="447"/>
+        <location filename="../mainform.cpp" line="208"/>
+        <location filename="../mainform.cpp" line="449"/>
         <source>general</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../mainform.cpp" line="213"/>
-        <location filename="../mainform.cpp" line="448"/>
+        <location filename="../mainform.cpp" line="215"/>
+        <location filename="../mainform.cpp" line="450"/>
         <source>map</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../mainform.cpp" line="219"/>
-        <location filename="../mainform.cpp" line="449"/>
+        <location filename="../mainform.cpp" line="221"/>
+        <location filename="../mainform.cpp" line="451"/>
         <source>afk</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../mainform.cpp" line="225"/>
-        <location filename="../mainform.cpp" line="450"/>
+        <location filename="../mainform.cpp" line="227"/>
+        <location filename="../mainform.cpp" line="452"/>
         <source>other</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../mainform.cpp" line="231"/>
-        <location filename="../mainform.cpp" line="451"/>
+        <location filename="../mainform.cpp" line="233"/>
+        <location filename="../mainform.cpp" line="453"/>
         <source>script</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../mainform.cpp" line="418"/>
+        <location filename="../mainform.cpp" line="420"/>
         <source>SaSH - Beta %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../mainform.cpp" line="441"/>
+        <location filename="../mainform.cpp" line="443"/>
         <source>char</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../mainform.cpp" line="443"/>
+        <location filename="../mainform.cpp" line="445"/>
         <source>pet</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../mainform.cpp" line="444"/>
+        <location filename="../mainform.cpp" line="446"/>
         <source>ride</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../mainform.cpp" line="486"/>
-        <location filename="../mainform.cpp" line="504"/>
+        <location filename="../mainform.cpp" line="488"/>
+        <location filename="../mainform.cpp" line="506"/>
         <source>unknown</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../mainform.cpp" line="487"/>
+        <location filename="../mainform.cpp" line="489"/>
         <source>not open</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../mainform.cpp" line="488"/>
+        <location filename="../mainform.cpp" line="490"/>
         <source>opening</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../mainform.cpp" line="489"/>
+        <location filename="../mainform.cpp" line="491"/>
         <source>opened</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../mainform.cpp" line="490"/>
+        <location filename="../mainform.cpp" line="492"/>
         <source>logining</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../mainform.cpp" line="491"/>
+        <location filename="../mainform.cpp" line="493"/>
         <source>signning</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../mainform.cpp" line="492"/>
+        <location filename="../mainform.cpp" line="494"/>
         <source>select server</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../mainform.cpp" line="493"/>
+        <location filename="../mainform.cpp" line="495"/>
         <source>select sub server</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../mainform.cpp" line="494"/>
+        <location filename="../mainform.cpp" line="496"/>
         <source>getting player list</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../mainform.cpp" line="495"/>
+        <location filename="../mainform.cpp" line="497"/>
         <source>select position</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../mainform.cpp" line="496"/>
+        <location filename="../mainform.cpp" line="498"/>
         <source>login success</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../mainform.cpp" line="497"/>
+        <location filename="../mainform.cpp" line="499"/>
         <source>in normal</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../mainform.cpp" line="498"/>
+        <location filename="../mainform.cpp" line="500"/>
         <source>in battle</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../mainform.cpp" line="499"/>
+        <location filename="../mainform.cpp" line="501"/>
         <source>busy</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../mainform.cpp" line="500"/>
+        <location filename="../mainform.cpp" line="502"/>
         <source>timeout</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../mainform.cpp" line="501"/>
+        <location filename="../mainform.cpp" line="503"/>
         <source>no username or password</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../mainform.cpp" line="502"/>
+        <location filename="../mainform.cpp" line="504"/>
         <source>disconnected</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../mainform.cpp" line="504"/>
+        <location filename="../mainform.cpp" line="506"/>
         <source>status:</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../mainform.cpp" line="508"/>
+        <location filename="../mainform.cpp" line="510"/>
         <source>map:</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../mainform.cpp" line="512"/>
+        <location filename="../mainform.cpp" line="514"/>
         <source>cursor:</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../mainform.cpp" line="516"/>
+        <location filename="../mainform.cpp" line="518"/>
         <source>coordis:</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../mainform.cpp" line="541"/>
-        <location filename="../mainform.cpp" line="614"/>
+        <location filename="../mainform.cpp" line="543"/>
+        <location filename="../mainform.cpp" line="616"/>
         <source>Json Files (*.json)</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1784,83 +1784,83 @@
 <context>
     <name>MapWidget</name>
     <message>
-        <location filename="../form/mapwidget.cpp" line="217"/>
+        <location filename="../form/mapwidget.cpp" line="218"/>
         <source>%1 map:%2 floor:%3 [%4,%5] file:%6 mouse:%7,%8</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/mapwidget.cpp" line="225"/>
+        <location filename="../form/mapwidget.cpp" line="226"/>
         <source>downloading(%1%2)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/mapwidget.cpp" line="273"/>
-        <location filename="../form/mapwidget.cpp" line="375"/>
+        <location filename="../form/mapwidget.cpp" line="275"/>
+        <location filename="../form/mapwidget.cpp" line="377"/>
         <source>UP</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/mapwidget.cpp" line="276"/>
-        <location filename="../form/mapwidget.cpp" line="378"/>
+        <location filename="../form/mapwidget.cpp" line="278"/>
+        <location filename="../form/mapwidget.cpp" line="380"/>
         <source>DWON</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/mapwidget.cpp" line="279"/>
-        <location filename="../form/mapwidget.cpp" line="381"/>
+        <location filename="../form/mapwidget.cpp" line="281"/>
+        <location filename="../form/mapwidget.cpp" line="383"/>
         <source>JUMP</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/mapwidget.cpp" line="282"/>
-        <location filename="../form/mapwidget.cpp" line="384"/>
+        <location filename="../form/mapwidget.cpp" line="284"/>
+        <location filename="../form/mapwidget.cpp" line="386"/>
         <source>WARP</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/mapwidget.cpp" line="285"/>
-        <location filename="../form/mapwidget.cpp" line="387"/>
+        <location filename="../form/mapwidget.cpp" line="287"/>
+        <location filename="../form/mapwidget.cpp" line="389"/>
         <source>UNKNOWN</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/mapwidget.cpp" line="302"/>
+        <location filename="../form/mapwidget.cpp" line="304"/>
         <source>X[%1]%2</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/mapwidget.cpp" line="329"/>
+        <location filename="../form/mapwidget.cpp" line="331"/>
         <source>[I]%1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/mapwidget.cpp" line="335"/>
+        <location filename="../form/mapwidget.cpp" line="337"/>
         <source>[G]%1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/mapwidget.cpp" line="342"/>
         <location filename="../form/mapwidget.cpp" line="344"/>
+        <location filename="../form/mapwidget.cpp" line="346"/>
         <source>[P]%2</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/mapwidget.cpp" line="344"/>
+        <location filename="../form/mapwidget.cpp" line="346"/>
         <source>X[P]%2</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/mapwidget.cpp" line="351"/>
+        <location filename="../form/mapwidget.cpp" line="353"/>
         <source>[H]%1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/mapwidget.cpp" line="353"/>
+        <location filename="../form/mapwidget.cpp" line="355"/>
         <source>X[H]%1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/mapwidget.cpp" line="362"/>
+        <location filename="../form/mapwidget.cpp" line="364"/>
         <source>X[NPC]%1</source>
         <translation type="unfinished"></translation>
     </message>
@@ -2403,208 +2403,243 @@ MESSAGE：<byte value="xd"/>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../util.h" line="871"/>
+        <location filename="../util.h" line="875"/>
         <source>%1 day %2 hour %3 min %4 sec %5 msec</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="1964"/>
+        <location filename="../net/tcpserver.cpp" line="1968"/>
         <source>player exp:</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="1997"/>
+        <location filename="../net/tcpserver.cpp" line="2001"/>
         <source>ride exp:</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="2009"/>
+        <location filename="../net/tcpserver.cpp" line="2013"/>
         <source>pet exp:</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="2047"/>
+        <location filename="../net/tcpserver.cpp" line="2051"/>
         <source>rewards:</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="2496"/>
+        <location filename="../net/tcpserver.cpp" line="2503"/>
         <source>dead</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="2498"/>
+        <location filename="../net/tcpserver.cpp" line="2505"/>
         <source>poisoned</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="2500"/>
+        <location filename="../net/tcpserver.cpp" line="2507"/>
         <source>paralyzed</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="2502"/>
+        <location filename="../net/tcpserver.cpp" line="2509"/>
         <source>sleep</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="2504"/>
+        <location filename="../net/tcpserver.cpp" line="2511"/>
         <source>petrified</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="2506"/>
+        <location filename="../net/tcpserver.cpp" line="2513"/>
         <source>dizzy</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="2508"/>
+        <location filename="../net/tcpserver.cpp" line="2515"/>
         <source>confused</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="2510"/>
+        <location filename="../net/tcpserver.cpp" line="2517"/>
         <source>hidden</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="3400"/>
+        <location filename="../net/tcpserver.cpp" line="3407"/>
         <source>server response time:%1ms</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="3813"/>
+        <location filename="../net/tcpserver.cpp" line="3820"/>
         <source>Tell you:</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="5474"/>
-        <location filename="../net/tcpserver.cpp" line="5865"/>
+        <location filename="../net/tcpserver.cpp" line="5483"/>
+        <location filename="../net/tcpserver.cpp" line="5874"/>
         <source>%1(%2tr)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="7641"/>
+        <location filename="../net/tcpserver.cpp" line="7670"/>
         <source>head</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="7641"/>
+        <location filename="../net/tcpserver.cpp" line="7670"/>
         <source>body</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="7641"/>
+        <location filename="../net/tcpserver.cpp" line="7670"/>
         <source>righthand</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="7641"/>
+        <location filename="../net/tcpserver.cpp" line="7670"/>
         <source>leftacc</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="7642"/>
+        <location filename="../net/tcpserver.cpp" line="7671"/>
         <source>rightacc</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="7642"/>
+        <location filename="../net/tcpserver.cpp" line="7671"/>
         <source>belt</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="7642"/>
+        <location filename="../net/tcpserver.cpp" line="7671"/>
         <source>lefthand</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="7642"/>
+        <location filename="../net/tcpserver.cpp" line="7671"/>
         <source>shoes</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="7643"/>
+        <location filename="../net/tcpserver.cpp" line="7672"/>
         <source>gloves</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="9327"/>
+        <location filename="../net/tcpserver.cpp" line="9356"/>
         <source>all allies</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="9329"/>
+        <location filename="../net/tcpserver.cpp" line="9358"/>
         <source>all enemies</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="9331"/>
+        <location filename="../net/tcpserver.cpp" line="9360"/>
         <source>all field</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="9333"/>
+        <location filename="../net/tcpserver.cpp" line="9362"/>
         <source>unknown</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="9946"/>
+        <location filename="../net/tcpserver.cpp" line="9975"/>
         <source>use attack [%1]%2</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="9976"/>
+        <location filename="../net/tcpserver.cpp" line="10005"/>
         <source>use magic %1 to [%2]%3</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="10012"/>
+        <location filename="../net/tcpserver.cpp" line="10041"/>
         <source>use skill %1 to [%2]%3</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="10049"/>
+        <location filename="../net/tcpserver.cpp" line="10078"/>
         <source>use item %1 to [%2]%3</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="10117"/>
+        <location filename="../net/tcpserver.cpp" line="10146"/>
         <source>catch [%1]%2</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="10195"/>
+        <location filename="../net/tcpserver.cpp" line="10224"/>
         <source>use %1 to [%2]%3</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="10075"/>
+        <location filename="../net/tcpserver.cpp" line="10104"/>
         <source>defense</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="10095"/>
+        <location filename="../net/tcpserver.cpp" line="10124"/>
         <source>escape</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="10140"/>
+        <location filename="../net/tcpserver.cpp" line="10169"/>
         <source>switch pet to %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="10162"/>
-        <location filename="../net/tcpserver.cpp" line="10221"/>
+        <location filename="../net/tcpserver.cpp" line="10191"/>
+        <location filename="../net/tcpserver.cpp" line="10250"/>
         <source>do nothing</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="9982"/>
-        <location filename="../net/tcpserver.cpp" line="10018"/>
-        <location filename="../net/tcpserver.cpp" line="10055"/>
-        <location filename="../net/tcpserver.cpp" line="10199"/>
+        <location filename="../net/tcpserver.cpp" line="10011"/>
+        <location filename="../net/tcpserver.cpp" line="10047"/>
+        <location filename="../net/tcpserver.cpp" line="10084"/>
+        <location filename="../net/tcpserver.cpp" line="10228"/>
         <source>use %1 to %2</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>ScriptForm</name>
+    <message>
+        <location filename="../form/scriptform.cpp" line="175"/>
+        <source>command</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../form/scriptform.cpp" line="175"/>
+        <source>params</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../form/scriptform.cpp" line="91"/>
+        <location filename="../form/scriptform.cpp" line="297"/>
+        <source>start</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../form/scriptform.cpp" line="92"/>
+        <location filename="../form/scriptform.cpp" line="142"/>
+        <source>pause</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../form/scriptform.cpp" line="137"/>
+        <source>resume</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../form/scriptform.cpp" line="301"/>
+        <source>mid-start</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -2616,32 +2651,47 @@ MESSAGE：<byte value="xd"/>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/scriptform.ui" line="51"/>
+        <location filename="../form/scriptform.ui" line="54"/>
         <source>scripts</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/scriptform.ui" line="64"/>
+        <location filename="../form/scriptform.ui" line="67"/>
         <source>script:</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/scriptform.ui" line="71"/>
-        <source>current row: 0/0</source>
+        <location filename="../form/scriptform.ui" line="94"/>
+        <source>current row:</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/scriptform.ui" line="93"/>
+        <location filename="../form/scriptform.ui" line="104"/>
+        <source>0/0</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../form/scriptform.ui" line="118"/>
+        <source>command</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../form/scriptform.ui" line="123"/>
+        <source>params</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../form/scriptform.ui" line="137"/>
         <source>start</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/scriptform.ui" line="100"/>
+        <location filename="../form/scriptform.ui" line="147"/>
         <source>pause</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../form/scriptform.ui" line="107"/>
+        <location filename="../form/scriptform.ui" line="157"/>
         <source>stop</source>
         <translation type="unfinished"></translation>
     </message>
@@ -2958,87 +3008,87 @@ MESSAGE：<byte value="xd"/>
 <context>
     <name>Server</name>
     <message>
-        <location filename="../net/tcpserver.cpp" line="5511"/>
+        <location filename="../net/tcpserver.cpp" line="5520"/>
         <source>1st//Acticity</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="5511"/>
+        <location filename="../net/tcpserver.cpp" line="5520"/>
         <source>2nd///Market</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="5511"/>
+        <location filename="../net/tcpserver.cpp" line="5520"/>
         <source>3rd//Family</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="5511"/>
+        <location filename="../net/tcpserver.cpp" line="5520"/>
         <source>4th//Away</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="5512"/>
+        <location filename="../net/tcpserver.cpp" line="5521"/>
         <source>5th//Away</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="5512"/>
+        <location filename="../net/tcpserver.cpp" line="5521"/>
         <source>6th//Away</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="5512"/>
+        <location filename="../net/tcpserver.cpp" line="5521"/>
         <source>7th//Away</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="5512"/>
+        <location filename="../net/tcpserver.cpp" line="5521"/>
         <source>8th//Away</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="5513"/>
+        <location filename="../net/tcpserver.cpp" line="5522"/>
         <source>9th//Away</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="5513"/>
+        <location filename="../net/tcpserver.cpp" line="5522"/>
         <source>15th//Company</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="5513"/>
+        <location filename="../net/tcpserver.cpp" line="5522"/>
         <source>21th//Member</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="5513"/>
+        <location filename="../net/tcpserver.cpp" line="5522"/>
         <source>22th//Member</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="5517"/>
+        <location filename="../net/tcpserver.cpp" line="5526"/>
         <source>Telecom</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="5517"/>
+        <location filename="../net/tcpserver.cpp" line="5526"/>
         <source>UnitedNetwork</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="5517"/>
+        <location filename="../net/tcpserver.cpp" line="5526"/>
         <source>Easyown</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="5517"/>
+        <location filename="../net/tcpserver.cpp" line="5526"/>
         <source>Oversea</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="5517"/>
+        <location filename="../net/tcpserver.cpp" line="5526"/>
         <source>Backup</source>
         <translation type="unfinished"></translation>
     </message>

@@ -10,14 +10,11 @@ private:
 	Injector() = default;
 	static Injector* instance;
 public:
-	virtual ~Injector()
-	{
-		qDebug() << "Injector is destroyed";
-	}
+	virtual ~Injector();
 
 	static Injector& getInstance()
 	{
-		if (instance == nullptr)
+		if (nullptr == instance)
 		{
 			instance = new Injector();
 		}
@@ -50,10 +47,13 @@ public:
 		kEnableBattleDialog,
 		kSetGameStatus,
 		kSetBLockPacket,
+		kBattleTimeExtend,
 
 		//Action
 		kSendAnnounce,
 		kSetMove,
+		kDistoryDialog,
+		kCleanChatHistory,
 	};
 
 	typedef struct process_information_s
@@ -63,11 +63,7 @@ public:
 		HWND hWnd = nullptr;
 	} process_information_t, * pprocess_information_t, * lpprocess_information_t;
 
-	inline void close() const
-	{
-		if (processHandle_)
-			MINT::NtTerminateProcess(processHandle_, 0);
-	}
+	inline void close() const { if (processHandle_) MINT::NtTerminateProcess(processHandle_, 0); }
 
 	Q_REQUIRED_RESULT inline HANDLE getProcess() const { return processHandle_; }
 
@@ -85,28 +81,11 @@ public:
 
 	void remoteFreeModule();
 
-	bool isWindowAlive() const;
+	Q_REQUIRED_RESULT bool isWindowAlive() const;
 
-	int sendMessage(int msg, int wParam, int lParam) const
-	{
-		if (!msg) return 0;
+	int sendMessage(int msg, int wParam, int lParam) const;
 
-#ifdef _WIN64
-		DWORD_PTR dwResult = NULL;
-		SendMessageTimeoutA(m_pi.hWnd, msg, wParam, lParam, SMTO_ABORTIFHUNG | SMTO_NOTIMEOUTIFNOTHUNG, 5000, &dwResult);
-#else
-		DWORD dwResult = NULL;
-		SendMessageTimeoutW(pi_.hWnd, msg, wParam, lParam, SMTO_ABORTIFHUNG | SMTO_ERRORONEXIT | SMTO_BLOCK, 5000, &dwResult);
-#endif
-		return static_cast<int>(dwResult);
-	}
-
-	bool postMessage(int msg, int wParam, int lParam)
-	{
-		if (!msg) return 0;
-		BOOL ret = PostMessageW(pi_.hWnd, msg, wParam, lParam);
-		return  ret == TRUE;
-	}
+	bool postMessage(int msg, int wParam, int lParam) const;
 
 	inline void setValueHash(util::UserSetting setting, int value) { userSetting_value_hash_.insert(setting, value); }
 
@@ -155,19 +134,7 @@ private:
 		return TRUE;
 	}
 
-	bool isHandleValid(qint64 pid)
-	{
-		if (!pid)
-			pid = pi_.dwProcessId;
-		if (!pid)
-			return false;
-		if (!processHandle_.isValid())
-		{
-			processHandle_.reset(pid);
-			return processHandle_.isValid();
-		}
-		return true;
-	}
+	Q_REQUIRED_RESULT bool isHandleValid(qint64 pid);
 
 public:
 	QScopedPointer<Server> server;
@@ -175,9 +142,8 @@ public:
 private:
 	int hModule_ = NULL;
 	HMODULE hookdllModule_ = NULL;
-	process_information_t pi_ = {  };
+	process_information_t pi_ = {};
 	QScopedHandle processHandle_;
-
 
 	util::SafeHash<util::UserData, QVariant> userData_hash_ = {
 		{ util::kUserItemNames, QStringList() },
@@ -280,6 +246,10 @@ private:
 		//other->group
 		{ util::kAutoFunTypeValue, 0 },
 
+		//lockpet
+		{ util::kLockPetValue, 0 },
+		{ util::kLockRideValue, 0 },
+
 		{ util::kSettingMaxValue, util::kSettingMaxValue },
 		{ util::kSettingMinString, util::kSettingMinString },
 		{ util::kSettingMaxString, util::kSettingMaxString }
@@ -360,6 +330,9 @@ private:
 		{ util::kDropPetHpEnable, false },
 		{ util::kDropPetAggregateEnable, false },
 
+		//lockpet
+		{ util::kLockPetEnable, false },
+		{ util::kLockRideEnable, false },
 		//other->group
 
 	};

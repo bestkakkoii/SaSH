@@ -19,7 +19,7 @@ signals:
 	//global
 	void applyHashSettingsToUI();
 	void saveHashSettings(const QString& name = "default");
-	void loadHashSettings(const QString& name = "default");
+	void loadHashSettings(const QString& name = "default", bool isFullPath = false);
 
 	//mainform
 	void updateCharHpProgressValue(int level, int value, int maxvalue);
@@ -50,6 +50,9 @@ signals:
 
 	void setStartButtonEnabled(bool enable);
 
+	//mapform
+	void updateNpcList(int floor);
+
 	//afkform
 	void updateComboBoxItemText(int type, const QStringList& textList);
 
@@ -59,6 +62,10 @@ signals:
 	//otherform->group
 	void updateTeamInfo(const QStringList& text);
 
+
+	//script
+	void scriptLabelRowTextChanged(int row, bool noSelect);
+	void scriptPaused();
 
 	//void loadHashSettings(const QString& name = "default");
 };

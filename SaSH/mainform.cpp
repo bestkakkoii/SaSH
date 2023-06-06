@@ -158,10 +158,12 @@ MainForm::MainForm(QWidget* parent)
 	: QMainWindow(parent)
 {
 	ui.setupUi(this);
-
 	setAttribute(Qt::WA_QuitOnClose);
 	setAttribute(Qt::WA_StyledBackground, true);
 	setAttribute(Qt::WA_StaticContents, true);
+	setStyleSheet(R"(
+		QMainWindow{ border-radius: 10px; }
+	)");
 
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
 
@@ -590,40 +592,48 @@ void MainForm::onSaveHashSettings(const QString& name)
 
 }
 
-void MainForm::onLoadHashSettings(const QString& name)
+void MainForm::onLoadHashSettings(const QString& name, bool isFullPath)
 {
-	QString newFileName = name;
-	if (newFileName.isEmpty())
-		newFileName = "default";
-
-	newFileName += ".json";
-
-	QString directory = QCoreApplication::applicationDirPath() + "/settings/";
-	QString fileName(directory + newFileName);
-
-	QDir dir(directory);
-	if (!dir.exists())
+	QString fileName;
+	if (isFullPath)
 	{
-		dir.mkpath(directory);
-	}
-
-	QFileDialog dialog(this);
-	dialog.setFileMode(QFileDialog::ExistingFile);
-	dialog.setAcceptMode(QFileDialog::AcceptOpen);
-	dialog.setDirectory(directory);
-	dialog.setNameFilter(tr("Json Files (*.json)"));
-	dialog.selectFile(newFileName);
-
-	if (dialog.exec() == QDialog::Accepted)
-	{
-		QStringList fileNames = dialog.selectedFiles();
-		if (fileNames.size() > 0)
-		{
-			fileName = fileNames[0];
-		}
+		fileName = name;
 	}
 	else
-		return;
+	{
+		QString newFileName = name;
+		if (newFileName.isEmpty())
+			newFileName = "default";
+
+		newFileName += ".json";
+
+		QString directory = QCoreApplication::applicationDirPath() + "/settings/";
+		fileName = QString(directory + newFileName);
+
+		QDir dir(directory);
+		if (!dir.exists())
+		{
+			dir.mkpath(directory);
+		}
+
+		QFileDialog dialog(this);
+		dialog.setFileMode(QFileDialog::ExistingFile);
+		dialog.setAcceptMode(QFileDialog::AcceptOpen);
+		dialog.setDirectory(directory);
+		dialog.setNameFilter(tr("Json Files (*.json)"));
+		dialog.selectFile(newFileName);
+
+		if (dialog.exec() == QDialog::Accepted)
+		{
+			QStringList fileNames = dialog.selectedFiles();
+			if (fileNames.size() > 0)
+			{
+				fileName = fileNames[0];
+			}
+		}
+		else
+			return;
+	}
 
 	if (!QFile::exists(fileName))
 		return;

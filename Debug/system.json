@@ -1,13 +1,17 @@
 {
     "Form": {
         "InfoFormClass": {
-            "Geometry": "AwMaXQpmOUYEfByaGA2z+PvIcYSKlco8JiCcz5r6qVolpGLJ18StQj0oWkC90YsYFf11kMOw5cU=",
+            "Geometry": "AwMe5IDss8yO9pYQkoc5cnFC+w4AWQTyV1vtZKSIYQQUI5iE/REyclIJJsL2QgapzMwxi736",
             "Size": "973,354"
         },
         "MainFormClass": {
-            "Geometry": "AwMtBSBME2wuVjawMieZ0tHiW66g64R7erFqibH77bKNnO6aoz1tE+r4TvsFt2g5OjqeZ145",
+            "Geometry": "AwPhzYzgv8CC+pocnos1fn1O9wIMjbPMz9ka37rEE5uZoFqJPEyD0RAQr6aVEXwDDftHkg==",
             "Size": "354,506",
-            "State": "AwPRLzhUC3ReJkbAnpI1hUWF/+ZPInEWhQVHpwmk+UNffznbwaj35e3pMw=="
+            "State": "AwMM8uWJ1qmD+5sdQ0/oWJhYIjuS/6zLWNiaetR5JJ6CouQGHHUqODA07g=="
+        },
+        "MapWidgetClass": {
+            "Geometry": "AwMO9+uH2Kflnf17+exSGRopkGXrr/GH/PpGFV81bLU2dnKlC3gguxwdXryaVolLSherTl1AGJw=",
+            "Size": "580,611"
         }
     },
     "System": {

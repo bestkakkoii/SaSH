@@ -67,6 +67,35 @@
            <number>1</number>
           </property>
           <item>
+           <layout class="QHBoxLayout" name="horizontalLayout">
+            <property name="spacing">
+             <number>1</number>
+            </property>
+            <item>
+             <widget class="ComboBox" name="comboBox_setting"/>
+            </item>
+            <item>
+             <widget class="QPushButton" name="pushButton_setting">
+              <property name="minimumSize">
+               <size>
+                <width>35</width>
+                <height>0</height>
+               </size>
+              </property>
+              <property name="maximumSize">
+               <size>
+                <width>35</width>
+                <height>16777215</height>
+               </size>
+              </property>
+              <property name="text">
+               <string>set</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+          <item>
            <layout class="QHBoxLayout" name="horizontalLayout_3">
             <property name="spacing">
              <number>1</number>
@@ -386,7 +415,7 @@
               <item>
                <widget class="QCheckBox" name="checkBox_knpc">
                 <property name="enabled">
-                 <bool>false</bool>
+                 <bool>true</bool>
                 </property>
                 <property name="text">
                  <string>knpc</string>
@@ -693,7 +722,7 @@
             <item>
              <widget class="QCheckBox" name="checkBox_battletimeextend">
               <property name="enabled">
-               <bool>false</bool>
+               <bool>true</bool>
               </property>
               <property name="text">
                <string>battle time</string>
@@ -899,13 +928,16 @@
          <item>
           <widget class="QPushButton" name="pushButton_leavegroup">
            <property name="enabled">
-            <bool>false</bool>
+            <bool>true</bool>
            </property>
            <property name="maximumSize">
             <size>
              <width>40</width>
              <height>16777215</height>
             </size>
+           </property>
+           <property name="tabletTracking">
+            <bool>false</bool>
            </property>
            <property name="text">
             <string>leave</string>

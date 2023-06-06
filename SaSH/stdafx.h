@@ -186,6 +186,7 @@ public:\
 #include <QList>
 #include <QMap>
 #include <QHash>
+#include <QStack>
 #include <QPoint>
 #include <QQueue>
 #include <QMultiHash>
