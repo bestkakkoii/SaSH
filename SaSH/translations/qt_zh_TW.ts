@@ -680,7 +680,7 @@
     </message>
     <message>
         <source>char</source>
-        <translation>人物</translation>
+        <translation type="vanished">人物</translation>
     </message>
     <message>
         <source>autologin</source>
@@ -913,6 +913,10 @@
     <message>
         <source>set</source>
         <translation>應用</translation>
+    </message>
+    <message>
+        <source>pos</source>
+        <translation>位置</translation>
     </message>
 </context>
 <context>
@@ -1202,7 +1206,7 @@
     </message>
     <message>
         <source>SaSH - Beta %1</source>
-        <translation type="unfinished">石器助手 - Beta %1</translation>
+        <translation>石器助手 - Beta %1</translation>
     </message>
     <message>
         <source>unknown</source>
