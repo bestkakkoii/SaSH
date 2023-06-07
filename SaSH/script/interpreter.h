@@ -3,6 +3,7 @@
 #include <QScopedPointer>
 #include <atomic>
 #include "parser.h"
+#include "util.h"
 
 using TokenMap = QMap<int, Token>;
 
@@ -134,6 +135,8 @@ private:
 	bool waitfor(int timeout, std::function<bool()> exprfun) const;
 	bool checkString(const TokenMap& TK, int idx, QString* ret) const;
 	bool checkInt(const TokenMap& TK, int idx, int* ret) const;
+	bool checkDouble(const TokenMap& TK, int idx, double* ret) const;
+	bool toVariant(const TokenMap& TK, int idx, QVariant* ret) const;
 	int checkJump(const TokenMap& TK, int idx, bool expr, JumpBehavior behavior) const;
 	bool checkRange(const TokenMap& TK, int idx, int* min, int* max) const;
 	bool checkRelationalOperator(const TokenMap& TK, int idx, RESERVE* ret) const;
@@ -180,6 +183,7 @@ private: //註冊給Parser的函數
 	//check-group
 	int checkteam(const TokenMap& TK);
 	int checkteamcount(const TokenMap& TK);
+	int cmp(const TokenMap& TK);
 
 	//move
 	int setdir(const TokenMap& TK);
@@ -202,6 +206,20 @@ private: //註冊給Parser的函數
 	int make(const TokenMap& TK);
 	int cook(const TokenMap& TK);
 	int usemagic(const TokenMap& TK);
+	int pickitem(const TokenMap& TK);
+	int depositgold(const TokenMap& TK);
+	int withdrawgold(const TokenMap& TK);
+	int warp(const TokenMap& TK);
+	int leftclick(const TokenMap& TK);
+
+	int recordequip(const TokenMap& TK);
+	int wearequip(const TokenMap& TK);
+	int unwearequip(const TokenMap& TK);
+
+	int depositpet(const TokenMap& TK);
+	int deposititem(const TokenMap& TK);
+	int withdrawpet(const TokenMap& TK);
+	int withdrawitem(const TokenMap& TK);
 
 	//action-group
 	int join(const TokenMap& TK);
@@ -219,7 +237,7 @@ private:
 	std::atomic_bool isRequestInterrupted = false;
 	QString currentMainScriptFileName_ = "";
 	QString currentMainScriptString_ = "";
-	QHash<QString, QHash<int, TokenMap>> alltokens_;//所有已加載過的腳本Tokens
+	util::SafeHash<QString, QHash<int, TokenMap>> alltokens_;//所有已加載過的腳本Tokens
 	QThread* thread_ = nullptr;
 	QScopedPointer<Lexer> lexer_;
 	QScopedPointer<Parser> parser_;

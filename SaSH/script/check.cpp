@@ -125,23 +125,30 @@ int Interpreter::checkdialog(const TokenMap& TK)
 	if (!checkRange(TK, 2, &min, &max))
 		return Parser::kArgError;
 
-	bool bret = false;
-	QStringList dialogList = injector.server->currentDialog.linedatas;
-	for (int i = min; i <= max; i++)
-	{
-		if (i >= dialogList.size())
-			break;
+	QThread::msleep(100);
 
-		QString text = dialogList.at(i);
-		if (text.isEmpty())
-			continue;
-
-		if (text.contains(cmpStr))
+	bool bret = waitfor(5000, [&injector, min, max, cmpStr]()->bool
 		{
-			bret = true;
-			break;
-		}
-	}
+			QStringList dialogList = injector.server->currentDialog.linedatas;
+			for (int i = min; i <= max; i++)
+			{
+				if (i >= dialogList.size())
+					break;
+
+				QString text = dialogList.at(i);
+				if (text.isEmpty())
+					continue;
+
+				if (text.contains(cmpStr))
+				{
+					QThread::msleep(100);
+					return true;
+				}
+			}
+
+			return false;
+		});
+
 
 	return checkJump(TK, 3, bret, FailedJump);
 }
@@ -164,18 +171,18 @@ int Interpreter::checkchathistory(const TokenMap& TK)
 	if (cmpStr.isEmpty())
 		return Parser::kArgError;
 
-	QVector<QString> chatHistory = injector.server->chatQueue.values();
+	QVector<QPair<int, QString>> chatHistory = injector.server->chatQueue.values();
 	bool bret = false;
 	for (int i = min; i <= max; i++)
 	{
 		if (i >= chatHistory.size())
 			break;
 
-		QString text = chatHistory.at(i);
-		if (text.isEmpty())
+		QPair<int, QString> text = chatHistory.at(i);
+		if (text.second.isEmpty())
 			continue;
 
-		if (text.contains(cmpStr))
+		if (text.second.contains(cmpStr))
 		{
 			bret = true;
 			break;
@@ -361,4 +368,22 @@ int Interpreter::checkpet(const TokenMap& TK)
 
 	QVector<int> v;
 	return checkJump(TK, 4, injector.server->getPetIndexsByName(petName, &v), FailedJump);
+}
+
+int Interpreter::cmp(const TokenMap& TK)
+{
+	QVariant a;
+	QVariant b;
+
+	if (!toVariant(TK, 1, &a))
+		return Parser::kArgError;
+
+	RESERVE op;
+	if (checkRelationalOperator(TK, 2, &op))
+		return Parser::kArgError;
+
+	if (!toVariant(TK, 3, &b))
+		return Parser::kArgError;
+
+	return checkJump(TK, 4, compare(a, b, op), SuccessJump);
 }

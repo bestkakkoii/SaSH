@@ -45,7 +45,7 @@ void createMenu(QMenuBar* pMenuBar)
 				}
 				QMenu::item:selected {
 					background-color: rgb(240, 240, 240); /*選中的樣式*/
-					border: 2px solid rgb(249, 249, 249); /*选中状态下的边框*/
+					border: 2px solid rgb(249, 249, 249); /*選中狀態下的邊框*/
 				}
 				QMenu::item:pressed {
 					/*菜單項按下效果

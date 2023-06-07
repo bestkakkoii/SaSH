@@ -74,20 +74,23 @@ static const QHash<QString, RESERVE> keywords = {
 	{ u8"使用道具", TK_CMD },
 	{ u8"丟棄道具", TK_CMD },
 	{ u8"撿物", TK_CMD },
-	{ u8"存入", TK_CMD },
+	//{ u8"存入", TK_CMD },
 	{ u8"存入道具", TK_CMD },
-	{ u8"存入道具倉庫", TK_CMD },
+	{ u8"提出道具", TK_CMD },
+	//{ u8"存入道具倉庫", TK_CMD },
 	{ u8"存入寵物", TK_CMD },
-	{ u8"存入寵物倉庫", TK_CMD },
+	//{ u8"存入寵物倉庫", TK_CMD },
 	{ u8"提出寵物", TK_CMD },
-	{ u8"提出寵物倉庫", TK_CMD },
+	//{ u8"提出寵物倉庫", TK_CMD },
 	{ u8"存錢", TK_CMD },
+	{ u8"提錢", TK_CMD },
 	{ u8"加工", TK_CMD },
 	{ u8"料理", TK_CMD },
 	{ u8"修復", TK_CMD },
+	{ u8"轉移", TK_CMD },
 	{ u8"卸下裝備", TK_CMD },
 	{ u8"記錄身上裝備", TK_CMD },
-	{ u8"檢測記錄裝備", TK_CMD },
+	//{ u8"檢測記錄裝備", TK_CMD },
 	{ u8"裝上記錄裝備", TK_CMD },
 
 	//action with sub cmd
@@ -125,12 +128,12 @@ static const QHash<QString, RESERVE> keywords = {
 	{ u8"移動至NPC", TK_CMD },
 
 	//mouse
-	{ u8"左雙擊", TK_CMD },
-	{ u8"右雙擊", TK_CMD },
-	{ u8"鼠移", TK_CMD },
+	//{ u8"左雙擊", TK_CMD },
+	//{ u8"右雙擊", TK_CMD },
+	//{ u8"鼠移", TK_CMD },
 	{ u8"左擊", TK_CMD },
-	{ u8"右擊", TK_CMD },
-	{ u8"左拖", TK_CMD },
+	//{ u8"右擊", TK_CMD },
+	//{ u8"左拖", TK_CMD },
 
 	//... 其他後續增加的關鍵字
 };

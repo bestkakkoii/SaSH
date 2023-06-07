@@ -257,7 +257,6 @@ int MainObject::checkAndRunFunctions()
 	if (login_run_once_flag_)
 	{
 		login_run_once_flag_ = false;
-		emit signalDispatcher.applyHashSettingsToUI();
 		for (int i = 0; i < 15; ++i)
 		{
 			if (isInterruptionRequested())
@@ -265,7 +264,7 @@ int MainObject::checkAndRunFunctions()
 			QThread::msleep(100);
 		}
 		injector.server->isPacketAutoClear.store(true, std::memory_order_release);
-
+		injector.server->EO();
 		emit signalDispatcher.updateStatusLabelTextChanged(util::kLabelStatusLoginSuccess);
 
 		//登入後的廣告公告
@@ -310,6 +309,7 @@ int MainObject::checkAndRunFunctions()
 			injector.server->recorder[i + 1] = recorder;
 		}
 		emit signalDispatcher.updateNpcList(injector.server->nowFloor);
+		emit signalDispatcher.applyHashSettingsToUI();
 		return 1;
 	}
 

@@ -141,7 +141,7 @@ void Parser::processTokens()
 			}
 			case TK_RETURN:
 				processReturn();
-				break;
+				continue;
 			case TK_LABEL:
 				break;
 			case TK_WHITESPACE:
@@ -463,7 +463,8 @@ void Parser::processReturn()
 	if (!callStack_.isEmpty())
 	{
 		int returnIndex = callStack_.pop();
-		jump(returnIndex);
+		int jumpLineCount = returnIndex - lineNumber_;
+		jump(jumpLineCount);
 	}
 	else
 		lineNumber_ = 0;

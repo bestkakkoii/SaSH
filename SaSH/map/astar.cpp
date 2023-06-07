@@ -83,13 +83,13 @@ void CAStar::init(const CAStarParam& param)
 // 參數是否有效
 bool CAStar::is_vlid_params(const CAStarParam& param) const
 {
-	return (param.can_pass != nullptr
-		&& (param.width > 0 && param.height > 0)
-		&& (param.width < 1500 && param.height < 1500)
-		&& ((int)param.end.x() >= 0 && (int)param.end.x() < param.width)
-		&& ((int)param.end.y() >= 0 && (int)param.end.y() < param.height)
-		&& ((int)param.start.x() >= 0 && (int)param.start.x() < param.width)
-		&& ((int)param.start.y() >= 0 && (int)param.start.y() < param.height)
+	return ((param.can_pass != nullptr)
+		&& ((param.width > 0) && (param.height > 0))
+		&& ((param.width < 1500) && (param.height < 1500))
+		&& ((param.end.x() >= 0) && (param.end.x() < param.width))
+		&& ((param.end.y() >= 0) && (param.end.y() < param.height))
+		&& ((param.start.x() >= 0) && (param.start.x() < param.width))
+		&& ((param.start.y() >= 0) && (param.start.y() < param.height))
 		);
 }
 

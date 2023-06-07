@@ -225,15 +225,15 @@ bool Interpreter::findPath(QPoint dst, int steplen, int step_cost, int timeout, 
 	}
 
 	//print() << "walkable size:" << _map.walkable.size();
-	injector.server->announce(QObject::tr("<findpath>start searching the path"));//u8"<尋路>開始搜尋路徑"
+	injector.server->announce(QObject::tr("<findpath>start searching the path"));//"<尋路>開始搜尋路徑"
 	QElapsedTimer timer; timer.start();
 	if (!injector.server->mapAnalyzer->calcNewRoute(_map, src, dst, &path))
 	{
-		injector.server->announce(QObject::tr("<findpath>unable to findpath"));//u8"<尋路>找不到路徑"
+		injector.server->announce(QObject::tr("<findpath>unable to findpath"));//"<尋路>找不到路徑"
 		return false;
 	}
 	int cost = static_cast<int>(timer.elapsed());
-	injector.server->announce(QObject::tr("<findpath>path found, cost:%1").arg(cost));//u8"<尋路>成功找到路徑，耗時：%1"
+	injector.server->announce(QObject::tr("<findpath>path found, cost:%1").arg(cost));//"<尋路>成功找到路徑，耗時：%1"
 
 	int size = path.size();
 	int first_size = size;
@@ -276,7 +276,7 @@ bool Interpreter::findPath(QPoint dst, int steplen, int step_cost, int timeout, 
 					injector.server->EO();
 				}
 				injector.server->move(dst);
-				injector.server->announce(QObject::tr("<findpath>arrived destination, cost:%1").arg(timer.elapsed()));//u8"<尋路>已到達目的地，耗時：%1"
+				injector.server->announce(QObject::tr("<findpath>arrived destination, cost:%1").arg(timer.elapsed()));//"<尋路>已到達目的地，耗時：%1"
 				return true;//已抵達true
 			}
 
@@ -287,7 +287,7 @@ bool Interpreter::findPath(QPoint dst, int steplen, int step_cost, int timeout, 
 
 		if (timer.hasExpired(timeout))
 		{
-			injector.server->announce(QObject::tr("<findpath>stop finding path due to timeout"));//u8"<尋路>超時，放棄尋路"
+			injector.server->announce(QObject::tr("<findpath>stop finding path due to timeout"));//"<尋路>超時，放棄尋路"
 			break;
 		}
 
@@ -296,7 +296,7 @@ bool Interpreter::findPath(QPoint dst, int steplen, int step_cost, int timeout, 
 
 		if (injector.server->nowFloor != current_floor)
 		{
-			injector.server->announce(QObject::tr("<findpath>stop finding path due to map changed"));//u8"<尋路>地圖已變更，放棄尋路"
+			injector.server->announce(QObject::tr("<findpath>stop finding path due to map changed"));//"<尋路>地圖已變更，放棄尋路"
 			break;
 		}
 
@@ -369,12 +369,63 @@ bool Interpreter::checkInt(const TokenMap& TK, int idx, int* ret) const
 	return true;
 }
 
+bool Interpreter::checkDouble(const TokenMap& TK, int idx, double* ret) const
+{
+	if (!TK.contains(idx))
+		return false;
+	if (ret == nullptr)
+		return false;
+
+	RESERVE type = TK.value(idx).type;
+	QVariant var = TK.value(idx).data;
+	if (!var.isValid())
+		return false;
+
+	if (type == TK_REF)
+	{
+		*ret = parser_->getVar<double>(var.toString());
+	}
+	else if (type == TK_DOUBLE)
+	{
+		bool ok = false;
+		double value = var.toDouble(&ok);
+		if (!ok)
+			return false;
+		*ret = value;
+	}
+	else
+		return false;
+
+	return true;
+}
+
+bool Interpreter::toVariant(const TokenMap& TK, int idx, QVariant* ret) const
+{
+	if (!TK.contains(idx))
+		return false;
+	if (ret == nullptr)
+		return false;
+
+	RESERVE type = TK.value(idx).type;
+	QVariant var = TK.value(idx).data;
+	if (!var.isValid())
+		return false;
+
+	if (type == TK_REF)
+	{
+		*ret = parser_->getVar<QVariant>(var.toString());
+	}
+	else
+	{
+		*ret = var;
+	}
+
+	return true;
+}
+
 //private
 int Interpreter::checkJump(const TokenMap& TK, int idx, bool expr, JumpBehavior behavior) const
 {
-	if (!TK.contains(idx))
-		return Parser::kError;
-
 	bool okJump = false;
 	if (behavior == JumpBehavior::FailedJump)
 	{
@@ -384,32 +435,38 @@ int Interpreter::checkJump(const TokenMap& TK, int idx, bool expr, JumpBehavior 
 	{
 		okJump = expr;
 	}
+
 	if (okJump)
 	{
-		RESERVE type = TK.value(idx).type;
-		QVariant var = TK.value(idx).data;
 		QString label;
 		int line = 0;
-		if (type == TK_REF)
+		if (TK.contains(idx))
 		{
-			line = parser_->getVar<int>(var.toString());
-			if (line == 0)
-				label = parser_->getVar<QString>(var.toString());
+			RESERVE type = TK.value(idx).type;
+			QVariant var = TK.value(idx).data;
+
+			if (type == TK_REF)
+			{
+				line = parser_->getVar<int>(var.toString());
+				if (line == 0)
+					label = parser_->getVar<QString>(var.toString());
+			}
+			else if (type == TK_STRING)
+			{
+				label = var.toString();
+			}
+			else if (type == TK_INT)
+			{
+				bool ok = false;
+				int value = 0;
+				value = var.toInt(&ok);
+				if (ok)
+					line = value;
+			}
+			else
+				return Parser::kArgError;
+
 		}
-		else if (type == TK_STRING)
-		{
-			label = var.toString();
-		}
-		else if (type == TK_INT)
-		{
-			bool ok = false;
-			int value = 0;
-			value = var.toInt(&ok);
-			if (ok)
-				line = value;
-		}
-		else
-			return Parser::kArgError;
 
 		if (label.isEmpty() && line == 0)
 			line = -1;
@@ -1046,6 +1103,7 @@ void Interpreter::openLibs()
 	registerFunction(u8"設置", &Interpreter::set);
 	registerFunction(u8"儲存設置", &Interpreter::savesetting);
 	registerFunction(u8"讀取設置", &Interpreter::loadsetting);
+	registerFunction(u8"判斷", &Interpreter::cmp);
 
 	//check
 	registerFunction(u8"任務狀態", &Interpreter::checkdaily);
@@ -1091,6 +1149,20 @@ void Interpreter::openLibs()
 	registerFunction(u8"加工", &Interpreter::make);
 	registerFunction(u8"料理", &Interpreter::cook);
 	registerFunction(u8"使用精靈", &Interpreter::usemagic);
+	registerFunction(u8"撿物", &Interpreter::pickitem);
+	registerFunction(u8"存錢", &Interpreter::depositgold);
+	registerFunction(u8"提錢", &Interpreter::withdrawgold);
+	registerFunction(u8"轉移", &Interpreter::warp);
+	registerFunction(u8"左擊", &Interpreter::leftclick);
+
+	registerFunction(u8"記錄身上裝備", &Interpreter::recordequip);
+	registerFunction(u8"裝上記錄裝備", &Interpreter::wearequip);
+	registerFunction(u8"卸下裝備", &Interpreter::unwearequip);
+
+	registerFunction(u8"存入寵物", &Interpreter::depositpet);
+	registerFunction(u8"存入道具", &Interpreter::deposititem);
+	registerFunction(u8"提出寵物", &Interpreter::withdrawpet);
+	registerFunction(u8"提出道具", &Interpreter::withdrawitem);
 
 	//action->group
 	registerFunction(u8"組隊", &Interpreter::join);

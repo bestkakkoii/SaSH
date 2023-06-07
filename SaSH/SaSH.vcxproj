@@ -160,7 +160,10 @@
     </ClCompile>
     <ClCompile Include="map\astar.cpp" />
     <ClCompile Include="map\mapanalyzer.cpp" />
+    <ClCompile Include="model\codeeditor.cpp" />
     <ClCompile Include="model\combobox.cpp" />
+    <ClCompile Include="model\highlighter.cpp" />
+    <ClCompile Include="model\listview.cpp" />
     <ClCompile Include="model\mapglwidget.cpp" />
     <ClCompile Include="net\autil.cpp" />
     <ClCompile Include="net\tcpserver.cpp" />
@@ -205,6 +208,9 @@
     <ClInclude Include="map\mapanalyzer.h" />
     <QtMoc Include="model\mapglwidget.h" />
     <QtMoc Include="model\combobox.h" />
+    <QtMoc Include="model\codeeditor.h" />
+    <ClInclude Include="model\highlighter.h" />
+    <QtMoc Include="model\listview.h" />
     <ClInclude Include="model\treewidgetitem.h" />
     <ClInclude Include="net\autil.h" />
     <ClInclude Include="qscopedhandle.h" />

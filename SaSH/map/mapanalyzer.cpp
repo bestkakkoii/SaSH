@@ -1815,15 +1815,19 @@ bool MapAnalyzer::calcNewRoute(const map_t& map, const QPoint& src, const QPoint
 	Callback callback = [&map, &injector, isWrapPoint](const QPoint& point)->bool
 	{
 		const util::ObjectType obj = map.data.value(point, util::OBJ_UNKNOWN);
-		bool bret = ((obj != util::OBJ_EMPTY)
-			&& (obj != util::OBJ_WATER)
-			&& (obj != util::OBJ_UNKNOWN)
-			&& (obj != util::OBJ_WALL)
-			&& (obj != util::OBJ_ROCK)
-			&& (obj != util::OBJ_ROCKEX));
+		/*	bool bret = ((obj != util::OBJ_EMPTY)
+				&& (obj != util::OBJ_WATER)
+				&& (obj != util::OBJ_UNKNOWN)
+				&& (obj != util::OBJ_WALL)
+				&& (obj != util::OBJ_ROCK)
+				&& (obj != util::OBJ_ROCKEX));*/
+				//qDebug() << point << obj;
 
-		if (map.height <= 200 && map.width <= 200)
-			bret = bret && !injector.server->npcUnitPointHash.contains(point);
+		if (map.height <= 150 && map.width <= 150)
+		{
+			if (injector.server->npcUnitPointHash.contains(point))
+				return false;
+		}
 
 		if (map.floor == 2000)
 		{
@@ -1833,9 +1837,9 @@ bool MapAnalyzer::calcNewRoute(const map_t& map, const QPoint& src, const QPoint
 
 		//If the destination coordinates are a teleportation point, treat it as a non-obstacle
 		if (isWrapPoint)
-			return bret;
+			return (obj == util::OBJ_ROAD) || (obj == util::OBJ_WARP) || (obj == util::OBJ_JUMP) || (obj == util::OBJ_UP) || (obj == util::OBJ_DOWN);
 		else
-			return bret && (obj != util::OBJ_WARP) && (obj != util::OBJ_JUMP) && (obj != util::OBJ_UP) && (obj != util::OBJ_DOWN);
+			return  (obj == util::OBJ_ROAD);
 	};
 
 	QVector<QPoint> pathret = {};
@@ -1844,10 +1848,10 @@ bool MapAnalyzer::calcNewRoute(const map_t& map, const QPoint& src, const QPoint
 	{
 
 		CAStar astar;
-		CAStarParam param(map.width, map.height, callback, src, dst);
-		QElapsedTimer timer; timer.start();
+		CAStarParam param(map.height, map.width, callback, src, dst);
+		//QElapsedTimer timer; timer.start();
 		pathret = astar.find(param);
-		qDebug() << "AStar cost time:" << timer.elapsed() << "ms";
+		//qDebug() << "AStar cost time:" << timer.elapsed() << "ms";
 	}
 	catch (...)
 	{
@@ -1906,16 +1910,16 @@ bool MapAnalyzer::isPassable(int floor, const QPoint& src, const QPoint& dst)
 		try
 		{
 			pathret = a.find(p);
-	}
+		}
 		catch (...)
 		{
 			return false;
 		}
 		return pathret.size() > 0;
-} while (false);
+	} while (false);
 
-return bret;
-	}
+	return bret;
+}
 
 // 取靠近目標的最佳座標和方向
 int MapAnalyzer::calcBestFollowPointByDstPoint(int floor, const QPoint& src, const QPoint& dst, QPoint* ret, bool enableExt, int npcdir)

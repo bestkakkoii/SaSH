@@ -119,6 +119,7 @@ public:\
 #include <QCheckBox>
 #include <QLineEdit>
 #include <QProgressBar>
+#include <QScrollBar>
 
 
 #include <QStringListModel>

@@ -207,6 +207,15 @@
     <ClCompile Include="script\action.cpp">
       <Filter>Source Files\script</Filter>
     </ClCompile>
+    <ClCompile Include="model\highlighter.cpp">
+      <Filter>Source Files\model</Filter>
+    </ClCompile>
+    <ClCompile Include="model\codeeditor.cpp">
+      <Filter>Source Files\model</Filter>
+    </ClCompile>
+    <ClCompile Include="model\listview.cpp">
+      <Filter>Source Files\model</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="mainform.h">
@@ -290,6 +299,12 @@
     <QtMoc Include="form\mapform.h">
       <Filter>Source Files\forms\map</Filter>
     </QtMoc>
+    <QtMoc Include="model\codeeditor.h">
+      <Filter>Source Files\model</Filter>
+    </QtMoc>
+    <QtMoc Include="model\listview.h">
+      <Filter>Source Files\model</Filter>
+    </QtMoc>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stdafx.h">
@@ -323,6 +338,9 @@
       <Filter>Source Files\script</Filter>
     </ClInclude>
     <ClInclude Include="model\treewidgetitem.h">
+      <Filter>Source Files\model</Filter>
+    </ClInclude>
+    <ClInclude Include="model\highlighter.h">
       <Filter>Source Files\model</Filter>
     </ClInclude>
   </ItemGroup>

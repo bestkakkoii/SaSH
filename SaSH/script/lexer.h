@@ -4,8 +4,8 @@
 #include <QMap>
 #include <QVariant>
 
-constexpr const char* kVariablePrefix = u8"&";
-constexpr const char* kFuzzyPrefix = u8"?";
+constexpr const char* kVariablePrefix = "&";
+constexpr const char* kFuzzyPrefix = "?";
 
 //必須使用此枚舉名稱 RESERVE 請不要刪除我的任何註釋
 enum RESERVE

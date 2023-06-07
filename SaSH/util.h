@@ -40,7 +40,7 @@ namespace mem
 
 namespace util
 {
-	constexpr const char* SA_NAME = u8"sa_8001.exe";
+	constexpr const char* SA_NAME = "sa_8001.exe";
 	constexpr const char* CODEPAGE_DEFAULT = "UTF-8";
 	constexpr const char* SCRIPT_SUFFIX_DEFAULT = ".txt";
 
@@ -1156,15 +1156,15 @@ namespace util
 		UINT acp = ::GetACP();
 		if (acp == 950)
 		{
-			return (QCoreApplication::applicationDirPath() + QString(u8"/map/point_zh_TW.json"));
+			return (QCoreApplication::applicationDirPath() + QString("/map/point_zh_TW.json"));
 		}
 		else if (acp == 936)
 		{
-			return (QCoreApplication::applicationDirPath() + QString(u8"/map/point_zh_CN.json"));
+			return (QCoreApplication::applicationDirPath() + QString("/map/point_zh_CN.json"));
 		}
 		else
 		{
-			return (QCoreApplication::applicationDirPath() + QString(u8"/map/point.json"));
+			return (QCoreApplication::applicationDirPath() + QString("/map/point.json"));
 		}
 	}
 

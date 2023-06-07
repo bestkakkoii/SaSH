@@ -43,16 +43,25 @@ int Interpreter::press(const TokenMap& TK)
 	int row = 0;
 	checkInt(TK, 1, &row);
 
+	QString npcName;
+	int npcId = -1;
+	checkString(TK, 2, &npcName);
+	mapunit_t unit;
+	if (!npcName.isEmpty() && injector.server->findUnit(npcName, util::OBJ_NPC, &unit))
+	{
+		npcId = unit.id;
+	}
+
 	if (text.isEmpty() && row == 0)
 		return Parser::kError;
 
 	if (!text.isEmpty())
 	{
 		BUTTON_TYPE button = buttonMap.value(text.toUpper());
-		injector.server->press(button);
+		injector.server->press(button, -1, npcId);
 	}
 	else if (row > 0)
-		injector.server->press(row);
+		injector.server->press(row, -1, npcId);
 
 	return Parser::kNoChange;
 }

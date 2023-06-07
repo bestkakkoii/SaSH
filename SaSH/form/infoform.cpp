@@ -110,5 +110,6 @@ void InfoForm::onResetControlTextLanguage()
 
 	pPlayerInfoForm_->onResetControlTextLanguage();
 	pItemInfoForm_->onResetControlTextLanguage();
+	pChatInfoForm_->onResetControlTextLanguage();
 
 }

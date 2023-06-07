@@ -20,13 +20,10 @@
     DISABLE_COPY(Class) \
     DISABLE_MOVE(Class) \
 public:\
-	static Class& get_instance() {\
+	static Class& getInstance() {\
 		static Class *instance = new Class();\
 		return *instance;\
 	}
-#endif
-#ifndef STATICINS
-#define STATICINS(Class) Class& g_##Class = Class::get_instance()
 #endif
 
 namespace util

@@ -264,10 +264,10 @@ constexpr int MAX_CHAT_REGISTY_STR = 8;
 
 constexpr int MAX_DIR = 8;
 
-constexpr const char* SUCCESSFULSTR = u8"successful";
-constexpr const char* FAILEDSTR = u8"failed";
-constexpr const char* OKSTR = u8"ok";
-constexpr const char* CANCLE = u8"cancle";
+constexpr const char* SUCCESSFULSTR = "successful";
+constexpr const char* FAILEDSTR = "failed";
+constexpr const char* OKSTR = "ok";
+constexpr const char* CANCLE = "cancle";
 
 constexpr int BATTLE_MAP_FILES = 220;
 constexpr int GRID_SIZE = 64;
@@ -584,6 +584,7 @@ enum FUNCTIONTYPE
 #ifdef _ITEM_EQUITSPACE
 typedef enum tagCHAR_EquipPlace
 {
+	CHAR_EQUIPNONE = -1,
 	CHAR_HEAD,
 	CHAR_BODY,
 	CHAR_ARM,
@@ -932,13 +933,58 @@ enum PetState
 enum BUTTON_TYPE
 {
 	BUTTON_NOTUSED = 0,
-	BUTTON_OK = 1,	   //確定
-	BUTTON_CANCEL = 2, //取消
-	BUTTON_YES = 4,	   //是
-	BUTTON_NO = 8,	   //否
-	BUTTON_CLOSE = 9,  //關閉
-	BUTTON_PREVIOUS = 16,  //上一頁
-	BUTTON_NEXT = 32,
+	BUTTON_OK = 1 << 0,	   //確定
+	BUTTON_CANCEL = 1 << 1, //取消
+	BUTTON_YES = 1 << 2,	   //
+	BUTTON_NO = 1 << 3,
+	BUTTON_PREVIOUS = 1 << 4,  //上一頁
+	BUTTON_NEXT = 1 << 5,
+	BUTTON_BUY,
+	BUTTON_SELL,
+	BUTTON_OUT,
+	BUTTON_BACK,
+	BUTTON_1,//是
+	BUTTON_2,//不是
+};
+
+
+enum DirType
+{
+	kDirNone = -1,
+	kDirNorth = 0,
+	kDirNorthEast,
+	kDirEast,
+	kDirSouthEast,
+	kDirSouth,
+	kDirSouthWest,
+	kDirWest,
+	kDirNorthWest,
+};
+
+enum DialogType
+{
+	kDiaogNone = -1,
+
+	kDialogBuy = 242,
+	kDialogSell = 243,
+
+	kDialogDepositPet = 265,
+	kDialogWithdrawPet = 267,
+
+	kDialogDepositPetEx = 513,//寵倉
+	kDialogWithdrawPetEx = 514,//寵倉
+
+	kDialogDepositItem = 291,
+	kDialogWithdrawItem = 292,
+
+	kDialogDepositItemEx = 312,
+	kDialogWithdrawItemEx = 313,
+	kDialogWithdrawItemEx2 = 314,
+	kDialogWithdrawItemEx3 = 315,
+	kDialogWithdrawItemEx4 = 316,
+
+
+	kDialogSecurityCode = 522,
 };
 #pragma endregion
 
@@ -1538,6 +1584,13 @@ typedef struct mapunit_s
 	CHR_STATUS status = CHR_STATUS::CHR_STATUS_NONE;
 } mapunit_t;
 
+typedef struct bankpet_s
+{
+	int level = 0;
+	int maxHp = 0;
+	QString name;
+}bankpet_t;
+
 #pragma endregion
 
 static const QHash<QString, BUTTON_TYPE> buttonMap = {
@@ -1545,42 +1598,130 @@ static const QHash<QString, BUTTON_TYPE> buttonMap = {
 	{"CANCEL", BUTTON_CANCEL},
 	{"YES", BUTTON_YES},
 	{"NO", BUTTON_NO},
-	{"CLOSE", BUTTON_CLOSE},
 	{"PREVIOUS", BUTTON_PREVIOUS},
 	{"NEXT", BUTTON_NEXT},
 
-	{"確認", BUTTON_YES},
-	{"確定", BUTTON_YES},
-	{"取消", BUTTON_NO},
-	{"關閉", BUTTON_CLOSE},
-	{"上一頁", BUTTON_PREVIOUS},
-	{"上一步", BUTTON_PREVIOUS},
-	{"下一頁", BUTTON_NEXT},
-	{"下一步", BUTTON_NEXT},
+	//big5
+	{u8"確認", BUTTON_YES},
+	{u8"確定", BUTTON_YES},
+	{u8"取消", BUTTON_NO},
+	{u8"好", BUTTON_YES},
+	{u8"不好", BUTTON_NO},
+	{u8"可以", BUTTON_YES},
+	{u8"不可以", BUTTON_NO},
+	{u8"上一頁", BUTTON_PREVIOUS},
+	{u8"上一步", BUTTON_PREVIOUS},
+	{u8"下一頁", BUTTON_NEXT},
+	{u8"下一步", BUTTON_NEXT},
+	{u8"買", BUTTON_BUY},
+	{u8"賣", BUTTON_SELL},
+	{u8"出去", BUTTON_OUT},
+	{u8"回上一頁", BUTTON_BACK},
 
-
-	{"确认", BUTTON_YES},
-	{"确定", BUTTON_YES},
-	{"取消", BUTTON_NO},
-	{"关闭", BUTTON_CLOSE},
-	{"上一页", BUTTON_PREVIOUS},
-	{"下一页", BUTTON_NEXT},
+	//gb2312
+	{u8"确认", BUTTON_YES},
+	{u8"确定", BUTTON_YES},
+	{u8"取消", BUTTON_NO},
+	{u8"好", BUTTON_YES},
+	{u8"不好", BUTTON_NO},
+	{u8"可以", BUTTON_YES},
+	{u8"不可以", BUTTON_NO},
+	{u8"上一页", BUTTON_PREVIOUS},
+	{u8"上一步", BUTTON_PREVIOUS},
+	{u8"下一页", BUTTON_NEXT},
+	{u8"下一步", BUTTON_NEXT},
+	{u8"买", BUTTON_BUY},
+	{u8"卖", BUTTON_SELL},
+	{u8"出去", BUTTON_OUT},
+	{u8"回上一页", BUTTON_BACK},
 };
 
 static const QHash<QString, PetState> petStateMap = {
-	{ "戰鬥", kBattle },
-	{ "等待", kStandby },
-	{ "郵件", kMail },
-	{ "休息", kRest },
-	{ "騎乘", kRide },
+	{ u8"戰鬥", kBattle },
+	{ u8"等待", kStandby },
+	{ u8"郵件", kMail },
+	{ u8"休息", kRest },
+	{ u8"騎乘", kRide },
 
-	{ "战斗", kBattle },
-	{ "等待", kStandby },
-	{ "邮件", kMail },
-	{ "休息", kRest },
-	{ "骑乘", kRide },
+	{ u8"战斗", kBattle },
+	{ u8"等待", kStandby },
+	{ u8"邮件", kMail },
+	{ u8"休息", kRest },
+	{ u8"骑乘", kRide },
 };
 
+static const QHash<QString, DirType> dirMap = {
+	{ u8"北", kDirNorth },
+	{ u8"東北", kDirNorthEast },
+	{ u8"東", kDirEast },
+	{ u8"東南", kDirSouthEast },
+	{ u8"南", kDirSouth },
+	{ u8"西南", kDirSouthWest },
+	{ u8"西", kDirWest },
+	{ u8"西北", kDirNorthWest },
+
+	{ u8"北", kDirNorth },
+	{ u8"东北", kDirNorthEast },
+	{ u8"东", kDirEast },
+	{ u8"东南", kDirSouthEast },
+	{ u8"南", kDirSouth },
+	{ u8"西南", kDirSouthWest },
+	{ u8"西", kDirWest },
+	{ u8"西北", kDirNorthWest },
+};
+
+
+static const QHash<QString, CHAR_EquipPlace> equipMap = {
+	{ u8"頭部", CHAR_HEAD },
+	{ u8"身體", CHAR_BODY },
+	{ u8"右手", CHAR_ARM },
+	{ u8"左飾", CHAR_DECORATION1 },
+	{ u8"右飾", CHAR_DECORATION2 },
+	{ u8"腰帶", CHAR_EQBELT },
+	{ u8"左手", CHAR_EQSHIELD },
+	{ u8"鞋子", CHAR_EQSHOES },
+	{ u8"手套", CHAR_EQGLOVE },
+
+	{ u8"头部", CHAR_HEAD },
+	{ u8"身体", CHAR_BODY },
+	{ u8"右手", CHAR_ARM },
+	{ u8"左饰", CHAR_DECORATION1 },
+	{ u8"右饰", CHAR_DECORATION2 },
+	{ u8"腰带", CHAR_EQBELT },
+	{ u8"左手", CHAR_EQSHIELD },
+	{ u8"鞋子", CHAR_EQSHOES },
+	{ u8"手套", CHAR_EQGLOVE },
+};
+
+static const QHash<int, QStringList> KNPCList = {
+	//big5
+	{ 950, {u8"如果能贏過我的"/*院藏*/, u8"如果想通過"/*近藏*/, u8"吼"/*紅暴*/, u8"你想找麻煩"/*七兄弟*/ } },
+
+	//gb2312
+	{ 936, {u8"如果能赢过我的"/*院藏*/, u8"如果想通过"/*近藏*/, u8"吼"/*红暴*/, u8"你想找麻烦"/*七兄弟*/ } },
+};
+
+static const QHash<int, QString> SecurityCodeList = {
+	{ 950, u8"安全密碼進行解鎖" }, { 936, u8"安全密码进行解锁" }
+};
+
+static const QHash<int, QString> FirstWarningList = {
+	{ 950, u8"上一次離線時間" }, { 936, u8"上一次离线时间" }
+};
+
+static const QHash<int, QString> BankPetList = {
+	{ 950, u8"2\n　　　　請選擇寵物　　　　\n\n" }, { 936, u8"2\n　　　　请选择宠物　　　　\n\n" }
+};
+
+static const QHash<int, QString> BankItemList = {
+	{ 950, u8"1|寄放店|要領取什么呢？|項目有很多|這樣子就可以了嗎？|" }, { 936, u8"1|寄放店|要领取什么呢？|项目有很多|这样子就可以了吗？|" }
+};
+
+static const QRegularExpression rexGetGold(u8R"(得到(\d+)石)");
+static const QRegularExpression rexPickGold(u8R"([獲|获] (\d+) Stone)");
+static const QRegularExpression rexBankPet(u8R"(LV\.\s*(\d+)\s*MaxHP\s*(\d+)\s*(\S+))");
+
+class StringListModel;
 class MapAnalyzer;
 class Server : public QObject
 {
@@ -1642,6 +1783,7 @@ public://actions
 	void announce(const QString& msg, int color = 4);
 
 	void talk(const QString& text, int color = 0);
+	void inputtext(const QString& text);
 
 	void EO();
 
@@ -1649,6 +1791,7 @@ public://actions
 	void dropItem(QVector<int> index);
 
 	void useItem(int itemIndex, int target);
+
 
 	void swapItem(int from, int to);
 
@@ -1671,6 +1814,20 @@ public://actions
 
 	void craft(util::CraftType type, const QStringList& ingres);
 
+	void warp();
+
+	void pickItem(int dir);
+
+	void depositGold(int gold, bool isPublic);
+	void withdrawGold(int gold, bool isPublic);
+
+	void depositPet(int petIndex, int seqno = -1, int objindex = -1);
+	void withdrawPet(int petIndex, int seqno = -1, int objindex = -1);
+
+	void depositItem(int index, int seqno = -1, int objindex = -1);
+	void withdrawItem(int itemIndex, int seqno = -1, int objindex = -1);
+
+
 	void setPetState(int petIndex, PetState state);
 
 	void updateDatasFromMemory();
@@ -1682,48 +1839,7 @@ public://actions
 
 	void cleanChatHistory();
 
-	bool findUnit(const QString& name, int type, mapunit_t* unit, const QString freename = "") const
-	{
-		QList<mapunit_t> units = mapUnitHash.values();
-		for (const mapunit_t& it : units)
-		{
-			if (freename.isEmpty())
-			{
-				if ((it.name == name) && (it.objType == type))
-				{
-					*unit = it;
-					return true;
-				}
-				else if (name.startsWith("?") && (it.objType == type))
-				{
-					QString newName = name.mid(1);
-					if (it.name.contains(newName))
-					{
-						*unit = it;
-						return true;
-					}
-				}
-			}
-			else
-			{
-				if ((it.name == name) && (it.freeName.contains(freename)) && (it.objType == type))
-				{
-					*unit = it;
-					return true;
-				}
-				else if (name.startsWith("?") && (it.objType == type))
-				{
-					QString newName = name.mid(1);
-					if (it.name.contains(newName) && (it.freeName.contains(freename)))
-					{
-						*unit = it;
-						return true;
-					}
-				}
-			}
-		}
-		return false;
-	}
+	bool findUnit(const QString& name, int type, mapunit_t* unit, const QString freename = "") const;
 
 	void setTeamState(bool join);
 
@@ -1737,7 +1853,7 @@ public://actions
 	int getPetSkillIndexByName(int& petIndex, const QString& name) const;
 	bool getPetIndexsByName(const QString& name, QVector<int>* pv) const;
 	int getMagicIndexByName(const QString& name, bool isExact = true) const;
-
+	int getItemEmptySpotIndex() const;
 	void clear();
 
 	bool checkPlayerMp(int cmpvalue, int* target = nullptr, bool useequal = false);
@@ -2224,6 +2340,8 @@ public:
 	int tempCatchPetTargetIndex = -1;
 
 	bool IS_WAITFOR_JOBDAILY_FLAG = false;
+	bool IS_WAITFOR_BANK_FLAG = false;
+	bool IS_WAITFOR_DIALOG_FLAG = false;
 
 	QFuture<void> ayncBattleCommand;
 	std::atomic_bool ayncBattleCommandFlag = false;
@@ -2272,6 +2390,8 @@ public:
 	short eventWarpSendFlag = 0i16;
 	short eventEnemySendId = 0i16;
 	short eventEnemySendFlag = 0i16;
+
+	unsigned short event_[MAP_X_SIZE * MAP_Y_SIZE];	// ????
 
 	short sendEnFlag = 0i16;
 	short duelSendFlag = 0i16;
@@ -2347,7 +2467,6 @@ public:
 	short maxEncountPercentage = 0i16;
 	short nowEncountExtra = 0i16;
 	int MapWmdFlagBak = 0;
-	unsigned short event_[MAP_X_SIZE * MAP_Y_SIZE] = {};
 
 	short mouseCursorMode = MOUSE_CURSOR_MODE_NORMAL;
 
@@ -2406,10 +2525,15 @@ public:
 
 	QScopedPointer<MapAnalyzer> mapAnalyzer;
 
-	util::SafeQueue<QString> chatQueue;
+	util::SafeQueue<QPair<int, QString>> chatQueue;
+	QPair<int, QVector<bankpet_t>> currentBankPetList;
+	QVector<ITEM> currentBankItemList;
 
 	util::AfkRecorder recorder[6] = {};
 	QStringList enemyNameListCache;
+
+	QScopedPointer<StringListModel> scriptLogModel;
+	QScopedPointer<StringListModel> chatLogModel;
 
 	//用於緩存要發送到UI的數據
 	util::SafeHash<int, QVariant> playerInfoColContents;

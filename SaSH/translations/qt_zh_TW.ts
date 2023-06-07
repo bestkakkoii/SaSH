@@ -511,6 +511,17 @@
     </message>
 </context>
 <context>
+    <name>ChatInfoForm</name>
+    <message>
+        <source>normal</source>
+        <translation>一般</translation>
+    </message>
+    <message>
+        <source>dialog</source>
+        <translation>對話框</translation>
+    </message>
+</context>
+<context>
     <name>ChatInfoFormClass</name>
     <message>
         <source>ChatInfoForm</source>
@@ -2197,6 +2208,10 @@ MESSAGE：<byte value="xd"/>
         <source>set var [%1] value</source>
         <translation>設置變數 [%1] 的數值</translation>
     </message>
+    <message>
+        <source>record equip:[%1]%2</source>
+        <translation>記錄身上裝備:[%1]%2</translation>
+    </message>
 </context>
 <context>
     <name>ScriptForm</name>
@@ -2281,10 +2296,105 @@ MESSAGE：<byte value="xd"/>
     </message>
 </context>
 <context>
+    <name>ScriptSettingForm</name>
+    <message>
+        <source>row:%1 | size:%2 | index:%3 | %4</source>
+        <translation>行號:%1 | 字元:%2 | 索引:%3 | %4</translation>
+    </message>
+    <message>
+        <source>Script %1 saved</source>
+        <translation>腳本 %1 已保存</translation>
+    </message>
+</context>
+<context>
     <name>ScriptSettingFormClass</name>
     <message>
         <source>ScriptSettingForm</source>
         <translation>腳本設置</translation>
+    </message>
+    <message>
+        <source>editor</source>
+        <translation>編輯器</translation>
+    </message>
+    <message>
+        <source>function list</source>
+        <translation>命令列表</translation>
+    </message>
+    <message>
+        <source>script list</source>
+        <translation>腳本列表</translation>
+    </message>
+    <message>
+        <source>refresh</source>
+        <translation>刷新</translation>
+    </message>
+    <message>
+        <source>debuger</source>
+        <translation>調試器</translation>
+    </message>
+    <message>
+        <source>global</source>
+        <translation>全局</translation>
+    </message>
+    <message>
+        <source>name</source>
+        <translation>名稱</translation>
+    </message>
+    <message>
+        <source>value</source>
+        <translation>數值</translation>
+    </message>
+    <message>
+        <source>type</source>
+        <translation>類型</translation>
+    </message>
+    <message>
+        <source>local</source>
+        <translation>區域</translation>
+    </message>
+    <message>
+        <source>log</source>
+        <translation>日誌</translation>
+    </message>
+    <message>
+        <source>mark</source>
+        <translation>斷點</translation>
+    </message>
+    <message>
+        <source>content</source>
+        <translation>內容</translation>
+    </message>
+    <message>
+        <source>count</source>
+        <translation>數量</translation>
+    </message>
+    <message>
+        <source>row</source>
+        <translation>行</translation>
+    </message>
+    <message>
+        <source>Save</source>
+        <translation>保存</translation>
+    </message>
+    <message>
+        <source>Directory</source>
+        <translation>目錄</translation>
+    </message>
+    <message>
+        <source>Import</source>
+        <translation>載入</translation>
+    </message>
+    <message>
+        <source>AutoCleanLog</source>
+        <translation>自動清理日誌</translation>
+    </message>
+    <message>
+        <source>AutoFollow</source>
+        <translation>自動跟隨行數</translation>
+    </message>
+    <message>
+        <source>New</source>
+        <translation>新增</translation>
     </message>
 </context>
 <context>
@@ -2559,71 +2669,71 @@ MESSAGE：<byte value="xd"/>
     </message>
     <message>
         <source>1st//Acticity</source>
-        <translation>1線//活動互動</translation>
+        <translation type="vanished">1線//活動互動</translation>
     </message>
     <message>
         <source>2nd///Market</source>
-        <translation>2線//擺攤交易</translation>
+        <translation type="vanished">2線//擺攤交易</translation>
     </message>
     <message>
         <source>3rd//Family</source>
-        <translation>3線//莊園族戰</translation>
+        <translation type="vanished">3線//莊園族戰</translation>
     </message>
     <message>
         <source>4th//Away</source>
-        <translation>4線//練級掛機</translation>
+        <translation type="vanished">4線//練級掛機</translation>
     </message>
     <message>
         <source>5th//Away</source>
-        <translation>5//練級掛機</translation>
+        <translation type="vanished">5//練級掛機</translation>
     </message>
     <message>
         <source>6th//Away</source>
-        <translation>6//練級掛機</translation>
+        <translation type="vanished">6//練級掛機</translation>
     </message>
     <message>
         <source>7th//Away</source>
-        <translation>7//練級掛機</translation>
+        <translation type="vanished">7//練級掛機</translation>
     </message>
     <message>
         <source>8th//Away</source>
-        <translation>8//練級掛機</translation>
+        <translation type="vanished">8//練級掛機</translation>
     </message>
     <message>
         <source>9th//Away</source>
-        <translation>9//練級掛機</translation>
+        <translation type="vanished">9//練級掛機</translation>
     </message>
     <message>
         <source>15th//Company</source>
-        <translation>15//公司專線</translation>
+        <translation type="vanished">15//公司專線</translation>
     </message>
     <message>
         <source>21th//Member</source>
-        <translation>21線//會員專線</translation>
+        <translation type="vanished">21線//會員專線</translation>
     </message>
     <message>
         <source>22th//Member</source>
-        <translation>22線//會員專線</translation>
+        <translation type="vanished">22線//會員專線</translation>
     </message>
     <message>
         <source>Telecom</source>
-        <translation>電信</translation>
+        <translation type="vanished">電信</translation>
     </message>
     <message>
         <source>UnitedNetwork</source>
-        <translation>聯通</translation>
+        <translation type="vanished">聯通</translation>
     </message>
     <message>
         <source>Easyown</source>
-        <translation>移動</translation>
+        <translation type="vanished">移動</translation>
     </message>
     <message>
         <source>Oversea</source>
-        <translation>海外</translation>
+        <translation type="vanished">海外</translation>
     </message>
     <message>
         <source>Backup</source>
-        <translation>備份</translation>
+        <translation type="vanished">備份</translation>
     </message>
 </context>
 </TS>

@@ -176,8 +176,8 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID)
 		if (hWnd)
 		{
 			g_MainHwnd = hWnd;
-			g_OldWndProc = reinterpret_cast<WNDPROC>(GetWindowLongPtrW(hWnd, GWL_WNDPROC));
-			SetWindowLongPtrW(hWnd, GWL_WNDPROC, reinterpret_cast<LONG_PTR>(WndProc));
+			g_OldWndProc = reinterpret_cast<WNDPROC>(GetWindowLongW(hWnd, GWL_WNDPROC));
+			SetWindowLongW(hWnd, GWL_WNDPROC, reinterpret_cast<LONG_PTR>(WndProc));
 #ifdef _DEBUG
 			CreateConsole();
 #endif
@@ -186,9 +186,9 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID)
 	}
 	else if (DLL_PROCESS_DETACH == ul_reason_for_call)
 	{
-		STATICINS(GameService);
+		GameService& g_GameService = GameService::getInstance();
 		g_GameService.uninitialize();
-		SetWindowLongPtrW(g_MainHwnd, GWL_WNDPROC, reinterpret_cast<LONG_PTR>(g_OldWndProc));
+		SetWindowLongW(g_MainHwnd, GWL_WNDPROC, reinterpret_cast<LONG_PTR>(g_OldWndProc));
 	}
 
 	return TRUE;
@@ -197,7 +197,7 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID)
 int CALLBACK WndProc(HWND hWnd, DWORD message, LPARAM wParam, LPARAM lParam)
 {
 	using namespace util;
-	STATICINS(GameService);
+	GameService& g_GameService = GameService::getInstance();
 	switch (message)
 	{
 	case WM_NULL:
@@ -351,21 +351,21 @@ extern "C"
 	//new socket
 	SOCKET WSAAPI New_socket(int af, int type, int protocol)
 	{
-		STATICINS(GameService);
+		GameService& g_GameService = GameService::getInstance();
 		return g_GameService.New_socket(af, type, protocol);
 	}
 
 	//new send
 	int WSAAPI New_send(SOCKET s, const char* buf, int len, int flags)
 	{
-		STATICINS(GameService);
+		GameService& g_GameService = GameService::getInstance();
 		return g_GameService.New_send(s, buf, len, flags);
 	}
 
 	//new recv
 	int WSAAPI New_recv(SOCKET s, char* buf, int len, int flags)
 	{
-		STATICINS(GameService);
+		GameService& g_GameService = GameService::getInstance();
 		return g_GameService.New_recv(s, buf, len, flags);
 	}
 
@@ -373,21 +373,21 @@ extern "C"
 	int WSAAPI New_WSARecv(SOCKET s, LPWSABUF lpBuffers, DWORD dwBufferCount, LPDWORD lpNumberOfBytesRecvd, LPDWORD lpFlags,
 		LPWSAOVERLAPPED lpOverlapped, LPWSAOVERLAPPED_COMPLETION_ROUTINE lpCompletionRoutine)
 	{
-		STATICINS(GameService);
+		GameService& g_GameService = GameService::getInstance();
 		return g_GameService.New_WSARecv(s, lpBuffers, dwBufferCount, lpNumberOfBytesRecvd, lpFlags, lpOverlapped, lpCompletionRoutine);
 	}
 
 	//new closesocket
 	int WSAAPI New_closesocket(SOCKET s)
 	{
-		STATICINS(GameService);
+		GameService& g_GameService = GameService::getInstance();
 		return g_GameService.New_closesocket(s);
 	}
 
 	//Sleep
 	void WINAPI New_Sleep(DWORD dwMilliseconds)
 	{
-		STATICINS(GameService);
+		GameService& g_GameService = GameService::getInstance();
 		SwitchToThread();
 		g_GameService.pSleep(dwMilliseconds);
 	}
@@ -395,27 +395,27 @@ extern "C"
 	//PlaySound
 	void New_PlaySound(int a, int b, int c)
 	{
-		STATICINS(GameService);
+		GameService& g_GameService = GameService::getInstance();
 		return g_GameService.New_PlaySound(a, b, c);
 	}
 
 	//BattleProc
 	void New_BattleProc()
 	{
-		STATICINS(GameService);
+		GameService& g_GameService = GameService::getInstance();
 		return g_GameService.New_BattleProc();
 	}
 
 	//BattleCommandReady
 	void New_BattleCommandReady()
 	{
-		STATICINS(GameService);
+		GameService& g_GameService = GameService::getInstance();
 		return g_GameService.New_BattleCommandReady();
 	}
 
 	BOOL WINAPI New_SetWindowTextA(HWND hWnd, LPCSTR lpString)
 	{
-		STATICINS(GameService);
+		GameService& g_GameService = GameService::getInstance();
 		return g_GameService.New_SetWindowTextA(hWnd, lpString);
 	}
 }
@@ -427,11 +427,6 @@ private:
 	SOCKET clientSocket = INVALID_SOCKET;
 	DWORD lastError_ = 0;
 
-	static SyncClient& getInstance()
-	{
-		static SyncClient* instance = new SyncClient();
-		return *instance;
-	}
 public:
 	SyncClient()
 	{
@@ -456,7 +451,7 @@ public:
 
 	bool __fastcall Connect(const std::string& serverIP, unsigned short serverPort)
 	{
-		STATICINS(GameService);
+		GameService& g_GameService = GameService::getInstance();
 		SyncClient& instance = getInstance();
 		instance.clientSocket = g_GameService.psocket(AF_INET6, SOCK_STREAM, 0);
 		if (instance.clientSocket == INVALID_SOCKET)
@@ -529,7 +524,7 @@ public:
 			return false;
 		}
 
-		STATICINS(GameService);
+		GameService& g_GameService = GameService::getInstance();
 		std::unique_ptr <char[]> buf(new char[dataLen]());
 		memset(buf.get(), 0, dataLen);
 		memcpy_s(buf.get(), dataLen, dataBuf, dataLen);
@@ -538,11 +533,17 @@ public:
 		if (result == SOCKET_ERROR)
 		{
 			lastError_ = WSAGetLastError();
+#if _NDEBUG
 			MINT::NtTerminateProcess(GetCurrentProcess(), 0);
+#endif
 			return 0;
 		}
 		else if (result == 0)
+		{
+#if _NDEBUG
 			MINT::NtTerminateProcess(GetCurrentProcess(), 0);
+#endif
+	}
 
 		return result;
 	}
@@ -565,11 +566,15 @@ public:
 			return false;
 		}
 
-		STATICINS(GameService);
+		GameService& g_GameService = GameService::getInstance();
 		memset(buf, 0, buflen);
 		int len = g_GameService.precv(instance.clientSocket, buf, buflen, 0);
 		if (len == 0)
+		{
+#if _NDEBUG
 			MINT::NtTerminateProcess(GetCurrentProcess(), 0);
+#endif
+		}
 		return len;
 	}
 
@@ -590,7 +595,7 @@ public:
 		LocalFree(msg);
 		return result;
 	}
-};
+	};
 
 void GameService::initialize(unsigned short port)
 {
@@ -675,7 +680,7 @@ void GameService::initialize(unsigned short port)
 		else
 			PostMessageW(g_MainHwnd, util::kUninitialize, NULL, NULL);
 	}
-}
+			}
 
 void GameService::uninitialize()
 {

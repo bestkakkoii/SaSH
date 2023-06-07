@@ -186,6 +186,7 @@ void OtherForm::onComboBoxClicked()
 	//lockpet
 	else if (name == "comboBox_lockpet")
 	{
+		int oldIndex = pComboBox->currentIndex();
 		QStringList list;
 		if (!injector.server.isNull() && injector.server->IS_ONLINE_FLAG)
 		{
@@ -202,9 +203,12 @@ void OtherForm::onComboBoxClicked()
 		}
 		ui.comboBox_lockpet->clear();
 		ui.comboBox_lockpet->addItems(list);
+		if (oldIndex < list.size())
+			ui.comboBox_lockpet->setCurrentIndex(oldIndex);
 	}
 	else if (name == "comboBox_lockride")
 	{
+		int oldIndex = pComboBox->currentIndex();
 		QStringList list;
 		if (!injector.server.isNull() && injector.server->IS_ONLINE_FLAG)
 		{
@@ -221,6 +225,8 @@ void OtherForm::onComboBoxClicked()
 		}
 		ui.comboBox_lockride->clear();
 		ui.comboBox_lockride->addItems(list);
+		if (oldIndex < list.size())
+			ui.comboBox_lockride->setCurrentIndex(oldIndex);
 	}
 }
 
@@ -275,6 +281,43 @@ void OtherForm::onApplyHashSettingsToUI()
 	util::SafeHash<util::UserSetting, int> valueHash = injector.getValueHash();
 	util::SafeHash<util::UserSetting, QString> stringHash = injector.getStringHash();
 
+	if (ui.comboBox_lockride->count() == 0 || ui.comboBox_lockpet->count() == 0)
+	{
+		QStringList list;
+		for (int i = 0; i < MAX_PET; ++i)
+		{
+			list.append(QString("%1:").arg(i + 1));
+		}
+
+		if (ui.comboBox_lockride->count() == 0)
+			ui.comboBox_lockride->addItems(list);
+
+		if (ui.comboBox_lockpet->count() == 0)
+			ui.comboBox_lockpet->addItems(list);
+	}
+
+	QStringList list;
+	if (!injector.server.isNull() && injector.server->IS_ONLINE_FLAG)
+	{
+		for (int i = 0; i < MAX_PET; ++i)
+		{
+			PET pet = injector.server->pet[i];
+			if (pet.name.isEmpty() || pet.useFlag == 0)
+			{
+				list.append(QString("%1:").arg(i + 1));
+				continue;
+			}
+			list.append(QString("%1:%2").arg(i + 1).arg(pet.name));
+		}
+	}
+
+	if (!list.isEmpty())
+	{
+		ui.comboBox_lockride->clear();
+		ui.comboBox_lockride->addItems(list);
+		ui.comboBox_lockpet->clear();
+		ui.comboBox_lockpet->addItems(list);
+	}
 
 	//group
 	ui.comboBox_autofuntype->setCurrentIndex(valueHash.value(util::kAutoFunTypeValue));
