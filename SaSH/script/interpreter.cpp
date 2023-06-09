@@ -7,7 +7,6 @@
 
 Interpreter::Interpreter(QObject* parent)
 	: QObject(parent)
-	, lexer_(new Lexer())
 	, parser_(new Parser())
 {
 
@@ -24,7 +23,7 @@ Interpreter::~Interpreter()
 	qDebug() << "Interpreter::~Interpreter()";
 }
 
-void Interpreter::start(int beginLine, const QString& fileName)
+void Interpreter::doFileWithThread(int beginLine, const QString& fileName)
 {
 	if (thread_ != nullptr)
 		return;
@@ -33,12 +32,29 @@ void Interpreter::start(int beginLine, const QString& fileName)
 	if (nullptr == thread_)
 		return;
 
+	if (parser_.isNull())
+		parser_.reset(new Parser());
+
+	QString content;
+	if (!readFile(fileName, &content))
+		return;
+
+	QHash<int, TokenMap> tokens;
+	QHash<QString, int> labels;
+	if (!loadString(content, &tokens, &labels))
+		return;
+
+	parser_->setTokens(tokens);
+	parser_->setLabels(labels);
+
 	beginLine_ = beginLine;
-	currentMainScriptFileName_ = fileName;
+
 	moveToThread(thread_);
+	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
+	connect(&signalDispatcher, &SignalDispatcher::nodifyAllStop, [this]() { requestInterruption(); });
 	connect(this, &Interpreter::finished, thread_, &QThread::quit);
 	connect(thread_, &QThread::finished, thread_, &QThread::deleteLater);
-	connect(thread_, &QThread::started, this, &Interpreter::run);
+	connect(thread_, &QThread::started, this, &Interpreter::proc);
 	connect(this, &Interpreter::finished, this, [this]()
 		{
 			thread_ = nullptr;
@@ -46,6 +62,137 @@ void Interpreter::start(int beginLine, const QString& fileName)
 		});
 
 	thread_->start();
+}
+
+bool Interpreter::doFile(int beginLine, const QString& fileName, Interpreter* parent)
+{
+	if (parser_.isNull())
+		parser_.reset(new Parser());
+
+	QString content;
+	if (!readFile(fileName, &content))
+		return false;
+
+	QHash<int, TokenMap> tokens;
+	QHash<QString, int> labels;
+	if (!loadString(content, &tokens, &labels))
+		return false;
+
+	isRunning_.store(true, std::memory_order_release);
+
+	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
+	emit signalDispatcher.loadFileToTable(fileName);
+	emit signalDispatcher.scriptContentChanged(fileName, QVariant::fromValue(tokens));
+
+	ParserCallBack callback = [parent, &signalDispatcher, this](int currentLine, const TokenMap& TK)->int
+	{
+		if (parent->isInterruptionRequested())
+			return 0;
+
+		emit signalDispatcher.scriptLabelRowTextChanged(currentLine + 1, this->parser_->getToken().size(), false);
+
+		if (TK.contains(0) && TK.value(0).type == TK_PAUSE)
+		{
+			parent->pause();
+			emit signalDispatcher.scriptPaused();
+		}
+
+		parent->checkPause();
+
+		updateGlobalVariables();
+
+		return 1;
+	};
+
+	parser_->setTokens(tokens);
+	parser_->setLabels(labels);
+	parser_->setCallBack(callback);
+	openLibs();
+	try
+	{
+		parser_->parse(beginLine);
+	}
+	catch (...)
+	{
+		qDebug() << "parse exception --- Sub";
+		isRunning_.store(false, std::memory_order_release);
+		return false;
+	}
+	isRunning_.store(false, std::memory_order_release);
+	return true;
+}
+
+void Interpreter::doString(const QString& script)
+{
+	if (parser_.isNull())
+		parser_.reset(new Parser());
+
+	QHash<int, TokenMap> tokens;
+	QHash<QString, int> labels;
+	if (!loadString(script, &tokens, &labels))
+		return;
+
+	parser_->setTokens(tokens);
+	parser_->setLabels(labels);
+
+	beginLine_ = 0;
+
+	thread_ = new QThread();
+	if (nullptr == thread_)
+		return;
+
+	moveToThread(thread_);
+	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
+	connect(&signalDispatcher, &SignalDispatcher::nodifyAllStop, [this]() { requestInterruption(); });
+	connect(this, &Interpreter::finished, thread_, &QThread::quit);
+	connect(thread_, &QThread::finished, thread_, &QThread::deleteLater);
+	connect(thread_, &QThread::started, this, &Interpreter::proc);
+	connect(this, &Interpreter::finished, this, [this]()
+		{
+			thread_ = nullptr;
+			qDebug() << "Interpreter::finished";
+		});
+
+	thread_->start();
+}
+
+void Interpreter::preview(const QString& fileName)
+{
+	QString content;
+	if (!readFile(fileName, &content))
+		return;
+
+	QHash<int, TokenMap> tokens;
+	QHash<QString, int> labels;
+	if (!loadString(content, &tokens, &labels))
+		return;
+
+	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
+	emit signalDispatcher.scriptContentChanged(fileName, QVariant::fromValue(tokens));
+}
+
+bool Interpreter::loadString(const QString& script, QHash<int, TokenMap>* ptokens, QHash<QString, int>* plabel)
+{
+	return Lexer::tokenized(script, ptokens, plabel);
+}
+
+bool Interpreter::readFile(const QString& fileName, QString* pcontent)
+{
+	util::QScopedFile f(fileName, QIODevice::ReadOnly | QIODevice::Text);
+	if (!f.isOpen())
+		return false;
+
+	QTextStream in(&f);
+	in.setCodec(util::CODEPAGE_DEFAULT);
+	QString c = in.readAll();
+	c.replace("\r\n", "\n");
+	if (pcontent != nullptr)
+	{
+		*pcontent = c;
+		return true;
+	}
+
+	return false;
 }
 
 void Interpreter::stop()
@@ -75,102 +222,16 @@ void Interpreter::resume()
 
 }
 
-void Interpreter::doString(const QString& script)
-{
-	if (parser_.isNull())
-		parser_.reset(new Parser());
-
-	QHash<int, TokenMap> tokens;
-	if (!loadString(script, &tokens))
-		return;
-
-	parser_->setTokens(tokens);
-	beginLine_ = 0;
-	currentMainScriptFileName_ = "";
-	currentMainScriptString_ = script;
-
-	thread_ = new QThread();
-	if (nullptr == thread_)
-		return;
-	moveToThread(thread_);
-	connect(this, &Interpreter::finished, thread_, &QThread::quit);
-	connect(thread_, &QThread::finished, thread_, &QThread::deleteLater);
-	connect(thread_, &QThread::started, this, &Interpreter::run);
-	connect(this, &Interpreter::finished, this, [this]()
-		{
-			thread_ = nullptr;
-			qDebug() << "Interpreter::finished";
-		});
-
-	thread_->start();
-}
-
-bool Interpreter::loadString(const QString& script, QHash<int, TokenMap>* phash)
-{
-	if (lexer_.isNull())
-		lexer_.reset(new Lexer());
-
-	QStringList lines = script.split("\n");
-	int rowCount = lines.size();
-
-	QElapsedTimer timer; timer.start();
-	QHash<int, TokenMap > tokens;
-	for (int row = 0; row < rowCount; ++row)
-	{
-		TokenMap lineTokens = lexer_->tokenized(row, lines.at(row));
-		tokens.insert(row, lineTokens);
-
-		QStringList params;
-		int size = lineTokens.size();
-		for (int i = 1; i < size; ++i)
-		{
-			params.append(lineTokens.value(i).raw);
-		}
-
-	}
-	qDebug() << "tokenized" << timer.elapsed() << "ms";
-	if (phash != nullptr)
-		*phash = tokens;
-
-	return true;
-}
-
-bool Interpreter::loadFile(const QString& fileName, QHash<int, TokenMap>* phash)
-{
-	if (lexer_.isNull())
-		lexer_.reset(new Lexer());
-
-	int rowCount = 0;
-
-	util::QScopedFile f(fileName, QIODevice::ReadOnly | QIODevice::Text);
-	if (!f.isOpen())
-		return false;
-
-	QTextStream in(&f);
-	in.setCodec(util::CODEPAGE_DEFAULT);
-	QString c = in.readAll();
-	c.replace("\r\n", "\n");
-
-	QHash<int, TokenMap> hash;
-	if (!loadString(c, &hash))
-		return false;
-
-	alltokens_.insert(fileName, hash);
-
-	if (phash != nullptr)
-		*phash = hash;
-
-	return true;
-}
-
 template<typename Func>
 void Interpreter::registerFunction(const QString functionName, Func fun)
 {
 	parser_->registerFunction(functionName, std::bind(fun, this, std::placeholders::_1));
 }
 
-bool Interpreter::checkBattleThenWait() const
+bool Interpreter::checkBattleThenWait()
 {
+	checkPause();
+
 	Injector& injector = Injector::getInstance();
 	bool bret = false;
 	if (injector.server->IS_BATTLE_FLAG)
@@ -181,6 +242,11 @@ bool Interpreter::checkBattleThenWait() const
 		{
 			if (isInterruptionRequested())
 				break;
+
+			if (!injector.server.isNull())
+				break;
+
+			checkPause();
 
 			if (!injector.server->IS_BATTLE_FLAG)
 				break;
@@ -195,7 +261,17 @@ bool Interpreter::checkBattleThenWait() const
 	return bret;
 }
 
-bool Interpreter::findPath(QPoint dst, int steplen, int step_cost, int timeout, std::function<int(QPoint& dst)> callback) const
+void Interpreter::checkPause()
+{
+	if (isPaused_.load(std::memory_order_acquire))
+	{
+		mutex_.lock();
+		waitCondition_.wait(&mutex_);
+		mutex_.unlock();
+	}
+}
+
+bool Interpreter::findPath(QPoint dst, int steplen, int step_cost, int timeout, std::function<int(QPoint& dst)> callback)
 {
 	//print() << L"MapName:" << Util::S2W(g_mapinfo->name) << "(" << g_mapinfo->floor << ")";
 	Injector& injector = Injector::getInstance();
@@ -271,9 +347,12 @@ bool Interpreter::findPath(QPoint dst, int steplen, int step_cost, int timeout, 
 			if (src == dst)
 			{
 				cost = timer.elapsed();
-				if (cost > 15000)
+				if (cost > 5000)
 				{
+					QThread::msleep(500);
 					injector.server->EO();
+					if (injector.server->nowPoint != dst)
+						continue;
 				}
 				injector.server->move(dst);
 				injector.server->announce(QObject::tr("<findpath>arrived destination, cost:%1").arg(timer.elapsed()));//"<尋路>已到達目的地，耗時：%1"
@@ -894,6 +973,7 @@ bool Interpreter::compare(CompareArea area, const TokenMap& TK) const
 			}
 
 			a = count;
+			break;
 		}
 		default:
 			return false;
@@ -1003,7 +1083,37 @@ bool Interpreter::waitfor(int timeout, std::function<bool()> exprfun) const
 	return bret;
 }
 
-void Interpreter::run()
+void Interpreter::updateGlobalVariables()
+{
+	Injector& injector = Injector::getInstance();
+	if (injector.server.isNull())
+		return;
+	PC pc = injector.server->pc;
+	QVariantHash& hash = parser_->getrefs();
+
+	hash["毫秒時間戳"] = GetTickCount64();
+	hash["秒時間戳"] = GetTickCount64() / 1000;
+
+
+	hash["人物主名"] = pc.name;
+	hash["人物副名"] = pc.freeName;
+	hash["人物等級"] = pc.level;
+	hash["人物耐久力"] = pc.hp;
+	hash["人物氣力"] = pc.mp;
+	hash["人物DP"] = pc.dp;
+	hash["石幣"] = pc.gold;
+
+	QPoint nowPoint = injector.server->nowPoint;
+	hash["東坐標"] = nowPoint.x();
+	hash["南坐標"] = nowPoint.y();
+	hash["地圖編號"] = injector.server->nowFloor;
+	hash["地圖"] = injector.server->nowFloorName;
+	hash["日期"] = QDateTime::currentDateTime().toString("yyyy-MM-dd");
+	hash["時間"] = QDateTime::currentDateTime().toString("hh:mm:ss:zzz");
+
+}
+
+void Interpreter::proc()
 {
 	isRunning_.store(true, std::memory_order_release);
 	qDebug() << "Interpreter::run()";
@@ -1015,7 +1125,7 @@ void Interpreter::run()
 		if (isInterruptionRequested())
 			return 0;
 
-		emit signalDispatcher.scriptLabelRowTextChanged(currentLine + 1, false);
+		emit signalDispatcher.scriptLabelRowTextChanged(currentLine + 1, parser_->getToken().size(), false);
 
 		if (TK.contains(0) && TK.value(0).type == TK_PAUSE)
 		{
@@ -1023,63 +1133,36 @@ void Interpreter::run()
 			emit signalDispatcher.scriptPaused();
 		}
 
-		if (isPaused_.load(std::memory_order_acquire))
-		{
-			mutex_.lock();
-			waitCondition_.wait(&mutex_);
-			mutex_.unlock();
-		}
+		checkPause();
+
+		updateGlobalVariables();
 
 		return 1;
 	};
 
 	do
 	{
-		if (isInterruptionRequested())
-			break;
-
-		if (lexer_.isNull())
-			break;
-
 		if (parser_.isNull())
 			break;
 
-		if (currentMainScriptFileName_.isEmpty() && currentMainScriptString_.isEmpty())
-			break;
+		if (!isSub)
+			injector.IS_SCRIPT_FLAG = true;
 
-		if (!injector.server.isNull())
-			injector.server->IS_SCRIPT_FLAG = true;
-
-		if (!parser_->hasToken())
-		{
-			if (!alltokens_.contains(currentMainScriptFileName_))
-			{
-				if (!loadFile(currentMainScriptFileName_, nullptr))
-					break;
-			}
-
-			parser_->setTokens(alltokens_.value(currentMainScriptFileName_));
-		}
-
-		openLibs();
 		parser_->setCallBack(callback);
-		parser_->setLabels(lexer_->getLabels());
-
-		qDebug() << "beginLine_" << beginLine_;
-
+		openLibs();
 		try
 		{
 			parser_->parse(beginLine_);
 		}
 		catch (...)
 		{
-			qDebug() << "parse exception";
+			qDebug() << "parse exception --- Main";
 		}
 
 	} while (false);
 
-	if (!injector.server.isNull())
-		injector.server->IS_SCRIPT_FLAG = false;
+	if (!isSub)
+		injector.IS_SCRIPT_FLAG = false;
 	isRunning_.store(false, std::memory_order_release);
 	emit finished();
 }
@@ -1094,6 +1177,7 @@ void Interpreter::openLibs()
 	registerFunction(u8"按鈕", &Interpreter::press);
 	registerFunction(u8"元神歸位", &Interpreter::eo);
 	registerFunction(u8"提示", &Interpreter::announce);
+	registerFunction(u8"輸入", &Interpreter::input);
 	registerFunction(u8"消息", &Interpreter::messagebox);
 	registerFunction(u8"回點", &Interpreter::logback);
 	registerFunction(u8"登出", &Interpreter::logout);
@@ -1104,6 +1188,7 @@ void Interpreter::openLibs()
 	registerFunction(u8"儲存設置", &Interpreter::savesetting);
 	registerFunction(u8"讀取設置", &Interpreter::loadsetting);
 	registerFunction(u8"判斷", &Interpreter::cmp);
+	registerFunction(u8"執行", &Interpreter::run);
 
 	//check
 	registerFunction(u8"任務狀態", &Interpreter::checkdaily);
@@ -1154,6 +1239,7 @@ void Interpreter::openLibs()
 	registerFunction(u8"提錢", &Interpreter::withdrawgold);
 	registerFunction(u8"轉移", &Interpreter::warp);
 	registerFunction(u8"左擊", &Interpreter::leftclick);
+	registerFunction(u8"加點", &Interpreter::addpoint);
 
 	registerFunction(u8"記錄身上裝備", &Interpreter::recordequip);
 	registerFunction(u8"裝上記錄裝備", &Interpreter::wearequip);
@@ -1178,5 +1264,54 @@ int Interpreter::test(const TokenMap&) const
 		return Parser::kError;
 
 	injector.server->announce("Hello World!");
+	return Parser::kNoChange;
+}
+
+int Interpreter::run(const TokenMap& TK)
+{
+	Injector& injector = Injector::getInstance();
+
+	if (injector.server.isNull())
+		return Parser::kError;
+
+	QString fileName;
+	checkString(TK, 1, &fileName);
+	if (fileName.isEmpty())
+		return Parser::kArgError;
+
+	fileName.replace("\\", "/");
+
+	fileName = QCoreApplication::applicationDirPath() + "/script/" + fileName;
+	fileName.replace("\\", "/");
+	fileName.replace("//", "/");
+
+	QFileInfo fileInfo(fileName);
+	QString suffix = fileInfo.suffix();
+	if (suffix.isEmpty())
+		fileName += ".txt";
+	else if (suffix != "txt")
+	{
+		fileName.replace(suffix, "txt");
+	}
+
+	if (!QFile::exists(fileName))
+		return Parser::kArgError;
+
+	int beginLine = 0;
+	checkInt(TK, 2, &beginLine);
+
+	QScopedPointer<Interpreter> interpreter(new Interpreter());
+	if (!interpreter.isNull())
+	{
+		if (!interpreter->doFile(beginLine, fileName, this))
+			return Parser::kError;
+
+		//還原顯示
+		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
+		QHash<int, TokenMap>currentToken = parser_->getToken();
+		emit signalDispatcher.loadFileToTable(fileName);
+		emit signalDispatcher.scriptContentChanged(fileName, QVariant::fromValue(currentToken));
+
+	}
 	return Parser::kNoChange;
 }

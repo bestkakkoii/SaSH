@@ -74,12 +74,12 @@ namespace util
 		VirtualProtect((void*)dis, size, dwOldProtect, &dwOldProtect);
 	}
 
-	BOOL WINAPI IsCurrentWindow(const HWND& handle)
+	bool __stdcall IsCurrentWindow(const HWND handle)
 	{
-		if ((GetWindow(handle, GW_OWNER) == NULL) && (IsWindowVisible(handle)))
-			return TRUE;
+		if ((GetWindow(handle, GW_OWNER) == nullptr) && (IsWindowVisible(handle)))
+			return true;
 		else
-			return FALSE;
+			return false;
 	}
 
 	BOOL CALLBACK EnumWindowsCallback(HWND handle, LPARAM lParam)
@@ -93,24 +93,29 @@ namespace util
 		return FALSE;
 	}
 
-	HWND WINAPI FindCurrentWindow(const unsigned long& process_id)
+	HWND __stdcall FindCurrentWindow(const unsigned long process_id)
 	{
 		handle_data data = {};
 		data.process_id = process_id;
 		data.window_handle = 0;
-		EnumWindows(EnumWindowsCallback, (LPARAM)&data);
+		EnumWindows(EnumWindowsCallback, reinterpret_cast<LPARAM>(&data));
 		return data.window_handle;
 	}
 
-	HWND WINAPI GetCurrentWindowHandle()
+	HWND __stdcall GetCurrentWindowHandle()
 	{
 		unsigned long process_id = GetCurrentProcessId();
-		HWND hwnd = NULL;
-		while (!hwnd) { hwnd = FindCurrentWindow(process_id); }
+		HWND hwnd = nullptr;
+		while (nullptr == hwnd)
+		{
+			hwnd = FindCurrentWindow(process_id);
+		}
 		return hwnd;
 	}
 
 }
+
+constexpr size_t LINEBUFSIZ = 8192;
 
 class SyncClient;
 class GameService
@@ -120,52 +125,59 @@ class GameService
 
 public:
 	~GameService() = default;
-	void initialize(unsigned short port);
-	void uninitialize();
+	void __stdcall initialize(unsigned short port);
+	void __stdcall uninitialize();
 
 public:
-	void WM_EnableEffect(bool enable);
-	void WM_EnablePlayerShow(bool enable);
-	void WM_SetTimeLock(bool enable, int time);
-	void WM_EnableSound(bool enable);
-	void WM_EnableImageLock(bool enable);
-	void WM_EnablePassWall(bool enable);
-	void WM_EnableFastWalk(bool enable);
-	void WM_SetBoostSpeed(bool enable, int speed);
-	void WM_EnableMoveLock(bool enable);
-	void WM_MuteSound(bool enable);
-	void WM_BattleTimeExtend(bool enable);
-	void WM_EnableBattleDialog(bool enable);
-	void WM_SetGameStatus(int status);
+	void __stdcall WM_EnableEffect(bool enable);
+	void __stdcall WM_EnablePlayerShow(bool enable);
+	void __stdcall WM_SetTimeLock(bool enable, int time);
+	void __stdcall WM_EnableSound(bool enable);
+	void __stdcall WM_EnableImageLock(bool enable);
+	void __stdcall WM_EnablePassWall(bool enable);
+	void __stdcall WM_EnableFastWalk(bool enable);
+	void __stdcall WM_SetBoostSpeed(bool enable, int speed);
+	void __stdcall WM_EnableMoveLock(bool enable);
+	void __stdcall WM_MuteSound(bool enable);
+	void __stdcall WM_BattleTimeExtend(bool enable);
+	void __stdcall WM_EnableBattleDialog(bool enable);
+	void __stdcall WM_SetGameStatus(int status);
 
-	void WM_Announce(char* str, int color);
-	void WM_Move(int x, int y);
-	void WM_DistoryDialog();
-	void WM_CleanChatHistory();
+	void __stdcall WM_Announce(char* str, int color);
+	void __stdcall WM_Move(int x, int y);
+	void __stdcall WM_DistoryDialog();
+	void __stdcall WM_CleanChatHistory();
 
-	void WM_SetBLockPacket(bool enable) { isBLockPacket_ = enable; }
+	inline void __stdcall WM_SetBLockPacket(bool enable) { IS_ENCOUNT_BLOCK_FLAG = enable; }
+
 public://g-var
 	int* g_sockfd = nullptr;
 	int* g_world_status = nullptr;
 	int* g_game_status = nullptr;
-	bool g_muteSound = false;
-	bool g_enableBattleDialog = false;
+
+private:
+	bool IS_BATTLE_PROC_FLAG = false;
+	bool IS_TIME_LOCK_FLAG = false;
+	bool IS_SOUND_MUTE_FLAG = false;
+	bool IS_ENCOUNT_BLOCK_FLAG = false;
 
 public://hook
-	SOCKET WSAAPI New_socket(int af, int type, int protocol);
+	SOCKET __stdcall New_socket(int af, int type, int protocol);
 
-	int WSAAPI New_WSARecv(SOCKET s, LPWSABUF lpBuffers, DWORD dwBufferCount, LPDWORD lpNumberOfBytesRecvd, LPDWORD lpFlags,
+	int __stdcall New_WSARecv(SOCKET s, LPWSABUF lpBuffers, DWORD dwBufferCount, LPDWORD lpNumberOfBytesRecvd, LPDWORD lpFlags,
 		LPWSAOVERLAPPED lpOverlapped, LPWSAOVERLAPPED_COMPLETION_ROUTINE lpCompletionRoutine);
-	int WSAAPI New_closesocket(SOCKET s);
+	int __stdcall New_closesocket(SOCKET s);
 
-	int WSAAPI New_send(SOCKET s, const char* buf, int len, int flags);
-	int WSAAPI New_recv(SOCKET s, char* buf, int len, int flags);
+	int __stdcall New_send(SOCKET s, const char* buf, int len, int flags);
+	int __stdcall New_recv(SOCKET s, char* buf, int len, int flags);
 
-	BOOL WINAPI New_SetWindowTextA(HWND hWnd, LPCSTR lpString);
+	BOOL __stdcall New_SetWindowTextA(HWND hWnd, LPCSTR lpString);
 
-	void __cdecl New_PlaySound(int a, int b, int c);
-	void __cdecl New_BattleProc();
-	void __cdecl New_BattleCommandReady();
+	void __stdcall New_PlaySound(int a, int b, int c);
+	void __stdcall New_BattleProc();
+	void __stdcall New_BattleCommandReady();
+	void __stdcall New_TimeProc(int fd);
+	void __stdcall New_lssproto_EN_recv(int fd, int result, int field);
 
 	//setwindowtexta
 	using pfnSetWindowTextA = BOOL(WINAPI*)(HWND hWnd, LPCSTR lpString);
@@ -198,11 +210,27 @@ public://hook
 
 	using pfnBattleCommandReady = void(__cdecl*)();
 	pfnBattleCommandReady pBattleCommandReady = nullptr;
+
+	using pfnTimeProc = void(__cdecl*)(int);
+	pfnTimeProc pTimeProc = nullptr;
+
+	using pfnLssproto_EN_recv = void(__cdecl*)(int, int, int);
+	pfnLssproto_EN_recv pLssproto_EN_recv = nullptr;
+
+private://net
+	void __stdcall clearNetBuffer();
+	int __stdcall appendReadBuf(char* buf, int size);
+	int __stdcall shiftReadBuf(int size);
+	int __stdcall getLineFromReadBuf(char* output, int maxlen);
+	void __stdcall hideModule(HMODULE hLibrary);
+
 private:
 	std::atomic_bool isInitialized_ = false;
 	std::unique_ptr<SyncClient> syncClient_ = nullptr;
 
 	int currentMusic_ = 15;
 	int currentSound_ = 15;
-	bool isBLockPacket_ = false;
+
+	//std::unique_ptr<char> net_readbuf = nullptr;
+	//std::unique_ptr<char> rpc_linebuffer = nullptr;
 };

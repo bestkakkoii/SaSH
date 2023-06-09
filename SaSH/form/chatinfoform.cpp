@@ -59,8 +59,9 @@ ChatInfoForm::ChatInfoForm(QWidget* parent)
 	connect(&signalDispatcher, &SignalDispatcher::applyHashSettingsToUI, this, &ChatInfoForm::onApplyHashSettingsToUI, Qt::UniqueConnection);
 
 	Injector& injector = Injector::getInstance();
-	if (!injector.server.isNull())
-		ui.listView_log->setModel(injector.server->chatLogModel.get());
+
+	if (!injector.chatLogModel.isNull())
+		ui.listView_log->setModel(injector.chatLogModel.get());
 
 	delegate_ = new ColorDelegate(this);
 
@@ -82,7 +83,20 @@ ChatInfoForm::~ChatInfoForm()
 
 bool ChatInfoForm::eventFilter(QObject* watched, QEvent* e)
 {
-	if (watched == ui.comboBox_send && e->type() == QEvent::KeyPress)
+	if (watched == ui.listView_log && e->type() == QEvent::KeyPress)
+	{
+		QKeyEvent* keyEvent = reinterpret_cast<QKeyEvent*>(e);
+		if (keyEvent->key() == Qt::Key_Delete)
+		{
+			Injector& injector = Injector::getInstance();
+			if (!injector.chatLogModel.isNull())
+				injector.chatLogModel->clear();
+			if (!injector.server.isNull())
+				injector.server->cleanChatHistory();
+			return true;
+		}
+	}
+	else if (watched == ui.comboBox_send && e->type() == QEvent::KeyPress)
 	{
 		QKeyEvent* keyEvent = static_cast<QKeyEvent*>(e);
 		if (keyEvent->key() == Qt::Key_Return || keyEvent->key() == Qt::Key_Enter)
@@ -113,8 +127,8 @@ bool ChatInfoForm::eventFilter(QObject* watched, QEvent* e)
 void ChatInfoForm::onApplyHashSettingsToUI()
 {
 	Injector& injector = Injector::getInstance();
-	if (!injector.server.isNull())
-		ui.listView_log->setModel(injector.server->chatLogModel.get());
+	if (!injector.chatLogModel.isNull())
+		ui.listView_log->setModel(injector.chatLogModel.get());
 }
 
 void ChatInfoForm::onResetControlTextLanguage()

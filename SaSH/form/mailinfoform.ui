@@ -284,7 +284,7 @@
              </property>
             </column>
            </widget>
-           <widget class="QWidget" name="layoutWidget">
+           <widget class="QWidget" name="layoutWidget1">
             <layout class="QVBoxLayout" name="verticalLayout_4">
              <property name="spacing">
               <number>1</number>

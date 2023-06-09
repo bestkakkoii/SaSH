@@ -300,7 +300,7 @@ namespace util
 		kAutoStackEnable,
 		kKNPCEnable,
 		kAutoAnswerEnable,
-		kForceLeaveBattleEnable,
+		kAutoEatBeanEnable,
 		kAutoWalkEnable,
 		kFastAutoWalkEnable,
 		kFastBattleEnable,
@@ -550,7 +550,7 @@ namespace util
 		{ kAutoStackEnable, "AutoStackEnable" },
 		{ kKNPCEnable, "KNPCEnable" },
 		{ kAutoAnswerEnable, "AutoAnswerEnable" },
-		{ kForceLeaveBattleEnable, "ForceLeaveBattleEnable" },
+		{ kAutoEatBeanEnable, "AutoEatBeanEnable" },
 		{ kAutoWalkEnable, "AutoWalkEnable" },
 		{ kFastAutoWalkEnable, "FastAutoWalkEnable" },
 		{ kFastBattleEnable, "FastBattleEnable" },
@@ -698,6 +698,18 @@ namespace util
 		std::string s = bytes.data();
 
 		return s;
+	}
+
+	static inline QString buildDateTime(QDateTime* date)
+	{
+		QString dateTime(global_date);
+		const QString time(global_time);
+		dateTime.replace("  ", " 0");//注意" "是兩個空格，用於日期為單數時需要轉成“空格+0”
+		static const QDateTime d(QLocale(QLocale::English).toDateTime(dateTime, "MMM dd yyyy"));
+		static const QString str = QString("%1 %2").arg(d.toString("yyyy-MM-dd")).arg(time);
+		if (date)
+			*date = QDateTime::fromString(str, "yyyy-MM-dd hh:mm:ss");
+		return QString("%1-%2").arg(d.toString("yyyyMMdd")).arg(time);
 	}
 
 	static void setTab(QTabWidget* pTab)
@@ -1145,10 +1157,10 @@ namespace util
 
 	struct MapData
 	{
-		int floor;
-		QString name;
-		int x;
-		int y;
+		int floor = 0;
+		QString name = "";
+		int x = 0;
+		int y = 0;
 	};
 
 	static inline QString getPointFileName()

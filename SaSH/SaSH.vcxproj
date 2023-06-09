@@ -82,6 +82,9 @@
     <QtTranslation>
       <BuildAction>lupdate</BuildAction>
     </QtTranslation>
+    <PostBuildEvent>
+      <Command>$(SolutionDir)ReleaseTool\bind7z.bat</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -151,6 +154,7 @@
     <ClCompile Include="form\playerinfoform.cpp" />
     <ClCompile Include="form\scriptform.cpp" />
     <ClCompile Include="form\scriptsettingform.cpp" />
+    <ClCompile Include="gdatatime.cpp" />
     <ClCompile Include="injector.cpp" />
     <ClCompile Include="mainthread.cpp">
       <DynamicSource Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">input</DynamicSource>
@@ -181,6 +185,8 @@
     <ClCompile Include="script\move.cpp" />
     <ClCompile Include="script\parser.cpp" />
     <ClCompile Include="script\system.cpp" />
+    <ClCompile Include="update\curldownload.cpp" />
+    <ClCompile Include="update\qdownloader.cpp" />
     <ClCompile Include="util.cpp" />
     <ClInclude Include="3rdparty\simplecrypt.h" />
     <QtMoc Include="form\infoform.h" />
@@ -203,6 +209,7 @@
     <QtMoc Include="form\abilityform.h" />
     <QtMoc Include="form\mapwidget.h" />
     <QtMoc Include="form\mapform.h" />
+    <ClInclude Include="gdatetime.h" />
     <ClInclude Include="injector.h" />
     <ClInclude Include="map\astar.h" />
     <ClInclude Include="map\mapanalyzer.h" />
@@ -217,6 +224,8 @@
     <QtMoc Include="script\interpreter.h" />
     <ClInclude Include="script\lexer.h" />
     <ClInclude Include="script\parser.h" />
+    <ClInclude Include="update\curldownload.h" />
+    <QtMoc Include="update\qdownloader.h" />
     <ClInclude Include="util.h" />
     <QtRcc Include="resource.qrc" />
     <QtUic Include="form\abilityform.ui" />
@@ -244,6 +253,7 @@
     <ClCompile Include="mainform.cpp" />
     <ClCompile Include="main.cpp" />
     <None Include="SaSH.ico" />
+    <QtUic Include="update\qdownloader.ui" />
     <ResourceCompile Include="SaSH.rc" />
     <QtMoc Include="model\progressbar.h" />
     <QtMoc Include="form\selecttargetform.h" />
@@ -256,7 +266,6 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <QtTranslation Include="translations\qt_zh_CN.ts" />
     <QtTranslation Include="translations\qt_zh_TW.ts" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

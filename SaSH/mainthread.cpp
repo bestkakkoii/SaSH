@@ -121,6 +121,10 @@ void MainObject::run()
 		mainProc();
 	} while (false);
 
+
+	emit signalDispatcher.nodifyAllStop();
+
+
 	//關閉走路遇敵線程
 	if (autowalk_future_.isRunning())
 	{
@@ -158,6 +162,11 @@ void MainObject::run()
 
 	//強制關閉遊戲進程
 	injector.close();
+
+	while (injector.IS_SCRIPT_FLAG)
+	{
+		QThread::msleep(100);
+	}
 
 	//通知線程結束
 	emit finished();
@@ -352,6 +361,9 @@ int MainObject::checkAndRunFunctions()
 
 		//檢查自動丟棄道具
 		checkAutoDropItems();
+
+		//檢查自動吃道具
+		checkAutoEatBoostExpItem();
 		return 1;
 	}
 	else //戰鬥中
@@ -1051,9 +1063,11 @@ void MainObject::checkAutoJoin()
 					int actionType = injector.getValueHash(util::kAutoFunTypeValue);
 					///_SYS_CloseDialog();
 					//_CHAR_ClearTeamJoinableList();
-					injector.server->setPlayerFaceDirection(dir);
 					if (actionType == 0)
+					{
+						injector.server->setPlayerFaceDirection(dir);
 						injector.server->setTeamState(true);
+					}
 					/*QThread::msleep(1000UL);
 					_CHAR_RefreshData();
 					ch = GetCharData();
@@ -1473,4 +1487,36 @@ void MainObject::checkAutoLockPet()
 			}
 		}
 	}
+}
+
+//自動吃經驗加乘道具
+void MainObject::checkAutoEatBoostExpItem()
+{
+	Injector& injector = Injector::getInstance();
+	if (!injector.getEnableHash(util::kAutoEatBeanEnable))
+		return;
+
+	if (injector.server.isNull())
+		return;
+
+	if (!injector.server->IS_ONLINE_FLAG)
+		return;
+
+	if (injector.server->IS_BATTLE_FLAG)
+		return;
+
+	for (int i = 0; i < MAX_ITEM; ++i)
+	{
+		ITEM item = injector.server->pc.item[i];
+		if (item.name.isEmpty() || item.memo.isEmpty() || item.useFlag == 0)
+			continue;
+
+		if (item.memo.contains(u8"經驗值上升") || item.memo.contains(u8"经验值上升"))
+		{
+			if (injector.server.isNull())
+				return;
+			injector.server->useItem(i, 0);
+		}
+	}
+
 }

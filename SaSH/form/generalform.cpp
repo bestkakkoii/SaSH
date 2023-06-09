@@ -462,9 +462,9 @@ void GeneralForm::onCheckBoxStateChanged(int state)
 		return;
 	}
 
-	else if (name == "checkBox_forceleavebattle")
+	else if (name == "checkBox_autoeatbean")
 	{
-		injector.setEnableHash(util::kForceLeaveBattleEnable, isChecked);
+		injector.setEnableHash(util::kAutoEatBeanEnable, isChecked);
 		return;
 	}
 
@@ -756,7 +756,7 @@ void GeneralForm::onApplyHashSettingsToUI()
 	ui.checkBox_autostack->setChecked(enableHash.value(util::kAutoStackEnable));
 	ui.checkBox_knpc->setChecked(enableHash.value(util::kKNPCEnable));
 	ui.checkBox_autoanswer->setChecked(enableHash.value(util::kAutoAnswerEnable));
-	ui.checkBox_forceleavebattle->setChecked(enableHash.value(util::kForceLeaveBattleEnable));
+	ui.checkBox_autoeatbean->setChecked(enableHash.value(util::kAutoEatBeanEnable));
 
 	//battle
 	ui.checkBox_autowalk->setChecked(enableHash.value(util::kAutoWalkEnable));

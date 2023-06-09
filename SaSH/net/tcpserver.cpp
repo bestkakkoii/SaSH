@@ -3,19 +3,17 @@
 #include "autil.h"
 #include <injector.h>
 #include "signaldispatcher.h"
-
-//for test
 #include "map/mapanalyzer.h"
-#include "model/listview.h"
+#include "listview.h"
 
 #pragma comment(lib, "ws2_32.lib")
 
 #pragma region GlobalNetBuffer
 
-constexpr size_t LINEBUFSIZ = 8192;
+//net
 int net_readbuflen = 0;
 char net_readbuf[LINEBUFSIZ] = {};
-char rpc_linebuffer[Autil::NETBUFSIZ] = {};
+char rpc_linebuffer[Autil::NETBUFSIZ] = {};//Autil::NETBUFSIZ
 
 void Server::clearNetBuffer()
 {
@@ -28,7 +26,7 @@ void Server::clearNetBuffer()
 #pragma endregion
 
 #pragma region StringControl
-int __fastcall a62toi(const QString& a)
+int a62toi(const QString& a)
 {
 	int ret = 0;
 	int sign = 1;
@@ -56,7 +54,7 @@ int __fastcall a62toi(const QString& a)
 	return ret * sign;
 }
 
-int __fastcall getStringToken(const QString& src, const QString& delim, int count, QString& out)
+int getStringToken(const QString& src, const QString& delim, int count, QString& out)
 {
 	int c = 1;
 	int i = 0;
@@ -91,7 +89,7 @@ int __fastcall getStringToken(const QString& src, const QString& delim, int coun
 	return 0;
 }
 
-int __fastcall getIntegerToken(const QString& src, const QString& delim, int count)
+int getIntegerToken(const QString& src, const QString& delim, int count)
 {
 	QString s;
 	if (getStringToken(src, delim, count, s) == 1)
@@ -104,7 +102,7 @@ int __fastcall getIntegerToken(const QString& src, const QString& delim, int cou
 	return -1;
 }
 
-int __fastcall getInteger62Token(const QString& src, const QString& delim, int count)
+int getInteger62Token(const QString& src, const QString& delim, int count)
 {
 	QString s;
 	getStringToken(src, delim, count, s);
@@ -113,7 +111,7 @@ int __fastcall getInteger62Token(const QString& src, const QString& delim, int c
 	return a62toi(s);
 }
 
-QString __fastcall makeStringFromEscaped(const QString& src)
+QString makeStringFromEscaped(const QString& src)
 {
 	struct EscapeChar
 	{
@@ -168,7 +166,7 @@ QString __fastcall makeStringFromEscaped(const QString& src)
 }
 
 // 0-9,a-z(10-35),A-Z(36-61)
-int __fastcall a62toi(char* a)
+int a62toi(char* a)
 {
 	int ret = 0;
 	int fugo = 1;
@@ -194,7 +192,7 @@ int __fastcall a62toi(char* a)
 	return ret * fugo;
 }
 
-int __fastcall appendReadBuf(char* buf, int size)
+int appendReadBuf(char* buf, int size)
 {
 	if ((net_readbuflen + size) > Autil::NETBUFSIZ)
 		return -1;
@@ -204,7 +202,7 @@ int __fastcall appendReadBuf(char* buf, int size)
 	return 0;
 }
 
-int __fastcall shiftReadBuf(int size)
+int shiftReadBuf(int size)
 {
 	int i;
 
@@ -218,7 +216,7 @@ int __fastcall shiftReadBuf(int size)
 	return 0;
 }
 
-int __fastcall getLineFromReadBuf(char* output, int maxlen)
+int getLineFromReadBuf(char* output, int maxlen)
 {
 	int i, j;
 	if (net_readbuflen >= Autil::NETBUFSIZ)
@@ -244,139 +242,12 @@ int __fastcall getLineFromReadBuf(char* output, int maxlen)
 
 			shiftReadBuf(i + 1);
 
-			net_readbuf[net_readbuflen] = '\0';
+			if (net_readbuflen < LINEBUFSIZ)
+				net_readbuf[net_readbuflen] = '\0';
 			return 0;
 		}
 	}
 	return -1;
-}
-
-#pragma endregion
-
-#pragma region GlobalMap
-unsigned short __fastcall CheckCRC(unsigned char* p, int size)
-{
-	unsigned short	crc = 0;
-	int		i;
-
-	for (i = 0; i < size; i++)
-	{
-		if (((crc >> 8) & 0xFF) < 256)
-			crc = (crctab16[(crc >> 8) & 0xFF] ^ (crc << 8) ^ BitTable[p[i]]);
-	}
-	return crc;
-}
-
-bool __fastcall readMap(int floor, int x1, int y1, int x2, int y2, unsigned short* tile, unsigned short* parts, unsigned short* event)
-{
-	//	FILE* fp;
-	//	char filename[255];
-	//#ifdef _FIX_DEL_MAP           // WON 修正玩家抽地圖
-	//	char list[10];
-	//#endif
-	//	int fWidth, fHeight, fOffset, mWidth, width, height, fx, fy, mx, my, len, len2, i;
-	//	//printf("floor=%d x1=%d y1=%d x2=%d y2=%d\n",floor,x1,y1,x2,y2);
-	//
-	//	sprintf_s(filename, "map\\%d.dat", floor);
-	//
-	//	if ((fopen_s(&fp, filename, "rb")) != NULL)
-	//	{
-	//#ifdef _FIX_DEL_MAP	//andy_add
-	//		memset(tile, 193, MAP_X_SIZE * MAP_Y_SIZE * sizeof(short));
-	//		//memset(parts, 193, MAP_X_SIZE * MAP_Y_SIZE * sizeof(short));
-	//#else
-	//		std::ignore = _mkdir("map");
-	//
-	//		if (fopen_s(&fp, filename, "wb") == NULL)
-	//		{
-	//			if (fp)
-	//				fclose(fp);
-	//		}
-	//#endif
-	//
-	//		if ((fopen_s(&fp, filename, "rb")) != NULL)
-	//			return FALSE;
-	//	}
-	//
-	//#ifdef _FIX_DEL_MAP           // WON 修正玩家抽地圖    
-	//	fseek(fp, 0, SEEK_SET);
-	//	if (!fread(list, sizeof(char), 1, fp))
-	//	{   // 玩家抽掉地圖送監獄
-	////andy_add
-	//		memset(tile, 193, MAP_X_SIZE * MAP_Y_SIZE * sizeof(short));
-	//		//memset(parts, 193, MAP_X_SIZE * MAP_Y_SIZE * sizeof(short));
-	//		fclose(fp);
-	//		//lssproto_DM_send(sockfd);
-	//		return TRUE;
-	//	}
-	//#endif
-	//	//printf("MAP_X_SIZE=%d MAP_Y_SIZE=%d\n",MAP_X_SIZE,MAP_Y_SIZE);
-	//	memset(tile, 0, MAP_X_SIZE * MAP_Y_SIZE * sizeof(short));
-	//	memset(parts, 0, MAP_X_SIZE * MAP_Y_SIZE * sizeof(short));
-	//	memset(event, 0, MAP_X_SIZE * MAP_Y_SIZE * sizeof(short));
-	//	fseek(fp, 0, SEEK_SET);
-	//	fread(&fWidth, sizeof(int), 1, fp);
-	//	fread(&fHeight, sizeof(int), 1, fp);
-	//	//printf("fWidth=%d fHeight=%d\n",fWidth,fHeight);
-	//	mWidth = x2 - x1;
-	//	width = mWidth;
-	//	height = y2 - y1;
-	//	mx = 0;
-	//	fx = x1;
-	//
-	//	//printf("mWidth=%d width=%d  height=%d  fx=%d\n",mWidth,width,height,fx);
-	//	if (x1 < 0)
-	//	{
-	//		width += x1;
-	//		fx = 0;
-	//		mx -= x1;
-	//	}
-	//	if (x2 > fWidth)
-	//		width -= (x2 - fWidth);
-	//	my = 0;
-	//	fy = y1;
-	//	if (y1 < 0)
-	//	{
-	//		height += y1;
-	//		fy = 0;
-	//		my -= y1;
-	//	}
-	//	if (y2 > fHeight)
-	//		height -= (y2 - fHeight);
-	//
-	//	fOffset = sizeof(int) * 2;
-	//	len = fy * fWidth + fx;
-	//	len2 = my * mWidth + mx;
-	//	for (i = 0; i < height; i++)
-	//	{
-	//		fseek(fp, sizeof(short) * len + fOffset, SEEK_SET);
-	//		fread(&tile[len2], sizeof(short) * width, 1, fp);
-	//		len += fWidth;
-	//		len2 += mWidth;
-	//	}
-	//	fOffset += sizeof(short) * (fWidth * fHeight);
-	//	len = fy * fWidth + fx;
-	//	len2 = my * mWidth + mx;
-	//	for (i = 0; i < height; i++)
-	//	{
-	//		fseek(fp, sizeof(short) * len + fOffset, SEEK_SET);
-	//		fread(&parts[len2], sizeof(short) * width, 1, fp);//aaaaaaaaaaaaa
-	//		len += fWidth;
-	//		len2 += mWidth;
-	//	}
-	//	fOffset += sizeof(short) * (fWidth * fHeight);
-	//	len = fy * fWidth + fx;
-	//	len2 = my * mWidth + mx;
-	//	for (i = 0; i < height; i++)
-	//	{
-	//		fseek(fp, sizeof(short) * len + fOffset, SEEK_SET);
-	//		fread(&event[len2], sizeof(short) * width, 1, fp);
-	//		len += fWidth;
-	//		len2 += mWidth;
-	//	}
-	//	fclose(fp);
-
-	return true;
 }
 
 #pragma endregion
@@ -393,11 +264,11 @@ Server::Server(QObject* parent)
 	clearNetBuffer();
 
 	sync_.setCancelOnWait(true);
+	pointerWriterSync_.setCancelOnWait(true);
 
 	mapAnalyzer.reset(new MapAnalyzer);
 
-	scriptLogModel.reset(new StringListModel);
-	chatLogModel.reset(new StringListModel);
+
 }
 
 Server::~Server()
@@ -413,7 +284,11 @@ Server::~Server()
 
 	for (QTcpSocket* clientSocket : clientSockets_)
 	{
-		clientSocket->waitForDisconnected();
+		if (clientSocket == nullptr)
+			continue;
+
+		if (clientSocket->state() == QAbstractSocket::ConnectedState)
+			clientSocket->waitForDisconnected();
 		delete clientSocket;
 	}
 
@@ -427,6 +302,7 @@ Server::~Server()
 	}
 
 	sync_.waitForFinished();
+	pointerWriterSync_.waitForFinished();
 	qDebug() << "Server is distroyed";
 }
 
@@ -635,15 +511,16 @@ void Server::onNewConnection()
 		return;
 
 	clientSockets_.append(clientSocket);
-	clientSocket->setReadBufferSize(8192);
+	clientSocket->setReadBufferSize(65536);
 
-	clientSocket->setSocketOption(QAbstractSocket::LowDelayOption, 1);
+	//clientSocket->setSocketOption(QAbstractSocket::LowDelayOption, 1);
 	clientSocket->setSocketOption(QAbstractSocket::KeepAliveOption, 1);
-	clientSocket->setSocketOption(QAbstractSocket::SendBufferSizeSocketOption, 8192);
-	clientSocket->setSocketOption(QAbstractSocket::ReceiveBufferSizeSocketOption, 8192);
+	clientSocket->setSocketOption(QAbstractSocket::SendBufferSizeSocketOption, 65536);
+	clientSocket->setSocketOption(QAbstractSocket::ReceiveBufferSizeSocketOption, 65536);
 
 	connect(clientSocket, &QTcpSocket::readyRead, this, &Server::onClientReadyRead);
 	connect(this, &Server::write, this, &Server::onWrite, Qt::QueuedConnection);
+
 }
 
 //異步接收客戶端數據
@@ -663,7 +540,7 @@ void Server::onWrite(QTcpSocket* clientSocket, QByteArray ba, int size)
 {
 	if (clientSocket && clientSocket->state() != QAbstractSocket::UnconnectedState)
 	{
-		clientSocket->write(ba.data(), size);
+		clientSocket->write(ba, size);
 		clientSocket->flush();
 	}
 }
@@ -673,16 +550,14 @@ void Server::handleData(QTcpSocket* clientSocket, QByteArray badata)
 {
 	QMutexLocker locker(&mutex_);
 	int len = badata.size();
-	QScopedArrayPointer <char> sendBuf(new char[len]());
-	memset(rpc_linebuffer, 0, LINEBUFSIZ);
-	memcpy_s(rpc_linebuffer, LINEBUFSIZ, badata.data(), len);
-	memcpy_s(sendBuf.data(), len, rpc_linebuffer, len);
+	memset(rpc_linebuffer, 0, sizeof(rpc_linebuffer));
+	memcpy_s(rpc_linebuffer, sizeof(rpc_linebuffer), badata.data(), len);
 
 	appendReadBuf(rpc_linebuffer, len);
 
 	if (net_readbuflen <= 0)
 	{
-		emit write(clientSocket, sendBuf.data(), len);
+		//emit write(clientSocket, badata, len);
 		return;
 	}
 
@@ -694,7 +569,6 @@ void Server::handleData(QTcpSocket* clientSocket, QByteArray badata)
 	std::string skey = key.toStdString();
 	_snprintf_s(Autil::PersonalKey, 32, _TRUNCATE, "%s", skey.c_str());
 
-	bool block = false;
 	for (;;)
 	{
 		if (isInterruptionRequested())
@@ -707,15 +581,15 @@ void Server::handleData(QTcpSocket* clientSocket, QByteArray badata)
 			int ret = SaDispatchMessage(rpc_linebuffer);
 			if (ret < 0)
 			{
+				//if (isPacketAutoClear.load(std::memory_order_acquire))
 				qDebug() << "************************ LSSPROTO_END ************************";
 				//代表此段數據已到結尾
-				//if (isPacketAutoClear.load(std::memory_order_acquire))
 				clearNetBuffer();
 				break;
 			}
 			else if (ret == 0)
 			{
-				//qDebug() << "************************ CLEAR_BUFFER ************************";
+				qDebug() << "************************ CLEAR_BUFFER ************************";
 				//錯誤的數據 或 需要清除緩存
 				clearNetBuffer();
 				break;
@@ -723,13 +597,14 @@ void Server::handleData(QTcpSocket* clientSocket, QByteArray badata)
 		}
 		else
 		{
+			qDebug() << "************************ DONE_BUFFER ************************";
 			//數據讀完了
 			Autil::util_Release();
 			break;
 		}
 	}
 
-	emit write(clientSocket, sendBuf.data(), len);
+	//emit write(clientSocket, sendBuf.data(), len);
 }
 
 //經由 handleData 調用同步解析數據
@@ -1987,9 +1862,9 @@ void Server::lssproto_ABI_recv(int num, char* cdata)
 			{
 				sprintf_s(addressBook[num].planetname, 64, "%s", gmsv[j].name);
 				break;
-			}
-		}
 	}
+	}
+}
 #endif
 
 
@@ -2286,7 +2161,7 @@ void Server::lssproto_I_recv(char* cdata)
 #endif
 			*/
 
-	}
+		}
 
 	QStringList itemList;
 	for (const ITEM& it : pc.item)
@@ -2309,10 +2184,43 @@ void Server::lssproto_WN_recv(int windowtype, int buttontype, int seqno, int obj
 
 	IS_WAITFOR_DIALOG_FLAG = false;
 
+	QString newText = data.trimmed();
+	newText.replace("\\n", "\n");
+	QStringList strList = newText.split("\n", Qt::SkipEmptyParts);
+	if (!strList.isEmpty())
+	{
+		QString first = strList.first();
+		if (!first.isEmpty() && first.at(0).isDigit())
+			strList.removeFirst();
+
+		QStringList removeList = {
+			u8"：", u8"？", u8"『", u8"～", u8"☆", u8"、", u8"，", u8"。", u8"歡迎",
+			u8"欢迎",  u8"選", u8"选", u8"請問", u8"请问"
+		};
+
+		for (int i = 0; i < strList.size(); i++)
+		{
+			for (const QString& str : removeList)
+			{
+				if (strList[i].contains(str))
+				{
+					strList.removeAt(i);
+					i--;
+					break;
+				}
+			}
+		}
+
+		for (int i = 0; i < strList.size(); i++)
+		{
+			strList[i] = strList[i].simplified();
+			strList[i].remove("　");
+		}
+	}
+
 	data.replace("\\n", "\n");
 
-	dialog_t dialog = { windowtype, buttontype, seqno, objindex, data, data.split("\n") };
-	currentDialog = dialog;
+	currentDialog = dialog_t{ windowtype, buttontype, seqno, objindex, data, data.split("\n"), strList };
 	UINT acp = ::GetACP();
 
 	if (data.contains(BankPetList.value(acp)))
@@ -2497,7 +2405,7 @@ void Server::lssproto_EF_recv(int effect, int level, char* coption)
 		initMapEffect(FALSE);
 #endif
 		return;
-	}
+}
 
 	if (effect & 1)
 	{
@@ -2570,6 +2478,7 @@ void Server::lssproto_EN_recv(int result, int field)
 #ifdef PK_SYSTEM_TIMER_BY_ZHU
 		BattleCliTurnNo = -1;
 #endif
+
 		enablePlayerWork = false;
 		enablePetWork = false;
 		setBattleFlag(true);
@@ -3124,7 +3033,7 @@ void Server::lssproto_B_recv(char* ccommand)
 		{
 			BattleCliTurnNo = TurnNo;
 			BattleCntDown = TimeGetTime() + BATTLE_CNT_DOWN_TIME;
-		}
+}
 	}
 #endif
 	else
@@ -3135,13 +3044,13 @@ void Server::lssproto_B_recv(char* ccommand)
 			BattleCmdBak[BattleCmdWritePointer] = command;
 			BattleCmdWritePointer = (BattleCmdWritePointer + 1) & (BATTLE_BUF_SIZE - 1);
 		}
-	}
+		}
 
 #ifdef _STONDEBUG__MSG
 	//StockChatBufferLine( command, FONT_PAL_RED );
 #endif
 
-}
+	}
 
 //異步處理自動/快速戰鬥邏輯和發送封包
 void Server::asyncBattleWork(bool wait)
@@ -3333,11 +3242,11 @@ void Server::lssproto_KS_recv(int petarray, int result)
 			pc.selectPetNo[petarray] = 0;
 			if (petarray == pc.battlePetNo)
 				pc.battlePetNo = -1;
-		}
 	}
+}
 #endif
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
-	if (pc.battlePetNo < 0)
+	if (pc.battlePetNo < 0 || pc.battlePetNo > MAX_PET)
 		emit signalDispatcher.updatePetHpProgressValue(0, 0, 100);
 	else
 	{
@@ -3523,7 +3432,7 @@ void Server::lssproto_Echo_recv(char* test)
 
 #endif
 #endif
-}
+	}
 
 // Robin 2001/04/06
 void Server::lssproto_NU_recv(int AddCount)
@@ -4030,44 +3939,12 @@ void Server::lssproto_TK_recv(int index, char* cmessage, int color)
 				//pc.status |= CHR_STATUS_FUKIDASHI;
 			}
 		}
-	}
+			}
 
 	chatQueue.enqueue(QPair{ color ,msg });
-	chatLogModel->append(msg, color);
-}
-
-bool Server::mapCheckSum(int floor, int x1, int y1, int x2, int y2, int tileSum, int partsSum, int eventSum)
-{
-	int tilesum = 0, objsum = 0, eventsum = 0, databufferindex = 0, width = x2 - x1, height = y2 - y1, i, j;
-	unsigned short tile[MAP_X_SIZE * MAP_Y_SIZE];
-	unsigned short parts[MAP_X_SIZE * MAP_Y_SIZE];
-	unsigned short event[MAP_X_SIZE * MAP_Y_SIZE];
-
-
-	readMap(floor, x1, y1, x2, y2, tile, parts, event);
-	for (i = 0; i < height; i++)
-	{
-		for (j = 0; j < width; j++)
-			event[i * width + j] &= 0x0fff;
-	}
-
-	tilesum = CheckCRC((unsigned char*)tile, 27 * 27 * sizeof(short));
-	objsum = CheckCRC((unsigned char*)parts, 27 * 27 * sizeof(short));
-	eventsum = CheckCRC((unsigned char*)event, 27 * 27 * sizeof(short));
-
-	if (tileSum == tilesum && partsSum == objsum && eventSum == eventsum)
-	{
-		redrawMap();
-		return true;
-	}
-	else
-	{
-
-		//lssproto_M_send(sockfd, floor, x1, y1, x2, y2);
-
-		return false;
-	}
-}
+	Injector& injector = Injector::getInstance();
+	injector.chatLogModel->append(msg, color);
+				}
 
 //地圖數據更新，重新繪製地圖
 void Server::lssproto_MC_recv(int fl, int x1, int y1, int x2, int y2, int tileSum, int partsSum, int eventSum, char* cdata)
@@ -4078,30 +3955,46 @@ void Server::lssproto_MC_recv(int fl, int x1, int y1, int x2, int y2, int tileSu
 
 	QString showString, floorName;
 
-#ifdef DEBUGPUSH
-	QString msg;
-	sprintf_s(msg, "FL%d %d,%d-%d,%d (%ud/%ud)", fl, x1, y1, x2, y2, tileSum, partsSum);
-	PUSH(msg);
-#endif
 	getStringToken(data, "|", 1, showString);
 	makeStringFromEscaped(showString);
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
 	Injector& injector = Injector::getInstance();
 	//BB414 418118C 4181D3C
+	nowFloor = fl;
 
-	if (nowFloor == fl)
+	QString strPal;
+
+	getStringToken(showString, "|", 1, floorName);
+	floorName = floorName.simplified();
+
+	static const QRegularExpression re(R"(\\z(\d*))");
+	if (floorName.contains(re))
+		floorName.remove(re);
+	nowFloorName = floorName;
+	palNo = -2;
+	getStringToken(showString, "|", 2, strPal);
+	if (strPal.isEmpty())
 	{
-		QString strPal;
-
-		getStringToken(showString, "|", 1, floorName);
-		floorName = floorName.simplified();
-		static const QRegularExpression re(R"(\\z(\d*))");
-		if (floorName.contains(re))
-			floorName.remove(re);
-		nowFloorName = floorName;
-		palNo = -2;
-		getStringToken(showString, "|", 2, strPal);
-		if (strPal.isEmpty())
+		if (!TimeZonePalChangeFlag || IS_ONLINE_FLAG)
+		{
+			palNo = -1;
+			palTime = 0;
+			drawTimeAnimeFlag = 1;
+		}
+	}
+	else
+	{
+		int pal = strPal.toInt();
+		if (pal >= 0)
+		{
+			if (TimeZonePalChangeFlag || IS_ONLINE_FLAG)
+			{
+				palNo = pal;
+				palTime = 0;
+				drawTimeAnimeFlag = 0;
+			}
+		}
+		else
 		{
 			if (!TimeZonePalChangeFlag || IS_ONLINE_FLAG)
 			{
@@ -4110,132 +4003,13 @@ void Server::lssproto_MC_recv(int fl, int x1, int y1, int x2, int y2, int tileSu
 				drawTimeAnimeFlag = 1;
 			}
 		}
-		else
-		{
-			int pal = strPal.toInt();
-			if (pal >= 0)
-			{
-				if (TimeZonePalChangeFlag || IS_ONLINE_FLAG)
-				{
-					palNo = pal;
-					palTime = 0;
-					drawTimeAnimeFlag = 0;
-				}
-			}
-			else
-			{
-				if (!TimeZonePalChangeFlag || IS_ONLINE_FLAG)
-				{
-					palNo = -1;
-					palTime = 0;
-					drawTimeAnimeFlag = 1;
-				}
-			}
-		}
 	}
 
-	if (mapCheckSum(fl, x1, y1, x2, y2, tileSum, partsSum, eventSum))
-	{
-		if (nowFloor == fl)
-		{
-			floorChangeFlag = false;
-			if (warpEffectStart)
-				warpEffectOk = true;
-		}
-	}
+	floorChangeFlag = false;
+	if (warpEffectStart)
+		warpEffectOk = true;
 
 	emit signalDispatcher.updateMapLabelTextChanged(QString("%1(%2)").arg(nowFloorName).arg(nowFloor));
-
-	emit signalDispatcher.updateMapLabelTextChanged(QString("%1(%2)").arg(nowFloorName).arg(nowFloor));
-}
-
-void Server::setEventMemory(const QPoint& pos, unsigned short ev)
-{
-	if (((pos.y() - mapAreaY1) * mapAreaWidth + (pos.x() - mapAreaX1)) < 1369)
-		event_[(pos.y() - mapAreaY1) * mapAreaWidth + (pos.x() - mapAreaX1)] = ev;
-}
-
-bool Server::writeMap(int floor, int x1, int y1, int x2, int y2, unsigned short* tile, unsigned short* parts, unsigned short* event)
-{
-	//FILE* fp;
-	//char filename[255];
-	//int fWidth, fHeight, fOffset, mWidth, width, height, fx, fy, mx, my, len, len2, i, j;
-
-	//sprintf_s(filename, "map\\%d.dat", floor);
-
-	//if ((fopen_s(&fp, filename, "rb+")) != NULL)
-	//{
-	//	std::ignore = _mkdir("map");
-	//	if ((fopen_s(&fp, filename, "rb+")) != NULL)
-	//		return FALSE;
-	//}
-	//fseek(fp, 0, SEEK_SET);
-	//fread(&fWidth, sizeof(int), 1, fp);
-	//fread(&fHeight, sizeof(int), 1, fp);
-	//mWidth = x2 - x1;
-	//width = mWidth;
-	//height = y2 - y1;
-	//mx = 0;
-	//fx = x1;
-	//if (x1 < 0)
-	//{
-	//	width += x1;
-	//	fx = 0;
-	//	mx -= x1;
-	//}
-	//if (x2 > fWidth)
-	//	width -= (x2 - fWidth);
-	//my = 0;
-	//fy = y1;
-	//if (y1 < 0)
-	//{
-	//	height += y1;
-	//	fy = 0;
-	//	my -= y1;
-	//}
-	//if (y2 > fHeight)
-	//	height -= (y2 - fHeight);
-	//fOffset = sizeof(int) * 2;
-	//len = fy * fWidth + fx;
-	//len2 = my * mWidth + mx;
-	//for (i = 0; i < height; i++)
-	//{
-	//	fseek(fp, sizeof(short) * len + fOffset, SEEK_SET);
-	//	fwrite(&tile[len2], sizeof(short) * width, 1, fp);
-	//	len += fWidth;
-	//	len2 += mWidth;
-	//}
-	//fOffset += sizeof(short) * (fWidth * fHeight);
-	//len = fy * fWidth + fx;
-	//len2 = my * mWidth + mx;
-	//for (i = 0; i < height; i++)
-	//{
-	//	fseek(fp, sizeof(short) * len + fOffset, SEEK_SET);
-	//	fwrite(&parts[len2], sizeof(short) * width, 1, fp);
-	//	len += fWidth;
-	//	len2 += mWidth;
-	//}
-	//fOffset += sizeof(short) * (fWidth * fHeight);
-	//len = fy * fWidth + fx;
-	//len2 = my * mWidth + mx;
-	//for (i = 0; i < height; i++)
-	//{
-
-	//	for (j = 0; j < width; j++)
-	//	{
-	//		event[len2 + j] |= (MAP_SEE_FLAG | MAP_READ_FLAG);
-	//		if (nowFloor == floor && (mapAreaX1 <= x1 + j && x1 + j < mapAreaX2 && mapAreaY1 <= y1 + i && y1 + i < mapAreaY2))
-
-	//			setEventMemory(x1 + j, y1 + i, event[len2 + j]);
-	//	}
-	//	fseek(fp, sizeof(short) * len + fOffset, SEEK_SET);
-	//	fwrite(&event[len2], sizeof(short) * width, 1, fp);
-	//	len += fWidth;
-	//	len2 += mWidth;
-	//}
-	//fclose(fp);
-
-	return true;
 }
 
 //地圖數據更新，重新寫入地圖
@@ -4246,32 +4020,47 @@ void Server::lssproto_M_recv(int fl, int x1, int y1, int x2, int y2, char* cdata
 		return;
 
 	QString showString, floorName, tilestring, partsstring, eventstring, tmp;
-	unsigned short tile[2048] = {}, parts[2048] = {}, event[2048] = {};
-	int i, flag;
 
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
 
-#ifdef DEBUGPUSH
-	char msg[800];
-	sprintf_s(msg, "FL%d %d,%d-%d,%d", fl, x1, y1, x2, y2);
-	PUSH(msg);
-#endif
 	getStringToken(data, "|", 1, showString);
 	makeStringFromEscaped(showString);
 	nowFloor = fl;
-	if (nowFloor == fl)
-	{
-		QString strPal;
 
-		getStringToken(showString, "|", 1, floorName);
-		floorName = floorName.simplified();
-		static const QRegularExpression re(R"(\\z(\d*))");
-		if (floorName.contains(re))
-			floorName.remove(re);
-		nowFloorName = floorName.simplified();
-		palNo = -2;
-		getStringToken(showString, "|", 2, strPal);
-		if (strPal.isEmpty())
+	QString strPal;
+
+	getStringToken(showString, "|", 1, floorName);
+	floorName = floorName.simplified();
+	static const QRegularExpression re(R"(\\z(\d*))");
+	if (floorName.contains(re))
+		floorName.remove(re);
+	nowFloorName = floorName.simplified();
+	palNo = -2;
+	getStringToken(showString, "|", 2, strPal);
+	if (strPal.isEmpty())
+	{
+		if (!TimeZonePalChangeFlag || IS_ONLINE_FLAG)
+		{
+			palNo = -1;
+			palTime = 0;
+			drawTimeAnimeFlag = 1;
+		}
+	}
+	else
+	{
+		int pal;
+
+		pal = strPal.toInt();
+		if (pal >= 0)
+		{
+			if (TimeZonePalChangeFlag || IS_ONLINE_FLAG)
+			{
+				palNo = pal;
+				palTime = 0;
+				drawTimeAnimeFlag = 0;
+			}
+		}
+		else
 		{
 			if (!TimeZonePalChangeFlag || IS_ONLINE_FLAG)
 			{
@@ -4280,46 +4069,8 @@ void Server::lssproto_M_recv(int fl, int x1, int y1, int x2, int y2, char* cdata
 				drawTimeAnimeFlag = 1;
 			}
 		}
-		else
-		{
-			int pal;
+	}
 
-			pal = strPal.toInt();
-			if (pal >= 0)
-			{
-				if (TimeZonePalChangeFlag || IS_ONLINE_FLAG)
-				{
-					palNo = pal;
-					palTime = 0;
-					drawTimeAnimeFlag = 0;
-				}
-			}
-			else
-			{
-				if (!TimeZonePalChangeFlag || IS_ONLINE_FLAG)
-				{
-					palNo = -1;
-					palTime = 0;
-					drawTimeAnimeFlag = 1;
-				}
-			}
-		}
-	}
-	getStringToken(data, "|", 2, tilestring);
-	getStringToken(data, "|", 3, partsstring);
-	getStringToken(data, "|", 4, eventstring);
-	for (i = 0; ; i++)
-	{
-		flag = getStringToken(tilestring, ",", i + 1, tmp);
-		tile[i] = a62toi(tmp);
-		getStringToken(partsstring, ",", i + 1, tmp);
-		parts[i] = a62toi(tmp);
-		getStringToken(eventstring, ",", i + 1, tmp);
-		event[i] = a62toi(tmp);
-		if (flag == 1)
-			break;
-	}
-	writeMap(fl, x1, y1, x2, y2, tile, parts, event);
 	if (mapEmptyFlag || floorChangeFlag)
 	{
 		if (nowFloor == fl)
@@ -4330,7 +4081,7 @@ void Server::lssproto_M_recv(int fl, int x1, int y1, int x2, int y2, char* cdata
 				warpEffectOk = true;
 		}
 	}
-
+	emit signalDispatcher.updateMapLabelTextChanged(QString("%1(%2)").arg(nowFloorName).arg(nowFloor));
 }
 
 #ifdef _CHAR_PROFESSION			// WON ADD 人物職業
@@ -4579,7 +4330,7 @@ void Server::lssproto_C_recv(char* cdata)
 				{
 					party[0].level = pc.level;
 					party[0].name = pc.name;
-				}
+		}
 #ifdef MAX_AIRPLANENUM
 				for (j = 0; j < MAX_AIRPLANENUM; j++)
 #else
@@ -4651,7 +4402,10 @@ void Server::lssproto_C_recv(char* cdata)
 					//}
 					//setCharNameColor(ptAct, charNameColor);
 				//}
-			}
+				}
+
+			if (name == u8"を�そó")//排除亂碼
+				break;
 
 			mapunit_t unit = mapUnitHash.value(id);
 			unit.type = static_cast<CHAR_TYPE>(charType);
@@ -4678,55 +4432,58 @@ void Server::lssproto_C_recv(char* cdata)
 			unit.objType = unit.type == CHAR_TYPEPLAYER ? util::OBJ_HUMAN : util::OBJ_NPC;
 			mapUnitHash.insert(id, unit);
 			if (unit.objType == util::OBJ_NPC && !unit.name.isEmpty()
-				&& getWorldStatus() == 9 && getGameStatus() == 3)
+				&& getWorldStatus() == 9 && getGameStatus() == 3 && !npcUnitPointHash.contains(QPoint(x, y)))
 			{
 				npcUnitPointHash.insert(QPoint(x, y), unit);
 
-				util::Config config(util::getPointFileName());
-				util::MapData d;
-				d.floor = nowFloor;
-				d.name = name;
+				pointerWriterSync_.addFuture(QtConcurrent::run([this, name, unit]()
+					{
+						util::Config config(util::getPointFileName());
+						util::MapData d;
+						d.floor = nowFloor;
+						d.name = name;
 
-				//npc前方一格
-				QPoint newPoint = util::fix_point.at(unit.dir) + unit.p;
-				//檢查是否可走
-				if (mapAnalyzer->isPassable(nowFloor, nowPoint, newPoint))
-				{
-					d.x = newPoint.x();
-					d.y = newPoint.y();
-				}
-				else
-				{
-					//再往前一格
-					QPoint additionPoint = util::fix_point.at(unit.dir) + newPoint;
-					//檢查是否可走
-					if (mapAnalyzer->isPassable(nowFloor, nowPoint, additionPoint))
-					{
-						d.x = additionPoint.x();
-						d.y = additionPoint.y();
-					}
-					else
-					{
-						//檢查NPC周圍8格
-						bool flag = false;
-						for (int i = 0; i < 8; i++)
+						//npc前方一格
+						QPoint newPoint = util::fix_point.at(unit.dir) + unit.p;
+						//檢查是否可走
+						if (mapAnalyzer->isPassable(nowFloor, nowPoint, newPoint))
 						{
-							newPoint = util::fix_point.at(i) + unit.p;
-							if (mapAnalyzer->isPassable(nowFloor, nowPoint, newPoint))
+							d.x = newPoint.x();
+							d.y = newPoint.y();
+						}
+						else
+						{
+							//再往前一格
+							QPoint additionPoint = util::fix_point.at(unit.dir) + newPoint;
+							//檢查是否可走
+							if (mapAnalyzer->isPassable(nowFloor, nowPoint, additionPoint))
 							{
-								d.x = newPoint.x();
-								d.y = newPoint.y();
-								flag = true;
-								break;
+								d.x = additionPoint.x();
+								d.y = additionPoint.y();
+							}
+							else
+							{
+								//檢查NPC周圍8格
+								bool flag = false;
+								for (int i = 0; i < 8; i++)
+								{
+									newPoint = util::fix_point.at(i) + unit.p;
+									if (mapAnalyzer->isPassable(nowFloor, nowPoint, newPoint))
+									{
+										d.x = newPoint.x();
+										d.y = newPoint.y();
+										flag = true;
+										break;
+									}
+								}
+								if (!flag)
+								{
+									return;
+								}
 							}
 						}
-						if (!flag)
-						{
-							continue;
-						}
-					}
-				}
-				config.writeMapData(name, d);
+						config.writeMapData(name, d);
+					}));
 			}
 			break;
 		}
@@ -4756,7 +4513,7 @@ void Server::lssproto_C_recv(char* cdata)
 			unit.isvisible = graNo != 0 && graNo != 9999;
 			unit.objType = util::OBJ_ITEM;
 			mapUnitHash.insert(id, unit);
-			//setItemCharObj(id, graNo, x, y, 0, classNo, info);
+
 			break;
 		}
 		case 3://OBJTYPE_GOLD
@@ -4779,13 +4536,6 @@ void Server::lssproto_C_recv(char* cdata)
 			unit.objType = util::OBJ_GOLD;
 			mapUnitHash.insert(id, unit);
 
-			//sprintf_s(info, "%d Stone", money);
-			//if (money > 10000)
-			//	setMoneyCharObj(id, 24050, x, y, 0, money, info);
-			//else if (money > 1000)
-			//	setMoneyCharObj(id, 24051, x, y, 0, money, info);
-			//else
-			//	setMoneyCharObj(id, 24052, x, y, 0, money, info);
 			break;
 		}
 		case 4://NPC&other player
@@ -4817,8 +4567,6 @@ void Server::lssproto_C_recv(char* cdata)
 			mapUnitHash.insert(id, unit);
 		}
 
-
-
 #ifdef _CHAR_PROFESSION			// WON ADD 人物職業
 #ifdef _GM_IDENTIFY		// Rog ADD GM識別
 		setNpcCharObj(id, graNo, x, y, dir, "", name, "",
@@ -4848,6 +4596,7 @@ void Server::lssproto_C_recv(char* cdata)
 		//ptAct = getCharObjAct(id);
 		break;
 		}
+#pragma region DISABLE
 #else
 		getStringToken(bigtoken, "|", 11, smalltoken);
 		if (!smalltoken.isEmpty())
@@ -5035,13 +4784,14 @@ void Server::lssproto_C_recv(char* cdata)
 						{
 							//setMoneyCharObj(id, 24052, x, y, 0, money, info);
 						}
-					}
-				}
-			}
 		}
-#endif
 	}
 }
+			}
+#endif
+#pragma endregion
+		}
+	}
 
 //周圍人、NPC..等等狀態改變必定是 _C_recv已經新增過的單位
 void Server::lssproto_CA_recv(char* cdata)
@@ -5135,14 +4885,14 @@ void Server::lssproto_CA_recv(char* cdata)
 							old_lssproto_AC_send(sockfd, nowGx, nowGy, 5);
 						setPcAction(5);
 #endif
-					}
-				}
+		}
+	}
 				else
 #endif
 					//changePcAct(x, y, dir, act, effectno, effectparam1, effectparam2);
-			}
+}
 			continue;
-		}
+}
 
 		//ptAct = getCharObjAct(charindex);
 		//if (ptAct == NULL)
@@ -5987,10 +5737,10 @@ void Server::lssproto_S_recv(char* cdata)
 							i++;
 						}
 #endif
+						}
+						}
 					}
 				}
-			}
-		}
 
 		if (pc.ridePetNo >= 0 && pc.ridePetNo < MAX_PET)
 		{
@@ -6027,7 +5777,7 @@ void Server::lssproto_S_recv(char* cdata)
 		const QVariant var = QVariant::fromValue(varList);
 		playerInfoColContents.insert(no + 1, var);
 		emit signalDispatcher.updatePlayerInfoColContents(no + 1, var);
-	}
+			}
 #pragma endregion
 #pragma region EncountPercentage
 	else if (first == "E") // E nowEncountPercentage
@@ -6364,7 +6114,7 @@ void Server::lssproto_S_recv(char* cdata)
 #endif
 
 			refreshItemInfo(i);
-		}
+	}
 
 		QStringList itemList;
 		for (const ITEM& it : pc.item)
@@ -6376,7 +6126,7 @@ void Server::lssproto_S_recv(char* cdata)
 		emit signalDispatcher.updateComboBoxItemText(util::kComboBoxItem, itemList);
 		checkAutoDropMeat(QStringList());
 		sortItem();
-	}
+		}
 #pragma endregion
 #pragma region PetSkill
 	else if (first == "W")//接收到的寵物技能
@@ -6476,7 +6226,7 @@ void Server::lssproto_S_recv(char* cdata)
 		{
 			count = i * 1;
 			profession_skill[i].cooltime = getIntegerToken(data, "|", 1 + count);
-		}
+	}
 		break;
 	}
 #endif
@@ -6574,8 +6324,8 @@ void Server::lssproto_S_recv(char* cdata)
 #ifdef _ITEM_COUNTDOWN
 			pet[nPetIndex].item[i].counttime = getIntegerToken(data, "|", no + 16);
 #endif
-		}
 	}
+}
 #endif
 #pragma endregion
 #pragma region S_recv_Unknown
@@ -6729,14 +6479,14 @@ void Server::lssproto_CharList_recv(char* cresult, char* cdata)
 				return;
 	}
 	charListStatus = 1;
-	for (i = 0; i < MAXCHARACTER; i++)
-	{
-		nm.clear();
-		opt.clear();
-		getStringToken(data, "|", i * 2 + 1, nm);
-		getStringToken(data, "|", i * 2 + 2, opt);
-		//setCharacterList(nm, opt);
-	}
+		for (i = 0; i < MAXCHARACTER; i++)
+		{
+			nm.clear();
+				opt.clear();
+				getStringToken(data, "|", i * 2 + 1, nm);
+				getStringToken(data, "|", i * 2 + 2, opt);
+			//setCharacterList(nm, opt);
+		}
 	//}
 }
 
@@ -6794,7 +6544,7 @@ void Server::lssproto_CharLogin_recv(char* cresult, char* cdata)
 	angelMsg[0] = NULL;
 #endif
 	//}
-}
+	}
 
 void Server::lssproto_TD_recv(char* cdata)//交易
 {
@@ -6916,6 +6666,24 @@ int Server::getUnloginStatus()
 void Server::setBattleFlag(bool enable)
 {
 	IS_BATTLE_FLAG = enable;
+	int status = pc.status;
+	if (enable)
+	{
+		if (status & CHR_STATUS_BATTLE)
+			return;
+		status |= CHR_STATUS_BATTLE;
+	}
+	else
+	{
+		if (!(status & CHR_STATUS_BATTLE))
+			return;
+		status &= ~CHR_STATUS_BATTLE;
+	}
+	Injector& injector = Injector::getInstance();
+	HANDLE hProcess = injector.getProcess();
+	DWORD hModule = injector.getProcessModule();
+	mem::writeInt(hProcess, hModule + 0x422BF2C, status, 0);
+	mem::writeInt(hProcess, hModule + 0x41829AC, enable ? 1 : 0, 0);
 }
 
 //計算人物最單物品大堆疊數(負重量)
@@ -7462,6 +7230,10 @@ void Server::setPetState(int petIndex, PetState state)
 	if (petIndex < 0 || petIndex >= MAX_PET)
 		return;
 
+	Injector& injector = Injector::getInstance();
+	HANDLE hProcess = injector.getProcess();
+	DWORD hModule = injector.getProcessModule();
+
 	switch (state)
 	{
 	case kBattle:
@@ -7481,6 +7253,9 @@ void Server::setPetState(int petIndex, PetState state)
 		}
 		lssproto_PETST_send(petIndex, 0);
 		lssproto_KS_send(petIndex);
+		pc.battlePetNo = petIndex;
+		mem::writeInt(hProcess, hModule + 0x422BF3E, petIndex, 0);
+
 		break;
 	}
 	case kStandby:
@@ -7508,6 +7283,7 @@ void Server::setPetState(int petIndex, PetState state)
 		}
 		lssproto_PETST_send(petIndex, 0);
 		lssproto_PETST_send(petIndex, 4);
+		pc.mailPetNo = petIndex;
 		break;
 	}
 	case kRest:
@@ -7544,16 +7320,34 @@ void Server::setPetState(int petIndex, PetState state)
 			lssproto_FM_send(const_cast<char*>(sstr.c_str()));
 		}
 
-		lssproto_PETST_send(petIndex, 0);
-
 		str = QString("R|P|%1").arg(petIndex);
 		sstr = str.toStdString();
 		lssproto_FM_send(const_cast<char*>(sstr.c_str()));
+		pc.ridePetNo = petIndex;
+		mem::writeInt(hProcess, hModule + 0x422E3D8, petIndex, 0);
 		break;
 	}
 	default:
 		break;
 	}
+
+	if (pc.mailPetNo == petIndex && state != kMail)
+	{
+		mem::writeInt(hProcess, hModule + 0x422BF3E, -1, 0);
+		pc.mailPetNo = -1;
+	}
+	if (pc.ridePetNo == petIndex && state != kRide)
+	{
+		mem::writeInt(hProcess, hModule + 0x422BF3E, -1, 0);
+		pc.ridePetNo = -1;
+	}
+	if (pc.battlePetNo == petIndex && state != kBattle)
+	{
+		pc.battlePetNo = -1;
+	}
+
+	pet[petIndex].state = state;
+
 }
 
 //設置寵物狀態封包  0:休息 1:等待 4:郵件
@@ -7745,7 +7539,8 @@ void Server::announce(const QString& msg, int color)
 		util::VirtualMemory ptr(hProcess, "", util::VirtualMemory::kAnsi, true);
 		injector.sendMessage(Injector::kSendAnnounce, ptr, color);
 	}
-
+	chatQueue.enqueue(QPair<int, QString>(color, msg));
+	injector.chatLogModel->append(msg, color);
 }
 
 //喊話
@@ -7788,18 +7583,36 @@ void Server::setWindowTitle()
 	int position = injector.getValueHash(util::kPositionValue);
 
 	QStringList serverList = {
-		tr("1st//Acticity"), tr("2nd///Market"), tr("3rd//Family"), tr("4th//Away"),
-		tr("5th//Away"), tr("6th//Away"), tr("7th//Away"), tr("8th//Away"),
-		tr("9th//Away"), tr("15th//Company"), tr("21th//Member"), tr("22th//Member"),
+		QObject::tr("1st//Acticity"), QObject::tr("2nd///Market"), QObject::tr("3rd//Family"), QObject::tr("4th//Away"),
+		QObject::tr("5th//Away"), QObject::tr("6th//Away"), QObject::tr("7th//Away"), QObject::tr("8th//Away"),
+		QObject::tr("9th//Away"), QObject::tr("15th//Company"), QObject::tr("21th//Member"), QObject::tr("22th//Member"),
 	};
 
 	QStringList subServerList = QStringList{
-		tr("Telecom"), tr("UnitedNetwork"), tr("Easyown"), tr("Oversea"), tr("Backup"),
+		QObject::tr("Telecom"), QObject::tr("UnitedNetwork"), QObject::tr("Easyown"), QObject::tr("Oversea"), QObject::tr("Backup"),
 	};
+
+	QString serverNamee;
+	if (server >= 0 && server < serverList.size())
+		serverNamee = serverList.at(server);
+	else
+		serverNamee = QString::number(server);
+
+	QString subServerName;
+	if (subserver >= 0 && subserver < subServerList.size())
+		subServerName = subServerList.at(subserver);
+	else
+		subServerName = QString::number(subserver);
+
+	QString positionName;
+	if (position >= 0 && position < 1)
+		positionName = position == 0 ? QObject::tr("left") : QObject::tr("right");
+	else
+		positionName = QString::number(position);
 
 	int ser = mem::readInt(injector.getProcess(), injector.getProcessModule() + 0xC4288, sizeof(int));
 	QString title = QString("SaSH [%1:%2:%3] - %4 LV:%5(%6/%7) MP:%8/%9")
-		.arg(server).arg(subserver).arg(position).arg(pc.name).arg(pc.level).arg(pc.hp).arg(pc.maxHp).arg(pc.mp).arg(pc.maxMp);
+		.arg(serverNamee).arg(subServerName).arg(position).arg(pc.name).arg(pc.level).arg(pc.hp).arg(pc.maxHp).arg(pc.mp).arg(pc.maxMp);
 	std::wstring wtitle = title.toStdWString();
 	SetWindowTextW(injector.getProcessWindow(), wtitle.c_str());
 }
@@ -7972,6 +7785,7 @@ void Server::lssproto_MI_send(int fromindex, int toindex)
 	Autil::util_SendMesg(LSSPROTO_MI_SEND, buffer);
 }
 
+//撿道具
 void Server::pickItem(int dir)
 {
 	if (!IS_ONLINE_FLAG)
@@ -8102,6 +7916,7 @@ void Server::lssproto_FM_send(char* data)
 	Autil::util_SendMesg(LSSPROTO_FM_SEND, buffer);
 }
 
+//丟棄寵物
 void Server::dropPet(int petIndex)
 {
 	if (petIndex < 0 || petIndex >= MAX_PET)
@@ -8116,6 +7931,7 @@ void Server::dropPet(int petIndex)
 	lssproto_DP_send(nowPoint, petIndex);
 }
 
+//丟棄寵物封包
 void Server::lssproto_DP_send(const QPoint& pos, int petindex)
 {
 	char buffer[16384] = { 0 };
@@ -8167,7 +7983,7 @@ void Server::lssproto_MU_send(const QPoint& pos, int array, int toindex)
 	Autil::util_SendMesg(LSSPROTO_MU_SEND, buffer);
 }
 
-//????不知道幹嘛的
+//人物動作
 void Server::lssproto_AC_send(const QPoint& pos, int actionno)
 {
 	char buffer[16384] = { 0 };
@@ -8187,6 +8003,7 @@ void Server::cleanChatHistory()
 {
 	Injector& injector = Injector::getInstance();
 	injector.sendMessage(Injector::kCleanChatHistory, NULL, NULL);
+	chatQueue.clear();
 }
 
 bool Server::findUnit(const QString& name, int type, mapunit_t* unit, const QString freename) const
@@ -8376,6 +8193,68 @@ void Server::lssproto_SP_send(const QPoint& pos, int dir)
 	iChecksum += Autil::util_mkint(buffer, dir);
 	Autil::util_mkint(buffer, iChecksum);
 	Autil::util_SendMesg(LSSPROTO_SP_SEND, buffer);
+}
+
+//加點
+void Server::addPoint(int skillid, int amt)
+{
+	if (!IS_ONLINE_FLAG)
+		return;
+
+	if (IS_BATTLE_FLAG)
+		return;
+
+	if (skillid < 0 || skillid > 4)
+		return;
+
+	if (amt  <1 || amt >StatusUpPoint)
+		return;
+
+	for (int i = 0; i < amt; i++)
+		lssproto_SKUP_send(skillid);
+}
+
+//人物升級加點封包
+void Server::lssproto_SKUP_send(int skillid)
+{
+	char buffer[16384] = { 0 };
+	memset(buffer, 0, sizeof(buffer));
+	int iChecksum = 0;
+
+	buffer[0] = '\0';
+	iChecksum += Autil::util_mkint(buffer, skillid);
+	Autil::util_mkint(buffer, iChecksum);
+	Autil::util_SendMesg(LSSPROTO_SKUP_SEND, buffer);
+}
+
+//丟棄石幣封包
+void Server::lssproto_DG_send(const QPoint& pos, int amount)
+{
+	char buffer[16384] = { 0 };
+	memset(buffer, 0, sizeof(buffer));
+	int iChecksum = 0;
+
+	iChecksum += Autil::util_mkint(buffer, pos.x());
+	iChecksum += Autil::util_mkint(buffer, pos.y());
+	iChecksum += Autil::util_mkint(buffer, amount);
+	Autil::util_mkint(buffer, iChecksum);
+	Autil::util_SendMesg(LSSPROTO_DG_SEND, buffer);
+}
+
+//寵物郵件風包
+void Server::lssproto_PMSG_send(int index, int petindex, int itemindex, char* message, int color)
+{
+	char buffer[16384] = { 0 };
+	memset(buffer, 0, sizeof(buffer));
+	int iChecksum = 0;
+
+	iChecksum += Autil::util_mkint(buffer, index);
+	iChecksum += Autil::util_mkint(buffer, petindex);
+	iChecksum += Autil::util_mkint(buffer, itemindex);
+	iChecksum += Autil::util_mkstring(buffer, message);
+	iChecksum += Autil::util_mkint(buffer, color);
+	Autil::util_mkint(buffer, iChecksum);
+	Autil::util_SendMesg(LSSPROTO_PMSG_SEND, buffer);
 }
 
 //人物改名
@@ -8900,6 +8779,15 @@ void Server::updateDatasFromMemory()
 	int x = mem::readInt(hProcess, hModule + 0x4181D3C, sizeof(int));
 	int y = mem::readInt(hProcess, hModule + 0x4181D40, sizeof(int));
 	nowPoint = QPoint(x, y);
+
+	int floor = mem::readInt(hProcess, hModule + 0x4181190, sizeof(int));
+	QString map = mem::readString(hProcess, hModule + 0x4160228, 24, true);
+	if (nowFloorName != map || nowFloor != floor)
+	{
+		nowFloorName = map;
+		nowFloor = floor;
+		emit signalDispatcher.updateMapLabelTextChanged(QString("%1(%2)").arg(nowFloorName).arg(nowFloor));
+	}
 
 	//每隻寵物如果處於等待或戰鬥則為1
 	mem::read(hProcess, hModule + 0x422BF34, sizeof(pc.selectPetNo), pc.selectPetNo);
@@ -11561,7 +11449,7 @@ DWORD WINAPI PingFunc(LPVOID param)
 					Sleep(3000);
 				}
 			}
-		}
+}
 	}
 	return 0;
 }
@@ -11689,7 +11577,7 @@ void Server::lssproto_FamilyBadge_recv(char* data)
 		徽章數據[i - 2] = getIntegerToken(data, "|", i);
 		if (徽章數據[i - 2] == -1) break;
 		徽章個數++;
-}
+	}
 }
 #endif
 

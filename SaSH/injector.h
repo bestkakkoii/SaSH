@@ -3,11 +3,13 @@
 #include "net/tcpserver.h"
 #include <util.h>
 
+class StringListModel;
 class Injector : public QObject
 {
 	Q_DISABLE_COPY_MOVE(Injector)
 private:
-	Injector() = default;
+	Injector();
+
 	static Injector* instance;
 public:
 	virtual ~Injector();
@@ -138,6 +140,12 @@ private:
 
 public:
 	QScopedPointer<Server> server;
+
+	bool IS_SCRIPT_FLAG = false;
+
+	QScopedPointer<StringListModel> scriptLogModel;
+
+	QScopedPointer<StringListModel> chatLogModel;
 
 private:
 	int hModule_ = NULL;
@@ -278,7 +286,7 @@ private:
 		{ util::kAutoStackEnable, true },
 		{ util::kKNPCEnable, false },
 		{ util::kAutoAnswerEnable, false },
-		{ util::kForceLeaveBattleEnable, false },
+		{ util::kAutoEatBeanEnable, false },
 		{ util::kAutoWalkEnable, false },
 		{ util::kFastAutoWalkEnable, false },
 		{ util::kFastBattleEnable, true },

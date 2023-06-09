@@ -6,6 +6,7 @@
 #include "util.h"
 
 using TokenMap = QMap<int, Token>;
+Q_DECLARE_METATYPE(TokenMap)
 
 class Interpreter : public QObject
 {
@@ -14,21 +15,41 @@ public:
 	Interpreter(QObject* parent = nullptr);
 	virtual ~Interpreter();
 
-	inline void requestInterruption() { isRequestInterrupted.store(true, std::memory_order_release); }
-
 	inline Q_REQUIRED_RESULT bool isInterruptionRequested() const { return isRequestInterrupted.load(std::memory_order_acquire); }
 
 	inline bool isRunning() const { return isRunning_.load(std::memory_order_acquire) && !isInterruptionRequested(); }
-	bool loadFile(const QString& fileName, QHash<int, TokenMap>* hash);
-	bool loadString(const QString& script, QHash<int, TokenMap>* hash);
+
+	void preview(const QString& fileName);
+
 	void doString(const QString& script);
 
-	void start(int beginLine, const QString& fileName);
+	void doFileWithThread(int beginLine, const QString& fileName);
+
+	bool doFile(int beginLine, const QString& fileName, Interpreter* parent);
+
 	void stop();
+
 	void pause();
+
 	void resume();
+
 	inline bool isPaused() const { return isPaused_.load(std::memory_order_acquire); }
 
+	inline void setSubScript(bool isSub) { isSub = isSub; }
+
+	Q_REQUIRED_RESULT inline bool isSubScript() const { return isSub; }
+
+signals:
+	void finished();
+
+
+public slots:
+	inline void requestInterruption() { isRequestInterrupted.store(true, std::memory_order_release); }
+
+	void proc();
+private:
+	bool readFile(const QString& fileName, QString* pcontent);
+	bool loadString(const QString& script, QHash<int, TokenMap>* ptokens, QHash<QString, int>* plabel);
 private:
 	enum JumpBehavior
 	{
@@ -129,8 +150,8 @@ private:
 	void openLibs();
 
 private:
-	bool checkBattleThenWait() const;
-	bool findPath(QPoint dst, int steplen, int step_cost = 0, int timeout = 180000, std::function<int(QPoint& dst)> callback = nullptr) const;
+	bool checkBattleThenWait();
+	bool findPath(QPoint dst, int steplen, int step_cost = 0, int timeout = 180000, std::function<int(QPoint& dst)> callback = nullptr);
 
 	bool waitfor(int timeout, std::function<bool()> exprfun) const;
 	bool checkString(const TokenMap& TK, int idx, QString* ret) const;
@@ -146,7 +167,9 @@ private:
 	bool compare(CompareArea area, const TokenMap& TK) const;
 
 
+	void checkPause();
 
+	void updateGlobalVariables();
 private: //註冊給Parser的函數
 	//system
 	int test(const TokenMap&) const;
@@ -154,6 +177,7 @@ private: //註冊給Parser的函數
 	int press(const TokenMap&);
 	int eo(const TokenMap& TK);
 	int announce(const TokenMap& TK);
+	int input(const TokenMap& TK);
 	int messagebox(const TokenMap& TK);
 	int talk(const TokenMap& TK);
 	int talkandannounce(const TokenMap& TK);
@@ -163,6 +187,7 @@ private: //註冊給Parser的函數
 	int set(const TokenMap& TK);
 	int savesetting(const TokenMap& TK);
 	int loadsetting(const TokenMap& TK);
+	int run(const TokenMap& TK);
 
 	//check
 	int checkdaily(const TokenMap& TK);
@@ -211,6 +236,7 @@ private: //註冊給Parser的函數
 	int withdrawgold(const TokenMap& TK);
 	int warp(const TokenMap& TK);
 	int leftclick(const TokenMap& TK);
+	int addpoint(const TokenMap& TK);
 
 	int recordequip(const TokenMap& TK);
 	int wearequip(const TokenMap& TK);
@@ -226,25 +252,20 @@ private: //註冊給Parser的函數
 	int leave(const TokenMap& TK);
 
 
-signals:
-	void finished();
-
-public slots:
-	void run();
-
 private:
 	int beginLine_ = 0;
+	bool isSub = false;
+
 	std::atomic_bool isRequestInterrupted = false;
-	QString currentMainScriptFileName_ = "";
-	QString currentMainScriptString_ = "";
-	util::SafeHash<QString, QHash<int, TokenMap>> alltokens_;//所有已加載過的腳本Tokens
+
 	QThread* thread_ = nullptr;
-	QScopedPointer<Lexer> lexer_;
+
 	QScopedPointer<Parser> parser_;
 
 	std::atomic_bool isRunning_ = false;
+
 	//是否暫停
 	std::atomic_bool isPaused_ = false;
-	QWaitCondition waitCondition_;
-	QMutex mutex_;
+	mutable QWaitCondition waitCondition_;
+	mutable QMutex mutex_;
 };

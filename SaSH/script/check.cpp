@@ -125,7 +125,7 @@ int Interpreter::checkdialog(const TokenMap& TK)
 	if (!checkRange(TK, 2, &min, &max))
 		return Parser::kArgError;
 
-	QThread::msleep(100);
+	QThread::msleep(500);
 
 	bool bret = waitfor(5000, [&injector, min, max, cmpStr]()->bool
 		{

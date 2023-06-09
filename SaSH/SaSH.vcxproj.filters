@@ -68,6 +68,9 @@
     <Filter Include="Source Files\script">
       <UniqueIdentifier>{6f340115-dccf-4873-92f4-a203398dd783}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\update">
+      <UniqueIdentifier>{b4e70ffc-60fb-407b-ac92-f64e44b5259b}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <QtRcc Include="resource.qrc">
@@ -216,6 +219,15 @@
     <ClCompile Include="model\listview.cpp">
       <Filter>Source Files\model</Filter>
     </ClCompile>
+    <ClCompile Include="update\curldownload.cpp">
+      <Filter>Source Files\update</Filter>
+    </ClCompile>
+    <ClCompile Include="gdatatime.cpp">
+      <Filter>Source Files\util</Filter>
+    </ClCompile>
+    <ClCompile Include="update\qdownloader.cpp">
+      <Filter>Source Files\update</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="mainform.h">
@@ -305,6 +317,9 @@
     <QtMoc Include="model\listview.h">
       <Filter>Source Files\model</Filter>
     </QtMoc>
+    <QtMoc Include="update\qdownloader.h">
+      <Filter>Source Files\update</Filter>
+    </QtMoc>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stdafx.h">
@@ -342,6 +357,12 @@
     </ClInclude>
     <ClInclude Include="model\highlighter.h">
       <Filter>Source Files\model</Filter>
+    </ClInclude>
+    <ClInclude Include="update\curldownload.h">
+      <Filter>Source Files\update</Filter>
+    </ClInclude>
+    <ClInclude Include="gdatetime.h">
+      <Filter>Source Files\util</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -399,12 +420,12 @@
     <QtUic Include="form\mapform.ui">
       <Filter>Form Files</Filter>
     </QtUic>
+    <QtUic Include="update\qdownloader.ui">
+      <Filter>Source Files\update</Filter>
+    </QtUic>
   </ItemGroup>
   <ItemGroup>
     <QtTranslation Include="translations\qt_zh_TW.ts">
-      <Filter>Translation Files</Filter>
-    </QtTranslation>
-    <QtTranslation Include="translations\qt_zh_CN.ts">
       <Filter>Translation Files</Filter>
     </QtTranslation>
   </ItemGroup>

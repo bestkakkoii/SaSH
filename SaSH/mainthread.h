@@ -47,7 +47,7 @@ private:
 	void checkAutoHeal();
 	void checkAutoDropPet();
 	void checkAutoLockPet();
-
+	void checkAutoEatBoostExpItem();
 private:
 	void battleTimeThread();
 

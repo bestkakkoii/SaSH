@@ -71,12 +71,14 @@ public:
 
 	inline bool hasToken() const { return !tokens_.isEmpty(); }
 
+	inline const QHash<int, QMap<int, Token>> getToken() const { return tokens_; }
+
 	inline void setCallBack(const ParserCallBack& callBack) { callBack_ = callBack; }
 
 	inline void setCurrentLine(int line) { lineNumber_ = line; }
 
 	//設置腳本所有全局變量數據
-	void setGlobalVariables(const QHash<QString, QVariant>& variables) { globalVariables_ = variables; }
+	void setGlobalVariables(const QVariantHash& variables) { globalVariables_ = variables; }
 
 	inline void registerFunction(const QString& commandName, const CommandRegistry& function)
 	{
@@ -109,6 +111,9 @@ public:
 	//解析腳本
 	void parse(int line = 0);
 
+
+	QVariant& getref(const QString& name) { return variables_[name]; }
+	QVariantHash& getrefs() { return variables_; }
 private:
 	void processTokens();
 	int processCommand();
@@ -118,6 +123,8 @@ private:
 	bool processJump();
 	void processReturn();
 	//void processLabel();
+
+	void handleError(int err);
 
 	inline void next() { ++lineNumber_; }
 
@@ -134,7 +141,7 @@ private:
 		}
 		//如果是整數返回 -1
 		if (std::is_same<T, int>::value)
-			return -1;
+			return 0;
 		return T();
 	}
 	Q_REQUIRED_RESULT inline RESERVE getTokenType(int index) const { return currentLineTokens_.value(index).type; }
@@ -145,8 +152,8 @@ private:
 private:
 	std::atomic_bool isStop_ = false;
 	QHash<int, QMap<int, Token>> tokens_;
-	QHash<QString, QVariant> variables_;
-	QHash<QString, QVariant> globalVariables_;
+	QVariantHash variables_;
+	QVariantHash globalVariables_;
 	QHash<QString, int> labels_;
 	QHash<QString, CommandRegistry> commandRegistry_;
 

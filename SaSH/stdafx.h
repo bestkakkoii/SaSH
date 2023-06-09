@@ -78,10 +78,10 @@ public:\
 #include <QTcpSocket>
 #include <QHostInfo>
 #include <QHostAddress>
-//#include <QNetworkReply>
-//#include <QNetworkRequest>
-//#include <QNetworkAccessManager>
-//#include <QHttpMultiPart>
+#include <QNetworkReply>
+#include <QNetworkRequest>
+#include <QNetworkAccessManager>
+#include <QHttpMultiPart>
 
 #include <QSysInfo>
 #include <QDebug>
@@ -229,6 +229,6 @@ public:\
 
 //custom
 #include "qscopedhandle.h"
-
+#include "gdatetime.h"
 
 #endif // __cplusplus

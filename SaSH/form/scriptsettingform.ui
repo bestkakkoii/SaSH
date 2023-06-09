@@ -790,6 +790,526 @@ color: rgb(208, 208, 208);
           <property name="sortingEnabled">
            <bool>true</bool>
           </property>
+          <column>
+           <property name="text">
+            <string>functions</string>
+           </property>
+          </column>
+          <item>
+           <property name="text">
+            <string>var</string>
+           </property>
+           <item>
+            <property name="text">
+             <string>varremove</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>varclear</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>var operator</string>
+            </property>
+            <item>
+             <property name="text">
+              <string>&gt;&gt;</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>&lt;&lt;</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>++</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>+</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>~</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>|</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>^</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>/</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>*</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>&amp;</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>%</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>--</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>-</string>
+             </property>
+            </item>
+           </item>
+           <item>
+            <property name="text">
+             <string>var</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>global var</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>format</string>
+            </property>
+           </item>
+          </item>
+          <item>
+           <property name="text">
+            <string>sys</string>
+           </property>
+           <item>
+            <property name="text">
+             <string>test</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>talkandprint</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>talk</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>sleep</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>set</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>savesettings</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>press</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>messagebox</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>logout</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>logback</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>loadsettings</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>input</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>eo</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>clear</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>announce</string>
+            </property>
+           </item>
+          </item>
+          <item>
+           <property name="text">
+            <string>relational operator</string>
+           </property>
+           <item>
+            <property name="text">
+             <string>&gt;=</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>&gt;</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>==</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>&lt;=</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>&lt;</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>!=</string>
+            </property>
+           </item>
+          </item>
+          <item>
+           <property name="text">
+            <string>move</string>
+           </property>
+           <item>
+            <property name="text">
+             <string>movetonpc</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>movetele</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>movepacket</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>movefindpath</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>movedir</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>movecodfast</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>movecod</string>
+            </property>
+           </item>
+          </item>
+          <item>
+           <property name="text">
+            <string>core</string>
+           </property>
+           <item>
+            <property name="text">
+             <string>run</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>return</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>pause</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>label</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>goto</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>end</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>comment</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>cmp</string>
+            </property>
+           </item>
+          </item>
+          <item>
+           <property name="text">
+            <string>check</string>
+           </property>
+           <item>
+            <property name="text">
+             <string>isteam</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>ispet</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>isitemfull</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>isitem</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>checkteamcount</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>checkplayer</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>checkpetcount</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>checkpet</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>checkmission</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>checkmapfast</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>checkmap</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>checkitemcount</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>checkdialog</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>checkcod</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>checkchat</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>checkbattle</string>
+            </property>
+           </item>
+          </item>
+          <item>
+           <property name="text">
+            <string>act</string>
+           </property>
+           <item>
+            <property name="text">
+             <string>withdrawpet</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>withdrawitem</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>withdrawgold</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>wearrecordedequip</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>usemagic</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>useitem</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>unwearequip</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>setpetstate</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>sell</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>renameplayer</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>renamepet</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>recordequip</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>pickitem</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>leftclick</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>leave</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>join</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>droppet</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>dropitem</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>depositpet</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>deposititem</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>depositgold</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>craftfood</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>craftequip</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>buy</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>addpoint</string>
+            </property>
+           </item>
+          </item>
          </widget>
         </item>
         <item row="0" column="0">
@@ -811,6 +1331,9 @@ QLineEdit::hover{
   background: rgb(31,31,31);
 }
 </string>
+          </property>
+          <property name="placeholderText">
+           <string>search command</string>
           </property>
          </widget>
         </item>
@@ -1666,7 +2189,7 @@ margin-right:0px;
            <enum>QTabWidget::South</enum>
           </property>
           <property name="currentIndex">
-           <number>0</number>
+           <number>1</number>
           </property>
           <widget class="QWidget" name="tab">
            <attribute name="title">
@@ -2083,11 +2606,16 @@ color: rgb(208, 208, 208);
    </attribute>
    <addaction name="actionSave"/>
    <addaction name="actionNew"/>
+   <addaction name="actionSaveAs"/>
    <addaction name="actionDirectory"/>
    <addaction name="separator"/>
+   <addaction name="actionStart"/>
+   <addaction name="actionPause"/>
+   <addaction name="actionStop"/>
+   <addaction name="separator"/>
    <addaction name="actionImport"/>
-   <addaction name="actionAutoCleanLog"/>
    <addaction name="actionAutoFollow"/>
+   <addaction name="actionAutoCleanLog"/>
   </widget>
   <widget class="QStatusBar" name="statusBar"/>
   <action name="actionSave">
@@ -2097,6 +2625,9 @@ color: rgb(208, 208, 208);
    </property>
    <property name="text">
     <string>Save</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+S</string>
    </property>
   </action>
   <action name="actionDirectory">
@@ -2151,6 +2682,45 @@ color: rgb(208, 208, 208);
    </property>
    <property name="toolTip">
     <string>New</string>
+   </property>
+  </action>
+  <action name="actionSaveAs">
+   <property name="icon">
+    <iconset resource="../resource.qrc">
+     <normaloff>:/image/icon_saveasfile.png</normaloff>:/image/icon_saveasfile.png</iconset>
+   </property>
+   <property name="text">
+    <string>SaveAs</string>
+   </property>
+  </action>
+  <action name="actionStart">
+   <property name="icon">
+    <iconset resource="../resource.qrc">
+     <normaloff>:/image/icon_start.png</normaloff>:/image/icon_start.png</iconset>
+   </property>
+   <property name="text">
+    <string>Start</string>
+   </property>
+   <property name="shortcut">
+    <string>F5</string>
+   </property>
+  </action>
+  <action name="actionPause">
+   <property name="icon">
+    <iconset resource="../resource.qrc">
+     <normaloff>:/image/icon_pause.png</normaloff>:/image/icon_pause.png</iconset>
+   </property>
+   <property name="text">
+    <string>Pause/Resume</string>
+   </property>
+  </action>
+  <action name="actionStop">
+   <property name="icon">
+    <iconset resource="../resource.qrc">
+     <normaloff>:/image/icon_stop.png</normaloff>:/image/icon_stop.png</iconset>
+   </property>
+   <property name="text">
+    <string>Stop</string>
    </property>
   </action>
  </widget>

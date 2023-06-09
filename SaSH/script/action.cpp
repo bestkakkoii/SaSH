@@ -895,3 +895,36 @@ int Interpreter::withdrawitem(const TokenMap& TK)
 
 	return Parser::kNoChange;
 }
+
+int Interpreter::addpoint(const TokenMap& TK)
+{
+	Injector& injector = Injector::getInstance();
+
+	if (injector.server.isNull())
+		return Parser::kError;
+
+	QString pointName;
+	checkString(TK, 1, &pointName);
+	if (pointName.isEmpty())
+		return Parser::kArgError;
+
+	int max = 0;
+	checkInt(TK, 2, &max);
+	if (max <= 0)
+		return Parser::kArgError;
+
+	static const QHash<QString, int> hash = {
+		{ QObject::tr("str"), 0 },
+		{ QObject::tr("vit"), 1 },
+		{ QObject::tr("tgh"), 2 },
+		{ QObject::tr("dex"), 3 },
+	};
+
+	int point = hash.value(pointName, -1);
+	if (point == -1)
+		return Parser::kArgError;
+
+	injector.server->addPoint(point, max);
+
+	return Parser::kNoChange;
+}

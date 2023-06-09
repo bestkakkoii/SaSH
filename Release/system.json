@@ -1,0 +1,13 @@
+{
+    "Form": {
+        "MainFormClass": {
+            "Geometry": "AwMxudG94p3fp8dBw9ZoIyATql9RzpBmcX3LArmV/KCwQ8ofEc+TFRActlYIpCXa9PdNrbvSGQ==",
+            "Size": "354,506",
+            "State": "AwOFe2wAXyAKchKUysZh0RHRq7IbdiVC0VET813wrRcLK22Plfyjsbm9Zw=="
+        }
+    },
+    "System": {
+        "ServerList": "1線//活動互動|2線//擺攤交易|3線//莊園族戰|4線//練級掛機|5//練級掛機|6//練級掛機|7//練級掛機|8//練級掛機|9//練級掛機|15//公司專線|21線//會員專線|22線//會員專線",
+        "SubServerList": "電信|聯通|移動|海外|備份"
+    }
+}

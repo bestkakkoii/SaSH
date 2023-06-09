@@ -59,7 +59,6 @@ enum RESERVE
 	TK_RETURN, // "返回" 用於返回調用處的下一行
 	TK_END, // "結束" 直接結束腳本
 	TK_PAUSE, // "暫停" 暫停腳本
-	TK_RUN, // "執行" 執行其他腳本
 	TK_LABEL, //"標記" 提供給調用 和 跳轉命令使用 
 
 	//文件
@@ -87,13 +86,13 @@ struct Token
 	QVariant data = "";
 	QString raw = "";
 };
+Q_DECLARE_METATYPE(Token)
 
 class Lexer
 {
 public:
-	Q_REQUIRED_RESULT QMap<int, Token> tokenized(int currentLine, const QString& line);
 
-	inline QHash<QString, int> getLabels() const { return labels_; }
+	static bool tokenized(const QString& script, QHash<int, QMap<int, Token>>* tokens, QHash<QString, int>* plabel);
 
 private:
 	bool isDouble(const QString& str) const;
@@ -113,12 +112,9 @@ private:
 	RESERVE getTokenType(int& pos, RESERVE previous, QString& str, const QString raw) const;
 	bool getStringToken(QString& src, const QString& delim, QString& out);
 
-	void createToken(int index, RESERVE type, const QVariant& data, const QString& raw);
-	void createEmptyToken(int index);
+	void createToken(int index, RESERVE type, const QVariant& data, const QString& raw, QMap<int, Token>* ptoken);
+	void createEmptyToken(int index, QMap<int, Token>* ptoken);
 
-private:
-	QString tmp_;
-	QMap<int, Token> tokens_;
-	QHash<QString, int> labels_;
+	void tokenized(int currentLine, const QString& line, QMap<int, Token>* ptoken, QHash<QString, int>* plabel);
 };
 

@@ -59,6 +59,9 @@ ScriptForm::ScriptForm(QWidget* parent)
 		QTreeView::item:selected { background-color: black; color: white; } 
 	)");
 	ui.treeWidget_script->header()->setSectionsClickable(true);
+	ui.treeWidget_script->header()->setSectionResizeMode(QHeaderView::ResizeToContents);
+	ui.treeWidget_script->resizeColumnToContents(1);
+	ui.treeWidget_script->sortItems(0, Qt::AscendingOrder);
 
 	setTableWidget(ui.tableWidget_script, 8);
 
@@ -78,7 +81,13 @@ ScriptForm::ScriptForm(QWidget* parent)
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
 	connect(&signalDispatcher, &SignalDispatcher::scriptLabelRowTextChanged, this, &ScriptForm::onScriptLabelRowTextChanged, Qt::QueuedConnection);
 	connect(&signalDispatcher, &SignalDispatcher::scriptPaused, this, &ScriptForm::onScriptPaused, Qt::QueuedConnection);
-
+	connect(&signalDispatcher, &SignalDispatcher::scriptContentChanged, this, &ScriptForm::onScriptContentChanged, Qt::QueuedConnection);
+	connect(&signalDispatcher, &SignalDispatcher::loadFileToTable, this, &ScriptForm::loadFile, Qt::QueuedConnection);
+	connect(&signalDispatcher, &SignalDispatcher::reloadScriptList, this, &ScriptForm::onReloadScriptList, Qt::QueuedConnection);
+	connect(&signalDispatcher, &SignalDispatcher::scriptStarted, ui.pushButton_script_start, &QPushButton::click, Qt::QueuedConnection);
+	connect(&signalDispatcher, &SignalDispatcher::scriptStoped, ui.pushButton_script_stop, &QPushButton::click, Qt::QueuedConnection);
+	connect(&signalDispatcher, &SignalDispatcher::scriptPaused2, ui.pushButton_script_pause, &QPushButton::click, Qt::QueuedConnection);
+	emit signalDispatcher.reloadScriptList();
 }
 
 ScriptForm::~ScriptForm()
@@ -130,11 +139,16 @@ void ScriptForm::onButtonClicked()
 			interpreter_->requestInterruption();
 		}
 
+		if (interpreter_->isRunning())
+		{
+			return;
+		}
+
 		interpreter_.reset(new Interpreter());
 
 		connect(interpreter_.data(), &Interpreter::finished, this, &ScriptForm::onScriptFinished);
 
-		interpreter_->start(selectedRow_, currentFileName_);
+		interpreter_->doFileWithThread(selectedRow_, currentFileName_);
 
 		ui.pushButton_script_start->setEnabled(false);
 		ui.pushButton_script_pause->setEnabled(true);
@@ -165,17 +179,6 @@ void ScriptForm::onButtonClicked()
 				interpreter_->resume();
 		}
 	}
-}
-
-//取當前腳本最大行數
-int ScriptForm::getCurrentMaxRow()
-{
-	QString fileName = currentFileName_;
-	if (fileName.isEmpty())
-		return 0;
-
-	int key = tokens_.size();
-	return key;
 }
 
 //重設表格最大行數
@@ -226,28 +229,28 @@ void ScriptForm::setTableWidgetItem(int row, int col, const QString& text)
 //樹型框header點擊信號槽
 void ScriptForm::onScriptTreeWidgetHeaderClicked(int logicalIndex)
 {
-	onReloadScriptList();
+	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
+	emit signalDispatcher.reloadScriptList();
 	qDebug() << "onScriptTreeWidgetClicked" << logicalIndex;
 }
 
 //更新當前行號label
-void ScriptForm::onScriptLabelRowTextChanged(int row, bool noSelect)
+void ScriptForm::onScriptLabelRowTextChanged(int row, int max, bool noSelect)
 {
+	qDebug() << "onScriptLabelRowTextChanged" << row << max << noSelect;
 	ui.label_row->setUpdatesEnabled(false);
-	ui.tableWidget_script->setUpdatesEnabled(false);
-	ui.label_row->setText(QString("%1/%2").arg(row).arg(getCurrentMaxRow()));
+	ui.label_row->setText(QString("%1/%2").arg(row).arg(max));
 	if (!noSelect)
 	{
 		ui.tableWidget_script->selectRow(row - 1);
 	}
 
 	ui.label_row->setUpdatesEnabled(true);
-	ui.tableWidget_script->setUpdatesEnabled(true);
 
 }
 
-//加載新腳本
-void ScriptForm::onScriptContentChanged(const QString& fileName)
+//加載並預覽腳本
+void ScriptForm::loadFile(const QString& fileName)
 {
 	if (fileName.isEmpty())
 		return;
@@ -256,10 +259,13 @@ void ScriptForm::onScriptContentChanged(const QString& fileName)
 	{
 		interpreter_.reset(new Interpreter());
 	}
+	currentFileName_ = fileName;
+	interpreter_->preview(fileName);
+}
 
-	QHash<int, QMap<int, Token>> tokens;
-	if (!interpreter_->loadFile(fileName, &tokens))
-		return;
+void ScriptForm::onScriptContentChanged(const QString& fileName, const QVariant& vtokens)
+{
+	QHash<int, TokenMap> tokens = vtokens.value<QHash<int, TokenMap>>();
 
 	int rowCount = tokens.size();
 
@@ -267,7 +273,7 @@ void ScriptForm::onScriptContentChanged(const QString& fileName)
 
 	for (int row = 0; row < rowCount; ++row)
 	{
-		QMap<int, Token> lineTokens = tokens.value(row);
+		TokenMap lineTokens = tokens.value(row);
 
 		QStringList params;
 		int size = lineTokens.size();
@@ -280,27 +286,22 @@ void ScriptForm::onScriptContentChanged(const QString& fileName)
 		setTableWidgetItem(row, 1, params.join(", "));
 	}
 
-	currentFileName_ = fileName;
-	tokens_ = tokens;
-
 	int index = fileName.indexOf("script/");
 	QString shortPath = fileName.mid(index + 7);
 	ui.label_path->setText(shortPath);
-	ui.tableWidget_script->selectRow(0);
+	onScriptLabelRowTextChanged(1, rowCount, false);
 }
 
-//切換焦點行
-void ScriptForm::onMenualRowChanged(int row, bool noSelect)
+void ScriptForm::onCurrentTableWidgetItemChanged(QTableWidgetItem* current, QTableWidgetItem* previous)
 {
-	if (getCurrentMaxRow() <= 0)
+	if (!current)
 		return;
+	int row = current->row();
+	selectedRow_ = row;
 
 	Injector& injector = Injector::getInstance();
-	if (!injector.server.isNull())
-	{
-		if (injector.server->IS_SCRIPT_FLAG)
-			return;
-	}
+	if (injector.IS_SCRIPT_FLAG)
+		return;
 
 	if (row == 0)
 	{
@@ -311,17 +312,8 @@ void ScriptForm::onMenualRowChanged(int row, bool noSelect)
 		ui.pushButton_script_start->setText(tr("mid-start"));
 	}
 
-
-	onScriptLabelRowTextChanged(row + 1, noSelect);
-}
-
-void ScriptForm::onCurrentTableWidgetItemChanged(QTableWidgetItem* current, QTableWidgetItem* previous)
-{
-	if (!current)
-		return;
-	int row = current->row();
-	selectedRow_ = row;
-	onMenualRowChanged(row, true);
+	int rowCount = ui.tableWidget_script->rowCount();
+	onScriptLabelRowTextChanged(row + 1, rowCount, true);
 }
 
 void ScriptForm::onScriptTableWidgetClicked(QTableWidgetItem* item)
@@ -346,48 +338,39 @@ void ScriptForm::onScriptTreeWidgetDoubleClicked(QTreeWidgetItem* item, int colu
 	do
 	{
 		Injector& injector = Injector::getInstance();
-		if (!injector.server.isNull())
+		if (injector.IS_SCRIPT_FLAG)
+			break;
+
+		/*得到文件路徑*/
+		QStringList filepath;
+		QTreeWidgetItem* itemfile = item; //獲取被點擊的item
+		while (itemfile != NULL)
 		{
-			if (injector.server->IS_SCRIPT_FLAG)
-				break;
+			filepath << itemfile->text(0); //獲取itemfile名稱
+			itemfile = itemfile->parent(); //將itemfile指向父item
+		}
+		QString strpath;
+		int count = (filepath.size() - 1);
+		for (int i = count; i >= 0; i--) //QStringlist類filepath反向存著初始item的路徑
+		{ //將filepath反向輸出，相應的加入’/‘
+			if (filepath.at(i).isEmpty())
+				continue;
+			strpath += filepath.at(i);
+			if (i != 0)
+				strpath += "/";
 		}
 
-		auto load = [this](QTreeWidgetItem* item, QString* content)->void
-		{
-			/*得到文件路徑*/
-			QStringList filepath;
-			QTreeWidgetItem* itemfile = item; //獲取被點擊的item
-			while (itemfile != NULL)
-			{
-				filepath << itemfile->text(0); //獲取itemfile名稱
-				itemfile = itemfile->parent(); //將itemfile指向父item
-			}
-			QString strpath;
-			int count = (filepath.size() - 1);
-			for (int i = count; i >= 0; i--) //QStringlist類filepath反向存著初始item的路徑
-			{ //將filepath反向輸出，相應的加入’/‘
-				if (filepath.at(i).isEmpty())
-					continue;
-				strpath += filepath.at(i);
-				if (i != 0)
-					strpath += "/";
-			}
+		strpath = QApplication::applicationDirPath() + "/script/" + strpath;
+		strpath.replace("*", "");
 
-			strpath = QApplication::applicationDirPath() + "/script/" + strpath;
-			strpath.replace("*", "");
-
-			onScriptContentChanged(strpath);
-		};
+		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
+		emit signalDispatcher.loadFileToTable(strpath);
 		//ui.widget->clear();
-		QString content("\0");
-		load(item, &content);
-		qDebug() << "content" << content;
 		//this->setWindowTitle(QString("[%1] %2").arg(m_index).arg(currentFileName_));
 		//ui.widget->convertEols(QsciScintilla::EolWindows);
 		//ui.widget->setUtf8(true);
 		//ui.widget->setModified(false);
 		//ui.widget->setText(content);
-		QCoreApplication::processEvents();
 	} while (false);
 
 	IS_LOADING = false;

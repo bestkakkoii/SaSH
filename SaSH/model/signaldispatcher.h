@@ -17,6 +17,7 @@ private:
 
 signals:
 	//global
+	void nodifyAllStop();
 	void messageBoxShow(const QString& text, int type = 0);
 	void inputBoxShow(const QString& text, int type, QVariant* retvalue);
 
@@ -67,9 +68,16 @@ signals:
 
 
 	//script
-	void scriptLabelRowTextChanged(int row, bool noSelect);
+	void scriptLabelRowTextChanged(int row, int max, bool noSelect);
 	void scriptPaused();
+	void scriptPaused2();
+	void scriptStarted();
+	void scriptStoped();
+	void scriptContentChanged(const QString& fileName, const QVariant& tokens);
+	void loadFileToTable(const QString& fileName);
+	void reloadScriptList();
 
+	void addErrorMarker(int liner, bool b);
 	//void loadHashSettings(const QString& name = "default");
 };
 

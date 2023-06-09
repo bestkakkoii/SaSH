@@ -22,18 +22,21 @@ private slots:
 	void onScriptTreeWidgetHeaderClicked(int logicalIndex);
 	void onScriptTreeWidgetDoubleClicked(QTreeWidgetItem* item, int column);
 
-	void onScriptContentChanged(const QString& fileName);
+
+	void onScriptContentChanged(const QString& fileName, const QVariant& tokens);
 	void onScriptTableWidgetClicked(QTableWidgetItem* item);
-	void onScriptLabelRowTextChanged(int row, bool noSelect);
+	void onScriptLabelRowTextChanged(int row, int max, bool noSelect);
 	void onCurrentTableWidgetItemChanged(QTableWidgetItem* current, QTableWidgetItem* previous);
-	void onMenualRowChanged(int row, bool noSelect);
 
 	void onScriptPaused();
 	void onScriptFinished();
+
+	void loadFile(const QString& fileName);
 private:
 	void setTableWidgetItem(int row, int col, const QString& text);
 	void resizeTableWidgetRow(int max);
-	int getCurrentMaxRow();
+
+
 private:
 	Ui::ScriptFormClass ui;
 
@@ -41,7 +44,7 @@ private:
 	QStringList scriptList_;
 	QString currentFileName_;
 	int selectedRow_ = 0;
-	QHash<int, QMap<int, Token>> tokens_;//當前主腳本tokens
+
 	QScopedPointer<Interpreter> interpreter_;
 
 };

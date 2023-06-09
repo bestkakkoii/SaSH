@@ -13,7 +13,6 @@ static const QHash<QString, RESERVE> keywords = {
 	{ u8"返回", TK_RETURN },
 	{ u8"結束", TK_END },
 	{ u8"暫停", TK_PAUSE },
-	{ u8"執行", TK_RUN },
 	{ u8"標記", TK_LABEL, },
 	{ u8"變數", TK_VARDECL },
 	{ u8"變數移除", TK_VARFREE },
@@ -21,6 +20,7 @@ static const QHash<QString, RESERVE> keywords = {
 	{ u8"格式化", TK_FORMAT },
 
 	//system
+	{ u8"執行", TK_CMD },
 	{ u8"延時", TK_CMD },
 	{ u8"取消", TK_CMD },
 	{ u8"提示", TK_CMD },
@@ -33,6 +33,7 @@ static const QHash<QString, RESERVE> keywords = {
 	{ u8"回點", TK_CMD },
 	{ u8"按鈕", TK_CMD },
 	{ u8"說話", TK_CMD },
+	{ u8"輸入", TK_CMD },
 	{ u8"密語", TK_CMD },
 	{ u8"說出", TK_CMD },
 	{ u8"清屏", TK_CMD },
@@ -40,6 +41,8 @@ static const QHash<QString, RESERVE> keywords = {
 	{ u8"允許開關", TK_CMD },
 	{ u8"設置", TK_CMD },
 	{ u8"判斷", TK_CMD },
+	{ u8"讀取設置", TK_CMD },
+	{ u8"保存設置", TK_CMD },
 
 
 	//check info
@@ -92,6 +95,7 @@ static const QHash<QString, RESERVE> keywords = {
 	{ u8"記錄身上裝備", TK_CMD },
 	//{ u8"檢測記錄裝備", TK_CMD },
 	{ u8"裝上記錄裝備", TK_CMD },
+	{ u8"加點", TK_CMD },
 
 	//action with sub cmd
 	{ u8"組隊", TK_CMD },
@@ -138,57 +142,59 @@ static const QHash<QString, RESERVE> keywords = {
 	//... 其他後續增加的關鍵字
 };
 
-void Lexer::createToken(int index, RESERVE type, const QVariant& data, const QString& raw)
+void Lexer::createToken(int index, RESERVE type, const QVariant& data, const QString& raw, QMap<int, Token>* ptoken)
 {
-	tokens_.insert(index, { type, data, raw });
+	ptoken->insert(index, { type, data, raw });
 }
 
-void Lexer::createEmptyToken(int index)
+void Lexer::createEmptyToken(int index, QMap<int, Token>* ptoken)
 {
-	tokens_.insert(index, { TK_WHITESPACE, "", "" });
+	ptoken->insert(index, { TK_WHITESPACE, "", "" });
 }
 
-QMap<int, Token> Lexer::tokenized(int currentLine, const QString& line)
+void Lexer::tokenized(int currentLine, const QString& line, QMap<int, Token>* ptoken, QHash<QString, int>* plabel)
 {
+	if (ptoken == nullptr || plabel == nullptr)
+		return;
+
 	int pos = 0;
 	QString token;
 	QVariant data;
 	QString raw = line.trimmed();
 
-	tmp_.clear();
-	tokens_.clear();
+	ptoken->clear();
 
 	do
 	{
 		if (!getStringToken(raw, " ", token))
 		{
-			createEmptyToken(pos);
+			createEmptyToken(pos, ptoken);
 			break;
 		}
 
 		if (token.isEmpty())
 		{
-			createEmptyToken(pos);
+			createEmptyToken(pos, ptoken);
 			break;
 		}
 
 		//遇到註釋
 		if (token.startsWith("//"))
 		{
-			createToken(pos, TK_COMMENT, "", "");
-			createToken(pos + 1, TK_COMMENT, data, token);
+			createToken(pos, TK_COMMENT, "", "", ptoken);
+			createToken(pos + 1, TK_COMMENT, data, token, ptoken);
 			break;
 		}
 
 		RESERVE type = keywords.value(token, TK_UNK);
 		if (type == TK_UNK)
 		{
-			createEmptyToken(pos);
+			createEmptyToken(pos, ptoken);
 			break;
 		}
 
 
-		createToken(pos, type, QVariant::fromValue(token), token);
+		createToken(pos, type, QVariant::fromValue(token), token, ptoken);
 		++pos;
 
 
@@ -230,19 +236,41 @@ QMap<int, Token> Lexer::tokenized(int currentLine, const QString& line)
 			{
 				data = QVariant::fromValue(token);
 				if (prevType == TK_LABEL)
-					labels_.insert(token, currentLine);
+					plabel->insert(token, currentLine);
 			}
 			else
 			{
 				data = QVariant::fromValue(token);
 			}
 
-			createToken(pos, type, data, token);
+			createToken(pos, type, data, token, ptoken);
 			++pos;
 		}
 	} while (false);
+}
 
-	return tokens_;
+bool Lexer::tokenized(const QString& script, QHash<int, QMap<int, Token>>* ptokens, QHash<QString, int>* plabel)
+{
+	Lexer lexer;
+	QHash<int, QMap<int, Token>> tokens;
+	QHash<QString, int> labels;
+	QStringList lines = script.split("\n");
+	int size = lines.size();
+	for (int i = 0; i < size; ++i)
+	{
+		QMap<int, Token> tk;
+		lexer.tokenized(i, lines.at(i), &tk, &labels);
+		tokens.insert(i, tk);
+	}
+
+	if (ptokens != nullptr && plabel != nullptr)
+	{
+		*ptokens = tokens;
+		*plabel = labels;
+		return true;
+	}
+
+	return false;
 }
 
 bool Lexer::isDouble(const QString& str) const

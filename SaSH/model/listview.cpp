@@ -3,7 +3,7 @@
 #include <listview.h>
 #include <qmath.h>
 
-constexpr int MAX_LIST_COUNT = 1024;
+constexpr int MAX_LIST_COUNT = 2048;
 
 ListView::ListView(QWidget* parent)
 	: QListView(parent)
@@ -42,8 +42,9 @@ void StringListModel::append(const QString& str, int color)
 	beginInsertRows(QModelIndex(), rowCount(), rowCount());
 	if (m_list.size() >= MAX_LIST_COUNT)
 	{
-		m_list.clear();
-		m_colorlist.clear();
+		//remove first
+		m_list.removeFirst();
+		m_colorlist.removeFirst();
 	}
 	m_list.append(str);
 	m_colorlist.append(color);

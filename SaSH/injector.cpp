@@ -1,10 +1,17 @@
 ﻿#include "stdafx.h"
 #include <injector.h>
+#include "model/listview.h"
 
 Injector* Injector::instance = nullptr;
 
 constexpr const char* InjectDllName = u8"sadll.dll";
 constexpr int MessageTimeout = 3000;
+
+Injector::Injector()
+{
+	scriptLogModel.reset(new StringListModel);
+	chatLogModel.reset(new StringListModel);
+}
 
 Injector::~Injector()
 {

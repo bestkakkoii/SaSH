@@ -440,12 +440,12 @@
                </widget>
               </item>
               <item>
-               <widget class="QCheckBox" name="checkBox_forceleavebattle">
+               <widget class="QCheckBox" name="checkBox_autoeatbean">
                 <property name="enabled">
-                 <bool>false</bool>
+                 <bool>true</bool>
                 </property>
                 <property name="text">
-                 <string>force leave bt</string>
+                 <string>auto eat bean</string>
                 </property>
                </widget>
               </item>

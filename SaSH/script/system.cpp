@@ -10,7 +10,7 @@ int Interpreter::sleep(const TokenMap& TK)
 {
 	int t;
 	if (!checkInt(TK, 1, &t))
-		return Parser::kError;
+		return Parser::kArgError;
 
 	if (t >= 1000u)
 	{
@@ -53,12 +53,29 @@ int Interpreter::press(const TokenMap& TK)
 	}
 
 	if (text.isEmpty() && row == 0)
-		return Parser::kError;
+		return Parser::kArgError;
 
 	if (!text.isEmpty())
 	{
-		BUTTON_TYPE button = buttonMap.value(text.toUpper());
-		injector.server->press(button, -1, npcId);
+		BUTTON_TYPE button = buttonMap.value(text.toUpper(), BUTTON_NOTUSED);
+		if (button != BUTTON_NOTUSED)
+			injector.server->press(button, -1, npcId);
+		else
+		{
+			dialog_t dialog = injector.server->currentDialog;
+			QStringList textList = dialog.linebuttontext;
+			if (!textList.isEmpty())
+			{
+				for (int i = 0; i < textList.size(); ++i)
+				{
+					if (textList.at(i).toUpper().contains(text))
+					{
+						injector.server->press(i + 1, -1, npcId);
+						break;
+					}
+				}
+			}
+		}
 	}
 	else if (row > 0)
 		injector.server->press(row, -1, npcId);
@@ -84,7 +101,13 @@ int Interpreter::announce(const TokenMap& TK)
 
 	QString text;
 	if (!checkString(TK, 1, &text))
-		return Parser::kError;
+	{
+		int value = 0;
+		if (!checkInt(TK, 1, &value))
+			return Parser::kArgError;
+
+		text = QString::number(value);
+	}
 
 	int color = 4;
 	checkInt(TK, 2, &color);
@@ -93,17 +116,45 @@ int Interpreter::announce(const TokenMap& TK)
 	return Parser::kNoChange;
 }
 
+int Interpreter::input(const TokenMap& TK)
+{
+	Injector& injector = Injector::getInstance();
+
+	if (injector.server.isNull())
+		return Parser::kError;
+
+	QString text;
+	if (!checkString(TK, 1, &text))
+	{
+		int value = 0;
+		if (!checkInt(TK, 1, &value))
+			return Parser::kArgError;
+
+		text = QString::number(value);
+	}
+
+	injector.server->inputtext(text);
+
+	return Parser::kNoChange;
+}
+
 int Interpreter::messagebox(const TokenMap& TK)
 {
-	QString msg;
-	if (!checkString(TK, 1, &msg))
-		return Parser::kError;
+	QString text;
+	if (!checkString(TK, 1, &text))
+	{
+		int value = 0;
+		if (!checkInt(TK, 2, &value))
+			return Parser::kArgError;
+
+		text = QString::number(value);
+	}
 
 	int type = 0;
 	checkInt(TK, 2, &type);
 
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
-	emit signalDispatcher.messageBoxShow(msg, type);
+	emit signalDispatcher.messageBoxShow(text, type);
 
 	return Parser::kNoChange;
 }
@@ -117,7 +168,7 @@ int Interpreter::talk(const TokenMap& TK)
 
 	QString text;
 	if (!checkString(TK, 1, &text))
-		return Parser::kError;
+		return Parser::kArgError;
 
 	int color = 4;
 	checkInt(TK, 2, &color);
@@ -164,7 +215,31 @@ int Interpreter::savesetting(const TokenMap& TK)
 {
 	QString fileName;
 	if (!checkString(TK, 1, &fileName))
-		return Parser::kError;
+	{
+		if (TK.value(1).type == TK_FUZZY)
+		{
+			Injector& injector = Injector::getInstance();
+			if (injector.server.isNull())
+				return Parser::kError;
+
+			fileName = injector.server->pc.name;
+		}
+	}
+
+	fileName.replace("\\", "/");
+
+	fileName = QCoreApplication::applicationDirPath() + "/settings/" + fileName;
+	fileName.replace("\\", "/");
+	fileName.replace("//", "/");
+
+	QFileInfo fileInfo(fileName);
+	QString suffix = fileInfo.suffix();
+	if (suffix.isEmpty())
+		fileName += ".json";
+	else if (suffix != "json")
+	{
+		fileName.replace(suffix, "json");
+	}
 
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
 	emit signalDispatcher.saveHashSettings(fileName, true);
@@ -176,7 +251,34 @@ int Interpreter::loadsetting(const TokenMap& TK)
 {
 	QString fileName;
 	if (!checkString(TK, 1, &fileName))
-		return Parser::kError;
+	{
+		if (TK.value(1).type == TK_FUZZY)
+		{
+			Injector& injector = Injector::getInstance();
+			if (injector.server.isNull())
+				return Parser::kError;
+
+			fileName = injector.server->pc.name;
+		}
+	}
+
+	fileName.replace("\\", "/");
+
+	fileName = QCoreApplication::applicationDirPath() + "/settings/" + fileName;
+	fileName.replace("\\", "/");
+	fileName.replace("//", "/");
+
+	QFileInfo fileInfo(fileName);
+	QString suffix = fileInfo.suffix();
+	if (suffix.isEmpty())
+		fileName += ".json";
+	else if (suffix != "json")
+	{
+		fileName.replace(suffix, "json");
+	}
+
+	if (!QFile::exists(fileName))
+		return Parser::kArgError;
 
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
 	emit signalDispatcher.loadHashSettings(fileName, true);
@@ -229,14 +331,14 @@ int Interpreter::set(const TokenMap& TK)
 		{ u8"BattleItemReviveTargetValue", util::kBattleItemReviveTargetValue },
 		{ u8"BattleMagicHealMagicValue", util::kBattleMagicHealMagicValue },
 		{ u8"BattleMagicReviveMagicValue", util::kBattleMagicReviveMagicValue },
-		{ u8"NormalMagicHealMagicValue", util::kNormalMagicHealMagicValue },
-		{ u8"MagicHealCharValue", util::kMagicHealCharValue },
-		{ u8"MagicHealPetValue", util::kMagicHealPetValue },
-		{ u8"MagicHealAllieValue", util::kMagicHealAllieValue },
-		{ u8"ItemHealCharValue", util::kItemHealCharValue },
-		{ u8"ItemHealPetValue", util::kItemHealPetValue },
-		{ u8"ItemHealAllieValue", util::kItemHealAllieValue },
-		{ u8"ItemHealMpValue", util::kItemHealMpValue },
+		{ u8"平時精靈補血精靈索引", util::kNormalMagicHealMagicValue },
+		{ u8"戰鬥精靈補血人物", util::kMagicHealCharValue },
+		{ u8"戰鬥精靈補血戰寵", util::kMagicHealPetValue },
+		{ u8"戰鬥精靈補血隊友", util::kMagicHealAllieValue },
+		{ u8"戰鬥道具補血人物", util::kItemHealCharValue },
+		{ u8"戰鬥道具補血戰寵", util::kItemHealPetValue },
+		{ u8"戰鬥道具補血隊友", util::kItemHealAllieValue },
+		{ u8"戰鬥道具補氣人物", util::kItemHealMpValue },
 		{ u8"MagicHealCharNormalValue", util::kMagicHealCharNormalValue },
 		{ u8"MagicHealPetNormalValue", util::kMagicHealPetNormalValue },
 		{ u8"MagicHealAllieNormalValue", util::kMagicHealAllieNormalValue },
@@ -247,19 +349,19 @@ int Interpreter::set(const TokenMap& TK)
 		{ u8"AutoWalkDelayValue", util::kAutoWalkDelayValue },
 		{ u8"AutoWalkDistanceValue", util::kAutoWalkDistanceValue },
 		{ u8"AutoWalkDirectionValue", util::kAutoWalkDirectionValue },
-		{ u8"BattleCatchModeValue", util::kBattleCatchModeValue },
-		{ u8"BattleCatchTargetLevelValue", util::kBattleCatchTargetLevelValue },
-		{ u8"BattleCatchTargetMaxHpValue", util::kBattleCatchTargetMaxHpValue },
-		{ u8"BattleCatchTargetMagicHpValue", util::kBattleCatchTargetMagicHpValue },
-		{ u8"BattleCatchTargetItemHpValue", util::kBattleCatchTargetItemHpValue },
-		{ u8"BattleCatchPlayerMagicValue", util::kBattleCatchPlayerMagicValue },
-		{ u8"BattleCatchPetSkillValue", util::kBattleCatchPetSkillValue },
+		{ u8"捉寵模式", util::kBattleCatchModeValue },
+		{ u8"捉寵目標等級", util::kBattleCatchTargetLevelValue },
+		{ u8"捉寵目標最大耐久力", util::kBattleCatchTargetMaxHpValue },
+		{ u8"捉寵使用精靈直到血量低於", util::kBattleCatchTargetMagicHpValue },
+		{ u8"捉寵使用道具直到血量低於", util::kBattleCatchTargetItemHpValue },
+		{ u8"捉寵人物精靈索引", util::kBattleCatchPlayerMagicValue },
+		{ u8"捉寵戰寵技能索引", util::kBattleCatchPetSkillValue },
 		{ u8"自動丟棄寵物攻數值", util::kDropPetStrValue },
 		{ u8"自動丟棄寵物防數值", util::kDropPetDefValue },
 		{ u8"自動丟棄寵物敏數值", util::kDropPetAgiValue },
 		{ u8"自動丟棄寵物血數值", util::kDropPetHpValue },
 		{ u8"自動丟棄寵物攻防敏數值", util::kDropPetAggregateValue },
-		{ u8"AutoFunTypeValue", util::kAutoFunTypeValue },
+		{ u8"自動移動功能編號", util::kAutoFunTypeValue },
 		{ u8"戰後自動鎖定戰寵編號", util::kLockPetValue },
 		{ u8"戰後自動鎖定騎寵編號", util::kLockRideValue },
 
@@ -282,7 +384,7 @@ int Interpreter::set(const TokenMap& TK)
 		{ u8"自動疊加", util::kAutoStackEnable },
 		{ u8"自動KNPC", util::kKNPCEnable },
 		{ u8"自動猜謎", util::kAutoAnswerEnable },
-		{ u8"強離戰鬥", util::kForceLeaveBattleEnable },
+		{ u8"自動吃豆", util::kAutoEatBeanEnable },
 		{ u8"走路遇敵", util::kAutoWalkEnable },
 		{ u8"快速遇敵", util::kFastAutoWalkEnable },
 		{ u8"快速戰鬥", util::kFastBattleEnable },
@@ -304,16 +406,16 @@ int Interpreter::set(const TokenMap& TK)
 
 		{ u8"CrossActionCharEnable", util::kCrossActionCharEnable },
 		{ u8"CrossActionPetEnable", util::kCrossActionPetEnable },
-		{ u8"BattleMagicHealEnable", util::kBattleMagicHealEnable },
-		{ u8"BattleItemHealEnable", util::kBattleItemHealEnable },
-		{ u8"BattleItemHealMeatPriorityEnable", util::kBattleItemHealMeatPriorityEnable },
-		{ u8"BattleItemHealMpEnable", util::kBattleItemHealMpEnable },
-		{ u8"BattleMagicReviveEnable", util::kBattleMagicReviveEnable },
-		{ u8"BattleItemReviveEnable", util::kBattleItemReviveEnable },
-		{ u8"NormalMagicHealEnable", util::kNormalMagicHealEnable },
-		{ u8"NormalItemHealEnable", util::kNormalItemHealEnable },
-		{ u8"NormalItemHealMeatPriorityEnable", util::kNormalItemHealMeatPriorityEnable },
-		{ u8"NormalItemHealMpEnable", util::kNormalItemHealMpEnable },
+		{ u8"戰鬥精靈補血", util::kBattleMagicHealEnable },
+		{ u8"戰鬥道具補血", util::kBattleItemHealEnable },
+		{ u8"戰鬥道具補血肉優先", util::kBattleItemHealMeatPriorityEnable },
+		{ u8"戰鬥道具補氣", util::kBattleItemHealMpEnable },
+		{ u8"戰鬥精靈復活", util::kBattleMagicReviveEnable },
+		{ u8"戰鬥道具復活", util::kBattleItemReviveEnable },
+		{ u8"平時精靈補血", util::kNormalMagicHealEnable },
+		{ u8"平時道具補血", util::kNormalItemHealEnable },
+		{ u8"平時道具補血肉優先", util::kNormalItemHealMeatPriorityEnable },
+		{ u8"平時道具補氣", util::kNormalItemHealMpEnable },
 		{ u8"BattleCatchTargetLevelEnable", util::kBattleCatchTargetLevelEnable },
 		{ u8"BattleCatchTargetMaxHpEnable", util::kBattleCatchTargetMaxHpEnable },
 		{ u8"BattleCatchPlayerMagicEnable", util::kBattleCatchPlayerMagicEnable },
@@ -334,13 +436,13 @@ int Interpreter::set(const TokenMap& TK)
 		{ u8"鎖定攻擊名單", util::kLockAttackString },
 		{ u8"鎖定逃跑名單", util::kLockEscapeString },
 
-		{ u8"BattleItemHealItemString", util::kBattleItemHealItemString },
-		{ u8"BattleItemHealMpIteamString", util::kBattleItemHealMpIteamString },
-		{ u8"BattleItemReviveItemString", util::kBattleItemReviveItemString },
-		{ u8"NormalItemHealItemString", util::kNormalItemHealItemString },
-		{ u8"NormalItemHealMpItemString", util::kNormalItemHealMpItemString },
-		{ u8"BattleCatchPetNameString", util::kBattleCatchPetNameString },
-		{ u8"BattleCatchPlayerItemString", util::kBattleCatchPlayerItemString },
+		{ u8"戰鬥道具補血名單", util::kBattleItemHealItemString },
+		{ u8"戰鬥道具補氣名單 ", util::kBattleItemHealMpIteamString },
+		{ u8"戰鬥道具復活名單", util::kBattleItemReviveItemString },
+		{ u8"平時道具補血名單", util::kNormalItemHealItemString },
+		{ u8"平時道具補氣名單", util::kNormalItemHealMpItemString },
+		{ u8"捉寵目標名單", util::kBattleCatchPetNameString },
+		{ u8"捉寵道具名單", util::kBattleCatchPlayerItemString },
 
 		{ u8"自動丟棄寵物名單", util::kDropPetNameString },
 		{ u8"自動組隊名稱", util::kAutoFunNameString },
@@ -502,7 +604,7 @@ int Interpreter::set(const TokenMap& TK)
 	case util::kAutoStackEnable:
 	case util::kKNPCEnable:
 	case util::kAutoAnswerEnable:
-	case util::kForceLeaveBattleEnable:
+	case util::kAutoEatBeanEnable:
 	case util::kAutoWalkEnable:
 	case util::kFastAutoWalkEnable:
 	case util::kFastBattleEnable:

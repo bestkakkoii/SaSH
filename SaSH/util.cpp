@@ -534,7 +534,7 @@ QFileInfoList util::loadAllFileLists(TreeWidgetItem* root, const QString& path, 
 		if (list)
 			list->append(item.fileName());
 		TreeWidgetItem* child = q_check_ptr(new TreeWidgetItem(QStringList{ item.fileName() }, 1));
-		//child->setIcon(0, QIcon(QPixmap(":/image/icon_lua.png")));
+		child->setIcon(0, QIcon(QPixmap(":/image/icon_txt.png")));
 
 		root->addChild(child);
 	}
@@ -550,7 +550,7 @@ QFileInfoList util::loadAllFileLists(TreeWidgetItem* root, const QString& path, 
 		if (list)
 			list->append(name);
 		TreeWidgetItem* childroot = q_check_ptr(new TreeWidgetItem(QStringList{ name }, 0));
-		//childroot->setIcon(0, QIcon(QPixmap(":/image/icon_directory.png")));
+		childroot->setIcon(0, QIcon(QPixmap(":/image/icon_directory.png")));
 		root->addChild(childroot); //將當前目錄添加成path的子項
 		const QFileInfoList child_file_list = loadAllFileLists(childroot, namepath); //進行遞歸
 		file_list.append(child_file_list);
@@ -744,7 +744,7 @@ QString mem::readString(HANDLE hProcess, DWORD desiredAccess, int size, bool ena
 	memset(p.get(), 0, size + 1);
 	SIZE_T sizet = size;
 	BOOL ret = read(hProcess, desiredAccess, sizet, p.get());
-	const QString retstring((ret == TRUE) ? (util::toUnicode(p.get(), false)) : "");
+	const QString retstring((ret == TRUE) ? (util::toUnicode(p.get(), true)) : "");
 	p.reset(nullptr);
 	return retstring;
 }

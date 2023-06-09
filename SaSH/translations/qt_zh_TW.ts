@@ -759,7 +759,7 @@
     </message>
     <message>
         <source>force leave bt</source>
-        <translation>強離戰鬥</translation>
+        <translation type="vanished">強離戰鬥</translation>
     </message>
     <message>
         <source>support fun</source>
@@ -928,6 +928,10 @@
     <message>
         <source>pos</source>
         <translation>位置</translation>
+    </message>
+    <message>
+        <source>auto eat bean</source>
+        <translation>自動吃豆</translation>
     </message>
 </context>
 <context>
@@ -1217,7 +1221,7 @@
     </message>
     <message>
         <source>SaSH - Beta %1</source>
-        <translation>石器助手 - Beta %1</translation>
+        <translation type="vanished">石器助手 - Beta %1</translation>
     </message>
     <message>
         <source>unknown</source>
@@ -1318,6 +1322,26 @@
     <message>
         <source>critical</source>
         <translation>錯誤</translation>
+    </message>
+    <message>
+        <source>Update</source>
+        <translation>更新</translation>
+    </message>
+    <message>
+        <source>New version:%s were found!
+
+Update process will cause all the games to be closed, are you sure to continue?</source>
+        <translation>找到新的版本:%s !
+
+更新會導致所有遊戲和外掛都被關閉, 您確定要更新嗎?</translation>
+    </message>
+    <message>
+        <source>No new version available. Do you still want to update?</source>
+        <translation>沒有找到新版本，您還要繼續更新嗎?</translation>
+    </message>
+    <message>
+        <source>SaSH - %1</source>
+        <translation>石器助手 - %1</translation>
     </message>
 </context>
 <context>
@@ -1890,6 +1914,17 @@
     </message>
 </context>
 <context>
+    <name>QDownloaderClass</name>
+    <message>
+        <source>QDownloader</source>
+        <translation>自動更新</translation>
+    </message>
+    <message>
+        <source>loading...</source>
+        <translation></translation>
+    </message>
+</context>
+<context>
     <name>QObject</name>
     <message>
         <source>system</source>
@@ -2206,11 +2241,119 @@ MESSAGE：<byte value="xd"/>
     </message>
     <message>
         <source>set var [%1] value</source>
-        <translation>設置變數 [%1] 的數值</translation>
+        <translation type="vanished">設置變數 [%1] 的數值</translation>
     </message>
     <message>
         <source>record equip:[%1]%2</source>
         <translation>記錄身上裝備:[%1]%2</translation>
+    </message>
+    <message>
+        <source>1st//Acticity</source>
+        <translation>1線//活動互動</translation>
+    </message>
+    <message>
+        <source>2nd///Market</source>
+        <translation>2線//擺攤交易</translation>
+    </message>
+    <message>
+        <source>3rd//Family</source>
+        <translation>3線//莊園族戰</translation>
+    </message>
+    <message>
+        <source>4th//Away</source>
+        <translation>4線//練級掛機</translation>
+    </message>
+    <message>
+        <source>5th//Away</source>
+        <translation>5//練級掛機</translation>
+    </message>
+    <message>
+        <source>6th//Away</source>
+        <translation>6//練級掛機</translation>
+    </message>
+    <message>
+        <source>7th//Away</source>
+        <translation>7//練級掛機</translation>
+    </message>
+    <message>
+        <source>8th//Away</source>
+        <translation>8//練級掛機</translation>
+    </message>
+    <message>
+        <source>9th//Away</source>
+        <translation>9//練級掛機</translation>
+    </message>
+    <message>
+        <source>15th//Company</source>
+        <translation>15//公司專線</translation>
+    </message>
+    <message>
+        <source>21th//Member</source>
+        <translation>21線//會員專線</translation>
+    </message>
+    <message>
+        <source>22th//Member</source>
+        <translation>22線//會員專線</translation>
+    </message>
+    <message>
+        <source>Telecom</source>
+        <translation>電信</translation>
+    </message>
+    <message>
+        <source>UnitedNetwork</source>
+        <translation>聯通</translation>
+    </message>
+    <message>
+        <source>Easyown</source>
+        <translation>移動</translation>
+    </message>
+    <message>
+        <source>Oversea</source>
+        <translation>海外</translation>
+    </message>
+    <message>
+        <source>Backup</source>
+        <translation>備份</translation>
+    </message>
+    <message>
+        <source>left</source>
+        <translation>左</translation>
+    </message>
+    <message>
+        <source>right</source>
+        <translation>右</translation>
+    </message>
+    <message>
+        <source>str</source>
+        <translation>腕力</translation>
+    </message>
+    <message>
+        <source>vit</source>
+        <translation>體力</translation>
+    </message>
+    <message>
+        <source>tgh</source>
+        <translation>耐力</translation>
+    </message>
+    <message>
+        <source>dex</source>
+        <translation>速度</translation>
+    </message>
+    <message>
+        <source>checkupdate</source>
+        <translation>檢查更新</translation>
+    </message>
+    <message>
+        <source>unknown error</source>
+        <translation>未知的錯誤</translation>
+    </message>
+    <message>
+        <source>argument error</source>
+        <translation>參數錯誤</translation>
+    </message>
+    <message>
+        <source>error occured at line %1. detail:%2</source>
+        <translation>在行號 %1 發生錯誤，詳細內容:%2</translation>
     </message>
 </context>
 <context>
@@ -2305,6 +2448,10 @@ MESSAGE：<byte value="xd"/>
         <source>Script %1 saved</source>
         <translation>腳本 %1 已保存</translation>
     </message>
+    <message>
+        <source>saveas</source>
+        <translation>另存新檔</translation>
+    </message>
 </context>
 <context>
     <name>ScriptSettingFormClass</name>
@@ -2395,6 +2542,446 @@ MESSAGE：<byte value="xd"/>
     <message>
         <source>New</source>
         <translation>新增</translation>
+    </message>
+    <message>
+        <source>functions</source>
+        <translation>命令</translation>
+    </message>
+    <message>
+        <source>var</source>
+        <translation>變數類</translation>
+    </message>
+    <message>
+        <source>varremove</source>
+        <translation>變數移除</translation>
+    </message>
+    <message>
+        <source>varclear</source>
+        <translation>變數清空</translation>
+    </message>
+    <message>
+        <source>var operator</source>
+        <translation>變數運算符</translation>
+    </message>
+    <message>
+        <source>&gt;&gt;</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>&lt;&lt;</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>++</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>+</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>~</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>|</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>^</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>/</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>*</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>&amp;</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>%</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>--</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>-</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>global var</source>
+        <translation>全局變量</translation>
+    </message>
+    <message>
+        <source>format</source>
+        <translation>格式化</translation>
+    </message>
+    <message>
+        <source>sys</source>
+        <translation>系統類</translation>
+    </message>
+    <message>
+        <source>test</source>
+        <translation>測試</translation>
+    </message>
+    <message>
+        <source>talkandprint</source>
+        <translation>說出</translation>
+    </message>
+    <message>
+        <source>talk</source>
+        <translation>說話</translation>
+    </message>
+    <message>
+        <source>sleep</source>
+        <translation>延時</translation>
+    </message>
+    <message>
+        <source>set</source>
+        <translation>設置</translation>
+    </message>
+    <message>
+        <source>savesettings</source>
+        <translation>保存設置</translation>
+    </message>
+    <message>
+        <source>press</source>
+        <translation>按鈕</translation>
+    </message>
+    <message>
+        <source>messagebox</source>
+        <translation>消息</translation>
+    </message>
+    <message>
+        <source>logout</source>
+        <translation>登出</translation>
+    </message>
+    <message>
+        <source>logback</source>
+        <translation>回點</translation>
+    </message>
+    <message>
+        <source>loadsettings</source>
+        <translation>讀取設置</translation>
+    </message>
+    <message>
+        <source>input</source>
+        <translation>輸入</translation>
+    </message>
+    <message>
+        <source>eo</source>
+        <translation>元神歸位</translation>
+    </message>
+    <message>
+        <source>clear</source>
+        <translation>清屏</translation>
+    </message>
+    <message>
+        <source>announce</source>
+        <translation>提示</translation>
+    </message>
+    <message>
+        <source>relational operator</source>
+        <translation>邏輯比較運算符</translation>
+    </message>
+    <message>
+        <source>&gt;=</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>&gt;</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>==</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>&lt;=</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>&lt;</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>!=</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>move</source>
+        <translation>移動類</translation>
+    </message>
+    <message>
+        <source>movetonpc</source>
+        <translation>移動至NPC</translation>
+    </message>
+    <message>
+        <source>movetele</source>
+        <translation>轉移</translation>
+    </message>
+    <message>
+        <source>movepacket</source>
+        <translation>封包移動</translation>
+    </message>
+    <message>
+        <source>movefindpath</source>
+        <translation>尋路</translation>
+    </message>
+    <message>
+        <source>movedir</source>
+        <translation>方向</translation>
+    </message>
+    <message>
+        <source>movecodfast</source>
+        <translation>移動</translation>
+    </message>
+    <message>
+        <source>movecod</source>
+        <translation>坐標</translation>
+    </message>
+    <message>
+        <source>core</source>
+        <translation>核心類</translation>
+    </message>
+    <message>
+        <source>run</source>
+        <translation>執行</translation>
+    </message>
+    <message>
+        <source>return</source>
+        <translation>返回</translation>
+    </message>
+    <message>
+        <source>pause</source>
+        <translation>暫停</translation>
+    </message>
+    <message>
+        <source>label</source>
+        <translation>標記</translation>
+    </message>
+    <message>
+        <source>goto</source>
+        <translation>跳轉</translation>
+    </message>
+    <message>
+        <source>end</source>
+        <translation>結束</translation>
+    </message>
+    <message>
+        <source>comment</source>
+        <translation>註釋 (//)</translation>
+    </message>
+    <message>
+        <source>cmp</source>
+        <translation>判斷</translation>
+    </message>
+    <message>
+        <source>check</source>
+        <translation>檢查類</translation>
+    </message>
+    <message>
+        <source>isteam</source>
+        <translation>隊伍有</translation>
+    </message>
+    <message>
+        <source>ispet</source>
+        <translation>寵物有</translation>
+    </message>
+    <message>
+        <source>isitemfull</source>
+        <translation>背包滿</translation>
+    </message>
+    <message>
+        <source>isitem</source>
+        <translation>道具</translation>
+    </message>
+    <message>
+        <source>checkteamcount</source>
+        <translation>組隊人數</translation>
+    </message>
+    <message>
+        <source>checkplayer</source>
+        <translation>人物狀態</translation>
+    </message>
+    <message>
+        <source>checkpetcount</source>
+        <translation>寵物數量</translation>
+    </message>
+    <message>
+        <source>checkpet</source>
+        <translation>寵物狀態</translation>
+    </message>
+    <message>
+        <source>checkmission</source>
+        <translation>任務狀態</translation>
+    </message>
+    <message>
+        <source>checkmapfast</source>
+        <translation>地圖快判</translation>
+    </message>
+    <message>
+        <source>checkmap</source>
+        <translation>地圖</translation>
+    </message>
+    <message>
+        <source>checkitemcount</source>
+        <translation>道具數量</translation>
+    </message>
+    <message>
+        <source>checkdialog</source>
+        <translation>對話</translation>
+    </message>
+    <message>
+        <source>checkcod</source>
+        <translation>查坐標</translation>
+    </message>
+    <message>
+        <source>checkchat</source>
+        <translation>聽見</translation>
+    </message>
+    <message>
+        <source>checkbattle</source>
+        <translation>戰鬥中</translation>
+    </message>
+    <message>
+        <source>act</source>
+        <translation>動作類</translation>
+    </message>
+    <message>
+        <source>withdrawpet</source>
+        <translation>提出寵物</translation>
+    </message>
+    <message>
+        <source>withdrawitem</source>
+        <translation>提出道具</translation>
+    </message>
+    <message>
+        <source>wearrecordedequip</source>
+        <translation>裝上記錄裝備</translation>
+    </message>
+    <message>
+        <source>usemagic</source>
+        <translation>使用精靈</translation>
+    </message>
+    <message>
+        <source>useitem</source>
+        <translation>使用道具</translation>
+    </message>
+    <message>
+        <source>unwearequip</source>
+        <translation>卸下裝備</translation>
+    </message>
+    <message>
+        <source>setpetstate</source>
+        <translation>更換寵物</translation>
+    </message>
+    <message>
+        <source>sell</source>
+        <translation>售賣</translation>
+    </message>
+    <message>
+        <source>renameplayer</source>
+        <translation>人物改名</translation>
+    </message>
+    <message>
+        <source>renamepet</source>
+        <translation>寵物改名</translation>
+    </message>
+    <message>
+        <source>recordequip</source>
+        <translation>記錄身上裝備</translation>
+    </message>
+    <message>
+        <source>pickitem</source>
+        <translation>撿物</translation>
+    </message>
+    <message>
+        <source>leftclick</source>
+        <translation>左擊</translation>
+    </message>
+    <message>
+        <source>leave</source>
+        <translation>離隊</translation>
+    </message>
+    <message>
+        <source>join</source>
+        <translation>組隊</translation>
+    </message>
+    <message>
+        <source>droppet</source>
+        <translation>丟棄寵物</translation>
+    </message>
+    <message>
+        <source>dropitem</source>
+        <translation>丟棄道具</translation>
+    </message>
+    <message>
+        <source>depositpet</source>
+        <translation>存入寵物</translation>
+    </message>
+    <message>
+        <source>deposititem</source>
+        <translation>存入道具</translation>
+    </message>
+    <message>
+        <source>depositgold</source>
+        <translation>存錢</translation>
+    </message>
+    <message>
+        <source>craftfood</source>
+        <translation>料理</translation>
+    </message>
+    <message>
+        <source>craftequip</source>
+        <translation>加工</translation>
+    </message>
+    <message>
+        <source>buy</source>
+        <translation>購買</translation>
+    </message>
+    <message>
+        <source>addpoint</source>
+        <translation>加點</translation>
+    </message>
+    <message>
+        <source>withdrawgold</source>
+        <translation>提錢</translation>
+    </message>
+    <message>
+        <source>search command</source>
+        <translation>查找命令</translation>
+    </message>
+    <message>
+        <source>Ctrl+S</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>SaveAs</source>
+        <translation>另存新檔</translation>
+    </message>
+    <message>
+        <source>Start</source>
+        <translation>開始</translation>
+    </message>
+    <message>
+        <source>F5</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>Pause/Resume</source>
+        <translation>暫停/恢復</translation>
+    </message>
+    <message>
+        <source>Stop</source>
+        <translation>停止</translation>
     </message>
 </context>
 <context>

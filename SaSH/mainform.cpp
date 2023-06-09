@@ -14,6 +14,8 @@
 //menu action forms
 #include "form/scriptsettingform.h"
 
+#include "update/qdownloader.h"
+
 //utilities
 #include "signaldispatcher.h"
 #include <util.h>
@@ -109,6 +111,8 @@ void createMenu(QMenuBar* pMenuBar)
 	const QVector<QPair<QString, QString>> fileTable = {
 		{ QObject::tr("save"), "actionSave" },
 		{ QObject::tr("load"), "actionLoad" },
+		{ "","" },
+		{ QObject::tr("checkupdate"), "actionUpdate" },
 	};
 
 	QMenu* pMenuSystem = new QMenu(QObject::tr("system"));
@@ -378,6 +382,33 @@ void MainForm::onMenuActionTriggered()
 		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
 		emit signalDispatcher.loadHashSettings(fileName);
 	}
+
+	else if (actionName == "actionUpdate")
+	{
+		QString result;
+		QMessageBox::StandardButton ret;
+		if (QDownloader::checkUpdate(&result))
+		{
+			ret = QMessageBox::warning(this, tr("Update"), \
+				tr("New version:%s were found!\n\nUpdate process will cause all the games to be closed, are you sure to continue?"), \
+				QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
+		}
+		else
+		{
+			ret = QMessageBox::information(this, tr("Update"), tr("No new version available. Do you still want to update?"), \
+				QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
+		}
+
+		if (QMessageBox::No == ret)
+			return;
+
+		QDownloader* downloader = q_check_ptr(new QDownloader());
+		if (downloader)
+		{
+			hide();
+			downloader->show();
+		}
+	}
 }
 
 void MainForm::resetControlTextLanguage()
@@ -421,10 +452,9 @@ void MainForm::resetControlTextLanguage()
 
 	constexpr int VERSION_MAJOR = 1;
 	constexpr int VERSION_MINOR = 0;
-	constexpr int VERSION_PATCH = 0;
-
-	const QString strversion = QString("%1.%2%3").arg(VERSION_MAJOR).arg(VERSION_MINOR).arg(VERSION_PATCH);
-	setWindowTitle(tr("SaSH - Beta %1").arg(strversion));
+	//constexpr int VERSION_PATCH = 0;
+	const QString strversion = QString("%1.%2%3").arg(VERSION_MAJOR).arg(VERSION_MINOR).arg("." + util::buildDateTime(nullptr));
+	setWindowTitle(tr("SaSH - %1").arg(strversion));
 
 	if (pMenuBar_)
 	{
@@ -522,7 +552,9 @@ void MainForm::onUpdateCursorLabelTextChanged(const QString& text)
 }
 void MainForm::onUpdateCoordsPosLabelTextChanged(const QString& text)
 {
-	ui.label_coords->setText(tr("coordis:") + text);
+	QString str = tr("coordis:");
+	str += text;
+	ui.label_coords->setText(str);
 }
 
 void MainForm::onSaveHashSettings(const QString& name, bool isFullPath)
@@ -717,6 +749,7 @@ void MainForm::onInputBoxShow(const QString& text, int type, QVariant* retvalue)
 	QInputDialog inputDialog(this);
 	inputDialog.setLabelText(text);
 	inputDialog.setInputMode(static_cast<QInputDialog::InputMode>(type));
+	inputDialog.setWindowFlags(inputDialog.windowFlags() & ~Qt::WindowContextHelpButtonHint);
 	auto ret = inputDialog.exec();
 	if (ret != QDialog::Accepted)
 		return;

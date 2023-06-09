@@ -2,6 +2,8 @@
 #include "parser.h"
 
 #include "signaldispatcher.h"
+#include "injector.h"
+#include "listview.h"
 
 void Parser::parse(int line)
 {
@@ -9,8 +11,10 @@ void Parser::parse(int line)
 	callStack_.clear();
 	jmpStack_.clear();
 
-	if (!tokens_.isEmpty())
-		processTokens();
+	if (tokens_.isEmpty())
+		return;
+
+	processTokens();
 }
 
 template<typename T>
@@ -65,14 +69,13 @@ void Parser::jump(int line)
 
 bool Parser::jump(const QString& name)
 {
-	int jumpLineCount = 0;
 	int jumpLine = matchLineFromLabel(name);
 	if (jumpLine == -1)
 	{
 		return false;
 	}
 
-	jumpLineCount = jumpLine - lineNumber_;
+	int jumpLineCount = jumpLine - lineNumber_;
 
 	jump(jumpLineCount);
 	return true;
@@ -80,6 +83,9 @@ bool Parser::jump(const QString& name)
 
 void Parser::processTokens()
 {
+	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
+	emit signalDispatcher.addErrorMarker(-1, 0);
+
 	while (!isEmpty())
 	{
 		if (lineNumber_ != 0)
@@ -114,8 +120,12 @@ void Parser::processTokens()
 					continue;
 				else if (ret == kError)
 				{
-					qDebug() << "Command error:" << currentLineTokens_.value(0).raw;
+					handleError(ret);
 					return;
+				}
+				else if (ret == kArgError)
+				{
+					handleError(ret);
 				}
 				break;
 			}
@@ -210,7 +220,7 @@ void Parser::processVariable(RESERVE type)
 			if (varValue.type() == QVariant::Type::String)
 			{
 				QString valueStr = varValue.toString();
-				QString msg = QObject::tr("set var [%1] value").arg(varName);
+				QString msg = getToken<QString>(3);
 				if (valueStr.startsWith(kFuzzyPrefix + QString("2")))
 				{
 					varValue.clear();
@@ -310,7 +320,7 @@ void Parser::processFormation()
 			}
 			else if (type == TK_REF)
 			{
-				QString subVarName = varValue.toString().mid(1);
+				QString subVarName = varValue.toString();
 				if (subVarName.isEmpty() || !subVarName.startsWith(kVariablePrefix))
 					continue;
 
@@ -321,7 +331,7 @@ void Parser::processFormation()
 
 				QVariant subVarValue = variables_.value(subVarName);
 
-				QString key = QString("{:%1}").arg(subVarName);
+				QString key = QString("{:%1}").arg(i - 3 + 1);
 				if (formatStr.contains(key))
 					formatStr.replace(key, subVarValue.toString());
 			}
@@ -368,10 +378,11 @@ bool Parser::processCall()
 				if (functionName.isEmpty())
 					break;
 
+				int currentLine = lineNumber_;
 				if (!jump(functionName))
 					break;
 
-				callStack_.push(lineNumber_ + 1);
+				callStack_.push(currentLine + 1);
 				return true;
 			}
 		}
@@ -385,8 +396,10 @@ bool Parser::processCall()
 			if (jumpLine == -1)
 				break;
 
-			callStack_.push(lineNumber_ + 1); // Push the next line index to the call stack
-			jump(jumpLine);
+			int currentLine = lineNumber_;
+			if (!jump(functionName))
+				break;
+			callStack_.push(currentLine + 1); // Push the next line index to the call stack
 
 			return true;
 		}
@@ -447,7 +460,7 @@ bool Parser::processJump()
 		else
 		{
 			int jumpLineCount = getToken<int>(1);
-			if (jumpLineCount == -1)
+			if (jumpLineCount == 0)
 				break;
 
 			jump(jumpLineCount);
@@ -537,4 +550,33 @@ void Parser::variableCalculate(const QString& varName, RESERVE op, QVariant* pva
 		Q_UNREACHABLE();
 		break;
 	}
+}
+
+void Parser::handleError(int err)
+{
+	if (err == kNoChange)
+		return;
+
+	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
+	if (err == kError)
+		emit signalDispatcher.addErrorMarker(lineNumber_, err);
+
+	QString msg;
+	switch (err)
+	{
+	case kError:
+		msg = QObject::tr("unknown error");
+		break;
+	case kArgError:
+		msg = QObject::tr("argument error");
+		break;
+	case kNoChange:
+		return;
+	default:
+		break;
+	}
+
+	Injector& injector = Injector::getInstance();
+	if (!injector.scriptLogModel.isNull())
+		injector.scriptLogModel->append(QObject::tr("error occured at line %1. detail:%2").arg(lineNumber_ + 1).arg(msg));
 }
