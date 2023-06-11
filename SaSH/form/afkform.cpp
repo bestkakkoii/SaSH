@@ -972,7 +972,6 @@ void AfkForm::onUpdateComboBoxItemText(int type, const QStringList& textList)
 			int nOriginalIndex = combo->currentIndex();
 			combo->clear();
 			int size = actionList.size();
-
 			for (int i = 0; i < size; ++i)
 			{
 				QString text;
@@ -991,6 +990,15 @@ void AfkForm::onUpdateComboBoxItemText(int type, const QStringList& textList)
 
 				int index = combo->count() - 1;
 				combo->setItemData(index, text, Qt::ToolTipRole);
+			}
+
+			int textListSize = textList.size();
+			for (int i = size - 3; i < textListSize; ++i)
+			{
+				if (notBattle)
+					continue;
+
+				combo->addItem(QString("%1:%2").arg(i - size + 4).arg(textList[i]));
 			}
 
 			combo->blockSignals(false);

@@ -31,6 +31,7 @@ namespace util
 	enum UserMessage
 	{
 		kUserMessage = WM_USER + 0x1024,
+		kConnectionOK,
 		kInitialize,
 		kUninitialize,
 		kGetModule,
@@ -66,15 +67,22 @@ namespace util
 	};
 
 	template<class T, class T2>
-	void __stdcall MemoryMove(T dis, T2* src, size_t size)
+	inline void MemoryMove(T dis, T2* src, size_t size)
 	{
-		DWORD dwOldProtect = 0;
-		VirtualProtect((void*)dis, size, PAGE_EXECUTE_READWRITE, &dwOldProtect);
-		memcpy((void*)dis, (void*)src, size);
-		VirtualProtect((void*)dis, size, dwOldProtect, &dwOldProtect);
+		try
+		{
+			DWORD dwOldProtect = 0;
+			VirtualProtect((void*)dis, size, PAGE_EXECUTE_READWRITE, &dwOldProtect);
+			memcpy((void*)dis, (void*)src, size);
+			VirtualProtect((void*)dis, size, dwOldProtect, &dwOldProtect);
+		}
+		catch (...)
+		{
+			// do nothing
+		}
 	}
 
-	bool __stdcall IsCurrentWindow(const HWND handle)
+	inline bool IsCurrentWindow(const HWND handle)
 	{
 		if ((GetWindow(handle, GW_OWNER) == nullptr) && (IsWindowVisible(handle)))
 			return true;
@@ -93,7 +101,7 @@ namespace util
 		return FALSE;
 	}
 
-	HWND __stdcall FindCurrentWindow(const unsigned long process_id)
+	HWND FindCurrentWindow(const unsigned long process_id)
 	{
 		handle_data data = {};
 		data.process_id = process_id;
@@ -102,7 +110,7 @@ namespace util
 		return data.window_handle;
 	}
 
-	HWND __stdcall GetCurrentWindowHandle()
+	HWND GetCurrentWindowHandle()
 	{
 		unsigned long process_id = GetCurrentProcessId();
 		HWND hwnd = nullptr;
@@ -124,83 +132,82 @@ class GameService
 	GameService() = default;
 
 public:
-	~GameService() = default;
-	void __stdcall initialize(unsigned short port);
-	void __stdcall uninitialize();
+	virtual ~GameService() = default;
+	void initialize(unsigned short port);
+	void uninitialize();
 
 public:
-	void __stdcall WM_EnableEffect(bool enable);
-	void __stdcall WM_EnablePlayerShow(bool enable);
-	void __stdcall WM_SetTimeLock(bool enable, int time);
-	void __stdcall WM_EnableSound(bool enable);
-	void __stdcall WM_EnableImageLock(bool enable);
-	void __stdcall WM_EnablePassWall(bool enable);
-	void __stdcall WM_EnableFastWalk(bool enable);
-	void __stdcall WM_SetBoostSpeed(bool enable, int speed);
-	void __stdcall WM_EnableMoveLock(bool enable);
-	void __stdcall WM_MuteSound(bool enable);
-	void __stdcall WM_BattleTimeExtend(bool enable);
-	void __stdcall WM_EnableBattleDialog(bool enable);
-	void __stdcall WM_SetGameStatus(int status);
+	void WM_EnableEffect(bool enable);
+	void WM_EnablePlayerShow(bool enable);
+	void WM_SetTimeLock(bool enable, int time);
+	void WM_EnableSound(bool enable);
+	void WM_EnableImageLock(bool enable);
+	void WM_EnablePassWall(bool enable);
+	void WM_EnableFastWalk(bool enable);
+	void WM_SetBoostSpeed(bool enable, int speed);
+	void WM_EnableMoveLock(bool enable);
+	void WM_MuteSound(bool enable);
+	void WM_BattleTimeExtend(bool enable);
+	void WM_EnableBattleDialog(bool enable);
+	void WM_SetGameStatus(int status);
 
-	void __stdcall WM_Announce(char* str, int color);
-	void __stdcall WM_Move(int x, int y);
-	void __stdcall WM_DistoryDialog();
-	void __stdcall WM_CleanChatHistory();
+	void WM_Announce(char* str, int color);
+	void WM_Move(int x, int y);
+	void WM_DistoryDialog();
+	void WM_CleanChatHistory();
 
-	inline void __stdcall WM_SetBLockPacket(bool enable) { IS_ENCOUNT_BLOCK_FLAG = enable; }
+	inline void WM_SetBLockPacket(bool enable) { IS_ENCOUNT_BLOCK_FLAG = enable; }
 
 public://g-var
 	int* g_sockfd = nullptr;
+
+private:
 	int* g_world_status = nullptr;
 	int* g_game_status = nullptr;
 
-private:
 	bool IS_BATTLE_PROC_FLAG = false;
 	bool IS_TIME_LOCK_FLAG = false;
 	bool IS_SOUND_MUTE_FLAG = false;
 	bool IS_ENCOUNT_BLOCK_FLAG = false;
 
+	bool IS_MOVE_LOCK = false;
+
 public://hook
-	SOCKET __stdcall New_socket(int af, int type, int protocol);
+	//SOCKET WSAAPI New_socket(int af, int type, int protocol);
 
-	int __stdcall New_WSARecv(SOCKET s, LPWSABUF lpBuffers, DWORD dwBufferCount, LPDWORD lpNumberOfBytesRecvd, LPDWORD lpFlags,
-		LPWSAOVERLAPPED lpOverlapped, LPWSAOVERLAPPED_COMPLETION_ROUTINE lpCompletionRoutine);
-	int __stdcall New_closesocket(SOCKET s);
+	//int WSAAPI New_closesocket(SOCKET s);
 
-	int __stdcall New_send(SOCKET s, const char* buf, int len, int flags);
-	int __stdcall New_recv(SOCKET s, char* buf, int len, int flags);
+	//int WSAAPI New_send(SOCKET s, const char* buf, int len, int flags);
 
-	BOOL __stdcall New_SetWindowTextA(HWND hWnd, LPCSTR lpString);
+	int WSAAPI New_recv(SOCKET s, char* buf, int len, int flags);
 
-	void __stdcall New_PlaySound(int a, int b, int c);
-	void __stdcall New_BattleProc();
-	void __stdcall New_BattleCommandReady();
-	void __stdcall New_TimeProc(int fd);
-	void __stdcall New_lssproto_EN_recv(int fd, int result, int field);
+	BOOL WINAPI New_SetWindowTextA(HWND hWnd, LPCSTR lpString);
+
+	void __cdecl New_PlaySound(int a, int b, int c);
+	void __cdecl New_BattleProc();
+	//void __cdecl New_BattleCommandReady();
+	void __cdecl New_TimeProc(int fd);
+	void __cdecl New_lssproto_EN_recv(int fd, int result, int field);
 
 	//setwindowtexta
 	using pfnSetWindowTextA = BOOL(WINAPI*)(HWND hWnd, LPCSTR lpString);
 	pfnSetWindowTextA pSetWindowTextA = nullptr;
 
 	//Sleep
-	using pfnSleep = void(WINAPI*)(DWORD dwMilliseconds);
-	pfnSleep pSleep = nullptr;
+	//using pfnSleep = void(WINAPI*)(DWORD dwMilliseconds);
+	//pfnSleep pSleep = nullptr;
 
-	using pfnsocket = SOCKET(WSAAPI*)(int af, int type, int protocol);
-	pfnsocket psocket = nullptr;
+	//using pfnsocket = SOCKET(WSAAPI*)(int af, int type, int protocol);
+	//pfnsocket psocket = nullptr;
 
-	int(WSAAPI* pWSARecv)(SOCKET s, LPWSABUF lpBuffers, DWORD dwBufferCount, LPDWORD lpNumberOfBytesRecvd, LPDWORD lpFlags,
-		LPWSAOVERLAPPED lpOverlapped, LPWSAOVERLAPPED_COMPLETION_ROUTINE lpCompletionRoutine) = nullptr;
-
-	using pfnclosesocket = int(WSAAPI*)(SOCKET s);
-	pfnclosesocket pclosesocket = nullptr;
+	//using pfnclosesocket = int(WSAAPI*)(SOCKET s);
+	//pfnclosesocket pclosesocket = nullptr;
 
 	using pfnrecv = int(WSAAPI*)(SOCKET s, char* buf, int len, int flags);
 	pfnrecv precv = nullptr;
 
-	using pfnsend = int(WSAAPI*)(SOCKET s, const char* buf, int len, int flags);
-	pfnsend psend = nullptr;
+	//using pfnsend = int(WSAAPI*)(SOCKET s, const char* buf, int len, int flags);
+	//pfnsend psend = nullptr;
 
 	using pfnPlaySound = void(__cdecl*)(int, int, int);
 	pfnPlaySound pPlaySound = nullptr;
@@ -208,8 +215,8 @@ public://hook
 	using pfnBattleProc = void(__cdecl*)();
 	pfnBattleProc pBattleProc = nullptr;
 
-	using pfnBattleCommandReady = void(__cdecl*)();
-	pfnBattleCommandReady pBattleCommandReady = nullptr;
+	//using pfnBattleCommandReady = void(__cdecl*)();
+	//pfnBattleCommandReady pBattleCommandReady = nullptr;
 
 	using pfnTimeProc = void(__cdecl*)(int);
 	pfnTimeProc pTimeProc = nullptr;
@@ -218,11 +225,11 @@ public://hook
 	pfnLssproto_EN_recv pLssproto_EN_recv = nullptr;
 
 private://net
-	void __stdcall clearNetBuffer();
-	int __stdcall appendReadBuf(char* buf, int size);
-	int __stdcall shiftReadBuf(int size);
-	int __stdcall getLineFromReadBuf(char* output, int maxlen);
-	void __stdcall hideModule(HMODULE hLibrary);
+	void clearNetBuffer();
+	int appendReadBuf(char* buf, int size);
+	int shiftReadBuf(int size);
+	int getLineFromReadBuf(char* output, int maxlen);
+	void hideModule(HMODULE hLibrary);
 
 private:
 	std::atomic_bool isInitialized_ = false;

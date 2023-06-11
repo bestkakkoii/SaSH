@@ -71,6 +71,7 @@ enum RESERVE
 	TK_VARDECL, // 變量聲明名稱或賦值 (任何使用 "變量 設置" 宣告過的變量 lexser只負責解析出那些是變量)
 	TK_VARFREE, // 變量釋放
 	TK_VARCLR, // 變量清空
+	TK_LABELVAR, //標籤設置的傳參變量
 	TK_FORMAT, // 格式化後將新數值字符串賦值給變量
 	TK_GVAR,// 全局變量
 	TK_NAME, // 標記名稱 不允許使用純數字 或符點數作為標記名稱
@@ -88,11 +89,14 @@ struct Token
 };
 Q_DECLARE_METATYPE(Token)
 
+using TokenMap = QMap<int, Token>;
+Q_DECLARE_METATYPE(TokenMap)
+
 class Lexer
 {
 public:
 
-	static bool tokenized(const QString& script, QHash<int, QMap<int, Token>>* tokens, QHash<QString, int>* plabel);
+	static bool tokenized(const QString& script, QHash<int, TokenMap>* tokens, QHash<QString, int>* plabel);
 
 private:
 	bool isDouble(const QString& str) const;
@@ -112,9 +116,9 @@ private:
 	RESERVE getTokenType(int& pos, RESERVE previous, QString& str, const QString raw) const;
 	bool getStringToken(QString& src, const QString& delim, QString& out);
 
-	void createToken(int index, RESERVE type, const QVariant& data, const QString& raw, QMap<int, Token>* ptoken);
-	void createEmptyToken(int index, QMap<int, Token>* ptoken);
+	void createToken(int index, RESERVE type, const QVariant& data, const QString& raw, TokenMap* ptoken);
+	void createEmptyToken(int index, TokenMap* ptoken);
 
-	void tokenized(int currentLine, const QString& line, QMap<int, Token>* ptoken, QHash<QString, int>* plabel);
+	void tokenized(int currentLine, const QString& line, TokenMap* ptoken, QHash<QString, int>* plabel);
 };
 

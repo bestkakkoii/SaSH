@@ -16,6 +16,9 @@ SelectObjectForm::SelectObjectForm(TitleType type, QWidget* parent)
 	connect(ui.buttonBox, &QDialogButtonBox::accepted, this, &SelectObjectForm::onAccept);
 	connect(ui.buttonBox, &QDialogButtonBox::rejected, this, &QDialog::reject);
 
+	ui.buttonBox->button(QDialogButtonBox::Ok)->setText(tr("ok"));
+	ui.buttonBox->button(QDialogButtonBox::Cancel)->setText(tr("cancel"));
+
 	QList<QPushButton*> buttonList = util::findWidgets<QPushButton>(this);
 
 	for (auto& button : buttonList)

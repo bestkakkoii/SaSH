@@ -93,7 +93,7 @@ private slots:
 	void on_pushButton_returnBase_clicked();
 #else
 protected:
-	QTimer m_timer;
+	QTimer timer_;
 
 	void paintEvent(QPaintEvent* pevent) override;
 #endif

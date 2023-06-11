@@ -12,6 +12,8 @@ int Interpreter::setdir(const TokenMap& TK)
 	if (injector.server.isNull())
 		return Parser::kError;
 
+	checkBattleThenWait();
+
 	QString dirStr = "";
 	int dir = -1;
 	checkInt(TK, 1, &dir);
@@ -38,6 +40,8 @@ int Interpreter::move(const TokenMap& TK)
 	if (injector.server.isNull())
 		return Parser::kError;
 
+	checkBattleThenWait();
+
 	QPoint p;
 	checkInt(TK, 1, &p.rx());
 	checkInt(TK, 2, &p.ry());
@@ -46,6 +50,7 @@ int Interpreter::move(const TokenMap& TK)
 		return Parser::kArgError;
 
 	injector.server->move(p);
+	QThread::msleep(1);
 
 	waitfor(1000, [&injector, &p]()->bool
 		{
@@ -62,6 +67,8 @@ int Interpreter::fastmove(const TokenMap& TK)
 	if (injector.server.isNull())
 		return Parser::kError;
 
+	checkBattleThenWait();
+
 	QPoint p;
 	checkInt(TK, 1, &p.rx());
 	checkInt(TK, 2, &p.ry());
@@ -70,6 +77,7 @@ int Interpreter::fastmove(const TokenMap& TK)
 		return Parser::kArgError;
 
 	injector.server->move(p);
+	QThread::msleep(1);
 
 	return Parser::kNoChange;
 }
@@ -81,6 +89,8 @@ int Interpreter::packetmove(const TokenMap& TK)
 	if (injector.server.isNull())
 		return Parser::kError;
 
+	checkBattleThenWait();
+
 	QPoint p;
 	checkInt(TK, 1, &p.rx());
 	checkInt(TK, 2, &p.ry());
@@ -91,6 +101,7 @@ int Interpreter::packetmove(const TokenMap& TK)
 		return Parser::kArgError;
 
 	injector.server->move(p, dirStr);
+	QThread::msleep(1);
 
 	return Parser::kNoChange;
 }
@@ -102,6 +113,8 @@ int Interpreter::findpath(const TokenMap& TK)
 	if (injector.server.isNull())
 		return Parser::kError;
 
+	checkBattleThenWait();
+
 	QPoint p;
 	checkInt(TK, 1, &p.rx());
 	checkInt(TK, 2, &p.ry());
@@ -110,7 +123,7 @@ int Interpreter::findpath(const TokenMap& TK)
 	checkInt(TK, 3, &steplen);
 
 	//findpath 不允許接受為0的xy座標
-	if (p.x() <= 0 || p.x() >= 1500 || p.y() <= 0 || p.y() >= 1500)
+	if (p.x() < 0 || p.x() >= 1500 || p.y() < 0 || p.y() >= 1500)
 		return Parser::kArgError;
 
 	findPath(p, steplen);
@@ -124,6 +137,8 @@ int Interpreter::movetonpc(const TokenMap& TK)
 
 	if (injector.server.isNull())
 		return Parser::kError;
+
+	checkBattleThenWait();
 
 	QString cmpNpcName;
 	checkString(TK, 1, &cmpNpcName);
@@ -157,7 +172,7 @@ int Interpreter::movetonpc(const TokenMap& TK)
 	};
 
 	bool bret = false;
-	if (findPath(p, 1, 0, timeout, findNpcCallBack) && dir != -1)
+	if (findPath(p, 1, 0, timeout, findNpcCallBack, true) && dir != -1)
 	{
 		injector.server->setPlayerFaceDirection(dir);
 		bret = true;

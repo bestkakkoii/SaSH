@@ -20,8 +20,8 @@ ItemInfoForm::ItemInfoForm(QWidget* parent)
 		//tablewidget set selection behavior
 		tableWidget->setSelectionBehavior(QAbstractItemView::SelectRows);
 		//set auto resize to form size
-		tableWidget->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
-		tableWidget->verticalHeader()->setSectionResizeMode(QHeaderView::Stretch);
+		tableWidget->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
+		tableWidget->verticalHeader()->setSectionResizeMode(QHeaderView::Fixed);
 
 		tableWidget->setStyleSheet(R"(
 		QTableWidget { font-size:11px; } 
@@ -188,4 +188,26 @@ void ItemInfoForm::onUpdateEquipInfoRowContents(int row, const QVariant& data)
 void ItemInfoForm::onUpdateItemInfoRowContents(int row, const QVariant& data)
 {
 	updateItemInfoRowContents(ui.tableWidget_item, row - 9, data);
+}
+
+void ItemInfoForm::on_tableWidget_item_cellDoubleClicked(int row, int column)
+{
+	Injector& injector = Injector::getInstance();
+	if (injector.server.isNull())
+		return;
+
+	injector.server->useItem(row + CHAR_EQUIPPLACENUM, 0);
+}
+
+void ItemInfoForm::on_tableWidget_equip_cellDoubleClicked(int row, int column)
+{
+	Injector& injector = Injector::getInstance();
+	if (injector.server.isNull())
+		return;
+
+	int spotIndex = injector.server->getItemEmptySpotIndex();
+	if (spotIndex == -1)
+		return;
+
+	injector.server->swapItem(row, spotIndex);
 }

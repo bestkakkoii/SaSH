@@ -30,6 +30,7 @@ public:
 	enum UserMessage
 	{
 		kUserMessage = WM_USER + 0x1024,
+		kConnectionOK,
 		kInitialize,
 		kUninitialize,
 		kGetModule,

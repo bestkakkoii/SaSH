@@ -17,7 +17,7 @@ AfkInfoForm::AfkInfoForm(QWidget* parent)
 		tableWidget->setSelectionBehavior(QAbstractItemView::SelectRows);
 		//set auto resize to form size
 		tableWidget->horizontalHeader()->setSectionResizeMode(QHeaderView::Fixed);
-		tableWidget->verticalHeader()->setSectionResizeMode(QHeaderView::Stretch);
+		tableWidget->verticalHeader()->setSectionResizeMode(QHeaderView::Fixed);
 
 
 

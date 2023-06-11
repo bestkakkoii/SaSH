@@ -1128,6 +1128,86 @@ color: rgb(208, 208, 208);
             <property name="text">
              <string>checkplayer</string>
             </property>
+            <item>
+             <property name="text">
+              <string>stone</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>name</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>mppercent</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>mp</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>maxmp</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>maxhp</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>maxexp</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>level</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>hppercent</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>hp</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>freename</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>exp</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>def</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>chasma</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>atk</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>agi</string>
+             </property>
+            </item>
            </item>
            <item>
             <property name="text">
@@ -1138,6 +1218,66 @@ color: rgb(208, 208, 208);
             <property name="text">
              <string>checkpet</string>
             </property>
+            <item>
+             <property name="text">
+              <string>name</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>maxhp</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>maxexp</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>loyal</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>level</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>hppercent</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>hp</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>freename</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>exp</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>def</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>atk</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>agi</string>
+             </property>
+            </item>
            </item>
            <item>
             <property name="text">
@@ -2189,8 +2329,30 @@ margin-right:0px;
            <enum>QTabWidget::South</enum>
           </property>
           <property name="currentIndex">
-           <number>1</number>
+           <number>0</number>
           </property>
+          <widget class="QWidget" name="tab_5">
+           <attribute name="title">
+            <string>des</string>
+           </attribute>
+           <layout class="QGridLayout" name="gridLayout_9">
+            <property name="leftMargin">
+             <number>0</number>
+            </property>
+            <property name="topMargin">
+             <number>0</number>
+            </property>
+            <property name="rightMargin">
+             <number>0</number>
+            </property>
+            <property name="bottomMargin">
+             <number>0</number>
+            </property>
+            <item row="0" column="0">
+             <widget class="QTextBrowser" name="textBrowser"/>
+            </item>
+           </layout>
+          </widget>
           <widget class="QWidget" name="tab">
            <attribute name="title">
             <string>mark</string>

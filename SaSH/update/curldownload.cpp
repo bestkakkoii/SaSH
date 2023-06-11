@@ -3,17 +3,19 @@
 #ifndef CURLINC_CURL_H
 #include <curl/curl.h>
 #endif
-std::atomic_int CurlDownload::threadCnt = 0;
-QMutex CurlDownload::g_mutex;
+std::atomic_int CurlDownload::threadCnt_ = 0;
+QMutex CurlDownload::mutex_;
 
 CurlDownload::CurlDownload()
 {
 
 }
 
-bool CurlDownload::DownLoad(int threadNum, std::string Url, std::string Path, std::string fileName)
+bool CurlDownload::downLoad(int threadNum, std::string Url, std::string Path, std::string fileName)
 {
-	if (!threadNum) return false;
+	if (!threadNum)
+		return false;
+
 	long fileLength = getDownloadFileLenth(Url.c_str());
 
 	if (fileLength <= 0)
@@ -27,25 +29,25 @@ bool CurlDownload::DownLoad(int threadNum, std::string Url, std::string Path, st
 
 	FILE* fp = nullptr;
 	errno_t err = fopen_s(&fp, outFileName.c_str(), "wb");
-	if (err || !fp)
+	if (err || fp == nullptr)
 	{
 		return false;
 	}
 
-	long partSize = fileLength / (long)threadNum;
+	long partSize = fileLength / static_cast<long>(threadNum);
 
-	for (size_t i = 0; i <= (size_t)threadNum; i++)
+	for (size_t i = 0; i <= static_cast<size_t>(threadNum); i++)
 	{
 		tNode* pNode = q_check_ptr(new tNode());
 
-		if (i < (size_t)threadNum)
+		if (i < static_cast<size_t>(threadNum))
 		{
 			pNode->startPos = i * partSize;
 			pNode->endPos = (i + 1) * partSize - 1;
 		}
 		else
 		{
-			if (fileLength % (long)threadNum != 0L)
+			if (fileLength % static_cast<long>(threadNum) != 0L)
 			{
 				pNode->startPos = i * partSize;
 				pNode->endPos = fileLength - 1;
@@ -60,10 +62,11 @@ bool CurlDownload::DownLoad(int threadNum, std::string Url, std::string Path, st
 		pNode->fp = fp;
 
 		char range[64] = { 0 };
+		memset(range, 0, sizeof(range));
 		snprintf(range, sizeof(range), "%ld-%ld", pNode->startPos, pNode->endPos);
 
 		struct curl_slist* header_list = NULL;
-		QString qheader = QString("User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Safari/537.36 Edg/107.0.1418.35 BlueCgHP/download-update-file (Bluecg)");
+		QString qheader = QString("User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Safari/537.36 Edg/107.0.1418.35 SaSH/download-update-file");
 		std::string agent(qheader.toStdString());
 		header_list = curl_slist_append(header_list, "authority: www.lovesa.cc");
 		header_list = curl_slist_append(header_list, "Method: GET");
@@ -93,10 +96,10 @@ bool CurlDownload::DownLoad(int threadNum, std::string Url, std::string Path, st
 		curl_easy_setopt(curl, CURLOPT_HEADER, 0);
 		curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1);
 
-		if (m_vpProgressFunc.size() > i)
+		if (vpfnProgressFunc_.size() > i)
 		{
-			curl_easy_setopt(curl, CURLOPT_XFERINFOFUNCTION, m_vpProgressFunc[i]);
-			pNode->id = m_index;
+			curl_easy_setopt(curl, CURLOPT_XFERINFOFUNCTION, vpfnProgressFunc_[i]);
+			pNode->id = index_;
 			pNode->index = i;
 			curl_easy_setopt(curl, CURLOPT_XFERINFODATA, pNode);
 		}
@@ -106,14 +109,14 @@ bool CurlDownload::DownLoad(int threadNum, std::string Url, std::string Path, st
 		//curl_easy_setopt(curl, CURLOPT_LOW_SPEED_TIME, 5L);
 		curl_easy_setopt(curl, CURLOPT_RANGE, range);
 
-		++threadCnt;
+		++threadCnt_;
 		pNode->tid = QtConcurrent::run(workThread, pNode);
 	}
 
 	for (;;)
 	{
 		QThread::msleep(1000ll);
-		if (threadCnt <= 0)
+		if (threadCnt_ <= 0)
 			break;
 	}
 
@@ -125,10 +128,11 @@ bool CurlDownload::DownLoad(int threadNum, std::string Url, std::string Path, st
 
 size_t CurlDownload::writeFunc(void* ptr, size_t size, size_t nmemb, void* userdata)
 {
-	tNode* node = (tNode*)userdata;
+	tNode* node = reinterpret_cast<tNode*>(userdata);
 	size_t written = 0;
-	QMutexLocker locker(&g_mutex);
-	if ((size_t)node->startPos + size * nmemb <= (size_t)node->endPos)
+	QMutexLocker locker(&mutex_);
+
+	if (static_cast<size_t>(node->startPos) + size * nmemb <= static_cast<size_t>(node->endPos))
 	{
 		fseek(node->fp, node->startPos, SEEK_SET);
 		written = fwrite(ptr, size, nmemb, node->fp);
@@ -137,7 +141,7 @@ size_t CurlDownload::writeFunc(void* ptr, size_t size, size_t nmemb, void* userd
 	else
 	{
 		fseek(node->fp, node->startPos, SEEK_SET);
-		written = fwrite(ptr, 1, (size_t)node->endPos - (size_t)node->startPos + 1, node->fp);
+		written = fwrite(ptr, 1, static_cast<size_t>(node->endPos) - static_cast<size_t>(node->startPos) + 1, node->fp);
 		node->startPos = node->endPos;
 	}
 
@@ -167,7 +171,7 @@ long CurlDownload::getDownloadFileLenth(const char* url)
 
 void CurlDownload::workThread(void* pData)
 {
-	tNode* pNode = (tNode*)pData;
+	tNode* pNode = reinterpret_cast<tNode*>(pData);
 
 	int res = curl_easy_perform(pNode->curl);
 
@@ -175,10 +179,10 @@ void CurlDownload::workThread(void* pData)
 	{
 
 	}
-	curl_slist_free_all((curl_slist*)pNode->header);
+	curl_slist_free_all(reinterpret_cast<curl_slist*>(pNode->header));
 	curl_easy_cleanup(pNode->curl);
 
-	--threadCnt;
+	--threadCnt_;
 	//printf ("thred %ld exit\n", pNode->tid);
 	delete pNode;
 	//pthread_exit (nullptr);
@@ -186,13 +190,13 @@ void CurlDownload::workThread(void* pData)
 
 static size_t write_data(char* ptr, size_t size, size_t nmemb, void* userdata)
 {
-	std::string* pstr = (std::string*)userdata;
+	std::string* pstr = reinterpret_cast<std::string*>(userdata);
 	pstr->append(ptr, size * nmemb);
 	return size * nmemb;
 };
 
 //一次性獲取小文件內容
-QString CurlDownload::OneShotDownload(const std::string szUrl)
+QString CurlDownload::oneShotDownload(const std::string szUrl)
 {
 	CURL* curl = curl_easy_init();
 	if (curl == nullptr)
@@ -201,7 +205,7 @@ QString CurlDownload::OneShotDownload(const std::string szUrl)
 	}
 
 	struct curl_slist* header_list = NULL;
-	QString qheader = QString("User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Safari/537.36 Edg/107.0.1418.35 BlueCgHP/download-update-file (Bluecg)");
+	QString qheader = QString("User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Safari/537.36 Edg/107.0.1418.35 SaSH/download-update-file");
 	std::string agent(qheader.toStdString());
 	header_list = curl_slist_append(header_list, "authority: www.lovesa.cc");
 	header_list = curl_slist_append(header_list, "Method: GET");

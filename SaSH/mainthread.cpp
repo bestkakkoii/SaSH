@@ -49,8 +49,7 @@ bool ThreadManager::createThread(QObject* parent)
 MainObject::MainObject(QObject* parent)
 	: QObject(parent)
 {
-
-
+	pointerWriterSync_.setCancelOnWait(true);
 }
 
 MainObject::~MainObject()
@@ -109,7 +108,7 @@ void MainObject::run()
 				break;
 			}
 
-			if (timer.hasExpired(30000))
+			if (timer.hasExpired(15000))
 			{
 				remove_thread_reason = util::REASON_TCP_CONNECTION_TIMEOUT;
 				break;
@@ -157,6 +156,8 @@ void MainObject::run()
 		autodroppet_future_.waitForFinished();
 	}
 
+	pointerWriterSync_.waitForFinished();
+
 	emit signalDispatcher.updateStatusLabelTextChanged(util::kLabelStatusNotOpen);
 	emit signalDispatcher.setStartButtonEnabled(true);
 
@@ -202,6 +203,11 @@ void MainObject::mainProc()
 			break;
 		}
 
+		if (!injector.server->IS_TCP_CONNECTION_OK_TO_USE)
+		{
+			continue;
+		}
+
 		//自動釋放記憶體
 		if (injector.getEnableHash(util::kAutoFreeMemoryEnable) && freeMemTimer.hasExpired(10ll * 60ll * 1000ll))
 		{
@@ -225,6 +231,7 @@ void MainObject::mainProc()
 		}
 		else//錯誤
 		{
+			break;
 		}
 		QThread::yieldCurrentThread();
 	}
@@ -251,14 +258,21 @@ int MainObject::checkAndRunFunctions()
 		if (!login_run_once_flag_)
 		{
 			login_run_once_flag_ = true;
-			Sleep(2000);
+			for (int i = 0; i < 15; ++i)
+			{
+				if (isInterruptionRequested())
+					return 0;
+				QThread::msleep(100);
+			}
 			injector.server->clear();
 		}
 
 		injector.server->loginTimer.restart();
 		//自動登入 或 斷線重連
 		if (injector.getEnableHash(util::kAutoLoginEnable) || injector.getEnableHash(util::kAutoReconnectEnable))
+		{
 			injector.server->login(status);
+		}
 		return 1;
 	}
 
@@ -266,7 +280,7 @@ int MainObject::checkAndRunFunctions()
 	if (login_run_once_flag_)
 	{
 		login_run_once_flag_ = false;
-		for (int i = 0; i < 15; ++i)
+		for (int i = 0; i < 10; ++i)
 		{
 			if (isInterruptionRequested())
 				return 0;
@@ -275,6 +289,7 @@ int MainObject::checkAndRunFunctions()
 		injector.server->isPacketAutoClear.store(true, std::memory_order_release);
 		injector.server->EO();
 		emit signalDispatcher.updateStatusLabelTextChanged(util::kLabelStatusLoginSuccess);
+		emit signalDispatcher.updateMainFormTitle(injector.server->pc.name);
 
 		//登入後的廣告公告
 		constexpr bool isbeta = true;
@@ -355,6 +370,9 @@ int MainObject::checkAndRunFunctions()
 			//自動鎖寵
 			checkAutoLockPet();
 		}
+
+		//紀錄NPC
+		checkRecordableNpcInfo();
 
 		//檢查開關 (隊伍、交易、名片...等等)
 		checkEtcFlag();
@@ -1519,4 +1537,87 @@ void MainObject::checkAutoEatBoostExpItem()
 		}
 	}
 
+}
+
+//檢查可記錄的NPC坐標訊息
+void MainObject::checkRecordableNpcInfo()
+{
+	pointerWriterSync_.addFuture(QtConcurrent::run([this]()
+		{
+			Injector& injector = Injector::getInstance();
+			if (injector.server.isNull())
+				return;
+
+			util::SafeHash<int, mapunit_t> units = injector.server->mapUnitHash;
+			for (const mapunit_t& unit : units)
+			{
+				if (isInterruptionRequested())
+					return;
+
+				if (injector.server.isNull())
+					return;
+
+				if ((unit.objType != util::OBJ_NPC)
+					|| unit.name.isEmpty()
+					|| (injector.server->getWorldStatus() != 9)
+					|| (injector.server->getGameStatus() != 3)
+					|| injector.server->npcUnitPointHash.contains(QPoint(unit.x, unit.y)))
+				{
+					continue;
+				}
+
+				injector.server->npcUnitPointHash.insert(QPoint(unit.x, unit.y), unit);
+
+
+				util::Config config(util::getPointFileName());
+				util::MapData d;
+				int nowFloor = injector.server->nowFloor;
+				QPoint nowPoint = injector.server->nowPoint;
+				d.floor = nowFloor;
+				d.name = unit.name;
+
+				//npc前方一格
+				QPoint newPoint = util::fix_point.at(unit.dir) + unit.p;
+				//檢查是否可走
+				if (injector.server->mapAnalyzer->isPassable(nowFloor, nowPoint, newPoint))
+				{
+					d.x = newPoint.x();
+					d.y = newPoint.y();
+				}
+				else
+				{
+					//再往前一格
+					QPoint additionPoint = util::fix_point.at(unit.dir) + newPoint;
+					//檢查是否可走
+					if (injector.server->mapAnalyzer->isPassable(nowFloor, nowPoint, additionPoint))
+					{
+						d.x = additionPoint.x();
+						d.y = additionPoint.y();
+					}
+					else
+					{
+						//檢查NPC周圍8格
+						bool flag = false;
+						for (int i = 0; i < 8; i++)
+						{
+							newPoint = util::fix_point.at(i) + unit.p;
+							if (injector.server->mapAnalyzer->isPassable(nowFloor, nowPoint, newPoint))
+							{
+								d.x = newPoint.x();
+								d.y = newPoint.y();
+								flag = true;
+								break;
+							}
+						}
+						if (!flag)
+						{
+							return;
+						}
+					}
+				}
+				config.writeMapData(unit.name, d);
+
+			}
+		}
+	));
 }

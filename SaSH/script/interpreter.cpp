@@ -271,7 +271,7 @@ void Interpreter::checkPause()
 	}
 }
 
-bool Interpreter::findPath(QPoint dst, int steplen, int step_cost, int timeout, std::function<int(QPoint& dst)> callback)
+bool Interpreter::findPath(QPoint dst, int steplen, int step_cost, int timeout, std::function<int(QPoint& dst)> callback, bool noAnnounce)
 {
 	//print() << L"MapName:" << Util::S2W(g_mapinfo->name) << "(" << g_mapinfo->floor << ")";
 	Injector& injector = Injector::getInstance();
@@ -301,15 +301,18 @@ bool Interpreter::findPath(QPoint dst, int steplen, int step_cost, int timeout, 
 	}
 
 	//print() << "walkable size:" << _map.walkable.size();
-	injector.server->announce(QObject::tr("<findpath>start searching the path"));//"<尋路>開始搜尋路徑"
+	if (!noAnnounce)
+		injector.server->announce(QObject::tr("<findpath>start searching the path"));//"<尋路>開始搜尋路徑"
 	QElapsedTimer timer; timer.start();
 	if (!injector.server->mapAnalyzer->calcNewRoute(_map, src, dst, &path))
 	{
-		injector.server->announce(QObject::tr("<findpath>unable to findpath"));//"<尋路>找不到路徑"
+		if (!noAnnounce)
+			injector.server->announce(QObject::tr("<findpath>unable to findpath"));//"<尋路>找不到路徑"
 		return false;
 	}
 	int cost = static_cast<int>(timer.elapsed());
-	injector.server->announce(QObject::tr("<findpath>path found, cost:%1").arg(cost));//"<尋路>成功找到路徑，耗時：%1"
+	if (!noAnnounce)
+		injector.server->announce(QObject::tr("<findpath>path found, cost:%1").arg(cost));//"<尋路>成功找到路徑，耗時：%1"
 
 	int size = path.size();
 	int first_size = size;
@@ -318,6 +321,10 @@ bool Interpreter::findPath(QPoint dst, int steplen, int step_cost, int timeout, 
 	int current_floor = floor;
 
 	int n = 0;
+
+	QElapsedTimer blockDetectTimer; blockDetectTimer.start();
+	QPoint lastPoint = src;
+
 	for (;;)
 	{
 		if (injector.server.isNull())
@@ -337,6 +344,12 @@ bool Interpreter::findPath(QPoint dst, int steplen, int step_cost, int timeout, 
 		if (steplen_cache >= 0 && (steplen_cache < static_cast<int>(path.size())))
 		{
 			QPoint point(path.at(steplen_cache));
+			if (lastPoint != src)
+			{
+				blockDetectTimer.restart();
+				lastPoint = src;
+			}
+
 			injector.server->move(point);
 			QThread::msleep(step_cost);
 		}
@@ -347,21 +360,42 @@ bool Interpreter::findPath(QPoint dst, int steplen, int step_cost, int timeout, 
 			if (src == dst)
 			{
 				cost = timer.elapsed();
-				if (cost > 5000)
+				if (cost > 3000)
 				{
 					QThread::msleep(500);
+					if (injector.server.isNull())
+						break;
 					injector.server->EO();
+					QThread::msleep(500);
+					if (injector.server.isNull())
+						break;
 					if (injector.server->nowPoint != dst)
 						continue;
 				}
 				injector.server->move(dst);
-				injector.server->announce(QObject::tr("<findpath>arrived destination, cost:%1").arg(timer.elapsed()));//"<尋路>已到達目的地，耗時：%1"
+				if (!noAnnounce)
+					injector.server->announce(QObject::tr("<findpath>arrived destination, cost:%1").arg(timer.elapsed()));//"<尋路>已到達目的地，耗時：%1"
 				return true;//已抵達true
 			}
 
 			if (!injector.server->mapAnalyzer->calcNewRoute(_map, src, dst, &path))
 				break;
 			size = path.size();
+		}
+
+		if (blockDetectTimer.hasExpired(10000))
+		{
+			blockDetectTimer.restart();
+			injector.server->announce(QObject::tr("<findpath>detedted player ware blocked"));
+			injector.server->EO();
+			QThread::msleep(500);
+			//往隨機8個方向移動
+			QPoint point = injector.server->nowPoint;
+			lastPoint = point;
+			point = point + util::fix_point.at(QRandomGenerator::global()->bounded(0, 7));
+			injector.server->move(point);
+			QThread::msleep(100);
+			continue;
 		}
 
 		if (timer.hasExpired(timeout))
@@ -401,15 +435,28 @@ bool Interpreter::checkString(const TokenMap& TK, int idx, QString* ret) const
 
 	RESERVE type = TK.value(idx).type;
 	QVariant var = TK.value(idx).data;
+	QHash<QString, QVariant> args = parser_->getLabelVars();
 	if (!var.isValid())
 		return false;
 	if (type == TK_REF)
 	{
 		*ret = parser_->getVar<QString>(var.toString());
 	}
-	else if (type == TK_STRING)
+	else if (type == TK_STRING || type == TK_CMD)
 	{
-		*ret = var.toString();
+		QString name = var.toString();
+		if (args.contains(name))
+		{
+			QVariant::Type vtype = args.value(name).type();
+			if (vtype == QVariant::Int || vtype == QVariant::String)
+				*ret = args.value(name).toString();
+			else if (vtype == QVariant::Double)
+				*ret = QString::number(args.value(name).toDouble(), 'f', 8);
+			else
+				return false;
+		}
+		else
+			*ret = var.toString();
 	}
 	else
 		return false;
@@ -427,6 +474,7 @@ bool Interpreter::checkInt(const TokenMap& TK, int idx, int* ret) const
 
 	RESERVE type = TK.value(idx).type;
 	QVariant var = TK.value(idx).data;
+	QHash<QString, QVariant> args = parser_->getLabelVars();
 	if (!var.isValid())
 		return false;
 
@@ -441,6 +489,25 @@ bool Interpreter::checkInt(const TokenMap& TK, int idx, int* ret) const
 		if (!ok)
 			return false;
 		*ret = value;
+	}
+	else if (type == TK_STRING)
+	{
+		QString name = var.toString();
+		if (args.contains(name) && args.value(name).type() == QVariant::Int)
+		{
+			*ret = args.value(name).toInt();
+		}
+		else if (args.contains(name) && args.value(name).type() == QVariant::String)
+		{
+			bool ok;
+			int value = args.value(name).toInt(&ok);
+			if (ok)
+				*ret = value;
+			else
+				return false;
+		}
+		else
+			return false;
 	}
 	else
 		return false;
@@ -457,6 +524,7 @@ bool Interpreter::checkDouble(const TokenMap& TK, int idx, double* ret) const
 
 	RESERVE type = TK.value(idx).type;
 	QVariant var = TK.value(idx).data;
+	QHash<QString, QVariant> args = parser_->getLabelVars();
 	if (!var.isValid())
 		return false;
 
@@ -471,6 +539,25 @@ bool Interpreter::checkDouble(const TokenMap& TK, int idx, double* ret) const
 		if (!ok)
 			return false;
 		*ret = value;
+	}
+	else if (type == TK_STRING)
+	{
+		QString name = var.toString();
+		if (args.contains(name) && args.value(name).type() == QVariant::Double)
+		{
+			*ret = args.value(name).toDouble();
+		}
+		else if (args.contains(name) && args.value(name).type() == QVariant::String)
+		{
+			bool ok;
+			double value = args.value(name).toDouble(&ok);
+			if (ok)
+				*ret = value;
+			else
+				return false;
+		}
+		else
+			return false;
 	}
 	else
 		return false;
@@ -577,6 +664,7 @@ bool Interpreter::checkRange(const TokenMap& TK, int idx, int* min, int* max) co
 
 	RESERVE type = TK.value(idx).type;
 	QVariant var = TK.value(idx).data;
+	QHash<QString, QVariant> args = parser_->getLabelVars();
 	if (!var.isValid())
 		return false;
 
@@ -595,7 +683,28 @@ bool Interpreter::checkRange(const TokenMap& TK, int idx, int* min, int* max) co
 	}
 	else if (type == TK_STRING)
 	{
-		range = var.toString();
+		QString name = var.toString();
+		if (args.contains(name))
+		{
+			QVariant::Type vtype = args.value(name).type();
+			if (vtype == QVariant::String)
+				range = args.value(name).toString();
+			else if (vtype == QVariant::Int)
+			{
+				bool ok = false;
+				int value = args.value(name).toInt(&ok);
+				if (ok)
+				{
+					*min = value - 1;
+					*max = value - 1;
+					return true;
+				}
+			}
+			else
+				return false;
+		}
+		else
+			range = var.toString();
 	}
 	else if (type == TK_INT)
 	{
@@ -611,6 +720,7 @@ bool Interpreter::checkRange(const TokenMap& TK, int idx, int* min, int* max) co
 	{
 		return true;
 	}
+
 	else
 		return false;
 
@@ -761,7 +871,7 @@ bool Interpreter::compare(const QVariant& a, const QVariant& b, RESERVE type) co
 bool Interpreter::compare(CompareArea area, const TokenMap& TK) const
 {
 	Injector& injector = Injector::getInstance();
-	if (!injector.server.isNull())
+	if (injector.server.isNull())
 		return false;
 
 	RESERVE op;
@@ -779,13 +889,30 @@ bool Interpreter::compare(CompareArea area, const TokenMap& TK) const
 		if (cmpType == kCompareTypeNone)
 			return false;
 
-		if (checkRelationalOperator(TK, 2, &op))
+		if (!checkRelationalOperator(TK, 2, &op))
 			return false;
 
 		if (!TK.contains(3))
 			return false;
 
+		auto bType = TK.value(3).type;
 		b = TK.value(3).data;
+		if (bType == TK_REF)
+		{
+			int value;
+			QString bStr;
+			if (!checkInt(TK, 3, &value))
+			{
+				if (!checkString(TK, 3, &bStr))
+					return false;
+				else
+					b = bStr;
+			}
+			else
+			{
+				b = value;
+			}
+		}
 
 		switch (cmpType)
 		{
@@ -871,13 +998,30 @@ bool Interpreter::compare(CompareArea area, const TokenMap& TK) const
 			return false;
 
 
-		if (checkRelationalOperator(TK, 3, &op))
+		if (!checkRelationalOperator(TK, 3, &op))
 			return false;
 
 		if (!TK.contains(4))
 			return false;
 
+		auto bType = TK.value(4).type;
 		b = TK.value(4).data;
+		if (bType == TK_REF)
+		{
+			int value;
+			QString bStr;
+			if (!checkInt(TK, 4, &value))
+			{
+				if (!checkString(TK, 4, &bStr))
+					return false;
+				else
+					b = bStr;
+			}
+			else
+			{
+				b = value;
+			}
+		}
 
 		switch (cmpType)
 		{
@@ -951,13 +1095,30 @@ bool Interpreter::compare(CompareArea area, const TokenMap& TK) const
 		QString itemMemo;
 		checkString(TK, 2, &itemMemo);
 
-		if (checkRelationalOperator(TK, 3, &op))
+		if (!checkRelationalOperator(TK, 3, &op))
 			return false;
 
 		if (!TK.contains(4))
 			return false;
 
+		auto bType = TK.value(4).type;
 		b = TK.value(4).data;
+		if (bType == TK_REF)
+		{
+			int value;
+			QString bStr;
+			if (!checkInt(TK, 4, &value))
+			{
+				if (!checkString(TK, 4, &bStr))
+					return false;
+				else
+					b = bStr;
+			}
+			else
+			{
+				b = value;
+			}
+		}
 
 		switch (cmpType)
 		{
@@ -990,13 +1151,30 @@ bool Interpreter::compare(CompareArea area, const TokenMap& TK) const
 		if (cmpType == kCompareTypeNone)
 			return false;
 
-		if (checkRelationalOperator(TK, 1, &op))
+		if (!checkRelationalOperator(TK, 1, &op))
 			return false;
 
 		if (!TK.contains(2))
 			return false;
 
+		auto bType = TK.value(2).type;
 		b = TK.value(2).data;
+		if (bType == TK_REF)
+		{
+			int value;
+			QString bStr;
+			if (!checkInt(TK, 2, &value))
+			{
+				if (!checkString(TK, 2, &bStr))
+					return false;
+				else
+					b = bStr;
+			}
+			else
+			{
+				b = value;
+			}
+		}
 
 		switch (cmpType)
 		{
@@ -1089,10 +1267,10 @@ void Interpreter::updateGlobalVariables()
 	if (injector.server.isNull())
 		return;
 	PC pc = injector.server->pc;
-	QVariantHash& hash = parser_->getrefs();
+	QVariantHash& hash = parser_->getVarsRef();
 
-	hash["毫秒時間戳"] = GetTickCount64();
-	hash["秒時間戳"] = GetTickCount64() / 1000;
+	hash["毫秒時間戳"] = static_cast<int>(QDateTime::currentMSecsSinceEpoch());
+	hash["秒時間戳"] = static_cast<int>(QDateTime::currentSecsSinceEpoch());
 
 
 	hash["人物主名"] = pc.name;
@@ -1168,6 +1346,12 @@ void Interpreter::proc()
 }
 
 void Interpreter::openLibs()
+{
+	openLibsBIG5();
+	openLibsGB2312();
+}
+
+void Interpreter::openLibsBIG5()
 {
 	/*註冊函數*/
 
@@ -1253,6 +1437,95 @@ void Interpreter::openLibs()
 	//action->group
 	registerFunction(u8"組隊", &Interpreter::join);
 	registerFunction(u8"離隊", &Interpreter::leave);
+
+}
+
+void Interpreter::openLibsGB2312()
+{
+	/*註册函数*/
+
+	//system
+	registerFunction(u8"测试", &Interpreter::test);
+	registerFunction(u8"延时", &Interpreter::sleep);
+	registerFunction(u8"按钮", &Interpreter::press);
+	registerFunction(u8"元神归位", &Interpreter::eo);
+	registerFunction(u8"提示", &Interpreter::announce);
+	registerFunction(u8"输入", &Interpreter::input);
+	registerFunction(u8"消息", &Interpreter::messagebox);
+	registerFunction(u8"回点", &Interpreter::logback);
+	registerFunction(u8"登出", &Interpreter::logout);
+	registerFunction(u8"说话", &Interpreter::talk);
+	registerFunction(u8"说出", &Interpreter::talkandannounce);
+	registerFunction(u8"清屏", &Interpreter::cleanchat);
+	registerFunction(u8"设置", &Interpreter::set);
+	registerFunction(u8"储存设置", &Interpreter::savesetting);
+	registerFunction(u8"读取设置", &Interpreter::loadsetting);
+	registerFunction(u8"判断", &Interpreter::cmp);
+	registerFunction(u8"执行", &Interpreter::run);
+
+	//check
+	registerFunction(u8"任务状态", &Interpreter::checkdaily);
+	registerFunction(u8"战斗中", &Interpreter::isbattle);
+	registerFunction(u8"查坐标", &Interpreter::checkcoords);
+	registerFunction(u8"查座标", &Interpreter::checkcoords);
+	registerFunction(u8"地图", &Interpreter::checkmap);
+	registerFunction(u8"地图快判", &Interpreter::checkmapnowait);
+	registerFunction(u8"对话", &Interpreter::checkdialog);
+	registerFunction(u8"看见", &Interpreter::checkunit);
+	registerFunction(u8"听见", &Interpreter::checkchathistory);
+
+	registerFunction(u8"人物状态", &Interpreter::checkplayerstatus);
+	registerFunction(u8"宠物状态", &Interpreter::checkpetstatus);
+	registerFunction(u8"道具数量", &Interpreter::checkitemcount);
+	registerFunction(u8"组队人数", &Interpreter::checkteamcount);
+	registerFunction(u8"宠物数量", &Interpreter::checkpetcount);
+	registerFunction(u8"宠物有", &Interpreter::checkpet);
+	registerFunction(u8"道具", &Interpreter::checkitem);
+	registerFunction(u8"背包满", &Interpreter::checkitemfull);
+	//check-group
+	registerFunction(u8"组队有", &Interpreter::checkteam);
+
+
+	//move
+	registerFunction(u8"方向", &Interpreter::setdir);
+	registerFunction(u8"坐标", &Interpreter::move);
+	registerFunction(u8"座标", &Interpreter::move);
+	registerFunction(u8"移动", &Interpreter::fastmove);
+	registerFunction(u8"寻路", &Interpreter::findpath);
+	registerFunction(u8"封包移动", &Interpreter::packetmove);
+	registerFunction(u8"移动至NPC", &Interpreter::movetonpc);
+
+	//action
+	registerFunction(u8"使用道具", &Interpreter::useitem);
+	registerFunction(u8"丢弃道具", &Interpreter::dropitem);
+	registerFunction(u8"人物改名", &Interpreter::playerrename);
+	registerFunction(u8"宠物改名", &Interpreter::petrename);
+	registerFunction(u8"更换宠物", &Interpreter::setpetstate);
+	registerFunction(u8"丢弃宠物", &Interpreter::droppet);
+	registerFunction(u8"购买", &Interpreter::buy);
+	registerFunction(u8"售卖", &Interpreter::sell);
+	registerFunction(u8"加工", &Interpreter::make);
+	registerFunction(u8"料理", &Interpreter::cook);
+	registerFunction(u8"使用精灵", &Interpreter::usemagic);
+	registerFunction(u8"捡物", &Interpreter::pickitem);
+	registerFunction(u8"存钱", &Interpreter::depositgold);
+	registerFunction(u8"提钱", &Interpreter::withdrawgold);
+	registerFunction(u8"转移", &Interpreter::warp);
+	registerFunction(u8"左击", &Interpreter::leftclick);
+	registerFunction(u8"加点", &Interpreter::addpoint);
+
+	registerFunction(u8"记录身上装备", &Interpreter::recordequip);
+	registerFunction(u8"装上记录装备", &Interpreter::wearequip);
+	registerFunction(u8"卸下装备", &Interpreter::unwearequip);
+
+	registerFunction(u8"存入宠物", &Interpreter::depositpet);
+	registerFunction(u8"存入道具", &Interpreter::deposititem);
+	registerFunction(u8"提出宠物", &Interpreter::withdrawpet);
+	registerFunction(u8"提出道具", &Interpreter::withdrawitem);
+
+	//action->group
+	registerFunction(u8"组队", &Interpreter::join);
+	registerFunction(u8"离队", &Interpreter::leave);
 
 }
 

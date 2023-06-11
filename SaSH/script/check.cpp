@@ -13,6 +13,8 @@ int Interpreter::checkdaily(const TokenMap& TK)
 
 	QString text;
 	checkString(TK, 1, &text);
+	if (text.isEmpty())
+		return Parser::kArgError;
 
 	int status = injector.server->checkJobDailyState(text);
 	if (status == 1)//已完成
@@ -40,6 +42,8 @@ int Interpreter::checkcoords(const TokenMap& TK)
 	if (injector.server.isNull())
 		return Parser::kError;
 
+	checkBattleThenWait();
+
 	QPoint p;
 	checkInt(TK, 1, &p.rx());
 	checkInt(TK, 2, &p.ry());
@@ -53,6 +57,8 @@ int Interpreter::checkmap(const TokenMap& TK)
 
 	if (injector.server.isNull())
 		return Parser::kError;
+
+	checkBattleThenWait();
 
 	QString mapname = "";
 	int floor = 0;
@@ -90,6 +96,8 @@ int Interpreter::checkmapnowait(const TokenMap& TK)
 
 	if (injector.server.isNull())
 		return Parser::kError;
+
+	checkBattleThenWait();
 
 	QString mapname = "";
 	int floor = 0;
@@ -249,7 +257,6 @@ int Interpreter::checkteamcount(const TokenMap& TK)
 
 	return checkJump(TK, 3, bret, FailedJump);
 }
-
 
 int Interpreter::checkpetcount(const TokenMap& TK)
 {

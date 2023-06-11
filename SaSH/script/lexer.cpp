@@ -3,6 +3,7 @@
 
 //全局關鍵字映射表
 static const QHash<QString, RESERVE> keywords = {
+#pragma region BIG5
 	//test
 	{ u8"測試", TK_CMD },
 
@@ -42,7 +43,7 @@ static const QHash<QString, RESERVE> keywords = {
 	{ u8"設置", TK_CMD },
 	{ u8"判斷", TK_CMD },
 	{ u8"讀取設置", TK_CMD },
-	{ u8"保存設置", TK_CMD },
+	{ u8"儲存設置", TK_CMD },
 
 
 	//check info
@@ -138,21 +139,166 @@ static const QHash<QString, RESERVE> keywords = {
 	{ u8"左擊", TK_CMD },
 	//{ u8"右擊", TK_CMD },
 	//{ u8"左拖", TK_CMD },
+#pragma endregion
+
+	////////////////////////////////////////////////////
+	////////////// GB2312 //////////////////////////////
+	////////////////////////////////////////////////////
+
+#pragma region GB2312
+
+	//test
+	{ u8"测试", TK_CMD },
+
+	//keyword
+	{ u8"调用", TK_CALL },
+	{ u8"行数", TK_JMP },
+	{ u8"跳转", TK_JMP },
+	{ u8"返回", TK_RETURN },
+	{ u8"结束", TK_END },
+	{ u8"暂停", TK_PAUSE },
+	{ u8"标记", TK_LABEL, },
+	{ u8"变数", TK_VARDECL },
+	{ u8"变数移除", TK_VARFREE },
+	{ u8"变数清空", TK_VARCLR },
+	{ u8"格式化", TK_FORMAT },
+
+	//system
+	{ u8"执行", TK_CMD },
+	{ u8"延时", TK_CMD },
+	{ u8"取消", TK_CMD },
+	{ u8"提示", TK_CMD },
+	{ u8"消息", TK_CMD },
+	{ u8"提示", TK_CMD },
+	{ u8"登出", TK_CMD },
+	{ u8"登入", TK_CMD },
+	{ u8"切换分流", TK_CMD },
+	{ u8"元神归位", TK_CMD },
+	{ u8"回点", TK_CMD },
+	{ u8"按钮", TK_CMD },
+	{ u8"说话", TK_CMD },
+	{ u8"输入", TK_CMD },
+	{ u8"密语", TK_CMD },
+	{ u8"说出", TK_CMD },
+	{ u8"清屏", TK_CMD },
+	{ u8"改时间", TK_CMD },
+	{ u8"允许开关", TK_CMD },
+	{ u8"设置", TK_CMD },
+	{ u8"判断", TK_CMD },
+	{ u8"读取设置", TK_CMD },
+	{ u8"储存设置", TK_CMD },
+
+
+	//check info
+	{ u8"战斗中", TK_CMD },
+	{ u8"查坐标", TK_CMD },
+	{ u8"查座标", TK_CMD },
+	{ u8"地图", TK_CMD },
+	{ u8"地图快判", TK_CMD },
+	{ u8"对话", TK_CMD },
+	{ u8"看见", TK_CMD },
+	{ u8"听见", TK_CMD },
+	{ u8"道具", TK_CMD },
+	{ u8"道具数量", TK_CMD },
+	{ u8"堆迭数量", TK_CMD },
+	{ u8"背包满", TK_CMD },
+	{ u8"人物状态", TK_CMD },
+	{ u8"宠物有", TK_CMD },
+	{ u8"宠物状态", TK_CMD },
+	{ u8"宠物数量", TK_CMD },
+	{ u8"任务状态", TK_CMD },
+
+	//actions
+	{ u8"人物改名", TK_CMD },
+	{ u8"使用咒术", TK_CMD },
+	{ u8"宠物改名", TK_CMD },
+	{ u8"宠物邮件", TK_CMD },
+	{ u8"更换宠物", TK_CMD },
+	{ u8"丢弃宠物", TK_CMD },
+	{ u8"购买", TK_CMD },
+	{ u8"售卖", TK_CMD },
+	//{ u8"卖肉", TK_CMD },
+	{ u8"使用道具", TK_CMD },
+	{ u8"丢弃道具", TK_CMD },
+	{ u8"捡物", TK_CMD },
+	//{ u8"存入", TK_CMD },
+	{ u8"存入道具", TK_CMD },
+	{ u8"提出道具", TK_CMD },
+	//{ u8"存入道具仓库", TK_CMD },
+	{ u8"存入宠物", TK_CMD },
+	//{ u8"存入宠物仓库", TK_CMD },
+	{ u8"提出宠物", TK_CMD },
+	//{ u8"提出宠物仓库", TK_CMD },
+	{ u8"存钱", TK_CMD },
+	{ u8"提钱", TK_CMD },
+	{ u8"加工", TK_CMD },
+	{ u8"料理", TK_CMD },
+	{ u8"修復", TK_CMD },
+	{ u8"转移", TK_CMD },
+	{ u8"卸下装备", TK_CMD },
+	{ u8"记录身上装备", TK_CMD },
+	//{ u8"检测记录装备", TK_CMD },
+	{ u8"装上记录装备", TK_CMD },
+	{ u8"加点", TK_CMD },
+
+	//action with sub cmd
+	{ u8"组队", TK_CMD },
+	{ u8"离队", TK_CMD },
+	{ u8"组队有", TK_CMD },
+	{ u8"组队人数", TK_CMD },
+	//{ u8"加入", TK_SUBCMD },
+	//{ u8"离队", TK_SUBCMD },
+	//{ u8"状态", TK_SUBCMD },
+	//{ u8"人数", TK_SUBCMD },
+
+	//{ u8"捉宠设定", TK_CMD },
+	//{ u8"捉宠模式", TK_SUBCMD },
+	//{ u8"捉宠目标宠物", TK_SUBCMD },
+	//{ u8"捉宠等级", TK_SUBCMD },
+	//{ u8"捉宠血量", TK_SUBCMD },
+	//{ u8"捉宠人物技能", TK_SUBCMD },
+	//{ u8"捉宠宠物技能", TK_SUBCMD },
+
+	{ u8"切换挂机座标", TK_CMD },
+	//{ u8"加入", TK_SUBCMD },
+	//{ u8"清空", TK_SUBCMD },
+	//{ u8"间隔时间", TK_SUBCMD },
+
+	//move
+	{ u8"坐标", TK_CMD },
+	{ u8"座标", TK_CMD },
+	{ u8"移动", TK_CMD },
+	{ u8"封包移动", TK_CMD },
+	{ u8"方向", TK_CMD },
+	{ u8"最近坐标", TK_CMD },
+	{ u8"寻路", TK_CMD },
+	{ u8"寻找NPC", TK_CMD },
+	{ u8"移动至NPC", TK_CMD },
+
+	//mouse
+	//{ u8"左双击", TK_CMD },
+	//{ u8"右双击", TK_CMD },
+	//{ u8"鼠移", TK_CMD },
+	{ u8"左击", TK_CMD },
+	//{ u8"右击", TK_CMD },
+	//{ u8"左拖", TK_CMD },
+
+#pragma endregion
 
 	//... 其他後續增加的關鍵字
 };
 
-void Lexer::createToken(int index, RESERVE type, const QVariant& data, const QString& raw, QMap<int, Token>* ptoken)
+void Lexer::createToken(int index, RESERVE type, const QVariant& data, const QString& raw, TokenMap* ptoken)
 {
 	ptoken->insert(index, { type, data, raw });
 }
 
-void Lexer::createEmptyToken(int index, QMap<int, Token>* ptoken)
+void Lexer::createEmptyToken(int index, TokenMap* ptoken)
 {
 	ptoken->insert(index, { TK_WHITESPACE, "", "" });
 }
 
-void Lexer::tokenized(int currentLine, const QString& line, QMap<int, Token>* ptoken, QHash<QString, int>* plabel)
+void Lexer::tokenized(int currentLine, const QString& line, TokenMap* ptoken, QHash<QString, int>* plabel)
 {
 	if (ptoken == nullptr || plabel == nullptr)
 		return;
@@ -166,6 +312,14 @@ void Lexer::tokenized(int currentLine, const QString& line, QMap<int, Token>* pt
 
 	do
 	{
+		int commentIndex = raw.indexOf("//");
+		if (commentIndex > 0)
+		{
+			//當前token移除註釋
+			raw = raw.mid(0, commentIndex).trimmed();
+		}
+
+
 		if (!getStringToken(raw, " ", token))
 		{
 			createEmptyToken(pos, ptoken);
@@ -197,10 +351,12 @@ void Lexer::tokenized(int currentLine, const QString& line, QMap<int, Token>* pt
 		createToken(pos, type, QVariant::fromValue(token), token, ptoken);
 		++pos;
 
-
-
-		while (getStringToken(raw, ",", token))
+		for (;;)
 		{
+
+			if (!getStringToken(raw, ",", token))
+				break;
+
 			if (token.isEmpty())
 			{
 				break;
@@ -249,16 +405,16 @@ void Lexer::tokenized(int currentLine, const QString& line, QMap<int, Token>* pt
 	} while (false);
 }
 
-bool Lexer::tokenized(const QString& script, QHash<int, QMap<int, Token>>* ptokens, QHash<QString, int>* plabel)
+bool Lexer::tokenized(const QString& script, QHash<int, TokenMap>* ptokens, QHash<QString, int>* plabel)
 {
 	Lexer lexer;
-	QHash<int, QMap<int, Token>> tokens;
+	QHash<int, TokenMap> tokens;
 	QHash<QString, int> labels;
 	QStringList lines = script.split("\n");
 	int size = lines.size();
 	for (int i = 0; i < size; ++i)
 	{
-		QMap<int, Token> tk;
+		TokenMap tk;
 		lexer.tokenized(i, lines.at(i), &tk, &labels);
 		tokens.insert(i, tk);
 	}
@@ -347,14 +503,10 @@ bool Lexer::isDelimiter(const QChar& ch) const
 
 RESERVE Lexer::getTokenType(int& pos, RESERVE previous, QString& str, const QString raw) const
 {
-	int commentIndex = str.indexOf("//");
-	if (commentIndex != -1)
-	{
-		//當前token移除註釋
-		str = str.mid(0, commentIndex).trimmed();
-	}
+
 
 	int index = 0;
+
 	if (str == "<<")
 	{
 		return TK_SHL;
@@ -450,6 +602,10 @@ RESERVE Lexer::getTokenType(int& pos, RESERVE previous, QString& str, const QStr
 		{
 			return TK_UNK;
 		}
+	}
+	else if (previous == TK_NAME || previous == TK_LABELVAR)
+	{
+		return TK_LABELVAR;
 	}
 	else if (isString(str))
 	{

@@ -144,6 +144,9 @@ void ScriptForm::onButtonClicked()
 			return;
 		}
 
+		if (!injector.scriptLogModel.isNull())
+			injector.scriptLogModel->clear();
+
 		interpreter_.reset(new Interpreter());
 
 		connect(interpreter_.data(), &Interpreter::finished, this, &ScriptForm::onScriptFinished);
@@ -231,13 +234,13 @@ void ScriptForm::onScriptTreeWidgetHeaderClicked(int logicalIndex)
 {
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
 	emit signalDispatcher.reloadScriptList();
-	qDebug() << "onScriptTreeWidgetClicked" << logicalIndex;
+	//qDebug() << "onScriptTreeWidgetClicked" << logicalIndex;
 }
 
 //更新當前行號label
 void ScriptForm::onScriptLabelRowTextChanged(int row, int max, bool noSelect)
 {
-	qDebug() << "onScriptLabelRowTextChanged" << row << max << noSelect;
+	//qDebug() << "onScriptLabelRowTextChanged" << row << max << noSelect;
 	ui.label_row->setUpdatesEnabled(false);
 	ui.label_row->setText(QString("%1/%2").arg(row).arg(max));
 	if (!noSelect)
@@ -366,7 +369,7 @@ void ScriptForm::onScriptTreeWidgetDoubleClicked(QTreeWidgetItem* item, int colu
 		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
 		emit signalDispatcher.loadFileToTable(strpath);
 		//ui.widget->clear();
-		//this->setWindowTitle(QString("[%1] %2").arg(m_index).arg(currentFileName_));
+		//this->setWindowTitle(QString("[%1] %2").arg(index_).arg(currentFileName_));
 		//ui.widget->convertEols(QsciScintilla::EolWindows);
 		//ui.widget->setUtf8(true);
 		//ui.widget->setModified(false);

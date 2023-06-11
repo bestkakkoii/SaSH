@@ -26,6 +26,7 @@ signals:
 	void loadHashSettings(const QString& name = "default", bool isFullPath = false);
 
 	//mainform
+	void updateMainFormTitle(const QString& text);
 	void updateCharHpProgressValue(int level, int value, int maxvalue);
 	void updateCharMpProgressValue(int level, int value, int maxvalue);
 	void updatePetHpProgressValue(int level, int value, int maxvalue);
@@ -76,6 +77,8 @@ signals:
 	void scriptContentChanged(const QString& fileName, const QVariant& tokens);
 	void loadFileToTable(const QString& fileName);
 	void reloadScriptList();
+	void globalVarInfoImport(const QHash<QString, QVariant>& d);
+	void localVarInfoImport(const QHash<QString, QVariant>& d);
 
 	void addErrorMarker(int liner, bool b);
 	//void loadHashSettings(const QString& name = "default");

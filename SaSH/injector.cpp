@@ -156,7 +156,7 @@ int Injector::sendMessage(int msg, int wParam, int lParam) const
 #else
 	DWORD dwResult = NULL;
 #endif
-	SendMessageTimeoutW(pi_.hWnd, msg, wParam, lParam, SMTO_ABORTIFHUNG | SMTO_ERRORONEXIT | SMTO_BLOCK, MessageTimeout, &dwResult);
+	SendMessageTimeoutW(pi_.hWnd, msg, wParam, lParam, SMTO_ABORTIFHUNG | SMTO_ERRORONEXIT, MessageTimeout, &dwResult);
 
 	return static_cast<int>(dwResult);
 }
@@ -224,7 +224,7 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 	if (!pi.dwProcessId) return false;
 	if (nullptr == pReason) return false;
 
-	constexpr qint64 MAX_TIMEOUT = 30000;
+	constexpr qint64 MAX_TIMEOUT = 15000;
 	bool bret = 0;
 	QElapsedTimer timer;
 	DWORD* kernel32Module = nullptr;
@@ -244,6 +244,16 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 #endif
 		fi.setFile(dllPath);
 		fileNameOnly = fi.fileName();
+
+		//檢查dll生成日期必須與當前exe相同日或更早
+		QFileInfo exeInfo(QCoreApplication::applicationFilePath());
+
+		if (fi.exists() && fi.lastModified() > exeInfo.lastModified())
+		{
+			break;
+		}
+
+
 		pi.hWnd = NULL;
 
 		timer.start();
@@ -278,9 +288,9 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 			break;
 
 		//去除改變窗口大小的屬性
-		LONG dwStyle = ::GetWindowLongPtrW(pi.hWnd, GWL_STYLE);
+		LONG dwStyle = ::GetWindowLongW(pi.hWnd, GWL_STYLE);
 		dwStyle &= ~(WS_SIZEBOX | WS_MAXIMIZEBOX);
-		::SetWindowLongPtrW(pi.hWnd, GWL_STYLE, dwStyle);
+		::SetWindowLongW(pi.hWnd, GWL_STYLE, dwStyle);
 
 		pi.dwThreadId = ::GetWindowThreadProcessId(pi.hWnd, nullptr);
 
@@ -336,15 +346,28 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 		if (NULL == hModule)
 		{
 			*pReason = util::REASON_INJECT_LIBRARY_FAIL;
-			return false;
+			break;
 		}
 
 		pi_ = pi;
 		parent = qgetenv("SASH_HWND").toULong();
 		sendMessage(kInitialize, port, parent);
 
-		while (NULL == hModule_)
-			hModule_ = sendMessage(kGetModule, NULL, NULL);
+		timer.restart();
+		for (;;)
+		{
+			if ((hModule_ = sendMessage(kGetModule, NULL, NULL)) != NULL)
+				break;
+
+			if (timer.hasExpired(MAX_TIMEOUT))
+				break;
+		}
+
+		if (NULL == hModule_)
+		{
+			*pReason = util::REASON_INJECT_LIBRARY_FAIL;
+			break;
+		}
 
 		hookdllModule_ = reinterpret_cast<HMODULE>(hModule);
 		qDebug() << ":Inject OK!";

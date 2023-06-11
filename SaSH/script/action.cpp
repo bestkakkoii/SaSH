@@ -11,6 +11,8 @@ int Interpreter::useitem(const TokenMap& TK)
 	if (injector.server.isNull())
 		return Parser::kError;
 
+	checkBattleThenWait();
+
 	QString itemName;
 	int target = 0;
 	int min = 0, max = 14;
@@ -27,27 +29,32 @@ int Interpreter::useitem(const TokenMap& TK)
 			QString targetTypeName;
 			checkString(TK, 2, &targetTypeName);
 			if (targetTypeName.isEmpty())
-				return Parser::kArgError;
+			{
+				target = 0;
 
-			QHash<QString, int> hash = {
-				{ QObject::tr("self"), 0 },
-				{ QObject::tr("battlepet"), injector.server->pc.battlePetNo },
-				{ QObject::tr("ride"), injector.server->pc.ridePetNo },
-				{ QObject::tr("leader"), 6},
-			};
+			}
+			else
+			{
+				QHash<QString, int> hash = {
+					{ QObject::tr("self"), 0 },
+					{ QObject::tr("battlepet"), injector.server->pc.battlePetNo },
+					{ QObject::tr("ride"), injector.server->pc.ridePetNo },
+					{ QObject::tr("leader"), 6},
+				};
 
-			for (int i = 0; i < MAX_PET; ++i)
-				hash.insert(QObject::tr("pet") + QString::number(i + 1), i + 1);
+				for (int i = 0; i < MAX_PET; ++i)
+					hash.insert(QObject::tr("pet") + QString::number(i + 1), i + 1);
 
-			for (int i = 1; i < MAX_PARTY; ++i)
-				hash.insert(QObject::tr("teammate") + QString::number(i), i + 1 + MAX_PET);
+				for (int i = 1; i < MAX_PARTY; ++i)
+					hash.insert(QObject::tr("teammate") + QString::number(i), i + 1 + MAX_PET);
 
-			if (!hash.contains(targetTypeName))
-				return Parser::kArgError;
+				if (!hash.contains(targetTypeName))
+					return Parser::kArgError;
 
-			target = hash.value(targetTypeName, -1);
-			if (target < 0)
-				return Parser::kArgError;
+				target = hash.value(targetTypeName, -1);
+				if (target < 0)
+					return Parser::kArgError;
+			}
 		}
 	}
 	else
@@ -69,6 +76,7 @@ int Interpreter::useitem(const TokenMap& TK)
 		return Parser::kArgError;
 
 	injector.server->useItem(itemIndex, target);
+	QThread::msleep(200);
 	return Parser::kNoChange;
 }
 
@@ -78,6 +86,8 @@ int Interpreter::dropitem(const TokenMap& TK)
 
 	if (injector.server.isNull())
 		return Parser::kError;
+
+	checkBattleThenWait();
 
 	QString tempName;
 	checkString(TK, 1, &tempName);
@@ -133,6 +143,8 @@ int Interpreter::dropitem(const TokenMap& TK)
 			if (!indexs.contains(i))
 				injector.server->dropItem(i);
 		}
+
+		QThread::msleep(200);
 	}
 	else
 	{
@@ -152,6 +164,8 @@ int Interpreter::dropitem(const TokenMap& TK)
 					injector.server->dropItem(it);
 			}
 		}
+
+		QThread::msleep(200);
 	}
 	return Parser::kNoChange;
 }
@@ -197,6 +211,8 @@ int Interpreter::setpetstate(const TokenMap& TK)
 	if (injector.server.isNull())
 		return Parser::kError;
 
+	checkBattleThenWait();
+
 	int petIndex = -1;
 	checkInt(TK, 1, &petIndex);
 	petIndex -= 1;
@@ -220,6 +236,8 @@ int Interpreter::droppet(const TokenMap& TK)
 	if (injector.server.isNull())
 		return Parser::kError;
 
+	checkBattleThenWait();
+
 	int petIndex = -1;
 	checkInt(TK, 1, &petIndex);
 	petIndex -= 1;
@@ -239,6 +257,8 @@ int Interpreter::droppet(const TokenMap& TK)
 		}
 	}
 
+	QThread::msleep(200);
+
 	return Parser::kNoChange;
 }
 
@@ -248,6 +268,8 @@ int Interpreter::buy(const TokenMap& TK)
 
 	if (injector.server.isNull())
 		return Parser::kError;
+
+	checkBattleThenWait();
 
 	int itemIndex = -1;
 	checkInt(TK, 1, &itemIndex);
@@ -272,6 +294,8 @@ int Interpreter::buy(const TokenMap& TK)
 			injector.server->buy(itemIndex, count, kDialogBuy, unit.id);
 		}
 	}
+
+	QThread::msleep(200);
 	return Parser::kNoChange;
 }
 
@@ -281,6 +305,8 @@ int Interpreter::sell(const TokenMap& TK)
 
 	if (injector.server.isNull())
 		return Parser::kError;
+
+	checkBattleThenWait();
 
 	QString name;
 	checkString(TK, 1, &name);
@@ -316,6 +342,8 @@ int Interpreter::sell(const TokenMap& TK)
 		}
 	}
 
+	QThread::msleep(200);
+
 	return Parser::kNoChange;
 }
 
@@ -326,6 +354,8 @@ int Interpreter::make(const TokenMap& TK)
 	if (injector.server.isNull())
 		return Parser::kError;
 
+	checkBattleThenWait();
+
 	QString ingreName;
 	checkString(TK, 1, &ingreName);
 
@@ -334,7 +364,7 @@ int Interpreter::make(const TokenMap& TK)
 		return Parser::kArgError;
 
 	injector.server->craft(util::kCraftItem, ingreNameList);
-
+	QThread::msleep(200);
 	return Parser::kNoChange;
 }
 
@@ -345,6 +375,8 @@ int Interpreter::cook(const TokenMap& TK)
 	if (injector.server.isNull())
 		return Parser::kError;
 
+	checkBattleThenWait();
+
 	QString ingreName;
 	checkString(TK, 1, &ingreName);
 
@@ -353,7 +385,7 @@ int Interpreter::cook(const TokenMap& TK)
 		return Parser::kArgError;
 
 	injector.server->craft(util::kCraftFood, ingreNameList);
-
+	QThread::msleep(200);
 	return Parser::kNoChange;
 }
 
@@ -364,6 +396,8 @@ int Interpreter::join(const TokenMap& TK)
 
 	if (injector.server.isNull())
 		return Parser::kError;
+
+	checkBattleThenWait();
 
 	injector.server->setTeamState(true);
 
@@ -377,6 +411,8 @@ int Interpreter::leave(const TokenMap& TK)
 	if (injector.server.isNull())
 		return Parser::kError;
 
+	checkBattleThenWait();
+
 	injector.server->setTeamState(false);
 
 	return Parser::kNoChange;
@@ -388,6 +424,8 @@ int Interpreter::usemagic(const TokenMap& TK)
 
 	if (injector.server.isNull())
 		return Parser::kError;
+
+	checkBattleThenWait();
 
 	QString magicName;
 	checkString(TK, 1, &magicName);
@@ -401,27 +439,34 @@ int Interpreter::usemagic(const TokenMap& TK)
 		QString targetTypeName;
 		checkString(TK, 2, &targetTypeName);
 		if (targetTypeName.isEmpty())
-			return Parser::kArgError;
+		{
+			target = 0;
 
-		QHash<QString, int> hash = {
-			{ QObject::tr("self"), 0 },
-			{ QObject::tr("battlepet"), injector.server->pc.battlePetNo },
-			{ QObject::tr("ride"), injector.server->pc.ridePetNo },
-			{ QObject::tr("leader"), 6},
-		};
+		}
+		else
+		{
 
-		for (int i = 0; i < MAX_PET; ++i)
-			hash.insert(QObject::tr("pet") + QString::number(i + 1), i + 1);
 
-		for (int i = 1; i < MAX_PARTY; ++i)
-			hash.insert(QObject::tr("teammate") + QString::number(i), i + 1 + MAX_PET);
+			QHash<QString, int> hash = {
+				{ QObject::tr("self"), 0 },
+				{ QObject::tr("battlepet"), injector.server->pc.battlePetNo },
+				{ QObject::tr("ride"), injector.server->pc.ridePetNo },
+				{ QObject::tr("leader"), 6},
+			};
 
-		if (!hash.contains(targetTypeName))
-			return Parser::kArgError;
+			for (int i = 0; i < MAX_PET; ++i)
+				hash.insert(QObject::tr("pet") + QString::number(i + 1), i + 1);
 
-		target = hash.value(targetTypeName, -1);
-		if (target < 0)
-			return Parser::kArgError;
+			for (int i = 1; i < MAX_PARTY; ++i)
+				hash.insert(QObject::tr("teammate") + QString::number(i), i + 1 + MAX_PET);
+
+			if (!hash.contains(targetTypeName))
+				return Parser::kArgError;
+
+			target = hash.value(targetTypeName, -1);
+			if (target < 0)
+				return Parser::kArgError;
+		}
 	}
 
 	int magicIndex = injector.server->getMagicIndexByName(magicName);
@@ -439,6 +484,8 @@ int Interpreter::pickitem(const TokenMap& TK)
 
 	if (injector.server.isNull())
 		return Parser::kError;
+
+	checkBattleThenWait();
 
 	QString dirStr;
 	checkString(TK, 1, &dirStr);
@@ -472,6 +519,8 @@ int Interpreter::depositgold(const TokenMap& TK)
 	if (injector.server.isNull())
 		return Parser::kError;
 
+	checkBattleThenWait();
+
 	if (injector.server->pc.gold <= 0)
 		return Parser::kNoChange;
 
@@ -499,6 +548,8 @@ int Interpreter::withdrawgold(const TokenMap& TK)
 	if (injector.server.isNull())
 		return Parser::kError;
 
+	checkBattleThenWait();
+
 	int gold;
 	checkInt(TK, 1, &gold);
 
@@ -516,6 +567,8 @@ int Interpreter::warp(const TokenMap& TK)
 
 	if (injector.server.isNull())
 		return Parser::kError;
+
+	checkBattleThenWait();
 
 	injector.server->warp();
 
@@ -537,7 +590,6 @@ int Interpreter::leftclick(const TokenMap& TK)
 
 	return Parser::kNoChange;
 }
-
 
 util::SafeHash<int, ITEM> recordedEquip_;
 int Interpreter::recordequip(const TokenMap& TK)
@@ -567,6 +619,8 @@ int Interpreter::wearequip(const TokenMap& TK)
 	if (injector.server.isNull())
 		return Parser::kError;
 
+	checkBattleThenWait();
+
 	if (!injector.server->IS_ONLINE_FLAG)
 		return Parser::kNoChange;
 
@@ -586,7 +640,7 @@ int Interpreter::wearequip(const TokenMap& TK)
 
 		injector.server->useItem(itemIndex, 0);
 	}
-
+	QThread::msleep(200);
 	return Parser::kNoChange;
 }
 
@@ -596,6 +650,8 @@ int Interpreter::unwearequip(const TokenMap& TK)
 
 	if (injector.server.isNull())
 		return Parser::kError;
+
+	checkBattleThenWait();
 
 	int part = CHAR_EQUIPNONE;
 
@@ -618,7 +674,7 @@ int Interpreter::unwearequip(const TokenMap& TK)
 		return Parser::kNoChange;
 
 	injector.server->swapItem(part, spotIndex);
-
+	QThread::msleep(200);
 	return Parser::kNoChange;
 }
 
@@ -629,6 +685,7 @@ int Interpreter::depositpet(const TokenMap& TK)
 	if (injector.server.isNull())
 		return Parser::kError;
 
+	checkBattleThenWait();
 
 	int petIndex = 0;
 	QString petName;
@@ -666,7 +723,7 @@ int Interpreter::depositpet(const TokenMap& TK)
 	//injector.server->IS_WAITFOR_DIALOG_FLAG = true;
 	injector.server->press(BUTTON_OK);
 	//waitfor(1000, [&injector]()->bool { return !injector.server->IS_WAITFOR_DIALOG_FLAG; });
-
+	QThread::msleep(200);
 	return Parser::kNoChange;
 }
 
@@ -676,6 +733,8 @@ int Interpreter::deposititem(const TokenMap& TK)
 
 	if (injector.server.isNull())
 		return Parser::kError;
+
+	checkBattleThenWait();
 
 	int min = 0, max = 14;
 	if (!checkRange(TK, 1, &min, &max))
@@ -740,7 +799,7 @@ int Interpreter::deposititem(const TokenMap& TK)
 
 		}
 	}
-
+	QThread::msleep(200);
 	return Parser::kNoChange;
 }
 
@@ -750,6 +809,8 @@ int Interpreter::withdrawpet(const TokenMap& TK)
 
 	if (injector.server.isNull())
 		return Parser::kError;
+
+	checkBattleThenWait();
 
 	QString petName;
 	checkString(TK, 1, &petName);
@@ -832,7 +893,7 @@ int Interpreter::withdrawpet(const TokenMap& TK)
 		else
 			break;
 	}
-
+	QThread::msleep(200);
 	return Parser::kNoChange;
 }
 
@@ -842,6 +903,8 @@ int Interpreter::withdrawitem(const TokenMap& TK)
 
 	if (injector.server.isNull())
 		return Parser::kError;
+
+	checkBattleThenWait();
 
 	QString itemName;
 	checkString(TK, 1, &itemName);
@@ -892,7 +955,7 @@ int Interpreter::withdrawitem(const TokenMap& TK)
 		//waitfor(1000, [&injector]()->bool { return !injector.server->IS_WAITFOR_DIALOG_FLAG; });
 
 	}
-
+	QThread::msleep(200);
 	return Parser::kNoChange;
 }
 
@@ -902,6 +965,8 @@ int Interpreter::addpoint(const TokenMap& TK)
 
 	if (injector.server.isNull())
 		return Parser::kError;
+
+	checkBattleThenWait();
 
 	QString pointName;
 	checkString(TK, 1, &pointName);
@@ -925,6 +990,6 @@ int Interpreter::addpoint(const TokenMap& TK)
 		return Parser::kArgError;
 
 	injector.server->addPoint(point, max);
-
+	QThread::msleep(200);
 	return Parser::kNoChange;
 }

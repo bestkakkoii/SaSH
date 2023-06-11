@@ -2355,6 +2355,10 @@ MESSAGE：<byte value="xd"/>
         <source>error occured at line %1. detail:%2</source>
         <translation>在行號 %1 發生錯誤，詳細內容:%2</translation>
     </message>
+    <message>
+        <source>&lt;findpath&gt;detedted player ware blocked</source>
+        <translation>&lt;尋路&gt;檢測到人物卡點</translation>
+    </message>
 </context>
 <context>
     <name>ScriptForm</name>
@@ -2451,6 +2455,50 @@ MESSAGE：<byte value="xd"/>
     <message>
         <source>saveas</source>
         <translation>另存新檔</translation>
+    </message>
+    <message>
+        <source>name</source>
+        <translation>名稱</translation>
+    </message>
+    <message>
+        <source>value</source>
+        <translation>數值</translation>
+    </message>
+    <message>
+        <source>type</source>
+        <translation>類型</translation>
+    </message>
+    <message>
+        <source>Int</source>
+        <translation>整數型</translation>
+    </message>
+    <message>
+        <source>Double</source>
+        <translation>雙精度浮點型</translation>
+    </message>
+    <message>
+        <source>String</source>
+        <translation>字符串</translation>
+    </message>
+    <message>
+        <source>unknown</source>
+        <translation>未知</translation>
+    </message>
+    <message>
+        <source>UInt</source>
+        <translation>無符號整數型</translation>
+    </message>
+    <message>
+        <source>Bool</source>
+        <translation>布爾型</translation>
+    </message>
+    <message>
+        <source>LongLong</source>
+        <translation>超長整數型</translation>
+    </message>
+    <message>
+        <source>ULongLong</source>
+        <translation>無符號超長整數型</translation>
     </message>
 </context>
 <context>
@@ -2983,6 +3031,74 @@ MESSAGE：<byte value="xd"/>
         <source>Stop</source>
         <translation>停止</translation>
     </message>
+    <message>
+        <source>stone</source>
+        <translation>石幣</translation>
+    </message>
+    <message>
+        <source>mppercent</source>
+        <translation>氣力百分比</translation>
+    </message>
+    <message>
+        <source>mp</source>
+        <translation>氣力</translation>
+    </message>
+    <message>
+        <source>maxmp</source>
+        <translation>最大氣力</translation>
+    </message>
+    <message>
+        <source>maxhp</source>
+        <translation>最大耐久力</translation>
+    </message>
+    <message>
+        <source>maxexp</source>
+        <translation>經驗剩餘</translation>
+    </message>
+    <message>
+        <source>level</source>
+        <translation>等級</translation>
+    </message>
+    <message>
+        <source>hppercent</source>
+        <translation>耐久力百分比</translation>
+    </message>
+    <message>
+        <source>hp</source>
+        <translation>耐久力</translation>
+    </message>
+    <message>
+        <source>freename</source>
+        <translation>副名</translation>
+    </message>
+    <message>
+        <source>exp</source>
+        <translation>經驗</translation>
+    </message>
+    <message>
+        <source>def</source>
+        <translation>防禦</translation>
+    </message>
+    <message>
+        <source>chasma</source>
+        <translation>魅力</translation>
+    </message>
+    <message>
+        <source>atk</source>
+        <translation>攻擊</translation>
+    </message>
+    <message>
+        <source>agi</source>
+        <translation>敏捷</translation>
+    </message>
+    <message>
+        <source>loyal</source>
+        <translation>忠誠</translation>
+    </message>
+    <message>
+        <source>des</source>
+        <translation>說明</translation>
+    </message>
 </context>
 <context>
     <name>SelectObjectForm</name>
@@ -3021,6 +3137,14 @@ MESSAGE：<byte value="xd"/>
     <message>
         <source>unknown type</source>
         <translation>未知類型</translation>
+    </message>
+    <message>
+        <source>ok</source>
+        <translation>確定</translation>
+    </message>
+    <message>
+        <source>cancel</source>
+        <translation>取消</translation>
     </message>
 </context>
 <context>
@@ -3155,6 +3279,14 @@ MESSAGE：<byte value="xd"/>
     <message>
         <source>T4P</source>
         <translation>隊4寵</translation>
+    </message>
+    <message>
+        <source>ok</source>
+        <translation>確定</translation>
+    </message>
+    <message>
+        <source>cancel</source>
+        <translation>取消</translation>
     </message>
 </context>
 <context>

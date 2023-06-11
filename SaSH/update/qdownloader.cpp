@@ -7,7 +7,7 @@
 static std::vector<QProgressBar*> g_vProgressBar;
 static QMutex g_mutex;
 
-static std::vector<pProgressFunc> g_vpProgressFunc;
+static std::vector<pfnProgressFunc> g_vpfnProgressFunc;
 //constexpr int g_nProcessPrecision = 10;
 double g_current[MAX_DOWNLOAD_THREAD] = {};
 constexpr const char* URL = "https://www.lovesa.cc/BlueCgHP/update/SaSH.7z";
@@ -21,11 +21,13 @@ constexpr const char* kBackupfileName2 = "sash_backup_%1_%2.7z";
 constexpr const char* kBackupExecuteFile = "SaSH.exe";
 constexpr const char* kBackupExecuteFileTmp = "SaSH.tmp";
 constexpr const char* kDefaultClosingProcessName = "sa_8001.exe";
-static const QStringList preBackupFileNames = { kBackupExecuteFile, "system.json", "sadll.dll", "map", "settings" };
+static const QStringList preBackupFileNames = { kBackupExecuteFile, "system.json", "sadll.dll", "settings" };
 std::atomic_int DO_NOT_SHOW = false;
 constexpr int SHADOW_WIDTH = 10;
 constexpr int MAX_BAR_HEIGHT = 20;
 constexpr int MAX_BAR_SEP_LEN = 10;
+constexpr int MAX_GIF_MOVE_WIDTH = 920;
+constexpr int PROGRESS_BAR_BEGIN_Y = 85;
 
 QString QDownloader::Sha3_512(const QString& fileNamePath) const
 {
@@ -140,12 +142,12 @@ bool QDownloader::checkUpdate(QString* ptext)
 
 QDownloader::QDownloader(QWidget* parent)
 	: QWidget(parent)
-	, m_szCurrentDirectory(QCoreApplication::applicationDirPath() + "/")
-	, m_szCurrentDotExe(m_szCurrentDirectory + kBackupExecuteFile)
-	, m_szCurrentDotExeAsDotTmp(m_szCurrentDirectory + kBackupExecuteFileTmp)
-	, m_sz7zDotExe(m_szCurrentDirectory + "7z.exe")
-	, m_sz7zDotDll(m_szCurrentDirectory + "7z.dll")
-	, m_szSysTmpDir(QDir::tempPath())
+	, szCurrentDirectory_(QCoreApplication::applicationDirPath() + "/")
+	, szCurrentDotExe_(szCurrentDirectory_ + kBackupExecuteFile)
+	, szCurrentDotExeAsDotTmp_(szCurrentDirectory_ + kBackupExecuteFileTmp)
+	, sz7zDotExe_(szCurrentDirectory_ + "7z.exe")
+	, sz7zDotDll_(szCurrentDirectory_ + "7z.dll")
+	, szSysTmpDir_(QDir::tempPath())
 {
 	ui.setupUi(this);
 
@@ -166,51 +168,51 @@ QDownloader::QDownloader(QWidget* parent)
 	// 給窗口設置上當前的陰影效果;
 	this->setGraphicsEffect(shadowEffect);
 
-	QMovie* movie = new QMovie("://image/chibi.gif");
+	QMovie* movie = new QMovie("://image/jimmy.gif");
 	movie->setObjectName("movieLoading");
-	movie->setScaledSize(QSize(30, 30));
+	movie->setScaledSize(QSize(44, 72));
 	ui.label->setMovie(movie);
 	movie->start();
 
 
-	int n = 50;
+	int n = PROGRESS_BAR_BEGIN_Y;
 	for (int i = 0; i < MAX_DOWNLOAD_THREAD; ++i)
 	{
-		g_vProgressBar.push_back(CreateProgressBar(n));
+		g_vProgressBar.push_back(createProgressBar(n));
 		n += MAX_BAR_HEIGHT + MAX_BAR_SEP_LEN;
 	}
 
 
-	ResetProgress(0);
+	resetProgress(0);
 
-	g_vpProgressFunc.push_back(OnProgress);
-	g_vpProgressFunc.push_back(OnProgress_2);
-	g_vpProgressFunc.push_back(OnProgress_3);
-	g_vpProgressFunc.push_back(OnProgress_4);
+	g_vpfnProgressFunc.push_back(onProgress);
+	g_vpfnProgressFunc.push_back(onProgress_2);
+	g_vpfnProgressFunc.push_back(onProgress_3);
+	g_vpfnProgressFunc.push_back(onProgress_4);
 
-	m_rcPath = QString("%1/%2/").arg(m_szSysTmpDir).arg(m_pid);
-	QDir dir(m_rcPath);
+	rcPath_ = QString("%1/%2/").arg(szSysTmpDir_).arg(pid_);
+	QDir dir(rcPath_);
 	if (!dir.exists())
-		dir.mkpath(m_rcPath);
+		dir.mkpath(rcPath_);
 
 	//從網址中擷取檔案名稱
 	QString szFileName = URL;
-	m_szDownloadedFileName = szFileName.mid(szFileName.lastIndexOf('/') + 1);
-	m_szTmpDot7zFile = m_rcPath + m_szDownloadedFileName;// %Temp%/pid/SaSH.7z
+	szDownloadedFileName_ = szFileName.mid(szFileName.lastIndexOf('/') + 1);
+	szTmpDot7zFile_ = rcPath_ + szDownloadedFileName_;// %Temp%/pid/SaSH.7z
 
-	m_synchronizer.setCancelOnWait(false);
-	ResetProgress(0);
+	synchronizer_.setCancelOnWait(false);
+	resetProgress(0);
 }
 
 QDownloader::~QDownloader()
 {
-	for (QTimer& it : m_timer)
+	for (QTimer& it : timer_)
 	{
 		it.stop();
 	}
-	ResetProgress(0);
+	resetProgress(0);
 	g_vProgressBar.clear();
-	g_vpProgressFunc.clear();
+	g_vpfnProgressFunc.clear();
 }
 
 void QDownloader::showEvent(QShowEvent* event)
@@ -228,7 +230,7 @@ void QDownloader::showEvent(QShowEvent* event)
 		{
 
 
-			connect(&m_timer[i], &QTimer::timeout, this,
+			connect(&timer_[i], &QTimer::timeout, this,
 				[i]()->void
 				{
 					if (DO_NOT_SHOW)
@@ -244,10 +246,10 @@ void QDownloader::showEvent(QShowEvent* event)
 					QCoreApplication::processEvents();
 				}
 			);
-			m_timer[i].start(100);
+			timer_[i].start(100);
 		}
 
-		connect(&m_labelTimer, &QTimer::timeout, this,
+		connect(&labelTimer_, &QTimer::timeout, this,
 			[this]()->void
 			{
 				//是否全部100%
@@ -258,7 +260,7 @@ void QDownloader::showEvent(QShowEvent* event)
 				}
 				//計算總和百分比 label按照比例向右移動 總距離為 900 當前進度為 100% x = 900
 				double percent = sum / MAX_DOWNLOAD_THREAD;
-				ui.label->move(955 * percent / 100, 10);
+				ui.label->move(MAX_GIF_MOVE_WIDTH * (percent + 1.0) / 100, 10);
 				QCoreApplication::processEvents();
 
 				if (sum < 100.0 * MAX_DOWNLOAD_THREAD)
@@ -266,15 +268,15 @@ void QDownloader::showEvent(QShowEvent* event)
 					return;
 				}
 
-				for (QTimer& it : m_timer)
+				for (QTimer& it : timer_)
 				{
 					it.stop();
 				}
 
-				OverwriteCurrentExecutable();
+				overwriteCurrentExecutable();
 			}
 		);
-		m_labelTimer.start(100);
+		labelTimer_.start(100);
 
 		this->start();
 	}
@@ -282,10 +284,10 @@ void QDownloader::showEvent(QShowEvent* event)
 
 void QDownloader::start()
 {
-	m_synchronizer.addFuture(QtConcurrent::run([this]() { AsyncDownloadFile(URL, m_rcPath, m_szDownloadedFileName); }));
+	synchronizer_.addFuture(QtConcurrent::run([this]() { asyncDownloadFile(URL, rcPath_, szDownloadedFileName_); }));
 }
 
-QProgressBar* QDownloader::CreateProgressBar(int startY)
+QProgressBar* QDownloader::createProgressBar(int startY)
 {
 	QProgressBar* pProgressBar = (new QProgressBar(ui.widget));
 	constexpr const char* cstyle = R"(
@@ -317,7 +319,7 @@ QProgressBar* QDownloader::CreateProgressBar(int startY)
 }
 
 
-void QDownloader::ResetProgress(int value)
+void QDownloader::resetProgress(int value)
 {
 	for (int j = 0; j < MAX_DOWNLOAD_THREAD; ++j)
 	{
@@ -412,25 +414,25 @@ bool copyFile(const QString& qsrcPath, const QString& qdstPath, bool coverFileIf
 	return true;
 }
 
-void QDownloader::OverwriteCurrentExecutable()
+void QDownloader::overwriteCurrentExecutable()
 {
 	static bool ALREADY_RUN = false;
 	if (ALREADY_RUN) return;
 	ALREADY_RUN = true;
-	m_synchronizer.waitForFinished();
+	synchronizer_.waitForFinished();
 
-	ResetProgress(100);
+	resetProgress(100);
 
-	QFile tmpFile(m_szCurrentDotExeAsDotTmp);
+	QFile tmpFile(szCurrentDotExeAsDotTmp_);
 	if (tmpFile.exists())
 		tmpFile.remove();
 
-	QFile Dot7zEXE(m_sz7zDotExe);
-	QFile Dot7zDLL(m_sz7zDotDll);
+	QFile Dot7zEXE(sz7zDotExe_);
+	QFile Dot7zDLL(sz7zDotDll_);
 	DO_NOT_SHOW = true;
 
 	QString shaexe = "\0";
-	if (!Dot7zEXE.exists() || (Dot7zEXE.exists() && ((shaexe = Sha3_512(m_sz7zDotExe)) != SHA512_7ZEXE)))
+	if (!Dot7zEXE.exists() || (Dot7zEXE.exists() && ((shaexe = Sha3_512(sz7zDotExe_)) != SHA512_7ZEXE)))
 	{
 		if (shaexe != SHA512_7ZEXE)
 			Dot7zEXE.remove();
@@ -438,26 +440,26 @@ void QDownloader::OverwriteCurrentExecutable()
 		//下載 7z.exe
 		QCoreApplication::processEvents();
 
-		QFuture<void> f = QtConcurrent::run([this]() { AsyncDownloadFile(sz7zEXE_URL, m_szCurrentDirectory, "7z.exe"); });
+		QFuture<void> f = QtConcurrent::run([this]() { asyncDownloadFile(sz7zEXE_URL, szCurrentDirectory_, "7z.exe"); });
 		f.waitForFinished();
 		QCoreApplication::processEvents();
 	}
 
 	QString shadll = "\0";
-	if (!Dot7zDLL.exists() || (Dot7zDLL.exists() && ((shadll = Sha3_512(m_sz7zDotDll)) != SHA512_7ZDLL)))
+	if (!Dot7zDLL.exists() || (Dot7zDLL.exists() && ((shadll = Sha3_512(sz7zDotDll_)) != SHA512_7ZDLL)))
 	{
 		if (shadll != SHA512_7ZDLL)
 			Dot7zDLL.remove();
 
 		//下載 7z.dll
 		QCoreApplication::processEvents();
-		QFuture<void> f = QtConcurrent::run([this]() { AsyncDownloadFile(sz7zDLL_URL, m_szCurrentDirectory, "7z.dll"); });
+		QFuture<void> f = QtConcurrent::run([this]() { asyncDownloadFile(sz7zDLL_URL, szCurrentDirectory_, "7z.dll"); });
 		f.waitForFinished();
 		QCoreApplication::processEvents();
 	}
 	DO_NOT_SHOW = false;
 
-	ResetProgress(100);
+	resetProgress(100);
 
 	ui.label_3->setText("BACKUPING...");
 	QCoreApplication::processEvents();
@@ -471,42 +473,42 @@ void QDownloader::OverwriteCurrentExecutable()
 		return QString("v1.0.%1-%2").arg(d.toString("yyyyMMdd")).arg(time.replace(":", ""));
 	};
 	QString szBackup7zFileName = QString(kBackupfileName1).arg(buildDateTime());
-	QString szBackup7zFilePath = QString("%1%2").arg(m_rcPath).arg(szBackup7zFileName);
+	QString szBackup7zFilePath = QString("%1%2").arg(rcPath_).arg(szBackup7zFileName);
 	QProcess    m_7zip; QStringList zipargs;
 
 	//在rcpath 創建一個 backup
-	QDir dir(m_rcPath);
+	QDir dir(rcPath_);
 	if (!dir.exists("backup"))
 		dir.mkdir("backup");
 
-	const QString szBackupDir = QString("%1backup/").arg(m_rcPath);
-	//列表中的文件/目錄 從m_szCurrentDirectory 複製(覆蓋) 到 rc的 backup
+	const QString szBackupDir = QString("%1backup/").arg(rcPath_);
+	//列表中的文件/目錄 從szCurrentDirectory_ 複製(覆蓋) 到 rc的 backup
 	for (const auto& fileName : preBackupFileNames)
 	{
-		QFileInfo fileInfo(m_szCurrentDirectory + fileName);
+		QFileInfo fileInfo(szCurrentDirectory_ + fileName);
 		if (fileInfo.isFile())
 		{
-			copyFile(m_szCurrentDirectory + fileName, szBackupDir + fileName, true);
+			copyFile(szCurrentDirectory_ + fileName, szBackupDir + fileName, true);
 		}
 		else if (fileInfo.isDir())
 		{
-			copyDirectory(m_szCurrentDirectory + fileName, szBackupDir + fileName, true);
+			copyDirectory(szCurrentDirectory_ + fileName, szBackupDir + fileName, true);
 		}
 	}
 
 	//如果存在則刪除
-	QString szBackup7zNewFilePath = QString("%1%2").arg(m_szCurrentDirectory).arg(szBackup7zFileName);
+	QString szBackup7zNewFilePath = QString("%1%2").arg(szCurrentDirectory_).arg(szBackup7zFileName);
 	int n = 0;
 	while (QFile::exists(szBackup7zNewFilePath)) //_2 _3 _ 4
 	{
-		szBackup7zNewFilePath = QString("%1%2").arg(m_szCurrentDirectory).arg(QString(kBackupfileName2).arg(buildDateTime()).arg(++n));
+		szBackup7zNewFilePath = QString("%1%2").arg(szCurrentDirectory_).arg(QString(kBackupfileName2).arg(buildDateTime()).arg(++n));
 	}
 
 
-	//zip all files under m_szCurrentDirectory lzma2
+	//zip all files under szCurrentDirectory_ lzma2
 	zipargs << "a" << szBackup7zFilePath << szBackupDir
 		<< "-mx=9" << "-m0=lzma2" << "-ms" << "-mmt";
-	m_7zip.start(m_sz7zDotExe, zipargs);
+	m_7zip.start(sz7zDotExe_, zipargs);
 	m_7zip.waitForFinished();
 	//move to current
 	QElapsedTimer timer; timer.start();
@@ -523,7 +525,7 @@ void QDownloader::OverwriteCurrentExecutable()
 		}
 	}
 
-	QFile::rename(m_szCurrentDotExe, m_szCurrentDotExeAsDotTmp);// ./SaSH.exe to ./SaSH.tmp
+	QFile::rename(szCurrentDotExe_, szCurrentDotExeAsDotTmp_);// ./SaSH.exe to ./SaSH.tmp
 
 	//close all bluecg.exe
 	QProcess kill;
@@ -536,9 +538,9 @@ void QDownloader::OverwriteCurrentExecutable()
 	ui.label_3->setText("REPLACING...");
 	QCoreApplication::processEvents();
 	QProcess    m_7z; QStringList args;
-	args << "x" << m_rcPath + m_szDownloadedFileName << "-o" + m_szCurrentDirectory << "-aoa";
-	m_7z.setWorkingDirectory(m_szCurrentDirectory);
-	m_7z.start(m_sz7zDotExe, args, QIODevice::ReadWrite);
+	args << "x" << rcPath_ + szDownloadedFileName_ << "-o" + szCurrentDirectory_ << "-aoa";
+	m_7z.setWorkingDirectory(szCurrentDirectory_);
+	m_7z.start(sz7zDotExe_, args, QIODevice::ReadWrite);
 	if (!m_7z.waitForFinished())
 	{
 		qDebug() << "7z.exe finish failed";
@@ -552,7 +554,7 @@ void QDownloader::OverwriteCurrentExecutable()
 	// rcpath/date.bat
 	QString bat;
 	bat += "@echo off\r\n";
-	bat = QString("SET pid=%1\r\n:loop\r\n").arg(m_pid);
+	bat = QString("SET pid=%1\r\n:loop\r\n").arg(pid_);
 	bat += "tasklist /nh /fi \"pid eq %pid%\"|find /i \"%pid%\" > nul\r\n";
 	bat += "if %errorlevel%==0 (\r\n";
 	bat += "ping -n 2 127.0.0.1 > nul\r\n";
@@ -560,31 +562,31 @@ void QDownloader::OverwriteCurrentExecutable()
 	bat += QString("ping -n %1 127.0.0.1 > nul\r\n").arg(delay + 1);
 	bat += "taskkill -f -im SaSH.exe\r\n";
 	bat += "taskkill -f -im sa_8001.exe\r\n";
-	bat += "cd /d " + m_szCurrentDirectory + "\r\n";  // cd to directory
+	bat += "cd /d " + szCurrentDirectory_ + "\r\n";  // cd to directory
 	bat += "del /f /q ./*.tmp\r\n"; //刪除.tmp
-	bat += "start " + m_szCurrentDotExe + "\r\n";
-	bat += QString("Rd /s /q \"%1\"\r\n").arg(m_rcPath);
+	bat += "start " + szCurrentDotExe_ + "\r\n";
+	bat += QString("Rd /s /q \"%1\"\r\n").arg(rcPath_);
 	bat += "del %0";
 	bat += "exit\r\n";
-	CreateAndRunBat(m_szSysTmpDir, bat);
+	CreateAndRunBat(szSysTmpDir_, bat);
 	QCoreApplication::quit();
 }
 
-bool QDownloader::AsyncDownloadFile(const QString& szUrl, const QString& dir, const QString& szSaveFileName)
+bool QDownloader::asyncDownloadFile(const QString& szUrl, const QString& dir, const QString& szSaveFileName)
 {
 	QString strUrl = szUrl;
 
 	if (strUrl.length())
 	{
 		QSharedPointer<CurlDownload> cur(q_check_ptr(new CurlDownload()));
-		cur->SetProgressFunPtrs(g_vpProgressFunc);
-		cur->DownLoad(MAX_DOWNLOAD_THREAD, strUrl.toUtf8().data(), dir.toUtf8().data(), szSaveFileName.toUtf8().data());
+		cur->setProgressFunPtrs(g_vpfnProgressFunc);
+		cur->downLoad(MAX_DOWNLOAD_THREAD, strUrl.toUtf8().data(), dir.toUtf8().data(), szSaveFileName.toUtf8().data());
 		return true;
 	}
 	return false;
 }
 
-void QDownloader::SetProgressValue(int i, double totalToDownload, double nowDownloaded, double, double)
+void QDownloader::setProgressValue(int i, double totalToDownload, double nowDownloaded, double, double)
 {
 	if (totalToDownload > 0)
 	{
@@ -600,26 +602,26 @@ void QDownloader::SetProgressValue(int i, double totalToDownload, double nowDown
 	}
 }
 
-int QDownloader::OnProgress(void*, double totalToDownload, double nowDownloaded, double totalToUpLoad, double nowUpLoaded)
+int QDownloader::onProgress(void*, double totalToDownload, double nowDownloaded, double totalToUpLoad, double nowUpLoaded)
 {
-	SetProgressValue(0, totalToDownload, nowDownloaded, totalToUpLoad, nowUpLoaded);
+	setProgressValue(0, totalToDownload, nowDownloaded, totalToUpLoad, nowUpLoaded);
 	return 0;
 }
 
-int QDownloader::OnProgress_2(void*, double totalToDownload, double nowDownloaded, double totalToUpLoad, double nowUpLoaded)
+int QDownloader::onProgress_2(void*, double totalToDownload, double nowDownloaded, double totalToUpLoad, double nowUpLoaded)
 {
-	SetProgressValue(1, totalToDownload, nowDownloaded, totalToUpLoad, nowUpLoaded);
+	setProgressValue(1, totalToDownload, nowDownloaded, totalToUpLoad, nowUpLoaded);
 	return 0;
 }
 
-int QDownloader::OnProgress_3(void*, double totalToDownload, double nowDownloaded, double totalToUpLoad, double nowUpLoaded)
+int QDownloader::onProgress_3(void*, double totalToDownload, double nowDownloaded, double totalToUpLoad, double nowUpLoaded)
 {
-	SetProgressValue(2, totalToDownload, nowDownloaded, totalToUpLoad, nowUpLoaded);
+	setProgressValue(2, totalToDownload, nowDownloaded, totalToUpLoad, nowUpLoaded);
 	return 0;
 }
 
-int QDownloader::OnProgress_4(void*, double totalToDownload, double nowDownloaded, double totalToUpLoad, double nowUpLoaded)
+int QDownloader::onProgress_4(void*, double totalToDownload, double nowDownloaded, double totalToUpLoad, double nowUpLoaded)
 {
-	SetProgressValue(3, totalToDownload, nowDownloaded, totalToUpLoad, nowUpLoaded);
+	setProgressValue(3, totalToDownload, nowDownloaded, totalToUpLoad, nowUpLoaded);
 	return 0;
 }

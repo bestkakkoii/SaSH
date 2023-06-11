@@ -26,7 +26,7 @@ namespace mem
 	Q_REQUIRED_RESULT int readInt(HANDLE hProcess, DWORD desiredAccess, SIZE_T size);
 	Q_REQUIRED_RESULT float readFloat(HANDLE hProcess, DWORD desiredAccess);
 	Q_REQUIRED_RESULT qreal readDouble(HANDLE hProcess, DWORD desiredAccess);
-	Q_REQUIRED_RESULT QString readString(HANDLE hProcess, DWORD desiredAccess, int size, bool enableTrim);
+	Q_REQUIRED_RESULT QString readString(HANDLE hProcess, DWORD desiredAccess, int size, bool enableTrim, bool keepOriginal = false);
 	bool write(HANDLE hProcess, DWORD baseAddress, PVOID buffer, SIZE_T dwSize);
 	bool writeInt(HANDLE hProcess, DWORD baseAddress, int data, int mode);
 	bool writeString(HANDLE hProcess, DWORD baseAddress, const QString& str);
@@ -658,10 +658,9 @@ namespace util
 			return static_cast<int>(d);
 	}
 
-	static Q_REQUIRED_RESULT QString toUnicode(const char* str, bool ext = true)
+	inline Q_REQUIRED_RESULT QString toUnicode(const char* str, bool ext = true)
 	{
-		static QTextCodec* codec = QTextCodec::codecForName("GB2312");
-
+		QTextCodec* codec = QTextCodec::codecForMib(2025);//QTextCodec::codecForName("gb2312");
 		QString qstr = codec->toUnicode(str);
 		std::wstring wstr = qstr.toStdWString();
 		UINT ACP = ::GetACP();
@@ -677,9 +676,8 @@ namespace util
 		return qstr;
 	}
 
-	static Q_REQUIRED_RESULT std::string fromUnicode(const QString& str)
+	inline Q_REQUIRED_RESULT std::string fromUnicode(const QString& str)
 	{
-		static QTextCodec* codec = QTextCodec::codecForName("GB2312");
 		QString qstr = str;
 		std::wstring wstr = qstr.toStdWString();
 		UINT ACP = ::GetACP();
@@ -689,10 +687,9 @@ namespace util
 			int size = lstrlenW(wstr.c_str());
 			QScopedArrayPointer <wchar_t> wbuf(new wchar_t[size + 1]());
 			LCMapStringEx(LOCALE_NAME_SYSTEM_DEFAULT, LCMAP_SIMPLIFIED_CHINESE, wstr.c_str(), size, wbuf.data(), size, NULL, NULL, NULL);
-			wstr = wbuf.data();
-			qstr = QString::fromWCharArray(wstr.c_str());
+			qstr = QString::fromWCharArray(wbuf.data());
 		}
-
+		QTextCodec* codec = QTextCodec::codecForMib(2025);//QTextCodec::codecForName("gb2312");
 		QByteArray bytes = codec->fromUnicode(qstr);
 
 		std::string s = bytes.data();

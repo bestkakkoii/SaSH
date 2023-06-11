@@ -35,12 +35,12 @@ MapWidget::MapWidget(QWidget* parent)
 
 #if !OPEN_GL_ON
 	ui.openGLWidget->close();
-	connect(&m_timer, &QTimer::timeout, [this]()
+	connect(&timer_, &QTimer::timeout, [this]()
 		{
 			update();
 		}
 	);
-	m_timer.start(1000);
+	timer_.start(1000);
 #else
 	connect(&gltimer_, &QTimer::timeout, this, &MapWidget::onRefreshTimeOut);
 	gltimer_.start(MAP_REFRESH_TIME);
@@ -56,7 +56,7 @@ MapWidget::MapWidget(QWidget* parent)
 MapWidget::~MapWidget()
 {
 #if !OPEN_GL_ON
-	m_timer.stop();
+	timer_.stop();
 #endif
 	writeSettings();
 	qDebug() << "";
@@ -525,8 +525,8 @@ void MapWidget::on_openGLWidget_notifyLeftClick(const QPointF& gpos, const QPoin
 {
 	bClicked_ = true;
 	pLast_ = gpos - pos;
-	/*if (!ThreadManager::isValid(m_index)) return;
-	QSharedPointer<MainThread> thread = ThreadManager::value(m_index);
+	/*if (!ThreadManager::isValid(index_)) return;
+	QSharedPointer<MainThread> thread = ThreadManager::value(index_);
 	if (thread.isNull()) return;
 	QString retstring("\0");
 	const QPointF predst(pos / zoom_value_);
@@ -572,8 +572,8 @@ bool MapWidget::CHECK_BATTLE_THEN_WAITFOR(QAsm& qa)
 
 bool MapWidget::findpath(QPoint dst)
 {
-	if (!ThreadManager::isValid(m_index)) return false;
-	QSharedPointer<MainThread> thread = ThreadManager::value(m_index);
+	if (!ThreadManager::isValid(index_)) return false;
+	QSharedPointer<MainThread> thread = ThreadManager::value(index_);
 	if (thread.isNull()) return false;
 
 
@@ -715,8 +715,8 @@ void MapWidget::on_pushButton_returnBase_clicked()
 
 	injector.server->logBack();
 
-	//if (!ThreadManager::isValid(m_index)) return;
-	//QSharedPointer<MainThread> thread = ThreadManager::value(m_index);
+	//if (!ThreadManager::isValid(index_)) return;
+	//QSharedPointer<MainThread> thread = ThreadManager::value(index_);
 	//thread->_SYS_returnbase();
 }
 
@@ -928,8 +928,8 @@ void MapWidget::on_tableWidget_NPCList_cellDoubleClicked(int row, int)
 	//		if (okx && oky && x >= 0 && y >= 0)
 	//		{
 	//			QPoint dst(x, y);
-	//			if (!ThreadManager::isValid(m_index)) return;
-	//			QSharedPointer<MainThread> thread = ThreadManager::value(m_index);
+	//			if (!ThreadManager::isValid(index_)) return;
+	//			QSharedPointer<MainThread> thread = ThreadManager::value(index_);
 	//			if (thread.isNull()) return;
 
 

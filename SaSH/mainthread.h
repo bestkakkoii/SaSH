@@ -48,6 +48,7 @@ private:
 	void checkAutoDropPet();
 	void checkAutoLockPet();
 	void checkAutoEatBoostExpItem();
+	void checkRecordableNpcInfo();
 private:
 	void battleTimeThread();
 
@@ -70,6 +71,8 @@ private:
 
 	QFuture<void> autodroppet_future_;
 	std::atomic_bool autodroppet_future_cancel_flag_ = false;
+
+	QFutureSynchronizer <void> pointerWriterSync_;
 
 	bool login_run_once_flag_ = false;
 	bool battle_run_once_flag_ = false;

@@ -13,6 +13,9 @@ SelectTargetForm::SelectTargetForm(int type, QString* dst, QWidget* parent)
 	connect(ui.buttonBox, &QDialogButtonBox::accepted, this, &SelectTargetForm::onAccept);
 	connect(ui.buttonBox, &QDialogButtonBox::rejected, this, &QDialog::reject);
 
+	ui.buttonBox->button(QDialogButtonBox::Ok)->setText(tr("ok"));
+	ui.buttonBox->button(QDialogButtonBox::Cancel)->setText(tr("cancel"));
+
 	QList <QCheckBox*> checkBoxList = util::findWidgets<QCheckBox>(this);
 	for (auto& checkBox : checkBoxList)
 	{

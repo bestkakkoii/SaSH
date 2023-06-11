@@ -5,9 +5,6 @@
 #include "parser.h"
 #include "util.h"
 
-using TokenMap = QMap<int, Token>;
-Q_DECLARE_METATYPE(TokenMap)
-
 class Interpreter : public QObject
 {
 	Q_OBJECT
@@ -147,11 +144,12 @@ private:
 
 	template<typename Func>
 	void registerFunction(const QString functionName, Func fun);
+	void openLibsBIG5();
+	void openLibsGB2312();
 	void openLibs();
-
 private:
 	bool checkBattleThenWait();
-	bool findPath(QPoint dst, int steplen, int step_cost = 0, int timeout = 180000, std::function<int(QPoint& dst)> callback = nullptr);
+	bool findPath(QPoint dst, int steplen, int step_cost = 0, int timeout = 180000, std::function<int(QPoint& dst)> callback = nullptr, bool noAnnounce = false);
 
 	bool waitfor(int timeout, std::function<bool()> exprfun) const;
 	bool checkString(const TokenMap& TK, int idx, QString* ret) const;

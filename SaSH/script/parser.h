@@ -3,10 +3,10 @@
 #include <QStack>
 #include <functional>
 
-using CommandRegistry = std::function<int(const QMap<int, Token>&)>;
+using CommandRegistry = std::function<int(const TokenMap&)>;
 
 //callbak
-using ParserCallBack = std::function<int(int currentLine, const QMap<int, Token>&)>;
+using ParserCallBack = std::function<int(int currentLine, const TokenMap&)>;
 
 static const QSet<RESERVE> operatorTypes = {
 	TK_ADD, //"+"
@@ -67,18 +67,15 @@ public:
 	inline void setLabels(const QHash<QString, int>& labels) { labels_ = labels; }
 
 	//設置腳本所有Token數據
-	inline void setTokens(const QHash<int, QMap<int, Token>>& tokens) { tokens_ = tokens; }
+	inline void setTokens(const QHash<int, TokenMap>& tokens) { tokens_ = tokens; }
 
-	inline bool hasToken() const { return !tokens_.isEmpty(); }
+	Q_REQUIRED_RESULT inline bool hasToken() const { return !tokens_.isEmpty(); }
 
-	inline const QHash<int, QMap<int, Token>> getToken() const { return tokens_; }
+	Q_REQUIRED_RESULT inline const QHash<int, TokenMap> getToken() const { return tokens_; }
 
 	inline void setCallBack(const ParserCallBack& callBack) { callBack_ = callBack; }
 
 	inline void setCurrentLine(int line) { lineNumber_ = line; }
-
-	//設置腳本所有全局變量數據
-	void setGlobalVariables(const QVariantHash& variables) { globalVariables_ = variables; }
 
 	inline void registerFunction(const QString& commandName, const CommandRegistry& function)
 	{
@@ -86,7 +83,7 @@ public:
 	}
 
 	template <typename T>
-	T getVar(const QString& name)
+	Q_REQUIRED_RESULT inline T getVar(const QString& name)
 	{
 		QString newName = name;
 		if (newName.startsWith(kVariablePrefix))
@@ -107,13 +104,18 @@ public:
 	void jump(int line);
 	bool jump(const QString& name);
 public:
-
 	//解析腳本
 	void parse(int line = 0);
 
-
-	QVariant& getref(const QString& name) { return variables_[name]; }
-	QVariantHash& getrefs() { return variables_; }
+	Q_REQUIRED_RESULT inline QVariant& getVarRef(const QString& name) { return variables_[name]; }
+	Q_REQUIRED_RESULT inline QVariantHash& getVarsRef() { return variables_; }
+	Q_REQUIRED_RESULT inline QHash<QString, QVariant>& getLabelVars()
+	{
+		if (!labalVarStack_.isEmpty())
+			return labalVarStack_.top();
+		else
+			return emptyLabelVars_;
+	}
 private:
 	void processTokens();
 	int processCommand();
@@ -125,6 +127,7 @@ private:
 	//void processLabel();
 
 	void handleError(int err);
+	void checkArgs();
 
 	inline void next() { ++lineNumber_; }
 
@@ -145,27 +148,37 @@ private:
 		return T();
 	}
 	Q_REQUIRED_RESULT inline RESERVE getTokenType(int index) const { return currentLineTokens_.value(index).type; }
-	Q_REQUIRED_RESULT QMap<int, Token> getCurrentTokens() const { return currentLineTokens_; }
+	Q_REQUIRED_RESULT TokenMap getCurrentTokens() const { return currentLineTokens_; }
 	void variableCalculate(const QString& varName, RESERVE op, QVariant* var, const QVariant& varValue);
 	int matchLineFromLabel(const QString& label) const { return labels_.value(label, -1); }
 
+	Q_REQUIRED_RESULT inline QVariantList& getArgsRef()
+	{
+		if (!callArgsStack_.isEmpty())
+			return callArgsStack_.top();
+		else
+			return emptyArgs_;
+	}
+
 private:
-	std::atomic_bool isStop_ = false;
-	QHash<int, QMap<int, Token>> tokens_;
-	QVariantHash variables_;
-	QVariantHash globalVariables_;
-	QHash<QString, int> labels_;
-	QHash<QString, CommandRegistry> commandRegistry_;
+	std::atomic_bool isStop_ = false; //是否停止
+	QHash<int, TokenMap> tokens_;//當前運行腳本的每一行token
+	QVariantHash variables_;//所有用腳本變量
+	QHash<QString, int> labels_;//所有標記所在行記錄
+	QHash<QString, CommandRegistry> commandRegistry_;//所有命令的函數指針
+	QStack<int> callStack_;//"調用"命令所在行棧
+	QStack<int> jmpStack_; //"跳轉"命令所在行棧
+	QStack<QVariantList> callArgsStack_;//"調用"命令參數棧
+	QVariantList emptyArgs_;//空參數
+	QStack<QHash<QString, QVariant>> labalVarStack_;//標籤變量名
+	QHash<QString, QVariant> emptyLabelVars_;//空標籤變量名
 
-	QStack<int> callStack_;
-	QStack<int> jmpStack_;
-	QMap<int, Token> currentLineTokens_;
-	RESERVE currentType_ = TK_UNK;
-	int lineNumber_ = 0;
+	TokenMap currentLineTokens_; //當前行token
+	RESERVE currentType_ = TK_UNK; //當前行第一個token類型
+	int lineNumber_ = 0; //當前行號
 
-	ParserError lastError_ = kNoError;
+	ParserError lastError_ = kNoError; //最後一次錯誤
 
-	//CallBack
-	ParserCallBack callBack_ = nullptr;
+	ParserCallBack callBack_ = nullptr; //解析腳本回調函數
 
 };

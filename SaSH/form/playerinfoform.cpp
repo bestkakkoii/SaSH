@@ -23,7 +23,7 @@ PlayerInfoForm::PlayerInfoForm(QWidget* parent)
 		tableWidget->setSelectionBehavior(QAbstractItemView::SelectRows);
 		//set auto resize to form size
 		tableWidget->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
-		tableWidget->verticalHeader()->setSectionResizeMode(QHeaderView::Stretch);
+		tableWidget->verticalHeader()->setSectionResizeMode(QHeaderView::Fixed);
 
 		tableWidget->setStyleSheet(R"(
 		QTableWidget { font-size:11px; } 

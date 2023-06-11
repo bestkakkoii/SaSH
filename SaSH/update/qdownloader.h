@@ -18,45 +18,49 @@ class QDownloader : public QWidget
 
 public:
 	QDownloader(QWidget* parent = nullptr);
+
 	virtual ~QDownloader();
 
 	void start();
+
 	static bool checkUpdate(QString* ptext);
+
 protected:
 	void showEvent(QShowEvent* event) override;
 
 private:
-	QProgressBar* CreateProgressBar(int startY);
+	QProgressBar* createProgressBar(int startY);
 	/////////////////////////////////////////////
-	void ResetProgress(int value);
-	void OverwriteCurrentExecutable();
-	bool AsyncDownloadFile(const QString& szUrl, const QString& dir, const QString& szSaveFileName);
-	QTimer m_labelTimer;
-	QTimer m_timer[MAX_DOWNLOAD_THREAD];
-	static void SetProgressValue(int i, double totalToDownload, double nowDownloaded, double totalToUpLoad, double nowUpLoaded);
-	static int OnProgress(void* ptr, double totalToDownload, double nowDownloaded, double totalToUpLoad, double nowUpLoaded);
-	static int OnProgress_2(void* ptr, double totalToDownload, double nowDownloaded, double totalToUpLoad, double nowUpLoaded);
-	static int OnProgress_3(void* ptr, double totalToDownload, double nowDownloaded, double totalToUpLoad, double nowUpLoaded);
-	static int OnProgress_4(void* ptr, double totalToDownload, double nowDownloaded, double totalToUpLoad, double nowUpLoaded);
+
+	void resetProgress(int value);
+	void overwriteCurrentExecutable();
+	bool asyncDownloadFile(const QString& szUrl, const QString& dir, const QString& szSaveFileName);
+
+	static void setProgressValue(int i, double totalToDownload, double nowDownloaded, double totalToUpLoad, double nowUpLoaded);
+	static int onProgress(void* ptr, double totalToDownload, double nowDownloaded, double totalToUpLoad, double nowUpLoaded);
+	static int onProgress_2(void* ptr, double totalToDownload, double nowDownloaded, double totalToUpLoad, double nowUpLoaded);
+	static int onProgress_3(void* ptr, double totalToDownload, double nowDownloaded, double totalToUpLoad, double nowUpLoaded);
+	static int onProgress_4(void* ptr, double totalToDownload, double nowDownloaded, double totalToUpLoad, double nowUpLoaded);
 
 	QString Sha3_512(const QString& fileNamePath) const;
 
 private:
 	Ui::QDownloaderClass ui;
 
-	const int m_pid = QCoreApplication::applicationPid();
-	const QString m_szCurrentDirectory;
-	const QString m_szCurrentDotExe;
-	const QString m_szCurrentDotExeAsDotTmp;
-	const QString m_sz7zDotExe;
-	const QString m_sz7zDotDll;
-	const QString m_szSysTmpDir;
+	QTimer labelTimer_;
+	QTimer timer_[MAX_DOWNLOAD_THREAD];
 
-	QString m_szDownloadedFileName = "\0";
-	QString m_rcPath = "\0";
-	QString m_szTmpDot7zFile = "\0";
+	const int pid_ = QCoreApplication::applicationPid();
+	const QString szCurrentDirectory_;
+	const QString szCurrentDotExe_;
+	const QString szCurrentDotExeAsDotTmp_;
+	const QString sz7zDotExe_;
+	const QString sz7zDotDll_;
+	const QString szSysTmpDir_;
 
-	QFutureSynchronizer<void> m_synchronizer;
+	QString szDownloadedFileName_ = "\0";
+	QString rcPath_ = "\0";
+	QString szTmpDot7zFile_ = "\0";
 
-
+	QFutureSynchronizer<void> synchronizer_;
 };

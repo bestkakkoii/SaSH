@@ -1,22 +1,22 @@
 {
     "Form": {
         "InfoFormClass": {
-            "Geometry": "AwNk+MSo94jKstJU1sN9NjUGv1JEGXY5MAOJXB1xzLmZxmVIQS/CYmEQk3Vfg+s0//9FkzBUIA==",
-            "Size": "973,326"
+            "Geometry": "AwP1/i9DHGMhWTm/PSiW3d7tVKGvuuQqKyiRb1Y5ZemVtdQqnA3T0KaGQ7iF/RJa+jGLbkCj+kM=",
+            "Size": "957,336"
         },
         "MainFormClass": {
-            "Geometry": "AwPmZrHdgv2/x6cho7YIQ0Bzyj8xsO2AnJAm72NPpvvrBLivRKmK7MyXrEh8yIwjRkbuoZmh",
+            "Geometry": "AwP4sOCM06zulvZw8udZEhEim25gwZj1KSWTunuXpM7ucMnInfBWVte7ZIeRna2SBQS+C3EV4w==",
             "Size": "354,506",
-            "State": "AwMv0caq9Yqg2Lg+YGzLe7t7ARix3I/oe/u5WfdaB72hgcclP1YJGxMXzQ=="
+            "State": "AwM0yt2x7pG7w6Mle3fQYKBgGgOqx5TzYOCiQuxBHKa6mtw+JE0SAAgM1g=="
         },
         "MapWidgetClass": {
             "Geometry": "AwO89nwQTzByCmrsbnvFjo2+B/L8ZzjO1tBsP35SO19PuAAc99t6Wnrhzioequ5BJCT/bFsT",
             "Size": "881,651"
         },
         "ScriptSettingFormClass": {
-            "Geometry": "AwN43Y7ivcKA+JgenIk3fH9M9QAOpPoMn5MlrP2IzyhPTA8bZfej/AMOJP5LJnPUzx/AJYJNGQE=",
-            "Size": "1422,691",
-            "State": "AwNyWaHNkuwIcBB4F8aXKUld2sKmK30mMDsC/30Szhgup0z5g4fz4WStNMl6yFLN4FxvxRGhUUMbgcO0cWpH90rt4AVpBaxIhgTHt4JO3/rzUQK90Y+/4K3+acFJ646AJ54iUQGYZfEwc0GhKd3iXiKvMMe1aPWLintFyD6epFfGnvsb1dwRospdKz4Yk1AMeR2j1shWarY3/sfAsAgtF+K1Ww1Xm0stxuZLz8y5aZMbVeYkPEYIrh0Hd9V6u4jli01doSSz628UFgsh8j2AZ77TpAiqGi8yCPcKxXTt8LB2qgWCO1biVa+WoDwdaEpWmA=="
+            "Geometry": "AwP61syg/4DCutpc3st1Pj0Ot0LM6LTCnJomTUoqecq///sSvH8juHdxObeQXINBQB2hRG2H348=",
+            "Size": "1152,850",
+            "State": "AwONujVZBnic5ITsg0SVKGh8+y1+EFVr6elQt5mJ0q/6e+FdKh4fQQFKKt3PvWN+myHOV3so9lZ3tLc/eIz1xrSr9vVVSvpJSflDOh/u8/4iH9Tksncw9U8PU6PFwhBbYkQToptNT2L0mt13njNoFtCI0D4Lga2ej+zeIqo2MMCZlLYqmOXYMjxs6O6Kcmm1JIcMiEqAUc5eEt2aORzLJjszBz6iCq1Rk2iA0PJfNQzItrrbi9ord+uNOfun5t3HhFB513i5HUYac3ahyHzOvmbJVMEBJcNsUMntNqZ2ELN/9S3uK2SmHO6NSKGn4H8KV7U/I1vMRznXEeRhUw=="
         }
     },
     "System": {

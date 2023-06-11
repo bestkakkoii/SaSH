@@ -93,15 +93,15 @@ constexpr int MAX_PROFESSION_SKILL = 26;
 constexpr int BATTLE_BUF_SIZE = 4;
 constexpr int BATTLE_COMMAND_SIZE = 4096;
 
-//#define FLOOR_NAME_LEN	24
+constexpr int FLOOR_NAME_LEN = 24;
 
 constexpr int RESULT_ITEM_COUNT = 3;
-//#define RESULT_ITEM_NAME_LEN	24
-//#define RESULT_CHR_EXP			4
+constexpr int RESULT_ITEM_NAME_LEN = 24;
+//constexpr int RESULT_CHR_EXP = 4;
 constexpr int RESULT_CHR_EXP = 5;
 
-//#define SKILL_NAME_LEN			24
-//#define SKILL_MEMO_LEN			72
+constexpr int SKILL_NAME_LEN = 24;
+constexpr int SKILL_MEMO_LEN = 72;
 constexpr int MAX_SKILL = 7;
 
 
@@ -1626,34 +1626,13 @@ static const QHash<QString, CHAR_EquipPlace> equipMap = {
 	{ u8"鞋子", CHAR_EQSHOES },
 	{ u8"手套", CHAR_EQGLOVE },
 };
-
-static const QHash<int, QStringList> KNPCList = {
-	//big5
-	{ 950, {u8"如果能贏過我的"/*院藏*/, u8"如果想通過"/*近藏*/, u8"吼"/*紅暴*/, u8"你想找麻煩"/*七兄弟*/ } },
-
-	//gb2312
-	{ 936, {u8"如果能赢过我的"/*院藏*/, u8"如果想通过"/*近藏*/, u8"吼"/*红暴*/, u8"你想找麻烦"/*七兄弟*/ } },
+enum BufferControl
+{
+	BC_NONE,
+	BC_NEED_TO_CLEAN,
+	BC_HAS_NEXT,
+	BC_ABOUT_TO_END,
 };
-
-static const QHash<int, QString> SecurityCodeList = {
-	{ 950, u8"安全密碼進行解鎖" }, { 936, u8"安全密码进行解锁" }
-};
-
-static const QHash<int, QString> FirstWarningList = {
-	{ 950, u8"上一次離線時間" }, { 936, u8"上一次离线时间" }
-};
-
-static const QHash<int, QString> BankPetList = {
-	{ 950, u8"2\n　　　　請選擇寵物　　　　\n\n" }, { 936, u8"2\n　　　　请选择宠物　　　　\n\n" }
-};
-
-static const QHash<int, QString> BankItemList = {
-	{ 950, u8"1|寄放店|要領取什么呢？|項目有很多|這樣子就可以了嗎？|" }, { 936, u8"1|寄放店|要领取什么呢？|项目有很多|这样子就可以了吗？|" }
-};
-
-static const QRegularExpression rexGetGold(u8R"(得到(\d+)石)");
-static const QRegularExpression rexPickGold(u8R"([獲|获] (\d+) Stone)");
-static const QRegularExpression rexBankPet(u8R"(LV\.\s*(\d+)\s*MaxHP\s*(\d+)\s*(\S+))");
 
 class MapAnalyzer;
 class Server : public QObject
@@ -1827,6 +1806,7 @@ private:
 
 
 	bool isPlayerMpEnoughForMagic(int magicIndex) const;
+	bool isPlayerMpEnoughForSkill(int magicIndex) const;
 
 	void sortBattleUnit(QVector<battleobject_t>& v) const;
 
@@ -1843,10 +1823,11 @@ private:
 	Q_REQUIRED_RESULT int getGetPetSkillIndexByName(int petIndex, const QString& name) const;
 
 	bool fixPlayerTargetByMagicIndex(int magicIndex, int oldtarget, int* target) const;
+	bool fixPlayerTargetBySkillIndex(int magicIndex, int oldtarget, int* target) const;
 	bool fixPlayerTargetByItemIndex(int itemIndex, int oldtarget, int* target) const;
 	bool fixPetTargetBySkillIndex(int skillIndex, int oldtarget, int* target) const;
 
-	void sendBattlePlayerAttckAct(int target);
+	void sendBattlePlayerAttackAct(int target);
 	void sendBattlePlayerMagicAct(int magicIndex, int target);
 	void sendBattlePlayerJobSkillAct(int skillIndex, int target);
 	void sendBattlePlayerItemAct(int itemIndex, int target);
@@ -1952,9 +1933,9 @@ private:
 		return (unsigned int)(time = CurrentTick.QuadPart / tickCount.QuadPart);
 		//return GetTickCount();
 #else
-		return GetTickCount64();
+		return QDateTime::currentMSecsSinceEpoch();
 #endif
-}
+	}
 
 	inline void setWarpMap(const QPoint& pos)
 	{
@@ -2256,6 +2237,8 @@ public:
 	bool IS_ONLINE_FLAG = false;
 	bool IS_BATTLE_FLAG = false;
 
+	bool IS_TCP_CONNECTION_OK_TO_USE = false;
+
 	std::atomic_bool isPacketAutoClear = false;
 	bool disconnectflag = false;
 
@@ -2469,7 +2452,7 @@ public:
 	QString labelPetAction;
 private:
 	QFutureSynchronizer <void> sync_;
-	QFutureSynchronizer <void> pointerWriterSync_;
+
 	QMutex mutex_;
 	std::atomic_bool isRequestInterrupted = false;
 	//int sockfd_ = 0;

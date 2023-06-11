@@ -1,12 +1,35 @@
 {
     "Form": {
+        "InfoFormClass": {
+            "Geometry": "AwPgJ0omeQZEPFzaWE3zuLuIMcTKu+J/IyWZypv7qBvsbDr8gjJu9YqPx83B7bO3tA64XdvfjJw=",
+            "Size": "1074,338"
+        },
         "MainFormClass": {
-            "Geometry": "AwMxudG94p3fp8dBw9ZoIyATql9RzpBmcX3LArmV/KCwQ8ofEc+TFRActlYIpCXa9PdNrbvSGQ==",
+            "Geometry": "AwOSX92x7pHTq8tNz9pkLywfplNdfCNODhhR0836o1RzcTKd43EJVg2XLMMlUt3Hx4XVODE=",
             "Size": "354,506",
-            "State": "AwOFe2wAXyAKchKUysZh0RHRq7IbdiVC0VET813wrRcLK22Plfyjsbm9Zw=="
+            "State": "AwOfYXYaRToQaAiO0Nx7ywvLsagBbD9Yy0sJ6Ufqtw0RMXeVj+a5q6OnfQ=="
+        },
+        "MapWidgetClass": {
+            "Geometry": "AwOGqMyg/4DCutpc3st1Pj0Ot0JMEXwzAz3nYjylnoHhX+zt4I0rqypW4ybnjdG6Cj0nCTdbU+Hojg==",
+            "Size": "839,474"
+        },
+        "ScriptSettingFormClass": {
+            "Geometry": "AwN8YfGdwr3/h+dh4/ZIAwAzin9x+pbZ6ad4/aOSy9Dj4inNY7DqXQII1gAMIH56ecN1kOJoPyQ=",
+            "Size": "566,334",
+            "State": "AwPwBFg0axXxiemB7rPiH19P6cz2xfrnhCcYTMJaBG07L4NA6MLYKnu7ASKDtxItknLRqMvpF0m4KikRsjKj0dpa4odOxH5BzvUuERrYt04ZRrYWeQEY/cGSXpn3k+FDrSZLtqnX5OooOsfE/X2yrisWAm+YEyhEIiP6mXu+/8DkrrZiNIjfuY5aca7FqumGfeQkoa1m7c8u+Q4eOlIu/aRjD+6+2OzxKRkwRDGUl7B9mYABxViEpOplIVzM9kkK4Sq8Lrv8yuxYXSE6J5wFtGNc8Gl80Ze7bcQtkyHTg3pjAlw="
         }
     },
     "System": {
+        "Command": {
+            "DirPath": "D:/Users/bestkakkoii/Desktop/game/shiqise/sa_8001.exe",
+            "adrnbin": 138,
+            "adrntrue": 5,
+            "encode": 0,
+            "realbin": 138,
+            "realtrue": 13,
+            "spradrnbin": 116,
+            "sprbin": 116
+        },
         "ServerList": "1線//活動互動|2線//擺攤交易|3線//莊園族戰|4線//練級掛機|5//練級掛機|6//練級掛機|7//練級掛機|8//練級掛機|9//練級掛機|15//公司專線|21線//會員專線|22線//會員專線",
         "SubServerList": "電信|聯通|移動|海外|備份"
     }

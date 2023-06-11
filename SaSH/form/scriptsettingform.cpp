@@ -28,7 +28,7 @@ ScriptSettingForm::ScriptSettingForm(QWidget* parent)
 	ui.dockWidget_debuger->setFeatures(QDockWidget::DockWidgetClosable | QDockWidget::DockWidgetMovable | QDockWidget::DockWidgetFloatable);
 	ui.dockWidget_scriptFun->setFeatures(QDockWidget::DockWidgetClosable | QDockWidget::DockWidgetMovable | QDockWidget::DockWidgetFloatable);
 
-	ui.dockWidget_debuger->hide();
+	//ui.dockWidget_debuger->hide();
 
 	ui.treeWidget_scriptList->header()->setSectionResizeMode(QHeaderView::ResizeToContents);
 	ui.treeWidget_scriptList->resizeColumnToContents(1);
@@ -78,6 +78,8 @@ ScriptSettingForm::ScriptSettingForm(QWidget* parent)
 	connect(&signalDispatcher, &SignalDispatcher::loadFileToTable, this, &ScriptSettingForm::loadFile, Qt::QueuedConnection);
 	connect(&signalDispatcher, &SignalDispatcher::reloadScriptList, this, &ScriptSettingForm::onReloadScriptList, Qt::QueuedConnection);
 	connect(&signalDispatcher, &SignalDispatcher::scriptLabelRowTextChanged, this, &ScriptSettingForm::onScriptLabelRowTextChanged, Qt::QueuedConnection);
+	connect(&signalDispatcher, &SignalDispatcher::globalVarInfoImport, this, &ScriptSettingForm::onGlobalVarInfoImport, Qt::QueuedConnection);
+	connect(&signalDispatcher, &SignalDispatcher::localVarInfoImport, this, &ScriptSettingForm::onLocalVarInfoImport, Qt::QueuedConnection);
 	Injector& injector = Injector::getInstance();
 	if (!injector.scriptLogModel.isNull())
 		ui.listView_log->setModel(injector.scriptLogModel.get());
@@ -87,6 +89,8 @@ ScriptSettingForm::ScriptSettingForm(QWidget* parent)
 
 	util::FormSettingManager formSettingManager(this);
 	formSettingManager.loadSettings();
+
+	//ui.webEngineView->setUrl(QUrl("https://gitee.com/Bestkakkoii/sash/wikis/pages"));
 }
 
 ScriptSettingForm::~ScriptSettingForm()
@@ -217,10 +221,31 @@ void ScriptSettingForm::fileSave(const QString& d, DWORD flag)
 
 	QStringList contents = content.split("\r\n");
 	//QStringList newcontents;
+	int indent_begin = -1;
+	int indent_end = -1;
 	for (int i = 0; i < contents.size(); ++i)
 	{
 		contents[i].replace(rexLoadComma, ",");
 		contents[i].replace(rexSetComma, ", ");
+		contents[i] = contents[i].trimmed();
+		if (contents[i].startsWith("標記") && indent_begin == -1)
+		{
+			indent_begin = i + 1;
+		}
+		else if (contents[i].startsWith("標記") && indent_begin != -1)
+		{
+			indent_begin = -1;
+		}
+		else if ((contents[i].startsWith("返回") || contents[i].startsWith("結束")) && indent_begin != -1 && indent_end == -1)
+		{
+			indent_end = i - 1;
+			for (int j = indent_begin; j <= indent_end; ++j)
+			{
+				contents[j] = "    " + contents[j];
+			}
+			indent_begin = -1;
+			indent_end = -1;
+		}
 	}
 	ts << contents.join("\n");
 	ts.flush();
@@ -640,6 +665,98 @@ void ScriptSettingForm::on_comboBox_labels_currentIndexChanged(int index)
 	}
 }
 
+void ScriptSettingForm::varInfoImport(QTreeWidget* tree, const QHash<QString, QVariant>& d)
+{
+	if (tree == nullptr)
+		return;
+
+	QList<QTreeWidgetItem*> trees;
+	tree->clear();
+	tree->setColumnCount(3);
+	tree->setHeaderLabels(QStringList() << tr("name") << tr("value") << tr("type"));
+	for (auto it = d.begin(); it != d.end(); ++it)
+	{
+		QString varName = it.key();
+		QString varType;
+		QString varValue;
+		QVariant var = it.value();
+		switch (var.type())
+		{
+		case QVariant::Int:
+		{
+			varType = tr("Int");
+			varValue = QString::number(var.toInt());
+			break;
+		}
+		case QVariant::UInt:
+		{
+			varType = tr("UInt");
+			varValue = QString::number(var.toUInt());
+			break;
+		}
+		case QVariant::Double:
+		{
+			varType = tr("Double");
+			varValue = QString::number(var.toDouble(), 'f', 8);
+			break;
+		}
+		case QVariant::String:
+		{
+			varType = tr("String");
+			varValue = var.toString();
+			break;
+		}
+		case QVariant::Bool:
+		{
+			varType = tr("Bool");
+			varValue = var.toBool();
+			break;
+		}
+		case QVariant::LongLong:
+		{
+			varType = tr("LongLong");
+			varValue = QString::number(var.toLongLong());
+			break;
+		}
+		case QVariant::ULongLong:
+		{
+			varType = tr("ULongLong");
+			varValue = QString::number(var.toULongLong());
+			break;
+		}
+		default:
+		{
+			varType = tr("unknown");
+			varValue = var.toString();
+			break;
+		}
+
+		}
+		trees.append(q_check_ptr(new QTreeWidgetItem({ varName, varValue, QString("(%1)").arg(varType) })));
+	}
+	tree->addTopLevelItems(trees);
+}
+
+//全局變量列表
+void ScriptSettingForm::onGlobalVarInfoImport(const QHash<QString, QVariant>& d)
+{
+	if (currentGlobalVarInfo_ == d)
+		return;
+
+	currentGlobalVarInfo_ = d;
+	varInfoImport(ui.treeWidget_debuger_global, d);
+}
+
+//區域變量列表
+void ScriptSettingForm::onLocalVarInfoImport(const QHash<QString, QVariant>& d)
+{
+	if (currentLocalVarInfo_ == d)
+		return;
+
+	currentLocalVarInfo_ = d;
+	varInfoImport(ui.treeWidget_debuger_local, d);
+}
+
 void ScriptSettingForm::on_treeWidget_functionList_itemDoubleClicked(QTreeWidgetItem* item, int column)
 {
 	Q_UNUSED(column);
@@ -657,4 +774,10 @@ void ScriptSettingForm::on_treeWidget_functionList_itemDoubleClicked(QTreeWidget
 		return;
 
 	ui.widget->insert(str + " ");
+
+}
+
+void ScriptSettingForm::on_treeWidget_functionList_itemClicked(QTreeWidgetItem* item, int column)
+{
+
 }

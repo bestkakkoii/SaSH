@@ -3,7 +3,7 @@
 
 #include "signaldispatcher.h"
 #include "injector.h"
-#include "listview.h"
+
 
 void Parser::parse(int line)
 {
@@ -16,6 +16,8 @@ void Parser::parse(int line)
 
 	processTokens();
 }
+
+constexpr int kCallPlaceHoldSize = 2;
 
 template<typename T>
 T calc(const QVariant& a, const QVariant& b, RESERVE operatorType)
@@ -111,6 +113,11 @@ void Parser::processTokens()
 			case TK_END:
 			{
 				lastError_ = kNoError;
+				variables_.clear();
+				callStack_.clear();
+				jmpStack_.clear();
+				callArgsStack_.clear();
+				labalVarStack_.clear();
 				return;
 			}
 			case TK_CMD:
@@ -153,7 +160,27 @@ void Parser::processTokens()
 				processReturn();
 				continue;
 			case TK_LABEL:
+			{
+				QVariantList args = getArgsRef();
+				QHash<QString, QVariant> labelVars;
+				for (int i = kCallPlaceHoldSize; i < currentLineTokens_.size(); ++i)
+				{
+					Token token = currentLineTokens_.value(i);
+					if (token.type == TK_LABELVAR)
+					{
+						QString labelName = token.data.toString();
+						if (labelName.isEmpty())
+							continue;
+
+						if (!args.isEmpty() && (args.size() > i - kCallPlaceHoldSize) && (args.at(i - kCallPlaceHoldSize).isValid()))
+							labelVars.insert(labelName, args.at(i - kCallPlaceHoldSize));
+					}
+				}
+				if (!labelVars.isEmpty())
+					labalVarStack_.push(labelVars);
 				break;
+			}
+
 			case TK_WHITESPACE:
 				break;
 			default:
@@ -170,13 +197,24 @@ void Parser::processTokens()
 		if (isStop_.load(std::memory_order_acquire))
 			break;
 
+		emit signalDispatcher.globalVarInfoImport(variables_);
+		if (!labalVarStack_.isEmpty())
+			emit signalDispatcher.localVarInfoImport(labalVarStack_.top());
+		else
+			emit signalDispatcher.localVarInfoImport(QHash<QString, QVariant>());
 		next();
 	}
+
+	variables_.clear();
+	callStack_.clear();
+	jmpStack_.clear();
+	callArgsStack_.clear();
+	labalVarStack_.clear();
 }
 
 int Parser::processCommand()
 {
-	QMap<int, Token> tokens = getCurrentTokens();
+	TokenMap tokens = getCurrentTokens();
 	Token commandToken = tokens.value(0);
 	QString commandName = commandToken.data.toString();
 	int status = kNoChange;
@@ -205,45 +243,86 @@ void Parser::processVariable(RESERVE type)
 	{
 	case TK_VARDECL:
 	{
+		//取第一個參數
 		QString varName = getToken<QString>(1);
 		if (varName.isEmpty())
 			break;
 
+		//取第二個參數
 		QVariant varValue = getToken<QVariant>(2);
 		if (!varValue.isValid())
 			break;
 
+		//取區域變量表
+		QHash<QString, QVariant> args = getLabelVars();
+
+		//檢查第二參數是否為邏輯運算符
 		RESERVE op = getTokenType(2);
 		if (!operatorTypes.contains(op))
 		{
 			SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
+			//如果不是運算符，檢查是否為字符串
 			if (varValue.type() == QVariant::Type::String)
 			{
+				//檢查是否為引用變量
 				QString valueStr = varValue.toString();
-				QString msg = getToken<QString>(3);
-				if (valueStr.startsWith(kFuzzyPrefix + QString("2")))
+				if (op == TK_REF)
 				{
-					varValue.clear();
-					emit signalDispatcher.inputBoxShow(msg, QInputDialog::IntInput, &varValue);
-					if (!varValue.isValid())
-						break;
+					valueStr = valueStr.mid(1);
+					if (variables_.contains(valueStr))
+						varValue = variables_.value(valueStr);
+					else
+						return;
 				}
-				else if (valueStr.startsWith(kFuzzyPrefix + QString("3")))
+				else
 				{
-					varValue.clear();
-					emit signalDispatcher.inputBoxShow(msg, QInputDialog::DoubleInput, &varValue);
-					if (!varValue.isValid())
-						break;
-				}
-				else if (valueStr.startsWith(kFuzzyPrefix) && valueStr.endsWith(kFuzzyPrefix) || valueStr.startsWith(kFuzzyPrefix + QString("1")))
-				{
-					varValue.clear();
-					emit signalDispatcher.inputBoxShow(msg, QInputDialog::TextInput, &varValue);
-					if (!varValue.isValid())
-						break;
+					//檢查是否為字符串的區域變量
+					if (args.contains(valueStr) && args.value(valueStr).type() == QVariant::Int)
+					{
+						varValue = args.value(valueStr).toInt();
+					}
+					//檢查是否為整數的區域變量
+					else if (args.contains(valueStr) && args.value(valueStr).type() == QVariant::String)
+					{
+						bool ok;
+						int value = args.value(valueStr).toInt(&ok);
+						if (ok)
+							varValue = value;
+						else
+							return;
+					}
+					else
+					{
+						//檢查是否使用?讓使用者輸入
+						QString msg = getToken<QString>(3);
+						if (valueStr.startsWith(kFuzzyPrefix + QString("2")))//整數輸入框
+						{
+							varValue.clear();
+							emit signalDispatcher.inputBoxShow(msg, QInputDialog::IntInput, &varValue);
+							if (!varValue.isValid())
+								break;
+							varValue = varValue.toInt();
+						}
+						else if (valueStr.startsWith(kFuzzyPrefix + QString("3"))) //雙精度浮點數輸入框
+						{
+							varValue.clear();
+							emit signalDispatcher.inputBoxShow(msg, QInputDialog::DoubleInput, &varValue);
+							if (!varValue.isValid())
+								break;
+							varValue = varValue.toDouble();
+						}
+						else if (valueStr.startsWith(kFuzzyPrefix) && valueStr.endsWith(kFuzzyPrefix) || valueStr.startsWith(kFuzzyPrefix + QString("1")))// 字串輸入框
+						{
+							varValue.clear();
+							emit signalDispatcher.inputBoxShow(msg, QInputDialog::TextInput, &varValue);
+							if (!varValue.isValid())
+								break;
+						}
+					}
 				}
 			}
 
+			//插入全局變量表
 			variables_.insert(varName, varValue);
 			break;
 		}
@@ -254,11 +333,46 @@ void Parser::processVariable(RESERVE type)
 		if (op == TK_UNK)
 			break;
 
+		//取第三個參數
 		varValue = getToken<QVariant>(3);
+		//檢查第三個是否合法 ，如果不合法 且第二參數不是++或--，則跳出
 		if (!varValue.isValid() && op != TK_DEC && op != TK_INC)
 			break;
 
+		//取第三個參數的類型
+		RESERVE varValueType = getTokenType(3);
+
+		//檢查是否為引用變量
+		if (varValueType == TK_REF)
+		{
+			QString valueStr = varValue.toString().mid(1);
+			if (variables_.contains(valueStr))
+				varValue = variables_.value(valueStr);
+		}
+		else if (varValueType == TK_STRING)
+		{
+			QString valueStr = varValue.toString();
+			//檢查是否為字符串區域變量
+			if (args.contains(valueStr) && args.value(valueStr).type() == QVariant::Int)
+			{
+				varValue = args.value(valueStr).toInt();
+			}
+			//檢查是否為整數區域變量
+			else if (args.contains(valueStr) && args.value(valueStr).type() == QVariant::String)
+			{
+				bool ok;
+				int value = args.value(valueStr).toInt(&ok);
+				if (ok)
+					varValue = value;
+				else
+					return;
+			}
+		}
+
+		//將第一參數，要被運算的變量原數值取出
 		QVariant& var = variables_[varName];
+
+		//開始計算新值
 		variableCalculate(varName, op, &var, varValue);
 		break;
 	}
@@ -341,6 +455,57 @@ void Parser::processFormation()
 	} while (false);
 }
 
+void Parser::checkArgs()
+{
+	//check rest of the tokens is exist push to stack 	QStack<QVariantList> callArgs_
+	QVariantList list;
+	for (int i = kCallPlaceHoldSize; i < tokens_.value(lineNumber_).size(); ++i)
+	{
+		Token token = tokens_.value(lineNumber_).value(i);
+		QVariant var = token.data;
+		if (token.type == TK_REF)
+		{
+			QString varName = token.data.toString().mid(1);
+			if (!variables_.contains(varName))
+			{
+				list.clear();
+				break;
+			}
+
+			var = variables_.value(varName);
+			if (var.type() == QVariant::String)
+			{
+				token.type = TK_STRING;
+				token.data = var.toString();
+			}
+			else if (var.type() == QVariant::Int)
+			{
+				token.type = TK_INT;
+				token.data = var.toInt();
+			}
+			else if (var.type() == QVariant::Double)
+			{
+				token.type = TK_DOUBLE;
+				token.data = var.toDouble();
+			}
+			else
+			{
+				list.clear();
+				break;
+			}
+
+			var = token.data;
+		}
+
+		if (token.type != TK_FUZZY)
+			list.append(token.data);
+		else
+			list.append(0);
+	}
+
+	callArgsStack_.push(list);
+}
+
 bool Parser::processCall()
 {
 	RESERVE type = getTokenType(1);
@@ -369,6 +534,7 @@ bool Parser::processCall()
 			if (ok)
 			{
 				callStack_.push(lineNumber_ + 1);
+				checkArgs();
 				jump(jumpLineCount);
 				return true;
 			}
@@ -379,8 +545,11 @@ bool Parser::processCall()
 					break;
 
 				int currentLine = lineNumber_;
+				checkArgs();
 				if (!jump(functionName))
+				{
 					break;
+				}
 
 				callStack_.push(currentLine + 1);
 				return true;
@@ -397,8 +566,11 @@ bool Parser::processCall()
 				break;
 
 			int currentLine = lineNumber_;
+			checkArgs();
 			if (!jump(functionName))
+			{
 				break;
+			}
 			callStack_.push(currentLine + 1); // Push the next line index to the call stack
 
 			return true;
@@ -473,14 +645,18 @@ bool Parser::processJump()
 
 void Parser::processReturn()
 {
+	if (!callArgsStack_.isEmpty())
+		callArgsStack_.pop();
+	if (!labalVarStack_.isEmpty())
+		labalVarStack_.pop();
 	if (!callStack_.isEmpty())
 	{
 		int returnIndex = callStack_.pop();
 		int jumpLineCount = returnIndex - lineNumber_;
 		jump(jumpLineCount);
+		return;
 	}
-	else
-		lineNumber_ = 0;
+	lineNumber_ = 0;
 }
 
 void Parser::variableCalculate(const QString& varName, RESERVE op, QVariant* pvar, const QVariant& varValue)
@@ -578,5 +754,5 @@ void Parser::handleError(int err)
 
 	Injector& injector = Injector::getInstance();
 	if (!injector.scriptLogModel.isNull())
-		injector.scriptLogModel->append(QObject::tr("error occured at line %1. detail:%2").arg(lineNumber_ + 1).arg(msg));
+		injector.scriptLogModel->append(QObject::tr("error occured at line %1. detail:%2").arg(lineNumber_ + 1).arg(msg), 6);
 }

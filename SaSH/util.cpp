@@ -735,7 +735,7 @@ qreal mem::readDouble(HANDLE hProcess, DWORD desiredAccess)
 	return (ret == TRUE) ? (buffer) : 0.0;
 }
 
-QString mem::readString(HANDLE hProcess, DWORD desiredAccess, int size, bool enableTrim)
+QString mem::readString(HANDLE hProcess, DWORD desiredAccess, int size, bool enableTrim, bool keepOriginal)
 {
 	if (!hProcess) return "\0";
 	if (!desiredAccess) return "\0";
@@ -744,9 +744,18 @@ QString mem::readString(HANDLE hProcess, DWORD desiredAccess, int size, bool ena
 	memset(p.get(), 0, size + 1);
 	SIZE_T sizet = size;
 	BOOL ret = read(hProcess, desiredAccess, sizet, p.get());
-	const QString retstring((ret == TRUE) ? (util::toUnicode(p.get(), true)) : "");
-	p.reset(nullptr);
-	return retstring;
+	if (!keepOriginal)
+	{
+		std::string s = p.get();
+		QString retstring = (ret == TRUE) ? (util::toUnicode(s.c_str(), true)) : "";
+		return retstring;
+	}
+	else
+	{
+		QString retstring = (ret == TRUE) ? QString(p.get()) : "";
+		return retstring;
+	}
+
 }
 
 bool mem::write(HANDLE hProcess, DWORD baseAddress, PVOID buffer, SIZE_T dwSize)
@@ -786,8 +795,8 @@ bool mem::writeInt(HANDLE hProcess, DWORD baseAddress, int data, int mode)
 bool mem::writeString(HANDLE hProcess, DWORD baseAddress, const QString& str)
 {
 	if (!hProcess) return FALSE;
-	QTextCodec* g_game_codec = QTextCodec::codecForName("GB2312");
-	QByteArray ba = g_game_codec->fromUnicode(str);
+	QTextCodec* codec = QTextCodec::codecForMib(2025);//QTextCodec::codecForName("gb2312");
+	QByteArray ba = codec->fromUnicode(str);
 	ba.append('\0');
 	char* pBuffer = ba.data();
 	SIZE_T len = ba.size();

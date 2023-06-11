@@ -148,7 +148,13 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, long* res
 	case WM_MOUSEMOVE + WM_USER:
 	{
 		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
-		signalDispatcher.updateCursorLabelTextChanged(QString("%1,%2").arg(GET_X_LPARAM(msg->lParam)).arg(GET_Y_LPARAM(msg->lParam)));
+		emit signalDispatcher.updateCursorLabelTextChanged(QString("%1,%2").arg(GET_X_LPARAM(msg->lParam)).arg(GET_Y_LPARAM(msg->lParam)));
+		break;
+	}
+	case Injector::kConnectionOK:
+	{
+		if (!injector.server.isNull())
+			injector.server->IS_TCP_CONNECTION_OK_TO_USE = true;
 		break;
 	}
 	default:
@@ -165,6 +171,7 @@ MainForm::MainForm(QWidget* parent)
 	setAttribute(Qt::WA_QuitOnClose);
 	setAttribute(Qt::WA_StyledBackground, true);
 	setAttribute(Qt::WA_StaticContents, true);
+	setWindowFlags(windowFlags() & ~Qt::WindowMaximizeButtonHint);
 	setStyleSheet(R"(
 		QMainWindow{ border-radius: 10px; }
 	)");
@@ -178,6 +185,7 @@ MainForm::MainForm(QWidget* parent)
 	connect(&signalDispatcher, &SignalDispatcher::loadHashSettings, this, &MainForm::onLoadHashSettings, Qt::UniqueConnection);
 	connect(&signalDispatcher, &SignalDispatcher::messageBoxShow, this, &MainForm::onMessageBoxShow, Qt::BlockingQueuedConnection);
 	connect(&signalDispatcher, &SignalDispatcher::inputBoxShow, this, &MainForm::onInputBoxShow, Qt::BlockingQueuedConnection);
+	connect(&signalDispatcher, &SignalDispatcher::updateMainFormTitle, this, &MainForm::onUpdateMainFormTitle, Qt::UniqueConnection);
 
 	QMenuBar* pMenuBar = new QMenuBar(this);
 	if (pMenuBar)
@@ -542,19 +550,27 @@ void MainForm::onUpdateStatusLabelTextChanged(int status)
 	};
 	ui.label_status->setText(tr("status:") + hash.value(static_cast<util::UserStatus>(status), tr("unknown")));
 }
+
 void MainForm::onUpdateMapLabelTextChanged(const QString& text)
 {
 	ui.label_map->setText(tr("map:") + text);
 }
+
 void MainForm::onUpdateCursorLabelTextChanged(const QString& text)
 {
 	ui.label_cursor->setText(tr("cursor:") + text);
 }
+
 void MainForm::onUpdateCoordsPosLabelTextChanged(const QString& text)
 {
 	QString str = tr("coordis:");
 	str += text;
 	ui.label_coords->setText(str);
+}
+
+void MainForm::onUpdateMainFormTitle(const QString& text)
+{
+	setWindowTitle(tr("SaSH - %1").arg(text));
 }
 
 void MainForm::onSaveHashSettings(const QString& name, bool isFullPath)
