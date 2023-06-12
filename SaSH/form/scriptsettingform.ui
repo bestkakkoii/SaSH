@@ -2774,10 +2774,6 @@ color: rgb(208, 208, 208);
    <addaction name="actionStart"/>
    <addaction name="actionPause"/>
    <addaction name="actionStop"/>
-   <addaction name="separator"/>
-   <addaction name="actionImport"/>
-   <addaction name="actionAutoFollow"/>
-   <addaction name="actionAutoCleanLog"/>
   </widget>
   <widget class="QStatusBar" name="statusBar"/>
   <action name="actionSave">

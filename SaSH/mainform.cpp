@@ -304,14 +304,6 @@ void MainForm::onMenuActionTriggered()
 	//system
 	if (actionName == "actionHide")
 	{
-		//驗證測試
-		//util::Crypt crypt;
-		//Net::Authenticator& g_Authenticator = Net::Authenticator::getInstance();
-
-		//QString username = "bestkakkoii";
-		//QString encode_password = crypt.encryptToString("Gdd3ae6h49");
-		//if (g_Authenticator.Login(username, encode_password))
-		//	g_Authenticator.Logout();
 
 	}
 
@@ -322,10 +314,10 @@ void MainForm::onMenuActionTriggered()
 
 	else if (actionName == "actionWibsite")
 	{
-		QDesktopServices::openUrl(QUrl("https://www.lovesa.cc"));
+		//QDesktopServices::openUrl(QUrl("https://www.lovesa.cc"));
 	}
 
-	if (actionName == "actionClose")
+	else if (actionName == "actionClose")
 	{
 		close();
 	}
@@ -510,7 +502,7 @@ void MainForm::resetControlTextLanguage()
 	if (pOtherForm_)
 		emit pOtherForm_->resetControlTextLanguage();
 
-}
+	}
 
 void MainForm::onUpdateStatusLabelTextChanged(int status)
 {

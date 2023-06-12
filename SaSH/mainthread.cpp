@@ -297,7 +297,7 @@ int MainObject::checkAndRunFunctions()
 		QDateTime due = current.addYears(1);
 		const QString dueStr(due.toString("yyyy-MM-dd hh:mm:ss"));
 
-		const QString url("https://www.lovesa.cc");
+		const QString url("https://bbs.shiqi.so/");//https://www.lovesa.cc
 
 		const QString version = QString("%1.%2%3")
 			.arg(SASH_VERSION_MAJOR) \

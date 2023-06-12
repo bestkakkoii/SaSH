@@ -124,7 +124,8 @@ private:
 	bool processCall();
 	bool processJump();
 	void processReturn();
-	//void processLabel();
+	void processLabel();
+	void processEnd();
 
 	void handleError(int err);
 	void checkArgs();

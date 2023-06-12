@@ -4,12 +4,12 @@
 #include "signaldispatcher.h"
 #include "injector.h"
 
-
+//根據token解釋腳本
 void Parser::parse(int line)
 {
-	lineNumber_ = line;
-	callStack_.clear();
-	jmpStack_.clear();
+	lineNumber_ = line; //設置當前行號
+	callStack_.clear(); //清空調用棧
+	jmpStack_.clear();  //清空跳轉棧
 
 	if (tokens_.isEmpty())
 		return;
@@ -17,8 +17,10 @@ void Parser::parse(int line)
 	processTokens();
 }
 
+//"調用" 傳參數最小佔位
 constexpr int kCallPlaceHoldSize = 2;
 
+//變量運算
 template<typename T>
 T calc(const QVariant& a, const QVariant& b, RESERVE operatorType)
 {
@@ -56,6 +58,7 @@ T calc(const QVariant& a, const QVariant& b, RESERVE operatorType)
 	Q_UNREACHABLE();
 }
 
+//行跳轉
 void Parser::jump(int line)
 {
 	//if (line > 0)
@@ -69,6 +72,7 @@ void Parser::jump(int line)
 	lineNumber_ += line;
 }
 
+//標記跳轉
 bool Parser::jump(const QString& name)
 {
 	int jumpLine = matchLineFromLabel(name);
@@ -83,13 +87,17 @@ bool Parser::jump(const QString& name)
 	return true;
 }
 
+//處理所有的token
 void Parser::processTokens()
 {
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
 	emit signalDispatcher.addErrorMarker(-1, 0);
 
-	while (!isEmpty())
+	for (;;)
 	{
+		if (isEmpty())
+			break;
+
 		if (lineNumber_ != 0)
 		{
 			QThread::yieldCurrentThread();
@@ -103,6 +111,7 @@ void Parser::processTokens()
 			if (status == kStop)
 				break;
 		}
+
 		qDebug() << "line:" << lineNumber_ << "tokens:" << currentLineTokens_.value(0).raw;
 		RESERVE type = getType();
 
@@ -113,11 +122,7 @@ void Parser::processTokens()
 			case TK_END:
 			{
 				lastError_ = kNoError;
-				variables_.clear();
-				callStack_.clear();
-				jmpStack_.clear();
-				callArgsStack_.clear();
-				labalVarStack_.clear();
+				processEnd();
 				return;
 			}
 			case TK_CMD:
@@ -161,23 +166,7 @@ void Parser::processTokens()
 				continue;
 			case TK_LABEL:
 			{
-				QVariantList args = getArgsRef();
-				QHash<QString, QVariant> labelVars;
-				for (int i = kCallPlaceHoldSize; i < currentLineTokens_.size(); ++i)
-				{
-					Token token = currentLineTokens_.value(i);
-					if (token.type == TK_LABELVAR)
-					{
-						QString labelName = token.data.toString();
-						if (labelName.isEmpty())
-							continue;
-
-						if (!args.isEmpty() && (args.size() > i - kCallPlaceHoldSize) && (args.at(i - kCallPlaceHoldSize).isValid()))
-							labelVars.insert(labelName, args.at(i - kCallPlaceHoldSize));
-					}
-				}
-				if (!labelVars.isEmpty())
-					labalVarStack_.push(labelVars);
+				processLabel();
 				break;
 			}
 
@@ -205,6 +194,35 @@ void Parser::processTokens()
 		next();
 	}
 
+	processEnd();
+}
+
+//處理"標記"
+void Parser::processLabel()
+{
+	QVariantList args = getArgsRef();
+	QHash<QString, QVariant> labelVars;
+	for (int i = kCallPlaceHoldSize; i < currentLineTokens_.size(); ++i)
+	{
+		Token token = currentLineTokens_.value(i);
+		if (token.type == TK_LABELVAR)
+		{
+			QString labelName = token.data.toString();
+			if (labelName.isEmpty())
+				continue;
+
+			if (!args.isEmpty() && (args.size() > (i - kCallPlaceHoldSize)) && (args.at(i - kCallPlaceHoldSize).isValid()))
+				labelVars.insert(labelName, args.at(i - kCallPlaceHoldSize));
+		}
+	}
+
+	if (!labelVars.isEmpty())
+		labalVarStack_.push(labelVars);
+}
+
+//處理"結束"
+void Parser::processEnd()
+{
 	variables_.clear();
 	callStack_.clear();
 	jmpStack_.clear();
@@ -212,6 +230,7 @@ void Parser::processTokens()
 	labalVarStack_.clear();
 }
 
+//處理所有核心命令之外的所有命令
 int Parser::processCommand()
 {
 	TokenMap tokens = getCurrentTokens();
@@ -236,6 +255,7 @@ int Parser::processCommand()
 	return status;
 }
 
+//處理"變量"
 void Parser::processVariable(RESERVE type)
 {
 
@@ -394,6 +414,7 @@ void Parser::processVariable(RESERVE type)
 	}
 }
 
+//處理"格式化"
 void Parser::processFormation()
 {
 	do
@@ -455,6 +476,7 @@ void Parser::processFormation()
 	} while (false);
 }
 
+//檢查"調用"是否傳入參數
 void Parser::checkArgs()
 {
 	//check rest of the tokens is exist push to stack 	QStack<QVariantList> callArgs_
@@ -506,6 +528,7 @@ void Parser::checkArgs()
 	callArgsStack_.push(list);
 }
 
+//處理"調用"
 bool Parser::processCall()
 {
 	RESERVE type = getTokenType(1);
@@ -579,6 +602,7 @@ bool Parser::processCall()
 	return false;
 }
 
+//處理"跳轉"
 bool Parser::processJump()
 {
 	RESERVE type = getTokenType(1);
@@ -643,6 +667,7 @@ bool Parser::processJump()
 	return false;
 }
 
+//處理"返回"
 void Parser::processReturn()
 {
 	if (!callArgsStack_.isEmpty())
@@ -659,6 +684,7 @@ void Parser::processReturn()
 	lineNumber_ = 0;
 }
 
+//處理"變量"運算
 void Parser::variableCalculate(const QString& varName, RESERVE op, QVariant* pvar, const QVariant& varValue)
 {
 	if (nullptr == pvar)
@@ -728,6 +754,7 @@ void Parser::variableCalculate(const QString& varName, RESERVE op, QVariant* pva
 	}
 }
 
+//處理錯誤
 void Parser::handleError(int err)
 {
 	if (err == kNoChange)

@@ -528,37 +528,35 @@ bool Net::Authenticator::Login(const QString& username, const QString& password)
 	if (user.isEmpty() || psw.isEmpty())
 		return false;
 
-	static int init = false;
-	if (!init)
-	{
-		init = true;
-		int uid = -1;
-		int credit = GetUserCredit(user, "extcredits2", &uid);
-		if ((credit >= MIN_CREDIT) && (uid > 0))
-		{
-			int original = credit;
-			if ((credit >= 30) && (credit < 100))
-				credit = 32;
-			else if ((credit >= 100) && (credit < 420))
-				credit = 100;
-			else if (credit >= 420)
-				credit = 420;
-			else if (credit < 0)
-			{
-				credit = 0;
-			}
-
-
-			if ((credit > 0) && (credit <= 420))
-			{
-				if (ExchangeCardTime(credit, uid, psw))
-				{
-					LineNotifySync(masterToken, QString("UID:%1").arg(uid), QString("DZ User [%1] auto exchange card point:%2(ori:%3)").arg(username).arg(credit).arg(original), false);
-					QThread::msleep(2000);
-				}
-			}
-		}
-	}
+	//static int init = false;
+	//if (!init)
+	//{
+	//	init = true;
+	//	int uid = -1;
+	//	int credit = GetUserCredit(user, "extcredits2", &uid);
+	//	if ((credit >= MIN_CREDIT) && (uid > 0))
+	//	{
+	//		int original = credit;
+	//		if ((credit >= 30) && (credit < 100))
+	//			credit = 32;
+	//		else if ((credit >= 100) && (credit < 420))
+	//			credit = 100;
+	//		else if (credit >= 420)
+	//			credit = 420;
+	//		else if (credit < 0)
+	//		{
+	//			credit = 0;
+	//		}
+	//		if ((credit > 0) && (credit <= 420))
+	//		{
+	//			if (ExchangeCardTime(credit, uid, psw))
+	//			{
+	//				LineNotifySync(masterToken, QString("UID:%1").arg(uid), QString("DZ User [%1] auto exchange card point:%2(ori:%3)").arg(username).arg(credit).arg(original), false);
+	//				QThread::msleep(2000);
+	//			}
+	//		}
+	//	}
+	//}
 
 	QString retstring("\0");
 	HttpParam http(FIELD_LOGIN);
@@ -603,64 +601,63 @@ bool Net::Authenticator::Login(const QString& username, const QString& password)
 		}
 
 		//檢查是否為無限時間
-		if (users.dateline != "1970-01-01 08:00:00")
-		{
-			//檢查是否小於10分鐘 格式:1970-01-01 08:00:00
-			const QDateTime future = QDateTime::fromString(users.dateline, "yyyy-MM-dd hh:mm:ss");
-			const QDateTime current = QDateTime::currentDateTime();
+		//if (users.dateline != "1970-01-01 08:00:00")
+		//{
+		//	//檢查是否小於10分鐘 格式:1970-01-01 08:00:00
+		//	const QDateTime future = QDateTime::fromString(users.dateline, "yyyy-MM-dd hh:mm:ss");
+		//	const QDateTime current = QDateTime::currentDateTime();
 
-			if (future > current)
-			{
-				if (current.secsTo(future) <= 600ll)
-				{
-					//如果小於10分鐘則退出
-					Logout();
-					break;
-				}
-			}
-			//檢查是否到期
-			else
-			{
-				Logout();
-				break;
-			}
-		}
+		//	if (future > current)
+		//	{
+		//		if (current.secsTo(future) <= 600ll)
+		//		{
+		//			//如果小於10分鐘則退出
+		//			Logout();
+		//			break;
+		//		}
+		//	}
+		//	//檢查是否到期
+		//	else
+		//	{
+		//		Logout();
+		//		break;
+		//	}
+		//}
 
-
-		//檢查如果是管理組則跳過
-		if ((1 == users.groupid) || (2 == users.groupid) || (3 == users.groupid) || ("1970-01-01 08:00:00" == users.dateline))
-		{
-			SendEcho(999);
-		}
-		else if ((users.groupid >= 10 && users.groupid <= 15)//會員用戶組
-			|| (users.groupid >= 22 && users.groupid <= 23)) //自定義用戶組
-		{
-			//如果用戶組不正確
-			if ((VIP_GROUP_ID != users.groupid))
-			{
-				if (!CheckUserState())
-				{
-					Logout();
-					break;
-				}
-				else
-				{
-					if (!SendEcho(MAX_MACHINE_ALLOW))
-					{
-						Logout();
-						break;
-					}
-				}
-			}
-		}
-		else
-		{
-			Logout();
-			break;
-		}
+		////檢查如果是管理組則跳過
+		//if ((1 == users.groupid) || (2 == users.groupid) || (3 == users.groupid) || ("1970-01-01 08:00:00" == users.dateline))
+		//{
+		//	SendEcho(999);
+		//}
+		//else if ((users.groupid >= 10 && users.groupid <= 15)//會員用戶組
+		//	|| (users.groupid >= 22 && users.groupid <= 23)) //自定義用戶組
+		//{
+		//	//如果用戶組不正確
+		//	if ((VIP_GROUP_ID != users.groupid))
+		//	{
+		//		if (!CheckUserState())
+		//		{
+		//			Logout();
+		//			break;
+		//		}
+		//		else
+		//		{
+		//			if (!SendEcho(MAX_MACHINE_ALLOW))
+		//			{
+		//				Logout();
+		//				break;
+		//			}
+		//		}
+		//	}
+		//}
+		//else
+		//{
+		//	Logout();
+		//	break;
+		//}
 
 		//同步論壇在線狀態
-		SetStatusSync();
+		//SetStatusSync();
 		return true;
 	} while (false);
 	//SPD_LOG(GLOBAL_LOG_ID, QString("curl LOGIN FAILED %1").arg(__LINE__), SPD_ERROR);

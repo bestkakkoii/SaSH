@@ -1,7 +1,7 @@
 ﻿#include "stdafx.h"
 #include "lexer.h"
 
-//全局關鍵字映射表
+//全局關鍵字映射表 這裡是新增新的命令的第一步，其他需要在interpreter.cpp中新增，這裡不添加的話，腳本分析後會忽略未知的命令
 static const QHash<QString, RESERVE> keywords = {
 #pragma region BIG5
 	//test
@@ -200,7 +200,7 @@ static const QHash<QString, RESERVE> keywords = {
 	{ u8"听见", TK_CMD },
 	{ u8"道具", TK_CMD },
 	{ u8"道具数量", TK_CMD },
-	{ u8"堆迭数量", TK_CMD },
+	{ u8"堆叠数量", TK_CMD },
 	{ u8"背包满", TK_CMD },
 	{ u8"人物状态", TK_CMD },
 	{ u8"宠物有", TK_CMD },
@@ -288,16 +288,19 @@ static const QHash<QString, RESERVE> keywords = {
 	//... 其他後續增加的關鍵字
 };
 
+//插入新TOKEN
 void Lexer::createToken(int index, RESERVE type, const QVariant& data, const QString& raw, TokenMap* ptoken)
 {
 	ptoken->insert(index, { type, data, raw });
 }
 
+//插入空行TOKEN
 void Lexer::createEmptyToken(int index, TokenMap* ptoken)
 {
 	ptoken->insert(index, { TK_WHITESPACE, "", "" });
 }
 
+//解析單行內容至多個TOKEN
 void Lexer::tokenized(int currentLine, const QString& line, TokenMap* ptoken, QHash<QString, int>* plabel)
 {
 	if (ptoken == nullptr || plabel == nullptr)
@@ -405,6 +408,7 @@ void Lexer::tokenized(int currentLine, const QString& line, TokenMap* ptoken, QH
 	} while (false);
 }
 
+//解析整個腳本至多個TOKEN
 bool Lexer::tokenized(const QString& script, QHash<int, TokenMap>* ptokens, QHash<QString, int>* plabel)
 {
 	Lexer lexer;
@@ -501,6 +505,7 @@ bool Lexer::isDelimiter(const QChar& ch) const
 	return ((ch == ',') || (ch == ' '));
 }
 
+//根據容取TOKEN應該定義的類型
 RESERVE Lexer::getTokenType(int& pos, RESERVE previous, QString& str, const QString raw) const
 {
 
@@ -635,6 +640,7 @@ RESERVE Lexer::getTokenType(int& pos, RESERVE previous, QString& str, const QStr
 	return TK_STRING;
 }
 
+//根據index取得下一個字元
 QChar Lexer::next(const QString& str, int& index) const
 {
 	if (index < str.length() - 1)
@@ -648,6 +654,7 @@ QChar Lexer::next(const QString& str, int& index) const
 	}
 }
 
+//根據指定分割符號取得字串
 bool Lexer::getStringToken(QString& src, const QString& delim, QString& out)
 {
 	if (src.isEmpty())

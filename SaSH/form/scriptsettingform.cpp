@@ -12,6 +12,7 @@ ScriptSettingForm::ScriptSettingForm(QWidget* parent)
 
 	installEventFilter(this);
 	setAttribute(Qt::WA_DeleteOnClose);
+
 	takeCentralWidget();
 	setDockNestingEnabled(true);
 	addDockWidget(Qt::LeftDockWidgetArea, ui.dockWidget_functionList);

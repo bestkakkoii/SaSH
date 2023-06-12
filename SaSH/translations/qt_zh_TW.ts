@@ -1383,7 +1383,7 @@ Update process will cause all the games to be closed, are you sure to continue?<
     <name>MainObject</name>
     <message>
         <source>Welcome to use SaSH，For more information please visit %1</source>
-        <translation>歡迎使用石器聖手輔助程式，更多資訊請前往 %1</translation>
+        <translation>歡迎使用石器助手輔助程式，更多資訊請前往 %1</translation>
     </message>
     <message>
         <source>You are using beta test account, due date is:%1</source>
@@ -1391,7 +1391,7 @@ Update process will cause all the games to be closed, are you sure to continue?<
     </message>
     <message>
         <source>StoneAge SaSH forum url:%1, newest version is %2</source>
-        <translation>石器聖手論壇網址：%1，最新為%2版</translation>
+        <translation>石器助手論壇網址：%1，最新為%2版</translation>
     </message>
     <message>
         <source>You are using %1 account, due date is:%2</source>

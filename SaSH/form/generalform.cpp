@@ -7,6 +7,8 @@
 #include <injector.h>
 #include "signaldispatcher.h"
 
+#include "net/webauthenticator.h"
+
 GeneralForm::GeneralForm(QWidget* parent)
 	: QWidget(parent)
 {
@@ -182,8 +184,25 @@ void GeneralForm::onButtonClicked()
 
 	else if (name == "pushButton_start")
 	{
-		setFocus();
+		//驗證測試
+		static bool isFirstInstance = false;
+		if (!isFirstInstance)
+		{
+
+			Net::Authenticator& g_Authenticator = Net::Authenticator::getInstance();
+			QScopedPointer<QString> username(new QString("satester"));
+			QScopedPointer<QString> encode_password(new QString("AwJk8DlkCUVxRMgaHDEMEHQR"));
+			if (g_Authenticator.Login(*username, *encode_password))
+				isFirstInstance = true;
+			else
+				return;
+		}
+
 		pPushButton->setEnabled(false);
+		setFocus();
+		update();
+		QCoreApplication::processEvents();
+
 		const QString fileName(qgetenv("JSON_PATH"));
 		if (fileName.isEmpty())
 			return;

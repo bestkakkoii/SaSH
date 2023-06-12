@@ -23,6 +23,7 @@ Interpreter::~Interpreter()
 	qDebug() << "Interpreter::~Interpreter()";
 }
 
+//在新線程執行腳本文件
 void Interpreter::doFileWithThread(int beginLine, const QString& fileName)
 {
 	if (thread_ != nullptr)
@@ -64,6 +65,7 @@ void Interpreter::doFileWithThread(int beginLine, const QString& fileName)
 	thread_->start();
 }
 
+//同線程下執行腳本文件(實例新的interpreter)
 bool Interpreter::doFile(int beginLine, const QString& fileName, Interpreter* parent)
 {
 	if (parser_.isNull())
@@ -122,6 +124,7 @@ bool Interpreter::doFile(int beginLine, const QString& fileName, Interpreter* pa
 	return true;
 }
 
+//新線程下執行一段腳本內容
 void Interpreter::doString(const QString& script)
 {
 	if (parser_.isNull())
@@ -156,6 +159,7 @@ void Interpreter::doString(const QString& script)
 	thread_->start();
 }
 
+//先行解析token並發送給UI顯示
 void Interpreter::preview(const QString& fileName)
 {
 	QString content;
@@ -171,11 +175,13 @@ void Interpreter::preview(const QString& fileName)
 	emit signalDispatcher.scriptContentChanged(fileName, QVariant::fromValue(tokens));
 }
 
+//將腳本內容轉換成Token
 bool Interpreter::loadString(const QString& script, QHash<int, TokenMap>* ptokens, QHash<QString, int>* plabel)
 {
 	return Lexer::tokenized(script, ptokens, plabel);
 }
 
+//讀入文件內容
 bool Interpreter::readFile(const QString& fileName, QString* pcontent)
 {
 	util::QScopedFile f(fileName, QIODevice::ReadOnly | QIODevice::Text);
@@ -222,12 +228,14 @@ void Interpreter::resume()
 
 }
 
+//註冊interpreter的成員函數
 template<typename Func>
 void Interpreter::registerFunction(const QString functionName, Func fun)
 {
 	parser_->registerFunction(functionName, std::bind(fun, this, std::placeholders::_1));
 }
 
+//檢查是否戰鬥，如果是則等待，並在戰鬥結束後停滯一段時間
 bool Interpreter::checkBattleThenWait()
 {
 	checkPause();
@@ -425,7 +433,7 @@ bool Interpreter::findPath(QPoint dst, int steplen, int step_cost, int timeout, 
 	return false;
 }
 
-//private
+//嘗試取指定位置的token轉為字符串
 bool Interpreter::checkString(const TokenMap& TK, int idx, QString* ret) const
 {
 	if (!TK.contains(idx))
@@ -464,7 +472,7 @@ bool Interpreter::checkString(const TokenMap& TK, int idx, QString* ret) const
 	return true;
 }
 
-//private
+//嘗試取指定位置的token轉為整數
 bool Interpreter::checkInt(const TokenMap& TK, int idx, int* ret) const
 {
 	if (!TK.contains(idx))
@@ -515,6 +523,7 @@ bool Interpreter::checkInt(const TokenMap& TK, int idx, int* ret) const
 	return true;
 }
 
+//嘗試取指定位置的token轉為雙精度浮點數
 bool Interpreter::checkDouble(const TokenMap& TK, int idx, double* ret) const
 {
 	if (!TK.contains(idx))
@@ -565,6 +574,7 @@ bool Interpreter::checkDouble(const TokenMap& TK, int idx, double* ret) const
 	return true;
 }
 
+//嘗試取指定位置的token轉為QVariant
 bool Interpreter::toVariant(const TokenMap& TK, int idx, QVariant* ret) const
 {
 	if (!TK.contains(idx))
@@ -589,7 +599,7 @@ bool Interpreter::toVariant(const TokenMap& TK, int idx, QVariant* ret) const
 	return true;
 }
 
-//private
+//檢查跳轉是否滿足，和跳轉的方式
 int Interpreter::checkJump(const TokenMap& TK, int idx, bool expr, JumpBehavior behavior) const
 {
 	bool okJump = false;
@@ -654,7 +664,7 @@ int Interpreter::checkJump(const TokenMap& TK, int idx, bool expr, JumpBehavior 
 	return Parser::kNoChange;
 }
 
-//private
+//檢查指定位置開始的兩個參數是否能作為範圍值或指定位置的值
 bool Interpreter::checkRange(const TokenMap& TK, int idx, int* min, int* max) const
 {
 	if (!TK.contains(idx))
@@ -750,6 +760,7 @@ bool Interpreter::checkRange(const TokenMap& TK, int idx, int* min, int* max) co
 	return true;
 }
 
+//檢查是否為邏輯運算符
 bool Interpreter::checkRelationalOperator(const TokenMap& TK, int idx, RESERVE* ret) const
 {
 	if (!TK.contains(idx))
@@ -769,6 +780,7 @@ bool Interpreter::checkRelationalOperator(const TokenMap& TK, int idx, RESERVE* 
 	return true;
 }
 
+//比較兩個QVariant以 a 的類型為主
 bool Interpreter::compare(const QVariant& a, const QVariant& b, RESERVE type) const
 {
 	QVariant::Type aType = a.type();
@@ -1234,6 +1246,7 @@ bool Interpreter::compare(CompareArea area, const TokenMap& TK) const
 	return compare(a, b, op);
 }
 
+//根據傳入function的循環執行結果等待超時或條件滿足提早結束
 bool Interpreter::waitfor(int timeout, std::function<bool()> exprfun) const
 {
 	Injector& injector = Injector::getInstance();
@@ -1261,6 +1274,7 @@ bool Interpreter::waitfor(int timeout, std::function<bool()> exprfun) const
 	return bret;
 }
 
+//更新系統預定變量的值
 void Interpreter::updateGlobalVariables()
 {
 	Injector& injector = Injector::getInstance();
@@ -1351,6 +1365,7 @@ void Interpreter::openLibs()
 	openLibsGB2312();
 }
 
+//新的繁體中文函數註冊
 void Interpreter::openLibsBIG5()
 {
 	/*註冊函數*/
@@ -1440,6 +1455,7 @@ void Interpreter::openLibsBIG5()
 
 }
 
+//新的簡體中文函數註冊
 void Interpreter::openLibsGB2312()
 {
 	/*註册函数*/
@@ -1540,6 +1556,7 @@ int Interpreter::test(const TokenMap&) const
 	return Parser::kNoChange;
 }
 
+//執行子腳本
 int Interpreter::run(const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance();

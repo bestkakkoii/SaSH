@@ -5,7 +5,6 @@
 #include "signaldispatcher.h"
 #include "map/mapanalyzer.h"
 
-
 #pragma comment(lib, "ws2_32.lib")
 
 #pragma region GlobalNetBuffer
@@ -3328,7 +3327,7 @@ void Server::lssproto_KS_recv(int petarray, int result)
 		PET _pet = pet[pc.battlePetNo];
 		emit signalDispatcher.updatePetHpProgressValue(_pet.level, _pet.hp, _pet.maxHp);
 	}
-	}
+}
 
 #ifdef _STANDBYPET
 //寵物等待狀態改變 (不是每個私服都有)
@@ -3911,7 +3910,7 @@ void Server::lssproto_TK_recv(int index, char* cmessage, int color)
 					//InitSelectChar(message, 1);
 				}
 				return;
-		}
+			}
 			else
 			{
 
@@ -3949,7 +3948,7 @@ void Server::lssproto_TK_recv(int index, char* cmessage, int color)
 
 				//SaveChatData(msg, szToken[0], false);
 			}
-	}
+		}
 		else
 			getStringToken(message, "|", 2, msg);
 #ifdef _TALK_WINDOW
@@ -4018,8 +4017,8 @@ void Server::lssproto_TK_recv(int index, char* cmessage, int color)
 				// 1000
 				//pc.status |= CHR_STATUS_FUKIDASHI;
 			}
-}
-}
+		}
+	}
 
 	chatQueue.enqueue(QPair{ color ,msg });
 	Injector& injector = Injector::getInstance();
@@ -4818,7 +4817,7 @@ void Server::lssproto_C_recv(char* cdata)
 #endif
 #pragma endregion
 	}
-	}
+}
 
 //周圍人、NPC..等等狀態改變必定是 _C_recv已經新增過的單位
 void Server::lssproto_CA_recv(char* cdata)
@@ -4881,7 +4880,7 @@ void Server::lssproto_CA_recv(char* cdata)
 			effectno = smalltoken.toInt();
 			effectparam1 = getIntegerToken(bigtoken, "|", 7);
 			effectparam2 = getIntegerToken(bigtoken, "|", 8);
-	}
+		}
 
 
 		if (pc.id == charindex)
@@ -4919,7 +4918,7 @@ void Server::lssproto_CA_recv(char* cdata)
 					//changePcAct(x, y, dir, act, effectno, effectparam1, effectparam2);
 			}
 			continue;
-				}
+		}
 
 		//ptAct = getCharObjAct(charindex);
 		//if (ptAct == NULL)
@@ -4956,8 +4955,8 @@ void Server::lssproto_CA_recv(char* cdata)
 #endif
 		//changeCharAct(ptAct, x, y, dir, act, effectno, effectparam1, effectparam2);
 	//}
-		}
-			}
+	}
+}
 
 //刪除指定一個或多個周圍人、NPC單位
 void Server::lssproto_CD_recv(char* cdata)
@@ -5382,7 +5381,7 @@ void Server::lssproto_S_recv(char* cdata)
 #endif
 				}
 			}
-					}
+		}
 
 		//updataPcAct();
 		if ((pc.status & CHR_STATUS_LEADER) != 0 && party[0].useFlag != 0)
@@ -5454,7 +5453,7 @@ void Server::lssproto_S_recv(char* cdata)
 
 		//if ((bNewServer & 0xf000000) == 0xf000000 && sPetStatFlag == 1)
 		//	saveUserSetting();
-				}
+	}
 #pragma endregion
 #pragma region FamilyInfo
 	else if (first == "F") // F 家族狀態
@@ -5766,8 +5765,8 @@ void Server::lssproto_S_recv(char* cdata)
 #endif
 					}
 				}
-						}
-						}
+			}
+		}
 
 		if (pc.ridePetNo >= 0 && pc.ridePetNo < MAX_PET)
 		{
@@ -5804,7 +5803,7 @@ void Server::lssproto_S_recv(char* cdata)
 		const QVariant var = QVariant::fromValue(varList);
 		playerInfoColContents.insert(no + 1, var);
 		emit signalDispatcher.updatePlayerInfoColContents(no + 1, var);
-					}
+	}
 #pragma endregion
 #pragma region EncountPercentage
 	else if (first == "E") // E nowEncountPercentage
@@ -6420,7 +6419,7 @@ void Server::lssproto_S_recv(char* cdata)
 	{
 		qDebug() << "[" << first << "]:" << data;
 	}
-		}
+}
 
 //客戶端登入(進去選人畫面)
 void Server::lssproto_ClientLogin_recv(char* cresult)
@@ -6530,7 +6529,7 @@ void Server::lssproto_CharList_recv(char* cresult, char* cdata)
 		//setCharacterList(nm, opt);
 	}
 	//}
-	}
+}
 
 //人物登出(不是每個私服都有，有些是直接切斷後跳回帳號密碼頁)
 void Server::lssproto_CharLogout_recv(char* cresult, char* cdata)
@@ -8975,7 +8974,7 @@ void Server::checkAutoDropMeat(const QStringList& item)
 	{
 		if (item.name.contains(meat))
 		{
-			if (!item.memo.contains(memo))
+			if (!item.memo.contains(memo) && (item.name != QString(u8"味道爽口的肉湯")) && (item.name != QString(u8"味道爽口的肉汤")))
 				dropItem(index);
 			else
 				useItem(index, findInjuriedAllie());
@@ -9132,7 +9131,7 @@ bool Server::isPetSpotEmpty() const
 	return true;
 }
 
-//人物戰鬥邏輯
+//人物戰鬥邏輯(這裡因為懶了所以寫了一坨狗屎)
 void Server::handlePlayerBattleLogics()
 {
 	using namespace util;
@@ -10207,7 +10206,7 @@ void Server::handlePlayerBattleLogics()
 	sendBattlePlayerDoNothing();
 }
 
-//寵物戰鬥邏輯
+//寵物戰鬥邏輯(這裡因為懶了所以寫了一坨狗屎)
 void Server::handlePetBattleLogics()
 {
 	using namespace util;

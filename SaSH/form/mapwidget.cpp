@@ -147,7 +147,7 @@ void MapWidget::paintEvent(QPaintEvent* paint)
 
 	if (paint->type() == QEvent::Quit || paint->type() == QEvent::None) return;
 
-	const QString current_dir(qgetenv("CGHP_DIR_PATH_UTF8"));
+	const QString current_dir(qgetenv("DIR_PATH_UTF8"));
 	const QString map_dirPath(QString("%1/map").arg(current_dir));
 	CHECK_FOLDER(current_dir, map_dirPath);
 

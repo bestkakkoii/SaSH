@@ -20,11 +20,19 @@ CodeEditor::CodeEditor(QWidget* parent)
 	, font("YaHei Consolas Hybrid", 11, 570/*QFont::DemiBold*/, false)
 
 {
+	//install font
+	QFontDatabase::addApplicationFont(QCoreApplication::applicationDirPath() + "/YaHei Consolas Hybrid 1.12.ttf");
+	QFont _font("YaHei Consolas Hybrid", 11, 570/*QFont::DemiBold*/, false);
+	setFont(_font);
+	font = _font;
+
 	textLexer.setDefaultFont(font);
 	setLexer(&textLexer);
 	SendScintilla(QsciScintilla::SCI_SETCODEPAGE, QsciScintilla::SC_CP_UTF8);//設置編碼為UTF-8
 	setUtf8(true);
 	setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Maximum);
+
+
 
 	QsciScintilla::setFont(font);
 	//代碼提示autoCompletion

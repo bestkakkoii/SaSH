@@ -747,7 +747,7 @@
     </message>
     <message>
         <source>auto stack</source>
-        <translation>自动迭加</translation>
+        <translation>自动叠加</translation>
     </message>
     <message>
         <source>knpc</source>
@@ -1383,7 +1383,7 @@ Update process will cause all the games to be closed, are you sure to continue?<
     <name>MainObject</name>
     <message>
         <source>Welcome to use SaSH，For more information please visit %1</source>
-        <translation>欢迎使用石器圣手辅助程式，更多资讯请前往 %1</translation>
+        <translation>欢迎使用石器助手辅助程式，更多资讯请前往 %1</translation>
     </message>
     <message>
         <source>You are using beta test account, due date is:%1</source>
@@ -1391,7 +1391,7 @@ Update process will cause all the games to be closed, are you sure to continue?<
     </message>
     <message>
         <source>StoneAge SaSH forum url:%1, newest version is %2</source>
-        <translation>石器圣手论坛网址：%1，最新为%2版</translation>
+        <translation>石器助手论坛网址：%1，最新为%2版</translation>
     </message>
     <message>
         <source>You are using %1 account, due date is:%2</source>

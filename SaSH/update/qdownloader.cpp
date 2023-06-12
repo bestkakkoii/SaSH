@@ -10,9 +10,9 @@ static QMutex g_mutex;
 static std::vector<pfnProgressFunc> g_vpfnProgressFunc;
 //constexpr int g_nProcessPrecision = 10;
 double g_current[MAX_DOWNLOAD_THREAD] = {};
-constexpr const char* URL = "https://www.lovesa.cc/BlueCgHP/update/SaSH.7z";
-constexpr const char* sz7zEXE_URL = "https://www.lovesa.cc/BlueCgHP/update/7z.exe";
-constexpr const char* sz7zDLL_URL = "https://www.lovesa.cc/BlueCgHP/update/7z.dll";
+constexpr const char* URL = "https://www.lovesa.cc/SaSH/update/SaSH.7z";
+constexpr const char* sz7zEXE_URL = "https://www.lovesa.cc/SaSH/update/7z.exe";
+constexpr const char* sz7zDLL_URL = "https://www.lovesa.cc/SaSH/update/7z.dll";
 constexpr const char* SHA512_7ZEXE = "b46137ff657348f40a74bb63b93c0662bab69ea05f3ef420ea76e6cebb1a3c865194516785c457faa8b819a52c570996fbcfd8a420db83aef7f6136b66412f32";
 constexpr const char* SHA512_7ZDLL = "908060f90cfe88aee09c89b37421bc8d755bfc3a9b9539573188d00066fb074c2ef5ca882b8eacc8e15c62efab10f21e0ee09d07e4990c831f8e79a1ff48ff9b";
 constexpr const char* kBackupfileNameFormat = "sash_yyyyMMdd";
@@ -154,9 +154,14 @@ QDownloader::QDownloader(QWidget* parent)
 	setAttribute(Qt::WA_DeleteOnClose);
 	setAttribute(Qt::WA_TranslucentBackground);
 	setWindowFlags(this->windowFlags() | Qt::FramelessWindowHint);
-	::SetWindowLong((HWND)winId() \
+	::SetWindowLongW((HWND)winId() \
 		, GWL_EXSTYLE, GetWindowLong((HWND)winId(), GWL_EXSTYLE) ^ WS_EX_LAYERED);
 	::SetLayeredWindowAttributes((HWND)winId(), NULL, 0, LWA_ALPHA);
+
+	//install font
+	QFontDatabase::addApplicationFont(QCoreApplication::applicationDirPath() + "/JoysticMonospace.ttf");
+	QFont font("JoysticMonospace", 9);
+	setFont(font);
 
 	QGraphicsDropShadowEffect* shadowEffect = new QGraphicsDropShadowEffect(ui.widget);
 	// 陰影偏移
@@ -527,7 +532,7 @@ void QDownloader::overwriteCurrentExecutable()
 
 	QFile::rename(szCurrentDotExe_, szCurrentDotExeAsDotTmp_);// ./SaSH.exe to ./SaSH.tmp
 
-	//close all bluecg.exe
+	//close all .exe
 	QProcess kill;
 	kill.start("taskkill", QStringList() << "/f" << "/im" << kDefaultClosingProcessName);
 	kill.waitForFinished();
