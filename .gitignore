@@ -81,3 +81,5 @@ compile_commands.json
 /Release/settings/the01.json
 /Release/settings/the02.json
 /Release/settings/the03.json
+/Debug/script
+/Debug
