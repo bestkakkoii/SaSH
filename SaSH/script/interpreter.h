@@ -194,6 +194,7 @@ private:
 	void openLibsGB2312();
 	void openLibsUTF8();
 	void openLibs();
+
 private:
 	bool checkBattleThenWait();
 	bool findPath(QPoint dst, int steplen, int step_cost = 0, int timeout = 180000, std::function<int(QPoint& dst)> callback = nullptr, bool noAnnounce = false);
@@ -306,6 +307,7 @@ private: //註冊給Parser的函數
 
 private:
 	int beginLine_ = 0;
+
 	bool isSub = false;
 
 	std::atomic_bool isRequestInterrupted = false;
