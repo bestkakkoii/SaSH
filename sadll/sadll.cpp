@@ -6,6 +6,7 @@
 #pragma comment(lib, "ws2_32.lib")
 
 constexpr const char* IPV6_DEFAULT = "::1";
+constexpr const char* IPV4_DEFAULT = "127.0.0.1";
 
 WNDPROC g_OldWndProc = nullptr;
 HWND g_MainHwnd = nullptr;
@@ -301,12 +302,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, DWORD message, LPARAM wParam, LPARAM lParam)
 		std::cout << "kUninitialize" << std::endl;
 #endif
 		g_GameService.uninitialize();
-		std::thread t([]()
-			{
-				FreeLibraryAndExitThread(g_hDllModule, 0);
-				FreeLibrary(g_hDllModule);
-			});
-		t.detach();
+		SetWindowLongW(g_MainHwnd, GWL_WNDPROC, reinterpret_cast<LONG_PTR>(g_OldWndProc));
+		FreeLibraryAndExitThread(g_hDllModule, 0);
 		return 1;
 	}
 	case kGetModule:
@@ -399,6 +396,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, DWORD message, LPARAM wParam, LPARAM lParam)
 	case kBattleTimeExtend://戰鬥時間延長
 	{
 		g_GameService.WM_BattleTimeExtend(wParam);
+		return 1;
+	}
+	case kEnableOptimize:
+	{
+		g_GameService.WM_SetOptimize(wParam);
 		return 1;
 	}
 	//action
@@ -629,22 +631,10 @@ public:
 		if (result == SOCKET_ERROR)
 		{
 			lastError_ = WSAGetLastError();
-#ifdef _NDEBUG
-			MINT::NtTerminateProcess(GetCurrentProcess(), 0);
-#else
-			std::cout << "send failed with error: " << lastError_ << std::endl;
-			system("pause");
-#endif
 			return 0;
 		}
 		else if (result == 0)
 		{
-#ifdef _NDEBUG
-			MINT::NtTerminateProcess(GetCurrentProcess(), 0);
-#else
-			std::cout << "send failed with error: " << lastError_ << std::endl;
-			system("pause");
-#endif
 		}
 
 		return result;
@@ -673,12 +663,6 @@ public:
 		int len = g_GameService.precv(instance.clientSocket, buf, buflen, 0);
 		if (len == 0)
 		{
-#ifdef _NDEBUG
-			MINT::NtTerminateProcess(GetCurrentProcess(), 0);
-#else
-			std::cout << "recv failed with error: " << lastError_ << std::endl;
-			system("pause");
-#endif
 		}
 		return len;
 	}
@@ -717,9 +701,9 @@ void GameService::initialize(unsigned short port)
 	}
 
 	g_sockfd = CONVERT_GAMEVAR<int*>(0x421B404);//套接字
-	g_world_status = CONVERT_GAMEVAR<int*>(0x4230DD8);
-	g_game_status = CONVERT_GAMEVAR<int*>(0x4230DF0);
-	Autil::PersonalKey = CONVERT_GAMEVAR<char*>(0x4AC0898);//封包解密密鑰
+	//g_world_status = CONVERT_GAMEVAR<int*>(0x4230DD8);
+	//g_game_status = CONVERT_GAMEVAR<int*>(0x4230DF0);
+	//Autil::PersonalKey = CONVERT_GAMEVAR<char*>(0x4AC0898);//封包解密密鑰
 
 	pPlaySound = CONVERT_GAMEVAR<pfnPlaySound>(0x88190);//播放音效
 	pBattleProc = CONVERT_GAMEVAR<pfnBattleProc>(0x3940);//戰鬥循環
@@ -781,8 +765,8 @@ void GameService::initialize(unsigned short port)
 	DetourTransactionCommit();
 
 	//初始化封包解密緩存
-	Autil::util_Init();
-	clearNetBuffer();
+	//Autil::util_Init();
+	//clearNetBuffer();
 
 	if (nullptr == syncClient_)
 	{
@@ -790,19 +774,17 @@ void GameService::initialize(unsigned short port)
 		syncClient_.reset(new SyncClient());
 		if (syncClient_ != nullptr && syncClient_->Connect(IPV6_DEFAULT, port))
 		{
-#ifdef NDEBUG
-			if (g_hDllModule != nullptr)
-			{
-
-				hideModule(g_hDllModule);
-				HMODULE hm = ::GetModuleHandleW(L"sqsq.dll");
-				if (hm != nullptr)
-					hideModule(hm);
-			}
-#endif
+			//#ifdef NDEBUG
+			//			if (g_hDllModule != nullptr)
+			//			{
+			//
+			//				hideModule(g_hDllModule);
+			//				HMODULE hm = ::GetModuleHandleW(L"sqsq.dll");
+			//				if (hm != nullptr)
+			//					hideModule(hm);
+			//			}
+			//#endif
 		}
-		else
-			PostMessageW(g_MainHwnd, util::kUninitialize, NULL, NULL);
 	}
 }
 
@@ -906,10 +888,9 @@ int WSAAPI GameService::New_recv(SOCKET s, char* buf, int len, int flags)
 			//memcpy_s(raw.get(), len, rpc_linebuffer, recvlen);
 
 			//轉發給外掛
-			int sendlen = syncClient_->Send(buf, recvlen);//raw.get()
-#ifdef _DEBUG
-			std::cout << "send to SASH: size:" << std::to_string(sendlen) << std::endl;
-#endif
+			if (syncClient_)
+				syncClient_->Send(buf, recvlen);//raw.get()
+
 			//			//將封包內容壓入全局緩存
 			//			appendReadBuf(rpc_linebuffer, recvlen);
 			//
@@ -1039,6 +1020,28 @@ void GameService::WM_SetGameStatus(int status)
 	int G = *g_game_status;
 	if (G != status)
 		*g_game_status = status;
+}
+
+//資源優化
+void GameService::WM_SetOptimize(bool enable)
+{
+	DWORD optimizeAddr = CONVERT_GAMEVAR<DWORD>(0x129E9);
+	if (!enable)
+	{
+		/*
+		sa_8001.exe+129E9 - A1 0CA95400           - mov eax,[sa_8001.exe+14A90C] { (05205438) }
+		sa_8001.exe+129EE - 6A 00                 - push 00 { 0 }
+		*/
+		util::MemoryMove(optimizeAddr, "\xA1\x0C\xA9\x54\x00\x6A\x00", 7);
+	}
+	else
+	{
+		/*
+		sa_8001.exe+129E9 - EB 10                 - jmp sa_8001.exe+129FB
+		sa_8001.exe+129EB - A9 54006A00           - test eax,sa_8001.exe+2A0054 { (0) }
+		*/
+		util::MemoryMove(optimizeAddr, "\xEB\x10\x90\x90\x90\x90\x90", 7);
+	}
 }
 
 //靜音

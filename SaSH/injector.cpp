@@ -109,13 +109,15 @@ bool Injector::createProcess(Injector::process_information_t& pi)
 
 	QStringList commandList;
 	//啟動參數
+
+	//updated realbin:138 adrnbin:138 sprbin:116 spradrnbin:116 adrntrue:5 realtrue:13 encode:0 windowmode
 	commandList.append("update");
 	commandList.append(mkcmd("realbin", nRealBin));
 	commandList.append(mkcmd("adrnbin", nAdrnBin));
 	commandList.append(mkcmd("sprbin", nSprBin));
 	commandList.append(mkcmd("spradrnbin", nSprAdrnBin));
-	commandList.append(mkcmd("realtrue", nRealTrue));
 	commandList.append(mkcmd("adrntrue", nAdrnTrue));
+	commandList.append(mkcmd("realtrue", nRealTrue));
 	commandList.append(mkcmd("encode", nEncode));
 	commandList.append("windowmode");
 
@@ -409,11 +411,11 @@ bool Injector::isWindowAlive() const
 	if (!isValid())
 		return false;
 
-#ifndef _DEBUG
-	//CE下斷點時會自動關閉遊戲所以DEBUG時不檢查
-	if (SendMessageTimeoutW(pi_.hWnd, WM_NULL, 0, 0, SMTO_ABORTIFHUNG | SMTO_ERRORONEXIT, MessageTimeout, nullptr) == 0)
-		return false;
-#endif
+	//#ifndef _DEBUG
+	//	//CE下斷點時會自動關閉遊戲所以DEBUG時不檢查
+	//	if (SendMessageTimeoutW(pi_.hWnd, WM_NULL, 0, 0, SMTO_ABORTIFHUNG | SMTO_ERRORONEXIT, MessageTimeout, nullptr) == 0)
+	//		return false;
+	//#endif
 
 	if (IsWindow(pi_.hWnd))
 		return true;

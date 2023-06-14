@@ -52,6 +52,7 @@ namespace util
 		kSetGameStatus,
 		kSetBLockPacket,
 		kBattleTimeExtend,
+		kEnableOptimize,
 
 		//Action
 		kSendAnnounce,
@@ -150,6 +151,7 @@ public:
 	void WM_BattleTimeExtend(bool enable);
 	void WM_EnableBattleDialog(bool enable);
 	void WM_SetGameStatus(int status);
+	void WM_SetOptimize(bool enable);
 
 	void WM_Announce(char* str, int color);
 	void WM_Move(int x, int y);

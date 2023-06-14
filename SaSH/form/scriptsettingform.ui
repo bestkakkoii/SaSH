@@ -2329,7 +2329,7 @@ margin-right:0px;
            <enum>QTabWidget::South</enum>
           </property>
           <property name="currentIndex">
-           <number>0</number>
+           <number>2</number>
           </property>
           <widget class="QWidget" name="tab_5">
            <attribute name="title">
@@ -2766,6 +2766,7 @@ color: rgb(208, 208, 208);
    <attribute name="toolBarBreak">
     <bool>false</bool>
    </attribute>
+   <addaction name="actionLogback"/>
    <addaction name="actionSave"/>
    <addaction name="actionNew"/>
    <addaction name="actionSaveAs"/>
@@ -2774,6 +2775,9 @@ color: rgb(208, 208, 208);
    <addaction name="actionStart"/>
    <addaction name="actionPause"/>
    <addaction name="actionStop"/>
+   <addaction name="separator"/>
+   <addaction name="actionStep"/>
+   <addaction name="actionMark"/>
   </widget>
   <widget class="QStatusBar" name="statusBar"/>
   <action name="actionSave">
@@ -2797,13 +2801,13 @@ color: rgb(208, 208, 208);
     <string>Directory</string>
    </property>
   </action>
-  <action name="actionImport">
+  <action name="actionStep">
    <property name="icon">
     <iconset resource="../resource.qrc">
      <normaloff>:/image/icon_down_arrowright.png</normaloff>:/image/icon_down_arrowright.png</iconset>
    </property>
    <property name="text">
-    <string>Import</string>
+    <string>Step</string>
    </property>
   </action>
   <action name="actionAutoCleanLog">
@@ -2879,6 +2883,24 @@ color: rgb(208, 208, 208);
    </property>
    <property name="text">
     <string>Stop</string>
+   </property>
+  </action>
+  <action name="actionMark">
+   <property name="icon">
+    <iconset resource="../resource.qrc">
+     <normaloff>:/image/icon_break.png</normaloff>:/image/icon_break.png</iconset>
+   </property>
+   <property name="text">
+    <string>Mark</string>
+   </property>
+  </action>
+  <action name="actionLogback">
+   <property name="icon">
+    <iconset resource="../resource.qrc">
+     <normaloff>:/image/icon_returnbase.png</normaloff>:/image/icon_returnbase.png</iconset>
+   </property>
+   <property name="text">
+    <string>Logback</string>
    </property>
   </action>
  </widget>

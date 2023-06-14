@@ -45,7 +45,7 @@ QString etag = "\0";
 bool QDownloader::checkUpdate(QString* ptext)
 {
 	QString exeFileName = QCoreApplication::applicationFilePath();
-	QUrl zipUrl("https://www.lovesa.cc/SaSH/update/SaSH.7z");
+	QUrl zipUrl(URL);
 
 	QNetworkRequest request(zipUrl);
 	QNetworkAccessManager manager;
@@ -343,6 +343,7 @@ void CreateAndRunBat(const QString& path, const QString& data)
 	if (file.open(QIODevice::WriteOnly | QIODevice::Text | QIODevice::Truncate))
 	{
 		QTextStream out(&file);
+		out.setCodec("UTF-8");
 		out << data;
 		file.flush();
 		file.close();

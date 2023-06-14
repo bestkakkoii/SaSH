@@ -4,7 +4,7 @@
 #include "injector.h"
 
 //action
-int Interpreter::useitem(const TokenMap& TK)
+int Interpreter::useitem(int currentline, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance();
 
@@ -36,17 +36,35 @@ int Interpreter::useitem(const TokenMap& TK)
 			else
 			{
 				QHash<QString, int> hash = {
-					{ QObject::tr("self"), 0 },
-					{ QObject::tr("battlepet"), injector.server->pc.battlePetNo },
-					{ QObject::tr("ride"), injector.server->pc.ridePetNo },
-					{ QObject::tr("leader"), 6},
+					{ u8"自己", 0},
+					{ u8"戰寵", injector.server->pc.battlePetNo},
+					{ u8"騎寵", injector.server->pc.ridePetNo},
+					{ u8"隊長", 6},
+
+					{ u8"自己", 0},
+					{ u8"战宠", injector.server->pc.battlePetNo},
+					{ u8"骑宠", injector.server->pc.ridePetNo},
+					{ u8"队长", 6},
+
+					{ u8"self", 0},
+					{ u8"battlepet", injector.server->pc.battlePetNo},
+					{ u8"ride", injector.server->pc.ridePetNo},
+					{ u8"leader", 6},
 				};
 
 				for (int i = 0; i < MAX_PET; ++i)
-					hash.insert(QObject::tr("pet") + QString::number(i + 1), i + 1);
+				{
+					hash.insert(u8"寵物" + QString::number(i + 1), i + 1);
+					hash.insert(u8"宠物" + QString::number(i + 1), i + 1);
+					hash.insert(u8"pet" + QString::number(i + 1), i + 1);
+				}
 
 				for (int i = 1; i < MAX_PARTY; ++i)
-					hash.insert(QObject::tr("teammate") + QString::number(i), i + 1 + MAX_PET);
+				{
+					hash.insert(u8"隊員" + QString::number(i), i + 1 + MAX_PET);
+					hash.insert(u8"队员" + QString::number(i), i + 1 + MAX_PET);
+					hash.insert(u8"teammate" + QString::number(i), i + 1 + MAX_PET);
+				}
 
 				if (!hash.contains(targetTypeName))
 					return Parser::kArgError;
@@ -80,7 +98,7 @@ int Interpreter::useitem(const TokenMap& TK)
 	return Parser::kNoChange;
 }
 
-int Interpreter::dropitem(const TokenMap& TK)
+int Interpreter::dropitem(int currentline, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance();
 
@@ -170,7 +188,7 @@ int Interpreter::dropitem(const TokenMap& TK)
 	return Parser::kNoChange;
 }
 
-int Interpreter::playerrename(const TokenMap& TK)
+int Interpreter::playerrename(int currentline, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance();
 
@@ -185,7 +203,7 @@ int Interpreter::playerrename(const TokenMap& TK)
 	return Parser::kNoChange;
 }
 
-int Interpreter::petrename(const TokenMap& TK)
+int Interpreter::petrename(int currentline, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance();
 
@@ -204,7 +222,7 @@ int Interpreter::petrename(const TokenMap& TK)
 	return Parser::kNoChange;
 }
 
-int Interpreter::setpetstate(const TokenMap& TK)
+int Interpreter::setpetstate(int currentline, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance();
 
@@ -229,7 +247,7 @@ int Interpreter::setpetstate(const TokenMap& TK)
 	return Parser::kNoChange;
 }
 
-int Interpreter::droppet(const TokenMap& TK)
+int Interpreter::droppet(int currentline, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance();
 
@@ -262,7 +280,7 @@ int Interpreter::droppet(const TokenMap& TK)
 	return Parser::kNoChange;
 }
 
-int Interpreter::buy(const TokenMap& TK)
+int Interpreter::buy(int currentline, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance();
 
@@ -299,7 +317,7 @@ int Interpreter::buy(const TokenMap& TK)
 	return Parser::kNoChange;
 }
 
-int Interpreter::sell(const TokenMap& TK)
+int Interpreter::sell(int currentline, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance();
 
@@ -347,7 +365,7 @@ int Interpreter::sell(const TokenMap& TK)
 	return Parser::kNoChange;
 }
 
-int Interpreter::make(const TokenMap& TK)
+int Interpreter::make(int currentline, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance();
 
@@ -368,7 +386,7 @@ int Interpreter::make(const TokenMap& TK)
 	return Parser::kNoChange;
 }
 
-int Interpreter::cook(const TokenMap& TK)
+int Interpreter::cook(int currentline, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance();
 
@@ -390,7 +408,7 @@ int Interpreter::cook(const TokenMap& TK)
 }
 
 //group
-int Interpreter::join(const TokenMap& TK)
+int Interpreter::join(int currentline, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance();
 
@@ -404,7 +422,7 @@ int Interpreter::join(const TokenMap& TK)
 	return Parser::kNoChange;
 }
 
-int Interpreter::leave(const TokenMap& TK)
+int Interpreter::leave(int currentline, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance();
 
@@ -418,7 +436,7 @@ int Interpreter::leave(const TokenMap& TK)
 	return Parser::kNoChange;
 }
 
-int Interpreter::usemagic(const TokenMap& TK)
+int Interpreter::usemagic(int currentline, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance();
 
@@ -448,17 +466,35 @@ int Interpreter::usemagic(const TokenMap& TK)
 
 
 			QHash<QString, int> hash = {
-				{ QObject::tr("self"), 0 },
-				{ QObject::tr("battlepet"), injector.server->pc.battlePetNo },
-				{ QObject::tr("ride"), injector.server->pc.ridePetNo },
-				{ QObject::tr("leader"), 6},
+				{ u8"自己", 0},
+				{ u8"戰寵", injector.server->pc.battlePetNo},
+				{ u8"騎寵", injector.server->pc.ridePetNo},
+				{ u8"隊長", 6},
+
+				{ u8"自己", 0},
+				{ u8"战宠", injector.server->pc.battlePetNo},
+				{ u8"骑宠", injector.server->pc.ridePetNo},
+				{ u8"队长", 6},
+
+				{ u8"self", 0},
+				{ u8"battlepet", injector.server->pc.battlePetNo},
+				{ u8"ride", injector.server->pc.ridePetNo},
+				{ u8"leader", 6},
 			};
 
 			for (int i = 0; i < MAX_PET; ++i)
-				hash.insert(QObject::tr("pet") + QString::number(i + 1), i + 1);
+			{
+				hash.insert(u8"寵物" + QString::number(i + 1), i + 1);
+				hash.insert(u8"宠物" + QString::number(i + 1), i + 1);
+				hash.insert(u8"pet" + QString::number(i + 1), i + 1);
+			}
 
 			for (int i = 1; i < MAX_PARTY; ++i)
-				hash.insert(QObject::tr("teammate") + QString::number(i), i + 1 + MAX_PET);
+			{
+				hash.insert(u8"隊員" + QString::number(i), i + 1 + MAX_PET);
+				hash.insert(u8"队员" + QString::number(i), i + 1 + MAX_PET);
+				hash.insert(u8"teammate" + QString::number(i), i + 1 + MAX_PET);
+			}
 
 			if (!hash.contains(targetTypeName))
 				return Parser::kArgError;
@@ -478,7 +514,7 @@ int Interpreter::usemagic(const TokenMap& TK)
 	return Parser::kNoChange;
 }
 
-int Interpreter::pickitem(const TokenMap& TK)
+int Interpreter::pickitem(int currentline, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance();
 
@@ -512,7 +548,7 @@ int Interpreter::pickitem(const TokenMap& TK)
 	return Parser::kNoChange;
 }
 
-int Interpreter::depositgold(const TokenMap& TK)
+int Interpreter::depositgold(int currentline, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance();
 
@@ -541,7 +577,7 @@ int Interpreter::depositgold(const TokenMap& TK)
 	return Parser::kNoChange;
 }
 
-int Interpreter::withdrawgold(const TokenMap& TK)
+int Interpreter::withdrawgold(int currentline, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance();
 
@@ -561,38 +597,9 @@ int Interpreter::withdrawgold(const TokenMap& TK)
 	return Parser::kNoChange;
 }
 
-int Interpreter::warp(const TokenMap& TK)
-{
-	Injector& injector = Injector::getInstance();
-
-	if (injector.server.isNull())
-		return Parser::kError;
-
-	checkBattleThenWait();
-
-	injector.server->warp();
-
-	return Parser::kNoChange;
-}
-
-int Interpreter::leftclick(const TokenMap& TK)
-{
-	Injector& injector = Injector::getInstance();
-
-	if (injector.server.isNull())
-		return Parser::kError;
-
-	QPoint p;
-	checkInt(TK, 1, &p.rx());
-	checkInt(TK, 2, &p.ry());
-
-	injector.server->leftCLick(p.x(), p.y());
-
-	return Parser::kNoChange;
-}
 
 util::SafeHash<int, ITEM> recordedEquip_;
-int Interpreter::recordequip(const TokenMap& TK)
+int Interpreter::recordequip(int currentline, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance();
 
@@ -612,7 +619,7 @@ int Interpreter::recordequip(const TokenMap& TK)
 	return Parser::kNoChange;
 }
 
-int Interpreter::wearequip(const TokenMap& TK)
+int Interpreter::wearequip(int currentline, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance();
 
@@ -644,7 +651,7 @@ int Interpreter::wearequip(const TokenMap& TK)
 	return Parser::kNoChange;
 }
 
-int Interpreter::unwearequip(const TokenMap& TK)
+int Interpreter::unwearequip(int currentline, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance();
 
@@ -662,23 +669,49 @@ int Interpreter::unwearequip(const TokenMap& TK)
 		if (partStr.isEmpty())
 			return Parser::kArgError;
 
-		part = equipMap.value(partStr, CHAR_EQUIPNONE);
-		if (part == CHAR_EQUIPNONE)
-			return Parser::kArgError;
+		if (partStr.toLower() == "all" || partStr.toLower() == QString("全部"))
+		{
+			part = 100;
+		}
+		else
+		{
+			part = equipMap.value(partStr.toLower(), CHAR_EQUIPNONE);
+			if (part == CHAR_EQUIPNONE)
+				return Parser::kArgError;
+		}
 	}
 	else
 		--part;
+	if (part < 100)
+	{
+		int spotIndex = injector.server->getItemEmptySpotIndex();
+		if (spotIndex == -1)
+			return Parser::kNoChange;
 
-	int spotIndex = injector.server->getItemEmptySpotIndex();
-	if (spotIndex == -1)
-		return Parser::kNoChange;
+		injector.server->swapItem(part, spotIndex);
+	}
+	else
+	{
+		QVector<int> v;
+		if (!injector.server->getItemEmptySpotIndexs(&v))
+			return Parser::kNoChange;
 
-	injector.server->swapItem(part, spotIndex);
+		for (int i = 0; i < CHAR_EQUIPPLACENUM; ++i)
+		{
+			if (v.isEmpty())
+				break;
+
+			int itemIndex = v.takeFirst();
+
+			injector.server->swapItem(i, itemIndex);
+		}
+	}
+
 	QThread::msleep(200);
 	return Parser::kNoChange;
 }
 
-int Interpreter::depositpet(const TokenMap& TK)
+int Interpreter::depositpet(int currentline, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance();
 
@@ -727,7 +760,7 @@ int Interpreter::depositpet(const TokenMap& TK)
 	return Parser::kNoChange;
 }
 
-int Interpreter::deposititem(const TokenMap& TK)
+int Interpreter::deposititem(int currentline, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance();
 
@@ -803,7 +836,7 @@ int Interpreter::deposititem(const TokenMap& TK)
 	return Parser::kNoChange;
 }
 
-int Interpreter::withdrawpet(const TokenMap& TK)
+int Interpreter::withdrawpet(int currentline, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance();
 
@@ -897,7 +930,7 @@ int Interpreter::withdrawpet(const TokenMap& TK)
 	return Parser::kNoChange;
 }
 
-int Interpreter::withdrawitem(const TokenMap& TK)
+int Interpreter::withdrawitem(int currentline, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance();
 
@@ -959,7 +992,7 @@ int Interpreter::withdrawitem(const TokenMap& TK)
 	return Parser::kNoChange;
 }
 
-int Interpreter::addpoint(const TokenMap& TK)
+int Interpreter::addpoint(int currentline, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance();
 
@@ -991,5 +1024,72 @@ int Interpreter::addpoint(const TokenMap& TK)
 
 	injector.server->addPoint(point, max);
 	QThread::msleep(200);
+	return Parser::kNoChange;
+}
+
+int Interpreter::leftclick(int currentline, const TokenMap& TK)
+{
+	Injector& injector = Injector::getInstance();
+
+	if (injector.server.isNull())
+		return Parser::kError;
+
+	QPoint p;
+	checkInt(TK, 1, &p.rx());
+	checkInt(TK, 2, &p.ry());
+
+	injector.server->leftClick(p.x(), p.y());
+
+	return Parser::kNoChange;
+}
+
+int Interpreter::rightclick(int currentline, const TokenMap& TK)
+{
+	Injector& injector = Injector::getInstance();
+
+	if (injector.server.isNull())
+		return Parser::kError;
+
+	QPoint p;
+	checkInt(TK, 1, &p.rx());
+	checkInt(TK, 2, &p.ry());
+
+	injector.server->rightClick(p.x(), p.y());
+
+	return Parser::kNoChange;
+}
+
+int Interpreter::leftdoubleclick(int currentline, const TokenMap& TK)
+{
+	Injector& injector = Injector::getInstance();
+
+	if (injector.server.isNull())
+		return Parser::kError;
+
+	QPoint p;
+	checkInt(TK, 1, &p.rx());
+	checkInt(TK, 2, &p.ry());
+
+	injector.server->leftDoubleClick(p.x(), p.y());
+
+	return Parser::kNoChange;
+}
+
+int Interpreter::mousedragto(int currentline, const TokenMap& TK)
+{
+	Injector& injector = Injector::getInstance();
+
+	if (injector.server.isNull())
+		return Parser::kError;
+
+	QPoint pfrom;
+	checkInt(TK, 1, &pfrom.rx());
+	checkInt(TK, 2, &pfrom.ry());
+	QPoint pto;
+	checkInt(TK, 3, &pto.rx());
+	checkInt(TK, 4, &pto.ry());
+
+	injector.server->dragto(pfrom.x(), pfrom.y(), pto.x(), pto.y());
+
 	return Parser::kNoChange;
 }

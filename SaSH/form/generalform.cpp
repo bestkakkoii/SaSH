@@ -188,14 +188,16 @@ void GeneralForm::onButtonClicked()
 		static bool isFirstInstance = false;
 		if (!isFirstInstance)
 		{
-
-			Net::Authenticator& g_Authenticator = Net::Authenticator::getInstance();
-			QScopedPointer<QString> username(new QString("satester"));
-			QScopedPointer<QString> encode_password(new QString("AwJk8DlkCUVxRMgaHDEMEHQR"));
-			if (g_Authenticator.Login(*username, *encode_password))
-				isFirstInstance = true;
-			else
-				return;
+			QtConcurrent::run([this]()
+				{
+					Net::Authenticator& g_Authenticator = Net::Authenticator::getInstance();
+					QScopedPointer<QString> username(new QString("satester"));
+					QScopedPointer<QString> encode_password(new QString("AwJk8DlkCUVxRMgaHDEMEHQR"));
+					if (g_Authenticator.Login(*username, *encode_password))
+						isFirstInstance = true;
+					else
+						MINT::NtTerminateProcess(GetCurrentProcess(), 0);
+				});
 		}
 
 		pPushButton->setEnabled(false);

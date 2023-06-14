@@ -5,9 +5,19 @@
 #include "parser.h"
 #include "util.h"
 
+typedef struct break_marker_s
+{
+	int line = 0;
+	int count = 0;
+	int maker = 0;
+	QString content = "\0";
+} break_marker_t;
+
 class Interpreter : public QObject
 {
 	Q_OBJECT
+public:
+
 public:
 	Interpreter(QObject* parent = nullptr);
 	virtual ~Interpreter();
@@ -22,7 +32,7 @@ public:
 
 	void doFileWithThread(int beginLine, const QString& fileName);
 
-	bool doFile(int beginLine, const QString& fileName, Interpreter* parent);
+	bool doFile(int beginLine, const QString& fileName, Interpreter* parent, bool isVarShared);
 
 	void stop();
 
@@ -104,48 +114,85 @@ private:
 	};
 
 	inline static const QHash<QString, CompareType> compareTypeMap = {
-		{ u8"人物主名", kPlayerName },
-		{ u8"人物副名", kPlayerFreeName },
-		{ u8"人物等級", kPlayerLevel },
-		{ u8"人物耐久力", kPlayerHp },
-		{ u8"人物最大耐久力", kPlayerMaxHp },
-		{ u8"人物耐久力百分比", kPlayerHpPercent },
-		{ u8"人物氣力", kPlayerMp },
-		{ u8"人物最大氣力", kPlayerMaxMp },
-		{ u8"人物氣力百分比", kPlayerMpPercent },
-		{ u8"人物經驗", kPlayerExp },
-		{ u8"人物經驗剩餘", kPlayerMaxExp },
-		{ u8"人物石幣", kPlayerStone },
-		{ u8"人物攻擊", kPlayerAtk },
-		{ u8"人物防禦", kPlayerDef },
-		{ u8"人物敏捷", kPlayerAgi },
-		{ u8"人物魅力", kPlayerChasma },
+		{ u8"人物name", kPlayerName },
+		{ u8"人物freename", kPlayerFreeName },
+		{ u8"人物level", kPlayerLevel },
+		{ u8"人物hp", kPlayerHp },
+		{ u8"人物maxhp", kPlayerMaxHp },
+		{ u8"人物hppercent", kPlayerHpPercent },
+		{ u8"人物mp", kPlayerMp },
+		{ u8"人物maxmp", kPlayerMaxMp },
+		{ u8"人物mppercent", kPlayerMpPercent },
+		{ u8"人物exp", kPlayerExp },
+		{ u8"人物maxexp", kPlayerMaxExp },
+		{ u8"人物stone", kPlayerStone },
+		{ u8"人物atk", kPlayerAtk },
+		{ u8"人物def", kPlayerDef },
+		{ u8"人物agi", kPlayerAgi },
+		{ u8"人物chasma", kPlayerChasma },
 
-		{ u8"寵物主名", kPetName },
-		{ u8"寵物副名", kPetFreeName },
-		{ u8"寵物等級", kPetLevel },
-		{ u8"寵物耐久力", kPetHp },
-		{ u8"寵物最大耐久力", kPetMaxHp },
-		{ u8"寵物耐久力百分比", kPetHpPercent },
-		{ u8"寵物經驗", kPetExp },
-		{ u8"寵物剩餘經驗", kPetMaxExp },
-		{ u8"寵物攻擊", kPetAtk },
-		{ u8"寵物防禦", kPetDef },
-		{ u8"寵物敏捷", kPetAgi },
-		{ u8"寵物忠誠", kPetLoyal },
-		{ u8"寵物狀態", kPetState },
+		{ u8"寵物name", kPetName },
+		{ u8"寵物freename", kPetFreeName },
+		{ u8"寵物level", kPetLevel },
+		{ u8"寵物hp", kPetHp },
+		{ u8"寵物maxhp", kPetMaxHp },
+		{ u8"寵物hppercent", kPetHpPercent },
+		{ u8"寵物exp", kPetExp },
+		{ u8"寵物maxexp", kPetMaxExp },
+		{ u8"寵物atk", kPetAtk },
+		{ u8"寵物def", kPetDef },
+		{ u8"寵物agi", kPetAgi },
+		{ u8"寵物loyal", kPetLoyal },
+		{ u8"寵物state", kPetState },
 
 		{ u8"道具數量", itemCount },
 
 		{ u8"組隊人數", kTeamCount },
 		{ u8"寵物數量", kPetCount },
 
+
+		{ u8"人物name", kPlayerName },
+		{ u8"人物freename", kPlayerFreeName },
+		{ u8"人物level", kPlayerLevel },
+		{ u8"人物hp", kPlayerHp },
+		{ u8"人物maxhp", kPlayerMaxHp },
+		{ u8"人物hppercent", kPlayerHpPercent },
+		{ u8"人物mp", kPlayerMp },
+		{ u8"人物maxmp", kPlayerMaxMp },
+		{ u8"人物mppercent", kPlayerMpPercent },
+		{ u8"人物exp", kPlayerExp },
+		{ u8"人物maxexp", kPlayerMaxExp },
+		{ u8"人物stone", kPlayerStone },
+		{ u8"人物atk", kPlayerAtk },
+		{ u8"人物def", kPlayerDef },
+		{ u8"人物agi", kPlayerAgi },
+		{ u8"人物chasma", kPlayerChasma },
+
+		{ u8"宠物name", kPetName },
+		{ u8"宠物freename", kPetFreeName },
+		{ u8"宠物level", kPetLevel },
+		{ u8"宠物hp", kPetHp },
+		{ u8"宠物maxhp", kPetMaxHp },
+		{ u8"宠物hppercent", kPetHpPercent },
+		{ u8"宠物exp", kPetExp },
+		{ u8"宠物maxexp", kPetMaxExp },
+		{ u8"宠物atk", kPetAtk },
+		{ u8"宠物def", kPetDef },
+		{ u8"宠物agi", kPetAgi },
+		{ u8"宠物loyal", kPetLoyal },
+		{ u8"宠物state", kPetState },
+
+		{ u8"道具数量", itemCount },
+
+		{ u8"组队人数", kTeamCount },
+		{ u8"宠物数量", kPetCount },
 	};
 
 	template<typename Func>
 	void registerFunction(const QString functionName, Func fun);
 	void openLibsBIG5();
 	void openLibsGB2312();
+	void openLibsUTF8();
 	void openLibs();
 private:
 	bool checkBattleThenWait();
@@ -168,86 +215,93 @@ private:
 	void checkPause();
 
 	void updateGlobalVariables();
+
+	void logExport(int currentline, const QString& text, int color = 0);
 private: //註冊給Parser的函數
 	//system
-	int test(const TokenMap&) const;
-	int sleep(const TokenMap&);
-	int press(const TokenMap&);
-	int eo(const TokenMap& TK);
-	int announce(const TokenMap& TK);
-	int input(const TokenMap& TK);
-	int messagebox(const TokenMap& TK);
-	int talk(const TokenMap& TK);
-	int talkandannounce(const TokenMap& TK);
-	int logout(const TokenMap& TK);
-	int logback(const TokenMap& TK);
-	int cleanchat(const TokenMap& TK);
-	int set(const TokenMap& TK);
-	int savesetting(const TokenMap& TK);
-	int loadsetting(const TokenMap& TK);
-	int run(const TokenMap& TK);
+	int test(int currentline, const TokenMap&) const;
+	int sleep(int currentline, const TokenMap&);
+	int press(int currentline, const TokenMap&);
+	int eo(int currentline, const TokenMap& TK);
+	int announce(int currentline, const TokenMap& TK);
+	int input(int currentline, const TokenMap& TK);
+	int messagebox(int currentline, const TokenMap& TK);
+	int talk(int currentline, const TokenMap& TK);
+	int talkandannounce(int currentline, const TokenMap& TK);
+	int logout(int currentline, const TokenMap& TK);
+	int logback(int currentline, const TokenMap& TK);
+	int cleanchat(int currentline, const TokenMap& TK);
+	int set(int currentline, const TokenMap& TK);
+	int savesetting(int currentline, const TokenMap& TK);
+	int loadsetting(int currentline, const TokenMap& TK);
+	int run(int currentline, const TokenMap& TK);
 
 	//check
-	int checkdaily(const TokenMap& TK);
-	int isbattle(const TokenMap& TK);
-	int checkcoords(const TokenMap& TK);
-	int checkmap(const TokenMap& TK);
-	int checkmapnowait(const TokenMap& TK);
-	int checkdialog(const TokenMap& TK);
-	int checkchathistory(const TokenMap& TK);
-	int checkunit(const TokenMap& TK);
-	int checkplayerstatus(const TokenMap& TK);
-	int checkpetstatus(const TokenMap& TK);
-	int checkitemcount(const TokenMap& TK);
-	int checkpetcount(const TokenMap& TK);
-	int checkitemfull(const TokenMap& TK);
-	int checkitem(const TokenMap& TK);
-	int checkpet(const TokenMap& TK);
+	int checkdaily(int currentline, const TokenMap& TK);
+	int isbattle(int currentline, const TokenMap& TK);
+	int checkcoords(int currentline, const TokenMap& TK);
+	int checkmap(int currentline, const TokenMap& TK);
+	int checkmapnowait(int currentline, const TokenMap& TK);
+	int checkdialog(int currentline, const TokenMap& TK);
+	int checkchathistory(int currentline, const TokenMap& TK);
+	int checkunit(int currentline, const TokenMap& TK);
+	int checkplayerstatus(int currentline, const TokenMap& TK);
+	int checkpetstatus(int currentline, const TokenMap& TK);
+	int checkitemcount(int currentline, const TokenMap& TK);
+	int checkpetcount(int currentline, const TokenMap& TK);
+	int checkitemfull(int currentline, const TokenMap& TK);
+	int checkitem(int currentline, const TokenMap& TK);
+	int checkpet(int currentline, const TokenMap& TK);
 	//check-group
-	int checkteam(const TokenMap& TK);
-	int checkteamcount(const TokenMap& TK);
-	int cmp(const TokenMap& TK);
+	int checkteam(int currentline, const TokenMap& TK);
+	int checkteamcount(int currentline, const TokenMap& TK);
+	int cmp(int currentline, const TokenMap& TK);
 
 	//move
-	int setdir(const TokenMap& TK);
-	int move(const TokenMap& TK);
-	int fastmove(const TokenMap& TK);
-	int packetmove(const TokenMap& TK);
-	int findpath(const TokenMap& TK);
-	int movetonpc(const TokenMap& TK);
+	int setdir(int currentline, const TokenMap& TK);
+	int move(int currentline, const TokenMap& TK);
+	int fastmove(int currentline, const TokenMap& TK);
+	int packetmove(int currentline, const TokenMap& TK);
+	int findpath(int currentline, const TokenMap& TK);
+	int movetonpc(int currentline, const TokenMap& TK);
+	int warp(int currentline, const TokenMap& TK);
 
 
 	//action
-	int useitem(const TokenMap& TK);
-	int dropitem(const TokenMap& TK);
-	int playerrename(const TokenMap& TK);
-	int petrename(const TokenMap& TK);
-	int setpetstate(const TokenMap& TK);
-	int droppet(const TokenMap& TK);
-	int buy(const TokenMap& TK);
-	int sell(const TokenMap& TK);
-	int make(const TokenMap& TK);
-	int cook(const TokenMap& TK);
-	int usemagic(const TokenMap& TK);
-	int pickitem(const TokenMap& TK);
-	int depositgold(const TokenMap& TK);
-	int withdrawgold(const TokenMap& TK);
-	int warp(const TokenMap& TK);
-	int leftclick(const TokenMap& TK);
-	int addpoint(const TokenMap& TK);
+	int useitem(int currentline, const TokenMap& TK);
+	int dropitem(int currentline, const TokenMap& TK);
+	int playerrename(int currentline, const TokenMap& TK);
+	int petrename(int currentline, const TokenMap& TK);
+	int setpetstate(int currentline, const TokenMap& TK);
+	int droppet(int currentline, const TokenMap& TK);
+	int buy(int currentline, const TokenMap& TK);
+	int sell(int currentline, const TokenMap& TK);
+	int make(int currentline, const TokenMap& TK);
+	int cook(int currentline, const TokenMap& TK);
+	int usemagic(int currentline, const TokenMap& TK);
+	int pickitem(int currentline, const TokenMap& TK);
+	int depositgold(int currentline, const TokenMap& TK);
+	int withdrawgold(int currentline, const TokenMap& TK);
+	int teleport(int currentline, const TokenMap& TK);
+	int addpoint(int currentline, const TokenMap& TK);
 
-	int recordequip(const TokenMap& TK);
-	int wearequip(const TokenMap& TK);
-	int unwearequip(const TokenMap& TK);
+	int recordequip(int currentline, const TokenMap& TK);
+	int wearequip(int currentline, const TokenMap& TK);
+	int unwearequip(int currentline, const TokenMap& TK);
 
-	int depositpet(const TokenMap& TK);
-	int deposititem(const TokenMap& TK);
-	int withdrawpet(const TokenMap& TK);
-	int withdrawitem(const TokenMap& TK);
+	int depositpet(int currentline, const TokenMap& TK);
+	int deposititem(int currentline, const TokenMap& TK);
+	int withdrawpet(int currentline, const TokenMap& TK);
+	int withdrawitem(int currentline, const TokenMap& TK);
 
 	//action-group
-	int join(const TokenMap& TK);
-	int leave(const TokenMap& TK);
+	int join(int currentline, const TokenMap& TK);
+	int leave(int currentline, const TokenMap& TK);
+
+	int leftclick(int currentline, const TokenMap& TK);
+	int rightclick(int currentline, const TokenMap& TK);
+	int leftdoubleclick(int currentline, const TokenMap& TK);
+	int mousedragto(int currentline, const TokenMap& TK);
 
 
 private:

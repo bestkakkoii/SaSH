@@ -51,6 +51,7 @@ public:
 		kSetGameStatus,
 		kSetBLockPacket,
 		kBattleTimeExtend,
+		kEnableOptimize,
 
 		//Action
 		kSendAnnounce,

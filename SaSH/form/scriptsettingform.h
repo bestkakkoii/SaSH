@@ -2,6 +2,8 @@
 
 #include <QMainWindow>
 #include "ui_scriptsettingform.h"
+#include "util.h"
+#include "script/interpreter.h"
 
 class ScriptSettingForm : public QMainWindow
 {
@@ -9,7 +11,7 @@ class ScriptSettingForm : public QMainWindow
 
 public:
 	ScriptSettingForm(QWidget* parent = nullptr);
-	~ScriptSettingForm();
+	virtual ~ScriptSettingForm();
 protected:
 	void showEvent(QShowEvent* e) override;
 	void closeEvent(QCloseEvent* e) override;
@@ -20,7 +22,7 @@ private:
 
 	void onReloadScriptList();
 
-	void setMark(CodeEditor::SymbolHandler element, int liner, bool b);
+	void setMark(CodeEditor::SymbolHandler element, util::SafeHash<int, break_marker_t>& hash, int liner, bool b);
 
 	void varInfoImport(QTreeWidget* tree, const QHash<QString, QVariant>& d);
 
@@ -36,13 +38,20 @@ private slots:
 	void on_widget_cursorPositionChanged(int line, int index);
 	void on_widget_textChanged();
 	void on_lineEdit_searchFunction_textChanged(const QString& text);
+	void onAddForwardMarker(int liner, bool b);
 	void onAddErrorMarker(int liner, bool b);
+	void onAddStepMarker(int liner, bool b);
+	void onAddBreakMarker(int liner, bool b);
+	void onBreakMarkInfoImport();
+	void on_widget_marginClicked(int margin, int line, Qt::KeyboardModifiers state);
 	void onScriptLabelRowTextChanged(int row, int max, bool noSelect);
 	void on_treeWidget_functionList_itemDoubleClicked(QTreeWidgetItem* item, int column);
 	void on_treeWidget_functionList_itemClicked(QTreeWidgetItem* item, int column);
 	void loadFile(const QString& fileName);
 	void onGlobalVarInfoImport(const QHash<QString, QVariant>& d);
 	void onLocalVarInfoImport(const QHash<QString, QVariant>& d);
+	void onContinue();
+	void onFinished();
 private:
 	Ui::ScriptSettingFormClass ui;
 	QLabel m_staticLabel;

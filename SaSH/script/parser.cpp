@@ -91,8 +91,10 @@ bool Parser::jump(const QString& name)
 void Parser::processTokens()
 {
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
-	emit signalDispatcher.addErrorMarker(-1, 0);
-
+	emit signalDispatcher.addErrorMarker(-1, false);
+	emit signalDispatcher.addForwardMarker(-1, false);
+	emit signalDispatcher.addStepMarker(-1, false);
+	int oldlineNumber = lineNumber_;
 	for (;;)
 	{
 		if (isEmpty())
@@ -103,6 +105,9 @@ void Parser::processTokens()
 			QThread::yieldCurrentThread();
 			QThread::msleep(1);
 		}
+
+		emit signalDispatcher.scriptLabelRowTextChanged2(oldlineNumber, NULL, false);
+		oldlineNumber = lineNumber_;
 
 		currentLineTokens_ = tokens_.value(lineNumber_);
 		if (callBack_)
@@ -246,7 +251,7 @@ int Parser::processCommand()
 			return status;
 		}
 
-		status = function(tokens);
+		status = function(lineNumber_, tokens);
 	}
 	else
 	{

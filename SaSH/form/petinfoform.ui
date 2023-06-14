@@ -364,21 +364,12 @@
              </spacer>
             </item>
             <item>
-             <widget class="QSpinBox" name="spinBox_3">
+             <widget class="QDoubleSpinBox" name="doubleSpinBox">
               <property name="minimumSize">
                <size>
                 <width>50</width>
                 <height>0</height>
                </size>
-              </property>
-              <property name="readOnly">
-               <bool>true</bool>
-              </property>
-              <property name="minimum">
-               <number>1</number>
-              </property>
-              <property name="maximum">
-               <number>255</number>
               </property>
              </widget>
             </item>

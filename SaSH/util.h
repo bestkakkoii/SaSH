@@ -843,25 +843,12 @@ namespace util
 		return false;
 	}
 
-	static bool customStringCompare(const QString& str1, const QString& str2)
+	inline bool customStringCompare(const QString& str1, const QString& str2)
 	{
 		//中文locale
 		QLocale locale;
 		QCollator collator(locale);
 
-		// 按照數字進行排序
-		if (str1.contains(QRegularExpression("\\d")) && str2.contains(QRegularExpression("\\d")))
-		{
-			return str1.toInt() < str2.toInt();
-		}
-
-		// 按照字母進行排序
-		if (str1.contains(QRegularExpression("[A-Za-z]")) && str2.contains(QRegularExpression("[A-Za-z]")))
-		{
-			return str1.localeAwareCompare(str2) < 0;
-		}
-
-		// 按照中文進行排序
 		return collator.compare(str1, str2) < 0;
 	}
 

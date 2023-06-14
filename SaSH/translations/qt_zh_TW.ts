@@ -2201,11 +2201,11 @@ MESSAGE：<byte value="xd"/>
     </message>
     <message>
         <source>battlepet</source>
-        <translation>戰寵</translation>
+        <translation type="vanished">戰寵</translation>
     </message>
     <message>
         <source>leader</source>
-        <translation>隊長</translation>
+        <translation type="vanished">隊長</translation>
     </message>
     <message>
         <source>pet</source>
@@ -2213,7 +2213,7 @@ MESSAGE：<byte value="xd"/>
     </message>
     <message>
         <source>teammate</source>
-        <translation>隊友</translation>
+        <translation type="vanished">隊友</translation>
     </message>
     <message>
         <source>player</source>
@@ -2221,23 +2221,23 @@ MESSAGE：<byte value="xd"/>
     </message>
     <message>
         <source>ride</source>
-        <translation>騎乘</translation>
+        <translation type="vanished">騎乘</translation>
     </message>
     <message>
         <source>battle</source>
-        <translation>戰鬥</translation>
+        <translation type="vanished">戰鬥</translation>
     </message>
     <message>
         <source>standby</source>
-        <translation>等待</translation>
+        <translation type="vanished">等待</translation>
     </message>
     <message>
         <source>mail</source>
-        <translation>郵件</translation>
+        <translation type="vanished">郵件</translation>
     </message>
     <message>
         <source>rest</source>
-        <translation>休息</translation>
+        <translation type="vanished">休息</translation>
     </message>
     <message>
         <source>set var [%1] value</source>
@@ -2500,6 +2500,26 @@ MESSAGE：<byte value="xd"/>
         <source>ULongLong</source>
         <translation>無符號超長整數型</translation>
     </message>
+    <message>
+        <source>CONTENT</source>
+        <translation>內容</translation>
+    </message>
+    <message>
+        <source>COUNT</source>
+        <translation>計次</translation>
+    </message>
+    <message>
+        <source>ROW</source>
+        <translation>行</translation>
+    </message>
+    <message>
+        <source>start</source>
+        <translation>開始</translation>
+    </message>
+    <message>
+        <source>continue</source>
+        <translation>繼續</translation>
+    </message>
 </context>
 <context>
     <name>ScriptSettingFormClass</name>
@@ -2577,7 +2597,7 @@ MESSAGE：<byte value="xd"/>
     </message>
     <message>
         <source>Import</source>
-        <translation>載入</translation>
+        <translation type="vanished">載入</translation>
     </message>
     <message>
         <source>AutoCleanLog</source>
@@ -3098,6 +3118,18 @@ MESSAGE：<byte value="xd"/>
     <message>
         <source>des</source>
         <translation>說明</translation>
+    </message>
+    <message>
+        <source>Step</source>
+        <translation>單步</translation>
+    </message>
+    <message>
+        <source>Mark</source>
+        <translation>斷點</translation>
+    </message>
+    <message>
+        <source>Logback</source>
+        <translation>回點</translation>
     </message>
 </context>
 <context>

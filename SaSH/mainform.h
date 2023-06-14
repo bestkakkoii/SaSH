@@ -14,6 +14,8 @@ class OtherForm;
 class ScriptForm;
 
 class InfoForm;
+class MapWidget;
+class ScriptSettingForm;
 
 class MainForm : public QMainWindow
 {
@@ -59,4 +61,6 @@ private:
 	ScriptForm* pScriptForm_ = nullptr;
 
 	InfoForm* pInfoForm_ = nullptr;
+	MapWidget* mapWidget_ = nullptr;
+	ScriptSettingForm* pScriptSettingForm_ = nullptr;
 };

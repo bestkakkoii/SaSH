@@ -6,7 +6,7 @@
 #include "signaldispatcher.h"
 
 
-int Interpreter::sleep(const TokenMap& TK)
+int Interpreter::sleep(int currentline, const TokenMap& TK)
 {
 	int t;
 	if (!checkInt(TK, 1, &t))
@@ -30,7 +30,7 @@ int Interpreter::sleep(const TokenMap& TK)
 	return Parser::kNoChange;
 }
 
-int Interpreter::press(const TokenMap& TK)
+int Interpreter::press(int currentline, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance();
 
@@ -88,7 +88,7 @@ int Interpreter::press(const TokenMap& TK)
 	return Parser::kNoChange;
 }
 
-int Interpreter::eo(const TokenMap& TK)
+int Interpreter::eo(int currentline, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance();
 	if (injector.server.isNull())
@@ -101,7 +101,7 @@ int Interpreter::eo(const TokenMap& TK)
 	return Parser::kNoChange;
 }
 
-int Interpreter::announce(const TokenMap& TK)
+int Interpreter::announce(int currentline, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance();
 
@@ -122,10 +122,11 @@ int Interpreter::announce(const TokenMap& TK)
 	checkInt(TK, 2, &color);
 
 	injector.server->announce(text, color);
+	logExport(currentline, text, color);
 	return Parser::kNoChange;
 }
 
-int Interpreter::input(const TokenMap& TK)
+int Interpreter::input(int currentline, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance();
 
@@ -147,7 +148,7 @@ int Interpreter::input(const TokenMap& TK)
 	return Parser::kNoChange;
 }
 
-int Interpreter::messagebox(const TokenMap& TK)
+int Interpreter::messagebox(int currentline, const TokenMap& TK)
 {
 	QString text;
 	if (!checkString(TK, 1, &text))
@@ -168,7 +169,7 @@ int Interpreter::messagebox(const TokenMap& TK)
 	return Parser::kNoChange;
 }
 
-int Interpreter::talk(const TokenMap& TK)
+int Interpreter::talk(int currentline, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance();
 
@@ -187,13 +188,13 @@ int Interpreter::talk(const TokenMap& TK)
 	return Parser::kNoChange;
 }
 
-int Interpreter::talkandannounce(const TokenMap& TK)
+int Interpreter::talkandannounce(int currentline, const TokenMap& TK)
 {
-	announce(TK);
-	return talk(TK);
+	announce(currentline, TK);
+	return talk(currentline, TK);
 }
 
-int Interpreter::logout(const TokenMap& TK)
+int Interpreter::logout(int currentline, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance();
 	if (!injector.server.isNull())
@@ -202,7 +203,7 @@ int Interpreter::logout(const TokenMap& TK)
 	return Parser::kNoChange;
 }
 
-int Interpreter::logback(const TokenMap& TK)
+int Interpreter::logback(int currentline, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance();
 	if (injector.server.isNull())
@@ -215,7 +216,7 @@ int Interpreter::logback(const TokenMap& TK)
 	return Parser::kNoChange;
 }
 
-int Interpreter::cleanchat(const TokenMap& TK)
+int Interpreter::cleanchat(int currentline, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance();
 	if (!injector.server.isNull())
@@ -224,7 +225,7 @@ int Interpreter::cleanchat(const TokenMap& TK)
 	return Parser::kNoChange;
 }
 
-int Interpreter::savesetting(const TokenMap& TK)
+int Interpreter::savesetting(int currentline, const TokenMap& TK)
 {
 	QString fileName;
 	if (!checkString(TK, 1, &fileName))
@@ -260,7 +261,7 @@ int Interpreter::savesetting(const TokenMap& TK)
 	return Parser::kNoChange;
 }
 
-int Interpreter::loadsetting(const TokenMap& TK)
+int Interpreter::loadsetting(int currentline, const TokenMap& TK)
 {
 	QString fileName;
 	if (!checkString(TK, 1, &fileName))
@@ -299,7 +300,7 @@ int Interpreter::loadsetting(const TokenMap& TK)
 	return Parser::kNoChange;
 }
 
-int Interpreter::set(const TokenMap& TK)
+int Interpreter::set(int currentline, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance();
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
@@ -430,11 +431,11 @@ int Interpreter::set(const TokenMap& TK)
 		{ u8"平時道具補血", util::kNormalItemHealEnable },
 		{ u8"平時道具補血肉優先", util::kNormalItemHealMeatPriorityEnable },
 		{ u8"平時道具補氣", util::kNormalItemHealMpEnable },
-		{ u8"BattleCatchTargetLevelEnable", util::kBattleCatchTargetLevelEnable },
-		{ u8"BattleCatchTargetMaxHpEnable", util::kBattleCatchTargetMaxHpEnable },
-		{ u8"BattleCatchPlayerMagicEnable", util::kBattleCatchPlayerMagicEnable },
-		{ u8"BattleCatchPlayerItemEnable", util::kBattleCatchPlayerItemEnable },
-		{ u8"BattleCatchPetSkillEnable", util::kBattleCatchPetSkillEnable },
+		{ u8"捉寵目標等級開關", util::kBattleCatchTargetLevelEnable },
+		{ u8"捉寵目標最大耐久力開關", util::kBattleCatchTargetMaxHpEnable },
+		{ u8"捉寵人物使用精靈開關", util::kBattleCatchPlayerMagicEnable },
+		{ u8"捉寵人物使用道具開關", util::kBattleCatchPlayerItemEnable },
+		{ u8"捉寵戰寵使用技能開關", util::kBattleCatchPetSkillEnable },
 
 		{ u8"自動丟棄寵物", util::kDropPetEnable },
 		{ u8"自動丟棄寵物攻", util::kDropPetStrEnable },
@@ -587,11 +588,11 @@ int Interpreter::set(const TokenMap& TK)
 		{ u8"平时道具补血", util::kNormalItemHealEnable },
 		{ u8"平时道具补血肉优先", util::kNormalItemHealMeatPriorityEnable },
 		{ u8"平时道具补气", util::kNormalItemHealMpEnable },
-		{ u8"BattleCatchTargetLevelEnable", util::kBattleCatchTargetLevelEnable },
-		{ u8"BattleCatchTargetMaxHpEnable", util::kBattleCatchTargetMaxHpEnable },
-		{ u8"BattleCatchPlayerMagicEnable", util::kBattleCatchPlayerMagicEnable },
-		{ u8"BattleCatchPlayerItemEnable", util::kBattleCatchPlayerItemEnable },
-		{ u8"BattleCatchPetSkillEnable", util::kBattleCatchPetSkillEnable },
+		{ u8"捉宠目标等级开关", util::kBattleCatchTargetLevelEnable },
+		{ u8"捉宠目标最大耐久力开关", util::kBattleCatchTargetMaxHpEnable },
+		{ u8"捉宠人物使用精灵开关", util::kBattleCatchPlayerMagicEnable },
+		{ u8"捉宠人物使用道具开关", util::kBattleCatchPlayerItemEnable },
+		{ u8"捉宠战宠使用技能开关", util::kBattleCatchPetSkillEnable },
 
 		{ u8"自动丢弃宠物", util::kDropPetEnable },
 		{ u8"自动丢弃宠物攻", util::kDropPetStrEnable },

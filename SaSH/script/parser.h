@@ -3,10 +3,10 @@
 #include <QStack>
 #include <functional>
 
-using CommandRegistry = std::function<int(const TokenMap&)>;
+using CommandRegistry = std::function<int(int currentLine, const TokenMap& token)>;
 
 //callbak
-using ParserCallBack = std::function<int(int currentLine, const TokenMap&)>;
+using ParserCallBack = std::function<int(int currentLine, const TokenMap& token)>;
 
 static const QSet<RESERVE> operatorTypes = {
 	TK_ADD, //"+"
@@ -162,6 +162,7 @@ private:
 	}
 
 private:
+	bool usestate = false;
 	std::atomic_bool isStop_ = false; //是否停止
 	QHash<int, TokenMap> tokens_;//當前運行腳本的每一行token
 	QVariantHash variables_;//所有用腳本變量

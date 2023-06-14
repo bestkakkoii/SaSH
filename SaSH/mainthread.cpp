@@ -87,6 +87,8 @@ void MainObject::run()
 		if (remove_thread_reason != util::REASON_NO_ERROR)
 			break;
 
+		QThread::msleep(500);
+
 		emit signalDispatcher.updateStatusLabelTextChanged(util::kLabelStatusOpened);
 
 		//注入dll 並通知客戶端要連入的port
@@ -240,6 +242,9 @@ void MainObject::mainProc()
 int MainObject::checkAndRunFunctions()
 {
 	Injector& injector = Injector::getInstance();
+	if (injector.server.isNull())
+		return 0;
+
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
 
 	int status = injector.server->getUnloginStatus();
@@ -280,10 +285,17 @@ int MainObject::checkAndRunFunctions()
 	if (login_run_once_flag_)
 	{
 		login_run_once_flag_ = false;
-		for (int i = 0; i < 10; ++i)
+		for (int i = 0; i < 50; ++i)
 		{
 			if (isInterruptionRequested())
 				return 0;
+
+			if (injector.server.isNull())
+				return 0;
+
+			if (injector.server->getWorldStatus() == 9 && injector.server->getGameStatus() == 3)
+				break;
+
 			QThread::msleep(100);
 		}
 		injector.server->isPacketAutoClear.store(true, std::memory_order_release);
@@ -294,15 +306,15 @@ int MainObject::checkAndRunFunctions()
 		//登入後的廣告公告
 		constexpr bool isbeta = true;
 		QDateTime current = QDateTime::currentDateTime();
-		QDateTime due = current.addYears(1);
+		QDateTime due = current.addYears(99);
 		const QString dueStr(due.toString("yyyy-MM-dd hh:mm:ss"));
 
-		const QString url("https://bbs.shiqi.so/");//https://www.lovesa.cc
+		const QString url("");//https://bbs.shiqi.so https://www.lovesa.cc
 
-		const QString version = QString("%1.%2%3")
+		const QString version = QString("%1.%2.%3")
 			.arg(SASH_VERSION_MAJOR) \
 			.arg(SASH_VERSION_MINOR) \
-			.arg(SASH_VERSION_PATCH);
+			.arg(util::buildDateTime(nullptr));
 		injector.server->announce(tr("Welcome to use SaSH，For more information please visit %1").arg(url));
 		injector.server->announce(tr("You are using %1 account, due date is:%2").arg(isbeta ? tr("trial") : tr("subscribed")).arg(dueStr));
 		injector.server->announce(tr("StoneAge SaSH forum url:%1, newest version is %2").arg(url).arg(version));
@@ -534,32 +546,14 @@ void MainObject::setUserDatas()
 
 }
 
+//根據UI的選擇項變動做的一些操作
 void MainObject::checkControl()
 {
 	Injector& injector = Injector::getInstance();
+	if (injector.server.isNull())
+		return;
 
-	//登出按下
-	if (injector.getEnableHash(util::kLogOutEnable))
-	{
-		injector.server->logOut();
-		injector.setEnableHash(util::kLogOutEnable, false);
-	}
-
-	//回點按下
-	if (injector.getEnableHash(util::kLogBackEnable))
-	{
-		injector.server->logBack();
-		injector.setEnableHash(util::kLogBackEnable, false);
-	}
-
-	//EO按下
-	if (injector.getEnableHash(util::kEchoEnable))
-	{
-		injector.server->EO();
-		injector.setEnableHash(util::kEchoEnable, false);
-	}
-
-	//隱藏視窗
+	//隱藏視窗按下，異步隱藏
 	bool bChecked = injector.getEnableHash(util::kHideCharacterEnable);
 	if (flagHideCharacterEnable_ != bChecked)
 	{
@@ -567,7 +561,33 @@ void MainObject::checkControl()
 		injector.postMessage(Injector::kEnablePlayerShow, !bChecked, NULL);
 	}
 
-	//關閉特效
+	if (!injector.server->IS_ONLINE_FLAG)
+		return;
+
+	//登出按下，異步登出
+	if (injector.getEnableHash(util::kLogOutEnable))
+	{
+		injector.server->logOut();
+		injector.setEnableHash(util::kLogOutEnable, false);
+	}
+
+	//回點按下，異步回點
+	if (injector.getEnableHash(util::kLogBackEnable))
+	{
+		injector.server->logBack();
+		injector.setEnableHash(util::kLogBackEnable, false);
+	}
+
+	//EO按下，異步發送EO
+	if (injector.getEnableHash(util::kEchoEnable))
+	{
+		injector.server->EO();
+		injector.setEnableHash(util::kEchoEnable, false);
+	}
+
+	//////////////////////////////
+
+	//異步關閉特效
 	bChecked = injector.getEnableHash(util::kCloseEffectEnable);
 	if (flagCloseEffectEnable_ != bChecked)
 	{
@@ -575,7 +595,7 @@ void MainObject::checkControl()
 		injector.postMessage(Injector::kEnableEffect, !bChecked, NULL);
 	}
 
-	//關閉聲音
+	//異步關閉聲音
 	bChecked = injector.getEnableHash(util::kMuteEnable);
 	if (flagMuteEnable_ != bChecked)
 	{
@@ -583,7 +603,7 @@ void MainObject::checkControl()
 		injector.postMessage(Injector::kEnableSound, !bChecked, NULL);
 	}
 
-	//鎖定時間
+	//異步鎖定時間
 	bChecked = injector.getEnableHash(util::kLockTimeEnable);
 	int value = injector.getValueHash(util::kLockTimeValue);
 	if (flagLockTimeEnable_ != bChecked || flagLockTimeValue_ != value)
@@ -593,7 +613,7 @@ void MainObject::checkControl()
 		injector.postMessage(Injector::kSetTimeLock, bChecked, flagLockTimeValue_);
 	}
 
-	//加速
+	//異步加速
 	value = injector.getValueHash(util::kSpeedBoostValue);
 	if (flagSetBoostValue_ != value)
 	{
@@ -601,7 +621,7 @@ void MainObject::checkControl()
 		injector.postMessage(Injector::kSetBoostSpeed, true, flagSetBoostValue_);
 	}
 
-	//快速走路
+	//異步快速走路
 	bChecked = injector.getEnableHash(util::kFastWalkEnable);
 	if (flagFastWalkEnable_ != bChecked)
 	{
@@ -609,7 +629,7 @@ void MainObject::checkControl()
 		injector.postMessage(Injector::kEnableFastWalk, bChecked, NULL);
 	}
 
-	//橫衝直撞 (穿牆)
+	//異步橫衝直撞 (穿牆)
 	bChecked = injector.getEnableHash(util::kPassWallEnable);
 	if (flagPassWallEnable_ != bChecked)
 	{
@@ -617,7 +637,7 @@ void MainObject::checkControl()
 		injector.postMessage(Injector::kEnablePassWall, bChecked, NULL);
 	}
 
-	//鎖定畫面
+	//異步鎖定畫面
 	bChecked = injector.getEnableHash(util::kLockImageEnable);
 	if (flagLockImageEnable_ != bChecked)
 	{
@@ -625,7 +645,7 @@ void MainObject::checkControl()
 		injector.postMessage(Injector::kEnableImageLock, bChecked, NULL);
 	}
 
-	//戰鬥99秒
+	//異步戰鬥99秒
 	bChecked = injector.getEnableHash(util::kBattleTimeExtendEnable);
 	if (flagBattleTimeExtendEnable_ != bChecked)
 	{
@@ -633,7 +653,15 @@ void MainObject::checkControl()
 		injector.postMessage(Injector::kBattleTimeExtend, bChecked, NULL);
 	}
 
-	//鎖定移動
+	//異步資源優化
+	bChecked = injector.getEnableHash(util::kOptimizeEnable);
+	if (flagOptimizeEnable_ != bChecked)
+	{
+		flagOptimizeEnable_ = bChecked;
+		injector.postMessage(Injector::kEnableOptimize, bChecked, NULL);
+	}
+
+	//同步鎖定移動
 	bChecked = injector.getEnableHash(util::kLockMoveEnable);
 	bool isFastBattle = injector.getEnableHash(util::kFastBattleEnable);
 	if (!bChecked && isFastBattle && injector.server->IS_BATTLE_FLAG)//如果有開啟快速戰鬥，那必須在戰鬥時鎖定移動
@@ -652,7 +680,7 @@ void MainObject::checkControl()
 		injector.sendMessage(Injector::kEnableMoveLock, bChecked, NULL);
 	}
 
-	//快速戰鬥
+	//自動戰鬥，異步戰鬥面板開關
 	bool bCheckedFastBattle = injector.getEnableHash(util::kFastBattleEnable);
 	bChecked = injector.getEnableHash(util::kAutoBattleEnable) || bCheckedFastBattle;
 	if (bChecked)
@@ -664,7 +692,7 @@ void MainObject::checkControl()
 		injector.postMessage(Injector::kEnableBattleDialog, true, NULL);
 	}
 
-	//阻止戰鬥封包
+	//快速戰鬥，異步阻止戰鬥封包
 	int W = injector.server->getWorldStatus();
 	if (bCheckedFastBattle && W == 9) //如果有開啟快速戰鬥，且畫面不在戰鬥中
 	{
@@ -680,6 +708,9 @@ void MainObject::checkControl()
 void MainObject::checkEtcFlag()
 {
 	Injector& injector = Injector::getInstance();
+	if (injector.server.isNull())
+		return;
+
 	int flg = injector.server->pc.etcFlag;
 	bool hasChange = false;
 	auto toBool = [flg](int f)->bool
@@ -772,6 +803,9 @@ void MainObject::checkEtcFlag()
 void MainObject::checkAutoWalk()
 {
 	Injector& injector = Injector::getInstance();
+	if (injector.server.isNull())
+		return;
+
 	if (injector.getEnableHash(util::kAutoWalkEnable) || injector.getEnableHash(util::kFastAutoWalkEnable))
 	{
 		//如果線程已經在執行就返回
@@ -894,6 +928,9 @@ void MainObject::checkAutoWalk()
 void MainObject::checkAutoDropItems()
 {
 	Injector& injector = Injector::getInstance();
+	if (injector.server.isNull())
+		return;
+
 	if (!injector.getEnableHash(util::kAutoDropEnable))
 		return;
 
@@ -940,6 +977,9 @@ void MainObject::checkAutoDropItems()
 void MainObject::checkAutoJoin()
 {
 	Injector& injector = Injector::getInstance();
+	if (injector.server.isNull())
+		return;
+
 	if (injector.getEnableHash(util::kAutoJoinEnable) &&
 		(!injector.getEnableHash(util::kAutoWalkEnable) && !injector.getEnableHash(util::kFastAutoWalkEnable)))
 	{
@@ -1120,6 +1160,8 @@ void MainObject::checkAutoJoin()
 void MainObject::checkAutoHeal()
 {
 	Injector& injector = Injector::getInstance();
+	if (injector.server.isNull())
+		return;
 
 	if (autoheal_future_.isRunning())
 		return;
@@ -1344,6 +1386,8 @@ void MainObject::checkAutoHeal()
 void MainObject::checkAutoDropPet()
 {
 	Injector& injector = Injector::getInstance();
+	if (injector.server.isNull())
+		return;
 
 	if (autodroppet_future_.isRunning())
 		return;
@@ -1478,6 +1522,9 @@ void MainObject::checkAutoDropPet()
 void MainObject::checkAutoLockPet()
 {
 	Injector& injector = Injector::getInstance();
+	if (injector.server.isNull())
+		return;
+
 	bool enableLockPet = injector.getEnableHash(util::kLockPetEnable);
 	if (enableLockPet)
 	{
@@ -1511,6 +1558,9 @@ void MainObject::checkAutoLockPet()
 void MainObject::checkAutoEatBoostExpItem()
 {
 	Injector& injector = Injector::getInstance();
+	if (injector.server.isNull())
+		return;
+
 	if (!injector.getEnableHash(util::kAutoEatBeanEnable))
 		return;
 
@@ -1542,6 +1592,10 @@ void MainObject::checkAutoEatBoostExpItem()
 //檢查可記錄的NPC坐標訊息
 void MainObject::checkRecordableNpcInfo()
 {
+	Injector& injector = Injector::getInstance();
+	if (injector.server.isNull())
+		return;
+
 	pointerWriterSync_.addFuture(QtConcurrent::run([this]()
 		{
 			Injector& injector = Injector::getInstance();

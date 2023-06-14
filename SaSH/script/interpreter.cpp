@@ -5,6 +5,12 @@
 #include "injector.h"
 #include "signaldispatcher.h"
 
+util::SafeHash<int, break_marker_t> break_markers;//用於標記自訂義中斷點(紅點)
+util::SafeHash<int, break_marker_t> forward_markers;//用於標示當前執行中斷處(黃箭頭)
+util::SafeHash<int, break_marker_t> error_markers;//用於標示錯誤發生行(紅線)
+util::SafeHash<int, break_marker_t> step_markers;//隱式標記中斷點用於單步執行(無)
+
+
 Interpreter::Interpreter(QObject* parent)
 	: QObject(parent)
 	, parser_(new Parser())
@@ -66,7 +72,7 @@ void Interpreter::doFileWithThread(int beginLine, const QString& fileName)
 }
 
 //同線程下執行腳本文件(實例新的interpreter)
-bool Interpreter::doFile(int beginLine, const QString& fileName, Interpreter* parent)
+bool Interpreter::doFile(int beginLine, const QString& fileName, Interpreter* parent, bool isVarShared)
 {
 	if (parser_.isNull())
 		parser_.reset(new Parser());
@@ -106,6 +112,11 @@ bool Interpreter::doFile(int beginLine, const QString& fileName, Interpreter* pa
 		return 1;
 	};
 
+	if (isVarShared)
+	{
+		parser_->getVarsRef() = parent->parser_->getVarsRef();
+	}
+
 	parser_->setTokens(tokens);
 	parser_->setLabels(labels);
 	parser_->setCallBack(callback);
@@ -120,6 +131,17 @@ bool Interpreter::doFile(int beginLine, const QString& fileName, Interpreter* pa
 		isRunning_.store(false, std::memory_order_release);
 		return false;
 	}
+
+	if (isVarShared)
+	{
+		QVariantHash vars = parser_->getVarsRef();
+		QVariantHash& parentVars = parent->parser_->getVarsRef();
+		for (auto it = vars.begin(); it != vars.end(); ++it)
+		{
+			parentVars.insert(it.key(), it.value());
+		}
+	}
+
 	isRunning_.store(false, std::memory_order_release);
 	return true;
 }
@@ -232,7 +254,7 @@ void Interpreter::resume()
 template<typename Func>
 void Interpreter::registerFunction(const QString functionName, Func fun)
 {
-	parser_->registerFunction(functionName, std::bind(fun, this, std::placeholders::_1));
+	parser_->registerFunction(functionName, std::bind(fun, this, std::placeholders::_1, std::placeholders::_2));
 }
 
 //檢查是否戰鬥，如果是則等待，並在戰鬥結束後停滯一段時間
@@ -897,7 +919,7 @@ bool Interpreter::compare(CompareArea area, const TokenMap& TK) const
 		if (cmpTypeStr.isEmpty())
 			return false;
 
-		CompareType cmpType = compareTypeMap.value(QObject::tr("player") + cmpTypeStr, kCompareTypeNone);
+		CompareType cmpType = compareTypeMap.value(QObject::tr("player") + cmpTypeStr.toLower(), kCompareTypeNone);
 		if (cmpType == kCompareTypeNone)
 			return false;
 
@@ -988,8 +1010,12 @@ bool Interpreter::compare(CompareArea area, const TokenMap& TK) const
 				return false;
 
 			QHash<QString, int> hash = {
-				{ QObject::tr("battlepet"), injector.server->pc.battlePetNo },
-				{ QObject::tr("ride"), injector.server->pc.battlePetNo },
+				{ u8"戰寵", injector.server->pc.battlePetNo},
+				{ u8"騎寵", injector.server->pc.battlePetNo},
+				{ u8"战宠", injector.server->pc.battlePetNo},
+				{ u8"骑宠", injector.server->pc.battlePetNo},
+				{ u8"battlepet", injector.server->pc.battlePetNo},
+				{ u8"ride", injector.server->pc.battlePetNo},
 			};
 
 			if (!hash.contains(petTypeName))
@@ -1005,7 +1031,7 @@ bool Interpreter::compare(CompareArea area, const TokenMap& TK) const
 		if (cmpTypeStr.isEmpty())
 			return false;
 
-		CompareType cmpType = compareTypeMap.value(QObject::tr("pet") + cmpTypeStr, kCompareTypeNone);
+		CompareType cmpType = compareTypeMap.value(QObject::tr("pet") + cmpTypeStr.toLower(), kCompareTypeNone);
 		if (cmpType == kCompareTypeNone)
 			return false;
 
@@ -1069,19 +1095,32 @@ bool Interpreter::compare(CompareArea area, const TokenMap& TK) const
 			break;
 		case kPetState:
 		{
-			const QHash<PetState, QString> hash = {
-				{ kBattle, QObject::tr("battle") },
-				{ kStandby, QObject::tr("standby") },
-				{ kMail, QObject::tr("mail") },
-				{ kRest, QObject::tr("rest") },
-				{ kRide, QObject::tr("ride") },
+			const QHash<QString, PetState> hash = {
+				{ u8"戰鬥", kBattle },
+				{ u8"等待", kStandby },
+				{ u8"郵件", kMail },
+				{ u8"休息", kRest },
+				{ u8"騎乘", kRide },
+
+				{ u8"战斗", kBattle },
+				{ u8"等待", kStandby },
+				{ u8"邮件", kMail },
+				{ u8"休息", kRest },
+				{ u8"骑乘", kRide },
+
+				{ u8"battle", kBattle },
+				{ u8"standby", kStandby },
+				{ u8"mail", kMail },
+				{ u8"rest", kRest },
+				{ u8"ride", kRide },
 			};
 			PetState state = injector.server->pet[petIndex].state;
-			QString stateStr = hash.value(state, "");
-			if (stateStr.isEmpty())
+			PetState cmpstate = hash.value(b.toString().toLower(), kNoneState);
+			if (cmpstate == 0)
 				return false;
 
-			a = stateStr;
+			a = state;
+			b = cmpstate;
 			break;
 		}
 		default:
@@ -1282,10 +1321,11 @@ void Interpreter::updateGlobalVariables()
 		return;
 	PC pc = injector.server->pc;
 	QVariantHash& hash = parser_->getVarsRef();
+	QPoint nowPoint = injector.server->nowPoint;
 
+	//big5
 	hash["毫秒時間戳"] = static_cast<int>(QDateTime::currentMSecsSinceEpoch());
 	hash["秒時間戳"] = static_cast<int>(QDateTime::currentSecsSinceEpoch());
-
 
 	hash["人物主名"] = pc.name;
 	hash["人物副名"] = pc.freeName;
@@ -1295,13 +1335,54 @@ void Interpreter::updateGlobalVariables()
 	hash["人物DP"] = pc.dp;
 	hash["石幣"] = pc.gold;
 
-	QPoint nowPoint = injector.server->nowPoint;
 	hash["東坐標"] = nowPoint.x();
 	hash["南坐標"] = nowPoint.y();
 	hash["地圖編號"] = injector.server->nowFloor;
 	hash["地圖"] = injector.server->nowFloorName;
 	hash["日期"] = QDateTime::currentDateTime().toString("yyyy-MM-dd");
 	hash["時間"] = QDateTime::currentDateTime().toString("hh:mm:ss:zzz");
+	hash["對話框ID"] = injector.server->currentDialog.seqno;
+
+	//gb2312
+	hash["毫秒时间戳"] = static_cast<int>(QDateTime::currentMSecsSinceEpoch());
+	hash["秒时间戳"] = static_cast<int>(QDateTime::currentSecsSinceEpoch());
+
+	hash["人物主名"] = pc.name;
+	hash["人物副名"] = pc.freeName;
+	hash["人物等级"] = pc.level;
+	hash["人物耐久力"] = pc.hp;
+	hash["人物气力"] = pc.mp;
+	hash["人物DP"] = pc.dp;
+	hash["石币"] = pc.gold;
+
+	hash["东坐标"] = nowPoint.x();
+	hash["南坐标"] = nowPoint.y();
+	hash["地图编号"] = injector.server->nowFloor;
+	hash["地图"] = injector.server->nowFloorName;
+	hash["日期"] = QDateTime::currentDateTime().toString("yyyy-MM-dd");
+	hash["时间"] = QDateTime::currentDateTime().toString("hh:mm:ss:zzz");
+	hash["对话框ID"] = injector.server->currentDialog.seqno;
+
+	//utf8
+	hash["tickcount"] = static_cast<int>(QDateTime::currentMSecsSinceEpoch());
+	hash["stickcount"] = static_cast<int>(QDateTime::currentSecsSinceEpoch());
+
+	hash["playername"] = pc.name;
+	hash["playerfreename"] = pc.freeName;
+	hash["playerlevel"] = pc.level;
+	hash["playerhp"] = pc.hp;
+	hash["playermp"] = pc.mp;
+	hash["playerdp"] = pc.dp;
+	hash["stone"] = pc.gold;
+
+	hash["px"] = nowPoint.x();
+	hash["py"] = nowPoint.y();
+	hash["floor"] = injector.server->nowFloor;
+	hash["floorname"] = injector.server->nowFloorName;
+	hash["date"] = QDateTime::currentDateTime().toString("yyyy-MM-dd");
+	hash["time"] = QDateTime::currentDateTime().toString("hh:mm:ss:zzz");
+
+	hash["dialogid"] = injector.server->currentDialog.seqno;
 
 }
 
@@ -1318,7 +1399,6 @@ void Interpreter::proc()
 			return 0;
 
 		emit signalDispatcher.scriptLabelRowTextChanged(currentLine + 1, parser_->getToken().size(), false);
-
 		if (TK.contains(0) && TK.value(0).type == TK_PAUSE)
 		{
 			pause();
@@ -1328,6 +1408,31 @@ void Interpreter::proc()
 		checkPause();
 
 		updateGlobalVariables();
+
+		const util::SafeHash<int, break_marker_t> markers = break_markers;
+		const util::SafeHash<int, break_marker_t> step_marker = step_markers;
+		if (!(markers.contains(currentLine) || step_marker.contains(currentLine)))
+			return 1;//檢查是否有中斷點
+
+		pause();
+
+		if (markers.contains(currentLine))
+		{
+			//叫用次數+1
+			break_marker_t mark = markers.value(currentLine);
+			++mark.count;
+
+			//重新插入斷下的紀錄
+			break_markers.insert(currentLine, mark);
+
+			//所有行插入隱式斷點(用於單步)
+			emit signalDispatcher.addStepMarker(currentLine, true);
+		}
+		emit signalDispatcher.addForwardMarker(currentLine, true);
+
+		updateGlobalVariables();
+
+		checkPause();
 
 		return 1;
 	};
@@ -1357,12 +1462,14 @@ void Interpreter::proc()
 		injector.IS_SCRIPT_FLAG = false;
 	isRunning_.store(false, std::memory_order_release);
 	emit finished();
+	emit signalDispatcher.scriptFinished();
 }
 
 void Interpreter::openLibs()
 {
 	openLibsBIG5();
 	openLibsGB2312();
+	openLibsUTF8();
 }
 
 //新的繁體中文函數註冊
@@ -1420,6 +1527,8 @@ void Interpreter::openLibsBIG5()
 	registerFunction(u8"尋路", &Interpreter::findpath);
 	registerFunction(u8"封包移動", &Interpreter::packetmove);
 	registerFunction(u8"移動至NPC", &Interpreter::movetonpc);
+	registerFunction(u8"轉移", &Interpreter::teleport);
+	registerFunction(u8"過點", &Interpreter::warp);
 
 	//action
 	registerFunction(u8"使用道具", &Interpreter::useitem);
@@ -1436,8 +1545,6 @@ void Interpreter::openLibsBIG5()
 	registerFunction(u8"撿物", &Interpreter::pickitem);
 	registerFunction(u8"存錢", &Interpreter::depositgold);
 	registerFunction(u8"提錢", &Interpreter::withdrawgold);
-	registerFunction(u8"轉移", &Interpreter::warp);
-	registerFunction(u8"左擊", &Interpreter::leftclick);
 	registerFunction(u8"加點", &Interpreter::addpoint);
 
 	registerFunction(u8"記錄身上裝備", &Interpreter::recordequip);
@@ -1452,6 +1559,11 @@ void Interpreter::openLibsBIG5()
 	//action->group
 	registerFunction(u8"組隊", &Interpreter::join);
 	registerFunction(u8"離隊", &Interpreter::leave);
+
+	registerFunction(u8"左擊", &Interpreter::leftclick);
+	registerFunction(u8"右擊", &Interpreter::rightclick);
+	registerFunction(u8"左雙擊", &Interpreter::leftdoubleclick);
+	registerFunction(u8"拖至", &Interpreter::mousedragto);
 
 }
 
@@ -1510,6 +1622,8 @@ void Interpreter::openLibsGB2312()
 	registerFunction(u8"寻路", &Interpreter::findpath);
 	registerFunction(u8"封包移动", &Interpreter::packetmove);
 	registerFunction(u8"移动至NPC", &Interpreter::movetonpc);
+	registerFunction(u8"转移", &Interpreter::teleport);
+	registerFunction(u8"过点", &Interpreter::warp);
 
 	//action
 	registerFunction(u8"使用道具", &Interpreter::useitem);
@@ -1526,8 +1640,6 @@ void Interpreter::openLibsGB2312()
 	registerFunction(u8"捡物", &Interpreter::pickitem);
 	registerFunction(u8"存钱", &Interpreter::depositgold);
 	registerFunction(u8"提钱", &Interpreter::withdrawgold);
-	registerFunction(u8"转移", &Interpreter::warp);
-	registerFunction(u8"左击", &Interpreter::leftclick);
 	registerFunction(u8"加点", &Interpreter::addpoint);
 
 	registerFunction(u8"记录身上装备", &Interpreter::recordequip);
@@ -1543,9 +1655,106 @@ void Interpreter::openLibsGB2312()
 	registerFunction(u8"组队", &Interpreter::join);
 	registerFunction(u8"离队", &Interpreter::leave);
 
+	registerFunction(u8"左击", &Interpreter::leftclick);
+	registerFunction(u8"右击", &Interpreter::rightclick);
+	registerFunction(u8"左双击", &Interpreter::leftdoubleclick);
+	registerFunction(u8"拖至", &Interpreter::mousedragto);
+
 }
 
-int Interpreter::test(const TokenMap&) const
+//新的英文函數註冊
+void Interpreter::openLibsUTF8()
+{
+	/*註册函数*/
+
+	//system
+	registerFunction(u8"test", &Interpreter::test);
+	registerFunction(u8"sleep", &Interpreter::sleep);
+	registerFunction(u8"button", &Interpreter::press);
+	registerFunction(u8"eo", &Interpreter::eo);
+	registerFunction(u8"print", &Interpreter::announce);
+	registerFunction(u8"input", &Interpreter::input);
+	registerFunction(u8"msg", &Interpreter::messagebox);
+	registerFunction(u8"logback", &Interpreter::logback);
+	registerFunction(u8"logout", &Interpreter::logout);
+	registerFunction(u8"say", &Interpreter::talk);
+	registerFunction(u8"talk", &Interpreter::talkandannounce);
+	registerFunction(u8"cls", &Interpreter::cleanchat);
+	registerFunction(u8"set", &Interpreter::set);
+	registerFunction(u8"saveset", &Interpreter::savesetting);
+	registerFunction(u8"loadset", &Interpreter::loadsetting);
+	registerFunction(u8"if", &Interpreter::cmp);
+	registerFunction(u8"run", &Interpreter::run);
+
+	//check
+	registerFunction(u8"ifdaily", &Interpreter::checkdaily);
+	registerFunction(u8"ifbattle", &Interpreter::isbattle);
+	registerFunction(u8"ifpos", &Interpreter::checkcoords);
+	registerFunction(u8"ifmap", &Interpreter::checkmapnowait);
+	registerFunction(u8"ifplayer", &Interpreter::checkplayerstatus);
+	registerFunction(u8"ifpetex", &Interpreter::checkpetstatus);
+	registerFunction(u8"ifitem", &Interpreter::checkitemcount);
+	registerFunction(u8"ifteam", &Interpreter::checkteamcount);
+	registerFunction(u8"ifpet", &Interpreter::checkpetcount);
+	registerFunction(u8"ifitemfull", &Interpreter::checkitemfull);
+
+	registerFunction(u8"waitmap", &Interpreter::checkmap);
+	registerFunction(u8"waitdlg", &Interpreter::checkdialog);
+	registerFunction(u8"waitsay", &Interpreter::checkchathistory);
+	registerFunction(u8"waitpet", &Interpreter::checkpet);
+	registerFunction(u8"waititem", &Interpreter::checkitem);
+
+	//check-group
+	registerFunction(u8"waitteam", &Interpreter::checkteam);
+
+
+	//move
+	registerFunction(u8"dir", &Interpreter::setdir);
+	registerFunction(u8"walkpos", &Interpreter::move);
+	registerFunction(u8"move", &Interpreter::fastmove);
+	registerFunction(u8"findpath", &Interpreter::findpath);
+	registerFunction(u8"w", &Interpreter::packetmove);
+	registerFunction(u8"movetonpc", &Interpreter::movetonpc);
+	registerFunction(u8"chmap", &Interpreter::teleport);
+	registerFunction(u8"warp", &Interpreter::warp);
+
+	//action
+	registerFunction(u8"useitem", &Interpreter::useitem);
+	registerFunction(u8"doffitem", &Interpreter::dropitem);
+	registerFunction(u8"chplayername", &Interpreter::playerrename);
+	registerFunction(u8"chpetname", &Interpreter::petrename);
+	registerFunction(u8"chpet", &Interpreter::setpetstate);
+	registerFunction(u8"droppet", &Interpreter::droppet);
+	registerFunction(u8"buy", &Interpreter::buy);
+	registerFunction(u8"sell", &Interpreter::sell);
+	registerFunction(u8"make", &Interpreter::make);
+	registerFunction(u8"cook", &Interpreter::cook);
+	registerFunction(u8"usemagic", &Interpreter::usemagic);
+	registerFunction(u8"pickup", &Interpreter::pickitem);
+	registerFunction(u8"save", &Interpreter::depositgold);
+	registerFunction(u8"load", &Interpreter::withdrawgold);
+	registerFunction(u8"addpoint", &Interpreter::addpoint);
+
+	registerFunction(u8"recordequip", &Interpreter::recordequip);
+	registerFunction(u8"wearrecordequip", &Interpreter::wearequip);
+	registerFunction(u8"unequip", &Interpreter::unwearequip);
+
+	registerFunction(u8"putpet", &Interpreter::depositpet);
+	registerFunction(u8"put", &Interpreter::deposititem);
+	registerFunction(u8"getpet", &Interpreter::withdrawpet);
+	registerFunction(u8"get", &Interpreter::withdrawitem);
+
+	//action->group
+	registerFunction(u8"join", &Interpreter::join);
+	registerFunction(u8"leave", &Interpreter::leave);
+
+	registerFunction(u8"lclick", &Interpreter::leftclick);
+	registerFunction(u8"rclick", &Interpreter::rightclick);
+	registerFunction(u8"ldbclick", &Interpreter::leftdoubleclick);
+	registerFunction(u8"dragto", &Interpreter::mousedragto);
+}
+
+int Interpreter::test(int currentline, const TokenMap&) const
 {
 	Injector& injector = Injector::getInstance();
 
@@ -1557,7 +1766,7 @@ int Interpreter::test(const TokenMap&) const
 }
 
 //執行子腳本
-int Interpreter::run(const TokenMap& TK)
+int Interpreter::run(int currentline, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance();
 
@@ -1568,6 +1777,12 @@ int Interpreter::run(const TokenMap& TK)
 	checkString(TK, 1, &fileName);
 	if (fileName.isEmpty())
 		return Parser::kArgError;
+
+	bool isVarShared = false;
+	int nShared = 0;
+	checkInt(TK, 2, &nShared);
+	if (nShared > 0)
+		isVarShared = true;
 
 	fileName.replace("\\", "/");
 
@@ -1593,7 +1808,8 @@ int Interpreter::run(const TokenMap& TK)
 	QScopedPointer<Interpreter> interpreter(new Interpreter());
 	if (!interpreter.isNull())
 	{
-		if (!interpreter->doFile(beginLine, fileName, this))
+		interpreter->isSub = true;
+		if (!interpreter->doFile(beginLine, fileName, this, isVarShared))
 			return Parser::kError;
 
 		//還原顯示
@@ -1604,4 +1820,24 @@ int Interpreter::run(const TokenMap& TK)
 
 	}
 	return Parser::kNoChange;
+}
+
+//打印日誌
+void Interpreter::logExport(int currentline, const QString& data, int color)
+{
+
+	//打印當前時間
+	const QDateTime time(QDateTime::currentDateTime());
+	const QString timeStr(time.toString("hh:mm:ss:zzz"));
+	QString msg = "\0";
+	QString src = "\0";
+
+
+	msg = (QString("[%1 | @%2]: %3\0") \
+		.arg(timeStr)
+		.arg(currentline + 1, 3, 10, QLatin1Char(' ')).arg(data));
+
+	Injector& injector = Injector::getInstance();
+	if (!injector.scriptLogModel.isNull())
+		injector.scriptLogModel->append(msg, color);
 }

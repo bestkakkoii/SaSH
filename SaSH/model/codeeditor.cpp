@@ -32,11 +32,9 @@ CodeEditor::CodeEditor(QWidget* parent)
 	setUtf8(true);
 	setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Maximum);
 
-
-
 	QsciScintilla::setFont(font);
 	//代碼提示autoCompletion
-	QFile f(QString(R"(%1\lib\api.txt)").arg(QApplication::applicationDirPath()));
+	QFile f(QString(R"(%1\lib\completion_api.txt)").arg(QApplication::applicationDirPath()));
 
 	if (f.open(QIODevice::ReadOnly))
 	{
@@ -49,7 +47,7 @@ CodeEditor::CodeEditor(QWidget* parent)
 
 			if (line.isEmpty())
 				break;
-			apis.add(line.replace(" ", "\t").replace(R"(\r\n)", "\r\n").replace(R"(\n)", "\n"));
+			apis.add(line.simplified());
 		}
 		f.close();
 		apis.prepare();

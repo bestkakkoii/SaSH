@@ -70,17 +70,22 @@ signals:
 
 	//script
 	void scriptLabelRowTextChanged(int row, int max, bool noSelect);
+	void scriptLabelRowTextChanged2(int row, int max, bool noSelect);
 	void scriptPaused();
 	void scriptPaused2();
 	void scriptStarted();
 	void scriptStoped();
+	void scriptFinished();
 	void scriptContentChanged(const QString& fileName, const QVariant& tokens);
 	void loadFileToTable(const QString& fileName);
 	void reloadScriptList();
 	void globalVarInfoImport(const QHash<QString, QVariant>& d);
 	void localVarInfoImport(const QHash<QString, QVariant>& d);
 
+	void addForwardMarker(int liner, bool b);
 	void addErrorMarker(int liner, bool b);
+	void addBreakMarker(int liner, bool b);
+	void addStepMarker(int liner, bool b);
 	//void loadHashSettings(const QString& name = "default");
 };
 

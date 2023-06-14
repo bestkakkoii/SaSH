@@ -330,13 +330,12 @@ void MainForm::onMenuActionTriggered()
 	//other
 	else if (actionName == "actionOtherInfo")
 	{
-		if (!pInfoForm_)
+		if (pInfoForm_ == nullptr)
 		{
-
 			pInfoForm_ = new InfoForm;
 			if (pInfoForm_)
 			{
-				connect(pInfoForm_, &InfoForm::destroyed, [&]() { pInfoForm_ = nullptr; });
+				connect(pInfoForm_, &InfoForm::destroyed, [this]() { pInfoForm_ = nullptr; });
 				pInfoForm_->setAttribute(Qt::WA_DeleteOnClose);
 				pInfoForm_->show();
 			}
@@ -345,21 +344,29 @@ void MainForm::onMenuActionTriggered()
 
 	else if (actionName == "actionMap")
 	{
-		MapWidget* mapWidget = new MapWidget(nullptr);
-		if (mapWidget)
+		if (mapWidget_ == nullptr)
 		{
-			mapWidget->setAttribute(Qt::WA_DeleteOnClose);
-			mapWidget->show();
+			mapWidget_ = new MapWidget(nullptr);
+			if (mapWidget_)
+			{
+				connect(mapWidget_, &InfoForm::destroyed, [this]() { mapWidget_ = nullptr; });
+				mapWidget_->setAttribute(Qt::WA_DeleteOnClose);
+				mapWidget_->show();
+			}
 		}
 	}
 
 	else if (actionName == "actionScriptSettings")
 	{
-		ScriptSettingForm* pScriptSettingForm = new ScriptSettingForm;
-		if (pScriptSettingForm)
+		if (pScriptSettingForm_ == nullptr)
 		{
-			pScriptSettingForm->setAttribute(Qt::WA_DeleteOnClose);
-			pScriptSettingForm->show();
+			pScriptSettingForm_ = new ScriptSettingForm;
+			if (pScriptSettingForm_)
+			{
+				connect(pScriptSettingForm_, &InfoForm::destroyed, [this]() { pScriptSettingForm_ = nullptr; });
+				pScriptSettingForm_->setAttribute(Qt::WA_DeleteOnClose);
+				pScriptSettingForm_->show();
+			}
 		}
 	}
 
@@ -429,7 +436,7 @@ void MainForm::resetControlTextLanguage()
 	default:
 		translator_.load(QString("%1/translations/qt_en_US.qm").arg(QApplication::applicationDirPath()));
 		break;
-	}
+}
 #else
 	switch (acp)
 	{
@@ -502,7 +509,7 @@ void MainForm::resetControlTextLanguage()
 	if (pOtherForm_)
 		emit pOtherForm_->resetControlTextLanguage();
 
-	}
+}
 
 void MainForm::onUpdateStatusLabelTextChanged(int status)
 {

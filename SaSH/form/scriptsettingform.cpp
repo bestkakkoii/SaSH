@@ -1,9 +1,15 @@
 ﻿#include "stdafx.h"
 #include "scriptsettingform.h"
 
-#include "util.h"
 #include "injector.h"
 #include "signaldispatcher.h"
+
+
+extern util::SafeHash<int, break_marker_t> break_markers;//用於標記自訂義中斷點(紅點)
+extern util::SafeHash<int, break_marker_t> forward_markers;//用於標示當前執行中斷處(黃箭頭)
+extern util::SafeHash<int, break_marker_t> error_markers;//用於標示錯誤發生行(紅線)
+extern util::SafeHash<int, break_marker_t> step_markers;//隱式標記中斷點用於單步執行(無)
+
 
 ScriptSettingForm::ScriptSettingForm(QWidget* parent)
 	: QMainWindow(parent)
@@ -65,22 +71,28 @@ ScriptSettingForm::ScriptSettingForm(QWidget* parent)
 	connect(ui.actionSave, &QAction::triggered, this, &ScriptSettingForm::onActionTriggered);
 	connect(ui.actionSaveAs, &QAction::triggered, this, &ScriptSettingForm::onActionTriggered);
 	connect(ui.actionDirectory, &QAction::triggered, this, &ScriptSettingForm::onActionTriggered);
-	connect(ui.actionImport, &QAction::triggered, this, &ScriptSettingForm::onActionTriggered);
+	connect(ui.actionStep, &QAction::triggered, this, &ScriptSettingForm::onActionTriggered);
+	connect(ui.actionMark, &QAction::triggered, this, &ScriptSettingForm::onActionTriggered);
 	connect(ui.actionAutoCleanLog, &QAction::triggered, this, &ScriptSettingForm::onActionTriggered);
 	connect(ui.actionAutoFollow, &QAction::triggered, this, &ScriptSettingForm::onActionTriggered);
 	connect(ui.actionNew, &QAction::triggered, this, &ScriptSettingForm::onActionTriggered);
 	connect(ui.actionStart, &QAction::triggered, this, &ScriptSettingForm::onActionTriggered);
 	connect(ui.actionPause, &QAction::triggered, this, &ScriptSettingForm::onActionTriggered);
 	connect(ui.actionStop, &QAction::triggered, this, &ScriptSettingForm::onActionTriggered);
+	connect(ui.actionLogback, &QAction::triggered, this, &ScriptSettingForm::onActionTriggered);
 
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
 	connect(&signalDispatcher, &SignalDispatcher::applyHashSettingsToUI, this, &ScriptSettingForm::onApplyHashSettingsToUI, Qt::UniqueConnection);
+	connect(&signalDispatcher, &SignalDispatcher::addForwardMarker, this, &ScriptSettingForm::onAddForwardMarker, Qt::UniqueConnection);
 	connect(&signalDispatcher, &SignalDispatcher::addErrorMarker, this, &ScriptSettingForm::onAddErrorMarker, Qt::UniqueConnection);
+	connect(&signalDispatcher, &SignalDispatcher::addBreakMarker, this, &ScriptSettingForm::onAddBreakMarker, Qt::UniqueConnection);
+	connect(&signalDispatcher, &SignalDispatcher::addStepMarker, this, &ScriptSettingForm::onAddStepMarker, Qt::UniqueConnection);
 	connect(&signalDispatcher, &SignalDispatcher::loadFileToTable, this, &ScriptSettingForm::loadFile, Qt::QueuedConnection);
 	connect(&signalDispatcher, &SignalDispatcher::reloadScriptList, this, &ScriptSettingForm::onReloadScriptList, Qt::QueuedConnection);
-	connect(&signalDispatcher, &SignalDispatcher::scriptLabelRowTextChanged, this, &ScriptSettingForm::onScriptLabelRowTextChanged, Qt::QueuedConnection);
+	connect(&signalDispatcher, &SignalDispatcher::scriptLabelRowTextChanged2, this, &ScriptSettingForm::onScriptLabelRowTextChanged, Qt::QueuedConnection);
 	connect(&signalDispatcher, &SignalDispatcher::globalVarInfoImport, this, &ScriptSettingForm::onGlobalVarInfoImport, Qt::QueuedConnection);
 	connect(&signalDispatcher, &SignalDispatcher::localVarInfoImport, this, &ScriptSettingForm::onLocalVarInfoImport, Qt::QueuedConnection);
+	connect(&signalDispatcher, &SignalDispatcher::scriptFinished, this, &ScriptSettingForm::onFinished, Qt::QueuedConnection);
 	Injector& injector = Injector::getInstance();
 	if (!injector.scriptLogModel.isNull())
 		ui.listView_log->setModel(injector.scriptLogModel.get());
@@ -152,31 +164,143 @@ void ScriptSettingForm::onApplyHashSettingsToUI()
 		ui.listView_log->setModel(injector.scriptLogModel.get());
 }
 
-void ScriptSettingForm::setMark(CodeEditor::SymbolHandler element, int liner, bool b)
+void ScriptSettingForm::onFinished()
+{
+	ui.actionStart->setText(tr("start"));
+}
+
+void ScriptSettingForm::setMark(CodeEditor::SymbolHandler element, util::SafeHash<int, break_marker_t>& hash, int liner, bool b)
 {
 	do
 	{
 		if (liner == -1)
 		{
+			hash.clear();
 			ui.widget->markerDeleteAll(element);
 			break;
 		}
 
 		if (b)
 		{
+			break_marker_t bk = {};
+			bk.line = liner;
+			bk.content = ui.widget->text(liner);
+			bk.count = NULL;
+			bk.maker = static_cast<int>(element);
+			hash.insert(liner, bk);
+
 			ui.widget->markerAdd(liner, element); // 添加标签
 			onEditorCursorPositionChanged(liner, 0);
 		}
 		else if (!b)
 		{
+			util::SafeHash<int, break_marker_t> markers = hash;
+			if (markers.contains(liner))
+				hash.remove(liner);
 			ui.widget->markerDelete(liner, element);
 		}
 	} while (false);
 }
 
+void ScriptSettingForm::onAddForwardMarker(int liner, bool b)
+{
+	setMark(CodeEditor::SymbolHandler::SYM_ARROW, forward_markers, liner, b);
+}
+
 void ScriptSettingForm::onAddErrorMarker(int liner, bool b)
 {
-	setMark(CodeEditor::SymbolHandler::SYM_TRIANGLE, liner, b);
+	setMark(CodeEditor::SymbolHandler::SYM_TRIANGLE, error_markers, liner, b);
+}
+
+void ScriptSettingForm::onAddStepMarker(int liner, bool b)
+{
+	if (!b)
+	{
+		this->setMark(CodeEditor::SymbolHandler::SYM_STEP, step_markers, -1, false);
+	}
+	else
+	{
+		int size = ui.widget->lines();
+		for (int i = 0; i < size; ++i)
+		{
+			this->setMark(CodeEditor::SymbolHandler::SYM_STEP, step_markers, i, true);
+		}
+		ui.actionStart->setText(tr("continue"));
+	}
+}
+
+void ScriptSettingForm::onAddBreakMarker(int liner, bool b)
+{
+	do
+	{
+		if (liner == -1)
+		{
+			ui.widget->markerDeleteAll(CodeEditor::SymbolHandler::SYM_POINT);
+			break;
+		}
+
+		if (b)
+		{
+			break_marker_t bk = {};
+			bk.line = liner;
+			bk.content = ui.widget->text(liner);
+			if (bk.content.simplified().isEmpty() || bk.content.simplified().indexOf("//") == 0)
+				return;
+			bk.count = NULL;
+			bk.maker = static_cast<int>(CodeEditor::SymbolHandler::SYM_POINT);
+			break_markers.insert(liner, bk);
+			ui.widget->markerAdd(liner, CodeEditor::SymbolHandler::SYM_POINT);
+		}
+		else if (!b)
+		{
+			util::SafeHash<int, break_marker_t> markers = break_markers;
+			if (markers.contains(liner))
+				break_markers.remove(liner);
+
+			ui.widget->markerDelete(liner, CodeEditor::SymbolHandler::SYM_POINT);
+		}
+	} while (false);
+	onBreakMarkInfoImport();
+}
+
+void ScriptSettingForm::onBreakMarkInfoImport()
+{
+	const util::SafeHash<int, break_marker_t> mk = break_markers;
+	QList<QTreeWidgetItem*> trees = {};
+	ui.treeWidget_breakList->clear();
+	ui.treeWidget_breakList->setColumnCount(3);
+	ui.treeWidget_breakList->setHeaderLabels(QStringList{ tr("CONTENT"),tr("COUNT"), tr("ROW") });
+	for (const break_marker_t& it : mk)
+	{
+		QTreeWidgetItem* item = q_check_ptr(new QTreeWidgetItem({ it.content, QString::number(it.count), QString::number(it.line + 1) }));
+		item->setIcon(0, QIcon("://image/icon_break.png"));
+		trees.append(item);
+	}
+	ui.treeWidget_breakList->addTopLevelItems(trees);
+}
+
+void ScriptSettingForm::on_widget_marginClicked(int margin, int line, Qt::KeyboardModifiers state)
+{
+	Q_UNUSED(margin);
+	int mask = ui.widget->markersAtLine(line);
+
+	switch (state)
+	{
+	case Qt::ControlModifier: // 按下Ctrl键
+	case Qt::AltModifier: break;// 按下Alt键
+	default:
+	{
+		if (ui.widget->isBreak(mask))
+		{
+			onAddBreakMarker(line, false);
+		}
+		else
+		{
+			onAddBreakMarker(line, true);
+		}
+		break;
+	}
+	}
 }
 
 static const QRegularExpression rexLoadComma(R"(,[ \t\f\v]{0,})");
@@ -229,15 +353,15 @@ void ScriptSettingForm::fileSave(const QString& d, DWORD flag)
 		contents[i].replace(rexLoadComma, ",");
 		contents[i].replace(rexSetComma, ", ");
 		contents[i] = contents[i].trimmed();
-		if (contents[i].startsWith("標記") && indent_begin == -1)
+		if (contents[i].startsWith("function") && indent_begin == -1)
 		{
 			indent_begin = i + 1;
 		}
-		else if (contents[i].startsWith("標記") && indent_begin != -1)
+		else if (contents[i].startsWith("function") && indent_begin != -1)
 		{
 			indent_begin = -1;
 		}
-		else if ((contents[i].startsWith("返回") || contents[i].startsWith("結束")) && indent_begin != -1 && indent_end == -1)
+		else if ((contents[i].startsWith("end")) && indent_begin != -1 && indent_end == -1)
 		{
 			indent_end = i - 1;
 			for (int j = indent_begin; j <= indent_end; ++j)
@@ -336,6 +460,14 @@ void ScriptSettingForm::loadFile(const QString& fileName)
 	ui.widget->setText(c);
 }
 
+void ScriptSettingForm::onContinue()
+{
+	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
+	emit signalDispatcher.scriptPaused2();
+	onAddErrorMarker(-1, false);
+	onAddForwardMarker(-1, false);
+	onAddStepMarker(-1, false);
+}
 
 void ScriptSettingForm::onScriptTreeWidgetDoubleClicked(QTreeWidgetItem* item, int column)
 {
@@ -402,7 +534,15 @@ void ScriptSettingForm::onActionTriggered()
 	}
 	else if (name == "actionStart")
 	{
-		emit signalDispatcher.scriptStarted();
+		if (step_markers.size() == 0)
+		{
+			emit signalDispatcher.scriptStarted();
+		}
+		else
+		{
+			onContinue();
+			ui.actionStart->setText(tr("start"));
+		}
 	}
 	else if (name == "actionPause")
 	{
@@ -450,13 +590,25 @@ void ScriptSettingForm::onActionTriggered()
 	{
 		QDesktopServices::openUrl(QUrl::fromLocalFile(QApplication::applicationDirPath() + "/script"));
 	}
-	else if (name == "actionImport")
+	else if (name == "actionStep")
 	{
-
+		onAddErrorMarker(-1, false);
+		onAddForwardMarker(-1, false);
+		emit signalDispatcher.scriptPaused2();
 	}
-	else if (name == "actionAutoCleanLog")
+	else if (name == "actionMark")
 	{
+		int line = -1;
+		ui.widget->getCursorPosition(&line, nullptr);
+		on_widget_marginClicked(NULL, line, static_cast<Qt::KeyboardModifiers>(Qt::LeftButton));
+	}
+	else if (name == "actionLogback")
+	{
+		Injector& injector = Injector::getInstance();
+		if (injector.server.isNull())
+			return;
 
+		injector.server->logBack();
 	}
 	else if (name == "actionAutoFollow")
 	{
@@ -526,7 +678,7 @@ void ScriptSettingForm::onWidgetModificationChanged(bool changed)
 	m_scripts.insert(currentFileName_, ui.widget->text());
 }
 
-static const QRegularExpression rex_divLabel(u8R"([標|標][記|記]\s+\p{Han}+)");
+static const QRegularExpression rex_divLabel(u8R"(([標|標][記|記]|function|label)\s+\p{Han}+)");
 void ScriptSettingForm::on_comboBox_labels_clicked()
 {
 	ui.comboBox_labels->blockSignals(true);
@@ -635,14 +787,26 @@ void ScriptSettingForm::on_lineEdit_searchFunction_textChanged(const QString& te
 	}
 }
 
-void ScriptSettingForm::onScriptLabelRowTextChanged(int row, int max, bool noSelect)
+void ScriptSettingForm::onScriptLabelRowTextChanged(int line, int max, bool noSelect)
 {
-	onEditorCursorPositionChanged(row, NULL);
+	if (line < 0)
+		line = 0;
+
+	ui.widget->setCursorPosition(line, ui.widget->SendScintilla(QsciScintilla::SCI_LINELENGTH, line) - 1);
+	ui.widget->SendScintilla(QsciScintilla::SCI_SETSELECTIONMODE, QsciScintilla::SC_SEL_LINES);
+
+	ui.widget->setCaretLineBackgroundColor(QColor(71, 71, 71));//光標所在行背景顏色
+
+	//確保光標示在可視範圍內
+	ui.widget->ensureLineVisible(line);
 }
 
 //切換光標和焦點所在行
 void ScriptSettingForm::onEditorCursorPositionChanged(int line, int index)
 {
+	if (line < 0)
+		line = 0;
+
 	ui.widget->setCursorPosition(line, ui.widget->SendScintilla(QsciScintilla::SCI_LINELENGTH, line - 1) - 1);
 	ui.widget->SendScintilla(QsciScintilla::SCI_SETSELECTIONMODE, QsciScintilla::SC_SEL_LINES);
 

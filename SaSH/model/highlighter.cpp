@@ -15,11 +15,18 @@ const char* Highlighter::keywords(int set) const
 	case 1://粉色
 	{
 		//lua key word
-		return "";
+		return "goto call function end pause exit label if";
 	}
 	case 2://QsciLexerLua::BasicFunctions//黃色
 	{
-		return "";
+		return "test sleep msg logout lockback eo button say input "
+			"talk cls set saveset loadset ifbattle ifpos waitmap "
+			"ifmap waitdlg waitsay waititem ifitem ifitemfull "
+			"ifplayer ifpet ifpetex chpet ifdaily chplayername chpetname "
+			"usemagic doffpet buy sell useitem doffitem pickup put "
+			"get putpet getpet make cook chmap unequip recordequip "
+			"wearrecordequip addpoint join leave waitteam ifteam move "
+			"walkpos w dir findpath movetonpc lclick rclick ldbclick dragto warp ";
 	}
 	case 3://QsciLexerLua::StringTableMathsFunction//草綠
 	{
@@ -31,7 +38,7 @@ const char* Highlighter::keywords(int set) const
 	}
 	case 5://KeywordSet5//深藍色
 	{
-		return "";
+		return "var vardelete varfree varclear format";
 	}
 	case 6://KeywordSet6//淺藍色
 	{
@@ -39,11 +46,11 @@ const char* Highlighter::keywords(int set) const
 	}
 	case 7://KeywordSet7//土橘色
 	{
-		return "";
+		return "return";
 	}
 	case 8://KeywordSet8//紫色
 	{
-		return "";
+		return "print";
 	}
 	case 9:break;
 	}

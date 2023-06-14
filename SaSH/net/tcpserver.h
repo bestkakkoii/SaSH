@@ -1606,7 +1606,7 @@ static const QHash<QString, DirType> dirMap = {
 
 
 static const QHash<QString, CHAR_EquipPlace> equipMap = {
-	{ u8"頭部", CHAR_HEAD },
+	{ u8"頭", CHAR_HEAD },
 	{ u8"身體", CHAR_BODY },
 	{ u8"右手", CHAR_ARM },
 	{ u8"左飾", CHAR_DECORATION1 },
@@ -1616,7 +1616,7 @@ static const QHash<QString, CHAR_EquipPlace> equipMap = {
 	{ u8"鞋子", CHAR_EQSHOES },
 	{ u8"手套", CHAR_EQGLOVE },
 
-	{ u8"头部", CHAR_HEAD },
+	{ u8"头", CHAR_HEAD },
 	{ u8"身体", CHAR_BODY },
 	{ u8"右手", CHAR_ARM },
 	{ u8"左饰", CHAR_DECORATION1 },
@@ -1625,6 +1625,16 @@ static const QHash<QString, CHAR_EquipPlace> equipMap = {
 	{ u8"左手", CHAR_EQSHIELD },
 	{ u8"鞋子", CHAR_EQSHOES },
 	{ u8"手套", CHAR_EQGLOVE },
+
+	{ u8"head", CHAR_HEAD },
+	{ u8"body", CHAR_BODY },
+	{ u8"right", CHAR_ARM },
+	{ u8"las", CHAR_DECORATION1 },
+	{ u8"ras", CHAR_DECORATION2 },
+	{ u8"belt", CHAR_EQBELT },
+	{ u8"left", CHAR_EQSHIELD },
+	{ u8"shoe", CHAR_EQSHOES },
+	{ u8"glove", CHAR_EQGLOVE },
 };
 enum BufferControl
 {
@@ -1678,7 +1688,14 @@ public://actions
 
 	bool login(int s);
 
-	void leftCLick(int x, int y);
+	void leftClick(int x, int y);
+
+	void leftDoubleClick(int x, int y);
+
+	void rightClick(int x, int y);
+
+	void dragto(int x1, int y1, int x2, int y2);
+
 
 	void unlockSecurityCode(const QString& code);
 
@@ -1768,6 +1785,7 @@ public://actions
 	bool getPetIndexsByName(const QString& name, QVector<int>* pv) const;
 	int getMagicIndexByName(const QString& name, bool isExact = true) const;
 	int getItemEmptySpotIndex() const;
+	bool getItemEmptySpotIndexs(QVector<int>* pv) const;
 	void clear();
 
 	bool checkPlayerMp(int cmpvalue, int* target = nullptr, bool useequal = false);

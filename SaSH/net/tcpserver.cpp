@@ -2335,7 +2335,6 @@ void Server::lssproto_WN_recv(int windowtype, int buttontype, int seqno, int obj
 	{
 		if (data.contains(it))
 		{
-			QThread::msleep(1500);
 			press(BUTTON_OK);
 			return;
 		}
@@ -3215,8 +3214,8 @@ void Server::asyncBattleWork(bool wait)
 				}
 
 				//這裡不發的話一般戰鬥、和快戰都不會再收到後續的封包
-				lssproto_EO_send(0);
-				lssproto_Echo_send(const_cast<char*>("????"));
+				//lssproto_EO_send(0);
+				//lssproto_Echo_send(const_cast<char*>("hoge"));
 			};
 
 			//人物和寵物分開發
@@ -7362,6 +7361,9 @@ void Server::setPetState(int petIndex, PetState state)
 			{
 				if (pet[i].state == kRide && i != petIndex)
 				{
+					lssproto_PETST_send(i, 0);
+					pc.selectPetNo[i] = 0;
+					pet[i].state = kRide;
 					bret = true;
 					break;
 				}
@@ -7370,13 +7372,13 @@ void Server::setPetState(int petIndex, PetState state)
 
 		if (bret)
 		{
-			str = QString("R|P|-1");
-			sstr = str.toStdString();
-			lssproto_FM_send(const_cast<char*>(sstr.c_str()));
-			pc.ridePetNo = -1;
-			pc.selectPetNo[petIndex] = 0;
-			mem::writeInt(hProcess, hModule + 0x422E3D8, -1, 0);
-			QThread::msleep(500);
+			//str = QString("R|P|-1");
+			//sstr = str.toStdString();
+			//lssproto_FM_send(const_cast<char*>(sstr.c_str()));
+			//pc.ridePetNo = -1;
+			//pc.selectPetNo[petIndex] = 0;
+			//mem::writeInt(hProcess, hModule + 0x422E3D8, -1, 0);
+			//QThread::msleep(500);
 		}
 
 		str = QString("R|P|%1").arg(petIndex);
@@ -7674,17 +7676,17 @@ void Server::setBattleEnd()
 
 	Injector& injector = Injector::getInstance();
 
-	if (getWorldStatus() != 10)
-		setBattleFlag(false);
+	//if (getWorldStatus() != 10)
+	setBattleFlag(false);
 
 
 	battle_total_time += battleDurationTimer.elapsed();
 	battleDurationTimer.restart();
 
 	lssproto_EO_send(0);
-	lssproto_Echo_send(const_cast<char*>("????"));
-	lssproto_EO_send(0);
-	lssproto_Echo_send(const_cast<char*>("!!!!"));
+	//lssproto_Echo_send(const_cast<char*>("????"));
+	//lssproto_EO_send(0);
+	//lssproto_Echo_send(const_cast<char*>("hoge"));
 }
 
 //元神歸位
@@ -8624,8 +8626,35 @@ int Server::getItemEmptySpotIndex() const
 	return -1;
 }
 
+bool Server::getItemEmptySpotIndexs(QVector<int>* pv) const
+{
+	QVector<int> v;
+	for (int i = CHAR_EQUIPPLACENUM; i < MAX_ITEM; ++i)
+	{
+		if (pc.item[i].name.isEmpty() || pc.item[i].useFlag == 0)
+			v.append(i);
+	}
+	if (pv)
+		*pv = v;
+
+	return !v.isEmpty();
+}
+
 //滑鼠移動 + 左鍵 
-void Server::leftCLick(int x, int y)
+void Server::leftClick(int x, int y)
+{
+	Injector& injector = Injector::getInstance();
+	HWND hWnd = injector.getProcessWindow();
+	LPARAM data = MAKELPARAM(x, y);
+	injector.sendMessage(WM_MOUSEMOVE, NULL, data);
+	QThread::msleep(50);
+	injector.sendMessage(WM_LBUTTONDOWN, MK_LBUTTON, data);
+	QThread::msleep(50);
+	injector.sendMessage(WM_LBUTTONUP, MK_LBUTTON, data);
+	QThread::msleep(50);
+}
+
+void Server::leftDoubleClick(int x, int y)
 {
 	Injector& injector = Injector::getInstance();
 	HWND hWnd = injector.getProcessWindow();
@@ -8634,10 +8663,35 @@ void Server::leftCLick(int x, int y)
 	QThread::msleep(50);
 	injector.sendMessage(WM_LBUTTONDBLCLK, MK_LBUTTON, data);
 	QThread::msleep(100);
-	//injector.sendMessage(WM_LBUTTONDOWN, MK_LBUTTON, data);
-	//QThread::msleep(50);
-	//injector.sendMessage(WM_LBUTTONUP, MK_LBUTTON, data);
-	//QThread::msleep(50);
+}
+
+void Server::rightClick(int x, int y)
+{
+	Injector& injector = Injector::getInstance();
+	HWND hWnd = injector.getProcessWindow();
+	LPARAM data = MAKELPARAM(x, y);
+	injector.sendMessage(WM_MOUSEMOVE, NULL, data);
+	QThread::msleep(50);
+	injector.sendMessage(WM_RBUTTONDOWN, MK_RBUTTON, data);
+	QThread::msleep(50);
+	injector.sendMessage(WM_RBUTTONUP, MK_RBUTTON, data);
+	QThread::msleep(50);
+}
+
+void Server::dragto(int x1, int y1, int x2, int y2)
+{
+	Injector& injector = Injector::getInstance();
+	HWND hWnd = injector.getProcessWindow();
+	LPARAM datafrom = MAKELPARAM(x1, y1);
+	LPARAM datato = MAKELPARAM(x2, y2);
+	injector.sendMessage(WM_MOUSEMOVE, NULL, datafrom);
+	QThread::msleep(50);
+	injector.sendMessage(WM_LBUTTONDOWN, MK_LBUTTON, datafrom);
+	QThread::msleep(50);
+	injector.sendMessage(WM_MOUSEMOVE, NULL, datato);
+	QThread::msleep(50);
+	injector.sendMessage(WM_LBUTTONUP, MK_LBUTTON, datato);
+	QThread::msleep(50);
 }
 
 //登入
@@ -8659,7 +8713,7 @@ bool Server::login(int s)
 	{
 		if (enableReconnect)
 		{
-			leftCLick(315, 270);
+			leftDoubleClick(315, 270);
 			disconnectflag = true;
 		}
 		return false;
@@ -8672,17 +8726,17 @@ bool Server::login(int s)
 	{
 	case util::kStatusBusy:
 	{
-		leftCLick(315, 255);
+		leftDoubleClick(315, 255);
 		break;
 	}
 	case util::kStatusTimeout:
 	{
-		leftCLick(315, 253);
+		leftDoubleClick(315, 253);
 		break;
 	}
 	case util::kNoUserNameOrPassword:
 	{
-		leftCLick(315, 253);
+		leftDoubleClick(315, 253);
 		break;
 	}
 	case util::kStatusInputUser:
@@ -8699,7 +8753,7 @@ bool Server::login(int s)
 		{
 			mem::writeString(injector.getProcess(), injector.getProcessModule() + 0x415AA58, password);
 		}
-		leftCLick(380, 310);
+		leftDoubleClick(380, 310);
 		break;
 	}
 	case util::kStatusSelectServer:
@@ -8722,7 +8776,7 @@ bool Server::login(int s)
 		{
 			const int a = table[server * 3 + 1];
 			const int b = table[server * 3 + 2];
-			leftCLick(170 + (a * 125), 165 + (b * 25));
+			leftDoubleClick(170 + (a * 125), 165 + (b * 25));
 		}
 		break;
 	}
@@ -8730,14 +8784,14 @@ bool Server::login(int s)
 	{
 		if (subserver >= 0 && subserver <= 4)
 		{
-			leftCLick(250, 265 + (subserver * 25));
+			leftDoubleClick(250, 265 + (subserver * 25));
 		}
 		break;
 	}
 	case util::kStatusSelectCharacter:
 	{
 		if (position >= 0 && position <= 1)
-			leftCLick(100 + (position * 300), 340);
+			leftDoubleClick(100 + (position * 300), 340);
 		break;
 	}
 	case util::kStatusLogined:
@@ -8887,13 +8941,13 @@ void Server::updateDatasFromMemory()
 		}
 		else
 		{
-			if (mailPetIndex == i)
-			{
-				_pet[i].state = kMail;
-			}
-			else if (ridePetIndex == i)
+			if (ridePetIndex == i)
 			{
 				_pet[i].state = kRide;
+			}
+			else if (mailPetIndex == i)
+			{
+				_pet[i].state = kMail;
 			}
 			else
 			{

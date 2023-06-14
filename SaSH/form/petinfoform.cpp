@@ -140,15 +140,17 @@ void PetInfoForm::on_pushButton_calc_clicked()
 
 	int expect_level = ui.spinBox_expect_level->value();
 
+	ui.doubleSpinBox->setValue(rate_atk + rate_def + rate_agi);
+	ui.doubleSpinBox_hp->setValue(rate_maxHp);
 	ui.doubleSpinBox_atk->setValue(rate_atk);
 	ui.doubleSpinBox_def->setValue(rate_def);
-	ui.doubleSpinBox_hp->setValue(rate_maxHp);
 	ui.doubleSpinBox_agi->setValue(rate_agi);
 
-	ui.spinBox_expect_hp->setValue(rate_maxHp * (expect_level - base_level) + base_maxHp);
-	ui.spinBox_expect_atk->setValue(rate_atk * (expect_level - base_level) + base_atk);
-	ui.spinBox_expect_def->setValue(rate_def * (expect_level - base_level) + base_def);
-	ui.spinBox_expect_agi->setValue(rate_agi * (expect_level - base_level) + base_agi);
+	ui.spinBox_expect_level->setValue(expect_level);
+	ui.spinBox_expect_hp->setValue(rate_maxHp * (expect_level - base_level + 1) + base_maxHp);
+	ui.spinBox_expect_atk->setValue(rate_atk * (expect_level - base_level + 1) + base_atk);
+	ui.spinBox_expect_def->setValue(rate_def * (expect_level - base_level + 1) + base_def);
+	ui.spinBox_expect_agi->setValue(rate_agi * (expect_level - base_level + 1) + base_agi);
 }
 
 void PetInfoForm::on_pushButton_clear_clicked()
@@ -176,6 +178,7 @@ void PetInfoForm::on_pushButton_clear_clicked()
 	ui.spinBox_current_def->setValue(cur_def);
 	ui.spinBox_current_agi->setValue(cur_agi);
 
+	ui.doubleSpinBox->setValue(0.0);
 	ui.doubleSpinBox_atk->setValue(0.0);
 	ui.doubleSpinBox_def->setValue(0.0);
 	ui.doubleSpinBox_hp->setValue(0.0);
