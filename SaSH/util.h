@@ -43,7 +43,7 @@ namespace util
 	constexpr const char* SA_NAME = "sa_8001.exe";
 	constexpr const char* CODEPAGE_DEFAULT = "UTF-8";
 	constexpr const char* SCRIPT_SUFFIX_DEFAULT = ".txt";
-
+	constexpr const char* SCRIPT_PRIVATE_SUFFIX_DEFAULT = ".sac";
 	typedef enum
 	{
 		REASON_NO_ERROR,
@@ -271,6 +271,9 @@ namespace util
 		//lockpet
 		kLockPetValue,
 		kLockRideValue,
+
+		//script
+		kScriptSpeedValue,
 
 		kSettingMaxValue,
 
@@ -523,6 +526,9 @@ namespace util
 		//lockpet
 		{ kLockPetValue, "LockPetValue" },
 		{ kLockRideValue, "LockRideValue" },
+
+		//script
+		{ kScriptSpeedValue, "ScriptSpeedValue" },
 
 		{ kSettingMaxValue, "SettingMaxValue" },
 
@@ -1133,9 +1139,51 @@ namespace util
 			queue_.setMaxSize(maxSize);
 		}
 
+		//=
+		SafeQueue& operator=(const SafeQueue& other)
+		{
+			QWriteLocker locker(&lock_);
+			if (this != &other)
+			{
+				queue_ = other.queue_;
+			}
+			return *this;
+		}
+
 	private:
 		QQueue<V> queue_;
 		int maxSize_;
+		mutable QReadWriteLock lock_;
+	};;
+
+	template <typename T>
+	class SafeData
+	{
+	public:
+		SafeData()
+		{
+		}
+
+		T get() const
+		{
+			QReadLocker locker(&lock_);
+			return data_;
+		}
+
+		void set(const T& data)
+		{
+			QWriteLocker locker(&lock_);
+			data_ = data;
+		}
+
+		SafeData<T>& operator=(const T& data)
+		{
+			set(data);
+			return *this;
+		}
+
+	private:
+		T data_;
 		mutable QReadWriteLock lock_;
 	};;
 

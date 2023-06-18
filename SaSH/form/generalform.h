@@ -25,6 +25,8 @@ private slots:
 
 	void onResetControlTextLanguage();
 
+	void onGameStart();
+
 protected:
 
 private:

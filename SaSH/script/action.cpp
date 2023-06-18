@@ -2,6 +2,7 @@
 #include "interpreter.h"
 #include "util.h"
 #include "injector.h"
+#include "map/mapanalyzer.h"
 
 //action
 int Interpreter::useitem(int currentline, const TokenMap& TK)
@@ -94,7 +95,6 @@ int Interpreter::useitem(int currentline, const TokenMap& TK)
 		return Parser::kArgError;
 
 	injector.server->useItem(itemIndex, target);
-	QThread::msleep(200);
 	return Parser::kNoChange;
 }
 
@@ -162,7 +162,6 @@ int Interpreter::dropitem(int currentline, const TokenMap& TK)
 				injector.server->dropItem(i);
 		}
 
-		QThread::msleep(200);
 	}
 	else
 	{
@@ -183,7 +182,6 @@ int Interpreter::dropitem(int currentline, const TokenMap& TK)
 			}
 		}
 
-		QThread::msleep(200);
 	}
 	return Parser::kNoChange;
 }
@@ -275,8 +273,6 @@ int Interpreter::droppet(int currentline, const TokenMap& TK)
 		}
 	}
 
-	QThread::msleep(200);
-
 	return Parser::kNoChange;
 }
 
@@ -313,7 +309,6 @@ int Interpreter::buy(int currentline, const TokenMap& TK)
 		}
 	}
 
-	QThread::msleep(200);
 	return Parser::kNoChange;
 }
 
@@ -357,10 +352,9 @@ int Interpreter::sell(int currentline, const TokenMap& TK)
 		if (injector.server->findUnit(npcName, util::OBJ_NPC, &unit))
 		{
 			injector.server->sell(itemIndexs, kDialogSell, unit.id);
+
 		}
 	}
-
-	QThread::msleep(200);
 
 	return Parser::kNoChange;
 }
@@ -382,7 +376,7 @@ int Interpreter::make(int currentline, const TokenMap& TK)
 		return Parser::kArgError;
 
 	injector.server->craft(util::kCraftItem, ingreNameList);
-	QThread::msleep(200);
+
 	return Parser::kNoChange;
 }
 
@@ -403,7 +397,56 @@ int Interpreter::cook(int currentline, const TokenMap& TK)
 		return Parser::kArgError;
 
 	injector.server->craft(util::kCraftFood, ingreNameList);
-	QThread::msleep(200);
+
+	return Parser::kNoChange;
+}
+
+int Interpreter::learn(int currentline, const TokenMap& TK)
+{
+	Injector& injector = Injector::getInstance();
+
+	if (injector.server.isNull())
+		return Parser::kError;
+
+	checkBattleThenWait();
+
+	int petIndex = 0;
+	checkInt(TK, 1, &petIndex);
+	if (petIndex <= 0 || petIndex >= 6)
+		return Parser::kArgError;
+	--petIndex;
+
+	int skillIndex = 0;
+	checkInt(TK, 2, &skillIndex);
+	if (skillIndex <= 0)
+		return Parser::kArgError;
+	--skillIndex;
+
+
+	int spot = 0;
+	checkInt(TK, 3, &spot);
+	if (spot <= 0 || spot > MAX_SKILL + 1)
+		return Parser::kArgError;
+	--spot;
+
+	QString npcName;
+	checkString(TK, 4, &npcName);
+
+
+	int dialogid = -1;
+	checkInt(TK, 5, &dialogid);
+
+	if (npcName.isEmpty())
+		injector.server->learn(skillIndex, petIndex, spot);
+	else
+	{
+		mapunit_t unit;
+		if (injector.server->findUnit(npcName, util::OBJ_NPC, &unit))
+		{
+			injector.server->learn(skillIndex, petIndex, spot, dialogid, unit.id);
+		}
+	}
+
 	return Parser::kNoChange;
 }
 
@@ -647,7 +690,7 @@ int Interpreter::wearequip(int currentline, const TokenMap& TK)
 
 		injector.server->useItem(itemIndex, 0);
 	}
-	QThread::msleep(200);
+
 	return Parser::kNoChange;
 }
 
@@ -707,7 +750,101 @@ int Interpreter::unwearequip(int currentline, const TokenMap& TK)
 		}
 	}
 
-	QThread::msleep(200);
+	return Parser::kNoChange;
+}
+
+int Interpreter::petequip(int currentline, const TokenMap& TK)
+{
+	Injector& injector = Injector::getInstance();
+
+	if (injector.server.isNull())
+		return Parser::kError;
+
+	checkBattleThenWait();
+
+	int petIndex = -1;
+	if (!checkInt(TK, 1, &petIndex))
+		return Parser::kArgError;
+
+	if (petIndex < 0 || petIndex >= MAX_PET)
+		return Parser::kArgError;
+
+	QString itemName;
+	checkString(TK, 2, &itemName);
+	if (itemName.isEmpty())
+		return Parser::kArgError;
+
+	int itemIndex = injector.server->getItemIndexByName(itemName);
+	if (itemIndex != -1)
+		injector.server->petitemswap(petIndex, itemIndex, -1);
+
+	return Parser::kNoChange;
+}
+
+int Interpreter::petunequip(int currentline, const TokenMap& TK)
+{
+	Injector& injector = Injector::getInstance();
+
+	if (injector.server.isNull())
+		return Parser::kError;
+
+	checkBattleThenWait();
+
+	int part = CHAR_EQUIPNONE;
+
+	int petIndex = -1;
+	if (!checkInt(TK, 1, &petIndex))
+		return Parser::kArgError;
+
+	if (petIndex < 0 || petIndex >= MAX_PET)
+		return Parser::kArgError;
+
+
+	if (!checkInt(TK, 2, &part) || part < 1)
+	{
+		QString partStr;
+		checkString(TK, 2, &partStr);
+		if (partStr.isEmpty())
+			return Parser::kArgError;
+
+		if (partStr.toLower() == "all" || partStr.toLower() == QString("全部"))
+		{
+			part = 100;
+		}
+		else
+		{
+			part = petEquipMap.value(partStr.toLower(), PET_EQUIPNONE);
+			if (part == PET_EQUIPNONE)
+				return Parser::kArgError;
+		}
+	}
+	else
+		--part;
+	if (part < 100)
+	{
+		int spotIndex = injector.server->getItemEmptySpotIndex();
+		if (spotIndex == -1)
+			return Parser::kNoChange;
+
+		injector.server->petitemswap(petIndex, part, spotIndex);
+	}
+	else
+	{
+		QVector<int> v;
+		if (!injector.server->getItemEmptySpotIndexs(&v))
+			return Parser::kNoChange;
+
+		for (int i = 0; i < CHAR_EQUIPPLACENUM; ++i)
+		{
+			if (v.isEmpty())
+				break;
+
+			int itemIndex = v.takeFirst();
+
+			injector.server->petitemswap(petIndex, i, itemIndex);
+		}
+	}
+
 	return Parser::kNoChange;
 }
 
@@ -756,7 +893,7 @@ int Interpreter::depositpet(int currentline, const TokenMap& TK)
 	//injector.server->IS_WAITFOR_DIALOG_FLAG = true;
 	injector.server->press(BUTTON_OK);
 	//waitfor(1000, [&injector]()->bool { return !injector.server->IS_WAITFOR_DIALOG_FLAG; });
-	QThread::msleep(200);
+
 	return Parser::kNoChange;
 }
 
@@ -832,7 +969,7 @@ int Interpreter::deposititem(int currentline, const TokenMap& TK)
 
 		}
 	}
-	QThread::msleep(200);
+
 	return Parser::kNoChange;
 }
 
@@ -855,8 +992,6 @@ int Interpreter::withdrawpet(int currentline, const TokenMap& TK)
 
 	int maxHp = 0;
 	checkInt(TK, 3, &maxHp);
-
-	QThread::msleep(100);
 
 	for (;;)
 	{
@@ -926,7 +1061,7 @@ int Interpreter::withdrawpet(int currentline, const TokenMap& TK)
 		else
 			break;
 	}
-	QThread::msleep(200);
+
 	return Parser::kNoChange;
 }
 
@@ -946,8 +1081,6 @@ int Interpreter::withdrawitem(int currentline, const TokenMap& TK)
 
 	QString memo;
 	checkString(TK, 2, &memo);
-
-	QThread::msleep(100);
 
 	QVector<ITEM> bankItemList = injector.server->currentBankItemList;
 
@@ -988,7 +1121,7 @@ int Interpreter::withdrawitem(int currentline, const TokenMap& TK)
 		//waitfor(1000, [&injector]()->bool { return !injector.server->IS_WAITFOR_DIALOG_FLAG; });
 
 	}
-	QThread::msleep(200);
+
 	return Parser::kNoChange;
 }
 
@@ -1012,18 +1145,28 @@ int Interpreter::addpoint(int currentline, const TokenMap& TK)
 		return Parser::kArgError;
 
 	static const QHash<QString, int> hash = {
-		{ QObject::tr("str"), 0 },
-		{ QObject::tr("vit"), 1 },
-		{ QObject::tr("tgh"), 2 },
-		{ QObject::tr("dex"), 3 },
+		{ u8"腕力", 0},
+		{ u8"體力", 1},
+		{ u8"耐力", 2},
+		{ u8"速度", 3},
+
+		{ u8"腕力", 0},
+		{ u8"体力", 1},
+		{ u8"耐力", 2},
+		{ u8"速度", 3},
+
+		{ u8"str", 0},
+		{ u8"vit", 1},
+		{ u8"tgh", 2},
+		{ u8"dex", 3},
 	};
 
-	int point = hash.value(pointName, -1);
+	int point = hash.value(pointName.toLower(), -1);
 	if (point == -1)
 		return Parser::kArgError;
 
 	injector.server->addPoint(point, max);
-	QThread::msleep(200);
+
 	return Parser::kNoChange;
 }
 
@@ -1090,6 +1233,194 @@ int Interpreter::mousedragto(int currentline, const TokenMap& TK)
 	checkInt(TK, 4, &pto.ry());
 
 	injector.server->dragto(pfrom.x(), pfrom.y(), pto.x(), pto.y());
+
+	return Parser::kNoChange;
+}
+
+int Interpreter::trade(int currentline, const TokenMap& TK)
+{
+	Injector& injector = Injector::getInstance();
+
+	if (injector.server.isNull())
+		return Parser::kError;
+
+	QString name;
+	checkString(TK, 1, &name);
+	if (name.isEmpty())
+		return Parser::kArgError;
+
+	QString itemListStr;
+	checkString(TK, 2, &itemListStr);
+
+	QString petListStr;
+	checkString(TK, 3, &petListStr);
+
+	int gold = 0;
+	if (!checkInt(TK, 4, &gold))
+	{
+		QString tmp;
+		if (checkString(TK, 4, &tmp) && tmp == "all")
+			gold = injector.server->pc.gold;
+	}
+
+
+	int timeout = 5000;
+	checkInt(TK, 5, &timeout);
+
+	mapunit_s unit;
+	if (!injector.server->findUnit(name, util::OBJ_HUMAN, &unit))
+		return Parser::kNoChange;
+
+	QPoint dst;
+	int dir = injector.server->mapAnalyzer->calcBestFollowPointByDstPoint(injector.server->nowFloor, injector.server->nowPoint, unit.p, &dst, true, unit.dir);
+	if (dir == -1 || !findPath(dst, 1, 0, timeout))
+		return Parser::kNoChange;
+
+	injector.server->setPlayerFaceDirection(dir);
+
+	if (!injector.server->tradeStart(name, timeout))
+		return Parser::kNoChange;
+
+	bool ok = false;
+	if (!itemListStr.isEmpty())
+	{
+		QStringList itemIndexList = itemListStr.split(util::rexOR, Qt::SkipEmptyParts);
+		if (itemListStr.toLower() == "all")
+		{
+			for (int i = 1; i <= 15; ++i)
+				itemIndexList.append(QString::number(i));
+		}
+		else if (itemListStr.count("-") == 1)
+		{
+			int min = 1;
+			int max = 15;
+			if (!checkRange(TK, 2, &min, &max))
+				return Parser::kArgError;
+
+			for (int i = min; i <= max; ++i)
+				itemIndexList.append(QString::number(i));
+		}
+
+		QVector<int> itemIndexVec;
+		for (const QString& itemIndex : itemIndexList)
+		{
+			bool bret = false;
+			int index = itemIndex.toInt(&bret);
+			--index;
+			index += CHAR_EQUIPPLACENUM;
+			if (bret && index >= CHAR_EQUIPPLACENUM && index < MAX_ITEM)
+			{
+				if (injector.server->pc.item[index].useFlag == 1)
+					itemIndexVec.append(index);
+			}
+		}
+
+		if (!itemIndexVec.isEmpty())
+		{
+			std::sort(itemIndexVec.begin(), itemIndexVec.end());
+			auto it = std::unique(itemIndexVec.begin(), itemIndexVec.end());
+			itemIndexVec.erase(it, itemIndexVec.end());
+		}
+
+		if (!itemIndexVec.isEmpty())
+		{
+			injector.server->tradeAppendItems(name, itemIndexVec);
+			ok = true;
+		}
+		else
+			return Parser::kArgError;
+	}
+
+	if (!petListStr.isEmpty())
+	{
+		QStringList petIndexList = petListStr.split(util::rexOR, Qt::SkipEmptyParts);
+		if (itemListStr.toLower() == "all")
+		{
+			for (int i = 1; i <= MAX_PET; ++i)
+				petIndexList.append(QString::number(i));
+		}
+		else if (itemListStr.count("-") == 1)
+		{
+			int min = 1;
+			int max = MAX_PET;
+			if (!checkRange(TK, 2, &min, &max))
+				return Parser::kArgError;
+
+			for (int i = min; i <= max; ++i)
+				petIndexList.append(QString::number(i));
+		}
+
+		QVector<int> petIndexVec;
+		for (const QString& petIndex : petIndexList)
+		{
+			bool bret = false;
+			int index = petIndex.toInt(&bret);
+			--index;
+
+			if (bret && index >= 0 && index < MAX_PET)
+			{
+				if (injector.server->pet[index].useFlag == 1)
+					petIndexVec.append(index);
+			}
+		}
+
+		std::sort(petIndexVec.begin(), petIndexVec.end());
+		auto it = std::unique(petIndexVec.begin(), petIndexVec.end());
+		petIndexVec.erase(it, petIndexVec.end());
+
+		if (!petIndexVec.isEmpty())
+		{
+			injector.server->tradeAppendPets(name, petIndexVec);
+			ok = true;
+		}
+		else
+			return Parser::kArgError;
+	}
+
+	if (gold > 0 && gold <= injector.server->pc.gold)
+	{
+		injector.server->tradeAppendGold(name, gold);
+		ok = true;
+	}
+
+	injector.server->tradeComfirm(name);
+
+	waitfor(timeout, [&injector]()
+		{
+			return injector.server->pc.trade_confirm >= 3;
+		});
+
+	injector.server->tradeComplete(name);
+
+	waitfor(timeout, [&injector]()
+		{
+			return !injector.server->IS_TRADING;
+		});
+
+	return Parser::kNoChange;
+}
+
+///////////////////////////////////////////////////////////////
+int Interpreter::ocr(int currentline, const TokenMap& TK)
+{
+	Injector& injector = Injector::getInstance();
+
+	if (injector.server.isNull())
+		return Parser::kError;
+
+	int debugmode = 0;
+	checkInt(TK, 1, &debugmode);
+
+	QString ret;
+	if (injector.server->postGifCodeImage(&ret))
+	{
+		qDebug() << ret;
+		if (!ret.isEmpty())
+		{
+			if (debugmode == 0)
+				injector.server->inputtext(ret);
+		}
+	}
 
 	return Parser::kNoChange;
 }

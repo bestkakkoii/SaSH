@@ -657,7 +657,7 @@ bool Net::Authenticator::Login(const QString& username, const QString& password)
 		//}
 
 		//同步論壇在線狀態
-		//SetStatusSync();
+		SetStatusSync();
 		return true;
 	} while (false);
 	//SPD_LOG(GLOBAL_LOG_ID, QString("curl LOGIN FAILED %1").arg(__LINE__), SPD_ERROR);

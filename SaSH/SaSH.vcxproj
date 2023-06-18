@@ -63,7 +63,7 @@
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
-      <AdditionalIncludeDirectories>$(SolutionDir)$(ProjectName);$(SolutionDir)$(ProjectName)\include;$(SolutionDir)$(ProjectName)\model;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)$(ProjectName);$(SolutionDir)$(ProjectName)\include;$(SolutionDir)$(ProjectName)\model;D:\Program Files (x86)\OpenSSL-Win32\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <WarningLevel>Level3</WarningLevel>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <ExceptionHandling>Async</ExceptionHandling>
@@ -76,7 +76,7 @@
     </ClCompile>
     <Link>
       <UACExecutionLevel>RequireAdministrator</UACExecutionLevel>
-      <AdditionalLibraryDirectories>$(SolutionDir)$(ProjectName)\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(SolutionDir)$(ProjectName)\lib;D:\Program Files (x86)\OpenSSL-Win32\lib\VC\static;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
     </Link>
     <QtTranslation>
@@ -88,7 +88,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
-      <AdditionalIncludeDirectories>$(SolutionDir)$(ProjectName);$(SolutionDir)$(ProjectName)\include;$(SolutionDir)$(ProjectName)\model;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)$(ProjectName);$(SolutionDir)$(ProjectName)\include;$(SolutionDir)$(ProjectName)\model;D:\Program Files (x86)\OpenSSL-Win32\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <WarningLevel>Level3</WarningLevel>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <AssemblerOutput>All</AssemblerOutput>
@@ -96,7 +96,7 @@
     </ClCompile>
     <Link>
       <UACExecutionLevel>RequireAdministrator</UACExecutionLevel>
-      <AdditionalLibraryDirectories>$(SolutionDir)$(ProjectName)\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(SolutionDir)$(ProjectName)\lib;D:\Program Files (x86)\OpenSSL-Win32\lib\VC\static;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateMapFile>true</GenerateMapFile>
       <MapExports>true</MapExports>
       <AssemblyDebug>true</AssemblyDebug>
@@ -138,6 +138,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="3rdparty\simplecrypt.cpp" />
+    <ClCompile Include="crypto.cpp" />
     <ClCompile Include="form\abilityform.cpp" />
     <ClCompile Include="form\afkform.cpp" />
     <ClCompile Include="form\afkinfoform.cpp" />
@@ -209,6 +210,7 @@
     <QtMoc Include="form\abilityform.h" />
     <QtMoc Include="form\mapwidget.h" />
     <QtMoc Include="form\mapform.h" />
+    <ClInclude Include="crypto.h" />
     <ClInclude Include="gdatetime.h" />
     <ClInclude Include="injector.h" />
     <ClInclude Include="map\astar.h" />

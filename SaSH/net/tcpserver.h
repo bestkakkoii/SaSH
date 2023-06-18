@@ -470,6 +470,8 @@ enum FUNCTIONTYPE
 	LSSPROTO_REDMEMOY_RECV = 148,
 #endif
 
+	LSSPROTO_IMAGE_RECV = 151,
+
 #ifdef _ANNOUNCEMENT_
 	LSSPROTO_DENGON_RECV = 200,
 #endif
@@ -518,6 +520,7 @@ enum FUNCTIONTYPE
 typedef enum tagCHAR_EquipPlace
 {
 	CHAR_EQUIPNONE = -1,
+	PET_EQUIPNONE = -1,
 	CHAR_HEAD,
 	CHAR_BODY,
 	CHAR_ARM,
@@ -1445,6 +1448,54 @@ typedef struct tagJOBDAILY
 	QString state = "";							// 狀態
 }JOBDAILY;
 
+struct showitem
+{
+	QString name;
+	QString freename;
+	QString graph;
+	QString effect;
+	QString color;
+	QString itemindex;
+	QString damage;
+};
+
+typedef struct SPetItemInfo
+{
+	int bmpNo = 0;										// 图号
+	int color = 0;										// 文字颜色
+	QString memo;						// 说明
+	QString name;						// 名字
+	QString damage;								// 耐久度
+}PetItemInfo;
+
+struct showpet
+{
+	QString opp_petname;
+	QString opp_petfreename;
+	QString opp_petgrano;
+	QString opp_petlevel;
+	QString opp_petatk;
+	QString opp_petdef;
+	QString opp_petquick;
+	QString opp_petindex;
+	QString opp_pettrans;
+	QString opp_petshowhp;
+	QString opp_petslot;
+	QString opp_petskill1;
+	QString opp_petskill2;
+	QString opp_petskill3;
+	QString opp_petskill4;
+	QString opp_petskill5;
+	QString opp_petskill6;
+	QString opp_petskill7;
+#ifdef _SHOW_FUSION
+	QString opp_fusion;
+#endif
+#ifdef _PET_ITEM
+	PetItemInfo oPetItemInfo[MAX_PET_ITEM];			// 宠物身上的道具
+#endif
+};
+
 typedef struct dialog_s
 {
 	int windowtype = 0;
@@ -1602,6 +1653,15 @@ static const QHash<QString, DirType> dirMap = {
 	{ u8"西南", kDirSouthWest },
 	{ u8"西", kDirWest },
 	{ u8"西北", kDirNorthWest },
+
+	{ u8"A", kDirNorth },
+	{ u8"B", kDirNorthEast },
+	{ u8"C", kDirEast },
+	{ u8"D", kDirSouthEast },
+	{ u8"E", kDirSouth },
+	{ u8"F", kDirSouthWest },
+	{ u8"G", kDirWest },
+	{ u8"H", kDirNorthWest },
 };
 
 
@@ -1636,6 +1696,33 @@ static const QHash<QString, CHAR_EquipPlace> equipMap = {
 	{ u8"shoe", CHAR_EQSHOES },
 	{ u8"glove", CHAR_EQGLOVE },
 };
+
+static const QHash<QString, CHAR_EquipPlace> petEquipMap = {
+	{ u8"頭", PET_HEAD },
+	{ u8"翼", PET_WING },
+	{ u8"牙", PET_TOOTH },
+	{ u8"身體", PET_PLATE },
+	{ u8"背", PET_BACK },
+	{ u8"爪", PET_CLAW },
+	{ u8"腳", PET_FOOT },
+
+	{ u8"头", PET_HEAD },
+	{ u8"翼", PET_WING },
+	{ u8"牙", PET_TOOTH },
+	{ u8"身体", PET_PLATE },
+	{ u8"背", PET_BACK },
+	{ u8"爪", PET_CLAW },
+	{ u8"脚", PET_FOOT },
+
+	{ u8"head", PET_HEAD },
+	{ u8"wing", PET_WING },
+	{ u8"tooth", PET_TOOTH },
+	{ u8"body", PET_PLATE },
+	{ u8"back", PET_BACK },
+	{ u8"claw", PET_CLAW },
+	{ u8"foot", PET_FOOT },
+};
+
 enum BufferControl
 {
 	BC_NONE,
@@ -1724,6 +1811,8 @@ public://actions
 
 	void swapItem(int from, int to);
 
+	void petitemswap(int petIndex, int from, int to);
+
 	void useMagic(int magicIndex, int target);
 
 	void dropPet(int petIndex);
@@ -1758,6 +1847,7 @@ public://actions
 	void depositItem(int index, int seqno = -1, int objindex = -1);
 	void withdrawItem(int itemIndex, int seqno = -1, int objindex = -1);
 
+	bool postGifCodeImage(QString* pmsg);
 
 	void setPetState(int petIndex, PetState state);
 
@@ -1767,6 +1857,14 @@ public://actions
 
 	void downloadMap();
 	void downloadMap(int x, int y);
+
+	bool tradeStart(const QString& name, int timeout);
+	void tradeComfirm(const QString name);
+	void tradeCancel();
+	void tradeAppendItems(const QString& name, const QVector<int>& itemIndexs);
+	void tradeAppendGold(const QString& name, int gold);
+	void tradeAppendPets(const QString& name, const QVector<int>& petIndex);
+	void tradeComplete(const QString& name);
 
 	void cleanChatHistory();
 
@@ -1799,6 +1897,7 @@ public://actions
 	void setPlayerFreeName(const QString& name);
 	void setPetFreeName(int petIndex, const QString& name);
 private:
+	void reloadHashVar();
 	void setWindowTitle();
 	void setBattleEnd();
 	void refreshItemInfo(int index);
@@ -2196,7 +2295,7 @@ private://lssproto
 	void lssproto_Firework_recv(int nCharaindex, int nType, int nActionNum);	// 煙火功能
 #endif
 #ifdef _PET_ITEM
-	void lssproto_PetItemEquip_send(int nGx, int nGy, int nPetNo, int nItemNo, int nDestNO);	// 寵物裝備功能
+	void lssproto_PetItemEquip_send(const QPoint& pos, int nPetNo, int nItemNo, int nDestNO);	// 寵物裝備功能
 #endif
 #ifdef _THEATER
 	void lssproto_TheaterData_recv(char* pData);
@@ -2255,6 +2354,8 @@ public:
 	bool IS_ONLINE_FLAG = false;
 	bool IS_BATTLE_FLAG = false;
 
+	bool IS_TRADING = false;
+
 	bool IS_TCP_CONNECTION_OK_TO_USE = false;
 
 	std::atomic_bool isPacketAutoClear = false;
@@ -2288,6 +2389,28 @@ public:
 	unsigned int ProcNo = 0u;
 	unsigned int SubProcNo = 0u;
 	unsigned int MenuToggleFlag = 0u;
+
+	int opp_showindex = 0;
+	QString opp_sockfd;
+	QString opp_name;
+	QString opp_goldmount;
+	int showindex[7] = { 0 };
+	int tradeWndDropGoldGet = 0;
+	QString opp_itemgraph;
+	QString  opp_itemname;
+	QString opp_itemeffect;
+	QString opp_itemindex;
+	QString opp_itemdamage;
+	QString trade_kind;
+	QString trade_command;
+	int tradeStatus = 0;
+	int tradePetIndex = -1;
+	PET tradePet[2] = {};
+	showitem opp_item[MAX_MAXHAVEITEM];	//交易道具阵列增为15个
+	showpet opp_pet[MAX_PET];
+	QStringList myitem_tradeList;
+	QStringList mypet_tradeList = { "P|-1", "P|-1", "P|-1" , "P|-1", "P|-1" };
+	int mygoldtrade = 0;
 
 	short prSendFlag = 0i16;
 
@@ -2411,6 +2534,21 @@ public:
 	short sTeacherSystemBtn = 0i16;
 
 	//main datas
+	util::SafeHash<QString, QVariant> hashpc;
+	util::SafeHash<int, util::SafeHash<QString, QVariant>> hashmagic;
+	util::SafeHash<int, util::SafeHash<QString, QVariant>> hashskill;
+
+	util::SafeHash<int, util::SafeHash<QString, QVariant>> hashpet;
+	util::SafeHash<int, util::SafeHash<int, util::SafeHash<QString, QVariant>>> hashpetskill;
+
+	util::SafeHash<int, util::SafeHash<QString, QVariant>> hashitem;
+	util::SafeHash<int, util::SafeHash<QString, QVariant>> hashequip;
+	util::SafeHash<int, util::SafeHash<int, util::SafeHash<QString, QVariant>>> hashpetequip;
+	util::SafeHash<QString, QVariant> hashmap;
+	util::SafeHash<int, QVariant> hashchat;
+	util::SafeHash<int, QVariant> hashdialog;
+
+
 	QMutex swapItemMutex;
 	PC pc = {};
 
@@ -2442,7 +2580,7 @@ public:
 
 	PET_SKILL petSkill[MAX_PET][MAX_SKILL] = {};
 
-	dialog_t currentDialog = {};
+	util::SafeData<dialog_t> currentDialog = {};
 
 	JOBDAILY jobdaily[MAXMISSION] = {};
 	int JobdailyGetMax = 0;  //是否有接收到資料

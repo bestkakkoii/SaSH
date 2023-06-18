@@ -15,7 +15,7 @@ const char* Highlighter::keywords(int set) const
 	case 1://粉色
 	{
 		//lua key word
-		return "goto call function end pause exit label if";
+		return "goto call function end pause exit label if jmp return back";
 	}
 	case 2://QsciLexerLua::BasicFunctions//黃色
 	{
@@ -26,7 +26,8 @@ const char* Highlighter::keywords(int set) const
 			"usemagic doffpet buy sell useitem doffitem pickup put "
 			"get putpet getpet make cook chmap unequip recordequip "
 			"wearrecordequip addpoint join leave waitteam ifteam move "
-			"walkpos w dir findpath movetonpc lclick rclick ldbclick dragto warp ";
+			"walkpos w dir findpath movetonpc lclick rclick ldbclick dragto warp "
+			"learn ocr trade run dostring ";
 	}
 	case 3://QsciLexerLua::StringTableMathsFunction//草綠
 	{
@@ -38,15 +39,15 @@ const char* Highlighter::keywords(int set) const
 	}
 	case 5://KeywordSet5//深藍色
 	{
-		return "var vardelete varfree varclear format";
+		return "var vardelete varfree varclear format rnd true false";
 	}
 	case 6://KeywordSet6//淺藍色
 	{
-		return "";
+		return "player pet magic skill petskill equip petequip map dialog chat ";
 	}
 	case 7://KeywordSet7//土橘色
 	{
-		return "return";
+		return "";
 	}
 	case 8://KeywordSet8//紫色
 	{
@@ -154,7 +155,7 @@ const char* Highlighter::blockEnd(int* style) const
 	if (style)
 		*style = Operator;
 
-	return "end";
+	return "end return";
 }
 
 const char* Highlighter::blockStartKeyword(int* style) const
@@ -162,7 +163,7 @@ const char* Highlighter::blockStartKeyword(int* style) const
 	if (style)
 		*style = Keyword;
 
-	return "for while else elseif function if repeat then do";
+	return "function";
 }
 
 // Return the list of characters that can start a block.

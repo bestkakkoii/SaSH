@@ -20,6 +20,7 @@
 #include "signaldispatcher.h"
 #include <util.h>
 #include <injector.h>
+#include "script/interpreter.h"
 
 void createMenu(QMenuBar* pMenuBar)
 {
@@ -27,6 +28,34 @@ void createMenu(QMenuBar* pMenuBar)
 		return;
 
 #pragma region StyleSheet
+	//constexpr const char* styleText = u8R"(
+	//			QMenu {
+	//				background-color: rgb(249, 249, 249); /*整個背景*/
+	//				border: 0px;
+	//				/*item寬度*/
+	//				width: 150px;
+	//			
+	//			}
+	//			QMenu::item {
+	//				font-size: 9pt;
+	//				/*color: rgb(225, 225, 225); 字體顏色*/
+	//				border: 2px; solid rgb(249, 249, 249); /*item選框*/
+	//				background-color: rgb(249, 249, 249);
+	//				padding: 10px 10px; /*設置菜單項文字上下和左右的內邊距，效果就是菜單中的條目左右上下有了間隔*/
+	//				margin: 2px 2px; /*設置菜單項的外邊距*/
+	//				/*item高度*/	
+	//				height: 10px;
+	//			}
+	//			QMenu::item:selected {
+	//				background-color: rgb(240, 240, 240); /*選中的樣式*/
+	//				border: 2px solid rgb(249, 249, 249); /*選中狀態下的邊框*/
+	//			}
+	//			QMenu::item:pressed {
+	//				/*菜單項按下效果
+	//				border: 0px; /*solid rgb(60, 60, 61);*/
+	//				background-color: rgb(50, 130, 246);
+	//			}
+	//		)";
 	constexpr const char* styleText = u8R"(
 				QMenu {
 					background-color: rgb(249, 249, 249); /*整個背景*/
@@ -138,6 +167,17 @@ void createMenu(QMenuBar* pMenuBar)
 	create(fileTable, pMenuFile);
 }
 
+enum InterfaceMessage
+{
+	kInterfaceMessage = WM_USER + 2048,
+	kRunScript,  // kInterfaceMessage + 1
+	kStopScript, // kInterfaceMessage + 2
+	kRunFile,    // kInterfaceMessage + 3
+	kStopFile,   // kInterfaceMessage + 4
+	kRunGame,    // kInterfaceMessage + 5
+	kCloseGame,  // kInterfaceMessage + 6
+};
+
 //接收原生的窗口消息
 bool MainForm::nativeEvent(const QByteArray& eventType, void* message, long* result)
 {
@@ -149,19 +189,103 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, long* res
 	{
 		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
 		emit signalDispatcher.updateCursorLabelTextChanged(QString("%1,%2").arg(GET_X_LPARAM(msg->lParam)).arg(GET_Y_LPARAM(msg->lParam)));
-		break;
+		return false;
 	}
 	case Injector::kConnectionOK:
 	{
 		if (!injector.server.isNull())
 			injector.server->IS_TCP_CONNECTION_OK_TO_USE = true;
-		break;
+		return false;
+	}
+	case InterfaceMessage::kRunScript:
+	{
+		QSharedPointer<Interpreter> interpreter(new Interpreter());
+		if (interpreter.isNull())
+			return false;
+		interpreter->setSubScript(true);
+
+		int id = msg->wParam;
+		interpreter_hash_.insert(id, interpreter);
+		QString script = QString::fromUtf8(reinterpret_cast<char*>(msg->lParam));
+		connect(interpreter.data(), &Interpreter::finished, this, [this, id]()
+			{
+				interpreter_hash_.remove(id);
+				updateStatusText();
+			});
+		++interfaceCount_;
+		updateStatusText();
+		interpreter->doString(script);
+		return true;
+	}
+	case InterfaceMessage::kStopScript:
+	{
+		QSharedPointer<Interpreter> interpreter = interpreter_hash_.value(msg->wParam, nullptr);
+		if (!interpreter.isNull())
+		{
+			interpreter->requestInterruption();
+			interpreter_hash_.remove(msg->wParam);
+			++interfaceCount_;
+			updateStatusText();
+		}
+		return true;
+	}
+	case InterfaceMessage::kRunFile:
+	{
+		Injector& injector = Injector::getInstance();
+		if (injector.IS_SCRIPT_FLAG)
+			return false;
+
+		QString fileName = QString::fromUtf8(reinterpret_cast<char*>(msg->lParam));
+		pScriptForm_->loadFile(fileName);
+		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
+		emit signalDispatcher.scriptStarted();
+		++interfaceCount_;
+		updateStatusText();
+		return true;
+	}
+	case InterfaceMessage::kStopFile:
+	{
+		Injector& injector = Injector::getInstance();
+		if (!injector.IS_SCRIPT_FLAG)
+			return false;
+
+		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
+		emit signalDispatcher.scriptStoped();
+		++interfaceCount_;
+		updateStatusText();
+		return true;
+	}
+	case InterfaceMessage::kRunGame:
+	{
+		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
+		emit signalDispatcher.gameStarted();
+		++interfaceCount_;
+		updateStatusText();
+		return true;
+	}
+	case InterfaceMessage::kCloseGame:
+	{
+		Injector& injector = Injector::getInstance();
+		if (!injector.server.isNull())
+			return false;
+
+		injector.close();
+		++interfaceCount_;
+		updateStatusText();
+		return true;
 	}
 	default:
+	{
 		break;
+	}
 	}
 
 	return false;
+}
+
+void MainForm::updateStatusText()
+{
+	ui.groupBox_basicinfo->setTitle(tr("basic info - count:%1, subscript:%2").arg(interfaceCount_).arg(interpreter_hash_.size()));
 }
 
 MainForm::MainForm(QWidget* parent)
@@ -237,7 +361,20 @@ MainForm::MainForm(QWidget* parent)
 		pAfkForm_ = new AfkForm;
 		if (pAfkForm_)
 		{
-			ui.tabWidget_main->addTab(pAfkForm_, tr("afk"));
+			pAfkForm_->hide();
+			QPushButton* pButton = new QPushButton(tr("afk"));
+			if (pButton)
+			{
+				//insert to tab
+				ui.tabWidget_main->addTab(pButton, tr("afk"));
+				//push to open afkform
+				connect(pButton, &QPushButton::clicked, this, [this]()
+					{
+						pAfkForm_->show();
+					});
+			}
+
+			//ui.tabWidget_main->addTab(pAfkForm_, tr("afk"));
 		}
 
 		pOtherForm_ = new OtherForm;
@@ -268,6 +405,8 @@ MainForm::MainForm(QWidget* parent)
 	qputenv("SASH_HWND", qwid.toUtf8());
 
 	onUpdateStatusLabelTextChanged(util::kLabelStatusNotOpen);
+
+
 }
 
 MainForm::~MainForm()
@@ -436,7 +575,7 @@ void MainForm::resetControlTextLanguage()
 	default:
 		translator_.load(QString("%1/translations/qt_en_US.qm").arg(QApplication::applicationDirPath()));
 		break;
-}
+	}
 #else
 	switch (acp)
 	{
@@ -761,8 +900,17 @@ void MainForm::onInputBoxShow(const QString& text, int type, QVariant* retvalue)
 	if (retvalue == nullptr)
 		return;
 
+	QString newText = text;
+	newText.replace("\\r\\n", "\r\n");
+	newText.replace("\\n", "\n");
+	newText.replace("\\t", "\t");
+	newText.replace("\\v", "\v");
+	newText.replace("\\b", "\b");
+	newText.replace("\\f", "\f");
+	newText.replace("\\a", "\a");
+
 	QInputDialog inputDialog(this);
-	inputDialog.setLabelText(text);
+	inputDialog.setLabelText(newText);
 	inputDialog.setInputMode(static_cast<QInputDialog::InputMode>(type));
 	inputDialog.setWindowFlags(inputDialog.windowFlags() & ~Qt::WindowContextHelpButtonHint);
 	auto ret = inputDialog.exec();

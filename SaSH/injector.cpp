@@ -226,7 +226,7 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 	if (!pi.dwProcessId) return false;
 	if (nullptr == pReason) return false;
 
-	constexpr qint64 MAX_TIMEOUT = 15000;
+	constexpr qint64 MAX_TIMEOUT = 10000;
 	bool bret = 0;
 	QElapsedTimer timer;
 	DWORD* kernel32Module = nullptr;
@@ -274,7 +274,7 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 				}
 				if (timer.hasExpired(MAX_TIMEOUT))
 					break;
-				QThread::msleep(100UL);
+				QThread::msleep(100);
 			}
 		}
 
@@ -341,7 +341,7 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 
 				if (timer.hasExpired(MAX_TIMEOUT))
 					break;
-				QThread::msleep(100UL);
+				QThread::msleep(100);
 			}
 		}
 

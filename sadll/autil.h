@@ -2,8 +2,8 @@
 //
 // Any questions and bugs, mailto: arminius@mail.hwaei.com.tw
 
-#ifndef __UTIL_H_
-#define __UTIL_H_
+#ifndef AUTIL_H
+#define AUTIL_H
 namespace Autil
 {
 

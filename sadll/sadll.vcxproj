@@ -175,9 +175,11 @@
     <None Include="cpp.hint" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="asyncclient.h" />
     <ClInclude Include="autil.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="sadll.h" />
+    <ClInclude Include="syncclient.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="autil.cpp" />

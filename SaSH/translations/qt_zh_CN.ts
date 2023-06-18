@@ -143,11 +143,11 @@
     <name>AfkFormClass</name>
     <message>
         <source>AfkForm</source>
-        <translation></translation>
+        <translation>挂机设置</translation>
     </message>
     <message>
         <source>battle</source>
-        <translation>战斗设定</translation>
+        <translation type="vanished">战斗设定</translation>
     </message>
     <message>
         <source>char action</source>
@@ -171,43 +171,43 @@
     </message>
     <message>
         <source>delay</source>
-        <translation>延时设定</translation>
+        <translation type="vanished">延时设定</translation>
     </message>
     <message>
         <source>1st rd delay</source>
-        <translation>首回合延时</translation>
+        <translation type="vanished">首回合延时</translation>
     </message>
     <message>
         <source>s</source>
-        <translation>秒</translation>
+        <translation type="vanished">秒</translation>
     </message>
     <message>
         <source>first round delay until min</source>
-        <translation>首回合延时至游戏最低要求</translation>
+        <translation type="vanished">首回合延时至游戏最低要求</translation>
     </message>
     <message>
         <source>eh rd delay</source>
-        <translation>延时至最低要求不延时</translation>
+        <translation type="vanished">延时至最低要求不延时</translation>
     </message>
     <message>
         <source>each round delay until min</source>
-        <translation>每回合延时</translation>
+        <translation type="vanished">每回合延时</translation>
     </message>
     <message>
         <source>num of enemy&lt;=</source>
-        <translation>敌人剩下&lt;=</translation>
+        <translation type="vanished">敌人剩下&lt;=</translation>
     </message>
     <message>
         <source>delay until minmun</source>
-        <translation>延时至游戏最低要求</translation>
+        <translation type="vanished">延时至游戏最低要求</translation>
     </message>
     <message>
         <source>disable delay/escape while lockattack is disabled</source>
-        <translation>非锁定攻击目标时不逃跑/延时</translation>
+        <translation type="vanished">非锁定攻击目标时不逃跑/延时</translation>
     </message>
     <message>
         <source>heal</source>
-        <translation>气血设定</translation>
+        <translation type="vanished">气血设定</translation>
     </message>
     <message>
         <source>battle heal setting</source>
@@ -227,7 +227,7 @@
     </message>
     <message>
         <source>autowalk</source>
-        <translation>自走</translation>
+        <translation type="vanished">自走</translation>
     </message>
     <message>
         <source>walk delay:</source>
@@ -243,31 +243,27 @@
     </message>
     <message>
         <source>no combat until</source>
-        <translation>不遇敌直到</translation>
+        <translation type="vanished">不遇敌直到</translation>
     </message>
     <message>
         <source>Cod</source>
-        <translation>坐标</translation>
+        <translation type="vanished">坐标</translation>
     </message>
     <message>
         <source>Map</source>
-        <translation>地图</translation>
+        <translation type="vanished">地图</translation>
     </message>
     <message>
         <source>get cod</source>
-        <translation>取得坐标</translation>
-    </message>
-    <message>
-        <source>↓</source>
-        <translation></translation>
+        <translation type="vanished">取得坐标</translation>
     </message>
     <message>
         <source>X</source>
-        <translation>X坐标</translation>
+        <translation type="vanished">X坐标</translation>
     </message>
     <message>
         <source>Y</source>
-        <translation>Y坐标</translation>
+        <translation type="vanished">Y坐标</translation>
     </message>
     <message>
         <source>Name</source>
@@ -275,7 +271,7 @@
     </message>
     <message>
         <source>catch</source>
-        <translation>捉宠设定</translation>
+        <translation type="vanished">捉宠设定</translation>
     </message>
     <message>
         <source>catch pet</source>
@@ -399,7 +395,7 @@
     </message>
     <message>
         <source>MapName</source>
-        <translation>地图名称</translation>
+        <translation type="vanished">地图名称</translation>
     </message>
     <message>
         <source>str+def+agi&lt;</source>
@@ -763,7 +759,7 @@
     </message>
     <message>
         <source>support fun</source>
-        <translation>辅助功能</translation>
+        <translation type="vanished">辅助功能</translation>
     </message>
     <message>
         <source>hide char</source>
@@ -887,7 +883,7 @@
     </message>
     <message>
         <source>watch</source>
-        <translation>观战</translation>
+        <translation type="vanished">观战</translation>
     </message>
     <message>
         <source>save</source>
@@ -927,11 +923,15 @@
     </message>
     <message>
         <source>pos</source>
-        <translation>位置</translation>
+        <translation>人物</translation>
     </message>
     <message>
         <source>auto eat bean</source>
         <translation>自动吃豆</translation>
+    </message>
+    <message>
+        <source>clear</source>
+        <translation>清屏</translation>
     </message>
 </context>
 <context>
@@ -1189,19 +1189,19 @@
     <name>MainForm</name>
     <message>
         <source>general</source>
-        <translation>一般功能</translation>
+        <translation>一般</translation>
     </message>
     <message>
         <source>map</source>
-        <translation>地图功能</translation>
+        <translation>地图</translation>
     </message>
     <message>
         <source>afk</source>
-        <translation>挂机设定</translation>
+        <translation>挂机</translation>
     </message>
     <message>
         <source>other</source>
-        <translation>其他设定</translation>
+        <translation>其他</translation>
     </message>
     <message>
         <source>script</source>
@@ -1342,6 +1342,10 @@ Update process will cause all the games to be closed, are you sure to continue?<
     <message>
         <source>SaSH - %1</source>
         <translation>石器助手 - %1</translation>
+    </message>
+    <message>
+        <source>basic info - count:%1, subscript:%2</source>
+        <translation>讯息 - 接口:%1, 子脚本:%2</translation>
     </message>
 </context>
 <context>
@@ -1960,7 +1964,7 @@ Update process will cause all the games to be closed, are you sure to continue?<
     </message>
     <message>
         <source>script settings</source>
-        <translation>脚本设定</translation>
+        <translation>脚本编辑</translation>
     </message>
     <message>
         <source><byte value="xd"/>
@@ -2325,19 +2329,19 @@ MESSAGE：<byte value="xd"/>
     </message>
     <message>
         <source>str</source>
-        <translation>腕力</translation>
+        <translation type="vanished">腕力</translation>
     </message>
     <message>
         <source>vit</source>
-        <translation>体力</translation>
+        <translation type="vanished">体力</translation>
     </message>
     <message>
         <source>tgh</source>
-        <translation>耐力</translation>
+        <translation type="vanished">耐力</translation>
     </message>
     <message>
         <source>dex</source>
-        <translation>速度</translation>
+        <translation type="vanished">速度</translation>
     </message>
     <message>
         <source>checkupdate</source>
@@ -2399,7 +2403,7 @@ MESSAGE：<byte value="xd"/>
     </message>
     <message>
         <source>script:</source>
-        <translation>脚本:</translation>
+        <translation type="vanished">脚本:</translation>
     </message>
     <message>
         <source>current row: 0/0</source>
@@ -2423,7 +2427,7 @@ MESSAGE：<byte value="xd"/>
     </message>
     <message>
         <source>current row:</source>
-        <translation>正在运行行数:</translation>
+        <translation type="vanished">正在运行行数:</translation>
     </message>
     <message>
         <source>0/0</source>
@@ -2440,6 +2444,10 @@ MESSAGE：<byte value="xd"/>
     <message>
         <source>refresh</source>
         <translation>刷新脚本列表</translation>
+    </message>
+    <message>
+        <source>row:</source>
+        <translation>行:</translation>
     </message>
 </context>
 <context>
@@ -2520,12 +2528,36 @@ MESSAGE：<byte value="xd"/>
         <source>continue</source>
         <translation>继续</translation>
     </message>
+    <message>
+        <source>EncryptScript</source>
+        <translation>加密脚本</translation>
+    </message>
+    <message>
+        <source>Please input password</source>
+        <translation>请输入密钥</translation>
+    </message>
+    <message>
+        <source>Encrypt script %1 saved</source>
+        <translation>加密脚本 %1 已保存</translation>
+    </message>
+    <message>
+        <source>Encrypt script save failed</source>
+        <translation>加密脚本保存失败</translation>
+    </message>
+    <message>
+        <source>DecryptScript</source>
+        <translation>解密脚本</translation>
+    </message>
+    <message>
+        <source>FILE</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>ScriptSettingFormClass</name>
     <message>
         <source>ScriptSettingForm</source>
-        <translation>脚本设置</translation>
+        <translation>脚本编辑</translation>
     </message>
     <message>
         <source>editor</source>
@@ -3130,6 +3162,50 @@ MESSAGE：<byte value="xd"/>
     <message>
         <source>Logback</source>
         <translation>回点</translation>
+    </message>
+    <message>
+        <source>custom</source>
+        <translation>自订</translation>
+    </message>
+    <message>
+        <source>EncryptSave</source>
+        <translation>加密脚本</translation>
+    </message>
+    <message>
+        <source>Ctrl+Alt+E</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>DecryptSave</source>
+        <translation>解密脚本</translation>
+    </message>
+    <message>
+        <source>Ctrl+Alt+D</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>Save(Ctrl+S)</source>
+        <translation>保存(Ctrl+S)</translation>
+    </message>
+    <message>
+        <source>Step(F8)</source>
+        <translation>单步(F8)</translation>
+    </message>
+    <message>
+        <source>F8</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>Start(F5)</source>
+        <translation>开始(F5)</translation>
+    </message>
+    <message>
+        <source>EncryptSave(Ctrl+Alt+E)</source>
+        <translation>加密脚本(Ctrl+Alt+E)</translation>
+    </message>
+    <message>
+        <source>DecryptSave(Ctrl+Alt+D)</source>
+        <translation>解密脚本(Ctrl+Alt+D)</translation>
     </message>
 </context>
 <context>

@@ -67,7 +67,7 @@ int Interpreter::press(int currentline, const TokenMap& TK)
 			injector.server->press(button, dialogid, npcId);
 		else
 		{
-			dialog_t dialog = injector.server->currentDialog;
+			dialog_t dialog = injector.server->currentDialog.get();
 			QStringList textList = dialog.linebuttontext;
 			if (!textList.isEmpty())
 			{
@@ -379,6 +379,7 @@ int Interpreter::set(int currentline, const TokenMap& TK)
 		{ u8"自動移動功能編號", util::kAutoFunTypeValue },
 		{ u8"戰後自動鎖定戰寵編號", util::kLockPetValue },
 		{ u8"戰後自動鎖定騎寵編號", util::kLockRideValue },
+		{ u8"腳本速度", util::kScriptSpeedValue },
 
 		{ u8"自動登陸", util::kAutoLoginEnable },
 		{ u8"斷線重連", util::kAutoReconnectEnable },
@@ -536,6 +537,7 @@ int Interpreter::set(int currentline, const TokenMap& TK)
 		{ u8"自动移动功能编号", util::kAutoFunTypeValue },
 		{ u8"战后自动锁定战宠编号", util::kLockPetValue },
 		{ u8"战后自动锁定骑宠编号", util::kLockRideValue },
+		{ u8"脚本速度", util::kScriptSpeedValue },
 
 		{ u8"自动登陆", util::kAutoLoginEnable },
 		{ u8"断线重连", util::kAutoReconnectEnable },
@@ -738,6 +740,8 @@ int Interpreter::set(int currentline, const TokenMap& TK)
 		//lockpet
 	case util::kLockPetValue:
 	case util::kLockRideValue:
+		//script
+	case util::kScriptSpeedValue:
 
 	case util::kSettingMaxValue:
 	{

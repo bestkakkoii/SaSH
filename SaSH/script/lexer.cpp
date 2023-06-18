@@ -9,9 +9,10 @@ static const QHash<QString, RESERVE> keywords = {
 
 	//keyword
 	{ u8"調用", TK_CALL },
-	{ u8"行數", TK_JMP },
-	{ u8"跳轉", TK_JMP },
+	{ u8"行數", TK_GOTO },
+	{ u8"跳轉", TK_GOTO },
 	{ u8"返回", TK_RETURN },
+	{ u8"返回跳轉", TK_BAK },
 	{ u8"結束", TK_END },
 	{ u8"暫停", TK_PAUSE },
 	{ u8"功能", TK_LABEL, },
@@ -20,6 +21,7 @@ static const QHash<QString, RESERVE> keywords = {
 	{ u8"變數移除", TK_VARFREE },
 	{ u8"變數清空", TK_VARCLR },
 	{ u8"格式化", TK_FORMAT },
+	{ u8"隨機數", TK_RND },
 
 	//system
 	{ u8"執行", TK_CMD },
@@ -82,7 +84,11 @@ static const QHash<QString, RESERVE> keywords = {
 	{ u8"卸下裝備", TK_CMD },
 	{ u8"記錄身上裝備", TK_CMD },
 	{ u8"裝上記錄裝備", TK_CMD },
+	{ u8"卸下寵裝備", TK_CMD },
+	{ u8"裝上寵裝備", TK_CMD },
 	{ u8"加點", TK_CMD },
+	{ u8"學習", TK_CMD },
+	{ u8"交易", TK_CMD },
 
 	//action with sub cmd
 	{ u8"組隊", TK_CMD },
@@ -119,9 +125,10 @@ static const QHash<QString, RESERVE> keywords = {
 
 	//keyword
 	{ u8"调用", TK_CALL },
-	{ u8"行数", TK_JMP },
-	{ u8"跳转", TK_JMP },
+	{ u8"行数", TK_GOTO },
+	{ u8"跳转", TK_GOTO },
 	{ u8"返回", TK_RETURN },
+	{ u8"返回跳转", TK_BAK },
 	{ u8"结束", TK_END },
 	{ u8"暂停", TK_PAUSE },
 	{ u8"功能", TK_LABEL, },
@@ -130,6 +137,7 @@ static const QHash<QString, RESERVE> keywords = {
 	{ u8"变数移除", TK_VARFREE },
 	{ u8"变数清空", TK_VARCLR },
 	{ u8"格式化", TK_FORMAT },
+	{ u8"随机数", TK_RND },
 
 	//system
 	{ u8"执行", TK_CMD },
@@ -192,7 +200,11 @@ static const QHash<QString, RESERVE> keywords = {
 	{ u8"卸下装备", TK_CMD },
 	{ u8"记录身上装备", TK_CMD },
 	{ u8"装上记录装备", TK_CMD },
+	{ u8"卸下宠装备", TK_CMD },
+	{ u8"装上宠装备", TK_CMD },
 	{ u8"加点", TK_CMD },
+	{ u8"学习", TK_CMD },
+	{ u8"交易", TK_CMD },
 
 	//action with sub cmd
 	{ u8"组队", TK_CMD },
@@ -226,9 +238,11 @@ static const QHash<QString, RESERVE> keywords = {
 
 	//keyword
 	{ u8"call", TK_CALL },
-	{ u8"goto", TK_JMP },
+	{ u8"goto", TK_GOTO },
+	{ u8"jmp", TK_JMP },
 	{ u8"end", TK_RETURN },
 	{ u8"return", TK_RETURN },
+	{ u8"back", TK_BAK },
 	{ u8"exit", TK_END },
 	{ u8"pause", TK_PAUSE },
 	{ u8"label", TK_LABEL, },
@@ -237,6 +251,7 @@ static const QHash<QString, RESERVE> keywords = {
 	{ u8"vardelete", TK_VARFREE },
 	{ u8"varclear", TK_VARCLR },
 	{ u8"format", TK_FORMAT },
+	{ u8"rnd", TK_RND },
 
 	//system
 	{ u8"run", TK_CMD },
@@ -296,7 +311,12 @@ static const QHash<QString, RESERVE> keywords = {
 	{ u8"unequip", TK_CMD },
 	{ u8"recordequip", TK_CMD },
 	{ u8"wearrecordequip", TK_CMD },
+	{ u8"petunequip", TK_CMD },
+	{ u8"petequip", TK_CMD },
 	{ u8"addpoint", TK_CMD },
+	{ u8"learn", TK_CMD },
+	{ u8"trade", TK_CMD },
+	{ u8"dostring", TK_CMD },
 
 	//action with sub cmd
 	{ u8"join", TK_CMD },
@@ -319,6 +339,9 @@ static const QHash<QString, RESERVE> keywords = {
 	{ u8"rclick", TK_CMD },
 	{ u8"ldbclick", TK_CMD },
 	{ u8"dragto", TK_CMD },
+
+	//hide
+	{ u8"ocr", TK_CMD },
 
 	#pragma endregion
 
@@ -347,6 +370,7 @@ void Lexer::tokenized(int currentLine, const QString& line, TokenMap* ptoken, QH
 	QString token;
 	QVariant data;
 	QString raw = line.trimmed();
+	RESERVE type = TK_UNK;
 
 	ptoken->clear();
 
@@ -359,52 +383,74 @@ void Lexer::tokenized(int currentLine, const QString& line, TokenMap* ptoken, QH
 			raw = raw.mid(0, commentIndex).trimmed();
 		}
 
-
-		if (!getStringToken(raw, " ", token))
+		//用於分析出單個或多個變數賦值的情況 如 a,b,c = 1,2,3
+		bool doNotLowerCase = false;
+		static const QRegularExpression rexMultiVar(R"(^\s*([_a-zA-Z\p{Han}][_a-zA-Z0-9\p{Han}]*(?:\s*,\s*[_a-zA-Z\p{Han}][_a-zA-Z0-9\p{Han}]*)*)\s*=\s*([^,]+(?:\s*,\s*[^,]+)*)$)");
+		if (raw.count("=") == 1 && raw.contains(rexMultiVar))
 		{
-			createEmptyToken(pos, ptoken);
-			break;
+			token = rexMultiVar.match(raw).captured(1).simplified();
+			raw = rexMultiVar.match(raw).captured(2).simplified();
+			type = TK_MULTIVAR;
+			doNotLowerCase = true;
+		}
+		else
+		{
+			//以空格為分界分離出第一個TOKEN(命令)
+			if (!getStringToken(raw, " ", token))
+			{
+				createEmptyToken(pos, ptoken);
+				break;
+			}
+
+			if (token.isEmpty())
+			{
+				createEmptyToken(pos, ptoken);
+				break;
+			}
+
+
+			//遇到註釋
+			if (token.startsWith("//"))
+			{
+				createToken(pos, TK_COMMENT, "", "", ptoken);
+				createToken(pos + 1, TK_COMMENT, data, token, ptoken);
+				break;
+			}
+
+			//檢查第一個TOKEN是否存在於關鍵字表，否則視為空行
+			type = keywords.value(token, TK_UNK);
+			if (type == TK_UNK)
+			{
+				createEmptyToken(pos, ptoken);
+				break;
+			}
 		}
 
-		if (token.isEmpty())
-		{
-			createEmptyToken(pos, ptoken);
-			break;
-		}
-
-		//遇到註釋
-		if (token.startsWith("//"))
-		{
-			createToken(pos, TK_COMMENT, "", "", ptoken);
-			createToken(pos + 1, TK_COMMENT, data, token, ptoken);
-			break;
-		}
-
-		RESERVE type = keywords.value(token, TK_UNK);
-		if (type == TK_UNK)
-		{
-			createEmptyToken(pos, ptoken);
-			break;
-		}
-
-
-		createToken(pos, type, QVariant::fromValue(token.toLower()), token.toLower(), ptoken);
+		if (!doNotLowerCase)
+			createToken(pos, type, QVariant::fromValue(token.toLower()), token.toLower(), ptoken);//命令必定是小寫
+		else
+			createToken(pos, type, QVariant::fromValue(token), token, ptoken);//一個或多個變量名不轉換大小寫
 		++pos;
 
 		for (;;)
 		{
-
+			//以","分界取TOKEN
 			if (!getStringToken(raw, ",", token))
 				break;
 
+			//忽略空白TOKEN
 			if (token.isEmpty())
 			{
-				break;
+				createToken(pos, TK_STRING, "", "", ptoken);
+				++pos;
+				continue;
 			}
+
+			//檢查TOKEN類型
 			RESERVE prevType = type;
 			type = getTokenType(pos, prevType, token, raw);
 
-			if (type == TK_INT)
+			if (type == TK_INT)//對整數進行轉換處理
 			{
 				bool ok;
 				int intValue = token.toInt(&ok);
@@ -413,7 +459,16 @@ void Lexer::tokenized(int currentLine, const QString& line, TokenMap* ptoken, QH
 					data = QVariant::fromValue(intValue);
 				}
 			}
-			else if (type == TK_DOUBLE)
+			else if (type == TK_BOOL)
+			{
+				type = TK_INT;
+				//真為1，假為0, true為1，false為0
+				if (token == "true" || token == "真")
+					data = QVariant::fromValue(1);
+				else if (token == "false" || token == "假")
+					data = QVariant::fromValue(0);
+			}
+			else if (type == TK_DOUBLE)//對雙精度浮點數進行轉換處理
 			{
 				bool ok;
 				double floatValue = token.toDouble(&ok);
@@ -422,13 +477,13 @@ void Lexer::tokenized(int currentLine, const QString& line, TokenMap* ptoken, QH
 					data = QVariant::fromValue(floatValue);
 				}
 			}
-			else if (type == TK_STRING)
+			else if (type == TK_STRING)//對字串進行轉換處理，去除首尾單引號、雙引號
 			{
-				if (token.startsWith("\"") && token.endsWith("\""))
+				if ((token.startsWith("\"") || token.startsWith("\'")) && (token.endsWith("\"") || token.endsWith("\'")))
 					token = token.mid(1, token.length() - 2);
 				data = QVariant::fromValue(token);
 			}
-			else if (type == TK_NAME)
+			else if (type == TK_NAME)//保存標記名稱
 			{
 				data = QVariant::fromValue(token);
 				if (prevType == TK_LABEL)
@@ -486,9 +541,10 @@ bool Lexer::isInteger(const QString& str) const
 	return ok;
 }
 
+//預留的類型，但一般用戶容易混淆，所以實際上並沒有使用
 bool Lexer::isBool(const QString& str) const
 {
-	return (str == QString(u8"真") || str == QString(u8"假") || str == "true" || str == "false");
+	return (str == QString(u8"真") || str == QString(u8"假") || str.toLower() == "true" || str.toLower() == "false");
 }
 
 bool Lexer::isName(const QString& str, RESERVE previousType) const
@@ -497,7 +553,7 @@ bool Lexer::isName(const QString& str, RESERVE previousType) const
 	if (str.isEmpty() || str.at(0).isDigit())
 		return false;
 
-	return previousType == TK_LABEL || previousType == TK_CALL || previousType == TK_JMP;
+	return previousType == TK_LABEL || previousType == TK_CALL || previousType == TK_GOTO;
 }
 
 bool Lexer::isString(const QString& str) const
@@ -634,8 +690,14 @@ RESERVE Lexer::getTokenType(int& pos, RESERVE previous, QString& str, const QStr
 	{
 		return TK_FUZZY;
 	}
+	else if (isBool(str))
+	{
+		str = str.toLower();
+		return TK_BOOL;
+	}
 	else if (isVariable(str))
 	{
+		//這裡本意是為了過濾調以數字開頭的變量名，但會錯誤的把中文也過濾掉
 		QChar nextChar = next(raw, index);
 		if (nextChar.isLetterOrNumber() || nextChar == '\0')
 		{
@@ -643,11 +705,12 @@ RESERVE Lexer::getTokenType(int& pos, RESERVE previous, QString& str, const QStr
 		}
 		else
 		{
-			return TK_UNK;
+			return TK_REF;
 		}
 	}
 	else if (previous == TK_NAME || previous == TK_LABELVAR)
 	{
+		//如果前一個TOKEN是label名或區域變量名，那麼接下來的TOKEN都視為區域變量名
 		return TK_LABELVAR;
 	}
 	else if (isString(str))
@@ -662,10 +725,6 @@ RESERVE Lexer::getTokenType(int& pos, RESERVE previous, QString& str, const QStr
 	{
 		return TK_INT;
 	}
-	else if (isBool(str))
-	{
-		return TK_BOOL;
-	}
 	else if (isName(str, previous))
 	{
 		return TK_NAME;
@@ -675,6 +734,7 @@ RESERVE Lexer::getTokenType(int& pos, RESERVE previous, QString& str, const QStr
 		return TK_COMMENT;
 	}
 
+	//其他的都默認為字符串
 	return TK_STRING;
 }
 
@@ -695,23 +755,78 @@ QChar Lexer::next(const QString& str, int& index) const
 //根據指定分割符號取得字串
 bool Lexer::getStringToken(QString& src, const QString& delim, QString& out)
 {
+	//if (src.isEmpty())
+	//	return false;
+
+	//if (delim.isEmpty())
+	//	return false;
+
+	//QStringList list = src.split(delim);
+	//if (list.isEmpty())
+	//	return false;
+
+	//out = list.first().trimmed();
+	//int size = out.size();
+
+	////remove frist 'out' and 'delim' from src
+	//src.remove(0, size + delim.size());
+	//if (src.startsWith(delim))
+	//	src.remove(0, delim.size());
+	//src = src.trimmed();
+	//return true;
+
 	if (src.isEmpty())
 		return false;
 
 	if (delim.isEmpty())
 		return false;
 
-	QStringList list = src.split(delim);
-	if (list.isEmpty())
-		return false;
+	QString openingQuote = "\"";
+	QString closingQuote = "\"";
 
-	out = list.first().trimmed();
-	int size = out.size();
-	//remove frist out and delim from src
-	src.remove(0, size + delim.size());
-	if (src.startsWith(delim))
-		src.remove(0, delim.size());
-	src = src.trimmed();
+	if (src.startsWith(openingQuote))
+	{
+		// Find the closing quote
+		int closingQuoteIndex = src.indexOf(closingQuote, openingQuote.size());
+		if (closingQuoteIndex == -1)
+			return false;
+
+		// Extract the quoted token
+		out = src.mid(0, closingQuoteIndex + closingQuote.size());
+		src.remove(0, closingQuoteIndex + closingQuote.size());
+	}
+	else if (src.startsWith("'"))
+	{
+		// Find the closing single quote
+		int closingSingleQuoteIndex = src.indexOf("'", 1);
+		if (closingSingleQuoteIndex == -1)
+			return false;
+
+		// Extract the quoted token
+		out = src.mid(0, closingSingleQuoteIndex + 1);
+		src.remove(0, closingSingleQuoteIndex + 1);
+	}
+	else
+	{
+		QStringList list = src.split(delim);
+		if (list.isEmpty())
+		{
+			// Empty token, treat it as an empty string
+			out = "";
+		}
+		else
+		{
+			out = list.first().trimmed();
+			int size = out.size();
+
+			// Remove the first 'out' and 'delim' from src
+			src.remove(0, size + delim.size());
+			if (src.startsWith(delim))
+				src.remove(0, delim.size());
+			src = src.trimmed();
+		}
+	}
+
 	return true;
 }
 

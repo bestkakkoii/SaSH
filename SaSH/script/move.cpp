@@ -19,8 +19,11 @@ int Interpreter::setdir(int currentline, const TokenMap& TK)
 	checkInt(TK, 1, &dir);
 	checkString(TK, 1, &dirStr);
 
-	if (dir != -1 && dirStr.isEmpty())
+	dirStr = dirStr.toUpper().simplified();
+
+	if (dir != -1 && dirStr.isEmpty() && dir >= 1 && dir <= 8)
 	{
+		--dir;
 		injector.server->setPlayerFaceDirection(dir);
 	}
 	else if (dir == -1 && !dirStr.isEmpty())
@@ -78,11 +81,32 @@ int Interpreter::fastmove(int currentline, const TokenMap& TK)
 	checkBattleThenWait();
 
 	QPoint p;
-	checkInt(TK, 1, &p.rx());
-	checkInt(TK, 2, &p.ry());
+	QString dirStr;
+	if (checkInt(TK, 1, &p.rx()))
+	{
+		if (checkInt(TK, 2, &p.ry()))
+		{
+			if (p.x() < 0 || p.x() >= 1500 || p.y() < 0 || p.y() >= 1500)
+				return Parser::kArgError;
+		}
+		else if (p.x() >= 1 && p.x() <= 8)
+		{
+			int dir = p.x() - 1;
+			p = injector.server->nowPoint + util::fix_point.at(dir) * 10;
+		}
+		else
+			return Parser::kArgError;
+	}
+	else if (checkString(TK, 1, &dirStr))
+	{
+		if (!dirMap.contains(dirStr.toUpper().simplified()))
+			return Parser::kArgError;
 
-	if (p.x() < 0 || p.x() >= 1500 || p.y() < 0 || p.y() >= 1500)
-		return Parser::kArgError;
+		DirType dir = dirMap.value(dirStr.toUpper().simplified());
+		//計算出往該方向10格的坐標
+		p = injector.server->nowPoint + util::fix_point.at(dir) * 10;
+
+	}
 
 	injector.server->move(p);
 	QThread::msleep(1);

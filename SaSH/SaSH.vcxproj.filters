@@ -228,6 +228,9 @@
     <ClCompile Include="update\qdownloader.cpp">
       <Filter>Source Files\update</Filter>
     </ClCompile>
+    <ClCompile Include="crypto.cpp">
+      <Filter>Source Files\script</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="mainform.h">
@@ -363,6 +366,9 @@
     </ClInclude>
     <ClInclude Include="gdatetime.h">
       <Filter>Source Files\util</Filter>
+    </ClInclude>
+    <ClInclude Include="crypto.h">
+      <Filter>Source Files\script</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

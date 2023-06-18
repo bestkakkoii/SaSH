@@ -5,10 +5,13 @@
 #include "signaldispatcher.h"
 
 
-extern util::SafeHash<int, break_marker_t> break_markers;//用於標記自訂義中斷點(紅點)
-extern util::SafeHash<int, break_marker_t> forward_markers;//用於標示當前執行中斷處(黃箭頭)
-extern util::SafeHash<int, break_marker_t> error_markers;//用於標示錯誤發生行(紅線)
-extern util::SafeHash<int, break_marker_t> step_markers;//隱式標記中斷點用於單步執行(無)
+#include "crypto.h"
+#include <QSpinBox>
+
+extern util::SafeHash<QString, util::SafeHash<int, break_marker_t>> break_markers;//用於標記自訂義中斷點(紅點)
+extern util::SafeHash < QString, util::SafeHash<int, break_marker_t>> forward_markers;//用於標示當前執行中斷處(黃箭頭)
+extern util::SafeHash < QString, util::SafeHash<int, break_marker_t>> error_markers;//用於標示錯誤發生行(紅線)
+extern util::SafeHash < QString, util::SafeHash<int, break_marker_t>> step_markers;//隱式標記中斷點用於單步執行(無)
 
 
 ScriptSettingForm::ScriptSettingForm(QWidget* parent)
@@ -80,6 +83,8 @@ ScriptSettingForm::ScriptSettingForm(QWidget* parent)
 	connect(ui.actionPause, &QAction::triggered, this, &ScriptSettingForm::onActionTriggered);
 	connect(ui.actionStop, &QAction::triggered, this, &ScriptSettingForm::onActionTriggered);
 	connect(ui.actionLogback, &QAction::triggered, this, &ScriptSettingForm::onActionTriggered);
+	connect(ui.actionSaveEncode, &QAction::triggered, this, &ScriptSettingForm::onActionTriggered);
+	connect(ui.actionSaveDecode, &QAction::triggered, this, &ScriptSettingForm::onActionTriggered);
 
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
 	connect(&signalDispatcher, &SignalDispatcher::applyHashSettingsToUI, this, &ScriptSettingForm::onApplyHashSettingsToUI, Qt::UniqueConnection);
@@ -96,6 +101,40 @@ ScriptSettingForm::ScriptSettingForm(QWidget* parent)
 	Injector& injector = Injector::getInstance();
 	if (!injector.scriptLogModel.isNull())
 		ui.listView_log->setModel(injector.scriptLogModel.get());
+
+	pSpeedSpinBox = new QSpinBox(this);
+	pSpeedSpinBox->setRange(0, 10000);
+	int value = injector.getValueHash(util::kScriptSpeedValue);
+	pSpeedSpinBox->setValue(value);
+	pSpeedSpinBox->setStyleSheet(R"(
+		QSpinBox {
+			padding-top: 2px;
+			padding-bottom: 2px;
+			padding-left: 4px;
+			padding-right: 15px;
+			border:1px solid rgb(66,66,66);
+ 			color:rgb(250,250,250);
+  			background: rgb(56,56,56);
+			selection-color: rgb(208,208,208);
+			selection-background-color: rgb(80, 80, 83);
+			font-family: "Microsoft Yahei";
+			font-size: 10pt;
+		}
+
+		QSpinBox:hover {
+		  color:rgb(250,250,250);
+		  background: rgb(31,31,31);
+		   border:1px solid rgb(153,153,153);
+		}
+	)");
+	connect(pSpeedSpinBox, static_cast<void (QSpinBox::*)(int)>(&QSpinBox::valueChanged), this, [](int value)
+		{
+			Injector& injector = Injector::getInstance();
+			injector.setValueHash(util::kScriptSpeedValue, value);
+		});
+	ui.mainToolBar->addWidget(pSpeedSpinBox);
+
+
 
 
 	emit signalDispatcher.reloadScriptList();
@@ -162,6 +201,8 @@ void ScriptSettingForm::onApplyHashSettingsToUI()
 	Injector& injector = Injector::getInstance();
 	if (!injector.scriptLogModel.isNull())
 		ui.listView_log->setModel(injector.scriptLogModel.get());
+
+	pSpeedSpinBox->setValue(injector.getValueHash(util::kScriptSpeedValue));
 }
 
 void ScriptSettingForm::onFinished()
@@ -169,7 +210,7 @@ void ScriptSettingForm::onFinished()
 	ui.actionStart->setText(tr("start"));
 }
 
-void ScriptSettingForm::setMark(CodeEditor::SymbolHandler element, util::SafeHash<int, break_marker_t>& hash, int liner, bool b)
+void ScriptSettingForm::setMark(CodeEditor::SymbolHandler element, util::SafeHash<QString, util::SafeHash<int, break_marker_t>>& hash, int liner, bool b)
 {
 	do
 	{
@@ -187,16 +228,16 @@ void ScriptSettingForm::setMark(CodeEditor::SymbolHandler element, util::SafeHas
 			bk.content = ui.widget->text(liner);
 			bk.count = NULL;
 			bk.maker = static_cast<int>(element);
-			hash.insert(liner, bk);
+			hash[currentFileName_].insert(liner, bk);
 
 			ui.widget->markerAdd(liner, element); // 添加标签
 			onEditorCursorPositionChanged(liner, 0);
 		}
 		else if (!b)
 		{
-			util::SafeHash<int, break_marker_t> markers = hash;
+			util::SafeHash<int, break_marker_t> markers = hash.value(currentFileName_);
 			if (markers.contains(liner))
-				hash.remove(liner);
+				hash[currentFileName_].remove(liner);
 			ui.widget->markerDelete(liner, element);
 		}
 	} while (false);
@@ -229,6 +270,24 @@ void ScriptSettingForm::onAddStepMarker(int liner, bool b)
 	}
 }
 
+void ScriptSettingForm::reshowBreakMarker()
+{
+	const util::SafeHash<QString, util::SafeHash<int, break_marker_t>> mks = break_markers;
+	for (auto it = mks.begin(); it != mks.end(); ++it)
+	{
+		QString fileName = it.key();
+		if (fileName != currentFileName_)
+			continue;
+
+		const util::SafeHash<int, break_marker_t> mk = mks.value(fileName);
+		for (const break_marker_t& it : mk)
+		{
+			ui.widget->markerAdd(it.line, CodeEditor::SymbolHandler::SYM_POINT);
+		}
+	}
+	onBreakMarkInfoImport();
+}
+
 void ScriptSettingForm::onAddBreakMarker(int liner, bool b)
 {
 	do
@@ -248,14 +307,14 @@ void ScriptSettingForm::onAddBreakMarker(int liner, bool b)
 				return;
 			bk.count = NULL;
 			bk.maker = static_cast<int>(CodeEditor::SymbolHandler::SYM_POINT);
-			break_markers.insert(liner, bk);
+			break_markers[currentFileName_].insert(liner, bk);
 			ui.widget->markerAdd(liner, CodeEditor::SymbolHandler::SYM_POINT);
 		}
 		else if (!b)
 		{
-			util::SafeHash<int, break_marker_t> markers = break_markers;
+			util::SafeHash<int, break_marker_t> markers = break_markers.value(currentFileName_);
 			if (markers.contains(liner))
-				break_markers.remove(liner);
+				break_markers[currentFileName_].remove(liner);
 
 			ui.widget->markerDelete(liner, CodeEditor::SymbolHandler::SYM_POINT);
 		}
@@ -265,18 +324,24 @@ void ScriptSettingForm::onAddBreakMarker(int liner, bool b)
 
 void ScriptSettingForm::onBreakMarkInfoImport()
 {
-	const util::SafeHash<int, break_marker_t> mk = break_markers;
+
 	QList<QTreeWidgetItem*> trees = {};
 	ui.treeWidget_breakList->clear();
-	ui.treeWidget_breakList->setColumnCount(3);
-	ui.treeWidget_breakList->setHeaderLabels(QStringList{ tr("CONTENT"),tr("COUNT"), tr("ROW") });
-	for (const break_marker_t& it : mk)
+	ui.treeWidget_breakList->setColumnCount(4);
+	ui.treeWidget_breakList->setHeaderLabels(QStringList{ tr("CONTENT"),tr("COUNT"), tr("ROW"), tr("FILE") });
+	const util::SafeHash<QString, util::SafeHash<int, break_marker_t>> mks = break_markers;
+	for (auto it = mks.begin(); it != mks.end(); ++it)
 	{
-		QTreeWidgetItem* item = q_check_ptr(new QTreeWidgetItem({ it.content, QString::number(it.count), QString::number(it.line + 1) }));
-		item->setIcon(0, QIcon("://image/icon_break.png"));
-		trees.append(item);
+		QString fileName = it.key();
+		const util::SafeHash<int, break_marker_t> mk = mks.value(fileName);
+		for (const break_marker_t& it : mk)
+		{
+			QTreeWidgetItem* item = q_check_ptr(new QTreeWidgetItem({ it.content, QString::number(it.count), QString::number(it.line + 1), fileName }));
+			item->setIcon(0, QIcon("://image/icon_break.png"));
+			trees.append(item);
+		}
+		ui.treeWidget_breakList->addTopLevelItems(trees);
 	}
-	ui.treeWidget_breakList->addTopLevelItems(trees);
 }
 
 void ScriptSettingForm::on_widget_marginClicked(int margin, int line, Qt::KeyboardModifiers state)
@@ -307,6 +372,10 @@ static const QRegularExpression rexLoadComma(R"(,[ \t\f\v]{0,})");
 static const QRegularExpression rexSetComma(R"(,)");
 void ScriptSettingForm::fileSave(const QString& d, DWORD flag)
 {
+	Injector& injector = Injector::getInstance();
+	if (injector.IS_SCRIPT_FLAG)
+		return;
+
 	const QString directoryName(QApplication::applicationDirPath() + "/script");
 	const QDir dir(directoryName);
 	if (!dir.exists())
@@ -316,6 +385,11 @@ void ScriptSettingForm::fileSave(const QString& d, DWORD flag)
 
 	if (fileName.isEmpty())
 		return;
+
+	//backup
+	const QString backupName(fileName + ".bak");
+	QFile::remove(backupName);
+	QFile::copy(fileName, backupName);
 
 	//紀錄光標位置
 	int line = NULL, index = NULL;
@@ -393,6 +467,15 @@ void ScriptSettingForm::fileSave(const QString& d, DWORD flag)
 	ui.statusBar->showMessage(QString(tr("Script %1 saved")).arg(fileName), 2000);
 
 	onWidgetModificationChanged(true);
+
+	onAddBreakMarker(-1, false);
+	onAddErrorMarker(-1, false);
+	onAddForwardMarker(-1, false);
+	onAddStepMarker(-1, false);
+	break_markers.clear();
+	forward_markers.clear();
+	error_markers.clear();
+	step_markers.clear();
 }
 
 void ScriptSettingForm::onScriptTreeWidgetHeaderClicked(int logicalIndex)
@@ -438,7 +521,6 @@ void ScriptSettingForm::onReloadScriptList()
 	} while (false);
 }
 
-
 void ScriptSettingForm::loadFile(const QString& fileName)
 {
 	util::QScopedFile f(fileName, QIODevice::ReadOnly | QIODevice::Text);
@@ -458,6 +540,15 @@ void ScriptSettingForm::loadFile(const QString& fileName)
 	ui.widget->setUtf8(true);
 	ui.widget->setModified(false);
 	ui.widget->setText(c);
+
+	onAddErrorMarker(-1, false);
+	onAddForwardMarker(-1, false);
+	onAddStepMarker(-1, false);
+	forward_markers.clear();
+	error_markers.clear();
+	step_markers.clear();
+
+	reshowBreakMarker();
 }
 
 void ScriptSettingForm::onContinue()
@@ -467,6 +558,9 @@ void ScriptSettingForm::onContinue()
 	onAddErrorMarker(-1, false);
 	onAddForwardMarker(-1, false);
 	onAddStepMarker(-1, false);
+	forward_markers.clear();
+	error_markers.clear();
+	step_markers.clear();
 }
 
 void ScriptSettingForm::onScriptTreeWidgetDoubleClicked(QTreeWidgetItem* item, int column)
@@ -507,6 +601,13 @@ void ScriptSettingForm::onScriptTreeWidgetDoubleClicked(QTreeWidgetItem* item, i
 
 		strpath = QApplication::applicationDirPath() + "/script/" + strpath;
 		strpath.replace("*", "");
+
+		onAddErrorMarker(-1, false);
+		onAddForwardMarker(-1, false);
+		onAddStepMarker(-1, false);
+		forward_markers.clear();
+		error_markers.clear();
+		step_markers.clear();
 
 		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
 		emit signalDispatcher.loadFileToTable(strpath);
@@ -599,8 +700,9 @@ void ScriptSettingForm::onActionTriggered()
 	else if (name == "actionMark")
 	{
 		int line = -1;
-		ui.widget->getCursorPosition(&line, nullptr);
-		on_widget_marginClicked(NULL, line, static_cast<Qt::KeyboardModifiers>(Qt::LeftButton));
+		int index = -1;
+		ui.widget->getCursorPosition(&line, &index);
+		on_widget_marginClicked(NULL, line, Qt::NoModifier);
 	}
 	else if (name == "actionLogback")
 	{
@@ -663,11 +765,26 @@ void ScriptSettingForm::onActionTriggered()
 				m_scripts.insert(strpath, ui.widget->text());
 
 				ui.treeWidget_scriptList->setCurrentItem(item);
+
+				onAddErrorMarker(-1, false);
+				onAddForwardMarker(-1, false);
+				onAddStepMarker(-1, false);
+				forward_markers.clear();
+				error_markers.clear();
+				step_markers.clear();
 				break;
 			}
 			else
 				++num;
 		}
+	}
+	else if (name == "actionSaveEncode")
+	{
+		onEncryptSave();
+	}
+	else if (name == "actionSaveDecode")
+	{
+		onDecryptSave();
 	}
 }
 
@@ -839,7 +956,13 @@ void ScriptSettingForm::varInfoImport(QTreeWidget* tree, const QHash<QString, QV
 	tree->clear();
 	tree->setColumnCount(3);
 	tree->setHeaderLabels(QStringList() << tr("name") << tr("value") << tr("type"));
+	QMap<QString, QVariant> map;
 	for (auto it = d.begin(); it != d.end(); ++it)
+	{
+		map.insert(it.key(), it.value());
+	}
+
+	for (auto it = map.begin(); it != map.end(); ++it)
 	{
 		QString varName = it.key();
 		QString varType;
@@ -909,7 +1032,68 @@ void ScriptSettingForm::onGlobalVarInfoImport(const QHash<QString, QVariant>& d)
 		return;
 
 	currentGlobalVarInfo_ = d;
-	varInfoImport(ui.treeWidget_debuger_global, d);
+	QStringList systemVarList = {
+		//utf8
+		"tickcount","stickcount",
+
+		"playername","playerfreename","playerlevel","playerhp","playermp","playerdp",
+		"stone",
+
+		"px","py","floor","floorname",
+		"date","time",
+		"dialogid",
+	};
+
+	QStringList gb2312List = {
+		//gb2312
+		"毫秒时间戳", "秒时间戳",
+
+		"人物主名","人物副名","人物等级","人物耐久力","人物气力","人物DP",
+		"石币",
+
+		"东坐标","南坐标","地图编号","地图",
+		"日期","时间",
+		"对话框ID",
+	};
+
+	QStringList big5List = {
+		"毫秒時間戳", "秒時間戳",
+
+		"人物主名","人物副名","人物等級","人物耐久力","人物氣力","人物DP",
+		"石幣",
+
+		"東坐標","南坐標","地圖編號","地圖",
+		"日期","時間",
+		"對話框ID",
+	};
+
+	QHash<QString, QVariant> globalVarInfo;
+	QHash<QString, QVariant> customVarInfo;
+	//如果key存在於系統變量列表中則添加到系統變量列表中
+
+	UINT acp = GetACP();
+	for (auto it = d.begin(); it != d.end(); ++it)
+	{
+		if (systemVarList.contains(it.key().simplified()))
+		{
+			globalVarInfo.insert(it.key(), it.value());
+		}
+		else if (acp == 936 && gb2312List.contains(it.key().simplified()))
+		{
+			globalVarInfo.insert(it.key(), it.value());
+		}
+		else if (acp != 936 && big5List.contains(it.key().simplified()))
+		{
+			globalVarInfo.insert(it.key(), it.value());
+		}
+		else if (!systemVarList.contains(it.key().simplified()) && !gb2312List.contains(it.key().simplified()) && !big5List.contains(it.key().simplified()))
+		{
+			customVarInfo.insert(it.key(), it.value());
+		}
+	}
+
+	varInfoImport(ui.treeWidget_debuger_global, globalVarInfo);
+	varInfoImport(ui.treeWidget_debuger_custom, customVarInfo);
 }
 
 //區域變量列表
@@ -945,4 +1129,78 @@ void ScriptSettingForm::on_treeWidget_functionList_itemDoubleClicked(QTreeWidget
 void ScriptSettingForm::on_treeWidget_functionList_itemClicked(QTreeWidgetItem* item, int column)
 {
 
+}
+
+void ScriptSettingForm::onEncryptSave()
+{
+	QInputDialog inputDialog(this);
+	inputDialog.setWindowTitle(tr("EncryptScript"));
+	inputDialog.setLabelText(tr("Please input password"));
+	inputDialog.setWindowFlags(Qt::Dialog | Qt::WindowCloseButtonHint | Qt::WindowStaysOnTopHint);
+	inputDialog.setModal(true);
+	inputDialog.setInputMode(QInputDialog::TextInput);
+	inputDialog.setTextEchoMode(QLineEdit::Password);
+	inputDialog.resize(300, 100);
+	inputDialog.move(this->pos().x() + this->width() / 2 - inputDialog.width() / 2, this->pos().y() + this->height() / 2 - inputDialog.height() / 2);
+	if (inputDialog.exec() != QDialog::Accepted)
+		return;
+
+	//隨機生成256位hash 
+	QString random = inputDialog.textValue();
+	QByteArray hashKey = QCryptographicHash::hash(random.toUtf8(), QCryptographicHash::Sha256);
+	//to hax string
+	QString password = hashKey.toHex();
+	if (password.isEmpty())
+		return;
+
+	Crypto crypto;
+
+	if (crypto.encodeScript(currentFileName_, password))
+	{
+		QString newFileName = currentFileName_;
+		newFileName.replace(util::SCRIPT_SUFFIX_DEFAULT, util::SCRIPT_PRIVATE_SUFFIX_DEFAULT);
+		currentFileName_ = newFileName;
+		ui.statusBar->showMessage(QString(tr("Encrypt script %1 saved")).arg(newFileName), 2000);
+		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
+		emit signalDispatcher.loadFileToTable(newFileName);
+	}
+	else
+	{
+		ui.statusBar->showMessage(tr("Encrypt script save failed"), 2000);
+	}
+}
+
+void ScriptSettingForm::onDecryptSave()
+{
+	QInputDialog inputDialog(this);
+	inputDialog.setWindowTitle(tr("DecryptScript"));
+	inputDialog.setLabelText(tr("Please input password"));
+	inputDialog.setWindowFlags(Qt::Dialog | Qt::WindowCloseButtonHint | Qt::WindowStaysOnTopHint);
+	inputDialog.setModal(true);
+	inputDialog.setInputMode(QInputDialog::TextInput);
+	inputDialog.setTextEchoMode(QLineEdit::Password);
+	inputDialog.resize(300, 100);
+	inputDialog.move(this->pos().x() + this->width() / 2 - inputDialog.width() / 2, this->pos().y() + this->height() / 2 - inputDialog.height() / 2);
+	if (inputDialog.exec() != QDialog::Accepted)
+		return;
+
+	//隨機生成256位hash 
+	QString random = inputDialog.textValue();
+	QByteArray hashKey = QCryptographicHash::hash(random.toUtf8(), QCryptographicHash::Sha256);
+	//to hax string
+	QString password = hashKey.toHex();
+	if (password.isEmpty())
+		return;
+
+	Crypto crypto;
+	QString content;
+	if (crypto.decodeScript(currentFileName_, content))
+	{
+		QString newFileName = currentFileName_;
+		newFileName.replace(util::SCRIPT_PRIVATE_SUFFIX_DEFAULT, util::SCRIPT_SUFFIX_DEFAULT);
+		currentFileName_ = newFileName;
+
+		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
+		emit signalDispatcher.loadFileToTable(newFileName);
+	}
 }

@@ -523,7 +523,7 @@ void QDownloader::overwriteCurrentExecutable()
 		while (!QFile::rename(szBackup7zFilePath, szBackup7zNewFilePath))
 		{
 			QCoreApplication::processEvents();
-			QThread::msleep(100UL);
+			QThread::msleep(100);
 			if (timer.hasExpired(30000ll))
 			{
 				break;

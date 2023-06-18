@@ -5,6 +5,7 @@
 #include "util.h"
 #include "script/interpreter.h"
 
+class QSpinBox;
 class ScriptSettingForm : public QMainWindow
 {
 	Q_OBJECT
@@ -22,9 +23,11 @@ private:
 
 	void onReloadScriptList();
 
-	void setMark(CodeEditor::SymbolHandler element, util::SafeHash<int, break_marker_t>& hash, int liner, bool b);
+	void setMark(CodeEditor::SymbolHandler element, util::SafeHash<QString, util::SafeHash<int, break_marker_t>>& hash, int liner, bool b);
 
 	void varInfoImport(QTreeWidget* tree, const QHash<QString, QVariant>& d);
+
+	void reshowBreakMarker();
 
 private slots:
 	void onApplyHashSettingsToUI();
@@ -52,6 +55,9 @@ private slots:
 	void onLocalVarInfoImport(const QHash<QString, QVariant>& d);
 	void onContinue();
 	void onFinished();
+
+	void onEncryptSave();
+	void onDecryptSave();
 private:
 	Ui::ScriptSettingFormClass ui;
 	QLabel m_staticLabel;
@@ -62,4 +68,6 @@ private:
 	QHash<QString, QString> m_scripts;
 	QHash<QString, QVariant> currentGlobalVarInfo_;
 	QHash<QString, QVariant> currentLocalVarInfo_;
+
+	QSpinBox* pSpeedSpinBox = nullptr;
 };

@@ -17,6 +17,8 @@ class InfoForm;
 class MapWidget;
 class ScriptSettingForm;
 
+class Interpreter;
+
 class MainForm : public QMainWindow
 {
 	Q_OBJECT
@@ -33,6 +35,7 @@ protected:
 	bool nativeEvent(const QByteArray& eventType, void* message, long* result) override;
 private:
 	void resetControlTextLanguage();
+	void updateStatusText();
 
 private slots:
 	void onMenuActionTriggered();
@@ -60,7 +63,11 @@ private:
 	OtherForm* pOtherForm_ = nullptr;
 	ScriptForm* pScriptForm_ = nullptr;
 
+	int interfaceCount_ = 0;
+
 	InfoForm* pInfoForm_ = nullptr;
 	MapWidget* mapWidget_ = nullptr;
 	ScriptSettingForm* pScriptSettingForm_ = nullptr;
+
+	QHash<int, QSharedPointer<Interpreter>> interpreter_hash_;
 };

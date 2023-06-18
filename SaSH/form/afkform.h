@@ -28,6 +28,8 @@ private slots:
 
 	void onUpdateComboBoxItemText(int type, const QStringList& textList);
 
+protected:
+	void closeEvent(QCloseEvent* event) override;
 
 private:
 	void updateTargetButtonText();

@@ -1,4 +1,4 @@
-﻿
+﻿#pragma once
 #ifdef SADLL_EXPORTS
 #define SADLL_API __declspec(dllexport)
 #else
@@ -24,6 +24,11 @@ public:\
 		static Class *instance = new Class();\
 		return *instance;\
 	}
+#endif
+
+#ifdef _DEBUG
+#else
+#define _NDEBUG
 #endif
 
 namespace util
@@ -124,9 +129,14 @@ namespace util
 
 }
 
-constexpr size_t LINEBUFSIZ = 8192;
+#define USE_ASYNC_TCP
 
+#ifdef USE_ASYNC_TCP
+class AsyncClient;
+#else
 class SyncClient;
+#endif
+
 class GameService
 {
 	DISABLE_COPY_MOVE(GameService);
@@ -226,20 +236,18 @@ public://hook
 	using pfnLssproto_EN_recv = void(__cdecl*)(int, int, int);
 	pfnLssproto_EN_recv pLssproto_EN_recv = nullptr;
 
-private://net
-	void clearNetBuffer();
-	int appendReadBuf(char* buf, int size);
-	int shiftReadBuf(int size);
-	int getLineFromReadBuf(char* output, int maxlen);
+private:
 	void hideModule(HMODULE hLibrary);
 
 private:
 	std::atomic_bool isInitialized_ = false;
+
+#ifdef USE_ASYNC_TCP
+	std::unique_ptr<AsyncClient> asyncClient_ = nullptr;
+#else
 	std::unique_ptr<SyncClient> syncClient_ = nullptr;
+#endif
 
 	int currentMusic_ = 15;
 	int currentSound_ = 15;
-
-	//std::unique_ptr<char> net_readbuf = nullptr;
-	//std::unique_ptr<char> rpc_linebuffer = nullptr;
 };

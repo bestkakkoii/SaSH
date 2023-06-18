@@ -189,7 +189,7 @@ void MainObject::mainProc()
 
 	for (;;)
 	{
-		QThread::msleep(100);
+		QThread::msleep(150);
 		//檢查是否接收到停止執行的訊號
 		if (isInterruptionRequested())
 		{
@@ -509,7 +509,7 @@ void MainObject::battleTimeThread()
 			.arg(injector.server->battle_total_time / 1000 / 60);
 		injector.server->timeLabelContents = battle_time_text;
 		emit signalDispatcher.updateTimeLabelContents(battle_time_text);
-		QThread::msleep(10);
+		QThread::msleep(100);
 	}
 	battleTime_future_cancel_flag_.store(false, std::memory_order_release);
 }

@@ -1,12 +1,18 @@
 ﻿#include "pch.h"
 #include "sadll.h"
-#include "autil.h"
+//#include "autil.h"
+#ifdef USE_ASYNC_TCP
+#include "asyncclient.h"
+#else
+#include "syncclient.h"
+#endif
+
+#define USE_MINIDUMP
 
 #pragma comment(lib, "detours.lib")
 #pragma comment(lib, "ws2_32.lib")
 
 constexpr const char* IPV6_DEFAULT = "::1";
-constexpr const char* IPV4_DEFAULT = "127.0.0.1";
 
 WNDPROC g_OldWndProc = nullptr;
 HWND g_MainHwnd = nullptr;
@@ -17,18 +23,10 @@ DWORD g_MainThreadId = 0;
 HANDLE g_MainThreadHandle = nullptr;
 HWND g_ParenthWnd = nullptr;
 
-int net_readbuflen = 0;
-char net_readbuf[LINEBUFSIZ] = {};
-char rpc_linebuffer[Autil::NETBUFSIZ] = {};
-
-#ifdef _DEBUG
-#else
-#define _NDEBUG
-#endif
-
 template<typename T>
 inline T CONVERT_GAMEVAR(DWORD offset) { return (T)((reinterpret_cast<ULONG_PTR>(g_hGameModule) + offset)); }
 
+//用於隱藏指定模塊
 void GameService::hideModule(HMODULE hLibrary)
 {
 	using namespace MINT;
@@ -69,7 +67,13 @@ void GameService::hideModule(HMODULE hLibrary)
 	}
 }
 
-void GameService::clearNetBuffer()
+#ifdef AUTIL_H
+constexpr size_t LINEBUFSIZ = 8192;
+int net_readbuflen = 0;
+char net_readbuf[LINEBUFSIZ] = {};
+char rpc_linebuffer[Autil::NETBUFSIZ] = {};
+
+void clearNetBuffer()
 {
 	net_readbuflen = 0;
 	memset(net_readbuf, 0, LINEBUFSIZ);
@@ -77,7 +81,7 @@ void GameService::clearNetBuffer()
 	Autil::util_Release();
 }
 
-int GameService::appendReadBuf(char* buf, int size)
+int appendReadBuf(char* buf, int size)
 {
 	if ((net_readbuflen + size) > Autil::NETBUFSIZ)
 		return -1;
@@ -87,7 +91,7 @@ int GameService::appendReadBuf(char* buf, int size)
 	return 0;
 }
 
-int GameService::shiftReadBuf(int size)
+int shiftReadBuf(int size)
 {
 	int i;
 
@@ -135,6 +139,7 @@ int GameService::getLineFromReadBuf(char* output, int maxlen)
 	}
 	return -1;
 }
+#endif
 
 #ifdef _DEBUG
 void CreateConsole()
@@ -166,6 +171,7 @@ void CreateConsole()
 }
 #endif
 
+#ifdef USE_MINIDUMP
 #include <DbgHelp.h>
 #pragma comment(lib, "dbghelp.lib")
 LONG CALLBACK MinidumpCallback(PEXCEPTION_POINTERS pException)
@@ -228,7 +234,7 @@ LONG CALLBACK MinidumpCallback(PEXCEPTION_POINTERS pException)
 	} while (false);
 	return EXCEPTION_CONTINUE_SEARCH;
 }
-
+#endif
 
 LRESULT CALLBACK WndProc(HWND hWnd, DWORD message, LPARAM wParam, LPARAM lParam);
 //
@@ -251,7 +257,10 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID)
 			g_MainHwnd = hWnd;
 			g_OldWndProc = reinterpret_cast<WNDPROC>(GetWindowLongW(hWnd, GWL_WNDPROC));
 			SetWindowLongW(hWnd, GWL_WNDPROC, reinterpret_cast<LONG_PTR>(WndProc));
+#ifdef USE_MINIDUMP
 			SetUnhandledExceptionFilter(MinidumpCallback);
+#endif
+
 #ifdef _DEBUG
 			CreateConsole();
 #endif
@@ -513,176 +522,6 @@ extern "C"
 	}
 }
 
-class SyncClient
-{
-	DISABLE_COPY_MOVE(SyncClient)
-private:
-	SOCKET clientSocket = INVALID_SOCKET;
-	DWORD lastError_ = 0;
-
-public:
-	SyncClient()
-	{
-		WSADATA data;
-		if (WSAStartup(MAKEWORD(2, 2), &data) != 0)
-		{
-#ifdef _DEBUG
-			std::cout << "WSAStartup failed with error: " << WSAGetLastError() << std::endl;
-#endif
-			return;
-		}
-	}
-
-	virtual ~SyncClient()
-	{
-		SyncClient& instance = getInstance();
-
-		closesocket(instance.clientSocket);
-		WSACleanup();
-
-	}
-
-	bool Connect(const std::string& serverIP, unsigned short serverPort)
-	{
-		GameService& g_GameService = GameService::getInstance();
-		SyncClient& instance = getInstance();
-		instance.clientSocket = ::socket(AF_INET6, SOCK_STREAM, 0);//g_GameService.psocket(AF_INET6, SOCK_STREAM, 0);
-		if (instance.clientSocket == INVALID_SOCKET)
-		{
-#ifdef _DEBUG
-			std::cout << "socket failed with error: " << WSAGetLastError() << std::endl;
-#endif
-			WSACleanup();
-			return false;
-		}
-
-		int bufferSize = 8191;
-		int minBufferSize = 1;
-		setsockopt(instance.clientSocket, SOL_SOCKET, SO_RCVBUF, (char*)&bufferSize, sizeof(bufferSize));
-		setsockopt(instance.clientSocket, SOL_SOCKET, SO_SNDBUF, (char*)&bufferSize, sizeof(bufferSize));
-		setsockopt(instance.clientSocket, SOL_SOCKET, SO_RCVLOWAT, (char*)&minBufferSize, sizeof(minBufferSize));
-		setsockopt(instance.clientSocket, SOL_SOCKET, SO_SNDLOWAT, (char*)&minBufferSize, sizeof(minBufferSize));
-		//DWORD timeout = 5000; // 超時時間為 5000 毫秒
-		//setsockopt(clientSocket, SOL_SOCKET, SO_SNDTIMEO, (char*)&timeout, sizeof(timeout));
-		//setsockopt(clientSocket, SOL_SOCKET, SO_RCVTIMEO, (char*)&timeout, sizeof(timeout));
-
-		LINGER lingerOption = { 0, 0 };
-		lingerOption.l_onoff = 0;        // 立即中止
-		lingerOption.l_linger = 0;      // 延遲時間不適用
-		setsockopt(instance.clientSocket, SOL_SOCKET, SO_LINGER, (char*)&lingerOption, sizeof(lingerOption));
-		int keepAliveOption = 1;  // 開啟保持活動機制
-		setsockopt(instance.clientSocket, SOL_SOCKET, TCP_KEEPALIVE, (char*)&keepAliveOption, sizeof(keepAliveOption));
-
-		sockaddr_in6 serverAddr{};
-		serverAddr.sin6_family = AF_INET6;
-		serverAddr.sin6_port = htons(serverPort);
-
-		if (inet_pton(AF_INET6, serverIP.c_str(), &(serverAddr.sin6_addr)) <= 0)
-		{
-#ifdef _DEBUG
-			std::cout << "inet_pton failed. Error Code : " << WSAGetLastError() << std::endl;
-#endif
-			closesocket(instance.clientSocket);
-			return false;
-		}
-
-		if (connect(instance.clientSocket, reinterpret_cast<sockaddr*>(&serverAddr), sizeof(serverAddr)) != 0)
-		{
-#ifdef _DEBUG
-			std::cout << "connect failed. Error Code : " << WSAGetLastError() << std::endl;
-#endif
-			closesocket(instance.clientSocket);
-			return false;
-		}
-#ifdef _DEBUG
-		std::cout << "connect success. " << g_ParenthWnd << " " << SendMessageW(g_ParenthWnd, util::kConnectionOK, NULL, NULL) << std::endl;
-#else
-		SendMessageW(g_ParenthWnd, util::kConnectionOK, NULL, NULL);
-#endif
-
-		return true;
-	}
-
-	int Send(char* dataBuf, int dataLen)
-	{
-		SyncClient& instance = getInstance();
-		if (INVALID_SOCKET == instance.clientSocket)
-		{
-			return false;
-		}
-
-		if (!dataBuf)
-		{
-			return false;
-		}
-
-		if (dataLen <= 0)
-		{
-			return false;
-		}
-
-		GameService& g_GameService = GameService::getInstance();
-		//std::unique_ptr <char[]> buf(new char[dataLen]());
-		//memset(buf.get(), 0, dataLen);
-		//memcpy_s(buf.get(), dataLen, dataBuf, dataLen);
-
-		//int result = g_GameService.psend(instance.clientSocket, buf.get(), dataLen, 0);
-		int result = ::send(instance.clientSocket, dataBuf, dataLen, 0);//g_GameService.psend(instance.clientSocket, dataBuf, dataLen, 0);
-		if (result == SOCKET_ERROR)
-		{
-			lastError_ = WSAGetLastError();
-			return 0;
-		}
-		else if (result == 0)
-		{
-		}
-
-		return result;
-	}
-
-	int Receive(char* buf, size_t buflen)
-	{
-		SyncClient& instance = getInstance();
-		if (INVALID_SOCKET == instance.clientSocket)
-		{
-			return 0;
-		}
-
-		if (!buf)
-		{
-			return false;
-		}
-
-		if (buflen <= 0)
-		{
-			return false;
-		}
-
-		GameService& g_GameService = GameService::getInstance();
-		memset(buf, 0, buflen);
-		int len = g_GameService.precv(instance.clientSocket, buf, buflen, 0);
-		if (len == 0)
-		{
-		}
-		return len;
-	}
-
-	std::wstring getLastError()
-	{
-		if (lastError_ == 0)
-		{
-			return L"";
-		}
-
-		wchar_t* msg = nullptr;
-		FormatMessageW(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
-			nullptr, lastError_, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPWSTR)&msg, 0, nullptr);
-
-		std::wstring result(msg);
-		LocalFree(msg);
-		return result;
-	}
-};
 
 void GameService::initialize(unsigned short port)
 {
@@ -701,17 +540,20 @@ void GameService::initialize(unsigned short port)
 	}
 
 	g_sockfd = CONVERT_GAMEVAR<int*>(0x421B404);//套接字
-	//g_world_status = CONVERT_GAMEVAR<int*>(0x4230DD8);
-	//g_game_status = CONVERT_GAMEVAR<int*>(0x4230DF0);
-	//Autil::PersonalKey = CONVERT_GAMEVAR<char*>(0x4AC0898);//封包解密密鑰
 
+#ifdef AUTIL_H
+	g_world_status = CONVERT_GAMEVAR<int*>(0x4230DD8);
+	g_game_status = CONVERT_GAMEVAR<int*>(0x4230DF0);
+	Autil::PersonalKey = CONVERT_GAMEVAR<char*>(0x4AC0898);//封包解密密鑰
+#endif
+
+	//pBattleCommandReady = CONVERT_GAMEVAR<pfnBattleCommandReady>(0x6B9A0);//戰鬥面板生成call裡面的一個小function
 	pPlaySound = CONVERT_GAMEVAR<pfnPlaySound>(0x88190);//播放音效
 	pBattleProc = CONVERT_GAMEVAR<pfnBattleProc>(0x3940);//戰鬥循環
-	//pBattleCommandReady = CONVERT_GAMEVAR<pfnBattleCommandReady>(0x6B9A0);//戰鬥面板生成call裡面的一個小function
 	pTimeProc = CONVERT_GAMEVAR<pfnTimeProc>(0x1E6D0);//刷新時間循環
 	pLssproto_EN_recv = CONVERT_GAMEVAR<pfnLssproto_EN_recv>(0x64E10);//進戰鬥封包
 
-	//WINAPI
+	/*WINAPI*/
 	//psocket = CONVERT_GAMEVAR<pfnsocket>(0x91764);//::socket;
 	//psend = CONVERT_GAMEVAR<pfnsend>(0x9171C); //::send;
 	precv = CONVERT_GAMEVAR<pfnrecv>(0x91728);//這裡直接勾::recv會無效，遊戲通常會複寫另一個call dword ptr指向recv
@@ -720,7 +562,7 @@ void GameService::initialize(unsigned short port)
 
 	//pSleep = ::Sleep;//這裡只是試圖減少CPU使用率，不是必要的，效果甚微
 
-	//禁止遊戲內切AI
+	//禁止遊戲內切AI SE切AI會崩潰
 	DWORD paddr = CONVERT_GAMEVAR <DWORD>(0x1DF82);
 	util::MemoryMove(paddr, "\xB8\x00\x00\x00\x00", 5);//只要點pgup或pgdn就會切0
 	paddr = CONVERT_GAMEVAR <DWORD>(0x1DFE6);
@@ -734,16 +576,14 @@ void GameService::initialize(unsigned short port)
 	//paddr = CONVERT_GAMEVAR<DWORD>(0x79A0F);
 	////sa_8001.exe+79A0F - E8 DCFAFBFF           - call sa_8001.exe+394F0
 	//util::MemoryMove(paddr, "\x90\x90\x90\x90\x90", 5);
-	////動畫會不會動
+	////開頭那隻寵物會不會動
 	//paddr = CONVERT_GAMEVAR<DWORD>(0x79A14);
 	////sa_8001.exe+79A14 - E8 5777F8FF           - call sa_8001.exe+1170
 	//util::MemoryMove(paddr, "\x90\x90\x90\x90\x90", 5);
-	//動畫可不可見
+	//開頭那隻寵物可不可見
 	paddr = CONVERT_GAMEVAR<DWORD>(0x79A19);
 	//sa_8001.exe+79A19 - E8 224A0000           - call sa_8001.exe+7E440
 	util::MemoryMove(paddr, "\x90\x90\x90\x90\x90", 5);
-
-
 
 	//開始下勾子
 	DetourRestoreAfterWith();
@@ -763,11 +603,17 @@ void GameService::initialize(unsigned short port)
 	//DetourAttach(&(PVOID&)pBattleCommandReady, ::New_BattleCommandReady);
 
 	DetourTransactionCommit();
-
-	//初始化封包解密緩存
-	//Autil::util_Init();
-	//clearNetBuffer();
-
+#ifdef USE_ASYNC_TCP
+	if (nullptr == asyncClient_)
+	{
+		//與外掛連線
+		asyncClient_.reset(new AsyncClient());
+		if (asyncClient_ != nullptr && asyncClient_->Connect(IPV6_DEFAULT, port))
+		{
+			asyncClient_->Start();
+		}
+	}
+#else
 	if (nullptr == syncClient_)
 	{
 		//與外掛連線
@@ -786,9 +632,10 @@ void GameService::initialize(unsigned short port)
 			//#endif
 		}
 	}
+#endif
 }
 
-//這裡的東西其實沒有太大必要，一般外掛斷開就直接關遊戲了
+//這裡的東西其實沒有太大必要，一般外掛斷開就直接關遊戲了，如果需要設計能重連才需要
 void GameService::uninitialize()
 {
 	if (!isInitialized_.load(std::memory_order_acquire))
@@ -796,8 +643,13 @@ void GameService::uninitialize()
 
 	isInitialized_.store(false, std::memory_order_release);
 
+#ifdef USE_ASYNC_TCP
+	if (asyncClient_)
+		asyncClient_.reset();
+#else
 	if (syncClient_)
 		syncClient_.reset();
+#endif
 
 	DetourRestoreAfterWith();
 	DetourTransactionBegin();
@@ -817,6 +669,7 @@ void GameService::uninitialize()
 	DetourTransactionCommit();
 }
 
+#ifdef AUTIL_H
 //解密跟分析封包流程一般都在外掛端處理，這裡只是為了要在快戰打開時攔截轉場封包，但其實直接攔截EN函數也是一樣的
 int SaDispatchMessage(int fd, char* encoded)
 {
@@ -852,6 +705,7 @@ int SaDispatchMessage(int fd, char* encoded)
 	Autil::SliceCount = 0;
 	return 1;
 }
+#endif
 
 //hooks
 //SOCKET WSAAPI GameService::New_socket(int af, int type, int protocol)
@@ -866,85 +720,97 @@ int SaDispatchMessage(int fd, char* encoded)
 //	return ret;
 //}
 
-//recv
+//hook recv將封包全部轉發給外掛，本來準備完全由外掛處理好再發回來，但效果不盡人意
 int WSAAPI GameService::New_recv(SOCKET s, char* buf, int len, int flags)
 {
-	//using namespace Autil;
-
+#ifdef AUTIL_H
+	using namespace Autil;
 	//將客戶端緩存內容原封不動複製到新的堆 (其實沒什麼必要)
-	//std::unique_ptr <char[]> raw(new char[len + 1]());
-	//memcpy_s(raw.get(), len, buf, len);
-	//raw.get()[len] = '\0';
+	std::unique_ptr <char[]> raw(new char[len + 1]());
+	memcpy_s(raw.get(), len, buf, len);
+	raw.get()[len] = '\0';
 
 	//正常收包
-	//clearNetBuffer();
-	//int recvlen = precv(s, rpc_linebuffer, sizeof(rpc_linebuffer), flags);//LINEBUFSIZ
+	clearNetBuffer();
+	int recvlen = precv(s, rpc_linebuffer, sizeof(rpc_linebuffer), flags);//LINEBUFSIZ
+#else
 	int recvlen = precv(s, buf, len, flags);
+#endif
 	if (recvlen > 0)
 	{
 		try
 		{
+#ifdef AUTIL_H
 			//將收到的數據複製到緩存
-			//memcpy_s(raw.get(), len, rpc_linebuffer, recvlen);
+			memcpy_s(raw.get(), len, rpc_linebuffer, recvlen);
+#endif
 
+#ifdef USE_ASYNC_TCP
+			//轉發給外掛
+			if (asyncClient_)
+				asyncClient_->Send(buf, recvlen);
+#else
 			//轉發給外掛
 			if (syncClient_)
 				syncClient_->Send(buf, recvlen);//raw.get()
+#endif
 
-			//			//將封包內容壓入全局緩存
-			//			appendReadBuf(rpc_linebuffer, recvlen);
-			//
-			//			//解析封包，這裡主要是為了實現快速戰鬥，在必要的時候讓客戶端不會收到戰鬥進場封包
-			//			//前面已經攔截lssproto_EN_recv了所以這邊暫時沒有用處
-			//			while ((recvlen != SOCKET_ERROR) && (net_readbuflen > 0))
-			//			{
-			//				memset(rpc_linebuffer, 0, Autil::NETBUFSIZ);
-			//				if (!getLineFromReadBuf(rpc_linebuffer, Autil::NETBUFSIZ))
-			//				{
-			//					int ret = SaDispatchMessage(s, rpc_linebuffer);
-			//					if (ret < 0)
-			//					{
-			//#ifdef _DEBUG
-			//						std::cout << "************************* DONE *************************" << std::endl;
-			//#endif
-			//						//代表此段數據已到結尾
-			//						clearNetBuffer();
-			//						break;
-			//					}
-			//					else if (ret == 0)
-			//					{
-			//#ifdef _DEBUG
-			//						std::cout << "************************* CLEAN *************************" << std::endl;
-			//#endif
-			//						//錯誤的數據 或 需要清除緩存
-			//						clearNetBuffer();
-			//						break;
-			//					}
-			//					else if (ret == 2)
-			//					{
-			//						if (IS_ENCOUNT_BLOCK_FLAG)
-			//						{
-			//#ifdef _DEBUG
-			//							std::cout << "************************* Block *************************" << std::endl;
-			//#endif
-			//
-			//							//需要移除不傳給遊戲的數據
-			//							clearNetBuffer();
-			//							SetLastError(0);
-			//							return 1;
-			//						}
-			//					}
-			//				}
-			//				else
-			//				{
-			//#ifdef _DEBUG
-			//					std::cout << "************************* END *************************" << std::endl;
-			//#endif
-			//					//數據讀完了
-			//					util_Release();
-			//					break;
-			//				}
-			//			}
+#ifdef AUTIL_H
+			//將封包內容壓入全局緩存
+			appendReadBuf(rpc_linebuffer, recvlen);
+
+			//解析封包，這裡主要是為了實現快速戰鬥，在必要的時候讓客戶端不會收到戰鬥進場封包
+			//前面已經攔截lssproto_EN_recv了所以這邊暫時沒有用處
+			while ((recvlen != SOCKET_ERROR) && (net_readbuflen > 0))
+			{
+				memset(rpc_linebuffer, 0, Autil::NETBUFSIZ);
+				if (!getLineFromReadBuf(rpc_linebuffer, Autil::NETBUFSIZ))
+				{
+					int ret = SaDispatchMessage(s, rpc_linebuffer);
+					if (ret < 0)
+					{
+#ifdef _DEBUG
+						std::cout << "************************* DONE *************************" << std::endl;
+#endif
+						//代表此段數據已到結尾
+						clearNetBuffer();
+						break;
+					}
+					else if (ret == 0)
+					{
+#ifdef _DEBUG
+						std::cout << "************************* CLEAN *************************" << std::endl;
+#endif
+						//錯誤的數據 或 需要清除緩存
+						clearNetBuffer();
+						break;
+					}
+					else if (ret == 2)
+					{
+						if (IS_ENCOUNT_BLOCK_FLAG)
+						{
+#ifdef _DEBUG
+							std::cout << "************************* Block *************************" << std::endl;
+#endif
+
+							//需要移除不傳給遊戲的數據
+							clearNetBuffer();
+							SetLastError(0);
+							return 1;
+						}
+					}
+				}
+				else
+				{
+#ifdef _DEBUG
+					std::cout << "************************* END *************************" << std::endl;
+#endif
+					//數據讀完了
+					util_Release();
+					break;
+				}
+			}
+#endif
 		}
 		catch (...)
 		{
@@ -952,8 +818,10 @@ int WSAAPI GameService::New_recv(SOCKET s, char* buf, int len, int flags)
 		}
 	}
 
-	//將封包還給遊戲客戶端 (A_A)
-	//memcpy_s(buf, len, rpc_linebuffer, len);//
+#ifdef AUTIL_H
+	//將封包還給遊戲客戶端(A_A)
+	memcpy_s(buf, len, rpc_linebuffer, len);
+#endif
 
 	return recvlen;
 }
@@ -990,7 +858,7 @@ void GameService::New_BattleProc()
 	}
 }
 
-//每回合開始顯示戰鬥面板
+//每回合開始顯示戰鬥面板 (這裡只是切換面板時會順便調用到的函數)
 //void GameService::New_BattleCommandReady()
 //{
 //	pBattleCommandReady();
@@ -1038,7 +906,6 @@ void GameService::WM_SetOptimize(bool enable)
 	{
 		/*
 		sa_8001.exe+129E9 - EB 10                 - jmp sa_8001.exe+129FB
-		sa_8001.exe+129EB - A9 54006A00           - test eax,sa_8001.exe+2A0054 { (0) }
 		*/
 		util::MemoryMove(optimizeAddr, "\xEB\x10\x90\x90\x90\x90\x90", 7);
 	}

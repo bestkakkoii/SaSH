@@ -6,12 +6,15 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>343</width>
-    <height>434</height>
+    <width>233</width>
+    <height>202</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>ScriptForm</string>
+  </property>
+  <property name="styleSheet">
+   <string notr="true"/>
   </property>
   <layout class="QGridLayout" name="gridLayout">
    <property name="leftMargin">
@@ -65,13 +68,6 @@
             <number>1</number>
            </property>
            <item>
-            <widget class="QLabel" name="label_script_path">
-             <property name="text">
-              <string>script:</string>
-             </property>
-            </widget>
-           </item>
-           <item>
             <widget class="QLabel" name="label_path">
              <property name="text">
               <string/>
@@ -94,7 +90,7 @@
            <item>
             <widget class="QLabel" name="label_script_row">
              <property name="text">
-              <string>current row:</string>
+              <string>row:</string>
              </property>
              <property name="alignment">
               <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>

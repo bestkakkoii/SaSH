@@ -13,6 +13,9 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="來源檔案\tcp">
+      <UniqueIdentifier>{b118456f-77f1-41e7-853a-5072647e879b}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <None Include="cpp.hint" />
@@ -26,6 +29,12 @@
     </ClInclude>
     <ClInclude Include="autil.h">
       <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="syncclient.h">
+      <Filter>來源檔案\tcp</Filter>
+    </ClInclude>
+    <ClInclude Include="asyncclient.h">
+      <Filter>來源檔案\tcp</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

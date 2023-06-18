@@ -25,6 +25,8 @@ signals:
 	void saveHashSettings(const QString& name = "default", bool isFullPath = false);
 	void loadHashSettings(const QString& name = "default", bool isFullPath = false);
 
+	void gameStarted();
+
 	//mainform
 	void updateMainFormTitle(const QString& text);
 	void updateCharHpProgressValue(int level, int value, int maxvalue);

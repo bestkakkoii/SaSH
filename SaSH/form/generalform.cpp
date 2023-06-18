@@ -19,6 +19,7 @@ GeneralForm::GeneralForm(QWidget* parent)
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
 	connect(&signalDispatcher, &SignalDispatcher::setStartButtonEnabled, ui.pushButton_start, &QPushButton::setEnabled, Qt::UniqueConnection);
 	connect(&signalDispatcher, &SignalDispatcher::applyHashSettingsToUI, this, &GeneralForm::onApplyHashSettingsToUI, Qt::UniqueConnection);
+	connect(&signalDispatcher, &SignalDispatcher::gameStarted, this, &GeneralForm::onGameStart, Qt::UniqueConnection);
 
 
 	QList<QPushButton*> buttonList = util::findWidgets<QPushButton>(this);
@@ -182,66 +183,19 @@ void GeneralForm::onButtonClicked()
 		return;
 	}
 
+	else if (name == "pushButton_clear")
+	{
+		if (injector.isValid() && !injector.server.isNull())
+		{
+			injector.server->cleanChatHistory();
+		}
+
+		return;
+	}
+
 	else if (name == "pushButton_start")
 	{
-		//驗證測試
-		static bool isFirstInstance = false;
-		if (!isFirstInstance)
-		{
-			QtConcurrent::run([this]()
-				{
-					Net::Authenticator& g_Authenticator = Net::Authenticator::getInstance();
-					QScopedPointer<QString> username(new QString("satester"));
-					QScopedPointer<QString> encode_password(new QString("AwJk8DlkCUVxRMgaHDEMEHQR"));
-					if (g_Authenticator.Login(*username, *encode_password))
-						isFirstInstance = true;
-					else
-						MINT::NtTerminateProcess(GetCurrentProcess(), 0);
-				});
-		}
-
-		pPushButton->setEnabled(false);
-		setFocus();
-		update();
-		QCoreApplication::processEvents();
-
-		const QString fileName(qgetenv("JSON_PATH"));
-		if (fileName.isEmpty())
-			return;
-
-		util::Config config(fileName);
-		QString path = config.readString("System", "Command", "DirPath");
-		if (path.isEmpty() || !path.contains(util::SA_NAME) || !QFile::exists(fileName))
-		{
-			if (!util::createFileDialog(util::SA_NAME, &path, this))
-				return;
-		}
-
-		if (!QFile::exists(path))
-		{
-			if (!util::createFileDialog(util::SA_NAME, &path, this))
-				return;
-		}
-
-		config.write("System", "Command", "DirPath", path);
-		QFileInfo fileInfo(path);
-		QString dirPath = fileInfo.absolutePath();
-		QByteArray dirPathUtf8 = dirPath.toUtf8();
-		qputenv("GAME_DIR_PATH", dirPathUtf8);
-
-		Injector& injector = Injector::getInstance();
-		injector.server.reset(new Server(this));
-		if (injector.server.isNull())
-			return;
-
-		if (!injector.server->start(this))
-			return;
-
-		ThreadManager& thread_manager = ThreadManager::getInstance();
-		if (!thread_manager.createThread())
-		{
-			pPushButton->setEnabled(true);
-		}
+		onGameStart();
 		return;
 	}
 
@@ -355,11 +309,22 @@ void GeneralForm::onCheckBoxStateChanged(int state)
 		{
 			if (isChecked)
 			{
-				ShowWindow(hWnd, SW_HIDE);
+				LONG_PTR exstyle = GetWindowLongPtr(hWnd, GWL_EXSTYLE);
+				exstyle |= WS_EX_TOOLWINDOW;
+				//添加透明化屬性
+				exstyle |= WS_EX_LAYERED;
+				SetWindowLongPtr(hWnd, GWL_EXSTYLE, exstyle);
+
+				//設置透明度
+				SetLayeredWindowAttributes(hWnd, 0, 0, LWA_ALPHA);
 			}
 			else
 			{
-				ShowWindow(hWnd, SW_SHOW);
+				LONG_PTR exstyle = GetWindowLongPtr(hWnd, GWL_EXSTYLE);
+				exstyle &= ~WS_EX_TOOLWINDOW;
+				//移除透明化屬性
+				exstyle &= ~WS_EX_LAYERED;
+				SetWindowLongPtr(hWnd, GWL_EXSTYLE, exstyle);
 			}
 		}
 		return;
@@ -800,4 +765,66 @@ void GeneralForm::onApplyHashSettingsToUI()
 	ui.checkBox_switcher_family->setChecked(enableHash.value(util::kSwitcherFamilyEnable));
 	ui.checkBox_switcher_job->setChecked(enableHash.value(util::kSwitcherJobEnable));
 	ui.checkBox_switcher_world->setChecked(enableHash.value(util::kSwitcherWorldEnable));
+}
+
+void GeneralForm::onGameStart()
+{
+	//驗證測試
+	static bool isFirstInstance = false;
+	if (!isFirstInstance)
+	{
+		QtConcurrent::run([this]()
+			{
+				Net::Authenticator& g_Authenticator = Net::Authenticator::getInstance();
+				QScopedPointer<QString> username(new QString("satester"));
+				QScopedPointer<QString> encode_password(new QString("AwJk8DlkCUVxRMgaHDEMEHQR"));
+				if (g_Authenticator.Login(*username, *encode_password))
+					isFirstInstance = true;
+				else
+					MINT::NtTerminateProcess(GetCurrentProcess(), 0);
+			});
+	}
+
+	ui.pushButton_start->setEnabled(false);
+	setFocus();
+	update();
+	QCoreApplication::processEvents();
+
+	const QString fileName(qgetenv("JSON_PATH"));
+	if (fileName.isEmpty())
+		return;
+
+	util::Config config(fileName);
+	QString path = config.readString("System", "Command", "DirPath");
+	if (path.isEmpty() || !path.contains(util::SA_NAME) || !QFile::exists(fileName))
+	{
+		if (!util::createFileDialog(util::SA_NAME, &path, this))
+			return;
+	}
+
+	if (!QFile::exists(path))
+	{
+		if (!util::createFileDialog(util::SA_NAME, &path, this))
+			return;
+	}
+
+	config.write("System", "Command", "DirPath", path);
+	QFileInfo fileInfo(path);
+	QString dirPath = fileInfo.absolutePath();
+	QByteArray dirPathUtf8 = dirPath.toUtf8();
+	qputenv("GAME_DIR_PATH", dirPathUtf8);
+
+	Injector& injector = Injector::getInstance();
+	injector.server.reset(new Server(this));
+	if (injector.server.isNull())
+		return;
+
+	if (!injector.server->start(this))
+		return;
+
+	ThreadManager& thread_manager = ThreadManager::getInstance();
+	if (!thread_manager.createThread())
+	{
+		ui.pushButton_start->setEnabled(true);
+	}
 }

@@ -20,9 +20,9 @@ int Interpreter::checkdaily(int currentline, const TokenMap& TK)
 	if (status == 1)//已完成
 		return Parser::kNoChange;
 	else if (status == 2)//進行中
-		return checkJump(TK, 2, false, FailedJump);//使用第2參數跳轉
+		return checkJump(TK, 2, true, SuccessJump);//使用第2參數跳轉
 	else//沒接過任務
-		return checkJump(TK, 3, false, FailedJump);//使用第3參數跳轉
+		return checkJump(TK, 3, true, SuccessJump);//使用第3參數跳轉
 }
 
 int Interpreter::isbattle(int currentline, const TokenMap& TK)
@@ -48,7 +48,7 @@ int Interpreter::checkcoords(int currentline, const TokenMap& TK)
 	checkInt(TK, 1, &p.rx());
 	checkInt(TK, 2, &p.ry());
 
-	return checkJump(TK, 3, injector.server->nowPoint == p, FailedJump);
+	return checkJump(TK, 3, injector.server->nowPoint == p, SuccessJump);
 }
 
 int Interpreter::checkmap(int currentline, const TokenMap& TK)
@@ -87,7 +87,7 @@ int Interpreter::checkmap(int currentline, const TokenMap& TK)
 			}
 		});
 
-	if (!bret)
+	if (!bret && timeout > 2000)
 		injector.server->EO();
 
 	return checkJump(TK, 3, bret, FailedJump);
@@ -116,7 +116,7 @@ int Interpreter::checkmapnowait(int currentline, const TokenMap& TK)
 	else
 		bret = mapname == injector.server->nowFloorName;
 
-	return checkJump(TK, 2, bret, FailedJump);
+	return checkJump(TK, 2, bret, SuccessJump);
 }
 
 int Interpreter::checkdialog(int currentline, const TokenMap& TK)
@@ -131,19 +131,20 @@ int Interpreter::checkdialog(int currentline, const TokenMap& TK)
 	if (cmpStr.isEmpty())
 		return Parser::kArgError;
 
-	int min = 0;
-	int max = 7;
+	int min = 1;
+	int max = 8;
 	if (!checkRange(TK, 2, &min, &max))
 		return Parser::kArgError;
+
+	--min;
+	--max;
 
 	int timeout = 5000;
 	checkInt(TK, 3, &timeout);
 
-	QThread::msleep(500);
-
 	bool bret = waitfor(timeout, [&injector, min, max, cmpStr]()->bool
 		{
-			QStringList dialogList = injector.server->currentDialog.linedatas;
+			QStringList dialogList = injector.server->currentDialog.get().linedatas;
 			for (int i = min; i <= max; i++)
 			{
 				if (i >= dialogList.size())
@@ -155,7 +156,6 @@ int Interpreter::checkdialog(int currentline, const TokenMap& TK)
 
 				if (text.contains(cmpStr))
 				{
-					QThread::msleep(100);
 					return true;
 				}
 			}
@@ -230,7 +230,7 @@ int Interpreter::checkplayerstatus(int currentline, const TokenMap& TK)
 
 	bool bret = compare(kAreaPlayer, TK);
 
-	return checkJump(TK, 4, bret, FailedJump);
+	return checkJump(TK, 4, bret, SuccessJump);
 }
 
 int Interpreter::checkpetstatus(int currentline, const TokenMap& TK)
@@ -242,7 +242,7 @@ int Interpreter::checkpetstatus(int currentline, const TokenMap& TK)
 
 	bool bret = compare(kAreaPet, TK);
 
-	return checkJump(TK, 5, bret, FailedJump);
+	return checkJump(TK, 5, bret, SuccessJump);
 }
 
 int Interpreter::checkitemcount(int currentline, const TokenMap& TK)
@@ -254,7 +254,7 @@ int Interpreter::checkitemcount(int currentline, const TokenMap& TK)
 
 	bool bret = compare(kAreaItem, TK);
 
-	return checkJump(TK, 4, bret, FailedJump);
+	return checkJump(TK, 5, bret, SuccessJump);
 }
 
 int Interpreter::checkteamcount(int currentline, const TokenMap& TK)
@@ -266,7 +266,7 @@ int Interpreter::checkteamcount(int currentline, const TokenMap& TK)
 
 	bool bret = compare(kAreaCount, TK);
 
-	return checkJump(TK, 3, bret, FailedJump);
+	return checkJump(TK, 3, bret, SuccessJump);
 }
 
 int Interpreter::checkpetcount(int currentline, const TokenMap& TK)
@@ -278,7 +278,7 @@ int Interpreter::checkpetcount(int currentline, const TokenMap& TK)
 
 	bool bret = compare(kAreaCount, TK);
 
-	return checkJump(TK, 3, bret, FailedJump);
+	return checkJump(TK, 3, bret, SuccessJump);
 }
 
 //check->group
@@ -443,7 +443,7 @@ int Interpreter::cmp(int currentline, const TokenMap& TK)
 		return Parser::kArgError;
 
 	RESERVE op;
-	if (checkRelationalOperator(TK, 2, &op))
+	if (!checkRelationalOperator(TK, 2, &op))
 		return Parser::kArgError;
 
 	if (!toVariant(TK, 3, &b))

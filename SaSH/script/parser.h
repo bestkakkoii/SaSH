@@ -60,6 +60,12 @@ public:
 		kArgError,
 	};
 
+	enum Mode
+	{
+		kSync,
+		kAsync,
+	};
+
 public:
 	inline ParserError lastError() const { return lastError_; }
 
@@ -76,6 +82,8 @@ public:
 	inline void setCallBack(const ParserCallBack& callBack) { callBack_ = callBack; }
 
 	inline void setCurrentLine(int line) { lineNumber_ = line; }
+
+	inline void setMode(Mode mode) { mode_ = mode; }
 
 	inline void registerFunction(const QString& commandName, const CommandRegistry& function)
 	{
@@ -101,8 +109,9 @@ public:
 		}
 	}
 
-	void jump(int line);
-	bool jump(const QString& name);
+	void jump(int line, bool noStack = false);
+	void jumpto(int line, bool noStack = false);
+	bool jump(const QString& name, bool noStack = false);
 public:
 	//解析腳本
 	void parse(int line = 0);
@@ -120,12 +129,17 @@ private:
 	void processTokens();
 	int processCommand();
 	void processVariable(RESERVE type);
+	void processMultiVariable();
 	void processFormation();
+	void processRandom();
 	bool processCall();
+	bool processGoto();
 	bool processJump();
 	void processReturn();
+	void processBack();
 	void processLabel();
 	void processEnd();
+	bool processGetSystemVarValue(const QString& varName, QString& valueStr, QVariant& varValue);
 
 	void handleError(int err);
 	void checkArgs();
@@ -182,5 +196,7 @@ private:
 	ParserError lastError_ = kNoError; //最後一次錯誤
 
 	ParserCallBack callBack_ = nullptr; //解析腳本回調函數
+
+	Mode mode_ = kSync; //解析模式
 
 };

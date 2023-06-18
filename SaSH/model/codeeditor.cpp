@@ -171,7 +171,8 @@ CodeEditor::CodeEditor(QWidget* parent)
 
 #pragma region style
 	setStyleSheet(
-		R"(QScrollBar:vertical {
+		R"(
+		QScrollBar:vertical {
 		background: rgb(46,46,46);
 		max-width: 18px;}
 
@@ -198,13 +199,28 @@ CodeEditor::CodeEditor(QWidget* parent)
 		background: rgb(71,71,71);}
 
 		QScrollBar::handle:hover:horizontal,
-		QScrollBar::handle:pressed:horizontal {
-		background: rgb(153,153,153);}
+		QScrollBar::handle:pressed:horizontal { background: rgb(153,153,153);}
 
 		QScrollBar::sub-page:horizontal {background: 444444;}
 		QScrollBar::add-page:horizontal {background: 5B5B5B;}
 		QScrollBar::add-line:horizontal {background: none;}
-		QScrollBar::sub-line:horizontal {background: none;})"
+		QScrollBar::sub-line:horizontal {background: none;}
+
+		QListWidget{
+		color: rgb(0, 0, 0);
+		background-color: rgb(250, 250, 250);
+		}
+
+        QListWidget::item{
+		color: rgb(0, 0, 0);
+		background-color: rgb(250, 250, 250);
+		}
+
+		QListWidget::item:selected{ 
+		color: rgb(0, 0, 0);
+		background-color: rgb(0, 120, 215);
+		}
+	)"
 	);
 #pragma endregion
 }

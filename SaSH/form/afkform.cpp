@@ -11,7 +11,7 @@ AfkForm::AfkForm(QWidget* parent)
 	: QWidget(parent)
 {
 	ui.setupUi(this);
-	util::setTab(ui.tabWidget_afk);
+	//util::setTab(ui.tabWidget_afk);
 
 	connect(this, &AfkForm::resetControlTextLanguage, this, &AfkForm::onResetControlTextLanguage, Qt::UniqueConnection);
 
@@ -58,11 +58,23 @@ AfkForm::AfkForm(QWidget* parent)
 	}
 	onResetControlTextLanguage();
 
+	util::FormSettingManager formSettingManager(this);
+	formSettingManager.loadSettings();
+
 	emit signalDispatcher.applyHashSettingsToUI();
 }
 
 AfkForm::~AfkForm()
 {
+
+}
+
+void AfkForm::closeEvent(QCloseEvent* event)
+{
+	util::FormSettingManager formSettingManager(this);
+	formSettingManager.saveSettings();
+
+	QWidget::closeEvent(event);
 }
 
 void AfkForm::onButtonClicked()

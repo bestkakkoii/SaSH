@@ -62,7 +62,10 @@ void fontInitialize(QApplication& a)
 
 int main(int argc, char* argv[])
 {
-	QApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
+	QApplication::setAttribute(Qt::AA_EnableHighDpiScaling, false); // DPI support
+	QApplication::setAttribute(Qt::AA_Use96Dpi, true);// DPI support
+	QGuiApplication::setAttribute(Qt::AA_DisableHighDpiScaling);
+	//QApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
 	QApplication::setAttribute(Qt::AA_UseHighDpiPixmaps);
 	QApplication::setAttribute(Qt::AA_ShareOpenGLContexts);
 	QApplication::setAttribute(Qt::AA_UseDesktopOpenGL);

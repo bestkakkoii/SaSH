@@ -15,6 +15,8 @@ public:
 	ScriptForm(QWidget* parent = nullptr);
 	~ScriptForm();
 
+	void loadFile(const QString& fileName);
+
 private slots:
 	void onButtonClicked();
 
@@ -30,8 +32,8 @@ private slots:
 
 	void onScriptPaused();
 	void onScriptFinished();
+	void onStartScript();
 
-	void loadFile(const QString& fileName);
 private:
 	void setTableWidgetItem(int row, int col, const QString& text);
 	void resizeTableWidgetRow(int max);

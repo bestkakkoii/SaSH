@@ -84,7 +84,7 @@ ScriptForm::ScriptForm(QWidget* parent)
 	connect(&signalDispatcher, &SignalDispatcher::scriptContentChanged, this, &ScriptForm::onScriptContentChanged, Qt::QueuedConnection);
 	connect(&signalDispatcher, &SignalDispatcher::loadFileToTable, this, &ScriptForm::loadFile, Qt::QueuedConnection);
 	connect(&signalDispatcher, &SignalDispatcher::reloadScriptList, this, &ScriptForm::onReloadScriptList, Qt::QueuedConnection);
-	connect(&signalDispatcher, &SignalDispatcher::scriptStarted, ui.pushButton_script_start, &QPushButton::click, Qt::QueuedConnection);
+	connect(&signalDispatcher, &SignalDispatcher::scriptStarted, this, &ScriptForm::onStartScript, Qt::QueuedConnection);
 	connect(&signalDispatcher, &SignalDispatcher::scriptStoped, ui.pushButton_script_stop, &QPushButton::click, Qt::QueuedConnection);
 	connect(&signalDispatcher, &SignalDispatcher::scriptPaused2, ui.pushButton_script_pause, &QPushButton::click, Qt::QueuedConnection);
 	emit signalDispatcher.reloadScriptList();
@@ -131,31 +131,7 @@ void ScriptForm::onButtonClicked()
 
 	if (name == "pushButton_script_start")
 	{
-		if (currentFileName_.isEmpty())
-			return;
-
-		if (!interpreter_.isNull())
-		{
-			interpreter_->requestInterruption();
-		}
-
-		if (interpreter_->isRunning())
-		{
-			return;
-		}
-
-		if (!injector.scriptLogModel.isNull())
-			injector.scriptLogModel->clear();
-
-		interpreter_.reset(new Interpreter());
-
-		connect(interpreter_.data(), &Interpreter::finished, this, &ScriptForm::onScriptFinished);
-
-		interpreter_->doFileWithThread(selectedRow_, currentFileName_);
-
-		ui.pushButton_script_start->setEnabled(false);
-		ui.pushButton_script_pause->setEnabled(true);
-		ui.pushButton_script_stop->setEnabled(true);
+		onStartScript();
 	}
 	else if (name == "pushButton_script_pause")
 	{
@@ -264,6 +240,36 @@ void ScriptForm::loadFile(const QString& fileName)
 	}
 	currentFileName_ = fileName;
 	interpreter_->preview(fileName);
+}
+
+void ScriptForm::onStartScript()
+{
+	if (currentFileName_.isEmpty())
+		return;
+
+	if (!interpreter_.isNull())
+	{
+		interpreter_->requestInterruption();
+	}
+
+	if (interpreter_->isRunning())
+	{
+		return;
+	}
+
+	Injector& injector = Injector::getInstance();
+	if (!injector.scriptLogModel.isNull())
+		injector.scriptLogModel->clear();
+
+	interpreter_.reset(new Interpreter());
+
+	connect(interpreter_.data(), &Interpreter::finished, this, &ScriptForm::onScriptFinished);
+
+	interpreter_->doFileWithThread(selectedRow_, currentFileName_);
+
+	ui.pushButton_script_start->setEnabled(false);
+	ui.pushButton_script_pause->setEnabled(true);
+	ui.pushButton_script_stop->setEnabled(true);
 }
 
 void ScriptForm::onScriptContentChanged(const QString& fileName, const QVariant& vtokens)

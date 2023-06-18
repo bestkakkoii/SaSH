@@ -260,9 +260,14 @@ private:
 		{ util::kLockPetValue, 0 },
 		{ util::kLockRideValue, 0 },
 
+
+		//script
+		{util::kScriptSpeedValue, 0},
+
 		{ util::kSettingMaxValue, util::kSettingMaxValue },
 		{ util::kSettingMinString, util::kSettingMinString },
-		{ util::kSettingMaxString, util::kSettingMaxString }
+		{ util::kSettingMaxString, util::kSettingMaxString },
+
 	};
 
 	util::SafeHash<util::UserSetting, bool> userSetting_enable_hash_ = {

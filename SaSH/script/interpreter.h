@@ -16,7 +16,18 @@ typedef struct break_marker_s
 class Interpreter : public QObject
 {
 	Q_OBJECT
-public:
+private:
+	enum RunFileMode
+	{
+		kSync,
+		kAsync,
+	};
+
+	enum VarShareMode
+	{
+		kNotShare,
+		kShare,
+	};
 
 public:
 	Interpreter(QObject* parent = nullptr);
@@ -28,11 +39,11 @@ public:
 
 	void preview(const QString& fileName);
 
-	void doString(const QString& script);
+	void doString(const QString& script, Interpreter* parent = nullptr);
 
 	void doFileWithThread(int beginLine, const QString& fileName);
 
-	bool doFile(int beginLine, const QString& fileName, Interpreter* parent, bool isVarShared);
+	bool doFile(int beginLine, const QString& fileName, Interpreter* parent, VarShareMode shareMode, RunFileMode noShow = kSync);
 
 	void stop();
 
@@ -55,7 +66,7 @@ public slots:
 
 	void proc();
 private:
-	bool readFile(const QString& fileName, QString* pcontent);
+	bool readFile(const QString& fileName, QString* pcontent, bool* isPrivate);
 	bool loadString(const QString& script, QHash<int, TokenMap>* ptokens, QHash<QString, int>* plabel);
 private:
 	enum JumpBehavior
@@ -186,6 +197,11 @@ private:
 
 		{ u8"组队人数", kTeamCount },
 		{ u8"宠物数量", kPetCount },
+
+		{ u8"ifitem", itemCount },
+
+		{ u8"ifteam", kTeamCount },
+		{ u8"ifpet", kPetCount },
 	};
 
 	template<typename Func>
@@ -236,6 +252,7 @@ private: //註冊給Parser的函數
 	int savesetting(int currentline, const TokenMap& TK);
 	int loadsetting(int currentline, const TokenMap& TK);
 	int run(int currentline, const TokenMap& TK);
+	int dostring(int currentline, const TokenMap& TK);
 
 	//check
 	int checkdaily(int currentline, const TokenMap& TK);
@@ -285,10 +302,14 @@ private: //註冊給Parser的函數
 	int withdrawgold(int currentline, const TokenMap& TK);
 	int teleport(int currentline, const TokenMap& TK);
 	int addpoint(int currentline, const TokenMap& TK);
+	int learn(int currentline, const TokenMap& TK);
+	int trade(int currentline, const TokenMap& TK);
 
 	int recordequip(int currentline, const TokenMap& TK);
 	int wearequip(int currentline, const TokenMap& TK);
 	int unwearequip(int currentline, const TokenMap& TK);
+	int petequip(int currentline, const TokenMap& TK);
+	int petunequip(int currentline, const TokenMap& TK);
 
 	int depositpet(int currentline, const TokenMap& TK);
 	int deposititem(int currentline, const TokenMap& TK);
@@ -304,7 +325,8 @@ private: //註冊給Parser的函數
 	int leftdoubleclick(int currentline, const TokenMap& TK);
 	int mousedragto(int currentline, const TokenMap& TK);
 
-
+	//hide
+	int ocr(int currentline, const TokenMap& TK);
 private:
 	int beginLine_ = 0;
 
@@ -318,8 +340,13 @@ private:
 
 	std::atomic_bool isRunning_ = false;
 
+	QString scriptFileName_;
+
 	//是否暫停
 	std::atomic_bool isPaused_ = false;
 	mutable QWaitCondition waitCondition_;
 	mutable QMutex mutex_;
+	QList<QSharedPointer<Interpreter>> subInterpreterList_;
+	QFutureSynchronizer<bool> futureSync_;
+	ParserCallBack pCallback = nullptr;
 };
