@@ -89,8 +89,6 @@ bool ChatInfoForm::eventFilter(QObject* watched, QEvent* e)
 		if (keyEvent->key() == Qt::Key_Delete)
 		{
 			Injector& injector = Injector::getInstance();
-			if (!injector.chatLogModel.isNull())
-				injector.chatLogModel->clear();
 			if (!injector.server.isNull())
 				injector.server->cleanChatHistory();
 			return true;

@@ -556,6 +556,7 @@ int Interpreter::set(int currentline, const TokenMap& TK)
 		{ u8"自动丢肉", util::kAutoDropMeatEnable },
 		{ u8"自动丢弃", util::kAutoDropEnable },
 		{ u8"自动叠加", util::kAutoStackEnable },
+		{ u8"自动迭加", util::kAutoStackEnable },
 		{ u8"自动KNPC", util::kKNPCEnable },
 		{ u8"自动猜谜", util::kAutoAnswerEnable },
 		{ u8"自动吃豆", util::kAutoEatBeanEnable },

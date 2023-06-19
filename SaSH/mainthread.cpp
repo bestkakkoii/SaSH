@@ -1061,8 +1061,19 @@ void MainObject::checkAutoJoin()
 					if (floor != injector.server->nowFloor)
 						return;
 
+					QString freeName = "";
+					if (leader.count("|") == 1)
+					{
+						QStringList list = leader.split(util::rexOR);
+						if (list.size() == 2)
+						{
+							leader = list.at(0);
+							freeName = list.at(1);
+						}
+					}
+
 					//查找目標人物所在坐標
-					if (!injector.server->findUnit(leader, util::OBJ_HUMAN, &unit))
+					if (!injector.server->findUnit(leader, util::OBJ_HUMAN, &unit, freeName))
 						return;
 
 					//如果和目標人物處於同一個坐標則向隨機方向移動一格

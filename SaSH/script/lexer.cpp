@@ -248,8 +248,8 @@ static const QHash<QString, RESERVE> keywords = {
 	{ u8"label", TK_LABEL, },
 	{ u8"function", TK_LABEL, },
 	{ u8"var", TK_VARDECL },
-	{ u8"vardelete", TK_VARFREE },
-	{ u8"varclear", TK_VARCLR },
+	{ u8"delete", TK_VARFREE },
+	{ u8"releaseall", TK_VARCLR },
 	{ u8"format", TK_FORMAT },
 	{ u8"rnd", TK_RND },
 
@@ -434,9 +434,20 @@ void Lexer::tokenized(int currentLine, const QString& line, TokenMap* ptoken, QH
 
 		for (;;)
 		{
+			raw = raw.trimmed();
 			//以","分界取TOKEN
-			if (!getStringToken(raw, ",", token))
+			if (raw.contains(","))
+			{
+				if (!getStringToken(raw, ",", token))
+					break;
+			}
+			else if (raw.isEmpty())
 				break;
+			else
+			{
+				token = raw;
+				raw.clear();
+			}
 
 			//忽略空白TOKEN
 			if (token.isEmpty())
@@ -463,9 +474,9 @@ void Lexer::tokenized(int currentLine, const QString& line, TokenMap* ptoken, QH
 			{
 				type = TK_INT;
 				//真為1，假為0, true為1，false為0
-				if (token == "true" || token == "真")
+				if (token.toLower() == "true" || token == "真")
 					data = QVariant::fromValue(1);
-				else if (token == "false" || token == "假")
+				else if (token.toLower() == "false" || token == "假")
 					data = QVariant::fromValue(0);
 			}
 			else if (type == TK_DOUBLE)//對雙精度浮點數進行轉換處理
@@ -481,6 +492,14 @@ void Lexer::tokenized(int currentLine, const QString& line, TokenMap* ptoken, QH
 			{
 				if ((token.startsWith("\"") || token.startsWith("\'")) && (token.endsWith("\"") || token.endsWith("\'")))
 					token = token.mid(1, token.length() - 2);
+				data = QVariant::fromValue(token);
+			}
+			else if (type == TK_LABELVAR)
+			{
+				if ((token.startsWith("\"") || token.startsWith("\'")) && (token.endsWith("\"") || token.endsWith("\'")))
+				{
+					token = token.mid(1, token.length() - 2);
+				}
 				data = QVariant::fromValue(token);
 			}
 			else if (type == TK_NAME)//保存標記名稱
@@ -792,8 +811,11 @@ bool Lexer::getStringToken(QString& src, const QString& delim, QString& out)
 			return false;
 
 		// Extract the quoted token
-		out = src.mid(0, closingQuoteIndex + closingQuote.size());
+		out = src.mid(0, closingQuoteIndex + closingQuote.size()).trimmed();
 		src.remove(0, closingQuoteIndex + closingQuote.size());
+		src = src.trimmed();
+		if (src.startsWith(delim))
+			src.remove(0, delim.size());
 	}
 	else if (src.startsWith("'"))
 	{
@@ -805,6 +827,9 @@ bool Lexer::getStringToken(QString& src, const QString& delim, QString& out)
 		// Extract the quoted token
 		out = src.mid(0, closingSingleQuoteIndex + 1);
 		src.remove(0, closingSingleQuoteIndex + 1);
+		src = src.trimmed();
+		if (src.startsWith(delim))
+			src.remove(0, delim.size());
 	}
 	else
 	{

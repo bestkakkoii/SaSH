@@ -201,7 +201,7 @@ void GeneralForm::onButtonClicked()
 
 	else if (name == "pushButton_joingroup")
 	{
-		injector.server->craft(util::kCraftFood, QStringList{ "?青椒","?包心" });
+		injector.server->windowPacket("SI|9|-1", 650, 3413);
 		return;
 	}
 

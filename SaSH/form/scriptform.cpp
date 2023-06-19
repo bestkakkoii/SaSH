@@ -131,7 +131,8 @@ void ScriptForm::onButtonClicked()
 
 	if (name == "pushButton_script_start")
 	{
-		onStartScript();
+		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
+		emit signalDispatcher.scriptStarted();
 	}
 	else if (name == "pushButton_script_pause")
 	{

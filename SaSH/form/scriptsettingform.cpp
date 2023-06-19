@@ -82,6 +82,7 @@ ScriptSettingForm::ScriptSettingForm(QWidget* parent)
 	connect(ui.actionStart, &QAction::triggered, this, &ScriptSettingForm::onActionTriggered);
 	connect(ui.actionPause, &QAction::triggered, this, &ScriptSettingForm::onActionTriggered);
 	connect(ui.actionStop, &QAction::triggered, this, &ScriptSettingForm::onActionTriggered);
+	connect(ui.actionContinue, &QAction::triggered, this, &ScriptSettingForm::onActionTriggered);
 	connect(ui.actionLogback, &QAction::triggered, this, &ScriptSettingForm::onActionTriggered);
 	connect(ui.actionSaveEncode, &QAction::triggered, this, &ScriptSettingForm::onActionTriggered);
 	connect(ui.actionSaveDecode, &QAction::triggered, this, &ScriptSettingForm::onActionTriggered);
@@ -97,13 +98,32 @@ ScriptSettingForm::ScriptSettingForm(QWidget* parent)
 	connect(&signalDispatcher, &SignalDispatcher::scriptLabelRowTextChanged2, this, &ScriptSettingForm::onScriptLabelRowTextChanged, Qt::QueuedConnection);
 	connect(&signalDispatcher, &SignalDispatcher::globalVarInfoImport, this, &ScriptSettingForm::onGlobalVarInfoImport, Qt::QueuedConnection);
 	connect(&signalDispatcher, &SignalDispatcher::localVarInfoImport, this, &ScriptSettingForm::onLocalVarInfoImport, Qt::QueuedConnection);
-	connect(&signalDispatcher, &SignalDispatcher::scriptFinished, this, &ScriptSettingForm::onFinished, Qt::QueuedConnection);
+	connect(&signalDispatcher, &SignalDispatcher::scriptFinished, this, &ScriptSettingForm::onScriptStopMode, Qt::QueuedConnection);
+	connect(&signalDispatcher, &SignalDispatcher::scriptStarted, this, &ScriptSettingForm::onScriptStartMode, Qt::QueuedConnection);
+	connect(&signalDispatcher, &SignalDispatcher::scriptPaused2, this, &ScriptSettingForm::onScriptPauseMode, Qt::QueuedConnection);
+	connect(&signalDispatcher, &SignalDispatcher::scriptPaused, this, &ScriptSettingForm::onScriptPauseMode, Qt::QueuedConnection);
+
 	Injector& injector = Injector::getInstance();
 	if (!injector.scriptLogModel.isNull())
 		ui.listView_log->setModel(injector.scriptLogModel.get());
 
+	createScriptListContextMenu();
+
+	emit signalDispatcher.reloadScriptList();
+
+	util::FormSettingManager formSettingManager(this);
+	formSettingManager.loadSettings();
+
+	onScriptStopMode();
+
+	//ui.webEngineView->setUrl(QUrl("https://gitee.com/Bestkakkoii/sash/wikis/pages"));
+}
+
+void ScriptSettingForm::createSpeedSpinBox()
+{
 	pSpeedSpinBox = new QSpinBox(this);
 	pSpeedSpinBox->setRange(0, 10000);
+	Injector& injector = Injector::getInstance();
 	int value = injector.getValueHash(util::kScriptSpeedValue);
 	pSpeedSpinBox->setValue(value);
 	pSpeedSpinBox->setStyleSheet(R"(
@@ -132,17 +152,8 @@ ScriptSettingForm::ScriptSettingForm(QWidget* parent)
 			Injector& injector = Injector::getInstance();
 			injector.setValueHash(util::kScriptSpeedValue, value);
 		});
+
 	ui.mainToolBar->addWidget(pSpeedSpinBox);
-
-
-
-
-	emit signalDispatcher.reloadScriptList();
-
-	util::FormSettingManager formSettingManager(this);
-	formSettingManager.loadSettings();
-
-	//ui.webEngineView->setUrl(QUrl("https://gitee.com/Bestkakkoii/sash/wikis/pages"));
 }
 
 ScriptSettingForm::~ScriptSettingForm()
@@ -205,9 +216,176 @@ void ScriptSettingForm::onApplyHashSettingsToUI()
 	pSpeedSpinBox->setValue(injector.getValueHash(util::kScriptSpeedValue));
 }
 
-void ScriptSettingForm::onFinished()
+void ScriptSettingForm::onScriptStartMode()
 {
-	ui.actionStart->setText(tr("start"));
+	ui.mainToolBar->clear();
+	ui.actionLogback->setEnabled(false);
+	ui.actionSave->setEnabled(false);
+	ui.actionNew->setEnabled(false);
+	ui.actionSaveAs->setEnabled(false);
+	ui.actionDirectory->setEnabled(true);
+	ui.mainToolBar->addAction(ui.actionLogback);
+	ui.mainToolBar->addAction(ui.actionSave);
+	ui.mainToolBar->addAction(ui.actionNew);
+	ui.mainToolBar->addAction(ui.actionSaveAs);
+	ui.mainToolBar->addAction(ui.actionDirectory);
+
+	ui.mainToolBar->addSeparator();
+
+	ui.actionStart->setEnabled(false);
+	ui.actionStop->setEnabled(true);
+	ui.actionPause->setEnabled(true);
+	ui.actionStop->setIcon(QIcon(":/image/icon_stop.png"));
+	ui.actionPause->setIcon(QIcon(":/image/icon_pause.png"));
+	ui.actionPause->setText(tr("pause"));
+
+	ui.mainToolBar->addAction(ui.actionStart);
+	ui.mainToolBar->addAction(ui.actionStop);
+	ui.mainToolBar->addAction(ui.actionPause);
+
+	ui.mainToolBar->addSeparator();
+
+	ui.actionStep->setEnabled(false);
+	ui.actionMark->setEnabled(true);
+
+	//ui.mainToolBar->addAction(ui.actionStep);
+	ui.mainToolBar->addAction(ui.actionMark);
+
+	createSpeedSpinBox();
+
+	//禁止編輯
+	ui.widget->setReadOnly(true);
+}
+
+void ScriptSettingForm::onScriptStopMode()
+{
+	ui.mainToolBar->clear();
+	ui.actionLogback->setEnabled(true);
+	ui.actionSave->setEnabled(true);
+	ui.actionNew->setEnabled(true);
+	ui.actionSaveAs->setEnabled(true);
+	ui.actionDirectory->setEnabled(true);
+	ui.mainToolBar->addAction(ui.actionLogback);
+	ui.mainToolBar->addAction(ui.actionSave);
+	ui.mainToolBar->addAction(ui.actionNew);
+	ui.mainToolBar->addAction(ui.actionSaveAs);
+	ui.mainToolBar->addAction(ui.actionDirectory);
+
+	ui.mainToolBar->addSeparator();
+
+	ui.actionStart->setEnabled(true);
+	ui.actionStop->setEnabled(false);
+	ui.actionPause->setEnabled(false);
+	ui.actionStop->setIcon(QIcon(":/image/icon_stop_diaable.png"));
+	ui.actionPause->setIcon(QIcon(":/image/icon_pause_diaable.png"));
+	ui.actionPause->setText(tr("pause"));
+
+	ui.mainToolBar->addAction(ui.actionStart);
+	//ui.mainToolBar->addAction(ui.actionStop);
+	//ui.mainToolBar->addAction(ui.actionPause);
+
+	ui.mainToolBar->addSeparator();
+
+	ui.actionStep->setEnabled(false);
+	ui.actionMark->setEnabled(true);
+
+	//ui.mainToolBar->addAction(ui.actionStep);
+	ui.mainToolBar->addAction(ui.actionMark);
+
+	ui.mainToolBar->addSeparator();
+
+	ui.actionSaveEncode->setEnabled(true);
+	ui.actionSaveDecode->setEnabled(true);
+
+	ui.mainToolBar->addAction(ui.actionSaveEncode);
+	ui.mainToolBar->addAction(ui.actionSaveDecode);
+
+	createSpeedSpinBox();
+
+	ui.widget->setReadOnly(false);
+}
+
+void ScriptSettingForm::onScriptBreakMode()
+{
+	ui.mainToolBar->clear();
+	ui.actionLogback->setEnabled(false);
+	ui.actionSave->setEnabled(false);
+	ui.actionNew->setEnabled(false);
+	ui.actionSaveAs->setEnabled(false);
+	ui.actionDirectory->setEnabled(true);
+	ui.mainToolBar->addAction(ui.actionLogback);
+	ui.mainToolBar->addAction(ui.actionSave);
+	ui.mainToolBar->addAction(ui.actionNew);
+	ui.mainToolBar->addAction(ui.actionSaveAs);
+	ui.mainToolBar->addAction(ui.actionDirectory);
+
+	ui.mainToolBar->addSeparator();
+
+	ui.actionStart->setEnabled(false);
+	ui.actionContinue->setEnabled(true);
+	ui.actionStop->setEnabled(true);
+	ui.actionPause->setEnabled(false);
+	ui.actionStop->setIcon(QIcon(":/image/icon_stop.png"));
+	ui.actionPause->setIcon(QIcon(":/image/icon_pause_disable.png"));
+
+	//ui.mainToolBar->addAction(ui.actionStart);
+	ui.mainToolBar->addAction(ui.actionContinue);
+	ui.mainToolBar->addAction(ui.actionStop);
+	ui.mainToolBar->addAction(ui.actionPause);
+
+	ui.mainToolBar->addSeparator();
+
+	ui.actionStep->setEnabled(true);
+	ui.actionMark->setEnabled(true);
+
+	ui.mainToolBar->addAction(ui.actionStep);
+	ui.mainToolBar->addAction(ui.actionMark);
+
+	createSpeedSpinBox();
+
+	//禁止編輯
+	ui.widget->setReadOnly(true);
+}
+
+void ScriptSettingForm::onScriptPauseMode()
+{
+	ui.mainToolBar->clear();
+	ui.actionLogback->setEnabled(false);
+	ui.actionSave->setEnabled(false);
+	ui.actionNew->setEnabled(false);
+	ui.actionSaveAs->setEnabled(false);
+	ui.actionDirectory->setEnabled(true);
+	ui.mainToolBar->addAction(ui.actionLogback);
+	ui.mainToolBar->addAction(ui.actionSave);
+	ui.mainToolBar->addAction(ui.actionNew);
+	ui.mainToolBar->addAction(ui.actionSaveAs);
+	ui.mainToolBar->addAction(ui.actionDirectory);
+
+	ui.mainToolBar->addSeparator();
+
+	ui.actionStart->setEnabled(false);
+	ui.actionContinue->setEnabled(true);
+	ui.actionStop->setEnabled(true);
+	ui.actionPause->setEnabled(false);
+	ui.actionStop->setIcon(QIcon(":/image/icon_stop.png"));
+	ui.actionPause->setIcon(QIcon(":/image/icon_pause_disable.png"));
+
+	//ui.mainToolBar->addAction(ui.actionStart);
+	ui.mainToolBar->addAction(ui.actionContinue);
+	ui.mainToolBar->addAction(ui.actionStop);
+	ui.mainToolBar->addAction(ui.actionPause);
+
+	ui.mainToolBar->addSeparator();
+
+	ui.actionStep->setEnabled(true);
+	ui.actionMark->setEnabled(true);
+
+	ui.mainToolBar->addAction(ui.actionStep);
+	ui.mainToolBar->addAction(ui.actionMark);
+
+	createSpeedSpinBox();
+	//禁止編輯
+	ui.widget->setReadOnly(true);
 }
 
 void ScriptSettingForm::setMark(CodeEditor::SymbolHandler element, util::SafeHash<QString, util::SafeHash<int, break_marker_t>>& hash, int liner, bool b)
@@ -266,7 +444,7 @@ void ScriptSettingForm::onAddStepMarker(int liner, bool b)
 		{
 			this->setMark(CodeEditor::SymbolHandler::SYM_STEP, step_markers, i, true);
 		}
-		ui.actionStart->setText(tr("continue"));
+		onScriptBreakMode();
 	}
 }
 
@@ -561,6 +739,8 @@ void ScriptSettingForm::onContinue()
 	forward_markers.clear();
 	error_markers.clear();
 	step_markers.clear();
+
+	onScriptStartMode();
 }
 
 void ScriptSettingForm::onScriptTreeWidgetDoubleClicked(QTreeWidgetItem* item, int column)
@@ -635,14 +815,10 @@ void ScriptSettingForm::onActionTriggered()
 	}
 	else if (name == "actionStart")
 	{
-		if (step_markers.size() == 0)
+		Injector& injector = Injector::getInstance();
+		if (step_markers.size() == 0 && !injector.IS_SCRIPT_FLAG && QFile::exists(currentFileName_))
 		{
 			emit signalDispatcher.scriptStarted();
-		}
-		else
-		{
-			onContinue();
-			ui.actionStart->setText(tr("start"));
 		}
 	}
 	else if (name == "actionPause")
@@ -652,6 +828,10 @@ void ScriptSettingForm::onActionTriggered()
 	else if (name == "actionStop")
 	{
 		emit signalDispatcher.scriptStoped();
+	}
+	else if (name == "actionContinue")
+	{
+		onContinue();
 	}
 	else if (name == "actionSaveAs")
 	{
@@ -1130,6 +1310,231 @@ void ScriptSettingForm::on_treeWidget_functionList_itemClicked(QTreeWidgetItem* 
 {
 
 }
+
+QString ScriptSettingForm::getFullPath(QTreeWidgetItem* item)
+{
+	QStringList filepath;
+	QTreeWidgetItem* itemfile = item; //獲取被點擊的item
+	while (itemfile != NULL)
+	{
+		filepath << itemfile->text(0); //獲取itemfile名稱
+		itemfile = itemfile->parent(); //將itemfile指向父item
+	}
+	QString strpath;
+	int count = (filepath.size() - 1);
+	for (int i = count; i >= 0; i--) //QStringlist類filepath反向存著初始item的路徑
+	{ //將filepath反向輸出，相應的加入’/‘
+		if (filepath.at(i).isEmpty())
+			continue;
+		strpath += filepath.at(i);
+		if (i != 0)
+			strpath += "/";
+	}
+
+	strpath = QApplication::applicationDirPath() + "/script/" + strpath;
+	strpath.replace("*", "");
+
+	QFileInfo info(strpath);
+	QString suffix = "." + info.suffix();
+	if (suffix.isEmpty())
+		strpath += util::SCRIPT_SUFFIX_DEFAULT;
+	if (suffix != util::SCRIPT_PRIVATE_SUFFIX_DEFAULT || suffix != util::SCRIPT_SUFFIX_DEFAULT)
+		strpath.replace(suffix, util::SCRIPT_SUFFIX_DEFAULT);
+
+	return strpath;
+};
+
+
+void ScriptSettingForm::on_treeWidget_scriptList_itemClicked(QTreeWidgetItem* item, int column)
+{
+	if (column != 0 || !item || item->childCount() > 0)
+		return;
+
+	QString str = item->text(0);
+	if (str.isEmpty())
+		return;
+
+	// 獲取項目的邊界框
+	QRect itemRect = ui.treeWidget_scriptList->visualItemRect(item);
+
+	// 獲取項目的文字區域邊界框
+	QFontMetrics fontMetrics(ui.treeWidget_scriptList->font());
+	QRect textRect = fontMetrics.boundingRect(itemRect, Qt::TextSingleLine, str);
+
+	// 將文字區域邊界框擴展一些，以提供一個較大的可點擊範圍
+	int padding = 20; // 可以根據需要調整
+	textRect.adjust(-padding, -padding, padding, padding);
+
+	// 檢查滑鼠位置是否在文字範圍內
+	QPoint pos = ui.treeWidget_scriptList->mapFromGlobal(QCursor::pos());
+	if (!textRect.contains(pos))
+		return;
+
+	ui.treeWidget_scriptList->setCurrentItem(item);
+
+
+	QString currentText = item->text(0);
+	if (currentText.isEmpty())
+		return;
+
+	QString currentPath = getFullPath(item);
+	if (!QFile::exists(currentPath))
+		return;
+
+	//設置為可編輯
+	item->setFlags(item->flags() | Qt::ItemIsEditable);
+	//ui.treeWidget_scriptList->openPersistentEditor(item, 0);
+	ui.treeWidget_scriptList->editItem(item, 0);
+
+	//註冊檢測如果用戶班級完畢則關閉編輯狀態
+	connect(ui.treeWidget_scriptList, &QTreeWidget::itemChanged, this, [this, currentPath, currentText](QTreeWidgetItem* newitem, int column)
+		{
+			if (column != 0 || !newitem)
+				return;
+
+			QString newtext = newitem->text(0);
+			if (newtext.isEmpty())
+			{
+				newitem->setText(0, currentText);
+				return;
+			}
+
+			if (newtext == currentText)
+				return;
+
+			QString str = getFullPath(newitem);
+			if (str.isEmpty())
+				return;
+
+			if (str == currentPath)
+				return;
+
+			QFile file(currentPath);
+			if (file.exists() && !QFile::exists(str))
+			{
+				file.rename(str);
+			}
+
+			if (!newtext.endsWith(util::SCRIPT_PRIVATE_SUFFIX_DEFAULT) && !newtext.endsWith(util::SCRIPT_SUFFIX_DEFAULT))
+			{
+				newtext += util::SCRIPT_SUFFIX_DEFAULT;
+				newitem->setText(0, newtext);
+			}
+		});
+
+}
+
+void ScriptSettingForm::createScriptListContextMenu()
+{
+	// Create the custom context menu
+	QMenu* menu = new QMenu(this);
+	QAction* openAcrion = menu->addAction(tr("open"));
+	QAction* deleteAction = menu->addAction(tr("delete"));
+	QAction* renameAction = menu->addAction(tr("rename"));
+
+	connect(openAcrion, &QAction::triggered, this, [this]()
+		{
+			//current item
+			QTreeWidgetItem* item = ui.treeWidget_scriptList->currentItem();
+			if (!item)
+				return;
+
+			onScriptTreeWidgetDoubleClicked(item, 0);
+		});
+
+	// Connect the menu actions to your slots/functions
+	connect(deleteAction, &QAction::triggered, this, [this]()
+		{
+			//current item
+			QTreeWidgetItem* item = ui.treeWidget_scriptList->currentItem();
+			if (!item)
+				return;
+
+			QString fullpath = getFullPath(item);
+			if (fullpath.isEmpty())
+				return;
+
+
+			QFile file(fullpath);
+			if (file.exists())
+			{
+				file.remove();
+			}
+		});
+
+	connect(renameAction, &QAction::triggered, this, [this]()
+		{
+			//current item
+			QTreeWidgetItem* item = ui.treeWidget_scriptList->currentItem();
+			if (!item)
+				return;
+
+			QString currentText = item->text(0);
+			if (currentText.isEmpty())
+				return;
+
+			QString currentPath = getFullPath(item);
+			if (!QFile::exists(currentPath))
+				return;
+
+			//設置為可編輯
+			item->setFlags(item->flags() | Qt::ItemIsEditable);
+			//ui.treeWidget_scriptList->openPersistentEditor(item, 0);
+			ui.treeWidget_scriptList->editItem(item, 0);
+
+			//註冊檢測如果用戶班級完畢則關閉編輯狀態
+			connect(ui.treeWidget_scriptList, &QTreeWidget::itemChanged, this, [this, currentPath, currentText](QTreeWidgetItem* newitem, int column)
+				{
+					if (column != 0 || !newitem)
+						return;
+
+					QString newtext = newitem->text(0);
+					if (newtext.isEmpty())
+					{
+						newitem->setText(0, currentText);
+						return;
+					}
+
+					if (newtext == currentText)
+						return;
+
+					QString str = getFullPath(newitem);
+					if (str.isEmpty())
+						return;
+
+					if (str == currentPath)
+						return;
+
+					QFile file(currentPath);
+					if (file.exists() && !QFile::exists(str))
+					{
+						file.rename(str);
+					}
+
+					if (!newtext.endsWith(util::SCRIPT_PRIVATE_SUFFIX_DEFAULT) && !newtext.endsWith(util::SCRIPT_SUFFIX_DEFAULT))
+					{
+						newtext += util::SCRIPT_SUFFIX_DEFAULT;
+						newitem->setText(0, newtext);
+					}
+				});
+		});
+
+	// Set the context menu policy for the QTreeWidget
+	ui.treeWidget_scriptList->setContextMenuPolicy(Qt::CustomContextMenu);
+
+	// Connect the customContextMenuRequested signal to a slot
+	connect(ui.treeWidget_scriptList, &QTreeWidget::customContextMenuRequested, this, [this, menu](const QPoint& pos)
+		{
+			QTreeWidgetItem* item = ui.treeWidget_scriptList->itemAt(pos);
+			if (item)
+			{
+				// Show the context menu at the requested position
+				menu->exec(ui.treeWidget_scriptList->mapToGlobal(pos));
+				onReloadScriptList();
+			}
+		});
+}
+
 
 void ScriptSettingForm::onEncryptSave()
 {

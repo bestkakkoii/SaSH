@@ -144,7 +144,8 @@ int Interpreter::checkdialog(int currentline, const TokenMap& TK)
 
 	bool bret = waitfor(timeout, [&injector, min, max, cmpStr]()->bool
 		{
-			QStringList dialogList = injector.server->currentDialog.get().linedatas;
+			dialog_t dialog = injector.server->currentDialog.get();
+			QStringList dialogList = dialog.linedatas;
 			for (int i = min; i <= max; i++)
 			{
 				if (i >= dialogList.size())
@@ -159,6 +160,9 @@ int Interpreter::checkdialog(int currentline, const TokenMap& TK)
 					return true;
 				}
 			}
+
+			if (min == 0 && max == 7)
+				return dialog.data.contains(cmpStr);
 
 			return false;
 		});
@@ -309,13 +313,13 @@ int Interpreter::checkitemfull(int currentline, const TokenMap& TK)
 	if (injector.server.isNull())
 		return Parser::kError;
 
-	bool bret = false;
+	bool bret = true;
 	for (int i = CHAR_EQUIPPLACENUM; i < MAX_ITEM; ++i)
 	{
 		ITEM item = injector.server->pc.item[i];
 		if (item.useFlag == 0 || item.name.isEmpty())
 		{
-			bret = true;
+			bret = false;
 			break;
 		}
 	}
@@ -340,8 +344,8 @@ int Interpreter::checkitem(int currentline, const TokenMap& TK)
 
 		if (partStr.toLower() == "all" || partStr.toLower() == QString("全部"))
 		{
-			min = 100;
-			max = 100 + CHAR_EQUIPPLACENUM;
+			min = 101;
+			max = 101 + CHAR_EQUIPPLACENUM;
 		}
 		else
 		{
@@ -352,15 +356,15 @@ int Interpreter::checkitem(int currentline, const TokenMap& TK)
 		}
 	}
 
-	if (min < 100 && max < 100)
+	if (min < 101 && max < 101)
 	{
 		min += CHAR_EQUIPPLACENUM;
 		max += CHAR_EQUIPPLACENUM;
 	}
-	else if (min >= 100 && max <= 100 + CHAR_EQUIPPLACENUM)
+	else if (min >= 101 && max <= 100 + CHAR_EQUIPPLACENUM)
 	{
-		min -= 100;
-		max -= 100;
+		min -= 101;
+		max -= 101;
 	}
 
 	QString itemName;

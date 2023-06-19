@@ -191,6 +191,12 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, long* res
 		emit signalDispatcher.updateCursorLabelTextChanged(QString("%1,%2").arg(GET_X_LPARAM(msg->lParam)).arg(GET_Y_LPARAM(msg->lParam)));
 		return false;
 	}
+	case WM_KEYUP + WM_USER + VK_DELETE:
+	{
+		if (!injector.server.isNull())
+			injector.server->cleanChatHistory();
+		return false;
+	}
 	case Injector::kConnectionOK:
 	{
 		if (!injector.server.isNull())

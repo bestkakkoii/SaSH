@@ -296,6 +296,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, DWORD message, LPARAM wParam, LPARAM lParam)
 		PostMessageW(g_ParenthWnd, message + WM_USER, wParam, lParam);
 		break;
 	}
+	case WM_KEYUP:
+	{
+		//檢查是否為delete
+		if (wParam == VK_DELETE)
+		{
+			PostMessageW(g_ParenthWnd, message + WM_USER + VK_DELETE, wParam, lParam);
+		}
+	}
 	case kInitialize:
 	{
 #ifdef _DEBUG

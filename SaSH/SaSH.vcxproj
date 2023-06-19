@@ -78,6 +78,7 @@
       <UACExecutionLevel>RequireAdministrator</UACExecutionLevel>
       <AdditionalLibraryDirectories>$(SolutionDir)$(ProjectName)\lib;D:\Program Files (x86)\OpenSSL-Win32\lib\VC\static;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
+      <DelayLoadDLLs>%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
     <QtTranslation>
       <BuildAction>lupdate</BuildAction>

@@ -554,6 +554,7 @@ bool Interpreter::checkString(const TokenMap& TK, int idx, QString* ret) const
 	}
 	else if (type == TK_STRING || type == TK_CMD)
 	{
+		//檢查是否為區域變量
 		QString name = var.toString();
 		if (args.contains(name))
 		{
@@ -602,6 +603,7 @@ bool Interpreter::checkInt(const TokenMap& TK, int idx, int* ret) const
 	}
 	else if (type == TK_STRING)
 	{
+		//檢查是否為區域變量
 		QString name = var.toString();
 		if (args.contains(name) && args.value(name).type() == QVariant::Int)
 		{
@@ -653,6 +655,7 @@ bool Interpreter::checkDouble(const TokenMap& TK, int idx, double* ret) const
 	}
 	else if (type == TK_STRING)
 	{
+		//檢查是否為區域變量
 		QString name = var.toString();
 		if (args.contains(name) && args.value(name).type() == QVariant::Double)
 		{
@@ -1480,6 +1483,8 @@ void Interpreter::updateGlobalVariables()
 	hash["date"] = QDateTime::currentDateTime().toString("yyyy-MM-dd");
 	hash["time"] = QDateTime::currentDateTime().toString("hh:mm:ss:zzz");
 
+	hash["earngold"] = injector.server->recorder[0].goldearn;
+
 	hash["dialogid"] = dialog.seqno;
 
 }
@@ -1982,10 +1987,19 @@ int Interpreter::dostring(int currentline, const TokenMap& TK)
 	if (injector.server.isNull())
 		return Parser::kError;
 
-	QString script;
-	checkString(TK, 1, &script);
-	if (script.isEmpty())
+	QString text;
+	checkString(TK, 1, &text);
+	if (text.isEmpty())
 		return Parser::kArgError;
+
+	QString script = text;
+	script.replace("\\r\\n", "\r\n");
+	script.replace("\\n", "\n");
+	script.replace("\\t", "\t");
+	script.replace("\\v", "\v");
+	script.replace("\\b", "\b");
+	script.replace("\\f", "\f");
+	script.replace("\\a", "\a");
 
 	RunFileMode asyncMode = kSync;
 	int nAsync = 0;

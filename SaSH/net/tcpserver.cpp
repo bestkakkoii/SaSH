@@ -1642,6 +1642,7 @@ void Server::clearPartyParam()
 		}
 		party[i].useFlag = 0;
 		party[i].id = 0;
+		party[i] = {};
 	}
 	pc.status &= (~CHR_STATUS_LEADER);
 }
@@ -2115,6 +2116,7 @@ void Server::lssproto_I_recv(char* cdata)
 		{
 			pc.item[i].useFlag = 0;
 			pc.item[i].name.clear();
+			pc.item[i] = {};
 			refreshItemInfo(i);
 			continue;
 		}
@@ -2294,7 +2296,19 @@ void Server::lssproto_WN_recv(int windowtype, int buttontype, int seqno, int obj
 	};
 	static const QRegularExpression rexBankPet(u8R"(LV\.\s*(\d+)\s*MaxHP\s*(\d+)\s*(\S+))");
 
-	QStringList linedatas = data.split("\n");
+	//這個是特殊訊息
+	static const QRegularExpression rexExtraInfoBig5(u8R"(聲望：(\d+)\s+氣勢：(\d+)\s+貝殼：(\d+)\s+活力：(\d+)\s+積分：(\d+)\s+會員點：(\d+))");
+	static const QRegularExpression rexExtraInfoGb2312(u8R"(声望：(\d+)\s+气势：(\d+)\s+贝壳：(\d+)\s+活力：(\d+)\s+积分：(\d+)\s+会员点：(\d+))");
+
+
+
+	QStringList linedatas;
+	if (data.count("|") > 1)
+	{
+		linedatas = data.split(util::rexOR);
+	}
+	else
+		linedatas = data.split("\n");
 	currentDialog.set(dialog_t{ windowtype, buttontype, seqno, objindex, data, linedatas, strList });
 
 	for (const QString& it : BankPetList)
@@ -2352,6 +2366,33 @@ void Server::lssproto_WN_recv(int windowtype, int buttontype, int seqno, int obj
 		IS_WAITFOR_BANK_FLAG = false;
 		return;
 
+	}
+
+	//匹配額外訊息
+	QRegularExpressionMatch extraInfoMatch = rexExtraInfoBig5.match(data);
+	if (extraInfoMatch.hasMatch())
+	{
+		currencyData.prestige = extraInfoMatch.captured(1).toInt();
+		currencyData.energy = extraInfoMatch.captured(2).toInt();
+		currencyData.shell = extraInfoMatch.captured(3).toInt();
+		currencyData.vitality = extraInfoMatch.captured(4).toInt();
+		currencyData.points = extraInfoMatch.captured(5).toInt();
+		currencyData.VIPPoints = extraInfoMatch.captured(6).toInt();
+		IS_WAITFOR_EXTRA_DIALOG_INFO_FLAG = false;
+	}
+	else
+	{
+		extraInfoMatch = rexExtraInfoGb2312.match(data);
+		if (extraInfoMatch.hasMatch())
+		{
+			currencyData.prestige = extraInfoMatch.captured(1).toInt();
+			currencyData.energy = extraInfoMatch.captured(2).toInt();
+			currencyData.shell = extraInfoMatch.captured(3).toInt();
+			currencyData.vitality = extraInfoMatch.captured(4).toInt();
+			currencyData.points = extraInfoMatch.captured(5).toInt();
+			currencyData.VIPPoints = extraInfoMatch.captured(6).toInt();
+			IS_WAITFOR_EXTRA_DIALOG_INFO_FLAG = false;
+		}
 	}
 
 	//這裡開始是 KNPC
@@ -3211,6 +3252,8 @@ void Server::asyncBattleWork(bool wait)
 					{
 						if (!IS_BATTLE_FLAG)
 							setBattleFlag(true);
+						if (enablePlayerWork)
+							QThread::msleep(200);
 						break;
 					}
 					else if ((3 == G) && (9 == W))
@@ -3252,7 +3295,7 @@ void Server::asyncBattleWork(bool wait)
 				playerDoBattleWork();
 
 				//如果沒有戰寵 或者戰寵死亡 則直接結束這一回合
-				if (pc.battlePetNo < 0 || pc.battlePetNo >= MAX_PET || (pet[pc.battlePetNo].hp == 0))
+				if (pc.battlePetNo < 0 || pc.battlePetNo >= MAX_PET || (pet[pc.battlePetNo].hp == 0) || (pet[pc.battlePetNo].useFlag == 0))
 				{
 					setEndCurrentRound();
 				}
@@ -5549,7 +5592,7 @@ void Server::lssproto_S_recv(char* cdata)
 					pc.mailPetNo = -1;
 				pc.selectPetNo[no] = FALSE;
 			}
-			pet[no].useFlag = 0;
+			pet[no] = {};
 		}
 		else
 		{
@@ -5814,21 +5857,35 @@ void Server::lssproto_S_recv(char* cdata)
 			emit signalDispatcher.updatePetHpProgressValue(0, 0, 100);
 		}
 
-		PET _pet = pet[no];
-		const QVariantList varList = {
-			_pet.name, _pet.freeName, "",
-			QObject::tr("%1(%2tr)").arg(_pet.level).arg(_pet.trn), _pet.exp, _pet.maxExp, _pet.maxExp - _pet.exp, "",
-			QString("%1/%2").arg(_pet.hp).arg(_pet.maxHp), "",
-			_pet.ai, _pet.atk, _pet.def, _pet.quick, ""
-		};
+		for (int i = 0; i < MAX_PET; ++i)
+		{
+			PET _pet = pet[i];
+			QVariantList varList;
+			if (_pet.useFlag == 1)
+			{
+				varList = QVariantList{
+					_pet.name, _pet.freeName, "",
+					QObject::tr("%1(%2tr)").arg(_pet.level).arg(_pet.trn), _pet.exp, _pet.maxExp, _pet.maxExp - _pet.exp, "",
+					QString("%1/%2").arg(_pet.hp).arg(_pet.maxHp), "",
+					_pet.ai, _pet.atk, _pet.def, _pet.quick, ""
+				};
 
-		recorder[no + 1].expdifference = _pet.exp - recorder[no + 1].exprecord;
-		recorder[no + 1].leveldifference = _pet.level - recorder[no + 1].levelrecord;
+				recorder[i + 1].expdifference = _pet.exp - recorder[i + 1].exprecord;
+				recorder[i + 1].leveldifference = _pet.level - recorder[i + 1].levelrecord;
+			}
+			else
+			{
+				for (int i = 0; i < 15; ++i)
+					varList.append("");
+				recorder[i + 1].expdifference = 0;
+				recorder[i + 1].leveldifference = 0;
+			}
 
+			const QVariant var = QVariant::fromValue(varList);
+			playerInfoColContents.insert(i + 1, var);
+			emit signalDispatcher.updatePlayerInfoColContents(i + 1, var);
+		}
 
-		const QVariant var = QVariant::fromValue(varList);
-		playerInfoColContents.insert(no + 1, var);
-		emit signalDispatcher.updatePlayerInfoColContents(no + 1, var);
 	}
 #pragma endregion
 #pragma region EncountPercentage
@@ -5934,6 +5991,7 @@ void Server::lssproto_S_recv(char* cdata)
 			}
 
 			party[no].useFlag = 0;
+			party[no] = {};
 			checkPartyCount = 0;
 			no2 = -1;
 #ifdef MAX_AIRPLANENUM
@@ -6100,6 +6158,7 @@ void Server::lssproto_S_recv(char* cdata)
 			{
 				pc.item[i].useFlag = 0;
 				pc.item[i].name.clear();
+				pc.item[i] = {};
 				refreshItemInfo(i);
 				continue;
 			}
@@ -6197,7 +6256,9 @@ void Server::lssproto_S_recv(char* cdata)
 
 
 		for (i = 0; i < MAX_SKILL; i++)
+		{
 			petSkill[no][i].useFlag = 0;
+		}
 
 		QStringList skillNameList;
 		for (i = 0; i < MAX_SKILL; i++)
@@ -7224,6 +7285,21 @@ void Server::press(BUTTON_TYPE select, int seqno, int objindex)
 	{
 		select = BUTTON_NOTUSED;
 	}
+	else if (BUTTON_AUTO == select)
+	{
+		if (dialog.buttontype & BUTTON_OK)
+			select = BUTTON_OK;
+		else if (dialog.buttontype & BUTTON_YES)
+			select = BUTTON_YES;
+		else if (dialog.buttontype & BUTTON_NEXT)
+			select = BUTTON_NEXT;
+		else if (dialog.buttontype & BUTTON_PREVIOUS)
+			select = BUTTON_PREVIOUS;
+		else if (dialog.buttontype & BUTTON_NO)
+			select = BUTTON_NO;
+		else if (dialog.buttontype & BUTTON_CANCEL)
+			select = BUTTON_CANCEL;
+	}
 
 	lssproto_WN_send(nowPoint, seqno, objindex, select, const_cast<char*>(data));
 
@@ -7501,6 +7577,18 @@ void Server::inputtext(const QString& text)
 		lssproto_WN_send(nowPoint, seqno, objindex, BUTTON_YES, const_cast<char*>(s.c_str()));
 	else if (dialog.buttontype & BUTTON_OK)
 		lssproto_WN_send(nowPoint, seqno, objindex, BUTTON_OK, const_cast<char*>(s.c_str()));
+}
+
+void Server::windowPacket(const QString& command, int seqno, int objindex)
+{
+	//SI|itemIndex(0-15)|Stack(-1)
+	//TI|itemIndex(0-59)|Stack(-1)
+	//SP|petIndex(0-4)|
+	//TP|petIndex(0-?)|
+	//SG|gold|
+	//TG|gold|
+	std::string s = util::fromUnicode(command);
+	lssproto_WN_send(nowPoint, seqno, objindex, NULL, const_cast<char*>(s.c_str()));
 }
 
 //對話框封包 關於seqno: 送買242 賣243
@@ -8328,6 +8416,8 @@ void Server::cleanChatHistory()
 	Injector& injector = Injector::getInstance();
 	injector.sendMessage(Injector::kCleanChatHistory, NULL, NULL);
 	chatQueue.clear();
+	if (!injector.chatLogModel.isNull())
+		injector.chatLogModel->clear();
 }
 
 //查找指定類型和名稱的單位
@@ -8994,6 +9084,22 @@ void Server::lssproto_JOBDAILY_send(char* data)
 	iChecksum += Autil::util_mkstring(buffer, data);
 	Autil::util_mkint(buffer, iChecksum);
 	Autil::util_SendMesg(LSSPROTO_JOBDAILY_SEND, buffer);
+}
+
+void Server::shopOk(int n)
+{
+	//SE 1隨身倉庫 2查看聲望氣勢
+	lssproto_ShopOk_send(n);
+}
+
+void Server::lssproto_ShopOk_send(int n)
+{
+	char buffer[16384] = { 0 };
+	memset(buffer, 0, sizeof(buffer));
+	int iChecksum = 0;
+	iChecksum += Autil::util_mkint(buffer, n);
+	Autil::util_mkint(buffer, iChecksum);
+	Autil::util_SendMesg(LSSPROTO_SHOPOK_SEND, buffer);
 }
 
 //獲取周圍玩家名稱列表

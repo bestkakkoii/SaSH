@@ -6,9 +6,15 @@ void fontInitialize(QApplication& a)
 {
 	auto installFont = [](const QString& fontName)->int
 	{
-		int fontId = QFontDatabase::addApplicationFont(QCoreApplication::applicationDirPath() + "/" + fontName);
-
 		QString fontFilePath = QCoreApplication::applicationDirPath() + "/" + fontName;
+		QFile fontFile(fontFilePath);
+		if (!fontFile.exists())
+		{
+			//qDebug() << "font file not exist";
+			return -1;
+		}
+
+		int fontId = QFontDatabase::addApplicationFont(fontFilePath);
 		std::wstring fontFilePathW = fontFilePath.toStdWString();
 		int res = AddFontResource(fontFilePathW.c_str());
 		if (res == 0)

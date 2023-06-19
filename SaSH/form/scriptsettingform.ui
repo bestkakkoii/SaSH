@@ -775,18 +775,8 @@ color: rgb(208, 208, 208);
           </column>
           <item>
            <property name="text">
-            <string>var</string>
+            <string>var fun</string>
            </property>
-           <item>
-            <property name="text">
-             <string>varremove</string>
-            </property>
-           </item>
-           <item>
-            <property name="text">
-             <string>varclear</string>
-            </property>
-           </item>
            <item>
             <property name="text">
              <string>var operator</string>
@@ -864,7 +854,12 @@ color: rgb(208, 208, 208);
            </item>
            <item>
             <property name="text">
-             <string>global var</string>
+             <string>rnd</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>releaseall</string>
             </property>
            </item>
            <item>
@@ -872,19 +867,19 @@ color: rgb(208, 208, 208);
              <string>format</string>
             </property>
            </item>
+           <item>
+            <property name="text">
+             <string>delete</string>
+            </property>
+           </item>
           </item>
           <item>
            <property name="text">
-            <string>sys</string>
+            <string>sys fun</string>
            </property>
            <item>
             <property name="text">
              <string>test</string>
-            </property>
-           </item>
-           <item>
-            <property name="text">
-             <string>talkandprint</string>
             </property>
            </item>
            <item>
@@ -904,17 +899,22 @@ color: rgb(208, 208, 208);
            </item>
            <item>
             <property name="text">
-             <string>savesettings</string>
+             <string>say</string>
             </property>
            </item>
            <item>
             <property name="text">
-             <string>press</string>
+             <string>saveset</string>
             </property>
            </item>
            <item>
             <property name="text">
-             <string>messagebox</string>
+             <string>print</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>msg</string>
             </property>
            </item>
            <item>
@@ -929,7 +929,7 @@ color: rgb(208, 208, 208);
            </item>
            <item>
             <property name="text">
-             <string>loadsettings</string>
+             <string>loadset</string>
             </property>
            </item>
            <item>
@@ -944,12 +944,12 @@ color: rgb(208, 208, 208);
            </item>
            <item>
             <property name="text">
-             <string>clear</string>
+             <string>cls</string>
             </property>
            </item>
            <item>
             <property name="text">
-             <string>announce</string>
+             <string>button</string>
             </property>
            </item>
           </item>
@@ -990,8 +990,18 @@ color: rgb(208, 208, 208);
           </item>
           <item>
            <property name="text">
-            <string>move</string>
+            <string>move fun</string>
            </property>
+           <item>
+            <property name="text">
+             <string>walkpos</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>w</string>
+            </property>
+           </item>
            <item>
             <property name="text">
              <string>movetonpc</string>
@@ -999,38 +1009,28 @@ color: rgb(208, 208, 208);
            </item>
            <item>
             <property name="text">
-             <string>movetele</string>
+             <string>move</string>
             </property>
            </item>
            <item>
             <property name="text">
-             <string>movepacket</string>
+             <string>findpath</string>
             </property>
            </item>
            <item>
             <property name="text">
-             <string>movefindpath</string>
+             <string>dir</string>
             </property>
            </item>
            <item>
             <property name="text">
-             <string>movedir</string>
-            </property>
-           </item>
-           <item>
-            <property name="text">
-             <string>movecodfast</string>
-            </property>
-           </item>
-           <item>
-            <property name="text">
-             <string>movecod</string>
+             <string>chmap</string>
             </property>
            </item>
           </item>
           <item>
            <property name="text">
-            <string>core</string>
+            <string>core fun</string>
            </property>
            <item>
             <property name="text">
@@ -1054,7 +1054,27 @@ color: rgb(208, 208, 208);
            </item>
            <item>
             <property name="text">
+             <string>jmp</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>if</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
              <string>goto</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>function</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>exit</string>
             </property>
            </item>
            <item>
@@ -1064,47 +1084,67 @@ color: rgb(208, 208, 208);
            </item>
            <item>
             <property name="text">
+             <string>dostring</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
              <string>comment</string>
             </property>
            </item>
            <item>
             <property name="text">
-             <string>cmp</string>
+             <string>back</string>
             </property>
            </item>
           </item>
           <item>
            <property name="text">
-            <string>check</string>
+            <string>check fun</string>
            </property>
            <item>
             <property name="text">
-             <string>isteam</string>
+             <string>waitsay</string>
             </property>
            </item>
            <item>
             <property name="text">
-             <string>ispet</string>
+             <string>waitpet</string>
             </property>
            </item>
            <item>
             <property name="text">
-             <string>isitemfull</string>
+             <string>waitmap</string>
             </property>
            </item>
            <item>
             <property name="text">
-             <string>isitem</string>
+             <string>waititem</string>
             </property>
            </item>
            <item>
             <property name="text">
-             <string>checkteamcount</string>
+             <string>waititem</string>
             </property>
            </item>
            <item>
             <property name="text">
-             <string>checkplayer</string>
+             <string>waitdlg</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>ifteam</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>ifpos</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>ifplayer</string>
             </property>
             <item>
              <property name="text">
@@ -1189,12 +1229,7 @@ color: rgb(208, 208, 208);
            </item>
            <item>
             <property name="text">
-             <string>checkpetcount</string>
-            </property>
-           </item>
-           <item>
-            <property name="text">
-             <string>checkpet</string>
+             <string>ifpetex</string>
             </property>
             <item>
              <property name="text">
@@ -1259,64 +1294,39 @@ color: rgb(208, 208, 208);
            </item>
            <item>
             <property name="text">
-             <string>checkmission</string>
+             <string>ifpet</string>
             </property>
            </item>
            <item>
             <property name="text">
-             <string>checkmapfast</string>
+             <string>ifmap</string>
             </property>
            </item>
            <item>
             <property name="text">
-             <string>checkmap</string>
+             <string>ifitemfull</string>
             </property>
            </item>
            <item>
             <property name="text">
-             <string>checkitemcount</string>
+             <string>ifitem</string>
             </property>
            </item>
            <item>
             <property name="text">
-             <string>checkdialog</string>
+             <string>ifdaily</string>
             </property>
            </item>
            <item>
             <property name="text">
-             <string>checkcod</string>
-            </property>
-           </item>
-           <item>
-            <property name="text">
-             <string>checkchat</string>
-            </property>
-           </item>
-           <item>
-            <property name="text">
-             <string>checkbattle</string>
+             <string>ifbattle</string>
             </property>
            </item>
           </item>
           <item>
            <property name="text">
-            <string>act</string>
+            <string>action fun</string>
            </property>
-           <item>
-            <property name="text">
-             <string>withdrawpet</string>
-            </property>
-           </item>
-           <item>
-            <property name="text">
-             <string>withdrawitem</string>
-            </property>
-           </item>
-           <item>
-            <property name="text">
-             <string>withdrawgold</string>
-            </property>
-           </item>
            <item>
             <property name="text">
              <string>wearrecordedequip</string>
@@ -1339,22 +1349,12 @@ color: rgb(208, 208, 208);
            </item>
            <item>
             <property name="text">
-             <string>setpetstate</string>
-            </property>
-           </item>
-           <item>
-            <property name="text">
              <string>sell</string>
             </property>
            </item>
            <item>
             <property name="text">
-             <string>renameplayer</string>
-            </property>
-           </item>
-           <item>
-            <property name="text">
-             <string>renamepet</string>
+             <string>save</string>
             </property>
            </item>
            <item>
@@ -1364,12 +1364,32 @@ color: rgb(208, 208, 208);
            </item>
            <item>
             <property name="text">
-             <string>pickitem</string>
+             <string>rclick</string>
             </property>
            </item>
            <item>
             <property name="text">
-             <string>leftclick</string>
+             <string>putpet</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>put</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>pickup</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>make</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>load</string>
             </property>
            </item>
            <item>
@@ -1379,42 +1399,57 @@ color: rgb(208, 208, 208);
            </item>
            <item>
             <property name="text">
+             <string>ldbclick</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>lclick</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
              <string>join</string>
             </property>
            </item>
            <item>
             <property name="text">
-             <string>droppet</string>
+             <string>getpet</string>
             </property>
            </item>
            <item>
             <property name="text">
-             <string>dropitem</string>
+             <string>get</string>
             </property>
            </item>
            <item>
             <property name="text">
-             <string>depositpet</string>
+             <string>doffpet</string>
             </property>
            </item>
            <item>
             <property name="text">
-             <string>deposititem</string>
+             <string>doffitem</string>
             </property>
            </item>
            <item>
             <property name="text">
-             <string>depositgold</string>
+             <string>cook</string>
             </property>
            </item>
            <item>
             <property name="text">
-             <string>craftfood</string>
+             <string>chplayername</string>
             </property>
            </item>
            <item>
             <property name="text">
-             <string>craftequip</string>
+             <string>chpetname</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>chpet</string>
             </property>
            </item>
            <item>
@@ -1959,7 +1994,7 @@ color: rgb(208, 208, 208);
               </property>
               <column>
                <property name="text">
-                <string>name</string>
+                <string>NAME</string>
                </property>
               </column>
               <column>
@@ -2154,7 +2189,7 @@ color: rgb(208, 208, 208);
               </property>
               <column>
                <property name="text">
-                <string>name</string>
+                <string>NAME</string>
                </property>
               </column>
               <column>
@@ -2355,7 +2390,7 @@ color: rgb(208, 208, 208);
               </property>
               <column>
                <property name="text">
-                <string>name</string>
+                <string>NAME</string>
                </property>
               </column>
               <column>
@@ -2951,6 +2986,7 @@ color: rgb(208, 208, 208);
    <addaction name="separator"/>
    <addaction name="actionSaveEncode"/>
    <addaction name="actionSaveDecode"/>
+   <addaction name="separator"/>
   </widget>
   <widget class="QStatusBar" name="statusBar"/>
   <action name="actionSave">
@@ -3043,7 +3079,8 @@ color: rgb(208, 208, 208);
   <action name="actionStart">
    <property name="icon">
     <iconset resource="../resource.qrc">
-     <normaloff>:/image/icon_start.png</normaloff>:/image/icon_start.png</iconset>
+     <normaloff>:/image/icon_start.png</normaloff>
+     <disabledon>:/image/icon_start_disable.png</disabledon>:/image/icon_start.png</iconset>
    </property>
    <property name="text">
     <string>Start</string>
@@ -3058,7 +3095,8 @@ color: rgb(208, 208, 208);
   <action name="actionPause">
    <property name="icon">
     <iconset resource="../resource.qrc">
-     <normaloff>:/image/icon_pause.png</normaloff>:/image/icon_pause.png</iconset>
+     <normaloff>:/image/icon_pause.png</normaloff>
+     <disabledon>:/image/icon_pause_disable.png</disabledon>:/image/icon_pause.png</iconset>
    </property>
    <property name="text">
     <string>Pause/Resume</string>
@@ -3067,7 +3105,8 @@ color: rgb(208, 208, 208);
   <action name="actionStop">
    <property name="icon">
     <iconset resource="../resource.qrc">
-     <normaloff>:/image/icon_stop.png</normaloff>:/image/icon_stop.png</iconset>
+     <normaloff>:/image/icon_stop.png</normaloff>
+     <disabledon>:/image/icon_stop_disable.png</disabledon>:/image/icon_stop.png</iconset>
    </property>
    <property name="text">
     <string>Stop</string>
@@ -3119,6 +3158,19 @@ color: rgb(208, 208, 208);
    </property>
    <property name="shortcut">
     <string>Ctrl+Alt+D</string>
+   </property>
+  </action>
+  <action name="actionContinue">
+   <property name="icon">
+    <iconset resource="../resource.qrc">
+     <normaloff>:/image/icon_start_nodebug.png</normaloff>
+     <disabledon>:/image/icon_start_disable.png</disabledon>:/image/icon_start_nodebug.png</iconset>
+   </property>
+   <property name="text">
+    <string>Continue</string>
+   </property>
+   <property name="toolTip">
+    <string>Continue</string>
    </property>
   </action>
  </widget>

@@ -29,35 +29,49 @@ private:
 
 	void reshowBreakMarker();
 
+	void createSpeedSpinBox();
+
+	void createScriptListContextMenu();
+
+	QString getFullPath(QTreeWidgetItem* item);
+
 private slots:
 	void onApplyHashSettingsToUI();
 	void onScriptTreeWidgetHeaderClicked(int logicalIndex);
 	void onScriptTreeWidgetDoubleClicked(QTreeWidgetItem* item, int column);
 	void onActionTriggered();
 	void onWidgetModificationChanged(bool changed);
-	void on_comboBox_labels_clicked();
-	void on_comboBox_labels_currentIndexChanged(int index);
 	void onEditorCursorPositionChanged(int line, int index);
-	void on_widget_cursorPositionChanged(int line, int index);
-	void on_widget_textChanged();
-	void on_lineEdit_searchFunction_textChanged(const QString& text);
 	void onAddForwardMarker(int liner, bool b);
 	void onAddErrorMarker(int liner, bool b);
 	void onAddStepMarker(int liner, bool b);
 	void onAddBreakMarker(int liner, bool b);
 	void onBreakMarkInfoImport();
-	void on_widget_marginClicked(int margin, int line, Qt::KeyboardModifiers state);
+
+	void onScriptStartMode();
+	void onScriptStopMode();
+	void onScriptBreakMode();
+	void onScriptPauseMode();
+
 	void onScriptLabelRowTextChanged(int row, int max, bool noSelect);
-	void on_treeWidget_functionList_itemDoubleClicked(QTreeWidgetItem* item, int column);
-	void on_treeWidget_functionList_itemClicked(QTreeWidgetItem* item, int column);
+
 	void loadFile(const QString& fileName);
 	void onGlobalVarInfoImport(const QHash<QString, QVariant>& d);
 	void onLocalVarInfoImport(const QHash<QString, QVariant>& d);
 	void onContinue();
-	void onFinished();
 
 	void onEncryptSave();
 	void onDecryptSave();
+
+	void on_comboBox_labels_clicked();
+	void on_comboBox_labels_currentIndexChanged(int index);
+	void on_widget_cursorPositionChanged(int line, int index);
+	void on_widget_textChanged();
+	void on_lineEdit_searchFunction_textChanged(const QString& text);
+	void on_widget_marginClicked(int margin, int line, Qt::KeyboardModifiers state);
+	void on_treeWidget_functionList_itemDoubleClicked(QTreeWidgetItem* item, int column);
+	void on_treeWidget_functionList_itemClicked(QTreeWidgetItem* item, int column);
+	void on_treeWidget_scriptList_itemClicked(QTreeWidgetItem* item, int column);
 private:
 	Ui::ScriptSettingFormClass ui;
 	QLabel m_staticLabel;

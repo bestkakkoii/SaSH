@@ -133,8 +133,8 @@ void Parser::processTokens()
 			{
 				QThread::msleep(extraDelay);
 			}
-			else
-				QThread::msleep(1);
+
+			QThread::msleep(1);
 		}
 
 		RESERVE currentType = currentLineTokens_.value(0).type;
@@ -357,12 +357,24 @@ void Parser::processVariable(RESERVE type)
 				else
 				{
 					//檢查是否為字符串的區域變量
-					if (args.contains(valueStr) && args.value(valueStr).type() == QVariant::Int)
+					if (args.contains(valueStr) && args.value(valueStr).type() == QVariant::String)
 					{
-						varValue = args.value(valueStr).toInt();
+						varValue = args.value(valueStr).toString();
+					}
+					//檢查是否為浮點數的區域變量
+					else if (args.contains(valueStr) && args.value(valueStr).type() == QVariant::Double)
+					{
+						bool ok;
+						double value = args.value(valueStr).toDouble(&ok);
+						if (ok)
+						{
+							varValue = value;
+						}
+						else
+							break;
 					}
 					//檢查是否為整數的區域變量
-					else if (args.contains(valueStr) && args.value(valueStr).type() == QVariant::String)
+					else if (args.contains(valueStr) && args.value(valueStr).type() == QVariant::Int)
 					{
 						bool ok;
 						int value = args.value(valueStr).toInt(&ok);
@@ -371,7 +383,7 @@ void Parser::processVariable(RESERVE type)
 							varValue = value;
 						}
 						else
-							return;
+							break;
 					}
 					else
 					{
@@ -448,20 +460,34 @@ void Parser::processVariable(RESERVE type)
 		else if (varValueType == TK_STRING)
 		{
 			QString valueStr = varValue.toString();
-			//檢查是否為字符串區域變量
-			if (args.contains(valueStr) && args.value(valueStr).type() == QVariant::Int)
+			//檢查是否為字符串的區域變量
+			if (args.contains(valueStr) && args.value(valueStr).type() == QVariant::String)
 			{
-				varValue = args.value(valueStr).toInt();
+				varValue = args.value(valueStr).toString();
 			}
-			//檢查是否為整數區域變量
-			else if (args.contains(valueStr) && args.value(valueStr).type() == QVariant::String)
+			//檢查是否為浮點數的區域變量
+			else if (args.contains(valueStr) && args.value(valueStr).type() == QVariant::Double)
+			{
+				bool ok;
+				double value = args.value(valueStr).toDouble(&ok);
+				if (ok)
+				{
+					varValue = value;
+				}
+				else
+					break;
+			}
+			//檢查是否為整數的區域變量
+			else if (args.contains(valueStr) && args.value(valueStr).type() == QVariant::Int)
 			{
 				bool ok;
 				int value = args.value(valueStr).toInt(&ok);
 				if (ok)
+				{
 					varValue = value;
+				}
 				else
-					return;
+					break;
 			}
 		}
 
@@ -535,18 +561,35 @@ void Parser::processMultiVariable()
 		else if (varValueType == TK_STRING)
 		{
 			QString valueStr = varValue.toString();
-			//檢查是否為字符串區域變量
-			if (args.contains(valueStr) && args.value(valueStr).type() == QVariant::Int)
+			//檢查是否為字符串的區域變量
+			if (args.contains(valueStr) && args.value(valueStr).type() == QVariant::String)
 			{
-				varValue = args.value(valueStr).toInt();
+				varValue = args.value(valueStr).toString();
 			}
-			//檢查是否為整數區域變量
-			else if (args.contains(valueStr) && args.value(valueStr).type() == QVariant::String)
+			//檢查是否為浮點數的區域變量
+			else if (args.contains(valueStr) && args.value(valueStr).type() == QVariant::Double)
+			{
+				bool ok;
+				double value = args.value(valueStr).toDouble(&ok);
+				if (ok)
+				{
+					varValue = value;
+				}
+				else
+				{
+					variables_.insert(varName, 0);
+					continue;
+				}
+			}
+			//檢查是否為整數的區域變量
+			else if (args.contains(valueStr) && args.value(valueStr).type() == QVariant::Int)
 			{
 				bool ok;
 				int value = args.value(valueStr).toInt(&ok);
 				if (ok)
+				{
 					varValue = value;
+				}
 				else
 				{
 					variables_.insert(varName, 0);
@@ -566,7 +609,7 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 		return false;
 
 	QString trimmedStr = valueStr.simplified().toLower();
-	QStringList systemVarNameList = { "player", "magic", "skill", "pet", "petskill", "map", "item", "equip", "petequip", "chat", "dialog" };
+	QStringList systemVarNameList = { "player", "magic", "skill", "pet", "petskill", "map", "item", "equip", "petequip", "chat", "dialog", "point" };
 	if (!systemVarNameList.contains(trimmedStr))
 		return false;
 
@@ -583,6 +626,7 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 		kPetEquipInfo,
 		kChatInfo,
 		kDialogInfo,
+		kPointInfo,
 	};
 
 	int index = systemVarNameList.indexOf(trimmedStr);
@@ -815,6 +859,68 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 		bret = varValue.isValid();
 		break;
 	}
+	case kPointInfo:
+	{
+		injector.server->IS_WAITFOR_EXTRA_DIALOG_INFO_FLAG = true;
+		injector.server->shopOk(2);
+
+		QString type = getToken<QString>(3);
+		if (type.isEmpty())
+			break;
+
+		QElapsedTimer timer; timer.start();
+		for (;;)
+		{
+			if (timer.hasExpired(5000))
+				break;
+
+			if (!injector.server->IS_WAITFOR_EXTRA_DIALOG_INFO_FLAG)
+				break;
+
+			QThread::msleep(100);
+		}
+		//int rep = 0;   // 聲望
+		//int ene = 0;   // 氣勢
+		//int shl = 0;   // 貝殼
+		//int vit = 0;   // 活力
+		//int pts = 0;   // 積分
+		//int vip = 0;   // 會員點
+		if (type == "rep")
+		{
+			varValue = injector.server->currencyData.prestige;
+			bret = varValue.isValid();
+		}
+		else if (type == "ene")
+		{
+			varValue = injector.server->currencyData.energy;
+			bret = varValue.isValid();
+		}
+		else if (type == "shl")
+		{
+			varValue = injector.server->currencyData.shell;
+			bret = varValue.isValid();
+		}
+		else if (type == "vit")
+		{
+			varValue = injector.server->currencyData.vitality;
+			bret = varValue.isValid();
+		}
+		else if (type == "pts")
+		{
+			varValue = injector.server->currencyData.points;
+			bret = varValue.isValid();
+		}
+		else if (type == "vip")
+		{
+			varValue = injector.server->currencyData.VIPPoints;
+			bret = varValue.isValid();
+		}
+
+		if (bret)
+			injector.server->press(BUTTON_CANCEL);
+
+		break;
+	}
 	default:
 		break;
 	}
@@ -866,6 +972,8 @@ void Parser::processFormation()
 		if (formatStr.isEmpty())
 			break;
 
+		QHash<QString, QVariant> args = getLabelVars();
+
 		//查找字符串中包含 {:變數名} 全部替換成變數數值
 		for (auto it = variables_.begin(); it != variables_.cend(); ++it)
 		{
@@ -884,6 +992,39 @@ void Parser::processFormation()
 			RESERVE type = getTokenType(i);
 			if (type == TK_INT || type == TK_STRING)
 			{
+				if (type == TK_STRING)
+				{
+					QString valueStr = varValue.toString();
+					if (args.contains(valueStr) && args.value(valueStr).type() == QVariant::String)
+					{
+						varValue = args.value(valueStr).toString();
+					}
+					//檢查是否為浮點數的區域變量
+					else if (args.contains(valueStr) && args.value(valueStr).type() == QVariant::Double)
+					{
+						bool ok;
+						double value = args.value(valueStr).toDouble(&ok);
+						if (ok)
+						{
+							varValue = value;
+						}
+						else
+							break;
+					}
+					//檢查是否為整數的區域變量
+					else if (args.contains(valueStr) && args.value(valueStr).type() == QVariant::Int)
+					{
+						bool ok;
+						int value = args.value(valueStr).toInt(&ok);
+						if (ok)
+						{
+							varValue = value;
+						}
+						else
+							break;
+					}
+				}
+
 				QString key = QString("{:%1}").arg(i - kFormatPlaceHoldSize + 1);
 				if (formatStr.contains(key))
 					formatStr.replace(key, varValue.toString());
@@ -934,6 +1075,7 @@ void Parser::checkArgs()
 			{
 				token.type = TK_STRING;
 				token.data = var.toString();
+
 			}
 			else if (var.type() == QVariant::Int)
 			{

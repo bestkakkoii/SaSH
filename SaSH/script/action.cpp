@@ -92,7 +92,7 @@ int Interpreter::useitem(int currentline, const TokenMap& TK)
 
 	int itemIndex = injector.server->getItemIndexByName(itemName);
 	if (itemIndex == -1)
-		return Parser::kArgError;
+		return Parser::kNoChange;
 
 	injector.server->useItem(itemIndex, target);
 	return Parser::kNoChange;
@@ -882,17 +882,17 @@ int Interpreter::depositpet(int currentline, const TokenMap& TK)
 	if (petIndex == -1)
 		return Parser::kArgError;
 
-	//injector.server->IS_WAITFOR_DIALOG_FLAG = true;
+	injector.server->IS_WAITFOR_DIALOG_FLAG = true;
 	injector.server->depositPet(petIndex);
-	//waitfor(1000, [&injector]()->bool { return !injector.server->IS_WAITFOR_DIALOG_FLAG; });
+	waitfor(1000, [&injector]()->bool { return !injector.server->IS_WAITFOR_DIALOG_FLAG; });
 
-	//injector.server->IS_WAITFOR_DIALOG_FLAG = true;
+	injector.server->IS_WAITFOR_DIALOG_FLAG = true;
 	injector.server->press(BUTTON_YES);
-	//waitfor(1000, [&injector]()->bool { return !injector.server->IS_WAITFOR_DIALOG_FLAG; });
+	waitfor(1000, [&injector]()->bool { return !injector.server->IS_WAITFOR_DIALOG_FLAG; });
 
-	//injector.server->IS_WAITFOR_DIALOG_FLAG = true;
+	injector.server->IS_WAITFOR_DIALOG_FLAG = true;
 	injector.server->press(BUTTON_OK);
-	//waitfor(1000, [&injector]()->bool { return !injector.server->IS_WAITFOR_DIALOG_FLAG; });
+	waitfor(1000, [&injector]()->bool { return !injector.server->IS_WAITFOR_DIALOG_FLAG; });
 
 	return Parser::kNoChange;
 }
@@ -943,13 +943,13 @@ int Interpreter::deposititem(int currentline, const TokenMap& TK)
 			if (it < min || it > max)
 				continue;
 
-			//injector.server->IS_WAITFOR_DIALOG_FLAG = true;
+			injector.server->IS_WAITFOR_DIALOG_FLAG = true;
 			injector.server->depositItem(it);
-			//waitfor(1000, [&injector]()->bool { return !injector.server->IS_WAITFOR_DIALOG_FLAG; });
+			waitfor(1000, [&injector]()->bool { return !injector.server->IS_WAITFOR_DIALOG_FLAG; });
 
-			//injector.server->IS_WAITFOR_DIALOG_FLAG = true;
+			injector.server->IS_WAITFOR_DIALOG_FLAG = true;
 			injector.server->press(1);
-			//waitfor(1000, [&injector]()->bool { return !injector.server->IS_WAITFOR_DIALOG_FLAG; });
+			waitfor(1000, [&injector]()->bool { return !injector.server->IS_WAITFOR_DIALOG_FLAG; });
 		}
 
 	}
@@ -1037,17 +1037,17 @@ int Interpreter::withdrawpet(int currentline, const TokenMap& TK)
 
 		if (bret)
 		{
-			//injector.server->IS_WAITFOR_DIALOG_FLAG = true;
+			injector.server->IS_WAITFOR_DIALOG_FLAG = true;
 			injector.server->withdrawPet(petIndex);
-			//waitfor(1000, [&injector]()->bool { return !injector.server->IS_WAITFOR_DIALOG_FLAG; });
+			waitfor(1000, [&injector]()->bool { return !injector.server->IS_WAITFOR_DIALOG_FLAG; });
 
-			//injector.server->IS_WAITFOR_DIALOG_FLAG = true;
+			injector.server->IS_WAITFOR_DIALOG_FLAG = true;
 			injector.server->press(BUTTON_YES);
-			//waitfor(1000, [&injector]()->bool { return !injector.server->IS_WAITFOR_DIALOG_FLAG; });
+			waitfor(1000, [&injector]()->bool { return !injector.server->IS_WAITFOR_DIALOG_FLAG; });
 
-			//injector.server->IS_WAITFOR_DIALOG_FLAG = true;
+			injector.server->IS_WAITFOR_DIALOG_FLAG = true;
 			injector.server->press(BUTTON_OK);
-			//waitfor(1000, [&injector]()->bool { return !injector.server->IS_WAITFOR_DIALOG_FLAG; });
+			waitfor(1000, [&injector]()->bool { return !injector.server->IS_WAITFOR_DIALOG_FLAG; });
 			break;
 		}
 
@@ -1112,13 +1112,13 @@ int Interpreter::withdrawitem(int currentline, const TokenMap& TK)
 
 	if (bret)
 	{
-		//injector.server->IS_WAITFOR_DIALOG_FLAG = true;
+		injector.server->IS_WAITFOR_DIALOG_FLAG = true;
 		injector.server->withdrawItem(itemIndex);
-		//waitfor(1000, [&injector]()->bool { return !injector.server->IS_WAITFOR_DIALOG_FLAG; });
+		waitfor(1000, [&injector]()->bool { return !injector.server->IS_WAITFOR_DIALOG_FLAG; });
 
-		//injector.server->IS_WAITFOR_DIALOG_FLAG = true;
+		injector.server->IS_WAITFOR_DIALOG_FLAG = true;
 		injector.server->press(1);
-		//waitfor(1000, [&injector]()->bool { return !injector.server->IS_WAITFOR_DIALOG_FLAG; });
+		waitfor(1000, [&injector]()->bool { return !injector.server->IS_WAITFOR_DIALOG_FLAG; });
 
 	}
 

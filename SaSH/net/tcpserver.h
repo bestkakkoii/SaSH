@@ -38,6 +38,7 @@
 #define __ATTACK_MAGIC
 #define _SKILL_ADDBARRIER
 #define _OBJSEND_C
+#define _NEWSHOP_
 #pragma endregion
 
 #pragma region Const
@@ -881,6 +882,7 @@ enum BUTTON_TYPE
 	BUTTON_BACK,
 	BUTTON_1,//是
 	BUTTON_2,//不是
+	BUTTON_AUTO,
 };
 
 
@@ -1576,6 +1578,16 @@ typedef struct bankpet_s
 	QString name;
 }bankpet_t;
 
+typedef struct currencydata_s
+{
+	int prestige = 0;      // 聲望
+	int energy = 0;        // 氣勢
+	int shell = 0;         // 貝殼
+	int vitality = 0;      // 活力
+	int points = 0;        // 積分
+	int VIPPoints = 0;  // 會員點
+} currencydata_t;
+
 #pragma endregion
 
 static const QHash<QString, BUTTON_TYPE> buttonMap = {
@@ -1585,6 +1597,7 @@ static const QHash<QString, BUTTON_TYPE> buttonMap = {
 	{"NO", BUTTON_NO},
 	{"PREVIOUS", BUTTON_PREVIOUS},
 	{"NEXT", BUTTON_NEXT},
+	{"AUTO", BUTTON_AUTO},
 
 	//big5
 	{u8"確認", BUTTON_YES},
@@ -1801,6 +1814,8 @@ public://actions
 	void talk(const QString& text, int color = 0);
 	void inputtext(const QString& text);
 
+	void windowPacket(const QString& command, int dialogid, int npcid);
+
 	void EO();
 
 	void dropItem(int index);
@@ -1833,6 +1848,8 @@ public://actions
 	void craft(util::CraftType type, const QStringList& ingres);
 
 	void warp();
+
+	void shopOk(int n);
 
 	void addPoint(int skillid, int amt);
 
@@ -2052,7 +2069,7 @@ private:
 #else
 		return QDateTime::currentMSecsSinceEpoch();
 #endif
-	}
+}
 
 	inline void setWarpMap(const QPoint& pos)
 	{
@@ -2347,6 +2364,8 @@ private://lssproto
 #ifdef _CHARSIGNDAY_
 	void lssproto_SignDay_send(int fd);
 #endif
+
+	void lssproto_ShopOk_send(int n);
 #pragma endregion
 
 public:
@@ -2371,6 +2390,7 @@ public:
 	bool IS_WAITFOR_JOBDAILY_FLAG = false;
 	bool IS_WAITFOR_BANK_FLAG = false;
 	bool IS_WAITFOR_DIALOG_FLAG = false;
+	bool IS_WAITFOR_EXTRA_DIALOG_INFO_FLAG = false;
 
 	QFuture<void> ayncBattleCommand;
 	std::atomic_bool ayncBattleCommandFlag = false;
@@ -2548,6 +2568,7 @@ public:
 	util::SafeHash<int, QVariant> hashchat;
 	util::SafeHash<int, QVariant> hashdialog;
 
+	currencydata_t currencyData;
 
 	QMutex swapItemMutex;
 	PC pc = {};

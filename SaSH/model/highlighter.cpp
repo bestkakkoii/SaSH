@@ -39,11 +39,11 @@ const char* Highlighter::keywords(int set) const
 	}
 	case 5://KeywordSet5//深藍色
 	{
-		return "var vardelete varfree varclear format rnd true false";
+		return "var delete releaseall format rnd true false";
 	}
 	case 6://KeywordSet6//淺藍色
 	{
-		return "player pet magic skill petskill equip petequip map dialog chat ";
+		return "player pet magic skill petskill equip petequip map dialog chat point ";
 	}
 	case 7://KeywordSet7//土橘色
 	{
