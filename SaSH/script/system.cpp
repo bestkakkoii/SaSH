@@ -71,9 +71,22 @@ int Interpreter::press(int currentline, const TokenMap& TK)
 			QStringList textList = dialog.linebuttontext;
 			if (!textList.isEmpty())
 			{
+				bool isExact = true;
+				QString newText = text.toUpper();
+				if (newText.startsWith(kFuzzyPrefix))
+				{
+					newText = newText.mid(1);
+					isExact = false;
+				}
+
 				for (int i = 0; i < textList.size(); ++i)
 				{
-					if (textList.at(i).toUpper().contains(text))
+					if (!isExact && textList.at(i).toUpper().contains(newText))
+					{
+						injector.server->press(i + 1, dialogid, npcId);
+						break;
+					}
+					else if (isExact && textList.at(i).toUpper() == newText)
 					{
 						injector.server->press(i + 1, dialogid, npcId);
 						break;

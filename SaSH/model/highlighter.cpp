@@ -27,7 +27,7 @@ const char* Highlighter::keywords(int set) const
 			"get putpet getpet make cook chmap unequip recordequip "
 			"wearrecordequip addpoint join leave waitteam ifteam move "
 			"walkpos w dir findpath movetonpc lclick rclick ldbclick dragto warp "
-			"learn ocr trade run dostring ";
+			"learn ocr trade run dostring sellpet ";
 	}
 	case 3://QsciLexerLua::StringTableMathsFunction//草綠
 	{

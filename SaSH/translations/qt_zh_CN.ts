@@ -3431,6 +3431,14 @@ MESSAGE：<byte value="xd"/>
         <source>Continue</source>
         <translation>继续</translation>
     </message>
+    <message>
+        <source>callstack</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>jmpstack</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>SelectObjectForm</name>

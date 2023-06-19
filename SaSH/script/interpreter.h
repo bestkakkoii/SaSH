@@ -294,6 +294,7 @@ private: //註冊給Parser的函數
 	int droppet(int currentline, const TokenMap& TK);
 	int buy(int currentline, const TokenMap& TK);
 	int sell(int currentline, const TokenMap& TK);
+	int sellpet(int currentline, const TokenMap& TK);
 	int make(int currentline, const TokenMap& TK);
 	int cook(int currentline, const TokenMap& TK);
 	int usemagic(int currentline, const TokenMap& TK);

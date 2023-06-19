@@ -1654,6 +1654,7 @@ void Interpreter::openLibsBIG5()
 	registerFunction(u8"丟棄寵物", &Interpreter::droppet);
 	registerFunction(u8"購買", &Interpreter::buy);
 	registerFunction(u8"售賣", &Interpreter::sell);
+	registerFunction(u8"賣寵", &Interpreter::sellpet);
 	registerFunction(u8"加工", &Interpreter::make);
 	registerFunction(u8"料理", &Interpreter::cook);
 	registerFunction(u8"使用精靈", &Interpreter::usemagic);
@@ -1754,6 +1755,7 @@ void Interpreter::openLibsGB2312()
 	registerFunction(u8"丢弃宠物", &Interpreter::droppet);
 	registerFunction(u8"购买", &Interpreter::buy);
 	registerFunction(u8"售卖", &Interpreter::sell);
+	registerFunction(u8"卖宠", &Interpreter::sellpet);
 	registerFunction(u8"加工", &Interpreter::make);
 	registerFunction(u8"料理", &Interpreter::cook);
 	registerFunction(u8"使用精灵", &Interpreter::usemagic);
@@ -1852,6 +1854,7 @@ void Interpreter::openLibsUTF8()
 	registerFunction(u8"droppet", &Interpreter::droppet);
 	registerFunction(u8"buy", &Interpreter::buy);
 	registerFunction(u8"sell", &Interpreter::sell);
+	registerFunction(u8"sellpet", &Interpreter::sellpet);
 	registerFunction(u8"make", &Interpreter::make);
 	registerFunction(u8"cook", &Interpreter::cook);
 	registerFunction(u8"usemagic", &Interpreter::usemagic);

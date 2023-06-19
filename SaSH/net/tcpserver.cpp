@@ -2166,6 +2166,8 @@ void Server::lssproto_I_recv(char* cdata)
 			makeStringFromEscaped(pile);
 			pile = pile.simplified();
 			pc.item[i].pile = pile.toInt();
+			if (pc.item[i].useFlag == 1 && pc.item[i].pile == 0)
+				pc.item[i].pile = 1;
 		}
 #endif
 
@@ -2267,7 +2269,8 @@ void Server::lssproto_WN_recv(int windowtype, int buttontype, int seqno, int obj
 		for (int i = 0; i < strList.size(); i++)
 		{
 			strList[i] = strList[i].simplified();
-			strList[i].remove("　");
+			strList[i].remove(u8"　");
+			strList[i].remove(u8"》");
 		}
 	}
 
@@ -2289,10 +2292,12 @@ void Server::lssproto_WN_recv(int windowtype, int buttontype, int seqno, int obj
 	};
 	static const QStringList KNPCList = {
 		//big5
-		u8"如果能贏過我的"/*院藏*/, u8"如果想通過"/*近藏*/, u8"吼"/*紅暴*/, u8"你想找麻煩"/*七兄弟*/,
+		u8"如果能贏過我的"/*院藏*/, u8"如果想通過"/*近藏*/, u8"吼"/*紅暴*/, u8"你想找麻煩"/*七兄弟*/, u8"多謝～。",
+		u8"轉以上確定要出售？", u8"再度光臨", u8"已經太多",
 
 		//gb2312
-		u8"如果能赢过我的"/*院藏*/, u8"如果想通过"/*近藏*/, u8"吼"/*红暴*/, u8"你想找麻烦"/*七兄弟*/
+		u8"如果能赢过我的"/*院藏*/, u8"如果想通过"/*近藏*/, u8"吼"/*红暴*/, u8"你想找麻烦"/*七兄弟*/, u8"多謝～。",
+		u8"转以上确定要出售？", u8"再度光临", u8"已经太多",
 	};
 	static const QRegularExpression rexBankPet(u8R"(LV\.\s*(\d+)\s*MaxHP\s*(\d+)\s*(\S+))");
 
@@ -2403,7 +2408,7 @@ void Server::lssproto_WN_recv(int windowtype, int buttontype, int seqno, int obj
 	{
 		if (data.contains(it))
 		{
-			press(BUTTON_OK);
+			press(BUTTON_AUTO, seqno, objindex);
 			return;
 		}
 	}
@@ -2428,7 +2433,7 @@ void Server::lssproto_WN_recv(int windowtype, int buttontype, int seqno, int obj
 		{
 			if (data.contains(str))
 			{
-				press(BUTTON_YES);
+				press(BUTTON_AUTO, seqno, objindex);
 				break;
 			}
 		}
@@ -7648,6 +7653,13 @@ void Server::setPetState(int petIndex, PetState state)
 			}
 		}
 
+		if (pet[petIndex].state == kRide)
+		{
+			QString str = QString("R|P|-1");
+			std::string sstr = str.toStdString();
+			lssproto_FM_send(const_cast<char*>(sstr.c_str()));
+		}
+
 		lssproto_KS_send(petIndex);
 		pc.battlePetNo = petIndex;
 		pet[petIndex].state = kBattle;
@@ -7659,6 +7671,19 @@ void Server::setPetState(int petIndex, PetState state)
 	{
 		if (pet[petIndex].state == kStandby && pc.selectPetNo[petIndex] == 1)
 			break;
+
+		if (pet[petIndex].state == kBattle)
+		{
+			lssproto_KS_send(-1);
+			QThread::msleep(500);
+		}
+		else if (pet[petIndex].state == kMail)
+		{
+			lssproto_KS_send(petIndex);
+			QThread::msleep(500);
+			lssproto_KS_send(-1);
+			QThread::msleep(500);
+		}
 
 		pc.selectPetNo[petIndex] = 1;
 		pet[petIndex].state = kStandby;
@@ -7699,6 +7724,21 @@ void Server::setPetState(int petIndex, PetState state)
 	}
 	case kRest:
 	{
+		if (pet[petIndex].state == kBattle)
+		{
+			lssproto_KS_send(-1);
+			QThread::msleep(500);
+		}
+		else if (pet[petIndex].state == kMail)
+		{
+			lssproto_KS_send(petIndex);
+			QThread::msleep(500);
+			lssproto_KS_send(-1);
+			QThread::msleep(500);
+		}
+
+		lssproto_PETST_send(petIndex, 0);
+		lssproto_PETST_send(petIndex, 0);
 		lssproto_PETST_send(petIndex, 0);
 		pet[petIndex].state = kRest;
 		mem::writeInt(hProcess, hModule + 0x422BF34 + sizeof(short) * petIndex, 0, 1);
@@ -7722,9 +7762,11 @@ void Server::setPetState(int petIndex, PetState state)
 			{
 				if (pet[i].state == kRide && i != petIndex)
 				{
-					lssproto_PETST_send(i, 0);
+					str = QString("R|P|-1");
+					sstr = str.toStdString();
+					lssproto_FM_send(const_cast<char*>(sstr.c_str()));
 					pc.selectPetNo[i] = 0;
-					pet[i].state = kRide;
+					pet[i].state = kRest;
 					bret = true;
 					break;
 				}
@@ -9570,6 +9612,7 @@ void Server::updateDatasFromMemory()
 	int y = mem::readInt(hProcess, hModule + 0x4181D40, sizeof(int));
 	nowPoint = QPoint(x, y);
 
+	//地圖數據 原因同上
 	int floor = mem::readInt(hProcess, hModule + 0x4181190, sizeof(int));
 	QString map = mem::readString(hProcess, hModule + 0x4160228, FLOOR_NAME_LEN, true);
 	if (nowFloor != floor)
@@ -9579,17 +9622,19 @@ void Server::updateDatasFromMemory()
 		emit signalDispatcher.updateMapLabelTextChanged(QString("%1(%2)").arg(nowFloorName).arg(nowFloor));
 	}
 
+	//本来应该一次性读取整个结构体的，但我们不需要这麽多讯息
 	for (int i = 0; i < MAX_ITEM; ++i)
 	{
 		QMutexLocker locker(&swapItemMutex);
 		short useFlag = 0;
-		pc.item[i].useFlag = mem::readInt(hProcess, hModule + 0x422C028 + i * 0x184, sizeof(short));
+		constexpr int item_offest = 0x184;
+		pc.item[i].useFlag = mem::readInt(hProcess, hModule + 0x422C028 + i * item_offest, sizeof(short));
 		if (pc.item[i].useFlag == 1)
 		{
-			pc.item[i].name = mem::readString(hProcess, hModule + 0x422C032 + i * 0x184, ITEM_NAME_LEN, true, false);
-			pc.item[i].memo = mem::readString(hProcess, hModule + 0x422C060 + i * 0x184, ITEM_MEMO_LEN, true, false);
+			pc.item[i].name = mem::readString(hProcess, hModule + 0x422C032 + i * item_offest, ITEM_NAME_LEN, true, false);
+			pc.item[i].memo = mem::readString(hProcess, hModule + 0x422C060 + i * item_offest, ITEM_MEMO_LEN, true, false);
 			if (i >= CHAR_EQUIPPLACENUM)
-				pc.item[i].pile = mem::readInt(hProcess, hModule + 0x422BF58 + i * 0x184, sizeof(short));
+				pc.item[i].pile = mem::readInt(hProcess, hModule + 0x422BF58 + i * item_offest, sizeof(short));
 			else
 				pc.item[i].pile = 1;
 
@@ -9598,8 +9643,7 @@ void Server::updateDatasFromMemory()
 		}
 		else
 		{
-			pc.item[i].name = "";
-			pc.item[i].memo = "";
+			pc.item[i] = {};
 		}
 	}
 
@@ -12653,6 +12697,7 @@ void Server::lssproto_B_send(char* command)
 
 #pragma endregion
 
+#pragma region AntiGifCode
 #include <curl/curl.h>
 enum RequestType
 {
@@ -12946,3 +12991,4 @@ bool Server::postGifCodeImage(QString* pmsg)
 	qDebug() << "errorMsg: " << errorMsg;
 	return true;
 }
+#pragma endregion

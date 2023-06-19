@@ -232,13 +232,29 @@ int Interpreter::setpetstate(int currentline, const TokenMap& TK)
 	int petIndex = -1;
 	checkInt(TK, 1, &petIndex);
 	petIndex -= 1;
+	if (petIndex < 0 || petIndex >= MAX_PET)
+		return Parser::kArgError;
 
 	QString stateStr;
 	checkString(TK, 2, &stateStr);
 	if (stateStr.isEmpty())
-		stateStr = QString(u8"休息");
+		stateStr = QString(u8"rest");
 
-	PetState state = petStateMap.value(stateStr, PetState::kRest);
+	PetState state = petStateMap.value(stateStr.toLower(), PetState::kRest);
+
+
+	switch (state)
+	{
+	case PetState::kRest:
+		injector.server->setPetState(petIndex, kStandby);
+		break;
+	case PetState::kStandby:
+	case PetState::kRide:
+		injector.server->setPetState(petIndex, kRest);
+		break;
+	default:
+		break;
+	}
 
 	injector.server->setPetState(petIndex, state);
 
@@ -355,6 +371,91 @@ int Interpreter::sell(int currentline, const TokenMap& TK)
 
 		}
 	}
+
+	return Parser::kNoChange;
+}
+
+int Interpreter::sellpet(int currentline, const TokenMap& TK)
+{
+	Injector& injector = Injector::getInstance();
+
+	if (injector.server.isNull())
+		return Parser::kError;
+
+	checkBattleThenWait();
+
+	mapunit_t unit;
+	if (!injector.server->findUnit("宠物店", util::OBJ_NPC, &unit))
+	{
+		if (!injector.server->findUnit("寵物店", util::OBJ_NPC, &unit))
+			return Parser::kNoChange;
+	}
+
+	int petIndex = -1;
+	int min = 1, max = MAX_PET;
+	if (!checkRange(TK, 1, &min, &max))
+	{
+		min = 0;
+		checkInt(TK, 1, &min);
+		if (min <= 0 || min > MAX_PET)
+			return Parser::kArgError;
+		max = min;
+	}
+
+	for (int petIndex = min; petIndex <= max; ++petIndex)
+	{
+		if (isInterruptionRequested())
+			return Parser::kNoChange;
+
+		if (injector.server.isNull())
+			return Parser::kError;
+
+		if (injector.server->pet[petIndex - 1].useFlag == 0)
+			continue;
+
+		bool bret = false;
+		for (;;)
+		{
+			if (isInterruptionRequested())
+				return Parser::kNoChange;
+
+			if (injector.server.isNull())
+				return Parser::kError;
+
+			dialog_t dialog = injector.server->currentDialog.get();
+			switch (dialog.seqno)
+			{
+			case 263:
+			{
+				injector.server->IS_WAITFOR_DIALOG_FLAG = true;
+				injector.server->press(BUTTON_AUTO);
+				waitfor(1000, [&injector]()->bool { return !injector.server->IS_WAITFOR_DIALOG_FLAG; });
+				bret = true;
+				break;
+			}
+			case 262:
+			{
+				injector.server->IS_WAITFOR_DIALOG_FLAG = true;
+				injector.server->press(petIndex, 262, unit.id);
+				waitfor(1000, [&injector]()->bool { return !injector.server->IS_WAITFOR_DIALOG_FLAG; });
+				break;
+			}
+			default:
+			{
+				injector.server->IS_WAITFOR_DIALOG_FLAG = true;
+				injector.server->press(3, 261, unit.id);
+				waitfor(1000, [&injector]()->bool { return !injector.server->IS_WAITFOR_DIALOG_FLAG; });
+				break;
+			}
+			}
+
+			if (bret)
+				break;
+
+			//QThread::msleep(300);
+		}
+	}
+
 
 	return Parser::kNoChange;
 }
@@ -1225,6 +1326,8 @@ int Interpreter::mousedragto(int currentline, const TokenMap& TK)
 	if (injector.server.isNull())
 		return Parser::kError;
 
+	checkBattleThenWait();
+
 	QPoint pfrom;
 	checkInt(TK, 1, &pfrom.rx());
 	checkInt(TK, 2, &pfrom.ry());
@@ -1243,6 +1346,8 @@ int Interpreter::trade(int currentline, const TokenMap& TK)
 
 	if (injector.server.isNull())
 		return Parser::kError;
+
+	checkBattleThenWait();
 
 	QString name;
 	checkString(TK, 1, &name);

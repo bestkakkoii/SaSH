@@ -1646,6 +1646,12 @@ static const QHash<QString, PetState> petStateMap = {
 	{ u8"邮件", kMail },
 	{ u8"休息", kRest },
 	{ u8"骑乘", kRide },
+
+	{ u8"battle", kBattle },
+	{ u8"standby", kStandby },
+	{ u8"mail", kMail },
+	{ u8"rest", kRest },
+	{ u8"ride", kRide },
 };
 
 static const QHash<QString, DirType> dirMap = {
@@ -2069,7 +2075,7 @@ private:
 #else
 		return QDateTime::currentMSecsSinceEpoch();
 #endif
-}
+	}
 
 	inline void setWarpMap(const QPoint& pos)
 	{
