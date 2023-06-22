@@ -8,7 +8,7 @@ class OtherForm : public QWidget
 	Q_OBJECT
 public:
 	OtherForm(QWidget* parent = nullptr);
-	~OtherForm();
+	virtual ~OtherForm();
 
 signals:
 	void resetControlTextLanguage();

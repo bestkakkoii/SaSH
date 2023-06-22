@@ -876,6 +876,8 @@ void AfkForm::onApplyHashSettingsToUI()
 	ui.comboBox_normalaction_pet_enemy->setCurrentIndex(injector.getValueHash(util::kBattlePetNormalActionEnemyValue));
 	ui.comboBox_normalaction_pet_level->setCurrentIndex(injector.getValueHash(util::kBattlePetNormalActionLevelValue));
 
+	ui.comboBox_magicheal->setCurrentIndex(injector.getValueHash(util::kBattleMagicHealMagicValue));
+
 	ui.comboBox_itemheal->setCurrentText(injector.getStringHash(util::kBattleItemHealItemString));
 	ui.comboBox_itemhealmp->setCurrentText(injector.getStringHash(util::kBattleItemHealMpIteamString));
 	ui.comboBox_itemrevive->setCurrentText(injector.getStringHash(util::kBattleItemReviveItemString));

@@ -71,6 +71,9 @@ OtherForm::OtherForm(QWidget* parent)
 	connect(&signalDispatcher, &SignalDispatcher::applyHashSettingsToUI, this, &OtherForm::onApplyHashSettingsToUI, Qt::UniqueConnection);
 	connect(&signalDispatcher, &SignalDispatcher::updateTeamInfo, this, &OtherForm::onUpdateTeamInfo, Qt::UniqueConnection);
 
+	ui.spinBox_lockpetslevel->setEnabled(true);
+	ui.spinBox_lockrideslevel->setEnabled(true);
+
 	emit signalDispatcher.applyHashSettingsToUI();
 }
 
@@ -90,11 +93,11 @@ void OtherForm::groupBoxClicked(bool checked)
 
 	if (name == "groupBox_lockpets")
 	{
-
+		injector.setEnableHash(util::kLockPetScheduleEnable, checked);
 	}
 	else if (name == "groupBox_lockrides")
 	{
-
+		injector.setEnableHash(util::kLockRideScheduleEnable, checked);
 	}
 }
 
@@ -115,11 +118,41 @@ void OtherForm::onListWidgetDoubleClicked(QListWidgetItem* item)
 		//delete item
 		int row = pListWidget->row(item);
 		pListWidget->takeItem(row);
+		int size = ui.listWidget_lockpets->count();
+		QStringList list;
+		for (int i = 0; i < size; ++i)
+		{
+			QListWidgetItem* item = ui.listWidget_lockpets->item(i);
+			if (item)
+			{
+				QString str = item->text().simplified();
+				if (str.isEmpty())
+					continue;
+				str.replace(",", "\\c");
+				list.append(str);
+			}
+		}
+		injector.setStringHash(util::kLockPetScheduleString, list.join("|"));
 	}
 	else if (name == "listWidget_lockrides")
 	{
 		int row = pListWidget->row(item);
 		pListWidget->takeItem(row);
+		int size = ui.listWidget_lockrides->count();
+		QStringList list;
+		for (int i = 0; i < size; ++i)
+		{
+			QListWidgetItem* item = ui.listWidget_lockrides->item(i);
+			if (item)
+			{
+				QString str = item->text().simplified();
+				if (str.isEmpty())
+					continue;
+
+				list.append(str);
+			}
+		}
+		injector.setStringHash(util::kLockRideScheduleString, list.join("|"));
 	}
 }
 
@@ -140,7 +173,7 @@ void OtherForm::onButtonClicked()
 		if (injector.server.isNull() || !injector.server->IS_ONLINE_FLAG)
 			return;
 
-		QString text = ui.comboBox_lockpets->currentText();
+		QString text = ui.comboBox_lockpets->currentText().simplified();
 		int level = ui.spinBox_lockpetslevel->value();
 		QString str = QString("%1, %2").arg(text).arg(level);
 		ui.listWidget_lockpets->addItem(str);
@@ -152,7 +185,9 @@ void OtherForm::onButtonClicked()
 			QListWidgetItem* item = ui.listWidget_lockpets->item(i);
 			if (item)
 			{
-				QString str = item->text();
+				QString str = item->text().simplified();
+				if (str.isEmpty())
+					continue;
 				list.append(str);
 			}
 		}
@@ -164,7 +199,7 @@ void OtherForm::onButtonClicked()
 		if (injector.server.isNull() || !injector.server->IS_ONLINE_FLAG)
 			return;
 
-		QString text = ui.comboBox_lockrides->currentText();
+		QString text = ui.comboBox_lockrides->currentText().simplified();
 		int level = ui.spinBox_lockrideslevel->value();
 		QString str = QString("%1, %2").arg(text).arg(level);
 		ui.listWidget_lockrides->addItem(str);
@@ -176,7 +211,9 @@ void OtherForm::onButtonClicked()
 			QListWidgetItem* item = ui.listWidget_lockrides->item(i);
 			if (item)
 			{
-				QString str = item->text();
+				QString str = item->text().simplified();
+				if (str.isEmpty())
+					continue;
 				list.append(str);
 			}
 		}
@@ -463,12 +500,14 @@ void OtherForm::onApplyHashSettingsToUI()
 	ui.groupBox_lockpets->setChecked(enableHash.value(util::kLockPetScheduleEnable));
 	ui.groupBox_lockrides->setChecked(enableHash.value(util::kLockRideScheduleEnable));
 
-	QString schedule = stringHash.value(util::kLockPetScheduleString);
-	QStringList scheduleList = schedule.split(util::rexComma);
+	QString schedule = stringHash.value(util::kLockPetScheduleString).simplified();
+	QStringList scheduleList = schedule.split(util::rexOR, Qt::SkipEmptyParts);
+	ui.listWidget_lockpets->clear();
 	ui.listWidget_lockpets->addItems(scheduleList);
 
-	schedule = stringHash.value(util::kLockRideScheduleString);
-	scheduleList = schedule.split(util::rexComma);
+	schedule = stringHash.value(util::kLockRideScheduleString).simplified();
+	scheduleList = schedule.split(util::rexOR, Qt::SkipEmptyParts);
+	ui.listWidget_lockrides->clear();
 	ui.listWidget_lockrides->addItems(scheduleList);
 }
 

@@ -1543,7 +1543,7 @@ void MainObject::checkAutoLockPet()
 	if (injector.server.isNull())
 		return;
 
-	bool enableLockPet = injector.getEnableHash(util::kLockPetEnable);
+	bool enableLockPet = injector.getEnableHash(util::kLockPetEnable) && !injector.getEnableHash(util::kLockPetScheduleEnable);
 	if (enableLockPet)
 	{
 		int lockPetIndex = injector.getValueHash(util::kLockPetValue);
@@ -1557,7 +1557,7 @@ void MainObject::checkAutoLockPet()
 		}
 	}
 
-	bool enableLockRide = injector.getEnableHash(util::kLockRideEnable);
+	bool enableLockRide = injector.getEnableHash(util::kLockRideEnable) && !injector.getEnableHash(util::kLockRideScheduleEnable);
 	if (enableLockRide)
 	{
 		int lockRideIndex = injector.getValueHash(util::kLockRideValue);
@@ -1588,15 +1588,16 @@ void MainObject::checkAutoLockSchedule()
 			if (lockPetSchedule.isEmpty())
 				break;
 
-			QStringList scheduleList = lockPetSchedule.split(util::rexComma, Qt::SkipEmptyParts);
+			QStringList scheduleList = lockPetSchedule.split(util::rexOR, Qt::SkipEmptyParts);
 			if (scheduleList.isEmpty())
 				break;
-			for (const QString& it : scheduleList)
+
+			for (QString& it : scheduleList)
 			{
 				if (it.isEmpty())
 					continue;
 
-				QStringList dataList = it.split(util::rexOR, Qt::SkipEmptyParts);
+				QStringList dataList = it.split(util::rexComma, Qt::SkipEmptyParts);
 				if (dataList.size() != 2)
 					continue;
 
@@ -1610,6 +1611,7 @@ void MainObject::checkAutoLockSchedule()
 				petIndex = nameStr.toInt(&ok);
 				if (!ok)
 					continue;
+				--petIndex;
 
 				if (petIndex < 0 || petIndex >= MAX_PET)
 					continue;
@@ -1646,9 +1648,9 @@ void MainObject::checkAutoLockSchedule()
 		return false;
 	};
 
-	if (injector.getEnableHash(util::kLockPetScheduleEnable))
+	if (injector.getEnableHash(util::kLockPetScheduleEnable) && !injector.getEnableHash(util::kLockPetEnable))
 		checkSchedule(util::kLockPetScheduleString);
-	if (injector.getEnableHash(util::kLockRideScheduleEnable))
+	if (injector.getEnableHash(util::kLockRideScheduleEnable) && !injector.getEnableHash(util::kLockRideEnable))
 		checkSchedule(util::kLockRideScheduleString);
 }
 
