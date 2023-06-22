@@ -5,6 +5,8 @@
 #include "util.h"
 #include "script/interpreter.h"
 
+
+class QTextDocument;
 class QSpinBox;
 class ScriptSettingForm : public QMainWindow
 {
@@ -26,6 +28,7 @@ private:
 	void setMark(CodeEditor::SymbolHandler element, util::SafeHash<QString, util::SafeHash<int, break_marker_t>>& hash, int liner, bool b);
 
 	void varInfoImport(QTreeWidget* tree, const QHash<QString, QVariant>& d);
+	void stackInfoImport(QTreeWidget* tree, const QHash <int, QString>& d);
 
 	void reshowBreakMarker();
 
@@ -34,6 +37,7 @@ private:
 	void createScriptListContextMenu();
 
 	QString getFullPath(QTreeWidgetItem* item);
+
 
 private slots:
 	void onApplyHashSettingsToUI();
@@ -60,6 +64,9 @@ private slots:
 	void onLocalVarInfoImport(const QHash<QString, QVariant>& d);
 	void onContinue();
 
+	void onCallStackInfoChanged(const QHash <int, QString>& var);
+	void onJumpStackInfoChanged(const QHash <int, QString>& var);
+
 	void onEncryptSave();
 	void onDecryptSave();
 
@@ -70,8 +77,11 @@ private slots:
 	void on_lineEdit_searchFunction_textChanged(const QString& text);
 	void on_widget_marginClicked(int margin, int line, Qt::KeyboardModifiers state);
 	void on_treeWidget_functionList_itemDoubleClicked(QTreeWidgetItem* item, int column);
-	void on_treeWidget_functionList_itemClicked(QTreeWidgetItem* item, int column);
+	void on_treeWidget_functionList_itemSelectionChanged();
 	void on_treeWidget_scriptList_itemClicked(QTreeWidgetItem* item, int column);
+	void on_treeWidget_breakList_itemDoubleClicked(QTreeWidgetItem* item, int column);
+
+
 private:
 	Ui::ScriptSettingFormClass ui;
 	QLabel m_staticLabel;
@@ -82,6 +92,6 @@ private:
 	QHash<QString, QString> m_scripts;
 	QHash<QString, QVariant> currentGlobalVarInfo_;
 	QHash<QString, QVariant> currentLocalVarInfo_;
-
+	QHash<QString, QSharedPointer<QTextDocument>> document_;
 	QSpinBox* pSpeedSpinBox = nullptr;
 };

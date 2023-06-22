@@ -25,4 +25,5 @@ private slots:
 private:
 	Ui::ChatInfoFormClass ui;
 	ColorDelegate* delegate_ = nullptr;
+	QStringList channelList_;
 };

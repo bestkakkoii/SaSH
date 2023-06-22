@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>309</width>
-    <height>423</height>
+    <width>344</width>
+    <height>439</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -47,7 +47,7 @@
       <enum>QTabWidget::Rounded</enum>
      </property>
      <property name="currentIndex">
-      <number>3</number>
+      <number>1</number>
      </property>
      <property name="documentMode">
       <bool>false</bool>
@@ -152,7 +152,7 @@
                 <item>
                  <widget class="QPushButton" name="pushButton_leaderleave">
                   <property name="enabled">
-                   <bool>false</bool>
+                   <bool>true</bool>
                   </property>
                   <property name="text">
                    <string>L</string>
@@ -204,7 +204,7 @@
                 <item>
                  <widget class="QPushButton" name="pushButton_teammate1kick">
                   <property name="enabled">
-                   <bool>false</bool>
+                   <bool>true</bool>
                   </property>
                   <property name="text">
                    <string>K</string>
@@ -256,7 +256,7 @@
                 <item>
                  <widget class="QPushButton" name="pushButton_teammate2kick">
                   <property name="enabled">
-                   <bool>false</bool>
+                   <bool>true</bool>
                   </property>
                   <property name="text">
                    <string>K</string>
@@ -308,7 +308,7 @@
                 <item>
                  <widget class="QPushButton" name="pushButton_teammate3kick">
                   <property name="enabled">
-                   <bool>false</bool>
+                   <bool>true</bool>
                   </property>
                   <property name="text">
                    <string>K</string>
@@ -360,7 +360,7 @@
                 <item>
                  <widget class="QPushButton" name="pushButton_teammate4kick">
                   <property name="enabled">
-                   <bool>false</bool>
+                   <bool>true</bool>
                   </property>
                   <property name="text">
                    <string>K</string>
@@ -537,27 +537,9 @@
       <attribute name="title">
        <string>lockpet</string>
       </attribute>
-      <layout class="QGridLayout" name="gridLayout_32">
-       <property name="leftMargin">
-        <number>1</number>
-       </property>
-       <property name="topMargin">
-        <number>1</number>
-       </property>
-       <property name="rightMargin">
-        <number>1</number>
-       </property>
-       <property name="bottomMargin">
-        <number>1</number>
-       </property>
-       <property name="spacing">
-        <number>1</number>
-       </property>
+      <layout class="QGridLayout" name="gridLayout_4">
        <item row="0" column="0">
-        <layout class="QVBoxLayout" name="verticalLayout_26">
-         <property name="spacing">
-          <number>1</number>
-         </property>
+        <layout class="QVBoxLayout" name="verticalLayout">
          <item>
           <widget class="QGroupBox" name="groupBox_4">
            <property name="title">
@@ -663,9 +645,9 @@
               <number>1</number>
              </property>
              <item row="0" column="0">
-              <widget class="QGroupBox" name="groupBox_5">
+              <widget class="QGroupBox" name="groupBox_lockpets">
                <property name="enabled">
-                <bool>false</bool>
+                <bool>true</bool>
                </property>
                <property name="title">
                 <string>pet switch</string>
@@ -676,7 +658,7 @@
                <property name="checked">
                 <bool>false</bool>
                </property>
-               <layout class="QGridLayout" name="gridLayout_30">
+               <layout class="QGridLayout" name="gridLayout_5">
                 <property name="leftMargin">
                  <number>1</number>
                 </property>
@@ -703,7 +685,7 @@
                      <number>1</number>
                     </property>
                     <item>
-                     <widget class="QTableWidget" name="tableWidget_2"/>
+                     <widget class="QListWidget" name="listWidget_lockpets"/>
                     </item>
                     <item>
                      <layout class="QVBoxLayout" name="verticalLayout_22">
@@ -711,7 +693,7 @@
                        <number>1</number>
                       </property>
                       <item>
-                       <widget class="QPushButton" name="pushButton_16">
+                       <widget class="QPushButton" name="pushButton_lockpetsup">
                         <property name="sizePolicy">
                          <sizepolicy hsizetype="Minimum" vsizetype="Minimum">
                           <horstretch>0</horstretch>
@@ -730,7 +712,7 @@
                        </widget>
                       </item>
                       <item>
-                       <widget class="QPushButton" name="pushButton_17">
+                       <widget class="QPushButton" name="pushButton_lockpetsdown">
                         <property name="sizePolicy">
                          <sizepolicy hsizetype="Minimum" vsizetype="Minimum">
                           <horstretch>0</horstretch>
@@ -758,20 +740,39 @@
                      <number>1</number>
                     </property>
                     <item>
-                     <widget class="QLabel" name="label_48">
-                      <property name="sizePolicy">
-                       <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
-                        <horstretch>0</horstretch>
-                        <verstretch>0</verstretch>
-                       </sizepolicy>
+                     <widget class="ComboBox" name="comboBox_lockpets"/>
+                    </item>
+                    <item>
+                     <widget class="QSpinBox" name="spinBox_lockpetslevel">
+                      <property name="enabled">
+                       <bool>false</bool>
                       </property>
-                      <property name="text">
-                       <string>1.------------- target level:</string>
+                      <property name="maximumSize">
+                       <size>
+                        <width>50</width>
+                        <height>16777215</height>
+                       </size>
+                      </property>
+                      <property name="minimum">
+                       <number>1</number>
+                      </property>
+                      <property name="maximum">
+                       <number>255</number>
                       </property>
                      </widget>
                     </item>
                     <item>
-                     <widget class="QSpinBox" name="spinBox_31"/>
+                     <widget class="QPushButton" name="pushButton_lockpetsadd">
+                      <property name="maximumSize">
+                       <size>
+                        <width>25</width>
+                        <height>25</height>
+                       </size>
+                      </property>
+                      <property name="text">
+                       <string>+</string>
+                      </property>
+                     </widget>
                     </item>
                    </layout>
                   </item>
@@ -786,7 +787,7 @@
             <attribute name="title">
              <string>ride</string>
             </attribute>
-            <layout class="QGridLayout" name="gridLayout_28">
+            <layout class="QGridLayout" name="gridLayout_2">
              <property name="leftMargin">
               <number>1</number>
              </property>
@@ -803,9 +804,9 @@
               <number>1</number>
              </property>
              <item row="0" column="0">
-              <widget class="QGroupBox" name="groupBox_6">
+              <widget class="QGroupBox" name="groupBox_lockrides">
                <property name="enabled">
-                <bool>false</bool>
+                <bool>true</bool>
                </property>
                <property name="title">
                 <string>ride switch</string>
@@ -816,7 +817,7 @@
                <property name="checked">
                 <bool>false</bool>
                </property>
-               <layout class="QGridLayout" name="gridLayout_29">
+               <layout class="QGridLayout" name="gridLayout_3">
                 <property name="leftMargin">
                  <number>1</number>
                 </property>
@@ -833,25 +834,25 @@
                  <number>1</number>
                 </property>
                 <item row="0" column="0">
-                 <layout class="QVBoxLayout" name="verticalLayout_24">
+                 <layout class="QVBoxLayout" name="verticalLayout_32">
                   <property name="spacing">
                    <number>1</number>
                   </property>
                   <item>
-                   <layout class="QHBoxLayout" name="horizontalLayout_99">
+                   <layout class="QHBoxLayout" name="horizontalLayout_110">
                     <property name="spacing">
                      <number>1</number>
                     </property>
                     <item>
-                     <widget class="QTableWidget" name="tableWidget_3"/>
+                     <widget class="QListWidget" name="listWidget_lockrides"/>
                     </item>
                     <item>
-                     <layout class="QVBoxLayout" name="verticalLayout_25">
+                     <layout class="QVBoxLayout" name="verticalLayout_33">
                       <property name="spacing">
                        <number>1</number>
                       </property>
                       <item>
-                       <widget class="QPushButton" name="pushButton_18">
+                       <widget class="QPushButton" name="pushButton_lockridesup">
                         <property name="sizePolicy">
                          <sizepolicy hsizetype="Minimum" vsizetype="Minimum">
                           <horstretch>0</horstretch>
@@ -870,7 +871,7 @@
                        </widget>
                       </item>
                       <item>
-                       <widget class="QPushButton" name="pushButton_19">
+                       <widget class="QPushButton" name="pushButton_lockridesdown">
                         <property name="sizePolicy">
                          <sizepolicy hsizetype="Minimum" vsizetype="Minimum">
                           <horstretch>0</horstretch>
@@ -893,25 +894,44 @@
                    </layout>
                   </item>
                   <item>
-                   <layout class="QHBoxLayout" name="horizontalLayout_100">
+                   <layout class="QHBoxLayout" name="horizontalLayout_111">
                     <property name="spacing">
                      <number>1</number>
                     </property>
                     <item>
-                     <widget class="QLabel" name="label_49">
-                      <property name="sizePolicy">
-                       <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
-                        <horstretch>0</horstretch>
-                        <verstretch>0</verstretch>
-                       </sizepolicy>
+                     <widget class="ComboBox" name="comboBox_lockrides"/>
+                    </item>
+                    <item>
+                     <widget class="QSpinBox" name="spinBox_lockrideslevel">
+                      <property name="enabled">
+                       <bool>false</bool>
                       </property>
-                      <property name="text">
-                       <string>1.------------- target level:</string>
+                      <property name="maximumSize">
+                       <size>
+                        <width>50</width>
+                        <height>16777215</height>
+                       </size>
+                      </property>
+                      <property name="minimum">
+                       <number>1</number>
+                      </property>
+                      <property name="maximum">
+                       <number>255</number>
                       </property>
                      </widget>
                     </item>
                     <item>
-                     <widget class="QSpinBox" name="spinBox_32"/>
+                     <widget class="QPushButton" name="pushButton_lockridesadd">
+                      <property name="maximumSize">
+                       <size>
+                        <width>25</width>
+                        <height>25</height>
+                       </size>
+                      </property>
+                      <property name="text">
+                       <string>+</string>
+                      </property>
+                     </widget>
                     </item>
                    </layout>
                   </item>
@@ -925,19 +945,6 @@
           </widget>
          </item>
         </layout>
-       </item>
-       <item row="1" column="0">
-        <spacer name="verticalSpacer_3">
-         <property name="orientation">
-          <enum>Qt::Vertical</enum>
-         </property>
-         <property name="sizeHint" stdset="0">
-          <size>
-           <width>20</width>
-           <height>40</height>
-          </size>
-         </property>
-        </spacer>
        </item>
       </layout>
      </widget>

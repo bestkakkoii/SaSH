@@ -6,6 +6,7 @@
 #include <QTextEdit>
 #include <QFile>
 #include <QKeyEvent>
+#include <qdialogbuttonbox.h>
 
 #ifdef _DEBUG
 #pragma comment(lib, "qscintilla2_qt5d.lib")
@@ -17,12 +18,12 @@ CodeEditor::CodeEditor(QWidget* parent)
 	: QsciScintilla(parent)
 	, textLexer(this)
 	, apis(&textLexer)
-	, font("YaHei Consolas Hybrid", 11, 570/*QFont::DemiBold*/, false)
+	, font("YaHei Consolas Hybrid", 12, 570/*QFont::DemiBold*/, false)
 
 {
 	//install font
 	QFontDatabase::addApplicationFont(QCoreApplication::applicationDirPath() + "/YaHei Consolas Hybrid 1.12.ttf");
-	QFont _font("YaHei Consolas Hybrid", 11, 570/*QFont::DemiBold*/, false);
+	QFont _font("YaHei Consolas Hybrid", 12, 570/*QFont::DemiBold*/, false);
 	setFont(_font);
 	font = _font;
 
@@ -237,15 +238,32 @@ void CodeEditor::keyPressEvent(QKeyEvent* e)
 			commentSwitch();
 			break;
 		}
+		case Qt::Key_F:
+		{
+			findReplace();
+			return;
+		}
 		case Qt::Key_O:
 		{
 			foldAll();
+			return;
+		}
+		case Qt::Key_G:
+		{
+			jumpToLineDialog();
 			return;
 		}
 		}
 	}
 
 	return QsciScintilla::keyPressEvent(e);
+}
+
+void CodeEditor::findReplace()
+{
+	ReplaceDialog* replaceDialog = new ReplaceDialog(this);
+	replaceDialog->setModal(false);
+	replaceDialog->show();
 }
 
 void CodeEditor::commentSwitch()
@@ -329,4 +347,39 @@ void CodeEditor::commentSwitch()
 		if (!retstring.isEmpty())
 			replaceSelectedText(retstring);
 	}
+}
+
+
+void CodeEditor::jumpToLineDialog()
+{
+	QSharedPointer<int> pline(new int(1));
+	JumpToLineDialog* dialog = new JumpToLineDialog(this, pline.get());
+	if (dialog == nullptr)
+		return;
+
+	isDialogOpened = true;
+
+	//connect if accept then jump to line
+	connect(dialog, &JumpToLineDialog::accepted, [this, pline]()
+		{
+			int line = *pline.get();
+			setCursorPosition(line - 1, 0);
+			QString text = this->text(line - 1);
+			setSelection(line - 1, 0, line - 1, text.length());
+			ensureLineVisible(line - 1);
+			isDialogOpened = false;
+		});
+
+	connect(dialog, &JumpToLineDialog::rejected, [this]()
+		{
+			isDialogOpened = false;
+		});
+
+	connect(dialog, &JumpToLineDialog::close, [this]()
+		{
+			isDialogOpened = false;
+		});
+
+	dialog->show();
+
 }

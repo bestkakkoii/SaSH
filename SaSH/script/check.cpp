@@ -132,37 +132,30 @@ int Interpreter::checkdialog(int currentline, const TokenMap& TK)
 		return Parser::kArgError;
 
 	int min = 1;
-	int max = 8;
+	int max = 10;
 	if (!checkRange(TK, 2, &min, &max))
 		return Parser::kArgError;
-
-	--min;
-	--max;
 
 	int timeout = 5000;
 	checkInt(TK, 3, &timeout);
 
 	bool bret = waitfor(timeout, [&injector, min, max, cmpStr]()->bool
 		{
-			dialog_t dialog = injector.server->currentDialog.get();
-			QStringList dialogList = dialog.linedatas;
+			util::SafeHash<int, QVariant> hashdialog = injector.server->hashdialog;
 			for (int i = min; i <= max; i++)
 			{
-				if (i >= dialogList.size())
+				if (!hashdialog.contains(i))
 					break;
 
-				QString text = dialogList.at(i);
+				QString text = hashdialog.value(i).toString();
 				if (text.isEmpty())
 					continue;
 
-				if (text.contains(cmpStr))
+				if (text.contains(cmpStr, Qt::CaseInsensitive))
 				{
 					return true;
 				}
 			}
-
-			if (min == 0 && max == 7)
-				return dialog.data.contains(cmpStr);
 
 			return false;
 		});
@@ -178,8 +171,8 @@ int Interpreter::checkchathistory(int currentline, const TokenMap& TK)
 	if (injector.server.isNull())
 		return Parser::kError;
 
-	int min = 0;
-	int max = 19;
+	int min = 1;
+	int max = 20;
 	if (!checkRange(TK, 1, &min, &max))
 		return Parser::kArgError;
 
@@ -191,19 +184,19 @@ int Interpreter::checkchathistory(int currentline, const TokenMap& TK)
 	int timeout = 5000;
 	checkInt(TK, 3, &timeout);
 
-	QVector<QPair<int, QString>> chatHistory = injector.server->chatQueue.values();
-	bool bret = waitfor(timeout, [&chatHistory, min, max, cmpStr]()->bool
+	bool bret = waitfor(timeout, [&injector, min, max, cmpStr]()->bool
 		{
+			util::SafeHash<int, QVariant> hashchat = injector.server->hashchat;
 			for (int i = min; i <= max; i++)
 			{
-				if (i >= chatHistory.size())
+				if (!hashchat.contains(i))
 					break;
 
-				QPair<int, QString> text = chatHistory.at(i);
-				if (text.second.isEmpty())
+				QString text = hashchat.value(i).toString();
+				if (text.isEmpty())
 					continue;
 
-				if (text.second.contains(cmpStr))
+				if (text.contains(cmpStr, Qt::CaseInsensitive))
 				{
 					return true;
 				}
@@ -303,7 +296,7 @@ int Interpreter::checkteam(int currentline, const TokenMap& TK)
 			return (pc.status & CHR_STATUS_LEADER) || (pc.status & CHR_STATUS_PARTY);
 		});
 
-	return checkJump(TK, 1, bret, FailedJump);
+	return checkJump(TK, 2, bret, FailedJump);
 }
 
 int Interpreter::checkitemfull(int currentline, const TokenMap& TK)

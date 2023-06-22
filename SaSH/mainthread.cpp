@@ -270,6 +270,8 @@ int MainObject::checkAndRunFunctions()
 				QThread::msleep(100);
 			}
 			injector.server->clear();
+			if (!injector.chatLogModel.isNull())
+				injector.chatLogModel->clear();
 		}
 
 		injector.server->loginTimer.restart();
@@ -344,8 +346,10 @@ int MainObject::checkAndRunFunctions()
 			recorder.deadthcount = 0;
 			injector.server->recorder[i + 1] = recorder;
 		}
+
 		emit signalDispatcher.updateNpcList(injector.server->nowFloor);
 		emit signalDispatcher.applyHashSettingsToUI();
+
 		return 1;
 	}
 
@@ -368,6 +372,9 @@ int MainObject::checkAndRunFunctions()
 
 	//自動丟寵
 	checkAutoDropPet();
+
+	//鎖寵排程
+	checkAutoLockSchedule();
 
 	//平時
 	if (!injector.server->IS_BATTLE_FLAG)
@@ -1563,6 +1570,86 @@ void MainObject::checkAutoLockPet()
 			}
 		}
 	}
+}
+
+//自動鎖寵排程
+void MainObject::checkAutoLockSchedule()
+{
+	Injector& injector = Injector::getInstance();
+	if (injector.server.isNull())
+		return;
+
+	auto checkSchedule = [](util::UserSetting set)->bool
+	{
+		Injector& injector = Injector::getInstance();
+		QString lockPetSchedule = injector.getStringHash(set);
+		do
+		{
+			if (lockPetSchedule.isEmpty())
+				break;
+
+			QStringList scheduleList = lockPetSchedule.split(util::rexComma, Qt::SkipEmptyParts);
+			if (scheduleList.isEmpty())
+				break;
+			for (const QString& it : scheduleList)
+			{
+				if (it.isEmpty())
+					continue;
+
+				QStringList dataList = it.split(util::rexOR, Qt::SkipEmptyParts);
+				if (dataList.size() != 2)
+					continue;
+
+				QString name = dataList.at(0).simplified();
+				if (name.isEmpty())
+					continue;
+
+				QString nameStr = name.left(1);
+				int petIndex = -1;
+				bool ok = false;
+				petIndex = nameStr.toInt(&ok);
+				if (!ok)
+					continue;
+
+				if (petIndex < 0 || petIndex >= MAX_PET)
+					continue;
+
+				QString levelStr = dataList.at(1).simplified();
+				if (levelStr.isEmpty())
+					continue;
+
+				ok = false;
+				int level = levelStr.toInt(&ok);
+				if (!ok)
+					continue;
+
+				if (level < 0 || level > 255)
+					continue;
+
+				PET pet = injector.server->pet[petIndex];
+
+				if (pet.level >= level)
+					continue;
+
+				if (set == util::kLockPetScheduleString)
+				{
+					injector.server->setPetState(petIndex, kBattle);
+					return true;
+				}
+				else if (set == util::kLockRideScheduleString)
+				{
+					injector.server->setPetState(petIndex, kRide);
+					return true;
+				}
+			}
+		} while (false);
+		return false;
+	};
+
+	if (injector.getEnableHash(util::kLockPetScheduleEnable))
+		checkSchedule(util::kLockPetScheduleString);
+	if (injector.getEnableHash(util::kLockRideScheduleEnable))
+		checkSchedule(util::kLockRideScheduleString);
 }
 
 //自動吃經驗加乘道具

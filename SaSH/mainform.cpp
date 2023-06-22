@@ -220,7 +220,7 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, long* res
 			});
 		++interfaceCount_;
 		updateStatusText();
-		interpreter->doString(script);
+		interpreter->doString(script, nullptr, Interpreter::kNotShare);
 		return true;
 	}
 	case InterfaceMessage::kStopScript:
@@ -417,9 +417,9 @@ MainForm::MainForm(QWidget* parent)
 
 MainForm::~MainForm()
 {
+	qDebug() << "MainForm::~MainForm()";
 	Injector::getInstance().close();
 	MINT::NtTerminateProcess(GetCurrentProcess(), 0);
-	qDebug() << "MainForm::~MainForm()";
 }
 
 void MainForm::showEvent(QShowEvent* e)
@@ -449,17 +449,49 @@ void MainForm::onMenuActionTriggered()
 	//system
 	if (actionName == "actionHide")
 	{
+		if (trayIcon == nullptr)
+		{
+			trayIcon = new QSystemTrayIcon(this);
+			QIcon icon = QIcon(":/image/ico.png");
+			trayIcon->setIcon(icon);
+			QMenu* trayMenu = new QMenu(this);
+			QAction* openAction = new QAction(tr("open"), this);
+			QAction* closeAction = new QAction(tr("close"), this);
+			trayMenu->addAction(openAction);
+			trayMenu->addAction(closeAction);
+			connect(openAction, &QAction::triggered, this, &QMainWindow::show);
+			connect(openAction, &QAction::triggered, [this]()
+				{
+					trayIcon->hide();
+				});
+			connect(closeAction, &QAction::triggered, this, &QMainWindow::close);
 
+			trayIcon->setContextMenu(trayMenu);
+			connect(trayIcon, &QSystemTrayIcon::activated, this, [this](QSystemTrayIcon::ActivationReason reason)
+				{
+					if (reason == QSystemTrayIcon::DoubleClick)
+					{
+						// 从系统托盘恢复窗口显示
+						this->show();
+						trayIcon->hide();
+					}
+				});
+			trayIcon->setToolTip(windowTitle());
+		}
+		hide();
+		trayIcon->showMessage(tr("Tip"), tr("The program has been minimized to the system tray"), QSystemTrayIcon::Information, 2000);
+		trayIcon->show();
 	}
 
 	else if (actionName == "actionInfo")
 	{
-
+		QMessageBox::information(this, "SaSH", u8"Bestkakkoii\n2019-2023 All rights reserved\n\nQQ:224068611");
 	}
 
-	else if (actionName == "actionWibsite")
+	else if (actionName == "actionWebsite")
 	{
 		//QDesktopServices::openUrl(QUrl("https://www.lovesa.cc"));
+		QMessageBox::information(this, "SaSH", u8"Bestkakkoii\n2019-2023 All rights reserved\n\nQQ:224068611");
 	}
 
 	else if (actionName == "actionClose")
@@ -542,7 +574,7 @@ void MainForm::onMenuActionTriggered()
 		if (QDownloader::checkUpdate(&result))
 		{
 			ret = QMessageBox::warning(this, tr("Update"), \
-				tr("New version:%s were found!\n\nUpdate process will cause all the games to be closed, are you sure to continue?"), \
+				tr("New version:%1 were found!\n\nUpdate process will cause all the games to be closed, are you sure to continue?").arg(result), \
 				QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
 		}
 		else

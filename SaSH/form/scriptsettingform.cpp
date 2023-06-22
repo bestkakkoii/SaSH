@@ -22,6 +22,11 @@ ScriptSettingForm::ScriptSettingForm(QWidget* parent)
 	installEventFilter(this);
 	setAttribute(Qt::WA_DeleteOnClose);
 
+	//reset font size
+	QFont font = ui.listView_log->font();
+	font.setPointSize(12);
+	ui.listView_log->setFont(font);
+
 	takeCentralWidget();
 	setDockNestingEnabled(true);
 	addDockWidget(Qt::LeftDockWidgetArea, ui.dockWidget_functionList);
@@ -38,6 +43,8 @@ ScriptSettingForm::ScriptSettingForm(QWidget* parent)
 	ui.dockWidget_debuger->setFeatures(QDockWidget::DockWidgetClosable | QDockWidget::DockWidgetMovable | QDockWidget::DockWidgetFloatable);
 	ui.dockWidget_scriptFun->setFeatures(QDockWidget::DockWidgetClosable | QDockWidget::DockWidgetMovable | QDockWidget::DockWidgetFloatable);
 
+	tabifyDockWidget(ui.dockWidget_scriptFun, ui.dockWidget_des);
+	tabifyDockWidget(ui.dockWidget_scriptFun, ui.dockWidget_mark);
 	//ui.dockWidget_debuger->hide();
 
 	ui.treeWidget_scriptList->header()->setSectionResizeMode(QHeaderView::ResizeToContents);
@@ -71,6 +78,9 @@ ScriptSettingForm::ScriptSettingForm(QWidget* parent)
 
 	ui.mainToolBar->show();
 
+
+	//ui.textBrowser->setDocument(document_.);
+
 	connect(ui.actionSave, &QAction::triggered, this, &ScriptSettingForm::onActionTriggered);
 	connect(ui.actionSaveAs, &QAction::triggered, this, &ScriptSettingForm::onActionTriggered);
 	connect(ui.actionDirectory, &QAction::triggered, this, &ScriptSettingForm::onActionTriggered);
@@ -87,6 +97,7 @@ ScriptSettingForm::ScriptSettingForm(QWidget* parent)
 	connect(ui.actionSaveEncode, &QAction::triggered, this, &ScriptSettingForm::onActionTriggered);
 	connect(ui.actionSaveDecode, &QAction::triggered, this, &ScriptSettingForm::onActionTriggered);
 
+
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
 	connect(&signalDispatcher, &SignalDispatcher::applyHashSettingsToUI, this, &ScriptSettingForm::onApplyHashSettingsToUI, Qt::UniqueConnection);
 	connect(&signalDispatcher, &SignalDispatcher::addForwardMarker, this, &ScriptSettingForm::onAddForwardMarker, Qt::UniqueConnection);
@@ -102,6 +113,8 @@ ScriptSettingForm::ScriptSettingForm(QWidget* parent)
 	connect(&signalDispatcher, &SignalDispatcher::scriptStarted, this, &ScriptSettingForm::onScriptStartMode, Qt::QueuedConnection);
 	connect(&signalDispatcher, &SignalDispatcher::scriptPaused2, this, &ScriptSettingForm::onScriptPauseMode, Qt::QueuedConnection);
 	connect(&signalDispatcher, &SignalDispatcher::scriptPaused, this, &ScriptSettingForm::onScriptPauseMode, Qt::QueuedConnection);
+	connect(&signalDispatcher, &SignalDispatcher::callStackInfoChanged, this, &ScriptSettingForm::onCallStackInfoChanged, Qt::QueuedConnection);
+	connect(&signalDispatcher, &SignalDispatcher::jumpStackInfoChanged, this, &ScriptSettingForm::onJumpStackInfoChanged, Qt::QueuedConnection);
 
 	Injector& injector = Injector::getInstance();
 	if (!injector.scriptLogModel.isNull())
@@ -115,8 +128,51 @@ ScriptSettingForm::ScriptSettingForm(QWidget* parent)
 	formSettingManager.loadSettings();
 
 	onScriptStopMode();
-
+	onApplyHashSettingsToUI();
 	//ui.webEngineView->setUrl(QUrl("https://gitee.com/Bestkakkoii/sash/wikis/pages"));
+
+	const QString fileName(qgetenv("JSON_PATH"));
+	if (fileName.isEmpty())
+		return;
+
+	if (!QFile::exists(fileName))
+		return;
+	util::Config config(fileName);
+
+	currentFileName_ = config.readString(objectName(), "LastModifyFile");
+	if (!currentFileName_.isEmpty() && QFile::exists(currentFileName_))
+	{
+		emit signalDispatcher.loadFileToTable(currentFileName_);
+	}
+
+	QString ObjectName = ui.widget->objectName();
+	int fontSize = config.readInt(objectName(), ObjectName, "FontSize");
+	if (fontSize > 0)
+	{
+		QFont font = ui.widget->getOldFont();
+		font.setPointSize(fontSize);
+		ui.widget->setNewFont(font);
+	}
+
+	ObjectName = ui.listView_log->objectName();
+	fontSize = config.readInt(objectName(), ObjectName, "FontSize");
+	if (fontSize > 0)
+	{
+		QFont font = ui.listView_log->font();
+		font.setPointSize(fontSize);
+		ui.listView_log->setFont(font);
+	}
+
+	ObjectName = ui.textBrowser->objectName();
+	fontSize = config.readInt(objectName(), ObjectName, "FontSize");
+	if (fontSize > 0)
+	{
+		QFont font = ui.textBrowser->font();
+		font.setPointSize(fontSize);
+		ui.textBrowser->setFont(font);
+	}
+
+	//
 }
 
 void ScriptSettingForm::createSpeedSpinBox()
@@ -158,6 +214,7 @@ void ScriptSettingForm::createSpeedSpinBox()
 
 ScriptSettingForm::~ScriptSettingForm()
 {
+
 }
 
 void ScriptSettingForm::showEvent(QShowEvent* e)
@@ -170,6 +227,29 @@ void ScriptSettingForm::closeEvent(QCloseEvent* e)
 {
 	util::FormSettingManager formSettingManager(this);
 	formSettingManager.saveSettings();
+
+	const QString fileName(qgetenv("JSON_PATH"));
+	if (fileName.isEmpty())
+		return;
+
+	if (!QFile::exists(fileName))
+		return;
+	util::Config config(fileName);
+
+	config.write(objectName(), "LastModifyFile", currentFileName_);
+
+
+	QString ObjectName = ui.widget->objectName();
+	QFont font = ui.widget->getOldFont();
+	config.write(objectName(), ObjectName, "FontSize", font.pointSize());
+
+	ObjectName = ui.listView_log->objectName();
+	font = ui.listView_log->font();
+	config.write(objectName(), ObjectName, "FontSize", font.pointSize());
+
+	ObjectName = ui.textBrowser->objectName();
+	font = ui.textBrowser->font();
+	config.write(objectName(), ObjectName, "FontSize", font.pointSize());
 
 	QMainWindow::closeEvent(e);
 }
@@ -210,6 +290,13 @@ bool ScriptSettingForm::eventFilter(QObject* obj, QEvent* e)
 void ScriptSettingForm::onApplyHashSettingsToUI()
 {
 	Injector& injector = Injector::getInstance();
+	if (!injector.server.isNull() && injector.server->IS_ONLINE_FLAG)
+	{
+		QString title = currentFileName_;
+		QString newTitle = QString("[%1] %2").arg(injector.server->pc.name).arg(title);
+		setWindowTitle(newTitle);
+	}
+
 	if (!injector.scriptLogModel.isNull())
 		ui.listView_log->setModel(injector.scriptLogModel.get());
 
@@ -218,6 +305,8 @@ void ScriptSettingForm::onApplyHashSettingsToUI()
 
 void ScriptSettingForm::onScriptStartMode()
 {
+	ui.mainToolBar->setUpdatesEnabled(false);
+
 	ui.mainToolBar->clear();
 	ui.actionLogback->setEnabled(false);
 	ui.actionSave->setEnabled(false);
@@ -255,10 +344,14 @@ void ScriptSettingForm::onScriptStartMode()
 
 	//禁止編輯
 	ui.widget->setReadOnly(true);
+
+	ui.mainToolBar->setUpdatesEnabled(true);
 }
 
 void ScriptSettingForm::onScriptStopMode()
 {
+	ui.mainToolBar->setUpdatesEnabled(false);
+
 	ui.mainToolBar->clear();
 	ui.actionLogback->setEnabled(true);
 	ui.actionSave->setEnabled(true);
@@ -303,10 +396,19 @@ void ScriptSettingForm::onScriptStopMode()
 	createSpeedSpinBox();
 
 	ui.widget->setReadOnly(false);
+
+	ui.mainToolBar->setUpdatesEnabled(true);
+
+	onAddForwardMarker(-1, false);
+	onAddStepMarker(-1, false);
+	forward_markers.clear();
+	step_markers.clear();
 }
 
 void ScriptSettingForm::onScriptBreakMode()
 {
+	ui.mainToolBar->setUpdatesEnabled(false);
+
 	ui.mainToolBar->clear();
 	ui.actionLogback->setEnabled(false);
 	ui.actionSave->setEnabled(false);
@@ -345,10 +447,14 @@ void ScriptSettingForm::onScriptBreakMode()
 
 	//禁止編輯
 	ui.widget->setReadOnly(true);
+
+	ui.mainToolBar->setUpdatesEnabled(true);
 }
 
 void ScriptSettingForm::onScriptPauseMode()
 {
+	ui.mainToolBar->setUpdatesEnabled(false);
+
 	ui.mainToolBar->clear();
 	ui.actionLogback->setEnabled(false);
 	ui.actionSave->setEnabled(false);
@@ -386,6 +492,8 @@ void ScriptSettingForm::onScriptPauseMode()
 	createSpeedSpinBox();
 	//禁止編輯
 	ui.widget->setReadOnly(true);
+
+	ui.mainToolBar->setUpdatesEnabled(true);
 }
 
 void ScriptSettingForm::setMark(CodeEditor::SymbolHandler element, util::SafeHash<QString, util::SafeHash<int, break_marker_t>>& hash, int liner, bool b)
@@ -598,62 +706,77 @@ void ScriptSettingForm::fileSave(const QString& d, DWORD flag)
 
 	QStringList contents = content.split("\r\n");
 	//QStringList newcontents;
-	int indent_begin = -1;
-	int indent_end = -1;
-	for (int i = 0; i < contents.size(); ++i)
+	QStringList newContents;
+	int indentLevel = 0;
+	for (const QString& line : contents)
 	{
-		contents[i].replace(rexLoadComma, ",");
-		contents[i].replace(rexSetComma, ", ");
-		contents[i] = contents[i].trimmed();
-		if (contents[i].startsWith("function") && indent_begin == -1)
+		QString trimmedLine = line.trimmed();
+		if (trimmedLine.startsWith("end"))
 		{
-			indent_begin = i + 1;
+			indentLevel--;
 		}
-		else if (contents[i].startsWith("function") && indent_begin != -1)
+		QString indentedLine = QString("    ").repeated(indentLevel) + trimmedLine;
+		newContents.append(indentedLine);
+		if (trimmedLine.startsWith("function"))
 		{
-			indent_begin = -1;
-		}
-		else if ((contents[i].startsWith("end")) && indent_begin != -1 && indent_end == -1)
-		{
-			indent_end = i - 1;
-			for (int j = indent_begin; j <= indent_end; ++j)
-			{
-				contents[j] = "    " + contents[j];
-			}
-			indent_begin = -1;
-			indent_end = -1;
+			indentLevel++;
 		}
 	}
-	ts << contents.join("\n");
+	//int indent_begin = -1;
+	//int indent_end = -1;
+	//for (int i = 0; i < contents.size(); ++i)
+	//{
+	//	contents[i].replace(rexLoadComma, ",");
+	//	contents[i].replace(rexSetComma, ", ");
+	//	contents[i] = contents[i].trimmed();
+	//	if (contents[i].startsWith("function") && indent_begin == -1)
+	//	{
+	//		indent_begin = i + 1;
+	//	}
+	//	else if (contents[i].startsWith("function") && indent_begin != -1)
+	//	{
+	//		indent_begin = -1;
+	//	}
+	//	else if ((contents[i].startsWith("end")) && indent_begin != -1 && indent_end == -1)
+	//	{
+	//		indent_end = i - 1;
+	//		for (int j = indent_begin; j <= indent_end; ++j)
+	//		{
+	//			contents[j] = "    " + contents[j];
+	//		}
+	//		indent_begin = -1;
+	//		indent_end = -1;
+	//	}
+	//}
+	ts << newContents.join("\n");
 	ts.flush();
 	file.flush();
 	file.close();
 
-	//ui.widget->clear();
-	//ui.widget->setText(contents.join("\r\n"));
 	ui.widget->selectAll();
 	ui.widget->replaceSelectedText(contents.join("\r\n"));
 	//回復選擇範圍
-	ui.widget->setSelection(lineFrom, indexFrom, lineTo, indexTo);
+	//ui.widget->setSelection(lineFrom, indexFrom, lineTo, indexTo);
+	//
 
-	//回復光標位置
+	////回復光標位置
 	ui.widget->setCursorPosition(line, index);
+	ui.widget->ensureLineVisible(line);
 
 	//回復滾動條位置
 	ui.widget->verticalScrollBar()->setValue(v);
 
-	ui.statusBar->showMessage(QString(tr("Script %1 saved")).arg(fileName), 2000);
+	ui.statusBar->showMessage(QString(tr("Script %1 saved")).arg(fileName), 3000);
 
 	onWidgetModificationChanged(true);
 
-	onAddBreakMarker(-1, false);
 	onAddErrorMarker(-1, false);
 	onAddForwardMarker(-1, false);
 	onAddStepMarker(-1, false);
-	break_markers.clear();
 	forward_markers.clear();
 	error_markers.clear();
 	step_markers.clear();
+	reshowBreakMarker();
 }
 
 void ScriptSettingForm::onScriptTreeWidgetHeaderClicked(int logicalIndex)
@@ -686,6 +809,7 @@ void ScriptSettingForm::onReloadScriptList()
 		}
 
 		m_scriptList = newScriptList;
+		ui.treeWidget_scriptList->setUpdatesEnabled(false);
 		ui.treeWidget_scriptList->clear();
 		ui.treeWidget_scriptList->addTopLevelItem(item);
 		//展開全部第一層
@@ -696,6 +820,8 @@ void ScriptSettingForm::onReloadScriptList()
 		}
 
 		ui.treeWidget_scriptList->sortItems(0, Qt::AscendingOrder);
+
+		ui.treeWidget_scriptList->setUpdatesEnabled(true);
 	} while (false);
 }
 
@@ -712,12 +838,17 @@ void ScriptSettingForm::loadFile(const QString& fileName)
 
 
 	currentFileName_ = fileName;
-	ui.widget->clear();
-	setWindowTitle(QString("[%1] %2").arg(0).arg(currentFileName_));
+	ui.widget->setUpdatesEnabled(false);
+
+	Injector& injector = Injector::getInstance();
+	if (!injector.server.isNull() && injector.server->IS_ONLINE_FLAG)
+		setWindowTitle(QString("[%1] %2").arg(injector.server->pc.name).arg(currentFileName_));
 	ui.widget->convertEols(QsciScintilla::EolWindows);
 	ui.widget->setUtf8(true);
 	ui.widget->setModified(false);
-	ui.widget->setText(c);
+	ui.widget->selectAll();
+	ui.widget->replaceSelectedText(c);
+	ui.widget->setUpdatesEnabled(true);
 
 	onAddErrorMarker(-1, false);
 	onAddForwardMarker(-1, false);
@@ -846,7 +977,7 @@ void ScriptSettingForm::onActionTriggered()
 		fd.setViewMode(QFileDialog::Detail); //詳細
 		fd.setFileMode(QFileDialog::AnyFile);
 		fd.setDefaultSuffix("txt");
-		fd.setOption(QFileDialog::DontUseNativeDialog, true);
+		fd.setOption(QFileDialog::DontUseNativeDialog, false);
 		fd.setWindowModality(Qt::WindowModal);
 		if (fd.exec() == QDialog::Accepted)
 		{
@@ -936,10 +1067,10 @@ void ScriptSettingForm::onActionTriggered()
 				item->setIcon(0, QIcon(QPixmap(":/image/icon_txt.png")));
 
 				ui.treeWidget_scriptList->topLevelItem(0)->insertChild(0, item);
-				ui.widget->clear();
 				ui.widget->convertEols(QsciScintilla::EolWindows);
 				ui.widget->setUtf8(true);
-
+				ui.widget->selectAll();
+				ui.widget->replaceSelectedText("");
 				setWindowTitle(QString("[%1] %2").arg(0).arg(strpath));
 				currentFileName_ = strpath;
 				m_scripts.insert(strpath, ui.widget->text());
@@ -975,9 +1106,9 @@ void ScriptSettingForm::onWidgetModificationChanged(bool changed)
 	m_scripts.insert(currentFileName_, ui.widget->text());
 }
 
-static const QRegularExpression rex_divLabel(u8R"(([標|標][記|記]|function|label)\s+\p{Han}+)");
 void ScriptSettingForm::on_comboBox_labels_clicked()
 {
+	static const QRegularExpression rex_divLabel(u8R"(([標|標][記|記]|function|label)\s+\p{Han}+)");
 	ui.comboBox_labels->blockSignals(true);
 	//將所有lua function 和 label加入 combobox並使其能定位行號
 	int line = -1, index = -1;
@@ -1127,82 +1258,127 @@ void ScriptSettingForm::on_comboBox_labels_currentIndexChanged(int index)
 	}
 }
 
+void ScriptSettingForm::onCallStackInfoChanged(const QHash <int, QString>& var)
+{
+	stackInfoImport(ui.treeWidget_debuger_callstack, var);
+}
+
+void ScriptSettingForm::onJumpStackInfoChanged(const QHash <int, QString>& var)
+{
+	stackInfoImport(ui.treeWidget_debuger_jmpstack, var);
+}
+
+void ScriptSettingForm::stackInfoImport(QTreeWidget* tree, const QHash <int, QString>& d)
+{
+	if (tree == nullptr)
+		return;
+
+	tree->setUpdatesEnabled(false);
+
+	tree->clear();
+	tree->setColumnCount(2);
+	tree->setHeaderLabels(QStringList() << tr("row") << tr("content"));
+
+	if (!d.isEmpty())
+	{
+		QList<QTreeWidgetItem*> trees;
+		int size = d.size();
+		for (auto it = d.begin(); it != d.end(); ++it)
+		{
+			trees.append(q_check_ptr(new QTreeWidgetItem({ QString::number(it.key()), it.value() })));
+		}
+
+		tree->addTopLevelItems(trees);
+	}
+
+	tree->setUpdatesEnabled(true);
+}
+
 void ScriptSettingForm::varInfoImport(QTreeWidget* tree, const QHash<QString, QVariant>& d)
 {
 	if (tree == nullptr)
 		return;
 
-	QList<QTreeWidgetItem*> trees;
+
+	tree->setUpdatesEnabled(false);
+
 	tree->clear();
 	tree->setColumnCount(3);
 	tree->setHeaderLabels(QStringList() << tr("name") << tr("value") << tr("type"));
-	QMap<QString, QVariant> map;
-	for (auto it = d.begin(); it != d.end(); ++it)
-	{
-		map.insert(it.key(), it.value());
-	}
 
-	for (auto it = map.begin(); it != map.end(); ++it)
+	if (!d.isEmpty())
 	{
-		QString varName = it.key();
-		QString varType;
-		QString varValue;
-		QVariant var = it.value();
-		switch (var.type())
+		QMap<QString, QVariant> map;
+		QList<QTreeWidgetItem*> trees;
+
+		for (auto it = d.begin(); it != d.end(); ++it)
 		{
-		case QVariant::Int:
-		{
-			varType = tr("Int");
-			varValue = QString::number(var.toInt());
-			break;
-		}
-		case QVariant::UInt:
-		{
-			varType = tr("UInt");
-			varValue = QString::number(var.toUInt());
-			break;
-		}
-		case QVariant::Double:
-		{
-			varType = tr("Double");
-			varValue = QString::number(var.toDouble(), 'f', 8);
-			break;
-		}
-		case QVariant::String:
-		{
-			varType = tr("String");
-			varValue = var.toString();
-			break;
-		}
-		case QVariant::Bool:
-		{
-			varType = tr("Bool");
-			varValue = var.toBool();
-			break;
-		}
-		case QVariant::LongLong:
-		{
-			varType = tr("LongLong");
-			varValue = QString::number(var.toLongLong());
-			break;
-		}
-		case QVariant::ULongLong:
-		{
-			varType = tr("ULongLong");
-			varValue = QString::number(var.toULongLong());
-			break;
-		}
-		default:
-		{
-			varType = tr("unknown");
-			varValue = var.toString();
-			break;
+			map.insert(it.key(), it.value());
 		}
 
+		for (auto it = map.begin(); it != map.end(); ++it)
+		{
+			QString varName = it.key();
+			QString varType;
+			QString varValue;
+			QVariant var = it.value();
+			switch (var.type())
+			{
+			case QVariant::Int:
+			{
+				varType = tr("Int");
+				varValue = QString::number(var.toInt());
+				break;
+			}
+			case QVariant::UInt:
+			{
+				varType = tr("UInt");
+				varValue = QString::number(var.toUInt());
+				break;
+			}
+			case QVariant::Double:
+			{
+				varType = tr("Double");
+				varValue = QString::number(var.toDouble(), 'f', 8);
+				break;
+			}
+			case QVariant::String:
+			{
+				varType = tr("String");
+				varValue = var.toString();
+				break;
+			}
+			case QVariant::Bool:
+			{
+				varType = tr("Bool");
+				varValue = var.toBool();
+				break;
+			}
+			case QVariant::LongLong:
+			{
+				varType = tr("LongLong");
+				varValue = QString::number(var.toLongLong());
+				break;
+			}
+			case QVariant::ULongLong:
+			{
+				varType = tr("ULongLong");
+				varValue = QString::number(var.toULongLong());
+				break;
+			}
+			default:
+			{
+				varType = tr("unknown");
+				varValue = var.toString();
+				break;
+			}
+
+			}
+			trees.append(q_check_ptr(new QTreeWidgetItem({ varName, varValue, QString("(%1)").arg(varType) })));
 		}
-		trees.append(q_check_ptr(new QTreeWidgetItem({ varName, varValue, QString("(%1)").arg(varType) })));
+		tree->addTopLevelItems(trees);
 	}
-	tree->addTopLevelItems(trees);
+	tree->setUpdatesEnabled(true);
 }
 
 //全局變量列表
@@ -1214,14 +1390,8 @@ void ScriptSettingForm::onGlobalVarInfoImport(const QHash<QString, QVariant>& d)
 	currentGlobalVarInfo_ = d;
 	QStringList systemVarList = {
 		//utf8
-		"tickcount","stickcount",
-
-		"playername","playerfreename","playerlevel","playerhp","playermp","playerdp",
-		"stone",
-
-		"px","py","floor","floorname",
-		"date","time",
-		"dialogid",
+		"tick", "stick", "chname", "chfname", "chlv", "chhp", "chmp", "chdp", "stone", "px", "py",
+			"floor", "frname", "date", "time", "earnstone", "expbuff", "dlgid"
 	};
 
 	QStringList gb2312List = {
@@ -1306,8 +1476,91 @@ void ScriptSettingForm::on_treeWidget_functionList_itemDoubleClicked(QTreeWidget
 
 }
 
-void ScriptSettingForm::on_treeWidget_functionList_itemClicked(QTreeWidgetItem* item, int column)
+void searchFiles(const QString& dir, const QString& fileNamePart, const QString& suffixWithDot, QList<QString>* result)
 {
+	QDir d(dir);
+	if (!d.exists())
+		return;
+
+	QFileInfoList list = d.entryInfoList(QDir::Files | QDir::Dirs | QDir::NoDotAndDotDot);
+	for (const QFileInfo& fileInfo : list)
+	{
+		if (fileInfo.isFile())
+		{
+			if (fileInfo.fileName().contains(fileNamePart, Qt::CaseInsensitive) && fileInfo.suffix() == suffixWithDot.mid(1))
+			{
+				QFile file(fileInfo.absoluteFilePath());
+				if (file.open(QIODevice::ReadOnly | QIODevice::Text))
+				{
+					QTextStream in(&file);
+					in.setCodec("UTF-8");
+					//將文件名置於前方
+					QString fileContent = QString("# %1\n---\n%2").arg(fileInfo.fileName()).arg(in.readAll());
+					file.close();
+
+					result->append(fileContent);
+				}
+			}
+		}
+		else if (fileInfo.isDir())
+		{
+			searchFiles(fileInfo.absoluteFilePath(), fileNamePart, suffixWithDot, result);
+		}
+	}
+}
+
+void ScriptSettingForm::on_treeWidget_functionList_itemSelectionChanged()
+{
+	do
+	{
+		QTreeWidgetItem* item = ui.treeWidget_functionList->currentItem();
+		if (item == nullptr)
+			break;
+
+		QString str = item->text(0);
+		if (str.isEmpty())
+			break;
+
+		if (document_.contains(str))
+		{
+			QSharedPointer< QTextDocument> doc = document_.value(str);
+			ui.textBrowser->setUpdatesEnabled(false);
+			ui.textBrowser->setDocument(doc.data());
+			ui.textBrowser->setUpdatesEnabled(true);
+			break;
+		}
+
+		QString mdFullPath = QString("%1/lib/doc").arg(QCoreApplication::applicationDirPath());
+		QDir dir(mdFullPath);
+		if (!dir.exists())
+			break;
+
+		QStringList result;
+		//以此目錄為起點遍歷查找所有文件名包含 \'str\' 的 .MD 文件
+		searchFiles(mdFullPath, QString(R"('%1')").arg(str), ".md", &result);
+		if (result.isEmpty())
+			return;
+
+		//按文本長度排序 由短到長
+		std::sort(result.begin(), result.end(), [](const QString& a, const QString& b)
+			{
+				return a.length() < b.length();
+			});
+
+		QString markdownText = result.join("\n---\n");
+
+
+		QSharedPointer< QTextDocument> doc = QSharedPointer<QTextDocument>(new QTextDocument());
+
+		doc->setMarkdown(markdownText);
+		document_.insert(str, doc);
+
+		ui.textBrowser->setUpdatesEnabled(false);
+		ui.textBrowser->setDocument(doc.data());
+		ui.textBrowser->setUpdatesEnabled(true);
+
+		return;
+	} while (false);
 
 }
 
@@ -1343,7 +1596,6 @@ QString ScriptSettingForm::getFullPath(QTreeWidgetItem* item)
 
 	return strpath;
 };
-
 
 void ScriptSettingForm::on_treeWidget_scriptList_itemClicked(QTreeWidgetItem* item, int column)
 {
@@ -1535,6 +1787,24 @@ void ScriptSettingForm::createScriptListContextMenu()
 		});
 }
 
+void ScriptSettingForm::on_treeWidget_breakList_itemDoubleClicked(QTreeWidgetItem* item, int column)
+{
+	Q_UNUSED(column);
+	if (item == nullptr)
+		return;
+
+	if (item->text(2).isEmpty()) return;
+
+	if (!item->text(3).isEmpty() && item->text(3) == currentFileName_)
+	{
+		int line = item->text(2).toInt();
+		ui.widget->setCursorPosition(line, 0);
+		QString text = ui.widget->text(line);
+		ui.widget->setSelection(line, 0, line, text.length());
+		ui.widget->ensureLineVisible(line);
+	}
+}
+
 
 void ScriptSettingForm::onEncryptSave()
 {
@@ -1556,7 +1826,10 @@ void ScriptSettingForm::onEncryptSave()
 	//to hax string
 	QString password = hashKey.toHex();
 	if (password.isEmpty())
+	{
+		ui.statusBar->showMessage(tr("Encrypt password can not be empty"), 3000);
 		return;
+	}
 
 	Crypto crypto;
 
@@ -1565,13 +1838,13 @@ void ScriptSettingForm::onEncryptSave()
 		QString newFileName = currentFileName_;
 		newFileName.replace(util::SCRIPT_SUFFIX_DEFAULT, util::SCRIPT_PRIVATE_SUFFIX_DEFAULT);
 		currentFileName_ = newFileName;
-		ui.statusBar->showMessage(QString(tr("Encrypt script %1 saved")).arg(newFileName), 2000);
+		ui.statusBar->showMessage(QString(tr("Encrypt script %1 saved")).arg(newFileName), 3000);
 		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
 		emit signalDispatcher.loadFileToTable(newFileName);
 	}
 	else
 	{
-		ui.statusBar->showMessage(tr("Encrypt script save failed"), 2000);
+		ui.statusBar->showMessage(tr("Encrypt script save failed"), 3000);
 	}
 }
 
@@ -1595,7 +1868,10 @@ void ScriptSettingForm::onDecryptSave()
 	//to hax string
 	QString password = hashKey.toHex();
 	if (password.isEmpty())
+	{
+		ui.statusBar->showMessage(tr("Decrypt password can not be empty"), 3000);
 		return;
+	}
 
 	Crypto crypto;
 	QString content;
@@ -1604,8 +1880,12 @@ void ScriptSettingForm::onDecryptSave()
 		QString newFileName = currentFileName_;
 		newFileName.replace(util::SCRIPT_PRIVATE_SUFFIX_DEFAULT, util::SCRIPT_SUFFIX_DEFAULT);
 		currentFileName_ = newFileName;
-
+		ui.statusBar->showMessage(QString(tr("Decrypt script %1 saved")).arg(newFileName), 3000);
 		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
 		emit signalDispatcher.loadFileToTable(newFileName);
+	}
+	else
+	{
+		ui.statusBar->showMessage(tr("Decrypt password is incorrect"), 3000);
 	}
 }

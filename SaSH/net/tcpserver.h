@@ -586,7 +586,9 @@ constexpr int MAX_ITEM = 20;
 enum
 {
 	PC_ETCFLAG_GROUP = (1 << 0),	//組隊開關
+	PC_ETCFLAG_UNK = (1 << 1),	//未知開關
 	PC_ETCFLAG_PK = (1 << 2),	//決鬥開關
+	PC_ETCFLAG_PARTY_CHAT = (1 << 3),//隊伍聊天開關
 	PC_ETCFLAG_CARD = (1 << 4),	//名片開關
 	PC_ETCFLAG_TRADE = (1 << 5),	//交易開關
 	PC_ETCFLAG_WORLD = (1 << 6),	//世界頻道開關
@@ -923,6 +925,16 @@ enum DialogType
 
 
 	kDialogSecurityCode = 522,
+};
+
+enum TalkMode
+{
+	kTalkNormal,
+	kTalkTeam,
+	kTalkFamily,
+	kTalkWorld,
+	kTalkGlobal,
+	kTalkModeMax,
 };
 #pragma endregion
 
@@ -1580,6 +1592,7 @@ typedef struct bankpet_s
 
 typedef struct currencydata_s
 {
+	int expbufftime = 0;
 	int prestige = 0;      // 聲望
 	int energy = 0;        // 氣勢
 	int shell = 0;         // 貝殼
@@ -1817,7 +1830,8 @@ public://actions
 
 	void announce(const QString& msg, int color = 4);
 
-	void talk(const QString& text, int color = 0);
+
+	void talk(const QString& text, int color = 0, TalkMode mode = kTalkNormal);
 	void inputtext(const QString& text);
 
 	void windowPacket(const QString& command, int dialogid, int npcid);
@@ -1852,6 +1866,8 @@ public://actions
 	void learn(int skillIndex, int petIndex, int spot, int seqno = -1, int objindex = -1);
 
 	void craft(util::CraftType type, const QStringList& ingres);
+
+	void mail(int index, const QString& text);
 
 	void warp();
 
@@ -1894,6 +1910,7 @@ public://actions
 	bool findUnit(const QString& name, int type, mapunit_t* unit, const QString freename = "") const;
 
 	void setTeamState(bool join);
+	void kickteam(int n);
 
 	void setPlayerFaceToPoint(const QPoint& pos);
 	void setPlayerFaceDirection(int dir);
@@ -2374,6 +2391,8 @@ private://lssproto
 	void lssproto_ShopOk_send(int n);
 #pragma endregion
 
+	void lssproto_CustomWN_recv(const QString& data);
+
 public:
 	//custom
 	bool IS_ONLINE_FLAG = false;
@@ -2410,7 +2429,7 @@ public:
 	int battle_totol = 0;
 
 	//client original
-	int  TalkMode = 0;						//0:一般 1:密語 2: 隊伍 3:家族 4:職業 
+	int  talkMode = 0;						//0:一般 1:密語 2: 隊伍 3:家族 4:職業 
 
 	unsigned int ProcNo = 0u;
 	unsigned int SubProcNo = 0u;
@@ -2566,6 +2585,8 @@ public:
 
 	util::SafeHash<int, util::SafeHash<QString, QVariant>> hashpet;
 	util::SafeHash<int, util::SafeHash<int, util::SafeHash<QString, QVariant>>> hashpetskill;
+
+	util::SafeHash<int, util::SafeHash<QString, QVariant>> hashparty;
 
 	util::SafeHash<int, util::SafeHash<QString, QVariant>> hashitem;
 	util::SafeHash<int, util::SafeHash<QString, QVariant>> hashequip;

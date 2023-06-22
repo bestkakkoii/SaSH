@@ -17,6 +17,34 @@ void ListView::dataChanged(const QModelIndex& topLeft, const QModelIndex& bottom
 	//scrollToBottom();
 }
 
+void ListView::wheelEvent(QWheelEvent* event)
+{
+	if (event->modifiers() & Qt::ControlModifier)
+	{
+		// 获取当前字体
+		QFont font = this->font();
+
+		// 根据滚轮滚动的角度调整字体大小
+		int delta = event->angleDelta().y();
+		int fontSize = font.pointSize();
+		int newFontSize = fontSize + delta / 120;  // 根据需要调整滚动速度
+
+		// 限制字体大小的范围
+		const int minFontSize = 8;
+		const int maxFontSize = 48;
+		newFontSize = qBound(minFontSize, newFontSize, maxFontSize);
+
+		// 设置新的字体大小
+		font.setPointSize(newFontSize);
+		this->setFont(font);
+		event->accept();
+	}
+	else
+	{
+		QListView::wheelEvent(event);
+	}
+}
+
 void ListView::setModel(StringListModel* model)
 {
 	if (model)

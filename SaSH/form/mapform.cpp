@@ -113,7 +113,7 @@ void MapForm::onButtonClicked()
 		int x = ui.spinBox_findpath_x->value();
 		int y = ui.spinBox_findpath_y->value();
 
-		interpreter_->doString(QString(u8"尋路 %1, %2, 1").arg(x).arg(y));
+		interpreter_->doString(QString(u8"findpath %1, %2, 1").arg(x).arg(y), nullptr, Interpreter::kNotShare);
 		ui.pushButton_findpath_stop->setEnabled(true);
 		ui.pushButton_findpath_start->setEnabled(false);
 	}
@@ -225,7 +225,7 @@ void MapForm::onTableWidgetCellDoubleClicked(int row, int col)
 	connect(interpreter_.data(), &Interpreter::finished, this, &MapForm::onScriptFinished, Qt::UniqueConnection);
 
 	QPoint point = npc_hash_.value(row);
-	interpreter_->doString(QString(u8"尋路 %1, %2, 1").arg(point.x()).arg(point.y()));
+	interpreter_->doString(QString(u8"findpath %1, %2, 1").arg(point.x()).arg(point.y()), nullptr, Interpreter::kNotShare);
 	ui.pushButton_findpath_stop->setEnabled(true);
 	ui.pushButton_findpath_start->setEnabled(false);
 }

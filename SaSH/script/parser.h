@@ -3,10 +3,14 @@
 #include <QStack>
 #include <functional>
 
+#include "util.h"
+
 using CommandRegistry = std::function<int(int currentLine, const TokenMap& token)>;
 
 //callbak
 using ParserCallBack = std::function<int(int currentLine, const TokenMap& token)>;
+
+using VariantSafeHash = util::SafeHash<QString, QVariant>;
 
 static const QSet<RESERVE> operatorTypes = {
 	TK_ADD, //"+"
@@ -58,6 +62,7 @@ public:
 		kNoChange,
 		kError,
 		kArgError,
+		kLabelError,
 	};
 
 	enum Mode
@@ -97,9 +102,9 @@ public:
 		if (newName.startsWith(kVariablePrefix))
 			newName.remove(0, 1);
 
-		if (variables_.contains(newName))
+		if (variables_->contains(newName))
 		{
-			return variables_.value(newName).value<T>();
+			return variables_->value(newName).value<T>();
 		}
 		else
 		{
@@ -109,15 +114,17 @@ public:
 		}
 	}
 
-	void jump(int line, bool noStack = false);
-	void jumpto(int line, bool noStack = false);
-	bool jump(const QString& name, bool noStack = false);
+	void jump(int line, bool noStack);
+	void jumpto(int line, bool noStack);
+	bool jump(const QString& name, bool noStack);
 public:
 	//解析腳本
 	void parse(int line = 0);
 
-	Q_REQUIRED_RESULT inline QVariant& getVarRef(const QString& name) { return variables_[name]; }
-	Q_REQUIRED_RESULT inline QVariantHash& getVarsRef() { return variables_; }
+	QSharedPointer<VariantSafeHash> getPVariables() const { return variables_; }
+	void setPVariables(const QSharedPointer<VariantSafeHash>& variables) { variables_ = variables; }
+	Q_REQUIRED_RESULT inline QVariant& getVarRef(const QString& name) { return (*variables_)[name]; }
+	Q_REQUIRED_RESULT inline VariantSafeHash& getVarsRef() { return *variables_; }
 	Q_REQUIRED_RESULT inline QHash<QString, QVariant>& getLabelVars()
 	{
 		if (!labalVarStack_.isEmpty())
@@ -143,6 +150,9 @@ private:
 
 	void handleError(int err);
 	void checkArgs();
+
+	bool checkString(const TokenMap& TK, int idx, QString* ret);
+	bool checkInt(const TokenMap& TK, int idx, int* ret);
 
 	inline void next() { ++lineNumber_; }
 
@@ -175,28 +185,30 @@ private:
 			return emptyArgs_;
 	}
 
+	void generateStackInfo(int type);
+
 private:
 	bool usestate = false;
-	std::atomic_bool isStop_ = false; //是否停止
-	QHash<int, TokenMap> tokens_;//當前運行腳本的每一行token
-	QVariantHash variables_;//所有用腳本變量
-	QHash<QString, int> labels_;//所有標記所在行記錄
-	QHash<QString, CommandRegistry> commandRegistry_;//所有命令的函數指針
-	QStack<int> callStack_;//"調用"命令所在行棧
-	QStack<int> jmpStack_; //"跳轉"命令所在行棧
-	QStack<QVariantList> callArgsStack_;//"調用"命令參數棧
-	QVariantList emptyArgs_;//空參數
-	QStack<QHash<QString, QVariant>> labalVarStack_;//標籤變量名
-	QHash<QString, QVariant> emptyLabelVars_;//空標籤變量名
+	std::atomic_bool isStop_ = false;                   //是否停止
+	QHash<int, TokenMap> tokens_;                       //當前運行腳本的每一行token
+	QSharedPointer<VariantSafeHash> variables_;         //所有用腳本變量
+	QHash<QString, int> labels_;						//所有標記所在行記錄
+	QHash<QString, CommandRegistry> commandRegistry_;   //所有命令的函數指針
+	QStack<int> callStack_;								//"調用"命令所在行棧
+	QStack<int> jmpStack_;								//"跳轉"命令所在行棧
+	QStack<QVariantList> callArgsStack_;				//"調用"命令參數棧
+	QVariantList emptyArgs_;							//空參數
+	QStack<QHash<QString, QVariant>> labalVarStack_;	//標籤變量名
+	QHash<QString, QVariant> emptyLabelVars_;			//空標籤變量名
 
-	TokenMap currentLineTokens_; //當前行token
-	RESERVE currentType_ = TK_UNK; //當前行第一個token類型
-	int lineNumber_ = 0; //當前行號
+	TokenMap currentLineTokens_;						//當前行token
+	RESERVE currentType_ = TK_UNK;						//當前行第一個token類型
+	int lineNumber_ = 0;								//當前行號
 
-	ParserError lastError_ = kNoError; //最後一次錯誤
+	ParserError lastError_ = kNoError;					//最後一次錯誤
 
-	ParserCallBack callBack_ = nullptr; //解析腳本回調函數
+	ParserCallBack callBack_ = nullptr;					//解析腳本回調函數
 
-	Mode mode_ = kSync; //解析模式
+	Mode mode_ = kSync;									//解析模式
 
 };

@@ -106,8 +106,10 @@ bool ChatInfoForm::eventFilter(QObject* watched, QEvent* e)
 				Injector& injector = Injector::getInstance();
 				if (!injector.server.isNull())
 				{
-					if (ui.comboBox_channel->currentIndex() == 0)
-						injector.server->talk(text, ui.comboBox_color->currentIndex());
+					int nMode = ui.comboBox_channel->currentIndex();
+					TalkMode mode = static_cast<TalkMode>(nMode != -1 ? nMode : kTalkNormal);
+					if (nMode != (channelList_.size() - 1))
+						injector.server->talk(text, ui.comboBox_color->currentIndex(), mode);
 					else
 						injector.server->inputtext(text);
 
@@ -145,11 +147,11 @@ void ChatInfoForm::onResetControlTextLanguage()
 
 
 
-	QStringList channelList = {
-		tr("normal"), tr("dialog")
+	channelList_ = QStringList{
+		tr("normal"), tr("team"), tr("family"), tr("world"), tr("global"), tr("dialog")
 	};
 	int index = ui.comboBox_channel->currentIndex();
 	ui.comboBox_channel->clear();
-	ui.comboBox_channel->addItems(channelList);
+	ui.comboBox_channel->addItems(channelList_);
 	ui.comboBox_channel->setCurrentIndex(index);
 }

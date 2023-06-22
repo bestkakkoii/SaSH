@@ -243,19 +243,6 @@ int Interpreter::setpetstate(int currentline, const TokenMap& TK)
 	PetState state = petStateMap.value(stateStr.toLower(), PetState::kRest);
 
 
-	switch (state)
-	{
-	case PetState::kRest:
-		injector.server->setPetState(petIndex, kStandby);
-		break;
-	case PetState::kStandby:
-	case PetState::kRide:
-		injector.server->setPetState(petIndex, kRest);
-		break;
-	default:
-		break;
-	}
-
 	injector.server->setPetState(petIndex, state);
 
 	return Parser::kNoChange;
@@ -427,24 +414,29 @@ int Interpreter::sellpet(int currentline, const TokenMap& TK)
 			{
 			case 263:
 			{
-				injector.server->IS_WAITFOR_DIALOG_FLAG = true;
-				injector.server->press(BUTTON_AUTO);
-				waitfor(1000, [&injector]()->bool { return !injector.server->IS_WAITFOR_DIALOG_FLAG; });
+				//injector.server->IS_WAITFOR_DIALOG_FLAG = true;
+				injector.server->press(BUTTON_YES, 263, unit.id);
+				//waitfor(1000, [&injector]()->bool { return !injector.server->IS_WAITFOR_DIALOG_FLAG; });
 				bret = true;
 				break;
 			}
 			case 262:
 			{
-				injector.server->IS_WAITFOR_DIALOG_FLAG = true;
+				//injector.server->IS_WAITFOR_DIALOG_FLAG = true;
 				injector.server->press(petIndex, 262, unit.id);
-				waitfor(1000, [&injector]()->bool { return !injector.server->IS_WAITFOR_DIALOG_FLAG; });
+				injector.server->press(BUTTON_YES, 263, unit.id);
+				bret = true;
+				//waitfor(1000, [&injector]()->bool { return !injector.server->IS_WAITFOR_DIALOG_FLAG; });
 				break;
 			}
 			default:
 			{
-				injector.server->IS_WAITFOR_DIALOG_FLAG = true;
+				//injector.server->IS_WAITFOR_DIALOG_FLAG = true;
 				injector.server->press(3, 261, unit.id);
-				waitfor(1000, [&injector]()->bool { return !injector.server->IS_WAITFOR_DIALOG_FLAG; });
+				injector.server->press(petIndex, 262, unit.id);
+				injector.server->press(BUTTON_YES, 263, unit.id);
+				bret = true;
+				//waitfor(1000, [&injector]()->bool { return !injector.server->IS_WAITFOR_DIALOG_FLAG; });
 				break;
 			}
 			}
@@ -576,6 +568,80 @@ int Interpreter::leave(int currentline, const TokenMap& TK)
 	checkBattleThenWait();
 
 	injector.server->setTeamState(false);
+
+	return Parser::kNoChange;
+}
+
+int Interpreter::kick(int currentline, const TokenMap& TK)
+{
+	Injector& injector = Injector::getInstance();
+
+	if (injector.server.isNull())
+		return Parser::kError;
+
+	checkBattleThenWait();
+
+	//0解隊 1-4隊員
+	int partyIndex = -1;
+	checkInt(TK, 1, &partyIndex);
+	if (partyIndex < 0 || partyIndex >= MAX_PARTY)
+	{
+		QString exceptName;
+		checkString(TK, 1, &exceptName);
+		if (!exceptName.isEmpty())
+		{
+			QStringList list = exceptName.split(util::rexOR, Qt::SkipEmptyParts);
+			if (list.isEmpty() || list.size() > 4)
+				return Parser::kArgError;
+
+			QVector<int> wrongIndex;
+
+			bool bret = false;
+			for (int i = 1; i < MAX_PARTY; ++i)
+			{
+				PARTY party = injector.server->party[i];
+				if (party.useFlag == 0)
+					continue;
+
+				for (QString it : list)
+				{
+					bool isExact = true;
+					QString newName = it.trimmed();
+					if (newName.startsWith(kFuzzyPrefix))
+					{
+						newName = newName.mid(1);
+						isExact = false;
+					}
+
+
+					if (isExact && party.name == newName)
+					{
+						bret = true;
+					}
+					else if (!isExact && party.name.contains(newName))
+					{
+						bret = true;
+					}
+
+				}
+
+				if (!bret)
+				{
+					wrongIndex.push_back(i);
+				}
+			}
+
+			if (!wrongIndex.isEmpty())
+			{
+				for (int i : wrongIndex)
+				{
+					injector.server->kickteam(i);
+				}
+			}
+		}
+	}
+
+	injector.server->kickteam(partyIndex);
 
 	return Parser::kNoChange;
 }
@@ -740,7 +806,6 @@ int Interpreter::withdrawgold(int currentline, const TokenMap& TK)
 
 	return Parser::kNoChange;
 }
-
 
 util::SafeHash<int, ITEM> recordedEquip_;
 int Interpreter::recordequip(int currentline, const TokenMap& TK)
@@ -1501,6 +1566,29 @@ int Interpreter::trade(int currentline, const TokenMap& TK)
 		{
 			return !injector.server->IS_TRADING;
 		});
+
+	return Parser::kNoChange;
+}
+
+int Interpreter::mail(int currentline, const TokenMap& TK)
+{
+	Injector& injector = Injector::getInstance();
+
+	if (injector.server.isNull())
+		return Parser::kError;
+
+	int addrIndex = 0;
+	checkInt(TK, 1, &addrIndex);
+	if (addrIndex <= 0 || addrIndex >= MAX_ADR_BOOK)
+		return Parser::kArgError;
+	--addrIndex;
+
+	QString text;
+	checkString(TK, 2, &text);
+	if (text.isEmpty())
+		return Parser::kArgError;
+
+	injector.server->mail(addrIndex, text);
 
 	return Parser::kNoChange;
 }

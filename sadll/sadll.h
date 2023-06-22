@@ -72,22 +72,6 @@ namespace util
 		HWND window_handle;
 	};
 
-	template<class T, class T2>
-	inline void MemoryMove(T dis, T2* src, size_t size)
-	{
-		try
-		{
-			DWORD dwOldProtect = 0;
-			VirtualProtect((void*)dis, size, PAGE_EXECUTE_READWRITE, &dwOldProtect);
-			memcpy((void*)dis, (void*)src, size);
-			VirtualProtect((void*)dis, size, dwOldProtect, &dwOldProtect);
-		}
-		catch (...)
-		{
-			// do nothing
-		}
-	}
-
 	inline bool IsCurrentWindow(const HWND handle)
 	{
 		if ((GetWindow(handle, GW_OWNER) == nullptr) && (IsWindowVisible(handle)))
@@ -127,6 +111,72 @@ namespace util
 		return hwnd;
 	}
 
+	template<class T, class T2>
+	inline void MemoryMove(T dis, T2* src, size_t size)
+	{
+		try
+		{
+			DWORD dwOldProtect = 0;
+			VirtualProtect((void*)dis, size, PAGE_EXECUTE_READWRITE, &dwOldProtect);
+			memcpy((void*)dis, (void*)src, size);
+			VirtualProtect((void*)dis, size, dwOldProtect, &dwOldProtect);
+		}
+		catch (...)
+		{
+			// do nothing
+		}
+	}
+
+	template <class ToType, class FromType>
+	void __stdcall getFuncAddr(ToType* addr, FromType f)
+	{
+		union
+		{
+			FromType _f;
+			ToType   _t;
+		}ut{};
+
+		ut._f = f;
+
+		*addr = ut._t;
+	}
+
+	/// <summary>
+	/// HOOK函數
+	/// </summary>
+	/// <typeparam name="T">跳轉的全局或類函數或某個地址段</typeparam>
+	/// <typeparam name="T2">BYTE數組</typeparam>
+	/// <param name="pfnHookFunc">要 CALL 或 JMP 的函數或地址 </param>
+	/// <param name="bOri">要寫入HOOK的地址</param>
+	/// <param name="bOld">用於保存原始數據的BYTE數組，取決於寫入地址原始匯編占多大</param>
+	/// <param name="bNew">用於寫入跳轉或CALL的BYTE數組要預先填好需要填充的0x90或0xE8 0xE9</param>
+	/// <param name="nByteSize">bOld bNew數組的大小</param>
+	/// <param name="offest">有時候跳轉目標地址前面可能會有其他東西會需要跳過則需要偏移，大部分時候為 0 </param>
+	/// <returns></returns>
+	template<class T, class T2>
+	void __stdcall detour(T pfnHookFunc, DWORD bOri, T2* bOld, T2* bNew, const size_t nByteSize, const DWORD offest)
+	{
+		DWORD hookfunAddr = 0;
+		getFuncAddr(&hookfunAddr, pfnHookFunc);//獲取函數HOOK目標函數指針(地址)
+		DWORD dwOffset = (hookfunAddr + offest) - (DWORD)bOri - nByteSize;//計算偏移
+		MemoryMove((DWORD)&bNew[nByteSize - 4], &dwOffset, sizeof(dwOffset));//將計算出的結果寫到緩存 CALL XXXXXXX 或 JMP XXXXXXX
+		MemoryMove((DWORD)bOld, (void*)bOri, nByteSize);//將原始內容保存到bOld (之後需要還原時可用)
+		MemoryMove((DWORD)bOri, bNew, nByteSize);//將緩存內的東西寫到要HOOK的地方(跳轉到hook函數 或調用hook函數)
+	}
+
+	/// <summary>
+	/// 取消HOOK
+	/// </summary>
+	/// <typeparam name="T">BYTE數組</typeparam>
+	/// <param name="ori">要還原的地址段</param>
+	/// <param name="oldBytes">備份用的BYTE數組指針</param>
+	/// <param name="size">BYTE數組大小</param>
+	/// <returns></returns>
+	template<class T>
+	void  __stdcall undetour(T ori, BYTE* oldBytes, SIZE_T size)
+	{
+		MemoryMove(ori, oldBytes, size);
+	}
 }
 
 #define USE_ASYNC_TCP
@@ -197,10 +247,10 @@ public://hook
 
 	void __cdecl New_PlaySound(int a, int b, int c);
 	void __cdecl New_BattleProc();
-	//void __cdecl New_BattleCommandReady();
+	void __cdecl New_BattleCommandReady();
 	void __cdecl New_TimeProc(int fd);
 	void __cdecl New_lssproto_EN_recv(int fd, int result, int field);
-
+	void __cdecl New_lssproto_WN_send(int fd, int x, int y, int seqno, int objindex, int select, const char* data);
 	//setwindowtexta
 	using pfnSetWindowTextA = BOOL(WINAPI*)(HWND hWnd, LPCSTR lpString);
 	pfnSetWindowTextA pSetWindowTextA = nullptr;
@@ -227,8 +277,8 @@ public://hook
 	using pfnBattleProc = void(__cdecl*)();
 	pfnBattleProc pBattleProc = nullptr;
 
-	//using pfnBattleCommandReady = void(__cdecl*)();
-	//pfnBattleCommandReady pBattleCommandReady = nullptr;
+
+	DWORD* pBattleCommandReady = nullptr;
 
 	using pfnTimeProc = void(__cdecl*)(int);
 	pfnTimeProc pTimeProc = nullptr;
@@ -236,9 +286,12 @@ public://hook
 	using pfnLssproto_EN_recv = void(__cdecl*)(int, int, int);
 	pfnLssproto_EN_recv pLssproto_EN_recv = nullptr;
 
+	using pfnLssproto_WN_send = void(__cdecl*)(int, int, int, int, int, int, const char*);
+	pfnLssproto_WN_send pLssproto_WN_send = nullptr;
+
 private:
 	void hideModule(HMODULE hLibrary);
-
+	void Send(const std::string& text);
 private:
 	std::atomic_bool isInitialized_ = false;
 

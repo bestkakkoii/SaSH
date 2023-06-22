@@ -34,7 +34,7 @@
   <property name="styleSheet">
    <string notr="true"/>
   </property>
-  <widget class="QWidget" name="">
+  <widget class="QWidget" name="layoutWidget">
    <property name="geometry">
     <rect>
      <x>1</x>
@@ -247,6 +247,13 @@
                 <widget class="QPushButton" name="pushButton_start">
                  <property name="text">
                   <string>start</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QCheckBox" name="checkBox_hidewindow">
+                 <property name="text">
+                  <string>hide win</string>
                  </property>
                 </widget>
                </item>
@@ -628,13 +635,6 @@
                  </property>
                  <property name="text">
                   <string>optimize</string>
-                 </property>
-                </widget>
-               </item>
-               <item>
-                <widget class="QCheckBox" name="checkBox_hidewindow">
-                 <property name="text">
-                  <string>hide win</string>
                  </property>
                 </widget>
                </item>

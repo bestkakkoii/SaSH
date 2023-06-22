@@ -360,6 +360,9 @@ namespace util
 		kLockPetEnable,
 		kLockRideEnable,
 
+		kLockPetScheduleEnable,
+		kLockRideScheduleEnable,
+
 		kSettingMaxEnable,
 
 		//////////////////
@@ -388,12 +391,16 @@ namespace util
 		//other->group
 		kAutoFunNameString,
 
+		//other->lockpet
+		kLockPetScheduleString,
+		kLockRideScheduleString,
+
 		//other->other2
 		kGameAccountString,
 		kGamePasswordString,
 		kGameSecurityCodeString,
 
-
+		kMailWhiteListString,
 
 		kSettingMaxString,
 	};
@@ -526,6 +533,8 @@ namespace util
 		//lockpet
 		{ kLockPetValue, "LockPetValue" },
 		{ kLockRideValue, "LockRideValue" },
+		{ kLockPetScheduleEnable, "LockPetScheduleEnable" },
+		{ kLockRideScheduleEnable, "LockRideScheduleEnable" },
 
 		//script
 		{ kScriptSpeedValue, "ScriptSpeedValue" },
@@ -636,9 +645,15 @@ namespace util
 		//other->group
 		{ kAutoFunNameString, "AutoFunNameString" },
 
+		//other->lockpet
+		{ kLockPetScheduleString, "LockPetScheduleString" },
+		{ kLockRideScheduleString, "LockRideScheduleString" },
+
 		{ kGameAccountString, "GameAccountString" },
 		{ kGamePasswordString, "GamePasswordString" },
 		{ kGameSecurityCodeString, "GameSecurityCodeString" },
+
+		{ kMailWhiteListString , "MailWhiteListString" },
 
 		{ kSettingMaxString, "SettingMaxString" }
 	};
@@ -1053,16 +1068,36 @@ namespace util
 			return hash.begin();
 		}
 
+		//const
+		inline typename QHash<K, V>::const_iterator cbegin() const
+		{
+			QReadLocker locker(&lock);
+			return hash.constBegin();
+		}
+
 		inline typename QHash<K, V>::iterator end()
 		{
 			QReadLocker locker(&lock);
 			return hash.end();
 		}
 
+		//const
+		inline typename QHash<K, V>::const_iterator cend() const
+		{
+			QReadLocker locker(&lock);
+			return hash.constEnd();
+		}
+
 		inline typename QHash<K, V>::const_iterator end() const
 		{
 			QReadLocker locker(&lock);
 			return hash.end();
+		}
+
+		QHash <K, V> toHash() const
+		{
+			QReadLocker locker(&lock);
+			return hash;
 		}
 
 	private:
@@ -1504,6 +1539,132 @@ namespace util
 	private:
 		QSet<uchar*> m_maps;
 	};
+
+#pragma region swap_row
+	inline void SwapRow(QTableWidget* p, QListWidget* p2, int selectRow, int targetRow)
+	{
+
+		if (p)
+		{
+			QStringList selectRowLine, targetRowLine;
+			int count = p->columnCount();
+			for (int i = 0; i < count; ++i)
+			{
+				selectRowLine.append(p->item(selectRow, i)->text());
+				targetRowLine.append(p->item(targetRow, i)->text());
+				if (!p->item(selectRow, i))
+					p->setItem(selectRow, i, q_check_ptr(new QTableWidgetItem(targetRowLine.at(i))));
+				else
+					p->item(selectRow, i)->setText(targetRowLine.at(i));
+
+				if (!p->item(targetRow, i))
+					p->setItem(targetRow, i, q_check_ptr(new QTableWidgetItem(selectRowLine.at(i))));
+				else
+					p->item(targetRow, i)->setText(selectRowLine.at(i));
+			}
+		}
+		else if (p2)
+		{
+			if (p2->count() == 0) return;
+			if (selectRow == targetRow || targetRow < 0 || selectRow < 0) return;
+			QString selectRowStr = p2->item(selectRow)->text();
+			QString targetRowStr = p2->item(targetRow)->text();
+			if (selectRow > targetRow)
+			{
+				p2->takeItem(selectRow);
+				p2->takeItem(targetRow);
+				p2->insertItem(targetRow, selectRowStr);
+				p2->insertItem(selectRow, targetRowStr);
+			}
+			else
+			{
+				p2->takeItem(targetRow);
+				p2->takeItem(selectRow);
+				p2->insertItem(selectRow, targetRowStr);
+				p2->insertItem(targetRow, selectRowStr);
+			}
+		}
+	}
+
+	inline void SwapRowUp(QTableWidget* p)
+	{
+		if (p->rowCount() <= 0)
+			return; //至少有一行
+		const QList<QTableWidgetItem*> list = p->selectedItems();
+		if (list.size() <= 0)
+			return; //有選中
+		int t = list.at(0)->row();
+		if (t - 1 < 0)
+			return; //不是第一行
+
+		int selectRow = t;	 //當前行
+		int targetRow = t - 1; //目標行
+
+		SwapRow(p, nullptr, selectRow, targetRow);
+
+		QModelIndex cur = p->model()->index(targetRow, 0);
+		p->setCurrentIndex(cur);
+	}
+
+	inline void SwapRowDown(QTableWidget* p)
+	{
+		if (p->rowCount() <= 0)
+			return; //至少有一行
+		const QList<QTableWidgetItem*> list = p->selectedItems();
+		if (list.size() <= 0)
+			return; //有選中
+		int t = list.at(0)->row();
+		if (t + 1 > p->rowCount() - 1)
+			return; //不是最後一行
+
+		int selectRow = t;	 //當前行
+		int targetRow = t + 1; //目標行
+
+		SwapRow(p, nullptr, selectRow, targetRow);
+
+		QModelIndex cur = p->model()->index(targetRow, 0);
+		p->setCurrentIndex(cur);
+	}
+
+	inline void SwapRowUp(QListWidget* p)
+	{
+		if (p->count() <= 0)
+			return;
+		int t = p->currentIndex().row(); // ui->tableWidget->rowCount();
+		if (t < 0)
+			return;
+		if (t - 1 < 0)
+			return;
+
+		int selectRow = t;
+		int targetRow = t - 1;
+
+		SwapRow(nullptr, p, selectRow, targetRow);
+
+		QModelIndex cur = p->model()->index(targetRow, 0);
+		p->setCurrentIndex(cur);
+	}
+
+	inline void SwapRowDown(QListWidget* p)
+	{
+		if (p->count() <= 0)
+			return;
+		int t = p->currentIndex().row();
+		if (t < 0)
+			return;
+		if (t + 1 > p->count() - 1)
+			return;
+
+		int selectRow = t;
+		int targetRow = t + 1;
+
+		SwapRow(nullptr, p, selectRow, targetRow);
+
+		QModelIndex cur = p->model()->index(targetRow, 0);
+		p->setCurrentIndex(cur);
+	}
+#pragma endregion
+
 
 	//用於掛機訊息紀錄
 	typedef struct tagAfkRecorder

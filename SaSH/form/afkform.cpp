@@ -58,6 +58,7 @@ AfkForm::AfkForm(QWidget* parent)
 	}
 	onResetControlTextLanguage();
 
+
 	util::FormSettingManager formSettingManager(this);
 	formSettingManager.loadSettings();
 
@@ -691,6 +692,7 @@ void AfkForm::onComboBoxTextChanged(const QString& text)
 
 void AfkForm::onResetControlTextLanguage()
 {
+
 	auto appendRound = [](QComboBox* combo)->void
 	{
 
@@ -828,6 +830,14 @@ void AfkForm::onResetControlTextLanguage()
 void AfkForm::onApplyHashSettingsToUI()
 {
 	Injector& injector = Injector::getInstance();
+
+	if (!injector.server.isNull() && injector.server->IS_ONLINE_FLAG)
+	{
+		QString title = tr("AfkForm");
+		QString newTitle = QString("[%1] %2").arg(injector.server->pc.name).arg(title);
+		setWindowTitle(newTitle);
+	}
+
 
 	//battle
 	ui.checkBox_magicheal->setChecked(injector.getEnableHash(util::kBattleMagicHealEnable));

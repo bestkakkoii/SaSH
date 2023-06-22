@@ -84,5 +84,6 @@ public:
 
 	void setModel(StringListModel* model);
 
-
+protected:
+	void wheelEvent(QWheelEvent* event) override;
 };

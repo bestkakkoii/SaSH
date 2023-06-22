@@ -138,6 +138,10 @@
         <source>engage in encounter</source>
         <translation>遇敵攻擊</translation>
     </message>
+    <message>
+        <source>AfkForm</source>
+        <translation>掛機設置</translation>
+    </message>
 </context>
 <context>
     <name>AfkFormClass</name>
@@ -515,6 +519,22 @@
     <message>
         <source>dialog</source>
         <translation>對話框</translation>
+    </message>
+    <message>
+        <source>team</source>
+        <translation>隊伍</translation>
+    </message>
+    <message>
+        <source>family</source>
+        <translation>家族</translation>
+    </message>
+    <message>
+        <source>world</source>
+        <translation>世界</translation>
+    </message>
+    <message>
+        <source>global</source>
+        <translation>星球</translation>
     </message>
 </context>
 <context>
@@ -968,6 +988,10 @@
         <source>infoform</source>
         <translation>人物資料</translation>
     </message>
+    <message>
+        <source>InfoForm</source>
+        <translation>人物資料</translation>
+    </message>
 </context>
 <context>
     <name>InfoFormClass</name>
@@ -1064,6 +1088,17 @@
     <message>
         <source>level</source>
         <translation>等級</translation>
+    </message>
+</context>
+<context>
+    <name>JumpToLineDialog</name>
+    <message>
+        <source>Current Line: %1 Index: %2</source>
+        <translation>當前行號: %1 索引: %2</translation>
+    </message>
+    <message>
+        <source>:</source>
+        <translation></translation>
     </message>
 </context>
 <context>
@@ -1331,7 +1366,7 @@
         <source>New version:%s were found!
 
 Update process will cause all the games to be closed, are you sure to continue?</source>
-        <translation>找到新的版本:%s !
+        <translation type="vanished">找到新的版本:%s !
 
 更新會導致所有遊戲和外掛都被關閉, 您確定要更新嗎?</translation>
     </message>
@@ -1346,6 +1381,30 @@ Update process will cause all the games to be closed, are you sure to continue?<
     <message>
         <source>basic info - count:%1, subscript:%2</source>
         <translation>訊息 - 接口:%1, 子腳本:%2</translation>
+    </message>
+    <message>
+        <source>open</source>
+        <translation>開啟</translation>
+    </message>
+    <message>
+        <source>close</source>
+        <translation>關閉</translation>
+    </message>
+    <message>
+        <source>Tip</source>
+        <translation>提示</translation>
+    </message>
+    <message>
+        <source>The program has been minimized to the system tray</source>
+        <translation>程序已最小化到系統托盤</translation>
+    </message>
+    <message>
+        <source>New version:%1 were found!
+
+Update process will cause all the games to be closed, are you sure to continue?</source>
+        <translation>找到新的版本:%1 !
+
+更新會導致所有遊戲和外掛都被關閉, 您確定要更新嗎?</translation>
     </message>
 </context>
 <context>
@@ -1424,6 +1483,10 @@ Update process will cause all the games to be closed, are you sure to continue?<
     <message>
         <source>%1→%2 (avg level: %3)</source>
         <translation>%1→%2 (平均每小時等級: %3)</translation>
+    </message>
+    <message>
+        <source>experience boost buffer left %1 mins</source>
+        <translation type="vanished">學習經驗的能力提升時效剩餘%1分鐘</translation>
     </message>
 </context>
 <context>
@@ -1693,7 +1756,7 @@ Update process will cause all the games to be closed, are you sure to continue?<
     </message>
     <message>
         <source>1.------------- target level:</source>
-        <translation>1.------------- 目標等級:</translation>
+        <translation type="vanished">1.------------- 目標等級:</translation>
     </message>
     <message>
         <source>ride</source>
@@ -1734,6 +1797,10 @@ Update process will cause all the games to be closed, are you sure to continue?<
     <message>
         <source>anti-anti-bot</source>
         <translation>自動解驗證圖</translation>
+    </message>
+    <message>
+        <source>+</source>
+        <translation></translation>
     </message>
 </context>
 <context>
@@ -2363,6 +2430,50 @@ MESSAGE：<byte value="xd"/>
         <source>&lt;findpath&gt;detedted player ware blocked</source>
         <translation>&lt;尋路&gt;檢測到人物卡點</translation>
     </message>
+    <message>
+        <source>&lt;Error&gt;Unknown command &apos;%1&apos; has been ignored at line: %2</source>
+        <translation type="vanished">&lt;錯誤&gt;找到未知的命令 &apos;%1&apos; 位於第 %2 行</translation>
+    </message>
+    <message>
+        <source>&lt;Warning&gt;Unexpected &apos;</source>
+        <translation type="vanished">&lt;警告&gt;非預期的 &apos;</translation>
+    </message>
+    <message>
+        <source>&apos; in parameter: &apos;</source>
+        <translation>&apos; 在參數:&apos;</translation>
+    </message>
+    <message>
+        <source>&apos; at line: %1</source>
+        <translation>&apos; 中 位於第 %1 行</translation>
+    </message>
+    <message>
+        <source>&lt;Warning&gt;Unknown command &apos;%1&apos; has been ignored at line: %2</source>
+        <translation>&lt;警告&gt;找到未知的命令 &apos;%1&apos; 位於第 %2 行</translation>
+    </message>
+    <message>
+        <source>&lt;Syntax Error&gt;Unexpected &apos;</source>
+        <translation>&lt;語法錯誤&gt;非預期的 &apos;</translation>
+    </message>
+    <message>
+        <source>%1 hour %2 min %3 sec</source>
+        <translation>%1 時 %2 分 %3 秒</translation>
+    </message>
+    <message>
+        <source>label incorrect or not exist</source>
+        <translation>標記錯誤或不存在</translation>
+    </message>
+    <message>
+        <source>%1Missing comma after &apos;%2&apos; %3%4%5</source>
+        <translation>%1於 &apos;%2&apos; 之後缺少逗點 %3%4%5</translation>
+    </message>
+    <message>
+        <source>&lt;Syntax Error&gt;Unexpected &apos;&amp;&apos; before declared variable name &apos;%1&apos; at line: %2</source>
+        <translation>&lt;語法錯誤&gt;在聲明的變量 &apos;%1&apos; 之前不應包含 &apos;&amp;&apos; 於行號: %2</translation>
+    </message>
+    <message>
+        <source>&lt;Syntax Error&gt;Missing &apos;&amp;&apos; before referenced variable name &apos;%1&apos; at line: %2</source>
+        <translation>&lt;語法錯誤&gt;在引用變量 &apos;%1&apos; 之前遺漏 &apos;&amp;&apos; 於行號: %2</translation>
+    </message>
 </context>
 <context>
     <name>ScriptForm</name>
@@ -2568,6 +2679,30 @@ MESSAGE：<byte value="xd"/>
         <source>rename</source>
         <translation>重新命名</translation>
     </message>
+    <message>
+        <source>row</source>
+        <translation>行</translation>
+    </message>
+    <message>
+        <source>content</source>
+        <translation>內容</translation>
+    </message>
+    <message>
+        <source>Decrypt script %1 saved</source>
+        <translation>解密腳本 %1 已保存</translation>
+    </message>
+    <message>
+        <source>Encrypt password can not be empty</source>
+        <translation>加密密鑰不可為空</translation>
+    </message>
+    <message>
+        <source>Decrypt password can not be empty</source>
+        <translation>解密密鑰不可為空</translation>
+    </message>
+    <message>
+        <source>Decrypt password is incorrect</source>
+        <translation>解密密鑰不正確</translation>
+    </message>
 </context>
 <context>
     <name>ScriptSettingFormClass</name>
@@ -2677,59 +2812,7 @@ MESSAGE：<byte value="xd"/>
     </message>
     <message>
         <source>var operator</source>
-        <translation>變數運算符</translation>
-    </message>
-    <message>
-        <source>&gt;&gt;</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>&lt;&lt;</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>++</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>+</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>~</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>|</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>^</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>/</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>*</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>&amp;</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>%</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>--</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>-</source>
-        <translation></translation>
+        <translation type="vanished">變數運算符</translation>
     </message>
     <message>
         <source>global var</source>
@@ -2805,31 +2888,7 @@ MESSAGE：<byte value="xd"/>
     </message>
     <message>
         <source>relational operator</source>
-        <translation>邏輯比較運算符</translation>
-    </message>
-    <message>
-        <source>&gt;=</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>&gt;</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>==</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>&lt;=</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>&lt;</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>!=</source>
-        <translation></translation>
+        <translation type="vanished">邏輯比較運算符</translation>
     </message>
     <message>
         <source>move</source>
@@ -2881,7 +2940,7 @@ MESSAGE：<byte value="xd"/>
     </message>
     <message>
         <source>comment</source>
-        <translation>註釋 (//)</translation>
+        <translation></translation>
     </message>
     <message>
         <source>cmp</source>
@@ -2962,10 +3021,6 @@ MESSAGE：<byte value="xd"/>
     <message>
         <source>withdrawitem</source>
         <translation type="obsolete">提出道具</translation>
-    </message>
-    <message>
-        <source>wearrecordedequip</source>
-        <translation></translation>
     </message>
     <message>
         <source>usemagic</source>
@@ -3088,19 +3143,11 @@ MESSAGE：<byte value="xd"/>
         <translation></translation>
     </message>
     <message>
-        <source>level</source>
-        <translation></translation>
-    </message>
-    <message>
         <source>hppercent</source>
         <translation></translation>
     </message>
     <message>
         <source>hp</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>freename</source>
         <translation></translation>
     </message>
     <message>
@@ -3129,7 +3176,7 @@ MESSAGE：<byte value="xd"/>
     </message>
     <message>
         <source>des</source>
-        <translation></translation>
+        <translation>說明</translation>
     </message>
     <message>
         <source>Step</source>
@@ -3433,11 +3480,67 @@ MESSAGE：<byte value="xd"/>
     </message>
     <message>
         <source>callstack</source>
-        <translation type="unfinished"></translation>
+        <translation>調用棧</translation>
     </message>
     <message>
         <source>jmpstack</source>
-        <translation type="unfinished"></translation>
+        <translation>跳轉棧</translation>
+    </message>
+    <message>
+        <source>varop</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>sysvar</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>preview</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>op</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>wearrecordequip</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>typedef</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>waitteam</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>lv</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>fname</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>wind</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>water</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>fire</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>earth</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>mail</source>
+        <translation></translation>
     </message>
 </context>
 <context>

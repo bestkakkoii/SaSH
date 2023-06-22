@@ -20,6 +20,7 @@ public slots:
 private slots:
 	void onResetControlTextLanguage();
 	void onButtonClicked();
+	void groupBoxClicked(bool checked);
 	void onCheckBoxStateChanged(int state);
 	void onSpinBoxValueChanged(int value);
 	void onComboBoxCurrentIndexChanged(int value);
@@ -27,6 +28,7 @@ private slots:
 	void onComboBoxTextChanged(const QString& text);
 	void onLineEditTextChanged(const QString& text);
 	void onUpdateTeamInfo(const QStringList& text);
+	void onListWidgetDoubleClicked(QListWidgetItem* item);
 private:
 	void updateComboboxAutoFunNameList(const QStringList& textList);
 private:

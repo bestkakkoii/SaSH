@@ -509,11 +509,11 @@ extern "C"
 	}
 
 	//BattleCommandReady
-	//void __cdecl New_BattleCommandReady()
-	//{
-	//	GameService& g_GameService = GameService::getInstance();
-	//	return g_GameService.New_BattleCommandReady();
-	//}
+	void __cdecl New_BattleCommandReady()
+	{
+		GameService& g_GameService = GameService::getInstance();
+		return g_GameService.New_BattleCommandReady();
+	}
 
 	//TimeProc
 	void __cdecl New_TimeProc(int fd)
@@ -527,6 +527,13 @@ extern "C"
 	{
 		GameService& g_GameService = GameService::getInstance();
 		return g_GameService.New_lssproto_EN_recv(fd, result, field);
+	}
+
+	//lssproto_WN_send
+	void _cdecl New_lssproto_WN_send(int fd, int x, int y, int seqno, int objindex, int select, char* data)
+	{
+		GameService& g_GameService = GameService::getInstance();
+		return g_GameService.New_lssproto_WN_send(fd, x, y, seqno, objindex, select, data);
 	}
 }
 
@@ -556,10 +563,12 @@ void GameService::initialize(unsigned short port)
 #endif
 
 	//pBattleCommandReady = CONVERT_GAMEVAR<pfnBattleCommandReady>(0x6B9A0);//戰鬥面板生成call裡面的一個小function
+	pBattleCommandReady = CONVERT_GAMEVAR<DWORD*>(0xA8CA);
 	pPlaySound = CONVERT_GAMEVAR<pfnPlaySound>(0x88190);//播放音效
 	pBattleProc = CONVERT_GAMEVAR<pfnBattleProc>(0x3940);//戰鬥循環
 	pTimeProc = CONVERT_GAMEVAR<pfnTimeProc>(0x1E6D0);//刷新時間循環
 	pLssproto_EN_recv = CONVERT_GAMEVAR<pfnLssproto_EN_recv>(0x64E10);//進戰鬥封包
+	pLssproto_WN_send = CONVERT_GAMEVAR<pfnLssproto_WN_send>(0x8FDC0);//對話框發送封包
 
 	/*WINAPI*/
 	//psocket = CONVERT_GAMEVAR<pfnsocket>(0x91764);//::socket;
@@ -580,9 +589,14 @@ void GameService::initialize(unsigned short port)
 	int* pEnableAI = CONVERT_GAMEVAR<int*>(0xD9050);
 	*pEnableAI = 0;
 
+	//sa_8001sf.exe+A8CA - FF 05 F0 0D 63 04        - inc [sa_8001sf.exe+4230DF0] { (2) }
+	BYTE newByte[6] = { 0x90, 0xE8, 0x90, 0x90, 0x90, 0x90 }; //新數據
+	BYTE oldByte[6] = {}; //保存舊數據用於還原
+	util::detour(::New_BattleCommandReady, reinterpret_cast<DWORD>(pBattleCommandReady), oldByte, newByte, sizeof(oldByte), 0);
+
 	//禁止開頭那隻寵物亂跑
 	//paddr = CONVERT_GAMEVAR<DWORD>(0x79A0F);
-	////sa_8001.exe+79A0F - E8 DCFAFBFF           - call sa_8001.exe+394F0
+	////sa_8001.exe+79A0F - E8 DCFAFBFF           - call sa_8001.exe+394F0s
 	//util::MemoryMove(paddr, "\x90\x90\x90\x90\x90", 5);
 	////開頭那隻寵物會不會動
 	//paddr = CONVERT_GAMEVAR<DWORD>(0x79A14);
@@ -608,7 +622,8 @@ void GameService::initialize(unsigned short port)
 	DetourAttach(&(PVOID&)pBattleProc, ::New_BattleProc);
 	DetourAttach(&(PVOID&)pTimeProc, ::New_TimeProc);
 	DetourAttach(&(PVOID&)pLssproto_EN_recv, ::New_lssproto_EN_recv);
-	//DetourAttach(&(PVOID&)pBattleCommandReady, ::New_BattleCommandReady);
+	DetourAttach(&(PVOID&)pLssproto_WN_send, ::New_lssproto_WN_send);
+
 
 	DetourTransactionCommit();
 #ifdef USE_ASYNC_TCP
@@ -672,9 +687,23 @@ void GameService::uninitialize()
 	DetourDetach(&(PVOID&)pBattleProc, ::New_BattleProc);
 	DetourDetach(&(PVOID&)pTimeProc, ::New_TimeProc);
 	DetourDetach(&(PVOID&)pLssproto_EN_recv, ::New_lssproto_EN_recv);
+	DetourDetach(&(PVOID&)pLssproto_WN_send, ::New_lssproto_WN_send);
 	//DetourAttach(&(PVOID&)pBattleCommandReady, ::New_BattleCommandReady);
 
 	DetourTransactionCommit();
+}
+
+void GameService::Send(const std::string& str)
+{
+#ifdef USE_ASYNC_TCP
+	//轉發給外掛
+	if (asyncClient_)
+		asyncClient_->Send(str.c_str(), str.size());
+#else
+	//轉發給外掛
+	if (syncClient_)
+		syncClient_->Send(str.c_str(), str.size());
+#endif
 }
 
 #ifdef AUTIL_H
@@ -867,10 +896,12 @@ void GameService::New_BattleProc()
 }
 
 //每回合開始顯示戰鬥面板 (這裡只是切換面板時會順便調用到的函數)
-//void GameService::New_BattleCommandReady()
-//{
-//	pBattleCommandReady();
-//}
+void GameService::New_BattleCommandReady()
+{
+	int* p = CONVERT_GAMEVAR<int*>(0x4230DF0);
+	++(*p);
+	Send("bPK 1");
+}
 
 //遊戲時間刷新循環 (早上,下午....)
 void GameService::New_TimeProc(int fd)
@@ -884,6 +915,23 @@ void GameService::New_lssproto_EN_recv(int fd, int result, int field)
 {
 	if (!IS_ENCOUNT_BLOCK_FLAG)
 		pLssproto_EN_recv(fd, result, field);
+}
+
+//WN對話框發包攔截
+void GameService::New_lssproto_WN_send(int fd, int x, int y, int seqno, int objindex, int select, const char* data)
+{
+	if (objindex == 1234 && seqno == 4321)
+	{
+		std::string str = "dk|";
+		str += std::to_string(x) + "|";
+		str += std::to_string(y) + "|";
+		str += std::to_string(select) + "|";
+		str += std::string(data);
+		std::cout << "send: " << str << std::endl;
+		Send(str);
+	}
+
+	pLssproto_WN_send(fd, x, y, seqno, objindex, select, data);
 }
 ////////////////////////////////////////////////////
 

@@ -133,9 +133,16 @@ int Interpreter::announce(int currentline, const TokenMap& TK)
 
 	int color = 4;
 	checkInt(TK, 2, &color);
+	if (color == -1)
+		color = QRandomGenerator::global()->bounded(0, 10);
+	else if (color < -1)
+	{
+		logExport(currentline, text, 0);
+		return Parser::kNoChange;
+	}
 
 	injector.server->announce(text, color);
-	logExport(currentline, text, color);
+
 	return Parser::kNoChange;
 }
 
@@ -195,8 +202,19 @@ int Interpreter::talk(int currentline, const TokenMap& TK)
 
 	int color = 4;
 	checkInt(TK, 2, &color);
+	if (color < 0)
+		color = QRandomGenerator::global()->bounded(0, 10);
 
-	injector.server->talk(text, color);
+	TalkMode talkmode = kTalkNormal;
+	int nTalkMode = 0;
+	checkInt(TK, 3, &nTalkMode);
+	if (nTalkMode > 0 && nTalkMode < kTalkModeMax)
+	{
+		--nTalkMode;
+		talkmode = static_cast<TalkMode>(nTalkMode);
+	}
+
+	injector.server->talk(text, color, talkmode);
 
 	return Parser::kNoChange;
 }
@@ -460,6 +478,8 @@ int Interpreter::set(int currentline, const TokenMap& TK)
 
 		{ u8"戰後自動鎖定戰寵", util::kLockPetEnable },
 		{ u8"戰後自動鎖定騎寵", util::kLockRideEnable },
+		{ u8"鎖定戰寵排程", util::kLockPetScheduleEnable },
+		{ u8"鎖定騎寵排程", util::kLockRideScheduleEnable },
 
 		{ u8"自動丟棄名單", util::kAutoDropItemString },
 		{ u8"鎖定攻擊名單", util::kLockAttackString },
@@ -478,6 +498,10 @@ int Interpreter::set(int currentline, const TokenMap& TK)
 		{ u8"帳號", util::kGameAccountString },
 		{ u8"密碼", util::kGamePasswordString },
 		{ u8"安全碼", util::kGameSecurityCodeString },
+		{ u8"鎖定戰寵排程內容", util::kLockPetScheduleString },
+		{ u8"鎖定騎寵排程內容", util::kLockRideScheduleString },
+
+		{ u8"遠程白名單", util::kMailWhiteListString },
 
 #pragma endregion
 
@@ -619,6 +643,8 @@ int Interpreter::set(int currentline, const TokenMap& TK)
 
 		{ u8"战后自动锁定战宠", util::kLockPetEnable },
 		{ u8"战后自动锁定骑宠", util::kLockRideEnable },
+		{ u8"锁定战宠排程", util::kLockPetScheduleEnable },
+		{ u8"锁定骑宠排程", util::kLockRideScheduleEnable },
 
 		{ u8"自动丢弃名单", util::kAutoDropItemString },
 		{ u8"锁定攻击名单", util::kLockAttackString },
@@ -636,7 +662,11 @@ int Interpreter::set(int currentline, const TokenMap& TK)
 		{ u8"自动组队名称", util::kAutoFunNameString },
 		{ u8"帐号", util::kGameAccountString },
 		{ u8"密码", util::kGamePasswordString },
-		{ u8"安全码", util::kGameSecurityCodeString }
+		{ u8"安全码", util::kGameSecurityCodeString },
+		{ u8"锁定战宠排程内容", util::kLockPetScheduleString },
+		{ u8"锁定骑宠排程内容", util::kLockRideScheduleString },
+
+		{ u8"远程白名单", util::kMailWhiteListString },
 
 #pragma endregion
 	};
@@ -851,6 +881,8 @@ int Interpreter::set(int currentline, const TokenMap& TK)
 		//lockpet
 	case util::kLockPetEnable:
 	case util::kLockRideEnable:
+	case util::kLockPetScheduleEnable:
+	case util::kLockRideScheduleEnable:
 
 	case util::kSettingMaxEnable:
 	{
@@ -890,10 +922,16 @@ int Interpreter::set(int currentline, const TokenMap& TK)
 		//other->group
 	case util::kAutoFunNameString:
 
+		//other->lockpet
+	case util::kLockRideScheduleString:
+	case util::kLockPetScheduleString:
+
 		//other->other2
 	case util::kGameAccountString:
 	case util::kGamePasswordString:
 	case util::kGameSecurityCodeString:
+
+	case util::kMailWhiteListString:
 
 	case util::kSettingMaxString:
 	{

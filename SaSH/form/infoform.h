@@ -24,7 +24,7 @@ signals:
 
 public slots:
 	void onResetControlTextLanguage();
-
+	void onApplyHashSettingsToUI();
 
 protected:
 	void showEvent(QShowEvent* e);

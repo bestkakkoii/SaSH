@@ -348,6 +348,8 @@ private:
 		//lockpet
 		{ util::kLockPetEnable, false },
 		{ util::kLockRideEnable, false },
+		{ util::kLockPetScheduleEnable, false },
+		{ util::kLockRideScheduleEnable, false },
 		//other->group
 
 	};
@@ -370,9 +372,15 @@ private:
 
 		{ util::kAutoFunNameString, "" },
 
+		//other->lockpet
+		{ util::kLockPetScheduleString, "" },
+		{ util::kLockRideScheduleString, "" },
+
 		{ util::kGameAccountString, "" },
 		{ util::kGamePasswordString, "" },
 		{ util::kGameSecurityCodeString, "" },
+
+		{ util::kMailWhiteListString , "" },
 
 	};
 };

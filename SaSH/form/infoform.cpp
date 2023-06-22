@@ -11,6 +11,7 @@
 #include "afkinfoform.h"
 
 #include "signaldispatcher.h"
+#include "injector.h"
 
 InfoForm::InfoForm(QWidget* parent)
 	: QWidget(parent)
@@ -23,7 +24,6 @@ InfoForm::InfoForm(QWidget* parent)
 
 	connect(this, &InfoForm::resetControlTextLanguage, this, &InfoForm::onResetControlTextLanguage, Qt::UniqueConnection);
 
-	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
 
 	ui.tabWidget->clear();
 	util::setTab(ui.tabWidget);
@@ -71,6 +71,11 @@ InfoForm::InfoForm(QWidget* parent)
 	}
 
 	onResetControlTextLanguage();
+	onApplyHashSettingsToUI();
+
+	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
+
+	connect(&signalDispatcher, &SignalDispatcher::applyHashSettingsToUI, this, &InfoForm::onApplyHashSettingsToUI, Qt::UniqueConnection);
 
 
 	util::FormSettingManager formManager(this);
@@ -113,3 +118,16 @@ void InfoForm::onResetControlTextLanguage()
 	pChatInfoForm_->onResetControlTextLanguage();
 
 }
+
+void InfoForm::onApplyHashSettingsToUI()
+{
+	Injector& injector = Injector::getInstance();
+	if (!injector.server.isNull() && injector.server->IS_ONLINE_FLAG)
+	{
+		QString title = tr("InfoForm");
+		QString newTitle = QString("[%1] %2").arg(injector.server->pc.name).arg(title);
+		setWindowTitle(newTitle);
+	}
+}
+
+

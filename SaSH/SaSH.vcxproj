@@ -154,6 +154,7 @@
     <ClCompile Include="form\otherform.cpp" />
     <ClCompile Include="form\petinfoform.cpp" />
     <ClCompile Include="form\playerinfoform.cpp" />
+    <ClCompile Include="form\replaceform.cpp" />
     <ClCompile Include="form\scriptform.cpp" />
     <ClCompile Include="form\scriptsettingform.cpp" />
     <ClCompile Include="gdatatime.cpp" />
@@ -166,7 +167,12 @@
     </ClCompile>
     <ClCompile Include="map\astar.cpp" />
     <ClCompile Include="map\mapanalyzer.cpp" />
-    <ClCompile Include="model\codeeditor.cpp" />
+    <ClCompile Include="model\codeeditor.cpp">
+      <DynamicSource Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">input</DynamicSource>
+      <QtMocFileName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">%(Filename).moc</QtMocFileName>
+      <DynamicSource Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">input</DynamicSource>
+      <QtMocFileName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">%(Filename).moc</QtMocFileName>
+    </ClCompile>
     <ClCompile Include="model\combobox.cpp" />
     <ClCompile Include="model\highlighter.cpp" />
     <ClCompile Include="model\listview.cpp" />
@@ -212,6 +218,7 @@
     <QtMoc Include="form\mapwidget.h" />
     <QtMoc Include="form\mapform.h" />
     <ClInclude Include="crypto.h" />
+    <QtMoc Include="form\replaceform.h" />
     <ClInclude Include="gdatetime.h" />
     <ClInclude Include="injector.h" />
     <ClInclude Include="map\astar.h" />

@@ -16,7 +16,7 @@ typedef struct break_marker_s
 class Interpreter : public QObject
 {
 	Q_OBJECT
-private:
+public:
 	enum RunFileMode
 	{
 		kSync,
@@ -39,7 +39,7 @@ public:
 
 	void preview(const QString& fileName);
 
-	void doString(const QString& script, Interpreter* parent = nullptr);
+	void doString(const QString& script, Interpreter* parent, VarShareMode shareMode);
 
 	void doFileWithThread(int beginLine, const QString& fileName);
 
@@ -102,6 +102,10 @@ private:
 		kPlayerDef,
 		kPlayerAgi,
 		kPlayerChasma,
+		kPlayerEarth,
+		kPlayerWater,
+		kPlayerFire,
+		kPlayerWind,
 
 		kPetName,
 		kPetFreeName,
@@ -116,6 +120,10 @@ private:
 		kPetAgi,
 		kPetLoyal,
 		kPetState,
+		kPetEarth,
+		kPetWater,
+		kPetFire,
+		kPetWind,
 
 		itemCount,
 
@@ -126,8 +134,8 @@ private:
 
 	inline static const QHash<QString, CompareType> compareTypeMap = {
 		{ u8"人物name", kPlayerName },
-		{ u8"人物freename", kPlayerFreeName },
-		{ u8"人物level", kPlayerLevel },
+		{ u8"人物fname", kPlayerFreeName },
+		{ u8"人物lv", kPlayerLevel },
 		{ u8"人物hp", kPlayerHp },
 		{ u8"人物maxhp", kPlayerMaxHp },
 		{ u8"人物hppercent", kPlayerHpPercent },
@@ -141,10 +149,14 @@ private:
 		{ u8"人物def", kPlayerDef },
 		{ u8"人物agi", kPlayerAgi },
 		{ u8"人物chasma", kPlayerChasma },
+		{ u8"人物earth", kPlayerEarth },
+		{ u8"人物water", kPlayerWater },
+		{ u8"人物fire", kPlayerFire },
+		{ u8"人物wind", kPlayerWind },
 
 		{ u8"寵物name", kPetName },
-		{ u8"寵物freename", kPetFreeName },
-		{ u8"寵物level", kPetLevel },
+		{ u8"寵物fname", kPetFreeName },
+		{ u8"寵物lv", kPetLevel },
 		{ u8"寵物hp", kPetHp },
 		{ u8"寵物maxhp", kPetMaxHp },
 		{ u8"寵物hppercent", kPetHpPercent },
@@ -155,6 +167,10 @@ private:
 		{ u8"寵物agi", kPetAgi },
 		{ u8"寵物loyal", kPetLoyal },
 		{ u8"寵物state", kPetState },
+		{ u8"寵物earth", kPetEarth },
+		{ u8"寵物water", kPetWater },
+		{ u8"寵物fire", kPetFire },
+		{ u8"寵物wind", kPetWind },
 
 		{ u8"道具數量", itemCount },
 
@@ -163,8 +179,8 @@ private:
 
 
 		{ u8"人物name", kPlayerName },
-		{ u8"人物freename", kPlayerFreeName },
-		{ u8"人物level", kPlayerLevel },
+		{ u8"人物fname", kPlayerFreeName },
+		{ u8"人物lv", kPlayerLevel },
 		{ u8"人物hp", kPlayerHp },
 		{ u8"人物maxhp", kPlayerMaxHp },
 		{ u8"人物hppercent", kPlayerHpPercent },
@@ -178,10 +194,14 @@ private:
 		{ u8"人物def", kPlayerDef },
 		{ u8"人物agi", kPlayerAgi },
 		{ u8"人物chasma", kPlayerChasma },
+		{ u8"人物earth", kPlayerEarth },
+		{ u8"人物water", kPlayerWater },
+		{ u8"人物fire", kPlayerFire },
+		{ u8"人物wind", kPlayerWind },
 
 		{ u8"宠物name", kPetName },
-		{ u8"宠物freename", kPetFreeName },
-		{ u8"宠物level", kPetLevel },
+		{ u8"宠物fname", kPetFreeName },
+		{ u8"宠物lv", kPetLevel },
 		{ u8"宠物hp", kPetHp },
 		{ u8"宠物maxhp", kPetMaxHp },
 		{ u8"宠物hppercent", kPetHpPercent },
@@ -192,6 +212,10 @@ private:
 		{ u8"宠物agi", kPetAgi },
 		{ u8"宠物loyal", kPetLoyal },
 		{ u8"宠物state", kPetState },
+		{ u8"宠物earth", kPetEarth },
+		{ u8"宠物water", kPetWater },
+		{ u8"宠物fire", kPetFire },
+		{ u8"宠物wind", kPetWind },
 
 		{ u8"道具数量", itemCount },
 
@@ -317,9 +341,12 @@ private: //註冊給Parser的函數
 	int withdrawpet(int currentline, const TokenMap& TK);
 	int withdrawitem(int currentline, const TokenMap& TK);
 
+	int mail(int currentline, const TokenMap& TK);
+
 	//action-group
 	int join(int currentline, const TokenMap& TK);
 	int leave(int currentline, const TokenMap& TK);
+	int kick(int currentline, const TokenMap& TK);
 
 	int leftclick(int currentline, const TokenMap& TK);
 	int rightclick(int currentline, const TokenMap& TK);

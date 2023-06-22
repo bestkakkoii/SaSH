@@ -47,6 +47,7 @@ private:
 	void checkAutoHeal();
 	void checkAutoDropPet();
 	void checkAutoLockPet();
+	void checkAutoLockSchedule();
 	void checkAutoEatBoostExpItem();
 	void checkRecordableNpcInfo();
 private:

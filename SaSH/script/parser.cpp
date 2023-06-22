@@ -3,6 +3,7 @@
 
 #include "signaldispatcher.h"
 #include "injector.h"
+#include "interpreter.h"
 
 //根據token解釋腳本
 void Parser::parse(int line)
@@ -12,6 +13,10 @@ void Parser::parse(int line)
 	jmpStack_.clear();  //清空跳轉棧
 
 	if (tokens_.isEmpty())
+		return;
+
+	variables_.reset(new VariantSafeHash());
+	if (variables_.isNull())
 		return;
 
 	processTokens();
@@ -60,18 +65,101 @@ T calc(const QVariant& a, const QVariant& b, RESERVE operatorType)
 	Q_UNREACHABLE();
 }
 
+bool Parser::checkString(const TokenMap& TK, int idx, QString* ret)
+{
+	if (!TK.contains(idx))
+		return false;
+	if (ret == nullptr)
+		return false;
+
+	RESERVE type = TK.value(idx).type;
+	QVariant var = TK.value(idx).data;
+	QHash<QString, QVariant> args = getLabelVars();
+	if (!var.isValid())
+		return false;
+	if (type == TK_REF)
+	{
+		*ret = getVar<QString>(var.toString());
+	}
+	else if (type == TK_STRING || type == TK_CMD)
+	{
+		//檢查是否為區域變量
+		QString name = var.toString();
+		if (args.contains(name))
+		{
+			QVariant::Type vtype = args.value(name).type();
+			if (vtype == QVariant::Int || vtype == QVariant::String)
+				*ret = args.value(name).toString();
+			else if (vtype == QVariant::Double)
+				*ret = QString::number(args.value(name).toDouble(), 'f', 8);
+			else
+				return false;
+		}
+		else
+			*ret = var.toString();
+	}
+	else
+		return false;
+
+	return true;
+}
+
+bool Parser::checkInt(const TokenMap& TK, int idx, int* ret)
+{
+	if (!TK.contains(idx))
+		return false;
+	if (ret == nullptr)
+		return false;
+
+	RESERVE type = TK.value(idx).type;
+	QVariant var = TK.value(idx).data;
+	QHash<QString, QVariant> args = getLabelVars();
+	if (!var.isValid())
+		return false;
+
+	if (type == TK_REF)
+	{
+		*ret = getVar<int>(var.toString());
+	}
+	else if (type == TK_INT)
+	{
+		bool ok = false;
+		int value = var.toInt(&ok);
+		if (!ok)
+			return false;
+		*ret = value;
+	}
+	else if (type == TK_STRING)
+	{
+		//檢查是否為區域變量
+		QString name = var.toString();
+		if (args.contains(name) && args.value(name).type() == QVariant::Int)
+		{
+			*ret = args.value(name).toInt();
+		}
+		else if (args.contains(name) && args.value(name).type() == QVariant::String)
+		{
+			bool ok;
+			int value = args.value(name).toInt(&ok);
+			if (ok)
+				*ret = value;
+			else
+				return false;
+		}
+		else
+			return false;
+	}
+	else
+		return false;
+
+	return true;
+}
+
 //行跳轉
 void Parser::jump(int line, bool noStack)
 {
-	//if (line > 0)
-	//{
-	//	--line;
-	//}
-	//else
-	//{
-	//	++line;
-	//}
-	jmpStack_.push(lineNumber_ + 1);
+	if (!noStack)
+		jmpStack_.push(lineNumber_ + 1);
 	lineNumber_ += line;
 }
 
@@ -80,7 +168,8 @@ void Parser::jumpto(int line, bool noStack)
 {
 	if (line - 1 < 0)
 		line = 1;
-	jmpStack_.push(lineNumber_ + 1);
+	if (!noStack)
+		jmpStack_.push(lineNumber_ + 1);
 	lineNumber_ = line - 1;
 }
 
@@ -90,12 +179,15 @@ bool Parser::jump(const QString& name, bool noStack)
 	int jumpLine = matchLineFromLabel(name);
 	if (jumpLine == -1)
 	{
+		handleError(kLabelError);
 		return false;
 	}
 
-	int jumpLineCount = jumpLine - lineNumber_;
+	if (!noStack)
+		jmpStack_.push(lineNumber_ + 1);
 
-	jump(jumpLineCount);
+	int jumpLineCount = jumpLine - lineNumber_;
+	jump(jumpLineCount, true);
 	return true;
 }
 
@@ -110,6 +202,8 @@ void Parser::processTokens()
 		emit signalDispatcher.addErrorMarker(-1, false);
 		emit signalDispatcher.addForwardMarker(-1, false);
 		emit signalDispatcher.addStepMarker(-1, false);
+		generateStackInfo(0);
+		generateStackInfo(1);
 	}
 
 	int oldlineNumber = lineNumber_;
@@ -118,8 +212,14 @@ void Parser::processTokens()
 		if (isEmpty())
 			break;
 
-		if (lineNumber_ != 0)
+
+		RESERVE currentType = currentLineTokens_.value(0).type;
+
+		if (currentType != RESERVE::TK_WHITESPACE && currentType != RESERVE::TK_SPACE)
 		{
+			if (mode_ == Mode::kSync)
+				emit signalDispatcher.scriptLabelRowTextChanged2(oldlineNumber, NULL, false);
+
 			QThread::yieldCurrentThread();
 			int extraDelay = injector.getValueHash(util::kScriptSpeedValue);
 			if (extraDelay > 1000)
@@ -137,10 +237,6 @@ void Parser::processTokens()
 			QThread::msleep(1);
 		}
 
-		RESERVE currentType = currentLineTokens_.value(0).type;
-
-		if (currentType != RESERVE::TK_WHITESPACE && currentType != RESERVE::TK_SPACE && mode_ == Mode::kSync)
-			emit signalDispatcher.scriptLabelRowTextChanged2(oldlineNumber, NULL, false);
 		oldlineNumber = lineNumber_;
 
 		currentLineTokens_ = tokens_.value(lineNumber_);
@@ -168,7 +264,10 @@ void Parser::processTokens()
 			{
 				int ret = processCommand();
 				if (ret == kHasJump)
+				{
+					generateStackInfo(1);
 					continue;
+				}
 				else if (ret == kError)
 				{
 					handleError(ret);
@@ -197,26 +296,37 @@ void Parser::processTokens()
 			case TK_CALL:
 			{
 				if (processCall())
+				{
+					generateStackInfo(0);
 					continue;
+				}
 				break;
 			}
 			case TK_GOTO:
 			{
 				if (processGoto())
+				{
+					generateStackInfo(1);
 					continue;
+				}
 				break;
 			}
 			case TK_JMP:
 			{
 				if (processJump())
+				{
+					generateStackInfo(1);
 					continue;
+				}
 				break;
 			}
 			case TK_RETURN:
 				processReturn();
+				generateStackInfo(0);
 				continue;
 			case TK_BAK:
 				processBack();
+				generateStackInfo(1);
 				continue;
 			case TK_LABEL:
 			{
@@ -243,7 +353,7 @@ void Parser::processTokens()
 		//導出變量訊息
 		if (mode_ == kSync)
 		{
-			emit signalDispatcher.globalVarInfoImport(variables_);
+			emit signalDispatcher.globalVarInfoImport(variables_->toHash());
 			if (!labalVarStack_.isEmpty())
 				emit signalDispatcher.localVarInfoImport(labalVarStack_.top());//導出局變量訊息
 			else
@@ -349,8 +459,8 @@ void Parser::processVariable(RESERVE type)
 				if (op == TK_REF)
 				{
 					valueStr = valueStr.mid(1);
-					if (variables_.contains(valueStr))
-						varValue = variables_.value(valueStr);
+					if (variables_->contains(valueStr))
+						varValue = variables_->value(valueStr);
 					else
 						return;
 				}
@@ -418,23 +528,23 @@ void Parser::processVariable(RESERVE type)
 
 				if (processGetSystemVarValue(varName, valueStr, varValue))
 				{
-					variables_.insert(varName, varValue);
+					variables_->insert(varName, varValue);
 					break;
 				}
 			}
 
 			//插入全局變量表
-			variables_.insert(varName, varValue);
+			variables_->insert(varName, varValue);
 			break;
 		}
 
 		//下面是變量比較數值，先檢查變量是否存在
-		if (!variables_.contains(varName))
+		if (!variables_->contains(varName))
 		{
 			if (op != TK_DEC && op != TK_INC)
 				break;
 			else
-				variables_.insert(varName, 0);
+				variables_->insert(varName, 0);
 		}
 
 
@@ -454,8 +564,8 @@ void Parser::processVariable(RESERVE type)
 		if (varValueType == TK_REF)
 		{
 			QString valueStr = varValue.toString().mid(1);
-			if (variables_.contains(valueStr))
-				varValue = variables_.value(valueStr);
+			if (variables_->contains(valueStr))
+				varValue = variables_->value(valueStr);
 		}
 		else if (varValueType == TK_STRING)
 		{
@@ -492,7 +602,7 @@ void Parser::processVariable(RESERVE type)
 		}
 
 		//將第一參數，要被運算的變量原數值取出
-		QVariant& var = variables_[varName];
+		QVariant& var = (*variables_)[varName];
 
 		//開始計算新值
 		variableCalculate(varName, op, &var, varValue);
@@ -504,13 +614,13 @@ void Parser::processVariable(RESERVE type)
 		if (varName.isEmpty())
 			break;
 
-		if (variables_.contains(varName))
-			variables_.remove(varName);
+		if (variables_->contains(varName))
+			variables_->remove(varName);
 		break;
 	}
 	case TK_VARCLR:
 	{
-		variables_.clear();
+		variables_->clear();
 		break;
 	}
 	}
@@ -531,13 +641,13 @@ void Parser::processMultiVariable()
 		QString varName = varNames.at(i);
 		if (varName.isEmpty())
 		{
-			variables_.insert(varName, 0);
+			variables_->insert(varName, 0);
 			continue;
 		}
 
 		if (i + 1 >= currentLineTokens_.size())
 		{
-			variables_.insert(varName, 0);
+			variables_->insert(varName, 0);
 			continue;
 		}
 
@@ -545,7 +655,7 @@ void Parser::processMultiVariable()
 		//如果不合法 則跳出
 		if (!varValue.isValid())
 		{
-			variables_.insert(varName, 0);
+			variables_->insert(varName, 0);
 			continue;
 		}
 
@@ -555,8 +665,8 @@ void Parser::processMultiVariable()
 		if (varValueType == TK_REF)
 		{
 			QString valueStr = varValue.toString().mid(1);
-			if (variables_.contains(valueStr))
-				varValue = variables_.value(valueStr);
+			if (variables_->contains(valueStr))
+				varValue = variables_->value(valueStr);
 		}
 		else if (varValueType == TK_STRING)
 		{
@@ -577,7 +687,7 @@ void Parser::processMultiVariable()
 				}
 				else
 				{
-					variables_.insert(varName, 0);
+					variables_->insert(varName, 0);
 					continue;
 				}
 			}
@@ -592,16 +702,17 @@ void Parser::processMultiVariable()
 				}
 				else
 				{
-					variables_.insert(varName, 0);
+					variables_->insert(varName, 0);
 					continue;
 				}
 			}
 		}
 
-		variables_.insert(varName, varValue);
+		variables_->insert(varName, varValue);
 	}
 }
 
+//根據關鍵字取值保存到變量
 bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr, QVariant& varValue)
 {
 	Injector& injector = Injector::getInstance();
@@ -609,11 +720,8 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 		return false;
 
 	QString trimmedStr = valueStr.simplified().toLower();
-	QStringList systemVarNameList = { "player", "magic", "skill", "pet", "petskill", "map", "item", "equip", "petequip", "chat", "dialog", "point" };
-	if (!systemVarNameList.contains(trimmedStr))
-		return false;
 
-	enum
+	enum SystemVarName
 	{
 		kPlayerInfo,
 		kMagicInfo,
@@ -624,18 +732,40 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 		kItemInfo,
 		kEquipInfo,
 		kPetEquipInfo,
+		kPartyInfo,
 		kChatInfo,
 		kDialogInfo,
 		kPointInfo,
 	};
 
-	int index = systemVarNameList.indexOf(trimmedStr);
+	QHash<QString, SystemVarName> systemVarNameHash = {
+		{ "player", kPlayerInfo },
+		{ "magic", kMagicInfo },
+		{ "skill", kSkillInfo },
+		{ "pet", kPetInfo },
+		{ "petskill", kPetSkillInfo },
+		{ "map", kMapInfo },
+		{ "item", kItemInfo },
+		{ "equip", kEquipInfo },
+		{ "petequip", kPetEquipInfo },
+		{ "party", kPartyInfo },
+		{ "chat", kChatInfo },
+		{ "dialog", kDialogInfo },
+		{ "point", kPointInfo }
+	};
+
+	if (!systemVarNameHash.contains(trimmedStr))
+		return false;
+
+	SystemVarName index = systemVarNameHash.value(trimmedStr);
 	bool bret = false;
 	switch (index)
 	{
 	case kPlayerInfo:
 	{
-		QString typeStr = getToken<QString>(3).simplified();
+		QString typeStr;
+		checkString(currentLineTokens_, 3, &typeStr);
+		typeStr = typeStr.simplified().toLower();
 		if (typeStr.isEmpty())
 			break;
 
@@ -649,11 +779,13 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 	}
 	case kMagicInfo:
 	{
-		int magicIndex = getToken<int>(3);
-		if (magicIndex <= 0)
+		int magicIndex = -1;
+		if (!checkInt(currentLineTokens_, 3, &magicIndex))
 			break;
 
-		QString typeStr = getToken<QString>(4).simplified();
+		QString typeStr;
+		checkString(currentLineTokens_, 4, &typeStr);
+		typeStr = typeStr.simplified().toLower();
 		if (typeStr.isEmpty())
 			break;
 
@@ -671,11 +803,13 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 	}
 	case kSkillInfo:
 	{
-		int skillIndex = getToken<int>(3);
-		if (skillIndex <= 0)
+		int skillIndex = -1;
+		if (!checkInt(currentLineTokens_, 3, &skillIndex))
 			break;
 
-		QString typeStr = getToken<QString>(4).simplified();
+		QString typeStr;
+		checkString(currentLineTokens_, 4, &typeStr);
+		typeStr = typeStr.simplified().toLower();
 		if (typeStr.isEmpty())
 			break;
 
@@ -693,11 +827,13 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 	}
 	case kPetInfo:
 	{
-		int petIndex = getToken<int>(3);
-		if (petIndex <= 0)
+		int petIndex = -1;
+		if (!checkInt(currentLineTokens_, 3, &petIndex))
 			break;
 
-		QString typeStr = getToken<QString>(4).simplified();
+		QString typeStr;
+		checkString(currentLineTokens_, 4, &typeStr);
+		typeStr = typeStr.simplified().toLower();
 		if (typeStr.isEmpty())
 			break;
 
@@ -715,15 +851,17 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 	}
 	case kPetSkillInfo:
 	{
-		int petIndex = getToken<int>(3);
-		if (petIndex <= 0)
+		int petIndex = -1;
+		if (!checkInt(currentLineTokens_, 3, &petIndex))
 			break;
 
-		int skillIndex = getToken<int>(4);
-		if (skillIndex <= 0)
+		int skillIndex = -1;
+		if (!checkInt(currentLineTokens_, 4, &skillIndex))
 			break;
 
-		QString typeStr = getToken<QString>(5).simplified();
+		QString typeStr;
+		checkString(currentLineTokens_, 5, &typeStr);
+		typeStr = typeStr.simplified().toLower();
 		if (typeStr.isEmpty())
 			break;
 
@@ -745,7 +883,9 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 	}
 	case kMapInfo:
 	{
-		QString typeStr = getToken<QString>(3).simplified();
+		QString typeStr;
+		checkString(currentLineTokens_, 3, &typeStr);
+		typeStr = typeStr.simplified().toLower();
 		if (typeStr.isEmpty())
 			break;
 
@@ -759,11 +899,32 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 	}
 	case kItemInfo:
 	{
-		int itemIndex = getToken<int>(3);
-		if (itemIndex <= 0)
-			break;
+		int itemIndex = -1;
+		if (!checkInt(currentLineTokens_, 3, &itemIndex))
+		{
+			QString typeStr;
+			if (checkString(currentLineTokens_, 3, &typeStr))
+			{
+				typeStr = typeStr.simplified().toLower();
+				if (typeStr == "space")
+				{
+					QVector<int> itemIndexs;
+					int size = 0;
+					if (injector.server->getItemEmptySpotIndexs(&itemIndexs))
+						size = itemIndexs.size();
 
-		QString typeStr = getToken<QString>(4).simplified();
+					varValue = size;
+					bret = varValue.isValid();
+					break;
+				}
+				else
+					break;
+			}
+		}
+
+		QString typeStr;
+		checkString(currentLineTokens_, 4, &typeStr);
+		typeStr = typeStr.simplified().toLower();
 		if (typeStr.isEmpty())
 			break;
 
@@ -781,11 +942,13 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 	}
 	case kEquipInfo:
 	{
-		int itemIndex = getToken<int>(3);
-		if (itemIndex <= 0)
+		int itemIndex = -1;
+		if (!checkInt(currentLineTokens_, 3, &itemIndex))
 			break;
 
-		QString typeStr = getToken<QString>(4).simplified();
+		QString typeStr;
+		checkString(currentLineTokens_, 4, &typeStr);
+		typeStr = typeStr.simplified().toLower();
 		if (typeStr.isEmpty())
 			break;
 
@@ -803,15 +966,17 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 	}
 	case kPetEquipInfo:
 	{
-		int petIndex = getToken<int>(3);
-		if (petIndex <= 0)
+		int petIndex = -1;
+		if (!checkInt(currentLineTokens_, 3, &petIndex))
 			break;
 
-		int itemIndex = getToken<int>(4);
-		if (itemIndex <= 0)
+		int itemIndex = -1;
+		if (!checkInt(currentLineTokens_, 4, &itemIndex))
 			break;
 
-		QString typeStr = getToken<QString>(5).simplified();
+		QString typeStr;
+		checkString(currentLineTokens_, 5, &typeStr);
+		typeStr = typeStr.simplified().toLower();
 		if (typeStr.isEmpty())
 			break;
 
@@ -831,10 +996,34 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 		bret = varValue.isValid();
 		break;
 	}
+	case kPartyInfo:
+	{
+		int partyIndex = -1;
+		if (!checkInt(currentLineTokens_, 3, &partyIndex))
+			break;
+
+		QString typeStr;
+		checkString(currentLineTokens_, 4, &typeStr);
+		typeStr = typeStr.simplified().toLower();
+		if (typeStr.isEmpty())
+			break;
+
+		util::SafeHash<int, util::SafeHash<QString, QVariant>>& hashparty = injector.server->hashparty;
+		if (!hashparty.contains(partyIndex))
+			break;
+
+		util::SafeHash<QString, QVariant>& hash = hashparty[partyIndex];
+		if (!hash.contains(typeStr))
+			break;
+
+		varValue = hash.value(typeStr);
+		bret = varValue.isValid();
+		break;
+	}
 	case kChatInfo:
 	{
-		int chatIndex = getToken<int>(3);
-		if (chatIndex <= 0)
+		int chatIndex = -1;
+		if (!checkInt(currentLineTokens_, 3, &chatIndex))
 			break;
 
 		util::SafeHash<int, QVariant>& hashchat = injector.server->hashchat;
@@ -847,8 +1036,8 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 	}
 	case kDialogInfo:
 	{
-		int dialogIndex = getToken<int>(3);
-		if (dialogIndex <= 0)
+		int dialogIndex = -1;
+		if (!checkInt(currentLineTokens_, 3, &dialogIndex))
 			break;
 
 		util::SafeHash<int, QVariant>& hashdialog = injector.server->hashdialog;
@@ -861,12 +1050,15 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 	}
 	case kPointInfo:
 	{
+		QString typeStr;
+		checkString(currentLineTokens_, 3, &typeStr);
+		typeStr = typeStr.simplified().toLower();
+		if (typeStr.isEmpty())
+			break;
+
+
 		injector.server->IS_WAITFOR_EXTRA_DIALOG_INFO_FLAG = true;
 		injector.server->shopOk(2);
-
-		QString type = getToken<QString>(3);
-		if (type.isEmpty())
-			break;
 
 		QElapsedTimer timer; timer.start();
 		for (;;)
@@ -885,32 +1077,37 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 		//int vit = 0;   // 活力
 		//int pts = 0;   // 積分
 		//int vip = 0;   // 會員點
-		if (type == "rep")
+		if (typeStr == "exp")
+		{
+			varValue = injector.server->currencyData.expbufftime;
+			bret = varValue.isValid();
+		}
+		else if (typeStr == "rep")
 		{
 			varValue = injector.server->currencyData.prestige;
 			bret = varValue.isValid();
 		}
-		else if (type == "ene")
+		else if (typeStr == "ene")
 		{
 			varValue = injector.server->currencyData.energy;
 			bret = varValue.isValid();
 		}
-		else if (type == "shl")
+		else if (typeStr == "shl")
 		{
 			varValue = injector.server->currencyData.shell;
 			bret = varValue.isValid();
 		}
-		else if (type == "vit")
+		else if (typeStr == "vit")
 		{
 			varValue = injector.server->currencyData.vitality;
 			bret = varValue.isValid();
 		}
-		else if (type == "pts")
+		else if (typeStr == "pts")
 		{
 			varValue = injector.server->currencyData.points;
 			bret = varValue.isValid();
 		}
-		else if (type == "vip")
+		else if (typeStr == "vip")
 		{
 			varValue = injector.server->currencyData.VIPPoints;
 			bret = varValue.isValid();
@@ -942,22 +1139,32 @@ void Parser::processRandom()
 
 		if (min > 0 && max == 0)
 		{
-			variables_[varName] = QRandomGenerator::global()->bounded(0, min);
+			variables_->insert(varName, QRandomGenerator::global()->bounded(0, min));
 			break;
 		}
 		else if (min > max)
 		{
-			variables_[varName] = 0;
+			variables_->insert(varName, 0);
 			break;
 		}
 
-		variables_[varName] = QRandomGenerator::global()->bounded(min, max);
+		variables_->insert(varName, QRandomGenerator::global()->bounded(min, max));
 	} while (false);
 }
 
 //處理"格式化"
 void Parser::processFormation()
 {
+
+	auto formatTime = [](int seconds)->QString
+	{
+		int hours = seconds / 3600;
+		int minutes = (seconds % 3600) / 60;
+		int remainingSeconds = seconds % 60;
+
+		return QString(QObject::tr("%1 hour %2 min %3 sec")).arg(hours).arg(minutes).arg(remainingSeconds);
+	};
+
 	do
 	{
 		QString varName = getToken<QString>(1);
@@ -975,11 +1182,30 @@ void Parser::processFormation()
 		QHash<QString, QVariant> args = getLabelVars();
 
 		//查找字符串中包含 {:變數名} 全部替換成變數數值
-		for (auto it = variables_.begin(); it != variables_.cend(); ++it)
+		for (auto it = variables_->cbegin(); it != variables_->cend(); ++it)
 		{
 			QString key = QString("{:%1}").arg(it.key());
+			QString keyWithTime = QString("{T:%1}").arg(it.key());
 			if (formatStr.contains(key))
 				formatStr.replace(key, it.value().toString());
+			else if (formatStr.contains(keyWithTime))
+			{
+				int seconds = it.value().toInt();
+				formatStr.replace(keyWithTime, formatTime(seconds));
+			}
+		}
+
+		for (auto it = args.cbegin(); it != args.cend(); ++it)
+		{
+			QString key = QString("{L:%1}").arg(it.key());
+			QString keyWithTime = QString("{LT:%1}").arg(it.key());
+			if (formatStr.contains(key))
+				formatStr.replace(key, it.value().toString());
+			else if (formatStr.contains(keyWithTime))
+			{
+				int seconds = it.value().toInt();
+				formatStr.replace(keyWithTime, formatTime(seconds));
+			}
 		}
 
 		int argsize = tokens_.size();
@@ -1026,8 +1252,13 @@ void Parser::processFormation()
 				}
 
 				QString key = QString("{:%1}").arg(i - kFormatPlaceHoldSize + 1);
+				QString keyWithTime = QString("{T:%1}").arg(i - kFormatPlaceHoldSize + 1);
 				if (formatStr.contains(key))
 					formatStr.replace(key, varValue.toString());
+				else if (formatStr.contains(keyWithTime))
+				{
+					formatStr.replace(key, formatTime(varValue.toInt()));
+				}
 			}
 			else if (type == TK_REF)
 			{
@@ -1037,18 +1268,49 @@ void Parser::processFormation()
 
 				subVarName = subVarName.mid(1);
 
-				if (!variables_.contains(subVarName))
+				if (!variables_->contains(subVarName))
 					continue;
 
-				QVariant subVarValue = variables_.value(subVarName);
+				QVariant subVarValue = variables_->value(subVarName);
 
 				QString key = QString("{:%1}").arg(i - kFormatPlaceHoldSize + 1);
+				QString keyWithTime = QString("{T:%1}").arg(i - kFormatPlaceHoldSize + 1);
 				if (formatStr.contains(key))
 					formatStr.replace(key, subVarValue.toString());
+				else if (formatStr.contains(keyWithTime))
+				{
+					formatStr.replace(key, formatTime(subVarValue.toInt()));
+				}
 			}
 		}
 
-		variables_[varName] = QVariant::fromValue(formatStr);
+		if (varName.toLower() == "out")
+		{
+			const QDateTime time(QDateTime::currentDateTime());
+			const QString timeStr(time.toString("hh:mm:ss:zzz"));
+			QString src = "\0";
+
+			QString msg = (QString("[%1 | @%2]: %3\0") \
+				.arg(timeStr)
+				.arg(lineNumber_ + 1, 3, 10, QLatin1Char(' ')).arg(formatStr));
+
+			int color = QRandomGenerator::global()->bounded(0, 10);
+
+			Injector& injector = Injector::getInstance();
+			if (!injector.server.isNull())
+				injector.server->announce(formatStr, color);
+			if (!injector.scriptLogModel.isNull())
+				injector.scriptLogModel->append(msg, color);
+		}
+		else if (varName.toLower() == "say")
+		{
+			int color = QRandomGenerator::global()->bounded(0, 10);
+			Injector& injector = Injector::getInstance();
+			if (!injector.server.isNull())
+				injector.server->talk(formatStr, color);
+		}
+		else
+			variables_->insert(varName, QVariant::fromValue(formatStr));
 	} while (false);
 }
 
@@ -1056,6 +1318,7 @@ void Parser::processFormation()
 void Parser::checkArgs()
 {
 	//check rest of the tokens is exist push to stack 	QStack<QVariantList> callArgs_
+	QHash<QString, QVariant> args = getLabelVars();
 	QVariantList list;
 	for (int i = kCallPlaceHoldSize; i < tokens_.value(lineNumber_).size(); ++i)
 	{
@@ -1064,13 +1327,13 @@ void Parser::checkArgs()
 		if (token.type == TK_REF)
 		{
 			QString varName = token.data.toString().mid(1);
-			if (!variables_.contains(varName))
+			if (!variables_->contains(varName))
 			{
 				list.clear();
 				break;
 			}
 
-			var = variables_.value(varName);
+			var = variables_->value(varName);
 			if (var.type() == QVariant::String)
 			{
 				token.type = TK_STRING;
@@ -1094,6 +1357,35 @@ void Parser::checkArgs()
 			}
 
 			var = token.data;
+		}
+		else if (token.type == TK_LABELVAR)
+		{
+			QString valueStr = token.data.toString();
+			//檢查是否為字符串的區域變量
+			if (args.contains(valueStr) && args.value(valueStr).type() == QVariant::String)
+			{
+				token.data = args.value(valueStr).toString();
+			}
+			//檢查是否為浮點數的區域變量
+			else if (args.contains(valueStr) && args.value(valueStr).type() == QVariant::Double)
+			{
+				bool ok;
+				double value = args.value(valueStr).toDouble(&ok);
+				if (ok)
+				{
+					token.data = value;
+				}
+			}
+			//檢查是否為整數的區域變量
+			else if (args.contains(valueStr) && args.value(valueStr).type() == QVariant::Int)
+			{
+				bool ok;
+				int value = args.value(valueStr).toInt(&ok);
+				if (ok)
+				{
+					token.data = value;
+				}
+			}
 		}
 
 		if (token.type != TK_FUZZY)
@@ -1122,10 +1414,10 @@ bool Parser::processCall()
 
 			varName = varName.mid(1);
 
-			if (!variables_.contains(varName))
+			if (!variables_->contains(varName))
 				break;
 
-			QVariant var = variables_.value(varName);
+			QVariant var = variables_->value(varName);
 			if (!var.isValid())
 				break;
 
@@ -1194,7 +1486,7 @@ bool Parser::processGoto()
 			if (labelName.isEmpty())
 				break;
 
-			jump(labelName);
+			jump(labelName, false);
 		}
 		else if (type == TK_REF)
 		{
@@ -1204,10 +1496,10 @@ bool Parser::processGoto()
 
 			varName = varName.mid(1);
 
-			if (!variables_.contains(varName))
+			if (!variables_->contains(varName))
 				break;
 
-			QVariant var = variables_.value(varName);
+			QVariant var = variables_->value(varName);
 			if (!var.isValid())
 				break;
 
@@ -1215,7 +1507,7 @@ bool Parser::processGoto()
 			int jumpLineCount = var.toInt(&ok);
 			if (ok)
 			{
-				jump(jumpLineCount);
+				jump(jumpLineCount, false);
 				return true;
 			}
 			else
@@ -1224,7 +1516,7 @@ bool Parser::processGoto()
 				if (labelName.isEmpty())
 					break;
 
-				if (!jump(labelName))
+				if (!jump(labelName, false))
 				{
 					break;
 				}
@@ -1238,7 +1530,7 @@ bool Parser::processGoto()
 			if (jumpLineCount == 0)
 				break;
 
-			jump(jumpLineCount);
+			jump(jumpLineCount, false);
 			return true;
 		}
 
@@ -1263,10 +1555,10 @@ bool Parser::processJump()
 
 			varName = varName.mid(1);
 
-			if (!variables_.contains(varName))
+			if (!variables_->contains(varName))
 				break;
 
-			QVariant var = variables_.value(varName);
+			QVariant var = variables_->value(varName);
 			if (!var.isValid())
 				break;
 
@@ -1274,7 +1566,7 @@ bool Parser::processJump()
 			int line = var.toInt(&ok);
 			if (ok && line > 0)
 			{
-				jumpto(line);
+				jumpto(line, false);
 				return true;
 			}
 		}
@@ -1284,7 +1576,7 @@ bool Parser::processJump()
 			if (line <= 0)
 				break;
 
-			jumpto(line);
+			jumpto(line, false);
 			return true;
 		}
 	} while (false);
@@ -1303,7 +1595,7 @@ void Parser::processReturn()
 	{
 		int returnIndex = callStack_.pop();
 		int jumpLineCount = returnIndex - lineNumber_;
-		jump(jumpLineCount);
+		jump(jumpLineCount, true);
 		return;
 	}
 	lineNumber_ = 0;
@@ -1316,7 +1608,7 @@ void Parser::processBack()
 	{
 		int returnIndex = jmpStack_.pop();
 		int jumpLineCount = returnIndex - lineNumber_;
-		jump(jumpLineCount);
+		jump(jumpLineCount, true);
 		return;
 	}
 	lineNumber_ = 0;
@@ -1411,6 +1703,9 @@ void Parser::handleError(int err)
 	case kArgError:
 		msg = QObject::tr("argument error");
 		break;
+	case kLabelError:
+		msg = QObject::tr("label incorrect or not exist");
+		break;
 	case kNoChange:
 		return;
 	default:
@@ -1420,4 +1715,42 @@ void Parser::handleError(int err)
 	Injector& injector = Injector::getInstance();
 	if (!injector.scriptLogModel.isNull())
 		injector.scriptLogModel->append(QObject::tr("error occured at line %1. detail:%2").arg(lineNumber_ + 1).arg(msg), 6);
+}
+
+//解析跳轉棧或調用棧相關訊息並發送信號
+void Parser::generateStackInfo(int type)
+{
+	if (mode_ != kSync)
+		return;
+
+	const QStack<int> stack = (type == 0) ? callStack_ : jmpStack_;
+	QList<int> list = stack.toList();
+	QHash <int, QString> hash;
+	if (!list.isEmpty())
+	{
+		for (const int it : list)
+		{
+			if (!tokens_.contains(it - 1))
+				continue;
+
+			TokenMap tokens = tokens_.value(it - 1);
+			if (tokens.isEmpty())
+				continue;
+
+			QStringList l;
+			QString cmd = tokens.value(0).raw.trimmed() + " ";
+
+			int size = tokens.size();
+			for (int i = 1; i < size; ++i)
+				l.append(tokens.value(i).raw.trimmed());
+
+			hash.insert(it, cmd + l.join(", "));
+		}
+	}
+
+	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
+	if (type == 0)
+		emit signalDispatcher.callStackInfoChanged(hash);
+	else
+		emit signalDispatcher.jumpStackInfoChanged(hash);
 }

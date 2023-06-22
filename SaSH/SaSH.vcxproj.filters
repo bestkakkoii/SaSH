@@ -213,9 +213,6 @@
     <ClCompile Include="model\highlighter.cpp">
       <Filter>Source Files\model</Filter>
     </ClCompile>
-    <ClCompile Include="model\codeeditor.cpp">
-      <Filter>Source Files\model</Filter>
-    </ClCompile>
     <ClCompile Include="model\listview.cpp">
       <Filter>Source Files\model</Filter>
     </ClCompile>
@@ -230,6 +227,12 @@
     </ClCompile>
     <ClCompile Include="crypto.cpp">
       <Filter>Source Files\script</Filter>
+    </ClCompile>
+    <ClCompile Include="form\replaceform.cpp">
+      <Filter>Source Files\forms\dialog</Filter>
+    </ClCompile>
+    <ClCompile Include="model\codeeditor.cpp">
+      <Filter>Source Files\model</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -322,6 +325,9 @@
     </QtMoc>
     <QtMoc Include="update\qdownloader.h">
       <Filter>Source Files\update</Filter>
+    </QtMoc>
+    <QtMoc Include="form\replaceform.h">
+      <Filter>Source Files\forms\dialog</Filter>
     </QtMoc>
   </ItemGroup>
   <ItemGroup>

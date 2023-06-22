@@ -7,6 +7,8 @@ class QTranslator;
 class QMenuBar;
 class QShowEvent;
 class QCloseEvent;
+class QSystemTrayIcon;
+
 class GeneralForm;
 class MapForm;
 class AfkForm;
@@ -68,6 +70,8 @@ private:
 	InfoForm* pInfoForm_ = nullptr;
 	MapWidget* mapWidget_ = nullptr;
 	ScriptSettingForm* pScriptSettingForm_ = nullptr;
+
+	QSystemTrayIcon* trayIcon = nullptr;
 
 	QHash<int, QSharedPointer<Interpreter>> interpreter_hash_;
 };

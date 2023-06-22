@@ -83,6 +83,7 @@ public:\
 #include <QNetworkAccessManager>
 #include <QHttpMultiPart>
 
+#include <QSystemTrayIcon>
 #include <QSysInfo>
 #include <QDebug>
 #include <QClipboard>
@@ -103,6 +104,11 @@ public:\
 #include <QTableWidget>
 #include <QListWidget>
 #include <QComboBox>
+#include <QGroupBox>
+#include <QGridLayout>
+#include <QHBoxLayout>
+#include <QPlainTextEdit>
+#include <QRadioButton>
 #include <QTextEdit>
 #include <QGraphicsDropShadowEffect>
 #include <QHBoxLayout>

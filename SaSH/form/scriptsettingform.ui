@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1064</width>
-    <height>682</height>
+    <width>1227</width>
+    <height>738</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -89,7 +89,288 @@ QToolTip{border-style:none; background-color: rgb(57, 58, 60);color: rgb(208, 20
 </string>
   </property>
   <widget class="QWidget" name="centralWidget">
+   <property name="styleSheet">
+    <string notr="true">QTabWidget::pane{
+top:0px;
+border-top:2px solid #7160E8;
+border-bottom:1px solid rgb(61,61,61);
+border-right:1px solid rgb(61,61,61);
+border-left:1px solid rgb(61,61,61);
+}
+
+QTabWidget::tab-bar
+{
+alignment: left;
+top:0px;
+left:5px;
+border:none;
+}
+
+QDockWidget QTabBar::tab:first{
+color:rgb(178,178,178);
+background:rgb(46,46,46);
+
+padding-left:0px;
+padding-right:0px;
+width:100px;
+height:24px;
+margin-left:0px;
+margin-right:0px;
+
+border-top:2px solid rgb(31, 31, 31);
+}
+
+QDockWidget QTabBar::tab:middle{
+color:rgb(178,178,178);
+background:rgb(46,46,46);
+padding-left:0px;
+padding-right:0px;
+width:100px;
+height:24px;
+margin-left:0px;
+margin-right:0px;
+
+border-top:2px solid rgb(31, 31, 31);
+
+}
+
+QDockWidget QTabBar::tab:last{
+color:rgb(178,178,178);
+background:rgb(46,46,46);
+
+padding-left:0px;
+padding-right:0px;
+width:100px;
+height:24px;
+margin-left:0px;
+margin-right:0px;
+
+border-top:2px solid rgb(31, 31, 31);
+}
+
+QDockWidget QTabBar::tab:selected{
+color:rgb(250,250,250);
+background:rgb(61,61,61);
+border-top:2px solid #7160E8;
+
+}
+
+QDockWidget QTabBar::tab:hover{
+color:rgb(250,250,250);
+background:rgb(61,61,61);
+padding-left:0px;
+padding-right:0px;
+width:100px;
+height:24px;
+margin-left:0px;
+margin-right:0px;
+}
+
+</string>
+   </property>
    <layout class="QGridLayout" name="gridLayout_8">
+    <item row="1" column="1" rowspan="2">
+     <widget class="QDockWidget" name="dockWidget_scriptList">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
+      <property name="styleSheet">
+       <string notr="true">color: rgb(250, 250, 250);
+background-color: rgb(31, 31, 31);</string>
+      </property>
+      <property name="features">
+       <set>QDockWidget::NoDockWidgetFeatures</set>
+      </property>
+      <property name="windowTitle">
+       <string>script list</string>
+      </property>
+      <widget class="QWidget" name="dockWidgetContents_2">
+       <layout class="QGridLayout" name="gridLayout_4">
+        <property name="leftMargin">
+         <number>0</number>
+        </property>
+        <property name="topMargin">
+         <number>0</number>
+        </property>
+        <property name="rightMargin">
+         <number>0</number>
+        </property>
+        <property name="bottomMargin">
+         <number>0</number>
+        </property>
+        <item row="0" column="0">
+         <widget class="QTreeWidget" name="treeWidget_scriptList">
+          <property name="styleSheet">
+           <string notr="true">QTreeWidget {
+    color: rgb(214,214,214);
+    background: rgb(31,31,31);
+    border: 1px solid rgb(61,61,61);
+    alternate-background-color: #525252;
+    gridline-color: transparent;
+	 font-size:12px;
+	outline:none;
+}
+
+QTreeWidget::branch{
+    background: rgb(31,31,31);
+}
+
+QTreeWidget::branch:closed:has-children:!has-siblings,
+QTreeWidget::branch:closed:has-children:has-siblings {
+    border-image: none;
+    image: url(:/image/icon_down_arrow2.png);
+}
+
+
+QTreeWidget::branch:open:has-children:!has-siblings,
+QTreeWidget::branch:open:has-children:has-siblings  {
+    border-image: none;
+    image: url(:/image/icon_up_arrow2.png);
+}
+
+
+
+QTreeWidget::item {
+    color: rgb(214,214,214);
+    background: rgb(31,31,31);
+    /*margin:13px;*/
+    /*background-clip: margin;*/
+}
+
+QTreeWidget::item:selected {
+    color: rgb(250,250,250);
+    background:rgb(61,61,61); /* qlineargradient(spread:pad, x1:0, y1:0, x2:0, y2:1, stop:0 #484848, stop:1 #383838);*/
+}
+
+QTreeWidget::item:hover {
+    background:rgb(61,61,61);
+}
+
+QHeaderView {
+    text-align: center;
+    background: rgb(31,31,31);
+    padding: 0px;
+    margin: 0px;
+    color: rgb(250,250,250);
+    border: 0px solid rgb(61,61,61);
+
+}
+
+QHeaderView::section::vertical {
+    text-align: center;
+    background: rgb(31,31,31);
+    padding: 3px;
+    margin: 0px;
+    color: rgb(250,250,250);
+    border: 0px solid rgb(61,61,61);
+    border-left-width: 0;
+	border-bottom-width: 1;
+	border-right-width: 1;
+}
+
+QHeaderView::section::horizontal{
+    text-align: center;
+    background: rgb(31,31,31);
+    padding: 3px;
+    margin: 0px;
+    color: rgb(250,250,250);
+    border: 0px solid rgb(61,61,61);
+    border-left-width: 0;
+	border-bottom-width: 1;
+	border-right-width: 1;
+}
+
+QScrollBar:vertical {
+	min-height: 10px;  
+    background: rgb(46,46,46);
+}
+
+QScrollBar::handle:vertical {
+    background: rgb(71,71,71);
+  	border: 4px solid  rgb(46,46,46);
+}
+
+QScrollBar::handle:hover:vertical,
+QScrollBar::handle:pressed:vertical {
+    background: rgb(153,153,153);
+}
+
+QScrollBar::sub-page:vertical {
+    background:transparent
+}
+
+QScrollBar::add-page:vertical {
+    background:transparent
+}
+
+QScrollBar::add-line:vertical {
+    background:transparent
+}
+
+QScrollBar::sub-line:vertical {
+    background:transparent
+}
+
+QScrollBar:horizontal {
+    background: rgb(46,46,46);
+	min-height: 10px;  
+}
+
+QScrollBar::handle:horizontal {
+    background: rgb(71,71,71);
+  	border: 3px solid  rgb(46,46,46);
+}
+
+QScrollBar::handle:hover:horizontal,
+QScrollBar::handle:pressed:horizontal {
+    background: rgb(153,153,153);
+}
+
+QScrollBar::sub-page:horizontal {
+    background: 444444;
+}
+
+QScrollBar::add-page:horizontal {
+    background: 5B5B5B;
+}
+
+QScrollBar::add-line:horizontal {
+    background: none;
+}
+
+QScrollBar::sub-line:horizontal {
+    background: none;
+}
+
+QToolTip{
+border-style:none; 
+background-color: rgb(57, 58, 60);
+color: rgb(208, 208, 208);
+}</string>
+          </property>
+          <property name="editTriggers">
+           <set>QAbstractItemView::NoEditTriggers</set>
+          </property>
+          <property name="verticalScrollMode">
+           <enum>QAbstractItemView::ScrollPerPixel</enum>
+          </property>
+          <property name="sortingEnabled">
+           <bool>true</bool>
+          </property>
+          <column>
+           <property name="text">
+            <string>refresh</string>
+           </property>
+          </column>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+     </widget>
+    </item>
     <item row="0" column="0" colspan="2">
      <widget class="QDockWidget" name="dockWidget_main">
       <property name="sizePolicy">
@@ -577,6 +858,216 @@ QToolTip{border-style:none; background-color: rgb(57, 58, 60);color: rgb(208, 20
       </widget>
      </widget>
     </item>
+    <item row="4" column="0" colspan="2">
+     <widget class="QDockWidget" name="dockWidget_scriptFun">
+      <property name="maximumSize">
+       <size>
+        <width>524287</width>
+        <height>524287</height>
+       </size>
+      </property>
+      <property name="styleSheet">
+       <string notr="true">color: rgb(250, 250, 250);
+background-color: rgb(31, 31, 31);</string>
+      </property>
+      <property name="features">
+       <set>QDockWidget::NoDockWidgetFeatures</set>
+      </property>
+      <property name="windowTitle">
+       <string>log</string>
+      </property>
+      <widget class="QWidget" name="dockWidgetContents_5">
+       <layout class="QGridLayout" name="gridLayout">
+        <property name="leftMargin">
+         <number>0</number>
+        </property>
+        <property name="topMargin">
+         <number>0</number>
+        </property>
+        <property name="rightMargin">
+         <number>0</number>
+        </property>
+        <property name="bottomMargin">
+         <number>0</number>
+        </property>
+        <item row="0" column="0">
+         <widget class="ListView" name="listView_log">
+          <property name="font">
+           <font>
+            <family>微軟正黑體</family>
+            <pointsize>8</pointsize>
+           </font>
+          </property>
+          <property name="contextMenuPolicy">
+           <enum>Qt::CustomContextMenu</enum>
+          </property>
+          <property name="styleSheet">
+           <string notr="true">QListView {
+    /*color: rgb(214,214,214);*/
+    background: rgb(31,31,31);
+    border: 1px solid rgb(61,61,61);
+    alternate-background-color: #525252;
+    gridline-color: transparent;
+	outline:none;
+}
+
+QListView QTableCornerButton::section {
+    /*color: rgb(214,214,214);*/
+    background: rgb(31,31,31);
+    border: 0px solid #418bc9;/*边框*/
+    border-radius:0px;/*边框圆角*/
+    border-color: rgb(41, 139, 201);/*边框颜色*/
+    font: bold 11pt;/*字体大小*/
+    padding:12px 0 0 10px;/*内边距*/
+ }
+
+QListView::item {
+    /*color: rgb(214,214,214);*/
+    background: rgb(31,31,31);
+}
+
+QListView::item:selected {
+    /*color: rgb(214,214,214);*/
+    background:rgb(61,61,61); /* qlineargradient(spread:pad, x1:0, y1:0, x2:0, y2:1, stop:0 #484848, stop:1 #383838);*/
+}
+
+QListView::item:hover {
+    background:rgb(61,61,61);
+}
+
+QHeaderView {
+    text-align: center;
+    background: rgb(31,31,31);
+    padding: 0px;
+    margin: 0px;
+    color: rgb(250,250,250);
+    border: 0px solid rgb(61,61,61);
+
+}
+
+QHeaderView::section::vertical {
+    text-align: center;
+    background: rgb(31,31,31);
+    padding: 3px;
+    margin: 0px;
+    color: rgb(250,250,250);
+    border: 0px solid rgb(61,61,61);
+    border-left-width: 0;
+	border-bottom-width: 1;
+	border-right-width: 1;
+}
+
+QHeaderView::section::horizontal{
+    text-align: center;
+    background: rgb(31,31,31);
+    padding: 3px;
+    margin: 0px;
+    color: rgb(250,250,250);
+    border: 0px solid rgb(61,61,61);
+    border-left-width: 0;
+	border-bottom-width: 1;
+	border-right-width: 1;
+}
+
+QScrollBar:vertical {
+    background: rgb(46,46,46);
+	width: 20px;
+	height:20px;
+}
+
+QScrollBar::handle:vertical {
+    background: rgb(71,71,71);
+  	border: 3px solid  rgb(46,46,46);
+}
+
+QScrollBar::handle:hover:vertical,
+QScrollBar::handle:pressed:vertical {
+    background: rgb(153,153,153);
+}
+
+QScrollBar::sub-page:vertical {
+	height:9px;
+    background: 444444;
+}
+
+QScrollBar::add-page:vertical {
+	height:9px;
+    background: 5B5B5B;
+}
+
+QScrollBar::add-line:vertical {
+	height:9px;
+    background: none;
+}
+
+QScrollBar::sub-line:vertical {
+	height:9px;
+    background: none;
+}
+
+QScrollBar:horizontal {
+    background: rgb(46,46,46);
+}
+
+QScrollBar::handle:horizontal {
+    background: rgb(71,71,71);
+  	border: 3px solid  rgb(46,46,46);
+}
+
+QScrollBar::handle:hover:horizontal,
+QScrollBar::handle:pressed:horizontal {
+    background: rgb(153,153,153);
+}
+
+QScrollBar::sub-page:horizontal {
+    background: 444444;
+}
+
+QScrollBar::add-page:horizontal {
+    background: 5B5B5B;
+}
+
+QScrollBar::add-line:horizontal {
+    background: none;
+}
+
+QScrollBar::sub-line:horizontal {
+    background: none;
+}
+
+QToolTip{
+border-style:none; 
+background-color: rgb(57, 58, 60);
+color: rgb(208, 208, 208);
+}</string>
+          </property>
+          <property name="editTriggers">
+           <set>QAbstractItemView::NoEditTriggers</set>
+          </property>
+          <property name="selectionBehavior">
+           <enum>QAbstractItemView::SelectRows</enum>
+          </property>
+          <property name="textElideMode">
+           <enum>Qt::ElideNone</enum>
+          </property>
+          <property name="verticalScrollMode">
+           <enum>QAbstractItemView::ScrollPerPixel</enum>
+          </property>
+          <property name="horizontalScrollMode">
+           <enum>QAbstractItemView::ScrollPerPixel</enum>
+          </property>
+          <property name="uniformItemSizes">
+           <bool>true</bool>
+          </property>
+          <property name="wordWrap">
+           <bool>true</bool>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+     </widget>
+    </item>
     <item row="1" column="0">
      <widget class="QDockWidget" name="dockWidget_functionList">
       <property name="sizePolicy">
@@ -779,77 +1270,17 @@ color: rgb(208, 208, 208);
            </property>
            <item>
             <property name="text">
-             <string>var operator</string>
+             <string>varop</string>
             </property>
-            <item>
-             <property name="text">
-              <string>&gt;&gt;</string>
-             </property>
-            </item>
-            <item>
-             <property name="text">
-              <string>&lt;&lt;</string>
-             </property>
-            </item>
-            <item>
-             <property name="text">
-              <string>++</string>
-             </property>
-            </item>
-            <item>
-             <property name="text">
-              <string>+</string>
-             </property>
-            </item>
-            <item>
-             <property name="text">
-              <string>~</string>
-             </property>
-            </item>
-            <item>
-             <property name="text">
-              <string>|</string>
-             </property>
-            </item>
-            <item>
-             <property name="text">
-              <string>^</string>
-             </property>
-            </item>
-            <item>
-             <property name="text">
-              <string>/</string>
-             </property>
-            </item>
-            <item>
-             <property name="text">
-              <string>*</string>
-             </property>
-            </item>
-            <item>
-             <property name="text">
-              <string>&amp;</string>
-             </property>
-            </item>
-            <item>
-             <property name="text">
-              <string>%</string>
-             </property>
-            </item>
-            <item>
-             <property name="text">
-              <string>--</string>
-             </property>
-            </item>
-            <item>
-             <property name="text">
-              <string>-</string>
-             </property>
-            </item>
            </item>
            <item>
             <property name="text">
              <string>var</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>sysvar</string>
             </property>
            </item>
            <item>
@@ -872,6 +1303,11 @@ color: rgb(208, 208, 208);
              <string>delete</string>
             </property>
            </item>
+          </item>
+          <item>
+           <property name="text">
+            <string>typedef</string>
+           </property>
           </item>
           <item>
            <property name="text">
@@ -955,38 +1391,13 @@ color: rgb(208, 208, 208);
           </item>
           <item>
            <property name="text">
-            <string>relational operator</string>
+            <string>preview</string>
            </property>
-           <item>
-            <property name="text">
-             <string>&gt;=</string>
-            </property>
-           </item>
-           <item>
-            <property name="text">
-             <string>&gt;</string>
-            </property>
-           </item>
-           <item>
-            <property name="text">
-             <string>==</string>
-            </property>
-           </item>
-           <item>
-            <property name="text">
-             <string>&lt;=</string>
-            </property>
-           </item>
-           <item>
-            <property name="text">
-             <string>&lt;</string>
-            </property>
-           </item>
-           <item>
-            <property name="text">
-             <string>!=</string>
-            </property>
-           </item>
+          </item>
+          <item>
+           <property name="text">
+            <string>op</string>
+           </property>
           </item>
           <item>
            <property name="text">
@@ -1104,6 +1515,11 @@ color: rgb(208, 208, 208);
            </property>
            <item>
             <property name="text">
+             <string>waitteam</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
              <string>waitsay</string>
             </property>
            </item>
@@ -1115,11 +1531,6 @@ color: rgb(208, 208, 208);
            <item>
             <property name="text">
              <string>waitmap</string>
-            </property>
-           </item>
-           <item>
-            <property name="text">
-             <string>waititem</string>
             </property>
            </item>
            <item>
@@ -1146,6 +1557,16 @@ color: rgb(208, 208, 208);
             <property name="text">
              <string>ifplayer</string>
             </property>
+            <item>
+             <property name="text">
+              <string>wind</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>water</string>
+             </property>
+            </item>
             <item>
              <property name="text">
               <string>stone</string>
@@ -1183,7 +1604,7 @@ color: rgb(208, 208, 208);
             </item>
             <item>
              <property name="text">
-              <string>level</string>
+              <string>lv</string>
              </property>
             </item>
             <item>
@@ -1198,12 +1619,22 @@ color: rgb(208, 208, 208);
             </item>
             <item>
              <property name="text">
-              <string>freename</string>
+              <string>fname</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>fire</string>
              </property>
             </item>
             <item>
              <property name="text">
               <string>exp</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>earth</string>
              </property>
             </item>
             <item>
@@ -1233,6 +1664,16 @@ color: rgb(208, 208, 208);
             </property>
             <item>
              <property name="text">
+              <string>wind</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>water</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
               <string>name</string>
              </property>
             </item>
@@ -1248,12 +1689,12 @@ color: rgb(208, 208, 208);
             </item>
             <item>
              <property name="text">
-              <string>loyal</string>
+              <string>lv</string>
              </property>
             </item>
             <item>
              <property name="text">
-              <string>level</string>
+              <string>loyal</string>
              </property>
             </item>
             <item>
@@ -1268,12 +1709,22 @@ color: rgb(208, 208, 208);
             </item>
             <item>
              <property name="text">
-              <string>freename</string>
+              <string>fname</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>fire</string>
              </property>
             </item>
             <item>
              <property name="text">
               <string>exp</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>earth</string>
              </property>
             </item>
             <item>
@@ -1329,7 +1780,7 @@ color: rgb(208, 208, 208);
            </property>
            <item>
             <property name="text">
-             <string>wearrecordedequip</string>
+             <string>wearrecordequip</string>
             </property>
            </item>
            <item>
@@ -1385,6 +1836,11 @@ color: rgb(208, 208, 208);
            <item>
             <property name="text">
              <string>make</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>mail</string>
             </property>
            </item>
            <item>
@@ -1488,208 +1944,6 @@ QLineEdit::hover{
           <property name="placeholderText">
            <string>search command</string>
           </property>
-         </widget>
-        </item>
-       </layout>
-      </widget>
-     </widget>
-    </item>
-    <item row="1" column="1" rowspan="2">
-     <widget class="QDockWidget" name="dockWidget_scriptList">
-      <property name="sizePolicy">
-       <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-        <horstretch>0</horstretch>
-        <verstretch>0</verstretch>
-       </sizepolicy>
-      </property>
-      <property name="styleSheet">
-       <string notr="true">color: rgb(250, 250, 250);
-background-color: rgb(31, 31, 31);</string>
-      </property>
-      <property name="features">
-       <set>QDockWidget::NoDockWidgetFeatures</set>
-      </property>
-      <property name="windowTitle">
-       <string>script list</string>
-      </property>
-      <widget class="QWidget" name="dockWidgetContents_2">
-       <layout class="QGridLayout" name="gridLayout_4">
-        <property name="leftMargin">
-         <number>0</number>
-        </property>
-        <property name="topMargin">
-         <number>0</number>
-        </property>
-        <property name="rightMargin">
-         <number>0</number>
-        </property>
-        <property name="bottomMargin">
-         <number>0</number>
-        </property>
-        <item row="0" column="0">
-         <widget class="QTreeWidget" name="treeWidget_scriptList">
-          <property name="styleSheet">
-           <string notr="true">QTreeWidget {
-    color: rgb(214,214,214);
-    background: rgb(31,31,31);
-    border: 1px solid rgb(61,61,61);
-    alternate-background-color: #525252;
-    gridline-color: transparent;
-	 font-size:12px;
-	outline:none;
-}
-
-QTreeWidget::branch{
-    background: rgb(31,31,31);
-}
-
-QTreeWidget::branch:closed:has-children:!has-siblings,
-QTreeWidget::branch:closed:has-children:has-siblings {
-    border-image: none;
-    image: url(:/image/icon_down_arrow2.png);
-}
-
-
-QTreeWidget::branch:open:has-children:!has-siblings,
-QTreeWidget::branch:open:has-children:has-siblings  {
-    border-image: none;
-    image: url(:/image/icon_up_arrow2.png);
-}
-
-
-
-QTreeWidget::item {
-    color: rgb(214,214,214);
-    background: rgb(31,31,31);
-    /*margin:13px;*/
-    /*background-clip: margin;*/
-}
-
-QTreeWidget::item:selected {
-    color: rgb(250,250,250);
-    background:rgb(61,61,61); /* qlineargradient(spread:pad, x1:0, y1:0, x2:0, y2:1, stop:0 #484848, stop:1 #383838);*/
-}
-
-QTreeWidget::item:hover {
-    background:rgb(61,61,61);
-}
-
-QHeaderView {
-    text-align: center;
-    background: rgb(31,31,31);
-    padding: 0px;
-    margin: 0px;
-    color: rgb(250,250,250);
-    border: 0px solid rgb(61,61,61);
-
-}
-
-QHeaderView::section::vertical {
-    text-align: center;
-    background: rgb(31,31,31);
-    padding: 3px;
-    margin: 0px;
-    color: rgb(250,250,250);
-    border: 0px solid rgb(61,61,61);
-    border-left-width: 0;
-	border-bottom-width: 1;
-	border-right-width: 1;
-}
-
-QHeaderView::section::horizontal{
-    text-align: center;
-    background: rgb(31,31,31);
-    padding: 3px;
-    margin: 0px;
-    color: rgb(250,250,250);
-    border: 0px solid rgb(61,61,61);
-    border-left-width: 0;
-	border-bottom-width: 1;
-	border-right-width: 1;
-}
-
-QScrollBar:vertical {
-	min-height: 10px;  
-    background: rgb(46,46,46);
-}
-
-QScrollBar::handle:vertical {
-    background: rgb(71,71,71);
-  	border: 4px solid  rgb(46,46,46);
-}
-
-QScrollBar::handle:hover:vertical,
-QScrollBar::handle:pressed:vertical {
-    background: rgb(153,153,153);
-}
-
-QScrollBar::sub-page:vertical {
-    background:transparent
-}
-
-QScrollBar::add-page:vertical {
-    background:transparent
-}
-
-QScrollBar::add-line:vertical {
-    background:transparent
-}
-
-QScrollBar::sub-line:vertical {
-    background:transparent
-}
-
-QScrollBar:horizontal {
-    background: rgb(46,46,46);
-	min-height: 10px;  
-}
-
-QScrollBar::handle:horizontal {
-    background: rgb(71,71,71);
-  	border: 3px solid  rgb(46,46,46);
-}
-
-QScrollBar::handle:hover:horizontal,
-QScrollBar::handle:pressed:horizontal {
-    background: rgb(153,153,153);
-}
-
-QScrollBar::sub-page:horizontal {
-    background: 444444;
-}
-
-QScrollBar::add-page:horizontal {
-    background: 5B5B5B;
-}
-
-QScrollBar::add-line:horizontal {
-    background: none;
-}
-
-QScrollBar::sub-line:horizontal {
-    background: none;
-}
-
-QToolTip{
-border-style:none; 
-background-color: rgb(57, 58, 60);
-color: rgb(208, 208, 208);
-}</string>
-          </property>
-          <property name="editTriggers">
-           <set>QAbstractItemView::NoEditTriggers</set>
-          </property>
-          <property name="verticalScrollMode">
-           <enum>QAbstractItemView::ScrollPerPixel</enum>
-          </property>
-          <property name="sortingEnabled">
-           <bool>true</bool>
-          </property>
-          <column>
-           <property name="text">
-            <string>refresh</string>
-           </property>
-          </column>
          </widget>
         </item>
        </layout>
@@ -1820,7 +2074,7 @@ margin-right:0px;
            <enum>QTabWidget::South</enum>
           </property>
           <property name="currentIndex">
-           <number>3</number>
+           <number>0</number>
           </property>
           <widget class="QWidget" name="tab_6">
            <attribute name="title">
@@ -2425,7 +2679,7 @@ color: rgb(208, 208, 208);
              <number>0</number>
             </property>
             <item row="0" column="0">
-             <widget class="QTreeWidget" name="treeWidget_debuger_local_2">
+             <widget class="QTreeWidget" name="treeWidget_debuger_callstack">
               <property name="styleSheet">
                <string notr="true">QTreeWidget {
     color: rgb(214,214,214);
@@ -2615,7 +2869,7 @@ color: rgb(208, 208, 208);
              <number>0</number>
             </property>
             <item row="0" column="0">
-             <widget class="QTreeWidget" name="treeWidget_debuger_local_3">
+             <widget class="QTreeWidget" name="treeWidget_debuger_jmpstack">
               <property name="styleSheet">
                <string notr="true">QTreeWidget {
     color: rgb(214,214,214);
@@ -2793,172 +3047,111 @@ color: rgb(208, 208, 208);
       </widget>
      </widget>
     </item>
-    <item row="3" column="0" colspan="2">
-     <widget class="QDockWidget" name="dockWidget_scriptFun">
-      <property name="maximumSize">
-       <size>
-        <width>524287</width>
-        <height>524287</height>
-       </size>
-      </property>
-      <property name="styleSheet">
-       <string notr="true">color: rgb(250, 250, 250);
+   </layout>
+  </widget>
+  <widget class="QMenuBar" name="menuBar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>1227</width>
+     <height>23</height>
+    </rect>
+   </property>
+  </widget>
+  <widget class="QToolBar" name="mainToolBar">
+   <property name="toolButtonStyle">
+    <enum>Qt::ToolButtonTextBesideIcon</enum>
+   </property>
+   <attribute name="toolBarArea">
+    <enum>TopToolBarArea</enum>
+   </attribute>
+   <attribute name="toolBarBreak">
+    <bool>false</bool>
+   </attribute>
+   <addaction name="actionLogback"/>
+   <addaction name="actionSave"/>
+   <addaction name="actionNew"/>
+   <addaction name="actionSaveAs"/>
+   <addaction name="actionDirectory"/>
+   <addaction name="separator"/>
+   <addaction name="actionStart"/>
+   <addaction name="actionPause"/>
+   <addaction name="actionStop"/>
+   <addaction name="separator"/>
+   <addaction name="actionStep"/>
+   <addaction name="actionMark"/>
+   <addaction name="separator"/>
+   <addaction name="actionSaveEncode"/>
+   <addaction name="actionSaveDecode"/>
+   <addaction name="separator"/>
+  </widget>
+  <widget class="QStatusBar" name="statusBar"/>
+  <widget class="QDockWidget" name="dockWidget_des">
+   <property name="styleSheet">
+    <string notr="true">color: rgb(250, 250, 250);
 background-color: rgb(31, 31, 31);</string>
-      </property>
-      <property name="features">
-       <set>QDockWidget::NoDockWidgetFeatures</set>
-      </property>
-      <property name="windowTitle">
-       <string>log</string>
-      </property>
-      <widget class="QWidget" name="dockWidgetContents_5">
-       <layout class="QGridLayout" name="gridLayout">
-        <property name="leftMargin">
-         <number>0</number>
-        </property>
-        <property name="topMargin">
-         <number>0</number>
-        </property>
-        <property name="rightMargin">
-         <number>0</number>
-        </property>
-        <property name="bottomMargin">
-         <number>0</number>
-        </property>
-        <item row="0" column="0">
-         <widget class="QTabWidget" name="tabWidget_scriptFun">
-          <property name="styleSheet">
-           <string notr="true">QTabWidget::pane{
-top:0px;
-border-top:2px solid #7160E8;
-border-bottom:1px solid rgb(61,61,61);
-border-right:1px solid rgb(61,61,61);
-border-left:1px solid rgb(61,61,61);
-}
-
-QTabWidget::tab-bar
-{
-alignment: left;
-top:0px;
-left:5px;
-border:none;
-}
-
-#detailWgt, #appealReasonWgt{
-border:none;
-}
-
-QTabBar::tab:first{
-color:rgb(178,178,178);
-background:rgb(46,46,46);
-
-padding-left:0px;
-padding-right:0px;
-width:100px;
-height:24px;
-margin-left:0px;
-margin-right:0px;
-
-border-top:2px solid rgb(31, 31, 31);
-}
-
-QTabBar::tab:middle{
-color:rgb(178,178,178);
-background:rgb(46,46,46);
-padding-left:0px;
-padding-right:0px;
-width:100px;
-height:24px;
-margin-left:0px;
-margin-right:0px;
-
-border-top:2px solid rgb(31, 31, 31);
-
-}
-
-QTabBar::tab:last{
-color:rgb(178,178,178);
-background:rgb(46,46,46);
-
-padding-left:0px;
-padding-right:0px;
-width:100px;
-height:24px;
-margin-left:0px;
-margin-right:0px;
-
-border-top:2px solid rgb(31, 31, 31);
-}
-
-QTabBar::tab:selected{
-color:rgb(250,250,250);
-background:rgb(61,61,61);
-border-top:2px solid #7160E8;
-
-}
-
-QTabBar::tab:hover{
-color:rgb(250,250,250);
-background:rgb(61,61,61);
-padding-left:0px;
-padding-right:0px;
-width:100px;
-height:24px;
-margin-left:0px;
-margin-right:0px;
-}
-
-</string>
-          </property>
-          <property name="tabPosition">
-           <enum>QTabWidget::South</enum>
-          </property>
-          <property name="currentIndex">
-           <number>2</number>
-          </property>
-          <widget class="QWidget" name="tab_5">
-           <attribute name="title">
-            <string>des</string>
-           </attribute>
-           <layout class="QGridLayout" name="gridLayout_9">
-            <property name="leftMargin">
-             <number>0</number>
-            </property>
-            <property name="topMargin">
-             <number>0</number>
-            </property>
-            <property name="rightMargin">
-             <number>0</number>
-            </property>
-            <property name="bottomMargin">
-             <number>0</number>
-            </property>
-            <item row="0" column="0">
-             <widget class="QTextBrowser" name="textBrowser"/>
-            </item>
-           </layout>
-          </widget>
-          <widget class="QWidget" name="tab">
-           <attribute name="title">
-            <string>mark</string>
-           </attribute>
-           <layout class="QGridLayout" name="gridLayout_7">
-            <property name="leftMargin">
-             <number>0</number>
-            </property>
-            <property name="topMargin">
-             <number>0</number>
-            </property>
-            <property name="rightMargin">
-             <number>0</number>
-            </property>
-            <property name="bottomMargin">
-             <number>0</number>
-            </property>
-            <item row="0" column="0">
-             <widget class="QTreeWidget" name="treeWidget_breakList">
-              <property name="styleSheet">
-               <string notr="true">QTreeWidget {
+   </property>
+   <property name="windowTitle">
+    <string>des</string>
+   </property>
+   <attribute name="dockWidgetArea">
+    <number>8</number>
+   </attribute>
+   <widget class="QWidget" name="dockWidgetContents_3">
+    <layout class="QGridLayout" name="gridLayout_15">
+     <property name="leftMargin">
+      <number>0</number>
+     </property>
+     <property name="topMargin">
+      <number>0</number>
+     </property>
+     <property name="rightMargin">
+      <number>0</number>
+     </property>
+     <property name="bottomMargin">
+      <number>0</number>
+     </property>
+     <item row="0" column="0">
+      <widget class="QTextBrowser" name="textBrowser">
+       <property name="styleSheet">
+        <string notr="true">color: rgb(49, 49, 49);
+background-color: rgb(239, 239, 239);</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </widget>
+  </widget>
+  <widget class="QDockWidget" name="dockWidget_mark">
+   <property name="styleSheet">
+    <string notr="true">color: rgb(250, 250, 250);
+background-color: rgb(31, 31, 31);</string>
+   </property>
+   <property name="windowTitle">
+    <string>mark</string>
+   </property>
+   <attribute name="dockWidgetArea">
+    <number>8</number>
+   </attribute>
+   <widget class="QWidget" name="dockWidgetContents_6">
+    <layout class="QGridLayout" name="gridLayout_9">
+     <property name="leftMargin">
+      <number>0</number>
+     </property>
+     <property name="topMargin">
+      <number>0</number>
+     </property>
+     <property name="rightMargin">
+      <number>0</number>
+     </property>
+     <property name="bottomMargin">
+      <number>0</number>
+     </property>
+     <item row="0" column="0">
+      <widget class="QTreeWidget" name="treeWidget_breakList">
+       <property name="styleSheet">
+        <string notr="true">QTreeWidget {
     color: rgb(214,214,214);
     background: rgb(31,31,31);
     border: 1px solid rgb(61,61,61);
@@ -3104,271 +3297,33 @@ border-style:none;
 background-color: rgb(57, 58, 60);
 color: rgb(208, 208, 208);
 }</string>
-              </property>
-              <property name="editTriggers">
-               <set>QAbstractItemView::NoEditTriggers</set>
-              </property>
-              <property name="sortingEnabled">
-               <bool>true</bool>
-              </property>
-              <column>
-               <property name="text">
-                <string>content</string>
-               </property>
-              </column>
-              <column>
-               <property name="text">
-                <string>count</string>
-               </property>
-              </column>
-              <column>
-               <property name="text">
-                <string>row</string>
-               </property>
-              </column>
-             </widget>
-            </item>
-           </layout>
-          </widget>
-          <widget class="QWidget" name="tab_2">
-           <attribute name="title">
-            <string>log</string>
-           </attribute>
-           <layout class="QGridLayout" name="gridLayout_6">
-            <property name="leftMargin">
-             <number>0</number>
-            </property>
-            <property name="topMargin">
-             <number>0</number>
-            </property>
-            <property name="rightMargin">
-             <number>0</number>
-            </property>
-            <property name="bottomMargin">
-             <number>0</number>
-            </property>
-            <item row="0" column="0">
-             <widget class="ListView" name="listView_log">
-              <property name="font">
-               <font>
-                <family>微軟正黑體</family>
-                <pointsize>8</pointsize>
-               </font>
-              </property>
-              <property name="contextMenuPolicy">
-               <enum>Qt::CustomContextMenu</enum>
-              </property>
-              <property name="styleSheet">
-               <string notr="true">QListView {
-    /*color: rgb(214,214,214);*/
-    background: rgb(31,31,31);
-    border: 1px solid rgb(61,61,61);
-    alternate-background-color: #525252;
-    gridline-color: transparent;
-	outline:none;
-}
-
-QListView QTableCornerButton::section {
-    /*color: rgb(214,214,214);*/
-    background: rgb(31,31,31);
-    border: 0px solid #418bc9;/*边框*/
-    border-radius:0px;/*边框圆角*/
-    border-color: rgb(41, 139, 201);/*边框颜色*/
-    font: bold 11pt;/*字体大小*/
-    padding:12px 0 0 10px;/*内边距*/
- }
-
-QListView::item {
-    /*color: rgb(214,214,214);*/
-    background: rgb(31,31,31);
-}
-
-QListView::item:selected {
-    /*color: rgb(214,214,214);*/
-    background:rgb(61,61,61); /* qlineargradient(spread:pad, x1:0, y1:0, x2:0, y2:1, stop:0 #484848, stop:1 #383838);*/
-}
-
-QListView::item:hover {
-    background:rgb(61,61,61);
-}
-
-QHeaderView {
-    text-align: center;
-    background: rgb(31,31,31);
-    padding: 0px;
-    margin: 0px;
-    color: rgb(250,250,250);
-    border: 0px solid rgb(61,61,61);
-
-}
-
-QHeaderView::section::vertical {
-    text-align: center;
-    background: rgb(31,31,31);
-    padding: 3px;
-    margin: 0px;
-    color: rgb(250,250,250);
-    border: 0px solid rgb(61,61,61);
-    border-left-width: 0;
-	border-bottom-width: 1;
-	border-right-width: 1;
-}
-
-QHeaderView::section::horizontal{
-    text-align: center;
-    background: rgb(31,31,31);
-    padding: 3px;
-    margin: 0px;
-    color: rgb(250,250,250);
-    border: 0px solid rgb(61,61,61);
-    border-left-width: 0;
-	border-bottom-width: 1;
-	border-right-width: 1;
-}
-
-QScrollBar:vertical {
-    background: rgb(46,46,46);
-	width: 20px;
-	height:20px;
-}
-
-QScrollBar::handle:vertical {
-    background: rgb(71,71,71);
-  	border: 3px solid  rgb(46,46,46);
-}
-
-QScrollBar::handle:hover:vertical,
-QScrollBar::handle:pressed:vertical {
-    background: rgb(153,153,153);
-}
-
-QScrollBar::sub-page:vertical {
-	height:9px;
-    background: 444444;
-}
-
-QScrollBar::add-page:vertical {
-	height:9px;
-    background: 5B5B5B;
-}
-
-QScrollBar::add-line:vertical {
-	height:9px;
-    background: none;
-}
-
-QScrollBar::sub-line:vertical {
-	height:9px;
-    background: none;
-}
-
-QScrollBar:horizontal {
-    background: rgb(46,46,46);
-}
-
-QScrollBar::handle:horizontal {
-    background: rgb(71,71,71);
-  	border: 3px solid  rgb(46,46,46);
-}
-
-QScrollBar::handle:hover:horizontal,
-QScrollBar::handle:pressed:horizontal {
-    background: rgb(153,153,153);
-}
-
-QScrollBar::sub-page:horizontal {
-    background: 444444;
-}
-
-QScrollBar::add-page:horizontal {
-    background: 5B5B5B;
-}
-
-QScrollBar::add-line:horizontal {
-    background: none;
-}
-
-QScrollBar::sub-line:horizontal {
-    background: none;
-}
-
-QToolTip{
-border-style:none; 
-background-color: rgb(57, 58, 60);
-color: rgb(208, 208, 208);
-}</string>
-              </property>
-              <property name="editTriggers">
-               <set>QAbstractItemView::NoEditTriggers</set>
-              </property>
-              <property name="selectionBehavior">
-               <enum>QAbstractItemView::SelectRows</enum>
-              </property>
-              <property name="textElideMode">
-               <enum>Qt::ElideNone</enum>
-              </property>
-              <property name="verticalScrollMode">
-               <enum>QAbstractItemView::ScrollPerPixel</enum>
-              </property>
-              <property name="horizontalScrollMode">
-               <enum>QAbstractItemView::ScrollPerPixel</enum>
-              </property>
-              <property name="uniformItemSizes">
-               <bool>true</bool>
-              </property>
-              <property name="wordWrap">
-               <bool>true</bool>
-              </property>
-             </widget>
-            </item>
-           </layout>
-          </widget>
-         </widget>
-        </item>
-       </layout>
+       </property>
+       <property name="editTriggers">
+        <set>QAbstractItemView::NoEditTriggers</set>
+       </property>
+       <property name="sortingEnabled">
+        <bool>true</bool>
+       </property>
+       <column>
+        <property name="text">
+         <string>content</string>
+        </property>
+       </column>
+       <column>
+        <property name="text">
+         <string>count</string>
+        </property>
+       </column>
+       <column>
+        <property name="text">
+         <string>row</string>
+        </property>
+       </column>
       </widget>
-     </widget>
-    </item>
-   </layout>
+     </item>
+    </layout>
+   </widget>
   </widget>
-  <widget class="QMenuBar" name="menuBar">
-   <property name="geometry">
-    <rect>
-     <x>0</x>
-     <y>0</y>
-     <width>1064</width>
-     <height>23</height>
-    </rect>
-   </property>
-  </widget>
-  <widget class="QToolBar" name="mainToolBar">
-   <property name="toolButtonStyle">
-    <enum>Qt::ToolButtonTextBesideIcon</enum>
-   </property>
-   <attribute name="toolBarArea">
-    <enum>TopToolBarArea</enum>
-   </attribute>
-   <attribute name="toolBarBreak">
-    <bool>false</bool>
-   </attribute>
-   <addaction name="actionLogback"/>
-   <addaction name="actionSave"/>
-   <addaction name="actionNew"/>
-   <addaction name="actionSaveAs"/>
-   <addaction name="actionDirectory"/>
-   <addaction name="separator"/>
-   <addaction name="actionStart"/>
-   <addaction name="actionPause"/>
-   <addaction name="actionStop"/>
-   <addaction name="separator"/>
-   <addaction name="actionStep"/>
-   <addaction name="actionMark"/>
-   <addaction name="separator"/>
-   <addaction name="actionSaveEncode"/>
-   <addaction name="actionSaveDecode"/>
-   <addaction name="separator"/>
-  </widget>
-  <widget class="QStatusBar" name="statusBar"/>
   <action name="actionSave">
    <property name="icon">
     <iconset resource="../resource.qrc">

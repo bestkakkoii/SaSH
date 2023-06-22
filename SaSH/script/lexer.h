@@ -12,11 +12,11 @@ enum RESERVE
 {
 	//其他未知
 	TK_UNK = -1, //未知的TOKEN 將直接忽略 如果TK_UNK位於參數中則直接將當前行視為空行忽略
-	TK_IGNORE, //忽略的TOKEN
+	//TK_IGNORE, //忽略的TOKEN
 
 	//標準分隔符
 	TK_SPACE, //(用於分隔第一個TOKEN)
-	TK_COMMA, //(用於分隔多個TOKEN 除了TK_CMD TK_SUBCMD 和其他TOKEN )
+	//TK_COMMA, //(用於分隔多個TOKEN 除了TK_CMD TK_SUBCMD 和其他TOKEN )
 
 	//數值類型
 	TK_STRING,  //(  僅限被  "  包裹的)
@@ -77,7 +77,7 @@ enum RESERVE
 	TK_LABELVAR, //標籤設置的傳參變量
 	TK_FORMAT, // 格式化後將新數值字符串賦值給變量
 	TK_RND,
-	TK_GVAR,// 全局變量
+	//TK_GVAR,// 全局變量
 	TK_NAME, // 標記名稱 不允許使用純數字 或符點數作為標記名稱
 
 	//其他命令
@@ -103,6 +103,12 @@ public:
 	static bool tokenized(const QString& script, QHash<int, TokenMap>* tokens, QHash<QString, int>* plabel);
 
 private:
+	enum ErrorType
+	{
+		kTypeError = 6,
+		kTypeWarning = 10,
+	};
+
 	bool isDouble(const QString& str) const;
 	bool isInteger(const QString& str) const;
 	bool isBool(const QString& str) const;
@@ -124,5 +130,10 @@ private:
 	void createEmptyToken(int index, TokenMap* ptoken);
 
 	void tokenized(int currentLine, const QString& line, TokenMap* ptoken, QHash<QString, int>* plabel);
+
+	void checkNonQuotedParameterForErrors(int currrentline, const QString& parameter);
+	void checkInvalidReadVariable(const QHash<int, TokenMap>& tokenmaps);
+
+	void showError(const QString text, ErrorType type = kTypeError);
 };
 

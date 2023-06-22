@@ -133,9 +133,11 @@ bool Interpreter::doFile(int beginLine, const QString& fileName, Interpreter* pa
 		return 1;
 	};
 
-	if (shareMode == kShare && mode == kSync)
+	if (shareMode == kShare)
 	{
-		parser_->getVarsRef() = parent->parser_->getVarsRef();
+		QSharedPointer<VariantSafeHash> pparentHash = parent->parser_->getPVariables();
+		if (!pparentHash.isNull())
+			parser_->setPVariables(pparentHash);
 	}
 
 	parser_->setTokens(tokens);
@@ -153,22 +155,22 @@ bool Interpreter::doFile(int beginLine, const QString& fileName, Interpreter* pa
 		return false;
 	}
 
-	if (shareMode == kShare && mode == kSync)
-	{
-		QVariantHash vars = parser_->getVarsRef();
-		QVariantHash& parentVars = parent->parser_->getVarsRef();
-		for (auto it = vars.begin(); it != vars.end(); ++it)
-		{
-			parentVars.insert(it.key(), it.value());
-		}
-	}
+	//if (shareMode == kShare && mode == kSync)
+	//{
+	//	VariantSafeHash vars = parser_->getVarsRef();
+	//	VariantSafeHash& parentVars = parent->parser_->getVarsRef();
+	//	for (auto it = vars.cbegin(); it != vars.cend(); ++it)
+	//	{
+	//		parentVars.insert(it.key(), it.value());
+	//	}
+	//}
 
 	isRunning_.store(false, std::memory_order_release);
 	return true;
 }
 
 //新線程下執行一段腳本內容
-void Interpreter::doString(const QString& script, Interpreter* parent)
+void Interpreter::doString(const QString& script, Interpreter* parent, VarShareMode shareMode)
 {
 	if (parser_.isNull())
 		parser_.reset(new Parser());
@@ -216,6 +218,13 @@ void Interpreter::doString(const QString& script, Interpreter* parent)
 			return 1;
 		};
 		parser_->setCallBack(pCallback);
+
+		if (shareMode == kShare)
+		{
+			QSharedPointer<VariantSafeHash> pparentHash = parent->parser_->getPVariables();
+			if (!pparentHash.isNull())
+				parser_->setPVariables(pparentHash);
+		}
 	}
 
 	parser_->setTokens(tokens);
@@ -771,11 +780,11 @@ int Interpreter::checkJump(const TokenMap& TK, int idx, bool expr, JumpBehavior 
 
 		if (!label.isEmpty())
 		{
-			parser_->jump(label);
+			parser_->jump(label, false);
 		}
 		else if (line != 0)
 		{
-			parser_->jump(line);
+			parser_->jump(line, false);
 		}
 		else
 			return Parser::kArgError;
@@ -1420,7 +1429,7 @@ void Interpreter::updateGlobalVariables()
 	if (injector.server.isNull())
 		return;
 	PC pc = injector.server->pc;
-	QVariantHash& hash = parser_->getVarsRef();
+	VariantSafeHash& hash = parser_->getVarsRef();
 	QPoint nowPoint = injector.server->nowPoint;
 	dialog_t dialog = injector.server->currentDialog.get();
 
@@ -1465,27 +1474,27 @@ void Interpreter::updateGlobalVariables()
 	hash["对话框ID"] = dialog.seqno;
 
 	//utf8
-	hash["tickcount"] = static_cast<int>(QDateTime::currentMSecsSinceEpoch());
-	hash["stickcount"] = static_cast<int>(QDateTime::currentSecsSinceEpoch());
+	hash["tick"] = static_cast<int>(QDateTime::currentMSecsSinceEpoch());
+	hash["stick"] = static_cast<int>(QDateTime::currentSecsSinceEpoch());
 
-	hash["playername"] = pc.name;
-	hash["playerfreename"] = pc.freeName;
-	hash["playerlevel"] = pc.level;
-	hash["playerhp"] = pc.hp;
-	hash["playermp"] = pc.mp;
-	hash["playerdp"] = pc.dp;
+	hash["chname"] = pc.name;
+	hash["chfname"] = pc.freeName;
+	hash["chlv"] = pc.level;
+	hash["chhp"] = pc.hp;
+	hash["chmp"] = pc.mp;
+	hash["chdp"] = pc.dp;
 	hash["stone"] = pc.gold;
 
 	hash["px"] = nowPoint.x();
 	hash["py"] = nowPoint.y();
 	hash["floor"] = injector.server->nowFloor;
-	hash["floorname"] = injector.server->nowFloorName;
+	hash["frname"] = injector.server->nowFloorName;
 	hash["date"] = QDateTime::currentDateTime().toString("yyyy-MM-dd");
 	hash["time"] = QDateTime::currentDateTime().toString("hh:mm:ss:zzz");
 
-	hash["earngold"] = injector.server->recorder[0].goldearn;
+	hash["earnstone"] = injector.server->recorder[0].goldearn;
 
-	hash["dialogid"] = dialog.seqno;
+	hash["dlgid"] = dialog.seqno;
 
 }
 
@@ -1664,6 +1673,7 @@ void Interpreter::openLibsBIG5()
 	registerFunction(u8"加點", &Interpreter::addpoint);
 	registerFunction(u8"學習", &Interpreter::learn);
 	registerFunction(u8"交易", &Interpreter::trade);
+	registerFunction(u8"寄信", &Interpreter::mail);
 
 	registerFunction(u8"記錄身上裝備", &Interpreter::recordequip);
 	registerFunction(u8"裝上記錄裝備", &Interpreter::wearequip);
@@ -1679,6 +1689,7 @@ void Interpreter::openLibsBIG5()
 	//action->group
 	registerFunction(u8"組隊", &Interpreter::join);
 	registerFunction(u8"離隊", &Interpreter::leave);
+	registerFunction(u8"踢走", &Interpreter::kick);
 
 	registerFunction(u8"左擊", &Interpreter::leftclick);
 	registerFunction(u8"右擊", &Interpreter::rightclick);
@@ -1765,6 +1776,7 @@ void Interpreter::openLibsGB2312()
 	registerFunction(u8"加点", &Interpreter::addpoint);
 	registerFunction(u8"学习", &Interpreter::learn);
 	registerFunction(u8"交易", &Interpreter::trade);
+	registerFunction(u8"寄信", &Interpreter::mail);
 
 	registerFunction(u8"记录身上装备", &Interpreter::recordequip);
 	registerFunction(u8"装上记录装备", &Interpreter::wearequip);
@@ -1780,6 +1792,7 @@ void Interpreter::openLibsGB2312()
 	//action->group
 	registerFunction(u8"组队", &Interpreter::join);
 	registerFunction(u8"离队", &Interpreter::leave);
+	registerFunction(u8"踢走", &Interpreter::kick);
 
 	registerFunction(u8"左击", &Interpreter::leftclick);
 	registerFunction(u8"右击", &Interpreter::rightclick);
@@ -1864,6 +1877,7 @@ void Interpreter::openLibsUTF8()
 	registerFunction(u8"addpoint", &Interpreter::addpoint);
 	registerFunction(u8"learn", &Interpreter::learn);
 	registerFunction(u8"trade", &Interpreter::trade);
+	registerFunction(u8"mail", &Interpreter::mail);
 
 	registerFunction(u8"recordequip", &Interpreter::recordequip);
 	registerFunction(u8"wearrecordequip", &Interpreter::wearequip);
@@ -1879,6 +1893,7 @@ void Interpreter::openLibsUTF8()
 	//action->group
 	registerFunction(u8"join", &Interpreter::join);
 	registerFunction(u8"leave", &Interpreter::leave);
+	registerFunction(u8"kick", &Interpreter::kick);
 
 	registerFunction(u8"lclick", &Interpreter::leftclick);
 	registerFunction(u8"rclick", &Interpreter::rightclick);
@@ -2004,9 +2019,15 @@ int Interpreter::dostring(int currentline, const TokenMap& TK)
 	script.replace("\\f", "\f");
 	script.replace("\\a", "\a");
 
+	VarShareMode varShareMode = kNotShare;
+	int nShared = 0;
+	checkInt(TK, 2, &nShared);
+	if (nShared > 0)
+		varShareMode = kShare;
+
 	RunFileMode asyncMode = kSync;
 	int nAsync = 0;
-	checkInt(TK, 2, &nAsync);
+	checkInt(TK, 3, &nAsync);
 	if (nAsync > 0)
 		asyncMode = kAsync;
 
@@ -2015,7 +2036,7 @@ int Interpreter::dostring(int currentline, const TokenMap& TK)
 	{
 		subInterpreterList_.append(interpreter);
 		interpreter->isSub = true;
-		interpreter->doString(script, this);
+		interpreter->doString(script, this, varShareMode);
 	}
 
 	if (asyncMode == kSync)

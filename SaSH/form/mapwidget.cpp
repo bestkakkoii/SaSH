@@ -518,7 +518,7 @@ void MapWidget::on_openGLWidget_notifyMousePosition(const QPointF& pos)
 	if (x < 0 || x > 1500 || y < 0 || y > 1500)
 		return;
 
-	interpreter_->doString(QString(u8"尋路 %1, %2, 1").arg(x).arg(y));
+	interpreter_->doString(QString(u8"findpath %1, %2, 1").arg(x).arg(y), nullptr, Interpreter::kNotShare);
 }
 
 void MapWidget::on_openGLWidget_notifyLeftClick(const QPointF& gpos, const QPointF& pos)
@@ -739,7 +739,7 @@ void MapWidget::on_pushButton_findPath_clicked()
 	if (x < 0 || x > 1500 || y < 0 || y > 1500)
 		return;
 
-	interpreter_->doString(QString(u8"尋路 %1, %2, 1").arg(x).arg(y));
+	interpreter_->doString(QString(u8"findpath %1, %2, 1").arg(x).arg(y), nullptr, Interpreter::kNotShare);
 
 	//findpath(dst);
 }
@@ -918,7 +918,7 @@ void MapWidget::on_tableWidget_NPCList_cellDoubleClicked(int row, int)
 		}
 	}
 
-	interpreter_->doString(QString(u8"尋路 %1, %2, 1").arg(x).arg(y));
+	interpreter_->doString(QString(u8"findpath %1, %2, 1").arg(x).arg(y), nullptr, Interpreter::kNotShare);
 
 	//	if (list.size() == 2)
 	//	{

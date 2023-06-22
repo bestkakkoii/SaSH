@@ -275,6 +275,7 @@ void ScriptForm::onStartScript()
 
 void ScriptForm::onScriptContentChanged(const QString& fileName, const QVariant& vtokens)
 {
+	ui.tableWidget_script->setUpdatesEnabled(false);
 	QHash<int, TokenMap> tokens = vtokens.value<QHash<int, TokenMap>>();
 
 	int rowCount = tokens.size();
@@ -300,6 +301,8 @@ void ScriptForm::onScriptContentChanged(const QString& fileName, const QVariant&
 	QString shortPath = fileName.mid(index + 7);
 	ui.label_path->setText(shortPath);
 	onScriptLabelRowTextChanged(1, rowCount, false);
+
+	ui.tableWidget_script->setUpdatesEnabled(true);
 }
 
 void ScriptForm::onCurrentTableWidgetItemChanged(QTableWidgetItem* current, QTableWidgetItem* previous)
@@ -408,6 +411,7 @@ void ScriptForm::onReloadScriptList()
 		}
 
 		scriptList_ = newScriptList;
+		ui.treeWidget_script->setUpdatesEnabled(false);
 		ui.treeWidget_script->clear();
 		ui.treeWidget_script->addTopLevelItem(item);
 		//展開全部第一層
@@ -418,5 +422,6 @@ void ScriptForm::onReloadScriptList()
 		}
 
 		ui.treeWidget_script->sortItems(0, Qt::AscendingOrder);
+		ui.treeWidget_script->setUpdatesEnabled(true);
 	} while (false);
 }

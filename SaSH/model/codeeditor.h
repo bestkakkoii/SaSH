@@ -14,6 +14,9 @@
 #include <QStyleOption>
 #include <QPainter>
 #include <highlighter.h>
+#include "form/replaceform.h"
+#include <QDialog>
+
 
 class CodeEditor : public QsciScintilla
 {
@@ -37,22 +40,126 @@ public:
 	inline bool isError(int mode) const { return ((mode & S_ERRORMARK) == S_ERRORMARK); }
 	inline bool isStep(int mode) const { return ((mode & S_STEPMARK) == S_STEPMARK); }
 
+	QFont getOldFont() { return QsciScintilla::font(); }
+	void setNewFont(const QFont& f) { font = f; setFont(f); textLexer.setDefaultFont(f); }
 public slots:
 	void commentSwitch();
+	void findReplace();
 
+signals:
+	void closeJumpToLineDialog();
 private:
 	Highlighter textLexer;
 	QsciAPIs apis;
 	QFont font;
 	QFont linefont;
-
+	bool isDialogOpened = false;
 protected:
 	void keyPressEvent(QKeyEvent* e);
 
 	void showEvent(QShowEvent* e) override
 	{
 		setAttribute(Qt::WA_Mapped);
-		QWidget::showEvent(e);
+		QsciScintilla::showEvent(e);
 	}
+
+	void mousePressEvent(QMouseEvent* e) override
+	{
+		if (isDialogOpened)
+			emit closeJumpToLineDialog();
+
+		QsciScintilla::mousePressEvent(e);
+	}
+
+private:
+	void jumpToLineDialog();
 };
+
+class JumpToLineDialog : public QDialog
+{
+	Q_OBJECT
+
+public:
+	JumpToLineDialog(CodeEditor* parent = nullptr, int* lineNumber = nullptr)
+		: QDialog(parent), m_lineNumber(lineNumber)
+	{
+		setAttribute(Qt::WA_DeleteOnClose);
+		setWindowFlags(windowFlags() & ~Qt::WindowContextHelpButtonHint);
+		//無標題覽
+		setWindowFlags(windowFlags() | Qt::FramelessWindowHint);
+
+		connect(parent, &CodeEditor::closeJumpToLineDialog, this, &JumpToLineDialog::close);
+
+		// Set the width to 1/2 of the parent's width, but keep the height unchanged
+		int dialogWidth = parent->width() / 2;
+		int dialogHeight = height(); // Keep the height unchanged
+
+		// Calculate the dialog position relative to the parent window
+		QPoint parentCenter = parent->mapToGlobal(QPoint(parent->width() / 2, 0));
+		int dialogX = parentCenter.x() - dialogWidth / 2;
+		int dialogY = parentCenter.y();
+
+		// Set the dialog's geometry
+		setGeometry(dialogX, dialogY, dialogWidth, dialogHeight);
+
+		// Move the dialog to the top and center of the parent
+		move(dialogX, dialogY);
+
+
+		//gray border
+		setStyleSheet("QDialog{border: 1px solid gray;}");
+
+
+		int currentLine, currentIndex;
+		parent->getCursorPosition(&currentLine, &currentIndex);
+
+		QLabel* label = new QLabel(tr("Current Line: %1 Index: %2").arg(currentLine + 1).arg(currentIndex), this);
+		QLineEdit* lineEdit = new QLineEdit(this);
+		lineEdit->setPlaceholderText(tr(":"));
+		lineEdit->setValidator(new QIntValidator(1, parent->text().split("\n").size(), this));
+
+		QHBoxLayout* layout = new QHBoxLayout;
+		layout->addWidget(lineEdit);
+		layout->addWidget(label);
+		setLayout(layout);
+
+		lineEdit->setFocus();
+	}
+
+protected:
+	void keyPressEvent(QKeyEvent* e) override
+	{
+		if (e->key() == Qt::Key_Return || e->key() == Qt::Key_Enter)
+		{
+			QLineEdit* lineEdit = findChild<QLineEdit*>();
+			if (lineEdit)
+			{
+				if (m_lineNumber)
+				{
+					bool ok;
+					int line = lineEdit->text().toInt(&ok);
+					if (ok)
+					{
+						*m_lineNumber = line;
+						accept();
+						return;
+					}
+				}
+				reject();
+				return;
+			}
+		}
+		else if (e->key() == Qt::Key_Escape)
+		{
+			reject();
+			return;
+		}
+		QDialog::keyPressEvent(e);
+	}
+
+private:
+	int* m_lineNumber;
+};
+
+
 #endif // HIGHLIGHTER_H
