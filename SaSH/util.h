@@ -221,25 +221,25 @@ namespace util
 		kNormalMagicHealMagicValue,
 
 		//afk->heal spinbox
-		kMagicHealCharValue,
-		kMagicHealPetValue,
-		kMagicHealAllieValue,
+		kBattleMagicHealCharValue,
+		kBattleMagicHealPetValue,
+		kBattleMagicHealAllieValue,
 
-		kItemHealCharValue,
-		kItemHealPetValue,
-		kItemHealAllieValue,
+		kBattleItemHealCharValue,
+		kBattleItemHealPetValue,
+		kBattleItemHealAllieValue,
 
-		kItemHealMpValue,
+		kBattleItemHealMpValue,
 
-		kMagicHealCharNormalValue,
-		kMagicHealPetNormalValue,
-		kMagicHealAllieNormalValue,
+		kNormalMagicHealCharValue,
+		kNormalMagicHealPetValue,
+		kNormalMagicHealAllieValue,
 
-		kItemHealCharNormalValue,
-		kItemHealPetNormalValue,
-		kItemHealAllieNormalValue,
+		kNormalItemHealCharValue,
+		kNormalItemHealPetValue,
+		kNormalItemHealAllieValue,
 
-		kItemHealMpNormalValue,
+		kNormalItemHealMpValue,
 
 		//afk->walk
 		kAutoWalkDelayValue,
@@ -314,6 +314,7 @@ namespace util
 		kLockEscapeEnable,
 		kBattleTimeExtendEnable,
 		kFallDownEscapeEnable,
+		kShowExpEnable,
 
 		//switcher
 		kSwitcherTeamEnable,
@@ -361,7 +362,6 @@ namespace util
 		kLockRideEnable,
 
 		kLockPetScheduleEnable,
-		kLockRideScheduleEnable,
 
 		kSettingMaxEnable,
 
@@ -376,7 +376,7 @@ namespace util
 
 		//afk->heal
 		kBattleItemHealItemString,
-		kBattleItemHealMpIteamString,
+		kBattleItemHealMpItemString,
 		kBattleItemReviveItemString,
 
 		kNormalItemHealItemString,
@@ -393,7 +393,6 @@ namespace util
 
 		//other->lockpet
 		kLockPetScheduleString,
-		kLockRideScheduleString,
 
 		//other->other2
 		kGameAccountString,
@@ -487,25 +486,25 @@ namespace util
 
 
 		//afk->heal spinbox
-		{ kMagicHealCharValue, "MagicHealCharValue" },
-		{ kMagicHealPetValue, "MagicHealPetValue" },
-		{ kMagicHealAllieValue, "MagicHealAllieValue" },
+		{ kBattleMagicHealCharValue, "MagicHealCharValue" },
+		{ kBattleMagicHealPetValue, "MagicHealPetValue" },
+		{ kBattleMagicHealAllieValue, "MagicHealAllieValue" },
 
-		{ kItemHealCharValue, "ItemHealCharValue" },
-		{ kItemHealPetValue, "ItemHealPetValue" },
-		{ kItemHealAllieValue, "ItemHealAllieValue" },
+		{ kBattleItemHealCharValue, "ItemHealCharValue" },
+		{ kBattleItemHealPetValue, "ItemHealPetValue" },
+		{ kBattleItemHealAllieValue, "ItemHealAllieValue" },
 
-		{ kItemHealMpValue, "ItemHealMpValue" },
+		{ kBattleItemHealMpValue, "ItemHealMpValue" },
 
-		{ kMagicHealCharNormalValue, "MagicHealCharNormalValue" },
-		{ kMagicHealPetNormalValue, "MagicHealPetNormalValue" },
-		{ kMagicHealAllieNormalValue, "MagicHealAllieNormalValue" },
+		{ kNormalMagicHealCharValue, "MagicHealCharNormalValue" },
+		{ kNormalMagicHealPetValue, "MagicHealPetNormalValue" },
+		{ kNormalMagicHealAllieValue, "MagicHealAllieNormalValue" },
 
-		{ kItemHealCharNormalValue, "ItemHealCharNormalValue" },
-		{ kItemHealPetNormalValue, "ItemHealPetNormalValue" },
-		{ kItemHealAllieNormalValue, "ItemHealAllieNormalValue" },
+		{ kNormalItemHealCharValue, "ItemHealCharNormalValue" },
+		{ kNormalItemHealPetValue, "ItemHealPetNormalValue" },
+		{ kNormalItemHealAllieValue, "ItemHealAllieNormalValue" },
 
-		{ kItemHealMpNormalValue, "ItemHealMpNormalValue" },
+		{ kNormalItemHealMpValue, "ItemHealMpNormalValue" },
 
 		//afk->walk
 		{ kAutoWalkDelayValue, "AutoWalkDelayValue" },
@@ -534,7 +533,6 @@ namespace util
 		{ kLockPetValue, "LockPetValue" },
 		{ kLockRideValue, "LockRideValue" },
 		{ kLockPetScheduleEnable, "LockPetScheduleEnable" },
-		{ kLockRideScheduleEnable, "LockRideScheduleEnable" },
 
 		//script
 		{ kScriptSpeedValue, "ScriptSpeedValue" },
@@ -576,6 +574,7 @@ namespace util
 		{ kLockEscapeEnable, "LockEscapeEnable" },
 		{ kBattleTimeExtendEnable, "BattleTimeExtendEnable" },
 		{ kFallDownEscapeEnable, "FallDownEscapeEnable" },
+		{ kShowExpEnable, "ShowExpEnable" },
 		{ kSettingMaxEnable, "SettingMaxEnable" },
 
 		//switcher
@@ -631,7 +630,7 @@ namespace util
 
 		//afk->heal
 		{ kBattleItemHealItemString, "BattleItemHealItemString" },
-		{ kBattleItemHealMpIteamString, "BattleItemHealMpIteamString" },
+		{ kBattleItemHealMpItemString, "BattleItemHealMpIteamString" },
 		{ kBattleItemReviveItemString, "BattleItemReviveItemString" },
 		{ kNormalItemHealItemString, "NormalItemHealItemString" },
 		{ kNormalItemHealMpItemString, "NormalItemHealMpItemString" },
@@ -647,7 +646,6 @@ namespace util
 
 		//other->lockpet
 		{ kLockPetScheduleString, "LockPetScheduleString" },
-		{ kLockRideScheduleString, "LockRideScheduleString" },
 
 		{ kGameAccountString, "GameAccountString" },
 		{ kGamePasswordString, "GamePasswordString" },
@@ -930,6 +928,12 @@ namespace util
 		{
 			QWriteLocker locker(&lock);
 			hash = list;
+		}
+
+		bool isEmpty() const
+		{
+			QReadLocker locker(&lock);
+			return hash.isEmpty();
 		}
 
 		//copy
@@ -1281,6 +1285,8 @@ namespace util
 		void writeIntArray(const QString& sec, const QString& key, const QList<int>& values);
 		void writeIntArray(const QString& sec, const QString& key, const QString& sub, const QList<int>& values);
 		QList<int> readIntArray(const QString& sec, const QString& key, const QString& sub) const;
+		QStringList readStringArray(const QString& sec, const QString& key, const QString& sub) const;
+		void writeStringArray(const QString& sec, const QString& key, const QString& sub, const QStringList values);
 
 		void util::Config::writeMapData(const QString& sec, const util::MapData& data);
 

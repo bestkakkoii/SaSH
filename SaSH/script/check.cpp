@@ -35,6 +35,16 @@ int Interpreter::isbattle(int currentline, const TokenMap& TK)
 	return checkJump(TK, 1, injector.server->IS_BATTLE_FLAG, SuccessJump);
 }
 
+int Interpreter::isonline(int currentline, const TokenMap& TK)
+{
+	Injector& injector = Injector::getInstance();
+
+	if (injector.server.isNull())
+		return Parser::kError;
+
+	return checkJump(TK, 1, injector.server->IS_ONLINE_FLAG, SuccessJump);
+}
+
 int Interpreter::checkcoords(int currentline, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance();
@@ -63,6 +73,7 @@ int Interpreter::checkmap(int currentline, const TokenMap& TK)
 	QString mapname = "";
 	int floor = 0;
 	checkString(TK, 1, &mapname);
+	QStringList mapnames = mapname.split(util::rexOR, Qt::SkipEmptyParts);
 	checkInt(TK, 1, &floor);
 
 	int timeout = 5000;
@@ -71,20 +82,34 @@ int Interpreter::checkmap(int currentline, const TokenMap& TK)
 	if (floor == 0 && mapname.isEmpty())
 		return Parser::kError;
 
-	bool bret = waitfor(timeout, [&injector, floor, mapname]()->bool
+	bool bret = waitfor(timeout, [&injector, floor, mapnames]()->bool
 		{
 			if (floor != 0)
 				return floor == injector.server->nowFloor;
 			else
 			{
-				if (mapname.startsWith("?"))
+				for (const QString& mapname : mapnames)
 				{
-					QString newName = mapname.mid(1);
-					return injector.server->nowFloorName.contains(newName);
+					bool ok;
+					int floor = mapname.toInt(&ok);
+					if (ok)
+					{
+						if (floor == injector.server->nowFloor)
+							return true;
+					}
+					else
+					{
+						if (mapname.startsWith("?"))
+						{
+							QString newName = mapname.mid(1);
+							return injector.server->nowFloorName.contains(newName);
+						}
+						else
+							return mapname == injector.server->nowFloorName;
+					}
 				}
-				else
-					return mapname == injector.server->nowFloorName;
 			}
+			return false;
 		});
 
 	if (!bret && timeout > 2000)
@@ -105,18 +130,41 @@ int Interpreter::checkmapnowait(int currentline, const TokenMap& TK)
 	QString mapname = "";
 	int floor = 0;
 	checkString(TK, 1, &mapname);
+	QStringList mapnames = mapname.split(util::rexOR, Qt::SkipEmptyParts);
 	checkInt(TK, 1, &floor);
 
-	if (floor == 0 && mapname.isEmpty())
-		return Parser::kError;
+	auto check = [floor, mapnames, &injector]()
+	{
+		if (floor != 0)
+			return floor == injector.server->nowFloor;
+		else
+		{
+			for (const QString& mapname : mapnames)
+			{
+				bool ok;
+				int floor = mapname.toInt(&ok);
+				if (ok)
+				{
+					if (floor == injector.server->nowFloor)
+						return true;
+				}
+				else
+				{
+					if (mapname.startsWith("?"))
+					{
+						QString newName = mapname.mid(1);
+						return injector.server->nowFloorName.contains(newName);
+					}
+					else
+						return mapname == injector.server->nowFloorName;
+				}
+			}
 
-	bool bret = false;
-	if (floor != 0)
-		bret = floor == injector.server->nowFloor;
-	else
-		bret = mapname == injector.server->nowFloorName;
+		}
+		return false;
+	};
 
-	return checkJump(TK, 2, bret, SuccessJump);
+	return checkJump(TK, 2, check(), SuccessJump);
 }
 
 int Interpreter::checkdialog(int currentline, const TokenMap& TK)
@@ -130,6 +178,7 @@ int Interpreter::checkdialog(int currentline, const TokenMap& TK)
 	checkString(TK, 1, &cmpStr);
 	if (cmpStr.isEmpty())
 		return Parser::kArgError;
+	QStringList cmpStrs = cmpStr.split(util::rexOR, Qt::SkipEmptyParts);
 
 	int min = 1;
 	int max = 10;
@@ -139,7 +188,7 @@ int Interpreter::checkdialog(int currentline, const TokenMap& TK)
 	int timeout = 5000;
 	checkInt(TK, 3, &timeout);
 
-	bool bret = waitfor(timeout, [&injector, min, max, cmpStr]()->bool
+	bool bret = waitfor(timeout, [&injector, min, max, cmpStrs]()->bool
 		{
 			util::SafeHash<int, QVariant> hashdialog = injector.server->hashdialog;
 			for (int i = min; i <= max; i++)
@@ -151,9 +200,12 @@ int Interpreter::checkdialog(int currentline, const TokenMap& TK)
 				if (text.isEmpty())
 					continue;
 
-				if (text.contains(cmpStr, Qt::CaseInsensitive))
+				for (const QString& cmpStr : cmpStrs)
 				{
-					return true;
+					if (text.contains(cmpStr, Qt::CaseInsensitive))
+					{
+						return true;
+					}
 				}
 			}
 
@@ -180,11 +232,12 @@ int Interpreter::checkchathistory(int currentline, const TokenMap& TK)
 	checkString(TK, 2, &cmpStr);
 	if (cmpStr.isEmpty())
 		return Parser::kArgError;
+	QStringList cmpStrs = cmpStr.split(util::rexOR, Qt::SkipEmptyParts);
 
 	int timeout = 5000;
 	checkInt(TK, 3, &timeout);
 
-	bool bret = waitfor(timeout, [&injector, min, max, cmpStr]()->bool
+	bool bret = waitfor(timeout, [&injector, min, max, cmpStrs]()->bool
 		{
 			util::SafeHash<int, QVariant> hashchat = injector.server->hashchat;
 			for (int i = min; i <= max; i++)
@@ -196,9 +249,12 @@ int Interpreter::checkchathistory(int currentline, const TokenMap& TK)
 				if (text.isEmpty())
 					continue;
 
-				if (text.contains(cmpStr, Qt::CaseInsensitive))
+				for (const QString& cmpStr : cmpStrs)
 				{
-					return true;
+					if (text.contains(cmpStr, Qt::CaseInsensitive))
+					{
+						return true;
+					}
 				}
 			}
 
@@ -328,6 +384,7 @@ int Interpreter::checkitem(int currentline, const TokenMap& TK)
 		return Parser::kError;
 
 	int min = 0, max = 14;
+	bool isEquip = false;
 	if (!checkRange(TK, 1, &min, &max))
 	{
 		QString partStr;
@@ -346,10 +403,11 @@ int Interpreter::checkitem(int currentline, const TokenMap& TK)
 			if (min == CHAR_EQUIPNONE)
 				return Parser::kArgError;
 			max = min;
+			isEquip = true;
 		}
 	}
 
-	if (min < 101 && max < 101)
+	if (min < 101 && max < 101 && !isEquip)
 	{
 		min += CHAR_EQUIPPLACENUM;
 		max += CHAR_EQUIPPLACENUM;
@@ -371,11 +429,13 @@ int Interpreter::checkitem(int currentline, const TokenMap& TK)
 
 	QString itemMemo;
 	checkString(TK, 3, &itemMemo);
+	QStringList itemMemos = itemMemo.split(util::rexOR);
+
 
 	int timeout = 5000;
 	checkInt(TK, 4, &timeout);
 
-	bool bret = waitfor(timeout, [&injector, min, max, itemNames]()->bool
+	bool bret = waitfor(timeout, [&injector, min, max, itemNames, itemMemos]()->bool
 		{
 			for (int i = min; i <= max; ++i)
 			{
@@ -383,21 +443,44 @@ int Interpreter::checkitem(int currentline, const TokenMap& TK)
 				if (item.useFlag == 0 || item.name.isEmpty())
 					continue;
 
-				for (const QString& it : itemNames)
+				if (itemMemos.isEmpty())
 				{
-					if (item.name == it)
+					for (const QString& it : itemNames)
 					{
-						return true;
-					}
-					else if (it.startsWith(kFuzzyPrefix))
-					{
-						QString newName = it.mid(1);
-						if (item.name.contains(newName))
+
+						if (item.name == it)
 						{
 							return true;
 						}
+						else if (it.startsWith(kFuzzyPrefix))
+						{
+							QString newName = it.mid(1);
+							if (item.name.contains(newName))
+							{
+								return true;
+							}
+						}
 					}
 				}
+				else if (itemMemos.size() == itemNames.size())
+				{
+					for (int j = 0; j < itemNames.size(); ++j)
+					{
+						if (item.name == itemNames[j] && item.memo.contains(itemMemos[j]))
+						{
+							return true;
+						}
+						else if (itemNames[j].startsWith(kFuzzyPrefix))
+						{
+							QString newName = itemNames[j].mid(1);
+							if (item.name.contains(newName) && item.memo.contains(itemMemos[j]))
+							{
+								return true;
+							}
+						}
+					}
+				}
+
 			}
 
 			return false;

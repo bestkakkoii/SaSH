@@ -45,6 +45,7 @@ static const QHash<QString, RESERVE> keywords = {
 
 	//check info
 	{ u8"戰鬥中", TK_CMD },
+	{ u8"在線中", TK_CMD },
 	{ u8"查坐標", TK_CMD },
 	{ u8"查座標", TK_CMD },
 	{ u8"地圖", TK_CMD },
@@ -164,6 +165,7 @@ static const QHash<QString, RESERVE> keywords = {
 
 	//check info
 	{ u8"战斗中", TK_CMD },
+	{ u8"在线中", TK_CMD },
 	{ u8"查坐标", TK_CMD },
 	{ u8"查座标", TK_CMD },
 	{ u8"地图", TK_CMD },
@@ -277,10 +279,12 @@ static const QHash<QString, RESERVE> keywords = {
 	{ u8"if", TK_CMD },
 	{ u8"saveset", TK_CMD },
 	{ u8"loadset", TK_CMD },
+	{ u8"reg", TK_CMD },
 
 
 	//check info
 	{ u8"ifbattle", TK_CMD },
+	{ u8"ifonline", TK_CMD },
 	{ u8"ifpos", TK_CMD },
 	{ u8"ifmap", TK_CMD },
 	{ u8"ifitem", TK_CMD },
@@ -352,7 +356,30 @@ static const QHash<QString, RESERVE> keywords = {
 
 	//hide
 	{ u8"ocr", TK_CMD },
+	{ u8"dlg", TK_CMD },
+	{ u8"regex", TK_CMD },
+	{ u8"find", TK_CMD },
+	{ u8"half", TK_CMD },
+	{ u8"full", TK_CMD },
+	{ u8"upper", TK_CMD },
+	{ u8"lower", TK_CMD },
+	{ u8"replace", TK_CMD },
+	{ u8"toint", TK_CMD },
+	{ u8"tostr", TK_CMD },
+	{ u8"todb", TK_CMD },
 
+	//battle
+	{ u8"bh", TK_CMD },//atk
+	{ u8"bj", TK_CMD },//magic
+	{ u8"bp", TK_CMD },//skill
+	{ u8"bs", TK_CMD },//switch
+	{ u8"be", TK_CMD },//escape
+	{ u8"bd", TK_CMD },//defense
+	{ u8"bi", TK_CMD },//item
+	{ u8"bt", TK_CMD },//catch
+	{ u8"bn", TK_CMD },//nothing
+	{ u8"bw", TK_CMD },//petskill
+	{ u8"bwf", TK_CMD },//pet nothing
 	#pragma endregion
 
 	//... 其他後續增加的關鍵字
@@ -380,7 +407,7 @@ void Lexer::createEmptyToken(int index, TokenMap* ptoken)
 }
 
 //解析單行內容至多個TOKEN
-void Lexer::tokenized(int currentLine, const QString& line, TokenMap* ptoken, QHash<QString, int>* plabel)
+void Lexer::tokenized(int currentLine, const QString& line, TokenMap* ptoken, util::SafeHash<QString, int>* plabel)
 {
 	if (ptoken == nullptr || plabel == nullptr)
 		return;
@@ -542,7 +569,7 @@ void Lexer::tokenized(int currentLine, const QString& line, TokenMap* ptoken, QH
 }
 
 //解析整個腳本至多個TOKEN
-bool Lexer::tokenized(const QString& script, QHash<int, TokenMap>* ptokens, QHash<QString, int>* plabel)
+bool Lexer::tokenized(const QString& script, util::SafeHash<int, TokenMap>* ptokens, util::SafeHash<QString, int>* plabel)
 {
 
 	Injector& injector = Injector::getInstance();
@@ -550,8 +577,8 @@ bool Lexer::tokenized(const QString& script, QHash<int, TokenMap>* ptokens, QHas
 		injector.scriptLogModel->clear();
 
 	Lexer lexer;
-	QHash<int, TokenMap> tokens;
-	QHash<QString, int> labels;
+	util::SafeHash<int, TokenMap> tokens;
+	util::SafeHash<QString, int> labels;
 	QStringList lines = script.split("\n");
 	int size = lines.size();
 	for (int i = 0; i < size; ++i)
@@ -562,6 +589,7 @@ bool Lexer::tokenized(const QString& script, QHash<int, TokenMap>* ptokens, QHas
 	}
 
 	lexer.checkInvalidReadVariable(tokens);
+	lexer.checkFunctionPairs(tokens);
 
 	if (ptokens != nullptr && plabel != nullptr)
 	{
@@ -925,10 +953,14 @@ void Lexer::checkNonQuotedParameterForErrors(int currentline, const QString& par
 }
 
 //檢查引用變量前面是否缺少&符號
-void Lexer::checkInvalidReadVariable(const QHash<int, TokenMap>& tokenmaps)
+void Lexer::checkInvalidReadVariable(const util::SafeHash<int, TokenMap>& stokenmaps)
 {
 	QMap<int, QString> invalidReadVariables;
 	QStringList varNameList;
+
+	QMap <int, TokenMap> tokenmaps;//轉成有序容器方便按順序遍歷
+	for (auto it = stokenmaps.cbegin(); it != stokenmaps.cend(); ++it)
+		tokenmaps.insert(it.key(), it.value());
 
 	//首次先把所有變量聲明找出來紀錄變量名稱
 	for (auto it = tokenmaps.cbegin(); it != tokenmaps.cend(); ++it)
@@ -967,62 +999,235 @@ void Lexer::checkInvalidReadVariable(const QHash<int, TokenMap>& tokenmaps)
 		}
 	}
 
+	static const QStringList systemVarList = {
+		//utf8
+		"tick", "stick", "chname", "chfname", "chlv", "chhp", "chmp", "chdp", "stone", "px", "py",
+			"floor", "frname", "date", "time", "earnstone", "expbuff", "dlgid"
+	};
+
+	static const QStringList gb2312List = {
+		//gb2312
+		"毫秒时间戳", "秒时间戳",
+
+		"人物主名","人物副名","人物等级","人物耐久力","人物气力","人物DP",
+		"石币",
+
+		"东坐标","南坐标","地图编号","地图",
+		"日期","时间",
+		"对话框ID",
+	};
+
+	static const QStringList big5List = {
+		"毫秒時間戳", "秒時間戳",
+
+		"人物主名","人物副名","人物等級","人物耐久力","人物氣力","人物DP",
+		"石幣",
+
+		"東坐標","南坐標","地圖編號","地圖",
+		"日期","時間",
+		"對話框ID",
+	};
+
+	varNameList.append(systemVarList);
+	varNameList.append(gb2312List);
+	varNameList.append(big5List);
+
 	//第二次開始搜索所有字符串 如果名稱包含於列表中則檢查是否缺少&符號
 	for (auto it = tokenmaps.cbegin(); it != tokenmaps.cend(); ++it)
 	{
 		const int row = it.key();
 		const TokenMap tokenmap = it.value();
+		QString cmd = tokenmap.value(0).data.toString().simplified();
 		RESERVE cmdtype = tokenmap.value(0).type;
-		for (auto subit = std::next(tokenmap.cbegin()); subit != tokenmap.cend(); ++subit)
+
+
+		if (cmdtype == TK_MULTIVAR)
 		{
-			RESERVE type = subit.value().type;
-			if (type != TK_STRING)
+			//多變量賦值檢查等號左側
+			QStringList varNames = tokenmap.value(0).data.toString().simplified().split(util::rexComma, Qt::SkipEmptyParts);
+			if (varNames.isEmpty())
 				continue;
 
-			QString varName = subit.value().data.toString().simplified();
-			if (cmdtype == TK_VARDECL || cmdtype == TK_FORMAT || cmdtype == TK_RND || cmdtype == TK_MULTIVAR)
+			for (const QString& varName : varNames)
 			{
-				if (cmdtype == TK_MULTIVAR)
+				if (!varName.startsWith("&"))
+					continue;
+				QString errorMessage = QObject::tr("<Syntax Error>Unexpected '&' before declared variable name '%1' at line: %2").arg(varName.mid(0)).arg(row + 1);
+				showError(errorMessage);
+				continue;
+			}
+
+			//多變量賦值檢查等號右側
+			for (auto subit = std::next(tokenmap.cbegin()); subit != tokenmap.cend(); ++subit)
+			{
+				//依次取每一個token 假設為變量名稱
+				QString varName = subit.value().data.toString().simplified();
+				RESERVE curtype = subit.value().type;
+
+				if (curtype == TK_REF)
 				{
-					QStringList varNames = tokenmap.value(1).data.toString().simplified().split(util::rexComma, Qt::SkipEmptyParts);
-					if (varNames.isEmpty())
+					QString newVarName = varName.mid(1);
+					if (varNameList.contains(newVarName))
 						continue;
 
-					for (const QString& varName : varNames)
-					{
-						if (varName.startsWith("&"))
-						{
-							QString errorMessage = QObject::tr("<Syntax Error>Unexpected '&' before declared variable name '%1' at line: %2").arg(varName).arg(row + 1);
-							showError(errorMessage);
-						}
-					}
+					QString errorMessage = QObject::tr("<Syntax Error>Unexpected '&' before undeclared variable name '%1' at line: %2").arg(newVarName).arg(row + 1);
+					showError(errorMessage);
+					continue;
 				}
-				else if (varName.startsWith("&"))
+
+				if (!varNameList.contains(varName))
+					continue;
+
+				invalidReadVariables.insert(row, varName);
+			}
+			continue;
+		}
+
+		bool skipFirstToken = false;
+		//變量聲明檢查 只檢查第一個TOKEN是否添加多餘的&
+		if (cmdtype == TK_VARDECL || cmdtype == TK_FORMAT || cmdtype == TK_RND)
+		{
+			QString varName = tokenmap.value(1).data.toString().simplified();
+			if (varName.startsWith("&"))
+			{
+				//聲明變量時不應該出現&符號
+				QString errorMessage = QObject::tr("<Syntax Error>Unexpected '&' before declared variable name '%1' at line: %2").arg(varName.mid(0)).arg(row + 1);
+				showError(errorMessage);
+			}
+			skipFirstToken = true;
+		}
+
+		//從第一個開始往後遍歷
+		for (auto subit = std::next(tokenmap.cbegin()); subit != tokenmap.cend(); ++subit)
+		{
+			//聲明變量忽略第一個TOKEN檢查，因為上面檢查過了
+			if (skipFirstToken)
+			{
+				skipFirstToken = false;
+				continue;
+			}
+
+			//依次取每一個token 假設為變量名稱
+			QString varName = subit.value().data.toString().simplified();
+			RESERVE curtype = subit.value().type;
+
+			//區域變量聲明不應包含&符號
+			if ((cmd == "function" || cmd == "label"))
+			{
+				if (curtype == TK_REF)
 				{
-					//聲明變量時不應該出現&符號
-					QString errorMessage = QObject::tr("<Syntax Error>Unexpected '&' before declared variable name '%1' at line: %2").arg(varName).arg(row + 1);
+					QString errorMessage = QObject::tr("<Syntax Error>Unexpected '&' before declared local variable name '%1' at line: %2").arg(varName.mid(0)).arg(row + 1);
 					showError(errorMessage);
 				}
 				continue;
 			}
 
+			if (curtype != TK_STRING && curtype != TK_LABELVAR && curtype != TK_NAME)
+				continue;
 
 			if (!varNameList.contains(varName))
 				continue;
+
+			//使用變量名稱時應該包含&符號
 			invalidReadVariables.insert(row, varName);
 		}
 	}
 
-	if (!invalidReadVariables.isEmpty())
+	//這裡先全文搜索所有refer變量但從未聲明的變量名稱
+	for (auto it = tokenmaps.cbegin(); it != tokenmaps.cend(); ++it)
 	{
-		for (auto it = invalidReadVariables.cbegin(); it != invalidReadVariables.cend(); ++it)
+		const int row = it.key();
+		const TokenMap tokenmap = it.value();
+		for (auto subit = tokenmap.cbegin(); subit != tokenmap.cend(); ++subit)
 		{
+			RESERVE curtype = subit.value().type;
+			if (curtype != TK_REF)
+				continue;
+			QString varName = subit.value().data.toString().simplified().mid(1);
+			if (varNameList.contains(varName))
+				continue;
 
-			int row = it.key();
-			QString varName = it.value();
-			//refer 變量時變量名稱前方缺少 '&' 符號
-			QString errorMessage = QObject::tr("<Syntax Error>Missing '&' before referenced variable name '%1' at line: %2").arg(varName).arg(row + 1);
+			QString errorMessage = QObject::tr("<Syntax Error>Unexpected '&' before undeclared variable name '%1' at line: %2").arg(varName.mid(0)).arg(row + 1);
 			showError(errorMessage);
 		}
 	}
+
+	if (invalidReadVariables.isEmpty())
+	{
+		return;
+	}
+
+	for (auto it = invalidReadVariables.cbegin(); it != invalidReadVariables.cend(); ++it)
+	{
+
+		int row = it.key();
+		QString varName = it.value();
+		//refer 變量時變量名稱前方缺少 '&' 符號
+		QString errorMessage = QObject::tr("<Syntax Error>Missing '&' before referenced variable name '%1' at line: %2").arg(varName).arg(row + 1);
+		showError(errorMessage);
+	}
 }
+
+void Lexer::checkFunctionPairs(const util::SafeHash<int, TokenMap>& stokenmaps)
+{
+	QMap<int, QString> unpairedFunctions;
+	QMap<int, QString> unpairedEnds;
+	QStack<int> functionStack;
+
+	QMap <int, TokenMap> tokenmaps;//轉成有序容器方便按順序遍歷
+	for (auto it = stokenmaps.cbegin(); it != stokenmaps.cend(); ++it)
+		tokenmaps.insert(it.key(), it.value());
+
+	for (auto it = tokenmaps.cbegin(); it != tokenmaps.cend(); ++it)
+	{
+		int row = it.key();
+		RESERVE type = it.value().value(0).type;
+		QString statement = it.value().value(0).data.toString().simplified();
+
+		if (statement != "function" && statement != "end")
+			continue;
+
+		if (statement == "function") // "function" statement
+		{
+			functionStack.push(row);
+		}
+		else if (statement == "end") // "end" statement
+		{
+			if (functionStack.isEmpty()) // "end" without preceding "function"
+			{
+				unpairedEnds.insert(row, statement);
+			}
+			else // "end" with matching "function"
+			{
+				functionStack.pop();
+			}
+		}
+	}
+
+	// Any remaining functions on the stack are missing an "end"
+	while (!functionStack.isEmpty())
+	{
+		int row = functionStack.pop();
+		QString statement = tokenmaps.value(row).cbegin().value().data.toString().simplified();
+		unpairedFunctions.insert(row, statement);
+	}
+
+	// 打印所有不成对的 "function" 语句
+	for (auto it = unpairedFunctions.cbegin(); it != unpairedFunctions.cend(); ++it)
+	{
+		int row = it.key();
+		QString statement = it.value();
+		QString errorMessage = QObject::tr("<Syntax Error>Missing 'end' for statement '%1' at line: %2").arg(statement).arg(row + 1);
+		showError(errorMessage);
+	}
+
+	// 打印所有不成对的 "end" 语句
+	for (auto it = unpairedEnds.cbegin(); it != unpairedEnds.cend(); ++it)
+	{
+		int row = it.key();
+		QString statement = it.value();
+		QString errorMessage = QObject::tr("<Syntax Error>Extra 'end' for statement '%1' at line: %2").arg(statement).arg(row + 1);
+		showError(errorMessage);
+	}
+}
+

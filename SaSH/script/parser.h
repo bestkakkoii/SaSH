@@ -61,8 +61,8 @@ public:
 		kHasJump = 0,
 		kNoChange,
 		kError,
-		kArgError,
 		kLabelError,
+		kArgError = 10,
 	};
 
 	enum Mode
@@ -75,20 +75,70 @@ public:
 	inline ParserError lastError() const { return lastError_; }
 
 	//設置所有標籤所在行號數據
-	inline void setLabels(const QHash<QString, int>& labels) { labels_ = labels; }
+	inline void setLabels(const util::SafeHash<QString, int>& labels) { labels_ = labels; }
 
 	//設置腳本所有Token數據
-	inline void setTokens(const QHash<int, TokenMap>& tokens) { tokens_ = tokens; }
+	inline void setTokens(const util::SafeHash<int, TokenMap>& tokens) { tokens_ = tokens; }
 
 	Q_REQUIRED_RESULT inline bool hasToken() const { return !tokens_.isEmpty(); }
 
-	Q_REQUIRED_RESULT inline const QHash<int, TokenMap> getToken() const { return tokens_; }
+	Q_REQUIRED_RESULT inline const util::SafeHash<int, TokenMap> getToken() const { return tokens_; }
 
 	inline void setCallBack(const ParserCallBack& callBack) { callBack_ = callBack; }
 
 	inline void setCurrentLine(int line) { lineNumber_ = line; }
 
 	inline void setMode(Mode mode) { mode_ = mode; }
+
+	inline void insertUserCallBack(const QString& name, const QString& type)
+	{
+		//確保一種類型只能被註冊一次
+		for (auto it = userRegCallBack_.begin(); it != userRegCallBack_.end(); ++it)
+		{
+			if (it.value() == type)
+				return;
+			if (it.key() == name)
+				return;
+		}
+
+		userRegCallBack_.insert(name, type);
+	}
+
+	inline bool getErrorCallBackLabelName(QString* pname) const
+	{
+		if (pname == nullptr)
+			return false;
+
+		for (auto it = userRegCallBack_.begin(); it != userRegCallBack_.end(); ++it)
+		{
+			if (it.value() == "err")
+			{
+				*pname = it.key();
+				return true;
+			}
+		}
+		return false;
+	}
+
+	inline bool getDtorCallBackLabelName(QString* pname)
+	{
+		if (pname == nullptr)
+			return false;
+
+		if (dtorCallBackFlag_)
+			return false;
+
+		util::SafeHash<QString, int>& hash = getLabels();
+		constexpr const char* DTOR = "dtor";
+		if (hash.contains(DTOR))
+		{
+			dtorCallBackFlag_ = true;
+			*pname = DTOR;
+			return true;
+		}
+
+		return false;
+	}
 
 	inline void registerFunction(const QString& commandName, const CommandRegistry& function)
 	{
@@ -120,12 +170,12 @@ public:
 public:
 	//解析腳本
 	void parse(int line = 0);
-
+	util::SafeHash<QString, int>& getLabels() { return labels_; }
 	QSharedPointer<VariantSafeHash> getPVariables() const { return variables_; }
 	void setPVariables(const QSharedPointer<VariantSafeHash>& variables) { variables_ = variables; }
 	Q_REQUIRED_RESULT inline QVariant& getVarRef(const QString& name) { return (*variables_)[name]; }
 	Q_REQUIRED_RESULT inline VariantSafeHash& getVarsRef() { return *variables_; }
-	Q_REQUIRED_RESULT inline QHash<QString, QVariant>& getLabelVars()
+	Q_REQUIRED_RESULT inline util::SafeHash <QString, QVariant>& getLabelVars()
 	{
 		if (!labalVarStack_.isEmpty())
 			return labalVarStack_.top();
@@ -145,7 +195,7 @@ private:
 	void processReturn();
 	void processBack();
 	void processLabel();
-	void processEnd();
+	void processClean();
 	bool processGetSystemVarValue(const QString& varName, QString& valueStr, QVariant& varValue);
 
 	void handleError(int err);
@@ -190,16 +240,17 @@ private:
 private:
 	bool usestate = false;
 	std::atomic_bool isStop_ = false;                   //是否停止
-	QHash<int, TokenMap> tokens_;                       //當前運行腳本的每一行token
+	util::SafeHash<int, TokenMap> tokens_;                       //當前運行腳本的每一行token
 	QSharedPointer<VariantSafeHash> variables_;         //所有用腳本變量
-	QHash<QString, int> labels_;						//所有標記所在行記錄
-	QHash<QString, CommandRegistry> commandRegistry_;   //所有命令的函數指針
+	util::SafeHash<QString, int> labels_;						//所有標記所在行記錄
+	util::SafeHash<QString, QString> userRegCallBack_;			//用戶註冊的回調函數
+	util::SafeHash<QString, CommandRegistry> commandRegistry_;   //所有命令的函數指針
 	QStack<int> callStack_;								//"調用"命令所在行棧
 	QStack<int> jmpStack_;								//"跳轉"命令所在行棧
 	QStack<QVariantList> callArgsStack_;				//"調用"命令參數棧
 	QVariantList emptyArgs_;							//空參數
-	QStack<QHash<QString, QVariant>> labalVarStack_;	//標籤變量名
-	QHash<QString, QVariant> emptyLabelVars_;			//空標籤變量名
+	QStack<util::SafeHash<QString, QVariant>> labalVarStack_;	//標籤變量名
+	util::SafeHash<QString, QVariant> emptyLabelVars_;			//空標籤變量名
 
 	TokenMap currentLineTokens_;						//當前行token
 	RESERVE currentType_ = TK_UNK;						//當前行第一個token類型
@@ -211,4 +262,6 @@ private:
 
 	Mode mode_ = kSync;									//解析模式
 
+	bool dtorCallBackFlag_ = false;						//析構回調函數標記
+	bool ctorCallBackFlag_ = false;						//建構回調函數標記
 };

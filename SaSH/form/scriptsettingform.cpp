@@ -139,10 +139,11 @@ ScriptSettingForm::ScriptSettingForm(QWidget* parent)
 		return;
 	util::Config config(fileName);
 
-	currentFileName_ = config.readString(objectName(), "LastModifyFile");
-	if (!currentFileName_.isEmpty() && QFile::exists(currentFileName_))
+
+	injector.currentScriptFileName = config.readString(objectName(), "LastModifyFile");
+	if (!injector.currentScriptFileName.isEmpty() && QFile::exists(injector.currentScriptFileName))
 	{
-		emit signalDispatcher.loadFileToTable(currentFileName_);
+		emit signalDispatcher.loadFileToTable(injector.currentScriptFileName);
 	}
 
 	QString ObjectName = ui.widget->objectName();
@@ -235,8 +236,8 @@ void ScriptSettingForm::closeEvent(QCloseEvent* e)
 	if (!QFile::exists(fileName))
 		return;
 	util::Config config(fileName);
-
-	config.write(objectName(), "LastModifyFile", currentFileName_);
+	Injector& injector = Injector::getInstance();
+	config.write(objectName(), "LastModifyFile", injector.currentScriptFileName);
 
 
 	QString ObjectName = ui.widget->objectName();
@@ -292,7 +293,7 @@ void ScriptSettingForm::onApplyHashSettingsToUI()
 	Injector& injector = Injector::getInstance();
 	if (!injector.server.isNull() && injector.server->IS_ONLINE_FLAG)
 	{
-		QString title = currentFileName_;
+		QString title = injector.currentScriptFileName;
 		QString newTitle = QString("[%1] %2").arg(injector.server->pc.name).arg(title);
 		setWindowTitle(newTitle);
 	}
@@ -509,21 +510,23 @@ void ScriptSettingForm::setMark(CodeEditor::SymbolHandler element, util::SafeHas
 
 		if (b)
 		{
+			Injector& injector = Injector::getInstance();
 			break_marker_t bk = {};
 			bk.line = liner;
 			bk.content = ui.widget->text(liner);
 			bk.count = NULL;
 			bk.maker = static_cast<int>(element);
-			hash[currentFileName_].insert(liner, bk);
+			hash[injector.currentScriptFileName].insert(liner, bk);
 
 			ui.widget->markerAdd(liner, element); // 添加标签
 			onEditorCursorPositionChanged(liner, 0);
 		}
 		else if (!b)
 		{
-			util::SafeHash<int, break_marker_t> markers = hash.value(currentFileName_);
+			Injector& injector = Injector::getInstance();
+			util::SafeHash<int, break_marker_t> markers = hash.value(injector.currentScriptFileName);
 			if (markers.contains(liner))
-				hash[currentFileName_].remove(liner);
+				hash[injector.currentScriptFileName].remove(liner);
 			ui.widget->markerDelete(liner, element);
 		}
 	} while (false);
@@ -558,11 +561,12 @@ void ScriptSettingForm::onAddStepMarker(int liner, bool b)
 
 void ScriptSettingForm::reshowBreakMarker()
 {
+	Injector& injector = Injector::getInstance();
 	const util::SafeHash<QString, util::SafeHash<int, break_marker_t>> mks = break_markers;
 	for (auto it = mks.begin(); it != mks.end(); ++it)
 	{
 		QString fileName = it.key();
-		if (fileName != currentFileName_)
+		if (fileName != injector.currentScriptFileName)
 			continue;
 
 		const util::SafeHash<int, break_marker_t> mk = mks.value(fileName);
@@ -576,6 +580,7 @@ void ScriptSettingForm::reshowBreakMarker()
 
 void ScriptSettingForm::onAddBreakMarker(int liner, bool b)
 {
+	Injector& injector = Injector::getInstance();
 	do
 	{
 		if (liner == -1)
@@ -593,14 +598,14 @@ void ScriptSettingForm::onAddBreakMarker(int liner, bool b)
 				return;
 			bk.count = NULL;
 			bk.maker = static_cast<int>(CodeEditor::SymbolHandler::SYM_POINT);
-			break_markers[currentFileName_].insert(liner, bk);
+			break_markers[injector.currentScriptFileName].insert(liner, bk);
 			ui.widget->markerAdd(liner, CodeEditor::SymbolHandler::SYM_POINT);
 		}
 		else if (!b)
 		{
-			util::SafeHash<int, break_marker_t> markers = break_markers.value(currentFileName_);
+			util::SafeHash<int, break_marker_t> markers = break_markers.value(injector.currentScriptFileName);
 			if (markers.contains(liner))
-				break_markers[currentFileName_].remove(liner);
+				break_markers[injector.currentScriptFileName].remove(liner);
 
 			ui.widget->markerDelete(liner, CodeEditor::SymbolHandler::SYM_POINT);
 		}
@@ -667,7 +672,7 @@ void ScriptSettingForm::fileSave(const QString& d, DWORD flag)
 	if (!dir.exists())
 		dir.mkdir(directoryName);
 
-	const QString fileName(currentFileName_);//當前路徑
+	const QString fileName(injector.currentScriptFileName);//當前路徑
 
 	if (fileName.isEmpty())
 		return;
@@ -777,6 +782,7 @@ void ScriptSettingForm::fileSave(const QString& d, DWORD flag)
 	error_markers.clear();
 	step_markers.clear();
 	reshowBreakMarker();
+	on_comboBox_labels_clicked();
 }
 
 void ScriptSettingForm::onScriptTreeWidgetHeaderClicked(int logicalIndex)
@@ -836,13 +842,15 @@ void ScriptSettingForm::loadFile(const QString& fileName)
 	QString c = in.readAll();
 	c.replace("\r\n", "\n");
 
-
-	currentFileName_ = fileName;
+	Injector& injector = Injector::getInstance();
+	injector.currentScriptFileName = fileName;
 	ui.widget->setUpdatesEnabled(false);
 
-	Injector& injector = Injector::getInstance();
 	if (!injector.server.isNull() && injector.server->IS_ONLINE_FLAG)
-		setWindowTitle(QString("[%1] %2").arg(injector.server->pc.name).arg(currentFileName_));
+		setWindowTitle(QString("[%1] %2").arg(injector.server->pc.name).arg(injector.currentScriptFileName));
+	else
+		setWindowTitle(injector.currentScriptFileName);
+
 	ui.widget->convertEols(QsciScintilla::EolWindows);
 	ui.widget->setUtf8(true);
 	ui.widget->setModified(false);
@@ -858,6 +866,7 @@ void ScriptSettingForm::loadFile(const QString& fileName)
 	step_markers.clear();
 
 	reshowBreakMarker();
+	on_comboBox_labels_clicked();
 }
 
 void ScriptSettingForm::onContinue()
@@ -938,16 +947,19 @@ void ScriptSettingForm::onActionTriggered()
 	QString name = pAction->objectName();
 	if (name.isEmpty())
 		return;
+
+	Injector& injector = Injector::getInstance();
+
 	if (name == "actionSave")
 	{
 		fileSave(ui.widget->text(), QIODevice::WriteOnly | QIODevice::Truncate | QIODevice::Text);
-		emit signalDispatcher.loadFileToTable(currentFileName_);
+		emit signalDispatcher.loadFileToTable(injector.currentScriptFileName);
 		emit signalDispatcher.reloadScriptList();
 	}
 	else if (name == "actionStart")
 	{
 		Injector& injector = Injector::getInstance();
-		if (step_markers.size() == 0 && !injector.IS_SCRIPT_FLAG && QFile::exists(currentFileName_))
+		if (step_markers.size() == 0 && !injector.IS_SCRIPT_FLAG && QFile::exists(injector.currentScriptFileName))
 		{
 			emit signalDispatcher.scriptStarted();
 		}
@@ -1072,7 +1084,7 @@ void ScriptSettingForm::onActionTriggered()
 				ui.widget->selectAll();
 				ui.widget->replaceSelectedText("");
 				setWindowTitle(QString("[%1] %2").arg(0).arg(strpath));
-				currentFileName_ = strpath;
+				injector.currentScriptFileName = strpath;
 				m_scripts.insert(strpath, ui.widget->text());
 
 				ui.treeWidget_scriptList->setCurrentItem(item);
@@ -1102,13 +1114,13 @@ void ScriptSettingForm::onActionTriggered()
 void ScriptSettingForm::onWidgetModificationChanged(bool changed)
 {
 	if (!changed) return;
-
-	m_scripts.insert(currentFileName_, ui.widget->text());
+	Injector& injector = Injector::getInstance();
+	m_scripts.insert(injector.currentScriptFileName, ui.widget->text());
 }
 
 void ScriptSettingForm::on_comboBox_labels_clicked()
 {
-	static const QRegularExpression rex_divLabel(u8R"(([標|標][記|記]|function|label)\s+\p{Han}+)");
+	static const QRegularExpression rex_divLabel(u8R"(([標|標][記|記]|function|label)\s+[\p{Han}|\w]+)");
 	ui.comboBox_labels->blockSignals(true);
 	//將所有lua function 和 label加入 combobox並使其能定位行號
 	int line = -1, index = -1;
@@ -1151,10 +1163,11 @@ void ScriptSettingForm::on_widget_cursorPositionChanged(int line, int index)
 
 void ScriptSettingForm::on_widget_textChanged()
 {
+	Injector& injector = Injector::getInstance();
 	const QString text(ui.widget->text());
-	if (m_scripts.value(currentFileName_, "") != text)
+	if (m_scripts.value(injector.currentScriptFileName, "") != text)
 	{
-		m_scripts.insert(currentFileName_, text);
+		m_scripts.insert(injector.currentScriptFileName, text);
 		m_isModified = true;
 		ui.widget->setModified(true);
 		emit ui.widget->modificationChanged(true);
@@ -1591,7 +1604,7 @@ QString ScriptSettingForm::getFullPath(QTreeWidgetItem* item)
 	QString suffix = "." + info.suffix();
 	if (suffix.isEmpty())
 		strpath += util::SCRIPT_SUFFIX_DEFAULT;
-	if (suffix != util::SCRIPT_PRIVATE_SUFFIX_DEFAULT || suffix != util::SCRIPT_SUFFIX_DEFAULT)
+	if (suffix != util::SCRIPT_PRIVATE_SUFFIX_DEFAULT && suffix != util::SCRIPT_SUFFIX_DEFAULT)
 		strpath.replace(suffix, util::SCRIPT_SUFFIX_DEFAULT);
 
 	return strpath;
@@ -1712,6 +1725,7 @@ void ScriptSettingForm::createScriptListContextMenu()
 			{
 				file.remove();
 			}
+			onReloadScriptList();
 		});
 
 	connect(renameAction, &QAction::triggered, this, [this]()
@@ -1768,6 +1782,7 @@ void ScriptSettingForm::createScriptListContextMenu()
 						newtext += util::SCRIPT_SUFFIX_DEFAULT;
 						newitem->setText(0, newtext);
 					}
+					onReloadScriptList();
 				});
 		});
 
@@ -1792,19 +1807,60 @@ void ScriptSettingForm::on_treeWidget_breakList_itemDoubleClicked(QTreeWidgetIte
 	Q_UNUSED(column);
 	if (item == nullptr)
 		return;
-
+	Injector& injector = Injector::getInstance();
 	if (item->text(2).isEmpty()) return;
 
-	if (!item->text(3).isEmpty() && item->text(3) == currentFileName_)
+	if (!item->text(3).isEmpty() && item->text(3) == injector.currentScriptFileName)
 	{
 		int line = item->text(2).toInt();
 		ui.widget->setCursorPosition(line, 0);
-		QString text = ui.widget->text(line);
-		ui.widget->setSelection(line, 0, line, text.length());
+		QString text = ui.widget->text(line - 1);
+		ui.widget->setSelection(line - 1, 0, line - 1, text.length());
 		ui.widget->ensureLineVisible(line);
 	}
 }
 
+void ScriptSettingForm::on_listView_log_doubleClicked(const QModelIndex& index)
+{
+	QString text = index.data().toString();
+	if (text.isEmpty())
+		return;
+
+	// "於行號: 1" | "于行号: 1"  取最後 : 後面的數字
+	static const QRegularExpression re(u8"於行號: (\\d+)|于行号: (\\d+)");
+	QRegularExpressionMatch match = re.match(text);
+	if (match.hasMatch())
+	{
+		QString line = match.captured(1);
+		if (line.isEmpty())
+			line = match.captured(2);
+
+		if (!line.isEmpty())
+		{
+			ui.widget->setCursorPosition(line.toInt(), 0);
+			text = ui.widget->text(line.toInt() - 1);
+			ui.widget->setSelection(line.toInt() - 1, 0, line.toInt() - 1, text.length());
+			ui.widget->ensureLineVisible(line.toInt());
+			return;
+		}
+	}
+
+	//[%1 | @%2]: %3 取@後面的數字
+	static const QRegularExpression re2(u8"\\[@\\s*(\\d+)\\]");
+	match = re2.match(text);
+	if (match.hasMatch())
+	{
+		QString line = match.captured(1);
+		if (!line.isEmpty())
+		{
+			ui.widget->setCursorPosition(line.toInt(), 0);
+			text = ui.widget->text(line.toInt() - 1);
+			ui.widget->setSelection(line.toInt() - 1, 0, line.toInt() - 1, text.length());
+			ui.widget->ensureLineVisible(line.toInt());
+			return;
+		}
+	}
+}
 
 void ScriptSettingForm::onEncryptSave()
 {
@@ -1832,12 +1888,12 @@ void ScriptSettingForm::onEncryptSave()
 	}
 
 	Crypto crypto;
-
-	if (crypto.encodeScript(currentFileName_, password))
+	Injector& injector = Injector::getInstance();
+	if (crypto.encodeScript(injector.currentScriptFileName, password))
 	{
-		QString newFileName = currentFileName_;
+		QString newFileName = injector.currentScriptFileName;
 		newFileName.replace(util::SCRIPT_SUFFIX_DEFAULT, util::SCRIPT_PRIVATE_SUFFIX_DEFAULT);
-		currentFileName_ = newFileName;
+		injector.currentScriptFileName = newFileName;
 		ui.statusBar->showMessage(QString(tr("Encrypt script %1 saved")).arg(newFileName), 3000);
 		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
 		emit signalDispatcher.loadFileToTable(newFileName);
@@ -1875,11 +1931,12 @@ void ScriptSettingForm::onDecryptSave()
 
 	Crypto crypto;
 	QString content;
-	if (crypto.decodeScript(currentFileName_, content))
+	Injector& injector = Injector::getInstance();
+	if (crypto.decodeScript(injector.currentScriptFileName, content))
 	{
-		QString newFileName = currentFileName_;
+		QString newFileName = injector.currentScriptFileName;
 		newFileName.replace(util::SCRIPT_PRIVATE_SUFFIX_DEFAULT, util::SCRIPT_SUFFIX_DEFAULT);
-		currentFileName_ = newFileName;
+		injector.currentScriptFileName = newFileName;
 		ui.statusBar->showMessage(QString(tr("Decrypt script %1 saved")).arg(newFileName), 3000);
 		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
 		emit signalDispatcher.loadFileToTable(newFileName);

@@ -81,14 +81,14 @@ private slots:
 	void on_treeWidget_scriptList_itemClicked(QTreeWidgetItem* item, int column);
 	void on_treeWidget_breakList_itemDoubleClicked(QTreeWidgetItem* item, int column);
 
-
+	void on_listView_log_doubleClicked(const QModelIndex& index);
 private:
 	Ui::ScriptSettingFormClass ui;
 	QLabel m_staticLabel;
 	bool IS_LOADING = false;
 	bool m_isModified = false;
 	QStringList m_scriptList;
-	QString currentFileName_;
+
 	QHash<QString, QString> m_scripts;
 	QHash<QString, QVariant> currentGlobalVarInfo_;
 	QHash<QString, QVariant> currentLocalVarInfo_;

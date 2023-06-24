@@ -151,7 +151,7 @@
     </message>
     <message>
         <source>battle</source>
-        <translation type="vanished">战斗设定</translation>
+        <translation>战斗设定</translation>
     </message>
     <message>
         <source>char action</source>
@@ -275,7 +275,7 @@
     </message>
     <message>
         <source>catch</source>
-        <translation type="vanished">捉宠设定</translation>
+        <translation>捉宠设定</translation>
     </message>
     <message>
         <source>catch pet</source>
@@ -408,6 +408,10 @@
     <message>
         <source>pet name</source>
         <translation>宠物名称</translation>
+    </message>
+    <message>
+        <source>walk</source>
+        <translation>走路设定</translation>
     </message>
 </context>
 <context>
@@ -576,63 +580,63 @@
     <name>GeneralForm</name>
     <message>
         <source>1st//Acticity</source>
-        <translation>1线//活动互动</translation>
+        <translation type="vanished">1线//活动互动</translation>
     </message>
     <message>
         <source>2nd///Market</source>
-        <translation>2线//摆摊交易</translation>
+        <translation type="vanished">2线//摆摊交易</translation>
     </message>
     <message>
         <source>3rd//Family</source>
-        <translation>3线//庄园族战</translation>
+        <translation type="vanished">3线//庄园族战</translation>
     </message>
     <message>
         <source>4th//Away</source>
-        <translation>4线//练级挂机</translation>
+        <translation type="vanished">4线//练级挂机</translation>
     </message>
     <message>
         <source>5th//Away</source>
-        <translation>5//练级挂机</translation>
+        <translation type="vanished">5//练级挂机</translation>
     </message>
     <message>
         <source>6th//Away</source>
-        <translation>6//练级挂机</translation>
+        <translation type="vanished">6//练级挂机</translation>
     </message>
     <message>
         <source>7th//Away</source>
-        <translation>7//练级挂机</translation>
+        <translation type="vanished">7//练级挂机</translation>
     </message>
     <message>
         <source>8th//Away</source>
-        <translation>8//练级挂机</translation>
+        <translation type="vanished">8//练级挂机</translation>
     </message>
     <message>
         <source>9th//Away</source>
-        <translation>9//练级挂机</translation>
+        <translation type="vanished">9//练级挂机</translation>
     </message>
     <message>
         <source>15th//Company</source>
-        <translation>15//公司专线</translation>
+        <translation type="vanished">15//公司专线</translation>
     </message>
     <message>
         <source>Telecom</source>
-        <translation>电信</translation>
+        <translation type="vanished">电信</translation>
     </message>
     <message>
         <source>UnitedNetwork</source>
-        <translation>联通</translation>
+        <translation type="vanished">联通</translation>
     </message>
     <message>
         <source>Easyown</source>
-        <translation>移动</translation>
+        <translation type="vanished">移动</translation>
     </message>
     <message>
         <source>Oversea</source>
-        <translation>海外</translation>
+        <translation type="vanished">海外</translation>
     </message>
     <message>
         <source>Backup</source>
-        <translation>备份</translation>
+        <translation type="vanished">备份</translation>
     </message>
     <message>
         <source>Left</source>
@@ -664,11 +668,11 @@
     </message>
     <message>
         <source>21th//Member</source>
-        <translation>21线//会员专线</translation>
+        <translation type="vanished">21线//会员专线</translation>
     </message>
     <message>
         <source>22th//Member</source>
-        <translation>22线//会员专线</translation>
+        <translation type="vanished">22线//会员专线</translation>
     </message>
     <message>
         <source>logout</source>
@@ -685,6 +689,10 @@
     <message>
         <source>Are you sure you want to logback now?</source>
         <translation>您确定要回点吗？</translation>
+    </message>
+    <message>
+        <source>ServerList%1</source>
+        <translation>伺服器列表%1</translation>
     </message>
 </context>
 <context>
@@ -735,7 +743,7 @@
     </message>
     <message>
         <source>support fun2</source>
-        <translation>辅助功能2</translation>
+        <translation type="vanished">辅助功能2</translation>
     </message>
     <message>
         <source>fast walk</source>
@@ -763,7 +771,7 @@
     </message>
     <message>
         <source>auto stack</source>
-        <translation>自动叠加</translation>
+        <translation>自动迭加</translation>
     </message>
     <message>
         <source>knpc</source>
@@ -779,7 +787,7 @@
     </message>
     <message>
         <source>support fun</source>
-        <translation type="vanished">辅助功能</translation>
+        <translation>辅助功能</translation>
     </message>
     <message>
         <source>hide char</source>
@@ -952,6 +960,14 @@
     <message>
         <source>clear</source>
         <translation>清屏</translation>
+    </message>
+    <message>
+        <source>show exp</source>
+        <translation>显示经验</translation>
+    </message>
+    <message>
+        <source>+</source>
+        <translation></translation>
     </message>
 </context>
 <context>
@@ -1655,6 +1671,18 @@ Update process will cause all the games to be closed, are you sure to continue?<
         <source>auto watch</source>
         <translation>自动跟随观战</translation>
     </message>
+    <message>
+        <source>unknown</source>
+        <translation>未知</translation>
+    </message>
+    <message>
+        <source>B</source>
+        <translation>战</translation>
+    </message>
+    <message>
+        <source>R</source>
+        <translation>骑</translation>
+    </message>
 </context>
 <context>
     <name>OtherFormClass</name>
@@ -1740,11 +1768,11 @@ Update process will cause all the games to be closed, are you sure to continue?<
     </message>
     <message>
         <source>pet</source>
-        <translation>战宠</translation>
+        <translation type="vanished">战宠</translation>
     </message>
     <message>
         <source>pet switch</source>
-        <translation>战宠转换</translation>
+        <translation type="vanished">战宠转换</translation>
     </message>
     <message>
         <source>↑</source>
@@ -1760,11 +1788,11 @@ Update process will cause all the games to be closed, are you sure to continue?<
     </message>
     <message>
         <source>ride</source>
-        <translation>骑宠</translation>
+        <translation type="vanished">骑宠</translation>
     </message>
     <message>
         <source>ride switch</source>
-        <translation>骑宠转换</translation>
+        <translation type="vanished">骑宠转换</translation>
     </message>
     <message>
         <source>exception</source>
@@ -1801,6 +1829,30 @@ Update process will cause all the games to be closed, are you sure to continue?<
     <message>
         <source>+</source>
         <translation></translation>
+    </message>
+    <message>
+        <source>all</source>
+        <translation>全</translation>
+    </message>
+    <message>
+        <source>pet switch(double click to remove)</source>
+        <translation>宠物转换(双击移除任务)</translation>
+    </message>
+    <message>
+        <source>ride switch(double click to remove)</source>
+        <translation type="vanished">骑宠转换(双击移除任务)</translation>
+    </message>
+    <message>
+        <source>petindex</source>
+        <translation>宠物索引</translation>
+    </message>
+    <message>
+        <source>level</source>
+        <translation>等级</translation>
+    </message>
+    <message>
+        <source>type</source>
+        <translation>类型</translation>
     </message>
 </context>
 <context>
@@ -2080,7 +2132,7 @@ MESSAGE：<byte value="xd"/>
     </message>
     <message>
         <source>do nothing</source>
-        <translation>什麽都不做</translation>
+        <translation>什么都不做</translation>
     </message>
     <message>
         <source>player exp:</source>
@@ -2473,6 +2525,22 @@ MESSAGE：<byte value="xd"/>
     <message>
         <source>&lt;Syntax Error&gt;Missing &apos;&amp;&apos; before referenced variable name &apos;%1&apos; at line: %2</source>
         <translation>&lt;语法错误&gt;在引用变量 &apos;%1&apos; 之前遗漏 &apos;&amp;&apos; 于行号: %2</translation>
+    </message>
+    <message>
+        <source>&lt;Syntax Error&gt;Missing &apos;end&apos; for statement &apos;%1&apos; at line: %2</source>
+        <translation>&lt;语法错误&gt; &apos;%1&apos; 缺少与之配对的 &apos;end&apos; 于行号: %2</translation>
+    </message>
+    <message>
+        <source>&lt;Syntax Error&gt;Extra &apos;end&apos; for statement &apos;%1&apos; at line: %2</source>
+        <translation>&lt;语法错误&gt; &apos;%1&apos; 缺少与之配对的  &apos;function&apos; 于行号: %2</translation>
+    </message>
+    <message>
+        <source>&lt;Syntax Error&gt;Unexpected &apos;&amp;&apos; before undeclared variable name &apos;%1&apos; at line: %2</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>&lt;Syntax Error&gt;Unexpected &apos;&amp;&apos; before declared local variable name &apos;%1&apos; at line: %2</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
@@ -3541,6 +3609,102 @@ MESSAGE：<byte value="xd"/>
     <message>
         <source>mail</source>
         <translation></translation>
+    </message>
+    <message>
+        <source>reg</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>ifonline</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>dlg</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>upper</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>tostr</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>toint</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>replace</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>regex</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>lower</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>half</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>full</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>find</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>battle</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>bwf</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>bw</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>bt</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>bs</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>bp</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>bn</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>bj</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>bi</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>bh</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>be</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>bd</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>

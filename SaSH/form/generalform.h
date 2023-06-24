@@ -30,7 +30,8 @@ private slots:
 protected:
 
 private:
-
+	void createServerList();
 private:
 	Ui::GeneralFormClass ui;
+	QHash<int, QHash<QString, QStringList>> serverList;
 };

@@ -239,13 +239,15 @@ void ScriptForm::loadFile(const QString& fileName)
 	{
 		interpreter_.reset(new Interpreter());
 	}
-	currentFileName_ = fileName;
+	Injector& injector = Injector::getInstance();
+	injector.currentScriptFileName = fileName;
 	interpreter_->preview(fileName);
 }
 
 void ScriptForm::onStartScript()
 {
-	if (currentFileName_.isEmpty())
+	Injector& injector = Injector::getInstance();
+	if (injector.currentScriptFileName.isEmpty())
 		return;
 
 	if (!interpreter_.isNull())
@@ -258,7 +260,7 @@ void ScriptForm::onStartScript()
 		return;
 	}
 
-	Injector& injector = Injector::getInstance();
+
 	if (!injector.scriptLogModel.isNull())
 		injector.scriptLogModel->clear();
 
@@ -266,7 +268,7 @@ void ScriptForm::onStartScript()
 
 	connect(interpreter_.data(), &Interpreter::finished, this, &ScriptForm::onScriptFinished);
 
-	interpreter_->doFileWithThread(selectedRow_, currentFileName_);
+	interpreter_->doFileWithThread(selectedRow_, injector.currentScriptFileName);
 
 	ui.pushButton_script_start->setEnabled(false);
 	ui.pushButton_script_pause->setEnabled(true);
@@ -379,7 +381,7 @@ void ScriptForm::onScriptTreeWidgetDoubleClicked(QTreeWidgetItem* item, int colu
 		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
 		emit signalDispatcher.loadFileToTable(strpath);
 		//ui.widget->clear();
-		//this->setWindowTitle(QString("[%1] %2").arg(index_).arg(currentFileName_));
+		//this->setWindowTitle(QString("[%1] %2").arg(index_).arg(injector.currentScriptFileName));
 		//ui.widget->convertEols(QsciScintilla::EolWindows);
 		//ui.widget->setUtf8(true);
 		//ui.widget->setModified(false);

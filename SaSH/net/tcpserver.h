@@ -1078,6 +1078,14 @@ enum TalkMode
 //#endif
 //}ACTION;
 
+typedef struct customdialog_s
+{
+	int x = 0;
+	int y = 0;
+	BUTTON_TYPE button = BUTTON_NOTUSED;
+	int row = 0;
+} customdialog_t;
+
 typedef struct tagLSTIME
 {
 	int year = 0;
@@ -1696,7 +1704,6 @@ static const QHash<QString, DirType> dirMap = {
 	{ u8"H", kDirNorthWest },
 };
 
-
 static const QHash<QString, CHAR_EquipPlace> equipMap = {
 	{ u8"頭", CHAR_HEAD },
 	{ u8"身體", CHAR_BODY },
@@ -1867,6 +1874,8 @@ public://actions
 
 	void craft(util::CraftType type, const QStringList& ingres);
 
+	void createRemoteDialog(int button, const QString& text);
+
 	void mail(int index, const QString& text);
 
 	void warp();
@@ -1936,6 +1945,20 @@ public://actions
 
 	void setPlayerFreeName(const QString& name);
 	void setPetFreeName(int petIndex, const QString& name);
+
+
+	//battle
+	void sendBattlePlayerAttackAct(int target);
+	void sendBattlePlayerMagicAct(int magicIndex, int target);
+	void sendBattlePlayerJobSkillAct(int skillIndex, int target);
+	void sendBattlePlayerItemAct(int itemIndex, int target);
+	void sendBattlePlayerDefenseAct();
+	void sendBattlePlayerEscapeAct();
+	void sendBattlePlayerCatchPetAct(int petIndex);
+	void sendBattlePlayerSwitchPetAct(int petIndex);
+	void sendBattlePlayerDoNothing();
+	void sendBattlePetSkillAct(int skillIndex, int target);
+	void sendBattlePetDoNothing();
 private:
 	void reloadHashVar();
 	void setWindowTitle();
@@ -1955,6 +1978,7 @@ private:
 	Q_REQUIRED_RESULT int findInjuriedAllie();
 
 	void checkAutoDropMeat(const QStringList& items);
+
 #pragma region BattleFunctions
 	int playerDoBattleWork();
 	void handlePlayerBattleLogics();
@@ -1984,17 +2008,7 @@ private:
 	bool fixPlayerTargetByItemIndex(int itemIndex, int oldtarget, int* target) const;
 	bool fixPetTargetBySkillIndex(int skillIndex, int oldtarget, int* target) const;
 
-	void sendBattlePlayerAttackAct(int target);
-	void sendBattlePlayerMagicAct(int magicIndex, int target);
-	void sendBattlePlayerJobSkillAct(int skillIndex, int target);
-	void sendBattlePlayerItemAct(int itemIndex, int target);
-	void sendBattlePlayerDefenseAct();
-	void sendBattlePlayerEscapeAct();
-	void sendBattlePlayerCatchPetAct(int petIndex);
-	void sendBattlePlayerSwitchPetAct(int petIndex);
-	void sendBattlePlayerDoNothing();
-	void sendBattlePetSkillAct(int skillIndex, int target);
-	void sendBattlePetDoNothing();
+
 
 #pragma endregion
 
@@ -2393,47 +2407,43 @@ private://lssproto
 
 	void lssproto_CustomWN_recv(const QString& data);
 
-public:
-	//custom
-	bool IS_ONLINE_FLAG = false;
-	bool IS_BATTLE_FLAG = false;
-
-	bool IS_TRADING = false;
-
-	bool IS_TCP_CONNECTION_OK_TO_USE = false;
-
-	std::atomic_bool isPacketAutoClear = false;
-	bool disconnectflag = false;
-
-	bool enablePlayerWork = false;
-	bool enablePetWork = false;
-	bool enemyAllReady = false;
-
-	bool petEscapeEnableTempFlag = false;
-	int tempCatchPetTargetIndex = -1;
-
-	bool IS_WAITFOR_JOBDAILY_FLAG = false;
-	bool IS_WAITFOR_BANK_FLAG = false;
-	bool IS_WAITFOR_DIALOG_FLAG = false;
-	bool IS_WAITFOR_EXTRA_DIALOG_INFO_FLAG = false;
-
+private:
 	QFuture<void> ayncBattleCommand;
 	std::atomic_bool ayncBattleCommandFlag = false;
-	QElapsedTimer loginTimer;
-	QElapsedTimer battleDurationTimer;
-	QElapsedTimer normalDurationTimer;
-	QElapsedTimer eottlTimer;
 	bool isEOTTLSend = false;
+	QElapsedTimer eottlTimer;
+	bool petEscapeEnableTempFlag = false;
+	int tempCatchPetTargetIndex = -1;
+	int JobdailyGetMax = 0;  //是否有接收到資料
 
-	int battle_total_time = 0;
-	int battle_totol = 0;
+	battledata_t battleData;
 
 	//client original
+#pragma region ClientOriginal
 	int  talkMode = 0;						//0:一般 1:密語 2: 隊伍 3:家族 4:職業 
 
+	MAGIC magic[MAX_MAGIC] = {};
+#ifdef MAX_AIRPLANENUM
+	PARTY party[MAX_AIRPLANENUM];
+#else
+	PARTY party[MAX_PARTY] = {};
+#endif
+
+	BATTLE_RESULT_MSG battleResultMsg = {};
+
+	ADDRESS_BOOK addressBook[MAX_ADR_BOOK] = {};
+
+	JOBDAILY jobdaily[MAXMISSION] = {};
+
+	CHARLISTTABLE chartable[MAXCHARACTER] = {};
+
+	short partyModeFlag = 0;
+	MAIL_HISTORY MailHistory[MAX_ADR_BOOK] = {};
 	unsigned int ProcNo = 0u;
 	unsigned int SubProcNo = 0u;
 	unsigned int MenuToggleFlag = 0u;
+
+	PALETTE_STATE PalState = {};
 
 	int opp_showindex = 0;
 	QString opp_sockfd;
@@ -2501,7 +2511,6 @@ public:
 	int BattleMyMp = 0;
 	int BattleAnimFlag = 0;
 	int BattleSvTurnNo = 0;
-	int BattleCliTurnNo = 0;
 	int BattlePetStMenCnt = 0;
 
 	bool BattlePetReceiveFlag = false;
@@ -2534,14 +2543,12 @@ public:
 	int palNo = 0;
 	int palTime = 0;
 
-	QString nowFloorName = "";
 	bool mapEmptyFlag = false;
-	int nowFloor = 0;
 	int nowFloorGxSize = 0, nowFloorGySize = 0;
 	int oldGx = -1, oldGy = -1;
 	int mapAreaX1 = 0, mapAreaY1 = 0, mapAreaX2 = 0, mapAreaY2 = 0;
 	//int nowGx = 0, nowGy = 0;
-	QPoint nowPoint;
+
 	int mapAreaWidth = 0, mapAreaHeight = 0;
 	float nowX = (float)0 * GRID_SIZE;
 	float nowY = (float)0 * GRID_SIZE;
@@ -2577,68 +2584,81 @@ public:
 	short charListStatus = 0i16;
 
 	short sTeacherSystemBtn = 0i16;
+#pragma endregion
 
-	//main datas
+public:
+	//custom
+	std::atomic_bool isPacketAutoClear = false;
+	bool disconnectflag = false;
+
+	bool enablePlayerWork = false;
+	bool enablePetWork = false;
+	bool enemyAllReady = false;
+
+	bool IS_ONLINE_FLAG = false;
+	bool IS_BATTLE_FLAG = false;
+
+	bool IS_TRADING = false;
+
+	bool IS_TCP_CONNECTION_OK_TO_USE = false;
+
+	bool IS_WAITFOR_JOBDAILY_FLAG = false;
+	bool IS_WAITFOR_BANK_FLAG = false;
+	bool IS_WAITFOR_DIALOG_FLAG = false;
+	bool IS_WAITFOR_EXTRA_DIALOG_INFO_FLAG = false;
+
+	bool IS_WAITFOR_CUSTOM_DIALOG_FLAG = false;
+
+	QElapsedTimer loginTimer;
+	QElapsedTimer battleDurationTimer;
+	QElapsedTimer normalDurationTimer;
+
+	int BattleCliTurnNo = 0;
+	int battle_total_time = 0;
+	int battle_totol = 0;
+
+	int nowFloor = 0;
+	QPoint nowPoint;
+	QString nowFloorName = "";
+
+	//main datas shared with script thread
 	util::SafeHash<QString, QVariant> hashpc;
 	util::SafeHash<int, util::SafeHash<QString, QVariant>> hashmagic;
 	util::SafeHash<int, util::SafeHash<QString, QVariant>> hashskill;
-
 	util::SafeHash<int, util::SafeHash<QString, QVariant>> hashpet;
 	util::SafeHash<int, util::SafeHash<int, util::SafeHash<QString, QVariant>>> hashpetskill;
-
 	util::SafeHash<int, util::SafeHash<QString, QVariant>> hashparty;
-
 	util::SafeHash<int, util::SafeHash<QString, QVariant>> hashitem;
 	util::SafeHash<int, util::SafeHash<QString, QVariant>> hashequip;
 	util::SafeHash<int, util::SafeHash<int, util::SafeHash<QString, QVariant>>> hashpetequip;
 	util::SafeHash<QString, QVariant> hashmap;
 	util::SafeHash<int, QVariant> hashchat;
 	util::SafeHash<int, QVariant> hashdialog;
+	util::SafeHash<int, util::SafeHash<QString, QVariant>> hashbattle;
+	util::SafeData<int> hashbattlefield;
+
+	QSharedPointer<MapAnalyzer> mapAnalyzer;
 
 	currencydata_t currencyData;
+
+	customdialog_t customDialog;
 
 	QMutex swapItemMutex;
 	PC pc = {};
 
-	battledata_t battleData;
-
-	PALETTE_STATE 	PalState = {};
-
-	MAIL_HISTORY MailHistory[MAX_ADR_BOOK] = {};
 	PET pet[MAX_PET] = {};
 
 #ifdef _CHAR_PROFESSION			// WON ADD 人物職業
 	PROFESSION_SKILL profession_skill[MAX_PROFESSION_SKILL];
 #endif
 
-	MAGIC magic[MAX_MAGIC] = {};
-
-#ifdef MAX_AIRPLANENUM
-	PARTY party[MAX_AIRPLANENUM];
-#else
-	PARTY party[MAX_PARTY] = {};
-#endif
-	short partyModeFlag = 0;
-
-	CHARLISTTABLE chartable[MAXCHARACTER] = {};
-
-	ADDRESS_BOOK addressBook[MAX_ADR_BOOK] = {};
-
-	BATTLE_RESULT_MSG battleResultMsg = {};
-
 	PET_SKILL petSkill[MAX_PET][MAX_SKILL] = {};
 
 	util::SafeData<dialog_t> currentDialog = {};
-
-	JOBDAILY jobdaily[MAXMISSION] = {};
-	int JobdailyGetMax = 0;  //是否有接收到資料
-
 	util::SafeHash<int, mapunit_t> mapUnitHash;
 	util::SafeHash<QPoint, mapunit_t> npcUnitPointHash;
-
-	QScopedPointer<MapAnalyzer> mapAnalyzer;
-
 	util::SafeQueue<QPair<int, QString>> chatQueue;
+
 	QPair<int, QVector<bankpet_t>> currentBankPetList;
 	QVector<ITEM> currentBankItemList;
 
@@ -2657,7 +2677,6 @@ public:
 private:
 	QFutureSynchronizer <void> sync_;
 
-	QMutex mutex_;
 	std::atomic_bool isRequestInterrupted = false;
 	//int sockfd_ = 0;
 	unsigned short port_ = 0;

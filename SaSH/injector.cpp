@@ -48,8 +48,9 @@ bool Injector::createProcess(Injector::process_information_t& pi)
 		return false;
 
 	util::Config config(fileName);
-	QString path = config.readString("System", "Command", "DirPath");
-	if (path.isEmpty())
+
+	QString path = currentGameExePath;
+	if (path.isEmpty() || !QFile::exists(path))
 	{
 		return false;
 	}
@@ -134,7 +135,6 @@ bool Injector::createProcess(Injector::process_information_t& pi)
 		if (canSave)
 		{
 			//保存啟動參數
-			config.write("System", "Command", "DirPath", path);
 			config.write("System", "Command", "realbin", nRealBin);
 			config.write("System", "Command", "adrnbin", nAdrnBin);
 			config.write("System", "Command", "sprbin", nSprBin);

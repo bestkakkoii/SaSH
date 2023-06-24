@@ -441,6 +441,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, DWORD message, LPARAM wParam, LPARAM lParam)
 		g_GameService.WM_CleanChatHistory();
 		return 1;
 	}
+	case kCreateDialog:
+	{
+		g_GameService.WM_CreateDialog(wParam, reinterpret_cast<char*>(lParam));
+		return 1;
+	}
 	default:
 		break;
 	}
@@ -1304,19 +1309,28 @@ void GameService::WM_EnableMoveLock(bool enable)
 		IS_MOVE_LOCK = enable;
 		DWORD* pMoveStart = CONVERT_GAMEVAR<DWORD*>(0x42795 + 0x6);
 		*pMoveStart = !enable ? 1UL : 0UL;
+		if (!enable)
+		{
+			pMoveStart = CONVERT_GAMEVAR<DWORD*>(0x4181198);
+			*pMoveStart = 0UL;
+			pMoveStart = CONVERT_GAMEVAR<DWORD*>(0x41829FC);
+			*pMoveStart = 0UL;
+		}
 	}
+
+	//DWORD* pMoveLock = CONVERT_GAMEVAR<DWORD*>(0x4275E);
 	//if (!enable)
 	//{
-	//	////00442773 - 77 2A                 - ja 0044279F
-	//	//util::MemoryMove(pMoveLock, "\x77\x2A", 2);
+	//	//00442773 - 77 2A                 - ja 0044279F
+	//	util::MemoryMove(pMoveLock, "\x74\x3F", 2);
 
 	//	//sa_8001.exe+42795 - C7 05 E0295804 01000000 - mov [sa_8001.exe+41829E0],00000001 { (0),1 }
 	//	//util::MemoryMove(pMoveLock, "\x01", 1);
 	//}
 	//else
 	//{
-	//	////sa_8001sf.exe+42773 - EB 2A                 - jmp sa_8001sf.exe+4279F  //直接改跳轉會有機率完全卡住恢復後不能移動
-	//	//util::MemoryMove(pMoveLock, "\xEB\x2A", 2);
+	//	//sa_8001sf.exe+42773 - EB 2A                 - jmp sa_8001sf.exe+4279F  //直接改跳轉會有機率完全卡住恢復後不能移動
+	//	util::MemoryMove(pMoveLock, "\xEB\x3F", 2);
 
 	//	//fill \x90  取代的是把切換成1會觸發移動的值移除掉
 	//	//util::MemoryMove(pMoveLock, "\x00", 1);
@@ -1407,6 +1421,28 @@ void GameService::WM_CleanChatHistory()
 		chatbuffer += bufsize;
 	}
 	*pchatsize = 0;
+}
+
+//創建對話框
+void GameService::WM_CreateDialog(int button, const char* data)
+{
+	//push 45ADF50
+	//push 4D2  //自訂對話框編號
+	//push 10E1 //自訂NPCID
+	//mov edx, 0x1
+	//or edx, 0x2
+	//or edx, 0x4
+	//push edx //按鈕
+	//push 2 //對話框類型
+	//push 0 //sockfd
+	//call 00464AC0
+	//add esp, 18
+	using CreateDialog_t = void(_cdecl*)(int, int, int, int, int, const char*);
+	CreateDialog_t createDialog = CONVERT_GAMEVAR<CreateDialog_t>(0x64AC0);
+	if (createDialog != nullptr)
+	{
+		createDialog(0, 2, button, 0x10E1, 0x4D2, data);
+	}
 }
 
 //lssproto_EN_recv

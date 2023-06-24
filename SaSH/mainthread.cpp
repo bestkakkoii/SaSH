@@ -122,9 +122,8 @@ void MainObject::run()
 		mainProc();
 	} while (false);
 
-
+	emit signalDispatcher.scriptStoped();
 	emit signalDispatcher.nodifyAllStop();
-
 
 	//關閉走路遇敵線程
 	if (autowalk_future_.isRunning())
@@ -205,6 +204,7 @@ void MainObject::mainProc()
 			break;
 		}
 
+		//檢查TCP是否握手成功
 		if (!injector.server->IS_TCP_CONNECTION_OK_TO_USE)
 		{
 			continue;
@@ -364,17 +364,6 @@ int MainObject::checkAndRunFunctions()
 	//走路遇敵 或 快速遇敵 (封包)
 	checkAutoWalk();
 
-	//自動組隊、跟隨
-	checkAutoJoin();
-
-	//自動補血、氣
-	checkAutoHeal();
-
-	//自動丟寵
-	checkAutoDropPet();
-
-	//鎖寵排程
-	checkAutoLockSchedule();
 
 	//平時
 	if (!injector.server->IS_BATTLE_FLAG)
@@ -386,8 +375,6 @@ int MainObject::checkAndRunFunctions()
 			emit signalDispatcher.updateStatusLabelTextChanged(util::kLabelStatusInNormal);
 			injector.server->normalDurationTimer.restart();
 
-			//自動鎖寵
-			checkAutoLockPet();
 		}
 
 		//紀錄NPC
@@ -396,11 +383,26 @@ int MainObject::checkAndRunFunctions()
 		//檢查開關 (隊伍、交易、名片...等等)
 		checkEtcFlag();
 
+		//自動組隊、跟隨
+		checkAutoJoin();
+
+		//自動補血、氣
+		checkAutoHeal();
+
+		//自動丟寵
+		checkAutoDropPet();
+
 		//檢查自動丟棄道具
 		checkAutoDropItems();
 
 		//檢查自動吃道具
 		checkAutoEatBoostExpItem();
+
+		//自動鎖寵
+		checkAutoLockPet();
+
+		//鎖寵排程
+		checkAutoLockSchedule();
 		return 1;
 	}
 	else //戰鬥中
@@ -846,21 +848,21 @@ void MainObject::checkAutoWalk()
 					if (injector.server->IS_BATTLE_FLAG)
 					{
 						//先等一小段時間
-						QThread::msleep(1500);
+						QThread::msleep(100);
 
 						//如果已經退出戰鬥就等待1.5秒避免太快開始移動不夠時間吃肉補血丟東西...等
-						if (!injector.server->IS_BATTLE_FLAG)
-						{
-							for (int i = 0; i < 15; ++i)
-							{
-								//如果主線程關閉則自動退出
-								if (isInterruptionRequested())
-									return;
-								QThread::msleep(100);
-							}
-						}
-						else
-							continue;
+						//if (!injector.server->IS_BATTLE_FLAG)
+						//{
+						//	for (int i = 0; i < 2; ++i)
+						//	{
+						//		//如果主線程關閉則自動退出
+						//		if (isInterruptionRequested())
+						//			return;
+						//		QThread::msleep(100);
+						//	}
+						//}
+						//else
+						continue;
 					}
 
 					//取設置
@@ -1230,7 +1232,7 @@ void MainObject::checkAutoHeal()
 					if (!itemHealMpEnable)
 						break;
 
-					int cmpvalue = injector.getValueHash(util::kItemHealMpNormalValue);
+					int cmpvalue = injector.getValueHash(util::kNormalItemHealMpValue);
 					if (!injector.server->checkPlayerMp(cmpvalue))
 						break;
 
@@ -1267,9 +1269,9 @@ void MainObject::checkAutoHeal()
 					if (!itemHealHpEnable)
 						break;
 
-					int charPercent = injector.getValueHash(util::kItemHealCharNormalValue);
-					int petPercent = injector.getValueHash(util::kItemHealPetNormalValue);
-					int alliePercent = injector.getValueHash(util::kItemHealAllieNormalValue);
+					int charPercent = injector.getValueHash(util::kNormalItemHealCharValue);
+					int petPercent = injector.getValueHash(util::kNormalItemHealPetValue);
+					int alliePercent = injector.getValueHash(util::kNormalItemHealAllieValue);
 
 					if (charPercent == 0 && petPercent == 0 && alliePercent == 0)
 						break;
@@ -1341,9 +1343,9 @@ void MainObject::checkAutoHeal()
 					if (!magicHealHpEnable)
 						break;
 
-					int charPercent = injector.getValueHash(util::kMagicHealCharNormalValue);
-					int petPercent = injector.getValueHash(util::kMagicHealPetNormalValue);
-					int alliePercent = injector.getValueHash(util::kMagicHealAllieNormalValue);
+					int charPercent = injector.getValueHash(util::kNormalMagicHealCharValue);
+					int petPercent = injector.getValueHash(util::kNormalMagicHealPetValue);
+					int alliePercent = injector.getValueHash(util::kNormalMagicHealAllieValue);
 
 					if (charPercent == 0 && petPercent == 0 && alliePercent == 0)
 						break;
@@ -1374,7 +1376,7 @@ void MainObject::checkAutoHeal()
 					if (magicIndex < 0 || magicIndex >= MAX_MAGIC)
 						break;
 
-					int targetType = injector.server->magic[magicIndex].target;
+					int targetType = injector.server->hashmagic.value(magicIndex).value("target").toInt();
 					if ((targetType != MAGIC_TARGET_MYSELF) && (targetType != MAGIC_TARGET_OTHER))
 						break;
 
@@ -1557,7 +1559,7 @@ void MainObject::checkAutoLockPet()
 		}
 	}
 
-	bool enableLockRide = injector.getEnableHash(util::kLockRideEnable) && !injector.getEnableHash(util::kLockRideScheduleEnable);
+	bool enableLockRide = injector.getEnableHash(util::kLockRideEnable) && !injector.getEnableHash(util::kLockPetScheduleEnable);
 	if (enableLockRide)
 	{
 		int lockRideIndex = injector.getValueHash(util::kLockRideValue);
@@ -1579,10 +1581,25 @@ void MainObject::checkAutoLockSchedule()
 	if (injector.server.isNull())
 		return;
 
+
+
 	auto checkSchedule = [](util::UserSetting set)->bool
 	{
+		static const QHash <QString, PetState> hashType = {
+			{ "戰", kBattle },
+			{ "騎", kRide },
+
+			{ "战", kBattle },
+			{ "骑", kRide },
+
+			{ "B", kBattle },
+			{ "R", kRide },
+		};
+
 		Injector& injector = Injector::getInstance();
 		QString lockPetSchedule = injector.getStringHash(set);
+		int rindex = -1;
+		int bindex = -1;
 		do
 		{
 			if (lockPetSchedule.isEmpty())
@@ -1598,7 +1615,7 @@ void MainObject::checkAutoLockSchedule()
 					continue;
 
 				QStringList dataList = it.split(util::rexComma, Qt::SkipEmptyParts);
-				if (dataList.size() != 2)
+				if (dataList.size() != 3)
 					continue;
 
 				QString name = dataList.at(0).simplified();
@@ -1628,30 +1645,73 @@ void MainObject::checkAutoLockSchedule()
 				if (level < 0 || level > 255)
 					continue;
 
+				QString typeStr = dataList.at(2).simplified();
+				if (typeStr.isEmpty())
+					continue;
+
+				PetState type = hashType.value(typeStr, kRest);
+
 				PET pet = injector.server->pet[petIndex];
 
 				if (pet.level >= level)
 					continue;
 
-				if (set == util::kLockPetScheduleString)
+
+				if (type == kBattle)
 				{
-					injector.server->setPetState(petIndex, kBattle);
-					return true;
+					if (bindex != -1)
+						continue;
+
+					if (rindex != -1 && rindex == petIndex)
+						continue;
+
+					bindex = petIndex;
 				}
-				else if (set == util::kLockRideScheduleString)
+				else if (type == kRide)
 				{
-					injector.server->setPetState(petIndex, kRide);
-					return true;
+					if (rindex != -1)
+						continue;
+
+					if (bindex != -1 && bindex == petIndex)
+					{
+						bindex = -1;
+					}
+
+					rindex = petIndex;
 				}
+
 			}
 		} while (false);
+
+		if (rindex != -1)
+		{
+			PET pet = injector.server->pet[rindex];
+			if (pet.state != kRide && set == util::kLockPetScheduleString)
+				injector.server->setPetState(rindex, kRide);
+		}
+
+		if (bindex != -1)
+		{
+			PET pet = injector.server->pet[bindex];
+			if (pet.state != kBattle && set == util::kLockPetScheduleString)
+				injector.server->setPetState(bindex, kBattle);
+		}
+
+		for (int i = 0; i < MAX_PET; ++i)
+		{
+			if (bindex == i || rindex == i)
+				continue;
+
+			PET pet = injector.server->pet[i];
+			if ((pet.state != kRest && pet.state != kStandby) && set == util::kLockPetScheduleString)
+				injector.server->setPetState(i, kRest);
+		}
 		return false;
 	};
 
-	if (injector.getEnableHash(util::kLockPetScheduleEnable) && !injector.getEnableHash(util::kLockPetEnable))
+	if (injector.getEnableHash(util::kLockPetScheduleEnable) && !injector.getEnableHash(util::kLockPetEnable) && !injector.getEnableHash(util::kLockRideEnable))
 		checkSchedule(util::kLockPetScheduleString);
-	if (injector.getEnableHash(util::kLockRideScheduleEnable) && !injector.getEnableHash(util::kLockRideEnable))
-		checkSchedule(util::kLockRideScheduleString);
+
 }
 
 //自動吃經驗加乘道具

@@ -298,8 +298,8 @@ Server::Server(QObject* parent)
 
 Server::~Server()
 {
-	clearNetBuffer();
 	requestInterruption();
+	clearNetBuffer();
 
 	server_->close();
 	for (QTcpSocket* clientSocket : clientSockets_)
@@ -571,7 +571,8 @@ void Server::onClientReadyRead()
 
 	sync_.addFuture(QtConcurrent::run([this, clientSocket, badata]()
 		{
-			QMutexLocker locker(&mutex_);
+			Injector& injector = Injector::getInstance();
+			QMutexLocker locker(&injector.globalMutex);
 			handleData(clientSocket, badata);
 		}));
 }
@@ -625,7 +626,18 @@ void Server::handleData(QTcpSocket* clientSocket, QByteArray badata)
 		// get line from read buffer
 		if (!ba.isEmpty())
 		{
-			int ret = SaDispatchMessage(ba.data());
+			int ret = 0;
+			try
+			{
+				ret = SaDispatchMessage(ba.data());
+			}
+			catch (...)
+			{
+				qDebug() << "************************ EXCEPTION ************************";
+				Autil::util_Release();
+				break;
+			}
+
 			if (ret < 0)
 			{
 				//if (isPacketAutoClear.load(std::memory_order_acquire))
@@ -2030,8 +2042,8 @@ void Server::lssproto_RS_recv(char* cdata)
 		texts.append(itemsList);
 	}
 
-
-	if (texts.size() > 1)
+	Injector& injector = Injector::getInstance();
+	if (texts.size() > 1 && injector.getEnableHash(util::kShowExpEnable))
 		announce(texts.join(" "));
 
 	setBattleEnd();
@@ -7645,6 +7657,12 @@ void Server::windowPacket(const QString& command, int seqno, int objindex)
 	//TP|petIndex(0-?)|
 	//SG|gold|
 	//TG|gold|
+	if (!IS_ONLINE_FLAG)
+		return;
+
+	if (IS_BATTLE_FLAG)
+		return;
+
 	std::string s = util::fromUnicode(command);
 	lssproto_WN_send(nowPoint, seqno, objindex, NULL, const_cast<char*>(s.c_str()));
 }
@@ -7673,6 +7691,12 @@ void Server::setPetState(int petIndex, PetState state)
 	if (petIndex < 0 || petIndex >= MAX_PET)
 		return;
 
+	if (IS_BATTLE_FLAG)
+		return;
+
+	if (!IS_ONLINE_FLAG)
+		return;
+
 	Injector& injector = Injector::getInstance();
 	HANDLE hProcess = injector.getProcess();
 	DWORD hModule = injector.getProcessModule();
@@ -7690,6 +7714,7 @@ void Server::setPetState(int petIndex, PetState state)
 			std::string sstr = str.toStdString();
 			lssproto_FM_send(const_cast<char*>(sstr.c_str()));
 			QThread::msleep(500);
+			while (IS_BATTLE_FLAG) { QThread::msleep(100); }
 		}
 		else if (((pc.battlePetNo == petIndex) && (pet[petIndex].state != kBattle)) || ((pc.battlePetNo != petIndex) && (pet[petIndex].state == kBattle)))
 		{
@@ -7698,6 +7723,7 @@ void Server::setPetState(int petIndex, PetState state)
 			pet[petIndex].state = kRest;
 			pc.selectPetNo[petIndex] = 0;
 			QThread::msleep(500);
+			while (IS_BATTLE_FLAG) { QThread::msleep(100); }
 		}
 
 
@@ -7710,6 +7736,7 @@ void Server::setPetState(int petIndex, PetState state)
 				pc.battlePetNo = -1;
 				pc.selectPetNo[i] = 0;
 				QThread::msleep(500);
+				while (IS_BATTLE_FLAG) { QThread::msleep(100); }
 				break;
 			}
 		}
@@ -7719,6 +7746,8 @@ void Server::setPetState(int petIndex, PetState state)
 			QString str = QString("R|P|-1");
 			std::string sstr = str.toStdString();
 			lssproto_FM_send(const_cast<char*>(sstr.c_str()));
+			QThread::msleep(500);
+			while (IS_BATTLE_FLAG) { QThread::msleep(100); }
 		}
 
 		lssproto_KS_send(petIndex);
@@ -7739,18 +7768,22 @@ void Server::setPetState(int petIndex, PetState state)
 			std::string sstr = str.toStdString();
 			lssproto_FM_send(const_cast<char*>(sstr.c_str()));
 			QThread::msleep(500);
+			while (IS_BATTLE_FLAG) { QThread::msleep(100); }
 		}
 		else if (pet[petIndex].state == kBattle)
 		{
 			lssproto_KS_send(-1);
 			QThread::msleep(500);
+			while (IS_BATTLE_FLAG) { QThread::msleep(100); }
 		}
 		else if (pet[petIndex].state == kMail)
 		{
 			lssproto_KS_send(petIndex);
 			QThread::msleep(500);
+			while (IS_BATTLE_FLAG) { QThread::msleep(100); }
 			lssproto_KS_send(-1);
 			QThread::msleep(500);
+			while (IS_BATTLE_FLAG) { QThread::msleep(100); }
 		}
 
 		pc.selectPetNo[petIndex] = 1;
@@ -7770,11 +7803,13 @@ void Server::setPetState(int petIndex, PetState state)
 			std::string sstr = str.toStdString();
 			lssproto_FM_send(const_cast<char*>(sstr.c_str()));
 			QThread::msleep(500);
+			while (IS_BATTLE_FLAG) { QThread::msleep(100); }
 		}
 		else if (((pc.mailPetNo == petIndex) && (pet[petIndex].state != kMail)) || ((pc.mailPetNo != petIndex) && (pet[petIndex].state == kMail)))
 		{
 			lssproto_PETST_send(petIndex, 0);
 			QThread::msleep(500);
+			while (IS_BATTLE_FLAG) { QThread::msleep(100); }
 		}
 
 
@@ -7783,10 +7818,11 @@ void Server::setPetState(int petIndex, PetState state)
 			if (i != petIndex && pet[i].state == kMail && pet[petIndex].state != kMail)
 			{
 				lssproto_PETST_send(i, 0);
+				QThread::msleep(500);
 				pc.mailPetNo = -1;
 				pet[i].state = kRest;
 				pc.selectPetNo[i] = 0;
-				QThread::msleep(500);
+				while (IS_BATTLE_FLAG) { QThread::msleep(100); }
 				break;
 			}
 		}
@@ -7807,22 +7843,24 @@ void Server::setPetState(int petIndex, PetState state)
 			std::string sstr = str.toStdString();
 			lssproto_FM_send(const_cast<char*>(sstr.c_str()));
 			QThread::msleep(500);
+			while (IS_BATTLE_FLAG) { QThread::msleep(100); }
 		}
 		else if (pet[petIndex].state == kBattle)
 		{
 			lssproto_KS_send(-1);
 			QThread::msleep(500);
+			while (IS_BATTLE_FLAG) { QThread::msleep(100); }
 		}
 		else if (pet[petIndex].state == kMail)
 		{
 			lssproto_KS_send(petIndex);
 			QThread::msleep(500);
+			while (IS_BATTLE_FLAG) { QThread::msleep(100); }
 			lssproto_KS_send(-1);
 			QThread::msleep(500);
+			while (IS_BATTLE_FLAG) { QThread::msleep(100); }
 		}
 
-		lssproto_PETST_send(petIndex, 0);
-		lssproto_PETST_send(petIndex, 0);
 		lssproto_PETST_send(petIndex, 0);
 		pet[petIndex].state = kRest;
 		mem::writeInt(hProcess, hModule + 0x422BF34 + sizeof(short) * petIndex, 0, 1);
@@ -7837,6 +7875,7 @@ void Server::setPetState(int petIndex, PetState state)
 		{
 			lssproto_KS_send(-1);
 			QThread::msleep(500);
+			while (IS_BATTLE_FLAG) { QThread::msleep(100); }
 		}
 
 		QString str;
@@ -7855,10 +7894,11 @@ void Server::setPetState(int petIndex, PetState state)
 					str = QString("R|P|-1");
 					sstr = str.toStdString();
 					lssproto_FM_send(const_cast<char*>(sstr.c_str()));
+					QThread::msleep(500);
 					pc.selectPetNo[i] = 0;
 					pet[i].state = kRest;
 					bret = true;
-					QThread::msleep(500);
+					while (IS_BATTLE_FLAG) { QThread::msleep(100); }
 					break;
 				}
 			}
@@ -8436,6 +8476,22 @@ void Server::lssproto_PS_send(int havepetindex, int havepetskill, int toindex, c
 	iChecksum += Autil::util_mkstring(buffer, data);
 	Autil::util_mkint(buffer, iChecksum);
 	Autil::util_SendMesg(LSSPROTO_PS_SEND, buffer);
+}
+
+//創建對話框
+void Server::createRemoteDialog(int button, const QString& text)
+{
+	if (!IS_ONLINE_FLAG)
+		return;
+
+	if (IS_BATTLE_FLAG)
+		return;
+
+	Injector& injector = Injector::getInstance();
+
+	util::VirtualMemory ptr(injector.getProcess(), text, util::VirtualMemory::kAnsi, true);
+
+	injector.sendMessage(Injector::kCreateDialog, button, ptr);
 }
 
 void Server::depositGold(int gold, bool isPublic)
@@ -9342,9 +9398,12 @@ void Server::lssproto_CustomWN_recv(const QString& data)
 	if (ok && tmp > 0)
 	{
 		row = dataStr.toInt();
-		--row;
 	}
 	qDebug() << x << y << button << (row != -1 ? QString::number(row) : dataStr);
+	announce(QString("x:%1, y:%2 button:%3 row:%4").arg(x).arg(y).arg(QString::number(button, 16)).arg(row != -1 ? QString::number(row) : dataStr));
+
+	customDialog = customdialog_t{ x, y, button, row };
+	IS_WAITFOR_CUSTOM_DIALOG_FLAG = false;
 }
 
 //獲取周圍玩家名稱列表
@@ -9678,31 +9737,39 @@ bool Server::login(int s)
 	}
 	case util::kStatusSelectServer:
 	{
-		constexpr int table[36] = {
+		constexpr int table[48] = {
 			0, 0, 0,
 			1, 0, 1,
 			2, 0, 2,
 			3, 0, 3,
+
 			4, 1, 0,
 			5, 1, 1,
 			6, 1, 2,
 			7, 1, 3,
-			8, 2, 0,
-			9, 2, 1,
+
+			8,  2, 0,
+			9,  2, 1,
 			10, 2, 2,
 			11, 2, 3,
+
+			12, 3, 0,
+			13, 3, 1,
+			14, 3, 2,
+			15, 3, 3,
 		};
-		if (server >= 0 && server < 12)
+
+		if (server >= 0 && server < 15)
 		{
 			const int a = table[server * 3 + 1];
 			const int b = table[server * 3 + 2];
-			leftDoubleClick(170 + (a * 125), 165 + (b * 25));
+			leftDoubleClick(160 + (a * 125), 165 + (b * 25));
 		}
 		break;
 	}
 	case util::kStatusSelectSubServer:
 	{
-		if (subserver >= 0 && subserver <= 4)
+		if (subserver >= 0 && subserver < 15)
 		{
 			leftDoubleClick(250, 265 + (subserver * 25));
 		}
@@ -9801,9 +9868,11 @@ void Server::refreshItemInfo()
 //讀取內存刷新各種基礎數據，有些封包數據不明確、或不確定，用來補充不足的部分
 void Server::updateDatasFromMemory()
 {
-	QMutexLocker locker(&mutex_);
-	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
 	Injector& injector = Injector::getInstance();
+
+	QMutexLocker locker(&injector.globalMutex);
+
+	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
 	int hModule = injector.getProcessModule();
 	HANDLE hProcess = injector.getProcess();
 
@@ -9948,11 +10017,11 @@ void Server::reloadHashVar()
 		{ "earth", pc.earth }, { "water", pc.water }, { "fire", pc.fire }, { "wind", pc.wind },
 		{ "stone", pc.gold },
 
-		//{ "", pc.titleNo },
+		{ "titleNo", pc.titleNo },
 		{ "dp", pc.dp },
 		{ "name", pc.name },
 		{ "fname", pc.freeName },
-		//{ "", pc.nameColor },
+		{ "nameColor", pc.nameColor },
 		{ "battlepet", pc.battlePetNo },
 		{ "mailpet", pc.mailPetNo },
 		//{ "", pc.standbyPet },
@@ -9978,9 +10047,9 @@ void Server::reloadHashVar()
 		util::SafeHash<QString, QVariant> hash = {
 			{ "valid", m.useFlag ? 1 : 0 },
 			{ "cost", m.mp },
-			//{ "", m.field },
-			//{ "", m.target },
-			//{ "", m.deadTargetFlag },
+			{ "field", m.field },
+			{ "target", m.target },
+			{ "deadTargetFlag", m.deadTargetFlag },
 			{ "name", m.name },
 			{ "memo", m.memo },
 		};
@@ -9996,8 +10065,8 @@ void Server::reloadHashVar()
 		util::SafeHash<QString, QVariant> hash = {
 			{ "valid", s.useFlag ? 1 : 0 },
 			{ "cost", s.costmp },
-			//{ "", s.field },
-			//{ "", s.target },
+			//{ "field", s. },
+			{ "target", s.target },
 			//{ "", s.deadTargetFlag },
 			{ "name", s.name },
 			{ "memo", s.memo },
@@ -10013,7 +10082,7 @@ void Server::reloadHashVar()
 
 		util::SafeHash<QString, QVariant> hash = {
 			{ "index", _pet.index + 1 },						//位置
-			//{ "", _pet.graNo },						//圖號
+			{ "graNo", _pet.graNo },						//圖號
 			{ "hp", _pet.hp }, { "maxhp", _pet.maxHp }, { "hppercent", _pet.hpPercent },					//血量
 			{ "mp", _pet.mp }, { "maxmp", _pet.maxMp }, { "mppercent", _pet.mpPercent },					//魔力
 			{ "exp", _pet.exp }, { "maxexp", _pet.maxExp },				//經驗值
@@ -10021,7 +10090,7 @@ void Server::reloadHashVar()
 			{ "atk", _pet.atk },						//攻擊力
 			{ "def", _pet.def },						//防禦力
 			{ "agi", _pet.quick },						//速度
-			//{ "", _pet.ai },							//AI
+			{ "ai", _pet.ai },							//AI
 			{ "earth", _pet.earth }, { "water", _pet.water }, { "fire", _pet.fire }, { "wind", _pet.wind },
 			{ "maxskill", _pet.maxSkill },
 			{ "turn", _pet.trn },						// 寵物轉生數
@@ -10045,7 +10114,7 @@ void Server::reloadHashVar()
 			util::SafeHash<QString, QVariant> hash = {
 				{ "valid", _petskill.useFlag ? 1 : 0 },
 				//{ "", _petskill.field },
-				//{ "", _petskill.target },
+				{ "target", _petskill.target },
 				//{ "", _petskill.deadTargetFlag },
 				{ "name", _petskill.name },
 				{ "memo", _petskill.memo },
@@ -10065,12 +10134,12 @@ void Server::reloadHashVar()
 
 		util::SafeHash<QString, QVariant> hash = {
 			//{ "", item.color },
-			//{ "", item.graNo },
+			{ "graNo", item.graNo },
 			{ "lv", item.level },
 			{ "stack", item.pile },
 			{ "valid", item.useFlag ? 1 : 0 },
-			//{ "", item.field },
-			//{ "", item.target },
+			{ "field", item.field },
+			{ "target", item.target },
 			//{ "", item.deadTargetFlag },
 			//{ "", item.sendFlag },
 			{ "name", item.name },
@@ -10089,12 +10158,12 @@ void Server::reloadHashVar()
 		ITEM item = pc.item[i];
 		util::SafeHash<QString, QVariant> hash = {
 			//{ "", item.color },
-			//{ "", item.graNo },
+			{ "graNo", item.graNo },
 			{ "lv", item.level },
 			//{ "stack", item.pile },
 			{ "valid", item.useFlag ? 1 : 0 },
-			//{ "", item.field },
-			//{ "", item.target },
+			{ "field", item.field },
+			{ "target", item.target },
 			//{ "", item.deadTargetFlag },
 			//{ "", item.sendFlag },
 			{ "name", item.name },
@@ -10113,7 +10182,7 @@ void Server::reloadHashVar()
 		PARTY _party = party[i];
 		util::SafeHash<QString, QVariant> hash = {
 			{ "valid", _party.useFlag ? 1 : 0 },
-			//{ "id", _party.id },
+			{ "id", _party.id },
 			{ "lv", _party.level },
 			{ "maxhp", _party.maxHp },
 			{ "hp", _party.hp },
@@ -10135,12 +10204,12 @@ void Server::reloadHashVar()
 			ITEM item = pet[i].item[j];
 			util::SafeHash<QString, QVariant> hash = {
 				//{ "", item.color },
-				//{ "", item.graNo },
+				{ "graNo", item.graNo },
 				{ "level", item.level },
-				//{ "stack", item.pile },
+				{ "stack", item.pile },
 				{ "valid", item.useFlag ? 1 : 0 },
-				//{ "", item.field },
-				//{ "", item.target },
+				{ "field", item.field },
+				{ "target", item.target },
 				//{ "", item.deadTargetFlag },
 				//{ "", item.sendFlag },
 				{ "name", item.name },
@@ -10196,6 +10265,35 @@ void Server::reloadHashVar()
 	}
 
 	hashdialog = _hashdialog;
+
+
+	util::SafeHash<int, util::SafeHash<QString, QVariant>> _hashbattle;
+	QVector<battleobject_t> objects = battleData.objects;
+	for (const battleobject_t& battle : objects)
+	{
+		util::SafeHash<QString, QVariant> hash = {
+			{ "pos", battle.pos },
+			{ "name", battle.name },
+			{ "fname", battle.freename },
+			{ "faceid", battle.faceid },
+			{ "lv", battle.level },
+			{ "hp", battle.hp },
+			{ "maxhp", battle.maxHp },
+			{ "hppercent", battle.hpPercent },
+			{ "status", battle.status },
+			{ "rideflag", battle.rideFlag },
+			{ "ridename", battle.rideName },
+			{ "ridelv", battle.rideLevel },
+			{ "ridehp", battle.rideHp },
+			{ "ridemaxhp", battle.rideMaxHp },
+			{ "ridehppercent", battle.rideHpPercent },
+		};
+		_hashbattle.insert(battle.pos + 1, hash);
+	}
+
+	hashbattle = _hashbattle;
+
+	hashbattlefield = battleData.fieldAttr;
 }
 
 //檢查並自動吃肉、或丟肉
@@ -10268,7 +10366,14 @@ int Server::playerDoBattleWork()
 			break;
 		}
 
-		handlePlayerBattleLogics();
+		try
+		{
+			handlePlayerBattleLogics();
+		}
+		catch (...)
+		{
+			qDebug() << "handlePlayerBattleLogics error";
+		}
 
 	} while (false);
 
@@ -10298,7 +10403,14 @@ int Server::petDoBattleWork()
 			break;
 		}
 
-		handlePetBattleLogics();
+		try
+		{
+			handlePetBattleLogics();
+		}
+		catch (...)
+		{
+			qDebug() << "handlePetBattleLogics error";
+		}
 
 	} while (false);
 	//mem::writeInt(injector.getProcess(), injector.getProcessModule() + 0xE21E4, 0, sizeof(short));
@@ -10414,6 +10526,8 @@ void Server::handlePlayerBattleLogics()
 	QVector<battleobject_t> tempbattleObjects;
 	sortBattleUnit(battleObjects);
 
+	int target = -1;
+
 	auto checkAllieHp = [this](int cmpvalue, int* target, bool useequal)->bool
 	{
 		if (!target)
@@ -10446,408 +10560,6 @@ void Server::handlePlayerBattleLogics()
 
 		return false;
 	};
-
-	//鎖定逃跑
-	do
-	{
-		bool lockEscapeEnable = injector.getEnableHash(util::kLockEscapeEnable);
-		if (!lockEscapeEnable)
-			break;
-
-		QString text = injector.getStringHash(util::kLockEscapeString);
-		QStringList targetList = text.split(util::rexOR, Qt::SkipEmptyParts);
-		if (targetList.isEmpty())
-			break;
-
-		for (const QString& it : targetList)
-		{
-			if (matchBattleEnemyByName(it, true, battleObjects, &tempbattleObjects))
-			{
-				sendBattlePlayerEscapeAct();
-				petEscapeEnableTempFlag = true;
-				return;
-			}
-		}
-	} while (false);
-
-	//鎖定攻擊
-	do
-	{
-		bool lockAttackEnable = injector.getEnableHash(util::kLockAttackEnable);
-		if (!lockAttackEnable)
-			break;
-
-		QString text = injector.getStringHash(util::kLockAttackString);
-		QStringList targetList = text.split(util::rexOR, Qt::SkipEmptyParts);
-		if (targetList.isEmpty())
-			break;
-
-		bool bret = false;
-		for (const QString& it : targetList)
-		{
-			if (matchBattleEnemyByName(it, true, battleObjects, &tempbattleObjects))
-			{
-				bret = true;
-				battleObjects = tempbattleObjects;
-				break;
-			}
-		}
-
-		if (bret)
-			break;
-
-		sendBattlePlayerEscapeAct();
-		petEscapeEnableTempFlag = true;
-		return;
-	} while (false);
-
-	//落馬逃跑
-	do
-	{
-		bool fallEscapeEnable = injector.getEnableHash(util::kFallDownEscapeEnable);
-		if (!fallEscapeEnable)
-			break;
-
-		if (battleData.player.rideFlag != 0)
-			break;
-
-		sendBattlePlayerEscapeAct();
-		petEscapeEnableTempFlag = true;
-		return;
-	} while (false);
-
-
-	//道具復活
-	do
-	{
-		bool itemRevive = injector.getEnableHash(util::kBattleItemReviveEnable);
-		if (!itemRevive)
-			break;
-
-		int tempTarget = -1;
-		bool ok = false;
-		unsigned int targetFlags = injector.getValueHash(util::kBattleItemReviveTargetValue);
-		if (targetFlags & kSelectPet)
-		{
-			if (checkPetHp(NULL, &tempTarget, true))
-			{
-				ok = true;
-			}
-		}
-
-		if (!ok)
-		{
-			if ((targetFlags & kSelectAllieAny) || (targetFlags & kSelectAllieAll))
-			{
-				if (checkAllieHp(NULL, &tempTarget, true))
-				{
-					ok = true;
-				}
-			}
-		}
-
-
-		if (!ok)
-			break;
-
-		QString text = injector.getStringHash(util::kBattleItemReviveItemString).simplified();
-		if (text.isEmpty())
-			break;
-
-		items = text.split(util::rexOR, Qt::SkipEmptyParts);
-		if (items.isEmpty())
-			break;
-
-		int itemIndex = -1;
-		for (const QString& str : items)
-		{
-			itemIndex = getItemIndexByName(str);
-			if (itemIndex != -1)
-				break;
-		}
-
-		if (itemIndex == -1)
-			break;
-
-		int target = -1;
-		if (fixPlayerTargetByItemIndex(itemIndex, tempTarget, &target) && (target >= 0 && target <= 19))
-		{
-			sendBattlePlayerItemAct(itemIndex, target);
-			return;
-		}
-	} while (false);
-
-	//精靈復活
-	do
-	{
-		bool magicRevive = injector.getEnableHash(util::kBattleMagicReviveEnable);
-		if (!magicRevive)
-			break;
-
-		int tempTarget = -1;
-		bool ok = false;
-		unsigned int targetFlags = injector.getValueHash(util::kBattleMagicReviveTargetValue);
-		if (targetFlags & kSelectPet)
-		{
-			if (checkPetHp(NULL, &tempTarget, true))
-			{
-				ok = true;
-			}
-		}
-
-		if (!ok)
-		{
-			if ((targetFlags & kSelectAllieAny) || (targetFlags & kSelectAllieAll))
-			{
-				if (checkAllieHp(NULL, &tempTarget, true))
-				{
-					ok = true;
-				}
-			}
-		}
-
-		if (!ok)
-			break;
-
-		int magicIndex = injector.getValueHash(util::kBattleMagicReviveMagicValue);
-		if (magicIndex <0 || magicIndex > MAX_MAGIC)
-			break;
-
-		bool isProfession = magicIndex > (3 + MAX_MAGIC - 1);
-		if (isProfession) //0 ~ MAX_PROFESSION_SKILL
-		{
-			magicIndex -= (3 + MAX_MAGIC);
-		}
-		else
-		{
-			int target = -1;
-			if (fixPlayerTargetByMagicIndex(magicIndex, tempTarget, &target) && (target >= 0 && target <= 19))
-			{
-				if (isPlayerMpEnoughForMagic(magicIndex))
-				{
-					sendBattlePlayerMagicAct(magicIndex, target);
-					return;
-				}
-				else
-				{
-					break;
-				}
-			}
-		}
-	} while (false);
-
-	//道具補氣
-	do
-	{
-		bool itemHealMp = injector.getEnableHash(util::kBattleItemHealMpEnable);
-		if (!itemHealMp)
-			break;
-
-		int tempTarget = -1;
-		bool ok = false;
-		int charMpPercent = injector.getValueHash(util::kItemHealMpValue);
-		if (!checkPlayerMp(charMpPercent, &tempTarget))
-		{
-			break;
-		}
-
-		QString text = injector.getStringHash(util::kBattleItemHealMpIteamString).simplified();
-		if (text.isEmpty())
-			break;
-
-		items = text.split(util::rexOR, Qt::SkipEmptyParts);
-		if (items.isEmpty())
-			break;
-
-		int itemIndex = -1;
-		for (const QString& str : items)
-		{
-			itemIndex = getItemIndexByName(str);
-			if (itemIndex != -1)
-				break;
-		}
-
-		if (itemIndex == -1)
-			break;
-
-		int target = -1;
-		if (fixPlayerTargetByItemIndex(itemIndex, tempTarget, &target) && (target == BattleMyNo))
-		{
-			sendBattlePlayerItemAct(itemIndex, target);
-			return;
-		}
-	} while (false);
-
-	//精靈補血
-	do
-	{
-		bool magicHeal = injector.getEnableHash(util::kBattleMagicHealEnable);
-		if (!magicHeal)
-			break;
-
-		int tempTarget = -1;
-		bool ok = false;
-		unsigned int targetFlags = injector.getValueHash(util::kBattleMagicHealTargetValue);
-		int charPercent = injector.getValueHash(util::kMagicHealCharValue);
-		int petPercent = injector.getValueHash(util::kMagicHealPetValue);
-		int alliePercent = injector.getValueHash(util::kMagicHealAllieValue);
-
-		if (targetFlags & kSelectSelf)
-		{
-			if (checkPlayerHp(charPercent, &tempTarget))
-			{
-				ok = true;
-			}
-		}
-
-		if (!ok)
-		{
-			if (targetFlags & kSelectPet)
-			{
-				if (checkPetHp(petPercent, &tempTarget))
-				{
-					ok = true;
-				}
-			}
-		}
-
-		if (!ok)
-		{
-			if ((targetFlags & kSelectAllieAny) || (targetFlags & kSelectAllieAll))
-			{
-				if (checkAllieHp(alliePercent, &tempTarget, false))
-				{
-					ok = true;
-				}
-			}
-		}
-
-		if (!ok)
-			break;
-
-		int magicIndex = injector.getValueHash(util::kBattleMagicHealMagicValue);
-		if (magicIndex < 0 || magicIndex > MAX_MAGIC)
-			break;
-
-		bool isProfession = magicIndex > (MAX_MAGIC - 1);
-		if (isProfession) //0 ~ MAX_PROFESSION_SKILL
-		{
-			magicIndex -= MAX_MAGIC;
-			int target = -1;
-			if (fixPlayerTargetBySkillIndex(magicIndex, tempTarget, &target) && (target >= 0 && target <= 22))
-			{
-				if (isPlayerMpEnoughForSkill(magicIndex))
-				{
-					sendBattlePlayerJobSkillAct(magicIndex, target);
-					return;
-				}
-				else
-				{
-					tempTarget = getBattleSelectableEnemyTarget();
-					sendBattlePlayerAttackAct(tempTarget);
-				}
-			}
-		}
-		else
-		{
-			int target = -1;
-			if (fixPlayerTargetByMagicIndex(magicIndex, tempTarget, &target) && (target >= 0 && target <= 21))
-			{
-				if (isPlayerMpEnoughForMagic(magicIndex))
-				{
-					sendBattlePlayerMagicAct(magicIndex, target);
-					return;
-				}
-				else
-				{
-					break;
-				}
-			}
-		}
-	} while (false);
-
-	//道具補血
-	do
-	{
-		bool itemHeal = injector.getEnableHash(util::kBattleItemHealEnable);
-		if (!itemHeal)
-			break;
-
-		int tempTarget = -1;
-		bool ok = false;
-
-		unsigned int targetFlags = injector.getValueHash(util::kBattleItemHealTargetValue);
-		int charPercent = injector.getValueHash(util::kItemHealCharValue);
-		int petPercent = injector.getValueHash(util::kItemHealPetValue);
-		int alliePercent = injector.getValueHash(util::kItemHealAllieValue);
-		if (targetFlags & kSelectSelf)
-		{
-			if (checkPlayerHp(charPercent, &tempTarget))
-			{
-				ok = true;
-			}
-		}
-
-		if (!ok)
-		{
-			if (targetFlags & kSelectPet)
-			{
-				if (checkPetHp(petPercent, &tempTarget))
-				{
-					ok = true;
-				}
-			}
-		}
-
-		if (!ok)
-		{
-			if ((targetFlags & kSelectAllieAny) || (targetFlags & kSelectAllieAll))
-			{
-				if (checkAllieHp(alliePercent, &tempTarget, false))
-				{
-					ok = true;
-				}
-			}
-		}
-
-		if (!ok)
-			break;
-
-		int itemIndex = -1;
-		bool meatProiory = injector.getEnableHash(util::kBattleItemHealMeatPriorityEnable);
-		if (meatProiory)
-		{
-			itemIndex = getItemIndexByName(u8"肉", false, u8"耐久力");
-		}
-
-		if (itemIndex == -1)
-		{
-			QString text = injector.getStringHash(util::kBattleItemHealItemString).simplified();
-			if (text.isEmpty())
-				break;
-
-			items = text.split(util::rexOR, Qt::SkipEmptyParts);
-			if (items.isEmpty())
-				break;
-
-			for (const QString& str : items)
-			{
-				itemIndex = getItemIndexByName(str);
-				if (itemIndex != -1)
-					break;
-			}
-		}
-
-		if (itemIndex == -1)
-			break;
-
-		int target = -1;
-		if (fixPlayerTargetByItemIndex(itemIndex, tempTarget, &target) && (target >= 0 && target <= 21))
-		{
-			sendBattlePlayerItemAct(itemIndex, target);
-			return;
-		}
-	} while (false);
 
 	//自動捉寵
 	do
@@ -10966,7 +10678,7 @@ void Server::handlePlayerBattleLogics()
 				if (isProfession) //0 ~ MAX_PROFESSION_SKILL
 				{
 					magicIndex -= MAX_MAGIC;
-					int target = -1;
+					target = -1;
 					if (fixPlayerTargetBySkillIndex(magicIndex, tempTarget, &target) && (target >= 0 && target <= 22))
 					{
 						if (isPlayerMpEnoughForSkill(magicIndex))
@@ -11005,7 +10717,7 @@ void Server::handlePlayerBattleLogics()
 							break;
 					}
 
-					int target = -1;
+					target = -1;
 					if (fixPlayerTargetByMagicIndex(magicIndex, tempTarget, &target) && (target >= 0 && target <= 22))
 					{
 						if (isPlayerMpEnoughForMagic(magicIndex))
@@ -11035,7 +10747,7 @@ void Server::handlePlayerBattleLogics()
 					break;
 			}
 
-			int target = -1;
+			target = -1;
 			if (itemIndex != -1 && fixPlayerTargetByItemIndex(itemIndex, tempTarget, &target) && (target >= 0 && target <= 21))
 			{
 				sendBattlePlayerItemAct(itemIndex, target);
@@ -11045,6 +10757,408 @@ void Server::handlePlayerBattleLogics()
 
 		sendBattlePlayerCatchPetAct(tempTarget);
 		return;
+	} while (false);
+
+	//鎖定逃跑
+	do
+	{
+		bool lockEscapeEnable = injector.getEnableHash(util::kLockEscapeEnable);
+		if (!lockEscapeEnable)
+			break;
+
+		QString text = injector.getStringHash(util::kLockEscapeString);
+		QStringList targetList = text.split(util::rexOR, Qt::SkipEmptyParts);
+		if (targetList.isEmpty())
+			break;
+
+		for (const QString& it : targetList)
+		{
+			if (matchBattleEnemyByName(it, true, battleObjects, &tempbattleObjects))
+			{
+				sendBattlePlayerEscapeAct();
+				petEscapeEnableTempFlag = true;
+				return;
+			}
+		}
+	} while (false);
+
+	//鎖定攻擊
+	do
+	{
+		bool lockAttackEnable = injector.getEnableHash(util::kLockAttackEnable);
+		if (!lockAttackEnable)
+			break;
+
+		QString text = injector.getStringHash(util::kLockAttackString);
+		QStringList targetList = text.split(util::rexOR, Qt::SkipEmptyParts);
+		if (targetList.isEmpty())
+			break;
+
+		bool bret = false;
+		for (const QString& it : targetList)
+		{
+			if (matchBattleEnemyByName(it, true, battleObjects, &tempbattleObjects))
+			{
+				bret = true;
+				battleObjects = tempbattleObjects;
+				target = battleObjects.front().pos;
+				break;
+			}
+		}
+
+		if (bret)
+			break;
+
+		sendBattlePlayerEscapeAct();
+		petEscapeEnableTempFlag = true;
+		return;
+	} while (false);
+
+	//落馬逃跑
+	do
+	{
+		bool fallEscapeEnable = injector.getEnableHash(util::kFallDownEscapeEnable);
+		if (!fallEscapeEnable)
+			break;
+
+		if (battleData.player.rideFlag != 0)
+			break;
+
+		sendBattlePlayerEscapeAct();
+		petEscapeEnableTempFlag = true;
+		return;
+	} while (false);
+
+	//道具復活
+	do
+	{
+		bool itemRevive = injector.getEnableHash(util::kBattleItemReviveEnable);
+		if (!itemRevive)
+			break;
+
+		int tempTarget = -1;
+		bool ok = false;
+		unsigned int targetFlags = injector.getValueHash(util::kBattleItemReviveTargetValue);
+		if (targetFlags & kSelectPet)
+		{
+			if (checkPetHp(NULL, &tempTarget, true))
+			{
+				ok = true;
+			}
+		}
+
+		if (!ok)
+		{
+			if ((targetFlags & kSelectAllieAny) || (targetFlags & kSelectAllieAll))
+			{
+				if (checkAllieHp(NULL, &tempTarget, true))
+				{
+					ok = true;
+				}
+			}
+		}
+
+
+		if (!ok)
+			break;
+
+		QString text = injector.getStringHash(util::kBattleItemReviveItemString).simplified();
+		if (text.isEmpty())
+			break;
+
+		items = text.split(util::rexOR, Qt::SkipEmptyParts);
+		if (items.isEmpty())
+			break;
+
+		int itemIndex = -1;
+		for (const QString& str : items)
+		{
+			itemIndex = getItemIndexByName(str);
+			if (itemIndex != -1)
+				break;
+		}
+
+		if (itemIndex == -1)
+			break;
+
+		target = -1;
+		if (fixPlayerTargetByItemIndex(itemIndex, tempTarget, &target) && (target >= 0 && target <= 19))
+		{
+			sendBattlePlayerItemAct(itemIndex, target);
+			return;
+		}
+	} while (false);
+
+	//精靈復活
+	do
+	{
+		bool magicRevive = injector.getEnableHash(util::kBattleMagicReviveEnable);
+		if (!magicRevive)
+			break;
+
+		int tempTarget = -1;
+		bool ok = false;
+		unsigned int targetFlags = injector.getValueHash(util::kBattleMagicReviveTargetValue);
+		if (targetFlags & kSelectPet)
+		{
+			if (checkPetHp(NULL, &tempTarget, true))
+			{
+				ok = true;
+			}
+		}
+
+		if (!ok)
+		{
+			if ((targetFlags & kSelectAllieAny) || (targetFlags & kSelectAllieAll))
+			{
+				if (checkAllieHp(NULL, &tempTarget, true))
+				{
+					ok = true;
+				}
+			}
+		}
+
+		if (!ok)
+			break;
+
+		int magicIndex = injector.getValueHash(util::kBattleMagicReviveMagicValue);
+		if (magicIndex <0 || magicIndex > MAX_MAGIC)
+			break;
+
+		bool isProfession = magicIndex > (3 + MAX_MAGIC - 1);
+		if (isProfession) //0 ~ MAX_PROFESSION_SKILL
+		{
+			magicIndex -= (3 + MAX_MAGIC);
+		}
+		else
+		{
+			target = -1;
+			if (fixPlayerTargetByMagicIndex(magicIndex, tempTarget, &target) && (target >= 0 && target <= 19))
+			{
+				if (isPlayerMpEnoughForMagic(magicIndex))
+				{
+					sendBattlePlayerMagicAct(magicIndex, target);
+					return;
+				}
+				else
+				{
+					break;
+				}
+			}
+		}
+	} while (false);
+
+	//道具補氣
+	do
+	{
+		bool itemHealMp = injector.getEnableHash(util::kBattleItemHealMpEnable);
+		if (!itemHealMp)
+			break;
+
+		int tempTarget = -1;
+		bool ok = false;
+		int charMpPercent = injector.getValueHash(util::kBattleItemHealMpValue);
+		if (!checkPlayerMp(charMpPercent, &tempTarget))
+		{
+			break;
+		}
+
+		QString text = injector.getStringHash(util::kBattleItemHealMpItemString).simplified();
+		if (text.isEmpty())
+			break;
+
+		items = text.split(util::rexOR, Qt::SkipEmptyParts);
+		if (items.isEmpty())
+			break;
+
+		int itemIndex = -1;
+		for (const QString& str : items)
+		{
+			itemIndex = getItemIndexByName(str);
+			if (itemIndex != -1)
+				break;
+		}
+
+		if (itemIndex == -1)
+			break;
+
+		target = -1;
+		if (fixPlayerTargetByItemIndex(itemIndex, tempTarget, &target) && (target == BattleMyNo))
+		{
+			sendBattlePlayerItemAct(itemIndex, target);
+			return;
+		}
+	} while (false);
+
+	//精靈補血
+	do
+	{
+		bool magicHeal = injector.getEnableHash(util::kBattleMagicHealEnable);
+		if (!magicHeal)
+			break;
+
+		int tempTarget = -1;
+		bool ok = false;
+		unsigned int targetFlags = injector.getValueHash(util::kBattleMagicHealTargetValue);
+		int charPercent = injector.getValueHash(util::kBattleMagicHealCharValue);
+		int petPercent = injector.getValueHash(util::kBattleMagicHealPetValue);
+		int alliePercent = injector.getValueHash(util::kBattleMagicHealAllieValue);
+
+		if (targetFlags & kSelectSelf)
+		{
+			if (checkPlayerHp(charPercent, &tempTarget))
+			{
+				ok = true;
+			}
+		}
+
+		if (!ok)
+		{
+			if (targetFlags & kSelectPet)
+			{
+				if (checkPetHp(petPercent, &tempTarget))
+				{
+					ok = true;
+				}
+			}
+		}
+
+		if (!ok)
+		{
+			if ((targetFlags & kSelectAllieAny) || (targetFlags & kSelectAllieAll))
+			{
+				if (checkAllieHp(alliePercent, &tempTarget, false))
+				{
+					ok = true;
+				}
+			}
+		}
+
+		if (!ok)
+			break;
+
+		int magicIndex = injector.getValueHash(util::kBattleMagicHealMagicValue);
+		if (magicIndex < 0 || magicIndex > MAX_MAGIC)
+			break;
+
+		bool isProfession = magicIndex > (MAX_MAGIC - 1);
+		if (isProfession) //0 ~ MAX_PROFESSION_SKILL
+		{
+			magicIndex -= MAX_MAGIC;
+			target = -1;
+			if (fixPlayerTargetBySkillIndex(magicIndex, tempTarget, &target) && (target >= 0 && target <= 22))
+			{
+				if (isPlayerMpEnoughForSkill(magicIndex))
+				{
+					sendBattlePlayerJobSkillAct(magicIndex, target);
+					return;
+				}
+				else
+				{
+					tempTarget = getBattleSelectableEnemyTarget();
+					sendBattlePlayerAttackAct(tempTarget);
+				}
+			}
+		}
+		else
+		{
+			target = -1;
+			if (fixPlayerTargetByMagicIndex(magicIndex, tempTarget, &target) && (target >= 0 && target <= 21))
+			{
+				if (isPlayerMpEnoughForMagic(magicIndex))
+				{
+					sendBattlePlayerMagicAct(magicIndex, target);
+					return;
+				}
+				else
+				{
+					break;
+				}
+			}
+		}
+	} while (false);
+
+	//道具補血
+	do
+	{
+		bool itemHeal = injector.getEnableHash(util::kBattleItemHealEnable);
+		if (!itemHeal)
+			break;
+
+		int tempTarget = -1;
+		bool ok = false;
+
+		unsigned int targetFlags = injector.getValueHash(util::kBattleItemHealTargetValue);
+		int charPercent = injector.getValueHash(util::kBattleItemHealCharValue);
+		int petPercent = injector.getValueHash(util::kBattleItemHealPetValue);
+		int alliePercent = injector.getValueHash(util::kBattleItemHealAllieValue);
+		if (targetFlags & kSelectSelf)
+		{
+			if (checkPlayerHp(charPercent, &tempTarget))
+			{
+				ok = true;
+			}
+		}
+
+		if (!ok)
+		{
+			if (targetFlags & kSelectPet)
+			{
+				if (checkPetHp(petPercent, &tempTarget))
+				{
+					ok = true;
+				}
+			}
+		}
+
+		if (!ok)
+		{
+			if ((targetFlags & kSelectAllieAny) || (targetFlags & kSelectAllieAll))
+			{
+				if (checkAllieHp(alliePercent, &tempTarget, false))
+				{
+					ok = true;
+				}
+			}
+		}
+
+		if (!ok)
+			break;
+
+		int itemIndex = -1;
+		bool meatProiory = injector.getEnableHash(util::kBattleItemHealMeatPriorityEnable);
+		if (meatProiory)
+		{
+			itemIndex = getItemIndexByName(u8"肉", false, u8"耐久力");
+		}
+
+		if (itemIndex == -1)
+		{
+			QString text = injector.getStringHash(util::kBattleItemHealItemString).simplified();
+			if (text.isEmpty())
+				break;
+
+			items = text.split(util::rexOR, Qt::SkipEmptyParts);
+			if (items.isEmpty())
+				break;
+
+			for (const QString& str : items)
+			{
+				itemIndex = getItemIndexByName(str);
+				if (itemIndex != -1)
+					break;
+			}
+		}
+
+		if (itemIndex == -1)
+			break;
+
+		target = -1;
+		if (fixPlayerTargetByItemIndex(itemIndex, tempTarget, &target) && (target >= 0 && target <= 21))
+		{
+			sendBattlePlayerItemAct(itemIndex, target);
+			return;
+		}
 	} while (false);
 
 	//指定回合
@@ -11099,7 +11213,10 @@ void Server::handlePlayerBattleLogics()
 		unsigned int targetFlags = injector.getValueHash(util::kBattleCharRoundActionTargetValue);
 		if (targetFlags & kSelectEnemyAny)
 		{
-			tempTarget = getBattleSelectableEnemyTarget();
+			if (target == -1)
+				tempTarget = getBattleSelectableEnemyTarget();
+			else
+				tempTarget = target;
 		}
 		else if (targetFlags & kSelectEnemyAll)
 		{
@@ -11107,11 +11224,18 @@ void Server::handlePlayerBattleLogics()
 		}
 		else if (targetFlags & kSelectEnemyFront)
 		{
-			tempTarget = getBattleSelectableEnemyOneRowTarget(true) + 20;
+			if (target == -1)
+				tempTarget = getBattleSelectableEnemyOneRowTarget(true) + 20;
+			else
+				tempTarget = target + 20;
+
 		}
 		else if (targetFlags & kSelectEnemyBack)
 		{
-			tempTarget = getBattleSelectableEnemyOneRowTarget(false) + 20;
+			if (target == -1)
+				tempTarget = getBattleSelectableEnemyOneRowTarget(false) + 20;
+			else
+				tempTarget = target + 20;
 		}
 		else if (targetFlags & kSelectSelf)
 		{
@@ -11164,7 +11288,7 @@ void Server::handlePlayerBattleLogics()
 			if (isProfession) //0 ~ MAX_PROFESSION_SKILL
 			{
 				magicIndex -= MAX_MAGIC;
-				int target = -1;
+
 				if (fixPlayerTargetBySkillIndex(magicIndex, tempTarget, &target) && (target >= 0 && target <= 22))
 				{
 					if (isPlayerMpEnoughForSkill(magicIndex))
@@ -11181,7 +11305,7 @@ void Server::handlePlayerBattleLogics()
 			}
 			else
 			{
-				int target = -1;
+
 				if (fixPlayerTargetByMagicIndex(magicIndex, tempTarget, &target) && (target >= 0 && target <= 22))
 				{
 					if (isPlayerMpEnoughForMagic(magicIndex))
@@ -11228,7 +11352,10 @@ void Server::handlePlayerBattleLogics()
 		unsigned int targetFlags = injector.getValueHash(util::kBattleCharCrossActionTargetValue);
 		if (targetFlags & kSelectEnemyAny)
 		{
-			tempTarget = getBattleSelectableEnemyTarget();
+			if (target == -1)
+				tempTarget = getBattleSelectableEnemyTarget();
+			else
+				tempTarget = target;
 		}
 		else if (targetFlags & kSelectEnemyAll)
 		{
@@ -11236,11 +11363,17 @@ void Server::handlePlayerBattleLogics()
 		}
 		else if (targetFlags & kSelectEnemyFront)
 		{
-			tempTarget = getBattleSelectableEnemyOneRowTarget(true) + 20;
+			if (target == -1)
+				tempTarget = getBattleSelectableEnemyOneRowTarget(true) + 20;
+			else
+				tempTarget = target + 20;
 		}
 		else if (targetFlags & kSelectEnemyBack)
 		{
-			tempTarget = getBattleSelectableEnemyOneRowTarget(false) + 20;
+			if (target == -1)
+				tempTarget = getBattleSelectableEnemyOneRowTarget(false) + 20;
+			else
+				tempTarget = target + 20;
 		}
 		else if (targetFlags & kSelectSelf)
 		{
@@ -11293,7 +11426,7 @@ void Server::handlePlayerBattleLogics()
 			if (isProfession) //0 ~ MAX_PROFESSION_SKILL
 			{
 				magicIndex -= MAX_MAGIC;
-				int target = -1;
+
 				if (fixPlayerTargetBySkillIndex(magicIndex, tempTarget, &target) && (target >= 0 && target <= 22))
 				{
 					if (isPlayerMpEnoughForSkill(magicIndex))
@@ -11310,7 +11443,7 @@ void Server::handlePlayerBattleLogics()
 			}
 			else
 			{
-				int target = -1;
+
 				if (fixPlayerTargetByMagicIndex(magicIndex, tempTarget, &target) && (target >= 0 && target <= 22))
 				{
 					if (isPlayerMpEnoughForMagic(magicIndex))
@@ -11372,7 +11505,10 @@ void Server::handlePlayerBattleLogics()
 		unsigned int targetFlags = injector.getValueHash(util::kBattleCharNormalActionTargetValue);
 		if (targetFlags & kSelectEnemyAny)
 		{
-			tempTarget = getBattleSelectableEnemyTarget();
+			if (target == -1)
+				tempTarget = getBattleSelectableEnemyTarget();
+			else
+				tempTarget = target;
 		}
 		else if (targetFlags & kSelectEnemyAll)
 		{
@@ -11380,11 +11516,17 @@ void Server::handlePlayerBattleLogics()
 		}
 		else if (targetFlags & kSelectEnemyFront)
 		{
-			tempTarget = getBattleSelectableEnemyOneRowTarget(true) + 20;
+			if (target == -1)
+				tempTarget = getBattleSelectableEnemyOneRowTarget(true) + 20;
+			else
+				tempTarget = target + 20;
 		}
 		else if (targetFlags & kSelectEnemyBack)
 		{
-			tempTarget = getBattleSelectableEnemyOneRowTarget(false) + 20;
+			if (target == -1)
+				tempTarget = getBattleSelectableEnemyOneRowTarget(false) + 20;
+			else
+				tempTarget = target + 20;
 		}
 		else if (targetFlags & kSelectSelf)
 		{
@@ -11437,7 +11579,7 @@ void Server::handlePlayerBattleLogics()
 			if (isProfession) //0 ~ MAX_PROFESSION_SKILL
 			{
 				magicIndex -= MAX_MAGIC;
-				int target = -1;
+
 				if (fixPlayerTargetBySkillIndex(magicIndex, tempTarget, &target) && (target >= 0 && target <= 22))
 				{
 					if (isPlayerMpEnoughForSkill(magicIndex))
@@ -11454,7 +11596,7 @@ void Server::handlePlayerBattleLogics()
 			}
 			else
 			{
-				int target = -1;
+
 				if (fixPlayerTargetByMagicIndex(magicIndex, tempTarget, &target) && (target >= 0 && target <= 22))
 				{
 					if (isPlayerMpEnoughForMagic(magicIndex))
@@ -11480,6 +11622,10 @@ void Server::handlePetBattleLogics()
 {
 	using namespace util;
 	Injector& injector = Injector::getInstance();
+	QVector<battleobject_t> battleObjects = battleData.enemies;
+	QVector<battleobject_t> tempbattleObjects;
+	sortBattleUnit(battleObjects);
+	int target = -1;
 
 	//自動捉寵
 	do
@@ -11503,13 +11649,43 @@ void Server::handlePetBattleLogics()
 			break;
 
 		int tempTarget = tempCatchPetTargetIndex;
-		int target = -1;
 		if ((tempTarget != -1) && fixPetTargetBySkillIndex(skillIndex, tempTarget, &target) && (target >= 0 && target <= 22))
 		{
 			sendBattlePetSkillAct(skillIndex, target);
 			return;
 		}
 		sendBattlePetDoNothing(); //避免有人會忘記改成防禦，默認只要打開捉寵且動作失敗就什麼都不做
+		return;
+	} while (false);
+
+	//鎖定攻擊
+	do
+	{
+		bool lockAttackEnable = injector.getEnableHash(util::kLockAttackEnable);
+		if (!lockAttackEnable)
+			break;
+
+		QString text = injector.getStringHash(util::kLockAttackString);
+		QStringList targetList = text.split(util::rexOR, Qt::SkipEmptyParts);
+		if (targetList.isEmpty())
+			break;
+
+		bool bret = false;
+		for (const QString& it : targetList)
+		{
+			if (matchBattleEnemyByName(it, true, battleObjects, &tempbattleObjects))
+			{
+				bret = true;
+				battleObjects = tempbattleObjects;
+				target = battleObjects.front().pos;
+				break;
+			}
+		}
+
+		if (bret)
+			break;
+
+		sendBattlePetDoNothing();
 		return;
 	} while (false);
 
@@ -11550,7 +11726,10 @@ void Server::handlePetBattleLogics()
 		unsigned int targetFlags = injector.getValueHash(util::kBattlePetRoundActionTargetValue);
 		if (targetFlags & kSelectEnemyAny)
 		{
-			tempTarget = getBattleSelectableEnemyTarget();
+			if (target == -1)
+				tempTarget = getBattleSelectableEnemyTarget();
+			else
+				tempTarget = target;
 		}
 		else if (targetFlags & kSelectEnemyAll)
 		{
@@ -11558,11 +11737,17 @@ void Server::handlePetBattleLogics()
 		}
 		else if (targetFlags & kSelectEnemyFront)
 		{
-			tempTarget = getBattleSelectableEnemyOneRowTarget(true) + 20;
+			if (target == -1)
+				tempTarget = getBattleSelectableEnemyOneRowTarget(true) + 20;
+			else
+				tempTarget = target;
 		}
 		else if (targetFlags & kSelectEnemyBack)
 		{
-			tempTarget = getBattleSelectableEnemyOneRowTarget(false) + 20;
+			if (target == -1)
+				tempTarget = getBattleSelectableEnemyOneRowTarget(false) + 20;
+			else
+				tempTarget = target;
 		}
 		else if (targetFlags & kSelectSelf)
 		{
@@ -11597,7 +11782,6 @@ void Server::handlePetBattleLogics()
 		if (skillIndex < 0 || skillIndex > MAX_SKILL)
 			break;
 
-		int target = -1;
 		if (fixPetTargetBySkillIndex(skillIndex, tempTarget, &target) && (target >= 0 && target <= 22))
 		{
 			sendBattlePetSkillAct(skillIndex, target);
@@ -11623,7 +11807,10 @@ void Server::handlePetBattleLogics()
 		unsigned int targetFlags = injector.getValueHash(util::kBattlePetCrossActionTargetValue);
 		if (targetFlags & kSelectEnemyAny)
 		{
-			tempTarget = getBattleSelectableEnemyTarget();
+			if (target == -1)
+				tempTarget = getBattleSelectableEnemyTarget();
+			else
+				tempTarget = target;
 		}
 		else if (targetFlags & kSelectEnemyAll)
 		{
@@ -11631,11 +11818,17 @@ void Server::handlePetBattleLogics()
 		}
 		else if (targetFlags & kSelectEnemyFront)
 		{
-			tempTarget = getBattleSelectableEnemyOneRowTarget(true) + 20;
+			if (target == -1)
+				tempTarget = getBattleSelectableEnemyOneRowTarget(true) + 20;
+			else
+				tempTarget = target;
 		}
 		else if (targetFlags & kSelectEnemyBack)
 		{
-			tempTarget = getBattleSelectableEnemyOneRowTarget(false) + 20;
+			if (target == -1)
+				tempTarget = getBattleSelectableEnemyOneRowTarget(false) + 20;
+			else
+				tempTarget = target;
 		}
 		else if (targetFlags & kSelectSelf)
 		{
@@ -11670,7 +11863,6 @@ void Server::handlePetBattleLogics()
 		if (skillIndex < 0 || skillIndex > MAX_SKILL)
 			break;
 
-		int target = -1;
 		if (fixPetTargetBySkillIndex(skillIndex, tempTarget, &target) && (target >= 0 && target <= 22))
 		{
 			sendBattlePetSkillAct(skillIndex, target);
@@ -11720,7 +11912,10 @@ void Server::handlePetBattleLogics()
 		unsigned int targetFlags = injector.getValueHash(util::kBattlePetNormalActionTargetValue);
 		if (targetFlags & kSelectEnemyAny)
 		{
-			tempTarget = getBattleSelectableEnemyTarget();
+			if (target == -1)
+				tempTarget = getBattleSelectableEnemyTarget();
+			else
+				tempTarget = target;
 		}
 		else if (targetFlags & kSelectEnemyAll)
 		{
@@ -11728,11 +11923,17 @@ void Server::handlePetBattleLogics()
 		}
 		else if (targetFlags & kSelectEnemyFront)
 		{
-			tempTarget = getBattleSelectableEnemyOneRowTarget(true) + 20;
+			if (target == -1)
+				tempTarget = getBattleSelectableEnemyOneRowTarget(true) + 20;
+			else
+				tempTarget = target;
 		}
 		else if (targetFlags & kSelectEnemyBack)
 		{
-			tempTarget = getBattleSelectableEnemyOneRowTarget(false) + 20;
+			if (target == -1)
+				tempTarget = getBattleSelectableEnemyOneRowTarget(false) + 20;
+			else
+				tempTarget = target;
 		}
 		else if (targetFlags & kSelectSelf)
 		{
@@ -11767,7 +11968,6 @@ void Server::handlePetBattleLogics()
 		if (skillIndex < 0 || skillIndex > MAX_SKILL)
 			break;
 
-		int target = -1;
 		if (fixPetTargetBySkillIndex(skillIndex, tempTarget, &target) && (target >= 0 && target <= 22))
 		{
 			sendBattlePetSkillAct(skillIndex, target);
@@ -11775,7 +11975,8 @@ void Server::handlePetBattleLogics()
 		}
 		else
 		{
-			tempTarget = getBattleSelectableEnemyTarget();
+			if (target == -1)
+				tempTarget = getBattleSelectableEnemyTarget();
 			if (fixPetTargetBySkillIndex(skillIndex, tempTarget, &target) && (target >= 0 && target <= 22))
 			{
 				sendBattlePetSkillAct(skillIndex, target);
@@ -11877,7 +12078,6 @@ bool Server::isPlayerMpEnoughForSkill(int magicIndex) const
 
 	return true;
 }
-
 
 //戰場上單位排序
 void Server::sortBattleUnit(QVector<battleobject_t>& v) const

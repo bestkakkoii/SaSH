@@ -277,7 +277,6 @@ int util::Config::readInt(const QString& sec, const QString& key, int retnot) co
 	return retnot;
 }
 
-
 qreal util::Config::readDouble(const QString& sec, const QString& key, qreal retnot) const
 {
 	if (cache_.contains(sec))
@@ -412,6 +411,57 @@ QList<int> util::Config::readIntArray(const QString& sec, const QString& key, co
 	return result;
 }
 
+QStringList util::Config::readStringArray(const QString& sec, const QString& key, const QString& sub) const
+{
+	QStringList result;
+
+	if (cache_.contains(sec))
+	{
+		QJsonObject json = cache_[sec].toJsonObject();
+
+		if (json.contains(key))
+		{
+			QJsonObject subJson = json[key].toObject();
+
+			if (subJson.contains(sub))
+			{
+				QJsonArray jsonArray = subJson[sub].toArray();
+
+				for (const QJsonValue& value : jsonArray)
+				{
+					result.append(value.toString());
+				}
+			}
+		}
+	}
+
+	return result;
+}
+
+void util::Config::writeStringArray(const QString& sec, const QString& key, const QString& sub, const QStringList values)
+{
+	if (!cache_.contains(sec))
+	{
+		cache_[sec] = QJsonObject();
+	}
+
+	QJsonObject json = cache_[sec].toJsonObject();
+	QJsonArray jsonArray;
+
+	for (const QString& value : values)
+	{
+		jsonArray.append(value);
+	}
+
+	QJsonObject subJson = json[key].toObject();
+	subJson[sub] = jsonArray;
+
+	json[key] = subJson;
+	cache_[sec] = json;
+	if (!hasChanged_)
+		hasChanged_ = true;
+}
+
 void util::Config::writeIntArray(const QString& sec, const QString& key, const QList<int>& values)
 {
 	if (!cache_.contains(sec))
@@ -445,7 +495,7 @@ void util::Config::writeIntArray(const QString& sec, const QString& key, const Q
 		jsonArray.append(value);
 	}
 
-	QJsonObject subJson;
+	QJsonObject subJson = json[key].toObject();
 	subJson[sub] = jsonArray;
 
 	json[key] = subJson;

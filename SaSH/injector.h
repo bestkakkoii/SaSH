@@ -58,6 +58,7 @@ public:
 		kSetMove,
 		kDistoryDialog,
 		kCleanChatHistory,
+		kCreateDialog,
 	};
 
 	typedef struct process_information_s
@@ -141,13 +142,19 @@ private:
 	Q_REQUIRED_RESULT bool isHandleValid(qint64 pid);
 
 public:
-	QScopedPointer<Server> server;
+	QString currentGameExePath;//當前使用的遊戲進程完整路徑
 
-	bool IS_SCRIPT_FLAG = false;
+	QSharedPointer<Server> server;//與遊戲TCP通信專用
 
-	QScopedPointer<StringListModel> scriptLogModel;
+	bool IS_SCRIPT_FLAG = false;//主腳本是否運行
+	QString currentScriptFileName;//當前運行的主腳本完整路徑
 
-	QScopedPointer<StringListModel> chatLogModel;
+	QSharedPointer<StringListModel> scriptLogModel; //腳本日誌模型
+
+	QSharedPointer<StringListModel> chatLogModel; //聊天日誌模型
+
+	QMutex globalMutex; //用於保證 主線程 | 收包線程 | 腳本線程 數據同步的主要鎖
+
 
 private:
 	int hModule_ = NULL;
@@ -217,21 +224,21 @@ private:
 		{ util::kNormalMagicHealMagicValue, 0 },
 
 		//afk->heal spinbox
-		{ util::kMagicHealCharValue, 50 },
-		{ util::kMagicHealPetValue, 50 },
-		{ util::kMagicHealAllieValue, 50 },
-		{ util::kItemHealCharValue, 50 },
-		{ util::kItemHealPetValue, 50 },
-		{ util::kItemHealAllieValue, 50 },
-		{ util::kItemHealMpValue, 50 },
+		{ util::kBattleMagicHealCharValue, 50 },
+		{ util::kBattleMagicHealPetValue, 50 },
+		{ util::kBattleMagicHealAllieValue, 50 },
+		{ util::kBattleItemHealCharValue, 50 },
+		{ util::kBattleItemHealPetValue, 50 },
+		{ util::kBattleItemHealAllieValue, 50 },
+		{ util::kBattleItemHealMpValue, 50 },
 
-		{ util::kMagicHealCharNormalValue, 50 },
-		{ util::kMagicHealPetNormalValue, 50 },
-		{ util::kMagicHealAllieNormalValue, 50 },
-		{ util::kItemHealCharNormalValue, 50 },
-		{ util::kItemHealPetNormalValue, 50 },
-		{ util::kItemHealAllieNormalValue, 50 },
-		{ util::kItemHealMpNormalValue, 50 },
+		{ util::kNormalMagicHealCharValue, 50 },
+		{ util::kNormalMagicHealPetValue, 50 },
+		{ util::kNormalMagicHealAllieValue, 50 },
+		{ util::kNormalItemHealCharValue, 50 },
+		{ util::kNormalItemHealPetValue, 50 },
+		{ util::kNormalItemHealAllieValue, 50 },
+		{ util::kNormalItemHealMpValue, 50 },
 
 		//afk->walk
 		{ util::kAutoWalkDelayValue, 10 },
@@ -304,6 +311,7 @@ private:
 		{ util::kLockEscapeEnable, false },
 		{ util::kBattleTimeExtendEnable, false },
 		{ util::kFallDownEscapeEnable, false },
+		{ util::kShowExpEnable, false },
 
 		//switcher
 		{ util::kSwitcherTeamEnable, false },
@@ -349,7 +357,6 @@ private:
 		{ util::kLockPetEnable, false },
 		{ util::kLockRideEnable, false },
 		{ util::kLockPetScheduleEnable, false },
-		{ util::kLockRideScheduleEnable, false },
 		//other->group
 
 	};
@@ -360,7 +367,7 @@ private:
 		{ util::kLockEscapeString, "" },
 
 		{ util::kBattleItemHealItemString, "" },
-		{ util::kBattleItemHealMpIteamString, "" },
+		{ util::kBattleItemHealMpItemString, "" },
 		{ util::kBattleItemReviveItemString, "" },
 		{ util::kNormalItemHealItemString, "" },
 		{ util::kNormalItemHealMpItemString, "" },
@@ -374,7 +381,6 @@ private:
 
 		//other->lockpet
 		{ util::kLockPetScheduleString, "" },
-		{ util::kLockRideScheduleString, "" },
 
 		{ util::kGameAccountString, "" },
 		{ util::kGamePasswordString, "" },

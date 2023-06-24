@@ -1280,6 +1280,21 @@ color: rgb(208, 208, 208);
            </item>
            <item>
             <property name="text">
+             <string>upper</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>tostr</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>toint</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
              <string>sysvar</string>
             </property>
            </item>
@@ -1290,12 +1305,42 @@ color: rgb(208, 208, 208);
            </item>
            <item>
             <property name="text">
+             <string>replace</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
              <string>releaseall</string>
             </property>
            </item>
            <item>
             <property name="text">
+             <string>regex</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>lower</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>half</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>full</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
              <string>format</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>find</string>
             </property>
            </item>
            <item>
@@ -1380,6 +1425,11 @@ color: rgb(208, 208, 208);
            </item>
            <item>
             <property name="text">
+             <string>dlg</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
              <string>cls</string>
             </property>
            </item>
@@ -1451,6 +1501,11 @@ color: rgb(208, 208, 208);
            <item>
             <property name="text">
              <string>return</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>reg</string>
             </property>
            </item>
            <item>
@@ -1750,6 +1805,11 @@ color: rgb(208, 208, 208);
            </item>
            <item>
             <property name="text">
+             <string>ifonline</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
              <string>ifmap</string>
             </property>
            </item>
@@ -1771,6 +1831,66 @@ color: rgb(208, 208, 208);
            <item>
             <property name="text">
              <string>ifbattle</string>
+            </property>
+           </item>
+          </item>
+          <item>
+           <property name="text">
+            <string>battle</string>
+           </property>
+           <item>
+            <property name="text">
+             <string>bwf</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>bw</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>bt</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>bs</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>bp</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>bn</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>bj</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>bi</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>bh</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>be</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>bd</string>
             </property>
            </item>
           </item>

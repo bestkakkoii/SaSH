@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>344</width>
-    <height>439</height>
+    <width>310</width>
+    <height>417</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -85,6 +85,9 @@
          </property>
          <item>
           <widget class="QGroupBox" name="groupBox_team">
+           <property name="styleSheet">
+            <string notr="true">QGroupBox { color:rgb(100,149,237) }</string>
+           </property>
            <property name="title">
             <string>team info</string>
            </property>
@@ -154,6 +157,12 @@
                   <property name="enabled">
                    <bool>true</bool>
                   </property>
+                  <property name="maximumSize">
+                   <size>
+                    <width>25</width>
+                    <height>25</height>
+                   </size>
+                  </property>
                   <property name="text">
                    <string>L</string>
                   </property>
@@ -205,6 +214,12 @@
                  <widget class="QPushButton" name="pushButton_teammate1kick">
                   <property name="enabled">
                    <bool>true</bool>
+                  </property>
+                  <property name="maximumSize">
+                   <size>
+                    <width>25</width>
+                    <height>25</height>
+                   </size>
                   </property>
                   <property name="text">
                    <string>K</string>
@@ -258,6 +273,12 @@
                   <property name="enabled">
                    <bool>true</bool>
                   </property>
+                  <property name="maximumSize">
+                   <size>
+                    <width>25</width>
+                    <height>25</height>
+                   </size>
+                  </property>
                   <property name="text">
                    <string>K</string>
                   </property>
@@ -309,6 +330,12 @@
                  <widget class="QPushButton" name="pushButton_teammate3kick">
                   <property name="enabled">
                    <bool>true</bool>
+                  </property>
+                  <property name="maximumSize">
+                   <size>
+                    <width>25</width>
+                    <height>25</height>
+                   </size>
                   </property>
                   <property name="text">
                    <string>K</string>
@@ -362,6 +389,12 @@
                   <property name="enabled">
                    <bool>true</bool>
                   </property>
+                  <property name="maximumSize">
+                   <size>
+                    <width>25</width>
+                    <height>25</height>
+                   </size>
+                  </property>
                   <property name="text">
                    <string>K</string>
                   </property>
@@ -406,6 +439,12 @@
                <property name="enabled">
                 <bool>false</bool>
                </property>
+               <property name="maximumSize">
+                <size>
+                 <width>50</width>
+                 <height>25</height>
+                </size>
+               </property>
                <property name="text">
                 <string>select</string>
                </property>
@@ -439,6 +478,12 @@
               <widget class="QPushButton" name="pushButton_15">
                <property name="enabled">
                 <bool>false</bool>
+               </property>
+               <property name="maximumSize">
+                <size>
+                 <width>50</width>
+                 <height>25</height>
+                </size>
                </property>
                <property name="text">
                 <string>select</string>
@@ -537,414 +582,281 @@
       <attribute name="title">
        <string>lockpet</string>
       </attribute>
-      <layout class="QGridLayout" name="gridLayout_4">
-       <item row="0" column="0">
-        <layout class="QVBoxLayout" name="verticalLayout">
-         <item>
-          <widget class="QGroupBox" name="groupBox_4">
-           <property name="title">
-            <string>lock pet</string>
-           </property>
-           <layout class="QGridLayout" name="gridLayout_27">
-            <property name="leftMargin">
-             <number>0</number>
-            </property>
-            <property name="topMargin">
-             <number>0</number>
-            </property>
-            <property name="rightMargin">
-             <number>0</number>
-            </property>
-            <property name="bottomMargin">
-             <number>0</number>
-            </property>
+      <layout class="QVBoxLayout" name="verticalLayout_2">
+       <property name="spacing">
+        <number>1</number>
+       </property>
+       <property name="leftMargin">
+        <number>1</number>
+       </property>
+       <property name="topMargin">
+        <number>1</number>
+       </property>
+       <property name="rightMargin">
+        <number>1</number>
+       </property>
+       <property name="bottomMargin">
+        <number>1</number>
+       </property>
+       <item>
+        <widget class="QGroupBox" name="groupBox_4">
+         <property name="styleSheet">
+          <string notr="true">QGroupBox { color:rgb(100,149,237) }</string>
+         </property>
+         <property name="title">
+          <string>lock pet</string>
+         </property>
+         <layout class="QGridLayout" name="gridLayout_27">
+          <property name="leftMargin">
+           <number>0</number>
+          </property>
+          <property name="topMargin">
+           <number>0</number>
+          </property>
+          <property name="rightMargin">
+           <number>0</number>
+          </property>
+          <property name="bottomMargin">
+           <number>0</number>
+          </property>
+          <property name="spacing">
+           <number>0</number>
+          </property>
+          <item row="0" column="0">
+           <layout class="QVBoxLayout" name="verticalLayout_21">
             <property name="spacing">
-             <number>0</number>
+             <number>1</number>
             </property>
-            <item row="0" column="0">
-             <layout class="QVBoxLayout" name="verticalLayout_21">
+            <item>
+             <layout class="QHBoxLayout" name="horizontalLayout_95">
               <property name="spacing">
-               <number>1</number>
+               <number>0</number>
               </property>
               <item>
-               <layout class="QHBoxLayout" name="horizontalLayout_95">
-                <property name="spacing">
-                 <number>0</number>
+               <widget class="QCheckBox" name="checkBox_lockpet">
+                <property name="enabled">
+                 <bool>true</bool>
                 </property>
-                <item>
-                 <widget class="QCheckBox" name="checkBox_lockpet">
-                  <property name="enabled">
-                   <bool>true</bool>
-                  </property>
-                  <property name="text">
-                   <string>lock pet after battle</string>
-                  </property>
-                 </widget>
-                </item>
-                <item>
-                 <widget class="ComboBox" name="comboBox_lockpet">
-                  <property name="enabled">
-                   <bool>true</bool>
-                  </property>
-                 </widget>
-                </item>
-               </layout>
+                <property name="text">
+                 <string>lock pet after battle</string>
+                </property>
+               </widget>
               </item>
               <item>
-               <layout class="QHBoxLayout" name="horizontalLayout_96">
-                <property name="spacing">
-                 <number>0</number>
+               <widget class="ComboBox" name="comboBox_lockpet">
+                <property name="enabled">
+                 <bool>true</bool>
                 </property>
-                <item>
-                 <widget class="QCheckBox" name="checkBox_lockride">
-                  <property name="enabled">
-                   <bool>true</bool>
-                  </property>
-                  <property name="text">
-                   <string>lock ride after battle</string>
-                  </property>
-                 </widget>
-                </item>
-                <item>
-                 <widget class="ComboBox" name="comboBox_lockride">
-                  <property name="enabled">
-                   <bool>true</bool>
-                  </property>
-                 </widget>
-                </item>
-               </layout>
+               </widget>
+              </item>
+             </layout>
+            </item>
+            <item>
+             <layout class="QHBoxLayout" name="horizontalLayout_96">
+              <property name="spacing">
+               <number>0</number>
+              </property>
+              <item>
+               <widget class="QCheckBox" name="checkBox_lockride">
+                <property name="enabled">
+                 <bool>true</bool>
+                </property>
+                <property name="text">
+                 <string>lock ride after battle</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="ComboBox" name="comboBox_lockride">
+                <property name="enabled">
+                 <bool>true</bool>
+                </property>
+               </widget>
               </item>
              </layout>
             </item>
            </layout>
-          </widget>
-         </item>
-         <item>
-          <widget class="QTabWidget" name="tabWidget_lock">
-           <property name="currentIndex">
-            <number>0</number>
-           </property>
-           <widget class="QWidget" name="tab">
-            <attribute name="title">
-             <string>pet</string>
-            </attribute>
-            <layout class="QGridLayout" name="gridLayout_31">
-             <property name="leftMargin">
-              <number>1</number>
-             </property>
-             <property name="topMargin">
-              <number>1</number>
-             </property>
-             <property name="rightMargin">
-              <number>1</number>
-             </property>
-             <property name="bottomMargin">
-              <number>1</number>
-             </property>
-             <property name="spacing">
-              <number>1</number>
-             </property>
-             <item row="0" column="0">
-              <widget class="QGroupBox" name="groupBox_lockpets">
-               <property name="enabled">
-                <bool>true</bool>
-               </property>
-               <property name="title">
-                <string>pet switch</string>
-               </property>
-               <property name="checkable">
-                <bool>true</bool>
-               </property>
-               <property name="checked">
-                <bool>false</bool>
-               </property>
-               <layout class="QGridLayout" name="gridLayout_5">
-                <property name="leftMargin">
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
+        <widget class="QGroupBox" name="groupBox_lockpets">
+         <property name="enabled">
+          <bool>true</bool>
+         </property>
+         <property name="styleSheet">
+          <string notr="true">QGroupBox { color:rgb(100,149,237) }</string>
+         </property>
+         <property name="title">
+          <string>pet switch(double click to remove)</string>
+         </property>
+         <property name="checkable">
+          <bool>true</bool>
+         </property>
+         <property name="checked">
+          <bool>false</bool>
+         </property>
+         <layout class="QVBoxLayout" name="verticalLayout_5">
+          <item>
+           <layout class="QHBoxLayout" name="horizontalLayout_97">
+            <property name="spacing">
+             <number>1</number>
+            </property>
+            <item>
+             <widget class="QListWidget" name="listWidget_lockpets">
+              <property name="editTriggers">
+               <set>QAbstractItemView::NoEditTriggers</set>
+              </property>
+              <property name="uniformItemSizes">
+               <bool>false</bool>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <layout class="QVBoxLayout" name="verticalLayout_22">
+              <property name="spacing">
+               <number>1</number>
+              </property>
+              <item>
+               <widget class="QPushButton" name="pushButton_lockpetsup">
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Minimum" vsizetype="Minimum">
+                  <horstretch>0</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
+                </property>
+                <property name="maximumSize">
+                 <size>
+                  <width>25</width>
+                  <height>16777215</height>
+                 </size>
+                </property>
+                <property name="text">
+                 <string>↑</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QPushButton" name="pushButton_lockpetsdown">
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Minimum" vsizetype="Minimum">
+                  <horstretch>0</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
+                </property>
+                <property name="maximumSize">
+                 <size>
+                  <width>25</width>
+                  <height>16777215</height>
+                 </size>
+                </property>
+                <property name="text">
+                 <string>↓</string>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </item>
+           </layout>
+          </item>
+          <item>
+           <layout class="QHBoxLayout" name="horizontalLayout">
+            <item>
+             <layout class="QVBoxLayout" name="verticalLayout">
+              <item>
+               <widget class="QLabel" name="label_6">
+                <property name="text">
+                 <string>petindex</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="ComboBox" name="comboBox_lockpets"/>
+              </item>
+             </layout>
+            </item>
+            <item>
+             <layout class="QVBoxLayout" name="verticalLayout_3">
+              <item>
+               <widget class="QLabel" name="label_7">
+                <property name="text">
+                 <string>level</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QSpinBox" name="spinBox_lockpetslevel">
+                <property name="enabled">
+                 <bool>false</bool>
+                </property>
+                <property name="maximumSize">
+                 <size>
+                  <width>50</width>
+                  <height>16777215</height>
+                 </size>
+                </property>
+                <property name="minimum">
                  <number>1</number>
                 </property>
-                <property name="topMargin">
-                 <number>1</number>
+                <property name="maximum">
+                 <number>255</number>
                 </property>
-                <property name="rightMargin">
-                 <number>1</number>
+               </widget>
+              </item>
+             </layout>
+            </item>
+            <item>
+             <layout class="QVBoxLayout" name="verticalLayout_4">
+              <item>
+               <widget class="QLabel" name="label_8">
+                <property name="text">
+                 <string>type</string>
                 </property>
-                <property name="bottomMargin">
-                 <number>1</number>
+               </widget>
+              </item>
+              <item>
+               <widget class="QComboBox" name="comboBox_locktype">
+                <property name="maximumSize">
+                 <size>
+                  <width>50</width>
+                  <height>16777215</height>
+                 </size>
                 </property>
-                <property name="spacing">
-                 <number>1</number>
-                </property>
-                <item row="0" column="0">
-                 <layout class="QVBoxLayout" name="verticalLayout_23">
-                  <property name="spacing">
-                   <number>1</number>
-                  </property>
-                  <item>
-                   <layout class="QHBoxLayout" name="horizontalLayout_97">
-                    <property name="spacing">
-                     <number>1</number>
-                    </property>
-                    <item>
-                     <widget class="QListWidget" name="listWidget_lockpets"/>
-                    </item>
-                    <item>
-                     <layout class="QVBoxLayout" name="verticalLayout_22">
-                      <property name="spacing">
-                       <number>1</number>
-                      </property>
-                      <item>
-                       <widget class="QPushButton" name="pushButton_lockpetsup">
-                        <property name="sizePolicy">
-                         <sizepolicy hsizetype="Minimum" vsizetype="Minimum">
-                          <horstretch>0</horstretch>
-                          <verstretch>0</verstretch>
-                         </sizepolicy>
-                        </property>
-                        <property name="maximumSize">
-                         <size>
-                          <width>25</width>
-                          <height>16777215</height>
-                         </size>
-                        </property>
-                        <property name="text">
-                         <string>↑</string>
-                        </property>
-                       </widget>
-                      </item>
-                      <item>
-                       <widget class="QPushButton" name="pushButton_lockpetsdown">
-                        <property name="sizePolicy">
-                         <sizepolicy hsizetype="Minimum" vsizetype="Minimum">
-                          <horstretch>0</horstretch>
-                          <verstretch>0</verstretch>
-                         </sizepolicy>
-                        </property>
-                        <property name="maximumSize">
-                         <size>
-                          <width>25</width>
-                          <height>16777215</height>
-                         </size>
-                        </property>
-                        <property name="text">
-                         <string>↓</string>
-                        </property>
-                       </widget>
-                      </item>
-                     </layout>
-                    </item>
-                   </layout>
-                  </item>
-                  <item>
-                   <layout class="QHBoxLayout" name="horizontalLayout_98">
-                    <property name="spacing">
-                     <number>1</number>
-                    </property>
-                    <item>
-                     <widget class="ComboBox" name="comboBox_lockpets"/>
-                    </item>
-                    <item>
-                     <widget class="QSpinBox" name="spinBox_lockpetslevel">
-                      <property name="enabled">
-                       <bool>false</bool>
-                      </property>
-                      <property name="maximumSize">
-                       <size>
-                        <width>50</width>
-                        <height>16777215</height>
-                       </size>
-                      </property>
-                      <property name="minimum">
-                       <number>1</number>
-                      </property>
-                      <property name="maximum">
-                       <number>255</number>
-                      </property>
-                     </widget>
-                    </item>
-                    <item>
-                     <widget class="QPushButton" name="pushButton_lockpetsadd">
-                      <property name="maximumSize">
-                       <size>
-                        <width>25</width>
-                        <height>25</height>
-                       </size>
-                      </property>
-                      <property name="text">
-                       <string>+</string>
-                      </property>
-                     </widget>
-                    </item>
-                   </layout>
-                  </item>
-                 </layout>
-                </item>
-               </layout>
-              </widget>
-             </item>
-            </layout>
-           </widget>
-           <widget class="QWidget" name="tab_2">
-            <attribute name="title">
-             <string>ride</string>
-            </attribute>
-            <layout class="QGridLayout" name="gridLayout_2">
-             <property name="leftMargin">
-              <number>1</number>
-             </property>
-             <property name="topMargin">
-              <number>1</number>
-             </property>
-             <property name="rightMargin">
-              <number>1</number>
-             </property>
-             <property name="bottomMargin">
-              <number>1</number>
-             </property>
-             <property name="spacing">
-              <number>1</number>
-             </property>
-             <item row="0" column="0">
-              <widget class="QGroupBox" name="groupBox_lockrides">
-               <property name="enabled">
-                <bool>true</bool>
-               </property>
-               <property name="title">
-                <string>ride switch</string>
-               </property>
-               <property name="checkable">
-                <bool>true</bool>
-               </property>
-               <property name="checked">
-                <bool>false</bool>
-               </property>
-               <layout class="QGridLayout" name="gridLayout_3">
-                <property name="leftMargin">
-                 <number>1</number>
-                </property>
-                <property name="topMargin">
-                 <number>1</number>
-                </property>
-                <property name="rightMargin">
-                 <number>1</number>
-                </property>
-                <property name="bottomMargin">
-                 <number>1</number>
-                </property>
-                <property name="spacing">
-                 <number>1</number>
-                </property>
-                <item row="0" column="0">
-                 <layout class="QVBoxLayout" name="verticalLayout_32">
-                  <property name="spacing">
-                   <number>1</number>
-                  </property>
-                  <item>
-                   <layout class="QHBoxLayout" name="horizontalLayout_110">
-                    <property name="spacing">
-                     <number>1</number>
-                    </property>
-                    <item>
-                     <widget class="QListWidget" name="listWidget_lockrides"/>
-                    </item>
-                    <item>
-                     <layout class="QVBoxLayout" name="verticalLayout_33">
-                      <property name="spacing">
-                       <number>1</number>
-                      </property>
-                      <item>
-                       <widget class="QPushButton" name="pushButton_lockridesup">
-                        <property name="sizePolicy">
-                         <sizepolicy hsizetype="Minimum" vsizetype="Minimum">
-                          <horstretch>0</horstretch>
-                          <verstretch>0</verstretch>
-                         </sizepolicy>
-                        </property>
-                        <property name="maximumSize">
-                         <size>
-                          <width>25</width>
-                          <height>16777215</height>
-                         </size>
-                        </property>
-                        <property name="text">
-                         <string>↑</string>
-                        </property>
-                       </widget>
-                      </item>
-                      <item>
-                       <widget class="QPushButton" name="pushButton_lockridesdown">
-                        <property name="sizePolicy">
-                         <sizepolicy hsizetype="Minimum" vsizetype="Minimum">
-                          <horstretch>0</horstretch>
-                          <verstretch>0</verstretch>
-                         </sizepolicy>
-                        </property>
-                        <property name="maximumSize">
-                         <size>
-                          <width>25</width>
-                          <height>16777215</height>
-                         </size>
-                        </property>
-                        <property name="text">
-                         <string>↓</string>
-                        </property>
-                       </widget>
-                      </item>
-                     </layout>
-                    </item>
-                   </layout>
-                  </item>
-                  <item>
-                   <layout class="QHBoxLayout" name="horizontalLayout_111">
-                    <property name="spacing">
-                     <number>1</number>
-                    </property>
-                    <item>
-                     <widget class="ComboBox" name="comboBox_lockrides"/>
-                    </item>
-                    <item>
-                     <widget class="QSpinBox" name="spinBox_lockrideslevel">
-                      <property name="enabled">
-                       <bool>false</bool>
-                      </property>
-                      <property name="maximumSize">
-                       <size>
-                        <width>50</width>
-                        <height>16777215</height>
-                       </size>
-                      </property>
-                      <property name="minimum">
-                       <number>1</number>
-                      </property>
-                      <property name="maximum">
-                       <number>255</number>
-                      </property>
-                     </widget>
-                    </item>
-                    <item>
-                     <widget class="QPushButton" name="pushButton_lockridesadd">
-                      <property name="maximumSize">
-                       <size>
-                        <width>25</width>
-                        <height>25</height>
-                       </size>
-                      </property>
-                      <property name="text">
-                       <string>+</string>
-                      </property>
-                     </widget>
-                    </item>
-                   </layout>
-                  </item>
-                 </layout>
-                </item>
-               </layout>
-              </widget>
-             </item>
-            </layout>
-           </widget>
-          </widget>
-         </item>
-        </layout>
+               </widget>
+              </item>
+             </layout>
+            </item>
+            <item>
+             <widget class="QPushButton" name="pushButton_lockpetsadd">
+              <property name="maximumSize">
+               <size>
+                <width>25</width>
+                <height>25</height>
+               </size>
+              </property>
+              <property name="text">
+               <string>+</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="pushButton_lockpetsall">
+              <property name="maximumSize">
+               <size>
+                <width>25</width>
+                <height>25</height>
+               </size>
+              </property>
+              <property name="text">
+               <string>all</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+         </layout>
+        </widget>
        </item>
       </layout>
      </widget>
@@ -985,6 +897,9 @@
          </property>
          <item>
           <widget class="QGroupBox" name="groupBox_7">
+           <property name="styleSheet">
+            <string notr="true">QGroupBox { color:rgb(100,149,237) }</string>
+           </property>
            <property name="title">
             <string>security</string>
            </property>

@@ -44,7 +44,6 @@ private:
 
 	bool IS_LOADING = false;
 	QStringList scriptList_;
-	QString currentFileName_;
 	int selectedRow_ = 0;
 
 	QScopedPointer<Interpreter> interpreter_;

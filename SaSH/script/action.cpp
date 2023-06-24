@@ -90,6 +90,32 @@ int Interpreter::useitem(int currentline, const TokenMap& TK)
 
 	}
 
+	if (target > 100 || target == -1)
+	{
+		QVector<int> v;
+		if (!injector.server->getItemIndexsByName(itemName, "", &v))
+			return Parser::kNoChange;
+
+		int totalUse = target - 100;
+
+		for (const int& it : v)
+		{
+			ITEM item = injector.server->pc.item[it];
+			int size = injector.server->pc.item[it].pile;
+			for (int i = 0; i < size; ++i)
+			{
+				injector.server->useItem(it, 0);
+				if (target != -1)
+				{
+					--totalUse;
+					if (totalUse <= 0)
+						return Parser::kNoChange;
+				}
+			}
+		}
+		return Parser::kNoChange;
+	}
+
 	int itemIndex = injector.server->getItemIndexByName(itemName);
 	if (itemIndex == -1)
 		return Parser::kNoChange;
@@ -599,8 +625,8 @@ int Interpreter::kick(int currentline, const TokenMap& TK)
 			bool bret = false;
 			for (int i = 1; i < MAX_PARTY; ++i)
 			{
-				PARTY party = injector.server->party[i];
-				if (party.useFlag == 0)
+				util::SafeHash<QString, QVariant> party = injector.server->hashparty.value(i);
+				if (party.value("valid").toInt() == 0)
 					continue;
 
 				for (QString it : list)
@@ -613,12 +639,11 @@ int Interpreter::kick(int currentline, const TokenMap& TK)
 						isExact = false;
 					}
 
-
-					if (isExact && party.name == newName)
+					if (isExact && party.value("name").toString() == newName)
 					{
 						bret = true;
 					}
-					else if (!isExact && party.name.contains(newName))
+					else if (!isExact && party.value("name").toString().contains(newName))
 					{
 						bret = true;
 					}
@@ -1593,27 +1618,213 @@ int Interpreter::mail(int currentline, const TokenMap& TK)
 	return Parser::kNoChange;
 }
 
-///////////////////////////////////////////////////////////////
-int Interpreter::ocr(int currentline, const TokenMap& TK)
+//battle
+int Interpreter::bh(int currentline, const TokenMap& TK)//atk
 {
 	Injector& injector = Injector::getInstance();
 
 	if (injector.server.isNull())
 		return Parser::kError;
 
-	int debugmode = 0;
-	checkInt(TK, 1, &debugmode);
+	if (!injector.server->IS_BATTLE_FLAG)
+		return Parser::kNoChange;
 
-	QString ret;
-	if (injector.server->postGifCodeImage(&ret))
-	{
-		qDebug() << ret;
-		if (!ret.isEmpty())
-		{
-			if (debugmode == 0)
-				injector.server->inputtext(ret);
-		}
-	}
+	int index = 0;
+	checkInt(TK, 1, &index);
+	if (index <= 0)
+		return Parser::kArgError;
+	--index;
 
+	injector.server->sendBattlePlayerAttackAct(index);
+
+	return Parser::kNoChange;
+}
+int Interpreter::bj(int currentline, const TokenMap& TK)//magic
+{
+	Injector& injector = Injector::getInstance();
+
+	if (injector.server.isNull())
+		return Parser::kError;
+
+	if (!injector.server->IS_BATTLE_FLAG)
+		return Parser::kNoChange;
+
+	int magicIndex = 0;
+	checkInt(TK, 1, &magicIndex);
+	if (magicIndex <= 0)
+		return Parser::kArgError;
+	--magicIndex;
+
+	int target = 0;
+	checkInt(TK, 2, &target);
+	if (target <= 0)
+		return Parser::kArgError;
+	--target;
+
+	injector.server->sendBattlePlayerMagicAct(magicIndex, target);
+
+	return Parser::kNoChange;
+}
+int Interpreter::bp(int currentline, const TokenMap& TK)//skill
+{
+	Injector& injector = Injector::getInstance();
+
+	if (injector.server.isNull())
+		return Parser::kError;
+
+	if (!injector.server->IS_BATTLE_FLAG)
+		return Parser::kNoChange;
+
+	int skillIndex = 0;
+	checkInt(TK, 1, &skillIndex);
+	if (skillIndex <= 0)
+		return Parser::kArgError;
+
+	int target = 0;
+	checkInt(TK, 2, &target);
+	if (target <= 0)
+		return Parser::kArgError;
+
+	injector.server->sendBattlePlayerJobSkillAct(skillIndex, target);
+
+	return Parser::kNoChange;
+}
+int Interpreter::bs(int currentline, const TokenMap& TK)//switch
+{
+	Injector& injector = Injector::getInstance();
+
+	if (injector.server.isNull())
+		return Parser::kError;
+
+	if (!injector.server->IS_BATTLE_FLAG)
+		return Parser::kNoChange;
+
+	int index = 0;
+	checkInt(TK, 1, &index);
+	if (index <= 0)
+		return Parser::kArgError;
+	injector.server->sendBattlePlayerSwitchPetAct(index);
+
+	return Parser::kNoChange;
+}
+int Interpreter::be(int currentline, const TokenMap& TK)//escape
+{
+	Injector& injector = Injector::getInstance();
+
+	if (injector.server.isNull())
+		return Parser::kError;
+
+	if (!injector.server->IS_BATTLE_FLAG)
+		return Parser::kNoChange;
+
+	injector.server->sendBattlePlayerEscapeAct();
+
+	return Parser::kNoChange;
+}
+int Interpreter::bd(int currentline, const TokenMap& TK)//defense
+{
+	Injector& injector = Injector::getInstance();
+
+	if (injector.server.isNull())
+		return Parser::kError;
+
+	if (!injector.server->IS_BATTLE_FLAG)
+		return Parser::kNoChange;
+
+	injector.server->sendBattlePlayerDefenseAct();
+
+	return Parser::kNoChange;
+}
+int Interpreter::bi(int currentline, const TokenMap& TK)//item
+{
+	Injector& injector = Injector::getInstance();
+
+	if (injector.server.isNull())
+		return Parser::kError;
+
+	if (!injector.server->IS_BATTLE_FLAG)
+		return Parser::kNoChange;
+
+	int index = 0;
+	checkInt(TK, 1, &index);
+	if (index <= 0)
+		return Parser::kArgError;
+
+	int target = 0;
+	checkInt(TK, 2, &target);
+	if (target <= 0)
+		return Parser::kArgError;
+
+	injector.server->sendBattlePlayerItemAct(index, target);
+
+	return Parser::kNoChange;
+}
+int Interpreter::bt(int currentline, const TokenMap& TK)//catch
+{
+	Injector& injector = Injector::getInstance();
+
+	if (injector.server.isNull())
+		return Parser::kError;
+
+	if (!injector.server->IS_BATTLE_FLAG)
+		return Parser::kNoChange;
+
+	int index = 0;
+	checkInt(TK, 1, &index);
+	if (index <= 0)
+		return Parser::kArgError;
+
+	injector.server->sendBattlePlayerCatchPetAct(index);
+
+	return Parser::kNoChange;
+}
+int Interpreter::bn(int currentline, const TokenMap& TK)//nothing
+{
+	Injector& injector = Injector::getInstance();
+
+	if (injector.server.isNull())
+		return Parser::kError;
+
+	if (!injector.server->IS_BATTLE_FLAG)
+		return Parser::kNoChange;
+
+	injector.server->sendBattlePlayerDoNothing();
+
+	return Parser::kNoChange;
+}
+int Interpreter::bw(int currentline, const TokenMap& TK)//petskill
+{
+	Injector& injector = Injector::getInstance();
+
+	if (injector.server.isNull())
+		return Parser::kError;
+
+	if (!injector.server->IS_BATTLE_FLAG)
+		return Parser::kNoChange;
+
+	int skillIndex = 0;
+	checkInt(TK, 1, &skillIndex);
+	if (skillIndex <= 0)
+		return Parser::kArgError;
+
+	int target = 0;
+	checkInt(TK, 2, &target);
+	if (target <= 0)
+		return Parser::kArgError;
+
+	injector.server->sendBattlePetSkillAct(skillIndex, target);
+
+	return Parser::kNoChange;
+}
+int Interpreter::bwf(int currentline, const TokenMap& TK)//pet nothing
+{
+	Injector& injector = Injector::getInstance();
+
+	if (injector.server.isNull())
+		return Parser::kError;
+
+	if (!injector.server->IS_BATTLE_FLAG)
+		return Parser::kNoChange;
+	injector.server->sendBattlePetDoNothing();
 	return Parser::kNoChange;
 }

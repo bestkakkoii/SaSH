@@ -354,63 +354,63 @@ void AfkForm::onSpinBoxValueChanged(int value)
 	//battle heal
 	if (name == "spinBox_magicheal_char")
 	{
-		injector.setValueHash(util::kMagicHealCharValue, value);
+		injector.setValueHash(util::kBattleMagicHealCharValue, value);
 	}
 	else if (name == "spinBox_magicheal_pet")
 	{
-		injector.setValueHash(util::kMagicHealPetValue, value);
+		injector.setValueHash(util::kBattleMagicHealPetValue, value);
 	}
 	else if (name == "spinBox_magicheal_allie")
 	{
-		injector.setValueHash(util::kMagicHealAllieValue, value);
+		injector.setValueHash(util::kBattleMagicHealAllieValue, value);
 	}
 	//
 	else if (name == "spinBox_itemheal_char")
 	{
-		injector.setValueHash(util::kItemHealCharValue, value);
+		injector.setValueHash(util::kBattleItemHealCharValue, value);
 	}
 	else if (name == "spinBox_itemheal_pet")
 	{
-		injector.setValueHash(util::kItemHealPetValue, value);
+		injector.setValueHash(util::kBattleItemHealPetValue, value);
 	}
 	else if (name == "spinBox_itemheal_allie")
 	{
-		injector.setValueHash(util::kItemHealAllieValue, value);
+		injector.setValueHash(util::kBattleItemHealAllieValue, value);
 	}
 	else if (name == "spinBox_itemhealmp")
 	{
-		injector.setValueHash(util::kItemHealMpValue, value);
+		injector.setValueHash(util::kBattleItemHealMpValue, value);
 	}
 
 	//normal heal
 	else if (name == "spinBox_magicheal_normal_char")
 	{
-		injector.setValueHash(util::kMagicHealCharNormalValue, value);
+		injector.setValueHash(util::kNormalMagicHealCharValue, value);
 	}
 	else if (name == "spinBox_magicheal_normal_pet")
 	{
-		injector.setValueHash(util::kMagicHealPetNormalValue, value);
+		injector.setValueHash(util::kNormalMagicHealPetValue, value);
 	}
 	else if (name == "spinBox_magicheal_normal_allie")
 	{
-		injector.setValueHash(util::kMagicHealAllieNormalValue, value);
+		injector.setValueHash(util::kNormalMagicHealAllieValue, value);
 	}
 	//
 	else if (name == "spinBox_itemheal_normal_char")
 	{
-		injector.setValueHash(util::kItemHealCharNormalValue, value);
+		injector.setValueHash(util::kNormalItemHealCharValue, value);
 	}
 	else if (name == "spinBox_itemheal_normal_pet")
 	{
-		injector.setValueHash(util::kItemHealPetNormalValue, value);
+		injector.setValueHash(util::kNormalItemHealPetValue, value);
 	}
 	else if (name == "spinBox_itemheal_normal_allie")
 	{
-		injector.setValueHash(util::kItemHealAllieNormalValue, value);
+		injector.setValueHash(util::kNormalItemHealAllieValue, value);
 	}
 	else if (name == "spinBox_itemhealmp_normal")
 	{
-		injector.setValueHash(util::kItemHealMpNormalValue, value);
+		injector.setValueHash(util::kNormalItemHealMpValue, value);
 	}
 
 	//autowalk
@@ -618,7 +618,7 @@ void AfkForm::onComboBoxClicked()
 	}
 	else if (name == "comboBox_itemhealmp")
 	{
-		settingType = util::kBattleItemHealMpIteamString;
+		settingType = util::kBattleItemHealMpItemString;
 	}
 	else if (name == "comboBox_itemrevive")
 	{
@@ -673,7 +673,7 @@ void AfkForm::onComboBoxTextChanged(const QString& text)
 	}
 	else if (name == "comboBox_itemhealmp")
 	{
-		injector.setStringHash(util::kBattleItemHealMpIteamString, newText);
+		injector.setStringHash(util::kBattleItemHealMpItemString, newText);
 	}
 	else if (name == "comboBox_itemrevive")
 	{
@@ -879,25 +879,25 @@ void AfkForm::onApplyHashSettingsToUI()
 	ui.comboBox_magicheal->setCurrentIndex(injector.getValueHash(util::kBattleMagicHealMagicValue));
 
 	ui.comboBox_itemheal->setCurrentText(injector.getStringHash(util::kBattleItemHealItemString));
-	ui.comboBox_itemhealmp->setCurrentText(injector.getStringHash(util::kBattleItemHealMpIteamString));
+	ui.comboBox_itemhealmp->setCurrentText(injector.getStringHash(util::kBattleItemHealMpItemString));
 	ui.comboBox_itemrevive->setCurrentText(injector.getStringHash(util::kBattleItemReviveItemString));
 	ui.comboBox_itemheal_normal->setCurrentText(injector.getStringHash(util::kNormalItemHealItemString));
 	ui.comboBox_itemhealmp_normal->setCurrentText(injector.getStringHash(util::kNormalItemHealMpItemString));
 
 	//heal
-	ui.spinBox_magicheal_char->setValue(injector.getValueHash(util::kMagicHealCharValue));
-	ui.spinBox_magicheal_pet->setValue(injector.getValueHash(util::kMagicHealPetValue));
-	ui.spinBox_magicheal_allie->setValue(injector.getValueHash(util::kMagicHealAllieValue));
-	ui.spinBox_itemheal_char->setValue(injector.getValueHash(util::kItemHealCharValue));
-	ui.spinBox_itemheal_pet->setValue(injector.getValueHash(util::kItemHealPetValue));
-	ui.spinBox_itemheal_allie->setValue(injector.getValueHash(util::kItemHealAllieValue));
+	ui.spinBox_magicheal_char->setValue(injector.getValueHash(util::kBattleMagicHealCharValue));
+	ui.spinBox_magicheal_pet->setValue(injector.getValueHash(util::kBattleMagicHealPetValue));
+	ui.spinBox_magicheal_allie->setValue(injector.getValueHash(util::kBattleMagicHealAllieValue));
+	ui.spinBox_itemheal_char->setValue(injector.getValueHash(util::kBattleItemHealCharValue));
+	ui.spinBox_itemheal_pet->setValue(injector.getValueHash(util::kBattleItemHealPetValue));
+	ui.spinBox_itemheal_allie->setValue(injector.getValueHash(util::kBattleItemHealAllieValue));
 
-	ui.spinBox_magicheal_normal_char->setValue(injector.getValueHash(util::kMagicHealCharNormalValue));
-	ui.spinBox_magicheal_normal_pet->setValue(injector.getValueHash(util::kMagicHealPetNormalValue));
-	ui.spinBox_magicheal_normal_allie->setValue(injector.getValueHash(util::kMagicHealAllieNormalValue));
-	ui.spinBox_itemheal_normal_char->setValue(injector.getValueHash(util::kItemHealCharNormalValue));
-	ui.spinBox_itemheal_normal_pet->setValue(injector.getValueHash(util::kItemHealPetNormalValue));
-	ui.spinBox_itemhealmp_normal->setValue(injector.getValueHash(util::kItemHealMpNormalValue));
+	ui.spinBox_magicheal_normal_char->setValue(injector.getValueHash(util::kNormalMagicHealCharValue));
+	ui.spinBox_magicheal_normal_pet->setValue(injector.getValueHash(util::kNormalMagicHealPetValue));
+	ui.spinBox_magicheal_normal_allie->setValue(injector.getValueHash(util::kNormalMagicHealAllieValue));
+	ui.spinBox_itemheal_normal_char->setValue(injector.getValueHash(util::kNormalItemHealCharValue));
+	ui.spinBox_itemheal_normal_pet->setValue(injector.getValueHash(util::kNormalItemHealPetValue));
+	ui.spinBox_itemhealmp_normal->setValue(injector.getValueHash(util::kNormalItemHealMpValue));
 
 	//walk
 	ui.comboBox_autowalkdir->setCurrentIndex(injector.getValueHash(util::kAutoWalkDirectionValue));

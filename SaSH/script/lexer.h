@@ -3,6 +3,7 @@
 #include <QHash>
 #include <QMap>
 #include <QVariant>
+#include "util.h"
 
 constexpr const char* kVariablePrefix = "&";
 constexpr const char* kFuzzyPrefix = "?";
@@ -76,6 +77,7 @@ enum RESERVE
 	TK_MULTIVAR, //多個變量
 	TK_LABELVAR, //標籤設置的傳參變量
 	TK_FORMAT, // 格式化後將新數值字符串賦值給變量
+
 	TK_RND,
 	//TK_GVAR,// 全局變量
 	TK_NAME, // 標記名稱 不允許使用純數字 或符點數作為標記名稱
@@ -100,7 +102,7 @@ class Lexer
 {
 public:
 
-	static bool tokenized(const QString& script, QHash<int, TokenMap>* tokens, QHash<QString, int>* plabel);
+	static bool tokenized(const QString& script, util::SafeHash<int, TokenMap>* tokens, util::SafeHash<QString, int>* plabel);
 
 private:
 	enum ErrorType
@@ -129,10 +131,11 @@ private:
 	void createToken(int index, RESERVE type, const QVariant& data, const QString& raw, TokenMap* ptoken);
 	void createEmptyToken(int index, TokenMap* ptoken);
 
-	void tokenized(int currentLine, const QString& line, TokenMap* ptoken, QHash<QString, int>* plabel);
+	void tokenized(int currentLine, const QString& line, TokenMap* ptoken, util::SafeHash<QString, int>* plabel);
 
 	void checkNonQuotedParameterForErrors(int currrentline, const QString& parameter);
-	void checkInvalidReadVariable(const QHash<int, TokenMap>& tokenmaps);
+	void checkInvalidReadVariable(const util::SafeHash<int, TokenMap>& tokenmaps);
+	void checkFunctionPairs(const util::SafeHash<int, TokenMap>& tokenmaps);
 
 	void showError(const QString text, ErrorType type = kTypeError);
 };

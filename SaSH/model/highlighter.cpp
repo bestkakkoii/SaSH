@@ -16,11 +16,12 @@ const char* Highlighter::keywords(int set) const
 	{
 		//lua key word
 		return "goto call function end pause exit label jmp return back "
-			"if ifmap ifplayer ifpet ifpetex ifitem ifitemfull ifdaily ifbattle ifpos ";
+			"if ifmap ifplayer ifpet ifpetex ifitem ifitemfull ifdaily ifbattle ifpos ifonline ";
 	}
 	case 2://QsciLexerLua::BasicFunctions//黃色
 	{
-		return "print test sleep msg logout lockback eo button say input "
+		return "ocr dlg "
+			"print test sleep msg logout lockback eo button say input "
 			"talk cls set saveset loadset "
 			"waitdlg waitsay waititem waitmap waitteam "
 			"chpet chplayername chpetname chmap "
@@ -28,7 +29,8 @@ const char* Highlighter::keywords(int set) const
 			"get putpet getpet make cook unequip recordequip "
 			"wearrecordequip addpoint join leave kick ifteam move "
 			"walkpos w dir findpath movetonpc lclick rclick ldbclick dragto warp "
-			"learn ocr trade run dostring sellpet mail ";
+			"learn trade run dostring sellpet mail reg "
+			"regex upper lower half toint tostr todb replace find full ";
 	}
 	case 3://QsciLexerLua::StringTableMathsFunction//草綠
 	{

@@ -74,7 +74,7 @@ bool Parser::checkString(const TokenMap& TK, int idx, QString* ret)
 
 	RESERVE type = TK.value(idx).type;
 	QVariant var = TK.value(idx).data;
-	QHash<QString, QVariant> args = getLabelVars();
+	util::SafeHash<QString, QVariant> args = getLabelVars();
 	if (!var.isValid())
 		return false;
 	if (type == TK_REF)
@@ -113,7 +113,7 @@ bool Parser::checkInt(const TokenMap& TK, int idx, int* ret)
 
 	RESERVE type = TK.value(idx).type;
 	QVariant var = TK.value(idx).data;
-	QHash<QString, QVariant> args = getLabelVars();
+	util::SafeHash<QString, QVariant> args = getLabelVars();
 	if (!var.isValid())
 		return false;
 
@@ -206,48 +206,81 @@ void Parser::processTokens()
 		generateStackInfo(1);
 	}
 
+	//這裡是防止人為設置過長的延時導致腳本無法停止
+	auto delay = [this, &injector]()
+	{
+		int extraDelay = injector.getValueHash(util::kScriptSpeedValue);
+		if (extraDelay > 1000)
+		{
+			//將超過1秒的延時分段
+			int i = 0;
+			for (i = 0; i < extraDelay / 1000; ++i)
+			{
+				if (isStop_.load(std::memory_order_acquire))
+					return;
+				QThread::msleep(1000);
+			}
+			QThread::msleep(extraDelay % 1000);
+		}
+		else if (extraDelay >= 0)
+		{
+			QThread::msleep(extraDelay);
+		}
+	};
+
 	int oldlineNumber = lineNumber_;
 	for (;;)
 	{
-		if (isEmpty())
-			break;
+		QThread::msleep(1);
+		delay();
 
+		if (isEmpty())
+		{
+			QString name;
+			if (!getDtorCallBackLabelName(&name))
+				break;
+			else
+			{
+				callStack_.push(tokens_.size() - 1);
+				jump(name, true);
+			}
+		}
+
+		if (!ctorCallBackFlag_)
+		{
+			util::SafeHash<QString, int>& hash = getLabels();
+			constexpr const char* CTOR = "ctor";
+			if (hash.contains(CTOR))
+			{
+				ctorCallBackFlag_ = true;
+				callStack_.push(0);
+				jump(CTOR, true);
+			}
+		}
+
+		currentLineTokens_ = tokens_.value(lineNumber_);
 
 		RESERVE currentType = currentLineTokens_.value(0).type;
+		bool skip = currentType == RESERVE::TK_WHITESPACE || currentType == RESERVE::TK_SPACE;
 
-		if (currentType != RESERVE::TK_WHITESPACE && currentType != RESERVE::TK_SPACE)
+		if (!skip)
 		{
 			if (mode_ == Mode::kSync)
 				emit signalDispatcher.scriptLabelRowTextChanged2(oldlineNumber, NULL, false);
-
-			QThread::yieldCurrentThread();
-			int extraDelay = injector.getValueHash(util::kScriptSpeedValue);
-			if (extraDelay > 1000)
-			{
-				int i = 0;
-				for (i = 0; i < extraDelay / 1000; ++i)
-					QThread::msleep(1000);
-				QThread::msleep(extraDelay % 1000);
-			}
-			else if (extraDelay > 0)
-			{
-				QThread::msleep(extraDelay);
-			}
-
-			QThread::msleep(1);
 		}
-
 		oldlineNumber = lineNumber_;
 
-		currentLineTokens_ = tokens_.value(lineNumber_);
 		if (callBack_)
 		{
-			int status = callBack_(lineNumber_, currentLineTokens_);
-			if (status == kStop)
-				break;
+			if (!skip)
+			{
+				int status = callBack_(lineNumber_, currentLineTokens_);
+				if (status == kStop)
+					break;
+			}
 		}
 
-		qDebug() << "line:" << lineNumber_ << "tokens:" << currentLineTokens_.value(0).raw;
+		//qDebug() << "line:" << lineNumber_ << "tokens:" << currentLineTokens_.value(0).raw;
 		RESERVE type = getType();
 
 		try
@@ -257,12 +290,26 @@ void Parser::processTokens()
 			case TK_END:
 			{
 				lastError_ = kNoError;
-				processEnd();
-				return;
+				processClean();
+				QString name;
+				if (!getDtorCallBackLabelName(&name))
+					return;
+				else
+				{
+					callStack_.push(tokens_.size() - 1);
+					jump(name, true);
+					continue;
+				}
 			}
 			case TK_CMD:
 			{
+				bool islock = injector.globalMutex.tryLock(100);
+
 				int ret = processCommand();
+
+				if (islock)
+					injector.globalMutex.unlock();
+
 				if (ret == kHasJump)
 				{
 					generateStackInfo(1);
@@ -271,11 +318,26 @@ void Parser::processTokens()
 				else if (ret == kError)
 				{
 					handleError(ret);
-					return;
+					QString name;
+					if (!getErrorCallBackLabelName(&name))
+					{
+						return;
+					}
+					else
+					{
+						jump(name, true);
+						continue;
+					}
 				}
 				else if (ret == kArgError)
 				{
 					handleError(ret);
+					QString name;
+					if (getErrorCallBackLabelName(&name))
+					{
+						jump(name, true);
+						continue;
+					}
 				}
 				break;
 			}
@@ -348,30 +410,44 @@ void Parser::processTokens()
 		}
 
 		if (isStop_.load(std::memory_order_acquire))
-			break;
+		{
+			QString name;
+			if (!getDtorCallBackLabelName(&name))
+				break;
+			else
+			{
+				callStack_.push(tokens_.size() - 1);
+				jump(name, true);
+				continue;
+			}
+		}
 
 		//導出變量訊息
 		if (mode_ == kSync)
 		{
-			emit signalDispatcher.globalVarInfoImport(variables_->toHash());
-			if (!labalVarStack_.isEmpty())
-				emit signalDispatcher.localVarInfoImport(labalVarStack_.top());//導出局變量訊息
-			else
-				emit signalDispatcher.localVarInfoImport(QHash<QString, QVariant>());
+			if (!skip)
+			{
+				emit signalDispatcher.globalVarInfoImport(variables_->toHash());
+				if (!labalVarStack_.isEmpty())
+					emit signalDispatcher.localVarInfoImport(labalVarStack_.top().toHash());//導出局變量訊息
+				else
+					emit signalDispatcher.localVarInfoImport(QHash<QString, QVariant>());
+			}
 		}
 
 		//移動至下一行
 		next();
+		QThread::yieldCurrentThread();
 	}
 
-	processEnd();
+	processClean();
 }
 
 //處理"標記"，檢查是否有聲明局變量
 void Parser::processLabel()
 {
 	QVariantList args = getArgsRef();
-	QHash<QString, QVariant> labelVars;
+	VariantSafeHash labelVars;
 	for (int i = kCallPlaceHoldSize; i < currentLineTokens_.size(); ++i)
 	{
 		Token token = currentLineTokens_.value(i);
@@ -391,7 +467,7 @@ void Parser::processLabel()
 }
 
 //處理"結束"
-void Parser::processEnd()
+void Parser::processClean()
 {
 	callStack_.clear();
 	jmpStack_.clear();
@@ -443,7 +519,7 @@ void Parser::processVariable(RESERVE type)
 			break;
 
 		//取區域變量表
-		QHash<QString, QVariant> args = getLabelVars();
+		util::SafeHash<QString, QVariant> args = getLabelVars();
 
 		//檢查第二參數是否為邏輯運算符
 		RESERVE op = getTokenType(2);
@@ -633,7 +709,7 @@ void Parser::processMultiVariable()
 	int varCount = varNames.count();
 
 	//取區域變量表
-	QHash<QString, QVariant> args = getLabelVars();
+	util::SafeHash<QString, QVariant> args = getLabelVars();
 
 
 	for (int i = 0; i < varCount; ++i)
@@ -736,9 +812,10 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 		kChatInfo,
 		kDialogInfo,
 		kPointInfo,
+		kBattleInfo,
 	};
 
-	QHash<QString, SystemVarName> systemVarNameHash = {
+	const QHash<QString, SystemVarName> systemVarNameHash = {
 		{ "player", kPlayerInfo },
 		{ "magic", kMagicInfo },
 		{ "skill", kSkillInfo },
@@ -751,7 +828,9 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 		{ "party", kPartyInfo },
 		{ "chat", kChatInfo },
 		{ "dialog", kDialogInfo },
-		{ "point", kPointInfo }
+		{ "point", kPointInfo },
+		{ "battle", kBattleInfo },
+
 	};
 
 	if (!systemVarNameHash.contains(trimmedStr))
@@ -829,7 +908,20 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 	{
 		int petIndex = -1;
 		if (!checkInt(currentLineTokens_, 3, &petIndex))
+		{
+			QString typeStr;
+			if (!checkString(currentLineTokens_, 3, &typeStr))
+				break;
+
+			if (typeStr == "count")
+			{
+				varValue = injector.server->hashpet.size();
+				bret = true;
+			}
+
+
 			break;
+		}
 
 		QString typeStr;
 		checkString(currentLineTokens_, 4, &typeStr);
@@ -916,6 +1008,22 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 					varValue = size;
 					bret = varValue.isValid();
 					break;
+				}
+				else if (typeStr == "count")
+				{
+					QString itemName;
+					if (!checkString(currentLineTokens_, 4, &itemName))
+						break;
+					QVector<int> v;
+					int count = 0;
+					if (injector.server->getItemIndexsByName(itemName, "", &v))
+					{
+						for (const int it : v)
+							count += injector.server->pc.item[it].pile;
+					}
+
+					varValue = count;
+					bret = varValue.isValid();
 				}
 				else
 					break;
@@ -1041,10 +1149,29 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 			break;
 
 		util::SafeHash<int, QVariant>& hashdialog = injector.server->hashdialog;
-		if (!hashdialog.contains(dialogIndex))
-			break;
 
-		varValue = hashdialog.value(dialogIndex);
+		if (dialogIndex == -1)
+		{
+			QStringList texts;
+			for (int i = 0; i < 10; ++i)
+			{
+				if (!hashdialog.contains(i))
+					break;
+
+				texts << hashdialog.value(i).toString().simplified();
+			}
+
+			varValue = texts.join("\n");
+		}
+		else
+		{
+			if (!hashdialog.contains(dialogIndex))
+				break;
+
+			varValue = hashdialog.value(dialogIndex);
+		}
+
+
 		bret = varValue.isValid();
 		break;
 	}
@@ -1118,6 +1245,44 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 
 		break;
 	}
+	case kBattleInfo:
+	{
+		int index = -1;
+		if (!checkInt(currentLineTokens_, 3, &index))
+		{
+			QString typeStr;
+			checkString(currentLineTokens_, 3, &typeStr);
+			if (typeStr.isEmpty())
+				break;
+
+			if (typeStr == "round")
+			{
+				varValue = injector.server->BattleCliTurnNo;
+				bret = varValue.isValid();
+			}
+			else if (typeStr == "field")
+			{
+				varValue = injector.server->hashbattlefield.get();
+				bret = varValue.isValid();
+			}
+			break;
+		}
+
+		QString typeStr;
+		checkString(currentLineTokens_, 4, &typeStr);
+
+		util::SafeHash<int, util::SafeHash<QString, QVariant>>& hashbattle = injector.server->hashbattle;
+		if (!hashbattle.contains(index))
+			break;
+
+		util::SafeHash<QString, QVariant>& hash = hashbattle[index];
+		if (!hash.contains(typeStr))
+			break;
+
+		varValue = hash.value(typeStr);
+		bret = varValue.isValid();
+		break;
+	}
 	default:
 		break;
 	}
@@ -1179,7 +1344,7 @@ void Parser::processFormation()
 		if (formatStr.isEmpty())
 			break;
 
-		QHash<QString, QVariant> args = getLabelVars();
+		util::SafeHash<QString, QVariant> args = getLabelVars();
 
 		//查找字符串中包含 {:變數名} 全部替換成變數數值
 		for (auto it = variables_->cbegin(); it != variables_->cend(); ++it)
@@ -1318,7 +1483,7 @@ void Parser::processFormation()
 void Parser::checkArgs()
 {
 	//check rest of the tokens is exist push to stack 	QStack<QVariantList> callArgs_
-	QHash<QString, QVariant> args = getLabelVars();
+	util::SafeHash<QString, QVariant> args = getLabelVars();
 	QVariantList list;
 	for (int i = kCallPlaceHoldSize; i < tokens_.value(lineNumber_).size(); ++i)
 	{

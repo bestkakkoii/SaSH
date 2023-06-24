@@ -242,8 +242,12 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, long* res
 			return false;
 
 		QString fileName = QString::fromUtf8(reinterpret_cast<char*>(msg->lParam));
+		if (!QFile::exists(fileName))
+			return false;
+
 		pScriptForm_->loadFile(fileName);
 		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
+		emit signalDispatcher.loadFileToTable(fileName);
 		emit signalDispatcher.scriptStarted();
 		++interfaceCount_;
 		updateStatusText();
@@ -263,6 +267,10 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, long* res
 	}
 	case InterfaceMessage::kRunGame:
 	{
+		Injector& injector = Injector::getInstance();
+		if (!injector.server.isNull())
+			return false;
+
 		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
 		emit signalDispatcher.gameStarted();
 		++interfaceCount_;
@@ -272,7 +280,7 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, long* res
 	case InterfaceMessage::kCloseGame:
 	{
 		Injector& injector = Injector::getInstance();
-		if (!injector.server.isNull())
+		if (injector.server.isNull())
 			return false;
 
 		injector.close();
@@ -485,13 +493,13 @@ void MainForm::onMenuActionTriggered()
 
 	else if (actionName == "actionInfo")
 	{
-		QMessageBox::information(this, "SaSH", u8"Bestkakkoii\n2019-2023 All rights reserved\n\nQQ:224068611");
+		QMessageBox::information(this, "SaSH", tr(u8"Bestkakkoii\n2019-2023 All rights reserved\n\nQQ group:\n224068611\n\ncurrent version:\n%1").arg(util::buildDateTime(nullptr)));
 	}
 
 	else if (actionName == "actionWebsite")
 	{
 		//QDesktopServices::openUrl(QUrl("https://www.lovesa.cc"));
-		QMessageBox::information(this, "SaSH", u8"Bestkakkoii\n2019-2023 All rights reserved\n\nQQ:224068611");
+		QMessageBox::information(this, "SaSH", tr(u8"Bestkakkoii\n2019-2023 All rights reserved\n\nQQ group:\n224068611\n\ncurrent version:\n%1").arg(util::buildDateTime(nullptr)));
 	}
 
 	else if (actionName == "actionClose")

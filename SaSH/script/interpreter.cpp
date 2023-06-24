@@ -52,8 +52,8 @@ void Interpreter::doFileWithThread(int beginLine, const QString& fileName)
 
 	scriptFileName_ = fileName;
 
-	QHash<int, TokenMap> tokens;
-	QHash<QString, int> labels;
+	util::SafeHash<int, TokenMap> tokens;
+	util::SafeHash<QString, int> labels;
 	if (!loadString(content, &tokens, &labels))
 		return;
 
@@ -91,18 +91,19 @@ bool Interpreter::doFile(int beginLine, const QString& fileName, Interpreter* pa
 	if (!readFile(fileName, &content, &isPrivate))
 		return false;
 
-	QHash<int, TokenMap> tokens;
-	QHash<QString, int> labels;
+	util::SafeHash<int, TokenMap> tokens;
+	util::SafeHash<QString, int> labels;
 	if (!loadString(content, &tokens, &labels))
 		return false;
 
 	isRunning_.store(true, std::memory_order_release);
 
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
+	connect(&signalDispatcher, &SignalDispatcher::nodifyAllStop, [this]() { requestInterruption(); });
 	if (!isPrivate && mode == kSync)
 	{
 		emit signalDispatcher.loadFileToTable(fileName);
-		emit signalDispatcher.scriptContentChanged(fileName, QVariant::fromValue(tokens));
+		emit signalDispatcher.scriptContentChanged(fileName, QVariant::fromValue(tokens.toHash()));
 	}
 	else if (isPrivate && mode == kSync)
 	{
@@ -178,8 +179,8 @@ void Interpreter::doString(const QString& script, Interpreter* parent, VarShareM
 	isSub = true;
 	parser_->setMode(Parser::kAsync);
 
-	QHash<int, TokenMap> tokens;
-	QHash<QString, int> labels;
+	util::SafeHash<int, TokenMap> tokens;
+	util::SafeHash<QString, int> labels;
 	if (!loadString(script, &tokens, &labels))
 		return;
 
@@ -227,6 +228,8 @@ void Interpreter::doString(const QString& script, Interpreter* parent, VarShareM
 		}
 	}
 
+	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
+	connect(&signalDispatcher, &SignalDispatcher::nodifyAllStop, [this]() { requestInterruption(); });
 	parser_->setTokens(tokens);
 	parser_->setLabels(labels);
 	openLibs();
@@ -256,8 +259,8 @@ void Interpreter::preview(const QString& fileName)
 	if (!readFile(fileName, &content, &isPrivate))
 		return;
 
-	QHash<int, TokenMap> tokens;
-	QHash<QString, int> labels;
+	util::SafeHash<int, TokenMap> tokens;
+	util::SafeHash<QString, int> labels;
 	if (!loadString(content, &tokens, &labels))
 		return;
 
@@ -267,11 +270,11 @@ void Interpreter::preview(const QString& fileName)
 		emit signalDispatcher.scriptContentChanged(fileName, QVariant::fromValue(QHash<int, TokenMap>{}));
 		return;
 	}
-	emit signalDispatcher.scriptContentChanged(fileName, QVariant::fromValue(tokens));
+	emit signalDispatcher.scriptContentChanged(fileName, QVariant::fromValue(tokens.toHash()));
 }
 
 //將腳本內容轉換成Token
-bool Interpreter::loadString(const QString& script, QHash<int, TokenMap>* ptokens, QHash<QString, int>* plabel)
+bool Interpreter::loadString(const QString& script, util::SafeHash<int, TokenMap>* ptokens, util::SafeHash<QString, int>* plabel)
 {
 	return Lexer::tokenized(script, ptokens, plabel);
 }
@@ -554,7 +557,7 @@ bool Interpreter::checkString(const TokenMap& TK, int idx, QString* ret) const
 
 	RESERVE type = TK.value(idx).type;
 	QVariant var = TK.value(idx).data;
-	QHash<QString, QVariant> args = parser_->getLabelVars();
+	util::SafeHash<QString, QVariant> args = parser_->getLabelVars();
 	if (!var.isValid())
 		return false;
 	if (type == TK_REF)
@@ -594,7 +597,7 @@ bool Interpreter::checkInt(const TokenMap& TK, int idx, int* ret) const
 
 	RESERVE type = TK.value(idx).type;
 	QVariant var = TK.value(idx).data;
-	QHash<QString, QVariant> args = parser_->getLabelVars();
+	util::SafeHash<QString, QVariant> args = parser_->getLabelVars();
 	if (!var.isValid())
 		return false;
 
@@ -646,7 +649,7 @@ bool Interpreter::checkDouble(const TokenMap& TK, int idx, double* ret) const
 
 	RESERVE type = TK.value(idx).type;
 	QVariant var = TK.value(idx).data;
-	QHash<QString, QVariant> args = parser_->getLabelVars();
+	util::SafeHash<QString, QVariant> args = parser_->getLabelVars();
 	if (!var.isValid())
 		return false;
 
@@ -698,7 +701,7 @@ bool Interpreter::toVariant(const TokenMap& TK, int idx, QVariant* ret) const
 
 	RESERVE type = TK.value(idx).type;
 	QVariant var = TK.value(idx).data;
-	QHash<QString, QVariant> args = parser_->getLabelVars();
+	util::SafeHash<QString, QVariant> args = parser_->getLabelVars();
 	if (!var.isValid())
 		return false;
 
@@ -805,7 +808,7 @@ bool Interpreter::checkRange(const TokenMap& TK, int idx, int* min, int* max) co
 
 	RESERVE type = TK.value(idx).type;
 	QVariant var = TK.value(idx).data;
-	QHash<QString, QVariant> args = parser_->getLabelVars();
+	util::SafeHash<QString, QVariant> args = parser_->getLabelVars();
 	if (!var.isValid())
 		return false;
 
@@ -1345,13 +1348,14 @@ bool Interpreter::compare(CompareArea area, const TokenMap& TK) const
 			{
 				for (int i = 0; i < MAX_PARTY; ++i)
 				{
-					if (injector.server->party[i].name.isEmpty())
+					util::SafeHash<QString, QVariant> party = injector.server->hashparty.value(i);
+					if (party.value("name").toString().isEmpty())
 						continue;
 
-					if (injector.server->party[i].useFlag == 0)
+					if (party.value("valid").toInt() == 0)
 						continue;
 
-					if (injector.server->party[i].level == 0)
+					if (party.value("lv").toInt() == 0)
 						continue;
 
 					++count;
@@ -1600,6 +1604,18 @@ void Interpreter::openLibsBIG5()
 {
 	/*註冊函數*/
 
+	//core
+	registerFunction(u8"正則匹配", &Interpreter::regex);
+	registerFunction(u8"查找", &Interpreter::find);
+	registerFunction(u8"半角", &Interpreter::half);
+	registerFunction(u8"全角", &Interpreter::full);
+	registerFunction(u8"轉大寫", &Interpreter::upper);
+	registerFunction(u8"轉小寫", &Interpreter::lower);
+	registerFunction(u8"替換", &Interpreter::replace);
+	registerFunction(u8"轉整", &Interpreter::toint);
+	registerFunction(u8"轉字", &Interpreter::tostr);
+	registerFunction(u8"轉浮點", &Interpreter::todb);
+
 	//system
 	registerFunction(u8"測試", &Interpreter::test);
 	registerFunction(u8"延時", &Interpreter::sleep);
@@ -1619,10 +1635,12 @@ void Interpreter::openLibsBIG5()
 	registerFunction(u8"判斷", &Interpreter::cmp);
 	registerFunction(u8"執行", &Interpreter::run);
 	registerFunction(u8"執行代碼", &Interpreter::dostring);
+	registerFunction(u8"註冊", &Interpreter::reg);
 
 	//check
 	registerFunction(u8"任務狀態", &Interpreter::checkdaily);
 	registerFunction(u8"戰鬥中", &Interpreter::isbattle);
+	registerFunction(u8"在線中", &Interpreter::isonline);
 	registerFunction(u8"查坐標", &Interpreter::checkcoords);
 	registerFunction(u8"查座標", &Interpreter::checkcoords);
 	registerFunction(u8"地圖", &Interpreter::checkmap);
@@ -1703,6 +1721,18 @@ void Interpreter::openLibsGB2312()
 {
 	/*註册函数*/
 
+	//core
+	registerFunction(u8"正则匹配", &Interpreter::regex);
+	registerFunction(u8"查找", &Interpreter::find);
+	registerFunction(u8"半角", &Interpreter::half);
+	registerFunction(u8"全角", &Interpreter::full);
+	registerFunction(u8"转大写", &Interpreter::upper);
+	registerFunction(u8"转小写", &Interpreter::lower);
+	registerFunction(u8"替换", &Interpreter::replace);
+	registerFunction(u8"转整", &Interpreter::toint);
+	registerFunction(u8"转字", &Interpreter::tostr);
+	registerFunction(u8"转浮点", &Interpreter::todb);
+
 	//system
 	registerFunction(u8"测试", &Interpreter::test);
 	registerFunction(u8"延时", &Interpreter::sleep);
@@ -1722,10 +1752,12 @@ void Interpreter::openLibsGB2312()
 	registerFunction(u8"判断", &Interpreter::cmp);
 	registerFunction(u8"执行", &Interpreter::run);
 	registerFunction(u8"执行代码", &Interpreter::dostring);
+	registerFunction(u8"註册", &Interpreter::reg);
 
 	//check
 	registerFunction(u8"任务状态", &Interpreter::checkdaily);
 	registerFunction(u8"战斗中", &Interpreter::isbattle);
+	registerFunction(u8"在线中", &Interpreter::isonline);
 	registerFunction(u8"查坐标", &Interpreter::checkcoords);
 	registerFunction(u8"查座标", &Interpreter::checkcoords);
 	registerFunction(u8"地图", &Interpreter::checkmap);
@@ -1806,6 +1838,18 @@ void Interpreter::openLibsUTF8()
 {
 	/*註册函数*/
 
+	//core
+	registerFunction(u8"regex", &Interpreter::regex);
+	registerFunction(u8"find", &Interpreter::find);
+	registerFunction(u8"half", &Interpreter::half);
+	registerFunction(u8"full", &Interpreter::full);
+	registerFunction(u8"upper", &Interpreter::upper);
+	registerFunction(u8"lower", &Interpreter::lower);
+	registerFunction(u8"replace", &Interpreter::replace);
+	registerFunction(u8"toint", &Interpreter::toint);
+	registerFunction(u8"tostr", &Interpreter::tostr);
+	registerFunction(u8"todb", &Interpreter::todb);
+
 	//system
 	registerFunction(u8"test", &Interpreter::test);
 	registerFunction(u8"sleep", &Interpreter::sleep);
@@ -1825,10 +1869,12 @@ void Interpreter::openLibsUTF8()
 	registerFunction(u8"if", &Interpreter::cmp);
 	registerFunction(u8"run", &Interpreter::run);
 	registerFunction(u8"dostring", &Interpreter::dostring);
+	registerFunction(u8"reg", &Interpreter::reg);
 
 	//check
 	registerFunction(u8"ifdaily", &Interpreter::checkdaily);
 	registerFunction(u8"ifbattle", &Interpreter::isbattle);
+	registerFunction(u8"ifonline", &Interpreter::isonline);
 	registerFunction(u8"ifpos", &Interpreter::checkcoords);
 	registerFunction(u8"ifmap", &Interpreter::checkmapnowait);
 	registerFunction(u8"ifplayer", &Interpreter::checkplayerstatus);
@@ -1902,6 +1948,20 @@ void Interpreter::openLibsUTF8()
 
 	//hide
 	registerFunction(u8"ocr", &Interpreter::ocr);
+	registerFunction(u8"dlg", &Interpreter::dlg);
+
+	//battle
+	registerFunction(u8"bh", &Interpreter::bh);//atk
+	registerFunction(u8"bj", &Interpreter::bj);//magic
+	registerFunction(u8"bp", &Interpreter::bp);//skill
+	registerFunction(u8"bs", &Interpreter::bs);//switch
+	registerFunction(u8"be", &Interpreter::be);//escape
+	registerFunction(u8"bd", &Interpreter::bd);//defense
+	registerFunction(u8"bi", &Interpreter::bi);//item
+	registerFunction(u8"bt", &Interpreter::bt);//catch
+	registerFunction(u8"bn", &Interpreter::bn);//nothing
+	registerFunction(u8"bw", &Interpreter::bw);//petskill
+	registerFunction(u8"bwf", &Interpreter::bwf);//pet nothing
 }
 
 int Interpreter::test(int currentline, const TokenMap&) const
@@ -1972,9 +2032,9 @@ int Interpreter::run(int currentline, const TokenMap& TK)
 
 			//還原顯示
 			SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
-			QHash<int, TokenMap>currentToken = parser_->getToken();
+			util::SafeHash<int, TokenMap>currentToken = parser_->getToken();
 			emit signalDispatcher.loadFileToTable(scriptFileName_);
-			emit signalDispatcher.scriptContentChanged(scriptFileName_, QVariant::fromValue(currentToken));
+			emit signalDispatcher.scriptContentChanged(scriptFileName_, QVariant::fromValue(currentToken.toHash()));
 		}
 	}
 	else

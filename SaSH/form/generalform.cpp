@@ -54,6 +54,38 @@ GeneralForm::GeneralForm(QWidget* parent)
 	}
 
 	emit signalDispatcher.applyHashSettingsToUI();
+
+	const QString fileName(qgetenv("JSON_PATH"));
+	if (fileName.isEmpty())
+		return;
+
+	emit ui.comboBox_paths->clicked();
+
+	util::Config config(fileName);
+	int index = config.readInt("System", "Command", "LastSelection");
+	if (index >= 0 && index < ui.comboBox_paths->count())
+		ui.comboBox_paths->setCurrentIndex(index);
+	else if (ui.comboBox_paths->count() > 0)
+		ui.comboBox_paths->setCurrentIndex(0);
+
+	int count = config.readInt("System", "Server", "ListCount");
+	if (count <= 0)
+	{
+		count = 2;
+		config.write("System", "Server", "ListCount", count);
+	}
+
+	for (int i = 0; i < count; ++i)
+	{
+		ui.comboBox_serverlist->addItem(tr("ServerList%1").arg(i + 1), i);
+	}
+
+	int lastServerListSelection = config.readInt("System", "Server", "LastServerListSelection");
+	if (lastServerListSelection >= 0 && lastServerListSelection < count)
+		ui.comboBox_serverlist->setCurrentIndex(lastServerListSelection);
+	else if (ui.comboBox_serverlist->count() > 0)
+		ui.comboBox_serverlist->setCurrentIndex(0);
+
 }
 
 GeneralForm::~GeneralForm()
@@ -67,42 +99,19 @@ void GeneralForm::onResetControlTextLanguage()
 {
 	const QString fileName(qgetenv("JSON_PATH"));
 	util::Config config(fileName);
-	QStringList serverList = config.readString("System", "ServerList").split(util::rexOR, Qt::SkipEmptyParts);
-	if (serverList.isEmpty())
-	{
-		serverList = QStringList{
-			tr("1st//Acticity"), tr("2nd///Market"), tr("3rd//Family"), tr("4th//Away"),
-			tr("5th//Away"), tr("6th//Away"), tr("7th//Away"), tr("8th//Away"),
-			tr("9th//Away"), tr("15th//Company"), tr("21th//Member"), tr("22th//Member"),
-		};
-
-		config.write("System", "ServerList", serverList.join("|"));
-	}
-
-	QStringList subServerList = config.readString("System", "SubServerList").split(util::rexOR, Qt::SkipEmptyParts);
-	if (subServerList.isEmpty())
-	{
-		subServerList = QStringList{
-			tr("Telecom"), tr("UnitedNetwork"), tr("Easyown"), tr("Oversea"), tr("Backup"),
-		};
-
-		config.write("System", "SubServerList", subServerList.join("|"));
-	}
 
 	const QStringList positionList = { tr("Left"), tr("Right") };
 
 	//下午 黃昏 午夜 早晨 中午
 	const QStringList timeList = { tr("Afternoon"), tr("Dusk"), tr("Midnight"), tr("Morning"), tr("Noon") };
 
-	ui.comboBox_server->clear();
-	ui.comboBox_subserver->clear();
 	ui.comboBox_position->clear();
 	ui.comboBox_locktime->clear();
 
-	ui.comboBox_server->addItems(serverList);
-	ui.comboBox_subserver->addItems(subServerList);
 	ui.comboBox_position->addItems(positionList);
 	ui.comboBox_locktime->addItems(timeList);
+
+	emit ui.comboBox_server->clicked();
 }
 
 void GeneralForm::onComboBoxClicked()
@@ -127,6 +136,68 @@ void GeneralForm::onComboBoxClicked()
 			ui.comboBox_setting->addItem(pair.first, pair.second);
 		}
 	}
+	else if (name == "comboBox_server")
+	{
+		createServerList();
+	}
+	else if (name == "comboBox_paths")
+	{
+		QListView* pListView = qobject_cast<QListView*>(ui.comboBox_paths->view());
+		if (pListView)
+		{
+			pListView->setMinimumWidth(150);
+			pListView->setMaximumWidth(150);
+		}
+
+		const QString fileName(qgetenv("JSON_PATH"));
+		if (fileName.isEmpty())
+			return;
+
+		util::Config config(fileName);
+		QStringList paths = config.readStringArray("System", "Command", "DirPath");
+		QStringList newPaths;
+		int tryCount = 0;
+		do
+		{
+			if (tryCount > 2)
+				return;
+
+			if (paths.isEmpty())
+			{
+				QString path;
+				if (!util::createFileDialog(util::SA_NAME, &path, this))
+					return;
+				else
+					paths.append(path);
+			}
+
+			for (const QString& path : paths)
+			{
+				if (path.contains(util::SA_NAME) && QFile::exists(path) && !newPaths.contains(path))
+				{
+					newPaths.append(path);
+				}
+			}
+			++tryCount;
+		} while (newPaths.isEmpty());
+
+		int currentIndex = ui.comboBox_paths->currentIndex();
+		ui.comboBox_paths->clear();
+		for (const QString& it : newPaths)
+		{
+			//只顯示 上一級文件夾名稱/fileName
+			QFileInfo fileInfo(it);
+			QString fileName = fileInfo.fileName();
+			QString path = fileInfo.path();
+			QFileInfo pathInfo(path);
+			QString pathName = pathInfo.fileName();
+			ui.comboBox_paths->addItem(pathName + "/" + fileName, it);
+		}
+
+		ui.comboBox_paths->setCurrentIndex(currentIndex);
+		config.writeStringArray("System", "Command", "DirPath", newPaths);
+
+	}
 }
 
 void GeneralForm::onButtonClicked()
@@ -141,7 +212,50 @@ void GeneralForm::onButtonClicked()
 
 	Injector& injector = Injector::getInstance();
 
-	if (name == "pushButton_setting")
+	if (name == "pushButton_addpath")
+	{
+		const QString fileName(qgetenv("JSON_PATH"));
+		if (fileName.isEmpty())
+			return;
+
+		QString newPath;
+		if (!util::createFileDialog(util::SA_NAME, &newPath, this))
+			return;
+
+		if (!newPath.contains(util::SA_NAME) || !QFile::exists(newPath))
+			return;
+
+		util::Config config(fileName);
+		QStringList paths = config.readStringArray("System", "Command", "DirPath");
+		QStringList newPaths;
+
+		for (const QString& path : paths)
+		{
+			if (path.contains(util::SA_NAME) && QFile::exists(path) && !newPaths.contains(path))
+			{
+				newPaths.append(path);
+			}
+		}
+
+		if (!newPaths.contains(newPath))
+			newPaths.append(newPath);
+
+		ui.comboBox_paths->clear();
+		for (const QString& it : newPaths)
+		{
+			//只顯示 上一級文件夾名稱/fileName
+			QFileInfo fileInfo(it);
+			QString fileName = fileInfo.fileName();
+			QString path = fileInfo.path();
+			QFileInfo pathInfo(path);
+			QString pathName = pathInfo.fileName();
+			ui.comboBox_paths->addItem(pathName + "/" + fileName, it);
+		}
+
+		ui.comboBox_paths->setCurrentIndex(ui.comboBox_paths->count() - 1);
+		config.writeStringArray("System", "Command", "DirPath", newPaths);
+	}
+	else if (name == "pushButton_setting")
 	{
 		if (ui.comboBox_setting->currentText().isEmpty())
 			return;
@@ -309,6 +423,10 @@ void GeneralForm::onCheckBoxStateChanged(int state)
 		{
 			if (isChecked)
 			{
+				//retore before hide
+				ShowWindow(hWnd, SW_RESTORE);
+
+				//add tool window style to hide from taskbar
 				LONG_PTR exstyle = GetWindowLongPtr(hWnd, GWL_EXSTYLE);
 				exstyle |= WS_EX_TOOLWINDOW;
 				//添加透明化屬性
@@ -320,11 +438,17 @@ void GeneralForm::onCheckBoxStateChanged(int state)
 			}
 			else
 			{
+				//remove tool window style to show from taskbar
 				LONG_PTR exstyle = GetWindowLongPtr(hWnd, GWL_EXSTYLE);
 				exstyle &= ~WS_EX_TOOLWINDOW;
 				//移除透明化屬性
 				exstyle &= ~WS_EX_LAYERED;
 				SetWindowLongPtr(hWnd, GWL_EXSTYLE, exstyle);
+
+				//active once
+				ShowWindow(hWnd, SW_SHOW);
+				//bring to top once
+				SetForegroundWindow(hWnd);
 			}
 		}
 		return;
@@ -603,6 +727,11 @@ void GeneralForm::onCheckBoxStateChanged(int state)
 		injector.setEnableHash(util::kFallDownEscapeEnable, isChecked);
 		return;
 	}
+	else if (name == "checkBox_showexp")
+	{
+		injector.setEnableHash(util::kShowExpEnable, isChecked);
+		return;
+	}
 
 	//shortcut switcher
 	else if (name == "checkBox_switcher_team")
@@ -679,27 +808,58 @@ void GeneralForm::onComboBoxCurrentIndexChanged(int value)
 		return;
 
 	Injector& injector = Injector::getInstance();
+	if (name == "comboBox_serverlist")
+	{
+		const QString fileName(qgetenv("JSON_PATH"));
+		if (fileName.isEmpty())
+			return;
 
-	if (name == "comboBox_server")
+		util::Config config(fileName);
+		config.write("System", "Server", "LastServerListSelection", ui.comboBox_serverlist->currentIndex());
+		emit ui.comboBox_server->clicked();
+	}
+	else if (name == "comboBox_server")
 	{
 		injector.setValueHash(util::kServerValue, value);
+		int currentIndex = ui.comboBox_subserver->currentIndex();
+		int currentServerList = ui.comboBox_serverlist->currentIndex();
+		if (currentServerList < 0)
+			currentServerList = 0;
+
+		ui.comboBox_subserver->setUpdatesEnabled(false);
+		ui.comboBox_subserver->clear();
+		ui.comboBox_subserver->addItems(serverList.value(currentServerList).value(ui.comboBox_server->currentText()));
+		if (currentIndex >= 0)
+			ui.comboBox_subserver->setCurrentIndex(currentIndex);
+		else
+			ui.comboBox_subserver->setCurrentIndex(0);
+		ui.comboBox_subserver->setUpdatesEnabled(true);
 	}
 
-	if (name == "comboBox_subserver")
+	else if (name == "comboBox_subserver")
 	{
 		injector.setValueHash(util::kSubServerValue, value);
 	}
 
-	if (name == "comboBox_position")
+	else if (name == "comboBox_position")
 	{
 		injector.setValueHash(util::kPositionValue, value);
 	}
 
-	if (name == "comboBox_locktime")
+	else if (name == "comboBox_locktime")
 	{
 		injector.setValueHash(util::kLockTimeValue, value);
 		if (ui.checkBox_locktime->isChecked())
 			injector.sendMessage(Injector::kSetTimeLock, true, value);
+	}
+
+	else if (name == "comboBox_paths")
+	{
+		const QString fileName(qgetenv("JSON_PATH"));
+		if (fileName.isEmpty())
+			return;
+		util::Config config(fileName);
+		config.write("System", "Command", "LastSelection", ui.comboBox_paths->currentIndex());
 	}
 }
 
@@ -727,6 +887,7 @@ void GeneralForm::onApplyHashSettingsToUI()
 	ui.checkBox_autojoin->setChecked(enableHash.value(util::kAutoJoinEnable));
 	ui.checkBox_locktime->setChecked(enableHash.value(util::kLockTimeEnable));
 	ui.checkBox_autofreememory->setChecked(enableHash.value(util::kAutoFreeMemoryEnable));
+	ui.checkBox_showexp->setChecked(enableHash.value(util::kShowExpEnable));
 
 	//sp
 	ui.spinBox_speedboost->setValue(valueHash.value(util::kSpeedBoostValue));
@@ -769,6 +930,19 @@ void GeneralForm::onApplyHashSettingsToUI()
 
 void GeneralForm::onGameStart()
 {
+	QString path = ui.comboBox_paths->currentData().toString();
+	if (path.isEmpty())
+		return;
+
+	QFile file(path);
+	if (!file.exists())
+		return;
+
+	ui.pushButton_start->setEnabled(false);
+	setFocus();
+	update();
+	QCoreApplication::processEvents();
+
 	//驗證測試
 	static bool isFirstInstance = false;
 	if (!isFirstInstance)
@@ -785,36 +959,14 @@ void GeneralForm::onGameStart()
 			});
 	}
 
-	ui.pushButton_start->setEnabled(false);
-	setFocus();
-	update();
-	QCoreApplication::processEvents();
-
-	const QString fileName(qgetenv("JSON_PATH"));
-	if (fileName.isEmpty())
-		return;
-
-	util::Config config(fileName);
-	QString path = config.readString("System", "Command", "DirPath");
-	if (path.isEmpty() || !path.contains(util::SA_NAME) || !QFile::exists(fileName))
-	{
-		if (!util::createFileDialog(util::SA_NAME, &path, this))
-			return;
-	}
-
-	if (!QFile::exists(path))
-	{
-		if (!util::createFileDialog(util::SA_NAME, &path, this))
-			return;
-	}
-
-	config.write("System", "Command", "DirPath", path);
 	QFileInfo fileInfo(path);
 	QString dirPath = fileInfo.absolutePath();
 	QByteArray dirPathUtf8 = dirPath.toUtf8();
 	qputenv("GAME_DIR_PATH", dirPathUtf8);
 
 	Injector& injector = Injector::getInstance();
+	injector.currentGameExePath = path;
+
 	injector.server.reset(new Server(this));
 	if (injector.server.isNull())
 		return;
@@ -827,4 +979,91 @@ void GeneralForm::onGameStart()
 	{
 		ui.pushButton_start->setEnabled(true);
 	}
+}
+
+void GeneralForm::createServerList()
+{
+	const QString fileName(qgetenv("JSON_PATH"));
+	util::Config config(fileName);
+
+	int currentListIndex = ui.comboBox_serverlist->currentIndex();
+	if (currentListIndex < 0)
+		currentListIndex = 0;
+
+	QStringList list = config.readStringArray("System", "Server", QString("List_%1").arg(currentListIndex));
+	if (list.isEmpty())
+	{
+		static const QStringList defaultListSO = {
+			"「活动互动」1线|活动电信1线, 活动联通1线, 活动移动1线, 活动海外1线",
+			"「摆摊交易」4线|摆摊电信4线, 摆摊联通4线, 摆摊移动4线, 摆摊海外4线",
+			"练级挂机5线|族战电信5线, 族战联通5线, 石器移动5线, 石器海外5线",
+			"练级挂机6线|石器电信6线, 石器联通6线, 石器移动6线, 石器海外6线",
+			"「庄园族战」2线|族战电信2线, 族战联通2线, 族战移动2线, 族战海外2线",
+			"练级挂机7线|石器挂机7线",
+			"练级挂机8线|石器电信8线, 石器联通8线",
+			"练级挂机13|电信 13专线, 联通 13专线, 移动 13专线, 海外 13专线",
+			"「双号副本」3线|石器电信3线, 石器联通3线, 石器移动3线, 石器海外3线",
+			"「练级副本」9线|石器电信9线, 石器联通9线",
+			"10 19 20线|挂机 10专线, 备用 10专线, 电信 19专线, 其他 19专线, 电信 20专线, 其他 20专线",
+			"11 21 22线|挂机 11专线, 备用 11专线, 电信 21专线, 其他 21专线, 电信 22专线, 其他 22专线, 电信 23专线, 其他 23专线",
+			"全球加速12|电信 12专线, 联通 12专线, 移动 12专线, 港澳台 12线, 美国 12专线",
+			"14 16 17 18|电信 14专线, 联通移动14线, 移动 14专线, 海外 14专线,电信 16专线, 联通 16专线, 移动 16专线, 海外 16专线, 电信 17专线, 联通 17专线, 移动 17专线, 海外 17专线, 电信 18专线, 联通 18专线, 移动 18专线",
+			"公司专线15|公司电信15, 公司联通15, 「活动互动」1线, 「摆摊交易」4线",
+		};
+
+		static const QStringList defaultListSE = {
+			"1线∥活动互动|电信活动1线, 联通活动1线, 移动活动1线, 海外活动1线",
+			"2线∥摆摊交易|电信摆摊2线, 联通摆摊2线, 移动摆摊2线, 海外摆摊2线",
+			"3线∥庄园族战|电信族战3线, 联通族战3线, 移动族战3线, 海外族战3线",
+			"4线∥练级挂机|电信练级4线, 联通练级4线, 移动练级4线, 海外练级4线",
+			"5线∥练级挂机|电信练级5线, 联通练级5线, 移动练级5线, 海外练级5线",
+			"6线∥练级挂机|电信练级6线, 联通练级6线, 移动练级6线, 海外练级6线",
+			"7线∥练级挂机|电信练级7线, 联通练级7线, 移动练级7线, 海外练级7线",
+			"8线∥练级挂机|电信练级8线, 联通练级8线, 移动练级8线, 海外练级8线, 备用练级8线",
+			"9线∥练级挂机|电信练级9线, 联通练级9线, 移动练级9线, 海外练级9线, 备用练级9线",
+			"15线∥公司专线|电信公司15线, 联通公司15线, 移动公司15线, 海外公司15线",
+			"21线∥会员专线|电信会员21线, 联通会员21线, 移动会员21线, 海外会员21线",
+			"22线∥会员专线|电信会员22线, 联通会员22线, 移动会员22线, 海外会员22线",
+		};
+
+		list = currentListIndex == 0 ? defaultListSO : defaultListSE;
+		config.writeStringArray("System", "Server", QString("List_%1").arg(currentListIndex), list);
+	}
+
+	QString currentText = ui.comboBox_server->currentText();
+	int currentIndex = ui.comboBox_server->currentIndex();
+	ui.comboBox_server->setUpdatesEnabled(false);
+	ui.comboBox_subserver->setUpdatesEnabled(false);
+	ui.comboBox_server->clear();
+	ui.comboBox_subserver->clear();
+	for (const QString it : list)
+	{
+		QStringList subList = it.split(util::rexOR, Qt::SkipEmptyParts);
+		if (subList.isEmpty())
+			continue;
+
+		if (subList.size() != 2)
+			continue;
+
+		QString server = subList.takeFirst();
+
+		subList = subList.first().split(util::rexComma, Qt::SkipEmptyParts);
+		if (subList.isEmpty())
+			continue;
+
+		serverList[currentListIndex].insert(server, subList);
+		ui.comboBox_server->addItem(server);
+		if (currentText != server)
+			continue;
+		ui.comboBox_subserver->addItems(subList);
+	}
+
+	if (currentIndex >= 0)
+		ui.comboBox_server->setCurrentIndex(currentIndex);
+	else
+		ui.comboBox_server->setCurrentIndex(0);
+	ui.comboBox_subserver->setCurrentIndex(0);
+	ui.comboBox_server->setUpdatesEnabled(true);
+	ui.comboBox_subserver->setUpdatesEnabled(true);
+
 }

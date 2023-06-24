@@ -67,7 +67,7 @@ public slots:
 	void proc();
 private:
 	bool readFile(const QString& fileName, QString* pcontent, bool* isPrivate);
-	bool loadString(const QString& script, QHash<int, TokenMap>* ptokens, QHash<QString, int>* plabel);
+	bool loadString(const QString& script, util::SafeHash<int, TokenMap>* ptokens, util::SafeHash<QString, int>* plabel);
 private:
 	enum JumpBehavior
 	{
@@ -277,10 +277,12 @@ private: //註冊給Parser的函數
 	int loadsetting(int currentline, const TokenMap& TK);
 	int run(int currentline, const TokenMap& TK);
 	int dostring(int currentline, const TokenMap& TK);
+	int reg(int currentline, const TokenMap& TK);
 
 	//check
 	int checkdaily(int currentline, const TokenMap& TK);
 	int isbattle(int currentline, const TokenMap& TK);
+	int isonline(int currentline, const TokenMap& TK);
 	int checkcoords(int currentline, const TokenMap& TK);
 	int checkmap(int currentline, const TokenMap& TK);
 	int checkmapnowait(int currentline, const TokenMap& TK);
@@ -355,6 +357,30 @@ private: //註冊給Parser的函數
 
 	//hide
 	int ocr(int currentline, const TokenMap& TK);
+	int dlg(int currentline, const TokenMap& TK);
+	int regex(int currentline, const TokenMap& TK);
+	int find(int currentline, const TokenMap& TK);
+	int half(int currentline, const TokenMap& TK);
+	int full(int currentline, const TokenMap& TK);
+	int upper(int currentline, const TokenMap& TK);
+	int lower(int currentline, const TokenMap& TK);
+	int replace(int currentline, const TokenMap& TK);
+	int toint(int currentline, const TokenMap& TK);
+	int tostr(int currentline, const TokenMap& TK);
+	int todb(int currentline, const TokenMap& TK);
+
+	//battle
+	int bh(int currentline, const TokenMap& TK);//atk
+	int bj(int currentline, const TokenMap& TK);//magic
+	int bp(int currentline, const TokenMap& TK);//skill
+	int bs(int currentline, const TokenMap& TK);//switch
+	int be(int currentline, const TokenMap& TK);//escape
+	int bd(int currentline, const TokenMap& TK);//defense
+	int bi(int currentline, const TokenMap& TK);//item
+	int bt(int currentline, const TokenMap& TK);//catch
+	int bn(int currentline, const TokenMap& TK);//nothing
+	int bw(int currentline, const TokenMap& TK);//petskill
+	int bwf(int currentline, const TokenMap& TK);//pet nothing
 private:
 	int beginLine_ = 0;
 

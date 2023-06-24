@@ -64,6 +64,7 @@ namespace util
 		kSetMove,
 		kDistoryDialog,
 		kCleanChatHistory,
+		kCreateDialog,
 	};
 
 	using handle_data = struct
@@ -217,6 +218,7 @@ public:
 	void WM_Move(int x, int y);
 	void WM_DistoryDialog();
 	void WM_CleanChatHistory();
+	void WM_CreateDialog(int button, const char* data);
 
 	inline void WM_SetBLockPacket(bool enable) { IS_ENCOUNT_BLOCK_FLAG = enable; }
 
