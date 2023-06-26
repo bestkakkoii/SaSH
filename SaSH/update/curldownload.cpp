@@ -2,6 +2,11 @@
 #include "curldownload.h"
 #ifndef CURLINC_CURL_H
 #include <curl/curl.h>
+#ifdef _DEBUG
+#pragma comment(lib, "libcurl-d.lib")
+#else
+#pragma comment(lib, "libcurl.lib")
+#endif
 #endif
 std::atomic_int CurlDownload::threadCnt_ = 0;
 QMutex CurlDownload::mutex_;

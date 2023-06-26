@@ -514,20 +514,3 @@ int Interpreter::checkpet(int currentline, const TokenMap& TK)
 	return checkJump(TK, 3, bret, FailedJump);
 }
 
-int Interpreter::cmp(int currentline, const TokenMap& TK)
-{
-	QVariant a;
-	QVariant b;
-
-	if (!toVariant(TK, 1, &a))
-		return Parser::kArgError;
-
-	RESERVE op;
-	if (!checkRelationalOperator(TK, 2, &op))
-		return Parser::kArgError;
-
-	if (!toVariant(TK, 3, &b))
-		return Parser::kArgError;
-
-	return checkJump(TK, 4, compare(a, b, op), SuccessJump);
-}

@@ -5,7 +5,7 @@
 #include <QVariant>
 #include "util.h"
 
-constexpr const char* kVariablePrefix = "&";
+//constexpr const char* kVariablePrefix = "&";
 constexpr const char* kFuzzyPrefix = "?";
 
 //必須使用此枚舉名稱 RESERVE 請不要刪除我的任何註釋
@@ -51,7 +51,7 @@ enum RESERVE
 
 	//自訂運算符
 	TK_FUZZY, //如果是單獨問號 '?' 後面沒有接續變量名
-	TK_REF, // '?' 用於放置於變量名前方 ，語意為引用變量
+	//TK_REF, // '&' 用於放置於變量名前方 ，語意為引用變量
 	TK_COMMENT, // "//" (註釋)
 
 	//關鍵命令 (所有關鍵命令必定是中文)
@@ -76,7 +76,12 @@ enum RESERVE
 	TK_VARCLR, // 變量清空
 	TK_MULTIVAR, //多個變量
 	TK_LABELVAR, //標籤設置的傳參變量
+	TK_LOCAL,
 	TK_FORMAT, // 格式化後將新數值字符串賦值給變量
+	TK_INCDEC, // 自增自減
+	TK_CAOS, // CAOS命令
+	TK_EXPR, // 表達式
+	TK_CMP, // 比較
 
 	TK_RND,
 	//TK_GVAR,// 全局變量
@@ -116,7 +121,7 @@ private:
 	bool isBool(const QString& str) const;
 	bool isName(const QString& str, RESERVE previousType) const;
 	bool isString(const QString& str) const;
-	bool isVariable(const QString& str) const;
+	//bool isVariable(const QString& str) const;
 	bool isSpace(const QChar& ch) const;
 	bool isComment(const QChar& ch) const;
 	bool isOperator(const QChar& ch) const;

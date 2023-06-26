@@ -640,7 +640,6 @@ void Server::handleData(QTcpSocket* clientSocket, QByteArray badata)
 
 			if (ret < 0)
 			{
-				//if (isPacketAutoClear.load(std::memory_order_acquire))
 				qDebug() << "************************ LSSPROTO_END ************************";
 				//代表此段數據已到結尾
 				//clearNetBuffer();
@@ -2400,18 +2399,20 @@ void Server::lssproto_WN_recv(int windowtype, int buttontype, int seqno, int obj
 	QRegularExpressionMatch extraInfoMatch = rexExtraInfoBig5.match(data);
 	if (extraInfoMatch.hasMatch())
 	{
+		currencydata_t currency;
 		int n = 1;
 		if (extraInfoMatch.lastCapturedIndex() == 7)
-			currencyData.expbufftime = qFloor(extraInfoMatch.captured(n++).toDouble() * 60.0);
+			currency.expbufftime = qFloor(extraInfoMatch.captured(n++).toDouble() * 60.0);
 		else
-			currencyData.expbufftime = 0;
+			currency.expbufftime = 0;
 
-		currencyData.prestige = extraInfoMatch.captured(n++).toInt();
-		currencyData.energy = extraInfoMatch.captured(n++).toInt();
-		currencyData.shell = extraInfoMatch.captured(n++).toInt();
-		currencyData.vitality = extraInfoMatch.captured(n++).toInt();
-		currencyData.points = extraInfoMatch.captured(n++).toInt();
-		currencyData.VIPPoints = extraInfoMatch.captured(n++).toInt();
+		currency.prestige = extraInfoMatch.captured(n++).toInt();
+		currency.energy = extraInfoMatch.captured(n++).toInt();
+		currency.shell = extraInfoMatch.captured(n++).toInt();
+		currency.vitality = extraInfoMatch.captured(n++).toInt();
+		currency.points = extraInfoMatch.captured(n++).toInt();
+		currency.VIPPoints = extraInfoMatch.captured(n++).toInt();
+		currencyData = currency;
 		IS_WAITFOR_EXTRA_DIALOG_INFO_FLAG = false;
 	}
 	else
@@ -2419,17 +2420,19 @@ void Server::lssproto_WN_recv(int windowtype, int buttontype, int seqno, int obj
 		extraInfoMatch = rexExtraInfoGb2312.match(data);
 		if (extraInfoMatch.hasMatch())
 		{
+			currencydata_t currency;
 			int n = 1;
 			if (extraInfoMatch.lastCapturedIndex() == 7)
-				currencyData.expbufftime = qFloor(extraInfoMatch.captured(n++).toDouble() * 60.0);
+				currency.expbufftime = qFloor(extraInfoMatch.captured(n++).toDouble() * 60.0);
 			else
-				currencyData.expbufftime = 0;
-			currencyData.prestige = extraInfoMatch.captured(n++).toInt();
-			currencyData.energy = extraInfoMatch.captured(n++).toInt();
-			currencyData.shell = extraInfoMatch.captured(n++).toInt();
-			currencyData.vitality = extraInfoMatch.captured(n++).toInt();
-			currencyData.points = extraInfoMatch.captured(n++).toInt();
-			currencyData.VIPPoints = extraInfoMatch.captured(n++).toInt();
+				currency.expbufftime = 0;
+			currency.prestige = extraInfoMatch.captured(n++).toInt();
+			currency.energy = extraInfoMatch.captured(n++).toInt();
+			currency.shell = extraInfoMatch.captured(n++).toInt();
+			currency.vitality = extraInfoMatch.captured(n++).toInt();
+			currency.points = extraInfoMatch.captured(n++).toInt();
+			currency.VIPPoints = extraInfoMatch.captured(n++).toInt();
+			currencyData = currency;
 			IS_WAITFOR_EXTRA_DIALOG_INFO_FLAG = false;
 		}
 	}
@@ -2656,12 +2659,7 @@ void Server::lssproto_EN_recv(int result, int field)
 		normalDurationTimer.restart();
 		battleDurationTimer.restart();
 	}
-	else
-	{
-		sendEnFlag = 0;
-		duelSendFlag = 0;
-		jbSendFlag = 0;
-	}
+
 }
 
 //求救
@@ -2683,28 +2681,6 @@ void Server::lssproto_B_recv(char* ccommand)
 
 	if (first == "C")
 	{
-		auto getBadStatusString = [](unsigned int status)-> QString
-		{
-			QStringList temp;
-			if (status & BC_FLG_DEAD)
-				temp.append(QObject::tr("dead")); // 死亡
-			if (status & BC_FLG_POISON)
-				temp.append(QObject::tr("poisoned")); // 中毒
-			if (status & BC_FLG_PARALYSIS)
-				temp.append(QObject::tr("paralyzed")); // 麻痹
-			if (status & BC_FLG_SLEEP)
-				temp.append(QObject::tr("sleep")); // 昏睡
-			if (status & BC_FLG_STONE)
-				temp.append(QObject::tr("petrified")); // 石化
-			if (status & BC_FLG_DRUNK)
-				temp.append(QObject::tr("dizzy")); // 眩晕
-			if (status & BC_FLG_CONFUSION)
-				temp.append(QObject::tr("confused")); // 混乱
-			if (status & BC_FLG_HIDE)
-				temp.append(QObject::tr("hidden")); // 是否隐藏，地球一周
-			return temp.join(" ");
-		};
-
 
 		/*
 		//BC|戰場屬性（0:無屬性,1:地,2:水,3:火,4:風）|人物在組隊中的位置|人物名稱|人物稱號|人物形象編號|人物等級(16進制)|當前HP|最大HP|人物狀態（死亡，中毒等）|是否騎乘標志(0:未騎，1騎,-1落馬)|騎寵名稱|騎寵等級|騎寵HP|騎寵最大HP|戰寵在隊伍中的位置|戰寵名稱|未知|戰寵形象|戰寵等級|戰寵HP|戰寵最大HP|戰寵異常狀態（昏睡，死亡，中毒等）|0||0|0|0|
@@ -2889,12 +2865,12 @@ void Server::lssproto_B_recv(char* ccommand)
 
 			if (pos == BattleMyNo)
 			{
-				temp = QString("[%1]%2 LV:%3 HP:%4/%5(%6) MP:%7%8").arg(pos).arg(obj.name).arg(obj.level)
+				temp = QString("[%1]%2 LV:%3 HP:%4/%5(%6) MP:%7%8").arg(pos + 1).arg(obj.name).arg(obj.level)
 					.arg(obj.hp).arg(obj.maxHp).arg(QString::number(obj.hpPercent) + "%").arg(BattleMyMp).arg(statusStr);
 			}
 			else
 			{
-				temp = QString("[%1]%2 LV:%3 HP:%4/%5(%6)%7").arg(pos).arg(obj.name).arg(obj.level)
+				temp = QString("[%1]%2 LV:%3 HP:%4/%5(%6)%7").arg(pos + 1).arg(obj.name).arg(obj.level)
 					.arg(obj.hp).arg(obj.maxHp).arg(QString::number(obj.hpPercent) + "%").arg(statusStr);
 			}
 
@@ -2902,7 +2878,7 @@ void Server::lssproto_B_recv(char* ccommand)
 
 			if (obj.rideFlag == 1)
 			{
-				temp = QString("[%1]%2 LV:%3 HP:%4/%5(%6)%7").arg(pos).arg(obj.rideName).arg(obj.rideLevel)
+				temp = QString("[%1]%2 LV:%3 HP:%4/%5(%6)%7").arg(pos + 1).arg(obj.rideName).arg(obj.rideLevel)
 					.arg(obj.rideHp).arg(obj.rideMaxHp).arg(QString::number(obj.rideHpPercent) + "%").arg(statusStr);
 			}
 			else
@@ -3335,6 +3311,26 @@ void Server::asyncBattleWork(bool wait)
 			//人物和寵物分開發
 			if (enablePlayerWork)
 			{
+				int delay = injector.getValueHash(util::kBattleActionDelayValue);
+				if (delay > 0)
+				{
+					if (delay > 1000)
+					{
+						for (int i = 0; i < delay / 1000; ++i)
+						{
+							QThread::msleep(1000);
+							if (ayncBattleCommandFlag.load(std::memory_order_acquire))
+								return;
+						}
+
+						QThread::msleep(delay % 1000);
+					}
+					else
+					{
+						QThread::msleep(delay);
+					}
+				}
+
 				//解析人物戰鬥邏輯並發送指令
 				playerDoBattleWork();
 
@@ -3381,11 +3377,8 @@ void Server::lssproto_KS_recv(int petarray, int result)
 	int cnt = 0;
 	int i;
 
-	BattlePetReceiveFlag = false;
-	BattlePetReceivePetNo = -1;
 	if (result == TRUE)
 	{
-		battlePetNoBak = -2;
 		if (petarray != -1)
 		{
 			pc.selectPetNo[petarray] = TRUE;
@@ -3610,7 +3603,7 @@ void Server::lssproto_XYD_recv(const QPoint& pos, int dir)
 	pc.dir = dir;
 
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
-	emit signalDispatcher.updateCoordsPosLabelTextChanged(QString("%1,%2").arg(nowPoint.x()).arg(nowPoint.y()));
+	emit signalDispatcher.updateCoordsPosLabelTextChanged(QString("%1,%2").arg(nowPoint.get().x()).arg(nowPoint.get().y()));
 }
 
 void Server::lssproto_WO_recv(int effect)
@@ -8068,11 +8061,24 @@ void Server::setPlayerFaceDirection(const QString& dirStr)
 		{ u8"南", "E" }, { u8"西南", "F" }, { u8"西", "G" }, { u8"西北", "H" }
 	};
 
-	if (!dirhash.contains(dirStr))
-		return;
+	int dir = -1;
+	QString qdirStr;
 	const QString dirchr = "ABCDEFGH";
-	int dir = dirchr.indexOf(dirhash.value(dirStr), 0, Qt::CaseInsensitive);
-	QString qdirStr = dirhash.value(dirStr);
+	if (!dirhash.contains(dirStr))
+	{
+		QRegularExpression re(u8"[A-H]");
+		QRegularExpressionMatch match = re.match(dirStr);
+		if (!match.hasMatch())
+			return;
+		qdirStr = match.captured(0);
+		dir = dirchr.indexOf(qdirStr, 0, Qt::CaseInsensitive);
+	}
+	else
+	{
+
+		dir = dirchr.indexOf(dirhash.value(dirStr), 0, Qt::CaseInsensitive);
+		qdirStr = dirhash.value(dirStr);
+	}
 	std::string sdirStr = qdirStr.toUpper().toStdString();
 	lssproto_W2_send(nowPoint, const_cast<char*>(sdirStr.c_str()));
 
@@ -9619,6 +9625,14 @@ bool Server::getItemEmptySpotIndexs(QVector<int>* pv) const
 	return !v.isEmpty();
 }
 
+void Server::mouseMove(int x, int y)
+{
+	Injector& injector = Injector::getInstance();
+	HWND hWnd = injector.getProcessWindow();
+	LPARAM data = MAKELPARAM(x, y);
+	injector.sendMessage(WM_MOUSEMOVE, NULL, data);
+}
+
 //滑鼠移動 + 左鍵 
 void Server::leftClick(int x, int y)
 {
@@ -9763,7 +9777,20 @@ bool Server::login(int s)
 		{
 			const int a = table[server * 3 + 1];
 			const int b = table[server * 3 + 2];
-			leftDoubleClick(160 + (a * 125), 165 + (b * 25));
+
+			int x = 160 + (a * 125);
+			int y = 165 + (b * 25);
+			for (;;)
+			{
+				mouseMove(x, y);
+				int value = mem::readInt(injector.getProcess(), injector.getProcessModule() + 0x41F1B90, sizeof(int));
+				if (value != -1)
+				{
+					leftDoubleClick(x, y);
+					break;
+				}
+				x -= 5;
+			}
 		}
 		break;
 	}
@@ -9771,7 +9798,20 @@ bool Server::login(int s)
 	{
 		if (subserver >= 0 && subserver < 15)
 		{
-			leftDoubleClick(250, 265 + (subserver * 25));
+			int x = 250;
+			int y = 265 + (subserver * 25);
+			for (;;)
+			{
+				mouseMove(x, y);
+				int value = mem::readInt(injector.getProcess(), injector.getProcessModule() + 0x41F1B90, sizeof(int));
+				if (value != -1)
+				{
+					leftDoubleClick(x, y);
+					break;
+				}
+
+				x += 5;
+			}
 		}
 		break;
 	}
@@ -9791,6 +9831,47 @@ bool Server::login(int s)
 	}
 	disconnectflag = false;
 	return false;
+}
+
+QString Server::getBadStatusString(unsigned int status)
+{
+	QStringList temp;
+	if (status & BC_FLG_DEAD)
+		temp.append(QObject::tr("dead")); // 死亡
+	if (status & BC_FLG_POISON)
+		temp.append(QObject::tr("poisoned")); // 中毒
+	if (status & BC_FLG_PARALYSIS)
+		temp.append(QObject::tr("paralyzed")); // 麻痹
+	if (status & BC_FLG_SLEEP)
+		temp.append(QObject::tr("sleep")); // 昏睡
+	if (status & BC_FLG_STONE)
+		temp.append(QObject::tr("petrified")); // 石化
+	if (status & BC_FLG_DRUNK)
+		temp.append(QObject::tr("dizzy")); // 眩晕
+	if (status & BC_FLG_CONFUSION)
+		temp.append(QObject::tr("confused")); // 混乱
+	if (status & BC_FLG_HIDE)
+		temp.append(QObject::tr("hidden")); // 是否隐藏，地球一周
+	if (status & BC_FLG_REVERSE)
+		temp.append(QObject::tr("reverse")); // 反轉
+	return temp.join(" ");
+}
+
+QString Server::getFieldString(unsigned int field)
+{
+	switch (field)
+	{
+	case 1:
+		return QObject::tr("earth");
+	case 2:
+		return QObject::tr("water");
+	case 3:
+		return QObject::tr("fire");
+	case 4:
+		return QObject::tr("wind");
+	default:
+		return QString();
+	}
 }
 
 //根據索引刷新道具資訊
@@ -9997,17 +10078,17 @@ void Server::updateDatasFromMemory()
 		}
 	}
 
-	emit signalDispatcher.updateCoordsPosLabelTextChanged(QString("%1,%2").arg(nowPoint.x()).arg(nowPoint.y()));
+	emit signalDispatcher.updateCoordsPosLabelTextChanged(QString("%1,%2").arg(nowPoint.get().x()).arg(nowPoint.get().y()));
 
 	reloadHashVar();
 }
 
 void Server::reloadHashVar()
 {
-	hashpc = util::SafeHash<QString, QVariant>{
+	hashpc = VariantSafeHash{
 		{ "dir", (pc.dir + 3) % 8 },
-		{ "hp", pc.hp }, { "maxhp", pc.maxHp }, { "hppercent", pc.hpPercent },
-		{ "mp", pc.mp }, { "maxmp", pc.maxMp }, { "mppercent", pc.mpPercent },
+		{ "hp", pc.hp }, { "maxhp", pc.maxHp }, { "hpp", pc.hpPercent },
+		{ "mp", pc.mp }, { "maxmp", pc.maxMp }, { "mpp", pc.mpPercent },
 		{ "vit", pc.vital },
 		{ "str", pc.str }, { "tgh", pc.tgh }, { "dex", pc.dex },
 		{ "exp", pc.exp }, { "maxexp", pc.maxExp },
@@ -10039,12 +10120,12 @@ void Server::reloadHashVar()
 		//{ "", pc.baseGraNo },
 	};
 
-	util::SafeHash<int, util::SafeHash<QString, QVariant>> _hashmagic;
+	util::SafeHash<int, VariantSafeHash> _hashmagic;
 	for (int i = 0; i < MAX_MAGIC; ++i)
 	{
 		MAGIC m = magic[i];
 
-		util::SafeHash<QString, QVariant> hash = {
+		VariantSafeHash hash = {
 			{ "valid", m.useFlag ? 1 : 0 },
 			{ "cost", m.mp },
 			{ "field", m.field },
@@ -10057,12 +10138,12 @@ void Server::reloadHashVar()
 	}
 	hashmagic = _hashmagic;
 
-	util::SafeHash<int, util::SafeHash<QString, QVariant>> _hashskill;
+	util::SafeHash<int, VariantSafeHash> _hashskill;
 	for (int i = 0; i < MAX_PROFESSION_SKILL; ++i)
 	{
 		PROFESSION_SKILL s = profession_skill[i];
 
-		util::SafeHash<QString, QVariant> hash = {
+		VariantSafeHash hash = {
 			{ "valid", s.useFlag ? 1 : 0 },
 			{ "cost", s.costmp },
 			//{ "field", s. },
@@ -10075,16 +10156,16 @@ void Server::reloadHashVar()
 	}
 	hashskill = _hashskill;
 
-	util::SafeHash<int, util::SafeHash<QString, QVariant>> _hashpet;
+	util::SafeHash<int, VariantSafeHash> _hashpet;
 	for (int i = 0; i < MAX_PET; ++i)
 	{
 		PET _pet = pet[i];
 
-		util::SafeHash<QString, QVariant> hash = {
+		VariantSafeHash hash = {
 			{ "index", _pet.index + 1 },						//位置
 			{ "graNo", _pet.graNo },						//圖號
-			{ "hp", _pet.hp }, { "maxhp", _pet.maxHp }, { "hppercent", _pet.hpPercent },					//血量
-			{ "mp", _pet.mp }, { "maxmp", _pet.maxMp }, { "mppercent", _pet.mpPercent },					//魔力
+			{ "hp", _pet.hp }, { "maxhp", _pet.maxHp }, { "hpp", _pet.hpPercent },					//血量
+			{ "mp", _pet.mp }, { "maxmp", _pet.maxMp }, { "mpp", _pet.mpPercent },					//魔力
 			{ "exp", _pet.exp }, { "maxexp", _pet.maxExp },				//經驗值
 			{ "lv", _pet.level },						//等級
 			{ "atk", _pet.atk },						//攻擊力
@@ -10103,15 +10184,15 @@ void Server::reloadHashVar()
 	}
 	hashpet = _hashpet;
 
-	util::SafeHash<int, util::SafeHash<int, util::SafeHash<QString, QVariant>>>  _hashpetskill;
+	util::SafeHash<int, util::SafeHash<int, VariantSafeHash>>  _hashpetskill;
 	for (int i = 0; i < MAX_PET; ++i)
 	{
-		util::SafeHash<int, util::SafeHash<QString, QVariant>> skills;
+		util::SafeHash<int, VariantSafeHash> skills;
 		for (int j = 0; j < MAX_SKILL; ++j)
 		{
 			PET_SKILL _petskill = petSkill[i][j];
 
-			util::SafeHash<QString, QVariant> hash = {
+			VariantSafeHash hash = {
 				{ "valid", _petskill.useFlag ? 1 : 0 },
 				//{ "", _petskill.field },
 				{ "target", _petskill.target },
@@ -10126,13 +10207,13 @@ void Server::reloadHashVar()
 	}
 	hashpetskill = _hashpetskill;
 
-	util::SafeHash<int, util::SafeHash<QString, QVariant>> _hashitem;
+	util::SafeHash<int, VariantSafeHash> _hashitem;
 	for (int i = CHAR_EQUIPPLACENUM; i < MAX_ITEM; ++i)
 	{
 		ITEM item = pc.item[i];
 		int index = i - CHAR_EQUIPPLACENUM + 1;
 
-		util::SafeHash<QString, QVariant> hash = {
+		VariantSafeHash hash = {
 			//{ "", item.color },
 			{ "graNo", item.graNo },
 			{ "lv", item.level },
@@ -10152,11 +10233,11 @@ void Server::reloadHashVar()
 	}
 	hashitem = _hashitem;
 
-	util::SafeHash<int, util::SafeHash<QString, QVariant>> _hashequip;
+	util::SafeHash<int, VariantSafeHash> _hashequip;
 	for (int i = 0; i < CHAR_EQUIPPLACENUM; ++i)
 	{
 		ITEM item = pc.item[i];
-		util::SafeHash<QString, QVariant> hash = {
+		VariantSafeHash hash = {
 			//{ "", item.color },
 			{ "graNo", item.graNo },
 			{ "lv", item.level },
@@ -10176,17 +10257,17 @@ void Server::reloadHashVar()
 	}
 	hashequip = _hashequip;
 
-	util::SafeHash<int, util::SafeHash<QString, QVariant>> _hashparty;
+	util::SafeHash<int, VariantSafeHash> _hashparty;
 	for (int i = 0; i < MAX_PARTY; ++i)
 	{
 		PARTY _party = party[i];
-		util::SafeHash<QString, QVariant> hash = {
+		VariantSafeHash hash = {
 			{ "valid", _party.useFlag ? 1 : 0 },
 			{ "id", _party.id },
 			{ "lv", _party.level },
 			{ "maxhp", _party.maxHp },
 			{ "hp", _party.hp },
-			{ "hppercent", _party.hpPercent },
+			{ "hpp", _party.hpPercent },
 			{ "mp", _party.mp },
 			{ "name", _party.name },
 		};
@@ -10195,14 +10276,14 @@ void Server::reloadHashVar()
 	hashparty = _hashparty;
 
 
-	util::SafeHash<int, util::SafeHash<int, util::SafeHash<QString, QVariant>>> _hashpetequip;
+	util::SafeHash<int, util::SafeHash<int, VariantSafeHash>> _hashpetequip;
 	for (int i = 0; i < MAX_PET; ++i)
 	{
-		util::SafeHash<int, util::SafeHash<QString, QVariant>> equips;
+		util::SafeHash<int, VariantSafeHash> equips;
 		for (int j = 0; j < MAX_PET_ITEM; ++j)
 		{
 			ITEM item = pet[i].item[j];
-			util::SafeHash<QString, QVariant> hash = {
+			VariantSafeHash hash = {
 				//{ "", item.color },
 				{ "graNo", item.graNo },
 				{ "level", item.level },
@@ -10225,11 +10306,11 @@ void Server::reloadHashVar()
 	}
 	hashpetequip = _hashpetequip;
 
-	util::SafeHash<QString, QVariant> _hashmap = {
+	VariantSafeHash _hashmap = {
 		{ "floor", nowFloor },
 		{ "name", nowFloorName },
-		{ "x", nowPoint.x() },
-		{ "y", nowPoint.y() },
+		{ "x", nowPoint.get().x() },
+		{ "y", nowPoint.get().y() },
 		{ "time", SaTimeZoneNo }
 	};
 
@@ -10267,33 +10348,36 @@ void Server::reloadHashVar()
 	hashdialog = _hashdialog;
 
 
-	util::SafeHash<int, util::SafeHash<QString, QVariant>> _hashbattle;
+
+
+	util::SafeHash<int, VariantSafeHash> _hashbattle;
 	QVector<battleobject_t> objects = battleData.objects;
+	sortBattleUnit(objects);
 	for (const battleobject_t& battle : objects)
 	{
-		util::SafeHash<QString, QVariant> hash = {
-			{ "pos", battle.pos },
+		VariantSafeHash hash = {
+			{ "pos", battle.pos + 1 },
 			{ "name", battle.name },
 			{ "fname", battle.freename },
-			{ "faceid", battle.faceid },
+			{ "modelid", battle.faceid },
 			{ "lv", battle.level },
 			{ "hp", battle.hp },
 			{ "maxhp", battle.maxHp },
-			{ "hppercent", battle.hpPercent },
-			{ "status", battle.status },
+			{ "hpp", battle.hpPercent },
+			{ "status", getBadStatusString(battle.status) },
 			{ "rideflag", battle.rideFlag },
 			{ "ridename", battle.rideName },
 			{ "ridelv", battle.rideLevel },
 			{ "ridehp", battle.rideHp },
 			{ "ridemaxhp", battle.rideMaxHp },
-			{ "ridehppercent", battle.rideHpPercent },
+			{ "ridehpp", battle.rideHpPercent },
 		};
 		_hashbattle.insert(battle.pos + 1, hash);
 	}
 
 	hashbattle = _hashbattle;
 
-	hashbattlefield = battleData.fieldAttr;
+	hashbattlefield = getFieldString(battleData.fieldAttr);
 }
 
 //檢查並自動吃肉、或丟肉
@@ -12615,7 +12699,6 @@ bool Server::fixPlayerTargetBySkillIndex(int magicIndex, int oldtarget, int* tar
 	return true;
 }
 
-
 //戰鬥人物修正物品目標範圍
 bool Server::fixPlayerTargetByItemIndex(int itemIndex, int oldtarget, int* target) const
 {
@@ -12816,7 +12899,7 @@ void Server::sendBattlePlayerAttackAct(int target)
 
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
 	QString name = !battleData.objects.at(target).name.isEmpty() ? battleData.objects.at(target).name : battleData.objects.at(target).freename;
-	QString text = QObject::tr("use attack [%1]%2").arg(target).arg(name);
+	QString text = QObject::tr("use attack [%1]%2").arg(target + 1).arg(name);
 	labelPlayerAction = text;
 	emit signalDispatcher.updateLabelPlayerAction(text);
 }
@@ -12847,7 +12930,7 @@ void Server::sendBattlePlayerMagicAct(int magicIndex, int target)
 	if (target <= 19)
 	{
 		QString name = !battleData.objects.at(target).name.isEmpty() ? battleData.objects.at(target).name : battleData.objects.at(target).freename;
-		QString text = QObject::tr("use magic %1 to [%2]%3").arg(magicName).arg(target).arg(name);
+		QString text = QObject::tr("use magic %1 to [%2]%3").arg(magicName).arg(target + 1).arg(name);
 		labelPlayerAction = text;
 		emit signalDispatcher.updateLabelPlayerAction(text);
 	}
@@ -12884,7 +12967,7 @@ void Server::sendBattlePlayerJobSkillAct(int skillIndex, int target)
 	if (target <= 19)
 	{
 		QString name = !battleData.objects.at(target).name.isEmpty() ? battleData.objects.at(target).name : battleData.objects.at(target).freename;
-		QString text = QObject::tr("use skill %1 to [%2]%3").arg(skillName).arg(target).arg(name);
+		QString text = QObject::tr("use skill %1 to [%2]%3").arg(skillName).arg(target + 1).arg(name);
 		labelPlayerAction = text;
 		emit signalDispatcher.updateLabelPlayerAction(text);
 	}
@@ -12922,7 +13005,7 @@ void Server::sendBattlePlayerItemAct(int itemIndex, int target)
 	if (target <= 19)
 	{
 		QString name = !battleData.objects.at(target).name.isEmpty() ? battleData.objects.at(target).name : battleData.objects.at(target).freename;
-		QString text = QObject::tr("use item %1 to [%2]%3").arg(itemName).arg(target).arg(name);
+		QString text = QObject::tr("use item %1 to [%2]%3").arg(itemName).arg(target + 1).arg(name);
 		labelPlayerAction = text;
 		emit signalDispatcher.updateLabelPlayerAction(text);
 	}
@@ -13075,7 +13158,7 @@ void Server::sendBattlePetSkillAct(int skillIndex, int target)
 			name = !battleData.objects.at(target).name.isEmpty() ? battleData.objects.at(target).name : battleData.objects.at(target).freename;
 		else
 			name = QObject::tr("self");
-		emit signalDispatcher.updateLabelPetAction(QObject::tr("use %1 to [%2]%3").arg(petSkill[pc.battlePetNo][skillIndex].name).arg(target).arg(name));
+		emit signalDispatcher.updateLabelPetAction(QObject::tr("use %1 to [%2]%3").arg(petSkill[pc.battlePetNo][skillIndex].name).arg(target + 1).arg(name));
 	}
 	else
 	{

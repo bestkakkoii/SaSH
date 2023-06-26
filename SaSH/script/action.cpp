@@ -23,9 +23,9 @@ int Interpreter::useitem(int currentline, const TokenMap& TK)
 
 		if (itemName.isEmpty())
 			return Parser::kArgError;
-		target = -1;
+		target = -2;
 		checkInt(TK, 2, &target);
-		if (target < 0)
+		if (target == -2)
 		{
 			QString targetTypeName;
 			checkString(TK, 2, &targetTypeName);
@@ -1749,11 +1749,13 @@ int Interpreter::bi(int currentline, const TokenMap& TK)//item
 	checkInt(TK, 1, &index);
 	if (index <= 0)
 		return Parser::kArgError;
+	--index;
 
 	int target = 0;
 	checkInt(TK, 2, &target);
 	if (target <= 0)
 		return Parser::kArgError;
+	--target;
 
 	injector.server->sendBattlePlayerItemAct(index, target);
 
@@ -1773,6 +1775,7 @@ int Interpreter::bt(int currentline, const TokenMap& TK)//catch
 	checkInt(TK, 1, &index);
 	if (index <= 0)
 		return Parser::kArgError;
+	--index;
 
 	injector.server->sendBattlePlayerCatchPetAct(index);
 
@@ -1806,11 +1809,13 @@ int Interpreter::bw(int currentline, const TokenMap& TK)//petskill
 	checkInt(TK, 1, &skillIndex);
 	if (skillIndex <= 0)
 		return Parser::kArgError;
+	--skillIndex;
 
 	int target = 0;
 	checkInt(TK, 2, &target);
 	if (target <= 0)
 		return Parser::kArgError;
+	--target;
 
 	injector.server->sendBattlePetSkillAct(skillIndex, target);
 
@@ -1826,5 +1831,54 @@ int Interpreter::bwf(int currentline, const TokenMap& TK)//pet nothing
 	if (!injector.server->IS_BATTLE_FLAG)
 		return Parser::kNoChange;
 	injector.server->sendBattlePetDoNothing();
+	return Parser::kNoChange;
+}
+
+int Interpreter::bwait(int currentline, const TokenMap& TK)
+{
+	Injector& injector = Injector::getInstance();
+
+	if (injector.server.isNull())
+		return Parser::kError;
+
+	if (!injector.server->IS_BATTLE_FLAG)
+		return Parser::kNoChange;
+
+	int timeout = 5000;
+	checkInt(TK, 1, &timeout);
+	injector.sendMessage(Injector::kEnableBattleDialog, false, NULL);
+	bool bret = waitfor(timeout, [&injector]()
+		{
+			if (!injector.server->IS_BATTLE_FLAG)
+				return true;
+			int G = injector.server->getGameStatus();
+			int W = injector.server->getWorldStatus();
+
+			return W == 10 && G == 4;
+		});
+	if (injector.server->IS_BATTLE_FLAG)
+		injector.sendMessage(Injector::kEnableBattleDialog, true, NULL);
+	else
+		bret = false;
+
+	return checkJump(TK, 2, bret, FailedJump);
+}
+
+int Interpreter::bend(int currentline, const TokenMap& TK)
+{
+	Injector& injector = Injector::getInstance();
+
+	if (injector.server.isNull())
+		return Parser::kError;
+
+	if (!injector.server->IS_BATTLE_FLAG)
+		return Parser::kNoChange;
+
+	int G = injector.server->getGameStatus();
+	if (G >= 4)
+	{
+		++G;
+		injector.server->setGameStatus(G);
+	}
 	return Parser::kNoChange;
 }

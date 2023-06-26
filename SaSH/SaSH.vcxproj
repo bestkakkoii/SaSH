@@ -75,6 +75,7 @@
       <OmitFramePointers>true</OmitFramePointers>
       <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
       <WholeProgramOptimization>true</WholeProgramOptimization>
+      <AdditionalOptions>/bigobj %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <UACExecutionLevel>RequireAdministrator</UACExecutionLevel>
@@ -98,6 +99,7 @@
       <LanguageStandard>stdcpp17</LanguageStandard>
       <AssemblerOutput>All</AssemblerOutput>
       <ExceptionHandling>Async</ExceptionHandling>
+      <AdditionalOptions>/bigobj %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <UACExecutionLevel>RequireAdministrator</UACExecutionLevel>
@@ -236,6 +238,8 @@
     <ClInclude Include="net\autil.h" />
     <ClInclude Include="qscopedhandle.h" />
     <QtMoc Include="script\interpreter.h" />
+    <ClInclude Include="resource.h" />
+    <ClInclude Include="resource1.h" />
     <ClInclude Include="script\lexer.h" />
     <ClInclude Include="script\parser.h" />
     <ClInclude Include="update\curldownload.h" />
@@ -268,6 +272,7 @@
     <ClCompile Include="main.cpp" />
     <None Include="SaSH.ico" />
     <QtUic Include="update\qdownloader.ui" />
+    <ResourceCompile Include="main.rc" />
     <ResourceCompile Include="SaSH.rc" />
     <QtMoc Include="model\progressbar.h" />
     <QtMoc Include="form\selecttargetform.h" />

@@ -8,9 +8,9 @@
 #include "crypto.h"
 
 util::SafeHash<QString, util::SafeHash<int, break_marker_t>> break_markers;//用於標記自訂義中斷點(紅點)
-util::SafeHash < QString, util::SafeHash<int, break_marker_t>> forward_markers;//用於標示當前執行中斷處(黃箭頭)
-util::SafeHash < QString, util::SafeHash<int, break_marker_t>> error_markers;//用於標示錯誤發生行(紅線)
-util::SafeHash < QString, util::SafeHash<int, break_marker_t>> step_markers;//隱式標記中斷點用於單步執行(無)
+util::SafeHash<QString, util::SafeHash<int, break_marker_t>> forward_markers;//用於標示當前執行中斷處(黃箭頭)
+util::SafeHash<QString, util::SafeHash<int, break_marker_t>> error_markers;//用於標示錯誤發生行(紅線)
+util::SafeHash<QString, util::SafeHash<int, break_marker_t>> step_markers;//隱式標記中斷點用於單步執行(無)
 
 
 Interpreter::Interpreter(QObject* parent)
@@ -550,252 +550,31 @@ bool Interpreter::findPath(QPoint dst, int steplen, int step_cost, int timeout, 
 //嘗試取指定位置的token轉為字符串
 bool Interpreter::checkString(const TokenMap& TK, int idx, QString* ret) const
 {
-	if (!TK.contains(idx))
-		return false;
-	if (ret == nullptr)
-		return false;
-
-	RESERVE type = TK.value(idx).type;
-	QVariant var = TK.value(idx).data;
-	util::SafeHash<QString, QVariant> args = parser_->getLabelVars();
-	if (!var.isValid())
-		return false;
-	if (type == TK_REF)
-	{
-		*ret = parser_->getVar<QString>(var.toString());
-	}
-	else if (type == TK_STRING || type == TK_CMD)
-	{
-		//檢查是否為區域變量
-		QString name = var.toString();
-		if (args.contains(name))
-		{
-			QVariant::Type vtype = args.value(name).type();
-			if (vtype == QVariant::Int || vtype == QVariant::String)
-				*ret = args.value(name).toString();
-			else if (vtype == QVariant::Double)
-				*ret = QString::number(args.value(name).toDouble(), 'f', 8);
-			else
-				return false;
-		}
-		else
-			*ret = var.toString();
-	}
-	else
-		return false;
-
-	return true;
+	return parser_->checkString(TK, idx, ret);
 }
 
 //嘗試取指定位置的token轉為整數
 bool Interpreter::checkInt(const TokenMap& TK, int idx, int* ret) const
 {
-	if (!TK.contains(idx))
-		return false;
-	if (ret == nullptr)
-		return false;
-
-	RESERVE type = TK.value(idx).type;
-	QVariant var = TK.value(idx).data;
-	util::SafeHash<QString, QVariant> args = parser_->getLabelVars();
-	if (!var.isValid())
-		return false;
-
-	if (type == TK_REF)
-	{
-		*ret = parser_->getVar<int>(var.toString());
-	}
-	else if (type == TK_INT)
-	{
-		bool ok = false;
-		int value = var.toInt(&ok);
-		if (!ok)
-			return false;
-		*ret = value;
-	}
-	else if (type == TK_STRING)
-	{
-		//檢查是否為區域變量
-		QString name = var.toString();
-		if (args.contains(name) && args.value(name).type() == QVariant::Int)
-		{
-			*ret = args.value(name).toInt();
-		}
-		else if (args.contains(name) && args.value(name).type() == QVariant::String)
-		{
-			bool ok;
-			int value = args.value(name).toInt(&ok);
-			if (ok)
-				*ret = value;
-			else
-				return false;
-		}
-		else
-			return false;
-	}
-	else
-		return false;
-
-	return true;
+	return parser_->checkInt(TK, idx, ret);
 }
 
 //嘗試取指定位置的token轉為雙精度浮點數
 bool Interpreter::checkDouble(const TokenMap& TK, int idx, double* ret) const
 {
-	if (!TK.contains(idx))
-		return false;
-	if (ret == nullptr)
-		return false;
-
-	RESERVE type = TK.value(idx).type;
-	QVariant var = TK.value(idx).data;
-	util::SafeHash<QString, QVariant> args = parser_->getLabelVars();
-	if (!var.isValid())
-		return false;
-
-	if (type == TK_REF)
-	{
-		*ret = parser_->getVar<double>(var.toString());
-	}
-	else if (type == TK_DOUBLE)
-	{
-		bool ok = false;
-		double value = var.toDouble(&ok);
-		if (!ok)
-			return false;
-		*ret = value;
-	}
-	else if (type == TK_STRING)
-	{
-		//檢查是否為區域變量
-		QString name = var.toString();
-		if (args.contains(name) && args.value(name).type() == QVariant::Double)
-		{
-			*ret = args.value(name).toDouble();
-		}
-		else if (args.contains(name) && args.value(name).type() == QVariant::String)
-		{
-			bool ok;
-			double value = args.value(name).toDouble(&ok);
-			if (ok)
-				*ret = value;
-			else
-				return false;
-		}
-		else
-			return false;
-	}
-	else
-		return false;
-
-	return true;
+	return parser_->checkDouble(TK, idx, ret);
 }
 
 //嘗試取指定位置的token轉為QVariant
 bool Interpreter::toVariant(const TokenMap& TK, int idx, QVariant* ret) const
 {
-	if (!TK.contains(idx))
-		return false;
-	if (ret == nullptr)
-		return false;
-
-	RESERVE type = TK.value(idx).type;
-	QVariant var = TK.value(idx).data;
-	util::SafeHash<QString, QVariant> args = parser_->getLabelVars();
-	if (!var.isValid())
-		return false;
-
-	if (type == TK_REF)
-	{
-		*ret = parser_->getVar<QVariant>(var.toString());
-	}
-	else if (type == TK_STRING || type == TK_CMD)
-	{
-		QString name = var.toString();
-		if (args.contains(name))
-		{
-			QVariant::Type vtype = args.value(name).type();
-			if (vtype == QVariant::Int || vtype == QVariant::String)
-				*ret = args.value(name).toString();
-			else if (vtype == QVariant::Double)
-				*ret = QString::number(args.value(name).toDouble(), 'f', 8);
-			else
-				return false;
-		}
-		else
-			*ret = var.toString();
-	}
-	else
-	{
-		*ret = var;
-	}
-
-	return true;
+	return parser_->toVariant(TK, idx, ret);
 }
 
 //檢查跳轉是否滿足，和跳轉的方式
 int Interpreter::checkJump(const TokenMap& TK, int idx, bool expr, JumpBehavior behavior) const
 {
-	bool okJump = false;
-	if (behavior == JumpBehavior::FailedJump)
-	{
-		okJump = !expr;
-	}
-	else
-	{
-		okJump = expr;
-	}
-
-	if (okJump)
-	{
-		QString label;
-		int line = 0;
-		if (TK.contains(idx))
-		{
-			RESERVE type = TK.value(idx).type;
-			QVariant var = TK.value(idx).data;
-
-			if (type == TK_REF)
-			{
-				line = parser_->getVar<int>(var.toString());
-				if (line == 0)
-					label = parser_->getVar<QString>(var.toString());
-			}
-			else if (type == TK_STRING)
-			{
-				label = var.toString();
-			}
-			else if (type == TK_INT)
-			{
-				bool ok = false;
-				int value = 0;
-				value = var.toInt(&ok);
-				if (ok)
-					line = value;
-			}
-			else
-				return Parser::kArgError;
-
-		}
-
-		if (label.isEmpty() && line == 0)
-			line = -1;
-
-		if (!label.isEmpty())
-		{
-			parser_->jump(label, false);
-		}
-		else if (line != 0)
-		{
-			parser_->jump(line, false);
-		}
-		else
-			return Parser::kArgError;
-
-		return Parser::kHasJump;
-	}
-
-	return Parser::kNoChange;
+	return parser_->checkJump(TK, idx, expr, behavior);
 }
 
 //檢查指定位置開始的兩個參數是否能作為範圍值或指定位置的值
@@ -807,48 +586,14 @@ bool Interpreter::checkRange(const TokenMap& TK, int idx, int* min, int* max) co
 		return false;
 
 	RESERVE type = TK.value(idx).type;
-	QVariant var = TK.value(idx).data;
-	util::SafeHash<QString, QVariant> args = parser_->getLabelVars();
+	QVariant var = parser_->checkValue(TK, idx, QVariant::Double);
 	if (!var.isValid())
 		return false;
 
 	QString range;
-	if (type == TK_REF)
+	if (type == TK_STRING)
 	{
-		range = parser_->getVar<QString>(var.toString());
-		bool ok = false;
-		int value = range.toInt(&ok);
-		if (ok)
-		{
-			*min = value - 1;
-			*max = value - 1;
-			return true;
-		}
-	}
-	else if (type == TK_STRING)
-	{
-		QString name = var.toString();
-		if (args.contains(name))
-		{
-			QVariant::Type vtype = args.value(name).type();
-			if (vtype == QVariant::String)
-				range = args.value(name).toString();
-			else if (vtype == QVariant::Int)
-			{
-				bool ok = false;
-				int value = args.value(name).toInt(&ok);
-				if (ok)
-				{
-					*min = value - 1;
-					*max = value - 1;
-					return true;
-				}
-			}
-			else
-				return false;
-		}
-		else
-			range = var.toString();
+		range = var.toString();
 	}
 	else if (type == TK_INT)
 	{
@@ -1041,24 +786,7 @@ bool Interpreter::compare(CompareArea area, const TokenMap& TK) const
 		if (!TK.contains(3))
 			return false;
 
-		auto bType = TK.value(3).type;
-		b = TK.value(3).data;
-		if (bType == TK_REF)
-		{
-			int value;
-			QString bStr;
-			if (!checkInt(TK, 3, &value))
-			{
-				if (!checkString(TK, 3, &bStr))
-					return false;
-				else
-					b = bStr;
-			}
-			else
-			{
-				b = value;
-			}
-		}
+		b = parser_->checkValue(TK, 3, QVariant::String);
 
 		switch (cmpType)
 		{
@@ -1154,24 +882,7 @@ bool Interpreter::compare(CompareArea area, const TokenMap& TK) const
 		if (!TK.contains(4))
 			return false;
 
-		auto bType = TK.value(4).type;
-		b = TK.value(4).data;
-		if (bType == TK_REF)
-		{
-			int value;
-			QString bStr;
-			if (!checkInt(TK, 4, &value))
-			{
-				if (!checkString(TK, 4, &bStr))
-					return false;
-				else
-					b = bStr;
-			}
-			else
-			{
-				b = value;
-			}
-		}
+		b = parser_->checkValue(TK, 4, QVariant::String);
 
 		switch (cmpType)
 		{
@@ -1264,24 +975,7 @@ bool Interpreter::compare(CompareArea area, const TokenMap& TK) const
 		if (!TK.contains(4))
 			return false;
 
-		auto bType = TK.value(4).type;
-		b = TK.value(4).data;
-		if (bType == TK_REF)
-		{
-			int value;
-			QString bStr;
-			if (!checkInt(TK, 4, &value))
-			{
-				if (!checkString(TK, 4, &bStr))
-					return false;
-				else
-					b = bStr;
-			}
-			else
-			{
-				b = value;
-			}
-		}
+		b = parser_->checkValue(TK, 4, QVariant::String);
 
 		switch (cmpType)
 		{
@@ -1320,24 +1014,7 @@ bool Interpreter::compare(CompareArea area, const TokenMap& TK) const
 		if (!TK.contains(2))
 			return false;
 
-		auto bType = TK.value(2).type;
-		b = TK.value(2).data;
-		if (bType == TK_REF)
-		{
-			int value;
-			QString bStr;
-			if (!checkInt(TK, 2, &value))
-			{
-				if (!checkString(TK, 2, &bStr))
-					return false;
-				else
-					b = bStr;
-			}
-			else
-			{
-				b = value;
-			}
-		}
+		b = parser_->checkValue(TK, 2, QVariant::String);
 
 		switch (cmpType)
 		{
@@ -1348,10 +1025,7 @@ bool Interpreter::compare(CompareArea area, const TokenMap& TK) const
 			{
 				for (int i = 0; i < MAX_PARTY; ++i)
 				{
-					util::SafeHash<QString, QVariant> party = injector.server->hashparty.value(i);
-					if (party.value("name").toString().isEmpty())
-						continue;
-
+					VariantSafeHash party = injector.server->hashparty.value(i + 1);
 					if (party.value("valid").toInt() == 0)
 						continue;
 
@@ -1434,7 +1108,7 @@ void Interpreter::updateGlobalVariables()
 		return;
 	PC pc = injector.server->pc;
 	VariantSafeHash& hash = parser_->getVarsRef();
-	QPoint nowPoint = injector.server->nowPoint;
+	QPoint pos = injector.server->nowPoint;
 	dialog_t dialog = injector.server->currentDialog.get();
 
 	//big5
@@ -1449,8 +1123,8 @@ void Interpreter::updateGlobalVariables()
 	hash["人物DP"] = pc.dp;
 	hash["石幣"] = pc.gold;
 
-	hash["東坐標"] = nowPoint.x();
-	hash["南坐標"] = nowPoint.y();
+	hash["東坐標"] = pos.x();
+	hash["南坐標"] = pos.y();
 	hash["地圖編號"] = injector.server->nowFloor;
 	hash["地圖"] = injector.server->nowFloorName;
 	hash["日期"] = QDateTime::currentDateTime().toString("yyyy-MM-dd");
@@ -1469,8 +1143,8 @@ void Interpreter::updateGlobalVariables()
 	hash["人物DP"] = pc.dp;
 	hash["石币"] = pc.gold;
 
-	hash["东坐标"] = nowPoint.x();
-	hash["南坐标"] = nowPoint.y();
+	hash["东坐标"] = pos.x();
+	hash["南坐标"] = pos.y();
 	hash["地图编号"] = injector.server->nowFloor;
 	hash["地图"] = injector.server->nowFloorName;
 	hash["日期"] = QDateTime::currentDateTime().toString("yyyy-MM-dd");
@@ -1489,8 +1163,8 @@ void Interpreter::updateGlobalVariables()
 	hash["chdp"] = pc.dp;
 	hash["stone"] = pc.gold;
 
-	hash["px"] = nowPoint.x();
-	hash["py"] = nowPoint.y();
+	hash["px"] = pos.x();
+	hash["py"] = pos.y();
 	hash["floor"] = injector.server->nowFloor;
 	hash["frname"] = injector.server->nowFloorName;
 	hash["date"] = QDateTime::currentDateTime().toString("yyyy-MM-dd");
@@ -1632,7 +1306,7 @@ void Interpreter::openLibsBIG5()
 	registerFunction(u8"設置", &Interpreter::set);
 	registerFunction(u8"儲存設置", &Interpreter::savesetting);
 	registerFunction(u8"讀取設置", &Interpreter::loadsetting);
-	registerFunction(u8"判斷", &Interpreter::cmp);
+
 	registerFunction(u8"執行", &Interpreter::run);
 	registerFunction(u8"執行代碼", &Interpreter::dostring);
 	registerFunction(u8"註冊", &Interpreter::reg);
@@ -1749,7 +1423,7 @@ void Interpreter::openLibsGB2312()
 	registerFunction(u8"设置", &Interpreter::set);
 	registerFunction(u8"储存设置", &Interpreter::savesetting);
 	registerFunction(u8"读取设置", &Interpreter::loadsetting);
-	registerFunction(u8"判断", &Interpreter::cmp);
+
 	registerFunction(u8"执行", &Interpreter::run);
 	registerFunction(u8"执行代码", &Interpreter::dostring);
 	registerFunction(u8"註册", &Interpreter::reg);
@@ -1866,7 +1540,7 @@ void Interpreter::openLibsUTF8()
 	registerFunction(u8"set", &Interpreter::set);
 	registerFunction(u8"saveset", &Interpreter::savesetting);
 	registerFunction(u8"loadset", &Interpreter::loadsetting);
-	registerFunction(u8"if", &Interpreter::cmp);
+
 	registerFunction(u8"run", &Interpreter::run);
 	registerFunction(u8"dostring", &Interpreter::dostring);
 	registerFunction(u8"reg", &Interpreter::reg);
@@ -1920,16 +1594,16 @@ void Interpreter::openLibsUTF8()
 	registerFunction(u8"pickup", &Interpreter::pickitem);
 	registerFunction(u8"save", &Interpreter::depositgold);
 	registerFunction(u8"load", &Interpreter::withdrawgold);
-	registerFunction(u8"addpoint", &Interpreter::addpoint);
+	registerFunction(u8"skup", &Interpreter::addpoint);
 	registerFunction(u8"learn", &Interpreter::learn);
 	registerFunction(u8"trade", &Interpreter::trade);
 	registerFunction(u8"mail", &Interpreter::mail);
 
-	registerFunction(u8"recordequip", &Interpreter::recordequip);
-	registerFunction(u8"wearrecordequip", &Interpreter::wearequip);
-	registerFunction(u8"unequip", &Interpreter::unwearequip);
-	registerFunction(u8"petunequip", &Interpreter::petunequip);
-	registerFunction(u8"petequip", &Interpreter::petequip);
+	registerFunction(u8"requip", &Interpreter::recordequip);
+	registerFunction(u8"wequip", &Interpreter::wearequip);
+	registerFunction(u8"uequip", &Interpreter::unwearequip);
+	registerFunction(u8"puequip", &Interpreter::petunequip);
+	registerFunction(u8"pequip", &Interpreter::petequip);
 
 	registerFunction(u8"putpet", &Interpreter::depositpet);
 	registerFunction(u8"put", &Interpreter::deposititem);
@@ -1962,6 +1636,8 @@ void Interpreter::openLibsUTF8()
 	registerFunction(u8"bn", &Interpreter::bn);//nothing
 	registerFunction(u8"bw", &Interpreter::bw);//petskill
 	registerFunction(u8"bwf", &Interpreter::bwf);//pet nothing
+	registerFunction(u8"bwait", &Interpreter::bwait);
+	registerFunction(u8"bend", &Interpreter::bend);
 }
 
 int Interpreter::test(int currentline, const TokenMap&) const

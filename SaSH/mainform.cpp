@@ -176,6 +176,7 @@ enum InterfaceMessage
 	kStopFile,   // kInterfaceMessage + 4
 	kRunGame,    // kInterfaceMessage + 5
 	kCloseGame,  // kInterfaceMessage + 6
+	kGetGameState, // kInterfaceMessage + 7
 };
 
 //接收原生的窗口消息
@@ -226,24 +227,24 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, long* res
 	case InterfaceMessage::kStopScript:
 	{
 		QSharedPointer<Interpreter> interpreter = interpreter_hash_.value(msg->wParam, nullptr);
-		if (!interpreter.isNull())
-		{
-			interpreter->requestInterruption();
-			interpreter_hash_.remove(msg->wParam);
-			++interfaceCount_;
-			updateStatusText();
-		}
+		if (interpreter.isNull())
+			break;
+
+		interpreter->requestInterruption();
+		interpreter_hash_.remove(msg->wParam);
+		++interfaceCount_;
+		updateStatusText();
 		return true;
 	}
 	case InterfaceMessage::kRunFile:
 	{
 		Injector& injector = Injector::getInstance();
 		if (injector.IS_SCRIPT_FLAG)
-			return false;
+			break;
 
 		QString fileName = QString::fromUtf8(reinterpret_cast<char*>(msg->lParam));
 		if (!QFile::exists(fileName))
-			return false;
+			break;
 
 		pScriptForm_->loadFile(fileName);
 		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
@@ -257,7 +258,7 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, long* res
 	{
 		Injector& injector = Injector::getInstance();
 		if (!injector.IS_SCRIPT_FLAG)
-			return false;
+			break;
 
 		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
 		emit signalDispatcher.scriptStoped();
@@ -269,7 +270,7 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, long* res
 	{
 		Injector& injector = Injector::getInstance();
 		if (!injector.server.isNull())
-			return false;
+			break;
 
 		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
 		emit signalDispatcher.gameStarted();
@@ -281,11 +282,19 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, long* res
 	{
 		Injector& injector = Injector::getInstance();
 		if (injector.server.isNull())
-			return false;
+			break;
 
 		injector.close();
 		++interfaceCount_;
 		updateStatusText();
+		return true;
+	}
+	case InterfaceMessage::kGetGameState:
+	{
+		Injector& injector = Injector::getInstance();
+		if (result == nullptr)
+			break;
+		*result = injector.server.isNull();
 		return true;
 	}
 	default:

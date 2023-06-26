@@ -114,7 +114,12 @@ void OtherForm::onListWidgetDoubleClicked(QListWidgetItem* item)
 
 	Injector& injector = Injector::getInstance();
 
-	if (name == "listWidget_lockpets")
+	if (name == "listWidget_prelockpets")
+	{
+		int row = pListWidget->row(item);
+		pListWidget->takeItem(row);
+	}
+	else if (name == "listWidget_lockpets")
 	{
 		//delete item
 		int row = pListWidget->row(item);
@@ -151,17 +156,41 @@ void OtherForm::onButtonClicked()
 
 	if (name == "pushButton_lockpetsadd")
 	{
-		if (injector.server.isNull() || !injector.server->IS_ONLINE_FLAG)
-			return;
-
 		QString text = ui.comboBox_lockpets->currentText().simplified();
+		if (text.isEmpty())
+			return;
 		QString typeStr = ui.comboBox_locktype->currentText().simplified();
+		if (typeStr.isEmpty())
+			return;
 		int level = ui.spinBox_lockpetslevel->value();
 		QString str = QString("%1, %2, %3").arg(text).arg(level).arg(typeStr);
-		ui.listWidget_lockpets->addItem(str);
+		if (!str.isEmpty())
+			ui.listWidget_prelockpets->addItem(str);
 
-		int size = ui.listWidget_lockpets->count();
+	}
+	else if (name == "pushButton_addlockpets")
+	{
+		int size = ui.listWidget_prelockpets->count();
 		QStringList list;
+		for (int i = 0; i < size; ++i)
+		{
+			QListWidgetItem* item = ui.listWidget_prelockpets->item(i);
+			if (item)
+			{
+				QString str = item->text().simplified();
+				if (str.isEmpty())
+					continue;
+				list.append(str);
+			}
+		}
+
+		if (list.isEmpty())
+			return;
+
+		ui.listWidget_lockpets->addItem(list.join(";"));
+
+		size = ui.listWidget_lockpets->count();
+		list.clear();
 		for (int i = 0; i < size; ++i)
 		{
 			QListWidgetItem* item = ui.listWidget_lockpets->item(i);
@@ -173,10 +202,16 @@ void OtherForm::onButtonClicked()
 				list.append(str);
 			}
 		}
+
 		injector.setStringHash(util::kLockPetScheduleString, list.join("|"));
+		ui.listWidget_prelockpets->clear();
 		return;
 	}
-
+	else if (name == "pushButton_clearlockpets")
+	{
+		ui.listWidget_lockpets->clear();
+		injector.setStringHash(util::kLockPetScheduleString, "");
+	}
 	else if (name == "pushButton_lockpetsall")
 	{
 		if (injector.server.isNull() || !injector.server->IS_ONLINE_FLAG)
@@ -184,6 +219,7 @@ void OtherForm::onButtonClicked()
 
 		QString typeStr = ui.comboBox_locktype->currentText().simplified();
 		int level = ui.spinBox_lockpetslevel->value();
+		QStringList list;
 		for (int i = 0; i < MAX_PET; ++i)
 		{
 			QString text;
@@ -194,23 +230,10 @@ void OtherForm::onButtonClicked()
 				text = QString("%1:%2").arg(i + 1).arg(tr("unknown"));
 
 			QString str = QString("%1, %2, %3").arg(text).arg(level).arg(typeStr);
-			ui.listWidget_lockpets->addItem(str);
+			list.append(str);
 		}
+		ui.listWidget_prelockpets->addItem(list.join(";"));
 
-		int size = ui.listWidget_lockpets->count();
-		QStringList list;
-		for (int i = 0; i < size; ++i)
-		{
-			QListWidgetItem* item = ui.listWidget_lockpets->item(i);
-			if (item)
-			{
-				QString str = item->text().simplified();
-				if (str.isEmpty())
-					continue;
-				list.append(str);
-			}
-		}
-		injector.setStringHash(util::kLockPetScheduleString, list.join("|"));
 	}
 
 	else if (name == "pushButton_lockpetsup")

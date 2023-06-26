@@ -1785,7 +1785,7 @@ public:
 
 	bool start(QObject* parent);
 
-	inline void requestInterruption() { isRequestInterrupted.store(true, std::memory_order_release); }
+	inline void requestInterruption() { QWriteLocker lock(&interruptLock_); isRequestInterrupted.store(true, std::memory_order_release); }
 
 	Q_REQUIRED_RESULT inline unsigned short getPort() const { return port_; }
 
@@ -1799,7 +1799,7 @@ private slots:
 
 
 private:
-	inline bool isInterruptionRequested() const { return isRequestInterrupted.load(std::memory_order_acquire); }
+	inline bool isInterruptionRequested() const { QReadLocker lock(&interruptLock_); return isRequestInterrupted.load(std::memory_order_acquire); }
 
 	int __fastcall SaDispatchMessage(char* encoded);
 
@@ -1811,8 +1811,16 @@ public://actions
 	Q_REQUIRED_RESULT int getGameStatus();
 
 	Q_REQUIRED_RESULT int getUnloginStatus();
+	void setWorldStatus(int w);
+	void setGameStatus(int g);
 
 	bool login(int s);
+
+	QString getBadStatusString(unsigned int status);
+
+	QString getFieldString(unsigned int field);
+
+	void mouseMove(int x, int y);
 
 	void leftClick(int x, int y);
 
@@ -1965,8 +1973,7 @@ private:
 	void setBattleEnd();
 	void refreshItemInfo(int index);
 	void refreshItemInfo();
-	void setWorldStatus(int w);
-	void setGameStatus(int g);
+
 	void setBattleFlag(bool enable);
 	void sortItem();
 
@@ -2022,10 +2029,11 @@ private:
 
 	void updateMapArea(void)
 	{
-		mapAreaX1 = nowPoint.x() + MAP_TILE_GRID_X1;
-		mapAreaY1 = nowPoint.y() + MAP_TILE_GRID_Y1;
-		mapAreaX2 = nowPoint.x() + MAP_TILE_GRID_X2;
-		mapAreaY2 = nowPoint.y() + MAP_TILE_GRID_Y2;
+		QPoint pos = nowPoint;
+		mapAreaX1 = pos.x() + MAP_TILE_GRID_X1;
+		mapAreaY1 = pos.y() + MAP_TILE_GRID_Y1;
+		mapAreaX2 = pos.x() + MAP_TILE_GRID_X2;
+		mapAreaY2 = pos.y() + MAP_TILE_GRID_Y2;
 
 		if (mapAreaX1 < 0)
 			mapAreaX1 = 0;
@@ -2044,19 +2052,20 @@ private:
 	{
 		//nowGx = (int)(nowX / GRID_SIZE);
 		//nowGy = (int)(nowY / GRID_SIZE);
-		nowPoint = QPoint(nowX / GRID_SIZE, nowY / GRID_SIZE);
-		nextGx = nowPoint.x();
-		nextGy = nowPoint.y();
-		nowX = (float)nowPoint.x() * GRID_SIZE;
-		nowY = (float)nowPoint.y() * GRID_SIZE;
+		QPoint pos(nowX / GRID_SIZE, nowY / GRID_SIZE);
+		nowPoint = pos;
+		nextGx = pos.x();
+		nextGy = pos.y();
+		nowX = (float)pos.x() * GRID_SIZE;
+		nowY = (float)pos.y() * GRID_SIZE;
 		oldGx = -1;
 		oldGy = -1;
 		oldNextGx = -1;
 		oldNextGy = -1;
-		mapAreaX1 = nowPoint.x() + MAP_TILE_GRID_X1;
-		mapAreaY1 = nowPoint.y() + MAP_TILE_GRID_Y1;
-		mapAreaX2 = nowPoint.x() + MAP_TILE_GRID_X2;
-		mapAreaY2 = nowPoint.y() + MAP_TILE_GRID_Y2;
+		mapAreaX1 = pos.x() + MAP_TILE_GRID_X1;
+		mapAreaY1 = pos.y() + MAP_TILE_GRID_Y1;
+		mapAreaX2 = pos.x() + MAP_TILE_GRID_X2;
+		mapAreaY2 = pos.y() + MAP_TILE_GRID_Y2;
 
 		if (mapAreaX1 < 0)
 			mapAreaX1 = 0;
@@ -2077,7 +2086,7 @@ private:
 		moveRouteCnt = 0;
 		moveRouteCnt2 = 0;
 		moveStackFlag = false;
-		mouseCursorMode = MOUSE_CURSOR_MODE_NORMAL;
+
 		mouseLeftPushTime = 0;
 		beforeMouseLeftPushTime = 0;
 		//	autoMapSeeFlag = FALSE;
@@ -2113,10 +2122,10 @@ private:
 		//nowGx = gx;
 		//nowGy = gy;
 		nowPoint = pos;
-		nowX = (float)nowPoint.x() * GRID_SIZE;
-		nowY = (float)nowPoint.y() * GRID_SIZE;
-		nextGx = nowPoint.x();
-		nextGy = nowPoint.y();
+		nowX = (float)pos.x() * GRID_SIZE;
+		nowY = (float)pos.y() * GRID_SIZE;
+		nextGx = pos.x();
+		nextGy = pos.y();
 		nowVx = 0;
 		nowVy = 0;
 		nowSpdRate = 1;
@@ -2385,7 +2394,6 @@ private://lssproto
 	void lssproto_SaMenu_send(int index);
 #endif
 
-
 #ifdef _PETBLESS_
 	void lssproto_petbless_send(int petpos, int type);
 #endif
@@ -2395,8 +2403,6 @@ private://lssproto
 #ifdef _PET_SKINS
 	void lssproto_PetSkins_recv(char* data);
 #endif
-
-
 
 #ifdef _CHARSIGNDAY_
 	void lssproto_SignDay_send(int fd);
@@ -2499,9 +2505,6 @@ private:
 
 	unsigned short event_[MAP_X_SIZE * MAP_Y_SIZE];	// ????
 
-	short sendEnFlag = 0i16;
-	short duelSendFlag = 0i16;
-	short jbSendFlag = 0i16;
 	short helpFlag = 0i16;
 
 	bool BattleTurnReceiveFlag = false;
@@ -2512,10 +2515,6 @@ private:
 	int BattleAnimFlag = 0;
 	int BattleSvTurnNo = 0;
 	int BattlePetStMenCnt = 0;
-
-	bool BattlePetReceiveFlag = false;
-	int BattlePetReceivePetNo = -1;
-	int battlePetNoBak = -2;
 
 	int BattleCmdReadPointer = 0;
 	int BattleStatusReadPointer = 0;
@@ -2571,8 +2570,6 @@ private:
 	short nowEncountExtra = 0i16;
 	int MapWmdFlagBak = 0;
 
-	short mouseCursorMode = MOUSE_CURSOR_MODE_NORMAL;
-
 	bool TimeZonePalChangeFlag = false;
 	short drawTimeAnimeFlag = 0;
 
@@ -2588,7 +2585,6 @@ private:
 
 public:
 	//custom
-	std::atomic_bool isPacketAutoClear = false;
 	bool disconnectflag = false;
 
 	bool enablePlayerWork = false;
@@ -2618,7 +2614,7 @@ public:
 	int battle_totol = 0;
 
 	int nowFloor = 0;
-	QPoint nowPoint;
+	util::SafeData<QPoint> nowPoint;
 	QString nowFloorName = "";
 
 	//main datas shared with script thread
@@ -2635,15 +2631,14 @@ public:
 	util::SafeHash<int, QVariant> hashchat;
 	util::SafeHash<int, QVariant> hashdialog;
 	util::SafeHash<int, util::SafeHash<QString, QVariant>> hashbattle;
-	util::SafeData<int> hashbattlefield;
+	util::SafeData<QString> hashbattlefield;
 
 	QSharedPointer<MapAnalyzer> mapAnalyzer;
 
-	currencydata_t currencyData;
+	util::SafeData<currencydata_t> currencyData;
+	util::SafeData<customdialog_t> customDialog;
 
-	customdialog_t customDialog;
-
-	QMutex swapItemMutex;
+	QMutex swapItemMutex;//用於保護物品數據更新順序
 	PC pc = {};
 
 	PET pet[MAX_PET] = {};
@@ -2662,13 +2657,13 @@ public:
 	QPair<int, QVector<bankpet_t>> currentBankPetList;
 	QVector<ITEM> currentBankItemList;
 
-	util::AfkRecorder recorder[6] = {};
-	QStringList enemyNameListCache;
+	util::AfkRecorder recorder[1 + MAX_PET] = {};
 
 	//用於緩存要發送到UI的數據
 	util::SafeHash<int, QVariant> playerInfoColContents;
 	util::SafeHash<int, QVariant> itemInfoRowContents;
 	util::SafeHash<int, QVariant> equipInfoRowContents;
+	QStringList enemyNameListCache;
 	QVariant topInfoContents;
 	QVariant bottomInfoContents;
 	QString timeLabelContents;
@@ -2678,9 +2673,10 @@ private:
 	QFutureSynchronizer <void> sync_;
 
 	std::atomic_bool isRequestInterrupted = false;
+	mutable QReadWriteLock interruptLock_;
 	//int sockfd_ = 0;
 	unsigned short port_ = 0;
-	QScopedPointer<QTcpServer> server_;
+	QSharedPointer<QTcpServer> server_;
 	QList<QTcpSocket*> clientSockets_;
 
 };

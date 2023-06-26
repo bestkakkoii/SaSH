@@ -36,6 +36,9 @@
     <ClInclude Include="asyncclient.h">
       <Filter>來源檔案\tcp</Filter>
     </ClInclude>
+    <ClInclude Include="resource.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="sadll.cpp">
@@ -47,5 +50,10 @@
     <ClCompile Include="autil.cpp">
       <Filter>來源檔案</Filter>
     </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="sadll.rc">
+      <Filter>資源檔</Filter>
+    </ResourceCompile>
   </ItemGroup>
 </Project>

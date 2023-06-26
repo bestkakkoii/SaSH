@@ -38,6 +38,12 @@ static const QSet<RESERVE> relationalOperatorTypes = {
 	TK_LEQ, // "<="
 };
 
+enum JumpBehavior
+{
+	SuccessJump,
+	FailedJump,
+};
+
 class Parser
 {
 public:
@@ -63,6 +69,7 @@ public:
 		kError,
 		kLabelError,
 		kArgError = 10,
+
 	};
 
 	enum Mode
@@ -72,7 +79,10 @@ public:
 	};
 
 public:
-	inline ParserError lastError() const { return lastError_; }
+	inline ParserError lastCriticalError() const { return lastCriticalError_; }
+
+	void setLastErrorMessage(const QString& msg) { lastErrorMesssage_ = msg; }
+	QString getLastErrorMessage() const { return lastErrorMesssage_; }
 
 	//設置所有標籤所在行號數據
 	inline void setLabels(const util::SafeHash<QString, int>& labels) { labels_ = labels; }
@@ -149,24 +159,27 @@ public:
 	Q_REQUIRED_RESULT inline T getVar(const QString& name)
 	{
 		QString newName = name;
-		if (newName.startsWith(kVariablePrefix))
-			newName.remove(0, 1);
-
 		if (variables_->contains(newName))
 		{
 			return variables_->value(newName).value<T>();
 		}
 		else
 		{
-			lastError_ = kUndefinedVariable;
-			isStop_.store(true, std::memory_order_release);
-			return T();
+			return QVariant::fromValue(name).value<T>();
 		}
 	}
 
 	void jump(int line, bool noStack);
 	void jumpto(int line, bool noStack);
 	bool jump(const QString& name, bool noStack);
+
+	bool checkString(const TokenMap& TK, int idx, QString* ret);
+	bool checkInt(const TokenMap& TK, int idx, int* ret);
+	bool checkDouble(const TokenMap& TK, int idx, double* ret);
+	bool toVariant(const TokenMap& TK, int idx, QVariant* ret);
+
+	QVariant checkValue(const TokenMap TK, int idx, QVariant::Type);
+	int checkJump(const TokenMap& TK, int idx, bool expr, JumpBehavior behavior);
 public:
 	//解析腳本
 	void parse(int line = 0);
@@ -175,17 +188,34 @@ public:
 	void setPVariables(const QSharedPointer<VariantSafeHash>& variables) { variables_ = variables; }
 	Q_REQUIRED_RESULT inline QVariant& getVarRef(const QString& name) { return (*variables_)[name]; }
 	Q_REQUIRED_RESULT inline VariantSafeHash& getVarsRef() { return *variables_; }
-	Q_REQUIRED_RESULT inline util::SafeHash <QString, QVariant>& getLabelVars()
+	Q_REQUIRED_RESULT inline VariantSafeHash& getLabelVarsRef()
 	{
 		if (!labalVarStack_.isEmpty())
 			return labalVarStack_.top();
 		else
-			return emptyLabelVars_;
+		{
+			labalVarStack_.push(VariantSafeHash{});
+			return labalVarStack_.top();
+		}
+	}
+	Q_REQUIRED_RESULT inline VariantSafeHash getLabelVars()
+	{
+		if (!labalVarStack_.isEmpty())
+			return labalVarStack_.top();
+		else
+		{
+			labalVarStack_.push(VariantSafeHash{});
+			return labalVarStack_.top();
+		}
 	}
 private:
 	void processTokens();
 	int processCommand();
 	void processVariable(RESERVE type);
+	void processLocalVariable();
+	void processVariableIncDec();
+	void processVariableCAOs();
+	void processVariableExpr();
 	void processMultiVariable();
 	void processFormation();
 	void processRandom();
@@ -197,12 +227,11 @@ private:
 	void processLabel();
 	void processClean();
 	bool processGetSystemVarValue(const QString& varName, QString& valueStr, QVariant& varValue);
+	bool processIfCompare();
 
 	void handleError(int err);
 	void checkArgs();
 
-	bool checkString(const TokenMap& TK, int idx, QString* ret);
-	bool checkInt(const TokenMap& TK, int idx, int* ret);
 
 	inline void next() { ++lineNumber_; }
 
@@ -224,7 +253,7 @@ private:
 	}
 	Q_REQUIRED_RESULT inline RESERVE getTokenType(int index) const { return currentLineTokens_.value(index).type; }
 	Q_REQUIRED_RESULT TokenMap getCurrentTokens() const { return currentLineTokens_; }
-	void variableCalculate(const QString& varName, RESERVE op, QVariant* var, const QVariant& varValue);
+	void variableCalculate(RESERVE op, QVariant* var, const QVariant& varValue);
 	int matchLineFromLabel(const QString& label) const { return labels_.value(label, -1); }
 
 	Q_REQUIRED_RESULT inline QVariantList& getArgsRef()
@@ -237,31 +266,46 @@ private:
 
 	void generateStackInfo(int type);
 
+
+	void requestInterruption()
+	{
+		QWriteLocker lock(&interruptLock_);
+		isRequestInterrupted.store(true, std::memory_order_release);
+	}
+
+	bool isInterruptionRequested() const
+	{
+		QReadLocker lock(&interruptLock_);
+		return isRequestInterrupted.load(std::memory_order_acquire);
+	}
 private:
 	bool usestate = false;
-	std::atomic_bool isStop_ = false;                   //是否停止
-	util::SafeHash<int, TokenMap> tokens_;                       //當前運行腳本的每一行token
-	QSharedPointer<VariantSafeHash> variables_;         //所有用腳本變量
-	util::SafeHash<QString, int> labels_;						//所有標記所在行記錄
-	util::SafeHash<QString, QString> userRegCallBack_;			//用戶註冊的回調函數
-	util::SafeHash<QString, CommandRegistry> commandRegistry_;   //所有命令的函數指針
-	QStack<int> callStack_;								//"調用"命令所在行棧
-	QStack<int> jmpStack_;								//"跳轉"命令所在行棧
-	QStack<QVariantList> callArgsStack_;				//"調用"命令參數棧
-	QVariantList emptyArgs_;							//空參數
-	QStack<util::SafeHash<QString, QVariant>> labalVarStack_;	//標籤變量名
-	util::SafeHash<QString, QVariant> emptyLabelVars_;			//空標籤變量名
+	std::atomic_bool isRequestInterrupted = false;                  //是否停止
+	mutable QReadWriteLock interruptLock_;							//停止鎖
+	util::SafeHash<int, TokenMap> tokens_;							//當前運行腳本的每一行token
+	QSharedPointer<VariantSafeHash> variables_;						//所有用腳本變量
+	util::SafeHash<QString, int> labels_;							//所有標記所在行記錄
+	util::SafeHash<QString, QString> userRegCallBack_;				//用戶註冊的回調函數
+	util::SafeHash<QString, CommandRegistry> commandRegistry_;		//所有命令的函數指針
+	QStack<int> callStack_;											//"調用"命令所在行棧
+	QStack<int> jmpStack_;											//"跳轉"命令所在行棧
+	QStack<QVariantList> callArgsStack_;							//"調用"命令參數棧
+	QVariantList emptyArgs_;										//空參數
+	QStack<VariantSafeHash> labalVarStack_;		//標籤變量名
+	VariantSafeHash emptyLabelVars_;				//空標籤變量名
 
-	TokenMap currentLineTokens_;						//當前行token
-	RESERVE currentType_ = TK_UNK;						//當前行第一個token類型
-	int lineNumber_ = 0;								//當前行號
+	TokenMap currentLineTokens_;									//當前行token
+	RESERVE currentType_ = TK_UNK;									//當前行第一個token類型
+	int lineNumber_ = 0;											//當前行號
 
-	ParserError lastError_ = kNoError;					//最後一次錯誤
+	ParserError lastCriticalError_ = kNoError;						//最後一次錯誤
 
-	ParserCallBack callBack_ = nullptr;					//解析腳本回調函數
+	util::SafeData<QString> lastErrorMesssage_;						//最後一次錯誤信息
 
-	Mode mode_ = kSync;									//解析模式
+	ParserCallBack callBack_ = nullptr;								//解析腳本回調函數
 
-	bool dtorCallBackFlag_ = false;						//析構回調函數標記
-	bool ctorCallBackFlag_ = false;						//建構回調函數標記
+	Mode mode_ = kSync;												//解析模式
+
+	bool dtorCallBackFlag_ = false;									//析構回調函數標記
+	bool ctorCallBackFlag_ = false;									//建構回調函數標記
 };

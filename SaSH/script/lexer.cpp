@@ -18,11 +18,12 @@ static const QHash<QString, RESERVE> keywords = {
 	{ u8"暫停", TK_PAUSE },
 	{ u8"功能", TK_LABEL, },
 	{ u8"標記", TK_LABEL, },
-	{ u8"變數", TK_VARDECL },
-	{ u8"變數移除", TK_VARFREE },
-	{ u8"變數清空", TK_VARCLR },
+	{ u8"變量", TK_VARDECL },
+	{ u8"變量移除", TK_VARFREE },
+	{ u8"變量清空", TK_VARCLR },
 	{ u8"格式化", TK_FORMAT },
 	{ u8"隨機數", TK_RND },
+	{ u8"如果", TK_CMP },
 
 	//system
 	{ u8"執行", TK_CMD },
@@ -38,7 +39,6 @@ static const QHash<QString, RESERVE> keywords = {
 	{ u8"說出", TK_CMD },
 	{ u8"清屏", TK_CMD },
 	{ u8"設置", TK_CMD },
-	{ u8"判斷", TK_CMD },
 	{ u8"讀取設置", TK_CMD },
 	{ u8"儲存設置", TK_CMD },
 
@@ -138,11 +138,12 @@ static const QHash<QString, RESERVE> keywords = {
 	{ u8"暂停", TK_PAUSE },
 	{ u8"功能", TK_LABEL, },
 	{ u8"标记", TK_LABEL, },
-	{ u8"变数", TK_VARDECL },
-	{ u8"变数移除", TK_VARFREE },
-	{ u8"变数清空", TK_VARCLR },
+	{ u8"变量", TK_VARDECL },
+	{ u8"变量移除", TK_VARFREE },
+	{ u8"变量清空", TK_VARCLR },
 	{ u8"格式化", TK_FORMAT },
 	{ u8"随机数", TK_RND },
+	{ u8"如果", TK_CMP },
 
 	//system
 	{ u8"执行", TK_CMD },
@@ -158,7 +159,6 @@ static const QHash<QString, RESERVE> keywords = {
 	{ u8"说出", TK_CMD },
 	{ u8"清屏", TK_CMD },
 	{ u8"设置", TK_CMD },
-	{ u8"判断", TK_CMD },
 	{ u8"读取设置", TK_CMD },
 	{ u8"储存设置", TK_CMD },
 
@@ -257,10 +257,12 @@ static const QHash<QString, RESERVE> keywords = {
 	{ u8"label", TK_LABEL, },
 	{ u8"function", TK_LABEL, },
 	{ u8"var", TK_VARDECL },
+	{ u8"local", TK_LOCAL },
 	{ u8"delete", TK_VARFREE },
 	{ u8"releaseall", TK_VARCLR },
 	{ u8"format", TK_FORMAT },
 	{ u8"rnd", TK_RND },
+	{ u8"if", TK_CMP },
 
 	//system
 	{ u8"run", TK_CMD },
@@ -276,7 +278,6 @@ static const QHash<QString, RESERVE> keywords = {
 	{ u8"talk", TK_CMD },
 	{ u8"cls", TK_CMD },
 	{ u8"set", TK_CMD },
-	{ u8"if", TK_CMD },
 	{ u8"saveset", TK_CMD },
 	{ u8"loadset", TK_CMD },
 	{ u8"reg", TK_CMD },
@@ -320,12 +321,12 @@ static const QHash<QString, RESERVE> keywords = {
 	{ u8"load", TK_CMD },
 	{ u8"make", TK_CMD },
 	{ u8"cook", TK_CMD },
-	{ u8"unequip", TK_CMD },
-	{ u8"recordequip", TK_CMD },
-	{ u8"wearrecordequip", TK_CMD },
-	{ u8"petunequip", TK_CMD },
-	{ u8"petequip", TK_CMD },
-	{ u8"addpoint", TK_CMD },
+	{ u8"uequip", TK_CMD },
+	{ u8"requip", TK_CMD },
+	{ u8"wequip", TK_CMD },
+	{ u8"puequip", TK_CMD },
+	{ u8"pequip", TK_CMD },
+	{ u8"skup", TK_CMD },
 	{ u8"learn", TK_CMD },
 	{ u8"trade", TK_CMD },
 	{ u8"dostring", TK_CMD },
@@ -380,6 +381,8 @@ static const QHash<QString, RESERVE> keywords = {
 	{ u8"bn", TK_CMD },//nothing
 	{ u8"bw", TK_CMD },//petskill
 	{ u8"bwf", TK_CMD },//pet nothing
+	{ u8"bwait", TK_CMD },
+	{ u8"bend", TK_CMD },
 	#pragma endregion
 
 	//... 其他後續增加的關鍵字
@@ -429,15 +432,101 @@ void Lexer::tokenized(int currentLine, const QString& line, TokenMap* ptoken, ut
 			raw = raw.mid(0, commentIndex).trimmed();
 		}
 
-		//用於分析出單個或多個變數賦值的情況 如 a,b,c = 1,2,3
 		bool doNotLowerCase = false;
-		static const QRegularExpression rexMultiVar(R"(^\s*([_a-zA-Z\p{Han}][_a-zA-Z0-9\p{Han}]*(?:\s*,\s*[_a-zA-Z\p{Han}][_a-zA-Z0-9\p{Han}]*)*)\s*=\s*([^,]+(?:\s*,\s*[^,]+)*)$)");
-		if (raw.count("=") == 1 && raw.contains(rexMultiVar))
+		static const QRegularExpression rexMultiVar(R"(^\s*([_a-zA-Z\p{Han}][_a-zA-Z0-9\p{Han}]*(?:\s*,\s*[_a-zA-Z\p{Han}][_a-zA-Z0-9\p{Han}]*)*)\s*=\s*([^,]+(?:\s*,\s*[^,]+)*)$)");//a,b,c = 1,2,3
+		static const QRegularExpression rexMultiLocalVar(R"([lL][oO][cC][aA][lL]\s+([_a-zA-Z\p{Han}][_a-zA-Z0-9\p{Han}]*(?:\s*,\s*[_a-zA-Z\p{Han}][_a-zA-Z0-9\p{Han}]*)*)\s*=\s*([^,]+(?:\s*,\s*[^,]+)*)$)");//local a,b,c = 1,2,3
+		static const QRegularExpression varIncDec(R"(([\p{Han}\w]+)(\+\+|--))");//++ --
+		static const QRegularExpression varCAOs(R"((?!\d)([\p{Han}\w]+)\s+([+\-*\/&|^%]\=)\s+([\W\w\s\p{Han}]+))");//+= -= *= /= &= |= ^= %=
+		static const QRegularExpression varExpr(R"(([\w\p{Han}]+)\s+\=\s+([\W\w\s\p{Han}]+))");//x = expr
+		static const QRegularExpression varAnyOp(R"([+\-*\/%&|^\(\)])");//+ - * / % & | ^ ( )
+		static const QRegularExpression varIf(R"([iI][fF][\(|\s+]([\d\w\W\p{Han}]+\s*[<|>|\=|!][\=]*\s*[\d\w\W\p{Han}]+))");//if (expr)
+		if (raw.contains(varIf))
 		{
-			token = rexMultiVar.match(raw).captured(1).simplified();
-			raw = rexMultiVar.match(raw).captured(2).simplified();
-			type = TK_MULTIVAR;
-			doNotLowerCase = true;
+			QRegularExpressionMatch match = varIf.match(raw);
+			if (match.hasMatch())
+			{
+				QString cmd = "if";
+				QString expr = match.captured(1).simplified();
+				QStringList exprList = expr.split(util::rexComma);
+				createToken(pos, TK_CMP, cmd, cmd, ptoken);
+				createToken(pos + 1, TK_STRING, exprList.at(0), exprList.at(0), ptoken);
+				if (exprList.size() > 1)
+				{
+					bool ok;
+					int value = exprList.at(1).toInt(&ok);
+					if (ok)
+						createToken(pos + 2, TK_INT, value, exprList.at(1), ptoken);
+					else
+						createToken(pos + 2, TK_STRING, exprList.at(1), exprList.at(1), ptoken);
+				}
+				break;
+			}
+		}
+		else if (raw.count("=") == 1 && raw.contains(rexMultiLocalVar) && !raw.contains(varAnyOp) && !raw.front().isDigit())
+		{
+			QRegularExpressionMatch match = rexMultiLocalVar.match(raw);
+			if (match.hasMatch())
+			{
+				token = match.captured(1).simplified();
+				raw = match.captured(2).simplified();
+				type = TK_LOCAL;
+				doNotLowerCase = true;
+			}
+		}
+		else if (raw.count("=") == 1 && raw.contains(rexMultiVar) && !raw.contains(varAnyOp) && !raw.front().isDigit())
+		{
+			QRegularExpressionMatch match = rexMultiVar.match(raw);
+			if (match.hasMatch())
+			{
+				token = match.captured(1).simplified();
+				raw = match.captured(2).simplified();
+				type = TK_MULTIVAR;
+				doNotLowerCase = true;
+			}
+		}
+		else if ((raw.count("++") == 1 || raw.count("--") == 1) && raw.contains(varIncDec) && !raw.front().isDigit())
+		{
+			//拆分出變數名稱 和 運算符
+			QRegularExpressionMatch match = varIncDec.match(raw);
+			if (match.hasMatch())
+			{
+				QString varName = match.captured(1).simplified();
+				QString op = match.captured(2).simplified();
+
+				createToken(pos, TK_INCDEC, varName, varName, ptoken);
+				createToken(pos + 1, op == "++" ? TK_INC : TK_DEC, op, op, ptoken);
+				break;
+			}
+		}
+		else if (raw.contains(varCAOs) && !raw.front().isDigit())
+		{
+			QRegularExpressionMatch match = varCAOs.match(raw);
+			QString notuse;
+			QString varName = match.captured(1).simplified();
+			QString op = match.captured(2).simplified();
+			QString value = match.captured(3).simplified();
+			int p = pos + 1;
+			RESERVE optype = getTokenType(p, TK_CAOS, op, op);
+			++p;
+			RESERVE valuetype = getTokenType(p, optype, value, value);
+
+			createToken(pos, TK_CAOS, varName, varName, ptoken);
+			createToken(pos + 1, optype, op, op, ptoken);
+			createToken(pos + 2, valuetype, value, value, ptoken);
+			break;
+		}
+		else if (raw.contains(varExpr) && raw.contains(varAnyOp) && !raw.front().isDigit())
+		{
+			QRegularExpressionMatch match = varExpr.match(raw);
+			if (match.hasMatch())
+			{
+				QString varName = match.captured(1).simplified();
+				QString expr = match.captured(2).simplified();
+
+				createToken(pos, TK_EXPR, varName, varName, ptoken);
+				createToken(pos + 1, TK_STRING, expr, expr, ptoken);
+			}
+			break;
 		}
 		else
 		{
@@ -479,10 +568,11 @@ void Lexer::tokenized(int currentLine, const QString& line, TokenMap* ptoken, ut
 			createToken(pos, type, QVariant::fromValue(token), token, ptoken);//一個或多個變量名不轉換大小寫
 		++pos;
 
+		//以","分界取TOKEN
 		for (;;)
 		{
 			raw = raw.trimmed();
-			//以","分界取TOKEN
+
 			if (raw.contains(","))
 			{
 				if (!getStringToken(raw, ",", token))
@@ -638,10 +728,10 @@ bool Lexer::isString(const QString& str) const
 		|| (str.startsWith("\'") && str.endsWith("\"")) || (str.startsWith("\"") && str.endsWith("\'"));
 }
 
-bool Lexer::isVariable(const QString& str) const
-{
-	return str.startsWith(kVariablePrefix) && !str.endsWith(kVariablePrefix);
-}
+//bool Lexer::isVariable(const QString& str) const
+//{
+//	return str.startsWith(kVariablePrefix) && !str.endsWith(kVariablePrefix);
+//}
 
 bool Lexer::isLabel(const QString& str) const
 {
@@ -712,7 +802,7 @@ RESERVE Lexer::getTokenType(int& pos, RESERVE previous, QString& str, const QStr
 	{
 		return TK_LEQ;
 	}
-	else if (str == "+")
+	else if (str == "+" || str == "+=")
 	{
 		return TK_ADD;
 	}
@@ -720,7 +810,7 @@ RESERVE Lexer::getTokenType(int& pos, RESERVE previous, QString& str, const QStr
 	{
 		return TK_INC;
 	}
-	else if (str == "-")
+	else if (str == "-" || str == "-=")
 	{
 		return TK_SUB;
 	}
@@ -728,23 +818,23 @@ RESERVE Lexer::getTokenType(int& pos, RESERVE previous, QString& str, const QStr
 	{
 		return TK_DEC;
 	}
-	else if (str == "*")
+	else if (str == "*" || str == "*=")
 	{
 		return TK_MUL;
 	}
-	else if (str == "/")
+	else if (str == "/" || str == "/=")
 	{
 		return TK_DIV;
 	}
-	else if (str == "%")
+	else if (str == "%" || str == "%=")
 	{
 		return TK_MOD;
 	}
-	else if (str == "&")
+	else if (str == "&" || str == "&=")
 	{
 		return TK_AND;
 	}
-	else if (str == "|")
+	else if (str == "|" || str == "|=")
 	{
 		return TK_OR;
 	}
@@ -752,7 +842,7 @@ RESERVE Lexer::getTokenType(int& pos, RESERVE previous, QString& str, const QStr
 	{
 		return TK_NOT;
 	}
-	else if (str == "^")
+	else if (str == "^" || str == "^=")
 	{
 		return TK_XOR;
 	}
@@ -769,19 +859,19 @@ RESERVE Lexer::getTokenType(int& pos, RESERVE previous, QString& str, const QStr
 		str = str.toLower();
 		return TK_BOOL;
 	}
-	else if (isVariable(str))
-	{
-		//這裡本意是為了過濾調以數字開頭的變量名，但會錯誤的把中文也過濾掉
-		QChar nextChar = next(raw, index);
-		if (nextChar.isLetterOrNumber() || nextChar == '\0')
-		{
-			return TK_REF;
-		}
-		else
-		{
-			return TK_REF;
-		}
-	}
+	//else if (isVariable(str))
+	//{
+	//	//這裡本意是為了過濾調以數字開頭的變量名，但會錯誤的把中文也過濾掉
+	//	QChar nextChar = next(raw, index);
+	//	if (nextChar.isLetterOrNumber() || nextChar == '\0')
+	//	{
+	//		return TK_REF;
+	//	}
+	//	else
+	//	{
+	//		return TK_REF;
+	//	}
+	//}
 	else if (previous == TK_NAME || previous == TK_LABELVAR)
 	{
 		//如果前一個TOKEN是label名或區域變量名，那麼接下來的TOKEN都視為區域變量名
@@ -977,10 +1067,6 @@ void Lexer::checkInvalidReadVariable(const util::SafeHash<int, TokenMap>& stoken
 				if (varName == "out" || varName == "say")
 					continue;
 			}
-			else if (type == TK_RND)
-			{
-				qDebug() << "RND" << varName;
-			}
 
 			if (!varNameList.contains(varName))
 				varNameList.append(varName);
@@ -1032,140 +1118,23 @@ void Lexer::checkInvalidReadVariable(const util::SafeHash<int, TokenMap>& stoken
 	varNameList.append(gb2312List);
 	varNameList.append(big5List);
 
-	//第二次開始搜索所有字符串 如果名稱包含於列表中則檢查是否缺少&符號
-	for (auto it = tokenmaps.cbegin(); it != tokenmaps.cend(); ++it)
-	{
-		const int row = it.key();
-		const TokenMap tokenmap = it.value();
-		QString cmd = tokenmap.value(0).data.toString().simplified();
-		RESERVE cmdtype = tokenmap.value(0).type;
+	//for (auto it = tokenmaps.cbegin(); it != tokenmaps.cend(); ++it)
+	//{
+	//	const int row = it.key();
+	//	const TokenMap tokenmap = it.value();
+	//	for (auto subit = std::next(tokenmap.cbegin()); subit != tokenmap.cend(); ++subit)
+	//	{
+	//		RESERVE curtype = subit.value().type;
 
+	//		QString varName = subit.value().data.toString().simplified();
+	//		if (varNameList.contains(varName))
+	//			continue;
 
-		if (cmdtype == TK_MULTIVAR)
-		{
-			//多變量賦值檢查等號左側
-			QStringList varNames = tokenmap.value(0).data.toString().simplified().split(util::rexComma, Qt::SkipEmptyParts);
-			if (varNames.isEmpty())
-				continue;
+	//		QString errorMessage = QObject::tr("<Syntax Error>Unexpected using undeclared variable name '%1' at line: %2").arg(varName.mid(0)).arg(row + 1);
+	//		showError(errorMessage);
+	//	}
+	//}
 
-			for (const QString& varName : varNames)
-			{
-				if (!varName.startsWith("&"))
-					continue;
-				QString errorMessage = QObject::tr("<Syntax Error>Unexpected '&' before declared variable name '%1' at line: %2").arg(varName.mid(0)).arg(row + 1);
-				showError(errorMessage);
-				continue;
-			}
-
-			//多變量賦值檢查等號右側
-			for (auto subit = std::next(tokenmap.cbegin()); subit != tokenmap.cend(); ++subit)
-			{
-				//依次取每一個token 假設為變量名稱
-				QString varName = subit.value().data.toString().simplified();
-				RESERVE curtype = subit.value().type;
-
-				if (curtype == TK_REF)
-				{
-					QString newVarName = varName.mid(1);
-					if (varNameList.contains(newVarName))
-						continue;
-
-					QString errorMessage = QObject::tr("<Syntax Error>Unexpected '&' before undeclared variable name '%1' at line: %2").arg(newVarName).arg(row + 1);
-					showError(errorMessage);
-					continue;
-				}
-
-				if (!varNameList.contains(varName))
-					continue;
-
-				invalidReadVariables.insert(row, varName);
-			}
-			continue;
-		}
-
-		bool skipFirstToken = false;
-		//變量聲明檢查 只檢查第一個TOKEN是否添加多餘的&
-		if (cmdtype == TK_VARDECL || cmdtype == TK_FORMAT || cmdtype == TK_RND)
-		{
-			QString varName = tokenmap.value(1).data.toString().simplified();
-			if (varName.startsWith("&"))
-			{
-				//聲明變量時不應該出現&符號
-				QString errorMessage = QObject::tr("<Syntax Error>Unexpected '&' before declared variable name '%1' at line: %2").arg(varName.mid(0)).arg(row + 1);
-				showError(errorMessage);
-			}
-			skipFirstToken = true;
-		}
-
-		//從第一個開始往後遍歷
-		for (auto subit = std::next(tokenmap.cbegin()); subit != tokenmap.cend(); ++subit)
-		{
-			//聲明變量忽略第一個TOKEN檢查，因為上面檢查過了
-			if (skipFirstToken)
-			{
-				skipFirstToken = false;
-				continue;
-			}
-
-			//依次取每一個token 假設為變量名稱
-			QString varName = subit.value().data.toString().simplified();
-			RESERVE curtype = subit.value().type;
-
-			//區域變量聲明不應包含&符號
-			if ((cmd == "function" || cmd == "label"))
-			{
-				if (curtype == TK_REF)
-				{
-					QString errorMessage = QObject::tr("<Syntax Error>Unexpected '&' before declared local variable name '%1' at line: %2").arg(varName.mid(0)).arg(row + 1);
-					showError(errorMessage);
-				}
-				continue;
-			}
-
-			if (curtype != TK_STRING && curtype != TK_LABELVAR && curtype != TK_NAME)
-				continue;
-
-			if (!varNameList.contains(varName))
-				continue;
-
-			//使用變量名稱時應該包含&符號
-			invalidReadVariables.insert(row, varName);
-		}
-	}
-
-	//這裡先全文搜索所有refer變量但從未聲明的變量名稱
-	for (auto it = tokenmaps.cbegin(); it != tokenmaps.cend(); ++it)
-	{
-		const int row = it.key();
-		const TokenMap tokenmap = it.value();
-		for (auto subit = tokenmap.cbegin(); subit != tokenmap.cend(); ++subit)
-		{
-			RESERVE curtype = subit.value().type;
-			if (curtype != TK_REF)
-				continue;
-			QString varName = subit.value().data.toString().simplified().mid(1);
-			if (varNameList.contains(varName))
-				continue;
-
-			QString errorMessage = QObject::tr("<Syntax Error>Unexpected '&' before undeclared variable name '%1' at line: %2").arg(varName.mid(0)).arg(row + 1);
-			showError(errorMessage);
-		}
-	}
-
-	if (invalidReadVariables.isEmpty())
-	{
-		return;
-	}
-
-	for (auto it = invalidReadVariables.cbegin(); it != invalidReadVariables.cend(); ++it)
-	{
-
-		int row = it.key();
-		QString varName = it.value();
-		//refer 變量時變量名稱前方缺少 '&' 符號
-		QString errorMessage = QObject::tr("<Syntax Error>Missing '&' before referenced variable name '%1' at line: %2").arg(varName).arg(row + 1);
-		showError(errorMessage);
-	}
 }
 
 void Lexer::checkFunctionPairs(const util::SafeHash<int, TokenMap>& stokenmaps)

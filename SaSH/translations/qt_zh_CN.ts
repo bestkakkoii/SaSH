@@ -175,7 +175,7 @@
     </message>
     <message>
         <source>delay</source>
-        <translation type="vanished">延时设定</translation>
+        <translation>延时设定</translation>
     </message>
     <message>
         <source>1st rd delay</source>
@@ -412,6 +412,10 @@
     <message>
         <source>walk</source>
         <translation>走路设定</translation>
+    </message>
+    <message>
+        <source>round delay</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
@@ -771,7 +775,7 @@
     </message>
     <message>
         <source>auto stack</source>
-        <translation>自动迭加</translation>
+        <translation>自动叠加</translation>
     </message>
     <message>
         <source>knpc</source>
@@ -1396,7 +1400,7 @@ Update process will cause all the games to be closed, are you sure to continue?<
     </message>
     <message>
         <source>basic info - count:%1, subscript:%2</source>
-        <translation>讯息 - 接口:%1, 子脚本:%2</translation>
+        <translation>基本资料 - 接口:%1, 子脚本:%2</translation>
     </message>
     <message>
         <source>open</source>
@@ -1854,6 +1858,10 @@ Update process will cause all the games to be closed, are you sure to continue?<
         <source>type</source>
         <translation>类型</translation>
     </message>
+    <message>
+        <source>×</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>PetInfoFormClass</name>
@@ -2132,7 +2140,7 @@ MESSAGE：<byte value="xd"/>
     </message>
     <message>
         <source>do nothing</source>
-        <translation>什么都不做</translation>
+        <translation>什麽都不做</translation>
     </message>
     <message>
         <source>player exp:</source>
@@ -2520,11 +2528,11 @@ MESSAGE：<byte value="xd"/>
     </message>
     <message>
         <source>&lt;Syntax Error&gt;Unexpected &apos;&amp;&apos; before declared variable name &apos;%1&apos; at line: %2</source>
-        <translation>&lt;语法错误&gt;在声明的变量 &apos;%1&apos; 之前不应包含 &apos;&amp;&apos; 于行号: %2</translation>
+        <translation type="vanished">&lt;语法错误&gt;在声明的变量 &apos;%1&apos; 之前不应包含 &apos;&amp;&apos; 于行号: %2</translation>
     </message>
     <message>
         <source>&lt;Syntax Error&gt;Missing &apos;&amp;&apos; before referenced variable name &apos;%1&apos; at line: %2</source>
-        <translation>&lt;语法错误&gt;在引用变量 &apos;%1&apos; 之前遗漏 &apos;&amp;&apos; 于行号: %2</translation>
+        <translation type="vanished">&lt;语法错误&gt;在引用变量 &apos;%1&apos; 之前遗漏 &apos;&amp;&apos; 于行号: %2</translation>
     </message>
     <message>
         <source>&lt;Syntax Error&gt;Missing &apos;end&apos; for statement &apos;%1&apos; at line: %2</source>
@@ -2536,11 +2544,31 @@ MESSAGE：<byte value="xd"/>
     </message>
     <message>
         <source>&lt;Syntax Error&gt;Unexpected &apos;&amp;&apos; before undeclared variable name &apos;%1&apos; at line: %2</source>
-        <translation type="unfinished"></translation>
+        <translation type="vanished">&lt;语法错误&gt;在未声明的变量 &apos;%1&apos; 之前不应包含 &apos;&amp;&apos; 于行号: %2</translation>
     </message>
     <message>
         <source>&lt;Syntax Error&gt;Unexpected &apos;&amp;&apos; before declared local variable name &apos;%1&apos; at line: %2</source>
-        <translation type="unfinished"></translation>
+        <translation type="vanished">&lt;语法错误&gt;在声明区域变量 &apos;%1&apos; 之前不应包含 &apos;&amp;&apos; 于行号: %2</translation>
+    </message>
+    <message>
+        <source>reverse</source>
+        <translation>反转</translation>
+    </message>
+    <message>
+        <source>earth</source>
+        <translation>地</translation>
+    </message>
+    <message>
+        <source>water</source>
+        <translation>水</translation>
+    </message>
+    <message>
+        <source>fire</source>
+        <translation>火</translation>
+    </message>
+    <message>
+        <source>wind</source>
+        <translation>风</translation>
     </message>
 </context>
 <context>
@@ -3099,10 +3127,6 @@ MESSAGE：<byte value="xd"/>
         <translation></translation>
     </message>
     <message>
-        <source>unwearequip</source>
-        <translation></translation>
-    </message>
-    <message>
         <source>setpetstate</source>
         <translation type="obsolete">更换宠物</translation>
     </message>
@@ -3117,10 +3141,6 @@ MESSAGE：<byte value="xd"/>
     <message>
         <source>renamepet</source>
         <translation type="obsolete">宠物改名</translation>
-    </message>
-    <message>
-        <source>recordequip</source>
-        <translation></translation>
     </message>
     <message>
         <source>pickitem</source>
@@ -3148,10 +3168,6 @@ MESSAGE：<byte value="xd"/>
     </message>
     <message>
         <source>buy</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>addpoint</source>
         <translation></translation>
     </message>
     <message>
@@ -3191,10 +3207,6 @@ MESSAGE：<byte value="xd"/>
         <translation></translation>
     </message>
     <message>
-        <source>mppercent</source>
-        <translation></translation>
-    </message>
-    <message>
         <source>mp</source>
         <translation></translation>
     </message>
@@ -3208,10 +3220,6 @@ MESSAGE：<byte value="xd"/>
     </message>
     <message>
         <source>maxexp</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>hppercent</source>
         <translation></translation>
     </message>
     <message>
@@ -3571,10 +3579,6 @@ MESSAGE：<byte value="xd"/>
         <translation></translation>
     </message>
     <message>
-        <source>wearrecordequip</source>
-        <translation></translation>
-    </message>
-    <message>
         <source>typedef</source>
         <translation></translation>
     </message>
@@ -3652,58 +3656,98 @@ MESSAGE：<byte value="xd"/>
     </message>
     <message>
         <source>full</source>
-        <translation type="unfinished"></translation>
+        <translation></translation>
     </message>
     <message>
         <source>find</source>
-        <translation type="unfinished"></translation>
+        <translation></translation>
     </message>
     <message>
         <source>battle</source>
-        <translation type="unfinished"></translation>
+        <translation>战斗类</translation>
     </message>
     <message>
         <source>bwf</source>
-        <translation type="unfinished"></translation>
+        <translation></translation>
     </message>
     <message>
         <source>bw</source>
-        <translation type="unfinished"></translation>
+        <translation></translation>
     </message>
     <message>
         <source>bt</source>
-        <translation type="unfinished"></translation>
+        <translation></translation>
     </message>
     <message>
         <source>bs</source>
-        <translation type="unfinished"></translation>
+        <translation></translation>
     </message>
     <message>
         <source>bp</source>
-        <translation type="unfinished"></translation>
+        <translation></translation>
     </message>
     <message>
         <source>bn</source>
-        <translation type="unfinished"></translation>
+        <translation></translation>
     </message>
     <message>
         <source>bj</source>
-        <translation type="unfinished"></translation>
+        <translation></translation>
     </message>
     <message>
         <source>bi</source>
-        <translation type="unfinished"></translation>
+        <translation></translation>
     </message>
     <message>
         <source>bh</source>
-        <translation type="unfinished"></translation>
+        <translation></translation>
     </message>
     <message>
         <source>be</source>
-        <translation type="unfinished"></translation>
+        <translation></translation>
     </message>
     <message>
         <source>bd</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>bwait</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>bend</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>skup</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>mpp</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>hpp</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>wequip</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>uequip</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>requip</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>puequip</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>pequip</source>
         <translation type="unfinished"></translation>
     </message>
 </context>

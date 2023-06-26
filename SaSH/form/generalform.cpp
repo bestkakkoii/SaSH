@@ -7,7 +7,9 @@
 #include <injector.h>
 #include "signaldispatcher.h"
 
+#ifndef _DEBUG
 #include "net/webauthenticator.h"
+#endif
 
 GeneralForm::GeneralForm(QWidget* parent)
 	: QWidget(parent)
@@ -315,7 +317,6 @@ void GeneralForm::onButtonClicked()
 
 	else if (name == "pushButton_joingroup")
 	{
-		injector.server->windowPacket("SI|9|-1", 650, 3413);
 		return;
 	}
 
@@ -421,16 +422,36 @@ void GeneralForm::onCheckBoxStateChanged(int state)
 		HWND hWnd = injector.getProcessWindow();
 		if (hWnd)
 		{
+			bool isWin7;
+			//get windows version
+			auto version = QOperatingSystemVersion::current();
+			if (version <= QOperatingSystemVersion::Windows7)
+				isWin7 = true;
+			else
+				isWin7 = false;
+			LONG_PTR exstyle = GetWindowLongPtr(hWnd, GWL_EXSTYLE);
 			if (isChecked)
 			{
 				//retore before hide
 				ShowWindow(hWnd, SW_RESTORE);
 
 				//add tool window style to hide from taskbar
-				LONG_PTR exstyle = GetWindowLongPtr(hWnd, GWL_EXSTYLE);
-				exstyle |= WS_EX_TOOLWINDOW;
+
+				if (!isWin7)
+				{
+					if (!(exstyle & WS_EX_TOOLWINDOW))
+						exstyle |= WS_EX_TOOLWINDOW;
+				}
+				else
+				{
+					//add tool window style to hide from taskbar
+					if (!(exstyle & WS_EX_APPWINDOW))
+						exstyle |= WS_EX_APPWINDOW;
+				}
+
 				//添加透明化屬性
-				exstyle |= WS_EX_LAYERED;
+				if (!(exstyle & WS_EX_LAYERED))
+					exstyle |= WS_EX_LAYERED;
 				SetWindowLongPtr(hWnd, GWL_EXSTYLE, exstyle);
 
 				//設置透明度
@@ -438,11 +459,22 @@ void GeneralForm::onCheckBoxStateChanged(int state)
 			}
 			else
 			{
-				//remove tool window style to show from taskbar
-				LONG_PTR exstyle = GetWindowLongPtr(hWnd, GWL_EXSTYLE);
-				exstyle &= ~WS_EX_TOOLWINDOW;
+				if (!isWin7)
+				{
+					//remove tool window style to show from taskbar
+					if (exstyle & WS_EX_TOOLWINDOW)
+						exstyle &= ~WS_EX_TOOLWINDOW;
+				}
+				else
+				{
+					//remove tool window style to show from taskbar
+					if (exstyle & WS_EX_APPWINDOW)
+						exstyle &= ~WS_EX_APPWINDOW;
+				}
+
 				//移除透明化屬性
-				exstyle &= ~WS_EX_LAYERED;
+				if (exstyle & WS_EX_LAYERED)
+					exstyle &= ~WS_EX_LAYERED;
 				SetWindowLongPtr(hWnd, GWL_EXSTYLE, exstyle);
 
 				//active once
@@ -944,9 +976,11 @@ void GeneralForm::onGameStart()
 	QCoreApplication::processEvents();
 
 	//驗證測試
+#ifndef _DEBUG
 	static bool isFirstInstance = false;
 	if (!isFirstInstance)
 	{
+
 		QtConcurrent::run([this]()
 			{
 				Net::Authenticator& g_Authenticator = Net::Authenticator::getInstance();
@@ -958,6 +992,7 @@ void GeneralForm::onGameStart()
 					MINT::NtTerminateProcess(GetCurrentProcess(), 0);
 			});
 	}
+#endif
 
 	QFileInfo fileInfo(path);
 	QString dirPath = fileInfo.absolutePath();

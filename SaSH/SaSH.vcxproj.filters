@@ -376,6 +376,8 @@
     <ClInclude Include="crypto.h">
       <Filter>Source Files\script</Filter>
     </ClInclude>
+    <ClInclude Include="resource.h" />
+    <ClInclude Include="resource1.h" />
   </ItemGroup>
   <ItemGroup>
     <QtUic Include="form\selecttargetform.ui">
@@ -443,5 +445,10 @@
     <QtTranslation Include="translations\qt_zh_CN.ts">
       <Filter>Translation Files</Filter>
     </QtTranslation>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="main.rc">
+      <Filter>Resource Files</Filter>
+    </ResourceCompile>
   </ItemGroup>
 </Project>

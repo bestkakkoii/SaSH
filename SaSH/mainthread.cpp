@@ -188,7 +188,7 @@ void MainObject::mainProc()
 
 	for (;;)
 	{
-		QThread::msleep(150);
+		QThread::msleep(168);
 		//檢查是否接收到停止執行的訊號
 		if (isInterruptionRequested())
 		{
@@ -224,6 +224,8 @@ void MainObject::mainProc()
 
 		//其他所有功能
 		int status = checkAndRunFunctions();
+
+		//這裡是預留的暫時沒作用
 		if (status == 1)//非登入狀態 或 平時
 		{
 
@@ -278,7 +280,8 @@ int MainObject::checkAndRunFunctions()
 		//自動登入 或 斷線重連
 		if (injector.getEnableHash(util::kAutoLoginEnable) || injector.getEnableHash(util::kAutoReconnectEnable))
 		{
-			injector.server->login(status);
+			if (injector.server->login(status))
+				QThread::msleep(200);
 		}
 		return 1;
 	}
@@ -300,7 +303,7 @@ int MainObject::checkAndRunFunctions()
 
 			QThread::msleep(100);
 		}
-		injector.server->isPacketAutoClear.store(true, std::memory_order_release);
+
 		injector.server->EO();
 		emit signalDispatcher.updateStatusLabelTextChanged(util::kLabelStatusLoginSuccess);
 		emit signalDispatcher.updateMainFormTitle(injector.server->pc.name);
@@ -692,12 +695,14 @@ void MainObject::checkControl()
 	//自動戰鬥，異步戰鬥面板開關
 	bool bCheckedFastBattle = injector.getEnableHash(util::kFastBattleEnable);
 	bChecked = injector.getEnableHash(util::kAutoBattleEnable) || bCheckedFastBattle;
-	if (bChecked)
+	if (bChecked && flagBattleDialogEnable_)
 	{
+		flagBattleDialogEnable_ = false;
 		injector.postMessage(Injector::kEnableBattleDialog, false, NULL);
 	}
-	else if (!bChecked)
+	else if (!bChecked && !flagBattleDialogEnable_)
 	{
+		flagBattleDialogEnable_ = true;
 		injector.postMessage(Injector::kEnableBattleDialog, true, NULL);
 	}
 
@@ -1552,6 +1557,12 @@ void MainObject::checkAutoLockPet()
 		if (lockPetIndex >= 0 && lockPetIndex < MAX_PET)
 		{
 			PET pet = injector.server->pet[lockPetIndex];
+			if (pet.hp <= 1)
+			{
+				injector.server->setPetState(lockPetIndex, kRest);
+				QThread::msleep(500);
+			}
+
 			if (pet.state != PetState::kBattle)
 			{
 				injector.server->setPetState(lockPetIndex, kBattle);
@@ -1566,6 +1577,12 @@ void MainObject::checkAutoLockPet()
 		if (lockRideIndex >= 0 && lockRideIndex < MAX_PET)
 		{
 			PET pet = injector.server->pet[lockRideIndex];
+			if (pet.hp <= 1)
+			{
+				injector.server->setPetState(lockRideIndex, kRest);
+				QThread::msleep(500);
+			}
+
 			if (pet.state != PetState::kRide)
 			{
 				injector.server->setPetState(lockRideIndex, kRide);
@@ -1605,95 +1622,118 @@ void MainObject::checkAutoLockSchedule()
 			if (lockPetSchedule.isEmpty())
 				break;
 
-			QStringList scheduleList = lockPetSchedule.split(util::rexOR, Qt::SkipEmptyParts);
+			const QStringList scheduleList = lockPetSchedule.split(util::rexOR, Qt::SkipEmptyParts);
 			if (scheduleList.isEmpty())
 				break;
 
-			for (QString& it : scheduleList)
+			for (const QString& schedule : scheduleList)
 			{
-				if (it.isEmpty())
+				if (schedule.isEmpty())
 					continue;
 
-				QStringList dataList = it.split(util::rexComma, Qt::SkipEmptyParts);
-				if (dataList.size() != 3)
+				const QStringList schedules = schedule.split(util::rexSemicolon, Qt::SkipEmptyParts);
+				if (schedules.isEmpty())
 					continue;
 
-				QString name = dataList.at(0).simplified();
-				if (name.isEmpty())
-					continue;
-
-				QString nameStr = name.left(1);
-				int petIndex = -1;
-				bool ok = false;
-				petIndex = nameStr.toInt(&ok);
-				if (!ok)
-					continue;
-				--petIndex;
-
-				if (petIndex < 0 || petIndex >= MAX_PET)
-					continue;
-
-				QString levelStr = dataList.at(1).simplified();
-				if (levelStr.isEmpty())
-					continue;
-
-				ok = false;
-				int level = levelStr.toInt(&ok);
-				if (!ok)
-					continue;
-
-				if (level < 0 || level > 255)
-					continue;
-
-				QString typeStr = dataList.at(2).simplified();
-				if (typeStr.isEmpty())
-					continue;
-
-				PetState type = hashType.value(typeStr, kRest);
-
-				PET pet = injector.server->pet[petIndex];
-
-				if (pet.level >= level)
-					continue;
-
-
-				if (type == kBattle)
+				for (const QString& it : schedules)
 				{
-					if (bindex != -1)
+					const QStringList args = it.split(util::rexComma, Qt::SkipEmptyParts);
+					if (args.isEmpty() || args.size() != 3)
 						continue;
 
-					if (rindex != -1 && rindex == petIndex)
+					QString name = args.at(0).simplified();
+					if (name.isEmpty())
 						continue;
 
-					bindex = petIndex;
-				}
-				else if (type == kRide)
-				{
-					if (rindex != -1)
+					QString nameStr = name.left(1);
+					int petIndex = -1;
+					bool ok = false;
+					petIndex = nameStr.toInt(&ok);
+					if (!ok)
+						continue;
+					--petIndex;
+
+					if (petIndex < 0 || petIndex >= MAX_PET)
 						continue;
 
-					if (bindex != -1 && bindex == petIndex)
+					QString levelStr = args.at(1).simplified();
+					if (levelStr.isEmpty())
+						continue;
+
+					ok = false;
+					int level = levelStr.toInt(&ok);
+					if (!ok)
+						continue;
+
+					if (level < 0 || level > 255)
+						continue;
+
+					QString typeStr = args.at(2).simplified();
+					if (typeStr.isEmpty())
+						continue;
+
+					PetState type = hashType.value(typeStr, kRest);
+
+					PET pet = injector.server->pet[petIndex];
+
+					if (pet.level >= level)
+						continue;
+
+					if (type == kBattle)
 					{
-						bindex = -1;
+						if (bindex != -1)
+							continue;
+
+						if (rindex != -1 && rindex == petIndex)
+							continue;
+
+						bindex = petIndex;
+					}
+					else if (type == kRide)
+					{
+						if (rindex != -1)
+							continue;
+
+						if (bindex != -1 && bindex == petIndex)
+						{
+							bindex = -1;
+						}
+
+						rindex = petIndex;
 					}
 
-					rindex = petIndex;
+					if (rindex != -1 && bindex != -1)
+						break;
 				}
 
+				if (rindex != -1 || bindex != -1)
+					break;
 			}
 		} while (false);
 
 		if (rindex != -1)
 		{
 			PET pet = injector.server->pet[rindex];
-			if (pet.state != kRide && set == util::kLockPetScheduleString)
+			if (pet.hp <= 1)
+			{
+				injector.server->setPetState(rindex, kRest);
+				QThread::msleep(500);
+			}
+
+			if (pet.state != kRide)
 				injector.server->setPetState(rindex, kRide);
 		}
 
 		if (bindex != -1)
 		{
 			PET pet = injector.server->pet[bindex];
-			if (pet.state != kBattle && set == util::kLockPetScheduleString)
+			if (pet.hp <= 1)
+			{
+				injector.server->setPetState(bindex, kRest);
+				QThread::msleep(500);
+			}
+
+			if (pet.state != kBattle)
 				injector.server->setPetState(bindex, kBattle);
 		}
 

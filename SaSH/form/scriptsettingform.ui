@@ -1325,6 +1325,11 @@ color: rgb(208, 208, 208);
            </item>
            <item>
             <property name="text">
+             <string>local</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
              <string>half</string>
             </property>
            </item>
@@ -1634,7 +1639,7 @@ color: rgb(208, 208, 208);
             </item>
             <item>
              <property name="text">
-              <string>mppercent</string>
+              <string>mpp</string>
              </property>
             </item>
             <item>
@@ -1664,7 +1669,7 @@ color: rgb(208, 208, 208);
             </item>
             <item>
              <property name="text">
-              <string>hppercent</string>
+              <string>hpp</string>
              </property>
             </item>
             <item>
@@ -1754,7 +1759,7 @@ color: rgb(208, 208, 208);
             </item>
             <item>
              <property name="text">
-              <string>hppercent</string>
+              <string>hpp</string>
              </property>
             </item>
             <item>
@@ -1845,6 +1850,11 @@ color: rgb(208, 208, 208);
            </item>
            <item>
             <property name="text">
+             <string>bwait</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
              <string>bw</string>
             </property>
            </item>
@@ -1885,6 +1895,11 @@ color: rgb(208, 208, 208);
            </item>
            <item>
             <property name="text">
+             <string>bend</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
              <string>be</string>
             </property>
            </item>
@@ -1900,7 +1915,7 @@ color: rgb(208, 208, 208);
            </property>
            <item>
             <property name="text">
-             <string>wearrecordequip</string>
+             <string>wequip</string>
             </property>
            </item>
            <item>
@@ -1915,7 +1930,12 @@ color: rgb(208, 208, 208);
            </item>
            <item>
             <property name="text">
-             <string>unwearequip</string>
+             <string>uequip</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>skup</string>
             </property>
            </item>
            <item>
@@ -1930,7 +1950,7 @@ color: rgb(208, 208, 208);
            </item>
            <item>
             <property name="text">
-             <string>recordequip</string>
+             <string>requip</string>
             </property>
            </item>
            <item>
@@ -1950,7 +1970,17 @@ color: rgb(208, 208, 208);
            </item>
            <item>
             <property name="text">
+             <string>puequip</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
              <string>pickup</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>pequip</string>
             </property>
            </item>
            <item>
@@ -2031,11 +2061,6 @@ color: rgb(208, 208, 208);
            <item>
             <property name="text">
              <string>buy</string>
-            </property>
-           </item>
-           <item>
-            <property name="text">
-             <string>addpoint</string>
             </property>
            </item>
           </item>

@@ -1,4 +1,5 @@
 ﻿#pragma
+
 namespace Net
 {
 

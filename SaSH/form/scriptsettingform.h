@@ -23,6 +23,8 @@ protected:
 private:
 	void fileSave(const QString& d, DWORD flag);
 
+	void replaceCommas(QStringList& inputList);
+
 	void onReloadScriptList();
 
 	void setMark(CodeEditor::SymbolHandler element, util::SafeHash<QString, util::SafeHash<int, break_marker_t>>& hash, int liner, bool b);

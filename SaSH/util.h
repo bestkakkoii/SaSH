@@ -255,6 +255,11 @@ namespace util
 		kBattleCatchPlayerMagicValue,
 		kBattleCatchPetSkillValue,
 
+
+		//afk->battle delay
+		kBattleActionDelayValue,
+
+
 		kDropPetStrValue,
 		kDropPetDefValue,
 		kDropPetAgiValue,
@@ -519,6 +524,9 @@ namespace util
 		{ kBattleCatchTargetItemHpValue, "BattleCatchTargetItemHpValue" },
 		{ kBattleCatchPlayerMagicValue, "BattleCatchPlayerMagicValue" },
 		{ kBattleCatchPetSkillValue, "BattleCatchPetSkillValue" },
+
+		//afk->battle delay
+		{ kBattleActionDelayValue, "BattleActionDelayValue" },
 
 		{ kDropPetStrValue, "DropPetStrValue" },
 		{ kDropPetDefValue, "DropPetDefValue" },
@@ -1221,6 +1229,12 @@ namespace util
 			return *this;
 		}
 
+		operator T() const
+		{
+			return get();
+		}
+
+
 	private:
 		T data_;
 		mutable QReadWriteLock lock_;
@@ -1690,6 +1704,7 @@ namespace util
 
 	static const QRegularExpression rexOR(R"(\s*\|\s*)");
 	static const QRegularExpression rexComma(R"(\s*,\s*)");
+	static const QRegularExpression rexSemicolon(R"(\s*;\s*)");
 	static const QRegularExpression rexDec(R"(\s*-\s*)");
 }
 

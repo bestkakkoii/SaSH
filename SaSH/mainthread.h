@@ -12,13 +12,9 @@ public:
 	MainObject(QObject* parent = nullptr);
 	virtual ~MainObject();
 
-	void requestInterruption()
-	{
-		isRequestInterrupted.store(true, std::memory_order_release);
-	}
-
 	bool isInterruptionRequested() const
 	{
+		QReadLocker lock(&interruptLock_);
 		return isRequestInterrupted.load(std::memory_order_acquire);
 	}
 
@@ -28,7 +24,11 @@ signals:
 public slots:
 	void run();
 
-
+	void requestInterruption()
+	{
+		QWriteLocker lock(&interruptLock_);
+		isRequestInterrupted.store(true, std::memory_order_release);
+	}
 private:
 
 
@@ -57,6 +57,7 @@ private:
 	util::REMOVE_THREAD_REASON remove_thread_reason = util::REASON_NO_ERROR;
 
 	std::atomic_bool isRequestInterrupted = false;
+	mutable QReadWriteLock interruptLock_;
 
 	QFuture<void> autowalk_future_;
 	std::atomic_bool autowalk_future_cancel_flag_ = false;
@@ -78,6 +79,7 @@ private:
 	bool login_run_once_flag_ = false;
 	bool battle_run_once_flag_ = false;
 
+	bool flagBattleDialogEnable_ = false;
 	bool flagAutoLoginEnable_ = false;
 	bool flagAutoReconnectEnable_ = false;
 	bool flagLogOutEnable_ = false;

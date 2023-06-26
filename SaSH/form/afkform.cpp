@@ -463,6 +463,11 @@ void AfkForm::onSpinBoxValueChanged(int value)
 	{
 		injector.setValueHash(util::kDropPetAggregateValue, value);
 	}
+
+	else if (name == "spinBox_rounddelay")
+	{
+		injector.setValueHash(util::kBattleActionDelayValue, value);
+	}
 }
 
 void AfkForm::onComboBoxCurrentIndexChanged(int value)
@@ -921,6 +926,8 @@ void AfkForm::onApplyHashSettingsToUI()
 	ui.comboBox_autocatchpet_item->setCurrentText(injector.getStringHash(util::kBattleCatchPlayerItemString));
 	ui.spinBox_autocatchpet_magic->setValue(injector.getValueHash(util::kBattleCatchTargetMagicHpValue));
 	ui.spinBox_autocatchpet_item->setValue(injector.getValueHash(util::kBattleCatchTargetItemHpValue));
+
+	ui.spinBox_rounddelay->setValue(injector.getValueHash(util::kBattleActionDelayValue));
 
 	//catch->drop
 	ui.checkBox_autodroppet->setChecked(injector.getEnableHash(util::kDropPetEnable));

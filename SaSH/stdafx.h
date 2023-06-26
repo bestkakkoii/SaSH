@@ -228,6 +228,9 @@ public:\
 #define MINT_USE_SEPARATE_NAMESPACE
 #include <MINT/MINT.h>
 #endif
+
+#include <exprtk/exprtk.hpp>
+
 //
 ////#include <blockallocator/blockallocator.h>
 //#include <simplecrypt.h>

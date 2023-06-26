@@ -254,6 +254,8 @@ private:
 		{ util::kBattleCatchPlayerMagicValue, 0 },
 		{ util::kBattleCatchPetSkillValue, 0 },
 
+		{ util::kBattleActionDelayValue, 0 },
+
 		{ util::kDropPetStrValue, 10 },
 		{ util::kDropPetDefValue, 10 },
 		{ util::kDropPetAgiValue, 10 },

@@ -1,5 +1,6 @@
 ﻿#include "stdafx.h"
 #include "webauthenticator.h"
+#ifndef _DEBUG
 #include <util.h>
 
 #include <curl/curl.h>
@@ -1696,4 +1697,6 @@ QString Net::Authenticator::GetErrorString(const QString& errorCode)
 
 	return "\0";
 }
+#endif
+
 #endif

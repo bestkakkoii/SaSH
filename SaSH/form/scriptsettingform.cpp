@@ -9,9 +9,9 @@
 #include <QSpinBox>
 
 extern util::SafeHash<QString, util::SafeHash<int, break_marker_t>> break_markers;//用於標記自訂義中斷點(紅點)
-extern util::SafeHash < QString, util::SafeHash<int, break_marker_t>> forward_markers;//用於標示當前執行中斷處(黃箭頭)
-extern util::SafeHash < QString, util::SafeHash<int, break_marker_t>> error_markers;//用於標示錯誤發生行(紅線)
-extern util::SafeHash < QString, util::SafeHash<int, break_marker_t>> step_markers;//隱式標記中斷點用於單步執行(無)
+extern util::SafeHash<QString, util::SafeHash<int, break_marker_t>> forward_markers;//用於標示當前執行中斷處(黃箭頭)
+extern util::SafeHash<QString, util::SafeHash<int, break_marker_t>> error_markers;//用於標示錯誤發生行(紅線)
+extern util::SafeHash<QString, util::SafeHash<int, break_marker_t>> step_markers;//隱式標記中斷點用於單步執行(無)
 
 
 ScriptSettingForm::ScriptSettingForm(QWidget* parent)
@@ -659,10 +659,29 @@ void ScriptSettingForm::on_widget_marginClicked(int margin, int line, Qt::Keyboa
 	}
 }
 
-static const QRegularExpression rexLoadComma(R"(,[ \t\f\v]{0,})");
-static const QRegularExpression rexSetComma(R"(,)");
+void ScriptSettingForm::replaceCommas(QStringList& inputList)
+{
+	QStringList outputList;
+
+	static const QRegularExpression regex(R"(\s*(,)\s*(?=(?:[^'"]*(['"])(?:[^'"]*\\.)*[^'"]*\2)*[^'"]*$))");
+
+	for (const QString& line : inputList)
+	{
+		QString replacedLine = line;
+
+		// Replace comma and surrounding spaces with ", "
+		replacedLine.replace(regex, ", ");
+
+		outputList.append(replacedLine);
+	}
+
+	inputList = outputList;
+}
+
 void ScriptSettingForm::fileSave(const QString& d, DWORD flag)
 {
+	//static const QRegularExpression rexLoadComma(R"(,[ \t\f\v]{0,})");
+	//static const QRegularExpression rexSetComma(R"(,)");
 	Injector& injector = Injector::getInstance();
 	if (injector.IS_SCRIPT_FLAG)
 		return;
@@ -678,7 +697,12 @@ void ScriptSettingForm::fileSave(const QString& d, DWORD flag)
 		return;
 
 	//backup
-	const QString backupName(fileName + ".bak");
+
+	QDir bakDir(QApplication::applicationDirPath() + "/script/bak");
+	if (!bakDir.exists())
+		bakDir.mkdir(QApplication::applicationDirPath() + "/script/bak");
+	QFileInfo fi(fileName);
+	QString backupName(QString("%1/script/bak/%2.bak").arg(QApplication::applicationDirPath()).arg(fi.fileName()));
 	QFile::remove(backupName);
 	QFile::copy(fileName, backupName);
 
@@ -727,6 +751,9 @@ void ScriptSettingForm::fileSave(const QString& d, DWORD flag)
 			indentLevel++;
 		}
 	}
+
+	replaceCommas(newContents);
+
 	//int indent_begin = -1;
 	//int indent_end = -1;
 	//for (int i = 0; i < contents.size(); ++i)

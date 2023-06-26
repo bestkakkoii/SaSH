@@ -16,7 +16,7 @@ const char* Highlighter::keywords(int set) const
 	{
 		//lua key word
 		return "goto call function end pause exit label jmp return back "
-			"if ifmap ifplayer ifpet ifpetex ifitem ifitemfull ifdaily ifbattle ifpos ifonline ";
+			"if ifmap ifplayer ifpet ifpetex ifitem ifteam ifitemfull ifdaily ifbattle ifpos ifonline ";
 	}
 	case 2://QsciLexerLua::BasicFunctions//黃色
 	{
@@ -26,11 +26,12 @@ const char* Highlighter::keywords(int set) const
 			"waitdlg waitsay waititem waitmap waitteam "
 			"chpet chplayername chpetname chmap "
 			"usemagic doffpet buy sell useitem doffitem pickup put "
-			"get putpet getpet make cook unequip recordequip "
-			"wearrecordequip addpoint join leave kick ifteam move "
+			"get putpet getpet make cook uequip requip "
+			"wequip pequip puequip skup join leave kick move "
 			"walkpos w dir findpath movetonpc lclick rclick ldbclick dragto warp "
 			"learn trade run dostring sellpet mail reg "
-			"regex upper lower half toint tostr todb replace find full ";
+			"regex upper lower half toint tostr todb replace find full "
+			"bh bj bp bs be bd bi bn bw bwf bwait bend ";
 	}
 	case 3://QsciLexerLua::StringTableMathsFunction//草綠
 	{
@@ -42,11 +43,11 @@ const char* Highlighter::keywords(int set) const
 	}
 	case 5://KeywordSet5//深藍色
 	{
-		return "var delete releaseall format rnd true false";
+		return "local var delete releaseall format rnd true false";
 	}
 	case 6://KeywordSet6//淺藍色
 	{
-		return "out player pet magic skill petskill equip petequip map dialog chat point ";
+		return "out player pet magic skill petskill equip petequip map dialog chat point battle ";
 	}
 	case 7://KeywordSet7//土橘色
 	{

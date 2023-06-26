@@ -33,7 +33,7 @@ public:
 	Interpreter(QObject* parent = nullptr);
 	virtual ~Interpreter();
 
-	inline Q_REQUIRED_RESULT bool isInterruptionRequested() const { return isRequestInterrupted.load(std::memory_order_acquire); }
+	inline Q_REQUIRED_RESULT bool isInterruptionRequested() const { QReadLocker lock(&interruptLock_); return isRequestInterrupted.load(std::memory_order_acquire); }
 
 	inline bool isRunning() const { return isRunning_.load(std::memory_order_acquire) && !isInterruptionRequested(); }
 
@@ -62,18 +62,14 @@ signals:
 
 
 public slots:
-	inline void requestInterruption() { isRequestInterrupted.store(true, std::memory_order_release); }
+	void requestInterruption() { QWriteLocker lock(&interruptLock_); isRequestInterrupted.store(true, std::memory_order_release); }
 
 	void proc();
 private:
 	bool readFile(const QString& fileName, QString* pcontent, bool* isPrivate);
 	bool loadString(const QString& script, util::SafeHash<int, TokenMap>* ptokens, util::SafeHash<QString, int>* plabel);
 private:
-	enum JumpBehavior
-	{
-		SuccessJump,
-		FailedJump,
-	};
+
 
 	enum CompareArea
 	{
@@ -138,10 +134,10 @@ private:
 		{ u8"人物lv", kPlayerLevel },
 		{ u8"人物hp", kPlayerHp },
 		{ u8"人物maxhp", kPlayerMaxHp },
-		{ u8"人物hppercent", kPlayerHpPercent },
+		{ u8"人物hpp", kPlayerHpPercent },
 		{ u8"人物mp", kPlayerMp },
 		{ u8"人物maxmp", kPlayerMaxMp },
-		{ u8"人物mppercent", kPlayerMpPercent },
+		{ u8"人物mpp", kPlayerMpPercent },
 		{ u8"人物exp", kPlayerExp },
 		{ u8"人物maxexp", kPlayerMaxExp },
 		{ u8"人物stone", kPlayerStone },
@@ -159,7 +155,7 @@ private:
 		{ u8"寵物lv", kPetLevel },
 		{ u8"寵物hp", kPetHp },
 		{ u8"寵物maxhp", kPetMaxHp },
-		{ u8"寵物hppercent", kPetHpPercent },
+		{ u8"寵物hpp", kPetHpPercent },
 		{ u8"寵物exp", kPetExp },
 		{ u8"寵物maxexp", kPetMaxExp },
 		{ u8"寵物atk", kPetAtk },
@@ -183,10 +179,10 @@ private:
 		{ u8"人物lv", kPlayerLevel },
 		{ u8"人物hp", kPlayerHp },
 		{ u8"人物maxhp", kPlayerMaxHp },
-		{ u8"人物hppercent", kPlayerHpPercent },
+		{ u8"人物hpp", kPlayerHpPercent },
 		{ u8"人物mp", kPlayerMp },
 		{ u8"人物maxmp", kPlayerMaxMp },
-		{ u8"人物mppercent", kPlayerMpPercent },
+		{ u8"人物mpp", kPlayerMpPercent },
 		{ u8"人物exp", kPlayerExp },
 		{ u8"人物maxexp", kPlayerMaxExp },
 		{ u8"人物stone", kPlayerStone },
@@ -204,7 +200,7 @@ private:
 		{ u8"宠物lv", kPetLevel },
 		{ u8"宠物hp", kPetHp },
 		{ u8"宠物maxhp", kPetMaxHp },
-		{ u8"宠物hppercent", kPetHpPercent },
+		{ u8"宠物hpp", kPetHpPercent },
 		{ u8"宠物exp", kPetExp },
 		{ u8"宠物maxexp", kPetMaxExp },
 		{ u8"宠物atk", kPetAtk },
@@ -258,6 +254,8 @@ private:
 	void updateGlobalVariables();
 
 	void logExport(int currentline, const QString& text, int color = 0);
+
+	void setError(const QString& error) { parser_->setLastErrorMessage(error); }
 private: //註冊給Parser的函數
 	//system
 	int test(int currentline, const TokenMap&) const;
@@ -299,7 +297,7 @@ private: //註冊給Parser的函數
 	//check-group
 	int checkteam(int currentline, const TokenMap& TK);
 	int checkteamcount(int currentline, const TokenMap& TK);
-	int cmp(int currentline, const TokenMap& TK);
+
 
 	//move
 	int setdir(int currentline, const TokenMap& TK);
@@ -381,12 +379,18 @@ private: //註冊給Parser的函數
 	int bn(int currentline, const TokenMap& TK);//nothing
 	int bw(int currentline, const TokenMap& TK);//petskill
 	int bwf(int currentline, const TokenMap& TK);//pet nothing
+	int bwait(int currentline, const TokenMap& TK);//wait
+	int bend(int currentline, const TokenMap& TK);//wait
+
+private:
+
 private:
 	int beginLine_ = 0;
 
 	bool isSub = false;
 
 	std::atomic_bool isRequestInterrupted = false;
+	mutable QReadWriteLock interruptLock_;
 
 	QThread* thread_ = nullptr;
 
