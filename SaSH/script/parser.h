@@ -44,8 +44,9 @@ enum JumpBehavior
 	FailedJump,
 };
 
-class Parser
+class Parser : public QObject
 {
+	Q_OBJECT
 public:
 	enum
 	{
@@ -177,10 +178,14 @@ public:
 	bool checkInt(const TokenMap& TK, int idx, int* ret);
 	bool checkDouble(const TokenMap& TK, int idx, double* ret);
 	bool toVariant(const TokenMap& TK, int idx, QVariant* ret);
+	bool compare(const QVariant& a, const QVariant& b, RESERVE type) const;
 
 	QVariant checkValue(const TokenMap TK, int idx, QVariant::Type);
 	int checkJump(const TokenMap& TK, int idx, bool expr, JumpBehavior behavior);
 public:
+	Parser();
+	virtual ~Parser() = default;
+
 	//解析腳本
 	void parse(int line = 0);
 	util::SafeHash<QString, int>& getLabels() { return labels_; }
@@ -229,6 +234,16 @@ private:
 	bool processGetSystemVarValue(const QString& varName, QString& valueStr, QVariant& varValue);
 	bool processIfCompare();
 
+	void replaceToVariable(QString& str);
+	bool checkCallStack();
+
+	template <typename T>
+	bool exprTo(QString expr, T* ret);
+
+	template <typename T>
+	bool exprTo(T value, QString expr, T* ret);
+
+
 	void handleError(int err);
 	void checkArgs();
 
@@ -266,33 +281,41 @@ private:
 
 	void generateStackInfo(int type);
 
-
-	void requestInterruption()
-	{
-		QWriteLocker lock(&interruptLock_);
-		isRequestInterrupted.store(true, std::memory_order_release);
-	}
-
 	bool isInterruptionRequested() const
 	{
 		QReadLocker lock(&interruptLock_);
 		return isRequestInterrupted.load(std::memory_order_acquire);
 	}
+
+public slots:
+	void requestInterruption()
+	{
+		QWriteLocker lock(&interruptLock_);
+		isRequestInterrupted.store(true, std::memory_order_release);
+	}
 private:
+	typedef struct tagFunctionChunk
+	{
+		QString name;
+		int begin = -1;
+		int end = -1;
+	} FunctionChunk;
+
 	bool usestate = false;
 	std::atomic_bool isRequestInterrupted = false;                  //是否停止
 	mutable QReadWriteLock interruptLock_;							//停止鎖
 	util::SafeHash<int, TokenMap> tokens_;							//當前運行腳本的每一行token
 	QSharedPointer<VariantSafeHash> variables_;						//所有用腳本變量
 	util::SafeHash<QString, int> labels_;							//所有標記所在行記錄
+	util::SafeHash<QString, FunctionChunk> functionChunks_;         //函數代碼塊
 	util::SafeHash<QString, QString> userRegCallBack_;				//用戶註冊的回調函數
 	util::SafeHash<QString, CommandRegistry> commandRegistry_;		//所有命令的函數指針
 	QStack<int> callStack_;											//"調用"命令所在行棧
 	QStack<int> jmpStack_;											//"跳轉"命令所在行棧
 	QStack<QVariantList> callArgsStack_;							//"調用"命令參數棧
 	QVariantList emptyArgs_;										//空參數
-	QStack<VariantSafeHash> labalVarStack_;		//標籤變量名
-	VariantSafeHash emptyLabelVars_;				//空標籤變量名
+	QStack<VariantSafeHash> labalVarStack_;							//標籤變量名
+	VariantSafeHash emptyLabelVars_;								//空標籤變量名
 
 	TokenMap currentLineTokens_;									//當前行token
 	RESERVE currentType_ = TK_UNK;									//當前行第一個token類型

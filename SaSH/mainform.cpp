@@ -170,13 +170,14 @@ void createMenu(QMenuBar* pMenuBar)
 enum InterfaceMessage
 {
 	kInterfaceMessage = WM_USER + 2048,
-	kRunScript,  // kInterfaceMessage + 1
-	kStopScript, // kInterfaceMessage + 2
-	kRunFile,    // kInterfaceMessage + 3
-	kStopFile,   // kInterfaceMessage + 4
-	kRunGame,    // kInterfaceMessage + 5
-	kCloseGame,  // kInterfaceMessage + 6
-	kGetGameState, // kInterfaceMessage + 7
+	kRunScript,			// kInterfaceMessage + 1
+	kStopScript,		// kInterfaceMessage + 2
+	kRunFile,			// kInterfaceMessage + 3
+	kStopFile,			// kInterfaceMessage + 4
+	kRunGame,			// kInterfaceMessage + 5
+	kCloseGame,			// kInterfaceMessage + 6
+	kGetGameState,		// kInterfaceMessage + 7
+	kScriptState,		// kInterfaceMessage + 8
 };
 
 //接收原生的窗口消息
@@ -190,25 +191,28 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, long* res
 	{
 		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
 		emit signalDispatcher.updateCursorLabelTextChanged(QString("%1,%2").arg(GET_X_LPARAM(msg->lParam)).arg(GET_Y_LPARAM(msg->lParam)));
-		return false;
+		return true;
 	}
 	case WM_KEYUP + WM_USER + VK_DELETE:
 	{
 		if (!injector.server.isNull())
 			injector.server->cleanChatHistory();
-		return false;
+		return true;
 	}
 	case Injector::kConnectionOK:
 	{
 		if (!injector.server.isNull())
+		{
 			injector.server->IS_TCP_CONNECTION_OK_TO_USE = true;
-		return false;
+			qDebug() << "tcp ok";
+		}
+		return true;
 	}
 	case InterfaceMessage::kRunScript:
 	{
 		QSharedPointer<Interpreter> interpreter(new Interpreter());
 		if (interpreter.isNull())
-			return false;
+			return true;
 		interpreter->setSubScript(true);
 
 		int id = msg->wParam;
@@ -228,7 +232,7 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, long* res
 	{
 		QSharedPointer<Interpreter> interpreter = interpreter_hash_.value(msg->wParam, nullptr);
 		if (interpreter.isNull())
-			break;
+			return true;
 
 		interpreter->requestInterruption();
 		interpreter_hash_.remove(msg->wParam);
@@ -240,11 +244,11 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, long* res
 	{
 		Injector& injector = Injector::getInstance();
 		if (injector.IS_SCRIPT_FLAG)
-			break;
+			return true;
 
 		QString fileName = QString::fromUtf8(reinterpret_cast<char*>(msg->lParam));
 		if (!QFile::exists(fileName))
-			break;
+			return true;
 
 		pScriptForm_->loadFile(fileName);
 		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
@@ -258,7 +262,7 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, long* res
 	{
 		Injector& injector = Injector::getInstance();
 		if (!injector.IS_SCRIPT_FLAG)
-			break;
+			return true;
 
 		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
 		emit signalDispatcher.scriptStoped();
@@ -270,7 +274,7 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, long* res
 	{
 		Injector& injector = Injector::getInstance();
 		if (!injector.server.isNull())
-			break;
+			return true;
 
 		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
 		emit signalDispatcher.gameStarted();
@@ -282,7 +286,7 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, long* res
 	{
 		Injector& injector = Injector::getInstance();
 		if (injector.server.isNull())
-			break;
+			return true;
 
 		injector.close();
 		++interfaceCount_;
@@ -291,10 +295,44 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, long* res
 	}
 	case InterfaceMessage::kGetGameState:
 	{
-		Injector& injector = Injector::getInstance();
 		if (result == nullptr)
-			break;
-		*result = injector.server.isNull();
+			return true;
+
+		Injector& injector = Injector::getInstance();
+		int value = 0;
+		if (injector.server.isNull())
+			return true;
+
+		bool ok = injector.server->IS_TCP_CONNECTION_OK_TO_USE;
+		if (!ok)
+			return true;
+		else
+			value = 1;
+
+		if (!injector.server->getOnlineFlag())
+			value = 2;
+		else
+		{
+			if (!injector.server->getBattleFlag())
+				value = 3;
+			else
+				value = 4;
+		}
+
+		*result = value;
+		return true;
+	}
+	case InterfaceMessage::kScriptState:
+	{
+		if (result == nullptr)
+			return true;
+
+		Injector& injector = Injector::getInstance();
+		int value = 0;
+		if (injector.IS_SCRIPT_FLAG)
+			value = 1;
+
+		*result = value;
 		return true;
 	}
 	default:
@@ -739,7 +777,8 @@ void MainForm::onUpdateStatusLabelTextChanged(int status)
 		{ util::kLabelStatusBusy, tr("busy") },
 		{ util::kLabelStatusTimeout, tr("timeout") },
 		{ util::kLabelNoUserNameOrPassword, tr("no username or password") },
-		{ util::kLabelStatusDisconnected, tr("disconnected")}
+		{ util::kLabelStatusDisconnected, tr("disconnected")},
+		{ util::kLabelStatusConnecting, tr("connecting")},
 	};
 	ui.label_status->setText(tr("status:") + hash.value(static_cast<util::UserStatus>(status), tr("unknown")));
 }
@@ -940,14 +979,30 @@ void MainForm::onLoadHashSettings(const QString& name, bool isFullPath)
 	emit signalDispatcher.applyHashSettingsToUI();
 }
 
-void MainForm::onMessageBoxShow(const QString& text, int type)
+void MainForm::onMessageBoxShow(const QString& text, int type, int* pnret)
 {
-	if (type == 2)
-		QMessageBox::warning(this, tr("warning"), text);
-	else if (type == 3)
-		QMessageBox::critical(this, tr("critical"), text);
+	QMessageBox::StandardButton button = QMessageBox::StandardButton::NoButton;
+	if (pnret)
+	{
+		if (type == 2)
+			button = QMessageBox::warning(this, tr("warning"), text, QMessageBox::StandardButton::Yes | QMessageBox::StandardButton::No, QMessageBox::No);
+		else if (type == 3)
+			button = QMessageBox::critical(this, tr("critical"), text, QMessageBox::StandardButton::Yes | QMessageBox::StandardButton::No, QMessageBox::No);
+		else
+			button = QMessageBox::information(this, tr("info"), text, QMessageBox::StandardButton::Yes | QMessageBox::StandardButton::No, QMessageBox::No);
+
+		*pnret = button;
+	}
 	else
-		QMessageBox::information(this, tr("info"), text);
+	{
+		if (type == 2)
+			button = QMessageBox::warning(this, tr("warning"), text);
+		else if (type == 3)
+			button = QMessageBox::critical(this, tr("critical"), text);
+		else
+			button = QMessageBox::information(this, tr("info"), text);
+	}
+
 }
 
 void MainForm::onInputBoxShow(const QString& text, int type, QVariant* retvalue)

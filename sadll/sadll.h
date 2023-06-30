@@ -55,7 +55,7 @@ namespace util
 		kMuteSound,
 		kEnableBattleDialog,
 		kSetGameStatus,
-		kSetBLockPacket,
+		kSetBlockPacket,
 		kBattleTimeExtend,
 		kEnableOptimize,
 

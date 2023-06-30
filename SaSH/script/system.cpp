@@ -157,7 +157,10 @@ int Interpreter::announce(int currentline, const TokenMap& TK)
 	}
 
 	if (!injector.server.isNull())
+	{
 		injector.server->announce(text, color);
+		logExport(currentline, text, color);
+	}
 	else if (color != -2)
 		logExport(currentline, text, 0);
 
@@ -192,7 +195,7 @@ int Interpreter::messagebox(int currentline, const TokenMap& TK)
 	if (!checkString(TK, 1, &text))
 	{
 		int value = 0;
-		if (!checkInt(TK, 2, &value))
+		if (!checkInt(TK, 1, &value))
 			return Parser::kArgError;
 
 		text = QString::number(value);
@@ -201,8 +204,31 @@ int Interpreter::messagebox(int currentline, const TokenMap& TK)
 	int type = 0;
 	checkInt(TK, 2, &type);
 
+	QString varName;
+	checkString(TK, 3, &varName);
+
+
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
-	emit signalDispatcher.messageBoxShow(text, type);
+
+	if (varName.isEmpty())
+		emit signalDispatcher.messageBoxShow(text, type, nullptr);
+	else
+	{
+		int nret = QMessageBox::StandardButton::NoButton;
+		emit signalDispatcher.messageBoxShow(text, type, &nret);
+		if (nret != QMessageBox::StandardButton::NoButton)
+		{
+			VariantSafeHash args = parser_->getLabelVarsRef();
+			if (args.contains(varName))
+			{
+				args.insert(varName, nret == QMessageBox::StandardButton::Yes ? "yes" : "no");
+				return Parser::kNoChange;
+			}
+
+			QSharedPointer<VariantSafeHash> vars = parser_->getPVariables();
+			vars->insert(varName, nret == QMessageBox::StandardButton::Yes ? "yes" : "no");
+		}
+	}
 
 	return Parser::kNoChange;
 }
@@ -768,11 +794,11 @@ int Interpreter::set(int currentline, const TokenMap& TK)
 		injector.setEnableHash(type, ok);
 		if (type == util::kFastBattleEnable && ok)
 			injector.setEnableHash(util::kAutoBattleEnable, !ok);
-		else if (type == util::kAutoBattleEnable && !ok)
+		else if (type == util::kAutoBattleEnable && ok)
 			injector.setEnableHash(util::kFastBattleEnable, !ok);
 		else if (type == util::kAutoWalkEnable && ok)
 			injector.setEnableHash(util::kFastWalkEnable, !ok);
-		else if (type == util::kFastWalkEnable && !ok)
+		else if (type == util::kFastWalkEnable && ok)
 			injector.setEnableHash(util::kAutoWalkEnable, !ok);
 
 		emit signalDispatcher.applyHashSettingsToUI();
@@ -1102,16 +1128,16 @@ int Interpreter::dlg(int currentline, const TokenMap& TK)
 	if (!checkString(TK, 3, &text))
 		return Parser::kArgError;
 
-	int timeout = 5000;
+	int timeout = DEFAULT_FUNCTION_TIMEOUT;
 	checkInt(TK, 4, &timeout);
 
 	text.replace("\\n", "\n");
 
 	buttonStrs = buttonStrs.toUpper();
 	QStringList buttonStrList = buttonStrs.split(util::rexOR, Qt::SkipEmptyParts);
-	QVector<int> buttonVec;
+	util::SafeVector<int> buttonVec;
 	unsigned int buttonFlag = 0;
-	for (const QString str : buttonStrList)
+	for (const QString& str : buttonStrList)
 	{
 		if (!buttonMap.contains(str))
 			return Parser::kArgError;
@@ -1163,7 +1189,7 @@ int Interpreter::dlg(int currentline, const TokenMap& TK)
 
 int Interpreter::regex(int currentline, const TokenMap& TK)
 {
-	Injector& injector = Injector::getInstance();
+	//Injector& injector = Injector::getInstance();
 
 	QString varName = TK.value(1).data.toString();
 	if (varName.isEmpty())
@@ -1263,7 +1289,7 @@ int Interpreter::half(int currentline, const TokenMap& TK)
 
 	QString result = text;
 	int size = FullWidth.size();
-	for (int i = 0; i < size; i++)
+	for (int i = 0; i < size; ++i)
 	{
 		result.replace(FullWidth[i], HalfWidth[i]);
 	}
@@ -1295,7 +1321,7 @@ int Interpreter::full(int currentline, const TokenMap& TK)
 
 	QString result = text;
 	int size = FullWidth.size();
-	for (int i = 0; i < size; i++)
+	for (int i = 0; i < size; ++i)
 	{
 		result.replace(HalfWidth[i], FullWidth[i]);
 	}

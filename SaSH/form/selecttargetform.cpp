@@ -102,7 +102,7 @@ void SelectTargetForm::onCheckBoxStateChanged(int state)
 	if (name.isEmpty())
 		return;
 
-	Injector& injector = Injector::getInstance();
+	//Injector& injector = Injector::getInstance();
 
 	unsigned int tempFlg = 0u;
 

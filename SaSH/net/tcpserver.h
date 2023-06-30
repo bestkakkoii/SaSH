@@ -196,6 +196,8 @@ constexpr int JOY_CTRL_T = (1 << 22);	/* Ctrl + T					*/
 constexpr int MAIL_MAX_HISTORY = 20;
 constexpr int MAX_CHAT_REGISTY_STR = 8;
 
+constexpr int MAX_ENEMY = 20;
+
 constexpr int MAX_DIR = 8;
 
 constexpr const char* SUCCESSFULSTR = "successful";
@@ -516,6 +518,29 @@ enum FUNCTIONTYPE
 	LSSPROTO_ARRAGEITEM_SEND = 260,
 };
 
+enum GameDataOffest
+{
+	kOffestPersonalKey = 0x4AC0898,
+	kOffestAccount = 0x414F278,
+	kOffestPassword = 0x415AA58,
+	kOffestServerIndex = 0x415EF28,
+	kOffestSubServerIndex = 0xC4288,
+	kOffestPositionIndex = 0x4ABE270,
+	kOffestMousePointedIndex = 0x41F1B90,
+	kOffestWorldStatus = 0x4230DD8,
+	kOffestGameStatus = 0x4230DF0,
+	kOffestBattleStatus = 0x41829AC,
+	kOffestPlayerStatus = 0x422BF2C,
+	kOffestNowX = 0x4181D3C,
+	kOffestNowY = 0x4181D40,
+	kOffestNowFloor = 0x4181190,
+	kOffestNowFloorName = 0x4160228,
+	kOffestMailPetIndex = 0x422BF3E,
+	kOffestRidePetIndex = 0x422E3D8,
+	kOffestSelectPetArray = 0x422BF34,
+	kOffestTeamState = 0x4230B24,
+	kOffestEV = 0x41602BC,
+};
 
 #ifdef _ITEM_EQUITSPACE
 typedef enum tagCHAR_EquipPlace
@@ -1115,7 +1140,7 @@ typedef struct tagMAIL_HISTORY
 
 	void clear()
 	{
-		for (int i = 0; i < MAIL_MAX_HISTORY; i++)
+		for (int i = 0; i < MAIL_MAX_HISTORY; ++i)
 		{
 			str[i] = "";
 			dateStr[i] = "";
@@ -1547,16 +1572,29 @@ typedef struct battleobject_s
 	int rideHp = 0;
 	int rideMaxHp = 0;
 	int rideHpPercent = 0;
+	bool ready = false;
 } battleobject_t;
 
 typedef struct battledata_s
 {
 	int fieldAttr = 0;
+	int alliemin = 0, alliemax = 0, enemymax = 0, enemymin = 0;
 	battleobject_t player = {};
 	battleobject_t pet = {};
-	QVector<battleobject_t> objects;
-	QVector<battleobject_t> allies;
-	QVector<battleobject_t> enemies;
+	util::SafeVector<battleobject_t> objects;
+	util::SafeVector<battleobject_t> allies;
+	util::SafeVector<battleobject_t> enemies;
+
+	void clear()
+	{
+		fieldAttr = 0;
+		alliemin = 0, alliemax = 0, enemymax = 0, enemymin = 0;
+		player = {};
+		pet = {};
+		objects = util::SafeVector<battleobject_t>{};
+		allies = util::SafeVector<battleobject_t>{};
+		enemies = util::SafeVector<battleobject_t>{};
+	}
 
 } battledata_t;
 
@@ -1854,7 +1892,7 @@ public://actions
 	void EO();
 
 	void dropItem(int index);
-	void dropItem(QVector<int> index);
+	void dropItem(util::SafeVector<int> index);
 
 	void useItem(int itemIndex, int target);
 
@@ -1875,7 +1913,7 @@ public://actions
 	void press(int row, int seqno = -1, int objindex = -1);
 
 	void buy(int index, int amt, int seqno = -1, int objindex = -1);
-	void sell(const QVector<int>& indexs, int seqno = -1, int objindex = -1);
+	void sell(const util::SafeVector<int>& indexs, int seqno = -1, int objindex = -1);
 	void sell(int index, int seqno = -1, int objindex = -1);
 	void sell(const QString& name, const QString& memo = "", int seqno = -1, int objindex = -1);
 	void learn(int skillIndex, int petIndex, int spot, int seqno = -1, int objindex = -1);
@@ -1909,7 +1947,7 @@ public://actions
 
 	void updateDatasFromMemory();
 
-	void asyncBattleWork(bool wait = true);
+	void asyncBattleWork();
 
 	void downloadMap();
 	void downloadMap(int x, int y);
@@ -1917,9 +1955,9 @@ public://actions
 	bool tradeStart(const QString& name, int timeout);
 	void tradeComfirm(const QString name);
 	void tradeCancel();
-	void tradeAppendItems(const QString& name, const QVector<int>& itemIndexs);
+	void tradeAppendItems(const QString& name, const util::SafeVector<int>& itemIndexs);
 	void tradeAppendGold(const QString& name, int gold);
-	void tradeAppendPets(const QString& name, const QVector<int>& petIndex);
+	void tradeAppendPets(const QString& name, const util::SafeVector<int>& petIndex);
 	void tradeComplete(const QString& name);
 
 	void cleanChatHistory();
@@ -1934,13 +1972,13 @@ public://actions
 	void setPlayerFaceDirection(const QString& dirStr);
 
 	QStringList getJoinableUnitList() const;
-	bool getItemIndexsByName(const QString& name, const QString& memo, QVector<int>* pv) const;
+	bool getItemIndexsByName(const QString& name, const QString& memo, util::SafeVector<int>* pv);
 	int getItemIndexByName(const QString& name, bool isExact = true, const QString& memo = "") const;
 	int getPetSkillIndexByName(int& petIndex, const QString& name) const;
-	bool getPetIndexsByName(const QString& name, QVector<int>* pv) const;
+	bool getPetIndexsByName(const QString& name, util::SafeVector<int>* pv) const;
 	int getMagicIndexByName(const QString& name, bool isExact = true) const;
 	int getItemEmptySpotIndex() const;
-	bool getItemEmptySpotIndexs(QVector<int>* pv) const;
+	bool getItemEmptySpotIndexs(util::SafeVector<int>* pv) const;
 	void clear();
 
 	bool checkPlayerMp(int cmpvalue, int* target = nullptr, bool useequal = false);
@@ -1954,6 +1992,8 @@ public://actions
 	void setPlayerFreeName(const QString& name);
 	void setPetFreeName(int petIndex, const QString& name);
 
+	Q_REQUIRED_RESULT inline bool getBattleFlag() const { QReadLocker lock(&battleStateLocker); return IS_BATTLE_FLAG.load(std::memory_order_acquire); }
+	Q_REQUIRED_RESULT inline bool getOnlineFlag() const { QReadLocker lock(&onlineStateLocker); return IS_ONLINE_FLAG.load(std::memory_order_acquire); }
 
 	//battle
 	void sendBattlePlayerAttackAct(int target);
@@ -1975,6 +2015,15 @@ private:
 	void refreshItemInfo();
 
 	void setBattleFlag(bool enable);
+	inline void setOnlineFlag(bool enable)
+	{
+		QWriteLocker lock(&onlineStateLocker);
+		IS_ONLINE_FLAG.store(enable, std::memory_order_release);
+		if (!enable)
+		{
+			setBattleEnd();
+		}
+	}
 	void sortItem();
 
 	void getPlayerMaxCarryingCapacity();
@@ -1996,7 +2045,7 @@ private:
 	bool isPlayerMpEnoughForMagic(int magicIndex) const;
 	bool isPlayerMpEnoughForSkill(int magicIndex) const;
 
-	void sortBattleUnit(QVector<battleobject_t>& v) const;
+	void sortBattleUnit(util::SafeVector<battleobject_t>& v) const;
 
 	Q_REQUIRED_RESULT int getBattleSelectableEnemyTarget() const;
 
@@ -2004,9 +2053,9 @@ private:
 
 	Q_REQUIRED_RESULT int getBattleSelectableAllieTarget() const;
 
-	Q_REQUIRED_RESULT bool matchBattleEnemyByName(const QString& name, bool isExact, QVector<battleobject_t> src, QVector<battleobject_t>* v) const;
-	Q_REQUIRED_RESULT bool matchBattleEnemyByLevel(int level, QVector<battleobject_t> src, QVector<battleobject_t>* v) const;
-	Q_REQUIRED_RESULT bool matchBattleEnemyByMaxHp(int maxHp, QVector<battleobject_t> src, QVector<battleobject_t>* v) const;
+	Q_REQUIRED_RESULT bool matchBattleEnemyByName(const QString& name, bool isExact, util::SafeVector<battleobject_t> src, util::SafeVector<battleobject_t>* v) const;
+	Q_REQUIRED_RESULT bool matchBattleEnemyByLevel(int level, util::SafeVector<battleobject_t> src, util::SafeVector<battleobject_t>* v) const;
+	Q_REQUIRED_RESULT bool matchBattleEnemyByMaxHp(int maxHp, util::SafeVector<battleobject_t> src, util::SafeVector<battleobject_t>* v) const;
 
 	Q_REQUIRED_RESULT int getGetPetSkillIndexByName(int petIndex, const QString& name) const;
 
@@ -2014,7 +2063,8 @@ private:
 	bool fixPlayerTargetBySkillIndex(int magicIndex, int oldtarget, int* target) const;
 	bool fixPlayerTargetByItemIndex(int itemIndex, int oldtarget, int* target) const;
 	bool fixPetTargetBySkillIndex(int skillIndex, int oldtarget, int* target) const;
-
+	void updateCurrentSideRange();
+	inline bool checkFlagState(int pos);
 
 
 #pragma endregion
@@ -2413,14 +2463,32 @@ private://lssproto
 
 	void lssproto_CustomWN_recv(const QString& data);
 
+	int appendReadBuf(const QByteArray& data);
+	QByteArrayList splitLinesFromReadBuf();
+	int a62toi(const QString& a) const;
+	int getStringToken(const QString& src, const QString& delim, int count, QString& out) const;
+	int getIntegerToken(const QString& src, const QString& delim, int count) const;
+	int getInteger62Token(const QString& src, const QString& delim, int count) const;
+	QString makeStringFromEscaped(const QString& src) const;
+	int a62toi(char* a) const;
 private:
 	QFuture<void> ayncBattleCommand;
 	std::atomic_bool ayncBattleCommandFlag = false;
+	std::atomic_bool IS_BATTLE_FLAG = false;
+	std::atomic_bool IS_ONLINE_FLAG = false;
 	bool isEOTTLSend = false;
+	bool isBattleDialogReady = false;
+	bool isEnemyAllReady = false;
+
 	QElapsedTimer eottlTimer;
+	QElapsedTimer connectingTimer;
 	bool petEscapeEnableTempFlag = false;
 	int tempCatchPetTargetIndex = -1;
 	int JobdailyGetMax = 0;  //是否有接收到資料
+	mutable QReadWriteLock battleStateLocker;
+	mutable QReadWriteLock onlineStateLocker;
+	mutable QReadWriteLock worldStateLocker;
+	mutable QReadWriteLock gameStateLocker;
 
 	battledata_t battleData;
 
@@ -2587,13 +2655,6 @@ public:
 	//custom
 	bool disconnectflag = false;
 
-	bool enablePlayerWork = false;
-	bool enablePetWork = false;
-	bool enemyAllReady = false;
-
-	bool IS_ONLINE_FLAG = false;
-	bool IS_BATTLE_FLAG = false;
-
 	bool IS_TRADING = false;
 
 	bool IS_TCP_CONNECTION_OK_TO_USE = false;
@@ -2635,8 +2696,8 @@ public:
 
 	QSharedPointer<MapAnalyzer> mapAnalyzer;
 
-	util::SafeData<currencydata_t> currencyData;
-	util::SafeData<customdialog_t> customDialog;
+	util::SafeData<currencydata_t> currencyData = {};
+	util::SafeData<customdialog_t> customDialog = {};
 
 	QMutex swapItemMutex;//用於保護物品數據更新順序
 	PC pc = {};
@@ -2654,12 +2715,12 @@ public:
 	util::SafeHash<QPoint, mapunit_t> npcUnitPointHash;
 	util::SafeQueue<QPair<int, QString>> chatQueue;
 
-	QPair<int, QVector<bankpet_t>> currentBankPetList;
-	QVector<ITEM> currentBankItemList;
+	QPair<int, util::SafeVector<bankpet_t>> currentBankPetList;
+	util::SafeVector<ITEM> currentBankItemList;
 
 	util::AfkRecorder recorder[1 + MAX_PET] = {};
 
-	//用於緩存要發送到UI的數據
+	//用於緩存要發送到UI的數據(開啟子窗口初始化並加載當前最新數據時使用)
 	util::SafeHash<int, QVariant> playerInfoColContents;
 	util::SafeHash<int, QVariant> itemInfoRowContents;
 	util::SafeHash<int, QVariant> equipInfoRowContents;
@@ -2669,14 +2730,18 @@ public:
 	QString timeLabelContents;
 	QString labelPlayerAction;
 	QString labelPetAction;
+
 private:
 	QFutureSynchronizer <void> sync_;
 
 	std::atomic_bool isRequestInterrupted = false;
 	mutable QReadWriteLock interruptLock_;
-	//int sockfd_ = 0;
+
 	unsigned short port_ = 0;
+
 	QSharedPointer<QTcpServer> server_;
+
 	QList<QTcpSocket*> clientSockets_;
 
+	QByteArray net_readbuf;
 };

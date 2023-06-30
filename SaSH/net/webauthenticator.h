@@ -92,7 +92,7 @@ namespace Net
 
 				QByteArray encryptedData;
 				int size = data.size();
-				for (int i = 0; i < size; i++)
+				for (int i = 0; i < size; ++i)
 				{
 					encryptedData.append(data[i] ^ 0xff);
 					encryptedData[i] = (encryptedData[i] & 0x03) << 6 |

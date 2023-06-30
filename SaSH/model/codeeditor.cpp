@@ -35,7 +35,11 @@ CodeEditor::CodeEditor(QWidget* parent)
 
 	QsciScintilla::setFont(font);
 	//代碼提示autoCompletion
+#ifdef _DEBUG
+	QFile f(R"(D:\Users\bestkakkoii\Desktop\SaSH\lib\completion_api.txt)");
+#else
 	QFile f(QString(R"(%1\lib\completion_api.txt)").arg(QApplication::applicationDirPath()));
+#endif
 
 	if (f.open(QIODevice::ReadOnly))
 	{
@@ -320,7 +324,7 @@ void CodeEditor::commentSwitch()
 		{
 			allcomment = true;
 		}
-		for (int i = 0; i < row_num; i++)
+		for (int i = 0; i < row_num; ++i)
 		{
 			//if allcomment is true even if the content already has comment mark still add additional comment
 			//else if allcomment is false remove first command mark for each line if it has

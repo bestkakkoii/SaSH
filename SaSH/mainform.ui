@@ -166,17 +166,10 @@
          <property name="spacing">
           <number>1</number>
          </property>
-         <item row="0" column="1">
-          <widget class="QLabel" name="label_cursor">
+         <item row="2" column="0">
+          <widget class="QLabel" name="label_map">
            <property name="text">
-            <string>Cursor:</string>
-           </property>
-          </widget>
-         </item>
-         <item row="1" column="1">
-          <widget class="QLabel" name="label_coords">
-           <property name="text">
-            <string>Coords:</string>
+            <string>Map:</string>
            </property>
           </widget>
          </item>
@@ -187,10 +180,17 @@
            </property>
           </widget>
          </item>
-         <item row="1" column="0">
-          <widget class="QLabel" name="label_map">
+         <item row="1" column="1">
+          <widget class="QLabel" name="label_coords">
            <property name="text">
-            <string>Map:</string>
+            <string>Coords:</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="0">
+          <widget class="QLabel" name="label_cursor">
+           <property name="text">
+            <string>Cursor:</string>
            </property>
           </widget>
          </item>

@@ -12,6 +12,6 @@
 ```
 dstX, dstY = 61, 56
 format myscript, "findpath {:dstX}, {:dstY}"
-dostring &myscript
+dostring myscript
 
 ```

@@ -127,7 +127,7 @@ void ScriptForm::onButtonClicked()
 	if (name.isEmpty())
 		return;
 
-	Injector& injector = Injector::getInstance();
+	//Injector& injector = Injector::getInstance();
 
 	if (name == "pushButton_script_start")
 	{
@@ -207,7 +207,7 @@ void ScriptForm::setTableWidgetItem(int row, int col, const QString& text)
 }
 
 //樹型框header點擊信號槽
-void ScriptForm::onScriptTreeWidgetHeaderClicked(int logicalIndex)
+void ScriptForm::onScriptTreeWidgetHeaderClicked(int)
 {
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
 	emit signalDispatcher.reloadScriptList();
@@ -307,7 +307,7 @@ void ScriptForm::onScriptContentChanged(const QString& fileName, const QVariant&
 	ui.tableWidget_script->setUpdatesEnabled(true);
 }
 
-void ScriptForm::onCurrentTableWidgetItemChanged(QTableWidgetItem* current, QTableWidgetItem* previous)
+void ScriptForm::onCurrentTableWidgetItemChanged(QTableWidgetItem* current, QTableWidgetItem*)
 {
 	if (!current)
 		return;
@@ -335,7 +335,7 @@ void ScriptForm::onScriptTableWidgetClicked(QTableWidgetItem* item)
 {
 	if (!item)
 		return;
-	int row = item->row();
+	//int row = item->row();
 }
 
 //樹型框雙擊事件
@@ -418,7 +418,7 @@ void ScriptForm::onReloadScriptList()
 		ui.treeWidget_script->addTopLevelItem(item);
 		//展開全部第一層
 		ui.treeWidget_script->topLevelItem(0)->setExpanded(true);
-		for (int i = 0; i < item->childCount(); i++)
+		for (int i = 0; i < item->childCount(); ++i)
 		{
 			ui.treeWidget_script->expandItem(item->child(i));
 		}

@@ -10,28 +10,51 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "autil.h"
-#include <util.h>
+
 #include <injector.h>
 
-
-char Autil::MesgSlice[sizeof(char*) * Autil::SLICE_MAX][Autil::SLICE_SIZE];
-int Autil::SliceCount;
-
-char Autil::PersonalKey[32];
+//char Autil::MesgSlice[sizeof(char*) * Autil::SLICE_MAX][Autil::SLICE_SIZE];
+QByteArray Autil::MesgSlice[sizeof(char*) * Autil::SLICE_SIZE];
+util::SafeData<size_t> Autil::SliceCount;
+util::SafeData<QString> Autil::PersonalKey;
 
 // -------------------------------------------------------------------
 // Initialize utilities
 //
-void __fastcall Autil::util_Init()
+void __stdcall Autil::util_Init(void)
 {
-	memset(MesgSlice, 0, sizeof(MesgSlice));
+	//memset(MesgSlice, 0, sizeof(MesgSlice));
+	constexpr auto size = sizeof(char*) * Autil::SLICE_MAX;
+
+	for (int i = 0; i < size; ++i)
+	{
+		QByteArray ba(Autil::SLICE_SIZE, '\0');
+		Autil::MesgSlice[i] = ba;
+	}
 	SliceCount = 0;
 }
 
-
-void __fastcall Autil::util_Release()
+void __stdcall Autil::util_Release(void)
 {
-	memset(MesgSlice, 0, sizeof(MesgSlice));
+	constexpr auto size = sizeof(char*) * Autil::SLICE_MAX;
+
+	for (int i = 0; i < size; ++i)
+	{
+		QByteArray ba(Autil::SLICE_SIZE, '\0');
+		Autil::MesgSlice[i] = ba;
+	}
+	SliceCount = 0;
+}
+
+void __stdcall Autil::util_Clear(void)
+{
+	constexpr auto size = sizeof(char*) * Autil::SLICE_MAX;
+
+	for (int i = 0; i < size; ++i)
+	{
+		QByteArray ba(Autil::SLICE_SIZE, '\0');
+		Autil::MesgSlice[i] = ba;
+	}
 	SliceCount = 0;
 }
 
@@ -41,7 +64,7 @@ void __fastcall Autil::util_Release()
 //
 // arg: source=message string;  separator=message separator (1 byte)
 // ret: (none)
-bool __fastcall Autil::util_SplitMessage(char* source, size_t dstlen, char* separator)
+bool __stdcall Autil::util_SplitMessage(char* source, size_t dstlen, char* separator)
 {
 	if (source && separator)
 	{	// NULL input is invalid.
@@ -54,8 +77,11 @@ bool __fastcall Autil::util_SplitMessage(char* source, size_t dstlen, char* sepa
 			if (strlen(head) < Autil::SLICE_SIZE)
 			{	// discard slices too large
 				//strcpy_s(MesgSlice[SliceCount], Autil::SLICE_SIZE - 1, head);
-				_snprintf_s(MesgSlice[SliceCount], Autil::SLICE_SIZE, _TRUNCATE, "%s", head);
-				SliceCount++;
+				//_snprintf_s(MesgSlice[SliceCount].data(), Autil::SLICE_SIZE, _TRUNCATE, "%s", head);
+				MesgSlice[SliceCount] = head;
+				int count = SliceCount;
+				++count;
+				SliceCount = count;
 			}
 
 			head = ptr + 1;
@@ -71,15 +97,17 @@ bool __fastcall Autil::util_SplitMessage(char* source, size_t dstlen, char* sepa
 //
 // arg: dst=output  src=input
 // ret: (none)
-void __fastcall Autil::util_EncodeMessage(char* dst, size_t dstlen, char* src)
+void __stdcall Autil::util_EncodeMessage(char* dst, size_t dstlen, char* src)
 {
 	std::mt19937 generator(std::random_device{}());
 	std::uniform_int_distribution<int> distribution(0, 99);
 	int rn = distribution(generator);
 	int t1 = 0, t2 = 0;
-	char t3[65500], tz[65500];
-	memset(tz, 0, sizeof(tz));
-	memset(t3, 0, sizeof(t3));
+	//char t3[LBUFSIZE], tz[LBUFSIZE];
+	QByteArray t3(LBUFSIZE, '\0');
+	QByteArray tz(LBUFSIZE, '\0');
+	//memset(tz, 0, sizeof(tz));
+	//memset(t3, 0, sizeof(t3));
 
 #ifdef _BACK_VERSION
 	util_swapint(&t1, &rn, "3421");	// encode seed
@@ -88,12 +116,13 @@ void __fastcall Autil::util_EncodeMessage(char* dst, size_t dstlen, char* src)
 #endif
 	//  t2 = t1 ^ 0x0f0f0f0f;
 	t2 = t1 ^ 0xffffffff;
-	Autil::util_256to64(tz, reinterpret_cast<char*>(&t2), sizeof(int), const_cast<char*>(Autil::DEFAULTTABLE));
+	Autil::util_256to64(tz.data(), reinterpret_cast<char*>(&t2), sizeof(int), const_cast<char*>(Autil::DEFAULTTABLE));
 
-	Autil::util_shlstring(t3, dstlen, src, rn);
+	Autil::util_shlstring(t3.data(), dstlen, src, rn);
 	//  printf("random number=%d\n", rn);
-	strcat_s(tz, t3);
-	Autil::util_xorstring(dst, tz);
+	//strcat_s(tz.data(), t3.data());
+	strcat_s(tz.data(), LBUFSIZE, t3.data());
+	Autil::util_xorstring(dst, tz.data());
 
 }
 
@@ -102,34 +131,37 @@ void __fastcall Autil::util_EncodeMessage(char* dst, size_t dstlen, char* src)
 //
 // arg: dst=output  src=input
 // ret: (none)
-void __fastcall Autil::util_DecodeMessage(char* dst, size_t dstlen, char* src)
+void __stdcall Autil::util_DecodeMessage(char* dst, size_t dstlen, char* src)
 {
 	//  strcpy(dst, src);
 	//  util_xorstring(dst, src);
 
-#define INTCODESIZE	(sizeof(int)*8+5)/6
+	constexpr auto INTCODESIZE = (sizeof(int) * 8 + 5) / 6;
 
 	int rn = 0;
 	int* t1 = nullptr;
 	int t2 = 0;
-	char t3[4096], t4[4096];	// This buffer is enough for an integer.
-	char tz[65500];
+	//char t3[4096], t4[4096];	// This buffer is enough for an integer.
+	//char tz[LBUFSIZE];
+	QByteArray t3(SBUFSIZE, '\0');
+	QByteArray t4(SBUFSIZE, '\0');
+	QByteArray tz(LBUFSIZE, '\0');
 
-	memset(tz, 0, sizeof(tz));
-	memset(t3, 0, sizeof(t3));
-	memset(t4, 0, sizeof(t4));
+	//memset(tz, 0, sizeof(tz));
+	//memset(t3, 0, sizeof(t3));
+	//memset(t4, 0, sizeof(t4));
 
 	if (src[strlen(src) - 1] == '\n')
 		src[strlen(src) - 1] = 0;
-	Autil::util_xorstring(tz, src);
+	Autil::util_xorstring(tz.data(), src);
 
 	rn = INTCODESIZE;
 	//  printf("INTCODESIZE=%d\n", rn);
 
-	strncpy_s(t4, tz, INTCODESIZE);
-	t4[INTCODESIZE] = '\0';
-	Autil::util_64to256(t3, t4, const_cast<char*>(Autil::DEFAULTTABLE));
-	t1 = reinterpret_cast<int*>(t3);
+	strncpy_s(t4.data(), SBUFSIZE, tz.data(), INTCODESIZE);
+	t4.data()[INTCODESIZE] = '\0';
+	Autil::util_64to256(t3.data(), t4.data(), const_cast<char*>(Autil::DEFAULTTABLE));
+	t1 = reinterpret_cast<int*>(t3.data());
 
 	//  t2 = *t1 ^ 0x0f0f0f0f;
 	t2 = *t1 ^ 0xffffffff;
@@ -139,7 +171,7 @@ void __fastcall Autil::util_DecodeMessage(char* dst, size_t dstlen, char* src)
 	Autil::util_swapint(&rn, &t2, const_cast<char*>("3142"));
 #endif
 	//  printf("random number=%d\n", rn);
-	Autil::util_shrstring(dst, dstlen, tz + INTCODESIZE, rn);
+	Autil::util_shrstring(dst, dstlen, tz.data() + INTCODESIZE, rn);
 
 }
 
@@ -151,20 +183,22 @@ void __fastcall Autil::util_DecodeMessage(char* dst, size_t dstlen, char* src)
 //
 // arg: func=return function ID    fieldcount=return fields of the function
 // ret: 1=success  0=failed (function not complete)
-int __fastcall Autil::util_GetFunctionFromSlice(int* func, int* fieldcount)
+int __stdcall Autil::util_GetFunctionFromSlice(int* func, int* fieldcount)
 {
-	char t1[16384];
-	memset(t1, 0, sizeof(t1));
+	//char t1[NETDATASIZE];
+	QByteArray t1(NETDATASIZE, '\0');
+	//memset(t1, 0, sizeof(t1));
 	int i = 0;
 
-	//  if (strcmp(MesgSlice[0], DEFAULTFUNCBEGIN)!=0) util_DiscardMessage();
+	if (strcmp(MesgSlice[0], DEFAULTFUNCBEGIN) != 0)
+		util_DiscardMessage();
 
-	strcpy_s(t1, 16384, MesgSlice[1]);
+	strcpy_s(t1.data(), NETDATASIZE, MesgSlice[1]);
 
 	// Robin adjust
 	//*func=atoi(t1);
-	*func = std::atoi(t1) - 23;
-	for (i = 0; i < Autil::SLICE_MAX; i++)
+	*func = std::atoi(t1.data()) - 23;
+	for (i = 0; i < Autil::SLICE_MAX; ++i)
 	{
 		if (strcmp(MesgSlice[i], Autil::DEFAULTFUNCEND) == 0)
 		{
@@ -179,7 +213,7 @@ int __fastcall Autil::util_GetFunctionFromSlice(int* func, int* fieldcount)
 // -------------------------------------------------------------------
 // Discard a message from MesgSlice.
 //
-void __fastcall Autil::util_DiscardMessage(void)
+void __stdcall Autil::util_DiscardMessage(void)
 {
 	SliceCount = 0;
 }
@@ -188,36 +222,35 @@ void __fastcall Autil::util_DiscardMessage(void)
 // Send a message
 //
 // arg: fd=socket fd   func=function ID   buffer=data to send
-void __fastcall Autil::util_SendMesg(int func, char* buffer)
+void __stdcall Autil::util_SendMesg(int func, char* buffer)
 {
-#ifdef _VMP_
-	VMProtectBegin("util_SendMesg");
-#endif
-	char t1[16384], t2[16384];
-	memset(t1, 0, sizeof(t1));
-	memset(t2, 0, sizeof(t2));
+	//char t1[NETDATASIZE], t2[NETDATASIZE];
+	//memset(t1, 0, sizeof(t1));
+	//memset(t2, 0, sizeof(t2));
+	QByteArray t1(NETDATASIZE, '\0');
+	QByteArray t2(NETDATASIZE, '\0');
 
-	sprintf_s(t1, sizeof(t1), "&;%d%s;#;", func + 13, buffer);
+	//sprintf_s(t1.data(), NETDATASIZE, "&;%d%s;#;", func + 13, buffer);
+	constexpr auto FUNCTION_OFFSET = 13;
+	constexpr auto FORMAT = "&;%d%s;#;";
+	_snprintf_s(t1.data(), NETDATASIZE, _TRUNCATE, FORMAT, func + FUNCTION_OFFSET, buffer);
 #ifdef _NEWNET_
 	util_EncodeMessageTea(t2, t1);
 #else
-	Autil::util_EncodeMessage(t2, 16384, t1);
+	Autil::util_EncodeMessage(t2.data(), NETDATASIZE, t1.data());
 #endif
 
 
 	Injector& injector = Injector::getInstance();
 
-	int size = static_cast<int>(strlen(t2));
-	t2[size] = '\n';
+	int size = static_cast<int>(strlen(t2.data()));
+	t2.data()[size] = '\n';
 	size += 1;
 
 	HANDLE hProcess = injector.getProcess();
 	util::VirtualMemory ptr(hProcess, size, true);
-	mem::write(hProcess, ptr, t2, size);
+	mem::write(hProcess, ptr, t2.data(), size);
 	injector.sendMessage(Injector::kSendPacket, ptr, size);
-#ifdef _VMP_
-	VMProtectEnd();
-#endif
 }
 
 // -------------------------------------------------------------------
@@ -227,7 +260,7 @@ void __fastcall Autil::util_SendMesg(int func, char* buffer)
 // arg: dst=8-bit string;  src=6-bit string;  len=src strlen;
 //      table=mapping table
 // ret: 0=failed  >0=bytes converted
-int __fastcall Autil::util_256to64(char* dst, char* src, int len, char* table)
+int __stdcall Autil::util_256to64(char* dst, char* src, int len, char* table)
 {
 	unsigned int dw = 0u, dwcounter = 0u;
 	int i = 0;
@@ -238,7 +271,7 @@ int __fastcall Autil::util_256to64(char* dst, char* src, int len, char* table)
 	dw = 0;
 	dwcounter = 0;
 
-	for (i = 0; i < len; i++)
+	for (i = 0; i < len; ++i)
 	{
 		dw = ((static_cast<unsigned int>(src[i]) & 0xff) << ((i % 3) << 1)) | dw;
 
@@ -266,7 +299,7 @@ int __fastcall Autil::util_256to64(char* dst, char* src, int len, char* table)
 //
 // arg: dst=6-bit string;  src=8-bit string;  table=mapping table
 // ret: 0=failed  >0=bytes converted
-int __fastcall Autil::util_64to256(char* dst, char* src, char* table)
+int __stdcall Autil::util_64to256(char* dst, char* src, char* table)
 {
 	unsigned int i = 0u, j = 0u;
 	char* ptr = nullptr;
@@ -278,10 +311,10 @@ int __fastcall Autil::util_64to256(char* dst, char* src, char* table)
 		return 0;
 
 	char c = '\0';
-	for (i = 0; i < strlen(src); i++)
+	for (i = 0; i < strlen(src); ++i)
 	{
 		c = src[i];
-		for (j = 0; j < strlen(table); j++)
+		for (j = 0; j < strlen(table); ++j)
 		{
 			if (table[j] == c)
 			{
@@ -318,7 +351,7 @@ int __fastcall Autil::util_64to256(char* dst, char* src, char* table)
 // arg: dst=6-bit string;  src=8-bit string;  len=src strlen;
 //      table=mapping table;  key=rotate key;
 // ret: 0=failed  >0=bytes converted
-int __fastcall Autil::util_256to64_shr(char* dst, char* src, int len, char* table, char* key)
+int __stdcall Autil::util_256to64_shr(char* dst, char* src, int len, char* table, char* key)
 {
 	unsigned int j = 0u;
 	int i = 0u;
@@ -333,7 +366,7 @@ int __fastcall Autil::util_256to64_shr(char* dst, char* src, int len, char* tabl
 	unsigned int dwcounter = 0u;
 
 	j = 0;
-	for (i = 0; i < len; i++)
+	for (i = 0; i < len; ++i)
 	{
 		dw = ((static_cast<unsigned int>(src[i]) & 0xff) << ((i % 3) << 1)) | dw;
 
@@ -371,7 +404,7 @@ int __fastcall Autil::util_256to64_shr(char* dst, char* src, int len, char* tabl
 // arg: dst=8-bit string;  src=6-bit string;  table=mapping table;
 //      key=rotate key;
 // ret: 0=failed  >0=bytes converted
-int __fastcall Autil::util_shl_64to256(char* dst, char* src, char* table, char* key)
+int __stdcall Autil::util_shl_64to256(char* dst, char* src, char* table, char* key)
 {
 	unsigned int i = 0u, j = 0u, k = 0u;
 	char* ptr = nullptr;
@@ -387,11 +420,11 @@ int __fastcall Autil::util_shl_64to256(char* dst, char* src, char* table, char* 
 		return 0;
 
 	char c = '\0';
-	for (i = 0; i < strlen(src); i++)
+	for (i = 0; i < strlen(src); ++i)
 	{
 		c = src[i];
 
-		for (k = 0; k < strlen(table); k++)
+		for (k = 0; k < strlen(table); ++k)
 		{
 			if (table[k] == c)
 			{
@@ -442,7 +475,7 @@ int __fastcall Autil::util_shl_64to256(char* dst, char* src, char* table, char* 
 // arg: dst=6-bit string;  src=8-bit string;  len=src strlen;
 //      table=mapping table;  key=rotate key;
 // ret: 0=failed  >0=bytes converted
-int __fastcall Autil::util_256to64_shl(char* dst, char* src, int len, char* table, char* key)
+int __stdcall Autil::util_256to64_shl(char* dst, char* src, int len, char* table, char* key)
 {
 	int i = 0, j = 0;
 
@@ -456,7 +489,7 @@ int __fastcall Autil::util_256to64_shl(char* dst, char* src, int len, char* tabl
 	unsigned int dwcounter = 0u;
 	j = 0;
 
-	for (i = 0; i < len; i++)
+	for (i = 0; i < len; ++i)
 	{
 		dw = ((static_cast<unsigned int>(src[i]) & 0xff) << ((i % 3) << 1)) | dw;
 
@@ -494,7 +527,7 @@ int __fastcall Autil::util_256to64_shl(char* dst, char* src, int len, char* tabl
 // arg: dst=8-bit string;  src=6-bit string;  table=mapping table;
 //      key=rotate key;
 // ret: 0=failed  >0=bytes converted
-int __fastcall Autil::util_shr_64to256(char* dst, char* src, char* table, char* key)
+int __stdcall Autil::util_shr_64to256(char* dst, char* src, char* table, char* key)
 {
 	unsigned int i, k;
 	char* ptr = nullptr;
@@ -510,10 +543,10 @@ int __fastcall Autil::util_shr_64to256(char* dst, char* src, char* table, char* 
 		return 0;
 
 	char c = '\0';
-	for (i = 0; i < strlen(src); i++)
+	for (i = 0; i < strlen(src); ++i)
 	{
 		c = src[i];
-		for (k = 0; k < strlen(table); k++)
+		for (k = 0; k < strlen(table); ++k)
 		{
 			if (table[k] == c)
 			{
@@ -561,12 +594,12 @@ int __fastcall Autil::util_shr_64to256(char* dst, char* src, char* table, char* 
 // The value "rule" indicates the swaping rule.  It's a 4 byte string
 // such as "1324" or "2431".
 //
-void __fastcall Autil::util_swapint(int* dst, int* src, char* rule)
+void __stdcall Autil::util_swapint(int* dst, int* src, char* rule)
 {
 	int i = 0;
 	char* ptr = reinterpret_cast<char*>(src);
 	char* qtr = reinterpret_cast<char*>(dst);
-	for (i = 0; i < 4; i++)
+	for (i = 0; i < 4; ++i)
 		qtr[rule[i] - '1'] = ptr[i];
 }
 
@@ -574,11 +607,11 @@ void __fastcall Autil::util_swapint(int* dst, int* src, char* rule)
 // Xor a string.  Be careful that your string contains '0xff'.  Your
 // data may lose.
 //
-void __fastcall Autil::util_xorstring(char* dst, char* src)
+void __stdcall Autil::util_xorstring(char* dst, char* src)
 {
 	unsigned int i = 0;
 
-	for (i = 0; i < strlen(src); i++)
+	for (i = 0; i < strlen(src); ++i)
 		dst[i] = src[i] ^ 255;
 
 	dst[i] = '\0';
@@ -587,10 +620,10 @@ void __fastcall Autil::util_xorstring(char* dst, char* src)
 // -------------------------------------------------------------------
 // Shift the string right.
 //
-void __fastcall Autil::util_shrstring(char* dst, size_t dstlen, char* src, int offs)
+void __stdcall Autil::util_shrstring(char* dst, size_t dstlen, char* src, int offs)
 {
 	char* ptr = nullptr;
-	int len = strlen(src);
+	//int len = strlen(src);
 
 	if (!dst || !src || (strlen(src) < 1))
 		return;
@@ -605,7 +638,7 @@ void __fastcall Autil::util_shrstring(char* dst, size_t dstlen, char* src, int o
 // -------------------------------------------------------------------
 // Shift the string left.
 //
-void __fastcall Autil::util_shlstring(char* dst, size_t dstlen, char* src, int offs)
+void __stdcall Autil::util_shlstring(char* dst, size_t dstlen, char* src, int offs)
 {
 	char* ptr = nullptr;
 	if (!dst || !src || (strlen(src) < 1))
@@ -623,15 +656,16 @@ void __fastcall Autil::util_shlstring(char* dst, size_t dstlen, char* src, int o
 //
 // arg: sliceno=slice index in MesgSlice    value=result
 // ret: checksum, this value must match the one generated by util_mkint
-int __fastcall Autil::util_deint(int sliceno, int* value)
+int __stdcall Autil::util_deint(int sliceno, int* value)
 {
 	int* t1 = nullptr;
 	int t2 = 0;
-	char t3[4096];	// This buffer is enough for an integer.
-	memset(t3, 0, sizeof(t3));
+	//char t3[4096];	// This buffer is enough for an integer.
+	//memset(t3, 0, sizeof(t3));
+	QByteArray t3(SBUFSIZE, '\0');
 
-	Autil::util_shl_64to256(t3, MesgSlice[sliceno], const_cast<char*>(Autil::DEFAULTTABLE), PersonalKey);
-	t1 = (int*)t3;
+	Autil::util_shl_64to256(t3.data(), MesgSlice[sliceno].data(), const_cast<char*>(Autil::DEFAULTTABLE), PersonalKey.data().toUtf8().data());
+	t1 = reinterpret_cast<int*>(t3.data());
 	t2 = *t1 ^ 0xffffffff;
 #ifdef _BACK_VERSION
 	util_swapint(value, &t2, "3421");
@@ -646,11 +680,12 @@ int __fastcall Autil::util_deint(int sliceno, int* value)
 //
 // arg: buffer=output   value=data to pack
 // ret: checksum, this value must match the one generated by util_deint
-int __fastcall Autil::util_mkint(char* buffer, int value)
+int __stdcall Autil::util_mkint(char* buffer, int value)
 {
 	int t1 = 0, t2 = 0;
-	char t3[4096];	// This buffer is enough for an integer.
-	memset(t3, 0, sizeof(t3));
+	//char t3[4096];	// This buffer is enough for an integer.
+	//memset(t3, 0, sizeof(t3));
+	QByteArray t3(SBUFSIZE, '\0');
 
 #ifdef _BACK_VERSION
 	util_swapint(&t1, &value, "4312");
@@ -658,9 +693,9 @@ int __fastcall Autil::util_mkint(char* buffer, int value)
 	Autil::util_swapint(&t1, &value, const_cast<char*>("3142"));
 #endif
 	t2 = t1 ^ 0xffffffff;
-	Autil::util_256to64_shr(t3, (char*)&t2, sizeof(int), const_cast<char*>(Autil::DEFAULTTABLE), PersonalKey);
-	strcat_s(buffer, 16384, SEPARATOR);	// It's important to append a SEPARATOR between fields
-	strcat_s(buffer, 16384, t3);
+	Autil::util_256to64_shr(t3.data(), (char*)&t2, sizeof(int), const_cast<char*>(Autil::DEFAULTTABLE), PersonalKey.data().toUtf8().data());
+	strcat_s(buffer, NETDATASIZE, SEPARATOR);	// It's important to append a SEPARATOR between fields
+	strcat_s(buffer, NETDATASIZE, t3.data());
 
 	return value;
 }
@@ -670,9 +705,9 @@ int __fastcall Autil::util_mkint(char* buffer, int value)
 //
 // arg: sliceno=slice index in MesgSlice    value=result
 // ret: checksum, this value must match the one generated by util_mkstring
-int __fastcall Autil::util_destring(int sliceno, char* value)
+int __stdcall Autil::util_destring(int sliceno, char* value)
 {
-	Autil::util_shr_64to256(value, MesgSlice[sliceno], const_cast<char*>(Autil::DEFAULTTABLE), PersonalKey);
+	Autil::util_shr_64to256(value, MesgSlice[sliceno].data(), const_cast<char*>(Autil::DEFAULTTABLE), PersonalKey.data().toUtf8().data());
 
 	return strlen(value);
 }
@@ -682,14 +717,15 @@ int __fastcall Autil::util_destring(int sliceno, char* value)
 //
 // arg: buffer=output   value=data to pack
 // ret: checksum, this value must match the one generated by util_destring
-int __fastcall Autil::util_mkstring(char* buffer, char* value)
+int __stdcall Autil::util_mkstring(char* buffer, char* value)
 {
-	char t1[Autil::SLICE_SIZE];
-	memset(t1, 0, sizeof(t1));
+	//char t1[Autil::SLICE_SIZE];
+	QByteArray t1(LBUFSIZE, '\0');
+	//memset(t1, 0, sizeof(t1));
 
-	Autil::util_256to64_shl(t1, value, strlen(value), const_cast<char*>(Autil::DEFAULTTABLE), PersonalKey);
-	strcat_s(buffer, 16384, SEPARATOR);	// It's important to append a SEPARATOR between fields
-	strcat_s(buffer, 16384, t1);
+	Autil::util_256to64_shl(t1.data(), value, strlen(value), const_cast<char*>(Autil::DEFAULTTABLE), PersonalKey.data().toUtf8().data());
+	strcat_s(buffer, NETDATASIZE, SEPARATOR);	// It's important to append a SEPARATOR between fields
+	strcat_s(buffer, NETDATASIZE, t1.data());
 
 	return strlen(value);
 }

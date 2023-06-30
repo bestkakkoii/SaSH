@@ -18,7 +18,7 @@ private:
 signals:
 	//global
 	void nodifyAllStop();
-	void messageBoxShow(const QString& text, int type = 0);
+	void messageBoxShow(const QString& text, int type = 0, int* pnret = nullptr);
 	void inputBoxShow(const QString& text, int type, QVariant* retvalue);
 
 	void applyHashSettingsToUI();

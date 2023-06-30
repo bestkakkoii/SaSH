@@ -72,7 +72,6 @@ public:\
 #include <tchar.h>
 #include <functional>
 #include <limits>
-#include < direct.h >
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // QT header
 #include <QtGlobal>
@@ -81,11 +80,11 @@ public:\
 #include <QTcpSocket>
 #include <QHostInfo>
 #include <QHostAddress>
-#include <QNetworkReply>
-#include <QNetworkRequest>
-#include <QNetworkAccessManager>
-#include <QHttpMultiPart>
-
+//#include <QNetworkReply>
+//#include <QNetworkRequest>
+//#include <QNetworkAccessManager>
+//#include <QHttpMultiPart>
+#include <QDockWidget>
 #include <QSystemTrayIcon>
 #include <QSysInfo>
 #include <QDebug>
@@ -228,8 +227,6 @@ public:\
 #define MINT_USE_SEPARATE_NAMESPACE
 #include <MINT/MINT.h>
 #endif
-
-#include <exprtk/exprtk.hpp>
 
 //
 ////#include <blockallocator/blockallocator.h>

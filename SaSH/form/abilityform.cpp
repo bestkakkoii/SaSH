@@ -39,7 +39,7 @@ void AbilityForm::onButtonClicked()
 	if (name.isEmpty())
 		return;
 
-	Injector& injector = Injector::getInstance();
+	//Injector& injector = Injector::getInstance();
 
 	if (name == "pushButton_close")
 	{

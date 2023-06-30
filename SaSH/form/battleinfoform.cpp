@@ -4,7 +4,7 @@
 #include "signaldispatcher.h"
 #include "injector.h"
 
-constexpr int max_col = 2;
+//constexpr int max_col = 2;
 constexpr int max_row = 10;
 
 BattleInfoForm::BattleInfoForm(QWidget* parent)
@@ -87,14 +87,14 @@ BattleInfoForm::~BattleInfoForm()
 }
 
 
-void BattleInfoForm::onUpdateTopInfoContents(const QVariant& data)
+void BattleInfoForm::onUpdateTopInfoContents(const QVariant& dat)
 {
-	updateItemInfoRowContents(ui.tableWidget_top, data);
+	updateItemInfoRowContents(ui.tableWidget_top, dat);
 }
 
-void BattleInfoForm::onUpdateBottomInfoContents(const QVariant& data)
+void BattleInfoForm::onUpdateBottomInfoContents(const QVariant& dat)
 {
-	updateItemInfoRowContents(ui.tableWidget_bottom, data);
+	updateItemInfoRowContents(ui.tableWidget_bottom, dat);
 }
 void BattleInfoForm::onUpdateTimeLabelContents(const QString& text)
 {
@@ -111,7 +111,7 @@ void BattleInfoForm::onUpdateLabelPetAction(const QString& text)
 	ui.label_petaction->setText(tr("pet action:") + text);
 }
 
-void BattleInfoForm::updateItemInfoRowContents(QTableWidget* tableWidget, const QVariant& data)
+void BattleInfoForm::updateItemInfoRowContents(QTableWidget* tableWidget, const QVariant& dat)
 {
 	//13 11 10 12 14 back
 	//18 16 15 17 19 front     
@@ -153,10 +153,10 @@ void BattleInfoForm::updateItemInfoRowContents(QTableWidget* tableWidget, const 
 	*/
 
 	// 檢查是否為 QVector<QStringList>
-	if (data.type() != QVariant::Type::UserType)
+	if (dat.type() != QVariant::Type::UserType)
 		return;
 
-	QVector<QStringList> list = data.value<QVector<QStringList>>();
+	QVector<QStringList> list = dat.value<QVector<QStringList>>();
 
 	if (list.isEmpty())
 		return;
@@ -208,24 +208,24 @@ void BattleInfoForm::updateItemInfoRowContents(QTableWidget* tableWidget, const 
 	};
 
 	const QString objectName = tableWidget->objectName();
-	const bool isTop = objectName.contains("top", Qt::CaseInsensitive);
+	//const bool isTop = objectName.contains("top", Qt::CaseInsensitive);
 
 	bool ok = false;
-	for (const QStringList item : list)
+	for (const QStringList& l : list)
 	{
-		if (item.size() != 3)
+		if (l.size() != 3)
 		{
 			continue;
 		}
 
-		int pos = item.at(0).toInt(&ok);
+		int pos = l.at(0).toInt(&ok);
 		if (!ok)
 		{
 			continue;
 		}
 
-		QString text = item.at(1);
-		const QString ride = item.at(2);
+		QString text = l.at(1);
+		const QString ride = l.at(2);
 
 		const QPair<int, int> fill = fill_hash.value(pos, QPair<int, int>{ -1, -1 });
 		if (fill.first == -1)

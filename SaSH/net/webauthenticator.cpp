@@ -1,6 +1,6 @@
 ﻿#include "stdafx.h"
 #include "webauthenticator.h"
-#ifndef _DEBUG
+
 #include <util.h>
 
 #include <curl/curl.h>
@@ -10,6 +10,7 @@
 #pragma comment(lib, "cpr-d.lib")
 #pragma comment(lib, "libcurl-d.lib")
 #else
+#pragma comment(lib, "ws2_32.lib")
 #pragma comment(lib, "cpr.lib")
 #pragma comment(lib, "libcurl.lib")
 #endif
@@ -20,7 +21,7 @@ constexpr int MIN_CREDIT = 30;
 constexpr const char* DEFAULT_PROTOCOL = "https://";
 constexpr const char* DEFAULT_CNAME = "www.";
 constexpr const char* DEFAULT_DOMAIN = "lovesa.cc";
-constexpr int MAX_MACHINE_ALLOW = 3;
+//constexpr int MAX_MACHINE_ALLOW = 3;
 
 enum FIELD_TYPE
 {
@@ -1697,6 +1698,4 @@ QString Net::Authenticator::GetErrorString(const QString& errorCode)
 
 	return "\0";
 }
-#endif
-
 #endif

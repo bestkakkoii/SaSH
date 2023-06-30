@@ -43,7 +43,7 @@ void PetInfoForm::on_comboBox_currentIndexChanged(int index)
 	//找能匹配 4 組 則默認level為1 5組則第一個為level
 
 	QRegularExpressionMatchIterator i = re.globalMatch(cmpstr);
-	int count = 0;
+	//int count = 0;
 	QVector <int> basev;
 	while (i.hasNext())
 	{
@@ -133,10 +133,10 @@ void PetInfoForm::on_pushButton_calc_clicked()
 	int diff_agi = cur_agi - base_agi;
 
 	double rate_level = 1.0;
-	double rate_maxHp = diff_maxHp * 1.0 / diff_level;
-	double rate_atk = diff_atk * 1.0 / diff_level;
-	double rate_def = diff_def * 1.0 / diff_level;
-	double rate_agi = diff_agi * 1.0 / diff_level;
+	double rate_maxHp = diff_maxHp * rate_level / diff_level;
+	double rate_atk = diff_atk * rate_level / diff_level;
+	double rate_def = diff_def * rate_level / diff_level;
+	double rate_agi = diff_agi * rate_level / diff_level;
 
 	int expect_level = ui.spinBox_expect_level->value();
 
@@ -147,10 +147,10 @@ void PetInfoForm::on_pushButton_calc_clicked()
 	ui.doubleSpinBox_agi->setValue(rate_agi);
 
 	ui.spinBox_expect_level->setValue(expect_level);
-	ui.spinBox_expect_hp->setValue(rate_maxHp * (expect_level - base_level + 1) + base_maxHp);
-	ui.spinBox_expect_atk->setValue(rate_atk * (expect_level - base_level + 1) + base_atk);
-	ui.spinBox_expect_def->setValue(rate_def * (expect_level - base_level + 1) + base_def);
-	ui.spinBox_expect_agi->setValue(rate_agi * (expect_level - base_level + 1) + base_agi);
+	ui.spinBox_expect_hp->setValue((rate_maxHp * static_cast<double>(expect_level - base_level + 1)) + static_cast<double>(base_maxHp));
+	ui.spinBox_expect_atk->setValue((rate_atk * static_cast<double>(expect_level - base_level + 1)) + static_cast<double>(base_atk));
+	ui.spinBox_expect_def->setValue((rate_def * static_cast<double>(expect_level - base_level + 1)) + static_cast<double>(base_def));
+	ui.spinBox_expect_agi->setValue((rate_agi * static_cast<double>(expect_level - base_level + 1)) + static_cast<double>(base_agi));
 }
 
 void PetInfoForm::on_pushButton_clear_clicked()

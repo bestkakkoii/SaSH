@@ -214,7 +214,7 @@ void OtherForm::onButtonClicked()
 	}
 	else if (name == "pushButton_lockpetsall")
 	{
-		if (injector.server.isNull() || !injector.server->IS_ONLINE_FLAG)
+		if (injector.server.isNull() || !injector.server->getOnlineFlag())
 			return;
 
 		QString typeStr = ui.comboBox_locktype->currentText().simplified();
@@ -248,7 +248,7 @@ void OtherForm::onButtonClicked()
 
 	else if (name == "pushButton_leaderleave")
 	{
-		if (injector.server.isNull() || !injector.server->IS_ONLINE_FLAG)
+		if (injector.server.isNull() || !injector.server->getOnlineFlag())
 			return;
 
 		injector.server->setTeamState(false);
@@ -258,7 +258,7 @@ void OtherForm::onButtonClicked()
 	{
 		if (name == QString("pushButton_teammate%1kick").arg(i))
 		{
-			if (injector.server.isNull() || !injector.server->IS_ONLINE_FLAG)
+			if (injector.server.isNull() || !injector.server->getOnlineFlag())
 				return;
 
 			injector.server->kickteam(i);
@@ -312,7 +312,7 @@ void OtherForm::onSpinBoxValueChanged(int value)
 	if (name.isEmpty())
 		return;
 
-	Injector& injector = Injector::getInstance();
+	//Injector& injector = Injector::getInstance();
 }
 
 void OtherForm::onComboBoxCurrentIndexChanged(int value)
@@ -390,7 +390,7 @@ void OtherForm::onComboBoxClicked()
 	{
 		int oldIndex = pComboBox->currentIndex();
 		QStringList list;
-		if (!injector.server.isNull() && injector.server->IS_ONLINE_FLAG)
+		if (!injector.server.isNull() && injector.server->getOnlineFlag())
 		{
 			for (int i = 0; i < MAX_PET; ++i)
 			{
@@ -481,7 +481,7 @@ void OtherForm::onApplyHashSettingsToUI()
 	}
 
 	QStringList list;
-	if (!injector.server.isNull() && injector.server->IS_ONLINE_FLAG)
+	if (!injector.server.isNull() && injector.server->getOnlineFlag())
 	{
 		for (int i = 0; i < MAX_PET; ++i)
 		{

@@ -101,7 +101,7 @@ void MapForm::onButtonClicked()
 		if (injector.server.isNull())
 			return;
 
-		if (!injector.server->IS_ONLINE_FLAG)
+		if (!injector.server->getOnlineFlag())
 			return;
 
 		if (!interpreter_.isNull() && interpreter_->isRunning())
@@ -215,7 +215,7 @@ void MapForm::onTableWidgetCellDoubleClicked(int row, int col)
 	if (injector.server.isNull())
 		return;
 
-	if (!injector.server->IS_ONLINE_FLAG)
+	if (!injector.server->getOnlineFlag())
 		return;
 
 	if (!interpreter_.isNull() && interpreter_->isRunning())

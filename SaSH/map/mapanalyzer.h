@@ -82,7 +82,7 @@ public:
 	MapAnalyzer();
 	virtual ~MapAnalyzer() = default;
 	bool __fastcall readFromBinary(int floor, const QString& name, bool enableDraw = false);
-	inline bool __fastcall getMapDataByFloor(int floor, map_t* map);
+	bool __fastcall getMapDataByFloor(int floor, map_t* map);
 	bool __fastcall calcNewRoute(const map_t& map, const QPoint& src, const QPoint& dst, QVector<QPoint>* path);
 	void clear() { maps_.clear(); pixMap_.clear(); }
 	void clear(int floor) { maps_.remove(floor); pixMap_.remove(floor); }
@@ -102,7 +102,7 @@ private:
 	util::ObjectType __fastcall getGroundType(const uint16_t data) const;
 	util::ObjectType __fastcall getObjectType(const uint16_t data) const;
 
-private:
+public:
 	struct CRGB
 	{
 		uint8_t r;
@@ -184,7 +184,7 @@ Stream& operator<<(Stream& out, MapAnalyzer::cimage const& img)
 
 	out.write("BM", 2);
 	out.write(reinterpret_cast<char*>(head), 52);
-	for (uint32_t i = 0; i < h; i++)
+	for (uint32_t i = 0; i < h; ++i)
 	{
 		out.write(rgb + (3 * w * i), 3 * w);
 		out.write(reinterpret_cast<char*>(&pad), pad);

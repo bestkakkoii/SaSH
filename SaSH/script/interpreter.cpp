@@ -64,7 +64,7 @@ void Interpreter::doFileWithThread(int beginLine, const QString& fileName)
 
 	moveToThread(thread_);
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
-	connect(&signalDispatcher, &SignalDispatcher::nodifyAllStop, [this]() { requestInterruption(); });
+	connect(&signalDispatcher, &SignalDispatcher::nodifyAllStop, this, &Interpreter::requestInterruption, Qt::UniqueConnection);
 	connect(this, &Interpreter::finished, thread_, &QThread::quit);
 	connect(thread_, &QThread::finished, thread_, &QThread::deleteLater);
 	connect(thread_, &QThread::started, this, &Interpreter::proc);
@@ -83,7 +83,7 @@ bool Interpreter::doFile(int beginLine, const QString& fileName, Interpreter* pa
 	if (parser_.isNull())
 		parser_.reset(new Parser());
 
-	if (shareMode == kAsync)
+	if (mode == kAsync)
 		parser_->setMode(Parser::kAsync);
 
 	QString content;
@@ -99,7 +99,7 @@ bool Interpreter::doFile(int beginLine, const QString& fileName, Interpreter* pa
 	isRunning_.store(true, std::memory_order_release);
 
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
-	connect(&signalDispatcher, &SignalDispatcher::nodifyAllStop, [this]() { requestInterruption(); });
+	connect(&signalDispatcher, &SignalDispatcher::nodifyAllStop, this, &Interpreter::requestInterruption, Qt::UniqueConnection);
 	if (!isPrivate && mode == kSync)
 	{
 		emit signalDispatcher.loadFileToTable(fileName);
@@ -229,7 +229,7 @@ void Interpreter::doString(const QString& script, Interpreter* parent, VarShareM
 	}
 
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
-	connect(&signalDispatcher, &SignalDispatcher::nodifyAllStop, [this]() { requestInterruption(); });
+	connect(&signalDispatcher, &SignalDispatcher::nodifyAllStop, this, &Interpreter::requestInterruption, Qt::UniqueConnection);
 	parser_->setTokens(tokens);
 	parser_->setLabels(labels);
 	openLibs();
@@ -356,7 +356,7 @@ bool Interpreter::checkBattleThenWait()
 
 	Injector& injector = Injector::getInstance();
 	bool bret = false;
-	if (injector.server->IS_BATTLE_FLAG)
+	if (injector.server->getBattleFlag())
 	{
 		QElapsedTimer timer; timer.start();
 		bret = true;
@@ -370,7 +370,7 @@ bool Interpreter::checkBattleThenWait()
 
 			checkPause();
 
-			if (!injector.server->IS_BATTLE_FLAG)
+			if (!injector.server->getBattleFlag())
 				break;
 			if (timer.hasExpired(60000))
 				break;
@@ -395,55 +395,54 @@ void Interpreter::checkPause()
 
 bool Interpreter::findPath(QPoint dst, int steplen, int step_cost, int timeout, std::function<int(QPoint& dst)> callback, bool noAnnounce)
 {
-	//print() << L"MapName:" << Util::S2W(g_mapinfo->name) << "(" << g_mapinfo->floor << ")";
 	Injector& injector = Injector::getInstance();
-	int floor = injector.server->nowFloor;
-	QPoint src(injector.server->nowPoint);
-	if (src == dst)
+	int hModule = injector.getProcessModule();
+	HANDLE hProcess = injector.getProcess();
+
+	auto getPos = [hProcess, hModule]()
 	{
+		return QPoint(mem::readInt<int>(hProcess, hModule + kOffestNowX), mem::readInt<int>(hProcess, hModule + kOffestNowY));
+	};
+
+	int floor = injector.server->nowFloor;
+	QPoint src(getPos());
+	if (src == dst)
 		return true;//已經抵達
-	}
 
 	map_t _map;
-
-	QVector<QPoint> path;
-
-	if (injector.server->mapAnalyzer->readFromBinary(floor, injector.server->nowFloorName))
+	QSharedPointer<MapAnalyzer> mapAnalyzer = injector.server->mapAnalyzer;
+	if (!mapAnalyzer.isNull() && mapAnalyzer->readFromBinary(floor, injector.server->nowFloorName))
 	{
-		if (!injector.server->mapAnalyzer->getMapDataByFloor(floor, &_map))
-		{
-
+		if (mapAnalyzer.isNull() || !mapAnalyzer->getMapDataByFloor(floor, &_map))
 			return false;
-		}
-
 	}
 	else
-	{
 		return false;
-	}
 
-	//print() << "walkable size:" << _map.walkable.size();
-	if (!noAnnounce)
+	if (!noAnnounce && !injector.server.isNull())
 		injector.server->announce(QObject::tr("<findpath>start searching the path"));//"<尋路>開始搜尋路徑"
+
+	QVector<QPoint> path;
 	QElapsedTimer timer; timer.start();
-	if (!injector.server->mapAnalyzer->calcNewRoute(_map, src, dst, &path))
+	if (mapAnalyzer.isNull() || !mapAnalyzer->calcNewRoute(_map, src, dst, &path))
 	{
-		if (!noAnnounce)
+		if (!noAnnounce && !injector.server.isNull())
 			injector.server->announce(QObject::tr("<findpath>unable to findpath"));//"<尋路>找不到路徑"
 		return false;
 	}
+
 	int cost = static_cast<int>(timer.elapsed());
-	if (!noAnnounce)
-		injector.server->announce(QObject::tr("<findpath>path found, cost:%1").arg(cost));//"<尋路>成功找到路徑，耗時：%1"
+	if (!noAnnounce && !injector.server.isNull())
+		injector.server->announce(QObject::tr("<findpath>path found, cost:%1 step:%2").arg(cost).arg(path.size()));//"<尋路>成功找到路徑，耗時：%1"
 
-	int size = path.size();
-	int first_size = size;
-	timer.restart();
-
+	QPoint point;
+	int steplen_cache = -1;
+	int pathsize = path.size();
 	int current_floor = floor;
 
-	int n = 0;
+	timer.restart();
 
+	//用於檢測卡點
 	QElapsedTimer blockDetectTimer; blockDetectTimer.start();
 	QPoint lastPoint = src;
 
@@ -452,91 +451,120 @@ bool Interpreter::findPath(QPoint dst, int steplen, int step_cost, int timeout, 
 		if (injector.server.isNull())
 			break;
 
-		src = injector.server->nowPoint;
+		if (isInterruptionRequested())
+			break;
 
-		int steplen_cache = steplen;
+		src = getPos();
+
+		steplen_cache = steplen;
 
 		for (;;)
 		{
-			if (!((steplen_cache) >= (size)))
+			if (!((steplen_cache) >= (pathsize)))
 				break;
 			--steplen_cache;
 		}
 
-		if (steplen_cache >= 0 && (steplen_cache < static_cast<int>(path.size())))
+		if (steplen_cache >= 0 && (steplen_cache < pathsize))
 		{
-			QPoint point(path.at(steplen_cache));
 			if (lastPoint != src)
 			{
 				blockDetectTimer.restart();
 				lastPoint = src;
 			}
 
+			point = path.at(steplen_cache);
 			injector.server->move(point);
-			QThread::msleep(step_cost);
+			if (step_cost > 0)
+				QThread::msleep(step_cost);
+			if (pathsize > 10)
+				QThread::msleep(25);
 		}
 
 		if (!checkBattleThenWait())
 		{
-			src = injector.server->nowPoint;
+			src = getPos();
 			if (src == dst)
 			{
 				cost = timer.elapsed();
 				if (cost > 2000)
 				{
 					QThread::msleep(500);
+
 					if (injector.server.isNull())
 						break;
+
+					if (getPos() != dst)
+						continue;
+
 					injector.server->EO();
+
+					if (getPos() != dst)
+						continue;
+
 					QThread::msleep(500);
+
 					if (injector.server.isNull())
 						break;
-					if (injector.server->nowPoint != dst)
+
+					if (getPos() != dst)
 						continue;
 				}
+
 				injector.server->move(dst);
-				if (!noAnnounce)
+
+				if (!noAnnounce && !injector.server.isNull())
 					injector.server->announce(QObject::tr("<findpath>arrived destination, cost:%1").arg(timer.elapsed()));//"<尋路>已到達目的地，耗時：%1"
 				return true;//已抵達true
 			}
 
-			if (!injector.server->mapAnalyzer->calcNewRoute(_map, src, dst, &path))
+			if (mapAnalyzer.isNull() || !mapAnalyzer->calcNewRoute(_map, src, dst, &path))
 				break;
-			size = path.size();
+
+			pathsize = path.size();
 		}
 
 		if (blockDetectTimer.hasExpired(5000))
 		{
 			blockDetectTimer.restart();
+			if (injector.server.isNull())
+				break;
+
 			injector.server->announce(QObject::tr("<findpath>detedted player ware blocked"));
 			injector.server->EO();
 			QThread::msleep(500);
+
+			if (injector.server.isNull())
+				break;
+
 			//往隨機8個方向移動
-			QPoint point = injector.server->nowPoint;
+			point = getPos();
 			lastPoint = point;
 			point = point + util::fix_point.at(QRandomGenerator::global()->bounded(0, 7));
 			injector.server->move(point);
 			QThread::msleep(100);
-			continue;
-		}
 
-		if (timer.hasExpired(timeout))
-		{
-			injector.server->announce(QObject::tr("<findpath>stop finding path due to timeout"));//"<尋路>超時，放棄尋路"
-			break;
+			continue;
 		}
 
 		if (injector.server.isNull())
 			break;
+
+		if (isInterruptionRequested())
+			break;
+
+		if (timer.hasExpired(timeout))
+		{
+			if (!injector.server.isNull())
+				injector.server->announce(QObject::tr("<findpath>stop finding path due to timeout"));//"<尋路>超時，放棄尋路"
+			break;
+		}
 
 		if (injector.server->nowFloor != current_floor)
 		{
 			injector.server->announce(QObject::tr("<findpath>stop finding path due to map changed"));//"<尋路>地圖已變更，放棄尋路"
 			break;
 		}
-
-		if (isInterruptionRequested())
-			break;
 
 		if (callback != nullptr)
 		{
@@ -586,6 +614,11 @@ bool Interpreter::checkRange(const TokenMap& TK, int idx, int* min, int* max) co
 		return false;
 
 	RESERVE type = TK.value(idx).type;
+	if (type == TK_FUZZY)
+	{
+		return true;
+	}
+
 	QVariant var = parser_->checkValue(TK, idx, QVariant::Double);
 	if (!var.isValid())
 		return false;
@@ -593,7 +626,18 @@ bool Interpreter::checkRange(const TokenMap& TK, int idx, int* min, int* max) co
 	QString range;
 	if (type == TK_STRING)
 	{
-		range = var.toString();
+		int value = 0;
+		if (!checkInt(TK, idx, &value))
+		{
+			if (!checkString(TK, idx, &range))
+				return false;
+		}
+		else
+		{
+			*min = value - 1;
+			*max = value - 1;
+			return true;
+		}
 	}
 	else if (type == TK_INT)
 	{
@@ -603,10 +647,6 @@ bool Interpreter::checkRange(const TokenMap& TK, int idx, int* min, int* max) co
 			return false;
 		*min = value - 1;
 		*max = value - 1;
-		return true;
-	}
-	else if (type == TK_FUZZY)
-	{
 		return true;
 	}
 
@@ -662,101 +702,7 @@ bool Interpreter::checkRelationalOperator(const TokenMap& TK, int idx, RESERVE* 
 //比較兩個QVariant以 a 的類型為主
 bool Interpreter::compare(const QVariant& a, const QVariant& b, RESERVE type) const
 {
-	QVariant::Type aType = a.type();
-
-	if (aType == QVariant::String)
-	{
-		QString strA = a.toString();
-		QString strB = b.toString();
-
-		// 根据 type 进行相应的比较操作
-		switch (type)
-		{
-		case TK_EQ: // "=="
-			return (strA == strB);
-
-		case TK_NEQ: // "!="
-			return (strA != strB);
-
-		case TK_GT: // ">"
-			return (strA.compare(strB) > 0);
-
-		case TK_LT: // "<"
-			return (strA.compare(strB) < 0);
-
-		case TK_GEQ: // ">="
-			return (strA.compare(strB) >= 0);
-
-		case TK_LEQ: // "<="
-			return (strA.compare(strB) <= 0);
-
-		default:
-			return false; // 不支持的比较类型，返回 false
-		}
-	}
-	else if (aType == QVariant::Double)
-	{
-		double numA = a.toDouble();
-		double numB = b.toDouble();
-
-		// 根据 type 进行相应的比较操作
-		switch (type)
-		{
-		case TK_EQ: // "=="
-			return (numA == numB);
-
-		case TK_NEQ: // "!="
-			return (numA != numB);
-
-		case TK_GT: // ">"
-			return (numA > numB);
-
-		case TK_LT: // "<"
-			return (numA < numB);
-
-		case TK_GEQ: // ">="
-			return (numA >= numB);
-
-		case TK_LEQ: // "<="
-			return (numA <= numB);
-
-		default:
-			return false; // 不支持的比较类型，返回 false
-		}
-	}
-	else if (aType == QVariant::Int)
-	{
-		int numA = a.toInt();
-		int numB = b.toInt();
-
-		// 根据 type 进行相应的比较操作
-		switch (type)
-		{
-		case TK_EQ: // "=="
-			return (numA == numB);
-
-		case TK_NEQ: // "!="
-			return (numA != numB);
-
-		case TK_GT: // ">"
-			return (numA > numB);
-
-		case TK_LT: // "<"
-			return (numA < numB);
-
-		case TK_GEQ: // ">="
-			return (numA >= numB);
-
-		case TK_LEQ: // "<="
-			return (numA <= numB);
-
-		default:
-			return false; // 不支持的比较类型，返回 false
-		}
-
-	}
-
-	return false; // 不支持的类型，返回 false
+	return parser_->compare(a, b, type);
 }
 
 bool Interpreter::compare(CompareArea area, const TokenMap& TK) const
@@ -981,11 +927,11 @@ bool Interpreter::compare(CompareArea area, const TokenMap& TK) const
 		{
 		case itemCount:
 		{
-			QVector<int> v;
+			util::SafeVector<int> v;
 			int count = 0;
 			if (injector.server->getItemIndexsByName(itemName, itemMemo, &v))
 			{
-				int size = v.size();
+				//int size = v.size();
 				for (const int it : v)
 					count += injector.server->pc.item[it].pile;
 			}
@@ -1111,46 +1057,6 @@ void Interpreter::updateGlobalVariables()
 	QPoint pos = injector.server->nowPoint;
 	dialog_t dialog = injector.server->currentDialog.get();
 
-	//big5
-	hash["毫秒時間戳"] = static_cast<int>(QDateTime::currentMSecsSinceEpoch());
-	hash["秒時間戳"] = static_cast<int>(QDateTime::currentSecsSinceEpoch());
-
-	hash["人物主名"] = pc.name;
-	hash["人物副名"] = pc.freeName;
-	hash["人物等級"] = pc.level;
-	hash["人物耐久力"] = pc.hp;
-	hash["人物氣力"] = pc.mp;
-	hash["人物DP"] = pc.dp;
-	hash["石幣"] = pc.gold;
-
-	hash["東坐標"] = pos.x();
-	hash["南坐標"] = pos.y();
-	hash["地圖編號"] = injector.server->nowFloor;
-	hash["地圖"] = injector.server->nowFloorName;
-	hash["日期"] = QDateTime::currentDateTime().toString("yyyy-MM-dd");
-	hash["時間"] = QDateTime::currentDateTime().toString("hh:mm:ss:zzz");
-	hash["對話框ID"] = dialog.seqno;
-
-	//gb2312
-	hash["毫秒时间戳"] = static_cast<int>(QDateTime::currentMSecsSinceEpoch());
-	hash["秒时间戳"] = static_cast<int>(QDateTime::currentSecsSinceEpoch());
-
-	hash["人物主名"] = pc.name;
-	hash["人物副名"] = pc.freeName;
-	hash["人物等级"] = pc.level;
-	hash["人物耐久力"] = pc.hp;
-	hash["人物气力"] = pc.mp;
-	hash["人物DP"] = pc.dp;
-	hash["石币"] = pc.gold;
-
-	hash["东坐标"] = pos.x();
-	hash["南坐标"] = pos.y();
-	hash["地图编号"] = injector.server->nowFloor;
-	hash["地图"] = injector.server->nowFloorName;
-	hash["日期"] = QDateTime::currentDateTime().toString("yyyy-MM-dd");
-	hash["时间"] = QDateTime::currentDateTime().toString("hh:mm:ss:zzz");
-	hash["对话框ID"] = dialog.seqno;
-
 	//utf8
 	hash["tick"] = static_cast<int>(QDateTime::currentMSecsSinceEpoch());
 	hash["stick"] = static_cast<int>(QDateTime::currentSecsSinceEpoch());
@@ -1174,6 +1080,8 @@ void Interpreter::updateGlobalVariables()
 
 	hash["dlgid"] = dialog.seqno;
 
+	hash["bt"] = injector.server->getBattleFlag() ? 1 : 0;
+
 }
 
 void Interpreter::proc()
@@ -1183,7 +1091,7 @@ void Interpreter::proc()
 	Injector& injector = Injector::getInstance();
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
 
-	pCallback = [this, &injector, &signalDispatcher](int currentLine, const TokenMap& TK)->int
+	pCallback = [this, &signalDispatcher](int currentLine, const TokenMap& TK)->int
 	{
 		if (isInterruptionRequested())
 			return 0;
@@ -1314,6 +1222,7 @@ void Interpreter::openLibsBIG5()
 	//check
 	registerFunction(u8"任務狀態", &Interpreter::checkdaily);
 	registerFunction(u8"戰鬥中", &Interpreter::isbattle);
+	registerFunction(u8"平時中", &Interpreter::isnormal);
 	registerFunction(u8"在線中", &Interpreter::isonline);
 	registerFunction(u8"查坐標", &Interpreter::checkcoords);
 	registerFunction(u8"查座標", &Interpreter::checkcoords);
@@ -1431,6 +1340,7 @@ void Interpreter::openLibsGB2312()
 	//check
 	registerFunction(u8"任务状态", &Interpreter::checkdaily);
 	registerFunction(u8"战斗中", &Interpreter::isbattle);
+	registerFunction(u8"平时中", &Interpreter::isnormal);
 	registerFunction(u8"在线中", &Interpreter::isonline);
 	registerFunction(u8"查坐标", &Interpreter::checkcoords);
 	registerFunction(u8"查座标", &Interpreter::checkcoords);
@@ -1548,6 +1458,7 @@ void Interpreter::openLibsUTF8()
 	//check
 	registerFunction(u8"ifdaily", &Interpreter::checkdaily);
 	registerFunction(u8"ifbattle", &Interpreter::isbattle);
+	registerFunction(u8"ifnormal", &Interpreter::isnormal);
 	registerFunction(u8"ifonline", &Interpreter::isonline);
 	registerFunction(u8"ifpos", &Interpreter::checkcoords);
 	registerFunction(u8"ifmap", &Interpreter::checkmapnowait);

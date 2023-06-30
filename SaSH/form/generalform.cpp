@@ -189,11 +189,11 @@ void GeneralForm::onComboBoxClicked()
 		{
 			//只顯示 上一級文件夾名稱/fileName
 			QFileInfo fileInfo(it);
-			QString fileName = fileInfo.fileName();
+			QString fName = fileInfo.fileName();
 			QString path = fileInfo.path();
 			QFileInfo pathInfo(path);
 			QString pathName = pathInfo.fileName();
-			ui.comboBox_paths->addItem(pathName + "/" + fileName, it);
+			ui.comboBox_paths->addItem(pathName + "/" + fName, it);
 		}
 
 		ui.comboBox_paths->setCurrentIndex(currentIndex);
@@ -271,7 +271,7 @@ void GeneralForm::onButtonClicked()
 	}
 	else if (name == "pushButton_logout")
 	{
-		bool flag = injector.getEnableHash(util::kLogOutEnable);
+		//bool flag = injector.getEnableHash(util::kLogOutEnable);
 		if (injector.isValid())
 		{
 			QMessageBox::StandardButton button = QMessageBox::warning(this, tr("logout"), tr("Are you sure you want to logout now?"),
@@ -642,7 +642,7 @@ void GeneralForm::onCheckBoxStateChanged(int state)
 		injector.setEnableHash(util::kFastBattleEnable, isChecked);
 		if (!bOriginal && isChecked && !injector.server.isNull())
 		{
-			injector.server->asyncBattleWork(false);
+			injector.server->asyncBattleWork();
 		}
 		return;
 	}
@@ -658,7 +658,7 @@ void GeneralForm::onCheckBoxStateChanged(int state)
 		injector.setEnableHash(util::kAutoBattleEnable, isChecked);
 		if (!bOriginal && isChecked && !injector.server.isNull())
 		{
-			injector.server->asyncBattleWork(false);
+			injector.server->asyncBattleWork();
 		}
 
 		return;
@@ -981,7 +981,7 @@ void GeneralForm::onGameStart()
 	if (!isFirstInstance)
 	{
 
-		QtConcurrent::run([this]()
+		QtConcurrent::run([]()
 			{
 				Net::Authenticator& g_Authenticator = Net::Authenticator::getInstance();
 				QScopedPointer<QString> username(new QString("satester"));
@@ -1016,6 +1016,7 @@ void GeneralForm::onGameStart()
 	}
 }
 
+int g_CurrentListIndex = 0;
 void GeneralForm::createServerList()
 {
 	const QString fileName(qgetenv("JSON_PATH"));
@@ -1025,6 +1026,7 @@ void GeneralForm::createServerList()
 	if (currentListIndex < 0)
 		currentListIndex = 0;
 
+	g_CurrentListIndex = currentListIndex;
 	QStringList list = config.readStringArray("System", "Server", QString("List_%1").arg(currentListIndex));
 	if (list.isEmpty())
 	{
@@ -1071,7 +1073,10 @@ void GeneralForm::createServerList()
 	ui.comboBox_subserver->setUpdatesEnabled(false);
 	ui.comboBox_server->clear();
 	ui.comboBox_subserver->clear();
-	for (const QString it : list)
+
+	QStringList serverNameList;
+	QStringList subServerNameList;
+	for (const QString& it : list)
 	{
 		QStringList subList = it.split(util::rexOR, Qt::SkipEmptyParts);
 		if (subList.isEmpty())
@@ -1086,12 +1091,19 @@ void GeneralForm::createServerList()
 		if (subList.isEmpty())
 			continue;
 
+		serverNameList.append(server);
+		subServerNameList.append(subList);
+
 		serverList[currentListIndex].insert(server, subList);
 		ui.comboBox_server->addItem(server);
 		if (currentText != server)
 			continue;
 		ui.comboBox_subserver->addItems(subList);
 	}
+	Injector& injector = Injector::getInstance();
+	injector.serverNameList = serverNameList;
+	injector.subServerNameList = subServerNameList;
+
 
 	if (currentIndex >= 0)
 		ui.comboBox_server->setCurrentIndex(currentIndex);

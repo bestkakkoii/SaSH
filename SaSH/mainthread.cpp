@@ -77,7 +77,7 @@ void MainObject::run()
 
 		emit signalDispatcher.updateStatusLabelTextChanged(util::kLabelStatusOpening);
 		//有些時候太快創建遊戲進程會閃退，原因不明，所以延遲一下
-		QThread::msleep(1500);
+		//QThread::msleep(1000);
 		//創建遊戲進程
 		if (!injector.createProcess(process_info))
 		{
@@ -87,7 +87,7 @@ void MainObject::run()
 		if (remove_thread_reason != util::REASON_NO_ERROR)
 			break;
 
-		QThread::msleep(500);
+		//QThread::msleep(1000);
 
 		emit signalDispatcher.updateStatusLabelTextChanged(util::kLabelStatusOpened);
 
@@ -122,6 +122,7 @@ void MainObject::run()
 		mainProc();
 	} while (false);
 
+	//開始逐步停止所有功能
 	emit signalDispatcher.scriptStoped();
 	emit signalDispatcher.nodifyAllStop();
 
@@ -159,9 +160,6 @@ void MainObject::run()
 
 	pointerWriterSync_.waitForFinished();
 
-	emit signalDispatcher.updateStatusLabelTextChanged(util::kLabelStatusNotOpen);
-	emit signalDispatcher.setStartButtonEnabled(true);
-
 	//強制關閉遊戲進程
 	injector.close();
 
@@ -169,6 +167,9 @@ void MainObject::run()
 	{
 		QThread::msleep(100);
 	}
+
+	emit signalDispatcher.updateStatusLabelTextChanged(util::kLabelStatusNotOpen);
+	emit signalDispatcher.setStartButtonEnabled(true);
 
 	//通知線程結束
 	emit finished();
@@ -186,9 +187,15 @@ void MainObject::mainProc()
 		mem::freeUnuseMemory(injector.getProcess());
 	}
 
+	mem::freeUnuseMemory(GetCurrentProcess());
+
 	for (;;)
 	{
-		QThread::msleep(168);
+#ifdef _DEBUG
+		QThread::msleep(10);
+#else
+		QThread::msleep(100);
+#endif
 		//檢查是否接收到停止執行的訊號
 		if (isInterruptionRequested())
 		{
@@ -251,15 +258,20 @@ int MainObject::checkAndRunFunctions()
 
 	int status = injector.server->getUnloginStatus();
 
-	if (status == util::kStatusInputUser ||
+	if (status == util::kStatusDisappear)
+	{
+		return 0;
+	}
+	else if (status == util::kStatusInputUser ||
 		status == util::kStatusSelectServer ||
 		status == util::kStatusSelectSubServer ||
 		status == util::kStatusSelectCharacter ||
 		status == util::kStatusDisconnect ||
 		status == util::kStatusTimeout ||
 		status == util::kStatusBusy ||
+		status == util::kStatusConnecting ||
 		status == util::kNoUserNameOrPassword ||
-		!injector.server->IS_ONLINE_FLAG)
+		!injector.server->getOnlineFlag())
 	{
 		//每次登出後只會執行一次
 		if (!login_run_once_flag_)
@@ -350,6 +362,34 @@ int MainObject::checkAndRunFunctions()
 			injector.server->recorder[i + 1] = recorder;
 		}
 
+		const QString fileName(qgetenv("JSON_PATH"));
+		util::Config config(fileName);
+		extern int g_CurrentListIndex;
+		QStringList list = config.readStringArray("System", "Server", QString("List_%1").arg(g_CurrentListIndex));
+		QStringList serverNameList;
+		QStringList subServerNameList;
+		for (const QString& it : list)
+		{
+			QStringList subList = it.split(util::rexOR, Qt::SkipEmptyParts);
+			if (subList.isEmpty())
+				continue;
+
+			if (subList.size() != 2)
+				continue;
+
+			QString server = subList.takeFirst();
+
+			subList = subList.first().split(util::rexComma, Qt::SkipEmptyParts);
+			if (subList.isEmpty())
+				continue;
+
+			serverNameList.append(server);
+			subServerNameList.append(subList);
+		}
+		Injector& injector = Injector::getInstance();
+		injector.serverNameList = serverNameList;
+		injector.subServerNameList = subServerNameList;
+
 		emit signalDispatcher.updateNpcList(injector.server->nowFloor);
 		emit signalDispatcher.applyHashSettingsToUI();
 
@@ -367,17 +407,14 @@ int MainObject::checkAndRunFunctions()
 	//走路遇敵 或 快速遇敵 (封包)
 	checkAutoWalk();
 
-
 	//平時
-	if (!injector.server->IS_BATTLE_FLAG)
+	if (!injector.server->getBattleFlag())
 	{
 		//每次進入平時只會執行一次
 		if (!battle_run_once_flag_)
 		{
 			battle_run_once_flag_ = true;
 			emit signalDispatcher.updateStatusLabelTextChanged(util::kLabelStatusInNormal);
-			injector.server->normalDurationTimer.restart();
-
 		}
 
 		//紀錄NPC
@@ -415,10 +452,6 @@ int MainObject::checkAndRunFunctions()
 		{
 			battle_run_once_flag_ = false;
 			emit signalDispatcher.updateStatusLabelTextChanged(util::kLabelStatusInBattle);
-			++injector.server->battle_totol;
-
-			injector.server->battleDurationTimer.restart();
-
 		}
 
 		//異步處理戰鬥時間刷新
@@ -506,10 +539,10 @@ void MainObject::battleTimeThread()
 		if (injector.server.isNull())
 			break;
 
-		if (!injector.server->IS_ONLINE_FLAG)
+		if (!injector.server->getOnlineFlag())
 			break;
 
-		if (!injector.server->IS_BATTLE_FLAG)
+		if (!injector.server->getBattleFlag())
 			break;
 
 		//刷新要顯示的戰鬥時間和相關數據
@@ -519,9 +552,13 @@ void MainObject::battleTimeThread()
 			.arg(injector.server->BattleCliTurnNo + 1)
 			.arg(QString::number(time, 'f', 3))
 			.arg(injector.server->battle_total_time / 1000 / 60);
-		injector.server->timeLabelContents = battle_time_text;
-		emit signalDispatcher.updateTimeLabelContents(battle_time_text);
-		QThread::msleep(100);
+
+		if (battle_time_text.isEmpty() || injector.server->timeLabelContents != battle_time_text)
+		{
+			injector.server->timeLabelContents = battle_time_text;
+			emit signalDispatcher.updateTimeLabelContents(battle_time_text);
+		}
+		QThread::msleep(50);
 	}
 	battleTime_future_cancel_flag_.store(false, std::memory_order_release);
 }
@@ -573,7 +610,7 @@ void MainObject::checkControl()
 		injector.postMessage(Injector::kEnablePlayerShow, !bChecked, NULL);
 	}
 
-	if (!injector.server->IS_ONLINE_FLAG)
+	if (!injector.server->getOnlineFlag())
 		return;
 
 	//登出按下，異步登出
@@ -676,12 +713,12 @@ void MainObject::checkControl()
 	//同步鎖定移動
 	bChecked = injector.getEnableHash(util::kLockMoveEnable);
 	bool isFastBattle = injector.getEnableHash(util::kFastBattleEnable);
-	if (!bChecked && isFastBattle && injector.server->IS_BATTLE_FLAG)//如果有開啟快速戰鬥，那必須在戰鬥時鎖定移動
+	if (!bChecked && isFastBattle && injector.server->getBattleFlag())//如果有開啟快速戰鬥，那必須在戰鬥時鎖定移動
 	{
 		flagLockMoveEnable_ = true;
 		injector.sendMessage(Injector::kEnableMoveLock, true, NULL);
 	}
-	else if (!bChecked && isFastBattle && !injector.server->IS_BATTLE_FLAG) //如果有開啟快速戰鬥，但是不在戰鬥時，那就不鎖定移動
+	else if (!bChecked && isFastBattle && !injector.server->getBattleFlag()) //如果有開啟快速戰鬥，但是不在戰鬥時，那就不鎖定移動
 	{
 		flagLockMoveEnable_ = false;
 		injector.sendMessage(Injector::kEnableMoveLock, false, NULL);
@@ -695,7 +732,7 @@ void MainObject::checkControl()
 	//自動戰鬥，異步戰鬥面板開關
 	bool bCheckedFastBattle = injector.getEnableHash(util::kFastBattleEnable);
 	bChecked = injector.getEnableHash(util::kAutoBattleEnable) || bCheckedFastBattle;
-	if (bChecked && flagBattleDialogEnable_)
+	if (bChecked)
 	{
 		flagBattleDialogEnable_ = false;
 		injector.postMessage(Injector::kEnableBattleDialog, false, NULL);
@@ -710,11 +747,11 @@ void MainObject::checkControl()
 	int W = injector.server->getWorldStatus();
 	if (bCheckedFastBattle && W == 9) //如果有開啟快速戰鬥，且畫面不在戰鬥中
 	{
-		injector.postMessage(Injector::kSetBLockPacket, true, NULL);
+		injector.postMessage(Injector::kSetBlockPacket, true, NULL);
 	}
 	else
 	{
-		injector.postMessage(Injector::kSetBLockPacket, false, NULL);
+		injector.postMessage(Injector::kSetBlockPacket, false, NULL);
 	}
 }
 
@@ -846,17 +883,17 @@ void MainObject::checkAutoWalk()
 						break;
 
 					//如果人物不在線上則自動退出
-					if (!injector.server->IS_ONLINE_FLAG)
+					if (!injector.server->getOnlineFlag())
 						break;
 
 					//如果人物在戰鬥中則進入循環等待
-					if (injector.server->IS_BATTLE_FLAG)
+					if (injector.server->getBattleFlag())
 					{
 						//先等一小段時間
 						QThread::msleep(100);
 
 						//如果已經退出戰鬥就等待1.5秒避免太快開始移動不夠時間吃肉補血丟東西...等
-						//if (!injector.server->IS_BATTLE_FLAG)
+						//if(!injector.server->getBattleFlag())
 						//{
 						//	for (int i = 0; i < 2; ++i)
 						//	{
@@ -1008,8 +1045,8 @@ void MainObject::checkAutoJoin()
 
 				Injector& injector = Injector::getInstance();
 				if (injector.server.isNull()) return;
-				if (!injector.server->IS_ONLINE_FLAG) return;
-				if (injector.server->IS_BATTLE_FLAG) return;
+				if (!injector.server->getOnlineFlag()) return;
+				if (injector.server->getBattleFlag()) return;
 				if (injector.server->getWorldStatus() != 9 || injector.server->getGameStatus() != 3) return;
 
 				PC ch = injector.server->pc;
@@ -1051,10 +1088,10 @@ void MainObject::checkAutoJoin()
 						return;
 
 					//如果人物不在線上則自動退出
-					if (!injector.server->IS_ONLINE_FLAG)
+					if (!injector.server->getOnlineFlag())
 						return;
 
-					if (injector.server->IS_BATTLE_FLAG)
+					if (injector.server->getBattleFlag())
 						return;
 
 					leader = injector.getStringHash(util::kAutoFunNameString);
@@ -1218,10 +1255,10 @@ void MainObject::checkAutoHeal()
 					if (injector.server.isNull())
 						return false;
 
-					if (!injector.server->IS_ONLINE_FLAG)
+					if (!injector.server->getOnlineFlag())
 						return false;
 
-					if (injector.server->IS_BATTLE_FLAG)
+					if (injector.server->getBattleFlag())
 						return false;
 
 					return true;
@@ -1437,10 +1474,10 @@ void MainObject::checkAutoDropPet()
 					if (injector.server.isNull())
 						return false;
 
-					if (!injector.server->IS_ONLINE_FLAG)
+					if (!injector.server->getOnlineFlag())
 						return false;
 
-					if (injector.server->IS_BATTLE_FLAG)
+					if (injector.server->getBattleFlag())
 						return false;
 
 					return true;
@@ -1557,12 +1594,6 @@ void MainObject::checkAutoLockPet()
 		if (lockPetIndex >= 0 && lockPetIndex < MAX_PET)
 		{
 			PET pet = injector.server->pet[lockPetIndex];
-			if (pet.hp <= 1)
-			{
-				injector.server->setPetState(lockPetIndex, kRest);
-				QThread::msleep(500);
-			}
-
 			if (pet.state != PetState::kBattle)
 			{
 				injector.server->setPetState(lockPetIndex, kBattle);
@@ -1577,12 +1608,6 @@ void MainObject::checkAutoLockPet()
 		if (lockRideIndex >= 0 && lockRideIndex < MAX_PET)
 		{
 			PET pet = injector.server->pet[lockRideIndex];
-			if (pet.hp <= 1)
-			{
-				injector.server->setPetState(lockRideIndex, kRest);
-				QThread::msleep(500);
-			}
-
 			if (pet.state != PetState::kRide)
 			{
 				injector.server->setPetState(lockRideIndex, kRide);
@@ -1767,10 +1792,10 @@ void MainObject::checkAutoEatBoostExpItem()
 	if (injector.server.isNull())
 		return;
 
-	if (!injector.server->IS_ONLINE_FLAG)
+	if (!injector.server->getOnlineFlag())
 		return;
 
-	if (injector.server->IS_BATTLE_FLAG)
+	if (injector.server->getBattleFlag())
 		return;
 
 	for (int i = 0; i < MAX_ITEM; ++i)
@@ -1852,7 +1877,7 @@ void MainObject::checkRecordableNpcInfo()
 					{
 						//檢查NPC周圍8格
 						bool flag = false;
-						for (int i = 0; i < 8; i++)
+						for (int i = 0; i < 8; ++i)
 						{
 							newPoint = util::fix_point.at(i) + unit.p;
 							if (injector.server->mapAnalyzer->isPassable(nowFloor, nowPoint, newPoint))

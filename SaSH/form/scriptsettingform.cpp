@@ -13,7 +13,6 @@ extern util::SafeHash<QString, util::SafeHash<int, break_marker_t>> forward_mark
 extern util::SafeHash<QString, util::SafeHash<int, break_marker_t>> error_markers;//用於標示錯誤發生行(紅線)
 extern util::SafeHash<QString, util::SafeHash<int, break_marker_t>> step_markers;//隱式標記中斷點用於單步執行(無)
 
-
 ScriptSettingForm::ScriptSettingForm(QWidget* parent)
 	: QMainWindow(parent)
 {
@@ -21,6 +20,7 @@ ScriptSettingForm::ScriptSettingForm(QWidget* parent)
 
 	installEventFilter(this);
 	setAttribute(Qt::WA_DeleteOnClose);
+	qRegisterMetaType<QVector<int>>();
 
 	//reset font size
 	QFont font = ui.listView_log->font();
@@ -52,6 +52,7 @@ ScriptSettingForm::ScriptSettingForm(QWidget* parent)
 	ui.treeWidget_scriptList->header()->setSectionsClickable(true);
 	connect(ui.treeWidget_scriptList->header(), &QHeaderView::sectionClicked, this, &ScriptSettingForm::onScriptTreeWidgetHeaderClicked);
 	connect(ui.treeWidget_scriptList, &QTreeWidget::itemDoubleClicked, this, &ScriptSettingForm::onScriptTreeWidgetDoubleClicked);
+	connect(ui.treeWidget_scriptList, &QTreeWidget::itemChanged, this, &ScriptSettingForm::onScriptTreeWidgetItemChanged);
 	//排序
 	ui.treeWidget_functionList->sortItems(0, Qt::AscendingOrder);
 
@@ -159,21 +160,19 @@ ScriptSettingForm::ScriptSettingForm(QWidget* parent)
 	fontSize = config.readInt(objectName(), ObjectName, "FontSize");
 	if (fontSize > 0)
 	{
-		QFont font = ui.listView_log->font();
-		font.setPointSize(fontSize);
-		ui.listView_log->setFont(font);
+		QFont f = ui.listView_log->font();
+		f.setPointSize(fontSize);
+		ui.listView_log->setFont(f);
 	}
 
 	ObjectName = ui.textBrowser->objectName();
 	fontSize = config.readInt(objectName(), ObjectName, "FontSize");
 	if (fontSize > 0)
 	{
-		QFont font = ui.textBrowser->font();
-		font.setPointSize(fontSize);
-		ui.textBrowser->setFont(font);
+		QFont f = ui.textBrowser->font();
+		f.setPointSize(fontSize);
+		ui.textBrowser->setFont(f);
 	}
-
-	//
 }
 
 void ScriptSettingForm::createSpeedSpinBox()
@@ -291,7 +290,7 @@ bool ScriptSettingForm::eventFilter(QObject* obj, QEvent* e)
 void ScriptSettingForm::onApplyHashSettingsToUI()
 {
 	Injector& injector = Injector::getInstance();
-	if (!injector.server.isNull() && injector.server->IS_ONLINE_FLAG)
+	if (!injector.server.isNull() && injector.server->getOnlineFlag())
 	{
 		QString title = injector.currentScriptFileName;
 		QString newTitle = QString("[%1] %2").arg(injector.server->pc.name).arg(title);
@@ -542,7 +541,7 @@ void ScriptSettingForm::onAddErrorMarker(int liner, bool b)
 	setMark(CodeEditor::SymbolHandler::SYM_TRIANGLE, error_markers, liner, b);
 }
 
-void ScriptSettingForm::onAddStepMarker(int liner, bool b)
+void ScriptSettingForm::onAddStepMarker(int, bool b)
 {
 	if (!b)
 	{
@@ -570,9 +569,9 @@ void ScriptSettingForm::reshowBreakMarker()
 			continue;
 
 		const util::SafeHash<int, break_marker_t> mk = mks.value(fileName);
-		for (const break_marker_t& it : mk)
+		for (const break_marker_t& bit : mk)
 		{
-			ui.widget->markerAdd(it.line, CodeEditor::SymbolHandler::SYM_POINT);
+			ui.widget->markerAdd(bit.line, CodeEditor::SymbolHandler::SYM_POINT);
 		}
 	}
 	onBreakMarkInfoImport();
@@ -625,9 +624,9 @@ void ScriptSettingForm::onBreakMarkInfoImport()
 	{
 		QString fileName = it.key();
 		const util::SafeHash<int, break_marker_t> mk = mks.value(fileName);
-		for (const break_marker_t& it : mk)
+		for (const break_marker_t& bit : mk)
 		{
-			QTreeWidgetItem* item = q_check_ptr(new QTreeWidgetItem({ it.content, QString::number(it.count), QString::number(it.line + 1), fileName }));
+			QTreeWidgetItem* item = q_check_ptr(new QTreeWidgetItem({ bit.content, QString::number(bit.count), QString::number(bit.line + 1), fileName }));
 			item->setIcon(0, QIcon("://image/icon_break.png"));
 			trees.append(item);
 		}
@@ -847,7 +846,7 @@ void ScriptSettingForm::onReloadScriptList()
 		ui.treeWidget_scriptList->addTopLevelItem(item);
 		//展開全部第一層
 		ui.treeWidget_scriptList->topLevelItem(0)->setExpanded(true);
-		for (int i = 0; i < item->childCount(); i++)
+		for (int i = 0; i < item->childCount(); ++i)
 		{
 			ui.treeWidget_scriptList->expandItem(item->child(i));
 		}
@@ -873,7 +872,7 @@ void ScriptSettingForm::loadFile(const QString& fileName)
 	injector.currentScriptFileName = fileName;
 	ui.widget->setUpdatesEnabled(false);
 
-	if (!injector.server.isNull() && injector.server->IS_ONLINE_FLAG)
+	if (!injector.server.isNull() && injector.server->getOnlineFlag())
 		setWindowTitle(QString("[%1] %2").arg(injector.server->pc.name).arg(injector.currentScriptFileName));
 	else
 		setWindowTitle(injector.currentScriptFileName);
@@ -985,7 +984,7 @@ void ScriptSettingForm::onActionTriggered()
 	}
 	else if (name == "actionStart")
 	{
-		Injector& injector = Injector::getInstance();
+		//Injector& injector = Injector::getInstance();
 		if (step_markers.size() == 0 && !injector.IS_SCRIPT_FLAG && QFile::exists(injector.currentScriptFileName))
 		{
 			emit signalDispatcher.scriptStarted();
@@ -1056,7 +1055,7 @@ void ScriptSettingForm::onActionTriggered()
 	}
 	else if (name == "actionLogback")
 	{
-		Injector& injector = Injector::getInstance();
+		//Injector& injector = Injector::getInstance();
 		if (injector.server.isNull())
 			return;
 
@@ -1082,7 +1081,7 @@ void ScriptSettingForm::onActionTriggered()
 					break;
 
 				int count = item->childCount();
-				for (int j = 0; j < count; j++)
+				for (int j = 0; j < count; ++j)
 				{
 					TreeWidgetItem* chileitem = reinterpret_cast<TreeWidgetItem*>(item->child(j));
 					if (!chileitem)
@@ -1255,7 +1254,7 @@ void ScriptSettingForm::on_lineEdit_searchFunction_textChanged(const QString& te
 	}
 }
 
-void ScriptSettingForm::onScriptLabelRowTextChanged(int line, int max, bool noSelect)
+void ScriptSettingForm::onScriptLabelRowTextChanged(int line, int, bool)
 {
 	if (line < 0)
 		line = 0;
@@ -1288,7 +1287,7 @@ void ScriptSettingForm::onEditorCursorPositionChanged(int line, int index)
 }
 
 //標記列表點擊
-void ScriptSettingForm::on_comboBox_labels_currentIndexChanged(int index)
+void ScriptSettingForm::on_comboBox_labels_currentIndexChanged(int)
 {
 	QVariant var = ui.comboBox_labels->currentData();
 	if (var.isValid())
@@ -1322,7 +1321,7 @@ void ScriptSettingForm::stackInfoImport(QTreeWidget* tree, const QHash <int, QSt
 	if (!d.isEmpty())
 	{
 		QList<QTreeWidgetItem*> trees;
-		int size = d.size();
+		//int size = d.size();
 		for (auto it = d.begin(); it != d.end(); ++it)
 		{
 			trees.append(q_check_ptr(new QTreeWidgetItem({ QString::number(it.key()), it.value() })));
@@ -1431,52 +1430,23 @@ void ScriptSettingForm::onGlobalVarInfoImport(const QHash<QString, QVariant>& d)
 	QStringList systemVarList = {
 		//utf8
 		"tick", "stick", "chname", "chfname", "chlv", "chhp", "chmp", "chdp", "stone", "px", "py",
-			"floor", "frname", "date", "time", "earnstone", "expbuff", "dlgid"
+			"floor", "frname", "date", "time", "earnstone", "expbuff", "dlgid", "bt"
 	};
 
-	QStringList gb2312List = {
-		//gb2312
-		"毫秒时间戳", "秒时间戳",
 
-		"人物主名","人物副名","人物等级","人物耐久力","人物气力","人物DP",
-		"石币",
-
-		"东坐标","南坐标","地图编号","地图",
-		"日期","时间",
-		"对话框ID",
-	};
-
-	QStringList big5List = {
-		"毫秒時間戳", "秒時間戳",
-
-		"人物主名","人物副名","人物等級","人物耐久力","人物氣力","人物DP",
-		"石幣",
-
-		"東坐標","南坐標","地圖編號","地圖",
-		"日期","時間",
-		"對話框ID",
-	};
 
 	QHash<QString, QVariant> globalVarInfo;
 	QHash<QString, QVariant> customVarInfo;
 	//如果key存在於系統變量列表中則添加到系統變量列表中
 
-	UINT acp = GetACP();
+	//UINT acp = GetACP();
 	for (auto it = d.begin(); it != d.end(); ++it)
 	{
 		if (systemVarList.contains(it.key().simplified()))
 		{
 			globalVarInfo.insert(it.key(), it.value());
 		}
-		else if (acp == 936 && gb2312List.contains(it.key().simplified()))
-		{
-			globalVarInfo.insert(it.key(), it.value());
-		}
-		else if (acp != 936 && big5List.contains(it.key().simplified()))
-		{
-			globalVarInfo.insert(it.key(), it.value());
-		}
-		else if (!systemVarList.contains(it.key().simplified()) && !gb2312List.contains(it.key().simplified()) && !big5List.contains(it.key().simplified()))
+		else if (!systemVarList.contains(it.key().simplified()))
 		{
 			customVarInfo.insert(it.key(), it.value());
 		}
@@ -1569,8 +1539,11 @@ void ScriptSettingForm::on_treeWidget_functionList_itemSelectionChanged()
 			ui.textBrowser->setUpdatesEnabled(true);
 			break;
 		}
-
+#ifdef _DEBUG
+		QString mdFullPath = R"(D:\Users\bestkakkoii\Desktop\SaSH\lib\doc)";
+#else
 		QString mdFullPath = QString("%1/lib/doc").arg(QCoreApplication::applicationDirPath());
+#endif
 		QDir dir(mdFullPath);
 		if (!dir.exists())
 			break;
@@ -1675,45 +1648,42 @@ void ScriptSettingForm::on_treeWidget_scriptList_itemClicked(QTreeWidgetItem* it
 
 	//設置為可編輯
 	item->setFlags(item->flags() | Qt::ItemIsEditable);
-	//ui.treeWidget_scriptList->openPersistentEditor(item, 0);
+
+	currentRenamePath_ = currentPath;
+	currentRenameText_ = currentText;
+
 	ui.treeWidget_scriptList->editItem(item, 0);
+}
 
-	//註冊檢測如果用戶班級完畢則關閉編輯狀態
-	connect(ui.treeWidget_scriptList, &QTreeWidget::itemChanged, this, [this, currentPath, currentText](QTreeWidgetItem* newitem, int column)
-		{
-			if (column != 0 || !newitem)
-				return;
+void ScriptSettingForm::onScriptTreeWidgetItemChanged(QTreeWidgetItem* newitem, int column)
+{
+	if (column != 0 || !newitem)
+		return;
 
-			QString newtext = newitem->text(0);
-			if (newtext.isEmpty())
-			{
-				newitem->setText(0, currentText);
-				return;
-			}
+	QString newtext = newitem->text(0);
+	if (newtext.isEmpty())
+	{
+		return;
+	}
 
-			if (newtext == currentText)
-				return;
+	if (newtext == currentRenameText_)
+		return;
 
-			QString str = getFullPath(newitem);
-			if (str.isEmpty())
-				return;
+	QString str = getFullPath(newitem);
+	if (str.isEmpty())
+		return;
 
-			if (str == currentPath)
-				return;
+	if (str == currentRenamePath_)
+		return;
 
-			QFile file(currentPath);
-			if (file.exists() && !QFile::exists(str))
-			{
-				file.rename(str);
-			}
+	QFile file(currentRenamePath_);
+	if (file.exists() && !QFile::exists(str))
+	{
+		file.rename(str);
+	}
 
-			if (!newtext.endsWith(util::SCRIPT_PRIVATE_SUFFIX_DEFAULT) && !newtext.endsWith(util::SCRIPT_SUFFIX_DEFAULT))
-			{
-				newtext += util::SCRIPT_SUFFIX_DEFAULT;
-				newitem->setText(0, newtext);
-			}
-		});
-
+	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
+	emit signalDispatcher.reloadScriptList();
 }
 
 void ScriptSettingForm::createScriptListContextMenu()
@@ -1772,45 +1742,11 @@ void ScriptSettingForm::createScriptListContextMenu()
 
 			//設置為可編輯
 			item->setFlags(item->flags() | Qt::ItemIsEditable);
-			//ui.treeWidget_scriptList->openPersistentEditor(item, 0);
+
+			currentRenamePath_ = currentPath;
+			currentRenameText_ = currentText;
+
 			ui.treeWidget_scriptList->editItem(item, 0);
-
-			//註冊檢測如果用戶班級完畢則關閉編輯狀態
-			connect(ui.treeWidget_scriptList, &QTreeWidget::itemChanged, this, [this, currentPath, currentText](QTreeWidgetItem* newitem, int column)
-				{
-					if (column != 0 || !newitem)
-						return;
-
-					QString newtext = newitem->text(0);
-					if (newtext.isEmpty())
-					{
-						newitem->setText(0, currentText);
-						return;
-					}
-
-					if (newtext == currentText)
-						return;
-
-					QString str = getFullPath(newitem);
-					if (str.isEmpty())
-						return;
-
-					if (str == currentPath)
-						return;
-
-					QFile file(currentPath);
-					if (file.exists() && !QFile::exists(str))
-					{
-						file.rename(str);
-					}
-
-					if (!newtext.endsWith(util::SCRIPT_PRIVATE_SUFFIX_DEFAULT) && !newtext.endsWith(util::SCRIPT_SUFFIX_DEFAULT))
-					{
-						newtext += util::SCRIPT_SUFFIX_DEFAULT;
-						newitem->setText(0, newtext);
-					}
-					onReloadScriptList();
-				});
 		});
 
 	// Set the context menu policy for the QTreeWidget

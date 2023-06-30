@@ -329,6 +329,9 @@
     <QtMoc Include="form\replaceform.h">
       <Filter>Source Files\forms\dialog</Filter>
     </QtMoc>
+    <QtMoc Include="script\parser.h">
+      <Filter>Source Files\script</Filter>
+    </QtMoc>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stdafx.h">
@@ -356,9 +359,6 @@
       <Filter>Source Files\map</Filter>
     </ClInclude>
     <ClInclude Include="script\lexer.h">
-      <Filter>Source Files\script</Filter>
-    </ClInclude>
-    <ClInclude Include="script\parser.h">
       <Filter>Source Files\script</Filter>
     </ClInclude>
     <ClInclude Include="model\treewidgetitem.h">

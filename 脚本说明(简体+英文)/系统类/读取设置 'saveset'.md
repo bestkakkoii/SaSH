@@ -10,7 +10,7 @@
 读取设置 "ABCD/AAAA"
 
 变数 A, "AAAA.json"
-读取设置 &A
+读取设置 A
 
 
 ```

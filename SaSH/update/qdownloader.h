@@ -43,7 +43,7 @@ private:
 	static int onProgress_4(void* ptr, double totalToDownload, double nowDownloaded, double totalToUpLoad, double nowUpLoaded);
 
 	QString Sha3_512(const QString& fileNamePath) const;
-
+	void QDownloader::downloadAndExtractZip(const QString& url, const QString& targetDir);
 private:
 	Ui::QDownloaderClass ui;
 

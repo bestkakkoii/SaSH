@@ -285,6 +285,7 @@ static const QHash<QString, RESERVE> keywords = {
 
 	//check info
 	{ u8"ifbattle", TK_CMD },
+	{ u8"ifnormal", TK_CMD },
 	{ u8"ifonline", TK_CMD },
 	{ u8"ifpos", TK_CMD },
 	{ u8"ifmap", TK_CMD },
@@ -543,7 +544,6 @@ void Lexer::tokenized(int currentLine, const QString& line, TokenMap* ptoken, ut
 				break;
 			}
 
-
 			//遇到註釋
 			if (token.startsWith("//"))
 			{
@@ -622,23 +622,28 @@ void Lexer::tokenized(int currentLine, const QString& line, TokenMap* ptoken, ut
 				double floatValue = token.toDouble(&ok);
 				if (ok)
 				{
-					data = QVariant::fromValue(floatValue);
+					data = QVariant::fromValue(static_cast<int>(floatValue));
+					type = TK_INT;
 				}
 			}
 			else if (type == TK_STRING)//對字串進行轉換處理，去除首尾單引號、雙引號
 			{
 				if ((token.startsWith("\"") || token.startsWith("\'")) && (token.endsWith("\"") || token.endsWith("\'")))
+				{
 					token = token.mid(1, token.length() - 2);
-				else
-					checkNonQuotedParameterForErrors(currentLine, token);
+					type = TK_CSTRING;
+				}
+
 				data = QVariant::fromValue(token);
 			}
 			else if (type == TK_LABELVAR)
 			{
 				if ((token.startsWith("\"") || token.startsWith("\'")) && (token.endsWith("\"") || token.endsWith("\'")))
+				{
 					token = token.mid(1, token.length() - 2);
-				else
-					checkNonQuotedParameterForErrors(currentLine, token);
+					type = TK_CSTRING;
+				}
+
 				data = QVariant::fromValue(token);
 			}
 			else if (type == TK_NAME)//保存標記名稱
@@ -768,7 +773,7 @@ bool Lexer::isDelimiter(const QChar& ch) const
 //根據容取TOKEN應該定義的類型
 RESERVE Lexer::getTokenType(int& pos, RESERVE previous, QString& str, const QString raw) const
 {
-	int index = 0;
+	//int index = 0;
 
 	if (str == "<<")
 	{
@@ -1000,48 +1005,6 @@ bool Lexer::getStringToken(QString& src, const QString& delim, QString& out)
 	return true;
 }
 
-void Lexer::checkNonQuotedParameterForErrors(int currentline, const QString& parameter)
-{
-	QString beginStr = QObject::tr("<Syntax Error>Unexpected '");
-	QString endStr = QObject::tr("' in parameter: '");
-	QString finalStr = QObject::tr("' at line: %1").arg(currentline + 1);
-
-	QStringList errorTokens = { "==", "!=", ">", "<", "<=", ">=", "+", "-", "*", "/", "%", ">>", "<<", "|", "&", "^", "?" };
-
-	QString currentToken;
-	QString errorMessage;
-
-	for (const QChar& ch : parameter)
-	{
-		if (ch.isSpace())
-		{
-			if (!currentToken.isEmpty())
-			{
-				if (errorTokens.contains(currentToken))
-				{
-					errorMessage = QString("%1%2%3%4%5").arg(beginStr).arg(currentToken).arg(endStr).arg(parameter).arg(finalStr);
-					break;
-				}
-				else if (currentToken != ",") // Check if currentToken is not a comma
-				{
-					errorMessage = QObject::tr("%1Missing comma after '%2' %3%4%5").arg(beginStr).arg(currentToken).arg(endStr).arg(parameter).arg(finalStr);
-					break;
-				}
-				currentToken.clear();
-			}
-		}
-		else
-		{
-			currentToken += ch;
-		}
-	}
-
-	if (!errorMessage.isEmpty())
-	{
-		showError(errorMessage);
-	}
-}
-
 //檢查引用變量前面是否缺少&符號
 void Lexer::checkInvalidReadVariable(const util::SafeHash<int, TokenMap>& stokenmaps)
 {
@@ -1055,7 +1018,7 @@ void Lexer::checkInvalidReadVariable(const util::SafeHash<int, TokenMap>& stoken
 	//首次先把所有變量聲明找出來紀錄變量名稱
 	for (auto it = tokenmaps.cbegin(); it != tokenmaps.cend(); ++it)
 	{
-		const int row = it.key();
+		//const int row = it.key();
 		const TokenMap& tokenmap = it.value();
 		RESERVE type = tokenmap.value(0).type;
 
@@ -1088,35 +1051,11 @@ void Lexer::checkInvalidReadVariable(const util::SafeHash<int, TokenMap>& stoken
 	static const QStringList systemVarList = {
 		//utf8
 		"tick", "stick", "chname", "chfname", "chlv", "chhp", "chmp", "chdp", "stone", "px", "py",
-			"floor", "frname", "date", "time", "earnstone", "expbuff", "dlgid"
-	};
-
-	static const QStringList gb2312List = {
-		//gb2312
-		"毫秒时间戳", "秒时间戳",
-
-		"人物主名","人物副名","人物等级","人物耐久力","人物气力","人物DP",
-		"石币",
-
-		"东坐标","南坐标","地图编号","地图",
-		"日期","时间",
-		"对话框ID",
-	};
-
-	static const QStringList big5List = {
-		"毫秒時間戳", "秒時間戳",
-
-		"人物主名","人物副名","人物等級","人物耐久力","人物氣力","人物DP",
-		"石幣",
-
-		"東坐標","南坐標","地圖編號","地圖",
-		"日期","時間",
-		"對話框ID",
+			"floor", "frname", "date", "time", "earnstone", "expbuff", "dlgid", "bt"
 	};
 
 	varNameList.append(systemVarList);
-	varNameList.append(gb2312List);
-	varNameList.append(big5List);
+
 
 	//for (auto it = tokenmaps.cbegin(); it != tokenmaps.cend(); ++it)
 	//{
@@ -1150,7 +1089,7 @@ void Lexer::checkFunctionPairs(const util::SafeHash<int, TokenMap>& stokenmaps)
 	for (auto it = tokenmaps.cbegin(); it != tokenmaps.cend(); ++it)
 	{
 		int row = it.key();
-		RESERVE type = it.value().value(0).type;
+		//RESERVE type = it.value().value(0).type;
 		QString statement = it.value().value(0).data.toString().simplified();
 
 		if (statement != "function" && statement != "end")

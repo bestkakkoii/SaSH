@@ -15,6 +15,7 @@
 #include <QHash>
 #include "3rdparty/simplecrypt.h"
 #include "model/treewidgetitem.h"
+#include <type_traits>
 
 constexpr int SASH_VERSION_MAJOR = 1;
 constexpr int SASH_VERSION_MINOR = 0;
@@ -23,7 +24,21 @@ constexpr int SASH_VERSION_PATCH = 0;
 namespace mem
 {
 	bool read(HANDLE hProcess, DWORD desiredAccess, SIZE_T size, PVOID buffer);
-	Q_REQUIRED_RESULT int readInt(HANDLE hProcess, DWORD desiredAccess, SIZE_T size);
+	template<typename T, typename = std::enable_if_t<std::is_arithmetic_v<T> && !std::is_pointer_v<T>>>
+	Q_REQUIRED_RESULT T readInt(HANDLE hProcess, DWORD desiredAccess);
+
+	template char readInt<char>(HANDLE hProcess, DWORD desiredAccess);
+	template short readInt<short>(HANDLE hProcess, DWORD desiredAccess);
+	template int readInt<int>(HANDLE hProcess, DWORD desiredAccess);
+	template float readInt<float>(HANDLE hProcess, DWORD desiredAccess);
+	template long readInt<long>(HANDLE hProcess, DWORD desiredAccess);
+	template long long readInt<long long>(HANDLE hProcess, DWORD desiredAccess);
+	template unsigned char readInt<unsigned char>(HANDLE hProcess, DWORD desiredAccess);
+	template unsigned short readInt<unsigned short>(HANDLE hProcess, DWORD desiredAccess);
+	template unsigned int readInt<unsigned int>(HANDLE hProcess, DWORD desiredAccess);
+	template unsigned long readInt<unsigned long>(HANDLE hProcess, DWORD desiredAccess);
+	template unsigned long long readInt<unsigned long long>(HANDLE hProcess, DWORD desiredAccess);
+
 	Q_REQUIRED_RESULT float readFloat(HANDLE hProcess, DWORD desiredAccess);
 	Q_REQUIRED_RESULT qreal readDouble(HANDLE hProcess, DWORD desiredAccess);
 	Q_REQUIRED_RESULT QString readString(HANDLE hProcess, DWORD desiredAccess, int size, bool enableTrim, bool keepOriginal = false);
@@ -103,6 +118,7 @@ namespace util
 		kLabelStatusTimeout,//連線逾時
 		kLabelNoUserNameOrPassword,//無帳號密碼
 		kLabelStatusDisconnected,//斷線
+		kLabelStatusConnecting,//連線中
 	};
 
 	enum UserData
@@ -145,12 +161,14 @@ namespace util
 	enum UnLoginStatus
 	{
 		kStatusUnknown,
+		kStatusDisappear,
 		kStatusInputUser,
 		kStatusSelectServer,
 		kStatusSelectSubServer,
 		kStatusSelectCharacter,
 		kStatusLogined,
 		kStatusDisconnect,
+		kStatusConnecting,
 		kStatusTimeout,
 		kNoUserNameOrPassword,
 		kStatusBusy,
@@ -676,8 +694,13 @@ namespace util
 		{-1, -1}, //西北2
 	};
 
-	static inline const int __vectorcall percent(int value, int total)
+	Q_REQUIRED_RESULT inline static const int __vectorcall percent(int value, int total)
 	{
+		if (value == 1 && total > 0)
+			return value;
+		if (value == 0)
+			return 0;
+
 		double d = std::floor(static_cast<double>(value) * 100.0 / static_cast<double>(total));
 		if ((value > 0) && (d < 1.0))
 			return 1;
@@ -687,15 +710,16 @@ namespace util
 
 	inline Q_REQUIRED_RESULT QString toUnicode(const char* str, bool ext = true)
 	{
-		QTextCodec* codec = QTextCodec::codecForMib(2025);//QTextCodec::codecForName("gb2312");
-		QString qstr = codec->toUnicode(str);
+		QTextCodec* codec = QTextCodec::codecForMib(2025);//取GB2312解碼器
+		QString qstr = codec->toUnicode(str);//先以GB2312解碼轉成UNICODE
 		std::wstring wstr = qstr.toStdWString();
 		UINT ACP = ::GetACP();
 		if (950 == ACP && ext)
 		{
-			// 繁體系統地圖名要轉繁體否則遊戲視窗標題會亂碼
+			// 繁體系統要轉繁體否則遊戲視窗標題會亂碼(一堆問號字)
 			int size = lstrlenW(wstr.c_str());
 			QScopedArrayPointer <wchar_t> wbuf(new wchar_t[size + 1]());
+			//繁體字碼表映射
 			LCMapStringEx(LOCALE_NAME_SYSTEM_DEFAULT, LCMAP_TRADITIONAL_CHINESE, wstr.c_str(), size, wbuf.data(), size, NULL, NULL, NULL);
 			qstr = QString::fromWCharArray(wbuf.data());
 		}
@@ -1207,11 +1231,16 @@ namespace util
 	class SafeData
 	{
 	public:
-		SafeData()
-		{
-		}
+		SafeData() = default;
+		virtual ~SafeData() = default;
 
 		T get() const
+		{
+			QReadLocker locker(&lock_);
+			return data_;
+		}
+
+		T data() const
 		{
 			QReadLocker locker(&lock_);
 			return data_;
@@ -1234,11 +1263,252 @@ namespace util
 			return get();
 		}
 
+		//==
+		bool operator==(const T& data) const
+		{
+			return (get() == data);
+		}
+
+		//!=
+		bool operator!=(const T& data) const
+		{
+			return (get() != data);
+		}
 
 	private:
 		T data_;
 		mutable QReadWriteLock lock_;
 	};;
+
+	template <typename T>
+	class SafeVector
+	{
+	public:
+		SafeVector() = default;
+		explicit SafeVector(int size) : data_(size)
+		{
+		}
+
+		SafeVector(const QVector<T>& other) : data_(other)
+		{
+		}
+
+		SafeVector(QVector<T>&& other) : data_(std::move(other))
+		{
+		}
+
+		SafeVector(std::initializer_list<T> args) : data_(args)
+		{
+		}
+
+		SafeVector<T>& operator=(const QVector<T>& other)
+		{
+			QWriteLocker locker(&lock_);
+			data_ = other;
+			return *this;
+		}
+
+		SafeVector(const SafeVector<T>& other) : data_(other.data_)
+		{
+		}
+
+		SafeVector(SafeVector<T>&& other) noexcept : data_(std::move(other.data_))
+		{
+		}
+
+		SafeVector<T>& operator=(SafeVector<T>&& other) noexcept
+		{
+			QWriteLocker locker(&lock_);
+			data_ = std::move(other.data_);
+			return *this;
+		}
+
+		T* operator->()
+		{
+			QWriteLocker locker(&lock_);
+			return data_.data();
+		}
+
+		explicit SafeVector(const std::vector<T>& other) : data_(other.begin(), other.end())
+		{
+		}
+
+		T& operator[](int i)
+		{
+			QWriteLocker locker(&lock_);
+			if (i < 0 || i >= data_.size())
+			{
+				return defaultValue_;
+			}
+			return data_[i];
+		}
+
+		const T& operator[](int i) const
+		{
+			QReadLocker locker(&lock_);
+			if (i < 0 || i >= data_.size())
+			{
+				return defaultValue_;
+			}
+			return data_[i];
+		}
+
+		const T at(int i) const
+		{
+			QReadLocker locker(&lock_);
+			if (i < 0 || i >= data_.size())
+			{
+				return defaultValue_;
+			}
+			return data_.at(i);
+		}
+
+		bool contains(const T& value) const
+		{
+			QReadLocker locker(&lock_);
+			return data_.contains(value);
+		}
+
+		bool operator==(const QVector<T>& other) const
+		{
+			QReadLocker locker(&lock_);
+			return (data_ == other);
+		}
+
+		void clear()
+		{
+			QWriteLocker locker(&lock_);
+			data_.clear();
+		}
+
+		void append(const T& value)
+		{
+			QWriteLocker locker(&lock_);
+			data_.append(value);
+		}
+
+		void append(const SafeVector<T>& other)
+		{
+			QWriteLocker locker(&lock_);
+			data_.append(other.data_);
+		}
+
+		void append(const QVector<T>& other)
+		{
+			QWriteLocker locker(&lock_);
+			data_.append(other);
+		}
+
+		void append(const std::vector<T>& other)
+		{
+			QWriteLocker locker(&lock_);
+			data_.append(other.begin(), other.end());
+		}
+
+		void append(const std::initializer_list<T>& args)
+		{
+			QWriteLocker locker(&lock_);
+			data_.append(args);
+		}
+
+		void push_back(const T& value)
+		{
+			QWriteLocker locker(&lock_);
+			data_.push_back(value);
+		}
+
+		typename QVector<T>::iterator begin()
+		{
+			QWriteLocker locker(&lock_);
+			return data_.begin();
+		}
+
+		typename QVector<T>::iterator end()
+		{
+			QWriteLocker locker(&lock_);
+			return data_.end();
+		}
+
+		typename QVector<T>::const_iterator cbegin() const
+		{
+			QReadLocker locker(&lock_);
+			return data_.cbegin();
+		}
+
+		typename QVector<T>::const_iterator cend() const
+		{
+			QReadLocker locker(&lock_);
+			return data_.cend();
+		}
+
+		void resize(int size)
+		{
+			QWriteLocker locker(&lock_);
+			data_.resize(size);
+		}
+
+		int size() const
+		{
+			QReadLocker locker(&lock_);
+			return data_.size();
+		}
+
+		bool isEmpty() const
+		{
+			QReadLocker locker(&lock_);
+			return data_.isEmpty();
+		}
+
+		QVector<T> toVector() const
+		{
+			QReadLocker locker(&lock_);
+			return data_;
+		}
+
+		T takeFirst()
+		{
+			QWriteLocker locker(&lock_);
+			return data_.takeFirst();
+		}
+
+		T first() const
+		{
+			QReadLocker locker(&lock_);
+			return data_.first();
+		}
+
+		T front() const
+		{
+			QReadLocker locker(&lock_);
+			return data_.front();
+		}
+
+		void pop_front()
+		{
+			QWriteLocker locker(&lock_);
+			data_.pop_front();
+		}
+
+		void erase(typename QVector<T>::iterator position)
+		{
+			QWriteLocker locker(&lock_);
+			data_.erase(position);
+		}
+
+		void erase(typename QVector<T>::iterator first, typename QVector<T>::iterator last)
+		{
+			QWriteLocker locker(&lock_);
+			data_.erase(first, last);
+		}
+
+		virtual ~SafeVector() = default;
+
+	private:
+		QVector<T> data_;
+		T defaultValue_;
+		mutable QReadWriteLock lock_;
+	};
+
 
 	struct MapData
 	{
@@ -1696,11 +1966,11 @@ namespace util
 		int goldearn = 0;
 		int deadthcount = 0;
 	}AfkRecorder;
-#pragma warning(push)
-#pragma warning(disable:304)
-	Q_DECLARE_METATYPE(VirtualMemory);
-	Q_DECLARE_TYPEINFO(VirtualMemory, Q_MOVABLE_TYPE);
-#pragma warning(pop)
+	//#pragma warning(push)
+	//#pragma warning(disable:304)
+	//	Q_DECLARE_METATYPE(VirtualMemory);
+	//	Q_DECLARE_TYPEINFO(VirtualMemory, Q_MOVABLE_TYPE);
+	//#pragma warning(pop)
 
 	static const QRegularExpression rexOR(R"(\s*\|\s*)");
 	static const QRegularExpression rexComma(R"(\s*,\s*)");

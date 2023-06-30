@@ -7,7 +7,22 @@ Injector* Injector::instance = nullptr;
 constexpr const char* InjectDllName = u8"sadll.dll";
 constexpr int MessageTimeout = 3000;
 
+inline __declspec(naked) DWORD* getKernel32()
+{
+	__asm
+	{
+		mov eax, fs: [0x30] ;
+		mov eax, [eax + 0xC];
+		mov eax, [eax + 0x1C];
+		mov eax, [eax];
+		mov eax, [eax];
+		mov eax, [eax + 8];
+		ret;
+	}
+}
+
 Injector::Injector()
+	: globalMutex(QMutex::Recursive)
 {
 	scriptLogModel.reset(new StringListModel);
 	chatLogModel.reset(new StringListModel);
@@ -152,14 +167,11 @@ bool Injector::createProcess(Injector::process_information_t& pi)
 
 int Injector::sendMessage(int msg, int wParam, int lParam) const
 {
-	if (msg < 0) return 0;
-#ifdef _WIN64
-	DWORD_PTR dwResult = NULL;
-#else
-	DWORD dwResult = NULL;
-#endif
-	SendMessageTimeoutW(pi_.hWnd, msg, wParam, lParam, SMTO_ABORTIFHUNG | SMTO_ERRORONEXIT, MessageTimeout, &dwResult);
+	if (msg == WM_NULL)
+		return 0;
 
+	DWORD dwResult = 0L;
+	SendMessageTimeoutW(pi_.hWnd, msg, wParam, lParam, SMTO_ABORTIFHUNG | SMTO_ERRORONEXIT, MessageTimeout, &dwResult);
 	return static_cast<int>(dwResult);
 }
 
@@ -186,21 +198,7 @@ bool Injector::isHandleValid(qint64 pid)
 	return true;
 }
 
-inline __declspec(naked) DWORD* getKernel32()
-{
-	__asm
-	{
-		mov eax, fs: [0x30] ;
-		mov eax, [eax + 0xC];
-		mov eax, [eax + 0x1C];
-		mov eax, [eax];
-		mov eax, [eax];
-		mov eax, [eax + 8];
-		ret;
-	}
-}
-
-DWORD WINAPI getFunAddr(const DWORD* DllBase, const char* FunName)
+DWORD WINAPI Injector::getFunAddr(const DWORD* DllBase, const char* FunName)
 {
 	// 遍歷導出表
 	PIMAGE_DOS_HEADER pDos = (PIMAGE_DOS_HEADER)DllBase;
@@ -223,8 +221,11 @@ DWORD WINAPI getFunAddr(const DWORD* DllBase, const char* FunName)
 
 bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short port, util::LPREMOVE_THREAD_REASON pReason)
 {
-	if (!pi.dwProcessId) return false;
-	if (nullptr == pReason) return false;
+	if (!pi.dwProcessId)
+		return false;
+
+	if (nullptr == pReason)
+		return false;
 
 	constexpr qint64 MAX_TIMEOUT = 10000;
 	bool bret = 0;
@@ -255,6 +256,7 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 			break;
 		}
 
+		qDebug() << "file OK";
 
 		pi.hWnd = NULL;
 
@@ -283,6 +285,8 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 			*pReason = util::REASON_ENUM_WINDOWS_FAIL;
 			break;
 		}
+
+		qDebug() << "HWND OK";
 
 		bool skip = false;
 
@@ -328,7 +332,7 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 		}
 
 		QScopedHandle hThreadHandle(QScopedHandle::CREATE_REMOTE_THREAD, processHandle_,
-			static_cast<PVOID>(reinterpret_cast<LPTHREAD_START_ROUTINE>(loadLibraryProc)),
+			reinterpret_cast<PVOID>(loadLibraryProc),
 			reinterpret_cast<LPVOID>(static_cast<DWORD>(lpParameter)));
 		if (hThreadHandle.isValid())
 		{
@@ -341,6 +345,13 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 
 				if (timer.hasExpired(MAX_TIMEOUT))
 					break;
+
+				if (!IsWindow(pi.hWnd))
+					break;
+
+				if (SendMessageTimeoutW(pi.hWnd, WM_NULL, 0, 0, SMTO_ABORTIFHUNG | SMTO_ERRORONEXIT, MessageTimeout, nullptr) == 0)
+					break;
+
 				QThread::msleep(100);
 			}
 		}
@@ -350,6 +361,8 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 			*pReason = util::REASON_INJECT_LIBRARY_FAIL;
 			break;
 		}
+
+		qDebug() << "inject OK";
 
 		pi_ = pi;
 		parent = qgetenv("SASH_HWND").toULong();
@@ -363,6 +376,12 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 
 			if (timer.hasExpired(MAX_TIMEOUT))
 				break;
+
+			if (!IsWindow(pi.hWnd))
+				break;
+
+			if (SendMessageTimeoutW(pi.hWnd, WM_NULL, 0, 0, SMTO_ABORTIFHUNG | SMTO_ERRORONEXIT, MessageTimeout, nullptr) == 0)
+				break;
 		}
 
 		if (NULL == hModule_)
@@ -371,8 +390,9 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 			break;
 		}
 
+		qDebug() << "module OK";
+
 		hookdllModule_ = reinterpret_cast<HMODULE>(hModule);
-		qDebug() << ":Inject OK!";
 		bret = true;
 	} while (false);
 
@@ -380,7 +400,6 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 		pi_ = { 0 };
 	return bret;
 }
-
 
 void Injector::remoteFreeModule()
 {
@@ -401,7 +420,7 @@ void Injector::remoteFreeModule()
 	mem::writeInt(processHandle_, lpParameter, (int)hookdllModule_, 0);
 
 	QScopedHandle hThreadHandle(QScopedHandle::CREATE_REMOTE_THREAD, processHandle_,
-		static_cast<LPVOID>(reinterpret_cast<LPTHREAD_START_ROUTINE>(freeLibraryProc)),
+		reinterpret_cast<LPVOID>(freeLibraryProc),
 		reinterpret_cast<LPVOID>(static_cast<DWORD>(lpParameter)));
 	WaitForSingleObject(hThreadHandle, 1000);
 }

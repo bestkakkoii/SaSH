@@ -415,7 +415,7 @@
     </message>
     <message>
         <source>round delay</source>
-        <translation type="unfinished"></translation>
+        <translation>攻擊延時</translation>
     </message>
 </context>
 <context>
@@ -1426,6 +1426,10 @@ Update process will cause all the games to be closed, are you sure to continue?<
 
 更新會導致所有遊戲和外掛都被關閉, 您確定要更新嗎?</translation>
     </message>
+    <message>
+        <source>connecting</source>
+        <translation>連線中</translation>
+    </message>
 </context>
 <context>
     <name>MainFormClass</name>
@@ -1860,7 +1864,7 @@ Update process will cause all the games to be closed, are you sure to continue?<
     </message>
     <message>
         <source>×</source>
-        <translation type="unfinished"></translation>
+        <translation></translation>
     </message>
 </context>
 <context>
@@ -2312,7 +2316,7 @@ MESSAGE：<byte value="xd"/>
     </message>
     <message>
         <source>&lt;findpath&gt;path found, cost:%1</source>
-        <translation>&lt;尋路&gt;成功找到路徑，耗時：%1</translation>
+        <translation type="vanished">&lt;尋路&gt;成功找到路徑，耗時：%1</translation>
     </message>
     <message>
         <source>&lt;findpath&gt;arrived destination, cost:%1</source>
@@ -2380,71 +2384,71 @@ MESSAGE：<byte value="xd"/>
     </message>
     <message>
         <source>1st//Acticity</source>
-        <translation>1線//活動互動</translation>
+        <translation type="vanished">1線//活動互動</translation>
     </message>
     <message>
         <source>2nd///Market</source>
-        <translation>2線//擺攤交易</translation>
+        <translation type="vanished">2線//擺攤交易</translation>
     </message>
     <message>
         <source>3rd//Family</source>
-        <translation>3線//莊園族戰</translation>
+        <translation type="vanished">3線//莊園族戰</translation>
     </message>
     <message>
         <source>4th//Away</source>
-        <translation>4線//練級掛機</translation>
+        <translation type="vanished">4線//練級掛機</translation>
     </message>
     <message>
         <source>5th//Away</source>
-        <translation>5//練級掛機</translation>
+        <translation type="vanished">5//練級掛機</translation>
     </message>
     <message>
         <source>6th//Away</source>
-        <translation>6//練級掛機</translation>
+        <translation type="vanished">6//練級掛機</translation>
     </message>
     <message>
         <source>7th//Away</source>
-        <translation>7//練級掛機</translation>
+        <translation type="vanished">7//練級掛機</translation>
     </message>
     <message>
         <source>8th//Away</source>
-        <translation>8//練級掛機</translation>
+        <translation type="vanished">8//練級掛機</translation>
     </message>
     <message>
         <source>9th//Away</source>
-        <translation>9//練級掛機</translation>
+        <translation type="vanished">9//練級掛機</translation>
     </message>
     <message>
         <source>15th//Company</source>
-        <translation>15//公司專線</translation>
+        <translation type="vanished">15//公司專線</translation>
     </message>
     <message>
         <source>21th//Member</source>
-        <translation>21線//會員專線</translation>
+        <translation type="vanished">21線//會員專線</translation>
     </message>
     <message>
         <source>22th//Member</source>
-        <translation>22線//會員專線</translation>
+        <translation type="vanished">22線//會員專線</translation>
     </message>
     <message>
         <source>Telecom</source>
-        <translation>電信</translation>
+        <translation type="vanished">電信</translation>
     </message>
     <message>
         <source>UnitedNetwork</source>
-        <translation>聯通</translation>
+        <translation type="vanished">聯通</translation>
     </message>
     <message>
         <source>Easyown</source>
-        <translation>移動</translation>
+        <translation type="vanished">移動</translation>
     </message>
     <message>
         <source>Oversea</source>
-        <translation>海外</translation>
+        <translation type="vanished">海外</translation>
     </message>
     <message>
         <source>Backup</source>
-        <translation>備份</translation>
+        <translation type="vanished">備份</translation>
     </message>
     <message>
         <source>left</source>
@@ -2500,11 +2504,11 @@ MESSAGE：<byte value="xd"/>
     </message>
     <message>
         <source>&apos; in parameter: &apos;</source>
-        <translation>&apos; 在參數:&apos;</translation>
+        <translation type="vanished">&apos; 在參數:&apos;</translation>
     </message>
     <message>
         <source>&apos; at line: %1</source>
-        <translation>&apos; 中 位於第 %1 行</translation>
+        <translation type="vanished">&apos; 中 位於第 %1 行</translation>
     </message>
     <message>
         <source>&lt;Warning&gt;Unknown command &apos;%1&apos; has been ignored at line: %2</source>
@@ -2512,7 +2516,7 @@ MESSAGE：<byte value="xd"/>
     </message>
     <message>
         <source>&lt;Syntax Error&gt;Unexpected &apos;</source>
-        <translation>&lt;語法錯誤&gt;非預期的 &apos;</translation>
+        <translation type="vanished">&lt;語法錯誤&gt;非預期的 &apos;</translation>
     </message>
     <message>
         <source>%1 hour %2 min %3 sec</source>
@@ -2524,7 +2528,7 @@ MESSAGE：<byte value="xd"/>
     </message>
     <message>
         <source>%1Missing comma after &apos;%2&apos; %3%4%5</source>
-        <translation>%1於 &apos;%2&apos; 之後缺少逗點 %3%4%5</translation>
+        <translation type="vanished">%1於 &apos;%2&apos; 之後缺少逗點 %3%4%5</translation>
     </message>
     <message>
         <source>&lt;Syntax Error&gt;Unexpected &apos;&amp;&apos; before declared variable name &apos;%1&apos; at line: %2</source>
@@ -2569,6 +2573,10 @@ MESSAGE：<byte value="xd"/>
     <message>
         <source>wind</source>
         <translation>風</translation>
+    </message>
+    <message>
+        <source>&lt;findpath&gt;path found, cost:%1 step:%2</source>
+        <translation>&lt;尋路&gt;成功找到路徑，耗時：%1 步數:%2</translation>
     </message>
 </context>
 <context>
@@ -3375,10 +3383,6 @@ MESSAGE：<byte value="xd"/>
         <translation></translation>
     </message>
     <message>
-        <source>if</source>
-        <translation></translation>
-    </message>
-    <message>
         <source>function</source>
         <translation></translation>
     </message>
@@ -3720,35 +3724,47 @@ MESSAGE：<byte value="xd"/>
     </message>
     <message>
         <source>skup</source>
-        <translation type="unfinished"></translation>
+        <translation></translation>
     </message>
     <message>
         <source>mpp</source>
-        <translation type="unfinished"></translation>
+        <translation></translation>
     </message>
     <message>
         <source>hpp</source>
-        <translation type="unfinished"></translation>
+        <translation></translation>
     </message>
     <message>
         <source>wequip</source>
-        <translation type="unfinished"></translation>
+        <translation></translation>
     </message>
     <message>
         <source>uequip</source>
-        <translation type="unfinished"></translation>
+        <translation></translation>
     </message>
     <message>
         <source>requip</source>
-        <translation type="unfinished"></translation>
+        <translation></translation>
     </message>
     <message>
         <source>puequip</source>
-        <translation type="unfinished"></translation>
+        <translation></translation>
     </message>
     <message>
         <source>pequip</source>
-        <translation type="unfinished"></translation>
+        <translation></translation>
+    </message>
+    <message>
+        <source>successjump</source>
+        <translation>正確跳轉</translation>
+    </message>
+    <message>
+        <source>failedjump</source>
+        <translation>錯誤跳轉</translation>
+    </message>
+    <message>
+        <source>ifnormal</source>
+        <translation></translation>
     </message>
 </context>
 <context>

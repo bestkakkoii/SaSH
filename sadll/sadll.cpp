@@ -98,7 +98,7 @@ int shiftReadBuf(int size)
 	if (size > net_readbuflen)
 		return -1;
 
-	for (i = size; i < net_readbuflen; i++)
+	for (i = size; i < net_readbuflen; ++i)
 	{
 		net_readbuf[i - size] = net_readbuf[i];
 	}
@@ -112,7 +112,7 @@ int GameService::getLineFromReadBuf(char* output, int maxlen)
 	if (net_readbuflen >= Autil::NETBUFSIZ)
 		return -1;
 
-	for (i = 0; i < net_readbuflen && i < (maxlen - 1); i++)
+	for (i = 0; i < net_readbuflen && i < (maxlen - 1); ++i)
 	{
 		if (net_readbuf[i] == '\n')
 		{
@@ -405,7 +405,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, DWORD message, LPARAM wParam, LPARAM lParam)
 		g_GameService.WM_SetGameStatus(wParam);
 		return 1;
 	}
-	case kSetBLockPacket://戰鬥封包阻擋
+	case kSetBlockPacket://戰鬥封包阻擋
 	{
 		g_GameService.WM_SetBLockPacket(wParam);
 		return 1;

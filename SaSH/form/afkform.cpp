@@ -153,10 +153,10 @@ void AfkForm::onButtonClicked()
 	//catch
 	else if (name == "pushButton_autocatchpet")
 	{
-		QVariant data = injector.getUserData(util::kUserEnemyNames);
-		if (data.isValid())
+		QVariant dat = injector.getUserData(util::kUserEnemyNames);
+		if (dat.isValid())
 		{
-			srcSelectList = data.toStringList();
+			srcSelectList = dat.toStringList();
 		}
 		srcSelectList.removeDuplicates();
 
@@ -180,20 +180,16 @@ void AfkForm::onButtonClicked()
 	}
 	else if (name == "pushButton_autodroppet")
 	{
-		QStringList srcList;
-		QStringList dstList;
-		QStringList srcSelectList;
-
-		QVariant data = injector.getUserData(util::kUserEnemyNames);
-		if (data.isValid())
+		QVariant dat = injector.getUserData(util::kUserEnemyNames);
+		if (dat.isValid())
 		{
-			srcSelectList = data.toStringList();
+			srcSelectList = dat.toStringList();
 		}
 
-		data = injector.getUserData(util::kUserPetNames);
-		if (data.isValid())
+		dat = injector.getUserData(util::kUserPetNames);
+		if (dat.isValid())
 		{
-			srcSelectList.append(data.toStringList());
+			srcSelectList.append(dat.toStringList());
 		}
 		srcSelectList.removeDuplicates();
 
@@ -836,7 +832,7 @@ void AfkForm::onApplyHashSettingsToUI()
 {
 	Injector& injector = Injector::getInstance();
 
-	if (!injector.server.isNull() && injector.server->IS_ONLINE_FLAG)
+	if (!injector.server.isNull() && injector.server->getOnlineFlag())
 	{
 		QString title = tr("AfkForm");
 		QString newTitle = QString("[%1] %2").arg(injector.server->pc.name).arg(title);

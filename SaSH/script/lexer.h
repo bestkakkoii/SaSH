@@ -20,7 +20,8 @@ enum RESERVE
 	//TK_COMMA, //(用於分隔多個TOKEN 除了TK_CMD TK_SUBCMD 和其他TOKEN )
 
 	//數值類型
-	TK_STRING,  //(  僅限被  "  包裹的)
+	TK_STRING,  //任何字符串
+	TK_CSTRING, //被 ' ' 或 " " 包圍的常量字符串
 	TK_INT, //任何整數
 	TK_DOUBLE, //任何符點數
 	TK_BOOL, //"真" "假" "true" 或 "false"
@@ -138,7 +139,7 @@ private:
 
 	void tokenized(int currentLine, const QString& line, TokenMap* ptoken, util::SafeHash<QString, int>* plabel);
 
-	void checkNonQuotedParameterForErrors(int currrentline, const QString& parameter);
+
 	void checkInvalidReadVariable(const util::SafeHash<int, TokenMap>& tokenmaps);
 	void checkFunctionPairs(const util::SafeHash<int, TokenMap>& tokenmaps);
 

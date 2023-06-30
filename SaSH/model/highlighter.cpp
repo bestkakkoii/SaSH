@@ -16,7 +16,7 @@ const char* Highlighter::keywords(int set) const
 	{
 		//lua key word
 		return "goto call function end pause exit label jmp return back "
-			"if ifmap ifplayer ifpet ifpetex ifitem ifteam ifitemfull ifdaily ifbattle ifpos ifonline ";
+			"if ifmap ifplayer ifpet ifpetex ifitem ifteam ifitemfull ifdaily ifbattle ifpos ifonline ifnormal ";
 	}
 	case 2://QsciLexerLua::BasicFunctions//黃色
 	{
@@ -57,7 +57,7 @@ const char* Highlighter::keywords(int set) const
 	{
 		return
 			"tick stick chname chfname chlv chhp chmp chdp stone px py "
-			"floor frname date time earnstone dlgid";
+			"floor frname date time earnstone dlgid bt";
 	}
 	case 9:break;
 	}

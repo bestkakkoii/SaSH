@@ -122,7 +122,7 @@ void InfoForm::onResetControlTextLanguage()
 void InfoForm::onApplyHashSettingsToUI()
 {
 	Injector& injector = Injector::getInstance();
-	if (!injector.server.isNull() && injector.server->IS_ONLINE_FLAG)
+	if (!injector.server.isNull() && injector.server->getOnlineFlag())
 	{
 		QString title = tr("InfoForm");
 		QString newTitle = QString("[%1] %2").arg(injector.server->pc.name).arg(title);

@@ -531,39 +531,41 @@ QList<util::MapData> util::Config::readMapData(const QString& key) const
 {
 	QList<MapData> result;
 
-	if (cache_.contains(key))
+	if (!cache_.contains(key))
+		return result;
+
+	QJsonArray jarray = cache_[key].toJsonArray();
+	if (jarray.isEmpty())
+		return result;
+
+	for (const QJsonValue& value : jarray)
 	{
-		QJsonArray jarray = cache_[key].toJsonArray();
+		QStringList list = value.toString().split(util::rexOR);
+		if (list.size() != 2)
+			continue;
 
-		for (const QJsonValue& value : jarray)
-		{
-			QStringList list = value.toString().split(util::rexOR);
-			if (list.size() == 2)
-			{
-				MapData data;
-				data.name = list[0];
-				QString pos = list[1];
-				if (pos.count(",") == 1)
-				{
-					QStringList posList = pos.split(",");
-					if (posList.size() == 2)
-					{
-						data.x = posList[0].toInt();
-						data.y = posList[1].toInt();
-					}
-					else
-						continue;
-				}
-				else
-				{
-					continue;
-				}
+		MapData data;
+		data.name = list[0].simplified();
+		if (data.name.isEmpty())
+			continue;
 
-				result.append(data);
-			}
-		}
+		QString pos = list[1].simplified();
+		if (pos.isEmpty())
+			continue;
 
+		if (pos.count(",") != 1)
+			continue;
 
+		QStringList posList = pos.split(",");
+		if (posList.size() != 2)
+			continue;
+
+		data.x = posList[0].simplified().toInt();
+		data.y = posList[1].simplified().toInt();
+		if (data.x == 0 && data.y == 0)
+			continue;
+
+		result.append(data);
 	}
 
 	return result;
@@ -754,15 +756,16 @@ bool mem::read(HANDLE hProcess, DWORD desiredAccess, SIZE_T size, PVOID buffer)
 	return ret == TRUE;
 }
 
-int mem::readInt(HANDLE hProcess, DWORD desiredAccess, SIZE_T size)
+
+template<typename T, typename>
+T mem::readInt(HANDLE hProcess, DWORD desiredAccess)
 {
-	if (!size)return 0;
-	if (!hProcess) return 0;
-	if (!desiredAccess) return 0;
-	int buffer = 0;
-	SIZE_T sizet = static_cast<SIZE_T>(size);
-	BOOL ret = read(hProcess, desiredAccess, sizet, &buffer);
-	return (ret) ? (buffer) : 0;
+	if (!hProcess) return T{};
+
+	T buffer{};
+	SIZE_T size = sizeof(T);
+	BOOL ret = mem::read(hProcess, desiredAccess, size, &buffer);
+	return static_cast<T>(ret ? buffer : 0);
 }
 
 float mem::readFloat(HANDLE hProcess, DWORD desiredAccess)

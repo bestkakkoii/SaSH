@@ -2,7 +2,103 @@
 #include "mainform.h"
 #include <QtWidgets/QApplication>
 
+#pragma comment(lib, "ws2_32.lib")
+
 #if QT_NO_DEBUG
+void CreateConsole()
+{
+	if (!AllocConsole())
+	{
+		return;
+	}
+	FILE* fDummy;
+	freopen_s(&fDummy, "CONOUT$", "w", stdout);
+	freopen_s(&fDummy, "CONOUT$", "w", stderr);
+	freopen_s(&fDummy, "CONIN$", "r", stdin);
+	std::cout.clear();
+	std::clog.clear();
+	std::cerr.clear();
+	std::cin.clear();
+
+	// std::wcout, std::wclog, std::wcerr, std::wcin
+	HANDLE hConOut = CreateFile(TEXT("CONOUT$"), GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+	HANDLE hConIn = CreateFile(TEXT("CONIN$"), GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+	SetStdHandle(STD_OUTPUT_HANDLE, hConOut);
+	SetStdHandle(STD_ERROR_HANDLE, hConOut);
+	SetStdHandle(STD_INPUT_HANDLE, hConIn);
+	std::wcout.clear();
+	std::wclog.clear();
+	std::wcerr.clear();
+	std::wcin.clear();
+
+	SetConsoleCP(CP_UTF8);
+	SetConsoleOutputCP(CP_UTF8);
+	setlocale(LC_ALL, "en_US.UTF-8");
+}
+
+void printStackTrace()
+{
+	QTextStream out(stderr);
+	out.setCodec("UTF-8");
+	void* stack[100];
+	unsigned short frames;
+	SYMBOL_INFO* symbol;
+	HANDLE process;
+	process = GetCurrentProcess();
+	SymInitialize(process, NULL, TRUE);
+	frames = CaptureStackBackTrace(0, 100, stack, NULL);
+	symbol = (SYMBOL_INFO*)calloc(sizeof(SYMBOL_INFO) + 256 * sizeof(char), 1);
+	if (symbol)
+	{
+		symbol->MaxNameLen = 255;
+		symbol->SizeOfStruct = sizeof(SYMBOL_INFO);
+		for (int i = 0; i < frames; ++i)
+		{
+			SymFromAddr(process, (DWORD64)(stack[i]), 0, symbol);
+			out << i << ": " << QString(symbol->Name) << " - " << symbol->Address << Qt::endl;
+		}
+
+		free(symbol);
+	}
+}
+
+void qtMessageHandler(QtMsgType type, const QMessageLogContext& context, const QString& msg)
+{
+#if _DEBUG
+	//format: "> %{threadid} [ @%{line} | %{function} ] MSG<%{category}>: %{message}"
+	const QString qstr = QString("> %1 [ @%2 | %3 ] MSG<%4>: %5") \
+		.arg(QString::number((int)QThread::currentThreadId()), QString(context.file), QString(context.function), QString(context.category), msg);
+	const std::wstring str = qstr.toStdWString();
+	OutputDebugStringW(str.c_str());
+#endif
+	if (type == QtCriticalMsg || type == QtFatalMsg)
+	{
+		try
+		{
+			throw QException();
+		}
+		catch (const QException& e)
+		{
+#if QT_NO_DEBUG
+			QTextStream out(stderr);
+			out.setCodec("UTF-8");
+			if (!QString(e.what()).contains("Unknown exception"))
+			{
+				CreateConsole();
+				out << QString("Qt exception caught: ") << QString(e.what()) << Qt::endl;
+				out << QString("Context: ") << context.file << ":" << context.line << " - " << context.function << Qt::endl;
+				out << QString("Message: ") << msg << QString(e.what()) << Qt::endl;
+				printStackTrace();
+				system("pause");
+				MINT::NtTerminateProcess(::GetCurrentProcess(), 0);
+			}
+#else
+			Q_UNUSED(e);
+#endif
+		}
+	}
+}
+
 #include <DbgHelp.h>
 #pragma comment(lib, "dbghelp.lib")
 LONG CALLBACK MinidumpCallback(PEXCEPTION_POINTERS pException)
@@ -120,31 +216,38 @@ void fontInitialize(const QString& currentWorkPath, QApplication& a)
 		int res = AddFontResource(fontFilePathW.c_str());
 		if (res == 0)
 		{
-			//qDebug() << "AddFontResource failed";
+			qDebug() << "AddFontResource" << fontName << "failed";
 		}
 		else
 		{
-			//qDebug() << "AddFontResource success";
+			qDebug() << "AddFontResource" << fontName << "success";
 		}
 		return fontId;
 	};
 
 	installFont("JoysticMonospace.ttf");
-	installFont("YaHei Consolas Hybrid 1.12.ttf");
-
-	UINT acp = GetACP();
+	int fontid = installFont("YaHei Consolas Hybrid 1.12.ttf");
 	QFont defaultFont;
-	if (acp == 950)
+	if (fontid == -1)
 	{
-		defaultFont = QFont(u8"新細明體", 12, QFont::Normal);
-	}
-	else if (acp == 936)
-	{
-		defaultFont = QFont("SimSun", 12, QFont::Normal);
+		UINT acp = GetACP();
+
+		if (acp == 950)
+		{
+			defaultFont = QFont(u8"PMingLiU", 12, QFont::Normal);
+		}
+		else if (acp == 936)
+		{
+			defaultFont = QFont("SimSun", 12, QFont::Normal);
+		}
+		else
+		{
+			defaultFont = QFont("Arial", 12, QFont::Normal);
+		}
 	}
 	else
 	{
-		defaultFont = QFont("Arial", 12, QFont::Normal);
+		defaultFont = QFont("PMingLiU", 12, QFont::Normal);
 	}
 
 	// Font size adjustment
@@ -167,10 +270,16 @@ int main(int argc, char* argv[])
 	QApplication::setAttribute(Qt::AA_UseDesktopOpenGL);
 
 	QApplication a(argc, argv);
+
+#ifdef _DEBUG
 	qSetMessagePattern("[%{threadid}] [@%{line}] [%{function}] [%{type}] %{message}");//%{file} 
+#endif
 
 	SetConsoleCP(CP_UTF8);
 	SetConsoleOutputCP(CP_UTF8);
+	setlocale(LC_ALL, "en_US.UTF-8");
+	QTextCodec* codec = QTextCodec::codecForName("UTF-8");
+	QTextCodec::setCodecForLocale(codec);
 
 	QString currentWorkPath = QCoreApplication::applicationDirPath();
 	QDir dir(currentWorkPath + "/lib");
@@ -203,7 +312,13 @@ int main(int argc, char* argv[])
 #if QT_NO_DEBUG
 	SetUnhandledExceptionFilter(MinidumpCallback);
 	//AddVectoredExceptionHandler(0, MinidumpCallback);
+	qInstallMessageHandler(qtMessageHandler);
 #endif
+
+	int count = QThread::idealThreadCount();
+	QThreadPool* pool = QThreadPool::globalInstance();
+	if (pool != nullptr)
+		pool->setMaxThreadCount(count);
 
 	MainForm w;
 	w.show();

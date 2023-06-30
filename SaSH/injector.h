@@ -49,7 +49,7 @@ public:
 		kMuteSound,
 		kEnableBattleDialog,
 		kSetGameStatus,
-		kSetBLockPacket,
+		kSetBlockPacket,
 		kBattleTimeExtend,
 		kEnableOptimize,
 
@@ -141,6 +141,8 @@ private:
 
 	Q_REQUIRED_RESULT bool isHandleValid(qint64 pid);
 
+	DWORD WINAPI getFunAddr(const DWORD* DllBase, const char* FunName);
+
 public:
 	QString currentGameExePath;//當前使用的遊戲進程完整路徑
 
@@ -155,6 +157,8 @@ public:
 
 	QMutex globalMutex; //用於保證 主線程 | 收包線程 | 腳本線程 數據同步的主要鎖
 
+	util::SafeData<QStringList> serverNameList;
+	util::SafeData<QStringList> subServerNameList;
 
 private:
 	int hModule_ = NULL;

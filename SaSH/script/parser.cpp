@@ -5,6 +5,17 @@
 #include "injector.h"
 #include "interpreter.h"
 
+#ifdef _DEBUG
+#define exprtk_enable_debugging
+#endif
+#include <exprtk/exprtk.hpp>
+
+Parser::Parser()
+{
+	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
+	connect(&signalDispatcher, &SignalDispatcher::nodifyAllStop, this, &Parser::requestInterruption, Qt::UniqueConnection);
+}
+
 //根據token解釋腳本
 void Parser::parse(int line)
 {
@@ -65,6 +76,217 @@ T calc(const QVariant& a, const QVariant& b, RESERVE operatorType)
 	Q_UNREACHABLE();
 }
 
+//比較兩個QVariant以 a 的類型為主
+bool Parser::compare(const QVariant& a, const QVariant& b, RESERVE type) const
+{
+	QVariant::Type aType = a.type();
+
+	if (aType == QVariant::String)
+	{
+		QString strA = a.toString();
+		QString strB = b.toString();
+
+		// 根据 type 进行相应的比较操作
+		switch (type)
+		{
+		case TK_EQ: // "=="
+			return (strA == strB);
+
+		case TK_NEQ: // "!="
+			return (strA != strB);
+
+		case TK_GT: // ">"
+			return (strA.compare(strB) > 0);
+
+		case TK_LT: // "<"
+			return (strA.compare(strB) < 0);
+
+		case TK_GEQ: // ">="
+			return (strA.compare(strB) >= 0);
+
+		case TK_LEQ: // "<="
+			return (strA.compare(strB) <= 0);
+
+		default:
+			return false; // 不支持的比较类型，返回 false
+		}
+	}
+	else if (aType == QVariant::Double)
+	{
+		double numA = a.toDouble();
+		double numB = b.toDouble();
+
+		// 根据 type 进行相应的比较操作
+		switch (type)
+		{
+		case TK_EQ: // "=="
+			return (numA == numB);
+
+		case TK_NEQ: // "!="
+			return (numA != numB);
+
+		case TK_GT: // ">"
+			return (numA > numB);
+
+		case TK_LT: // "<"
+			return (numA < numB);
+
+		case TK_GEQ: // ">="
+			return (numA >= numB);
+
+		case TK_LEQ: // "<="
+			return (numA <= numB);
+
+		default:
+			return false; // 不支持的比较类型，返回 false
+		}
+	}
+	else if (aType == QVariant::Int)
+	{
+		int numA = a.toInt();
+		int numB = b.toInt();
+
+		// 根据 type 进行相应的比较操作
+		switch (type)
+		{
+		case TK_EQ: // "=="
+			return (numA == numB);
+
+		case TK_NEQ: // "!="
+			return (numA != numB);
+
+		case TK_GT: // ">"
+			return (numA > numB);
+
+		case TK_LT: // "<"
+			return (numA < numB);
+
+		case TK_GEQ: // ">="
+			return (numA >= numB);
+
+		case TK_LEQ: // "<="
+			return (numA <= numB);
+
+		default:
+			return false; // 不支持的比较类型，返回 false
+		}
+
+	}
+
+	return false; // 不支持的类型，返回 false
+}
+
+template <typename T>
+bool Parser::exprTo(QString expr, T* ret)
+{
+	auto makeValue = [](const QString& expr, T* ret)->bool
+	{
+		using TKSymbolTable = exprtk::symbol_table<double>;
+		using TKExpression = exprtk::expression<double>;
+		using TKParser = exprtk::parser<double>;
+
+		TKSymbolTable symbolTable;
+		symbolTable.add_constants();
+
+		TKParser parser;
+		TKExpression expression;
+		expression.register_symbol_table(symbolTable);
+
+		const QByteArray exprStrUTF8 = expr.toUtf8();
+		const std::string exprStr = std::string(exprStrUTF8.constData(), exprStrUTF8.size());
+		if (!parser.compile(exprStr, expression))
+			return false;
+
+		if (ret != nullptr)
+			*ret = static_cast<T>(expression.value());
+		return true;
+	};
+
+	bool result = makeValue(expr, ret);
+	if (result)
+		return true;
+
+	static const QStringList logicOp = { "==", "!=", "<=", ">=", "<", ">" };
+	//檢查表達式是否包含邏輯運算符
+	QString opStr;
+	for (const auto& op : logicOp)
+	{
+		if (expr.contains(op))
+		{
+			opStr = op;
+			break;
+		}
+	}
+
+	static const QHash<QString, RESERVE> hash = {
+		{ "==", TK_EQ }, // "=="
+		{ "!=", TK_NEQ }, // "!="
+		{ ">", TK_GT }, // ">"
+		{ "<", TK_LT }, // "<"
+		{ ">=", TK_GEQ }, // ">="
+		{ "<=", TK_LEQ }, // "<="
+	};
+
+	//以邏輯符號為分界分割左右邊
+	QStringList exprList;
+	QVariant A;
+	QVariant B;
+	if (opStr.isEmpty())
+		return false;
+
+	exprList = expr.split(opStr, Qt::SkipEmptyParts);
+
+	if (exprList.size() != 2)
+		return false;
+
+	A = exprList.at(0).trimmed();
+	B = exprList.at(1).trimmed();
+
+	RESERVE type = hash.value(opStr, TK_UNK);
+	if (type == TK_UNK)
+		return false;
+
+	result = compare(A, B, type);
+
+	if (ret != nullptr)
+		*ret = static_cast<T>(result);
+
+	return true;
+}
+
+template <typename T>
+bool Parser::exprTo(T value, QString expr, T* ret)
+{
+	using TKSymbolTable = exprtk::symbol_table<double>;
+	using TKExpression = exprtk::expression<double>;
+	using TKParser = exprtk::parser<double>;
+
+	constexpr auto varName = "A";
+
+	TKSymbolTable symbolTable;
+	symbolTable.add_constants();
+	double dvalue = static_cast<double>(value);
+	symbolTable.add_variable(varName, dvalue);
+
+
+	TKParser parser;
+	TKExpression expression;
+	expression.register_symbol_table(symbolTable);
+
+	QString newExpr = QString("%1 %2").arg(varName).arg(expr);
+
+	const std::string exprStr = newExpr.toStdString();
+	if (!parser.compile(exprStr, expression))
+		return false;
+
+	expression.value();
+	dvalue = symbolTable.variable_ref(varName);
+
+	if (ret != nullptr)
+		*ret = static_cast<T>(dvalue);
+	return true;
+}
+
 //嘗試取指定位置的token轉為字符串
 bool Parser::checkString(const TokenMap& TK, int idx, QString* ret)
 {
@@ -78,7 +300,12 @@ bool Parser::checkString(const TokenMap& TK, int idx, QString* ret)
 	VariantSafeHash args = getLabelVars();
 	if (!var.isValid())
 		return false;
-	if (type == TK_STRING || type == TK_CMD || type == TK_NAME || type == TK_LABELVAR || type == TK_CAOS)
+
+	if (type == TK_CSTRING)
+	{
+		*ret = var.toString();
+	}
+	else if (type == TK_STRING || type == TK_CMD || type == TK_NAME || type == TK_LABELVAR || type == TK_CAOS)
 	{
 		//檢查是否為區域變量
 		QString name = var.toString();
@@ -118,6 +345,8 @@ bool Parser::checkInt(const TokenMap& TK, int idx, int* ret)
 	VariantSafeHash args = getLabelVars();
 	if (!var.isValid())
 		return false;
+	if (type == TK_CSTRING)
+		return false;
 
 	if (type == TK_INT)
 	{
@@ -146,15 +375,29 @@ bool Parser::checkInt(const TokenMap& TK, int idx, int* ret)
 		}
 		else if (variables_->contains(name))
 		{
-			bool ok;
-			int value = variables_->value(name).toInt(&ok);
-			if (ok)
-				*ret = value;
+			if (variables_->value(name).type() == QVariant::Int)
+			{
+				bool ok;
+				int value = variables_->value(name).toInt(&ok);
+				if (ok)
+					*ret = value;
+				else
+					return false;
+			}
 			else
 				return false;
 		}
 		else
-			return false;
+		{
+			QString varValueStr = var.toString();
+			replaceToVariable(varValueStr);
+
+			int value = 0;
+			if (!exprTo(varValueStr, &value))
+				return false;
+
+			*ret = value;
+		}
 	}
 	else
 		return false;
@@ -174,6 +417,9 @@ bool Parser::checkDouble(const TokenMap& TK, int idx, double* ret)
 	QVariant var = TK.value(idx).data;
 	VariantSafeHash args = getLabelVars();
 	if (!var.isValid())
+		return false;
+
+	if (type == TK_CSTRING)
 		return false;
 
 	if (type == TK_DOUBLE)
@@ -211,7 +457,16 @@ bool Parser::checkDouble(const TokenMap& TK, int idx, double* ret)
 				return false;
 		}
 		else
-			return false;
+		{
+			QString varValueStr = var.toString();
+			replaceToVariable(varValueStr);
+
+			double value = 0;
+			if (!exprTo(varValueStr, &value))
+				return false;
+
+			*ret = value;
+		}
 	}
 	else
 		return false;
@@ -254,11 +509,11 @@ bool Parser::toVariant(const TokenMap& TK, int idx, QVariant* ret)
 				*ret = value;
 			else
 			{
-				double value = variables_->value(name).toDouble(&ok);
-				if (ok)
-					*ret = value;
-				else
-					*ret = variables_->value(name).toString();
+				//double value = variables_->value(name).toDouble(&ok);
+				//if (ok)
+				//	*ret = value;
+				//else
+				*ret = variables_->value(name).toString();
 			}
 		}
 		else
@@ -277,13 +532,13 @@ QVariant Parser::checkValue(const TokenMap TK, int idx, QVariant::Type type)
 {
 	QVariant varValue;
 	int ivalue;
-	double dvalue;
+	//double dvalue;
 	QString text;
-	if (checkDouble(currentLineTokens_, idx, &dvalue))
-	{
-		varValue = dvalue;
-	}
-	else if (checkInt(currentLineTokens_, idx, &ivalue))
+	//if (checkDouble(currentLineTokens_, idx, &dvalue))
+	//{
+		//varValue = dvalue;
+	//}
+	if (checkInt(currentLineTokens_, idx, &ivalue))
 	{
 		varValue = ivalue;
 	}
@@ -295,8 +550,8 @@ QVariant Parser::checkValue(const TokenMap TK, int idx, QVariant::Type type)
 	{
 		if (type == QVariant::Int)
 			varValue = 0;
-		else if (type == QVariant::Double)
-			varValue = 0.0;
+		//else if (type == QVariant::Double)
+			//varValue = 0.0;
 		else if (type == QVariant::String)
 			varValue = "";
 	}
@@ -362,6 +617,43 @@ int Parser::checkJump(const TokenMap& TK, int idx, bool expr, JumpBehavior behav
 	return Parser::kNoChange;
 }
 
+//將表達式中所有變量替換成實際數值
+void Parser::replaceToVariable(QString& expr)
+{
+	VariantSafeHash& args = getLabelVarsRef();
+	for (auto it = args.cbegin(); it != args.cend(); ++it)
+	{
+		QString name = it.key();
+		QVariant value = it.value();
+		if (value.type() == QVariant::String)
+			expr.replace(name, value.toString().simplified());
+		else if (value.type() == QVariant::Double)
+			expr.replace(name, QString::number(value.toDouble(), 'f', 16));
+		else
+			expr.replace(name, QString::number(value.toInt()));
+	}
+
+	VariantSafeHash variables = *variables_;
+	for (auto it = variables.cbegin(); it != variables.cend(); ++it)
+	{
+		QString name = it.key();
+		QVariant value = it.value();
+		if (value.type() == QVariant::String)
+			expr.replace(name, value.toString().simplified());
+		else if (value.type() == QVariant::Double)
+			expr.replace(name, QString::number(value.toDouble(), 'f', 16));
+		else
+			expr.replace(name, QString::number(value.toInt()));
+	}
+
+	expr.replace("^", " xor ");
+	expr.replace("~", " nor ");
+	expr.replace("&&", " and ");
+	expr.replace("||", " or ");
+
+	expr = expr.simplified();
+}
+
 //行跳轉
 void Parser::jump(int line, bool noStack)
 {
@@ -383,6 +675,33 @@ void Parser::jumpto(int line, bool noStack)
 //標記跳轉
 bool Parser::jump(const QString& name, bool noStack)
 {
+	if (name.toLower() == "back")
+	{
+		if (!jmpStack_.isEmpty())
+		{
+			int returnIndex = jmpStack_.pop();//jump行號出棧
+			int jumpLineCount = returnIndex - lineNumber_;
+			jump(jumpLineCount, true);
+			return true;
+		}
+		return false;
+	}
+	else if (name.toLower() == "return")
+	{
+		if (!callArgsStack_.isEmpty())
+			callArgsStack_.pop();//call行號出棧
+		if (!labalVarStack_.isEmpty())
+			labalVarStack_.pop();//label局變量出棧
+		if (!callStack_.isEmpty())
+		{
+			int returnIndex = callStack_.pop();
+			int jumpLineCount = returnIndex - lineNumber_;
+			jump(jumpLineCount, true);
+			return true;
+		}
+		return false;
+	}
+
 	int jumpLine = matchLineFromLabel(name);
 	if (jumpLine == -1)
 	{
@@ -398,12 +717,44 @@ bool Parser::jump(const QString& name, bool noStack)
 	return true;
 }
 
+//檢查是否需要跳過整個function代碼塊
+bool Parser::checkCallStack()
+{
+	const QString cmd = currentLineTokens_.value(0).data.toString();
+	if (cmd != "function")
+		return false;
+
+	const QString funname = currentLineTokens_.value(1).data.toString();
+	do
+	{
+		//棧為空時直接跳過整個代碼塊
+		if (callStack_.isEmpty())
+			break;
+
+		int lastRow = callStack_.top() - 1;
+		//匹配棧頂紀錄的function名稱與當前執行名稱是否一致
+		QString oldname = tokens_.value(lastRow).value(1).data.toString();
+		if (oldname != funname)
+			break;
+
+		return false;
+	} while (false);
+
+	if (!functionChunks_.contains(funname))
+		return false;
+
+	FunctionChunk chunk = functionChunks_.value(funname);
+	jump(chunk.end - chunk.begin + 1, true);
+	return true;
+}
+
 //處理所有的token
 void Parser::processTokens()
 {
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
 	Injector& injector = Injector::getInstance();
 
+	//同步模式時清空所有marker並重置UI顯示的堆棧訊息
 	if (mode_ == kSync)
 	{
 		emit signalDispatcher.addErrorMarker(-1, false);
@@ -434,6 +785,56 @@ void Parser::processTokens()
 			QThread::msleep(extraDelay);
 		}
 	};
+
+
+	QHash<int, FunctionChunk> chunkHash;
+	QMap<int, TokenMap> map;
+	for (auto it = tokens_.cbegin(); it != tokens_.cend(); ++it)
+		map.insert(it.key(), it.value());
+
+	int indentLevel = 0;
+	for (auto it = map.cbegin(); it != map.cend(); ++it)
+	{
+		int row = it.key();
+		TokenMap tokens = it.value();
+		QString cmd = tokens.value(0).data.toString();
+		FunctionChunk chunk = chunkHash.value(indentLevel, FunctionChunk{});
+		if (!chunk.name.isEmpty() && chunk.begin >= 0 && chunk.end > 0)
+		{
+			chunkHash.remove(indentLevel);
+			functionChunks_.insert(chunk.name, chunk);
+		}
+
+		//紀錄function結束行
+		if (cmd == "end")
+		{
+			--indentLevel;
+			chunk = chunkHash.value(indentLevel, FunctionChunk{});
+			chunk.end = row;
+			if (!chunk.name.isEmpty() && chunk.begin >= 0 && chunk.end > 0)
+			{
+				chunkHash.remove(indentLevel);
+				functionChunks_.insert(chunk.name, chunk);
+				continue;
+			}
+
+			chunkHash.insert(indentLevel, chunk);
+		}
+		//紀錄function起始行
+		if (cmd == "function")
+		{
+			QString name = tokens.value(1).data.toString();
+			chunk.name = name;
+			chunk.begin = row;
+			chunkHash.insert(indentLevel, chunk);
+			++indentLevel;
+		}
+	}
+
+#ifdef _DEBUG
+	for (auto it = functionChunks_.cbegin(); it != functionChunks_.cend(); ++it)
+		qDebug() << it.key() << it.value().name << it.value().begin << it.value().end;
+#endif
 
 	int oldlineNumber = lineNumber_;
 	for (;;)
@@ -614,19 +1015,24 @@ void Parser::processTokens()
 				break;
 			}
 			case TK_RETURN:
+			{
 				processReturn();
 				generateStackInfo(0);
 				continue;
+			}
 			case TK_BAK:
+			{
 				processBack();
 				generateStackInfo(1);
 				continue;
+			}
 			case TK_LABEL:
 			{
+				if (checkCallStack())
+					continue;
 				processLabel();
 				break;
 			}
-
 			case TK_WHITESPACE:
 				break;
 			default:
@@ -785,7 +1191,7 @@ void Parser::processVariable(RESERVE type)
 		{
 			SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
 			//如果不是運算符，檢查是否為字符串
-			bool pass = false;
+			//bool pass = false;
 
 			QString text;
 			int ivalue = 0;
@@ -824,7 +1230,7 @@ void Parser::processVariable(RESERVE type)
 						break;
 					varValue = varValue.toDouble();
 				}
-				else if (valueStr.startsWith(kFuzzyPrefix) && valueStr.endsWith(kFuzzyPrefix) || valueStr.startsWith(kFuzzyPrefix + QString("1")))// 字串輸入框
+				else if ((valueStr.startsWith(kFuzzyPrefix) && valueStr.endsWith(kFuzzyPrefix)) || valueStr.startsWith(kFuzzyPrefix + QString("1")))// 字串輸入框
 				{
 					varValue.clear();
 					emit signalDispatcher.inputBoxShow(msg, QInputDialog::TextInput, &varValue);
@@ -866,7 +1272,7 @@ void Parser::processVariable(RESERVE type)
 			break;
 
 		//取第三個參數的類型
-		RESERVE varValueType = getTokenType(3);
+		//RESERVE varValueType = getTokenType(3);
 
 
 
@@ -893,6 +1299,8 @@ void Parser::processVariable(RESERVE type)
 		variables_->clear();
 		break;
 	}
+	default:
+		break;
 	}
 }
 
@@ -967,30 +1375,16 @@ void Parser::processVariableCAOs()
 	RESERVE op = getTokenType(1);
 
 	QVariant var = checkValue(currentLineTokens_, 0, QVariant::Int);
+	QVariant::Type type = var.type();
+	QString opStr = getToken<QString>(1);
 
 	QVariant varValue = checkValue(currentLineTokens_, 2, QVariant::Int);
 
 	VariantSafeHash& args = getLabelVarsRef();
 	QString varValueStr = varValue.toString();
-	for (auto it = args.cbegin(); it != args.cend(); ++it)
-	{
-		QString key = it.key();
-		QString value = it.value().toString();
-		varValueStr.replace(key, value);
-	}
+	replaceToVariable(varValueStr);
 
-	VariantSafeHash variables = *variables_;
-	for (auto it = variables.cbegin(); it != variables.cend(); ++it)
-	{
-		QString key = it.key();
-		QString value = it.value().toString();
-		varValueStr.replace(key, value);
-	}
-
-	varValueStr.replace("^", "xor");
-	varValueStr.replace("~", "nor ");
-
-	if (var.type() == QVariant::String)
+	if (type == QVariant::String)
 	{
 		if (varValue.type() == QVariant::String && op == TK_ADD)
 		{
@@ -1004,25 +1398,21 @@ void Parser::processVariableCAOs()
 	}
 	else
 	{
-		using TKSymbolTable = exprtk::symbol_table<double>;
-		using TKExpression = exprtk::expression<double>;
-		using TKParser = exprtk::parser<double>;
 
-		TKSymbolTable symbolTable;
-		symbolTable.add_constants();
-
-		TKParser parser;
-		TKExpression expression;
-		expression.register_symbol_table(symbolTable);
-
-		const std::string exprStr = varValueStr.toStdString();
-		if (!parser.compile(exprStr, expression))
-			return;
-
-		if (var.type() == QVariant::Int)
-			var = var.toInt() + static_cast<int>(expression.value());
-		else if (var.type() == QVariant::Double)
-			var = var.toDouble() + expression.value();
+		if (type == QVariant::Int)
+		{
+			int value = 0;
+			if (!exprTo(var.toInt(), QString("%1 %2").arg(opStr).arg(QString::number(varValue.toDouble(), 'f', 16)), &value))
+				return;
+			var = value;
+		}
+		//else if (type == QVariant::Double)
+		//{
+		//	double value = 0;
+		//	if (!exprTo(var.toDouble(), QString("%1 %2").arg(opStr).arg(QString::number(varValue.toDouble(), 'f', 16)), &value))
+		//		return;
+		//	var = value;
+		//}
 		else
 			return;
 	}
@@ -1046,56 +1436,29 @@ void Parser::processVariableExpr()
 	if (!checkString(currentLineTokens_, 1, &expr))
 		return;
 
-	VariantSafeHash& args = getLabelVarsRef();
-	for (auto it = args.cbegin(); it != args.cend(); ++it)
-	{
-		QString name = it.key();
-		QVariant value = it.value();
-		if (value.type() == QVariant::String)
-			expr.replace(name, value.toString().simplified());
-		else if (value.type() == QVariant::Double)
-			expr.replace(name, QString::number(value.toDouble(), 'f', 16));
-		else
-			expr.replace(name, QString::number(value.toInt()));
-	}
-
-	VariantSafeHash variables = *variables_;
-	for (auto it = variables.cbegin(); it != variables.cend(); ++it)
-	{
-		QString name = it.key();
-		QVariant value = it.value();
-		if (value.type() == QVariant::String)
-			expr.replace(name, value.toString().simplified());
-		else if (value.type() == QVariant::Double)
-			expr.replace(name, QString::number(value.toDouble(), 'f', 16));
-		else
-			expr.replace(name, QString::number(value.toInt()));
-	}
+	replaceToVariable(expr);
 
 	QVariant::Type type = varValue.type();
-	using TKSymbolTable = exprtk::symbol_table<double>;
-	using TKExpression = exprtk::expression<double>;
-	using TKParser = exprtk::parser<double>;
-
-	TKSymbolTable symbolTable;
-	symbolTable.add_constants();
-
-	TKParser parser;
-	TKExpression expression;
-	expression.register_symbol_table(symbolTable);
-
-	const std::string exprStr = expr.toStdString();
-	if (!parser.compile(exprStr, expression))
-		return;
 
 	QVariant result;
 	if (type == QVariant::Int)
-		result = static_cast<int>(expression.value());
-	else if (type == QVariant::Double)
-		result = expression.value();
+	{
+		int value = 0;
+		if (!exprTo(expr, &value))
+			return;
+		result = value;
+	}
+	//else if (type == QVariant::Double)
+	//{
+	//	double value = 0;
+	//	if (!exprTo(expr, &value))
+	//		return;
+	//	result = value;
+	//}
 	else
 		return;
 
+	VariantSafeHash& args = getLabelVarsRef();
 	if (args.contains(varName))
 		args.insert(varName, result);
 	else
@@ -1314,7 +1677,7 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 				typeStr = typeStr.simplified().toLower();
 				if (typeStr == "space")
 				{
-					QVector<int> itemIndexs;
+					util::SafeVector<int> itemIndexs;
 					int size = 0;
 					if (injector.server->getItemEmptySpotIndexs(&itemIndexs))
 						size = itemIndexs.size();
@@ -1328,7 +1691,7 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 					QString itemName;
 					if (!checkString(currentLineTokens_, 4, &itemName))
 						break;
-					QVector<int> v;
+					util::SafeVector<int> v;
 					int count = 0;
 					if (injector.server->getItemIndexsByName(itemName, "", &v))
 					{
@@ -1348,7 +1711,7 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 					QString memo;
 					checkString(currentLineTokens_, 4, &memo);
 
-					QVector<int> itemIndexs;
+					util::SafeVector<int> itemIndexs;
 					if (injector.server->getItemIndexsByName(cmpStr, memo, &itemIndexs))
 					{
 						int index = itemIndexs.front();
@@ -1626,39 +1989,15 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 //處理if
 bool Parser::processIfCompare()
 {
-	QString varValue = getToken<QString>(1);
+	QString expr = getToken<QString>(1);
 
-	VariantSafeHash& args = getLabelVarsRef();
+	replaceToVariable(expr);
 
-	for (auto it = args.cbegin(); it != args.cend(); ++it)
-	{
-		QString key = it.key();
-		QString value = it.value().toString();
-		varValue.replace(key, value);
-	}
-
-	VariantSafeHash variables = *getPVariables();
-	for (auto it = variables.cbegin(); it != variables.cend(); ++it)
-	{
-		QString key = it.key();
-		QString value = it.value().toString();
-		varValue.replace(key, value);
-	}
-
-	QString expr = varValue.simplified();
-
-	using TKExpression = exprtk::expression<double>;
-	using TKParser = exprtk::parser<double>;
-
-	TKExpression expression;
-	TKParser parser;
-
-	std::string expressionStr = expr.toStdString();
-
+	double dvalue = 0.0;
 	bool result = false;
-	if (parser.compile(expressionStr, expression))
+	if (exprTo(expr, &dvalue))
 	{
-		result = expression.value() > 0.0;
+		result = dvalue > 0.0;
 	}
 
 	//RESERVE op;
@@ -1670,7 +2009,7 @@ bool Parser::processIfCompare()
 
 	//return checkJump(TK, 4, compare(a, b, op), SuccessJump);
 
-	return checkJump(currentLineTokens_, 2, result, SuccessJump) == kHasJump;
+	return checkJump(currentLineTokens_, 2, result, FailedJump) == kHasJump;
 }
 
 //處理隨機數
@@ -1915,7 +2254,7 @@ bool Parser::processGoto()
 //處理"指定行跳轉"
 bool Parser::processJump()
 {
-	RESERVE type = getTokenType(1);
+	//RESERVE type = getTokenType(1);
 	do
 	{
 		QVariant var = checkValue(currentLineTokens_, 1, QVariant::Int);
@@ -1954,7 +2293,7 @@ void Parser::processBack()
 {
 	if (!jmpStack_.isEmpty())
 	{
-		int returnIndex = jmpStack_.pop();
+		int returnIndex = jmpStack_.pop();//jump行號出棧
 		int jumpLineCount = returnIndex - lineNumber_;
 		jump(jumpLineCount, true);
 		return;

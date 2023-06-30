@@ -214,11 +214,11 @@ void MapWidget::onRefreshTimeOut()
 	if (injector.server.isNull()) return;
 
 
-	if (!injector.server->IS_ONLINE_FLAG) return;
+	if (!injector.server->getOnlineFlag()) return;
 
 	PC _ch = injector.server->pc;
 	int floor = injector.server->nowFloor;
-	const QPointF qp_current = injector.server->nowPoint;
+	const QPointF qp_current(injector.server->nowPoint.get());
 
 	QString caption(tr("%1 map:%2 floor:%3 [%4,%5] mouse:%6,%7")
 		.arg(_ch.name)
@@ -500,7 +500,7 @@ void MapWidget::on_openGLWidget_notifyMousePosition(const QPointF& pos)
 	if (injector.server.isNull())
 		return;
 
-	if (!injector.server->IS_ONLINE_FLAG)
+	if (!injector.server->getOnlineFlag())
 		return;
 
 	if (!interpreter_.isNull() && interpreter_->isRunning())
@@ -696,9 +696,10 @@ void MapWidget::on_pushButton_download_clicked()
 	downloadMapY_ = 0;
 	downloadMapProgress_ = 0.0;
 
-	int numBlocksX = (downloadMapXSize_ + MAX_BLOCK_SIZE - 1) / MAX_BLOCK_SIZE;
-	int numBlocksY = (downloadMapYSize_ + MAX_BLOCK_SIZE - 1) / MAX_BLOCK_SIZE;
-	totalMapBlocks_ = static_cast<qreal>(numBlocksX * numBlocksY);
+	const int numBlocksX = (downloadMapXSize_ + MAX_BLOCK_SIZE - 1) / MAX_BLOCK_SIZE;
+	const int numBlocksY = (downloadMapYSize_ + MAX_BLOCK_SIZE - 1) / MAX_BLOCK_SIZE;
+	const int totalBlocks = numBlocksX * numBlocksY;
+	totalMapBlocks_ = static_cast<qreal>(totalBlocks);
 
 	isDownloadingMap_ = true;
 
@@ -726,7 +727,7 @@ void MapWidget::on_pushButton_findPath_clicked()
 	if (injector.server.isNull())
 		return;
 
-	if (!injector.server->IS_ONLINE_FLAG)
+	if (!injector.server->getOnlineFlag())
 		return;
 
 	if (!interpreter_.isNull() && interpreter_->isRunning())
@@ -820,7 +821,7 @@ void MapWidget::on_tableWidget_NPCList_cellDoubleClicked(int row, int)
 	if (injector.server.isNull())
 		return;
 
-	if (!injector.server->IS_ONLINE_FLAG)
+	if (!injector.server->getOnlineFlag())
 		return;
 
 	if (!interpreter_.isNull() && interpreter_->isRunning())
@@ -900,7 +901,7 @@ void MapWidget::on_tableWidget_NPCList_cellDoubleClicked(int row, int)
 		{
 			//檢查NPC周圍8格
 			bool flag = false;
-			for (int i = 0; i < 8; i++)
+			for (int i = 0; i < 8; ++i)
 			{
 				newPoint = util::fix_point.at(i) + unit.p;
 				if (injector.server->mapAnalyzer->isPassable(floor, point, newPoint))

@@ -13,6 +13,8 @@ typedef struct break_marker_s
 	QString content = "\0";
 } break_marker_t;
 
+constexpr int DEFAULT_FUNCTION_TIMEOUT = 5000;
+
 class Interpreter : public QObject
 {
 	Q_OBJECT
@@ -53,7 +55,7 @@ public:
 
 	inline bool isPaused() const { return isPaused_.load(std::memory_order_acquire); }
 
-	inline void setSubScript(bool isSub) { isSub = isSub; }
+	inline void setSubScript(bool is) { isSub = is; }
 
 	Q_REQUIRED_RESULT inline bool isSubScript() const { return isSub; }
 
@@ -233,7 +235,7 @@ private:
 
 private:
 	bool checkBattleThenWait();
-	bool findPath(QPoint dst, int steplen, int step_cost = 0, int timeout = 180000, std::function<int(QPoint& dst)> callback = nullptr, bool noAnnounce = false);
+	bool findPath(QPoint dst, int steplen, int step_cost = 0, int timeout = DEFAULT_FUNCTION_TIMEOUT * 36, std::function<int(QPoint& dst)> callback = nullptr, bool noAnnounce = false);
 
 	bool waitfor(int timeout, std::function<bool()> exprfun) const;
 	bool checkString(const TokenMap& TK, int idx, QString* ret) const;
@@ -280,6 +282,7 @@ private: //註冊給Parser的函數
 	//check
 	int checkdaily(int currentline, const TokenMap& TK);
 	int isbattle(int currentline, const TokenMap& TK);
+	int isnormal(int currentline, const TokenMap& TK);
 	int isonline(int currentline, const TokenMap& TK);
 	int checkcoords(int currentline, const TokenMap& TK);
 	int checkmap(int currentline, const TokenMap& TK);

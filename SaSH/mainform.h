@@ -51,7 +51,7 @@ private slots:
 	void onUpdateCoordsPosLabelTextChanged(const QString& text);
 	void onUpdateMainFormTitle(const QString& text);
 
-	void onMessageBoxShow(const QString& text, int type = 0);
+	void onMessageBoxShow(const QString& text, int type = 0, int* pnret = nullptr);
 	void onInputBoxShow(const QString& text, int type, QVariant* retvalue);
 private:
 	Ui::MainFormClass ui;

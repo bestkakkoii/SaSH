@@ -1204,8 +1204,8 @@ void __fastcall checkAndSetRockEx(map_t& map, const QPoint& p, quint32 sObject)
 		{
 			for (x = 0; x < max_x; ++x)
 			{
-				QPoint p(p.x() + x, p.y() - y);
-				map.data.insert(p, util::OBJ_ROCKEX);
+				const QPoint point(p.x() + x, p.y() - y);
+				map.data.insert(point, util::OBJ_ROCKEX);
 			}
 		}
 	}
@@ -1319,7 +1319,7 @@ util::ObjectType MapAnalyzer::getObjectType(const uint16_t data) const
 	return util::OBJ_UNKNOWN;
 }
 
-bool MapAnalyzer::getMapDataByFloor(int floor, map_t* map)
+bool __fastcall MapAnalyzer::getMapDataByFloor(int floor, map_t* map)
 {
 	if (maps_.contains(floor))
 	{

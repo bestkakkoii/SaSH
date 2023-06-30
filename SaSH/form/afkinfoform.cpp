@@ -100,7 +100,7 @@ void AfkInfoForm::updateTableText(int row, int col, const QString& text)
 	}
 	else
 	{
-		QTableWidgetItem* item = new QTableWidgetItem(text);
+		item = new QTableWidgetItem(text);
 		if (item)
 		{
 			item->setToolTip(text);

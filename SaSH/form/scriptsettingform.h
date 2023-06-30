@@ -40,7 +40,6 @@ private:
 
 	QString getFullPath(QTreeWidgetItem* item);
 
-
 private slots:
 	void onApplyHashSettingsToUI();
 	void onScriptTreeWidgetHeaderClicked(int logicalIndex);
@@ -53,6 +52,7 @@ private slots:
 	void onAddStepMarker(int liner, bool b);
 	void onAddBreakMarker(int liner, bool b);
 	void onBreakMarkInfoImport();
+	void onScriptTreeWidgetItemChanged(QTreeWidgetItem* newitem, int column);
 
 	void onScriptStartMode();
 	void onScriptStopMode();
@@ -96,4 +96,8 @@ private:
 	QHash<QString, QVariant> currentLocalVarInfo_;
 	QHash<QString, QSharedPointer<QTextDocument>> document_;
 	QSpinBox* pSpeedSpinBox = nullptr;
+
+
+	QString currentRenameText_ = "";
+	QString currentRenamePath_ = "";
 };

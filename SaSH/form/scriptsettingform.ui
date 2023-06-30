@@ -1530,11 +1530,6 @@ color: rgb(208, 208, 208);
            </item>
            <item>
             <property name="text">
-             <string>if</string>
-            </property>
-           </item>
-           <item>
-            <property name="text">
              <string>goto</string>
             </property>
            </item>
@@ -1575,268 +1570,283 @@ color: rgb(208, 208, 208);
            </property>
            <item>
             <property name="text">
-             <string>waitteam</string>
-            </property>
-           </item>
-           <item>
-            <property name="text">
-             <string>waitsay</string>
-            </property>
-           </item>
-           <item>
-            <property name="text">
-             <string>waitpet</string>
-            </property>
-           </item>
-           <item>
-            <property name="text">
-             <string>waitmap</string>
-            </property>
-           </item>
-           <item>
-            <property name="text">
-             <string>waititem</string>
-            </property>
-           </item>
-           <item>
-            <property name="text">
-             <string>waitdlg</string>
-            </property>
-           </item>
-           <item>
-            <property name="text">
-             <string>ifteam</string>
-            </property>
-           </item>
-           <item>
-            <property name="text">
-             <string>ifpos</string>
-            </property>
-           </item>
-           <item>
-            <property name="text">
-             <string>ifplayer</string>
+             <string>successjump</string>
             </property>
             <item>
              <property name="text">
-              <string>wind</string>
+              <string>ifteam</string>
              </property>
             </item>
             <item>
              <property name="text">
-              <string>water</string>
+              <string>ifplayer</string>
+             </property>
+             <item>
+              <property name="text">
+               <string>wind</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>water</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>stone</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>name</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>mpp</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>mp</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>maxmp</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>maxhp</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>maxexp</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>lv</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>hpp</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>hp</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>fname</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>fire</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>exp</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>earth</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>def</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>chasma</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>atk</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>agi</string>
+              </property>
+             </item>
+            </item>
+            <item>
+             <property name="text">
+              <string>ifpetex</string>
+             </property>
+             <item>
+              <property name="text">
+               <string>wind</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>water</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>name</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>maxhp</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>maxexp</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>lv</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>loyal</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>hpp</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>hp</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>fname</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>fire</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>exp</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>earth</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>def</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>atk</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>agi</string>
+              </property>
+             </item>
+            </item>
+            <item>
+             <property name="text">
+              <string>ifpet</string>
              </property>
             </item>
             <item>
              <property name="text">
-              <string>stone</string>
+              <string>ifitemfull</string>
              </property>
             </item>
             <item>
              <property name="text">
-              <string>name</string>
+              <string>ifitem</string>
              </property>
             </item>
             <item>
              <property name="text">
-              <string>mpp</string>
-             </property>
-            </item>
-            <item>
-             <property name="text">
-              <string>mp</string>
-             </property>
-            </item>
-            <item>
-             <property name="text">
-              <string>maxmp</string>
-             </property>
-            </item>
-            <item>
-             <property name="text">
-              <string>maxhp</string>
-             </property>
-            </item>
-            <item>
-             <property name="text">
-              <string>maxexp</string>
-             </property>
-            </item>
-            <item>
-             <property name="text">
-              <string>lv</string>
-             </property>
-            </item>
-            <item>
-             <property name="text">
-              <string>hpp</string>
-             </property>
-            </item>
-            <item>
-             <property name="text">
-              <string>hp</string>
-             </property>
-            </item>
-            <item>
-             <property name="text">
-              <string>fname</string>
-             </property>
-            </item>
-            <item>
-             <property name="text">
-              <string>fire</string>
-             </property>
-            </item>
-            <item>
-             <property name="text">
-              <string>exp</string>
-             </property>
-            </item>
-            <item>
-             <property name="text">
-              <string>earth</string>
-             </property>
-            </item>
-            <item>
-             <property name="text">
-              <string>def</string>
-             </property>
-            </item>
-            <item>
-             <property name="text">
-              <string>chasma</string>
-             </property>
-            </item>
-            <item>
-             <property name="text">
-              <string>atk</string>
-             </property>
-            </item>
-            <item>
-             <property name="text">
-              <string>agi</string>
-             </property>
-            </item>
-           </item>
-           <item>
-            <property name="text">
-             <string>ifpetex</string>
-            </property>
-            <item>
-             <property name="text">
-              <string>wind</string>
-             </property>
-            </item>
-            <item>
-             <property name="text">
-              <string>water</string>
-             </property>
-            </item>
-            <item>
-             <property name="text">
-              <string>name</string>
-             </property>
-            </item>
-            <item>
-             <property name="text">
-              <string>maxhp</string>
-             </property>
-            </item>
-            <item>
-             <property name="text">
-              <string>maxexp</string>
-             </property>
-            </item>
-            <item>
-             <property name="text">
-              <string>lv</string>
-             </property>
-            </item>
-            <item>
-             <property name="text">
-              <string>loyal</string>
-             </property>
-            </item>
-            <item>
-             <property name="text">
-              <string>hpp</string>
-             </property>
-            </item>
-            <item>
-             <property name="text">
-              <string>hp</string>
-             </property>
-            </item>
-            <item>
-             <property name="text">
-              <string>fname</string>
-             </property>
-            </item>
-            <item>
-             <property name="text">
-              <string>fire</string>
-             </property>
-            </item>
-            <item>
-             <property name="text">
-              <string>exp</string>
-             </property>
-            </item>
-            <item>
-             <property name="text">
-              <string>earth</string>
-             </property>
-            </item>
-            <item>
-             <property name="text">
-              <string>def</string>
-             </property>
-            </item>
-            <item>
-             <property name="text">
-              <string>atk</string>
-             </property>
-            </item>
-            <item>
-             <property name="text">
-              <string>agi</string>
+              <string>ifdaily</string>
              </property>
             </item>
            </item>
            <item>
             <property name="text">
-             <string>ifpet</string>
+             <string>failedjump</string>
             </property>
-           </item>
-           <item>
-            <property name="text">
-             <string>ifonline</string>
-            </property>
-           </item>
-           <item>
-            <property name="text">
-             <string>ifmap</string>
-            </property>
-           </item>
-           <item>
-            <property name="text">
-             <string>ifitemfull</string>
-            </property>
-           </item>
-           <item>
-            <property name="text">
-             <string>ifitem</string>
-            </property>
-           </item>
-           <item>
-            <property name="text">
-             <string>ifdaily</string>
-            </property>
-           </item>
-           <item>
-            <property name="text">
-             <string>ifbattle</string>
-            </property>
+            <item>
+             <property name="text">
+              <string>waitteam</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>waitsay</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>waitpet</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>waitmap</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>waititem</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>waitdlg</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>ifpos</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>ifonline</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>ifnormal</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>ifmap</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>ifbattle</string>
+             </property>
+            </item>
            </item>
           </item>
           <item>

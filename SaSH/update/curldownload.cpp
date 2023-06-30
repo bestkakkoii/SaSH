@@ -41,7 +41,7 @@ bool CurlDownload::downLoad(int threadNum, std::string Url, std::string Path, st
 
 	long partSize = fileLength / static_cast<long>(threadNum);
 
-	for (size_t i = 0; i <= static_cast<size_t>(threadNum); i++)
+	for (size_t i = 0; i <= static_cast<size_t>(threadNum); ++i)
 	{
 		tNode* pNode = q_check_ptr(new tNode());
 

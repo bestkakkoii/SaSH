@@ -4,7 +4,7 @@
 #include "injector.h"
 
 //check
-int Interpreter::checkdaily(int currentline, const TokenMap& TK)
+int Interpreter::checkdaily(int, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance();
 
@@ -25,27 +25,37 @@ int Interpreter::checkdaily(int currentline, const TokenMap& TK)
 		return checkJump(TK, 3, true, SuccessJump);//使用第3參數跳轉
 }
 
-int Interpreter::isbattle(int currentline, const TokenMap& TK)
+int Interpreter::isbattle(int, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance();
 
 	if (injector.server.isNull())
 		return Parser::kError;
 
-	return checkJump(TK, 1, injector.server->IS_BATTLE_FLAG, SuccessJump);
+	return checkJump(TK, 1, injector.server->getBattleFlag(), FailedJump);
 }
 
-int Interpreter::isonline(int currentline, const TokenMap& TK)
+int Interpreter::isonline(int, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance();
 
 	if (injector.server.isNull())
 		return Parser::kError;
 
-	return checkJump(TK, 1, injector.server->IS_ONLINE_FLAG, SuccessJump);
+	return checkJump(TK, 1, injector.server->getOnlineFlag(), FailedJump);
 }
 
-int Interpreter::checkcoords(int currentline, const TokenMap& TK)
+int Interpreter::isnormal(int, const TokenMap& TK)
+{
+	Injector& injector = Injector::getInstance();
+
+	if (injector.server.isNull())
+		return Parser::kError;
+
+	return checkJump(TK, 1, !injector.server->getBattleFlag(), FailedJump);
+}
+
+int Interpreter::checkcoords(int, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance();
 
@@ -58,7 +68,7 @@ int Interpreter::checkcoords(int currentline, const TokenMap& TK)
 	checkInt(TK, 1, &p.rx());
 	checkInt(TK, 2, &p.ry());
 
-	return checkJump(TK, 3, injector.server->nowPoint == p, SuccessJump);
+	return checkJump(TK, 3, injector.server->nowPoint == p, FailedJump);
 }
 
 int Interpreter::checkmap(int currentline, const TokenMap& TK)
@@ -76,7 +86,7 @@ int Interpreter::checkmap(int currentline, const TokenMap& TK)
 	QStringList mapnames = mapname.split(util::rexOR, Qt::SkipEmptyParts);
 	checkInt(TK, 1, &floor);
 
-	int timeout = 5000;
+	int timeout = DEFAULT_FUNCTION_TIMEOUT;
 	checkInt(TK, 2, &timeout);
 
 	if (floor == 0 && mapname.isEmpty())
@@ -91,10 +101,10 @@ int Interpreter::checkmap(int currentline, const TokenMap& TK)
 				for (const QString& mapname : mapnames)
 				{
 					bool ok;
-					int floor = mapname.toInt(&ok);
+					int fr = mapname.toInt(&ok);
 					if (ok)
 					{
-						if (floor == injector.server->nowFloor)
+						if (fr == injector.server->nowFloor)
 							return true;
 					}
 					else
@@ -164,7 +174,7 @@ int Interpreter::checkmapnowait(int currentline, const TokenMap& TK)
 		return false;
 	};
 
-	return checkJump(TK, 2, check(), SuccessJump);
+	return checkJump(TK, 2, check(), FailedJump);
 }
 
 int Interpreter::checkdialog(int currentline, const TokenMap& TK)
@@ -184,14 +194,19 @@ int Interpreter::checkdialog(int currentline, const TokenMap& TK)
 	int max = 10;
 	if (!checkRange(TK, 2, &min, &max))
 		return Parser::kArgError;
+	if (min == max)
+	{
+		++min;
+		++max;
+	}
 
-	int timeout = 5000;
+	int timeout = DEFAULT_FUNCTION_TIMEOUT;
 	checkInt(TK, 3, &timeout);
 
 	bool bret = waitfor(timeout, [&injector, min, max, cmpStrs]()->bool
 		{
 			util::SafeHash<int, QVariant> hashdialog = injector.server->hashdialog;
-			for (int i = min; i <= max; i++)
+			for (int i = min; i <= max; ++i)
 			{
 				if (!hashdialog.contains(i))
 					break;
@@ -227,6 +242,11 @@ int Interpreter::checkchathistory(int currentline, const TokenMap& TK)
 	int max = 20;
 	if (!checkRange(TK, 1, &min, &max))
 		return Parser::kArgError;
+	if (min == max)
+	{
+		++min;
+		++max;
+	}
 
 	QString cmpStr;
 	checkString(TK, 2, &cmpStr);
@@ -234,13 +254,13 @@ int Interpreter::checkchathistory(int currentline, const TokenMap& TK)
 		return Parser::kArgError;
 	QStringList cmpStrs = cmpStr.split(util::rexOR, Qt::SkipEmptyParts);
 
-	int timeout = 5000;
+	int timeout = DEFAULT_FUNCTION_TIMEOUT;
 	checkInt(TK, 3, &timeout);
 
 	bool bret = waitfor(timeout, [&injector, min, max, cmpStrs]()->bool
 		{
 			util::SafeHash<int, QVariant> hashchat = injector.server->hashchat;
-			for (int i = min; i <= max; i++)
+			for (int i = min; i <= max; ++i)
 			{
 				if (!hashchat.contains(i))
 					break;
@@ -264,7 +284,7 @@ int Interpreter::checkchathistory(int currentline, const TokenMap& TK)
 	return checkJump(TK, 4, bret, FailedJump);
 }
 
-int Interpreter::checkunit(int currentline, const TokenMap& TK)
+int Interpreter::checkunit(int, const TokenMap&)
 {
 	Injector& injector = Injector::getInstance();
 
@@ -344,7 +364,7 @@ int Interpreter::checkteam(int currentline, const TokenMap& TK)
 
 	PC pc = injector.server->pc;
 
-	int timeout = 5000;
+	int timeout = DEFAULT_FUNCTION_TIMEOUT;
 	checkInt(TK, 1, &timeout);
 
 	bool bret = waitfor(timeout, [&pc]()->bool
@@ -432,7 +452,7 @@ int Interpreter::checkitem(int currentline, const TokenMap& TK)
 	QStringList itemMemos = itemMemo.split(util::rexOR);
 
 
-	int timeout = 5000;
+	int timeout = DEFAULT_FUNCTION_TIMEOUT;
 	checkInt(TK, 4, &timeout);
 
 	bool bret = waitfor(timeout, [&injector, min, max, itemNames, itemMemos]()->bool
@@ -501,13 +521,13 @@ int Interpreter::checkpet(int currentline, const TokenMap& TK)
 	if (petName.isEmpty())
 		return Parser::kArgError;
 
-	int timeout = 5000;
+	int timeout = DEFAULT_FUNCTION_TIMEOUT;
 	checkInt(TK, 2, &timeout);
 
 	QElapsedTimer timer; timer.start();
-	bool bret = waitfor(timeout, [&injector, petName, &timer]()->bool
+	bool bret = waitfor(timeout, [&injector, petName]()->bool
 		{
-			QVector<int> v;
+			util::SafeVector<int> v;
 			return injector.server->getPetIndexsByName(petName, &v);
 		});
 

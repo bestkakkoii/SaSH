@@ -4175,10 +4175,10 @@ namespace exprtk
 				std::vector<lexer::token_joiner*>   token_joiner_list;
 				std::vector<lexer::token_inserter*> token_inserter_list;
 
-				lexer::token_scanner* error_token_scanner;
-				lexer::token_modifier* error_token_modifier;
-				lexer::token_joiner* error_token_joiner;
-				lexer::token_inserter* error_token_inserter;
+				lexer::token_scanner* error_token_scanner = nullptr;
+				lexer::token_modifier* error_token_modifier = nullptr;
+				lexer::token_joiner* error_token_joiner = nullptr;
+				lexer::token_inserter* error_token_inserter = nullptr;
 			};
 		}
 
@@ -25358,8 +25358,8 @@ namespace exprtk
 
 			struct function_prototype_t
 			{
-				return_type_t return_type;
-				std::string   param_seq;
+				return_type_t return_type = e_overload;
+				std::string   param_seq = "";
 			};
 
 			typedef parser<T> parser_t;
@@ -29892,7 +29892,7 @@ namespace exprtk
 				typedef details::generic_function_node     <Type, igeneric_function_t> alloc_type1;
 				typedef details::multimode_genfunction_node<Type, igeneric_function_t> alloc_type2;
 
-				const std::size_t no_psi = std::numeric_limits<std::size_t>::max();
+				constexpr std::size_t no_psi = std::numeric_limits<std::size_t>::max();
 
 				expression_node_ptr result = error_node();
 
@@ -29947,7 +29947,7 @@ namespace exprtk
 				typedef details::string_function_node      <Type, igeneric_function_t> alloc_type1;
 				typedef details::multimode_strfunction_node<Type, igeneric_function_t> alloc_type2;
 
-				const std::size_t no_psi = std::numeric_limits<std::size_t>::max();
+				constexpr std::size_t no_psi = std::numeric_limits<std::size_t>::max();
 
 				expression_node_ptr result = error_node();
 
@@ -39292,9 +39292,9 @@ namespace exprtk
 		bool in_use_;
 
 #if defined(_WIN32) || defined(__WIN32__) || defined(WIN32)
-		LARGE_INTEGER start_time_;
-		LARGE_INTEGER stop_time_;
-		LARGE_INTEGER clock_frequency_;
+		LARGE_INTEGER start_time_ = { 0 };
+		LARGE_INTEGER stop_time_ = { 0 };
+		LARGE_INTEGER clock_frequency_ = { 0 };
 #else
 		struct timeval start_time_;
 		struct timeval stop_time_;
@@ -39500,7 +39500,7 @@ namespace exprtk
 
 						bool open()
 						{
-							if (e_read == mode)
+							if (file_mode::e_read == mode)
 							{
 								std::ifstream* stream = new std::ifstream(file_name.c_str(), std::ios::binary);
 
@@ -39516,7 +39516,7 @@ namespace exprtk
 
 								return true;
 							}
-							else if (e_write == mode)
+							else if (file_mode::e_write == mode)
 							{
 								std::ofstream* stream = new std::ofstream(file_name.c_str(), std::ios::binary);
 
@@ -39532,7 +39532,7 @@ namespace exprtk
 
 								return true;
 							}
-							else if (e_rdwrt == mode)
+							else if (file_mode::e_rdwrt == mode)
 							{
 								std::fstream* stream = new std::fstream(file_name.c_str(), std::ios::binary);
 

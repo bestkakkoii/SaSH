@@ -154,14 +154,15 @@ int __fastcall Autil::util_GetFunctionFromSlice(int* func, int* fieldcount)
 	memset(t1, 0, sizeof(t1));
 	int i = 0;
 
-	//  if (strcmp(MesgSlice[0], DEFAULTFUNCBEGIN)!=0) util_DiscardMessage();
+	if (strcmp(MesgSlice[0], DEFAULTFUNCBEGIN) != 0)
+		util_DiscardMessage();
 
 	strcpy_s(t1, 16384, MesgSlice[1]);
 
 	// Robin adjust
 	//*func=atoi(t1);
 	*func = std::atoi(t1) - 23;
-	for (i = 0; i < Autil::SLICE_MAX; i++)
+	for (i = 0; i < Autil::SLICE_MAX; ++i)
 	{
 		if (strcmp(MesgSlice[i], Autil::DEFAULTFUNCEND) == 0)
 		{
@@ -233,7 +234,7 @@ int __fastcall Autil::util_256to64(char* dst, char* src, int len, char* table)
 	dw = 0;
 	dwcounter = 0;
 
-	for (i = 0; i < len; i++)
+	for (i = 0; i < len; ++i)
 	{
 		dw = ((static_cast<unsigned int>(src[i]) & 0xff) << ((i % 3) << 1)) | dw;
 
@@ -273,10 +274,10 @@ int __fastcall Autil::util_64to256(char* dst, char* src, char* table)
 		return 0;
 
 	char c = '\0';
-	for (i = 0; i < strlen(src); i++)
+	for (i = 0; i < strlen(src); ++i)
 	{
 		c = src[i];
-		for (j = 0; j < strlen(table); j++)
+		for (j = 0; j < strlen(table); ++j)
 		{
 			if (table[j] == c)
 			{
@@ -328,7 +329,7 @@ int __fastcall Autil::util_256to64_shr(char* dst, char* src, int len, char* tabl
 	unsigned int dwcounter = 0u;
 
 	j = 0;
-	for (i = 0; i < len; i++)
+	for (i = 0; i < len; ++i)
 	{
 		dw = ((static_cast<unsigned int>(src[i]) & 0xff) << ((i % 3) << 1)) | dw;
 
@@ -382,11 +383,11 @@ int __fastcall Autil::util_shl_64to256(char* dst, char* src, char* table, char* 
 		return 0;
 
 	char c = '\0';
-	for (i = 0; i < strlen(src); i++)
+	for (i = 0; i < strlen(src); ++i)
 	{
 		c = src[i];
 
-		for (k = 0; k < strlen(table); k++)
+		for (k = 0; k < strlen(table); ++k)
 		{
 			if (table[k] == c)
 			{
@@ -451,7 +452,7 @@ int __fastcall Autil::util_256to64_shl(char* dst, char* src, int len, char* tabl
 	unsigned int dwcounter = 0u;
 	j = 0;
 
-	for (i = 0; i < len; i++)
+	for (i = 0; i < len; ++i)
 	{
 		dw = ((static_cast<unsigned int>(src[i]) & 0xff) << ((i % 3) << 1)) | dw;
 
@@ -505,10 +506,10 @@ int __fastcall Autil::util_shr_64to256(char* dst, char* src, char* table, char* 
 		return 0;
 
 	char c = '\0';
-	for (i = 0; i < strlen(src); i++)
+	for (i = 0; i < strlen(src); ++i)
 	{
 		c = src[i];
-		for (k = 0; k < strlen(table); k++)
+		for (k = 0; k < strlen(table); ++k)
 		{
 			if (table[k] == c)
 			{
@@ -561,7 +562,7 @@ void __fastcall Autil::util_swapint(int* dst, int* src, char* rule)
 	int i = 0;
 	char* ptr = reinterpret_cast<char*>(src);
 	char* qtr = reinterpret_cast<char*>(dst);
-	for (i = 0; i < 4; i++)
+	for (i = 0; i < 4; ++i)
 		qtr[rule[i] - '1'] = ptr[i];
 }
 
@@ -573,7 +574,7 @@ void __fastcall Autil::util_xorstring(char* dst, char* src)
 {
 	unsigned int i = 0;
 
-	for (i = 0; i < strlen(src); i++)
+	for (i = 0; i < strlen(src); ++i)
 		dst[i] = src[i] ^ 255;
 
 	dst[i] = '\0';
