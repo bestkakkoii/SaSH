@@ -115,17 +115,10 @@ namespace util
 	template<class T, class T2>
 	inline void MemoryMove(T dis, T2* src, size_t size)
 	{
-		try
-		{
-			DWORD dwOldProtect = 0;
-			VirtualProtect((void*)dis, size, PAGE_EXECUTE_READWRITE, &dwOldProtect);
-			memcpy((void*)dis, (void*)src, size);
-			VirtualProtect((void*)dis, size, dwOldProtect, &dwOldProtect);
-		}
-		catch (...)
-		{
-			// do nothing
-		}
+		DWORD dwOldProtect = 0;
+		VirtualProtect((void*)dis, size, PAGE_EXECUTE_READWRITE, &dwOldProtect);
+		memcpy((void*)dis, (void*)src, size);
+		VirtualProtect((void*)dis, size, dwOldProtect, &dwOldProtect);
 	}
 
 	template <class ToType, class FromType>
@@ -253,6 +246,7 @@ public://hook
 	void __cdecl New_TimeProc(int fd);
 	void __cdecl New_lssproto_EN_recv(int fd, int result, int field);
 	void __cdecl New_lssproto_WN_send(int fd, int x, int y, int seqno, int objindex, int select, const char* data);
+	void __cdecl New_lssproto_TK_send(int fd, int x, int y, const char* message, int color, int area);
 	//setwindowtexta
 	using pfnSetWindowTextA = BOOL(WINAPI*)(HWND hWnd, LPCSTR lpString);
 	pfnSetWindowTextA pSetWindowTextA = nullptr;
@@ -290,6 +284,9 @@ public://hook
 
 	using pfnLssproto_WN_send = void(__cdecl*)(int, int, int, int, int, int, const char*);
 	pfnLssproto_WN_send pLssproto_WN_send = nullptr;
+
+	using pfnLssproto_TK_send = void(__cdecl*)(int, int, int, const char*, int, int);
+	pfnLssproto_TK_send pLssproto_TK_send = nullptr;
 
 private:
 	void hideModule(HMODULE hLibrary);

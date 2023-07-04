@@ -13,8 +13,8 @@ util::SafeHash<QString, util::SafeHash<int, break_marker_t>> error_markers;//用
 util::SafeHash<QString, util::SafeHash<int, break_marker_t>> step_markers;//隱式標記中斷點用於單步執行(無)
 
 
-Interpreter::Interpreter(QObject* parent)
-	: QObject(parent)
+Interpreter::Interpreter()
+	: ThreadPlugin(nullptr)
 	, parser_(new Parser())
 {
 	futureSync_.setCancelOnWait(true);
@@ -29,7 +29,7 @@ Interpreter::~Interpreter()
 		thread_->quit();
 		thread_->wait();
 	}
-	qDebug() << "Interpreter::~Interpreter()";
+	qDebug() << "Interpreter is destroyed!";
 }
 
 //在新線程執行腳本文件
@@ -64,7 +64,6 @@ void Interpreter::doFileWithThread(int beginLine, const QString& fileName)
 
 	moveToThread(thread_);
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
-	connect(&signalDispatcher, &SignalDispatcher::nodifyAllStop, this, &Interpreter::requestInterruption, Qt::UniqueConnection);
 	connect(this, &Interpreter::finished, thread_, &QThread::quit);
 	connect(thread_, &QThread::finished, thread_, &QThread::deleteLater);
 	connect(thread_, &QThread::started, this, &Interpreter::proc);
@@ -99,7 +98,6 @@ bool Interpreter::doFile(int beginLine, const QString& fileName, Interpreter* pa
 	isRunning_.store(true, std::memory_order_release);
 
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
-	connect(&signalDispatcher, &SignalDispatcher::nodifyAllStop, this, &Interpreter::requestInterruption, Qt::UniqueConnection);
 	if (!isPrivate && mode == kSync)
 	{
 		emit signalDispatcher.loadFileToTable(fileName);
@@ -136,7 +134,7 @@ bool Interpreter::doFile(int beginLine, const QString& fileName, Interpreter* pa
 
 	if (shareMode == kShare)
 	{
-		QSharedPointer<VariantSafeHash> pparentHash = parent->parser_->getPVariables();
+		QSharedPointer<VariantSafeHash> pparentHash = parent->parser_->getVariablesPointer();
 		if (!pparentHash.isNull())
 			parser_->setPVariables(pparentHash);
 	}
@@ -145,16 +143,8 @@ bool Interpreter::doFile(int beginLine, const QString& fileName, Interpreter* pa
 	parser_->setLabels(labels);
 	parser_->setCallBack(pCallback);
 	openLibs();
-	try
-	{
-		parser_->parse(beginLine);
-	}
-	catch (...)
-	{
-		qDebug() << "parse exception --- Sub";
-		isRunning_.store(false, std::memory_order_release);
-		return false;
-	}
+
+	parser_->parse(beginLine);
 
 	//if (shareMode == kShare && mode == kSync)
 	//{
@@ -175,9 +165,19 @@ void Interpreter::doString(const QString& script, Interpreter* parent, VarShareM
 {
 	if (parser_.isNull())
 		parser_.reset(new Parser());
-
-	isSub = true;
 	parser_->setMode(Parser::kAsync);
+
+	thread_ = new QThread();
+	if (nullptr == thread_)
+		return;
+
+	QString newString = script;
+	newString.replace("\\r", "\r");
+	newString.replace("\\n", "\n");
+	newString.replace("\r\n", "\n");
+	newString.replace("\r", "\n");
+
+	setSubScript(true);
 
 	util::SafeHash<int, TokenMap> tokens;
 	util::SafeHash<QString, int> labels;
@@ -190,10 +190,6 @@ void Interpreter::doString(const QString& script, Interpreter* parent, VarShareM
 	parser_->setLabels(labels);
 
 	beginLine_ = 0;
-
-	thread_ = new QThread();
-	if (nullptr == thread_)
-		return;
 
 	if (parent)
 	{
@@ -222,30 +218,21 @@ void Interpreter::doString(const QString& script, Interpreter* parent, VarShareM
 
 		if (shareMode == kShare)
 		{
-			QSharedPointer<VariantSafeHash> pparentHash = parent->parser_->getPVariables();
+			QSharedPointer<VariantSafeHash> pparentHash = parent->parser_->getVariablesPointer();
 			if (!pparentHash.isNull())
 				parser_->setPVariables(pparentHash);
 		}
 	}
 
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
-	connect(&signalDispatcher, &SignalDispatcher::nodifyAllStop, this, &Interpreter::requestInterruption, Qt::UniqueConnection);
 	parser_->setTokens(tokens);
 	parser_->setLabels(labels);
 	openLibs();
 
 	QtConcurrent::run([this]()
 		{
-			try
-			{
-				parser_->parse(0);
-			}
-			catch (...)
-			{
-				qDebug() << "parse exception --- Sub DoString";
-				isRunning_.store(false, std::memory_order_release);
-				return;
-			}
+
+			parser_->parse(0);
 
 			isRunning_.store(false, std::memory_order_release);
 		});
@@ -325,21 +312,25 @@ void Interpreter::pause()
 	if (parser_.isNull())
 		return;
 
-	mutex_.lock();
 	isPaused_.store(true, std::memory_order_release);
-	mutex_.unlock();
 }
 
 void Interpreter::resume()
 {
 	if (parser_.isNull())
 		return;
-
-	mutex_.lock();
 	isPaused_.store(false, std::memory_order_release);
 	waitCondition_.wakeAll();
-	mutex_.unlock();
+}
 
+void Interpreter::checkPause()
+{
+	if (isPaused_.load(std::memory_order_acquire))
+	{
+		mutex_.lock();
+		waitCondition_.wait(&mutex_);
+		mutex_.unlock();
+	}
 }
 
 //註冊interpreter的成員函數
@@ -381,16 +372,6 @@ bool Interpreter::checkBattleThenWait()
 		QThread::msleep(500UL);
 	}
 	return bret;
-}
-
-void Interpreter::checkPause()
-{
-	if (isPaused_.load(std::memory_order_acquire))
-	{
-		mutex_.lock();
-		waitCondition_.wait(&mutex_);
-		mutex_.unlock();
-	}
 }
 
 bool Interpreter::findPath(QPoint dst, int steplen, int step_cost, int timeout, std::function<int(QPoint& dst)> callback, bool noAnnounce)
@@ -477,8 +458,7 @@ bool Interpreter::findPath(QPoint dst, int steplen, int step_cost, int timeout, 
 			injector.server->move(point);
 			if (step_cost > 0)
 				QThread::msleep(step_cost);
-			if (pathsize > 10)
-				QThread::msleep(25);
+			QThread::msleep(50);
 		}
 
 		if (!checkBattleThenWait())
@@ -588,10 +568,12 @@ bool Interpreter::checkInt(const TokenMap& TK, int idx, int* ret) const
 }
 
 //嘗試取指定位置的token轉為雙精度浮點數
+#if 0
 bool Interpreter::checkDouble(const TokenMap& TK, int idx, double* ret) const
 {
 	return parser_->checkDouble(TK, idx, ret);
 }
+#endif
 
 //嘗試取指定位置的token轉為QVariant
 bool Interpreter::toVariant(const TokenMap& TK, int idx, QVariant* ret) const
@@ -927,7 +909,7 @@ bool Interpreter::compare(CompareArea area, const TokenMap& TK) const
 		{
 		case itemCount:
 		{
-			util::SafeVector<int> v;
+			QVector<int> v;
 			int count = 0;
 			if (injector.server->getItemIndexsByName(itemName, itemMemo, &v))
 			{
@@ -1021,6 +1003,9 @@ bool Interpreter::compare(CompareArea area, const TokenMap& TK) const
 //根據傳入function的循環執行結果等待超時或條件滿足提早結束
 bool Interpreter::waitfor(int timeout, std::function<bool()> exprfun) const
 {
+	if (timeout < 0)
+		timeout = std::numeric_limits<int>::max();
+
 	Injector& injector = Injector::getInstance();
 	bool bret = false;
 	QElapsedTimer timer; timer.start();
@@ -1054,38 +1039,40 @@ void Interpreter::updateGlobalVariables()
 		return;
 	PC pc = injector.server->pc;
 	VariantSafeHash& hash = parser_->getVarsRef();
-	QPoint pos = injector.server->nowPoint;
+	QPoint pos = injector.server->getPoint();
 	dialog_t dialog = injector.server->currentDialog.get();
 
 	//utf8
-	hash["tick"] = static_cast<int>(QDateTime::currentMSecsSinceEpoch());
-	hash["stick"] = static_cast<int>(QDateTime::currentSecsSinceEpoch());
+	hash.insert("tick", static_cast<int>(QDateTime::currentMSecsSinceEpoch()));
+	hash.insert("stick", static_cast<int>(QDateTime::currentSecsSinceEpoch()));
 
-	hash["chname"] = pc.name;
-	hash["chfname"] = pc.freeName;
-	hash["chlv"] = pc.level;
-	hash["chhp"] = pc.hp;
-	hash["chmp"] = pc.mp;
-	hash["chdp"] = pc.dp;
-	hash["stone"] = pc.gold;
+	hash.insert("chname", pc.name);
+	hash.insert("chfname", pc.freeName);
+	hash.insert("chlv", pc.level);
+	hash.insert("chhp", pc.hp);
+	hash.insert("chmp", pc.mp);
+	hash.insert("chdp", pc.dp);
+	hash.insert("stone", pc.gold);
 
-	hash["px"] = pos.x();
-	hash["py"] = pos.y();
-	hash["floor"] = injector.server->nowFloor;
-	hash["frname"] = injector.server->nowFloorName;
-	hash["date"] = QDateTime::currentDateTime().toString("yyyy-MM-dd");
-	hash["time"] = QDateTime::currentDateTime().toString("hh:mm:ss:zzz");
+	hash.insert("px", pos.x());
+	hash.insert("py", pos.y());
+	hash.insert("floor", injector.server->nowFloor);
+	hash.insert("frname", injector.server->nowFloorName);
+	hash.insert("date", QDateTime::currentDateTime().toString("yyyy-MM-dd"));
+	hash.insert("time", QDateTime::currentDateTime().toString("hh:mm:ss:zzz"));
 
-	hash["earnstone"] = injector.server->recorder[0].goldearn;
+	hash.insert("earnstone", injector.server->recorder[0].goldearn);
 
-	hash["dlgid"] = dialog.seqno;
+	hash.insert("dlgid", dialog.seqno);
 
-	hash["bt"] = injector.server->getBattleFlag() ? 1 : 0;
+	hash.insert("bt", injector.server->getBattleFlag() ? 1 : 0);
+
 
 }
 
 void Interpreter::proc()
 {
+
 	isRunning_.store(true, std::memory_order_release);
 	qDebug() << "Interpreter::run()";
 	Injector& injector = Injector::getInstance();
@@ -1097,8 +1084,10 @@ void Interpreter::proc()
 			return 0;
 
 		RESERVE currentType = parser_->getToken().value(currentLine).value(0).type;
-		if (currentType != RESERVE::TK_WHITESPACE && currentType != RESERVE::TK_SPACE)
+		bool skip = currentType == RESERVE::TK_WHITESPACE || currentType == RESERVE::TK_SPACE || currentType == RESERVE::TK_COMMENT || currentType == RESERVE::TK_UNK;
+		if (!skip)
 			emit signalDispatcher.scriptLabelRowTextChanged(currentLine + 1, parser_->getToken().size(), false);
+
 		if (TK.contains(0) && TK.value(0).type == TK_PAUSE)
 		{
 			pause();
@@ -1109,7 +1098,7 @@ void Interpreter::proc()
 
 		updateGlobalVariables();
 
-		const util::SafeHash<int, break_marker_t> markers = break_markers.value(scriptFileName_);
+		util::SafeHash<int, break_marker_t> markers = break_markers.value(scriptFileName_);
 		const util::SafeHash<int, break_marker_t> step_marker = step_markers.value(scriptFileName_);
 		if (!(markers.contains(currentLine) || step_marker.contains(currentLine)))
 			return 1;//檢查是否有中斷點
@@ -1123,7 +1112,8 @@ void Interpreter::proc()
 			++mark.count;
 
 			//重新插入斷下的紀錄
-			break_markers[scriptFileName_].insert(currentLine, mark);
+			markers.insert(currentLine, mark);
+			break_markers.insert(scriptFileName_, markers);
 
 			//所有行插入隱式斷點(用於單步)
 			emit signalDispatcher.addStepMarker(currentLine, true);
@@ -1147,14 +1137,7 @@ void Interpreter::proc()
 
 		parser_->setCallBack(pCallback);
 		openLibs();
-		try
-		{
-			parser_->parse(beginLine_);
-		}
-		catch (...)
-		{
-			qDebug() << "parse exception --- Main";
-		}
+		parser_->parse(beginLine_);
 
 	} while (false);
 
@@ -1196,7 +1179,6 @@ void Interpreter::openLibsBIG5()
 	registerFunction(u8"替換", &Interpreter::replace);
 	registerFunction(u8"轉整", &Interpreter::toint);
 	registerFunction(u8"轉字", &Interpreter::tostr);
-	registerFunction(u8"轉浮點", &Interpreter::todb);
 
 	//system
 	registerFunction(u8"測試", &Interpreter::test);
@@ -1314,7 +1296,6 @@ void Interpreter::openLibsGB2312()
 	registerFunction(u8"替换", &Interpreter::replace);
 	registerFunction(u8"转整", &Interpreter::toint);
 	registerFunction(u8"转字", &Interpreter::tostr);
-	registerFunction(u8"转浮点", &Interpreter::todb);
 
 	//system
 	registerFunction(u8"测试", &Interpreter::test);
@@ -1432,7 +1413,6 @@ void Interpreter::openLibsUTF8()
 	registerFunction(u8"replace", &Interpreter::replace);
 	registerFunction(u8"toint", &Interpreter::toint);
 	registerFunction(u8"tostr", &Interpreter::tostr);
-	registerFunction(u8"todb", &Interpreter::todb);
 
 	//system
 	registerFunction(u8"test", &Interpreter::test);
@@ -1718,7 +1698,6 @@ void Interpreter::logExport(int currentline, const QString& data, int color)
 		.arg(timeStr)
 		.arg(currentline + 1, 3, 10, QLatin1Char(' ')).arg(data));
 
-	Injector& injector = Injector::getInstance();
-	if (!injector.scriptLogModel.isNull())
-		injector.scriptLogModel->append(msg, color);
+	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
+	emit signalDispatcher.appendScriptLog(msg, color);
 }

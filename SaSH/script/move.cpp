@@ -60,7 +60,7 @@ int Interpreter::move(int currentline, const TokenMap& TK)
 
 	waitfor(timeout, [&injector, &p]()->bool
 		{
-			bool result = injector.server->nowPoint == p;
+			bool result = injector.server->getPoint() == p;
 			if (result)
 			{
 				injector.server->move(p);
@@ -92,7 +92,7 @@ int Interpreter::fastmove(int currentline, const TokenMap& TK)
 		else if (p.x() >= 1 && p.x() <= 8)
 		{
 			int dir = p.x() - 1;
-			p = injector.server->nowPoint + util::fix_point.at(dir) * 10;
+			p = injector.server->getPoint() + util::fix_point.at(dir) * 10;
 		}
 		else
 			return Parser::kArgError;
@@ -104,7 +104,7 @@ int Interpreter::fastmove(int currentline, const TokenMap& TK)
 
 		DirType dir = dirMap.value(dirStr.toUpper().simplified());
 		//計算出往該方向10格的坐標
-		p = injector.server->nowPoint + util::fix_point.at(dir) * 10;
+		p = injector.server->getPoint() + util::fix_point.at(dir) * 10;
 
 	}
 
@@ -166,7 +166,7 @@ int Interpreter::findpath(int currentline, const TokenMap& TK)
 				return 0;//沒找到
 		}
 
-		int dir = injector.server->mapAnalyzer->calcBestFollowPointByDstPoint(injector.server->nowFloor, injector.server->nowPoint, unit.p, &dst, true, unit.dir);
+		int dir = injector.server->mapAnalyzer->calcBestFollowPointByDstPoint(injector.server->nowFloor, injector.server->getPoint(), unit.p, &dst, true, unit.dir);
 		if (pdir)
 			*pdir = dir;
 		return dir != -1;//找到了
@@ -260,7 +260,7 @@ int Interpreter::movetonpc(int currentline, const TokenMap& TK)
 				return 0;//沒找到
 		}
 
-		dir = injector.server->mapAnalyzer->calcBestFollowPointByDstPoint(injector.server->nowFloor, injector.server->nowPoint, unit.p, &dst, true, unit.dir);
+		dir = injector.server->mapAnalyzer->calcBestFollowPointByDstPoint(injector.server->nowFloor, injector.server->getPoint(), unit.p, &dst, true, unit.dir);
 		return dir != -1 ? 1 : 0;//找到了
 	};
 
@@ -330,7 +330,7 @@ int Interpreter::warp(int currentline, const TokenMap& TK)
 
 		bret = waitfor(timeout, [&injector, pto, floor, floorName]()->bool
 			{
-				if (injector.server->nowPoint == pto)
+				if (injector.server->getPoint() == pto)
 				{
 					if (floorName.isEmpty())
 					{

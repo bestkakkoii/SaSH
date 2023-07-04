@@ -42,10 +42,10 @@ namespace Net
 			GlobalMachineUniqueIdBlackList = 10,
 		};
 
-		static Authenticator& getInstance()
+		static Authenticator* getInstance()
 		{
 			static Authenticator* instance = new Authenticator();
-			return *instance;
+			return instance;
 		}
 	private:
 		mutable QReadWriteLock m_lock;
@@ -85,7 +85,7 @@ namespace Net
 			QByteArray m_private_key;
 			QByteArray m_private_uid;
 
-			void encrypt(const QString& src, QByteArray* dst)
+			inline void encrypt(const QString& src, QByteArray* dst)
 			{
 				QByteArray data;
 				data.append(src.toUtf8());
@@ -138,17 +138,17 @@ namespace Net
 		QString GetLocal(int col, bool decodeenable = true);
 		QString GetGlobal(int row, int col, bool decodeenable = true);
 
-		userinfo_t GetUser()
+		inline userinfo_t GetUser()
 		{
 			return user_;
 		}
 
-		void SetUser(const userinfo_t& user)
+		inline void SetUser(const userinfo_t& user)
 		{
 			user_ = user;
 		}
 
-		void SetUserClear()
+		inline void SetUserClear()
 		{
 			user_ = {};
 		}

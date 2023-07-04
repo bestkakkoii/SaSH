@@ -7,13 +7,16 @@
     <x>0</x>
     <y>0</y>
     <width>679</width>
-    <height>274</height>
+    <height>303</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>BattleInfoForm</string>
   </property>
-  <layout class="QGridLayout" name="gridLayout">
+  <layout class="QVBoxLayout" name="verticalLayout_3">
+   <property name="spacing">
+    <number>1</number>
+   </property>
    <property name="leftMargin">
     <number>1</number>
    </property>
@@ -26,94 +29,91 @@
    <property name="bottomMargin">
     <number>1</number>
    </property>
-   <property name="spacing">
-    <number>1</number>
-   </property>
-   <item row="0" column="0">
-    <layout class="QVBoxLayout" name="verticalLayout_battle">
-     <item>
-      <widget class="QLabel" name="label_time">
-       <property name="sizePolicy">
-        <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
-         <horstretch>0</horstretch>
-         <verstretch>0</verstretch>
-        </sizepolicy>
+   <item>
+    <widget class="FastLabel" name="label_time" native="true">
+     <property name="sizePolicy">
+      <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+       <horstretch>0</horstretch>
+       <verstretch>0</verstretch>
+      </sizepolicy>
+     </property>
+     <property name="minimumSize">
+      <size>
+       <width>0</width>
+       <height>20</height>
+      </size>
+     </property>
+     <property name="maximumSize">
+      <size>
+       <width>16777215</width>
+       <height>20</height>
+      </size>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QSplitter" name="splitter">
+     <property name="orientation">
+      <enum>Qt::Horizontal</enum>
+     </property>
+     <widget class="QWidget" name="">
+      <layout class="QVBoxLayout" name="verticalLayout">
+       <property name="spacing">
+        <number>1</number>
        </property>
-       <property name="minimumSize">
-        <size>
-         <width>0</width>
-         <height>20</height>
-        </size>
-       </property>
-       <property name="maximumSize">
-        <size>
-         <width>16777215</width>
-         <height>20</height>
-        </size>
-       </property>
-       <property name="text">
-        <string/>
-       </property>
-       <property name="alignment">
-        <set>Qt::AlignCenter</set>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QSplitter" name="splitter">
-       <property name="orientation">
-        <enum>Qt::Horizontal</enum>
-       </property>
-       <widget class="QWidget" name="layoutWidget">
-        <layout class="QVBoxLayout" name="verticalLayout_top">
-         <property name="spacing">
-          <number>1</number>
+       <item>
+        <widget class="QLabel" name="label_topinfo">
+         <property name="minimumSize">
+          <size>
+           <width>0</width>
+           <height>20</height>
+          </size>
          </property>
+         <property name="text">
+          <string>top info</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QTableWidget" name="tableWidget_top">
+         <property name="minimumSize">
+          <size>
+           <width>0</width>
+           <height>0</height>
+          </size>
+         </property>
+         <property name="editTriggers">
+          <set>QAbstractItemView::NoEditTriggers</set>
+         </property>
+         <attribute name="verticalHeaderVisible">
+          <bool>false</bool>
+         </attribute>
+         <column>
+          <property name="text">
+           <string>char/pet</string>
+          </property>
+         </column>
+         <column>
+          <property name="text">
+           <string>ride</string>
+          </property>
+         </column>
+        </widget>
+       </item>
+       <item>
+        <layout class="QHBoxLayout" name="horizontalLayout">
          <item>
-          <widget class="QLabel" name="label_topinfo">
+          <widget class="QLabel" name="label_c">
            <property name="minimumSize">
             <size>
-             <width>0</width>
+             <width>55</width>
              <height>20</height>
             </size>
            </property>
-           <property name="text">
-            <string>top info</string>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QTableWidget" name="tableWidget_top">
-           <property name="minimumSize">
+           <property name="maximumSize">
             <size>
-             <width>0</width>
-             <height>0</height>
-            </size>
-           </property>
-           <property name="editTriggers">
-            <set>QAbstractItemView::NoEditTriggers</set>
-           </property>
-           <attribute name="verticalHeaderVisible">
-            <bool>false</bool>
-           </attribute>
-           <column>
-            <property name="text">
-             <string>char/pet</string>
-            </property>
-           </column>
-           <column>
-            <property name="text">
-             <string>ride</string>
-            </property>
-           </column>
-          </widget>
-         </item>
-         <item>
-          <widget class="QLabel" name="label_charaction">
-           <property name="minimumSize">
-            <size>
-             <width>0</width>
-             <height>20</height>
+             <width>55</width>
+             <height>16777215</height>
             </size>
            </property>
            <property name="text">
@@ -121,58 +121,84 @@
            </property>
           </widget>
          </item>
+         <item>
+          <widget class="FastLabel" name="label_charaction" native="true">
+           <property name="minimumSize">
+            <size>
+             <width>0</width>
+             <height>20</height>
+            </size>
+           </property>
+           <property name="maximumSize">
+            <size>
+             <width>16777215</width>
+             <height>20</height>
+            </size>
+           </property>
+          </widget>
+         </item>
         </layout>
-       </widget>
-       <widget class="QWidget" name="layoutWidget1">
-        <layout class="QVBoxLayout" name="verticalLayout_bottom">
-         <property name="spacing">
-          <number>1</number>
+       </item>
+      </layout>
+     </widget>
+     <widget class="QWidget" name="">
+      <layout class="QVBoxLayout" name="verticalLayout_2">
+       <property name="spacing">
+        <number>1</number>
+       </property>
+       <item>
+        <widget class="QLabel" name="label_bottominfo">
+         <property name="minimumSize">
+          <size>
+           <width>0</width>
+           <height>20</height>
+          </size>
          </property>
+         <property name="text">
+          <string>bottom info</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QTableWidget" name="tableWidget_bottom">
+         <property name="minimumSize">
+          <size>
+           <width>0</width>
+           <height>0</height>
+          </size>
+         </property>
+         <property name="editTriggers">
+          <set>QAbstractItemView::NoEditTriggers</set>
+         </property>
+         <attribute name="verticalHeaderVisible">
+          <bool>false</bool>
+         </attribute>
+         <column>
+          <property name="text">
+           <string>char/pet</string>
+          </property>
+         </column>
+         <column>
+          <property name="text">
+           <string>ride</string>
+          </property>
+         </column>
+        </widget>
+       </item>
+       <item>
+        <layout class="QHBoxLayout" name="horizontalLayout_2">
          <item>
-          <widget class="QLabel" name="label_bottominfo">
+          <widget class="QLabel" name="label_p">
            <property name="minimumSize">
             <size>
-             <width>0</width>
+             <width>55</width>
              <height>20</height>
             </size>
            </property>
-           <property name="text">
-            <string>bottom info</string>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QTableWidget" name="tableWidget_bottom">
-           <property name="minimumSize">
+           <property name="maximumSize">
             <size>
-             <width>0</width>
-             <height>0</height>
-            </size>
-           </property>
-           <property name="editTriggers">
-            <set>QAbstractItemView::NoEditTriggers</set>
-           </property>
-           <attribute name="verticalHeaderVisible">
-            <bool>false</bool>
-           </attribute>
-           <column>
-            <property name="text">
-             <string>char/pet</string>
-            </property>
-           </column>
-           <column>
-            <property name="text">
-             <string>ride</string>
-            </property>
-           </column>
-          </widget>
-         </item>
-         <item>
-          <widget class="QLabel" name="label_petaction">
-           <property name="minimumSize">
-            <size>
-             <width>0</width>
-             <height>20</height>
+             <width>55</width>
+             <height>16777215</height>
             </size>
            </property>
            <property name="text">
@@ -180,15 +206,39 @@
            </property>
           </widget>
          </item>
+         <item>
+          <widget class="FastLabel" name="label_petaction" native="true">
+           <property name="minimumSize">
+            <size>
+             <width>0</width>
+             <height>20</height>
+            </size>
+           </property>
+           <property name="maximumSize">
+            <size>
+             <width>16777215</width>
+             <height>20</height>
+            </size>
+           </property>
+          </widget>
+         </item>
         </layout>
-       </widget>
-      </widget>
-     </item>
-    </layout>
+       </item>
+      </layout>
+     </widget>
+    </widget>
    </item>
   </layout>
  </widget>
  <layoutdefault spacing="6" margin="11"/>
+ <customwidgets>
+  <customwidget>
+   <class>FastLabel</class>
+   <extends>QWidget</extends>
+   <header location="global">fastlabel.h</header>
+   <container>1</container>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections/>
 </ui>

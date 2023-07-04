@@ -31,8 +31,10 @@ private slots:
 	void onCurrentTableWidgetItemChanged(QTableWidgetItem* current, QTableWidgetItem* previous);
 
 	void onScriptPaused();
+	void onScriptResumed();
+	void onScriptStoped();
 	void onScriptFinished();
-	void onStartScript();
+	void onScriptStarted();
 
 private:
 	void setTableWidgetItem(int row, int col, const QString& text);

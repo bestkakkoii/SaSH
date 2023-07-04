@@ -101,19 +101,21 @@ ScriptSettingForm::ScriptSettingForm(QWidget* parent)
 
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
 	connect(&signalDispatcher, &SignalDispatcher::applyHashSettingsToUI, this, &ScriptSettingForm::onApplyHashSettingsToUI, Qt::UniqueConnection);
+
+	connect(&signalDispatcher, &SignalDispatcher::scriptStarted, this, &ScriptSettingForm::onScriptStartMode, Qt::QueuedConnection);
+	connect(&signalDispatcher, &SignalDispatcher::scriptPaused, this, &ScriptSettingForm::onScriptPauseMode, Qt::QueuedConnection);
+	connect(&signalDispatcher, &SignalDispatcher::scriptResumed, this, &ScriptSettingForm::onScriptStartMode, Qt::QueuedConnection);
+	connect(&signalDispatcher, &SignalDispatcher::scriptBreaked, this, &ScriptSettingForm::onScriptBreakMode, Qt::QueuedConnection);
+	connect(&signalDispatcher, &SignalDispatcher::scriptFinished, this, &ScriptSettingForm::onScriptStopMode, Qt::QueuedConnection);
+
 	connect(&signalDispatcher, &SignalDispatcher::addForwardMarker, this, &ScriptSettingForm::onAddForwardMarker, Qt::UniqueConnection);
 	connect(&signalDispatcher, &SignalDispatcher::addErrorMarker, this, &ScriptSettingForm::onAddErrorMarker, Qt::UniqueConnection);
 	connect(&signalDispatcher, &SignalDispatcher::addBreakMarker, this, &ScriptSettingForm::onAddBreakMarker, Qt::UniqueConnection);
 	connect(&signalDispatcher, &SignalDispatcher::addStepMarker, this, &ScriptSettingForm::onAddStepMarker, Qt::UniqueConnection);
 	connect(&signalDispatcher, &SignalDispatcher::loadFileToTable, this, &ScriptSettingForm::loadFile, Qt::QueuedConnection);
 	connect(&signalDispatcher, &SignalDispatcher::reloadScriptList, this, &ScriptSettingForm::onReloadScriptList, Qt::QueuedConnection);
-	connect(&signalDispatcher, &SignalDispatcher::scriptLabelRowTextChanged2, this, &ScriptSettingForm::onScriptLabelRowTextChanged, Qt::QueuedConnection);
-	connect(&signalDispatcher, &SignalDispatcher::globalVarInfoImport, this, &ScriptSettingForm::onGlobalVarInfoImport, Qt::QueuedConnection);
-	connect(&signalDispatcher, &SignalDispatcher::localVarInfoImport, this, &ScriptSettingForm::onLocalVarInfoImport, Qt::QueuedConnection);
-	connect(&signalDispatcher, &SignalDispatcher::scriptFinished, this, &ScriptSettingForm::onScriptStopMode, Qt::QueuedConnection);
-	connect(&signalDispatcher, &SignalDispatcher::scriptStarted, this, &ScriptSettingForm::onScriptStartMode, Qt::QueuedConnection);
-	connect(&signalDispatcher, &SignalDispatcher::scriptPaused2, this, &ScriptSettingForm::onScriptPauseMode, Qt::QueuedConnection);
-	connect(&signalDispatcher, &SignalDispatcher::scriptPaused, this, &ScriptSettingForm::onScriptPauseMode, Qt::QueuedConnection);
+	connect(&signalDispatcher, &SignalDispatcher::scriptLabelRowTextChanged, this, &ScriptSettingForm::onScriptLabelRowTextChanged, Qt::QueuedConnection);
+	connect(&signalDispatcher, &SignalDispatcher::varInfoImported, this, &ScriptSettingForm::onVarInfoImport, Qt::QueuedConnection);
 	connect(&signalDispatcher, &SignalDispatcher::callStackInfoChanged, this, &ScriptSettingForm::onCallStackInfoChanged, Qt::QueuedConnection);
 	connect(&signalDispatcher, &SignalDispatcher::jumpStackInfoChanged, this, &ScriptSettingForm::onJumpStackInfoChanged, Qt::QueuedConnection);
 
@@ -515,7 +517,9 @@ void ScriptSettingForm::setMark(CodeEditor::SymbolHandler element, util::SafeHas
 			bk.content = ui.widget->text(liner);
 			bk.count = NULL;
 			bk.maker = static_cast<int>(element);
-			hash[injector.currentScriptFileName].insert(liner, bk);
+			util::SafeHash<int, break_marker_t> markers = hash.value(injector.currentScriptFileName);
+			markers.insert(liner, bk);
+			hash.insert(injector.currentScriptFileName, markers);
 
 			ui.widget->markerAdd(liner, element); // 添加标签
 			onEditorCursorPositionChanged(liner, 0);
@@ -525,7 +529,10 @@ void ScriptSettingForm::setMark(CodeEditor::SymbolHandler element, util::SafeHas
 			Injector& injector = Injector::getInstance();
 			util::SafeHash<int, break_marker_t> markers = hash.value(injector.currentScriptFileName);
 			if (markers.contains(liner))
-				hash[injector.currentScriptFileName].remove(liner);
+			{
+				markers.remove(liner);
+				hash.insert(injector.currentScriptFileName, markers);
+			}
 			ui.widget->markerDelete(liner, element);
 		}
 	} while (false);
@@ -597,14 +604,19 @@ void ScriptSettingForm::onAddBreakMarker(int liner, bool b)
 				return;
 			bk.count = NULL;
 			bk.maker = static_cast<int>(CodeEditor::SymbolHandler::SYM_POINT);
-			break_markers[injector.currentScriptFileName].insert(liner, bk);
+			util::SafeHash<int, break_marker_t> markers = break_markers.value(injector.currentScriptFileName);
+			markers.insert(liner, bk);
+			break_markers.insert(injector.currentScriptFileName, markers);
 			ui.widget->markerAdd(liner, CodeEditor::SymbolHandler::SYM_POINT);
 		}
 		else if (!b)
 		{
 			util::SafeHash<int, break_marker_t> markers = break_markers.value(injector.currentScriptFileName);
 			if (markers.contains(liner))
-				break_markers[injector.currentScriptFileName].remove(liner);
+			{
+				markers.remove(liner);
+				break_markers.insert(injector.currentScriptFileName, markers);
+			}
 
 			ui.widget->markerDelete(liner, CodeEditor::SymbolHandler::SYM_POINT);
 		}
@@ -895,10 +907,9 @@ void ScriptSettingForm::loadFile(const QString& fileName)
 	on_comboBox_labels_clicked();
 }
 
-void ScriptSettingForm::onContinue()
+void ScriptSettingForm::setContinue()
 {
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
-	emit signalDispatcher.scriptPaused2();
 	onAddErrorMarker(-1, false);
 	onAddForwardMarker(-1, false);
 	onAddStepMarker(-1, false);
@@ -906,7 +917,7 @@ void ScriptSettingForm::onContinue()
 	error_markers.clear();
 	step_markers.clear();
 
-	onScriptStartMode();
+	emit signalDispatcher.scriptResumed();
 }
 
 void ScriptSettingForm::onScriptTreeWidgetDoubleClicked(QTreeWidgetItem* item, int column)
@@ -992,7 +1003,7 @@ void ScriptSettingForm::onActionTriggered()
 	}
 	else if (name == "actionPause")
 	{
-		emit signalDispatcher.scriptPaused2();
+		emit signalDispatcher.scriptPaused();
 	}
 	else if (name == "actionStop")
 	{
@@ -1000,7 +1011,13 @@ void ScriptSettingForm::onActionTriggered()
 	}
 	else if (name == "actionContinue")
 	{
-		onContinue();
+		setContinue();
+	}
+	else if (name == "actionStep")
+	{
+		onAddErrorMarker(-1, false);
+		onAddForwardMarker(-1, false);
+		emit signalDispatcher.scriptBreaked();
 	}
 	else if (name == "actionSaveAs")
 	{
@@ -1039,12 +1056,6 @@ void ScriptSettingForm::onActionTriggered()
 	else if (name == "actionDirectory")
 	{
 		QDesktopServices::openUrl(QUrl::fromLocalFile(QApplication::applicationDirPath() + "/script"));
-	}
-	else if (name == "actionStep")
-	{
-		onAddErrorMarker(-1, false);
-		onAddForwardMarker(-1, false);
-		emit signalDispatcher.scriptPaused2();
 	}
 	else if (name == "actionMark")
 	{
@@ -1259,13 +1270,16 @@ void ScriptSettingForm::onScriptLabelRowTextChanged(int line, int, bool)
 	if (line < 0)
 		line = 0;
 
-	ui.widget->setCursorPosition(line, ui.widget->SendScintilla(QsciScintilla::SCI_LINELENGTH, line) - 1);
-	ui.widget->SendScintilla(QsciScintilla::SCI_SETSELECTIONMODE, QsciScintilla::SC_SEL_LINES);
-
+	ui.widget->setUpdatesEnabled(false);
+	//ui.widget->setCursorPosition(line, ui.widget->SendScintilla(QsciScintilla::SCI_LINELENGTH, line) - 1);
+	//ui.widget->SendScintilla(QsciScintilla::SCI_SETSELECTIONMODE, QsciScintilla::SC_SEL_LINES);
+	QString text = ui.widget->text(line - 1);
+	ui.widget->setSelection(line - 1, 0, line - 1, text.size());
 	ui.widget->setCaretLineBackgroundColor(QColor(71, 71, 71));//光標所在行背景顏色
+	ui.widget->setUpdatesEnabled(true);
 
 	//確保光標示在可視範圍內
-	ui.widget->ensureLineVisible(line);
+	//ui.widget->ensureLineVisible(line);
 }
 
 //切換光標和焦點所在行
@@ -1343,7 +1357,7 @@ void ScriptSettingForm::varInfoImport(QTreeWidget* tree, const QHash<QString, QV
 
 	tree->clear();
 	tree->setColumnCount(3);
-	tree->setHeaderLabels(QStringList() << tr("name") << tr("value") << tr("type"));
+	tree->setHeaderLabels(QStringList() << tr("field") << tr("name") << tr("value") << tr("type"));
 
 	if (!d.isEmpty())
 	{
@@ -1355,9 +1369,15 @@ void ScriptSettingForm::varInfoImport(QTreeWidget* tree, const QHash<QString, QV
 			map.insert(it.key(), it.value());
 		}
 
+		QStringList l;
 		for (auto it = map.begin(); it != map.end(); ++it)
 		{
-			QString varName = it.key();
+			QStringList l = it.key().split(util::rexOR);
+			if (l.size() != 2)
+				continue;
+
+			QString field = l.at(0) == "global" ? tr("GLOBAL") : tr("LOCAL");
+			QString varName = l.at(1);
 			QString varType;
 			QString varValue;
 			QVariant var = it.value();
@@ -1413,7 +1433,7 @@ void ScriptSettingForm::varInfoImport(QTreeWidget* tree, const QHash<QString, QV
 			}
 
 			}
-			trees.append(q_check_ptr(new QTreeWidgetItem({ varName, varValue, QString("(%1)").arg(varType) })));
+			trees.append(q_check_ptr(new QTreeWidgetItem({ field, varName, varValue, QString("(%1)").arg(varType) })));
 		}
 		tree->addTopLevelItems(trees);
 	}
@@ -1421,7 +1441,7 @@ void ScriptSettingForm::varInfoImport(QTreeWidget* tree, const QHash<QString, QV
 }
 
 //全局變量列表
-void ScriptSettingForm::onGlobalVarInfoImport(const QHash<QString, QVariant>& d)
+void ScriptSettingForm::onVarInfoImport(const QHash<QString, QVariant>& d)
 {
 	if (currentGlobalVarInfo_ == d)
 		return;
@@ -1433,20 +1453,24 @@ void ScriptSettingForm::onGlobalVarInfoImport(const QHash<QString, QVariant>& d)
 			"floor", "frname", "date", "time", "earnstone", "expbuff", "dlgid", "bt"
 	};
 
-
-
 	QHash<QString, QVariant> globalVarInfo;
 	QHash<QString, QVariant> customVarInfo;
 	//如果key存在於系統變量列表中則添加到系統變量列表中
 
-	//UINT acp = GetACP();
+	QString key;
+	QStringList l;
 	for (auto it = d.begin(); it != d.end(); ++it)
 	{
-		if (systemVarList.contains(it.key().simplified()))
+		l = it.key().split(util::rexOR);
+		if (l.size() != 2)
+			continue;
+
+		key = l.at(1);
+		if (systemVarList.contains(key.simplified()))
 		{
 			globalVarInfo.insert(it.key(), it.value());
 		}
-		else if (!systemVarList.contains(it.key().simplified()))
+		else if (!systemVarList.contains(key.simplified()))
 		{
 			customVarInfo.insert(it.key(), it.value());
 		}
@@ -1454,16 +1478,6 @@ void ScriptSettingForm::onGlobalVarInfoImport(const QHash<QString, QVariant>& d)
 
 	varInfoImport(ui.treeWidget_debuger_global, globalVarInfo);
 	varInfoImport(ui.treeWidget_debuger_custom, customVarInfo);
-}
-
-//區域變量列表
-void ScriptSettingForm::onLocalVarInfoImport(const QHash<QString, QVariant>& d)
-{
-	if (currentLocalVarInfo_ == d)
-		return;
-
-	currentLocalVarInfo_ = d;
-	varInfoImport(ui.treeWidget_debuger_local, d);
 }
 
 void ScriptSettingForm::on_treeWidget_functionList_itemDoubleClicked(QTreeWidgetItem* item, int column)

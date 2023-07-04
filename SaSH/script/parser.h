@@ -3,6 +3,7 @@
 #include <QStack>
 #include <functional>
 
+#include "threadplugin.h"
 #include "util.h"
 
 using CommandRegistry = std::function<int(int currentLine, const TokenMap& token)>;
@@ -44,7 +45,7 @@ enum JumpBehavior
 	FailedJump,
 };
 
-class Parser : public QObject
+class Parser : public ThreadPlugin
 {
 	Q_OBJECT
 public:
@@ -176,7 +177,9 @@ public:
 
 	bool checkString(const TokenMap& TK, int idx, QString* ret);
 	bool checkInt(const TokenMap& TK, int idx, int* ret);
+#if 0
 	bool checkDouble(const TokenMap& TK, int idx, double* ret);
+#endif
 	bool toVariant(const TokenMap& TK, int idx, QVariant* ret);
 	bool compare(const QVariant& a, const QVariant& b, RESERVE type) const;
 
@@ -189,9 +192,9 @@ public:
 	//解析腳本
 	void parse(int line = 0);
 	util::SafeHash<QString, int>& getLabels() { return labels_; }
-	QSharedPointer<VariantSafeHash> getPVariables() const { return variables_; }
+	QSharedPointer<VariantSafeHash> getVariablesPointer() const { return variables_; }
 	void setPVariables(const QSharedPointer<VariantSafeHash>& variables) { variables_ = variables; }
-	Q_REQUIRED_RESULT inline QVariant& getVarRef(const QString& name) { return (*variables_)[name]; }
+	//Q_REQUIRED_RESULT inline QVariant& getVarRef(const QString& name) { return (*variables_)[name]; }
 	Q_REQUIRED_RESULT inline VariantSafeHash& getVarsRef() { return *variables_; }
 	Q_REQUIRED_RESULT inline VariantSafeHash& getLabelVarsRef()
 	{
@@ -236,6 +239,7 @@ private:
 
 	void replaceToVariable(QString& str);
 	bool checkCallStack();
+	bool checkFuzzyValue(const QString& varName, QVariant varValue, QVariant* pvalue);
 
 	template <typename T>
 	bool exprTo(QString expr, T* ret);
@@ -251,7 +255,7 @@ private:
 	inline void next() { ++lineNumber_; }
 
 	Q_REQUIRED_RESULT inline bool isEmpty() const { return !tokens_.contains(lineNumber_); }
-	Q_REQUIRED_RESULT inline RESERVE getType() const { return currentLineTokens_.value(0).type; }
+	Q_REQUIRED_RESULT inline RESERVE getCurrentFirstTokenType() const { return currentLineTokens_.value(0).type; }
 	template <typename T>
 	Q_REQUIRED_RESULT inline T getToken(int index) const
 	{
@@ -281,18 +285,7 @@ private:
 
 	void generateStackInfo(int type);
 
-	bool isInterruptionRequested() const
-	{
-		QReadLocker lock(&interruptLock_);
-		return isRequestInterrupted.load(std::memory_order_acquire);
-	}
 
-public slots:
-	void requestInterruption()
-	{
-		QWriteLocker lock(&interruptLock_);
-		isRequestInterrupted.store(true, std::memory_order_release);
-	}
 private:
 	typedef struct tagFunctionChunk
 	{
@@ -302,8 +295,7 @@ private:
 	} FunctionChunk;
 
 	bool usestate = false;
-	std::atomic_bool isRequestInterrupted = false;                  //是否停止
-	mutable QReadWriteLock interruptLock_;							//停止鎖
+
 	util::SafeHash<int, TokenMap> tokens_;							//當前運行腳本的每一行token
 	QSharedPointer<VariantSafeHash> variables_;						//所有用腳本變量
 	util::SafeHash<QString, int> labels_;							//所有標記所在行記錄

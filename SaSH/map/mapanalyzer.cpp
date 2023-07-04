@@ -1323,7 +1323,7 @@ bool __fastcall MapAnalyzer::getMapDataByFloor(int floor, map_t* map)
 {
 	if (maps_.contains(floor))
 	{
-		*map = maps_[floor];
+		*map = maps_.value(floor);
 		return true;
 	}
 
@@ -1416,22 +1416,24 @@ bool MapAnalyzer::readFromBinary(int floor, const QString& name, bool enableDraw
 	{
 		if (enableDraw && pixMap_.value(floor).isNull())
 		{
-			const QList<QPoint> list = map.data.keys();
+			//QT列表容器<點> 列表 = 地圖.數據.鍵(點) //取指定地圖數據
+			const QList<QPoint> list = map.data.keys();//取指定地圖數據
 
-			QImage img(QSize(map.width, map.height), QImage::Format_ARGB32);
-			img.fill(MAP_COLOR_HASH.value(util::OBJ_EMPTY));
+			//QT圖像類 QImage 圖像(QSize(地圖.寬, 地圖.高), 格式32色帶透明)
+			QImage img(QSize(map.width, map.height), QImage::Format_ARGB32);//生成圖像
+			img.fill(MAP_COLOR_HASH.value(util::OBJ_EMPTY));//填充背景色
 
-			QPainter painter(&img);
-			for (const QPoint& it : list)
+			QPainter painter(&img);//實例繪製引擎
+			for (const QPoint& it : list) //遍歷地圖數據
 			{
 				util::ObjectType typeOriginal = map.data.value(it);
-				const QBrush brush(MAP_COLOR_HASH.value(typeOriginal), Qt::SolidPattern);
-				const QPen pen(brush, 1.0, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin);
+				const QBrush brush(MAP_COLOR_HASH.value(typeOriginal), Qt::SolidPattern); //獲取並設置顏色
+				const QPen pen(brush, 1.0, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin);  //實例畫筆
 
-				painter.setPen(pen);
-				painter.drawPoint(it);
+				painter.setPen(pen); //設置畫筆
+				painter.drawPoint(it); //繪製點
 			}
-			painter.end();
+			painter.end(); //結束繪製
 			setPixmapByIndex(map.floor, QPixmap::fromImage(img));
 		}
 	};
@@ -1496,7 +1498,7 @@ bool MapAnalyzer::readFromBinary(int floor, const QString& name, bool enableDraw
 			typeGround = getGroundType(sGround);
 			typeObject = getObjectType(sObject);
 
-			typeOriginal = map.data[point];
+			typeOriginal = map.data.value(point);
 
 			checkAndSetRockEx(map, point, sObject);
 
@@ -1650,14 +1652,18 @@ bool MapAnalyzer::loadFromBinary(int floor, map_t* _map)
 	if (!floor)
 		return false;
 
+
 	const QString fileName(QCoreApplication::applicationDirPath() + "/map/" + QString::number(floor) + ".dat");
 	if (!QFile::exists(fileName)) return false;
+
 	std::string f(fileName.toStdString());
 	std::ifstream ifs(f, std::ios::binary | std::ios::in);
 	if (!ifs.is_open())
 	{
 		return false;
 	}
+
+	util::ScopedFileLocker fileLock(fileName);
 
 	map_t map = {};
 
@@ -1668,21 +1674,18 @@ bool MapAnalyzer::loadFromBinary(int floor, map_t* _map)
 	char name[24] = {};
 	ifs.read(name, 24);
 	map.name = QString(name);
-
+	BYTE type = 0ui8;
 	for (int x = 0; x < map.width; ++x)
 	{
 		for (int y = 0; y < map.height; ++y)
 		{
-			ifs.read(reinterpret_cast<char*>(&map.data[QPoint{ x, y }]), sizeof(BYTE));
+			ifs.read(reinterpret_cast<char*>(&type), sizeof(BYTE));
+			if (util::OBJ_MAX >= 0 && type < util::OBJ_MAX)
+				map.data.insert(QPoint(x, y), static_cast<util::ObjectType>(type));
 		}
 	}
 
-	//讀取	QVector<qmappoint_t> stair = {};
-	//typedef struct qmappoint_s
-	//{
-	//	util::ObjectType type = util::OBJ_UNKNOWN;
-	//	QPoint p = {};
-	//} qmappoint_t;
+	//讀取
 	int stairSize = 0;
 	ifs.read(reinterpret_cast<char*>(&stairSize), sizeof(stairSize));
 	for (int i = 0; i < stairSize; ++i)
@@ -1739,6 +1742,8 @@ bool MapAnalyzer::saveAsBinary(map_t map, const QString& fileName)
 		return false;
 	}
 
+	util::ScopedFileLocker fileLock(newFileName);
+
 	ofs.write(reinterpret_cast<const char*>(&map.floor), sizeof(short));
 	ofs.write(reinterpret_cast<const char*>(&map.width), sizeof(short));
 	ofs.write(reinterpret_cast<const char*>(&map.height), sizeof(short));
@@ -1747,21 +1752,18 @@ bool MapAnalyzer::saveAsBinary(map_t map, const QString& fileName)
 	uint16_t x = 0;
 	uint16_t y = 0;
 	QPoint p = {};
+	BYTE type = 0ui8;
 	for (x = 0; x < map.width; ++x)
 	{
 		for (y = 0; y < map.height; ++y)
 		{
 			p.setX(x); p.setY(y);
-			ofs.write(reinterpret_cast<const char*>(&map.data[p]), sizeof(BYTE));
+			type = static_cast<BYTE>(map.data.value(p));
+			ofs.write(reinterpret_cast<const char*>(&type), sizeof(BYTE));
 		}
 	}
 
-	//寫入	QVector<qmappoint_t> stair = {};
-	//typedef struct qmappoint_s
-	//{
-	//	util::ObjectType type = util::OBJ_UNKNOWN;
-	//	QPoint p = {};
-	//} qmappoint_t;
+	//寫入
 	int size = map.stair.size();
 	ofs.write(reinterpret_cast<const char*>(&size), sizeof(size));
 	for (int i = 0; i < size; ++i)
@@ -1826,7 +1828,11 @@ bool MapAnalyzer::calcNewRoute(const map_t& map, const QPoint& src, const QPoint
 		if (map.height <= 150 && map.width <= 150)
 		{
 			if (injector.server->npcUnitPointHash.contains(point))
-				return false;
+			{
+				mapunit_t unit = injector.server->npcUnitPointHash.value(point);
+				if (unit.type == util::OBJ_NPC && unit.graNo > 0)
+					return false;
+			}
 		}
 
 		if (map.floor == 2000)
@@ -1844,20 +1850,11 @@ bool MapAnalyzer::calcNewRoute(const map_t& map, const QPoint& src, const QPoint
 
 	QVector<QPoint> pathret = {};
 
-	try
-	{
-
-		CAStar astar;
-		CAStarParam param(map.height, map.width, callback, src, dst);
-		//QElapsedTimer timer; timer.start();
-		pathret = astar.find(param);
-		//qDebug() << "AStar cost time:" << timer.elapsed() << "ms";
-	}
-	catch (...)
-	{
-		//Announce(L"<寻路>出现未知错误，抛出了异常");
-		return false;
-	}
+	CAStar astar;
+	CAStarParam param(map.height, map.width, callback, src, dst);
+	//QElapsedTimer timer; timer.start();
+	pathret = astar.find(param);
+	//qDebug() << "AStar cost time:" << timer.elapsed() << "ms";
 
 	bool bret = pathret.size() > 0;
 	if (bret)
@@ -1879,17 +1876,6 @@ bool MapAnalyzer::isPassable(int floor, const QPoint& src, const QPoint& dst)
 		getMapDataByFloor(floor, &map);
 		if (!readFromBinary(floor, map.name)) break;
 		if (!getMapDataByFloor(floor, &map)) break;
-		const util::ObjectType& o = map.data.value(dst);
-		if (o != util::OBJ_ROAD &&
-			o != util::OBJ_BOUNDARY &&
-			o != util::OBJ_UP &&
-			o != util::OBJ_DOWN &&
-			o != util::OBJ_JUMP &&
-			o != util::OBJ_HUMAN &&
-			o != util::OBJ_NPC &&
-			o != util::OBJ_BUILDING &&
-			o != util::OBJ_ITEM
-			) break;
 
 		if (src == dst)
 			return true;
@@ -1907,19 +1893,12 @@ bool MapAnalyzer::isPassable(int floor, const QPoint& src, const QPoint& dst)
 		CAStar a;
 		const CAStarParam p(map.height, map.width, can_pass, src, dst);
 		QVector<QPoint> pathret;
-		try
-		{
-			pathret = a.find(p);
-		}
-		catch (...)
-		{
-			return false;
-		}
+		pathret = a.find(p);
 		return pathret.size() > 0;
-	} while (false);
+		} while (false);
 
-	return bret;
-}
+		return bret;
+	}
 
 // 取靠近目標的最佳座標和方向
 int MapAnalyzer::calcBestFollowPointByDstPoint(int floor, const QPoint& src, const QPoint& dst, QPoint* ret, bool enableExt, int npcdir)
@@ -2007,4 +1986,4 @@ int MapAnalyzer::calcBestFollowPointByDstPoint(int floor, const QPoint& src, con
 	//計算方向
 	int n = disV.at(0).dir + 4;
 	return ((n) <= (7)) ? (n) : ((n)-(MAX_DIR));//返回方向
-}
+	}

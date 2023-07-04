@@ -480,11 +480,11 @@
     <name>BattleInfoForm</name>
     <message>
         <source>char action:</source>
-        <translation>戰鬥人物動作:</translation>
+        <translation type="vanished">戰鬥人物動作:</translation>
     </message>
     <message>
         <source>pet action:</source>
-        <translation>戰鬥寵物動作:</translation>
+        <translation type="vanished">戰鬥寵物動作:</translation>
     </message>
 </context>
 <context>
@@ -823,7 +823,7 @@
     </message>
     <message>
         <source>auto freememory</source>
-        <translation>自動調整記憶體用量</translation>
+        <translation>自動調整內存用量</translation>
     </message>
     <message>
         <source>battle fun</source>
@@ -1344,19 +1344,19 @@
     </message>
     <message>
         <source>status:</source>
-        <translation>狀態:</translation>
+        <translation type="vanished">狀態:</translation>
     </message>
     <message>
         <source>map:</source>
-        <translation>地圖:</translation>
+        <translation type="vanished">地圖:</translation>
     </message>
     <message>
         <source>cursor:</source>
-        <translation>滑鼠座標:</translation>
+        <translation type="vanished">滑鼠座標:</translation>
     </message>
     <message>
         <source>coordis:</source>
-        <translation>人物座標:</translation>
+        <translation type="vanished">人物座標:</translation>
     </message>
     <message>
         <source>no username or password</source>
@@ -1511,6 +1511,10 @@ Update process will cause all the games to be closed, are you sure to continue?<
     <message>
         <source>experience boost buffer left %1 mins</source>
         <translation type="vanished">學習經驗的能力提升時效剩餘%1分鐘</translation>
+    </message>
+    <message>
+        <source>&lt;error&gt;battle time out</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
@@ -2645,10 +2649,6 @@ MESSAGE：<byte value="xd"/>
         <translation type="vanished">正在運行行數:</translation>
     </message>
     <message>
-        <source>0/0</source>
-        <translation></translation>
-    </message>
-    <message>
         <source>command</source>
         <translation>指令</translation>
     </message>
@@ -2806,6 +2806,18 @@ MESSAGE：<byte value="xd"/>
     <message>
         <source>Decrypt password is incorrect</source>
         <translation>解密密鑰不正確</translation>
+    </message>
+    <message>
+        <source>field</source>
+        <translation>作用域</translation>
+    </message>
+    <message>
+        <source>GLOBAL</source>
+        <translation>全局變量</translation>
+    </message>
+    <message>
+        <source>LOCAL</source>
+        <translation>局變量</translation>
     </message>
 </context>
 <context>
@@ -3765,6 +3777,10 @@ MESSAGE：<byte value="xd"/>
     <message>
         <source>ifnormal</source>
         <translation></translation>
+    </message>
+    <message>
+        <source>field</source>
+        <translation>作用域</translation>
     </message>
 </context>
 <context>

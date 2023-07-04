@@ -22,7 +22,7 @@ inline __declspec(naked) DWORD* getKernel32()
 }
 
 Injector::Injector()
-	: globalMutex(QMutex::Recursive)
+	: globalMutex(QMutex::NonRecursive)
 {
 	scriptLogModel.reset(new StringListModel);
 	chatLogModel.reset(new StringListModel);
@@ -37,11 +37,12 @@ void Injector::clear()//static
 {
 	if (instance != nullptr)
 	{
-		instance->server.reset();
+		instance->server.reset(nullptr);
 		instance->hModule_ = NULL;
 		instance->hookdllModule_ = NULL;
 		instance->pi_ = {  };
 		instance->processHandle_.reset();
+		//紀錄當前設置
 		util::SafeHash<util::UserSetting, int> valueHash = instance->getValueHash();
 		util::SafeHash<util::UserSetting, bool> enableHash = instance->getEnableHash();
 		util::SafeHash<util::UserSetting, QString> stringHash = instance->getStringHash();
@@ -49,6 +50,7 @@ void Injector::clear()//static
 		instance = new Injector();
 		if (instance)
 		{
+			//恢復設置
 			instance->setValueHash(valueHash);
 			instance->setEnableHash(enableHash);
 			instance->setStringHash(stringHash);
@@ -431,9 +433,8 @@ bool Injector::isWindowAlive() const
 		return false;
 
 	//#ifndef _DEBUG
-	//	//CE下斷點時會自動關閉遊戲所以DEBUG時不檢查
-	//	if (SendMessageTimeoutW(pi_.hWnd, WM_NULL, 0, 0, SMTO_ABORTIFHUNG | SMTO_ERRORONEXIT, MessageTimeout, nullptr) == 0)
-	//		return false;
+	if (SendMessageTimeoutW(pi_.hWnd, WM_NULL, 0, 0, SMTO_ABORTIFHUNG | SMTO_ERRORONEXIT, MessageTimeout, nullptr) == 0)
+		return false;
 	//#endif
 
 	if (IsWindow(pi_.hWnd))

@@ -13,7 +13,7 @@
 #include "signaldispatcher.h"
 #include "injector.h"
 
-InfoForm::InfoForm(QWidget* parent)
+InfoForm::InfoForm(int defaultPage, QWidget* parent)
 	: QWidget(parent)
 {
 	ui.setupUi(this);
@@ -80,6 +80,11 @@ InfoForm::InfoForm(QWidget* parent)
 
 	util::FormSettingManager formManager(this);
 	formManager.loadSettings();
+
+	if (defaultPage > 0 && defaultPage <= ui.tabWidget->count())
+	{
+		ui.tabWidget->setCurrentIndex(defaultPage - 1);
+	}
 }
 
 InfoForm::~InfoForm()

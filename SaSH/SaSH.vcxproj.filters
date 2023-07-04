@@ -234,6 +234,9 @@
     <ClCompile Include="model\codeeditor.cpp">
       <Filter>Source Files\model</Filter>
     </ClCompile>
+    <ClCompile Include="model\fastlabel.cpp">
+      <Filter>Source Files\model</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="mainform.h">
@@ -331,6 +334,12 @@
     </QtMoc>
     <QtMoc Include="script\parser.h">
       <Filter>Source Files\script</Filter>
+    </QtMoc>
+    <QtMoc Include="model\fastlabel.h">
+      <Filter>Source Files\model</Filter>
+    </QtMoc>
+    <QtMoc Include="model\threadplugin.h">
+      <Filter>Source Files\model</Filter>
     </QtMoc>
   </ItemGroup>
   <ItemGroup>

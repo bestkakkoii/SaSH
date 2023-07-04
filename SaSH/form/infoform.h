@@ -16,7 +16,7 @@ class InfoForm : public QWidget
 	Q_OBJECT
 
 public:
-	InfoForm(QWidget* parent = nullptr);
+	InfoForm(int defaultPage = -1, QWidget* parent = nullptr);
 	virtual ~InfoForm();
 
 signals:

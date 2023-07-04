@@ -56,4 +56,43 @@ namespace Autil
 	int __stdcall util_destring(int sliceno, char* value);
 	int __stdcall util_mkstring(char* buffer, char* value);
 
+	// 辅助函数，处理整数参数
+	template<typename Arg>
+	inline void util_SendProcessArg(int& sum, char* buffer, Arg arg)
+	{
+		sum += util_mkint(buffer, arg);
+	}
+
+	// 辅助函数，处理字符串参数（重载版本）
+	inline void util_SendProcessArg(int& sum, char* buffer, char* arg)
+	{
+		sum += util_mkstring(buffer, arg);
+	}
+
+	// 輔助函數，遞歸處理參數
+	template<typename Arg, typename... Args>
+	void util_SendProcessArgs(int& sum, char* buffer, Arg arg, Args... args)
+	{
+		util_SendProcessArg(sum, buffer, arg);
+		util_SendProcessArgs(sum, buffer, args...);
+	}
+
+	// 輔助函數，处理最后一个参数
+	template<typename Arg>
+	void util_SendProcessArgs(int& sum, char* buffer, Arg arg)
+	{
+		util_SendProcessArg(sum, buffer, arg);
+	}
+
+	// 主發送函數
+	template<typename... Args>
+	void util_Send(int func, Args... args)
+	{
+		int iChecksum = 0;
+		char buffer[NETDATASIZE] = {};
+		memset(buffer, 0, sizeof(buffer));
+		util_SendProcessArgs(iChecksum, buffer, args...);
+		util_mkint(buffer, iChecksum);
+		util_SendMesg(func, buffer);
+	}
 }

@@ -53,91 +53,120 @@ void ListView::setModel(StringListModel* model)
 		if (old_mod)
 			disconnect(old_mod, &StringListModel::dataAppended, this, &QListView::scrollToBottom);
 		QListView::setModel(model);
-		connect(model, &StringListModel::dataAppended, this, &QListView::scrollToBottom);
+		connect(model, &StringListModel::dataAppended, this, &QListView::scrollToBottom, Qt::QueuedConnection);
 	}
+}
+
+void ListView::append(const QString& str, int color)
+{
+	StringListModel* old_mod = (StringListModel*)this->model();
+	if (old_mod)
+		old_mod->append(str, color);
+}
+
+void ListView::remove(const QString& str)
+{
+	StringListModel* old_mod = (StringListModel*)this->model();
+	if (old_mod)
+		old_mod->remove(str);
+}
+
+void ListView::clear()
+{
+	StringListModel* old_mod = (StringListModel*)this->model();
+	if (old_mod)
+		old_mod->clear();
+}
+
+void ListView::swapRowUp(int source)
+{
+	StringListModel* old_mod = (StringListModel*)this->model();
+	if (old_mod)
+		old_mod->swapRowUp(source);
+}
+
+void ListView::swapRowDown(int source)
+{
+	StringListModel* old_mod = (StringListModel*)this->model();
+	if (old_mod)
+		old_mod->swapRowDown(source);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////
 StringListModel::StringListModel(QObject* parent)
 	: QAbstractListModel(parent)
+	, m_stringlistLocker(QReadWriteLock::Recursive)
 {
 }
 
 
 void StringListModel::append(const QString& str, int color)
 {
-	QWriteLocker locker(&m_stringlistLocker);
-	beginInsertRows(QModelIndex(), rowCount(), rowCount());
-	if (m_list.size() >= MAX_LIST_COUNT)
-	{
-		//remove first
-		m_list.removeFirst();
-		m_colorlist.removeFirst();
-	}
-	m_list.append(str);
-	m_colorlist.append(color);
-	endInsertRows();
-	emit dataChanged(index(rowCount() - 1), index(rowCount() - 1), QVector<int>() << Qt::DisplayRole);
-	emit dataAppended();
-}
+	QVector<QString> list;
+	QVector<int> colorlist;
+	getAllList(list, colorlist);
+	int size = list.size();
 
-//void StringListModel::append(const QStringList& strs)
-//{
-//	QWriteLocker locker(&m_stringlistLocker);
-//	beginInsertRows(QModelIndex(), rowCount(), rowCount());
-//	if (m_list.size() >= MAX_LIST_COUNT)
-//	{
-//		m_list.clear();
-//		//listCount = 0;
-//	}
-//	m_list.append(strs.toVector());
-//	endInsertRows();
-//	emit dataChanged(index(rowCount() - 1), index(rowCount() - 1), QVector<int>() << Qt::DisplayRole);
-//	emit dataAppended();
-//}
+	if (size >= MAX_LIST_COUNT)
+	{
+		// Remove first element
+		beginRemoveRows(QModelIndex(), 0, 0);
+		list.removeFirst();
+		colorlist.removeFirst();
+		endRemoveRows();
+	}
+
+	beginInsertRows(QModelIndex(), size, size);
+	list.append(str);
+	colorlist.append(color);
+	setAllList(list, colorlist);
+	endInsertRows();
+
+}
 
 QString StringListModel::takeFirst()
 {
-	QWriteLocker locker(&m_stringlistLocker);
-	if (m_list.size() > 0)
+	QVector<QString> list;
+	QVector<int> colorlist;
+	getAllList(list, colorlist);
+	int size = list.size();
+	QString str = "";
+
+	beginRemoveRows(QModelIndex(), 0, 0);
+	if (size > 0)
 	{
-		beginRemoveRows(QModelIndex(), 0, 0);
-		QString str = m_list.takeFirst();
-		endRemoveRows();
-		return str;
+		str = list.takeFirst();
+		setList(list);
 	}
-	return QString();
+	endRemoveRows();
+
+	return str;
 }
 
 void StringListModel::remove(const QString& str)
 {
-	QWriteLocker locker(&m_stringlistLocker);
-	int index = m_list.indexOf(str);
-	if (index != -1)
+	QVector<QString> list;
+	QVector<int> colorlist;
+	getAllList(list, colorlist);
+	int size = list.size();
+
+	int index = list.indexOf(str);
+	if (index >= 0 && index < size)
 	{
 		beginRemoveRows(QModelIndex(), index, index);
-		m_list.removeAt(index);
-		m_colorlist.removeAt(index);
+		list.removeAt(index);
+		colorlist.removeAt(index);
+		setAllList(list, colorlist);
 		endRemoveRows();
 	}
 }
 
-//void StringListModel::setStringList(const QStringList& list)
-//{
-//	QWriteLocker locker(&m_stringlistLocker);
-//	beginResetModel();
-//	m_list = list.toVector();
-//	endResetModel();
-//	emit dataAppended();
-//}
-
 void StringListModel::clear()
 {
-	QWriteLocker locker(&m_stringlistLocker);
 	beginResetModel();
-	m_list.clear();
-	m_colorlist.clear();
-	//listCount = 0;
+
+	setAllList(QVector<QString>(), QVector<int>());
+
 	endResetModel();
 }
 
@@ -154,48 +183,62 @@ bool pairCompareGreaerString(const QPair<int, QString>& pair1, const QPair<int, 
 void StringListModel::sort(int column, Qt::SortOrder order)
 {
 	Q_UNUSED(column);
-	QWriteLocker locker(&m_stringlistLocker);
 	beginResetModel();
+
 	if (order == Qt::AscendingOrder)
 	{
-
+		QVector<QString> list;
+		QVector<int> colorlist;
+		getAllList(list, colorlist);
+		int size = list.size();
 		QVector<QPair<int, QString>> pairVector;
-		for (int i = 0; i < m_colorlist.size(); ++i)
+
+		for (int i = 0; i < size; ++i)
 		{
-			pairVector.append(qMakePair(m_colorlist[i], m_list[i]));
+			pairVector.append(qMakePair(colorlist.at(i), list.at(i)));
 		}
 
 		std::sort(pairVector.begin(), pairVector.end(), pairCompare);
 
-		m_list.clear();
-		m_colorlist.clear();
+		list.clear();
+		colorlist.clear();
 
-		for (int i = 0; i < pairVector.size(); ++i)
+		size = pairVector.size();
+		for (int i = 0; i < size; ++i)
 		{
-			m_colorlist.append(pairVector[i].first);
-			m_list.append(pairVector[i].second);
+			colorlist.append(pairVector.at(i).first);
+			list.append(pairVector.at(i).second);
 		}
+
+		setAllList(list, colorlist);
 	}
 	else
 	{
+		QVector<QString> list;
+		QVector<int> colorlist;
+		getAllList(list, colorlist);
+		int size = list.size();
 		QVector<QPair<int, QString>> pairVector;
-		for (int i = 0; i < m_colorlist.size(); ++i)
+
+		for (int i = 0; i < size; ++i)
 		{
-			pairVector.append(qMakePair(m_colorlist[i], m_list[i]));
+			pairVector.append(qMakePair(colorlist.at(i), list.at(i)));
 		}
 
 		std::sort(pairVector.begin(), pairVector.end(), pairCompareGreaerString);
 
-		m_list.clear();
-		m_colorlist.clear();
-
-		for (int i = pairVector.size() - 1; i >= 0; --i)
+		list.clear();
+		colorlist.clear();
+		size = pairVector.size();
+		for (int i = size - 1; i >= 0; --i)
 		{
-			m_colorlist.append(pairVector[i].first);
-			m_list.append(pairVector[i].second);
+			colorlist.append(pairVector.at(i).first);
+			list.append(pairVector.at(i).second);
 		}
 
+		setAllList(list, colorlist);
 	}
+
 	endResetModel();
 }
 
@@ -225,7 +268,14 @@ bool StringListModel::moveRows(const QModelIndex& sourceParent, int sourceRow, i
 QMap<int, QVariant> StringListModel::itemData(const QModelIndex& index) const
 {
 	QMap<int, QVariant> map;
-	map.insert(Qt::DisplayRole, m_list.at(index.row()));
+
+	int i = index.row();
+
+	QVector<QString> list = getList();
+	int size = list.size();
+	if (i >= 0 && i < size)
+		map.insert(Qt::DisplayRole, list.at(i));
+
 	return map;
 }
 
@@ -239,20 +289,17 @@ QVariant StringListModel::data(const QModelIndex& index, int role) const
 	{
 	case Qt::DisplayRole:
 	{
-		if (index.row() >= m_list.size() || index.row() < 0)
+		QVector<QString> list = getList();
+		int i = index.row();
+		if (i < 0 || i >= list.size())
 			return QVariant();
-		return m_list.at(index.row());
+		return list.at(i);
 	}
 	case Qt::BackgroundRole:
 	{
 		static const QBrush brushBase = qApp->palette().base();
 		static const QBrush brushAlternate = qApp->palette().alternateBase();
 		return ((index.row() & 99) == 0) ? brushBase : brushAlternate;
-		/*int batch = (index.row() / 100) % 2;
-		if (batch == 0)
-			return brushBase;
-		else
-			return brushAlternate;*/
 	}
 	case Qt::ForegroundRole:
 	{
@@ -270,14 +317,18 @@ QVariant StringListModel::data(const QModelIndex& index, int role) const
 			{ 9, QColor(192,220,192) },
 			{ 10, QColor(218,175,66) },
 		};
-		if (index.row() >= m_list.size() || index.row() < 0)
+
+		QVector<int> colorlist = getColorList();
+		int i = index.row();
+		int size = colorlist.size();
+		if (i >= size || i < 0)
 			return QColor(255, 255, 255);
 
-		int color = m_colorlist.at(index.row());
-		QColor c = hash.value(color, QColor(255, 255, 255));
-		return c;
+		int color = colorlist.at(i);
+		return hash.value(color, QColor(255, 255, 255));
 	}
-	default: break;
+	default:
+		break;
 	}
 	return QVariant();
 }
@@ -286,9 +337,13 @@ bool StringListModel::setData(const QModelIndex& index, const QVariant& value, i
 {
 	if (role == Qt::EditRole)
 	{
-		if (index.row() >= 0 && index.row() < m_list.size())
+		QVector<QString> list = getList();
+		int i = index.row();
+		int size = list.size();
+		if (i >= 0 && i < size)
 		{
-			m_list.replace(index.row(), value.toString());
+			list.replace(index.row(), value.toString());
+			setList(list);
 			emit dataChanged(index, index, QVector<int>() << role);
 			return true;
 		}
@@ -298,23 +353,37 @@ bool StringListModel::setData(const QModelIndex& index, const QVariant& value, i
 
 void StringListModel::swapRowUp(int source)
 {
-	if (source > 0)
+	QVector<QString> list;
+	QVector<int> colorlist;
+	getAllList(list, colorlist);
+	int size = list.size();
+
+	if (source > 0 && source < size)
 	{
-		QWriteLocker locker(&m_stringlistLocker);
 		beginMoveRows(QModelIndex(), source, source, QModelIndex(), source - 1);
-		m_list.swapItemsAt(source, source - 1);
-		m_colorlist.swapItemsAt(source, source - 1);
+
+		list.swapItemsAt(source, source - 1);
+		colorlist.swapItemsAt(source, source - 1);
+		setAllList(list, colorlist);
+
 		endMoveRows();
 	}
 }
 void StringListModel::swapRowDown(int source)
 {
-	if (source + 1 < m_list.size())
+	QVector<QString> list;
+	QVector<int> colorlist;
+	getAllList(list, colorlist);
+	int size = list.size();
+
+	if (source >= 0 && source + 1 < size)
 	{
-		QWriteLocker locker(&m_stringlistLocker);
 		beginMoveRows(QModelIndex(), source, source, QModelIndex(), source + 2);
-		m_list.swapItemsAt(source, source + 1);
-		m_colorlist.swapItemsAt(source, source + 1);
+
+		list.swapItemsAt(source, source + 1);
+		colorlist.swapItemsAt(source, source + 1);
+		setAllList(list, colorlist);
+
 		endMoveRows();
 	}
 }

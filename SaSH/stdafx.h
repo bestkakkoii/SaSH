@@ -7,8 +7,6 @@
 #ifdef QT_NO_DEBUG
 #define QT_NO_DEBUG_OUTPUT
 #define QT_NO_INFO_OUTPUT
-#define QT_NO_WARNING_OUTPUT
-#define QT_NO_ERROR_OUTPUT
 #endif
 
 #ifndef DISABLE_COPY
@@ -72,6 +70,7 @@ public:\
 #include <tchar.h>
 #include <functional>
 #include <limits>
+#include <type_traits> 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // QT header
 #include <QtGlobal>

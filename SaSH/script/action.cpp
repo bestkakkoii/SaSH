@@ -16,7 +16,7 @@ int Interpreter::useitem(int, const TokenMap& TK)
 
 	QString itemName;
 	int target = 0;
-	int min = 0, max = 14;
+	int min = 0, max = MAX_ITEM - CHAR_EQUIPPLACENUM - 1;
 	if (!checkRange(TK, 1, &min, &max))
 	{
 		checkString(TK, 1, &itemName);
@@ -92,7 +92,7 @@ int Interpreter::useitem(int, const TokenMap& TK)
 
 	if (target > 100 || target == -1)
 	{
-		util::SafeVector<int> v;
+		QVector<int> v;
 		if (!injector.server->getItemIndexsByName(itemName, "", &v))
 			return Parser::kNoChange;
 
@@ -141,7 +141,7 @@ int Interpreter::dropitem(int, const TokenMap& TK)
 	//指定丟棄白名單，位於白名單的物品不丟棄
 	if (tempName == QString(u8"非"))
 	{
-		int min = 0, max = 14;
+		int min = 0, max = MAX_ITEM - CHAR_EQUIPPLACENUM - 1;
 		if (!checkRange(TK, 2, &min, &max))
 			return Parser::kArgError;
 
@@ -157,7 +157,7 @@ int Interpreter::dropitem(int, const TokenMap& TK)
 		if (itemNameList.isEmpty())
 			return Parser::kArgError;
 
-		util::SafeVector<int> indexs;
+		QVector<int> indexs;
 		for (int i = CHAR_EQUIPPLACENUM; i < MAX_ITEM; ++i)
 		{
 			ITEM item = injector.server->pc.item[i];
@@ -200,7 +200,7 @@ int Interpreter::dropitem(int, const TokenMap& TK)
 		//int size = itemNameList.size();
 		for (const QString& name : itemNameList)
 		{
-			util::SafeVector<int> indexs;
+			QVector<int> indexs;
 			if (injector.server->getItemIndexsByName(name, "", &indexs))
 			{
 				for (const int it : indexs)
@@ -294,7 +294,7 @@ int Interpreter::droppet(int, const TokenMap& TK)
 		injector.server->dropPet(petIndex);
 	else if (!petName.isEmpty())
 	{
-		util::SafeVector<int> v;
+		QVector<int> v;
 		if (injector.server->getPetIndexsByName(petName, &v))
 		{
 			for (const int it : v)
@@ -360,10 +360,10 @@ int Interpreter::sell(int, const TokenMap& TK)
 	checkString(TK, 2, &npcName);
 
 
-	util::SafeVector<int> itemIndexs;
+	QVector<int> itemIndexs;
 	for (const QString& it : nameList)
 	{
-		util::SafeVector<int> indexs;
+		QVector<int> indexs;
 		if (!injector.server->getItemIndexsByName(it, "", &indexs))
 			continue;
 		itemIndexs.append(indexs);
@@ -620,7 +620,7 @@ int Interpreter::kick(int, const TokenMap& TK)
 			if (list.isEmpty() || list.size() > 4)
 				return Parser::kArgError;
 
-			util::SafeVector<int> wrongIndex;
+			QVector<int> wrongIndex;
 
 			bool bret = false;
 			for (int i = 1; i < MAX_PARTY; ++i)
@@ -926,7 +926,7 @@ int Interpreter::unwearequip(int, const TokenMap& TK)
 	}
 	else
 	{
-		util::SafeVector<int> v;
+		QVector<int> v;
 		if (!injector.server->getItemEmptySpotIndexs(&v))
 			return Parser::kNoChange;
 
@@ -1021,7 +1021,7 @@ int Interpreter::petunequip(int, const TokenMap& TK)
 	}
 	else
 	{
-		util::SafeVector<int> v;
+		QVector<int> v;
 		if (!injector.server->getItemEmptySpotIndexs(&v))
 			return Parser::kNoChange;
 
@@ -1064,7 +1064,7 @@ int Interpreter::depositpet(int, const TokenMap& TK)
 		--petIndex;
 	else
 	{
-		util::SafeVector<int> v;
+		QVector<int> v;
 		if (!injector.server->getPetIndexsByName(petName, &v))
 			return Parser::kArgError;
 		petIndex = v.first();
@@ -1097,7 +1097,7 @@ int Interpreter::deposititem(int, const TokenMap& TK)
 
 	checkBattleThenWait();
 
-	int min = 0, max = 14;
+	int min = 0, max = MAX_ITEM - CHAR_EQUIPPLACENUM - 1;
 	if (!checkRange(TK, 1, &min, &max))
 		return Parser::kArgError;
 
@@ -1114,10 +1114,10 @@ int Interpreter::deposititem(int, const TokenMap& TK)
 		if (itemNames.isEmpty())
 			return Parser::kArgError;
 
-		util::SafeVector<int> allv;
+		QVector<int> allv;
 		for (const QString& name : itemNames)
 		{
-			util::SafeVector<int> v;
+			QVector<int> v;
 			if (!injector.server->getItemIndexsByName(name, "", &v))
 				return Parser::kArgError;
 			else
@@ -1128,7 +1128,7 @@ int Interpreter::deposititem(int, const TokenMap& TK)
 		auto iter = std::unique(allv.begin(), allv.end());
 		allv.erase(iter, allv.end());
 
-		util::SafeVector<int> v;
+		QVector<int> v;
 		for (const int it : allv)
 		{
 			if (it < min || it > max)
@@ -1186,12 +1186,12 @@ int Interpreter::withdrawpet(int, const TokenMap& TK)
 
 	for (;;)
 	{
-		QPair<int, util::SafeVector<bankpet_t>> bankPetList = injector.server->currentBankPetList;
+		QPair<int, QVector<bankpet_t>> bankPetList = injector.server->currentBankPetList;
 		int button = bankPetList.first;
 		if (button == 0)
 			break;
 
-		util::SafeVector<bankpet_t> petList = bankPetList.second;
+		QVector<bankpet_t> petList = bankPetList.second;
 		int petIndex = 0;
 		bool bret = false;
 		for (const bankpet_t& it : petList)
@@ -1467,7 +1467,7 @@ int Interpreter::trade(int, const TokenMap& TK)
 		return Parser::kNoChange;
 
 	QPoint dst;
-	int dir = injector.server->mapAnalyzer->calcBestFollowPointByDstPoint(injector.server->nowFloor, injector.server->nowPoint, unit.p, &dst, true, unit.dir);
+	int dir = injector.server->mapAnalyzer->calcBestFollowPointByDstPoint(injector.server->nowFloor, injector.server->getPoint(), unit.p, &dst, true, unit.dir);
 	if (dir == -1 || !findPath(dst, 1, 0, timeout))
 		return Parser::kNoChange;
 
@@ -1488,7 +1488,7 @@ int Interpreter::trade(int, const TokenMap& TK)
 		else if (itemListStr.count("-") == 1)
 		{
 			int min = 1;
-			int max = 15;
+			int max = MAX_ITEM - CHAR_EQUIPPLACENUM;
 			if (!checkRange(TK, 2, &min, &max))
 				return Parser::kArgError;
 
@@ -1496,7 +1496,7 @@ int Interpreter::trade(int, const TokenMap& TK)
 				itemIndexList.append(QString::number(i));
 		}
 
-		util::SafeVector<int> itemIndexVec;
+		QVector<int> itemIndexVec;
 		for (const QString& itemIndex : itemIndexList)
 		{
 			bool bret = false;
@@ -1545,7 +1545,7 @@ int Interpreter::trade(int, const TokenMap& TK)
 				petIndexList.append(QString::number(i));
 		}
 
-		util::SafeVector<int> petIndexVec;
+		QVector<int> petIndexVec;
 		for (const QString& petIndex : petIndexList)
 		{
 			bool bret = false;
@@ -1679,11 +1679,13 @@ int Interpreter::bp(int, const TokenMap& TK)//skill
 	checkInt(TK, 1, &skillIndex);
 	if (skillIndex <= 0)
 		return Parser::kArgError;
+	--skillIndex;
 
 	int target = 0;
 	checkInt(TK, 2, &target);
 	if (target <= 0)
 		return Parser::kArgError;
+	--target;
 
 	injector.server->sendBattlePlayerJobSkillAct(skillIndex, target);
 
@@ -1703,6 +1705,7 @@ int Interpreter::bs(int, const TokenMap& TK)//switch
 	checkInt(TK, 1, &index);
 	if (index <= 0)
 		return Parser::kArgError;
+	--index;
 	injector.server->sendBattlePlayerSwitchPetAct(index);
 
 	return Parser::kNoChange;
@@ -1874,11 +1877,13 @@ int Interpreter::bend(int, const TokenMap& TK)
 	if (!injector.server->getBattleFlag())
 		return Parser::kNoChange;
 
+
 	int G = injector.server->getGameStatus();
-	if (G >= 4)
+	if (G == 4)
 	{
-		++G;
-		injector.server->setGameStatus(G);
+		mem::writeInt(injector.getProcess(), injector.getProcessModule() + 0xE21E8, 1, sizeof(short));
+		injector.server->setGameStatus(5);
+		injector.server->isBattleDialogReady.store(false, std::memory_order_release);
 	}
 	return Parser::kNoChange;
 }

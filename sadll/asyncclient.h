@@ -148,6 +148,7 @@ public:
 #endif
 				ReleaseOverlapped(overlapped);
 				ReleaseBuffer(buffer);
+				MINT::NtTerminateProcess(GetCurrentProcess(), 0);
 			}
 		}
 	}

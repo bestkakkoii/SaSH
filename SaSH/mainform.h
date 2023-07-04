@@ -53,6 +53,9 @@ private slots:
 
 	void onMessageBoxShow(const QString& text, int type = 0, int* pnret = nullptr);
 	void onInputBoxShow(const QString& text, int type, QVariant* retvalue);
+
+	void onAppendScriptLog(const QString& text, int color = 0);
+	void onAppendChatLog(const QString& text, int color = 0);
 private:
 	Ui::MainFormClass ui;
 	QMenuBar* pMenuBar_ = nullptr;

@@ -171,6 +171,7 @@ private:
 	util::SafeHash<int, QPixmap> pixMap_;
 	util::SafeHash<int, map_t> maps_;
 	QMutex mutex_;
+
 };
 
 template <class Stream>

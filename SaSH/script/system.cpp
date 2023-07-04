@@ -126,7 +126,23 @@ int Interpreter::eo(int currentline, const TokenMap& TK)
 
 	checkBattleThenWait();
 
+	QString varName = TK.value(1).data.toString();
+
+	QElapsedTimer timer; timer.start();
 	injector.server->EO();
+	if (!varName.isEmpty())
+	{
+		bool bret = waitfor(5000, []() { return !Injector::getInstance().server->isEOTTLSend.load(std::memory_order_acquire); });
+
+		int result = bret ? injector.server->lastEOTime.load(std::memory_order_acquire) : -1;
+
+		util::SafeHash<QString, QVariant>& args = parser_->getLabelVarsRef();
+		if (args.contains(varName))
+			args.insert(varName, result);
+		else
+			parser_->getVariablesPointer()->insert(varName, result);
+	}
+
 
 	return Parser::kNoChange;
 }
@@ -184,7 +200,19 @@ int Interpreter::input(int currentline, const TokenMap& TK)
 		text = QString::number(value);
 	}
 
-	injector.server->inputtext(text);
+	QString npcName;
+	int npcId = -1;
+	checkString(TK, 2, &npcName);
+	mapunit_t unit;
+	if (!npcName.isEmpty() && injector.server->findUnit(npcName, util::OBJ_NPC, &unit))
+	{
+		npcId = unit.id;
+	}
+
+	int dialogid = -1;
+	checkInt(TK, 3, &dialogid);
+
+	injector.server->inputtext(text, dialogid, npcId);
 
 	return Parser::kNoChange;
 }
@@ -225,7 +253,7 @@ int Interpreter::messagebox(int currentline, const TokenMap& TK)
 				return Parser::kNoChange;
 			}
 
-			QSharedPointer<VariantSafeHash> vars = parser_->getPVariables();
+			QSharedPointer<VariantSafeHash> vars = parser_->getVariablesPointer();
 			vars->insert(varName, nret == QMessageBox::StandardButton::Yes ? "yes" : "no");
 		}
 	}
@@ -533,6 +561,7 @@ int Interpreter::set(int currentline, const TokenMap& TK)
 
 
 			//ok
+			{ u8"EO命令", util::kEOCommandString },
 			{ u8"主机", util::kServerValue },
 			{ u8"副机", util::kSubServerValue },
 			{ u8"位置", util::kPositionValue },
@@ -793,9 +822,17 @@ int Interpreter::set(int currentline, const TokenMap& TK)
 
 		injector.setEnableHash(type, ok);
 		if (type == util::kFastBattleEnable && ok)
+		{
 			injector.setEnableHash(util::kAutoBattleEnable, !ok);
+			if (ok)
+				injector.server->asyncBattleAction();
+		}
 		else if (type == util::kAutoBattleEnable && ok)
+		{
 			injector.setEnableHash(util::kFastBattleEnable, !ok);
+			if (ok)
+				injector.server->asyncBattleAction();
+		}
 		else if (type == util::kAutoWalkEnable && ok)
 			injector.setEnableHash(util::kFastWalkEnable, !ok);
 		else if (type == util::kFastWalkEnable && ok)
@@ -1087,6 +1124,7 @@ int Interpreter::set(int currentline, const TokenMap& TK)
 	//string only
 	switch (type)
 	{
+	case util::kEOCommandString:
 	case util::kGameAccountString:
 	case util::kGamePasswordString:
 	case util::kGameSecurityCodeString:
@@ -1094,7 +1132,14 @@ int Interpreter::set(int currentline, const TokenMap& TK)
 	case util::kBattleCatchPetNameString:
 	{
 		QString text;
-		checkString(TK, 2, &text);
+		if (!checkString(TK, 2, &text))
+		{
+			int value = -1;
+			if (!checkInt(TK, 2, &value))
+				return Parser::kArgError;
+
+			text = QString::number(value);
+		}
 		injector.setStringHash(type, text);
 		emit signalDispatcher.applyHashSettingsToUI();
 		return Parser::kNoChange;
@@ -1182,7 +1227,7 @@ int Interpreter::dlg(int currentline, const TokenMap& TK)
 	else
 		result = type;
 
-	parser_->getPVariables()->insert(varName, result);
+	parser_->getVariablesPointer()->insert(varName, result);
 	injector.server->IS_WAITFOR_CUSTOM_DIALOG_FLAG = false;
 	return checkJump(TK, 6, bret, FailedJump);
 }
@@ -1196,32 +1241,63 @@ int Interpreter::regex(int currentline, const TokenMap& TK)
 		return Parser::kArgError;
 
 	QString varValue;
-	if (!checkString(TK, 1, &varValue))
+	if (!checkString(TK, 2, &varValue))
 		return Parser::kArgError;
 
 	QString text;
-	checkString(TK, 2, &text);
+	checkString(TK, 3, &text);
 	if (text.isEmpty())
 		return Parser::kArgError;
 
 	int capture = 1;
-	checkInt(TK, 3, &capture);
+	checkInt(TK, 4, &capture);
+
+	int nglobal = 0;
+	checkInt(TK, 5, &nglobal);
+	bool isGlobal = (nglobal > 0);
+
+	int maxCapture = 0;
+	checkInt(TK, 6, &maxCapture);
 
 	const QRegularExpression regex(text);
 
-	QRegularExpressionMatch match = regex.match(varValue);
-	if (match.hasMatch())
+	QString result = "";
+	if (!isGlobal)
 	{
-		if (capture < 0 || capture > match.lastCapturedIndex())
-			return Parser::kArgError;
+		QRegularExpressionMatch match = regex.match(varValue);
+		if (match.hasMatch())
+		{
+			if (capture < 0 || capture > match.lastCapturedIndex())
+				return Parser::kArgError;
 
-		QString result = match.captured(capture);
-		util::SafeHash<QString, QVariant>& args = parser_->getLabelVarsRef();
-		if (args.contains(varName))
-			args.insert(varName, result);
-		else
-			parser_->getPVariables()->insert(varName, result);
+			result = match.captured(capture);
+
+		}
 	}
+	else
+	{
+		QRegularExpressionMatchIterator matchs = regex.globalMatch(varValue);
+		int n = 0;
+		while (matchs.hasNext())
+		{
+			QRegularExpressionMatch match = matchs.next();
+			if (++n != maxCapture)
+				continue;
+
+
+			if (capture < 0 || capture > match.lastCapturedIndex())
+				continue;
+
+			result = match.captured(capture);
+			break;
+		}
+	}
+
+	util::SafeHash<QString, QVariant>& args = parser_->getLabelVarsRef();
+	if (args.contains(varName))
+		args.insert(varName, result);
+	else
+		parser_->getVariablesPointer()->insert(varName, result);
 
 	return Parser::kNoChange;
 }
@@ -1265,7 +1341,7 @@ int Interpreter::find(int currentline, const TokenMap& TK)
 	if (args.contains(varName))
 		args.insert(varName, result);
 	else
-		parser_->getPVariables()->insert(varName, result);
+		parser_->getVariablesPointer()->insert(varName, result);
 
 	return Parser::kNoChange;
 }
@@ -1298,7 +1374,7 @@ int Interpreter::half(int currentline, const TokenMap& TK)
 	if (args.contains(varName))
 		args.insert(varName, result);
 	else
-		parser_->getPVariables()->insert(varName, result);
+		parser_->getVariablesPointer()->insert(varName, result);
 	return Parser::kNoChange;
 }
 
@@ -1330,7 +1406,7 @@ int Interpreter::full(int currentline, const TokenMap& TK)
 	if (args.contains(varName))
 		args.insert(varName, result);
 	else
-		parser_->getPVariables()->insert(varName, result);
+		parser_->getVariablesPointer()->insert(varName, result);
 	return Parser::kNoChange;
 }
 
@@ -1351,7 +1427,7 @@ int Interpreter::upper(int currentline, const TokenMap& TK)
 	if (args.contains(varName))
 		args.insert(varName, result);
 	else
-		parser_->getPVariables()->insert(varName, result);
+		parser_->getVariablesPointer()->insert(varName, result);
 
 	return Parser::kNoChange;
 }
@@ -1373,7 +1449,7 @@ int Interpreter::lower(int currentline, const TokenMap& TK)
 	if (args.contains(varName))
 		args.insert(varName, result);
 	else
-		parser_->getPVariables()->insert(varName, result);
+		parser_->getVariablesPointer()->insert(varName, result);
 
 	return Parser::kNoChange;
 }
@@ -1418,7 +1494,7 @@ int Interpreter::replace(int currentline, const TokenMap& TK)
 	if (args.contains(varName))
 		args.insert(varName, result);
 	else
-		parser_->getPVariables()->insert(varName, result);
+		parser_->getVariablesPointer()->insert(varName, result);
 
 	return Parser::kNoChange;
 }
@@ -1432,15 +1508,10 @@ int Interpreter::toint(int currentline, const TokenMap& TK)
 	QString text;
 	if (!checkString(TK, 2, &text))
 	{
-		double d = 0;
-		if (!checkDouble(TK, 2, &d))
-		{
-			int i = 0;
-			if (!checkInt(TK, 2, &i))
-				return Parser::kArgError;
-			text = QString::number(i);
-		}
-		text = QString::number(d);
+		int i = 0;
+		if (!checkInt(TK, 2, &i))
+			return Parser::kArgError;
+		text = QString::number(i);
 	}
 
 	bool ok = false;
@@ -1453,7 +1524,7 @@ int Interpreter::toint(int currentline, const TokenMap& TK)
 	if (args.contains(varName))
 		args.insert(varName, result);
 	else
-		parser_->getPVariables()->insert(varName, result);
+		parser_->getVariablesPointer()->insert(varName, result);
 
 	return Parser::kNoChange;
 }
@@ -1467,15 +1538,10 @@ int Interpreter::tostr(int currentline, const TokenMap& TK)
 	QString text;
 	if (!checkString(TK, 2, &text))
 	{
-		double d = 0;
-		if (!checkDouble(TK, 2, &d))
-		{
-			int i = 0;
-			if (!checkInt(TK, 2, &i))
-				return Parser::kArgError;
-			text = QString::number(i);
-		}
-		text = QString::number(d);
+		int i = 0;
+		if (!checkInt(TK, 2, &i))
+			return Parser::kArgError;
+		text = QString::number(i);
 	}
 
 	QString result = text;
@@ -1484,11 +1550,12 @@ int Interpreter::tostr(int currentline, const TokenMap& TK)
 	if (args.contains(varName))
 		args.insert(varName, result);
 	else
-		parser_->getPVariables()->insert(varName, result);
+		parser_->getVariablesPointer()->insert(varName, result);
 
 	return Parser::kNoChange;
 }
 
+#if 0
 int Interpreter::todb(int currentline, const TokenMap& TK)
 {
 	QString varName = TK.value(1).data.toString();
@@ -1519,10 +1586,11 @@ int Interpreter::todb(int currentline, const TokenMap& TK)
 	if (args.contains(varName))
 		args.insert(varName, result);
 	else
-		parser_->getPVariables()->insert(varName, result);
+		parser_->getVariablesPointer()->insert(varName, result);
 
 	return Parser::kNoChange;
 }
+#endif
 
 int Interpreter::ocr(int currentline, const TokenMap& TK)
 {
@@ -1535,7 +1603,7 @@ int Interpreter::ocr(int currentline, const TokenMap& TK)
 	checkInt(TK, 1, &debugmode);
 
 	QString ret;
-	if (injector.server->postGifCodeImage(&ret))
+	if (injector.server->captchaOCR(&ret))
 	{
 		qDebug() << ret;
 		if (!ret.isEmpty())

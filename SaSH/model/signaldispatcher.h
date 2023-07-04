@@ -8,10 +8,12 @@ class SignalDispatcher : public QObject
 public:
 	static SignalDispatcher& getInstance()
 	{
-		static SignalDispatcher* instance = new SignalDispatcher();
-		return *instance;
+		static SignalDispatcher instance;
+		return instance;
 	}
 	virtual ~SignalDispatcher() = default;
+
+	void setParent(QObject* parent) { QObject::setParent(parent); }
 private:
 	SignalDispatcher() = default;
 
@@ -38,6 +40,9 @@ signals:
 	void updateMapLabelTextChanged(const QString& text);
 	void updateCursorLabelTextChanged(const QString& text);
 	void updateCoordsPosLabelTextChanged(const QString& text);
+
+	void appendScriptLog(const QString& text, int color = 0);
+	void appendChatLog(const QString& text, int color = 0);
 
 	//infoform
 	void updatePlayerInfoColContents(int col, const QVariant& data);
@@ -72,17 +77,17 @@ signals:
 
 	//script
 	void scriptLabelRowTextChanged(int row, int max, bool noSelect);
-	void scriptLabelRowTextChanged2(int row, int max, bool noSelect);
 	void scriptPaused();
-	void scriptPaused2();
+	void scriptResumed();
+	void scriptBreaked();
 	void scriptStarted();
 	void scriptStoped();
 	void scriptFinished();
 	void scriptContentChanged(const QString& fileName, const QVariant& tokens);
 	void loadFileToTable(const QString& fileName);
 	void reloadScriptList();
-	void globalVarInfoImport(const QHash<QString, QVariant>& d);
-	void localVarInfoImport(const QHash<QString, QVariant>& d);
+	void varInfoImported(const QHash<QString, QVariant>& d);
+
 
 	void callStackInfoChanged(const QHash <int, QString>& var);
 	void jumpStackInfoChanged(const QHash <int, QString>& var);

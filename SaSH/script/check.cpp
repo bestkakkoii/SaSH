@@ -68,7 +68,7 @@ int Interpreter::checkcoords(int, const TokenMap& TK)
 	checkInt(TK, 1, &p.rx());
 	checkInt(TK, 2, &p.ry());
 
-	return checkJump(TK, 3, injector.server->nowPoint == p, FailedJump);
+	return checkJump(TK, 3, injector.server->getPoint() == p, FailedJump);
 }
 
 int Interpreter::checkmap(int currentline, const TokenMap& TK)
@@ -191,7 +191,7 @@ int Interpreter::checkdialog(int currentline, const TokenMap& TK)
 	QStringList cmpStrs = cmpStr.split(util::rexOR, Qt::SkipEmptyParts);
 
 	int min = 1;
-	int max = 10;
+	int max = MAX_DIALOG_LINE;
 	if (!checkRange(TK, 2, &min, &max))
 		return Parser::kArgError;
 	if (min == max)
@@ -239,7 +239,7 @@ int Interpreter::checkchathistory(int currentline, const TokenMap& TK)
 		return Parser::kError;
 
 	int min = 1;
-	int max = 20;
+	int max = MAX_CHAT_HISTORY;
 	if (!checkRange(TK, 1, &min, &max))
 		return Parser::kArgError;
 	if (min == max)
@@ -403,7 +403,7 @@ int Interpreter::checkitem(int currentline, const TokenMap& TK)
 	if (injector.server.isNull())
 		return Parser::kError;
 
-	int min = 0, max = 14;
+	int min = 0, max = MAX_ITEM - CHAR_EQUIPPLACENUM - 1;
 	bool isEquip = false;
 	if (!checkRange(TK, 1, &min, &max))
 	{
@@ -527,7 +527,7 @@ int Interpreter::checkpet(int currentline, const TokenMap& TK)
 	QElapsedTimer timer; timer.start();
 	bool bret = waitfor(timeout, [&injector, petName]()->bool
 		{
-			util::SafeVector<int> v;
+			QVector<int> v;
 			return injector.server->getPetIndexsByName(petName, &v);
 		});
 

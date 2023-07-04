@@ -218,7 +218,7 @@ void MapWidget::onRefreshTimeOut()
 
 	PC _ch = injector.server->pc;
 	int floor = injector.server->nowFloor;
-	const QPointF qp_current(injector.server->nowPoint.get());
+	const QPointF qp_current(injector.server->getPoint());
 
 	QString caption(tr("%1 map:%2 floor:%3 [%4,%5] mouse:%6,%7")
 		.arg(_ch.name)
@@ -650,7 +650,7 @@ void MapWidget::onDownloadMapTimeout()
 	if (downloadMapProgress_ >= 100.0)
 	{
 		//downloadMapProgress_ = 100.0;
-		const QPoint qp_current = injector.server->nowPoint;
+		const QPoint qp_current = injector.server->getPoint();
 		QString caption(tr("%1 map:%2 floor:%3 [%4,%5] mouse:%6,%7")
 			.arg(injector.server->pc.name)
 			.arg(injector.server->nowFloorName)
@@ -878,7 +878,7 @@ void MapWidget::on_tableWidget_NPCList_cellDoubleClicked(int row, int)
 	else
 		return;
 	int floor = injector.server->nowFloor;
-	QPoint point = injector.server->nowPoint;
+	QPoint point = injector.server->getPoint();
 	//npc前方一格
 	QPoint newPoint = util::fix_point.at(unit.dir) + unit.p;
 	//檢查是否可走

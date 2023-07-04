@@ -424,6 +424,8 @@ namespace util
 
 		kMailWhiteListString,
 
+		kEOCommandString,
+
 		kSettingMaxString,
 	};
 
@@ -448,6 +450,7 @@ namespace util
 		OBJ_PET,
 		OBJ_GOLD,
 		OBJ_GM,
+		OBJ_MAX,
 	};
 
 	//用於將枚舉直轉換為字符串，提供給json當作key
@@ -679,6 +682,8 @@ namespace util
 
 		{ kMailWhiteListString , "MailWhiteListString" },
 
+		{ kEOCommandString , "EOCommandString" },
+
 		{ kSettingMaxString, "SettingMaxString" }
 	};
 
@@ -859,8 +864,6 @@ namespace util
 		dialog.setFileMode(QFileDialog::ExistingFile);
 		dialog.setViewMode(QFileDialog::Detail);
 		dialog.setOption(QFileDialog::ReadOnly, true);
-		dialog.setOption(QFileDialog::DontResolveSymlinks, true);
-		dialog.setOption(QFileDialog::DontConfirmOverwrite, true);
 		dialog.setAcceptMode(QFileDialog::AcceptOpen);
 
 
@@ -897,8 +900,8 @@ namespace util
 	inline bool customStringCompare(const QString& str1, const QString& str2)
 	{
 		//中文locale
-		QLocale locale;
-		QCollator collator(locale);
+		static const QLocale locale;
+		static const QCollator collator(locale);
 
 		return collator.compare(str1, str2) < 0;
 	}
@@ -996,24 +999,18 @@ namespace util
 			hash = std::move(other.hash);
 		}
 
-		SafeHash& operator=(const SafeHash& other)
+		SafeHash operator=(const SafeHash& other)
 		{
 			QWriteLocker locker(&lock);
-			if (this != &other)
-			{
-				hash = other.hash;
-			}
+			hash = other.hash;
 			return *this;
 		}
 
 		//operator=
-		SafeHash& operator=(const QHash <K, V>& other)
+		SafeHash operator=(const QHash <K, V>& other)
 		{
 			QWriteLocker locker(&lock);
-			if (this != &other)
-			{
-				hash = other;
-			}
+			hash = other;
 			return *this;
 		}
 
@@ -1073,11 +1070,11 @@ namespace util
 		}
 
 		//=
-		inline V& operator[](const K& key)
-		{
-			QWriteLocker locker(&lock);
-			return hash[key];
-		}
+		//inline V operator[](const K& key)
+		//{
+		//	QWriteLocker locker(&lock);
+		//	return hash[key];
+		//}
 
 
 		inline K key(const V& value) const
@@ -1145,7 +1142,7 @@ namespace util
 	class SafeQueue
 	{
 	public:
-		explicit SafeQueue(int maxSize = 20)
+		explicit SafeQueue(int maxSize)
 			: maxSize_(maxSize)
 		{
 		}
@@ -1585,7 +1582,66 @@ namespace util
 
 		QVariantMap cache_ = {};
 
+		bool isLocked_ = false;
+
 		bool hasChanged_ = false;
+	};
+
+	class ScopedFileLocker
+	{
+	public:
+		ScopedFileLocker(const QString& fileName)
+			:lock_(fileName)
+		{
+			isFileLocked = lock_.tryLock();
+		}
+
+		~ScopedFileLocker()
+		{
+			if (isFileLocked)
+			{
+				lock_.unlock();
+			}
+		}
+
+		bool isLocked() const
+		{
+			return isFileLocked;
+		}
+
+	private:
+		QLockFile lock_;
+		bool isFileLocked = false;
+	};
+
+	class ScopedLocker
+	{
+	public:
+		ScopedLocker(QMutex* lock)
+			:lock_(*lock)
+		{
+			isLocked_ = lock_.tryLock();
+		}
+
+		~ScopedLocker()
+		{
+			if (isLocked_)
+			{
+				lock_.unlock();
+			}
+		}
+
+		bool isLocked() const
+		{
+			return isLocked_;
+		}
+
+
+
+	private:
+		QMutex& lock_;
+		bool isLocked_ = false;
+
 	};
 
 	//簡易字符串加解密 主要用於將一些二進制數據轉換為可視字符串方便保存json

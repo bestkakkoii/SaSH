@@ -40,6 +40,8 @@ private:
 
 	QString getFullPath(QTreeWidgetItem* item);
 
+	void setContinue();
+
 private slots:
 	void onApplyHashSettingsToUI();
 	void onScriptTreeWidgetHeaderClicked(int logicalIndex);
@@ -62,9 +64,8 @@ private slots:
 	void onScriptLabelRowTextChanged(int row, int max, bool noSelect);
 
 	void loadFile(const QString& fileName);
-	void onGlobalVarInfoImport(const QHash<QString, QVariant>& d);
-	void onLocalVarInfoImport(const QHash<QString, QVariant>& d);
-	void onContinue();
+	void onVarInfoImport(const QHash<QString, QVariant>& d);
+
 
 	void onCallStackInfoChanged(const QHash <int, QString>& var);
 	void onJumpStackInfoChanged(const QHash <int, QString>& var);

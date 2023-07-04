@@ -1,6 +1,7 @@
 ﻿#include "stdafx.h"
 #include "lexer.h"
 #include "injector.h"
+#include "signaldispatcher.h"
 
 //全局關鍵字映射表 這裡是新增新的命令的第一步，其他需要在interpreter.cpp中新增，這裡不添加的話，腳本分析後會忽略未知的命令
 static const QHash<QString, RESERVE> keywords = {
@@ -391,11 +392,8 @@ static const QHash<QString, RESERVE> keywords = {
 
 void Lexer::showError(const QString text, ErrorType type)
 {
-	Injector& injector = Injector::getInstance();
-	if (!injector.scriptLogModel.isNull())
-	{
-		injector.scriptLogModel->append(text, type);
-	}
+	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
+	emit signalDispatcher.appendScriptLog(text, type);
 }
 
 //插入新TOKEN
@@ -441,6 +439,8 @@ void Lexer::tokenized(int currentLine, const QString& line, TokenMap* ptoken, ut
 		static const QRegularExpression varExpr(R"(([\w\p{Han}]+)\s+\=\s+([\W\w\s\p{Han}]+))");//x = expr
 		static const QRegularExpression varAnyOp(R"([+\-*\/%&|^\(\)])");//+ - * / % & | ^ ( )
 		static const QRegularExpression varIf(R"([iI][fF][\(|\s+]([\d\w\W\p{Han}]+\s*[<|>|\=|!][\=]*\s*[\d\w\W\p{Han}]+))");//if (expr)
+		static const QRegularExpression rexFunction(R"(function\s+([\w\p{Han}\d]+)\s*\(([\w\W\p{Han}]*)\))");
+		static const QRegularExpression rexCallFunction(R"((\w+)\s*\(([\w\W\p{Han}]*)\))");
 		if (raw.contains(varIf))
 		{
 			QRegularExpressionMatch match = varIf.match(raw);
@@ -463,7 +463,9 @@ void Lexer::tokenized(int currentLine, const QString& line, TokenMap* ptoken, ut
 				break;
 			}
 		}
-		else if (raw.count("=") == 1 && raw.contains(rexMultiLocalVar) && !raw.contains(varAnyOp) && !raw.front().isDigit())
+		else if (raw.count("=") == 1 && raw.contains(rexMultiLocalVar)
+			&& (!raw.contains(varAnyOp) || raw.indexOf(varAnyOp) > raw.indexOf("\'") || raw.indexOf(varAnyOp) > raw.indexOf("\""))
+			&& !raw.front().isDigit())
 		{
 			QRegularExpressionMatch match = rexMultiLocalVar.match(raw);
 			if (match.hasMatch())
@@ -474,7 +476,9 @@ void Lexer::tokenized(int currentLine, const QString& line, TokenMap* ptoken, ut
 				doNotLowerCase = true;
 			}
 		}
-		else if (raw.count("=") == 1 && raw.contains(rexMultiVar) && !raw.contains(varAnyOp) && !raw.front().isDigit())
+		else if (raw.count("=") == 1 && raw.contains(rexMultiVar)
+			&& (!raw.contains(varAnyOp) || raw.indexOf(varAnyOp) > raw.indexOf("\'") || raw.indexOf(varAnyOp) > raw.indexOf("\""))
+			&& !raw.front().isDigit())
 		{
 			QRegularExpressionMatch match = rexMultiVar.match(raw);
 			if (match.hasMatch())
@@ -531,25 +535,53 @@ void Lexer::tokenized(int currentLine, const QString& line, TokenMap* ptoken, ut
 		}
 		else
 		{
-			//以空格為分界分離出第一個TOKEN(命令)
-			if (!getStringToken(raw, " ", token))
-			{
-				createEmptyToken(pos, ptoken);
-				break;
-			}
+			bool isCommand = raw.trimmed().startsWith("//");
 
-			if (token.isEmpty())
+			if (!isCommand && raw.contains(rexFunction))
 			{
-				createEmptyToken(pos, ptoken);
-				break;
+				QRegularExpressionMatch match = rexFunction.match(raw);
+				if (!match.hasMatch())
+					break;
+				token = "function";
+				raw = QString("%1,%2,%3").arg(match.captured(1).simplified(), match.captured(2).trimmed(), match.captured(3).trimmed());
 			}
-
-			//遇到註釋
-			if (token.startsWith("//"))
+			else if (!isCommand && !raw.contains("function", Qt::CaseInsensitive) && raw.contains(rexCallFunction))
 			{
-				createToken(pos, TK_COMMENT, "", "", ptoken);
-				createToken(pos + 1, TK_COMMENT, data, token, ptoken);
-				break;
+				QRegularExpressionMatch match = rexCallFunction.match(raw);
+				if (!match.hasMatch())
+					break;
+
+				token = match.captured(1).simplified();
+				raw = match.captured(2).trimmed();
+				type = keywords.value(token, TK_UNK);
+				if (type == TK_UNK)
+				{
+					raw = QString("%1,%2").arg(token, raw);
+					token = "call";
+				}
+			}
+			else
+			{
+				//以空格為分界分離出第一個TOKEN(命令)
+				if (!getStringToken(raw, " ", token))
+				{
+					createEmptyToken(pos, ptoken);
+					break;
+				}
+
+				if (token.isEmpty())
+				{
+					createEmptyToken(pos, ptoken);
+					break;
+				}
+
+				//遇到註釋
+				if (token.startsWith("//"))
+				{
+					createToken(pos, TK_COMMENT, "", "", ptoken);
+					createToken(pos + 1, TK_COMMENT, data, token, ptoken);
+					break;
+				}
 			}
 
 			//檢查第一個TOKEN是否存在於關鍵字表，否則視為空行
@@ -616,7 +648,7 @@ void Lexer::tokenized(int currentLine, const QString& line, TokenMap* ptoken, ut
 				else if (token.toLower() == "false" || token == "假")
 					data = QVariant::fromValue(0);
 			}
-			else if (type == TK_DOUBLE)//對雙精度浮點數進行轉換處理
+			else if (type == TK_DOUBLE)//對雙精度浮點數進行強制轉INT處理
 			{
 				bool ok;
 				double floatValue = token.toDouble(&ok);
@@ -626,7 +658,7 @@ void Lexer::tokenized(int currentLine, const QString& line, TokenMap* ptoken, ut
 					type = TK_INT;
 				}
 			}
-			else if (type == TK_STRING)//對字串進行轉換處理，去除首尾單引號、雙引號
+			else if (type == TK_STRING)//對字串進行轉換處理，去除首尾單引號、雙引號，並標記為常量
 			{
 				if ((token.startsWith("\"") || token.startsWith("\'")) && (token.endsWith("\"") || token.endsWith("\'")))
 				{

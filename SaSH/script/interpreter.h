@@ -15,7 +15,7 @@ typedef struct break_marker_s
 
 constexpr int DEFAULT_FUNCTION_TIMEOUT = 5000;
 
-class Interpreter : public QObject
+class Interpreter : public ThreadPlugin
 {
 	Q_OBJECT
 public:
@@ -32,10 +32,8 @@ public:
 	};
 
 public:
-	Interpreter(QObject* parent = nullptr);
+	Interpreter();
 	virtual ~Interpreter();
-
-	inline Q_REQUIRED_RESULT bool isInterruptionRequested() const { QReadLocker lock(&interruptLock_); return isRequestInterrupted.load(std::memory_order_acquire); }
 
 	inline bool isRunning() const { return isRunning_.load(std::memory_order_acquire) && !isInterruptionRequested(); }
 
@@ -64,9 +62,8 @@ signals:
 
 
 public slots:
-	void requestInterruption() { QWriteLocker lock(&interruptLock_); isRequestInterrupted.store(true, std::memory_order_release); }
-
 	void proc();
+
 private:
 	bool readFile(const QString& fileName, QString* pcontent, bool* isPrivate);
 	bool loadString(const QString& script, util::SafeHash<int, TokenMap>* ptokens, util::SafeHash<QString, int>* plabel);
@@ -240,7 +237,9 @@ private:
 	bool waitfor(int timeout, std::function<bool()> exprfun) const;
 	bool checkString(const TokenMap& TK, int idx, QString* ret) const;
 	bool checkInt(const TokenMap& TK, int idx, int* ret) const;
+#if 0
 	bool checkDouble(const TokenMap& TK, int idx, double* ret) const;
+#endif
 	bool toVariant(const TokenMap& TK, int idx, QVariant* ret) const;
 	int checkJump(const TokenMap& TK, int idx, bool expr, JumpBehavior behavior) const;
 	bool checkRange(const TokenMap& TK, int idx, int* min, int* max) const;
@@ -368,7 +367,7 @@ private: //註冊給Parser的函數
 	int replace(int currentline, const TokenMap& TK);
 	int toint(int currentline, const TokenMap& TK);
 	int tostr(int currentline, const TokenMap& TK);
-	int todb(int currentline, const TokenMap& TK);
+	//int todb(int currentline, const TokenMap& TK);
 
 	//battle
 	int bh(int currentline, const TokenMap& TK);//atk
@@ -391,9 +390,6 @@ private:
 	int beginLine_ = 0;
 
 	bool isSub = false;
-
-	std::atomic_bool isRequestInterrupted = false;
-	mutable QReadWriteLock interruptLock_;
 
 	QThread* thread_ = nullptr;
 

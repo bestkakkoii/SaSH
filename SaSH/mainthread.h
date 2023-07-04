@@ -1,22 +1,18 @@
 ﻿#pragma once
 #include <QObject>
+
+#include <threadplugin.h>
 #include <util.h>
 
 class QThread;
 class Server;
 
-class MainObject : public QObject
+class MainObject : public ThreadPlugin
 {
 	Q_OBJECT
 public:
-	MainObject(QObject* parent = nullptr);
+	explicit MainObject(QObject* parent);
 	virtual ~MainObject();
-
-	bool isInterruptionRequested() const
-	{
-		QReadLocker lock(&interruptLock_);
-		return isRequestInterrupted.load(std::memory_order_acquire);
-	}
 
 signals:
 	void finished();
@@ -24,11 +20,6 @@ signals:
 public slots:
 	void run();
 
-	void requestInterruption()
-	{
-		QWriteLocker lock(&interruptLock_);
-		isRequestInterrupted.store(true, std::memory_order_release);
-	}
 private:
 
 
@@ -55,9 +46,6 @@ private:
 
 private:
 	util::REMOVE_THREAD_REASON remove_thread_reason = util::REASON_NO_ERROR;
-
-	std::atomic_bool isRequestInterrupted = false;
-	mutable QReadWriteLock interruptLock_;
 
 	QFuture<void> autowalk_future_;
 	std::atomic_bool autowalk_future_cancel_flag_ = false;
@@ -132,10 +120,10 @@ class ThreadManager : public QObject
 public:
 	static ThreadManager& getInstance()
 	{
-		static ThreadManager* instance = new ThreadManager();
-		return *instance;
+		static ThreadManager instance;
+		return instance;
 	}
-	void close()
+	inline void close()
 	{
 		if (thread_ != nullptr)
 		{
@@ -153,7 +141,7 @@ private:
 	ThreadManager() = default;
 
 public:
-	bool createThread(QObject* parent = nullptr);
+	bool createThread(QObject* parent);
 
 private:
 	QThread* thread_ = nullptr;

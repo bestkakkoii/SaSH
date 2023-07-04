@@ -15,6 +15,8 @@ BattleInfoForm::BattleInfoForm(QWidget* parent)
 	qRegisterMetaType<QVariant>("QVariant");
 	qRegisterMetaType<QVariant>("QVariant&");
 
+	ui.label_time->setFlag(Qt::AlignCenter | Qt::AlignVCenter);
+
 	auto setTableWidget = [](QTableWidget* tableWidget)->void
 	{
 		//tablewidget set single selection
@@ -86,7 +88,6 @@ BattleInfoForm::~BattleInfoForm()
 {
 }
 
-
 void BattleInfoForm::onUpdateTopInfoContents(const QVariant& dat)
 {
 	updateItemInfoRowContents(ui.tableWidget_top, dat);
@@ -96,6 +97,7 @@ void BattleInfoForm::onUpdateBottomInfoContents(const QVariant& dat)
 {
 	updateItemInfoRowContents(ui.tableWidget_bottom, dat);
 }
+
 void BattleInfoForm::onUpdateTimeLabelContents(const QString& text)
 {
 	ui.label_time->setText(text);
@@ -103,12 +105,12 @@ void BattleInfoForm::onUpdateTimeLabelContents(const QString& text)
 
 void BattleInfoForm::onUpdateLabelPlayerAction(const QString& text)
 {
-	ui.label_charaction->setText(tr("char action:") + text);
+	ui.label_charaction->setText(text);
 }
 
 void BattleInfoForm::onUpdateLabelPetAction(const QString& text)
 {
-	ui.label_petaction->setText(tr("pet action:") + text);
+	ui.label_petaction->setText(text);
 }
 
 void BattleInfoForm::updateItemInfoRowContents(QTableWidget* tableWidget, const QVariant& dat)

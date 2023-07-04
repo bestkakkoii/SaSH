@@ -394,5 +394,7 @@ private:
 
 		{ util::kMailWhiteListString , "" },
 
+		{ util::kEOCommandString, "/jk" },
+
 	};
 };

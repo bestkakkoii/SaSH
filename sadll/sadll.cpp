@@ -262,7 +262,7 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID)
 #endif
 
 #ifdef _DEBUG
-			CreateConsole();
+			//CreateConsole();
 #endif
 		}
 		DisableThreadLibraryCalls(hModule);
@@ -540,6 +540,12 @@ extern "C"
 		GameService& g_GameService = GameService::getInstance();
 		return g_GameService.New_lssproto_WN_send(fd, x, y, seqno, objindex, select, data);
 	}
+
+	void __cdecl New_lssproto_TK_send(int fd, int x, int y, const char* message, int color, int area)
+	{
+		GameService& g_GameService = GameService::getInstance();
+		return g_GameService.New_lssproto_TK_send(fd, x, y, message, color, area);
+	}
 }
 
 
@@ -574,6 +580,7 @@ void GameService::initialize(unsigned short port)
 	pTimeProc = CONVERT_GAMEVAR<pfnTimeProc>(0x1E6D0);//刷新時間循環
 	pLssproto_EN_recv = CONVERT_GAMEVAR<pfnLssproto_EN_recv>(0x64E10);//進戰鬥封包
 	pLssproto_WN_send = CONVERT_GAMEVAR<pfnLssproto_WN_send>(0x8FDC0);//對話框發送封包
+	pLssproto_TK_send = CONVERT_GAMEVAR<pfnLssproto_TK_send>(0x8F7C0);//喊話發送封包
 
 	/*WINAPI*/
 	//psocket = CONVERT_GAMEVAR<pfnsocket>(0x91764);//::socket;
@@ -628,6 +635,7 @@ void GameService::initialize(unsigned short port)
 	DetourAttach(&(PVOID&)pTimeProc, ::New_TimeProc);
 	DetourAttach(&(PVOID&)pLssproto_EN_recv, ::New_lssproto_EN_recv);
 	DetourAttach(&(PVOID&)pLssproto_WN_send, ::New_lssproto_WN_send);
+	DetourAttach(&(PVOID&)pLssproto_TK_send, ::New_lssproto_TK_send);
 
 
 	DetourTransactionCommit();
@@ -693,6 +701,7 @@ void GameService::uninitialize()
 	DetourDetach(&(PVOID&)pTimeProc, ::New_TimeProc);
 	DetourDetach(&(PVOID&)pLssproto_EN_recv, ::New_lssproto_EN_recv);
 	DetourDetach(&(PVOID&)pLssproto_WN_send, ::New_lssproto_WN_send);
+	DetourDetach(&(PVOID&)pLssproto_TK_send, ::New_lssproto_TK_send);
 	//DetourAttach(&(PVOID&)pBattleCommandReady, ::New_BattleCommandReady);
 
 	DetourTransactionCommit();
@@ -780,84 +789,77 @@ int WSAAPI GameService::New_recv(SOCKET s, char* buf, int len, int flags)
 #endif
 	if (recvlen > 0)
 	{
-		try
-		{
 #ifdef AUTIL_H
-			//將收到的數據複製到緩存
-			memcpy_s(raw.get(), len, rpc_linebuffer, recvlen);
+		//將收到的數據複製到緩存
+		memcpy_s(raw.get(), len, rpc_linebuffer, recvlen);
 #endif
 
 #ifdef USE_ASYNC_TCP
-			//轉發給外掛
-			if (asyncClient_)
-				asyncClient_->Send(buf, recvlen);
+		//轉發給外掛
+		if (asyncClient_)
+			asyncClient_->Send(buf, recvlen);
 #else
-			//轉發給外掛
-			if (syncClient_)
-				syncClient_->Send(buf, recvlen);//raw.get()
+		//轉發給外掛
+		if (syncClient_)
+			syncClient_->Send(buf, recvlen);//raw.get()
 #endif
 
 #ifdef AUTIL_H
-			//將封包內容壓入全局緩存
-			appendReadBuf(rpc_linebuffer, recvlen);
+		//將封包內容壓入全局緩存
+		appendReadBuf(rpc_linebuffer, recvlen);
 
-			//解析封包，這裡主要是為了實現快速戰鬥，在必要的時候讓客戶端不會收到戰鬥進場封包
-			//前面已經攔截lssproto_EN_recv了所以這邊暫時沒有用處
-			while ((recvlen != SOCKET_ERROR) && (net_readbuflen > 0))
+		//解析封包，這裡主要是為了實現快速戰鬥，在必要的時候讓客戶端不會收到戰鬥進場封包
+		//前面已經攔截lssproto_EN_recv了所以這邊暫時沒有用處
+		while ((recvlen != SOCKET_ERROR) && (net_readbuflen > 0))
+		{
+			memset(rpc_linebuffer, 0, Autil::NETBUFSIZ);
+			if (!getLineFromReadBuf(rpc_linebuffer, Autil::NETBUFSIZ))
 			{
-				memset(rpc_linebuffer, 0, Autil::NETBUFSIZ);
-				if (!getLineFromReadBuf(rpc_linebuffer, Autil::NETBUFSIZ))
-				{
-					int ret = SaDispatchMessage(s, rpc_linebuffer);
-					if (ret < 0)
-					{
-#ifdef _DEBUG
-						std::cout << "************************* DONE *************************" << std::endl;
-#endif
-						//代表此段數據已到結尾
-						clearNetBuffer();
-						break;
-					}
-					else if (ret == 0)
-					{
-#ifdef _DEBUG
-						std::cout << "************************* CLEAN *************************" << std::endl;
-#endif
-						//錯誤的數據 或 需要清除緩存
-						clearNetBuffer();
-						break;
-					}
-					else if (ret == 2)
-					{
-						if (IS_ENCOUNT_BLOCK_FLAG)
-						{
-#ifdef _DEBUG
-							std::cout << "************************* Block *************************" << std::endl;
-#endif
-
-							//需要移除不傳給遊戲的數據
-							clearNetBuffer();
-							SetLastError(0);
-							return 1;
-						}
-					}
-				}
-				else
+				int ret = SaDispatchMessage(s, rpc_linebuffer);
+				if (ret < 0)
 				{
 #ifdef _DEBUG
-					std::cout << "************************* END *************************" << std::endl;
+					std::cout << "************************* DONE *************************" << std::endl;
 #endif
-					//數據讀完了
-					util_Release();
+					//代表此段數據已到結尾
+					clearNetBuffer();
 					break;
 				}
-			}
+				else if (ret == 0)
+				{
+#ifdef _DEBUG
+					std::cout << "************************* CLEAN *************************" << std::endl;
 #endif
-		}
-		catch (...)
-		{
+					//錯誤的數據 或 需要清除緩存
+					clearNetBuffer();
+					break;
+				}
+				else if (ret == 2)
+				{
+					if (IS_ENCOUNT_BLOCK_FLAG)
+					{
+#ifdef _DEBUG
+						std::cout << "************************* Block *************************" << std::endl;
+#endif
 
+						//需要移除不傳給遊戲的數據
+						clearNetBuffer();
+						SetLastError(0);
+						return 1;
+					}
+				}
+			}
+			else
+			{
+#ifdef _DEBUG
+				std::cout << "************************* END *************************" << std::endl;
+#endif
+				//數據讀完了
+				util_Release();
+				break;
+			}
 		}
+#endif
 	}
 
 #ifdef AUTIL_H
@@ -934,9 +936,30 @@ void GameService::New_lssproto_WN_send(int fd, int x, int y, int seqno, int obji
 		str += std::string(data);
 		std::cout << "send: " << str << std::endl;
 		Send(str);
+		return;
 	}
 
 	pLssproto_WN_send(fd, x, y, seqno, objindex, select, data);
+}
+
+//TK對話框收包攔截
+void GameService::New_lssproto_TK_send(int fd, int x, int y, const char* message, int color, int area)
+{
+	std::string msg = message;
+	//查找是否包含'//'
+	if (!msg.empty() && msg.find("//") != std::string::npos)
+	{
+		std::string str = "tk|";
+		str += std::to_string(x) + "|";
+		str += std::to_string(y) + "|";
+		str += std::to_string(color) + "|";
+		str += std::to_string(area) + "|";
+		str += msg.substr(2);
+		Send(str);
+		return;
+	}
+
+	pLssproto_TK_send(fd, x, y, message, color, area);
 }
 ////////////////////////////////////////////////////
 

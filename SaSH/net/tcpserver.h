@@ -1,13 +1,12 @@
 ﻿#pragma once
 #include <QCoreApplication>
-#include <QThread>
 #include <QTimer>
 #include <iostream>
 #include <string>
 #include <vector>
 #include <WS2tcpip.h>
 
-
+#include <threadplugin.h>
 #include <util.h>
 
 
@@ -137,15 +136,44 @@ constexpr int BC_FLG_POISON = (1 << 3);	  //中毒
 constexpr int BC_FLG_PARALYSIS = (1 << 4); //麻痹
 constexpr int BC_FLG_SLEEP = (1 << 5);  //昏睡
 constexpr int BC_FLG_STONE = (1 << 6);	  //石化
-constexpr int BC_FLG_DRUNK = (1 << 7);  //眩晕
+constexpr int BC_FLG_DRUNK = (1 << 7);  //酒醉
 constexpr int BC_FLG_CONFUSION = (1 << 8); //混乱
 constexpr int BC_FLG_HIDE = (1 << 9);	  //是否隐藏，地球一周
 constexpr int BC_FLG_REVERSE = (1 << 10);  //反转
 
 inline constexpr bool hasBadStatus(int status)
 {
-	int allAbnormalFlags = BC_FLG_POISON | BC_FLG_PARALYSIS | BC_FLG_SLEEP | BC_FLG_STONE | BC_FLG_DRUNK | BC_FLG_CONFUSION;
-	return (status & allAbnormalFlags) != 0;
+	//BC_FLG_POISON | BC_FLG_PARALYSIS | BC_FLG_SLEEP | BC_FLG_STONE | BC_FLG_DRUNK | BC_FLG_CONFUSION;
+	if (status & BC_FLG_POISON)
+		return true;
+	if (status & BC_FLG_PARALYSIS)
+		return true;
+	if (status & BC_FLG_SLEEP)
+		return true;
+	if (status & BC_FLG_STONE)
+		return true;
+	if (status & BC_FLG_DRUNK)
+		return true;
+	if (status & BC_FLG_CONFUSION)
+		return true;
+
+	return false;
+}
+
+inline constexpr bool hasUnMoveableStatue(int status)
+{
+	if (status & BC_FLG_DEAD)
+		return true;
+	if (status & BC_FLG_STONE)
+		return true;
+	if (status & BC_FLG_SLEEP)
+		return true;
+	if (status & BC_FLG_PARALYSIS)
+		return true;
+	if (status & BC_FLG_HIDE)
+		return true;
+
+	return false;
 }
 
 
@@ -197,6 +225,8 @@ constexpr int MAIL_MAX_HISTORY = 20;
 constexpr int MAX_CHAT_REGISTY_STR = 8;
 
 constexpr int MAX_ENEMY = 20;
+constexpr int MAX_CHAT_HISTORY = 20;
+constexpr int MAX_DIALOG_LINE = 10;
 
 constexpr int MAX_DIR = 8;
 
@@ -1223,11 +1253,11 @@ typedef struct tagPC
 	unsigned short status = 0ui16;
 #endif
 	unsigned short etcFlag = 0ui16;
-	short battlePetNo = 0i16;
+	short battlePetNo = -1i16;
 	short selectPetNo[MAX_PET] = { 0i16, 0i16 ,0i16 ,0i16 ,0i16 };
-	short mailPetNo = 0i16;
+	short mailPetNo = -1i16;
 #ifdef _STANDBYPET
-	short standbyPet = 0i16;
+	short standbyPet = -1i16;
 #endif
 	int battleNo = 0;
 	short sideNo = 0i16;
@@ -1242,7 +1272,7 @@ typedef struct tagPC
 	int channel = 0;
 	int quickChannel = 0;
 	int personal_bankgold = 0;
-	int ridePetNo = 0;//寵物形像
+	int ridePetNo = -1;//寵物形像
 	int learnride = 0;//學習騎乘
 	unsigned int lowsride = 0u;
 	QString ridePetName = "";
@@ -1581,20 +1611,9 @@ typedef struct battledata_s
 	int alliemin = 0, alliemax = 0, enemymax = 0, enemymin = 0;
 	battleobject_t player = {};
 	battleobject_t pet = {};
-	util::SafeVector<battleobject_t> objects;
-	util::SafeVector<battleobject_t> allies;
-	util::SafeVector<battleobject_t> enemies;
-
-	void clear()
-	{
-		fieldAttr = 0;
-		alliemin = 0, alliemax = 0, enemymax = 0, enemymin = 0;
-		player = {};
-		pet = {};
-		objects = util::SafeVector<battleobject_t>{};
-		allies = util::SafeVector<battleobject_t>{};
-		enemies = util::SafeVector<battleobject_t>{};
-	}
+	QVector<battleobject_t> objects;
+	QVector<battleobject_t> allies;
+	QVector<battleobject_t> enemies;
 
 } battledata_t;
 
@@ -1809,7 +1828,7 @@ enum BufferControl
 };
 
 class MapAnalyzer;
-class Server : public QObject
+class Server : public ThreadPlugin
 {
 	Q_OBJECT
 public:
@@ -1823,8 +1842,6 @@ public:
 
 	bool start(QObject* parent);
 
-	inline void requestInterruption() { QWriteLocker lock(&interruptLock_); isRequestInterrupted.store(true, std::memory_order_release); }
-
 	Q_REQUIRED_RESULT inline unsigned short getPort() const { return port_; }
 
 signals:
@@ -1837,9 +1854,7 @@ private slots:
 
 
 private:
-	inline bool isInterruptionRequested() const { QReadLocker lock(&interruptLock_); return isRequestInterrupted.load(std::memory_order_acquire); }
-
-	int __fastcall SaDispatchMessage(char* encoded);
+	int SaDispatchMessage(char* encoded);
 
 	void handleData(QTcpSocket* clientSocket, QByteArray data);
 
@@ -1847,6 +1862,8 @@ public://actions
 	Q_REQUIRED_RESULT int getWorldStatus();
 
 	Q_REQUIRED_RESULT int getGameStatus();
+
+	Q_REQUIRED_RESULT bool checkGW(int w, int g);
 
 	Q_REQUIRED_RESULT int getUnloginStatus();
 	void setWorldStatus(int w);
@@ -1885,14 +1902,14 @@ public://actions
 
 
 	void talk(const QString& text, int color = 0, TalkMode mode = kTalkNormal);
-	void inputtext(const QString& text);
+	void inputtext(const QString& text, int dialogid = -1, int npcid = -1);
 
 	void windowPacket(const QString& command, int dialogid, int npcid);
 
 	void EO();
 
 	void dropItem(int index);
-	void dropItem(util::SafeVector<int> index);
+	void dropItem(QVector<int> index);
 
 	void useItem(int itemIndex, int target);
 
@@ -1913,7 +1930,7 @@ public://actions
 	void press(int row, int seqno = -1, int objindex = -1);
 
 	void buy(int index, int amt, int seqno = -1, int objindex = -1);
-	void sell(const util::SafeVector<int>& indexs, int seqno = -1, int objindex = -1);
+	void sell(const QVector<int>& indexs, int seqno = -1, int objindex = -1);
 	void sell(int index, int seqno = -1, int objindex = -1);
 	void sell(const QString& name, const QString& memo = "", int seqno = -1, int objindex = -1);
 	void learn(int skillIndex, int petIndex, int spot, int seqno = -1, int objindex = -1);
@@ -1928,7 +1945,7 @@ public://actions
 
 	void shopOk(int n);
 
-	void addPoint(int skillid, int amt);
+	bool addPoint(int skillid, int amt);
 
 	void pickItem(int dir);
 
@@ -1941,13 +1958,19 @@ public://actions
 	void depositItem(int index, int seqno = -1, int objindex = -1);
 	void withdrawItem(int itemIndex, int seqno = -1, int objindex = -1);
 
-	bool postGifCodeImage(QString* pmsg);
+	bool captchaOCR(QString* pmsg);
 
+	void setAllPetState();
 	void setPetState(int petIndex, PetState state);
+	void setFightPet(int petIndex);
+	void setRidePet(int petIndex);
+	void setStandbyPet(int standbypets);
+	void setPetState(int petIndex, int state);
 
 	void updateDatasFromMemory();
 
-	void asyncBattleWork();
+	void asyncBattleWork(bool wait);
+	void asyncBattleAction();
 
 	void downloadMap();
 	void downloadMap(int x, int y);
@@ -1955,9 +1978,9 @@ public://actions
 	bool tradeStart(const QString& name, int timeout);
 	void tradeComfirm(const QString name);
 	void tradeCancel();
-	void tradeAppendItems(const QString& name, const util::SafeVector<int>& itemIndexs);
+	void tradeAppendItems(const QString& name, const QVector<int>& itemIndexs);
 	void tradeAppendGold(const QString& name, int gold);
-	void tradeAppendPets(const QString& name, const util::SafeVector<int>& petIndex);
+	void tradeAppendPets(const QString& name, const QVector<int>& petIndex);
 	void tradeComplete(const QString& name);
 
 	void cleanChatHistory();
@@ -1972,13 +1995,13 @@ public://actions
 	void setPlayerFaceDirection(const QString& dirStr);
 
 	QStringList getJoinableUnitList() const;
-	bool getItemIndexsByName(const QString& name, const QString& memo, util::SafeVector<int>* pv);
+	bool getItemIndexsByName(const QString& name, const QString& memo, QVector<int>* pv);
 	int getItemIndexByName(const QString& name, bool isExact = true, const QString& memo = "") const;
 	int getPetSkillIndexByName(int& petIndex, const QString& name) const;
-	bool getPetIndexsByName(const QString& name, util::SafeVector<int>* pv) const;
+	bool getPetIndexsByName(const QString& name, QVector<int>* pv) const;
 	int getMagicIndexByName(const QString& name, bool isExact = true) const;
 	int getItemEmptySpotIndex() const;
-	bool getItemEmptySpotIndexs(util::SafeVector<int>* pv) const;
+	bool getItemEmptySpotIndexs(QVector<int>* pv) const;
 	void clear();
 
 	bool checkPlayerMp(int cmpvalue, int* target = nullptr, bool useequal = false);
@@ -1992,8 +2015,23 @@ public://actions
 	void setPlayerFreeName(const QString& name);
 	void setPetFreeName(int petIndex, const QString& name);
 
-	Q_REQUIRED_RESULT inline bool getBattleFlag() const { QReadLocker lock(&battleStateLocker); return IS_BATTLE_FLAG.load(std::memory_order_acquire); }
-	Q_REQUIRED_RESULT inline bool getOnlineFlag() const { QReadLocker lock(&onlineStateLocker); return IS_ONLINE_FLAG.load(std::memory_order_acquire); }
+	Q_REQUIRED_RESULT inline bool getBattleFlag() const
+	{
+		QReadLocker lock(&battleStateLocker);
+		if (isInterruptionRequested())
+			return false;
+		return IS_BATTLE_FLAG.load(std::memory_order_acquire);
+	}
+	Q_REQUIRED_RESULT inline bool getOnlineFlag() const
+	{
+		QReadLocker lock(&onlineStateLocker);
+		if (isInterruptionRequested())
+			return false;
+		return IS_ONLINE_FLAG.load(std::memory_order_acquire);
+	}
+
+	QPoint getPoint();
+	void setPoint(const QPoint& pos);
 
 	//battle
 	void sendBattlePlayerAttackAct(int target);
@@ -2007,10 +2045,10 @@ public://actions
 	void sendBattlePlayerDoNothing();
 	void sendBattlePetSkillAct(int skillIndex, int target);
 	void sendBattlePetDoNothing();
+	void setBattleEnd();
 private:
 	void reloadHashVar();
 	void setWindowTitle();
-	void setBattleEnd();
 	void refreshItemInfo(int index);
 	void refreshItemInfo();
 
@@ -2045,17 +2083,17 @@ private:
 	bool isPlayerMpEnoughForMagic(int magicIndex) const;
 	bool isPlayerMpEnoughForSkill(int magicIndex) const;
 
-	void sortBattleUnit(util::SafeVector<battleobject_t>& v) const;
+	void sortBattleUnit(QVector<battleobject_t>& v) const;
 
-	Q_REQUIRED_RESULT int getBattleSelectableEnemyTarget() const;
+	Q_REQUIRED_RESULT int getBattleSelectableEnemyTarget(const battledata_t& bt) const;
 
-	Q_REQUIRED_RESULT int getBattleSelectableEnemyOneRowTarget(bool front) const;
+	Q_REQUIRED_RESULT int getBattleSelectableEnemyOneRowTarget(const battledata_t& bt, bool front) const;
 
-	Q_REQUIRED_RESULT int getBattleSelectableAllieTarget() const;
+	Q_REQUIRED_RESULT int getBattleSelectableAllieTarget(const battledata_t& bt) const;
 
-	Q_REQUIRED_RESULT bool matchBattleEnemyByName(const QString& name, bool isExact, util::SafeVector<battleobject_t> src, util::SafeVector<battleobject_t>* v) const;
-	Q_REQUIRED_RESULT bool matchBattleEnemyByLevel(int level, util::SafeVector<battleobject_t> src, util::SafeVector<battleobject_t>* v) const;
-	Q_REQUIRED_RESULT bool matchBattleEnemyByMaxHp(int maxHp, util::SafeVector<battleobject_t> src, util::SafeVector<battleobject_t>* v) const;
+	Q_REQUIRED_RESULT bool matchBattleEnemyByName(const QString& name, bool isExact, QVector<battleobject_t> src, QVector<battleobject_t>* v) const;
+	Q_REQUIRED_RESULT bool matchBattleEnemyByLevel(int level, QVector<battleobject_t> src, QVector<battleobject_t>* v) const;
+	Q_REQUIRED_RESULT bool matchBattleEnemyByMaxHp(int maxHp, QVector<battleobject_t> src, QVector<battleobject_t>* v) const;
 
 	Q_REQUIRED_RESULT int getGetPetSkillIndexByName(int petIndex, const QString& name) const;
 
@@ -2063,9 +2101,20 @@ private:
 	bool fixPlayerTargetBySkillIndex(int magicIndex, int oldtarget, int* target) const;
 	bool fixPlayerTargetByItemIndex(int itemIndex, int oldtarget, int* target) const;
 	bool fixPetTargetBySkillIndex(int skillIndex, int oldtarget, int* target) const;
-	void updateCurrentSideRange();
+	void updateCurrentSideRange(battledata_t& bt);
 	inline bool checkFlagState(int pos);
 
+	battledata_t getBattleData() const
+	{
+		QReadLocker locker(&battleDataLocker);
+		return battleData;
+	}
+
+	void setBattleData(const battledata_t& data)
+	{
+		QWriteLocker locker(&battleDataLocker);
+		battleData = data;
+	}
 
 #pragma endregion
 
@@ -2079,7 +2128,7 @@ private:
 
 	void updateMapArea(void)
 	{
-		QPoint pos = nowPoint;
+		QPoint pos = getPoint();
 		mapAreaX1 = pos.x() + MAP_TILE_GRID_X1;
 		mapAreaY1 = pos.y() + MAP_TILE_GRID_Y1;
 		mapAreaX2 = pos.x() + MAP_TILE_GRID_X2;
@@ -2153,7 +2202,6 @@ private:
 	inline void resetPc(void) { pc.status &= (~CHR_STATUS_LEADER); }
 
 	inline void setMap(int floor, const QPoint& pos) { nowFloor = floor; setWarpMap(pos); }
-
 
 	inline unsigned long long TimeGetTime(void)
 	{
@@ -2462,6 +2510,7 @@ private://lssproto
 #pragma endregion
 
 	void lssproto_CustomWN_recv(const QString& data);
+	void lssproto_CustomTK_recv(const QString& data);
 
 	int appendReadBuf(const QByteArray& data);
 	QByteArrayList splitLinesFromReadBuf();
@@ -2472,12 +2521,15 @@ private://lssproto
 	QString makeStringFromEscaped(const QString& src) const;
 	int a62toi(char* a) const;
 private:
-	QFuture<void> ayncBattleCommand;
+
+	QFutureSynchronizer<void> ayncBattleCommandSync;
+	QFuture<void> ayncBattleCommandFuture;
 	std::atomic_bool ayncBattleCommandFlag = false;
 	std::atomic_bool IS_BATTLE_FLAG = false;
 	std::atomic_bool IS_ONLINE_FLAG = false;
-	bool isEOTTLSend = false;
-	bool isBattleDialogReady = false;
+
+	QElapsedTimer refreshHashDataTimer;
+
 	bool isEnemyAllReady = false;
 
 	QElapsedTimer eottlTimer;
@@ -2491,17 +2543,17 @@ private:
 	mutable QReadWriteLock gameStateLocker;
 
 	battledata_t battleData;
+	mutable QReadWriteLock battleDataLocker;
+
+	bool IS_WAITFOT_SKUP_RECV = false;
+	QFuture<void> skupFuture;
 
 	//client original
 #pragma region ClientOriginal
 	int  talkMode = 0;						//0:一般 1:密語 2: 隊伍 3:家族 4:職業 
 
 	MAGIC magic[MAX_MAGIC] = {};
-#ifdef MAX_AIRPLANENUM
-	PARTY party[MAX_AIRPLANENUM];
-#else
-	PARTY party[MAX_PARTY] = {};
-#endif
+
 
 	BATTLE_RESULT_MSG battleResultMsg = {};
 
@@ -2575,22 +2627,20 @@ private:
 
 	short helpFlag = 0i16;
 
-	bool BattleTurnReceiveFlag = false;
 	int BattleMyNo = 0;
 	int BattleBpFlag = 0;
 	int BattleEscFlag = 0;
 	int BattleMyMp = 0;
 	int BattleAnimFlag = 0;
-	int BattleSvTurnNo = 0;
 	int BattlePetStMenCnt = 0;
 
-	int BattleCmdReadPointer = 0;
-	int BattleStatusReadPointer = 0;
-	int BattleCmdWritePointer = 0;
-	int BattleStatusWritePointer = 0;
-	QString BattleCmdBak[BATTLE_BUF_SIZE] = {};
-	QString  BattleStatus[BATTLE_COMMAND_SIZE] = {};
-	QString  BattleStatusBak[BATTLE_BUF_SIZE] = {};
+	//int BattleCmdReadPointer = 0;
+	//int BattleStatusReadPointer = 0;
+	//int BattleCmdWritePointer = 0;
+	//int BattleStatusWritePointer = 0;
+	//QString BattleCmdBak[BATTLE_BUF_SIZE] = {};
+	//QString  BattleStatus[BATTLE_COMMAND_SIZE] = {};
+	//QString  BattleStatusBak[BATTLE_BUF_SIZE] = {};
 
 	int StatusUpPoint = 0;
 
@@ -2610,6 +2660,7 @@ private:
 	int palNo = 0;
 	int palTime = 0;
 
+	int nowFloorCache = 0;
 	bool mapEmptyFlag = false;
 	int nowFloorGxSize = 0, nowFloorGySize = 0;
 	int oldGx = -1, oldGy = -1;
@@ -2666,6 +2717,10 @@ public:
 
 	bool IS_WAITFOR_CUSTOM_DIALOG_FLAG = false;
 
+	std::atomic_bool  isBattleDialogReady = false;
+	std::atomic_bool isEOTTLSend = false;
+	std::atomic_int lastEOTime = 0;
+
 	QElapsedTimer loginTimer;
 	QElapsedTimer battleDurationTimer;
 	QElapsedTimer normalDurationTimer;
@@ -2680,18 +2735,18 @@ public:
 
 	//main datas shared with script thread
 	util::SafeHash<QString, QVariant> hashpc;
-	util::SafeHash<int, util::SafeHash<QString, QVariant>> hashmagic;
-	util::SafeHash<int, util::SafeHash<QString, QVariant>> hashskill;
-	util::SafeHash<int, util::SafeHash<QString, QVariant>> hashpet;
-	util::SafeHash<int, util::SafeHash<int, util::SafeHash<QString, QVariant>>> hashpetskill;
-	util::SafeHash<int, util::SafeHash<QString, QVariant>> hashparty;
-	util::SafeHash<int, util::SafeHash<QString, QVariant>> hashitem;
-	util::SafeHash<int, util::SafeHash<QString, QVariant>> hashequip;
-	util::SafeHash<int, util::SafeHash<int, util::SafeHash<QString, QVariant>>> hashpetequip;
+	util::SafeHash<int, QHash<QString, QVariant>> hashmagic;
+	util::SafeHash<int, QHash<QString, QVariant>> hashskill;
+	util::SafeHash<int, QHash<QString, QVariant>> hashpet;
+	util::SafeHash<int, QHash<int, QHash<QString, QVariant>>> hashpetskill;
+	util::SafeHash<int, QHash<QString, QVariant>> hashparty;
+	util::SafeHash<int, QHash<QString, QVariant>> hashitem;
+	util::SafeHash<int, QHash<QString, QVariant>> hashequip;
+	util::SafeHash<int, QHash<int, QHash<QString, QVariant>>> hashpetequip;
 	util::SafeHash<QString, QVariant> hashmap;
 	util::SafeHash<int, QVariant> hashchat;
 	util::SafeHash<int, QVariant> hashdialog;
-	util::SafeHash<int, util::SafeHash<QString, QVariant>> hashbattle;
+	util::SafeHash<int, QHash<QString, QVariant>> hashbattle;
 	util::SafeData<QString> hashbattlefield;
 
 	QSharedPointer<MapAnalyzer> mapAnalyzer;
@@ -2704,6 +2759,12 @@ public:
 
 	PET pet[MAX_PET] = {};
 
+#ifdef MAX_AIRPLANENUM
+	PARTY party[MAX_AIRPLANENUM];
+#else
+	PARTY party[MAX_PARTY] = {};
+#endif
+
 #ifdef _CHAR_PROFESSION			// WON ADD 人物職業
 	PROFESSION_SKILL profession_skill[MAX_PROFESSION_SKILL];
 #endif
@@ -2715,7 +2776,7 @@ public:
 	util::SafeHash<QPoint, mapunit_t> npcUnitPointHash;
 	util::SafeQueue<QPair<int, QString>> chatQueue;
 
-	QPair<int, util::SafeVector<bankpet_t>> currentBankPetList;
+	QPair<int, QVector<bankpet_t>> currentBankPetList;
 	util::SafeVector<ITEM> currentBankItemList;
 
 	util::AfkRecorder recorder[1 + MAX_PET] = {};
@@ -2734,9 +2795,6 @@ public:
 private:
 	QFutureSynchronizer <void> sync_;
 
-	std::atomic_bool isRequestInterrupted = false;
-	mutable QReadWriteLock interruptLock_;
-
 	unsigned short port_ = 0;
 
 	QSharedPointer<QTcpServer> server_;
@@ -2744,4 +2802,6 @@ private:
 	QList<QTcpSocket*> clientSockets_;
 
 	QByteArray net_readbuf;
+
+	QMutex net_mutex;
 };

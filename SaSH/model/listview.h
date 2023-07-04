@@ -12,12 +12,11 @@ class StringListModel : public QAbstractListModel
 public:
 	StringListModel(QObject* parent = nullptr);
 
-	~StringListModel() = default;
-
-	void append(const QString& str, int color = 0);
-	//void append(const QStringList& str);
+	virtual~StringListModel() = default;
 
 	int size() const { QReadLocker locker(&m_stringlistLocker); return m_list.size(); }
+
+	void append(const QString& str, int color = 0);
 
 	QString takeFirst();
 
@@ -25,16 +24,11 @@ public:
 
 	void clear();
 
-	//void setStringList(const QStringList& list);
-
-	//QStringList getStringList() const { QReadLocker locker(&m_stringlistLocker); return m_list.toList(); }
-
-
 	void swapRowUp(int source);
+
 	void swapRowDown(int source);
+
 protected:
-	//bool canFetchMore(const QModelIndex& parent) const override;
-	//void fetchMore(const QModelIndex& parent) override;
 	int rowCount(const QModelIndex& parent = QModelIndex()) const override { return parent.isValid() ? 0 : m_list.size(); }
 
 signals:
@@ -46,6 +40,14 @@ private:
 	QVector<int> m_colorlist;
 	//int listCount = 0;
 	mutable QReadWriteLock m_stringlistLocker;
+
+	QVector<QString> getList() const { QReadLocker locker(&m_stringlistLocker); return m_list; }
+	void setList(const QVector<QString>& list) { QWriteLocker locker(&m_stringlistLocker); m_list = list; }
+	QVector<int> getColorList() const { QReadLocker locker(&m_stringlistLocker); return m_colorlist; }
+	void setColorList(const QVector<int>& list) { QWriteLocker locker(&m_stringlistLocker); m_colorlist = list; }
+
+	void getAllList(QVector<QString>& list, QVector<int>& colorlist) const { QReadLocker locker(&m_stringlistLocker); list = m_list; colorlist = m_colorlist; }
+	void setAllList(const QVector<QString>& list, const QVector<int>& colorlist) { QWriteLocker locker(&m_stringlistLocker); m_list = list; m_colorlist = colorlist; }
 
 	QModelIndex sibling(int row, int column, const QModelIndex& idx) const override { Q_UNUSED(idx); return createIndex(row, column); }
 
@@ -83,6 +85,13 @@ public:
 	void dataChanged(const QModelIndex& topLeft, const QModelIndex& bottomRight, const QVector<int>& roles = QVector<int>()) override;
 
 	void setModel(StringListModel* model);
+
+private slots:
+	void append(const QString& str, int color = 0);
+	void remove(const QString& str);
+	void clear();
+	void swapRowUp(int source);
+	void swapRowDown(int source);
 
 protected:
 	void wheelEvent(QWheelEvent* event) override;

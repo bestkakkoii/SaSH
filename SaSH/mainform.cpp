@@ -178,6 +178,15 @@ enum InterfaceMessage
 	kCloseGame,			// kInterfaceMessage + 6
 	kGetGameState,		// kInterfaceMessage + 7
 	kScriptState,		// kInterfaceMessage + 8
+	kOpenWindow,			// kInterfaceMessage + 9
+};
+
+enum InterfaceWindowType
+{
+	WindowNone = 0,		//無
+	WindowInfo,			//信息窗口
+	WindowMap,			//地圖窗口
+	WindowScript,		//腳本窗口
 };
 
 //接收原生的窗口消息
@@ -213,7 +222,6 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, long* res
 		QSharedPointer<Interpreter> interpreter(new Interpreter());
 		if (interpreter.isNull())
 			return true;
-		interpreter->setSubScript(true);
 
 		int id = msg->wParam;
 		interpreter_hash_.insert(id, interpreter);
@@ -335,6 +343,67 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, long* res
 		*result = value;
 		return true;
 	}
+	case InterfaceMessage::kOpenWindow:
+	{
+		int type = msg->wParam;
+		int arg = msg->lParam;
+
+		switch (type)
+		{
+		case WindowInfo:
+		{
+			*result = 0;
+			if (pInfoForm_ == nullptr)
+			{
+				pInfoForm_ = new InfoForm(arg);
+				if (pInfoForm_)
+				{
+					connect(pInfoForm_, &InfoForm::destroyed, [this]() { pInfoForm_ = nullptr; });
+					pInfoForm_->setAttribute(Qt::WA_DeleteOnClose);
+					pInfoForm_->show();
+					*result = static_cast<long>(pInfoForm_->winId());
+				}
+			}
+			return true;
+		}
+		case WindowMap:
+		{
+			*result = 0;
+			if (mapWidget_ == nullptr)
+			{
+				mapWidget_ = new MapWidget(nullptr);
+				if (mapWidget_)
+				{
+					connect(mapWidget_, &InfoForm::destroyed, [this]() { mapWidget_ = nullptr; });
+					mapWidget_->setAttribute(Qt::WA_DeleteOnClose);
+					mapWidget_->show();
+					*result = static_cast<long>(mapWidget_->winId());
+				}
+			}
+			return true;
+		}
+		case WindowScript:
+		{
+			*result = 0;
+			if (pScriptSettingForm_ == nullptr)
+			{
+				pScriptSettingForm_ = new ScriptSettingForm;
+				if (pScriptSettingForm_)
+				{
+					connect(pScriptSettingForm_, &InfoForm::destroyed, [this]() { pScriptSettingForm_ = nullptr; });
+					pScriptSettingForm_->setAttribute(Qt::WA_DeleteOnClose);
+					pScriptSettingForm_->show();
+					*result = static_cast<long>(pScriptSettingForm_->winId());
+				}
+			}
+			return true;
+		}
+		default:
+			break;
+		}
+
+		break;
+	}
 	default:
 	{
 		break;
@@ -365,12 +434,15 @@ MainForm::MainForm(QWidget* parent)
 	qRegisterMetaType<QVariant>("QVariant&");
 
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
+	signalDispatcher.setParent(this);
 
 	connect(&signalDispatcher, &SignalDispatcher::saveHashSettings, this, &MainForm::onSaveHashSettings, Qt::UniqueConnection);
 	connect(&signalDispatcher, &SignalDispatcher::loadHashSettings, this, &MainForm::onLoadHashSettings, Qt::UniqueConnection);
 	connect(&signalDispatcher, &SignalDispatcher::messageBoxShow, this, &MainForm::onMessageBoxShow, Qt::BlockingQueuedConnection);
 	connect(&signalDispatcher, &SignalDispatcher::inputBoxShow, this, &MainForm::onInputBoxShow, Qt::BlockingQueuedConnection);
 	connect(&signalDispatcher, &SignalDispatcher::updateMainFormTitle, this, &MainForm::onUpdateMainFormTitle, Qt::UniqueConnection);
+	connect(&signalDispatcher, &SignalDispatcher::appendScriptLog, this, &MainForm::onAppendScriptLog, Qt::UniqueConnection);
+	connect(&signalDispatcher, &SignalDispatcher::appendChatLog, this, &MainForm::onAppendChatLog, Qt::UniqueConnection);
 
 	QMenuBar* pMenuBar = new QMenuBar(this);
 	if (pMenuBar)
@@ -780,24 +852,22 @@ void MainForm::onUpdateStatusLabelTextChanged(int status)
 		{ util::kLabelStatusDisconnected, tr("disconnected")},
 		{ util::kLabelStatusConnecting, tr("connecting")},
 	};
-	ui.label_status->setText(tr("status:") + hash.value(static_cast<util::UserStatus>(status), tr("unknown")));
+	ui.label_status->setText(hash.value(static_cast<util::UserStatus>(status), tr("unknown")));
 }
 
 void MainForm::onUpdateMapLabelTextChanged(const QString& text)
 {
-	ui.label_map->setText(tr("map:") + text);
+	ui.label_map->setText(text);
 }
 
 void MainForm::onUpdateCursorLabelTextChanged(const QString& text)
 {
-	ui.label_cursor->setText(tr("cursor:") + text);
+	ui.label_cursor->setText(text);
 }
 
 void MainForm::onUpdateCoordsPosLabelTextChanged(const QString& text)
 {
-	QString str = tr("coordis:");
-	str += text;
-	ui.label_coords->setText(str);
+	ui.label_coords->setText(text);
 }
 
 void MainForm::onUpdateMainFormTitle(const QString& text)
@@ -1038,5 +1108,25 @@ void MainForm::onInputBoxShow(const QString& text, int type, QVariant* retvalue)
 	case QInputDialog::TextInput:
 		*retvalue = inputDialog.textValue();
 		break;
+	}
+}
+
+void MainForm::onAppendScriptLog(const QString& text, int color)
+{
+	Injector& injector = Injector::getInstance();
+	if (!injector.scriptLogModel.isNull())
+	{
+		injector.scriptLogModel->append(text, color);
+		emit injector.scriptLogModel->dataAppended();
+	}
+}
+
+void MainForm::onAppendChatLog(const QString& text, int color)
+{
+	Injector& injector = Injector::getInstance();
+	if (!injector.chatLogModel.isNull())
+	{
+		injector.chatLogModel->append(text, color);
+		emit injector.chatLogModel->dataAppended();
 	}
 }

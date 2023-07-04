@@ -16,7 +16,7 @@ bool ThreadManager::createThread(QObject* parent)
 
 	do
 	{
-		object_ = new MainObject();
+		object_ = new MainObject(nullptr);
 		if (!object_)
 			break;
 
@@ -47,7 +47,7 @@ bool ThreadManager::createThread(QObject* parent)
 }
 
 MainObject::MainObject(QObject* parent)
-	: QObject(parent)
+	: ThreadPlugin(parent)
 {
 	pointerWriterSync_.setCancelOnWait(true);
 }
@@ -59,6 +59,7 @@ MainObject::~MainObject()
 
 void MainObject::run()
 {
+
 	Injector& injector = Injector::getInstance();
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
 
@@ -192,7 +193,7 @@ void MainObject::mainProc()
 	for (;;)
 	{
 #ifdef _DEBUG
-		QThread::msleep(10);
+		QThread::msleep(100);
 #else
 		QThread::msleep(100);
 #endif
@@ -392,7 +393,6 @@ int MainObject::checkAndRunFunctions()
 
 		emit signalDispatcher.updateNpcList(injector.server->nowFloor);
 		emit signalDispatcher.applyHashSettingsToUI();
-
 		return 1;
 	}
 
@@ -545,6 +545,13 @@ void MainObject::battleTimeThread()
 		if (!injector.server->getBattleFlag())
 			break;
 
+		if (injector.server->battleDurationTimer.hasExpired(60ll * 1000ll * 5ll))
+		{
+			injector.server->setBattleEnd();
+			injector.server->announce(tr("<error>battle time out"));
+			break;
+		}
+
 		//刷新要顯示的戰鬥時間和相關數據
 		double time = injector.server->battleDurationTimer.elapsed() / 1000.0;
 		QString battle_time_text = QString(tr("%1 count    no %2 round    duration: %3 sec    total time: %4 minues"))
@@ -556,7 +563,7 @@ void MainObject::battleTimeThread()
 		if (battle_time_text.isEmpty() || injector.server->timeLabelContents != battle_time_text)
 		{
 			injector.server->timeLabelContents = battle_time_text;
-			emit signalDispatcher.updateTimeLabelContents(battle_time_text);
+			emit signalDispatcher.updateTimeLabelContents(std::move(battle_time_text));
 		}
 		QThread::msleep(50);
 	}
@@ -866,7 +873,7 @@ void MainObject::checkAutoWalk()
 		//重置停止標誌
 		autowalk_future_cancel_flag_.store(false, std::memory_order_release);
 		//紀錄當前人物座標
-		QPoint current_pos = injector.server->nowPoint;
+		QPoint current_pos = injector.server->getPoint();
 
 		autowalk_future_ = QtConcurrent::run([&injector, current_pos, this]()
 			{
@@ -1051,16 +1058,35 @@ void MainObject::checkAutoJoin()
 
 				PC ch = injector.server->pc;
 
-				if ((ch.status & CHR_STATUS_LEADER) || (ch.status & CHR_STATUS_PARTY))
-				{
-					return;
-				}
-
 				if (injector.getEnableHash(util::kAutoWalkEnable) || injector.getEnableHash(util::kFastAutoWalkEnable))
 					return;
 
 				if (!injector.getEnableHash(util::kAutoJoinEnable))
 					return;
+
+				QString leader = injector.getStringHash(util::kAutoFunNameString);
+
+				if (leader.isEmpty())
+					return;
+
+				int actionType = injector.getValueHash(util::kAutoFunTypeValue);
+				if (actionType == 0)
+				{
+					if ((ch.status & CHR_STATUS_LEADER) || (ch.status & CHR_STATUS_PARTY))
+					{
+						QThread::msleep(1000);
+						bool ok = false;
+
+						QString name = injector.server->party[0].name;
+						if (!name.isEmpty() && leader.contains(name))
+						{
+							return;
+						}
+
+						injector.server->setTeamState(false);
+						QThread::msleep(100);
+					}
+				}
 
 				constexpr int MAX_SINGLE_STEP = 3;
 				map_t map;
@@ -1073,7 +1099,6 @@ void MainObject::checkAutoJoin()
 				int len = MAX_SINGLE_STEP;
 				int size = 0;
 
-				QString leader = "\0";
 				for (;;)
 				{
 					//如果主線程關閉則自動退出
@@ -1128,7 +1153,7 @@ void MainObject::checkAutoJoin()
 						return;
 
 					//如果和目標人物處於同一個坐標則向隨機方向移動一格
-					current_point = injector.server->nowPoint;
+					current_point = injector.server->getPoint();
 					if (current_point == unit.p)
 					{
 						injector.server->move(current_point + util::fix_point.at(QRandomGenerator::global()->bounded(0, 7)));
@@ -1180,13 +1205,14 @@ void MainObject::checkAutoJoin()
 
 				if (!leader.isEmpty())
 				{
-					int actionType = injector.getValueHash(util::kAutoFunTypeValue);
+					actionType = injector.getValueHash(util::kAutoFunTypeValue);
 					///_SYS_CloseDialog();
 					//_CHAR_ClearTeamJoinableList();
 					if (actionType == 0)
 					{
 						injector.server->setPlayerFaceDirection(dir);
 						injector.server->setTeamState(true);
+						return;
 					}
 					/*QThread::msleep(1000UL);
 					_CHAR_RefreshData();
@@ -1851,7 +1877,7 @@ void MainObject::checkRecordableNpcInfo()
 				util::Config config(util::getPointFileName());
 				util::MapData d;
 				int nowFloor = injector.server->nowFloor;
-				QPoint nowPoint = injector.server->nowPoint;
+				QPoint nowPoint = injector.server->getPoint();
 				d.floor = nowFloor;
 				d.name = unit.name;
 

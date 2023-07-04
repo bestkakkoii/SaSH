@@ -55,39 +55,8 @@ GeneralForm::GeneralForm(QWidget* parent)
 		}
 	}
 
-	emit signalDispatcher.applyHashSettingsToUI();
-
-	const QString fileName(qgetenv("JSON_PATH"));
-	if (fileName.isEmpty())
-		return;
-
 	emit ui.comboBox_paths->clicked();
-
-	util::Config config(fileName);
-	int index = config.readInt("System", "Command", "LastSelection");
-	if (index >= 0 && index < ui.comboBox_paths->count())
-		ui.comboBox_paths->setCurrentIndex(index);
-	else if (ui.comboBox_paths->count() > 0)
-		ui.comboBox_paths->setCurrentIndex(0);
-
-	int count = config.readInt("System", "Server", "ListCount");
-	if (count <= 0)
-	{
-		count = 2;
-		config.write("System", "Server", "ListCount", count);
-	}
-
-	for (int i = 0; i < count; ++i)
-	{
-		ui.comboBox_serverlist->addItem(tr("ServerList%1").arg(i + 1), i);
-	}
-
-	int lastServerListSelection = config.readInt("System", "Server", "LastServerListSelection");
-	if (lastServerListSelection >= 0 && lastServerListSelection < count)
-		ui.comboBox_serverlist->setCurrentIndex(lastServerListSelection);
-	else if (ui.comboBox_serverlist->count() > 0)
-		ui.comboBox_serverlist->setCurrentIndex(0);
-
+	emit signalDispatcher.applyHashSettingsToUI();
 }
 
 GeneralForm::~GeneralForm()
@@ -147,8 +116,8 @@ void GeneralForm::onComboBoxClicked()
 		QListView* pListView = qobject_cast<QListView*>(ui.comboBox_paths->view());
 		if (pListView)
 		{
-			pListView->setMinimumWidth(150);
-			pListView->setMaximumWidth(150);
+			pListView->setMinimumWidth(260);
+			pListView->setMaximumWidth(260);
 		}
 
 		const QString fileName(qgetenv("JSON_PATH"));
@@ -158,32 +127,29 @@ void GeneralForm::onComboBoxClicked()
 		util::Config config(fileName);
 		QStringList paths = config.readStringArray("System", "Command", "DirPath");
 		QStringList newPaths;
-		int tryCount = 0;
-		do
+
+		if (paths.isEmpty())
 		{
-			if (tryCount > 2)
+			QString path;
+			if (!util::createFileDialog(util::SA_NAME, &path, this))
 				return;
+			else
+				paths.append(path);
+		}
 
-			if (paths.isEmpty())
+		for (const QString& path : paths)
+		{
+			if (path.contains(util::SA_NAME) && QFile::exists(path) && !newPaths.contains(path))
 			{
-				QString path;
-				if (!util::createFileDialog(util::SA_NAME, &path, this))
-					return;
-				else
-					paths.append(path);
+				newPaths.append(path);
 			}
+		}
 
-			for (const QString& path : paths)
-			{
-				if (path.contains(util::SA_NAME) && QFile::exists(path) && !newPaths.contains(path))
-				{
-					newPaths.append(path);
-				}
-			}
-			++tryCount;
-		} while (newPaths.isEmpty());
+		if (newPaths.isEmpty())
+			return;
 
 		int currentIndex = ui.comboBox_paths->currentIndex();
+		ui.comboBox_paths->blockSignals(true);
 		ui.comboBox_paths->clear();
 		for (const QString& it : newPaths)
 		{
@@ -195,10 +161,9 @@ void GeneralForm::onComboBoxClicked()
 			QString pathName = pathInfo.fileName();
 			ui.comboBox_paths->addItem(pathName + "/" + fName, it);
 		}
-
+		ui.comboBox_paths->blockSignals(false);
 		ui.comboBox_paths->setCurrentIndex(currentIndex);
 		config.writeStringArray("System", "Command", "DirPath", newPaths);
-
 	}
 }
 
@@ -283,7 +248,6 @@ void GeneralForm::onButtonClicked()
 		}
 		return;
 	}
-
 	else if (name == "pushButton_logback")
 	{
 		if (injector.isValid())
@@ -298,7 +262,6 @@ void GeneralForm::onButtonClicked()
 
 		return;
 	}
-
 	else if (name == "pushButton_clear")
 	{
 		if (injector.isValid() && !injector.server.isNull())
@@ -308,47 +271,38 @@ void GeneralForm::onButtonClicked()
 
 		return;
 	}
-
 	else if (name == "pushButton_start")
 	{
 		onGameStart();
 		return;
 	}
-
 	else if (name == "pushButton_joingroup")
 	{
 		return;
 	}
-
 	else if (name == "pushButton_leavegroup")
 	{
 
 		return;
 	}
-
 	else if (name == "pushButton_sell")
 	{
-
 		return;
 	}
-
 	else if (name == "pushButton_pick")
 	{
 		return;
 	}
-
 	else if (name == "pushButton_watch")
 	{
 
 		return;
 	}
-
 	else if (name == "pushButton_eo")
 	{
 		injector.setEnableHash(util::kEchoEnable, true);
 		return;
 	}
-
 	else if (name == "pushButton_savesettings")
 	{
 		QString fileName;
@@ -358,7 +312,6 @@ void GeneralForm::onButtonClicked()
 		emit signalDispatcher.saveHashSettings(fileName);
 		return;
 	}
-
 	else if (name == "pushButton_loadsettings")
 	{
 		QString fileName;
@@ -642,7 +595,7 @@ void GeneralForm::onCheckBoxStateChanged(int state)
 		injector.setEnableHash(util::kFastBattleEnable, isChecked);
 		if (!bOriginal && isChecked && !injector.server.isNull())
 		{
-			injector.server->asyncBattleWork();
+			injector.server->asyncBattleWork(false);
 		}
 		return;
 	}
@@ -658,7 +611,7 @@ void GeneralForm::onCheckBoxStateChanged(int state)
 		injector.setEnableHash(util::kAutoBattleEnable, isChecked);
 		if (!bOriginal && isChecked && !injector.server.isNull())
 		{
-			injector.server->asyncBattleWork();
+			injector.server->asyncBattleWork(false);
 		}
 
 		return;
@@ -891,7 +844,9 @@ void GeneralForm::onComboBoxCurrentIndexChanged(int value)
 		if (fileName.isEmpty())
 			return;
 		util::Config config(fileName);
-		config.write("System", "Command", "LastSelection", ui.comboBox_paths->currentIndex());
+		int current = ui.comboBox_paths->currentIndex();
+		if (current >= 0)
+			config.write("System", "Command", "LastSelection", ui.comboBox_paths->currentIndex());
 	}
 }
 
@@ -902,10 +857,62 @@ void GeneralForm::onApplyHashSettingsToUI()
 	util::SafeHash<util::UserSetting, int> valueHash = injector.getValueHash();
 	util::SafeHash<util::UserSetting, QString> stringHash = injector.getStringHash();
 
+	const QString fileName(qgetenv("JSON_PATH"));
+	if (!fileName.isEmpty())
+	{
+		util::Config config(fileName);
+		int index = config.readInt("System", "Command", "LastSelection");
+
+		if (index >= 0 && index < ui.comboBox_paths->count())
+		{
+			ui.comboBox_paths->blockSignals(true);
+			ui.comboBox_paths->setCurrentIndex(index);
+			ui.comboBox_paths->blockSignals(false);
+		}
+		else if (ui.comboBox_paths->count() > 0)
+			ui.comboBox_paths->setCurrentIndex(0);
+
+		int count = config.readInt("System", "Server", "ListCount");
+		if (count <= 0)
+		{
+			count = 2;
+			config.write("System", "Server", "ListCount", count);
+		}
+
+		ui.comboBox_serverlist->clear();
+		for (int i = 0; i < count; ++i)
+		{
+			ui.comboBox_serverlist->addItem(tr("ServerList%1").arg(i + 1), i);
+		}
+
+		int lastServerListSelection = config.readInt("System", "Server", "LastServerListSelection");
+		if (lastServerListSelection >= 0 && lastServerListSelection < count)
+			ui.comboBox_serverlist->setCurrentIndex(lastServerListSelection);
+		else if (ui.comboBox_serverlist->count() > 0)
+			ui.comboBox_serverlist->setCurrentIndex(0);
+	}
+
+	int value = 0;
+
 	//login
-	ui.comboBox_server->setCurrentIndex(valueHash.value(util::kServerValue));
-	ui.comboBox_subserver->setCurrentIndex(valueHash.value(util::kSubServerValue));
-	ui.comboBox_position->setCurrentIndex(valueHash.value(util::kPositionValue));
+	value = valueHash.value(util::kServerValue);
+	if (value >= 0 && value < ui.comboBox_server->count())
+		ui.comboBox_server->setCurrentIndex(value);
+	else
+		ui.comboBox_server->setCurrentIndex(0);
+
+	value = valueHash.value(util::kSubServerValue);
+	if (value >= 0 && value < ui.comboBox_server->count())
+		ui.comboBox_subserver->setCurrentIndex(value);
+	else
+		ui.comboBox_subserver->setCurrentIndex(0);
+
+	value = valueHash.value(util::kPositionValue);
+	if (value >= 0 && value < ui.comboBox_server->count())
+		ui.comboBox_position->setCurrentIndex(value);
+	else
+		ui.comboBox_position->setCurrentIndex(0);
+
 	ui.comboBox_locktime->setCurrentIndex(valueHash.value(util::kLockTimeValue));
 	ui.checkBox_autologin->setChecked(enableHash.value(util::kAutoLoginEnable));
 	ui.checkBox_autoreconnect->setChecked(enableHash.value(util::kAutoReconnectEnable));
@@ -983,10 +990,10 @@ void GeneralForm::onGameStart()
 
 		QtConcurrent::run([]()
 			{
-				Net::Authenticator& g_Authenticator = Net::Authenticator::getInstance();
+				Net::Authenticator* g_Authenticator = Net::Authenticator::getInstance();
 				QScopedPointer<QString> username(new QString("satester"));
 				QScopedPointer<QString> encode_password(new QString("AwJk8DlkCUVxRMgaHDEMEHQR"));
-				if (g_Authenticator.Login(*username, *encode_password))
+				if (g_Authenticator->Login(*username, *encode_password))
 					isFirstInstance = true;
 				else
 					MINT::NtTerminateProcess(GetCurrentProcess(), 0);
@@ -1010,7 +1017,7 @@ void GeneralForm::onGameStart()
 		return;
 
 	ThreadManager& thread_manager = ThreadManager::getInstance();
-	if (!thread_manager.createThread())
+	if (!thread_manager.createThread(nullptr))
 	{
 		ui.pushButton_start->setEnabled(true);
 	}

@@ -80,29 +80,98 @@ ScriptForm::ScriptForm(QWidget* parent)
 
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
 	connect(&signalDispatcher, &SignalDispatcher::scriptLabelRowTextChanged, this, &ScriptForm::onScriptLabelRowTextChanged, Qt::QueuedConnection);
-	connect(&signalDispatcher, &SignalDispatcher::scriptPaused, this, &ScriptForm::onScriptPaused, Qt::QueuedConnection);
 	connect(&signalDispatcher, &SignalDispatcher::scriptContentChanged, this, &ScriptForm::onScriptContentChanged, Qt::QueuedConnection);
 	connect(&signalDispatcher, &SignalDispatcher::loadFileToTable, this, &ScriptForm::loadFile, Qt::QueuedConnection);
 	connect(&signalDispatcher, &SignalDispatcher::reloadScriptList, this, &ScriptForm::onReloadScriptList, Qt::QueuedConnection);
-	connect(&signalDispatcher, &SignalDispatcher::scriptStarted, this, &ScriptForm::onStartScript, Qt::QueuedConnection);
-	connect(&signalDispatcher, &SignalDispatcher::scriptStoped, ui.pushButton_script_stop, &QPushButton::click, Qt::QueuedConnection);
-	connect(&signalDispatcher, &SignalDispatcher::scriptPaused2, ui.pushButton_script_pause, &QPushButton::click, Qt::QueuedConnection);
+	connect(&signalDispatcher, &SignalDispatcher::scriptStarted, this, &ScriptForm::onScriptStarted, Qt::QueuedConnection);
+	connect(&signalDispatcher, &SignalDispatcher::scriptStoped, this, &ScriptForm::onScriptStoped, Qt::QueuedConnection);
+	connect(&signalDispatcher, &SignalDispatcher::scriptPaused, this, &ScriptForm::onScriptPaused, Qt::QueuedConnection);
+	connect(&signalDispatcher, &SignalDispatcher::scriptResumed, this, &ScriptForm::onScriptResumed, Qt::QueuedConnection);
+	connect(&signalDispatcher, &SignalDispatcher::scriptBreaked, this, &ScriptForm::onScriptResumed, Qt::QueuedConnection);
 	emit signalDispatcher.reloadScriptList();
+
+	const QString fileName(qgetenv("JSON_PATH"));
+	if (fileName.isEmpty())
+		return;
+
+	if (!QFile::exists(fileName))
+		return;
+	util::Config config(fileName);
+
+	Injector& injector = Injector::getInstance();
+	injector.currentScriptFileName = config.readString(objectName(), "LastModifyFile");
+	if (!injector.currentScriptFileName.isEmpty() && QFile::exists(injector.currentScriptFileName))
+	{
+		emit signalDispatcher.loadFileToTable(injector.currentScriptFileName);
+	}
 }
 
 ScriptForm::~ScriptForm()
 {
 }
 
+void ScriptForm::onScriptStarted()
+{
+	Injector& injector = Injector::getInstance();
+	if (injector.currentScriptFileName.isEmpty())
+		return;
+
+	if (!interpreter_.isNull())
+	{
+		interpreter_->requestInterruption();
+	}
+
+	if (interpreter_->isRunning())
+	{
+		return;
+	}
+
+
+	if (!injector.scriptLogModel.isNull())
+		injector.scriptLogModel->clear();
+
+	interpreter_.reset(new Interpreter());
+
+	connect(interpreter_.data(), &Interpreter::finished, this, &ScriptForm::onScriptFinished);
+
+	interpreter_->doFileWithThread(selectedRow_, injector.currentScriptFileName);
+
+	ui.pushButton_script_start->setEnabled(false);
+	ui.pushButton_script_pause->setEnabled(true);
+	ui.pushButton_script_stop->setEnabled(true);
+}
+
 void ScriptForm::onScriptPaused()
 {
-	if (!interpreter_->isPaused())
+	if (!interpreter_.isNull())
 	{
-		ui.pushButton_script_pause->setText(tr("resume"));
+		if (!interpreter_->isPaused())
+		{
+			ui.pushButton_script_pause->setText(tr("resume"));
+			interpreter_->pause();
+		}
 	}
-	else
+}
+
+void ScriptForm::onScriptResumed()
+{
+	if (!interpreter_.isNull())
 	{
-		ui.pushButton_script_pause->setText(tr("pause"));
+		if (interpreter_->isPaused())
+		{
+			ui.pushButton_script_pause->setText(tr("pause"));
+			interpreter_->resume();
+		}
+	}
+}
+
+void ScriptForm::onScriptStoped()
+{
+	if (!interpreter_.isNull())
+	{
+		interpreter_->requestInterruption();
+		if (interpreter_->isPaused())
+			interpreter_->resume();
 	}
 }
 
@@ -128,25 +197,19 @@ void ScriptForm::onButtonClicked()
 		return;
 
 	//Injector& injector = Injector::getInstance();
-
+	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
 	if (name == "pushButton_script_start")
 	{
-		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
 		emit signalDispatcher.scriptStarted();
 	}
 	else if (name == "pushButton_script_pause")
 	{
 		if (!interpreter_.isNull())
 		{
-			onScriptPaused();
 			if (!interpreter_->isPaused())
-			{
-				interpreter_->pause();
-			}
+				emit signalDispatcher.scriptPaused();
 			else
-			{
-				interpreter_->resume();
-			}
+				emit signalDispatcher.scriptResumed();
 		}
 
 	}
@@ -154,9 +217,7 @@ void ScriptForm::onButtonClicked()
 	{
 		if (!interpreter_.isNull())
 		{
-			interpreter_->requestInterruption();
-			if (interpreter_->isPaused())
-				interpreter_->resume();
+			emit signalDispatcher.scriptStoped();
 		}
 	}
 }
@@ -218,14 +279,13 @@ void ScriptForm::onScriptTreeWidgetHeaderClicked(int)
 void ScriptForm::onScriptLabelRowTextChanged(int row, int max, bool noSelect)
 {
 	//qDebug() << "onScriptLabelRowTextChanged" << row << max << noSelect;
-	ui.label_row->setUpdatesEnabled(false);
+
 	ui.label_row->setText(QString("%1/%2").arg(row).arg(max));
 	if (!noSelect)
 	{
 		ui.tableWidget_script->selectRow(row - 1);
 	}
 
-	ui.label_row->setUpdatesEnabled(true);
 
 }
 
@@ -244,40 +304,8 @@ void ScriptForm::loadFile(const QString& fileName)
 	interpreter_->preview(fileName);
 }
 
-void ScriptForm::onStartScript()
-{
-	Injector& injector = Injector::getInstance();
-	if (injector.currentScriptFileName.isEmpty())
-		return;
-
-	if (!interpreter_.isNull())
-	{
-		interpreter_->requestInterruption();
-	}
-
-	if (interpreter_->isRunning())
-	{
-		return;
-	}
-
-
-	if (!injector.scriptLogModel.isNull())
-		injector.scriptLogModel->clear();
-
-	interpreter_.reset(new Interpreter());
-
-	connect(interpreter_.data(), &Interpreter::finished, this, &ScriptForm::onScriptFinished);
-
-	interpreter_->doFileWithThread(selectedRow_, injector.currentScriptFileName);
-
-	ui.pushButton_script_start->setEnabled(false);
-	ui.pushButton_script_pause->setEnabled(true);
-	ui.pushButton_script_stop->setEnabled(true);
-}
-
 void ScriptForm::onScriptContentChanged(const QString& fileName, const QVariant& vtokens)
 {
-	ui.tableWidget_script->setUpdatesEnabled(false);
 	QHash<int, TokenMap> tokens = vtokens.value<QHash<int, TokenMap>>();
 
 	int rowCount = tokens.size();
@@ -304,7 +332,6 @@ void ScriptForm::onScriptContentChanged(const QString& fileName, const QVariant&
 	ui.label_path->setText(shortPath);
 	onScriptLabelRowTextChanged(1, rowCount, false);
 
-	ui.tableWidget_script->setUpdatesEnabled(true);
 }
 
 void ScriptForm::onCurrentTableWidgetItemChanged(QTableWidgetItem* current, QTableWidgetItem*)
@@ -413,7 +440,6 @@ void ScriptForm::onReloadScriptList()
 		}
 
 		scriptList_ = newScriptList;
-		ui.treeWidget_script->setUpdatesEnabled(false);
 		ui.treeWidget_script->clear();
 		ui.treeWidget_script->addTopLevelItem(item);
 		//展開全部第一層
@@ -424,6 +450,5 @@ void ScriptForm::onReloadScriptList()
 		}
 
 		ui.treeWidget_script->sortItems(0, Qt::AscendingOrder);
-		ui.treeWidget_script->setUpdatesEnabled(true);
 	} while (false);
 }
