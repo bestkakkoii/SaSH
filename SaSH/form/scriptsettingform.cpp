@@ -8,10 +8,10 @@
 #include "crypto.h"
 #include <QSpinBox>
 
-extern util::SafeHash<QString, util::SafeHash<int, break_marker_t>> break_markers;//用於標記自訂義中斷點(紅點)
-extern util::SafeHash<QString, util::SafeHash<int, break_marker_t>> forward_markers;//用於標示當前執行中斷處(黃箭頭)
-extern util::SafeHash<QString, util::SafeHash<int, break_marker_t>> error_markers;//用於標示錯誤發生行(紅線)
-extern util::SafeHash<QString, util::SafeHash<int, break_marker_t>> step_markers;//隱式標記中斷點用於單步執行(無)
+extern util::SafeHash<QString, util::SafeHash<qint64, break_marker_t>> break_markers;//用於標記自訂義中斷點(紅點)
+extern util::SafeHash<QString, util::SafeHash<qint64, break_marker_t>> forward_markers;//用於標示當前執行中斷處(黃箭頭)
+extern util::SafeHash<QString, util::SafeHash<qint64, break_marker_t>> error_markers;//用於標示錯誤發生行(紅線)
+extern util::SafeHash<QString, util::SafeHash<qint64, break_marker_t>> step_markers;//隱式標記中斷點用於單步執行(無)
 
 ScriptSettingForm::ScriptSettingForm(QWidget* parent)
 	: QMainWindow(parent)
@@ -295,7 +295,7 @@ void ScriptSettingForm::onApplyHashSettingsToUI()
 	if (!injector.server.isNull() && injector.server->getOnlineFlag())
 	{
 		QString title = injector.currentScriptFileName;
-		QString newTitle = QString("[%1] %2").arg(injector.server->pc.name).arg(title);
+		QString newTitle = QString("[%1] %2").arg(injector.server->getPC().name).arg(title);
 		setWindowTitle(newTitle);
 	}
 
@@ -498,7 +498,7 @@ void ScriptSettingForm::onScriptPauseMode()
 	ui.mainToolBar->setUpdatesEnabled(true);
 }
 
-void ScriptSettingForm::setMark(CodeEditor::SymbolHandler element, util::SafeHash<QString, util::SafeHash<int, break_marker_t>>& hash, int liner, bool b)
+void ScriptSettingForm::setMark(CodeEditor::SymbolHandler element, util::SafeHash<QString, util::SafeHash<qint64, break_marker_t>>& hash, int liner, bool b)
 {
 	do
 	{
@@ -516,8 +516,8 @@ void ScriptSettingForm::setMark(CodeEditor::SymbolHandler element, util::SafeHas
 			bk.line = liner;
 			bk.content = ui.widget->text(liner);
 			bk.count = NULL;
-			bk.maker = static_cast<int>(element);
-			util::SafeHash<int, break_marker_t> markers = hash.value(injector.currentScriptFileName);
+			bk.maker = static_cast<qint64>(element);
+			util::SafeHash<qint64, break_marker_t> markers = hash.value(injector.currentScriptFileName);
 			markers.insert(liner, bk);
 			hash.insert(injector.currentScriptFileName, markers);
 
@@ -527,7 +527,7 @@ void ScriptSettingForm::setMark(CodeEditor::SymbolHandler element, util::SafeHas
 		else if (!b)
 		{
 			Injector& injector = Injector::getInstance();
-			util::SafeHash<int, break_marker_t> markers = hash.value(injector.currentScriptFileName);
+			util::SafeHash<qint64, break_marker_t> markers = hash.value(injector.currentScriptFileName);
 			if (markers.contains(liner))
 			{
 				markers.remove(liner);
@@ -568,14 +568,14 @@ void ScriptSettingForm::onAddStepMarker(int, bool b)
 void ScriptSettingForm::reshowBreakMarker()
 {
 	Injector& injector = Injector::getInstance();
-	const util::SafeHash<QString, util::SafeHash<int, break_marker_t>> mks = break_markers;
-	for (auto it = mks.begin(); it != mks.end(); ++it)
+	const util::SafeHash<QString, util::SafeHash<qint64, break_marker_t>> mks = break_markers;
+	for (auto it = mks.cbegin(); it != mks.cend(); ++it)
 	{
 		QString fileName = it.key();
 		if (fileName != injector.currentScriptFileName)
 			continue;
 
-		const util::SafeHash<int, break_marker_t> mk = mks.value(fileName);
+		const util::SafeHash<qint64, break_marker_t> mk = mks.value(fileName);
 		for (const break_marker_t& bit : mk)
 		{
 			ui.widget->markerAdd(bit.line, CodeEditor::SymbolHandler::SYM_POINT);
@@ -603,15 +603,15 @@ void ScriptSettingForm::onAddBreakMarker(int liner, bool b)
 			if (bk.content.simplified().isEmpty() || bk.content.simplified().indexOf("//") == 0)
 				return;
 			bk.count = NULL;
-			bk.maker = static_cast<int>(CodeEditor::SymbolHandler::SYM_POINT);
-			util::SafeHash<int, break_marker_t> markers = break_markers.value(injector.currentScriptFileName);
+			bk.maker = static_cast<qint64>(CodeEditor::SymbolHandler::SYM_POINT);
+			util::SafeHash<qint64, break_marker_t> markers = break_markers.value(injector.currentScriptFileName);
 			markers.insert(liner, bk);
 			break_markers.insert(injector.currentScriptFileName, markers);
 			ui.widget->markerAdd(liner, CodeEditor::SymbolHandler::SYM_POINT);
 		}
 		else if (!b)
 		{
-			util::SafeHash<int, break_marker_t> markers = break_markers.value(injector.currentScriptFileName);
+			util::SafeHash<qint64, break_marker_t> markers = break_markers.value(injector.currentScriptFileName);
 			if (markers.contains(liner))
 			{
 				markers.remove(liner);
@@ -631,11 +631,11 @@ void ScriptSettingForm::onBreakMarkInfoImport()
 	ui.treeWidget_breakList->clear();
 	ui.treeWidget_breakList->setColumnCount(4);
 	ui.treeWidget_breakList->setHeaderLabels(QStringList{ tr("CONTENT"),tr("COUNT"), tr("ROW"), tr("FILE") });
-	const util::SafeHash<QString, util::SafeHash<int, break_marker_t>> mks = break_markers;
-	for (auto it = mks.begin(); it != mks.end(); ++it)
+	const util::SafeHash<QString, util::SafeHash<qint64, break_marker_t>> mks = break_markers;
+	for (auto it = mks.cbegin(); it != mks.cend(); ++it)
 	{
 		QString fileName = it.key();
-		const util::SafeHash<int, break_marker_t> mk = mks.value(fileName);
+		const util::SafeHash<qint64, break_marker_t> mk = mks.value(fileName);
 		for (const break_marker_t& bit : mk)
 		{
 			QTreeWidgetItem* item = q_check_ptr(new QTreeWidgetItem({ bit.content, QString::number(bit.count), QString::number(bit.line + 1), fileName }));
@@ -694,7 +694,7 @@ void ScriptSettingForm::fileSave(const QString& d, DWORD flag)
 	//static const QRegularExpression rexLoadComma(R"(,[ \t\f\v]{0,})");
 	//static const QRegularExpression rexSetComma(R"(,)");
 	Injector& injector = Injector::getInstance();
-	if (injector.IS_SCRIPT_FLAG)
+	if (injector.IS_SCRIPT_FLAG.load(std::memory_order_acquire))
 		return;
 
 	const QString directoryName(QApplication::applicationDirPath() + "/script");
@@ -885,7 +885,7 @@ void ScriptSettingForm::loadFile(const QString& fileName)
 	ui.widget->setUpdatesEnabled(false);
 
 	if (!injector.server.isNull() && injector.server->getOnlineFlag())
-		setWindowTitle(QString("[%1] %2").arg(injector.server->pc.name).arg(injector.currentScriptFileName));
+		setWindowTitle(QString("[%1] %2").arg(injector.server->getPC().name).arg(injector.currentScriptFileName));
 	else
 		setWindowTitle(injector.currentScriptFileName);
 
@@ -934,7 +934,7 @@ void ScriptSettingForm::onScriptTreeWidgetDoubleClicked(QTreeWidgetItem* item, i
 	do
 	{
 		Injector& injector = Injector::getInstance();
-		if (injector.IS_SCRIPT_FLAG)
+		if (injector.IS_SCRIPT_FLAG.load(std::memory_order_acquire))
 			break;
 
 		/*得到文件路徑*/
@@ -996,7 +996,7 @@ void ScriptSettingForm::onActionTriggered()
 	else if (name == "actionStart")
 	{
 		//Injector& injector = Injector::getInstance();
-		if (step_markers.size() == 0 && !injector.IS_SCRIPT_FLAG && QFile::exists(injector.currentScriptFileName))
+		if (step_markers.size() == 0 && !injector.IS_SCRIPT_FLAG.load(std::memory_order_acquire) && QFile::exists(injector.currentScriptFileName))
 		{
 			emit signalDispatcher.scriptStarted();
 		}
@@ -1274,6 +1274,7 @@ void ScriptSettingForm::onScriptLabelRowTextChanged(int line, int, bool)
 	//ui.widget->setCursorPosition(line, ui.widget->SendScintilla(QsciScintilla::SCI_LINELENGTH, line) - 1);
 	//ui.widget->SendScintilla(QsciScintilla::SCI_SETSELECTIONMODE, QsciScintilla::SC_SEL_LINES);
 	QString text = ui.widget->text(line - 1);
+	ui.widget->setCursorPosition(line - 1, text.size());
 	ui.widget->setSelection(line - 1, 0, line - 1, text.size());
 	ui.widget->setCaretLineBackgroundColor(QColor(71, 71, 71));//光標所在行背景顏色
 	ui.widget->setUpdatesEnabled(true);
@@ -1336,7 +1337,7 @@ void ScriptSettingForm::stackInfoImport(QTreeWidget* tree, const QHash <int, QSt
 	{
 		QList<QTreeWidgetItem*> trees;
 		//int size = d.size();
-		for (auto it = d.begin(); it != d.end(); ++it)
+		for (auto it = d.cbegin(); it != d.cend(); ++it)
 		{
 			trees.append(q_check_ptr(new QTreeWidgetItem({ QString::number(it.key()), it.value() })));
 		}
@@ -1364,13 +1365,13 @@ void ScriptSettingForm::varInfoImport(QTreeWidget* tree, const QHash<QString, QV
 		QMap<QString, QVariant> map;
 		QList<QTreeWidgetItem*> trees;
 
-		for (auto it = d.begin(); it != d.end(); ++it)
+		for (auto it = d.cbegin(); it != d.cend(); ++it)
 		{
 			map.insert(it.key(), it.value());
 		}
 
 		QStringList l;
-		for (auto it = map.begin(); it != map.end(); ++it)
+		for (auto it = map.cbegin(); it != map.cend(); ++it)
 		{
 			QStringList l = it.key().split(util::rexOR);
 			if (l.size() != 2)
@@ -1379,61 +1380,61 @@ void ScriptSettingForm::varInfoImport(QTreeWidget* tree, const QHash<QString, QV
 			QString field = l.at(0) == "global" ? tr("GLOBAL") : tr("LOCAL");
 			QString varName = l.at(1);
 			QString varType;
-			QString varValue;
+			QString varValueStr;
 			QVariant var = it.value();
 			switch (var.type())
 			{
 			case QVariant::Int:
 			{
 				varType = tr("Int");
-				varValue = QString::number(var.toInt());
+				varValueStr = QString::number(var.toLongLong());
 				break;
 			}
 			case QVariant::UInt:
 			{
 				varType = tr("UInt");
-				varValue = QString::number(var.toUInt());
+				varValueStr = QString::number(var.toLongLong());
 				break;
 			}
 			case QVariant::Double:
 			{
 				varType = tr("Double");
-				varValue = QString::number(var.toDouble(), 'f', 8);
+				varValueStr = QString::number(var.toDouble(), 'f', 8);
 				break;
 			}
 			case QVariant::String:
 			{
 				varType = tr("String");
-				varValue = var.toString();
+				varValueStr = var.toString();
 				break;
 			}
 			case QVariant::Bool:
 			{
 				varType = tr("Bool");
-				varValue = var.toBool();
+				varValueStr = var.toBool();
 				break;
 			}
 			case QVariant::LongLong:
 			{
 				varType = tr("LongLong");
-				varValue = QString::number(var.toLongLong());
+				varValueStr = QString::number(var.toLongLong());
 				break;
 			}
 			case QVariant::ULongLong:
 			{
 				varType = tr("ULongLong");
-				varValue = QString::number(var.toULongLong());
+				varValueStr = QString::number(var.toULongLong());
 				break;
 			}
 			default:
 			{
 				varType = tr("unknown");
-				varValue = var.toString();
+				varValueStr = var.toString();
 				break;
 			}
 
 			}
-			trees.append(q_check_ptr(new QTreeWidgetItem({ field, varName, varValue, QString("(%1)").arg(varType) })));
+			trees.append(q_check_ptr(new QTreeWidgetItem({ field, varName, varValueStr, QString("(%1)").arg(varType) })));
 		}
 		tree->addTopLevelItems(trees);
 	}
@@ -1459,7 +1460,7 @@ void ScriptSettingForm::onVarInfoImport(const QHash<QString, QVariant>& d)
 
 	QString key;
 	QStringList l;
-	for (auto it = d.begin(); it != d.end(); ++it)
+	for (auto it = d.cbegin(); it != d.cend(); ++it)
 	{
 		l = it.key().split(util::rexOR);
 		if (l.size() != 2)
@@ -1533,6 +1534,11 @@ void searchFiles(const QString& dir, const QString& fileNamePart, const QString&
 	}
 }
 
+void ScriptSettingForm::on_treeWidget_functionList_itemClicked(QTreeWidgetItem* item, int column)
+{
+	emit ui.treeWidget_functionList->itemSelectionChanged();
+}
+
 void ScriptSettingForm::on_treeWidget_functionList_itemSelectionChanged()
 {
 	do
@@ -1554,7 +1560,7 @@ void ScriptSettingForm::on_treeWidget_functionList_itemSelectionChanged()
 			break;
 		}
 #ifdef _DEBUG
-		QString mdFullPath = R"(D:\Users\bestkakkoii\Desktop\SaSH\lib\doc)";
+		QString mdFullPath = R"(D:\Users\bestkakkoii\Desktop\SaSH_x86\lib\doc)";
 #else
 		QString mdFullPath = QString("%1/lib/doc").arg(QCoreApplication::applicationDirPath());
 #endif
@@ -1587,9 +1593,9 @@ void ScriptSettingForm::on_treeWidget_functionList_itemSelectionChanged()
 		ui.textBrowser->setUpdatesEnabled(true);
 
 		return;
-	} while (false);
+		} while (false);
 
-}
+	}
 
 QString ScriptSettingForm::getFullPath(QTreeWidgetItem* item)
 {

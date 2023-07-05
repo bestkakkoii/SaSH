@@ -101,14 +101,14 @@ struct Token
 };
 Q_DECLARE_METATYPE(Token)
 
-using TokenMap = QMap<int, Token>;
+using TokenMap = QMap<qint64, Token>;
 Q_DECLARE_METATYPE(TokenMap)
 
 class Lexer
 {
 public:
 
-	static bool tokenized(const QString& script, util::SafeHash<int, TokenMap>* tokens, util::SafeHash<QString, int>* plabel);
+	static bool tokenized(const QString& script, QHash<qint64, TokenMap>* tokens, QHash<QString, qint64>* plabel);
 
 private:
 	enum ErrorType
@@ -130,18 +130,18 @@ private:
 	bool isLabel(const QString& str) const;
 
 
-	QChar next(const QString& str, int& index) const;
-	RESERVE getTokenType(int& pos, RESERVE previous, QString& str, const QString raw) const;
+	QChar next(const QString& str, qint64& index) const;
+	RESERVE getTokenType(qint64& pos, RESERVE previous, QString& str, const QString raw) const;
 	bool getStringToken(QString& src, const QString& delim, QString& out);
 
-	void createToken(int index, RESERVE type, const QVariant& data, const QString& raw, TokenMap* ptoken);
-	void createEmptyToken(int index, TokenMap* ptoken);
+	void createToken(qint64 index, RESERVE type, const QVariant& data, const QString& raw, TokenMap* ptoken);
+	void createEmptyToken(qint64 index, TokenMap* ptoken);
 
-	void tokenized(int currentLine, const QString& line, TokenMap* ptoken, util::SafeHash<QString, int>* plabel);
+	void tokenized(qint64 currentLine, const QString& line, TokenMap* ptoken, QHash<QString, qint64>* plabel);
 
 
-	void checkInvalidReadVariable(const util::SafeHash<int, TokenMap>& tokenmaps);
-	void checkFunctionPairs(const util::SafeHash<int, TokenMap>& tokenmaps);
+	void checkInvalidReadVariable(const QHash<qint64, TokenMap>& tokenmaps);
+	void checkFunctionPairs(const QHash<qint64, TokenMap>& tokenmaps);
 
 	void showError(const QString text, ErrorType type = kTypeError);
 };

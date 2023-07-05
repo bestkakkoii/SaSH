@@ -148,7 +148,7 @@ public:
 
 	QSharedPointer<Server> server;//與遊戲TCP通信專用
 
-	bool IS_SCRIPT_FLAG = false;//主腳本是否運行
+	std::atomic_bool IS_SCRIPT_FLAG = false;//主腳本是否運行
 	QString currentScriptFileName;//當前運行的主腳本完整路徑
 
 	QSharedPointer<StringListModel> scriptLogModel; //腳本日誌模型

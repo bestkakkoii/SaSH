@@ -2582,6 +2582,10 @@ MESSAGE：<byte value="xd"/>
         <source>&lt;findpath&gt;path found, cost:%1 step:%2</source>
         <translation>&lt;寻路&gt;成功找到路径，耗时：%1 步数:%2</translation>
     </message>
+    <message>
+        <source>unknown command: %1</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>ScriptForm</name>

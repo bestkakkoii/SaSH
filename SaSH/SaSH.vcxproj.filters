@@ -387,6 +387,9 @@
     </ClInclude>
     <ClInclude Include="resource.h" />
     <ClInclude Include="resource1.h" />
+    <ClInclude Include="spdloger.hpp">
+      <Filter>Source Files\3rdparty</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <QtUic Include="form\selecttargetform.ui">

@@ -193,7 +193,7 @@ void util::Config::WriteHash(const QString& sec, const QString& key, QMap<QStrin
 	{
 		QJsonObject j;
 		QJsonObject subjson;
-		for (auto it = hash.begin(); it != hash.end(); ++it)
+		for (auto it = hash.cbegin(); it != hash.cend(); ++it)
 		{
 			QJsonObject subsubjson;
 			subsubjson.insert("enable", it.value().first);
@@ -209,7 +209,7 @@ void util::Config::WriteHash(const QString& sec, const QString& key, QMap<QStrin
 		if (!j.contains(key))
 		{
 			QJsonObject subjson;
-			for (auto it = hash.begin(); it != hash.end(); ++it)
+			for (auto it = hash.cbegin(); it != hash.cend(); ++it)
 			{
 				QJsonObject subsubjson;
 				subsubjson.insert("enable", it.value().first);
@@ -222,7 +222,7 @@ void util::Config::WriteHash(const QString& sec, const QString& key, QMap<QStrin
 		else
 		{
 			QJsonObject subjson = json[key].toObject();
-			for (auto it = hash.begin(); it != hash.end(); ++it)
+			for (auto it = hash.cbegin(); it != hash.cend(); ++it)
 			{
 				QJsonObject subsubjson;
 				subsubjson.insert("enable", it.value().first);
@@ -789,14 +789,15 @@ bool mem::read(HANDLE hProcess, DWORD desiredAccess, SIZE_T size, PVOID buffer)
 
 
 template<typename T, typename>
-T mem::readInt(HANDLE hProcess, DWORD desiredAccess)
+T mem::read(HANDLE hProcess, DWORD desiredAccess)
 {
-	if (!hProcess) return T{};
+	if (!hProcess) return T();
 
 	T buffer{};
 	SIZE_T size = sizeof(T);
+	if (!size) return T();
 	BOOL ret = mem::read(hProcess, desiredAccess, size, &buffer);
-	return static_cast<T>(ret ? buffer : 0);
+	return ret ? buffer : T();
 }
 
 float mem::readFloat(HANDLE hProcess, DWORD desiredAccess)
@@ -853,26 +854,13 @@ bool mem::write(HANDLE hProcess, DWORD baseAddress, PVOID buffer, SIZE_T dwSize)
 	return ret == TRUE;
 }
 
-bool mem::writeInt(HANDLE hProcess, DWORD baseAddress, int data, int mode)
+template<typename T, typename>
+bool mem::write(HANDLE hProcess, DWORD baseAddress, T data)
 {
-	if (!hProcess) return FALSE;
-	if (!baseAddress) return FALSE;
+	if (!hProcess) return false;
+	if (!baseAddress) return false;
 	PVOID pBuffer = &data;
-	qint8 bdata = static_cast<qint8>(data);
-	qint16 sdata = static_cast<qint16>(data);
-	SIZE_T len = sizeof(int);
-	if (2 == mode)
-	{
-		len = sizeof(qint8);
-		pBuffer = &bdata;
-	}
-	else if (1 == mode)
-	{
-		len = sizeof(qint16);
-		pBuffer = &sdata;
-	}
-
-	BOOL ret = write(hProcess, baseAddress, pBuffer, len);
+	BOOL ret = write(hProcess, baseAddress, pBuffer, sizeof(T));
 	return ret == TRUE;
 }
 

@@ -64,7 +64,7 @@ PlayerInfoForm::PlayerInfoForm(QWidget* parent)
 			onUpdatePlayerInfoColContents(it.key(), it.value());
 		}
 
-		int stone = injector.server->pc.gold;
+		int stone = injector.server->getPC().gold;
 		onUpdatePlayerInfoStone(stone);
 
 		for (int i = 0; i < MAX_PET; ++i)

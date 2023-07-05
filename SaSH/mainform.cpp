@@ -251,7 +251,7 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, long* res
 	case InterfaceMessage::kRunFile:
 	{
 		Injector& injector = Injector::getInstance();
-		if (injector.IS_SCRIPT_FLAG)
+		if (injector.IS_SCRIPT_FLAG.load(std::memory_order_acquire))
 			return true;
 
 		QString fileName = QString::fromUtf8(reinterpret_cast<char*>(msg->lParam));
@@ -269,7 +269,7 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, long* res
 	case InterfaceMessage::kStopFile:
 	{
 		Injector& injector = Injector::getInstance();
-		if (!injector.IS_SCRIPT_FLAG)
+		if (!injector.IS_SCRIPT_FLAG.load(std::memory_order_acquire))
 			return true;
 
 		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
@@ -337,7 +337,7 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, long* res
 
 		Injector& injector = Injector::getInstance();
 		int value = 0;
-		if (injector.IS_SCRIPT_FLAG)
+		if (injector.IS_SCRIPT_FLAG.load(std::memory_order_acquire))
 			value = 1;
 
 		*result = value;
@@ -679,7 +679,7 @@ void MainForm::onMenuActionTriggered()
 		QString fileName;
 		Injector& injector = Injector::getInstance();
 		if (!injector.server.isNull())
-			fileName = injector.server->pc.name;
+			fileName = injector.server->getPC().name;
 		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
 		emit signalDispatcher.saveHashSettings(fileName);
 	}
@@ -689,7 +689,7 @@ void MainForm::onMenuActionTriggered()
 		QString fileName;
 		Injector& injector = Injector::getInstance();
 		if (!injector.server.isNull())
-			fileName = injector.server->pc.name;
+			fileName = injector.server->getPC().name;
 		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
 		emit signalDispatcher.loadHashSettings(fileName);
 	}

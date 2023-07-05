@@ -216,7 +216,7 @@ void MapWidget::onRefreshTimeOut()
 
 	if (!injector.server->getOnlineFlag()) return;
 
-	PC _ch = injector.server->pc;
+	PC _ch = injector.server->getPC();
 	int floor = injector.server->nowFloor;
 	const QPointF qp_current(injector.server->getPoint());
 
@@ -652,7 +652,7 @@ void MapWidget::onDownloadMapTimeout()
 		//downloadMapProgress_ = 100.0;
 		const QPoint qp_current = injector.server->getPoint();
 		QString caption(tr("%1 map:%2 floor:%3 [%4,%5] mouse:%6,%7")
-			.arg(injector.server->pc.name)
+			.arg(injector.server->getPC().name)
 			.arg(injector.server->nowFloorName)
 			.arg(injector.server->nowFloor)
 			.arg(qp_current.x()).arg(qp_current.y())

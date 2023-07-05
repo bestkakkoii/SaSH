@@ -27,7 +27,7 @@ private:
 
 	void onReloadScriptList();
 
-	void setMark(CodeEditor::SymbolHandler element, util::SafeHash<QString, util::SafeHash<int, break_marker_t>>& hash, int liner, bool b);
+	void setMark(CodeEditor::SymbolHandler element, util::SafeHash<QString, util::SafeHash<qint64, break_marker_t>>& hash, int liner, bool b);
 
 	void varInfoImport(QTreeWidget* tree, const QHash<QString, QVariant>& d);
 	void stackInfoImport(QTreeWidget* tree, const QHash <int, QString>& d);
@@ -81,6 +81,7 @@ private slots:
 	void on_widget_marginClicked(int margin, int line, Qt::KeyboardModifiers state);
 	void on_treeWidget_functionList_itemDoubleClicked(QTreeWidgetItem* item, int column);
 	void on_treeWidget_functionList_itemSelectionChanged();
+	void on_treeWidget_functionList_itemClicked(QTreeWidgetItem* item, int column);
 	void on_treeWidget_scriptList_itemClicked(QTreeWidgetItem* item, int column);
 	void on_treeWidget_breakList_itemDoubleClicked(QTreeWidgetItem* item, int column);
 

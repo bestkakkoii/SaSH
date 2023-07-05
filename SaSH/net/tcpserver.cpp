@@ -553,13 +553,14 @@ void Server::onClientReadyRead()
 	sync_.addFuture(QtConcurrent::run([this, clientSocket, badata]()
 		{
 			Injector& injector = Injector::getInstance();
-			QMutexLocker lock(&net_mutex);
+			//QMutexLocker lock(&net_mutex);
+			QMutexLocker lock(&injector.globalMutex);
 
 			QString preStr = QString::fromUtf8(badata);
 			if (preStr.startsWith("bPK"))
 			{
 				Injector& injector = Injector::getInstance();
-				int value = mem::readInt<short>(injector.getProcess(), injector.getProcessModule() + 0xE21E4);
+				int value = mem::read<short>(injector.getProcess(), injector.getProcessModule() + 0xE21E4);
 				announce(QString("<debug>战斗面板生成了 类别:%1").arg(value));
 				isBattleDialogReady.store(true, std::memory_order_release);
 				asyncBattleWork(true);
@@ -1969,14 +1970,25 @@ void Server::lssproto_RS_recv(char* cdata)
 
 		if (index == -2)
 		{
+			if (isLevelUp)
+				++recorder[0].leveldifference;
+
+			recorder[0].expdifference += exp;
 			texts.append(playerExp + QString::number(exp));
 		}
 		else if (pc.ridePetNo == index)
 		{
+			if (isLevelUp)
+				++recorder[index].leveldifference;
+
+			recorder[index].expdifference += exp;
 			texts.append(rideExp + QString::number(exp));
 		}
 		else if (pc.battlePetNo == index)
 		{
+			if (isLevelUp)
+				++recorder[index].leveldifference;
+			recorder[index].expdifference += exp;
 			texts.append(petExp + QString::number(exp));
 		}
 	}
@@ -2306,7 +2318,7 @@ void Server::lssproto_WN_recv(int windowtype, int buttontype, int seqno, int obj
 	}
 	else
 		linedatas = data.split("\n");
-	currentDialog.set(dialog_t{ windowtype, buttontype, seqno, objindex, data, linedatas, strList });
+	currentDialog = (dialog_t{ windowtype, buttontype, seqno, objindex, data, linedatas, strList });
 
 	for (const QString& it : BankPetList)
 	{
@@ -5397,9 +5409,6 @@ void Server::lssproto_S_recv(char* cdata)
 			party[0].name = pc.name;
 		}
 
-		recorder[0].expdifference = pc.exp - recorder[0].exprecord;
-		recorder[0].leveldifference = pc.level - recorder[0].levelrecord;
-
 		getPlayerMaxCarryingCapacity();
 
 		emit signalDispatcher.updateCharHpProgressValue(pc.level, pc.hp, pc.maxHp);
@@ -5841,15 +5850,12 @@ void Server::lssproto_S_recv(char* cdata)
 					_pet.ai, _pet.atk, _pet.def, _pet.quick, ""
 				};
 
-				recorder[i + 1].expdifference = _pet.exp - recorder[i + 1].exprecord;
-				recorder[i + 1].leveldifference = _pet.level - recorder[i + 1].levelrecord;
 			}
 			else
 			{
 				for (int i = 0; i < 15; ++i)
 					varList.append("");
-				recorder[i + 1].expdifference = 0;
-				recorder[i + 1].leveldifference = 0;
+
 			}
 
 			QVariant var = QVariant::fromValue(varList);
@@ -6895,7 +6901,7 @@ int Server::getWorldStatus()
 {
 	QReadLocker lock(&worldStateLocker);
 	Injector& injector = Injector::getInstance();
-	return mem::readInt<int>(injector.getProcess(), injector.getProcessModule() + kOffestWorldStatus);
+	return mem::read<int>(injector.getProcess(), injector.getProcessModule() + kOffestWorldStatus);
 }
 
 //用於判斷畫面或動畫狀態的數值 (平時一般是3 戰鬥中選擇面板是4 戰鬥動作中是5或6，平時還有很多其他狀態值)
@@ -6903,7 +6909,7 @@ int Server::getGameStatus()
 {
 	QReadLocker lock(&gameStateLocker);
 	Injector& injector = Injector::getInstance();
-	return mem::readInt<int>(injector.getProcess(), injector.getProcessModule() + kOffestGameStatus);
+	return mem::read<int>(injector.getProcess(), injector.getProcessModule() + kOffestGameStatus);
 }
 
 void Server::setWorldStatus(int w)
@@ -6913,7 +6919,7 @@ void Server::setWorldStatus(int w)
 #endif
 	QWriteLocker lock(&worldStateLocker);
 	Injector& injector = Injector::getInstance();
-	mem::writeInt(injector.getProcess(), injector.getProcessModule() + kOffestWorldStatus, w, 0);
+	mem::write<int>(injector.getProcess(), injector.getProcessModule() + kOffestWorldStatus, w);
 }
 
 bool Server::checkGW(int w, int g)
@@ -6928,7 +6934,7 @@ void Server::setGameStatus(int g)
 #endif
 	QWriteLocker lock(&gameStateLocker);
 	Injector& injector = Injector::getInstance();
-	mem::writeInt(injector.getProcess(), injector.getProcessModule() + kOffestGameStatus, g, 0);
+	mem::write<int>(injector.getProcess(), injector.getProcessModule() + kOffestGameStatus, g);
 }
 
 //檢查非登入時所在頁面
@@ -7090,7 +7096,7 @@ void Server::setBattleFlag(bool enable)
 	DWORD hModule = injector.getProcessModule();
 
 	//這裡關乎頭上是否會出現V.S.圖標
-	int status = mem::readInt<short>(hProcess, hModule + kOffestPlayerStatus);
+	int status = mem::read<short>(hProcess, hModule + kOffestPlayerStatus);
 	if (enable)
 	{
 		if (!checkAND(status, CHR_STATUS_BATTLE))
@@ -7102,8 +7108,8 @@ void Server::setBattleFlag(bool enable)
 			status &= ~CHR_STATUS_BATTLE;
 	}
 
-	mem::writeInt(hProcess, hModule + kOffestPlayerStatus, status, 0);
-	mem::writeInt(hProcess, hModule + kOffestBattleStatus, enable ? 1 : 0, 0);
+	mem::write<int>(hProcess, hModule + kOffestPlayerStatus, status);
+	mem::write<int>(hProcess, hModule + kOffestBattleStatus, enable ? 1 : 0);
 }
 
 //計算人物最單物品大堆疊數(負重量)
@@ -7327,7 +7333,7 @@ void Server::press(BUTTON_TYPE select, int seqno, int objindex)
 	if (getBattleFlag())
 		return;
 
-	dialog_t dialog = currentDialog.get();
+	dialog_t dialog = currentDialog;
 	if (seqno == -1)
 		seqno = dialog.seqno;
 
@@ -7384,7 +7390,7 @@ void Server::press(int row, int seqno, int objindex)
 	if (getBattleFlag())
 		return;
 
-	dialog_t dialog = currentDialog.get();
+	dialog_t dialog = currentDialog;
 	if (seqno == -1)
 		seqno = dialog.seqno;
 
@@ -7413,7 +7419,7 @@ void Server::buy(int index, int amt, int seqno, int objindex)
 	if (amt <= 0)
 		return;
 
-	dialog_t dialog = currentDialog.get();
+	dialog_t dialog = currentDialog;
 	if (seqno == -1)
 		seqno = dialog.seqno;
 
@@ -7440,7 +7446,7 @@ void Server::sell(const QString& name, const QString& memo, int seqno, int objin
 	if (name.isEmpty())
 		return;
 
-	dialog_t dialog = currentDialog.get();
+	dialog_t dialog = currentDialog;
 	if (seqno == -1)
 		seqno = dialog.seqno;
 
@@ -7469,7 +7475,7 @@ void Server::sell(int index, int seqno, int objindex)
 	if (pc.item[index].name.isEmpty() || pc.item[index].useFlag == 0)
 		return;
 
-	dialog_t dialog = currentDialog.get();
+	dialog_t dialog = currentDialog;
 	if (seqno == -1)
 		seqno = dialog.seqno;
 
@@ -7496,7 +7502,7 @@ void Server::sell(const QVector<int>& indexs, int seqno, int objindex)
 	if (indexs.isEmpty())
 		return;
 
-	dialog_t dialog = currentDialog.get();
+	dialog_t dialog = currentDialog;
 	if (seqno == -1)
 		seqno = dialog.seqno;
 
@@ -7531,7 +7537,7 @@ void Server::learn(int skillIndex, int petIndex, int spot, int seqno, int objind
 	if (spot < 0 || spot >= 7)
 		return;
 
-	dialog_t dialog = currentDialog.get();
+	dialog_t dialog = currentDialog;
 	if (seqno == -1)
 		seqno = dialog.seqno;
 
@@ -7557,7 +7563,7 @@ void Server::depositItem(int itemIndex, int seqno, int objindex)
 	if (itemIndex < 0 || itemIndex >= MAX_ITEM)
 		return;
 
-	dialog_t dialog = currentDialog.get();
+	dialog_t dialog = currentDialog;
 	if (seqno == -1)
 		seqno = dialog.seqno;
 
@@ -7577,7 +7583,7 @@ void Server::withdrawItem(int itemIndex, int seqno, int objindex)
 	if (getBattleFlag())
 		return;
 
-	dialog_t dialog = currentDialog.get();
+	dialog_t dialog = currentDialog;
 	if (seqno == -1)
 		seqno = dialog.seqno;
 
@@ -7597,7 +7603,7 @@ void Server::depositPet(int petIndex, int seqno, int objindex)
 	if (getBattleFlag())
 		return;
 
-	dialog_t dialog = currentDialog.get();
+	dialog_t dialog = currentDialog;
 	if (seqno == -1)
 		seqno = dialog.seqno;
 
@@ -7617,7 +7623,7 @@ void Server::withdrawPet(int petIndex, int seqno, int objindex)
 	if (getBattleFlag())
 		return;
 
-	dialog_t dialog = currentDialog.get();
+	dialog_t dialog = currentDialog;
 	if (seqno == -1)
 		seqno = dialog.seqno;
 
@@ -7638,7 +7644,7 @@ void Server::inputtext(const QString& text, int seqno, int objindex)
 	if (getBattleFlag())
 		return;
 
-	dialog_t dialog = currentDialog.get();
+	dialog_t dialog = currentDialog;
 	if (seqno == -1)
 		seqno = dialog.seqno;
 	if (objindex == -1)
@@ -7722,20 +7728,20 @@ void Server::setPetState(int petIndex, PetState state)
 		if (pc.ridePetNo == petIndex)
 		{
 			pc.ridePetNo = -1;
-			mem::writeInt(hProcess, hModule + kOffestRidePetIndex, -1, 0);
+			mem::write<int>(hProcess, hModule + kOffestRidePetIndex, -1);
 			emit signalDispatcher.updateRideHpProgressValue(0, 0, 100);
 		}
 
 		if (pc.mailPetNo == petIndex)
 		{
 			pc.mailPetNo = -1;
-			mem::writeInt(hProcess, hModule + kOffestMailPetIndex, -1, 0);
+			mem::write<short>(hProcess, hModule + kOffestMailPetIndex, -1);
 		}
 
 		pet[petIndex].state = kBattle;
 		pc.battleNo = petIndex;
 		pc.selectPetNo[petIndex] = TRUE;
-		mem::writeInt(hProcess, hModule + kOffestSelectPetArray + (petIndex * sizeof(short)), TRUE, 1);
+		mem::write<short>(hProcess, hModule + kOffestSelectPetArray + (petIndex * sizeof(short)), TRUE);
 		PET _pet = pet[petIndex];
 		emit signalDispatcher.updatePetHpProgressValue(_pet.level, _pet.hp, _pet.maxHp);
 		break;
@@ -7753,14 +7759,14 @@ void Server::setPetState(int petIndex, PetState state)
 		if (pc.ridePetNo == petIndex)
 		{
 			pc.ridePetNo = -1;
-			mem::writeInt(hProcess, hModule + kOffestRidePetIndex, -1, 0);
+			mem::write<int>(hProcess, hModule + kOffestRidePetIndex, -1);
 			emit signalDispatcher.updateRideHpProgressValue(0, 0, 100);
 		}
 
 		if (pc.mailPetNo == petIndex)
 		{
 			pc.mailPetNo = -1;
-			mem::writeInt(hProcess, hModule + kOffestMailPetIndex, -1, 0);
+			mem::write<short>(hProcess, hModule + kOffestMailPetIndex, -1);
 		}
 
 		if (pc.battlePetNo == petIndex)
@@ -7771,7 +7777,7 @@ void Server::setPetState(int petIndex, PetState state)
 
 		pet[petIndex].state = kStandby;
 		pc.selectPetNo[petIndex] = TRUE;
-		mem::writeInt(hProcess, hModule + kOffestSelectPetArray + (petIndex * sizeof(short)), TRUE, 1);
+		mem::write<short>(hProcess, hModule + kOffestSelectPetArray + (petIndex * sizeof(short)), TRUE);
 		break;
 	}
 	case kMail:
@@ -7784,7 +7790,7 @@ void Server::setPetState(int petIndex, PetState state)
 		if (pc.ridePetNo == petIndex)
 		{
 			pc.ridePetNo = -1;
-			mem::writeInt(hProcess, hModule + kOffestRidePetIndex, -1, 0);
+			mem::write<int>(hProcess, hModule + kOffestRidePetIndex, -1);
 		}
 
 		if (pc.battlePetNo == petIndex)
@@ -7793,8 +7799,8 @@ void Server::setPetState(int petIndex, PetState state)
 		pet[petIndex].state = kMail;
 		pc.mailPetNo = petIndex;
 		pc.selectPetNo[petIndex] = FALSE;
-		mem::writeInt(hProcess, hModule + kOffestMailPetIndex, petIndex, 0);
-		mem::writeInt(hProcess, hModule + kOffestSelectPetArray + (petIndex * sizeof(short)), FALSE, 1);
+		mem::write<short>(hProcess, hModule + kOffestMailPetIndex, petIndex);
+		mem::write<short>(hProcess, hModule + kOffestSelectPetArray + (petIndex * sizeof(short)), FALSE);
 		break;
 	}
 	case kRest:
@@ -7807,14 +7813,14 @@ void Server::setPetState(int petIndex, PetState state)
 		if (pc.ridePetNo == petIndex)
 		{
 			pc.ridePetNo = -1;
-			mem::writeInt(hProcess, hModule + kOffestRidePetIndex, -1, 0);
+			mem::write<int>(hProcess, hModule + kOffestRidePetIndex, -1);
 			emit signalDispatcher.updateRideHpProgressValue(0, 0, 100);
 		}
 
 		if (pc.mailPetNo == petIndex)
 		{
 			pc.mailPetNo = -1;
-			mem::writeInt(hProcess, hModule + kOffestMailPetIndex, -1, 0);
+			mem::write<short>(hProcess, hModule + kOffestMailPetIndex, -1);
 		}
 
 		if (pc.battlePetNo == petIndex)
@@ -7825,7 +7831,7 @@ void Server::setPetState(int petIndex, PetState state)
 
 		pet[petIndex].state = kRest;
 		pc.selectPetNo[petIndex] = FALSE;
-		mem::writeInt(hProcess, hModule + kOffestSelectPetArray + (petIndex * sizeof(short)), FALSE, 1);
+		mem::write<short>(hProcess, hModule + kOffestSelectPetArray + (petIndex * sizeof(short)), FALSE);
 
 		break;
 	}
@@ -7847,7 +7853,7 @@ void Server::setPetState(int petIndex, PetState state)
 		if (pc.mailPetNo == petIndex)
 		{
 			pc.mailPetNo = -1;
-			mem::writeInt(hProcess, hModule + kOffestMailPetIndex, -1, 1);
+			mem::write<short>(hProcess, hModule + kOffestMailPetIndex, -1);
 		}
 
 		if (pc.battlePetNo == petIndex)
@@ -7859,8 +7865,8 @@ void Server::setPetState(int petIndex, PetState state)
 		pet[petIndex].state = kRide;
 		pc.ridePetNo = petIndex;
 		pc.selectPetNo[petIndex] = FALSE;
-		mem::writeInt(hProcess, hModule + kOffestRidePetIndex, petIndex, 0);
-		mem::writeInt(hProcess, hModule + kOffestSelectPetArray + (petIndex * sizeof(short)), FALSE, 1);
+		mem::write<int>(hProcess, hModule + kOffestRidePetIndex, petIndex);
+		mem::write<short>(hProcess, hModule + kOffestSelectPetArray + (petIndex * sizeof(short)), FALSE);
 		PET _pet = pet[petIndex];
 		emit signalDispatcher.updateRideHpProgressValue(_pet.level, _pet.hp, _pet.maxHp);
 		break;
@@ -7932,14 +7938,14 @@ void Server::setPetState(int petIndex, int state)
 	if (state == 0)
 	{
 		if (pet[petIndex].state == kMail)
-			mem::writeInt(hProcess, hModule + kOffestMailPetIndex, -1, 1);
+			mem::write<short>(hProcess, hModule + kOffestMailPetIndex, -1);
 		pet[petIndex].state = kRest;
 	}
 
 	else if (state == 4)
 	{
 		pet[petIndex].state = kMail;
-		mem::writeInt(hProcess, hModule + kOffestMailPetIndex, petIndex, 1);
+		mem::write<short>(hProcess, hModule + kOffestMailPetIndex, petIndex);
 	}
 
 	int standby = 0;
@@ -8084,11 +8090,11 @@ void Server::setPlayerFaceDirection(int dir)
 	HANDLE hProcess = injector.getProcess();
 	int hModule = injector.getProcessModule();
 	int newdir = (dir + 3) % 8;
-	int p = mem::readInt<int>(hProcess, hModule + 0x422E3AC);
+	int p = mem::read<int>(hProcess, hModule + 0x422E3AC);
 	if (p)
 	{
-		mem::writeInt(hProcess, hModule + 0x422BE94, newdir, 0);
-		mem::writeInt(hProcess, p + 0x150, newdir, sizeof(int));
+		mem::write<int>(hProcess, hModule + 0x422BE94, newdir);
+		mem::write<int>(hProcess, p + 0x150, newdir);
 	}
 }
 
@@ -8134,11 +8140,11 @@ void Server::setPlayerFaceDirection(const QString& dirStr)
 	HANDLE hProcess = injector.getProcess();
 	int hModule = injector.getProcessModule();
 	int newdir = (dir + 3) % 8;
-	int p = mem::readInt<int>(hProcess, hModule + 0x422E3AC);
+	int p = mem::read<int>(hProcess, hModule + 0x422E3AC);
 	if (p)
 	{
-		mem::writeInt(hProcess, hModule + 0x422BE94, newdir, 0);
-		mem::writeInt(hProcess, p + 0x150, newdir, sizeof(int));
+		mem::write<int>(hProcess, hModule + 0x422BE94, newdir);
+		mem::write<int>(hProcess, p + 0x150, newdir);
 	}
 }
 
@@ -8258,9 +8264,9 @@ void Server::lssproto_TK_send(const QPoint& pos, char* message, int color, int a
 void Server::setWindowTitle()
 {
 	Injector& injector = Injector::getInstance();
-	int subServer = mem::readInt<int>(injector.getProcess(), injector.getProcessModule() + kOffestSubServerIndex);//injector.getValueHash(util::kServerValue);
+	int subServer = mem::read<int>(injector.getProcess(), injector.getProcessModule() + kOffestSubServerIndex);//injector.getValueHash(util::kServerValue);
 	//int subserver = 0;//injector.getValueHash(util::kSubServerValue);
-	int position = mem::readInt<int>(injector.getProcess(), injector.getProcessModule() + kOffestPositionIndex);//injector.getValueHash(util::kPositionValue);
+	int position = mem::read<int>(injector.getProcess(), injector.getProcessModule() + kOffestPositionIndex);//injector.getValueHash(util::kPositionValue);
 
 	QString subServerName;
 	int size = injector.subServerNameList.get().size();
@@ -9933,7 +9939,7 @@ bool Server::login(int s)
 			for (;;)
 			{
 				mouseMove(x, y);
-				int value = mem::readInt<int>(injector.getProcess(), injector.getProcessModule() + kOffestMousePointedIndex);
+				int value = mem::read<int>(injector.getProcess(), injector.getProcessModule() + kOffestMousePointedIndex);
 				if (value != -1)
 				{
 					leftDoubleClick(x, y);
@@ -9953,7 +9959,7 @@ bool Server::login(int s)
 	}
 	case util::kStatusSelectSubServer:
 	{
-		int serverIndex = mem::readInt<int>(injector.getProcess(), injector.getProcessModule() + kOffestServerIndex);
+		int serverIndex = mem::read<int>(injector.getProcess(), injector.getProcessModule() + kOffestServerIndex);
 		if (server != serverIndex)
 		{
 			int x = 500;
@@ -9961,7 +9967,7 @@ bool Server::login(int s)
 			for (;;)
 			{
 				mouseMove(x, y);
-				int value = mem::readInt<int>(injector.getProcess(), injector.getProcessModule() + kOffestMousePointedIndex);
+				int value = mem::read<int>(injector.getProcess(), injector.getProcessModule() + kOffestMousePointedIndex);
 				if (value != -1)
 				{
 					leftDoubleClick(x, y);
@@ -9983,11 +9989,11 @@ bool Server::login(int s)
 		if (subserver >= 0 && subserver < 15)
 		{
 			int x = 250;
-			int y = 265 + (subserver * 25);
+			int y = 265 + (subserver * 20);
 			for (;;)
 			{
 				mouseMove(x, y);
-				int value = mem::readInt<int>(injector.getProcess(), injector.getProcessModule() + kOffestMousePointedIndex);
+				int value = mem::read<int>(injector.getProcess(), injector.getProcessModule() + kOffestMousePointedIndex);
 				if (value != -1)
 				{
 					leftDoubleClick(x, y);
@@ -10152,18 +10158,33 @@ QPoint Server::getPoint()
 {
 	Injector& injector = Injector::getInstance();
 	int hModule = injector.getProcessModule();
+	if (hModule == 0)
+		return QPoint{};
+
 	HANDLE hProcess = injector.getProcess();
-	return QPoint(mem::readInt<int>(hProcess, hModule + kOffestNowX), mem::readInt<int>(hProcess, hModule + kOffestNowY));
+	if (hProcess == 0 || hProcess == INVALID_HANDLE_VALUE)
+		return QPoint{};
+
+	QReadLocker locker(&pointMutex);
+	int x = mem::read<int>(hProcess, hModule + kOffestNowX);
+	int y = mem::read<int>(hProcess, hModule + kOffestNowY);
+	return QPoint(x, y);
 }
 
 void Server::setPoint(const QPoint& pos)
 {
 	Injector& injector = Injector::getInstance();
-	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
 	int hModule = injector.getProcessModule();
+	if (hModule == 0)
+		return;
+
 	HANDLE hProcess = injector.getProcess();
-	mem::writeInt(hProcess, hModule + kOffestNowX, pos.x(), 0);
-	mem::writeInt(hProcess, hModule + kOffestNowY, pos.y(), 0);
+	if (hProcess == 0 || hProcess == INVALID_HANDLE_VALUE)
+		return;
+
+	QWriteLocker locker(&pointMutex);
+	mem::write<int>(hProcess, hModule + kOffestNowX, pos.x());
+	mem::write<int>(hProcess, hModule + kOffestNowY, pos.y());
 }
 
 //讀取內存刷新各種基礎數據，有些封包數據不明確、或不確定，用來補充不足的部分
@@ -10179,7 +10200,7 @@ void Server::updateDatasFromMemory()
 		return;
 
 	//地圖數據 原因同上
-	int floor = mem::readInt<int>(hProcess, hModule + kOffestNowFloor);
+	int floor = mem::read<int>(hProcess, hModule + kOffestNowFloor);
 	QString map = mem::readString(hProcess, hModule + kOffestNowFloorName, FLOOR_NAME_LEN, true);
 	if (nowFloor != floor)
 	{
@@ -10190,7 +10211,7 @@ void Server::updateDatasFromMemory()
 	emit signalDispatcher.updateMapLabelTextChanged(QString("%1(%2)").arg(nowFloorName).arg(nowFloor));
 
 	//人物坐標 (因為伺服器端不會經常刷新這個數值大多是在遊戲客戶端修改的)
-	QPoint point(mem::readInt<int>(hProcess, hModule + kOffestNowX), mem::readInt<int>(hProcess, hModule + kOffestNowY));
+	QPoint point(mem::read<int>(hProcess, hModule + kOffestNowX), mem::read<int>(hProcess, hModule + kOffestNowY));
 	nowPoint = point;
 	emit signalDispatcher.updateCoordsPosLabelTextChanged(QString("%1,%2").arg(point.x()).arg(point.y()));
 
@@ -10201,13 +10222,13 @@ void Server::updateDatasFromMemory()
 		QMutexLocker locker(&swapItemMutex);
 		//short useFlag = 0;
 		constexpr int item_offest = 0x184;
-		pc.item[i].useFlag = mem::readInt<short>(hProcess, hModule + 0x422C028 + i * item_offest);
+		pc.item[i].useFlag = mem::read<short>(hProcess, hModule + 0x422C028 + i * item_offest);
 		if (pc.item[i].useFlag == 1)
 		{
 			pc.item[i].name = mem::readString(hProcess, hModule + 0x422C032 + i * item_offest, ITEM_NAME_LEN, true, false);
 			pc.item[i].memo = mem::readString(hProcess, hModule + 0x422C060 + i * item_offest, ITEM_MEMO_LEN, true, false);
 			if (i >= CHAR_EQUIPPLACENUM)
-				pc.item[i].pile = mem::readInt<short>(hProcess, hModule + 0x422BF58 + i * item_offest);
+				pc.item[i].pile = mem::read<short>(hProcess, hModule + 0x422BF58 + i * item_offest);
 			else
 				pc.item[i].pile = 1;
 
@@ -10224,12 +10245,12 @@ void Server::updateDatasFromMemory()
 	mem::read(hProcess, hModule + kOffestSelectPetArray, sizeof(pc.selectPetNo), pc.selectPetNo);
 
 	//郵件寵物索引
-	int mailPetIndex = mem::readInt<int>(hProcess, hModule + kOffestMailPetIndex);
+	int mailPetIndex = mem::read<int>(hProcess, hModule + kOffestMailPetIndex);
 	if (mailPetIndex < 0 || mailPetIndex >= MAX_PET)
 		mailPetIndex = -1;
 
 	//騎乘寵物索引
-	int ridePetIndex = mem::readInt<int>(hProcess, hModule + kOffestRidePetIndex);
+	int ridePetIndex = mem::read<int>(hProcess, hModule + kOffestRidePetIndex);
 	if (ridePetIndex < 0 || ridePetIndex >= MAX_PET)
 		ridePetIndex = -1;
 
@@ -10237,9 +10258,9 @@ void Server::updateDatasFromMemory()
 	//short battlePetIndex = pc.battlePetNo;
 
 	//人物狀態 (是否組隊或其他..)
-	pc.status = mem::readInt<short>(hProcess, hModule + kOffestPlayerStatus);
+	pc.status = mem::read<short>(hProcess, hModule + kOffestPlayerStatus);
 
-	short isInTeam = mem::readInt<short>(hProcess, hModule + kOffestTeamState);
+	short isInTeam = mem::read<short>(hProcess, hModule + kOffestTeamState);
 	if (isInTeam == 1 && !(pc.status & CHR_STATUS_PARTY))
 		pc.status |= CHR_STATUS_PARTY;
 	else if (isInTeam == 0 && (pc.status & CHR_STATUS_PARTY))
@@ -10583,7 +10604,7 @@ void Server::reloadHashVar()
 
 	util::SafeHash<int, QVariant> _hashchat;
 
-	util::SafeVector<QPair<int, QString>> queue = chatQueue.values();
+	QVector<QPair<int, QString>> queue = chatQueue.values();
 	//reverse
 	std::reverse(queue.begin(), queue.end());
 	for (int i = 0; i < MAX_CHAT_HISTORY; ++i)
@@ -10600,7 +10621,7 @@ void Server::reloadHashVar()
 	hashchat = _hashchat;
 
 	util::SafeHash<int, QVariant> _hashdialog;
-	QStringList dialog = currentDialog.get().linedatas;
+	QStringList dialog = currentDialog.linedatas;
 	for (int i = 0; i < MAX_DIALOG_LINE; ++i)
 	{
 		if (i >= dialog.size())
@@ -10893,7 +10914,7 @@ void Server::asyncBattleAction()
 			if (playerDoBattleWork() == 1)
 			{
 				if (Checked)
-					mem::writeInt(injector.getProcess(), injector.getProcessModule() + 0xE21E8, 1, sizeof(short));
+					mem::write<short>(injector.getProcess(), injector.getProcessModule() + 0xE21E8, 1);
 
 				battledata_t bt = getBattleData();
 
@@ -10934,7 +10955,7 @@ void Server::asyncBattleAction()
 			if (petDoBattleWork() == 1)
 			{
 				if (Checked)
-					mem::writeInt(injector.getProcess(), injector.getProcessModule() + 0xE21E8, 1, sizeof(short));
+					mem::write<short>(injector.getProcess(), injector.getProcessModule() + 0xE21E8, 1);
 
 				setEndCurrentRound();
 				isEnemyAllReady = false;

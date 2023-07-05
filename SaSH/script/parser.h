@@ -6,10 +6,10 @@
 #include "threadplugin.h"
 #include "util.h"
 
-using CommandRegistry = std::function<int(int currentLine, const TokenMap& token)>;
+using CommandRegistry = std::function<qint64(qint64 currentLine, const TokenMap& token)>;
 
 //callbak
-using ParserCallBack = std::function<int(int currentLine, const TokenMap& token)>;
+using ParserCallBack = std::function<qint64(qint64 currentLine, const TokenMap& token)>;
 
 using VariantSafeHash = util::SafeHash<QString, QVariant>;
 
@@ -71,7 +71,7 @@ public:
 		kError,
 		kLabelError,
 		kArgError = 10,
-
+		kUnknownCommand,
 	};
 
 	enum Mode
@@ -87,25 +87,25 @@ public:
 	QString getLastErrorMessage() const { return lastErrorMesssage_; }
 
 	//設置所有標籤所在行號數據
-	inline void setLabels(const util::SafeHash<QString, int>& labels) { labels_ = labels; }
+	inline void setLabels(const QHash<QString, qint64>& labels) { labels_ = labels; }
 
 	//設置腳本所有Token數據
-	inline void setTokens(const util::SafeHash<int, TokenMap>& tokens) { tokens_ = tokens; }
+	inline void setTokens(const QHash<qint64, TokenMap>& tokens) { tokens_ = tokens; }
 
 	Q_REQUIRED_RESULT inline bool hasToken() const { return !tokens_.isEmpty(); }
 
-	Q_REQUIRED_RESULT inline const util::SafeHash<int, TokenMap> getToken() const { return tokens_; }
+	Q_REQUIRED_RESULT inline const QHash<qint64, TokenMap> getToken() const { return tokens_; }
 
 	inline void setCallBack(const ParserCallBack& callBack) { callBack_ = callBack; }
 
-	inline void setCurrentLine(int line) { lineNumber_ = line; }
+	inline void setCurrentLine(qint64 line) { lineNumber_ = line; }
 
 	inline void setMode(Mode mode) { mode_ = mode; }
 
 	inline void insertUserCallBack(const QString& name, const QString& type)
 	{
 		//確保一種類型只能被註冊一次
-		for (auto it = userRegCallBack_.begin(); it != userRegCallBack_.end(); ++it)
+		for (auto it = userRegCallBack_.cbegin(); it != userRegCallBack_.cend(); ++it)
 		{
 			if (it.value() == type)
 				return;
@@ -121,7 +121,7 @@ public:
 		if (pname == nullptr)
 			return false;
 
-		for (auto it = userRegCallBack_.begin(); it != userRegCallBack_.end(); ++it)
+		for (auto it = userRegCallBack_.cbegin(); it != userRegCallBack_.cend(); ++it)
 		{
 			if (it.value() == "err")
 			{
@@ -140,7 +140,7 @@ public:
 		if (dtorCallBackFlag_)
 			return false;
 
-		util::SafeHash<QString, int>& hash = getLabels();
+		QHash<QString, qint64> hash = getLabels();
 		constexpr const char* DTOR = "dtor";
 		if (hash.contains(DTOR))
 		{
@@ -171,54 +171,134 @@ public:
 		}
 	}
 
-	void jump(int line, bool noStack);
-	void jumpto(int line, bool noStack);
+	void jump(qint64 line, bool noStack);
+	void jumpto(qint64 line, bool noStack);
 	bool jump(const QString& name, bool noStack);
 
-	bool checkString(const TokenMap& TK, int idx, QString* ret);
-	bool checkInt(const TokenMap& TK, int idx, int* ret);
-#if 0
-	bool checkDouble(const TokenMap& TK, int idx, double* ret);
-#endif
-	bool toVariant(const TokenMap& TK, int idx, QVariant* ret);
+	bool checkString(const TokenMap& TK, qint64 idx, QString* ret);
+	bool checkInteger(const TokenMap& TK, qint64 idx, qint64* ret);
+
+	bool toVariant(const TokenMap& TK, qint64 idx, QVariant* ret);
 	bool compare(const QVariant& a, const QVariant& b, RESERVE type) const;
 
-	QVariant checkValue(const TokenMap TK, int idx, QVariant::Type);
-	int checkJump(const TokenMap& TK, int idx, bool expr, JumpBehavior behavior);
+	QVariant checkValue(const TokenMap TK, qint64 idx, QVariant::Type);
+	qint64 checkJump(const TokenMap& TK, qint64 idx, bool expr, JumpBehavior behavior);
+
+	bool isSubScript() const { return isSubScript_; }
+	void setSubScript(bool isSubScript) { isSubScript_ = isSubScript; }
+
 public:
 	Parser();
-	virtual ~Parser() = default;
+	virtual ~Parser();
 
 	//解析腳本
-	void parse(int line = 0);
-	util::SafeHash<QString, int>& getLabels() { return labels_; }
-	QSharedPointer<VariantSafeHash> getVariablesPointer() const { return variables_; }
-	void setPVariables(const QSharedPointer<VariantSafeHash>& variables) { variables_ = variables; }
-	//Q_REQUIRED_RESULT inline QVariant& getVarRef(const QString& name) { return (*variables_)[name]; }
-	Q_REQUIRED_RESULT inline VariantSafeHash& getVarsRef() { return *variables_; }
-	Q_REQUIRED_RESULT inline VariantSafeHash& getLabelVarsRef()
+	void parse(qint64 line = 0);
+
+	Q_REQUIRED_RESULT inline QVariantHash* getGlobalVarPointer() const
 	{
-		if (!labalVarStack_.isEmpty())
-			return labalVarStack_.top();
+		if (globalVarLock_ == nullptr)
+			return nullptr;
+
+		QReadLocker locker(globalVarLock_);
+		return variables_;
+	}
+
+	Q_REQUIRED_RESULT inline QReadWriteLock* getGlobalVarLockPointer() const { return globalVarLock_; }
+
+	Q_REQUIRED_RESULT inline bool isGlobalVarContains(const QString& name) const
+	{
+		if (globalVarLock_ == nullptr)
+			return false;
+
+		QReadLocker locker(globalVarLock_);
+		if (variables_ != nullptr)
+			return variables_->contains(name);
+		return false;
+	}
+
+	inline QVariant getGlobalVarValue(const QString& name) const
+	{
+		if (globalVarLock_ == nullptr)
+			return QVariant();
+
+		QReadLocker locker(globalVarLock_);
+		if (variables_ != nullptr)
+			return variables_->value(name, 0);
+		return QVariant();
+	}
+
+	void insertGlobalVar(const QString& name, const QVariant& value);
+
+	inline void insertVar(const QString& name, const QVariant& value)
+	{
+		QHash<QString, QVariant> args = getLocalVars();
+		if (args.contains(name))
+			intsertLocalVar(name, value);
+		else
+			insertGlobalVar(name, value);
+	}
+
+	inline void setVariablesPointer(QVariantHash* pvariables, QReadWriteLock* plock)
+	{
+		if (!isSubScript())
+			return;
+
+		variables_ = pvariables;
+		globalVarLock_ = plock;
+	}
+
+	QHash<QString, qint64> getLabels() { return labels_; }
+
+	Q_REQUIRED_RESULT inline QVariantHash getLocalVars()
+	{
+		if (!localVarStack_.isEmpty())
+			return localVarStack_.top();
 		else
 		{
-			labalVarStack_.push(VariantSafeHash{});
-			return labalVarStack_.top();
+			localVarStack_.push(QVariantHash{});
+			return localVarStack_.top();
 		}
 	}
-	Q_REQUIRED_RESULT inline VariantSafeHash getLabelVars()
-	{
-		if (!labalVarStack_.isEmpty())
-			return labalVarStack_.top();
-		else
-		{
-			labalVarStack_.push(VariantSafeHash{});
-			return labalVarStack_.top();
-		}
-	}
+
 private:
+
+	void intsertLocalVar(const QString& name, const QVariant& value);
+
+	void insertGlobalVar(const QVariantHash& hash);
+
+	inline void removeGlobalVar(const QString& name)
+	{
+		if (globalVarLock_ == nullptr)
+			return;
+
+		QWriteLocker locker(globalVarLock_);
+		if (variables_ != nullptr)
+			variables_->remove(name);
+	}
+
+	inline void clearGlobalVar()
+	{
+		if (globalVarLock_ == nullptr)
+			return;
+
+		QWriteLocker locker(globalVarLock_);
+		if (variables_ != nullptr)
+			variables_->clear();
+	}
+
+	Q_REQUIRED_RESULT inline QVariantHash& getLocalVarsRef()
+	{
+		if (!localVarStack_.isEmpty())
+			return localVarStack_.top();
+		else
+		{
+			localVarStack_.push(QVariantHash{});
+			return localVarStack_.top();
+		}
+	}
+
 	void processTokens();
-	int processCommand();
+	qint64 processCommand();
 	void processVariable(RESERVE type);
 	void processLocalVariable();
 	void processVariableIncDec();
@@ -248,16 +328,17 @@ private:
 	bool exprTo(T value, QString expr, T* ret);
 
 
-	void handleError(int err);
+	void handleError(qint64 err);
 	void checkArgs();
 
 
 	inline void next() { ++lineNumber_; }
 
-	Q_REQUIRED_RESULT inline bool isEmpty() const { return !tokens_.contains(lineNumber_); }
+	Q_REQUIRED_RESULT inline bool empty() const { return !tokens_.contains(lineNumber_); }
 	Q_REQUIRED_RESULT inline RESERVE getCurrentFirstTokenType() const { return currentLineTokens_.value(0).type; }
+
 	template <typename T>
-	Q_REQUIRED_RESULT inline T getToken(int index) const
+	Q_REQUIRED_RESULT inline T getToken(qint64 index) const
 	{
 		if (currentLineTokens_.contains(index))
 		{
@@ -266,14 +347,15 @@ private:
 				return currentLineTokens_.value(index).data.value<T>();
 		}
 		//如果是整數返回 -1
-		if (std::is_same<T, int>::value)
+		if (std::is_same<T, qint64>::value)
 			return 0;
 		return T();
 	}
-	Q_REQUIRED_RESULT inline RESERVE getTokenType(int index) const { return currentLineTokens_.value(index).type; }
+
+	Q_REQUIRED_RESULT inline RESERVE getTokenType(qint64 index) const { return currentLineTokens_.value(index).type; }
 	Q_REQUIRED_RESULT TokenMap getCurrentTokens() const { return currentLineTokens_; }
 	void variableCalculate(RESERVE op, QVariant* var, const QVariant& varValue);
-	int matchLineFromLabel(const QString& label) const { return labels_.value(label, -1); }
+	qint64 matchLineFromLabel(const QString& label) const { return labels_.value(label, -1); }
 
 	Q_REQUIRED_RESULT inline QVariantList& getArgsRef()
 	{
@@ -283,44 +365,47 @@ private:
 			return emptyArgs_;
 	}
 
-	void generateStackInfo(int type);
+	void generateStackInfo(qint64 type);
 
-
+	void updateGlobalVariables();
 private:
+	//函數代碼塊
 	typedef struct tagFunctionChunk
 	{
 		QString name;
-		int begin = -1;
-		int end = -1;
+		qint64 begin = -1;
+		qint64 end = -1;
 	} FunctionChunk;
 
-	bool usestate = false;
+	QHash<qint64, TokenMap> tokens_;						//當前運行腳本的每一行token
+	mutable QReadWriteLock* globalVarLock_ = nullptr;		//全局變量鎖指針
+	QVariantHash* variables_ = nullptr;						//全局變量容器指針
+	QHash<QString, qint64> labels_;							//所有標記/函數所在行記錄
+	QHash<QString, FunctionChunk> functionChunks_;          //函數代碼塊紀錄，用於避免直接執行到function，確保只有 call 才能執行到 function
+	QHash<QString, QString> userRegCallBack_;				//用戶註冊的回調函數
+	QHash<QString, CommandRegistry> commandRegistry_;		//所有已註冊的腳本命令函數指針
 
-	util::SafeHash<int, TokenMap> tokens_;							//當前運行腳本的每一行token
-	QSharedPointer<VariantSafeHash> variables_;						//所有用腳本變量
-	util::SafeHash<QString, int> labels_;							//所有標記所在行記錄
-	util::SafeHash<QString, FunctionChunk> functionChunks_;         //函數代碼塊
-	util::SafeHash<QString, QString> userRegCallBack_;				//用戶註冊的回調函數
-	util::SafeHash<QString, CommandRegistry> commandRegistry_;		//所有命令的函數指針
-	QStack<int> callStack_;											//"調用"命令所在行棧
-	QStack<int> jmpStack_;											//"跳轉"命令所在行棧
-	QStack<QVariantList> callArgsStack_;							//"調用"命令參數棧
-	QVariantList emptyArgs_;										//空參數
-	QStack<VariantSafeHash> labalVarStack_;							//標籤變量名
-	VariantSafeHash emptyLabelVars_;								//空標籤變量名
+	QStack<qint64> callStack_;								//"調用"命令所在行棧
+	QStack<qint64> jmpStack_;								//"跳轉"命令所在行棧
+	QStack<QVariantList> callArgsStack_;					//"調用"命令參數棧
+	QVariantList emptyArgs_;								//空參數(參數棧為空得情況下壓入一個空容器)
+	QStack<QVariantHash> localVarStack_;					//局變量棧
+	QVariantHash emptyLocalVars_;							//空局變量(局變量棧為空得情況下壓入一個空容器)
 
-	TokenMap currentLineTokens_;									//當前行token
-	RESERVE currentType_ = TK_UNK;									//當前行第一個token類型
-	int lineNumber_ = 0;											//當前行號
+	TokenMap currentLineTokens_;							//當前行token
+	RESERVE currentType_ = TK_UNK;							//當前行第一個token類型
+	qint64 lineNumber_ = 0;									//當前行號
 
-	ParserError lastCriticalError_ = kNoError;						//最後一次錯誤
+	ParserError lastCriticalError_ = kNoError;				//最後一次錯誤
 
-	util::SafeData<QString> lastErrorMesssage_;						//最後一次錯誤信息
+	QString lastErrorMesssage_;								//最後一次錯誤信息
 
-	ParserCallBack callBack_ = nullptr;								//解析腳本回調函數
+	ParserCallBack callBack_ = nullptr;						//腳本回調函數
 
-	Mode mode_ = kSync;												//解析模式
+	Mode mode_ = kSync;										//解析模式(同步|異步)
 
-	bool dtorCallBackFlag_ = false;									//析構回調函數標記
-	bool ctorCallBackFlag_ = false;									//建構回調函數標記
+	bool dtorCallBackFlag_ = false;							//析構回調函數標記
+	bool ctorCallBackFlag_ = false;							//建構回調函數標記
+
+	bool isSubScript_ = false;								//是否是子腳本		
 };

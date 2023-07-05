@@ -7,13 +7,13 @@
 
 typedef struct break_marker_s
 {
-	int line = 0;
-	int count = 0;
-	int maker = 0;
+	qint64 line = 0;
+	qint64 count = 0;
+	qint64 maker = 0;
 	QString content = "\0";
 } break_marker_t;
 
-constexpr int DEFAULT_FUNCTION_TIMEOUT = 5000;
+constexpr qint64 DEFAULT_FUNCTION_TIMEOUT = 5000;
 
 class Interpreter : public ThreadPlugin
 {
@@ -41,9 +41,9 @@ public:
 
 	void doString(const QString& script, Interpreter* parent, VarShareMode shareMode);
 
-	void doFileWithThread(int beginLine, const QString& fileName);
+	void doFileWithThread(qint64 beginLine, const QString& fileName);
 
-	bool doFile(int beginLine, const QString& fileName, Interpreter* parent, VarShareMode shareMode, RunFileMode noShow = kSync);
+	bool doFile(qint64 beginLine, const QString& fileName, Interpreter* parent, VarShareMode shareMode, RunFileMode noShow = kSync);
 
 	void stop();
 
@@ -53,9 +53,9 @@ public:
 
 	inline bool isPaused() const { return isPaused_.load(std::memory_order_acquire); }
 
-	inline void setSubScript(bool is) { isSub = is; }
+	inline void setSubScript(bool is) { parser_.setSubScript(is); }
 
-	Q_REQUIRED_RESULT inline bool isSubScript() const { return isSub; }
+	Q_REQUIRED_RESULT inline bool isSubScript() const { return parser_.isSubScript(); }
 
 signals:
 	void finished();
@@ -66,10 +66,11 @@ public slots:
 
 private:
 	bool readFile(const QString& fileName, QString* pcontent, bool* isPrivate);
-	bool loadString(const QString& script, util::SafeHash<int, TokenMap>* ptokens, util::SafeHash<QString, int>* plabel);
+	bool loadString(const QString& script, QHash<qint64, TokenMap>* ptokens, QHash<QString, qint64>* plabel);
+
+	qint64 mainScriptCallBack(qint64 currentLine, const TokenMap& token);
+
 private:
-
-
 	enum CompareArea
 	{
 		kAreaPlayer,
@@ -232,168 +233,161 @@ private:
 
 private:
 	bool checkBattleThenWait();
-	bool findPath(QPoint dst, int steplen, int step_cost = 0, int timeout = DEFAULT_FUNCTION_TIMEOUT * 36, std::function<int(QPoint& dst)> callback = nullptr, bool noAnnounce = false);
+	bool findPath(QPoint dst, qint64 steplen, qint64 step_cost = 0, qint64 timeout = DEFAULT_FUNCTION_TIMEOUT * 36, std::function<qint64(QPoint& dst)> callback = nullptr, bool noAnnounce = false);
 
-	bool waitfor(int timeout, std::function<bool()> exprfun) const;
-	bool checkString(const TokenMap& TK, int idx, QString* ret) const;
-	bool checkInt(const TokenMap& TK, int idx, int* ret) const;
-#if 0
-	bool checkDouble(const TokenMap& TK, int idx, double* ret) const;
-#endif
-	bool toVariant(const TokenMap& TK, int idx, QVariant* ret) const;
-	int checkJump(const TokenMap& TK, int idx, bool expr, JumpBehavior behavior) const;
-	bool checkRange(const TokenMap& TK, int idx, int* min, int* max) const;
-	bool checkRelationalOperator(const TokenMap& TK, int idx, RESERVE* ret) const;
+	bool waitfor(qint64 timeout, std::function<bool()> exprfun);
+	bool checkString(const TokenMap& TK, qint64 idx, QString* ret);
+	bool checkInteger(const TokenMap& TK, qint64 idx, qint64* ret);
+	bool toVariant(const TokenMap& TK, qint64 idx, QVariant* ret);
+
+	qint64 checkJump(const TokenMap& TK, qint64 idx, bool expr, JumpBehavior behavior);
+	bool checkRange(const TokenMap& TK, qint64 idx, qint64* min, qint64* max);
+	bool checkRelationalOperator(const TokenMap& TK, qint64 idx, RESERVE* ret) const;
 
 	bool compare(const QVariant& a, const QVariant& b, RESERVE type) const;
 
-	bool compare(CompareArea area, const TokenMap& TK) const;
+	bool compare(CompareArea area, const TokenMap& TK);
 
 
 	void checkPause();
 
-	void updateGlobalVariables();
+	void logExport(qint64 currentline, const QString& text, qint64 color = 0);
 
-	void logExport(int currentline, const QString& text, int color = 0);
-
-	void setError(const QString& error) { parser_->setLastErrorMessage(error); }
+	void setError(const QString& error) { parser_.setLastErrorMessage(error); }
 private: //註冊給Parser的函數
 	//system
-	int test(int currentline, const TokenMap&) const;
-	int sleep(int currentline, const TokenMap&);
-	int press(int currentline, const TokenMap&);
-	int eo(int currentline, const TokenMap& TK);
-	int announce(int currentline, const TokenMap& TK);
-	int input(int currentline, const TokenMap& TK);
-	int messagebox(int currentline, const TokenMap& TK);
-	int talk(int currentline, const TokenMap& TK);
-	int talkandannounce(int currentline, const TokenMap& TK);
-	int logout(int currentline, const TokenMap& TK);
-	int logback(int currentline, const TokenMap& TK);
-	int cleanchat(int currentline, const TokenMap& TK);
-	int set(int currentline, const TokenMap& TK);
-	int savesetting(int currentline, const TokenMap& TK);
-	int loadsetting(int currentline, const TokenMap& TK);
-	int run(int currentline, const TokenMap& TK);
-	int dostring(int currentline, const TokenMap& TK);
-	int reg(int currentline, const TokenMap& TK);
+	qint64 test(qint64 currentline, const TokenMap& TK) const;
+	qint64 sleep(qint64 currentline, const TokenMap& TK);
+	qint64 press(qint64 currentline, const TokenMap& TK);
+	qint64 eo(qint64 currentline, const TokenMap& TK);
+	qint64 announce(qint64 currentline, const TokenMap& TK);
+	qint64 input(qint64 currentline, const TokenMap& TK);
+	qint64 messagebox(qint64 currentline, const TokenMap& TK);
+	qint64 talk(qint64 currentline, const TokenMap& TK);
+	qint64 talkandannounce(qint64 currentline, const TokenMap& TK);
+	qint64 logout(qint64 currentline, const TokenMap& TK);
+	qint64 logback(qint64 currentline, const TokenMap& TK);
+	qint64 cleanchat(qint64 currentline, const TokenMap& TK);
+	qint64 set(qint64 currentline, const TokenMap& TK);
+	qint64 savesetting(qint64 currentline, const TokenMap& TK);
+	qint64 loadsetting(qint64 currentline, const TokenMap& TK);
+	qint64 run(qint64 currentline, const TokenMap& TK);
+	qint64 dostring(qint64 currentline, const TokenMap& TK);
+	qint64 reg(qint64 currentline, const TokenMap& TK);
 
 	//check
-	int checkdaily(int currentline, const TokenMap& TK);
-	int isbattle(int currentline, const TokenMap& TK);
-	int isnormal(int currentline, const TokenMap& TK);
-	int isonline(int currentline, const TokenMap& TK);
-	int checkcoords(int currentline, const TokenMap& TK);
-	int checkmap(int currentline, const TokenMap& TK);
-	int checkmapnowait(int currentline, const TokenMap& TK);
-	int checkdialog(int currentline, const TokenMap& TK);
-	int checkchathistory(int currentline, const TokenMap& TK);
-	int checkunit(int currentline, const TokenMap& TK);
-	int checkplayerstatus(int currentline, const TokenMap& TK);
-	int checkpetstatus(int currentline, const TokenMap& TK);
-	int checkitemcount(int currentline, const TokenMap& TK);
-	int checkpetcount(int currentline, const TokenMap& TK);
-	int checkitemfull(int currentline, const TokenMap& TK);
-	int checkitem(int currentline, const TokenMap& TK);
-	int checkpet(int currentline, const TokenMap& TK);
+	qint64 checkdaily(qint64 currentline, const TokenMap& TK);
+	qint64 isbattle(qint64 currentline, const TokenMap& TK);
+	qint64 isnormal(qint64 currentline, const TokenMap& TK);
+	qint64 isonline(qint64 currentline, const TokenMap& TK);
+	qint64 checkcoords(qint64 currentline, const TokenMap& TK);
+	qint64 checkmap(qint64 currentline, const TokenMap& TK);
+	qint64 checkmapnowait(qint64 currentline, const TokenMap& TK);
+	qint64 checkdialog(qint64 currentline, const TokenMap& TK);
+	qint64 checkchathistory(qint64 currentline, const TokenMap& TK);
+	qint64 checkunit(qint64 currentline, const TokenMap& TK);
+	qint64 checkplayerstatus(qint64 currentline, const TokenMap& TK);
+	qint64 checkpetstatus(qint64 currentline, const TokenMap& TK);
+	qint64 checkitemcount(qint64 currentline, const TokenMap& TK);
+	qint64 checkpetcount(qint64 currentline, const TokenMap& TK);
+	qint64 checkitemfull(qint64 currentline, const TokenMap& TK);
+	qint64 checkitem(qint64 currentline, const TokenMap& TK);
+	qint64 checkpet(qint64 currentline, const TokenMap& TK);
 	//check-group
-	int checkteam(int currentline, const TokenMap& TK);
-	int checkteamcount(int currentline, const TokenMap& TK);
+	qint64 checkteam(qint64 currentline, const TokenMap& TK);
+	qint64 checkteamcount(qint64 currentline, const TokenMap& TK);
 
 
 	//move
-	int setdir(int currentline, const TokenMap& TK);
-	int move(int currentline, const TokenMap& TK);
-	int fastmove(int currentline, const TokenMap& TK);
-	int packetmove(int currentline, const TokenMap& TK);
-	int findpath(int currentline, const TokenMap& TK);
-	int movetonpc(int currentline, const TokenMap& TK);
-	int warp(int currentline, const TokenMap& TK);
+	qint64 setdir(qint64 currentline, const TokenMap& TK);
+	qint64 move(qint64 currentline, const TokenMap& TK);
+	qint64 fastmove(qint64 currentline, const TokenMap& TK);
+	qint64 packetmove(qint64 currentline, const TokenMap& TK);
+	qint64 findpath(qint64 currentline, const TokenMap& TK);
+	qint64 movetonpc(qint64 currentline, const TokenMap& TK);
+	qint64 warp(qint64 currentline, const TokenMap& TK);
 
 
 	//action
-	int useitem(int currentline, const TokenMap& TK);
-	int dropitem(int currentline, const TokenMap& TK);
-	int playerrename(int currentline, const TokenMap& TK);
-	int petrename(int currentline, const TokenMap& TK);
-	int setpetstate(int currentline, const TokenMap& TK);
-	int droppet(int currentline, const TokenMap& TK);
-	int buy(int currentline, const TokenMap& TK);
-	int sell(int currentline, const TokenMap& TK);
-	int sellpet(int currentline, const TokenMap& TK);
-	int make(int currentline, const TokenMap& TK);
-	int cook(int currentline, const TokenMap& TK);
-	int usemagic(int currentline, const TokenMap& TK);
-	int pickitem(int currentline, const TokenMap& TK);
-	int depositgold(int currentline, const TokenMap& TK);
-	int withdrawgold(int currentline, const TokenMap& TK);
-	int teleport(int currentline, const TokenMap& TK);
-	int addpoint(int currentline, const TokenMap& TK);
-	int learn(int currentline, const TokenMap& TK);
-	int trade(int currentline, const TokenMap& TK);
+	qint64 useitem(qint64 currentline, const TokenMap& TK);
+	qint64 dropitem(qint64 currentline, const TokenMap& TK);
+	qint64 playerrename(qint64 currentline, const TokenMap& TK);
+	qint64 petrename(qint64 currentline, const TokenMap& TK);
+	qint64 setpetstate(qint64 currentline, const TokenMap& TK);
+	qint64 droppet(qint64 currentline, const TokenMap& TK);
+	qint64 buy(qint64 currentline, const TokenMap& TK);
+	qint64 sell(qint64 currentline, const TokenMap& TK);
+	qint64 sellpet(qint64 currentline, const TokenMap& TK);
+	qint64 make(qint64 currentline, const TokenMap& TK);
+	qint64 cook(qint64 currentline, const TokenMap& TK);
+	qint64 usemagic(qint64 currentline, const TokenMap& TK);
+	qint64 pickitem(qint64 currentline, const TokenMap& TK);
+	qint64 depositgold(qint64 currentline, const TokenMap& TK);
+	qint64 withdrawgold(qint64 currentline, const TokenMap& TK);
+	qint64 teleport(qint64 currentline, const TokenMap& TK);
+	qint64 addpoint(qint64 currentline, const TokenMap& TK);
+	qint64 learn(qint64 currentline, const TokenMap& TK);
+	qint64 trade(qint64 currentline, const TokenMap& TK);
 
-	int recordequip(int currentline, const TokenMap& TK);
-	int wearequip(int currentline, const TokenMap& TK);
-	int unwearequip(int currentline, const TokenMap& TK);
-	int petequip(int currentline, const TokenMap& TK);
-	int petunequip(int currentline, const TokenMap& TK);
+	qint64 recordequip(qint64 currentline, const TokenMap& TK);
+	qint64 wearequip(qint64 currentline, const TokenMap& TK);
+	qint64 unwearequip(qint64 currentline, const TokenMap& TK);
+	qint64 petequip(qint64 currentline, const TokenMap& TK);
+	qint64 petunequip(qint64 currentline, const TokenMap& TK);
 
-	int depositpet(int currentline, const TokenMap& TK);
-	int deposititem(int currentline, const TokenMap& TK);
-	int withdrawpet(int currentline, const TokenMap& TK);
-	int withdrawitem(int currentline, const TokenMap& TK);
+	qint64 depositpet(qint64 currentline, const TokenMap& TK);
+	qint64 deposititem(qint64 currentline, const TokenMap& TK);
+	qint64 withdrawpet(qint64 currentline, const TokenMap& TK);
+	qint64 withdrawitem(qint64 currentline, const TokenMap& TK);
 
-	int mail(int currentline, const TokenMap& TK);
+	qint64 mail(qint64 currentline, const TokenMap& TK);
 
 	//action-group
-	int join(int currentline, const TokenMap& TK);
-	int leave(int currentline, const TokenMap& TK);
-	int kick(int currentline, const TokenMap& TK);
+	qint64 join(qint64 currentline, const TokenMap& TK);
+	qint64 leave(qint64 currentline, const TokenMap& TK);
+	qint64 kick(qint64 currentline, const TokenMap& TK);
 
-	int leftclick(int currentline, const TokenMap& TK);
-	int rightclick(int currentline, const TokenMap& TK);
-	int leftdoubleclick(int currentline, const TokenMap& TK);
-	int mousedragto(int currentline, const TokenMap& TK);
+	qint64 leftclick(qint64 currentline, const TokenMap& TK);
+	qint64 rightclick(qint64 currentline, const TokenMap& TK);
+	qint64 leftdoubleclick(qint64 currentline, const TokenMap& TK);
+	qint64 mousedragto(qint64 currentline, const TokenMap& TK);
 
 	//hide
-	int ocr(int currentline, const TokenMap& TK);
-	int dlg(int currentline, const TokenMap& TK);
-	int regex(int currentline, const TokenMap& TK);
-	int find(int currentline, const TokenMap& TK);
-	int half(int currentline, const TokenMap& TK);
-	int full(int currentline, const TokenMap& TK);
-	int upper(int currentline, const TokenMap& TK);
-	int lower(int currentline, const TokenMap& TK);
-	int replace(int currentline, const TokenMap& TK);
-	int toint(int currentline, const TokenMap& TK);
-	int tostr(int currentline, const TokenMap& TK);
-	//int todb(int currentline, const TokenMap& TK);
+	qint64 ocr(qint64 currentline, const TokenMap& TK);
+	qint64 dlg(qint64 currentline, const TokenMap& TK);
+	qint64 regex(qint64 currentline, const TokenMap& TK);
+	qint64 find(qint64 currentline, const TokenMap& TK);
+	qint64 half(qint64 currentline, const TokenMap& TK);
+	qint64 full(qint64 currentline, const TokenMap& TK);
+	qint64 upper(qint64 currentline, const TokenMap& TK);
+	qint64 lower(qint64 currentline, const TokenMap& TK);
+	qint64 replace(qint64 currentline, const TokenMap& TK);
+	qint64 toint(qint64 currentline, const TokenMap& TK);
+	qint64 tostr(qint64 currentline, const TokenMap& TK);
+	//qint64 todb(qint64 currentline, const TokenMap& TK);
 
 	//battle
-	int bh(int currentline, const TokenMap& TK);//atk
-	int bj(int currentline, const TokenMap& TK);//magic
-	int bp(int currentline, const TokenMap& TK);//skill
-	int bs(int currentline, const TokenMap& TK);//switch
-	int be(int currentline, const TokenMap& TK);//escape
-	int bd(int currentline, const TokenMap& TK);//defense
-	int bi(int currentline, const TokenMap& TK);//item
-	int bt(int currentline, const TokenMap& TK);//catch
-	int bn(int currentline, const TokenMap& TK);//nothing
-	int bw(int currentline, const TokenMap& TK);//petskill
-	int bwf(int currentline, const TokenMap& TK);//pet nothing
-	int bwait(int currentline, const TokenMap& TK);//wait
-	int bend(int currentline, const TokenMap& TK);//wait
+	qint64 bh(qint64 currentline, const TokenMap& TK);//atk
+	qint64 bj(qint64 currentline, const TokenMap& TK);//magic
+	qint64 bp(qint64 currentline, const TokenMap& TK);//skill
+	qint64 bs(qint64 currentline, const TokenMap& TK);//switch
+	qint64 be(qint64 currentline, const TokenMap& TK);//escape
+	qint64 bd(qint64 currentline, const TokenMap& TK);//defense
+	qint64 bi(qint64 currentline, const TokenMap& TK);//item
+	qint64 bt(qint64 currentline, const TokenMap& TK);//catch
+	qint64 bn(qint64 currentline, const TokenMap& TK);//nothing
+	qint64 bw(qint64 currentline, const TokenMap& TK);//petskill
+	qint64 bwf(qint64 currentline, const TokenMap& TK);//pet nothing
+	qint64 bwait(qint64 currentline, const TokenMap& TK);//wait
+	qint64 bend(qint64 currentline, const TokenMap& TK);//wait
+
 
 private:
-
-private:
-	int beginLine_ = 0;
-
-	bool isSub = false;
+	qint64 beginLine_ = 0;
 
 	QThread* thread_ = nullptr;
 
-	QScopedPointer<Parser> parser_;
+	Parser parser_;
 
 	std::atomic_bool isRunning_ = false;
 
@@ -406,4 +400,5 @@ private:
 	QList<QSharedPointer<Interpreter>> subInterpreterList_;
 	QFutureSynchronizer<bool> futureSync_;
 	ParserCallBack pCallback = nullptr;
+
 };

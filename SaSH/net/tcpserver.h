@@ -2030,6 +2030,8 @@ public://actions
 		return IS_ONLINE_FLAG.load(std::memory_order_acquire);
 	}
 
+	PC getPC() { QMutexLocker lock(&pcMutex_); return pc; }
+
 	QPoint getPoint();
 	void setPoint(const QPoint& pos);
 
@@ -2754,7 +2756,9 @@ public:
 	util::SafeData<currencydata_t> currencyData = {};
 	util::SafeData<customdialog_t> customDialog = {};
 
+	QReadWriteLock pointMutex;//用於保護人物座標更新順序
 	QMutex swapItemMutex;//用於保護物品數據更新順序
+	QMutex pcMutex_;//用於保護人物數據更新順序
 	PC pc = {};
 
 	PET pet[MAX_PET] = {};
@@ -2771,7 +2775,7 @@ public:
 
 	PET_SKILL petSkill[MAX_PET][MAX_SKILL] = {};
 
-	util::SafeData<dialog_t> currentDialog = {};
+	dialog_t currentDialog = {};
 	util::SafeHash<int, mapunit_t> mapUnitHash;
 	util::SafeHash<QPoint, mapunit_t> npcUnitPointHash;
 	util::SafeQueue<QPair<int, QString>> chatQueue;

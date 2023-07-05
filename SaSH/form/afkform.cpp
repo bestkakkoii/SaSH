@@ -835,7 +835,7 @@ void AfkForm::onApplyHashSettingsToUI()
 	if (!injector.server.isNull() && injector.server->getOnlineFlag())
 	{
 		QString title = tr("AfkForm");
-		QString newTitle = QString("[%1] %2").arg(injector.server->pc.name).arg(title);
+		QString newTitle = QString("[%1] %2").arg(injector.server->getPC().name).arg(title);
 		setWindowTitle(newTitle);
 	}
 

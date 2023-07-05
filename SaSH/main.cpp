@@ -73,6 +73,7 @@ void qtMessageHandler(QtMsgType type, const QMessageLogContext& context, const Q
 #endif
 	if (type == QtCriticalMsg || type == QtFatalMsg)
 	{
+		CreateConsole();
 		try
 		{
 			throw QException();
@@ -84,13 +85,11 @@ void qtMessageHandler(QtMsgType type, const QMessageLogContext& context, const Q
 			out.setCodec("UTF-8");
 			if (!QString(e.what()).contains("Unknown exception"))
 			{
-				CreateConsole();
 				out << QString("Qt exception caught: ") << QString(e.what()) << Qt::endl;
 				out << QString("Context: ") << context.file << ":" << context.line << " - " << context.function << Qt::endl;
 				out << QString("Message: ") << msg << QString(e.what()) << Qt::endl;
 				printStackTrace();
 				system("pause");
-				MINT::NtTerminateProcess(::GetCurrentProcess(), 0);
 			}
 #else
 			Q_UNUSED(e);
@@ -108,10 +107,10 @@ LONG CALLBACK MinidumpCallback(PEXCEPTION_POINTERS pException)
 		if (!pException)
 			break;
 
-		if (pException->ExceptionRecord->ExceptionFlags != EXCEPTION_NONCONTINUABLE)
-		{
-			return EXCEPTION_CONTINUE_EXECUTION;
-		}
+		//if (pException->ExceptionRecord->ExceptionFlags != EXCEPTION_NONCONTINUABLE)
+		//{
+		//	return EXCEPTION_CONTINUE_EXECUTION;
+		//}
 
 		auto PathFileExists = [](const wchar_t* name)->BOOL
 		{
@@ -187,7 +186,7 @@ LONG CALLBACK MinidumpCallback(PEXCEPTION_POINTERS pException)
 		else
 		{
 			QString msg = QString(
-				"A warning error occured, it's a continuable exception\r\n\r\n"
+				"A warning error occured, it's a continuable exception \r\npress \'continue\' to skip this exception\r\n\r\n"
 				"Basic Infomations:\r\n\r\n"
 				"ExceptionAddress:0x%1\r\n"
 				"ExceptionFlags:%2\r\n"
@@ -310,9 +309,10 @@ int main(int argc, char* argv[])
 	}
 
 #if QT_NO_DEBUG
+	qInstallMessageHandler(qtMessageHandler);
 	SetUnhandledExceptionFilter(MinidumpCallback);
 	//AddVectoredExceptionHandler(0, MinidumpCallback);
-	qInstallMessageHandler(qtMessageHandler);
+
 #endif
 
 	int count = QThread::idealThreadCount();

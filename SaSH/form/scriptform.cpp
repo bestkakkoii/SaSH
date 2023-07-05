@@ -306,7 +306,7 @@ void ScriptForm::loadFile(const QString& fileName)
 
 void ScriptForm::onScriptContentChanged(const QString& fileName, const QVariant& vtokens)
 {
-	QHash<int, TokenMap> tokens = vtokens.value<QHash<int, TokenMap>>();
+	QHash<qint64, TokenMap> tokens = vtokens.value<QHash<qint64, TokenMap>>();
 
 	int rowCount = tokens.size();
 
@@ -342,7 +342,7 @@ void ScriptForm::onCurrentTableWidgetItemChanged(QTableWidgetItem* current, QTab
 	selectedRow_ = row;
 
 	Injector& injector = Injector::getInstance();
-	if (injector.IS_SCRIPT_FLAG)
+	if (injector.IS_SCRIPT_FLAG.load(std::memory_order_acquire))
 		return;
 
 	if (row == 0)
@@ -380,7 +380,7 @@ void ScriptForm::onScriptTreeWidgetDoubleClicked(QTreeWidgetItem* item, int colu
 	do
 	{
 		Injector& injector = Injector::getInstance();
-		if (injector.IS_SCRIPT_FLAG)
+		if (injector.IS_SCRIPT_FLAG.load(std::memory_order_acquire))
 			break;
 
 		/*得到文件路徑*/

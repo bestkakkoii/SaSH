@@ -5,7 +5,7 @@
 
 #include "signaldispatcher.h"
 
-int Interpreter::reg(int currentline, const TokenMap& TK)
+qint64 Interpreter::reg(qint64 currentline, const TokenMap& TK)
 {
 	QString text;
 	if (!checkString(TK, 1, &text))
@@ -15,39 +15,41 @@ int Interpreter::reg(int currentline, const TokenMap& TK)
 	if (!checkString(TK, 2, &typeStr))
 		return Parser::kArgError;
 
-	util::SafeHash<QString, int>& hash = parser_->getLabels();
+	QHash<QString, qint64> hash = parser_.getLabels();
 	if (!hash.contains(text))
 		return Parser::kArgError;
 
-	parser_->insertUserCallBack(text, typeStr);
+	parser_.insertUserCallBack(text, typeStr);
 	return Parser::kNoChange;
 }
 
-int Interpreter::sleep(int currentline, const TokenMap& TK)
+qint64 Interpreter::sleep(qint64 currentline, const TokenMap& TK)
 {
-	int t;
-	if (!checkInt(TK, 1, &t))
+	qint64 t;
+	if (!checkInteger(TK, 1, &t))
 		return Parser::kArgError;
 
-	if (t >= 1000u)
+	if (t >= 1000)
 	{
-		int i = 0;
-		for (; i < t / 1000; ++i)
+		qint64 i = 0;
+		qint64 size = t / 1000;
+		for (; i < size; ++i)
 		{
 			QThread::msleep(1000UL);
-			QThread::yieldCurrentThread();
 			if (isInterruptionRequested())
 				break;
 		}
-		QThread::msleep(static_cast<DWORD>(i) % 1000UL);
+
+		if (i % 1000 > 0)
+			QThread::msleep(static_cast<DWORD>(i) % 1000UL);
 	}
-	else
+	else if (t > 0)
 		QThread::msleep(static_cast<DWORD>(t));
 
 	return Parser::kNoChange;
 }
 
-int Interpreter::press(int currentline, const TokenMap& TK)
+qint64 Interpreter::press(qint64 currentline, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance();
 
@@ -59,11 +61,11 @@ int Interpreter::press(int currentline, const TokenMap& TK)
 	QString text;
 	checkString(TK, 1, &text);
 
-	int row = 0;
-	checkInt(TK, 1, &row);
+	qint64 row = 0;
+	checkInteger(TK, 1, &row);
 
 	QString npcName;
-	int npcId = -1;
+	qint64 npcId = -1;
 	checkString(TK, 2, &npcName);
 	mapunit_t unit;
 	if (!npcName.isEmpty() && injector.server->findUnit(npcName, util::OBJ_NPC, &unit))
@@ -71,8 +73,8 @@ int Interpreter::press(int currentline, const TokenMap& TK)
 		npcId = unit.id;
 	}
 
-	int dialogid = -1;
-	checkInt(TK, 3, &dialogid);
+	qint64 dialogid = -1;
+	checkInteger(TK, 3, &dialogid);
 
 	if (text.isEmpty() && row == 0)
 		return Parser::kArgError;
@@ -84,7 +86,7 @@ int Interpreter::press(int currentline, const TokenMap& TK)
 			injector.server->press(button, dialogid, npcId);
 		else
 		{
-			dialog_t dialog = injector.server->currentDialog.get();
+			dialog_t dialog = injector.server->currentDialog;
 			QStringList textList = dialog.linebuttontext;
 			if (!textList.isEmpty())
 			{
@@ -96,7 +98,7 @@ int Interpreter::press(int currentline, const TokenMap& TK)
 					isExact = false;
 				}
 
-				for (int i = 0; i < textList.size(); ++i)
+				for (qint64 i = 0; i < textList.size(); ++i)
 				{
 					if (!isExact && textList.at(i).toUpper().contains(newText))
 					{
@@ -118,7 +120,7 @@ int Interpreter::press(int currentline, const TokenMap& TK)
 	return Parser::kNoChange;
 }
 
-int Interpreter::eo(int currentline, const TokenMap& TK)
+qint64 Interpreter::eo(qint64 currentline, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance();
 	if (injector.server.isNull())
@@ -134,20 +136,16 @@ int Interpreter::eo(int currentline, const TokenMap& TK)
 	{
 		bool bret = waitfor(5000, []() { return !Injector::getInstance().server->isEOTTLSend.load(std::memory_order_acquire); });
 
-		int result = bret ? injector.server->lastEOTime.load(std::memory_order_acquire) : -1;
+		qint64 result = bret ? injector.server->lastEOTime.load(std::memory_order_acquire) : -1;
 
-		util::SafeHash<QString, QVariant>& args = parser_->getLabelVarsRef();
-		if (args.contains(varName))
-			args.insert(varName, result);
-		else
-			parser_->getVariablesPointer()->insert(varName, result);
+		parser_.insertVar(varName, result);
 	}
 
 
 	return Parser::kNoChange;
 }
 
-int Interpreter::announce(int currentline, const TokenMap& TK)
+qint64 Interpreter::announce(qint64 currentline, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance();
 
@@ -155,15 +153,15 @@ int Interpreter::announce(int currentline, const TokenMap& TK)
 	QString text;
 	if (!checkString(TK, 1, &text))
 	{
-		int value = 0;
-		if (!checkInt(TK, 1, &value))
+		qint64 value = 0;
+		if (!checkInteger(TK, 1, &value))
 			return Parser::kArgError;
 
 		text = QString::number(value);
 	}
 
-	int color = 4;
-	checkInt(TK, 2, &color);
+	qint64 color = 4;
+	checkInteger(TK, 2, &color);
 	if (color == -1)
 		color = QRandomGenerator::global()->bounded(0, 10);
 	else if (color < -1)
@@ -183,7 +181,7 @@ int Interpreter::announce(int currentline, const TokenMap& TK)
 	return Parser::kNoChange;
 }
 
-int Interpreter::input(int currentline, const TokenMap& TK)
+qint64 Interpreter::input(qint64 currentline, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance();
 
@@ -193,15 +191,15 @@ int Interpreter::input(int currentline, const TokenMap& TK)
 	QString text;
 	if (!checkString(TK, 1, &text))
 	{
-		int value = 0;
-		if (!checkInt(TK, 1, &value))
+		qint64 value = 0;
+		if (!checkInteger(TK, 1, &value))
 			return Parser::kArgError;
 
 		text = QString::number(value);
 	}
 
 	QString npcName;
-	int npcId = -1;
+	qint64 npcId = -1;
 	checkString(TK, 2, &npcName);
 	mapunit_t unit;
 	if (!npcName.isEmpty() && injector.server->findUnit(npcName, util::OBJ_NPC, &unit))
@@ -209,28 +207,28 @@ int Interpreter::input(int currentline, const TokenMap& TK)
 		npcId = unit.id;
 	}
 
-	int dialogid = -1;
-	checkInt(TK, 3, &dialogid);
+	qint64 dialogid = -1;
+	checkInteger(TK, 3, &dialogid);
 
 	injector.server->inputtext(text, dialogid, npcId);
 
 	return Parser::kNoChange;
 }
 
-int Interpreter::messagebox(int currentline, const TokenMap& TK)
+qint64 Interpreter::messagebox(qint64 currentline, const TokenMap& TK)
 {
 	QString text;
 	if (!checkString(TK, 1, &text))
 	{
-		int value = 0;
-		if (!checkInt(TK, 1, &value))
+		qint64 value = 0;
+		if (!checkInteger(TK, 1, &value))
 			return Parser::kArgError;
 
 		text = QString::number(value);
 	}
 
-	int type = 0;
-	checkInt(TK, 2, &type);
+	qint64 type = 0;
+	checkInteger(TK, 2, &type);
 
 	QString varName;
 	checkString(TK, 3, &varName);
@@ -242,26 +240,18 @@ int Interpreter::messagebox(int currentline, const TokenMap& TK)
 		emit signalDispatcher.messageBoxShow(text, type, nullptr);
 	else
 	{
-		int nret = QMessageBox::StandardButton::NoButton;
+		qint32 nret = QMessageBox::StandardButton::NoButton;
 		emit signalDispatcher.messageBoxShow(text, type, &nret);
 		if (nret != QMessageBox::StandardButton::NoButton)
 		{
-			VariantSafeHash args = parser_->getLabelVarsRef();
-			if (args.contains(varName))
-			{
-				args.insert(varName, nret == QMessageBox::StandardButton::Yes ? "yes" : "no");
-				return Parser::kNoChange;
-			}
-
-			QSharedPointer<VariantSafeHash> vars = parser_->getVariablesPointer();
-			vars->insert(varName, nret == QMessageBox::StandardButton::Yes ? "yes" : "no");
+			parser_.insertVar(varName, nret == QMessageBox::StandardButton::Yes ? "yes" : "no");
 		}
 	}
 
 	return Parser::kNoChange;
 }
 
-int Interpreter::talk(int currentline, const TokenMap& TK)
+qint64 Interpreter::talk(qint64 currentline, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance();
 
@@ -271,21 +261,21 @@ int Interpreter::talk(int currentline, const TokenMap& TK)
 	QString text;
 	if (!checkString(TK, 1, &text))
 	{
-		int value = 0;
-		if (!checkInt(TK, 1, &value))
+		qint64 value = 0;
+		if (!checkInteger(TK, 1, &value))
 			return Parser::kArgError;
 
 		text = QString::number(value);
 	}
 
-	int color = 4;
-	checkInt(TK, 2, &color);
+	qint64 color = 4;
+	checkInteger(TK, 2, &color);
 	if (color < 0)
 		color = QRandomGenerator::global()->bounded(0, 10);
 
 	TalkMode talkmode = kTalkNormal;
-	int nTalkMode = 0;
-	checkInt(TK, 3, &nTalkMode);
+	qint64 nTalkMode = 0;
+	checkInteger(TK, 3, &nTalkMode);
 	if (nTalkMode > 0 && nTalkMode < kTalkModeMax)
 	{
 		--nTalkMode;
@@ -297,13 +287,13 @@ int Interpreter::talk(int currentline, const TokenMap& TK)
 	return Parser::kNoChange;
 }
 
-int Interpreter::talkandannounce(int currentline, const TokenMap& TK)
+qint64 Interpreter::talkandannounce(qint64 currentline, const TokenMap& TK)
 {
 	announce(currentline, TK);
 	return talk(currentline, TK);
 }
 
-int Interpreter::logout(int currentline, const TokenMap& TK)
+qint64 Interpreter::logout(qint64 currentline, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance();
 	if (!injector.server.isNull())
@@ -312,7 +302,7 @@ int Interpreter::logout(int currentline, const TokenMap& TK)
 	return Parser::kNoChange;
 }
 
-int Interpreter::logback(int currentline, const TokenMap& TK)
+qint64 Interpreter::logback(qint64 currentline, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance();
 	if (injector.server.isNull())
@@ -325,7 +315,7 @@ int Interpreter::logback(int currentline, const TokenMap& TK)
 	return Parser::kNoChange;
 }
 
-int Interpreter::cleanchat(int currentline, const TokenMap& TK)
+qint64 Interpreter::cleanchat(qint64 currentline, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance();
 	if (!injector.server.isNull())
@@ -334,7 +324,7 @@ int Interpreter::cleanchat(int currentline, const TokenMap& TK)
 	return Parser::kNoChange;
 }
 
-int Interpreter::savesetting(int currentline, const TokenMap& TK)
+qint64 Interpreter::savesetting(qint64 currentline, const TokenMap& TK)
 {
 	QString fileName;
 	if (!checkString(TK, 1, &fileName))
@@ -345,7 +335,7 @@ int Interpreter::savesetting(int currentline, const TokenMap& TK)
 			if (injector.server.isNull())
 				return Parser::kError;
 
-			fileName = injector.server->pc.name;
+			fileName = injector.server->getPC().name;
 		}
 	}
 
@@ -370,7 +360,7 @@ int Interpreter::savesetting(int currentline, const TokenMap& TK)
 	return Parser::kNoChange;
 }
 
-int Interpreter::loadsetting(int currentline, const TokenMap& TK)
+qint64 Interpreter::loadsetting(qint64 currentline, const TokenMap& TK)
 {
 	QString fileName;
 	if (!checkString(TK, 1, &fileName))
@@ -381,7 +371,7 @@ int Interpreter::loadsetting(int currentline, const TokenMap& TK)
 			if (injector.server.isNull())
 				return Parser::kError;
 
-			fileName = injector.server->pc.name;
+			fileName = injector.server->getPC().name;
 		}
 	}
 
@@ -409,7 +399,7 @@ int Interpreter::loadsetting(int currentline, const TokenMap& TK)
 	return Parser::kNoChange;
 }
 
-int Interpreter::set(int currentline, const TokenMap& TK)
+qint64 Interpreter::set(qint64 currentline, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance();
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
@@ -664,20 +654,20 @@ int Interpreter::set(int currentline, const TokenMap& TK)
 
 	if (type == util::kBattleCharNormalActionTypeValue)
 	{
-		int value = 0;
-		checkInt(TK, 2, &value);
+		qint64 value = 0;
+		checkInteger(TK, 2, &value);
 		--value;
 		if (value < 0)
 			value = 0;
 
-		int value2 = 0;
-		checkInt(TK, 3, &value2);
+		qint64 value2 = 0;
+		checkInteger(TK, 3, &value2);
 		--value2;
 		if (value2 < 0)
 			value2 = 0;
 
-		int value3 = 0;
-		checkInt(TK, 4, &value3);
+		qint64 value3 = 0;
+		checkInteger(TK, 4, &value3);
 		--value3;
 		if (value3 < 0)
 			value3 = 0;
@@ -692,20 +682,20 @@ int Interpreter::set(int currentline, const TokenMap& TK)
 	}
 	else if (type == util::kBattlePetNormalActionTypeValue)
 	{
-		int value = 0;
-		checkInt(TK, 2, &value);
+		qint64 value = 0;
+		checkInteger(TK, 2, &value);
 		--value;
 		if (value < 0)
 			value = 0;
 
-		int value2 = 0;
-		checkInt(TK, 3, &value2);
+		qint64 value2 = 0;
+		checkInteger(TK, 3, &value2);
 		--value2;
 		if (value2 < 0)
 			value2 = 0;
 
-		int value3 = 0;
-		checkInt(TK, 4, &value3);
+		qint64 value3 = 0;
+		checkInteger(TK, 4, &value3);
 		--value3;
 		if (value3 < 0)
 			value3 = 0;
@@ -730,8 +720,8 @@ int Interpreter::set(int currentline, const TokenMap& TK)
 	case util::kPositionValue://位置
 	case util::kBattleCatchModeValue://戰鬥捕捉模式
 	{
-		int value = 0;
-		if (!checkInt(TK, 2, &value))
+		qint64 value = 0;
+		if (!checkInteger(TK, 2, &value))
 			return Parser::kArgError;
 		--value;
 		if (value < 0)
@@ -754,8 +744,8 @@ int Interpreter::set(int currentline, const TokenMap& TK)
 	case util::kScriptSpeedValue://腳本速度
 	case util::kBattleActionDelayValue:
 	{
-		int value = 0;
-		if (!checkInt(TK, 2, &value))
+		qint64 value = 0;
+		if (!checkInteger(TK, 2, &value))
 			return Parser::kArgError;
 
 		if (value < 0)
@@ -813,8 +803,8 @@ int Interpreter::set(int currentline, const TokenMap& TK)
 	case util::kSwitcherJobEnable:
 	case util::kSwitcherWorldEnable:
 	{
-		int value = 0;
-		if (!checkInt(TK, 2, &value))
+		qint64 value = 0;
+		if (!checkInteger(TK, 2, &value))
 			return Parser::kArgError;
 		bool ok = value > 0;
 		if (value < 0)
@@ -857,8 +847,8 @@ int Interpreter::set(int currentline, const TokenMap& TK)
 	case util::kAutoJoinEnable:
 	case util::kLockPetScheduleEnable:
 	{
-		int value = 0;
-		if (!checkInt(TK, 2, &value))
+		qint64 value = 0;
+		if (!checkInteger(TK, 2, &value))
 			return Parser::kArgError;
 		bool ok = value > 0;
 		if (value < 0)
@@ -909,7 +899,7 @@ int Interpreter::set(int currentline, const TokenMap& TK)
 		break;
 	}
 
-	//0:close >1:open int value
+	//0:close >1:open qint64 value
 	switch (type)
 	{
 	case util::kBattleCatchPetSkillEnable:
@@ -919,8 +909,8 @@ int Interpreter::set(int currentline, const TokenMap& TK)
 	case util::kLockPetEnable:
 	case util::kLockRideEnable:
 	{
-		int value = 0;
-		if (!checkInt(TK, 2, &value))
+		qint64 value = 0;
+		if (!checkInteger(TK, 2, &value))
 			return Parser::kArgError;
 		bool ok = value > 0;
 		--value;
@@ -954,20 +944,20 @@ int Interpreter::set(int currentline, const TokenMap& TK)
 		break;
 	}
 
-	//0:close >1:open two int value
+	//0:close >1:open two qint64 value
 	switch (type)
 	{
 	case util::kBattleCatchPlayerMagicEnable:
 	{
-		int value = 0;
-		if (!checkInt(TK, 2, &value))
+		qint64 value = 0;
+		if (!checkInteger(TK, 2, &value))
 			return Parser::kArgError;
 		bool ok = value > 0;
 		if (value < 0)
 			value = 0;
 
-		int value2 = 0;
-		checkInt(TK, 3, &value2);
+		qint64 value2 = 0;
+		checkInteger(TK, 3, &value2);
 
 
 		--value2;
@@ -994,32 +984,32 @@ int Interpreter::set(int currentline, const TokenMap& TK)
 	case util::kBattlePetRoundActionRoundValue:
 	case util::kBattleCharRoundActionRoundValue:
 	{
-		int value = 0;
-		checkInt(TK, 2, &value);
+		qint64 value = 0;
+		checkInteger(TK, 2, &value);
 		bool ok = value > 0;
 		if (value < 0)
 			value = 0;
 
-		int value2 = 0;
-		checkInt(TK, 3, &value2);
+		qint64 value2 = 0;
+		checkInteger(TK, 3, &value2);
 		--value2;
 		if (value2 < 0)
 			value2 = 0;
 
-		int value3 = 0;
-		checkInt(TK, 4, &value3);
+		qint64 value3 = 0;
+		checkInteger(TK, 4, &value3);
 		--value3;
 		if (value3 < 0)
 			value3 = 0;
 
-		int value4 = 0;
-		checkInt(TK, 5, &value4);
+		qint64 value4 = 0;
+		checkInteger(TK, 5, &value4);
 		--value4;
 		if (value4 < 0)
 			value4 = 0;
 
-		int value5 = util::kSelectEnemyAny;
-		checkInt(TK, 6, &value5);
+		qint64 value5 = util::kSelectEnemyAny;
+		checkInteger(TK, 6, &value5);
 		if (value5 < 0)
 			value5 = util::kSelectEnemyAny;
 
@@ -1053,8 +1043,8 @@ int Interpreter::set(int currentline, const TokenMap& TK)
 	case util::kBattleMagicHealEnable:
 	case util::kNormalMagicHealEnable:
 	{
-		int value = 0;
-		if (!checkInt(TK, 2, &value))
+		qint64 value = 0;
+		if (!checkInteger(TK, 2, &value))
 			return Parser::kArgError;
 
 		bool ok = value > 0;
@@ -1064,26 +1054,26 @@ int Interpreter::set(int currentline, const TokenMap& TK)
 			value = 0;
 		injector.setEnableHash(type, ok);
 
-		int value2 = 0;
-		checkInt(TK, 3, &value2);
+		qint64 value2 = 0;
+		checkInteger(TK, 3, &value2);
 		--value2;
 		if (value2 < 0)
 			value2 = 0;
 
-		int value3 = 0;
-		checkInt(TK, 4, &value3);
+		qint64 value3 = 0;
+		checkInteger(TK, 4, &value3);
 		--value3;
 		if (value3 < 0)
 			value3 = 0;
 
-		int value4 = 0;
-		checkInt(TK, 5, &value4);
+		qint64 value4 = 0;
+		checkInteger(TK, 5, &value4);
 		--value4;
 		if (value4 < 0)
 			value4 = 0;
 
-		int value5 = util::kSelectSelf | util::kSelectPet;
-		checkInt(TK, 6, &value5);
+		qint64 value5 = util::kSelectSelf | util::kSelectPet;
+		checkInteger(TK, 6, &value5);
 
 		if (type == util::kNormalMagicHealEnable && ok)
 		{
@@ -1134,8 +1124,8 @@ int Interpreter::set(int currentline, const TokenMap& TK)
 		QString text;
 		if (!checkString(TK, 2, &text))
 		{
-			int value = -1;
-			if (!checkInt(TK, 2, &value))
+			qint64 value = -1;
+			if (!checkInteger(TK, 2, &value))
 				return Parser::kArgError;
 
 			text = QString::number(value);
@@ -1153,7 +1143,7 @@ int Interpreter::set(int currentline, const TokenMap& TK)
 
 
 ///////////////////////////////////////////////////////////////
-int Interpreter::dlg(int currentline, const TokenMap& TK)
+qint64 Interpreter::dlg(qint64 currentline, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance();
 
@@ -1173,20 +1163,20 @@ int Interpreter::dlg(int currentline, const TokenMap& TK)
 	if (!checkString(TK, 3, &text))
 		return Parser::kArgError;
 
-	int timeout = DEFAULT_FUNCTION_TIMEOUT;
-	checkInt(TK, 4, &timeout);
+	qint64 timeout = DEFAULT_FUNCTION_TIMEOUT;
+	checkInteger(TK, 4, &timeout);
 
 	text.replace("\\n", "\n");
 
 	buttonStrs = buttonStrs.toUpper();
 	QStringList buttonStrList = buttonStrs.split(util::rexOR, Qt::SkipEmptyParts);
-	util::SafeVector<int> buttonVec;
-	unsigned int buttonFlag = 0;
+	util::SafeVector<qint64> buttonVec;
+	quint32 buttonFlag = 0;
 	for (const QString& str : buttonStrList)
 	{
 		if (!buttonMap.contains(str))
 			return Parser::kArgError;
-		unsigned int value = buttonMap.value(str);
+		quint32 value = buttonMap.value(str);
 		buttonFlag |= value;
 	}
 
@@ -1227,12 +1217,12 @@ int Interpreter::dlg(int currentline, const TokenMap& TK)
 	else
 		result = type;
 
-	parser_->getVariablesPointer()->insert(varName, result);
+	parser_.insertVar(varName, result);
 	injector.server->IS_WAITFOR_CUSTOM_DIALOG_FLAG = false;
 	return checkJump(TK, 6, bret, FailedJump);
 }
 
-int Interpreter::regex(int currentline, const TokenMap& TK)
+qint64 Interpreter::regex(qint64 currentline, const TokenMap& TK)
 {
 	//Injector& injector = Injector::getInstance();
 
@@ -1249,15 +1239,15 @@ int Interpreter::regex(int currentline, const TokenMap& TK)
 	if (text.isEmpty())
 		return Parser::kArgError;
 
-	int capture = 1;
-	checkInt(TK, 4, &capture);
+	qint64 capture = 1;
+	checkInteger(TK, 4, &capture);
 
-	int nglobal = 0;
-	checkInt(TK, 5, &nglobal);
+	qint64 nglobal = 0;
+	checkInteger(TK, 5, &nglobal);
 	bool isGlobal = (nglobal > 0);
 
-	int maxCapture = 0;
-	checkInt(TK, 6, &maxCapture);
+	qint64 maxCapture = 0;
+	checkInteger(TK, 6, &maxCapture);
 
 	const QRegularExpression regex(text);
 
@@ -1277,7 +1267,7 @@ int Interpreter::regex(int currentline, const TokenMap& TK)
 	else
 	{
 		QRegularExpressionMatchIterator matchs = regex.globalMatch(varValue);
-		int n = 0;
+		qint64 n = 0;
 		while (matchs.hasNext())
 		{
 			QRegularExpressionMatch match = matchs.next();
@@ -1293,16 +1283,12 @@ int Interpreter::regex(int currentline, const TokenMap& TK)
 		}
 	}
 
-	util::SafeHash<QString, QVariant>& args = parser_->getLabelVarsRef();
-	if (args.contains(varName))
-		args.insert(varName, result);
-	else
-		parser_->getVariablesPointer()->insert(varName, result);
+	parser_.insertVar(varName, result);
 
 	return Parser::kNoChange;
 }
 
-int Interpreter::find(int currentline, const TokenMap& TK)
+qint64 Interpreter::find(qint64 currentline, const TokenMap& TK)
 {
 	QString varName = TK.value(1).data.toString();
 	if (varName.isEmpty())
@@ -1322,31 +1308,27 @@ int Interpreter::find(int currentline, const TokenMap& TK)
 
 	//查找 src 中 text1 到 text2 之间的文本 如果 text2 为空 则查找 text1 到行尾的文本
 
-	int pos1 = varValue.indexOf(text1);
+	qint64 pos1 = varValue.indexOf(text1);
 	if (pos1 < 0)
 		return Parser::kNoChange;
 
-	int pos2 = -1;
+	qint64 pos2 = -1;
 	if (text2.isEmpty())
 		pos2 = varValue.length();
 	else
-		pos2 = varValue.indexOf(text2, pos1 + text1.length());
+		pos2 = static_cast<qint64>(varValue.indexOf(text2, pos1 + text1.length()));
 
 	if (pos2 < 0)
 		return Parser::kNoChange;
 
 	QString result = varValue.mid(pos1 + text1.length(), pos2 - pos1 - text1.length());
 
-	util::SafeHash<QString, QVariant>& args = parser_->getLabelVarsRef();
-	if (args.contains(varName))
-		args.insert(varName, result);
-	else
-		parser_->getVariablesPointer()->insert(varName, result);
+	parser_.insertVar(varName, result);
 
 	return Parser::kNoChange;
 }
 
-int Interpreter::half(int currentline, const TokenMap& TK)
+qint64 Interpreter::half(qint64 currentline, const TokenMap& TK)
 {
 	const QString FullWidth = "０１２３４５６７８９"
 		"ａｂｃｄｅｆｇｈｉｊｋｌｍｎｏｐｑｒｓｔｕｖｗｘｙｚ"
@@ -1364,21 +1346,17 @@ int Interpreter::half(int currentline, const TokenMap& TK)
 		return Parser::kArgError;
 
 	QString result = text;
-	int size = FullWidth.size();
-	for (int i = 0; i < size; ++i)
+	qint64 size = FullWidth.size();
+	for (qint64 i = 0; i < size; ++i)
 	{
-		result.replace(FullWidth[i], HalfWidth[i]);
+		result.replace(FullWidth.at(i), HalfWidth.at(i));
 	}
 
-	util::SafeHash<QString, QVariant>& args = parser_->getLabelVarsRef();
-	if (args.contains(varName))
-		args.insert(varName, result);
-	else
-		parser_->getVariablesPointer()->insert(varName, result);
+	parser_.insertVar(varName, result);
 	return Parser::kNoChange;
 }
 
-int Interpreter::full(int currentline, const TokenMap& TK)
+qint64 Interpreter::full(qint64 currentline, const TokenMap& TK)
 {
 	const QString FullWidth = "０１２３４５６７８９"
 		"ａｂｃｄｅｆｇｈｉｊｋｌｍｎｏｐｑｒｓｔｕｖｗｘｙｚ"
@@ -1396,21 +1374,18 @@ int Interpreter::full(int currentline, const TokenMap& TK)
 		return Parser::kArgError;
 
 	QString result = text;
-	int size = FullWidth.size();
-	for (int i = 0; i < size; ++i)
+	qint64 size = FullWidth.size();
+	for (qint64 i = 0; i < size; ++i)
 	{
-		result.replace(HalfWidth[i], FullWidth[i]);
+		result.replace(HalfWidth.at(i), FullWidth.at(i));
 	}
 
-	util::SafeHash<QString, QVariant>& args = parser_->getLabelVarsRef();
-	if (args.contains(varName))
-		args.insert(varName, result);
-	else
-		parser_->getVariablesPointer()->insert(varName, result);
+	parser_.insertVar(varName, result);
+
 	return Parser::kNoChange;
 }
 
-int Interpreter::upper(int currentline, const TokenMap& TK)
+qint64 Interpreter::upper(qint64 currentline, const TokenMap& TK)
 {
 	QString varName = TK.value(1).data.toString();
 	if (varName.isEmpty())
@@ -1423,16 +1398,12 @@ int Interpreter::upper(int currentline, const TokenMap& TK)
 
 	QString result = text.toUpper();
 
-	util::SafeHash<QString, QVariant>& args = parser_->getLabelVarsRef();
-	if (args.contains(varName))
-		args.insert(varName, result);
-	else
-		parser_->getVariablesPointer()->insert(varName, result);
+	parser_.insertVar(varName, result);
 
 	return Parser::kNoChange;
 }
 
-int Interpreter::lower(int currentline, const TokenMap& TK)
+qint64 Interpreter::lower(qint64 currentline, const TokenMap& TK)
 {
 	QString varName = TK.value(1).data.toString();
 	if (varName.isEmpty())
@@ -1445,16 +1416,12 @@ int Interpreter::lower(int currentline, const TokenMap& TK)
 
 	QString result = text.toLower();
 
-	util::SafeHash<QString, QVariant>& args = parser_->getLabelVarsRef();
-	if (args.contains(varName))
-		args.insert(varName, result);
-	else
-		parser_->getVariablesPointer()->insert(varName, result);
+	parser_.insertVar(varName, result);
 
 	return Parser::kNoChange;
 }
 
-int Interpreter::replace(int currentline, const TokenMap& TK)
+qint64 Interpreter::replace(qint64 currentline, const TokenMap& TK)
 {
 	QString varName = TK.value(1).data.toString();
 	if (varName.isEmpty())
@@ -1475,8 +1442,8 @@ int Interpreter::replace(int currentline, const TokenMap& TK)
 		return Parser::kArgError;
 
 	bool isrex = false;
-	int n = 0;
-	if (!checkInt(TK, 5, &n))
+	qint64 n = 0;
+	if (!checkInteger(TK, 5, &n))
 	{
 		isrex = true;
 	}
@@ -1490,16 +1457,12 @@ int Interpreter::replace(int currentline, const TokenMap& TK)
 		result.replace(regex, replaceText);
 	}
 
-	util::SafeHash<QString, QVariant>& args = parser_->getLabelVarsRef();
-	if (args.contains(varName))
-		args.insert(varName, result);
-	else
-		parser_->getVariablesPointer()->insert(varName, result);
+	parser_.insertVar(varName, result);
 
 	return Parser::kNoChange;
 }
 
-int Interpreter::toint(int currentline, const TokenMap& TK)
+qint64 Interpreter::toint(qint64 currentline, const TokenMap& TK)
 {
 	QString varName = TK.value(1).data.toString();
 	if (varName.isEmpty())
@@ -1508,28 +1471,24 @@ int Interpreter::toint(int currentline, const TokenMap& TK)
 	QString text;
 	if (!checkString(TK, 2, &text))
 	{
-		int i = 0;
-		if (!checkInt(TK, 2, &i))
+		qint64 i = 0;
+		if (!checkInteger(TK, 2, &i))
 			return Parser::kArgError;
 		text = QString::number(i);
 	}
 
 	bool ok = false;
 
-	int result = text.toInt(&ok);
+	qint64 result = text.toLongLong(&ok);
 	if (!ok)
 		return Parser::kNoChange;
 
-	util::SafeHash<QString, QVariant>& args = parser_->getLabelVarsRef();
-	if (args.contains(varName))
-		args.insert(varName, result);
-	else
-		parser_->getVariablesPointer()->insert(varName, result);
+	parser_.insertVar(varName, result);
 
 	return Parser::kNoChange;
 }
 
-int Interpreter::tostr(int currentline, const TokenMap& TK)
+qint64 Interpreter::tostr(qint64 currentline, const TokenMap& TK)
 {
 	QString varName = TK.value(1).data.toString();
 	if (varName.isEmpty())
@@ -1538,69 +1497,28 @@ int Interpreter::tostr(int currentline, const TokenMap& TK)
 	QString text;
 	if (!checkString(TK, 2, &text))
 	{
-		int i = 0;
-		if (!checkInt(TK, 2, &i))
+		qint64 i = 0;
+		if (!checkInteger(TK, 2, &i))
 			return Parser::kArgError;
 		text = QString::number(i);
 	}
 
 	QString result = text;
 
-	util::SafeHash<QString, QVariant>& args = parser_->getLabelVarsRef();
-	if (args.contains(varName))
-		args.insert(varName, result);
-	else
-		parser_->getVariablesPointer()->insert(varName, result);
+	parser_.insertVar(varName, result);
 
 	return Parser::kNoChange;
 }
 
-#if 0
-int Interpreter::todb(int currentline, const TokenMap& TK)
-{
-	QString varName = TK.value(1).data.toString();
-	if (varName.isEmpty())
-		return Parser::kArgError;
-
-	QString text;
-	if (!checkString(TK, 2, &text))
-	{
-		double d = 0;
-		if (!checkDouble(TK, 2, &d))
-		{
-			int i = 0;
-			if (!checkInt(TK, 2, &i))
-				return Parser::kArgError;
-			text = QString::number(i);
-		}
-		text = QString::number(d, 'f', 16);
-	}
-
-	bool ok = false;
-
-	double result = text.toDouble(&ok);
-	if (!ok)
-		return Parser::kNoChange;
-
-	util::SafeHash<QString, QVariant>& args = parser_->getLabelVarsRef();
-	if (args.contains(varName))
-		args.insert(varName, result);
-	else
-		parser_->getVariablesPointer()->insert(varName, result);
-
-	return Parser::kNoChange;
-}
-#endif
-
-int Interpreter::ocr(int currentline, const TokenMap& TK)
+qint64 Interpreter::ocr(qint64 currentline, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance();
 
 	if (injector.server.isNull())
 		return Parser::kError;
 
-	int debugmode = 0;
-	checkInt(TK, 1, &debugmode);
+	qint64 debugmode = 0;
+	checkInteger(TK, 1, &debugmode);
 
 	QString ret;
 	if (injector.server->captchaOCR(&ret))

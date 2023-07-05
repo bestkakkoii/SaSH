@@ -419,7 +419,7 @@ void Injector::remoteFreeModule()
 		return;
 	}
 
-	mem::writeInt(processHandle_, lpParameter, (int)hookdllModule_, 0);
+	mem::write<int>(processHandle_, lpParameter, reinterpret_cast<int>(hookdllModule_));
 
 	QScopedHandle hThreadHandle(QScopedHandle::CREATE_REMOTE_THREAD, processHandle_,
 		reinterpret_cast<LPVOID>(freeLibraryProc),
@@ -433,8 +433,8 @@ bool Injector::isWindowAlive() const
 		return false;
 
 	//#ifndef _DEBUG
-	if (SendMessageTimeoutW(pi_.hWnd, WM_NULL, 0, 0, SMTO_ABORTIFHUNG | SMTO_ERRORONEXIT, MessageTimeout, nullptr) == 0)
-		return false;
+	//if (SendMessageTimeoutW(pi_.hWnd, WM_NULL, 0, 0, SMTO_ABORTIFHUNG | SMTO_ERRORONEXIT, MessageTimeout, nullptr) == 0)
+	//	return false;
 	//#endif
 
 	if (IsWindow(pi_.hWnd))

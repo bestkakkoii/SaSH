@@ -164,7 +164,7 @@ void MainObject::run()
 	//強制關閉遊戲進程
 	injector.close();
 
-	while (injector.IS_SCRIPT_FLAG)
+	while (injector.IS_SCRIPT_FLAG.load(std::memory_order_acquire))
 	{
 		QThread::msleep(100);
 	}
@@ -319,7 +319,7 @@ int MainObject::checkAndRunFunctions()
 
 		injector.server->EO();
 		emit signalDispatcher.updateStatusLabelTextChanged(util::kLabelStatusLoginSuccess);
-		emit signalDispatcher.updateMainFormTitle(injector.server->pc.name);
+		emit signalDispatcher.updateMainFormTitle(injector.server->getPC().name);
 
 		//登入後的廣告公告
 		constexpr bool isbeta = true;
@@ -345,7 +345,7 @@ int MainObject::checkAndRunFunctions()
 		}
 
 		injector.server->loginTimer.restart();
-		PC pc = injector.server->pc;
+		PC pc = injector.server->getPC();
 		util::AfkRecorder recorder;
 		recorder.levelrecord = pc.level;
 		recorder.exprecord = pc.exp;
@@ -563,7 +563,7 @@ void MainObject::battleTimeThread()
 		if (battle_time_text.isEmpty() || injector.server->timeLabelContents != battle_time_text)
 		{
 			injector.server->timeLabelContents = battle_time_text;
-			emit signalDispatcher.updateTimeLabelContents(std::move(battle_time_text));
+			emit signalDispatcher.updateTimeLabelContents(battle_time_text);
 		}
 		QThread::msleep(50);
 	}
@@ -578,7 +578,7 @@ void MainObject::setUserDatas()
 		return;
 
 	QStringList itemNames;
-	for (const ITEM& item : injector.server->pc.item)
+	for (const ITEM& item : injector.server->getPC().item)
 	{
 		if (item.name.isEmpty())
 			continue;
@@ -769,7 +769,7 @@ void MainObject::checkEtcFlag()
 	if (injector.server.isNull())
 		return;
 
-	int flg = injector.server->pc.etcFlag;
+	int flg = injector.server->getPC().etcFlag;
 	bool hasChange = false;
 	auto toBool = [flg](int f)->bool
 	{
@@ -1002,7 +1002,7 @@ void MainObject::checkAutoDropItems()
 
 	for (int i = 0; i < MAX_ITEM; ++i)
 	{
-		ITEM item = injector.server->pc.item[i];
+		ITEM item = injector.server->getPC().item[i];
 		if (item.name.isEmpty())
 			continue;
 
@@ -1056,7 +1056,7 @@ void MainObject::checkAutoJoin()
 				if (injector.server->getBattleFlag()) return;
 				if (injector.server->getWorldStatus() != 9 || injector.server->getGameStatus() != 3) return;
 
-				PC ch = injector.server->pc;
+				PC ch = injector.server->getPC();
 
 				if (injector.getEnableHash(util::kAutoWalkEnable) || injector.getEnableHash(util::kFastAutoWalkEnable))
 					return;
@@ -1124,7 +1124,7 @@ void MainObject::checkAutoJoin()
 					if (leader.isEmpty())
 						return;
 
-					ch = injector.server->pc;
+					ch = injector.server->getPC();
 					if (leader == ch.name)
 						return;
 
@@ -1354,7 +1354,7 @@ void MainObject::checkAutoHeal()
 					if (!ok && (petPercent > 0) && injector.server->checkPetHp(charPercent))
 					{
 						ok = true;
-						target = injector.server->pc.battlePetNo + 1;
+						target = injector.server->getPC().battlePetNo + 1;
 					}
 					if (!ok && (alliePercent > 0) && injector.server->checkPartyHp(charPercent, &target))
 					{
@@ -1390,7 +1390,7 @@ void MainObject::checkAutoHeal()
 					if (itemIndex == -1)
 						break;
 
-					int targetType = injector.server->pc.item[itemIndex].target;
+					int targetType = injector.server->getPC().item[itemIndex].target;
 					if ((targetType != ITEM_TARGET_MYSELF) && (targetType != ITEM_TARGET_OTHER))
 						break;
 
@@ -1429,7 +1429,7 @@ void MainObject::checkAutoHeal()
 					if (!ok && (petPercent > 0) && injector.server->checkPetHp(charPercent))
 					{
 						ok = true;
-						target = injector.server->pc.battlePetNo + 1;
+						target = injector.server->getPC().battlePetNo + 1;
 					}
 					if (!ok && (alliePercent > 0) && injector.server->checkPartyHp(charPercent, &target))
 					{
@@ -1826,7 +1826,7 @@ void MainObject::checkAutoEatBoostExpItem()
 
 	for (int i = 0; i < MAX_ITEM; ++i)
 	{
-		ITEM item = injector.server->pc.item[i];
+		ITEM item = injector.server->getPC().item[i];
 		if (item.name.isEmpty() || item.memo.isEmpty() || item.useFlag == 0)
 			continue;
 

@@ -397,24 +397,24 @@ void Lexer::showError(const QString text, ErrorType type)
 }
 
 //插入新TOKEN
-void Lexer::createToken(int index, RESERVE type, const QVariant& data, const QString& raw, TokenMap* ptoken)
+void Lexer::createToken(qint64 index, RESERVE type, const QVariant& data, const QString& raw, TokenMap* ptoken)
 {
 	ptoken->insert(index, { type, data, raw });
 }
 
 //插入空行TOKEN
-void Lexer::createEmptyToken(int index, TokenMap* ptoken)
+void Lexer::createEmptyToken(qint64 index, TokenMap* ptoken)
 {
 	ptoken->insert(index, { TK_WHITESPACE, "", "" });
 }
 
 //解析單行內容至多個TOKEN
-void Lexer::tokenized(int currentLine, const QString& line, TokenMap* ptoken, util::SafeHash<QString, int>* plabel)
+void Lexer::tokenized(qint64 currentLine, const QString& line, TokenMap* ptoken, QHash<QString, qint64>* plabel)
 {
 	if (ptoken == nullptr || plabel == nullptr)
 		return;
 
-	int pos = 0;
+	qint64 pos = 0;
 	QString token;
 	QVariant data;
 	QString raw = line.trimmed();
@@ -424,7 +424,7 @@ void Lexer::tokenized(int currentLine, const QString& line, TokenMap* ptoken, ut
 
 	do
 	{
-		int commentIndex = raw.indexOf("//");
+		qint64 commentIndex = raw.indexOf("//");
 		if (commentIndex > 0)
 		{
 			//當前token移除註釋
@@ -454,7 +454,7 @@ void Lexer::tokenized(int currentLine, const QString& line, TokenMap* ptoken, ut
 				if (exprList.size() > 1)
 				{
 					bool ok;
-					int value = exprList.at(1).toInt(&ok);
+					qint64 value = exprList.at(1).toLongLong(&ok);
 					if (ok)
 						createToken(pos + 2, TK_INT, value, exprList.at(1), ptoken);
 					else
@@ -510,7 +510,7 @@ void Lexer::tokenized(int currentLine, const QString& line, TokenMap* ptoken, ut
 			QString varName = match.captured(1).simplified();
 			QString op = match.captured(2).simplified();
 			QString value = match.captured(3).simplified();
-			int p = pos + 1;
+			qint64 p = pos + 1;
 			RESERVE optype = getTokenType(p, TK_CAOS, op, op);
 			++p;
 			RESERVE valuetype = getTokenType(p, optype, value, value);
@@ -633,7 +633,7 @@ void Lexer::tokenized(int currentLine, const QString& line, TokenMap* ptoken, ut
 			if (type == TK_INT)//對整數進行轉換處理
 			{
 				bool ok;
-				int intValue = token.toInt(&ok);
+				qint64 intValue = token.toLongLong(&ok);
 				if (ok)
 				{
 					data = QVariant::fromValue(intValue);
@@ -644,17 +644,17 @@ void Lexer::tokenized(int currentLine, const QString& line, TokenMap* ptoken, ut
 				type = TK_INT;
 				//真為1，假為0, true為1，false為0
 				if (token.toLower() == "true" || token == "真")
-					data = QVariant::fromValue(1);
+					data = QVariant::fromValue(1ll);
 				else if (token.toLower() == "false" || token == "假")
-					data = QVariant::fromValue(0);
+					data = QVariant::fromValue(0ll);
 			}
 			else if (type == TK_DOUBLE)//對雙精度浮點數進行強制轉INT處理
 			{
 				bool ok;
-				double floatValue = token.toDouble(&ok);
+				qint64 floatValue = token.toLongLong(&ok);
 				if (ok)
 				{
-					data = QVariant::fromValue(static_cast<int>(floatValue));
+					data = QVariant::fromValue(floatValue);
 					type = TK_INT;
 				}
 			}
@@ -696,7 +696,7 @@ void Lexer::tokenized(int currentLine, const QString& line, TokenMap* ptoken, ut
 }
 
 //解析整個腳本至多個TOKEN
-bool Lexer::tokenized(const QString& script, util::SafeHash<int, TokenMap>* ptokens, util::SafeHash<QString, int>* plabel)
+bool Lexer::tokenized(const QString& script, QHash<qint64, TokenMap>* ptokens, QHash<QString, qint64>* plabel)
 {
 
 	Injector& injector = Injector::getInstance();
@@ -704,11 +704,11 @@ bool Lexer::tokenized(const QString& script, util::SafeHash<int, TokenMap>* ptok
 		injector.scriptLogModel->clear();
 
 	Lexer lexer;
-	util::SafeHash<int, TokenMap> tokens;
-	util::SafeHash<QString, int> labels;
+	QHash<qint64, TokenMap> tokens;
+	QHash<QString, qint64> labels;
 	QStringList lines = script.split("\n");
-	int size = lines.size();
-	for (int i = 0; i < size; ++i)
+	qint64 size = lines.size();
+	for (qint64 i = 0; i < size; ++i)
 	{
 		TokenMap tk;
 		lexer.tokenized(i, lines.at(i), &tk, &labels);
@@ -740,7 +740,7 @@ bool Lexer::isDouble(const QString& str) const
 bool Lexer::isInteger(const QString& str) const
 {
 	bool ok;
-	str.toInt(&ok);
+	str.toLongLong(&ok);
 	return ok;
 }
 
@@ -803,9 +803,9 @@ bool Lexer::isDelimiter(const QChar& ch) const
 }
 
 //根據容取TOKEN應該定義的類型
-RESERVE Lexer::getTokenType(int& pos, RESERVE previous, QString& str, const QString raw) const
+RESERVE Lexer::getTokenType(qint64& pos, RESERVE previous, QString& str, const QString raw) const
 {
-	//int index = 0;
+	//findex = 0;
 
 	if (str == "<<")
 	{
@@ -896,19 +896,6 @@ RESERVE Lexer::getTokenType(int& pos, RESERVE previous, QString& str, const QStr
 		str = str.toLower();
 		return TK_BOOL;
 	}
-	//else if (isVariable(str))
-	//{
-	//	//這裡本意是為了過濾調以數字開頭的變量名，但會錯誤的把中文也過濾掉
-	//	QChar nextChar = next(raw, index);
-	//	if (nextChar.isLetterOrNumber() || nextChar == '\0')
-	//	{
-	//		return TK_REF;
-	//	}
-	//	else
-	//	{
-	//		return TK_REF;
-	//	}
-	//}
 	else if (previous == TK_NAME || previous == TK_LABELVAR)
 	{
 		//如果前一個TOKEN是label名或區域變量名，那麼接下來的TOKEN都視為區域變量名
@@ -920,7 +907,7 @@ RESERVE Lexer::getTokenType(int& pos, RESERVE previous, QString& str, const QStr
 	}
 	else if (isDouble(str))
 	{
-		return  TK_DOUBLE;
+		return TK_DOUBLE;
 	}
 	else if (isInteger(str))
 	{
@@ -940,12 +927,12 @@ RESERVE Lexer::getTokenType(int& pos, RESERVE previous, QString& str, const QStr
 }
 
 //根據index取得下一個字元
-QChar Lexer::next(const QString& str, int& index) const
+QChar Lexer::next(const QString& str, qint64& index) const
 {
-	if (index < str.length() - 1)
+	if (index < static_cast<qint64>(str.length()) - 1ll)
 	{
 		++index;
-		return str[index];
+		return str.at(index);
 	}
 	else
 	{
@@ -967,7 +954,7 @@ bool Lexer::getStringToken(QString& src, const QString& delim, QString& out)
 	//	return false;
 
 	//out = list.first().trimmed();
-	//int size = out.size();
+	//qint64 size = out.size();
 
 	////remove frist 'out' and 'delim' from src
 	//src.remove(0, size + delim.size());
@@ -988,7 +975,7 @@ bool Lexer::getStringToken(QString& src, const QString& delim, QString& out)
 	if (src.startsWith(openingQuote))
 	{
 		// Find the closing quote
-		int closingQuoteIndex = src.indexOf(closingQuote, openingQuote.size());
+		qint64 closingQuoteIndex = src.indexOf(closingQuote, openingQuote.size());
 		if (closingQuoteIndex == -1)
 			return false;
 
@@ -1002,7 +989,7 @@ bool Lexer::getStringToken(QString& src, const QString& delim, QString& out)
 	else if (src.startsWith("'"))
 	{
 		// Find the closing single quote
-		int closingSingleQuoteIndex = src.indexOf("'", 1);
+		qint64 closingSingleQuoteIndex = src.indexOf("'", 1);
 		if (closingSingleQuoteIndex == -1)
 			return false;
 
@@ -1024,7 +1011,7 @@ bool Lexer::getStringToken(QString& src, const QString& delim, QString& out)
 		else
 		{
 			out = list.first().trimmed();
-			int size = out.size();
+			qint64 size = out.size();
 
 			// Remove the first 'out' and 'delim' from src
 			src.remove(0, size + delim.size());
@@ -1038,19 +1025,19 @@ bool Lexer::getStringToken(QString& src, const QString& delim, QString& out)
 }
 
 //檢查引用變量前面是否缺少&符號
-void Lexer::checkInvalidReadVariable(const util::SafeHash<int, TokenMap>& stokenmaps)
+void Lexer::checkInvalidReadVariable(const QHash<qint64, TokenMap>& stokenmaps)
 {
-	QMap<int, QString> invalidReadVariables;
+	QMap<qint64, QString> invalidReadVariables;
 	QStringList varNameList;
 
-	QMap <int, TokenMap> tokenmaps;//轉成有序容器方便按順序遍歷
+	QMap <qint64, TokenMap> tokenmaps;//轉成有序容器方便按順序遍歷
 	for (auto it = stokenmaps.cbegin(); it != stokenmaps.cend(); ++it)
 		tokenmaps.insert(it.key(), it.value());
 
 	//首次先把所有變量聲明找出來紀錄變量名稱
 	for (auto it = tokenmaps.cbegin(); it != tokenmaps.cend(); ++it)
 	{
-		//const int row = it.key();
+		//const qint64 row = it.key();
 		const TokenMap& tokenmap = it.value();
 		RESERVE type = tokenmap.value(0).type;
 
@@ -1091,7 +1078,7 @@ void Lexer::checkInvalidReadVariable(const util::SafeHash<int, TokenMap>& stoken
 
 	//for (auto it = tokenmaps.cbegin(); it != tokenmaps.cend(); ++it)
 	//{
-	//	const int row = it.key();
+	//	const qint64 row = it.key();
 	//	const TokenMap tokenmap = it.value();
 	//	for (auto subit = std::next(tokenmap.cbegin()); subit != tokenmap.cend(); ++subit)
 	//	{
@@ -1108,19 +1095,19 @@ void Lexer::checkInvalidReadVariable(const util::SafeHash<int, TokenMap>& stoken
 
 }
 
-void Lexer::checkFunctionPairs(const util::SafeHash<int, TokenMap>& stokenmaps)
+void Lexer::checkFunctionPairs(const QHash<qint64, TokenMap>& stokenmaps)
 {
-	QMap<int, QString> unpairedFunctions;
-	QMap<int, QString> unpairedEnds;
-	QStack<int> functionStack;
+	QMap<qint64, QString> unpairedFunctions;
+	QMap<qint64, QString> unpairedEnds;
+	QStack<qint64> functionStack;
 
-	QMap <int, TokenMap> tokenmaps;//轉成有序容器方便按順序遍歷
+	QMap <qint64, TokenMap> tokenmaps;//轉成有序容器方便按順序遍歷
 	for (auto it = stokenmaps.cbegin(); it != stokenmaps.cend(); ++it)
 		tokenmaps.insert(it.key(), it.value());
 
 	for (auto it = tokenmaps.cbegin(); it != tokenmaps.cend(); ++it)
 	{
-		int row = it.key();
+		qint64 row = it.key();
 		//RESERVE type = it.value().value(0).type;
 		QString statement = it.value().value(0).data.toString().simplified();
 
@@ -1147,7 +1134,7 @@ void Lexer::checkFunctionPairs(const util::SafeHash<int, TokenMap>& stokenmaps)
 	// Any remaining functions on the stack are missing an "end"
 	while (!functionStack.isEmpty())
 	{
-		int row = functionStack.pop();
+		qint64 row = functionStack.pop();
 		QString statement = tokenmaps.value(row).cbegin().value().data.toString().simplified();
 		unpairedFunctions.insert(row, statement);
 	}
@@ -1155,7 +1142,7 @@ void Lexer::checkFunctionPairs(const util::SafeHash<int, TokenMap>& stokenmaps)
 	// 打印所有不成对的 "function" 语句
 	for (auto it = unpairedFunctions.cbegin(); it != unpairedFunctions.cend(); ++it)
 	{
-		int row = it.key();
+		qint64 row = it.key();
 		QString statement = it.value();
 		QString errorMessage = QObject::tr("<Syntax Error>Missing 'end' for statement '%1' at line: %2").arg(statement).arg(row + 1);
 		showError(errorMessage);
@@ -1164,7 +1151,7 @@ void Lexer::checkFunctionPairs(const util::SafeHash<int, TokenMap>& stokenmaps)
 	// 打印所有不成对的 "end" 语句
 	for (auto it = unpairedEnds.cbegin(); it != unpairedEnds.cend(); ++it)
 	{
-		int row = it.key();
+		qint64 row = it.key();
 		QString statement = it.value();
 		QString errorMessage = QObject::tr("<Syntax Error>Extra 'end' for statement '%1' at line: %2").arg(statement).arg(row + 1);
 		showError(errorMessage);

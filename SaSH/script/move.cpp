@@ -5,7 +5,7 @@
 #include "map/mapanalyzer.h"
 
 //move
-int Interpreter::setdir(int currentline, const TokenMap& TK)
+qint64 Interpreter::setdir(qint64 currentline, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance();
 
@@ -15,8 +15,8 @@ int Interpreter::setdir(int currentline, const TokenMap& TK)
 	checkBattleThenWait();
 
 	QString dirStr = "";
-	int dir = -1;
-	checkInt(TK, 1, &dir);
+	qint64 dir = -1;
+	checkInteger(TK, 1, &dir);
 	checkString(TK, 1, &dirStr);
 
 	dirStr = dirStr.toUpper().simplified();
@@ -36,7 +36,7 @@ int Interpreter::setdir(int currentline, const TokenMap& TK)
 	return Parser::kNoChange;
 }
 
-int Interpreter::move(int currentline, const TokenMap& TK)
+qint64 Interpreter::move(qint64 currentline, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance();
 
@@ -45,12 +45,14 @@ int Interpreter::move(int currentline, const TokenMap& TK)
 
 	checkBattleThenWait();
 
-	QPoint p;
-	checkInt(TK, 1, &p.rx());
-	checkInt(TK, 2, &p.ry());
+	qint64 x = 0;
+	qint64 y = 0;
+	checkInteger(TK, 1, &x);
+	checkInteger(TK, 2, &y);
+	QPoint p(x, y);
 
-	int timeout = DEFAULT_FUNCTION_TIMEOUT;
-	checkInt(TK, 3, &timeout);
+	qint64 timeout = DEFAULT_FUNCTION_TIMEOUT;
+	checkInteger(TK, 3, &timeout);
 
 	if (p.x() < 0 || p.x() >= 1500 || p.y() < 0 || p.y() >= 1500)
 		return Parser::kArgError;
@@ -71,7 +73,7 @@ int Interpreter::move(int currentline, const TokenMap& TK)
 	return Parser::kNoChange;
 }
 
-int Interpreter::fastmove(int currentline, const TokenMap& TK)
+qint64 Interpreter::fastmove(qint64 currentline, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance();
 
@@ -80,18 +82,22 @@ int Interpreter::fastmove(int currentline, const TokenMap& TK)
 
 	checkBattleThenWait();
 
+	qint64 x = 0;
+	qint64 y = 0;
 	QPoint p;
 	QString dirStr;
-	if (checkInt(TK, 1, &p.rx()))
+	if (checkInteger(TK, 1, &x))
 	{
-		if (checkInt(TK, 2, &p.ry()))
+		if (checkInteger(TK, 2, &y))
 		{
-			if (p.x() < 0 || p.x() >= 1500 || p.y() < 0 || p.y() >= 1500)
+			if (x < 0 || x >= 1500 || y < 0 || y >= 1500)
 				return Parser::kArgError;
+
+			p = QPoint(x, y);
 		}
-		else if (p.x() >= 1 && p.x() <= 8)
+		else if (x >= 1 && x <= 8)
 		{
-			int dir = p.x() - 1;
+			qint64 dir = x - 1;
 			p = injector.server->getPoint() + util::fix_point.at(dir) * 10;
 		}
 		else
@@ -114,7 +120,7 @@ int Interpreter::fastmove(int currentline, const TokenMap& TK)
 	return Parser::kNoChange;
 }
 
-int Interpreter::packetmove(int currentline, const TokenMap& TK)
+qint64 Interpreter::packetmove(qint64 currentline, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance();
 
@@ -123,9 +129,11 @@ int Interpreter::packetmove(int currentline, const TokenMap& TK)
 
 	checkBattleThenWait();
 
-	QPoint p;
-	checkInt(TK, 1, &p.rx());
-	checkInt(TK, 2, &p.ry());
+	qint64 x = 0;
+	qint64 y = 0;
+	checkInteger(TK, 1, &x);
+	checkInteger(TK, 2, &y);
+	QPoint p(x, y);
 	QString dirStr;
 	checkString(TK, 3, &dirStr);
 
@@ -138,7 +146,7 @@ int Interpreter::packetmove(int currentline, const TokenMap& TK)
 	return Parser::kNoChange;
 }
 
-int Interpreter::findpath(int currentline, const TokenMap& TK)
+qint64 Interpreter::findpath(qint64 currentline, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance();
 
@@ -146,18 +154,22 @@ int Interpreter::findpath(int currentline, const TokenMap& TK)
 		return Parser::kError;
 
 	checkBattleThenWait();
-	int steplen = 3;
+	qint64 steplen = 3;
+	qint64 x = 0;
+	qint64 y = 0;
 	QPoint p;
 	QString name;
-	if (!checkInt(TK, 1, &p.rx()))
+	if (!checkInteger(TK, 1, &x))
 	{
 		if (!checkString(TK, 1, &name))
 			return Parser::kArgError;
 	}
 	else
-		checkInt(TK, 2, &p.ry());
+		checkInteger(TK, 2, &y);
 
-	auto findNpcCallBack = [&injector](const QString& name, QPoint& dst, int* pdir)->bool
+	p = QPoint(x, y);
+
+	auto findNpcCallBack = [&injector](const QString& name, QPoint& dst, qint64* pdir)->bool
 	{
 		mapunit_s unit;
 		if (!injector.server->findUnit(name, util::OBJ_NPC, &unit, ""))
@@ -166,13 +178,13 @@ int Interpreter::findpath(int currentline, const TokenMap& TK)
 				return 0;//沒找到
 		}
 
-		int dir = injector.server->mapAnalyzer->calcBestFollowPointByDstPoint(injector.server->nowFloor, injector.server->getPoint(), unit.p, &dst, true, unit.dir);
+		qint64 dir = injector.server->mapAnalyzer->calcBestFollowPointByDstPoint(injector.server->nowFloor, injector.server->getPoint(), unit.p, &dst, true, unit.dir);
 		if (pdir)
 			*pdir = dir;
 		return dir != -1;//找到了
 	};
 
-	int dir = -1;
+	qint64 dir = -1;
 	if (p.isNull() && !name.isEmpty())
 	{
 		QString key = QString::number(injector.server->nowFloor);
@@ -189,7 +201,7 @@ int Interpreter::findpath(int currentline, const TokenMap& TK)
 			if (d.name == name)
 			{
 				p = QPoint(d.x, d.y);
-				checkInt(TK, 2, &steplen);
+				checkInteger(TK, 2, &steplen);
 				break;
 			}
 			else if (name.startsWith(kFuzzyPrefix))
@@ -198,7 +210,7 @@ int Interpreter::findpath(int currentline, const TokenMap& TK)
 				if (d.name.contains(newName))
 				{
 					p = QPoint(d.x, d.y);
-					checkInt(TK, 2, &steplen);
+					checkInteger(TK, 2, &steplen);
 					break;
 				}
 			}
@@ -208,7 +220,7 @@ int Interpreter::findpath(int currentline, const TokenMap& TK)
 			return Parser::kNoChange;
 	}
 	else
-		checkInt(TK, 3, &steplen);
+		checkInteger(TK, 3, &steplen);
 
 
 	//findpath 不允許接受為0的xy座標
@@ -224,7 +236,7 @@ int Interpreter::findpath(int currentline, const TokenMap& TK)
 	return Parser::kNoChange;
 }
 
-int Interpreter::movetonpc(int currentline, const TokenMap& TK)
+qint64 Interpreter::movetonpc(qint64 currentline, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance();
 
@@ -239,19 +251,21 @@ int Interpreter::movetonpc(int currentline, const TokenMap& TK)
 	QString cmpFreeName;
 	checkString(TK, 2, &cmpFreeName);
 
-	QPoint p;
-	checkInt(TK, 3, &p.rx());
-	checkInt(TK, 4, &p.ry());
+	qint64 x = 0;
+	qint64 y = 0;
+	checkInteger(TK, 1, &x);
+	checkInteger(TK, 2, &y);
+	QPoint p(x, y);
 
-	int timeout = DEFAULT_FUNCTION_TIMEOUT * 36;
-	checkInt(TK, 5, &timeout);
+	qint64 timeout = DEFAULT_FUNCTION_TIMEOUT * 36;
+	checkInteger(TK, 5, &timeout);
 
 	//findpath 不允許接受為0的xy座標
 	if (p.x() <= 0 || p.x() >= 1500 || p.y() <= 0 || p.y() >= 1500)
 		return Parser::kArgError;
 
 	mapunit_s unit;
-	int dir = -1;
+	qint64 dir = -1;
 	auto findNpcCallBack = [&injector, &unit, cmpNpcName, cmpFreeName, &dir](QPoint& dst)->bool
 	{
 		if (!injector.server->findUnit(cmpNpcName, util::OBJ_NPC, &unit, cmpFreeName))
@@ -274,7 +288,7 @@ int Interpreter::movetonpc(int currentline, const TokenMap& TK)
 	return checkJump(TK, 6, bret, FailedJump);
 }
 
-int Interpreter::teleport(int currentline, const TokenMap& TK)
+qint64 Interpreter::teleport(qint64 currentline, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance();
 
@@ -288,28 +302,32 @@ int Interpreter::teleport(int currentline, const TokenMap& TK)
 	return Parser::kNoChange;
 }
 
-int Interpreter::warp(int currentline, const TokenMap& TK)
+qint64 Interpreter::warp(qint64 currentline, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance();
 
 	if (injector.server.isNull())
 		return Parser::kError;
 
-	QPoint pfrom;
-	checkInt(TK, 1, &pfrom.rx());
-	checkInt(TK, 2, &pfrom.ry());
+	qint64 xfrom = 0;
+	qint64 yfrom = 0;
+	checkInteger(TK, 1, &xfrom);
+	checkInteger(TK, 2, &yfrom);
+	QPoint pfrom(xfrom, yfrom);
 	if (pfrom.isNull() || pfrom.x() < 0 || pfrom.x() > 1500 || pfrom.y() < 0 || pfrom.y() > 1500)
 		return Parser::kArgError;
 
-	QPoint pto;
-	checkInt(TK, 3, &pto.rx());
-	checkInt(TK, 4, &pto.ry());
+	qint64 xto = 0;
+	qint64 yto = 0;
+	checkInteger(TK, 3, &xto);
+	checkInteger(TK, 4, &yto);
+	QPoint pto(xto, yto);
 	if (pto.isNull() || pto.x() < 0 || pto.x() > 1500 || pto.y() < 0 || pto.y() > 1500)
 		return Parser::kArgError;
 
-	int floor = 0;
+	qint64 floor = 0;
 	QString floorName;
-	if (!checkInt(TK, 5, &floor))
+	if (!checkInteger(TK, 5, &floor))
 	{
 		if (!checkString(TK, 5, &floorName))
 			return Parser::kArgError;
@@ -318,8 +336,8 @@ int Interpreter::warp(int currentline, const TokenMap& TK)
 	if (floor == 0 && floorName.isEmpty())
 		return Parser::kArgError;
 
-	int timeout = DEFAULT_FUNCTION_TIMEOUT;
-	checkInt(TK, 6, &timeout);
+	qint64 timeout = DEFAULT_FUNCTION_TIMEOUT;
+	checkInteger(TK, 6, &timeout);
 
 	bool bret = false;
 

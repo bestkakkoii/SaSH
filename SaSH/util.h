@@ -25,25 +25,38 @@ namespace mem
 {
 	bool read(HANDLE hProcess, DWORD desiredAccess, SIZE_T size, PVOID buffer);
 	template<typename T, typename = std::enable_if_t<std::is_arithmetic_v<T> && !std::is_pointer_v<T>>>
-	Q_REQUIRED_RESULT T readInt(HANDLE hProcess, DWORD desiredAccess);
+	Q_REQUIRED_RESULT T read(HANDLE hProcess, DWORD desiredAccess);
 
-	template char readInt<char>(HANDLE hProcess, DWORD desiredAccess);
-	template short readInt<short>(HANDLE hProcess, DWORD desiredAccess);
-	template int readInt<int>(HANDLE hProcess, DWORD desiredAccess);
-	template float readInt<float>(HANDLE hProcess, DWORD desiredAccess);
-	template long readInt<long>(HANDLE hProcess, DWORD desiredAccess);
-	template long long readInt<long long>(HANDLE hProcess, DWORD desiredAccess);
-	template unsigned char readInt<unsigned char>(HANDLE hProcess, DWORD desiredAccess);
-	template unsigned short readInt<unsigned short>(HANDLE hProcess, DWORD desiredAccess);
-	template unsigned int readInt<unsigned int>(HANDLE hProcess, DWORD desiredAccess);
-	template unsigned long readInt<unsigned long>(HANDLE hProcess, DWORD desiredAccess);
-	template unsigned long long readInt<unsigned long long>(HANDLE hProcess, DWORD desiredAccess);
+	template char read<char>(HANDLE hProcess, DWORD desiredAccess);
+	template short read<short>(HANDLE hProcess, DWORD desiredAccess);
+	template int read<int>(HANDLE hProcess, DWORD desiredAccess);
+	template float read<float>(HANDLE hProcess, DWORD desiredAccess);
+	template long read<long>(HANDLE hProcess, DWORD desiredAccess);
+	template long long read<long long>(HANDLE hProcess, DWORD desiredAccess);
+	template unsigned char read<unsigned char>(HANDLE hProcess, DWORD desiredAccess);
+	template unsigned short read<unsigned short>(HANDLE hProcess, DWORD desiredAccess);
+	template unsigned int read<unsigned int>(HANDLE hProcess, DWORD desiredAccess);
+	template unsigned long read<unsigned long>(HANDLE hProcess, DWORD desiredAccess);
+	template unsigned long long read<unsigned long long>(HANDLE hProcess, DWORD desiredAccess);
+
+	template<typename T, typename = std::enable_if_t<std::is_arithmetic_v<T> && !std::is_pointer_v<T>>>
+	bool write(HANDLE hProcess, DWORD baseAddress, T data);
+	template bool write<char>(HANDLE hProcess, DWORD baseAddress, char data);
+	template bool write<short>(HANDLE hProcess, DWORD baseAddress, short data);
+	template bool write<int>(HANDLE hProcess, DWORD baseAddress, int data);
+	template bool write<float>(HANDLE hProcess, DWORD baseAddress, float data);
+	template bool write<long>(HANDLE hProcess, DWORD baseAddress, long data);
+	template bool write<long long>(HANDLE hProcess, DWORD baseAddress, long long data);
+	template bool write<unsigned char>(HANDLE hProcess, DWORD baseAddress, unsigned char data);
+	template bool write<unsigned short>(HANDLE hProcess, DWORD baseAddress, unsigned short data);
+	template bool write<unsigned int>(HANDLE hProcess, DWORD baseAddress, unsigned int data);
+	template bool write<unsigned long>(HANDLE hProcess, DWORD baseAddress, unsigned long data);
+	template bool write<unsigned long long>(HANDLE hProcess, DWORD baseAddress, unsigned long long data);
 
 	Q_REQUIRED_RESULT float readFloat(HANDLE hProcess, DWORD desiredAccess);
 	Q_REQUIRED_RESULT qreal readDouble(HANDLE hProcess, DWORD desiredAccess);
 	Q_REQUIRED_RESULT QString readString(HANDLE hProcess, DWORD desiredAccess, int size, bool enableTrim, bool keepOriginal = false);
 	bool write(HANDLE hProcess, DWORD baseAddress, PVOID buffer, SIZE_T dwSize);
-	bool writeInt(HANDLE hProcess, DWORD baseAddress, int data, int mode);
 	bool writeString(HANDLE hProcess, DWORD baseAddress, const QString& str);
 	bool virtualFree(HANDLE hProcess, int baseAddress);
 	Q_REQUIRED_RESULT int virtualAlloc(HANDLE hProcess, int size);
@@ -989,14 +1002,14 @@ namespace util
 		SafeHash(QHash<K, V>&& other)
 		{
 			QWriteLocker locker(&lock);
-			hash = std::move(other);
+			hash = other;
 		}
 
 		//move assign
 		SafeHash(SafeHash<K, V>&& other) noexcept
 		{
 			QWriteLocker locker(&lock);
-			hash = std::move(other.hash);
+			hash = other.hash;
 		}
 
 		SafeHash operator=(const SafeHash& other)
@@ -1290,7 +1303,7 @@ namespace util
 		{
 		}
 
-		SafeVector(QVector<T>&& other) : data_(std::move(other))
+		SafeVector(QVector<T>&& other) : data_(other)
 		{
 		}
 
@@ -1309,14 +1322,14 @@ namespace util
 		{
 		}
 
-		SafeVector(SafeVector<T>&& other) noexcept : data_(std::move(other.data_))
+		SafeVector(SafeVector<T>&& other) noexcept : data_(other.data_)
 		{
 		}
 
 		SafeVector<T>& operator=(SafeVector<T>&& other) noexcept
 		{
 			QWriteLocker locker(&lock_);
-			data_ = std::move(other.data_);
+			data_ = other.data_;
 			return *this;
 		}
 
@@ -1812,7 +1825,7 @@ namespace util
 				if ((autoclear) && (this->lpAddress) && (hProcess))
 				{
 
-					mem::writeInt(hProcess, this->lpAddress, 0, 2);
+					mem::write<unsigned char>(hProcess, this->lpAddress, 0);
 					mem::virtualFree(hProcess, this->lpAddress);
 					this->lpAddress = NULL;
 				}
