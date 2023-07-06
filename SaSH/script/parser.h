@@ -314,6 +314,7 @@ private:
 	void processBack();
 	void processLabel();
 	void processClean();
+	void processDelay();
 	bool processGetSystemVarValue(const QString& varName, QString& valueStr, QVariant& varValue);
 	bool processIfCompare();
 
@@ -330,12 +331,16 @@ private:
 
 	void handleError(qint64 err);
 	void checkArgs();
-
+	void updateFunctionChunk();
 
 	inline void next() { ++lineNumber_; }
 
 	Q_REQUIRED_RESULT inline bool empty() const { return !tokens_.contains(lineNumber_); }
-	Q_REQUIRED_RESULT inline RESERVE getCurrentFirstTokenType() const { return currentLineTokens_.value(0).type; }
+	Q_REQUIRED_RESULT inline RESERVE getCurrentFirstTokenType() const
+	{
+		Token token = currentLineTokens_.value(0, Token{});
+		return token.type;
+	}
 
 	template <typename T>
 	Q_REQUIRED_RESULT inline T getToken(qint64 index) const
@@ -367,7 +372,7 @@ private:
 
 	void generateStackInfo(qint64 type);
 
-	void updateGlobalVariables();
+	void updateGlobalVariables(const QString& varName);
 private:
 	//函數代碼塊
 	typedef struct tagFunctionChunk

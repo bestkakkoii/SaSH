@@ -2,6 +2,10 @@
 
 #include <QThread>
 #include <QObject>
+#include <QWaitCondition>
+#include <QMutex>
+#include <QReadWriteLock>
+
 #include "signaldispatcher.h"
 class ThreadPlugin : public QObject
 {
@@ -21,6 +25,18 @@ public:
 		return isInterruptionRequested_.load(std::memory_order_acquire);
 	}
 
+	inline bool isPaused() const { return isPaused_.load(std::memory_order_acquire); }
+
+	void checkPause()
+	{
+		if (isPaused_.load(std::memory_order_acquire))
+		{
+			pausedMutex_.lock();
+			waitCondition_.wait(&pausedMutex_);
+			pausedMutex_.unlock();
+		}
+	}
+
 public slots:
 	void requestInterruption()
 	{
@@ -28,7 +44,22 @@ public slots:
 		isInterruptionRequested_.store(true, std::memory_order_release);
 	}
 
+	void paused()
+	{
+		isPaused_.store(true, std::memory_order_release);
+	}
+
+	void resumed()
+	{
+		isPaused_.store(false, std::memory_order_release);
+		waitCondition_.wakeAll();
+	}
+
 private:
 	std::atomic_bool isInterruptionRequested_ = false;
 	mutable QReadWriteLock lock_;
+
+	std::atomic_bool isPaused_ = false;
+	mutable QWaitCondition waitCondition_;
+	mutable QMutex pausedMutex_;
 };

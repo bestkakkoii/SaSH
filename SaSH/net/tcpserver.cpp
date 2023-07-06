@@ -553,8 +553,7 @@ void Server::onClientReadyRead()
 	sync_.addFuture(QtConcurrent::run([this, clientSocket, badata]()
 		{
 			Injector& injector = Injector::getInstance();
-			//QMutexLocker lock(&net_mutex);
-			QMutexLocker lock(&injector.globalMutex);
+			QMutexLocker lock(&net_mutex);
 
 			QString preStr = QString::fromUtf8(badata);
 			if (preStr.startsWith("bPK"))
@@ -7710,7 +7709,7 @@ void Server::setPetState(int petIndex, PetState state)
 		return;
 
 	Injector& injector = Injector::getInstance();
-	QMutexLocker locker(&injector.globalMutex);
+	QMutexLocker locker(&net_mutex);
 
 	HANDLE hProcess = injector.getProcess();
 	int hModule = injector.getProcessModule();
@@ -13430,7 +13429,7 @@ void Server::sendBattlePlayerAttackAct(int target)
 	lssproto_B_send(const_cast<char*>(str.c_str()));
 
 	Injector& injector = Injector::getInstance();
-	//util::ScopedLocker locker(&injector.globalMutex);
+
 
 	battledata_t bt = getBattleData();
 	battleobject_t obj = bt.objects.value(target, battleobject_t{});
@@ -13466,7 +13465,7 @@ void Server::sendBattlePlayerMagicAct(int magicIndex, int target)
 	lssproto_B_send(const_cast<char*>(str.c_str()));
 
 	Injector& injector = Injector::getInstance();
-	//util::ScopedLocker locker(&injector.globalMutex);
+
 
 	const QString magicName = magic[magicIndex].name;
 
@@ -13512,7 +13511,7 @@ void Server::sendBattlePlayerJobSkillAct(int skillIndex, int target)
 	lssproto_B_send(const_cast<char*>(str.c_str()));
 
 	Injector& injector = Injector::getInstance();
-	//util::ScopedLocker locker(&injector.globalMutex);
+
 
 	const QString skillName = profession_skill[skillIndex].name;
 	QString text("");
@@ -13557,7 +13556,7 @@ void Server::sendBattlePlayerItemAct(int itemIndex, int target)
 	lssproto_B_send(const_cast<char*>(str.c_str()));
 
 	Injector& injector = Injector::getInstance();
-	//util::ScopedLocker locker(&injector.globalMutex);
+
 
 	const QString itemName = pc.item[itemIndex].name;
 
@@ -13597,7 +13596,6 @@ void Server::sendBattlePlayerDefenseAct()
 	lssproto_B_send(const_cast<char*>(str.c_str()));
 
 	Injector& injector = Injector::getInstance();
-	util::ScopedLocker locker(&injector.globalMutex);
 
 	const QString text = QObject::tr("defense");
 	if (labelPlayerAction != text)
@@ -13623,7 +13621,7 @@ void Server::sendBattlePlayerEscapeAct()
 	lssproto_B_send(const_cast<char*>(str.c_str()));
 
 	Injector& injector = Injector::getInstance();
-	//util::ScopedLocker locker(&injector.globalMutex);
+
 
 	const QString text(QObject::tr("escape"));
 	if (labelPlayerAction != text)
@@ -13652,7 +13650,7 @@ void Server::sendBattlePlayerCatchPetAct(int target)
 	lssproto_B_send(const_cast<char*>(str.c_str()));
 
 	Injector& injector = Injector::getInstance();
-	//util::ScopedLocker locker(&injector.globalMutex);
+
 
 	battledata_t bt = getBattleData();
 	battleobject_t obj = bt.objects.value(target, battleobject_t{});
@@ -13691,7 +13689,7 @@ void Server::sendBattlePlayerSwitchPetAct(int petIndex)
 	lssproto_B_send(const_cast<char*>(str.c_str()));
 
 	Injector& injector = Injector::getInstance();
-	//util::ScopedLocker locker(&injector.globalMutex);
+
 
 	QString text(QObject::tr("switch pet to %1") \
 		.arg(!pet[petIndex].freeName.isEmpty() ? pet[petIndex].freeName : pet[petIndex].name));
@@ -13715,7 +13713,7 @@ void Server::sendBattlePlayerDoNothing()
 		return;
 
 	Injector& injector = Injector::getInstance();
-	//util::ScopedLocker locker(&injector.globalMutex);
+
 
 	const QString qcmd("N");
 	const std::string str = qcmd.toUpper().toStdString();
@@ -13757,7 +13755,7 @@ void Server::sendBattlePetSkillAct(int skillIndex, int target)
 
 
 	Injector& injector = Injector::getInstance();
-	//util::ScopedLocker locker(&injector.globalMutex);
+
 
 	QString text("");
 	if (target < MAX_ENEMY)
@@ -13805,7 +13803,7 @@ void Server::sendBattlePetDoNothing()
 	lssproto_B_send(const_cast<char*>(str.c_str()));
 
 	Injector& injector = Injector::getInstance();
-	//util::ScopedLocker locker(&injector.globalMutex);
+
 
 	QString text(QObject::tr("do nothing"));
 	if (labelPetAction != text)

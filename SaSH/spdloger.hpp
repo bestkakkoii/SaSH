@@ -52,7 +52,7 @@ inline void SPD_INIT(const std::wstring& name, const std::wstring& fileName)
 		if (spdlog::get(sname))
 			return;
 
-		constexpr int max_size = 1024 * 1024 * 10;
+		constexpr int max_size = 1024 * 1024 * 100;
 		constexpr int max_files = 10;
 
 		std::shared_ptr<spdlog::sinks::rotating_file_sink_mt> rotating_file_sink = std::make_shared<spdlog::sinks::rotating_file_sink_mt>(fileName.c_str(), max_size, max_files);

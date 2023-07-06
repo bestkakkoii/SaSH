@@ -131,7 +131,7 @@ bool Interpreter::doFile(qint64 beginLine, const QString& fileName, Interpreter*
 
 		if (TK.contains(0) && TK.value(0).type == TK_PAUSE)
 		{
-			parent->pause();
+			parent->paused();
 			emit signalDispatcher.scriptPaused();
 		}
 
@@ -220,7 +220,7 @@ void Interpreter::doString(const QString& script, Interpreter* parent, VarShareM
 
 			if (TK.contains(0) && TK.value(0).type == TK_PAUSE)
 			{
-				parent->pause();
+				parent->paused();
 				SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
 				emit signalDispatcher.scriptPaused();
 			}
@@ -322,27 +322,6 @@ bool Interpreter::readFile(const QString& fileName, QString* pcontent, bool* isP
 void Interpreter::stop()
 {
 	requestInterruption();
-}
-
-void Interpreter::pause()
-{
-	isPaused_.store(true, std::memory_order_release);
-}
-
-void Interpreter::resume()
-{
-	isPaused_.store(false, std::memory_order_release);
-	waitCondition_.wakeAll();
-}
-
-void Interpreter::checkPause()
-{
-	if (isPaused_.load(std::memory_order_acquire))
-	{
-		mutex_.lock();
-		waitCondition_.wait(&mutex_);
-		mutex_.unlock();
-	}
 }
 
 //註冊interpreter的成員函數
@@ -1062,7 +1041,7 @@ qint64 Interpreter::mainScriptCallBack(qint64 currentLine, const TokenMap& TK)
 
 	if (TK.contains(0) && TK.value(0).type == TK_PAUSE)
 	{
-		pause();
+		paused();
 		emit signalDispatcher.scriptPaused();
 	}
 
@@ -1078,7 +1057,7 @@ qint64 Interpreter::mainScriptCallBack(qint64 currentLine, const TokenMap& TK)
 		return 1;//檢查是否有中斷點
 	}
 
-	pause();
+	paused();
 
 	if (markers.contains(currentLine))
 	{

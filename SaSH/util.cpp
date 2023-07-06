@@ -1,17 +1,20 @@
 ﻿#include "stdafx.h"
 #include <util.h>
 
+QReadWriteLock g_fileLock;
 
 util::Config::Config(const QString& fileName)
-	: lock_(fileName)
-	, fileName_(fileName)
+	: fileName_(fileName)
 {
-	open(fileName);
+	g_fileLock.lockForRead();
+	isVaild = open(fileName);
+	g_fileLock.unlock();
 }
 
 util::Config::~Config()
 {
-	sync();
+	if (isVaild)
+		sync();
 }
 
 bool util::Config::open(const QString& fileName)
@@ -36,8 +39,6 @@ bool util::Config::open(const QString& fileName)
 
 	}
 
-	isLocked_ = lock_.tryLock();
-
 	QByteArray allData = file.readAll();
 	file.close();
 
@@ -59,7 +60,7 @@ void util::Config::sync()
 {
 	if (hasChanged_)
 	{
-
+		g_fileLock.lockForWrite();
 		QJsonObject root = QJsonObject::fromVariantMap(cache_);
 		document_.setObject(root);
 		QByteArray data = document_.toJson(QJsonDocument::Indented);
@@ -70,12 +71,7 @@ void util::Config::sync()
 			file.flush();
 			file.close();
 		}
-	}
-
-	if (isLocked_)
-	{
-		lock_.unlock();
-		isLocked_ = false;
+		g_fileLock.unlock();
 	}
 }
 

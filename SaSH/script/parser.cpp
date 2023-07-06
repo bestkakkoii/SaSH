@@ -304,6 +304,8 @@ bool Parser::checkString(const TokenMap& TK, qint64 idx, QString* ret)
 	if (ret == nullptr)
 		return false;
 
+	SPD_LOG(g_logger_name, QString("checkString: idx:%1").arg(idx));
+
 	RESERVE type = TK.value(idx, Token{}).type;
 	QVariant var = TK.value(idx, Token{}).data;
 
@@ -317,7 +319,7 @@ bool Parser::checkString(const TokenMap& TK, qint64 idx, QString* ret)
 	else if (type == TK_STRING || type == TK_CMD || type == TK_NAME || type == TK_LABELVAR || type == TK_CAOS)
 	{
 		//檢查是否為區域變量
-		VariantSafeHash args = getLocalVars();
+		QVariantHash args = getLocalVars();
 		QString varName = var.toString();
 		if (args.contains(varName))
 		{
@@ -330,7 +332,7 @@ bool Parser::checkString(const TokenMap& TK, qint64 idx, QString* ret)
 			return true;
 		}
 
-		updateGlobalVariables();
+		updateGlobalVariables(varName);
 		if (isGlobalVarContains(varName))
 		{
 			*ret = getGlobalVarValue(varName).toString();
@@ -352,6 +354,8 @@ bool Parser::checkInteger(const TokenMap& TK, qint64 idx, qint64* ret)
 	if (ret == nullptr)
 		return false;
 
+	SPD_LOG(g_logger_name, QString("checkInteger: idx:%1").arg(idx));
+
 	RESERVE type = TK.value(idx).type;
 	QVariant var = TK.value(idx).data;
 
@@ -371,7 +375,7 @@ bool Parser::checkInteger(const TokenMap& TK, qint64 idx, qint64* ret)
 	else if (type == TK_STRING || type == TK_CMD || type == TK_NAME || type == TK_LABELVAR || type == TK_CAOS)
 	{
 		//檢查是否為區域變量
-		VariantSafeHash args = getLocalVars();
+		QVariantHash args = getLocalVars();
 		QString varName = var.toString();
 
 		if (args.contains(varName)
@@ -393,7 +397,7 @@ bool Parser::checkInteger(const TokenMap& TK, qint64 idx, qint64* ret)
 			return true;
 		}
 
-		updateGlobalVariables();
+		updateGlobalVariables(varName);
 		if (isGlobalVarContains(varName))
 		{
 			QVariant gVar = getGlobalVarValue(varName);
@@ -435,6 +439,8 @@ bool Parser::toVariant(const TokenMap& TK, qint64 idx, QVariant* ret)
 	if (ret == nullptr)
 		return false;
 
+	SPD_LOG(g_logger_name, QString("checkVariant: idx:%1").arg(idx));
+
 	RESERVE type = TK.value(idx).type;
 	QVariant var = TK.value(idx).data;
 	if (!var.isValid())
@@ -442,7 +448,7 @@ bool Parser::toVariant(const TokenMap& TK, qint64 idx, QVariant* ret)
 
 	if (type == TK_STRING || type == TK_CMD || type == TK_NAME || type == TK_LABELVAR || type == TK_CAOS)
 	{
-		VariantSafeHash args = getLocalVars();
+		QVariantHash args = getLocalVars();
 		QString varName = var.toString();
 		if (args.contains(varName))
 		{
@@ -455,7 +461,7 @@ bool Parser::toVariant(const TokenMap& TK, qint64 idx, QVariant* ret)
 			return true;
 		}
 
-		updateGlobalVariables();
+		updateGlobalVariables(varName);
 		if (isGlobalVarContains(varName))
 		{
 			QVariant gVar = getGlobalVarValue(varName);
@@ -482,14 +488,12 @@ bool Parser::toVariant(const TokenMap& TK, qint64 idx, QVariant* ret)
 //嘗試取指定位置的token轉為按照double -> qint64 -> string順序檢查
 QVariant Parser::checkValue(const TokenMap TK, qint64 idx, QVariant::Type type)
 {
+	SPD_LOG(g_logger_name, QString("checkValue: idx:%1").arg(idx));
+
 	QVariant varValue;
 	qint64 ivalue;
-	//double dvalue;
 	QString text;
-	//if (checkDouble(currentLineTokens_, idx, &dvalue))
-	//{
-		//varValue = dvalue;
-	//}
+
 	if (checkInteger(currentLineTokens_, idx, &ivalue))
 	{
 		varValue = ivalue;
@@ -512,6 +516,9 @@ QVariant Parser::checkValue(const TokenMap TK, qint64 idx, QVariant::Type type)
 //檢查跳轉是否滿足，和跳轉的方式
 qint64 Parser::checkJump(const TokenMap& TK, qint64 idx, bool expr, JumpBehavior behavior)
 {
+	SPD_LOG(g_logger_name, QString("checkJump: idx:%1 expr:%2 jumptype:%1")
+		.arg(idx).arg(expr ? "true" : "false").arg(behavior == JumpBehavior::FailedJump ? "failedjump" : "successjump"));
+
 	bool okJump = false;
 	if (behavior == JumpBehavior::FailedJump)
 	{
@@ -648,9 +655,11 @@ void Parser::insertGlobalVar(const QVariantHash& hash)
 //將表達式中所有變量替換成實際數值
 void Parser::replaceToVariable(QString& expr)
 {
+	SPD_LOG(g_logger_name, QString("replaceToVariable: %1").arg(expr));
+
 	QVector<QPair<QString, QVariant>> tmpvec;
 
-	VariantSafeHash args = getLocalVars();
+	QVariantHash args = getLocalVars();
 	for (auto it = args.cbegin(); it != args.cend(); ++it)
 		tmpvec.append(qMakePair(it.key(), it.value()));
 
@@ -681,9 +690,11 @@ void Parser::replaceToVariable(QString& expr)
 
 	tmpvec.clear();
 
-	updateGlobalVariables();
-
 	QVariantHash* pglobalhash = getGlobalVarPointer();
+
+	for (auto it = pglobalhash->cbegin(); it != pglobalhash->cend(); ++it)
+		updateGlobalVariables(it.key());
+
 	for (auto it = pglobalhash->cbegin(); it != pglobalhash->cend(); ++it)
 	{
 		tmpvec.append(qMakePair(it.key(), it.value()));
@@ -849,24 +860,47 @@ qint64 Parser::processCommand()
 {
 	TokenMap tokens = getCurrentTokens();
 	Token commandToken = tokens.value(0);
+	QVariant varValue = commandToken.data;
+	if (!varValue.isValid())
+	{
+		SPD_LOG(g_logger_name, QString("Invalid command: %1").arg(commandToken.data.toString()));
+		return kError;
+	}
+
 	QString commandName = commandToken.data.toString();
 	qint64 status = kNoChange;
+
 	if (commandRegistry_.contains(commandName))
 	{
+		SPD_LOG(g_logger_name, QString("begin Command: %1").arg(commandName));
 		CommandRegistry function = commandRegistry_.value(commandName, nullptr);
 		if (function == nullptr)
 		{
-			qDebug() << "Command not registered:" << commandName;
-			return status;
+			SPD_LOG(g_logger_name, QString("Command pointer is nullptr: %1").arg(commandName));
+			return kError;
 		}
 
-		status = function(lineNumber_, tokens);
+		try
+		{
+			status = function(lineNumber_, tokens);
+		}
+		catch (const std::exception& e)
+		{
+			SPD_LOG(g_logger_name, QString("Command exception: %1").arg(e.what()));
+			return kError;
+		}
+		catch (...)
+		{
+			SPD_LOG(g_logger_name, QString("Command unknown exception: %1").arg(commandName));
+			return kError;
+		}
 	}
 	else
 	{
-		qDebug() << "Command not found:" << commandName;
-
+		SPD_LOG(g_logger_name, QString("Command not found: %1").arg(commandName));
+		return kError;
 	}
+
 	return status;
 }
 
@@ -902,6 +936,8 @@ void Parser::processLocalVariable()
 
 bool Parser::checkFuzzyValue(const QString& varName, QVariant varValue, QVariant* pvalue)
 {
+	SPD_LOG(g_logger_name, "checkFuzzyValue");
+
 	QString opStr = varValue.toString().simplified();
 	if (!opStr.startsWith(kFuzzyPrefix))
 		return false;
@@ -943,7 +979,6 @@ bool Parser::checkFuzzyValue(const QString& varName, QVariant varValue, QVariant
 //處理"變量"
 void Parser::processVariable(RESERVE type)
 {
-
 	switch (type)
 	{
 	case TK_VARDECL:
@@ -991,7 +1026,7 @@ void Parser::processVariable(RESERVE type)
 			break;
 		}
 
-		updateGlobalVariables();
+		updateGlobalVariables(varName);
 
 		//下面是變量比較數值，先檢查變量是否存在
 		if (!isGlobalVarContains(varName))
@@ -1047,8 +1082,7 @@ void Parser::processMultiVariable()
 	qint64 varCount = varNames.count();
 
 	//取區域變量表
-	VariantSafeHash args = getLocalVars();
-
+	QVariantHash args = getLocalVars();
 
 	for (qint64 i = 0; i < varCount; ++i)
 	{
@@ -1231,7 +1265,7 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 		if (typeStr.isEmpty())
 			break;
 
-		VariantSafeHash& hashpc = injector.server->hashpc;
+		VariantSafeHash hashpc = injector.server->hashpc;
 		if (!hashpc.contains(typeStr))
 			break;
 
@@ -1340,11 +1374,11 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 		if (typeStr.isEmpty())
 			break;
 
-		util::SafeHash<int, QHash<int, QVariantHash>>& hashpetskill = injector.server->hashpetskill;
+		util::SafeHash<int, QHash<int, QVariantHash>> hashpetskill = injector.server->hashpetskill;
 		if (!hashpetskill.contains(petIndex))
 			break;
 
-		util::SafeHash<int, QVariantHash> hash = hashpetskill.value(petIndex);
+		QHash<int, QVariantHash> hash = hashpetskill.value(petIndex);
 		if (!hash.contains(skillIndex))
 			break;
 
@@ -1364,7 +1398,7 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 		if (typeStr.isEmpty())
 			break;
 
-		VariantSafeHash& hashmap = injector.server->hashmap;
+		VariantSafeHash hashmap = injector.server->hashmap;
 		if (!hashmap.contains(typeStr))
 			break;
 
@@ -1489,7 +1523,7 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 		if (typeStr.isEmpty())
 			break;
 
-		util::SafeHash<int, QHash<int, QVariantHash>>& hashpetequip = injector.server->hashpetequip;
+		util::SafeHash<int, QHash<int, QVariantHash>> hashpetequip = injector.server->hashpetequip;
 		if (!hashpetequip.contains(petIndex))
 			break;
 
@@ -1908,6 +1942,8 @@ void Parser::processFormation()
 //檢查"調用"是否傳入參數
 void Parser::checkArgs()
 {
+	SPD_LOG(g_logger_name, "checkArgs");
+
 	//check rest of the tokens is exist push to stack 	QStack<QVariantList> callArgs_
 	QVariantList list;
 	for (qint64 i = kCallPlaceHoldSize; i < tokens_.value(lineNumber_).size(); ++i)
@@ -2056,6 +2092,8 @@ void Parser::variableCalculate(RESERVE op, QVariant* pvar, const QVariant& varVa
 	if (nullptr == pvar)
 		return;
 
+	SPD_LOG(g_logger_name, "variableCalculate");
+
 	QVariant::Type type = pvar->type();
 
 	switch (op)
@@ -2178,115 +2216,119 @@ void Parser::generateStackInfo(qint64 type)
 }
 
 //更新系統預定變量的值
-void Parser::updateGlobalVariables()
+void Parser::updateGlobalVariables(const QString& varName)
 {
 	Injector& injector = Injector::getInstance();
 
-	SPD_LOG(g_logger_name, "start update system global variables");
+	SPD_LOG(g_logger_name, "*********** inesrt global start ***********");
 
 	QVariantHash hash;
 
-	qint64 tick = QDateTime::currentMSecsSinceEpoch();
-	hash.insert("tick", tick);
-	hash.insert("stick", tick / 1000);
-
-	SPD_LOG(g_logger_name, "insert tick and stick");
-
-	QDateTime dt = QDateTime::currentDateTime();
-	QString date = dt.toString("yyyy-MM-dd");
-	QString time = dt.toString("hh:mm:ss:zzz");
-	hash.insert("date", date);
-	hash.insert("time", time);
-
-	SPD_LOG(g_logger_name, "insert date and time");
-
-	if (!injector.server.isNull() && injector.globalMutex.tryLock())
+	if (varName.contains("tick"))
 	{
-		bool isBattle = injector.server->getBattleFlag();
-		hash.insert("bt", isBattle ? 1ll : 0ll);
+		const qint64 tick = QDateTime::currentMSecsSinceEpoch();
+		hash.insert("tick", tick);
+		hash.insert("stick", tick / 1000);
+		SPD_LOG(g_logger_name, "insert global var: tick and stick");
+	}
+	else if (varName == "date" || varName == "time")
+	{
+		const QDateTime dt = QDateTime::currentDateTime();
+		const QString date = dt.toString("yyyy-MM-dd");
+		const QString time = dt.toString("hh:mm:ss:zzz");
+		hash.insert("date", date);
+		hash.insert("time", time);
+		SPD_LOG(g_logger_name, "insert global var: date and time");
+	}
+	else if (!injector.server.isNull())
+	{
+		SPD_LOG(g_logger_name, "*********** getting server info for global var ***********");
 
-		SPD_LOG(g_logger_name, "insert bt");
+		if (varName.startsWith("ch") || varName == "stone")
+		{
+			PC pc = injector.server->getPC();
+			hash.insert("chname", pc.name);
+			hash.insert("chfname", pc.freeName);
+			hash.insert("chlv", pc.level);
+			hash.insert("chhp", pc.hp);
+			hash.insert("chmp", pc.mp);
+			hash.insert("chdp", pc.dp);
+			hash.insert("stone", pc.gold);
+			SPD_LOG(g_logger_name, "insert global var: chname, chfname, chlv, chhp, chmp, chdp, stone");
+		}
+		else if (varName == "floor" || varName == "frname")
+		{
+			hash.insert("floor", injector.server->nowFloor);
+			hash.insert("frname", injector.server->nowFloorName);
+			SPD_LOG(g_logger_name, "insert global var: floor and frname");
+		}
+		else if (varName == "earnstone")
+		{
+			qint64 goldearn = injector.server->recorder[0].goldearn;
+			hash.insert("earnstone", goldearn);
+			SPD_LOG(g_logger_name, "insert earnstone");
+		}
+		else if (varName == "px" || varName == "py")
+		{
+			QPoint pos = injector.server->getPoint();
+			hash.insert("px", pos.x());
+			hash.insert("py", pos.y());
+			SPD_LOG(g_logger_name, "insert global var: px and py");
+		}
+		else if (varName == "bt")
+		{
+			bool isBattle = injector.server->getBattleFlag();
+			hash.insert("bt", isBattle ? 1ll : 0ll);
+			SPD_LOG(g_logger_name, "insert global var: bt");
+		}
+		else if (varName == "dlgid")
+		{
+			dialog_t dialog = injector.server->currentDialog;
+			hash.insert("dlgid", dialog.seqno);
+			SPD_LOG(g_logger_name, "insert global var: dlgid");
+		}
 
-		dialog_t dialog = injector.server->currentDialog;
-		hash.insert("dlgid", dialog.seqno);
-		SPD_LOG(g_logger_name, "insert dlgid");
-
-		QPoint pos = injector.server->getPoint();
-		hash.insert("px", pos.x());
-		hash.insert("py", pos.y());
-
-		SPD_LOG(g_logger_name, "insert px and py");
-
-		PC pc = injector.server->getPC();
-		hash.insert("chname", pc.name);
-		hash.insert("chfname", pc.freeName);
-		hash.insert("chlv", pc.level);
-		hash.insert("chhp", pc.hp);
-		hash.insert("chmp", pc.mp);
-		hash.insert("chdp", pc.dp);
-		hash.insert("stone", pc.gold);
-
-		SPD_LOG(g_logger_name, "insert chname, chfname, chlv, chhp, chmp, chdp, stone");
-
-		hash.insert("floor", injector.server->nowFloor);
-		hash.insert("frname", injector.server->nowFloorName);
-
-		SPD_LOG(g_logger_name, "insert floor and frname");
-
-		qint64 goldearn = injector.server->recorder[0].goldearn;
-		hash.insert("earnstone", goldearn);
-
-		SPD_LOG(g_logger_name, "insert earnstone");
-
-		injector.globalMutex.unlock();
+		SPD_LOG(g_logger_name, "*********** getting server info done ***********");
+	}
+	else
+	{
+		SPD_LOG(g_logger_name, "*********** insert global done ***********");
+		return;
 	}
 
 	insertGlobalVar(hash);
 
-	SPD_LOG(g_logger_name, "update system global variables done");
+	SPD_LOG(g_logger_name, "*********** insert global done ***********");
 }
 
-//處理所有的token
-void Parser::processTokens()
+//這裡是防止人為設置過長的延時導致腳本無法停止
+void Parser::processDelay()
 {
-	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
 	Injector& injector = Injector::getInstance();
-
-	//同步模式時清空所有marker並重置UI顯示的堆棧訊息
-	if (mode_ == kSync)
+	qint64 extraDelay = injector.getValueHash(util::kScriptSpeedValue);
+	if (extraDelay > 1000)
 	{
-		emit signalDispatcher.addErrorMarker(-1, false);
-		emit signalDispatcher.addForwardMarker(-1, false);
-		emit signalDispatcher.addStepMarker(-1, false);
-		generateStackInfo(0);
-		generateStackInfo(1);
+		//將超過1秒的延時分段
+		qint64 i = 0;
+		qint64 size = extraDelay / 1000;
+		for (i = 0; i < size; ++i)
+		{
+			if (isInterruptionRequested())
+				return;
+			QThread::msleep(1000);
+		}
+		if (extraDelay % 1000 > 0)
+			QThread::msleep(extraDelay % 1000);
 	}
-
-	//這裡是防止人為設置過長的延時導致腳本無法停止
-	auto delay = [this, &injector]()
+	else if (extraDelay > 0)
 	{
-		qint64 extraDelay = injector.getValueHash(util::kScriptSpeedValue);
-		if (extraDelay > 1000)
-		{
-			//將超過1秒的延時分段
-			qint64 i = 0;
-			qint64 size = extraDelay / 1000;
-			for (i = 0; i < size; ++i)
-			{
-				if (isInterruptionRequested())
-					return;
-				QThread::msleep(1000);
-			}
-			if (extraDelay % 1000 > 0)
-				QThread::msleep(extraDelay % 1000);
-		}
-		else if (extraDelay > 0)
-		{
-			QThread::msleep(extraDelay);
-		}
-		QThread::msleep(1);
-	};
+		QThread::msleep(extraDelay);
+	}
+	QThread::msleep(1);
+}
 
+void Parser::updateFunctionChunk()
+{
 	QHash<qint64, FunctionChunk> chunkHash;
 	QMap<qint64, TokenMap> map;
 	for (auto it = tokens_.cbegin(); it != tokens_.cend(); ++it)
@@ -2330,14 +2372,32 @@ void Parser::processTokens()
 			chunkHash.insert(indentLevel, chunk);
 			++indentLevel;
 		}
-		}
+	}
 
 #ifdef _DEBUG
 	for (auto it = functionChunks_.cbegin(); it != functionChunks_.cend(); ++it)
 		qDebug() << it.key() << it.value().name << it.value().begin << it.value().end;
 #endif
+}
 
-	qint64 oldlineNumber = lineNumber_;
+//處理所有的token
+void Parser::processTokens()
+{
+	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
+	Injector& injector = Injector::getInstance();
+
+	//同步模式時清空所有marker並重置UI顯示的堆棧訊息
+	if (mode_ == kSync)
+	{
+		emit signalDispatcher.addErrorMarker(-1, false);
+		emit signalDispatcher.addForwardMarker(-1, false);
+		emit signalDispatcher.addStepMarker(-1, false);
+		generateStackInfo(0);
+		generateStackInfo(1);
+	}
+
+	updateFunctionChunk();
+
 	bool skip = false;
 	RESERVE currentType = TK_UNK;
 	QString name;
@@ -2362,7 +2422,7 @@ void Parser::processTokens()
 		if (!ctorCallBackFlag_)
 		{
 			//檢查是否存在腳本建構函數
-			util::SafeHash<QString, qint64> hash = getLabels();
+			QHash<QString, qint64> hash = getLabels();
 			constexpr const char* CTOR = "ctor";
 			if (hash.contains(CTOR))
 			{
@@ -2372,7 +2432,9 @@ void Parser::processTokens()
 			}
 		}
 
+		SPD_LOG(g_logger_name, "get current line token");
 		currentLineTokens_ = tokens_.value(lineNumber_);
+		SPD_LOG(g_logger_name, "get current line token done");
 
 		if (!g_logger_name.isEmpty())
 		{
@@ -2385,11 +2447,13 @@ void Parser::processTokens()
 			SPD_LOG(g_logger_name, logStr);
 		}
 
-
+		SPD_LOG(g_logger_name, "getCurrentFirstTokenType");
 		currentType = getCurrentFirstTokenType();
-		skip = currentType == RESERVE::TK_WHITESPACE || currentType == RESERVE::TK_SPACE || currentType == RESERVE::TK_COMMENT || currentType == RESERVE::TK_UNK;
+		SPD_LOG(g_logger_name, "getCurrentFirstTokenType done");
 
-		oldlineNumber = lineNumber_;
+		SPD_LOG(g_logger_name, "check white space");
+		skip = currentType == RESERVE::TK_WHITESPACE || currentType == RESERVE::TK_SPACE || currentType == RESERVE::TK_COMMENT || currentType == RESERVE::TK_UNK;
+		SPD_LOG(g_logger_name, "check white space done");
 
 		if (currentType == TK_LABEL)
 		{
@@ -2404,28 +2468,36 @@ void Parser::processTokens()
 
 		if (!skip)
 		{
-			delay();
+			SPD_LOG(g_logger_name, "processDelay");
+			processDelay();
+			SPD_LOG(g_logger_name, "processDelay done");
+
 			if (callBack_ != nullptr)
 			{
-				SPD_LOG(g_logger_name, "callBack started");
+				SPD_LOG(g_logger_name, "CallBack proc started");
 				qint64 status = callBack_(lineNumber_, currentLineTokens_);
 				if (status == kStop)
 				{
-					SPD_LOG(g_logger_name, "callBack request script stop");
+					SPD_LOG(g_logger_name, "CallBack proc request script stop");
 					break;
 				}
-				SPD_LOG(g_logger_name, "callBack ended");
+				SPD_LOG(g_logger_name, "CallBack proc ended");
+			}
+			else
+			{
+				SPD_LOG(g_logger_name, "CallBack proc is null");
 			}
 		}
 
-		//qDebug() << "line:" << lineNumber_ << "tokens:" << currentLineTokens_.value(0).raw;
-
+		SPD_LOG(g_logger_name, "switch currentType");
 		switch (currentType)
 		{
 		case TK_COMMENT:
 		case TK_WHITESPACE:
 		case TK_SPACE:
+		{
 			break;
+		}
 		case TK_END:
 		{
 			SPD_LOG(g_logger_name, "END command");
@@ -2457,31 +2529,37 @@ void Parser::processTokens()
 		{
 			SPD_LOG(g_logger_name, "Command: " + currentLineTokens_.value(0).raw + " started");
 			qint64 ret = processCommand();
+			SPD_LOG(g_logger_name, "done processCommand");
 			switch (ret)
 			{
 			case kHasJump:
 			{
 				SPD_LOG(g_logger_name, "Command has jumped");
 				generateStackInfo(1);
+				SPD_LOG(g_logger_name, "done generateStackInfo");
 				continue;
 			}
 			case kError:
 			case kArgError:
 			case kUnknownCommand:
 			{
+				SPD_LOG(g_logger_name, "Command has error");
 				handleError(ret);
 				name.clear();
 				if (getErrorCallBackLabelName(&name))
 				{
+					SPD_LOG(g_logger_name, "Command has error, has user error callback");
 					jump(name, true);
 					continue;
 				}
+				SPD_LOG(g_logger_name, "Command has error, not user callback was found");
 				break;
 			}
 			default:
 				break;
 			}
-			SPD_LOG(g_logger_name, "Command has finished and no jump");
+
+			SPD_LOG(g_logger_name, "Command has finished and not jump");
 			break;
 		}
 		case TK_LOCAL:
@@ -2549,6 +2627,7 @@ void Parser::processTokens()
 			{
 				SPD_LOG(g_logger_name, "Call has jumped");
 				generateStackInfo(0);
+				SPD_LOG(g_logger_name, "done generateStackInfo");
 				continue;
 			}
 			SPD_LOG(g_logger_name, "Call has not jumped");
@@ -2561,6 +2640,7 @@ void Parser::processTokens()
 			{
 				SPD_LOG(g_logger_name, "Goto has jumped");
 				generateStackInfo(1);
+				SPD_LOG(g_logger_name, "done generateStackInfo");
 				continue;
 			}
 			SPD_LOG(g_logger_name, "Goto has not jumped");
@@ -2573,6 +2653,7 @@ void Parser::processTokens()
 			{
 				SPD_LOG(g_logger_name, "Jump has jumped");
 				generateStackInfo(1);
+				SPD_LOG(g_logger_name, "done generateStackInfo");
 				continue;
 			}
 			SPD_LOG(g_logger_name, "Jump has not jumped");
@@ -2582,16 +2663,18 @@ void Parser::processTokens()
 		{
 			SPD_LOG(g_logger_name, "Processing return");
 			processReturn();
-			generateStackInfo(0);
 			SPD_LOG(g_logger_name, "Return has finished");
+			generateStackInfo(0);
+			SPD_LOG(g_logger_name, "done generateStackInfo");
 			continue;
 		}
 		case TK_BAK:
 		{
 			SPD_LOG(g_logger_name, "Processing back");
 			processBack();
-			generateStackInfo(1);
 			SPD_LOG(g_logger_name, "Back has finished");
+			generateStackInfo(1);
+			SPD_LOG(g_logger_name, "done generateStackInfo");
 			continue;
 		}
 		case TK_LABEL:
@@ -2602,10 +2685,13 @@ void Parser::processTokens()
 			break;
 		}
 		default:
+		{
 			qDebug() << "Unexpected token type:" << currentType;
 			break;
 		}
+		}
 
+		SPD_LOG(g_logger_name, "check isInterruptionRequested");
 		if (isInterruptionRequested())
 		{
 			name.clear();
@@ -2652,9 +2738,10 @@ void Parser::processTokens()
 		//移動至下一行
 		SPD_LOG(g_logger_name, "Moving to next line");
 		next();
+		SPD_LOG(g_logger_name, "done Moved to next line");
 	}
 
 	SPD_LOG(g_logger_name, "Processing finished");
 	processClean();
 
-	}
+}

@@ -47,12 +47,6 @@ public:
 
 	void stop();
 
-	void pause();
-
-	void resume();
-
-	inline bool isPaused() const { return isPaused_.load(std::memory_order_acquire); }
-
 	inline void setSubScript(bool is) { parser_.setSubScript(is); }
 
 	Q_REQUIRED_RESULT inline bool isSubScript() const { return parser_.isSubScript(); }
@@ -248,9 +242,6 @@ private:
 
 	bool compare(CompareArea area, const TokenMap& TK);
 
-
-	void checkPause();
-
 	void logExport(qint64 currentline, const QString& text, qint64 color = 0);
 
 	void setError(const QString& error) { parser_.setLastErrorMessage(error); }
@@ -393,10 +384,6 @@ private:
 
 	QString scriptFileName_;
 
-	//是否暫停
-	std::atomic_bool isPaused_ = false;
-	mutable QWaitCondition waitCondition_;
-	mutable QMutex mutex_;
 	QList<QSharedPointer<Interpreter>> subInterpreterList_;
 	QFutureSynchronizer<bool> futureSync_;
 	ParserCallBack pCallback = nullptr;

@@ -148,7 +148,7 @@ void ScriptForm::onScriptPaused()
 		if (!interpreter_->isPaused())
 		{
 			ui.pushButton_script_pause->setText(tr("resume"));
-			interpreter_->pause();
+			interpreter_->paused();
 		}
 	}
 }
@@ -160,7 +160,7 @@ void ScriptForm::onScriptResumed()
 		if (interpreter_->isPaused())
 		{
 			ui.pushButton_script_pause->setText(tr("pause"));
-			interpreter_->resume();
+			interpreter_->resumed();
 		}
 	}
 }
@@ -171,7 +171,7 @@ void ScriptForm::onScriptStoped()
 	{
 		interpreter_->requestInterruption();
 		if (interpreter_->isPaused())
-			interpreter_->resume();
+			interpreter_->resumed();
 	}
 }
 

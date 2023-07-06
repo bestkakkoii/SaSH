@@ -1587,15 +1587,13 @@ namespace util
 		QList<util::MapData> util::Config::readMapData(const QString& key) const;
 
 	private:
-		QLockFile lock_;
-
 		QJsonDocument document_;
 
 		QString fileName_ = "\0";
 
 		QVariantMap cache_ = {};
 
-		bool isLocked_ = false;
+		bool isVaild = false;
 
 		bool hasChanged_ = false;
 	};
