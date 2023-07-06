@@ -19,6 +19,8 @@ class InfoForm;
 class MapWidget;
 class ScriptSettingForm;
 
+class QThumbnailForm;
+
 class Interpreter;
 
 class MainForm : public QMainWindow
@@ -73,6 +75,8 @@ private:
 	InfoForm* pInfoForm_ = nullptr;
 	MapWidget* mapWidget_ = nullptr;
 	ScriptSettingForm* pScriptSettingForm_ = nullptr;
+
+	QThumbnailForm* pThumbnailForm_ = nullptr;
 
 	QSystemTrayIcon* trayIcon = nullptr;
 

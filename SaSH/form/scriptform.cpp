@@ -320,11 +320,48 @@ void ScriptForm::onScriptContentChanged(const QString& fileName, const QVariant&
 		int size = lineTokens.size();
 		for (int i = 1; i < size; ++i)
 		{
-			params.append(lineTokens.value(i).raw);
+			QString str = lineTokens.value(i).raw.simplified();
+			RESERVE reserve = lineTokens.value(i).type;
+			if (reserve != TK_CSTRING && !str.isEmpty())
+				params.append(str);
+			else
+				params.append(QString("\'%1\'").arg(str));
 		}
 
-		setTableWidgetItem(row, 0, lineTokens.value(0).raw);
-		setTableWidgetItem(row, 1, params.join(", "));
+		RESERVE reserve = lineTokens.value(0).type;
+		QString cmd = lineTokens.value(0).raw.simplified();
+		QString argStr = params.join(", ");
+		if (TK_LOCAL == reserve)
+		{
+			setTableWidgetItem(row, 0, "[local]");
+			if (!argStr.isEmpty())
+				setTableWidgetItem(row, 1, QString("%1 = %2").arg(cmd, argStr));
+			else
+				setTableWidgetItem(row, 1, QString("%1 = \'\'").arg(cmd));
+			continue;
+		}
+		else if (TK_MULTIVAR == reserve)
+		{
+			setTableWidgetItem(row, 0, "[global]");
+			if (!argStr.isEmpty())
+				setTableWidgetItem(row, 1, QString("%1 = %2").arg(cmd, argStr));
+			else
+				setTableWidgetItem(row, 1, QString("%1 = \'\'").arg(cmd));
+			continue;
+		}
+		else if (cmd.size() <= 12)
+			setTableWidgetItem(row, 0, cmd);
+		else
+		{
+			setTableWidgetItem(row, 0, "[long command]");
+			setTableWidgetItem(row, 1, QString("%1 %2").arg(cmd, argStr));
+			continue;
+			//qDebug() << QString("line:%1, cmd:%2 size:%3, args:%4") \
+			//	.arg(row).arg(lineTokens.value(0).raw.simplified()) \
+			//	.arg(cmd.size()).arg(params.join(", ")) << "type:" << reserve;
+		}
+
+		setTableWidgetItem(row, 1, argStr);
 	}
 
 	int index = fileName.indexOf("script/");

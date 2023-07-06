@@ -2949,12 +2949,17 @@ void Server::lssproto_B_recv(char* ccommand)
 		if (BattleMyNo >= 0 && BattleMyNo < bt.objects.size())
 		{
 			battleobject_t obj = bt.objects.value(BattleMyNo + 5, battleobject_t{});
-			if ((obj.level <= 0 || obj.maxHp <= 0 || obj.faceid <= 0))
+			if (obj.level <= 0 || obj.maxHp <= 0 || obj.faceid <= 0)
 			{
-				if (pc.battlePetNo >= 0)
+				int petIndex = pc.battlePetNo;
+				if (petIndex >= 0)
 				{
-					pet[pc.battlePetNo].state = kRest;
-					++recorder[pc.battlePetNo + 1].deadthcount;
+					setFightPet(-1);
+					pet[petIndex].state = kRest;
+					pc.selectPetNo[petIndex] = FALSE;
+					Injector& injector = Injector::getInstance();
+					mem::write<short>(injector.getProcess(), injector.getProcessModule() + kOffestSelectPetArray + (petIndex * sizeof(short)), FALSE);
+					++recorder[petIndex + 1].deadthcount;
 					pc.battlePetNo = -1;
 				}
 				emit signalDispatcher.updateLabelPetAction("");
@@ -3267,6 +3272,7 @@ void Server::lssproto_KS_recv(int petarray, int result)
 
 		pc.battlePetNo = petarray;
 
+
 		for (int i = 0; i < MAX_PET; ++i)
 		{
 			if (pet[i].state == kBattle)
@@ -3314,7 +3320,7 @@ void Server::lssproto_KS_recv(int petarray, int result)
 		pet[petarray].state = kBattle;
 		emit signalDispatcher.updatePetHpProgressValue(_pet.level, _pet.hp, _pet.maxHp);
 	}
-}
+		}
 
 #ifdef _STANDBYPET
 //寵物等待狀態改變 (不是每個私服都有)
@@ -3921,13 +3927,13 @@ void Server::lssproto_TK_recv(int index, char* cmessage, int color)
 				if (szToken == "TK")
 				{
 					//InitSelectChar(message, 0);
-				}
+			}
 				else if (szToken == "TE")
 				{
 					//InitSelectChar(message, 1);
 				}
 				return;
-			}
+		}
 			else
 			{
 
@@ -3965,7 +3971,7 @@ void Server::lssproto_TK_recv(int index, char* cmessage, int color)
 
 				//SaveChatData(msg, szToken[0], false);
 			}
-		}
+	}
 		else
 			getStringToken(message, "|", 2, msg);
 #ifdef _TALK_WINDOW
@@ -3976,7 +3982,7 @@ void Server::lssproto_TK_recv(int index, char* cmessage, int color)
 			{
 				pc.gold -= 200;
 				emit signalDispatcher.updatePlayerInfoStone(pc.gold);
-			}
+}
 #ifdef _FONT_SIZE
 #ifdef _MESSAGE_FRONT_
 		StockChatBufferLineExt(msg - 2, color, fontsize);
@@ -4033,9 +4039,9 @@ void Server::lssproto_TK_recv(int index, char* cmessage, int color)
 			{
 				// 1000
 				//pc.status |= CHR_STATUS_FUKIDASHI;
-			}
-		}
+}
 	}
+}
 
 	chatQueue.enqueue(QPair{ color ,msg });
 	emit signalDispatcher.appendChatLog(msg, color);
@@ -4425,7 +4431,7 @@ void Server::lssproto_C_recv(char* cdata)
 				{
 					party[0].level = pc.level;
 					party[0].name = pc.name;
-				}
+			}
 #ifdef MAX_AIRPLANENUM
 				for (j = 0; j < MAX_AIRPLANENUM; ++j)
 #else
@@ -4439,8 +4445,8 @@ void Server::lssproto_C_recv(char* cdata)
 							pc.status |= CHR_STATUS_LEADER;
 						break;
 					}
-				}
-			}
+		}
+		}
 			else
 			{
 #ifdef _CHAR_PROFESSION			// WON ADD 人物職業
@@ -4497,7 +4503,7 @@ void Server::lssproto_C_recv(char* cdata)
 					//}
 					//setCharNameColor(ptAct, charNameColor);
 				//}
-			}
+				}
 
 			if (name == u8"を�そó")//排除亂碼
 				break;
@@ -4528,7 +4534,7 @@ void Server::lssproto_C_recv(char* cdata)
 			mapUnitHash.insert(id, unit);
 
 			break;
-		}
+			}
 		case 2://OBJTYPE_ITEM
 		{
 			getStringToken(bigtoken, "|", 2, smalltoken);
@@ -5499,7 +5505,7 @@ void Server::lssproto_S_recv(char* cdata)
 
 		//if ((bNewServer & 0xf000000) == 0xf000000 && sPetStatFlag == 1)
 		//	saveUserSetting();
-	}
+					}
 #pragma endregion
 #pragma region FamilyInfo
 	else if (first == "F") // F 家族狀態
@@ -5862,7 +5868,7 @@ void Server::lssproto_S_recv(char* cdata)
 			emit signalDispatcher.updatePlayerInfoColContents(i + 1, var);
 		}
 
-	}
+						}
 #pragma endregion
 #pragma region EncountPercentage
 	else if (first == "E") // E nowEncountPercentage
@@ -5982,7 +5988,7 @@ void Server::lssproto_S_recv(char* cdata)
 					if (no2 == -1 && i > no)
 						no2 = i;
 				}
-			}
+		}
 			if (checkPartyCount <= 1)
 			{
 				partyModeFlag = 0;
@@ -6000,7 +6006,7 @@ void Server::lssproto_S_recv(char* cdata)
 			}
 			updateTeamInfo();
 			return;
-		}
+	}
 
 		partyModeFlag = 1;
 		prSendFlag = 0;
@@ -6086,7 +6092,7 @@ void Server::lssproto_S_recv(char* cdata)
 		}
 		party[no].hpPercent = util::percent(party[no].hp, party[no].maxHp);
 		updateTeamInfo();
-	}
+					}
 #pragma endregion
 #pragma region ItemInfo
 	else if (first == "I") //I 道具
@@ -6213,7 +6219,7 @@ void Server::lssproto_S_recv(char* cdata)
 		emit signalDispatcher.updateComboBoxItemText(util::kComboBoxItem, itemList);
 		checkAutoDropMeat(QStringList());
 		sortItem();
-	}
+		}
 #pragma endregion
 #pragma region PetSkill
 	else if (first == "W")//接收到的寵物技能
@@ -6426,7 +6432,7 @@ void Server::lssproto_S_recv(char* cdata)
 			pet[nPetIndex].item[i].counttime = getIntegerToken(data, "|", no + 16);
 #endif
 		}
-	}
+		}
 #endif
 #pragma endregion
 #pragma region S_recv_Unknown
@@ -6482,7 +6488,7 @@ void Server::lssproto_S_recv(char* cdata)
 	{
 		qDebug() << "[" << first << "]:" << data;
 	}
-}
+	}
 
 //客戶端登入(進去選人畫面)
 void Server::lssproto_ClientLogin_recv(char* cresult)
@@ -6635,7 +6641,7 @@ void Server::lssproto_CharLogin_recv(char* cresult, char* cdata)
 #ifdef __NEW_CLIENT
 		hPing = CreateThread(NULL, 0, PingFunc, &sin_server.sin_addr, 0, &dwPingID);
 #endif
-	}
+}
 
 #ifdef __NEW_CLIENT
 #ifdef _NEW_WGS_MSG				// WON ADD WGS的新視窗
@@ -6886,7 +6892,7 @@ void Server::lssproto_TD_recv(char* cdata)//交易
 		mypet_tradeList = QStringList{ "P|-1", "P|-1", "P|-1" , "P|-1", "P|-1" };
 		mygoldtrade = 0;
 	}
-}
+		}
 
 void Server::lssproto_CHAREFFECT_recv(char* cdata)
 {
@@ -8196,7 +8202,7 @@ void Server::announce(const QString& msg, int color)
 	chatQueue.enqueue(QPair<int, QString>(color, msg));
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
 	emit signalDispatcher.appendChatLog(msg, color);
-}
+	}
 
 //喊話
 void Server::talk(const QString& text, int color, TalkMode mode)
@@ -10392,6 +10398,7 @@ void Server::reloadHashVar()
 		//{ "", pc.familyleader },
 		{ "ridename", pc.ridePetName },
 		{ "ridelv", pc.ridePetLevel },
+		{ "earnstone", recorder[0].goldearn },
 		//{ "", pc.familySprite },
 		//{ "", pc.baseGraNo },
 	};
@@ -10915,12 +10922,12 @@ void Server::asyncBattleAction()
 				if (Checked)
 					mem::write<short>(injector.getProcess(), injector.getProcessModule() + 0xE21E8, 1);
 
-				battledata_t bt = getBattleData();
+				bt = getBattleData();
 
 				//如果沒有戰寵 或者戰寵死亡 則直接結束這一回合
 				if (pc.battlePetNo < 0 || pc.battlePetNo >= MAX_PET
 					|| ((bt.objects.value(BattleMyNo + 5, battleobject_t{}).hp <= 0)
-						|| (bt.objects.value(BattleMyNo + 5, battleobject_t{}).faceid <= 0)))
+						|| (bt.objects.value(BattleMyNo + 5, battleobject_t{}).faceid <= 0)) || hasUnMoveableStatue(bt.pet.status))
 				{
 					setEndCurrentRound();
 					isEnemyAllReady = false;
@@ -14130,5 +14137,5 @@ bool Server::captchaOCR(QString* pmsg)
 		announce("<ocr>failed! error:" + errorMsg);
 
 	return true;
-}
+	}
 #pragma endregion

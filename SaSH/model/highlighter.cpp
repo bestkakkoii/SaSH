@@ -21,7 +21,7 @@ const char* Highlighter::keywords(int set) const
 	case 2://QsciLexerLua::BasicFunctions//黃色
 	{
 		return "ocr dlg "
-			"print test sleep msg logout lockback eo button say input "
+			"print test sleep timer msg logout lockback eo button say input "
 			"talk cls set saveset loadset "
 			"waitdlg waitsay waititem waitmap waitteam "
 			"chpet chplayername chpetname chmap "
@@ -56,8 +56,7 @@ const char* Highlighter::keywords(int set) const
 	case 8://KeywordSet8//紫色
 	{
 		return
-			"tick stick chname chfname chlv chhp chmp chdp stone px py "
-			"floor frname date time earnstone dlgid bt";
+			"date time";
 	}
 	case 9:break;
 	}

@@ -237,6 +237,12 @@
     <ClCompile Include="model\fastlabel.cpp">
       <Filter>Source Files\model</Filter>
     </ClCompile>
+    <ClCompile Include="model\qthumbnailform.cpp">
+      <Filter>Source Files\model</Filter>
+    </ClCompile>
+    <ClCompile Include="model\qthumbnailwidget.cpp">
+      <Filter>Source Files\model</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="mainform.h">
@@ -339,6 +345,12 @@
       <Filter>Source Files\model</Filter>
     </QtMoc>
     <QtMoc Include="model\threadplugin.h">
+      <Filter>Source Files\model</Filter>
+    </QtMoc>
+    <QtMoc Include="model\qthumbnailform.h">
+      <Filter>Source Files\model</Filter>
+    </QtMoc>
+    <QtMoc Include="model\qthumbnailwidget.h">
       <Filter>Source Files\model</Filter>
     </QtMoc>
   </ItemGroup>
@@ -448,6 +460,9 @@
     </QtUic>
     <QtUic Include="update\qdownloader.ui">
       <Filter>Source Files\update</Filter>
+    </QtUic>
+    <QtUic Include="model\qthumbnailform.ui">
+      <Filter>Source Files\model</Filter>
     </QtUic>
   </ItemGroup>
   <ItemGroup>

@@ -20,6 +20,8 @@
 //#include "spdlog/logger.h"
 #include "spdlog/async.h"
 
+#include "injector.h"
+
 //#include "spdlog/sinks/stdout_sinks.h"
 //#include "spdlog/sinks/stdout_color_sinks.h"
 //#include "spdlog/common.h"
@@ -101,12 +103,12 @@ inline QString SPD_INIT(const QString& filename)
 {
 	try
 	{
-		QString name = QString("SaSH{%1_PID_%2}").arg(filename).arg(_getpid());
+		QString name = QString("SaSH{%1}").arg(filename);
 		std::wstring sname = name.toStdWString();
 		QString fileName = "\0";
 		//file name format: year_month_day_hours_ID_index
 		QDateTime time = QDateTime::currentDateTime();
-		QString timeStr = time.toString("yyyyMMdd_hh");
+		QString timeStr = time.toString("yyyyMMdd");
 		fileName = QString("%1/log/%2%3.log").arg(QCoreApplication::applicationDirPath()).arg(name).arg(timeStr).toLower();
 		std::wstring sfileName = fileName.toStdWString();
 		SPD_INIT(sname, sfileName);
@@ -158,6 +160,11 @@ inline void SPD_CLOSE(int index)
 
 inline void SPD_LOG(int index, const QString& msg, SPD_LOGTYPE logtype = SPD_INFO)
 {
+	Injector& injector = Injector::getInstance();
+	if (!injector.getEnableHash(util::kScriptDebugModeEnable))
+		return;
+
+
 	try
 	{
 		QString name("\0");
@@ -202,6 +209,10 @@ inline void SPD_LOG(int index, const QString& msg, SPD_LOGTYPE logtype = SPD_INF
 
 inline void SPD_LOG(const QString& name, const QString& msg, SPD_LOGTYPE logtype = SPD_INFO)
 {
+	Injector& injector = Injector::getInstance();
+	if (!injector.getEnableHash(util::kScriptDebugModeEnable))
+		return;
+
 	try
 	{
 		std::string sname = name.toStdString();
@@ -241,6 +252,10 @@ inline void SPD_LOG(const QString& name, const QString& msg, SPD_LOGTYPE logtype
 
 inline void SPD_LOG(const std::string& name, const std::string& msg, SPD_LOGTYPE logtype = SPD_INFO)
 {
+	Injector& injector = Injector::getInstance();
+	if (!injector.getEnableHash(util::kScriptDebugModeEnable))
+		return;
+
 	try
 	{
 		std::shared_ptr<spdlog::logger> log = spdlog::get(name);

@@ -13,7 +13,7 @@
 
 //menu action forms
 #include "form/scriptsettingform.h"
-
+#include "model/qthumbnailform.h"
 #include "update/qdownloader.h"
 
 //utilities
@@ -124,7 +124,7 @@ void createMenu(QMenuBar* pMenuBar)
 		{ QObject::tr("hide"), "actionHide" },
 		{ "","" },
 		{ QObject::tr("website"), "actionWebsite" },
-		{ QObject::tr("info"), "actionInfo" },
+		{ QObject::tr("scriptdoc"), "actionInfo" },
 		{ "", "" },
 		{ QObject::tr("close"), "actionClose" },
 		{ QObject::tr("close game"), "actionCloseGame" },
@@ -178,7 +178,9 @@ enum InterfaceMessage
 	kCloseGame,			// kInterfaceMessage + 6
 	kGetGameState,		// kInterfaceMessage + 7
 	kScriptState,		// kInterfaceMessage + 8
-	kOpenWindow,			// kInterfaceMessage + 9
+	kOpenWindow,		// kInterfaceMessage + 9
+	kSortWindow,		// kInterfaceMessage + 10
+	kThumbnail,			// kInterfaceMessage + 11
 };
 
 enum InterfaceWindowType
@@ -234,6 +236,7 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, long* res
 		++interfaceCount_;
 		updateStatusText();
 		interpreter->doString(script, nullptr, Interpreter::kNotShare);
+		*result = 1;
 		return true;
 	}
 	case InterfaceMessage::kStopScript:
@@ -246,6 +249,7 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, long* res
 		interpreter_hash_.remove(msg->wParam);
 		++interfaceCount_;
 		updateStatusText();
+		*result = 1;
 		return true;
 	}
 	case InterfaceMessage::kRunFile:
@@ -264,6 +268,7 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, long* res
 		emit signalDispatcher.scriptStarted();
 		++interfaceCount_;
 		updateStatusText();
+		*result = 1;
 		return true;
 	}
 	case InterfaceMessage::kStopFile:
@@ -276,6 +281,7 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, long* res
 		emit signalDispatcher.scriptStoped();
 		++interfaceCount_;
 		updateStatusText();
+		*result = 1;
 		return true;
 	}
 	case InterfaceMessage::kRunGame:
@@ -288,6 +294,7 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, long* res
 		emit signalDispatcher.gameStarted();
 		++interfaceCount_;
 		updateStatusText();
+		*result = 1;
 		return true;
 	}
 	case InterfaceMessage::kCloseGame:
@@ -299,6 +306,7 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, long* res
 		injector.close();
 		++interfaceCount_;
 		updateStatusText();
+		*result = 1;
 		return true;
 	}
 	case InterfaceMessage::kGetGameState:
@@ -403,6 +411,125 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, long* res
 		}
 
 		break;
+	}
+	case InterfaceMessage::kSortWindow:
+	{
+		do
+		{
+			const char* chwndstrs = reinterpret_cast<char*>(msg->lParam);
+			if (chwndstrs == nullptr)
+				break;
+
+			//檢查是否為合法字符串指針
+			std::string hwndstrs = reinterpret_cast<char*>(msg->lParam);
+			if (hwndstrs.empty())
+				break;
+
+			QString str = QString::fromStdString(hwndstrs);
+			if (str.isEmpty())
+				break;
+
+			QStringList strlist = str.split(util::rexOR);
+			if (strlist.isEmpty())
+				break;
+
+			QVector<HWND> hwnds;
+			for (auto& str : strlist)
+			{
+				bool ok = false;
+				qint64 nhwnd = str.simplified().toLongLong(&ok);
+				if (!ok && nhwnd > 0)
+					continue;
+
+				HWND hWnd = reinterpret_cast<HWND>(nhwnd);
+				if (!IsWindow(hWnd) || !IsWindowVisible(hWnd) || !IsWindowEnabled(hWnd))
+					continue;
+
+				hwnds.append(hWnd);
+			}
+
+			if (hwnds.isEmpty())
+				break;
+
+			bool ok = msg->wParam > 0;
+
+			util::sortWindows(hwnds, ok);
+			*result = 1;
+
+		} while (false);
+
+		return true;
+	}
+	case InterfaceMessage::kThumbnail:
+	{
+		*result = 0;
+		do
+		{
+			const char* chwndstrs = reinterpret_cast<char*>(msg->lParam);
+			if (chwndstrs == nullptr)
+				break;
+
+			//檢查是否為合法字符串指針
+			std::string hwndstrs = reinterpret_cast<char*>(msg->lParam);
+			if (hwndstrs.empty())
+				break;
+
+			QString str = QString::fromStdString(hwndstrs);
+			if (str.isEmpty())
+				break;
+
+			QStringList strlist = str.split(util::rexOR);
+			if (strlist.isEmpty())
+				break;
+
+			QList<HWND> hwnds;
+			for (auto& str : strlist)
+			{
+				bool ok = false;
+				qint64 nhwnd = str.simplified().toLongLong(&ok);
+				if (!ok && nhwnd > 0)
+					continue;
+
+				HWND hWnd = reinterpret_cast<HWND>(nhwnd);
+				if (!IsWindow(hWnd) || !IsWindowVisible(hWnd) || !IsWindowEnabled(hWnd))
+					continue;
+
+				hwnds.append(hWnd);
+			}
+
+			if (hwnds.isEmpty())
+				break;
+
+			if (pThumbnailForm_ == nullptr)
+			{
+				QThumbnailForm* pThumbnailForm = q_check_ptr(new QThumbnailForm(hwnds));
+				if (pThumbnailForm == nullptr)
+					break;
+
+				pThumbnailForm_ = pThumbnailForm;
+
+				connect(pThumbnailForm, &QThumbnailForm::destroyed, [this]() { pThumbnailForm_ = nullptr; });
+				pThumbnailForm->move(0, 0);
+				pThumbnailForm->show();
+				*result = 1;
+				return true;
+			}
+			else
+			{
+				pThumbnailForm_->initThumbnailWidget(hwnds);
+				*result = 2;
+				return true;
+			}
+
+		} while (false);
+
+		if (pThumbnailForm_ != nullptr)
+		{
+			pThumbnailForm_->close();
+			pThumbnailForm_ = nullptr;
+			*result = 1;
+		}
+		return true;
 	}
 	default:
 	{
@@ -612,7 +739,8 @@ void MainForm::onMenuActionTriggered()
 
 	else if (actionName == "actionInfo")
 	{
-		QMessageBox::information(this, "SaSH", tr(u8"Bestkakkoii\n2019-2023 All rights reserved\n\nQQ group:\n224068611\n\ncurrent version:\n%1").arg(util::buildDateTime(nullptr)));
+		QDesktopServices::openUrl(QUrl("https://gitee.com/Bestkakkoii/sash/wikis/pages"));
+		//QMessageBox::information(this, "SaSH", tr(u8"Bestkakkoii\n2019-2023 All rights reserved\n\nQQ group:\n224068611\n\ncurrent version:\n%1").arg(util::buildDateTime(nullptr)));
 	}
 
 	else if (actionName == "actionWebsite")

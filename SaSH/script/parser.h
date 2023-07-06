@@ -323,6 +323,9 @@ private:
 	bool checkFuzzyValue(const QString& varName, QVariant varValue, QVariant* pvalue);
 
 	template <typename T>
+	bool exprMakeValue(const QString& expr, T* ret);
+
+	template <typename T>
 	bool exprTo(QString expr, T* ret);
 
 	template <typename T>

@@ -265,6 +265,7 @@ private: //註冊給Parser的函數
 	qint64 run(qint64 currentline, const TokenMap& TK);
 	qint64 dostring(qint64 currentline, const TokenMap& TK);
 	qint64 reg(qint64 currentline, const TokenMap& TK);
+	qint64 timer(qint64 currentline, const TokenMap& TK);
 
 	//check
 	qint64 checkdaily(qint64 currentline, const TokenMap& TK);
@@ -388,4 +389,5 @@ private:
 	QFutureSynchronizer<bool> futureSync_;
 	ParserCallBack pCallback = nullptr;
 
+	QHash<QString, QSharedPointer<QElapsedTimer>> customTimer_;
 };

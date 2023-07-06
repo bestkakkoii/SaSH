@@ -23,6 +23,58 @@ qint64 Interpreter::reg(qint64 currentline, const TokenMap& TK)
 	return Parser::kNoChange;
 }
 
+qint64 Interpreter::timer(qint64 currentline, const TokenMap& TK)
+{
+	QString varName = TK.value(2).data.toString();
+	qint64 pointer = 0;
+	if (!checkInteger(TK, 1, &pointer))
+	{
+		return Parser::kArgError;
+	}
+	else if (pointer == 0)
+	{
+		varName = TK.value(1).data.toString();
+		if (!varName.isEmpty())
+		{
+			QSharedPointer<QElapsedTimer> timer(new QElapsedTimer());
+			if (!timer.isNull())
+			{
+				customTimer_.insert(QString::number(reinterpret_cast<qint64>(timer.data())), timer);
+				timer->start();
+				parser_.insertVar(varName, reinterpret_cast<qint64>(timer.data()));
+			}
+		}
+	}
+	else if (!varName.isEmpty() && pointer > 0)
+	{
+		if (customTimer_.contains(QString::number(pointer)))
+		{
+			QElapsedTimer* timer = reinterpret_cast<QElapsedTimer*>(pointer);
+			qint64 time = 0;
+
+			time = timer->elapsed();
+
+			if (time >= 1000ll)
+			{
+				parser_.insertVar(varName, time / 1000ll);
+				return Parser::kNoChange;
+			}
+		}
+		parser_.insertVar(varName, 0ll);
+	}
+	else if (pointer > 0)
+	{
+		if (customTimer_.contains(QString::number(pointer)))
+		{
+			customTimer_.remove(QString::number(pointer));
+		}
+	}
+	else
+		return Parser::kArgError;
+
+	return Parser::kNoChange;
+}
+
 qint64 Interpreter::sleep(qint64 currentline, const TokenMap& TK)
 {
 	qint64 t;
@@ -409,6 +461,7 @@ qint64 Interpreter::set(qint64 currentline, const TokenMap& TK)
 		return Parser::kError;
 
 	const QHash<QString, util::UserSetting> hash = {
+		{ u8"debug", util::kScriptDebugModeEnable },
 #pragma region BIG5
 		/*{u8"戰鬥道具補血戰寵", util::kBattleItemHealPetValue},
 			{ u8"戰鬥道具補血隊友", util::kBattleItemHealAllieValue },
@@ -651,6 +704,14 @@ qint64 Interpreter::set(qint64 currentline, const TokenMap& TK)
 	util::UserSetting type = hash.value(typeStr, util::kSettingNotUsed);
 	if (type == util::kSettingNotUsed)
 		return Parser::kArgError;
+
+	if (type == util::kScriptDebugModeEnable)
+	{
+		qint64 value = 0;
+		checkInteger(TK, 2, &value);
+		injector.setEnableHash(util::kScriptDebugModeEnable, value > 0);
+		return Parser::kNoChange;
+	}
 
 	if (type == util::kBattleCharNormalActionTypeValue)
 	{

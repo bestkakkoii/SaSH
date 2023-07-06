@@ -1514,7 +1514,7 @@ Update process will cause all the games to be closed, are you sure to continue?<
     </message>
     <message>
         <source>&lt;error&gt;battle time out</source>
-        <translation type="unfinished"></translation>
+        <translation>&lt;错误&gt;战斗超时</translation>
     </message>
 </context>
 <context>
@@ -2075,7 +2075,7 @@ Update process will cause all the games to be closed, are you sure to continue?<
     </message>
     <message>
         <source>info</source>
-        <translation>帐号资讯</translation>
+        <translation type="vanished">帐号资讯</translation>
     </message>
     <message>
         <source>website</source>
@@ -2584,7 +2584,11 @@ MESSAGE：<byte value="xd"/>
     </message>
     <message>
         <source>unknown command: %1</source>
-        <translation type="unfinished"></translation>
+        <translation>未知的命令:%1</translation>
+    </message>
+    <message>
+        <source>scriptdoc</source>
+        <translation>脚本文档</translation>
     </message>
 </context>
 <context>

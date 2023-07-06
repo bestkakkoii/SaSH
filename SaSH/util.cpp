@@ -978,3 +978,56 @@ void mem::freeUnuseMemory(HANDLE hProcess)
 	SetProcessWorkingSetSizeEx(hProcess, -1, -1, 0);
 	K32EmptyWorkingSet(hProcess);
 }
+
+void util::sortWindows(const QVector<HWND>& windowList, bool alignLeft)
+{
+	if (windowList.isEmpty())
+	{
+		return;
+	}
+
+	// 獲取桌面分辨率
+	int screenWidth = GetSystemMetrics(SM_CXSCREEN);
+	int screenHeight = GetSystemMetrics(SM_CYSCREEN);
+
+	// 窗口移動的初始位置
+	int x = 0;
+	int y = 0;
+
+	// 遍歷窗口列表，移動窗口
+	int size = windowList.size();
+	for (int i = 0; i < size; ++i)
+	{
+		HWND hwnd = windowList.at(i);
+
+		// 設置窗口位置
+		ShowWindow(hwnd, SW_RESTORE);                             // 先恢覆窗口
+		SetForegroundWindow(hwnd);                                // 然後將窗口激活
+
+		// 獲取窗口大小
+		RECT windowRect;
+		GetWindowRect(hwnd, &windowRect);
+		int windowWidth = windowRect.right - windowRect.left;
+		int windowHeight = windowRect.bottom - windowRect.top;
+
+		// 根據對齊方式設置窗口位置
+		if (alignLeft)
+		{
+			SetWindowPos(hwnd, nullptr, x, y, 0, 0, SWP_NOSIZE | SWP_NOZORDER); // 左對齊
+		}
+		else
+		{
+			// 右對齊
+			int xPos = screenWidth - (x + windowWidth);
+			SetWindowPos(hwnd, nullptr, xPos, y, 0, 0, SWP_NOSIZE | SWP_NOZORDER);
+		}
+
+		// 更新下一個窗口的位置
+		x += windowWidth - 15;
+		if (x + windowWidth > screenWidth)
+		{
+			x = 0;
+			y += windowHeight;
+		}
+	}
+}

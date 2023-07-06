@@ -54,7 +54,19 @@ void Parser::parse(qint64 line)
 			return;
 	}
 
-	processTokens();
+	try
+	{
+		processTokens();
+	}
+	catch (const std::exception& e)
+	{
+		SPD_LOG(g_logger_name, QString("processTokens exception: %1").arg(e.what()));
+	}
+	catch (...)
+	{
+		SPD_LOG(g_logger_name, "processTokens unknown exception:");
+	}
+
 
 	if (!isSubScript_)
 	{
@@ -186,14 +198,14 @@ bool Parser::compare(const QVariant& a, const QVariant& b, RESERVE type) const
 }
 
 template <typename T>
-bool Parser::exprTo(QString expr, T* ret)
+bool Parser::exprMakeValue(const QString& expr, T* ret)
 {
-	auto makeValue = [](const QString& expr, T* ret)->bool
-	{
-		using TKSymbolTable = exprtk::symbol_table<double>;
-		using TKExpression = exprtk::expression<double>;
-		using TKParser = exprtk::parser<double>;
+	using TKSymbolTable = exprtk::symbol_table<double>;
+	using TKExpression = exprtk::expression<double>;
+	using TKParser = exprtk::parser<double>;
 
+	try
+	{
 		TKSymbolTable symbolTable;
 		symbolTable.add_constants();
 
@@ -209,9 +221,23 @@ bool Parser::exprTo(QString expr, T* ret)
 		if (ret != nullptr)
 			*ret = static_cast<T>(expression.value());
 		return true;
-	};
+	}
+	catch (const std::exception& e)
+	{
+		SPD_LOG(g_logger_name, QString("exprTo exception: %1").arg(e.what()));
+	}
+	catch (...)
+	{
+		SPD_LOG(g_logger_name, "exprTo unknown exception:");
+	}
 
-	bool result = makeValue(expr, ret);
+	return false;
+}
+
+template <typename T>
+bool Parser::exprTo(QString expr, T* ret)
+{
+	bool result = exprMakeValue(expr, ret);
 	if (result)
 		return true;
 
@@ -271,29 +297,41 @@ bool Parser::exprTo(T value, QString expr, T* ret)
 	using TKParser = exprtk::parser<double>;
 
 	constexpr auto varName = "A";
+	try
+	{
+		TKSymbolTable symbolTable;
+		symbolTable.add_constants();
+		double dvalue = static_cast<double>(value);
+		symbolTable.add_variable(varName, dvalue);
 
-	TKSymbolTable symbolTable;
-	symbolTable.add_constants();
-	double dvalue = static_cast<double>(value);
-	symbolTable.add_variable(varName, dvalue);
 
+		TKParser parser;
+		TKExpression expression;
+		expression.register_symbol_table(symbolTable);
 
-	TKParser parser;
-	TKExpression expression;
-	expression.register_symbol_table(symbolTable);
+		QString newExpr = QString("%1 %2").arg(varName).arg(expr);
 
-	QString newExpr = QString("%1 %2").arg(varName).arg(expr);
+		const std::string exprStr = newExpr.toStdString();
+		if (!parser.compile(exprStr, expression))
+			return false;
 
-	const std::string exprStr = newExpr.toStdString();
-	if (!parser.compile(exprStr, expression))
-		return false;
+		expression.value();
+		dvalue = symbolTable.variable_ref(varName);
 
-	expression.value();
-	dvalue = symbolTable.variable_ref(varName);
+		if (ret != nullptr)
+			*ret = static_cast<T>(dvalue);
+		return true;
+	}
+	catch (const std::exception& e)
+	{
+		SPD_LOG(g_logger_name, QString("exprTo2 exception: %1").arg(e.what()));
+	}
+	catch (...)
+	{
+		SPD_LOG(g_logger_name, "exprTo2 unknown exception:");
+	}
 
-	if (ret != nullptr)
-		*ret = static_cast<T>(dvalue);
-	return true;
+	return false;
 }
 
 //嘗試取指定位置的token轉為字符串
@@ -364,8 +402,10 @@ bool Parser::checkInteger(const TokenMap& TK, qint64 idx, qint64* ret)
 	if (type == TK_CSTRING)
 		return false;
 
+
 	if (type == TK_INT)
 	{
+		SPD_LOG(g_logger_name, QString("checkInteger: idx:%1 type:%1").arg(idx).arg(type));
 		bool ok = false;
 		qint64 value = var.toLongLong(&ok);
 		if (!ok)
@@ -374,10 +414,12 @@ bool Parser::checkInteger(const TokenMap& TK, qint64 idx, qint64* ret)
 	}
 	else if (type == TK_STRING || type == TK_CMD || type == TK_NAME || type == TK_LABELVAR || type == TK_CAOS)
 	{
+		SPD_LOG(g_logger_name, QString("checkInteger: idx:%1 type:%1").arg(idx).arg(type));
 		//檢查是否為區域變量
 		QVariantHash args = getLocalVars();
 		QString varName = var.toString();
 
+		SPD_LOG(g_logger_name, QString("checkInteger: check local var: %1").arg(varName));
 		if (args.contains(varName)
 			&& (args.value(varName).type() == QVariant::Int
 				|| args.value(varName).type() == QVariant::LongLong
@@ -397,7 +439,8 @@ bool Parser::checkInteger(const TokenMap& TK, qint64 idx, qint64* ret)
 			return true;
 		}
 
-		updateGlobalVariables(varName);
+		SPD_LOG(g_logger_name, QString("checkInteger: check global var: %1").arg(varName));
+
 		if (isGlobalVarContains(varName))
 		{
 			QVariant gVar = getGlobalVarValue(varName);
@@ -415,6 +458,8 @@ bool Parser::checkInteger(const TokenMap& TK, qint64 idx, qint64* ret)
 		}
 		else
 		{
+			SPD_LOG(g_logger_name, QString("checkInteger: check expr"));
+
 			QString varValueStr = var.toString();
 			replaceToVariable(varValueStr);
 
@@ -461,7 +506,6 @@ bool Parser::toVariant(const TokenMap& TK, qint64 idx, QVariant* ret)
 			return true;
 		}
 
-		updateGlobalVariables(varName);
 		if (isGlobalVarContains(varName))
 		{
 			QVariant gVar = getGlobalVarValue(varName);
@@ -691,9 +735,6 @@ void Parser::replaceToVariable(QString& expr)
 	tmpvec.clear();
 
 	QVariantHash* pglobalhash = getGlobalVarPointer();
-
-	for (auto it = pglobalhash->cbegin(); it != pglobalhash->cend(); ++it)
-		updateGlobalVariables(it.key());
 
 	for (auto it = pglobalhash->cbegin(); it != pglobalhash->cend(); ++it)
 	{
@@ -1025,8 +1066,6 @@ void Parser::processVariable(RESERVE type)
 			insertGlobalVar(varName, varValue);
 			break;
 		}
-
-		updateGlobalVariables(varName);
 
 		//下面是變量比較數值，先檢查變量是否存在
 		if (!isGlobalVarContains(varName))
@@ -1581,7 +1620,20 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 	{
 		qint64 dialogIndex = -1;
 		if (!checkInteger(currentLineTokens_, 3, &dialogIndex))
+		{
+			QString typeStr;
+			if (!checkString(currentLineTokens_, 3, &typeStr))
+				break;
+
+			if (typeStr == "id")
+			{
+				dialog_t dialog = injector.server->currentDialog;
+				varValue = dialog.seqno;
+				bret = varValue.isValid();
+			}
+
 			break;
+		}
 
 		util::SafeHash<int, QVariant> hashdialog = injector.server->hashdialog;
 
@@ -1822,7 +1874,9 @@ void Parser::processFormation()
 		if (formatStr.isEmpty())
 			break;
 
-		QVariantHash& args = getLocalVarsRef();
+		QVariantHash args = getLocalVars();
+		for (auto it = variables_->cbegin(); it != variables_->cend(); ++it)
+			updateGlobalVariables(it.key());
 
 		QString key;
 		QString keyWithTime;
@@ -2224,82 +2278,157 @@ void Parser::updateGlobalVariables(const QString& varName)
 
 	QVariantHash hash;
 
-	if (varName.contains("tick"))
+	if (varName == "tick" || varName == "stick")
 	{
-		const qint64 tick = QDateTime::currentMSecsSinceEpoch();
-		hash.insert("tick", tick);
-		hash.insert("stick", tick / 1000);
-		SPD_LOG(g_logger_name, "insert global var: tick and stick");
+		try
+		{
+			const qint64 tick = QDateTime::currentMSecsSinceEpoch();
+			if (varName == "tick")
+			{
+				hash.insert("tick", tick);
+				SPD_LOG(g_logger_name, "insert global var: tick");
+			}
+			else
+			{
+				hash.insert("stick", tick / 1000);
+				SPD_LOG(g_logger_name, "insert global var: stick");
+			}
+		}
+		catch (...)
+		{
+			SPD_LOG(g_logger_name, "insert global var: tick or stick failed");
+			return;
+		}
 	}
 	else if (varName == "date" || varName == "time")
 	{
-		const QDateTime dt = QDateTime::currentDateTime();
-		const QString date = dt.toString("yyyy-MM-dd");
-		const QString time = dt.toString("hh:mm:ss:zzz");
-		hash.insert("date", date);
-		hash.insert("time", time);
-		SPD_LOG(g_logger_name, "insert global var: date and time");
+		try
+		{
+			const QDateTime dt = QDateTime::currentDateTime();
+			if (varName == "time")
+			{
+				const QString date = dt.toString("yyyy-MM-dd");
+				hash.insert("date", date);
+				SPD_LOG(g_logger_name, "insert global var: date");
+			}
+			else
+			{
+				const QString time = dt.toString("hh:mm:ss:zzz");
+				hash.insert("time", time);
+				SPD_LOG(g_logger_name, "insert global var: time");
+			}
+
+		}
+		catch (...)
+		{
+			SPD_LOG(g_logger_name, "insert global var: date or time failed");
+			return;
+		}
 	}
+#if 0
 	else if (!injector.server.isNull())
 	{
 		SPD_LOG(g_logger_name, "*********** getting server info for global var ***********");
 
 		if (varName.startsWith("ch") || varName == "stone")
 		{
-			PC pc = injector.server->getPC();
-			hash.insert("chname", pc.name);
-			hash.insert("chfname", pc.freeName);
-			hash.insert("chlv", pc.level);
-			hash.insert("chhp", pc.hp);
-			hash.insert("chmp", pc.mp);
-			hash.insert("chdp", pc.dp);
-			hash.insert("stone", pc.gold);
-			SPD_LOG(g_logger_name, "insert global var: chname, chfname, chlv, chhp, chmp, chdp, stone");
+			try
+			{
+				PC pc = injector.server->getPC();
+				hash.insert("chname", pc.name);
+				hash.insert("chfname", pc.freeName);
+				hash.insert("chlv", pc.level);
+				hash.insert("chhp", pc.hp);
+				hash.insert("chmp", pc.mp);
+				hash.insert("chdp", pc.dp);
+				hash.insert("stone", pc.gold);
+				SPD_LOG(g_logger_name, "insert global var: chname, chfname, chlv, chhp, chmp, chdp, stone");
+			}
+			catch (...)
+			{
+				SPD_LOG(g_logger_name, "insert global var: chname, chfname, chlv, chhp, chmp, chdp, stone failed");
+			}
 		}
 		else if (varName == "floor" || varName == "frname")
 		{
-			hash.insert("floor", injector.server->nowFloor);
-			hash.insert("frname", injector.server->nowFloorName);
-			SPD_LOG(g_logger_name, "insert global var: floor and frname");
+			try
+			{
+				hash.insert("floor", injector.server->nowFloor);
+				hash.insert("frname", injector.server->nowFloorName);
+				SPD_LOG(g_logger_name, "insert global var: floor and frname");
+			}
+			catch (...)
+			{
+				SPD_LOG(g_logger_name, "insert global var: floor and frname failed");
+			}
 		}
 		else if (varName == "earnstone")
 		{
-			qint64 goldearn = injector.server->recorder[0].goldearn;
-			hash.insert("earnstone", goldearn);
-			SPD_LOG(g_logger_name, "insert earnstone");
+			try
+			{
+				qint64 goldearn = injector.server->recorder[0].goldearn;
+				hash.insert("earnstone", goldearn);
+				SPD_LOG(g_logger_name, "insert earnstone");
+			}
+			catch (...)
+			{
+				SPD_LOG(g_logger_name, "insert earnstone failed");
+			}
 		}
 		else if (varName == "px" || varName == "py")
 		{
-			QPoint pos = injector.server->getPoint();
-			hash.insert("px", pos.x());
-			hash.insert("py", pos.y());
-			SPD_LOG(g_logger_name, "insert global var: px and py");
+			try
+			{
+				QPoint pos = injector.server->getPoint();
+				hash.insert("px", pos.x());
+				hash.insert("py", pos.y());
+				SPD_LOG(g_logger_name, "insert global var: px and py");
+			}
+			catch (...)
+			{
+				SPD_LOG(g_logger_name, "insert global var: px and py failed");
+			}
 		}
 		else if (varName == "bt")
 		{
-			bool isBattle = injector.server->getBattleFlag();
-			hash.insert("bt", isBattle ? 1ll : 0ll);
-			SPD_LOG(g_logger_name, "insert global var: bt");
+			try
+			{
+				bool isBattle = injector.server->getBattleFlag();
+				hash.insert("bt", isBattle ? 1ll : 0ll);
+				SPD_LOG(g_logger_name, "insert global var: bt");
+			}
+			catch (...)
+			{
+				SPD_LOG(g_logger_name, "insert global var: bt failed");
+			}
 		}
 		else if (varName == "dlgid")
 		{
-			dialog_t dialog = injector.server->currentDialog;
-			hash.insert("dlgid", dialog.seqno);
-			SPD_LOG(g_logger_name, "insert global var: dlgid");
+			try
+			{
+				dialog_t dialog = injector.server->currentDialog;
+				hash.insert("dlgid", dialog.seqno);
+				SPD_LOG(g_logger_name, "insert global var: dlgid");
+			}
+			catch (...)
+			{
+				SPD_LOG(g_logger_name, "insert global var: dlgid failed");
+			}
 		}
 
 		SPD_LOG(g_logger_name, "*********** getting server info done ***********");
 	}
+#endif
 	else
 	{
-		SPD_LOG(g_logger_name, "*********** insert global done ***********");
+		SPD_LOG(g_logger_name, "*********** no global var matched ***********");
 		return;
 	}
 
 	insertGlobalVar(hash);
 
 	SPD_LOG(g_logger_name, "*********** insert global done ***********");
-}
+		}
 
 //這裡是防止人為設置過長的延時導致腳本無法停止
 void Parser::processDelay()
@@ -2744,4 +2873,4 @@ void Parser::processTokens()
 	SPD_LOG(g_logger_name, "Processing finished");
 	processClean();
 
-}
+	}

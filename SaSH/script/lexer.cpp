@@ -42,7 +42,7 @@ static const QHash<QString, RESERVE> keywords = {
 	{ u8"設置", TK_CMD },
 	{ u8"讀取設置", TK_CMD },
 	{ u8"儲存設置", TK_CMD },
-
+	{ u8"計時", TK_CMD },
 
 	//check info
 	{ u8"戰鬥中", TK_CMD },
@@ -162,6 +162,7 @@ static const QHash<QString, RESERVE> keywords = {
 	{ u8"设置", TK_CMD },
 	{ u8"读取设置", TK_CMD },
 	{ u8"储存设置", TK_CMD },
+	{ u8"计时", TK_CMD },
 
 
 	//check info
@@ -282,7 +283,7 @@ static const QHash<QString, RESERVE> keywords = {
 	{ u8"saveset", TK_CMD },
 	{ u8"loadset", TK_CMD },
 	{ u8"reg", TK_CMD },
-
+	{ u8"timer", TK_CMD },
 
 	//check info
 	{ u8"ifbattle", TK_CMD },

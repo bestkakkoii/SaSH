@@ -1593,9 +1593,9 @@ void ScriptSettingForm::on_treeWidget_functionList_itemSelectionChanged()
 		ui.textBrowser->setUpdatesEnabled(true);
 
 		return;
-		} while (false);
+	} while (false);
 
-	}
+}
 
 QString ScriptSettingForm::getFullPath(QTreeWidgetItem* item)
 {
@@ -1829,7 +1829,7 @@ void ScriptSettingForm::on_listView_log_doubleClicked(const QModelIndex& index)
 	}
 
 	//[%1 | @%2]: %3 取@後面的數字
-	static const QRegularExpression re2(u8"\\[@\\s*(\\d+)\\]");
+	static const QRegularExpression re2(R"(\[\d{1,2}\:\d{1,2}\:\d{1,2}\:\d{1,3}\s+\|\s+@\s*(\d+)\])");
 	match = re2.match(text);
 	if (match.hasMatch())
 	{

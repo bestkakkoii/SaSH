@@ -1179,6 +1179,7 @@ void Interpreter::openLibsBIG5()
 	registerFunction(u8"執行", &Interpreter::run);
 	registerFunction(u8"執行代碼", &Interpreter::dostring);
 	registerFunction(u8"註冊", &Interpreter::reg);
+	registerFunction(u8"計時", &Interpreter::timer);
 
 	//check
 	registerFunction(u8"任務狀態", &Interpreter::checkdaily);
@@ -1296,6 +1297,7 @@ void Interpreter::openLibsGB2312()
 	registerFunction(u8"执行", &Interpreter::run);
 	registerFunction(u8"执行代码", &Interpreter::dostring);
 	registerFunction(u8"註册", &Interpreter::reg);
+	registerFunction(u8"计时", &Interpreter::timer);
 
 	//check
 	registerFunction(u8"任务状态", &Interpreter::checkdaily);
@@ -1413,6 +1415,7 @@ void Interpreter::openLibsUTF8()
 	registerFunction(u8"run", &Interpreter::run);
 	registerFunction(u8"dostring", &Interpreter::dostring);
 	registerFunction(u8"reg", &Interpreter::reg);
+	registerFunction(u8"timer", &Interpreter::timer);
 
 	//check
 	registerFunction(u8"ifdaily", &Interpreter::checkdaily);
@@ -1578,9 +1581,9 @@ qint64 Interpreter::run(qint64 currentline, const TokenMap& TK)
 
 			//還原顯示
 			SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
-			util::SafeHash<qint64, TokenMap>currentToken = parser_.getToken();
+			QHash<qint64, TokenMap>currentToken = parser_.getToken();
 			emit signalDispatcher.loadFileToTable(scriptFileName_);
-			emit signalDispatcher.scriptContentChanged(scriptFileName_, QVariant::fromValue(currentToken.toHash()));
+			emit signalDispatcher.scriptContentChanged(scriptFileName_, QVariant::fromValue(currentToken));
 		}
 	}
 	else

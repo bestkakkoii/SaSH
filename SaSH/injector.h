@@ -363,7 +363,10 @@ private:
 		{ util::kLockPetEnable, false },
 		{ util::kLockRideEnable, false },
 		{ util::kLockPetScheduleEnable, false },
-		//other->group
+
+
+
+		{ util::kScriptDebugModeEnable, false },
 
 	};
 

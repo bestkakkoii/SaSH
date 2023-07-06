@@ -192,6 +192,8 @@
     <ClCompile Include="model\highlighter.cpp" />
     <ClCompile Include="model\listview.cpp" />
     <ClCompile Include="model\mapglwidget.cpp" />
+    <ClCompile Include="model\qthumbnailform.cpp" />
+    <ClCompile Include="model\qthumbnailwidget.cpp" />
     <ClCompile Include="net\autil.cpp" />
     <ClCompile Include="net\tcpserver.cpp" />
     <ClCompile Include="net\webauthenticator.cpp">
@@ -245,6 +247,8 @@
     <ClInclude Include="model\highlighter.h" />
     <QtMoc Include="model\listview.h" />
     <QtMoc Include="model\threadplugin.h" />
+    <QtMoc Include="model\qthumbnailform.h" />
+    <QtMoc Include="model\qthumbnailwidget.h" />
     <ClInclude Include="model\treewidgetitem.h" />
     <ClInclude Include="net\autil.h" />
     <ClInclude Include="qscopedhandle.h" />
@@ -283,6 +287,7 @@
     <ClCompile Include="mainform.cpp" />
     <ClCompile Include="main.cpp" />
     <None Include="SaSH.ico" />
+    <QtUic Include="model\qthumbnailform.ui" />
     <QtUic Include="update\qdownloader.ui" />
     <ResourceCompile Include="main.rc" />
     <ResourceCompile Include="SaSH.rc" />

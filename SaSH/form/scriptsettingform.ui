@@ -1365,6 +1365,11 @@ color: rgb(208, 208, 208);
            </property>
            <item>
             <property name="text">
+             <string>timer</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
              <string>test</string>
             </property>
            </item>

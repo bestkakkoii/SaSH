@@ -440,6 +440,8 @@ namespace util
 		kEOCommandString,
 
 		kSettingMaxString,
+
+		kScriptDebugModeEnable,
 	};
 
 	enum ObjectType
@@ -697,7 +699,9 @@ namespace util
 
 		{ kEOCommandString , "EOCommandString" },
 
-		{ kSettingMaxString, "SettingMaxString" }
+		{ kSettingMaxString, "SettingMaxString" },
+
+		{ kScriptDebugModeEnable, "ScriptDebugModeEnable" },
 	};
 
 	//8方位坐標補正
@@ -1723,6 +1727,7 @@ namespace util
 	public:
 		explicit FormSettingManager(QWidget* widget) { widget_ = widget; }
 		explicit FormSettingManager(QMainWindow* widget) { mainwindow_ = widget; }
+
 		void loadSettings();
 		void saveSettings();
 
@@ -1896,6 +1901,9 @@ namespace util
 	private:
 		QSet<uchar*> m_maps;
 	};
+
+	void sortWindows(const QVector<HWND>& windowList, bool alignLeft);
+
 
 #pragma region swap_row
 	inline void SwapRow(QTableWidget* p, QListWidget* p2, int selectRow, int targetRow)
