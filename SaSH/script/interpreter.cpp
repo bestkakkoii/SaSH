@@ -155,16 +155,6 @@ bool Interpreter::doFile(qint64 beginLine, const QString& fileName, Interpreter*
 
 	parser_.parse(beginLine);
 
-	//if (shareMode == kShare && mode == kSync)
-	//{
-	//	VariantSafeHash vars = parser_.getVarsRef();
-	//	VariantSafeHash& parentVars = parent->parser_.getVarsRef();
-	//	for (auto it = vars.cbegin(); it != vars.cend(); ++it)
-	//	{
-	//		parentVars.insert(it.key(), it.value());
-	//	}
-	//}
-
 	isRunning_.store(false, std::memory_order_release);
 	return true;
 }
@@ -370,6 +360,10 @@ bool Interpreter::findPath(QPoint dst, qint64 steplen, qint64 step_cost, qint64 
 	Injector& injector = Injector::getInstance();
 	qint64 hModule = injector.getProcessModule();
 	HANDLE hProcess = injector.getProcess();
+
+	bool isDebug = injector.getEnableHash(util::kScriptDebugModeEnable);
+	if (isDebug)
+		noAnnounce = true;
 
 	auto getPos = [hProcess, hModule]()
 	{
@@ -592,7 +586,17 @@ bool Interpreter::checkRange(const TokenMap& TK, qint64 idx, qint64* min, qint64
 		return false;
 
 	QString range;
-	if (type == TK_STRING)
+	if (type == TK_INT)
+	{
+		bool ok = false;
+		qint64 value = var.toInt(&ok);
+		if (!ok)
+			return false;
+		*min = value - 1;
+		*max = value - 1;
+		return true;
+	}
+	else if (type == TK_STRING || type == TK_CSTRING)
 	{
 		qint64 value = 0;
 		if (!checkInteger(TK, idx, &value))
@@ -607,17 +611,6 @@ bool Interpreter::checkRange(const TokenMap& TK, qint64 idx, qint64* min, qint64
 			return true;
 		}
 	}
-	else if (type == TK_INT)
-	{
-		bool ok = false;
-		qint64 value = var.toInt(&ok);
-		if (!ok)
-			return false;
-		*min = value - 1;
-		*max = value - 1;
-		return true;
-	}
-
 	else
 		return false;
 

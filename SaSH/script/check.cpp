@@ -207,13 +207,14 @@ qint64 Interpreter::checkdialog(qint64 currentline, const TokenMap& TK)
 
 	bool bret = waitfor(timeout, [&injector, min, max, cmpStrs]()->bool
 		{
-			util::SafeHash<int, QVariant> hashdialog = injector.server->hashdialog;
+			QStringList dialogStrList = injector.server->currentDialog.linedatas;
 			for (qint64 i = min; i <= max; ++i)
 			{
-				if (!hashdialog.contains(i))
+				int index = i - 1;
+				if (index < 0 || index >= dialogStrList.size())
 					break;
 
-				QString text = hashdialog.value(i).toString();
+				QString text = dialogStrList.at(index);
 				if (text.isEmpty())
 					continue;
 
@@ -261,13 +262,9 @@ qint64 Interpreter::checkchathistory(qint64 currentline, const TokenMap& TK)
 
 	bool bret = waitfor(timeout, [&injector, min, max, cmpStrs]()->bool
 		{
-			util::SafeHash<int, QVariant> hashchat = injector.server->hashchat;
 			for (qint64 i = min; i <= max; ++i)
 			{
-				if (!hashchat.contains(i))
-					break;
-
-				QString text = hashchat.value(i).toString();
+				QString text = injector.server->getChatHistory(i - 1);
 				if (text.isEmpty())
 					continue;
 

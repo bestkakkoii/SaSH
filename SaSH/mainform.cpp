@@ -210,7 +210,7 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, long* res
 			injector.server->cleanChatHistory();
 		return true;
 	}
-	case Injector::kConnectionOK:
+	case Injector::kConnectionOK://TCP握手
 	{
 		if (!injector.server.isNull())
 		{
@@ -227,7 +227,13 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, long* res
 
 		int id = msg->wParam;
 		interpreter_hash_.insert(id, interpreter);
-		QString script = QString::fromUtf8(reinterpret_cast<char*>(msg->lParam));
+
+		//檢查是否為合法字符串指針
+		QByteArray utf8str = reinterpret_cast<char*>(msg->lParam);
+		if (utf8str.isEmpty())
+			break;
+
+		QString script = QString::fromUtf8(utf8str);
 		connect(interpreter.data(), &Interpreter::finished, this, [this, id]()
 			{
 				interpreter_hash_.remove(id);
@@ -258,7 +264,12 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, long* res
 		if (injector.IS_SCRIPT_FLAG.load(std::memory_order_acquire))
 			return true;
 
-		QString fileName = QString::fromUtf8(reinterpret_cast<char*>(msg->lParam));
+		//檢查是否為合法字符串指針
+		QByteArray utf8str = reinterpret_cast<char*>(msg->lParam);
+		if (utf8str.isEmpty())
+			break;
+
+		QString fileName = QString::fromUtf8(utf8str);
 		if (!QFile::exists(fileName))
 			return true;
 
@@ -421,11 +432,11 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, long* res
 				break;
 
 			//檢查是否為合法字符串指針
-			std::string hwndstrs = reinterpret_cast<char*>(msg->lParam);
-			if (hwndstrs.empty())
+			QByteArray hwndstrs = reinterpret_cast<char*>(msg->lParam);
+			if (hwndstrs.isEmpty())
 				break;
 
-			QString str = QString::fromStdString(hwndstrs);
+			QString str = QString::fromUtf8(hwndstrs);
 			if (str.isEmpty())
 				break;
 
@@ -434,7 +445,7 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, long* res
 				break;
 
 			QVector<HWND> hwnds;
-			for (auto& str : strlist)
+			for (const QString& str : strlist)
 			{
 				bool ok = false;
 				qint64 nhwnd = str.simplified().toLongLong(&ok);
@@ -470,11 +481,11 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, long* res
 				break;
 
 			//檢查是否為合法字符串指針
-			std::string hwndstrs = reinterpret_cast<char*>(msg->lParam);
-			if (hwndstrs.empty())
+			QByteArray hwndstrs = reinterpret_cast<char*>(msg->lParam);
+			if (hwndstrs.isEmpty())
 				break;
 
-			QString str = QString::fromStdString(hwndstrs);
+			QString str = QString::fromUtf8(hwndstrs);
 			if (str.isEmpty())
 				break;
 
@@ -483,7 +494,7 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, long* res
 				break;
 
 			QList<HWND> hwnds;
-			for (auto& str : strlist)
+			for (const QString& str : strlist)
 			{
 				bool ok = false;
 				qint64 nhwnd = str.simplified().toLongLong(&ok);
@@ -540,6 +551,7 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, long* res
 	return false;
 }
 
+//更新接口調用次數顯示
 void MainForm::updateStatusText()
 {
 	ui.groupBox_basicinfo->setTitle(tr("basic info - count:%1, subscript:%2").arg(interfaceCount_).arg(interpreter_hash_.size()));
@@ -690,6 +702,7 @@ void MainForm::closeEvent(QCloseEvent* e)
 
 }
 
+//菜單點擊事件
 void MainForm::onMenuActionTriggered()
 {
 	QAction* pAction = qobject_cast<QAction*>(sender());
@@ -725,7 +738,6 @@ void MainForm::onMenuActionTriggered()
 				{
 					if (reason == QSystemTrayIcon::DoubleClick)
 					{
-						// 从系统托盘恢复窗口显示
 						this->show();
 						trayIcon->hide();
 					}
@@ -740,13 +752,13 @@ void MainForm::onMenuActionTriggered()
 	else if (actionName == "actionInfo")
 	{
 		QDesktopServices::openUrl(QUrl("https://gitee.com/Bestkakkoii/sash/wikis/pages"));
-		//QMessageBox::information(this, "SaSH", tr(u8"Bestkakkoii\n2019-2023 All rights reserved\n\nQQ group:\n224068611\n\ncurrent version:\n%1").arg(util::buildDateTime(nullptr)));
 	}
 
 	else if (actionName == "actionWebsite")
 	{
-		//QDesktopServices::openUrl(QUrl("https://www.lovesa.cc"));
-		QMessageBox::information(this, "SaSH", tr(u8"Bestkakkoii\n2019-2023 All rights reserved\n\nQQ group:\n224068611\n\ncurrent version:\n%1").arg(util::buildDateTime(nullptr)));
+		QMessageBox::information(this, "SaSH",
+			QString(u8"飞 Philip\n\nCopyright ©2019-2023 Bestkakkoii llc. All rights reserved.\n\nURL:https://www.lovesa.cc\nQQ Group:\n224068611\n\nCurrent Version:\n%1")
+			.arg(util::buildDateTime(nullptr)));
 	}
 
 	else if (actionName == "actionClose")
@@ -1000,7 +1012,7 @@ void MainForm::onUpdateCoordsPosLabelTextChanged(const QString& text)
 
 void MainForm::onUpdateMainFormTitle(const QString& text)
 {
-	setWindowTitle(tr("SaSH - %1").arg(text));
+	setWindowTitle(QString("SaSH-%1").arg(text));
 }
 
 void MainForm::onSaveHashSettings(const QString& name, bool isFullPath)
@@ -1177,6 +1189,7 @@ void MainForm::onLoadHashSettings(const QString& name, bool isFullPath)
 	emit signalDispatcher.applyHashSettingsToUI();
 }
 
+//消息框
 void MainForm::onMessageBoxShow(const QString& text, int type, int* pnret)
 {
 	QMessageBox::StandardButton button = QMessageBox::StandardButton::NoButton;
@@ -1203,6 +1216,7 @@ void MainForm::onMessageBoxShow(const QString& text, int type, int* pnret)
 
 }
 
+//输入框
 void MainForm::onInputBoxShow(const QString& text, int type, QVariant* retvalue)
 {
 	if (retvalue == nullptr)
@@ -1239,6 +1253,7 @@ void MainForm::onInputBoxShow(const QString& text, int type, QVariant* retvalue)
 	}
 }
 
+//腳本日誌
 void MainForm::onAppendScriptLog(const QString& text, int color)
 {
 	Injector& injector = Injector::getInstance();
@@ -1249,6 +1264,7 @@ void MainForm::onAppendScriptLog(const QString& text, int color)
 	}
 }
 
+//對話日誌
 void MainForm::onAppendChatLog(const QString& text, int color)
 {
 	Injector& injector = Injector::getInstance();

@@ -264,8 +264,6 @@ private:
 
 	void intsertLocalVar(const QString& name, const QVariant& value);
 
-	void insertGlobalVar(const QVariantHash& hash);
-
 	inline void removeGlobalVar(const QString& name)
 	{
 		if (globalVarLock_ == nullptr)
@@ -375,7 +373,6 @@ private:
 
 	void generateStackInfo(qint64 type);
 
-	void updateGlobalVariables(const QString& varName);
 private:
 	//函數代碼塊
 	typedef struct tagFunctionChunk

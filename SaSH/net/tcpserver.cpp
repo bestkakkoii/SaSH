@@ -6,6 +6,9 @@
 #include "map/mapanalyzer.h"
 #include "script/interpreter.h"
 
+#include "spdloger.hpp"
+extern QString g_logger_name;
+
 #pragma region StringControl
 int Server::a62toi(const QString& a) const
 {
@@ -283,7 +286,6 @@ Server::Server(QObject* parent)
 	normalDurationTimer.start();
 	eottlTimer.start();
 	connectingTimer.start();
-	refreshHashDataTimer.start();
 
 	Autil::util_Init();
 	clearNetBuffer();
@@ -612,22 +614,20 @@ void Server::handleData(QTcpSocket* clientSocket, QByteArray badata)
 		return;
 	}
 
-	qDebug() << "Received " << badata.size() << " bytes from client but actual len is:" << badata.trimmed().size();
-
+	//qDebug() << "Received " << badata.size() << " bytes from client but actual len is:" << badata.trimmed().size();
+	SPD_LOG(g_logger_name, QString("Received %1 bytes from client but actual len is: %2").arg(badata.size()).arg(badata.trimmed().size()));
 
 	Injector& injector = Injector::getInstance();
 	QString key = mem::readString(injector.getProcess(), injector.getProcessModule() + kOffestPersonalKey, Autil::PERSONALKEYSIZE, true, true);
 	if (key != Autil::PersonalKey)
 		Autil::PersonalKey = key;
-	//std::string skey = key.toStdString();
-	//if (Autil::PersonalKey.isNull())
-		//Autil::PersonalKey.reset(new char[Autil::PERSONALKEYSIZE]());
 
-	//_snprintf_s(Autil::PersonalKey.get(), Autil::PERSONALKEYSIZE, _TRUNCATE, "%s", skey.c_str());
 
 	QByteArrayList dataList = splitLinesFromReadBuf();
 	if (dataList.isEmpty())
 		return;
+
+	SPD_LOG(g_logger_name, QString("Received %1 lines from client").arg(dataList.size()));
 
 	for (QByteArray& ba : dataList)
 	{
@@ -644,7 +644,6 @@ void Server::handleData(QTcpSocket* clientSocket, QByteArray badata)
 			{
 				qDebug() << "************************ LSSPROTO_END ************************";
 				//代表此段數據已到結尾
-				//clearNetBuffer();
 				Autil::util_Clear();
 				break;
 			}
@@ -661,7 +660,6 @@ void Server::handleData(QTcpSocket* clientSocket, QByteArray badata)
 			qDebug() << "************************ DONE_BUFFER ************************";
 			//數據讀完了
 			Autil::util_Clear();
-			reloadHashVar();
 		}
 	}
 
@@ -695,6 +693,8 @@ int Server::SaDispatchMessage(char* encoded)
 	{
 		return -1;
 	}
+
+	SPD_LOG(g_logger_name, QString("lssproto func: %1").arg(func));
 
 	if (CHECKFUN(LSSPROTO_XYD_RECV) /*戰後刷新人物座標、方向2*/)
 	{
@@ -3320,7 +3320,7 @@ void Server::lssproto_KS_recv(int petarray, int result)
 		pet[petarray].state = kBattle;
 		emit signalDispatcher.updatePetHpProgressValue(_pet.level, _pet.hp, _pet.maxHp);
 	}
-		}
+}
 
 #ifdef _STANDBYPET
 //寵物等待狀態改變 (不是每個私服都有)
@@ -3927,13 +3927,13 @@ void Server::lssproto_TK_recv(int index, char* cmessage, int color)
 				if (szToken == "TK")
 				{
 					//InitSelectChar(message, 0);
-			}
+				}
 				else if (szToken == "TE")
 				{
 					//InitSelectChar(message, 1);
 				}
 				return;
-		}
+			}
 			else
 			{
 
@@ -3971,7 +3971,7 @@ void Server::lssproto_TK_recv(int index, char* cmessage, int color)
 
 				//SaveChatData(msg, szToken[0], false);
 			}
-	}
+		}
 		else
 			getStringToken(message, "|", 2, msg);
 #ifdef _TALK_WINDOW
@@ -3982,7 +3982,7 @@ void Server::lssproto_TK_recv(int index, char* cmessage, int color)
 			{
 				pc.gold -= 200;
 				emit signalDispatcher.updatePlayerInfoStone(pc.gold);
-}
+			}
 #ifdef _FONT_SIZE
 #ifdef _MESSAGE_FRONT_
 		StockChatBufferLineExt(msg - 2, color, fontsize);
@@ -4039,9 +4039,9 @@ void Server::lssproto_TK_recv(int index, char* cmessage, int color)
 			{
 				// 1000
 				//pc.status |= CHR_STATUS_FUKIDASHI;
-}
+			}
+		}
 	}
-}
 
 	chatQueue.enqueue(QPair{ color ,msg });
 	emit signalDispatcher.appendChatLog(msg, color);
@@ -4431,7 +4431,7 @@ void Server::lssproto_C_recv(char* cdata)
 				{
 					party[0].level = pc.level;
 					party[0].name = pc.name;
-			}
+				}
 #ifdef MAX_AIRPLANENUM
 				for (j = 0; j < MAX_AIRPLANENUM; ++j)
 #else
@@ -4445,8 +4445,8 @@ void Server::lssproto_C_recv(char* cdata)
 							pc.status |= CHR_STATUS_LEADER;
 						break;
 					}
-		}
-		}
+				}
+			}
 			else
 			{
 #ifdef _CHAR_PROFESSION			// WON ADD 人物職業
@@ -4503,7 +4503,7 @@ void Server::lssproto_C_recv(char* cdata)
 					//}
 					//setCharNameColor(ptAct, charNameColor);
 				//}
-				}
+			}
 
 			if (name == u8"を�そó")//排除亂碼
 				break;
@@ -4534,7 +4534,7 @@ void Server::lssproto_C_recv(char* cdata)
 			mapUnitHash.insert(id, unit);
 
 			break;
-			}
+		}
 		case 2://OBJTYPE_ITEM
 		{
 			getStringToken(bigtoken, "|", 2, smalltoken);
@@ -5505,7 +5505,7 @@ void Server::lssproto_S_recv(char* cdata)
 
 		//if ((bNewServer & 0xf000000) == 0xf000000 && sPetStatFlag == 1)
 		//	saveUserSetting();
-					}
+	}
 #pragma endregion
 #pragma region FamilyInfo
 	else if (first == "F") // F 家族狀態
@@ -5868,7 +5868,7 @@ void Server::lssproto_S_recv(char* cdata)
 			emit signalDispatcher.updatePlayerInfoColContents(i + 1, var);
 		}
 
-						}
+	}
 #pragma endregion
 #pragma region EncountPercentage
 	else if (first == "E") // E nowEncountPercentage
@@ -5988,7 +5988,7 @@ void Server::lssproto_S_recv(char* cdata)
 					if (no2 == -1 && i > no)
 						no2 = i;
 				}
-		}
+			}
 			if (checkPartyCount <= 1)
 			{
 				partyModeFlag = 0;
@@ -6006,7 +6006,7 @@ void Server::lssproto_S_recv(char* cdata)
 			}
 			updateTeamInfo();
 			return;
-	}
+		}
 
 		partyModeFlag = 1;
 		prSendFlag = 0;
@@ -6092,7 +6092,7 @@ void Server::lssproto_S_recv(char* cdata)
 		}
 		party[no].hpPercent = util::percent(party[no].hp, party[no].maxHp);
 		updateTeamInfo();
-					}
+	}
 #pragma endregion
 #pragma region ItemInfo
 	else if (first == "I") //I 道具
@@ -6219,7 +6219,7 @@ void Server::lssproto_S_recv(char* cdata)
 		emit signalDispatcher.updateComboBoxItemText(util::kComboBoxItem, itemList);
 		checkAutoDropMeat(QStringList());
 		sortItem();
-		}
+	}
 #pragma endregion
 #pragma region PetSkill
 	else if (first == "W")//接收到的寵物技能
@@ -6432,7 +6432,7 @@ void Server::lssproto_S_recv(char* cdata)
 			pet[nPetIndex].item[i].counttime = getIntegerToken(data, "|", no + 16);
 #endif
 		}
-		}
+	}
 #endif
 #pragma endregion
 #pragma region S_recv_Unknown
@@ -6488,7 +6488,7 @@ void Server::lssproto_S_recv(char* cdata)
 	{
 		qDebug() << "[" << first << "]:" << data;
 	}
-	}
+}
 
 //客戶端登入(進去選人畫面)
 void Server::lssproto_ClientLogin_recv(char* cresult)
@@ -6641,7 +6641,7 @@ void Server::lssproto_CharLogin_recv(char* cresult, char* cdata)
 #ifdef __NEW_CLIENT
 		hPing = CreateThread(NULL, 0, PingFunc, &sin_server.sin_addr, 0, &dwPingID);
 #endif
-}
+	}
 
 #ifdef __NEW_CLIENT
 #ifdef _NEW_WGS_MSG				// WON ADD WGS的新視窗
@@ -6892,7 +6892,7 @@ void Server::lssproto_TD_recv(char* cdata)//交易
 		mypet_tradeList = QStringList{ "P|-1", "P|-1", "P|-1" , "P|-1", "P|-1" };
 		mygoldtrade = 0;
 	}
-		}
+}
 
 void Server::lssproto_CHAREFFECT_recv(char* cdata)
 {
@@ -8202,7 +8202,7 @@ void Server::announce(const QString& msg, int color)
 	chatQueue.enqueue(QPair<int, QString>(color, msg));
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
 	emit signalDispatcher.appendChatLog(msg, color);
-	}
+}
 
 //喊話
 void Server::talk(const QString& text, int color, TalkMode mode)
@@ -8709,6 +8709,27 @@ void Server::cleanChatHistory()
 	chatQueue.clear();
 	if (!injector.chatLogModel.isNull())
 		injector.chatLogModel->clear();
+}
+
+QString Server::getChatHistory(int index)
+{
+	if (index < 0 || index > 19)
+		return "\0";
+
+	Injector& injector = Injector::getInstance();
+	HANDLE hProcess = injector.getProcess();
+	int hModule = injector.getProcessModule();
+
+	int total = mem::read<int>(hProcess, hModule + kOffestChatBufferMaxCount);
+	if (index > total)
+		return "\0";
+
+	//int maxptr = mem::read<int>(hProcess, hModule + 0x146278);
+
+	constexpr int MAX_CHAT_BUFFER = 0x10C;
+	int ptr = hModule + kOffestChatBuffer + ((total - index) * MAX_CHAT_BUFFER);
+
+	return mem::readString(hProcess, ptr, 0x10C, false);
 }
 
 //查找指定類型和名稱的單位
@@ -10363,222 +10384,169 @@ void Server::updateDatasFromMemory()
 	//reloadHashVar();
 }
 
-void Server::reloadHashVar()
+void Server::reloadHashVar(const QString& typeStr)
 {
-	refreshHashDataTimer.restart();
-
-	hashpc = util::SafeHash<QString, QVariant>{
-		{ "dir", (pc.dir + 3) % 8 },
-		{ "hp", pc.hp }, { "maxhp", pc.maxHp }, { "hpp", pc.hpPercent },
-		{ "mp", pc.mp }, { "maxmp", pc.maxMp }, { "mpp", pc.mpPercent },
-		{ "vit", pc.vital },
-		{ "str", pc.str }, { "tgh", pc.tgh }, { "dex", pc.dex },
-		{ "exp", pc.exp }, { "maxexp", pc.maxExp },
-		{ "lv", pc.level },
-		{ "atk", pc.atk }, { "def", pc.def },
-		{ "agi", pc.quick }, { "chasma", pc.charm }, { "luck", pc.luck },
-		{ "earth", pc.earth }, { "water", pc.water }, { "fire", pc.fire }, { "wind", pc.wind },
-		{ "stone", pc.gold },
-
-		{ "titleNo", pc.titleNo },
-		{ "dp", pc.dp },
-		{ "name", pc.name },
-		{ "fname", pc.freeName },
-		{ "nameColor", pc.nameColor },
-		{ "battlepet", pc.battlePetNo },
-		{ "mailpet", pc.mailPetNo },
-		//{ "", pc.standbyPet },
-		//{ "", pc.battleNo },
-		//{ "", pc.sideNo },
-		//{ "", pc.helpMode },
-		//{ "", pc.pcNameColor },
-		{ "turn", pc.transmigration },
-		//{ "", pc.chusheng },
-		{ "familyname", pc.familyName },
-		//{ "", pc.familyleader },
-		{ "ridename", pc.ridePetName },
-		{ "ridelv", pc.ridePetLevel },
-		{ "earnstone", recorder[0].goldearn },
-		//{ "", pc.familySprite },
-		//{ "", pc.baseGraNo },
-	};
-
-	util::SafeHash<int, QHash<QString, QVariant>> _hashmagic;
-	for (int i = 0; i < MAX_MAGIC; ++i)
+	if (typeStr == "pc")
 	{
-		MAGIC m = magic[i];
+		PC _pc = getPC();
+		hashpc = util::SafeHash<QString, QVariant>{
+			{ "dir", (_pc.dir + 3) % 8 },
+			{ "hp", _pc.hp }, { "maxhp", _pc.maxHp }, { "hpp", _pc.hpPercent },
+			{ "mp", _pc.mp }, { "maxmp", _pc.maxMp }, { "mpp", _pc.mpPercent },
+			{ "vit", _pc.vital },
+			{ "str", _pc.str }, { "tgh", _pc.tgh }, { "dex", _pc.dex },
+			{ "exp", _pc.exp }, { "maxexp", _pc.maxExp },
+			{ "lv", _pc.level },
+			{ "atk", _pc.atk }, { "def", _pc.def },
+			{ "agi", _pc.quick }, { "chasma", _pc.charm }, { "luck", _pc.luck },
+			{ "earth", _pc.earth }, { "water", _pc.water }, { "fire", _pc.fire }, { "wind", _pc.wind },
+			{ "stone", _pc.gold },
 
-		const QHash<QString, QVariant> hash = {
-			{ "valid", m.useFlag ? 1 : 0 },
-			{ "cost", m.mp },
-			{ "field", m.field },
-			{ "target", m.target },
-			{ "deadTargetFlag", m.deadTargetFlag },
-			{ "name", m.name },
-			{ "memo", m.memo },
-		};
-		_hashmagic.insert(i + 1, hash);
-	}
-	hashmagic = _hashmagic;
-
-	util::SafeHash<int, QHash<QString, QVariant>> _hashskill;
-	for (int i = 0; i < MAX_PROFESSION_SKILL; ++i)
-	{
-		PROFESSION_SKILL s = profession_skill[i];
-
-		const QHash<QString, QVariant> hash = {
-			{ "valid", s.useFlag ? 1 : 0 },
-			{ "cost", s.costmp },
-			//{ "field", s. },
-			{ "target", s.target },
-			//{ "", s.deadTargetFlag },
-			{ "name", s.name },
-			{ "memo", s.memo },
-		};
-		_hashskill.insert(i + 1, hash);
-	}
-	hashskill = _hashskill;
-
-	util::SafeHash<int, QHash<QString, QVariant>> _hashpet;
-	const QHash<PetState, QString> petStateHash = {
-		{ kBattle, u8"battle" },
-		{ kStandby , u8"standby" },
-		{ kMail, u8"mail" },
-		{ kRest, u8"rest" },
-		{ kRide, u8"ride" },
-	};
-
-	for (int i = 0; i < MAX_PET; ++i)
-	{
-		PET _pet = pet[i];
-
-		const QHash<QString, QVariant> hash = {
-			{ "index", _pet.index + 1 },						//位置
-			{ "graNo", _pet.graNo },						//圖號
-			{ "hp", _pet.hp }, { "maxhp", _pet.maxHp }, { "hpp", _pet.hpPercent },					//血量
-			{ "mp", _pet.mp }, { "maxmp", _pet.maxMp }, { "mpp", _pet.mpPercent },					//魔力
-			{ "exp", _pet.exp }, { "maxexp", _pet.maxExp },				//經驗值
-			{ "lv", _pet.level },						//等級
-			{ "atk", _pet.atk },						//攻擊力
-			{ "def", _pet.def },						//防禦力
-			{ "agi", _pet.quick },						//速度
-			{ "ai", _pet.ai },							//AI
-			{ "earth", _pet.earth }, { "water", _pet.water }, { "fire", _pet.fire }, { "wind", _pet.wind },
-			{ "maxskill", _pet.maxSkill },
-			{ "turn", _pet.trn },						// 寵物轉生數
-			{ "name", _pet.name },
-			{ "fname", _pet.freeName },
-			{ "valid", _pet.useFlag ? 1 : 0 },
-			{ "state", petStateHash.value(_pet.state) },
+			{ "titleNo", _pc.titleNo },
+			{ "dp", _pc.dp },
+			{ "name", _pc.name },
+			{ "fname", _pc.freeName },
+			{ "nameColor", _pc.nameColor },
+			{ "battlepet", _pc.battlePetNo },
+			{ "mailpet", _pc.mailPetNo },
+			//{ "", _pc.standbyPet },
+			//{ "", _pc.battleNo },
+			//{ "", _pc.sideNo },
+			//{ "", _pc.helpMode },
+			//{ "", _pc._pcNameColor },
+			{ "turn", _pc.transmigration },
+			//{ "", _pc.chusheng },
+			{ "familyname", _pc.familyName },
+			//{ "", _pc.familyleader },
+			{ "ridename", _pc.ridePetName },
+			{ "ridelv", _pc.ridePetLevel },
+			{ "earnstone", recorder[0].goldearn },
+			//{ "", _pc.familySprite },
+			//{ "", _pc.baseGraNo },
 		};
 
-		_hashpet.insert(i + 1, hash);
 	}
-	hashpet = _hashpet;
-
-	util::SafeHash<int, QHash<int, QHash<QString, QVariant>>>  _hashpetskill;
-	for (int i = 0; i < MAX_PET; ++i)
+	else if (typeStr == "magic")
 	{
-		QHash<int, QHash<QString, QVariant>> skills;
-		for (int j = 0; j < MAX_SKILL; ++j)
+		QMutexLocker locker(&net_mutex);
+		util::SafeHash<int, QHash<QString, QVariant>> _hashmagic;
+		for (int i = 0; i < MAX_MAGIC; ++i)
 		{
-			PET_SKILL _petskill = petSkill[i][j];
+			MAGIC m = magic[i];
 
 			const QHash<QString, QVariant> hash = {
-				{ "valid", _petskill.useFlag ? 1 : 0 },
-				//{ "", _petskill.field },
-				{ "target", _petskill.target },
-				//{ "", _petskill.deadTargetFlag },
-				{ "name", _petskill.name },
-				{ "memo", _petskill.memo },
+				{ "valid", m.useFlag ? 1 : 0 },
+				{ "cost", m.mp },
+				{ "field", m.field },
+				{ "target", m.target },
+				{ "deadTargetFlag", m.deadTargetFlag },
+				{ "name", m.name },
+				{ "memo", m.memo },
+			};
+			_hashmagic.insert(i + 1, hash);
+		}
+		hashmagic = _hashmagic;
+	}
+	else if (typeStr == "skill")
+	{
+		QMutexLocker locker(&net_mutex);
+		util::SafeHash<int, QHash<QString, QVariant>> _hashskill;
+		for (int i = 0; i < MAX_PROFESSION_SKILL; ++i)
+		{
+			PROFESSION_SKILL s = profession_skill[i];
+
+			const QHash<QString, QVariant> hash = {
+				{ "valid", s.useFlag ? 1 : 0 },
+				{ "cost", s.costmp },
+				//{ "field", s. },
+				{ "target", s.target },
+				//{ "", s.deadTargetFlag },
+				{ "name", s.name },
+				{ "memo", s.memo },
+			};
+			_hashskill.insert(i + 1, hash);
+		}
+		hashskill = _hashskill;
+	}
+	else if (typeStr == "pet")
+	{
+		QMutexLocker locker(&net_mutex);
+		util::SafeHash<int, QHash<QString, QVariant>> _hashpet;
+		const QHash<PetState, QString> petStateHash = {
+			{ kBattle, u8"battle" },
+			{ kStandby , u8"standby" },
+			{ kMail, u8"mail" },
+			{ kRest, u8"rest" },
+			{ kRide, u8"ride" },
+		};
+
+		for (int i = 0; i < MAX_PET; ++i)
+		{
+			PET _pet = pet[i];
+
+			const QHash<QString, QVariant> hash = {
+				{ "index", _pet.index + 1 },						//位置
+				{ "graNo", _pet.graNo },						//圖號
+				{ "hp", _pet.hp }, { "maxhp", _pet.maxHp }, { "hpp", _pet.hpPercent },					//血量
+				{ "mp", _pet.mp }, { "maxmp", _pet.maxMp }, { "mpp", _pet.mpPercent },					//魔力
+				{ "exp", _pet.exp }, { "maxexp", _pet.maxExp },				//經驗值
+				{ "lv", _pet.level },						//等級
+				{ "atk", _pet.atk },						//攻擊力
+				{ "def", _pet.def },						//防禦力
+				{ "agi", _pet.quick },						//速度
+				{ "ai", _pet.ai },							//AI
+				{ "earth", _pet.earth }, { "water", _pet.water }, { "fire", _pet.fire }, { "wind", _pet.wind },
+				{ "maxskill", _pet.maxSkill },
+				{ "turn", _pet.trn },						// 寵物轉生數
+				{ "name", _pet.name },
+				{ "fname", _pet.freeName },
+				{ "valid", _pet.useFlag ? 1 : 0 },
+				{ "state", petStateHash.value(_pet.state) },
 			};
 
-			skills.insert(i + 1, hash);
+			_hashpet.insert(i + 1, hash);
 		}
-		_hashpetskill.insert(i + 1, skills);
+		hashpet = _hashpet;
 	}
-	hashpetskill = _hashpetskill;
-
-	util::SafeHash<int, QHash<QString, QVariant>> _hashitem;
-	for (int i = CHAR_EQUIPPLACENUM; i < MAX_ITEM; ++i)
+	else if (typeStr == "petskill")
 	{
-		ITEM item = pc.item[i];
-		int index = i - CHAR_EQUIPPLACENUM + 1;
-
-		const QHash<QString, QVariant> hash = {
-			//{ "", item.color },
-			{ "graNo", item.graNo },
-			{ "lv", item.level },
-			{ "stack", item.pile },
-			{ "valid", item.useFlag ? 1 : 0 },
-			{ "field", item.field },
-			{ "target", item.target },
-			//{ "", item.deadTargetFlag },
-			//{ "", item.sendFlag },
-			{ "name", item.name },
-			{ "name2", item.name2 },
-			{ "memo", item.memo },
-			{ "dura", item.damage },
-		};
-
-		_hashitem.insert(index, hash);
-	}
-	hashitem = _hashitem;
-
-	util::SafeHash<int, QHash<QString, QVariant>> _hashequip;
-	for (int i = 0; i < CHAR_EQUIPPLACENUM; ++i)
-	{
-		ITEM item = pc.item[i];
-		const QHash<QString, QVariant> hash = {
-			//{ "", item.color },
-			{ "graNo", item.graNo },
-			{ "lv", item.level },
-			//{ "stack", item.pile },
-			{ "valid", item.useFlag ? 1 : 0 },
-			{ "field", item.field },
-			{ "target", item.target },
-			//{ "", item.deadTargetFlag },
-			//{ "", item.sendFlag },
-			{ "name", item.name },
-			{ "name2", item.name2 },
-			{ "memo", item.memo },
-			{ "dura", item.damage },
-		};
-
-		_hashequip.insert(i + 1, hash);
-	}
-	hashequip = _hashequip;
-
-	util::SafeHash<int, QHash<QString, QVariant>> _hashparty;
-	for (int i = 0; i < MAX_PARTY; ++i)
-	{
-		PARTY _party = party[i];
-		const QHash<QString, QVariant> hash = {
-			{ "valid", _party.useFlag ? 1 : 0 },
-			{ "id", _party.id },
-			{ "lv", _party.level },
-			{ "maxhp", _party.maxHp },
-			{ "hp", _party.hp },
-			{ "hpp", _party.hpPercent },
-			{ "mp", _party.mp },
-			{ "name", _party.name },
-		};
-		_hashparty.insert(i + 1, hash);
-	}
-	hashparty = _hashparty;
-
-
-	util::SafeHash<int, QHash<int, QHash<QString, QVariant>>> _hashpetequip;
-	for (int i = 0; i < MAX_PET; ++i)
-	{
-		QHash<int, QHash<QString, QVariant>> equips;
-		for (int j = 0; j < MAX_PET_ITEM; ++j)
+		QMutexLocker locker(&net_mutex);
+		util::SafeHash<int, QHash<int, QHash<QString, QVariant>>>  _hashpetskill;
+		for (int i = 0; i < MAX_PET; ++i)
 		{
-			ITEM item = pet[i].item[j];
+			QHash<int, QHash<QString, QVariant>> skills;
+			for (int j = 0; j < MAX_SKILL; ++j)
+			{
+				PET_SKILL _petskill = petSkill[i][j];
+
+				const QHash<QString, QVariant> hash = {
+					{ "valid", _petskill.useFlag ? 1 : 0 },
+					//{ "", _petskill.field },
+					{ "target", _petskill.target },
+					//{ "", _petskill.deadTargetFlag },
+					{ "name", _petskill.name },
+					{ "memo", _petskill.memo },
+				};
+
+				skills.insert(i + 1, hash);
+			}
+			_hashpetskill.insert(i + 1, skills);
+		}
+		hashpetskill = _hashpetskill;
+	}
+	else if (typeStr == "item")
+	{
+		QMutexLocker locker(&swapItemMutex);
+		util::SafeHash<int, QHash<QString, QVariant>> _hashitem;
+		for (int i = CHAR_EQUIPPLACENUM; i < MAX_ITEM; ++i)
+		{
+			ITEM item = pc.item[i];
+			int index = i - CHAR_EQUIPPLACENUM + 1;
+
 			const QHash<QString, QVariant> hash = {
 				//{ "", item.color },
 				{ "graNo", item.graNo },
-				{ "level", item.level },
+				{ "lv", item.level },
 				{ "stack", item.pile },
 				{ "valid", item.useFlag ? 1 : 0 },
 				{ "field", item.field },
@@ -10591,84 +10559,137 @@ void Server::reloadHashVar()
 				{ "dura", item.damage },
 			};
 
-			equips.insert(j + 1, hash);
+			_hashitem.insert(index, hash);
 		}
-
-		_hashpetequip.insert(i + 1, equips);
+		hashitem = _hashitem;
 	}
-	hashpetequip = _hashpetequip;
-
-	QPoint point = getPoint();
-	const util::SafeHash<QString, QVariant> _hashmap = {
-		{ "floor", nowFloor },
-		{ "name", nowFloorName },
-		{ "x", point.x() },
-		{ "y", point.y() },
-		{ "time", SaTimeZoneNo }
-	};
-	hashmap = _hashmap;
-
-	util::SafeHash<int, QVariant> _hashchat;
-
-	QVector<QPair<int, QString>> queue = chatQueue.values();
-	//reverse
-	std::reverse(queue.begin(), queue.end());
-	for (int i = 0; i < MAX_CHAT_HISTORY; ++i)
+	else if (typeStr == "equip")
 	{
-		if (queue.isEmpty())
+		QMutexLocker locker(&swapItemMutex);
+		util::SafeHash<int, QHash<QString, QVariant>> _hashequip;
+		for (int i = 0; i < CHAR_EQUIPPLACENUM; ++i)
 		{
-			hashchat.insert(i + 1, "");
-			continue;
+			ITEM item = pc.item[i];
+			const QHash<QString, QVariant> hash = {
+				//{ "", item.color },
+				{ "graNo", item.graNo },
+				{ "lv", item.level },
+				//{ "stack", item.pile },
+				{ "valid", item.useFlag ? 1 : 0 },
+				{ "field", item.field },
+				{ "target", item.target },
+				//{ "", item.deadTargetFlag },
+				//{ "", item.sendFlag },
+				{ "name", item.name },
+				{ "name2", item.name2 },
+				{ "memo", item.memo },
+				{ "dura", item.damage },
+			};
+
+			_hashequip.insert(i + 1, hash);
 		}
-
-		QPair<int, QString> pair = queue.takeFirst();
-		_hashchat.insert(i + 1, pair.second);
+		hashequip = _hashequip;
 	}
-	hashchat = _hashchat;
-
-	util::SafeHash<int, QVariant> _hashdialog;
-	QStringList dialog = currentDialog.linedatas;
-	for (int i = 0; i < MAX_DIALOG_LINE; ++i)
+	else if (typeStr == "party")
 	{
-		if (i >= dialog.size())
+		QMutexLocker locker(&net_mutex);
+		util::SafeHash<int, QHash<QString, QVariant>> _hashparty;
+		for (int i = 0; i < MAX_PARTY; ++i)
 		{
-			_hashdialog.insert(i + 1, "");
-			continue;
+			PARTY _party = party[i];
+			const QHash<QString, QVariant> hash = {
+				{ "valid", _party.useFlag ? 1 : 0 },
+				{ "id", _party.id },
+				{ "lv", _party.level },
+				{ "maxhp", _party.maxHp },
+				{ "hp", _party.hp },
+				{ "hpp", _party.hpPercent },
+				{ "mp", _party.mp },
+				{ "name", _party.name },
+			};
+			_hashparty.insert(i + 1, hash);
 		}
-		_hashdialog.insert(i + 1, dialog.at(i));
+		hashparty = _hashparty;
 	}
-
-	hashdialog = _hashdialog;
-
-	util::SafeHash<int, QHash<QString, QVariant>> _hashbattle;
-	battledata_t bt = getBattleData();
-	QVector<battleobject_t> objects = bt.objects;
-
-	for (const battleobject_t& battle : objects)
+	else if (typeStr == "petequip")
 	{
-		const QHash<QString, QVariant> hash = {
-			{ "pos", battle.pos + 1 },
-			{ "name", battle.name },
-			{ "fname", battle.freename },
-			{ "modelid", battle.faceid },
-			{ "lv", battle.level },
-			{ "hp", battle.hp },
-			{ "maxhp", battle.maxHp },
-			{ "hpp", battle.hpPercent },
-			{ "status", getBadStatusString(battle.status) },
-			{ "rideflag", battle.rideFlag },
-			{ "ridename", battle.rideName },
-			{ "ridelv", battle.rideLevel },
-			{ "ridehp", battle.rideHp },
-			{ "ridemaxhp", battle.rideMaxHp },
-			{ "ridehpp", battle.rideHpPercent },
+		QMutexLocker locker(&net_mutex);
+		util::SafeHash<int, QHash<int, QHash<QString, QVariant>>> _hashpetequip;
+		for (int i = 0; i < MAX_PET; ++i)
+		{
+			QHash<int, QHash<QString, QVariant>> equips;
+			for (int j = 0; j < MAX_PET_ITEM; ++j)
+			{
+				ITEM item = pet[i].item[j];
+				const QHash<QString, QVariant> hash = {
+					//{ "", item.color },
+					{ "graNo", item.graNo },
+					{ "level", item.level },
+					{ "stack", item.pile },
+					{ "valid", item.useFlag ? 1 : 0 },
+					{ "field", item.field },
+					{ "target", item.target },
+					//{ "", item.deadTargetFlag },
+					//{ "", item.sendFlag },
+					{ "name", item.name },
+					{ "name2", item.name2 },
+					{ "memo", item.memo },
+					{ "dura", item.damage },
+				};
+
+				equips.insert(j + 1, hash);
+			}
+
+			_hashpetequip.insert(i + 1, equips);
+		}
+		hashpetequip = _hashpetequip;
+	}
+	else if (typeStr == "map")
+	{
+		QMutexLocker locker(&net_mutex);
+		QPoint point = getPoint();
+		const util::SafeHash<QString, QVariant> _hashmap = {
+			{ "floor", nowFloor },
+			{ "name", nowFloorName },
+			{ "x", point.x() },
+			{ "y", point.y() },
+			{ "time", SaTimeZoneNo }
 		};
-		_hashbattle.insert(battle.pos + 1, hash);
+		hashmap = _hashmap;
 	}
+	else if (typeStr == "battle")
+	{
+		QMutexLocker locker(&net_mutex);
+		util::SafeHash<int, QHash<QString, QVariant>> _hashbattle;
+		battledata_t bt = getBattleData();
+		QVector<battleobject_t> objects = bt.objects;
 
-	hashbattle = _hashbattle;
+		for (const battleobject_t& battle : objects)
+		{
+			const QHash<QString, QVariant> hash = {
+				{ "pos", battle.pos + 1 },
+				{ "name", battle.name },
+				{ "fname", battle.freename },
+				{ "modelid", battle.faceid },
+				{ "lv", battle.level },
+				{ "hp", battle.hp },
+				{ "maxhp", battle.maxHp },
+				{ "hpp", battle.hpPercent },
+				{ "status", getBadStatusString(battle.status) },
+				{ "rideflag", battle.rideFlag },
+				{ "ridename", battle.rideName },
+				{ "ridelv", battle.rideLevel },
+				{ "ridehp", battle.rideHp },
+				{ "ridemaxhp", battle.rideMaxHp },
+				{ "ridehpp", battle.rideHpPercent },
+			};
+			_hashbattle.insert(battle.pos + 1, hash);
+		}
 
-	hashbattlefield = getFieldString(bt.fieldAttr);
+		hashbattle = _hashbattle;
+
+		hashbattlefield = getFieldString(bt.fieldAttr);
+	}
 }
 
 //檢查並自動吃肉、或丟肉
@@ -14137,5 +14158,5 @@ bool Server::captchaOCR(QString* pmsg)
 		announce("<ocr>failed! error:" + errorMsg);
 
 	return true;
-	}
+}
 #pragma endregion

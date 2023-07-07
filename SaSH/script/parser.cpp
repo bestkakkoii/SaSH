@@ -93,76 +93,45 @@ constexpr qint64 kFormatPlaceHoldSize = 3;
 template<typename T>
 T calc(const QVariant& a, const QVariant& b, RESERVE operatorType)
 {
-	if (operatorType == TK_ADD)
+	SPD_LOG(g_logger_name, QString("calc: %1 %2 %3").arg(a.toString()).arg(operatorType).arg(b.toString()));
+	if constexpr (std::is_integral<T>::value)
 	{
-		return a.value<T>() + b.value<T>();
-	}
-	else if (operatorType == TK_SUB)
-	{
-		return a.value<T>() - b.value<T>();
-	}
-	else if (operatorType == TK_MUL)
-	{
-		return a.value<T>() * b.value<T>();
-	}
-	else if (operatorType == TK_DIV)
-	{
-		return a.value<T>() / b.value<T>();
-	}
-	else if (operatorType == TK_INC)
-	{
-		if constexpr (std::is_integral<T>::value)
-			return a.value<T>() + 1;
-		else
-			return a.value<T>() + 1.0;
-	}
-	else if (operatorType == TK_DEC)
-	{
-		if constexpr (std::is_integral<T>::value)
-			return a.value<T>() - 1;
-		else
-			return a.value<T>() - 1.0;
-	}
-
-	Q_UNREACHABLE();
-}
-
-//比較兩個QVariant以 a 的類型為主
-bool Parser::compare(const QVariant& a, const QVariant& b, RESERVE type) const
-{
-	QVariant::Type aType = a.type();
-
-	if (aType == QVariant::String)
-	{
-		QString strA = a.toString();
-		QString strB = b.toString();
-
-		// 根据 type 进行相应的比较操作
-		switch (type)
+		if (operatorType == TK_ADD)
 		{
-		case TK_EQ: // "=="
-			return (strA == strB);
-
-		case TK_NEQ: // "!="
-			return (strA != strB);
-
-		case TK_GT: // ">"
-			return (strA.compare(strB) > 0);
-
-		case TK_LT: // "<"
-			return (strA.compare(strB) < 0);
-
-		case TK_GEQ: // ">="
-			return (strA.compare(strB) >= 0);
-
-		case TK_LEQ: // "<="
-			return (strA.compare(strB) <= 0);
-
-		default:
-			return false; // 不支持的比较类型，返回 false
+			return a.value<T>() + b.value<T>();
+		}
+		else if (operatorType == TK_SUB)
+		{
+			return a.value<T>() - b.value<T>();
+		}
+		else if (operatorType == TK_MUL)
+		{
+			return a.value<T>() * b.value<T>();
+		}
+		else if (operatorType == TK_DIV)
+		{
+			return a.value<T>() / b.value<T>();
+		}
+		else if (operatorType == TK_INC)
+		{
+			return a.value<T>() + 1;
+		}
+		else if (operatorType == TK_DEC)
+		{
+			return a.value<T>() - 1;
 		}
 	}
-	else
+
+	return T();
+}
+
+//比較兩個 QVariant 以 a 的類型為主
+bool Parser::compare(const QVariant& a, const QVariant& b, RESERVE type) const
+{
+	SPD_LOG(g_logger_name, QString("compare: %1 %2 %3").arg(a.toString()).arg(type).arg(b.toString()));
+	QVariant::Type aType = a.type();
+
+	if (aType == QVariant::Int || aType == QVariant::LongLong || aType == QVariant::Double)
 	{
 		qint64 numA = a.toLongLong();
 		qint64 numB = b.toLongLong();
@@ -192,14 +161,47 @@ bool Parser::compare(const QVariant& a, const QVariant& b, RESERVE type) const
 			return false; // 不支持的比较类型，返回 false
 		}
 
+
+	}
+	else
+	{
+		QString strA = a.toString();
+		QString strB = b.toString();
+
+		// 根据 type 进行相应的比较操作
+		switch (type)
+		{
+		case TK_EQ: // "=="
+			return (strA == strB);
+
+		case TK_NEQ: // "!="
+			return (strA != strB);
+
+		case TK_GT: // ">"
+			return (strA.compare(strB) > 0);
+
+		case TK_LT: // "<"
+			return (strA.compare(strB) < 0);
+
+		case TK_GEQ: // ">="
+			return (strA.compare(strB) >= 0);
+
+		case TK_LEQ: // "<="
+			return (strA.compare(strB) <= 0);
+
+		default:
+			return false; // 不支持的比较类型，返回 false
+		}
 	}
 
 	return false; // 不支持的类型，返回 false
 }
 
+//取表達式結果
 template <typename T>
 bool Parser::exprMakeValue(const QString& expr, T* ret)
 {
+	SPD_LOG(g_logger_name, QString("exprMakeValue: %1").arg(expr));
 	using TKSymbolTable = exprtk::symbol_table<double>;
 	using TKExpression = exprtk::expression<double>;
 	using TKParser = exprtk::parser<double>;
@@ -234,9 +236,11 @@ bool Parser::exprMakeValue(const QString& expr, T* ret)
 	return false;
 }
 
+//取表達式結果
 template <typename T>
 bool Parser::exprTo(QString expr, T* ret)
 {
+	SPD_LOG(g_logger_name, QString("exprTo: %1").arg(expr));
 	bool result = exprMakeValue(expr, ret);
 	if (result)
 		return true;
@@ -289,9 +293,11 @@ bool Parser::exprTo(QString expr, T* ret)
 	return true;
 }
 
+//取表達式結果
 template <typename T>
 bool Parser::exprTo(T value, QString expr, T* ret)
 {
+	SPD_LOG(g_logger_name, QString("exprTo2: %1").arg(expr));
 	using TKSymbolTable = exprtk::symbol_table<double>;
 	using TKExpression = exprtk::expression<double>;
 	using TKParser = exprtk::parser<double>;
@@ -356,6 +362,7 @@ bool Parser::checkString(const TokenMap& TK, qint64 idx, QString* ret)
 	}
 	else if (type == TK_STRING || type == TK_CMD || type == TK_NAME || type == TK_LABELVAR || type == TK_CAOS)
 	{
+		SPD_LOG(g_logger_name, QString("checkString2: %1").arg(var.toString()));
 		//檢查是否為區域變量
 		QVariantHash args = getLocalVars();
 		QString varName = var.toString();
@@ -369,9 +376,7 @@ bool Parser::checkString(const TokenMap& TK, qint64 idx, QString* ret)
 
 			return true;
 		}
-
-		updateGlobalVariables(varName);
-		if (isGlobalVarContains(varName))
+		else if (isGlobalVarContains(varName))
 		{
 			*ret = getGlobalVarValue(varName).toString();
 		}
@@ -429,6 +434,7 @@ bool Parser::checkInteger(const TokenMap& TK, qint64 idx, qint64* ret)
 		}
 		else if (args.contains(varName) && args.value(varName).type() == QVariant::String)
 		{
+			SPD_LOG(g_logger_name, QString("checkInteger: check local var2: %1").arg(varName));
 			bool ok;
 			qint64 value = args.value(varName).toLongLong(&ok);
 			if (ok)
@@ -438,11 +444,9 @@ bool Parser::checkInteger(const TokenMap& TK, qint64 idx, qint64* ret)
 
 			return true;
 		}
-
-		SPD_LOG(g_logger_name, QString("checkInteger: check global var: %1").arg(varName));
-
-		if (isGlobalVarContains(varName))
+		else if (isGlobalVarContains(varName))
 		{
+			SPD_LOG(g_logger_name, QString("checkInteger: check global var: %1").arg(varName));
 			QVariant gVar = getGlobalVarValue(varName);
 			if (gVar.type() == QVariant::Int || gVar.type() == QVariant::LongLong || gVar.type() == QVariant::Double)
 			{
@@ -493,6 +497,7 @@ bool Parser::toVariant(const TokenMap& TK, qint64 idx, QVariant* ret)
 
 	if (type == TK_STRING || type == TK_CMD || type == TK_NAME || type == TK_LABELVAR || type == TK_CAOS)
 	{
+		SPD_LOG(g_logger_name, QString("checkVariant2: idx:%1 type:%1").arg(idx).arg(type));
 		QVariantHash args = getLocalVars();
 		QString varName = var.toString();
 		if (args.contains(varName))
@@ -505,9 +510,9 @@ bool Parser::toVariant(const TokenMap& TK, qint64 idx, QVariant* ret)
 
 			return true;
 		}
-
-		if (isGlobalVarContains(varName))
+		else if (isGlobalVarContains(varName))
 		{
+			SPD_LOG(g_logger_name, QString("checkVariant3: idx:%1 type:%1").arg(idx).arg(type));
 			QVariant gVar = getGlobalVarValue(varName);
 			bool ok;
 			qint64 value = gVar.toLongLong(&ok);
@@ -548,6 +553,7 @@ QVariant Parser::checkValue(const TokenMap TK, qint64 idx, QVariant::Type type)
 	}
 	else
 	{
+		SPD_LOG(g_logger_name, QString("checkValue: idx:%1 type:%1").arg(idx).arg(type));
 		if (type == QVariant::Int || type == QVariant::LongLong || type == QVariant::Double)
 			varValue = 0ll;
 		else if (type == QVariant::String)
@@ -575,6 +581,8 @@ qint64 Parser::checkJump(const TokenMap& TK, qint64 idx, bool expr, JumpBehavior
 
 	if (okJump)
 	{
+		SPD_LOG(g_logger_name, QString("checkJump2: idx:%1 expr:%2 jumptype:%1")
+			.arg(idx).arg(expr ? "true" : "false").arg(behavior == JumpBehavior::FailedJump ? "failedjump" : "successjump"));
 		QString label;
 		qint64 line = 0;
 		if (TK.contains(idx))
@@ -618,8 +626,10 @@ qint64 Parser::checkJump(const TokenMap& TK, qint64 idx, bool expr, JumpBehavior
 	return Parser::kNoChange;
 }
 
+//插入局變量
 void Parser::intsertLocalVar(const QString& name, const QVariant& value)
 {
+	SPD_LOG(g_logger_name, QString("intsertLocalVar: name:%1 value:%2").arg(name).arg(value.toString()));
 	QVariantHash& hash = getLocalVarsRef();
 	if (value.isValid())
 	{
@@ -639,6 +649,7 @@ void Parser::intsertLocalVar(const QString& name, const QVariant& value)
 
 }
 
+//插入全局變量
 void Parser::insertGlobalVar(const QString& name, const QVariant& value)
 {
 	if (globalVarLock_ == nullptr)
@@ -649,6 +660,7 @@ void Parser::insertGlobalVar(const QString& name, const QVariant& value)
 	{
 		if (value.isValid())
 		{
+			SPD_LOG(g_logger_name, QString("insertGlobalVar: name:%1 value:%2").arg(name).arg(value.toString()));
 			QVariant::Type type = value.type();
 			if (type != QVariant::LongLong && type != QVariant::String)
 			{
@@ -665,37 +677,6 @@ void Parser::insertGlobalVar(const QString& name, const QVariant& value)
 	}
 }
 
-void Parser::insertGlobalVar(const QVariantHash& hash)
-{
-	if (globalVarLock_ == nullptr)
-		return;
-
-	SPD_LOG(g_logger_name, "inserting global system vars");
-
-	QWriteLocker locker(globalVarLock_);
-
-	if (variables_ != nullptr)
-	{
-		for (auto it = hash.cbegin(); it != hash.cend(); ++it)
-		{
-			QVariant::Type type = it.value().type();
-			if (type != QVariant::LongLong && type != QVariant::String)
-			{
-				bool ok = false;
-				qint64 val = it.value().toLongLong(&ok);
-				if (ok)
-					variables_->insert(it.key(), val);
-				else
-					variables_->insert(it.key(), 0ll);
-				continue;
-			}
-			variables_->insert(it.key(), it.value());
-		}
-	}
-
-	SPD_LOG(g_logger_name, "inserting global system vars done");
-}
-
 //將表達式中所有變量替換成實際數值
 void Parser::replaceToVariable(QString& expr)
 {
@@ -707,12 +688,14 @@ void Parser::replaceToVariable(QString& expr)
 	for (auto it = args.cbegin(); it != args.cend(); ++it)
 		tmpvec.append(qMakePair(it.key(), it.value()));
 
+	SPD_LOG(g_logger_name, QString("replaceToVariable: sort local"));
+
 	//按照長度排序，這樣才能先替換長的變量
 	std::sort(tmpvec.begin(), tmpvec.end(), [](const QPair<QString, QVariant>& a, const QPair<QString, QVariant>& b)
 		{
 			if (a.first.length() == b.first.length())
 			{
-				//長度依樣則按照字母順序排序
+				//長度一樣則按照字母順序排序
 				static const QLocale locale;
 				static const QCollator collator(locale);
 				return collator.compare(a.first, b.first) < 0;
@@ -720,6 +703,8 @@ void Parser::replaceToVariable(QString& expr)
 
 			return a.first.length() > b.first.length();
 		});
+
+	SPD_LOG(g_logger_name, QString("replaceToVariable: replace local"));
 
 
 	for (const QPair<QString, QVariant> it : tmpvec)
@@ -741,11 +726,23 @@ void Parser::replaceToVariable(QString& expr)
 		tmpvec.append(qMakePair(it.key(), it.value()));
 	}
 
+	SPD_LOG(g_logger_name, QString("replaceToVariable: sort global"));
+
 	//按照長度排序，這樣才能先替換長的變量
 	std::sort(tmpvec.begin(), tmpvec.end(), [](const QPair<QString, QVariant>& a, const QPair<QString, QVariant>& b)
 		{
+			if (a.first.length() == b.first.length())
+			{
+				//長度一樣則按照字母順序排序
+				static const QLocale locale;
+				static const QCollator collator(locale);
+				return collator.compare(a.first, b.first) < 0;
+			}
+
 			return a.first.length() > b.first.length();
 		});
+
+	SPD_LOG(g_logger_name, QString("replaceToVariable: replace global"));
 
 	for (const QPair<QString, QVariant> it : tmpvec)
 	{
@@ -756,6 +753,8 @@ void Parser::replaceToVariable(QString& expr)
 		else
 			expr.replace(name, QString::number(value.toLongLong()));
 	}
+
+	SPD_LOG(g_logger_name, QString("replaceToVariable: replace op"));
 
 	expr.replace("^", " xor ");
 	expr.replace("~", " nor ");
@@ -768,6 +767,7 @@ void Parser::replaceToVariable(QString& expr)
 //行跳轉
 void Parser::jump(qint64 line, bool noStack)
 {
+	SPD_LOG(g_logger_name, QString("jump: %1").arg(line));
 	if (!noStack)
 		jmpStack_.push(lineNumber_ + 1);
 	lineNumber_ += line;
@@ -776,6 +776,7 @@ void Parser::jump(qint64 line, bool noStack)
 //指定行跳轉
 void Parser::jumpto(qint64 line, bool noStack)
 {
+	SPD_LOG(g_logger_name, QString("jumpto: %1").arg(line));
 	if (line - 1 < 0)
 		line = 1;
 	if (!noStack)
@@ -788,6 +789,7 @@ bool Parser::jump(const QString& name, bool noStack)
 {
 	if (name.toLower() == "back")
 	{
+		SPD_LOG(g_logger_name, QString("jump: back"));
 		if (!jmpStack_.isEmpty())
 		{
 			qint64 returnIndex = jmpStack_.pop();//jump行號出棧
@@ -799,6 +801,7 @@ bool Parser::jump(const QString& name, bool noStack)
 	}
 	else if (name.toLower() == "return")
 	{
+		SPD_LOG(g_logger_name, QString("jump: return"));
 		if (!callArgsStack_.isEmpty())
 			callArgsStack_.pop();//call行號出棧
 		if (!localVarStack_.isEmpty())
@@ -812,6 +815,8 @@ bool Parser::jump(const QString& name, bool noStack)
 		}
 		return false;
 	}
+
+	SPD_LOG(g_logger_name, QString("jump: %1").arg(name));
 
 	qint64 jumpLine = matchLineFromLabel(name);
 	if (jumpLine == -1)
@@ -834,6 +839,8 @@ bool Parser::checkCallStack()
 	const QString cmd = currentLineTokens_.value(0).data.toString();
 	if (cmd != "function")
 		return false;
+
+	SPD_LOG(g_logger_name, QString("checkCallStack: %1").arg(currentLineTokens_.value(1).data.toString()));
 
 	const QString funname = currentLineTokens_.value(1).data.toString();
 	do
@@ -866,6 +873,8 @@ void Parser::processLabel()
 	QString token = currentLineTokens_.value(0).data.toString();
 	if (token == "label")
 		return;
+
+	SPD_LOG(g_logger_name, QString("processLabel: %1").arg(currentLineTokens_.value(1).data.toString()));
 
 	QVariantList args = getArgsRef();
 	QVariantHash labelVars;
@@ -945,14 +954,23 @@ qint64 Parser::processCommand()
 	return status;
 }
 
+//處理局變量
 void Parser::processLocalVariable()
 {
 	QString varNameStr = getToken<QString>(0);
+	if (varNameStr.isEmpty())
+		return;
+
 	QStringList varNames = varNameStr.split(util::rexComma, Qt::SkipEmptyParts);
+	if (varNames.isEmpty())
+		return;
+
 	qint64 varCount = varNames.count();
+	if (varCount == 0)
+		return;
 
 	//取區域變量表
-	QVariantHash& args = getLocalVarsRef();
+	QVariantHash args = getLocalVars();
 
 	for (qint64 i = 0; i < varCount; ++i)
 	{
@@ -971,10 +989,11 @@ void Parser::processLocalVariable()
 
 		QVariant varValue = checkValue(currentLineTokens_, i + 1, QVariant::LongLong);
 
-		args.insert(varName, varValue);
+		intsertLocalVar(varName, varValue);
 	}
 }
 
+//檢查是否使用問號關鍵字
 bool Parser::checkFuzzyValue(const QString& varName, QVariant varValue, QVariant* pvalue)
 {
 	SPD_LOG(g_logger_name, "checkFuzzyValue");
@@ -1158,7 +1177,7 @@ void Parser::processVariableIncDec()
 
 	qint64 value = 0;
 	if (args.contains(varName))
-		value = args.value(varName, 0).toLongLong();
+		value = args.value(varName, 0ll).toLongLong();
 	else
 		value = getVar<qint64>(varName);
 
@@ -1166,6 +1185,8 @@ void Parser::processVariableIncDec()
 		--value;
 	else if (op == TK_INC)
 		++value;
+	else
+		return;
 
 	insertVar(varName, value);
 }
@@ -1304,6 +1325,7 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 		if (typeStr.isEmpty())
 			break;
 
+		injector.server->reloadHashVar("pc");
 		VariantSafeHash hashpc = injector.server->hashpc;
 		if (!hashpc.contains(typeStr))
 			break;
@@ -1324,6 +1346,7 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 		if (typeStr.isEmpty())
 			break;
 
+		injector.server->reloadHashVar("magic");
 		util::SafeHash<int, QVariantHash> hashmagic = injector.server->hashmagic;
 		if (!hashmagic.contains(magicIndex))
 			break;
@@ -1348,6 +1371,7 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 		if (typeStr.isEmpty())
 			break;
 
+		injector.server->reloadHashVar("skill");
 		util::SafeHash<int, QVariantHash> hashskill = injector.server->hashskill;
 		if (!hashskill.contains(skillIndex))
 			break;
@@ -1371,6 +1395,7 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 
 			if (typeStr == "count")
 			{
+				injector.server->reloadHashVar("pet");
 				varValue = injector.server->hashpet.size();
 				bret = true;
 			}
@@ -1385,6 +1410,7 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 		if (typeStr.isEmpty())
 			break;
 
+		injector.server->reloadHashVar("pet");
 		util::SafeHash<int, QVariantHash> hashpet = injector.server->hashpet;
 		if (!hashpet.contains(petIndex))
 			break;
@@ -1413,6 +1439,7 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 		if (typeStr.isEmpty())
 			break;
 
+		injector.server->reloadHashVar("petskill");
 		util::SafeHash<int, QHash<int, QVariantHash>> hashpetskill = injector.server->hashpetskill;
 		if (!hashpetskill.contains(petIndex))
 			break;
@@ -1437,6 +1464,7 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 		if (typeStr.isEmpty())
 			break;
 
+		injector.server->reloadHashVar("map");
 		VariantSafeHash hashmap = injector.server->hashmap;
 		if (!hashmap.contains(typeStr))
 			break;
@@ -1510,6 +1538,7 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 		if (typeStr.isEmpty())
 			break;
 
+		injector.server->reloadHashVar("item");
 		util::SafeHash<int, QVariantHash> hashitem = injector.server->hashitem;
 		if (!hashitem.contains(itemIndex))
 			break;
@@ -1534,6 +1563,7 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 		if (typeStr.isEmpty())
 			break;
 
+		injector.server->reloadHashVar("equip");
 		util::SafeHash<int, QVariantHash> hashitem = injector.server->hashequip;
 		if (!hashitem.contains(itemIndex))
 			break;
@@ -1562,6 +1592,7 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 		if (typeStr.isEmpty())
 			break;
 
+		injector.server->reloadHashVar("petequip");
 		util::SafeHash<int, QHash<int, QVariantHash>> hashpetequip = injector.server->hashpetequip;
 		if (!hashpetequip.contains(petIndex))
 			break;
@@ -1590,6 +1621,7 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 		if (typeStr.isEmpty())
 			break;
 
+		injector.server->reloadHashVar("party");
 		util::SafeHash<int, QVariantHash> hashparty = injector.server->hashparty;
 		if (!hashparty.contains(partyIndex))
 			break;
@@ -1607,12 +1639,10 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 		qint64 chatIndex = -1;
 		if (!checkInteger(currentLineTokens_, 3, &chatIndex))
 			break;
-
-		util::SafeHash<int, QVariant> hashchat = injector.server->hashchat;
-		if (!hashchat.contains(chatIndex))
+		if (chatIndex < 1 || chatIndex > 20)
 			break;
 
-		varValue = hashchat.value(chatIndex);
+		varValue = injector.server->getChatHistory(chatIndex - 1);
 		bret = varValue.isValid();
 		break;
 	}
@@ -1635,27 +1665,28 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 			break;
 		}
 
-		util::SafeHash<int, QVariant> hashdialog = injector.server->hashdialog;
+		QStringList dialogStrList = injector.server->currentDialog.linedatas;
 
 		if (dialogIndex == -1)
 		{
 			QStringList texts;
 			for (qint64 i = 0; i < MAX_DIALOG_LINE; ++i)
 			{
-				if (!hashdialog.contains(i))
+				if (i >= dialogStrList.size())
 					break;
 
-				texts << hashdialog.value(i).toString().simplified();
+				texts << dialogStrList.at(i).simplified();
 			}
 
 			varValue = texts.join("\n");
 		}
 		else
 		{
-			if (!hashdialog.contains(dialogIndex))
+			int index = dialogIndex - 1;
+			if (index < 0 || index >= dialogStrList.size())
 				break;
 
-			varValue = hashdialog.value(dialogIndex);
+			varValue = dialogStrList.at(index);
 		}
 
 
@@ -1762,6 +1793,7 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 		QString typeStr;
 		checkString(currentLineTokens_, 4, &typeStr);
 
+		injector.server->reloadHashVar("battle");
 		util::SafeHash<int, QVariantHash> hashbattle = injector.server->hashbattle;
 		if (!hashbattle.contains(index))
 			break;
@@ -1875,12 +1907,11 @@ void Parser::processFormation()
 			break;
 
 		QVariantHash args = getLocalVars();
-		for (auto it = variables_->cbegin(); it != variables_->cend(); ++it)
-			updateGlobalVariables(it.key());
-
 		QString key;
 		QString keyWithTime;
 		constexpr qint64 MAX_NESTING_DEPTH = 10;//最大嵌套深度
+		static const QStringList constList = { "time", "date" };
+
 		for (qint64 i = 0; i < MAX_NESTING_DEPTH; ++i)
 		{
 			for (auto it = args.cbegin(); it != args.cend(); ++it)
@@ -1902,7 +1933,6 @@ void Parser::processFormation()
 			}
 
 			//查找字符串中包含 {:變數名} 全部替換成變數數值
-
 			for (auto it = variables_->cbegin(); it != variables_->cend(); ++it)
 			{
 				key = QString("{:%1}").arg(it.key());
@@ -1919,6 +1949,30 @@ void Parser::processFormation()
 					qint64 seconds = it.value().toLongLong();
 					formatStr.replace(keyWithTime, formatTime(seconds));
 				}
+			}
+
+			for (const auto& str : constList)
+			{
+				key = QString("{C:%1}").arg(str);
+				if (!formatStr.contains(key))
+					continue;
+
+				QString replaceStr;
+				if (str == "date")
+				{
+					const QDateTime dt = QDateTime::currentDateTime();
+					replaceStr = dt.toString("yyyy-MM-dd");
+
+				}
+				else if (str == "time")
+				{
+					const QDateTime dt = QDateTime::currentDateTime();
+					replaceStr = dt.toString("hh:mm:ss:zzz");
+				}
+				else
+					continue;
+
+				formatStr.replace(key, replaceStr);
 			}
 		}
 
@@ -2269,167 +2323,6 @@ void Parser::generateStackInfo(qint64 type)
 		emit signalDispatcher.jumpStackInfoChanged(hash);
 }
 
-//更新系統預定變量的值
-void Parser::updateGlobalVariables(const QString& varName)
-{
-	Injector& injector = Injector::getInstance();
-
-	SPD_LOG(g_logger_name, "*********** inesrt global start ***********");
-
-	QVariantHash hash;
-
-	if (varName == "tick" || varName == "stick")
-	{
-		try
-		{
-			const qint64 tick = QDateTime::currentMSecsSinceEpoch();
-			if (varName == "tick")
-			{
-				hash.insert("tick", tick);
-				SPD_LOG(g_logger_name, "insert global var: tick");
-			}
-			else
-			{
-				hash.insert("stick", tick / 1000);
-				SPD_LOG(g_logger_name, "insert global var: stick");
-			}
-		}
-		catch (...)
-		{
-			SPD_LOG(g_logger_name, "insert global var: tick or stick failed");
-			return;
-		}
-	}
-	else if (varName == "date" || varName == "time")
-	{
-		try
-		{
-			const QDateTime dt = QDateTime::currentDateTime();
-			if (varName == "time")
-			{
-				const QString date = dt.toString("yyyy-MM-dd");
-				hash.insert("date", date);
-				SPD_LOG(g_logger_name, "insert global var: date");
-			}
-			else
-			{
-				const QString time = dt.toString("hh:mm:ss:zzz");
-				hash.insert("time", time);
-				SPD_LOG(g_logger_name, "insert global var: time");
-			}
-
-		}
-		catch (...)
-		{
-			SPD_LOG(g_logger_name, "insert global var: date or time failed");
-			return;
-		}
-	}
-#if 0
-	else if (!injector.server.isNull())
-	{
-		SPD_LOG(g_logger_name, "*********** getting server info for global var ***********");
-
-		if (varName.startsWith("ch") || varName == "stone")
-		{
-			try
-			{
-				PC pc = injector.server->getPC();
-				hash.insert("chname", pc.name);
-				hash.insert("chfname", pc.freeName);
-				hash.insert("chlv", pc.level);
-				hash.insert("chhp", pc.hp);
-				hash.insert("chmp", pc.mp);
-				hash.insert("chdp", pc.dp);
-				hash.insert("stone", pc.gold);
-				SPD_LOG(g_logger_name, "insert global var: chname, chfname, chlv, chhp, chmp, chdp, stone");
-			}
-			catch (...)
-			{
-				SPD_LOG(g_logger_name, "insert global var: chname, chfname, chlv, chhp, chmp, chdp, stone failed");
-			}
-		}
-		else if (varName == "floor" || varName == "frname")
-		{
-			try
-			{
-				hash.insert("floor", injector.server->nowFloor);
-				hash.insert("frname", injector.server->nowFloorName);
-				SPD_LOG(g_logger_name, "insert global var: floor and frname");
-			}
-			catch (...)
-			{
-				SPD_LOG(g_logger_name, "insert global var: floor and frname failed");
-			}
-		}
-		else if (varName == "earnstone")
-		{
-			try
-			{
-				qint64 goldearn = injector.server->recorder[0].goldearn;
-				hash.insert("earnstone", goldearn);
-				SPD_LOG(g_logger_name, "insert earnstone");
-			}
-			catch (...)
-			{
-				SPD_LOG(g_logger_name, "insert earnstone failed");
-			}
-		}
-		else if (varName == "px" || varName == "py")
-		{
-			try
-			{
-				QPoint pos = injector.server->getPoint();
-				hash.insert("px", pos.x());
-				hash.insert("py", pos.y());
-				SPD_LOG(g_logger_name, "insert global var: px and py");
-			}
-			catch (...)
-			{
-				SPD_LOG(g_logger_name, "insert global var: px and py failed");
-			}
-		}
-		else if (varName == "bt")
-		{
-			try
-			{
-				bool isBattle = injector.server->getBattleFlag();
-				hash.insert("bt", isBattle ? 1ll : 0ll);
-				SPD_LOG(g_logger_name, "insert global var: bt");
-			}
-			catch (...)
-			{
-				SPD_LOG(g_logger_name, "insert global var: bt failed");
-			}
-		}
-		else if (varName == "dlgid")
-		{
-			try
-			{
-				dialog_t dialog = injector.server->currentDialog;
-				hash.insert("dlgid", dialog.seqno);
-				SPD_LOG(g_logger_name, "insert global var: dlgid");
-			}
-			catch (...)
-			{
-				SPD_LOG(g_logger_name, "insert global var: dlgid failed");
-			}
-		}
-
-		SPD_LOG(g_logger_name, "*********** getting server info done ***********");
-	}
-#endif
-	else
-	{
-		SPD_LOG(g_logger_name, "*********** no global var matched ***********");
-		return;
-	}
-
-	insertGlobalVar(hash);
-
-	SPD_LOG(g_logger_name, "*********** insert global done ***********");
-		}
-
 //這裡是防止人為設置過長的延時導致腳本無法停止
 void Parser::processDelay()
 {
@@ -2456,6 +2349,7 @@ void Parser::processDelay()
 	QThread::msleep(1);
 }
 
+//更新並記錄每個函數塊的開始行和結束行
 void Parser::updateFunctionChunk()
 {
 	QHash<qint64, FunctionChunk> chunkHash;
@@ -2873,4 +2767,4 @@ void Parser::processTokens()
 	SPD_LOG(g_logger_name, "Processing finished");
 	processClean();
 
-	}
+}

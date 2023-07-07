@@ -356,19 +356,21 @@ void ScriptForm::onScriptContentChanged(const QString& fileName, const QVariant&
 			setTableWidgetItem(row, 0, "[long command]");
 			setTableWidgetItem(row, 1, QString("%1 %2").arg(cmd, argStr));
 			continue;
-			//qDebug() << QString("line:%1, cmd:%2 size:%3, args:%4") \
-			//	.arg(row).arg(lineTokens.value(0).raw.simplified()) \
-			//	.arg(cmd.size()).arg(params.join(", ")) << "type:" << reserve;
 		}
 
 		setTableWidgetItem(row, 1, argStr);
 	}
 
-	int index = fileName.indexOf("script/");
-	QString shortPath = fileName.mid(index + 7);
-	ui.label_path->setText(shortPath);
-	onScriptLabelRowTextChanged(1, rowCount, false);
+	QString newFileName = fileName;
+	newFileName.replace("\\", "/");
 
+	int index = newFileName.indexOf("script/");
+	if (index >= 0)
+	{
+		QString shortPath = fileName.mid(index + 7);
+		ui.label_path->setText(shortPath);
+		onScriptLabelRowTextChanged(1, rowCount, false);
+	}
 }
 
 void ScriptForm::onCurrentTableWidgetItemChanged(QTableWidgetItem* current, QTableWidgetItem*)
@@ -395,11 +397,8 @@ void ScriptForm::onCurrentTableWidgetItemChanged(QTableWidgetItem* current, QTab
 	onScriptLabelRowTextChanged(row + 1, rowCount, true);
 }
 
-void ScriptForm::onScriptTableWidgetClicked(QTableWidgetItem* item)
+void ScriptForm::onScriptTableWidgetClicked(QTableWidgetItem*)
 {
-	if (!item)
-		return;
-	//int row = item->row();
 }
 
 //樹型框雙擊事件

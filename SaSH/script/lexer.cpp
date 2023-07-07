@@ -426,11 +426,17 @@ void Lexer::tokenized(qint64 currentLine, const QString& line, TokenMap* ptoken,
 	do
 	{
 		qint64 commentIndex = raw.indexOf("//");
-		if (commentIndex > 0)
+		if (commentIndex == 0 && raw.trimmed().indexOf("//") == 0)
+		{
+			createToken(pos, TK_COMMENT, raw, raw, ptoken);
+			break;
+		}
+		else if (commentIndex > 0)
 		{
 			//當前token移除註釋
 			raw = raw.mid(0, commentIndex).trimmed();
 		}
+
 
 		bool doNotLowerCase = false;
 		static const QRegularExpression rexMultiVar(R"(^\s*([_a-zA-Z\p{Han}][_a-zA-Z0-9\p{Han}]*(?:\s*,\s*[_a-zA-Z\p{Han}][_a-zA-Z0-9\p{Han}]*)*)\s*=\s*([^,]+(?:\s*,\s*[^,]+)*)$)");//a,b,c = 1,2,3
@@ -440,7 +446,7 @@ void Lexer::tokenized(qint64 currentLine, const QString& line, TokenMap* ptoken,
 		static const QRegularExpression varExpr(R"(([\w\p{Han}]+)\s+\=\s+([\W\w\s\p{Han}]+))");//x = expr
 		static const QRegularExpression varAnyOp(R"([+\-*\/%&|^\(\)])");//+ - * / % & | ^ ( )
 		static const QRegularExpression varIf(R"([iI][fF][\(|\s+]([\d\w\W\p{Han}]+\s*[<|>|\=|!][\=]*\s*[\d\w\W\p{Han}]+))");//if (expr)
-		static const QRegularExpression rexFunction(R"(function\s+([\w\p{Han}\d]+)\s*\(([\w\W\p{Han}]*)\))");
+		static const QRegularExpression rexFunction(R"([fF][uU][nN][cC][tT][iI][oO][nN]\s+([\w\p{Han}\d]+)\s*\(([\w\W\p{Han}]*)\))");
 		static const QRegularExpression rexCallFunction(R"((\w+)\s*\(([\w\W\p{Han}]*)\))");
 		if (raw.contains(varIf))
 		{

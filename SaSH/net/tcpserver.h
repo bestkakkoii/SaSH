@@ -570,6 +570,8 @@ enum GameDataOffest
 	kOffestSelectPetArray = 0x422BF34,
 	kOffestTeamState = 0x4230B24,
 	kOffestEV = 0x41602BC,
+	kOffestChatBuffer = 0x144D88,
+	kOffestChatBufferMaxCount = 0x14A4F8,
 };
 
 #ifdef _ITEM_EQUITSPACE
@@ -1984,6 +1986,7 @@ public://actions
 	void tradeComplete(const QString& name);
 
 	void cleanChatHistory();
+	QString getChatHistory(int index);
 
 	bool findUnit(const QString& name, int type, mapunit_t* unit, const QString freename = "") const;
 
@@ -2048,8 +2051,9 @@ public://actions
 	void sendBattlePetSkillAct(int skillIndex, int target);
 	void sendBattlePetDoNothing();
 	void setBattleEnd();
+
+	void reloadHashVar(const QString& typeStr);
 private:
-	void reloadHashVar();
 	void setWindowTitle();
 	void refreshItemInfo(int index);
 	void refreshItemInfo();
@@ -2530,8 +2534,6 @@ private:
 	std::atomic_bool IS_BATTLE_FLAG = false;
 	std::atomic_bool IS_ONLINE_FLAG = false;
 
-	QElapsedTimer refreshHashDataTimer;
-
 	bool isEnemyAllReady = false;
 
 	QElapsedTimer eottlTimer;
@@ -2746,8 +2748,6 @@ public:
 	util::SafeHash<int, QHash<QString, QVariant>> hashequip;
 	util::SafeHash<int, QHash<int, QHash<QString, QVariant>>> hashpetequip;
 	util::SafeHash<QString, QVariant> hashmap;
-	util::SafeHash<int, QVariant> hashchat;
-	util::SafeHash<int, QVariant> hashdialog;
 	util::SafeHash<int, QHash<QString, QVariant>> hashbattle;
 	util::SafeData<QString> hashbattlefield;
 

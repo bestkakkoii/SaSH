@@ -6,6 +6,9 @@
 #include <injector.h>
 #include "map/mapanalyzer.h"
 
+#include "spdloger.hpp"
+extern QString g_logger_name;
+
 bool ThreadManager::createThread(QObject* parent)
 {
 	if (thread_)
@@ -188,14 +191,12 @@ void MainObject::mainProc()
 		mem::freeUnuseMemory(injector.getProcess());
 	}
 
-	mem::freeUnuseMemory(GetCurrentProcess());
-
 	for (;;)
 	{
 #ifdef _DEBUG
-		QThread::msleep(100);
+		QThread::msleep(300);
 #else
-		QThread::msleep(100);
+		QThread::msleep(300);
 #endif
 		//檢查是否接收到停止執行的訊號
 		if (isInterruptionRequested())
@@ -396,14 +397,18 @@ int MainObject::checkAndRunFunctions()
 		return 1;
 	}
 
+	SPD_LOG(g_logger_name, "updateAfkInfos");
 	updateAfkInfos();
 
+	SPD_LOG(g_logger_name, "updateUserDatas");
 	//更新數據緩存(跨線程安全容器)
 	setUserDatas();
 
+	SPD_LOG(g_logger_name, "checkControls");
 	//檢查UI的設定是否有變化
 	checkControl();
 
+	SPD_LOG(g_logger_name, "checkAutoWalk");
 	//走路遇敵 或 快速遇敵 (封包)
 	checkAutoWalk();
 
@@ -417,30 +422,39 @@ int MainObject::checkAndRunFunctions()
 			emit signalDispatcher.updateStatusLabelTextChanged(util::kLabelStatusInNormal);
 		}
 
+		SPD_LOG(g_logger_name, "checkRecordableNpcInfo");
 		//紀錄NPC
 		checkRecordableNpcInfo();
 
+		SPD_LOG(g_logger_name, "checkEtcFlag");
 		//檢查開關 (隊伍、交易、名片...等等)
 		checkEtcFlag();
 
+		SPD_LOG(g_logger_name, "checkAutoJoin");
 		//自動組隊、跟隨
 		checkAutoJoin();
 
+		SPD_LOG(g_logger_name, "checkAutoHeal");
 		//自動補血、氣
 		checkAutoHeal();
 
+		SPD_LOG(g_logger_name, "checkAutoDropPet");
 		//自動丟寵
 		checkAutoDropPet();
 
+		SPD_LOG(g_logger_name, "checkAutoDropItems");
 		//檢查自動丟棄道具
 		checkAutoDropItems();
 
+		SPD_LOG(g_logger_name, "checkAutoEatBoostExpItem");
 		//檢查自動吃道具
 		checkAutoEatBoostExpItem();
 
+		SPD_LOG(g_logger_name, "checkAutoLockPet");
 		//自動鎖寵
 		checkAutoLockPet();
 
+		SPD_LOG(g_logger_name, "checkAutoLockSchedule");
 		//鎖寵排程
 		checkAutoLockSchedule();
 		return 1;
@@ -1921,7 +1935,7 @@ void MainObject::checkRecordableNpcInfo()
 					}
 				}
 				config.writeMapData(unit.name, d);
-
+				SPD_LOG(g_logger_name, "recorded new npc infos");
 			}
 		}
 	));
