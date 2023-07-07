@@ -410,7 +410,7 @@ bool Parser::checkInteger(const TokenMap& TK, qint64 idx, qint64* ret)
 
 	if (type == TK_INT)
 	{
-		SPD_LOG(g_logger_name, QString("checkInteger: idx:%1 type:%1").arg(idx).arg(type));
+		SPD_LOG(g_logger_name, QString("checkInteger: idx:%1 type:%2").arg(idx).arg(type));
 		bool ok = false;
 		qint64 value = var.toLongLong(&ok);
 		if (!ok)
@@ -419,7 +419,7 @@ bool Parser::checkInteger(const TokenMap& TK, qint64 idx, qint64* ret)
 	}
 	else if (type == TK_STRING || type == TK_CMD || type == TK_NAME || type == TK_LABELVAR || type == TK_CAOS)
 	{
-		SPD_LOG(g_logger_name, QString("checkInteger: idx:%1 type:%1").arg(idx).arg(type));
+		SPD_LOG(g_logger_name, QString("checkInteger: idx:%1 type:%2").arg(idx).arg(type));
 		//檢查是否為區域變量
 		QVariantHash args = getLocalVars();
 		QString varName = var.toString();
@@ -566,7 +566,7 @@ QVariant Parser::checkValue(const TokenMap TK, qint64 idx, QVariant::Type type)
 //檢查跳轉是否滿足，和跳轉的方式
 qint64 Parser::checkJump(const TokenMap& TK, qint64 idx, bool expr, JumpBehavior behavior)
 {
-	SPD_LOG(g_logger_name, QString("checkJump: idx:%1 expr:%2 jumptype:%1")
+	SPD_LOG(g_logger_name, QString("checkJump: idx:%1 expr:%2 jumptype:%3")
 		.arg(idx).arg(expr ? "true" : "false").arg(behavior == JumpBehavior::FailedJump ? "failedjump" : "successjump"));
 
 	bool okJump = false;
@@ -581,7 +581,7 @@ qint64 Parser::checkJump(const TokenMap& TK, qint64 idx, bool expr, JumpBehavior
 
 	if (okJump)
 	{
-		SPD_LOG(g_logger_name, QString("checkJump2: idx:%1 expr:%2 jumptype:%1")
+		SPD_LOG(g_logger_name, QString("checkJump2: idx:%1 expr:%2 jumptype:%3")
 			.arg(idx).arg(expr ? "true" : "false").arg(behavior == JumpBehavior::FailedJump ? "failedjump" : "successjump"));
 		QString label;
 		qint64 line = 0;

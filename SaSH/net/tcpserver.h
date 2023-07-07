@@ -1997,6 +1997,8 @@ public://actions
 	void setPlayerFaceDirection(int dir);
 	void setPlayerFaceDirection(const QString& dirStr);
 
+	int getPetSize() const;
+	int getPartySize() const;
 	QStringList getJoinableUnitList() const;
 	bool getItemIndexsByName(const QString& name, const QString& memo, QVector<int>* pv);
 	int getItemIndexByName(const QString& name, bool isExact = true, const QString& memo = "") const;
@@ -2033,7 +2035,7 @@ public://actions
 		return IS_ONLINE_FLAG.load(std::memory_order_acquire);
 	}
 
-	PC getPC() { QMutexLocker lock(&pcMutex_); return pc; }
+	PC getPC() const { QMutexLocker lock(&pcMutex_); return pc; }
 
 	QPoint getPoint();
 	void setPoint(const QPoint& pos);
@@ -2219,7 +2221,7 @@ private:
 #else
 		return QDateTime::currentMSecsSinceEpoch();
 #endif
-	}
+}
 
 	inline void setWarpMap(const QPoint& pos)
 	{
@@ -2758,7 +2760,7 @@ public:
 
 	QReadWriteLock pointMutex;//用於保護人物座標更新順序
 	QMutex swapItemMutex;//用於保護物品數據更新順序
-	QMutex pcMutex_;//用於保護人物數據更新順序
+	mutable QMutex pcMutex_;//用於保護人物數據更新順序
 	PC pc = {};
 
 	PET pet[MAX_PET] = {};

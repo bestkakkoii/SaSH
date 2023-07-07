@@ -262,7 +262,7 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID)
 #endif
 
 #ifdef _DEBUG
-			CreateConsole();
+			//CreateConsole();
 #endif
 		}
 		DisableThreadLibraryCalls(hModule);
@@ -455,18 +455,18 @@ LRESULT CALLBACK WndProc(HWND hWnd, DWORD message, LPARAM wParam, LPARAM lParam)
 extern "C"
 {
 	//new socket
-	//SOCKET WSAAPI New_socket(int af, int type, int protocol)
-	//{
-	//	GameService& g_GameService = GameService::getInstance();
-	//	return g_GameService.New_socket(af, type, protocol);
-	//}
+	SOCKET WSAAPI New_socket(int af, int type, int protocol)
+	{
+		GameService& g_GameService = GameService::getInstance();
+		return g_GameService.New_socket(af, type, protocol);
+	}
 
 	//new send
-	//int WSAAPI New_send(SOCKET s, const char* buf, int len, int flags)
-	//{
-	//	GameService& g_GameService = GameService::getInstance();
-	//	return g_GameService.New_send(s, buf, len, flags);
-	//}
+	int WSAAPI New_send(SOCKET s, const char* buf, int len, int flags)
+	{
+		GameService& g_GameService = GameService::getInstance();
+		return g_GameService.New_send(s, buf, len, flags);
+	}
 
 	//new recv
 	int WSAAPI New_recv(SOCKET s, char* buf, int len, int flags)
@@ -476,19 +476,11 @@ extern "C"
 	}
 
 	//new closesocket
-	//int WSAAPI New_closesocket(SOCKET s)
-	//{
-	//	GameService& g_GameService = GameService::getInstance();
-	//	return g_GameService.New_closesocket(s);
-	//}
-
-	//new Sleep
-	//void WINAPI New_Sleep(DWORD dwMilliseconds)
-	//{
-	//	GameService& g_GameService = GameService::getInstance();
-	//	SwitchToThread();
-	//	g_GameService.pSleep(dwMilliseconds);
-	//}
+	int WSAAPI New_closesocket(SOCKET s)
+	{
+		GameService& g_GameService = GameService::getInstance();
+		return g_GameService.New_closesocket(s);
+	}
 
 	//new SetWindowTextA
 	BOOL WINAPI New_SetWindowTextA(HWND hWnd, LPCSTR lpString)
@@ -583,13 +575,11 @@ void GameService::initialize(unsigned short port)
 	pLssproto_TK_send = CONVERT_GAMEVAR<pfnLssproto_TK_send>(0x8F7C0);//喊話發送封包
 
 	/*WINAPI*/
-	//psocket = CONVERT_GAMEVAR<pfnsocket>(0x91764);//::socket;
-	//psend = CONVERT_GAMEVAR<pfnsend>(0x9171C); //::send;
+	psocket = CONVERT_GAMEVAR<pfnsocket>(0x91764);//::socket;
+	psend = CONVERT_GAMEVAR<pfnsend>(0x9171C); //::send;
 	precv = CONVERT_GAMEVAR<pfnrecv>(0x91728);//這裡直接勾::recv會無效，遊戲通常會複寫另一個call dword ptr指向recv
-	//pclosesocket = CONVERT_GAMEVAR<pfnclosesocket>(0x91716);//::closesocket;
+	pclosesocket = CONVERT_GAMEVAR<pfnclosesocket>(0x91716);//::closesocket;
 	pSetWindowTextA = ::SetWindowTextA;//防止部分私服調用A類函數，導致其他語系系統的窗口標題亂碼
-
-	//pSleep = ::Sleep;//這裡只是試圖減少CPU使用率，不是必要的，效果甚微
 
 	//禁止遊戲內切AI SE切AI會崩潰
 	DWORD paddr = CONVERT_GAMEVAR <DWORD>(0x1DF82);
@@ -603,18 +593,19 @@ void GameService::initialize(unsigned short port)
 
 	//sa_8001sf.exe+A8CA - FF 05 F0 0D 63 04        - inc [sa_8001sf.exe+4230DF0] { (2) }
 	BYTE newByte[6] = { 0x90, 0xE8, 0x90, 0x90, 0x90, 0x90 }; //新數據
-	BYTE oldByte[6] = {}; //保存舊數據用於還原
-	util::detour(::New_BattleCommandReady, reinterpret_cast<DWORD>(pBattleCommandReady), oldByte, newByte, sizeof(oldByte), 0);
+	util::detour(::New_BattleCommandReady, reinterpret_cast<DWORD>(pBattleCommandReady), oldBattleCommandReadyByte, newByte, sizeof(oldBattleCommandReadyByte), 0);
 
+#if 0
 	//禁止開頭那隻寵物亂跑
-	//paddr = CONVERT_GAMEVAR<DWORD>(0x79A0F);
-	////sa_8001.exe+79A0F - E8 DCFAFBFF           - call sa_8001.exe+394F0s
-	//util::MemoryMove(paddr, "\x90\x90\x90\x90\x90", 5);
-	////開頭那隻寵物會不會動
-	//paddr = CONVERT_GAMEVAR<DWORD>(0x79A14);
-	////sa_8001.exe+79A14 - E8 5777F8FF           - call sa_8001.exe+1170
-	//util::MemoryMove(paddr, "\x90\x90\x90\x90\x90", 5);
-	//開頭那隻寵物可不可見
+	paddr = CONVERT_GAMEVAR<DWORD>(0x79A0F);
+	//sa_8001.exe+79A0F - E8 DCFAFBFF           - call sa_8001.exe+394F0s
+	util::MemoryMove(paddr, "\x90\x90\x90\x90\x90", 5);
+	//開頭那隻寵物會不會動
+	paddr = CONVERT_GAMEVAR<DWORD>(0x79A14);
+	//sa_8001.exe+79A14 - E8 5777F8FF           - call sa_8001.exe+1170
+	util::MemoryMove(paddr, "\x90\x90\x90\x90\x90", 5);
+#endif
+	//使遊戲開頭那隻亂竄的寵物不可見
 	paddr = CONVERT_GAMEVAR<DWORD>(0x79A19);
 	//sa_8001.exe+79A19 - E8 224A0000           - call sa_8001.exe+7E440
 	util::MemoryMove(paddr, "\x90\x90\x90\x90\x90", 5);
@@ -623,11 +614,11 @@ void GameService::initialize(unsigned short port)
 	DetourRestoreAfterWith();
 	DetourTransactionBegin();
 	DetourUpdateThread(g_MainThreadHandle);
-	//DetourAttach(&(PVOID&)psocket, ::New_socket);
-	//DetourAttach(&(PVOID&)psend, ::New_send);
+
+	DetourAttach(&(PVOID&)psocket, ::New_socket);
+	DetourAttach(&(PVOID&)psend, ::New_send);
 	DetourAttach(&(PVOID&)precv, ::New_recv);
-	//DetourAttach(&(PVOID&)pclosesocket, ::New_closesocket);
-	//DetourAttach(&(PVOID&)pSleep, ::New_Sleep);
+	DetourAttach(&(PVOID&)pclosesocket, ::New_closesocket);
 	DetourAttach(&(PVOID&)pSetWindowTextA, ::New_SetWindowTextA);
 
 	DetourAttach(&(PVOID&)pPlaySound, ::New_PlaySound);
@@ -637,8 +628,8 @@ void GameService::initialize(unsigned short port)
 	DetourAttach(&(PVOID&)pLssproto_WN_send, ::New_lssproto_WN_send);
 	DetourAttach(&(PVOID&)pLssproto_TK_send, ::New_lssproto_TK_send);
 
-
 	DetourTransactionCommit();
+
 #ifdef USE_ASYNC_TCP
 	if (nullptr == asyncClient_)
 	{
@@ -647,6 +638,10 @@ void GameService::initialize(unsigned short port)
 		if (asyncClient_ != nullptr && asyncClient_->Connect(IPV6_DEFAULT, port))
 		{
 			asyncClient_->Start();
+#ifdef NDEBUG
+			if (g_hDllModule != nullptr)
+				hideModule(g_hDllModule);
+#endif
 		}
 	}
 #else
@@ -690,10 +685,10 @@ void GameService::uninitialize()
 	DetourRestoreAfterWith();
 	DetourTransactionBegin();
 	DetourUpdateThread(g_MainThreadHandle);
-	//DetourDetach(&(PVOID&)psocket, ::New_socket);
-	//DetourDetach(&(PVOID&)psend, ::New_send);
-	//DetourDetach(&(PVOID&)pclosesocket, ::New_closesocket);
-	//DetourDetach(&(PVOID&)pSleep, ::New_Sleep);
+
+	DetourDetach(&(PVOID&)psocket, ::New_socket);
+	DetourDetach(&(PVOID&)psend, ::New_send);
+	DetourDetach(&(PVOID&)pclosesocket, ::New_closesocket);
 	DetourDetach(&(PVOID&)pSetWindowTextA, ::New_SetWindowTextA);
 
 	DetourDetach(&(PVOID&)pPlaySound, ::New_PlaySound);
@@ -702,9 +697,10 @@ void GameService::uninitialize()
 	DetourDetach(&(PVOID&)pLssproto_EN_recv, ::New_lssproto_EN_recv);
 	DetourDetach(&(PVOID&)pLssproto_WN_send, ::New_lssproto_WN_send);
 	DetourDetach(&(PVOID&)pLssproto_TK_send, ::New_lssproto_TK_send);
-	//DetourAttach(&(PVOID&)pBattleCommandReady, ::New_BattleCommandReady);
 
 	DetourTransactionCommit();
+
+	util::undetour(pBattleCommandReady, oldBattleCommandReadyByte, sizeof(oldBattleCommandReadyByte));
 }
 
 void GameService::Send(const std::string& str)
@@ -759,17 +755,17 @@ int SaDispatchMessage(int fd, char* encoded)
 #endif
 
 //hooks
-//SOCKET WSAAPI GameService::New_socket(int af, int type, int protocol)
-//{
-//	SOCKET ret = psocket(af, type, protocol);
-//	return ret;
-//}
+SOCKET WSAAPI GameService::New_socket(int af, int type, int protocol)
+{
+	SOCKET ret = psocket(af, type, protocol);
+	return ret;
+}
 
-//int WSAAPI GameService::New_send(SOCKET s, const char* buf, int len, int flags)
-//{
-//	int ret = psend(s, buf, len, flags);
-//	return ret;
-//}
+int WSAAPI GameService::New_send(SOCKET s, const char* buf, int len, int flags)
+{
+	int ret = psend(s, buf, len, flags);
+	return ret;
+}
 
 //hook recv將封包全部轉發給外掛，本來準備完全由外掛處理好再發回來，但效果不盡人意
 int WSAAPI GameService::New_recv(SOCKET s, char* buf, int len, int flags)
@@ -870,11 +866,22 @@ int WSAAPI GameService::New_recv(SOCKET s, char* buf, int len, int flags)
 	return recvlen;
 }
 
-//int WSAAPI GameService::New_closesocket(SOCKET s)
-//{
-//	int ret = pclosesocket(s);
-//	return ret;
-//}
+int WSAAPI GameService::New_closesocket(SOCKET s)
+{
+	if (g_sockfd != nullptr)
+	{
+		SOCKET cmps = *g_sockfd;
+		if ((s != INVALID_SOCKET) && (s > 0)
+			&& (cmps != INVALID_SOCKET) && (cmps > 0)
+			&& (s == cmps))
+		{
+			Send("dc 1");
+		}
+	}
+
+	int ret = pclosesocket(s);
+	return ret;
+}
 
 //防止其他私服使用A類函數導致標題亂碼
 BOOL WSAAPI GameService::New_SetWindowTextA(HWND hWnd, LPCSTR lpString)

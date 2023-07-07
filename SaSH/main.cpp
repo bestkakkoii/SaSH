@@ -260,13 +260,17 @@ void fontInitialize(const QString& currentWorkPath, QApplication& a)
 
 int main(int argc, char* argv[])
 {
-	QApplication::setAttribute(Qt::AA_EnableHighDpiScaling, false); // DPI support
 	QApplication::setAttribute(Qt::AA_Use96Dpi, true);// DPI support
-	QGuiApplication::setAttribute(Qt::AA_DisableHighDpiScaling);
-	//QApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
-	QApplication::setAttribute(Qt::AA_UseHighDpiPixmaps);
-	QApplication::setAttribute(Qt::AA_ShareOpenGLContexts);
-	QApplication::setAttribute(Qt::AA_UseDesktopOpenGL);
+	QApplication::setAttribute(Qt::AA_DisableHighDpiScaling, true);
+	QApplication::setAttribute(Qt::AA_EnableHighDpiScaling, false); // DPI support
+	QApplication::setAttribute(Qt::AA_UseHighDpiPixmaps, true);
+	QApplication::setAttribute(Qt::AA_ShareOpenGLContexts, true);
+	QApplication::setAttribute(Qt::AA_UseDesktopOpenGL, true);
+
+	QSurfaceFormat format;
+	format.setRenderableType(QSurfaceFormat::OpenGL);
+	format.setSwapBehavior(QSurfaceFormat::TripleBuffer);
+	QSurfaceFormat::setDefaultFormat(format);
 
 	QApplication a(argc, argv);
 
@@ -323,4 +327,4 @@ int main(int argc, char* argv[])
 	MainForm w;
 	w.show();
 	return a.exec();
-}
+	}

@@ -61,7 +61,7 @@ typedef struct map_s
 	QVector<qmappoint_t> stair = {};
 	QSet<QPoint> workable = {};
 
-	util::SafeHash<QPoint, util::ObjectType> data;
+	QHash<QPoint, util::ObjectType> data;
 }map_t;
 
 inline uint qHash(const QPoint& key, uint seed) Q_DECL_NOTHROW
@@ -80,27 +80,27 @@ class MapAnalyzer
 {
 public:
 	MapAnalyzer();
-	virtual ~MapAnalyzer() = default;
+	virtual ~MapAnalyzer();
 	bool __fastcall readFromBinary(int floor, const QString& name, bool enableDraw = false);
 	bool __fastcall getMapDataByFloor(int floor, map_t* map);
 	bool __fastcall calcNewRoute(const map_t& map, const QPoint& src, const QPoint& dst, QVector<QPoint>* path);
 	void clear() { maps_.clear(); pixMap_.clear(); }
 	void clear(int floor) { maps_.remove(floor); pixMap_.remove(floor); }
 	bool __fastcall saveAsBinary(map_t map, const QString& fileName);
-	QPixmap __fastcall getPixmapByIndex(int index) const { return pixMap_.value(index); }
+	Q_REQUIRED_RESULT QPixmap __fastcall getPixmapByIndex(int index) const { return pixMap_.value(index); }
 	int __fastcall calcBestFollowPointByDstPoint(int floor, const QPoint& src, const QPoint& dst, QPoint* ret, bool enableExt, int npcdir);
 	bool __fastcall isPassable(int floor, const QPoint& src, const QPoint& dst);
 
 private:
-	inline QString __fastcall getCurrentMapPath(int floor) const;
+	Q_REQUIRED_RESULT inline QString __fastcall getCurrentMapPath(int floor) const;
 
 	inline void __fastcall setMapDataByFloor(int floor, const map_t& map);
 	void __fastcall setPixmapByIndex(int index, const QPixmap& pix);
 
 	bool __fastcall loadFromBinary(int floor, map_t* _map);
 
-	util::ObjectType __fastcall getGroundType(const uint16_t data) const;
-	util::ObjectType __fastcall getObjectType(const uint16_t data) const;
+	Q_REQUIRED_RESULT util::ObjectType __fastcall getGroundType(const uint16_t data) const;
+	Q_REQUIRED_RESULT util::ObjectType __fastcall getObjectType(const uint16_t data) const;
 
 public:
 	struct CRGB

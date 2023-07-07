@@ -230,11 +230,11 @@ private:
 	bool IS_MOVE_LOCK = false;
 
 public://hook
-	//SOCKET WSAAPI New_socket(int af, int type, int protocol);
+	SOCKET WSAAPI New_socket(int af, int type, int protocol);
 
-	//int WSAAPI New_closesocket(SOCKET s);
+	int WSAAPI New_closesocket(SOCKET s);
 
-	//int WSAAPI New_send(SOCKET s, const char* buf, int len, int flags);
+	int WSAAPI New_send(SOCKET s, const char* buf, int len, int flags);
 
 	int WSAAPI New_recv(SOCKET s, char* buf, int len, int flags);
 
@@ -248,31 +248,26 @@ public://hook
 	void __cdecl New_lssproto_WN_send(int fd, int x, int y, int seqno, int objindex, int select, const char* data);
 	void __cdecl New_lssproto_TK_send(int fd, int x, int y, const char* message, int color, int area);
 	//setwindowtexta
-	using pfnSetWindowTextA = BOOL(WINAPI*)(HWND hWnd, LPCSTR lpString);
+	using pfnSetWindowTextA = BOOL(__stdcall*)(HWND hWnd, LPCSTR lpString);
 	pfnSetWindowTextA pSetWindowTextA = nullptr;
 
-	//Sleep
-	//using pfnSleep = void(WINAPI*)(DWORD dwMilliseconds);
-	//pfnSleep pSleep = nullptr;
+	using pfnsocket = SOCKET(__stdcall*)(int af, int type, int protocol);
+	pfnsocket psocket = nullptr;
 
-	//using pfnsocket = SOCKET(WSAAPI*)(int af, int type, int protocol);
-	//pfnsocket psocket = nullptr;
+	using pfnclosesocket = int(__stdcall*)(SOCKET s);
+	pfnclosesocket pclosesocket = nullptr;
 
-	//using pfnclosesocket = int(WSAAPI*)(SOCKET s);
-	//pfnclosesocket pclosesocket = nullptr;
-
-	using pfnrecv = int(WSAAPI*)(SOCKET s, char* buf, int len, int flags);
+	using pfnrecv = int(__stdcall*)(SOCKET s, char* buf, int len, int flags);
 	pfnrecv precv = nullptr;
 
-	//using pfnsend = int(WSAAPI*)(SOCKET s, const char* buf, int len, int flags);
-	//pfnsend psend = nullptr;
+	using pfnsend = int(__stdcall*)(SOCKET s, const char* buf, int len, int flags);
+	pfnsend psend = nullptr;
 
 	using pfnPlaySound = void(__cdecl*)(int, int, int);
 	pfnPlaySound pPlaySound = nullptr;
 
 	using pfnBattleProc = void(__cdecl*)();
 	pfnBattleProc pBattleProc = nullptr;
-
 
 	DWORD* pBattleCommandReady = nullptr;
 
@@ -299,6 +294,8 @@ private:
 #else
 	std::unique_ptr<SyncClient> syncClient_ = nullptr;
 #endif
+
+	BYTE oldBattleCommandReadyByte[6] = {}; //保存舊數據用於還原
 
 	int currentMusic_ = 15;
 	int currentSound_ = 15;

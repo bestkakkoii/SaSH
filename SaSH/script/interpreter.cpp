@@ -683,7 +683,7 @@ bool Interpreter::compare(CompareArea area, const TokenMap& TK)
 		if (cmpTypeStr.isEmpty())
 			return false;
 
-		CompareType cmpType = compareTypeMap.value(QObject::tr("player") + cmpTypeStr.toLower(), kCompareTypeNone);
+		CompareType cmpType = comparePcTypeMap.value(cmpTypeStr.toLower(), kCompareTypeNone);
 		if (cmpType == kCompareTypeNone)
 			return false;
 
@@ -694,50 +694,50 @@ bool Interpreter::compare(CompareArea area, const TokenMap& TK)
 			return false;
 
 		b = parser_.checkValue(TK, 3, QVariant::String);
-
+		PC _pc = injector.server->getPC();
 		switch (cmpType)
 		{
 		case kPlayerName:
-			a = injector.server->getPC().name;
+			a = _pc.name;
 			break;
 		case kPlayerFreeName:
-			a = injector.server->getPC().freeName;
+			a = _pc.freeName;
 			break;
 		case kPlayerLevel:
-			a = injector.server->getPC().level;
+			a = _pc.level;
 			break;
 		case kPlayerHp:
-			a = injector.server->getPC().hp;
+			a = _pc.hp;
 			break;
 		case kPlayerMaxHp:
-			a = injector.server->getPC().maxHp;
+			a = _pc.maxHp;
 			break;
 		case kPlayerHpPercent:
-			a = injector.server->getPC().hpPercent;
+			a = _pc.hpPercent;
 			break;
 		case kPlayerMp:
-			a = injector.server->getPC().mp;
+			a = _pc.mp;
 			break;
 		case kPlayerMaxMp:
-			a = injector.server->getPC().maxMp;
+			a = _pc.maxMp;
 			break;
 		case kPlayerMpPercent:
-			a = injector.server->getPC().mpPercent;
+			a = _pc.mpPercent;
 			break;
 		case kPlayerExp:
-			a = injector.server->getPC().exp;
+			a = _pc.exp;
 			break;
 		case kPlayerMaxExp:
-			a = injector.server->getPC().maxExp;
+			a = _pc.maxExp;
 			break;
 		case kPlayerStone:
-			a = injector.server->getPC().gold;
+			a = _pc.gold;
 			break;
 		case kPlayerAtk:
-			a = injector.server->getPC().atk;
+			a = _pc.atk;
 			break;
 		case kPlayerDef:
-			a = injector.server->getPC().def;
+			a = _pc.def;
 			break;
 		default:
 			return false;
@@ -756,13 +756,15 @@ bool Interpreter::compare(CompareArea area, const TokenMap& TK)
 			if (petTypeName.isEmpty())
 				return false;
 
+			PC _pc = injector.server->getPC();
+
 			QHash<QString, qint64> hash = {
-				{ u8"戰寵", injector.server->getPC().battlePetNo},
-				{ u8"騎寵", injector.server->getPC().battlePetNo},
-				{ u8"战宠", injector.server->getPC().battlePetNo},
-				{ u8"骑宠", injector.server->getPC().battlePetNo},
-				{ u8"battlepet", injector.server->getPC().battlePetNo},
-				{ u8"ride", injector.server->getPC().battlePetNo},
+				{ u8"戰寵", _pc.battlePetNo },
+				{ u8"騎寵", _pc.ridePetNo },
+				{ u8"战宠", _pc.battlePetNo },
+				{ u8"骑宠", _pc.ridePetNo },
+				{ u8"battlepet", _pc.battlePetNo },
+				{ u8"ride", _pc.ridePetNo },
 			};
 
 			if (!hash.contains(petTypeName))
@@ -778,7 +780,7 @@ bool Interpreter::compare(CompareArea area, const TokenMap& TK)
 		if (cmpTypeStr.isEmpty())
 			return false;
 
-		CompareType cmpType = compareTypeMap.value(QObject::tr("pet") + cmpTypeStr.toLower(), kCompareTypeNone);
+		CompareType cmpType = comparePetTypeMap.value(cmpTypeStr.toLower(), kCompareTypeNone);
 		if (cmpType == kCompareTypeNone)
 			return false;
 
@@ -864,7 +866,7 @@ bool Interpreter::compare(CompareArea area, const TokenMap& TK)
 		if (cmpTypeStr.isEmpty())
 			return false;
 
-		CompareType cmpType = compareTypeMap.value(cmpTypeStr, kCompareTypeNone);
+		CompareType cmpType = compareAmountTypeMap.value(cmpTypeStr, kCompareTypeNone);
 		if (cmpType == kCompareTypeNone)
 			return false;
 
@@ -886,15 +888,15 @@ bool Interpreter::compare(CompareArea area, const TokenMap& TK)
 
 		switch (cmpType)
 		{
-		case itemCount:
+		case kitemCount:
 		{
 			QVector<int> v;
 			qint64 count = 0;
+			PC _pc = injector.server->getPC();
 			if (injector.server->getItemIndexsByName(itemName, itemMemo, &v))
 			{
-				//qint64 size = v.size();
 				for (const int it : v)
-					count += injector.server->getPC().item[it].pile;
+					count += _pc.item[it].pile;
 			}
 
 			a = count;
@@ -911,7 +913,7 @@ bool Interpreter::compare(CompareArea area, const TokenMap& TK)
 		if (cmpTypeStr.isEmpty())
 			return false;
 
-		CompareType cmpType = compareTypeMap.value(cmpTypeStr, kCompareTypeNone);
+		CompareType cmpType = compareAmountTypeMap.value(cmpTypeStr, kCompareTypeNone);
 		if (cmpType == kCompareTypeNone)
 			return false;
 
@@ -927,42 +929,13 @@ bool Interpreter::compare(CompareArea area, const TokenMap& TK)
 		{
 		case kTeamCount:
 		{
-			qint64 count = 0;
-			if ((injector.server->getPC().status & CHR_STATUS_LEADER) || (injector.server->getPC().status & CHR_STATUS_PARTY))
-			{
-				for (qint64 i = 0; i < MAX_PARTY; ++i)
-				{
-					VariantSafeHash party = injector.server->hashparty.value(i + 1);
-					if (party.value("valid").toInt() == 0)
-						continue;
-
-					if (party.value("lv").toInt() == 0)
-						continue;
-
-					++count;
-				}
-			}
-
+			qint64 count = injector.server->getPartySize();
 			a = count;
 			break;
 		}
 		case kPetCount:
 		{
-			qint64 count = 0;
-			for (qint64 i = 0; i < MAX_PET; ++i)
-			{
-				if (injector.server->pet[i].useFlag == 0)
-					continue;
-
-				if (injector.server->pet[i].level == 0)
-					continue;
-
-				if (injector.server->pet[i].name.isEmpty())
-					continue;
-
-				++count;
-			}
-
+			qint64 count = injector.server->getPetSize();
 			a = count;
 			break;
 		}

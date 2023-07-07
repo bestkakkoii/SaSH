@@ -324,6 +324,7 @@ Server::~Server()
 	ayncBattleCommandSync.clearFutures();
 	ayncBattleCommandFlag.store(false, std::memory_order_release);
 	sync_.waitForFinished();
+	mapAnalyzer.reset(nullptr);
 	qDebug() << "Server is distroyed";
 }
 
@@ -558,7 +559,13 @@ void Server::onClientReadyRead()
 			QMutexLocker lock(&net_mutex);
 
 			QString preStr = QString::fromUtf8(badata);
-			if (preStr.startsWith("bPK"))
+			if (preStr.startsWith("dc"))
+			{
+				setBattleFlag(false);
+				setOnlineFlag(false);
+				return;
+			}
+			else if (preStr.startsWith("bPK"))
 			{
 				Injector& injector = Injector::getInstance();
 				int value = mem::read<short>(injector.getProcess(), injector.getProcessModule() + 0xE21E4);
@@ -1803,7 +1810,7 @@ void Server::lssproto_AB_recv(char* cdata)
 			addressBook[i].name.clear();
 			addressBook[i] = {};
 			continue;
-		}
+	}
 
 #ifdef _EXTEND_AB
 		if (i == MAX_ADR_BOOK - 1)
@@ -1838,10 +1845,10 @@ void Server::lssproto_AB_recv(char* cdata)
 					break;
 				}
 			}
-		}
+}
 #endif
 	}
-}
+	}
 
 //名片數據
 void Server::lssproto_ABI_recv(int num, char* cdata)
@@ -1882,7 +1889,7 @@ void Server::lssproto_ABI_recv(int num, char* cdata)
 		addressBook[num].useFlag = useFlag;
 		addressBook[num].name[0] = '\0';
 		return;
-	}
+}
 
 #ifdef _EXTEND_AB
 	if (num == MAX_ADR_BOOK - 1)
@@ -3920,7 +3927,7 @@ void Server::lssproto_TK_recv(int index, char* cmessage, int color)
 			else
 			{
 				fontsize = 0;
-			}
+		}
 #endif
 			if (szToken.size() > 1)
 			{
@@ -3971,7 +3978,7 @@ void Server::lssproto_TK_recv(int index, char* cmessage, int color)
 
 				//SaveChatData(msg, szToken[0], false);
 			}
-		}
+	}
 		else
 			getStringToken(message, "|", 2, msg);
 #ifdef _TALK_WINDOW
@@ -4041,7 +4048,7 @@ void Server::lssproto_TK_recv(int index, char* cmessage, int color)
 				//pc.status |= CHR_STATUS_FUKIDASHI;
 			}
 		}
-	}
+			}
 
 	chatQueue.enqueue(QPair{ color ,msg });
 	emit signalDispatcher.appendChatLog(msg, color);
@@ -4376,7 +4383,7 @@ void Server::lssproto_C_recv(char* cdata)
 			{
 				extern char* FreeGetTitleStr(int id);
 				sprintf(titlestr, "%s", FreeGetTitleStr(titleindex));
-			}
+		}
 #endif
 #ifdef _CHAR_PROFESSION			// WON ADD 人物職業
 			getStringToken(bigtoken, "|", 18, smalltoken);
@@ -4446,7 +4453,7 @@ void Server::lssproto_C_recv(char* cdata)
 						break;
 					}
 				}
-			}
+				}
 			else
 			{
 #ifdef _CHAR_PROFESSION			// WON ADD 人物職業
@@ -4482,7 +4489,7 @@ void Server::lssproto_C_recv(char* cdata)
 				if (charType == 13 && noticeNo > 0)
 				{
 					setNpcNotice(ptAct, noticeNo);
-				}
+			}
 #endif
 				//if (ptAct != NULL)
 				//{
@@ -4643,7 +4650,7 @@ void Server::lssproto_C_recv(char* cdata)
 #endif
 		//ptAct = getCharObjAct(id);
 		break;
-		}
+	}
 #pragma region DISABLE
 #else
 		getStringToken(bigtoken, "|", 11, smalltoken);
@@ -4835,7 +4842,7 @@ void Server::lssproto_C_recv(char* cdata)
 					}
 				}
 			}
-		}
+}
 #endif
 #pragma endregion
 	}
@@ -4938,9 +4945,9 @@ void Server::lssproto_CA_recv(char* cdata)
 				else
 #endif
 					//changePcAct(x, y, dir, act, effectno, effectparam1, effectparam2);
-			}
-			continue;
 		}
+			continue;
+	}
 
 		//ptAct = getCharObjAct(charindex);
 		//if (ptAct == NULL)
@@ -4973,11 +4980,11 @@ void Server::lssproto_CA_recv(char* cdata)
 		{
 			memset(ptAct->szStreetVendorTitle, 0, sizeof(ptAct->szStreetVendorTitle));
 			strncpy_s(ptAct->szStreetVendorTitle, szStreetVendorTitle, sizeof(szStreetVendorTitle));
-		}
+}
 #endif
 		//changeCharAct(ptAct, x, y, dir, act, effectno, effectparam1, effectparam2);
 	//}
-	}
+}
 }
 
 //刪除指定一個或多個周圍人、NPC單位
@@ -5813,12 +5820,12 @@ void Server::lssproto_S_recv(char* cdata)
 						{
 							pet[no].blessdef = getIntegerToken(data, "|", i);
 							i++;
-						}
-#endif
 					}
+#endif
 				}
 			}
 		}
+	}
 
 		if (pc.ridePetNo >= 0 && pc.ridePetNo < MAX_PET)
 		{
@@ -5868,7 +5875,7 @@ void Server::lssproto_S_recv(char* cdata)
 			emit signalDispatcher.updatePlayerInfoColContents(i + 1, var);
 		}
 
-	}
+}
 #pragma endregion
 #pragma region EncountPercentage
 	else if (first == "E") // E nowEncountPercentage
@@ -6488,7 +6495,7 @@ void Server::lssproto_S_recv(char* cdata)
 	{
 		qDebug() << "[" << first << "]:" << data;
 	}
-}
+	}
 
 //客戶端登入(進去選人畫面)
 void Server::lssproto_ClientLogin_recv(char* cresult)
@@ -6612,8 +6619,8 @@ void Server::lssproto_CharLogout_recv(char* cresult, char* cdata)
 	//netproc_sending = NETPROC_RECEIVED;
 	if (result.contains(SUCCESSFULSTR, Qt::CaseInsensitive) || data.contains(SUCCESSFULSTR, Qt::CaseInsensitive))
 	{
-		setOnlineFlag(false);
 		setBattleFlag(false);
+		setOnlineFlag(false);
 	}
 	//}
 }
@@ -9590,6 +9597,45 @@ void Server::lssproto_CustomTK_recv(const QString& data)
 	}
 
 	qDebug() << dataList;
+}
+
+int Server::getPetSize() const
+{
+	int count = 0;
+	for (int i = 0; i < MAX_PET; ++i)
+	{
+		if (pet[i].useFlag <= 0)
+			continue;
+
+		if (pet[i].level <= 0)
+			continue;
+
+		if (pet[i].name.isEmpty())
+			continue;
+
+		++count;
+	}
+
+	return count;
+}
+
+int Server::getPartySize() const
+{
+	int count = 0;
+	PC _pc = getPC();
+	if ((_pc.status & CHR_STATUS_LEADER) || (_pc.status & CHR_STATUS_PARTY))
+	{
+		for (int i = 0; i < MAX_PARTY; ++i)
+		{
+			if (party[i].useFlag <= 0)
+				continue;
+			if (party[i].level <= 0)
+				continue;
+
+			++count;
+		}
+	}
+	return count;
 }
 
 //獲取周圍玩家名稱列表
@@ -14112,7 +14158,7 @@ namespace AntiCaptcha
 		QByteArray hash = QCryptographicHash::hash(randomString.toUtf8(), QCryptographicHash::Md5);
 
 		return QString(hash.toHex());
-	}
+}
 #endif
 }
 
