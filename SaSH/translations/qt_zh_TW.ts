@@ -581,6 +581,45 @@
     </message>
 </context>
 <context>
+    <name>FindDialog</name>
+    <message>
+        <source>Find What:</source>
+        <translation>查找目標:</translation>
+    </message>
+    <message>
+        <source>Find Next</source>
+        <translation>查找下一個</translation>
+    </message>
+    <message>
+        <source>Close</source>
+        <translation>關閉</translation>
+    </message>
+    <message>
+        <source>Match Case</source>
+        <translation>匹配大小寫</translation>
+    </message>
+    <message>
+        <source>Backward</source>
+        <translation>向上查找</translation>
+    </message>
+    <message>
+        <source>Forward</source>
+        <translation>向下查找</translation>
+    </message>
+    <message>
+        <source>Direction</source>
+        <translation>方向</translation>
+    </message>
+    <message>
+        <source>Find</source>
+        <translation>查找</translation>
+    </message>
+    <message>
+        <source>Can not find &quot;%1&quot;.</source>
+        <translation>無法找到 &quot;%1&quot;.</translation>
+    </message>
+</context>
+<context>
     <name>GeneralForm</name>
     <message>
         <source>1st//Acticity</source>
@@ -697,6 +736,14 @@
     <message>
         <source>ServerList%1</source>
         <translation>伺服器列表%1</translation>
+    </message>
+    <message>
+        <source>dock</source>
+        <translation>吸附</translation>
+    </message>
+    <message>
+        <source>undock</source>
+        <translation>解除</translation>
     </message>
 </context>
 <context>
@@ -911,7 +958,7 @@
     </message>
     <message>
         <source>sell</source>
-        <translation>賣物</translation>
+        <translation type="vanished">賣物</translation>
     </message>
     <message>
         <source>watch</source>
@@ -972,6 +1019,10 @@
     <message>
         <source>+</source>
         <translation></translation>
+    </message>
+    <message>
+        <source>dock</source>
+        <translation>吸附</translation>
     </message>
 </context>
 <context>
@@ -2348,7 +2399,7 @@ MESSAGE：<byte value="xd"/>
     </message>
     <message>
         <source>pet</source>
-        <translation>寵物</translation>
+        <translation type="vanished">寵物</translation>
     </message>
     <message>
         <source>teammate</source>
@@ -2356,7 +2407,7 @@ MESSAGE：<byte value="xd"/>
     </message>
     <message>
         <source>player</source>
-        <translation>人物</translation>
+        <translation type="vanished">人物</translation>
     </message>
     <message>
         <source>ride</source>
@@ -2589,6 +2640,28 @@ MESSAGE：<byte value="xd"/>
     <message>
         <source>scriptdoc</source>
         <translation>腳本文檔</translation>
+    </message>
+</context>
+<context>
+    <name>QThumbnailFormClass</name>
+    <message>
+        <source>QThumbnailForm</source>
+        <translation></translation>
+    </message>
+</context>
+<context>
+    <name>ReplaceDialog</name>
+    <message>
+        <source>Replace To:</source>
+        <translation>替換成:</translation>
+    </message>
+    <message>
+        <source>Replace</source>
+        <translation>替換</translation>
+    </message>
+    <message>
+        <source>Replace All</source>
+        <translation>替換全部</translation>
     </message>
 </context>
 <context>
@@ -2826,6 +2899,10 @@ MESSAGE：<byte value="xd"/>
     <message>
         <source>LOCAL</source>
         <translation>局變量</translation>
+    </message>
+    <message>
+        <source>List</source>
+        <translation>列表</translation>
     </message>
 </context>
 <context>
@@ -3789,6 +3866,10 @@ MESSAGE：<byte value="xd"/>
     <message>
         <source>field</source>
         <translation>作用域</translation>
+    </message>
+    <message>
+        <source>timer</source>
+        <translation></translation>
     </message>
 </context>
 <context>

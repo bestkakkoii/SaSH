@@ -233,7 +233,7 @@ public:
 	{
 		QHash<QString, QVariant> args = getLocalVars();
 		if (args.contains(name))
-			intsertLocalVar(name, value);
+			insertLocalVar(name, value);
 		else
 			insertGlobalVar(name, value);
 	}
@@ -262,7 +262,11 @@ public:
 
 private:
 
-	void intsertLocalVar(const QString& name, const QVariant& value);
+	void insertLocalVar(const QString& name, const QVariant& value);
+
+	bool checkArray(const TokenMap& TK, qint64 idx, QVariant* ret);
+
+	bool checkArrayElementValue(const QString& preVarName, QVariant* ret);
 
 	inline void removeGlobalVar(const QString& name)
 	{
@@ -315,10 +319,15 @@ private:
 	void processDelay();
 	bool processGetSystemVarValue(const QString& varName, QString& valueStr, QVariant& varValue);
 	bool processIfCompare();
+	void processLocalArray();
+	void processGlobalArray();
+	void processArrayElement();
 
+	bool isTextWrapped(const QString& text, const QString& keyword);
 	void replaceToVariable(QString& str);
 	bool checkCallStack();
-	bool checkFuzzyValue(const QString& varName, QVariant varValue, QVariant* pvalue);
+	bool checkFuzzyValue(QVariant* pvalue);
+	bool checkArrayValue(qint64 idx, QVariant* pvalue);
 
 	template <typename T>
 	bool exprMakeValue(const QString& expr, T* ret);

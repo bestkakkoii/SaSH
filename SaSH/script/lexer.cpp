@@ -426,7 +426,10 @@ void Lexer::tokenized(qint64 currentLine, const QString& line, TokenMap* ptoken,
 	do
 	{
 		qint64 commentIndex = raw.indexOf("//");
-		if (commentIndex == 0 && raw.trimmed().indexOf("//") == 0)
+		if (commentIndex == -1)
+			commentIndex = raw.indexOf("/*");
+
+		if (commentIndex == 0 && (raw.trimmed().indexOf("//") == 0 || raw.trimmed().indexOf("/*") == 0))
 		{
 			createToken(pos, TK_COMMENT, raw, raw, ptoken);
 			break;
@@ -448,6 +451,9 @@ void Lexer::tokenized(qint64 currentLine, const QString& line, TokenMap* ptoken,
 		static const QRegularExpression varIf(R"([iI][fF][\(|\s+]([\d\w\W\p{Han}]+\s*[<|>|\=|!][\=]*\s*[\d\w\W\p{Han}]+))");//if (expr)
 		static const QRegularExpression rexFunction(R"([fF][uU][nN][cC][tT][iI][oO][nN]\s+([\w\p{Han}\d]+)\s*\(([\w\W\p{Han}]*)\))");
 		static const QRegularExpression rexCallFunction(R"((\w+)\s*\(([\w\W\p{Han}]*)\))");
+		static const QRegularExpression rexLocalArray(R"([lL][oO][cC][aA][lL]\s+([\w\p{Han}]+)\s*=\s*{\s*([^\}]+)\s*\})");
+		static const QRegularExpression rexGlobalArray(R"(([\w\p{Han}]+)\s*=\s*{\s*([^\}]+)\s*\})");
+		static const QRegularExpression rexSquareBracketsWithWord(R"(([\w\p{Han}]+)\[([\w\p{Han}]+)\]\s*=\s*([^,]+(?:\s*,\s*[^,]+)*)$)");
 		if (raw.contains(varIf))
 		{
 			QRegularExpressionMatch match = varIf.match(raw);
@@ -470,6 +476,71 @@ void Lexer::tokenized(qint64 currentLine, const QString& line, TokenMap* ptoken,
 				break;
 			}
 		}
+#if 0
+		else if (raw.count("=") == 1 && raw.contains(rexLocalArray) && !raw.front().isDigit())
+		{
+			QRegularExpressionMatch match = rexLocalArray.match(raw);
+			if (match.hasMatch())
+			{
+				QString cmd = "[local]";
+				QString varName = match.captured(1).simplified();
+				QString arrayStr = match.captured(2).simplified();
+				createToken(pos, TK_LARRAY, cmd, cmd, ptoken);
+				createToken(pos + 1, TK_STRING, varName, varName, ptoken);
+				createToken(pos + 2, TK_STRING, arrayStr, arrayStr, ptoken);
+				break;
+			}
+		}
+		else if (raw.count("=") == 1 && raw.contains(rexGlobalArray) && !raw.front().isDigit())
+		{
+			QRegularExpressionMatch match = rexGlobalArray.match(raw);
+			if (match.hasMatch())
+			{
+				QString cmd = "[global]";
+				QString varName = match.captured(1).simplified();
+				QString arrayStr = match.captured(2).simplified();
+				createToken(pos, TK_GARRAY, cmd, cmd, ptoken);
+				createToken(pos + 1, TK_STRING, varName, varName, ptoken);
+				createToken(pos + 2, TK_STRING, arrayStr, arrayStr, ptoken);
+				break;
+			}
+		}
+		else if (raw.count("=") == 1 && raw.contains(rexSquareBracketsWithWord)
+			&& (!raw.contains(varAnyOp) || raw.indexOf(varAnyOp) > raw.indexOf("\'") || raw.indexOf(varAnyOp) > raw.indexOf("\""))
+			&& !raw.front().isDigit())
+		{
+			QRegularExpressionMatch match = rexSquareBracketsWithWord.match(raw);
+			if (match.hasMatch())
+			{
+				QString cmd = "[element]";
+				QString varName = match.captured(1).simplified();
+				QString idxValue = match.captured(2).simplified();
+				QString value = match.captured(3).simplified();
+				createToken(pos, TK_ARRAYELEMENT, cmd, cmd, ptoken);
+				createToken(pos + 1, TK_STRING, varName, varName, ptoken);
+
+				qint64 newPos = pos + 2;
+				QVariant varValue;
+				RESERVE reserve = getTokenType(newPos, TK_ARRAYELEMENT, idxValue, idxValue);
+				if (reserve == TK_INT || reserve == TK_BOOL || reserve == TK_DOUBLE)
+					varValue = idxValue.toLongLong();
+				else
+					varValue = idxValue;
+
+				createToken(newPos, reserve, varValue, idxValue, ptoken);
+
+				newPos = pos + 3;
+				reserve = getTokenType(newPos, TK_ARRAYELEMENT, value, value);
+				if (reserve == TK_INT || reserve == TK_BOOL || reserve == TK_DOUBLE)
+					varValue = value.toLongLong();
+				else
+					varValue = value;
+
+				createToken(newPos, reserve, varValue, value, ptoken);
+				break;
+			}
+		}
+#endif
 		else if (raw.count("=") == 1 && raw.contains(rexMultiLocalVar)
 			&& (!raw.contains(varAnyOp) || raw.indexOf(varAnyOp) > raw.indexOf("\'") || raw.indexOf(varAnyOp) > raw.indexOf("\""))
 			&& !raw.front().isDigit())
@@ -543,6 +614,8 @@ void Lexer::tokenized(qint64 currentLine, const QString& line, TokenMap* ptoken,
 		else
 		{
 			bool isCommand = raw.trimmed().startsWith("//");
+			if (!isCommand)
+				isCommand = raw.trimmed().startsWith("/*");
 
 			if (!isCommand && raw.contains(rexFunction))
 			{
@@ -583,7 +656,7 @@ void Lexer::tokenized(qint64 currentLine, const QString& line, TokenMap* ptoken,
 				}
 
 				//遇到註釋
-				if (token.startsWith("//"))
+				if (token.startsWith("//") || token.startsWith("/*"))
 				{
 					createToken(pos, TK_COMMENT, "", "", ptoken);
 					createToken(pos + 1, TK_COMMENT, data, token, ptoken);
@@ -665,14 +738,13 @@ void Lexer::tokenized(qint64 currentLine, const QString& line, TokenMap* ptoken,
 					type = TK_INT;
 				}
 			}
+			else if (type == TK_CSTRING)//對字串進行轉換處理，去除首尾單引號、雙引號，並標記為常量
+			{
+				token = token.mid(1, token.length() - 2);
+				data = QVariant::fromValue(token);
+			}
 			else if (type == TK_STRING)//對字串進行轉換處理，去除首尾單引號、雙引號，並標記為常量
 			{
-				if ((token.startsWith("\"") || token.startsWith("\'")) && (token.endsWith("\"") || token.endsWith("\'")))
-				{
-					token = token.mid(1, token.length() - 2);
-					type = TK_CSTRING;
-				}
-
 				data = QVariant::fromValue(token);
 			}
 			else if (type == TK_LABELVAR)
@@ -766,10 +838,9 @@ bool Lexer::isName(const QString& str, RESERVE previousType) const
 	return previousType == TK_LABEL || previousType == TK_CALL || previousType == TK_GOTO;
 }
 
-bool Lexer::isString(const QString& str) const
+bool Lexer::isConstString(const QString& str) const
 {
-	return (str.startsWith("\"") && str.endsWith("\"")) || (str.startsWith("\'") && str.endsWith("\'"))
-		|| (str.startsWith("\'") && str.endsWith("\"")) || (str.startsWith("\"") && str.endsWith("\'"));
+	return (str.startsWith("\'") || str.startsWith("\"")) && (str.endsWith("\'") || str.endsWith("\""));
 }
 
 //bool Lexer::isVariable(const QString& str) const
@@ -814,7 +885,15 @@ RESERVE Lexer::getTokenType(qint64& pos, RESERVE previous, QString& str, const Q
 {
 	//findex = 0;
 
-	if (str == "<<")
+	if (str.startsWith("//") || str.startsWith("/*"))
+	{
+		return TK_COMMENT;
+	}
+	else if (isConstString(str))
+	{
+		return TK_CSTRING;
+	}
+	else if (str == "<<")
 	{
 		return TK_SHL;
 	}
@@ -908,10 +987,6 @@ RESERVE Lexer::getTokenType(qint64& pos, RESERVE previous, QString& str, const Q
 		//如果前一個TOKEN是label名或區域變量名，那麼接下來的TOKEN都視為區域變量名
 		return TK_LABELVAR;
 	}
-	else if (isString(str))
-	{
-		return TK_STRING;
-	}
 	else if (isDouble(str))
 	{
 		return TK_DOUBLE;
@@ -923,10 +998,6 @@ RESERVE Lexer::getTokenType(qint64& pos, RESERVE previous, QString& str, const Q
 	else if (isName(str, previous))
 	{
 		return TK_NAME;
-	}
-	else if (str.startsWith("//"))
-	{
-		return TK_COMMENT;
 	}
 
 	//其他的都默認為字符串

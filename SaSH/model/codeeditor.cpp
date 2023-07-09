@@ -284,9 +284,13 @@ void CodeEditor::commentSwitch()
 			getCursorPosition(&liner, &index);//記錄光標位置
 
 			QString linetext(text(liner));
-			if (linetext.simplified().indexOf("//") == 0)
+			if (linetext.simplified().indexOf("//") == 0 || linetext.simplified().indexOf("/*") == 0)
 			{
 				int indexd = linetext.indexOf("//");
+				if (indexd == -1)
+				{
+					indexd = linetext.indexOf("/*");
+				}
 				//remove first "--"
 				linetext.remove(indexd, 2);
 				setSelection(liner, 0, liner, linetext.length() + 2);//少了之前去除的 -- 長度加回來
@@ -320,7 +324,7 @@ void CodeEditor::commentSwitch()
 		//and finally add back to widget by useing setText(str);
 		bool allcomment = false;
 		QString retstring("");
-		if (v.at(0).simplified().indexOf("//") == -1)
+		if (v.at(0).simplified().indexOf("//") == -1 && v.at(0).simplified().indexOf("/*") == -1)
 		{
 			allcomment = true;
 		}
@@ -335,9 +339,13 @@ void CodeEditor::commentSwitch()
 			}
 			else
 			{
-				if (v.at(i).simplified().indexOf("//") == 0)
+				if (v.at(i).simplified().indexOf("//") == 0 || v.at(i).simplified().indexOf("/*") == 0)
 				{
 					int index = v.at(i).indexOf("//");
+					if (index == -1)
+					{
+						index = v.at(i).indexOf("/*");
+					}
 					//remove first "--"
 					Q_UNUSED(v[i].remove(index, 2));
 				}

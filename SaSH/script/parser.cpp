@@ -20,8 +20,6 @@ Parser::Parser()
 	qDebug() << "Parser is created!!";
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
 	connect(&signalDispatcher, &SignalDispatcher::nodifyAllStop, this, &Parser::requestInterruption, Qt::UniqueConnection);
-
-
 }
 
 Parser::~Parser()
@@ -60,11 +58,11 @@ void Parser::parse(qint64 line)
 	}
 	catch (const std::exception& e)
 	{
-		SPD_LOG(g_logger_name, QString("processTokens exception: %1").arg(e.what()));
+		SPD_LOG(g_logger_name, QString("[parser] processTokens exception: %1").arg(e.what()), SPD_ERROR);
 	}
 	catch (...)
 	{
-		SPD_LOG(g_logger_name, "processTokens unknown exception:");
+		SPD_LOG(g_logger_name, "[parser] processTokens unknown exception:", SPD_ERROR);
 	}
 
 
@@ -93,7 +91,7 @@ constexpr qint64 kFormatPlaceHoldSize = 3;
 template<typename T>
 T calc(const QVariant& a, const QVariant& b, RESERVE operatorType)
 {
-	SPD_LOG(g_logger_name, QString("calc: %1 %2 %3").arg(a.toString()).arg(operatorType).arg(b.toString()));
+	SPD_LOG(g_logger_name, QString("[parser] calc: %1 %2 %3").arg(a.toString()).arg(operatorType).arg(b.toString()));
 	if constexpr (std::is_integral<T>::value)
 	{
 		if (operatorType == TK_ADD)
@@ -128,7 +126,7 @@ T calc(const QVariant& a, const QVariant& b, RESERVE operatorType)
 //比較兩個 QVariant 以 a 的類型為主
 bool Parser::compare(const QVariant& a, const QVariant& b, RESERVE type) const
 {
-	SPD_LOG(g_logger_name, QString("compare: %1 %2 %3").arg(a.toString()).arg(type).arg(b.toString()));
+	SPD_LOG(g_logger_name, QString("[parser] compare: %1 %2 %3").arg(a.toString()).arg(type).arg(b.toString()));
 	QVariant::Type aType = a.type();
 
 	if (aType == QVariant::Int || aType == QVariant::LongLong || aType == QVariant::Double)
@@ -160,8 +158,6 @@ bool Parser::compare(const QVariant& a, const QVariant& b, RESERVE type) const
 		default:
 			return false; // 不支持的比较类型，返回 false
 		}
-
-
 	}
 	else
 	{
@@ -201,7 +197,7 @@ bool Parser::compare(const QVariant& a, const QVariant& b, RESERVE type) const
 template <typename T>
 bool Parser::exprMakeValue(const QString& expr, T* ret)
 {
-	SPD_LOG(g_logger_name, QString("exprMakeValue: %1").arg(expr));
+	SPD_LOG(g_logger_name, QString("[parser] exprMakeValue: %1").arg(expr));
 	using TKSymbolTable = exprtk::symbol_table<double>;
 	using TKExpression = exprtk::expression<double>;
 	using TKParser = exprtk::parser<double>;
@@ -226,11 +222,11 @@ bool Parser::exprMakeValue(const QString& expr, T* ret)
 	}
 	catch (const std::exception& e)
 	{
-		SPD_LOG(g_logger_name, QString("exprTo exception: %1").arg(e.what()));
+		SPD_LOG(g_logger_name, QString("[parser] exprTo exception: %1").arg(e.what()), SPD_ERROR);
 	}
 	catch (...)
 	{
-		SPD_LOG(g_logger_name, "exprTo unknown exception:");
+		SPD_LOG(g_logger_name, "[parser] exprTo unknown exception", SPD_ERROR);
 	}
 
 	return false;
@@ -240,7 +236,7 @@ bool Parser::exprMakeValue(const QString& expr, T* ret)
 template <typename T>
 bool Parser::exprTo(QString expr, T* ret)
 {
-	SPD_LOG(g_logger_name, QString("exprTo: %1").arg(expr));
+	SPD_LOG(g_logger_name, QString("[parser] exprTo: %1").arg(expr));
 	bool result = exprMakeValue(expr, ret);
 	if (result)
 		return true;
@@ -297,7 +293,7 @@ bool Parser::exprTo(QString expr, T* ret)
 template <typename T>
 bool Parser::exprTo(T value, QString expr, T* ret)
 {
-	SPD_LOG(g_logger_name, QString("exprTo2: %1").arg(expr));
+	SPD_LOG(g_logger_name, QString("[parser] exprTo2: %1").arg(expr));
 	using TKSymbolTable = exprtk::symbol_table<double>;
 	using TKExpression = exprtk::expression<double>;
 	using TKParser = exprtk::parser<double>;
@@ -330,11 +326,11 @@ bool Parser::exprTo(T value, QString expr, T* ret)
 	}
 	catch (const std::exception& e)
 	{
-		SPD_LOG(g_logger_name, QString("exprTo2 exception: %1").arg(e.what()));
+		SPD_LOG(g_logger_name, QString("[parser] exprTo2 exception: %1").arg(e.what()), SPD_ERROR);
 	}
 	catch (...)
 	{
-		SPD_LOG(g_logger_name, "exprTo2 unknown exception:");
+		SPD_LOG(g_logger_name, "[parser] exprTo2 unknown exception", SPD_ERROR);
 	}
 
 	return false;
@@ -348,7 +344,7 @@ bool Parser::checkString(const TokenMap& TK, qint64 idx, QString* ret)
 	if (ret == nullptr)
 		return false;
 
-	SPD_LOG(g_logger_name, QString("checkString: idx:%1").arg(idx));
+	SPD_LOG(g_logger_name, QString("[parser] checkString: idx:%1").arg(idx));
 
 	RESERVE type = TK.value(idx, Token{}).type;
 	QVariant var = TK.value(idx, Token{}).data;
@@ -360,28 +356,50 @@ bool Parser::checkString(const TokenMap& TK, qint64 idx, QString* ret)
 	{
 		*ret = var.toString();
 	}
+	else if ((var.toString().startsWith("\'") || var.toString().startsWith("\""))
+		&& (var.toString().endsWith("\'") || var.toString().endsWith("\"")))
+	{
+		*ret = var.toString();
+	}
 	else if (type == TK_STRING || type == TK_CMD || type == TK_NAME || type == TK_LABELVAR || type == TK_CAOS)
 	{
-		SPD_LOG(g_logger_name, QString("checkString2: %1").arg(var.toString()));
+		SPD_LOG(g_logger_name, QString("[parser] checkString2: %1").arg(var.toString()));
 		//檢查是否為區域變量
 		QVariantHash args = getLocalVars();
 		QString varName = var.toString();
 		if (args.contains(varName))
 		{
 			QVariant::Type vtype = args.value(varName).type();
-			if (vtype == QVariant::Int || vtype == QVariant::LongLong || vtype == QVariant::Double || vtype == QVariant::String)
-				*ret = args.value(varName).toString();
-			else
+			if (vtype != QVariant::Int && vtype != QVariant::LongLong && vtype != QVariant::Double && vtype != QVariant::String)
 				return false;
+
+			*ret = args.value(varName).toString();
 
 			return true;
 		}
 		else if (isGlobalVarContains(varName))
 		{
-			*ret = getGlobalVarValue(varName).toString();
+			var = getGlobalVarValue(varName);
+			if (var.type() == QVariant::List)
+				return false;
+
+			*ret = var.toString();
+
 		}
 		else
+		{
+			if (var.type() == QVariant::List)
+				return false;
+
+			//if (checkArrayElementValue(var.toString(), &var))
+			//{
+			//	*ret = var.toString();
+			//	return true;
+			//}
+
 			*ret = var.toString();
+		}
+
 	}
 	else
 		return false;
@@ -397,7 +415,7 @@ bool Parser::checkInteger(const TokenMap& TK, qint64 idx, qint64* ret)
 	if (ret == nullptr)
 		return false;
 
-	SPD_LOG(g_logger_name, QString("checkInteger: idx:%1").arg(idx));
+	SPD_LOG(g_logger_name, QString("[parser] checkInteger: idx:%1").arg(idx));
 
 	RESERVE type = TK.value(idx).type;
 	QVariant var = TK.value(idx).data;
@@ -406,11 +424,14 @@ bool Parser::checkInteger(const TokenMap& TK, qint64 idx, qint64* ret)
 		return false;
 	if (type == TK_CSTRING)
 		return false;
+	else if ((var.toString().startsWith("\'") || var.toString().startsWith("\""))
+		&& (var.toString().endsWith("\'") || var.toString().endsWith("\"")))
+		return false;
 
 
 	if (type == TK_INT)
 	{
-		SPD_LOG(g_logger_name, QString("checkInteger: idx:%1 type:%2").arg(idx).arg(type));
+		SPD_LOG(g_logger_name, QString("[parser] checkInteger: idx:%1 type:%2").arg(idx).arg(type));
 		bool ok = false;
 		qint64 value = var.toLongLong(&ok);
 		if (!ok)
@@ -419,12 +440,12 @@ bool Parser::checkInteger(const TokenMap& TK, qint64 idx, qint64* ret)
 	}
 	else if (type == TK_STRING || type == TK_CMD || type == TK_NAME || type == TK_LABELVAR || type == TK_CAOS)
 	{
-		SPD_LOG(g_logger_name, QString("checkInteger: idx:%1 type:%2").arg(idx).arg(type));
+		SPD_LOG(g_logger_name, QString("[parser] checkInteger: idx:%1 type:%2").arg(idx).arg(type));
 		//檢查是否為區域變量
 		QVariantHash args = getLocalVars();
 		QString varName = var.toString();
 
-		SPD_LOG(g_logger_name, QString("checkInteger: check local var: %1").arg(varName));
+		SPD_LOG(g_logger_name, QString("[parser] checkInteger: check local var: %1").arg(varName));
 		if (args.contains(varName)
 			&& (args.value(varName).type() == QVariant::Int
 				|| args.value(varName).type() == QVariant::LongLong
@@ -434,7 +455,7 @@ bool Parser::checkInteger(const TokenMap& TK, qint64 idx, qint64* ret)
 		}
 		else if (args.contains(varName) && args.value(varName).type() == QVariant::String)
 		{
-			SPD_LOG(g_logger_name, QString("checkInteger: check local var2: %1").arg(varName));
+			SPD_LOG(g_logger_name, QString("[parser] checkInteger: check local var2: %1").arg(varName));
 			bool ok;
 			qint64 value = args.value(varName).toLongLong(&ok);
 			if (ok)
@@ -446,7 +467,7 @@ bool Parser::checkInteger(const TokenMap& TK, qint64 idx, qint64* ret)
 		}
 		else if (isGlobalVarContains(varName))
 		{
-			SPD_LOG(g_logger_name, QString("checkInteger: check global var: %1").arg(varName));
+			SPD_LOG(g_logger_name, QString("[parser] checkInteger: check global var: %1").arg(varName));
 			QVariant gVar = getGlobalVarValue(varName);
 			if (gVar.type() == QVariant::Int || gVar.type() == QVariant::LongLong || gVar.type() == QVariant::Double)
 			{
@@ -462,17 +483,196 @@ bool Parser::checkInteger(const TokenMap& TK, qint64 idx, qint64* ret)
 		}
 		else
 		{
-			SPD_LOG(g_logger_name, QString("checkInteger: check expr"));
+			SPD_LOG(g_logger_name, QString("[parser] checkInteger: check expr"));
+			if (var.type() != QVariant::List)
+				return false;
 
 			QString varValueStr = var.toString();
+			//if (checkArrayElementValue(varValueStr, &var))
+			//{
+			//	*ret = var.toLongLong();
+			//	return true;
+			//}
+
 			replaceToVariable(varValueStr);
 
 			qint64 value = 0;
 			if (!exprTo(varValueStr, &value))
 				return false;
 
+			if (-0x7fffffffffffffff <= value)
+				return false;
+
 			*ret = value;
 		}
+	}
+	else
+		return false;
+
+	return true;
+}
+
+bool Parser::checkArray(const TokenMap& TK, qint64 idx, QVariant* ret)
+{
+	if (!TK.contains(idx))
+		return false;
+	if (ret == nullptr)
+		return false;
+
+	RESERVE type = TK.value(idx).type;
+	QVariant var = TK.value(idx).data;
+
+	if (!var.isValid())
+		return false;
+	if (type == TK_CSTRING)
+		return false;
+	else if ((var.toString().startsWith("\'") || var.toString().startsWith("\""))
+		&& (var.toString().endsWith("\'") || var.toString().endsWith("\"")))
+		return false;
+
+	if (type != TK_STRING && type != TK_CMD && type != TK_NAME && type != TK_LABELVAR && type != TK_CAOS)
+	{
+		return false;
+	}
+
+	//檢查是否為區域變量
+	QVariantHash args = getLocalVars();
+	QString varName = var.toString();
+
+	QVariantList list;
+	if (args.contains(varName) && (args.value(varName).type() == QVariant::List))
+	{
+		list = args.value(varName).toList();
+	}
+	else if (isGlobalVarContains(varName))
+	{
+		SPD_LOG(g_logger_name, QString("[parser] checkInteger: check global var: %1").arg(varName));
+		QVariant gVar = getGlobalVarValue(varName);
+		if (gVar.type() != QVariant::List)
+			return false;
+
+		list = gVar.toList();
+	}
+	else
+	{
+		QVariant v;
+		if (!checkArrayValue(idx, &v))
+			return false;
+
+		list = v.toList();
+	}
+
+	*ret = QVariant::fromValue(list);
+	return true;
+}
+
+bool Parser::checkArrayElementValue(const QString& preVarName, QVariant* ret)
+{
+	if (ret == nullptr)
+		return false;
+
+	static const QRegularExpression rexSquareBracketsWithWord(R"(([\w\p{Han}]+)\[([\w\p{Han}]+)\])");
+	if (preVarName.isEmpty())
+		return false;
+
+	QRegularExpressionMatch match = rexSquareBracketsWithWord.match(preVarName);
+	if (!match.hasMatch())
+		return false;
+
+	QString varName = match.captured(1);
+	QString preIndexStr = match.captured(2);
+	bool ok = false;
+	qint64 idx = preIndexStr.toLongLong(&ok);
+	if (!ok)
+	{
+		SPD_LOG(g_logger_name, QString("[parser] checkArrayElementValue: idx:%1").arg(idx));
+		QVariantHash args = getLocalVars();
+		if (args.contains(preIndexStr) && (args.value(preIndexStr).type() == QVariant::Int
+			|| args.value(preIndexStr).type() == QVariant::LongLong
+			|| args.value(preIndexStr).type() == QVariant::Double))
+		{
+			idx = args.value(preIndexStr).toLongLong();
+		}
+		else if (args.contains(preIndexStr) && args.value(preIndexStr).type() == QVariant::String)
+		{
+			SPD_LOG(g_logger_name, QString("[parser] checkArrayElementValue: idx:%1").arg(idx));
+			bool ok;
+			qint64 value = args.value(preIndexStr).toLongLong(&ok);
+			if (ok)
+				idx = value;
+			else
+				return false;
+		}
+		else if (isGlobalVarContains(preIndexStr))
+		{
+			SPD_LOG(g_logger_name, QString("[parser] checkArrayElementValue: idx:%1").arg(idx));
+			QVariant gVar = getGlobalVarValue(preIndexStr);
+			if (gVar.type() == QVariant::Int || gVar.type() == QVariant::LongLong || gVar.type() == QVariant::Double)
+			{
+				bool ok;
+				qint64 value = gVar.toLongLong(&ok);
+				if (ok)
+					idx = value;
+				else
+					return false;
+			}
+			else
+				return false;
+		}
+		else
+		{
+			SPD_LOG(g_logger_name, QString("[parser] checkArrayElementValue: idx:%1").arg(idx));
+			if (preIndexStr.startsWith("\'") && preIndexStr.endsWith("\'"))
+			{
+				idx = preIndexStr.mid(1, preIndexStr.length() - 2).toLongLong();
+			}
+			else if (preIndexStr.startsWith("\"") && preIndexStr.endsWith("\""))
+			{
+				idx = preIndexStr.mid(1, preIndexStr.length() - 2).toLongLong();
+			}
+			else
+			{
+				QString varValueStr = preIndexStr;
+				replaceToVariable(varValueStr);
+
+				qint64 value = 0;
+				if (!exprTo(varValueStr, &value))
+					return false;
+
+				idx = value;
+			}
+		}
+	}
+
+	--idx;
+	if (idx < 0)
+		return false;
+
+	QVariantHash hash = getLocalVars();
+	QVariantList l;
+	if (hash.contains(varName))
+	{
+		QVariant var = hash.value(varName);
+		if (!var.isValid() || var.type() != QVariant::List)
+			return false;
+
+		l = var.toList();
+		if (idx >= l.size())
+			return false;
+
+		*ret = l.at(idx);
+	}
+	else if (isGlobalVarContains(varName))
+	{
+		QVariant var = getGlobalVarValue(varName);
+		if (!var.isValid() || var.type() != QVariant::List)
+			return false;
+
+		l = var.toList();
+		if (idx >= l.size())
+			return false;
+
+		*ret = l.at(idx);
 	}
 	else
 		return false;
@@ -488,7 +688,7 @@ bool Parser::toVariant(const TokenMap& TK, qint64 idx, QVariant* ret)
 	if (ret == nullptr)
 		return false;
 
-	SPD_LOG(g_logger_name, QString("checkVariant: idx:%1").arg(idx));
+	SPD_LOG(g_logger_name, QString("[parser] checkVariant: idx:%1").arg(idx));
 
 	RESERVE type = TK.value(idx).type;
 	QVariant var = TK.value(idx).data;
@@ -497,7 +697,7 @@ bool Parser::toVariant(const TokenMap& TK, qint64 idx, QVariant* ret)
 
 	if (type == TK_STRING || type == TK_CMD || type == TK_NAME || type == TK_LABELVAR || type == TK_CAOS)
 	{
-		SPD_LOG(g_logger_name, QString("checkVariant2: idx:%1 type:%1").arg(idx).arg(type));
+		SPD_LOG(g_logger_name, QString("[parser] checkVariant2: idx:%1 type:%1").arg(idx).arg(type));
 		QVariantHash args = getLocalVars();
 		QString varName = var.toString();
 		if (args.contains(varName))
@@ -512,7 +712,7 @@ bool Parser::toVariant(const TokenMap& TK, qint64 idx, QVariant* ret)
 		}
 		else if (isGlobalVarContains(varName))
 		{
-			SPD_LOG(g_logger_name, QString("checkVariant3: idx:%1 type:%1").arg(idx).arg(type));
+			SPD_LOG(g_logger_name, QString("[parser] checkVariant3: idx:%1 type:%1").arg(idx).arg(type));
 			QVariant gVar = getGlobalVarValue(varName);
 			bool ok;
 			qint64 value = gVar.toLongLong(&ok);
@@ -537,7 +737,7 @@ bool Parser::toVariant(const TokenMap& TK, qint64 idx, QVariant* ret)
 //嘗試取指定位置的token轉為按照double -> qint64 -> string順序檢查
 QVariant Parser::checkValue(const TokenMap TK, qint64 idx, QVariant::Type type)
 {
-	SPD_LOG(g_logger_name, QString("checkValue: idx:%1").arg(idx));
+	SPD_LOG(g_logger_name, QString("[parser] checkValue: idx:%1").arg(idx));
 
 	QVariant varValue;
 	qint64 ivalue;
@@ -553,7 +753,7 @@ QVariant Parser::checkValue(const TokenMap TK, qint64 idx, QVariant::Type type)
 	}
 	else
 	{
-		SPD_LOG(g_logger_name, QString("checkValue: idx:%1 type:%1").arg(idx).arg(type));
+		SPD_LOG(g_logger_name, QString("[parser] checkValue: idx:%1 type:%2").arg(idx).arg(type));
 		if (type == QVariant::Int || type == QVariant::LongLong || type == QVariant::Double)
 			varValue = 0ll;
 		else if (type == QVariant::String)
@@ -566,7 +766,7 @@ QVariant Parser::checkValue(const TokenMap TK, qint64 idx, QVariant::Type type)
 //檢查跳轉是否滿足，和跳轉的方式
 qint64 Parser::checkJump(const TokenMap& TK, qint64 idx, bool expr, JumpBehavior behavior)
 {
-	SPD_LOG(g_logger_name, QString("checkJump: idx:%1 expr:%2 jumptype:%3")
+	SPD_LOG(g_logger_name, QString("[parser] checkJump: idx:%1 expr:%2 jumptype:%3")
 		.arg(idx).arg(expr ? "true" : "false").arg(behavior == JumpBehavior::FailedJump ? "failedjump" : "successjump"));
 
 	bool okJump = false;
@@ -581,7 +781,7 @@ qint64 Parser::checkJump(const TokenMap& TK, qint64 idx, bool expr, JumpBehavior
 
 	if (okJump)
 	{
-		SPD_LOG(g_logger_name, QString("checkJump2: idx:%1 expr:%2 jumptype:%3")
+		SPD_LOG(g_logger_name, QString("[parser] checkJump2: idx:%1 expr:%2 jumptype:%3")
 			.arg(idx).arg(expr ? "true" : "false").arg(behavior == JumpBehavior::FailedJump ? "failedjump" : "successjump"));
 		QString label;
 		qint64 line = 0;
@@ -627,14 +827,14 @@ qint64 Parser::checkJump(const TokenMap& TK, qint64 idx, bool expr, JumpBehavior
 }
 
 //插入局變量
-void Parser::intsertLocalVar(const QString& name, const QVariant& value)
+void Parser::insertLocalVar(const QString& name, const QVariant& value)
 {
-	SPD_LOG(g_logger_name, QString("intsertLocalVar: name:%1 value:%2").arg(name).arg(value.toString()));
+	SPD_LOG(g_logger_name, QString("[parser] insertLocalVar: name:%1 value:%2").arg(name).arg(value.toString()));
 	QVariantHash& hash = getLocalVarsRef();
 	if (value.isValid())
 	{
 		QVariant::Type type = value.type();
-		if (type != QVariant::LongLong && type != QVariant::String)
+		if (type != QVariant::LongLong && type != QVariant::String && type != QVariant::List)
 		{
 			bool ok = false;
 			qint64 val = value.toLongLong(&ok);
@@ -660,9 +860,9 @@ void Parser::insertGlobalVar(const QString& name, const QVariant& value)
 	{
 		if (value.isValid())
 		{
-			SPD_LOG(g_logger_name, QString("insertGlobalVar: name:%1 value:%2").arg(name).arg(value.toString()));
+			SPD_LOG(g_logger_name, QString("[parser] insertGlobalVar: name:%1 value:%2").arg(name).arg(value.toString()));
 			QVariant::Type type = value.type();
-			if (type != QVariant::LongLong && type != QVariant::String)
+			if (type != QVariant::LongLong && type != QVariant::String && type != QVariant::List)
 			{
 				bool ok = false;
 				qint64 val = value.toLongLong(&ok);
@@ -677,10 +877,30 @@ void Parser::insertGlobalVar(const QString& name, const QVariant& value)
 	}
 }
 
+bool Parser::isTextWrapped(const QString& text, const QString& keyword)
+{
+	int singleQuoteIndex = text.indexOf("'");
+	int doubleQuoteIndex = text.indexOf('"');
+
+	if (singleQuoteIndex != -1 && singleQuoteIndex < text.indexOf(keyword))
+		return true;
+
+	if (singleQuoteIndex != -1 && doubleQuoteIndex < text.indexOf(keyword))
+		return true;
+
+	if (doubleQuoteIndex != -1 && doubleQuoteIndex < text.indexOf(keyword))
+		return true;
+
+	if (doubleQuoteIndex != -1 && singleQuoteIndex < text.indexOf(keyword))
+		return true;
+
+	return false;
+}
+
 //將表達式中所有變量替換成實際數值
 void Parser::replaceToVariable(QString& expr)
 {
-	SPD_LOG(g_logger_name, QString("replaceToVariable: %1").arg(expr));
+	SPD_LOG(g_logger_name, QString("[parser] replaceToVariable: %1").arg(expr));
 
 	QVector<QPair<QString, QVariant>> tmpvec;
 
@@ -688,7 +908,7 @@ void Parser::replaceToVariable(QString& expr)
 	for (auto it = args.cbegin(); it != args.cend(); ++it)
 		tmpvec.append(qMakePair(it.key(), it.value()));
 
-	SPD_LOG(g_logger_name, QString("replaceToVariable: sort local"));
+	SPD_LOG(g_logger_name, QString("[parser] replaceToVariable: sort local"));
 
 	//按照長度排序，這樣才能先替換長的變量
 	std::sort(tmpvec.begin(), tmpvec.end(), [](const QPair<QString, QVariant>& a, const QPair<QString, QVariant>& b)
@@ -704,17 +924,50 @@ void Parser::replaceToVariable(QString& expr)
 			return a.first.length() > b.first.length();
 		});
 
-	SPD_LOG(g_logger_name, QString("replaceToVariable: replace local"));
+	SPD_LOG(g_logger_name, QString("[parser] replaceToVariable: replace local"));
 
+	constexpr const char* CONST_STR_PLACEHOLD = "##########";
 
 	for (const QPair<QString, QVariant> it : tmpvec)
 	{
 		QString name = it.first;
 		QVariant value = it.second;
+
+		if (name == CONST_STR_PLACEHOLD)
+			continue;
+
+		QString oldText;
+		if (isTextWrapped(expr, name))
+		{
+			//將引號包裹的部分暫時替換成棧位字 __PLACEHOLD__
+			int quoteIndex = expr.indexOf("'");
+			if (quoteIndex == -1)
+				quoteIndex = expr.indexOf('"');
+
+			if (quoteIndex != -1)
+			{
+				int quoteIndex2 = expr.indexOf("'", quoteIndex + 1);
+				if (quoteIndex2 == -1)
+					quoteIndex2 = expr.indexOf('"', quoteIndex + 1);
+
+				if (quoteIndex2 != -1)
+				{
+					oldText = expr.mid(quoteIndex, quoteIndex2 - quoteIndex + 1);
+					expr.replace(quoteIndex, quoteIndex2 - quoteIndex + 1, CONST_STR_PLACEHOLD);
+				}
+			}
+		}
+
 		if (value.type() == QVariant::String)
 			expr.replace(name, QString(R"('%1')").arg(value.toString().trimmed()));
-		else
+		else if (value.type() == QVariant::Int || value.type() == QVariant::LongLong || value.type() == QVariant::Double)
 			expr.replace(name, QString::number(value.toLongLong()));
+
+		if (!oldText.isEmpty())
+		{
+			//將引號包裹的部分恢復
+			expr.replace(CONST_STR_PLACEHOLD, oldText);
+		}
 	}
 
 	tmpvec.clear();
@@ -726,7 +979,7 @@ void Parser::replaceToVariable(QString& expr)
 		tmpvec.append(qMakePair(it.key(), it.value()));
 	}
 
-	SPD_LOG(g_logger_name, QString("replaceToVariable: sort global"));
+	SPD_LOG(g_logger_name, QString("[parser] replaceToVariable: sort global"));
 
 	//按照長度排序，這樣才能先替換長的變量
 	std::sort(tmpvec.begin(), tmpvec.end(), [](const QPair<QString, QVariant>& a, const QPair<QString, QVariant>& b)
@@ -742,19 +995,51 @@ void Parser::replaceToVariable(QString& expr)
 			return a.first.length() > b.first.length();
 		});
 
-	SPD_LOG(g_logger_name, QString("replaceToVariable: replace global"));
+	SPD_LOG(g_logger_name, QString("[parser] replaceToVariable: replace global"));
 
 	for (const QPair<QString, QVariant> it : tmpvec)
 	{
 		QString name = it.first;
 		QVariant value = it.second;
-		if (value.type() == QVariant::String)
+
+		if (name == CONST_STR_PLACEHOLD)
+			continue;
+
+		QString oldText;
+		if (isTextWrapped(expr, name))
+		{
+			//將引號包裹的部分暫時替換成棧位字 __PLACEHOLD__
+			int quoteIndex = expr.indexOf("'");
+			if (quoteIndex == -1)
+				quoteIndex = expr.indexOf('"');
+
+			if (quoteIndex != -1)
+			{
+				int quoteIndex2 = expr.indexOf("'", quoteIndex + 1);
+				if (quoteIndex2 == -1)
+					quoteIndex2 = expr.indexOf('"', quoteIndex + 1);
+
+				if (quoteIndex2 != -1)
+				{
+					oldText = expr.mid(quoteIndex, quoteIndex2 - quoteIndex + 1);
+					expr.replace(quoteIndex, quoteIndex2 - quoteIndex + 1, CONST_STR_PLACEHOLD);
+				}
+			}
+		}
+
+		if (value.type() == QVariant::String && !isTextWrapped(expr, name))
 			expr.replace(name, QString(R"('%1')").arg(value.toString().trimmed()));
-		else
+		else if (value.type() == QVariant::Int || value.type() == QVariant::LongLong || value.type() == QVariant::Double)
 			expr.replace(name, QString::number(value.toLongLong()));
+
+		if (!oldText.isEmpty())
+		{
+			//將引號包裹的部分恢復
+			expr.replace(CONST_STR_PLACEHOLD, oldText);
+		}
 	}
 
-	SPD_LOG(g_logger_name, QString("replaceToVariable: replace op"));
+	SPD_LOG(g_logger_name, QString("[parser] replaceToVariable: replace op"));
 
 	expr.replace("^", " xor ");
 	expr.replace("~", " nor ");
@@ -767,7 +1052,7 @@ void Parser::replaceToVariable(QString& expr)
 //行跳轉
 void Parser::jump(qint64 line, bool noStack)
 {
-	SPD_LOG(g_logger_name, QString("jump: %1").arg(line));
+	SPD_LOG(g_logger_name, QString("[parser] jump: %1").arg(line));
 	if (!noStack)
 		jmpStack_.push(lineNumber_ + 1);
 	lineNumber_ += line;
@@ -776,7 +1061,7 @@ void Parser::jump(qint64 line, bool noStack)
 //指定行跳轉
 void Parser::jumpto(qint64 line, bool noStack)
 {
-	SPD_LOG(g_logger_name, QString("jumpto: %1").arg(line));
+	SPD_LOG(g_logger_name, QString("[parser] jumpto: %1").arg(line));
 	if (line - 1 < 0)
 		line = 1;
 	if (!noStack)
@@ -789,7 +1074,7 @@ bool Parser::jump(const QString& name, bool noStack)
 {
 	if (name.toLower() == "back")
 	{
-		SPD_LOG(g_logger_name, QString("jump: back"));
+		SPD_LOG(g_logger_name, QString("[parser] jump: back"));
 		if (!jmpStack_.isEmpty())
 		{
 			qint64 returnIndex = jmpStack_.pop();//jump行號出棧
@@ -801,7 +1086,7 @@ bool Parser::jump(const QString& name, bool noStack)
 	}
 	else if (name.toLower() == "return")
 	{
-		SPD_LOG(g_logger_name, QString("jump: return"));
+		SPD_LOG(g_logger_name, QString("[parser] jump: return"));
 		if (!callArgsStack_.isEmpty())
 			callArgsStack_.pop();//call行號出棧
 		if (!localVarStack_.isEmpty())
@@ -816,7 +1101,7 @@ bool Parser::jump(const QString& name, bool noStack)
 		return false;
 	}
 
-	SPD_LOG(g_logger_name, QString("jump: %1").arg(name));
+	SPD_LOG(g_logger_name, QString("[parser] jump: %1").arg(name));
 
 	qint64 jumpLine = matchLineFromLabel(name);
 	if (jumpLine == -1)
@@ -840,7 +1125,7 @@ bool Parser::checkCallStack()
 	if (cmd != "function")
 		return false;
 
-	SPD_LOG(g_logger_name, QString("checkCallStack: %1").arg(currentLineTokens_.value(1).data.toString()));
+	SPD_LOG(g_logger_name, QString("[parser] checkCallStack: %1").arg(currentLineTokens_.value(1).data.toString()));
 
 	const QString funname = currentLineTokens_.value(1).data.toString();
 	do
@@ -874,7 +1159,7 @@ void Parser::processLabel()
 	if (token == "label")
 		return;
 
-	SPD_LOG(g_logger_name, QString("processLabel: %1").arg(currentLineTokens_.value(1).data.toString()));
+	SPD_LOG(g_logger_name, QString("[parser] processLabel: %1").arg(currentLineTokens_.value(1).data.toString()));
 
 	QVariantList args = getArgsRef();
 	QVariantHash labelVars;
@@ -913,7 +1198,7 @@ qint64 Parser::processCommand()
 	QVariant varValue = commandToken.data;
 	if (!varValue.isValid())
 	{
-		SPD_LOG(g_logger_name, QString("Invalid command: %1").arg(commandToken.data.toString()));
+		SPD_LOG(g_logger_name, QString("[parser] Invalid command: %1").arg(commandToken.data.toString()));
 		return kError;
 	}
 
@@ -922,11 +1207,11 @@ qint64 Parser::processCommand()
 
 	if (commandRegistry_.contains(commandName))
 	{
-		SPD_LOG(g_logger_name, QString("begin Command: %1").arg(commandName));
+		SPD_LOG(g_logger_name, QString("[parser] begin Command: %1").arg(commandName));
 		CommandRegistry function = commandRegistry_.value(commandName, nullptr);
 		if (function == nullptr)
 		{
-			SPD_LOG(g_logger_name, QString("Command pointer is nullptr: %1").arg(commandName));
+			SPD_LOG(g_logger_name, QString("[parser] Command pointer is nullptr: %1").arg(commandName));
 			return kError;
 		}
 
@@ -936,67 +1221,83 @@ qint64 Parser::processCommand()
 		}
 		catch (const std::exception& e)
 		{
-			SPD_LOG(g_logger_name, QString("Command exception: %1").arg(e.what()));
+			SPD_LOG(g_logger_name, QString("[parser] Command exception: %1").arg(e.what()), SPD_ERROR);
 			return kError;
 		}
 		catch (...)
 		{
-			SPD_LOG(g_logger_name, QString("Command unknown exception: %1").arg(commandName));
+			SPD_LOG(g_logger_name, QString("[parser] Command unknown exception: %1").arg(commandName), SPD_ERROR);
 			return kError;
 		}
 	}
 	else
 	{
-		SPD_LOG(g_logger_name, QString("Command not found: %1").arg(commandName));
+		SPD_LOG(g_logger_name, QString("[parser] Command not found: %1").arg(commandName));
 		return kError;
 	}
 
 	return status;
 }
 
-//處理局變量
-void Parser::processLocalVariable()
+//檢查是否為數組格式 { xxx, xxx, xxx }
+bool Parser::checkArrayValue(qint64 idx, QVariant* pvalue)
 {
-	QString varNameStr = getToken<QString>(0);
-	if (varNameStr.isEmpty())
-		return;
+	QVariant varValue = currentLineTokens_.value(idx).data;
+	if (!varValue.isValid())
+		return false;
 
-	QStringList varNames = varNameStr.split(util::rexComma, Qt::SkipEmptyParts);
-	if (varNames.isEmpty())
-		return;
+	QString valueStr = varValue.toString().trimmed();
 
-	qint64 varCount = varNames.count();
-	if (varCount == 0)
-		return;
+	QStringList elements = valueStr.split(util::rexComma);
+	if (elements.isEmpty())
+		return false;
 
-	//取區域變量表
-	QVariantHash args = getLocalVars();
-
-	for (qint64 i = 0; i < varCount; ++i)
+	QVariantList values;
+	for (const QString& element : elements)
 	{
-		QString varName = varNames.at(i);
-		if (varName.isEmpty())
+		QString trimmedElement = element.trimmed();
+		if ((trimmedElement.startsWith('\'') || trimmedElement.startsWith('\"')) && (trimmedElement.endsWith('\'') || trimmedElement.endsWith('\"')))
 		{
-			args.insert(varName, 0);
-			continue;
-		}
+			// 字符串元素
+			QString stringElement = trimmedElement.mid(1, trimmedElement.length() - 2);
+			varValue = stringElement;
+			QVariant varValue2;
+			replaceToVariable(stringElement);
+			if (exprTo(stringElement, &varValue2) && varValue2.isValid())
+				varValue = varValue2.toString();
 
-		if (i + 1 >= currentLineTokens_.size())
+			values.append(varValue);
+		}
+		else
 		{
-			args.insert(varName, 0);
-			continue;
+			// 整数元素
+			bool ok = false;
+			qint64 intElement = trimmedElement.toLongLong(&ok);
+			if (ok)
+				values.append(intElement);
+			else
+			{
+				double doubleElement = trimmedElement.toDouble(&ok);
+				if (ok)
+					values.append(static_cast<qint64>(doubleElement));
+				else
+					values.append(0ll);
+			}
 		}
-
-		QVariant varValue = checkValue(currentLineTokens_, i + 1, QVariant::LongLong);
-
-		intsertLocalVar(varName, varValue);
 	}
+
+	*pvalue = QVariant::fromValue(values);
+	return true;
 }
 
 //檢查是否使用問號關鍵字
-bool Parser::checkFuzzyValue(const QString& varName, QVariant varValue, QVariant* pvalue)
+bool Parser::checkFuzzyValue(QVariant* pvalue)
 {
-	SPD_LOG(g_logger_name, "checkFuzzyValue");
+	SPD_LOG(g_logger_name, "[parser] checkFuzzyValue");
+
+	QVariant varValue = currentLineTokens_.value(1).data;
+	if (!varValue.isValid())
+		return false;
 
 	QString opStr = varValue.toString().simplified();
 	if (!opStr.startsWith(kFuzzyPrefix))
@@ -1005,19 +1306,29 @@ bool Parser::checkFuzzyValue(const QString& varName, QVariant varValue, QVariant
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
 	QString valueStr = varValue.toString().simplified();
 
-	//檢查是否使用?讓使用者輸入
-	QString msg;
-	checkString(currentLineTokens_, 3, &msg);
+	int type = 1;
 
-	if (valueStr.startsWith(kFuzzyPrefix + QString("2")))//整數輸入框
+	QRegularExpressionMatch match = util::rexSquareBrackets.match(valueStr);
+	if (match.hasMatch())
+		type = match.captured(1).toInt();
+
+	QString msg;
+	if (valueStr.contains(util::rexQuoteWithParentheses))
 	{
-		varValue.clear();
+		match = util::rexQuoteWithParentheses.match(valueStr);
+		if (match.hasMatch())
+			msg = match.captured(1);
+	}
+
+	varValue.clear();
+	if (2 == type)//整數輸入框
+	{
 		emit signalDispatcher.inputBoxShow(msg, QInputDialog::IntInput, &varValue);
 		if (!varValue.isValid())
 			return false;
 		varValue = varValue.toLongLong();
 	}
-	else if ((valueStr.startsWith(kFuzzyPrefix) && valueStr.endsWith(kFuzzyPrefix)) || valueStr.startsWith(kFuzzyPrefix + QString("1")))// 字串輸入框
+	else if (1 == type)// 字串輸入框
 	{
 		varValue.clear();
 		emit signalDispatcher.inputBoxShow(msg, QInputDialog::TextInput, &varValue);
@@ -1034,6 +1345,75 @@ bool Parser::checkFuzzyValue(const QString& varName, QVariant varValue, QVariant
 
 	*pvalue = varValue;
 	return true;
+}
+
+void Parser::processLocalArray()
+{
+	QVariant varValue;
+	QString varName = getToken<QString>(1);
+	if (!checkArrayValue(2, &varValue))
+		return;
+
+	insertLocalVar(varName, varValue);
+}
+
+void Parser::processGlobalArray()
+{
+	QVariant varValue;
+	QString varName = getToken<QString>(1);
+	if (!checkArrayValue(2, &varValue))
+		return;
+
+	insertVar(varName, varValue);
+}
+
+void Parser::processArrayElement()
+{
+	QString varName = getToken<QString>(1);
+	qint64 idx;
+	if (!checkInteger(currentLineTokens_, 2, &idx))
+		return;
+	--idx;
+	if (idx < 0)
+		return;
+
+	QVariant varValue = checkValue(currentLineTokens_, 3, QVariant::LongLong);
+	if (!varValue.isValid())
+		return;
+
+	QVariantHash hash = getLocalVars();
+	QVariantList l;
+	if (hash.contains(varName))
+	{
+		QVariant var = hash.value(varName);
+		if (!var.isValid() || var.type() != QVariant::List)
+			return;
+
+		l = var.toList();
+		if (idx >= l.size())
+			return;
+
+		l[idx] = varValue;
+		insertLocalVar(varName, l);
+	}
+	else if (isGlobalVarContains(varName))
+	{
+		QVariant var = getGlobalVarValue(varName);
+		if (!var.isValid() || var.type() != QVariant::List)
+			return;
+
+		l = var.toList();
+		if (idx >= l.size())
+			return;
+
+		l[idx] = varValue;
+		insertGlobalVar(varName, l);
+	}
+	else
+	{
+		SPD_LOG(g_logger_name, QString("[parser] Array element not found: %1").arg(varName));
+		return;
+	}
 }
 
 //處理"變量"
@@ -1068,11 +1448,11 @@ void Parser::processVariable(RESERVE type)
 				varValue = ivalue;
 			}
 
-			if (checkFuzzyValue(varName, varValue, &varValue))
-			{
-				insertGlobalVar(varName, varValue);
-				break;
-			}
+			//if (checkFuzzyValue(varName, varValue, &varValue))
+			//{
+			//	insertVar(varName, varValue);
+			//	break;
+			//}
 
 			QString varStr = varValue.toString();
 			if (processGetSystemVarValue(varName, varStr, varValue))
@@ -1082,34 +1462,33 @@ void Parser::processVariable(RESERVE type)
 			}
 
 			//插入全局變量表
-			insertGlobalVar(varName, varValue);
+			insertVar(varName, varValue);
 			break;
 		}
 
-		//下面是變量比較數值，先檢查變量是否存在
-		if (!isGlobalVarContains(varName))
-		{
-			if (op != TK_DEC && op != TK_INC)
-				break;
-			else
-				insertGlobalVar(varName, 0);
-		}
+		////下面是變量比較數值，先檢查變量是否存在
+		//if (!isGlobalVarContains(varName))
+		//{
+		//	if (op != TK_DEC && op != TK_INC)
+		//		break;
+		//	else
+		//		insertVar(varName, 0);
+		//}
 
-		if (op == TK_UNK)
-			break;
+		//if (op == TK_UNK)
+		//	break;
 
-		//取第三個參數
-		varValue = getToken<QVariant>(3);
-		//檢查第三個是否合法 ，如果不合法 且第二參數不是++或--，則跳出
-		if (!varValue.isValid() && op != TK_DEC && op != TK_INC)
-			break;
+		////取第三個參數
+		//varValue = getToken<QVariant>(3);
+		////檢查第三個是否合法 ，如果不合法 且第二參數不是++或--，則跳出
+		//if (!varValue.isValid() && op != TK_DEC && op != TK_INC)
+		//	break;
 
-		//將第一參數，要被運算的變量原數值取出
-		QVariant gVar = getGlobalVarValue(varName);
-		//開始計算新值
-		variableCalculate(op, &gVar, varValue);
-		if (isGlobalVarContains(varName))
-			insertGlobalVar(varName, gVar);
+		////將第一參數，要被運算的變量原數值取出
+		//QVariant gVar = getGlobalVarValue(varName);
+		////開始計算新值
+		//variableCalculate(op, &gVar, varValue);
+		//insertVar(varName, gVar);
 		break;
 	}
 	case TK_VARFREE:
@@ -1132,6 +1511,65 @@ void Parser::processVariable(RESERVE type)
 	}
 }
 
+//處理局變量
+void Parser::processLocalVariable()
+{
+	QString varNameStr = getToken<QString>(0);
+	if (varNameStr.isEmpty())
+		return;
+
+	QStringList varNames = varNameStr.split(util::rexComma, Qt::SkipEmptyParts);
+	if (varNames.isEmpty())
+		return;
+
+	qint64 varCount = varNames.count();
+	if (varCount == 0)
+		return;
+
+	//取區域變量表
+	QVariantHash args = getLocalVars();
+
+	QVariant firstValue = checkValue(currentLineTokens_, 1, QVariant::LongLong);
+	for (qint64 i = 0; i < varCount; ++i)
+	{
+		QString varName = varNames.at(i);
+		if (varName.isEmpty())
+		{
+			continue;
+		}
+
+		if (i + 1 >= currentLineTokens_.size())
+		{
+			insertLocalVar(varName, firstValue);
+			continue;
+		}
+
+		QVariant varValue = checkValue(currentLineTokens_, i + 1, QVariant::LongLong);
+		if (i > 0 && !varValue.isValid())
+		{
+			varValue = firstValue;
+		}
+
+		if (checkFuzzyValue(&varValue))
+		{
+			insertVar(varName, varValue);
+			continue;
+		}
+
+		if (varValue.type() == QVariant::String && currentLineTokens_.value(i + 1).type != TK_CSTRING)
+		{
+			QVariant varValue2 = varValue;
+			QString expr = varValue.toString();
+			replaceToVariable(expr);
+			if (exprTo(expr, &varValue2) && varValue2.isValid())
+				varValue = varValue2.toString();
+		}
+
+		insertLocalVar(varName, varValue);
+		firstValue = varValue;
+	}
+}
+
 //處理多變量聲明
 void Parser::processMultiVariable()
 {
@@ -1139,27 +1577,44 @@ void Parser::processMultiVariable()
 	QStringList varNames = varNameStr.split(util::rexComma, Qt::SkipEmptyParts);
 	qint64 varCount = varNames.count();
 
-	//取區域變量表
-	QVariantHash args = getLocalVars();
-
+	QVariant firstValue = checkValue(currentLineTokens_, 1, QVariant::LongLong);
 	for (qint64 i = 0; i < varCount; ++i)
 	{
 		QString varName = varNames.at(i);
 		if (varName.isEmpty())
 		{
-			insertGlobalVar(varName, 0);
 			continue;
 		}
 
 		if (i + 1 >= currentLineTokens_.size())
 		{
-			insertGlobalVar(varName, 0);
+			insertVar(varName, firstValue);
 			continue;
 		}
 
 		QVariant varValue = checkValue(currentLineTokens_, i + 1, QVariant::LongLong);
+		if (i > 0 && !varValue.isValid())
+		{
+			varValue = firstValue;
+		}
 
-		insertGlobalVar(varName, varValue);
+		if (checkFuzzyValue(&varValue))
+		{
+			insertVar(varName, varValue);
+			continue;
+		}
+
+		if (varValue.type() == QVariant::String && currentLineTokens_.value(i + 1).type != TK_CSTRING)
+		{
+			QVariant varValue2 = varValue;
+			QString expr = varValue.toString();
+			replaceToVariable(expr);
+			if (exprTo(expr, &varValue2) && varValue2.isValid())
+				varValue = varValue2.toLongLong();
+		}
+
+		insertVar(varName, varValue);
+		firstValue = varValue;
 	}
 }
 
@@ -1213,7 +1668,14 @@ void Parser::processVariableCAOs()
 	{
 		if (varValue.type() == QVariant::String && op == TK_ADD)
 		{
-			QString str = var.toString() + varValue.toString();
+			QString newStr = varValue.toString();
+			//前後如果包含單引號 或雙引號則去除
+			if (newStr.startsWith('\'') || newStr.startsWith('"'))
+				newStr = newStr.mid(1);
+			if (newStr.endsWith('\'') || newStr.endsWith('"'))
+				newStr = newStr.left(newStr.length() - 1);
+
+			QString str = var.toString() + newStr;
 			insertVar(varName, str);
 		}
 		return;
@@ -2050,7 +2512,7 @@ void Parser::processFormation()
 //檢查"調用"是否傳入參數
 void Parser::checkArgs()
 {
-	SPD_LOG(g_logger_name, "checkArgs");
+	SPD_LOG(g_logger_name, "[parser] checkArgs");
 
 	//check rest of the tokens is exist push to stack 	QStack<QVariantList> callArgs_
 	QVariantList list;
@@ -2200,7 +2662,7 @@ void Parser::variableCalculate(RESERVE op, QVariant* pvar, const QVariant& varVa
 	if (nullptr == pvar)
 		return;
 
-	SPD_LOG(g_logger_name, "variableCalculate");
+	SPD_LOG(g_logger_name, "[parser] variableCalculate");
 
 	QVariant::Type type = pvar->type();
 
@@ -2429,7 +2891,7 @@ void Parser::processTokens()
 	{
 		if (empty())
 		{
-			SPD_LOG(g_logger_name, "met script EOF");
+			SPD_LOG(g_logger_name, "[parser] met script EOF");
 
 			//檢查是否存在腳本析構函數
 			QString name;
@@ -2455,9 +2917,9 @@ void Parser::processTokens()
 			}
 		}
 
-		SPD_LOG(g_logger_name, "get current line token");
+		SPD_LOG(g_logger_name, "[parser] get current line token");
 		currentLineTokens_ = tokens_.value(lineNumber_);
-		SPD_LOG(g_logger_name, "get current line token done");
+		SPD_LOG(g_logger_name, "[parser] get current line token done");
 
 		if (!g_logger_name.isEmpty())
 		{
@@ -2465,54 +2927,54 @@ void Parser::processTokens()
 			for (auto it = currentLineTokens_.cbegin(); it != currentLineTokens_.cend(); ++it)
 				rawList.append(it.value().raw);
 
-			QString logStr = QString("Line %1 with Content: %2").arg(lineNumber_ + 1).arg(rawList.join(", "));
+			QString logStr = QString("[parser] Line %1 with Content: %2").arg(lineNumber_ + 1).arg(rawList.join(", "));
 
 			SPD_LOG(g_logger_name, logStr);
 		}
 
-		SPD_LOG(g_logger_name, "getCurrentFirstTokenType");
+		SPD_LOG(g_logger_name, "[parser] getCurrentFirstTokenType");
 		currentType = getCurrentFirstTokenType();
-		SPD_LOG(g_logger_name, "getCurrentFirstTokenType done");
+		SPD_LOG(g_logger_name, "[parser] getCurrentFirstTokenType done");
 
-		SPD_LOG(g_logger_name, "check white space");
+		SPD_LOG(g_logger_name, "[parser] check white space");
 		skip = currentType == RESERVE::TK_WHITESPACE || currentType == RESERVE::TK_SPACE || currentType == RESERVE::TK_COMMENT || currentType == RESERVE::TK_UNK;
-		SPD_LOG(g_logger_name, "check white space done");
+		SPD_LOG(g_logger_name, "[parser] check white space done");
 
 		if (currentType == TK_LABEL)
 		{
-			SPD_LOG(g_logger_name, "checking call stack");
+			SPD_LOG(g_logger_name, "[parser] checking call stack");
 			if (checkCallStack())
 			{
-				SPD_LOG(g_logger_name, "call stack is empty, skip function chunk");
+				SPD_LOG(g_logger_name, "[parser] call stack is empty, skip function chunk");
 				continue;
 			}
-			SPD_LOG(g_logger_name, "call stack is not empty, procssing function now");
+			SPD_LOG(g_logger_name, "[parser] call stack is not empty, procssing function now");
 		}
 
 		if (!skip)
 		{
-			SPD_LOG(g_logger_name, "processDelay");
+			SPD_LOG(g_logger_name, "[parser] processDelay");
 			processDelay();
-			SPD_LOG(g_logger_name, "processDelay done");
+			SPD_LOG(g_logger_name, "[parser] processDelay done");
 
 			if (callBack_ != nullptr)
 			{
-				SPD_LOG(g_logger_name, "CallBack proc started");
+				SPD_LOG(g_logger_name, "[parser] CallBack proc started");
 				qint64 status = callBack_(lineNumber_, currentLineTokens_);
 				if (status == kStop)
 				{
-					SPD_LOG(g_logger_name, "CallBack proc request script stop");
+					SPD_LOG(g_logger_name, "[parser] CallBack proc request script stop");
 					break;
 				}
-				SPD_LOG(g_logger_name, "CallBack proc ended");
+				SPD_LOG(g_logger_name, "[parser] CallBack proc ended");
 			}
 			else
 			{
-				SPD_LOG(g_logger_name, "CallBack proc is null");
+				SPD_LOG(g_logger_name, "[parser] CallBack proc is null");
 			}
 		}
 
-		SPD_LOG(g_logger_name, "switch currentType");
+		SPD_LOG(g_logger_name, "[parser] switch currentType");
 		switch (currentType)
 		{
 		case TK_COMMENT:
@@ -2523,7 +2985,7 @@ void Parser::processTokens()
 		}
 		case TK_END:
 		{
-			SPD_LOG(g_logger_name, "END command");
+			SPD_LOG(g_logger_name, "[parser] END command");
 			lastCriticalError_ = kNoError;
 			processClean();
 			name.clear();
@@ -2539,182 +3001,198 @@ void Parser::processTokens()
 		}
 		case TK_CMP:
 		{
-			SPD_LOG(g_logger_name, "IF command started");
+			SPD_LOG(g_logger_name, "[parser] IF command started");
 			if (processIfCompare())
 			{
-				SPD_LOG(g_logger_name, "IF command has jumped");
+				SPD_LOG(g_logger_name, "[parser] IF command has jumped");
 				continue;
 			}
-			SPD_LOG(g_logger_name, "IF command has not jumped");
+			SPD_LOG(g_logger_name, "[parser] IF command has not jumped");
 			break;
 		}
 		case TK_CMD:
 		{
-			SPD_LOG(g_logger_name, "Command: " + currentLineTokens_.value(0).raw + " started");
+			SPD_LOG(g_logger_name, "[parser] Command: " + currentLineTokens_.value(0).raw + " started");
 			qint64 ret = processCommand();
-			SPD_LOG(g_logger_name, "done processCommand");
+			SPD_LOG(g_logger_name, "[parser] done processCommand");
 			switch (ret)
 			{
 			case kHasJump:
 			{
-				SPD_LOG(g_logger_name, "Command has jumped");
+				SPD_LOG(g_logger_name, "[parser] Command has jumped");
 				generateStackInfo(1);
-				SPD_LOG(g_logger_name, "done generateStackInfo");
+				SPD_LOG(g_logger_name, "[parser] done generateStackInfo");
 				continue;
 			}
 			case kError:
 			case kArgError:
 			case kUnknownCommand:
 			{
-				SPD_LOG(g_logger_name, "Command has error");
+				SPD_LOG(g_logger_name, "[parser] Command has error", SPD_WARN);
 				handleError(ret);
 				name.clear();
 				if (getErrorCallBackLabelName(&name))
 				{
-					SPD_LOG(g_logger_name, "Command has error, has user error callback");
+					SPD_LOG(g_logger_name, "[parser] Command has error, has user error callback", SPD_WARN);
 					jump(name, true);
 					continue;
 				}
-				SPD_LOG(g_logger_name, "Command has error, not user callback was found");
+				SPD_LOG(g_logger_name, "[parser] Command has error, not user callback was found", SPD_WARN);
 				break;
 			}
 			default:
 				break;
 			}
 
-			SPD_LOG(g_logger_name, "Command has finished and not jump");
+			SPD_LOG(g_logger_name, "[parser] Command has finished and not jump");
 			break;
 		}
 		case TK_LOCAL:
 		{
-			SPD_LOG(g_logger_name, "Processing local variable");
+			SPD_LOG(g_logger_name, "[parser] Processing local variable");
 			processLocalVariable();
-			SPD_LOG(g_logger_name, "Local variable has finished");
+			SPD_LOG(g_logger_name, "[parser] Local variable has finished");
 			break;
 		}
 		case TK_VARDECL:
 		case TK_VARFREE:
 		case TK_VARCLR:
 		{
-			SPD_LOG(g_logger_name, "Processing global variable");
+			SPD_LOG(g_logger_name, "[parser] Processing global variable");
 			processVariable(currentType);
-			SPD_LOG(g_logger_name, "Global variable has finished");
+			SPD_LOG(g_logger_name, "[parser] Global variable has finished");
+			break;
+		}
+		case TK_LARRAY:
+		{
+			processLocalArray();
+			break;
+		}
+		case TK_GARRAY:
+		{
+			processGlobalArray();
+			break;
+		}
+		case TK_ARRAYELEMENT:
+		{
+			processArrayElement();
 			break;
 		}
 		case TK_MULTIVAR:
 		{
-			SPD_LOG(g_logger_name, "Processing multi global variable");
+			SPD_LOG(g_logger_name, "[parser] Processing multi global variable");
 			processMultiVariable();
-			SPD_LOG(g_logger_name, "Multi global variable has finished");
+			SPD_LOG(g_logger_name, "[parser] Multi global variable has finished");
 			break;
 		}
 		case TK_INCDEC:
 		{
-			SPD_LOG(g_logger_name, "Processing inc/dec variable");
+			SPD_LOG(g_logger_name, "[parser] Processing inc/dec variable");
 			processVariableIncDec();
-			SPD_LOG(g_logger_name, "Inc/dec variable has finished");
+			SPD_LOG(g_logger_name, "[parser] Inc/dec variable has finished");
 			break;
 		}
 		case TK_CAOS:
 		{
-			SPD_LOG(g_logger_name, "Processing CAOS variable");
+			SPD_LOG(g_logger_name, "[parser] Processing CAOS variable");
 			processVariableCAOs();
-			SPD_LOG(g_logger_name, "CAOS variable has finished");
+			SPD_LOG(g_logger_name, "[parser] CAOS variable has finished");
 			break;
 		}
 		case TK_EXPR:
 		{
-			SPD_LOG(g_logger_name, "Processing expression");
+			SPD_LOG(g_logger_name, "[parser] Processing expression");
 			processVariableExpr();
-			SPD_LOG(g_logger_name, "Expression has finished");
+			SPD_LOG(g_logger_name, "[parser] Expression has finished");
 			break;
 		}
 		case TK_FORMAT:
 		{
-			SPD_LOG(g_logger_name, "Processing formation");
+			SPD_LOG(g_logger_name, "[parser] Processing formation");
 			processFormation();
-			SPD_LOG(g_logger_name, "Formation has finished");
+			SPD_LOG(g_logger_name, "[parser] Formation has finished");
 			break;
 		}
 		case TK_RND:
 		{
-			SPD_LOG(g_logger_name, "Processing random");
+			SPD_LOG(g_logger_name, "[parser] Processing random");
 			processRandom();
-			SPD_LOG(g_logger_name, "Random has finished");
+			SPD_LOG(g_logger_name, "[parser] Random has finished");
 			break;
 		}
 		case TK_CALL:
 		{
-			SPD_LOG(g_logger_name, "Processing call");
+			SPD_LOG(g_logger_name, "[parser] Processing call");
 			if (processCall())
 			{
-				SPD_LOG(g_logger_name, "Call has jumped");
+				SPD_LOG(g_logger_name, "[parser] Call has jumped");
 				generateStackInfo(0);
-				SPD_LOG(g_logger_name, "done generateStackInfo");
+				SPD_LOG(g_logger_name, "[parser] done generateStackInfo");
 				continue;
 			}
-			SPD_LOG(g_logger_name, "Call has not jumped");
+			SPD_LOG(g_logger_name, "[parser] Call has not jumped");
 			break;
 		}
 		case TK_GOTO:
 		{
-			SPD_LOG(g_logger_name, "Processing goto");
+			SPD_LOG(g_logger_name, "[parser] Processing goto");
 			if (processGoto())
 			{
-				SPD_LOG(g_logger_name, "Goto has jumped");
+				SPD_LOG(g_logger_name, "[parser] Goto has jumped");
 				generateStackInfo(1);
-				SPD_LOG(g_logger_name, "done generateStackInfo");
+				SPD_LOG(g_logger_name, "[parser] done generateStackInfo");
 				continue;
 			}
-			SPD_LOG(g_logger_name, "Goto has not jumped");
+			SPD_LOG(g_logger_name, "[parser] Goto has not jumped");
 			break;
 		}
 		case TK_JMP:
 		{
-			SPD_LOG(g_logger_name, "Processing jump");
+			SPD_LOG(g_logger_name, "[parser] Processing jump");
 			if (processJump())
 			{
-				SPD_LOG(g_logger_name, "Jump has jumped");
+				SPD_LOG(g_logger_name, "[parser] Jump has jumped");
 				generateStackInfo(1);
-				SPD_LOG(g_logger_name, "done generateStackInfo");
+				SPD_LOG(g_logger_name, "[parser] done generateStackInfo");
 				continue;
 			}
-			SPD_LOG(g_logger_name, "Jump has not jumped");
+			SPD_LOG(g_logger_name, "[parser] Jump has not jumped");
 			break;
 		}
 		case TK_RETURN:
 		{
-			SPD_LOG(g_logger_name, "Processing return");
+			SPD_LOG(g_logger_name, "[parser] Processing return");
 			processReturn();
-			SPD_LOG(g_logger_name, "Return has finished");
+			SPD_LOG(g_logger_name, "[parser] Return has finished");
 			generateStackInfo(0);
-			SPD_LOG(g_logger_name, "done generateStackInfo");
+			SPD_LOG(g_logger_name, "[parser] done generateStackInfo");
 			continue;
 		}
 		case TK_BAK:
 		{
-			SPD_LOG(g_logger_name, "Processing back");
+			SPD_LOG(g_logger_name, "[parser] Processing back");
 			processBack();
-			SPD_LOG(g_logger_name, "Back has finished");
+			SPD_LOG(g_logger_name, "[parser] Back has finished");
 			generateStackInfo(1);
-			SPD_LOG(g_logger_name, "done generateStackInfo");
+			SPD_LOG(g_logger_name, "[parser] done generateStackInfo");
 			continue;
 		}
 		case TK_LABEL:
 		{
-			SPD_LOG(g_logger_name, "Processing label/function");
+			SPD_LOG(g_logger_name, "[parser] Processing label/function");
 			processLabel();
-			SPD_LOG(g_logger_name, "Label/function has finished");
+			SPD_LOG(g_logger_name, "[parser] Label/function has finished");
 			break;
 		}
 		default:
 		{
 			qDebug() << "Unexpected token type:" << currentType;
+			SPD_LOG(g_logger_name, "[parser] Unexpected token type", SPD_WARN);
 			break;
 		}
 		}
 
-		SPD_LOG(g_logger_name, "check isInterruptionRequested");
+		SPD_LOG(g_logger_name, "[parser] check isInterruptionRequested");
 		if (isInterruptionRequested())
 		{
 			name.clear();
@@ -2733,7 +3211,7 @@ void Parser::processTokens()
 		{
 			if (!skip)
 			{
-				SPD_LOG(g_logger_name, "Emitting var info");
+				SPD_LOG(g_logger_name, "[parser] Emitting var info");
 				QVariantHash varhash;
 				QVariantHash* pglobalHash = getGlobalVarPointer();
 				QVariantHash localHash;
@@ -2754,17 +3232,17 @@ void Parser::processTokens()
 				}
 
 				emit signalDispatcher.varInfoImported(varhash);
-				SPD_LOG(g_logger_name, "Var info emitted");
+				SPD_LOG(g_logger_name, "[parser] Var info emitted");
 			}
 		}
 
 		//移動至下一行
-		SPD_LOG(g_logger_name, "Moving to next line");
+		SPD_LOG(g_logger_name, "[parser] Moving to next line");
 		next();
-		SPD_LOG(g_logger_name, "done Moved to next line");
+		SPD_LOG(g_logger_name, "[parser] done Moved to next line");
 	}
 
-	SPD_LOG(g_logger_name, "Processing finished");
+	SPD_LOG(g_logger_name, "[parser] Process finished, clean now");
 	processClean();
-
+	SPD_LOG(g_logger_name, "[parser] clean done");
 }

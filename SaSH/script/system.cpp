@@ -529,6 +529,7 @@ qint64 Interpreter::set(qint64 currentline, const TokenMap& TK)
 			{ u8"戰鬥99秒", util::kBattleTimeExtendEnable },
 			{ u8"落馬逃跑", util::kFallDownEscapeEnable },
 			{ u8"顯示經驗", util::kShowExpEnable },
+			{ u8"窗口吸附", util::kWindowDockEnable },
 
 			{ u8"隊伍開關", util::kSwitcherTeamEnable },
 			{ u8"PK開關", util::kSwitcherPKEnable },
@@ -649,6 +650,7 @@ qint64 Interpreter::set(qint64 currentline, const TokenMap& TK)
 			{ u8"战斗99秒", util::kBattleTimeExtendEnable },
 			{ u8"落马逃跑", util::kFallDownEscapeEnable },
 			{ u8"显示经验", util::kShowExpEnable },
+			{ u8"窗口吸附", util::kWindowDockEnable },
 
 			{ u8"队伍开关", util::kSwitcherTeamEnable },
 			{ u8"PK开关", util::kSwitcherPKEnable },
@@ -854,6 +856,7 @@ qint64 Interpreter::set(qint64 currentline, const TokenMap& TK)
 	case util::kBattleTimeExtendEnable:
 	case util::kFallDownEscapeEnable:
 	case util::kShowExpEnable:
+	case util::kWindowDockEnable:
 
 		//switcher
 	case util::kSwitcherTeamEnable:

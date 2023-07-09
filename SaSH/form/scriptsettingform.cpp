@@ -156,6 +156,7 @@ ScriptSettingForm::ScriptSettingForm(QWidget* parent)
 		QFont font = ui.widget->getOldFont();
 		font.setPointSize(fontSize);
 		ui.widget->setNewFont(font);
+		ui.widget->zoomTo(3);
 	}
 
 	ObjectName = ui.listView_log->objectName();
@@ -600,7 +601,7 @@ void ScriptSettingForm::onAddBreakMarker(int liner, bool b)
 			break_marker_t bk = {};
 			bk.line = liner;
 			bk.content = ui.widget->text(liner);
-			if (bk.content.simplified().isEmpty() || bk.content.simplified().indexOf("//") == 0)
+			if (bk.content.simplified().isEmpty() || bk.content.simplified().indexOf("//") == 0 || bk.content.simplified().indexOf("/*") == 0)
 				return;
 			bk.count = NULL;
 			bk.maker = static_cast<qint64>(CodeEditor::SymbolHandler::SYM_POINT);
@@ -691,8 +692,6 @@ void ScriptSettingForm::replaceCommas(QStringList& inputList)
 
 void ScriptSettingForm::fileSave(const QString& d, DWORD flag)
 {
-	//static const QRegularExpression rexLoadComma(R"(,[ \t\f\v]{0,})");
-	//static const QRegularExpression rexSetComma(R"(,)");
 	Injector& injector = Injector::getInstance();
 	if (injector.IS_SCRIPT_FLAG.load(std::memory_order_acquire))
 		return;
@@ -708,7 +707,6 @@ void ScriptSettingForm::fileSave(const QString& d, DWORD flag)
 		return;
 
 	//backup
-
 	QDir bakDir(QApplication::applicationDirPath() + "/script/bak");
 	if (!bakDir.exists())
 		bakDir.mkdir(QApplication::applicationDirPath() + "/script/bak");
@@ -716,18 +714,6 @@ void ScriptSettingForm::fileSave(const QString& d, DWORD flag)
 	QString backupName(QString("%1/script/bak/%2.bak").arg(QApplication::applicationDirPath()).arg(fi.fileName()));
 	QFile::remove(backupName);
 	QFile::copy(fileName, backupName);
-
-	//紀錄光標位置
-	int line = NULL, index = NULL;
-	ui.widget->getCursorPosition(&line, &index);
-
-	//紀錄選擇範圍
-	int lineFrom = NULL, indexFrom = NULL, lineTo = NULL, indexTo = NULL;
-	ui.widget->getSelection(&lineFrom, &indexFrom, &lineTo, &indexTo);
-
-	//紀錄滾動條位置
-	int v = ui.widget->verticalScrollBar()->value();
-
 
 	QFile file(fileName);
 	if (!file.open((QIODevice::OpenModeFlag)flag))
@@ -740,7 +726,6 @@ void ScriptSettingForm::fileSave(const QString& d, DWORD flag)
 
 	QString content(d);
 	//check if is not CRLF switch to CRLF
-
 	content.replace("\r\n", "\n");
 	content.replace("\n", "\r\n");
 
@@ -751,7 +736,27 @@ void ScriptSettingForm::fileSave(const QString& d, DWORD flag)
 	for (const QString& line : contents)
 	{
 		QString trimmedLine = line.trimmed();
-		if (trimmedLine.startsWith("end"))
+		int endIndex = trimmedLine.indexOf("end");
+		QString tmpLine;
+		if (endIndex != -1)
+		{
+			int commandIndex = trimmedLine.simplified().indexOf("//");
+			if (commandIndex == -1)
+			{
+				commandIndex = trimmedLine.simplified().indexOf("/*");
+			}
+
+			if (commandIndex != -1 && commandIndex < endIndex)
+			{
+				tmpLine = trimmedLine.left(commandIndex).simplified();
+			}
+			else
+			{
+				tmpLine = trimmedLine.simplified();
+			}
+		}
+
+		if (trimmedLine.startsWith("end") && !tmpLine.isEmpty() && tmpLine == "end")
 		{
 			indentLevel--;
 		}
@@ -765,49 +770,10 @@ void ScriptSettingForm::fileSave(const QString& d, DWORD flag)
 
 	replaceCommas(newContents);
 
-	//int indent_begin = -1;
-	//int indent_end = -1;
-	//for (int i = 0; i < contents.size(); ++i)
-	//{
-	//	contents[i].replace(rexLoadComma, ",");
-	//	contents[i].replace(rexSetComma, ", ");
-	//	contents[i] = contents[i].trimmed();
-	//	if (contents[i].startsWith("function") && indent_begin == -1)
-	//	{
-	//		indent_begin = i + 1;
-	//	}
-	//	else if (contents[i].startsWith("function") && indent_begin != -1)
-	//	{
-	//		indent_begin = -1;
-	//	}
-	//	else if ((contents[i].startsWith("end")) && indent_begin != -1 && indent_end == -1)
-	//	{
-	//		indent_end = i - 1;
-	//		for (int j = indent_begin; j <= indent_end; ++j)
-	//		{
-	//			contents[j] = "    " + contents[j];
-	//		}
-	//		indent_begin = -1;
-	//		indent_end = -1;
-	//	}
-	//}
 	ts << newContents.join("\n");
 	ts.flush();
 	file.flush();
 	file.close();
-
-	ui.widget->selectAll();
-	ui.widget->replaceSelectedText(contents.join("\r\n"));
-	//回復選擇範圍
-	//ui.widget->setSelection(lineFrom, indexFrom, lineTo, indexTo);
-	//
-
-	////回復光標位置
-	ui.widget->setCursorPosition(line, index);
-	ui.widget->ensureLineVisible(line);
-
-	//回復滾動條位置
-	ui.widget->verticalScrollBar()->setValue(v);
 
 	ui.statusBar->showMessage(QString(tr("Script %1 saved")).arg(fileName), 3000);
 
@@ -820,7 +786,9 @@ void ScriptSettingForm::fileSave(const QString& d, DWORD flag)
 	error_markers.clear();
 	step_markers.clear();
 	reshowBreakMarker();
-	on_comboBox_labels_clicked();
+
+	emit ui.comboBox_labels->clicked();
+	emit ui.comboBox_functions->clicked();
 }
 
 void ScriptSettingForm::onScriptTreeWidgetHeaderClicked(int logicalIndex)
@@ -875,6 +843,16 @@ void ScriptSettingForm::loadFile(const QString& fileName)
 	if (!f.isOpen())
 		return;
 
+	int curLine = -1;
+	int curIndex = -1;
+	ui.widget->getCursorPosition(&curLine, &curIndex);
+
+	int lineFrom = -1, indexFrom = -1, lineTo = -1, indexTo = -1;
+	ui.widget->getSelection(&lineFrom, &indexFrom, &lineTo, &indexTo);
+
+	//紀錄滾動條位置
+	int scollValue = ui.widget->verticalScrollBar()->value();
+
 	QTextStream in(&f);
 	in.setCodec(util::CODEPAGE_DEFAULT);
 	QString c = in.readAll();
@@ -882,18 +860,20 @@ void ScriptSettingForm::loadFile(const QString& fileName)
 
 	Injector& injector = Injector::getInstance();
 	injector.currentScriptFileName = fileName;
-	ui.widget->setUpdatesEnabled(false);
 
 	if (!injector.server.isNull() && injector.server->getOnlineFlag())
 		setWindowTitle(QString("[%1] %2").arg(injector.server->getPC().name).arg(injector.currentScriptFileName));
 	else
 		setWindowTitle(injector.currentScriptFileName);
 
+	ui.widget->setUpdatesEnabled(false);
+
 	ui.widget->convertEols(QsciScintilla::EolWindows);
 	ui.widget->setUtf8(true);
 	ui.widget->setModified(false);
 	ui.widget->selectAll();
 	ui.widget->replaceSelectedText(c);
+
 	ui.widget->setUpdatesEnabled(true);
 
 	onAddErrorMarker(-1, false);
@@ -904,7 +884,20 @@ void ScriptSettingForm::loadFile(const QString& fileName)
 	step_markers.clear();
 
 	reshowBreakMarker();
-	on_comboBox_labels_clicked();
+	emit ui.comboBox_labels->clicked();
+	emit ui.comboBox_functions->clicked();
+
+	if (lineFrom >= 0 && indexFrom >= 0 && lineTo >= 0 && indexTo >= 0)
+	{
+		ui.widget->setSelection(lineFrom, indexFrom, lineTo, indexTo);
+	}
+	else
+	{
+		ui.widget->setCursorPosition(curLine, curIndex);
+	}
+
+	if (scollValue >= 0)
+		ui.widget->verticalScrollBar()->setValue(scollValue);
 }
 
 void ScriptSettingForm::setContinue()
@@ -1157,7 +1150,7 @@ void ScriptSettingForm::onWidgetModificationChanged(bool changed)
 
 void ScriptSettingForm::on_comboBox_labels_clicked()
 {
-	static const QRegularExpression rex_divLabel(u8R"(([標|標][記|記]|function|label)\s+[\p{Han}|\w]+)");
+	static const QRegularExpression rex_divLabel(u8R"((label\s+[\p{Han}\w]+))");
 	ui.comboBox_labels->blockSignals(true);
 	//將所有lua function 和 label加入 combobox並使其能定位行號
 	int line = -1, index = -1;
@@ -1178,7 +1171,7 @@ void ScriptSettingForm::on_comboBox_labels_clicked()
 		while (it.hasNext())
 		{
 			const QRegularExpressionMatch match = it.next();
-			const QString str = match.captured(0).simplified();
+			const QString str = match.captured(1).simplified();
 			if (!str.isEmpty())
 			{
 				ui.comboBox_labels->addItem(QIcon(":/image/icon_label.png"), str.simplified(), QVariant(i));
@@ -1187,6 +1180,40 @@ void ScriptSettingForm::on_comboBox_labels_clicked()
 	}
 	ui.comboBox_labels->setCurrentIndex(cur);
 	ui.comboBox_labels->blockSignals(false);
+}
+
+void ScriptSettingForm::on_comboBox_functions_clicked()
+{
+	static const QRegularExpression rex_divLabel(u8R"((function\s+[\p{Han}\w]+))");
+	ui.comboBox_functions->blockSignals(true);
+	//將所有lua function 和 label加入 combobox並使其能定位行號
+	int line = -1, index = -1;
+	ui.widget->getCursorPosition(&line, &index);
+
+	const QString contents = ui.widget->text();
+	const QStringList conlist = contents.split("\n");
+	int cur = ui.comboBox_functions->currentIndex();
+	ui.comboBox_functions->clear();
+
+	int count = conlist.size();
+	for (int i = 0; i < count; ++i)
+	{
+		const QString linestr = conlist.at(i).simplified();
+		if (linestr.isEmpty())
+			continue;
+		QRegularExpressionMatchIterator it = rex_divLabel.globalMatch(linestr);
+		while (it.hasNext())
+		{
+			const QRegularExpressionMatch match = it.next();
+			const QString str = match.captured(1).simplified();
+			if (!str.isEmpty())
+			{
+				ui.comboBox_functions->addItem(QIcon(":/image/icon_func.png"), str.simplified(), QVariant(i));
+			}
+		}
+	}
+	ui.comboBox_functions->setCurrentIndex(cur);
+	ui.comboBox_functions->blockSignals(false);
 }
 
 void ScriptSettingForm::on_widget_cursorPositionChanged(int line, int index)
@@ -1214,9 +1241,9 @@ void ScriptSettingForm::on_widget_textChanged()
 		m_isModified = false;
 		ui.widget->setModified(false);
 	}
-	int line = -1, index = -1;
-	ui.widget->getCursorPosition(&line, &index);
-	on_widget_cursorPositionChanged(line, index);
+	//int line = -1, index = -1;
+	//ui.widget->getCursorPosition(&line, &index);
+	//on_widget_cursorPositionChanged(line, index);
 }
 
 //查找命令
@@ -1305,6 +1332,16 @@ void ScriptSettingForm::onEditorCursorPositionChanged(int line, int index)
 void ScriptSettingForm::on_comboBox_labels_currentIndexChanged(int)
 {
 	QVariant var = ui.comboBox_labels->currentData();
+	if (var.isValid())
+	{
+		int line = var.toInt();
+		onEditorCursorPositionChanged(line, NULL);
+	}
+}
+
+void ScriptSettingForm::on_comboBox_functions_currentIndexChanged(int)
+{
+	QVariant var = ui.comboBox_functions->currentData();
 	if (var.isValid())
 	{
 		int line = var.toInt();
@@ -1424,6 +1461,18 @@ void ScriptSettingForm::varInfoImport(QTreeWidget* tree, const QHash<QString, QV
 			{
 				varType = tr("ULongLong");
 				varValueStr = QString::number(var.toULongLong());
+				break;
+			}
+			case QVariant::List:
+			{
+				varType = tr("List");
+				QVariantList l = var.toList();
+				QStringList sl;
+				for (auto it = l.cbegin(); it != l.cend(); ++it)
+				{
+					sl.append(it->toString());
+				}
+				varValueStr = sl.join(", ");
 				break;
 			}
 			default:

@@ -13,15 +13,56 @@ FindDialog::FindDialog(CodeEditor* textWidget)
 
 void FindDialog::initControl()
 {
+	QString buttonStyle = R"(
+		QPushButton {
+		background-color: rgb(66, 66, 66);
+		border: 0px solid #dcdfe6;
+		padding: 3px;
+		color:rgb(214, 214, 214);
+		}
+
+		QPushButton:hover {
+		background-color: rgb(64, 53, 130);
+		color:rgb(250, 250, 250);
+		}
+
+		QPushButton:pressed, QPushButton:checked {
+		background-color: rgb(145, 131, 238);
+		color:rgb(250, 250, 250);
+		}
+	)";
+
+	QString lineEditStyle = R"(
+		QLineEdit{
+		  color:rgb(250,250,250);
+		  font-size:12px;
+		  padding: 1px 15px 1px 3px;
+		  border:1px solid rgb(66,66,66);
+		  background: rgb(56,56,56);
+		}
+
+		QLineEdit::hover{
+		  color:rgb(250,250,250);
+		  font-size:12px;
+		  padding: 1px 15px 1px 3px;
+		  border:1px solid rgb(153,153,153);
+		  background: rgb(31,31,31);
+		}
+	)";
+
 	setAttribute(Qt::WA_DeleteOnClose);
-	m_findLbl.setText("Find What:");
-	m_findBtn.setText("Find Next");
-	m_closeBtn.setText("Close");
-	m_matchChkBx.setText("Match Case");
-	m_backwardBtn.setText("Backward");
-	m_forwardBtn.setText("Forward");
+	m_findLbl.setText(tr("Find What:"));
+	m_findBtn.setText(tr("Find Next"));
+	m_findBtn.setStyleSheet(buttonStyle);
+	m_closeBtn.setText(tr("Close"));
+	m_closeBtn.setStyleSheet(buttonStyle);
+	m_matchChkBx.setText(tr("Match Case"));
+	m_backwardBtn.setText(tr("Backward"));
+	m_forwardBtn.setText(tr("Forward"));
 	m_forwardBtn.setChecked(true);
-	m_radioGrpBx.setTitle("Direction");
+	m_radioGrpBx.setTitle(tr("Direction"));
+
+	m_findEdit.setStyleSheet(lineEditStyle);
 
 	m_hbLayout.addWidget(&m_forwardBtn);
 	m_hbLayout.addWidget(&m_backwardBtn);
@@ -68,60 +109,120 @@ bool FindDialog::event(QEvent* evt)
 
 void FindDialog::onFindClicked()
 {
+	//取當前要查找的字符串
 	QString cmpText = m_findEdit.text();
 
-	if ((m_pText != nullptr) && (!cmpText.isEmpty()))
+	if ((m_pText == nullptr) || (cmpText.isEmpty()))
 	{
-		QString text = m_pText->text();
-		if (text.isEmpty())
-		{
-			return;
-		}
+		return;
+	}
 
-		int fromLineIndex = 0;
-		int fromIndex = 0;
-		m_pText->getCursorPosition(&fromLineIndex, &fromIndex);
+	//取搜索來源全內容
+	QString text = m_pText->text();
+	if (text.isEmpty())
+	{
+		return;
+	}
 
-		int index = -1;
-		int lineIndex = fromLineIndex;
-		int currentIndex = fromIndex;
+	text.replace("\r\n", "\n");
 
-		if (m_forwardBtn.isChecked())
-		{
-			index = text.indexOf(cmpText, currentIndex, m_matchChkBx.isChecked() ? Qt::CaseSensitive : Qt::CaseInsensitive);
+	QStringList strList = text.split("\n");
 
-			if (index >= 0)
-			{
-				lineIndex = text.left(index).count("\n");
-				currentIndex = index;
-			}
-		}
-		else if (m_backwardBtn.isChecked())
-		{
-			index = text.lastIndexOf(cmpText, currentIndex, m_matchChkBx.isChecked() ? Qt::CaseSensitive : Qt::CaseInsensitive);
+	//取當前光標位置
+	int fromLineIndex = 0;
+	int fromIndex = 0;
+	m_pText->getCursorPosition(&fromLineIndex, &fromIndex);
 
-			if (index >= 0)
-			{
-				lineIndex = text.left(index).count("\n");
-				currentIndex = index;
-			}
-		}
+	//取當前選中的內容
+	int lineFrom = 0;
+	int indexFrom = 0;
+	int lineTo = 0;
+	int indexTo = 0;
+	m_pText->getSelection(&lineFrom, &indexFrom, &lineTo, &indexTo);
+	QString selectText = m_pText->selectedText();
 
-		if (index >= 0)
-		{
-			m_pText->setCursorPosition(lineIndex, currentIndex);
-			m_pText->setSelection(lineIndex, currentIndex, lineIndex, currentIndex + cmpText.length());
-		}
+	// 确定起始行和起始索引
+	int startLine = fromLineIndex;
+	int startIndex = fromIndex;
+
+	// 是否顺向搜索
+	bool isForward = m_forwardBtn.isChecked();
+
+	if (!selectText.isEmpty())
+	{
+		// 如果有选中内容，则根据选中内容的末尾位置作为起始位置
+		startLine = lineTo;
+		if (isForward)
+			startIndex = indexTo;
 		else
+			startIndex = indexFrom;
+	}
+
+	// 是否区分大小写
+	Qt::CaseSensitivity caseSensitivity = m_matchChkBx.isChecked() ? Qt::CaseSensitive : Qt::CaseInsensitive;
+
+	int nowStartIndex = startIndex;
+	int nowEndIndex = -1;
+	if (isForward)
+	{
+		for (int i = startLine; i < strList.size(); ++i)
 		{
-			QMessageBox msg(this);
-			msg.setWindowTitle("Find");
-			msg.setText("Can not find \"" + cmpText + "\" anymore...");
-			msg.setIcon(QMessageBox::Information);
-			msg.setStandardButtons(QMessageBox::Ok);
-			msg.exec();
+			QString lineText = strList.at(i);
+
+			nowStartIndex = lineText.indexOf(cmpText, nowStartIndex, caseSensitivity);
+			if (nowStartIndex == -1)
+			{
+				// 从下一行开始搜索
+				nowStartIndex = 0;
+				continue;
+			}
+			nowEndIndex = nowStartIndex + cmpText.length();
+
+
+			if (nowStartIndex != -1)
+			{
+				m_pText->setSelection(i, nowStartIndex, i, nowEndIndex);
+				m_pText->ensureLineVisible(i);
+				return;
+			}
 		}
 	}
+	else
+	{
+		for (int i = startLine; i >= 0; --i)
+		{
+			QString lineText = strList.at(i);
+
+			int lineLength = lineText.length();
+			nowStartIndex = lineText.lastIndexOf(cmpText, nowStartIndex, caseSensitivity);
+			if (nowStartIndex == -1)
+			{
+				// 从上一行末尾开始搜索
+				nowStartIndex = lineLength;
+				continue;
+			}
+			nowEndIndex = nowStartIndex + cmpText.length();
+
+			if (nowStartIndex != -1)
+			{
+				// 如果找到匹配的字符串，但该字符串是当前选中的内容，则继续搜索上一个匹配
+				if (i == lineTo && nowStartIndex <= indexTo && nowEndIndex >= indexFrom)
+				{
+					nowStartIndex = nowStartIndex - cmpText.length();
+					continue;
+				}
+
+				m_pText->setCursorPosition(i, nowStartIndex);
+				m_pText->setSelection(i, nowStartIndex, i, nowEndIndex);
+				m_pText->ensureLineVisible(i);
+				return;
+			}
+		}
+	}
+
+	// 没有找到
+	QMessageBox::information(this, tr("Find"), tr("Can not find \"%1\".").arg(cmpText));
+
 }
 
 
@@ -141,10 +242,51 @@ ReplaceDialog::ReplaceDialog(CodeEditor* pText) :
 
 void ReplaceDialog::initControl()
 {
+	QString buttonStyle = R"(
+		QPushButton {
+		background-color: rgb(66, 66, 66);
+		border: 0px solid #dcdfe6;
+		padding: 3px;
+		color:rgb(214, 214, 214);
+		}
+
+		QPushButton:hover {
+		background-color: rgb(64, 53, 130);
+		color:rgb(250, 250, 250);
+		}
+
+		QPushButton:pressed, QPushButton:checked {
+		background-color: rgb(145, 131, 238);
+		color:rgb(250, 250, 250);
+		}
+	)";
+
+	QString lineEditStyle = R"(
+		QLineEdit{
+		  color:rgb(250,250,250);
+		  font-size:12px;
+		  padding: 1px 15px 1px 3px;
+		  border:1px solid rgb(66,66,66);
+		  background: rgb(56,56,56);
+		}
+
+		QLineEdit::hover{
+		  color:rgb(250,250,250);
+		  font-size:12px;
+		  padding: 1px 15px 1px 3px;
+		  border:1px solid rgb(153,153,153);
+		  background: rgb(31,31,31);
+		}
+	)";
+
 	setAttribute(Qt::WA_DeleteOnClose);
-	m_replaceLbl.setText("Replace To:");
-	m_replaceBtn.setText("Replace");
-	m_replaceAllBtn.setText("Replace All");
+	m_replaceLbl.setText(tr("Replace To:"));
+	m_replaceBtn.setText(tr("Replace"));
+	m_replaceBtn.setStyleSheet(buttonStyle);
+	m_replaceAllBtn.setText(tr("Replace All"));
+	m_replaceAllBtn.setStyleSheet(buttonStyle);
+
+	m_replaceEdit.setStyleSheet(lineEditStyle);
 
 	m_layout.removeWidget(&m_matchChkBx); // 父类的构造函数已经初始化，所以需要移除
 	m_layout.removeWidget(&m_radioGrpBx);
@@ -185,18 +327,26 @@ void ReplaceDialog::onReplaceClicked()
 
 void ReplaceDialog::onReplaceAllClicked()
 {
+	//select all
+	m_pText->selectAll();
+
 	QString target = m_findEdit.text();
 	QString to = m_replaceEdit.text();
 
-	if ((m_pText != NULL) && (target != "") && (to != ""))
+	if (target.isEmpty() || to.isEmpty())
 	{
-		QString text = m_pText->text();
-
-		text.replace(target, to, m_matchChkBx.isChecked() ? Qt::CaseSensitive : Qt::CaseInsensitive);
-
-		m_pText->clear();
-
-		m_pText->insert(text);
+		return;
 	}
+
+	if (target == to)
+	{
+		return;
+	}
+
+	QString str = m_pText->selectedText();
+
+	str.replace(target, to, m_matchChkBx.isChecked() ? Qt::CaseSensitive : Qt::CaseInsensitive);
+
+	m_pText->replaceSelectedText(str);
 }
 

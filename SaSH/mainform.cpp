@@ -551,6 +551,45 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, long* res
 	return false;
 }
 
+//窗口移動事件
+void MainForm::moveEvent(QMoveEvent* e)
+{
+	do
+	{
+		if (e == nullptr)
+			return;
+
+
+		QPoint pos = e->pos();
+		qDebug() << pos;
+		Injector& injector = Injector::getInstance();
+		HWND hWnd = injector.getProcessWindow();
+		if (hWnd == nullptr)
+			break;
+
+		if (!injector.getEnableHash(util::kWindowDockEnable))
+			break;
+
+		//HWND獲取寬度
+		RECT rect;
+		GetWindowRect(hWnd, &rect);
+
+		//窗口如果不可見則恢復
+		if (!IsWindowVisible(hWnd))
+		{
+			ShowWindow(hWnd, SW_RESTORE);
+			ShowWindow(hWnd, SW_SHOW);
+		}
+
+		//將目標窗口吸附在本窗口左側
+		PostMessageW(hWnd, WM_MOVE + WM_USER, 0, MAKELPARAM(pos.x() - 654, pos.y() - 31));
+
+
+	} while (false);
+
+
+}
+
 //更新接口調用次數顯示
 void MainForm::updateStatusText()
 {
@@ -1233,7 +1272,19 @@ void MainForm::onInputBoxShow(const QString& text, int type, QVariant* retvalue)
 
 	QInputDialog inputDialog(this);
 	inputDialog.setLabelText(newText);
-	inputDialog.setInputMode(static_cast<QInputDialog::InputMode>(type));
+	QInputDialog::InputMode mode = static_cast<QInputDialog::InputMode>(type);
+	inputDialog.setInputMode(mode);
+	if (mode == QInputDialog::IntInput)
+	{
+		inputDialog.setIntMinimum(INT_MIN);
+		inputDialog.setIntMaximum(INT_MAX);
+	}
+	else if (mode == QInputDialog::DoubleInput)
+	{
+		inputDialog.setDoubleMinimum(-DBL_MAX);
+		inputDialog.setDoubleMaximum(DBL_MAX);
+	}
+
 	inputDialog.setWindowFlags(inputDialog.windowFlags() & ~Qt::WindowContextHelpButtonHint);
 	auto ret = inputDialog.exec();
 	if (ret != QDialog::Accepted)
@@ -1242,10 +1293,10 @@ void MainForm::onInputBoxShow(const QString& text, int type, QVariant* retvalue)
 	switch (type)
 	{
 	case QInputDialog::IntInput:
-		*retvalue = inputDialog.intValue();
+		*retvalue = static_cast<qint64>(inputDialog.intValue());
 		break;
 	case QInputDialog::DoubleInput:
-		*retvalue = inputDialog.doubleValue();
+		*retvalue = static_cast<qint64>(inputDialog.doubleValue());
 		break;
 	case QInputDialog::TextInput:
 		*retvalue = inputDialog.textValue();

@@ -321,228 +321,6 @@ void Interpreter::registerFunction(const QString functionName, Func fun)
 	parser_.registerFunction(functionName, std::bind(fun, this, std::placeholders::_1, std::placeholders::_2));
 }
 
-//檢查是否戰鬥，如果是則等待，並在戰鬥結束後停滯一段時間
-bool Interpreter::checkBattleThenWait()
-{
-	checkPause();
-
-	Injector& injector = Injector::getInstance();
-	bool bret = false;
-	if (injector.server->getBattleFlag())
-	{
-		QElapsedTimer timer; timer.start();
-		bret = true;
-		for (;;)
-		{
-			if (isInterruptionRequested())
-				break;
-
-			if (!injector.server.isNull())
-				break;
-
-			checkPause();
-
-			if (!injector.server->getBattleFlag())
-				break;
-			if (timer.hasExpired(60000))
-				break;
-			QThread::msleep(100);
-			QThread::yieldCurrentThread();
-		}
-
-		QThread::msleep(500UL);
-	}
-	return bret;
-}
-
-bool Interpreter::findPath(QPoint dst, qint64 steplen, qint64 step_cost, qint64 timeout, std::function<qint64(QPoint& dst)> callback, bool noAnnounce)
-{
-	Injector& injector = Injector::getInstance();
-	qint64 hModule = injector.getProcessModule();
-	HANDLE hProcess = injector.getProcess();
-
-	bool isDebug = injector.getEnableHash(util::kScriptDebugModeEnable);
-	if (isDebug)
-		noAnnounce = true;
-
-	auto getPos = [hProcess, hModule]()
-	{
-		return QPoint(mem::read<qint64>(hProcess, hModule + kOffestNowX), mem::read<qint64>(hProcess, hModule + kOffestNowY));
-	};
-
-	if (injector.server.isNull())
-		return false;
-
-	qint64 floor = injector.server->nowFloor;
-	QPoint src(getPos());
-	if (src == dst)
-		return true;//已經抵達
-
-	map_t _map;
-	QSharedPointer<MapAnalyzer> mapAnalyzer = injector.server->mapAnalyzer;
-	if (!mapAnalyzer.isNull() && mapAnalyzer->readFromBinary(floor, injector.server->nowFloorName))
-	{
-		if (mapAnalyzer.isNull() || !mapAnalyzer->getMapDataByFloor(floor, &_map))
-			return false;
-	}
-	else
-		return false;
-
-	if (!noAnnounce && !injector.server.isNull())
-		injector.server->announce(QObject::tr("<findpath>start searching the path"));//"<尋路>開始搜尋路徑"
-
-	QVector<QPoint> path;
-	QElapsedTimer timer; timer.start();
-	if (mapAnalyzer.isNull() || !mapAnalyzer->calcNewRoute(_map, src, dst, &path))
-	{
-		if (!noAnnounce && !injector.server.isNull())
-			injector.server->announce(QObject::tr("<findpath>unable to findpath"));//"<尋路>找不到路徑"
-		return false;
-	}
-
-	qint64 cost = static_cast<qint64>(timer.elapsed());
-	if (!noAnnounce && !injector.server.isNull())
-		injector.server->announce(QObject::tr("<findpath>path found, cost:%1 step:%2").arg(cost).arg(path.size()));//"<尋路>成功找到路徑，耗時：%1"
-
-	QPoint point;
-	qint64 steplen_cache = -1;
-	qint64 pathsize = path.size();
-	qint64 current_floor = floor;
-
-	timer.restart();
-
-	//用於檢測卡點
-	QElapsedTimer blockDetectTimer; blockDetectTimer.start();
-	QPoint lastPoint = src;
-
-	for (;;)
-	{
-		if (injector.server.isNull())
-			break;
-
-		if (isInterruptionRequested())
-			break;
-
-		src = getPos();
-
-		steplen_cache = steplen;
-
-		for (;;)
-		{
-			if (!((steplen_cache) >= (pathsize)))
-				break;
-			--steplen_cache;
-		}
-
-		if (steplen_cache >= 0 && (steplen_cache < pathsize))
-		{
-			if (lastPoint != src)
-			{
-				blockDetectTimer.restart();
-				lastPoint = src;
-			}
-
-			point = path.at(steplen_cache);
-			injector.server->move(point);
-			if (step_cost > 0)
-				QThread::msleep(step_cost);
-			QThread::msleep(50);
-		}
-
-		if (!checkBattleThenWait())
-		{
-			src = getPos();
-			if (src == dst)
-			{
-				cost = timer.elapsed();
-				if (cost > 2000)
-				{
-					QThread::msleep(500);
-
-					if (injector.server.isNull())
-						break;
-
-					if (getPos() != dst)
-						continue;
-
-					injector.server->EO();
-
-					if (getPos() != dst)
-						continue;
-
-					QThread::msleep(500);
-
-					if (injector.server.isNull())
-						break;
-
-					if (getPos() != dst)
-						continue;
-				}
-
-				injector.server->move(dst);
-
-				if (!noAnnounce && !injector.server.isNull())
-					injector.server->announce(QObject::tr("<findpath>arrived destination, cost:%1").arg(timer.elapsed()));//"<尋路>已到達目的地，耗時：%1"
-				return true;//已抵達true
-			}
-
-			if (mapAnalyzer.isNull() || !mapAnalyzer->calcNewRoute(_map, src, dst, &path))
-				break;
-
-			pathsize = path.size();
-		}
-
-		if (blockDetectTimer.hasExpired(5000))
-		{
-			blockDetectTimer.restart();
-			if (injector.server.isNull())
-				break;
-
-			injector.server->announce(QObject::tr("<findpath>detedted player ware blocked"));
-			injector.server->EO();
-			QThread::msleep(500);
-
-			if (injector.server.isNull())
-				break;
-
-			//往隨機8個方向移動
-			point = getPos();
-			lastPoint = point;
-			point = point + util::fix_point.at(QRandomGenerator::global()->bounded(0, 7));
-			injector.server->move(point);
-			QThread::msleep(100);
-
-			continue;
-		}
-
-		if (injector.server.isNull())
-			break;
-
-		if (isInterruptionRequested())
-			break;
-
-		if (timer.hasExpired(timeout))
-		{
-			if (!injector.server.isNull())
-				injector.server->announce(QObject::tr("<findpath>stop finding path due to timeout"));//"<尋路>超時，放棄尋路"
-			break;
-		}
-
-		if (injector.server->nowFloor != current_floor)
-		{
-			injector.server->announce(QObject::tr("<findpath>stop finding path due to map changed"));//"<尋路>地圖已變更，放棄尋路"
-			break;
-		}
-
-		if (callback != nullptr)
-		{
-			if (callback(dst) == 1)
-				callback = nullptr;
-		}
-	}
-	return false;
-}
-
 //嘗試取指定位置的token轉為字符串
 bool Interpreter::checkString(const TokenMap& TK, qint64 idx, QString* ret)
 {
@@ -985,123 +763,6 @@ bool Interpreter::waitfor(qint64 timeout, std::function<bool()> exprfun)
 	return bret;
 }
 
-qint64 Interpreter::mainScriptCallBack(qint64 currentLine, const TokenMap& TK)
-{
-	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
-	if (isInterruptionRequested())
-		return 0;
-
-	RESERVE currentType = TK.value(0).type;
-
-	bool skip = currentType == RESERVE::TK_WHITESPACE
-		|| currentType == RESERVE::TK_SPACE
-		|| currentType == RESERVE::TK_COMMENT
-		|| currentType == RESERVE::TK_UNK;
-
-	if (skip)
-		return 1;
-
-	SPD_LOG(g_logger_name, QString("main script callback: line: %1").arg(currentLine + 1));
-
-	emit signalDispatcher.scriptLabelRowTextChanged(currentLine + 1, parser_.getToken().size(), false);
-
-	if (TK.contains(0) && TK.value(0).type == TK_PAUSE)
-	{
-		paused();
-		emit signalDispatcher.scriptPaused();
-	}
-
-	checkPause();
-
-	SPD_LOG(g_logger_name, "check break markers");
-
-	util::SafeHash<qint64, break_marker_t> markers = break_markers.value(scriptFileName_);
-	const util::SafeHash<qint64, break_marker_t> step_marker = step_markers.value(scriptFileName_);
-	if (!(markers.contains(currentLine) || step_marker.contains(currentLine)))
-	{
-		SPD_LOG(g_logger_name, "no markers, return now");
-		return 1;//檢查是否有中斷點
-	}
-
-	paused();
-
-	if (markers.contains(currentLine))
-	{
-		//叫用次數+1
-		break_marker_t mark = markers.value(currentLine);
-		++mark.count;
-
-		//重新插入斷下的紀錄
-		markers.insert(currentLine, mark);
-		break_markers.insert(scriptFileName_, markers);
-
-		//所有行插入隱式斷點(用於單步)
-		emit signalDispatcher.addStepMarker(currentLine, true);
-	}
-
-	emit signalDispatcher.addForwardMarker(currentLine, true);
-
-	checkPause();
-
-	return 1;
-}
-
-void Interpreter::proc()
-{
-	isRunning_.store(true, std::memory_order_release);
-	qDebug() << "Interpreter::run()";
-	Injector& injector = Injector::getInstance();
-	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
-
-	pCallback = std::bind(&Interpreter::mainScriptCallBack, this, std::placeholders::_1, std::placeholders::_2);
-
-	do
-	{
-		if (pCallback == nullptr)
-			break;
-
-		if (!isSubScript())
-		{
-			injector.IS_SCRIPT_FLAG.store(true, std::memory_order_release);
-			if (!injector.server.isNull())
-			{
-				QString pcname = injector.server->getPC().name;
-				if (pcname.isEmpty())
-					pcname = "noname";
-
-				g_logger_name = SPD_INIT(pcname);
-
-			}
-			else
-				g_logger_name = SPD_INIT("noname");
-		}
-
-		parser_.setCallBack(pCallback);
-		openLibs();
-		parser_.parse(beginLine_);
-
-		if (!g_logger_name.isEmpty())
-			SPD_CLOSE(g_logger_name.toStdString());
-
-	} while (false);
-
-	for (auto& it : subInterpreterList_)
-	{
-		if (it.isNull())
-			continue;
-
-		it->requestInterruption();
-	}
-	futureSync_.waitForFinished();
-
-	if (!isSubScript())
-		injector.IS_SCRIPT_FLAG.store(false, std::memory_order_release);
-	isRunning_.store(false, std::memory_order_release);
-
-	emit finished();
-	emit signalDispatcher.scriptFinished();
-}
-
 void Interpreter::openLibs()
 {
 	openLibsBIG5();
@@ -1477,6 +1138,372 @@ void Interpreter::openLibsUTF8()
 	registerFunction(u8"bwf", &Interpreter::bwf);//pet nothing
 	registerFunction(u8"bwait", &Interpreter::bwait);
 	registerFunction(u8"bend", &Interpreter::bend);
+}
+
+qint64 Interpreter::mainScriptCallBack(qint64 currentLine, const TokenMap& TK)
+{
+	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
+	if (isInterruptionRequested())
+		return 0;
+
+	RESERVE currentType = TK.value(0).type;
+
+	bool skip = currentType == RESERVE::TK_WHITESPACE
+		|| currentType == RESERVE::TK_SPACE
+		|| currentType == RESERVE::TK_COMMENT
+		|| currentType == RESERVE::TK_UNK;
+
+	if (skip)
+		return 1;
+
+	SPD_LOG(g_logger_name, QString("[interpreter callback] line: %1").arg(currentLine + 1));
+
+	emit signalDispatcher.scriptLabelRowTextChanged(currentLine + 1, parser_.getToken().size(), false);
+
+	if (TK.contains(0) && TK.value(0).type == TK_PAUSE)
+	{
+		paused();
+		emit signalDispatcher.scriptPaused();
+	}
+
+	SPD_LOG(g_logger_name, "[interpreter callback] check pause");
+	checkPause();
+
+	SPD_LOG(g_logger_name, "[interpreter callback] check break markers");
+
+	util::SafeHash<qint64, break_marker_t> markers = break_markers.value(scriptFileName_);
+	const util::SafeHash<qint64, break_marker_t> step_marker = step_markers.value(scriptFileName_);
+	if (!(markers.contains(currentLine) || step_marker.contains(currentLine)))
+	{
+		SPD_LOG(g_logger_name, "[interpreter callback] no markers, return now");
+		return 1;//檢查是否有中斷點
+	}
+
+	SPD_LOG(g_logger_name, "[interpreter callback] has break marker, pause now");
+
+	paused();
+
+	SPD_LOG(g_logger_name, "[interpreter callback] emit marker info changed");
+	if (markers.contains(currentLine))
+	{
+		//叫用次數+1
+		break_marker_t mark = markers.value(currentLine);
+		++mark.count;
+
+		//重新插入斷下的紀錄
+		markers.insert(currentLine, mark);
+		break_markers.insert(scriptFileName_, markers);
+
+		//所有行插入隱式斷點(用於單步)
+		emit signalDispatcher.addStepMarker(currentLine, true);
+	}
+
+	emit signalDispatcher.addForwardMarker(currentLine, true);
+
+	checkPause();
+
+	return 1;
+}
+
+void Interpreter::proc()
+{
+	isRunning_.store(true, std::memory_order_release);
+	qDebug() << "Interpreter::run()";
+	Injector& injector = Injector::getInstance();
+	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
+
+	pCallback = std::bind(&Interpreter::mainScriptCallBack, this, std::placeholders::_1, std::placeholders::_2);
+
+	do
+	{
+		if (pCallback == nullptr)
+			break;
+
+		if (!isSubScript())
+		{
+			injector.IS_SCRIPT_FLAG.store(true, std::memory_order_release);
+			if (!injector.server.isNull())
+			{
+				QString pcname = injector.server->getPC().name;
+				if (pcname.isEmpty())
+					pcname = "noname";
+
+				g_logger_name = SPD_INIT(pcname);
+
+			}
+			else
+				g_logger_name = SPD_INIT("noname");
+		}
+
+		parser_.setCallBack(pCallback);
+
+		openLibs();
+
+		SPD_LOG(g_logger_name, "[interpreter] started");
+
+		parser_.parse(beginLine_);
+
+		SPD_LOG(g_logger_name, "[interpreter] finished");
+
+
+
+	} while (false);
+
+	SPD_LOG(g_logger_name, "[interpreter] cleanning...");
+
+	for (auto& it : subInterpreterList_)
+	{
+		if (it.isNull())
+			continue;
+
+		it->requestInterruption();
+	}
+	futureSync_.waitForFinished();
+
+	SPD_LOG(g_logger_name, "[interpreter] clean subscript done.");
+
+	if (!isSubScript())
+		injector.IS_SCRIPT_FLAG.store(false, std::memory_order_release);
+	isRunning_.store(false, std::memory_order_release);
+
+	SPD_LOG(g_logger_name, "[interpreter] turn script flag off");
+
+	emit finished();
+	emit signalDispatcher.scriptFinished();
+
+	SPD_LOG(g_logger_name, "[interpreter] emit finished signal");
+
+	if (!g_logger_name.isEmpty())
+		SPD_CLOSE(g_logger_name.toStdString());
+}
+
+//檢查是否戰鬥，如果是則等待，並在戰鬥結束後停滯一段時間
+bool Interpreter::checkBattleThenWait()
+{
+	checkPause();
+
+	Injector& injector = Injector::getInstance();
+	bool bret = false;
+	if (injector.server->getBattleFlag())
+	{
+		QElapsedTimer timer; timer.start();
+		bret = true;
+		for (;;)
+		{
+			if (isInterruptionRequested())
+				break;
+
+			if (!injector.server.isNull())
+				break;
+
+			checkPause();
+
+			if (!injector.server->getBattleFlag())
+				break;
+			if (timer.hasExpired(60000))
+				break;
+			QThread::msleep(100);
+			QThread::yieldCurrentThread();
+		}
+
+		QThread::msleep(500UL);
+	}
+	return bret;
+}
+
+bool Interpreter::findPath(QPoint dst, qint64 steplen, qint64 step_cost, qint64 timeout, std::function<qint64(QPoint& dst)> callback, bool noAnnounce)
+{
+	Injector& injector = Injector::getInstance();
+	qint64 hModule = injector.getProcessModule();
+	HANDLE hProcess = injector.getProcess();
+
+	bool isDebug = injector.getEnableHash(util::kScriptDebugModeEnable);
+	if (!isDebug)
+		noAnnounce = true;
+
+	auto getPos = [hProcess, hModule, &injector]()->QPoint
+	{
+		if (!injector.server.isNull())
+			return injector.server->getPoint();
+		else
+			return QPoint();
+	};
+
+	if (injector.server.isNull())
+		return false;
+
+	qint64 floor = injector.server->nowFloor;
+	QPoint src(getPos());
+	if (src == dst)
+		return true;//已經抵達
+
+	map_t _map;
+	QSharedPointer<MapAnalyzer> mapAnalyzer = injector.server->mapAnalyzer;
+	if (!mapAnalyzer.isNull() && mapAnalyzer->readFromBinary(floor, injector.server->nowFloorName))
+	{
+		if (mapAnalyzer.isNull() || !mapAnalyzer->getMapDataByFloor(floor, &_map))
+			return false;
+	}
+	else
+		return false;
+
+	if (!noAnnounce && !injector.server.isNull())
+		injector.server->announce(QObject::tr("<findpath>start searching the path"));//"<尋路>開始搜尋路徑"
+
+	QVector<QPoint> path;
+	QElapsedTimer timer; timer.start();
+	if (mapAnalyzer.isNull() || !mapAnalyzer->calcNewRoute(_map, src, dst, &path))
+	{
+		if (!noAnnounce && !injector.server.isNull())
+			injector.server->announce(QObject::tr("<findpath>unable to findpath"));//"<尋路>找不到路徑"
+		return false;
+	}
+
+	qint64 cost = static_cast<qint64>(timer.elapsed());
+	if (!noAnnounce && !injector.server.isNull())
+		injector.server->announce(QObject::tr("<findpath>path found, cost:%1 step:%2").arg(cost).arg(path.size()));//"<尋路>成功找到路徑，耗時：%1"
+
+	QPoint point;
+	qint64 steplen_cache = -1;
+	qint64 pathsize = path.size();
+	qint64 current_floor = floor;
+
+	timer.restart();
+
+	//用於檢測卡點
+	QElapsedTimer blockDetectTimer; blockDetectTimer.start();
+	QPoint lastPoint = src;
+
+	for (;;)
+	{
+		if (injector.server.isNull())
+			break;
+
+		if (isInterruptionRequested())
+			break;
+
+		src = getPos();
+
+		steplen_cache = steplen;
+
+		for (;;)
+		{
+			if (!((steplen_cache) >= (pathsize)))
+				break;
+			--steplen_cache;
+		}
+
+		if (steplen_cache >= 0 && (steplen_cache < pathsize))
+		{
+			if (lastPoint != src)
+			{
+				blockDetectTimer.restart();
+				lastPoint = src;
+			}
+
+			point = path.at(steplen_cache);
+			injector.server->move(point);
+			if (step_cost > 0)
+				QThread::msleep(step_cost);
+			//QThread::msleep(50);
+		}
+
+		if (!checkBattleThenWait())
+		{
+			src = getPos();
+			if (src == dst)
+			{
+				cost = timer.elapsed();
+				if (cost > 2000)
+				{
+					QThread::msleep(500);
+
+					if (injector.server.isNull())
+						break;
+
+					if (getPos() != dst)
+						continue;
+
+					injector.server->EO();
+
+					if (getPos() != dst)
+						continue;
+
+					QThread::msleep(500);
+
+					if (injector.server.isNull())
+						break;
+
+					if (getPos() != dst)
+						continue;
+				}
+
+				injector.server->move(dst);
+
+				QThread::msleep(100);
+				if (getPos() != dst)
+					continue;
+
+				if (!noAnnounce && !injector.server.isNull())
+					injector.server->announce(QObject::tr("<findpath>arrived destination, cost:%1").arg(timer.elapsed()));//"<尋路>已到達目的地，耗時：%1"
+				return true;//已抵達true
+			}
+
+			if (mapAnalyzer.isNull() || !mapAnalyzer->calcNewRoute(_map, src, dst, &path))
+				break;
+
+			pathsize = path.size();
+		}
+
+		if (blockDetectTimer.hasExpired(5000))
+		{
+			blockDetectTimer.restart();
+			if (injector.server.isNull())
+				break;
+
+			injector.server->announce(QObject::tr("<findpath>detedted player ware blocked"));
+			injector.server->EO();
+			QThread::msleep(500);
+
+			if (injector.server.isNull())
+				break;
+
+			//往隨機8個方向移動
+			point = getPos();
+			lastPoint = point;
+			point = point + util::fix_point.at(QRandomGenerator::global()->bounded(0, 7));
+			injector.server->move(point);
+			QThread::msleep(100);
+
+			continue;
+		}
+
+		if (injector.server.isNull())
+			break;
+
+		if (isInterruptionRequested())
+			break;
+
+		if (timer.hasExpired(timeout))
+		{
+			if (!injector.server.isNull())
+				injector.server->announce(QObject::tr("<findpath>stop finding path due to timeout"));//"<尋路>超時，放棄尋路"
+			break;
+		}
+
+		if (injector.server->nowFloor != current_floor)
+		{
+			injector.server->announce(QObject::tr("<findpath>stop finding path due to map changed"));//"<尋路>地圖已變更，放棄尋路"
+			break;
+		}
+
+		if (callback != nullptr)
+		{
+			if (callback(dst) == 1)
+				callback = nullptr;
+		}
+	}
+	return false;
 }
 
 qint64 Interpreter::test(qint64 currentline, const TokenMap& TK) const

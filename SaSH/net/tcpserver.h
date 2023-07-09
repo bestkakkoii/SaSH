@@ -2221,7 +2221,7 @@ private:
 #else
 		return QDateTime::currentMSecsSinceEpoch();
 #endif
-}
+	}
 
 	inline void setWarpMap(const QPoint& pos)
 	{
@@ -2287,7 +2287,7 @@ private://lssproto
 	void lssproto_LB_send(const QPoint& pos);
 	void lssproto_RS_recv(char* data);
 	void lssproto_RD_recv(char* data);
-	void lssproto_B_send(char* command);
+	void lssproto_B_send(const QString& command);
 	void lssproto_B_recv(char* command);
 	void lssproto_SKD_send(int dir, int index);
 	void lssproto_ID_send(const QPoint& pos, int haveitemindex, int toindex);
@@ -2528,15 +2528,16 @@ private://lssproto
 	int getInteger62Token(const QString& src, const QString& delim, int count) const;
 	QString makeStringFromEscaped(const QString& src) const;
 	int a62toi(char* a) const;
-private:
 
+private:
 	QFutureSynchronizer<void> ayncBattleCommandSync;
 	QFuture<void> ayncBattleCommandFuture;
 	std::atomic_bool ayncBattleCommandFlag = false;
+
 	std::atomic_bool IS_BATTLE_FLAG = false;
 	std::atomic_bool IS_ONLINE_FLAG = false;
 
-	bool isEnemyAllReady = false;
+	std::atomic_bool isEnemyAllReady = false;
 
 	QElapsedTimer eottlTimer;
 	QElapsedTimer connectingTimer;
@@ -2785,6 +2786,7 @@ public:
 	QPair<int, QVector<bankpet_t>> currentBankPetList;
 	util::SafeVector<ITEM> currentBankItemList;
 
+	QElapsedTimer repTimer;
 	util::AfkRecorder recorder[1 + MAX_PET] = {};
 
 	//用於緩存要發送到UI的數據(開啟子窗口初始化並加載當前最新數據時使用)

@@ -64,38 +64,33 @@ void printStackTrace()
 
 void qtMessageHandler(QtMsgType type, const QMessageLogContext& context, const QString& msg)
 {
-#if _DEBUG
-	//format: "> %{threadid} [ @%{line} | %{function} ] MSG<%{category}>: %{message}"
-	const QString qstr = QString("> %1 [ @%2 | %3 ] MSG<%4>: %5") \
-		.arg(QString::number((int)QThread::currentThreadId()), QString(context.file), QString(context.function), QString(context.category), msg);
-	const std::wstring str = qstr.toStdWString();
-	OutputDebugStringW(str.c_str());
-#endif
-	if (type == QtCriticalMsg || type == QtFatalMsg)
+	if (type != QtCriticalMsg && type != QtFatalMsg)
 	{
-		CreateConsole();
-		try
-		{
-			throw QException();
-		}
-		catch (const QException& e)
-		{
-#if QT_NO_DEBUG
-			QTextStream out(stderr);
-			out.setCodec("UTF-8");
-			if (!QString(e.what()).contains("Unknown exception"))
-			{
-				out << QString("Qt exception caught: ") << QString(e.what()) << Qt::endl;
-				out << QString("Context: ") << context.file << ":" << context.line << " - " << context.function << Qt::endl;
-				out << QString("Message: ") << msg << QString(e.what()) << Qt::endl;
-				printStackTrace();
-				system("pause");
-			}
-#else
-			Q_UNUSED(e);
-#endif
-		}
+		return;
 	}
+
+	try
+	{
+		throw QException();
+	}
+	catch (const QException& e)
+	{
+		if (QString(e.what()).contains("Unknown exception"))
+		{
+			return;
+		}
+
+		CreateConsole();
+		QTextStream out(stderr);
+		out.setCodec("UTF-8");
+		out << QString("Qt exception caught: ") << QString(e.what()) << Qt::endl;
+		out << QString("Context: ") << context.file << ":" << context.line << " - " << context.function << Qt::endl;
+		out << QString("Message: ") << msg << QString(e.what()) << Qt::endl;
+		printStackTrace();
+		system("pause");
+
+	}
+
 }
 
 #include <DbgHelp.h>
@@ -327,4 +322,4 @@ int main(int argc, char* argv[])
 	MainForm w;
 	w.show();
 	return a.exec();
-	}
+}

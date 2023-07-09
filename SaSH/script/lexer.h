@@ -25,6 +25,9 @@ enum RESERVE
 	TK_INT, //任何整數
 	TK_DOUBLE, //任何符點數
 	TK_BOOL, //"真" "假" "true" 或 "false"
+	TK_LARRAY,
+	TK_GARRAY,
+	TK_ARRAYELEMENT,
 
 	//邏輯符號
 	TK_GT, //">"
@@ -121,7 +124,7 @@ private:
 	bool isInteger(const QString& str) const;
 	bool isBool(const QString& str) const;
 	bool isName(const QString& str, RESERVE previousType) const;
-	bool isString(const QString& str) const;
+	bool isConstString(const QString& str) const;
 	//bool isVariable(const QString& str) const;
 	bool isSpace(const QChar& ch) const;
 	bool isComment(const QChar& ch) const;

@@ -892,6 +892,7 @@ void AfkForm::onApplyHashSettingsToUI()
 	ui.spinBox_itemheal_char->setValue(injector.getValueHash(util::kBattleItemHealCharValue));
 	ui.spinBox_itemheal_pet->setValue(injector.getValueHash(util::kBattleItemHealPetValue));
 	ui.spinBox_itemheal_allie->setValue(injector.getValueHash(util::kBattleItemHealAllieValue));
+	ui.spinBox_itemhealmp->setValue(injector.getValueHash(util::kBattleItemHealMpValue));
 
 	ui.spinBox_magicheal_normal_char->setValue(injector.getValueHash(util::kNormalMagicHealCharValue));
 	ui.spinBox_magicheal_normal_pet->setValue(injector.getValueHash(util::kNormalMagicHealPetValue));

@@ -304,8 +304,19 @@ void GeneralForm::onButtonClicked()
 
 		return;
 	}
-	else if (name == "pushButton_sell")
+	else if (name == "pushButton_dock")
 	{
+		bool flag = injector.getEnableHash(util::kWindowDockEnable);
+		injector.setEnableHash(util::kWindowDockEnable, !flag);
+		if (flag)
+		{
+			ui.pushButton_dock->setText(tr("dock"));
+		}
+		else
+		{
+			ui.pushButton_dock->setText(tr("undock"));
+		}
+
 		return;
 	}
 	else if (name == "pushButton_pick")

@@ -285,6 +285,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, DWORD message, LPARAM wParam, LPARAM lParam)
 	{
 	case WM_NULL:
 		return 1;
+	case WM_MOVE + WM_USER:
+	{
+		int x = LOWORD(lParam);
+		int y = HIWORD(lParam);
+		SetWindowPos(g_MainHwnd, nullptr, x, y, 0, 0, SWP_NOSIZE | SWP_NOZORDER);
+		return 1;
+	}
 	case WM_CLOSE:
 	{
 		MINT::NtTerminateProcess(GetCurrentProcess(), 0);

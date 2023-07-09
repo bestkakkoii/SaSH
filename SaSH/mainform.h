@@ -37,6 +37,10 @@ protected:
 
 	//接收原生的窗口消息
 	bool nativeEvent(const QByteArray& eventType, void* message, long* result) override;
+
+	//window move
+	void moveEvent(QMoveEvent* e) override;
+
 private:
 	void resetControlTextLanguage();
 	void updateStatusText();

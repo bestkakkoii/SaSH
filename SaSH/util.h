@@ -351,6 +351,7 @@ namespace util
 		kBattleTimeExtendEnable,
 		kFallDownEscapeEnable,
 		kShowExpEnable,
+		kWindowDockEnable,
 
 		//switcher
 		kSwitcherTeamEnable,
@@ -619,6 +620,7 @@ namespace util
 		{ kBattleTimeExtendEnable, "BattleTimeExtendEnable" },
 		{ kFallDownEscapeEnable, "FallDownEscapeEnable" },
 		{ kShowExpEnable, "ShowExpEnable" },
+		{ kWindowDockEnable, "kWindowDockEnable" },
 		{ kSettingMaxEnable, "SettingMaxEnable" },
 
 		//switcher
@@ -2040,6 +2042,8 @@ namespace util
 		int expdifference = 0;
 		int goldearn = 0;
 		int deadthcount = 0;
+		int reprecord = 0;
+		int repearn = 0;
 	}AfkRecorder;
 	//#pragma warning(push)
 	//#pragma warning(disable:304)
@@ -2050,6 +2054,13 @@ namespace util
 	static const QRegularExpression rexOR(R"(\s*\|\s*)");
 	static const QRegularExpression rexComma(R"(\s*,\s*)");
 	static const QRegularExpression rexSemicolon(R"(\s*;\s*)");
+	static const QRegularExpression rexColon(R"(\s*:\s*)");
 	static const QRegularExpression rexDec(R"(\s*-\s*)");
+	//(\('[\w\p{Han}]+'\))
+	static const QRegularExpression rexQuoteWithParentheses(R"(\('([\w\p{Han}]+)'\))");
+	//\[(\d+)\]
+	static const QRegularExpression rexSquareBrackets(R"(\[(\d+)\])");
+	//([\w\p{Han}]+)\[(\d+)\]
+
 }
 

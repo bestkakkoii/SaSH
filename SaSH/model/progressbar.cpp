@@ -10,7 +10,7 @@ void setProgressBarStyle(QProgressBar* pProgress, const QString& qstrcolor)
 			text-align: center;
 			background-color: rbg(255, 255, 255);
 			/*text size*/
-			font-size: 12px;
+			font-size: 10px;
 		}
 
 		QProgressBar::chunk {
@@ -28,6 +28,9 @@ ProgressBar::ProgressBar(QWidget* parent)
 {
 	setTextVisible(true);
 	setRange(0, 100);
+	QFont font = this->font();
+	font.setPointSize(10);
+	setFont(font);
 }
 
 void ProgressBar::setType(ProgressBar::Type type)

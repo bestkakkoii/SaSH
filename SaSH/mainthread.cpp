@@ -397,18 +397,18 @@ int MainObject::checkAndRunFunctions()
 		return 1;
 	}
 
-	SPD_LOG(g_logger_name, "updateAfkInfos");
+	SPD_LOG(g_logger_name, "[mainthread] updateAfkInfos");
 	updateAfkInfos();
 
-	SPD_LOG(g_logger_name, "updateUserDatas");
+	SPD_LOG(g_logger_name, "[mainthread] updateUserDatas");
 	//更新數據緩存(跨線程安全容器)
 	setUserDatas();
 
-	SPD_LOG(g_logger_name, "checkControls");
+	SPD_LOG(g_logger_name, "[mainthread] checkControls");
 	//檢查UI的設定是否有變化
 	checkControl();
 
-	SPD_LOG(g_logger_name, "checkAutoWalk");
+	SPD_LOG(g_logger_name, "[mainthread] checkAutoWalk");
 	//走路遇敵 或 快速遇敵 (封包)
 	checkAutoWalk();
 
@@ -422,39 +422,39 @@ int MainObject::checkAndRunFunctions()
 			emit signalDispatcher.updateStatusLabelTextChanged(util::kLabelStatusInNormal);
 		}
 
-		SPD_LOG(g_logger_name, "checkRecordableNpcInfo");
+		SPD_LOG(g_logger_name, "[mainthread] checkRecordableNpcInfo");
 		//紀錄NPC
 		checkRecordableNpcInfo();
 
-		SPD_LOG(g_logger_name, "checkEtcFlag");
+		SPD_LOG(g_logger_name, "[mainthread] checkEtcFlag");
 		//檢查開關 (隊伍、交易、名片...等等)
 		checkEtcFlag();
 
-		SPD_LOG(g_logger_name, "checkAutoJoin");
+		SPD_LOG(g_logger_name, "[mainthread] checkAutoJoin");
 		//自動組隊、跟隨
 		checkAutoJoin();
 
-		SPD_LOG(g_logger_name, "checkAutoHeal");
+		SPD_LOG(g_logger_name, "[mainthread] checkAutoHeal");
 		//自動補血、氣
 		checkAutoHeal();
 
-		SPD_LOG(g_logger_name, "checkAutoDropPet");
+		SPD_LOG(g_logger_name, "[mainthread] checkAutoDropPet");
 		//自動丟寵
 		checkAutoDropPet();
 
-		SPD_LOG(g_logger_name, "checkAutoDropItems");
+		SPD_LOG(g_logger_name, "[mainthread] checkAutoDropItems");
 		//檢查自動丟棄道具
 		checkAutoDropItems();
 
-		SPD_LOG(g_logger_name, "checkAutoEatBoostExpItem");
+		SPD_LOG(g_logger_name, "[mainthread] checkAutoEatBoostExpItem");
 		//檢查自動吃道具
 		checkAutoEatBoostExpItem();
 
-		SPD_LOG(g_logger_name, "checkAutoLockPet");
+		SPD_LOG(g_logger_name, "[mainthread] checkAutoLockPet");
 		//自動鎖寵
 		checkAutoLockPet();
 
-		SPD_LOG(g_logger_name, "checkAutoLockSchedule");
+		SPD_LOG(g_logger_name, "[mainthread] checkAutoLockSchedule");
 		//鎖寵排程
 		checkAutoLockSchedule();
 		return 1;
@@ -977,9 +977,10 @@ void MainObject::checkAutoWalk()
 
 						//移動
 						injector.server->move(QPoint(x, y));
+						injector.server->move(QPoint(x, y), "gcgc");
 					}
 					else if (enableFastAutoWalk) //快速遇敵 (封包)
-						injector.server->move(QPoint(0, 0), "gcgc");//封包來回移動(西東西東)
+						injector.server->move(QPoint(0, 0), "gcgc");
 					QThread::msleep(walk_speed + 1);//避免太快無論如何都+15ms (太快並不會遇比較快)
 				}
 			});
@@ -1936,7 +1937,7 @@ void MainObject::checkRecordableNpcInfo()
 					}
 				}
 				config.writeMapData(unit.name, d);
-				SPD_LOG(g_logger_name, "recorded new npc infos");
+				SPD_LOG(g_logger_name, "[threadpool] recorded new npc infos");
 			}
 		}
 	));

@@ -60,8 +60,9 @@ qint64 Interpreter::move(qint64 currentline, const TokenMap& TK)
 	injector.server->move(p);
 	QThread::msleep(1);
 
-	waitfor(timeout, [&injector, &p]()->bool
+	waitfor(timeout, [this, &injector, &p]()->bool
 		{
+			checkBattleThenWait();
 			bool result = injector.server->getPoint() == p;
 			if (result)
 			{
@@ -141,7 +142,6 @@ qint64 Interpreter::packetmove(qint64 currentline, const TokenMap& TK)
 		return Parser::kArgError;
 
 	injector.server->move(p, dirStr);
-	QThread::msleep(1);
 
 	return Parser::kNoChange;
 }

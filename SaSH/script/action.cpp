@@ -1764,6 +1764,7 @@ qint64 Interpreter::bi(qint64, const TokenMap& TK)//item
 	if (index <= 0)
 		return Parser::kArgError;
 	--index;
+	index += CHAR_EQUIPPLACENUM;
 
 	qint64 target = 0;
 	checkInteger(TK, 2, &target);

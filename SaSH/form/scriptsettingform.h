@@ -74,7 +74,9 @@ private slots:
 	void onDecryptSave();
 
 	void on_comboBox_labels_clicked();
+	void on_comboBox_functions_clicked();
 	void on_comboBox_labels_currentIndexChanged(int index);
+	void on_comboBox_functions_currentIndexChanged(int);
 	void on_widget_cursorPositionChanged(int line, int index);
 	void on_widget_textChanged();
 	void on_lineEdit_searchFunction_textChanged(const QString& text);

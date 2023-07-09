@@ -174,7 +174,8 @@ inline void SPD_LOG(int index, const QString& msg, SPD_LOGTYPE logtype = SPD_INF
 			name = QString("BlueCgHP{Global}");
 		std::string sname = name.toStdString();
 
-		std::wstring smsg = msg.toStdWString();
+		QString newMessage = QString("[%1] %2").arg(GetCurrentThreadId()).arg(msg);
+		std::wstring smsg = newMessage.toStdWString();
 		std::shared_ptr<spdlog::logger> log = spdlog::get(sname);
 		if (log)
 		{
@@ -207,7 +208,7 @@ inline void SPD_LOG(int index, const QString& msg, SPD_LOGTYPE logtype = SPD_INF
 	}
 }
 
-inline void SPD_LOG(const QString& name, const QString& msg, SPD_LOGTYPE logtype = SPD_INFO)
+inline void SPD_LOG(const QString& name, const QString& msg, SPD_LOGTYPE logtype = SPD_DEBUG)
 {
 	Injector& injector = Injector::getInstance();
 	if (!injector.getEnableHash(util::kScriptDebugModeEnable))
@@ -217,7 +218,8 @@ inline void SPD_LOG(const QString& name, const QString& msg, SPD_LOGTYPE logtype
 	{
 		std::string sname = name.toStdString();
 
-		std::wstring smsg = msg.toStdWString();
+		QString newMessage = QString("[%1] %2").arg(GetCurrentThreadId()).arg(msg);
+		std::wstring smsg = newMessage.toStdWString();
 		std::shared_ptr<spdlog::logger> log = spdlog::get(sname);
 		if (log)
 		{
@@ -250,7 +252,7 @@ inline void SPD_LOG(const QString& name, const QString& msg, SPD_LOGTYPE logtype
 	}
 }
 
-inline void SPD_LOG(const std::string& name, const std::string& msg, SPD_LOGTYPE logtype = SPD_INFO)
+inline void SPD_LOG(const std::string& name, const std::string& msg, SPD_LOGTYPE logtype = SPD_DEBUG)
 {
 	Injector& injector = Injector::getInstance();
 	if (!injector.getEnableHash(util::kScriptDebugModeEnable))
@@ -261,7 +263,7 @@ inline void SPD_LOG(const std::string& name, const std::string& msg, SPD_LOGTYPE
 		std::shared_ptr<spdlog::logger> log = spdlog::get(name);
 		if (log)
 		{
-			QString qmsg = QString::fromStdString(msg);
+			QString qmsg = QString("[%1] %2").arg(GetCurrentThreadId()).arg(QString::fromStdString(msg));
 			std::wstring smsg = qmsg.toStdWString();
 			switch (logtype)
 			{
