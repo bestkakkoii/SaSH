@@ -279,6 +279,10 @@ int MainObject::checkAndRunFunctions()
 		if (!login_run_once_flag_)
 		{
 			login_run_once_flag_ = true;
+
+			SPD_CLOSE(injector.server->protoBattleLogName.toStdString());
+
+
 			for (int i = 0; i < 15; ++i)
 			{
 				if (isInterruptionRequested())
@@ -394,6 +398,13 @@ int MainObject::checkAndRunFunctions()
 
 		emit signalDispatcher.updateNpcList(injector.server->nowFloor);
 		emit signalDispatcher.applyHashSettingsToUI();
+
+		if (injector.getEnableHash(util::kScriptDebugModeEnable))
+		{
+			QString logname = QString("battle_%1_%2_%3").arg(pc.name).arg(pc.freeName).arg(_getpid());
+			injector.server->protoBattleLogName = SPD_INIT(logname);
+		}
+
 		return 1;
 	}
 

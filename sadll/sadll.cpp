@@ -11,6 +11,7 @@
 
 #pragma comment(lib, "detours.lib")
 #pragma comment(lib, "ws2_32.lib")
+#pragma comment(lib, "winmm.lib")
 
 constexpr const char* IPV6_DEFAULT = "::1";
 
@@ -496,6 +497,24 @@ extern "C"
 		return g_GameService.New_SetWindowTextA(hWnd, lpString);
 	}
 
+	DWORD WINAPI New_GetTickCount()
+	{
+		GameService& g_GameService = GameService::getInstance();
+		return g_GameService.New_GetTickCount();
+	}
+
+	BOOL WINAPI New_QueryPerformanceCounter(LARGE_INTEGER* lpPerformanceCount)
+	{
+		GameService& g_GameService = GameService::getInstance();
+		return g_GameService.New_QueryPerformanceCounter(lpPerformanceCount);
+	}
+
+	DWORD WINAPI New_TimeGetTime()
+	{
+		GameService& g_GameService = GameService::getInstance();
+		return g_GameService.New_TimeGetTime();
+	}
+
 	/////// game client ///////
 
 	//PlaySound
@@ -587,6 +606,9 @@ void GameService::initialize(unsigned short port)
 	precv = CONVERT_GAMEVAR<pfnrecv>(0x91728);//這裡直接勾::recv會無效，遊戲通常會複寫另一個call dword ptr指向recv
 	pclosesocket = CONVERT_GAMEVAR<pfnclosesocket>(0x91716);//::closesocket;
 	pSetWindowTextA = ::SetWindowTextA;//防止部分私服調用A類函數，導致其他語系系統的窗口標題亂碼
+	pGetTickCount = ::GetTickCount;
+	pQueryPerformanceCounter = ::QueryPerformanceCounter;
+	pTimeGetTime = ::timeGetTime;
 
 	//禁止遊戲內切AI SE切AI會崩潰
 	DWORD paddr = CONVERT_GAMEVAR <DWORD>(0x1DF82);
@@ -627,6 +649,9 @@ void GameService::initialize(unsigned short port)
 	DetourAttach(&(PVOID&)precv, ::New_recv);
 	DetourAttach(&(PVOID&)pclosesocket, ::New_closesocket);
 	DetourAttach(&(PVOID&)pSetWindowTextA, ::New_SetWindowTextA);
+	DetourAttach(&(PVOID&)pGetTickCount, ::New_GetTickCount);
+	DetourAttach(&(PVOID&)pQueryPerformanceCounter, ::New_QueryPerformanceCounter);
+	DetourAttach(&(PVOID&)pTimeGetTime, ::New_TimeGetTime);
 
 	DetourAttach(&(PVOID&)pPlaySound, ::New_PlaySound);
 	DetourAttach(&(PVOID&)pBattleProc, ::New_BattleProc);
@@ -697,6 +722,9 @@ void GameService::uninitialize()
 	DetourDetach(&(PVOID&)psend, ::New_send);
 	DetourDetach(&(PVOID&)pclosesocket, ::New_closesocket);
 	DetourDetach(&(PVOID&)pSetWindowTextA, ::New_SetWindowTextA);
+	DetourDetach(&(PVOID&)pGetTickCount, ::New_GetTickCount);
+	DetourDetach(&(PVOID&)pQueryPerformanceCounter, ::New_QueryPerformanceCounter);
+	DetourDetach(&(PVOID&)pTimeGetTime, ::New_TimeGetTime);
 
 	DetourDetach(&(PVOID&)pPlaySound, ::New_PlaySound);
 	DetourDetach(&(PVOID&)pBattleProc, ::New_BattleProc);
@@ -895,6 +923,34 @@ BOOL WSAAPI GameService::New_SetWindowTextA(HWND hWnd, LPCSTR lpString)
 {
 	return TRUE;
 }
+
+DWORD WINAPI GameService::New_GetTickCount()
+{
+	static DWORD g_dwRealTick = pGetTickCount();
+	static DWORD g_dwHookTick = pGetTickCount();
+	DWORD tmpTick = pGetTickCount();
+	g_dwHookTick = g_dwHookTick + speedBoostValue * (tmpTick - g_dwRealTick);
+	g_dwRealTick = tmpTick;
+	return g_dwHookTick;
+}
+
+BOOL WINAPI GameService::New_QueryPerformanceCounter(LARGE_INTEGER* lpPerformanceCount)
+{
+	BOOL result = pQueryPerformanceCounter(lpPerformanceCount);
+	lpPerformanceCount->QuadPart *= speedBoostValue; // 修改返回值为原始值的两倍
+	return result;
+}
+
+DWORD WINAPI GameService::New_TimeGetTime()
+{
+	static DWORD g_dwRealTime = pTimeGetTime();
+	static DWORD g_dwHookTime = pTimeGetTime();
+	DWORD tmpTime = pTimeGetTime();
+	g_dwHookTime = g_dwHookTime + speedBoostValue * (tmpTime - g_dwRealTime);
+	g_dwRealTime = tmpTime;
+	return g_dwHookTime;
+}
+
 
 //////////////////////////////////////////////////////////////////////
 
@@ -1318,11 +1374,12 @@ void GameService::WM_SetBoostSpeed(bool enable, int speed)
 		return;
 	DWORD pBoostSpeed = CONVERT_GAMEVAR<DWORD>(0x1DEE4);
 	int* pSpeed = CONVERT_GAMEVAR<int*>(0xAB7CC);
-	if (!enable || (0 == speed))
+	if (!enable || (speed <= 0))
 	{
 		//sa_8001sf.exe+1DEE4 - 83 F9 02              - cmp ecx,02 { 2 }
 		*pSpeed = 14;
 		util::MemoryMove(pBoostSpeed, "\x83\xF9\x02", 3);
+		speedBoostValue = 1;
 	}
 	else
 	{
@@ -1331,6 +1388,14 @@ void GameService::WM_SetBoostSpeed(bool enable, int speed)
 			*pSpeed = 14 - speed + 1;
 			//sa_8001sf.exe+1DEE4 - 83 F9 0E              - cmp ecx,0E { 14 }
 			util::MemoryMove(pBoostSpeed, "\x83\xF9\x0E", 3);
+			speedBoostValue = 1;
+		}
+		else if (speed > 14 && speed <= 125)
+		{
+			*pSpeed = 1;
+			BYTE* pBoostSpeedValue = reinterpret_cast<BYTE*>(pBoostSpeed + 2);
+			*pBoostSpeedValue = static_cast<BYTE>(speed + 2);
+			speedBoostValue = speed - 13;
 		}
 	}
 }

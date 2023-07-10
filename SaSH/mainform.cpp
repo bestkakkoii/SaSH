@@ -1232,25 +1232,35 @@ void MainForm::onLoadHashSettings(const QString& name, bool isFullPath)
 void MainForm::onMessageBoxShow(const QString& text, int type, int* pnret)
 {
 	QMessageBox::StandardButton button = QMessageBox::StandardButton::NoButton;
+
+	QString newText = text;
+	newText.replace("\\r\\n", "\r\n");
+	newText.replace("\\n", "\n");
+	newText.replace("\\t", "\t");
+	newText.replace("\\v", "\v");
+	newText.replace("\\b", "\b");
+	newText.replace("\\f", "\f");
+	newText.replace("\\a", "\a");
+
 	if (pnret)
 	{
 		if (type == 2)
-			button = QMessageBox::warning(this, tr("warning"), text, QMessageBox::StandardButton::Yes | QMessageBox::StandardButton::No, QMessageBox::No);
+			button = QMessageBox::warning(this, tr("warning"), newText, QMessageBox::StandardButton::Yes | QMessageBox::StandardButton::No, QMessageBox::No);
 		else if (type == 3)
-			button = QMessageBox::critical(this, tr("critical"), text, QMessageBox::StandardButton::Yes | QMessageBox::StandardButton::No, QMessageBox::No);
+			button = QMessageBox::critical(this, tr("critical"), newText, QMessageBox::StandardButton::Yes | QMessageBox::StandardButton::No, QMessageBox::No);
 		else
-			button = QMessageBox::information(this, tr("info"), text, QMessageBox::StandardButton::Yes | QMessageBox::StandardButton::No, QMessageBox::No);
+			button = QMessageBox::information(this, tr("info"), newText, QMessageBox::StandardButton::Yes | QMessageBox::StandardButton::No, QMessageBox::No);
 
 		*pnret = button;
 	}
 	else
 	{
 		if (type == 2)
-			button = QMessageBox::warning(this, tr("warning"), text);
+			button = QMessageBox::warning(this, tr("warning"), newText);
 		else if (type == 3)
-			button = QMessageBox::critical(this, tr("critical"), text);
+			button = QMessageBox::critical(this, tr("critical"), newText);
 		else
-			button = QMessageBox::information(this, tr("info"), text);
+			button = QMessageBox::information(this, tr("info"), newText);
 	}
 
 }

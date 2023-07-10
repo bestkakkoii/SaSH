@@ -17,6 +17,7 @@
 #include <mutex>
 #include <condition_variable>
 #include <queue>
+#include <timeapi.h>
 #ifndef MINT_USE_SEPARATE_NAMESPACE
 #define MINT_USE_SEPARATE_NAMESPACE
 #include <MINT/MINT.h>

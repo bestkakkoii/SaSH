@@ -2532,6 +2532,7 @@ private://lssproto
 private:
 	QFutureSynchronizer<void> ayncBattleCommandSync;
 	QFuture<void> ayncBattleCommandFuture;
+	QMutex ayncBattleCommandMutex;
 	std::atomic_bool ayncBattleCommandFlag = false;
 
 	std::atomic_bool IS_BATTLE_FLAG = false;
@@ -2739,6 +2740,8 @@ public:
 	int nowFloor = 0;
 	util::SafeData<QPoint> nowPoint;
 	QString nowFloorName = "";
+
+	QString protoBattleLogName = "";
 
 	//main datas shared with script thread
 	util::SafeHash<QString, QVariant> hashpc;

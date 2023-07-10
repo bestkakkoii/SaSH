@@ -208,7 +208,7 @@ inline void SPD_LOG(int index, const QString& msg, SPD_LOGTYPE logtype = SPD_INF
 	}
 }
 
-inline void SPD_LOG(const QString& name, const QString& msg, SPD_LOGTYPE logtype = SPD_DEBUG)
+inline void SPD_LOG(const QString& name, const QString& msg, SPD_LOGTYPE logtype = SPD_INFO)
 {
 	Injector& injector = Injector::getInstance();
 	if (!injector.getEnableHash(util::kScriptDebugModeEnable))
@@ -252,7 +252,7 @@ inline void SPD_LOG(const QString& name, const QString& msg, SPD_LOGTYPE logtype
 	}
 }
 
-inline void SPD_LOG(const std::string& name, const std::string& msg, SPD_LOGTYPE logtype = SPD_DEBUG)
+inline void SPD_LOG(const std::string& name, const std::string& msg, SPD_LOGTYPE logtype = SPD_INFO)
 {
 	Injector& injector = Injector::getInstance();
 	if (!injector.getEnableHash(util::kScriptDebugModeEnable))

@@ -1317,7 +1317,32 @@ bool Parser::checkFuzzyValue(QVariant* pvalue)
 	{
 		match = util::rexQuoteWithParentheses.match(valueStr);
 		if (match.hasMatch())
+		{
 			msg = match.captured(1);
+			QVariantHash args = getLocalVars();
+			QString varName = msg;
+			if (args.contains(varName))
+			{
+				QVariant::Type vtype = args.value(varName).type();
+				if (vtype == QVariant::Int || vtype == QVariant::LongLong || vtype == QVariant::Double || vtype == QVariant::String)
+					msg = args.value(varName).toString();
+			}
+			else if (isGlobalVarContains(varName))
+			{
+				QVariant var = getGlobalVarValue(varName);
+				if (var.type() == QVariant::List)
+					return false;
+
+				msg = var.toString();
+			}
+			else
+			{
+				if (msg.startsWith('"') || msg.startsWith('\''))
+					msg = msg.mid(1);
+				if (msg.endsWith('"') || msg.endsWith('\''))
+					msg = msg.mid(0, msg.length() - 1);
+			}
+		}
 	}
 
 	varValue.clear();
@@ -1327,6 +1352,11 @@ bool Parser::checkFuzzyValue(QVariant* pvalue)
 		if (!varValue.isValid())
 			return false;
 		varValue = varValue.toLongLong();
+		if (varValue.toInt() == 987654321)
+		{
+			requestInterruption();
+			return false;
+		}
 	}
 	else if (1 == type)// 字串輸入框
 	{
@@ -1335,6 +1365,11 @@ bool Parser::checkFuzzyValue(QVariant* pvalue)
 		if (!varValue.isValid())
 			return false;
 		varValue = varValue.toString();
+		if (varValue.toInt() == 987654321)
+		{
+			requestInterruption();
+			return false;
+		}
 	}
 
 	if (!varValue.isValid())
@@ -2857,13 +2892,13 @@ void Parser::updateFunctionChunk()
 			chunkHash.insert(indentLevel, chunk);
 			++indentLevel;
 		}
-	}
+		}
 
 #ifdef _DEBUG
 	for (auto it = functionChunks_.cbegin(); it != functionChunks_.cend(); ++it)
 		qDebug() << it.key() << it.value().name << it.value().begin << it.value().end;
 #endif
-}
+	}
 
 //處理所有的token
 void Parser::processTokens()

@@ -240,6 +240,12 @@ public://hook
 
 	BOOL WINAPI New_SetWindowTextA(HWND hWnd, LPCSTR lpString);
 
+	DWORD WINAPI New_GetTickCount();
+
+	BOOL WINAPI New_QueryPerformanceCounter(LARGE_INTEGER* lpPerformanceCount);
+
+	DWORD WINAPI New_TimeGetTime();
+
 	void __cdecl New_PlaySound(int a, int b, int c);
 	void __cdecl New_BattleProc();
 	void __cdecl New_BattleCommandReady();
@@ -262,6 +268,17 @@ public://hook
 
 	using pfnsend = int(__stdcall*)(SOCKET s, const char* buf, int len, int flags);
 	pfnsend psend = nullptr;
+
+	//DWORD WINAPI New_GetTickCount();
+	using pfnGetTickCount = DWORD(__stdcall*)();
+	pfnGetTickCount pGetTickCount = nullptr;
+
+	using pfnTimeGetTime = DWORD(__stdcall*)();
+	pfnTimeGetTime pTimeGetTime = nullptr;
+
+	//BOOL WINAPI New_QueryPerformanceCounter(LARGE_INTEGER* lpPerformanceCount);
+	using pfnQueryPerformanceCounter = BOOL(__stdcall*)(LARGE_INTEGER*);
+	pfnQueryPerformanceCounter pQueryPerformanceCounter = nullptr;
 
 	using pfnPlaySound = void(__cdecl*)(int, int, int);
 	pfnPlaySound pPlaySound = nullptr;
@@ -299,4 +316,6 @@ private:
 
 	int currentMusic_ = 15;
 	int currentSound_ = 15;
+
+	DWORD speedBoostValue = 1;
 };

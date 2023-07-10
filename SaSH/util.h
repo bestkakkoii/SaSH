@@ -2057,7 +2057,7 @@ namespace util
 	static const QRegularExpression rexColon(R"(\s*:\s*)");
 	static const QRegularExpression rexDec(R"(\s*-\s*)");
 	//(\('[\w\p{Han}]+'\))
-	static const QRegularExpression rexQuoteWithParentheses(R"(\('([\w\p{Han}]+)'\))");
+	static const QRegularExpression rexQuoteWithParentheses(R"(\('?([\w\W\S\s\p{Han}]+)'?\))");
 	//\[(\d+)\]
 	static const QRegularExpression rexSquareBrackets(R"(\[(\d+)\])");
 	//([\w\p{Han}]+)\[(\d+)\]

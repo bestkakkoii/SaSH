@@ -1224,15 +1224,16 @@ void Interpreter::proc()
 			injector.IS_SCRIPT_FLAG.store(true, std::memory_order_release);
 			if (!injector.server.isNull())
 			{
-				QString pcname = injector.server->getPC().name;
-				if (pcname.isEmpty())
-					pcname = "noname";
+				PC pc = injector.server->getPC();
+				QString logname = QString("%1_%2_3").arg(pc.name).arg(pc.freeName).arg(_getpid());
+				if (logname.isEmpty())
+					logname = QString("noname_%1").arg(_getpid());
 
-				g_logger_name = SPD_INIT(pcname);
+				g_logger_name = SPD_INIT(logname);
 
 			}
 			else
-				g_logger_name = SPD_INIT("noname");
+				g_logger_name = SPD_INIT(QString("noname_%1").arg(_getpid()));
 		}
 
 		parser_.setCallBack(pCallback);

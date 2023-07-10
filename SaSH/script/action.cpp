@@ -20,15 +20,18 @@ qint64 Interpreter::useitem(qint64, const TokenMap& TK)
 	if (!checkRange(TK, 1, &min, &max))
 	{
 		checkString(TK, 1, &itemName);
-
 		if (itemName.isEmpty())
 			return Parser::kArgError;
+
+		QString memo;
+		checkString(TK, 2, &memo);
+
 		target = -2;
-		checkInteger(TK, 2, &target);
+		checkInteger(TK, 3, &target);
 		if (target == -2)
 		{
 			QString targetTypeName;
-			checkString(TK, 2, &targetTypeName);
+			checkString(TK, 3, &targetTypeName);
 			if (targetTypeName.isEmpty())
 			{
 				target = 0;
@@ -1336,18 +1339,18 @@ qint64 Interpreter::addpoint(qint64, const TokenMap& TK)
 		return Parser::kArgError;
 
 	static const QHash<QString, qint64> hash = {
-		{ u8"腕力", 0},
-		{ u8"體力", 1},
+		{ u8"體力", 0},
+		{ u8"腕力", 1},
 		{ u8"耐力", 2},
 		{ u8"速度", 3},
 
-		{ u8"腕力", 0},
-		{ u8"体力", 1},
+		{ u8"体力", 0},
+		{ u8"腕力", 1},
 		{ u8"耐力", 2},
 		{ u8"速度", 3},
 
-		{ u8"str", 0},
-		{ u8"vit", 1},
+		{ u8"vit", 0},
+		{ u8"str", 1},
 		{ u8"tgh", 2},
 		{ u8"dex", 3},
 	};

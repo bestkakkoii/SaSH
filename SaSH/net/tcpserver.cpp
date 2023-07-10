@@ -407,7 +407,7 @@ void Server::onClientReadyRead()
 			{
 				Injector& injector = Injector::getInstance();
 				int value = mem::read<short>(injector.getProcess(), injector.getProcessModule() + 0xE21E4);
-				announce(QString("<debug>战斗面板生成了 类别:%1").arg(value));
+				announce(QString("[async battle] 战斗面板生成了 类别:%1").arg(value));
 				isBattleDialogReady.store(true, std::memory_order_release);
 				asyncBattleWork(true);
 				return;
@@ -2514,7 +2514,7 @@ void Server::lssproto_EN_recv(int result, int field)
 #ifdef PK_SYSTEtimer__BY_ZHU
 		BattleCliTurnNo = -1;
 #endif
-		announce("<debug>收到战斗开始封包");
+		announce("[async battle] 收到战斗开始封包");
 		setBattleFlag(true);
 		normalDurationTimer.restart();
 		battleDurationTimer.restart();
@@ -2571,8 +2571,9 @@ void Server::lssproto_B_recv(char* ccommand)
 		QVector<QStringList> topList;
 		QVector<QStringList> bottomList;
 
-		announce("<debug>------------------------------------------");
-		announce("<debug>收到新的战斗 C 数据");
+		announce("[async battle] ----------------------------------------------");
+		announce("[async battle] 收到新的战斗 C 数据");
+		announce(data);
 		/*
 		//BC|戰場屬性（0:無屬性,1:地,2:水,3:火,4:風）|人物在組隊中的位置|人物名稱|人物稱號|人物形象編號|人物等級(16進制)|當前HP|最大HP|人物狀態（死亡，中毒等）|是否騎乘標志(0:未騎，1騎,-1落馬)|騎寵名稱|騎寵等級|騎寵HP|騎寵最大HP|戰寵在隊伍中的位置|戰寵名稱|未知|戰寵形象|戰寵等級|戰寵HP|戰寵最大HP|戰寵異常狀態（昏睡，死亡，中毒等）|0||0|0|0|
 		//敵1位置|敵1名稱|未知|敵1形象|敵1等級|敵1HP|敵1最大HP|敵人異常狀態（死亡，中毒等）|0||0|0|0|
@@ -2929,9 +2930,9 @@ void Server::lssproto_B_recv(char* ccommand)
 		if (isAllieAllDead || isEnemyAllDead)
 		{
 			if (isAllieAllDead)
-				announce("<debug>我方全部阵亡，结束战斗");
+				announce("[async battle] 我方全部阵亡，结束战斗");
 			if (isEnemyAllDead)
-				announce("<debug>敌方全部阵亡，结束战斗");
+				announce("[async battle] 敌方全部阵亡，结束战斗");
 			setBattleEnd();
 		}
 	}
@@ -2940,10 +2941,17 @@ void Server::lssproto_B_recv(char* ccommand)
 		QStringList list = data.split(util::rexOR);
 		if (list.size() < 3)
 			return;
-		announce("<debug>收到新的战斗 P 数据");
+
 		BattleMyNo = list.at(0).toInt(nullptr, 16);
 		BattleBpFlag = list.at(1).toInt(nullptr, 16);
 		BattleMyMp = list.at(2).toInt(nullptr, 16);
+
+		announce("[async battle] -----------------------------------------------");
+		announce("[async battle] -----------------------------------------------");
+		announce("[async battle] -----------------------------------------------");
+		announce("[async battle] -------------------新回合-----------------------");
+		announce(QString("[async battle] 收到新的战斗 P 数据 人物編號:%1 人物MP:%2").arg(BattleMyNo + 1).arg(BattleMyMp));
+
 		bt.player.pos = BattleMyNo;
 		pc.mp = BattleMyMp;
 		setBattleData(bt);
@@ -2957,6 +2965,8 @@ void Server::lssproto_B_recv(char* ccommand)
 
 		BattleAnimFlag = list.at(0).toInt(nullptr, 16);
 		BattleCliTurnNo = list.at(1).toInt(nullptr, 16);
+
+		announce(QString("[async battle] 收到新的战斗 A 数据  回合:%1").arg(BattleCliTurnNo));
 
 		if (BattleAnimFlag <= 0)
 			return;
@@ -2972,7 +2982,12 @@ void Server::lssproto_B_recv(char* ccommand)
 					break;
 				if (checkFlagState(i) && !bt.objects.value(i, empty).ready)
 				{
-					announce(QString("<debug>我方 [%1]%2(%3) 已出手").arg(i + 1).arg(bt.objects.value(i, empty).name).arg(bt.objects.value(i, empty).freename));
+					if (i == BattleMyNo)
+						announce(QString("[async battle] 自己 [%1]%2(%3) 已出手").arg(i + 1).arg(bt.objects.value(i, empty).name).arg(bt.objects.value(i, empty).freename));
+					if (i == BattleMyNo + 5)
+						announce(QString("[async battle] 戰寵 [%1]%2(%3) 已出手").arg(i + 1).arg(bt.objects.value(i, empty).name).arg(bt.objects.value(i, empty).freename));
+					else
+						announce(QString("[async battle] 隊友 [%1]%2(%3) 已出手").arg(i + 1).arg(bt.objects.value(i, empty).name).arg(bt.objects.value(i, empty).freename));
 					objs[i].ready = true;
 				}
 			}
@@ -2992,11 +3007,12 @@ void Server::lssproto_B_recv(char* ccommand)
 
 			if (enemyOkCount > 0 && !isEnemyAllReady.load(std::memory_order_acquire))
 			{
-				announce("<debug>敌方全部准备完毕");
+				announce("[async battle] 敌方全部准备完毕");
 				isEnemyAllReady.store(true, std::memory_order_release);
 			}
 		}
 		setBattleData(bt);
+
 		asyncBattleWork(true);
 	}
 	else if (first == "U")
@@ -3529,7 +3545,7 @@ void Server::lssproto_NC_recv(int flg)
 		NoCastFlag = true;
 	else
 	{
-		announce("<debug>收到结束战斗封包");
+		announce("[async battle] 收到结束战斗封包");
 		setBattleEnd();
 		NoCastFlag = false;
 	}
@@ -6779,7 +6795,7 @@ int Server::getGameStatus()
 void Server::setWorldStatus(int w)
 {
 #ifdef _DEBUG
-	announce(QString("<debug>將 W值從 %1 改為 %2").arg(getWorldStatus()).arg(w));
+	announce(QString("[async battle] 將 W值從 %1 改為 %2").arg(getWorldStatus()).arg(w));
 #endif
 	QWriteLocker lock(&worldStateLocker);
 	Injector& injector = Injector::getInstance();
@@ -6794,7 +6810,7 @@ bool Server::checkGW(int w, int g)
 void Server::setGameStatus(int g)
 {
 #ifdef _DEBUG
-	announce(QString("<debug>將 G值從 %1 改為 %2").arg(getGameStatus()).arg(g));
+	announce(QString("[async battle] 將 G值從 %1 改為 %2").arg(getGameStatus()).arg(g));
 #endif
 	QWriteLocker lock(&gameStateLocker);
 	Injector& injector = Injector::getInstance();
@@ -8037,10 +8053,11 @@ void Server::announce(const QString& msg, int color)
 {
 	Injector& injector = Injector::getInstance();
 
-	if (msg.contains("<debug>") && !injector.getEnableHash(util::kScriptDebugModeEnable))
+	if (msg.contains("[async battle] "))
 	{
-		//qDebug() << msg;
-		return;
+		if (!injector.getEnableHash(util::kScriptDebugModeEnable))
+			return;
+		SPD_LOG(protoBattleLogName, msg);
 	}
 
 	if (!getOnlineFlag())
@@ -10615,37 +10632,25 @@ inline bool Server::checkFlagState(int pos)
 //異步處理自動/快速戰鬥邏輯和發送封包
 void Server::asyncBattleWork(bool wait)
 {
-	if (checkFlagState(BattleMyNo))
-	{
-		if (checkFlagState(BattleMyNo + 5))
-			return;
-		else
-		{
-			battledata_t bt = getBattleData();
-			if (pc.battlePetNo < 0 || pc.battlePetNo >= MAX_PET
-				|| ((bt.objects.value(BattleMyNo + 5, battleobject_t{}).hp <= 0)
-					|| (bt.objects.value(BattleMyNo + 5, battleobject_t{}).faceid <= 0)))
-				return;
-		}
-	}
-
 	Injector& injector = Injector::getInstance();
 	bool FastCheck = injector.getEnableHash(util::kFastBattleEnable);
 	bool normalCheck = injector.getEnableHash(util::kAutoBattleEnable);
-	if (!normalCheck && !FastCheck)
-		return;
-
 	bool Checked = normalCheck || (FastCheck && getWorldStatus() == 10);
-	if (!checkGW(10, 4) && Checked)
-		return;
-
 	if (!Checked)
 		asyncBattleAction();
 	else
 	{
 		//異步分析戰鬥邏輯發送指令
-		ayncBattleCommandFuture = QtConcurrent::run(this, &Server::asyncBattleAction);
-		ayncBattleCommandSync.addFuture(ayncBattleCommandFuture);
+		if (ayncBattleCommandFuture.isRunning())
+			return;
+
+		ayncBattleCommandFlag.store(false, std::memory_order_release);
+		ayncBattleCommandFuture = QtConcurrent::run([this]()
+			{
+				QMutexLocker lock(&ayncBattleCommandMutex);
+				asyncBattleAction();
+			});
+		//ayncBattleCommandSync.addFuture(ayncBattleCommandFuture);
 	}
 }
 
@@ -10661,37 +10666,39 @@ void Server::asyncBattleAction()
 	{
 		if (ayncBattleCommandFlag.load(std::memory_order_acquire))
 		{
-			announce("<debug>从外部中断的战斗等待", 7);
+			announce("[async battle] 从外部中断的战斗等待", 7);
 			return false;
 		}
 
 		if (!getOnlineFlag())
 		{
-			//announce("<debug>人物不在线上，忽略动作", 7);
+			announce("[async battle] 人物不在线上，忽略动作", 7);
 			return false;
 		}
 
 		if (!getBattleFlag())
 		{
-			announce("<debug>人物不在战斗中，忽略动作", 7);
+			announce("[async battle] 人物不在战斗中，忽略动作", 7);
 			return false;
 		}
 
 		if (!isEnemyAllReady.load(std::memory_order_acquire))
 		{
-			announce("<debug>敌方尚未准备完成，忽略动作", 7);
+			announce("[async battle] 敌方尚未准备完成，忽略动作", 7);
 			return false;
 		}
 
 		if (!injector.getEnableHash(util::kAutoBattleEnable) && !injector.getEnableHash(util::kFastBattleEnable))
 		{
-			announce("<debug>快战或自动战斗没有开启，忽略动作", 7);
+			announce("[async battle] 快战或自动战斗没有开启，忽略动作", 7);
 			return false;
 		}
 
-
-		if (timer.hasExpired(5000))
+		if (timer.hasExpired(30000))
+		{
+			announce("[async battle] 动作超时 30 秒", 7);
 			return false;
+		}
 
 		return true;
 	};
@@ -10699,21 +10706,22 @@ void Server::asyncBattleAction()
 	if (!checkAllFlags())
 		return;
 
-
-	//自動戰鬥打開 或 快速戰鬥打開且處於戰鬥場景
+	//自动战斗打开 或 快速战斗打开且处于战斗场景
 	bool FastCheck = injector.getEnableHash(util::kFastBattleEnable);
 	bool Checked = injector.getEnableHash(util::kAutoBattleEnable) || (FastCheck && getWorldStatus() == 10);
 	if (Checked && !checkGW(10, 4))
 	{
-		announce("<debug>不在战斗场景，忽略动作", 7);
+		announce("[async battle] 画面不对", 7);
 		return;
 	}
 
-	//通知結束這一回合
-	auto setEndCurrentRound = [this, Checked]()->void
+	//通知结束这一回合
+	auto setEndCurrentRound = [this, &injector, Checked]()->void
 	{
 		if (Checked)
 		{
+			//if (Checked)
+			//mem::write<short>(injector.getProcess(), injector.getProcessModule() + 0xE21E8, 1);
 			int G = getGameStatus();
 			if (G == 4)
 			{
@@ -10722,18 +10730,19 @@ void Server::asyncBattleAction()
 			}
 		}
 
-		//這裡不發的話一般戰鬥、和快戰都不會再收到後續的封包 (應該?)
+		//这里不发的话一般战斗、和快战都不会再收到后续的封包 (应该?)
 		lssproto_EO_send(0);
 		lssproto_Echo_send(const_cast<char*>("hoge"));
+		isEnemyAllReady.store(false, std::memory_order_release);
 	};
 
-	auto delay = [this, &injector, &checkAllFlags]()
+	auto delay = [this, &injector, &checkAllFlags](const QString& name)
 	{
-		//戰鬥延時
+		//战斗延时
 		int delay = injector.getValueHash(util::kBattleActionDelayValue);
 		if (delay < 0)
 			delay = 0;
-		announce(QString("<debug>战斗开始延时 %1 毫秒").arg(delay));
+		announce(QString("[async battle] 战斗 %1 开始延时 %2 毫秒").arg(name).arg(delay), 6);
 		if (delay > 1000)
 		{
 			for (int i = 0; i < delay / 1000; ++i)
@@ -10751,21 +10760,128 @@ void Server::asyncBattleAction()
 		}
 	};
 
+	auto checkEarlyEnd = [this, &setEndCurrentRound]()->bool
+	{
+		battledata_t bt = getBattleData();
+		//如果没有战宠 或者战宠死亡 则直接结束这一回合
+		if (pc.battlePetNo < 0 || pc.battlePetNo >= MAX_PET
+			|| ((bt.objects.value(BattleMyNo + 5, battleobject_t{}).hp <= 0)
+				|| (bt.objects.value(BattleMyNo + 5, battleobject_t{}).faceid <= 0)) || hasUnMoveableStatue(bt.pet.status))
+		{
+			setEndCurrentRound();
+			return true;
+		}
+		return false;
+	};
+
 	do
 	{
 		battledata_t bt = getBattleData();
 
-		//人物和寵物分開發
-		if (!checkFlagState(BattleMyNo)
-			&& !hasUnMoveableStatue(bt.player.status))
+		//人物和宠物分开发
+		if (!checkFlagState(BattleMyNo))
 		{
-			//非快戰中需要等待畫面，否則畫面會卡在戰鬥中
+			announce(QString("[async battle] 准备发出人物战斗指令"));
+			if (hasUnMoveableStatue(bt.player.status))
+			{
+				announce("[async battle] 人物在不可动作的异常状态中", 6);
+				sendBattlePlayerDoNothing();
+				bool bret = checkEarlyEnd();
+				announce("[async battle] 人物战斗指令发送完毕");
+				if (bret)
+					break;
+			}
+			else
+			{
+#if 0
+				//非快战中需要等待画面，否则画面会卡在战斗中
+				if (Checked)
+				{
+					announce("[async battle] 人物等待动画");
+					QElapsedTimer minitimer; minitimer.start();
+					for (;;)
+					{
+						if (checkGW(10, 4))
+							break;
+
+						if (minitimer.hasExpired(1000))
+							break;
+
+						QThread::msleep(MAX_DELAY);
+						if (!checkAllFlags())
+							return;
+					}
+
+					bool isDialogReady = isBattleDialogReady.load(std::memory_order_acquire);
+					if (!isDialogReady)
+					{
+						announce("[async battle] 开始等待人物战斗面板");
+						minitimer.restart();
+						for (;;)
+						{
+							if (isBattleDialogReady.load(std::memory_order_acquire))
+								break;
+
+							if (minitimer.hasExpired(1000))
+							{
+								announce("[async battle] 等待人物面板超时，强制执行", 7);
+								break;
+							}
+
+							if (!checkAllFlags())
+								return;
+
+							QThread::msleep(MAX_DELAY);
+						}
+					}
+				}
+#endif
+				delay(u8"人物");
+
+				//解析人物战斗逻辑并发送指令
+				if (playerDoBattleWork() == 1)
+				{
+					bool bret = checkEarlyEnd();
+					announce("[async battle] 人物战斗指令发送完毕");
+					if (bret)
+						break;
+				}
+				else
+					announce("[async battle] 人物战斗指令发送失败", 7);
+			}
+		}
+
+		if (pc.battlePetNo >= 0 && pc.battlePetNo < MAX_PET)
+		{
+			if (checkFlagState(BattleMyNo + 5))
+			{
+				announce("[async battle] 宠物已经出手过了，忽略动作", 7);
+				break;
+			}
+
+			announce(QString("[async battle] 准备发出宠物战斗指令"));
+			if (hasUnMoveableStatue(bt.pet.status))
+			{
+				announce("[async battle] 宠物在不可动作的异常状态中", 6);
+				sendBattlePetDoNothing();
+				setEndCurrentRound();
+				announce("[async battle] 宠物战斗指令发送完毕");
+				break;
+			}
+
+
+
+#if 0
 			if (Checked)
 			{
-				announce("<debug>人物等待動畫");
+				announce("[async battle] 宠物等待动画");
+				QElapsedTimer minitimer; minitimer.start();
 				for (;;)
 				{
 					if (checkGW(10, 4))
+						break;
+
+					if (minitimer.hasExpired(1000))
 						break;
 
 					QThread::msleep(MAX_DELAY);
@@ -10776,97 +10892,41 @@ void Server::asyncBattleAction()
 				bool isDialogReady = isBattleDialogReady.load(std::memory_order_acquire);
 				if (!isDialogReady)
 				{
-					announce("<debug>战斗面板未生成，忽略动作", 7);
-				}
+					announce("[async battle] 开始等待战宠战斗面板");
+					minitimer.restart();
+					for (;;)
+					{
+						if (isBattleDialogReady.load(std::memory_order_acquire))
+							break;
 
-				QElapsedTimer minitimer; minitimer.start();
-				for (;;)
-				{
-					if (isBattleDialogReady.load(std::memory_order_acquire))
-						break;
+						if (minitimer.hasExpired(1000))
+						{
+							announce("[async battle] 等待战宠面板超时，强制执行", 7);
+							break;
+						}
 
-					if (minitimer.hasExpired(1000))
-						break;
+						if (!checkAllFlags())
+							return;
 
-					if (!checkAllFlags())
-						return;
-
-					QThread::msleep(MAX_DELAY);
+						QThread::msleep(MAX_DELAY);
+					}
 				}
 			}
+#endif
+			delay(u8"战宠");
 
-			delay();
-
-			//解析人物戰鬥邏輯並發送指令
-			announce(QString("<debug>准备发出人物战斗指令"));
-			if (playerDoBattleWork() == 1)
-			{
-				if (Checked)
-					mem::write<short>(injector.getProcess(), injector.getProcessModule() + 0xE21E8, 1);
-
-				bt = getBattleData();
-
-				//如果沒有戰寵 或者戰寵死亡 則直接結束這一回合
-				if (pc.battlePetNo < 0 || pc.battlePetNo >= MAX_PET
-					|| ((bt.objects.value(BattleMyNo + 5, battleobject_t{}).hp <= 0)
-						|| (bt.objects.value(BattleMyNo + 5, battleobject_t{}).faceid <= 0)) || hasUnMoveableStatue(bt.pet.status))
-				{
-					setEndCurrentRound();
-					//isEnemyAllReady = false;
-					break;
-				}
-
-				if (Checked)
-					while (!checkFlagState(BattleMyNo) && checkAllFlags()) { QThread::msleep(MAX_DELAY); }
-
-				announce("<debug>人物战斗指令发送完毕");
-			}
-
-			if (Checked)
-				break;
-		}
-
-		if ((pc.battlePetNo >= 0 && pc.battlePetNo < MAX_PET)
-			&& !checkFlagState(BattleMyNo + 5)
-			&& !hasUnMoveableStatue(bt.pet.status))
-		{
-			if (Checked)
-			{
-				announce("<debug>寵物等待動畫");
-				for (;;)
-				{
-					if (checkGW(10, 4))
-						break;
-
-					QThread::msleep(MAX_DELAY);
-					if (!checkAllFlags())
-						return;
-				}
-
-				delay();
-			}
-
-			announce(QString("<debug>准备发出宠物战斗指令"));
-			//解析寵物戰鬥邏輯並發送指令
 			if (petDoBattleWork() == 1)
 			{
-				if (Checked)
-					mem::write<short>(injector.getProcess(), injector.getProcessModule() + 0xE21E8, 1);
-
 				setEndCurrentRound();
-				//isEnemyAllReady = false;
-
-				if (Checked)
-					while (!checkFlagState(BattleMyNo + 5) && checkAllFlags()) { QThread::msleep(MAX_DELAY); }
-				announce("<debug>宠物战斗指令发送完毕");
+				announce("[async battle] 宠物战斗指令发送完毕");
 				break;
-
 			}
+			else
+				announce("[async battle] 宠物战斗指令发送失败", 7);
 		}
 		else
-		{
-			announce("<debug>人物戰寵皆已出手或沒有戰寵人物已出手，忽略动作", 7);
-		}
+			announce("[async battle] 无战宠，忽略战宠动作", 7);
+
 	} while (false);
 }
 
@@ -11466,7 +11526,7 @@ void Server::handlePlayerBattleLogics()
 		int tempTarget = -1;
 		//bool ok = false;
 		int charMpPercent = injector.getValueHash(util::kBattleItemHealMpValue);
-		if (!checkPlayerMp(charMpPercent, &tempTarget, true))
+		if (!checkPlayerMp(charMpPercent, &tempTarget, true) && BattleMyMp > 0)
 		{
 			break;
 		}
@@ -13698,7 +13758,7 @@ void Server::sendBattlePetDoNothing()
 //戰鬥指令封包
 void Server::lssproto_B_send(const QString& command)
 {
-	announce(QString("<debug>送出战斗封包: %1").arg(command));
+	announce(QString("[async battle] 送出战斗封包: %1").arg(command.toUpper()));
 	//QByteArray buffer(Autil::NETDATASIZE, '\0');
 
 	//int iChecksum = 0;
