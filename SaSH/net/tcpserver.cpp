@@ -7,7 +7,7 @@
 #include "script/interpreter.h"
 
 #include "spdloger.hpp"
-extern QString g_logger_name;
+extern QString g_logger_name;//parser.cpp
 
 #pragma region StringControl
 int Server::a62toi(const QString& a) const
@@ -3690,18 +3690,6 @@ void Server::lssproto_Firework_recv(int nCharaindex, int nType, int nActionNum)
 #ifdef _ANNOUNCEMENT_
 void Server::lssproto_DENGON_recv(char* cdata, int colors, int nums)
 {
-	QString data = util::toUnicode(cdata);
-	if (data.isEmpty())
-		return;
-
-	//extern int 公告數量;
-	//extern char 公告內容[512];
-	//extern int 公告顏色;
-	//extern int 公告時間;
-	//公告時間 = 0;
-	//sprintf(公告內容, "%s", data);
-	//公告顏色 = colors;
-	//公告數量 = nums;
 }
 #endif
 
@@ -5356,30 +5344,6 @@ void Server::lssproto_S_recv(char* cdata)
 		playerInfoColContents.insert(0, var);
 		emit signalDispatcher.updatePlayerInfoColContents(0, var);
 		setWindowTitle();
-		//#ifdef _STONDEBUG_
-		//		char title[128];
-		//		sprintf_s(title, "%s %s [%s  %s:%s]", DEF_APPNAME, "調試版本",
-		//			gmsv[selectServerIndex].name,
-		//			gmsv[selectServerIndex].ipaddr, gmsv[selectServerIndex].port);
-		//#else
-		//		char title[128];
-		//		extern int nServerGroup;
-		//		sprintf_s(title, "%s %s [%s] %s", DEF_APPNAME, gmgroup[nServerGroup].name, gmsv[selectServerIndex].name, pc.name);
-		//
-		//		extern int 繁體開關;
-		//		if (繁體開關)
-		//		{
-		//			char 繁體[1024] = { 0 };
-		//			LCMapString(0x804, 0x4000000, title, strlen(title), 繁體, 1024);
-		//			sprintf(title, "%s", 繁體);
-		//		}
-		//
-		//#endif
-		//		extern int 編碼;
-		//		extern char* GB2312ToBIG5(const char* szGBString);
-
-		//if ((bNewServer & 0xf000000) == 0xf000000 && sPetStatFlag == 1)
-		//	saveUserSetting();
 	}
 #pragma endregion
 #pragma region FamilyInfo
@@ -5530,7 +5494,7 @@ void Server::lssproto_S_recv(char* cdata)
 						{
 							pet[no].graNo = getIntegerToken(data, "|", i);// 0x00000002
 							i++;
-						}
+				}
 						else if (mask == 0x00000004)
 						{
 							pet[no].hp = getIntegerToken(data, "|", i);// 0x00000004
@@ -5542,7 +5506,7 @@ void Server::lssproto_S_recv(char* cdata)
 							pet[no].maxHp = getIntegerToken(data, "|", i);// 0x00000008
 							pet[no].hpPercent = util::percent(pet[no].hp, pet[no].maxHp);
 							i++;
-						}
+			}
 						else if (mask == 0x00000010)
 						{
 							pet[no].mp = getIntegerToken(data, "|", i);// 0x00000010
@@ -5743,7 +5707,7 @@ void Server::lssproto_S_recv(char* cdata)
 			emit signalDispatcher.updatePlayerInfoColContents(i + 1, var);
 		}
 
-	}
+						}
 #pragma endregion
 #pragma region EncountPercentage
 	else if (first == "E") // E nowEncountPercentage
@@ -5878,10 +5842,10 @@ void Server::lssproto_S_recv(char* cdata)
 			{
 				//if (no2 >= 0 || gx >= 0 || gy >= 0)
 					//goFrontPartyCharacter(no2, gx, gy);
-			}
+		}
 			updateTeamInfo();
 			return;
-		}
+	}
 
 		partyModeFlag = 1;
 		prSendFlag = 0;
@@ -5967,7 +5931,7 @@ void Server::lssproto_S_recv(char* cdata)
 		}
 		party[no].hpPercent = util::percent(party[no].hp, party[no].maxHp);
 		updateTeamInfo();
-	}
+		}
 #pragma endregion
 #pragma region ItemInfo
 	else if (first == "I") //I 道具
@@ -6094,7 +6058,7 @@ void Server::lssproto_S_recv(char* cdata)
 		emit signalDispatcher.updateComboBoxItemText(util::kComboBoxItem, itemList);
 		checkAutoDropMeat(QStringList());
 		sortItem();
-	}
+		}
 #pragma endregion
 #pragma region PetSkill
 	else if (first == "W")//接收到的寵物技能
@@ -6306,7 +6270,7 @@ void Server::lssproto_S_recv(char* cdata)
 #ifdef _ITEM_COUNTDOWN
 			pet[nPetIndex].item[i].counttime = getIntegerToken(data, "|", no + 16);
 #endif
-		}
+	}
 	}
 #endif
 #pragma endregion
@@ -6330,7 +6294,7 @@ void Server::lssproto_S_recv(char* cdata)
 	else if (first == "H")
 	{
 		//H0|0|  //0~19
-	}
+}
 	else if (first == "O")
 	{
 		//O0|||||||||||||
@@ -6363,7 +6327,7 @@ void Server::lssproto_S_recv(char* cdata)
 	{
 		qDebug() << "[" << first << "]:" << data;
 	}
-}
+		}
 
 //客戶端登入(進去選人畫面)
 void Server::lssproto_ClientLogin_recv(char* cresult)
@@ -6576,7 +6540,7 @@ void Server::lssproto_TD_recv(char* cdata)//交易
 		}
 #endif
 
-	}
+}
 	//处理物品交易资讯传递
 	else if (Head.startsWith("T"))
 	{
@@ -6767,7 +6731,7 @@ void Server::lssproto_TD_recv(char* cdata)//交易
 		mypet_tradeList = QStringList{ "P|-1", "P|-1", "P|-1" , "P|-1", "P|-1" };
 		mygoldtrade = 0;
 	}
-}
+	}
 
 void Server::lssproto_CHAREFFECT_recv(char* cdata)
 {
@@ -6961,7 +6925,7 @@ int Server::getUnloginStatus()
 
 	qDebug() << "getUnloginStatus: " << W << " " << G;
 	return util::kStatusUnknown;
-}
+	}
 
 //切換是否在戰鬥中的標誌
 void Server::setBattleFlag(bool enable)
@@ -10715,27 +10679,6 @@ void Server::asyncBattleAction()
 		return;
 	}
 
-	//通知结束这一回合
-	auto setEndCurrentRound = [this, &injector, Checked]()->void
-	{
-		if (Checked)
-		{
-			//if (Checked)
-			//mem::write<short>(injector.getProcess(), injector.getProcessModule() + 0xE21E8, 1);
-			int G = getGameStatus();
-			if (G == 4)
-			{
-				setGameStatus(5);
-				isBattleDialogReady.store(false, std::memory_order_release);
-			}
-		}
-
-		//这里不发的话一般战斗、和快战都不会再收到后续的封包 (应该?)
-		lssproto_EO_send(0);
-		lssproto_Echo_send(const_cast<char*>("hoge"));
-		isEnemyAllReady.store(false, std::memory_order_release);
-	};
-
 	auto delay = [this, &injector, &checkAllFlags](const QString& name)
 	{
 		//战斗延时
@@ -10760,174 +10703,78 @@ void Server::asyncBattleAction()
 		}
 	};
 
-	auto checkEarlyEnd = [this, &setEndCurrentRound]()->bool
-	{
-		battledata_t bt = getBattleData();
-		//如果没有战宠 或者战宠死亡 则直接结束这一回合
-		if (pc.battlePetNo < 0 || pc.battlePetNo >= MAX_PET
-			|| ((bt.objects.value(BattleMyNo + 5, battleobject_t{}).hp <= 0)
-				|| (bt.objects.value(BattleMyNo + 5, battleobject_t{}).faceid <= 0)) || hasUnMoveableStatue(bt.pet.status))
-		{
-			setEndCurrentRound();
-			return true;
-		}
-		return false;
-	};
+	battledata_t bt = {};
 
-	do
+	//人物和宠物分开发
+	if (!checkFlagState(BattleMyNo))
 	{
-		battledata_t bt = getBattleData();
-
-		//人物和宠物分开发
-		if (!checkFlagState(BattleMyNo))
+		bt = getBattleData();
+		announce(QString("[async battle] 准备发出人物战斗指令"));
+		if (!hasUnMoveableStatue(bt.player.status))
 		{
-			announce(QString("[async battle] 准备发出人物战斗指令"));
-			if (hasUnMoveableStatue(bt.player.status))
-			{
-				announce("[async battle] 人物在不可动作的异常状态中", 6);
-				sendBattlePlayerDoNothing();
-				bool bret = checkEarlyEnd();
+			delay(u8"人物");
+
+			//解析人物战斗逻辑并发送指令
+			if (playerDoBattleWork() == 1)
 				announce("[async battle] 人物战斗指令发送完毕");
-				if (bret)
-					break;
+			else
+				announce("[async battle] 人物战斗指令发送失败", 7);
+		}
+		else
+		{
+			announce("[async battle] 人物在不可动作的异常状态中", 6);
+			sendBattlePlayerDoNothing();
+			announce("[async battle] 人物战斗指令发送完毕");
+		}
+	}
+	else
+		announce("[async battle] 人物已经出手过了，忽略动作", 7);
+
+	if (pc.battlePetNo >= 0 && pc.battlePetNo < MAX_PET)
+	{
+		if (!checkFlagState(BattleMyNo + 5))
+		{
+			bt = getBattleData();
+			announce(QString("[async battle] 准备发出宠物战斗指令"));
+			if (!hasUnMoveableStatue(bt.pet.status))
+			{
+				delay(u8"战宠");
+
+				if (petDoBattleWork() == 1)
+					announce("[async battle] 宠物战斗指令发送完毕");
+				else
+					announce("[async battle] 宠物战斗指令发送失败", 7);
 			}
 			else
-			{
-#if 0
-				//非快战中需要等待画面，否则画面会卡在战斗中
-				if (Checked)
-				{
-					announce("[async battle] 人物等待动画");
-					QElapsedTimer minitimer; minitimer.start();
-					for (;;)
-					{
-						if (checkGW(10, 4))
-							break;
-
-						if (minitimer.hasExpired(1000))
-							break;
-
-						QThread::msleep(MAX_DELAY);
-						if (!checkAllFlags())
-							return;
-					}
-
-					bool isDialogReady = isBattleDialogReady.load(std::memory_order_acquire);
-					if (!isDialogReady)
-					{
-						announce("[async battle] 开始等待人物战斗面板");
-						minitimer.restart();
-						for (;;)
-						{
-							if (isBattleDialogReady.load(std::memory_order_acquire))
-								break;
-
-							if (minitimer.hasExpired(1000))
-							{
-								announce("[async battle] 等待人物面板超时，强制执行", 7);
-								break;
-							}
-
-							if (!checkAllFlags())
-								return;
-
-							QThread::msleep(MAX_DELAY);
-						}
-					}
-				}
-#endif
-				delay(u8"人物");
-
-				//解析人物战斗逻辑并发送指令
-				if (playerDoBattleWork() == 1)
-				{
-					bool bret = checkEarlyEnd();
-					announce("[async battle] 人物战斗指令发送完毕");
-					if (bret)
-						break;
-				}
-				else
-					announce("[async battle] 人物战斗指令发送失败", 7);
-			}
-		}
-
-		if (pc.battlePetNo >= 0 && pc.battlePetNo < MAX_PET)
-		{
-			if (checkFlagState(BattleMyNo + 5))
-			{
-				announce("[async battle] 宠物已经出手过了，忽略动作", 7);
-				break;
-			}
-
-			announce(QString("[async battle] 准备发出宠物战斗指令"));
-			if (hasUnMoveableStatue(bt.pet.status))
 			{
 				announce("[async battle] 宠物在不可动作的异常状态中", 6);
 				sendBattlePetDoNothing();
-				setEndCurrentRound();
 				announce("[async battle] 宠物战斗指令发送完毕");
-				break;
 			}
-
-
-
-#if 0
-			if (Checked)
-			{
-				announce("[async battle] 宠物等待动画");
-				QElapsedTimer minitimer; minitimer.start();
-				for (;;)
-				{
-					if (checkGW(10, 4))
-						break;
-
-					if (minitimer.hasExpired(1000))
-						break;
-
-					QThread::msleep(MAX_DELAY);
-					if (!checkAllFlags())
-						return;
-				}
-
-				bool isDialogReady = isBattleDialogReady.load(std::memory_order_acquire);
-				if (!isDialogReady)
-				{
-					announce("[async battle] 开始等待战宠战斗面板");
-					minitimer.restart();
-					for (;;)
-					{
-						if (isBattleDialogReady.load(std::memory_order_acquire))
-							break;
-
-						if (minitimer.hasExpired(1000))
-						{
-							announce("[async battle] 等待战宠面板超时，强制执行", 7);
-							break;
-						}
-
-						if (!checkAllFlags())
-							return;
-
-						QThread::msleep(MAX_DELAY);
-					}
-				}
-			}
-#endif
-			delay(u8"战宠");
-
-			if (petDoBattleWork() == 1)
-			{
-				setEndCurrentRound();
-				announce("[async battle] 宠物战斗指令发送完毕");
-				break;
-			}
-			else
-				announce("[async battle] 宠物战斗指令发送失败", 7);
 		}
 		else
-			announce("[async battle] 无战宠，忽略战宠动作", 7);
+			announce("[async battle] 宠物已经出手过了，忽略动作", 7);
+	}
+	else
+		announce("[async battle] 无战宠，忽略战宠动作", 7);
 
-	} while (false);
+	//通知结束这一回合
+	if (Checked)
+	{
+		//if (Checked)
+		//mem::write<short>(injector.getProcess(), injector.getProcessModule() + 0xE21E8, 1);
+		int G = getGameStatus();
+		if (G == 4)
+		{
+			setGameStatus(5);
+			isBattleDialogReady.store(false, std::memory_order_release);
+		}
+	}
+
+	//这里不发的话一般战斗、和快战都不会再收到后续的封包 (应该?)
+	lssproto_EO_send(0);
+	lssproto_Echo_send(const_cast<char*>("hoge"));
+	isEnemyAllReady.store(false, std::memory_order_release);
 }
 
 //人物戰鬥
@@ -14071,5 +13918,5 @@ bool Server::captchaOCR(QString* pmsg)
 		announce("<ocr>failed! error:" + errorMsg);
 
 	return true;
-}
+	}
 #pragma endregion

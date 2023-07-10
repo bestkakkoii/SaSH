@@ -102,7 +102,7 @@ public:
 #ifdef _DEBUG
 		std::cout << "Connect success." << std::endl;
 #endif
-		extern HWND g_ParenthWnd;
+		extern HWND g_ParenthWnd;//sadll.cpp
 		SendMessageW(g_ParenthWnd, util::kConnectionOK, NULL, NULL);
 
 		return true;

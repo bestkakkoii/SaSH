@@ -12,12 +12,12 @@ namespace Autil
 	constexpr size_t SLICE_SIZE = 65500;
 	constexpr size_t LBUFSIZE = 65500;
 	constexpr size_t SBUFSIZE = 4096;
-	extern QByteArray MesgSlice[];//[][Autil::SLICE_SIZE];	// store message slices
-	extern util::SafeData<size_t> SliceCount;		// count slices in MesgSlice
+	extern QByteArray MesgSlice[];//autil.cpp//[][Autil::SLICE_SIZE];	// store message slices
+	extern util::SafeData<size_t> SliceCount;//autil.cpp		// count slices in MesgSlice
 
 	constexpr size_t PERSONALKEYSIZE = 32;
 	//extern QScopedArrayPointer<char> PersonalKey;
-	extern util::SafeData<QString> PersonalKey;
+	extern util::SafeData<QString> PersonalKey;//autil.cpp
 
 	constexpr const char* SEPARATOR = ";";
 

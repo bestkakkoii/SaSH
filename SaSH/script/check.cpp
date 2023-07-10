@@ -439,15 +439,13 @@ qint64 Interpreter::checkitem(qint64 currentline, const TokenMap& TK)
 
 	QString itemName;
 	checkString(TK, 2, &itemName);
-	if (itemName.isEmpty())
-		return Parser::kArgError;
-
-	QStringList itemNames = itemName.split(util::rexOR, Qt::SkipEmptyParts);
-	if (itemNames.isEmpty())
-		return Parser::kArgError;
 
 	QString itemMemo;
 	checkString(TK, 3, &itemMemo);
+	if (itemName.isEmpty() && itemMemo.isEmpty())
+		return Parser::kArgError;
+
+	QStringList itemNames = itemName.split(util::rexOR);
 	QStringList itemMemos = itemMemo.split(util::rexOR);
 
 
@@ -481,25 +479,32 @@ qint64 Interpreter::checkitem(qint64 currentline, const TokenMap& TK)
 						}
 					}
 				}
+				else if (itemNames.isEmpty())
+				{
+					for (const QString& it : itemMemos)
+					{
+						if (item.name.contains(it))
+							return true;
+					}
+				}
 				else if (itemMemos.size() == itemNames.size())
 				{
 					for (qint64 j = 0; j < itemNames.size(); ++j)
 					{
-						if (item.name == itemNames[j] && item.memo.contains(itemMemos[j]))
+						if (item.name == itemNames.at(j) && item.memo.contains(itemMemos.at(j)))
 						{
 							return true;
 						}
-						else if (itemNames[j].startsWith(kFuzzyPrefix))
+						else if (itemNames.at(j).startsWith(kFuzzyPrefix))
 						{
-							QString newName = itemNames[j].mid(1);
-							if (item.name.contains(newName) && item.memo.contains(itemMemos[j]))
+							QString newName = itemNames.at(j).mid(1);
+							if (item.name.contains(newName) && item.memo.contains(itemMemos.at(j)))
 							{
 								return true;
 							}
 						}
 					}
 				}
-
 			}
 
 			return false;
@@ -532,4 +537,3 @@ qint64 Interpreter::checkpet(qint64 currentline, const TokenMap& TK)
 
 	return checkJump(TK, 3, bret, FailedJump);
 }
-

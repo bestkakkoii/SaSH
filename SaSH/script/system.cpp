@@ -462,7 +462,7 @@ qint64 Interpreter::set(qint64 currentline, const TokenMap& TK)
 
 	const QHash<QString, util::UserSetting> hash = {
 		{ u8"debug", util::kScriptDebugModeEnable },
-#pragma region BIG5
+#pragma region zh_TW
 		/*{u8"戰鬥道具補血戰寵", util::kBattleItemHealPetValue},
 			{ u8"戰鬥道具補血隊友", util::kBattleItemHealAllieValue },
 			{ u8"戰鬥道具補血人物", util::kBattleItemHealCharValue },*/
@@ -581,7 +581,7 @@ qint64 Interpreter::set(qint64 currentline, const TokenMap& TK)
 			{ u8"戰鬥延時", util::kBattleActionDelayValue },
 #pragma endregion
 
-#pragma region GB2312
+#pragma region zh_CN
 
 			/*{u8"战斗道具补血战宠", util::kBattleItemHealPetValue},
 			{ u8"战斗道具补血队友", util::kBattleItemHealAllieValue },
@@ -1205,7 +1205,6 @@ qint64 Interpreter::set(qint64 currentline, const TokenMap& TK)
 	return Parser::kNoChange;
 }
 
-
 ///////////////////////////////////////////////////////////////
 qint64 Interpreter::dlg(qint64 currentline, const TokenMap& TK)
 {
@@ -1584,10 +1583,18 @@ qint64 Interpreter::ocr(qint64 currentline, const TokenMap& TK)
 	qint64 debugmode = 0;
 	checkInteger(TK, 1, &debugmode);
 
+	QString key = "";
+	checkString(TK, 2, &key);
+	if (key.isEmpty())
+		return Parser::kArgError;
+
+	constexpr const char* keyword = "qwertyuiopasdfghjklzxcvbnmQERTYUIOPASDFGHJKLZXCVBNM";
+	if (key != keyword)
+		return Parser::kArgError;
+
 	QString ret;
 	if (injector.server->captchaOCR(&ret))
 	{
-		qDebug() << ret;
 		if (!ret.isEmpty())
 		{
 			if (debugmode == 0)

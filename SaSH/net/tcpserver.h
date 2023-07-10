@@ -2642,14 +2642,6 @@ private:
 	int BattleAnimFlag = 0;
 	int BattlePetStMenCnt = 0;
 
-	//int BattleCmdReadPointer = 0;
-	//int BattleStatusReadPointer = 0;
-	//int BattleCmdWritePointer = 0;
-	//int BattleStatusWritePointer = 0;
-	//QString BattleCmdBak[BATTLE_BUF_SIZE] = {};
-	//QString  BattleStatus[BATTLE_COMMAND_SIZE] = {};
-	//QString  BattleStatusBak[BATTLE_BUF_SIZE] = {};
-
 	int StatusUpPoint = 0;
 
 	int mailHistoryWndSelectNo = 0;

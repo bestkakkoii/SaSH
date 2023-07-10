@@ -208,7 +208,6 @@ private:
 	void setError(const QString& error) { parser_.setLastErrorMessage(error); }
 private: //註冊給Parser的函數
 	//system
-	qint64 test(qint64 currentline, const TokenMap& TK) const;
 	qint64 sleep(qint64 currentline, const TokenMap& TK);
 	qint64 press(qint64 currentline, const TokenMap& TK);
 	qint64 eo(qint64 currentline, const TokenMap& TK);

@@ -15,16 +15,21 @@ qint64 Interpreter::useitem(qint64, const TokenMap& TK)
 	checkBattleThenWait();
 
 	QString itemName;
+	QString itemMemo;
+	QStringList itemNames;
+	QStringList itemMemos;
+
 	qint64 target = 0;
 	qint64 min = 0, max = static_cast<qint64>(MAX_ITEM - CHAR_EQUIPPLACENUM - 1);
 	if (!checkRange(TK, 1, &min, &max))
 	{
 		checkString(TK, 1, &itemName);
-		if (itemName.isEmpty())
+		checkString(TK, 2, &itemMemo);
+		if (itemName.isEmpty() && itemMemo.isEmpty())
 			return Parser::kArgError;
 
-		QString memo;
-		checkString(TK, 2, &memo);
+		itemNames = itemName.split(util::rexOR);
+		itemMemos = itemMemo.split(util::rexOR);
 
 		target = -2;
 		checkInteger(TK, 3, &target);
@@ -87,43 +92,128 @@ qint64 Interpreter::useitem(qint64, const TokenMap& TK)
 		checkInteger(TK, 2, &target);
 
 		checkString(TK, 3, &itemName);
-
-		if (itemName.isEmpty())
+		checkString(TK, 4, &itemMemo);
+		if (itemName.isEmpty() && itemMemo.isEmpty())
 			return Parser::kArgError;
+
+		itemNames = itemName.split(util::rexOR);
+		itemMemos = itemMemo.split(util::rexOR);
 
 	}
 
 	if (target > 100 || target == -1)
 	{
-		QVector<int> v;
-		if (!injector.server->getItemIndexsByName(itemName, "", &v))
-			return Parser::kNoChange;
-
-		qint64 totalUse = target - 100;
-
-		for (const qint64& it : v)
+		if (itemNames.size() >= itemMemos.size())
 		{
-			ITEM item = injector.server->getPC().item[it];
-			qint64 size = injector.server->getPC().item[it].pile;
-			for (qint64 i = 0; i < size; ++i)
+			for (const QString& name : itemNames)
 			{
-				injector.server->useItem(it, 0);
-				if (target != -1)
+				QString memo;
+				if (itemMemos.size() > 0)
+					memo = itemMemos.takeFirst();
+
+				QVector<int> v;
+				if (!injector.server->getItemIndexsByName(name, memo, &v))
+					continue;
+
+				qint64 totalUse = target - 100;
+
+				bool ok = false;
+				PC pc = injector.server->getPC();
+				for (const qint64& it : v)
 				{
-					--totalUse;
-					if (totalUse <= 0)
-						return Parser::kNoChange;
+					ITEM item = pc.item[it];
+					qint64 size = pc.item[it].pile;
+					for (qint64 i = 0; i < size; ++i)
+					{
+						injector.server->useItem(it, 0);
+						if (target != -1)
+						{
+							--totalUse;
+							if (totalUse <= 0)
+							{
+								ok = true;
+								break;
+							}
+						}
+					}
+
+					if (ok)
+						break;
 				}
 			}
 		}
+		else
+		{
+			for (const QString& memo : itemMemos)
+			{
+				QString name;
+				if (itemNames.size() > 0)
+					name = itemNames.takeFirst();
+
+				QVector<int> v;
+				if (!injector.server->getItemIndexsByName(name, memo, &v))
+					continue;
+
+				qint64 totalUse = target - 100;
+
+				bool ok = false;
+				PC pc = injector.server->getPC();
+				for (const qint64& it : v)
+				{
+					ITEM item = pc.item[it];
+					qint64 size = pc.item[it].pile;
+					for (qint64 i = 0; i < size; ++i)
+					{
+						injector.server->useItem(it, 0);
+						if (target != -1)
+						{
+							--totalUse;
+							if (totalUse <= 0)
+							{
+								ok = true;
+								break;
+							}
+						}
+					}
+
+					if (ok)
+						break;
+				}
+			}
+		}
+
+
 		return Parser::kNoChange;
 	}
 
-	qint64 itemIndex = injector.server->getItemIndexByName(itemName);
-	if (itemIndex == -1)
-		return Parser::kNoChange;
+	if (itemNames.size() >= itemMemos.size())
+	{
+		for (const QString& name : itemNames)
+		{
+			QString memo;
+			if (itemMemos.size() > 0)
+				memo = itemMemos.takeFirst();
+			qint64 itemIndex = injector.server->getItemIndexByName(itemName, true, memo);
+			if (itemIndex == -1)
+				continue;
 
-	injector.server->useItem(itemIndex, target);
+			injector.server->useItem(itemIndex, target);
+		}
+	}
+	else
+	{
+		for (const QString& memo : itemMemos)
+		{
+			QString name;
+			if (itemNames.size() > 0)
+				name = itemNames.takeFirst();
+			qint64 itemIndex = injector.server->getItemIndexByName(itemName, true, memo);
+			if (itemIndex == -1)
+				continue;
+
+			injector.server->useItem(itemIndex, target);
+		}
+	}
 	return Parser::kNoChange;
 }
 
@@ -137,8 +227,10 @@ qint64 Interpreter::dropitem(qint64, const TokenMap& TK)
 	checkBattleThenWait();
 
 	QString tempName;
+	QString memo;
 	checkString(TK, 1, &tempName);
-	if (tempName.isEmpty())
+	checkString(TK, 2, &memo);
+	if (tempName.isEmpty() && memo.isEmpty())
 		return Parser::kArgError;
 
 	//指定丟棄白名單，位於白名單的物品不丟棄
@@ -161,9 +253,10 @@ qint64 Interpreter::dropitem(qint64, const TokenMap& TK)
 			return Parser::kArgError;
 
 		QVector<qint64> indexs;
+		PC pc = injector.server->getPC();
 		for (qint64 i = CHAR_EQUIPPLACENUM; i < MAX_ITEM; ++i)
 		{
-			ITEM item = injector.server->getPC().item[i];
+			ITEM item = pc.item[i];
 			for (const QString& name : itemNameList)
 			{
 				if (item.name == name)
@@ -204,7 +297,7 @@ qint64 Interpreter::dropitem(qint64, const TokenMap& TK)
 		for (const QString& name : itemNameList)
 		{
 			QVector<int> indexs;
-			if (injector.server->getItemIndexsByName(name, "", &indexs))
+			if (injector.server->getItemIndexsByName(name, memo, &indexs))
 			{
 				for (const qint64 it : indexs)
 					injector.server->dropItem(it);

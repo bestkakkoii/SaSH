@@ -1,4 +1,6 @@
-﻿// Arminius' protocol utilities ver 0.1
+﻿#pragma once
+#if 0
+// Arminius' protocol utilities ver 0.1
 //
 // Any questions and bugs, mailto: arminius@mail.hwaei.com.tw
 
@@ -10,10 +12,10 @@ namespace Autil
 	constexpr size_t NETBUFSIZ = 1024 * 64;
 	constexpr size_t SLICE_MAX = 20;
 	constexpr size_t SLICE_SIZE = 65500;
-	extern char MesgSlice[][Autil::SLICE_SIZE];	// store message slices
-	extern int SliceCount;		// count slices in MesgSlice
+	extern char MesgSlice[][Autil::SLICE_SIZE];	//autil.cpp// store message slices
+	extern int SliceCount;		//autil.cpp// count slices in MesgSlice
 
-	extern char* PersonalKey;
+	extern char* PersonalKey;//autil.cpp
 
 	constexpr const char* SEPARATOR = ";";
 
@@ -314,3 +316,4 @@ namespace Autil
 #endif
 
 
+#endif

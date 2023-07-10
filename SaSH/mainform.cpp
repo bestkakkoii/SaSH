@@ -225,13 +225,13 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, long* res
 		if (interpreter.isNull())
 			return true;
 
-		int id = msg->wParam;
-		interpreter_hash_.insert(id, interpreter);
-
 		//檢查是否為合法字符串指針
 		QByteArray utf8str = reinterpret_cast<char*>(msg->lParam);
 		if (utf8str.isEmpty())
-			break;
+			return true;
+
+		int id = msg->wParam;
+		interpreter_hash_.insert(id, interpreter);
 
 		QString script = QString::fromUtf8(utf8str);
 		connect(interpreter.data(), &Interpreter::finished, this, [this, id]()
@@ -239,6 +239,7 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, long* res
 				interpreter_hash_.remove(id);
 				updateStatusText();
 			});
+
 		++interfaceCount_;
 		updateStatusText();
 		interpreter->doString(script, nullptr, Interpreter::kNotShare);
@@ -253,6 +254,7 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, long* res
 
 		interpreter->requestInterruption();
 		interpreter_hash_.remove(msg->wParam);
+
 		++interfaceCount_;
 		updateStatusText();
 		*result = 1;
@@ -267,7 +269,7 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, long* res
 		//檢查是否為合法字符串指針
 		QByteArray utf8str = reinterpret_cast<char*>(msg->lParam);
 		if (utf8str.isEmpty())
-			break;
+			return true;
 
 		QString fileName = QString::fromUtf8(utf8str);
 		if (!QFile::exists(fileName))
@@ -277,6 +279,7 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, long* res
 		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
 		emit signalDispatcher.loadFileToTable(fileName);
 		emit signalDispatcher.scriptStarted();
+
 		++interfaceCount_;
 		updateStatusText();
 		*result = 1;
@@ -290,6 +293,7 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, long* res
 
 		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
 		emit signalDispatcher.scriptStoped();
+
 		++interfaceCount_;
 		updateStatusText();
 		*result = 1;
@@ -303,6 +307,7 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, long* res
 
 		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
 		emit signalDispatcher.gameStarted();
+
 		++interfaceCount_;
 		updateStatusText();
 		*result = 1;
@@ -346,6 +351,8 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, long* res
 				value = 4;
 		}
 
+		++interfaceCount_;
+		updateStatusText();
 		*result = value;
 		return true;
 	}
@@ -359,6 +366,8 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, long* res
 		if (injector.IS_SCRIPT_FLAG.load(std::memory_order_acquire))
 			value = 1;
 
+		++interfaceCount_;
+		updateStatusText();
 		*result = value;
 		return true;
 	}
@@ -366,12 +375,12 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, long* res
 	{
 		int type = msg->wParam;
 		int arg = msg->lParam;
+		*result = 0;
 
 		switch (type)
 		{
 		case WindowInfo:
 		{
-			*result = 0;
 			if (pInfoForm_ == nullptr)
 			{
 				pInfoForm_ = new InfoForm(arg);
@@ -380,14 +389,16 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, long* res
 					connect(pInfoForm_, &InfoForm::destroyed, [this]() { pInfoForm_ = nullptr; });
 					pInfoForm_->setAttribute(Qt::WA_DeleteOnClose);
 					pInfoForm_->show();
+
+					++interfaceCount_;
+					updateStatusText();
 					*result = static_cast<long>(pInfoForm_->winId());
 				}
 			}
-			return true;
+			break;
 		}
 		case WindowMap:
 		{
-			*result = 0;
 			if (mapWidget_ == nullptr)
 			{
 				mapWidget_ = new MapWidget(nullptr);
@@ -396,14 +407,16 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, long* res
 					connect(mapWidget_, &InfoForm::destroyed, [this]() { mapWidget_ = nullptr; });
 					mapWidget_->setAttribute(Qt::WA_DeleteOnClose);
 					mapWidget_->show();
+
+					++interfaceCount_;
+					updateStatusText();
 					*result = static_cast<long>(mapWidget_->winId());
 				}
 			}
-			return true;
+			break;
 		}
 		case WindowScript:
 		{
-			*result = 0;
 			if (pScriptSettingForm_ == nullptr)
 			{
 				pScriptSettingForm_ = new ScriptSettingForm;
@@ -412,16 +425,19 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, long* res
 					connect(pScriptSettingForm_, &InfoForm::destroyed, [this]() { pScriptSettingForm_ = nullptr; });
 					pScriptSettingForm_->setAttribute(Qt::WA_DeleteOnClose);
 					pScriptSettingForm_->show();
+
+					++interfaceCount_;
+					updateStatusText();
 					*result = static_cast<long>(pScriptSettingForm_->winId());
 				}
 			}
-			return true;
+			break;
 		}
 		default:
 			break;
 		}
 
-		break;
+		return true;
 	}
 	case InterfaceMessage::kSortWindow:
 	{
@@ -465,6 +481,9 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, long* res
 			bool ok = msg->wParam > 0;
 
 			util::sortWindows(hwnds, ok);
+
+			++interfaceCount_;
+			updateStatusText();
 			*result = 1;
 
 		} while (false);
@@ -522,12 +541,18 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, long* res
 				connect(pThumbnailForm, &QThumbnailForm::destroyed, [this]() { pThumbnailForm_ = nullptr; });
 				pThumbnailForm->move(0, 0);
 				pThumbnailForm->show();
+
+				++interfaceCount_;
+				updateStatusText();
 				*result = 1;
 				return true;
 			}
 			else
 			{
 				pThumbnailForm_->initThumbnailWidget(hwnds);
+
+				++interfaceCount_;
+				updateStatusText();
 				*result = 2;
 				return true;
 			}
@@ -538,14 +563,15 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, long* res
 		{
 			pThumbnailForm_->close();
 			pThumbnailForm_ = nullptr;
+
+			++interfaceCount_;
+			updateStatusText();
 			*result = 1;
 		}
 		return true;
 	}
 	default:
-	{
 		break;
-	}
 	}
 
 	return false;
@@ -604,9 +630,7 @@ MainForm::MainForm(QWidget* parent)
 	setAttribute(Qt::WA_StyledBackground, true);
 	setAttribute(Qt::WA_StaticContents, true);
 	setWindowFlags(windowFlags() & ~Qt::WindowMaximizeButtonHint);
-	setStyleSheet(R"(
-		QMainWindow{ border-radius: 10px; }
-	)");
+	setStyleSheet("QMainWindow{ border-radius: 10px; }");
 
 	qRegisterMetaType<QVariant>("QVariant");
 	qRegisterMetaType<QVariant>("QVariant&");
@@ -628,7 +652,6 @@ MainForm::MainForm(QWidget* parent)
 		pMenuBar_ = pMenuBar;
 		pMenuBar->setObjectName("menuBar");
 		setMenuBar(pMenuBar);
-
 	}
 
 	{
@@ -648,8 +671,6 @@ MainForm::MainForm(QWidget* parent)
 		connect(&signalDispatcher, &SignalDispatcher::updateCursorLabelTextChanged, this, &MainForm::onUpdateCursorLabelTextChanged);
 		connect(&signalDispatcher, &SignalDispatcher::updateCoordsPosLabelTextChanged, this, &MainForm::onUpdateCoordsPosLabelTextChanged);
 	}
-
-
 
 	ui.tabWidget_main->clear();
 	util::setTab(ui.tabWidget_main);
@@ -684,8 +705,6 @@ MainForm::MainForm(QWidget* parent)
 						pAfkForm_->show();
 					});
 			}
-
-			//ui.tabWidget_main->addTab(pAfkForm_, tr("afk"));
 		}
 
 		pOtherForm_ = new OtherForm;
@@ -715,9 +734,7 @@ MainForm::MainForm(QWidget* parent)
 	QString qwid = QString::number(wid);
 	qputenv("SASH_HWND", qwid.toUtf8());
 
-	onUpdateStatusLabelTextChanged(util::kLabelStatusNotOpen);
-
-
+	emit signalDispatcher.updateStatusLabelTextChanged(util::kLabelStatusNotOpen);
 }
 
 MainForm::~MainForm()
@@ -904,6 +921,7 @@ void MainForm::onMenuActionTriggered()
 void MainForm::resetControlTextLanguage()
 {
 	const UINT acp = ::GetACP();
+
 #if QT_NO_DEBUG
 
 	switch (acp)
@@ -919,7 +937,7 @@ void MainForm::resetControlTextLanguage()
 	default:
 		translator_.load(QString("%1/translations/qt_en_US.qm").arg(QApplication::applicationDirPath()));
 		break;
-	}
+}
 #else
 	switch (acp)
 	{
@@ -991,26 +1009,10 @@ void MainForm::resetControlTextLanguage()
 
 	if (pOtherForm_)
 		emit pOtherForm_->resetControlTextLanguage();
-
 }
 
 void MainForm::onUpdateStatusLabelTextChanged(int status)
 {
-	/*
-		kLabelStatusNotUsed = 0,//未知
-		kLabelStatusNotOpen,//未開啟石器
-		kLabelStatusOpening,//開啟石器中
-		kLabelStatusOpened,//已開啟石器
-		kLabelStatusLogining,//登入
-		kLabelStatusSignning,//簽入中
-		kLabelStatusSelectServer,//選擇伺服器
-		kLabelStatusSelectSubServer,//選擇分伺服器
-		kLabelStatusGettingPlayerList,//取得人物中
-		kLabelStatusSelectPosition,//選擇人物中
-		kLabelStatusLoginSuccess,//登入成功
-		kLabelStatusInNormal,//平時
-		kLabelStatusInBattle,//戰鬥中
-	*/
 	const QHash<util::UserStatus, QString> hash = {
 		{ util::kLabelStatusNotUsed, tr("unknown") },
 		{ util::kLabelStatusNotOpen, tr("not open") },

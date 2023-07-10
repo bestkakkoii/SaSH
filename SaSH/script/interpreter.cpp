@@ -650,11 +650,10 @@ bool Interpreter::compare(CompareArea area, const TokenMap& TK)
 
 		QString itemName;
 		checkString(TK, 1, &itemName);
-		if (itemName.isEmpty())
-			return false;
-
 		QString itemMemo;
 		checkString(TK, 2, &itemMemo);
+		if (itemName.isEmpty() && itemMemo.isEmpty())
+			return false;
 
 		if (!checkRelationalOperator(TK, 3, &op))
 			return false;
@@ -787,7 +786,6 @@ void Interpreter::openLibsBIG5()
 	registerFunction(u8"轉字", &Interpreter::tostr);
 
 	//system
-	registerFunction(u8"測試", &Interpreter::test);
 	registerFunction(u8"延時", &Interpreter::sleep);
 	registerFunction(u8"按鈕", &Interpreter::press);
 	registerFunction(u8"元神歸位", &Interpreter::eo);
@@ -905,7 +903,6 @@ void Interpreter::openLibsGB2312()
 	registerFunction(u8"转字", &Interpreter::tostr);
 
 	//system
-	registerFunction(u8"测试", &Interpreter::test);
 	registerFunction(u8"延时", &Interpreter::sleep);
 	registerFunction(u8"按钮", &Interpreter::press);
 	registerFunction(u8"元神归位", &Interpreter::eo);
@@ -1023,7 +1020,6 @@ void Interpreter::openLibsUTF8()
 	registerFunction(u8"tostr", &Interpreter::tostr);
 
 	//system
-	registerFunction(u8"test", &Interpreter::test);
 	registerFunction(u8"sleep", &Interpreter::sleep);
 	registerFunction(u8"button", &Interpreter::press);
 	registerFunction(u8"eo", &Interpreter::eo);
@@ -1505,17 +1501,6 @@ bool Interpreter::findPath(QPoint dst, qint64 steplen, qint64 step_cost, qint64 
 		}
 	}
 	return false;
-}
-
-qint64 Interpreter::test(qint64 currentline, const TokenMap& TK) const
-{
-	Injector& injector = Injector::getInstance();
-
-	if (injector.server.isNull())
-		return Parser::kError;
-
-	injector.server->announce("Hello World!");
-	return Parser::kNoChange;
 }
 
 //執行子腳本

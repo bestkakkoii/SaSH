@@ -1017,9 +1017,8 @@ void util::sortWindows(const QVector<HWND>& windowList, bool alignLeft)
 		}
 		else
 		{
-			// 右對齊
 			int xPos = screenWidth - (x + windowWidth);
-			SetWindowPos(hwnd, nullptr, xPos, y, 0, 0, SWP_NOSIZE | SWP_NOZORDER);
+			SetWindowPos(hwnd, nullptr, xPos, y, 0, 0, SWP_NOSIZE | SWP_NOZORDER);// 右對齊
 		}
 
 		// 更新下一個窗口的位置

@@ -3,9 +3,9 @@
 #include "injector.h"
 #include "signaldispatcher.h"
 
-//全局關鍵字映射表 這裡是新增新的命令的第一步，其他需要在interpreter.cpp中新增，這裡不添加的話，腳本分析後會忽略未知的命令
+//全局關鍵字映射表 這裡是新增新的命令的第一步，其他需要在interpreter.cpp中新增註冊新函數，這裡不添加的話，腳本分析後會忽略未知的命令
 static const QHash<QString, RESERVE> keywords = {
-#pragma region BIG5
+#pragma region zh_TW
 	//test
 	{ u8"測試", TK_CMD },
 
@@ -120,11 +120,7 @@ static const QHash<QString, RESERVE> keywords = {
 	{ u8"拖至", TK_CMD },
 #pragma endregion
 
-	////////////////////////////////////////////////////
-	////////////// GB2312 //////////////////////////////
-	////////////////////////////////////////////////////
-
-#pragma region GB2312
+#pragma region zh_CN
 
 	//test
 	{ u8"测试", TK_CMD },
@@ -242,11 +238,7 @@ static const QHash<QString, RESERVE> keywords = {
 
 #pragma endregion
 
-#pragma region UTF8
-
-	//test
-	{ u8"test", TK_CMD },
-
+#pragma region en_US
 	//keyword
 	{ u8"call", TK_CALL },
 	{ u8"goto", TK_GOTO },
@@ -400,13 +392,13 @@ void Lexer::showError(const QString text, ErrorType type)
 //插入新TOKEN
 void Lexer::createToken(qint64 index, RESERVE type, const QVariant& data, const QString& raw, TokenMap* ptoken)
 {
-	ptoken->insert(index, { type, data, raw });
+	ptoken->insert(index, Token{ type, data, raw });
 }
 
 //插入空行TOKEN
 void Lexer::createEmptyToken(qint64 index, TokenMap* ptoken)
 {
-	ptoken->insert(index, { TK_WHITESPACE, "", "" });
+	ptoken->insert(index, Token{ TK_WHITESPACE, "", "" });
 }
 
 //解析單行內容至多個TOKEN
@@ -429,17 +421,15 @@ void Lexer::tokenized(qint64 currentLine, const QString& line, TokenMap* ptoken,
 		if (commentIndex == -1)
 			commentIndex = raw.indexOf("/*");
 
+		//處理整行註釋
 		if (commentIndex == 0 && (raw.trimmed().indexOf("//") == 0 || raw.trimmed().indexOf("/*") == 0))
 		{
 			createToken(pos, TK_COMMENT, raw, raw, ptoken);
 			break;
 		}
+		//當前token移除註釋
 		else if (commentIndex > 0)
-		{
-			//當前token移除註釋
 			raw = raw.mid(0, commentIndex).trimmed();
-		}
-
 
 		bool doNotLowerCase = false;
 		static const QRegularExpression rexMultiVar(R"(^\s*([_a-zA-Z\p{Han}][_a-zA-Z0-9\p{Han}]*(?:\s*,\s*[_a-zA-Z\p{Han}][_a-zA-Z0-9\p{Han}]*)*)\s*=\s*([^,]+(?:\s*,\s*[^,]+)*)$)");//a,b,c = 1,2,3
@@ -451,9 +441,7 @@ void Lexer::tokenized(qint64 currentLine, const QString& line, TokenMap* ptoken,
 		static const QRegularExpression varIf(R"([iI][fF][\(|\s+]([\d\w\W\p{Han}]+\s*[<|>|\=|!][\=]*\s*[\d\w\W\p{Han}]+))");//if (expr)
 		static const QRegularExpression rexFunction(R"([fF][uU][nN][cC][tT][iI][oO][nN]\s+([\w\p{Han}\d]+)\s*\(([\w\W\p{Han}]*)\))");
 		static const QRegularExpression rexCallFunction(R"((\w+)\s*\(([\w\W\p{Han}]*)\))");
-		static const QRegularExpression rexLocalArray(R"([lL][oO][cC][aA][lL]\s+([\w\p{Han}]+)\s*=\s*{\s*([^\}]+)\s*\})");
-		static const QRegularExpression rexGlobalArray(R"(([\w\p{Han}]+)\s*=\s*{\s*([^\}]+)\s*\})");
-		static const QRegularExpression rexSquareBracketsWithWord(R"(([\w\p{Han}]+)\[([\w\p{Han}]+)\]\s*=\s*([^,]+(?:\s*,\s*[^,]+)*)$)");
+		//處理if正則
 		if (raw.contains(varIf))
 		{
 			QRegularExpressionMatch match = varIf.match(raw);
@@ -476,71 +464,7 @@ void Lexer::tokenized(qint64 currentLine, const QString& line, TokenMap* ptoken,
 				break;
 			}
 		}
-#if 0
-		else if (raw.count("=") == 1 && raw.contains(rexLocalArray) && !raw.front().isDigit())
-		{
-			QRegularExpressionMatch match = rexLocalArray.match(raw);
-			if (match.hasMatch())
-			{
-				QString cmd = "[local]";
-				QString varName = match.captured(1).simplified();
-				QString arrayStr = match.captured(2).simplified();
-				createToken(pos, TK_LARRAY, cmd, cmd, ptoken);
-				createToken(pos + 1, TK_STRING, varName, varName, ptoken);
-				createToken(pos + 2, TK_STRING, arrayStr, arrayStr, ptoken);
-				break;
-			}
-		}
-		else if (raw.count("=") == 1 && raw.contains(rexGlobalArray) && !raw.front().isDigit())
-		{
-			QRegularExpressionMatch match = rexGlobalArray.match(raw);
-			if (match.hasMatch())
-			{
-				QString cmd = "[global]";
-				QString varName = match.captured(1).simplified();
-				QString arrayStr = match.captured(2).simplified();
-				createToken(pos, TK_GARRAY, cmd, cmd, ptoken);
-				createToken(pos + 1, TK_STRING, varName, varName, ptoken);
-				createToken(pos + 2, TK_STRING, arrayStr, arrayStr, ptoken);
-				break;
-			}
-		}
-		else if (raw.count("=") == 1 && raw.contains(rexSquareBracketsWithWord)
-			&& (!raw.contains(varAnyOp) || raw.indexOf(varAnyOp) > raw.indexOf("\'") || raw.indexOf(varAnyOp) > raw.indexOf("\""))
-			&& !raw.front().isDigit())
-		{
-			QRegularExpressionMatch match = rexSquareBracketsWithWord.match(raw);
-			if (match.hasMatch())
-			{
-				QString cmd = "[element]";
-				QString varName = match.captured(1).simplified();
-				QString idxValue = match.captured(2).simplified();
-				QString value = match.captured(3).simplified();
-				createToken(pos, TK_ARRAYELEMENT, cmd, cmd, ptoken);
-				createToken(pos + 1, TK_STRING, varName, varName, ptoken);
-
-				qint64 newPos = pos + 2;
-				QVariant varValue;
-				RESERVE reserve = getTokenType(newPos, TK_ARRAYELEMENT, idxValue, idxValue);
-				if (reserve == TK_INT || reserve == TK_BOOL || reserve == TK_DOUBLE)
-					varValue = idxValue.toLongLong();
-				else
-					varValue = idxValue;
-
-				createToken(newPos, reserve, varValue, idxValue, ptoken);
-
-				newPos = pos + 3;
-				reserve = getTokenType(newPos, TK_ARRAYELEMENT, value, value);
-				if (reserve == TK_INT || reserve == TK_BOOL || reserve == TK_DOUBLE)
-					varValue = value.toLongLong();
-				else
-					varValue = value;
-
-				createToken(newPos, reserve, varValue, value, ptoken);
-				break;
-			}
-		}
-#endif
+		//處理單一或多個局變量聲明+初始化
 		else if (raw.count("=") == 1 && raw.contains(rexMultiLocalVar)
 			&& (!raw.contains(varAnyOp) || raw.indexOf(varAnyOp) > raw.indexOf("\'") || raw.indexOf(varAnyOp) > raw.indexOf("\""))
 			&& !raw.front().isDigit())
@@ -554,6 +478,7 @@ void Lexer::tokenized(qint64 currentLine, const QString& line, TokenMap* ptoken,
 				doNotLowerCase = true;
 			}
 		}
+		//處理單一或多個全局變量聲明+初始化 或 已存在的局變量重新賦值
 		else if (raw.count("=") == 1 && raw.contains(rexMultiVar)
 			&& (!raw.contains(varAnyOp) || raw.indexOf(varAnyOp) > raw.indexOf("\'") || raw.indexOf(varAnyOp) > raw.indexOf("\""))
 			&& !raw.front().isDigit())
@@ -567,6 +492,7 @@ void Lexer::tokenized(qint64 currentLine, const QString& line, TokenMap* ptoken,
 				doNotLowerCase = true;
 			}
 		}
+		//處理自增自減
 		else if ((raw.count("++") == 1 || raw.count("--") == 1) && raw.contains(varIncDec) && !raw.front().isDigit())
 		{
 			//拆分出變數名稱 和 運算符
@@ -581,6 +507,7 @@ void Lexer::tokenized(qint64 currentLine, const QString& line, TokenMap* ptoken,
 				break;
 			}
 		}
+		//處理+= -+ *= /= %= |= &= 
 		else if (raw.contains(varCAOs) && !raw.front().isDigit())
 		{
 			QRegularExpressionMatch match = varCAOs.match(raw);
@@ -598,6 +525,7 @@ void Lexer::tokenized(qint64 currentLine, const QString& line, TokenMap* ptoken,
 			createToken(pos + 2, valuetype, value, value, ptoken);
 			break;
 		}
+		//處理變量賦值數學表達式
 		else if (raw.contains(varExpr) && raw.contains(varAnyOp) && !raw.front().isDigit())
 		{
 			QRegularExpressionMatch match = varExpr.match(raw);
@@ -613,10 +541,12 @@ void Lexer::tokenized(qint64 currentLine, const QString& line, TokenMap* ptoken,
 		}
 		else
 		{
+			//處理整行註釋
 			bool isCommand = raw.trimmed().startsWith("//");
 			if (!isCommand)
 				isCommand = raw.trimmed().startsWith("/*");
 
+			//處理使用正規function(...)聲明的語法
 			if (!isCommand && raw.contains(rexFunction))
 			{
 				QRegularExpressionMatch match = rexFunction.match(raw);
@@ -698,7 +628,7 @@ void Lexer::tokenized(qint64 currentLine, const QString& line, TokenMap* ptoken,
 				raw.clear();
 			}
 
-			//忽略空白TOKEN
+			//忽略空白TOKEN (用戶省略的參數以空字符串佔位)
 			if (token.isEmpty())
 			{
 				createToken(pos, TK_STRING, "", "", ptoken);
@@ -715,9 +645,7 @@ void Lexer::tokenized(qint64 currentLine, const QString& line, TokenMap* ptoken,
 				bool ok;
 				qint64 intValue = token.toLongLong(&ok);
 				if (ok)
-				{
 					data = QVariant::fromValue(intValue);
-				}
 			}
 			else if (type == TK_BOOL)
 			{
@@ -738,16 +666,16 @@ void Lexer::tokenized(qint64 currentLine, const QString& line, TokenMap* ptoken,
 					type = TK_INT;
 				}
 			}
-			else if (type == TK_CSTRING)//對字串進行轉換處理，去除首尾單引號、雙引號，並標記為常量
+			else if (type == TK_CSTRING)//對常量字串進行轉換處理，去除首尾單引號、雙引號，並標記為常量字串
 			{
 				token = token.mid(1, token.length() - 2);
 				data = QVariant::fromValue(token);
 			}
-			else if (type == TK_STRING)//對字串進行轉換處理，去除首尾單引號、雙引號，並標記為常量
+			else if (type == TK_STRING)//對普通字串進行轉換處理
 			{
 				data = QVariant::fromValue(token);
 			}
-			else if (type == TK_LABELVAR)
+			else if (type == TK_LABELVAR)//處理調用傳參
 			{
 				if ((token.startsWith("\"") || token.startsWith("\'")) && (token.endsWith("\"") || token.endsWith("\'")))
 				{
@@ -777,7 +705,6 @@ void Lexer::tokenized(qint64 currentLine, const QString& line, TokenMap* ptoken,
 //解析整個腳本至多個TOKEN
 bool Lexer::tokenized(const QString& script, QHash<qint64, TokenMap>* ptokens, QHash<QString, qint64>* plabel)
 {
-
 	Injector& injector = Injector::getInstance();
 	if (!injector.scriptLogModel.isNull())
 		injector.scriptLogModel->clear();
@@ -794,7 +721,6 @@ bool Lexer::tokenized(const QString& script, QHash<qint64, TokenMap>* ptokens, Q
 		tokens.insert(i, tk);
 	}
 
-	lexer.checkInvalidReadVariable(tokens);
 	lexer.checkFunctionPairs(tokens);
 
 	if (ptokens != nullptr && plabel != nullptr)
@@ -843,11 +769,6 @@ bool Lexer::isConstString(const QString& str) const
 	return (str.startsWith("\'") || str.startsWith("\"")) && (str.endsWith("\'") || str.endsWith("\""));
 }
 
-//bool Lexer::isVariable(const QString& str) const
-//{
-//	return str.startsWith(kVariablePrefix) && !str.endsWith(kVariablePrefix);
-//}
-
 bool Lexer::isLabel(const QString& str) const
 {
 	return  keywords.value(str, TK_UNK) == TK_LABEL;
@@ -873,11 +794,6 @@ bool Lexer::isOperator(const QChar& ch) const
 		(ch == '&') || (ch == '|') || (ch == '~') || (ch == '^') ||
 		(ch == '!')
 		);
-}
-
-bool Lexer::isDelimiter(const QChar& ch) const
-{
-	return ((ch == ',') || (ch == ' '));
 }
 
 //根據容取TOKEN應該定義的類型
@@ -1021,26 +937,6 @@ QChar Lexer::next(const QString& str, qint64& index) const
 //根據指定分割符號取得字串
 bool Lexer::getStringToken(QString& src, const QString& delim, QString& out)
 {
-	//if (src.isEmpty())
-	//	return false;
-
-	//if (delim.isEmpty())
-	//	return false;
-
-	//QStringList list = src.split(delim);
-	//if (list.isEmpty())
-	//	return false;
-
-	//out = list.first().trimmed();
-	//qint64 size = out.size();
-
-	////remove frist 'out' and 'delim' from src
-	//src.remove(0, size + delim.size());
-	//if (src.startsWith(delim))
-	//	src.remove(0, delim.size());
-	//src = src.trimmed();
-	//return true;
-
 	if (src.isEmpty())
 		return false;
 
@@ -1102,77 +998,6 @@ bool Lexer::getStringToken(QString& src, const QString& delim, QString& out)
 	return true;
 }
 
-//檢查引用變量前面是否缺少&符號
-void Lexer::checkInvalidReadVariable(const QHash<qint64, TokenMap>& stokenmaps)
-{
-	QMap<qint64, QString> invalidReadVariables;
-	QStringList varNameList;
-
-	QMap <qint64, TokenMap> tokenmaps;//轉成有序容器方便按順序遍歷
-	for (auto it = stokenmaps.cbegin(); it != stokenmaps.cend(); ++it)
-		tokenmaps.insert(it.key(), it.value());
-
-	//首次先把所有變量聲明找出來紀錄變量名稱
-	for (auto it = tokenmaps.cbegin(); it != tokenmaps.cend(); ++it)
-	{
-		//const qint64 row = it.key();
-		const TokenMap& tokenmap = it.value();
-		RESERVE type = tokenmap.value(0).type;
-
-		if (type == TK_VARDECL || type == TK_FORMAT || type == TK_RND)
-		{
-			QString varName = tokenmap.value(1).data.toString().simplified();
-			if (type == TK_FORMAT)
-			{
-				if (varName == "out" || varName == "say")
-					continue;
-			}
-
-			if (!varNameList.contains(varName))
-				varNameList.append(varName);
-		}
-		else if (type == TK_MULTIVAR)
-		{
-			QStringList varNames = tokenmap.value(0).data.toString().simplified().split(util::rexComma, Qt::SkipEmptyParts);
-			if (varNames.isEmpty())
-				continue;
-
-			for (const QString& varName : varNames)
-			{
-				if (!varNameList.contains(varName))
-					varNameList.append(varName);
-			}
-		}
-	}
-
-	static const QStringList systemVarList = {
-		//utf8
-		"tick", "stick", "chname", "chfname", "chlv", "chhp", "chmp", "chdp", "stone", "px", "py",
-			"floor", "frname", "date", "time", "earnstone", "expbuff", "dlgid", "bt"
-	};
-
-	varNameList.append(systemVarList);
-
-
-	//for (auto it = tokenmaps.cbegin(); it != tokenmaps.cend(); ++it)
-	//{
-	//	const qint64 row = it.key();
-	//	const TokenMap tokenmap = it.value();
-	//	for (auto subit = std::next(tokenmap.cbegin()); subit != tokenmap.cend(); ++subit)
-	//	{
-	//		RESERVE curtype = subit.value().type;
-
-	//		QString varName = subit.value().data.toString().simplified();
-	//		if (varNameList.contains(varName))
-	//			continue;
-
-	//		QString errorMessage = QObject::tr("<Syntax Error>Unexpected using undeclared variable name '%1' at line: %2").arg(varName.mid(0)).arg(row + 1);
-	//		showError(errorMessage);
-	//	}
-	//}
-
-}
-
 void Lexer::checkFunctionPairs(const QHash<qint64, TokenMap>& stokenmaps)
 {
 	QMap<qint64, QString> unpairedFunctions;
@@ -1217,7 +1042,7 @@ void Lexer::checkFunctionPairs(const QHash<qint64, TokenMap>& stokenmaps)
 		unpairedFunctions.insert(row, statement);
 	}
 
-	// 打印所有不成对的 "function" 语句
+	// 打印所有不成對的 "function" 語句
 	for (auto it = unpairedFunctions.cbegin(); it != unpairedFunctions.cend(); ++it)
 	{
 		qint64 row = it.key();
@@ -1226,7 +1051,7 @@ void Lexer::checkFunctionPairs(const QHash<qint64, TokenMap>& stokenmaps)
 		showError(errorMessage);
 	}
 
-	// 打印所有不成对的 "end" 语句
+	// 打印所有不成對的 "end" 語句
 	for (auto it = unpairedEnds.cbegin(); it != unpairedEnds.cend(); ++it)
 	{
 		qint64 row = it.key();
@@ -1235,4 +1060,3 @@ void Lexer::checkFunctionPairs(const QHash<qint64, TokenMap>& stokenmaps)
 		showError(errorMessage);
 	}
 }
-

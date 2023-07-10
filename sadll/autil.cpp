@@ -1,4 +1,5 @@
-﻿// Arminius' protocol utilities ver 0.1
+﻿
+// Arminius' protocol utilities ver 0.1
 //
 // Any questions and bugs, mailto: arminius@mail.hwaei.com.tw
 
@@ -7,6 +8,7 @@
 // Before compiling, remove the "//".
 
 #include "pch.h"
+#if 0
 #include <stdio.h>
 #include <stdlib.h>
 #include "autil.h"
@@ -689,3 +691,4 @@ int __fastcall Autil::util_mkstring(char* buffer, char* value)
 
 	return strlen(value);
 }
+#endif

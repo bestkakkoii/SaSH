@@ -261,12 +261,50 @@ public:
 	}
 
 private:
+	void processTokens();
+	qint64 processCommand();
+	void processVariable(RESERVE type);
+	void processLocalVariable();
+	void processVariableIncDec();
+	void processVariableCAOs();
+	void processVariableExpr();
+	void processMultiVariable();
+	void processFormation();
+	void processRandom();
+	bool processCall();
+	bool processGoto();
+	bool processJump();
+	void processReturn();
+	void processBack();
+	void processLabel();
+	void processClean();
+	void processDelay();
+	bool processGetSystemVarValue(const QString& varName, QString& valueStr, QVariant& varValue);
+	bool processIfCompare();
+
+	bool isTextWrapped(const QString& text, const QString& keyword);
+	void replaceToVariable(QString& str);
+	bool checkCallStack();
+	bool checkFuzzyValue(QVariant* pvalue);
+	bool checkArrayValue(qint64 idx, QVariant* pvalue);
+
+	template<typename T>
+	T calc(const QVariant& a, const QVariant& b, RESERVE operatorType);
+
+	template <typename T>
+	bool exprMakeValue(const QString& expr, T* ret);
+
+	template <typename T>
+	bool exprTo(QString expr, T* ret);
+
+	template <typename T>
+	bool exprTo(T value, QString expr, T* ret);
+
+	void handleError(qint64 err);
+	void checkArgs();
+	void recordFunctionChunks();
 
 	void insertLocalVar(const QString& name, const QVariant& value);
-
-	bool checkArray(const TokenMap& TK, qint64 idx, QVariant* ret);
-
-	bool checkArrayElementValue(const QString& preVarName, QVariant* ret);
 
 	inline void removeGlobalVar(const QString& name)
 	{
@@ -298,50 +336,6 @@ private:
 			return localVarStack_.top();
 		}
 	}
-
-	void processTokens();
-	qint64 processCommand();
-	void processVariable(RESERVE type);
-	void processLocalVariable();
-	void processVariableIncDec();
-	void processVariableCAOs();
-	void processVariableExpr();
-	void processMultiVariable();
-	void processFormation();
-	void processRandom();
-	bool processCall();
-	bool processGoto();
-	bool processJump();
-	void processReturn();
-	void processBack();
-	void processLabel();
-	void processClean();
-	void processDelay();
-	bool processGetSystemVarValue(const QString& varName, QString& valueStr, QVariant& varValue);
-	bool processIfCompare();
-	void processLocalArray();
-	void processGlobalArray();
-	void processArrayElement();
-
-	bool isTextWrapped(const QString& text, const QString& keyword);
-	void replaceToVariable(QString& str);
-	bool checkCallStack();
-	bool checkFuzzyValue(QVariant* pvalue);
-	bool checkArrayValue(qint64 idx, QVariant* pvalue);
-
-	template <typename T>
-	bool exprMakeValue(const QString& expr, T* ret);
-
-	template <typename T>
-	bool exprTo(QString expr, T* ret);
-
-	template <typename T>
-	bool exprTo(T value, QString expr, T* ret);
-
-
-	void handleError(qint64 err);
-	void checkArgs();
-	void updateFunctionChunk();
 
 	inline void next() { ++lineNumber_; }
 

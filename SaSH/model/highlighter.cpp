@@ -21,7 +21,7 @@ const char* Highlighter::keywords(int set) const
 	case 2://QsciLexerLua::BasicFunctions//黃色
 	{
 		return "ocr dlg "
-			"print test sleep timer msg logout lockback eo button say input "
+			"print sleep timer msg logout lockback eo button say input "
 			"talk cls set saveset loadset "
 			"waitdlg waitsay waititem waitmap waitteam "
 			"chpet chplayername chpetname chmap "
@@ -55,10 +55,10 @@ const char* Highlighter::keywords(int set) const
 	}
 	case 8://KeywordSet8//紫色
 	{
-		return
-			"date time";
+		return "";
 	}
-	case 9:break;
+	case 9:
+		break;
 	}
 
 	return QsciLexerLua::keywords(set);
@@ -120,11 +120,8 @@ QColor Highlighter::defaultColor(int style) const
 }
 
 // Returns the font of the text for a style.
-
-QFont Highlighter::defaultFont(int style) const
+QFont Highlighter::defaultFont(int) const
 {
-	Q_UNUSED(style);
-
 	return m_font;
 }
 
@@ -160,7 +157,7 @@ const char* Highlighter::blockEnd(int* style) const
 	if (style)
 		*style = Operator;
 
-	return "end return";
+	return "end";
 }
 
 const char* Highlighter::blockStartKeyword(int* style) const

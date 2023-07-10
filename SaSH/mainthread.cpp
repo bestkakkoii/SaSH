@@ -7,7 +7,7 @@
 #include "map/mapanalyzer.h"
 
 #include "spdloger.hpp"
-extern QString g_logger_name;
+extern QString g_logger_name;//parser.cpp
 
 bool ThreadManager::createThread(QObject* parent)
 {
@@ -370,7 +370,7 @@ int MainObject::checkAndRunFunctions()
 
 		const QString fileName(qgetenv("JSON_PATH"));
 		util::Config config(fileName);
-		extern int g_CurrentListIndex;
+		extern int g_CurrentListIndex;//generalform.cpp
 		QStringList list = config.readStringArray("System", "Server", QString("List_%1").arg(g_CurrentListIndex));
 		QStringList serverNameList;
 		QStringList subServerNameList;
