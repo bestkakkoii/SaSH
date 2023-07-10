@@ -1900,7 +1900,6 @@ void MainObject::checkRecordableNpcInfo()
 
 				injector.server->npcUnitPointHash.insert(QPoint(unit.x, unit.y), unit);
 
-
 				util::Config config(util::getPointFileName());
 				util::MapData d;
 				int nowFloor = injector.server->nowFloor;

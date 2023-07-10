@@ -11,27 +11,23 @@ constexpr int MAX_BLOCK_SIZE = 24;
 
 MapWidget::MapWidget(QWidget* parent)
 	: QWidget(parent)
-
 {
 	ui.setupUi(this);
 	setAttribute(Qt::WA_DeleteOnClose);
 	setStyleSheet("background-color:rgb(0,0,1)");
-	//setAttribute(Qt::WA_PaintOnScreen, true);
 	setAttribute(Qt::WA_OpaquePaintEvent, true);
-	//setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
 	setAttribute(Qt::WA_NoSystemBackground);
 	setAttribute(Qt::WA_WState_WindowOpacitySet);
-	//setWindowOpacity(0.9);
 
 	//set header text
 	ui.tableWidget_NPCList->setColumnCount(2);
-	ui.tableWidget_NPCList->horizontalHeader()->setSectionResizeMode(QHeaderView::Interactive);
+	ui.tableWidget_NPCList->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
 
 	//vec invisible
 	ui.tableWidget_NPCList->verticalHeader()->setVisible(false);
+	ui.tableWidget_NPCList->verticalHeader()->setDefaultSectionSize(11);
+	ui.tableWidget_NPCList->verticalHeader()->setSectionResizeMode(QHeaderView::Fixed);
 	ui.tableWidget_NPCList->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);//隐藏滚动条
-
-	readSettings();
 
 #if !OPEN_GL_ON
 	ui.openGLWidget->close();
@@ -58,18 +54,7 @@ MapWidget::~MapWidget()
 #if !OPEN_GL_ON
 	timer_.stop();
 #endif
-	writeSettings();
 	qDebug() << "";
-}
-
-void MapWidget::writeSettings()
-{
-
-}
-
-void MapWidget::readSettings()
-{
-
 }
 
 void MapWidget::closeEvent(QCloseEvent*)
@@ -77,7 +62,6 @@ void MapWidget::closeEvent(QCloseEvent*)
 	isDownloadingMap_ = false;
 	gltimer_.stop();
 	downloadMapTimer_.stop();
-	writeSettings();
 	onClear();
 	util::FormSettingManager formManager(this);
 	formManager.saveSettings();
@@ -361,9 +345,9 @@ void MapWidget::onRefreshTimeOut()
 			case util::OBJ_NPC:
 			{
 				if (it.isvisible)
-					vNPC.append(QString("[NPC]%1").arg(it.name));
+					vNPC.append(QString("[NPC][%1]%2").arg(it.graNo).arg(it.name));
 				else
-					vNPC.append(QString(tr("X[NPC]%1")).arg(it.name));
+					vNPC.append(QString(tr("X[NPC][%1]%2")).arg(it.graNo).arg(it.name));
 				vNPC.append(QString("%1,%2").arg(it.p.x()).arg(it.p.y()));
 				break;
 			}
@@ -434,15 +418,12 @@ void MapWidget::onRefreshTimeOut()
 
 	QVariantList vlist;
 	QVariant dataVar;
-	//if (MAP_TPYE_MAZE == m_map.ismaze)
-	//vlist.append(vSTAIR);
 	vlist.append(vGM);
 	vlist.append(vNPC);
 	vlist.append(vITEM);
 	vlist.append(vGOLD);
 	vlist.append(vPET);
 	vlist.append(vHUMAN);
-	//if (MAP_TPYE_NORMAL == m_map.ismaze)
 	vlist.append(vSTAIR);
 	dataVar.setValue(vlist);
 	updateNpcListAllContents(dataVar);
@@ -525,18 +506,6 @@ void MapWidget::on_openGLWidget_notifyLeftClick(const QPointF& gpos, const QPoin
 {
 	bClicked_ = true;
 	pLast_ = gpos - pos;
-	/*if (!ThreadManager::isValid(index_)) return;
-	QSharedPointer<MainThread> thread = ThreadManager::value(index_);
-	if (thread.isNull()) return;
-	QString retstring("\0");
-	const QPointF predst(pos / zoom_value_);
-	const QPoint dst(predst.toPoint());
-	thread->_MAP_ReadFromBinary(dst, &retstring);
-	if (!retstring.isEmpty())
-	{
-		QClipboard* clipboard = QApplication::clipboard();
-		clipboard->setText(retstring);
-	}*/
 }
 
 void MapWidget::on_openGLWidget_notifyLeftRelease()
@@ -635,21 +604,10 @@ void MapWidget::onDownloadMapTimeout()
 	int floor = injector.server->nowFloor;
 	QString name = injector.server->nowFloorName;
 
-	//downloadMapX_ += 24;
-
-	//if (downloadMapX_ > downloadMapXSize_)
-	//{
-	//	downloadMapX_ = 0;
-	//	downloadMapY_ += 24;
-	//}
-
 	downloadNextBlock();
-
-	//downloadMapProgress_ = (static_cast<qreal>(downloadMapY_) / static_cast<qreal>(downloadMapYSize_)) * 100.0;
 
 	if (downloadMapProgress_ >= 100.0)
 	{
-		//downloadMapProgress_ = 100.0;
 		const QPoint qp_current = injector.server->getPoint();
 		QString caption(tr("%1 map:%2 floor:%3 [%4,%5] mouse:%6,%7")
 			.arg(injector.server->getPC().name)
@@ -671,12 +629,10 @@ void MapWidget::onDownloadMapTimeout()
 		injector.server->EO();
 		injector.server->mapAnalyzer->readFromBinary(floor, name, true);
 	}
-
 }
 
 void MapWidget::on_pushButton_download_clicked()
 {
-
 	Injector& injector = Injector::getInstance();
 
 	if (injector.server.isNull())
@@ -702,7 +658,6 @@ void MapWidget::on_pushButton_download_clicked()
 	totalMapBlocks_ = static_cast<qreal>(totalBlocks);
 
 	isDownloadingMap_ = true;
-
 }
 
 void MapWidget::on_pushButton_returnBase_clicked()
@@ -715,10 +670,6 @@ void MapWidget::on_pushButton_returnBase_clicked()
 	}
 
 	injector.server->logBack();
-
-	//if (!ThreadManager::isValid(index_)) return;
-	//QSharedPointer<MainThread> thread = ThreadManager::value(index_);
-	//thread->_SYS_returnbase();
 }
 
 void MapWidget::on_pushButton_findPath_clicked()
@@ -741,8 +692,6 @@ void MapWidget::on_pushButton_findPath_clicked()
 		return;
 
 	interpreter_->doString(QString(u8"findpath %1, %2, 1").arg(x).arg(y), nullptr, Interpreter::kNotShare);
-
-	//findpath(dst);
 }
 
 void MapWidget::onClear()
@@ -777,7 +726,6 @@ void MapWidget::updateNpcListAllContents(const QVariant& d)
 		for (int i = 0; i < (ui.tableWidget_NPCList->rowCount() - size); ++i)
 			ui.tableWidget_NPCList->removeRow(ui.tableWidget_NPCList->rowCount() - 1);
 	}
-	ui.tableWidget_NPCList->setUpdatesEnabled(true);
 
 	for (const QVariant& it : D)
 	{
@@ -805,7 +753,7 @@ void MapWidget::updateNpcListAllContents(const QVariant& d)
 		}
 	}
 
-	//ui.tableWidget_NPCList->setUpdatesEnabled(true);
+	ui.tableWidget_NPCList->setUpdatesEnabled(true);
 }
 
 void MapWidget::on_tableWidget_NPCList_cellDoubleClicked(int row, int)
@@ -847,7 +795,8 @@ void MapWidget::on_tableWidget_NPCList_cellDoubleClicked(int row, int)
 	mapunit_t unit;
 	if (name.contains("NPC"))
 	{
-		name = name.remove("[NPC]");
+		static const QRegularExpression rex(R"(\[NPC\]\[\d+\])");
+		name = name.remove(rex);
 		if (!injector.server->findUnit(name, util::OBJ_NPC, &unit))
 			return;
 	}
@@ -920,51 +869,4 @@ void MapWidget::on_tableWidget_NPCList_cellDoubleClicked(int row, int)
 	}
 
 	interpreter_->doString(QString(u8"findpath %1, %2, 1").arg(x).arg(y), nullptr, Interpreter::kNotShare);
-
-	//	if (list.size() == 2)
-	//	{
-	//		bool okx, oky;
-	//		int x = list.at(0).toInt(&okx);
-	//		int y = list.at(1).toInt(&oky);
-	//		if (okx && oky && x >= 0 && y >= 0)
-	//		{
-	//			QPoint dst(x, y);
-	//			if (!ThreadManager::isValid(index_)) return;
-	//			QSharedPointer<MainThread> thread = ThreadManager::value(index_);
-	//			if (thread.isNull()) return;
-
-
-	//			ui.openGLWidget->blockSignals(true);
-	//			if (!m_thread.isNull())
-	//			{
-	//				m_thread->on_pause(false);
-	//				m_thread->on_stop(QLuaBase::WORKINT_FROM_USER_STOP_REQUEST_STATE);
-	//				while (!m_thread.isNull()) { QApplication::processEvents(); }
-	//			}
-	//			ui.openGLWidget->blockSignals(false);
-	//			QString str = "";
-	//			if (!name.isEmpty() && (name.contains(tr("DWON")) || name.contains(tr("JUMP")) || name.contains(tr("UP")) || name.contains(tr("WARP"))))
-	//			{
-	//				str = (QString(R"(map.findpath(%1, %2); sys.EO();)").arg(dst.x()).arg(dst.y()));
-	//			}
-	//			else
-	//			{
-	//				str = (QString(R"(
-	//					local t = map.getfollowinfo(char.x, char.y, %1, %2);
-	//					if (t ~= nil) then
-	//						if map.findpath(t.x, t.y) then
-	//							sleep(1000);
-	//							map.setdir(t.dir);
-	//						end
-	//					end
-	//			)").arg(dst.x()).arg(dst.y()));
-	//			}
-	//			m_thread.reset(q_check_ptr(new QLuaThread(thread, QLuaDebuger::WORKINT_DEBUG_DISABLE, str, this, this)));
-	//			connect(m_thread.get(), &QLuaThread::clear, this, &MapWidget::on_clear);
-	//			if (m_thread.isNull()) return;
-	//			m_thread->setThreadTypeAsSubThread();
-	//			m_thread->start(QThread::Priority::TimeCriticalPriority);
-	//		}
-	//	}
-	//}
 }

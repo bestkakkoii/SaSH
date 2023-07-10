@@ -1988,7 +1988,7 @@ public://actions
 	void cleanChatHistory();
 	QString getChatHistory(int index);
 
-	bool findUnit(const QString& name, int type, mapunit_t* unit, const QString freename = "") const;
+	bool findUnit(const QString& name, int type, mapunit_t* unit, const QString freename = "", int modelid = -1) const;
 
 	void setTeamState(bool join);
 	void kickteam(int n);

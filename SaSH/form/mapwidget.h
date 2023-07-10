@@ -18,14 +18,11 @@ public:
 	explicit MapWidget(QWidget* parent);
 	virtual ~MapWidget();
 
-	void writeSettings();
-
 private:
 	void __fastcall downloadNextBlock();
 	void __fastcall updateNpcListAllContents(const QVariant& d);
-	void readSettings();
-private:
 
+private:
 	bool bClicked_ = false;
 	QPointF pLast_ = { 0.0, 0.0 };
 	QPointF movePoint_ = { 0.0, 0.0 };

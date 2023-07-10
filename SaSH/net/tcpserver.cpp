@@ -2344,8 +2344,6 @@ void Server::lssproto_WN_recv(int windowtype, int buttontype, int seqno, int obj
 void Server::lssproto_PME_recv(int objindex,
 	int graphicsno, const QPoint& pos, int dir, int flg, int no, char* cdata)
 {
-	QString data = util::toUnicode(cdata);
-
 	if (getBattleFlag())
 		return;
 
@@ -2363,6 +2361,7 @@ void Server::lssproto_PME_recv(int objindex,
 	}
 	else
 	{
+		QString data = util::toUnicode(cdata);
 		if (data.isEmpty())
 			return;
 
@@ -2429,7 +2428,15 @@ void Server::lssproto_EF_recv(int effect, int level, char* coption)
 {
 	//char* pCommand = NULL;
 	//DWORD dwDiceTimer;
-	QString option = util::toUnicode(coption);
+	//QString option = util::toUnicode(coption);
+
+	Injector& injector = Injector::getInstance();
+	if (!getOnlineFlag())
+		return;
+
+	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
+	int floor = mem::read<int>(injector.getProcess(), injector.getProcessModule() + kOffestNowFloor);
+	emit signalDispatcher.updateNpcList(floor);
 
 	if (effect == 0)
 	{
@@ -5494,7 +5501,7 @@ void Server::lssproto_S_recv(char* cdata)
 						{
 							pet[no].graNo = getIntegerToken(data, "|", i);// 0x00000002
 							i++;
-				}
+						}
 						else if (mask == 0x00000004)
 						{
 							pet[no].hp = getIntegerToken(data, "|", i);// 0x00000004
@@ -5506,7 +5513,7 @@ void Server::lssproto_S_recv(char* cdata)
 							pet[no].maxHp = getIntegerToken(data, "|", i);// 0x00000008
 							pet[no].hpPercent = util::percent(pet[no].hp, pet[no].maxHp);
 							i++;
-			}
+						}
 						else if (mask == 0x00000010)
 						{
 							pet[no].mp = getIntegerToken(data, "|", i);// 0x00000010
@@ -5707,7 +5714,7 @@ void Server::lssproto_S_recv(char* cdata)
 			emit signalDispatcher.updatePlayerInfoColContents(i + 1, var);
 		}
 
-						}
+	}
 #pragma endregion
 #pragma region EncountPercentage
 	else if (first == "E") // E nowEncountPercentage
@@ -5842,10 +5849,10 @@ void Server::lssproto_S_recv(char* cdata)
 			{
 				//if (no2 >= 0 || gx >= 0 || gy >= 0)
 					//goFrontPartyCharacter(no2, gx, gy);
-		}
+			}
 			updateTeamInfo();
 			return;
-	}
+		}
 
 		partyModeFlag = 1;
 		prSendFlag = 0;
@@ -5931,7 +5938,7 @@ void Server::lssproto_S_recv(char* cdata)
 		}
 		party[no].hpPercent = util::percent(party[no].hp, party[no].maxHp);
 		updateTeamInfo();
-		}
+	}
 #pragma endregion
 #pragma region ItemInfo
 	else if (first == "I") //I 道具
@@ -6058,7 +6065,7 @@ void Server::lssproto_S_recv(char* cdata)
 		emit signalDispatcher.updateComboBoxItemText(util::kComboBoxItem, itemList);
 		checkAutoDropMeat(QStringList());
 		sortItem();
-		}
+	}
 #pragma endregion
 #pragma region PetSkill
 	else if (first == "W")//接收到的寵物技能
@@ -6270,7 +6277,7 @@ void Server::lssproto_S_recv(char* cdata)
 #ifdef _ITEM_COUNTDOWN
 			pet[nPetIndex].item[i].counttime = getIntegerToken(data, "|", no + 16);
 #endif
-	}
+		}
 	}
 #endif
 #pragma endregion
@@ -6294,7 +6301,7 @@ void Server::lssproto_S_recv(char* cdata)
 	else if (first == "H")
 	{
 		//H0|0|  //0~19
-}
+	}
 	else if (first == "O")
 	{
 		//O0|||||||||||||
@@ -6327,7 +6334,7 @@ void Server::lssproto_S_recv(char* cdata)
 	{
 		qDebug() << "[" << first << "]:" << data;
 	}
-		}
+}
 
 //客戶端登入(進去選人畫面)
 void Server::lssproto_ClientLogin_recv(char* cresult)
@@ -6540,7 +6547,7 @@ void Server::lssproto_TD_recv(char* cdata)//交易
 		}
 #endif
 
-}
+	}
 	//处理物品交易资讯传递
 	else if (Head.startsWith("T"))
 	{
@@ -6731,7 +6738,7 @@ void Server::lssproto_TD_recv(char* cdata)//交易
 		mypet_tradeList = QStringList{ "P|-1", "P|-1", "P|-1" , "P|-1", "P|-1" };
 		mygoldtrade = 0;
 	}
-	}
+}
 
 void Server::lssproto_CHAREFFECT_recv(char* cdata)
 {
@@ -6925,7 +6932,7 @@ int Server::getUnloginStatus()
 
 	qDebug() << "getUnloginStatus: " << W << " " << G;
 	return util::kStatusUnknown;
-	}
+}
 
 //切換是否在戰鬥中的標誌
 void Server::setBattleFlag(bool enable)
@@ -8574,13 +8581,19 @@ QString Server::getChatHistory(int index)
 }
 
 //查找指定類型和名稱的單位
-bool Server::findUnit(const QString& name, int type, mapunit_t* unit, const QString freename) const
+bool Server::findUnit(const QString& name, int type, mapunit_t* unit, const QString freename, int modelid) const
 {
 	QList<mapunit_t> units = mapUnitHash.values();
 	for (const mapunit_t& it : units)
 	{
 		if (it.graNo == 0 || it.graNo == 9999)
 			continue;
+
+		if (modelid != -1 && it.graNo == modelid)
+		{
+			*unit = it;
+			return true;
+		}
 
 		if (freename.isEmpty())
 		{
@@ -8617,6 +8630,7 @@ bool Server::findUnit(const QString& name, int type, mapunit_t* unit, const QStr
 			}
 		}
 	}
+
 	return false;
 }
 
@@ -13918,5 +13932,5 @@ bool Server::captchaOCR(QString* pmsg)
 		announce("<ocr>failed! error:" + errorMsg);
 
 	return true;
-	}
+}
 #pragma endregion

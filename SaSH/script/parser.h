@@ -286,7 +286,6 @@ private:
 	void replaceToVariable(QString& str);
 	bool checkCallStack();
 	bool checkFuzzyValue(QVariant* pvalue);
-	bool checkArrayValue(qint64 idx, QVariant* pvalue);
 
 	template<typename T>
 	T calc(const QVariant& a, const QVariant& b, RESERVE operatorType);

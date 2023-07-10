@@ -246,15 +246,21 @@ qint64 Interpreter::movetonpc(qint64 currentline, const TokenMap& TK)
 	checkBattleThenWait();
 
 	QString cmpNpcName;
-	checkString(TK, 1, &cmpNpcName);
+	qint64 modelid = -1;
+	if (!checkString(TK, 1, &cmpNpcName))
+	{
+		checkInteger(TK, 1, &modelid);
+	}
 
 	QString cmpFreeName;
 	checkString(TK, 2, &cmpFreeName);
+	if (cmpFreeName.isEmpty() && cmpNpcName.isEmpty() && modelid == -1)
+		return Parser::kArgError;
 
 	qint64 x = 0;
 	qint64 y = 0;
-	checkInteger(TK, 1, &x);
-	checkInteger(TK, 2, &y);
+	checkInteger(TK, 3, &x);
+	checkInteger(TK, 4, &y);
 	QPoint p(x, y);
 
 	qint64 timeout = DEFAULT_FUNCTION_TIMEOUT * 36;
@@ -266,9 +272,16 @@ qint64 Interpreter::movetonpc(qint64 currentline, const TokenMap& TK)
 
 	mapunit_s unit;
 	qint64 dir = -1;
-	auto findNpcCallBack = [&injector, &unit, cmpNpcName, cmpFreeName, &dir](QPoint& dst)->bool
+	auto findNpcCallBack = [&injector, &unit, cmpNpcName, cmpFreeName, modelid, &dir](QPoint& dst)->bool
 	{
-		if (!injector.server->findUnit(cmpNpcName, util::OBJ_NPC, &unit, cmpFreeName))
+		if (modelid > 0)
+		{
+			if (!injector.server->findUnit("", util::OBJ_NPC, &unit, "", modelid))
+			{
+				return 0;//沒找到
+			}
+		}
+		else if (!injector.server->findUnit(cmpNpcName, util::OBJ_NPC, &unit, cmpFreeName))
 		{
 			if (!injector.server->findUnit(cmpNpcName, util::OBJ_HUMAN, &unit, cmpFreeName))
 				return 0;//沒找到
