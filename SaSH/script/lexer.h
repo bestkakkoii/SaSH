@@ -78,6 +78,9 @@ enum RESERVE
 	TK_CAOS,			// CAOS命令
 	TK_EXPR,			// 表達式
 	TK_CMP,				// 比較
+	TK_FOR,				// for循環
+	TK_ENDFOR,			// for循環結束
+	TK_BREAK,
 
 	TK_RND,
 	TK_NAME,			// 標記名稱 不允許使用純數字 或符點數作為標記名稱
@@ -130,6 +133,7 @@ private:
 
 	void tokenized(qint64 currentLine, const QString& line, TokenMap* ptoken, QHash<QString, qint64>* plabel);
 
+	void checkPairs(const QString& beginstr, const QString& endstr, const QHash<qint64, TokenMap>& stokenmaps);
 	void checkFunctionPairs(const QHash<qint64, TokenMap>& tokenmaps);
 
 	void showError(const QString text, ErrorType type = kTypeError);

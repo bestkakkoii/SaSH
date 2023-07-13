@@ -15,7 +15,7 @@ const char* Highlighter::keywords(int set) const
 	case 1://粉色
 	{
 		//lua key word
-		return "goto call function end pause exit label jmp return back "
+		return "goto call function end pause exit label jmp return back break for endfor "
 			"if ifmap ifplayer ifpet ifpetex ifitem ifteam ifitemfull ifdaily ifbattle ifpos ifonline ifnormal ";
 	}
 	case 2://QsciLexerLua::BasicFunctions//黃色

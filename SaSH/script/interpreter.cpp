@@ -517,6 +517,24 @@ bool Interpreter::compare(CompareArea area, const TokenMap& TK)
 		case kPlayerDef:
 			a = _pc.def;
 			break;
+		case kPlayerChasma:
+			a = _pc.charm;
+			break;
+		case kPlayerTurn:
+			a = _pc.transmigration;
+			break;
+		case kPlayerEarth:
+			a = _pc.earth;
+			break;
+		case kPlayerWater:
+			a = _pc.water;
+			break;
+		case kPlayerFire:
+			a = _pc.fire;
+			break;
+		case kPlayerWind:
+			a = _pc.wind;
+			break;
 		default:
 			return false;
 		}
@@ -602,6 +620,24 @@ bool Interpreter::compare(CompareArea area, const TokenMap& TK)
 			break;
 		case kPetDef:
 			a = injector.server->pet[petIndex].def;
+			break;
+		case kPetLoyal:
+			a = injector.server->pet[petIndex].ai;
+			break;
+		case kPetTurn:
+			a = injector.server->pet[petIndex].trn;
+			break;
+		case kPetEarth:
+			a = injector.server->pet[petIndex].earth;
+			break;
+		case kPetWater:
+			a = injector.server->pet[petIndex].water;
+			break;
+		case kPetFire:
+			a = injector.server->pet[petIndex].fire;
+			break;
+		case kPetWind:
+			a = injector.server->pet[petIndex].wind;
 			break;
 		case kPetState:
 		{
@@ -1080,7 +1116,7 @@ void Interpreter::openLibsUTF8()
 	registerFunction(u8"chplayername", &Interpreter::playerrename);
 	registerFunction(u8"chpetname", &Interpreter::petrename);
 	registerFunction(u8"chpet", &Interpreter::setpetstate);
-	registerFunction(u8"droppet", &Interpreter::droppet);
+	registerFunction(u8"doffpet", &Interpreter::droppet);
 	registerFunction(u8"buy", &Interpreter::buy);
 	registerFunction(u8"sell", &Interpreter::sell);
 	registerFunction(u8"sellpet", &Interpreter::sellpet);
@@ -1496,6 +1532,7 @@ bool Interpreter::findPath(QPoint dst, qint64 steplen, qint64 step_cost, qint64 
 
 		if (callback != nullptr)
 		{
+			QThread::msleep(50);
 			if (callback(dst) == 1)
 				callback = nullptr;
 		}
@@ -1507,9 +1544,6 @@ bool Interpreter::findPath(QPoint dst, qint64 steplen, qint64 step_cost, qint64 
 qint64 Interpreter::run(qint64 currentline, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance();
-
-	if (injector.server.isNull())
-		return Parser::kError;
 
 	QString fileName;
 	checkString(TK, 1, &fileName);

@@ -1475,6 +1475,11 @@ color: rgb(208, 208, 208);
            </item>
            <item>
             <property name="text">
+             <string>movetonpc with mod</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
              <string>movetonpc</string>
             </property>
            </item>
@@ -1545,6 +1550,11 @@ color: rgb(208, 208, 208);
            </item>
            <item>
             <property name="text">
+             <string>for</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
              <string>exit</string>
             </property>
            </item>
@@ -1561,6 +1571,11 @@ color: rgb(208, 208, 208);
            <item>
             <property name="text">
              <string>comment</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>break</string>
             </property>
            </item>
            <item>

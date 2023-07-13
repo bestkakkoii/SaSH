@@ -50,8 +50,8 @@ QString QDownloader::Sha3_512(const QString& fileNamePath) const
 }
 
 QString etag = "\0";
-constexpr int UPDATE_TIME_MIN = 5 * 60;
-bool QDownloader::checkUpdate(QString* ptext)
+constexpr int UPDATE_TIME_MIN = 3 * 60;
+bool QDownloader::checkUpdate(QString* current, QString* ptext)
 {
 	QString exeFileName = QCoreApplication::applicationFilePath();
 	QUrl zipUrl(URL);
@@ -117,6 +117,9 @@ bool QDownloader::checkUpdate(QString* ptext)
 
 		util::buildDateTime(&exeModified);
 		qDebug() << "SaSH.exe file modified time:" << exeModified.toString("yyyy-MM-dd hh:mm:ss");
+
+		if (current != nullptr)
+			*current = exeModified.toString("yyyy-MM-dd hh:mm:ss");
 
 		int timeDiffInSeconds = exeModified.secsTo(zipModified);
 

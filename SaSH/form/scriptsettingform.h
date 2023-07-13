@@ -30,7 +30,7 @@ private:
 	void setMark(CodeEditor::SymbolHandler element, util::SafeHash<QString, util::SafeHash<qint64, break_marker_t>>& hash, int liner, bool b);
 
 	void varInfoImport(QTreeWidget* tree, const QHash<QString, QVariant>& d);
-	void stackInfoImport(QTreeWidget* tree, const QHash <int, QString>& d);
+	void stackInfoImport(QTreeWidget* tree, const QVector<QPair<int, QString>>& vec);
 
 	void reshowBreakMarker();
 
@@ -67,8 +67,8 @@ private slots:
 	void onVarInfoImport(const QHash<QString, QVariant>& d);
 
 
-	void onCallStackInfoChanged(const QHash <int, QString>& var);
-	void onJumpStackInfoChanged(const QHash <int, QString>& var);
+	void onCallStackInfoChanged(const QVariant& var);
+	void onJumpStackInfoChanged(const QVariant& var);
 
 	void onEncryptSave();
 	void onDecryptSave();

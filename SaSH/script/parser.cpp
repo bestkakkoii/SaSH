@@ -509,7 +509,7 @@ bool Parser::checkInteger(const TokenMap& TK, qint64 idx, qint64* ret)
 		else
 		{
 			SPD_LOG(g_logger_name, QString("[parser] checkInteger: check expr"));
-			if (var.type() != QVariant::List)
+			if (var.type() == QVariant::List)
 				return false;
 
 			QString varValueStr = var.toString();
@@ -520,7 +520,7 @@ bool Parser::checkInteger(const TokenMap& TK, qint64 idx, qint64* ret)
 			if (!exprTo(varValueStr, &value))
 				return false;
 
-			if (-0x7fffffffffffffff <= value)
+			if (-0x7fffffffffffffff >= value)
 				return false;
 
 			*ret = value;
@@ -904,6 +904,47 @@ void Parser::replaceToVariable(QString& expr)
 {
 	SPD_LOG(g_logger_name, QString("[parser] replaceToVariable: %1").arg(expr));
 
+	auto replaceToPlaceHold = [&expr](const QString& checkStr, QString replaceToStr, Qt::CaseSensitivity sen)->bool
+	{
+		if (replaceToStr.isEmpty())
+			replaceToStr = checkStr;
+
+		int index = expr.indexOf(checkStr, 0, sen);
+		if (index == -1)
+			return false;
+
+		bool skip = false;
+		do
+		{
+			//取到空格逗號結尾或) 確保是一個獨立的詞
+			int end = index + checkStr.length();
+			while (end < expr.length())
+			{
+				QChar ch = expr.at(end);
+				if (ch == '\'' || ch == '"')
+					return false;
+
+				if (ch == ' ' || ch == ',' || ch == ')')
+					break;
+				++end;
+			}
+			//index 到 end 之間的字符串
+			QString endStr = expr.mid(index, end - index);
+			if (endStr != checkStr)
+			{
+				return false;
+			}
+
+			//replace to VAR_REPLACE_PLACEHOLD
+			expr.replace(index, checkStr.length(), replaceToStr);
+		} while ((index = expr.indexOf(checkStr, index + 1)) != -1);
+
+		return true;
+	};
+
+	replaceToPlaceHold("true", "1", Qt::CaseInsensitive);
+	replaceToPlaceHold("false", "0", Qt::CaseInsensitive);
+
 	QVector<QPair<QString, QVariant>> tmpvec;
 
 	QVariantHash args = getLocalVars();
@@ -928,7 +969,8 @@ void Parser::replaceToVariable(QString& expr)
 
 	SPD_LOG(g_logger_name, QString("[parser] replaceToVariable: replace local"));
 
-	constexpr const char* CONST_STR_PLACEHOLD = "##########";
+	constexpr const char* CONST_STR_PLACEHOLD = "##########";//很重要，用於將被引號包圍的字符串替換成常量佔位，避免替換時出現問題
+	constexpr const char* VAR_REPLACE_PLACEHOLD = "@@@@@@@@@@";//很重要，用於將表達式中的變量替換成常量佔位，避免替換時出現問題
 
 	for (const QPair<QString, QVariant> it : tmpvec)
 	{
@@ -936,6 +978,9 @@ void Parser::replaceToVariable(QString& expr)
 		QVariant value = it.second;
 
 		if (name == CONST_STR_PLACEHOLD)
+			continue;
+
+		if (!replaceToPlaceHold(name, VAR_REPLACE_PLACEHOLD, Qt::CaseSensitive))
 			continue;
 
 		QString oldText;
@@ -961,9 +1006,9 @@ void Parser::replaceToVariable(QString& expr)
 		}
 
 		if (value.type() == QVariant::String)
-			expr.replace(name, QString(R"('%1')").arg(value.toString().trimmed()));
+			expr.replace(VAR_REPLACE_PLACEHOLD, QString(R"('%1')").arg(value.toString().trimmed()));
 		else if (value.type() == QVariant::Int || value.type() == QVariant::LongLong || value.type() == QVariant::Double)
-			expr.replace(name, QString::number(value.toLongLong()));
+			expr.replace(VAR_REPLACE_PLACEHOLD, QString::number(value.toLongLong()));
 
 		if (!oldText.isEmpty())
 		{
@@ -1007,6 +1052,9 @@ void Parser::replaceToVariable(QString& expr)
 		if (name == CONST_STR_PLACEHOLD)
 			continue;
 
+		if (!replaceToPlaceHold(name, VAR_REPLACE_PLACEHOLD, Qt::CaseSensitive))
+			continue;
+
 		QString oldText;
 		if (isTextWrapped(expr, name))
 		{
@@ -1030,9 +1078,9 @@ void Parser::replaceToVariable(QString& expr)
 		}
 
 		if (value.type() == QVariant::String && !isTextWrapped(expr, name))
-			expr.replace(name, QString(R"('%1')").arg(value.toString().trimmed()));
+			expr.replace(VAR_REPLACE_PLACEHOLD, QString(R"('%1')").arg(value.toString().trimmed()));
 		else if (value.type() == QVariant::Int || value.type() == QVariant::LongLong || value.type() == QVariant::Double)
-			expr.replace(name, QString::number(value.toLongLong()));
+			expr.replace(VAR_REPLACE_PLACEHOLD, QString::number(value.toLongLong()));
 
 		if (!oldText.isEmpty())
 		{
@@ -1235,7 +1283,7 @@ void Parser::generateStackInfo(qint64 type)
 
 	const QStack<qint64> stack = (type == 0) ? callStack_ : jmpStack_;
 	QList<qint64> list = stack.toList();
-	QHash<int, QString> hash;
+	QVector<QPair<int, QString>> hash;
 	if (!list.isEmpty())
 	{
 		for (const qint64 it : list)
@@ -1254,15 +1302,15 @@ void Parser::generateStackInfo(qint64 type)
 			for (qint64 i = 1; i < size; ++i)
 				l.append(tokens.value(i).raw.trimmed());
 
-			hash.insert(it, cmd + l.join(", "));
+			hash.append(qMakePair(it, cmd + l.join(", ")));
 		}
 	}
 
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
 	if (type == 0)
-		emit signalDispatcher.callStackInfoChanged(hash);
+		emit signalDispatcher.callStackInfoChanged(QVariant::fromValue(hash));
 	else
-		emit signalDispatcher.jumpStackInfoChanged(hash);
+		emit signalDispatcher.jumpStackInfoChanged(QVariant::fromValue(hash));
 }
 
 //處理"標記"，檢查是否有聲明局變量
@@ -1288,7 +1336,7 @@ void Parser::processLabel()
 			if (!args.isEmpty() && (args.size() > (i - kCallPlaceHoldSize)) && (args.at(i - kCallPlaceHoldSize).isValid()))
 				labelVars.insert(labelName, args.at(i - kCallPlaceHoldSize));
 		}
-	}
+}
 
 	localVarStack_.push(labelVars);
 
@@ -1359,72 +1407,25 @@ void Parser::processVariable(RESERVE type)
 	{
 	case TK_VARDECL:
 	{
-		//取第一個參數
+		//取第一個參數(變量名)
 		QString varName = getToken<QString>(1);
 		if (varName.isEmpty())
 			break;
 
-		//取第二個參數
-		QVariant varValue = getToken<QVariant>(2);
-		if (!varValue.isValid())
+		//取第二個參數(類別字符串)
+		QString typeStr = getToken<QString>(2);
+		if (typeStr.isEmpty())
 			break;
 
-		//檢查第二參數是否為邏輯運算符
-		RESERVE op = getTokenType(2);
-		if (!operatorTypes.contains(op))
+		QVariant varValue;
+		if (processGetSystemVarValue(varName, typeStr, varValue))
 		{
-			QString text;
-			qint64 ivalue = 0;
-			if (checkString(currentLineTokens_, 2, &text))
-			{
-				varValue = text;
-			}
-			else if (checkInteger(currentLineTokens_, 2, &ivalue))
-			{
-				varValue = ivalue;
-			}
-
-			//if (checkFuzzyValue(varName, varValue, &varValue))
-			//{
-			//	insertVar(varName, varValue);
-			//	break;
-			//}
-
-			QString varStr = varValue.toString();
-			if (processGetSystemVarValue(varName, varStr, varValue))
-			{
-				insertVar(varName, varValue);
-				break;
-			}
-
-			//插入全局變量表
 			insertVar(varName, varValue);
 			break;
 		}
 
-		////下面是變量比較數值，先檢查變量是否存在
-		//if (!isGlobalVarContains(varName))
-		//{
-		//	if (op != TK_DEC && op != TK_INC)
-		//		break;
-		//	else
-		//		insertVar(varName, 0);
-		//}
-
-		//if (op == TK_UNK)
-		//	break;
-
-		////取第三個參數
-		//varValue = getToken<QVariant>(3);
-		////檢查第三個是否合法 ，如果不合法 且第二參數不是++或--，則跳出
-		//if (!varValue.isValid() && op != TK_DEC && op != TK_INC)
-		//	break;
-
-		////將第一參數，要被運算的變量原數值取出
-		//QVariant gVar = getGlobalVarValue(varName);
-		////開始計算新值
-		//variableCalculate(op, &gVar, varValue);
-		//insertVar(varName, gVar);
+		//插入全局變量表
+		insertVar(varName, varValue);
 		break;
 	}
 	case TK_VARFREE:
@@ -1723,7 +1724,7 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 		if (typeStr.isEmpty())
 			break;
 
-		injector.server->reloadHashVar("pc");
+		injector.server->reloadHashVar("player");
 		VariantSafeHash hashpc = injector.server->hashpc;
 		if (!hashpc.contains(typeStr))
 			break;
@@ -2591,6 +2592,107 @@ void Parser::processDelay()
 	QThread::msleep(1);
 }
 
+bool Parser::processFor()
+{
+	QString varName = getToken<QString>(1);
+	if (varName.isEmpty())
+		return false;
+
+	//init var value
+	QVariant var = checkValue(currentLineTokens_, 2, QVariant::LongLong);
+	if (var.type() != QVariant::LongLong)
+		return false;
+
+	//break condition
+	QVariant breakVar = checkValue(currentLineTokens_, 3, QVariant::LongLong);
+	if (breakVar.type() != QVariant::LongLong)
+		return false;
+	qint64 breakValue = breakVar.toLongLong();
+
+	//step var value
+	QVariant stepVar = checkValue(currentLineTokens_, 4, QVariant::LongLong);
+	if (stepVar.type() != QVariant::LongLong || stepVar.toLongLong() == 0)
+		stepVar = 1ll;
+	qint64 step = stepVar.toLongLong();
+
+	if (!isLocalVarContains(varName))
+	{
+		insertLocalVar(varName, var.toLongLong());
+		forStack_.push(qMakePair(varName, lineNumber_));//for行號入棧
+	}
+	else
+	{
+		QVariant value = getLocalVarValue(varName);
+		if (value.type() != QVariant::LongLong)
+			return false;
+
+		qint64 nvalue = value.toLongLong();
+		if (nvalue >= breakValue)
+		{
+			if (!forStack_.isEmpty())
+				forStack_.pop();//for行號出棧
+
+			removeLocalVar(varName);
+
+			qint64 endline = 0ll;
+			if (!endStack_.isEmpty())
+			{
+				endline = endStack_.top().second;
+				endStack_.pop();//endfor行號出棧
+				jumpto(endline, true);
+				return true;
+			}
+		}
+		else
+		{
+			nvalue += step;
+			insertLocalVar(varName, nvalue);
+		}
+	}
+	return false;
+}
+
+bool Parser::processEndFor()
+{
+	if (forStack_.isEmpty())
+		return false;
+
+	QString varName = forStack_.top().first;
+	qint64 line = forStack_.top().second + 1;//要跳到endfor的下一行
+
+	if (endStack_.isEmpty())
+		endStack_.push(qMakePair(varName, lineNumber_ + 1));//endfor行號入棧
+	else
+	{
+		QString varName2 = endStack_.top().first;
+		if (varName2 != varName)
+			endStack_.push(qMakePair(varName, lineNumber_ + 1));
+	}
+	jumpto(line, true);
+	return true;
+}
+
+bool Parser::processBreak()
+{
+	if (!forStack_.isEmpty())
+	{
+		QString varName = forStack_.top().first;
+		removeLocalVar(varName);
+		forStack_.pop();//for行號出棧
+	}
+
+	qint64 endline = 0ll;
+	if (!endStack_.isEmpty())
+	{
+		endline = endStack_.top().second;
+		endStack_.pop();//endfor行號出棧
+		jumpto(endline, true);
+		return true;
+	}
+
+	return false;
+}
+
 //處理所有的token
 void Parser::processTokens()
 {
@@ -2829,6 +2931,24 @@ void Parser::processTokens()
 			SPD_LOG(g_logger_name, "[parser] Processing random");
 			processRandom();
 			SPD_LOG(g_logger_name, "[parser] Random has finished");
+			break;
+		}
+		case TK_FOR:
+		{
+			if (processFor())
+				continue;
+			break;
+		}
+		case TK_ENDFOR:
+		{
+			if (processEndFor())
+				continue;
+			break;
+		}
+		case TK_BREAK:
+		{
+			if (processBreak())
+				continue;
 			break;
 		}
 		case TK_CALL:

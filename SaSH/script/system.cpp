@@ -1206,6 +1206,7 @@ qint64 Interpreter::set(qint64 currentline, const TokenMap& TK)
 }
 
 ///////////////////////////////////////////////////////////////
+
 qint64 Interpreter::dlg(qint64 currentline, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance();

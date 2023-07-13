@@ -89,8 +89,8 @@ signals:
 	void varInfoImported(const QHash<QString, QVariant>& d);
 
 
-	void callStackInfoChanged(const QHash <int, QString>& var);
-	void jumpStackInfoChanged(const QHash <int, QString>& var);
+	void callStackInfoChanged(const QVariant& var);
+	void jumpStackInfoChanged(const QVariant& var);
 
 	void addForwardMarker(int liner, bool b);
 	void addErrorMarker(int liner, bool b);

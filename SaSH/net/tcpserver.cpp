@@ -10,6 +10,7 @@
 extern QString g_logger_name;//parser.cpp
 
 #pragma region StringControl
+// 0-9,a-z(10-35),A-Z(36-61)
 int Server::a62toi(const QString& a) const
 {
 	int ret = 0;
@@ -147,6 +148,7 @@ QString Server::makeStringFromEscaped(const QString& src) const
 	return result;
 }
 
+#if 0
 // 0-9,a-z(10-35),A-Z(36-61)
 int Server::a62toi(char* a) const
 {
@@ -159,20 +161,27 @@ int Server::a62toi(char* a) const
 		if ('0' <= (*a) && (*a) <= '9')
 			ret += (*a) - '0';
 		else
+		{
 			if ('a' <= (*a) && (*a) <= 'z')
 				ret += (*a) - 'a' + 10;
 			else
+			{
 				if ('A' <= (*a) && (*a) <= 'Z')
 					ret += (*a) - 'A' + 36;
 				else
+				{
 					if (*a == '-')
 						fugo = -1;
 					else
 						return 0;
+				}
+			}
+		}
 		a++;
 	}
 	return ret * fugo;
 }
+#endif
 
 void Server::clearNetBuffer()
 {
@@ -2580,7 +2589,6 @@ void Server::lssproto_B_recv(char* ccommand)
 
 		announce("[async battle] ----------------------------------------------");
 		announce("[async battle] 收到新的战斗 C 数据");
-		announce(data);
 		/*
 		//BC|戰場屬性（0:無屬性,1:地,2:水,3:火,4:風）|人物在組隊中的位置|人物名稱|人物稱號|人物形象編號|人物等級(16進制)|當前HP|最大HP|人物狀態（死亡，中毒等）|是否騎乘標志(0:未騎，1騎,-1落馬)|騎寵名稱|騎寵等級|騎寵HP|騎寵最大HP|戰寵在隊伍中的位置|戰寵名稱|未知|戰寵形象|戰寵等級|戰寵HP|戰寵最大HP|戰寵異常狀態（昏睡，死亡，中毒等）|0||0|0|0|
 		//敵1位置|敵1名稱|未知|敵1形象|敵1等級|敵1HP|敵1最大HP|敵人異常狀態（死亡，中毒等）|0||0|0|0|
@@ -2593,8 +2601,6 @@ void Server::lssproto_B_recv(char* ccommand)
 		10|貝恩達斯||187F0|2|36|36|1|0||0|0|0|
 		11|貝恩達斯||187F0|4|4F|4F|1|0||0|0|0|
 		*/
-
-		isEnemyAllReady.store(false, std::memory_order_release);
 
 		QString temp;
 		//fl = getIntegerToken(data, "|", 1);
@@ -2963,6 +2969,7 @@ void Server::lssproto_B_recv(char* ccommand)
 		pc.mp = BattleMyMp;
 		setBattleData(bt);
 		updateCurrentSideRange(bt);
+		isEnemyAllReady.store(false, std::memory_order_release);
 	}
 	else if (first == "A")
 	{
@@ -8024,11 +8031,12 @@ void Server::announce(const QString& msg, int color)
 {
 	Injector& injector = Injector::getInstance();
 
-	if (msg.contains("[async battle] "))
+	if (msg.contains("[async battle]"))
 	{
 		if (!injector.getEnableHash(util::kScriptDebugModeEnable))
 			return;
 		SPD_LOG(protoBattleLogName, msg);
+		return;
 	}
 
 	if (!getOnlineFlag())
@@ -8584,53 +8592,87 @@ QString Server::getChatHistory(int index)
 bool Server::findUnit(const QString& name, int type, mapunit_t* unit, const QString freename, int modelid) const
 {
 	QList<mapunit_t> units = mapUnitHash.values();
-	for (const mapunit_t& it : units)
+	QString strName = name;
+	QStringList strList = strName.split(util::rexOR, Qt::SkipEmptyParts);
+	if (strList.size() == 2)
 	{
-		if (it.graNo == 0 || it.graNo == 9999)
-			continue;
+		bool ok = false;
+		QPoint point;
+		point.setX(strList.at(0).toInt(&ok));
+		if (!ok)
+			return false;
 
-		if (modelid != -1 && it.graNo == modelid)
-		{
-			*unit = it;
-			return true;
-		}
+		point.setY(strList.at(1).toInt(&ok));
+		if (!ok)
+			return false;
 
-		if (freename.isEmpty())
+		for (const mapunit_t& it : units)
 		{
-			if ((it.name == name) && (it.objType == type))
+			if (it.graNo == 0 || it.graNo == 9999)
+				continue;
+
+			if (it.p == point)
 			{
 				*unit = it;
 				return true;
 			}
-			else if (name.startsWith("?") && (it.objType == type))
-			{
-				QString newName = name.mid(1);
-				if (it.name.contains(newName))
-				{
-					*unit = it;
-					return true;
-				}
-			}
 		}
-		else
-		{
-			if ((it.name == name) && (it.freeName.contains(freename)) && (it.objType == type))
-			{
-				*unit = it;
-				return true;
-			}
-			else if (name.startsWith("?") && (it.objType == type))
-			{
-				QString newName = name.mid(1);
-				if (it.name.contains(newName) && (it.freeName.contains(freename)))
-				{
-					*unit = it;
-					return true;
-				}
-			}
-		}
+		return false;
 	}
+	else
+	{
+		for (const mapunit_t& it : units)
+		{
+			if (it.graNo == 0 || it.graNo == 9999)
+				continue;
 
+			if (modelid != -1)
+			{
+				if (it.graNo == modelid)
+				{
+					*unit = it;
+					return true;
+				}
+				continue;
+			}
+
+			if (freename.isEmpty())
+			{
+				if ((it.name == name) && (it.objType == type))
+				{
+					*unit = it;
+					return true;
+				}
+				else if (name.startsWith("?") && (it.objType == type))
+				{
+					QString newName = name.mid(1);
+					if (it.name.contains(newName))
+					{
+						*unit = it;
+						return true;
+					}
+				}
+			}
+			else
+			{
+				if ((it.name == name) && (it.freeName.contains(freename)) && (it.objType == type))
+				{
+					*unit = it;
+					return true;
+				}
+				else if (name.startsWith("?") && (it.objType == type))
+				{
+					QString newName = name.mid(1);
+					if (it.name.contains(newName) && (it.freeName.contains(freename)))
+					{
+						*unit = it;
+						return true;
+					}
+				}
+			}
+		}
+
+	}
 	return false;
 }
 
@@ -10237,7 +10279,7 @@ void Server::updateDatasFromMemory()
 
 void Server::reloadHashVar(const QString& typeStr)
 {
-	if (typeStr == "pc")
+	if (typeStr == "player")
 	{
 		PC _pc = getPC();
 		hashpc = util::SafeHash<QString, QVariant>{
@@ -10346,13 +10388,14 @@ void Server::reloadHashVar(const QString& typeStr)
 				{ "atk", _pet.atk },						//攻擊力
 				{ "def", _pet.def },						//防禦力
 				{ "agi", _pet.quick },						//速度
-				{ "ai", _pet.ai },							//AI
+				{ "loyal", _pet.ai },							//AI
 				{ "earth", _pet.earth }, { "water", _pet.water }, { "fire", _pet.fire }, { "wind", _pet.wind },
 				{ "maxskill", _pet.maxSkill },
 				{ "turn", _pet.trn },						// 寵物轉生數
 				{ "name", _pet.name },
 				{ "fname", _pet.freeName },
-				{ "valid", _pet.useFlag ? 1 : 0 },
+				{ "valid", _pet.useFlag ? 1ll : 0ll },
+				{ "turn", _pet.trn },
 				{ "state", petStateHash.value(_pet.state) },
 			};
 
@@ -10685,9 +10728,9 @@ void Server::asyncBattleAction()
 		return;
 
 	//自动战斗打开 或 快速战斗打开且处于战斗场景
-	bool FastCheck = injector.getEnableHash(util::kFastBattleEnable);
-	bool Checked = injector.getEnableHash(util::kAutoBattleEnable) || (FastCheck && getWorldStatus() == 10);
-	if (Checked && !checkGW(10, 4))
+	bool fastChecked = injector.getEnableHash(util::kFastBattleEnable);
+	bool normalChecked = injector.getEnableHash(util::kAutoBattleEnable) || (fastChecked && getWorldStatus() == 10);
+	if (normalChecked && !checkGW(10, 4))
 	{
 		announce("[async battle] 画面不对", 7);
 		return;
@@ -10717,6 +10760,27 @@ void Server::asyncBattleAction()
 		}
 	};
 
+	auto setCurrentRoundEnd = [this, normalChecked]()
+	{
+		//通知结束这一回合
+		if (normalChecked)
+		{
+			//if (Checked)
+			//mem::write<short>(injector.getProcess(), injector.getProcessModule() + 0xE21E8, 1);
+			int G = getGameStatus();
+			if (G == 4)
+			{
+				setGameStatus(5);
+				isBattleDialogReady.store(false, std::memory_order_release);
+			}
+		}
+
+		//这里不发的话一般战斗、和快战都不会再收到后续的封包 (应该?)
+		lssproto_EO_send(0);
+		lssproto_Echo_send(const_cast<char*>("hoge"));
+		isEnemyAllReady.store(false, std::memory_order_release);
+	};
+
 	battledata_t bt = {};
 
 	//人物和宠物分开发
@@ -10730,7 +10794,14 @@ void Server::asyncBattleAction()
 
 			//解析人物战斗逻辑并发送指令
 			if (playerDoBattleWork() == 1)
+			{
 				announce("[async battle] 人物战斗指令发送完毕");
+				if (pc.battlePetNo == -1)
+				{
+					setCurrentRoundEnd();
+					return;
+				}
+			}
 			else
 				announce("[async battle] 人物战斗指令发送失败", 7);
 		}
@@ -10739,6 +10810,11 @@ void Server::asyncBattleAction()
 			announce("[async battle] 人物在不可动作的异常状态中", 6);
 			sendBattlePlayerDoNothing();
 			announce("[async battle] 人物战斗指令发送完毕");
+			if (pc.battlePetNo == -1)
+			{
+				setCurrentRoundEnd();
+				return;
+			}
 		}
 	}
 	else
@@ -10755,7 +10831,10 @@ void Server::asyncBattleAction()
 				delay(u8"战宠");
 
 				if (petDoBattleWork() == 1)
+				{
 					announce("[async battle] 宠物战斗指令发送完毕");
+					setCurrentRoundEnd();
+				}
 				else
 					announce("[async battle] 宠物战斗指令发送失败", 7);
 			}
@@ -10764,6 +10843,7 @@ void Server::asyncBattleAction()
 				announce("[async battle] 宠物在不可动作的异常状态中", 6);
 				sendBattlePetDoNothing();
 				announce("[async battle] 宠物战斗指令发送完毕");
+				setCurrentRoundEnd();
 			}
 		}
 		else
@@ -10771,24 +10851,6 @@ void Server::asyncBattleAction()
 	}
 	else
 		announce("[async battle] 无战宠，忽略战宠动作", 7);
-
-	//通知结束这一回合
-	if (Checked)
-	{
-		//if (Checked)
-		//mem::write<short>(injector.getProcess(), injector.getProcessModule() + 0xE21E8, 1);
-		int G = getGameStatus();
-		if (G == 4)
-		{
-			setGameStatus(5);
-			isBattleDialogReady.store(false, std::memory_order_release);
-		}
-	}
-
-	//这里不发的话一般战斗、和快战都不会再收到后续的封包 (应该?)
-	lssproto_EO_send(0);
-	lssproto_Echo_send(const_cast<char*>("hoge"));
-	isEnemyAllReady.store(false, std::memory_order_release);
 }
 
 //人物戰鬥

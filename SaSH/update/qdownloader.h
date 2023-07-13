@@ -23,7 +23,7 @@ public:
 
 	void start();
 
-	static bool checkUpdate(QString* ptext);
+	static bool checkUpdate(QString* current, QString* ptext);
 
 protected:
 	void showEvent(QShowEvent* event) override;

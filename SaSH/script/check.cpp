@@ -264,7 +264,7 @@ qint64 Interpreter::checkchathistory(qint64 currentline, const TokenMap& TK)
 		{
 			for (qint64 i = min; i <= max; ++i)
 			{
-				QString text = injector.server->getChatHistory(i - 1);
+				QString text = injector.server->getChatHistory(i - 1).simplified();
 				if (text.isEmpty())
 					continue;
 

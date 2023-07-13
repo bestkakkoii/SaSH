@@ -2527,7 +2527,7 @@ private://lssproto
 	int getIntegerToken(const QString& src, const QString& delim, int count) const;
 	int getInteger62Token(const QString& src, const QString& delim, int count) const;
 	QString makeStringFromEscaped(const QString& src) const;
-	int a62toi(char* a) const;
+	//int a62toi(char* a) const;
 
 private:
 	QFutureSynchronizer<void> ayncBattleCommandSync;

@@ -1890,7 +1890,7 @@ bool __fastcall MapAnalyzer::isPassable(int floor, const QPoint& src, const QPoi
 	} while (false);
 
 	return bret;
-	}
+}
 
 // 取靠近目標的最佳座標和方向
 int __fastcall MapAnalyzer::calcBestFollowPointByDstPoint(int floor, const QPoint& src, const QPoint& dst, QPoint* ret, bool enableExt, int npcdir)

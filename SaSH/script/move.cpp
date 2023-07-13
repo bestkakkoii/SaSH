@@ -193,12 +193,30 @@ qint64 Interpreter::findpath(qint64 currentline, const TokenMap& TK)
 		if (datas.isEmpty())
 			return Parser::kNoChange;
 
+		QPoint point;
+		QStringList strList = name.split(util::rexOR, Qt::SkipEmptyParts);
+		if (strList.size() == 2)
+		{
+			bool ok = false;
+
+			point.setX(strList.at(0).toInt(&ok));
+			if (ok)
+				point.setY(strList.at(1).toInt(&ok));
+			if (!ok)
+				return Parser::kArgError;
+		}
+
 		for (const util::MapData& d : datas)
 		{
 			if (d.name.isEmpty())
 				return Parser::kNoChange;
 
-			if (d.name == name)
+			if (point == QPoint(d.x, d.y))
+			{
+				p = QPoint(d.x, d.y);
+				checkInteger(TK, 2, &steplen);
+			}
+			else if (d.name == name)
 			{
 				p = QPoint(d.x, d.y);
 				checkInteger(TK, 2, &steplen);

@@ -257,6 +257,9 @@ static const QHash<QString, RESERVE> keywords = {
 	{ u8"format", TK_FORMAT },
 	{ u8"rnd", TK_RND },
 	{ u8"if", TK_CMP },
+	{ u8"for", TK_FOR },
+	{ u8"endfor", TK_ENDFOR },
+	{ u8"break", TK_BREAK },
 
 	//system
 	{ u8"run", TK_CMD },
@@ -301,7 +304,7 @@ static const QHash<QString, RESERVE> keywords = {
 	{ u8"usemagic", TK_CMD },
 	{ u8"chpetname", TK_CMD },
 	{ u8"chpet", TK_CMD },
-	{ u8"droppet", TK_CMD },
+	{ u8"doffpet", TK_CMD },
 	{ u8"buy", TK_CMD },
 	{ u8"sell", TK_CMD },
 	{ u8"sellpet", TK_CMD },
@@ -440,7 +443,9 @@ void Lexer::tokenized(qint64 currentLine, const QString& line, TokenMap* ptoken,
 		static const QRegularExpression varAnyOp(R"([+\-*\/%&|^\(\)])");//+ - * / % & | ^ ( )
 		static const QRegularExpression varIf(R"([iI][fF][\(|\s+]([\d\w\W\p{Han}]+\s*[<|>|\=|!][\=]*\s*[\d\w\W\p{Han}]+))");//if (expr)
 		static const QRegularExpression rexFunction(R"([fF][uU][nN][cC][tT][iI][oO][nN]\s+([\w\p{Han}\d]+)\s*\(([\w\W\p{Han}]*)\))");
-		static const QRegularExpression rexCallFunction(R"((\w+)\s*\(([\w\W\p{Han}]*)\))");
+		static const QRegularExpression rexCallFunction(R"(([\w\p{Han}]+)\s*\(([\w\W\p{Han}]*)\))");
+		static const QRegularExpression rexCallFor(R"([fF][oO][rR]\s*\(*([\w\p{Han}]+)\s*=\s*([^,]+)\s*,\s*([^,]+)\s*[\)]*)");
+		static const QRegularExpression rexCallFor2(R"([fF][oO][rR]\s*\(*([\w\p{Han}]+)\s*=\s*([^,]+)\s*,\s*([^,]+)\s*,\s*([^,\)]+)\s*[\)]*)");
 		//處理if正則
 		if (raw.contains(varIf))
 		{
@@ -511,19 +516,22 @@ void Lexer::tokenized(qint64 currentLine, const QString& line, TokenMap* ptoken,
 		else if (raw.contains(varCAOs) && !raw.front().isDigit())
 		{
 			QRegularExpressionMatch match = varCAOs.match(raw);
-			QString notuse;
-			QString varName = match.captured(1).simplified();
-			QString op = match.captured(2).simplified();
-			QString value = match.captured(3).simplified();
-			qint64 p = pos + 1;
-			RESERVE optype = getTokenType(p, TK_CAOS, op, op);
-			++p;
-			RESERVE valuetype = getTokenType(p, optype, value, value);
+			if (match.hasMatch())
+			{
+				QString notuse;
+				QString varName = match.captured(1).simplified();
+				QString op = match.captured(2).simplified();
+				QString value = match.captured(3).simplified();
+				qint64 p = pos + 1;
+				RESERVE optype = getTokenType(p, TK_CAOS, op, op);
+				++p;
+				RESERVE valuetype = getTokenType(p, optype, value, value);
 
-			createToken(pos, TK_CAOS, varName, varName, ptoken);
-			createToken(pos + 1, optype, op, op, ptoken);
-			createToken(pos + 2, valuetype, value, value, ptoken);
-			break;
+				createToken(pos, TK_CAOS, varName, varName, ptoken);
+				createToken(pos + 1, optype, op, op, ptoken);
+				createToken(pos + 2, valuetype, value, value, ptoken);
+				break;
+			}
 		}
 		//處理變量賦值數學表達式
 		else if (raw.contains(varExpr) && raw.contains(varAnyOp) && !raw.front().isDigit())
@@ -538,6 +546,42 @@ void Lexer::tokenized(qint64 currentLine, const QString& line, TokenMap* ptoken,
 				createToken(pos + 1, TK_STRING, expr, expr, ptoken);
 			}
 			break;
+		}
+		else if (raw.contains(rexCallFor2))
+		{
+			QRegularExpressionMatch match = rexCallFor2.match(raw);
+			if (match.hasMatch())
+			{
+				QString varName = match.captured(1).simplified();
+				QString exprA = match.captured(2).simplified();
+				QString exprB = match.captured(3).simplified();
+				QString exprC = match.captured(4).simplified();
+
+				QString cmd = "for";
+				createToken(pos, TK_FOR, cmd, cmd, ptoken);
+				createToken(pos + 1, TK_STRING, varName, varName, ptoken);
+				createToken(pos + 2, TK_STRING, exprA, exprA, ptoken);
+				createToken(pos + 3, TK_STRING, exprB, exprB, ptoken);
+				createToken(pos + 4, TK_STRING, exprC, exprC, ptoken);
+				break;
+			}
+		}
+		else if (raw.contains(rexCallFor))
+		{
+			QRegularExpressionMatch match = rexCallFor.match(raw);
+			if (match.hasMatch())
+			{
+				QString varName = match.captured(1).simplified();
+				QString exprA = match.captured(2).simplified();
+				QString exprB = match.captured(3).simplified();
+
+				QString cmd = "for";
+				createToken(pos, TK_FOR, cmd, cmd, ptoken);
+				createToken(pos + 1, TK_STRING, varName, varName, ptoken);
+				createToken(pos + 2, TK_STRING, exprA, exprA, ptoken);
+				createToken(pos + 3, TK_STRING, exprB, exprB, ptoken);
+				break;
+			}
 		}
 		else
 		{
@@ -998,7 +1042,7 @@ bool Lexer::getStringToken(QString& src, const QString& delim, QString& out)
 	return true;
 }
 
-void Lexer::checkFunctionPairs(const QHash<qint64, TokenMap>& stokenmaps)
+void Lexer::checkPairs(const QString& beginstr, const QString& endstr, const QHash<qint64, TokenMap>& stokenmaps)
 {
 	QMap<qint64, QString> unpairedFunctions;
 	QMap<qint64, QString> unpairedEnds;
@@ -1014,14 +1058,14 @@ void Lexer::checkFunctionPairs(const QHash<qint64, TokenMap>& stokenmaps)
 		//RESERVE type = it.value().value(0).type;
 		QString statement = it.value().value(0).data.toString().simplified();
 
-		if (statement != "function" && statement != "end")
+		if (statement != beginstr && statement != endstr)
 			continue;
 
-		if (statement == "function") // "function" statement
+		if (statement == beginstr) // "function" statement
 		{
 			functionStack.push(row);
 		}
-		else if (statement == "end") // "end" statement
+		else if (statement == endstr) // "end" statement
 		{
 			if (functionStack.isEmpty()) // "end" without preceding "function"
 			{
@@ -1047,7 +1091,7 @@ void Lexer::checkFunctionPairs(const QHash<qint64, TokenMap>& stokenmaps)
 	{
 		qint64 row = it.key();
 		QString statement = it.value();
-		QString errorMessage = QObject::tr("<Syntax Error>Missing 'end' for statement '%1' at line: %2").arg(statement).arg(row + 1);
+		QString errorMessage = QObject::tr("<Syntax Error>Missing '%1' for statement '%2' at line: %3").arg(endstr).arg(statement).arg(row + 1);
 		showError(errorMessage);
 	}
 
@@ -1056,7 +1100,13 @@ void Lexer::checkFunctionPairs(const QHash<qint64, TokenMap>& stokenmaps)
 	{
 		qint64 row = it.key();
 		QString statement = it.value();
-		QString errorMessage = QObject::tr("<Syntax Error>Extra 'end' for statement '%1' at line: %2").arg(statement).arg(row + 1);
+		QString errorMessage = QObject::tr("<Syntax Error>Extra '%1' for statement '%2' at line: %3").arg(endstr).arg(statement).arg(row + 1);
 		showError(errorMessage);
 	}
+}
+
+void Lexer::checkFunctionPairs(const QHash<qint64, TokenMap>& stokenmaps)
+{
+	checkPairs("function", "end", stokenmaps);
+	checkPairs("for", "endfor", stokenmaps);
 }

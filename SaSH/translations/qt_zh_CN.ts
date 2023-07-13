@@ -1443,11 +1443,11 @@ Update process will cause all the games to be closed, are you sure to continue?<
     </message>
     <message>
         <source>No new version available. Do you still want to update?</source>
-        <translation>没有找到新版本，您还要继续更新吗?</translation>
+        <translation type="vanished">没有找到新版本，您还要继续更新吗?</translation>
     </message>
     <message>
         <source>SaSH - %1</source>
-        <translation>石器助手 - %1</translation>
+        <translation>SaSH-%1</translation>
     </message>
     <message>
         <source>basic info - count:%1, subscript:%2</source>
@@ -1473,13 +1473,29 @@ Update process will cause all the games to be closed, are you sure to continue?<
         <source>New version:%1 were found!
 
 Update process will cause all the games to be closed, are you sure to continue?</source>
-        <translation>找到新的版本:%1 !
+        <translation type="vanished">找到新的版本:%1 !
 
 更新会导致所有游戏和外挂都被关闭, 您确定要更新吗?</translation>
     </message>
     <message>
         <source>connecting</source>
         <translation>连线中</translation>
+    </message>
+    <message>
+        <source>Current version:%1
+New version:%2 were found!
+
+Update process will cause all the games to be closed, are you sure to continue?</source>
+        <translation>当前版本:%1
+新版本:%2
+
+更新会导致所有游戏和外挂都被关闭, 您确定要更新吗?</translation>
+    </message>
+    <message>
+        <source>Current version:%1
+No new version available. Do you still want to update?</source>
+        <translation>当前版本:%1
+没有找到新版本，您还要继续更新吗?</translation>
     </message>
 </context>
 <context>
@@ -1666,7 +1682,7 @@ Update process will cause all the games to be closed, are you sure to continue?<
     </message>
     <message>
         <source>X[NPC]%1</source>
-        <translation>隐藏[NPC]%1</translation>
+        <translation type="vanished">隐藏[NPC]%1</translation>
     </message>
     <message>
         <source>%1 map:%2 floor:%3 [%4,%5] mouse:%6,%7</source>
@@ -1687,6 +1703,10 @@ Update process will cause all the games to be closed, are you sure to continue?<
     <message>
         <source>[G]</source>
         <translation>[石币]</translation>
+    </message>
+    <message>
+        <source>X[NPC][%1]%2</source>
+        <translation></translation>
     </message>
 </context>
 <context>
@@ -2595,11 +2615,11 @@ MESSAGE：<byte value="xd"/>
     </message>
     <message>
         <source>&lt;Syntax Error&gt;Missing &apos;end&apos; for statement &apos;%1&apos; at line: %2</source>
-        <translation>&lt;语法错误&gt; &apos;%1&apos; 缺少与之配对的 &apos;end&apos; 于行号: %2</translation>
+        <translation type="vanished">&lt;语法错误&gt; &apos;%1&apos; 缺少与之配对的 &apos;end&apos; 于行号: %2</translation>
     </message>
     <message>
         <source>&lt;Syntax Error&gt;Extra &apos;end&apos; for statement &apos;%1&apos; at line: %2</source>
-        <translation>&lt;语法错误&gt; &apos;%1&apos; 缺少与之配对的  &apos;function&apos; 于行号: %2</translation>
+        <translation type="vanished">&lt;语法错误&gt; &apos;%1&apos; 缺少与之配对的  &apos;function&apos; 于行号: %2</translation>
     </message>
     <message>
         <source>&lt;Syntax Error&gt;Unexpected &apos;&amp;&apos; before undeclared variable name &apos;%1&apos; at line: %2</source>
@@ -2640,6 +2660,14 @@ MESSAGE：<byte value="xd"/>
     <message>
         <source>scriptdoc</source>
         <translation>脚本文档</translation>
+    </message>
+    <message>
+        <source>&lt;Syntax Error&gt;Missing &apos;%1&apos; for statement &apos;%2&apos; at line: %3</source>
+        <translation>&lt;语法错误&gt; &apos;%2&apos; 缺少与之配对的 &apos;%1&apos; 于行号: %3</translation>
+    </message>
+    <message>
+        <source>&lt;Syntax Error&gt;Extra &apos;%1&apos; for statement &apos;%2&apos; at line: %3</source>
+        <translation>&lt;语法错误&gt; &apos;%2&apos; 缺少与之配对的 &apos;%1&apos; 于行号: %3</translation>
     </message>
 </context>
 <context>

@@ -736,7 +736,12 @@ void ScriptSettingForm::fileSave(const QString& d, DWORD flag)
 	for (const QString& line : contents)
 	{
 		QString trimmedLine = line.trimmed();
-		int endIndex = trimmedLine.indexOf("end");
+		int endIndex = trimmedLine.indexOf("endfor");
+		if (-1 == endIndex)
+		{
+			endIndex = trimmedLine.indexOf("end");
+		}
+
 		QString tmpLine;
 		if (endIndex != -1)
 		{
@@ -756,13 +761,23 @@ void ScriptSettingForm::fileSave(const QString& d, DWORD flag)
 			}
 		}
 
-		if (trimmedLine.startsWith("end") && !tmpLine.isEmpty() && tmpLine == "end")
+		if (trimmedLine.startsWith("endfor") && !tmpLine.isEmpty() && tmpLine == "endfor")
 		{
 			indentLevel--;
 		}
+		else if (trimmedLine.startsWith("end") && !tmpLine.isEmpty() && tmpLine == "end")
+		{
+			indentLevel--;
+		}
+
+
 		QString indentedLine = QString("    ").repeated(indentLevel) + trimmedLine;
 		newContents.append(indentedLine);
 		if (trimmedLine.startsWith("function"))
+		{
+			indentLevel++;
+		}
+		else if (trimmedLine.startsWith("for ") || trimmedLine.startsWith("for (") || trimmedLine.startsWith("for("))
 		{
 			indentLevel++;
 		}
@@ -843,6 +858,10 @@ void ScriptSettingForm::loadFile(const QString& fileName)
 	if (!f.isOpen())
 		return;
 
+	bool isReadOnly = ui.widget->isReadOnly();
+	if (isReadOnly)
+		ui.widget->setReadOnly(false);
+
 	int curLine = -1;
 	int curIndex = -1;
 	ui.widget->getCursorPosition(&curLine, &curIndex);
@@ -898,6 +917,9 @@ void ScriptSettingForm::loadFile(const QString& fileName)
 
 	if (scollValue >= 0)
 		ui.widget->verticalScrollBar()->setValue(scollValue);
+
+	if (isReadOnly)
+		ui.widget->setReadOnly(true);
 }
 
 void ScriptSettingForm::setContinue()
@@ -1349,17 +1371,19 @@ void ScriptSettingForm::on_comboBox_functions_currentIndexChanged(int)
 	}
 }
 
-void ScriptSettingForm::onCallStackInfoChanged(const QHash <int, QString>& var)
+void ScriptSettingForm::onCallStackInfoChanged(const QVariant& var)
 {
-	stackInfoImport(ui.treeWidget_debuger_callstack, var);
+	QVector<QPair<int, QString>> vec = var.value<QVector<QPair<int, QString>>>();
+	stackInfoImport(ui.treeWidget_debuger_callstack, vec);
 }
 
-void ScriptSettingForm::onJumpStackInfoChanged(const QHash <int, QString>& var)
+void ScriptSettingForm::onJumpStackInfoChanged(const QVariant& var)
 {
-	stackInfoImport(ui.treeWidget_debuger_jmpstack, var);
+	QVector<QPair<int, QString>> vec = var.value<QVector<QPair<int, QString>>>();
+	stackInfoImport(ui.treeWidget_debuger_jmpstack, vec);
 }
 
-void ScriptSettingForm::stackInfoImport(QTreeWidget* tree, const QHash <int, QString>& d)
+void ScriptSettingForm::stackInfoImport(QTreeWidget* tree, const QVector<QPair<int, QString>>& vec)
 {
 	if (tree == nullptr)
 		return;
@@ -1370,13 +1394,13 @@ void ScriptSettingForm::stackInfoImport(QTreeWidget* tree, const QHash <int, QSt
 	tree->setColumnCount(2);
 	tree->setHeaderLabels(QStringList() << tr("row") << tr("content"));
 
-	if (!d.isEmpty())
+	if (!vec.isEmpty())
 	{
 		QList<QTreeWidgetItem*> trees;
 		//int size = d.size();
-		for (auto it = d.cbegin(); it != d.cend(); ++it)
+		for (const QPair<int, QString> pair : vec)
 		{
-			trees.append(q_check_ptr(new QTreeWidgetItem({ QString::number(it.key()), it.value() })));
+			trees.append(q_check_ptr(new QTreeWidgetItem({ QString::number(pair.first),  pair.second })));
 		}
 
 		tree->addTopLevelItems(trees);
@@ -1546,8 +1570,157 @@ void ScriptSettingForm::on_treeWidget_functionList_itemDoubleClicked(QTreeWidget
 	if (str.isEmpty())
 		return;
 
-	ui.widget->insert(str + " ");
+	Injector& injector = Injector::getInstance();
 
+	if (injector.server.isNull())
+	{
+		ui.widget->insert(str + " ");
+		return;
+	}
+
+	if (str == "button" || str == "input")
+	{
+		dialog_t dialog = injector.server->currentDialog;
+		QString npcName = injector.server->mapUnitHash.value(dialog.objindex).name;
+		if (npcName.isEmpty())
+			return;
+
+		str = QString("%1 '', '%2', %3").arg(str).arg(npcName).arg(dialog.seqno);
+	}
+	else if (str == "waitdlg")
+	{
+		dialog_t dialog = injector.server->currentDialog;
+		QString lineStr;
+		for (const QString& s : dialog.linedatas)
+		{
+			if (s.size() > 3)
+			{
+				lineStr = s;
+				break;
+			}
+		}
+		str = QString("%1 ?, '%2', 5000, -1").arg(str).arg(lineStr);
+	}
+	else if (str == "learn")
+	{
+		dialog_t dialog = injector.server->currentDialog;
+		QString npcName = injector.server->mapUnitHash.value(dialog.objindex).name;
+		if (npcName.isEmpty())
+			return;
+
+		str = QString("%1 0, 0, 0, '%2', %3").arg(str).arg(npcName).arg(dialog.seqno);
+	}
+	else if (str == "findpath" || str == "move")
+	{
+		QPoint pos = injector.server->getPoint();
+		str = QString("%1 %2, %3").arg(str).arg(pos.x()).arg(pos.y());
+	}
+	else if (str == "dir")
+	{
+		int dir = (injector.server->getPC().dir + 3) % 8;
+		str = QString("%1 %2").arg(str).arg(dir);
+	}
+	else if (str == "walkpos")
+	{
+		QPoint pos = injector.server->getPoint();
+		str = QString("%1 %2, %3, 5000").arg(str).arg(pos.x()).arg(pos.y());
+	}
+	else if (str == "w")
+	{
+		QPoint pos = injector.server->getPoint();
+		int dir = (injector.server->getPC().dir + 3) % 8;
+		const QString dirStr = "ABCDEFGH";
+		if (dir < 0 || dir >= dirStr.size())
+			return;
+		str = QString("%1 %2, %3, '%4'").arg(str).arg(pos.x()).arg(pos.y()).arg(dirStr.at(dir));
+	}
+	else if (str == "ifpos")
+	{
+		QPoint pos = injector.server->getPoint();
+		str = QString("%1 %2, %3, +2").arg(str).arg(pos.x()).arg(pos.y());
+	}
+	else if (str == "ifmap")
+	{
+		int floor = injector.server->nowFloor;
+		str = QString("%1 %2, +2").arg(str).arg(floor);
+	}
+	else if (str == "waitmap")
+	{
+		int floor = injector.server->nowFloor;
+		str = QString("%1 %2, 5000, +2").arg(str).arg(floor);
+	}
+	else if (str == "sleep")
+	{
+		str = QString("%1 500").arg(str);
+	}
+	else if (str == "function")
+	{
+		str = QString("%1 myfun()\n    \nend").arg(str);
+	}
+	else if (str == "for")
+	{
+		str = QString("%1 i = 1, 10, 1\n    \nendfor").arg(str);
+	}
+	else if (str == "movetonpc")
+	{
+		QPoint pos = injector.server->getPoint();
+		QList<mapunit_t> units = injector.server->mapUnitHash.values();
+		auto getdis = [&pos](QPoint p)
+		{
+			//歐幾里得
+			return sqrt(pow(pos.x() - p.x(), 2) + pow(pos.y() - p.y(), 2));
+		};
+
+		std::sort(units.begin(), units.end(), [&getdis](const mapunit_t& a, const mapunit_t& b)
+			{
+				return getdis(a.p) < getdis(b.p);
+			});
+
+		if (units.isEmpty())
+			return;
+		mapunit_t unit = units.first();
+		while (unit.objType != util::OBJ_NPC)
+		{
+			units.removeFirst();
+			if (units.isEmpty())
+				return;
+			unit = units.first();
+		}
+
+		//移动至NPC 参数1:NPC名称, 参数2:NPC暱称, 参数3:东坐标, 参数4:南坐标, 参数5:超时时间, 参数6:错误跳转
+		str = QString("%1 '%2', '%3', %4, %5, 10000, -1").arg(str).arg(unit.name).arg(unit.freeName).arg(unit.p.x()).arg(unit.p.y());
+
+	}
+	else if (str == "movetonpc with mod")
+	{
+		QPoint pos = injector.server->getPoint();
+		QList<mapunit_t> units = injector.server->mapUnitHash.values();
+		auto getdis = [&pos](QPoint p)
+		{
+			//歐幾里得
+			return sqrt(pow(pos.x() - p.x(), 2) + pow(pos.y() - p.y(), 2));
+		};
+
+		std::sort(units.begin(), units.end(), [&getdis](const mapunit_t& a, const mapunit_t& b)
+			{
+				return getdis(a.p) < getdis(b.p);
+			});
+
+		if (units.isEmpty())
+			return;
+		mapunit_t unit = units.first();
+		while (unit.objType != util::OBJ_NPC)
+		{
+			units.removeFirst();
+			if (units.isEmpty())
+				return;
+			unit = units.first();
+		}
+
+		//移动至NPC 参数1:NPC名称, 参数2:NPC暱称, 参数3:东坐标, 参数4:南坐标, 参数5:超时时间, 参数6:错误跳转
+		str = QString("movetonpc %1, '', %2, %3, 10000, -1").arg(unit.graNo).arg(unit.p.x()).arg(unit.p.y());
+	}
+	ui.widget->insert(str);
 }
 
 void searchFiles(const QString& dir, const QString& fileNamePart, const QString& suffixWithDot, QList<QString>* result)
@@ -1607,7 +1780,7 @@ void ScriptSettingForm::on_treeWidget_functionList_itemSelectionChanged()
 			ui.textBrowser->setDocument(doc.data());
 			ui.textBrowser->setUpdatesEnabled(true);
 			break;
-		}
+	}
 #ifdef _DEBUG
 		QString mdFullPath = R"(D:\Users\bestkakkoii\Desktop\SaSH_x86\lib\doc)";
 #else
@@ -1642,7 +1815,7 @@ void ScriptSettingForm::on_treeWidget_functionList_itemSelectionChanged()
 		ui.textBrowser->setUpdatesEnabled(true);
 
 		return;
-	} while (false);
+} while (false);
 
 }
 

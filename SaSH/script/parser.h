@@ -279,6 +279,9 @@ private:
 	void processLabel();
 	void processClean();
 	void processDelay();
+	bool processFor();
+	bool processEndFor();
+	bool processBreak();
 	bool processGetSystemVarValue(const QString& varName, QString& valueStr, QVariant& varValue);
 	bool processIfCompare();
 
@@ -302,6 +305,31 @@ private:
 	void handleError(qint64 err);
 	void checkArgs();
 	void recordFunctionChunks();
+
+	inline Q_REQUIRED_RESULT bool isLocalVarContains(const QString& name)
+	{
+		QVariantHash hash = getLocalVars();
+		if (hash.contains(name))
+			return true;
+
+		return false;
+	}
+
+	inline Q_REQUIRED_RESULT QVariant getLocalVarValue(const QString& name)
+	{
+		QVariantHash hash = getLocalVars();
+		if (hash.contains(name))
+			return hash.value(name);
+
+		return QVariant();
+	}
+
+	inline void removeLocalVar(const QString& name)
+	{
+		QVariantHash& hash = getLocalVarsRef();
+		if (hash.contains(name))
+			hash.remove(name);
+	}
 
 	void insertLocalVar(const QString& name, const QVariant& value);
 
@@ -394,6 +422,8 @@ private:
 
 	QStack<qint64> callStack_;								//"調用"命令所在行棧
 	QStack<qint64> jmpStack_;								//"跳轉"命令所在行棧
+	QStack<QPair<QString, qint64>> forStack_;				//"遍歷"命令所在行棧
+	QStack<QPair<QString, qint64>> endStack_;				//"遍歷結束"命令所在行棧
 	QStack<QVariantList> callArgsStack_;					//"調用"命令參數棧
 	QVariantList emptyArgs_;								//空參數(參數棧為空得情況下壓入一個空容器)
 	QStack<QVariantHash> localVarStack_;					//局變量棧

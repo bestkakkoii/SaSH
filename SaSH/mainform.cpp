@@ -813,8 +813,25 @@ void MainForm::onMenuActionTriggered()
 	else if (actionName == "actionWebsite")
 	{
 		QMessageBox::information(this, "SaSH",
-			QString(u8"飞 Philip\n\nCopyright ©2019-2023 Bestkakkoii llc. All rights reserved.\n\nURL:https://www.lovesa.cc\nQQ Group:\n224068611\n\nCurrent Version:\n%1")
-			.arg(util::buildDateTime(nullptr)));
+			QString(u8R"(
+作者:
+飞 Philip
+
+Copyright ©2019-2023 Bestkakkoii llc. All rights reserved.
+
+论坛:
+https://www.lovesa.cc
+
+QQ 群:
+224068611
+
+当前版本:
+%1
+
+特别感谢:
+eric, 辉, match_stick 热心帮忙测试、查找bug，和给予大量优质的建议
+)")
+.arg(util::buildDateTime(nullptr)));
 	}
 
 	else if (actionName == "actionClose")
@@ -892,17 +909,20 @@ void MainForm::onMenuActionTriggered()
 
 	else if (actionName == "actionUpdate")
 	{
+		QString current;
 		QString result;
 		QMessageBox::StandardButton ret;
-		if (QDownloader::checkUpdate(&result))
+		if (QDownloader::checkUpdate(&current, &result))
 		{
 			ret = QMessageBox::warning(this, tr("Update"), \
-				tr("New version:%1 were found!\n\nUpdate process will cause all the games to be closed, are you sure to continue?").arg(result), \
+				tr("Current version:%1\nNew version:%2 were found!\n\nUpdate process will cause all the games to be closed, are you sure to continue?") \
+				.arg(current).arg(result), \
 				QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
 		}
 		else
 		{
-			ret = QMessageBox::information(this, tr("Update"), tr("No new version available. Do you still want to update?"), \
+			ret = QMessageBox::information(this, tr("Update"), tr("Current version:%1\nNo new version available. Do you still want to update?") \
+				.arg(current), \
 				QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
 		}
 
@@ -937,7 +957,7 @@ void MainForm::resetControlTextLanguage()
 	default:
 		translator_.load(QString("%1/translations/qt_en_US.qm").arg(QApplication::applicationDirPath()));
 		break;
-}
+	}
 #else
 	switch (acp)
 	{

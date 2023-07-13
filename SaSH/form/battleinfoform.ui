@@ -56,7 +56,7 @@
      <property name="orientation">
       <enum>Qt::Horizontal</enum>
      </property>
-     <widget class="QWidget" name="">
+     <widget class="QWidget" name="layoutWidget">
       <layout class="QVBoxLayout" name="verticalLayout">
        <property name="spacing">
         <number>1</number>
@@ -106,13 +106,13 @@
           <widget class="QLabel" name="label_c">
            <property name="minimumSize">
             <size>
-             <width>55</width>
+             <width>70</width>
              <height>20</height>
             </size>
            </property>
            <property name="maximumSize">
             <size>
-             <width>55</width>
+             <width>70</width>
              <height>16777215</height>
             </size>
            </property>
@@ -141,7 +141,7 @@
        </item>
       </layout>
      </widget>
-     <widget class="QWidget" name="">
+     <widget class="QWidget" name="layoutWidget">
       <layout class="QVBoxLayout" name="verticalLayout_2">
        <property name="spacing">
         <number>1</number>
@@ -191,13 +191,13 @@
           <widget class="QLabel" name="label_p">
            <property name="minimumSize">
             <size>
-             <width>55</width>
+             <width>70</width>
              <height>20</height>
             </size>
            </property>
            <property name="maximumSize">
             <size>
-             <width>55</width>
+             <width>70</width>
              <height>16777215</height>
             </size>
            </property>
