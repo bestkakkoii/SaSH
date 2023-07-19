@@ -137,14 +137,14 @@ public:
 		if (pname == nullptr)
 			return false;
 
-		if (dtorCallBackFlag_)
+		if (dtorCallBackFlag_ != 0)
 			return false;
 
 		QHash<QString, qint64> hash = getLabels();
 		constexpr const char* DTOR = "dtor";
 		if (hash.contains(DTOR))
 		{
-			dtorCallBackFlag_ = true;
+			dtorCallBackFlag_ = 1;
 			*pname = DTOR;
 			return true;
 		}
@@ -282,6 +282,7 @@ private:
 	bool processFor();
 	bool processEndFor();
 	bool processBreak();
+	bool processContinue();
 	bool processGetSystemVarValue(const QString& varName, QString& valueStr, QVariant& varValue);
 	bool processIfCompare();
 
@@ -305,6 +306,7 @@ private:
 	void handleError(qint64 err);
 	void checkArgs();
 	void recordFunctionChunks();
+	void recordForChunks();
 
 	inline Q_REQUIRED_RESULT bool isLocalVarContains(const QString& name)
 	{
@@ -391,7 +393,19 @@ private:
 	Q_REQUIRED_RESULT inline RESERVE getTokenType(qint64 index) const { return currentLineTokens_.value(index).type; }
 	Q_REQUIRED_RESULT TokenMap getCurrentTokens() const { return currentLineTokens_; }
 	void variableCalculate(RESERVE op, QVariant* var, const QVariant& varValue);
-	qint64 matchLineFromLabel(const QString& label) const { return labels_.value(label, -1); }
+	qint64 matchLineFromLabel(const QString& label) const
+	{
+		if (functionChunks_.contains(label))
+			return -1;
+		return labels_.value(label, -1);
+	}
+	qint64 matchLineFromFunction(const QString& funcName) const
+	{
+		if (functionChunks_.contains(funcName))
+			return functionChunks_.value(funcName).begin;
+		else
+			return -1;
+	}
 
 	Q_REQUIRED_RESULT inline QVariantList& getArgsRef()
 	{
@@ -412,18 +426,25 @@ private:
 		qint64 end = -1;
 	} FunctionChunk;
 
+	typedef struct tagForChunk
+	{
+		QString name;
+		qint64 begin = -1;
+		qint64 end = -1;
+	} ForChunk;
+
 	QHash<qint64, TokenMap> tokens_;						//當前運行腳本的每一行token
 	mutable QReadWriteLock* globalVarLock_ = nullptr;		//全局變量鎖指針
 	QVariantHash* variables_ = nullptr;						//全局變量容器指針
 	QHash<QString, qint64> labels_;							//所有標記/函數所在行記錄
 	QHash<QString, FunctionChunk> functionChunks_;          //函數代碼塊紀錄，用於避免直接執行到function，確保只有 call 才能執行到 function
+	QHash<QString, ForChunk> forChunks_;
 	QHash<QString, QString> userRegCallBack_;				//用戶註冊的回調函數
 	QHash<QString, CommandRegistry> commandRegistry_;		//所有已註冊的腳本命令函數指針
 
 	QStack<qint64> callStack_;								//"調用"命令所在行棧
 	QStack<qint64> jmpStack_;								//"跳轉"命令所在行棧
 	QStack<QPair<QString, qint64>> forStack_;				//"遍歷"命令所在行棧
-	QStack<QPair<QString, qint64>> endStack_;				//"遍歷結束"命令所在行棧
 	QStack<QVariantList> callArgsStack_;					//"調用"命令參數棧
 	QVariantList emptyArgs_;								//空參數(參數棧為空得情況下壓入一個空容器)
 	QStack<QVariantHash> localVarStack_;					//局變量棧
@@ -441,8 +462,9 @@ private:
 
 	Mode mode_ = kSync;										//解析模式(同步|異步)
 
-	bool dtorCallBackFlag_ = false;							//析構回調函數標記
-	bool ctorCallBackFlag_ = false;							//建構回調函數標記
+	qint64 dtorCallBackFlag_ = 0;							//析構回調函數標記
+	qint64 ctorCallBackFlag_ = 0;							//建構回調函數標記
+	bool skipFunctionChunkDisable_ = false;					//是否跳過函數代碼塊檢查
 
 	bool isSubScript_ = false;								//是否是子腳本		
 };

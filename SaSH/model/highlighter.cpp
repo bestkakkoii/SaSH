@@ -15,17 +15,16 @@ const char* Highlighter::keywords(int set) const
 	case 1://粉色
 	{
 		//lua key word
-		return "goto call function end pause exit label jmp return back break for endfor "
+		return "goto call function end pause exit label jmp return back break for endfor continue "
 			"if ifmap ifplayer ifpet ifpetex ifitem ifteam ifitemfull ifdaily ifbattle ifpos ifonline ifnormal ";
 	}
 	case 2://QsciLexerLua::BasicFunctions//黃色
 	{
 		return "ocr dlg "
-			"print sleep timer msg logout lockback eo button say input "
+			"print sleep timer msg logout lockback eo button say input menu "
 			"talk cls set saveset loadset "
-			"waitdlg waitsay waititem waitmap waitteam "
 			"chpet chplayername chpetname chmap "
-			"usemagic doffpet buy sell useitem doffitem pickup put "
+			"usemagic doffpet buy sell useitem doffitem swapitem pickup put "
 			"get putpet getpet make cook uequip requip "
 			"wequip pequip puequip skup join leave kick move "
 			"walkpos w dir findpath movetonpc lclick rclick ldbclick dragto warp "
@@ -55,7 +54,7 @@ const char* Highlighter::keywords(int set) const
 	}
 	case 8://KeywordSet8//紫色
 	{
-		return "";
+		return "waitdlg waitsay waititem waitmap waitteam ";
 	}
 	case 9:
 		break;

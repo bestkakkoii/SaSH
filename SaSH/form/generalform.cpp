@@ -321,6 +321,7 @@ void GeneralForm::onButtonClicked()
 	}
 	else if (name == "pushButton_pick")
 	{
+		injector.server->useMagic(CHAR_EQUIPPLACENUM, 0);
 		return;
 	}
 	else if (name == "pushButton_watch")

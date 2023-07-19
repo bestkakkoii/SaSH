@@ -403,7 +403,7 @@
     </message>
     <message>
         <source>str+def+agi&lt;</source>
-        <translation>攻防敏相加&lt;</translation>
+        <translation>(攻+防+敏+(血/4))*100&lt;</translation>
     </message>
     <message>
         <source>pet name</source>
@@ -416,6 +416,14 @@
     <message>
         <source>round delay</source>
         <translation>攻擊延時</translation>
+    </message>
+    <message>
+        <source>no escape while lockattack</source>
+        <translation>非鎖不逃</translation>
+    </message>
+    <message>
+        <source>other</source>
+        <translation>其他</translation>
     </message>
 </context>
 <context>
@@ -974,7 +982,7 @@
     </message>
     <message>
         <source>pick</source>
-        <translation>快撿</translation>
+        <translation type="vanished">快撿</translation>
     </message>
     <message>
         <source>eo</source>
@@ -1023,6 +1031,10 @@
     <message>
         <source>dock</source>
         <translation>吸附</translation>
+    </message>
+    <message>
+        <source>test</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
@@ -3897,6 +3909,26 @@ MESSAGE：<byte value="xd"/>
     </message>
     <message>
         <source>timer</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>menu</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>movetonpc with mod</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>for</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>break</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>swapitem</source>
         <translation></translation>
     </message>
 </context>

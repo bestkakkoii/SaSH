@@ -25,6 +25,10 @@ static const QHash<QString, RESERVE> keywords = {
 	{ u8"格式化", TK_FORMAT },
 	{ u8"隨機數", TK_RND },
 	{ u8"如果", TK_CMP },
+	{ u8"遍歷", TK_FOR },
+	{ u8"遍歷結束", TK_ENDFOR },
+	{ u8"跳出", TK_BREAK },
+	{ u8"繼續", TK_CONTINUE },
 
 	//system
 	{ u8"執行", TK_CMD },
@@ -43,6 +47,7 @@ static const QHash<QString, RESERVE> keywords = {
 	{ u8"讀取設置", TK_CMD },
 	{ u8"儲存設置", TK_CMD },
 	{ u8"計時", TK_CMD },
+	{ u8"菜單", TK_CMD },
 
 	//check info
 	{ u8"戰鬥中", TK_CMD },
@@ -75,6 +80,7 @@ static const QHash<QString, RESERVE> keywords = {
 	{ u8"賣寵", TK_CMD },
 	{ u8"使用道具", TK_CMD },
 	{ u8"丟棄道具", TK_CMD },
+	{ u8"交換道具", TK_CMD },
 	{ u8"撿物", TK_CMD },
 	{ u8"存入道具", TK_CMD },
 	{ u8"提出道具", TK_CMD },
@@ -141,6 +147,10 @@ static const QHash<QString, RESERVE> keywords = {
 	{ u8"格式化", TK_FORMAT },
 	{ u8"随机数", TK_RND },
 	{ u8"如果", TK_CMP },
+	{ u8"遍历", TK_FOR },
+	{ u8"遍历结束", TK_ENDFOR },
+	{ u8"跳出", TK_BREAK },
+	{ u8"继续", TK_CONTINUE },
 
 	//system
 	{ u8"执行", TK_CMD },
@@ -159,7 +169,7 @@ static const QHash<QString, RESERVE> keywords = {
 	{ u8"读取设置", TK_CMD },
 	{ u8"储存设置", TK_CMD },
 	{ u8"计时", TK_CMD },
-
+	{ u8"菜单", TK_CMD },
 
 	//check info
 	{ u8"战斗中", TK_CMD },
@@ -192,6 +202,7 @@ static const QHash<QString, RESERVE> keywords = {
 	{ u8"卖宠", TK_CMD },
 	{ u8"使用道具", TK_CMD },
 	{ u8"丢弃道具", TK_CMD },
+	{ u8"交换道具", TK_CMD },
 	{ u8"捡物", TK_CMD },
 	{ u8"存入道具", TK_CMD },
 	{ u8"提出道具", TK_CMD },
@@ -260,6 +271,7 @@ static const QHash<QString, RESERVE> keywords = {
 	{ u8"for", TK_FOR },
 	{ u8"endfor", TK_ENDFOR },
 	{ u8"break", TK_BREAK },
+	{ u8"continue", TK_CONTINUE },
 
 	//system
 	{ u8"run", TK_CMD },
@@ -279,6 +291,7 @@ static const QHash<QString, RESERVE> keywords = {
 	{ u8"loadset", TK_CMD },
 	{ u8"reg", TK_CMD },
 	{ u8"timer", TK_CMD },
+	{ u8"menu", TK_CMD },
 
 	//check info
 	{ u8"ifbattle", TK_CMD },
@@ -310,6 +323,7 @@ static const QHash<QString, RESERVE> keywords = {
 	{ u8"sellpet", TK_CMD },
 	{ u8"useitem", TK_CMD },
 	{ u8"doffitem", TK_CMD },
+	{ u8"swapitem", TK_CMD },
 	{ u8"pickup", TK_CMD },
 	{ u8"put", TK_CMD },
 	{ u8"get", TK_CMD },

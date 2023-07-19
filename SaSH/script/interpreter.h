@@ -230,28 +230,29 @@ private: //註冊給Parser的函數
 	qint64 dostring(qint64 currentline, const TokenMap& TK);
 	qint64 reg(qint64 currentline, const TokenMap& TK);
 	qint64 timer(qint64 currentline, const TokenMap& TK);
+	qint64 menu(qint64 currentline, const TokenMap& TK);
 
 	//check
-	qint64 checkdaily(qint64 currentline, const TokenMap& TK);
-	qint64 isbattle(qint64 currentline, const TokenMap& TK);
-	qint64 isnormal(qint64 currentline, const TokenMap& TK);
-	qint64 isonline(qint64 currentline, const TokenMap& TK);
-	qint64 checkcoords(qint64 currentline, const TokenMap& TK);
-	qint64 checkmap(qint64 currentline, const TokenMap& TK);
-	qint64 checkmapnowait(qint64 currentline, const TokenMap& TK);
-	qint64 checkdialog(qint64 currentline, const TokenMap& TK);
-	qint64 checkchathistory(qint64 currentline, const TokenMap& TK);
+	qint64 ifdaily(qint64 currentline, const TokenMap& TK);
+	qint64 ifbattle(qint64 currentline, const TokenMap& TK);
+	qint64 ifnormal(qint64 currentline, const TokenMap& TK);
+	qint64 ifonline(qint64 currentline, const TokenMap& TK);
+	qint64 ifpos(qint64 currentline, const TokenMap& TK);
+	qint64 waitmap(qint64 currentline, const TokenMap& TK);
+	qint64 ifmap(qint64 currentline, const TokenMap& TK);
+	qint64 waitdlg(qint64 currentline, const TokenMap& TK);
+	qint64 waitsay(qint64 currentline, const TokenMap& TK);
 	qint64 checkunit(qint64 currentline, const TokenMap& TK);
-	qint64 checkplayerstatus(qint64 currentline, const TokenMap& TK);
-	qint64 checkpetstatus(qint64 currentline, const TokenMap& TK);
-	qint64 checkitemcount(qint64 currentline, const TokenMap& TK);
-	qint64 checkpetcount(qint64 currentline, const TokenMap& TK);
-	qint64 checkitemfull(qint64 currentline, const TokenMap& TK);
-	qint64 checkitem(qint64 currentline, const TokenMap& TK);
-	qint64 checkpet(qint64 currentline, const TokenMap& TK);
+	qint64 ifplayer(qint64 currentline, const TokenMap& TK);
+	qint64 ifpetex(qint64 currentline, const TokenMap& TK);
+	qint64 ifitem(qint64 currentline, const TokenMap& TK);
+	qint64 ifpet(qint64 currentline, const TokenMap& TK);
+	qint64 ifitemfull(qint64 currentline, const TokenMap& TK);
+	qint64 waititem(qint64 currentline, const TokenMap& TK);
+	qint64 waitpet(qint64 currentline, const TokenMap& TK);
 	//check-group
-	qint64 checkteam(qint64 currentline, const TokenMap& TK);
-	qint64 checkteamcount(qint64 currentline, const TokenMap& TK);
+	qint64 waitteam(qint64 currentline, const TokenMap& TK);
+	qint64 ifteam(qint64 currentline, const TokenMap& TK);
 
 
 	//move
@@ -267,6 +268,7 @@ private: //註冊給Parser的函數
 	//action
 	qint64 useitem(qint64 currentline, const TokenMap& TK);
 	qint64 dropitem(qint64 currentline, const TokenMap& TK);
+	qint64 swapitem(qint64 currentline, const TokenMap& TK);
 	qint64 playerrename(qint64 currentline, const TokenMap& TK);
 	qint64 petrename(qint64 currentline, const TokenMap& TK);
 	qint64 setpetstate(qint64 currentline, const TokenMap& TK);

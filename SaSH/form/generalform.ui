@@ -398,7 +398,7 @@
              <item>
               <widget class="QPushButton" name="pushButton_pick">
                <property name="enabled">
-                <bool>false</bool>
+                <bool>true</bool>
                </property>
                <property name="maximumSize">
                 <size>
@@ -407,7 +407,7 @@
                 </size>
                </property>
                <property name="text">
-                <string>pick</string>
+                <string>test</string>
                </property>
               </widget>
              </item>

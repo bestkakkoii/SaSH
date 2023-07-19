@@ -25,11 +25,11 @@ public:
 		return isInterruptionRequested_.load(std::memory_order_acquire);
 	}
 
-	inline bool isPaused() const { return isPaused_.load(std::memory_order_acquire); }
+	inline bool isPaused() const { return isPaused_; }
 
-	void checkPause()
+	inline void checkPause()
 	{
-		if (isPaused_.load(std::memory_order_acquire))
+		if (isPaused_)
 		{
 			pausedMutex_.lock();
 			waitCondition_.wait(&pausedMutex_);
@@ -46,12 +46,12 @@ public slots:
 
 	void paused()
 	{
-		isPaused_.store(true, std::memory_order_release);
+		isPaused_ = true;
 	}
 
 	void resumed()
 	{
-		isPaused_.store(false, std::memory_order_release);
+		isPaused_ = false;
 		waitCondition_.wakeAll();
 	}
 
@@ -59,7 +59,7 @@ private:
 	std::atomic_bool isInterruptionRequested_ = false;
 	mutable QReadWriteLock lock_;
 
-	std::atomic_bool isPaused_ = false;
-	mutable QWaitCondition waitCondition_;
-	mutable QMutex pausedMutex_;
+	bool isPaused_ = false;
+	QWaitCondition waitCondition_;
+	QMutex pausedMutex_;
 };

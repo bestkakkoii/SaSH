@@ -153,7 +153,7 @@ ScriptSettingForm::ScriptSettingForm(QWidget* parent)
 	int fontSize = config.readInt(objectName(), ObjectName, "FontSize");
 	if (fontSize > 0)
 	{
-		QFont font = ui.widget->getOldFont();
+		font = ui.widget->getOldFont();
 		font.setPointSize(fontSize);
 		ui.widget->setNewFont(font);
 		ui.widget->zoomTo(3);
@@ -172,9 +172,9 @@ ScriptSettingForm::ScriptSettingForm(QWidget* parent)
 	fontSize = config.readInt(objectName(), ObjectName, "FontSize");
 	if (fontSize > 0)
 	{
-		QFont f = ui.textBrowser->font();
-		f.setPointSize(fontSize);
-		ui.textBrowser->setFont(f);
+		font = ui.textBrowser->font();
+		font.setPointSize(fontSize);
+		ui.textBrowser->setFont(font);
 	}
 }
 
@@ -827,13 +827,6 @@ void ScriptSettingForm::onReloadScriptList()
 		if (!item) break;
 
 		util::loadAllFileLists(item, QApplication::applicationDirPath() + "/script/", &newScriptList);
-		//compare with oldScriptList
-		if (m_scriptList == newScriptList)
-		{
-			delete item;
-			item = nullptr;
-			break;
-		}
 
 		m_scriptList = newScriptList;
 		ui.treeWidget_scriptList->setUpdatesEnabled(false);
@@ -1094,64 +1087,28 @@ void ScriptSettingForm::onActionTriggered()
 	else if (name == "actionNew")
 	{
 		int num = 1;
-		QString strpath("");
-		TreeWidgetItem* item = nullptr;
-
-		auto finditem = [this](const QString& str)
-		{
-			//search if there has item with same name then break
-			do
-			{
-				TreeWidgetItem* item = reinterpret_cast<TreeWidgetItem*>(ui.treeWidget_scriptList->topLevelItem(0));
-				if (!item)
-					break;
-
-				int count = item->childCount();
-				for (int j = 0; j < count; ++j)
-				{
-					TreeWidgetItem* chileitem = reinterpret_cast<TreeWidgetItem*>(item->child(j));
-					if (!chileitem)
-						continue;
-					if (!chileitem->text(0).isEmpty() && chileitem->text(0).compare(str) == 0)
-						return true;
-				}
-
-			} while (false);
-			return false;
-		};
-
 		for (;;)
 		{
-			strpath = (QApplication::applicationDirPath() + QString("/script/Untitled-%1.txt").arg(num));
-			if (!QFile::exists(strpath) && !finditem(QString("Untitled-%1.txt").arg(num)) && !finditem(QString("Untitled-%1.txt*").arg(num)))
+			QString strpath = (QApplication::applicationDirPath() + QString("/script/Untitled-%1.txt").arg(num));
+			if (!QFile::exists(strpath))
 			{
-				item = q_check_ptr(new TreeWidgetItem(QStringList{ QString("Untitled-%1.txt*").arg(num) }));
-				if (!item) break;
-
-				item->setIcon(0, QIcon(QPixmap(":/image/icon_txt.png")));
-
-				ui.treeWidget_scriptList->topLevelItem(0)->insertChild(0, item);
-				ui.widget->convertEols(QsciScintilla::EolWindows);
-				ui.widget->setUtf8(true);
-				ui.widget->selectAll();
-				ui.widget->replaceSelectedText("");
-				setWindowTitle(QString("[%1] %2").arg(0).arg(strpath));
-				injector.currentScriptFileName = strpath;
-				m_scripts.insert(strpath, ui.widget->text());
-
-				ui.treeWidget_scriptList->setCurrentItem(item);
-
-				onAddErrorMarker(-1, false);
-				onAddForwardMarker(-1, false);
-				onAddStepMarker(-1, false);
-				forward_markers.clear();
-				error_markers.clear();
-				step_markers.clear();
+				QFile file(strpath);
+				if (file.open(QIODevice::WriteOnly | QIODevice::Truncate))
+				{
+					QTextStream ts(&file);
+					ts.setCodec(util::CODEPAGE_DEFAULT);
+					ts.setGenerateByteOrderMark(true);
+					ts << "" << Qt::endl;
+					file.flush();
+					file.close();
+				}
+				loadFile(strpath);
+				emit signalDispatcher.reloadScriptList();
 				break;
 			}
-			else
-				++num;
+			++num;
 		}
+
 	}
 	else if (name == "actionSaveEncode")
 	{
@@ -1434,7 +1391,7 @@ void ScriptSettingForm::varInfoImport(QTreeWidget* tree, const QHash<QString, QV
 		QStringList l;
 		for (auto it = map.cbegin(); it != map.cend(); ++it)
 		{
-			QStringList l = it.key().split(util::rexOR);
+			l = it.key().split(util::rexOR);
 			if (l.size() != 2)
 				continue;
 
@@ -1492,9 +1449,9 @@ void ScriptSettingForm::varInfoImport(QTreeWidget* tree, const QHash<QString, QV
 				varType = tr("List");
 				QVariantList l = var.toList();
 				QStringList sl;
-				for (auto it = l.cbegin(); it != l.cend(); ++it)
+				for (auto subit = l.cbegin(); subit != l.cend(); ++subit)
 				{
-					sl.append(it->toString());
+					sl.append(subit->toString());
 				}
 				varValueStr = sl.join(", ");
 				break;
@@ -1599,7 +1556,7 @@ void ScriptSettingForm::on_treeWidget_functionList_itemDoubleClicked(QTreeWidget
 				break;
 			}
 		}
-		str = QString("%1 ?, '%2', 5000, -1").arg(str).arg(lineStr);
+		str = QString("%1 '%2', ?, 5000, -1").arg(str).arg(lineStr);
 	}
 	else if (str == "learn")
 	{
@@ -1780,7 +1737,7 @@ void ScriptSettingForm::on_treeWidget_functionList_itemSelectionChanged()
 			ui.textBrowser->setDocument(doc.data());
 			ui.textBrowser->setUpdatesEnabled(true);
 			break;
-	}
+		}
 #ifdef _DEBUG
 		QString mdFullPath = R"(D:\Users\bestkakkoii\Desktop\SaSH_x86\lib\doc)";
 #else
@@ -1815,7 +1772,7 @@ void ScriptSettingForm::on_treeWidget_functionList_itemSelectionChanged()
 		ui.textBrowser->setUpdatesEnabled(true);
 
 		return;
-} while (false);
+	} while (false);
 
 }
 

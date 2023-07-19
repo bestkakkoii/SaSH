@@ -345,6 +345,40 @@ qint64 Interpreter::talkandannounce(qint64 currentline, const TokenMap& TK)
 	return talk(currentline, TK);
 }
 
+qint64 Interpreter::menu(qint64 currentline, const TokenMap& TK)
+{
+	Injector& injector = Injector::getInstance();
+
+	if (injector.server.isNull())
+		return Parser::kError;
+
+	checkBattleThenWait();
+
+	qint64 index = 0;
+	if (!checkInteger(TK, 1, &index))
+		return Parser::kArgError;
+	--index;
+	if (index < 0)
+		return Parser::kArgError;
+
+	qint64 type = 1;
+	checkInteger(TK, 2, &type);
+	--type;
+	if (type < 0 || type > 1)
+		return Parser::kArgError;
+
+	if (type == 0)
+	{
+		injector.server->saMenu(index);
+	}
+	else
+	{
+		injector.server->shopOk(index);
+	}
+
+	return Parser::kNoChange;
+}
+
 qint64 Interpreter::logout(qint64 currentline, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance();
@@ -556,6 +590,7 @@ qint64 Interpreter::set(qint64 currentline, const TokenMap& TK)
 			{ u8"自動丟棄", util::kAutoDropEnable },//{ u8"自動丟棄名單", util::kAutoDropItemString },
 			{ u8"鎖定攻擊", util::kLockAttackEnable },//{ u8"鎖定攻擊名單", util::kLockAttackString },
 			{ u8"鎖定逃跑", util::kLockEscapeEnable },//{ u8"鎖定逃跑名單", util::kLockEscapeString },
+			{ u8"非鎖不逃", util::kBattleNoEscapeWhileLockPetEnable },
 
 			{ u8"道具補氣", util::kNormalItemHealMpEnable },//{ u8"ItemHealMpNormalValue", util::kNormalItemHealMpValue },{ u8"平時道具補氣", util::kNormalItemHealMpItemString },
 			{ u8"戰鬥道具補氣", util::kBattleItemHealMpEnable },//{ u8"戰鬥道具補氣人物", util::kBattleItemHealMpValue },{ u8"戰鬥道具補氣 ", util::kBattleItemHealMpItemString },
@@ -578,7 +613,7 @@ qint64 Interpreter::set(qint64 currentline, const TokenMap& TK)
 			{ u8"戰鬥寵間隔回合", util::kCrossActionPetEnable },
 			{ u8"戰鬥寵一般", util::kBattlePetNormalActionTypeValue },
 
-			{ u8"戰鬥延時", util::kBattleActionDelayValue },
+			{ u8"攻擊延時", util::kBattleActionDelayValue },
 #pragma endregion
 
 #pragma region zh_CN
@@ -677,6 +712,7 @@ qint64 Interpreter::set(qint64 currentline, const TokenMap& TK)
 			{ u8"自动丢弃", util::kAutoDropEnable },//{ u8"自动丢弃名单", util::kAutoDropItemString },
 			{ u8"锁定攻击", util::kLockAttackEnable },//{ u8"锁定攻击名单", util::kLockAttackString },
 			{ u8"锁定逃跑", util::kLockEscapeEnable },//{ u8"锁定逃跑名单", util::kLockEscapeString },
+			{ u8"非锁不逃", util::kBattleNoEscapeWhileLockPetEnable },
 
 			{ u8"道具补气", util::kNormalItemHealMpEnable },//{ u8"ItemHealMpNormalValue", util::kNormalItemHealMpValue },{ u8"平时道具补气", util::kNormalItemHealMpItemString },
 			{ u8"战斗道具补气", util::kBattleItemHealMpEnable },//{ u8"战斗道具补气人物", util::kBattleItemHealMpValue },{ u8"战斗道具补气 ", util::kBattleItemHealMpItemString },
@@ -699,7 +735,7 @@ qint64 Interpreter::set(qint64 currentline, const TokenMap& TK)
 			{ u8"战斗宠间隔回合", util::kCrossActionPetEnable },
 			{ u8"战斗宠一般", util::kBattlePetNormalActionTypeValue },
 
-			{ u8"战斗延时", util::kBattleActionDelayValue },
+			{ u8"攻击延时", util::kBattleActionDelayValue },
 	#pragma endregion
 	};
 
@@ -712,6 +748,7 @@ qint64 Interpreter::set(qint64 currentline, const TokenMap& TK)
 		qint64 value = 0;
 		checkInteger(TK, 2, &value);
 		injector.setEnableHash(util::kScriptDebugModeEnable, value > 0);
+		emit signalDispatcher.applyHashSettingsToUI();
 		return Parser::kNoChange;
 	}
 
@@ -805,7 +842,7 @@ qint64 Interpreter::set(qint64 currentline, const TokenMap& TK)
 	case util::kAutoWalkDistanceValue://自走步長
 	case util::kSpeedBoostValue://加速
 	case util::kScriptSpeedValue://腳本速度
-	case util::kBattleActionDelayValue:
+	case util::kBattleActionDelayValue://攻擊延時
 	{
 		qint64 value = 0;
 		if (!checkInteger(TK, 2, &value))
@@ -852,6 +889,7 @@ qint64 Interpreter::set(qint64 currentline, const TokenMap& TK)
 	case util::kAutoCatchEnable:
 
 	case util::kAutoEscapeEnable:
+	case util::kBattleNoEscapeWhileLockPetEnable:
 
 	case util::kBattleTimeExtendEnable:
 	case util::kFallDownEscapeEnable:

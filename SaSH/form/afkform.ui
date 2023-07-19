@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>478</width>
-    <height>567</height>
+    <width>514</width>
+    <height>654</height>
    </rect>
   </property>
   <property name="maximumSize">
@@ -777,8 +777,40 @@
             </item>
             <item>
              <widget class="QSpinBox" name="spinBox_rounddelay">
+              <property name="maximumSize">
+               <size>
+                <width>16777215</width>
+                <height>16777215</height>
+               </size>
+              </property>
               <property name="maximum">
-               <number>10000</number>
+               <number>2147483647</number>
+              </property>
+              <property name="stepType">
+               <enum>QAbstractSpinBox::AdaptiveDecimalStepType</enum>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
+        <widget class="QGroupBox" name="groupBox_4">
+         <property name="styleSheet">
+          <string notr="true">QGroupBox { color:rgb(100,149,237) }</string>
+         </property>
+         <property name="title">
+          <string>other</string>
+         </property>
+         <layout class="QVBoxLayout" name="verticalLayout_18">
+          <item>
+           <layout class="QHBoxLayout" name="horizontalLayout_11">
+            <item>
+             <widget class="QCheckBox" name="checkBox_noscapewhilelockpet">
+              <property name="text">
+               <string>no escape while lockattack</string>
               </property>
              </widget>
             </item>

@@ -308,6 +308,41 @@ qint64 Interpreter::dropitem(qint64, const TokenMap& TK)
 	return Parser::kNoChange;
 }
 
+qint64 Interpreter::swapitem(qint64 currentline, const TokenMap& TK)
+{
+	Injector& injector = Injector::getInstance();
+
+	if (injector.server.isNull())
+		return Parser::kError;
+
+	checkBattleThenWait();
+
+	qint64 a = 0, b = 0;
+	if (!checkInteger(TK, 1, &a))
+		return Parser::kArgError;
+	if (!checkInteger(TK, 2, &b))
+		return Parser::kArgError;
+
+	if (a > 100)
+		a -= 100;
+	else
+		a += CHAR_EQUIPPLACENUM;
+	if (b > 100)
+		b -= 100;
+	else
+		b += CHAR_EQUIPPLACENUM;
+
+	--a;
+	--b;
+
+	if (a < 0 || a >= MAX_ITEM || b < 0 || b >= MAX_ITEM)
+		return Parser::kArgError;
+
+	injector.server->swapItem(a, b);
+
+	return Parser::kNoChange;
+}
+
 qint64 Interpreter::playerrename(qint64, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance();
@@ -1230,13 +1265,13 @@ qint64 Interpreter::deposititem(qint64, const TokenMap& TK)
 			if (it < min || it > max)
 				continue;
 
-			injector.server->IS_WAITFOR_DIALOG_FLAG = true;
+			//injector.server->IS_WAITFOR_DIALOG_FLAG = true;
 			injector.server->depositItem(it);
-			waitfor(1000, [&injector]()->bool { return !injector.server->IS_WAITFOR_DIALOG_FLAG; });
+			//waitfor(1000, [&injector]()->bool { return !injector.server->IS_WAITFOR_DIALOG_FLAG; });
 
-			injector.server->IS_WAITFOR_DIALOG_FLAG = true;
-			injector.server->press(1);
-			waitfor(1000, [&injector]()->bool { return !injector.server->IS_WAITFOR_DIALOG_FLAG; });
+			//injector.server->IS_WAITFOR_DIALOG_FLAG = true;
+			//injector.server->press(1);
+			//waitfor(1000, [&injector]()->bool { return !injector.server->IS_WAITFOR_DIALOG_FLAG; });
 		}
 
 	}
@@ -1361,54 +1396,93 @@ qint64 Interpreter::withdrawitem(qint64, const TokenMap& TK)
 
 	checkBattleThenWait();
 
-	QString itemName;
-	checkString(TK, 1, &itemName);
-	if (itemName.isEmpty())
+	QString itemNames;
+	checkString(TK, 1, &itemNames);
+	QStringList itemList = itemNames.split(util::rexOR, Qt::SkipEmptyParts);
+	qint64 itemListSize = itemList.size();
+
+	QString memos;
+	checkString(TK, 2, &memos);
+	QStringList memoList = memos.split(util::rexOR, Qt::SkipEmptyParts);
+	qint64 memoListSize = memoList.size();
+
+	bool isAll = false;
+	qint64 nisall = 0;
+	checkInteger(TK, 3, &nisall);
+	if (nisall > 1)
+		isAll = true;
+
+	if (itemListSize == 0 && memoListSize == 0)
 		return Parser::kArgError;
 
-	QString memo;
-	checkString(TK, 2, &memo);
+	qint64 max = 0;
+	// max 以大於0且最小的為主 否則以不為0的為主
+	if (itemListSize > 0)
+		max = itemListSize;
+	if (memoListSize > 0 && (max == 0 || memoListSize < max))
+		max = memoListSize;
 
-	util::SafeVector<ITEM> bankItemList = injector.server->currentBankItemList;
+	QVector<ITEM> bankItemList = injector.server->currentBankItemList.toVector();
 
-	qint64 itemIndex = 0;
-	bool bret = false;
-	for (const ITEM& it : bankItemList)
+	for (int i = 0; i < max; ++i)
 	{
-		if (!itemName.startsWith(kFuzzyPrefix))
+		QString name = "";
+		QString memo = "";
+		if (!itemList.isEmpty())
+			name = itemList.at(i);
+		if (!memoList.isEmpty())
+			memo = memoList.at(i);
+
+		qint64 itemIndex = 0;
+		bool bret = false;
+		for (const ITEM& it : bankItemList)
 		{
-			if (it.name == itemName && memo.isEmpty())
+			if (!name.isEmpty())
+			{
+				if (name.startsWith(kFuzzyPrefix))
+				{
+					QString newName = name.mid(1);
+					if (it.name.contains(newName) && memo.isEmpty())
+						bret = true;
+					else if (it.name.contains(newName) && it.memo.contains(memo))
+						bret = true;
+				}
+				else
+				{
+					if (it.name == name && memo.isEmpty())
+						bret = true;
+					if (it.name == name && !memo.isEmpty() && it.memo.contains(memo))
+						bret = true;
+
+				}
+			}
+			else if (!memo.isEmpty() && it.memo.contains(memo))
+			{
 				bret = true;
-			if (it.name == itemName && !memo.isEmpty() && it.memo.contains(memo))
-				bret = true;
-		}
-		else
-		{
-			QString newName = itemName.mid(1);
-			if (it.name.contains(newName) && memo.isEmpty())
-				bret = true;
-			else if (it.name.contains(newName) && it.memo.contains(memo))
-				bret = true;
+			}
+
+			if (bret)
+			{
+				bankItemList.remove(itemIndex);
+				if (!isAll)
+					break;
+			}
+
+			++itemIndex;
 		}
 
 		if (bret)
-			break;
+		{
+			//injector.server->IS_WAITFOR_DIALOG_FLAG = true;
+			injector.server->withdrawItem(itemIndex);
+			//waitfor(1000, [&injector]()->bool { return !injector.server->IS_WAITFOR_DIALOG_FLAG; });
 
-		++itemIndex;
+			//injector.server->IS_WAITFOR_DIALOG_FLAG = true;
+			//injector.server->press(1);
+			//waitfor(1000, [&injector]()->bool { return !injector.server->IS_WAITFOR_DIALOG_FLAG; });
+
+		}
 	}
-
-	if (bret)
-	{
-		injector.server->IS_WAITFOR_DIALOG_FLAG = true;
-		injector.server->withdrawItem(itemIndex);
-		waitfor(1000, [&injector]()->bool { return !injector.server->IS_WAITFOR_DIALOG_FLAG; });
-
-		injector.server->IS_WAITFOR_DIALOG_FLAG = true;
-		injector.server->press(1);
-		waitfor(1000, [&injector]()->bool { return !injector.server->IS_WAITFOR_DIALOG_FLAG; });
-
-	}
-
 	return Parser::kNoChange;
 }
 
@@ -1862,7 +1936,7 @@ qint64 Interpreter::bi(qint64, const TokenMap& TK)//item
 	--index;
 	index += CHAR_EQUIPPLACENUM;
 
-	qint64 target = 0;
+	qint64 target = 1;
 	checkInteger(TK, 2, &target);
 	if (target <= 0)
 		return Parser::kArgError;

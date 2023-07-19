@@ -468,6 +468,8 @@ int MainObject::checkAndRunFunctions()
 		SPD_LOG(g_logger_name, "[mainthread] checkAutoLockSchedule");
 		//鎖寵排程
 		checkAutoLockSchedule();
+
+		injector.server->sortItem();
 		return 1;
 	}
 	else //戰鬥中
@@ -1561,7 +1563,7 @@ void MainObject::checkAutoDropPet()
 					int str = pet.atk;
 					int def = pet.def;
 					int agi = pet.quick;
-					int aggregate = str + def + agi;
+					int aggregate = (str + def + agi + (pet.maxHp / 4)) * 100;
 
 					bool okDrop = false;
 					if (strLowAtEnable && (str < strLowAtValue))

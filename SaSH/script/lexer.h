@@ -81,6 +81,7 @@ enum RESERVE
 	TK_FOR,				// for循環
 	TK_ENDFOR,			// for循環結束
 	TK_BREAK,
+	TK_CONTINUE,
 
 	TK_RND,
 	TK_NAME,			// 標記名稱 不允許使用純數字 或符點數作為標記名稱

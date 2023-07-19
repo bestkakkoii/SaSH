@@ -563,6 +563,7 @@ enum GameDataOffest
 	kOffestPlayerStatus = 0x422BF2C,
 	kOffestNowX = 0x4181D3C,
 	kOffestNowY = 0x4181D40,
+	kOffestDir = 0x422BE94,
 	kOffestNowFloor = 0x4181190,
 	kOffestNowFloorName = 0x4160228,
 	kOffestMailPetIndex = 0x422BF3E,
@@ -1946,6 +1947,7 @@ public://actions
 	void warp();
 
 	void shopOk(int n);
+	void saMenu(int n);
 
 	bool addPoint(int skillid, int amt);
 
@@ -1988,7 +1990,7 @@ public://actions
 	void cleanChatHistory();
 	QString getChatHistory(int index);
 
-	bool findUnit(const QString& name, int type, mapunit_t* unit, const QString freename = "", int modelid = -1) const;
+	bool findUnit(const QString& name, int type, mapunit_t* unit, const QString freename = "", int modelid = -1);
 
 	void setTeamState(bool join);
 	void kickteam(int n);
@@ -2037,6 +2039,8 @@ public://actions
 
 	PC getPC() const { QMutexLocker lock(&pcMutex_); return pc; }
 
+	void sortItem();
+
 	QPoint getPoint();
 	void setPoint(const QPoint& pos);
 
@@ -2070,7 +2074,7 @@ private:
 			setBattleEnd();
 		}
 	}
-	void sortItem();
+
 
 	void getPlayerMaxCarryingCapacity();
 	inline Q_REQUIRED_RESULT constexpr bool isItemStackable(int flg) { return ((flg >> 2) & 1); }
@@ -2221,7 +2225,7 @@ private:
 #else
 		return QDateTime::currentMSecsSinceEpoch();
 #endif
-	}
+}
 
 	inline void setWarpMap(const QPoint& pos)
 	{
@@ -2555,6 +2559,8 @@ private:
 
 	bool IS_WAITFOT_SKUP_RECV = false;
 	QFuture<void> skupFuture;
+
+	bool IS_LOCKATTACK_ESCAPE_DISABLE = false;
 
 	//client original
 #pragma region ClientOriginal

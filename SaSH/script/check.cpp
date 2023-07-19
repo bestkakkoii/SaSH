@@ -4,7 +4,7 @@
 #include "injector.h"
 
 //check
-qint64 Interpreter::checkdaily(qint64, const TokenMap& TK)
+qint64 Interpreter::ifdaily(qint64, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance();
 
@@ -25,37 +25,37 @@ qint64 Interpreter::checkdaily(qint64, const TokenMap& TK)
 		return checkJump(TK, 3, true, SuccessJump);//使用第3參數跳轉
 }
 
-qint64 Interpreter::isbattle(qint64, const TokenMap& TK)
+qint64 Interpreter::ifbattle(qint64, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance();
 
 	if (injector.server.isNull())
 		return Parser::kError;
 
-	return checkJump(TK, 1, injector.server->getBattleFlag(), FailedJump);
+	return checkJump(TK, 1, injector.server->getBattleFlag(), SuccessJump);
 }
 
-qint64 Interpreter::isonline(qint64, const TokenMap& TK)
+qint64 Interpreter::ifonline(qint64, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance();
 
 	if (injector.server.isNull())
 		return Parser::kError;
 
-	return checkJump(TK, 1, injector.server->getOnlineFlag(), FailedJump);
+	return checkJump(TK, 1, injector.server->getOnlineFlag(), SuccessJump);
 }
 
-qint64 Interpreter::isnormal(qint64, const TokenMap& TK)
+qint64 Interpreter::ifnormal(qint64, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance();
 
 	if (injector.server.isNull())
 		return Parser::kError;
 
-	return checkJump(TK, 1, !injector.server->getBattleFlag(), FailedJump);
+	return checkJump(TK, 1, !injector.server->getBattleFlag(), SuccessJump);
 }
 
-qint64 Interpreter::checkcoords(qint64, const TokenMap& TK)
+qint64 Interpreter::ifpos(qint64, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance();
 
@@ -70,10 +70,176 @@ qint64 Interpreter::checkcoords(qint64, const TokenMap& TK)
 	checkInteger(TK, 2, &y);
 	QPoint p(x, y);
 
-	return checkJump(TK, 3, injector.server->getPoint() == p, FailedJump);
+	return checkJump(TK, 3, injector.server->getPoint() == p, SuccessJump);
 }
 
-qint64 Interpreter::checkmap(qint64 currentline, const TokenMap& TK)
+qint64 Interpreter::ifmap(qint64 currentline, const TokenMap& TK)
+{
+	Injector& injector = Injector::getInstance();
+
+	if (injector.server.isNull())
+		return Parser::kError;
+
+	checkBattleThenWait();
+
+	QString mapname = "";
+	qint64 floor = 0;
+	checkString(TK, 1, &mapname);
+	QStringList mapnames = mapname.split(util::rexOR, Qt::SkipEmptyParts);
+	checkInteger(TK, 1, &floor);
+
+	auto check = [floor, mapnames, &injector]()
+	{
+		if (floor != 0)
+			return floor == injector.server->nowFloor;
+		else
+		{
+			for (const QString& mapname : mapnames)
+			{
+				bool ok;
+				qint64 floor = mapname.toLongLong(&ok);
+				if (ok)
+				{
+					if (floor == injector.server->nowFloor)
+						return true;
+				}
+				else
+				{
+					if (mapname.startsWith("?"))
+					{
+						QString newName = mapname.mid(1);
+						return injector.server->nowFloorName.contains(newName);
+					}
+					else
+						return mapname == injector.server->nowFloorName;
+				}
+			}
+
+		}
+		return false;
+	};
+
+	return checkJump(TK, 2, check(), SuccessJump);
+}
+
+qint64 Interpreter::checkunit(qint64, const TokenMap&)
+{
+	Injector& injector = Injector::getInstance();
+
+	if (injector.server.isNull())
+		return Parser::kError;
+
+	return Parser::kNoChange;
+}
+
+qint64 Interpreter::ifplayer(qint64 currentline, const TokenMap& TK)
+{
+	Injector& injector = Injector::getInstance();
+
+	if (injector.server.isNull())
+		return Parser::kError;
+
+	bool bret = compare(kAreaPlayer, TK);
+
+	return checkJump(TK, 4, bret, SuccessJump);
+}
+
+qint64 Interpreter::ifpetex(qint64 currentline, const TokenMap& TK)
+{
+	Injector& injector = Injector::getInstance();
+
+	if (injector.server.isNull())
+		return Parser::kError;
+
+	bool bret = compare(kAreaPet, TK);
+
+	return checkJump(TK, 5, bret, SuccessJump);
+}
+
+qint64 Interpreter::ifitem(qint64 currentline, const TokenMap& TK)
+{
+	Injector& injector = Injector::getInstance();
+
+	if (injector.server.isNull())
+		return Parser::kError;
+
+	bool bret = compare(kAreaItem, TK);
+
+	return checkJump(TK, 5, bret, SuccessJump);
+}
+
+qint64 Interpreter::ifteam(qint64 currentline, const TokenMap& TK)
+{
+	Injector& injector = Injector::getInstance();
+
+	if (injector.server.isNull())
+		return Parser::kError;
+
+	bool bret = compare(kAreaCount, TK);
+
+	return checkJump(TK, 3, bret, SuccessJump);
+}
+
+qint64 Interpreter::ifpet(qint64 currentline, const TokenMap& TK)
+{
+	Injector& injector = Injector::getInstance();
+
+	if (injector.server.isNull())
+		return Parser::kError;
+
+	bool bret = compare(kAreaCount, TK);
+
+	return checkJump(TK, 3, bret, SuccessJump);
+}
+
+qint64 Interpreter::ifitemfull(qint64 currentline, const TokenMap& TK)
+{
+	Injector& injector = Injector::getInstance();
+
+	if (injector.server.isNull())
+		return Parser::kError;
+
+	bool bret = true;
+	for (qint64 i = CHAR_EQUIPPLACENUM; i < MAX_ITEM; ++i)
+	{
+		ITEM item = injector.server->getPC().item[i];
+		if (item.useFlag == 0 || item.name.isEmpty())
+		{
+			bret = false;
+			break;
+		}
+	}
+
+	return checkJump(TK, 1, bret, SuccessJump);
+}
+
+qint64 Interpreter::waitpet(qint64 currentline, const TokenMap& TK)
+{
+	Injector& injector = Injector::getInstance();
+
+	if (injector.server.isNull())
+		return Parser::kError;
+
+	QString petName;
+	checkString(TK, 1, &petName);
+	if (petName.isEmpty())
+		return Parser::kArgError;
+
+	qint64 timeout = DEFAULT_FUNCTION_TIMEOUT;
+	checkInteger(TK, 2, &timeout);
+
+	QElapsedTimer timer; timer.start();
+	bool bret = waitfor(timeout, [&injector, petName]()->bool
+		{
+			QVector<int> v;
+			return injector.server->getPetIndexsByName(petName, &v);
+		});
+
+	return checkJump(TK, 3, bret, SuccessJump);
+}
+
+
+qint64 Interpreter::waitmap(qint64 currentline, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance();
 
@@ -130,56 +296,7 @@ qint64 Interpreter::checkmap(qint64 currentline, const TokenMap& TK)
 	return checkJump(TK, 3, bret, FailedJump);
 }
 
-qint64 Interpreter::checkmapnowait(qint64 currentline, const TokenMap& TK)
-{
-	Injector& injector = Injector::getInstance();
-
-	if (injector.server.isNull())
-		return Parser::kError;
-
-	checkBattleThenWait();
-
-	QString mapname = "";
-	qint64 floor = 0;
-	checkString(TK, 1, &mapname);
-	QStringList mapnames = mapname.split(util::rexOR, Qt::SkipEmptyParts);
-	checkInteger(TK, 1, &floor);
-
-	auto check = [floor, mapnames, &injector]()
-	{
-		if (floor != 0)
-			return floor == injector.server->nowFloor;
-		else
-		{
-			for (const QString& mapname : mapnames)
-			{
-				bool ok;
-				qint64 floor = mapname.toLongLong(&ok);
-				if (ok)
-				{
-					if (floor == injector.server->nowFloor)
-						return true;
-				}
-				else
-				{
-					if (mapname.startsWith("?"))
-					{
-						QString newName = mapname.mid(1);
-						return injector.server->nowFloorName.contains(newName);
-					}
-					else
-						return mapname == injector.server->nowFloorName;
-				}
-			}
-
-		}
-		return false;
-	};
-
-	return checkJump(TK, 2, check(), FailedJump);
-}
-
-qint64 Interpreter::checkdialog(qint64 currentline, const TokenMap& TK)
+qint64 Interpreter::waitdlg(qint64 currentline, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance();
 
@@ -234,7 +351,7 @@ qint64 Interpreter::checkdialog(qint64 currentline, const TokenMap& TK)
 	return checkJump(TK, 4, bret, FailedJump);
 }
 
-qint64 Interpreter::checkchathistory(qint64 currentline, const TokenMap& TK)
+qint64 Interpreter::waitsay(qint64 currentline, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance();
 
@@ -283,78 +400,8 @@ qint64 Interpreter::checkchathistory(qint64 currentline, const TokenMap& TK)
 	return checkJump(TK, 4, bret, FailedJump);
 }
 
-qint64 Interpreter::checkunit(qint64, const TokenMap&)
-{
-	Injector& injector = Injector::getInstance();
-
-	if (injector.server.isNull())
-		return Parser::kError;
-
-	return Parser::kNoChange;
-}
-
-qint64 Interpreter::checkplayerstatus(qint64 currentline, const TokenMap& TK)
-{
-	Injector& injector = Injector::getInstance();
-
-	if (injector.server.isNull())
-		return Parser::kError;
-
-	bool bret = compare(kAreaPlayer, TK);
-
-	return checkJump(TK, 4, bret, SuccessJump);
-}
-
-qint64 Interpreter::checkpetstatus(qint64 currentline, const TokenMap& TK)
-{
-	Injector& injector = Injector::getInstance();
-
-	if (injector.server.isNull())
-		return Parser::kError;
-
-	bool bret = compare(kAreaPet, TK);
-
-	return checkJump(TK, 5, bret, SuccessJump);
-}
-
-qint64 Interpreter::checkitemcount(qint64 currentline, const TokenMap& TK)
-{
-	Injector& injector = Injector::getInstance();
-
-	if (injector.server.isNull())
-		return Parser::kError;
-
-	bool bret = compare(kAreaItem, TK);
-
-	return checkJump(TK, 5, bret, SuccessJump);
-}
-
-qint64 Interpreter::checkteamcount(qint64 currentline, const TokenMap& TK)
-{
-	Injector& injector = Injector::getInstance();
-
-	if (injector.server.isNull())
-		return Parser::kError;
-
-	bool bret = compare(kAreaCount, TK);
-
-	return checkJump(TK, 3, bret, SuccessJump);
-}
-
-qint64 Interpreter::checkpetcount(qint64 currentline, const TokenMap& TK)
-{
-	Injector& injector = Injector::getInstance();
-
-	if (injector.server.isNull())
-		return Parser::kError;
-
-	bool bret = compare(kAreaCount, TK);
-
-	return checkJump(TK, 3, bret, SuccessJump);
-}
-
 //check->group
-qint64 Interpreter::checkteam(qint64 currentline, const TokenMap& TK)
+qint64 Interpreter::waitteam(qint64 currentline, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance();
 
@@ -374,28 +421,7 @@ qint64 Interpreter::checkteam(qint64 currentline, const TokenMap& TK)
 	return checkJump(TK, 2, bret, FailedJump);
 }
 
-qint64 Interpreter::checkitemfull(qint64 currentline, const TokenMap& TK)
-{
-	Injector& injector = Injector::getInstance();
-
-	if (injector.server.isNull())
-		return Parser::kError;
-
-	bool bret = true;
-	for (qint64 i = CHAR_EQUIPPLACENUM; i < MAX_ITEM; ++i)
-	{
-		ITEM item = injector.server->getPC().item[i];
-		if (item.useFlag == 0 || item.name.isEmpty())
-		{
-			bret = false;
-			break;
-		}
-	}
-
-	return checkJump(TK, 1, bret, SuccessJump);
-}
-
-qint64 Interpreter::checkitem(qint64 currentline, const TokenMap& TK)
+qint64 Interpreter::waititem(qint64 currentline, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance();
 
@@ -511,29 +537,4 @@ qint64 Interpreter::checkitem(qint64 currentline, const TokenMap& TK)
 		});
 
 	return checkJump(TK, 5, bret, FailedJump);
-}
-
-qint64 Interpreter::checkpet(qint64 currentline, const TokenMap& TK)
-{
-	Injector& injector = Injector::getInstance();
-
-	if (injector.server.isNull())
-		return Parser::kError;
-
-	QString petName;
-	checkString(TK, 1, &petName);
-	if (petName.isEmpty())
-		return Parser::kArgError;
-
-	qint64 timeout = DEFAULT_FUNCTION_TIMEOUT;
-	checkInteger(TK, 2, &timeout);
-
-	QElapsedTimer timer; timer.start();
-	bool bret = waitfor(timeout, [&injector, petName]()->bool
-		{
-			QVector<int> v;
-			return injector.server->getPetIndexsByName(petName, &v);
-		});
-
-	return checkJump(TK, 3, bret, FailedJump);
 }

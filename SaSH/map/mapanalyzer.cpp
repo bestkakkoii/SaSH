@@ -1818,7 +1818,7 @@ bool __fastcall MapAnalyzer::calcNewRoute(const map_t& map, const QPoint& src, c
 		const util::ObjectType obj = map.data.value(point, util::OBJ_UNKNOWN);
 
 		//村內避免踩NPC
-		if (map.height <= 150 && map.width <= 150)
+		if (map.floor == 2000)
 		{
 			if (injector.server->npcUnitPointHash.contains(point))
 			{
@@ -1826,10 +1826,8 @@ bool __fastcall MapAnalyzer::calcNewRoute(const map_t& map, const QPoint& src, c
 				if (unit.type == util::OBJ_NPC && unit.graNo > 0)
 					return false;
 			}
-		}
 
-		if (map.floor == 2000)//送貨門口傳點容易誤踩
-		{
+			//送貨門口傳點容易誤踩
 			if (point == QPoint(102, 80) || point == QPoint(103, 80))
 				return false;
 		}

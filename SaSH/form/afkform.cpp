@@ -805,7 +805,15 @@ void AfkForm::onResetControlTextLanguage()
 	appendCharAction(ui.comboBox_normalaction_char_action);
 	appendCharAction(ui.comboBox_magicheal, true);
 	appendCharAction(ui.comboBox_magicrevive, true);
+
 	appendCharAction(ui.comboBox_magicheal_normal, true);
+	for (int i = CHAR_EQUIPPLACENUM; i < MAX_ITEM; ++i)
+	{
+		QString text = QString("%1:").arg(i + 1);
+		ui.comboBox_magicheal_normal->addItem(text);
+		int index = ui.comboBox_magicheal_normal->count() - 1;
+		ui.comboBox_magicheal_normal->setItemData(index, text, Qt::ToolTipRole);
+	}
 
 
 	//battle
@@ -884,6 +892,8 @@ void AfkForm::onApplyHashSettingsToUI()
 	ui.comboBox_itemrevive->setCurrentText(injector.getStringHash(util::kBattleItemReviveItemString));
 	ui.comboBox_itemheal_normal->setCurrentText(injector.getStringHash(util::kNormalItemHealItemString));
 	ui.comboBox_itemhealmp_normal->setCurrentText(injector.getStringHash(util::kNormalItemHealMpItemString));
+
+	ui.checkBox_noscapewhilelockpet->setChecked(injector.getEnableHash(util::kBattleNoEscapeWhileLockPetEnable));
 
 	//heal
 	ui.spinBox_magicheal_char->setValue(injector.getValueHash(util::kBattleMagicHealCharValue));
@@ -1040,6 +1050,19 @@ void AfkForm::onUpdateComboBoxItemText(int type, const QStringList& textList)
 		appendMagicText(ui.comboBox_magicheal, true);
 		appendMagicText(ui.comboBox_magicrevive, true);
 		appendMagicText(ui.comboBox_magicheal_normal, true);
+		Injector& injector = Injector::getInstance();
+		if (!injector.server.isNull() && injector.server->getOnlineFlag())
+		{
+			PC pc = injector.server->getPC();
+			for (int i = CHAR_EQUIPPLACENUM; i < MAX_ITEM; ++i)
+			{
+				ITEM item = pc.item[i];
+				QString text = QString("%1:%2").arg(i - CHAR_EQUIPPLACENUM + 1).arg(item.useFlag == 1 ? item.name : "");
+				ui.comboBox_magicheal_normal->addItem(text);
+				int index = ui.comboBox_magicheal_normal->count() - 1;
+				ui.comboBox_magicheal_normal->setItemData(index, text, Qt::ToolTipRole);
+			}
+		}
 
 		//catch
 		appendMagicText(ui.comboBox_autocatchpet_magic);

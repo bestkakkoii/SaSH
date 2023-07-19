@@ -55,7 +55,7 @@ namespace mem
 
 	Q_REQUIRED_RESULT float readFloat(HANDLE hProcess, DWORD desiredAccess);
 	Q_REQUIRED_RESULT qreal readDouble(HANDLE hProcess, DWORD desiredAccess);
-	Q_REQUIRED_RESULT QString readString(HANDLE hProcess, DWORD desiredAccess, int size, bool enableTrim, bool keepOriginal = false);
+	Q_REQUIRED_RESULT QString readString(HANDLE hProcess, DWORD desiredAccess, int size, bool enableTrim = true, bool keepOriginal = false);
 	bool write(HANDLE hProcess, DWORD baseAddress, PVOID buffer, SIZE_T dwSize);
 	bool writeString(HANDLE hProcess, DWORD baseAddress, const QString& str);
 	bool virtualFree(HANDLE hProcess, int baseAddress);
@@ -400,6 +400,8 @@ namespace util
 
 		kLockPetScheduleEnable,
 
+		kBattleNoEscapeWhileLockPetEnable,
+
 		kSettingMaxEnable,
 
 		//////////////////
@@ -665,6 +667,7 @@ namespace util
 		//lockpet
 		{ kLockPetEnable, "LockPetEnable" },
 		{ kLockRideEnable, "LockRideEnable" },
+		{ kBattleNoEscapeWhileLockPetEnable , "BattleNoEscapeWhileLockPetEnable" },
 
 
 		//string

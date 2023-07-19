@@ -402,7 +402,6 @@ void Server::onClientReadyRead()
 
 	sync_.addFuture(QtConcurrent::run([this, clientSocket, badata]()
 		{
-			Injector& injector = Injector::getInstance();
 			QMutexLocker lock(&net_mutex);
 
 			QString preStr = QString::fromUtf8(badata);
@@ -451,7 +450,7 @@ void Server::onWrite(QTcpSocket* clientSocket, QByteArray ba, int size)
 }
 
 //異步處理數據
-void Server::handleData(QTcpSocket* clientSocket, QByteArray badata)
+void Server::handleData(QTcpSocket*, QByteArray badata)
 {
 	//char rpc_linebuffer[65536] = {};//Autil::NETBUFSIZ
 	//int len = badata.size();
@@ -2085,7 +2084,6 @@ void Server::lssproto_I_recv(char* cdata)
 	}
 	emit signalDispatcher.updateComboBoxItemText(util::kComboBoxItem, itemList);
 	checkAutoDropMeat(QStringList());
-	sortItem();
 }
 
 //對話框
@@ -2150,11 +2148,11 @@ void Server::lssproto_WN_recv(int windowtype, int buttontype, int seqno, int obj
 		 u8"安全密碼進行解鎖", u8"安全密码进行解锁"
 	};
 	static const QStringList KNPCList = {
-		//big5
+		//zh_TW
 		u8"如果能贏過我的"/*院藏*/, u8"如果想通過"/*近藏*/, u8"吼"/*紅暴*/, u8"你想找麻煩"/*七兄弟*/, u8"多謝～。",
 		u8"轉以上確定要出售？", u8"再度光臨", u8"已經太多",
 
-		//gb2312
+		//zh_CN
 		u8"如果能赢过我的"/*院藏*/, u8"如果想通过"/*近藏*/, u8"吼"/*红暴*/, u8"你想找麻烦"/*七兄弟*/, u8"多謝～。",
 		u8"转以上确定要出售？", u8"再度光临", u8"已经太多",
 	};
@@ -2532,6 +2530,7 @@ void Server::lssproto_EN_recv(int result, int field)
 #endif
 		announce("[async battle] 收到战斗开始封包");
 		setBattleFlag(true);
+		IS_LOCKATTACK_ESCAPE_DISABLE = false;
 		normalDurationTimer.restart();
 		battleDurationTimer.restart();
 		++battle_totol;
@@ -3160,7 +3159,7 @@ void Server::lssproto_KS_recv(int petarray, int result)
 		pc.battlePetNo = petarray;
 
 
-		for (int i = 0; i < MAX_PET; ++i)
+		for (i = 0; i < MAX_PET; ++i)
 		{
 			if (pet[i].state == kBattle)
 			{
@@ -3178,7 +3177,7 @@ void Server::lssproto_KS_recv(int petarray, int result)
 		QStringList skillNameList;
 		if ((petarray >= 0) && petarray < MAX_PET)
 		{
-			for (int i = 0; i < MAX_SKILL; ++i)
+			for (i = 0; i < MAX_SKILL; ++i)
 			{
 				skillNameList.append(petSkill[petarray][i].name);
 			}
@@ -3375,8 +3374,8 @@ void Server::lssproto_XYD_recv(const QPoint& pos, int dir)
 	setPcWarpPoint(pos);
 	setPoint(pos);
 	//setPcPoint();
-	dir = (dir + 3) % 8;
-	pc.dir = dir;
+	//dir = (dir + 3) % 8;
+	//pc.dir = dir;
 
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
 	emit signalDispatcher.updateCoordsPosLabelTextChanged(QString("%1,%2").arg(pos.x()).arg(pos.y()));
@@ -5952,6 +5951,7 @@ void Server::lssproto_S_recv(char* cdata)
 	{
 		int i, no;
 		QString temp;
+		QMutexLocker lock(&swapItemMutex);
 
 		for (i = 0; i < MAX_ITEM; ++i)
 		{
@@ -6071,7 +6071,6 @@ void Server::lssproto_S_recv(char* cdata)
 		}
 		emit signalDispatcher.updateComboBoxItemText(util::kComboBoxItem, itemList);
 		checkAutoDropMeat(QStringList());
-		sortItem();
 	}
 #pragma endregion
 #pragma region PetSkill
@@ -7014,30 +7013,28 @@ void Server::sortItem()
 	if (!injector.getEnableHash(util::kAutoStackEnable))
 		return;
 
+	QMutexLocker lock(&swapItemMutex);
+
+	int j = 0;
 	for (int i = MAX_ITEM - 1; i > CHAR_EQUIPPLACENUM; i--)
 	{
-		for (int j = CHAR_EQUIPPLACENUM; j < i; ++j)
+		for (j = CHAR_EQUIPPLACENUM; j < i; ++j)
 		{
-			if (!getOnlineFlag())
-				return;
-
-			if (getBattleFlag())
-				return;
-
-			if (pc.item[j].pile >= pc.maxload)
+			if (pc.item[i].useFlag == 0)
 				continue;
 
-			if (!isItemStackable(pc.item[i].sendFlag))
+			if (pc.maxload != 0 && pc.item[j].pile >= pc.maxload)
 				continue;
+
+			//if (!isItemStackable(pc.item[i].sendFlag))
+			//	continue;
 
 			if (!pc.item[i].name.isEmpty() && (pc.item[i].name == pc.item[j].name))
 			{
 				swapItem(i, j);
-				return;
 			}
 		}
 	}
-
 }
 
 //查找非滿血自己寵物或隊友的索引 (主要用於自動吃肉)
@@ -8195,7 +8192,7 @@ void Server::EO()
 	if (!cmd.isEmpty())
 		talk(cmd);
 
-	setBattleEnd();
+	//setBattleEnd();
 }
 
 //EO封包
@@ -8514,13 +8511,15 @@ void Server::useMagic(int magicIndex, int target)
 	if (getBattleFlag())
 		return;
 
-	if (magicIndex < 0 || magicIndex >= MAX_MAGIC)
+	if (magicIndex < 0 || magicIndex >= MAX_ITEM)
 		return;
 
 	if (target < 0 || target >= (MAX_PET + MAX_PARTY))
 		return;
 
-	if (!isPlayerMpEnoughForMagic(magicIndex))
+	if (magicIndex < MAX_MAGIC && !isPlayerMpEnoughForMagic(magicIndex))
+		return;
+	else if (getPC().item[magicIndex].useFlag == 0)
 		return;
 
 	lssproto_MU_send(getPoint(), magicIndex, target);
@@ -8589,7 +8588,7 @@ QString Server::getChatHistory(int index)
 }
 
 //查找指定類型和名稱的單位
-bool Server::findUnit(const QString& name, int type, mapunit_t* unit, const QString freename, int modelid) const
+bool Server::findUnit(const QString& name, int type, mapunit_t* unit, const QString freename, int modelid)
 {
 	QList<mapunit_t> units = mapUnitHash.values();
 	QString strName = name;
@@ -8614,6 +8613,7 @@ bool Server::findUnit(const QString& name, int type, mapunit_t* unit, const QStr
 			if (it.p == point)
 			{
 				*unit = it;
+				setPlayerFaceToPoint(point);
 				return true;
 			}
 		}
@@ -8964,7 +8964,7 @@ void Server::lssproto_DG_send(const QPoint& pos, int amount)
 	Autil::util_Send(LSSPROTO_DG_SEND, pos.x(), pos.y(), amount);
 }
 
-//寵物郵件風包
+//寵物郵件封包
 void Server::lssproto_PMSG_send(int index, int petindex, int itemindex, char* message, int color)
 {
 	//QByteArray buffer(Autil::NETDATASIZE, '\0');
@@ -9395,12 +9395,20 @@ void Server::lssproto_JOBDAILY_send(char* data)
 	Autil::util_Send(LSSPROTO_JOBDAILY_SEND, data);
 }
 
+//老菜單
 void Server::shopOk(int n)
 {
+	if (!getOnlineFlag())
+		return;
+
+	if (getBattleFlag())
+		return;
+
 	//SE 1隨身倉庫 2查看聲望氣勢
 	lssproto_ShopOk_send(n);
 }
 
+//老菜單封包
 void Server::lssproto_ShopOk_send(int n)
 {
 	//QByteArray buffer(Autil::NETDATASIZE, '\0');
@@ -9411,6 +9419,26 @@ void Server::lssproto_ShopOk_send(int n)
 	//Autil::util_SendMesg(LSSPROTO_SHOPOK_SEND, buffer.data());
 	Autil::util_Send(LSSPROTO_SHOPOK_SEND, n);
 }
+
+//新菜單
+void Server::saMenu(int n)
+{
+	if (!getOnlineFlag())
+		return;
+
+	if (getBattleFlag())
+		return;
+
+	lssproto_ShopOk_send(n);
+}
+
+//新菜單封包
+#ifdef _NEW_SYSTEM_MENU
+void Server::lssproto_SaMenu_send(int index)
+{
+	Autil::util_Send(LSSPROTO_SAMENU_SEND, index);
+}
+#endif
 
 //自訂對話框收到按鈕消息
 void Server::lssproto_CustomWN_recv(const QString& data)
@@ -10168,6 +10196,8 @@ void Server::updateDatasFromMemory()
 
 	nowFloor = floor;
 
+	pc.dir = mem::read<int>(hProcess, hModule + kOffestDir) + 5 % 8;
+
 	emit signalDispatcher.updateMapLabelTextChanged(QString("%1(%2)").arg(nowFloorName).arg(nowFloor));
 
 	//人物坐標 (因為伺服器端不會經常刷新這個數值大多是在遊戲客戶端修改的)
@@ -10283,7 +10313,7 @@ void Server::reloadHashVar(const QString& typeStr)
 	{
 		PC _pc = getPC();
 		hashpc = util::SafeHash<QString, QVariant>{
-			{ "dir", (_pc.dir + 3) % 8 },
+			{ "dir", _pc.dir },
 			{ "hp", _pc.hp }, { "maxhp", _pc.maxHp }, { "hpp", _pc.hpPercent },
 			{ "mp", _pc.mp }, { "maxmp", _pc.maxMp }, { "mpp", _pc.mpPercent },
 			{ "vit", _pc.vital },
@@ -10653,26 +10683,42 @@ inline bool Server::checkFlagState(int pos)
 //異步處理自動/快速戰鬥邏輯和發送封包
 void Server::asyncBattleWork(bool wait)
 {
-	Injector& injector = Injector::getInstance();
-	bool FastCheck = injector.getEnableHash(util::kFastBattleEnable);
-	bool normalCheck = injector.getEnableHash(util::kAutoBattleEnable);
-	bool Checked = normalCheck || (FastCheck && getWorldStatus() == 10);
-	if (!Checked)
-		asyncBattleAction();
-	else
-	{
-		//異步分析戰鬥邏輯發送指令
-		if (ayncBattleCommandFuture.isRunning())
-			return;
+	QMutexLocker lock(&ayncBattleCommandMutex);
+	asyncBattleAction();
+	//Injector& injector = Injector::getInstance();
+	//bool FastCheck = injector.getEnableHash(util::kFastBattleEnable);
+	//bool normalCheck = injector.getEnableHash(util::kAutoBattleEnable);
+	//bool Checked = normalCheck || (FastCheck && getWorldStatus() == 10);
+	//if (!Checked)
+	//{
+	//	//異步分析戰鬥邏輯發送指令
+	//	QElapsedTimer timer; timer.start();
+	//	if (ayncBattleCommandFuture.isRunning())
+	//		return;
 
-		ayncBattleCommandFlag.store(false, std::memory_order_release);
-		ayncBattleCommandFuture = QtConcurrent::run([this]()
-			{
-				QMutexLocker lock(&ayncBattleCommandMutex);
-				asyncBattleAction();
-			});
-		//ayncBattleCommandSync.addFuture(ayncBattleCommandFuture);
-	}
+
+	//	ayncBattleCommandFlag.store(false, std::memory_order_release);
+	//	ayncBattleCommandFuture = QtConcurrent::run([this]()
+	//		{
+	//			QMutexLocker lock(&ayncBattleCommandMutex);
+	//			asyncBattleAction();
+	//		});
+	//	//ayncBattleCommandSync.addFuture(ayncBattleCommandFuture);
+	//}
+	//else
+	//{
+	//	//異步分析戰鬥邏輯發送指令
+	//	if (ayncBattleCommandFuture.isRunning())
+	//		return;
+
+	//	ayncBattleCommandFlag.store(false, std::memory_order_release);
+	//	ayncBattleCommandFuture = QtConcurrent::run([this]()
+	//		{
+	//			QMutexLocker lock(&ayncBattleCommandMutex);
+	//			asyncBattleAction();
+	//		});
+	//	//ayncBattleCommandSync.addFuture(ayncBattleCommandFuture);
+	//}
 }
 
 void Server::asyncBattleAction()
@@ -10715,9 +10761,9 @@ void Server::asyncBattleAction()
 			return false;
 		}
 
-		if (timer.hasExpired(30000))
+		if (timer.hasExpired(120000))
 		{
-			announce("[async battle] 动作超时 30 秒", 7);
+			announce("[async battle] 动作超时 120 秒", 7);
 			return false;
 		}
 
@@ -11297,6 +11343,15 @@ void Server::handlePlayerBattleLogics()
 		}
 
 		if (bret)
+		{
+			IS_LOCKATTACK_ESCAPE_DISABLE = true;
+			break;
+		}
+
+		if (IS_LOCKATTACK_ESCAPE_DISABLE)
+			break;
+
+		if (injector.getEnableHash(util::kBattleNoEscapeWhileLockPetEnable))
 			break;
 
 		sendBattlePlayerEscapeAct();
@@ -13310,8 +13365,6 @@ void Server::sendBattlePlayerAttackAct(int target)
 	const QString qcmd = QString("H|%1").arg(QString::number(target, 16));
 	lssproto_B_send(qcmd);
 
-	Injector& injector = Injector::getInstance();
-
 
 	battledata_t bt = getBattleData();
 	battleobject_t obj = bt.objects.value(target, battleobject_t{});
@@ -13343,9 +13396,6 @@ void Server::sendBattlePlayerMagicAct(int magicIndex, int target)
 
 	const QString qcmd = QString("J|%1|%2").arg(QString::number(magicIndex, 16)).arg(QString::number(target, 16));
 	lssproto_B_send(qcmd);
-
-	Injector& injector = Injector::getInstance();
-
 
 	const QString magicName = magic[magicIndex].name;
 
@@ -13388,9 +13438,6 @@ void Server::sendBattlePlayerJobSkillAct(int skillIndex, int target)
 	const QString qcmd = QString("P|%1|%2").arg(QString::number(skillIndex, 16)).arg(QString::number(target, 16));
 	lssproto_B_send(qcmd);
 
-	Injector& injector = Injector::getInstance();
-
-
 	const QString skillName = profession_skill[skillIndex].name;
 	QString text("");
 	if (target < MAX_ENEMY)
@@ -13431,9 +13478,6 @@ void Server::sendBattlePlayerItemAct(int itemIndex, int target)
 	const QString qcmd = QString("I|%1|%2").arg(QString::number(itemIndex, 16)).arg(QString::number(target, 16));
 	lssproto_B_send(qcmd);
 
-	Injector& injector = Injector::getInstance();
-
-
 	const QString itemName = pc.item[itemIndex].name;
 
 	QString text("");
@@ -13469,8 +13513,6 @@ void Server::sendBattlePlayerDefenseAct()
 	const QString qcmd("G");
 	lssproto_B_send(qcmd);
 
-	Injector& injector = Injector::getInstance();
-
 	const QString text = QObject::tr("defense");
 	if (labelPlayerAction != text)
 	{
@@ -13491,9 +13533,6 @@ void Server::sendBattlePlayerEscapeAct()
 
 	const QString qcmd("E");
 	lssproto_B_send(qcmd);
-
-	Injector& injector = Injector::getInstance();
-
 
 	const QString text(QObject::tr("escape"));
 	if (labelPlayerAction != text)
@@ -13518,9 +13557,6 @@ void Server::sendBattlePlayerCatchPetAct(int target)
 
 	const QString qcmd = QString("T|%1").arg(QString::number(target, 16));
 	lssproto_B_send(qcmd);
-
-	Injector& injector = Injector::getInstance();
-
 
 	battledata_t bt = getBattleData();
 	battleobject_t obj = bt.objects.value(target, battleobject_t{});
@@ -13556,9 +13592,6 @@ void Server::sendBattlePlayerSwitchPetAct(int petIndex)
 	const QString qcmd = QString("S|%1").arg(QString::number(petIndex, 16));
 	lssproto_B_send(qcmd);
 
-	Injector& injector = Injector::getInstance();
-
-
 	QString text(QObject::tr("switch pet to %1") \
 		.arg(!pet[petIndex].freeName.isEmpty() ? pet[petIndex].freeName : pet[petIndex].name));
 
@@ -13579,9 +13612,6 @@ void Server::sendBattlePlayerDoNothing()
 
 	if (!getBattleFlag())
 		return;
-
-	Injector& injector = Injector::getInstance();
-
 
 	const QString qcmd("N");
 	lssproto_B_send(qcmd);
@@ -13616,10 +13646,6 @@ void Server::sendBattlePetSkillAct(int skillIndex, int target)
 
 	const QString qcmd = QString("W|%1|%2").arg(QString::number(skillIndex, 16)).arg(QString::number(target, 16));
 	lssproto_B_send(qcmd);
-
-
-	Injector& injector = Injector::getInstance();
-
 
 	QString text("");
 	if (target < MAX_ENEMY)
@@ -13664,9 +13690,6 @@ void Server::sendBattlePetDoNothing()
 	const QString qcmd("W|FF|FF");
 
 	lssproto_B_send(qcmd);
-
-	Injector& injector = Injector::getInstance();
-
 
 	QString text(QObject::tr("do nothing"));
 	if (labelPetAction != text)
@@ -13967,7 +13990,7 @@ bool Server::captchaOCR(QString* pmsg)
 
 	LPARAM data = MAKELPARAM(0, 0);
 	injector.sendMessage(WM_MOUSEMOVE, NULL, data);
-	QPixmap pixmap = screen->grabWindow((WId)injector.getProcessWindow());
+	QPixmap pixmap = screen->grabWindow(reinterpret_cast<WId>(injector.getProcessWindow()));
 	QImage image = pixmap.toImage();
 
 	//only take middle part of the image
@@ -13989,10 +14012,11 @@ bool Server::captchaOCR(QString* pmsg)
 	{
 		*pmsg = gifCode;
 		announce("<ocr>success! result is:" + gifCode);
+		return true;
 	}
 	else
 		announce("<ocr>failed! error:" + errorMsg);
 
-	return true;
+	return false;
 }
 #pragma endregion

@@ -96,7 +96,7 @@ bool QDownloader::checkUpdate(QString* current, QString* ptext)
 
 			QDateTime gmtTime = locale.toDateTime(lastModifiedStr, "ddd, dd MMM yyyy hh:mm:ss 'GMT'");
 			//補8小時
-			zipModified = gmtTime.addSecs(8ll * 60ll * 60ll);
+			//zipModified = gmtTime.addSecs(8ll * 60ll * 60ll);
 			qDebug() << "SaSH 7z file modified time:" << zipModified.toString("yyyy-MM-dd hh:mm:ss");
 			if (!zipModified.isValid())
 			{

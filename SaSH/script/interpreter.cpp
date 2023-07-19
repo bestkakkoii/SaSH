@@ -841,30 +841,31 @@ void Interpreter::openLibsBIG5()
 	registerFunction(u8"執行代碼", &Interpreter::dostring);
 	registerFunction(u8"註冊", &Interpreter::reg);
 	registerFunction(u8"計時", &Interpreter::timer);
+	registerFunction(u8"菜單", &Interpreter::menu);
 
 	//check
-	registerFunction(u8"任務狀態", &Interpreter::checkdaily);
-	registerFunction(u8"戰鬥中", &Interpreter::isbattle);
-	registerFunction(u8"平時中", &Interpreter::isnormal);
-	registerFunction(u8"在線中", &Interpreter::isonline);
-	registerFunction(u8"查坐標", &Interpreter::checkcoords);
-	registerFunction(u8"查座標", &Interpreter::checkcoords);
-	registerFunction(u8"地圖", &Interpreter::checkmap);
-	registerFunction(u8"地圖快判", &Interpreter::checkmapnowait);
-	registerFunction(u8"對話", &Interpreter::checkdialog);
+	registerFunction(u8"任務狀態", &Interpreter::ifdaily);
+	registerFunction(u8"戰鬥中", &Interpreter::ifbattle);
+	registerFunction(u8"平時中", &Interpreter::ifnormal);
+	registerFunction(u8"在線中", &Interpreter::ifonline);
+	registerFunction(u8"查坐標", &Interpreter::ifpos);
+	registerFunction(u8"查座標", &Interpreter::ifpos);
+	registerFunction(u8"地圖", &Interpreter::waitmap);
+	registerFunction(u8"地圖快判", &Interpreter::ifmap);
+	registerFunction(u8"對話", &Interpreter::waitdlg);
 	registerFunction(u8"看見", &Interpreter::checkunit);
-	registerFunction(u8"聽見", &Interpreter::checkchathistory);
+	registerFunction(u8"聽見", &Interpreter::waitsay);
 
-	registerFunction(u8"人物狀態", &Interpreter::checkplayerstatus);
-	registerFunction(u8"寵物狀態", &Interpreter::checkpetstatus);
-	registerFunction(u8"道具數量", &Interpreter::checkitemcount);
-	registerFunction(u8"組隊人數", &Interpreter::checkteamcount);
-	registerFunction(u8"寵物數量", &Interpreter::checkpetcount);
-	registerFunction(u8"寵物有", &Interpreter::checkpet);
-	registerFunction(u8"道具", &Interpreter::checkitem);
-	registerFunction(u8"背包滿", &Interpreter::checkitemfull);
+	registerFunction(u8"人物狀態", &Interpreter::ifplayer);
+	registerFunction(u8"寵物狀態", &Interpreter::ifpetex);
+	registerFunction(u8"道具數量", &Interpreter::ifitem);
+	registerFunction(u8"組隊人數", &Interpreter::ifteam);
+	registerFunction(u8"寵物數量", &Interpreter::ifpet);
+	registerFunction(u8"寵物有", &Interpreter::waitpet);
+	registerFunction(u8"道具", &Interpreter::waititem);
+	registerFunction(u8"背包滿", &Interpreter::ifitemfull);
 	//check-group
-	registerFunction(u8"組隊有", &Interpreter::checkteam);
+	registerFunction(u8"組隊有", &Interpreter::waitteam);
 
 
 	//move
@@ -881,6 +882,7 @@ void Interpreter::openLibsBIG5()
 	//action
 	registerFunction(u8"使用道具", &Interpreter::useitem);
 	registerFunction(u8"丟棄道具", &Interpreter::dropitem);
+	registerFunction(u8"交換道具", &Interpreter::swapitem);
 	registerFunction(u8"人物改名", &Interpreter::playerrename);
 	registerFunction(u8"寵物改名", &Interpreter::petrename);
 	registerFunction(u8"更換寵物", &Interpreter::setpetstate);
@@ -958,30 +960,31 @@ void Interpreter::openLibsGB2312()
 	registerFunction(u8"执行代码", &Interpreter::dostring);
 	registerFunction(u8"註册", &Interpreter::reg);
 	registerFunction(u8"计时", &Interpreter::timer);
+	registerFunction(u8"菜单", &Interpreter::menu);
 
 	//check
-	registerFunction(u8"任务状态", &Interpreter::checkdaily);
-	registerFunction(u8"战斗中", &Interpreter::isbattle);
-	registerFunction(u8"平时中", &Interpreter::isnormal);
-	registerFunction(u8"在线中", &Interpreter::isonline);
-	registerFunction(u8"查坐标", &Interpreter::checkcoords);
-	registerFunction(u8"查座标", &Interpreter::checkcoords);
-	registerFunction(u8"地图", &Interpreter::checkmap);
-	registerFunction(u8"地图快判", &Interpreter::checkmapnowait);
-	registerFunction(u8"对话", &Interpreter::checkdialog);
+	registerFunction(u8"任务状态", &Interpreter::ifdaily);
+	registerFunction(u8"战斗中", &Interpreter::ifbattle);
+	registerFunction(u8"平时中", &Interpreter::ifnormal);
+	registerFunction(u8"在线中", &Interpreter::ifonline);
+	registerFunction(u8"查坐标", &Interpreter::ifpos);
+	registerFunction(u8"查座标", &Interpreter::ifpos);
+	registerFunction(u8"地图", &Interpreter::waitmap);
+	registerFunction(u8"地图快判", &Interpreter::ifmap);
+	registerFunction(u8"对话", &Interpreter::waitdlg);
 	registerFunction(u8"看见", &Interpreter::checkunit);
-	registerFunction(u8"听见", &Interpreter::checkchathistory);
+	registerFunction(u8"听见", &Interpreter::waitsay);
 
-	registerFunction(u8"人物状态", &Interpreter::checkplayerstatus);
-	registerFunction(u8"宠物状态", &Interpreter::checkpetstatus);
-	registerFunction(u8"道具数量", &Interpreter::checkitemcount);
-	registerFunction(u8"组队人数", &Interpreter::checkteamcount);
-	registerFunction(u8"宠物数量", &Interpreter::checkpetcount);
-	registerFunction(u8"宠物有", &Interpreter::checkpet);
-	registerFunction(u8"道具", &Interpreter::checkitem);
-	registerFunction(u8"背包满", &Interpreter::checkitemfull);
+	registerFunction(u8"人物状态", &Interpreter::ifplayer);
+	registerFunction(u8"宠物状态", &Interpreter::ifpetex);
+	registerFunction(u8"道具数量", &Interpreter::ifitem);
+	registerFunction(u8"组队人数", &Interpreter::ifteam);
+	registerFunction(u8"宠物数量", &Interpreter::ifpet);
+	registerFunction(u8"宠物有", &Interpreter::waitpet);
+	registerFunction(u8"道具", &Interpreter::waititem);
+	registerFunction(u8"背包满", &Interpreter::ifitemfull);
 	//check-group
-	registerFunction(u8"组队有", &Interpreter::checkteam);
+	registerFunction(u8"组队有", &Interpreter::waitteam);
 
 
 	//move
@@ -998,6 +1001,7 @@ void Interpreter::openLibsGB2312()
 	//action
 	registerFunction(u8"使用道具", &Interpreter::useitem);
 	registerFunction(u8"丢弃道具", &Interpreter::dropitem);
+	registerFunction(u8"交换道具", &Interpreter::swapitem);
 	registerFunction(u8"人物改名", &Interpreter::playerrename);
 	registerFunction(u8"宠物改名", &Interpreter::petrename);
 	registerFunction(u8"更换宠物", &Interpreter::setpetstate);
@@ -1075,29 +1079,30 @@ void Interpreter::openLibsUTF8()
 	registerFunction(u8"dostring", &Interpreter::dostring);
 	registerFunction(u8"reg", &Interpreter::reg);
 	registerFunction(u8"timer", &Interpreter::timer);
+	registerFunction(u8"menu", &Interpreter::menu);
 
 	//check
-	registerFunction(u8"ifdaily", &Interpreter::checkdaily);
-	registerFunction(u8"ifbattle", &Interpreter::isbattle);
-	registerFunction(u8"ifnormal", &Interpreter::isnormal);
-	registerFunction(u8"ifonline", &Interpreter::isonline);
-	registerFunction(u8"ifpos", &Interpreter::checkcoords);
-	registerFunction(u8"ifmap", &Interpreter::checkmapnowait);
-	registerFunction(u8"ifplayer", &Interpreter::checkplayerstatus);
-	registerFunction(u8"ifpetex", &Interpreter::checkpetstatus);
-	registerFunction(u8"ifitem", &Interpreter::checkitemcount);
-	registerFunction(u8"ifteam", &Interpreter::checkteamcount);
-	registerFunction(u8"ifpet", &Interpreter::checkpetcount);
-	registerFunction(u8"ifitemfull", &Interpreter::checkitemfull);
+	registerFunction(u8"ifdaily", &Interpreter::ifdaily);
+	registerFunction(u8"ifbattle", &Interpreter::ifbattle);
+	registerFunction(u8"ifnormal", &Interpreter::ifnormal);
+	registerFunction(u8"ifonline", &Interpreter::ifonline);
+	registerFunction(u8"ifpos", &Interpreter::ifpos);
+	registerFunction(u8"ifmap", &Interpreter::ifmap);
+	registerFunction(u8"ifplayer", &Interpreter::ifplayer);
+	registerFunction(u8"ifpetex", &Interpreter::ifpetex);
+	registerFunction(u8"ifitem", &Interpreter::ifitem);
+	registerFunction(u8"ifteam", &Interpreter::ifteam);
+	registerFunction(u8"ifpet", &Interpreter::ifpet);
+	registerFunction(u8"ifitemfull", &Interpreter::ifitemfull);
 
-	registerFunction(u8"waitmap", &Interpreter::checkmap);
-	registerFunction(u8"waitdlg", &Interpreter::checkdialog);
-	registerFunction(u8"waitsay", &Interpreter::checkchathistory);
-	registerFunction(u8"waitpet", &Interpreter::checkpet);
-	registerFunction(u8"waititem", &Interpreter::checkitem);
+	registerFunction(u8"waitmap", &Interpreter::waitmap);
+	registerFunction(u8"waitdlg", &Interpreter::waitdlg);
+	registerFunction(u8"waitsay", &Interpreter::waitsay);
+	registerFunction(u8"waitpet", &Interpreter::waitpet);
+	registerFunction(u8"waititem", &Interpreter::waititem);
 
 	//check-group
-	registerFunction(u8"waitteam", &Interpreter::checkteam);
+	registerFunction(u8"waitteam", &Interpreter::waitteam);
 
 
 	//move
@@ -1113,6 +1118,7 @@ void Interpreter::openLibsUTF8()
 	//action
 	registerFunction(u8"useitem", &Interpreter::useitem);
 	registerFunction(u8"doffitem", &Interpreter::dropitem);
+	registerFunction(u8"swapitem", &Interpreter::swapitem);
 	registerFunction(u8"chplayername", &Interpreter::playerrename);
 	registerFunction(u8"chpetname", &Interpreter::petrename);
 	registerFunction(u8"chpet", &Interpreter::setpetstate);
@@ -1232,7 +1238,9 @@ qint64 Interpreter::mainScriptCallBack(qint64 currentLine, const TokenMap& TK)
 
 	emit signalDispatcher.addForwardMarker(currentLine, true);
 
-	checkPause();
+	QCoreApplication::processEvents();
+
+	//checkPause();
 
 	return 1;
 }

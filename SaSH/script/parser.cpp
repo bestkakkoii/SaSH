@@ -804,6 +804,24 @@ bool Parser::checkCallStack()
 	SPD_LOG(g_logger_name, QString("[parser] checkCallStack: %1").arg(currentLineTokens_.value(1).data.toString()));
 
 	const QString funname = currentLineTokens_.value(1).data.toString();
+	if (ctorCallBackFlag_ == 1 && funname == "ctor")
+	{
+		ctorCallBackFlag_ = 2;
+		return false;
+	}
+
+	if (dtorCallBackFlag_ == 1 && funname == "dtor")
+	{
+		ctorCallBackFlag_ = 2;
+		return false;
+	}
+
+	if (skipFunctionChunkDisable_)
+	{
+		skipFunctionChunkDisable_ = false;
+		return false;
+	}
+
 	do
 	{
 		//棧為空時直接跳過整個代碼塊
@@ -986,7 +1004,7 @@ void Parser::replaceToVariable(QString& expr)
 		QString oldText;
 		if (isTextWrapped(expr, name))
 		{
-			//將引號包裹的部分暫時替換成棧位字 __PLACEHOLD__
+			//將引號包裹的部分暫時替換成棧位字
 			int quoteIndex = expr.indexOf("'");
 			if (quoteIndex == -1)
 				quoteIndex = expr.indexOf('"');
@@ -1150,10 +1168,27 @@ bool Parser::jump(const QString& name, bool noStack)
 		}
 		return false;
 	}
+	else if (name.toLower() == "continue")
+	{
+		return processContinue();
+	}
+	else if (name.toLower() == "break")
+	{
+		return processBreak();
+	}
 
 	SPD_LOG(g_logger_name, QString("[parser] jump: %1").arg(name));
 
-	qint64 jumpLine = matchLineFromLabel(name);
+	qint64 jumpLine = matchLineFromFunction(name);
+	if (jumpLine != -1 && name != "ctor" && name != "dtor")
+	{
+		callStack_.push(lineNumber_ + 1);
+		jumpto(jumpLine, true);
+		skipFunctionChunkDisable_ = true;
+		return true;
+	}
+
+	jumpLine = matchLineFromLabel(name);
 	if (jumpLine == -1)
 	{
 		handleError(kLabelError);
@@ -1275,6 +1310,54 @@ void Parser::recordFunctionChunks()
 #endif
 }
 
+void Parser::recordForChunks()
+{
+	QHash<qint64, ForChunk> chunkHash;
+	QMap<qint64, TokenMap> map;
+	for (auto it = tokens_.cbegin(); it != tokens_.cend(); ++it)
+		map.insert(it.key(), it.value());
+
+	//這裡是為了避免沒有透過call調用函數的情況
+	qint64 indentLevel = 0;
+	for (auto it = map.cbegin(); it != map.cend(); ++it)
+	{
+		qint64 row = it.key();
+		TokenMap tokens = it.value();
+		QString cmd = tokens.value(0).data.toString();
+		ForChunk chunk = chunkHash.value(indentLevel, ForChunk{});
+		if (!chunk.name.isEmpty() && chunk.begin >= 0 && chunk.end > 0)
+		{
+			chunkHash.remove(indentLevel);
+			forChunks_.insert(chunk.name, chunk);
+		}
+
+		//紀錄function結束行
+		if (cmd == "endfor")
+		{
+			--indentLevel;
+			chunk = chunkHash.value(indentLevel, ForChunk{});
+			chunk.end = row;
+			if (!chunk.name.isEmpty() && chunk.begin >= 0 && chunk.end > 0)
+			{
+				chunkHash.remove(indentLevel);
+				forChunks_.insert(chunk.name, chunk);
+				continue;
+			}
+
+			chunkHash.insert(indentLevel, chunk);
+		}
+		//紀錄function起始行
+		if (cmd == "for")
+		{
+			QString name = tokens.value(1).data.toString();
+			chunk.name = name;
+			chunk.begin = row;
+			chunkHash.insert(indentLevel, chunk);
+			++indentLevel;
+		}
+	}
+}
+
 //解析跳轉棧或調用棧相關訊息並發送信號
 void Parser::generateStackInfo(qint64 type)
 {
@@ -1336,7 +1419,7 @@ void Parser::processLabel()
 			if (!args.isEmpty() && (args.size() > (i - kCallPlaceHoldSize)) && (args.at(i - kCallPlaceHoldSize).isValid()))
 				labelVars.insert(labelName, args.at(i - kCallPlaceHoldSize));
 		}
-}
+	}
 
 	localVarStack_.push(labelVars);
 
@@ -2240,7 +2323,7 @@ bool Parser::processIfCompare()
 
 	//return checkJump(TK, 4, compare(a, b, op), SuccessJump);
 
-	return checkJump(currentLineTokens_, 2, result, FailedJump) == kHasJump;
+	return checkJump(currentLineTokens_, 2, result, SuccessJump) == kHasJump;
 }
 
 //處理隨機數
@@ -2460,7 +2543,7 @@ bool Parser::processCall()
 		if (functionName.isEmpty())
 			break;
 
-		qint64 jumpLine = matchLineFromLabel(functionName);
+		qint64 jumpLine = matchLineFromFunction(functionName);
 		if (jumpLine == -1)
 			break;
 
@@ -2629,16 +2712,11 @@ bool Parser::processFor()
 		qint64 nvalue = value.toLongLong();
 		if (nvalue >= breakValue)
 		{
-			if (!forStack_.isEmpty())
-				forStack_.pop();//for行號出棧
-
-			removeLocalVar(varName);
-
-			qint64 endline = 0ll;
-			if (!endStack_.isEmpty())
+			if (!forStack_.isEmpty() && forChunks_.contains(varName))
 			{
-				endline = endStack_.top().second;
-				endStack_.pop();//endfor行號出棧
+				qint64 endline = forChunks_.value(varName).end + 1;
+				forStack_.pop();//for行號出棧
+				removeLocalVar(varName);
 				jumpto(endline, true);
 				return true;
 			}
@@ -2657,39 +2735,36 @@ bool Parser::processEndFor()
 	if (forStack_.isEmpty())
 		return false;
 
-	QString varName = forStack_.top().first;
-	qint64 line = forStack_.top().second + 1;//要跳到endfor的下一行
+	qint64 line = forStack_.top().second + 1;//跳for
+	jumpto(line, true);
+	return true;
+}
 
-	if (endStack_.isEmpty())
-		endStack_.push(qMakePair(varName, lineNumber_ + 1));//endfor行號入棧
-	else
-	{
-		QString varName2 = endStack_.top().first;
-		if (varName2 != varName)
-			endStack_.push(qMakePair(varName, lineNumber_ + 1));
-	}
+bool Parser::processContinue()
+{
+	if (forStack_.isEmpty())
+		return false;
+
+	qint64 line = forStack_.top().second + 1;//跳for
 	jumpto(line, true);
 	return true;
 }
 
 bool Parser::processBreak()
 {
-	if (!forStack_.isEmpty())
-	{
-		QString varName = forStack_.top().first;
-		removeLocalVar(varName);
-		forStack_.pop();//for行號出棧
-	}
+	if (forStack_.isEmpty())
+		return false;
 
-	qint64 endline = 0ll;
-	if (!endStack_.isEmpty())
-	{
-		endline = endStack_.top().second;
-		endStack_.pop();//endfor行號出棧
-		jumpto(endline, true);
-		return true;
-	}
+	QString varName = forStack_.top().first;
+	if (!forChunks_.contains(varName))
+		return false;
 
+	qint64 endline = forChunks_.value(varName).end + 1;
+
+	removeLocalVar(varName);
+	forStack_.pop();//for行號出棧
+
+	jumpto(endline, true);
 	return false;
 }
 
@@ -2710,6 +2785,7 @@ void Parser::processTokens()
 	}
 
 	recordFunctionChunks();
+	recordForChunks();
 
 	bool skip = false;
 	RESERVE currentType = TK_UNK;
@@ -2732,14 +2808,14 @@ void Parser::processTokens()
 			}
 		}
 
-		if (!ctorCallBackFlag_)
+		if (ctorCallBackFlag_ == 0)
 		{
 			//檢查是否存在腳本建構函數
 			QHash<QString, qint64> hash = getLabels();
 			constexpr const char* CTOR = "ctor";
 			if (hash.contains(CTOR))
 			{
-				ctorCallBackFlag_ = true;
+				ctorCallBackFlag_ = 1;
 				callStack_.push(0);
 				jump(CTOR, true);
 			}
@@ -2948,6 +3024,12 @@ void Parser::processTokens()
 		case TK_BREAK:
 		{
 			if (processBreak())
+				continue;
+			break;
+		}
+		case TK_CONTINUE:
+		{
+			if (processContinue())
 				continue;
 			break;
 		}

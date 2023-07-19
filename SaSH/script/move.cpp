@@ -265,9 +265,10 @@ qint64 Interpreter::movetonpc(qint64 currentline, const TokenMap& TK)
 
 	QString cmpNpcName;
 	qint64 modelid = -1;
-	if (!checkString(TK, 1, &cmpNpcName))
+	if (!checkInteger(TK, 1, &modelid))
 	{
-		checkInteger(TK, 1, &modelid);
+		if (!checkString(TK, 1, &cmpNpcName))
+			return Parser::kArgError;
 	}
 
 	QString cmpFreeName;

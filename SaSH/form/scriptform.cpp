@@ -457,7 +457,8 @@ void ScriptForm::onScriptTreeWidgetDoubleClicked(QTreeWidgetItem* item, int colu
 //重新加載腳本列表
 void ScriptForm::onReloadScriptList()
 {
-	if (IS_LOADING) return;
+	if (IS_LOADING)
+		return;
 
 	TreeWidgetItem* item = nullptr;
 	QStringList newScriptList = {};
@@ -467,15 +468,9 @@ void ScriptForm::onReloadScriptList()
 		if (!item) break;
 
 		util::loadAllFileLists(item, QApplication::applicationDirPath() + "/script/", &newScriptList);
-		//compare with oldScriptList
-		if (scriptList_ == newScriptList)
-		{
-			delete item;
-			item = nullptr;
-			break;
-		}
 
 		scriptList_ = newScriptList;
+		ui.treeWidget_script->setUpdatesEnabled(false);
 		ui.treeWidget_script->clear();
 		ui.treeWidget_script->addTopLevelItem(item);
 		//展開全部第一層
@@ -486,5 +481,7 @@ void ScriptForm::onReloadScriptList()
 		}
 
 		ui.treeWidget_script->sortItems(0, Qt::AscendingOrder);
+
+		ui.treeWidget_script->setUpdatesEnabled(true);
 	} while (false);
 }

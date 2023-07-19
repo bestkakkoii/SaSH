@@ -587,7 +587,7 @@ void MainForm::moveEvent(QMoveEvent* e)
 
 
 		QPoint pos = e->pos();
-		qDebug() << pos;
+
 		Injector& injector = Injector::getInstance();
 		HWND hWnd = injector.getProcessWindow();
 		if (hWnd == nullptr)

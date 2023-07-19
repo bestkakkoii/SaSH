@@ -1410,6 +1410,11 @@ color: rgb(208, 208, 208);
            </item>
            <item>
             <property name="text">
+             <string>menu</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
              <string>logout</string>
             </property>
            </item>
@@ -1570,6 +1575,11 @@ color: rgb(208, 208, 208);
            </item>
            <item>
             <property name="text">
+             <string>continue</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
              <string>comment</string>
             </property>
            </item>
@@ -1595,6 +1605,11 @@ color: rgb(208, 208, 208);
             <item>
              <property name="text">
               <string>ifteam</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>ifpos</string>
              </property>
             </item>
             <item>
@@ -1794,6 +1809,21 @@ color: rgb(208, 208, 208);
             </item>
             <item>
              <property name="text">
+              <string>ifonline</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>ifnormal</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>ifmap</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
               <string>ifitemfull</string>
              </property>
             </item>
@@ -1805,6 +1835,16 @@ color: rgb(208, 208, 208);
             <item>
              <property name="text">
               <string>ifdaily</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>ifbattle</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>if</string>
              </property>
             </item>
            </item>
@@ -1840,31 +1880,6 @@ color: rgb(208, 208, 208);
             <item>
              <property name="text">
               <string>waitdlg</string>
-             </property>
-            </item>
-            <item>
-             <property name="text">
-              <string>ifpos</string>
-             </property>
-            </item>
-            <item>
-             <property name="text">
-              <string>ifonline</string>
-             </property>
-            </item>
-            <item>
-             <property name="text">
-              <string>ifnormal</string>
-             </property>
-            </item>
-            <item>
-             <property name="text">
-              <string>ifmap</string>
-             </property>
-            </item>
-            <item>
-             <property name="text">
-              <string>ifbattle</string>
              </property>
             </item>
            </item>
@@ -1961,6 +1976,11 @@ color: rgb(208, 208, 208);
            <item>
             <property name="text">
              <string>uequip</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>swapitem</string>
             </property>
            </item>
            <item>

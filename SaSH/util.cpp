@@ -42,6 +42,9 @@ bool util::Config::open(const QString& fileName)
 	QByteArray allData = file.readAll();
 	file.close();
 
+	if (allData.isEmpty())
+		return true;
+
 	QJsonParseError jsonError;
 	document_ = QJsonDocument::fromJson(allData, &jsonError);
 	if (jsonError.error != QJsonParseError::NoError)
@@ -531,7 +534,7 @@ void util::Config::writeIntArray(const QString& sec, const QString& key, const Q
 	}
 }
 
-void util::Config::writeMapData(const QString& sec, const util::MapData& data)
+void util::Config::writeMapData(const QString&, const util::MapData& data)
 {
 	QString key = QString::number(data.floor);
 	QJsonArray jarray;
@@ -828,7 +831,7 @@ QString mem::readString(HANDLE hProcess, DWORD desiredAccess, int size, bool ena
 	if (!keepOriginal)
 	{
 		std::string s = p.get();
-		QString retstring = (ret == TRUE) ? (util::toUnicode(s.c_str(), true)) : "";
+		QString retstring = (ret == TRUE) ? (util::toUnicode(s.c_str(), enableTrim)) : "";
 		return retstring;
 	}
 	else
@@ -988,7 +991,7 @@ void util::sortWindows(const QVector<HWND>& windowList, bool alignLeft)
 
 	// 獲取桌面分辨率
 	int screenWidth = GetSystemMetrics(SM_CXSCREEN);
-	int screenHeight = GetSystemMetrics(SM_CYSCREEN);
+	//int screenHeight = GetSystemMetrics(SM_CYSCREEN);
 
 	// 窗口移動的初始位置
 	int x = 0;

@@ -206,16 +206,16 @@ void fontInitialize(const QString& currentWorkPath, QApplication& a)
 		QString fontFilePath = currentWorkPath + "/" + fontName;
 
 		int fontId = QFontDatabase::addApplicationFont(fontFilePath);
-		std::wstring fontFilePathW = fontFilePath.toStdWString();
-		int res = AddFontResource(fontFilePathW.c_str());
-		if (res == 0)
-		{
-			qDebug() << "AddFontResource" << fontName << "failed";
-		}
-		else
-		{
-			qDebug() << "AddFontResource" << fontName << "success";
-		}
+		//std::wstring fontFilePathW = fontFilePath.toStdWString();
+		//int res = AddFontResource(fontFilePathW.c_str());
+		//if (res == 0)
+		//{
+		//	qDebug() << "AddFontResource" << fontName << "failed";
+		//}
+		//else
+		//{
+		//	qDebug() << "AddFontResource" << fontName << "success";
+		//}
 		return fontId;
 	};
 
