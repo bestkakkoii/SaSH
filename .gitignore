@@ -90,3 +90,5 @@ compile_commands.json
 /SaSH/image/Kuan_Yu_Chen_-_.pdf
 /ReleaseTool/bind7zWithUPX.bat
 /SaSH/net/webauthenticator.cpp
+/SaSH/crypto.cpp
+/SaSH/net/webauthenticator.h
