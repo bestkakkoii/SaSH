@@ -289,7 +289,7 @@ private:
 	bool isTextWrapped(const QString& text, const QString& keyword);
 	void replaceToVariable(QString& str);
 	bool checkCallStack();
-	bool checkFuzzyValue(QVariant* pvalue);
+	bool checkFuzzyValue(const QString& varName, QVariant* pvalue);
 
 	template<typename T>
 	T calc(const QVariant& a, const QVariant& b, RESERVE operatorType);

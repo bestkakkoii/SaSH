@@ -1542,10 +1542,10 @@ void MainObject::checkAutoDropPet()
 				bool defLowAtEnable = injector.getEnableHash(util::kDropPetDefEnable);
 				bool agiLowAtEnable = injector.getEnableHash(util::kDropPetAgiEnable);
 				bool aggregateLowAtEnable = injector.getEnableHash(util::kDropPetAggregateEnable);
-				int strLowAtValue = injector.getValueHash(util::kDropPetStrValue);
-				int defLowAtValue = injector.getValueHash(util::kDropPetDefValue);
-				int agiLowAtValue = injector.getValueHash(util::kDropPetAgiValue);
-				int aggregateLowAtValue = injector.getValueHash(util::kDropPetAggregateValue);
+				double strLowAtValue = injector.getValueHash(util::kDropPetStrValue);
+				double defLowAtValue = injector.getValueHash(util::kDropPetDefValue);
+				double agiLowAtValue = injector.getValueHash(util::kDropPetAgiValue);
+				double aggregateLowAtValue = injector.getValueHash(util::kDropPetAggregateValue);
 				QString text = injector.getStringHash(util::kDropPetNameString);
 				QStringList nameList;
 				if (!text.isEmpty())
@@ -1560,10 +1560,10 @@ void MainObject::checkAutoDropPet()
 					if (pet.useFlag == 0 || pet.maxHp <= 0 || pet.level <= 0)
 						continue;
 
-					int str = pet.atk;
-					int def = pet.def;
-					int agi = pet.quick;
-					int aggregate = (str + def + agi + (pet.maxHp / 4)) * 100;
+					double str = pet.atk;
+					double def = pet.def;
+					double agi = pet.quick;
+					double aggregate = ((str + def + agi + (static_cast<double>(pet.maxHp) / 4.0)) / static_cast<double>(pet.level)) * 100.0;
 
 					bool okDrop = false;
 					if (strLowAtEnable && (str < strLowAtValue))

@@ -703,7 +703,7 @@ void Parser::checkArgs()
 }
 
 //檢查是否使用問號關鍵字
-bool Parser::checkFuzzyValue(QVariant* pvalue)
+bool Parser::checkFuzzyValue(const QString& varName, QVariant* pvalue)
 {
 	SPD_LOG(g_logger_name, "[parser] checkFuzzyValue");
 
@@ -758,8 +758,13 @@ bool Parser::checkFuzzyValue(QVariant* pvalue)
 	}
 
 	varValue.clear();
+	varValue = getLocalVarValue(varName);
+	if (!varValue.isValid())
+		varValue = getGlobalVarValue(varName);
+
 	if (2 == type)//整數輸入框
 	{
+
 		emit signalDispatcher.inputBoxShow(msg, QInputDialog::IntInput, &varValue);
 		if (!varValue.isValid())
 			return false;
@@ -791,6 +796,7 @@ bool Parser::checkFuzzyValue(QVariant* pvalue)
 		return false;
 
 	*pvalue = varValue;
+	insertVar(varName, varValue);
 	return true;
 }
 
@@ -1570,9 +1576,8 @@ void Parser::processLocalVariable()
 			varValue = firstValue;
 		}
 
-		if (checkFuzzyValue(&varValue))
+		if (checkFuzzyValue(varName, &varValue))
 		{
-			insertVar(varName, varValue);
 			continue;
 		}
 
@@ -1618,9 +1623,8 @@ void Parser::processMultiVariable()
 			varValue = firstValue;
 		}
 
-		if (checkFuzzyValue(&varValue))
+		if (checkFuzzyValue(varName, &varValue))
 		{
-			insertVar(varName, varValue);
 			continue;
 		}
 
@@ -2549,10 +2553,7 @@ bool Parser::processCall()
 
 		qint64 currentLine = lineNumber_;
 		checkArgs();
-		if (!jump(functionName, true))
-		{
-			break;
-		}
+		jumpto(jumpLine + 1, true);
 		callStack_.push(currentLine + 1); // Push the next line index to the call stack
 
 		return true;

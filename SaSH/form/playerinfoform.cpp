@@ -90,7 +90,7 @@ void PlayerInfoForm::onResetControlTextLanguage()
 		tr("name"), tr("freename"), "",
 		tr("level"), tr("exp"), tr("nextexp"), tr("leftexp"), "",
 		tr("hp"), tr("mp"), tr("chasma/loyal"),
-		tr("atk"), tr("def"), tr("agi"), tr("luck")
+		tr("atk"), tr("def"), tr("agi"), tr("luck"), tr("power"),
 	};
 
 	//put on first col

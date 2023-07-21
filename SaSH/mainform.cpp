@@ -1310,11 +1310,20 @@ void MainForm::onInputBoxShow(const QString& text, int type, QVariant* retvalue)
 	{
 		inputDialog.setIntMinimum(INT_MIN);
 		inputDialog.setIntMaximum(INT_MAX);
+		if (retvalue->isValid())
+			inputDialog.setIntValue(retvalue->toInt());
 	}
 	else if (mode == QInputDialog::DoubleInput)
 	{
 		inputDialog.setDoubleMinimum(-DBL_MAX);
 		inputDialog.setDoubleMaximum(DBL_MAX);
+		if (retvalue->isValid())
+			inputDialog.setDoubleValue(retvalue->toDouble());
+	}
+	else
+	{
+		if (retvalue->isValid())
+			inputDialog.setTextValue(retvalue->toString());
 	}
 
 	inputDialog.setWindowFlags(inputDialog.windowFlags() & ~Qt::WindowContextHelpButtonHint);

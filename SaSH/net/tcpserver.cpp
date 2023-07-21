@@ -5704,13 +5704,14 @@ void Server::lssproto_S_recv(char* cdata)
 					_pet.name, _pet.freeName, "",
 					QObject::tr("%1(%2tr)").arg(_pet.level).arg(_pet.trn), _pet.exp, _pet.maxExp, _pet.maxExp - _pet.exp, "",
 					QString("%1/%2").arg(_pet.hp).arg(_pet.maxHp), "",
-					_pet.ai, _pet.atk, _pet.def, _pet.quick, ""
+					_pet.ai, _pet.atk, _pet.def, _pet.quick, "",
+					(((static_cast<double>(_pet.atk + _pet.def + _pet.quick) + (static_cast<double>(_pet.maxHp) / 4.0)) / static_cast<double>(_pet.level)) * 100.0)
 				};
 
 			}
 			else
 			{
-				for (int i = 0; i < 15; ++i)
+				for (int i = 0; i < 16; ++i)
 					varList.append("");
 
 			}
@@ -6187,7 +6188,7 @@ void Server::lssproto_S_recv(char* cdata)
 			profession_skill[i].cooltime = getIntegerToken(data, "|", 1 + count);
 		}
 		break;
-	}
+}
 #endif
 #pragma endregion
 #pragma region PetEquip
@@ -7029,7 +7030,10 @@ void Server::sortItem()
 			//if (!isItemStackable(pc.item[i].sendFlag))
 			//	continue;
 
-			if (!pc.item[i].name.isEmpty() && (pc.item[i].name == pc.item[j].name))
+			if (!pc.item[i].name.isEmpty()
+				&& (pc.item[i].name == pc.item[j].name)
+				&& (pc.item[i].memo == pc.item[j].memo)
+				&& (pc.item[i].graNo == pc.item[j].graNo))
 			{
 				swapItem(i, j);
 			}
@@ -13971,7 +13975,7 @@ namespace AntiCaptcha
 		QByteArray hash = QCryptographicHash::hash(randomString.toUtf8(), QCryptographicHash::Md5);
 
 		return QString(hash.toHex());
-	}
+}
 #endif
 }
 
