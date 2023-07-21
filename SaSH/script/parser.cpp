@@ -61,7 +61,7 @@ void Parser::parse(qint64 line)
 
 	if (variables_ == nullptr)
 	{
-		variables_ = new QVariantHash();
+		variables_ = new VariantSafeHash();
 		if (variables_ == nullptr)
 			return;
 	}
@@ -1061,7 +1061,7 @@ void Parser::replaceToVariable(QString& expr)
 
 	tmpvec.clear();
 
-	QVariantHash* pglobalhash = getGlobalVarPointer();
+	VariantSafeHash* pglobalhash = getGlobalVarPointer();
 
 	for (auto it = pglobalhash->cbegin(); it != pglobalhash->cend(); ++it)
 	{
@@ -1316,7 +1316,7 @@ void Parser::recordFunctionChunks()
 			}
 
 			chunkHash.insert(indentLevel, chunk);
-			}
+		}
 		//紀錄function起始行
 		if (cmd == "function")
 		{
@@ -1326,13 +1326,13 @@ void Parser::recordFunctionChunks()
 			chunkHash.insert(indentLevel, chunk);
 			++indentLevel;
 		}
-		}
+	}
 
 #ifdef _DEBUG
 	for (auto it = functionChunks_.cbegin(); it != functionChunks_.cend(); ++it)
 		qDebug() << it.key() << it.value().name << it.value().begin << it.value().end;
 #endif
-	}
+}
 
 void Parser::recordForChunks()
 {
@@ -3145,7 +3145,7 @@ void Parser::processTokens()
 			{
 				SPD_LOG(g_logger_name, "[parser] Emitting var info");
 				QVariantHash varhash;
-				QVariantHash* pglobalHash = getGlobalVarPointer();
+				VariantSafeHash* pglobalHash = getGlobalVarPointer();
 				QVariantHash localHash;
 				if (!localVarStack_.isEmpty())
 					localHash = localVarStack_.top();

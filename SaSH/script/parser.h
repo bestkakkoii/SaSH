@@ -212,7 +212,7 @@ public:
 	//解析腳本
 	void parse(qint64 line = 0);
 
-	Q_REQUIRED_RESULT inline QVariantHash* getGlobalVarPointer() const
+	Q_REQUIRED_RESULT inline VariantSafeHash* getGlobalVarPointer() const
 	{
 		if (globalVarLock_ == nullptr)
 			return nullptr;
@@ -256,7 +256,7 @@ public:
 			insertGlobalVar(name, value);
 	}
 
-	inline void setVariablesPointer(QVariantHash* pvariables, QReadWriteLock* plock)
+	inline void setVariablesPointer(VariantSafeHash* pvariables, QReadWriteLock* plock)
 	{
 		if (!isSubScript())
 			return;
@@ -453,7 +453,7 @@ private:
 
 	QHash<qint64, TokenMap> tokens_;						//當前運行腳本的每一行token
 	mutable QReadWriteLock* globalVarLock_ = nullptr;		//全局變量鎖指針
-	QVariantHash* variables_ = nullptr;						//全局變量容器指針
+	VariantSafeHash* variables_ = nullptr;						//全局變量容器指針
 	QHash<QString, qint64> labels_;							//所有標記/函數所在行記錄
 	QHash<QString, FunctionChunk> functionChunks_;          //函數代碼塊紀錄，用於避免直接執行到function，確保只有 call 才能執行到 function
 	QHash<QString, ForChunk> forChunks_;

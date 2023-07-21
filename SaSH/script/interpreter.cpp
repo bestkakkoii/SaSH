@@ -160,7 +160,7 @@ bool Interpreter::doFile(qint64 beginLine, const QString& fileName, Interpreter*
 
 	if (shareMode == kShare)
 	{
-		QVariantHash* pparentHash = parent->parser_.getGlobalVarPointer();
+		VariantSafeHash* pparentHash = parent->parser_.getGlobalVarPointer();
 		QReadWriteLock* pparentLock = parent->parser_.getGlobalVarLockPointer();
 		if (pparentHash != nullptr && pparentLock != nullptr)
 			parser_.setVariablesPointer(pparentHash, pparentLock);
@@ -242,7 +242,7 @@ void Interpreter::doString(const QString& script, Interpreter* parent, VarShareM
 
 		if (shareMode == kShare)
 		{
-			QVariantHash* pparentHash = parent->parser_.getGlobalVarPointer();
+			VariantSafeHash* pparentHash = parent->parser_.getGlobalVarPointer();
 			QReadWriteLock* pparentLock = parent->parser_.getGlobalVarLockPointer();
 			if (pparentHash != nullptr && pparentLock != nullptr)
 				parser_.setVariablesPointer(pparentHash, pparentLock);
