@@ -1414,7 +1414,7 @@ void Parser::generateStackInfo(qint64 type)
 	}
 
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
-	if (type == 0)
+	if (type == kModeCallStack)
 		emit signalDispatcher.callStackInfoChanged(QVariant::fromValue(hash));
 	else
 		emit signalDispatcher.jumpStackInfoChanged(QVariant::fromValue(hash));
@@ -2799,8 +2799,8 @@ void Parser::processTokens()
 		emit signalDispatcher.addErrorMarker(-1, false);
 		emit signalDispatcher.addForwardMarker(-1, false);
 		emit signalDispatcher.addStepMarker(-1, false);
-		generateStackInfo(0);
-		generateStackInfo(1);
+		generateStackInfo(kModeCallStack);
+		generateStackInfo(kModeJumpStack);
 	}
 
 	recordFunctionChunks();
@@ -2943,7 +2943,7 @@ void Parser::processTokens()
 			case kHasJump:
 			{
 				SPD_LOG(g_logger_name, "[parser] Command has jumped");
-				generateStackInfo(1);
+				generateStackInfo(kModeJumpStack);
 				SPD_LOG(g_logger_name, "[parser] done generateStackInfo");
 				continue;
 			}
@@ -3058,7 +3058,7 @@ void Parser::processTokens()
 			if (processCall())
 			{
 				SPD_LOG(g_logger_name, "[parser] Call has jumped");
-				generateStackInfo(0);
+				generateStackInfo(kModeCallStack);
 				SPD_LOG(g_logger_name, "[parser] done generateStackInfo");
 				continue;
 			}
@@ -3071,7 +3071,7 @@ void Parser::processTokens()
 			if (processGoto())
 			{
 				SPD_LOG(g_logger_name, "[parser] Goto has jumped");
-				generateStackInfo(1);
+				generateStackInfo(kModeJumpStack);
 				SPD_LOG(g_logger_name, "[parser] done generateStackInfo");
 				continue;
 			}
@@ -3084,7 +3084,7 @@ void Parser::processTokens()
 			if (processJump())
 			{
 				SPD_LOG(g_logger_name, "[parser] Jump has jumped");
-				generateStackInfo(1);
+				generateStackInfo(kModeJumpStack);
 				SPD_LOG(g_logger_name, "[parser] done generateStackInfo");
 				continue;
 			}
@@ -3096,7 +3096,7 @@ void Parser::processTokens()
 			SPD_LOG(g_logger_name, "[parser] Processing return");
 			processReturn();
 			SPD_LOG(g_logger_name, "[parser] Return has finished");
-			generateStackInfo(0);
+			generateStackInfo(kModeCallStack);
 			SPD_LOG(g_logger_name, "[parser] done generateStackInfo");
 			continue;
 		}
@@ -3105,7 +3105,7 @@ void Parser::processTokens()
 			SPD_LOG(g_logger_name, "[parser] Processing back");
 			processBack();
 			SPD_LOG(g_logger_name, "[parser] Back has finished");
-			generateStackInfo(1);
+			generateStackInfo(kModeJumpStack);
 			SPD_LOG(g_logger_name, "[parser] done generateStackInfo");
 			continue;
 		}

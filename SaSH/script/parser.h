@@ -98,6 +98,12 @@ public:
 		kAsync,
 	};
 
+	enum StackMode
+	{
+		kModeCallStack,
+		kModeJumpStack,
+	};
+
 public:
 	inline ParserError lastCriticalError() const { return lastCriticalError_; }
 
