@@ -76,6 +76,15 @@ Despite the removal of these sensitive files, it has been confirmed that their a
 
 The decision to remove these files was made to prioritize the security and protection of sensitive information within the project. The codebase has been carefully reviewed and updated to ensure that the removal has minimal impact on the overall functionality.
 
+
+### Impact on functionalities
+
+1. **Script encryption and decryption:** The ability to encrypt and decrypt scripts.
+
+2. **Captcha OCR:** The capability to perform Optical Character Recognition on captchas for verification.
+
+3. **Network authentication:** The process of authenticating users or devices on the network.
+
 ---
 
 ### 已移除的文件
@@ -103,3 +112,11 @@ The decision to remove these files was made to prioritize the security and prote
 儘管移除這些敏感文件，經確認其缺失不會影響項目的主要功能。所有主要功能和功能都保持完好。
 
 移除這些文件的決策是為了保障項目內敏感資訊的安全和保護。代碼庫已經經過仔細檢查和更新，以確保這些移除不會對整體功能造成太大影響。
+
+### 影響的功能
+
+1. **腳本加密和解密：** 無法正常進行腳本的加密和解密操作。
+
+2. **驗證碼OCR：** 無法進行驗證碼的圖片字符識別。
+
+3. **網絡驗證：** 無法順利地進行網絡驗證，即驗證用戶或設備的身份。

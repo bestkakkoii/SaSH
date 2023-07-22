@@ -23,7 +23,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "injector.h"
 #include "signaldispatcher.h"
 
-#include "crypto.h"
+//#include "crypto.h"
 
 #include "spdloger.hpp"
 
@@ -310,12 +310,14 @@ bool Interpreter::readFile(const QString& fileName, QString* pcontent, bool* isP
 	}
 	else if (fileName.endsWith(util::SCRIPT_PRIVATE_SUFFIX_DEFAULT))
 	{
+#ifdef CRYPTO_H
 		Crypto crypto;
 		if (!crypto.decodeScript(fileName, c))
 			return false;
 
 		if (isPrivate != nullptr)
 			*isPrivate = true;
+#endif
 	}
 
 	if (pcontent != nullptr)

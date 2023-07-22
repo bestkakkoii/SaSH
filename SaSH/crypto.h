@@ -16,7 +16,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 */
 
-#pragma once
+#ifndef CRYPTO_H
+#define CRYPTO_H
 #include <QByteArray>
 
 class Crypto
@@ -37,3 +38,5 @@ private:
 	QByteArray rsaDecrypt(const QByteArray& encryptedData, const QByteArray& privateKey);
 	//void generateAndSaveRSAKeys();
 };
+
+#endif // CRYPTO_H

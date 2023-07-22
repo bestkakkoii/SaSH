@@ -30,7 +30,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 #pragma region MACROS
 //custom
-#define OCR_ENABLE
+//#define OCR_ENABLE
 
 //sa original
 #define _PETS_SELECTCON

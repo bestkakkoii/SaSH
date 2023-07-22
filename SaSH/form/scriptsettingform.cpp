@@ -23,7 +23,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "signaldispatcher.h"
 
 
-#include "crypto.h"
+//#include "crypto.h"
 #include <QSpinBox>
 
 extern util::SafeHash<QString, util::SafeHash<qint64, break_marker_t>> break_markers;//interpreter.cpp//用於標記自訂義中斷點(紅點)
@@ -1790,7 +1790,7 @@ void ScriptSettingForm::on_treeWidget_functionList_itemSelectionChanged()
 		ui.textBrowser->setUpdatesEnabled(true);
 
 		return;
-} while (false);
+	} while (false);
 
 }
 
@@ -2044,6 +2044,7 @@ void ScriptSettingForm::on_listView_log_doubleClicked(const QModelIndex& index)
 
 void ScriptSettingForm::onEncryptSave()
 {
+#ifdef CRYPTO_H
 	QInputDialog inputDialog(this);
 	inputDialog.setWindowTitle(tr("EncryptScript"));
 	inputDialog.setLabelText(tr("Please input password"));
@@ -2082,10 +2083,12 @@ void ScriptSettingForm::onEncryptSave()
 	{
 		ui.statusBar->showMessage(tr("Encrypt script save failed"), 3000);
 	}
+#endif
 }
 
 void ScriptSettingForm::onDecryptSave()
 {
+#ifdef CRYPTO_H
 	QInputDialog inputDialog(this);
 	inputDialog.setWindowTitle(tr("DecryptScript"));
 	inputDialog.setLabelText(tr("Please input password"));
@@ -2125,4 +2128,5 @@ void ScriptSettingForm::onDecryptSave()
 	{
 		ui.statusBar->showMessage(tr("Decrypt password is incorrect"), 3000);
 	}
+#endif
 }
