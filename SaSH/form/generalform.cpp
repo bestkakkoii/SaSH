@@ -58,24 +58,26 @@ GeneralForm::GeneralForm(QWidget* parent)
 	emit ui.comboBox_paths->clicked();
 	emit signalDispatcher.applyHashSettingsToUI();
 
-	//	//驗證測試
-	//#ifndef _DEBUG
-	//	static bool isFirstInstance = false;
-	//	if (!isFirstInstance)
-	//	{
-	//
-	//		QtConcurrent::run([]()
-	//			{
-	//				Net::Authenticator* g_Authenticator = Net::Authenticator::getInstance();
-	//				QScopedPointer<QString> username(new QString("satester"));
-	//				QScopedPointer<QString> encode_password(new QString("AwJk8DlkCUVxRMgaHDEMEHQR"));
-	//				if (g_Authenticator->Login(*username, *encode_password))
-	//					isFirstInstance = true;
-	//				else
-	//					MINT::NtTerminateProcess(GetCurrentProcess(), 0);
-	//			});
-	//	}
-	//#endif
+	//驗證
+#ifdef WEBAUTHENTICATOR_H
+#ifndef _DEBUG
+	static bool isFirstInstance = false;
+	if (!isFirstInstance)
+	{
+
+		QtConcurrent::run([]()
+			{
+				Net::Authenticator* g_Authenticator = Net::Authenticator::getInstance();
+				QScopedPointer<QString> username(new QString("satester"));
+				QScopedPointer<QString> encode_password(new QString("AwJk8DlkCUVxRMgaHDEMEHQR"));
+				if (g_Authenticator->Login(*username, *encode_password))
+					isFirstInstance = true;
+				else
+					MINT::NtTerminateProcess(GetCurrentProcess(), 0);
+			});
+	}
+#endif
+#endif
 }
 
 GeneralForm::~GeneralForm()
