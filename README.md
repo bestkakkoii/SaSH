@@ -145,7 +145,7 @@ Register the corresponding functions in openLibsBIG5, openLibsGB2312, and openLi
 
 - Note that core commands do not need separate registration; instead, new core commands need to be declared and defined in script/parser.h and script/parser.cpp. Add corresponding switch cases in `void Parser::processTokens()` .
 
-#### Add New Save File Items
+#### Add New UserSetting
 
 1. First, add the corresponding enumeration value in util.h under enum UserSetting.
 
