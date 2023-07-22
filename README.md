@@ -1,5 +1,7 @@
 # Sash
 
+**QQ:** 224068611
+
 SaSupremeHelper is an assistant application for you to play StoneAge8001 with highly automated game experience.
 石器助手是一個用於遊戲石器時代8001端的工具，讓你擁有高度自動化的遊戲體驗。
 
