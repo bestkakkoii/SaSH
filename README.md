@@ -14,11 +14,14 @@ However we make no promises to your game accounts and so you have to use this pr
 ---
 
 ### Project Build Requirement 項目依賴
-Visual Studio 2022
-Windows SDK 11 (the msvc projects uses Windows SDK version 10.0.22621.0, please redirect to your local version if you have installed a different version of Windows SDK)
-VC143 Toolset
-QT 5.15.2 for msvc2019, win32 (x86), with VS2022(V17.6.5) + Qt Visual Studio Tools 2.10.1.2(Plugin)
 
+- Visual Studio 2022(V17.6.5)
+- Qt Visual Studio Tools 2.10.1.2(Plugin)
+- VC143 Toolset
+- QT 5.15.2 for msvc2019, win32 (x86)
+- Windows SDK 11 (the msvc projects uses Windows SDK version 10.0.22621.0, please redirect to your local version if you have installed a different version of Windows SDK)
+
+---
 
 ### Libs/Modules/Headers Requirement 其他依賴庫/模組/頭文件
 
