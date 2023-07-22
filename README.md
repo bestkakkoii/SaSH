@@ -27,7 +27,7 @@ However we make no promises to your game accounts and so you have to use this pr
 
 **Qt Modules Qt模組**
 
-Gui, Widgets, Concurrent, Core, OpenGL, PrintSupport
+Gui, Widgets, Concurrent, Core, OpenGL, PrintSupport, Network, Concurrent
 
 **Libs 靜態庫**
 
@@ -35,7 +35,7 @@ ws2_32.lib, detours.lib
 
 **3rd Party 第三方依賴組件**
 
-Glu32.lib, OpenGL32.lib, cpr.lib, libcurl.lib(libcurl.dll)
+Glu32.lib, OpenGL32.lib, cpr.lib, libcurl.lib(libcurl.dll), qscintilla2_qt5.lib
 
 ---
 
