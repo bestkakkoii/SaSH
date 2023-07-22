@@ -57,4 +57,12 @@ compile_commands.json
 /sadll/Release
 /SaSH/Debug
 /SaSH/Release
-/Debug/settings
+/ReleaseTool
+/Debug
+/Release
+/SaSH/crypto.cpp
+/SaSH/net/webauthenticator.cpp
+/SaSH/net/webauthenticator.h
+/sadll/sadll.cpp
+/.vs
+/Release/SaSH.exe
