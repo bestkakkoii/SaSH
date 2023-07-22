@@ -158,4 +158,4 @@ The decision to remove these files was made to prioritize the security and prote
 
 #### 嚴守的規則
 
-不管是基於C++本身的限制也好，或其他因素，嚴禁在UI內直接處理邏輯，或在其他線程直接操作UI，請一律交由 signaldispatcher.h 透過信號槽處理
+不管是基於C++本身的限制也好，或其他因素，嚴禁在UI內直接處理太過複雜的邏輯，或在其他線程直接操作UI，請一律交由 signaldispatcher.h 透過信號槽處理
