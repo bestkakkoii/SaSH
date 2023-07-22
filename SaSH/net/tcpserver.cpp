@@ -10896,8 +10896,6 @@ void Server::asyncBattleAction()
 			announce(QString("[async battle] 准备发出宠物战斗指令"));
 			if (!hasUnMoveableStatue(bt.pet.status))
 			{
-				delay(u8"战宠");
-
 				if (petDoBattleWork() == 1)
 				{
 					announce("[async battle] 宠物战斗指令发送完毕");

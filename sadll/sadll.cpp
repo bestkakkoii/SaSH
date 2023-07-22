@@ -311,6 +311,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, DWORD message, LPARAM wParam, LPARAM lParam)
 		{
 			PostMessageW(g_ParenthWnd, message + WM_USER + VK_DELETE, wParam, lParam);
 		}
+		break;
 	}
 	case kInitialize:
 	{
@@ -330,7 +331,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, DWORD message, LPARAM wParam, LPARAM lParam)
 		SetWindowLongW(g_MainHwnd, GWL_WNDPROC, reinterpret_cast<LONG_PTR>(g_OldWndProc));
 		FreeLibraryAndExitThread(g_hDllModule, 0);
 		return 1;
-	}
+}
 	case kGetModule:
 	{
 		return reinterpret_cast<int>(GetModuleHandleW(nullptr));
