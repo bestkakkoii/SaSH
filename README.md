@@ -137,6 +137,9 @@ The decision to remove these files was made to prioritize the security and prote
 
 3. script分類下的文件中挑個地方定義新命令的內容
 
+- 定義新命令的函數中取參數一律使用 `checkString`, `checkInteger`, `toVariant`, `checkRange` 等函數透過傳入參數索引取值
+- 對於跳轉 則在定義函數末尾使用 `checkJump` 正確或錯誤跳轉，使用最後一個參數輸入枚舉值 `SuccessJump` 或 `FailedJump` 操作
+
 - 注意，核心命令不需要另外註冊取代的是需要在 script/parser.h script/parser.cpp 中新增對應的聲明和定義，
 並在 `void Parser::processTokens()` 中增加對應switch項
 
