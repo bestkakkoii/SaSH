@@ -15,25 +15,56 @@ However we make no promises to your game accounts and so you have to use this pr
 Visual Studio 2022
 Windows SDK 11 (the msvc projects uses Windows SDK version 10.0.22621.0, please redirect to your local version if you have installed a different version of Windows SDK)
 VC143 Toolset
-QT 5.15.2 for msvc2019, win32 (x86), with VS2022(V17.6.2) + Qt Visual Studio Tools 2.10.1.2(Plugin)
+QT 5.15.2 for msvc2019, win32 (x86), with VS2022(V17.6.5) + Qt Visual Studio Tools 2.10.1.2(Plugin)
 
 
 ### Libs/Modules/Headers Requirement 其他依賴庫/模組/頭文件
 
 **Qt Modules Qt模組**
+
 Gui, Widgets, Concurrent, Core, OpenGL, PrintSupport
 
 **Libs 靜態庫**
+
 ws2_32.lib, detours.lib
 
 **3rd Party 第三方依賴組件**
+
 Glu32.lib, OpenGL32.lib, cpr.lib, libcurl.lib(libcurl.dll)
 
 
 **Gernel Setting 一般設置**
+
 (/std:c++17)
 (/std:c17)
 (/utf-8)
 
 **Default CodePage 預設編碼頁**
+
 UTF-8 with BOM
+
+### Removed Files
+
+The following files have been removed from the project:
+
+- webauthenticator.h
+- webauthenticator.cpp
+- crypto.h
+- crypto.cpp
+- sadll.cpp
+
+### Impact on Compilation
+
+Since these files have been removed, it is essential to update the remaining source code files to avoid compilation errors.
+
+1. **Update #include Directives:** Make sure to review all source files and remove any `#include` directives that reference the removed files. If there are dependencies that still need to be included, update the directives accordingly.
+
+2. **Check Function and Class References:** Verify that there are no references to functions or classes that were defined in the removed files. If such references exist, either remove them if they are no longer needed or find appropriate replacements within the existing codebase.
+
+3. **Resolve Build Errors:** After making the necessary updates, attempt to compile the project. If there are any build errors related to the removed files, address them by removing the problematic code or finding suitable replacements.
+
+### Functionality Verification
+
+Once the project compiles without errors, perform thorough testing to ensure that all features and functionalities work as expected despite the removal of the files.
+
+Please note that removing files can have significant impacts on the project, and it's crucial to review and update the codebase carefully to maintain proper functionality.
