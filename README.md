@@ -99,7 +99,6 @@ The decision to remove these files was made to prioritize the security and prote
 - webauthenticator.cpp
 - crypto.h
 - crypto.cpp
-- sadll.cpp
 
 ### 對編譯的影響
 
