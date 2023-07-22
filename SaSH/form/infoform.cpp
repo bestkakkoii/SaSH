@@ -1,6 +1,24 @@
-﻿#include "stdafx.h"
+﻿/*
+				GNU GENERAL PUBLIC LICENSE
+				   Version 2, June 1991
+COPYRIGHT (C) Bestkakkoii 2023 All Rights Reserved.
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU General Public License for more details.
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+
+*/
+
+#include "stdafx.h"
 #include "infoform.h"
-#include "../util.h"
+#include <util.h>
 
 #include "battleinfoform.h"
 #include "playerinfoform.h"
@@ -11,8 +29,9 @@
 #include "afkinfoform.h"
 
 #include "signaldispatcher.h"
+#include "injector.h"
 
-InfoForm::InfoForm(QWidget* parent)
+InfoForm::InfoForm(int defaultPage, QWidget* parent)
 	: QWidget(parent)
 {
 	ui.setupUi(this);
@@ -23,7 +42,6 @@ InfoForm::InfoForm(QWidget* parent)
 
 	connect(this, &InfoForm::resetControlTextLanguage, this, &InfoForm::onResetControlTextLanguage, Qt::UniqueConnection);
 
-	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
 
 	ui.tabWidget->clear();
 	util::setTab(ui.tabWidget);
@@ -71,10 +89,20 @@ InfoForm::InfoForm(QWidget* parent)
 	}
 
 	onResetControlTextLanguage();
+	onApplyHashSettingsToUI();
+
+	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
+
+	connect(&signalDispatcher, &SignalDispatcher::applyHashSettingsToUI, this, &InfoForm::onApplyHashSettingsToUI, Qt::UniqueConnection);
 
 
 	util::FormSettingManager formManager(this);
 	formManager.loadSettings();
+
+	if (defaultPage > 0 && defaultPage <= ui.tabWidget->count())
+	{
+		ui.tabWidget->setCurrentIndex(defaultPage - 1);
+	}
 }
 
 InfoForm::~InfoForm()
@@ -110,5 +138,19 @@ void InfoForm::onResetControlTextLanguage()
 
 	pPlayerInfoForm_->onResetControlTextLanguage();
 	pItemInfoForm_->onResetControlTextLanguage();
+	pChatInfoForm_->onResetControlTextLanguage();
 
 }
+
+void InfoForm::onApplyHashSettingsToUI()
+{
+	Injector& injector = Injector::getInstance();
+	if (!injector.server.isNull() && injector.server->getOnlineFlag())
+	{
+		QString title = tr("InfoForm");
+		QString newTitle = QString("[%1] %2").arg(injector.server->getPC().name).arg(title);
+		setWindowTitle(newTitle);
+	}
+}
+
+

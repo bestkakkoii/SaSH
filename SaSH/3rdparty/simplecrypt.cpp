@@ -61,7 +61,7 @@ void SimpleCrypt::splitKey()
 {
 	m_keyParts.clear();
 	m_keyParts.resize(8);
-	for (int i = 0; i < 8; i++)
+	for (int i = 0; i < 8; ++i)
 	{
 		quint64 part = m_key;
 		for (int j = i; j > 0; j--)

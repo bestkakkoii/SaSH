@@ -1,98 +1,109 @@
-﻿#include "stdafx.h"
+﻿/*
+				GNU GENERAL PUBLIC LICENSE
+				   Version 2, June 1991
+COPYRIGHT (C) Bestkakkoii 2023 All Rights Reserved.
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU General Public License for more details.
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+
+*/
+
+#include "stdafx.h"
 #include "tcpserver.h"
 #include "autil.h"
-#include "util.h"
-#include "injector.h"
+#include <injector.h>
 #include "signaldispatcher.h"
+#include "map/mapanalyzer.h"
+#include "script/interpreter.h"
 
-constexpr size_t LINEBUFSIZ = 8192;
-int net_readbuflen = 0;
-char net_readbuf[LINEBUFSIZ] = {};
-char rpc_linebuffer[Autil::NETBUFSIZ] = {};
-
-void Server::clearNetBuffer()
-{
-	net_readbuflen = 0;
-	memset(net_readbuf, 0, sizeof(net_readbuf));
-	memset(rpc_linebuffer, 0, sizeof(rpc_linebuffer));
-	Autil::util_Release();
-}
+#include "spdloger.hpp"
+extern QString g_logger_name;//parser.cpp
 
 #pragma region StringControl
-int a62toi(const QString& a)
+// 0-9,a-z(10-35),A-Z(36-61)
+int Server::a62toi(const QString& a) const
 {
 	int ret = 0;
 	int sign = 1;
-	try
+	int size = a.length();
+	for (int i = 0; i < size; ++i)
 	{
-		for (int i = 0; i < a.length(); i++)
-		{
-			ret *= 62;
-			if ('0' <= a[i] && a[i] <= '9')
-				ret += a[i].unicode() - '0';
-			else if ('a' <= a[i] && a[i] <= 'z')
-				ret += a[i].unicode() - 'a' + 10;
-			else if ('A' <= a[i] && a[i] <= 'Z')
-				ret += a[i].unicode() - 'A' + 36;
-			else if (a[i] == '-')
-				sign = -1;
-			else
-				return 0;
-		}
-	}
-	catch (...)
-	{
-		return 0;
+		ret *= 62;
+		if ('0' <= a[i] && a[i] <= '9')
+			ret += a[i].unicode() - '0';
+		else if ('a' <= a[i] && a[i] <= 'z')
+			ret += a[i].unicode() - 'a' + 10;
+		else if ('A' <= a[i] && a[i] <= 'Z')
+			ret += a[i].unicode() - 'A' + 36;
+		else if (a[i] == '-')
+			sign = -1;
+		else
+			return 0;
 	}
 	return ret * sign;
 }
 
-int getStringToken(const QString& src, const QString& delim, int count, QString& out)
+int Server::getStringToken(const QString& src, const QString& delim, int count, QString& out) const
 {
+	if (src.isEmpty() || delim.isEmpty() || count < 0)
+	{
+		out.clear();
+		return 1;
+	}
+
 	int c = 1;
 	int i = 0;
 
-	try
+	while (c < count)
 	{
-		while (c < count)
+		i = src.indexOf(delim, i);
+		if (i == -1)
 		{
-			i = src.indexOf(delim, i);
-			if (i == -1)
-			{
-				out = "";
-				return 1;
-			}
-			i += delim.length();
-			c++;
+			out = "";
+			return 1;
 		}
-
-		int j = src.indexOf(delim, i);
-		if (j == -1)
-		{
-			out = src.mid(i);
-			return 0;
-		}
-
-		out = src.mid(i, j - i);
+		i += delim.length();
+		c++;
 	}
-	catch (...)
+
+	int j = src.indexOf(delim, i);
+	if (j == -1)
 	{
-		return 1;
+		out = src.mid(i);
+		return 0;
 	}
+
+	out = src.mid(i, j - i);
 	return 0;
 }
 
-int getIntegerToken(const QString& src, const QString& delim, int count)
+int Server::getIntegerToken(const QString& src, const QString& delim, int count) const
 {
+	if (src.isEmpty() || delim.isEmpty() || count < 0)
+	{
+		return -1;
+	}
+
 	QString s;
 	if (getStringToken(src, delim, count, s) == 1)
 		return -1;
 
-	return s.toInt();
-
+	bool ok = false;
+	int value = s.toInt(&ok);
+	if (ok)
+		return value;
+	return -1;
 }
 
-int getInteger62Token(const QString& src, const QString& delim, int count)
+int Server::getInteger62Token(const QString& src, const QString& delim, int count) const
 {
 	QString s;
 	getStringToken(src, delim, count, s);
@@ -101,25 +112,25 @@ int getInteger62Token(const QString& src, const QString& delim, int count)
 	return a62toi(s);
 }
 
-struct EscapeChar
+QString Server::makeStringFromEscaped(const QString& src) const
 {
-	QChar escapechar;
-	QChar escapedchar;
-};
+	struct EscapeChar
+	{
+		QChar escapechar;
+		QChar escapedchar;
+	};
 
-static const EscapeChar escapeChar[] = {
-	{ QChar('n'), QChar('\n') },
-	{ QChar('c'), QChar(',')},
-	{ QChar('z'), QChar('|')},
-	{ QChar('y'), QChar('\\') },
-};
+	static const EscapeChar escapeChar[] = {
+		{ QChar('n'), QChar('\n') },
+		{ QChar('c'), QChar(',')},
+		{ QChar('z'), QChar('|')},
+		{ QChar('y'), QChar('\\') },
+	};
 
-QString makeStringFromEscaped(const QString& src)
-{
 	QString result;
 	int srclen = src.length();
 
-	for (int i = 0; i < srclen; i++)
+	for (int i = 0; i < srclen; ++i)
 	{
 		if (src[i] == '\\' && i + 1 < srclen)
 		{
@@ -135,7 +146,7 @@ QString makeStringFromEscaped(const QString& src)
 
 			if (!isDBCSLeadByte)
 			{
-				for (int j = 0; j < sizeof(escapeChar) / sizeof(escapeChar[0]); j++)
+				for (int j = 0; j < sizeof(escapeChar) / sizeof(escapeChar[0]); ++j)
 				{
 					if (escapeChar[j].escapedchar == nextChar)
 					{
@@ -155,8 +166,9 @@ QString makeStringFromEscaped(const QString& src)
 	return result;
 }
 
+#if 0
 // 0-9,a-z(10-35),A-Z(36-61)
-int a62toi(char* a)
+int Server::a62toi(char* a) const
 {
 	int ret = 0;
 	int fugo = 1;
@@ -167,109 +179,100 @@ int a62toi(char* a)
 		if ('0' <= (*a) && (*a) <= '9')
 			ret += (*a) - '0';
 		else
+		{
 			if ('a' <= (*a) && (*a) <= 'z')
 				ret += (*a) - 'a' + 10;
 			else
+			{
 				if ('A' <= (*a) && (*a) <= 'Z')
 					ret += (*a) - 'A' + 36;
 				else
+				{
 					if (*a == '-')
 						fugo = -1;
 					else
 						return 0;
+				}
+			}
+		}
 		a++;
 	}
 	return ret * fugo;
 }
+#endif
 
-
-int appendReadBuf(char* buf, int size)
+void Server::clearNetBuffer()
 {
-	if ((net_readbuflen + size) > Autil::NETBUFSIZ)
-		return -1;
+	//memset(net_readbuf, 0, sizeof(net_readbuf));
+	net_readbuf.clear();
+	//memset(rpc_linebuffer, 0, sizeof(rpc_linebuffer));
+	Autil::util_Clear();
+}
 
-	memcpy_s(net_readbuf + net_readbuflen, Autil::NETBUFSIZ, buf, size);
-	net_readbuflen += size;
+int Server::appendReadBuf(const QByteArray& data)
+{
+	net_readbuf.append(data);
 	return 0;
 }
 
-int shiftReadBuf(int size)
+QByteArrayList Server::splitLinesFromReadBuf()
 {
-	int i;
+	QByteArrayList lines = net_readbuf.split('\n'); // Split net_readbuf into lines
 
-	if (size > net_readbuflen)
-		return -1;
-	for (i = size; i < net_readbuflen; i++)
+	if (!net_readbuf.endsWith('\n'))
 	{
-		net_readbuf[i - size] = net_readbuf[i];
+		// The last line is incomplete, remove it from the list and keep it in net_readbuf
+		int lastIndex = lines.size() - 1;
+		net_readbuf = lines[lastIndex];
+		lines.removeAt(lastIndex);
 	}
-	net_readbuflen -= size;
-	return 0;
-}
-
-int getLineFromReadBuf(char* output, int maxlen)
-{
-	int i, j;
-	if (net_readbuflen >= Autil::NETBUFSIZ)
-		return -1;
-
-	for (i = 0; i < net_readbuflen && i < (maxlen - 1); i++)
+	else
 	{
-		if (net_readbuf[i] == '\n')
-		{
-			memcpy_s(output, Autil::NETBUFSIZ, net_readbuf, i);
-			output[i] = '\0';
-
-			for (j = i + 1; j >= 0; j--)
-			{
-				if (j >= Autil::NETBUFSIZ)
-					continue;
-				if (output[j] == '\r')
-				{
-					output[j] = '\0';
-					break;
-				}
-			}
-
-			shiftReadBuf(i + 1);
-
-			net_readbuf[net_readbuflen] = '\0';
-			return 0;
-		}
+		// net_readbuf does not contain any incomplete line
+		net_readbuf.clear();
 	}
-	return -1;
-}
 
+	for (int i = 0; i < lines.size(); ++i)
+	{
+		// Remove '\r' from each line
+		lines[i] = lines[i].replace('\r', "");
+	}
+
+	return lines;
+}
 
 #pragma endregion
 
-Server::Server(QObject* parent)
-	: QObject(parent)
+inline constexpr bool checkAND(unsigned int a, unsigned int b)
 {
+	return (a & b) == b;
+}
+
+Server::Server(QObject* parent)
+	: ThreadPlugin(parent)
+	, chatQueue(MAX_CHAT_HISTORY)
+{
+	loginTimer.start();
 	battleDurationTimer.start();
 	normalDurationTimer.start();
 	eottlTimer.start();
+	connectingTimer.start();
+	repTimer.start();
 
-	sync_.setCancelOnWait(true);
-
-	server_.reset(new QTcpServer(parent));
-	connect(server_.data(), &QTcpServer::newConnection, this, &Server::onNewConnection);
-
-	if (!server_->listen(QHostAddress::AnyIPv6, 0))
-	{
-		qDebug() << "Failed to listen on socket";
-		return;
-	}
-
-	port_ = server_->serverPort();
 	Autil::util_Init();
 	clearNetBuffer();
+
+	sync_.setCancelOnWait(true);
+	ayncBattleCommandSync.setCancelOnWait(true);
+
+	mapAnalyzer.reset(new MapAnalyzer);
 }
 
 Server::~Server()
 {
-	clearNetBuffer();
 	requestInterruption();
+	clearNetBuffer();
+
 	server_->close();
 	for (QTcpSocket* clientSocket : clientSockets_)
 	{
@@ -278,125 +281,117 @@ Server::~Server()
 
 	for (QTcpSocket* clientSocket : clientSockets_)
 	{
-		clientSocket->waitForDisconnected();
+		if (clientSocket == nullptr)
+			continue;
+
+		if (clientSocket->state() == QAbstractSocket::ConnectedState)
+			clientSocket->waitForDisconnected();
 		delete clientSocket;
 	}
 
 	clientSockets_.clear();
+
+	ayncBattleCommandFlag.store(true, std::memory_order_release);
+	ayncBattleCommandSync.waitForFinished();
+	ayncBattleCommandSync.clearFutures();
+	ayncBattleCommandFlag.store(false, std::memory_order_release);
 	sync_.waitForFinished();
+	mapAnalyzer.reset(nullptr);
 	qDebug() << "Server is distroyed";
 }
 
-void Server::run()
+//用於清空部分數據 主要用於登出後清理數據避免數據混亂，每次登出後都應該清除大部分的基礎訊息
+void Server::clear()
 {
-	//WSADATA data;
-	//if (::WSAStartup(MAKEWORD(2, 2), &data) != 0)
-	//{
-	//	qDebug() << "Failed to initialize Winsock";
-	//	return;
-	//}
+	enemyNameListCache.clear();
+	mapUnitHash.clear();
+	chatQueue.clear();
+	for (int i = 0; i < MAX_PET + 1; ++i)
+		recorder[i] = {};
+	battleData = {};
+	PalState = {};
+	currentDialog = dialog_t{};
 
-	//SOCKET listenSocket = ::socket(AF_INET6, SOCK_STREAM, 0);
-	//if (listenSocket == INVALID_SOCKET)
-	//{
-	//	qDebug() << "Failed to create socket";
-	//	::WSACleanup();
-	//	return;
-	//}
+	// 清理 MAIL_HISTORY 数组中的每个元素
+	for (int i = 0; i < MAX_ADR_BOOK; ++i)
+	{
+		MailHistory[i] = {};
+	}
 
-	//auto setsocket = [](SOCKET fd)
-	//{
-	//	int bufferSize = 8192;
-	//	int minBufferSize = 1;
-	//	setsockopt(fd, SOL_SOCKET, SO_RCVBUF, (char*)&bufferSize, sizeof(bufferSize));
-	//	setsockopt(fd, SOL_SOCKET, SO_SNDBUF, (char*)&bufferSize, sizeof(bufferSize));
-	//	setsockopt(fd, SOL_SOCKET, SO_RCVLOWAT, (char*)&minBufferSize, sizeof(minBufferSize));
-	//	setsockopt(fd, SOL_SOCKET, SO_SNDLOWAT, (char*)&minBufferSize, sizeof(minBufferSize));
-	//	LINGER lingerOption = {};
-	//	lingerOption.l_onoff = 0i16;        // 立即中止
-	//	lingerOption.l_linger = 0i16;      // 延遲時間不適用
-	//	setsockopt(fd, SOL_SOCKET, SO_LINGER, (char*)&lingerOption, sizeof(lingerOption));
-	//	int keepAliveOption = 1;  // 開啟保持活動機制
-	//	setsockopt(fd, SOL_SOCKET, TCP_KEEPALIVE, (char*)&keepAliveOption, sizeof(keepAliveOption));
+	// 清理 PET 数组中的每个元素
+	for (int i = 0; i < MAX_PET; ++i)
+	{
+		pet[i] = {};
+	}
 
-	//	//DWORD timeout = 5000; // 超時時間為 5000 毫秒
-	//	//setsockopt(fd, SOL_SOCKET, SO_SNDTIMEO, (char*)&timeout, sizeof(timeout));
-	//	//setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, (char*)&timeout, sizeof(timeout));
-	//};
+	// 清理 PROFESSION_SKILL 数组中的每个元素
+	for (int i = 0; i < MAX_PROFESSION_SKILL; ++i)
+	{
+		profession_skill[i] = {};
+	}
 
-	//setsocket(listenSocket);
+	// 清理 MAGIC 数组中的每个元素
+	for (int i = 0; i < MAX_MAGIC; ++i)
+	{
+		magic[i] = {};
+	}
 
-	//sockaddr_in6 serverAddr{};
-	//serverAddr.sin6_family = AF_INET6;
-	//serverAddr.sin6_port = htons(0);
-	//serverAddr.sin6_addr = in6addr_any;
+	// 清理 PARTY 数组中的每个元素
+	for (int i = 0; i < MAX_PARTY; ++i)
+	{
+		party[i] = {};
+	}
 
-	//if (bind(listenSocket, reinterpret_cast<sockaddr*>(&serverAddr), sizeof(serverAddr)) == SOCKET_ERROR)
-	//{
-	//	qDebug() << "Failed to bind socket";
-	//	closesocket(listenSocket);
-	//	WSACleanup();
-	//	return;
-	//}
+	// 清理 CHARLISTTABLE 数组中的每个元素
+	for (int i = 0; i < MAXCHARACTER; ++i)
+	{
+		chartable[i] = {};
+	}
 
-	//int addrLen = sizeof(serverAddr);
-	//if (getsockname(listenSocket, reinterpret_cast<sockaddr*>(&serverAddr), &addrLen) == SOCKET_ERROR)
-	//{
-	//	qDebug() << "Failed to get socket address";
-	//	closesocket(listenSocket);
-	//	WSACleanup();
-	//	return;
-	//}
+	// 清理 ADDRESS_BOOK 数组中的每个元素
+	for (int i = 0; i < MAX_ADR_BOOK; ++i)
+	{
+		addressBook[i] = {};
+	}
 
-	//// 保存綁定的端口號供其他地方使用
-	//port_ = ntohs(serverAddr.sin6_port);
+	battleResultMsg = {};
 
-	//if (listen(listenSocket, SOMAXCONN) == SOCKET_ERROR)
-	//{
-	//	qDebug() << "Failed to listen on socket";
-	//	closesocket(listenSocket);
-	//	WSACleanup();
-	//	return;
-	//}
+	// 清理 PET_SKILL 数组中的每个元素
+	for (int i = 0; i < MAX_PET; ++i)
+	{
+		for (int j = 0; j < MAX_SKILL; ++j)
+		{
+			petSkill[i][j] = {};
+		}
+	}
 
-	//qDebug() << "Server listening on port " << port_;
-
-	//SOCKET sockfd = accept(listenSocket, nullptr, nullptr);
-	//if (sockfd == INVALID_SOCKET)
-	//{
-	//	qDebug() << "Failed to accept client connection";
-	//	closesocket(listenSocket);
-	//	WSACleanup();
-	//	return;
-	//}
-	//sockfd_ = sockfd;
-	//setsocket(sockfd);
-
-	//qDebug() << "Accepted client connection";
-
-	//Autil::util_Init();
-	//clearNetBuffer();
-
-	//for (;;)
-	//{
-	//	if (isInterruptionRequested())
-	//		break;
-
-	//	if (!handleClient(sockfd))
-	//		break;
-	//}
-
-	//clearNetBuffer();
-	//if (sockfd != INVALID_SOCKET)
-	//	closesocket(sockfd);
-	//if (listenSocket != INVALID_SOCKET)
-	//	closesocket(listenSocket);
-	//sockfd_ = INVALID_SOCKET;
-	//WSACleanup();
-
-
+	// 清理 JOBDAILY 数组中的每个元素
+	for (int i = 0; i < MAXMISSION; ++i)
+	{
+		jobdaily[i] = {};
+	}
 }
 
+//啟動TCP服務端，並監聽系統自動配發的端口
+bool Server::start(QObject* parent)
+{
+	server_.reset(new QTcpServer(parent));
+	if (server_.isNull())
+		return false;
+
+	connect(server_.data(), &QTcpServer::newConnection, this, &Server::onNewConnection);
+
+	if (!server_->listen(QHostAddress::AnyIPv6, 0))
+	{
+		qDebug() << "Failed to listen on socket";
+		return false;
+	}
+
+	port_ = server_->serverPort();
+	return true;
+}
+
+//異步接收客戶端連入通知
 void Server::onNewConnection()
 {
 	QTcpSocket* clientSocket = server_->nextPendingConnection();
@@ -404,17 +399,18 @@ void Server::onNewConnection()
 		return;
 
 	clientSockets_.append(clientSocket);
-	clientSocket->setReadBufferSize(8192);
+	clientSocket->setReadBufferSize(8191);
 
-	clientSocket->setSocketOption(QAbstractSocket::LowDelayOption, 1);
+	//clientSocket->setSocketOption(QAbstractSocket::LowDelayOption, 1);
 	clientSocket->setSocketOption(QAbstractSocket::KeepAliveOption, 1);
-	clientSocket->setSocketOption(QAbstractSocket::SendBufferSizeSocketOption, 8192);
-	clientSocket->setSocketOption(QAbstractSocket::ReceiveBufferSizeSocketOption, 8192);
+	clientSocket->setSocketOption(QAbstractSocket::SendBufferSizeSocketOption, 8191);
+	clientSocket->setSocketOption(QAbstractSocket::ReceiveBufferSizeSocketOption, 8191);
 
 	connect(clientSocket, &QTcpSocket::readyRead, this, &Server::onClientReadyRead);
 	connect(this, &Server::write, this, &Server::onWrite, Qt::QueuedConnection);
 }
 
+//異步接收客戶端數據
 void Server::onClientReadyRead()
 {
 	QTcpSocket* clientSocket = qobject_cast<QTcpSocket*>(sender());
@@ -422,66 +418,109 @@ void Server::onClientReadyRead()
 		return;
 	QByteArray badata = clientSocket->readAll();
 
-	sync_.addFuture(QtConcurrent::run(this, &Server::handleData, clientSocket, badata));
+	sync_.addFuture(QtConcurrent::run([this, clientSocket, badata]()
+		{
+			QMutexLocker lock(&net_mutex);
 
+			QString preStr = QString::fromUtf8(badata);
+			if (preStr.startsWith("dc"))
+			{
+				setBattleFlag(false);
+				setOnlineFlag(false);
+				return;
+			}
+			else if (preStr.startsWith("bPK"))
+			{
+				Injector& injector = Injector::getInstance();
+				int value = mem::read<short>(injector.getProcess(), injector.getProcessModule() + 0xE21E4);
+				announce(QString("[async battle] 战斗面板生成了 类别:%1").arg(value));
+				isBattleDialogReady.store(true, std::memory_order_release);
+				asyncBattleWork(true);
+				return;
+			}
+			else if (preStr.startsWith("dk|"))
+			{
+				//remove dk|s
+				preStr = preStr.mid(3);
+				lssproto_CustomWN_recv(preStr);
+				return;
+			}
+			else if (preStr.startsWith("tk|"))
+			{
+				//remove tk|s
+				preStr = preStr.mid(3);
+				lssproto_CustomTK_recv(preStr);
+				return;
+			}
+
+			handleData(clientSocket, badata);
+		}));
 }
 
+//異步發送數據
 void Server::onWrite(QTcpSocket* clientSocket, QByteArray ba, int size)
 {
 	if (clientSocket && clientSocket->state() != QAbstractSocket::UnconnectedState)
 	{
-		clientSocket->write(ba.data(), size);
+		clientSocket->write(ba, size);
 		clientSocket->flush();
 	}
 }
 
-void Server::handleData(QTcpSocket* clientSocket, QByteArray badata)
+//異步處理數據
+void Server::handleData(QTcpSocket*, QByteArray badata)
 {
-	QMutexLocker locker(&mutex_);
-	int len = badata.size();
-	QScopedArrayPointer <char> sendBuf(new char[len]());
-	ZeroMemory(rpc_linebuffer, LINEBUFSIZ);
-	memcpy_s(rpc_linebuffer, LINEBUFSIZ, badata.data(), len);
-	memcpy_s(sendBuf.data(), len, rpc_linebuffer, len);
+	//char rpc_linebuffer[65536] = {};//Autil::NETBUFSIZ
+	//int len = badata.size();
+	//memset(rpc_linebuffer, 0, sizeof(rpc_linebuffer));
+	//memcpy_s(rpc_linebuffer, sizeof(rpc_linebuffer), badata, len);
+	//_snprintf_s(rpc_linebuffer, sizeof(rpc_linebuffer), _TRUNCATE, "%s", badata);
 
-	appendReadBuf(rpc_linebuffer, len);
+	appendReadBuf(badata);
 
-	if (net_readbuflen <= 0)
+	if (net_readbuf.isEmpty())
 	{
-		emit write(clientSocket, sendBuf.data(), len);
+		//emit write(clientSocket, badata, len);
+
 		return;
 	}
 
-	qDebug() << "Received " << len << " bytes from client but actual len is:" << strlen(rpc_linebuffer);
-
+	//qDebug() << "Received " << badata.size() << " bytes from client but actual len is:" << badata.trimmed().size();
+	SPD_LOG(g_logger_name, QString("[proto] Received %1 bytes from client but actual len is: %2").arg(badata.size()).arg(badata.trimmed().size()));
 
 	Injector& injector = Injector::getInstance();
-	QString key = mem::readString(injector.getProcess(), injector.getProcessModule() + 0x4AC0898, 32, true);
-	std::string skey = key.toStdString();
-	_snprintf_s(Autil::PersonalKey, 32, _TRUNCATE, "%s", skey.c_str());
+	QString key = mem::readString(injector.getProcess(), injector.getProcessModule() + kOffestPersonalKey, Autil::PERSONALKEYSIZE, true, true);
+	if (key != Autil::PersonalKey)
+		Autil::PersonalKey = key;
 
-	bool block = false;
-	for (;;)
+
+	QByteArrayList dataList = splitLinesFromReadBuf();
+	if (dataList.isEmpty())
+		return;
+
+	SPD_LOG(g_logger_name, QString("[proto] Received %1 lines from client").arg(dataList.size()));
+
+	for (QByteArray& ba : dataList)
 	{
 		if (isInterruptionRequested())
 			break;
 
-		RtlZeroMemory(&rpc_linebuffer, sizeof(rpc_linebuffer));
+		//memset(rpc_linebuffer, 0, sizeof(rpc_linebuffer));
 		// get line from read buffer
-		if (!getLineFromReadBuf(rpc_linebuffer, sizeof(rpc_linebuffer)))
+		if (!ba.isEmpty())
 		{
-			int ret = SaDispatchMessage(sockfd_, rpc_linebuffer);
+			int ret = SaDispatchMessage(ba.data());
+
 			if (ret < 0)
 			{
 				qDebug() << "************************ LSSPROTO_END ************************";
 				//代表此段數據已到結尾
-				//if (isPacketAutoClear.load(std::memory_order_acquire))
-				clearNetBuffer();
+				Autil::util_Clear();
 				break;
 			}
-			else if (ret == 0)
+			else if (ret == BC_NEED_TO_CLEAN)
 			{
-				//qDebug() << "************************ CLEAR_BUFFER ************************";
+				qDebug() << "************************ CLEAR_BUFFER ************************";
 				//錯誤的數據 或 需要清除緩存
 				clearNetBuffer();
 				break;
@@ -489,25 +528,29 @@ void Server::handleData(QTcpSocket* clientSocket, QByteArray badata)
 		}
 		else
 		{
+			qDebug() << "************************ DONE_BUFFER ************************";
 			//數據讀完了
-			Autil::util_Release();
-			break;
+			Autil::util_Clear();
 		}
 	}
 
-	emit write(clientSocket, sendBuf.data(), len);
+	//emit write(clientSocket, sendBuf.data(), len);
 }
 
-int Server::SaDispatchMessage(int fd, char* encoded)
+//經由 handleData 調用同步解析數據
+int Server::SaDispatchMessage(char* encoded)
 {
 	using namespace Autil;
 
-	int		func = 0, fieldcount = 0;
-	int		iChecksum = 0, iChecksumrecv = 0;
-	QScopedPointer<char> raw(new char[Autil::NETBUFSIZ]());
+	int	func = 0, fieldcount = 0;
+	int	iChecksum = 0, iChecksumrecv = 0;
 
-	util_DecodeMessage(raw.get(), Autil::NETBUFSIZ, encoded);
-	util_SplitMessage(raw.get(), Autil::NETBUFSIZ, const_cast<char*>(Autil::SEPARATOR));
+	//QByteArray raw(Autil::NETBUFSIZ, '\0');
+	char raw[NETBUFSIZ] = {};
+	memset(raw, 0, sizeof(raw));
+
+	util_DecodeMessage(raw, Autil::NETBUFSIZ, encoded);
+	util_SplitMessage(raw, Autil::NETBUFSIZ, const_cast<char*>(Autil::SEPARATOR));
 	if (util_GetFunctionFromSlice(&func, &fieldcount) != 1)
 	{
 		return 0;
@@ -521,6 +564,8 @@ int Server::SaDispatchMessage(int fd, char* encoded)
 	{
 		return -1;
 	}
+
+	SPD_LOG(g_logger_name, QString("[proto] lssproto func: %1").arg(func));
 
 	if (CHECKFUN(LSSPROTO_XYD_RECV) /*戰後刷新人物座標、方向2*/)
 	{
@@ -538,7 +583,7 @@ int Server::SaDispatchMessage(int fd, char* encoded)
 			return 0;
 		}
 		qDebug() << "LSSPROTO_XYD_RECV" << "x" << x << "y" << y << "dir" << dir;
-		lssproto_XYD_recv(fd, x, y, dir);
+		lssproto_XYD_recv(QPoint(x, y), dir);
 	}
 	else if (CHECKFUN(LSSPROTO_EV_RECV) /*WRAP 4*/)
 	{
@@ -553,7 +598,7 @@ int Server::SaDispatchMessage(int fd, char* encoded)
 			return 0;
 		}
 		qDebug() << "LSSPROTO_EV_RECV" << "seqno" << seqno << "result" << result;
-		lssproto_EV_recv(fd, seqno, result);
+		lssproto_EV_recv(seqno, result);
 	}
 	else if (CHECKFUN(LSSPROTO_EN_RECV) /*Battle EncountFlag //開始戰鬥 7*/)
 	{
@@ -568,18 +613,11 @@ int Server::SaDispatchMessage(int fd, char* encoded)
 			return 0;
 		}
 		qDebug() << "LSSPROTO_EN_RECV" << "result" << result << "field" << field;
-		lssproto_EN_recv(fd, result, field);
-
-		Injector& injector = Injector::getInstance();
-		bool isFastBattle = injector.getEnableHash(util::kFastBattleEnable);
-		if (isFastBattle)
-		{
-
-		}
+		lssproto_EN_recv(result, field);
 	}
 	else if (CHECKFUN(LSSPROTO_RS_RECV) /*戰後獎勵 12*/)
 	{
-		char data[16384];
+		char data[Autil::NETDATASIZE] = {}; memset(data, 0, sizeof(data));
 		iChecksum += util_destring(2, data);
 		util_deint(3, &iChecksumrecv);
 		if (iChecksum != iChecksumrecv)
@@ -588,12 +626,11 @@ int Server::SaDispatchMessage(int fd, char* encoded)
 			return 0;
 		}
 		qDebug() << "LSSPROTO_RS_RECV" << util::toUnicode(data);
-		lssproto_RS_recv(fd, data);
+		lssproto_RS_recv(data);
 	}
-	else if (CHECKFUN(LSSPROTO_RD_RECV)/*13*/)
+	else if (CHECKFUN(LSSPROTO_RD_RECV)/*戰後經驗 13*/)
 	{
-		char data[16384];
-
+		char data[Autil::NETDATASIZE] = {}; memset(data, 0, sizeof(data));
 		iChecksum += util_destring(2, data);
 		util_deint(3, &iChecksumrecv);
 		if (iChecksum != iChecksumrecv)
@@ -602,24 +639,24 @@ int Server::SaDispatchMessage(int fd, char* encoded)
 			return 0;
 		}
 		qDebug() << "LSSPROTO_RD_RECV" << util::toUnicode(data);
-		lssproto_RD_recv(fd, data);
+		lssproto_RD_recv(data);
 	}
 	else if (CHECKFUN(LSSPROTO_B_RECV) /*每回合開始的戰場資訊 15*/)
 	{
-		char command[16384];
-		iChecksum += util_destring(2, command);
+		char data[Autil::NETDATASIZE] = {}; memset(data, 0, sizeof(data));
+		iChecksum += util_destring(2, data);
 		util_deint(3, &iChecksumrecv);
 		if (iChecksum != iChecksumrecv)
 		{
 			Autil::SliceCount = 0;
 			return 0;
 		}
-		qDebug() << "LSSPROTO_B_RECV" << util::toUnicode(command);
-		lssproto_B_recv(fd, command);
+		qDebug() << "LSSPROTO_B_RECV" << util::toUnicode(data);
+		lssproto_B_recv(data);
 	}
 	else if (CHECKFUN(LSSPROTO_I_RECV) /*物品變動 22*/)
 	{
-		char data[16384];
+		char data[Autil::NETDATASIZE] = {}; memset(data, 0, sizeof(data));
 		iChecksum += util_destring(2, data);
 		util_deint(3, &iChecksumrecv);
 		if (iChecksum != iChecksumrecv)
@@ -628,9 +665,9 @@ int Server::SaDispatchMessage(int fd, char* encoded)
 			return 0;
 		}
 		qDebug() << "LSSPROTO_I_RECV" << util::toUnicode(data);
-		lssproto_I_recv(fd, data);
+		lssproto_I_recv(data);
 	}
-	else if (CHECKFUN(LSSPROTO_SI_RECV)/* 24*/)
+	else if (CHECKFUN(LSSPROTO_SI_RECV)/* 道具位置交換24*/)
 	{
 		int fromindex;
 		int toindex;
@@ -644,16 +681,16 @@ int Server::SaDispatchMessage(int fd, char* encoded)
 			return 0;
 		}
 		qDebug() << "LSSPROTO_SI_RECV" << "fromindex" << fromindex << "toindex" << toindex;
-		lssproto_SI_recv(fd, fromindex, toindex);
+		lssproto_SI_recv(fromindex, toindex);
 	}
-	else if (CHECKFUN(LSSPROTO_MSG_RECV)/*26*/)
+	else if (CHECKFUN(LSSPROTO_MSG_RECV)/*收到郵件26*/)
 	{
 		int aindex;
-		char text[16384];
+		char data[Autil::NETDATASIZE] = {}; memset(data, 0, sizeof(data));
 		int color;
 
 		iChecksum += util_deint(2, &aindex);
-		iChecksum += util_destring(3, text);
+		iChecksum += util_destring(3, data);
 		iChecksum += util_deint(4, &color);
 		util_deint(5, &iChecksumrecv);
 		if (iChecksum != iChecksumrecv)
@@ -661,8 +698,8 @@ int Server::SaDispatchMessage(int fd, char* encoded)
 			Autil::SliceCount = 0;
 			return 0;
 		}
-		qDebug() << "LSSPROTO_MSG_RECV" << util::toUnicode(text);
-		lssproto_MSG_recv(fd, aindex, text, color);
+		qDebug() << "LSSPROTO_MSG_RECV" << util::toUnicode(data);
+		lssproto_MSG_recv(aindex, data, color);
 	}
 	else if (CHECKFUN(LSSPROTO_PME_RECV)/*28*/)
 	{
@@ -673,7 +710,7 @@ int Server::SaDispatchMessage(int fd, char* encoded)
 		int dir;
 		int flg;
 		int no;
-		char cdata[16384];
+		char data[Autil::NETDATASIZE] = {}; memset(data, 0, sizeof(data));
 
 		iChecksum += util_deint(2, &objindex);
 		iChecksum += util_deint(3, &graphicsno);
@@ -682,7 +719,7 @@ int Server::SaDispatchMessage(int fd, char* encoded)
 		iChecksum += util_deint(6, &dir);
 		iChecksum += util_deint(7, &flg);
 		iChecksum += util_deint(8, &no);
-		iChecksum += util_destring(9, cdata);
+		iChecksum += util_destring(9, data);
 		util_deint(10, &iChecksumrecv);
 		if (iChecksum != iChecksumrecv)
 		{
@@ -690,12 +727,12 @@ int Server::SaDispatchMessage(int fd, char* encoded)
 			return 0;
 		}
 		qDebug() << "LSSPROTO_PME_RECV" << "objindex" << objindex << "graphicsno" << graphicsno <<
-			"x" << x << "y" << y << "dir" << dir << "flg" << flg << "no" << no << "cdata" << util::toUnicode(cdata);
-		lssproto_PME_recv(fd, objindex, graphicsno, x, y, dir, flg, no, cdata);
+			"x" << x << "y" << y << "dir" << dir << "flg" << flg << "no" << no << "cdata" << util::toUnicode(data);
+		lssproto_PME_recv(objindex, graphicsno, QPoint(x, y), dir, flg, no, data);
 	}
 	else if (CHECKFUN(LSSPROTO_AB_RECV)/* 30*/)
 	{
-		char data[16384];
+		char data[Autil::NETDATASIZE] = {}; memset(data, 0, sizeof(data));
 		iChecksum += util_destring(2, data);
 		util_deint(3, &iChecksumrecv);
 		if (iChecksum != iChecksumrecv)
@@ -704,13 +741,12 @@ int Server::SaDispatchMessage(int fd, char* encoded)
 			return 0;
 		}
 		qDebug() << "LSSPROTO_AB_RECV" << util::toUnicode(data);
-		lssproto_AB_recv(fd, data);
+		lssproto_AB_recv(data);
 	}
-	else if (CHECKFUN(LSSPROTO_ABI_RECV)/*31*/)
+	else if (CHECKFUN(LSSPROTO_ABI_RECV)/*名片數據31*/)
 	{
 		int num;
-		char data[16384];
-
+		char data[Autil::NETDATASIZE] = {}; memset(data, 0, sizeof(data));
 		iChecksum += util_deint(2, &num);
 		iChecksum += util_destring(3, data);
 		util_deint(4, &iChecksumrecv);
@@ -720,16 +756,17 @@ int Server::SaDispatchMessage(int fd, char* encoded)
 			return 0;
 		}
 		qDebug() << "LSSPROTO_ABI_RECV" << "num" << num << "data" << util::toUnicode(data);
-		lssproto_ABI_recv(fd, num, data);
+		lssproto_ABI_recv(num, data);
 	}
 	else if (CHECKFUN(LSSPROTO_TK_RECV) /*收到對話36*/)
 	{
 		int index;
-		char message[16384];
+		char data[Autil::NETDATASIZE] = {}; memset(data, 0, sizeof(data));
+
 		int color;
 
 		iChecksum += util_deint(2, &index);
-		iChecksum += util_destring(3, message);
+		iChecksum += util_destring(3, data);
 		iChecksum += util_deint(4, &color);
 		util_deint(5, &iChecksumrecv);
 		if (iChecksum != iChecksumrecv)
@@ -737,10 +774,10 @@ int Server::SaDispatchMessage(int fd, char* encoded)
 			Autil::SliceCount = 0;
 			return 0;
 		}
-		qDebug() << "LSSPROTO_TK_RECV" << "index" << index << "message" << util::toUnicode(message) << "color" << color;
-		lssproto_TK_recv(fd, index, message, color);
+		qDebug() << "LSSPROTO_TK_RECV" << "index" << index << "message" << util::toUnicode(data) << "color" << color;
+		lssproto_TK_recv(index, data, color);
 	}
-	else if (CHECKFUN(LSSPROTO_MC_RECV) /*地圖數據更新37*/)
+	else if (CHECKFUN(LSSPROTO_MC_RECV) /*地圖數據更新，重新繪製地圖37*/)
 	{
 		int fl;
 		int x1;
@@ -750,7 +787,7 @@ int Server::SaDispatchMessage(int fd, char* encoded)
 		int tilesum;
 		int objsum;
 		int eventsum;
-		char data[16384];
+		char data[Autil::NETDATASIZE] = {}; memset(data, 0, sizeof(data));
 
 		iChecksum += util_deint(2, &fl);
 		iChecksum += util_deint(3, &x1);
@@ -770,17 +807,17 @@ int Server::SaDispatchMessage(int fd, char* encoded)
 
 		qDebug() << "LSSPROTO_MC_RECV" << "fl" << fl << "x1" << x1 << "y1" << y1 << "x2" << x2 << "y2" << y2 <<
 			"tilesum" << tilesum << "objsum" << objsum << "eventsum" << eventsum << "data" << util::toUnicode(data);
-		lssproto_MC_recv(fd, fl, x1, y1, x2, y2, tilesum, objsum, eventsum, data);
+		lssproto_MC_recv(fl, x1, y1, x2, y2, tilesum, objsum, eventsum, data);
 		//m_map.name = qmap;
 	}
-	else if (CHECKFUN(LSSPROTO_M_RECV) /*地圖數據更新2 39*/)
+	else if (CHECKFUN(LSSPROTO_M_RECV) /*地圖數據更新，重新寫入地圖2 39*/)
 	{
 		int fl;
 		int x1;
 		int y1;
 		int x2;
 		int y2;
-		char data[16384];
+		char data[Autil::NETDATASIZE] = {}; memset(data, 0, sizeof(data));
 
 		iChecksum += util_deint(2, &fl);
 		iChecksum += util_deint(3, &x1);
@@ -795,12 +832,13 @@ int Server::SaDispatchMessage(int fd, char* encoded)
 			return 0;
 		}
 		qDebug() << "LSSPROTO_M_RECV" << "fl" << fl << "x1" << x1 << "y1" << y1 << "x2" << x2 << "y2" << y2 << "data" << util::toUnicode(data);
-		lssproto_M_recv(fd, fl, x1, y1, x2, y2, data);
+		lssproto_M_recv(fl, x1, y1, x2, y2, data);
 		//m_map.floor = fl;
 	}
 	else if (CHECKFUN(LSSPROTO_C_RECV) /*服務端發送的靜態信息，可用於顯示玩家，其它玩家，公交，寵物等信息 41*/)
 	{
-		char data[16384];
+		char data[Autil::NETDATASIZE] = {}; memset(data, 0, sizeof(data));
+
 		iChecksum += util_destring(2, data);
 		util_deint(3, &iChecksumrecv);
 		if (iChecksum != iChecksumrecv)
@@ -809,11 +847,12 @@ int Server::SaDispatchMessage(int fd, char* encoded)
 			return 0;
 		}
 		qDebug() << "LSSPROTO_C_RECV" << util::toUnicode(data);
-		lssproto_C_recv(fd, data);
+		lssproto_C_recv(data);
 	}
-	else if (CHECKFUN(LSSPROTO_CA_RECV) /*42*/)
+	else if (CHECKFUN(LSSPROTO_CA_RECV) /*//周圍人、NPC..等等狀態改變必定是 _C_recv已經新增過的單位 42*/)
 	{
-		char data[16384];
+		char data[Autil::NETDATASIZE] = {}; memset(data, 0, sizeof(data));
+
 		iChecksum += util_destring(2, data);
 		util_deint(3, &iChecksumrecv);
 		if (iChecksum != iChecksumrecv)
@@ -822,11 +861,12 @@ int Server::SaDispatchMessage(int fd, char* encoded)
 			return 0;
 		}
 		qDebug() << "LSSPROTO_CA_RECV" << util::toUnicode(data);
-		lssproto_CA_recv(fd, data);
+		lssproto_CA_recv(data);
 	}
-	else if (CHECKFUN(LSSPROTO_CD_RECV) /*遊戲物件更新? 43*/)
+	else if (CHECKFUN(LSSPROTO_CD_RECV) /*刪除指定一個或多個周圍人、NPC單位 43*/)
 	{
-		char data[16384];
+		char data[Autil::NETDATASIZE] = {}; memset(data, 0, sizeof(data));
+
 		iChecksum += util_destring(2, data);
 		util_deint(3, &iChecksumrecv);
 		if (iChecksum != iChecksumrecv)
@@ -835,11 +875,11 @@ int Server::SaDispatchMessage(int fd, char* encoded)
 			return 0;
 		}
 		qDebug() << "LSSPROTO_CD_RECV" << util::toUnicode(data);
-		lssproto_CD_recv(fd, data);
+		lssproto_CD_recv(data);
 	}
 	else if (CHECKFUN(LSSPROTO_R_RECV))
 	{
-		char data[16384];
+		char data[Autil::NETDATASIZE] = {}; memset(data, 0, sizeof(data));
 
 		iChecksum += util_destring(2, data);
 		util_deint(3, &iChecksumrecv);
@@ -849,11 +889,12 @@ int Server::SaDispatchMessage(int fd, char* encoded)
 			return 0;
 		}
 		qDebug() << "LSSPROTO_R_RECV" << util::toUnicode(data);
-		lssproto_R_recv(fd, data);
+		lssproto_R_recv(data);
 	}
 	else if (CHECKFUN(LSSPROTO_S_RECV) /*更新所有基礎資訊 46*/)
 	{
-		char data[16384];
+		char data[Autil::NETDATASIZE] = {}; memset(data, 0, sizeof(data));
+
 		iChecksum += util_destring(2, data);
 		util_deint(3, &iChecksumrecv);
 		if (iChecksum != iChecksumrecv)
@@ -862,14 +903,14 @@ int Server::SaDispatchMessage(int fd, char* encoded)
 			return 0;
 		}
 		qDebug() << "LSSPROTO_S_RECV" << util::toUnicode(data);
-		lssproto_S_recv(fd, data);
+		lssproto_S_recv(data);
 	}
 	else if (CHECKFUN(LSSPROTO_D_RECV)/*47*/)
 	{
 		int category;
 		int dx;
 		int dy;
-		char data[16384];
+		char data[Autil::NETDATASIZE] = {}; memset(data, 0, sizeof(data));
 
 		iChecksum += util_deint(2, &category);
 		iChecksum += util_deint(3, &dx);
@@ -882,9 +923,9 @@ int Server::SaDispatchMessage(int fd, char* encoded)
 			return 0;
 		}
 		qDebug() << "LSSPROTO_D_RECV" << "category" << category << "dx" << dx << "dy" << dy << "data" << util::toUnicode(data);
-		lssproto_D_recv(fd, category, dx, dy, data);
+		lssproto_D_recv(category, dx, dy, data);
 	}
-	else if (CHECKFUN(LSSPROTO_FS_RECV)/* 49*/)
+	else if (CHECKFUN(LSSPROTO_FS_RECV)/*開關切換 49*/)
 	{
 		int flg;
 
@@ -896,7 +937,7 @@ int Server::SaDispatchMessage(int fd, char* encoded)
 			return 0;
 		}
 		qDebug() << "LSSPROTO_FS_RECV" << "flg" << flg;
-		lssproto_FS_recv(fd, flg);
+		lssproto_FS_recv(flg);
 	}
 	else if (CHECKFUN(LSSPROTO_HL_RECV)/*51*/)
 	{
@@ -910,9 +951,9 @@ int Server::SaDispatchMessage(int fd, char* encoded)
 			return 0;
 		}
 		qDebug() << "LSSPROTO_HL_RECV" << "flg" << flg;
-		lssproto_HL_recv(fd, flg);
+		lssproto_HL_recv(flg);
 	}
-	else if (CHECKFUN(LSSPROTO_PR_RECV)/*53*/)
+	else if (CHECKFUN(LSSPROTO_PR_RECV)/*組隊變化 53*/)
 	{
 		int request;
 		int result;
@@ -926,7 +967,7 @@ int Server::SaDispatchMessage(int fd, char* encoded)
 			return 0;
 		}
 		qDebug() << "LSSPROTO_PR_RECV" << "request" << request << "result" << result;
-		lssproto_PR_recv(fd, request, result);
+		lssproto_PR_recv(request, result);
 	}
 	else if (CHECKFUN(LSSPROTO_KS_RECV) /*寵物更換狀態55*/)
 	{
@@ -942,7 +983,7 @@ int Server::SaDispatchMessage(int fd, char* encoded)
 			return 0;
 		}
 		qDebug() << "LSSPROTO_KS_RECV" << "petarray" << petarray << "result" << result;
-		lssproto_KS_recv(fd, petarray, result);
+		lssproto_KS_recv(petarray, result);
 	}
 	else if (CHECKFUN(LSSPROTO_PS_RECV))
 	{
@@ -962,7 +1003,7 @@ int Server::SaDispatchMessage(int fd, char* encoded)
 			return 0;
 		}
 		qDebug() << "LSSPROTO_PS_RECV" << "result" << result << "havepetindex" << havepetindex << "havepetskill" << havepetskill << "toindex" << toindex;
-		lssproto_PS_recv(fd, result, havepetindex, havepetskill, toindex);
+		lssproto_PS_recv(result, havepetindex, havepetskill, toindex);
 	}
 	else if (CHECKFUN(LSSPROTO_SKUP_RECV) /*更新點數 63*/)
 	{
@@ -976,7 +1017,7 @@ int Server::SaDispatchMessage(int fd, char* encoded)
 			return 0;
 		}
 		qDebug() << "LSSPROTO_SKUP_RECV" << "point" << point;
-		lssproto_SKUP_recv(fd, point);
+		lssproto_SKUP_recv(point);
 	}
 	else if (CHECKFUN(LSSPROTO_WN_RECV)/*NPC對話框 66*/)
 	{
@@ -984,7 +1025,7 @@ int Server::SaDispatchMessage(int fd, char* encoded)
 		int buttontype;
 		int seqno;
 		int objindex;
-		char data[16384];
+		char data[Autil::NETDATASIZE] = {}; memset(data, 0, sizeof(data));
 
 		iChecksum += util_deint(2, &windowtype);
 		iChecksum += util_deint(3, &buttontype);
@@ -998,25 +1039,25 @@ int Server::SaDispatchMessage(int fd, char* encoded)
 			return 0;
 		}
 		qDebug() << "LSSPROTO_WN_RECV" << "windowtype" << windowtype << "buttontype" << buttontype << "seqno" << seqno << "objindex" << objindex << "data" << util::toUnicode(data);
-		lssproto_WN_recv(fd, windowtype, buttontype, seqno, objindex, data);
+		lssproto_WN_recv(windowtype, buttontype, seqno, objindex, data);
 	}
 	else if (CHECKFUN(LSSPROTO_EF_RECV) /*天氣68*/)
 	{
 		int effect;
 		int level;
-		char option[16384];
+		char data[Autil::NETDATASIZE] = {}; memset(data, 0, sizeof(data));
 
 		iChecksum += util_deint(2, &effect);
 		iChecksum += util_deint(3, &level);
-		iChecksum += util_destring(4, option);
+		iChecksum += util_destring(4, data);
 		util_deint(5, &iChecksumrecv);
 		if (iChecksum != iChecksumrecv)
 		{
 			Autil::SliceCount = 0;
 			return 0;
 		}
-		qDebug() << "LSSPROTO_EF_RECV" << "effect" << effect << "level" << level << "option" << util::toUnicode(option);
-		lssproto_EF_recv(fd, effect, level, option);
+		qDebug() << "LSSPROTO_EF_RECV" << "effect" << effect << "level" << level << "option" << util::toUnicode(data);
+		lssproto_EF_recv(effect, level, data);
 	}
 	else if (CHECKFUN(LSSPROTO_SE_RECV)/*69*/)
 	{
@@ -1036,28 +1077,27 @@ int Server::SaDispatchMessage(int fd, char* encoded)
 			return 0;
 		}
 		qDebug() << "LSSPROTO_SE_RECV" << "x" << x << "y" << y << "senumber" << senumber << "sw" << sw;
-		lssproto_SE_recv(fd, x, y, senumber, sw);
+		lssproto_SE_recv(QPoint(x, y), senumber, sw);
 	}
 	else if (CHECKFUN(LSSPROTO_CLIENTLOGIN_RECV)/*選人畫面 72*/)
 	{
-		char result[16384];
-
-		iChecksum += util_destring(2, result);
+		char data[Autil::NETDATASIZE] = {}; memset(data, 0, sizeof(data));
+		iChecksum += util_destring(2, data);
 		util_deint(3, &iChecksumrecv);
 		if (iChecksum != iChecksumrecv)
 		{
 			Autil::SliceCount = 0;
 			return 0;
 		}
-		qDebug() << "LSSPROTO_CLIENTLOGIN_RECV" << util::toUnicode(result);
-		lssproto_ClientLogin_recv(fd, result);
+		qDebug() << "LSSPROTO_CLIENTLOGIN_RECV" << util::toUnicode(data);
+		lssproto_ClientLogin_recv(data);
 
-		return 0;
+		return BC_NEED_TO_CLEAN;
 	}
 	else if (CHECKFUN(LSSPROTO_CREATENEWCHAR_RECV)/*人物新增74*/)
 	{
-		char result[16384];
-		char data[16384];
+		char result[Autil::NETDATASIZE] = {}; memset(result, 0, sizeof(result));
+		char data[Autil::NETDATASIZE] = {}; memset(data, 0, sizeof(data));
 
 		iChecksum += util_destring(2, result);
 		iChecksum += util_destring(3, data);
@@ -1068,12 +1108,12 @@ int Server::SaDispatchMessage(int fd, char* encoded)
 			return 0;
 		}
 		qDebug() << "LSSPROTO_CREATENEWCHAR_RECV" << util::toUnicode(result) << util::toUnicode(data);
-		lssproto_CreateNewChar_recv(fd, result, data);
+		lssproto_CreateNewChar_recv(result, data);
 	}
 	else if (CHECKFUN(LSSPROTO_CHARDELETE_RECV)/*人物刪除 76*/)
 	{
-		char result[16384];
-		char data[16384];
+		char result[Autil::NETDATASIZE] = {}; memset(result, 0, sizeof(result));
+		char data[Autil::NETDATASIZE] = {}; memset(data, 0, sizeof(data));
 
 		iChecksum += util_destring(2, result);
 		iChecksum += util_destring(3, data);
@@ -1084,13 +1124,13 @@ int Server::SaDispatchMessage(int fd, char* encoded)
 			return 0;
 		}
 		qDebug() << "LSSPROTO_CHARDELETE_RECV" << util::toUnicode(result) << util::toUnicode(data);
-		lssproto_CharDelete_recv(fd, result, data);
+		lssproto_CharDelete_recv(result, data);
 
 	}
 	else if (CHECKFUN(LSSPROTO_CHARLOGIN_RECV) /*成功登入 78*/)
 	{
-		char result[16384];
-		char data[16384];
+		char result[Autil::NETDATASIZE] = {}; memset(result, 0, sizeof(result));
+		char data[Autil::NETDATASIZE] = {}; memset(data, 0, sizeof(data));
 
 		iChecksum += util_destring(2, result);
 		iChecksum += util_destring(3, data);
@@ -1101,12 +1141,12 @@ int Server::SaDispatchMessage(int fd, char* encoded)
 			return 0;
 		}
 		qDebug() << "LSSPROTO_CHARLOGIN_RECV" << util::toUnicode(result) << util::toUnicode(data);
-		lssproto_CharLogin_recv(fd, result, data);
+		lssproto_CharLogin_recv(result, data);
 	}
 	else if (CHECKFUN(LSSPROTO_CHARLIST_RECV)/*選人頁面資訊 80*/)
 	{
-		char result[16384];
-		char data[16384];
+		char result[Autil::NETDATASIZE] = {}; memset(result, 0, sizeof(result));
+		char data[Autil::NETDATASIZE] = {}; memset(data, 0, sizeof(data));
 
 		iChecksum += util_destring(2, result);
 		iChecksum += util_destring(3, data);
@@ -1118,14 +1158,14 @@ int Server::SaDispatchMessage(int fd, char* encoded)
 		}
 
 		qDebug() << "LSSPROTO_CHARLIST_RECV" << util::toUnicode(result) << util::toUnicode(data);
-		lssproto_CharList_recv(fd, result, data);
+		lssproto_CharList_recv(result, data);
 
-		return 0;
+		return BC_NEED_TO_CLEAN;
 	}
 	else if (CHECKFUN(LSSPROTO_CHARLOGOUT_RECV)/*登出 82*/)
 	{
-		char result[16384];
-		char data[16384];
+		char result[Autil::NETDATASIZE] = {}; memset(result, 0, sizeof(result));
+		char data[Autil::NETDATASIZE] = {}; memset(data, 0, sizeof(data));
 
 		iChecksum += util_destring(2, result);
 		iChecksum += util_destring(3, data);
@@ -1137,11 +1177,11 @@ int Server::SaDispatchMessage(int fd, char* encoded)
 		}
 
 		qDebug() << "LSSPROTO_CHARLOGOUT_RECV" << util::toUnicode(result) << util::toUnicode(data);
-		lssproto_CharLogout_recv(fd, result, data);
+		lssproto_CharLogout_recv(result, data);
 	}
 	else if (CHECKFUN(LSSPROTO_PROCGET_RECV)/*84*/)
 	{
-		char data[16384];
+		char data[Autil::NETDATASIZE] = {}; memset(data, 0, sizeof(data));
 
 		iChecksum += util_destring(2, data);
 		util_deint(3, &iChecksumrecv);
@@ -1152,7 +1192,7 @@ int Server::SaDispatchMessage(int fd, char* encoded)
 		}
 
 		qDebug() << "LSSPROTO_PROCGET_RECV" << util::toUnicode(data);
-		lssproto_ProcGet_recv(fd, data);
+		lssproto_ProcGet_recv(data);
 	}
 	else if (CHECKFUN(LSSPROTO_PLAYERNUMGET_RECV)/*86*/)
 	{
@@ -1169,13 +1209,13 @@ int Server::SaDispatchMessage(int fd, char* encoded)
 		}
 
 		qDebug() << "LSSPROTO_PLAYERNUMGET_RECV" << "logincount:" << logincount << "player:" << player; //"logincount:%d player:%d\n
-		lssproto_PlayerNumGet_recv(fd, logincount, player);
+		lssproto_PlayerNumGet_recv(logincount, player);
 	}
 	else if (CHECKFUN(LSSPROTO_ECHO_RECV) /*伺服器定時ECHO "hoge" 88*/)
 	{
-		char test[16384];
+		char data[Autil::NETDATASIZE] = {}; memset(data, 0, sizeof(data));
 
-		iChecksum += util_destring(2, test);
+		iChecksum += util_destring(2, data);
 		util_deint(3, &iChecksumrecv);
 		if (iChecksum != iChecksumrecv)
 		{
@@ -1183,8 +1223,8 @@ int Server::SaDispatchMessage(int fd, char* encoded)
 			return 0;
 		}
 
-		qDebug() << "LSSPROTO_ECHO_RECV" << util::toUnicode(test);
-		lssproto_Echo_recv(fd, test);
+		qDebug() << "LSSPROTO_ECHO_RECV" << util::toUnicode(data);
+		lssproto_Echo_recv(data);
 	}
 	else if (CHECKFUN(LSSPROTO_NU_RECV) /*不知道幹嘛的 90*/)
 	{
@@ -1198,12 +1238,12 @@ int Server::SaDispatchMessage(int fd, char* encoded)
 			return 0;
 		}
 		qDebug() << "LSSPROTO_NU_RECV" << "AddCount:" << AddCount;
-		lssproto_NU_recv(fd, AddCount);
+		lssproto_NU_recv(AddCount);
 
 	}
 	else if (CHECKFUN(LSSPROTO_TD_RECV)/*92*/)
 	{
-		char data[16384];
+		char data[Autil::NETDATASIZE] = {}; memset(data, 0, sizeof(data));
 
 		iChecksum += util_destring(2, data);
 		util_deint(3, &iChecksumrecv);
@@ -1214,11 +1254,11 @@ int Server::SaDispatchMessage(int fd, char* encoded)
 		}
 
 		qDebug() << "LSSPROTO_TD_RECV" << util::toUnicode(data);
-		lssproto_TD_recv(fd, data);
+		lssproto_TD_recv(data);
 	}
-	else if (CHECKFUN(LSSPROTO_FM_RECV)/*93*/)
+	else if (CHECKFUN(LSSPROTO_FM_RECV)/*家族頻道93*/)
 	{
-		char data[16384];
+		char data[Autil::NETDATASIZE] = {}; memset(data, 0, sizeof(data));
 
 		iChecksum += util_destring(2, data);
 		util_deint(3, &iChecksumrecv);
@@ -1229,7 +1269,7 @@ int Server::SaDispatchMessage(int fd, char* encoded)
 		}
 
 		qDebug() << "LSSPROTO_FM_RECV" << util::toUnicode(data);
-		lssproto_FM_recv(fd, data);
+		lssproto_FM_recv(data);
 	}
 	else if (CHECKFUN(LSSPROTO_WO_RECV)/*95*/)
 	{
@@ -1243,7 +1283,7 @@ int Server::SaDispatchMessage(int fd, char* encoded)
 			return 0;
 		}
 		qDebug() << "LSSPROTO_WO_RECV" << "effect:" << effect;
-		lssproto_WO_recv(fd, effect);
+		lssproto_WO_recv(effect);
 	}
 	else if (CHECKFUN(LSSPROTO_NC_RECV) /*沈默? 101* 戰鬥結束*/)
 	{
@@ -1256,9 +1296,9 @@ int Server::SaDispatchMessage(int fd, char* encoded)
 			return 0;
 		}
 		qDebug() << "LSSPROTO_NC_RECV" << "flg:" << flg;
-		lssproto_NC_recv(fd, flg);
+		lssproto_NC_recv(flg);
 	}
-	else if (CHECKFUN(LSSPROTO_CS_RECV)/*104*/)
+	else if (CHECKFUN(LSSPROTO_CS_RECV)/*固定客戶端的速度104*/)
 	{
 		int deltimes = 0;
 		iChecksum += util_deint(2, &deltimes);
@@ -1269,7 +1309,7 @@ int Server::SaDispatchMessage(int fd, char* encoded)
 			return 0;
 		}
 		qDebug() << "LSSPROTO_CS_RECV" << "deltimes:" << deltimes;
-		lssproto_CS_recv(fd, deltimes);
+		lssproto_CS_recv(deltimes);
 	}
 	else if (CHECKFUN(LSSPROTO_PETST_RECV) /*寵物狀態改變 107*/)
 	{
@@ -1285,7 +1325,7 @@ int Server::SaDispatchMessage(int fd, char* encoded)
 			return 0;
 		}
 		qDebug() << "LSSPROTO_PETST_RECV" << "petarray:" << petarray << "result:" << result;
-		lssproto_PETST_recv(fd, petarray, result);
+		lssproto_PETST_recv(petarray, result);
 	}
 	else if (CHECKFUN(LSSPROTO_SPET_RECV) /*寵物更換狀態115*/)
 	{
@@ -1301,11 +1341,11 @@ int Server::SaDispatchMessage(int fd, char* encoded)
 			return 0;
 		}
 		qDebug() << "LSSPROTO_SPET_RECV" << "standbypet:" << standbypet << "result:" << result;
-		lssproto_SPET_recv(fd, standbypet, result);
+		lssproto_SPET_recv(standbypet, result);
 	}
-	else if (CHECKFUN(LSSPROTO_JOBDAILY_RECV)/*120*/)
+	else if (CHECKFUN(LSSPROTO_JOBDAILY_RECV)/*任務日誌120*/)
 	{
-		char data[16384];
+		char data[Autil::NETDATASIZE] = {}; memset(data, 0, sizeof(data));
 
 		iChecksum += util_destring(2, data);
 		util_deint(3, &iChecksumrecv);
@@ -1316,11 +1356,11 @@ int Server::SaDispatchMessage(int fd, char* encoded)
 		}
 
 		qDebug() << "LSSPROTO_JOBDAILY_RECV" << util::toUnicode(data);
-		lssproto_JOBDAILY_recv(fd, data);
+		lssproto_JOBDAILY_recv(data);
 	}
-	else if (CHECKFUN(LSSPROTO_TEACHER_SYSTEM_RECV)/*123*/)
+	else if (CHECKFUN(LSSPROTO_TEACHER_SYSTEM_RECV)/*導師系統123*/)
 	{
-		char data[16384];
+		char data[Autil::NETDATASIZE] = {}; memset(data, 0, sizeof(data));
 
 		iChecksum += util_destring(2, data);
 		util_deint(3, &iChecksumrecv);
@@ -1331,11 +1371,13 @@ int Server::SaDispatchMessage(int fd, char* encoded)
 		}
 
 		qDebug() << "LSSPROTO_TEACHER_SYSTEM_RECV" << util::toUnicode(data);
-		lssproto_TEACHER_SYSTEM_recv(fd, data);
+		lssproto_TEACHER_SYSTEM_recv(data);
 	}
-	else if (CHECKFUN(LSSPROTO_FIREWORK_RECV)/*126*/)
+	else if (CHECKFUN(LSSPROTO_FIREWORK_RECV)/*煙火?126*/)
 	{
-		int	iChecksum = 0, iChecksumrecv, iCharaindex, iType, iActionNum;
+		iChecksum = 0;
+		iChecksumrecv = 0;
+		int iCharaindex, iType, iActionNum;
 
 		iChecksum += util_deint(2, &iCharaindex);
 		iChecksum += util_deint(3, &iType);
@@ -1347,11 +1389,11 @@ int Server::SaDispatchMessage(int fd, char* encoded)
 			return 0;
 		}
 		qDebug() << "LSSPROTO_FIREWORK_RECV" << "iCharaindex:" << iCharaindex << "iType:" << iType << "iActionNum:" << iActionNum;
-		lssproto_Firework_recv(fd, iCharaindex, iType, iActionNum);
+		lssproto_Firework_recv(iCharaindex, iType, iActionNum);
 	}
 	else if (CHECKFUN(LSSPROTO_CHAREFFECT_RECV)/*146*/)
 	{
-		char data[16384];
+		char data[Autil::NETDATASIZE] = {}; memset(data, 0, sizeof(data));
 
 		iChecksum += util_destring(2, data);
 		util_deint(3, &iChecksumrecv);
@@ -1362,14 +1404,39 @@ int Server::SaDispatchMessage(int fd, char* encoded)
 		}
 
 		qDebug() << "LSSPROTO_CHAREFFECT_RECV" << util::toUnicode(data);
-		lssproto_CHAREFFECT_recv(fd, data);
+		lssproto_CHAREFFECT_recv(data);
+	}
+	else if (CHECKFUN(LSSPROTO_IMAGE_RECV)/*151*/)
+	{
+		char data[Autil::NETDATASIZE] = {}; memset(data, 0, sizeof(data));
+
+		int x = 0;
+		int y = 0;
+		int z = 0;
+		//int iChecksumrecv;
+
+		iChecksum += util_destring(2, data);
+		iChecksum += util_deint(3, &x);
+		iChecksum += util_deint(4, &y);
+		iChecksum += util_deint(5, &z);
+		util_deint(6, &iChecksumrecv);
+		if (iChecksum != iChecksumrecv)
+		{
+			Autil::SliceCount = 0;
+			return 0;
+		}
+
+		//base64解碼
+		//QByteArray str = QByteArray::fromBase64(data);
+		//QImage image = QImage::fromData(str);
+		//image.save("demo.png");
 	}
 	else if (CHECKFUN(LSSPROTO_DENGON_RECV)/*200*/)
 	{
-		char data[512];
+		char data[Autil::NETDATASIZE] = {}; memset(data, 0, sizeof(data));
 		int coloer;
 		int num;
-		int iChecksumrecv;
+		//int iChecksumrecv;
 
 		iChecksum += util_destring(2, data);
 		iChecksum += util_deint(3, &coloer);
@@ -1387,7 +1454,8 @@ int Server::SaDispatchMessage(int fd, char* encoded)
 	else if (CHECKFUN(LSSPROTO_SAMENU_RECV)/*201*/)
 	{
 		int count;
-		char data[16384];
+		char data[Autil::NETDATASIZE] = {}; memset(data, 0, sizeof(data));
+
 		iChecksum += util_deint(2, &count);
 		iChecksum += util_destring(3, data);
 		util_deint(4, &iChecksumrecv);
@@ -1408,11 +1476,12 @@ int Server::SaDispatchMessage(int fd, char* encoded)
 	}
 
 	Autil::SliceCount = 0;
-	return 1;
+	return BC_ABOUT_TO_END;
 
 }
 
-void Server::lssproto_CharDelete_recv(int fd, char* cresult, char* cdata)
+//人物刪除
+void Server::lssproto_CharDelete_recv(char* cresult, char* cdata)
 {
 	QString data = util::toUnicode(cdata);
 	QString result = util::toUnicode(cresult);
@@ -1429,45 +1498,44 @@ void Server::clearPartyParam()
 {
 	int i;
 #ifdef	MAX_AIRPLANENUM
-	for (i = 0; i < MAX_AIRPLANENUM; i++)
+	for (i = 0; i < MAX_AIRPLANENUM; ++i)
 #else
-	for (i = 0; i < MAX_PARTY; i++)
+	for (i = 0; i < MAX_PARTY; ++i)
 #endif
 	{
 		if (party[i].useFlag != 0)
 		{
 			if (party[i].id == pc.id)
 			{
-				//if (party[i].ptAct != NULL)
-				//{
-				//	party[i].ptAct->bufCount = 0;
-				//}
 				pc.status &= (~CHR_STATUS_PARTY);
-			}
-			else
-			{
-				//if ((pc.status & CHR_STATUS_LEADER) != 0
-				//	&& party[i].ptAct != NULL)
-				//{
-				//	party[i].ptAct->bufCount = 0;
-				//}
-				//delCharParty(party[i].ptAct);
 			}
 		}
 		party[i].useFlag = 0;
 		party[i].id = 0;
-		//party[i].ptAct = NULL;
-
+		party[i] = {};
 	}
 	pc.status &= (~CHR_STATUS_LEADER);
 }
 
-void Server::lssproto_PR_recv(int fd, int request, int result)
+//組隊變化
+void Server::lssproto_PR_recv(int request, int result)
 {
-
+	QStringList teamInfoList;
 	if (request == 1 && result == 1)
 	{
 		pc.status |= CHR_STATUS_PARTY;
+
+		for (int i = 0; i < MAX_PARTY; ++i)
+		{
+			if (party[i].name.isEmpty() || (party[i].useFlag == 0) || (party[i].maxHp <= 0))
+			{
+				teamInfoList.append("");
+				continue;
+			}
+			QString text = QString("%1 LV:%2 HP:%3/%4 MP:%5").arg(party[i].name).arg(party[i].level)
+				.arg(party[i].hp).arg(party[i].maxHp).arg(party[i].hpPercent);
+			teamInfoList.append(text);
+		}
 	}
 	else
 	{
@@ -1477,26 +1545,41 @@ void Server::lssproto_PR_recv(int fd, int request, int result)
 			clearPartyParam();
 #ifdef _CHANNEL_MODIFY
 			//pc.etcFlag &= ~PC_ETCFLAG_CHAT_MODE;
-			if (TalkMode == 2) TalkMode = 0;
+			if (talkMode == 2)
+				talkMode = 0;
 #endif
 
-			char dir = (pc.dir + 5) % 8;
+			//char dir = (pc.dir + 5) % 8;
 
-			//lssproto_SP_send(fd, nextGx, nextGy, dir);
-
+			//lssproto_SP_send(nextGx, nextGy, dir);
+			for (int i = 0; i < MAX_PARTY; ++i)
+			{
+				party[i] = {};
+				teamInfoList.append("");
+			}
 		}
 	}
 	prSendFlag = 0;
+
+	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
+	emit signalDispatcher.updateTeamInfo(teamInfoList);
 }
 
-void Server::lssproto_EV_recv(int fd, int seqno, int result)
+//地圖轉移
+void Server::lssproto_EV_recv(int seqno, int result)
 {
+	Injector& injector = Injector::getInstance();
+	int floor = mem::read<int>(injector.getProcess(), injector.getProcessModule() + kOffestNowFloor);
+	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
+	emit signalDispatcher.updateNpcList(floor);
+
 	if (eventWarpSendId == seqno)
 	{
 		eventWarpSendFlag = 0;
 		if (result == 0)
 		{
 			redrawMap();
+
 			floorChangeFlag = FALSE;
 
 			warpEffectStart = true;
@@ -1515,7 +1598,8 @@ void Server::lssproto_EV_recv(int fd, int seqno, int result)
 	}
 }
 
-void Server::lssproto_FS_recv(int fd, int flg)
+//開關切換
+void Server::lssproto_FS_recv(int flg)
 {
 	pc.etcFlag = static_cast<unsigned short>(flg);
 
@@ -1537,9 +1621,9 @@ bool Server::CheckMailNoReadFlag()
 {
 	int i, j;
 
-	for (i = 0; i < MAX_ADR_BOOK; i++)
+	for (i = 0; i < MAX_ADR_BOOK; ++i)
 	{
-		for (j = 0; j < MAIL_MAX_HISTORY; j++)
+		for (j = 0; j < MAIL_MAX_HISTORY; ++j)
 		{
 			if (MailHistory[i].noReadFlag[j] >= TRUE) return true;
 		}
@@ -1547,104 +1631,100 @@ bool Server::CheckMailNoReadFlag()
 	return false;
 }
 
-void Server::lssproto_AB_recv(int fd, char* cdata)
+void Server::lssproto_AB_recv(char* cdata)
 {
 	QString data = util::toUnicode(cdata);
 	if (data.isEmpty())
 		return;
 
-	//	int i;
-	//	int no;
-	//	int nameLen;
-	//	QString name;
-	//	int flag;
-	//	int useFlag;
-	//#ifdef _MAILSHOWPLANET				// (可開放) Syu ADD 顯示名片星球
-	//	QString planetid;
-	//	int j;
-	//#endif
-	//
-	//	if (logOutFlag)
-	//		return;
-	//
-	//	for (i = 0; i < MAX_ADR_BOOK; i++)
-	//	{
-	//		//no = i * 6; //the second
-	//		no = i * 8;
-	//		useFlag = getIntegerToken(data, "|", no + 1);
-	//		if (useFlag == -1)
-	//		{
-	//			useFlag = 0;
-	//		}
-	//		if (useFlag <= 0)
-	//		{
-	//#if 0
-	//			if (addressBook[i].useFlag == 1)
-	//#else
-	//			if (MailHistory[i].dateStr[MAIL_MAX_HISTORY - 1][0] != '\0')
-	//#endif
-	//			{
-	//				MailHistory[i] = MailHistory[i];
-	//				//SaveMailHistory(i);
-	//				mailLamp = CheckMailNoReadFlag();
-	//				//DeathLetterAction();
-	//			}
-	//			addressBook[i].useFlag = 0;
-	//			addressBook[i].name[0] = '\0';
-	//			continue;
-	//	}
-	//
-	//#ifdef _EXTEND_AB
-	//		if (i == MAX_ADR_BOOK - 1)
-	//			addressBook[i].useFlag = useFlag;
-	//		else
-	//			addressBook[i].useFlag = 1;
-	//#else
-	//		addressBook[i].useFlag = 1;
-	//#endif
-	//
-	//		flag = getStringToken(data, "|", no + 2, name);
-	//
-	//		if (flag == 1)
-	//			break;
-	//
-	//		makeStringFromEscaped(name);
-	//		nameLen = name.size();
-	//		if (0 < nameLen && nameLen <= CHAR_NAME_LEN)
-	//		{
-	//			addressBook[i].name = name;
-	//		}
-	//		addressBook[i].level = getIntegerToken(data, "|", no + 3);
-	//		addressBook[i].dp = getIntegerToken(data, "|", no + 4);
-	//		addressBook[i].onlineFlag = (short)getIntegerToken(data, "|", no + 5);
-	//		addressBook[i].graNo = getIntegerToken(data, "|", no + 6);
-	//		addressBook[i].transmigration = getIntegerToken(data, "|", no + 7);
-	//#ifdef _MAILSHOWPLANET				// (可開放) Syu ADD 顯示名片星球
-	//		for (j = 0; j < MAX_GMSV; j++)
-	//		{
-	//			if (gmsv[j].used == '1')
-	//			{
-	//				getStringToken(gmsv[j].ipaddr, '.', 4, sizeof(planetid) - 1, planetid);
-	//				if (addressBook[i].onlineFlag == atoi(planetid))
-	//				{
-	//					sprintf_s(addressBook[i].planetname, "%s", gmsv[j].name);
-	//					break;
-	//				}
-	//			}
-	//}
-	//#endif
-	//	}
+	int i;
+	int no;
+	QString name;
+	int flag;
+	int useFlag;
+#ifdef _MAILSHOWPLANET				// (可開放) Syu ADD 顯示名片星球
+	QString planetid;
+	int j;
+#endif
+
+	if (!getOnlineFlag())
+		return;
+
+	for (i = 0; i < MAX_ADR_BOOK; ++i)
+	{
+		//no = i * 6; //the second
+		no = i * 8;
+		useFlag = getIntegerToken(data, "|", no + 1);
+		if (useFlag == -1)
+		{
+			useFlag = 0;
+		}
+		if (useFlag <= 0)
+		{
+#if 0
+			if (addressBook[i].useFlag == 1)
+#else
+			if (!MailHistory[i].dateStr[MAIL_MAX_HISTORY - 1].isEmpty())
+#endif
+			{
+				MailHistory[i] = MailHistory[i];
+				//SaveMailHistory(i);
+				mailLamp = CheckMailNoReadFlag();
+				//DeathLetterAction();
+			}
+			addressBook[i].useFlag = 0;
+			addressBook[i].name.clear();
+			addressBook[i] = {};
+			continue;
+		}
+
+#ifdef _EXTEND_AB
+		if (i == MAX_ADR_BOOK - 1)
+			addressBook[i].useFlag = useFlag;
+		else
+			addressBook[i].useFlag = 1;
+#else
+		addressBook[i].useFlag = 1;
+#endif
+
+		flag = getStringToken(data, "|", no + 2, name);
+
+		if (flag == 1)
+			break;
+
+		makeStringFromEscaped(name);
+		addressBook[i].name = name.simplified();
+		addressBook[i].level = getIntegerToken(data, "|", no + 3);
+		addressBook[i].dp = getIntegerToken(data, "|", no + 4);
+		addressBook[i].onlineFlag = (short)getIntegerToken(data, "|", no + 5);
+		addressBook[i].graNo = getIntegerToken(data, "|", no + 6);
+		addressBook[i].transmigration = getIntegerToken(data, "|", no + 7);
+#ifdef _MAILSHOWPLANET				// (可開放) Syu ADD 顯示名片星球
+		for (j = 0; j < MAX_GMSV; ++j)
+		{
+			if (gmsv[j].used == '1')
+			{
+				getStringToken(gmsv[j].ipaddr, '.', 4, sizeof(planetid) - 1, planetid);
+				if (addressBook[i].onlineFlag == atoi(planetid))
+				{
+					sprintf_s(addressBook[i].planetname, "%s", gmsv[j].name);
+					break;
+				}
+			}
+		}
+#endif
+	}
 }
 
-////////////////////////////////////////
-void Server::lssproto_ABI_recv(int fd, int num, char* cdata)
+//名片數據
+void Server::lssproto_ABI_recv(int num, char* cdata)
 {
 	QString data = util::toUnicode(cdata);
 	if (data.isEmpty())
 		return;
 
 	QString name;
-	int nameLen;
+	//int nameLen;
 	int useFlag;
 #ifdef _MAILSHOWPLANET				// (可開放) Syu ADD 顯示名片星球
 	QString planetid[8];
@@ -1664,7 +1744,7 @@ void Server::lssproto_ABI_recv(int fd, int num, char* cdata)
 #if 0
 		if (addressBook[num].useFlag == 1)
 #else
-		if (MailHistory[num].dateStr[MAIL_MAX_HISTORY - 1][0] != '\0')
+		if (MailHistory[num].dateStr[MAIL_MAX_HISTORY - 1][0] != 0)
 #endif
 		{
 			MailHistory[num].clear();
@@ -1688,7 +1768,8 @@ void Server::lssproto_ABI_recv(int fd, int num, char* cdata)
 
 	getStringToken(data, "|", 2, name);
 	makeStringFromEscaped(name);
-	nameLen = name.size();
+	name = name.simplified();
+	//nameLen = name.size();
 	addressBook[num].name = name;
 	addressBook[num].level = getIntegerToken(data, "|", 3);
 	addressBook[num].dp = getIntegerToken(data, "|", 4);
@@ -1698,7 +1779,7 @@ void Server::lssproto_ABI_recv(int fd, int num, char* cdata)
 #ifdef _MAILSHOWPLANET				// (可開放) Syu ADD 顯示名片星球
 	if (addressBook[num].onlineFlag == 0)
 		sprintf_s(addressBook[num].planetname, " ");
-	for (j = 0; j < MAX_GMSV; j++)
+	for (j = 0; j < MAX_GMSV; ++j)
 	{
 		if (gmsv[j].used == '1')
 		{
@@ -1715,7 +1796,8 @@ void Server::lssproto_ABI_recv(int fd, int num, char* cdata)
 
 }
 
-void Server::lssproto_RS_recv(int fd, char* cdata)
+//戰後獎勵 (逃跑或被打死不會有)
+void Server::lssproto_RS_recv(char* cdata)
 {
 	QString data = util::toUnicode(cdata);
 	if (data.isEmpty())
@@ -1724,6 +1806,7 @@ void Server::lssproto_RS_recv(int fd, char* cdata)
 	int i;
 	QString token;
 	QString item;
+	QStringList texts;
 
 	battleResultMsg.useFlag = 1;
 	//cary 確定 欄位 數
@@ -1737,34 +1820,90 @@ void Server::lssproto_RS_recv(int fd, char* cdata)
 		battleResultMsg.resChr[RESULT_CHR_EXP - 1].exp = -1;
 	}
 	//end cary
-
-	for (i = 0; i < cols; i++)
+	QString playerExp = QObject::tr("player exp:");
+	QString rideExp = QObject::tr("ride exp:");
+	QString petExp = QObject::tr("pet exp:");
+	for (i = 0; i < cols; ++i)
 	{
 		if (i >= 5)
 			break;
 		getStringToken(data, ",", i + 1, token);
 
-		battleResultMsg.resChr[i].petNo = getIntegerToken(token, "|", 1);
-		battleResultMsg.resChr[i].levelUp = getIntegerToken(token, "|", 2);
-		battleResultMsg.resChr[i].exp = getInteger62Token(token, "|", 3);
+		int index = getIntegerToken(token, "|", 1);
+
+		int isLevelUp = getIntegerToken(token, "|", 2);
+
+		battleResultMsg.resChr[i].petNo = index;
+		battleResultMsg.resChr[i].levelUp = isLevelUp;
+		QString temp;
+		getStringToken(token, "|", 3, temp);
+		int exp = a62toi(temp);
+		battleResultMsg.resChr[i].exp = exp;
+
+		if (index == -2)
+		{
+			if (isLevelUp)
+				++recorder[0].leveldifference;
+
+			recorder[0].expdifference += exp;
+			texts.append(playerExp + QString::number(exp));
+		}
+		else if (pc.ridePetNo == index)
+		{
+			if (isLevelUp)
+				++recorder[index].leveldifference;
+
+			recorder[index].expdifference += exp;
+			texts.append(rideExp + QString::number(exp));
+		}
+		else if (pc.battlePetNo == index)
+		{
+			if (isLevelUp)
+				++recorder[index].leveldifference;
+			recorder[index].expdifference += exp;
+			texts.append(petExp + QString::number(exp));
+		}
 	}
+
+	QStringList itemsList;
+	auto appendList = [&itemsList](const QString& str)->void
+	{
+		if (!str.isEmpty())
+		{
+			itemsList.append(str);
+		}
+	};
 
 	getStringToken(data, ",", i + 1, token);
 	getStringToken(token, "|", 1, item);
 	makeStringFromEscaped(item);
+	item = item.simplified();
 	battleResultMsg.item[0] = item;
+	appendList(item);
 	getStringToken(token, "|", 2, item);
 	makeStringFromEscaped(item);
+	item = item.simplified();
 	battleResultMsg.item[1] = item;
+	appendList(item);
 	getStringToken(token, "|", 3, item);
 	makeStringFromEscaped(item);
+	item = item.simplified();
 	battleResultMsg.item[2] = item;
+	appendList(item);
 
-	setBattleEnd();
+	if (!itemsList.isEmpty())
+	{
+		texts.append(QObject::tr("rewards:"));
+		texts.append(itemsList);
+	}
+
+	Injector& injector = Injector::getInstance();
+	if (texts.size() > 1 && injector.getEnableHash(util::kShowExpEnable))
+		announce(texts.join(" "));
 }
 
-/////////////////////////////////////////////////
-void Server::lssproto_RD_recv(int fd, char* cdata)
+//戰後經驗 (逃跑或被打死不會有)
+void Server::lssproto_RD_recv(char* cdata)
 {
 	QString data = util::toUnicode(cdata);
 	if (data.isEmpty())
@@ -1776,24 +1915,26 @@ void Server::lssproto_RD_recv(int fd, char* cdata)
 	battleResultMsg.resChr[1].exp = getInteger62Token(data, "|", 2);
 }
 
-void Server::swapItem(int from, int to)
+void Server::swapItemLocal(int from, int to)
 {
 	if (from < 0 || to < 0)
 		return;
 	std::swap(pc.item[from], pc.item[to]);
 }
 
-///////////////////////////////////////////////////
-void Server::lssproto_SI_recv(int fd, int from, int to)
+//道具位置交換
+void Server::lssproto_SI_recv(int from, int to)
 {
-	swapItem(from, to);
+	QMutexLocker locker(&swapItemMutex);
+	swapItemLocal(from, to);
 	refreshItemInfo(from);
 	refreshItemInfo(to);
 }
 
-///////////////////////////////////////////////////////
-void Server::lssproto_I_recv(int fd, char* cdata)
+//道具數據改變
+void Server::lssproto_I_recv(char* cdata)
 {
+	QMutexLocker locker(&swapItemMutex);
 	QString data = util::toUnicode(cdata);
 	if (data.isEmpty())
 		return;
@@ -1806,7 +1947,7 @@ void Server::lssproto_I_recv(int fd, char* cdata)
 	//char *data = "9|烏力斯坦的肉||0|耐久力10前後回覆|24002|0|1|0|7|不會損壞|1|肉|20||10|烏力斯坦的肉||0|耐久力10前後回覆|24002|0|1|0|7|不會損壞|1|肉|20|";
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
 
-	for (j = 0; ; j++)
+	for (j = 0; ; ++j)
 	{
 #ifdef _ITEM_JIGSAW
 #ifdef _NPC_ITEMUP
@@ -1842,14 +1983,16 @@ void Server::lssproto_I_recv(int fd, char* cdata)
 		if (getStringToken(data, "|", no + 2, name) == 1)//道具名
 			break;
 
-		if (i >= 24)
+		if (i < 0 || i >= MAX_ITEM)
 			break;
 
 		makeStringFromEscaped(name);
+		name = name.simplified();
 		if (name.isEmpty())
 		{
 			pc.item[i].useFlag = 0;
-			pc.item[i].name = "";
+			pc.item[i].name.clear();
+			pc.item[i] = {};
 			refreshItemInfo(i);
 			continue;
 		}
@@ -1857,12 +2000,14 @@ void Server::lssproto_I_recv(int fd, char* cdata)
 		pc.item[i].name = name;
 		getStringToken(data, "|", no + 3, name2);//第二個道具名
 		makeStringFromEscaped(name2);
+		name2 = name2.simplified();
 		pc.item[i].name2 = name2;
 		pc.item[i].color = getIntegerToken(data, "|", no + 4);//顏色
 		if (pc.item[i].color < 0)
 			pc.item[i].color = 0;
 		getStringToken(data, "|", no + 5, memo);//道具介紹
 		makeStringFromEscaped(memo);
+		memo = memo.simplified();
 		pc.item[i].memo = memo;
 		pc.item[i].graNo = getIntegerToken(data, "|", no + 6);//道具形像
 		pc.item[i].field = getIntegerToken(data, "|", no + 7);//
@@ -1884,6 +2029,7 @@ void Server::lssproto_I_recv(int fd, char* cdata)
 			QString damage;
 			getStringToken(data, "|", no + 11, damage);
 			makeStringFromEscaped(damage);
+			damage = damage.simplified();
 			if (damage.size() <= 16)
 			{
 				pc.item[i].damage = damage;
@@ -1894,7 +2040,10 @@ void Server::lssproto_I_recv(int fd, char* cdata)
 			QString pile;
 			getStringToken(data, "|", no + 12, pile);
 			makeStringFromEscaped(pile);
+			pile = pile.simplified();
 			pc.item[i].pile = pile.toInt();
+			if (pc.item[i].useFlag == 1 && pc.item[i].pile == 0)
+				pc.item[i].pile = 1;
 		}
 #endif
 
@@ -1903,6 +2052,7 @@ void Server::lssproto_I_recv(int fd, char* cdata)
 			QString alch;
 			getStringToken(data, "|", no + 13, alch);
 			makeStringFromEscaped(alch);
+			alch = alch.simplified();
 			pc.item[i].alch = alch;
 		}
 #endif
@@ -1911,6 +2061,7 @@ void Server::lssproto_I_recv(int fd, char* cdata)
 			QString type;
 			getStringToken(data, "|", no + 14, type);
 			makeStringFromEscaped(type);
+			type = type.simplified();
 			pc.item[i].type = type.toInt();
 		}
 
@@ -1941,32 +2092,284 @@ void Server::lssproto_I_recv(int fd, char* cdata)
 			*/
 
 	}
+
+	QStringList itemList;
+	for (const ITEM& it : pc.item)
+	{
+		if (it.name.isEmpty())
+			continue;
+		itemList.append(it.name);
+	}
+	emit signalDispatcher.updateComboBoxItemText(util::kComboBoxItem, itemList);
+	checkAutoDropMeat(QStringList());
 }
 
-void Server::lssproto_WN_recv(int fd, int windowtype, int buttontype, int seqno, int objindex, char* cdata)
+//對話框
+void Server::lssproto_WN_recv(int windowtype, int buttontype, int seqno, int objindex, char* cdata)
 {
 	QString data = util::toUnicode(cdata);
-	if (data.isEmpty())
+	if (data.isEmpty() && buttontype == 0)
 		return;
 
-	//if (strstr(data, "否則家族在七天之後會消失唷！"))
-	//{
-	//	if (TimeGetTime() - MsgCooltime > 300000)
-	//		MsgCooltime = TimeGetTime();
-	//	else
-	//		return;
-	//}
-	//openServerWindow(windowtype, buttontype, seqno, objindex, data);
+	IS_WAITFOR_DIALOG_FLAG = false;
+
+	//第一部分是把按鈕都拆出來
+	QString newText = data.trimmed();
+	newText.replace("\\n", "\n");
+	QStringList strList = newText.split("\n", Qt::SkipEmptyParts);
+	if (!strList.isEmpty())
+	{
+		QString first = strList.first();
+		if (!first.isEmpty() && first.at(0).isDigit())
+			strList.removeFirst();
+
+		QStringList removeList = {
+			u8"：", u8"？", u8"『", u8"～", u8"☆", u8"、", u8"，", u8"。", u8"歡迎",
+			u8"欢迎",  u8"選", u8"选", u8"請問", u8"请问"
+		};
+
+		for (int i = 0; i < strList.size(); ++i)
+		{
+			for (const QString& str : removeList)
+			{
+				if (strList[i].contains(str, Qt::CaseInsensitive))
+				{
+					strList.removeAt(i);
+					i--;
+					break;
+				}
+			}
+		}
+
+		for (int i = 0; i < strList.size(); ++i)
+		{
+			strList[i] = strList[i].simplified();
+			strList[i].remove(u8"　");
+			strList[i].remove(u8"》");
+		}
+	}
+
+	//下面是開始檢查寄放處, 寵店
+	data.replace("\\n", "\n");
+	data = data.trimmed();
+
+	static const QStringList BankPetList = {
+		u8"2\n　　　　請選擇寵物　　　　\n\n", u8"2\n　　　　请选择宠物　　　　\n\n"
+	};
+	static const QStringList BankItemList = {
+		 u8"1|寄放店|要領取什么呢？|項目有很多|這樣子就可以了嗎？|", u8"1|寄放店|要领取什么呢？|项目有很多|这样子就可以了吗？|"
+	};
+	static const QStringList FirstWarningList = {
+		u8"上一次離線時間", u8"上一次离线时间"
+	};
+	static const QStringList SecurityCodeList = {
+		 u8"安全密碼進行解鎖", u8"安全密码进行解锁"
+	};
+	static const QStringList KNPCList = {
+		//zh_TW
+		u8"如果能贏過我的"/*院藏*/, u8"如果想通過"/*近藏*/, u8"吼"/*紅暴*/, u8"你想找麻煩"/*七兄弟*/, u8"多謝～。",
+		u8"轉以上確定要出售？", u8"再度光臨", u8"已經太多",
+
+		//zh_CN
+		u8"如果能赢过我的"/*院藏*/, u8"如果想通过"/*近藏*/, u8"吼"/*红暴*/, u8"你想找麻烦"/*七兄弟*/, u8"多謝～。",
+		u8"转以上确定要出售？", u8"再度光临", u8"已经太多",
+	};
+	static const QRegularExpression rexBankPet(u8R"(LV\.\s*(\d+)\s*MaxHP\s*(\d+)\s*(\S+))");
+
+	//這個是特殊訊息
+	static const QRegularExpression rexExtraInfoBig5(u8R"((?:.*?豆子倍率：\d*(?:\.\d+)?剩余(\d+(?:\.\d+)?)分鐘)?\s+\S+\s+聲望：(\d+)\s+氣勢：(\d+)\s+貝殼：(\d+)\s+活力：(\d+)\s+積分：(\d+)\s+會員點：(\d+))");
+	static const QRegularExpression rexExtraInfoGb2312(u8R"((?:.*?豆子倍率：\d*(?:\.\d+)?剩余(\d+(?:\.\d+)?)分钟)?\s+\S+\s+声望：(\d+)\s+气势：(\d+)\s+贝壳：(\d+)\s+活力：(\d+)\s+积分：(\d+)\s+会员点：(\d+))");
+
+
+
+	QStringList linedatas;
+	if (data.count("|") > 1)
+	{
+		linedatas = data.split(util::rexOR);
+	}
+	else
+		linedatas = data.split("\n");
+	currentDialog = (dialog_t{ windowtype, buttontype, seqno, objindex, data, linedatas, strList });
+
+	for (const QString& it : BankPetList)
+	{
+		if (!data.contains(it, Qt::CaseInsensitive))
+			continue;
+
+		data.remove(it);
+		data = data.trimmed();
+
+		currentBankPetList.first = buttontype;
+		currentBankPetList.second.clear();
+
+		//QRegularExpressionMatch itMatch = rexBankPet.match(data);
+		QStringList petList = data.split("\n");
+		for (const QString& petStr : petList)
+		{
+			QRegularExpressionMatch itMatch = rexBankPet.match(petStr);
+			if (itMatch.hasMatch())
+			{
+				bankpet_t bankPet;
+				bankPet.level = itMatch.captured(1).toInt();
+				bankPet.maxHp = itMatch.captured(2).toInt();
+				bankPet.name = itMatch.captured(3);
+				currentBankPetList.second.append(bankPet);
+			}
+		}
+		IS_WAITFOR_BANK_FLAG = false;
+		return;
+	}
+
+	for (const QString& it : BankItemList)
+	{
+		if (!data.contains(it, Qt::CaseInsensitive))
+			continue;
+
+		data.remove(it);
+		currentBankItemList.clear();
+		int index = 0;
+		for (;;)
+		{
+			ITEM item = {};
+			QString temp;
+			getStringToken(data, "|", 1 + index * 7, temp);
+			if (temp.isEmpty())
+				break;
+			item.useFlag = 1;
+			item.name = temp;
+
+			getStringToken(data, "|", 6 + index * 7, temp);
+			item.memo = temp;
+			currentBankItemList.append(item);
+			++index;
+		}
+		IS_WAITFOR_BANK_FLAG = false;
+		return;
+
+	}
+
+	//匹配額外訊息
+	QRegularExpressionMatch extraInfoMatch = rexExtraInfoBig5.match(data);
+	if (extraInfoMatch.hasMatch())
+	{
+		currencydata_t currency;
+		int n = 1;
+		if (extraInfoMatch.lastCapturedIndex() == 7)
+			currency.expbufftime = qFloor(extraInfoMatch.captured(n++).toDouble() * 60.0);
+		else
+			currency.expbufftime = 0;
+
+		currency.prestige = extraInfoMatch.captured(n++).toInt();
+		currency.energy = extraInfoMatch.captured(n++).toInt();
+		currency.shell = extraInfoMatch.captured(n++).toInt();
+		currency.vitality = extraInfoMatch.captured(n++).toInt();
+		currency.points = extraInfoMatch.captured(n++).toInt();
+		currency.VIPPoints = extraInfoMatch.captured(n++).toInt();
+
+		if (recorder[0].reprecord == 0)
+		{
+			recorder[0].reprecord = currency.prestige;
+			repTimer.restart();
+		}
+		else
+		{
+			recorder[0].repearn = currency.prestige - recorder[0].reprecord;
+			if (recorder[0].repearn <= 0)
+			{
+				recorder[0].repearn = 0;
+				recorder[0].reprecord = currency.prestige;
+				repTimer.restart();
+			}
+		}
+
+		currencyData = currency;
+		IS_WAITFOR_EXTRA_DIALOG_INFO_FLAG = false;
+	}
+	else
+	{
+		extraInfoMatch = rexExtraInfoGb2312.match(data);
+		if (extraInfoMatch.hasMatch())
+		{
+			currencydata_t currency;
+			int n = 1;
+			if (extraInfoMatch.lastCapturedIndex() == 7)
+				currency.expbufftime = qFloor(extraInfoMatch.captured(n++).toDouble() * 60.0);
+			else
+				currency.expbufftime = 0;
+			currency.prestige = extraInfoMatch.captured(n++).toInt();
+			currency.energy = extraInfoMatch.captured(n++).toInt();
+			currency.shell = extraInfoMatch.captured(n++).toInt();
+			currency.vitality = extraInfoMatch.captured(n++).toInt();
+			currency.points = extraInfoMatch.captured(n++).toInt();
+			currency.VIPPoints = extraInfoMatch.captured(n++).toInt();
+
+			if (recorder[0].reprecord == 0)
+			{
+				recorder[0].reprecord = currency.prestige;
+				repTimer.restart();
+			}
+			else
+			{
+				recorder[0].repearn = currency.prestige - recorder[0].reprecord;
+				if (recorder[0].repearn <= 0)
+				{
+					recorder[0].repearn = 0;
+					recorder[0].reprecord = currency.prestige;
+					repTimer.restart();
+				}
+			}
+
+			currencyData = currency;
+			IS_WAITFOR_EXTRA_DIALOG_INFO_FLAG = false;
+		}
+	}
+
+	//這裡開始是 KNPC
+	Injector& injector = Injector::getInstance();
+
+	data = data.simplified();
+	for (const QString& it : FirstWarningList)
+	{
+		if (data.contains(it, Qt::CaseInsensitive))
+		{
+			press(BUTTON_AUTO, seqno, objindex);
+			return;
+		}
+	}
+
+	for (const QString& it : SecurityCodeList)
+	{
+		if (!data.contains(it, Qt::CaseInsensitive))
+			continue;
+		//Injector& injector = Injector::getInstance();
+		QString securityCode = injector.getStringHash(util::kGameSecurityCodeString);
+		if (!securityCode.isEmpty())
+		{
+			injector.server->unlockSecurityCode(securityCode);
+			return;
+		}
+	}
+
+
+	if (injector.getEnableHash(util::kKNPCEnable))
+	{
+		for (const QString& str : KNPCList)
+		{
+			if (data.contains(str, Qt::CaseInsensitive))
+			{
+				press(BUTTON_AUTO, seqno, objindex);
+				break;
+			}
+		}
+	}
+
 
 }
 
-///////////////////////////////////////////////////////
-void Server::lssproto_PME_recv(int fd, int objindex,
-	int graphicsno, int x, int y, int dir, int flg, int no, char* cdata)
+void Server::lssproto_PME_recv(int objindex,
+	int graphicsno, const QPoint& pos, int dir, int flg, int no, char* cdata)
 {
-	QString data = util::toUnicode(cdata);
-
-	if (IS_BATTLE_FLAG)
+	if (getBattleFlag())
 		return;
 
 	if (flg == 0)
@@ -1983,6 +2386,7 @@ void Server::lssproto_PME_recv(int fd, int objindex,
 	}
 	else
 	{
+		QString data = util::toUnicode(cdata);
 		if (data.isEmpty())
 			return;
 
@@ -2019,8 +2423,10 @@ void Server::lssproto_PME_recv(int fd, int objindex,
 		nameColor = getIntegerToken(data, "|", ps++);
 		getStringToken(data, "|", ps++, name);
 		makeStringFromEscaped(name);
+		name = name.simplified();
 		getStringToken(data, "|", ps++, freeName);
 		makeStringFromEscaped(freeName);
+		freeName = freeName.simplified();
 		getStringToken(data, "|", ps++, smalltoken);
 		walkable = smalltoken.toInt();
 		getStringToken(data, "|", ps++, smalltoken);
@@ -2043,12 +2449,19 @@ void Server::lssproto_PME_recv(int fd, int objindex,
 	}
 }
 
-/////////////////////////////////////////////
-void Server::lssproto_EF_recv(int fd, int effect, int level, char* coption)
+void Server::lssproto_EF_recv(int effect, int level, char* coption)
 {
 	//char* pCommand = NULL;
 	//DWORD dwDiceTimer;
-	QString option = util::toUnicode(coption);
+	//QString option = util::toUnicode(coption);
+
+	Injector& injector = Injector::getInstance();
+	if (!getOnlineFlag())
+		return;
+
+	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
+	int floor = mem::read<int>(injector.getProcess(), injector.getProcessModule() + kOffestNowFloor);
+	emit signalDispatcher.updateNpcList(floor);
 
 	if (effect == 0)
 	{
@@ -2093,18 +2506,14 @@ void Server::lssproto_EF_recv(int fd, int effect, int level, char* coption)
 			strcpy(pCommand, strlen(option) + 1, option);
 			bMapEffectDice = TRUE;
 			dwDiceTimer = TimeGetTime();
-		}
+		}BattleTurnReceiveFlag
 	}
 #endif
 	// Terry end
 }
 
-///////////////////////////////////////////////////////////////////
-//void Server::lssproto_IS_recv(int fd, char* cdata)
-//{
-//}
-
-void Server::lssproto_EN_recv(int fd, int result, int field)
+//開始戰鬥
+void Server::lssproto_EN_recv(int result, int field)
 {
 	//開始戰鬥為1，未開始戰鬥為0
 	if (result > 0)
@@ -2132,44 +2541,71 @@ void Server::lssproto_EN_recv(int fd, int result, int field)
 		else
 			NoHelpFlag = false;
 
-		BattleStatusReadPointer = BattleStatusWritePointer = 0;
-		BattleCmdReadPointer = BattleCmdWritePointer = 0;
-#ifdef PK_SYSTEM_TIMER_BY_ZHU
+		//BattleStatusReadPointer = BattleStatusWritePointer = 0;
+		//BattleCmdReadPointer = BattleCmdWritePointer = 0;
+#ifdef PK_SYSTEtimer__BY_ZHU
 		BattleCliTurnNo = -1;
 #endif
-		enablePlayerWork = false;
-		enablePetWork = false;
-		IS_BATTLE_FLAG = true;
+		announce("[async battle] 收到战斗开始封包");
+		setBattleFlag(true);
+		IS_LOCKATTACK_ESCAPE_DISABLE = false;
 		normalDurationTimer.restart();
 		battleDurationTimer.restart();
+		++battle_totol;
 	}
-	else
-	{
-		sendEnFlag = 0;
-		duelSendFlag = 0;
-		jbSendFlag = 0;
-	}
+
 }
 
-void Server::lssproto_HL_recv(int fd, int flg)
+//求救
+void Server::lssproto_HL_recv(int flg)
 {
 	helpFlag = flg;
 }
 
-void Server::lssproto_B_recv(int fd, char* ccommand)
+//更新敵我索引範圍
+void Server::updateCurrentSideRange(battledata_t& bt)
 {
-	Injector& injector = Injector::getInstance();
-	bool isFastBattle = injector.getEnableHash(util::kFastBattleEnable);
-	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
+	if (BattleMyNo < 10)
+	{
+		bt.alliemin = 0;
+		bt.alliemax = 9;
+		bt.enemymin = 10;
+		bt.enemymax = 19;
+	}
+	else
+	{
+		bt.alliemin = 10;
+		bt.alliemax = 19;
+		bt.enemymin = 0;
+		bt.enemymax = 9;
+	}
+	setBattleData(bt);
+}
+
+//戰鬥每回合資訊
+void Server::lssproto_B_recv(char* ccommand)
+{
 	QString command = util::toUnicode(ccommand);
+	if (command.isEmpty())
+		return;
+
 	QString first = command.left(2);
 	first.remove("B");
+
 	QString data = command.mid(3);
 	if (data.isEmpty())
 		return;
 
+	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
+	battledata_t bt = getBattleData();
+
 	if (first == "C")
 	{
+		QVector<QStringList> topList;
+		QVector<QStringList> bottomList;
+
+		announce("[async battle] ----------------------------------------------");
+		announce("[async battle] 收到新的战斗 C 数据");
 		/*
 		//BC|戰場屬性（0:無屬性,1:地,2:水,3:火,4:風）|人物在組隊中的位置|人物名稱|人物稱號|人物形象編號|人物等級(16進制)|當前HP|最大HP|人物狀態（死亡，中毒等）|是否騎乘標志(0:未騎，1騎,-1落馬)|騎寵名稱|騎寵等級|騎寵HP|騎寵最大HP|戰寵在隊伍中的位置|戰寵名稱|未知|戰寵形象|戰寵等級|戰寵HP|戰寵最大HP|戰寵異常狀態（昏睡，死亡，中毒等）|0||0|0|0|
 		//敵1位置|敵1名稱|未知|敵1形象|敵1等級|敵1HP|敵1最大HP|敵人異常狀態（死亡，中毒等）|0||0|0|0|
@@ -2182,40 +2618,34 @@ void Server::lssproto_B_recv(int fd, char* ccommand)
 		10|貝恩達斯||187F0|2|36|36|1|0||0|0|0|
 		11|貝恩達斯||187F0|4|4F|4F|1|0||0|0|0|
 		*/
-		if (BattleStatusWritePointer < 4)
-		{
-			BattleTurnReceiveFlag = true;
-			BattleStatusBak[BattleStatusWritePointer] = command;
-			BattleStatusWritePointer = (BattleStatusWritePointer + 1) & (BATTLE_BUF_SIZE - 1);
-		}
+
 		QString temp;
 		//fl = getIntegerToken(data, "|", 1);
 
-		battleData.allies.clear();
-		battleData.enemies.clear();
-		battleData.fieldAttr = 0;
-		battleData.pet = {};
-		battleData.player = {};
-		battleData.objects.clear();
-		battleData.objects.resize(20);
+		bt.allies.clear();
+		bt.enemies.clear();
+		bt.fieldAttr = 0;
+		bt.pet = {};
+		bt.player = {};
+		bt.objects.clear();
+		bt.objects.resize(MAX_ENEMY);
 
 		int i = 0;
-		battleData.fieldAttr = getIntegerToken(data, "|", 1);
+		int n = 0;
+		bt.fieldAttr = getIntegerToken(data, "|", 1);
 
-		//16進制使用 a62toi
-		//string 使用 getStringToken(data, "|", n, var); 而後使用 makeStringFromEscaped(var); 轉換
-		//int 使用 getIntegerToken(data, "|", n);
-
-		QVector<QStringList> topList;
-		QVector<QStringList> bottomList;
-
-		bool bret = false;
 		bool ok = false;
 		for (;;)
 		{
+			//16進制使用 a62toi
+			//string 使用 getStringToken(data, "|", n, var); 而後使用 makeStringFromEscaped(var) 處理轉譯
+			//int 使用 getIntegerToken(data, "|", n);
 			getStringToken(data, "|", i * 13 + 2, temp);
 			int pos = temp.toInt(&ok, 16);
 			if (!ok)
+				break;
+
+			if (pos < 0 || pos >= MAX_ENEMY)
 				break;
 
 			battleobject_t obj = {};
@@ -2224,10 +2654,12 @@ void Server::lssproto_B_recv(int fd, char* ccommand)
 
 			getStringToken(data, "|", i * 13 + 3, temp);
 			makeStringFromEscaped(temp);
+			temp = temp.simplified();
 			obj.name = temp;
 
 			getStringToken(data, "|", i * 13 + 4, temp);
 			makeStringFromEscaped(temp);
+			temp = temp.simplified();
 			obj.freename = temp;
 
 			getStringToken(data, "|", i * 13 + 5, temp);
@@ -2242,6 +2674,8 @@ void Server::lssproto_B_recv(int fd, char* ccommand)
 			getStringToken(data, "|", i * 13 + 8, temp);
 			obj.maxHp = temp.toInt(nullptr, 16);
 
+			obj.hpPercent = util::percent(obj.hp, obj.maxHp);
+
 			getStringToken(data, "|", i * 13 + 9, temp);
 			obj.status = temp.toInt(nullptr, 16);
 
@@ -2249,6 +2683,7 @@ void Server::lssproto_B_recv(int fd, char* ccommand)
 
 			getStringToken(data, "|", i * 13 + 11, temp);
 			makeStringFromEscaped(temp);
+			temp = temp.simplified();
 			obj.rideName = temp;
 
 			getStringToken(data, "|", i * 13 + 12, temp);
@@ -2260,44 +2695,71 @@ void Server::lssproto_B_recv(int fd, char* ccommand)
 			getStringToken(data, "|", i * 13 + 14, temp);
 			obj.rideMaxHp = temp.toInt(nullptr, 16);
 
-			if (pc.name == obj.name)
+			obj.rideHpPercent = util::percent(obj.rideHp, obj.rideMaxHp);
+
+			if ((pos >= bt.enemymin) && (pos <= bt.enemymax) && obj.rideFlag == 0 && obj.faceid > 0 && !obj.name.isEmpty())
 			{
-				battleData.player.pos = pos;
-				battleData.player.name = obj.name;
-				battleData.player.freename = obj.freename;
-				battleData.player.faceid = obj.faceid;
-				battleData.player.level = obj.level;
-				battleData.player.hp = obj.hp;
-				battleData.player.maxHp = obj.maxHp;
-				battleData.player.status = obj.status;
-				battleData.player.rideFlag = obj.rideFlag;
-				battleData.player.rideName = obj.rideName;
-				battleData.player.rideLevel = obj.rideLevel;
-				battleData.player.rideHp = obj.rideHp;
-				battleData.player.rideMaxHp = obj.rideMaxHp;
+				if (!enemyNameListCache.contains(obj.name))
+				{
+					enemyNameListCache.append(obj.name);
+
+					if (enemyNameListCache.size() > 1)
+					{
+						enemyNameListCache.removeDuplicates();
+						std::sort(enemyNameListCache.begin(), enemyNameListCache.end(), util::customStringCompare);
+					}
+				}
+			}
+
+			if (BattleMyNo == pos)
+			{
+				bt.player.pos = pos;
+				bt.player.name = obj.name;
+				bt.player.freename = obj.freename;
+				bt.player.faceid = obj.faceid;
+				bt.player.level = obj.level;
+				bt.player.hp = obj.hp;
+				bt.player.maxHp = obj.maxHp;
+				bt.player.hpPercent = obj.hpPercent;
+				bt.player.status = obj.status;
+				bt.player.rideFlag = obj.rideFlag;
+				bt.player.rideName = obj.rideName;
+				bt.player.rideLevel = obj.rideLevel;
+				bt.player.rideHp = obj.rideHp;
+				bt.player.rideMaxHp = obj.rideMaxHp;
 
 				pc.hp = obj.hp;
 				pc.maxHp = obj.maxHp;
+				pc.hpPercent = util::percent(pc.hp, pc.maxHp);
+
+				if (pc.hp == 0)
+					++recorder[0].deadthcount;
 				emit signalDispatcher.updateCharHpProgressValue(obj.level, obj.hp, obj.maxHp);
+
 				if (obj.rideFlag == 1)
 				{
-					for (int i = 0; i < MAX_PET; ++i)
+					n = -1;
+					for (int j = 0; j < MAX_PET; ++j)
 					{
-						if (pet[i].name.isEmpty() && pet[i].freeName.isEmpty())
-							continue;
-						if ((pet[i].maxHp == obj.maxHp) &&
-							(pet[i].level == obj.level) &&
-							(pet[i].name == obj.name || pet[i].freeName == obj.name))
+						if ((pet[j].maxHp == obj.rideMaxHp) &&
+							(pet[j].level == obj.rideLevel) &&
+							matchPetNameByIndex(j, obj.rideName))
 						{
-							pc.ridePetNo = i;
+							n = j;
 							break;
 						}
 					}
 
-					if (pc.ridePetNo > 0 && pc.ridePetNo < MAX_PET)
+					if (pc.ridePetNo != n)
+						pc.ridePetNo = n;
+
+					if ((pc.ridePetNo > 0) && (pc.ridePetNo < MAX_PET))
 					{
 						pet[pc.ridePetNo].hp = obj.rideHp;
 						pet[pc.ridePetNo].maxHp = obj.rideMaxHp;
+
+						if (pet[pc.ridePetNo].hp == 0)
+							++recorder[pc.ridePetNo + 1].deadthcount;
 						emit signalDispatcher.updateRideHpProgressValue(obj.rideLevel, obj.rideHp, obj.rideMaxHp);
 					}
 				}
@@ -2306,100 +2768,182 @@ void Server::lssproto_B_recv(int fd, char* ccommand)
 					pc.ridePetNo = -1;
 				}
 
-				if (pc.ridePetNo < 0)
+				if ((pc.ridePetNo < 0) || (pc.ridePetNo >= MAX_PET))
 				{
 					emit signalDispatcher.updateRideHpProgressValue(0, 0, 100);
 				}
 			}
 
-			for (int i = 0; i < MAX_PET; ++i)
+			//分開記錄敵我數據
+			if (pos >= bt.alliemin && pos <= bt.alliemax)
 			{
-				if (pet[i].name.isEmpty() && pet[i].freeName.isEmpty())
-					continue;
-				if (pet[i].maxHp == obj.maxHp &&
-					(pet[i].level == obj.level) &&
-					(pet[i].name == obj.name || pet[i].freeName == obj.name))
-				{
-					pc.battlePetNo = i;
-					break;
-				}
+				if (obj.faceid > 0 && obj.maxHp > 0 && obj.level > 0 && !checkAND(obj.status, BC_FLG_HIDE))
+					bt.allies.append(obj);
 			}
 
-			if (pc.battlePetNo < 0)
+			if (pos >= bt.enemymin && pos <= bt.enemymax)
 			{
-				emit signalDispatcher.updateRideHpProgressValue(0, 0, 100);
+				if (obj.faceid > 0 && obj.maxHp > 0 && obj.level > 0 && !checkAND(obj.status, BC_FLG_HIDE))
+					bt.enemies.append(obj);
 			}
 
-			if (pc.battlePetNo >= 0 && pc.battlePetNo < MAX_PET)
-			{
-
-				if ((pet[pc.battlePetNo].maxHp == obj.maxHp) &&
-					(pet[pc.battlePetNo].level == obj.level) &&
-					(pet[pc.battlePetNo].name == obj.name || pet[pc.battlePetNo].freeName == obj.name))
-				{
-					battleData.pet.pos = pos;
-					battleData.pet.name = obj.name;
-					battleData.pet.freename = obj.freename;
-					battleData.pet.faceid = obj.faceid;
-					battleData.pet.level = obj.level;
-					battleData.pet.hp = obj.hp;
-					battleData.pet.maxHp = obj.maxHp;
-					battleData.pet.status = obj.status;
-					battleData.pet.rideFlag = obj.rideFlag;
-					battleData.pet.rideName = obj.rideName;
-					battleData.pet.rideLevel = obj.rideLevel;
-					battleData.pet.rideHp = obj.rideHp;
-					battleData.pet.rideMaxHp = obj.rideMaxHp;
-
-					pet[pc.battlePetNo].hp = obj.hp;
-					pet[pc.battlePetNo].maxHp = obj.maxHp;
-					emit signalDispatcher.updatePetHpProgressValue(obj.level, obj.hp, obj.maxHp);
-				}
-			}
-
-			if (pos < battleData.objects.size())
-				battleData.objects[pos] = obj;
+			if (pos < bt.objects.size())
+				bt.objects.insert(pos, obj);
 
 			QStringList tempList = {};
+			QString temp;
+			tempList.append(QString::number(obj.pos));
 
-			tempList.append(QString::number(pos));
+			QString statusStr = getBadStatusString(obj.status);
+			if (!statusStr.isEmpty())
+				statusStr = QString(" (%1)").arg(statusStr);
 
-			temp = QString("%1 LV:%2 HP:%3/%4").arg(obj.name).arg(obj.level)
-				.arg(obj.hp).arg(obj.maxHp);
+			if (obj.pos == BattleMyNo)
+			{
+				temp = QString("%1[%2]%3 Lv:%4 HP:%5/%6 (%7) MP:%8%9").arg(obj.ready ? "*" : "").arg(obj.pos + 1).arg(obj.name).arg(obj.level)
+					.arg(obj.hp).arg(obj.maxHp).arg(QString::number(obj.hpPercent) + "%").arg(BattleMyMp).arg(statusStr);
+			}
+			else
+			{
+				temp = QString("%1[%2]%3 Lv:%4 HP:%5/%6 (%7)%8").arg(obj.ready ? "*" : "").arg(obj.pos + 1).arg(obj.name).arg(obj.level)
+					.arg(obj.hp).arg(obj.maxHp).arg(QString::number(obj.hpPercent) + "%").arg(statusStr);
+			}
 
 			tempList.append(temp);
+			temp.clear();
 
 			if (obj.rideFlag == 1)
 			{
-				temp = QString("%1 LV:%2 HP:%3/%4").arg(obj.rideName).arg(obj.rideLevel)
-					.arg(obj.rideHp).arg(obj.rideMaxHp);
+				temp = QString("%1[%2]%3 Lv:%4 HP:%5/%6 (%7)%8").arg(obj.ready ? "*" : "").arg(obj.pos + 1).arg(obj.rideName).arg(obj.rideLevel)
+					.arg(obj.rideHp).arg(obj.rideMaxHp).arg(QString::number(obj.rideHpPercent) + "%").arg(statusStr);
 			}
-			else
-				temp.clear();
 
 			tempList.append(temp);
 
-			if ((pos >= 0) && (pos <= 9))
+			if (BattleMyNo < 10)
 			{
-				qDebug() << "allie pos:" << pos << "value:" << tempList;
-				bottomList.append(tempList);
+				if ((obj.pos >= 0) && (obj.pos <= 9))
+				{
+					qDebug() << "allie pos:" << obj.pos << "value:" << tempList;
+					bottomList.append(tempList);
+				}
+				else if ((obj.pos >= 10) && (obj.pos < MAX_ENEMY))
+				{
+					qDebug() << "enemy pos:" << obj.pos << "value:" << tempList;
+					topList.append(tempList);
+				}
 			}
-			else if ((pos >= 10) && (pos <= 19))
+			else
 			{
-				qDebug() << "enemy pos:" << pos << "value:" << tempList;
-				topList.append(tempList);
+				if ((obj.pos >= 0) && (obj.pos <= 9))
+				{
+					qDebug() << "enemy pos:" << obj.pos << "value:" << tempList;
+					topList.append(tempList);
+				}
+				else if ((obj.pos >= 10) && (obj.pos < MAX_ENEMY))
+				{
+					qDebug() << "allie pos:" << obj.pos << "value:" << tempList;
+					bottomList.append(tempList);
+				}
 			}
 
 			++i;
 		}
 
+		//更新戰場動態UI
+		QVariant top = QVariant::fromValue(topList);
+		if (top.isValid())
+		{
+			topInfoContents = top;
+			emit signalDispatcher.updateTopInfoContents(top);
+		}
+
+		QVariant bottom = QVariant::fromValue(bottomList);
+		if (bottom.isValid())
+		{
+			bottomInfoContents = bottom;
+			emit signalDispatcher.updateBottomInfoContents(bottom);
+		}
+
+		//更新戰寵數據
+		if (BattleMyNo >= 0 && BattleMyNo < bt.objects.size())
+		{
+			battleobject_t obj = bt.objects.value(BattleMyNo + 5, battleobject_t{});
+			if (obj.level <= 0 || obj.maxHp <= 0 || obj.faceid <= 0)
+			{
+				int petIndex = pc.battlePetNo;
+				if (petIndex >= 0)
+				{
+					setFightPet(-1);
+					pet[petIndex].state = kRest;
+					pc.selectPetNo[petIndex] = FALSE;
+					Injector& injector = Injector::getInstance();
+					mem::write<short>(injector.getProcess(), injector.getProcessModule() + kOffestSelectPetArray + (petIndex * sizeof(short)), FALSE);
+					++recorder[petIndex + 1].deadthcount;
+					pc.battlePetNo = -1;
+				}
+				emit signalDispatcher.updateLabelPetAction("");
+				emit signalDispatcher.updatePetHpProgressValue(0, 0, 100);
+			}
+			else
+			{
+				n = -1;
+				for (int j = 0; j < MAX_PET; ++j)
+				{
+					if ((pet[j].maxHp == obj.maxHp) && (pet[j].level == obj.level)
+						&& (matchPetNameByIndex(j, obj.name)))
+					{
+						n = j;
+						break;
+					}
+				}
+
+				if (pc.battlePetNo != n)
+					pc.battlePetNo = n;
+
+				if (pc.battlePetNo >= 0 && pc.battlePetNo < MAX_PET)
+				{
+					bt.pet.pos = obj.pos;
+					bt.pet.name = obj.name;
+					bt.pet.freename = obj.freename;
+					bt.pet.faceid = obj.faceid;
+					bt.pet.level = obj.level;
+					bt.pet.hp = obj.hp;
+					bt.pet.maxHp = obj.maxHp;
+					bt.pet.hpPercent = obj.hpPercent;
+					bt.pet.status = obj.status;
+					bt.pet.rideFlag = obj.rideFlag;
+					bt.pet.rideName = obj.rideName;
+					bt.pet.rideLevel = obj.rideLevel;
+					bt.pet.rideHp = obj.rideHp;
+					bt.pet.rideMaxHp = obj.rideMaxHp;
+
+					pet[pc.battlePetNo].hp = obj.hp;
+					pet[pc.battlePetNo].maxHp = obj.maxHp;
+					pet[pc.battlePetNo].hpPercent = obj.hpPercent;
+
+					if (pet[pc.battlePetNo].hp == 0)
+						++recorder[pc.battlePetNo + 1].deadthcount;
+					emit signalDispatcher.updatePetHpProgressValue(obj.level, obj.hp, obj.maxHp);
+				}
+				else
+				{
+					emit signalDispatcher.updatePetHpProgressValue(0, 0, 100);
+				}
+			}
+		}
+
+		setBattleData(bt);
+		setWindowTitle();
+
+		//檢查敵我其中一方是否全部陣亡
 		bool isEnemyAllDead = true;
 		bool isAllieAllDead = true;
-		for (const battleobject_t& it : battleData.objects)
+		for (const battleobject_t& it : bt.objects)
 		{
-			if ((it.level > 0 && it.maxHp > 0 && it.hp > 0) || it.status == BC_FLG_HIDE)
+			if ((it.level > 0 && it.maxHp > 0 && it.hp > 0 && it.faceid > 0) || checkAND(it.status, BC_FLG_HIDE))
 			{
-				if (it.pos >= 0 && it.pos <= 9)
+				if (it.pos >= bt.alliemin && it.pos <= bt.alliemax)
 				{
 					isAllieAllDead = false;
 					continue;
@@ -2412,134 +2956,95 @@ void Server::lssproto_B_recv(int fd, char* ccommand)
 			}
 		}
 
-		if (!topList.isEmpty())
-		{
-			qDebug() << "top(enemy) = " << topList.size();
-			QVariant top = QVariant::fromValue(topList);
-			emit signalDispatcher.updateTopInfoContents(top);
-		}
-
-		if (!bottomList.isEmpty())
-		{
-			qDebug() << "bottom(allie) = " << bottomList.size();
-			QVariant bottom = QVariant::fromValue(bottomList);
-			emit signalDispatcher.updateBottomInfoContents(bottom);
-		}
-
+		//我方全部陣亡或敵方全部陣亡至戰鬥標誌為false
 		if (isAllieAllDead || isEnemyAllDead)
 		{
+			if (isAllieAllDead)
+				announce("[async battle] 我方全部阵亡，结束战斗");
+			if (isEnemyAllDead)
+				announce("[async battle] 敌方全部阵亡，结束战斗");
 			setBattleEnd();
 		}
-		else
-		{
-			IS_BATTLE_FLAG = true;
-
-			//if (!battleData.objects.isEmpty())
-			//{
-			//	asyncBattleWork();
-			//}
-		}
 	}
-
 	else if (first == "P")
 	{
-		QStringList list = data.split("|");
-		//sscanf_s(command + 3, "%X|%X|%X", &BattleMyNo, &BattleBpFlag, &BattleMyMp);
+		QStringList list = data.split(util::rexOR);
 		if (list.size() < 3)
 			return;
-		BattleMyNo = list[0].toInt(nullptr, 16);
-		BattleBpFlag = list[1].toInt(nullptr, 16);
-		BattleMyMp = list[2].toInt(nullptr, 16);
-		battleData.player.pos = BattleMyNo;
-		pc.mp = BattleMyMp;
-	}
 
+		BattleMyNo = list.at(0).toInt(nullptr, 16);
+		BattleBpFlag = list.at(1).toInt(nullptr, 16);
+		BattleMyMp = list.at(2).toInt(nullptr, 16);
+
+		announce("[async battle] -----------------------------------------------");
+		announce("[async battle] -----------------------------------------------");
+		announce("[async battle] -----------------------------------------------");
+		announce("[async battle] -------------------新回合-----------------------");
+		announce(QString("[async battle] 收到新的战斗 P 数据 人物編號:%1 人物MP:%2").arg(BattleMyNo + 1).arg(BattleMyMp));
+
+		bt.player.pos = BattleMyNo;
+		pc.mp = BattleMyMp;
+		setBattleData(bt);
+		updateCurrentSideRange(bt);
+		isEnemyAllReady.store(false, std::memory_order_release);
+	}
 	else if (first == "A")
 	{
-		//sscanf_s(command + 3, "%X|%X", &BattleAnimFlag, &BattleSvTurnNo);
-		QStringList list = data.split("|");
+		QStringList list = data.split(util::rexOR);
 		if (list.size() < 2)
 			return;
 
-		BattleAnimFlag = list[0].toInt(nullptr, 16);
-		BattleSvTurnNo = list[1].toInt(nullptr, 16);
-		if (BattleTurnReceiveFlag)
-		{
-			BattleCliTurnNo = BattleSvTurnNo;
-			BattleTurnReceiveFlag = false;
-		}
+		BattleAnimFlag = list.at(0).toInt(nullptr, 16);
+		BattleCliTurnNo = list.at(1).toInt(nullptr, 16);
+
+		announce(QString("[async battle] 收到新的战斗 A 数据  回合:%1").arg(BattleCliTurnNo));
 
 		if (BattleAnimFlag <= 0)
 			return;
 
-		int bit = 0;
-		int value = 0;
-		int n = 0;
-		enablePlayerWork = false;
-		enablePetWork = false;
-		enemyAllReady = false;
-
-		battleData.allies.clear();
-		if (!battleData.objects.isEmpty())
+		int enemyOkCount = 0;
+		battleobject_t empty = {};
+		if (!bt.objects.isEmpty())
 		{
-			for (int i = 0; i < 10; ++i)
+			QVector<battleobject_t> objs = bt.objects;
+			for (int i = bt.alliemin; i <= bt.alliemax; ++i)
 			{
-				if (i >= battleData.objects.size())
+				if (i >= bt.objects.size())
 					break;
-
-				bit = 1 << i;
-				value = BattleAnimFlag & bit;
-				if (value == bit)
+				if (checkFlagState(i) && !bt.objects.value(i, empty).ready)
 				{
-					battleobject_t bt = battleData.objects.at(i);
-					battleData.allies.append(bt);
-				}
-				else if (i == battleData.player.pos)
-				{
-					enablePlayerWork = true;
-				}
-				else if (i == battleData.pet.pos)
-				{
-					enablePetWork = true;
+					if (i == BattleMyNo)
+						announce(QString("[async battle] 自己 [%1]%2(%3) 已出手").arg(i + 1).arg(bt.objects.value(i, empty).name).arg(bt.objects.value(i, empty).freename));
+					if (i == BattleMyNo + 5)
+						announce(QString("[async battle] 戰寵 [%1]%2(%3) 已出手").arg(i + 1).arg(bt.objects.value(i, empty).name).arg(bt.objects.value(i, empty).freename));
+					else
+						announce(QString("[async battle] 隊友 [%1]%2(%3) 已出手").arg(i + 1).arg(bt.objects.value(i, empty).name).arg(bt.objects.value(i, empty).freename));
+					objs[i].ready = true;
 				}
 			}
 
-			battleData.enemies.clear();
-
-			for (int i = 10; i < 20; ++i)
+			for (int i = bt.enemymin; i <= bt.enemymax; ++i)
 			{
-				if (i >= battleData.objects.size())
+				if (i >= bt.objects.size())
 					break;
-				battleobject_t bt = battleData.objects.at(i);
-				bit = 1 << i;
-				value = BattleAnimFlag & bit;
-				if (value == bit)
+				if (checkFlagState(i))
 				{
-
-					battleData.enemies.append(bt);
+					objs[i].ready = true;
+					++enemyOkCount;
 				}
-
-				if (bt.maxHp > 0 && bt.level > 0)
-					++n;
 			}
 
-			if (battleData.enemies.size() == n)
+			bt.objects = objs;
+
+			if (enemyOkCount > 0 && !isEnemyAllReady.load(std::memory_order_acquire))
 			{
-				enemyAllReady = true;
+				announce("[async battle] 敌方全部准备完毕");
+				isEnemyAllReady.store(true, std::memory_order_release);
 			}
 		}
+		setBattleData(bt);
 
-		qDebug() << "Enemy Count:" << battleData.enemies.size() << "Allie Count:" << battleData.allies.size();
-		qDebug() << "Player Work:" << enablePlayerWork << "Pet Work:" << enablePetWork << "Enemy All Ready:" << enemyAllReady << n;
-
-		if (!battleData.enemies.isEmpty())
-		{
-			asyncBattleWork();
-		}
-		else
-		{
-			setBattleEnd();
-		}
+		asyncBattleWork(true);
 	}
 	else if (first == "U")
 	{
@@ -2556,7 +3061,7 @@ void Server::lssproto_B_recv(int fd, char* ccommand)
 	{
 		//bn|5|BD|r0|0|2|A0|pA0|mA|BE|e0|f1|
 	}
-#ifdef PK_SYSTEM_TIMER_BY_ZHU
+#ifdef PK_SYSTEtimer__BY_ZHU
 	else if (first == "Z")
 	{
 		int TurnNo = -1;
@@ -2609,128 +3114,19 @@ void Server::lssproto_B_recv(int fd, char* ccommand)
 	else
 	{
 		qDebug() << "lssproto_B_recv: unknown command" << command;
-		if (BattleCmdWritePointer < 4)
-		{
-			BattleCmdBak[BattleCmdWritePointer] = command;
-			BattleCmdWritePointer = (BattleCmdWritePointer + 1) & (BATTLE_BUF_SIZE - 1);
-		}
+		//if (BattleCmdWritePointer < 4)
+		//{
+			//BattleCmdBak[BattleCmdWritePointer] = command;
+			//BattleCmdWritePointer = (BattleCmdWritePointer + 1) & (BATTLE_BUF_SIZE - 1);
+		//}
 	}
-
-#ifdef _STONDEBUG__MSG
-	//StockChatBufferLine( command, FONT_PAL_RED );
-#endif
-
-}
-
-void Server::asyncBattleWork()
-{
-
-	if (!enemyAllReady)
-		return;
-
-	Injector& injector = Injector::getInstance();
-	if (ayncBattleCommand.isRunning())
-	{
-		ayncBattleCommandFlag.store(true, std::memory_order_release);
-		ayncBattleCommand.cancel();
-		ayncBattleCommand.waitForFinished();
-	}
-
-	ayncBattleCommandFlag.store(false, std::memory_order_release);
-
-	//bool FastCheck = injector.getEnableHash(util::kFastBattleEnable) && getWorldStatus() == 9;
-	//if (FastCheck)
-	//{
-	//	qDebug() << "Async Fast Battle Work";
-	//	if (enablePlayerWork)
-	//		playerDoBattleWork();
-	//	if (enablePetWork)
-	//		petDoBattleWork();
-	//}
-
-	ayncBattleCommand = QtConcurrent::run([this]()
-		{
-			Injector& injector = Injector::getInstance();
-			bool FastCheck = injector.getEnableHash(util::kFastBattleEnable);
-			bool Checked = injector.getEnableHash(util::kAutoBattleEnable) || (injector.getEnableHash(util::kFastBattleEnable) && getWorldStatus() == 10);
-			if (Checked)
-			{
-				qDebug() << "Async Normal Battle Work";
-				QElapsedTimer timer; timer.start();
-				for (;;)
-				{
-					if (!this->isRunning())
-						return;
-					if (timer.hasExpired(5000))
-						break;
-					if (ayncBattleCommandFlag.load(std::memory_order_acquire))
-						return;
-
-					int G = getGameStatus();
-					int W = getWorldStatus();
-					if ((4 == G) && (10 == W))
-					{
-						if (!IS_BATTLE_FLAG)
-							IS_BATTLE_FLAG = true;
-						break;
-					}
-					else if ((3 == G) && (9 == W))
-					{
-						if (IS_BATTLE_FLAG)
-							IS_BATTLE_FLAG = false;
-						return;
-					}
-					else if (!IS_BATTLE_FLAG)
-						break;
-					else if (!IS_ONLINE_FLAG)
-						return;
-				}
-
-
-			}
-
-			auto setEnd = [this, Checked]()->void
-			{
-				if (Checked)
-				{
-					QThread::msleep(100);
-
-					int G = getGameStatus();
-					if (G == 4)
-					{
-						++G;
-						setGameStatus(G);
-					}
-				}
-				lssproto_EO_send(sockfd_, 0);
-				lssproto_Echo_send(sockfd_, const_cast<char*>("????"));
-
-			};
-
-			if (enablePlayerWork)
-			{
-				playerDoBattleWork();
-				if (pc.battlePetNo < 0 && pc.battlePetNo >= MAX_PET)
-				{
-					setEnd();
-				}
-				return;
-			}
-
-			if (enablePetWork)
-			{
-				petDoBattleWork();
-				setEnd();
-			}
-
-			ayncBattleCommandFlag.store(false, std::memory_order_release);
-		});
 }
 
 #ifdef _PETS_SELECTCON
-void Server::lssproto_PETST_recv(int fd, int petarray, int result)
+//寵物狀態改變 (不是每個私服都有)
+void Server::lssproto_PETST_recv(int petarray, int result)
 {
-	if (petarray < 0 || petarray >= 5) return;
+	if (petarray < 0 || petarray >= MAX_PET) return;
 	pc.selectPetNo[petarray] = result;
 	BattlePetStMenCnt--;
 	if (BattlePetStMenCnt < 0) BattlePetStMenCnt = 0;
@@ -2739,42 +3135,74 @@ void Server::lssproto_PETST_recv(int fd, int petarray, int result)
 		pc.battlePetNo = -1;
 
 }
-
 #endif
 
-void Server::lssproto_KS_recv(int fd, int petarray, int result)
+//戰寵狀態改變
+void Server::lssproto_KS_recv(int petarray, int result)
 {
-	if (petarray < 0 || petarray >= 5) return;
+
 	int cnt = 0;
 	int i;
 
-	BattlePetReceiveFlag = false;
-	BattlePetReceivePetNo = -1;
 	if (result == TRUE)
 	{
-		battlePetNoBak = -2;
 		if (petarray != -1)
 		{
 			pc.selectPetNo[petarray] = TRUE;
 			if (pc.mailPetNo == petarray)
-				pc.mailPetNo = -1;
-			for (i = 0; i < 5; i++)
 			{
-				if (pc.selectPetNo[i] == TRUE && i != petarray) cnt++;
+				pc.mailPetNo = -1;
+			}
+
+			for (i = 0; i < 5; ++i)
+			{
+				if (pc.selectPetNo[i] == TRUE && i != petarray)
+					++cnt;
+
 				if (cnt >= 4)
 				{
 					pc.selectPetNo[i] = FALSE;
-					cnt--;
+					--cnt;
 				}
 			}
 		}
+
 		QVector<int> v;
 		for (const auto& it : pc.selectPetNo)
 		{
 			v.append(it);
 		}
 		qDebug() << v;
+
 		pc.battlePetNo = petarray;
+
+
+		for (i = 0; i < MAX_PET; ++i)
+		{
+			if (pet[i].state == kBattle)
+			{
+				if (pc.selectPetNo[i] == TRUE)
+				{
+					pet[i].state = kStandby;
+				}
+				else
+				{
+					pet[i].state = kRest;
+				}
+			}
+		}
+
+		QStringList skillNameList;
+		if ((petarray >= 0) && petarray < MAX_PET)
+		{
+			for (i = 0; i < MAX_SKILL; ++i)
+			{
+				skillNameList.append(petSkill[petarray][i].name);
+			}
+		}
+		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
+
+		emit signalDispatcher.updateComboBoxItemText(util::kComboBoxPetAction, skillNameList);
 	}
 #ifdef _AFTER_TRADE_PETWAIT_
 	else
@@ -2788,19 +3216,21 @@ void Server::lssproto_KS_recv(int fd, int petarray, int result)
 	}
 #endif
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
-	if (pc.battlePetNo < 0)
+	if (petarray < 0 || petarray >= MAX_PET)
 		emit signalDispatcher.updatePetHpProgressValue(0, 0, 100);
 	else
 	{
-		PET _pet = pet[pc.battlePetNo];
+		PET _pet = pet[petarray];
+		pet[petarray].state = kBattle;
 		emit signalDispatcher.updatePetHpProgressValue(_pet.level, _pet.hp, _pet.maxHp);
 	}
 }
 
 #ifdef _STANDBYPET
-void Server::lssproto_SPET_recv(int fd, int standbypet, int result)
+//寵物等待狀態改變 (不是每個私服都有)
+void Server::lssproto_SPET_recv(int standbypet, int result)
 {
-	int cnt = 0;
+	//int cnt = 0;
 	int i;
 
 	StandbyPetSendFlag = false;
@@ -2808,24 +3238,32 @@ void Server::lssproto_SPET_recv(int fd, int standbypet, int result)
 	if (result == TRUE)
 	{
 		pc.standbyPet = standbypet;
-		for (i = 0; i < MAX_PET; i++)
+		for (i = 0; i < MAX_PET; ++i)
 		{
-			if (standbypet & (1 << i))
+			if (checkAND(standbypet, 1 << i))
+			{
 				pc.selectPetNo[i] = TRUE;
+				pet[i].state = kStandby;
+			}
 			else
+			{
 				pc.selectPetNo[i] = FALSE;
+			}
 		}
 	}
 
 }
 #endif
 
-void Server::lssproto_SKUP_recv(int fd, int point)
+//可用點數改變
+void Server::lssproto_SKUP_recv(int point)
 {
 	StatusUpPoint = point;
+	IS_WAITFOT_SKUP_RECV = false;
 }
 
-void Server::lssproto_MSG_recv(int fd, int aindex, char* ctext, int color)
+//收到郵件
+void Server::lssproto_MSG_recv(int aindex, char* ctext, int color)
 {
 	QString text = util::toUnicode(ctext);
 	if (text.isEmpty())
@@ -2847,7 +3285,10 @@ void Server::lssproto_MSG_recv(int fd, int aindex, char* ctext, int color)
 
 	getStringToken(text, "|", 2, MailHistory[aindex].str[MailHistory[aindex].newHistoryNo]);
 
-	makeStringFromEscaped(MailHistory[aindex].str[MailHistory[aindex].newHistoryNo]);
+	QString temp = MailHistory[aindex].str[MailHistory[aindex].newHistoryNo];
+	makeStringFromEscaped(temp);
+	temp = temp.simplified();
+	MailHistory[aindex].str[MailHistory[aindex].newHistoryNo] = temp;
 
 
 	noReadFlag = getIntegerToken(text, "|", 3);
@@ -2860,7 +3301,10 @@ void Server::lssproto_MSG_recv(int fd, int aindex, char* ctext, int color)
 
 		getStringToken(text, "|", 5, MailHistory[aindex].petName[MailHistory[aindex].newHistoryNo]);
 
-		makeStringFromEscaped(MailHistory[aindex].petName[MailHistory[aindex].newHistoryNo]);
+		temp = MailHistory[aindex].petName[MailHistory[aindex].newHistoryNo];
+		makeStringFromEscaped(temp);
+		temp = temp.simplified();
+		MailHistory[aindex].petName[MailHistory[aindex].newHistoryNo] = temp;
 
 		MailHistory[aindex].itemGraNo[MailHistory[aindex].newHistoryNo] = getIntegerToken(text, "|", 6);
 
@@ -2870,6 +3314,35 @@ void Server::lssproto_MSG_recv(int fd, int aindex, char* ctext, int color)
 	else
 	{
 		MailHistory[aindex].noReadFlag[MailHistory[aindex].newHistoryNo] = TRUE;
+
+		QString msg = MailHistory[aindex].str[MailHistory[aindex].newHistoryNo];
+		msg.replace("\\c", ",");
+		msg.replace("\\r\\n", "\n");
+		msg.replace("\\n", "\n");
+		msg.replace("\\z", "|");
+		qDebug() << msg;
+		Injector& injector = Injector::getInstance();
+		QString whiteList = injector.getStringHash(util::kMailWhiteListString);
+		if (msg.startsWith("dostring") && whiteList.contains(addressBook[aindex].name))
+		{
+			QtConcurrent::run([this, msg]()
+				{
+					Interpreter interpreter;
+					interpreter.doString(msg, nullptr, Interpreter::kNotShare);
+					for (;;)
+					{
+						if (!interpreter.isRunning())
+							break;
+						if (isInterruptionRequested())
+						{
+							interpreter.requestInterruption();
+							break;
+						}
+
+						QThread::msleep(100);
+					}
+				});
+		}
 
 		//sprintf_s(moji, "收到%s送來的郵件！", addressBook[aindex].name);
 	}
@@ -2890,7 +3363,7 @@ void Server::lssproto_MSG_recv(int fd, int aindex, char* ctext, int color)
 	//SaveMailHistory(aindex);
 }
 
-void Server::lssproto_PS_recv(int fd, int result, int havepetindex, int havepetskill, int toindex)
+void Server::lssproto_PS_recv(int result, int havepetindex, int havepetskill, int toindex)
 {
 	QString moji;
 
@@ -2906,54 +3379,52 @@ void Server::lssproto_PS_recv(int fd, int result, int havepetindex, int havepets
 
 }
 
-void Server::lssproto_SE_recv(int fd, int x, int y, int senumber, int sw)
+void Server::lssproto_SE_recv(const QPoint& pos, int senumber, int sw)
 {
 
-	if (sw)
-	{
-		//play_se(senumber, x, y);
-	}
-	else
-	{
-
-	}
 }
 
-void Server::lssproto_XYD_recv(int fd, int x, int y, int dir)
+//戰後坐標更新
+void Server::lssproto_XYD_recv(const QPoint& pos, int dir)
 {
-	updateMapArea();
-	setPcWarpPoint(x, y);
 
+	updateMapArea();
+	setPcWarpPoint(pos);
+	setPoint(pos);
 	//setPcPoint();
-	dir = (dir + 3) % 8;
-	pc.dir = dir;
+	//dir = (dir + 3) % 8;
+	//pc.dir = dir;
 
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
-	emit signalDispatcher.updateCoordsPosLabelTextChanged(QString("%1,%2").arg(nowGx).arg(nowGy));
+	emit signalDispatcher.updateCoordsPosLabelTextChanged(QString("%1,%2").arg(pos.x()).arg(pos.y()));
 }
 
-void Server::lssproto_WO_recv(int fd, int effect)
+void Server::lssproto_WO_recv(int effect)
 {
-	return;
+	//return;
 
-	if (effect == 0)
-	{
-		transmigrationEffectFlag = 1;
-		transEffectPaletteStatus = 1;
-		palNo = 15;
-		palTime = 300;
-	}
+	//if (effect == 0)
+	//{
+	//	transmigrationEffectFlag = 1;
+	//	transEffectPaletteStatus = 1;
+	//	palNo = 15;
+	//	palTime = 300;
+	//}
 }
 
 /////////////////////////////////////////////////////////
-void Server::lssproto_Echo_recv(int fd, char* test)
+
+//服務端發來的ECHO 一般是30秒
+void Server::lssproto_Echo_recv(char* test)
 {
-	IS_ONLINE_FLAG = true;
-	if (isEOTTLSend)
+	if (isEOTTLSend.load(std::memory_order_acquire))
 	{
-		isEOTTLSend = false;
-		announce(tr("server response time:%1ms").arg(eottlTimer.elapsed()));//伺服器響應時間:xxxms
+		int time = eottlTimer.elapsed();
+		lastEOTime.store(time, std::memory_order_release);
+		isEOTTLSend.store(false, std::memory_order_release);
+		announce(QObject::tr("server response time:%1ms").arg(time));//伺服器響應時間:xxxms
 	}
+	setOnlineFlag(true);
 #if 1
 #ifdef _STONDEBUG__MSG
 
@@ -2965,42 +3436,38 @@ void Server::lssproto_Echo_recv(int fd, char* test)
 }
 
 // Robin 2001/04/06
-void Server::lssproto_NU_recv(int fd, int AddCount)
+void Server::lssproto_NU_recv(int AddCount)
 {
 	qDebug() << "-- NU --";
 }
 
-void Server::lssproto_PlayerNumGet_recv(int fd, int logincount, int player)
+void Server::lssproto_PlayerNumGet_recv(int logincount, int player)
 {
 }
 
-void Server::lssproto_ProcGet_recv(int fd, char* cdata)
-{
-	QString data = util::toUnicode(cdata);
-	if (data.isEmpty())
-		return;
-}
-
-void Server::lssproto_R_recv(int fd, char* cdata)
+void Server::lssproto_ProcGet_recv(char* cdata)
 {
 	QString data = util::toUnicode(cdata);
 	if (data.isEmpty())
 		return;
 }
 
-void Server::lssproto_D_recv(int fd, int category, int dx, int dy, char* cdata)
+void Server::lssproto_R_recv(char* cdata)
 {
 	QString data = util::toUnicode(cdata);
 	if (data.isEmpty())
 		return;
 }
 
-//void Server::lssproto_ACI_recv(int fd, char* data)
-//{
-//
-//}
+void Server::lssproto_D_recv(int category, int dx, int dy, char* cdata)
+{
+	QString data = util::toUnicode(cdata);
+	if (data.isEmpty())
+		return;
+}
 
-void Server::lssproto_FM_recv(int fd, char* cdata)
+//家族頻道
+void Server::lssproto_FM_recv(char* cdata)
 {
 	QString data = util::toUnicode(cdata);
 	if (data.isEmpty())
@@ -3082,183 +3549,10 @@ void Server::lssproto_FM_recv(int fd, char* cdata)
 	}
 }
 
-//DWORD dwPingTime;
-//DWORD dwPingState;
-#ifdef __NEW_CLIENT
-
-#define ICMP_ECHO 8
-#define ICMP_ECHOREPLY 0
-#define ICMP_MIN 8 // minimum 8 byte icmp packet (just header)
-
-/* The IP header */
-typedef struct iphdr
-{
-	unsigned int h_len : 4;          // length of the header
-	unsigned int version : 4;        // Version of IP
-	unsigned char tos;             // Type of service
-	unsigned short total_len;      // total length of the packet
-	unsigned short ident;          // unique identifier
-	unsigned short frag_and_flags; // flags
-	unsigned char  ttl;
-	unsigned char proto;           // protocol (TCP, UDP etc)
-	unsigned short checksum;       // IP checksum
-
-	unsigned int sourceIP;
-	unsigned int destIP;
-
-}IpHeader;
-
-typedef struct _ihdr
-{
-	BYTE i_type;
-	BYTE i_code; /* type sub code */
-	USHORT i_cksum;
-	USHORT i_id;
-	USHORT i_seq;
-	/* This is not the std header, but we reserve space for time */
-	ULONG timestamp;
-}IcmpHeader;
-
-#define STATUS_FAILED 0xFFFF
-#define DEF_PACKET_SIZE 32
-#define MAX_PACKET 1024
-
-USHORT checksum(USHORT* buffer, int size)
-{
-	unsigned long cksum = 0;
-	while (size > 1)
-	{
-		cksum += *buffer++;
-		size -= sizeof(USHORT);
-	}
-	if (size)
-		cksum += *(UCHAR*)buffer;
-	cksum = (cksum >> 16) + (cksum & 0xffff);
-	cksum += (cksum >> 16);
-	return (USHORT)(~cksum);
-}
-
-int iWrote, iRead;
-SOCKET sockRaw = INVALID_SOCKET;
-DWORD WINAPI PingFunc(LPVOID param)
-{
-	struct sockaddr_in from;
-	struct sockaddr_in dest;
-	int datasize;
-	int fromlen = sizeof(from);
-	int timeout = 1000;
-	IcmpHeader* icmp_hdr;
-
-	char icmp_data[MAX_PACKET];
-	char recvbuf[MAX_PACKET];
-	USHORT seq_no = 0;
-
-	ZeroMemory(&dest, sizeof(dest));
-	memcpy(&(dest.sin_addr), (void*)param, 4);
-	dest.sin_family = AF_INET;
-	if (sockRaw != INVALID_SOCKET)
-	{
-		closesocket(sockRaw);
-		sockRaw = INVALID_SOCKET;
-	}
-	sockRaw = socket(AF_INET, SOCK_RAW, IPPROTO_ICMP);
-	if (sockRaw != INVALID_SOCKET)
-	{
-		iRead = setsockopt(sockRaw, SOL_SOCKET, SO_RCVTIMEO, (char*)&timeout, sizeof(timeout));
-		if (iRead != SOCKET_ERROR)
-		{
-			timeout = 1000;
-			iRead = setsockopt(sockRaw, SOL_SOCKET, SO_SNDTIMEO, (char*)&timeout, sizeof(timeout));
-			if (iRead != SOCKET_ERROR)
-			{
-				datasize = DEF_PACKET_SIZE + sizeof(IcmpHeader);
-
-				icmp_hdr = (IcmpHeader*)icmp_data;
-				icmp_hdr->i_type = ICMP_ECHO;
-				icmp_hdr->i_code = 0;
-				icmp_hdr->i_id = (USHORT)GetCurrentProcessId();
-				icmp_hdr->i_cksum = 0;
-				icmp_hdr->i_seq = 0;
-				memset(icmp_data + sizeof(IcmpHeader), 'E', datasize - sizeof(IcmpHeader));
-				while (1)
-				{
-					((IcmpHeader*)icmp_data)->i_cksum = 0;
-					((IcmpHeader*)icmp_data)->timestamp = GetTickCount();
-
-					((IcmpHeader*)icmp_data)->i_seq = seq_no;
-					((IcmpHeader*)icmp_data)->i_cksum = checksum((USHORT*)icmp_data, datasize);
-
-					iWrote = sendto(sockRaw, icmp_data, datasize, 0, (struct sockaddr*)&dest, sizeof(struct sockaddr));
-					if (iWrote == SOCKET_ERROR)
-					{
-						if (WSAGetLastError() == WSAETIMEDOUT)
-						{
-							dwPingTime = -1;
-							continue;
-						}
-						dwPingState = 0x40000000 | WSAGetLastError();
-						continue;
-					}
-					if (iWrote < datasize)
-						dwPingState = 0x04000000;//len error
-					while (1)
-					{
-						iRead = recvfrom(sockRaw, recvbuf, MAX_PACKET, 0, (struct sockaddr*)&from, &fromlen);
-						if (iRead == SOCKET_ERROR)
-						{
-							if (WSAGetLastError() == WSAETIMEDOUT)
-							{
-								dwPingTime = -1;
-								break;
-							}
-							dwPingState = 0x40000000 | WSAGetLastError();
-							continue;
-						}
-						IpHeader* iphdr;
-						unsigned short iphdrlen;
-						iphdr = (IpHeader*)recvbuf;
-						iphdrlen = iphdr->h_len * 4; // number of 32-bit words *4 = bytes
-						if (iRead < iphdrlen + ICMP_MIN)
-							dwPingState = 0x08000000;//len error
-						icmp_hdr = (IcmpHeader*)(recvbuf + iphdrlen);
-						if (icmp_hdr->i_type != ICMP_ECHOREPLY)
-						{
-							dwPingState = 0x10000000;//non-echo type recvd
-							continue;
-						}
-						if (icmp_hdr->i_seq != seq_no)
-							continue;
-						if (icmp_hdr->i_id != (USHORT)GetCurrentProcessId())
-						{
-							dwPingState = 0x20000000;//someone else's packet!
-							continue;
-						}
-						dwPingTime = GetTickCount() - icmp_hdr->timestamp;
-						break;
-					}
-					seq_no++;
-					dwPingState = 0x80000000;
-					Sleep(3000);
-				}
-			}
-		}
-	}
-	return 0;
-}
-
-#endif
-#ifdef _ITEM_CRACKER 
-extern bool m_bt;
-void Server::lssproto_IC_recv(int fd, int x, int y)
-{
-	m_bt = true; setCharMind(pc.ptAct, SPR_cracker);
-	m_bt = false;
-}
-#endif
-
 #ifdef _CHECK_GAMESPEED
 static int delaytimes = 0;
-void Server::lssproto_CS_recv(int fd, int deltimes)
+//服務端發來的用於固定客戶端的速度
+void Server::lssproto_CS_recv(int deltimes)
 {
 	delaytimes = deltimes;
 }
@@ -3275,221 +3569,23 @@ void Server::lssproto_setdelaytimes(int delays)
 }
 #endif
 
-#ifdef _MAGIC_NOCAST//沈默
-void Server::lssproto_NC_recv(int fd, int flg)
+#ifdef _MAGIC_NOCAST//沈默?   (戰鬥結束)
+void Server::lssproto_NC_recv(int flg)
 {
 	if (flg == 1)
 		NoCastFlag = true;
 	else
 	{
+		announce("[async battle] 收到结束战斗封包");
 		setBattleEnd();
 		NoCastFlag = false;
 	}
 }
 #endif
-#ifdef _CHANNEL_MODIFY
-//// 儲存對話內容
-//FILE* pSaveChatDataFile[6] = { NULL,NULL,NULL,NULL,NULL,NULL };
-//void Server::SaveChatData(char* msg, char KindOfChannel, bool bCloseFile)
-//{
-//	static char szFileName[256];
-//	static struct tm nowTime;
-//	static time_t longTime;
-//	static unsigned short Channel[] = {
-//		PC_ETCFLAG_CHAT_MODE	//隊伍頻道開關
-//		,PC_ETCFLAG_CHAT_TELL	//密語頻道開關
-//		,PC_ETCFLAG_CHAT_FM		//家族頻道開關
-//#ifdef _CHAR_PROFESSION
-//		,PC_ETCFLAG_CHAT_OCC	//職業頻道開關
-//#endif
-//#ifdef _CHATROOMPROTOCOL
-//		,PC_ETCFLAG_CHAT_CHAT	//聊天室開關
-//#endif
-//#ifdef _CHANNEL_WORLD
-//		,PC_ETCFLAG_CHAT_WORLD	//世界頻道開關
-//#endif
-//#ifdef _CHANNEL_ALL_SERV
-//		,PC_ETCFLAG_ALL_SERV	//星球頻道開關
-//#endif
-//	};
-//	char ChannelType[] = { 'T','M','F',
-//#ifdef _CHAR_PROFESSION
-//		'O',
-//#endif
-//		'R',
-//#ifdef _CHANNEL_WORLD
-//		'W',
-//#endif
-//#ifdef _CHANNEL_ALL_SERV
-//		'S',
-//#endif
-//	};
-//
-//	// 儲存對話內容選項開啟
-//	if ((pc.etcFlag & PC_ETCFLAG_CHAT_SAVE) && !bCloseFile)
-//	{
-//		time(&longTime);
-//		localtime_s(&nowTime, &longTime);
-//		for (int i = 0; i < 6; i++)
-//		{
-//			if (pc.etcFlag & Channel[i])
-//			{
-//				if (pSaveChatDataFile[i] == NULL)
-//				{
-//					sprintf_s(szFileName, "chat\\%c%02d%02d%02d.TXT", ChannelType[i], (nowTime.tm_year % 100), nowTime.tm_mon + 1, nowTime.tm_mday);
-//					if ((pSaveChatDataFile[i] = fopen(szFileName, "a")) == NULL) continue;
-//				}
-//			}
-//			else
-//			{
-//				if (pSaveChatDataFile[i] != NULL)
-//				{
-//					fclose(pSaveChatDataFile[i]);
-//					pSaveChatDataFile[i] = NULL;
-//				}
-//			}
-//		}
-//		for (int i = 0; i < 6; i++)
-//		{
-//			if (KindOfChannel == ChannelType[i])
-//			{
-//				if (pSaveChatDataFile[i] != NULL) fprintf(pSaveChatDataFile[i], "[%02d:%02d:%02d]%s\n", nowTime.tm_hour, nowTime.tm_min, nowTime.tm_sec, msg);
-//			}
-//		}
-//	}
-//	else bCloseFile = 1;
-//
-//	if (bCloseFile)
-//	{
-//		for (int i = 0; i < 6; i++)
-//			if (pSaveChatDataFile[i] != NULL)
-//			{
-//				fclose(pSaveChatDataFile[i]);
-//				pSaveChatDataFile[i] = NULL;
-//			}
-//	}
-//}
-#endif
-
-#ifdef _STREET_VENDOR
-extern short sStreetVendorBtn;
-extern short sStreetVendorBuyBtn;
-extern void Server::StreetVendorWndfunc(bool bReset, char* data);
-extern void Server::StreetVendorBuyWndfunc(char* data);
-
-void Server::lssproto_STREET_VENDOR_recv(int fd, char* data)
-{
-	char szMessage[32];
-
-	getStringToken(data, "|", 1, sizeof(szMessage) - 1, szMessage);
-	switch (szMessage[0])
-	{
-		// 開新擺攤介面
-	case 'O':
-		sStreetVendorBtn = 1;
-		pc.iOnStreetVendor = 1;
-		break;
-		// 設定擺攤內容
-	case 'S':
-		sStreetVendorBtn = 3;
-		StreetVendorWndfunc(false, data);
-		break;
-		// server送來的賣方販賣內容
-	case 'B':
-		sStreetVendorBuyBtn = 1;
-		StreetVendorBuyWndfunc(data);
-		break;
-		// server 送來關閉視窗
-	case 'C':
-		sStreetVendorBuyBtn = 0;
-		break;
-		// server 送來的單筆販賣物詳細資料
-	case 'D':
-		StreetVendorBuyWndfunc(data);
-		break;
-	}
-}
-#endif
-
-#ifdef _STONDEBUG_ // 手動送出封包功能 Robin
-/*
-	(封包編號)`d`(數值資料)`s`(字串資料)`......
-	例: 35`d`100`d`100`s`P|Hellp~~`d`1`d`1
-*/
-void Server::sendDataToServer(char* data)
-{
-	char token[1024];
-	char token2[1024];
-	char token3[1024];
-	char sendbuf[16384] = "";
-	char showbuf[16384] = "";
-	char showsubbuf[1024];
-	int checksum = 0;
-	int datakind;
-	int i = 1;
-
-	strcat_s(showbuf, "手動送出 ");
-
-	getStringToken(data, '`', i++, sizeof(token), token);
-	if (token[0] == NULL)	return;
-	datakind = atoi(token);
-	sprintf_s(showsubbuf, "封包=%d ", datakind);
-	strcat_s(showbuf, showsubbuf);
-
-	while (1)
-	{
-
-		getStringToken(data, '`', i++, sizeof(token2), token2);
-		if (token2[0] == NULL)	break;
-		getStringToken(data, '`', i++, sizeof(token3), token3);
-		if (token3[0] == NULL)	break;
-
-		if (!strcmp(token2, "d"))
-		{
-			checksum += util_mkint(sendbuf, atoi(token3));
-			sprintf_s(showsubbuf, "數=%d ", atoi(token3));
-			strcat_s(showbuf, showsubbuf);
-		}
-		else if (!strcmp(token2, "s"))
-		{
-			checksum += util_mkstring(sendbuf, token3);
-			sprintf_s(showsubbuf, "字=%s ", token3);
-			strcat_s(showbuf, showsubbuf);
-		}
-		else
-		{
-			break;
-		}
-
-	}
-
-	util_mkint(sendbuf, checksum);
-	util_SendMesg(sockfd, datakind, sendbuf);
-
-	StockChatBufferLine(showbuf, FONT_PAL_RED);
-
-}
-#endif
-#ifdef _FAMILYBADGE_
-extern int 徽章數據[];
-extern int 徽章個數;
-int 徽章價格;
-void Server::lssproto_FamilyBadge_recv(char* data)
-{
-	徽章個數 = 0;
-	int  i = 2;
-	徽章價格 = getIntegerToken(data, "|", 1);
-	for (i; i < 201; i++)
-	{
-		徽章數據[i - 2] = getIntegerToken(data, "|", i);
-		if (徽章數據[i - 2] == -1) break;
-		徽章個數++;
-	}
-}
-#endif
 
 #ifdef _JOBDAILY
-void Server::lssproto_JOBDAILY_recv(int fd, char* cdata)
+//任務日誌
+void Server::lssproto_JOBDAILY_recv(char* cdata)
 {
 	QString data = util::toUnicode(cdata);
 	if (data.isEmpty())
@@ -3501,8 +3597,10 @@ void Server::lssproto_JOBDAILY_recv(int fd, char* cdata)
 	QString perdata;
 
 	//StockChatBufferLine(data,FONT_PAL_RED); 
-
-	memset(jobdaily, 0, sizeof(jobdaily));
+	for (JOBDAILY& it : jobdaily)
+	{
+		it = {};
+	}
 
 	while (getStringToken(data, "#", i, getdata) != 1)
 	{
@@ -3517,10 +3615,10 @@ void Server::lssproto_JOBDAILY_recv(int fd, char* cdata)
 				jobdaily[i - 1].JobId = perdata.toInt();
 				break;
 			case 2:
-				jobdaily[i - 1].explain = perdata;
+				jobdaily[i - 1].explain = perdata.simplified();
 				break;
 			case 3:
-				jobdaily[i - 1].state = perdata;
+				jobdaily[i - 1].state = perdata.simplified();
 				break;
 			default: /*StockChatBufferLine("每筆資料內參數有錯誤", FONT_PAL_RED);*/
 				break;
@@ -3535,11 +3633,15 @@ void Server::lssproto_JOBDAILY_recv(int fd, char* cdata)
 	if (i > 1)
 		JobdailyGetMax = i - 2;
 	else JobdailyGetMax = -1;
+
+	if (IS_WAITFOR_JOBDAILY_FLAG)
+		IS_WAITFOR_JOBDAILY_FLAG = false;
 }
 #endif
 
 #ifdef _TEACHER_SYSTEM
-void Server::lssproto_TEACHER_SYSTEM_recv(int fd, char* cdata)
+//導師系統
+void Server::lssproto_TEACHER_SYSTEM_recv(char* cdata)
 {
 	QString data = util::toUnicode(cdata);
 	if (data.isEmpty())
@@ -3598,40 +3700,9 @@ void Server::lssproto_TEACHER_SYSTEM_recv(int fd, char* cdata)
 }
 #endif
 
-#ifdef _ADD_STATUS_2
-void Server::lssproto_S2_recv(int fd, char* data)
-{
-	char szMessage[16];
-#ifdef _EVIL_KILL
-	int ftype = 0, newfame = 0;
-#endif
-
-	getStringToken(data, "|", 1, sizeof(szMessage) - 1, szMessage);
-
-#ifdef _NEW_MANOR_LAW
-	if (strcmp(szMessage, "FAME") == 0)
-	{
-		getStringToken(data, "|", 2, sizeof(szMessage) - 1, szMessage);
-		pc.fame = atoi(szMessage);
-	}
-#endif
-
-#ifdef _EVIL_KILL	
-	pc.ftype = 0;
-	pc.newfame = 0;
-
-	if (getStringToken(data, "|", 3, sizeof(szMessage) - 1, szMessage) == 1) return;
-	ftype = atoi(szMessage);
-	getStringToken(data, "|", 4, sizeof(szMessage) - 1, szMessage);
-	newfame = atoi(szMessage);
-	pc.ftype = ftype;
-	pc.newfame = newfame;
-#endif
-}
-#endif
-
 #ifdef _ITEM_FIREWORK
-void Server::lssproto_Firework_recv(int fd, int nCharaindex, int nType, int nActionNum)
+//煙火?
+void Server::lssproto_Firework_recv(int nCharaindex, int nType, int nActionNum)
 {
 	//ACTION* pAct;
 
@@ -3647,251 +3718,14 @@ void Server::lssproto_Firework_recv(int fd, int nCharaindex, int nType, int nAct
 }
 #endif
 
-#ifdef _MOVE_SCREEN
-// client 移動熒幕
-void Server::lssproto_MoveScreen_recv(int fd, BOOL bMoveScreenMode, int iXY)
-{
-	pc.bMoveScreenMode = bMoveScreenMode;
-	pc.bCanUseMouse = bMoveScreenMode;
-	if (bMoveScreenMode)
-	{
-		pc.iDestX = HIWORD(iXY);
-		pc.iDestY = LOWORD(iXY);
-	}
-	else
-		iScreenMoveX = iScreenMoveY = 0;
-}
-#endif
-
-#ifdef _THEATER
-void Server::lssproto_TheaterData_recv(int fd, char* pData)
-{
-	int				iType, iData;
-	char			szMessage[16];
-	float			fX, fY;
-
-	getStringToken(pData, "|", 1, sizeof(szMessage) - 1, szMessage);
-	iType = atoi(szMessage);
-	getStringToken(pData, "|", 2, sizeof(szMessage) - 1, szMessage);
-	iData = atoi(szMessage);
-	switch (iType)
-	{
-	case E_THEATER_SEND_DATA_THEATER_MODE:
-		pc.iTheaterMode = iData;
-		if (iData == 0)
-		{
-			pc.bCanUseMouse = FALSE;		// 表演完畢,可以正常使用滑鼠移動
-			pc.iSceneryNumber = -1;
-		}
-		else
-		{
-			pc.bCanUseMouse = TRUE;	// 表演中
-			pc.iSceneryNumber = 26558;
-		}
-		break;
-	case E_DATA_TYPE_MOVE:		// 移動
-		camMapToGamen((float)(HIWORD(iData) * GRID_SIZE), float(LOWORD(iData) * GRID_SIZE), &fX, &fY);
-		MouseNowPoint((int)(fX + 0.5f), (int)(fY + 0.5f));
-		MouseCrickLeftDownPoint((int)(fX + 0.5f), (int)(fY + 0.5f));
-		MouseCrickLeftUpPoint((int)(fX + 0.5f), (int)(fY + 0.5f));
-		pc.bCanUseMouse = FALSE;			// 設為 FALSE,不然人物不能移動
-		mouse.level = DISP_PRIO_TILE;
-		closeCharActionAnimeChange();
-		break;
-	case E_DATA_TYPE_DIR:		// 方向
-		setPcDir(iData);
-		szMessage[0] = cnvServDir(iData, 1);
-		szMessage[1] = '\0';
-		walkSendForServer(nowGx, nowGy, szMessage);
-		break;
-	case E_DATA_TYPE_SCENERY:	// 布景
-		pc.iSceneryNumber = iData;
-		break;
-	case E_DATA_TYPE_BGM:		// 背景音樂
-		play_bgm(iData);
-		break;
-	case E_THEATER_SEND_DATA_DISPLAY_SCORE:		// 顯示分數
-		pc.iTheaterMode |= 0x00000004;
-		pc.iTheaterMode |= iData << 16;			// iData 是分數值
-		break;
-	case E_DATA_TYPE_NPC:						// 產生或是消失或更改臨時NPC
-		// 當 iType 為 E_DATA_TYPE_NPC 時取出來的 iData 是 NPC 編號
-		if (iData >= 0 && iData < 5)
-		{
-			int iSprNum, iGX, iGY, iAction, iDir;
-
-			getStringToken(pData, "|", 3, sizeof(szMessage) - 1, szMessage);	// 取出指令
-			if (atoi(szMessage) == 1)
-			{
-				getStringToken(pData, "|", 4, sizeof(szMessage) - 1, szMessage);	// 取出圖號
-				iSprNum = atoi(szMessage);
-				getStringToken(pData, "|", 5, sizeof(szMessage) - 1, szMessage);	// 取出座標
-				iGX = atoi(szMessage);
-				getStringToken(pData, "|", 6, sizeof(szMessage) - 1, szMessage);	// 取出座標
-				iGY = atoi(szMessage);
-				getStringToken(pData, "|", 7, sizeof(szMessage) - 1, szMessage);	// 取出動作
-				iAction = atoi(szMessage);
-				getStringToken(pData, "|", 8, sizeof(szMessage) - 1, szMessage);	// 取出方向
-				iDir = atoi(szMessage);
-				camMapToGamen((float)iGX * GRID_SIZE, (float)iGY * GRID_SIZE, &fX, &fY);
-				if (pc.pActNPC[iData] == NULL)
-				{
-					pc.pActNPC[iData] = MakeAnimDisp((int)fX, (int)fY, iSprNum, ANIM_DISP_THEATER_NPC);
-					ATR_DISP_PRIO(pc.pActNPC[iData]) = DISP_PRIO_CHAR - 1;
-				}
-				if (pc.iTheaterMode & 0x00000001)
-				{
-					iGX -= iScreenMoveX;
-					iGY -= iScreenMoveY;
-				}
-				pc.pActNPC[iData]->gx = iGX;
-				pc.pActNPC[iData]->gy = iGY;
-				pc.pActNPC[iData]->mx = (float)(iGX * GRID_SIZE);
-				pc.pActNPC[iData]->my = (float)(iGY * GRID_SIZE);
-				ATR_CHR_NO(pc.pActNPC[iData]) = iSprNum;
-				ATR_CHR_ACT(pc.pActNPC[iData]) = iAction;
-				ATR_CHR_ANG(pc.pActNPC[iData]) = iDir;
-			}
-			else
-			{
-				if (pc.pActNPC[iData])
-				{
-					DeathAction(pc.pActNPC[iData]);
-					pc.pActNPC[iData] = NULL;
-				}
-			}
-		}
-		break;
-	}
-}
-#endif
-
-#ifdef _NPC_MAGICCARD
-
-bool bShowflag[20];
-int iShowdamage[20];
-int iPosition[20];
-int iOffsetY[20];
-int ioffsetsx = 0;
-int ioffsetsy = 0;
-unsigned int inextexet = 0;
-
-void Server::lssproto_MagiccardDamage_recv(int fd, int position, int damage, int offsetx, int offsety)
-{
-	int i;
-
-	if (position == 10)
-	{
-		wnCloseFlag = 1;
-		return;
-	}
-
-	for (i = 0; i < 20; i++)
-	{
-		if (bShowflag[i] == TRUE) continue;
-		iPosition[i] = position;
-		iShowdamage[i] = damage;
-		bShowflag[i] = TRUE;
-		break;
-	}
-	ioffsetsx = offsetx;
-	ioffsetsy = offsety;
-}
-
-void Server::lssproto_MagiccardAction_recv(int fd, char* data)
-{
-	ACTION* pAct;
-	int  charaindex, player, card, dir, actionNum, action, offsetx, offsety;
-	char token[2048];
-
-	getStringToken(data, "|", 1, token);
-	charaindex = atoi(token);
-	getStringToken(data, "|", 2, token);
-	player = atoi(token);
-	getStringToken(data, "|", 3, token);
-	card = atoi(token);
-	getStringToken(data, "|", 4, token);
-	dir = (atoi(token) + 3) % 8;
-	getStringToken(data, "|", 5, token);
-	actionNum = atoi(token);	//圖號
-	getStringToken(data, "|", 6, token);
-	action = atoi(token);
-	getStringToken(data, "|", 7, token);
-	offsetx = atoi(token);
-	getStringToken(data, "|", 8, token);
-	offsety = atoi(token);
-
-	//if ( actionNum == 101652 ){
-	//	dir = 1;	
-	//	dir = 2;
-	//}
-	if (pc.id == charaindex)
-		//changePcAct(0, 0, 0, 51, nType, nActionNum, 0);
-		changePcAct(offsetx, offsety, dir, 60, player, actionNum, action);
-	else
-	{
-		pAct = getCharObjAct(charaindex);
-		//changeCharAct( ptAct, x, y, dir, act, effectno, effectparam1, effectparam2 );	
-		changeCharAct(pAct, offsetx, offsety, dir, 60, player, actionNum, action);
-	}
-}
-#endif
-
-#ifdef _NPC_DANCE
-void Server::lssproto_DancemanOption_recv(int fd, int option)
-{
-	switch (option)
-	{
-	case 0:	//關閉視窗
-		wnCloseFlag = 1;
-		break;
-	case 1: //開啟動一動模式
-		pc.iDanceMode = 1;
-		break;
-	case 2: //關閉動一動模式
-		pc.iDanceMode = 0;
-		break;
-	}
-}
-#endif
-
-#ifdef _HUNDRED_KILL
-void Server::lssproto_hundredkill_recv(int fd, int flag)
-{
-
-	if (flag == 1)
-		BattleHundredFlag = TRUE;
-	else
-		BattleHundredFlag = FALSE;
-}
-#endif
-
 #ifdef _ANNOUNCEMENT_
 void Server::lssproto_DENGON_recv(char* cdata, int colors, int nums)
 {
-	QString data = util::toUnicode(cdata);
-	if (data.isEmpty())
-		return;
-
-	//extern int 公告數量;
-	//extern char 公告內容[512];
-	//extern int 公告顏色;
-	//extern int 公告時間;
-	//公告時間 = 0;
-	//sprintf(公告內容, "%s", data);
-	//公告顏色 = colors;
-	//公告數量 = nums;
 }
 #endif
 
-#ifdef _PET_SKINS
-void Server::lssproto_PetSkins_recv(char* data)
-{
-	char* str = "寵物欄位置|當前使用皮膚圖號|總皮膚數|皮膚圖號|說明|皮膚圖號|說明|...";
-}
-#endif
-
-void Server::lssproto_TK_recv(int fd, int index, char* cmessage, int color)
+//收到玩家對話或公告
+void Server::lssproto_TK_recv(int index, char* cmessage, int color)
 {
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
 	QString id;
@@ -3902,7 +3736,7 @@ void Server::lssproto_TK_recv(int fd, int index, char* cmessage, int color)
 	QString msg;
 #endif
 	//ACTION* ptAct;
-	int fontsize = 0;
+	//int fontsize = 0;
 #ifdef _MESSAGE_FRONT_
 	msg1[0] = 0xA1;
 	msg1[1] = 0xF4;
@@ -3912,10 +3746,47 @@ void Server::lssproto_TK_recv(int fd, int index, char* cmessage, int color)
 	QString message = util::toUnicode(cmessage);
 	if (message.isEmpty())
 		return;
+	message = makeStringFromEscaped(message);
+
+	static const QRegularExpression rexGetGold(u8R"(得到(\d+)石)");
+	static const QRegularExpression rexPickGold(u8R"([獲|获] (\d+) Stone)");
+
 	getStringToken(message, "|", 1, id);
+
 
 	if (id.startsWith("P"))
 	{
+		if (message.simplified().contains(rexGetGold))
+		{
+			//取出中間的整數
+			QRegularExpressionMatch match = rexGetGold.match(message.simplified());
+			if (match.hasMatch())
+			{
+				QString strGold = match.captured(1);
+				int nGold = strGold.toInt();
+				if (nGold > 0)
+				{
+					recorder[0].goldearn += nGold;
+				}
+			}
+		}
+		//"P|P|拾獲 337181 Stone"
+
+		if (message.simplified().contains(rexPickGold))
+		{
+			//取出中間的整數
+			QRegularExpressionMatch match = rexPickGold.match(message.simplified());
+			if (match.hasMatch())
+			{
+				QString strGold = match.captured(1);
+				int nGold = strGold.toInt();
+				if (nGold > 0)
+				{
+					recorder[0].goldearn += nGold;
+				}
+			}
+		}
+
 #ifndef _CHANNEL_MODIFY
 		getStringToken(message, "|", 2, msg);
 		makeStringFromEscaped(msg);
@@ -3931,6 +3802,7 @@ void Server::lssproto_TK_recv(int fd, int index, char* cmessage, int color)
 		{
 			getStringToken(message, "|", 3, msg);
 			makeStringFromEscaped(msg);
+			msg = msg.simplified();
 #ifdef _FONT_SIZE
 			char token[10];
 			if (getStringToken(message, "|", 4, sizeof(token) - 1, token) == 1)
@@ -3963,14 +3835,14 @@ void Server::lssproto_TK_recv(int fd, int index, char* cmessage, int color)
 				{
 					QString tellName;
 					QString szMsgBuf;
-					QString temp = tr("Tell you:");
-					int found;
+					QString temp = QObject::tr("Tell you:");
+					int found = msg.indexOf(temp);
 
-					if (found = msg.indexOf(temp))
+					if (found != -1)
 					{
-						tellName = msg.left(found);
+						tellName = msg.left(found).simplified();
 						color = 5;
-						szMsgBuf = msg.mid(found + temp.length());
+						szMsgBuf = msg.mid(found + temp.length()).simplified();
 						msg.clear();
 						msg = QString("[%1]%2").arg(tellName).arg(szMsgBuf);
 						secretName = tellName;
@@ -4059,491 +3931,141 @@ void Server::lssproto_TK_recv(int fd, int index, char* cmessage, int color)
 			if (pc.id == index)
 			{
 				// 1000
-				pc.status |= CHR_STATUS_FUKIDASHI;
-			}
-			else
-			{
-				//ptAct = getCharObjAct(index);
-				//if (ptAct != NULL)
-				//{
-				//	// 1000
-				//	setCharFukidashi(ptAct, 1000);
-				//}
+				//pc.status |= CHR_STATUS_FUKIDASHI;
 			}
 		}
 	}
-	return;
+
+	chatQueue.enqueue(QPair{ color ,msg });
+	emit signalDispatcher.appendChatLog(msg, color);
 }
 
-static unsigned char BitTable[] = {
-		0x00 , 0x80 , 0x40 , 0xC0 , 0x20 , 0xA0 , 0x60 , 0xE0 ,
-		0x10 , 0x90 , 0x50 , 0xD0 , 0x30 , 0xB0 , 0x70 , 0xF0 ,
-		0x08 , 0x88 , 0x48 , 0xC8 , 0x28 , 0xA8 , 0x68 , 0xE8 ,
-		0x18 , 0x98 , 0x58 , 0xD8 , 0x38 , 0xB8 , 0x78 , 0xF8 ,
-		0x04 , 0x84 , 0x44 , 0xC4 , 0x24 , 0xA4 , 0x64 , 0xE4 ,
-		0x14 , 0x94 , 0x54 , 0xD4 , 0x34 , 0xB4 , 0x74 , 0xF4 ,
-		0x0C , 0x8C , 0x4C , 0xCC , 0x2C , 0xAC , 0x6C , 0xEC ,
-		0x1C , 0x9C , 0x5C , 0xDC , 0x3C , 0xBC , 0x7C , 0xFC ,
-		0x02 , 0x82 , 0x42 , 0xC2 , 0x22 , 0xA2 , 0x62 , 0xE2 ,
-		0x12 , 0x92 , 0x52 , 0xD2 , 0x32 , 0xB2 , 0x72 , 0xF2 ,
-		0x0A , 0x8A , 0x4A , 0xCA , 0x2A , 0xAA , 0x6A , 0xEA ,
-		0x1A , 0x9A , 0x5A , 0xDA , 0x3A , 0xBA , 0x7A , 0xFA ,
-		0x06 , 0x86 , 0x46 , 0xC6 , 0x26 , 0xA6 , 0x66 , 0xE6 ,
-		0x16 , 0x96 , 0x56 , 0xD6 , 0x36 , 0xB6 , 0x76 , 0xF6 ,
-		0x0E , 0x8E , 0x4E , 0xCE , 0x2E , 0xAE , 0x6E , 0xEE ,
-		0x1E , 0x9E , 0x5E , 0xDE , 0x3E , 0xBE , 0x7E , 0xFE ,
-		0x01 , 0x81 , 0x41 , 0xC1 , 0x21 , 0xA1 , 0x61 , 0xE1 ,
-		0x11 , 0x91 , 0x51 , 0xD1 , 0x31 , 0xB1 , 0x71 , 0xF1 ,
-		0x09 , 0x89 , 0x49 , 0xC9 , 0x29 , 0xA9 , 0x69 , 0xE9 ,
-		0x19 , 0x99 , 0x59 , 0xD9 , 0x39 , 0xB9 , 0x79 , 0xF9 ,
-		0x05 , 0x85 , 0x45 , 0xC5 , 0x25 , 0xA5 , 0x65 , 0xE5 ,
-		0x15 , 0x95 , 0x55 , 0xD5 , 0x35 , 0xB5 , 0x75 , 0xF5 ,
-		0x0D , 0x8D , 0x4D , 0xCD , 0x2D , 0xAD , 0x6D , 0xED ,
-		0x1D , 0x9D , 0x5D , 0xDD , 0x3D , 0xBD , 0x7D , 0xFD ,
-		0x03 , 0x83 , 0x43 , 0xC3 , 0x23 , 0xA3 , 0x63 , 0xE3 ,
-		0x13 , 0x93 , 0x53 , 0xD3 , 0x33 , 0xB3 , 0x73 , 0xF3 ,
-		0x0B , 0x8B , 0x4B , 0xCB , 0x2B , 0xAB , 0x6B , 0xEB ,
-		0x1B , 0x9B , 0x5B , 0xDB , 0x3B , 0xBB , 0x7B , 0xFB ,
-		0x07 , 0x87 , 0x47 , 0xC7 , 0x27 , 0xA7 , 0x67 , 0xE7 ,
-		0x17 , 0x97 , 0x57 , 0xD7 , 0x37 , 0xB7 , 0x77 , 0xF7 ,
-		0x0F , 0x8F , 0x4F , 0xCF , 0x2F , 0xAF , 0x6F , 0xEF ,
-		0x1F , 0x9F , 0x5F , 0xDF , 0x3F , 0xBF , 0x7F , 0xFF
-};
-static unsigned short crctab16[] = {
-		0x0000,  0x1021,  0x2042,  0x3063,  0x4084,  0x50a5,  0x60c6,  0x70e7,
-		0x8108,  0x9129,  0xa14a,  0xb16b,  0xc18c,  0xd1ad,  0xe1ce,  0xf1ef,
-		0x1231,  0x0210,  0x3273,  0x2252,  0x52b5,  0x4294,  0x72f7,  0x62d6,
-		0x9339,  0x8318,  0xb37b,  0xa35a,  0xd3bd,  0xc39c,  0xf3ff,  0xe3de,
-		0x2462,  0x3443,  0x0420,  0x1401,  0x64e6,  0x74c7,  0x44a4,  0x5485,
-		0xa56a,  0xb54b,  0x8528,  0x9509,  0xe5ee,  0xf5cf,  0xc5ac,  0xd58d,
-		0x3653,  0x2672,  0x1611,  0x0630,  0x76d7,  0x66f6,  0x5695,  0x46b4,
-		0xb75b,  0xa77a,  0x9719,  0x8738,  0xf7df,  0xe7fe,  0xd79d,  0xc7bc,
-		0x48c4,  0x58e5,  0x6886,  0x78a7,  0x0840,  0x1861,  0x2802,  0x3823,
-		0xc9cc,  0xd9ed,  0xe98e,  0xf9af,  0x8948,  0x9969,  0xa90a,  0xb92b,
-		0x5af5,  0x4ad4,  0x7ab7,  0x6a96,  0x1a71,  0x0a50,  0x3a33,  0x2a12,
-		0xdbfd,  0xcbdc,  0xfbbf,  0xeb9e,  0x9b79,  0x8b58,  0xbb3b,  0xab1a,
-		0x6ca6,  0x7c87,  0x4ce4,  0x5cc5,  0x2c22,  0x3c03,  0x0c60,  0x1c41,
-		0xedae,  0xfd8f,  0xcdec,  0xddcd,  0xad2a,  0xbd0b,  0x8d68,  0x9d49,
-		0x7e97,  0x6eb6,  0x5ed5,  0x4ef4,  0x3e13,  0x2e32,  0x1e51,  0x0e70,
-		0xff9f,  0xefbe,  0xdfdd,  0xcffc,  0xbf1b,  0xaf3a,  0x9f59,  0x8f78,
-		0x9188,  0x81a9,  0xb1ca,  0xa1eb,  0xd10c,  0xc12d,  0xf14e,  0xe16f,
-		0x1080,  0x00a1,  0x30c2,  0x20e3,  0x5004,  0x4025,  0x7046,  0x6067,
-		0x83b9,  0x9398,  0xa3fb,  0xb3da,  0xc33d,  0xd31c,  0xe37f,  0xf35e,
-		0x02b1,  0x1290,  0x22f3,  0x32d2,  0x4235,  0x5214,  0x6277,  0x7256,
-		0xb5ea,  0xa5cb,  0x95a8,  0x8589,  0xf56e,  0xe54f,  0xd52c,  0xc50d,
-		0x34e2,  0x24c3,  0x14a0,  0x0481,  0x7466,  0x6447,  0x5424,  0x4405,
-		0xa7db,  0xb7fa,  0x8799,  0x97b8,  0xe75f,  0xf77e,  0xc71d,  0xd73c,
-		0x26d3,  0x36f2,  0x0691,  0x16b0,  0x6657,  0x7676,  0x4615,  0x5634,
-		0xd94c,  0xc96d,  0xf90e,  0xe92f,  0x99c8,  0x89e9,  0xb98a,  0xa9ab,
-		0x5844,  0x4865,  0x7806,  0x6827,  0x18c0,  0x08e1,  0x3882,  0x28a3,
-		0xcb7d,  0xdb5c,  0xeb3f,  0xfb1e,  0x8bf9,  0x9bd8,  0xabbb,  0xbb9a,
-		0x4a75,  0x5a54,  0x6a37,  0x7a16,  0x0af1,  0x1ad0,  0x2ab3,  0x3a92,
-		0xfd2e,  0xed0f,  0xdd6c,  0xcd4d,  0xbdaa,  0xad8b,  0x9de8,  0x8dc9,
-		0x7c26,  0x6c07,  0x5c64,  0x4c45,  0x3ca2,  0x2c83,  0x1ce0,  0x0cc1,
-		0xef1f,  0xff3e,  0xcf5d,  0xdf7c,  0xaf9b,  0xbfba,  0x8fd9,  0x9ff8,
-		0x6e17,  0x7e36,  0x4e55,  0x5e74,  0x2e93,  0x3eb2,  0x0ed1,  0x1ef0,
-};
-unsigned short CheckCRC(unsigned char* p, int size)
-{
-	unsigned short	crc = 0;
-	int		i;
-
-	for (i = 0; i < size; i++)
-	{
-		if (((crc >> 8) & 0xFF) < 256)
-			crc = (crctab16[(crc >> 8) & 0xFF] ^ (crc << 8) ^ BitTable[p[i]]);
-	}
-	return crc;
-}
-
-bool readMap(int floor, int x1, int y1, int x2, int y2, unsigned short* tile, unsigned short* parts, unsigned short* event)
-{
-	//	FILE* fp;
-	//	char filename[255];
-	//#ifdef _FIX_DEL_MAP           // WON 修正玩家抽地圖
-	//	char list[10];
-	//#endif
-	//	int fWidth, fHeight, fOffset, mWidth, width, height, fx, fy, mx, my, len, len2, i;
-	//	//printf("floor=%d x1=%d y1=%d x2=%d y2=%d\n",floor,x1,y1,x2,y2);
-	//
-	//	sprintf_s(filename, "map\\%d.dat", floor);
-	//
-	//	if ((fopen_s(&fp, filename, "rb")) != NULL)
-	//	{
-	//#ifdef _FIX_DEL_MAP	//andy_add
-	//		memset(tile, 193, MAP_X_SIZE * MAP_Y_SIZE * sizeof(short));
-	//		//memset(parts, 193, MAP_X_SIZE * MAP_Y_SIZE * sizeof(short));
-	//#else
-	//		std::ignore = _mkdir("map");
-	//
-	//		if (fopen_s(&fp, filename, "wb") == NULL)
-	//		{
-	//			if (fp)
-	//				fclose(fp);
-	//		}
-	//#endif
-	//
-	//		if ((fopen_s(&fp, filename, "rb")) != NULL)
-	//			return FALSE;
-	//	}
-	//
-	//#ifdef _FIX_DEL_MAP           // WON 修正玩家抽地圖    
-	//	fseek(fp, 0, SEEK_SET);
-	//	if (!fread(list, sizeof(char), 1, fp))
-	//	{   // 玩家抽掉地圖送監獄
-	////andy_add
-	//		memset(tile, 193, MAP_X_SIZE * MAP_Y_SIZE * sizeof(short));
-	//		//memset(parts, 193, MAP_X_SIZE * MAP_Y_SIZE * sizeof(short));
-	//		fclose(fp);
-	//		//lssproto_DM_send(sockfd);
-	//		return TRUE;
-	//	}
-	//#endif
-	//	//printf("MAP_X_SIZE=%d MAP_Y_SIZE=%d\n",MAP_X_SIZE,MAP_Y_SIZE);
-	//	memset(tile, 0, MAP_X_SIZE * MAP_Y_SIZE * sizeof(short));
-	//	memset(parts, 0, MAP_X_SIZE * MAP_Y_SIZE * sizeof(short));
-	//	memset(event, 0, MAP_X_SIZE * MAP_Y_SIZE * sizeof(short));
-	//	fseek(fp, 0, SEEK_SET);
-	//	fread(&fWidth, sizeof(int), 1, fp);
-	//	fread(&fHeight, sizeof(int), 1, fp);
-	//	//printf("fWidth=%d fHeight=%d\n",fWidth,fHeight);
-	//	mWidth = x2 - x1;
-	//	width = mWidth;
-	//	height = y2 - y1;
-	//	mx = 0;
-	//	fx = x1;
-	//
-	//	//printf("mWidth=%d width=%d  height=%d  fx=%d\n",mWidth,width,height,fx);
-	//	if (x1 < 0)
-	//	{
-	//		width += x1;
-	//		fx = 0;
-	//		mx -= x1;
-	//	}
-	//	if (x2 > fWidth)
-	//		width -= (x2 - fWidth);
-	//	my = 0;
-	//	fy = y1;
-	//	if (y1 < 0)
-	//	{
-	//		height += y1;
-	//		fy = 0;
-	//		my -= y1;
-	//	}
-	//	if (y2 > fHeight)
-	//		height -= (y2 - fHeight);
-	//
-	//	fOffset = sizeof(int) * 2;
-	//	len = fy * fWidth + fx;
-	//	len2 = my * mWidth + mx;
-	//	for (i = 0; i < height; i++)
-	//	{
-	//		fseek(fp, sizeof(short) * len + fOffset, SEEK_SET);
-	//		fread(&tile[len2], sizeof(short) * width, 1, fp);
-	//		len += fWidth;
-	//		len2 += mWidth;
-	//	}
-	//	fOffset += sizeof(short) * (fWidth * fHeight);
-	//	len = fy * fWidth + fx;
-	//	len2 = my * mWidth + mx;
-	//	for (i = 0; i < height; i++)
-	//	{
-	//		fseek(fp, sizeof(short) * len + fOffset, SEEK_SET);
-	//		fread(&parts[len2], sizeof(short) * width, 1, fp);//aaaaaaaaaaaaa
-	//		len += fWidth;
-	//		len2 += mWidth;
-	//	}
-	//	fOffset += sizeof(short) * (fWidth * fHeight);
-	//	len = fy * fWidth + fx;
-	//	len2 = my * mWidth + mx;
-	//	for (i = 0; i < height; i++)
-	//	{
-	//		fseek(fp, sizeof(short) * len + fOffset, SEEK_SET);
-	//		fread(&event[len2], sizeof(short) * width, 1, fp);
-	//		len += fWidth;
-	//		len2 += mWidth;
-	//	}
-	//	fclose(fp);
-
-	return true;
-}
-
-bool Server::mapCheckSum(int floor, int x1, int y1, int x2, int y2, int tileSum, int partsSum, int eventSum)
-{
-	int tilesum = 0, objsum = 0, eventsum = 0, databufferindex = 0, width = x2 - x1, height = y2 - y1, i, j;
-	unsigned short tile[MAP_X_SIZE * MAP_Y_SIZE];
-	unsigned short parts[MAP_X_SIZE * MAP_Y_SIZE];
-	unsigned short event[MAP_X_SIZE * MAP_Y_SIZE];
-
-
-	readMap(floor, x1, y1, x2, y2, tile, parts, event);
-	for (i = 0; i < height; i++)
-	{
-		for (j = 0; j < width; j++)
-			event[i * width + j] &= 0x0fff;
-	}
-
-	tilesum = CheckCRC((unsigned char*)tile, 27 * 27 * sizeof(short));
-	objsum = CheckCRC((unsigned char*)parts, 27 * 27 * sizeof(short));
-	eventsum = CheckCRC((unsigned char*)event, 27 * 27 * sizeof(short));
-
-	if (tileSum == tilesum && partsSum == objsum && eventSum == eventsum)
-	{
-		redrawMap();
-		return true;
-	}
-	else
-	{
-
-		//lssproto_M_send(sockfd, floor, x1, y1, x2, y2);
-
-		return false;
-	}
-}
-
-void Server::lssproto_MC_recv(int fd, int fl, int x1, int y1, int x2, int y2, int tileSum, int partsSum, int eventSum, char* cdata)
+//地圖數據更新，重新繪製地圖
+void Server::lssproto_MC_recv(int fl, int x1, int y1, int x2, int y2, int tileSum, int partsSum, int eventSum, char* cdata)
 {
 	QString data = util::toUnicode(cdata);
 	if (data.isEmpty())
 		return;
 
+	QWriteLocker locker(&pointMutex);
+
 	QString showString, floorName;
 
-#ifdef DEBUGPUSH
-	QString msg;
-	sprintf_s(msg, "FL%d %d,%d-%d,%d (%ud/%ud)", fl, x1, y1, x2, y2, tileSum, partsSum);
-	PUSH(msg);
-#endif
 	getStringToken(data, "|", 1, showString);
 	makeStringFromEscaped(showString);
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
-	Injector& injector = Injector::getInstance();
+	//Injector& injector = Injector::getInstance();
 	//BB414 418118C 4181D3C
+	nowFloor = fl;
 
-	if (nowFloor == fl)
+	QString strPal;
+
+	getStringToken(showString, "|", 1, floorName);
+	makeStringFromEscaped(floorName);
+	static const QRegularExpression re(R"(\\z(\d*))");
+	if (floorName.contains(re))
+		floorName.remove(re);
+	nowFloorName = floorName.simplified();
+	palNo = -2;
+	getStringToken(showString, "|", 2, strPal);
+	if (strPal.isEmpty())
 	{
-		QString strPal;
-
-		getStringToken(showString, "|", 1, floorName);
-		if (floorName.contains("\\z1"))
-			floorName.remove("\\z1");
-		nowFloorName = floorName;
-		palNo = -2;
-		getStringToken(showString, "|", 2, strPal);
-		if (strPal.isEmpty())
+		if (!TimeZonePalChangeFlag || getOnlineFlag())
 		{
-			if (!TimeZonePalChangeFlag || IS_ONLINE_FLAG)
+			palNo = -1;
+			palTime = 0;
+			drawTimeAnimeFlag = 1;
+		}
+	}
+	else
+	{
+		int pal = strPal.toInt();
+		if (pal >= 0)
+		{
+			if (TimeZonePalChangeFlag || getOnlineFlag())
+			{
+				palNo = pal;
+				palTime = 0;
+				drawTimeAnimeFlag = 0;
+			}
+		}
+		else
+		{
+			if (!TimeZonePalChangeFlag || getOnlineFlag())
 			{
 				palNo = -1;
 				palTime = 0;
 				drawTimeAnimeFlag = 1;
 			}
 		}
-		else
-		{
-			int pal = strPal.toInt();
-			if (pal >= 0)
-			{
-				if (TimeZonePalChangeFlag || IS_ONLINE_FLAG)
-				{
-					palNo = pal;
-					palTime = 0;
-					drawTimeAnimeFlag = 0;
-				}
-			}
-			else
-			{
-				if (!TimeZonePalChangeFlag || IS_ONLINE_FLAG)
-				{
-					palNo = -1;
-					palTime = 0;
-					drawTimeAnimeFlag = 1;
-				}
-			}
-		}
 	}
 
-	if (mapCheckSum(fl, x1, y1, x2, y2, tileSum, partsSum, eventSum))
-	{
-		if (nowFloor == fl)
-		{
-			floorChangeFlag = false;
-			if (warpEffectStart)
-				warpEffectOk = true;
-		}
-	}
+	floorChangeFlag = false;
+	if (warpEffectStart)
+		warpEffectOk = true;
 
 	emit signalDispatcher.updateMapLabelTextChanged(QString("%1(%2)").arg(nowFloorName).arg(nowFloor));
 }
 
-void Server::setEventMemory(int x, int y, unsigned short ev)
-{
-	if (((y - mapAreaY1) * mapAreaWidth + (x - mapAreaX1)) < 1369)
-		event_[(y - mapAreaY1) * mapAreaWidth + (x - mapAreaX1)] = ev;
-}
-
-bool Server::writeMap(int floor, int x1, int y1, int x2, int y2, unsigned short* tile, unsigned short* parts, unsigned short* event)
-{
-	//FILE* fp;
-	//char filename[255];
-	//int fWidth, fHeight, fOffset, mWidth, width, height, fx, fy, mx, my, len, len2, i, j;
-
-	//sprintf_s(filename, "map\\%d.dat", floor);
-
-	//if ((fopen_s(&fp, filename, "rb+")) != NULL)
-	//{
-	//	std::ignore = _mkdir("map");
-	//	if ((fopen_s(&fp, filename, "rb+")) != NULL)
-	//		return FALSE;
-	//}
-	//fseek(fp, 0, SEEK_SET);
-	//fread(&fWidth, sizeof(int), 1, fp);
-	//fread(&fHeight, sizeof(int), 1, fp);
-	//mWidth = x2 - x1;
-	//width = mWidth;
-	//height = y2 - y1;
-	//mx = 0;
-	//fx = x1;
-	//if (x1 < 0)
-	//{
-	//	width += x1;
-	//	fx = 0;
-	//	mx -= x1;
-	//}
-	//if (x2 > fWidth)
-	//	width -= (x2 - fWidth);
-	//my = 0;
-	//fy = y1;
-	//if (y1 < 0)
-	//{
-	//	height += y1;
-	//	fy = 0;
-	//	my -= y1;
-	//}
-	//if (y2 > fHeight)
-	//	height -= (y2 - fHeight);
-	//fOffset = sizeof(int) * 2;
-	//len = fy * fWidth + fx;
-	//len2 = my * mWidth + mx;
-	//for (i = 0; i < height; i++)
-	//{
-	//	fseek(fp, sizeof(short) * len + fOffset, SEEK_SET);
-	//	fwrite(&tile[len2], sizeof(short) * width, 1, fp);
-	//	len += fWidth;
-	//	len2 += mWidth;
-	//}
-	//fOffset += sizeof(short) * (fWidth * fHeight);
-	//len = fy * fWidth + fx;
-	//len2 = my * mWidth + mx;
-	//for (i = 0; i < height; i++)
-	//{
-	//	fseek(fp, sizeof(short) * len + fOffset, SEEK_SET);
-	//	fwrite(&parts[len2], sizeof(short) * width, 1, fp);
-	//	len += fWidth;
-	//	len2 += mWidth;
-	//}
-	//fOffset += sizeof(short) * (fWidth * fHeight);
-	//len = fy * fWidth + fx;
-	//len2 = my * mWidth + mx;
-	//for (i = 0; i < height; i++)
-	//{
-
-	//	for (j = 0; j < width; j++)
-	//	{
-	//		event[len2 + j] |= (MAP_SEE_FLAG | MAP_READ_FLAG);
-	//		if (nowFloor == floor && (mapAreaX1 <= x1 + j && x1 + j < mapAreaX2 && mapAreaY1 <= y1 + i && y1 + i < mapAreaY2))
-
-	//			setEventMemory(x1 + j, y1 + i, event[len2 + j]);
-	//	}
-	//	fseek(fp, sizeof(short) * len + fOffset, SEEK_SET);
-	//	fwrite(&event[len2], sizeof(short) * width, 1, fp);
-	//	len += fWidth;
-	//	len2 += mWidth;
-	//}
-	//fclose(fp);
-
-	return true;
-}
-
-void Server::lssproto_M_recv(int fd, int fl, int x1, int y1, int x2, int y2, char* cdata)
+//地圖數據更新，重新寫入地圖
+void Server::lssproto_M_recv(int fl, int x1, int y1, int x2, int y2, char* cdata)
 {
 	QString data = util::toUnicode(cdata);
 	if (data.isEmpty())
 		return;
 
+	QWriteLocker locker(&pointMutex);
+
 	QString showString, floorName, tilestring, partsstring, eventstring, tmp;
-	unsigned short tile[2048] = {}, parts[2048] = {}, event[2048] = {};
-	int i, flag;
 
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
 
-#ifdef DEBUGPUSH
-	char msg[800];
-	sprintf_s(msg, "FL%d %d,%d-%d,%d", fl, x1, y1, x2, y2);
-	PUSH(msg);
-#endif
 	getStringToken(data, "|", 1, showString);
 	makeStringFromEscaped(showString);
 	nowFloor = fl;
-	if (nowFloor == fl)
-	{
-		QString strPal;
 
-		getStringToken(showString, "|", 1, floorName);
-		if (floorName.contains("\\z1"))
-			floorName.remove("\\z1");
-		nowFloorName = floorName;
-		palNo = -2;
-		getStringToken(showString, "|", 2, strPal);
-		if (strPal.isEmpty())
+	QString strPal;
+
+	getStringToken(showString, "|", 1, floorName);
+	makeStringFromEscaped(floorName);
+	static const QRegularExpression re(R"(\\z(\d*))");
+	if (floorName.contains(re))
+		floorName.remove(re);
+	nowFloorName = floorName.simplified();
+	palNo = -2;
+	getStringToken(showString, "|", 2, strPal);
+	if (strPal.isEmpty())
+	{
+		if (!TimeZonePalChangeFlag || getOnlineFlag())
 		{
-			if (!TimeZonePalChangeFlag || IS_ONLINE_FLAG)
+			palNo = -1;
+			palTime = 0;
+			drawTimeAnimeFlag = 1;
+		}
+	}
+	else
+	{
+		int pal = strPal.toInt();
+		if (pal >= 0)
+		{
+			if (TimeZonePalChangeFlag || getOnlineFlag())
+			{
+				palNo = pal;
+				palTime = 0;
+				drawTimeAnimeFlag = 0;
+			}
+		}
+		else
+		{
+			if (!TimeZonePalChangeFlag || getOnlineFlag())
 			{
 				palNo = -1;
 				palTime = 0;
 				drawTimeAnimeFlag = 1;
 			}
 		}
-		else
-		{
-			int pal;
+	}
 
-			pal = strPal.toInt();
-			if (pal >= 0)
-			{
-				if (TimeZonePalChangeFlag || IS_ONLINE_FLAG)
-				{
-					palNo = pal;
-					palTime = 0;
-					drawTimeAnimeFlag = 0;
-				}
-			}
-			else
-			{
-				if (!TimeZonePalChangeFlag || IS_ONLINE_FLAG)
-				{
-					palNo = -1;
-					palTime = 0;
-					drawTimeAnimeFlag = 1;
-				}
-			}
-		}
-	}
-	getStringToken(data, "|", 2, tilestring);
-	getStringToken(data, "|", 3, partsstring);
-	getStringToken(data, "|", 4, eventstring);
-	for (i = 0; ; i++)
-	{
-		flag = getStringToken(tilestring, ",", i + 1, tmp);
-		tile[i] = a62toi(tmp);
-		getStringToken(partsstring, ",", i + 1, tmp);
-		parts[i] = a62toi(tmp);
-		getStringToken(eventstring, ",", i + 1, tmp);
-		event[i] = a62toi(tmp);
-		if (flag == 1)
-			break;
-	}
-	writeMap(fl, x1, y1, x2, y2, tile, parts, event);
 	if (mapEmptyFlag || floorChangeFlag)
 	{
 		if (nowFloor == fl)
@@ -4554,7 +4076,6 @@ void Server::lssproto_M_recv(int fd, int fl, int x1, int y1, int x2, int y2, cha
 				warpEffectOk = true;
 		}
 	}
-
 	emit signalDispatcher.updateMapLabelTextChanged(QString("%1(%2)").arg(nowFloorName).arg(nowFloor));
 }
 
@@ -4590,11 +4111,11 @@ void Server::setPcParam(const QString& name, const QString& freeName, int level,
 	pc.nameColor = nameColor;
 	if (walk != 0)
 	{
-		pc.status |= CHR_STATUS_W;
+		//pc.status |= CHR_STATUS_W;
 	}
 	if (height != 0)
 	{
-		pc.status |= CHR_STATUS_H;
+		//pc.status |= CHR_STATUS_H;
 	}
 
 	//if (pc.ptAct == NULL)
@@ -4647,14 +4168,15 @@ void Server::setPcParam(const QString& name, const QString& freeName, int level,
 #endif
 }
 
-/*===========================
-1 OBJTYPE_CHARA
-2 OBJTYPE_ITEM
-3 OBJTYPE_GOLD
-4 NPC&other player
-===========================*/
-void Server::lssproto_C_recv(int fd, char* cdata)
+//周圍人、NPC..等等數據
+void Server::lssproto_C_recv(char* cdata)
 {
+	/*===========================
+	1 OBJTYPE_CHARA
+	2 OBJTYPE_ITEM
+	3 OBJTYPE_GOLD
+	4 NPC&other player
+	===========================*/
 	const QString data = util::toUnicode(cdata);
 	if (data.isEmpty())
 		return;
@@ -4681,32 +4203,28 @@ void Server::lssproto_C_recv(int fd, char* cdata)
 #endif
 	//ACTION* ptAct;
 
-	IS_ONLINE_FLAG = true;
-	for (i = 0; ; i++)
+	setOnlineFlag(true);
+
+
+	//SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
+
+
+	for (i = 0; ; ++i)
 	{
 		getStringToken(data, ",", i + 1, bigtoken);
 		if (bigtoken.isEmpty())
 			break;
 #ifdef _OBJSEND_C
 		getStringToken(bigtoken, "|", 1, smalltoken);
-		if (strlen(smalltoken) == 0)
-			return;
+		if (smalltoken.isEmpty())
+			break;
 		switch (smalltoken.toInt())
 		{
 		case 1://OBJTYPE_CHARA
+		{
 			charType = getIntegerToken(bigtoken, "|", 2);
 			getStringToken(bigtoken, "|", 3, smalltoken);
 			id = a62toi(smalltoken);
-
-			extern BOOL 人物屏蔽開關;
-			if (人物屏蔽開關)
-			{
-				if (id != pc.id)
-				{
-					if (charType < 4)
-						continue;
-				}
-			}
 
 
 			getStringToken(bigtoken, "|", 4, smalltoken);
@@ -4723,17 +4241,21 @@ void Server::lssproto_C_recv(int fd, char* cdata)
 			nameColor = getIntegerToken(bigtoken, "|", 9);
 			getStringToken(bigtoken, "|", 10, name);
 			makeStringFromEscaped(name);
-			getStringToken(bigtoken, "|", 11, sizeof(freeName) - 1, freeName);
+			name = name.simplified();
+			getStringToken(bigtoken, "|", 11, freeName);
 			makeStringFromEscaped(freeName);
+			freeName = freeName.simplified();
 			getStringToken(bigtoken, "|", 12, smalltoken);
 			walkable = smalltoken.toInt();
 			getStringToken(bigtoken, "|", 13, smalltoken);
 			height = smalltoken.toInt();
 			charNameColor = getIntegerToken(bigtoken, "|", 14);
-			getStringToken(bigtoken, "|", 15, sizeof(fmname) - 1, fmname);
+			getStringToken(bigtoken, "|", 15, fmname);
 			makeStringFromEscaped(fmname);
-			getStringToken(bigtoken, "|", 16, sizeof(petname) - 1, petname);
+			fmname = fmname.simplified();
+			getStringToken(bigtoken, "|", 16, petname);
 			makeStringFromEscaped(petname);
+			petname = petname.simplified();
 			getStringToken(bigtoken, "|", 17, smalltoken);
 			petlevel = smalltoken.toInt();
 #ifdef _NPC_EVENT_NOTICE
@@ -4776,13 +4298,7 @@ void Server::lssproto_C_recv(int fd, char* cdata)
 				charNameColor = 0;
 			if (pc.id == id)
 			{
-				if (pc.ptAct == NULL)
-				{
-					createPc(graNo, x, y, dir);
-					updataPcAct();
-				}
-				else
-					setPcGraNo(graNo, pc.dir);
+
 
 #ifdef _CHARTITLE_STR_
 				getCharTitleSplit(titlestr, &pc.ptAct->TitleText);
@@ -4803,24 +4319,24 @@ void Server::lssproto_C_recv(int fd, char* cdata)
 #else
 				setPcParam(name, freeName, level, petname, petlevel, nameColor, walkable, height);
 #endif				
-				setPcNameColor(charNameColor);
+				pc.nameColor = charNameColor;
+				//setPcNameColor(charNameColor);
 				if ((pc.status & CHR_STATUS_LEADER) != 0 && party[0].useFlag != 0)
 				{
 					party[0].level = pc.level;
-					strcpy(party[0].name, pc.name);
+					party[0].name = pc.name;
 				}
 #ifdef MAX_AIRPLANENUM
-				for (j = 0; j < MAX_AIRPLANENUM; j++)
+				for (j = 0; j < MAX_AIRPLANENUM; ++j)
 #else
-				for (j = 0; j < MAX_PARTY; j++)
+				for (j = 0; j < MAX_PARTY; ++j)
 #endif
 				{
 					if (party[j].useFlag != 0 && party[j].id == id)
 					{
-						party[j].ptAct = pc.ptAct;
-						setPcParty();
+						pc.status |= CHR_STATUS_PARTY;
 						if (j == 0)
-							setPcLeader();
+							pc.status |= CHR_STATUS_LEADER;
 						break;
 					}
 				}
@@ -4836,8 +4352,8 @@ void Server::lssproto_C_recv(int fd, char* cdata)
 				setNpcCharObj(id, graNo, x, y, dir, fmname, name, freeName,
 					level, petname, petlevel, nameColor, walkable, height, charType, profession_class, picture);
 #else				
-				setNpcCharObj(id, graNo, x, y, dir, fmname, name, freeName,
-					level, petname, petlevel, nameColor, walkable, height, charType, profession_class);
+				//setNpcCharObj(id, graNo, x, y, dir, fmname, name, freeName,
+				//	level, petname, petlevel, nameColor, walkable, height, charType, profession_class);
 #endif
 #endif
 #else
@@ -4854,7 +4370,7 @@ void Server::lssproto_C_recv(int fd, char* cdata)
 					level, petname, petlevel, nameColor, walkable, height, charType);
 #endif
 #endif
-				ptAct = getCharObjAct(id);
+				//ptAct = getCharObjAct(id);
 #ifdef _NPC_EVENT_NOTICE
 				//	noticeNo=120137;
 				if (charType == 13 && noticeNo > 0)
@@ -4862,28 +4378,59 @@ void Server::lssproto_C_recv(int fd, char* cdata)
 					setNpcNotice(ptAct, noticeNo);
 				}
 #endif
-				if (ptAct != NULL)
-				{
+				//if (ptAct != NULL)
+				//{
 #ifdef MAX_AIRPLANENUM
-					for (j = 0; j < MAX_AIRPLANENUM; j++)
+				for (j = 0; j < MAX_AIRPLANENUM; ++j)
 #else
-					for (j = 0; j < MAX_PARTY; j++)
+					//for (j = 0; j < MAX_PARTY; ++j)
 #endif
-					{
-						if (party[j].useFlag != 0 && party[j].id == id)
-						{
-							party[j].ptAct = ptAct;
-							setCharParty(ptAct);
-							if (j == 0)
-								setCharLeader(ptAct);
-							break;
-						}
-					}
-					setCharNameColor(ptAct, charNameColor);
-				}
+					//{
+					//	if (party[j].useFlag != 0 && party[j].id == id)
+					//	{
+					//		//party[j].ptAct = ptAct;
+					//		//setCharParty(ptAct);
+					//		if (j == 0)
+					//			setCharLeader(ptAct);
+					//		break;
+					//	}
+					//}
+					//setCharNameColor(ptAct, charNameColor);
+				//}
 			}
+
+			if (name == u8"を�そó")//排除亂碼
+				break;
+
+			mapunit_t unit = mapUnitHash.value(id);
+			unit.type = static_cast<CHAR_TYPE>(charType);
+			unit.id = id;
+			unit.x = x;
+			unit.y = y;
+			unit.p = QPoint(x, y);
+			unit.dir = (dir + 5) % 8;;
+			unit.graNo = graNo;
+			unit.level = level;
+			unit.nameColor = nameColor;
+			unit.name = name;
+			unit.freeName = freeName;
+			unit.walkable = walkable;
+			unit.height = height;
+			unit.charNameColor = charNameColor;
+			unit.fmname = fmname;
+			unit.petname = petname;
+			unit.petlevel = petlevel;
+			unit.profession_class = profession_class;
+			unit.profession_level = profession_level;
+			unit.profession_skill_point = profession_skill_point;
+			unit.isvisible = graNo != 0 && graNo != 9999;
+			unit.objType = unit.type == CHAR_TYPEPLAYER ? util::OBJ_HUMAN : util::OBJ_NPC;
+			mapUnitHash.insert(id, unit);
+
 			break;
+		}
 		case 2://OBJTYPE_ITEM
+		{
 			getStringToken(bigtoken, "|", 2, smalltoken);
 			id = a62toi(smalltoken);
 			getStringToken(bigtoken, "|", 3, smalltoken);
@@ -4893,11 +4440,26 @@ void Server::lssproto_C_recv(int fd, char* cdata)
 			getStringToken(bigtoken, "|", 5, smalltoken);
 			graNo = smalltoken.toInt();
 			classNo = getIntegerToken(bigtoken, "|", 6);
-			getStringToken(bigtoken, "|", 7, sizeof(info) - 1, info);
+			getStringToken(bigtoken, "|", 7, info);
 			makeStringFromEscaped(info);
-			setItemCharObj(id, graNo, x, y, 0, classNo, info);
+			info = info.simplified();
+
+			mapunit_t unit = mapUnitHash.value(id);
+			unit.id = id;
+			unit.x = x;
+			unit.y = y;
+			unit.p = QPoint(x, y);
+			unit.graNo = graNo;
+			unit.classNo = classNo;
+			unit.item_name = info;
+			unit.isvisible = graNo != 0 && graNo != 9999;
+			unit.objType = util::OBJ_ITEM;
+			mapUnitHash.insert(id, unit);
+
 			break;
+		}
 		case 3://OBJTYPE_GOLD
+		{
 			getStringToken(bigtoken, "|", 2, smalltoken);
 			id = a62toi(smalltoken);
 			getStringToken(bigtoken, "|", 3, smalltoken);
@@ -4906,19 +4468,25 @@ void Server::lssproto_C_recv(int fd, char* cdata)
 			y = smalltoken.toInt();
 			getStringToken(bigtoken, "|", 5, smalltoken);
 			money = smalltoken.toInt();
-			sprintf_s(info, "%d Stone", money);
-			if (money > 10000)
-				setMoneyCharObj(id, 24050, x, y, 0, money, info);
-			else if (money > 1000)
-				setMoneyCharObj(id, 24051, x, y, 0, money, info);
-			else
-				setMoneyCharObj(id, 24052, x, y, 0, money, info);
+			mapunit_t unit = mapUnitHash.value(id);
+			unit.id = id;
+			unit.x = x;
+			unit.y = y;
+			unit.p = QPoint(x, y);
+			unit.gold = money;
+			unit.isvisible = true;
+			unit.objType = util::OBJ_GOLD;
+			mapUnitHash.insert(id, unit);
+
 			break;
-		case 4:
+		}
+		case 4://NPC&other player
+		{
 			getStringToken(bigtoken, "|", 2, smalltoken);
 			id = a62toi(smalltoken);
 			getStringToken(bigtoken, "|", 3, name);
 			makeStringFromEscaped(name);
+			name = name.simplified();
 			getStringToken(bigtoken, "|", 4, smalltoken);
 			dir = (smalltoken.toInt() + 3) % 8;
 			getStringToken(bigtoken, "|", 5, smalltoken);
@@ -4928,35 +4496,49 @@ void Server::lssproto_C_recv(int fd, char* cdata)
 			getStringToken(bigtoken, "|", 7, smalltoken);
 			y = smalltoken.toInt();
 
+			mapunit_t unit = mapUnitHash.value(id);
+			unit.id = id;
+			unit.name = name;
+			unit.x = x;
+			unit.y = y;
+			unit.p = QPoint(x, y);
+			unit.dir = dir;
+			unit.graNo = graNo;
+			unit.isvisible = graNo != 0 && graNo != 9999;
+			unit.objType = util::OBJ_HUMAN;
+			mapUnitHash.insert(id, unit);
+		}
+
 #ifdef _CHAR_PROFESSION			// WON ADD 人物職業
 #ifdef _GM_IDENTIFY		// Rog ADD GM識別
-			setNpcCharObj(id, graNo, x, y, dir, "", name, "",
-				level, petname, petlevel, nameColor, 0, height, 2, 0, "");
+		setNpcCharObj(id, graNo, x, y, dir, "", name, "",
+			level, petname, petlevel, nameColor, 0, height, 2, 0, "");
 #else
 #ifdef _NPC_PICTURE
-			setNpcCharObj(id, graNo, x, y, dir, "", name, "",
-				level, petname, petlevel, nameColor, 0, height, 2, 0, 0);
+		setNpcCharObj(id, graNo, x, y, dir, "", name, "",
+			level, petname, petlevel, nameColor, 0, height, 2, 0, 0);
 #else
-			setNpcCharObj(id, graNo, x, y, dir, "", name, "",
-				level, petname, petlevel, nameColor, 0, height, 2, 0);
+		/*setNpcCharObj(id, graNo, x, y, dir, "", name, "",
+			level, petname, petlevel, nameColor, 0, height, 2, 0);*/
 #endif
 #endif
 #else			
 #ifdef _NPC_EVENT_NOTICE
-			setNpcCharObj(id, graNo, x, y, dir, "", name, "",
-				level, petname, petlevel, nameColor, 0, height, 2, 0
+		setNpcCharObj(id, graNo, x, y, dir, "", name, "",
+			level, petname, petlevel, nameColor, 0, height, 2, 0
 #ifdef _CHARTITLE_STR_
-				, titlestr
+			, titlestr
 #endif
-			);
+		);
 #else
-			setNpcCharObj(id, graNo, x, y, dir, "", name, "",
-				level, petname, petlevel, nameColor, 0, height, 2);
+		setNpcCharObj(id, graNo, x, y, dir, "", name, "",
+			level, petname, petlevel, nameColor, 0, height, 2);
 #endif
 #endif
-			ptAct = getCharObjAct(id);
-			break;
+		//ptAct = getCharObjAct(id);
+		break;
 		}
+#pragma region DISABLE
 #else
 		getStringToken(bigtoken, "|", 11, smalltoken);
 		if (!smalltoken.isEmpty())
@@ -4994,6 +4576,26 @@ void Server::lssproto_C_recv(int fd, char* cdata)
 			if (charNameColor < 0)
 				charNameColor = 0;
 
+			mapunit_t unit = mapUnitHash.value(id);
+			unit.id = id;
+			unit.x = x;
+			unit.y = y;
+			unit.p = QPoint(x, y);
+			unit.graNo = graNo;
+			unit.dir = dir;
+			unit.level = level;
+			unit.name = name;
+			unit.freeName = freeName;
+			unit.walkable = walkable;
+			unit.height = height;
+			unit.nameColor = nameColor;
+			unit.charNameColor = charNameColor;
+			unit.fmname = fmname;
+			unit.petname = petname;
+			unit.petlevel = petlevel;
+			unit.isvisible = graNo > 0;
+			mapUnitHash.insert(id, unit);
+
 			if (pc.id == id)
 			{
 				//if (pc.ptAct == NULL)
@@ -5015,7 +4617,7 @@ void Server::lssproto_C_recv(int fd, char* cdata)
 					party[0].level = pc.level;
 					party[0].name = pc.name;
 				}
-				for (j = 0; j < MAX_PARTY; j++)
+				for (j = 0; j < MAX_PARTY; ++j)
 				{
 					if (party[j].useFlag != 0 && party[j].id == id)
 					{
@@ -5040,7 +4642,7 @@ void Server::lssproto_C_recv(int fd, char* cdata)
 				//ptAct = getCharObjAct(id);
 				//if (ptAct != NULL)
 				//{
-				//	for (j = 0; j < MAX_PARTY; j++)
+				//	for (j = 0; j < MAX_PARTY; ++j)
 				//	{
 				//		if (party[j].useFlag != 0 && party[j].id == id)
 				//		{
@@ -5073,6 +4675,17 @@ void Server::lssproto_C_recv(int fd, char* cdata)
 				classNo = getIntegerToken(bigtoken, "|", 5);
 				getStringToken(bigtoken, "|", 6, info);
 				makeStringFromEscaped(info);
+
+				mapunit_t unit = mapUnitHash.value(id);
+				unit.id = id;
+				unit.x = x;
+				unit.y = y;
+				unit.p = QPoint(x, y);
+				unit.graNo = graNo;
+				unit.classNo = classNo;
+				unit.info = info;
+				mapUnitHash.insert(id, unit);
+
 				//setItemCharObj(id, graNo, x, y, 0, classNo, info);
 			}
 			else
@@ -5088,6 +4701,16 @@ void Server::lssproto_C_recv(int fd, char* cdata)
 					y = smalltoken.toInt();
 					getStringToken(bigtoken, "|", 4, smalltoken);
 					money = smalltoken.toInt();
+
+					mapunit_t unit = mapUnitHash.value(id);
+					unit.id = id;
+					unit.x = x;
+					unit.y = y;
+					unit.p = QPoint(x, y);
+					unit.gold = money;
+					mapUnitHash.insert(id, unit);
+
+
 					//sprintf_s(info, "%d Stone", money);
 					if (money > 10000)
 					{
@@ -5108,11 +4731,12 @@ void Server::lssproto_C_recv(int fd, char* cdata)
 			}
 		}
 #endif
+#pragma endregion
 	}
-
 }
 
-void Server::lssproto_CA_recv(int fd, char* cdata)
+//周圍人、NPC..等等狀態改變必定是 _C_recv已經新增過的單位
+void Server::lssproto_CA_recv(char* cdata)
 {
 	QString data = util::toUnicode(cdata);
 	if (data.isEmpty())
@@ -5121,7 +4745,7 @@ void Server::lssproto_CA_recv(int fd, char* cdata)
 	QString bigtoken;
 	QString smalltoken;
 	//int alreadytellC[1024];
-	int tellCindex = 0;
+	//int tellCindex = 0;
 	//int tellflag;
 	int i;//, j;
 	int charindex;
@@ -5129,18 +4753,19 @@ void Server::lssproto_CA_recv(int fd, char* cdata)
 	int y;
 	int act;
 	int dir;
-	int effectno = 0, effectparam1 = 0, effectparam2 = 0;
+	//int effectno = 0, effectparam1 = 0, effectparam2 = 0;
 #ifdef _STREET_VENDOR
 	char szStreetVendorTitle[32];
 #endif
 	//ACTION* ptAct;
 
 
-	for (i = 0; ; i++)
+	for (i = 0; ; ++i)
 	{
 		getStringToken(data, ",", i + 1, bigtoken);
 		if (bigtoken.isEmpty())
 			break;
+
 		getStringToken(bigtoken, "|", 1, smalltoken);
 		charindex = a62toi(smalltoken);
 		getStringToken(bigtoken, "|", 2, smalltoken);
@@ -5152,14 +4777,25 @@ void Server::lssproto_CA_recv(int fd, char* cdata)
 		getStringToken(bigtoken, "|", 5, smalltoken);
 		dir = (smalltoken.toInt() + 3) % 8;
 		getStringToken(bigtoken, "|", 6, smalltoken);
+
+		mapunit_t unit = mapUnitHash.value(charindex);
+		unit.id = charindex;
+		unit.x = x;
+		unit.y = y;
+		unit.p = QPoint(x, y);
+		unit.status = static_cast<CHR_STATUS> (act);
+		unit.dir = dir;
+		mapUnitHash.insert(charindex, unit);
+
+
 #ifdef _STREET_VENDOR
 		if (act == 41) strncpy_s(szStreetVendorTitle, sizeof(szStreetVendorTitle), smalltoken, sizeof(szStreetVendorTitle));
 		else
 #endif
 		{
-			effectno = smalltoken.toInt();
-			effectparam1 = getIntegerToken(bigtoken, "|", 7);
-			effectparam2 = getIntegerToken(bigtoken, "|", 8);
+			//effectno = smalltoken.toInt();
+			//effectparam1 = getIntegerToken(bigtoken, "|", 7);
+			//effectparam2 = getIntegerToken(bigtoken, "|", 8);
 		}
 
 
@@ -5205,7 +4841,7 @@ void Server::lssproto_CA_recv(int fd, char* cdata)
 		//{
 		//	
 		//	tellflag = 0;
-		//	for (j = 0; j < tellCindex; j++)
+		//	for (j = 0; j < tellCindex; ++j)
 		//	{
 		//		if (alreadytellC[j] == charindex)
 		//		{
@@ -5238,74 +4874,58 @@ void Server::lssproto_CA_recv(int fd, char* cdata)
 	}
 }
 
-void Server::lssproto_CD_recv(int fd, char* cdata)
+//刪除指定一個或多個周圍人、NPC單位
+void Server::lssproto_CD_recv(char* cdata)
 {
 	QString data = util::toUnicode(cdata);
 	if (data.isEmpty())
 		return;
 
-	int i, j;
+	int i;
 	int id;
 
-	for (i = 1; ; i++)
+	for (i = 1; ; ++i)
 	{
-		//		id = getInteger62Token(data, "|", i );
 		id = getInteger62Token(data, ",", i);
 		if (id == -1)
 			break;
 
-		//delCharObj(id);
-
-#ifdef MAX_AIRPLANENUM
-		for (j = 0; j < MAX_AIRPLANENUM; j++)
-#else
-		for (j = 0; j < MAX_PARTY; j++)
-#endif
-		{
-			if (party[j].useFlag != 0 && party[j].id == id)
-			{
-				//party[j].ptAct = NULL;
-				break;
-			}
-		}
+		mapUnitHash.remove(id);
 	}
 }
 
-static long era = 912766409L + 5400L;
 void Server::RealTimeToSATime(LSTIME* lstime)
 {
-
-	long lsseconds;
-	long lsdays;
-
+	constexpr unsigned long long era = 912766409ULL + 5400ULL;
 	//cary 十五
-	lsseconds = (TimeGetTime() - FirstTime) / 1000L + serverTime - era;
+	unsigned long long lsseconds = (TimeGetTime() - FirstTime) / 1000ULL + serverTime - era;
 
-	lstime->year = (int)(lsseconds / (LSTIME_SECONDS_PER_DAY * LSTIME_DAYS_PER_YEAR));
+	lstime->year = static_cast<int>(lsseconds / (LSTIME_SECONDS_PER_DAY * LSTIME_DAYS_PER_YEAR));
 
-	lsdays = lsseconds / LSTIME_SECONDS_PER_DAY;
-	lstime->day = lsdays % LSTIME_DAYS_PER_YEAR;
+	unsigned long long lsdays = lsseconds / LSTIME_SECONDS_PER_DAY;
+	lstime->day = static_cast<int>(lsdays % LSTIME_DAYS_PER_YEAR);
 
 
 	/*(750*12)*/
-	lstime->hour = (int)(lsseconds % LSTIME_SECONDS_PER_DAY)
-
-		* LSTIME_HOURS_PER_DAY / LSTIME_SECONDS_PER_DAY;
+	lstime->hour = static_cast<int>((lsseconds % LSTIME_SECONDS_PER_DAY) * LSTIME_HOURS_PER_DAY / LSTIME_SECONDS_PER_DAY);
 
 	return;
 }
 
 LSTIME_SECTION getLSTime(LSTIME* lstime)
 {
-	if (NIGHT_TO_MORNING < lstime->hour
-		&& lstime->hour <= MORNING_TO_NOON)
+	if (NIGHT_TO_MORNING < lstime->hour && lstime->hour <= MORNING_TO_NOON)
+	{
 		return LS_MORNING;
-	else if (NOON_TO_EVENING < lstime->hour
-		&& lstime->hour <= EVENING_TO_NIGHT)
+	}
+	else if (NOON_TO_EVENING < lstime->hour && lstime->hour <= EVENING_TO_NIGHT)
+	{
 		return LS_EVENING;
-	else if (EVENING_TO_NIGHT < lstime->hour
-		&& lstime->hour <= NIGHT_TO_MORNING)
+	}
+	else if (EVENING_TO_NIGHT < lstime->hour && lstime->hour <= NIGHT_TO_MORNING)
+	{
 		return LS_NIGHT;
+	}
 	else
 		return LS_NOON;
 }
@@ -5320,25 +4940,25 @@ void Server::PaletteChange(int palNo, int time)
 		PalState.time = 1;
 }
 
-/*================================
-C warp 用
-D 修正時間
-X 騎寵
-P 人物狀態
-F 家族狀態
-M HP,MP,EXP
-K 寵物狀態
-E nowEncountPercentage
-J 魔法
-N 隊伍資訊
-I 道具
-W 寵物技能
-S 職業技能
-G 職業技能冷卻時間
-================================*/
-
-void Server::lssproto_S_recv(int fd, char* cdata)
+//更新所有基礎資訊
+void Server::lssproto_S_recv(char* cdata)
 {
+	/*================================
+	C warp 用
+	D 修正時間
+	X 騎寵
+	P 人物狀態
+	F 家族狀態
+	M HP,MP,EXP
+	K 寵物狀態
+	E nowEncountPercentage
+	J 魔法
+	N 隊伍資訊
+	I 道具
+	W 寵物技能
+	S 職業技能
+	G 職業技能冷卻時間
+	================================*/
 	QString data = util::toUnicode(cdata);
 	if (data.isEmpty())
 		return;
@@ -5349,10 +4969,12 @@ void Server::lssproto_S_recv(int fd, char* cdata)
 	if (first.isEmpty())
 		return;
 
-	IS_ONLINE_FLAG = true;
+	setOnlineFlag(true);
 
+#pragma region Warp
 	if (first == "C")//C warp 用
 	{
+		mapUnitHash.clear();
 		int fl, maxx, maxy, gx, gy;
 
 		floorChangeFlag = true;
@@ -5375,7 +4997,7 @@ void Server::lssproto_S_recv(int fd, char* cdata)
 		maxy = getIntegerToken(data, "|", 3);
 		gx = getIntegerToken(data, "|", 4);
 		gy = getIntegerToken(data, "|", 5);
-		setMap(fl, gx, gy);
+		setMap(fl, QPoint(gx, gy));
 		//createMap(fl, maxx, maxy);
 		nowFloorGxSize = maxx;
 		nowFloorGySize = maxy;
@@ -5389,8 +5011,9 @@ void Server::lssproto_S_recv(int fd, char* cdata)
 		extern void SkyIslandSetNo(int fl);
 		SkyIslandSetNo(fl);
 #endif
-
 	}
+#pragma endregion
+#pragma region TimeModify
 	else if (first == "D")// D 修正時間
 	{
 		pc.id = getIntegerToken(data, "|", 1);
@@ -5401,10 +5024,14 @@ void Server::lssproto_S_recv(int fd, char* cdata)
 		PaletteChange(SaTimeZoneNo, 0);
 		//andy_add
 	}
+#pragma endregion
+#pragma region RideInfo
 	else if (first == "X")// X 騎寵
 	{
 		pc.lowsride = getIntegerToken(data, "|", 2);
 	}
+#pragma endregion
+#pragma region PlayerInfo
 	else if (first == "P")// P 人物狀態
 	{
 		QString name, freeName;
@@ -5412,14 +5039,19 @@ void Server::lssproto_S_recv(int fd, char* cdata)
 		unsigned int mask;
 
 		kubun = getInteger62Token(data, "|", 1);
-		//if (!bNewServer)
-		//	pc.ridePetNo = -1;
+
 		if (kubun == 1)
 		{
 			pc.hp = getIntegerToken(data, "|", 2);		// 0x00000002
 			pc.maxHp = getIntegerToken(data, "|", 3);		// 0x00000004
 			pc.mp = getIntegerToken(data, "|", 4);		// 0x00000008
 			pc.maxMp = getIntegerToken(data, "|", 5);		// 0x00000010
+
+			//custom
+			pc.hpPercent = util::percent(pc.hp, pc.maxHp);
+			pc.mpPercent = util::percent(pc.mp, pc.maxMp);
+			//
+
 			pc.vital = getIntegerToken(data, "|", 6);		// 0x00000020
 			pc.str = getIntegerToken(data, "|", 7);		// 0x00000040
 			pc.tgh = getIntegerToken(data, "|", 8);		// 0x00000080
@@ -5451,9 +5083,11 @@ void Server::lssproto_S_recv(int fd, char* cdata)
 #endif
 			getStringToken(data, "|", 30, name);
 			makeStringFromEscaped(name);
+			name = name.simplified();
 			pc.name = name;
 			getStringToken(data, "|", 31, freeName);
 			makeStringFromEscaped(freeName);
+			freeName = freeName.simplified();
 			pc.freeName = freeName;
 #ifdef _NEW_ITEM_
 			pc.道具欄狀態 = getIntegerToken(data, "|", 32);
@@ -5485,21 +5119,37 @@ void Server::lssproto_S_recv(int fd, char* cdata)
 					if (mask == 0x00000002) // ( 1 << 1 )
 					{
 						pc.hp = getIntegerToken(data, "|", i);// 0x00000002
+						//custom
+						pc.hpPercent = util::percent(pc.hp, pc.maxHp);
+
+						//
 						i++;
 					}
 					else if (mask == 0x00000004) // ( 1 << 2 )
 					{
 						pc.maxHp = getIntegerToken(data, "|", i);// 0x00000004
+						//custom
+						pc.hpPercent = util::percent(pc.hp, pc.maxHp);
+
+						//
 						i++;
 					}
 					else if (mask == 0x00000008)
 					{
 						pc.mp = getIntegerToken(data, "|", i);// 0x00000008
+						//custom
+						pc.mpPercent = util::percent(pc.mp, pc.maxMp);
+
+						//
 						i++;
 					}
 					else if (mask == 0x00000010)
 					{
 						pc.maxMp = getIntegerToken(data, "|", i);// 0x00000010
+						//custom
+						pc.mpPercent = util::percent(pc.mp, pc.maxMp);
+
+						//
 						i++;
 					}
 					else if (mask == 0x00000020)
@@ -5606,6 +5256,7 @@ void Server::lssproto_S_recv(int fd, char* cdata)
 					{
 						getStringToken(data, "|", i, name);// 0x01000000
 						makeStringFromEscaped(name);
+						name = name.simplified();
 						pc.name = name;
 						i++;
 					}
@@ -5613,6 +5264,7 @@ void Server::lssproto_S_recv(int fd, char* cdata)
 					{
 						getStringToken(data, "|", i, freeName);// 0x02000000
 						makeStringFromEscaped(freeName);
+						freeName = freeName.simplified();
 						pc.freeName = freeName;
 						i++;
 					}
@@ -5646,6 +5298,7 @@ void Server::lssproto_S_recv(int fd, char* cdata)
 				}
 			}
 		}
+
 		//updataPcAct();
 		if ((pc.status & CHR_STATUS_LEADER) != 0 && party[0].useFlag != 0)
 		{
@@ -5655,19 +5308,54 @@ void Server::lssproto_S_recv(int fd, char* cdata)
 			party[0].name = pc.name;
 		}
 
+		getPlayerMaxCarryingCapacity();
+
 		emit signalDispatcher.updateCharHpProgressValue(pc.level, pc.hp, pc.maxHp);
 		emit signalDispatcher.updateCharMpProgressValue(pc.level, pc.mp, pc.maxMp);
 
 		if (pc.ridePetNo < 0)
+		{
+			for (int i = 0; i < MAX_PET; ++i)
+			{
+				if (pet[i].state == kRide)
+				{
+					if (pc.selectPetNo[i] == TRUE)
+					{
+						pet[i].state = kStandby;
+					}
+					else
+					{
+						pet[i].state = kRest;
+					}
+				}
+			}
 			emit signalDispatcher.updateRideHpProgressValue(0, 0, 100);
+		}
 		else
 		{
 			PET _pet = pet[pc.ridePetNo];
+			pet[pc.ridePetNo].state = kRide;
 			emit signalDispatcher.updateRideHpProgressValue(_pet.level, _pet.hp, _pet.maxHp);
 		}
 
 		if (pc.battlePetNo < 0)
+		{
+			for (int i = 0; i < MAX_PET; ++i)
+			{
+				if (pet[i].state == kBattle)
+				{
+					if (pc.selectPetNo[i] == TRUE)
+					{
+						pet[i].state = kStandby;
+					}
+					else
+					{
+						pet[i].state = kRest;
+					}
+				}
+			}
 			emit signalDispatcher.updatePetHpProgressValue(0, 0, 100);
+		}
 		else
 		{
 			PET _pet = pet[pc.battlePetNo];
@@ -5677,56 +5365,26 @@ void Server::lssproto_S_recv(int fd, char* cdata)
 		emit signalDispatcher.updatePlayerInfoStone(pc.gold);
 		const QVariantList varList = {
 			pc.name, pc.freeName, "",
-			tr("%1(%2tr)").arg(pc.level).arg(pc.transmigration), pc.exp, pc.maxExp, pc.exp > pc.maxExp ? 0 : pc.maxExp - pc.exp, "",
+			QObject::tr("%1(%2tr)").arg(pc.level).arg(pc.transmigration), pc.exp, pc.maxExp, pc.exp > pc.maxExp ? 0 : pc.maxExp - pc.exp, "",
 			QString("%1/%2").arg(pc.hp).arg(pc.maxHp), QString("%1/%2").arg(pc.mp).arg(pc.maxMp),
 			pc.charm, pc.atk, pc.def, pc.quick, pc.luck
 		};
 
-		const QVariant var = QVariant::fromValue(varList);
+		QVariant var = QVariant::fromValue(varList);
 
+		playerInfoColContents.insert(0, var);
 		emit signalDispatcher.updatePlayerInfoColContents(0, var);
-
-		//#ifdef _STONDEBUG_
-		//		char title[128];
-		//		sprintf_s(title, "%s %s [%s  %s:%s]", DEF_APPNAME, "調試版本",
-		//			gmsv[selectServerIndex].name,
-		//			gmsv[selectServerIndex].ipaddr, gmsv[selectServerIndex].port);
-		//#else
-		//		char title[128];
-		//		extern int nServerGroup;
-		//		sprintf_s(title, "%s %s [%s] %s", DEF_APPNAME, gmgroup[nServerGroup].name, gmsv[selectServerIndex].name, pc.name);
-		//
-		//		extern int 繁體開關;
-		//		if (繁體開關)
-		//		{
-		//			char 繁體[1024] = { 0 };
-		//			LCMapString(0x804, 0x4000000, title, strlen(title), 繁體, 1024);
-		//			sprintf(title, "%s", 繁體);
-		//		}
-		//
-		//#endif
-		//		extern int 編碼;
-		//		extern char* GB2312ToBIG5(const char* szGBString);
-		Injector& injector = Injector::getInstance();
-		int server = injector.getValueHash(util::kServerValue);
-		int subserver = injector.getValueHash(util::kSubServerValue);
-		int position = injector.getValueHash(util::kPositionValue);
-
-		QString title = QString("SaSH [%1:%2:%3] - %4 LV:%5(%6/%7) MP:%8/%9")
-			.arg(server).arg(subserver).arg(position).arg(pc.name).arg(pc.level).arg(pc.hp).arg(pc.maxHp).arg(pc.mp).arg(pc.maxMp);
-		std::wstring wtitle = title.toStdWString();
-		//SetWindowTextW(injector.getProcessWindow(), wtitle.c_str());
-		//if (!bNewServer)
-		//	pc.ridePetNo = -1;
-		//if ((bNewServer & 0xf000000) == 0xf000000 && sPetStatFlag == 1)
-		//	saveUserSetting();
+		setWindowTitle();
 	}
+#pragma endregion
+#pragma region FamilyInfo
 	else if (first == "F") // F 家族狀態
 	{
 		QString familyName;
 
 		getStringToken(data, "|", 1, familyName);
 		makeStringFromEscaped(familyName);
+		familyName = familyName.simplified();
 		pc.familyName = familyName;
 
 		pc.familyleader = getIntegerToken(data, "|", 2);
@@ -5737,12 +5395,13 @@ void Server::lssproto_S_recv(int fd, char* cdata)
 		if (pc.familyleader == FMMEMBER_NONE)
 		{
 			//pc.etcFlag &= ~PC_ETCFLAG_CHAT_FM;
-			TalkMode = 0;
+			talkMode = 0;
 		}
 #endif
-
 		// HP,MP,EXP
 	}
+#pragma endregion
+#pragma region PlayerModify
 	else if (first == "M") // M HP,MP,EXP
 	{
 		pc.hp = getIntegerToken(data, "|", 1);
@@ -5752,9 +5411,15 @@ void Server::lssproto_S_recv(int fd, char* cdata)
 		if ((pc.status & CHR_STATUS_LEADER) != 0 && party[0].useFlag != 0)
 			party[0].hp = pc.hp;
 
+		//custom
+		pc.hpPercent = util::percent(pc.hp, pc.maxHp);
+		pc.mpPercent = util::percent(pc.mp, pc.maxMp);
+
 		emit signalDispatcher.updateCharHpProgressValue(pc.level, pc.hp, pc.maxHp);
 		emit signalDispatcher.updateCharMpProgressValue(pc.level, pc.mp, pc.maxMp);
 	}
+#pragma endregion
+#pragma region PetInfo
 	else if (first == "K") // K 寵物狀態
 	{
 		QString name, freeName;
@@ -5780,7 +5445,7 @@ void Server::lssproto_S_recv(int fd, char* cdata)
 					pc.mailPetNo = -1;
 				pc.selectPetNo[no] = FALSE;
 			}
-			pet[no].useFlag = 0;
+			pet[no] = {};
 		}
 		else
 		{
@@ -5792,6 +5457,11 @@ void Server::lssproto_S_recv(int fd, char* cdata)
 				pet[no].maxHp = getIntegerToken(data, "|", 4);		// 0x00000008
 				pet[no].mp = getIntegerToken(data, "|", 5);		// 0x00000010
 				pet[no].maxMp = getIntegerToken(data, "|", 6);		// 0x00000020
+
+				//custom
+				pet[no].hpPercent = util::percent(pet[no].hp, pet[no].maxHp);
+				pet[no].mpPercent = util::percent(pet[no].mp, pet[no].maxMp);
+
 				pet[no].exp = getIntegerToken(data, "|", 7);		// 0x00000040
 				pet[no].maxExp = getIntegerToken(data, "|", 8);		// 0x00000080
 				pet[no].level = getIntegerToken(data, "|", 9);		// 0x00000100
@@ -5810,9 +5480,11 @@ void Server::lssproto_S_recv(int fd, char* cdata)
 				pet[no].fusion = getIntegerToken(data, "|", 21);
 				getStringToken(data, "|", 22, name);// 0x00080000
 				makeStringFromEscaped(name);
+				name = name.simplified();
 				pet[no].name = name;
 				getStringToken(data, "|", 23, freeName);// 0x00100000
 				makeStringFromEscaped(freeName);
+				freeName = freeName.simplified();
 				pet[no].freeName = freeName;
 #else
 				getStringToken(data, "|", 21, name);// 0x00080000
@@ -5857,21 +5529,25 @@ void Server::lssproto_S_recv(int fd, char* cdata)
 						else if (mask == 0x00000004)
 						{
 							pet[no].hp = getIntegerToken(data, "|", i);// 0x00000004
+							pet[no].hpPercent = util::percent(pet[no].hp, pet[no].maxHp);
 							i++;
 						}
 						else if (mask == 0x00000008)
 						{
 							pet[no].maxHp = getIntegerToken(data, "|", i);// 0x00000008
+							pet[no].hpPercent = util::percent(pet[no].hp, pet[no].maxHp);
 							i++;
 						}
 						else if (mask == 0x00000010)
 						{
 							pet[no].mp = getIntegerToken(data, "|", i);// 0x00000010
+							pet[no].mpPercent = util::percent(pet[no].mp, pet[no].maxMp);
 							i++;
 						}
 						else if (mask == 0x00000020)
 						{
 							pet[no].maxMp = getIntegerToken(data, "|", i);// 0x00000020
+							pet[no].mpPercent = util::percent(pet[no].mp, pet[no].maxMp);
 							i++;
 						}
 						else if (mask == 0x00000040)
@@ -5943,6 +5619,7 @@ void Server::lssproto_S_recv(int fd, char* cdata)
 						{
 							getStringToken(data, "|", i, name);// 0x00080000
 							makeStringFromEscaped(name);
+							name = name.simplified();
 							pet[no].name = name;
 							i++;
 						}
@@ -5950,6 +5627,7 @@ void Server::lssproto_S_recv(int fd, char* cdata)
 						{
 							getStringToken(data, "|", i, freeName);// 0x00100000
 							makeStringFromEscaped(freeName);
+							freeName = freeName.simplified();
 							pet[no].freeName = freeName;
 							i++;
 						}
@@ -6015,6 +5693,7 @@ void Server::lssproto_S_recv(int fd, char* cdata)
 		if (pc.ridePetNo >= 0 && pc.ridePetNo < MAX_PET)
 		{
 			PET _pet = pet[pc.ridePetNo];
+			pet[pc.ridePetNo].state = kRide;
 			emit signalDispatcher.updateRideHpProgressValue(_pet.level, _pet.hp, _pet.maxHp);
 		}
 		else
@@ -6025,6 +5704,7 @@ void Server::lssproto_S_recv(int fd, char* cdata)
 		if (pc.battlePetNo >= 0 && pc.battlePetNo < MAX_PET)
 		{
 			PET _pet = pet[pc.battlePetNo];
+			pet[pc.battlePetNo].state = kBattle;
 			emit signalDispatcher.updatePetHpProgressValue(_pet.level, _pet.hp, _pet.maxHp);
 		}
 		else
@@ -6032,25 +5712,45 @@ void Server::lssproto_S_recv(int fd, char* cdata)
 			emit signalDispatcher.updatePetHpProgressValue(0, 0, 100);
 		}
 
-		PET _pet = pet[no];
-		const QVariantList varList = {
-			_pet.name, _pet.freeName, "",
-			tr("%1(%2tr)").arg(_pet.level).arg(_pet.trn), _pet.exp, _pet.maxExp, _pet.maxExp - _pet.exp, "",
-			QString("%1/%2").arg(_pet.hp).arg(_pet.maxHp), "",
-			_pet.ai, _pet.atk, _pet.def, _pet.quick, ""
-		};
+		for (int i = 0; i < MAX_PET; ++i)
+		{
+			PET _pet = pet[i];
+			QVariantList varList;
+			if (_pet.useFlag == 1)
+			{
+				varList = QVariantList{
+					_pet.name, _pet.freeName, "",
+					QObject::tr("%1(%2tr)").arg(_pet.level).arg(_pet.trn), _pet.exp, _pet.maxExp, _pet.maxExp - _pet.exp, "",
+					QString("%1/%2").arg(_pet.hp).arg(_pet.maxHp), "",
+					_pet.ai, _pet.atk, _pet.def, _pet.quick, "",
+					(((static_cast<double>(_pet.atk + _pet.def + _pet.quick) + (static_cast<double>(_pet.maxHp) / 4.0)) / static_cast<double>(_pet.level)) * 100.0)
+				};
 
-		const QVariant var = QVariant::fromValue(varList);
+			}
+			else
+			{
+				for (int i = 0; i < 16; ++i)
+					varList.append("");
 
-		emit signalDispatcher.updatePlayerInfoColContents(no + 1, var);
+			}
+
+			QVariant var = QVariant::fromValue(varList);
+			playerInfoColContents.insert(i + 1, var);
+			emit signalDispatcher.updatePlayerInfoColContents(i + 1, var);
+		}
+
 	}
+#pragma endregion
+#pragma region EncountPercentage
 	else if (first == "E") // E nowEncountPercentage
 	{
 		minEncountPercentage = getIntegerToken(data, "|", 1);
 		maxEncountPercentage = getIntegerToken(data, "|", 2);
 		nowEncountPercentage = minEncountPercentage;
 	}
-	else if (first == "J") //J 魔法
+#pragma endregion
+#pragma region MagicInfo
+	else if (first == "J") //J 精靈
 	{
 		QString name, memo;
 		int no;
@@ -6079,15 +5779,48 @@ void Server::lssproto_S_recv(int fd, char* cdata)
 				magic[no].deadTargetFlag = 0;
 			getStringToken(data, "|", 5, name);
 			makeStringFromEscaped(name);
+			name = name.simplified();
 			magic[no].name = name;
 			getStringToken(data, "|", 6, memo);
 			makeStringFromEscaped(memo);
+			memo = memo.simplified();
 			magic[no].memo = memo;
 		}
+		else
+		{
+			magic[no] = {};
+		}
+
+		QStringList magicNameList;
+		for (int i = 0; i < MAX_MAGIC; ++i)
+		{
+			magicNameList.append(magic[i].name);
+		}
+
+		emit signalDispatcher.updateComboBoxItemText(util::kComboBoxCharAction, magicNameList);
 	}
+#pragma endregion
+#pragma region TeamInfo
 	else if (first == "N")  // N 隊伍資訊
 	{
-		//ACTION* ptAct;
+		auto updateTeamInfo = [this, &signalDispatcher]()
+		{
+			QStringList teamInfoList;
+			for (int i = 0; i < MAX_PARTY; ++i)
+			{
+				if (party[i].name.isEmpty() || (party[i].useFlag == 0) || (party[i].maxHp <= 0))
+				{
+					party[i] = {};
+					teamInfoList.append("");
+					continue;
+				}
+				QString text = QString("%1 LV:%2 HP:%3/%4 MP:%5").arg(party[i].name).arg(party[i].level)
+					.arg(party[i].hp).arg(party[i].maxHp).arg(party[i].hpPercent);
+				teamInfoList.append(text);
+			}
+			emit signalDispatcher.updateTeamInfo(teamInfoList);
+		};
+
 		QString name;
 		int no, kubun, i, checkPartyCount, no2;
 		//int gx, gy;
@@ -6107,25 +5840,17 @@ void Server::lssproto_S_recv(int fd, char* cdata)
 		{
 			if (party[no].useFlag != 0 && party[no].id != pc.id)
 			{
-				//ptAct = getCharObjAct(party[no].id);
-				//if (ptAct != NULL)
-				//	delCharParty(ptAct);
+
 			}
-			//gx = -1;
-			//gy = -1;
-			//if (party[no].ptAct != NULL)
-			//{
-			//	//gx = party[no].ptAct->nextGx;
-			//	//gy = party[no].ptAct->nextGy;
-			//}
+
 			party[no].useFlag = 0;
-			//party[no].ptAct = NULL;
+			party[no] = {};
 			checkPartyCount = 0;
 			no2 = -1;
 #ifdef MAX_AIRPLANENUM
-			for (i = 0; i < MAX_AIRPLANENUM; i++)
+			for (i = 0; i < MAX_AIRPLANENUM; ++i)
 #else
-			for (i = 0; i < MAX_PARTY; i++)
+			for (i = 0; i < MAX_PARTY; ++i)
 #endif
 			{
 				if (party[i].useFlag != 0)
@@ -6141,8 +5866,8 @@ void Server::lssproto_S_recv(int fd, char* cdata)
 				clearPartyParam();
 #ifdef _CHANNEL_MODIFY
 				//pc.etcFlag &= ~PC_ETCFLAG_CHAT_MODE;
-				if (TalkMode == 2)
-					TalkMode = 0;
+				if (talkMode == 2)
+					talkMode = 0;
 #endif
 			}
 			else
@@ -6150,6 +5875,7 @@ void Server::lssproto_S_recv(int fd, char* cdata)
 				//if (no2 >= 0 || gx >= 0 || gy >= 0)
 					//goFrontPartyCharacter(no2, gx, gy);
 			}
+			updateTeamInfo();
 			return;
 		}
 
@@ -6166,6 +5892,7 @@ void Server::lssproto_S_recv(int fd, char* cdata)
 			party[no].mp = getIntegerToken(data, "|", 6);	// 0x00000020
 			getStringToken(data, "|", 7, name);	// 0x00000040
 			makeStringFromEscaped(name);
+			name = name.simplified();
 			party[no].name = name;
 		}
 		else
@@ -6205,6 +5932,7 @@ void Server::lssproto_S_recv(int fd, char* cdata)
 					{
 						getStringToken(data, "|", i, name);// 0x00000040
 						makeStringFromEscaped(name);
+						name = name.simplified();
 						party[no].name = name;
 						i++;
 					}
@@ -6233,14 +5961,18 @@ void Server::lssproto_S_recv(int fd, char* cdata)
 			if (no == 0)
 				pc.status &= (~CHR_STATUS_LEADER);
 		}
+		party[no].hpPercent = util::percent(party[no].hp, party[no].maxHp);
+		updateTeamInfo();
 	}
-
+#pragma endregion
+#pragma region ItemInfo
 	else if (first == "I") //I 道具
 	{
 		int i, no;
 		QString temp;
+		QMutexLocker lock(&swapItemMutex);
 
-		for (i = 0; i < MAX_ITEM; i++)
+		for (i = 0; i < MAX_ITEM; ++i)
 		{
 #ifdef _ITEM_JIGSAW
 #ifdef _NPC_ITEMUP
@@ -6275,23 +6007,27 @@ void Server::lssproto_S_recv(int fd, char* cdata)
 #endif//_ITEM_JIGSAW
 			getStringToken(data, "|", no + 1, temp);
 			makeStringFromEscaped(temp);
+			temp = temp.simplified();
 			if (temp.isEmpty())
 			{
 				pc.item[i].useFlag = 0;
-				pc.item[i].name = "";
+				pc.item[i].name.clear();
+				pc.item[i] = {};
 				refreshItemInfo(i);
 				continue;
 			}
 			pc.item[i].useFlag = 1;
-			pc.item[i].name = temp;
+			pc.item[i].name = temp.simplified();
 			getStringToken(data, "|", no + 2, temp);
 			makeStringFromEscaped(temp);
+			temp = temp.simplified();
 			pc.item[i].name2 = temp;
 			pc.item[i].color = getIntegerToken(data, "|", no + 3);
 			if (pc.item[i].color < 0)
 				pc.item[i].color = 0;
 			getStringToken(data, "|", no + 4, temp);
 			makeStringFromEscaped(temp);
+			temp = temp.simplified();
 			pc.item[i].memo = temp;
 			pc.item[i].graNo = getIntegerToken(data, "|", no + 5);
 			pc.item[i].field = getIntegerToken(data, "|", no + 6);
@@ -6309,15 +6045,18 @@ void Server::lssproto_S_recv(int fd, char* cdata)
 			// 顯示物品耐久度
 			getStringToken(data, "|", no + 10, temp);
 			makeStringFromEscaped(temp);
+			temp = temp.simplified();
 			pc.item[i].damage = temp;
 #ifdef _ITEM_PILENUMS
 			getStringToken(data, "|", no + 11, temp);
 			makeStringFromEscaped(temp);
+			temp = temp.simplified();
 			pc.item[i].pile = temp.toInt();
 #endif
 #ifdef _ALCHEMIST //_ITEMSET7_TXT
 			getStringToken(data, "|", no + 12, temp);
 			makeStringFromEscaped(temp);
+			temp = temp.simplified();
 			pc.item[i].alch = temp;
 #endif
 #ifdef _PET_ITEM
@@ -6329,7 +6068,7 @@ void Server::lssproto_S_recv(int fd, char* cdata)
 #endif
 #ifdef _ITEM_JIGSAW
 			getStringToken(data, "|", no + 14, temp);
-			pc.item[i].jigsaw = temp;
+			pc.item[i].jigsaw = temp.simplified();
 
 #endif
 #ifdef _NPC_ITEMUP
@@ -6342,23 +6081,18 @@ void Server::lssproto_S_recv(int fd, char* cdata)
 			refreshItemInfo(i);
 		}
 
+		QStringList itemList;
+		for (const ITEM& it : pc.item)
+		{
+			if (it.name.isEmpty())
+				continue;
+			itemList.append(it.name);
+		}
+		emit signalDispatcher.updateComboBoxItemText(util::kComboBoxItem, itemList);
+		checkAutoDropMeat(QStringList());
 	}
-	else if (first == "U")
-	{
-		//*新手兜|DEF+25|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|
-		//*新手铠|DEF+53 QUICK-14|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|
-		//*新手棍棒|ATK+60|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|
-		//白狼之眼|QUICK+40 MP+80|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|
-		//双蛇之戒|ATK+20 DEF+20 HP+80 MP+80|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|
-		//*新手腰带|DEF+10 HP+60|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|
-		//*新手盾|DEF+5 HP+5|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|
-		//*新手鞋|DEF+10 QUICK+10|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|
-		//*新手手套|ATK+20 QUICK+10|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|
-		//风的石头||0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|
-		//小块肉||0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|
-		//小块肉||0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|
-		//|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
-	}
+#pragma endregion
+#pragma region PetSkill
 	else if (first == "W")//接收到的寵物技能
 	{
 		int i, no, no2;
@@ -6374,13 +6108,18 @@ void Server::lssproto_S_recv(int fd, char* cdata)
 			return;
 
 
-		for (i = 0; i < MAX_SKILL; i++)
+		for (i = 0; i < MAX_SKILL; ++i)
+		{
 			petSkill[no][i].useFlag = 0;
-		for (i = 0; i < MAX_SKILL; i++)
+		}
+
+		QStringList skillNameList;
+		for (i = 0; i < MAX_SKILL; ++i)
 		{
 			no2 = i * 5;
 			getStringToken(data, "|", no2 + 4, temp);
 			makeStringFromEscaped(temp);
+			temp = temp.simplified();
 			if (temp.isEmpty())
 				continue;
 			petSkill[no][i].useFlag = 1;
@@ -6390,9 +6129,18 @@ void Server::lssproto_S_recv(int fd, char* cdata)
 			petSkill[no][i].target = getIntegerToken(data, "|", no2 + 3);
 			getStringToken(data, "|", no2 + 5, temp);
 			makeStringFromEscaped(temp);
+			temp = temp.simplified();
 			petSkill[no][i].memo = temp;
+
+			if ((pc.battlePetNo >= 0) && pc.battlePetNo < MAX_PET)
+				skillNameList.append(petSkill[no][i].name);
 		}
+
+		if ((pc.battlePetNo >= 0) && pc.battlePetNo < MAX_PET)
+			emit signalDispatcher.updateComboBoxItemText(util::kComboBoxPetAction, skillNameList);
 	}
+#pragma endregion
+#pragma region PlayerSkill
 #ifdef _CHAR_PROFESSION			// WON ADD 人物職業
 	else if (first == "S") // S 職業技能
 	{
@@ -6400,12 +6148,12 @@ void Server::lssproto_S_recv(int fd, char* cdata)
 		QString memo;
 		int i, count = 0;
 
-		for (i = 0; i < MAX_PROFESSION_SKILL; i++)
+		for (i = 0; i < MAX_PROFESSION_SKILL; ++i)
 		{
 			profession_skill[i].useFlag = 0;
 			profession_skill[i].kind = 0;
 		}
-		for (i = 0; i < MAX_PROFESSION_SKILL; i++)
+		for (i = 0; i < MAX_PROFESSION_SKILL; ++i)
 		{
 			count = i * 9;
 			profession_skill[i].useFlag = getIntegerToken(data, "|", 1 + count);
@@ -6418,25 +6166,41 @@ void Server::lssproto_S_recv(int fd, char* cdata)
 
 			getStringToken(data, "|", 8 + count, name);
 			makeStringFromEscaped(name);
+			name = name.simplified();
 			profession_skill[i].name = name;
 
 			getStringToken(data, "|", 9 + count, memo);
 			makeStringFromEscaped(memo);
+			memo = memo.simplified();
 			profession_skill[i].memo = memo;
 		}
+
+		QStringList magicNameList;
+		for (i = 0; i < MAX_MAGIC; ++i)
+		{
+			magicNameList.append(magic[i].name);
+		}
+		for (i = 0; i < MAX_PROFESSION_SKILL; ++i)
+		{
+			magicNameList.append(profession_skill[i].name);
+		}
+		emit signalDispatcher.updateComboBoxItemText(util::kComboBoxCharAction, magicNameList);
+
 #ifdef _SKILLSORT
 		SortSkill();
 #endif
 	}
 #endif
+#pragma endregion
+#pragma region PRO3_ADDSKILL
 #ifdef _PRO3_ADDSKILL
 	case 'G':
 	{
 		int i, count = 0;
 		data++;
-		for (i = 0; i < MAX_PROFESSION_SKILL; i++)
+		for (i = 0; i < MAX_PROFESSION_SKILL; ++i)
 			profession_skill[i].cooltime = 0;
-		for (i = 0; i < MAX_PROFESSION_SKILL; i++)
+		for (i = 0; i < MAX_PROFESSION_SKILL; ++i)
 		{
 			count = i * 1;
 			profession_skill[i].cooltime = getIntegerToken(data, "|", 1 + count);
@@ -6444,6 +6208,8 @@ void Server::lssproto_S_recv(int fd, char* cdata)
 		break;
 	}
 #endif
+#pragma endregion
+#pragma region PetEquip
 #ifdef _PET_ITEM
 	else if (first == "B") // B 寵物道具
 	{
@@ -6459,7 +6225,7 @@ void Server::lssproto_S_recv(int fd, char* cdata)
 		if (data.isEmpty())
 			return;
 
-		for (i = 0; i < MAX_PET_ITEM; i++)
+		for (i = 0; i < MAX_PET_ITEM; ++i)
 		{
 #ifdef _ITEM_JIGSAW
 #ifdef _NPC_ITEMUP
@@ -6476,6 +6242,7 @@ void Server::lssproto_S_recv(int fd, char* cdata)
 #endif
 			getStringToken(data, "|", no + 1, szData);
 			makeStringFromEscaped(szData);
+			szData = szData.simplified();
 			if (szData.isEmpty())	// 沒道具
 			{
 				pet[nPetIndex].item[i] = {};
@@ -6485,13 +6252,15 @@ void Server::lssproto_S_recv(int fd, char* cdata)
 			pet[nPetIndex].item[i].name = szData;
 			getStringToken(data, "|", no + 2, szData);
 			makeStringFromEscaped(szData);
+			szData = szData.simplified();
 			pet[nPetIndex].item[i].name2 = szData;
 			pet[nPetIndex].item[i].color = getIntegerToken(data, "|", no + 3);
 			if (pet[nPetIndex].item[i].color < 0)
 				pet[nPetIndex].item[i].color = 0;
 			getStringToken(data, "|", no + 4, szData);
 			makeStringFromEscaped(szData);
-			pet[nPetIndex].item[i].memo = szData;
+			szData = szData.simplified();
+			pet[nPetIndex].item[i].memo = szData.simplified();
 			pet[nPetIndex].item[i].graNo = getIntegerToken(data, "|", no + 5);
 			pet[nPetIndex].item[i].field = getIntegerToken(data, "|", no + 6);
 			pet[nPetIndex].item[i].target = getIntegerToken(data, "|", no + 7);
@@ -6508,17 +6277,20 @@ void Server::lssproto_S_recv(int fd, char* cdata)
 			// 顯示物品耐久度
 			getStringToken(data, "|", no + 10, szData);
 			makeStringFromEscaped(szData);
+			szData = szData.simplified();
 			pet[nPetIndex].item[i].damage = szData;
 			pet[nPetIndex].item[i].pile = getIntegerToken(data, "|", no + 11);
 #ifdef _ALCHEMIST //_ITEMSET7_TXT
 			getStringToken(data, "|", no + 12, szData);
 			makeStringFromEscaped(szData);
+			szData = szData.simplified();
 			pet[nPetIndex].item[i].alch = szData;
 #endif
 			pet[nPetIndex].item[i].type = getIntegerToken(data, "|", no + 13);
 #ifdef _ITEM_JIGSAW
 			getStringToken(data, "|", no + 14, szData);
 			makeStringFromEscaped(szData);
+			szData = szData.simplified();
 			pet[nPetIndex].item[i].jigsaw = szData;
 			//可拿給寵物裝備的道具,就不會是拼圖了,以下就免了
 			//if( i == JigsawIdx )
@@ -6533,6 +6305,24 @@ void Server::lssproto_S_recv(int fd, char* cdata)
 		}
 	}
 #endif
+#pragma endregion
+#pragma region S_recv_Unknown
+	else if (first == "U")
+	{
+		//*新手兜|DEF+25|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|
+		//*新手铠|DEF+53 QUICK-14|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|
+		//*新手棍棒|ATK+60|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|
+		//白狼之眼|QUICK+40 MP+80|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|
+		//双蛇之戒|ATK+20 DEF+20 HP+80 MP+80|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|
+		//*新手腰带|DEF+10 HP+60|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|
+		//*新手盾|DEF+5 HP+5|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|
+		//*新手鞋|DEF+10 QUICK+10|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|
+		//*新手手套|ATK+20 QUICK+10|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|
+		//风的石头||0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|
+		//小块肉||0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|
+		//小块肉||0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|
+		//|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
+	}
 	else if (first == "H")
 	{
 		//H0|0|  //0~19
@@ -6564,13 +6354,15 @@ void Server::lssproto_S_recv(int fd, char* cdata)
 			!5|0|
 		*/
 	}
+#pragma endregion
 	else
 	{
 		qDebug() << "[" << first << "]:" << data;
 	}
 }
 
-void Server::lssproto_ClientLogin_recv(int fd, char* cresult)
+//客戶端登入(進去選人畫面)
+void Server::lssproto_ClientLogin_recv(char* cresult)
 {
 	QString result = util::toUnicode(cresult);
 	if (result.isEmpty())
@@ -6579,13 +6371,13 @@ void Server::lssproto_ClientLogin_recv(int fd, char* cresult)
 	//if (netproc_sending == NETPROC_SENDING)
 	//{
 		//netproc_sending = NETPROC_RECEIVED;
-	if (result.contains(OKSTR))
+	if (result.contains(OKSTR, Qt::CaseInsensitive))
 	{
 		clientLoginStatus = 1;
 		time(&serverAliveLongTime);
 		localtime_s(&serverAliveTime, &serverAliveLongTime);
 	}
-	else if (result.contains(CANCLE))
+	else if (result.contains(CANCLE, Qt::CaseInsensitive))
 	{
 		//ChangeProc(PROC_TITLE_MENU , 6 );
 
@@ -6603,7 +6395,8 @@ void Server::lssproto_ClientLogin_recv(int fd, char* cresult)
 	//}
 }
 
-void Server::lssproto_CreateNewChar_recv(int fd, char* cresult, char* cdata)
+//新增人物
+void Server::lssproto_CreateNewChar_recv(char* cresult, char* cdata)
 {
 	QString data = util::toUnicode(cdata);
 	QString result = util::toUnicode(cresult);
@@ -6611,7 +6404,7 @@ void Server::lssproto_CreateNewChar_recv(int fd, char* cresult, char* cdata)
 	if (result.isEmpty() && data.isEmpty())
 		return;
 
-	if (result.contains(SUCCESSFULSTR) || data.contains(SUCCESSFULSTR))
+	if (result.contains(SUCCESSFULSTR, Qt::CaseInsensitive) || data.contains(SUCCESSFULSTR, Qt::CaseInsensitive))
 	{
 		newCharStatus = 1;
 	}
@@ -6621,7 +6414,8 @@ void Server::lssproto_CreateNewChar_recv(int fd, char* cresult, char* cdata)
 	}
 }
 
-void Server::lssproto_CharList_recv(int fd, char* cresult, char* cdata)
+//更新人物列表
+void Server::lssproto_CharList_recv(char* cresult, char* cdata)
 {
 	QString data = util::toUnicode(cdata);
 	QString result = util::toUnicode(cresult);
@@ -6630,7 +6424,7 @@ void Server::lssproto_CharList_recv(int fd, char* cresult, char* cdata)
 		return;
 	//char LoginErrorMessage[1024];
 	//memset(LoginErrorMessage, 0, 1024);
-	if (result.contains("failed"))
+	if (result.contains("failed", Qt::CaseInsensitive))
 	{
 		//_snprintf_s(LoginErrorMessage, sizeof(LoginErrorMessage), _TRUNCATE, "%s", data);
 #ifdef _AIDENGLU_
@@ -6644,26 +6438,29 @@ void Server::lssproto_CharList_recv(int fd, char* cresult, char* cdata)
 	int i;
 
 	//netproc_sending = NETPROC_RECEIVED;
-	if (result.contains(SUCCESSFULSTR) || data.contains(SUCCESSFULSTR))
+	if (result.contains(SUCCESSFULSTR, Qt::CaseInsensitive) || data.contains(SUCCESSFULSTR, Qt::CaseInsensitive))
 	{
 		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
 		emit signalDispatcher.updateStatusLabelTextChanged(util::kLabelStatusGettingPlayerList);
 
 
-		if (result.contains("OUTOFSERVICE"))
+		if (result.contains("OUTOFSERVICE", Qt::CaseInsensitive))
 			charListStatus = 2;
-#ifdef _CHANGEGALAXY
-		if (result.contains("CHANGE_GALAXY")
-			charListStatus = 3;
-#endif
-#ifdef _ERROR301
-			if (result.contains("301")
-				charListStatus = 4;
-#endif
-				return;
+
+		//#ifdef _CHANGEGALAXY
+		//		if (result.contains("CHANGE_GALAXY")
+		//			charListStatus = 3;
+		//#endif
+		//
+		//#ifdef _ERROR301
+		//		if (result.contains("301")
+		//			charListStatus = 4;
+		//#endif
+		return;
 	}
+
 	charListStatus = 1;
-	for (i = 0; i < MAXCHARACTER; i++)
+	for (i = 0; i < MAXCHARACTER; ++i)
 	{
 		nm.clear();
 		opt.clear();
@@ -6674,7 +6471,8 @@ void Server::lssproto_CharList_recv(int fd, char* cresult, char* cdata)
 	//}
 }
 
-void Server::lssproto_CharLogout_recv(int fd, char* cresult, char* cdata)
+//人物登出(不是每個私服都有，有些是直接切斷後跳回帳號密碼頁)
+void Server::lssproto_CharLogout_recv(char* cresult, char* cdata)
 {
 	QString data = util::toUnicode(cdata);
 	QString result = util::toUnicode(cresult);
@@ -6683,15 +6481,16 @@ void Server::lssproto_CharLogout_recv(int fd, char* cresult, char* cdata)
 	//if (netproc_sending == NETPROC_SENDING)
 	//{
 	//netproc_sending = NETPROC_RECEIVED;
-	if (result.contains(SUCCESSFULSTR) || data.contains(SUCCESSFULSTR))
+	if (result.contains(SUCCESSFULSTR, Qt::CaseInsensitive) || data.contains(SUCCESSFULSTR, Qt::CaseInsensitive))
 	{
-		IS_ONLINE_FLAG = false;
-		IS_BATTLE_FLAG = false;
+		setBattleFlag(false);
+		setOnlineFlag(false);
 	}
 	//}
 }
 
-void Server::lssproto_CharLogin_recv(int fd, char* cresult, char* cdata)
+//人物登入
+void Server::lssproto_CharLogin_recv(char* cresult, char* cdata)
 {
 	QString data = util::toUnicode(cdata);
 	QString result = util::toUnicode(cresult);
@@ -6703,13 +6502,13 @@ void Server::lssproto_CharLogin_recv(int fd, char* cresult, char* cdata)
 #ifdef __NEW_CLIENT
 	if (strcmp(result, SUCCESSFULSTR) == 0 && !hPing)
 #else
-	if (result.contains(SUCCESSFULSTR) || data.contains(SUCCESSFULSTR))
+	if (result.contains(SUCCESSFULSTR, Qt::CaseInsensitive) || data.contains(SUCCESSFULSTR, Qt::CaseInsensitive))
 #endif
 	{
 		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
 		emit signalDispatcher.updateStatusLabelTextChanged(util::kLabelStatusSignning);
-
-		IS_ONLINE_FLAG = true;
+		loginTimer.restart();
+		setOnlineFlag(true);
 #ifdef __NEW_CLIENT
 		hPing = CreateThread(NULL, 0, PingFunc, &sin_server.sin_addr, 0, &dwPingID);
 #endif
@@ -6728,159 +6527,621 @@ void Server::lssproto_CharLogin_recv(int fd, char* cresult, char* cdata)
 	//}
 }
 
-void Server::lssproto_TD_recv(int fd, char* cdata)//交易
+void Server::lssproto_TD_recv(char* cdata)//交易
+{
+	QString data = util::toUnicode(cdata);
+	if (data.isEmpty())
+		return;
+
+	QString Head = "";
+	QString buf_sockfd = "";
+	QString buf_name = "";
+	QString buf = "";
+
+	getStringToken(data, "|", 1, Head);
+
+	// 交易开启资料初始化	
+	if (Head.startsWith("C"))
+	{
+
+		getStringToken(data, "|", 2, opp_sockfd);
+		getStringToken(data, "|", 3, opp_name);
+		getStringToken(data, "|", 4, trade_command);
+
+		if (trade_command.startsWith("0"))
+		{
+			return;
+		}
+		else if (trade_command.startsWith("1"))
+		{
+			myitem_tradeList.clear();
+			mypet_tradeList = QStringList{ "P|-1", "P|-1", "P|-1" , "P|-1", "P|-1" };
+			mygoldtrade = 0;
+
+			IS_TRADING = true;
+			MenuToggleFlag = JOY_CTRL_T;
+			pc.trade_confirm = 1;
+		}
+#ifdef _COMFIRM_TRADE_REQUEST
+		else if (trade_command.startsWith("2"))
+		{
+			tradeStatus = 1;
+			MenuToggleFlag = JOY_CTRL_T;
+			pc.trade_confirm = 1;
+			tradeWndNo = 1;
+		}
+#endif
+
+	}
+	//处理物品交易资讯传递
+	else if (Head.startsWith("T"))
+	{
+
+		if (!IS_TRADING)
+			return;
+
+		QString buf_showindex;
+
+		//andy_add mttrade
+		getStringToken(data, "|", 4, trade_kind);
+		if (trade_kind.startsWith("S"))
+		{
+			QString buf1;
+			int objno = -1;//, showno = -1;
+
+			getStringToken(data, "|", 6, buf1);
+			objno = buf1.toInt();
+			getStringToken(data, "|", 7, buf1);
+			//showno = buf1.toInt();
+			getStringToken(data, "|", 5, buf1);
+
+			if (buf1.startsWith("I"))
+			{	//I
+			}
+			else
+			{	//P
+				tradePetIndex = objno;
+				tradePet[0].index = objno;
+
+				if (pet[objno].useFlag && pc.ridePetNo != objno)
+				{
+					if (pet[objno].freeName[0] != NULL)
+						tradePet[0].name = pet[objno].freeName;
+					else
+						tradePet[0].name = pet[objno].name;
+					tradePet[0].level = pet[objno].level;
+					tradePet[0].atk = pet[objno].atk;
+					tradePet[0].def = pet[objno].def;
+					tradePet[0].quick = pet[objno].quick;
+					tradePet[0].graNo = pet[objno].graNo;
+
+					showindex[3] = 3;
+					//DeathAction(pActPet4);
+					//pActPet4 = NULL;
+				}
+			}
+
+			//mouse.itemNo = -1;
+
+			return;
+		}
+
+		getStringToken(data, "|", 2, buf_sockfd);
+		getStringToken(data, "|", 3, buf_name);
+		getStringToken(data, "|", 4, trade_kind);
+		getStringToken(data, "|", 5, buf_showindex);
+		opp_showindex = buf_showindex.toInt();
+
+		if (!buf_sockfd.contains(opp_sockfd) || !buf_name.contains(opp_name))
+			return;
+
+		if (trade_kind.startsWith("G"))
+		{
+
+			getStringToken(data, "|", 6, opp_goldmount);
+			int mount = opp_goldmount.toInt();
+
+
+			if (opp_showindex == 1)
+			{
+				if (mount != -1)
+				{
+					showindex[4] = 2;
+					tradeWndDropGoldGet = mount;
+				}
+				else
+				{
+					showindex[4] = 0;
+					tradeWndDropGoldGet = 0;
+				}
+			}
+			else if (opp_showindex == 2)
+			{
+				if (mount != -1)
+				{
+					showindex[5] = 2;
+					tradeWndDropGoldGet = mount;
+				}
+				else
+				{
+					showindex[5] = 0;
+					tradeWndDropGoldGet = 0;
+				}
+			}
+			else return;
+
+
+		}
+
+		if (trade_kind.startsWith("I"))
+		{
+			QString pilenum, item_freename;
+
+			getStringToken(data, "|", 6, opp_itemgraph);
+
+			getStringToken(data, "|", 7, opp_itemname);
+			getStringToken(data, "|", 8, item_freename);
+
+			getStringToken(data, "|", 9, opp_itemeffect);
+			getStringToken(data, "|", 10, opp_itemindex);
+			getStringToken(data, "|", 11, opp_itemdamage);// 显示物品耐久度
+
+#ifdef _ITEM_PILENUMS
+			getStringToken(data, "|", 12, pilenum);//pilenum
+#endif
+
+		}
+	}
+
+
+	if (trade_kind.startsWith("P"))
+	{
+#ifdef _PET_ITEM
+		int		iItemNo;
+		QString	szData;
+#endif
+		int index = -1;
+
+#ifdef _PET_ITEM
+		for (int i = 0;; ++i)
+		{
+			if (getStringToken(data, "|", 26 + i * 6, szData))
+				break;
+			iItemNo = szData.toInt();
+			getStringToken(data, "|", 27 + i * 6, opp_pet[index].oPetItemInfo[iItemNo].name);
+			getStringToken(data, "|", 28 + i * 6, opp_pet[index].oPetItemInfo[iItemNo].memo);
+			getStringToken(data, "|", 29 + i * 6, opp_pet[index].oPetItemInfo[iItemNo].damage);
+			getStringToken(data, "|", 30 + i * 6, szData);
+			opp_pet[index].oPetItemInfo[iItemNo].color = szData.toInt();
+			getStringToken(data, "|", 31 + i * 6, szData);
+			opp_pet[index].oPetItemInfo[iItemNo].bmpNo = szData.toInt();
+		}
+#endif
+
+
+		//if (opp_showindex == 3)
+		//{
+
+		//	showindex[6] = 0;
+		//}
+		//else
+		//{
+		//	showindex[6] = 3;
+		//}
+		//DeathAction(pActPet5);
+		//pActPet5 = NULL;
+	}
+
+
+	// shan trade(DoubleCheck) begin
+	if (trade_kind.startsWith("C"))
+	{
+		if (pc.trade_confirm == 1)
+			pc.trade_confirm = 3;
+		if (pc.trade_confirm == 2)
+			pc.trade_confirm = 4;
+		if (pc.trade_confirm == 3)
+		{
+			//我方已點確認後，收到對方點確認
+		}
+	}
+	// end
+
+	if (trade_kind.startsWith("A"))
+	{
+		tradeStatus = 2;
+		IS_TRADING = false;
+		myitem_tradeList.clear();
+		mypet_tradeList = QStringList{ "P|-1", "P|-1", "P|-1" , "P|-1", "P|-1" };
+		mygoldtrade = 0;
+	}
+
+	else if (Head.startsWith("W"))
+	{//取消交易
+		IS_TRADING = false;
+		myitem_tradeList.clear();
+		mypet_tradeList = QStringList{ "P|-1", "P|-1", "P|-1" , "P|-1", "P|-1" };
+		mygoldtrade = 0;
+	}
+}
+
+void Server::lssproto_CHAREFFECT_recv(char* cdata)
 {
 	QString data = util::toUnicode(cdata);
 	if (data.isEmpty())
 		return;
 }
 
-void Server::lssproto_CHAREFFECT_recv(int fd, char* cdata)
+//用於判斷畫面的狀態的數值 (9平時 10戰鬥 <8非登入)
+int Server::getWorldStatus()
 {
-	QString data = util::toUnicode(cdata);
-	if (data.isEmpty())
-		return;
-	//	if (data[0] == '1')
-	//		setCharFamily(pc.ptAct, atoi(data + 2));
-	//	else if (data[0] == '2')
-	//		setCharMind(pc.ptAct, atoi(data + 2));
-	//	else if (data[0] == '3')
-	//		setCharmFamily(pc.ptAct, atoi(data + 2));
-	//#ifdef _CHARTITLE_
-	//	else if (data[0] == '4')
-	//	{
-	//		setCharmTitle(pc.ptAct, atoi(data + 2));
-	//	}
-	//#endif
-	//#ifdef _CHAR_MANOR_
-	//	else if (data[0] == '5')
-	//		setCharmManor(pc.ptAct, atoi(data + 2));
-	//#endif
+	QReadLocker lock(&worldStateLocker);
+	Injector& injector = Injector::getInstance();
+	return mem::read<int>(injector.getProcess(), injector.getProcessModule() + kOffestWorldStatus);
 }
 
+//用於判斷畫面或動畫狀態的數值 (平時一般是3 戰鬥中選擇面板是4 戰鬥動作中是5或6，平時還有很多其他狀態值)
+int Server::getGameStatus()
+{
+	QReadLocker lock(&gameStateLocker);
+	Injector& injector = Injector::getInstance();
+	return mem::read<int>(injector.getProcess(), injector.getProcessModule() + kOffestGameStatus);
+}
+
+void Server::setWorldStatus(int w)
+{
+#ifdef _DEBUG
+	announce(QString("[async battle] 將 W值從 %1 改為 %2").arg(getWorldStatus()).arg(w));
+#endif
+	QWriteLocker lock(&worldStateLocker);
+	Injector& injector = Injector::getInstance();
+	mem::write<int>(injector.getProcess(), injector.getProcessModule() + kOffestWorldStatus, w);
+}
+
+bool Server::checkGW(int w, int g)
+{
+	return getWorldStatus() == w && getGameStatus() == g;
+}
+
+void Server::setGameStatus(int g)
+{
+#ifdef _DEBUG
+	announce(QString("[async battle] 將 G值從 %1 改為 %2").arg(getGameStatus()).arg(g));
+#endif
+	QWriteLocker lock(&gameStateLocker);
+	Injector& injector = Injector::getInstance();
+	mem::write<int>(injector.getProcess(), injector.getProcessModule() + kOffestGameStatus, g);
+}
+
+//檢查非登入時所在頁面
 int Server::getUnloginStatus()
 {
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
 	int W = getWorldStatus();
 	int G = getGameStatus();
 
+	if (0 == W && 0 == G)
+	{
+		return util::kStatusDisappear;
+	}
 	if (11 == W && 2 == G)
 	{
-		IS_ONLINE_FLAG = false;
+		setOnlineFlag(false);
 		emit signalDispatcher.updateStatusLabelTextChanged(util::kLabelStatusDisconnected);
 		return util::kStatusDisconnect;
 	}
-	if (3 == W && 101 == G)
+	else if ((2 == W && 5 == G) || (6 == W && 1 == G))//|| (9 == W && 102 == G) || (9 == W && 0 == G) || (9 == W && 103 == G)
 	{
-		IS_ONLINE_FLAG = false;
+		emit signalDispatcher.updateStatusLabelTextChanged(util::kLabelStatusConnecting);
+		return util::kStatusConnecting;
+	}
+	else if (3 == W && 101 == G)
+	{
+		setOnlineFlag(false);
 		emit signalDispatcher.updateStatusLabelTextChanged(util::kLabelStatusBusy);
 		return util::kStatusBusy;
 	}
-	if (2 == W && 101 == G)
+	else if (2 == W && 101 == G)
 	{
-		IS_ONLINE_FLAG = false;
+		setOnlineFlag(false);
 		emit signalDispatcher.updateStatusLabelTextChanged(util::kLabelStatusTimeout);
 		return util::kStatusTimeout;
 	}
-	if (1 == W && 101 == G)
+	else if (1 == W && 101 == G)
 	{
-		IS_ONLINE_FLAG = false;
+		setOnlineFlag(false);
 		emit signalDispatcher.updateStatusLabelTextChanged(util::kLabelNoUserNameOrPassword);
 		return util::kNoUserNameOrPassword;
 	}
-	if (1 == W && 2 == G)
+	else if ((1 == W && 2 == G) || (1 == W && 3 == G))
 	{
-		IS_ONLINE_FLAG = false;
+		setOnlineFlag(false);
 		emit signalDispatcher.updateStatusLabelTextChanged(util::kLabelStatusLogining);
 		return util::kStatusInputUser;
 	}
-	if (2 == W && 2 == G)
+	else if (2 == W && 2 == G)
 	{
-		IS_ONLINE_FLAG = false;
+		setOnlineFlag(false);
 		emit signalDispatcher.updateStatusLabelTextChanged(util::kLabelStatusSelectServer);
 		return util::kStatusSelectServer;
 	}
-	if (2 == W && 3 == G)
+	else if (2 == W && 3 == G)
 	{
-		IS_ONLINE_FLAG = false;
+		setOnlineFlag(false);
 		emit signalDispatcher.updateStatusLabelTextChanged(util::kLabelStatusSelectSubServer);
 		return util::kStatusSelectSubServer;
 	}
-	if (3 == W && 11 == G)
+	else if ((3 == W && 11 == G) || (3 == W && 1 == G))
 	{
 		emit signalDispatcher.updateStatusLabelTextChanged(util::kLabelStatusSelectPosition);
 		return util::kStatusSelectCharacter;
 	}
-	if (9 == W && 3 == G)
+	else if ((9 == W && 200 == G) || (9 == W && 201 == G) || (9 == W && 202 == G) || (9 == W && 203 == G) || (9 == W && 204 == G))//刷新
+	{
+		return util::kStatusUnknown;
+	}
+	else if (9 == W && 1 == G)//切回平時
+	{
+		return util::kStatusUnknown;
+	}
+	else if (9 == W && 2 == G)//切回平時2
+	{
+		return util::kStatusUnknown;
+	}
+	else if (9 == W && 20 == G)//切換場景
+	{
+		return util::kStatusUnknown;
+	}
+	else if ((3 == W && 0 == G) || (3 == W && 10 == G))//????選人畫面->登入
+	{
+		return util::kStatusUnknown;
+	}
+	else if (5 == W && 0 == G)//????登入後->平時
+	{
+		return util::kStatusUnknown;
+	}
+	else if (9 == W && 100 == G)//????登入後->平時2
+	{
+		return util::kStatusUnknown;
+	}
+	else if (9 == W && 101 == G)//????登入後->平時3
+	{
+		return util::kStatusUnknown;
+	}
+	else if (9 == W && 103 == G)//????登入後->平時3
+	{
+		return util::kStatusUnknown;
+	}
+	else if (9 == W && 4 == G)//轉移入戰鬥
+	{
+		return util::kStatusUnknown;
+	}
+	else if (10 == W && 0 == G)//轉移入戰鬥
+	{
+		return util::kStatusUnknown;
+	}
+	else if (10 == W && 1 == G)//轉移入戰鬥2
+	{
+		return util::kStatusUnknown;
+	}
+	else if (10 == W && 2 == G)//戰鬥中動作之後?
+	{
+		return util::kStatusUnknown;
+	}
+	else if (10 == W && 3 == G)//戰鬥前置
+	{
+		return util::kStatusUnknown;
+	}
+	else if (10 == W && 4 == G)//戰鬥切出面板
+	{
+		return util::kStatusUnknown;
+	}
+	else if (10 == W && 5 == G)//戰鬥面板結束
+	{
+		return util::kStatusUnknown;
+	}
+	else if (10 == W && 6 == G)//戰鬥動作中
+	{
+		return util::kStatusUnknown;
+	}
+	else if (10 == W && 7 == G)//????戰鬥->平時
+	{
+		return util::kStatusUnknown;
+	}
+	else if (10 == W && 8 == G)//????戰鬥->平時2
+	{
+		return util::kStatusUnknown;
+	}
+	else if (9 == W && 3 == G)
 		return util::kStatusLogined;
+
+	qDebug() << "getUnloginStatus: " << W << " " << G;
 	return util::kStatusUnknown;
 }
 
-int Server::getWorldStatus()
+//切換是否在戰鬥中的標誌
+void Server::setBattleFlag(bool enable)
 {
+	QWriteLocker lock(&battleStateLocker);
+
+	IS_BATTLE_FLAG.store(enable, std::memory_order_release);
+	isBattleDialogReady.store(false, std::memory_order_release);
 
 	Injector& injector = Injector::getInstance();
-	return mem::readInt(injector.getProcess(), injector.getProcessModule() + 0x4230DD8, sizeof(int));
+	HANDLE hProcess = injector.getProcess();
+	DWORD hModule = injector.getProcessModule();
+
+	//這裡關乎頭上是否會出現V.S.圖標
+	int status = mem::read<short>(hProcess, hModule + kOffestPlayerStatus);
+	if (enable)
+	{
+		if (!checkAND(status, CHR_STATUS_BATTLE))
+			status |= CHR_STATUS_BATTLE;
+	}
+	else
+	{
+		if (checkAND(status, CHR_STATUS_BATTLE))
+			status &= ~CHR_STATUS_BATTLE;
+	}
+
+	mem::write<int>(hProcess, hModule + kOffestPlayerStatus, status);
+	mem::write<int>(hProcess, hModule + kOffestBattleStatus, enable ? 1 : 0);
 }
 
-int Server::getGameStatus()
+//計算人物最單物品大堆疊數(負重量)
+void Server::getPlayerMaxCarryingCapacity()
 {
+	switch (pc.transmigration)
+	{
+	case 0:
+		pc.maxload = 3;
+		break;
+	case 1:
+	case 2:
+	case 3:
+	case 4:
+		pc.maxload = 3 + pc.transmigration;
+		break;
+	case 5:
+		pc.maxload = 10;
+		break;
+	case 6:
+		pc.maxload = 11;
+		break;
+	}
 
-	Injector& injector = Injector::getInstance();
-	return mem::readInt(injector.getProcess(), injector.getProcessModule() + 0x4230DF0, sizeof(int));
+	//取腰带的负重
+	ITEM item = pc.item[CHAR_EQBELT];
+	if (!item.name.isEmpty())
+	{
+		//負重|负重
+		static const QRegularExpression re("負重|负重");
+		int index = item.memo.indexOf(re);
+		QString buf = item.memo.mid(index + 3);
+		bool ok = false;
+		int value = buf.toInt(&ok);
+		if (ok && value > 0)
+			pc.maxload += value;
+	}
 }
 
-void Server::setWorldStatus(int w)
+//物品排序
+void Server::sortItem()
 {
-
 	Injector& injector = Injector::getInstance();
-	mem::writeInt(injector.getProcess(), injector.getProcessModule() + 0x4230DD8, w, 0);
+	if (!injector.getEnableHash(util::kAutoStackEnable))
+		return;
+
+	QMutexLocker lock(&swapItemMutex);
+
+	int j = 0;
+	for (int i = MAX_ITEM - 1; i > CHAR_EQUIPPLACENUM; i--)
+	{
+		for (j = CHAR_EQUIPPLACENUM; j < i; ++j)
+		{
+			if (pc.item[i].useFlag == 0)
+				continue;
+
+			if (pc.maxload != 0 && pc.item[j].pile >= pc.maxload)
+				continue;
+
+			//if (!isItemStackable(pc.item[i].sendFlag))
+			//	continue;
+
+			if (!pc.item[i].name.isEmpty()
+				&& (pc.item[i].name == pc.item[j].name)
+				&& (pc.item[i].memo == pc.item[j].memo)
+				&& (pc.item[i].graNo == pc.item[j].graNo))
+			{
+				swapItem(i, j);
+			}
+		}
+	}
 }
-void Server::setGameStatus(int g)
+
+//查找非滿血自己寵物或隊友的索引 (主要用於自動吃肉)
+int Server::findInjuriedAllie()
 {
-	Injector& injector = Injector::getInstance();
-	injector.postMessage(Injector::kSetGameStatus, g, NULL);
+	if (pc.hp < pc.maxHp)
+		return 0;
+
+	for (int i = 0; i < MAX_PET; ++i)
+	{
+		if ((pet[i].hp > 0) && (pet[i].hp < pet[i].maxHp))
+			return i + 1;
+	}
+
+	for (int i = 0; i < MAX_PARTY; ++i)
+	{
+		if ((party[i].hp > 0) && (party[i].hp < party[i].maxHp))
+			return i + 1 + MAX_PET;
+	}
+
+	return 0;
 }
 
+//根據名稱和索引查找寵物是否存在
+bool Server::matchPetNameByIndex(int index, const QString& cmpname)
+{
+	if (index < 0 || index >= MAX_PET)
+		return false;
+	if (cmpname.isEmpty())
+		return false;
+
+	QString name = pet[index].name;
+	QString freename = pet[index].freeName;
+
+	if (!name.isEmpty() && cmpname == name)
+		return true;
+	if (!freename.isEmpty() && cmpname == freename)
+		return true;
+
+	return false;
+}
+
+//登出
 void Server::logOut()
 {
-	if (!IS_ONLINE_FLAG)
+	if (!getOnlineFlag())
 		return;
 
-	lssproto_CharLogout_send(sockfd_, 0);
+	lssproto_CharLogout_send(0);
 }
 
+//回點
 void Server::logBack()
 {
-	if (!IS_ONLINE_FLAG)
+	if (!getOnlineFlag())
 		return;
 
-	lssproto_CharLogout_send(sockfd_, 1);
+	lssproto_CharLogout_send(1);
 }
 
 // 0斷線1回點
-void Server::lssproto_CharLogout_send(int fd, int Flg)
+void Server::lssproto_CharLogout_send(int Flg)
 {
-	if (!IS_ONLINE_FLAG)
+	if (!getOnlineFlag())
 		return;
 
+	//QByteArray buffer(Autil::NETDATASIZE, '\0');
+	//int iChecksum = 0;
+
+
+//#ifdef _CHAR_NEWLOGOUT
+//	iChecksum += Autil::util_mkint(buffer.data(), Flg);
+//#endif
+//	Autil::util_mkint(buffer.data(), iChecksum);
+//	Autil::util_SendMesg(LSSPROTO_CHARLOGOUT_SEND, buffer.data());
+	Autil::util_Send(LSSPROTO_CHARLOGOUT_SEND, Flg);
 	if (Flg == 0)
 	{
 		setWorldStatus(7);
 		setGameStatus(0);
 	}
 
-	char buffer[16384] = { 0 };
-	int iChecksum = 0;
-
-	buffer[0] = '\0';
-#ifdef _CHAR_NEWLOGOUT
-	iChecksum += Autil::util_mkint(buffer, Flg);
-#endif
-	Autil::util_mkint(buffer, iChecksum);
-	Autil::util_SendMesg(fd, LSSPROTO_CHARLOGOUT_SEND, buffer);
 }
 
+//切換單一開關
 void Server::setSwitcher(int flg, bool enable)
 {
 	if (enable)
@@ -6890,217 +7151,2709 @@ void Server::setSwitcher(int flg, bool enable)
 
 	setSwitcher(pc.etcFlag);
 }
+
+//切換全部開關
 void Server::setSwitcher(int flg)
 {
-	if (!IS_ONLINE_FLAG)
+	if (!getOnlineFlag())
 		return;
 
-	if (IS_BATTLE_FLAG)
+	if (getBattleFlag())
 		return;
 
-	lssproto_FS_send(sockfd_, flg);
+	lssproto_FS_send(flg);
 }
 
-//Switcher
-void Server::lssproto_FS_send(int fd, int flg)
+//開關封包
+void Server::lssproto_FS_send(int flg)
 {
-	char buffer[16384] = { 0 };
-	int iChecksum = 0;
+	//QByteArray buffer(Autil::NETDATASIZE, '\0');
 
-	buffer[0] = '\0';
-	iChecksum += Autil::util_mkint(buffer, flg);
-	Autil::util_mkint(buffer, iChecksum);
-	Autil::util_SendMesg(fd, LSSPROTO_FS_SEND, buffer);
+	//int iChecksum = 0;
+
+
+	//iChecksum += Autil::util_mkint(buffer.data(), flg);
+	//Autil::util_mkint(buffer.data(), iChecksum);
+	//Autil::util_SendMesg(LSSPROTO_FS_SEND, buffer.data());
+	Autil::util_Send(LSSPROTO_FS_SEND, flg);
 }
 
+//解除安全瑪
 void Server::unlockSecurityCode(const QString& code)
 {
-	if (!IS_ONLINE_FLAG)
+	if (!getOnlineFlag())
 		return;
 
-	if (IS_BATTLE_FLAG)
+	if (getBattleFlag())
 		return;
 
 	if (code.isEmpty())
 		return;
 
 	//6-15个字符（必须大小写字母加数字)
-	static const QRegularExpression regex("^(?=.*[A-Z])(?=.*\\d)[A-Za-z\\d]{6,15}$");
+	//static const QRegularExpression regex("[A-Za-z\\d]{6,25}");
 
-	if (!regex.match(code).hasMatch())
+	//if (!regex.match(code).hasMatch())
+	//{
+	//	return;
+	//}
+
+	std::string scode = code.toStdString();
+	lssproto_WN_send(getPoint(), kDialogSecurityCode, -1, NULL, const_cast<char*>(scode.c_str()));
+}
+
+void Server::press(BUTTON_TYPE select, int seqno, int objindex)
+{
+	if (!getOnlineFlag())
+		return;
+
+	if (getBattleFlag())
+		return;
+
+	dialog_t dialog = currentDialog;
+	if (seqno == -1)
+		seqno = dialog.seqno;
+
+	if (objindex == -1)
+		objindex = dialog.objindex;
+
+	char data[2] = { '\0', '\0' };
+	if (BUTTON_BUY == select)
 	{
+		data[0] = { '1' };
+		select = BUTTON_NOTUSED;
+	}
+	else if (BUTTON_SELL == select)
+	{
+		data[0] = { '2' };
+		select = BUTTON_NOTUSED;
+	}
+	else if (BUTTON_OUT == select)
+	{
+		data[0] = { '3' };
+		select = BUTTON_NOTUSED;
+	}
+	else if (BUTTON_BACK == select)
+	{
+		select = BUTTON_NOTUSED;
+	}
+	else if (BUTTON_AUTO == select)
+	{
+		if (dialog.buttontype & BUTTON_OK)
+			select = BUTTON_OK;
+		else if (dialog.buttontype & BUTTON_YES)
+			select = BUTTON_YES;
+		else if (dialog.buttontype & BUTTON_NEXT)
+			select = BUTTON_NEXT;
+		else if (dialog.buttontype & BUTTON_PREVIOUS)
+			select = BUTTON_PREVIOUS;
+		else if (dialog.buttontype & BUTTON_NO)
+			select = BUTTON_NO;
+		else if (dialog.buttontype & BUTTON_CANCEL)
+			select = BUTTON_CANCEL;
+	}
+
+	lssproto_WN_send(getPoint(), seqno, objindex, select, const_cast<char*>(data));
+
+	Injector& injector = Injector::getInstance();
+	injector.sendMessage(Injector::kDistoryDialog, NULL, NULL);
+}
+
+void Server::press(int row, int seqno, int objindex)
+{
+	if (!getOnlineFlag())
+		return;
+
+	if (getBattleFlag())
+		return;
+
+	dialog_t dialog = currentDialog;
+	if (seqno == -1)
+		seqno = dialog.seqno;
+
+	if (objindex == -1)
+		objindex = dialog.objindex;
+	QString qrow = QString::number(row);
+	std::string srow = qrow.toStdString();
+	lssproto_WN_send(getPoint(), seqno, objindex, BUTTON_NOTUSED, const_cast<char*>(srow.c_str()));
+
+	Injector& injector = Injector::getInstance();
+	injector.sendMessage(Injector::kDistoryDialog, NULL, NULL);
+}
+
+//買東西
+void Server::buy(int index, int amt, int seqno, int objindex)
+{
+	if (!getOnlineFlag())
+		return;
+
+	if (getBattleFlag())
+		return;
+
+	if (index < 0)
+		return;
+
+	if (amt <= 0)
+		return;
+
+	dialog_t dialog = currentDialog;
+	if (seqno == -1)
+		seqno = dialog.seqno;
+
+	if (objindex == -1)
+		objindex = dialog.objindex;
+
+	QString qrow = QString("%1\\z%2").arg(index + 1).arg(amt);
+	std::string srow = qrow.toStdString();
+	lssproto_WN_send(getPoint(), seqno, objindex, BUTTON_NOTUSED, const_cast<char*>(srow.c_str()));
+
+	Injector& injector = Injector::getInstance();
+	injector.sendMessage(Injector::kDistoryDialog, NULL, NULL);
+}
+
+//賣東西
+void Server::sell(const QString& name, const QString& memo, int seqno, int objindex)
+{
+	if (!getOnlineFlag())
+		return;
+
+	if (getBattleFlag())
+		return;
+
+	if (name.isEmpty())
+		return;
+
+	dialog_t dialog = currentDialog;
+	if (seqno == -1)
+		seqno = dialog.seqno;
+
+	if (objindex == -1)
+		objindex = dialog.objindex;
+
+	QVector<int> indexs;
+	if (!getItemIndexsByName(name, memo, &indexs))
+		return;
+
+	sell(indexs, seqno, objindex);
+}
+
+//賣東西
+void Server::sell(int index, int seqno, int objindex)
+{
+	if (!getOnlineFlag())
+		return;
+
+	if (getBattleFlag())
+		return;
+
+	if (index < 0 || index >= MAX_ITEM)
+		return;
+
+	if (pc.item[index].name.isEmpty() || pc.item[index].useFlag == 0)
+		return;
+
+	dialog_t dialog = currentDialog;
+	if (seqno == -1)
+		seqno = dialog.seqno;
+
+	if (objindex == -1)
+		objindex = dialog.objindex;
+
+	QString qrow = QString("%1\\z%2").arg(index).arg(pc.item[index].pile);
+	std::string srow = qrow.toStdString();
+	lssproto_WN_send(getPoint(), seqno, objindex, BUTTON_NOTUSED, const_cast<char*>(srow.c_str()));
+
+	Injector& injector = Injector::getInstance();
+	injector.sendMessage(Injector::kDistoryDialog, NULL, NULL);
+}
+
+//賣東西
+void Server::sell(const QVector<int>& indexs, int seqno, int objindex)
+{
+	if (!getOnlineFlag())
+		return;
+
+	if (getBattleFlag())
+		return;
+
+	if (indexs.isEmpty())
+		return;
+
+	dialog_t dialog = currentDialog;
+	if (seqno == -1)
+		seqno = dialog.seqno;
+
+	if (objindex == -1)
+		objindex = dialog.objindex;
+
+	QStringList list;
+	for (const int it : indexs)
+	{
+		if (it < 0 || it >= MAX_ITEM)
+			continue;
+
+		sell(it, seqno, objindex);
+	}
+}
+
+//寵物學技能
+void Server::learn(int skillIndex, int petIndex, int spot, int seqno, int objindex)
+{
+	if (!getOnlineFlag())
+		return;
+
+	if (getBattleFlag())
+		return;
+
+	if (skillIndex < 0 || skillIndex >= MAX_SKILL)
+		return;
+
+	if (petIndex < 0 || petIndex >= MAX_PET)
+		return;
+
+	if (spot < 0 || spot >= 7)
+		return;
+
+	dialog_t dialog = currentDialog;
+	if (seqno == -1)
+		seqno = dialog.seqno;
+
+	if (objindex == -1)
+		objindex = dialog.objindex;
+	//8\z3\z3\z1000 技能
+	QString qrow = QString("%1\\z%3\\z%3\\z%4").arg(skillIndex + 1).arg(petIndex + 1).arg(spot + 1).arg(0);
+	std::string srow = qrow.toStdString();
+	lssproto_WN_send(getPoint(), seqno, objindex, BUTTON_NOTUSED, const_cast<char*>(srow.c_str()));
+
+	Injector& injector = Injector::getInstance();
+	injector.sendMessage(Injector::kDistoryDialog, NULL, NULL);
+}
+
+void Server::depositItem(int itemIndex, int seqno, int objindex)
+{
+	if (!getOnlineFlag())
+		return;
+
+	if (getBattleFlag())
+		return;
+
+	if (itemIndex < 0 || itemIndex >= MAX_ITEM)
+		return;
+
+	dialog_t dialog = currentDialog;
+	if (seqno == -1)
+		seqno = dialog.seqno;
+
+	if (objindex == -1)
+		objindex = dialog.objindex;
+
+	QString qstr = QString::number(itemIndex + 1);
+	std::string srow = qstr.toStdString();
+	lssproto_WN_send(getPoint(), seqno, objindex, BUTTON_NOTUSED, const_cast<char*>(srow.c_str()));
+}
+
+void Server::withdrawItem(int itemIndex, int seqno, int objindex)
+{
+	if (!getOnlineFlag())
+		return;
+
+	if (getBattleFlag())
+		return;
+
+	dialog_t dialog = currentDialog;
+	if (seqno == -1)
+		seqno = dialog.seqno;
+
+	if (objindex == -1)
+		objindex = dialog.objindex;
+
+	QString qstr = QString::number(itemIndex + 1);
+	std::string srow = qstr.toStdString();
+	lssproto_WN_send(getPoint(), seqno, objindex, BUTTON_NOTUSED, const_cast<char*>(srow.c_str()));
+}
+
+void Server::depositPet(int petIndex, int seqno, int objindex)
+{
+	if (!getOnlineFlag())
+		return;
+
+	if (getBattleFlag())
+		return;
+
+	dialog_t dialog = currentDialog;
+	if (seqno == -1)
+		seqno = dialog.seqno;
+
+	if (objindex == -1)
+		objindex = dialog.objindex;
+
+	QString qstr = QString::number(petIndex + 1);
+	std::string srow = qstr.toStdString();
+	lssproto_WN_send(getPoint(), seqno, objindex, BUTTON_NOTUSED, const_cast<char*>(srow.c_str()));
+}
+
+void Server::withdrawPet(int petIndex, int seqno, int objindex)
+{
+	if (!getOnlineFlag())
+		return;
+
+	if (getBattleFlag())
+		return;
+
+	dialog_t dialog = currentDialog;
+	if (seqno == -1)
+		seqno = dialog.seqno;
+
+	if (objindex == -1)
+		objindex = dialog.objindex;
+
+	QString qstr = QString::number(petIndex + 1);
+	std::string srow = qstr.toStdString();
+	lssproto_WN_send(getPoint(), seqno, objindex, BUTTON_NOTUSED, const_cast<char*>(srow.c_str()));
+}
+
+//遊戲對話框輸入文字送出
+void Server::inputtext(const QString& text, int seqno, int objindex)
+{
+	if (!getOnlineFlag())
+		return;
+
+	if (getBattleFlag())
+		return;
+
+	dialog_t dialog = currentDialog;
+	if (seqno == -1)
+		seqno = dialog.seqno;
+	if (objindex == -1)
+		objindex = dialog.objindex;
+	std::string s = util::fromUnicode(text);
+	//if (dialog.buttontype & BUTTON_YES)
+	//	lssproto_WN_send(getPoint(), seqno, objindex, BUTTON_YES, const_cast<char*>(s.c_str()));
+	//else if (dialog.buttontype & BUTTON_OK)
+	//	lssproto_WN_send(getPoint(), seqno, objindex, BUTTON_OK, const_cast<char*>(s.c_str()));
+	//else
+	lssproto_WN_send(getPoint(), seqno, objindex, BUTTON_OK, const_cast<char*>(s.c_str()));
+	Injector& injector = Injector::getInstance();
+	injector.sendMessage(Injector::kDistoryDialog, NULL, NULL);
+}
+
+void Server::windowPacket(const QString& command, int seqno, int objindex)
+{
+	//SI|itemIndex(0-15)|Stack(-1)
+	//TI|itemIndex(0-59)|Stack(-1)
+	//SP|petIndex(0-4)|
+	//TP|petIndex(0-?)|
+	//SG|gold|
+	//TG|gold|
+	if (!getOnlineFlag())
+		return;
+
+	if (getBattleFlag())
+		return;
+
+	std::string s = util::fromUnicode(command);
+	lssproto_WN_send(getPoint(), seqno, objindex, NULL, const_cast<char*>(s.c_str()));
+}
+
+//對話框封包 關於seqno: 送買242 賣243
+void Server::lssproto_WN_send(const QPoint& pos, int seqno, int objindex, int select, char* data)
+{
+	//QByteArray buffer(Autil::NETDATASIZE, '\0');
+
+	//int iChecksum = 0;
+
+
+	//iChecksum += Autil::util_mkint(buffer.data(), pos.x());
+	//iChecksum += Autil::util_mkint(buffer.data(), pos.y());
+	//iChecksum += Autil::util_mkint(buffer.data(), seqno);
+	//iChecksum += Autil::util_mkint(buffer.data(), objindex);
+	//iChecksum += Autil::util_mkint(buffer.data(), select);
+	//iChecksum += Autil::util_mkstring(buffer.data(), data);
+	//Autil::util_mkint(buffer.data(), iChecksum);
+	//Autil::util_SendMesg(LSSPROTO_WN_SEND, buffer.data());
+	Autil::util_Send(LSSPROTO_WN_SEND, pos.x(), pos.y(), seqno, objindex, select, data);
+}
+
+//設置寵物狀態 (戰鬥 | 等待 | 休息 | 郵件 | 騎乘)
+void Server::setPetState(int petIndex, PetState state)
+{
+	if (petIndex < 0 || petIndex >= MAX_PET)
+		return;
+
+	if (getBattleFlag())
+		return;
+
+	if (!getOnlineFlag())
+		return;
+
+	Injector& injector = Injector::getInstance();
+	QMutexLocker locker(&net_mutex);
+
+	HANDLE hProcess = injector.getProcess();
+	int hModule = injector.getProcessModule();
+	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
+
+	switch (state)
+	{
+	case kBattle:
+	{
+		if (pc.ridePetNo == petIndex)
+			setRidePet(-1);
+
+		setFightPet(petIndex);
+
+		if (pc.ridePetNo == petIndex)
+		{
+			pc.ridePetNo = -1;
+			mem::write<int>(hProcess, hModule + kOffestRidePetIndex, -1);
+			emit signalDispatcher.updateRideHpProgressValue(0, 0, 100);
+		}
+
+		if (pc.mailPetNo == petIndex)
+		{
+			pc.mailPetNo = -1;
+			mem::write<short>(hProcess, hModule + kOffestMailPetIndex, -1);
+		}
+
+		pet[petIndex].state = kBattle;
+		pc.battleNo = petIndex;
+		pc.selectPetNo[petIndex] = TRUE;
+		mem::write<short>(hProcess, hModule + kOffestSelectPetArray + (petIndex * sizeof(short)), TRUE);
+		PET _pet = pet[petIndex];
+		emit signalDispatcher.updatePetHpProgressValue(_pet.level, _pet.hp, _pet.maxHp);
+		break;
+	}
+	case kStandby:
+	{
+		if (pc.ridePetNo == petIndex)
+			setRidePet(-1);
+
+		if (pet[petIndex].state == kMail)
+			setPetState(petIndex, 0);
+
+		setPetState(petIndex, 1);
+
+		if (pc.ridePetNo == petIndex)
+		{
+			pc.ridePetNo = -1;
+			mem::write<int>(hProcess, hModule + kOffestRidePetIndex, -1);
+			emit signalDispatcher.updateRideHpProgressValue(0, 0, 100);
+		}
+
+		if (pc.mailPetNo == petIndex)
+		{
+			pc.mailPetNo = -1;
+			mem::write<short>(hProcess, hModule + kOffestMailPetIndex, -1);
+		}
+
+		if (pc.battlePetNo == petIndex)
+		{
+			pc.battlePetNo = -1;
+			emit signalDispatcher.updatePetHpProgressValue(0, 0, 100);
+		}
+
+		pet[petIndex].state = kStandby;
+		pc.selectPetNo[petIndex] = TRUE;
+		mem::write<short>(hProcess, hModule + kOffestSelectPetArray + (petIndex * sizeof(short)), TRUE);
+		break;
+	}
+	case kMail:
+	{
+		if (pc.ridePetNo == petIndex)
+			setRidePet(-1);
+
+		setPetState(petIndex, 4);
+
+		if (pc.ridePetNo == petIndex)
+		{
+			pc.ridePetNo = -1;
+			mem::write<int>(hProcess, hModule + kOffestRidePetIndex, -1);
+		}
+
+		if (pc.battlePetNo == petIndex)
+			pc.battlePetNo = -1;
+
+		pet[petIndex].state = kMail;
+		pc.mailPetNo = petIndex;
+		pc.selectPetNo[petIndex] = FALSE;
+		mem::write<short>(hProcess, hModule + kOffestMailPetIndex, petIndex);
+		mem::write<short>(hProcess, hModule + kOffestSelectPetArray + (petIndex * sizeof(short)), FALSE);
+		break;
+	}
+	case kRest:
+	{
+		if (pc.ridePetNo == petIndex)
+			setRidePet(-1);
+
+		setPetState(petIndex, 0);
+
+		if (pc.ridePetNo == petIndex)
+		{
+			pc.ridePetNo = -1;
+			mem::write<int>(hProcess, hModule + kOffestRidePetIndex, -1);
+			emit signalDispatcher.updateRideHpProgressValue(0, 0, 100);
+		}
+
+		if (pc.mailPetNo == petIndex)
+		{
+			pc.mailPetNo = -1;
+			mem::write<short>(hProcess, hModule + kOffestMailPetIndex, -1);
+		}
+
+		if (pc.battlePetNo == petIndex)
+		{
+			pc.battlePetNo = -1;
+			emit signalDispatcher.updatePetHpProgressValue(0, 0, 100);
+		}
+
+		pet[petIndex].state = kRest;
+		pc.selectPetNo[petIndex] = FALSE;
+		mem::write<short>(hProcess, hModule + kOffestSelectPetArray + (petIndex * sizeof(short)), FALSE);
+
+		break;
+	}
+	case kRide:
+	{
+		if (pet[petIndex].state == kRide || pc.ridePetNo == petIndex)
+		{
+			break;
+		}
+
+		if (pc.battlePetNo == petIndex)
+			setFightPet(-1);
+
+		if (pc.ridePetNo != petIndex)
+			setRidePet(petIndex);
+
+		setRidePet(petIndex);
+
+		if (pc.mailPetNo == petIndex)
+		{
+			pc.mailPetNo = -1;
+			mem::write<short>(hProcess, hModule + kOffestMailPetIndex, -1);
+		}
+
+		if (pc.battlePetNo == petIndex)
+		{
+			pc.battlePetNo = -1;
+			emit signalDispatcher.updatePetHpProgressValue(0, 0, 100);
+		}
+
+		pet[petIndex].state = kRide;
+		pc.ridePetNo = petIndex;
+		pc.selectPetNo[petIndex] = FALSE;
+		mem::write<int>(hProcess, hModule + kOffestRidePetIndex, petIndex);
+		mem::write<short>(hProcess, hModule + kOffestSelectPetArray + (petIndex * sizeof(short)), FALSE);
+		PET _pet = pet[petIndex];
+		emit signalDispatcher.updateRideHpProgressValue(_pet.level, _pet.hp, _pet.maxHp);
+		break;
+	}
+	default:
+		break;
+	}
+
+}
+
+void Server::setAllPetState()
+{
+	for (int i = 0; i < MAX_PET; i++)
+	{
+		int state = 0;
+		switch (pet[i].state)
+		{
+		case kBattle:
+			state = 1;
+			break;
+		case kStandby:
+			state = 1;
+			break;
+		case kMail:
+			state = 4;
+			break;
+		case kRest:
+			break;
+		case kRide:
+			setRidePet(i);
+			return;
+		}
+
+		setPetState(i, pet[i].state);
+	}
+}
+
+//設置戰鬥寵物
+void Server::setFightPet(int petIndex)
+{
+	lssproto_KS_send(petIndex);
+}
+
+//設置騎乘寵物
+void Server::setRidePet(int petIndex)
+{
+	QString str = QString("R|P|%1").arg(petIndex);
+	std::string sstr = str.toStdString();
+	lssproto_FM_send(const_cast<char*>(sstr.c_str()));
+}
+
+//設置寵物等待狀態
+void Server::setStandbyPet(int standbypets)
+{
+	lssproto_SPET_send(standbypets);
+}
+
+//設置寵物狀態封包  0:休息 1:戰鬥或等待 4:郵件
+void Server::setPetState(int petIndex, int state)
+{
+	if (petIndex == pc.battlePetNo)
+		lssproto_KS_send(-1);
+
+	lssproto_PETST_send(petIndex, state);
+
+	Injector& injector = Injector::getInstance();
+	HANDLE hProcess = injector.getProcess();
+	int hModule = injector.getProcessModule();
+	if (state == 0)
+	{
+		if (pet[petIndex].state == kMail)
+			mem::write<short>(hProcess, hModule + kOffestMailPetIndex, -1);
+		pet[petIndex].state = kRest;
+	}
+
+	else if (state == 4)
+	{
+		pet[petIndex].state = kMail;
+		mem::write<short>(hProcess, hModule + kOffestMailPetIndex, petIndex);
+	}
+
+	int standby = 0;
+	for (int i = 0; i < MAX_PET; i++)
+	{
+		if (pet[i].state == kStandby)
+			standby += 1 << i;
+	}
+	lssproto_SPET_send(standby);
+}
+
+//設置寵物狀態封包  0:休息 1:戰鬥或等待 4:郵件
+void Server::lssproto_PETST_send(int nPet, int sPet)
+{
+	//QByteArray buffer(Autil::NETDATASIZE, '\0');
+
+	//int iChecksum = 0;
+
+	//iChecksum += Autil::util_mkint(buffer.data(), nPet);
+	//iChecksum += Autil::util_mkint(buffer.data(), sPet);
+	//Autil::util_mkint(buffer.data(), iChecksum);
+	//Autil::util_SendMesg(LSSPROTO_PETST_SEND, buffer.data());
+	Autil::util_Send(LSSPROTO_PETST_SEND, nPet, sPet);
+
+}
+
+//設置戰寵封包
+void Server::lssproto_KS_send(int petarray)
+{
+	//QByteArray buffer(Autil::NETDATASIZE, '\0');
+
+	//int iChecksum = 0;
+
+	//iChecksum += Autil::util_mkint(buffer.data(), petarray);
+	//Autil::util_mkint(buffer.data(), iChecksum);
+	//Autil::util_SendMesg(LSSPROTO_KS_SEND, buffer.data());
+	Autil::util_Send(LSSPROTO_KS_SEND, petarray);
+}
+
+//設置寵物等待狀態
+//1:寵物1處於等待狀態
+//2:寵物2處於等待狀態
+//4：寵物3處於等待狀態
+//8：寵物4處於等待狀態
+//16：寵物5處於等待狀態，這些值可相互組合，如5代表寵物1和寵物3處於等待狀態
+void Server::lssproto_SPET_send(int standbypet)
+{
+	//QByteArray buffer(Autil::NETDATASIZE, '\0');
+
+	//int iChecksum = 0;
+
+	//iChecksum += Autil::util_mkint(buffer.data(), standbypet);
+	//Autil::util_mkint(buffer.data(), iChecksum);
+	//Autil::util_SendMesg(LSSPROTO_SPET_SEND, buffer.data());
+	Autil::util_Send(LSSPROTO_SPET_SEND, standbypet);
+}
+
+//計算方向
+QString calculateDirection(int currentX, int currentY, int targetX, int targetY)
+{
+	QString table = "abcdefgh";
+	QPoint src(currentX, currentY);
+	for (const QPoint& it : util::fix_point)
+	{
+		if (it + src == QPoint(targetX, targetY))
+		{
+			int index = util::fix_point.indexOf(it);
+			return table.mid(index, 1);
+		}
+	}
+
+	return "";
+}
+
+//移動(封包) [a-h]
+void Server::move(const QPoint& p, const QString& dir)
+{
+	if (!getOnlineFlag())
+		return;
+
+	if (getBattleFlag())
+		return;
+
+	if (p.x() < 0 || p.x() > 1500 || p.y() < 0 || p.y() > 1500)
+		return;
+
+	QWriteLocker locker(&pointMutex);
+
+	std::string sdir = dir.toStdString();
+	lssproto_W2_send(p, const_cast<char*>(sdir.c_str()));
+}
+
+//移動(記憶體)
+void Server::move(const QPoint& p)
+{
+	if (!getOnlineFlag())
+		return;
+
+	if (getBattleFlag())
+		return;
+
+	if (p.x() < 0 || p.x() > 1500 || p.y() < 0 || p.y() > 1500)
+		return;
+
+	QWriteLocker locker(&pointMutex);
+
+	Injector& injector = Injector::getInstance();
+	injector.sendMessage(Injector::kSetMove, p.x(), p.y());
+}
+
+//轉向指定坐標
+void Server::setPlayerFaceToPoint(const QPoint& pos)
+{
+	int dir = -1;
+	QPoint current = getPoint();
+	for (const QPoint& it : util::fix_point)
+	{
+		if (it + current == pos)
+		{
+			dir = util::fix_point.indexOf(it);
+			setPlayerFaceDirection(dir);
+			break;
+		}
+	}
+}
+
+//轉向 (根據方向索引自動轉換成A-H)
+void Server::setPlayerFaceDirection(int dir)
+{
+	if (!getOnlineFlag())
+		return;
+
+	if (getBattleFlag())
+		return;
+
+	if (dir < 0 || dir >= MAX_DIR)
+		return;
+
+	const QString dirchr = "ABCDEFGH";
+	QString dirStr = dirchr[dir];
+	std::string sdirStr = dirStr.toUpper().toStdString();
+	lssproto_W2_send(getPoint(), const_cast<char*>(sdirStr.c_str()));
+
+	//這裡是用來使遊戲動畫跟著轉向
+	Injector& injector = Injector::getInstance();
+	HANDLE hProcess = injector.getProcess();
+	int hModule = injector.getProcessModule();
+	int newdir = (dir + 3) % 8;
+	int p = mem::read<int>(hProcess, hModule + 0x422E3AC);
+	if (p)
+	{
+		mem::write<int>(hProcess, hModule + 0x422BE94, newdir);
+		mem::write<int>(hProcess, p + 0x150, newdir);
+	}
+}
+
+//轉向 使用方位字符串
+void Server::setPlayerFaceDirection(const QString& dirStr)
+{
+	if (!getOnlineFlag())
+		return;
+
+	if (getBattleFlag())
+		return;
+
+	static const QHash<QString, QString> dirhash = {
+		{ u8"北", "A" }, { u8"東北", "B" }, { u8"東", "C" }, { u8"東南", "D" },
+		{ u8"南", "E" }, { u8"西南", "F" }, { u8"西", "G" }, { u8"西北", "H" },
+		{ u8"北", "A" }, { u8"东北", "B" }, { u8"东", "C" }, { u8"东南", "D" },
+		{ u8"南", "E" }, { u8"西南", "F" }, { u8"西", "G" }, { u8"西北", "H" }
+	};
+
+	int dir = -1;
+	QString qdirStr;
+	const QString dirchr = "ABCDEFGH";
+	if (!dirhash.contains(dirStr))
+	{
+		QRegularExpression re(u8"[A-H]");
+		QRegularExpressionMatch match = re.match(dirStr);
+		if (!match.hasMatch())
+			return;
+		qdirStr = match.captured(0);
+		dir = dirchr.indexOf(qdirStr, 0, Qt::CaseInsensitive);
+	}
+	else
+	{
+
+		dir = dirchr.indexOf(dirhash.value(dirStr), 0, Qt::CaseInsensitive);
+		qdirStr = dirhash.value(dirStr);
+	}
+	std::string sdirStr = qdirStr.toUpper().toStdString();
+	lssproto_W2_send(getPoint(), const_cast<char*>(sdirStr.c_str()));
+
+	//這裡是用來使遊戲動畫跟著轉向
+	Injector& injector = Injector::getInstance();
+	HANDLE hProcess = injector.getProcess();
+	int hModule = injector.getProcessModule();
+	int newdir = (dir + 3) % 8;
+	int p = mem::read<int>(hProcess, hModule + 0x422E3AC);
+	if (p)
+	{
+		mem::write<int>(hProcess, hModule + 0x422BE94, newdir);
+		mem::write<int>(hProcess, p + 0x150, newdir);
+	}
+}
+
+//移動轉向封包 (a-h方向移動 A-H轉向)
+void Server::lssproto_W2_send(const QPoint& pos, char* direction)
+{
+	//QByteArray buffer(Autil::NETDATASIZE, '\0');
+
+	//int iChecksum = 0;
+
+
+	//iChecksum += Autil::util_mkint(buffer.data(), pos.x());
+	//iChecksum += Autil::util_mkint(buffer.data(), pos.y());
+	//iChecksum += Autil::util_mkstring(buffer.data(), direction);
+	//Autil::util_mkint(buffer.data(), iChecksum);
+	//Autil::util_SendMesg(LSSPROTO_W2_SEND, buffer.data());
+	Autil::util_Send(LSSPROTO_W2_SEND, pos.x(), pos.y(), direction);
+}
+
+//公告
+void Server::announce(const QString& msg, int color)
+{
+	Injector& injector = Injector::getInstance();
+
+	if (msg.contains("[async battle]"))
+	{
+		if (!injector.getEnableHash(util::kScriptDebugModeEnable))
+			return;
+		SPD_LOG(protoBattleLogName, msg);
 		return;
 	}
 
-	std::string scode = code.toStdString();
-	lssproto_WN_send(sockfd_, nowGx, nowGy, 522, -1, NULL, const_cast<char*>(scode.c_str()));
-}
-
-//對話框封包
-void Server::lssproto_WN_send(int fd, int x, int y, int seqno, int objindex, int select, char* data)
-{
-	char buffer[16384] = { 0 };
-	int iChecksum = 0;
-
-	buffer[0] = '\0';
-	iChecksum += Autil::util_mkint(buffer, x);
-	iChecksum += Autil::util_mkint(buffer, y);
-	iChecksum += Autil::util_mkint(buffer, seqno);
-	iChecksum += Autil::util_mkint(buffer, objindex);
-	iChecksum += Autil::util_mkint(buffer, select);
-	iChecksum += Autil::util_mkstring(buffer, data);
-	Autil::util_mkint(buffer, iChecksum);
-	Autil::util_SendMesg(fd, LSSPROTO_WN_SEND, buffer);
-}
-
-void Server::move(const QPoint& p, const QString& dir)
-{
-	if (!IS_ONLINE_FLAG)
+	if (!getOnlineFlag())
 		return;
 
-	if (IS_BATTLE_FLAG)
-		return;
-
-	if (p.x() < 0 || p.x() > 1500 || p.y() < 0 || p.y() > 1500)
-		return;
-
-	std::string sdir = dir.toStdString();
-	lssproto_W2_send(sockfd_, p.x(), p.y(), const_cast<char*>(sdir.c_str()));
-}
-
-void Server::move(const QPoint& p)
-{
-	if (!IS_ONLINE_FLAG)
-		return;
-
-	if (IS_BATTLE_FLAG)
-		return;
-
-	if (p.x() < 0 || p.x() > 1500 || p.y() < 0 || p.y() > 1500)
-		return;
-	Injector& injector = Injector::getInstance();
-	injector.postMessage(Injector::kSetMove, p.x(), p.y());
-}
-
-//移動轉向封包
-void Server::lssproto_W2_send(int fd, int x, int y, char* direction)
-{
-	char buffer[16384] = { 0 };
-	int iChecksum = 0;
-
-	buffer[0] = '\0';
-	iChecksum += Autil::util_mkint(buffer, x);
-	iChecksum += Autil::util_mkint(buffer, y);
-	iChecksum += Autil::util_mkstring(buffer, direction);
-	Autil::util_mkint(buffer, iChecksum);
-	Autil::util_SendMesg(fd, LSSPROTO_W2_SEND, buffer);
-}
-
-void Server::announce(const QString& msg, int color)
-{
-	if (!IS_ONLINE_FLAG)
-		return;
-
-	Injector& injector = Injector::getInstance();
-
-	std::string str = util::fromUnicode(msg);
 	HANDLE hProcess = injector.getProcess();
-	util::VMemory ptr(hProcess, str.size(), true);
-	mem::write(hProcess, ptr, const_cast<char*>(str.c_str()), str.size());
-	injector.sendMessage(Injector::kSendAnnounce, ptr, color);
+	if (!msg.isEmpty())
+	{
+		std::string str = util::fromUnicode(msg);
+		util::VirtualMemory ptr(hProcess, str.size(), true);
+		mem::write(hProcess, ptr, const_cast<char*>(str.c_str()), str.size());
+		injector.sendMessage(Injector::kSendAnnounce, ptr, color);
+	}
+	else
+	{
+		util::VirtualMemory ptr(hProcess, "", util::VirtualMemory::kAnsi, true);
+		injector.sendMessage(Injector::kSendAnnounce, ptr, color);
+	}
+	chatQueue.enqueue(QPair<int, QString>(color, msg));
+	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
+	emit signalDispatcher.appendChatLog(msg, color);
 }
 
+//喊話
+void Server::talk(const QString& text, int color, TalkMode mode)
+{
+	if (!getOnlineFlag())
+		return;
+
+	if (text.startsWith("//skup"))
+	{
+		lssproto_CustomTK_recv(text);
+		return;
+	}
+
+	if (color < 0 || color > 10)
+		color = 0;
+	bool bRecover = false;
+	int flg = pc.etcFlag;
+	QString msg;
+	if (mode == kTalkGlobal)
+		msg = ("P|/XJ ");
+	else if (mode == kTalkFamily)
+		msg = ("P|/FM ");
+	else if (mode == kTalkWorld)
+		msg = ("P|/WD ");
+	else if (mode == kTalkTeam)
+	{
+		int newflg = flg;
+		if (!(newflg & PC_ETCFLAG_PARTY_CHAT))
+		{
+			newflg |= PC_ETCFLAG_PARTY_CHAT;
+			setSwitcher(newflg);
+			bRecover = true;
+		}
+		msg = ("P|");
+
+	}
+	else
+		msg = ("P|");
+	msg += text;
+	std::string str = util::fromUnicode(msg);
+	lssproto_TK_send(getPoint(), const_cast<char*>(str.c_str()), color, 3);
+	if (bRecover)
+		setSwitcher(flg);
+}
+
+//發送喊話封包
+void Server::lssproto_TK_send(const QPoint& pos, char* message, int color, int area)
+{
+	//QByteArray buffer(Autil::NETDATASIZE, '\0');
+
+	//int iChecksum = 0;
+
+
+	//iChecksum += Autil::util_mkint(buffer.data(), pos.x());
+	//iChecksum += Autil::util_mkint(buffer.data(), pos.y());
+	//iChecksum += Autil::util_mkstring(buffer.data(), message);
+	//iChecksum += Autil::util_mkint(buffer.data(), color);
+	//iChecksum += Autil::util_mkint(buffer.data(), area);
+	//Autil::util_mkint(buffer.data(), iChecksum);
+	//Autil::util_SendMesg(LSSPROTO_TK_SEND, buffer.data());
+	Autil::util_Send(LSSPROTO_TK_SEND, pos.x(), pos.y(), message, color, area);
+}
+
+void Server::setWindowTitle()
+{
+	Injector& injector = Injector::getInstance();
+	int subServer = mem::read<int>(injector.getProcess(), injector.getProcessModule() + kOffestSubServerIndex);//injector.getValueHash(util::kServerValue);
+	//int subserver = 0;//injector.getValueHash(util::kSubServerValue);
+	int position = mem::read<int>(injector.getProcess(), injector.getProcessModule() + kOffestPositionIndex);//injector.getValueHash(util::kPositionValue);
+
+	QString subServerName;
+	int size = injector.subServerNameList.get().size();
+	if (subServer >= 0 && subServer < size)
+		subServerName = injector.subServerNameList.get().at(subServer);
+	else
+		subServerName = "0";
+
+	QString positionName;
+	if (position >= 0 && position < 1)
+		positionName = position == 0 ? QObject::tr("left") : QObject::tr("right");
+	else
+		positionName = QString::number(position);
+
+	QString title = QString("SaSH [%1:%2] - %3 Lv:%4 HP:%5/%6 MP:%7/%8") \
+		.arg(subServerName).arg(positionName).arg(pc.name).arg(pc.level).arg(pc.hp).arg(pc.maxHp).arg(pc.mp).arg(pc.maxMp);
+	std::wstring wtitle = title.toStdWString();
+	SetWindowTextW(injector.getProcessWindow(), wtitle.c_str());
+}
+
+//設置戰鬥結束
 void Server::setBattleEnd()
 {
-	if (!IS_ONLINE_FLAG)
-		return;
+	bool battleState = getBattleFlag();
+	if (battleState)
+	{
+		battle_total_time += battleDurationTimer.elapsed();
+		normalDurationTimer.restart();
+		ayncBattleCommandFlag.store(true, std::memory_order_release);
+		ayncBattleCommandSync.clearFutures();
+		ayncBattleCommandFlag.store(false, std::memory_order_release);
+	}
 
 	Injector& injector = Injector::getInstance();
+	if (injector.getEnableHash(util::kFastBattleEnable))
+	{
+		lssproto_EO_send(0);
+		lssproto_Echo_send(const_cast<char*>("hoge"));
+	}
 
-	if (getWorldStatus() != 10)
-		IS_BATTLE_FLAG = false;
+	setBattleFlag(false);
 
-
-	battle_total_time += battleDurationTimer.elapsed();
-	battleDurationTimer.restart();
-
-	lssproto_EO_send(sockfd_, 0);
-	lssproto_Echo_send(sockfd_, const_cast<char*>("????"));
-	lssproto_EO_send(sockfd_, 0);
-	lssproto_Echo_send(sockfd_, const_cast<char*>("!!!!"));
+	if (getWorldStatus() == 10)
+	{
+		setGameStatus(7);
+	}
 }
 
+//元神歸位
 void Server::EO()
 {
-	if (!IS_ONLINE_FLAG)
+	if (!getOnlineFlag())
 		return;
 
+
+	lssproto_EO_send(0);
+	lastEOTime.store(-1, std::memory_order_release);
+	isEOTTLSend.store(true, std::memory_order_release);
 	eottlTimer.restart();
-	isEOTTLSend = true;
-	lssproto_EO_send(sockfd_, 0);
-	lssproto_Echo_send(sockfd_, const_cast<char*>("!!!!"));
-	move(QPoint(nowGx, nowGy), "C");
+	lssproto_Echo_send(const_cast<char*>("hoge"));
+
+	//石器私服SE SO專用
+	Injector& injector = Injector::getInstance();
+	QString cmd = injector.getStringHash(util::kEOCommandString);
+	if (!cmd.isEmpty())
+		talk(cmd);
+
+	//setBattleEnd();
 }
 
-void Server::lssproto_EO_send(int fd, int dummy)
+//EO封包
+void Server::lssproto_EO_send(int dummy)
 {
-	char buffer[16384] = { 0 };
-	int iChecksum = 0;
+	//QByteArray buffer(Autil::NETDATASIZE, '\0');
 
-	buffer[0] = '\0';
-	iChecksum += Autil::util_mkint(buffer, dummy);
-	Autil::util_mkint(buffer, iChecksum);
-	Autil::util_SendMesg(fd, LSSPROTO_EO_SEND, buffer);
+	//int iChecksum = 0;
+
+	//iChecksum += Autil::util_mkint(buffer.data(), dummy);
+	//Autil::util_mkint(buffer.data(), iChecksum);
+	//Autil::util_SendMesg(LSSPROTO_EO_SEND, buffer.data());
+	Autil::util_Send(LSSPROTO_EO_SEND, dummy);
 }
 
-void Server::lssproto_Echo_send(int fd, char* test)
+//ECHO封包
+void Server::lssproto_Echo_send(char* test)
 {
-	char buffer[16384] = { 0 };
-	int iChecksum = 0;
+	//QByteArray buffer(Autil::NETDATASIZE, '\0');
 
-	buffer[0] = '\0';
-	iChecksum += Autil::util_mkstring(buffer, test);
-	Autil::util_mkint(buffer, iChecksum);
-	Autil::util_SendMesg(fd, LSSPROTO_ECHO_SEND, buffer);
+	//int iChecksum = 0;
+
+	//iChecksum += Autil::util_mkstring(buffer.data(), test);
+	//Autil::util_mkint(buffer.data(), iChecksum);
+	//Autil::util_SendMesg(LSSPROTO_ECHO_SEND, buffer.data());
+	Autil::util_Send(LSSPROTO_ECHO_SEND, test);
 }
 
+//丟棄道具
 void Server::dropItem(int index)
 {
-	if (index < 0 || index> MAX_ITEM)
+	if (index < CHAR_EQUIPPLACENUM || index >= MAX_ITEM)
 		return;
 
-	if (!IS_ONLINE_FLAG)
+	if (!getOnlineFlag())
 		return;
 
-	if (IS_BATTLE_FLAG)
+	if (getBattleFlag())
 		return;
 
-	lssproto_DI_send(sockfd_, nowGx, nowGy, index);
+	if (pc.item[index].name.isEmpty() || pc.item[index].useFlag == 0)
+		return;
+
+	lssproto_DI_send(getPoint(), index);
 }
 
-void Server::lssproto_DI_send(int fd, int x, int y, int itemindex)
+void Server::dropItem(QVector<int> indexs)
 {
-	char buffer[16384] = { 0 };
-	int iChecksum = 0;
-
-	buffer[0] = '\0';
-	iChecksum += Autil::util_mkint(buffer, x);
-	iChecksum += Autil::util_mkint(buffer, y);
-	iChecksum += Autil::util_mkint(buffer, itemindex);
-	Autil::util_mkint(buffer, iChecksum);
-	Autil::util_SendMesg(fd, LSSPROTO_DI_SEND, buffer);
+	for (const int it : indexs)
+		dropItem(it);
 }
 
-void Server::leftCLick(int x, int y)
+//丟棄道具封包
+void Server::lssproto_DI_send(const QPoint& pos, int itemindex)
+{
+	//QByteArray buffer(Autil::NETDATASIZE, '\0');
+
+	//int iChecksum = 0;
+
+	//iChecksum += Autil::util_mkint(buffer.data(), pos.x());
+	//iChecksum += Autil::util_mkint(buffer.data(), pos.y());
+	//iChecksum += Autil::util_mkint(buffer.data(), itemindex);
+	//Autil::util_mkint(buffer.data(), iChecksum);
+	//Autil::util_SendMesg(LSSPROTO_DI_SEND, buffer.data());
+	Autil::util_Send(LSSPROTO_DI_SEND, pos.x(), pos.y(), itemindex);
+}
+
+//使用道具
+void Server::useItem(int itemIndex, int target)
+{
+	if (itemIndex < 0 || itemIndex >= MAX_ITEM)
+		return;
+
+	if (target < 0 || target > 9)
+		return;
+
+	if (!getOnlineFlag())
+		return;
+
+	if (getBattleFlag())
+		return;
+
+	lssproto_ID_send(getPoint(), itemIndex, target);
+}
+
+//使用道具封包
+void Server::lssproto_ID_send(const QPoint& pos, int haveitemindex, int toindex)
+{
+	//QByteArray buffer(Autil::NETDATASIZE, '\0');
+
+	//int iChecksum = 0;
+
+	//iChecksum += Autil::util_mkint(buffer.data(), pos.x());
+	//iChecksum += Autil::util_mkint(buffer.data(), pos.y());
+	//iChecksum += Autil::util_mkint(buffer.data(), haveitemindex);
+	//iChecksum += Autil::util_mkint(buffer.data(), toindex);
+	//Autil::util_mkint(buffer.data(), iChecksum);
+	//Autil::util_SendMesg(LSSPROTO_ID_SEND, buffer.data());
+	Autil::util_Send(LSSPROTO_ID_SEND, pos.x(), pos.y(), haveitemindex, toindex);
+}
+
+//交換道具
+void Server::swapItem(int from, int to)
+{
+	if (from < 0 || from >= MAX_ITEM)
+		return;
+
+	if (to < 0 || to >= MAX_ITEM)
+		return;
+
+	if (!getOnlineFlag())
+		return;
+
+	if (getBattleFlag())
+		return;
+
+	lssproto_MI_send(from, to);
+}
+
+//交換道具封包
+void Server::lssproto_MI_send(int fromindex, int toindex)
+{
+	//QByteArray buffer(Autil::NETDATASIZE, '\0');
+	//int iChecksum = 0;
+
+	//iChecksum += Autil::util_mkint(buffer.data(), fromindex);
+	//iChecksum += Autil::util_mkint(buffer.data(), toindex);
+	//Autil::util_mkint(buffer.data(), iChecksum);
+	//Autil::util_SendMesg(LSSPROTO_MI_SEND, buffer.data());
+	Autil::util_Send(LSSPROTO_MI_SEND, fromindex, toindex);
+}
+
+//撿道具
+void Server::pickItem(int dir)
+{
+	if (!getOnlineFlag())
+		return;
+
+	if (getBattleFlag())
+		return;
+
+	lssproto_PI_send(getPoint(), (dir + 3) % 8);
+}
+
+//撿道具封包
+void Server::lssproto_PI_send(const QPoint& pos, int dir)
+{
+	//QByteArray buffer(Autil::NETDATASIZE, '\0');
+
+	//int iChecksum = 0;
+
+	//iChecksum += Autil::util_mkint(buffer.data(), pos.x());
+	//iChecksum += Autil::util_mkint(buffer.data(), pos.x());
+	//iChecksum += Autil::util_mkint(buffer.data(), dir);
+	//Autil::util_mkint(buffer.data(), iChecksum);
+	//Autil::util_SendMesg(LSSPROTO_PI_SEND, buffer.data());
+	Autil::util_Send(LSSPROTO_PI_SEND, pos.x(), pos.y(), dir);
+}
+
+//料理/加工
+void Server::craft(util::CraftType type, const QStringList& ingres)
+{
+	if (!getOnlineFlag())
+		return;
+
+	if (getBattleFlag())
+		return;
+
+	if (ingres.size() < 2 || ingres.size() > 5)
+		return;
+
+	QStringList itemIndexs;
+	int petIndex = -1;
+
+	//int i = 0;
+	//int j = 0;
+
+	QString skillName;
+	if (type == util::CraftType::kCraftFood)
+		skillName = QString(u8"料理");
+	else
+		skillName = QString(u8"加工");
+
+	int skillIndex = getPetSkillIndexByName(petIndex, skillName);
+	if (petIndex == -1 || skillIndex == -1)
+		return;
+
+	for (const QString& it : ingres)
+	{
+		int index = getItemIndexByName(it, true);
+		if (index == -1)
+			return;
+
+		itemIndexs.append(QString::number(index));
+	}
+
+	QString qstr = itemIndexs.join("|");
+	std::string str = qstr.toStdString();
+	lssproto_PS_send(petIndex, skillIndex, NULL, const_cast<char*>(str.c_str()));
+}
+
+//料理封包
+void Server::lssproto_PS_send(int havepetindex, int havepetskill, int toindex, char* data)
+{
+	//QByteArray buffer(Autil::NETDATASIZE, '\0');
+
+	//int iChecksum = 0;
+
+	//iChecksum += Autil::util_mkint(buffer.data(), havepetindex);
+	//iChecksum += Autil::util_mkint(buffer.data(), havepetskill);
+	//iChecksum += Autil::util_mkint(buffer.data(), toindex);
+	//iChecksum += Autil::util_mkstring(buffer.data(), data);
+	//Autil::util_mkint(buffer.data(), iChecksum);
+	//Autil::util_SendMesg(LSSPROTO_PS_SEND, buffer.data());
+	Autil::util_Send(LSSPROTO_PS_SEND, havepetindex, havepetskill, toindex, data);
+}
+
+//創建對話框
+void Server::createRemoteDialog(int button, const QString& text)
+{
+	if (!getOnlineFlag())
+		return;
+
+	if (getBattleFlag())
+		return;
+
+	Injector& injector = Injector::getInstance();
+
+	util::VirtualMemory ptr(injector.getProcess(), text, util::VirtualMemory::kAnsi, true);
+
+	injector.sendMessage(Injector::kCreateDialog, button, ptr);
+}
+
+void Server::depositGold(int gold, bool isPublic)
+{
+	if (!getOnlineFlag())
+		return;
+
+	if (getBattleFlag())
+		return;
+
+	if (gold <= 0)
+		return;
+
+	QString qstr = QString("B|%1|%2").arg(!isPublic ? "G" : "T").arg(gold);
+	std::string str = qstr.toStdString();
+	lssproto_FM_send(const_cast<char*>(str.c_str()));
+}
+
+void Server::withdrawGold(int gold, bool isPublic)
+{
+	if (!getOnlineFlag())
+		return;
+
+	if (getBattleFlag())
+		return;
+
+	if (gold <= 0)
+		return;
+
+	QString qstr = QString("B|%1|%2").arg(!isPublic ? "G" : "T").arg(-gold);
+	std::string str = qstr.toStdString();
+	lssproto_FM_send(const_cast<char*>(str.c_str()));
+}
+
+//存取家族個人銀行封包 家族個人"B|G|%d" 正數存 負數取  家族共同 "B|T|%d" 
+//設置騎乘 "R|P|寵物編號0-4"，"R|P|-1"取消騎乘
+void Server::lssproto_FM_send(char* data)
+{
+	//QByteArray buffer(Autil::NETDATASIZE, '\0');
+
+	//int iChecksum = 0;
+
+	//iChecksum += Autil::util_mkstring(buffer.data(), data);
+	//Autil::util_mkint(buffer.data(), iChecksum);
+	//Autil::util_SendMesg(LSSPROTO_FM_SEND, buffer.data());
+	Autil::util_Send(LSSPROTO_FM_SEND, data);
+}
+
+//丟棄寵物
+void Server::dropPet(int petIndex)
+{
+	if (petIndex < 0 || petIndex >= MAX_PET)
+		return;
+
+	if (!getOnlineFlag())
+		return;
+
+	if (getBattleFlag())
+		return;
+
+	lssproto_DP_send(getPoint(), petIndex);
+}
+
+//丟棄寵物封包
+void Server::lssproto_DP_send(const QPoint& pos, int petindex)
+{
+	//QByteArray buffer(Autil::NETDATASIZE, '\0');
+
+	//int iChecksum = 0;
+
+	//iChecksum += Autil::util_mkint(buffer.data(), pos.x());
+	//iChecksum += Autil::util_mkint(buffer.data(), pos.y());
+	//iChecksum += Autil::util_mkint(buffer.data(), petindex);
+	//Autil::util_mkint(buffer.data(), iChecksum);
+	//Autil::util_SendMesg(LSSPROTO_DP_SEND, buffer.data());
+	Autil::util_Send(LSSPROTO_DP_SEND, pos.x(), pos.y(), petindex);
+}
+
+//使用精靈
+void Server::useMagic(int magicIndex, int target)
+{
+	if (!getOnlineFlag())
+		return;
+
+	if (getBattleFlag())
+		return;
+
+	if (magicIndex < 0 || magicIndex >= MAX_ITEM)
+		return;
+
+	if (target < 0 || target >= (MAX_PET + MAX_PARTY))
+		return;
+
+	if (magicIndex < MAX_MAGIC && !isPlayerMpEnoughForMagic(magicIndex))
+		return;
+	else if (getPC().item[magicIndex].useFlag == 0)
+		return;
+
+	lssproto_MU_send(getPoint(), magicIndex, target);
+}
+
+//平時使用精靈
+void Server::lssproto_MU_send(const QPoint& pos, int array, int toindex)
+{
+	//QByteArray buffer(Autil::NETDATASIZE, '\0');
+
+	//int iChecksum = 0;
+
+	//iChecksum += Autil::util_mkint(buffer.data(), pos.x());
+	//iChecksum += Autil::util_mkint(buffer.data(), pos.y());
+	//iChecksum += Autil::util_mkint(buffer.data(), array);
+	//iChecksum += Autil::util_mkint(buffer.data(), toindex);
+	//Autil::util_mkint(buffer.data(), iChecksum);
+	//Autil::util_SendMesg(LSSPROTO_MU_SEND, buffer.data());
+	Autil::util_Send(LSSPROTO_MU_SEND, pos.x(), pos.y(), array, toindex);
+}
+
+//人物動作
+void Server::lssproto_AC_send(const QPoint& pos, int actionno)
+{
+	//QByteArray buffer(Autil::NETDATASIZE, '\0');
+
+	//int iChecksum = 0;
+
+	//iChecksum += Autil::util_mkint(buffer.data(), pos.x());
+	//iChecksum += Autil::util_mkint(buffer.data(), pos.y());
+	//iChecksum += Autil::util_mkint(buffer.data(), actionno);
+	//Autil::util_mkint(buffer.data(), iChecksum);
+	//Autil::util_SendMesg(LSSPROTO_AC_SEND, buffer.data());
+	Autil::util_Send(LSSPROTO_AC_SEND, pos.x(), pos.y(), actionno);
+}
+
+//清屏 (實際上就是 char數組置0)
+void Server::cleanChatHistory()
 {
 	Injector& injector = Injector::getInstance();
-	HWND hWnd = injector.getProcessWindow();
-	LPARAM data = MAKELPARAM(x, y);
-	SendMessageW(hWnd, WM_MOUSEMOVE, NULL, data);
-	PostMessageW(hWnd, WM_LBUTTONDOWN, MK_LBUTTON, data);
-	PostMessageW(hWnd, WM_LBUTTONUP, MK_LBUTTON, data);
+	injector.sendMessage(Injector::kCleanChatHistory, NULL, NULL);
+	chatQueue.clear();
+	if (!injector.chatLogModel.isNull())
+		injector.chatLogModel->clear();
 }
 
+QString Server::getChatHistory(int index)
+{
+	if (index < 0 || index > 19)
+		return "\0";
+
+	Injector& injector = Injector::getInstance();
+	HANDLE hProcess = injector.getProcess();
+	int hModule = injector.getProcessModule();
+
+	int total = mem::read<int>(hProcess, hModule + kOffestChatBufferMaxCount);
+	if (index > total)
+		return "\0";
+
+	//int maxptr = mem::read<int>(hProcess, hModule + 0x146278);
+
+	constexpr int MAX_CHAT_BUFFER = 0x10C;
+	int ptr = hModule + kOffestChatBuffer + ((total - index) * MAX_CHAT_BUFFER);
+
+	return mem::readString(hProcess, ptr, 0x10C, false);
+}
+
+//查找指定類型和名稱的單位
+bool Server::findUnit(const QString& name, int type, mapunit_t* unit, const QString freename, int modelid)
+{
+	QList<mapunit_t> units = mapUnitHash.values();
+	QString strName = name;
+	QStringList strList = strName.split(util::rexOR, Qt::SkipEmptyParts);
+	if (strList.size() == 2)
+	{
+		bool ok = false;
+		QPoint point;
+		point.setX(strList.at(0).toInt(&ok));
+		if (!ok)
+			return false;
+
+		point.setY(strList.at(1).toInt(&ok));
+		if (!ok)
+			return false;
+
+		for (const mapunit_t& it : units)
+		{
+			if (it.graNo == 0 || it.graNo == 9999)
+				continue;
+
+			if (it.p == point)
+			{
+				*unit = it;
+				setPlayerFaceToPoint(point);
+				return true;
+			}
+		}
+		return false;
+	}
+	else
+	{
+		for (const mapunit_t& it : units)
+		{
+			if (it.graNo == 0 || it.graNo == 9999)
+				continue;
+
+			if (modelid != -1)
+			{
+				if (it.graNo == modelid)
+				{
+					*unit = it;
+					return true;
+				}
+				continue;
+			}
+
+			if (freename.isEmpty())
+			{
+				if ((it.name == name) && (it.objType == type))
+				{
+					*unit = it;
+					return true;
+				}
+				else if (name.startsWith("?") && (it.objType == type))
+				{
+					QString newName = name.mid(1);
+					if (it.name.contains(newName))
+					{
+						*unit = it;
+						return true;
+					}
+				}
+			}
+			else
+			{
+				if ((it.name == name) && (it.freeName.contains(freename)) && (it.objType == type))
+				{
+					*unit = it;
+					return true;
+				}
+				else if (name.startsWith("?") && (it.objType == type))
+				{
+					QString newName = name.mid(1);
+					if (it.name.contains(newName) && (it.freeName.contains(freename)))
+					{
+						*unit = it;
+						return true;
+					}
+				}
+			}
+		}
+
+	}
+	return false;
+}
+
+//下載指定坐標 24 * 24 大小的地圖塊
+void Server::downloadMap(int x, int y)
+{
+	lssproto_M_send(nowFloor, x, y, x + 24, y + 24);
+}
+
+//下載全部地圖塊
+void Server::downloadMap()
+{
+	if (!getOnlineFlag())
+		return;
+
+	bool IsDownloadingMap = true;
+
+	int floor = nowFloor;
+
+	map_t map;
+	if (!mapAnalyzer->readFromBinary(nowFloor, nowFloorName))
+		return;
+
+	if (!mapAnalyzer->getMapDataByFloor(floor, &map))
+		return;
+
+	int downloadMapXSize = map.width;
+	int downloadMapYSize = map.height;
+
+	if (!downloadMapXSize || !downloadMapYSize) return;
+
+	int downloadMapX = 0;
+	int downloadMapY = 0;
+
+	do
+	{
+		lssproto_M_send(floor, downloadMapX, downloadMapY, downloadMapX + 24, downloadMapY + 24);
+
+		downloadMapX += 24;
+
+		if (downloadMapX > downloadMapXSize)
+		{
+			downloadMapX = 0;
+			downloadMapY += 24;
+		}
+		if (downloadMapY > downloadMapYSize)
+		{
+			//IsDownloadingMap = false;
+			break;
+		}
+	} while (IsDownloadingMap);
+
+	//清空尋路地圖數據、數據重讀、圖像重繪
+	mapAnalyzer->clear(nowFloor);
+	mapAnalyzer->readFromBinary(nowFloor, nowFloorName);
+}
+
+//下載地圖
+void Server::lssproto_M_send(int fl, int x1, int y1, int x2, int y2)
+{
+	//QByteArray buffer(Autil::NETDATASIZE, '\0');
+
+	//int iChecksum = 0;
+
+	//iChecksum += Autil::util_mkint(buffer.data(), fl);
+	//iChecksum += Autil::util_mkint(buffer.data(), x1);
+	//iChecksum += Autil::util_mkint(buffer.data(), y1);
+	//iChecksum += Autil::util_mkint(buffer.data(), x2);
+	//iChecksum += Autil::util_mkint(buffer.data(), y2);
+	//Autil::util_mkint(buffer.data(), iChecksum);
+	//Autil::util_SendMesg(LSSPROTO_M_SEND, buffer.data());
+	Autil::util_Send(LSSPROTO_M_SEND, fl, x1, y1, x2, y2);
+}
+
+//轉移
+void Server::warp()
+{
+	if (!getOnlineFlag())
+		return;
+
+	if (getBattleFlag())
+		return;
+
+	Injector& injector = Injector::getInstance();
+	struct
+	{
+		short ev = 0;
+		short seqno = 0;
+	}ev;
+
+	if (mem::read(injector.getProcess(), injector.getProcessModule() + kOffestEV, sizeof(ev), &ev))
+		lssproto_EV_send(ev.ev, ev.seqno, getPoint(), -1);
+}
+
+//地圖轉移封包
+void Server::lssproto_EV_send(int e, int seqno, const QPoint& pos, int dir)
+{
+	//QByteArray buffer(Autil::NETDATASIZE, '\0');
+
+	//int iChecksum = 0;
+
+	//iChecksum += Autil::util_mkint(buffer.data(), event);
+	//iChecksum += Autil::util_mkint(buffer.data(), seqno);
+	//iChecksum += Autil::util_mkint(buffer.data(), pos.x());
+	//iChecksum += Autil::util_mkint(buffer.data(), pos.y());
+	//iChecksum += Autil::util_mkint(buffer.data(), dir);
+	//Autil::util_mkint(buffer.data(), iChecksum);
+	//Autil::util_SendMesg(LSSPROTO_EV_SEND, buffer.data());
+	Autil::util_Send(LSSPROTO_EV_SEND, e, seqno, pos.x(), pos.y(), dir);
+}
+
+//組隊或離隊 true 組隊 false 離隊
+void Server::setTeamState(bool join)
+{
+	if (!getOnlineFlag())
+		return;
+
+	if (getBattleFlag())
+		return;
+
+	lssproto_PR_send(getPoint(), join ? 1 : 0);
+}
+
+//組隊封包
+void Server::lssproto_PR_send(const QPoint& pos, int request)
+{
+	//QByteArray buffer(Autil::NETDATASIZE, '\0');
+
+	//int iChecksum = 0;
+
+	//iChecksum += Autil::util_mkint(buffer.data(), pos.x());
+	//iChecksum += Autil::util_mkint(buffer.data(), pos.y());
+	//iChecksum += Autil::util_mkint(buffer.data(), request);
+	//Autil::util_mkint(buffer.data(), iChecksum);
+	//Autil::util_SendMesg(LSSPROTO_PR_SEND, buffer.data());
+	Autil::util_Send(LSSPROTO_PR_SEND, pos.x(), pos.y(), request);
+}
+
+void Server::kickteam(int n)
+{
+	if (!getOnlineFlag())
+		return;
+
+	if (getBattleFlag())
+		return;
+
+	if (n < 0 || n >= MAX_PARTY)
+		return;
+
+	if (n == 0)
+	{
+		setTeamState(false);
+		return;
+	}
+
+	if (party[n].useFlag == 1)
+		lssproto_KTEAM_send(n);
+}
+
+//踢走隊員封包
+void Server::lssproto_KTEAM_send(int si)
+{
+	//QByteArray buffer(Autil::NETDATASIZE, '\0');
+
+	//int iChecksum = 0;
+
+	//iChecksum += Autil::util_mkint(buffer.data(), si);
+	//Autil::util_mkint(buffer.data(), iChecksum);
+	//Autil::util_SendMesg(LSSPROTO_KTEAM_SEND, buffer.data());
+	Autil::util_Send(LSSPROTO_KTEAM_SEND, si);
+}
+
+//退隊以後發的
+void Server::lssproto_SP_send(const QPoint& pos, int dir)
+{
+	//QByteArray buffer(Autil::NETDATASIZE, '\0');
+
+	//int iChecksum = 0;
+
+	//iChecksum += Autil::util_mkint(buffer.data(), pos.x());
+	//iChecksum += Autil::util_mkint(buffer.data(), pos.y());
+	//iChecksum += Autil::util_mkint(buffer.data(), dir);
+	//Autil::util_mkint(buffer.data(), iChecksum);
+	//Autil::util_SendMesg(LSSPROTO_SP_SEND, buffer.data());
+	Autil::util_Send(LSSPROTO_SP_SEND, pos.x(), pos.y(), dir);
+}
+
+void Server::mail(int index, const QString& text)
+{
+	if (!getOnlineFlag())
+		return;
+
+	if (getBattleFlag())
+		return;
+
+	if (index < 0 || index > MAX_ADR_BOOK)
+		return;
+
+	if (addressBook[index].useFlag == 0)
+		return;
+
+	if (addressBook[index].onlineFlag == 0)
+		return;
+
+	std::string sstr = util::fromUnicode(text);
+	lssproto_MSG_send(index, const_cast<char*>(sstr.c_str()), NULL);
+}
+
+void Server::lssproto_MSG_send(int index, char* message, int color)
+{
+	//QByteArray buffer(Autil::NETDATASIZE, '\0');
+
+	//int iChecksum = 0;
+
+	//iChecksum += Autil::util_mkint(buffer.data(), index);
+	//iChecksum += Autil::util_mkstring(buffer.data(), message);
+	//iChecksum += Autil::util_mkint(buffer.data(), color);
+	//Autil::util_mkint(buffer.data(), iChecksum);
+	//Autil::util_SendMesg(LSSPROTO_MSG_SEND, buffer.data());
+	Autil::util_Send(LSSPROTO_MSG_SEND, index, message, color);
+}
+
+//加點
+bool Server::addPoint(int skillid, int amt)
+{
+	if (!getOnlineFlag())
+		return false;
+
+	if (getBattleFlag())
+		return false;
+
+	if (skillid < 0 || skillid > 4)
+		return false;
+
+	if (amt < 1)
+		return false;
+
+	if (amt > StatusUpPoint)
+		amt = StatusUpPoint;
+	QElapsedTimer timer; timer.start();
+	for (int i = 0; i < amt; ++i)
+	{
+		IS_WAITFOT_SKUP_RECV = true;
+		lssproto_SKUP_send(skillid);
+		for (;;)
+		{
+			if (timer.hasExpired(1000))
+				break;
+
+			if (getBattleFlag())
+				return false;
+
+			if (!getOnlineFlag())
+				return false;
+
+			if (!IS_WAITFOT_SKUP_RECV)
+				break;
+		}
+		timer.restart();
+	}
+	return true;
+}
+
+//人物升級加點封包
+void Server::lssproto_SKUP_send(int skillid)
+{
+	//QByteArray buffer(Autil::NETDATASIZE, '\0');
+
+	//int iChecksum = 0;
+
+	//iChecksum += Autil::util_mkint(buffer.data(), skillid);
+	//Autil::util_mkint(buffer.data(), iChecksum);
+	//Autil::util_SendMesg(LSSPROTO_SKUP_SEND, buffer.data());
+	Autil::util_Send(LSSPROTO_SKUP_SEND, skillid);
+}
+
+//丟棄石幣封包
+void Server::lssproto_DG_send(const QPoint& pos, int amount)
+{
+	//QByteArray buffer(Autil::NETDATASIZE, '\0');
+
+	//int iChecksum = 0;
+
+	//iChecksum += Autil::util_mkint(buffer.data(), pos.x());
+	//iChecksum += Autil::util_mkint(buffer.data(), pos.y());
+	//iChecksum += Autil::util_mkint(buffer.data(), amount);
+	//Autil::util_mkint(buffer.data(), iChecksum);
+	//Autil::util_SendMesg(LSSPROTO_DG_SEND, buffer.data());
+	Autil::util_Send(LSSPROTO_DG_SEND, pos.x(), pos.y(), amount);
+}
+
+//寵物郵件封包
+void Server::lssproto_PMSG_send(int index, int petindex, int itemindex, char* message, int color)
+{
+	//QByteArray buffer(Autil::NETDATASIZE, '\0');
+
+	//int iChecksum = 0;
+
+	//iChecksum += Autil::util_mkint(buffer.data(), index);
+	//iChecksum += Autil::util_mkint(buffer.data(), petindex);
+	//iChecksum += Autil::util_mkint(buffer.data(), itemindex);
+	//iChecksum += Autil::util_mkstring(buffer.data(), message);
+	//iChecksum += Autil::util_mkint(buffer.data(), color);
+	//Autil::util_mkint(buffer.data(), iChecksum);
+	//Autil::util_SendMesg(LSSPROTO_PMSG_SEND, buffer.data());
+	Autil::util_Send(LSSPROTO_PMSG_SEND, index, petindex, itemindex, message, color);
+}
+
+//人物改名
+void Server::setPlayerFreeName(const QString& name)
+{
+	if (!getOnlineFlag())
+		return;
+
+	if (getBattleFlag())
+		return;
+
+	std::string sname = util::fromUnicode(name);
+	lssproto_FT_send(const_cast<char*> (sname.c_str()));
+}
+
+//人物改名封包 (freename)
+void Server::lssproto_FT_send(char* data)
+{
+	//QByteArray buffer(Autil::NETDATASIZE, '\0');
+
+	//int iChecksum = 0;
+
+	//iChecksum += Autil::util_mkstring(buffer.data(), data);
+	//Autil::util_mkint(buffer.data(), iChecksum);
+	//Autil::util_SendMesg(LSSPROTO_FT_SEND, buffer.data());
+	Autil::util_Send(LSSPROTO_FT_SEND, data);
+}
+
+//寵物改名
+void Server::setPetFreeName(int petIndex, const QString& name)
+{
+	if (!getOnlineFlag())
+		return;
+
+	if (getBattleFlag())
+		return;
+
+	if (petIndex < 0 || petIndex >= MAX_PET)
+		return;
+
+	std::string sname = util::fromUnicode(name);
+	lssproto_KN_send(petIndex, const_cast<char*> (sname.c_str()));
+}
+
+//寵物改名封包 (freename)
+void Server::lssproto_KN_send(int havepetindex, char* data)
+{
+	//QByteArray buffer(Autil::NETDATASIZE, '\0');
+
+	//int iChecksum = 0;
+
+	//iChecksum += Autil::util_mkint(buffer.data(), havepetindex);
+	//iChecksum += Autil::util_mkstring(buffer.data(), data);
+	//Autil::util_mkint(buffer.data(), iChecksum);
+	//Autil::util_SendMesg(LSSPROTO_KN_SEND, buffer.data());
+	Autil::util_Send(LSSPROTO_KN_SEND, havepetindex, data);
+}
+
+//穿裝 to = -1 丟裝 to = -2 脫裝 to = itemspotindex
+void Server::petitemswap(int petIndex, int from, int to)
+{
+	if (!getOnlineFlag())
+		return;
+
+	if (getBattleFlag())
+		return;
+
+	if (petIndex < 0 || petIndex >= MAX_PET)
+		return;
+
+	if (to != -1)
+	{
+		if ((from >= CHAR_EQUIPPLACENUM) || (to >= CHAR_EQUIPPLACENUM))
+			return;
+	}
+
+	lssproto_PetItemEquip_send(getPoint(), petIndex, from, to);
+}
+
+//寵物穿脫封包
+void Server::lssproto_PetItemEquip_send(const QPoint& pos, int iPetNo, int iItemNo, int iDestNO)
+{
+	//QByteArray buffer(Autil::NETDATASIZE, '\0');
+
+	//int	iChecksum = 0;
+
+	//iChecksum += Autil::util_mkint(buffer.data(), pos.x());
+	//iChecksum += Autil::util_mkint(buffer.data(), pos.y());
+	//iChecksum += Autil::util_mkint(buffer.data(), iPetNo);
+	//iChecksum += Autil::util_mkint(buffer.data(), iItemNo);
+	//iChecksum += Autil::util_mkint(buffer.data(), iDestNO);
+	//Autil::util_mkint(buffer.data(), iChecksum);
+	//Autil::util_SendMesg(LSSPROTO_PET_ITEM_EQUIP_SEND, buffer.data());
+	Autil::util_Send(LSSPROTO_PET_ITEM_EQUIP_SEND, pos.x(), pos.y(), iPetNo, iItemNo, iDestNO);
+}
+
+void Server::tradeComfirm(const QString name)
+{
+	if (!getOnlineFlag())
+		return;
+
+	if (getBattleFlag())
+		return;
+
+	if (!IS_TRADING)
+		return;
+
+	if (name != opp_name)
+	{
+		tradeCancel();
+		return;
+	}
+
+	QString cmd = QString("T|%1|%2|C|confirm").arg(opp_sockfd).arg(opp_name);
+	std::string scmd = util::fromUnicode(cmd);
+	lssproto_TD_send(const_cast<char*>(scmd.c_str()));
+}
+
+void Server::tradeCancel()
+{
+	if (!getOnlineFlag())
+		return;
+
+	if (getBattleFlag())
+		return;
+
+	if (!IS_TRADING)
+		return;
+
+	QString cmd = QString("W|%1|%2").arg(opp_sockfd).arg(opp_name);
+	std::string scmd = util::fromUnicode(cmd);
+	lssproto_TD_send(const_cast<char*>(scmd.c_str()));
+	pc.trade_confirm = 1;
+	tradeStatus = 0;
+}
+
+bool Server::tradeStart(const QString& name, int timeout)
+{
+	if (!getOnlineFlag())
+		return false;
+
+	if (getBattleFlag())
+		return false;
+
+	if (IS_TRADING)
+		return false;
+
+	lssproto_TD_send(const_cast<char*>("D|D"));
+
+	QElapsedTimer timer; timer.start();
+	for (;;)
+	{
+		if (!getOnlineFlag())
+			return false;
+
+		if (getBattleFlag())
+			return false;
+
+		if (timer.hasExpired(timeout))
+			return false;
+
+		if (IS_TRADING)
+			break;
+
+		QThread::msleep(100);
+	}
+
+	return opp_name == name;
+}
+
+void Server::tradeAppendItems(const QString& name, const QVector<int>& itemIndexs)
+{
+	if (!getOnlineFlag())
+		return;
+
+	if (getBattleFlag())
+		return;
+
+	if (!IS_TRADING)
+		return;
+
+	if (itemIndexs.isEmpty())
+		return;
+
+	if (name != opp_name)
+	{
+		tradeCancel();
+		return;
+	}
+
+	for (int i = CHAR_EQUIPPLACENUM; i < MAX_ITEM; ++i)
+	{
+		bool bret = false;
+		int stack = pc.item[i].pile;
+		for (int j = 0; j < stack; ++j)
+		{
+			QString cmd = QString("T|%1|%2|I|1|%3").arg(opp_sockfd).arg(opp_name).arg(i);
+			std::string scmd = util::fromUnicode(cmd);
+			lssproto_TD_send(const_cast<char*>(scmd.c_str()));
+			bret = true;
+		}
+
+		if (bret)
+		{
+			myitem_tradeList.append(QString("I|%1").arg(i));
+		}
+		else
+		{
+			myitem_tradeList.append("I|-1");
+		}
+	}
+}
+
+void Server::tradeAppendGold(const QString& name, int gold)
+{
+	if (!getOnlineFlag())
+		return;
+
+	if (getBattleFlag())
+		return;
+
+	if (!IS_TRADING)
+		return;
+
+	if (gold < 0 || gold > pc.gold)
+		return;
+
+	if (name != opp_name)
+	{
+		tradeCancel();
+		return;
+	}
+
+	if (mygoldtrade != 0)
+		return;
+
+	QString cmd = QString("T|%1|%2|G|%3|%4").arg(opp_sockfd).arg(opp_name).arg(3).arg(gold);
+	std::string scmd = util::fromUnicode(cmd);
+	lssproto_TD_send(const_cast<char*>(scmd.c_str()));
+	mygoldtrade = gold;
+}
+
+void Server::tradeAppendPets(const QString& name, const QVector<int>& petIndexs)
+{
+	if (!getOnlineFlag())
+		return;
+
+	if (getBattleFlag())
+		return;
+
+	if (!IS_TRADING)
+		return;
+
+	if (petIndexs.isEmpty())
+		return;
+
+	if (name != opp_name)
+	{
+		tradeCancel();
+		return;
+	}
+
+	//T|87| 02020202|P|3| 3 |  攻击|忠犬|料理|||||乌力斯坦|嘿嘿嘿嘿
+	//T|%s| %s      |P|3| %d | %s
+	QStringList list = mypet_tradeList;
+	for (const int index : petIndexs)
+	{
+		if (index < 0 || index >= MAX_PET)
+			continue;
+
+		PET _pet = pet[index];
+		QStringList list;
+		for (const auto& it : petSkill[index])
+		{
+			if (it.useFlag == 0)
+				list.append("");
+			else
+				list.append(it.name);
+		}
+		list.append(_pet.name);
+		list.append(_pet.freeName);
+
+		QString cmd = QString("T|%1|%2|P|3|%3|%4").arg(opp_sockfd).arg(opp_name).arg(index).arg(list.join("|"));
+		std::string scmd = util::fromUnicode(cmd);
+		lssproto_TD_send(const_cast<char*>(scmd.c_str()));
+		list[index] = QString("P|%1").arg(index);
+	}
+	mypet_tradeList = list;
+}
+
+void Server::tradeComplete(const QString& name)
+{
+	if (!getOnlineFlag())
+		return;
+
+	if (getBattleFlag())
+		return;
+
+	if (!IS_TRADING)
+		return;
+
+	if (name != opp_name)
+	{
+		tradeCancel();
+		return;
+	}
+
+	QStringList mytradeList;
+	mytradeList.append(myitem_tradeList.join("|"));
+	mytradeList.append(mypet_tradeList.join("|"));
+	mytradeList.append(QString("G|%1").arg(mygoldtrade));
+
+	QStringList opptradelist;
+	for (const showitem& it : opp_item)
+	{
+		if (it.name.isEmpty())
+			opptradelist.append("I|-1");
+		else
+			opptradelist.append(QString("I|%1").arg(it.itemindex));
+	}
+
+	for (const showpet& it : opp_pet)
+	{
+		if (it.opp_petname.isEmpty())
+			opptradelist.append("P|-1");
+		else
+			opptradelist.append(QString("P|%1").arg(it.opp_petindex));
+	}
+
+	opptradelist.append(QString("G|%1").arg(tradeWndDropGoldGet));
+
+	QString cmd = QString("T|%1|%2|K|%3|%4").arg(opp_sockfd).arg(opp_name).arg(mytradeList.join("|")).arg(opptradelist.join("|"));
+	std::string scmd = util::fromUnicode(cmd);
+	lssproto_TD_send(const_cast<char*>(scmd.c_str()));
+
+	//T|87|02020202|K|
+	//I|-1|I|-1|I|-1|I|-1|I|9|I|-1|I|-1|I|-1|I|-1|I|-1|I|-1|I|-1|I|-1|I|-1|I|-1|
+	//P|-1|P|-1|P|-1|P|-1|P|-1|
+	//G|6556|
+	//I|9|I|-1|I|-1|I|-1|I|-1|I|-1|I|-1|I|-1|I|-1|I|-1|I|-1|I|-1|I|-1|I|-1|I|-1|
+	//P|-1|P|-1|P|2|P|-1|P|-1|
+	//G|142|
+}
+
+//發起交易請求封包 發起交易D|D   放置物品:T|87|02020202|I|1|23  
+void Server::lssproto_TD_send(char* data)
+{
+	//QByteArray buffer(Autil::NETDATASIZE, '\0');
+
+	//int iChecksum = 0;
+
+	//iChecksum += Autil::util_mkstring(buffer.data(), data);
+	//Autil::util_mkint(buffer.data(), iChecksum);
+	//Autil::util_SendMesg(LSSPROTO_TD_SEND, buffer.data());
+	Autil::util_Send(LSSPROTO_TD_SEND, data);
+}
+
+//檢查指定任務狀態，並同步等待封包返回
+int Server::checkJobDailyState(const QString& missionName)
+{
+	if (!getOnlineFlag())
+		return false;
+
+	if (getBattleFlag())
+		return false;
+
+	if (missionName.isEmpty())
+		return false;
+
+	IS_WAITFOR_JOBDAILY_FLAG = true;
+	lssproto_JOBDAILY_send(const_cast<char*>("dyedye"));
+	QElapsedTimer timer; timer.start();
+
+	for (;;)
+	{
+		if (timer.hasExpired(5000))
+			break;
+
+		if (!IS_WAITFOR_JOBDAILY_FLAG)
+			break;
+
+		QThread::msleep(100);
+	}
+
+	bool isExact = true;
+	QString newMissionName = missionName;
+	if (newMissionName.startsWith("?"))
+	{
+		isExact = false;
+		newMissionName = newMissionName.mid(1);
+	}
+
+	for (const JOBDAILY& it : jobdaily)
+	{
+		if (!isExact && (it.explain == newMissionName))
+			return it.state == QString(u8"已完成") ? 1 : 2;
+		else if (!isExact && it.explain.contains(newMissionName))
+			return it.state == QString(u8"已完成") ? 1 : 2;
+	}
+
+	return 0;
+}
+
+//請求任務日誌封包  data = "dyedye"
+void Server::lssproto_JOBDAILY_send(char* data)
+{
+	//QByteArray buffer(Autil::NETDATASIZE, '\0');
+
+	//int iChecksum = 0;
+
+	//iChecksum += Autil::util_mkstring(buffer.data(), data);
+	//Autil::util_mkint(buffer.data(), iChecksum);
+	//Autil::util_SendMesg(LSSPROTO_JOBDAILY_SEND, buffer.data());
+	Autil::util_Send(LSSPROTO_JOBDAILY_SEND, data);
+}
+
+//老菜單
+void Server::shopOk(int n)
+{
+	if (!getOnlineFlag())
+		return;
+
+	if (getBattleFlag())
+		return;
+
+	//SE 1隨身倉庫 2查看聲望氣勢
+	lssproto_ShopOk_send(n);
+}
+
+//老菜單封包
+void Server::lssproto_ShopOk_send(int n)
+{
+	//QByteArray buffer(Autil::NETDATASIZE, '\0');
+
+	//int iChecksum = 0;
+	//iChecksum += Autil::util_mkint(buffer.data(), n);
+	//Autil::util_mkint(buffer.data(), iChecksum);
+	//Autil::util_SendMesg(LSSPROTO_SHOPOK_SEND, buffer.data());
+	Autil::util_Send(LSSPROTO_SHOPOK_SEND, n);
+}
+
+//新菜單
+void Server::saMenu(int n)
+{
+	if (!getOnlineFlag())
+		return;
+
+	if (getBattleFlag())
+		return;
+
+	lssproto_ShopOk_send(n);
+}
+
+//新菜單封包
+#ifdef _NEW_SYSTEM_MENU
+void Server::lssproto_SaMenu_send(int index)
+{
+	Autil::util_Send(LSSPROTO_SAMENU_SEND, index);
+}
+#endif
+
+//自訂對話框收到按鈕消息
+void Server::lssproto_CustomWN_recv(const QString& data)
+{
+	QStringList dataList = data.split(util::rexOR, Qt::SkipEmptyParts);
+	if (dataList.size() != 4)
+		return;
+
+	int x = dataList.at(0).toInt();
+	int y = dataList.at(1).toInt();
+	BUTTON_TYPE button = static_cast<BUTTON_TYPE>(dataList[2].toInt());
+	QString dataStr = dataList.at(3);
+	int row = -1;
+	bool ok = false;
+	int tmp = dataStr.toInt(&ok);
+	if (ok && tmp > 0)
+	{
+		row = dataStr.toInt();
+	}
+	//qDebug() << x << y << button << (row != -1 ? QString::number(row) : dataStr);
+	customDialog = customdialog_t{ x, y, button, row };
+	IS_WAITFOR_CUSTOM_DIALOG_FLAG = false;
+}
+
+//自訂對話
+void Server::lssproto_CustomTK_recv(const QString& data)
+{
+	QStringList dataList = data.split(util::rexOR, Qt::SkipEmptyParts);
+	if (dataList.size() != 5)
+		return;
+
+	int x = dataList.at(0).toInt();
+	int y = dataList.at(1).toInt();
+	int color = dataList.at(2).toInt();
+	int area = dataList.at(3).toInt();
+	QString dataStr = dataList.at(4).simplified();
+	QStringList args = dataStr.split(" ", Qt::SkipEmptyParts);
+	if (args.isEmpty())
+		return;
+	int size = args.size();
+	if (args.at(0).startsWith("//skup") && size == 5)
+	{
+		bool ok;
+		int vit = args.at(1).toInt(&ok);
+		if (!ok)
+			return;
+		int str = args.at(2).toInt(&ok);
+		if (!ok)
+			return;
+		int tgh = args.at(3).toInt(&ok);
+		if (!ok)
+			return;
+		int dex = args.at(4).toInt(&ok);
+		if (!ok)
+			return;
+
+		if (skupFuture.isRunning())
+			return;
+
+		skupFuture = QtConcurrent::run([this, vit, str, tgh, dex]()
+			{
+				const QVector<int> vec = { vit, str, tgh, dex };
+				int j = 0;
+				for (int i = 0; i < 4; ++i)
+				{
+					j = vec.at(i);
+					if (j <= 0)
+						continue;
+
+					if (!addPoint(i, j))
+						return;
+				}
+			});
+	}
+
+	qDebug() << dataList;
+}
+
+int Server::getPetSize() const
+{
+	int count = 0;
+	for (int i = 0; i < MAX_PET; ++i)
+	{
+		if (pet[i].useFlag <= 0)
+			continue;
+
+		if (pet[i].level <= 0)
+			continue;
+
+		if (pet[i].name.isEmpty())
+			continue;
+
+		++count;
+	}
+
+	return count;
+}
+
+int Server::getPartySize() const
+{
+	int count = 0;
+	PC _pc = getPC();
+	if ((_pc.status & CHR_STATUS_LEADER) || (_pc.status & CHR_STATUS_PARTY))
+	{
+		for (int i = 0; i < MAX_PARTY; ++i)
+		{
+			if (party[i].useFlag <= 0)
+				continue;
+			if (party[i].level <= 0)
+				continue;
+
+			++count;
+		}
+	}
+	return count;
+}
+
+//獲取周圍玩家名稱列表
+QStringList Server::getJoinableUnitList() const
+{
+	Injector& injector = Injector::getInstance();
+	QString leader = injector.getStringHash(util::kAutoFunNameString);
+	QStringList unitNameList;
+	if (!leader.isEmpty())
+		unitNameList.append(leader);
+	for (const mapunit_t& unit : mapUnitHash)
+	{
+		if (unit.name.isEmpty() || (unit.objType != util::OBJ_HUMAN))
+			continue;
+
+		if (!leader.isEmpty() && unit.name == leader)
+			continue;
+
+		if (unit.name == pc.name)
+			continue;
+
+		unitNameList.append(unit.name);
+	}
+	return unitNameList;
+};
+
+//使用道具名稱枚舉所有道具索引
+bool Server::getItemIndexsByName(const QString& name, const QString& memo, QVector<int>* pv)
+{
+	bool isExact = true;
+	QString newName = name;
+	if (name.startsWith("?"))
+	{
+		isExact = false;
+		newName = name.mid(1);
+	}
+
+	QVector<int> v;
+	for (int i = 0; i < MAX_ITEM; ++i)
+	{
+		if (pc.item[i].name.isEmpty() || pc.item[i].useFlag == 0)
+			continue;
+		if (memo.isEmpty())
+		{
+			if (isExact && (newName == pc.item[i].name))
+				v.append(i);
+			else if (!isExact && (pc.item[i].name.contains(newName)))
+				v.append(i);
+		}
+		else
+		{
+			if (isExact && (newName == pc.item[i].name) && (pc.item[i].memo.contains(memo)))
+				v.append(i);
+			else if (!isExact && (pc.item[i].name.contains(newName)) && (pc.item[i].memo.contains(memo)))
+				v.append(i);
+		}
+	}
+
+	if (pv)
+		*pv = v;
+	return !v.isEmpty();
+}
+
+//根據道具名稱(或包含說明文)獲取模糊或精確匹配道具索引
+int Server::getItemIndexByName(const QString& name, bool isExact, const QString& memo) const
+{
+	if (name.isEmpty())
+		return -1;
+
+	QString newStr = name.simplified();
+	QString newMemo = memo.simplified();
+
+	if (newStr.startsWith("?"))
+	{
+		newStr.remove(0, 1);
+		isExact = false;
+	}
+
+	for (int i = 0; i < MAX_ITEM; ++i)
+	{
+		if (pc.item[i].name.isEmpty())
+			continue;
+
+		if (isExact && newMemo.isEmpty() && (newStr == pc.item[i].name))
+			return i;
+		else if (!isExact && newMemo.isEmpty() && pc.item[i].name.contains(newStr))
+			return i;
+		else if (isExact && !newMemo.isEmpty() && (pc.item[i].memo.contains(newMemo)) && (newStr == pc.item[i].name))
+			return i;
+		else if (!isExact && !newMemo.isEmpty() && (pc.item[i].memo.contains(newMemo)) && pc.item[i].name.contains(newStr))
+			return i;
+	}
+
+	return -1;
+}
+
+//使用名稱匹配寵物技能索引和寵物索引
+int Server::getPetSkillIndexByName(int& petIndex, const QString& name) const
+{
+	if (petIndex == -1)
+	{
+		for (int j = 0; j < MAX_PET; ++j)
+		{
+			for (int i = 0; i < MAX_SKILL; ++i)
+			{
+				if (petSkill[j][i].name.isEmpty() || petSkill[j][i].useFlag == 0)
+					continue;
+
+				if (petSkill[j][i].name == name)
+				{
+					petIndex = j;
+					return i;
+				}
+				else if (name.startsWith("?"))
+				{
+					QString newName = name;
+					newName.remove(0, 1);
+					if (petSkill[j][i].name.contains(newName))
+					{
+						petIndex = j;
+						return i;
+					}
+				}
+			}
+		}
+	}
+	else
+	{
+		for (int i = 0; i < MAX_SKILL; ++i)
+		{
+			if (petSkill[petIndex][i].name.isEmpty() || petSkill[petIndex][i].useFlag == 0)
+				continue;
+
+			if (petSkill[petIndex][i].name == name)
+				return i;
+			else if (name.startsWith("?"))
+			{
+				QString newName = name;
+				newName.remove(0, 1);
+				if (petSkill[petIndex][i].name.contains(newName))
+					return i;
+			}
+		}
+	}
+
+	return -1;
+}
+
+//使用名稱枚舉所有寵物索引
+bool Server::getPetIndexsByName(const QString& name, QVector<int>* pv) const
+{
+	QVector<int> v;
+	QStringList nameList = name.simplified().split(util::rexOR, Qt::SkipEmptyParts);
+
+	for (int i = 0; i < MAX_PET; ++i)
+	{
+		if (v.contains(i))
+			continue;
+
+		PET _pet = pet[i];
+		if (_pet.name.isEmpty() || _pet.useFlag == 0)
+			continue;
+
+		for (const QString& name : nameList)
+		{
+			if (name == _pet.name)
+			{
+				v.append(i);
+				break;
+			}
+			else if (name.startsWith("?"))
+			{
+				QString newName = name;
+				newName.remove(0, 1);
+				if (_pet.name.contains(newName))
+				{
+					v.append(i);
+					break;
+				}
+			}
+		}
+	}
+
+	if (pv)
+		*pv = v;
+
+	return !v.isEmpty();
+}
+
+//取背包空格索引
+int Server::getItemEmptySpotIndex() const
+{
+	for (int i = CHAR_EQUIPPLACENUM; i < MAX_ITEM; ++i)
+	{
+		if (pc.item[i].name.isEmpty() || pc.item[i].useFlag == 0)
+			return i;
+	}
+
+	return -1;
+}
+
+bool Server::getItemEmptySpotIndexs(QVector<int>* pv) const
+{
+	QVector<int> v;
+	for (int i = CHAR_EQUIPPLACENUM; i < MAX_ITEM; ++i)
+	{
+		if (pc.item[i].name.isEmpty() || pc.item[i].useFlag == 0)
+			v.append(i);
+	}
+	if (pv)
+		*pv = v;
+
+	return !v.isEmpty();
+}
+
+void Server::mouseMove(int x, int y)
+{
+	Injector& injector = Injector::getInstance();
+	//HWND hWnd = injector.getProcessWindow();
+	LPARAM data = MAKELPARAM(x, y);
+	injector.sendMessage(WM_MOUSEMOVE, NULL, data);
+}
+
+//滑鼠移動 + 左鍵 
+void Server::leftClick(int x, int y)
+{
+	Injector& injector = Injector::getInstance();
+	//HWND hWnd = injector.getProcessWindow();
+	LPARAM data = MAKELPARAM(x, y);
+	injector.sendMessage(WM_MOUSEMOVE, NULL, data);
+	QThread::msleep(50);
+	injector.sendMessage(WM_LBUTTONDOWN, MK_LBUTTON, data);
+	QThread::msleep(50);
+	injector.sendMessage(WM_LBUTTONUP, MK_LBUTTON, data);
+	QThread::msleep(50);
+}
+
+void Server::leftDoubleClick(int x, int y)
+{
+	Injector& injector = Injector::getInstance();
+	//HWND hWnd = injector.getProcessWindow();
+	LPARAM data = MAKELPARAM(x, y);
+	injector.sendMessage(WM_MOUSEMOVE, NULL, data);
+	QThread::msleep(50);
+	injector.sendMessage(WM_LBUTTONDBLCLK, MK_LBUTTON, data);
+	QThread::msleep(50);
+}
+
+void Server::rightClick(int x, int y)
+{
+	Injector& injector = Injector::getInstance();
+	//HWND hWnd = injector.getProcessWindow();
+	LPARAM data = MAKELPARAM(x, y);
+	injector.sendMessage(WM_MOUSEMOVE, NULL, data);
+	QThread::msleep(50);
+	injector.sendMessage(WM_RBUTTONDOWN, MK_RBUTTON, data);
+	QThread::msleep(50);
+	injector.sendMessage(WM_RBUTTONUP, MK_RBUTTON, data);
+	QThread::msleep(50);
+}
+
+void Server::dragto(int x1, int y1, int x2, int y2)
+{
+	Injector& injector = Injector::getInstance();
+	//HWND hWnd = injector.getProcessWindow();
+	LPARAM datafrom = MAKELPARAM(x1, y1);
+	LPARAM datato = MAKELPARAM(x2, y2);
+	injector.sendMessage(WM_MOUSEMOVE, NULL, datafrom);
+	QThread::msleep(50);
+	injector.sendMessage(WM_LBUTTONDOWN, MK_LBUTTON, datafrom);
+	QThread::msleep(50);
+	injector.sendMessage(WM_MOUSEMOVE, NULL, datato);
+	QThread::msleep(50);
+	injector.sendMessage(WM_LBUTTONUP, MK_LBUTTON, datato);
+	QThread::msleep(50);
+}
+
+//登入
 bool Server::login(int s)
 {
 	util::UnLoginStatus status = static_cast<util::UnLoginStatus>(s);
@@ -7119,7 +9872,7 @@ bool Server::login(int s)
 	{
 		if (enableReconnect)
 		{
-			leftCLick(315, 270);
+			leftDoubleClick(315, 270);
 			disconnectflag = true;
 		}
 		return false;
@@ -7128,82 +9881,170 @@ bool Server::login(int s)
 	if (!enableAutoLogin && enableReconnect && !disconnectflag)
 		return false;
 
+	QElapsedTimer timer; timer.start();
+
 	switch (status)
 	{
 	case util::kStatusBusy:
 	{
-		leftCLick(315, 255);
+		leftDoubleClick(315, 255);
 		break;
 	}
 	case util::kStatusTimeout:
 	{
-		leftCLick(315, 253);
+		leftDoubleClick(315, 253);
 		break;
 	}
 	case util::kNoUserNameOrPassword:
 	{
-		leftCLick(315, 253);
+		leftDoubleClick(315, 253);
 		break;
 	}
 	case util::kStatusInputUser:
 	{
 		Injector& injector = Injector::getInstance();
-		static const QRegularExpression accountRegex("^[a-z\\d]{4,15}$");// 4-15个字符（可用小写字母和数字）
-		static const QRegularExpression passwordRegex("^(?=.*[A-Z])(?=.*\\d)[A-Za-z\\d]{6,15}$");// 6-15个字符（必须大小写字母加数字）
+		//static const QRegularExpression accountRegex("[A-Za-z\\d]{4,25}");// 4-15个字符
+		//static const QRegularExpression passwordRegex("[A-Za-z\\d]{4,25}");// 6-20个字符
 
-		if (!account.isEmpty() && accountRegex.match(account).hasMatch())
+		if (!account.isEmpty())
 		{
-			mem::writeString(injector.getProcess(), injector.getProcessModule() + 0x414F278, account);
+			mem::writeString(injector.getProcess(), injector.getProcessModule() + kOffestAccount, account);
 		}
-		if (!password.isEmpty() && passwordRegex.match(password).hasMatch())
+		if (!password.isEmpty())
 		{
-			mem::writeString(injector.getProcess(), injector.getProcessModule() + 0x415AA58, password);
+			mem::writeString(injector.getProcess(), injector.getProcessModule() + kOffestPassword, password);
 		}
-		leftCLick(380, 310);
+		leftDoubleClick(380, 310);
 		break;
 	}
 	case util::kStatusSelectServer:
 	{
-		constexpr int table[36] = {
+		constexpr int table[48] = {
 			0, 0, 0,
 			1, 0, 1,
 			2, 0, 2,
 			3, 0, 3,
+
 			4, 1, 0,
 			5, 1, 1,
 			6, 1, 2,
 			7, 1, 3,
-			8, 2, 0,
-			9, 2, 1,
+
+			8,  2, 0,
+			9,  2, 1,
 			10, 2, 2,
 			11, 2, 3,
+
+			12, 3, 0,
+			13, 3, 1,
+			14, 3, 2,
+			15, 3, 3,
 		};
-		if (server >= 0 && server < 12)
+
+		if (server >= 0 && server < 15)
 		{
 			const int a = table[server * 3 + 1];
 			const int b = table[server * 3 + 2];
-			leftCLick(170 + (a * 125), 165 + (b * 25));
+
+			int x = 160 + (a * 125);
+			int y = 165 + (b * 25);
+			for (;;)
+			{
+				mouseMove(x, y);
+				int value = mem::read<int>(injector.getProcess(), injector.getProcessModule() + kOffestMousePointedIndex);
+				if (value != -1)
+				{
+					leftDoubleClick(x, y);
+					break;
+				}
+				x -= 5;
+				if (x <= 0)
+					break;
+
+				if (timer.hasExpired(1000))
+					break;
+
+				qDebug() << "util::kStatusSelectServer" << x << "y:" << y;
+			}
 		}
 		break;
 	}
 	case util::kStatusSelectSubServer:
 	{
-		if (subserver >= 0 && subserver <= 4)
+		int serverIndex = mem::read<int>(injector.getProcess(), injector.getProcessModule() + kOffestServerIndex);
+		if (server != serverIndex)
 		{
-			leftCLick(250, 265 + (subserver * 25));
+			int x = 500;
+			int y = 340;
+			for (;;)
+			{
+				mouseMove(x, y);
+				int value = mem::read<int>(injector.getProcess(), injector.getProcessModule() + kOffestMousePointedIndex);
+				if (value != -1)
+				{
+					leftDoubleClick(x, y);
+					break;
+				}
+
+				x -= 10;
+				if (x <= 0)
+					break;
+
+				if (timer.hasExpired(1000))
+					break;
+
+				qDebug() << "kStatusSelectSubServer" << "x:" << x << "y:" << y;
+			}
+			break;
+		}
+
+		if (subserver >= 0 && subserver < 15)
+		{
+			int x = 250;
+			int y = 265 + (subserver * 20);
+			for (;;)
+			{
+				mouseMove(x, y);
+				int value = mem::read<int>(injector.getProcess(), injector.getProcessModule() + kOffestMousePointedIndex);
+				if (value != -1)
+				{
+					leftDoubleClick(x, y);
+					break;
+				}
+
+				x += 5;
+				if (x >= 640)
+					break;
+
+				if (timer.hasExpired(1000))
+					break;
+
+				qDebug() << "kStatusSelectSubServer_2" << "x:" << x << "y:" << y;
+			}
+			connectingTimer.restart();
 		}
 		break;
 	}
 	case util::kStatusSelectCharacter:
 	{
 		if (position >= 0 && position <= 1)
-			leftCLick(100 + (position * 300), 340);
+			leftDoubleClick(100 + (position * 300), 340);
 		break;
 	}
 	case util::kStatusLogined:
 	{
 		disconnectflag = false;
 		return true;
+	}
+	case util::kStatusConnecting:
+	{
+		if (connectingTimer.hasExpired(5000))
+		{
+			setWorldStatus(7);
+			setGameStatus(0);
+			connectingTimer.restart();
+		}
+		break;
 	}
 	default:
 		break;
@@ -7212,6 +10053,48 @@ bool Server::login(int s)
 	return false;
 }
 
+QString Server::getBadStatusString(unsigned int status)
+{
+	QStringList temp;
+	if (checkAND(status, BC_FLG_DEAD))
+		temp.append(QObject::tr("dead")); // 死亡
+	if (checkAND(status, BC_FLG_POISON))
+		temp.append(QObject::tr("poisoned")); // 中毒
+	if (checkAND(status, BC_FLG_PARALYSIS))
+		temp.append(QObject::tr("paralyzed")); // 麻痹
+	if (checkAND(status, BC_FLG_SLEEP))
+		temp.append(QObject::tr("sleep")); // 昏睡
+	if (checkAND(status, BC_FLG_STONE))
+		temp.append(QObject::tr("petrified")); // 石化
+	if (checkAND(status, BC_FLG_DRUNK))
+		temp.append(QObject::tr("dizzy")); // 眩晕
+	if (checkAND(status, BC_FLG_CONFUSION))
+		temp.append(QObject::tr("confused")); // 混乱
+	if (checkAND(status, BC_FLG_HIDE))
+		temp.append(QObject::tr("hidden")); // 是否隐藏，地球一周
+	if (checkAND(status, BC_FLG_REVERSE))
+		temp.append(QObject::tr("reverse")); // 反轉
+	return temp.join(" ");
+}
+
+QString Server::getFieldString(unsigned int field)
+{
+	switch (field)
+	{
+	case 1:
+		return QObject::tr("earth");
+	case 2:
+		return QObject::tr("water");
+	case 3:
+		return QObject::tr("fire");
+	case 4:
+		return QObject::tr("wind");
+	default:
+		return QString();
+	}
+}
+
+//根據索引刷新道具資訊
 void Server::refreshItemInfo(int i)
 {
 	QVariant var;
@@ -7223,7 +10106,9 @@ void Server::refreshItemInfo(int i)
 	if (i < CHAR_EQUIPPLACENUM)
 	{
 		QStringList equipVHeaderList = {
-			tr("head"), tr("body"), tr("righthand"), tr("leftacc"), tr("rightacc"), tr("belt"), tr("lefthand"), tr("shoes"), tr("gloves")
+			QObject::tr("head"), QObject::tr("body"), QObject::tr("righthand"), QObject::tr("leftacc"),
+			QObject::tr("rightacc"), QObject::tr("belt"), QObject::tr("lefthand"), QObject::tr("shoes"),
+			QObject::tr("gloves")
 		};
 
 		if (!pc.item[i].name.isEmpty() && (pc.item[i].useFlag != 0))
@@ -7261,115 +10146,2460 @@ void Server::refreshItemInfo(int i)
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
 
 	if (i < CHAR_EQUIPPLACENUM)
+	{
+		equipInfoRowContents.insert(i, var);
 		emit signalDispatcher.updateEquipInfoRowContents(i, var);
+	}
 	else
+	{
+		itemInfoRowContents.insert(i, var);
 		emit signalDispatcher.updateItemInfoRowContents(i, var);
+	}
 }
 
+//刷新所有道具資訊
 void Server::refreshItemInfo()
 {
-	for (int i = 0; i < MAX_ITEM; i++)
+	for (int i = 0; i < MAX_ITEM; ++i)
 	{
 		refreshItemInfo(i);
 	}
 }
 
+QPoint Server::getPoint()
+{
+	Injector& injector = Injector::getInstance();
+	int hModule = injector.getProcessModule();
+	if (hModule == 0)
+		return QPoint{};
+
+	HANDLE hProcess = injector.getProcess();
+	if (hProcess == 0 || hProcess == INVALID_HANDLE_VALUE)
+		return QPoint{};
+
+	QReadLocker locker(&pointMutex);
+	int x = mem::read<int>(hProcess, hModule + kOffestNowX);
+	int y = mem::read<int>(hProcess, hModule + kOffestNowY);
+	return QPoint(x, y);
+}
+
+void Server::setPoint(const QPoint& pos)
+{
+	Injector& injector = Injector::getInstance();
+	int hModule = injector.getProcessModule();
+	if (hModule == 0)
+		return;
+
+	HANDLE hProcess = injector.getProcess();
+	if (hProcess == 0 || hProcess == INVALID_HANDLE_VALUE)
+		return;
+
+	QWriteLocker locker(&pointMutex);
+	mem::write<int>(hProcess, hModule + kOffestNowX, pos.x());
+	mem::write<int>(hProcess, hModule + kOffestNowY, pos.y());
+}
+
+//讀取內存刷新各種基礎數據，有些封包數據不明確、或不確定，用來補充不足的部分
 void Server::updateDatasFromMemory()
 {
-	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
 	Injector& injector = Injector::getInstance();
+	if (!getOnlineFlag())
+		return;
+
+	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
 	int hModule = injector.getProcessModule();
 	HANDLE hProcess = injector.getProcess();
 
-	if (!IS_ONLINE_FLAG)
+	//地圖數據 原因同上
+	int floor = mem::read<int>(hProcess, hModule + kOffestNowFloor);
+	QString map = mem::readString(hProcess, hModule + kOffestNowFloorName, FLOOR_NAME_LEN, true);
+	if (nowFloor != floor)
+		emit signalDispatcher.updateNpcList(floor);
+
+	nowFloor = floor;
+
+	pc.dir = mem::read<int>(hProcess, hModule + kOffestDir) + 5 % 8;
+
+	emit signalDispatcher.updateMapLabelTextChanged(QString("%1(%2)").arg(nowFloorName).arg(nowFloor));
+
+	//人物坐標 (因為伺服器端不會經常刷新這個數值大多是在遊戲客戶端修改的)
+	QPoint point(mem::read<int>(hProcess, hModule + kOffestNowX), mem::read<int>(hProcess, hModule + kOffestNowY));
+	nowPoint = point;
+	emit signalDispatcher.updateCoordsPosLabelTextChanged(QString("%1,%2").arg(point.x()).arg(point.y()));
+
+
+	//本来应该一次性读取整个结构体的，但我们不需要这麽多讯息
+	{
+		QMutexLocker locker(&swapItemMutex);
+		for (int i = 0; i < MAX_ITEM; ++i)
+		{
+			constexpr int item_offest = 0x184;
+			pc.item[i].useFlag = mem::read<short>(hProcess, hModule + 0x422C028 + i * item_offest);
+			if (pc.item[i].useFlag != 1)
+			{
+				pc.item[i] = {};
+				continue;
+			}
+
+			pc.item[i].name = mem::readString(hProcess, hModule + 0x422C032 + i * item_offest, ITEM_NAME_LEN, true, false);
+			pc.item[i].memo = mem::readString(hProcess, hModule + 0x422C060 + i * item_offest, ITEM_MEMO_LEN, true, false);
+			if (i >= CHAR_EQUIPPLACENUM)
+				pc.item[i].pile = mem::read<short>(hProcess, hModule + 0x422BF58 + i * item_offest);
+			else
+				pc.item[i].pile = 1;
+
+			if (pc.item[i].pile == 0)
+				pc.item[i].pile = 1;
+		}
+	}
+
+	//每隻寵物如果處於等待或戰鬥則為1
+	mem::read(hProcess, hModule + kOffestSelectPetArray, sizeof(pc.selectPetNo), pc.selectPetNo);
+
+	//郵件寵物索引
+	int mailPetIndex = mem::read<int>(hProcess, hModule + kOffestMailPetIndex);
+	if (mailPetIndex < 0 || mailPetIndex >= MAX_PET)
+		mailPetIndex = -1;
+
+	//騎乘寵物索引
+	int ridePetIndex = mem::read<int>(hProcess, hModule + kOffestRidePetIndex);
+	if (ridePetIndex < 0 || ridePetIndex >= MAX_PET)
+		ridePetIndex = -1;
+
+	pc.ridePetNo = ridePetIndex;
+	//short battlePetIndex = pc.battlePetNo;
+
+	//人物狀態 (是否組隊或其他..)
+	pc.status = mem::read<short>(hProcess, hModule + kOffestPlayerStatus);
+
+	short isInTeam = mem::read<short>(hProcess, hModule + kOffestTeamState);
+	if (isInTeam == 1 && !(pc.status & CHR_STATUS_PARTY))
+		pc.status |= CHR_STATUS_PARTY;
+	else if (isInTeam == 0 && (pc.status & CHR_STATUS_PARTY))
+		pc.status &= (~CHR_STATUS_PARTY);
+
+	for (int i = 0; i < MAX_PET; ++i)
+	{
+		//休息 郵件 騎乘
+		if (pc.selectPetNo[i] == FALSE)
+		{
+			if (pet[i].state == kStandby || pet[i].state == kBattle || pet[i].state == kNoneState)
+				pet[i].state = kRest;
+
+			if (i == mailPetIndex && pc.ridePetNo != i)
+			{
+				if (pet[i].state == kRest)
+				{
+					pet[i].state = kMail;
+					pc.mailPetNo = i;
+				}
+			}
+			else if (mailPetIndex == -1 && pet[i].state == kMail)
+			{
+				pet[i].state = kRest;
+				pc.mailPetNo = -1;
+			}
+			else if (pc.ridePetNo == i)
+			{
+				pet[i].state = kRide;
+			}
+			else if (pc.ridePetNo == -1 && pet[i].state == kRide)
+			{
+				pet[i].state = kRest;
+			}
+		}
+		//戰鬥 等待
+		else
+		{
+			if (pc.ridePetNo == i)
+			{
+				pet[i].state = kRide;
+			}
+			else if (pc.battlePetNo != i && pet[i].state != kStandby)
+			{
+				pet[i].state = kStandby;
+			}
+			else if (pc.ridePetNo == -1 && pet[i].state == kRide)
+			{
+				pet[i].state = kRest;
+			}
+		}
+
+		emit signalDispatcher.updatePlayerInfoPetState(i, pet[i].state);
+	}
+}
+
+void Server::reloadHashVar(const QString& typeStr)
+{
+	if (typeStr == "player")
+	{
+		PC _pc = getPC();
+		hashpc = util::SafeHash<QString, QVariant>{
+			{ "dir", _pc.dir },
+			{ "hp", _pc.hp }, { "maxhp", _pc.maxHp }, { "hpp", _pc.hpPercent },
+			{ "mp", _pc.mp }, { "maxmp", _pc.maxMp }, { "mpp", _pc.mpPercent },
+			{ "vit", _pc.vital },
+			{ "str", _pc.str }, { "tgh", _pc.tgh }, { "dex", _pc.dex },
+			{ "exp", _pc.exp }, { "maxexp", _pc.maxExp },
+			{ "lv", _pc.level },
+			{ "atk", _pc.atk }, { "def", _pc.def },
+			{ "agi", _pc.quick }, { "chasma", _pc.charm }, { "luck", _pc.luck },
+			{ "earth", _pc.earth }, { "water", _pc.water }, { "fire", _pc.fire }, { "wind", _pc.wind },
+			{ "stone", _pc.gold },
+
+			{ "titleNo", _pc.titleNo },
+			{ "dp", _pc.dp },
+			{ "name", _pc.name },
+			{ "fname", _pc.freeName },
+			{ "nameColor", _pc.nameColor },
+			{ "battlepet", _pc.battlePetNo },
+			{ "mailpet", _pc.mailPetNo },
+			//{ "", _pc.standbyPet },
+			//{ "", _pc.battleNo },
+			//{ "", _pc.sideNo },
+			//{ "", _pc.helpMode },
+			//{ "", _pc._pcNameColor },
+			{ "turn", _pc.transmigration },
+			//{ "", _pc.chusheng },
+			{ "familyname", _pc.familyName },
+			//{ "", _pc.familyleader },
+			{ "ridename", _pc.ridePetName },
+			{ "ridelv", _pc.ridePetLevel },
+			{ "earnstone", recorder[0].goldearn },
+			{ "earnrep", recorder[0].repearn > 0 ? (recorder[0].repearn / (repTimer.elapsed() / 1000)) * 3600 : 0 },
+			//{ "", _pc.familySprite },
+			//{ "", _pc.baseGraNo },
+		};
+
+	}
+	else if (typeStr == "magic")
+	{
+		QMutexLocker locker(&net_mutex);
+		util::SafeHash<int, QHash<QString, QVariant>> _hashmagic;
+		for (int i = 0; i < MAX_MAGIC; ++i)
+		{
+			MAGIC m = magic[i];
+
+			const QHash<QString, QVariant> hash = {
+				{ "valid", m.useFlag ? 1 : 0 },
+				{ "cost", m.mp },
+				{ "field", m.field },
+				{ "target", m.target },
+				{ "deadTargetFlag", m.deadTargetFlag },
+				{ "name", m.name },
+				{ "memo", m.memo },
+			};
+			_hashmagic.insert(i + 1, hash);
+		}
+		hashmagic = _hashmagic;
+	}
+	else if (typeStr == "skill")
+	{
+		QMutexLocker locker(&net_mutex);
+		util::SafeHash<int, QHash<QString, QVariant>> _hashskill;
+		for (int i = 0; i < MAX_PROFESSION_SKILL; ++i)
+		{
+			PROFESSION_SKILL s = profession_skill[i];
+
+			const QHash<QString, QVariant> hash = {
+				{ "valid", s.useFlag ? 1 : 0 },
+				{ "cost", s.costmp },
+				//{ "field", s. },
+				{ "target", s.target },
+				//{ "", s.deadTargetFlag },
+				{ "name", s.name },
+				{ "memo", s.memo },
+			};
+			_hashskill.insert(i + 1, hash);
+		}
+		hashskill = _hashskill;
+	}
+	else if (typeStr == "pet")
+	{
+		QMutexLocker locker(&net_mutex);
+		util::SafeHash<int, QHash<QString, QVariant>> _hashpet;
+		const QHash<PetState, QString> petStateHash = {
+			{ kBattle, u8"battle" },
+			{ kStandby , u8"standby" },
+			{ kMail, u8"mail" },
+			{ kRest, u8"rest" },
+			{ kRide, u8"ride" },
+		};
+
+		for (int i = 0; i < MAX_PET; ++i)
+		{
+			PET _pet = pet[i];
+
+			const QHash<QString, QVariant> hash = {
+				{ "index", _pet.index + 1 },						//位置
+				{ "graNo", _pet.graNo },						//圖號
+				{ "hp", _pet.hp }, { "maxhp", _pet.maxHp }, { "hpp", _pet.hpPercent },					//血量
+				{ "mp", _pet.mp }, { "maxmp", _pet.maxMp }, { "mpp", _pet.mpPercent },					//魔力
+				{ "exp", _pet.exp }, { "maxexp", _pet.maxExp },				//經驗值
+				{ "lv", _pet.level },						//等級
+				{ "atk", _pet.atk },						//攻擊力
+				{ "def", _pet.def },						//防禦力
+				{ "agi", _pet.quick },						//速度
+				{ "loyal", _pet.ai },							//AI
+				{ "earth", _pet.earth }, { "water", _pet.water }, { "fire", _pet.fire }, { "wind", _pet.wind },
+				{ "maxskill", _pet.maxSkill },
+				{ "turn", _pet.trn },						// 寵物轉生數
+				{ "name", _pet.name },
+				{ "fname", _pet.freeName },
+				{ "valid", _pet.useFlag ? 1ll : 0ll },
+				{ "turn", _pet.trn },
+				{ "state", petStateHash.value(_pet.state) },
+			};
+
+			_hashpet.insert(i + 1, hash);
+		}
+		hashpet = _hashpet;
+	}
+	else if (typeStr == "petskill")
+	{
+		QMutexLocker locker(&net_mutex);
+		util::SafeHash<int, QHash<int, QHash<QString, QVariant>>>  _hashpetskill;
+		for (int i = 0; i < MAX_PET; ++i)
+		{
+			QHash<int, QHash<QString, QVariant>> skills;
+			for (int j = 0; j < MAX_SKILL; ++j)
+			{
+				PET_SKILL _petskill = petSkill[i][j];
+
+				const QHash<QString, QVariant> hash = {
+					{ "valid", _petskill.useFlag ? 1 : 0 },
+					//{ "", _petskill.field },
+					{ "target", _petskill.target },
+					//{ "", _petskill.deadTargetFlag },
+					{ "name", _petskill.name },
+					{ "memo", _petskill.memo },
+				};
+
+				skills.insert(i + 1, hash);
+			}
+			_hashpetskill.insert(i + 1, skills);
+		}
+		hashpetskill = _hashpetskill;
+	}
+	else if (typeStr == "item")
+	{
+		QMutexLocker locker(&swapItemMutex);
+		util::SafeHash<int, QHash<QString, QVariant>> _hashitem;
+		for (int i = CHAR_EQUIPPLACENUM; i < MAX_ITEM; ++i)
+		{
+			ITEM item = pc.item[i];
+			int index = i - CHAR_EQUIPPLACENUM + 1;
+
+			const QHash<QString, QVariant> hash = {
+				//{ "", item.color },
+				{ "graNo", item.graNo },
+				{ "lv", item.level },
+				{ "stack", item.pile },
+				{ "valid", item.useFlag ? 1 : 0 },
+				{ "field", item.field },
+				{ "target", item.target },
+				//{ "", item.deadTargetFlag },
+				//{ "", item.sendFlag },
+				{ "name", item.name },
+				{ "name2", item.name2 },
+				{ "memo", item.memo },
+				{ "dura", item.damage },
+			};
+
+			_hashitem.insert(index, hash);
+		}
+		hashitem = _hashitem;
+	}
+	else if (typeStr == "equip")
+	{
+		QMutexLocker locker(&swapItemMutex);
+		util::SafeHash<int, QHash<QString, QVariant>> _hashequip;
+		for (int i = 0; i < CHAR_EQUIPPLACENUM; ++i)
+		{
+			ITEM item = pc.item[i];
+			const QHash<QString, QVariant> hash = {
+				//{ "", item.color },
+				{ "graNo", item.graNo },
+				{ "lv", item.level },
+				//{ "stack", item.pile },
+				{ "valid", item.useFlag ? 1 : 0 },
+				{ "field", item.field },
+				{ "target", item.target },
+				//{ "", item.deadTargetFlag },
+				//{ "", item.sendFlag },
+				{ "name", item.name },
+				{ "name2", item.name2 },
+				{ "memo", item.memo },
+				{ "dura", item.damage },
+			};
+
+			_hashequip.insert(i + 1, hash);
+		}
+		hashequip = _hashequip;
+	}
+	else if (typeStr == "party")
+	{
+		QMutexLocker locker(&net_mutex);
+		util::SafeHash<int, QHash<QString, QVariant>> _hashparty;
+		for (int i = 0; i < MAX_PARTY; ++i)
+		{
+			PARTY _party = party[i];
+			const QHash<QString, QVariant> hash = {
+				{ "valid", _party.useFlag ? 1 : 0 },
+				{ "id", _party.id },
+				{ "lv", _party.level },
+				{ "maxhp", _party.maxHp },
+				{ "hp", _party.hp },
+				{ "hpp", _party.hpPercent },
+				{ "mp", _party.mp },
+				{ "name", _party.name },
+			};
+			_hashparty.insert(i + 1, hash);
+		}
+		hashparty = _hashparty;
+	}
+	else if (typeStr == "petequip")
+	{
+		QMutexLocker locker(&net_mutex);
+		util::SafeHash<int, QHash<int, QHash<QString, QVariant>>> _hashpetequip;
+		for (int i = 0; i < MAX_PET; ++i)
+		{
+			QHash<int, QHash<QString, QVariant>> equips;
+			for (int j = 0; j < MAX_PET_ITEM; ++j)
+			{
+				ITEM item = pet[i].item[j];
+				const QHash<QString, QVariant> hash = {
+					//{ "", item.color },
+					{ "graNo", item.graNo },
+					{ "level", item.level },
+					{ "stack", item.pile },
+					{ "valid", item.useFlag ? 1 : 0 },
+					{ "field", item.field },
+					{ "target", item.target },
+					//{ "", item.deadTargetFlag },
+					//{ "", item.sendFlag },
+					{ "name", item.name },
+					{ "name2", item.name2 },
+					{ "memo", item.memo },
+					{ "dura", item.damage },
+				};
+
+				equips.insert(j + 1, hash);
+			}
+
+			_hashpetequip.insert(i + 1, equips);
+		}
+		hashpetequip = _hashpetequip;
+	}
+	else if (typeStr == "map")
+	{
+		QMutexLocker locker(&net_mutex);
+		QPoint point = getPoint();
+		const util::SafeHash<QString, QVariant> _hashmap = {
+			{ "floor", nowFloor },
+			{ "name", nowFloorName },
+			{ "x", point.x() },
+			{ "y", point.y() },
+			{ "time", SaTimeZoneNo }
+		};
+		hashmap = _hashmap;
+	}
+	else if (typeStr == "battle")
+	{
+		QMutexLocker locker(&net_mutex);
+		util::SafeHash<int, QHash<QString, QVariant>> _hashbattle;
+		battledata_t bt = getBattleData();
+		QVector<battleobject_t> objects = bt.objects;
+
+		for (const battleobject_t& battle : objects)
+		{
+			const QHash<QString, QVariant> hash = {
+				{ "pos", battle.pos + 1 },
+				{ "name", battle.name },
+				{ "fname", battle.freename },
+				{ "modelid", battle.faceid },
+				{ "lv", battle.level },
+				{ "hp", battle.hp },
+				{ "maxhp", battle.maxHp },
+				{ "hpp", battle.hpPercent },
+				{ "status", getBadStatusString(battle.status) },
+				{ "rideflag", battle.rideFlag },
+				{ "ridename", battle.rideName },
+				{ "ridelv", battle.rideLevel },
+				{ "ridehp", battle.rideHp },
+				{ "ridemaxhp", battle.rideMaxHp },
+				{ "ridehpp", battle.rideHpPercent },
+			};
+			_hashbattle.insert(battle.pos + 1, hash);
+		}
+
+		hashbattle = _hashbattle;
+
+		hashbattlefield = getFieldString(bt.fieldAttr);
+	}
+}
+
+//檢查並自動吃肉、或丟肉
+void Server::checkAutoDropMeat(const QStringList& item)
+{
+	Injector& injector = Injector::getInstance();
+	if (!injector.getEnableHash(util::kAutoDropMeatEnable))
+	{
+		return;
+	}
+
+
+	bool bret = false;
+	constexpr const char* meat = u8"肉";
+	constexpr const char* memo = u8"耐久力";
+
+	if (!item.isEmpty())
+	{
+		for (const QString& it : item)
+		{
+			if (it.contains(meat))
+			{
+				bret = true;
+				break;
+			}
+		}
+	}
+	else
+	{
+		for (const ITEM& it : pc.item)
+		{
+			if (!it.name.isEmpty() && it.name.contains(meat))
+			{
+				bret = true;
+				break;
+			}
+		}
+	}
+
+	if (!bret)
 		return;
 
-	nowGx = mem::readInt(hProcess, hModule + 0x4181D3C, sizeof(int));
-	nowGy = mem::readInt(hProcess, hModule + 0x4181D40, sizeof(int));
-
-	mem::read(hProcess, hModule + 0x422BF34, sizeof(pc.selectPetNo), pc.selectPetNo);
-
-	pc.mailPetNo = static_cast<short>(mem::readInt(hProcess, hModule + 0x422BF3E, sizeof(short)));
-	pc.ridePetNo = static_cast<short>(mem::readInt(hProcess, hModule + 0x422E3D8, sizeof(short)));
-
-	emit signalDispatcher.updateCoordsPosLabelTextChanged(QString("%1,%2").arg(nowGx).arg(nowGy));
-
-	if (!injector.getEnableHash(util::kFastBattleEnable))
+	int index = 0;
+	for (const ITEM& item : pc.item)
 	{
-		int W = getWorldStatus();
-		if (!IS_BATTLE_FLAG && (10 == W))
+		if (item.name.contains(meat))
 		{
-			IS_BATTLE_FLAG = true;
+			if (!item.memo.contains(memo) && (item.name != QString(u8"味道爽口的肉湯")) && (item.name != QString(u8"味道爽口的肉汤")))
+				dropItem(index);
+			else
+				useItem(index, findInjuriedAllie());
 		}
-		else if (IS_BATTLE_FLAG && (9 == W))
-		{
-			IS_BATTLE_FLAG = false;
-		}
+		++index;
 	}
 }
 
 #pragma region BattleAction
 
+inline bool Server::checkFlagState(int pos)
+{
+	if (pos < 0 || pos >= 20)
+		return false;
+	return checkAND(BattleAnimFlag, 1 << pos);
+}
+
+//異步處理自動/快速戰鬥邏輯和發送封包
+void Server::asyncBattleWork(bool wait)
+{
+	QMutexLocker lock(&ayncBattleCommandMutex);
+	asyncBattleAction();
+	//Injector& injector = Injector::getInstance();
+	//bool FastCheck = injector.getEnableHash(util::kFastBattleEnable);
+	//bool normalCheck = injector.getEnableHash(util::kAutoBattleEnable);
+	//bool Checked = normalCheck || (FastCheck && getWorldStatus() == 10);
+	//if (!Checked)
+	//{
+	//	//異步分析戰鬥邏輯發送指令
+	//	QElapsedTimer timer; timer.start();
+	//	if (ayncBattleCommandFuture.isRunning())
+	//		return;
+
+
+	//	ayncBattleCommandFlag.store(false, std::memory_order_release);
+	//	ayncBattleCommandFuture = QtConcurrent::run([this]()
+	//		{
+	//			QMutexLocker lock(&ayncBattleCommandMutex);
+	//			asyncBattleAction();
+	//		});
+	//	//ayncBattleCommandSync.addFuture(ayncBattleCommandFuture);
+	//}
+	//else
+	//{
+	//	//異步分析戰鬥邏輯發送指令
+	//	if (ayncBattleCommandFuture.isRunning())
+	//		return;
+
+	//	ayncBattleCommandFlag.store(false, std::memory_order_release);
+	//	ayncBattleCommandFuture = QtConcurrent::run([this]()
+	//		{
+	//			QMutexLocker lock(&ayncBattleCommandMutex);
+	//			asyncBattleAction();
+	//		});
+	//	//ayncBattleCommandSync.addFuture(ayncBattleCommandFuture);
+	//}
+}
+
+void Server::asyncBattleAction()
+{
+	constexpr int MAX_DELAY = 100;
+
+	Injector& injector = Injector::getInstance();
+
+	QElapsedTimer timer; timer.start();
+
+	auto checkAllFlags = [this, &timer, &injector]()->bool
+	{
+		if (ayncBattleCommandFlag.load(std::memory_order_acquire))
+		{
+			announce("[async battle] 从外部中断的战斗等待", 7);
+			return false;
+		}
+
+		if (!getOnlineFlag())
+		{
+			announce("[async battle] 人物不在线上，忽略动作", 7);
+			return false;
+		}
+
+		if (!getBattleFlag())
+		{
+			announce("[async battle] 人物不在战斗中，忽略动作", 7);
+			return false;
+		}
+
+		if (!isEnemyAllReady.load(std::memory_order_acquire))
+		{
+			announce("[async battle] 敌方尚未准备完成，忽略动作", 7);
+			return false;
+		}
+
+		if (!injector.getEnableHash(util::kAutoBattleEnable) && !injector.getEnableHash(util::kFastBattleEnable))
+		{
+			announce("[async battle] 快战或自动战斗没有开启，忽略动作", 7);
+			return false;
+		}
+
+		if (timer.hasExpired(120000))
+		{
+			announce("[async battle] 动作超时 120 秒", 7);
+			return false;
+		}
+
+		return true;
+	};
+
+	if (!checkAllFlags())
+		return;
+
+	//自动战斗打开 或 快速战斗打开且处于战斗场景
+	bool fastChecked = injector.getEnableHash(util::kFastBattleEnable);
+	bool normalChecked = injector.getEnableHash(util::kAutoBattleEnable) || (fastChecked && getWorldStatus() == 10);
+	if (normalChecked && !checkGW(10, 4))
+	{
+		announce("[async battle] 画面不对", 7);
+		return;
+	}
+
+	auto delay = [this, &injector, &checkAllFlags](const QString& name)
+	{
+		//战斗延时
+		int delay = injector.getValueHash(util::kBattleActionDelayValue);
+		if (delay < 0)
+			delay = 0;
+		announce(QString("[async battle] 战斗 %1 开始延时 %2 毫秒").arg(name).arg(delay), 6);
+		if (delay > 1000)
+		{
+			for (int i = 0; i < delay / 1000; ++i)
+			{
+				QThread::msleep(1000);
+				if (!checkAllFlags())
+					return;
+			}
+
+			QThread::msleep(delay % 1000);
+		}
+		else if (delay > 0)
+		{
+			QThread::msleep(delay);
+		}
+	};
+
+	auto setCurrentRoundEnd = [this, normalChecked]()
+	{
+		//通知结束这一回合
+		if (normalChecked)
+		{
+			//if (Checked)
+			//mem::write<short>(injector.getProcess(), injector.getProcessModule() + 0xE21E8, 1);
+			int G = getGameStatus();
+			if (G == 4)
+			{
+				setGameStatus(5);
+				isBattleDialogReady.store(false, std::memory_order_release);
+			}
+		}
+
+		//这里不发的话一般战斗、和快战都不会再收到后续的封包 (应该?)
+		lssproto_EO_send(0);
+		lssproto_Echo_send(const_cast<char*>("hoge"));
+		isEnemyAllReady.store(false, std::memory_order_release);
+	};
+
+	battledata_t bt = {};
+
+	//人物和宠物分开发
+	if (!checkFlagState(BattleMyNo))
+	{
+		bt = getBattleData();
+		announce(QString("[async battle] 准备发出人物战斗指令"));
+		if (!hasUnMoveableStatue(bt.player.status))
+		{
+			delay(u8"人物");
+
+			//解析人物战斗逻辑并发送指令
+			if (playerDoBattleWork() == 1)
+			{
+				announce("[async battle] 人物战斗指令发送完毕");
+				if (pc.battlePetNo == -1)
+				{
+					setCurrentRoundEnd();
+					return;
+				}
+			}
+			else
+				announce("[async battle] 人物战斗指令发送失败", 7);
+		}
+		else
+		{
+			announce("[async battle] 人物在不可动作的异常状态中", 6);
+			sendBattlePlayerDoNothing();
+			announce("[async battle] 人物战斗指令发送完毕");
+			if (pc.battlePetNo == -1)
+			{
+				setCurrentRoundEnd();
+				return;
+			}
+		}
+	}
+	else
+		announce("[async battle] 人物已经出手过了，忽略动作", 7);
+
+	if (pc.battlePetNo >= 0 && pc.battlePetNo < MAX_PET)
+	{
+		if (!checkFlagState(BattleMyNo + 5))
+		{
+			bt = getBattleData();
+			announce(QString("[async battle] 准备发出宠物战斗指令"));
+			if (!hasUnMoveableStatue(bt.pet.status))
+			{
+				delay(u8"战宠");
+
+				if (petDoBattleWork() == 1)
+				{
+					announce("[async battle] 宠物战斗指令发送完毕");
+					setCurrentRoundEnd();
+				}
+				else
+					announce("[async battle] 宠物战斗指令发送失败", 7);
+			}
+			else
+			{
+				announce("[async battle] 宠物在不可动作的异常状态中", 6);
+				sendBattlePetDoNothing();
+				announce("[async battle] 宠物战斗指令发送完毕");
+				setCurrentRoundEnd();
+			}
+		}
+		else
+			announce("[async battle] 宠物已经出手过了，忽略动作", 7);
+	}
+	else
+		announce("[async battle] 无战宠，忽略战宠动作", 7);
+}
+
+//人物戰鬥
 int Server::playerDoBattleWork()
 {
 	Injector& injector = Injector::getInstance();
-
 	do
 	{
+		//自動逃跑
 		if (injector.getEnableHash(util::kAutoEscapeEnable))
 		{
 			sendBattlePlayerEscapeAct();
 			break;
 		}
 
-		int target = getBattleSelectableEnemyTarget();
+		handlePlayerBattleLogics();
 
-		sendBattlePlayerAttckAct(target);
 	} while (false);
 
 	//if (pc.battlePetNo < 0 || pc.battlePetNo >= MAX_PET)
 	//	mem::writeInt(injector.getProcess(), injector.getProcessModule() + 0xE21E4, 0, sizeof(short));
 	//else
-	//	mem::writeInt(injector.getProcess(), injector.getProcessModule() + 0xE21E4, 2, sizeof(short));
+	//	
 
-	//mem::writeInt(injector.getProcess(), injector.getProcessModule() + 0xE21E8, 1, sizeof(short));
+	//
 	return 1;
 }
 
+//寵物戰鬥
 int Server::petDoBattleWork()
 {
 	if (pc.battlePetNo < 0 || pc.battlePetNo >= MAX_PET)
 		return 0;
 
 	Injector& injector = Injector::getInstance();
-
 	do
 	{
-		if (injector.getEnableHash(util::kAutoEscapeEnable))
+		//自動逃跑
+		if (injector.getEnableHash(util::kAutoEscapeEnable) || petEscapeEnableTempFlag)
 		{
 			sendBattlePetDoNothing();
 			break;
 		}
 
-		int target = getBattleSelectableEnemyTarget();
+		handlePetBattleLogics();
 
-		int skillIndex = getGetPetSkillIndexByName(pc.battlePetNo, GetACP() == 950 ? QString("攻擊") : QString("攻击"));
-		if (skillIndex < 0)
-		{
-			sendBattlePetDoNothing();
-			break;
-		}
-
-		sendBattlePetSkillAct(skillIndex, target);
 	} while (false);
 	//mem::writeInt(injector.getProcess(), injector.getProcessModule() + 0xE21E4, 0, sizeof(short));
 	//mem::writeInt(injector.getProcess(), injector.getProcessModule() + 0xE21E8, 1, sizeof(short));
 	return 1;
 }
 
-int Server::getGetPetSkillIndexByName(int petIndex, const QString& name)
+//檢查人物血量
+bool Server::checkPlayerHp(int cmpvalue, int* target, bool useequal)
 {
-	if (!IS_ONLINE_FLAG)
+	if (useequal && (pc.hpPercent <= cmpvalue))
+	{
+		if (target)
+			*target = BattleMyNo;
+		return true;
+	}
+	else if (!useequal && (pc.hpPercent < cmpvalue))
+	{
+		if (target)
+			*target = BattleMyNo;
+		return true;
+	}
+
+	return false;
+};
+
+//檢查人物氣力
+bool Server::checkPlayerMp(int cmpvalue, int* target, bool useequal)
+{
+	if (useequal && (pc.mpPercent <= cmpvalue))
+	{
+		if (target)
+			*target = BattleMyNo;
+		return true;
+	}
+	else if (!useequal && (pc.mpPercent < cmpvalue))
+	{
+		if (target)
+			*target = BattleMyNo;
+		return true;
+	}
+
+	return  false;
+};
+
+//檢測戰寵血量
+bool Server::checkPetHp(int cmpvalue, int* target, bool useequal)
+{
+	int i = pc.battlePetNo;
+	if (i < 0 || i >= MAX_PET)
+		return false;
+
+	if (useequal && (pet[i].hpPercent <= cmpvalue) && (pet[i].level > 0) && (pet[i].maxHp > 0))
+	{
+		if (target)
+			*target = BattleMyNo + 5;
+		return true;
+	}
+	else if (!useequal && (pet[i].hpPercent < cmpvalue) && (pet[i].level > 0) && (pet[i].maxHp > 0))
+	{
+		if (target)
+			*target = BattleMyNo + 5;
+		return true;
+	}
+
+	return false;
+};
+
+//檢測隊友血量
+bool Server::checkPartyHp(int cmpvalue, int* target)
+{
+	if (!target)
+		return false;
+
+	if (!(pc.status & CHR_STATUS_PARTY) && !(pc.status & CHR_STATUS_LEADER))
+		return false;
+
+	for (int i = 0; i < MAX_PARTY; ++i)
+	{
+		if (party[i].hpPercent < cmpvalue && party[i].level > 0 && party[i].maxHp > 0 && party[i].useFlag == 1)
+		{
+			*target = i;
+			return true;
+		}
+	}
+
+	return false;
+}
+
+//檢查是否寵物是否已滿
+bool Server::isPetSpotEmpty() const
+{
+	for (int i = 0; i < MAX_PET; ++i)
+	{
+		if ((pet[i].level <= 0) || (pet[i].maxHp <= 0) || (pet[i].useFlag <= 0))
+			return false;
+	}
+
+	return true;
+}
+
+//人物戰鬥邏輯(這裡因為懶了所以寫了一坨狗屎)
+void Server::handlePlayerBattleLogics()
+{
+	using namespace util;
+	Injector& injector = Injector::getInstance();
+
+	tempCatchPetTargetIndex = -1;
+	petEscapeEnableTempFlag = false; //用於在必要的時候切換戰寵動作為逃跑模式
+
+	QStringList items;
+	battledata_t bt = getBattleData();
+	QVector<battleobject_t> battleObjects = bt.enemies;
+	QVector<battleobject_t> tempbattleObjects;
+	sortBattleUnit(battleObjects);
+
+	int target = -1;
+
+	auto checkAllieHp = [this, &bt](int cmpvalue, int* target, bool useequal)->bool
+	{
+		if (!target)
+			return false;
+
+		int min = 0;
+		int max = 9;
+		if (BattleMyNo >= 10)
+		{
+			min = 10;
+			max = 19;
+		}
+
+		QVector<battleobject_t> battleObjects = bt.objects;
+		for (const battleobject_t& obj : battleObjects)
+		{
+			if (obj.pos < min || obj.pos > max)
+				continue;
+
+			if (!useequal && (obj.hpPercent < cmpvalue))
+			{
+				*target = obj.pos;
+				return true;
+			}
+			else if (useequal && (obj.hpPercent <= cmpvalue))
+			{
+				*target = obj.pos;
+				return true;
+			}
+		}
+
+		return false;
+	};
+
+	//自動捉寵
+	do
+	{
+		bool autoCatch = injector.getEnableHash(util::kAutoCatchEnable);
+		if (!autoCatch)
+			break;
+
+		if (isPetSpotEmpty())
+		{
+			petEscapeEnableTempFlag = true;
+			sendBattlePlayerEscapeAct();
+			return;
+		}
+
+		int tempTarget = -1;
+
+		//檢查等級條件
+		bool levelLimitEnable = injector.getEnableHash(util::kBattleCatchTargetLevelEnable);
+		if (levelLimitEnable)
+		{
+			int levelLimit = injector.getValueHash(util::kBattleCatchTargetLevelValue);
+			if (levelLimit <= 0 || levelLimit > 255)
+				levelLimit = 1;
+
+			if (matchBattleEnemyByLevel(levelLimit, battleObjects, &tempbattleObjects))
+			{
+				battleObjects = tempbattleObjects;
+			}
+			else
+				battleObjects.clear();
+		}
+
+		//檢查最大血量條件
+		bool maxHpLimitEnable = injector.getEnableHash(util::kBattleCatchTargetMaxHpEnable);
+		if (maxHpLimitEnable && !battleObjects.isEmpty())
+		{
+			int maxHpLimit = injector.getValueHash(util::kBattleCatchTargetMaxHpValue);
+			if (matchBattleEnemyByMaxHp(maxHpLimit, battleObjects, &tempbattleObjects))
+			{
+				battleObjects = tempbattleObjects;
+			}
+			else
+				battleObjects.clear();
+		}
+
+		//檢查名稱條件
+		QStringList targetList = injector.getStringHash(util::kBattleCatchPetNameString).split(util::rexOR, Qt::SkipEmptyParts);
+		if (!targetList.isEmpty() && !battleObjects.isEmpty())
+		{
+			bool bret = false;
+			for (const QString& it : targetList)
+			{
+				if (matchBattleEnemyByName(it, true, battleObjects, &tempbattleObjects))
+				{
+					if (!bret)
+						bret = true;
+					battleObjects = tempbattleObjects;
+				}
+			}
+
+			if (!bret)
+				battleObjects.clear();
+		}
+
+		//目標不存在的情況下
+		if (battleObjects.isEmpty())
+		{
+			int catchMode = injector.getValueHash(util::kBattleCatchModeValue);
+			if (0 == catchMode)
+			{
+				//遇敵逃跑
+				petEscapeEnableTempFlag = true;
+				sendBattlePlayerEscapeAct();
+				return;
+			}
+
+			//遇敵攻擊 (跳出while 往下檢查其他常規動作)
+			break;
+		}
+
+		battleobject_t obj = battleObjects.first();
+		battleObjects.pop_front();
+		tempTarget = obj.pos;
+		tempCatchPetTargetIndex = tempTarget;
+
+		//允許人物動作降低血量
+		bool allowPlayerAction = injector.getEnableHash(util::kBattleCatchPlayerMagicEnable);
+		int hpLimit = injector.getValueHash(util::kBattleCatchTargetMagicHpValue);
+		if (allowPlayerAction && (obj.hpPercent >= hpLimit))
+		{
+			int actionType = injector.getValueHash(util::kBattleCatchPlayerMagicValue);
+			if (actionType == 1)
+			{
+				sendBattlePlayerDefenseAct();
+				return;
+			}
+			else if (actionType == 2)
+			{
+				sendBattlePlayerEscapeAct();
+				return;
+			}
+
+			if (actionType == 0)
+			{
+				if (tempTarget >= 0 && tempTarget < MAX_ENEMY)
+				{
+					sendBattlePlayerAttackAct(tempTarget);
+					return;
+				}
+			}
+			else
+			{
+				int magicIndex = actionType - 3;
+				bool isProfession = magicIndex > (MAX_MAGIC - 1);
+				if (isProfession) //0 ~ MAX_PROFESSION_SKILL
+				{
+					magicIndex -= MAX_MAGIC;
+					target = -1;
+					if (fixPlayerTargetBySkillIndex(magicIndex, tempTarget, &target) && (target >= 0 && target <= 22))
+					{
+						if (isPlayerMpEnoughForSkill(magicIndex))
+						{
+							sendBattlePlayerJobSkillAct(magicIndex, target);
+							return;
+						}
+						else
+						{
+							tempTarget = getBattleSelectableEnemyTarget(bt);
+							sendBattlePlayerAttackAct(tempTarget);
+						}
+					}
+				}
+				else
+				{
+					//如果敵方已經中狀態，則尋找下一個目標
+					for (;;)
+					{
+						if (hasBadStatus(obj.status))
+						{
+							if (!battleObjects.isEmpty())
+							{
+								obj = battleObjects.front();
+								tempTarget = obj.pos;
+								battleObjects.pop_front();
+								continue;
+							}
+							else
+							{
+								sendBattlePlayerDefenseAct();
+								return;
+							}
+						}
+						else
+							break;
+					}
+
+					target = -1;
+					if (fixPlayerTargetByMagicIndex(magicIndex, tempTarget, &target) && (target >= 0 && target <= 22))
+					{
+						if (isPlayerMpEnoughForMagic(magicIndex))
+						{
+							sendBattlePlayerMagicAct(magicIndex, target);
+							return;
+						}
+						else
+							break;
+					}
+				}
+			}
+		}
+
+		//允許人物道具降低血量
+		bool allowPlayerItem = injector.getEnableHash(util::kBattleCatchPlayerItemEnable);
+		hpLimit = injector.getValueHash(util::kBattleCatchTargetItemHpValue);
+		if (allowPlayerItem && (obj.hpPercent >= hpLimit))
+		{
+			int itemIndex = -1;
+			QString text = injector.getStringHash(util::kBattleCatchPlayerItemString).simplified();
+			items = text.split(util::rexOR, Qt::SkipEmptyParts);
+			for (const QString& str : items)
+			{
+				itemIndex = getItemIndexByName(str);
+				if (itemIndex != -1)
+					break;
+			}
+
+			target = -1;
+			if (itemIndex != -1)
+			{
+				if (fixPlayerTargetByItemIndex(itemIndex, tempTarget, &target) && (target >= 0 && target <= 21))
+				{
+					sendBattlePlayerItemAct(itemIndex, target);
+					return;
+				}
+			}
+		}
+
+		sendBattlePlayerCatchPetAct(tempTarget);
+		return;
+	} while (false);
+
+	//鎖定逃跑
+	do
+	{
+		bool lockEscapeEnable = injector.getEnableHash(util::kLockEscapeEnable);
+		if (!lockEscapeEnable)
+			break;
+
+		QString text = injector.getStringHash(util::kLockEscapeString);
+		QStringList targetList = text.split(util::rexOR, Qt::SkipEmptyParts);
+		if (targetList.isEmpty())
+			break;
+
+		for (const QString& it : targetList)
+		{
+			if (matchBattleEnemyByName(it, true, battleObjects, &tempbattleObjects))
+			{
+				sendBattlePlayerEscapeAct();
+				petEscapeEnableTempFlag = true;
+				return;
+			}
+		}
+	} while (false);
+
+	//鎖定攻擊
+	do
+	{
+		bool lockAttackEnable = injector.getEnableHash(util::kLockAttackEnable);
+		if (!lockAttackEnable)
+			break;
+
+		QString text = injector.getStringHash(util::kLockAttackString);
+		QStringList targetList = text.split(util::rexOR, Qt::SkipEmptyParts);
+		if (targetList.isEmpty())
+			break;
+
+		bool bret = false;
+		for (const QString& it : targetList)
+		{
+			if (matchBattleEnemyByName(it, true, battleObjects, &tempbattleObjects))
+			{
+				bret = true;
+				battleObjects = tempbattleObjects;
+				target = battleObjects.front().pos;
+				break;
+			}
+		}
+
+		if (bret)
+		{
+			IS_LOCKATTACK_ESCAPE_DISABLE = true;
+			break;
+		}
+
+		if (IS_LOCKATTACK_ESCAPE_DISABLE)
+			break;
+
+		if (injector.getEnableHash(util::kBattleNoEscapeWhileLockPetEnable))
+			break;
+
+		sendBattlePlayerEscapeAct();
+		petEscapeEnableTempFlag = true;
+		return;
+	} while (false);
+
+	//落馬逃跑
+	do
+	{
+		bool fallEscapeEnable = injector.getEnableHash(util::kFallDownEscapeEnable);
+		if (!fallEscapeEnable)
+			break;
+
+		if (bt.player.rideFlag != 0)
+			break;
+
+		sendBattlePlayerEscapeAct();
+		petEscapeEnableTempFlag = true;
+		return;
+	} while (false);
+
+	//道具復活
+	do
+	{
+		bool itemRevive = injector.getEnableHash(util::kBattleItemReviveEnable);
+		if (!itemRevive)
+			break;
+
+		int tempTarget = -1;
+		bool ok = false;
+		unsigned int targetFlags = injector.getValueHash(util::kBattleItemReviveTargetValue);
+		if (targetFlags & kSelectPet)
+		{
+			if (checkPetHp(NULL, &tempTarget, true))
+			{
+				ok = true;
+			}
+		}
+
+		if (!ok)
+		{
+			if ((targetFlags & kSelectAllieAny) || (targetFlags & kSelectAllieAll))
+			{
+				if (checkAllieHp(NULL, &tempTarget, true))
+				{
+					ok = true;
+				}
+			}
+		}
+
+
+		if (!ok)
+			break;
+
+		QString text = injector.getStringHash(util::kBattleItemReviveItemString).simplified();
+		if (text.isEmpty())
+			break;
+
+		items = text.split(util::rexOR, Qt::SkipEmptyParts);
+		if (items.isEmpty())
+			break;
+
+		int itemIndex = -1;
+		for (const QString& str : items)
+		{
+			itemIndex = getItemIndexByName(str);
+			if (itemIndex != -1)
+				break;
+		}
+
+		if (itemIndex == -1)
+			break;
+
+		target = -1;
+		if (fixPlayerTargetByItemIndex(itemIndex, tempTarget, &target) && (target >= 0 && target < MAX_ENEMY))
+		{
+			sendBattlePlayerItemAct(itemIndex, target);
+			return;
+		}
+	} while (false);
+
+	//精靈復活
+	do
+	{
+		bool magicRevive = injector.getEnableHash(util::kBattleMagicReviveEnable);
+		if (!magicRevive)
+			break;
+
+		int tempTarget = -1;
+		bool ok = false;
+		unsigned int targetFlags = injector.getValueHash(util::kBattleMagicReviveTargetValue);
+		if (targetFlags & kSelectPet)
+		{
+			if (checkPetHp(NULL, &tempTarget, true))
+			{
+				ok = true;
+			}
+		}
+
+		if (!ok)
+		{
+			if ((targetFlags & kSelectAllieAny) || (targetFlags & kSelectAllieAll))
+			{
+				if (checkAllieHp(NULL, &tempTarget, true))
+				{
+					ok = true;
+				}
+			}
+		}
+
+		if (!ok)
+			break;
+
+		int magicIndex = injector.getValueHash(util::kBattleMagicReviveMagicValue);
+		if (magicIndex <0 || magicIndex > MAX_MAGIC)
+			break;
+
+		bool isProfession = magicIndex > (3 + MAX_MAGIC - 1);
+		if (isProfession) //0 ~ MAX_PROFESSION_SKILL
+		{
+			magicIndex -= (3 + MAX_MAGIC);
+
+		}
+		else
+		{
+			target = -1;
+			if (fixPlayerTargetByMagicIndex(magicIndex, tempTarget, &target) && (target >= 0 && target < MAX_ENEMY))
+			{
+				if (isPlayerMpEnoughForMagic(magicIndex))
+				{
+					sendBattlePlayerMagicAct(magicIndex, target);
+					return;
+				}
+				else
+				{
+					break;
+				}
+			}
+		}
+	} while (false);
+
+	//道具補氣
+	do
+	{
+		bool itemHealMp = injector.getEnableHash(util::kBattleItemHealMpEnable);
+		if (!itemHealMp)
+			break;
+
+		int tempTarget = -1;
+		//bool ok = false;
+		int charMpPercent = injector.getValueHash(util::kBattleItemHealMpValue);
+		if (!checkPlayerMp(charMpPercent, &tempTarget, true) && BattleMyMp > 0)
+		{
+			break;
+		}
+
+		QString text = injector.getStringHash(util::kBattleItemHealMpItemString).simplified();
+		if (text.isEmpty())
+			break;
+
+		items = text.split(util::rexOR, Qt::SkipEmptyParts);
+		if (items.isEmpty())
+			break;
+
+		int itemIndex = -1;
+		for (const QString& str : items)
+		{
+			itemIndex = getItemIndexByName(str);
+			if (itemIndex != -1)
+				break;
+		}
+
+		if (itemIndex == -1)
+			break;
+
+		target = -1;
+		if (fixPlayerTargetByItemIndex(itemIndex, tempTarget, &target) && (target == BattleMyNo))
+		{
+			sendBattlePlayerItemAct(itemIndex, target);
+			return;
+		}
+	} while (false);
+
+	//指定回合
+	do
+	{
+		int atRoundIndex = injector.getValueHash(util::kBattleCharRoundActionRoundValue);
+		if (atRoundIndex <= 0)
+			break;
+
+		if (atRoundIndex != BattleCliTurnNo + 1)
+			break;
+
+		int tempTarget = -1;
+		///bool ok = false;
+
+		int enemy = injector.getValueHash(util::kBattleCharRoundActionEnemyValue);
+		if (enemy != 0)
+		{
+			if (bt.enemies.size() <= enemy) //敵人 <= 設置數量
+			{
+				break;
+			}
+		}
+
+		int level = injector.getValueHash(util::kBattleCharRoundActionLevelValue);
+		if (level != 0)
+		{
+			auto minIt = std::min_element(bt.enemies.begin(), bt.enemies.end(),
+				[](const battleobject_t& obj1, const battleobject_t& obj2)
+				{
+					return obj1.level < obj2.level;
+				});
+
+			if (minIt->level <= (level * 10))
+			{
+				break;
+			}
+		}
+
+		int actionType = injector.getValueHash(util::kBattleCharRoundActionTypeValue);
+		if (actionType == 1)
+		{
+			sendBattlePlayerDefenseAct();
+			return;
+		}
+		else if (actionType == 2)
+		{
+			sendBattlePlayerEscapeAct();
+			return;
+		}
+
+		unsigned int targetFlags = injector.getValueHash(util::kBattleCharRoundActionTargetValue);
+		if (targetFlags & kSelectEnemyAny)
+		{
+			if (target == -1)
+				tempTarget = getBattleSelectableEnemyTarget(bt);
+			else
+				tempTarget = target;
+		}
+		else if (targetFlags & kSelectEnemyAll)
+		{
+			tempTarget = 21;
+		}
+		else if (targetFlags & kSelectEnemyFront)
+		{
+			if (target == -1)
+				tempTarget = getBattleSelectableEnemyOneRowTarget(bt, true) + 20;
+			else
+				tempTarget = target + 20;
+
+		}
+		else if (targetFlags & kSelectEnemyBack)
+		{
+			if (target == -1)
+				tempTarget = getBattleSelectableEnemyOneRowTarget(bt, false) + 20;
+			else
+				tempTarget = target + 20;
+		}
+		else if (targetFlags & kSelectSelf)
+		{
+			tempTarget = BattleMyNo;
+		}
+		else if (targetFlags & kSelectPet)
+		{
+			tempTarget = BattleMyNo + 5;
+		}
+		else if ((targetFlags & kSelectAllieAny))
+		{
+			tempTarget = getBattleSelectableAllieTarget(bt);
+		}
+		else if (targetFlags & kSelectAllieAll)
+		{
+			tempTarget = 20;
+		}
+		else if (targetFlags & kSelectLeader) {}
+		else if (targetFlags & kSelectLeaderPet) {}
+		else if (targetFlags & kSelectTeammate1) {}
+		else if (targetFlags & kSelectTeammate1Pet) {}
+		else if (targetFlags & kSelectTeammate2) {}
+		else if (targetFlags & kSelectTeammate2Pet) {}
+		else if (targetFlags & kSelectTeammate3) {}
+		else if (targetFlags & kSelectTeammate3Pet) {}
+		else if (targetFlags & kSelectTeammate4) {}
+		else if (targetFlags & kSelectTeammate4Pet) {}
+
+		if (actionType == 0)
+		{
+			if (tempTarget >= 0 && tempTarget < MAX_ENEMY)
+			{
+				sendBattlePlayerAttackAct(tempTarget);
+				return;
+			}
+			else
+			{
+				tempTarget = getBattleSelectableEnemyTarget(bt);
+				if (tempTarget == -1)
+					break;
+
+				sendBattlePlayerAttackAct(tempTarget);
+				return;
+			}
+		}
+		else
+		{
+			int magicIndex = actionType - 3;
+			bool isProfession = magicIndex > (MAX_MAGIC - 1);
+			if (isProfession) //0 ~ MAX_PROFESSION_SKILL
+			{
+				magicIndex -= MAX_MAGIC;
+
+				if (fixPlayerTargetBySkillIndex(magicIndex, tempTarget, &target) && (target >= 0 && target <= 22))
+				{
+					if (isPlayerMpEnoughForSkill(magicIndex))
+					{
+						sendBattlePlayerJobSkillAct(magicIndex, target);
+						return;
+					}
+					else
+					{
+						tempTarget = getBattleSelectableEnemyTarget(bt);
+						sendBattlePlayerAttackAct(tempTarget);
+					}
+				}
+			}
+			else
+			{
+
+				if (fixPlayerTargetByMagicIndex(magicIndex, tempTarget, &target) && (target >= 0 && target <= 22))
+				{
+					if (isPlayerMpEnoughForMagic(magicIndex))
+					{
+						sendBattlePlayerMagicAct(magicIndex, target);
+						return;
+					}
+					else
+					{
+						break;
+					}
+				}
+			}
+		}
+	} while (false);
+
+	//間隔回合
+	do
+	{
+		bool crossActionEnable = injector.getEnableHash(util::kCrossActionCharEnable);
+		if (!crossActionEnable)
+			break;
+
+		int tempTarget = -1;
+
+		int round = injector.getValueHash(util::kBattleCharCrossActionRoundValue) + 1;
+		if ((BattleCliTurnNo + 1) % round)
+		{
+			break;
+		}
+
+		int actionType = injector.getValueHash(util::kBattleCharCrossActionTypeValue);
+		if (actionType == 1)
+		{
+			sendBattlePlayerDefenseAct();
+			return;
+		}
+		else if (actionType == 2)
+		{
+			sendBattlePlayerEscapeAct();
+			return;
+		}
+
+		unsigned int targetFlags = injector.getValueHash(util::kBattleCharCrossActionTargetValue);
+		if (targetFlags & kSelectEnemyAny)
+		{
+			if (target == -1)
+				tempTarget = getBattleSelectableEnemyTarget(bt);
+			else
+				tempTarget = target;
+		}
+		else if (targetFlags & kSelectEnemyAll)
+		{
+			tempTarget = 21;
+		}
+		else if (targetFlags & kSelectEnemyFront)
+		{
+			if (target == -1)
+				tempTarget = getBattleSelectableEnemyOneRowTarget(bt, true) + 20;
+			else
+				tempTarget = target + 20;
+		}
+		else if (targetFlags & kSelectEnemyBack)
+		{
+			if (target == -1)
+				tempTarget = getBattleSelectableEnemyOneRowTarget(bt, false) + 20;
+			else
+				tempTarget = target + 20;
+		}
+		else if (targetFlags & kSelectSelf)
+		{
+			tempTarget = BattleMyNo;
+		}
+		else if (targetFlags & kSelectPet)
+		{
+			tempTarget = BattleMyNo + 5;
+		}
+		else if ((targetFlags & kSelectAllieAny))
+		{
+			tempTarget = getBattleSelectableAllieTarget(bt);
+		}
+		else if (targetFlags & kSelectAllieAll)
+		{
+			tempTarget = 20;
+		}
+		else if (targetFlags & kSelectLeader) {}
+		else if (targetFlags & kSelectLeaderPet) {}
+		else if (targetFlags & kSelectTeammate1) {}
+		else if (targetFlags & kSelectTeammate1Pet) {}
+		else if (targetFlags & kSelectTeammate2) {}
+		else if (targetFlags & kSelectTeammate2Pet) {}
+		else if (targetFlags & kSelectTeammate3) {}
+		else if (targetFlags & kSelectTeammate3Pet) {}
+		else if (targetFlags & kSelectTeammate4) {}
+		else if (targetFlags & kSelectTeammate4Pet) {}
+
+		if (actionType == 0)
+		{
+			if (tempTarget >= 0 && tempTarget < MAX_ENEMY)
+			{
+				sendBattlePlayerAttackAct(tempTarget);
+				return;
+			}
+			else
+			{
+				tempTarget = getBattleSelectableEnemyTarget(bt);
+				if (tempTarget == -1)
+					break;
+
+				sendBattlePlayerAttackAct(tempTarget);
+				return;
+			}
+		}
+		else
+		{
+			int magicIndex = actionType - 3;
+			bool isProfession = magicIndex > (MAX_MAGIC - 1);
+			if (isProfession) //0 ~ MAX_PROFESSION_SKILL
+			{
+				magicIndex -= MAX_MAGIC;
+
+				if (fixPlayerTargetBySkillIndex(magicIndex, tempTarget, &target) && (target >= 0 && target <= 22))
+				{
+					if (isPlayerMpEnoughForSkill(magicIndex))
+					{
+						sendBattlePlayerJobSkillAct(magicIndex, target);
+						return;
+					}
+					else
+					{
+						tempTarget = getBattleSelectableEnemyTarget(bt);
+						sendBattlePlayerAttackAct(tempTarget);
+					}
+				}
+			}
+			else
+			{
+
+				if (fixPlayerTargetByMagicIndex(magicIndex, tempTarget, &target) && (target >= 0 && target <= 22))
+				{
+					if (isPlayerMpEnoughForMagic(magicIndex))
+					{
+						sendBattlePlayerMagicAct(magicIndex, target);
+						return;
+					}
+					else
+					{
+						break;
+					}
+				}
+			}
+		}
+	} while (false);
+
+	//精靈補血
+	do
+	{
+		bool magicHeal = injector.getEnableHash(util::kBattleMagicHealEnable);
+		if (!magicHeal)
+			break;
+
+		int tempTarget = -1;
+		bool ok = false;
+		unsigned int targetFlags = injector.getValueHash(util::kBattleMagicHealTargetValue);
+		int charPercent = injector.getValueHash(util::kBattleMagicHealCharValue);
+		int petPercent = injector.getValueHash(util::kBattleMagicHealPetValue);
+		int alliePercent = injector.getValueHash(util::kBattleMagicHealAllieValue);
+
+		if (targetFlags & kSelectSelf)
+		{
+			if (checkPlayerHp(charPercent, &tempTarget))
+			{
+				ok = true;
+			}
+		}
+
+		if (!ok)
+		{
+			if (targetFlags & kSelectPet)
+			{
+				if (checkPetHp(petPercent, &tempTarget))
+				{
+					ok = true;
+				}
+			}
+		}
+
+		if (!ok)
+		{
+			if ((targetFlags & kSelectAllieAny) || (targetFlags & kSelectAllieAll))
+			{
+				if (checkAllieHp(alliePercent, &tempTarget, false))
+				{
+					ok = true;
+				}
+			}
+		}
+
+		if (!ok)
+			break;
+
+		int magicIndex = injector.getValueHash(util::kBattleMagicHealMagicValue);
+		if (magicIndex < 0 || magicIndex > MAX_MAGIC)
+			break;
+
+		bool isProfession = magicIndex > (MAX_MAGIC - 1);
+		if (isProfession) //0 ~ MAX_PROFESSION_SKILL
+		{
+			magicIndex -= MAX_MAGIC;
+			target = -1;
+			if (fixPlayerTargetBySkillIndex(magicIndex, tempTarget, &target) && (target >= 0 && target <= 22))
+			{
+				if (isPlayerMpEnoughForSkill(magicIndex))
+				{
+					sendBattlePlayerJobSkillAct(magicIndex, target);
+					return;
+				}
+				else
+				{
+					tempTarget = getBattleSelectableEnemyTarget(bt);
+					sendBattlePlayerAttackAct(tempTarget);
+				}
+			}
+		}
+		else
+		{
+			target = -1;
+			if (fixPlayerTargetByMagicIndex(magicIndex, tempTarget, &target) && (target >= 0 && target <= 21))
+			{
+				if (isPlayerMpEnoughForMagic(magicIndex))
+				{
+					sendBattlePlayerMagicAct(magicIndex, target);
+					return;
+				}
+				else
+				{
+					break;
+				}
+			}
+		}
+	} while (false);
+
+	//道具補血
+	do
+	{
+		bool itemHeal = injector.getEnableHash(util::kBattleItemHealEnable);
+		if (!itemHeal)
+			break;
+
+		int tempTarget = -1;
+		bool ok = false;
+
+		unsigned int targetFlags = injector.getValueHash(util::kBattleItemHealTargetValue);
+		int charPercent = injector.getValueHash(util::kBattleItemHealCharValue);
+		int petPercent = injector.getValueHash(util::kBattleItemHealPetValue);
+		int alliePercent = injector.getValueHash(util::kBattleItemHealAllieValue);
+		if (targetFlags & kSelectSelf)
+		{
+			if (checkPlayerHp(charPercent, &tempTarget))
+			{
+				ok = true;
+			}
+		}
+
+		if (!ok)
+		{
+			if (targetFlags & kSelectPet)
+			{
+				if (checkPetHp(petPercent, &tempTarget))
+				{
+					ok = true;
+				}
+			}
+		}
+
+		if (!ok)
+		{
+			if ((targetFlags & kSelectAllieAny) || (targetFlags & kSelectAllieAll))
+			{
+				if (checkAllieHp(alliePercent, &tempTarget, false))
+				{
+					ok = true;
+				}
+			}
+		}
+
+		if (!ok)
+			break;
+
+		int itemIndex = -1;
+		bool meatProiory = injector.getEnableHash(util::kBattleItemHealMeatPriorityEnable);
+		if (meatProiory)
+		{
+			itemIndex = getItemIndexByName(u8"肉", false, u8"耐久力");
+		}
+
+		if (itemIndex == -1)
+		{
+			QString text = injector.getStringHash(util::kBattleItemHealItemString).simplified();
+			if (text.isEmpty())
+				break;
+
+			items = text.split(util::rexOR, Qt::SkipEmptyParts);
+			if (items.isEmpty())
+				break;
+
+			for (const QString& str : items)
+			{
+				itemIndex = getItemIndexByName(str);
+				if (itemIndex != -1)
+					break;
+			}
+		}
+
+		if (itemIndex == -1)
+			break;
+
+		target = -1;
+		if (fixPlayerTargetByItemIndex(itemIndex, tempTarget, &target) && (target >= 0 && target <= 21))
+		{
+			sendBattlePlayerItemAct(itemIndex, target);
+			return;
+		}
+	} while (false);
+
+	//一般動作
+	do
+	{
+		int tempTarget = -1;
+		//bool ok = false;
+
+		int enemy = injector.getValueHash(util::kBattleCharNormalActionEnemyValue);
+		if (enemy != 0)
+		{
+			if (bt.enemies.size() <= enemy) //敵人 <= 設置數量
+			{
+				break;
+			}
+		}
+
+		int level = injector.getValueHash(util::kBattleCharNormalActionLevelValue);
+		if (level != 0)
+		{
+			auto minIt = std::min_element(bt.enemies.begin(), bt.enemies.end(),
+				[](const battleobject_t& obj1, const battleobject_t& obj2)
+				{
+					return obj1.level < obj2.level;
+				});
+
+			if (minIt->level <= (level * 10))
+			{
+				break;
+			}
+		}
+
+		int actionType = injector.getValueHash(util::kBattleCharNormalActionTypeValue);
+		if (actionType == 1)
+		{
+			sendBattlePlayerDefenseAct();
+			return;
+		}
+		else if (actionType == 2)
+		{
+			sendBattlePlayerEscapeAct();
+			return;
+		}
+
+		unsigned int targetFlags = injector.getValueHash(util::kBattleCharNormalActionTargetValue);
+		if (targetFlags & kSelectEnemyAny)
+		{
+			if (target == -1)
+				tempTarget = getBattleSelectableEnemyTarget(bt);
+			else
+				tempTarget = target;
+		}
+		else if (targetFlags & kSelectEnemyAll)
+		{
+			tempTarget = 21;
+		}
+		else if (targetFlags & kSelectEnemyFront)
+		{
+			if (target == -1)
+				tempTarget = getBattleSelectableEnemyOneRowTarget(bt, true) + 20;
+			else
+				tempTarget = target + 20;
+		}
+		else if (targetFlags & kSelectEnemyBack)
+		{
+			if (target == -1)
+				tempTarget = getBattleSelectableEnemyOneRowTarget(bt, false) + 20;
+			else
+				tempTarget = target + 20;
+		}
+		else if (targetFlags & kSelectSelf)
+		{
+			tempTarget = BattleMyNo;
+		}
+		else if (targetFlags & kSelectPet)
+		{
+			tempTarget = BattleMyNo + 5;
+		}
+		else if ((targetFlags & kSelectAllieAny))
+		{
+			tempTarget = getBattleSelectableAllieTarget(bt);
+		}
+		else if (targetFlags & kSelectAllieAll)
+		{
+			tempTarget = 20;
+		}
+		else if (targetFlags & kSelectLeader) {}
+		else if (targetFlags & kSelectLeaderPet) {}
+		else if (targetFlags & kSelectTeammate1) {}
+		else if (targetFlags & kSelectTeammate1Pet) {}
+		else if (targetFlags & kSelectTeammate2) {}
+		else if (targetFlags & kSelectTeammate2Pet) {}
+		else if (targetFlags & kSelectTeammate3) {}
+		else if (targetFlags & kSelectTeammate3Pet) {}
+		else if (targetFlags & kSelectTeammate4) {}
+		else if (targetFlags & kSelectTeammate4Pet) {}
+
+		if (actionType == 0)
+		{
+			if (tempTarget >= 0 && tempTarget < MAX_ENEMY)
+			{
+				sendBattlePlayerAttackAct(tempTarget);
+				return;
+			}
+			else
+			{
+				tempTarget = getBattleSelectableEnemyTarget(bt);
+				if (tempTarget == -1)
+					break;
+
+				sendBattlePlayerAttackAct(tempTarget);
+				return;
+			}
+		}
+		else
+		{
+			int magicIndex = actionType - 3;
+			bool isProfession = magicIndex > (MAX_MAGIC - 1);
+			if (isProfession) //0 ~ MAX_PROFESSION_SKILL
+			{
+				magicIndex -= MAX_MAGIC;
+
+				if (fixPlayerTargetBySkillIndex(magicIndex, tempTarget, &target) && (target >= 0 && target <= 22))
+				{
+					if (isPlayerMpEnoughForSkill(magicIndex))
+					{
+						sendBattlePlayerJobSkillAct(magicIndex, target);
+						return;
+					}
+					else
+					{
+						tempTarget = getBattleSelectableEnemyTarget(bt);
+						sendBattlePlayerAttackAct(tempTarget);
+					}
+				}
+			}
+			else
+			{
+
+				if (fixPlayerTargetByMagicIndex(magicIndex, tempTarget, &target) && (target >= 0 && target <= 22))
+				{
+					if (isPlayerMpEnoughForMagic(magicIndex))
+					{
+						sendBattlePlayerMagicAct(magicIndex, target);
+						return;
+					}
+					else
+					{
+						tempTarget = getBattleSelectableEnemyTarget(bt);
+						sendBattlePlayerAttackAct(tempTarget);
+					}
+				}
+			}
+		}
+	} while (false);
+
+	sendBattlePlayerDoNothing();
+}
+
+//寵物戰鬥邏輯(這裡因為懶了所以寫了一坨狗屎)
+void Server::handlePetBattleLogics()
+{
+	using namespace util;
+	Injector& injector = Injector::getInstance();
+	battledata_t bt = getBattleData();
+	QVector<battleobject_t> battleObjects = bt.enemies;
+	QVector<battleobject_t> tempbattleObjects;
+	sortBattleUnit(battleObjects);
+	int target = -1;
+
+	//自動捉寵
+	do
+	{
+		bool autoCatch = injector.getEnableHash(util::kAutoCatchEnable);
+		if (!autoCatch)
+			break;
+
+		//允許寵物動作
+		bool allowPetAction = injector.getEnableHash(util::kBattleCatchPetSkillEnable);
+		if (!allowPetAction)
+		{
+			sendBattlePetDoNothing(); //避免有人會忘記改成防禦，默認只要打開捉寵且沒設置動作就什麼都不做
+			return;
+		}
+
+		int actionType = injector.getValueHash(util::kBattleCatchPetSkillValue);
+
+		int skillIndex = actionType;
+		if (skillIndex < 0 || skillIndex > MAX_SKILL)
+			break;
+
+		int tempTarget = tempCatchPetTargetIndex;
+		if ((tempTarget != -1) && fixPetTargetBySkillIndex(skillIndex, tempTarget, &target) && (target >= 0 && target <= 22))
+		{
+			sendBattlePetSkillAct(skillIndex, target);
+			return;
+		}
+		sendBattlePetDoNothing(); //避免有人會忘記改成防禦，默認只要打開捉寵且動作失敗就什麼都不做
+		return;
+	} while (false);
+
+	//鎖定攻擊
+	do
+	{
+		bool lockAttackEnable = injector.getEnableHash(util::kLockAttackEnable);
+		if (!lockAttackEnable)
+			break;
+
+		QString text = injector.getStringHash(util::kLockAttackString);
+		QStringList targetList = text.split(util::rexOR, Qt::SkipEmptyParts);
+		if (targetList.isEmpty())
+			break;
+
+		bool bret = false;
+		for (const QString& it : targetList)
+		{
+			if (matchBattleEnemyByName(it, true, battleObjects, &tempbattleObjects))
+			{
+				bret = true;
+				battleObjects = tempbattleObjects;
+				target = battleObjects.front().pos;
+				break;
+			}
+		}
+
+		if (bret)
+			break;
+
+		sendBattlePetDoNothing();
+		return;
+	} while (false);
+
+	//指定回合
+	do
+	{
+		int atRoundIndex = injector.getValueHash(util::kBattlePetRoundActionEnemyValue);
+		if (atRoundIndex <= 0)
+			break;
+
+		int tempTarget = -1;
+		//bool ok = false;
+
+		int enemy = injector.getValueHash(util::kBattlePetRoundActionLevelValue);
+		if (enemy != 0)
+		{
+			if (bt.enemies.size() <= enemy) //敵人 <= 設置數量
+			{
+				break;
+			}
+		}
+
+		int level = injector.getValueHash(util::kBattleCharRoundActionLevelValue);
+		if (level != 0)
+		{
+			auto minIt = std::min_element(bt.enemies.begin(), bt.enemies.end(),
+				[](const battleobject_t& obj1, const battleobject_t& obj2)
+				{
+					return obj1.level < obj2.level;
+				});
+
+			if (minIt->level <= (level * 10))
+			{
+				break;
+			}
+		}
+
+		unsigned int targetFlags = injector.getValueHash(util::kBattlePetRoundActionTargetValue);
+		if (targetFlags & kSelectEnemyAny)
+		{
+			if (target == -1)
+				tempTarget = getBattleSelectableEnemyTarget(bt);
+			else
+				tempTarget = target;
+		}
+		else if (targetFlags & kSelectEnemyAll)
+		{
+			tempTarget = 21;
+		}
+		else if (targetFlags & kSelectEnemyFront)
+		{
+			if (target == -1)
+				tempTarget = getBattleSelectableEnemyOneRowTarget(bt, true) + 20;
+			else
+				tempTarget = target;
+		}
+		else if (targetFlags & kSelectEnemyBack)
+		{
+			if (target == -1)
+				tempTarget = getBattleSelectableEnemyOneRowTarget(bt, false) + 20;
+			else
+				tempTarget = target;
+		}
+		else if (targetFlags & kSelectSelf)
+		{
+			tempTarget = BattleMyNo;
+		}
+		else if (targetFlags & kSelectPet)
+		{
+			tempTarget = BattleMyNo + 5;
+		}
+		else if ((targetFlags & kSelectAllieAny))
+		{
+			tempTarget = getBattleSelectableAllieTarget(bt);
+		}
+		else if (targetFlags & kSelectAllieAll)
+		{
+			tempTarget = 20;
+		}
+		else if (targetFlags & kSelectLeader) {}
+		else if (targetFlags & kSelectLeaderPet) {}
+		else if (targetFlags & kSelectTeammate1) {}
+		else if (targetFlags & kSelectTeammate1Pet) {}
+		else if (targetFlags & kSelectTeammate2) {}
+		else if (targetFlags & kSelectTeammate2Pet) {}
+		else if (targetFlags & kSelectTeammate3) {}
+		else if (targetFlags & kSelectTeammate3Pet) {}
+		else if (targetFlags & kSelectTeammate4) {}
+		else if (targetFlags & kSelectTeammate4Pet) {}
+
+		int actionType = injector.getValueHash(util::kBattlePetRoundActionTypeValue);
+
+		int skillIndex = actionType;
+		if (skillIndex < 0 || skillIndex > MAX_SKILL)
+			break;
+
+		if (fixPetTargetBySkillIndex(skillIndex, tempTarget, &target) && (target >= 0 && target <= 22))
+		{
+			sendBattlePetSkillAct(skillIndex, target);
+			return;
+		}
+	} while (false);
+
+	//間隔回合
+	do
+	{
+		bool crossActionEnable = injector.getEnableHash(util::kCrossActionPetEnable);
+		if (!crossActionEnable)
+			break;
+
+		int tempTarget = -1;
+
+		int round = injector.getValueHash(util::kBattlePetCrossActionRoundValue) + 1;
+		if ((BattleCliTurnNo + 1) % round)
+		{
+			break;
+		}
+
+		unsigned int targetFlags = injector.getValueHash(util::kBattlePetCrossActionTargetValue);
+		if (targetFlags & kSelectEnemyAny)
+		{
+			if (target == -1)
+				tempTarget = getBattleSelectableEnemyTarget(bt);
+			else
+				tempTarget = target;
+		}
+		else if (targetFlags & kSelectEnemyAll)
+		{
+			tempTarget = 21;
+		}
+		else if (targetFlags & kSelectEnemyFront)
+		{
+			if (target == -1)
+				tempTarget = getBattleSelectableEnemyOneRowTarget(bt, true) + 20;
+			else
+				tempTarget = target;
+		}
+		else if (targetFlags & kSelectEnemyBack)
+		{
+			if (target == -1)
+				tempTarget = getBattleSelectableEnemyOneRowTarget(bt, false) + 20;
+			else
+				tempTarget = target;
+		}
+		else if (targetFlags & kSelectSelf)
+		{
+			tempTarget = BattleMyNo;
+		}
+		else if (targetFlags & kSelectPet)
+		{
+			tempTarget = BattleMyNo + 5;
+		}
+		else if ((targetFlags & kSelectAllieAny))
+		{
+			tempTarget = getBattleSelectableAllieTarget(bt);
+		}
+		else if (targetFlags & kSelectAllieAll)
+		{
+			tempTarget = 20;
+		}
+		else if (targetFlags & kSelectLeader) {}
+		else if (targetFlags & kSelectLeaderPet) {}
+		else if (targetFlags & kSelectTeammate1) {}
+		else if (targetFlags & kSelectTeammate1Pet) {}
+		else if (targetFlags & kSelectTeammate2) {}
+		else if (targetFlags & kSelectTeammate2Pet) {}
+		else if (targetFlags & kSelectTeammate3) {}
+		else if (targetFlags & kSelectTeammate3Pet) {}
+		else if (targetFlags & kSelectTeammate4) {}
+		else if (targetFlags & kSelectTeammate4Pet) {}
+
+		int actionType = injector.getValueHash(util::kBattlePetCrossActionTypeValue);
+
+		int skillIndex = actionType;
+		if (skillIndex < 0 || skillIndex > MAX_SKILL)
+			break;
+
+		if (fixPetTargetBySkillIndex(skillIndex, tempTarget, &target) && (target >= 0 && target <= 22))
+		{
+			sendBattlePetSkillAct(skillIndex, target);
+			return;
+		}
+		else
+		{
+			tempTarget = getBattleSelectableEnemyTarget(bt);
+			if (fixPetTargetBySkillIndex(skillIndex, tempTarget, &target) && (target >= 0 && target <= 22))
+			{
+				sendBattlePetSkillAct(skillIndex, target);
+				return;
+			}
+		}
+	} while (false);
+
+	//一般動作
+	do
+	{
+		int tempTarget = -1;
+		//bool ok = false;
+
+		int enemy = injector.getValueHash(util::kBattlePetNormalActionEnemyValue);
+		if (enemy != 0)
+		{
+			if (bt.enemies.size() <= enemy) //敵人 <= 設置數量
+			{
+				break;
+			}
+		}
+
+		int level = injector.getValueHash(util::kBattlePetNormalActionLevelValue);
+		if (level != 0)
+		{
+			auto minIt = std::min_element(bt.enemies.begin(), bt.enemies.end(),
+				[](const battleobject_t& obj1, const battleobject_t& obj2)
+				{
+					return obj1.level < obj2.level;
+				});
+
+			if (minIt->level <= (level * 10))
+			{
+				break;
+			}
+		}
+
+		unsigned int targetFlags = injector.getValueHash(util::kBattlePetNormalActionTargetValue);
+		if (targetFlags & kSelectEnemyAny)
+		{
+			if (target == -1)
+				tempTarget = getBattleSelectableEnemyTarget(bt);
+			else
+				tempTarget = target;
+		}
+		else if (targetFlags & kSelectEnemyAll)
+		{
+			tempTarget = 21;
+		}
+		else if (targetFlags & kSelectEnemyFront)
+		{
+			if (target == -1)
+				tempTarget = getBattleSelectableEnemyOneRowTarget(bt, true) + 20;
+			else
+				tempTarget = target;
+		}
+		else if (targetFlags & kSelectEnemyBack)
+		{
+			if (target == -1)
+				tempTarget = getBattleSelectableEnemyOneRowTarget(bt, false) + 20;
+			else
+				tempTarget = target;
+		}
+		else if (targetFlags & kSelectSelf)
+		{
+			tempTarget = BattleMyNo;
+		}
+		else if (targetFlags & kSelectPet)
+		{
+			tempTarget = BattleMyNo + 5;
+		}
+		else if ((targetFlags & kSelectAllieAny))
+		{
+			tempTarget = getBattleSelectableAllieTarget(bt);
+		}
+		else if (targetFlags & kSelectAllieAll)
+		{
+			tempTarget = 20;
+		}
+		else if (targetFlags & kSelectLeader) {}
+		else if (targetFlags & kSelectLeaderPet) {}
+		else if (targetFlags & kSelectTeammate1) {}
+		else if (targetFlags & kSelectTeammate1Pet) {}
+		else if (targetFlags & kSelectTeammate2) {}
+		else if (targetFlags & kSelectTeammate2Pet) {}
+		else if (targetFlags & kSelectTeammate3) {}
+		else if (targetFlags & kSelectTeammate3Pet) {}
+		else if (targetFlags & kSelectTeammate4) {}
+		else if (targetFlags & kSelectTeammate4Pet) {}
+
+		int actionType = injector.getValueHash(util::kBattlePetNormalActionTypeValue);
+
+		int skillIndex = actionType;
+		if (skillIndex < 0 || skillIndex > MAX_SKILL)
+			break;
+
+		if (fixPetTargetBySkillIndex(skillIndex, tempTarget, &target) && (target >= 0 && target <= 22))
+		{
+			sendBattlePetSkillAct(skillIndex, target);
+			return;
+		}
+		else
+		{
+			if (target == -1)
+				tempTarget = getBattleSelectableEnemyTarget(bt);
+			if (fixPetTargetBySkillIndex(skillIndex, tempTarget, &target) && (target >= 0 && target <= 22))
+			{
+				sendBattlePetSkillAct(skillIndex, target);
+				return;
+			}
+		}
+	} while (false);
+
+	sendBattlePetDoNothing();
+}
+
+//精靈名稱匹配精靈索引
+int Server::getMagicIndexByName(const QString& name, bool isExact) const
+{
+	if (name.isEmpty())
+		return -1;
+
+	QString newName = name.simplified();
+	if (newName.startsWith("?"))
+	{
+		newName = newName.mid(1);
+		isExact = false;
+	}
+
+	for (int i = 0; i < MAX_MAGIC; ++i)
+	{
+		if (magic[i].name.isEmpty())
+			continue;
+
+		if (isExact && (magic[i].name == newName))
+			return i;
+		else if (!isExact && magic[i].name.contains(newName))
+			return i;
+	}
+	return -1;
+}
+
+//根據target判斷文字
+QString Server::getAreaString(int target)
+{
+	if (target == 20)
+		return QObject::tr("all allies");
+	else if (target == 21)
+		return QObject::tr("all enemies");
+	else if (target == 22)
+		return QObject::tr("all field");
+
+	return QObject::tr("unknown");
+}
+
+//寵物名稱查找寵物索引
+int Server::getGetPetSkillIndexByName(int petIndex, const QString& name) const
+{
+	if (!getOnlineFlag())
 		return -1;
 
 	if (petIndex < 0 || petIndex >= MAX_PET)
@@ -7379,7 +12609,7 @@ int Server::getGetPetSkillIndexByName(int petIndex, const QString& name)
 		return -1;
 
 	int petSkillIndex = -1;
-	for (int i = 0; i < MAX_SKILL; i++)
+	for (int i = 0; i < MAX_SKILL; ++i)
 	{
 		const QString petSkillName = petSkill[petIndex][i].name;
 		if (petSkillName.isEmpty())
@@ -7394,41 +12624,272 @@ int Server::getGetPetSkillIndexByName(int petIndex, const QString& name)
 	return petSkillIndex;
 }
 
-int Server::getBattleSelectableEnemyTarget()
+//戰鬥檢查MP是否足夠施放精靈
+bool Server::isPlayerMpEnoughForMagic(int magicIndex) const
+{
+	if (magicIndex < 0 || magicIndex >= MAX_MAGIC)
+		return false;
+
+	if (magic[magicIndex].mp > pc.mp)
+		return false;
+
+	return true;
+}
+
+//戰鬥檢查MP是否足夠施放技能
+bool Server::isPlayerMpEnoughForSkill(int magicIndex) const
+{
+	if (magicIndex < 0 || magicIndex >= MAX_PROFESSION_SKILL)
+		return false;
+
+	if (profession_skill[magicIndex].costmp > pc.mp)
+		return false;
+
+	return true;
+}
+
+//戰場上單位排序
+void Server::sortBattleUnit(QVector<battleobject_t>& v) const
+{
+	QVector<battleobject_t> newv;
+	QVector<battleobject_t> dstv = v;
+	if (dstv.isEmpty())
+		return;
+
+	constexpr int maxorder = 20;
+	constexpr int order[maxorder] = { 19, 17, 15, 16, 18, 14, 12, 10, 11, 13, 8, 6, 5, 7, 9, 3, 1, 0, 2, 4 };
+
+	for (const int it : order)
+	{
+		for (const battleobject_t& obj : dstv)
+		{
+			if ((obj.hp > 0) && (obj.level > 0) && (obj.maxHp > 0) && (obj.faceid > 0) && (obj.pos == it)
+				&& !(obj.status & BC_FLG_DEAD) && !(obj.status & BC_FLG_HIDE))
+			{
+				newv.append(obj);
+				break;
+			}
+		}
+	}
+
+
+	v = newv;
+}
+
+//取戰鬥敵方可選編號
+int Server::getBattleSelectableEnemyTarget(const battledata_t& bt) const
+{
+	int defaultTarget = 19;
+	if (BattleMyNo >= 10)
+		defaultTarget = 5;
+
+	QVector<battleobject_t> enemies(bt.enemies);
+	if (enemies.isEmpty() || !enemies.size())
+		return defaultTarget;
+
+	sortBattleUnit(enemies);
+	if (enemies.size())
+		return enemies[0].pos;
+	else
+		return defaultTarget;
+}
+
+//取戰鬥一排可選編號
+int Server::getBattleSelectableEnemyOneRowTarget(const battledata_t& bt, bool front) const
 {
 	int defaultTarget = 15;
 	if (BattleMyNo >= 10)
 		defaultTarget = 5;
 
-	if (!IS_ONLINE_FLAG)
+	QVector<battleobject_t> enemies(bt.enemies);
+	if (enemies.isEmpty() || !enemies.size())
 		return defaultTarget;
 
-	if (!IS_BATTLE_FLAG)
+	sortBattleUnit(enemies);
+	if (enemies.isEmpty() || !enemies.size())
 		return defaultTarget;
 
-	QVector<battleobject_t> enemies = battleData.enemies;
-	if (enemies.isEmpty())
-		return defaultTarget;
+	int targetIndex = -1;
 
-	int size = enemies.size();
-
-	auto compareByOrder = [](const battleobject_t& enemy1, const battleobject_t& enemy2)->bool
+	if (front)
 	{
-		constexpr int maxorder = 20;
-		constexpr int order[maxorder] = { 8, 6, 5, 7, 9, 3, 1, 0, 2, 4, 18, 16, 15, 17, 19, 13, 11, 10, 12, 14 };
+		if (BattleMyNo < 10)
+		{
+			// 只取 pos 在 15~19 之间的，取最前面的
+			for (int i = 0; i < enemies.size(); ++i)
+			{
+				if (enemies[i].pos >= 15 && enemies[i].pos < MAX_ENEMY)
+				{
+					targetIndex = i;
+					break;
+				}
+			}
+		}
+		else
+		{
+			// 只取 pos 在 5~9 之间的，取最前面的
+			for (int i = 0; i < enemies.size(); ++i)
+			{
+				if (enemies[i].pos >= 5 && enemies[i].pos <= 9)
+				{
+					targetIndex = i;
+					break;
+				}
+			}
+		}
+	}
+	else
+	{
+		if (BattleMyNo < 10)
+		{
+			// 只取 pos 在 10~14 之间的，取最前面的
+			for (int i = 0; i < enemies.size(); ++i)
+			{
+				if (enemies[i].pos >= 10 && enemies[i].pos <= 14)
+				{
+					targetIndex = i;
+					break;
+				}
+			}
+		}
+		else
+		{
+			// 只取 pos 在 0~4 之间的，取最前面的
+			for (int i = 0; i < enemies.size(); ++i)
+			{
+				if (enemies[i].pos >= 0 && enemies[i].pos <= 4)
+				{
+					targetIndex = i;
+					break;
+				}
+			}
+		}
+	}
 
-		int index1 = std::distance(std::begin(order), std::find(std::begin(order), std::end(order), enemy1.pos));
-		int index2 = std::distance(std::begin(order), std::find(std::begin(order), std::end(order), enemy2.pos));
+	if (targetIndex >= 0 && targetIndex < enemies.size())
+	{
+		return enemies[targetIndex].level;
+	}
 
-		return index1 < index2;
-	};
-
-	std::sort(enemies.begin(), enemies.end(), compareByOrder);
-
-	return enemies[0].pos;
+	return defaultTarget;
 }
 
-bool Server::fixPlayerTargetByMagicIndex(int magicIndex, int oldtarget, int* target)
+//取戰鬥隊友可選目標編號
+int Server::getBattleSelectableAllieTarget(const battledata_t& bt) const
+{
+	int defaultTarget = 5;
+	if (BattleMyNo >= 10)
+		defaultTarget = 15;
+
+	QVector<battleobject_t> allies(bt.allies);
+	if (allies.isEmpty() || !allies.size())
+		return defaultTarget;
+
+	sortBattleUnit(allies);
+	if (allies.size())
+		return allies[0].pos;
+	else
+		return defaultTarget;
+}
+
+//戰鬥匹配敵方名稱
+bool Server::matchBattleEnemyByName(const QString& name, bool isExact, QVector<battleobject_t> src, QVector<battleobject_t>* v) const
+{
+	QVector<battleobject_t> tempv;
+	if (name.isEmpty())
+		return false;
+
+	QString newName = name;
+	if (newName.startsWith("?"))
+	{
+		newName = newName.mid(1);
+		isExact = false;
+	}
+
+	QVector<battleobject_t> enemies = src;
+
+	if (enemies.isEmpty())
+		return false;
+
+	sortBattleUnit(enemies);
+
+	for (const battleobject_t& enemy : enemies)
+	{
+		if (isExact)
+		{
+			if (enemy.name == newName)
+				tempv.append(enemy);
+		}
+		else
+		{
+			if (enemy.name.contains(newName))
+				tempv.append(enemy);
+		}
+	}
+
+	if (v)
+	{
+		*v = tempv;
+	}
+	return !tempv.isEmpty();
+}
+
+//戰鬥匹配敵方最低等級
+bool Server::matchBattleEnemyByLevel(int level, QVector<battleobject_t> src, QVector<battleobject_t>* v) const
+{
+	QVector<battleobject_t> tempv;
+	if (level <= 0 || level > 255)
+		return false;
+
+	QVector<battleobject_t> enemies = src;
+
+	if (enemies.isEmpty())
+		return false;
+
+	sortBattleUnit(enemies);
+
+	for (const battleobject_t& enemy : enemies)
+	{
+		if (enemy.level == level)
+			tempv.append(enemy);
+	}
+
+	if (v)
+	{
+		*v = tempv;
+	}
+	return !tempv.isEmpty();
+}
+
+//戰鬥匹配敵方最大血量
+bool Server::matchBattleEnemyByMaxHp(int maxHp, QVector<battleobject_t> src, QVector<battleobject_t>* v) const
+{
+	QVector<battleobject_t> tempv;
+	if (maxHp <= 0 || maxHp > 100000)
+		return false;
+
+	QVector<battleobject_t> enemies = src;
+
+	if (enemies.isEmpty())
+		return false;
+
+	sortBattleUnit(enemies);
+
+	for (const battleobject_t& enemy : enemies)
+	{
+		if (enemy.maxHp > maxHp)
+			tempv.append(enemy);
+	}
+
+	if (v)
+	{
+		*v = tempv;
+	}
+	return !tempv.isEmpty();
+}
+
+//戰鬥人物修正精靈目標範圍
+bool Server::fixPlayerTargetByMagicIndex(int magicIndex, int oldtarget, int* target) const
 {
 	if (!target)
 		return false;
@@ -7485,32 +12946,20 @@ bool Server::fixPlayerTargetByMagicIndex(int magicIndex, int oldtarget, int* tar
 	}
 	case MAGIC_TARGET_OTHERWITHOUTMYSELF://我方任意除了自己
 	{
-		int max = 9;
-		int min = 0;
-		if (BattleMyNo >= 10)
-		{
-			max = 19;
-			min = 10;
-		}
-
 		if (oldtarget == BattleMyNo)
 		{
 			oldtarget = -1;
 		}
-		else if (oldtarget < min || oldtarget > max)
-		{
-			oldtarget = -1;
-		}
-
 		break;
 	}
 	case MAGIC_TARGET_WITHOUTMYSELFANDPET://我方任意除了自己和寵物
 	{
+
 		if (oldtarget == BattleMyNo)
 		{
 			oldtarget = -1;
 		}
-		else if (oldtarget == battleData.pet.pos)
+		else if (oldtarget == (BattleMyNo + 5))
 		{
 			oldtarget = -1;
 		}
@@ -7520,17 +12969,27 @@ bool Server::fixPlayerTargetByMagicIndex(int magicIndex, int oldtarget, int* tar
 	{
 		if (oldtarget != 20 && oldtarget != 21)
 		{
-			if (BattleMyNo < 10)
-				oldtarget = 21;
+			if (oldtarget >= 0 && oldtarget <= 9)
+			{
+				if (BattleMyNo < 10)
+					oldtarget = 20;
+				else
+					oldtarget = 21;
+			}
 			else
-				oldtarget = 20;
+			{
+				if (BattleMyNo < 10)
+					oldtarget = 21;
+				else
+					oldtarget = 20;
+			}
 		}
 
 		break;
 	}
 	case MAGIC_TARGET_SINGLE:				// 針對敵方某一方
 	{
-		if (oldtarget < 10 || oldtarget > 19)
+		if (oldtarget < 10 || oldtarget >= MAX_ENEMY)
 		{
 			if (BattleMyNo < 10)
 				oldtarget = 15;
@@ -7581,7 +13040,249 @@ bool Server::fixPlayerTargetByMagicIndex(int magicIndex, int oldtarget, int* tar
 	return true;
 }
 
-bool Server::fixPetTargetBySkillIndex(int skillIndex, int oldtarget, int* target)
+//戰鬥人物修正職業技能目標範圍
+bool Server::fixPlayerTargetBySkillIndex(int magicIndex, int oldtarget, int* target) const
+{
+	if (!target)
+		return false;
+
+	if (magicIndex < 0 || magicIndex >= MAX_PROFESSION_SKILL)
+		return false;
+
+	int magicType = profession_skill[magicIndex].target;
+
+	switch (magicType)
+	{
+	case MAGIC_TARGET_MYSELF:
+	{
+		if (oldtarget != 0)
+			oldtarget = 0;
+		break;
+	}
+	case MAGIC_TARGET_OTHER://雙方任意單體
+	{
+		if (oldtarget < 0 || oldtarget >= 20)
+		{
+			if (BattleMyNo < 10)
+				oldtarget = 15;
+			else
+				oldtarget = 5;
+		}
+		break;
+	}
+	case MAGIC_TARGET_ALLMYSIDE://我方全體
+	{
+		if (BattleMyNo < 10)
+			oldtarget = 20;
+		else
+			oldtarget = 21;
+		break;
+	}
+	case MAGIC_TARGET_ALLOTHERSIDE://敵方全體
+	{
+		if (BattleMyNo < 10)
+			oldtarget = 21;
+		else
+			oldtarget = 20;
+		break;
+	}
+	case MAGIC_TARGET_ALL://雙方全體同時(場地)
+	{
+		oldtarget = 22;
+		break;
+	}
+	case MAGIC_TARGET_NONE://無
+	{
+		oldtarget = -1;
+		break;
+	}
+	case MAGIC_TARGET_OTHERWITHOUTMYSELF://我方任意除了自己
+	{
+		if (oldtarget == BattleMyNo)
+		{
+			oldtarget = -1;
+		}
+		break;
+	}
+	case MAGIC_TARGET_WITHOUTMYSELFANDPET://我方任意除了自己和寵物
+	{
+		if (oldtarget == BattleMyNo)
+		{
+			oldtarget = -1;
+		}
+		else if (oldtarget == (BattleMyNo + 5))
+		{
+			oldtarget = -1;
+		}
+		break;
+	}
+	case MAGIC_TARGET_WHOLEOTHERSIDE://敵方全體 或 我方全體
+	{
+		if (oldtarget != 20 && oldtarget != 21)
+		{
+			if (oldtarget >= 0 && oldtarget <= 9)
+			{
+				if (BattleMyNo < 10)
+					oldtarget = 20;
+				else
+					oldtarget = 21;
+			}
+			else
+			{
+				if (BattleMyNo < 10)
+					oldtarget = 21;
+				else
+					oldtarget = 20;
+			}
+		}
+
+		break;
+	}
+	case MAGIC_TARGET_SINGLE:				// 針對敵方某一方
+	{
+		if (oldtarget < 10 || oldtarget >= MAX_ENEMY)
+		{
+			if (BattleMyNo < 10)
+				oldtarget = 15;
+			else
+				oldtarget = 5;
+		}
+		break;
+	}
+	case MAGIC_TARGET_ONE_ROW:				// 針對敵方某一列
+	{
+		if (BattleMyNo < 10)
+		{
+			if (oldtarget < 5)
+				oldtarget = 20 + 5;
+			else if (oldtarget < 10)
+				oldtarget = 20 + 6;
+			else if (oldtarget < 15)
+				oldtarget = 20 + 3;
+			else
+				oldtarget = 20 + 4;
+		}
+		else
+		{
+			if (oldtarget < 5)
+				oldtarget = 20 + 5 - 10;
+			else if (oldtarget < 10)
+				oldtarget = 20 + 6 - 10;
+			else if (oldtarget < 15)
+				oldtarget = 20 + 3 - 10;
+			else
+				oldtarget = 20 + 4 - 10;
+		}
+		break;
+	}
+	case MAGIC_TARGET_ALL_ROWS:				// 針對敵方所有人
+	{
+		if (BattleMyNo < 10)
+			oldtarget = 21;
+		else
+			oldtarget = 20;
+		break;
+	}
+	default:
+		break;
+	}
+
+	*target = oldtarget;
+	return true;
+}
+
+//戰鬥人物修正物品目標範圍
+bool Server::fixPlayerTargetByItemIndex(int itemIndex, int oldtarget, int* target) const
+{
+	if (!target)
+		return false;
+
+	if (itemIndex < CHAR_EQUIPPLACENUM || itemIndex >= MAX_ITEM)
+		return false;
+
+	int itemType = pc.item[itemIndex].target;
+
+	switch (itemType)
+	{
+	case ITEM_TARGET_MYSELF:
+	{
+		if (oldtarget != 0)
+			oldtarget = 0;
+		break;
+	}
+	case ITEM_TARGET_OTHER://雙方任意單體
+	{
+		if (oldtarget < 0 || oldtarget >= 20)
+		{
+			if (BattleMyNo < 10)
+				oldtarget = 15;
+			else
+				oldtarget = 5;
+		}
+		break;
+	}
+	case ITEM_TARGET_ALLMYSIDE://我方全體
+	{
+		if (BattleMyNo < 10)
+			oldtarget = 20;
+		else
+			oldtarget = 21;
+		break;
+	}
+	case ITEM_TARGET_ALLOTHERSIDE://敵方全體
+	{
+		if (BattleMyNo < 10)
+			oldtarget = 21;
+		else
+			oldtarget = 20;
+		break;
+	}
+	case ITEM_TARGET_ALL://雙方全體同時(場地)
+	{
+		oldtarget = 22;
+		break;
+	}
+	case ITEM_TARGET_NONE://無
+	{
+		oldtarget = -1;
+		break;
+	}
+	case ITEM_TARGET_OTHERWITHOUTMYSELF://我方任意除了自己
+	{
+		if (oldtarget == BattleMyNo)
+		{
+			oldtarget = -1;
+		}
+		break;
+	}
+	case ITEM_TARGET_WITHOUTMYSELFANDPET://我方任意除了自己和寵物
+	{
+		if (oldtarget == BattleMyNo)
+		{
+			oldtarget = -1;
+		}
+		else if (oldtarget == (BattleMyNo + 5))
+		{
+			oldtarget = -1;
+		}
+		break;
+	}
+	case ITEM_TARGET_PET://戰寵
+	{
+		oldtarget = BattleMyNo + 5;
+		break;
+	}
+
+	default:
+		break;
+	}
+
+	*target = oldtarget;
+	return true;
+}
+
+//戰鬥修正寵物技能目標範圍
+bool Server::fixPetTargetBySkillIndex(int skillIndex, int oldtarget, int* target) const
 {
 	if (!target)
 		return false;
@@ -7629,24 +13330,12 @@ bool Server::fixPetTargetBySkillIndex(int skillIndex, int oldtarget, int* target
 	}
 	case PETSKILL_TARGET_NONE:
 	{
-		oldtarget = -1;
+		oldtarget = 0;
 		break;
 	}
 	case PETSKILL_TARGET_OTHERWITHOUTMYSELF:
 	{
-		int max = 9;
-		int min = 0;
-		if (BattleMyNo >= 10)
-		{
-			max = 19;
-			min = 10;
-		}
-
-		if (oldtarget < min || oldtarget > max)
-		{
-			oldtarget = -1;
-		}
-		else if (oldtarget == battleData.pet.pos)
+		if (oldtarget == (BattleMyNo + 5))
 		{
 			oldtarget = -1;
 		}
@@ -7670,7 +13359,7 @@ bool Server::fixPetTargetBySkillIndex(int skillIndex, int oldtarget, int* target
 		{
 			oldtarget = -1;
 		}
-		else if (oldtarget == battleData.pet.pos)
+		else if (oldtarget == (BattleMyNo + 5))
 		{
 			oldtarget = -1;
 		}
@@ -7683,255 +13372,418 @@ bool Server::fixPetTargetBySkillIndex(int skillIndex, int oldtarget, int* target
 	return true;
 }
 
-void Server::sendBattlePlayerAttckAct(int target)
+//戰鬥人物普通攻擊
+void Server::sendBattlePlayerAttackAct(int target)
 {
-	if (!IS_ONLINE_FLAG)
+	if (!getOnlineFlag())
 		return;
 
-	if (!IS_BATTLE_FLAG)
+	if (!getBattleFlag())
 		return;
 
-	if (target < 0 || target > 21)
+	if (target < 0 || target >= MAX_ENEMY)
 		return;
 
-	QString qcmd = QString("H|%1").arg(target);
-	std::string str = qcmd.toStdString();
+	const QString qcmd = QString("H|%1").arg(QString::number(target, 16));
+	lssproto_B_send(qcmd);
 
-	lssproto_B_send(sockfd_, const_cast<char*>(str.c_str()));
 
-	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
-	QString name = !battleData.objects.at(target).freename.isEmpty() ? battleData.objects.at(target).freename : battleData.objects.at(target).name;
-	emit signalDispatcher.updateLabelPlayerAction(tr("use attack %1").arg(name));
+	battledata_t bt = getBattleData();
+	battleobject_t obj = bt.objects.value(target, battleobject_t{});
+
+	const QString name = !obj.name.isEmpty() ? obj.name : obj.freename;
+	const QString text(QObject::tr("use attack [%1]%2").arg(target + 1).arg(name));
+	if (labelPlayerAction != text)
+	{
+		labelPlayerAction = text;
+		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
+		emit signalDispatcher.updateLabelPlayerAction(text);
+	}
 }
 
+//戰鬥人物使用精靈
 void Server::sendBattlePlayerMagicAct(int magicIndex, int target)
 {
-	if (!IS_ONLINE_FLAG)
+	if (!getOnlineFlag())
 		return;
 
-	if (!IS_BATTLE_FLAG)
+	if (!getBattleFlag())
 		return;
 
-	if (target < 0 || target > 21)
+	if (target < 0 || (target > (MAX_ENEMY + 2)))
 		return;
 
 	if (magicIndex < 0 || magicIndex >= MAX_MAGIC)
 		return;
 
-	QString qcmd = QString("J|%1|%2").arg(magicIndex).arg(target);
-	std::string str = qcmd.toStdString();
+	const QString qcmd = QString("J|%1|%2").arg(QString::number(magicIndex, 16)).arg(QString::number(target, 16));
+	lssproto_B_send(qcmd);
 
-	lssproto_B_send(sockfd_, const_cast<char*>(str.c_str()));
+	const QString magicName = magic[magicIndex].name;
 
-	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
-	QString magicName = magic[magicIndex].name;
-	QString name = !battleData.objects.at(target).freename.isEmpty() ? battleData.objects.at(target).freename : battleData.objects.at(target).name;
-	emit signalDispatcher.updateLabelPlayerAction(tr("use magic %1 to %2").arg(magicName).arg(name));
+	QString text("");
+	if (target < MAX_ENEMY)
+	{
+		battledata_t bt = getBattleData();
+		battleobject_t obj = bt.objects.value(target, battleobject_t{});
+		QString name = !obj.name.isEmpty() ? obj.name : obj.freename;
+		text = QObject::tr("use magic %1 to [%2]%3").arg(magicName).arg(target + 1).arg(name);
+	}
+	else
+	{
+		text = QObject::tr("use %1 to %2").arg(magicName).arg(getAreaString(target));
+	}
+
+	if (labelPlayerAction != text)
+	{
+		labelPlayerAction = text;
+		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
+		emit signalDispatcher.updateLabelPlayerAction(text);
+	}
 }
 
+//戰鬥人物使用職業技能
 void Server::sendBattlePlayerJobSkillAct(int skillIndex, int target)
 {
-	if (!IS_ONLINE_FLAG)
+	if (!getOnlineFlag())
 		return;
 
-	if (!IS_BATTLE_FLAG)
+	if (!getBattleFlag())
 		return;
 
-	if (target < 0 || target > 21)
+	if (target < 0 || (target > (MAX_ENEMY + 2)))
 		return;
 
 	if (skillIndex < 0 || skillIndex >= MAX_PROFESSION_SKILL)
 		return;
 
-	QString qcmd = QString("P|%1|%2").arg(skillIndex).arg(target);
-	std::string str = qcmd.toStdString();
+	const QString qcmd = QString("P|%1|%2").arg(QString::number(skillIndex, 16)).arg(QString::number(target, 16));
+	lssproto_B_send(qcmd);
 
-	lssproto_B_send(sockfd_, const_cast<char*>(str.c_str()));
+	const QString skillName = profession_skill[skillIndex].name;
+	QString text("");
+	if (target < MAX_ENEMY)
+	{
+		battledata_t bt = getBattleData();
+		battleobject_t obj = bt.objects.value(target, battleobject_t{});
+		QString name = !obj.name.isEmpty() ? obj.name : obj.freename;
+		text = QObject::tr("use skill %1 to [%2]%3").arg(skillName).arg(target + 1).arg(name);
+	}
+	else
+	{
+		text = QObject::tr("use %1 to %2").arg(skillName).arg(getAreaString(target));
+	}
 
-	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
-	QString skillName = profession_skill[skillIndex].name;
-	QString name = !battleData.objects.at(target).freename.isEmpty() ? battleData.objects.at(target).freename : battleData.objects.at(target).name;
-	emit signalDispatcher.updateLabelPlayerAction(tr("use skill %1 to %2").arg(skillName).arg(name));
+	if (labelPlayerAction != text)
+	{
+		labelPlayerAction = text;
+		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
+		emit signalDispatcher.updateLabelPlayerAction(text);
+	}
 }
 
+//戰鬥人物使用道具
 void Server::sendBattlePlayerItemAct(int itemIndex, int target)
 {
-	if (!IS_ONLINE_FLAG)
+	if (!getOnlineFlag())
 		return;
 
-	if (!IS_BATTLE_FLAG)
+	if (!getBattleFlag())
 		return;
 
-	if (target < 0 || target > 21)
+	if (target < 0 || (target > (MAX_ENEMY + 2)))
 		return;
 
 	if (itemIndex < 0 || itemIndex >= MAX_ITEM)
 		return;
 
-	QString qcmd = QString("I|%1|%2").arg(itemIndex).arg(target);
-	std::string str = qcmd.toStdString();
+	const QString qcmd = QString("I|%1|%2").arg(QString::number(itemIndex, 16)).arg(QString::number(target, 16));
+	lssproto_B_send(qcmd);
 
-	lssproto_B_send(sockfd_, const_cast<char*>(str.c_str()));
+	const QString itemName = pc.item[itemIndex].name;
 
-	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
-	QString itemName = pc.item[itemIndex].name;
-	QString name = !battleData.objects.at(target).freename.isEmpty() ? battleData.objects.at(target).freename : battleData.objects.at(target).name;
-	emit signalDispatcher.updateLabelPlayerAction(tr("use item %1 to %2").arg(itemName).arg(name));
+	QString text("");
+	if (target < MAX_ENEMY)
+	{
+		battledata_t bt = getBattleData();
+		battleobject_t obj = bt.objects.value(target, battleobject_t{});
+		QString name = !obj.name.isEmpty() ? obj.name : obj.freename;
+		text = QObject::tr("use item %1 to [%2]%3").arg(itemName).arg(target + 1).arg(name);
+	}
+	else
+	{
+		text = QObject::tr("use %1 to %2").arg(itemName).arg(getAreaString(target));
+	}
+
+	if (labelPlayerAction != text)
+	{
+		labelPlayerAction = text;
+		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
+		emit signalDispatcher.updateLabelPlayerAction(text);
+	}
 }
 
+//戰鬥人物防禦
 void Server::sendBattlePlayerDefenseAct()
 {
-	if (!IS_ONLINE_FLAG)
+	if (!getOnlineFlag())
 		return;
 
-	if (!IS_BATTLE_FLAG)
+	if (!getBattleFlag())
 		return;
 
-	QString qcmd("G");
-	std::string str = qcmd.toStdString();
+	const QString qcmd("G");
+	lssproto_B_send(qcmd);
 
-	lssproto_B_send(sockfd_, const_cast<char*>(str.c_str()));
-
-	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
-	emit signalDispatcher.updateLabelPlayerAction(tr("defense"));
+	const QString text = QObject::tr("defense");
+	if (labelPlayerAction != text)
+	{
+		labelPlayerAction = text;
+		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
+		emit signalDispatcher.updateLabelPlayerAction(text);
+	}
 }
 
+//戰鬥人物逃跑
 void Server::sendBattlePlayerEscapeAct()
 {
-	if (!IS_ONLINE_FLAG)
+	if (!getOnlineFlag())
 		return;
 
-	if (!IS_BATTLE_FLAG)
+	if (!getBattleFlag())
 		return;
 
-	QString qcmd("E");
-	std::string str = qcmd.toStdString();
+	const QString qcmd("E");
+	lssproto_B_send(qcmd);
 
-	lssproto_B_send(sockfd_, const_cast<char*>(str.c_str()));
-
-	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
-	emit signalDispatcher.updateLabelPlayerAction(tr("escape"));
+	const QString text(QObject::tr("escape"));
+	if (labelPlayerAction != text)
+	{
+		labelPlayerAction = text;
+		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
+		emit signalDispatcher.updateLabelPlayerAction(text);
+	}
 }
 
+//戰鬥人物捉寵
 void Server::sendBattlePlayerCatchPetAct(int target)
 {
-	if (!IS_ONLINE_FLAG)
+	if (!getOnlineFlag())
 		return;
 
-	if (!IS_BATTLE_FLAG)
+	if (!getBattleFlag())
 		return;
 
-	if (target < 0 || target > 21)
+	if (target < 0 || target >= MAX_ENEMY)
 		return;
 
-	QString qcmd = QString("T|%1").arg(target);
-	std::string str = qcmd.toStdString();
+	const QString qcmd = QString("T|%1").arg(QString::number(target, 16));
+	lssproto_B_send(qcmd);
 
-	lssproto_B_send(sockfd_, const_cast<char*>(str.c_str()));
-	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
-	QString name = !battleData.objects.at(target).freename.isEmpty() ? battleData.objects.at(target).freename : battleData.objects.at(target).name;
-	emit signalDispatcher.updateLabelPlayerAction(tr("catch %1").arg(name));
+	battledata_t bt = getBattleData();
+	battleobject_t obj = bt.objects.value(target, battleobject_t{});
+	QString name = !obj.name.isEmpty() ? obj.name : obj.freename;
+	const QString text(QObject::tr("catch [%1]%2").arg(target).arg(name));
+
+	if (labelPlayerAction != text)
+	{
+		labelPlayerAction = text;
+		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
+		emit signalDispatcher.updateLabelPlayerAction(text);
+	}
 }
 
+//戰鬥人物切換戰寵
 void Server::sendBattlePlayerSwitchPetAct(int petIndex)
 {
-	if (!IS_ONLINE_FLAG)
+	if (!getOnlineFlag())
 		return;
 
-	if (!IS_BATTLE_FLAG)
+	if (!getBattleFlag())
 		return;
 
 	if (petIndex < 0 || petIndex >= MAX_PET)
 		return;
 
-	QString qcmd = QString("S|%1").arg(petIndex);
-	std::string str = qcmd.toStdString();
+	if (pet[petIndex].useFlag == 0)
+		return;
 
-	lssproto_B_send(sockfd_, const_cast<char*>(str.c_str()));
+	if (pet[petIndex].hp <= 0)
+		return;
 
-	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
-	emit signalDispatcher.updateLabelPlayerAction(tr("switch pet to %1")
+	const QString qcmd = QString("S|%1").arg(QString::number(petIndex, 16));
+	lssproto_B_send(qcmd);
+
+	QString text(QObject::tr("switch pet to %1") \
 		.arg(!pet[petIndex].freeName.isEmpty() ? pet[petIndex].freeName : pet[petIndex].name));
+
+	if (labelPlayerAction != text)
+	{
+		labelPlayerAction = text;
+
+		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
+		emit signalDispatcher.updateLabelPlayerAction(text);
+	}
 }
 
+//戰鬥人物什麼都不做
 void Server::sendBattlePlayerDoNothing()
 {
-	if (!IS_ONLINE_FLAG)
+	if (!getOnlineFlag())
 		return;
 
-	if (!IS_BATTLE_FLAG)
+	if (!getBattleFlag())
 		return;
 
-	QString qcmd("N");
-	std::string str = qcmd.toStdString();
+	const QString qcmd("N");
+	lssproto_B_send(qcmd);
 
-	lssproto_B_send(sockfd_, const_cast<char*>(str.c_str()));
+	QString text(QObject::tr("do nothing"));
+	if (labelPlayerAction != text)
+	{
+		labelPlayerAction = text;
+		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
 
-	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
-	emit signalDispatcher.updateLabelPlayerAction(tr("do nothing"));
+		emit signalDispatcher.updateLabelPlayerAction(text);
+	}
 }
 
+//戰鬥戰寵技能
 void Server::sendBattlePetSkillAct(int skillIndex, int target)
 {
-	if (!IS_ONLINE_FLAG)
+	if (!getOnlineFlag())
 		return;
 
-	if (!IS_BATTLE_FLAG)
+	if (!getBattleFlag())
 		return;
 
 	if (pc.battlePetNo < 0 || pc.battlePetNo >= MAX_PET)
 		return;
 
-	if (target < 0 || target > 21)
+	if (target < 0 || (target > (MAX_ENEMY + 2)))
 		return;
 
 	if (skillIndex < 0 || skillIndex >= MAX_SKILL)
 		return;
 
-	if (pc.battlePetNo < 0 || pc.battlePetNo> MAX_PET)
-		return;
+	const QString qcmd = QString("W|%1|%2").arg(QString::number(skillIndex, 16)).arg(QString::number(target, 16));
+	lssproto_B_send(qcmd);
 
-	QString qcmd = QString("W|%1|%2").arg(skillIndex).arg(target);
-	std::string str = qcmd.toStdString();
+	QString text("");
+	if (target < MAX_ENEMY)
+	{
+		QString name;
+		if (petSkill[pc.battlePetNo][skillIndex].name != u8"防禦" && petSkill[pc.battlePetNo][skillIndex].name != u8"防御")
+		{
+			battledata_t bt = getBattleData();
+			battleobject_t obj = bt.objects.value(target, battleobject_t{});
+			name = !obj.name.isEmpty() ? obj.name : obj.freename;
+		}
+		else
+			name = QObject::tr("self");
 
-	lssproto_B_send(sockfd_, const_cast<char*>(str.c_str()));
-	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
-	QString name = !battleData.objects.at(target).freename.isEmpty() ? battleData.objects.at(target).freename : battleData.objects.at(target).name;
-	emit signalDispatcher.updateLabelPetAction(tr("use %1 to %2").arg(petSkill[pc.battlePetNo][skillIndex].name).arg(name));
+		text = QObject::tr("use %1 to [%2]%3").arg(petSkill[pc.battlePetNo][skillIndex].name).arg(target + 1).arg(name);
+	}
+	else
+	{
+		text = QObject::tr("use %1 to %2").arg(petSkill[pc.battlePetNo][skillIndex].name).arg(getAreaString(target));
+	}
+
+	if (labelPetAction != text)
+	{
+		labelPetAction = text;
+		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
+		emit signalDispatcher.updateLabelPetAction(text);
+	}
 }
 
+//戰鬥戰寵什麼都不做
 void Server::sendBattlePetDoNothing()
 {
-	if (!IS_ONLINE_FLAG)
+	if (!getOnlineFlag())
 		return;
 
-	if (!IS_BATTLE_FLAG)
+	if (!getBattleFlag())
 		return;
 
 	if (pc.battlePetNo < 0 || pc.battlePetNo >= MAX_PET)
 		return;
 
-	QString qcmd("W|FF|FF");
-	std::string str = qcmd.toStdString();
+	const QString qcmd("W|FF|FF");
 
-	lssproto_B_send(sockfd_, const_cast<char*>(str.c_str()));
-	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
-	emit signalDispatcher.updateLabelPetAction(tr("do nothing"));
+	lssproto_B_send(qcmd);
+
+	QString text(QObject::tr("do nothing"));
+	if (labelPetAction != text)
+	{
+		labelPetAction = text;
+
+		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
+		emit signalDispatcher.updateLabelPetAction(text);
+	}
 }
 
-void Server::lssproto_B_send(int fd, char* command)
+//戰鬥指令封包
+void Server::lssproto_B_send(const QString& command)
 {
-	char buffer[16384] = { 0 };
-	int iChecksum = 0;
+	announce(QString("[async battle] 送出战斗封包: %1").arg(command.toUpper()));
+	//QByteArray buffer(Autil::NETDATASIZE, '\0');
 
-	buffer[0] = '\0';
-	iChecksum += Autil::util_mkstring(buffer, command);
-	Autil::util_mkint(buffer, iChecksum);
-	qDebug() << "BSend" << QString(command);
-	Autil::util_SendMesg(fd, LSSPROTO_B_SEND, buffer);
-	qDebug() << "BSend done";
+	//int iChecksum = 0;
+
+	//iChecksum += Autil::util_mkstring(buffer.data(), command);
+	//Autil::util_mkint(buffer.data(), iChecksum);
+	//Autil::util_SendMesg(LSSPROTO_B_SEND, buffer.data());
+	std::string cmd = command.toUpper().toStdString();
+	Autil::util_Send(LSSPROTO_B_SEND, const_cast<char*>(cmd.c_str()));
 }
 
 #pragma endregion
 
+#ifdef OCR_ENABLE
+#include "webauthenticator.h"
+bool Server::captchaOCR(QString* pmsg)
+{
+	Injector& injector = Injector::getInstance();
+	if (injector.server.isNull())
+		return false;
 
+	QScreen* screen = QGuiApplication::primaryScreen();
+	if (nullptr == screen)
+	{
+		announce("<ocr>screen pointer is nullptr");
+		return false;
+	}
+
+	LPARAM data = MAKELPARAM(0, 0);
+	injector.sendMessage(WM_MOUSEMOVE, NULL, data);
+	QPixmap pixmap = screen->grabWindow(reinterpret_cast<WId>(injector.getProcessWindow()));
+	QImage image = pixmap.toImage();
+
+	//only take middle part of the image
+	image = image.copy(269, 226, 102, 29);//368,253
+
+#if 0
+	QString randomHash = generateRandomHash();
+	image.save(QString("D:/py/dddd_trainer/projects/antocode/image_set/%1_%2.png").arg(image_count++).arg(randomHash), "PNG");
+	QString tempPath = QString("%1/%2.png").arg(QDir::tempPath()).arg(randomHash);
+	QFile file(tempPath);
+	if (file.exists())
+		file.remove();
+	image.save(tempPath, "PNG");
+#endif
+
+	QString errorMsg;
+	QString gifCode;
+	if (AntiCaptcha::httpPostCodeImage(image, &errorMsg, gifCode))
+	{
+		*pmsg = gifCode;
+		announce("<ocr>success! result is:" + gifCode);
+		return true;
+	}
+	else
+		announce("<ocr>failed! error:" + errorMsg);
+
+	return false;
+}
+#endif

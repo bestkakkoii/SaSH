@@ -1,6 +1,25 @@
-﻿#include "stdafx.h"
+﻿/*
+				GNU GENERAL PUBLIC LICENSE
+				   Version 2, June 1991
+COPYRIGHT (C) Bestkakkoii 2023 All Rights Reserved.
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU General Public License for more details.
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+
+*/
+
+#include "stdafx.h"
 #include "iteminfoform.h"
 
+#include "injector.h"
 #include "signaldispatcher.h"
 
 ItemInfoForm::ItemInfoForm(QWidget* parent)
@@ -19,8 +38,8 @@ ItemInfoForm::ItemInfoForm(QWidget* parent)
 		//tablewidget set selection behavior
 		tableWidget->setSelectionBehavior(QAbstractItemView::SelectRows);
 		//set auto resize to form size
-		tableWidget->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
-		tableWidget->verticalHeader()->setSectionResizeMode(QHeaderView::Stretch);
+		tableWidget->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
+		tableWidget->verticalHeader()->setSectionResizeMode(QHeaderView::Fixed);
 
 		tableWidget->setStyleSheet(R"(
 		QTableWidget { font-size:11px; } 
@@ -51,6 +70,21 @@ ItemInfoForm::ItemInfoForm(QWidget* parent)
 
 	onResetControlTextLanguage();
 
+	Injector& injector = Injector::getInstance();
+	if (!injector.server.isNull())
+	{
+		util::SafeHash<int, QVariant> hashItem = injector.server->itemInfoRowContents;
+		for (auto it = hashItem.begin(); it != hashItem.end(); ++it)
+		{
+			onUpdateItemInfoRowContents(it.key(), it.value());
+		}
+
+		util::SafeHash<int, QVariant> hashEquip = injector.server->equipInfoRowContents;
+		for (auto it = hashEquip.begin(); it != hashEquip.end(); ++it)
+		{
+			onUpdateEquipInfoRowContents(it.key(), it.value());
+		}
+	}
 
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
 	connect(&signalDispatcher, &SignalDispatcher::updateEquipInfoRowContents, this, &ItemInfoForm::onUpdateEquipInfoRowContents, Qt::UniqueConnection);
@@ -61,6 +95,7 @@ ItemInfoForm::ItemInfoForm(QWidget* parent)
 
 ItemInfoForm::~ItemInfoForm()
 {
+
 }
 
 void ItemInfoForm::onResetControlTextLanguage()
@@ -171,4 +206,26 @@ void ItemInfoForm::onUpdateEquipInfoRowContents(int row, const QVariant& data)
 void ItemInfoForm::onUpdateItemInfoRowContents(int row, const QVariant& data)
 {
 	updateItemInfoRowContents(ui.tableWidget_item, row - 9, data);
+}
+
+void ItemInfoForm::on_tableWidget_item_cellDoubleClicked(int row, int column)
+{
+	Injector& injector = Injector::getInstance();
+	if (injector.server.isNull())
+		return;
+
+	injector.server->useItem(row + CHAR_EQUIPPLACENUM, 0);
+}
+
+void ItemInfoForm::on_tableWidget_equip_cellDoubleClicked(int row, int column)
+{
+	Injector& injector = Injector::getInstance();
+	if (injector.server.isNull())
+		return;
+
+	int spotIndex = injector.server->getItemEmptySpotIndex();
+	if (spotIndex == -1)
+		return;
+
+	injector.server->swapItem(row, spotIndex);
 }

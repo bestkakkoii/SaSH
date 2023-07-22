@@ -15,21 +15,23 @@ signals:
 	void resetControlTextLanguage();
 
 public slots:
-	void onSaveHashSettings(const QString& name = "default");
-	void onLoadHashSettings(const QString& name = "default");
 	void onApplyHashSettingsToUI();
 private slots:
 	void onButtonClicked();
+	void onComboBoxClicked();
 	void onCheckBoxStateChanged(int state);
 	void onSpinBoxValueChanged(int value);
 	void onComboBoxCurrentIndexChanged(int value);
 
 	void onResetControlTextLanguage();
 
+	void onGameStart();
+
 protected:
 
 private:
-
+	void createServerList();
 private:
 	Ui::GeneralFormClass ui;
+	QHash<int, QHash<QString, QStringList>> serverList;
 };

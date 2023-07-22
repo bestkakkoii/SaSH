@@ -1,18 +1,39 @@
 ﻿// Arminius' protocol utilities ver 0.1
-//
-// Any questions and bugs, mailto: arminius@mail.hwaei.com.tw
 
-#ifndef __UTIL_H_
-#define __UTIL_H_
+/*
+				GNU GENERAL PUBLIC LICENSE
+				   Version 2, June 1991
+COPYRIGHT (C) Bestkakkoii 2023 All Rights Reserved.
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU General Public License for more details.
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+
+*/
+
+#pragma once
+#include <util.h>
 namespace Autil
 {
+	constexpr size_t NETDATASIZE = 16384;
 	constexpr size_t NETBUFSIZ = 1024 * 64;
 	constexpr size_t SLICE_MAX = 20;
 	constexpr size_t SLICE_SIZE = 65500;
-	extern char MesgSlice[][Autil::SLICE_SIZE];	// store message slices
-	extern int SliceCount;		// count slices in MesgSlice
+	constexpr size_t LBUFSIZE = 65500;
+	constexpr size_t SBUFSIZE = 4096;
+	extern QByteArray MesgSlice[];//autil.cpp//[][Autil::SLICE_SIZE];	// store message slices
+	extern util::SafeData<size_t> SliceCount;//autil.cpp		// count slices in MesgSlice
 
-	extern char PersonalKey[];
+	constexpr size_t PERSONALKEYSIZE = 32;
+	//extern QScopedArrayPointer<char> PersonalKey;
+	extern util::SafeData<QString> PersonalKey;//autil.cpp
 
 	constexpr const char* SEPARATOR = ";";
 
@@ -20,82 +41,74 @@ namespace Autil
 	constexpr const char* DEFAULTFUNCBEGIN = "&";
 	constexpr const char* DEFAULTFUNCEND = "#";
 
-	void util_Init(void);
-	void util_Release(void);
-	bool util_SplitMessage(char* source, size_t dstlen, char* separator);
-	void util_EncodeMessage(char* dst, size_t dstlen, char* src);
-	void util_DecodeMessage(char* dst, size_t dstlen, char* src);
-	int util_GetFunctionFromSlice(int* func, int* fieldcount);
-	void util_DiscardMessage(void);
-	void util_SendMesg(int fd, int func, char* buffer);
+
+	void __stdcall util_Init(void);
+	void __stdcall util_Release(void);
+	void __stdcall util_Clear(void);
+	bool __stdcall util_SplitMessage(char* source, size_t dstlen, char* separator);
+	void __stdcall util_EncodeMessage(char* dst, size_t dstlen, char* src);
+	void __stdcall util_DecodeMessage(char* dst, size_t dstlen, char* src);
+	int __stdcall util_GetFunctionFromSlice(int* func, int* fieldcount);
+	void __stdcall util_DiscardMessage(void);
+	void __stdcall util_SendMesg(int func, char* buffer);
 
 	// -------------------------------------------------------------------
 	// Encoding function units.  Use in Encrypting functions.
-	int util_256to64(char* dst, char* src, int len, char* table);
-	int util_64to256(char* dst, char* src, char* table);
-	int util_256to64_shr(char* dst, char* src, int len, char* table, char* key);
-	int util_shl_64to256(char* dst, char* src, char* table, char* key);
-	int util_256to64_shl(char* dst, char* src, int len, char* table, char* key);
-	int util_shr_64to256(char* dst, char* src, char* table, char* key);
+	int __stdcall util_256to64(char* dst, char* src, int len, char* table);
+	int __stdcall util_64to256(char* dst, char* src, char* table);
+	int __stdcall util_256to64_shr(char* dst, char* src, int len, char* table, char* key);
+	int __stdcall util_shl_64to256(char* dst, char* src, char* table, char* key);
+	int __stdcall util_256to64_shl(char* dst, char* src, int len, char* table, char* key);
+	int __stdcall util_shr_64to256(char* dst, char* src, char* table, char* key);
 
-	void util_swapint(int* dst, int* src, char* rule);
-	void util_xorstring(char* dst, char* src);
-	void util_shrstring(char* dst, size_t dstlen, char* src, int offs);
-	void util_shlstring(char* dst, size_t dstlen, char* src, int offs);
+	void __stdcall util_swapint(int* dst, int* src, char* rule);
+	void __stdcall util_xorstring(char* dst, char* src);
+	void __stdcall util_shrstring(char* dst, size_t dstlen, char* src, int offs);
+	void __stdcall util_shlstring(char* dst, size_t dstlen, char* src, int offs);
 	// -------------------------------------------------------------------
 	// Encrypting functions
-	int util_deint(int sliceno, int* value);
-	int util_mkint(char* buffer, int value);
-	int util_destring(int sliceno, char* value);
-	int util_mkstring(char* buffer, char* value);
+	int __stdcall util_deint(int sliceno, int* value);
+	int __stdcall util_mkint(char* buffer, int value);
+	int __stdcall util_destring(int sliceno, char* value);
+	int __stdcall util_mkstring(char* buffer, char* value);
 
-
-
-
-	int strcmptail(char* s1, char* s2);
-#ifndef _AUTIL_H_
-#define _AUTIL_H_
-#ifdef _FONT_STYLE_
-	typedef struct
+	// 辅助函数，处理整数参数
+	template<typename Arg>
+	inline void util_SendProcessArg(int& sum, char* buffer, Arg arg)
 	{
-		int x;
-		int size;
-		int color;
-		char str[128];
-	}WM_STR_STYLE;
+		sum += util_mkint(buffer, arg);
+	}
 
-	typedef struct
+	// 辅助函数，处理字符串参数（重载版本）
+	inline void util_SendProcessArg(int& sum, char* buffer, char* arg)
 	{
-		int flg;
-		WM_STR_STYLE style[30];
-	}WM_STR;
+		sum += util_mkstring(buffer, arg);
+	}
 
-
-	typedef struct
+	// 輔助函數，遞歸處理參數
+	template<typename Arg, typename... Args>
+	void util_SendProcessArgs(int& sum, char* buffer, Arg arg, Args... args)
 	{
-		int x;
-		int size;
-		int color;
-		char str[32];
-	}TITLE_STR_STYLE;
+		util_SendProcessArg(sum, buffer, arg);
+		util_SendProcessArgs(sum, buffer, args...);
+	}
 
-	typedef struct
+	// 輔助函數，处理最后一个参数
+	template<typename Arg>
+	void util_SendProcessArgs(int& sum, char* buffer, Arg arg)
 	{
-		int flg;
-		int len;
-		TITLE_STR_STYLE style[10];
-	}TITLE_STR;
-	void getCharTitleSplit(char* str, TITLE_STR* title);
-	extern WM_STR wmstr[25];
-	void getStrSplitNew(char str[][256]);
-	extern char* sunday(char* str, char* subStr);
-	void PutWinText(int x, int y, char fontPrio, int color, char* str, BOOL hitFlag, int index);
-#endif
-#endif
-	BOOL getStringFromIndexWithDelim_body(char* src, char* delim, int index, char* buf, int buflen);
+		util_SendProcessArg(sum, buffer, arg);
+	}
 
+	// 主發送函數
+	template<typename... Args>
+	void util_Send(int func, Args... args)
+	{
+		int iChecksum = 0;
+		char buffer[NETDATASIZE] = {};
+		memset(buffer, 0, sizeof(buffer));
+		util_SendProcessArgs(iChecksum, buffer, args...);
+		util_mkint(buffer, iChecksum);
+		util_SendMesg(func, buffer);
+	}
 }
-
-#endif
-
-

@@ -1700,3 +1700,198 @@ QString Net::Authenticator::GetErrorString(const QString& errorCode)
 	return "\0";
 }
 #endif
+
+namespace AntiCaptcha
+{
+	size_t httpWriteCallback(void* contents, size_t size, size_t nmemb, void* userp)
+	{
+		((std::string*)userp)->append((char*)contents, size * nmemb);
+		return size * nmemb;
+	}
+
+	void httpInit(CURL* curl, RequestType type, ContentType format, AcceptType acceptType, long timeout, std::vector<struct curl_slist*>& headers_)
+	{
+		curl_easy_reset(curl);
+		if (GET == type)
+		{
+			curl_easy_setopt(curl, CURLOPT_HTTPPOST, 0L);
+			curl_easy_setopt(curl, CURLOPT_HTTPGET, 1L);
+		}
+		else
+		{
+			curl_easy_setopt(curl, CURLOPT_HTTPPOST, 1L);
+			curl_easy_setopt(curl, CURLOPT_HTTPGET, 0L);
+		}
+
+
+
+		//curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L); // 跳過 SSL 驗證
+		curl_easy_setopt(curl, CURLOPT_HEADER, 0L); // 關閉 response header
+		curl_easy_setopt(curl, CURLOPT_AUTOREFERER, 1L); // 自動設置 referer
+		curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L); // 自動跟隨 302 重定向
+		curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1L); // 不使用 signal
+		curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, timeout); // 設置連接超時時間
+		curl_easy_setopt(curl, CURLOPT_TIMEOUT, timeout + 10L); // 設置總超時時間
+		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, httpWriteCallback);
+
+
+		struct curl_slist* headers = nullptr;
+
+		if (headers)
+		{
+			curl_slist_free_all(headers);
+			headers = nullptr;
+		}
+
+		headers = curl_slist_append(headers, "Authority: www.bluecg.net");
+		if (ACCEPT_IMAGE == acceptType)
+			headers = curl_slist_append(headers, "Accept: image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8");
+		else
+			headers = curl_slist_append(headers, "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7");
+		headers = curl_slist_append(headers, "Accept-Language: zh-TW,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6");
+		headers = curl_slist_append(headers, "Accept-Encoding: *");
+		headers = curl_slist_append(headers, "Cache-Control: max-age=0");
+		if (CONTENT_JSON == format)
+			headers = curl_slist_append(headers, "Content-Type: application/json");
+		else if (CONTENT_MIME == format)
+			headers = curl_slist_append(headers, "Content-Type: multipart/form-data");
+		else
+			headers = curl_slist_append(headers, "Content-Type: text/plain");
+		headers = curl_slist_append(headers, "Origin: https://www.bluecg.net");
+		//QString qRefer(QString("Referer: %1").arg(url_));
+		//std::string sRefer(qRefer.toStdString());
+		//headers = curl_slist_append(headers, sRefer.c_str());
+		headers = curl_slist_append(headers, "sec-ch-ua: \"Microsoft Edge\";v=\"111\", \"Not(A:Brand\";v=\"8\", \"Chromium\";v=\"111\"");
+		headers = curl_slist_append(headers, "sec-ch-ua-mobile: ?0");
+		headers = curl_slist_append(headers, "sec-ch-ua-platform: \"Windows\"");
+		headers = curl_slist_append(headers, "sec-fetch-dest: document");
+		headers = curl_slist_append(headers, "sec-fetch-mode: navigate");
+		headers = curl_slist_append(headers, "sec-fetch-site: same-origin");
+		headers = curl_slist_append(headers, "sec-fetch-user: ?1");
+		headers = curl_slist_append(headers, "upgrade-insecure-requests: 1");
+
+		headers = curl_slist_append(headers, "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36 Edg/111.0.1661.62");
+
+
+		curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+
+		if (headers)
+			headers_.push_back(headers);
+	}
+
+	bool httpPostCodeImage(const QImage& img, QString* pmsg, QString& gifCode_)
+	{
+		curl_mime* mime = nullptr;
+
+		bool bret = false;
+
+		CURL* curl = curl_easy_init();
+
+		do
+		{
+
+			if (!pmsg)
+				break;
+
+			if (!curl)
+			{
+				*pmsg = "Invalid curl handle.";
+				break;
+			}
+
+			std::vector<struct curl_slist*> header;
+			httpInit(curl, POST, CONTENT_MIME, ACCEPT_TEXT, 5000, header);
+
+			mime = curl_mime_init(curl);
+			curl_mimepart* part = curl_mime_addpart(mime);
+			curl_mime_name(part, "file");
+			curl_mime_type(part, "image/png");
+			curl_mime_filename(part, "image.png");
+			//std::string sfilename = imgPath.toStdString();
+			//curl_mime_filedata(part, sfilename.c_str());
+			QBuffer buffer;
+			buffer.open(QIODevice::WriteOnly);
+			img.save(&buffer, "PNG"); // 將 QImage 存為 PNG 格式到 buffer
+			QByteArray byteData = buffer.buffer(); // 獲取 QByteArray
+			std::string data(byteData.constData(), byteData.size());
+			curl_mime_data(part, data.c_str(), data.size());
+			curl_easy_setopt(curl, CURLOPT_MIMEPOST, mime);
+
+			std::string responseBuffer = "\0";
+			curl_easy_setopt(curl, CURLOPT_URL, "http://198.13.52.137:58889/verify_code/");
+			curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void*)&responseBuffer);
+
+			CURLcode res = curl_easy_perform(curl);
+			if (res != CURLE_OK)
+			{
+				*pmsg = QString("curl_easy_perform failed: %1 [%2]").arg(curl_easy_strerror(res)).arg(__LINE__);
+				break;
+			}
+
+			// Process responseBuffer as needed
+			QJsonParseError jerr;
+			const QString retstring(QString::fromStdString(responseBuffer));
+			QJsonDocument responseDoc = QJsonDocument::fromJson(retstring.toUtf8(), &jerr);
+			if (jerr.error != QJsonParseError::NoError)
+			{
+				*pmsg = QString("json parse error: %1").arg(jerr.errorString());
+				break;
+			}
+
+			QJsonObject responseObject = responseDoc.object();
+			if (!responseObject.contains("status"))
+			{
+				*pmsg = "Response does not contain 'status' field";
+				break;
+			}
+			QString status = responseObject["status"].toString();
+
+			if (status != "success")
+			{
+				if (responseObject.contains("msg"))
+					*pmsg = responseObject["msg"].toString();
+				else
+					*pmsg = "Response does not contain 'msg' field";
+
+				break;
+			}
+
+
+			if (responseObject.contains("msg"))
+			{
+
+				const QString gifCode = responseObject["msg"].toString();
+				//檢查是否為4位數純英文大小寫數字
+				static QRegularExpression re("[a-zA-Z0-9]{3,4}");
+				const QRegularExpressionMatch match = re.match(gifCode);
+				if (!match.hasMatch())
+				{
+					*pmsg = "Response 'msg' field is not 3 or 4 digits";
+					break;
+				}
+
+				bret = true;
+				gifCode_ = gifCode;
+				pmsg->clear();
+				qDebug() << "gif code: " << gifCode_;
+
+			}
+			else
+				gifCode_ = "Response does not contain 'msg' field";
+
+
+		} while (false);
+
+		if (mime)
+		{
+			curl_mime_free(mime);
+		}
+
+		if (curl)
+		{
+			curl_easy_cleanup(curl);
+		}
+
+		return bret;
+	}
+}

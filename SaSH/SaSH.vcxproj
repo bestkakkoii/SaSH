@@ -13,8 +13,8 @@
   <PropertyGroup Label="Globals">
     <ProjectGuid>{6FD5EFE4-B2EA-4395-9179-66CE9A78BFBE}</ProjectGuid>
     <Keyword>QtVS_v304</Keyword>
-    <WindowsTargetPlatformVersion Condition="'$(Configuration)|$(Platform)' == 'Debug|Win32'">10.0.22621.0</WindowsTargetPlatformVersion>
-    <WindowsTargetPlatformVersion Condition="'$(Configuration)|$(Platform)' == 'Release|Win32'">10.0.22621.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion Condition="'$(Configuration)|$(Platform)' == 'Debug|Win32'">10.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion Condition="'$(Configuration)|$(Platform)' == 'Release|Win32'">10.0</WindowsTargetPlatformVersion>
     <QtMsBuild Condition="'$(QtMsBuild)'=='' OR !Exists('$(QtMsBuild)\qt.targets')">$(MSBuildProjectDirectory)\QtMsBuild</QtMsBuild>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -27,6 +27,9 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <PlatformToolset>v143</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <EnableASAN>false</EnableASAN>
+    <EnableFuzzer>false</EnableFuzzer>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Condition="Exists('$(QtMsBuild)\qt_defaults.props')">
@@ -34,12 +37,12 @@
   </ImportGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|Win32'" Label="QtSettings">
     <QtInstall>5.15.2_msvc2019</QtInstall>
-    <QtModules>core;network;gui;widgets;concurrent</QtModules>
+    <QtModules>core;opengl;network;gui;widgets;concurrent;webenginewidgets</QtModules>
     <QtBuildConfig>debug</QtBuildConfig>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|Win32'" Label="QtSettings">
     <QtInstall>5.15.2_msvc2019</QtInstall>
-    <QtModules>core;network;gui;widgets;concurrent</QtModules>
+    <QtModules>core;opengl;network;gui;widgets;concurrent;webenginewidgets</QtModules>
     <QtBuildConfig>release</QtBuildConfig>
   </PropertyGroup>
   <Target Name="QtMsBuildNotFound" BeforeTargets="CustomBuild;ClCompile" Condition="!Exists('$(QtMsBuild)\qt.targets') or !Exists('$(QtMsBuild)\qt.props')">
@@ -59,30 +62,56 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|Win32'">
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|Win32'">
+    <RunCodeAnalysis>false</RunCodeAnalysis>
+    <EnableClangTidyCodeAnalysis>false</EnableClangTidyCodeAnalysis>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
-      <AdditionalIncludeDirectories>$(SolutionDir)$(ProjectName);$(SolutionDir)$(ProjectName)\include;$(SolutionDir)$(ProjectName)\model;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)$(ProjectName);$(SolutionDir)$(ProjectName)\include;$(SolutionDir)$(ProjectName)\model;D:\Program Files (x86)\OpenSSL-Win32\include;D:\Qt\5.15.2\msvc2019\include\QtGui\5.15.2;D:\Qt\5.15.2\msvc2019\include\QtCore\5.15.2;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <WarningLevel>Level3</WarningLevel>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <ExceptionHandling>Async</ExceptionHandling>
+      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <OmitFramePointers>true</OmitFramePointers>
+      <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
+      <WholeProgramOptimization>true</WholeProgramOptimization>
+      <AdditionalOptions>/bigobj %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <UACExecutionLevel>RequireAdministrator</UACExecutionLevel>
-      <AdditionalLibraryDirectories>$(SolutionDir)$(ProjectName)\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(SolutionDir)$(ProjectName)\lib;D:\Program Files (x86)\OpenSSL-Win32\lib\VC;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
+      <DelayLoadDLLs>%(DelayLoadDLLs)</DelayLoadDLLs>
+      <GenerateMapFile>true</GenerateMapFile>
+      <MapExports>true</MapExports>
     </Link>
+    <QtTranslation>
+      <BuildAction>false</BuildAction>
+    </QtTranslation>
+    <PostBuildEvent>
+      <Command>$(SolutionDir)ReleaseTool\bind7z.bat</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
-      <AdditionalIncludeDirectories>$(SolutionDir)$(ProjectName);$(SolutionDir)$(ProjectName)\include;$(SolutionDir)$(ProjectName)\model;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)$(ProjectName);$(SolutionDir)$(ProjectName)\include;$(SolutionDir)$(ProjectName)\model;D:\Program Files (x86)\OpenSSL-Win32\include;D:\Qt\5.15.2\msvc2019\include\QtGui\5.15.2;D:\Qt\5.15.2\msvc2019\include\QtCore\5.15.2;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <WarningLevel>Level3</WarningLevel>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <AssemblerOutput>All</AssemblerOutput>
       <ExceptionHandling>Async</ExceptionHandling>
+      <AdditionalOptions>/bigobj %(AdditionalOptions)</AdditionalOptions>
+      <IntrinsicFunctions />
+      <FavorSizeOrSpeed>
+      </FavorSizeOrSpeed>
+      <OmitFramePointers />
+      <EnableFiberSafeOptimizations />
+      <WholeProgramOptimization />
     </ClCompile>
     <Link>
       <UACExecutionLevel>RequireAdministrator</UACExecutionLevel>
-      <AdditionalLibraryDirectories>$(SolutionDir)$(ProjectName)\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(SolutionDir)$(ProjectName)\lib;D:\Program Files (x86)\OpenSSL-Win32\lib\VC;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateMapFile>true</GenerateMapFile>
       <MapExports>true</MapExports>
       <AssemblyDebug>true</AssemblyDebug>
@@ -99,7 +128,7 @@
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <GenerateDebugInformation>DebugFull</GenerateDebugInformation>
     </Link>
     <QtMoc>
       <PrependInclude>stdafx.h;%(PrependInclude)</PrependInclude>
@@ -116,7 +145,7 @@
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
-      <GenerateDebugInformation>false</GenerateDebugInformation>
+      <GenerateDebugInformation>DebugFull</GenerateDebugInformation>
     </Link>
     <QtMoc>
       <PrependInclude>stdafx.h;%(PrependInclude)</PrependInclude>
@@ -124,6 +153,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="3rdparty\simplecrypt.cpp" />
+    <ClCompile Include="crypto.cpp" />
     <ClCompile Include="form\abilityform.cpp" />
     <ClCompile Include="form\afkform.cpp" />
     <ClCompile Include="form\afkinfoform.cpp" />
@@ -134,11 +164,14 @@
     <ClCompile Include="form\iteminfoform.cpp" />
     <ClCompile Include="form\mailinfoform.cpp" />
     <ClCompile Include="form\mapform.cpp" />
+    <ClCompile Include="form\mapwidget.cpp" />
     <ClCompile Include="form\otherform.cpp" />
     <ClCompile Include="form\petinfoform.cpp" />
     <ClCompile Include="form\playerinfoform.cpp" />
+    <ClCompile Include="form\replaceform.cpp" />
     <ClCompile Include="form\scriptform.cpp" />
     <ClCompile Include="form\scriptsettingform.cpp" />
+    <ClCompile Include="gdatatime.cpp" />
     <ClCompile Include="injector.cpp" />
     <ClCompile Include="mainthread.cpp">
       <DynamicSource Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">input</DynamicSource>
@@ -146,6 +179,21 @@
       <DynamicSource Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">input</DynamicSource>
       <QtMocFileName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">%(Filename).moc</QtMocFileName>
     </ClCompile>
+    <ClCompile Include="map\astar.cpp" />
+    <ClCompile Include="map\mapanalyzer.cpp" />
+    <ClCompile Include="model\codeeditor.cpp">
+      <DynamicSource Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">input</DynamicSource>
+      <QtMocFileName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">%(Filename).moc</QtMocFileName>
+      <DynamicSource Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">input</DynamicSource>
+      <QtMocFileName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">%(Filename).moc</QtMocFileName>
+    </ClCompile>
+    <ClCompile Include="model\combobox.cpp" />
+    <ClCompile Include="model\fastlabel.cpp" />
+    <ClCompile Include="model\highlighter.cpp" />
+    <ClCompile Include="model\listview.cpp" />
+    <ClCompile Include="model\mapglwidget.cpp" />
+    <ClCompile Include="model\qthumbnailform.cpp" />
+    <ClCompile Include="model\qthumbnailwidget.cpp" />
     <ClCompile Include="net\autil.cpp" />
     <ClCompile Include="net\tcpserver.cpp" />
     <ClCompile Include="net\webauthenticator.cpp">
@@ -155,11 +203,19 @@
       <QtMocFileName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">%(Filename).moc</QtMocFileName>
     </ClCompile>
     <ClCompile Include="qscopedhandle.cpp" />
+    <ClCompile Include="script\action.cpp" />
+    <ClCompile Include="script\check.cpp" />
+    <ClCompile Include="script\interpreter.cpp" />
+    <ClCompile Include="script\lexer.cpp" />
+    <ClCompile Include="script\move.cpp" />
+    <ClCompile Include="script\parser.cpp" />
+    <ClCompile Include="script\system.cpp" />
+    <ClCompile Include="update\curldownload.cpp" />
+    <ClCompile Include="update\qdownloader.cpp" />
     <ClCompile Include="util.cpp" />
     <ClInclude Include="3rdparty\simplecrypt.h" />
     <QtMoc Include="form\infoform.h" />
     <QtMoc Include="form\generalform.h" />
-    <QtMoc Include="form\mapform.h" />
     <QtMoc Include="form\afkform.h" />
     <QtMoc Include="form\otherform.h" />
     <QtMoc Include="form\scriptform.h" />
@@ -176,9 +232,34 @@
     <QtMoc Include="form\petinfoform.h" />
     <QtMoc Include="form\afkinfoform.h" />
     <QtMoc Include="form\abilityform.h" />
+    <QtMoc Include="form\mapwidget.h" />
+    <QtMoc Include="form\mapform.h" />
+    <ClInclude Include="crypto.h" />
+    <QtMoc Include="form\replaceform.h" />
+    <ClInclude Include="gdatetime.h" />
     <ClInclude Include="injector.h" />
+    <ClInclude Include="map\astar.h" />
+    <ClInclude Include="map\mapanalyzer.h" />
+    <QtMoc Include="model\mapglwidget.h" />
+    <QtMoc Include="model\combobox.h" />
+    <QtMoc Include="model\codeeditor.h" />
+    <QtMoc Include="model\fastlabel.h" />
+    <ClInclude Include="model\highlighter.h" />
+    <QtMoc Include="model\listview.h" />
+    <QtMoc Include="model\threadplugin.h" />
+    <QtMoc Include="model\qthumbnailform.h" />
+    <QtMoc Include="model\qthumbnailwidget.h" />
+    <ClInclude Include="model\treewidgetitem.h" />
     <ClInclude Include="net\autil.h" />
     <ClInclude Include="qscopedhandle.h" />
+    <QtMoc Include="script\interpreter.h" />
+    <ClInclude Include="resource.h" />
+    <ClInclude Include="resource1.h" />
+    <ClInclude Include="script\lexer.h" />
+    <QtMoc Include="script\parser.h" />
+    <ClInclude Include="spdloger.hpp" />
+    <ClInclude Include="update\curldownload.h" />
+    <QtMoc Include="update\qdownloader.h" />
     <ClInclude Include="util.h" />
     <QtRcc Include="resource.qrc" />
     <QtUic Include="form\abilityform.ui" />
@@ -191,6 +272,7 @@
     <QtUic Include="form\iteminfoform.ui" />
     <QtUic Include="form\mailinfoform.ui" />
     <QtUic Include="form\mapform.ui" />
+    <QtUic Include="form\mapwidget.ui" />
     <QtUic Include="form\otherform.ui" />
     <QtUic Include="form\petinfoform.ui" />
     <QtUic Include="form\playerinfoform.ui" />
@@ -205,6 +287,9 @@
     <ClCompile Include="mainform.cpp" />
     <ClCompile Include="main.cpp" />
     <None Include="SaSH.ico" />
+    <QtUic Include="model\qthumbnailform.ui" />
+    <QtUic Include="update\qdownloader.ui" />
+    <ResourceCompile Include="main.rc" />
     <ResourceCompile Include="SaSH.rc" />
     <QtMoc Include="model\progressbar.h" />
     <QtMoc Include="form\selecttargetform.h" />

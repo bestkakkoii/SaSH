@@ -1,4 +1,22 @@
-﻿#include "stdafx.h"
+﻿/*
+				GNU GENERAL PUBLIC LICENSE
+				   Version 2, June 1991
+COPYRIGHT (C) Bestkakkoii 2023 All Rights Reserved.
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU General Public License for more details.
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+
+*/
+
+#include "stdafx.h"
 #include "progressbar.h"
 
 void setProgressBarStyle(QProgressBar* pProgress, const QString& qstrcolor)
@@ -10,7 +28,7 @@ void setProgressBarStyle(QProgressBar* pProgress, const QString& qstrcolor)
 			text-align: center;
 			background-color: rbg(255, 255, 255);
 			/*text size*/
-			font-size: 12px;
+			font-size: 10px;
 		}
 
 		QProgressBar::chunk {
@@ -28,6 +46,9 @@ ProgressBar::ProgressBar(QWidget* parent)
 {
 	setTextVisible(true);
 	setRange(0, 100);
+	QFont font = this->font();
+	font.setPointSize(10);
+	setFont(font);
 }
 
 void ProgressBar::setType(ProgressBar::Type type)
@@ -35,10 +56,10 @@ void ProgressBar::setType(ProgressBar::Type type)
 	type_ = type;
 	if (kHP == type_)
 		setProgressBarStyle(this, \
-			"qlineargradient(spread:pad, x1:0, y1:0, x2:1, y2:0, stop:0 rgba(255, 65, 65, 255), stop:0.556818 rgba(255, 138, 98, 255), stop:0.977273 rgba(255, 163, 107, 255), stop:1 rgba(0, 0, 0, 0))");
+			"qlineargradient(spread:pad, x1:0, y1:0, x2:1, y2:0, stop:0 rgba(255, 65, 65, 255), stop:0.556818 rgba(255, 138, 98, 255), stop:0.977273 rgba(255, 163, 107, 255), stop:1 rgba(255, 150, 100, 255))");
 	else
 		setProgressBarStyle(this, \
-			"qlineargradient(spread:pad, x1:0, y1:0, x2:1, y2:0, stop:0 rgba(75, 67, 255, 255), stop:0.5625 rgba(132, 114, 255, 255), stop:0.977273 rgba(148, 143, 255, 255), stop:1 rgba(0, 0, 0, 0))");
+			"qlineargradient(spread:pad, x1:0, y1:0, x2:1, y2:0, stop:0 rgba(75, 67, 255, 255), stop:0.556818 rgba(132, 114, 255, 255), stop:0.977273 rgba(148, 143, 255, 255), stop:1 rgba(140, 130, 255, 255))");
 }
 
 void ProgressBar::setName(const QString& name)

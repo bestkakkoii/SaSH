@@ -6,62 +6,121 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>293</width>
-    <height>308</height>
+    <width>250</width>
+    <height>246</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>MapForm</string>
   </property>
+  <property name="styleSheet">
+   <string notr="true"/>
+  </property>
   <layout class="QGridLayout" name="gridLayout">
+   <property name="leftMargin">
+    <number>0</number>
+   </property>
+   <property name="topMargin">
+    <number>0</number>
+   </property>
+   <property name="rightMargin">
+    <number>0</number>
+   </property>
+   <property name="bottomMargin">
+    <number>0</number>
+   </property>
+   <property name="spacing">
+    <number>0</number>
+   </property>
    <item row="0" column="0">
-    <widget class="QTableWidget" name="tableWidget_map">
-     <attribute name="verticalHeaderVisible">
-      <bool>false</bool>
-     </attribute>
-     <column>
-      <property name="text">
-       <string>location</string>
-      </property>
-     </column>
-     <column>
-      <property name="text">
-       <string>cod</string>
-      </property>
-     </column>
-    </widget>
-   </item>
-   <item row="1" column="0">
-    <layout class="QHBoxLayout" name="horizontalLayout_map">
-     <property name="spacing">
-      <number>1</number>
-     </property>
+    <layout class="QVBoxLayout" name="verticalLayout">
      <item>
-      <widget class="QLabel" name="label_map_destination">
-       <property name="text">
-        <string>destination:</string>
+      <widget class="QTableWidget" name="tableWidget_map">
+       <property name="editTriggers">
+        <set>QAbstractItemView::NoEditTriggers</set>
        </property>
+       <property name="selectionMode">
+        <enum>QAbstractItemView::SingleSelection</enum>
+       </property>
+       <property name="selectionBehavior">
+        <enum>QAbstractItemView::SelectRows</enum>
+       </property>
+       <attribute name="verticalHeaderVisible">
+        <bool>false</bool>
+       </attribute>
+       <column>
+        <property name="text">
+         <string>location</string>
+        </property>
+       </column>
+       <column>
+        <property name="text">
+         <string>cod</string>
+        </property>
+       </column>
       </widget>
      </item>
      <item>
-      <widget class="QSpinBox" name="spinBox_findpath_x"/>
-     </item>
-     <item>
-      <widget class="QSpinBox" name="spinBox_findpath_y"/>
-     </item>
-     <item>
-      <widget class="QPushButton" name="pushButton_findpath_start">
-       <property name="text">
-        <string>findpath</string>
+      <layout class="QHBoxLayout" name="horizontalLayout_map">
+       <property name="spacing">
+        <number>1</number>
        </property>
-      </widget>
+       <item>
+        <widget class="QLabel" name="label_map_destination">
+         <property name="text">
+          <string>destination:</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QSpinBox" name="spinBox_findpath_x">
+         <property name="maximum">
+          <number>1500</number>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QSpinBox" name="spinBox_findpath_y">
+         <property name="maximum">
+          <number>1500</number>
+         </property>
+        </widget>
+       </item>
+      </layout>
      </item>
      <item>
-      <widget class="QPushButton" name="pushButton_findpath_stop">
-       <property name="text">
-        <string>stop</string>
-       </property>
-      </widget>
+      <layout class="QHBoxLayout" name="horizontalLayout">
+       <item>
+        <spacer name="horizontalSpacer">
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>40</width>
+           <height>20</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+       <item>
+        <widget class="QPushButton" name="pushButton_findpath_start">
+         <property name="text">
+          <string>findpath</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="pushButton_findpath_stop">
+         <property name="enabled">
+          <bool>false</bool>
+         </property>
+         <property name="text">
+          <string>stop</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
      </item>
     </layout>
    </item>

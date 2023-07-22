@@ -1,12 +1,38 @@
-﻿#pragma once
+﻿/*
+				GNU GENERAL PUBLIC LICENSE
+				   Version 2, June 1991
+COPYRIGHT (C) Bestkakkoii 2023 All Rights Reserved.
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU General Public License for more details.
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+
+*/
+
+#pragma once
 #include <QCoreApplication>
-#include <QThread>
 #include <QTimer>
 #include <iostream>
 #include <string>
 #include <vector>
 #include <WS2tcpip.h>
-#pragma comment(lib, "ws2_32.lib")
+
+#include <threadplugin.h>
+#include <util.h>
+
+
+#pragma region MACROS
+//custom
+#define OCR_ENABLE
+
+//sa original
 #define _PETS_SELECTCON
 #define _NEW_SYSTEM_MENU
 #define _ANNOUNCEMENT_
@@ -31,6 +57,256 @@
 #define _EQUIT_NEWGLOVE
 #define __ATTACK_MAGIC
 #define _SKILL_ADDBARRIER
+#define _OBJSEND_C
+#define _NEWSHOP_
+#pragma endregion
+
+#pragma region Const
+
+constexpr size_t LINEBUFSIZ = 8192;
+
+#ifdef _MORECHARACTERS_
+constexpr int MAXCHARACTER = 4;
+#else
+constexpr int MAXCHARACTER = 2;
+#endif
+constexpr int CHAR_NAME_LEN = 16;
+constexpr int CHAR_FREENAME_LEN = 32;
+constexpr int MAGIC_NAME_LEN = 28;
+constexpr int MAGIC_MEMO_LEN = 72;
+constexpr int ITEM_NAME_LEN = 28;
+constexpr int ITEM_NAME2_LEN = 16;
+constexpr int ITEM_MEMO_LEN = 84;
+constexpr int PET_NAME_LEN = 16;
+constexpr int PET_FREENAME_LEN = 32;
+constexpr int CHAR_FMNAME_LEN = 33;     // 家族名稱
+
+#ifdef _CHAR_PROFESSION			// WON ADD 人物職業
+constexpr int PROFESSION_MEMO_LEN = 84;
+#endif
+
+#ifdef _GM_IDENTIFY		// Rog ADD GM識別
+constexpr int GM_NAME_LEN = 32;
+#endif
+
+constexpr int CHARNAMELEN = 256;
+
+constexpr int MAX_PET = 5;
+
+constexpr int MAX_MAGIC = 9;
+
+constexpr int MAX_PARTY = 5;
+
+constexpr int MAX_ADR_BOOK_COUNT = 4;
+#ifdef _EXTEND_AB
+constexpr int MAX_ADR_BOOK_PAGE = 20;//20  //10   20050214 cyg 10 add to 20
+#else
+constexpr int MAX_ADR_BOOK_PAGE = 10;
+#endif
+constexpr int MAX_ADR_BOOK = (MAX_ADR_BOOK_COUNT * MAX_ADR_BOOK_PAGE);
+
+#ifdef _PRO3_ADDSKILL
+constexpr int MAX_PROFESSION_SKILL = 30;
+#else
+constexpr int MAX_PROFESSION_SKILL = 26;
+#endif
+
+constexpr int BATTLE_BUF_SIZE = 4;
+constexpr int BATTLE_COMMAND_SIZE = 4096;
+
+constexpr int FLOOR_NAME_LEN = 24;
+
+constexpr int RESULT_ITEM_COUNT = 3;
+constexpr int RESULT_ITEM_NAME_LEN = 24;
+//constexpr int RESULT_CHR_EXP = 4;
+constexpr int RESULT_CHR_EXP = 5;
+
+constexpr int SKILL_NAME_LEN = 24;
+constexpr int SKILL_MEMO_LEN = 72;
+constexpr int MAX_SKILL = 7;
+
+
+
+constexpr int MAX_GOLD = 1000000;
+constexpr int MAX_BANKGOLD = 10000000;
+constexpr int MAX_FMBANKGOLD = 100000000;
+
+
+constexpr int MAX_PERSONAL_BANKGOLD = 50000000;
+
+#ifdef _FMVER21
+constexpr int FAMILY_MAXMEMBER = 100;    // 家族人數
+#else
+constexpr int FAMILY_MAXMEMBER = 50;    // 家族人數
+#endif
+
+constexpr int MAP_TILE_GRID_X1 = -20;
+constexpr int MAP_TILE_GRID_X2 = +17;
+constexpr int MAP_TILE_GRID_Y1 = -16;
+constexpr int MAP_TILE_GRID_Y2 = +21;
+constexpr int MAP_X_SIZE = (MAP_TILE_GRID_X2 - MAP_TILE_GRID_X1);
+constexpr int MAP_Y_SIZE = (MAP_TILE_GRID_Y2 - MAP_TILE_GRID_Y1);
+
+constexpr int MAP_READ_FLAG = 0x8000;
+constexpr int  MAP_SEE_FLAG = 0x4000;
+
+constexpr int BC_FLG_NEW = (1 << 0);
+constexpr int BC_FLG_DEAD = (1 << 1);	  //死亡
+constexpr int BC_FLG_PLAYER = (1 << 2);	  //玩家,玩家有异常状态时要有此值
+constexpr int BC_FLG_POISON = (1 << 3);	  //中毒
+constexpr int BC_FLG_PARALYSIS = (1 << 4); //麻痹
+constexpr int BC_FLG_SLEEP = (1 << 5);  //昏睡
+constexpr int BC_FLG_STONE = (1 << 6);	  //石化
+constexpr int BC_FLG_DRUNK = (1 << 7);  //酒醉
+constexpr int BC_FLG_CONFUSION = (1 << 8); //混乱
+constexpr int BC_FLG_HIDE = (1 << 9);	  //是否隐藏，地球一周
+constexpr int BC_FLG_REVERSE = (1 << 10);  //反转
+
+inline constexpr bool hasBadStatus(int status)
+{
+	//BC_FLG_POISON | BC_FLG_PARALYSIS | BC_FLG_SLEEP | BC_FLG_STONE | BC_FLG_DRUNK | BC_FLG_CONFUSION;
+	if (status & BC_FLG_POISON)
+		return true;
+	if (status & BC_FLG_PARALYSIS)
+		return true;
+	if (status & BC_FLG_SLEEP)
+		return true;
+	if (status & BC_FLG_STONE)
+		return true;
+	if (status & BC_FLG_DRUNK)
+		return true;
+	if (status & BC_FLG_CONFUSION)
+		return true;
+
+	return false;
+}
+
+inline constexpr bool hasUnMoveableStatue(int status)
+{
+	if (status & BC_FLG_DEAD)
+		return true;
+	if (status & BC_FLG_STONE)
+		return true;
+	if (status & BC_FLG_SLEEP)
+		return true;
+	if (status & BC_FLG_PARALYSIS)
+		return true;
+	if (status & BC_FLG_HIDE)
+		return true;
+
+	return false;
+}
+
+
+constexpr int ITEM_FLAG_PET_MAIL = (1 << 0);
+constexpr int ITEM_FLAG_MIX = (1 << 1);
+constexpr int ITEM_FLAG_COOKING_MIX = (1 << 2);
+constexpr int ITEM_FLAG_METAL_MIX = (1 << 3);	//金屬
+constexpr int ITEM_FLAG_JEWEL_MIX = (1 << 4);	//寶石
+constexpr int ITEM_FLAG_FIX_MIX = (1 << 5);	//修理
+#ifdef _ITEM_INTENSIFY
+constexpr int ITEM_FLAG_INTENSIFY_MIX = (1 << 6);	//強化
+#endif
+#ifdef _ITEM_UPINSLAY
+constexpr int ITEM_FLAG_UPINSLAY_MIX = (1 << 7);	//鑿孔
+#endif
+
+constexpr int JOY_RIGHT = (1 << 15);/* Right Key				*/
+constexpr int JOY_LEFT = (1 << 14);/*  Left Key				*/
+constexpr int JOY_DOWN = (1 << 13);/*  Down Key				*/
+constexpr int JOY_UP = (1 << 12);	/*    Up Key				*/
+constexpr int JOY_START = (1 << 11);	/* Start					*/
+constexpr int JOY_A = (1 << 10);	/* A Trigger				*/
+constexpr int JOY_C = (1 << 9);/* C Trigger				*/
+constexpr int JOY_B = (1 << 8);	/* B Trigger				*/
+constexpr int JOY_R = (1 << 7);	/* R Trigger				*/
+constexpr int JOY_X = (1 << 6);	/* X Trigger				*/
+constexpr int JOY_DEL = (1 << 5);	/* DELETE					*/
+constexpr int JOY_INS = (1 << 4);	/* INSERT					*/
+constexpr int JOY_END = (1 << 3);/* END						*/
+constexpr int JOY_HOME = (1 << 2);	/* HOME						*/
+constexpr int JOY_P_DOWN = (1 << 1);	/* PAGE_UP					*/
+constexpr int JOY_P_UP = (1 << 0);	/* PAGE_DOWN				*/
+
+constexpr int JOY_ESC = (1 << 31);/* ESC Key					*/
+constexpr int JOY_CTRL_M = (1 << 30);	/* Ctrl + M					*/
+constexpr int JOY_CTRL_S = (1 << 29);	/* Ctrl + S					*/
+constexpr int JOY_CTRL_P = (1 << 28);	/* Ctrl + P					*/
+constexpr int JOY_CTRL_I = (1 << 27);	/* Ctrl + I					*/
+constexpr int JOY_CTRL_E = (1 << 26);	/* Ctrl + E					*/
+constexpr int JOY_CTRL_A = (1 << 25);	/* Ctrl + A					*/
+
+constexpr int JOY_CTRL_C = (1 << 24);	/* Ctrl + C					*/
+constexpr int JOY_CTRL_V = (1 << 23);	/* Ctrl + V					*/
+constexpr int JOY_CTRL_T = (1 << 22);	/* Ctrl + T					*/
+
+//#define MAIL_STR_LEN 140		
+//#define MAIL_DATE_STR_LEN 20
+constexpr int MAIL_MAX_HISTORY = 20;
+constexpr int MAX_CHAT_REGISTY_STR = 8;
+
+constexpr int MAX_ENEMY = 20;
+constexpr int MAX_CHAT_HISTORY = 20;
+constexpr int MAX_DIALOG_LINE = 10;
+
+constexpr int MAX_DIR = 8;
+
+constexpr const char* SUCCESSFULSTR = "successful";
+constexpr const char* FAILEDSTR = "failed";
+constexpr const char* OKSTR = "ok";
+constexpr const char* CANCLE = "cancle";
+
+constexpr int BATTLE_MAP_FILES = 220;
+constexpr int GRID_SIZE = 64;
+
+constexpr unsigned long long LSTIME_SECONDS_PER_DAY = 5400ULL;
+constexpr unsigned long long LSTIME_HOURS_PER_DAY = 1024ULL;
+constexpr unsigned long long LSTIME_DAYS_PER_YEAR = 100ULL;
+
+#if 0
+
+constexpr int NIGHT_TO_MORNING = 906;
+constexpr int MORNING_TO_NOON = 1006;
+constexpr int  NOON_TO_EVENING = 356;
+constexpr int EVENING_TO_NIGHT = 456;
+
+#else
+
+constexpr int NIGHT_TO_MORNING = 700;
+constexpr int MORNING_TO_NOON = 930;
+constexpr int NOON_TO_EVENING = 200;
+constexpr int EVENING_TO_NIGHT = 300;
+
+#endif
+
+static const char* palFileName[] = {
+	"data\\pal\\Palet_1.sap",	// 
+	"data\\pal\\Palet_2.sap",	// 
+	"data\\pal\\Palet_3.sap",	// 
+	"data\\pal\\Palet_4.sap",	//
+
+	"data\\pal\\Palet_5.sap",	// 
+	"data\\pal\\Palet_6.sap",	//
+	"data\\pal\\Palet_7.sap",	// 
+	"data\\pal\\Palet_8.sap",	//
+	"data\\pal\\Palet_9.sap",	// 
+	"data\\pal\\Palet_10.sap",	// 
+	"data\\pal\\Palet_11.sap",	// 
+	"data\\pal\\Palet_12.sap",	//
+	"data\\pal\\Palet_13.sap",	//
+	"data\\pal\\Palet_14.sap",	//
+	"data\\pal\\Palet_15.sap",	//
+	"data\\pal\\Palet_0.sap",	//Waei logo
+	"white.sap",				// 
+	"black.sap",				// 
+};
+
+constexpr int MAX_PAL = sizeof(palFileName) / sizeof(palFileName[0]);
+
+
+#pragma endregion
+
+#pragma region Enums
 
 enum FUNCTIONTYPE
 {
@@ -248,6 +524,8 @@ enum FUNCTIONTYPE
 	LSSPROTO_REDMEMOY_RECV = 148,
 #endif
 
+	LSSPROTO_IMAGE_RECV = 151,
+
 #ifdef _ANNOUNCEMENT_
 	LSSPROTO_DENGON_RECV = 200,
 #endif
@@ -291,198 +569,38 @@ enum FUNCTIONTYPE
 	LSSPROTO_ARRAGEITEM_SEND = 260,
 };
 
-//typedef struct action
-//{
-//	struct 	action* pPrev, * pNext;			//上一個及下一個action指標
-//	void 	(*func)(struct action*);	//action所執行的function的指標
-//	void* pYobi;							//備用的struct指標
-//	void* pOther;						//其它用途struct指標
-//	UCHAR 	prio;							//action處理時的優先順序
-//	UCHAR 	dispPrio;						//秀圖時的優先順序	
-//	int 	x, y;							//圖的座標
-//	int		hitDispNo;						//是否命中目標編號
-//	BOOL	deathFlag;						//此action是否死亡旗標	
-//	int 	dx, dy;							//秀圖座標位移量
-//	int 	dir;							//方向
-//	int 	delta;  						//合成向量
-//
-//	char 	name[29];						//名字
-//	char 	freeName[33];					//free name
-//	int 	hp;
-//#ifdef _PET_ITEM
-//	int		iOldHp;
-//#endif
-//	int 	maxHp;
-//	int 	mp;
-//	int 	maxMp;
-//	int 	level;
-//	int 	status;
-//	int 	itemNameColor;				
-//	int		charNameColor;				
-//
-//	int		bmpNo;							//圖號
-//	int		bmpNo_bak;							//備份圖號
-//	int		atr;							//屬性
-//	int		state;							//狀態
-//	int		actNo;							//行動編號
-//	int		damage;
-//
-//	int		gx, gy;							//在目前的地圖上的座標
-//	int		nextGx, nextGy;					//下一個座標
-//	int		bufGx[10], bufGy[10];			//從目前座標到下一個座標之間座標的buffer
-//	short	bufCount;						//設定目前要走到那一個座標
-//	short	walkFlag;				
-//	float	mx, my;							//地圖座標
-//	float	vx, vy;							
-//
-//	//屬性
-//	short 	earth;							
-//	short 	water;						
-//	short 	fire;					
-//	short 	wind;					
-//	//rader使用
-//	int		dirCnt;					
-//	//gemini使用
-//	int		spd;							//移動的速度(0~63)
-//	int		crs;							//方向(0~31)(正上方為0,順時鐘方向)
-//	int		h_mini;							
-//	int		v_mini;						
-//	//pattern使用
-//	int		anim_chr_no;					//人物的編號(anim_tbl.h的編號)
-//	int		anim_chr_no_bak;				//上一次的人物編號
-//	int		anim_no;						//人物的動作編號
-//	int		anim_no_bak;					//上一次的人物編號
-//	int		anim_ang;						//動作的方向(0~7)(下0)
-//	int		anim_ang_bak;					//上一次的方向
-//	int		anim_cnt;						//第幾張frame
-//	int		anim_frame_cnt;					//這張frame停留時間
-//	int		anim_x;							//X座標(Sprbin+Adrnbin)
-//	int		anim_y;							//Y座標(Sprbin+Adrnbin)
-//	int		anim_hit;					
-//	// shan add +1
-//	char    fmname[33];			            // 家族名稱
-//	// Robin 0728 ride Pet
-//	int		onRide;
-//	char	petName[16 + 1];
-//	int		petLevel;
-//	int		petHp;
-//	int		petMaxHp;
-//	int		petDamage;
-//	int		petFall;
-//#ifdef _MIND_ICON
-//	unsigned int sMindIcon;
-//#endif
-//#ifdef _SHOWFAMILYBADGE_
-//	unsigned int sFamilyIcon;
-//#endif
-//#ifdef FAMILY_MANOR_
-//	unsigned int mFamilyIcon;
-//#endif
-//#ifdef _CHAR_MANOR_
-//	unsigned int mManorIcon;
-//#endif
-//#ifdef _CHARTITLE_STR_
-//	TITLE_STR TitleText;
-//#endif
-//#ifdef _CHARTITLE_
-//	unsigned int TitleIcon;
-//#endif
-//#ifdef _NPC_EVENT_NOTICE
-//	int noticeNo;
-//#endif
-//
-//#ifdef _SKILL_ROAR  
-//	int		petRoar;		//大吼(克年獸)
-//#endif 
-//#ifdef _SKILL_SELFEXPLODE //自爆
-//	int		petSelfExplode;
-//#endif 
-//#ifdef _MAGIC_DEEPPOISION   //劇毒
-//	int		petDeepPoision;
-//#endif 
-//
-//#ifdef _CHAR_PROFESSION			// WON ADD 人物職業
-//	int		profession_class;
-//#endif
-//	//#ifdef _BATTLESKILL				// (不可開) Syu ADD 戰鬥技能介面
-//	int		warrioreffect;
-//	//#endif
-//#ifdef _GM_IDENTIFY		// Rog ADD GM識別
-//	char gm_name[33];
-//#endif
-//#ifdef _STREET_VENDOR
-//	char szStreetVendorTitle[64];
-//#endif
-//#ifdef _NPC_PICTURE
-//	int picture;
-//	int picturetemp;
-//#endif
-//#ifdef _PETSKILL_RIDE
-//	int saveride;
-//#endif
-//#ifdef _MOUSE_DBL_CLICK
-//	int index;	// 禁斷!! Server中的charaindex
-//#endif
-//
-//#ifdef _SFUMATO
-//	int sfumato;		// 二次渲染圖層色彩
-//#endif
-//}ACTION;
-
-#ifdef _MORECHARACTERS_
-#define MAXCHARACTER			4
-#else
-#define MAXCHARACTER			2
-#endif
-//#define CHAR_NAME_LEN			16
-//#define CHAR_FREENAME_LEN		32
-//#define MAGIC_NAME_LEN			28
-//#define MAGIC_MEMO_LEN			72
-//#define ITEM_NAME_LEN			28
-//#define ITEM_NAME2_LEN			16
-//#define ITEM_MEMO_LEN			84
-//#define PET_NAME_LEN			16
-//#define PET_FREENAME_LEN		32
-//#define CHAR_FMNAME_LEN			33      // 家族名稱
-
-#ifdef _CHAR_PROFESSION			// WON ADD 人物職業
-//#define PROFESSION_MEMO_LEN		84
-#endif
-
-#ifdef _GM_IDENTIFY		// Rog ADD GM識別
-#define GM_NAME_LEN		        32
-#endif
-
-//#define CHARNAMELEN				256		
-
-#define MAX_PET					5
-
-#define MAX_MAGIC				9
-
-#define MAX_PARTY				5
-
-#define	MAX_ADR_BOOK_COUNT		4
-#ifdef _EXTEND_AB
-#define	MAX_ADR_BOOK_PAGE		20//20  //10   20050214 cyg 10 add to 20
-#else
-#define	MAX_ADR_BOOK_PAGE		10
-#endif
-#define MAX_ADR_BOOK			(MAX_ADR_BOOK_COUNT*MAX_ADR_BOOK_PAGE)
-
-#ifdef _PRO3_ADDSKILL
-#define MAX_PROFESSION_SKILL	30
-#else
-#define MAX_PROFESSION_SKILL	26
-#endif
-
-#define BATTLE_BUF_SIZE	4
-#define BATTLE_COMMAND_SIZE			4096
-
-//#define FLOOR_NAME_LEN	24
+enum GameDataOffest
+{
+	kOffestPersonalKey = 0x4AC0898,
+	kOffestAccount = 0x414F278,
+	kOffestPassword = 0x415AA58,
+	kOffestServerIndex = 0x415EF28,
+	kOffestSubServerIndex = 0xC4288,
+	kOffestPositionIndex = 0x4ABE270,
+	kOffestMousePointedIndex = 0x41F1B90,
+	kOffestWorldStatus = 0x4230DD8,
+	kOffestGameStatus = 0x4230DF0,
+	kOffestBattleStatus = 0x41829AC,
+	kOffestPlayerStatus = 0x422BF2C,
+	kOffestNowX = 0x4181D3C,
+	kOffestNowY = 0x4181D40,
+	kOffestDir = 0x422BE94,
+	kOffestNowFloor = 0x4181190,
+	kOffestNowFloorName = 0x4160228,
+	kOffestMailPetIndex = 0x422BF3E,
+	kOffestRidePetIndex = 0x422E3D8,
+	kOffestSelectPetArray = 0x422BF34,
+	kOffestTeamState = 0x4230B24,
+	kOffestEV = 0x41602BC,
+	kOffestChatBuffer = 0x144D88,
+	kOffestChatBufferMaxCount = 0x14A4F8,
+};
 
 #ifdef _ITEM_EQUITSPACE
 typedef enum tagCHAR_EquipPlace
 {
+	CHAR_EQUIPNONE = -1,
+	PET_EQUIPNONE = -1,
 	CHAR_HEAD,
 	CHAR_BODY,
 	CHAR_ARM,
@@ -526,72 +644,30 @@ typedef enum tagITEM_CATEGORY
 	ITEM_PET_FIN,			// 腳部,鰭
 	ITEM_CATEGORYNUM
 }ITEM_CATEGORY;
-#define MAX_PET_ITEM	7
+constexpr int MAX_PET_ITEM = 7;
 #endif
 
-#define MAX_ITEMSTART CHAR_EQUIPPLACENUM
-#define MAX_MAXHAVEITEM	15
+
+constexpr int MAX_ITEMSTART = CHAR_EQUIPPLACENUM;
+constexpr int MAX_MAXHAVEITEM = 15;
 #ifdef _NEW_ITEM_
-#define MAX_ITEM (MAX_ITEMSTART+MAX_MAXHAVEITEM*3)
+constexpr int MAX_ITEM(MAX_ITEMSTART + MAX_MAXHAVEITEM * 3);
 int 判斷玩家道具數量();
 #else
-#define MAX_ITEM (MAX_ITEMSTART+MAX_MAXHAVEITEM)
+constexpr int MAX_ITEM = (MAX_ITEMSTART + MAX_MAXHAVEITEM);
 #endif
 #else
-#define MAX_ITEMSTART 5
-#define MAX_ITEM				20
+constexpr int MAX_ITEMSTART = 5;
+constexpr int MAX_ITEM = 20;
 #endif
 
-#define RESULT_ITEM_COUNT		3
-//#define RESULT_ITEM_NAME_LEN	24
-//#define RESULT_CHR_EXP			4
-#define RESULT_CHR_EXP			5
-
-//#define SKILL_NAME_LEN			24
-//#define SKILL_MEMO_LEN			72
-#define MAX_SKILL				7
-
-
-
-#define MAX_GOLD				1000000
-#define MAX_BANKGOLD			10000000
-#define MAX_FMBANKGOLD			100000000
-
-
-#define MAX_PERSONAL_BANKGOLD 50000000
-
-#ifdef _FMVER21
-#define FAMILY_MAXMEMBER                100     // 家族人數
-#else
-#define FAMILY_MAXMEMBER                50     // 家族人數
-#endif
-
-#define MAP_TILE_GRID_X1	-20
-#define MAP_TILE_GRID_X2	+17	
-#define MAP_TILE_GRID_Y1	-16
-#define MAP_TILE_GRID_Y2	+21		
-#define MAP_X_SIZE	(MAP_TILE_GRID_X2 - MAP_TILE_GRID_X1)
-#define MAP_Y_SIZE	(MAP_TILE_GRID_Y2 - MAP_TILE_GRID_Y1)
-
-#define MAP_READ_FLAG	0x8000		
-#define MAP_SEE_FLAG	0x4000
-
-#define BC_FLG_NEW (1 << 0)
-#define BC_FLG_DEAD (1 << 1)	  //死亡
-#define BC_FLG_PLAYER (1 << 2)	  //玩家,玩家有异常状态时要有此值
-#define BC_FLG_POISON (1 << 3)	  //中毒
-#define BC_FLG_PARALYSIS (1 << 4) //麻痹
-#define BC_FLG_SLEEP (1 << 5)	  //昏睡
-#define BC_FLG_STONE (1 << 6)	  //石化
-#define BC_FLG_DRUNK (1 << 7)	  //眩晕
-#define BC_FLG_CONFUSION (1 << 8) //混乱
-#define BC_FLG_HIDE (1 << 9)	  //是否隐藏，地球一周
-#define BC_FLG_REVERSE (1 << 10)  //反转
 
 enum
 {
 	PC_ETCFLAG_GROUP = (1 << 0),	//組隊開關
+	PC_ETCFLAG_UNK = (1 << 1),	//未知開關
 	PC_ETCFLAG_PK = (1 << 2),	//決鬥開關
+	PC_ETCFLAG_PARTY_CHAT = (1 << 3),//隊伍聊天開關
 	PC_ETCFLAG_CARD = (1 << 4),	//名片開關
 	PC_ETCFLAG_TRADE = (1 << 5),	//交易開關
 	PC_ETCFLAG_WORLD = (1 << 6),	//世界頻道開關
@@ -652,8 +728,9 @@ enum
 	, PC_ETCFLAG_CHAT_WORLD_NUM
 };
 
-enum
+enum CHR_STATUS
 {
+	CHR_STATUS_NONE = 0,
 	CHR_STATUS_P = 0x0001,
 	CHR_STATUS_N = 0x0002,
 	CHR_STATUS_Q = 0x0004,
@@ -675,8 +752,9 @@ enum
 #endif
 };
 
-enum
+enum CHAROBJ_TYPE
 {
+	CHAROBJ_TYPE_NONE = 0x0000,
 	CHAROBJ_TYPE_NPC = 0x0001,		// NPC
 	CHAROBJ_TYPE_ITEM = 0x0002,
 	CHAROBJ_TYPE_MONEY = 0x0004,
@@ -686,7 +764,7 @@ enum
 	CHAROBJ_TYPE_ALL = 0x00FF
 };
 
-enum
+enum CHAR_TYPE
 {
 	CHAR_TYPENONE,
 	CHAR_TYPEPLAYER,
@@ -860,81 +938,232 @@ enum
 	PROC_ENDING
 };
 
-#if 0
+enum PetState
+{
+	kNoneState,
+	kBattle,
+	kStandby,
+	kMail,
+	kRest,
+	kRide
+};
 
-#define NIGHT_TO_MORNING	906
-#define MORNING_TO_NOON		1006
-#define NOON_TO_EVENING		356
-#define EVENING_TO_NIGHT	456
-
-#else
-
-#define NIGHT_TO_MORNING	700
-#define MORNING_TO_NOON		930
-#define NOON_TO_EVENING		200
-#define EVENING_TO_NIGHT	300
-
-#endif
-
-#define ITEM_FLAG_PET_MAIL		( 1 << 0 )
-#define ITEM_FLAG_MIX			( 1 << 1 )
-#define ITEM_FLAG_COOKING_MIX	( 1 << 2 )
-#define ITEM_FLAG_METAL_MIX		( 1 << 3 )	//金屬
-#define ITEM_FLAG_JEWEL_MIX		( 1 << 4 )	//寶石
-#define ITEM_FLAG_FIX_MIX		( 1 << 5 )	//修理
-#ifdef _ITEM_INTENSIFY
-#define ITEM_FLAG_INTENSIFY_MIX ( 1 << 6 )	//強化
-#endif
-#ifdef _ITEM_UPINSLAY
-#define ITEM_FLAG_UPINSLAY_MIX ( 1 << 7 )	//鑿孔
-#endif
-
-#define	JOY_RIGHT	(1 << 15)	/* Right Key				*/
-#define	JOY_LEFT	(1 << 14)	/*  Left Key				*/
-#define	JOY_DOWN	(1 << 13)	/*  Down Key				*/
-#define	JOY_UP		(1 << 12)	/*    Up Key				*/
-#define	JOY_START	(1 << 11)	/* Start					*/
-#define	JOY_A		(1 << 10)	/* A Trigger				*/
-#define	JOY_C		(1 <<  9)	/* C Trigger				*/
-#define	JOY_B		(1 <<  8)	/* B Trigger				*/
-#define	JOY_R		(1 <<  7)	/* R Trigger				*/
-#define	JOY_X		(1 <<  6)	/* X Trigger				*/
-#define	JOY_DEL		(1 <<  5)	/* DELETE					*/
-#define	JOY_INS		(1 <<  4)	/* INSERT					*/
-#define	JOY_END		(1 <<  3)	/* END						*/
-#define	JOY_HOME	(1 <<  2)	/* HOME						*/
-#define	JOY_P_DOWN	(1 <<  1)	/* PAGE_UP					*/
-#define	JOY_P_UP	(1 <<  0)	/* PAGE_DOWN				*/
-
-#define	JOY_ESC		(1 << 31)	/* ESC Key					*/
-#define	JOY_CTRL_M	(1 << 30)	/* Ctrl + M					*/
-#define	JOY_CTRL_S	(1 << 29)	/* Ctrl + S					*/
-#define	JOY_CTRL_P	(1 << 28)	/* Ctrl + P					*/
-#define	JOY_CTRL_I	(1 << 27)	/* Ctrl + I					*/
-#define	JOY_CTRL_E	(1 << 26)	/* Ctrl + E					*/
-#define	JOY_CTRL_A	(1 << 25)	/* Ctrl + A					*/
-
-#define	JOY_CTRL_C	(1 << 24)	/* Ctrl + C					*/
-#define	JOY_CTRL_V	(1 << 23)	/* Ctrl + V					*/
-#define	JOY_CTRL_T	(1 << 22)	/* Ctrl + T					*/
-
-//#define MAIL_STR_LEN 140		
-//#define MAIL_DATE_STR_LEN 20
-#define MAIL_MAX_HISTORY 20	
-#define MAX_CHAT_REGISTY_STR		8		
+enum BUTTON_TYPE
+{
+	BUTTON_NOTUSED = 0,
+	BUTTON_OK = 1 << 0,	   //確定
+	BUTTON_CANCEL = 1 << 1, //取消
+	BUTTON_YES = 1 << 2,	   //
+	BUTTON_NO = 1 << 3,
+	BUTTON_PREVIOUS = 1 << 4,  //上一頁
+	BUTTON_NEXT = 1 << 5,
+	BUTTON_BUY,
+	BUTTON_SELL,
+	BUTTON_OUT,
+	BUTTON_BACK,
+	BUTTON_1,//是
+	BUTTON_2,//不是
+	BUTTON_AUTO,
+};
 
 
-#define SUCCESSFULSTR	"successful"  
-#define FAILEDSTR		"failed" 
-#define OKSTR           "ok"
-#define CANCLE          "cancle"
+enum DirType
+{
+	kDirNone = -1,
+	kDirNorth = 0,
+	kDirNorthEast,
+	kDirEast,
+	kDirSouthEast,
+	kDirSouth,
+	kDirSouthWest,
+	kDirWest,
+	kDirNorthWest,
+};
 
-#define BATTLE_MAP_FILES 220
-#define GRID_SIZE		64
+enum DialogType
+{
+	kDiaogNone = -1,
 
-#define LSTIME_SECONDS_PER_DAY 5400 
-#define LSTIME_HOURS_PER_DAY 1024 
-#define LSTIME_DAYS_PER_YEAR 100
+	kDialogBuy = 242,
+	kDialogSell = 243,
+
+	kDialogDepositPet = 265,
+	kDialogWithdrawPet = 267,
+
+	kDialogDepositPetEx = 513,//寵倉
+	kDialogWithdrawPetEx = 514,//寵倉
+
+	kDialogDepositItem = 291,
+	kDialogWithdrawItem = 292,
+
+	kDialogDepositItemEx = 312,
+	kDialogWithdrawItemEx = 313,
+	kDialogWithdrawItemEx2 = 314,
+	kDialogWithdrawItemEx3 = 315,
+	kDialogWithdrawItemEx4 = 316,
+
+
+	kDialogSecurityCode = 522,
+};
+
+enum TalkMode
+{
+	kTalkNormal,
+	kTalkTeam,
+	kTalkFamily,
+	kTalkWorld,
+	kTalkGlobal,
+	kTalkModeMax,
+};
+#pragma endregion
+
+#pragma region Structs
+
+//typedef struct action
+//{
+//	struct 	action* pPrev, * pNext;			//上一個及下一個action指標
+//	void 	(*func)(struct action*);	//action所執行的function的指標
+//	void* pYobi;							//備用的struct指標
+//	void* pOther;						//其它用途struct指標
+//	UCHAR 	prio;							//action處理時的優先順序
+//	UCHAR 	dispPrio;						//秀圖時的優先順序	
+//	int 	x, y;							//圖的座標
+//	int		hitDispNo;						//是否命中目標編號
+//	BOOL	deathFlag;						//此action是否死亡旗標	
+//	int 	dx, dy;							//秀圖座標位移量
+//	int 	dir;							//方向
+//	int 	delta;  						//合成向量
+//
+//	char 	name[29];						//名字
+//	char 	freeName[33];					//free name
+//	int 	hp;
+//#ifdef _PET_ITEM
+//	int		iOldHp;
+//#endif
+//	int 	maxHp;
+//	int 	mp;
+//	int 	maxMp;
+//	int 	level;
+//	int 	status;
+//	int 	itemNameColor;				
+//	int		charNameColor;				
+//
+//	int		bmpNo;							//圖號
+//	int		bmpNo_bak;							//備份圖號
+//	int		atr;							//屬性
+//	int		state;							//狀態
+//	int		actNo;							//行動編號
+//	int		damage;
+//
+//	int		gx, gy;							//在目前的地圖上的座標
+//	int		nextGx, nextGy;					//下一個座標
+//	int		bufGx[10], bufGy[10];			//從目前座標到下一個座標之間座標的buffer
+//	short	bufCount;						//設定目前要走到那一個座標
+//	short	walkFlag;				
+//	float	mx, my;							//地圖座標
+//	float	vx, vy;							
+//
+//	//屬性
+//	short 	earth;							
+//	short 	water;						
+//	short 	fire;					
+//	short 	wind;					
+//	//rader使用
+//	int		dirCnt;					
+//	//gemini使用
+//	int		spd;							//移動的速度(0~63)
+//	int		crs;							//方向(0~31)(正上方為0,順時鐘方向)
+//	int		h_mini;							
+//	int		v_mini;						
+//	//pattern使用
+//	int		anim_chr_no;					//人物的編號(anim_tbl.h的編號)
+//	int		anim_chr_no_bak;				//上一次的人物編號
+//	int		anim_no;						//人物的動作編號
+//	int		anim_no_bak;					//上一次的人物編號
+//	int		anim_ang;						//動作的方向(0~7)(下0)
+//	int		anim_ang_bak;					//上一次的方向
+//	int		anim_cnt;						//第幾張frame
+//	int		anim_frame_cnt;					//這張frame停留時間
+//	int		anim_x;							//X座標(Sprbin+Adrnbin)
+//	int		anim_y;							//Y座標(Sprbin+Adrnbin)
+//	int		anim_hit;					
+//	// shan add +1
+//	char    fmname[33];			            // 家族名稱
+//	// Robin 0728 ride Pet
+//	int		onRide;
+//	char	petName[16 + 1];
+//	int		petLevel;
+//	int		petHp;
+//	int		petMaxHp;
+//	int		petDamage;
+//	int		petFall;
+//#ifdef _MIND_ICON
+//	unsigned int sMindIcon;
+//#endif
+//#ifdef _SHOWFAMILYBADGE_
+//	unsigned int sFamilyIcon;
+//#endif
+//#ifdef FAMILY_MANOR_
+//	unsigned int mFamilyIcon;
+//#endif
+//#ifdef _CHAR_MANOR_
+//	unsigned int mManorIcon;
+//#endif
+//#ifdef _CHARTITLE_STR_
+//	TITLE_STR TitleText;
+//#endif
+//#ifdef _CHARTITLE_
+//	unsigned int TitleIcon;
+//#endif
+//#ifdef _NPC_EVENT_NOTICE
+//	int noticeNo;
+//#endif
+//
+//#ifdef _SKILL_ROAR  
+//	int		petRoar;		//大吼(克年獸)
+//#endif 
+//#ifdef _SKILL_SELFEXPLODE //自爆
+//	int		petSelfExplode;
+//#endif 
+//#ifdef _MAGIC_DEEPPOISION   //劇毒
+//	int		petDeepPoision;
+//#endif 
+//
+//#ifdef _CHAR_PROFESSION			// WON ADD 人物職業
+//	int		profession_class;
+//#endif
+//	//#ifdef _BATTLESKILL				// (不可開) Syu ADD 戰鬥技能介面
+//	int		warrioreffect;
+//	//#endif
+//#ifdef _GM_IDENTIFY		// Rog ADD GM識別
+//	char gm_name[33];
+//#endif
+//#ifdef _STREET_VENDOR
+//	char szStreetVendorTitle[64];
+//#endif
+//#ifdef _NPC_PICTURE
+//	int picture;
+//	int picturetemp;
+//#endif
+//#ifdef _PETSKILL_RIDE
+//	int saveride;
+//#endif
+//#ifdef _MOUSE_DBL_CLICK
+//	int index;	// 禁斷!! Server中的charaindex
+//#endif
+//
+//#ifdef _SFUMATO
+//	int sfumato;		// 二次渲染圖層色彩
+//#endif
+//}ACTION;
+
+typedef struct customdialog_s
+{
+	int x = 0;
+	int y = 0;
+	BUTTON_TYPE button = BUTTON_NOTUSED;
+	int row = 0;
+} customdialog_t;
 
 typedef struct tagLSTIME
 {
@@ -965,7 +1194,7 @@ typedef struct tagMAIL_HISTORY
 
 	void clear()
 	{
-		for (int i = 0; i < MAIL_MAX_HISTORY; i++)
+		for (int i = 0; i < MAIL_MAX_HISTORY; ++i)
 		{
 			str[i] = "";
 			dateStr[i] = "";
@@ -1013,6 +1242,9 @@ typedef struct tagITEM
 #ifdef _MAGIC_ITEM_
 	int 道具類型 = 0;
 #endif
+
+	//custom
+	int maxPile = -1;
 } ITEM;
 
 typedef struct tagPC
@@ -1045,11 +1277,11 @@ typedef struct tagPC
 	unsigned short status = 0ui16;
 #endif
 	unsigned short etcFlag = 0ui16;
-	short battlePetNo = 0i16;
+	short battlePetNo = -1i16;
 	short selectPetNo[MAX_PET] = { 0i16, 0i16 ,0i16 ,0i16 ,0i16 };
-	short mailPetNo = 0i16;
+	short mailPetNo = -1i16;
 #ifdef _STANDBYPET
-	short standbyPet = 0i16;
+	short standbyPet = -1i16;
 #endif
 	int battleNo = 0;
 	short sideNo = 0i16;
@@ -1064,7 +1296,7 @@ typedef struct tagPC
 	int channel = 0;
 	int quickChannel = 0;
 	int personal_bankgold = 0;
-	int ridePetNo = 0;//寵物形像
+	int ridePetNo = -1;//寵物形像
 	int learnride = 0;//學習騎乘
 	unsigned int lowsride = 0u;
 	QString ridePetName = "";
@@ -1133,9 +1365,11 @@ typedef struct tagPC
 	int 法寶道具狀態 = 0;
 	int 道具光環效果 = 0;
 #endif
+	//custom
+	int maxload = -1;
 } PC;
 
-#define DEF_PAL	0
+constexpr int DEF_PAL = 0;
 typedef struct tagPALETTE_STATE
 {
 	int palNo = 0;
@@ -1147,8 +1381,8 @@ typedef struct tagPET
 {
 	int index = 0;						//位置
 	int graNo = 0;						//圖號
-	int hp = 0, maxHp = 0, hpPercent;					//血量
-	int mp = 0, maxMp = 0, mpPercent;					//魔力
+	int hp = 0, maxHp = 0, hpPercent = 0;					//血量
+	int mp = 0, maxMp = 0, mpPercent = 0;					//魔力
 	int exp = 0, maxExp = 0;				//經驗值
 	int level = 0;						//等級
 	int atk = 0;						//攻擊力
@@ -1186,6 +1420,9 @@ typedef struct tagPET
 	int blessquick = 0;
 	int blessdef = 0;
 #endif
+
+	//custom
+	PetState state = PetState::kNoneState;
 } PET;
 
 
@@ -1208,6 +1445,7 @@ typedef struct tagPARTY
 	int level = 0;
 	int maxHp = 0;
 	int hp = 0;
+	int hpPercent = 0;
 	int mp = 0;
 	QString name = "";
 	//ACTION* ptAct;
@@ -1303,13 +1541,73 @@ typedef struct
 }Landed;
 #endif
 
-#define MAXMISSION	300 
+constexpr int MAXMISSION = 300;
 typedef struct tagJOBDAILY
 {
 	int JobId = 0;								// 任務編號
 	QString explain = "";						// 任務說明
 	QString state = "";							// 狀態
 }JOBDAILY;
+
+struct showitem
+{
+	QString name;
+	QString freename;
+	QString graph;
+	QString effect;
+	QString color;
+	QString itemindex;
+	QString damage;
+};
+
+typedef struct SPetItemInfo
+{
+	int bmpNo = 0;										// 图号
+	int color = 0;										// 文字颜色
+	QString memo;						// 说明
+	QString name;						// 名字
+	QString damage;								// 耐久度
+}PetItemInfo;
+
+struct showpet
+{
+	QString opp_petname;
+	QString opp_petfreename;
+	QString opp_petgrano;
+	QString opp_petlevel;
+	QString opp_petatk;
+	QString opp_petdef;
+	QString opp_petquick;
+	QString opp_petindex;
+	QString opp_pettrans;
+	QString opp_petshowhp;
+	QString opp_petslot;
+	QString opp_petskill1;
+	QString opp_petskill2;
+	QString opp_petskill3;
+	QString opp_petskill4;
+	QString opp_petskill5;
+	QString opp_petskill6;
+	QString opp_petskill7;
+#ifdef _SHOW_FUSION
+	QString opp_fusion;
+#endif
+#ifdef _PET_ITEM
+	PetItemInfo oPetItemInfo[MAX_PET_ITEM];			// 宠物身上的道具
+#endif
+};
+
+typedef struct dialog_s
+{
+	int windowtype = 0;
+	int buttontype = 0;
+	int seqno = 0;
+	int objindex = 0;
+	QString data = "";
+	QStringList linedatas;
+	QStringList linebuttontext;
+}dialog_t;
+
 
 typedef struct battleobject_s
 {
@@ -1320,17 +1618,21 @@ typedef struct battleobject_s
 	int level = 0;
 	int hp = 0;
 	int maxHp = 0;
+	int hpPercent = 0;
 	int status = 0;
 	int rideFlag = 0;
 	QString rideName = 0;
 	int rideLevel = 0;
 	int rideHp = 0;
 	int rideMaxHp = 0;
+	int rideHpPercent = 0;
+	bool ready = false;
 } battleobject_t;
 
 typedef struct battledata_s
 {
 	int fieldAttr = 0;
+	int alliemin = 0, alliemax = 0, enemymax = 0, enemymin = 0;
 	battleobject_t player = {};
 	battleobject_t pet = {};
 	QVector<battleobject_t> objects;
@@ -1339,340 +1641,432 @@ typedef struct battledata_s
 
 } battledata_t;
 
-static const char* palFileName[] = {
-	"data\\pal\\Palet_1.sap",	// 
-	"data\\pal\\Palet_2.sap",	// 
-	"data\\pal\\Palet_3.sap",	// 
-	"data\\pal\\Palet_4.sap",	//
 
-	"data\\pal\\Palet_5.sap",	// 
-	"data\\pal\\Palet_6.sap",	//
-	"data\\pal\\Palet_7.sap",	// 
-	"data\\pal\\Palet_8.sap",	//
-	"data\\pal\\Palet_9.sap",	// 
-	"data\\pal\\Palet_10.sap",	// 
-	"data\\pal\\Palet_11.sap",	// 
-	"data\\pal\\Palet_12.sap",	//
-	"data\\pal\\Palet_13.sap",	//
-	"data\\pal\\Palet_14.sap",	//
-	"data\\pal\\Palet_15.sap",	//
-	"data\\pal\\Palet_0.sap",	//Waei logo
-	"white.sap",				// 
-	"black.sap",				// 
+typedef struct mapunit_s
+{
+	CHAR_TYPE type = CHAR_TYPENONE;
+	int id = 0;
+	int graNo = 0;
+	int x = 0;
+	int y = 0;
+	QPoint p;
+	int dir = 0;
+	int level = 0;
+	int nameColor = 0;
+	QString name = "";
+	QString freeName = "";
+	bool walkable = false;
+	int height = 0;
+	int charNameColor = 0;
+	QString fmname = "";
+	QString petname = "";
+	int petlevel = 0;
+	int classNo = 0;
+	QString item_name = "";
+	int gold = 0;
+	int profession_class = 0;
+	int profession_level = 0;
+	int profession_skill_point = 0;
+	util::ObjectType objType = util::ObjectType::OBJ_UNKNOWN;
+	bool isvisible = false;
+	CHR_STATUS status = CHR_STATUS::CHR_STATUS_NONE;
+} mapunit_t;
+
+typedef struct bankpet_s
+{
+	int level = 0;
+	int maxHp = 0;
+	QString name;
+}bankpet_t;
+
+typedef struct currencydata_s
+{
+	int expbufftime = 0;
+	int prestige = 0;      // 聲望
+	int energy = 0;        // 氣勢
+	int shell = 0;         // 貝殼
+	int vitality = 0;      // 活力
+	int points = 0;        // 積分
+	int VIPPoints = 0;  // 會員點
+} currencydata_t;
+
+#pragma endregion
+
+static const QHash<QString, BUTTON_TYPE> buttonMap = {
+	{"OK", BUTTON_OK},
+	{"CANCEL", BUTTON_CANCEL},
+	{"YES", BUTTON_YES},
+	{"NO", BUTTON_NO},
+	{"PREVIOUS", BUTTON_PREVIOUS},
+	{"NEXT", BUTTON_NEXT},
+	{"AUTO", BUTTON_AUTO},
+
+	//big5
+	{u8"確認", BUTTON_YES},
+	{u8"確定", BUTTON_YES},
+	{u8"取消", BUTTON_NO},
+	{u8"好", BUTTON_YES},
+	{u8"不好", BUTTON_NO},
+	{u8"可以", BUTTON_YES},
+	{u8"不可以", BUTTON_NO},
+	{u8"上一頁", BUTTON_PREVIOUS},
+	{u8"上一步", BUTTON_PREVIOUS},
+	{u8"下一頁", BUTTON_NEXT},
+	{u8"下一步", BUTTON_NEXT},
+	{u8"買", BUTTON_BUY},
+	{u8"賣", BUTTON_SELL},
+	{u8"出去", BUTTON_OUT},
+	{u8"回上一頁", BUTTON_BACK},
+
+	//gb2312
+	{u8"确认", BUTTON_YES},
+	{u8"确定", BUTTON_YES},
+	{u8"取消", BUTTON_NO},
+	{u8"好", BUTTON_YES},
+	{u8"不好", BUTTON_NO},
+	{u8"可以", BUTTON_YES},
+	{u8"不可以", BUTTON_NO},
+	{u8"上一页", BUTTON_PREVIOUS},
+	{u8"上一步", BUTTON_PREVIOUS},
+	{u8"下一页", BUTTON_NEXT},
+	{u8"下一步", BUTTON_NEXT},
+	{u8"买", BUTTON_BUY},
+	{u8"卖", BUTTON_SELL},
+	{u8"出去", BUTTON_OUT},
+	{u8"回上一页", BUTTON_BACK},
 };
 
-const int MAX_PAL = sizeof(palFileName) / sizeof(palFileName[0]);
+static const QHash<QString, PetState> petStateMap = {
+	{ u8"戰鬥", kBattle },
+	{ u8"等待", kStandby },
+	{ u8"郵件", kMail },
+	{ u8"休息", kRest },
+	{ u8"騎乘", kRide },
 
-class Server : public QObject
+	{ u8"战斗", kBattle },
+	{ u8"等待", kStandby },
+	{ u8"邮件", kMail },
+	{ u8"休息", kRest },
+	{ u8"骑乘", kRide },
+
+	{ u8"battle", kBattle },
+	{ u8"standby", kStandby },
+	{ u8"mail", kMail },
+	{ u8"rest", kRest },
+	{ u8"ride", kRide },
+};
+
+static const QHash<QString, DirType> dirMap = {
+	{ u8"北", kDirNorth },
+	{ u8"東北", kDirNorthEast },
+	{ u8"東", kDirEast },
+	{ u8"東南", kDirSouthEast },
+	{ u8"南", kDirSouth },
+	{ u8"西南", kDirSouthWest },
+	{ u8"西", kDirWest },
+	{ u8"西北", kDirNorthWest },
+
+	{ u8"北", kDirNorth },
+	{ u8"东北", kDirNorthEast },
+	{ u8"东", kDirEast },
+	{ u8"东南", kDirSouthEast },
+	{ u8"南", kDirSouth },
+	{ u8"西南", kDirSouthWest },
+	{ u8"西", kDirWest },
+	{ u8"西北", kDirNorthWest },
+
+	{ u8"A", kDirNorth },
+	{ u8"B", kDirNorthEast },
+	{ u8"C", kDirEast },
+	{ u8"D", kDirSouthEast },
+	{ u8"E", kDirSouth },
+	{ u8"F", kDirSouthWest },
+	{ u8"G", kDirWest },
+	{ u8"H", kDirNorthWest },
+};
+
+static const QHash<QString, CHAR_EquipPlace> equipMap = {
+	{ u8"頭", CHAR_HEAD },
+	{ u8"身體", CHAR_BODY },
+	{ u8"右手", CHAR_ARM },
+	{ u8"左飾", CHAR_DECORATION1 },
+	{ u8"右飾", CHAR_DECORATION2 },
+	{ u8"腰帶", CHAR_EQBELT },
+	{ u8"左手", CHAR_EQSHIELD },
+	{ u8"鞋子", CHAR_EQSHOES },
+	{ u8"手套", CHAR_EQGLOVE },
+
+	{ u8"头", CHAR_HEAD },
+	{ u8"身体", CHAR_BODY },
+	{ u8"右手", CHAR_ARM },
+	{ u8"左饰", CHAR_DECORATION1 },
+	{ u8"右饰", CHAR_DECORATION2 },
+	{ u8"腰带", CHAR_EQBELT },
+	{ u8"左手", CHAR_EQSHIELD },
+	{ u8"鞋子", CHAR_EQSHOES },
+	{ u8"手套", CHAR_EQGLOVE },
+
+	{ u8"head", CHAR_HEAD },
+	{ u8"body", CHAR_BODY },
+	{ u8"right", CHAR_ARM },
+	{ u8"las", CHAR_DECORATION1 },
+	{ u8"ras", CHAR_DECORATION2 },
+	{ u8"belt", CHAR_EQBELT },
+	{ u8"left", CHAR_EQSHIELD },
+	{ u8"shoe", CHAR_EQSHOES },
+	{ u8"glove", CHAR_EQGLOVE },
+};
+
+static const QHash<QString, CHAR_EquipPlace> petEquipMap = {
+	{ u8"頭", PET_HEAD },
+	{ u8"翼", PET_WING },
+	{ u8"牙", PET_TOOTH },
+	{ u8"身體", PET_PLATE },
+	{ u8"背", PET_BACK },
+	{ u8"爪", PET_CLAW },
+	{ u8"腳", PET_FOOT },
+
+	{ u8"头", PET_HEAD },
+	{ u8"翼", PET_WING },
+	{ u8"牙", PET_TOOTH },
+	{ u8"身体", PET_PLATE },
+	{ u8"背", PET_BACK },
+	{ u8"爪", PET_CLAW },
+	{ u8"脚", PET_FOOT },
+
+	{ u8"head", PET_HEAD },
+	{ u8"wing", PET_WING },
+	{ u8"tooth", PET_TOOTH },
+	{ u8"body", PET_PLATE },
+	{ u8"back", PET_BACK },
+	{ u8"claw", PET_CLAW },
+	{ u8"foot", PET_FOOT },
+};
+
+enum BufferControl
+{
+	BC_NONE,
+	BC_NEED_TO_CLEAN,
+	BC_HAS_NEXT,
+	BC_ABOUT_TO_END,
+};
+
+class MapAnalyzer;
+class Server : public ThreadPlugin
 {
 	Q_OBJECT
 public:
-	explicit Server(QObject* parent = nullptr);
+	explicit Server(QObject* parent);
 
 	virtual ~Server();
 
-	bool isRunning() const
-	{
-		return server_->isListening();
-	}
-public slots:
-	void run();
+	Q_REQUIRED_RESULT inline bool isListening() const { return  !server_.isNull() && server_->isListening(); }
 
-public:
-	void requestInterruption() { isRequestInterrupted.store(true, std::memory_order_release); }
+	Q_REQUIRED_RESULT inline bool hasClientExist() const { return  !server_.isNull() && !clientSockets_.isEmpty(); }
 
-	unsigned short getPort() const { return port_; }
+	bool start(QObject* parent);
+
+	Q_REQUIRED_RESULT inline unsigned short getPort() const { return port_; }
+
+signals:
+	void write(QTcpSocket* clientSocket, QByteArray ba, int size);
+
+private slots:
+	void onWrite(QTcpSocket* clientSocket, QByteArray ba, int size);
+	void onNewConnection();
+	void onClientReadyRead();
+
 
 private:
-	QFutureSynchronizer <void> sync_;
-	QMutex mutex_;
+	int SaDispatchMessage(char* encoded);
 
-	bool isInterruptionRequested() const { return isRequestInterrupted.load(std::memory_order_acquire); }
-
-	int SaDispatchMessage(int fd, char* encoded);
 	void handleData(QTcpSocket* clientSocket, QByteArray data);
-private://lssproto
-	void lssproto_W_send(int fd, int x, int y, char* direction);
-	void lssproto_W2_send(int fd, int x, int y, char* direction);
-	//Cary say 戰鬥結束後的大地圖座標
-	void lssproto_XYD_recv(int fd, int x, int y, int dir);
-	void lssproto_EV_send(int fd, int event, int seqno, int x, int y, int dir);
-	void lssproto_EV_recv(int fd, int seqno, int result);
-	void lssproto_EN_send(int fd, int x, int y);
-	void lssproto_DU_send(int fd, int x, int y);
-	void lssproto_EN_recv(int fd, int result, int field);
-	void lssproto_EO_send(int fd, int dummy);
-	void lssproto_BU_send(int fd, int dummy);
-	void lssproto_JB_send(int fd, int x, int y);
-	void lssproto_LB_send(int fd, int x, int y);
-	void lssproto_RS_recv(int fd, char* data);
-	void lssproto_RD_recv(int fd, char* data);
-	void lssproto_B_send(int fd, char* command);
-	void lssproto_B_recv(int fd, char* command);
-	void lssproto_SKD_send(int fd, int dir, int index);
-	void lssproto_ID_send(int fd, int x, int y, int haveitemindex, int toindex);
-	void lssproto_PI_send(int fd, int x, int y, int dir);
-	void lssproto_DI_send(int fd, int x, int y, int itemindex);
-	void lssproto_DG_send(int fd, int x, int y, int amount);
-	void lssproto_DP_send(int fd, int x, int y, int petindex);
-	void lssproto_I_recv(int fd, char* data);
-	void lssproto_MI_send(int fd, int fromindex, int toindex);
-	void lssproto_SI_recv(int fd, int fromindex, int toindex);
-	void lssproto_MSG_send(int fd, int index, char* message, int color);
-	//Cary say 收到普通郵件或寵物郵件
-	void lssproto_MSG_recv(int fd, int aindex, char* text, int color);
-	void lssproto_PMSG_send(int fd, int index, int petindex, int itemindex, char* message, int color);
-	void lssproto_PME_recv(int fd, int objindex, int graphicsno, int x, int y, int dir, int flg, int no, char* cdata);
-	void lssproto_AB_send(int fd);
-	void lssproto_AB_recv(int fd, char* data);
-	void lssproto_ABI_recv(int fd, int num, char* data);
-	void lssproto_DAB_send(int fd, int index);
-	void lssproto_AAB_send(int fd, int x, int y);
-	void lssproto_L_send(int fd, int dir);
-	void lssproto_TK_send(int fd, int x, int y, char* message, int color, int area);
-	void lssproto_TK_recv(int fd, int index, char* message, int color);
-	void lssproto_MC_recv(int fd, int fl, int x1, int y1, int x2, int y2, int tilesum, int objsum, int eventsum, char* data);
-	void lssproto_M_send(int fd, int fl, int x1, int y1, int x2, int y2);
-	void lssproto_M_recv(int fd, int fl, int x1, int y1, int x2, int y2, char* data);
-	void lssproto_C_send(int fd, int index);
-	void lssproto_C_recv(int fd, char* data);
-	void lssproto_CA_recv(int fd, char* data);
-	void lssproto_CD_recv(int fd, char* data);
-	void lssproto_R_recv(int fd, char* data);
-	void lssproto_S_send(int fd, char* category);
-	void lssproto_S_recv(int fd, char* data);
-	void lssproto_D_recv(int fd, int category, int dx, int dy, char* data);
-	void lssproto_FS_send(int fd, int flg);
-	void lssproto_FS_recv(int fd, int flg);
-	void lssproto_HL_send(int fd, int flg);
-	//戰鬥中是否要Help
-	void lssproto_HL_recv(int fd, int flg);
-	void lssproto_PR_send(int fd, int x, int y, int request);
-	void lssproto_PR_recv(int fd, int request, int result);
-	void lssproto_KS_send(int fd, int petarray);
-	//Cary say 指定那一只寵物出場戰鬥
-	void lssproto_KS_recv(int fd, int petarray, int result);
 
-#ifdef _STANDBYPET
-	void lssproto_SPET_send(int fd, int standbypet);
-	void lssproto_SPET_recv(int fd, int standbypet, int result);
-#endif
+public://actions
+	Q_REQUIRED_RESULT int getWorldStatus();
 
-	void lssproto_AC_send(int fd, int x, int y, int actionno);
-	void lssproto_MU_send(int fd, int x, int y, int array, int toindex);
-	void lssproto_PS_send(int fd, int havepetindex, int havepetskill, int toindex, char* data);
-	//Cary say 寵物合成
-	void lssproto_PS_recv(int fd, int result, int havepetindex, int havepetskill, int toindex);
-	void lssproto_ST_send(int fd, int titleindex);
-	void lssproto_DT_send(int fd, int titleindex);
-	void lssproto_FT_send(int fd, char* data);
-	//Cary say 取得可加的屬性點數
-	void lssproto_SKUP_recv(int fd, int point);
-	void lssproto_SKUP_send(int fd, int skillid);
-	void lssproto_KN_send(int fd, int havepetindex, char* data);
-	void lssproto_WN_recv(int fd, int windowtype, int buttontype, int seqno, int objindex, char* data);
-	void lssproto_WN_send(int fd, int x, int y, int seqno, int objindex, int select, char* data);
-	void lssproto_EF_recv(int fd, int effect, int level, char* option);
-	void lssproto_SE_recv(int fd, int x, int y, int senumber, int sw);
-	void lssproto_SP_send(int fd, int x, int y, int dir);
-#ifdef _NEW_CLIENT_LOGIN
-	void lssproto_ClientLogin_send(int fd, char* cdkey, char* passwd, char* mac, int selectServerIndex, char* ip);
-#else
-	void lssproto_ClientLogin_send(int fd, char* cdkey, char* passwd);
-#endif
-	void lssproto_ClientLogin_recv(int fd, char* result);
+	Q_REQUIRED_RESULT int getGameStatus();
 
-	void lssproto_CreateNewChar_send(int fd, int dataplacenum, char* charname, int imgno, int faceimgno, int vital, int str, int tgh, int dex, int earth, int water, int fire, int wind, int hometown);
-	void lssproto_CreateNewChar_recv(int fd, char* result, char* data);
-	void lssproto_CharDelete_send(int fd, char* charname);
-	void lssproto_CharDelete_recv(int fd, char* result, char* data);
-	void lssproto_CharLogin_send(int fd, char* charname);
-	void lssproto_CharLogin_recv(int fd, char* result, char* data);
-	void lssproto_CharList_send(int fd);
-	void lssproto_CharList_recv(int fd, char* result, char* data);
-	void lssproto_CharLogout_send(int fd, int Flg);
-	void lssproto_CharLogout_recv(int fd, char* result, char* data);
-	void lssproto_ProcGet_send(int fd);
-	void lssproto_ProcGet_recv(int fd, char* data);
-	void lssproto_PlayerNumGet_send(int fd);
-	void lssproto_PlayerNumGet_recv(int fd, int logincount, int player);
-	void lssproto_Echo_send(int fd, char* test);
-	void lssproto_Echo_recv(int fd, char* test);
-	void lssproto_Shutdown_send(int fd, char* passwd, int min);
-	void lssproto_NU_recv(int fd, int AddCount);
-	void lssproto_TD_send(int fd, char* data);
-	void lssproto_TD_recv(int fd, char* data);
-	void lssproto_FM_send(int fd, char* data);
-	void lssproto_FM_recv(int fd, char* data);
-	//Cary say 取得轉生的特效
-	void lssproto_WO_recv(int fd, int effect);
-	void lssproto_PETST_send(int fd, int nPet, int sPet);// sPet  0:休息 1:等待 4:郵件
-	void lssproto_BM_send(int fd, int iindex);             // _BLACK_MARKET
-#ifdef _FIX_DEL_MAP
-	void lssproto_DM_send(int fd);                         // WON ADD 玩家抽地圖送監獄
-#endif
-#ifdef _MIND_ICON 
-	void lssproto_MA_send(int fd, int x, int y, int nMind);
-#endif
-#ifdef _ITEM_CRACKER 
-	void lssproto_IC_recv(int fd, int x, int y);
-#endif
-#ifdef _MAGIC_NOCAST//沈默
-	void lssproto_NC_recv(int fd, int flg);
-#endif
+	Q_REQUIRED_RESULT bool checkGW(int w, int g);
 
-#ifdef _CHECK_GAMESPEED
-	void lssproto_CS_send(int fd);
-	void lssproto_CS_recv(int fd, int deltimes);
-	int lssproto_getdelaytimes();
-	void lssproto_setdelaytimes(int delays);
-#endif
+	Q_REQUIRED_RESULT int getUnloginStatus();
+	void setWorldStatus(int w);
+	void setGameStatus(int g);
 
-#ifdef _TEAM_KICKPARTY
-	void lssproto_KTEAM_send(int fd, int si);
-#endif
-
-#ifdef _PETS_SELECTCON
-	void lssproto_PETST_recv(int fd, int petarray, int result);
-#endif
-#ifdef _CHATROOMPROTOCOL			// (不可開) Syu ADD 聊天室頻道
-	void lssproto_CHATROOM_send(int fd, char* data);
-	void lssproto_CHATROOM_recv(int fd, char* data);
-#endif
-#ifdef _NEWREQUESTPROTOCOL			// (不可開) Syu ADD 新增Protocol要求細項
-	void lssproto_RESIST_send(int fd, char* data);
-	void lssproto_RESIST_recv(int fd, char* data);
-#endif
-
-#ifdef _ALCHEPLUS
-	void lssproto_ALCHEPLUS_send(int fd, char* data);
-	void lssproto_ALCHEPLUS_recv(int fd, char* data);
-#endif
-
-#ifdef _OUTOFBATTLESKILL			// (不可開) Syu ADD 非戰鬥時技能Protocol
-	void lssproto_BATTLESKILL_send(int fd, int SkillNum);
-	void lssproto_BATTLESKILL_recv(int fd, char* data);
-#endif
-	void lssproto_CHAREFFECT_recv(int fd, char* data);
-
-#ifdef _STREET_VENDOR
-	void lssproto_STREET_VENDOR_send(int fd, char* data);	// 擺攤功能
-	void lssproto_STREET_VENDOR_recv(int fd, char* data);	// 擺攤功能
-#endif
-
-#ifdef _JOBDAILY
-	void lssproto_JOBDAILY_send(int fd, char* data);
-	void lssproto_JOBDAILY_recv(int fd, char* data);
-#endif
-
-#ifdef _FAMILYBADGE_
-	void lssproto_FamilyBadge_send(int fd);
-	void lssproto_FamilyBadge_recv(char* data);
-#endif
-
-#ifdef _TEACHER_SYSTEM
-	void lssproto_TEACHER_SYSTEM_send(int fd, char* data);	// 導師功能
-	void lssproto_TEACHER_SYSTEM_recv(int fd, char* data);
-#endif
-
-#ifdef _ADD_STATUS_2
-	void lssproto_S2_send(int fd, char* data);
-	void lssproto_S2_recv(int fd, char* data);
-#endif
-
-#ifdef _ITEM_FIREWORK
-	void lssproto_Firework_recv(int fd, int nCharaindex, int nType, int nActionNum);	// 煙火功能
-#endif
-#ifdef _PET_ITEM
-	void lssproto_PetItemEquip_send(int fd, int nGx, int nGy, int nPetNo, int nItemNo, int nDestNO);	// 寵物裝備功能
-#endif
-#ifdef _THEATER
-	void lssproto_TheaterData_recv(int fd, char* pData);
-#endif
-#ifdef _MOVE_SCREEN
-	void lssproto_MoveScreen_recv(int fd, BOOL bMoveScreenMode, int iXY);	// client 移動熒幕
-#endif
-#ifdef _GET_HOSTNAME
-	void lssproto_HostName_send(int fd);
-#endif
-
-#ifdef _NPC_MAGICCARD
-	void lssproto_MagiccardAction_recv(int fd, char* data);	//魔法牌功能
-	void lssproto_MagiccardDamage_recv(int fd, int position, int damage, int offsetx, int offsety);
-#endif
-
-#ifdef  _NPC_DANCE
-	void lssproto_DancemanOption_recv(int fd, int option);	//動一動狀態
-#endif
-
-
-
-#ifdef _ANNOUNCEMENT_
-
-	void lssproto_DENGON_recv(char* data, int colors, int nums);
-#endif
-#ifdef _HUNDRED_KILL
-	void lssproto_hundredkill_recv(int fd, int flag);
-#endif
-#ifdef _PK2007
-	void lssproto_pkList_send(int fd);
-	void lssproto_pkList_recv(int fd, int count, char* data);
-#endif
-#ifdef _NEW_SYSTEM_MENU
-	void lssproto_SaMenu_send(int fd, int index);
-#endif
-
-
-#ifdef _PETBLESS_
-	void lssproto_petbless_send(int fd, int petpos, int type);
-#endif
-#ifdef _RIDEQUERY_
-	void lssproto_RideQuery_send(int fd);
-#endif
-#ifdef _PET_SKINS
-	void lssproto_PetSkins_recv(char* data);
-#endif
-
-
-
-#ifdef _CHARSIGNDAY_
-	void lssproto_SignDay_send(int fd);
-#endif
-
-public:
-	int getWorldStatus();
-	int getGameStatus();
-
-	int getUnloginStatus();
 	bool login(int s);
-	void leftCLick(int x, int y);
-	//int getSocket() const { return sockfd_; }
+
+	QString getBadStatusString(unsigned int status);
+
+	QString getFieldString(unsigned int field);
+
+	void mouseMove(int x, int y);
+
+	void leftClick(int x, int y);
+
+	void leftDoubleClick(int x, int y);
+
+	void rightClick(int x, int y);
+
+	void dragto(int x1, int y1, int x2, int y2);
+
+
 	void unlockSecurityCode(const QString& code);
+
 	void clearNetBuffer();
 
 	void logOut();
+
 	void logBack();
+
 	void move(const QPoint& p, const QString& dir);
+
 	void move(const QPoint& p);
+
 	void announce(const QString& msg, int color = 4);
+
+
+	void talk(const QString& text, int color = 0, TalkMode mode = kTalkNormal);
+	void inputtext(const QString& text, int dialogid = -1, int npcid = -1);
+
+	void windowPacket(const QString& command, int dialogid, int npcid);
+
 	void EO();
+
 	void dropItem(int index);
+	void dropItem(QVector<int> index);
+
+	void useItem(int itemIndex, int target);
+
+
+	void swapItem(int from, int to);
+
+	void petitemswap(int petIndex, int from, int to);
+
+	void useMagic(int magicIndex, int target);
+
+	void dropPet(int petIndex);
 
 	void setSwitcher(int flg, bool enable);
+
 	void setSwitcher(int flg);
+
+	void press(BUTTON_TYPE select, int seqno = -1, int objindex = -1);
+	void press(int row, int seqno = -1, int objindex = -1);
+
+	void buy(int index, int amt, int seqno = -1, int objindex = -1);
+	void sell(const QVector<int>& indexs, int seqno = -1, int objindex = -1);
+	void sell(int index, int seqno = -1, int objindex = -1);
+	void sell(const QString& name, const QString& memo = "", int seqno = -1, int objindex = -1);
+	void learn(int skillIndex, int petIndex, int spot, int seqno = -1, int objindex = -1);
+
+	void craft(util::CraftType type, const QStringList& ingres);
+
+	void createRemoteDialog(int button, const QString& text);
+
+	void mail(int index, const QString& text);
+
+	void warp();
+
+	void shopOk(int n);
+	void saMenu(int n);
+
+	bool addPoint(int skillid, int amt);
+
+	void pickItem(int dir);
+
+	void depositGold(int gold, bool isPublic);
+	void withdrawGold(int gold, bool isPublic);
+
+	void depositPet(int petIndex, int seqno = -1, int objindex = -1);
+	void withdrawPet(int petIndex, int seqno = -1, int objindex = -1);
+
+	void depositItem(int index, int seqno = -1, int objindex = -1);
+	void withdrawItem(int itemIndex, int seqno = -1, int objindex = -1);
+
+	bool captchaOCR(QString* pmsg);
+
+	void setAllPetState();
+	void setPetState(int petIndex, PetState state);
+	void setFightPet(int petIndex);
+	void setRidePet(int petIndex);
+	void setStandbyPet(int standbypets);
+	void setPetState(int petIndex, int state);
 
 	void updateDatasFromMemory();
 
-	//battle
-	void asyncBattleWork();
-	int playerDoBattleWork();
-	int petDoBattleWork();
-	int getBattleSelectableEnemyTarget();
-	int getGetPetSkillIndexByName(int petIndex, const QString& name);
+	void asyncBattleWork(bool wait);
+	void asyncBattleAction();
 
-	bool fixPlayerTargetByMagicIndex(int magicIndex, int oldtarget, int* target);
-	bool fixPetTargetBySkillIndex(int skillIndex, int oldtarget, int* target);
-	void sendBattlePlayerAttckAct(int target);
+	void downloadMap();
+	void downloadMap(int x, int y);
+
+	bool tradeStart(const QString& name, int timeout);
+	void tradeComfirm(const QString name);
+	void tradeCancel();
+	void tradeAppendItems(const QString& name, const QVector<int>& itemIndexs);
+	void tradeAppendGold(const QString& name, int gold);
+	void tradeAppendPets(const QString& name, const QVector<int>& petIndex);
+	void tradeComplete(const QString& name);
+
+	void cleanChatHistory();
+	QString getChatHistory(int index);
+
+	bool findUnit(const QString& name, int type, mapunit_t* unit, const QString freename = "", int modelid = -1);
+
+	void setTeamState(bool join);
+	void kickteam(int n);
+
+	void setPlayerFaceToPoint(const QPoint& pos);
+	void setPlayerFaceDirection(int dir);
+	void setPlayerFaceDirection(const QString& dirStr);
+
+	int getPetSize() const;
+	int getPartySize() const;
+	QStringList getJoinableUnitList() const;
+	bool getItemIndexsByName(const QString& name, const QString& memo, QVector<int>* pv);
+	int getItemIndexByName(const QString& name, bool isExact = true, const QString& memo = "") const;
+	int getPetSkillIndexByName(int& petIndex, const QString& name) const;
+	bool getPetIndexsByName(const QString& name, QVector<int>* pv) const;
+	int getMagicIndexByName(const QString& name, bool isExact = true) const;
+	int getItemEmptySpotIndex() const;
+	bool getItemEmptySpotIndexs(QVector<int>* pv) const;
+	void clear();
+
+	bool checkPlayerMp(int cmpvalue, int* target = nullptr, bool useequal = false);
+	bool checkPlayerHp(int cmpvalue, int* target = nullptr, bool useequal = false);
+	bool checkPetHp(int cmpvalue, int* target = nullptr, bool useequal = false);
+	bool checkPartyHp(int cmpvalue, int* target);
+
+	bool isPetSpotEmpty() const;
+	int checkJobDailyState(const QString& missionName);
+
+	void setPlayerFreeName(const QString& name);
+	void setPetFreeName(int petIndex, const QString& name);
+
+	Q_REQUIRED_RESULT inline bool getBattleFlag() const
+	{
+		QReadLocker lock(&battleStateLocker);
+		if (isInterruptionRequested())
+			return false;
+		return IS_BATTLE_FLAG.load(std::memory_order_acquire);
+	}
+	Q_REQUIRED_RESULT inline bool getOnlineFlag() const
+	{
+		QReadLocker lock(&onlineStateLocker);
+		if (isInterruptionRequested())
+			return false;
+		return IS_ONLINE_FLAG.load(std::memory_order_acquire);
+	}
+
+	PC getPC() const { QMutexLocker lock(&pcMutex_); return pc; }
+
+	void sortItem();
+
+	QPoint getPoint();
+	void setPoint(const QPoint& pos);
+
+	//battle
+	void sendBattlePlayerAttackAct(int target);
 	void sendBattlePlayerMagicAct(int magicIndex, int target);
 	void sendBattlePlayerJobSkillAct(int skillIndex, int target);
 	void sendBattlePlayerItemAct(int itemIndex, int target);
@@ -1683,33 +2077,95 @@ public:
 	void sendBattlePlayerDoNothing();
 	void sendBattlePetSkillAct(int skillIndex, int target);
 	void sendBattlePetDoNothing();
-private:
 	void setBattleEnd();
+
+	void reloadHashVar(const QString& typeStr);
+private:
+	void setWindowTitle();
 	void refreshItemInfo(int index);
 	void refreshItemInfo();
 
-	void setWorldStatus(int w);
-	void setGameStatus(int g);
+	void setBattleFlag(bool enable);
+	inline void setOnlineFlag(bool enable)
+	{
+		QWriteLocker lock(&onlineStateLocker);
+		IS_ONLINE_FLAG.store(enable, std::memory_order_release);
+		if (!enable)
+		{
+			setBattleEnd();
+		}
+	}
 
+
+	void getPlayerMaxCarryingCapacity();
+	inline Q_REQUIRED_RESULT constexpr bool isItemStackable(int flg) { return ((flg >> 2) & 1); }
+	QString getAreaString(int target);
+	Q_REQUIRED_RESULT bool matchPetNameByIndex(int index, const QString& name);
+
+	Q_REQUIRED_RESULT int findInjuriedAllie();
+
+	void checkAutoDropMeat(const QStringList& items);
+
+#pragma region BattleFunctions
+	int playerDoBattleWork();
+	void handlePlayerBattleLogics();
+	int petDoBattleWork();
+	void handlePetBattleLogics();
+
+
+	bool isPlayerMpEnoughForMagic(int magicIndex) const;
+	bool isPlayerMpEnoughForSkill(int magicIndex) const;
+
+	void sortBattleUnit(QVector<battleobject_t>& v) const;
+
+	Q_REQUIRED_RESULT int getBattleSelectableEnemyTarget(const battledata_t& bt) const;
+
+	Q_REQUIRED_RESULT int getBattleSelectableEnemyOneRowTarget(const battledata_t& bt, bool front) const;
+
+	Q_REQUIRED_RESULT int getBattleSelectableAllieTarget(const battledata_t& bt) const;
+
+	Q_REQUIRED_RESULT bool matchBattleEnemyByName(const QString& name, bool isExact, QVector<battleobject_t> src, QVector<battleobject_t>* v) const;
+	Q_REQUIRED_RESULT bool matchBattleEnemyByLevel(int level, QVector<battleobject_t> src, QVector<battleobject_t>* v) const;
+	Q_REQUIRED_RESULT bool matchBattleEnemyByMaxHp(int maxHp, QVector<battleobject_t> src, QVector<battleobject_t>* v) const;
+
+	Q_REQUIRED_RESULT int getGetPetSkillIndexByName(int petIndex, const QString& name) const;
+
+	bool fixPlayerTargetByMagicIndex(int magicIndex, int oldtarget, int* target) const;
+	bool fixPlayerTargetBySkillIndex(int magicIndex, int oldtarget, int* target) const;
+	bool fixPlayerTargetByItemIndex(int itemIndex, int oldtarget, int* target) const;
+	bool fixPetTargetBySkillIndex(int skillIndex, int oldtarget, int* target) const;
+	void updateCurrentSideRange(battledata_t& bt);
+	inline bool checkFlagState(int pos);
+
+	battledata_t getBattleData() const
+	{
+		QReadLocker locker(&battleDataLocker);
+		return battleData;
+	}
+
+	void setBattleData(const battledata_t& data)
+	{
+		QWriteLocker locker(&battleDataLocker);
+		battleData = data;
+	}
+
+#pragma endregion
+
+#pragma region SAClientOriginal 
+	//StoneAge Client Original Functions
 	bool CheckMailNoReadFlag();
 
 	void clearPartyParam();
 
-
-	void swapItem(int from, int to);
-
-	void redrawMap(void)
-	{
-		oldGx = -1;
-		oldGy = -1;
-	}
+	void swapItemLocal(int from, int to);
 
 	void updateMapArea(void)
 	{
-		mapAreaX1 = nowGx + MAP_TILE_GRID_X1;
-		mapAreaY1 = nowGy + MAP_TILE_GRID_Y1;
-		mapAreaX2 = nowGx + MAP_TILE_GRID_X2;
-		mapAreaY2 = nowGy + MAP_TILE_GRID_Y2;
+		QPoint pos = getPoint();
+		mapAreaX1 = pos.x() + MAP_TILE_GRID_X1;
+		mapAreaY1 = pos.y() + MAP_TILE_GRID_Y1;
+		mapAreaX2 = pos.x() + MAP_TILE_GRID_X2;
+		mapAreaY2 = pos.y() + MAP_TILE_GRID_Y2;
 
 		if (mapAreaX1 < 0)
 			mapAreaX1 = 0;
@@ -1724,15 +2180,63 @@ private:
 		mapAreaHeight = mapAreaY2 - mapAreaY1;
 	}
 
-	void setPcWarpPoint(int gx, int gy)
+	void resetMap(void)
 	{
-		//	if(pc.ptAct == NULL)
-		//		return;
+		//nowGx = (int)(nowX / GRID_SIZE);
+		//nowGy = (int)(nowY / GRID_SIZE);
+		QPoint pos(nowX / GRID_SIZE, nowY / GRID_SIZE);
+		nowPoint = pos;
+		nextGx = pos.x();
+		nextGy = pos.y();
+		nowX = (float)pos.x() * GRID_SIZE;
+		nowY = (float)pos.y() * GRID_SIZE;
+		oldGx = -1;
+		oldGy = -1;
+		oldNextGx = -1;
+		oldNextGy = -1;
+		mapAreaX1 = pos.x() + MAP_TILE_GRID_X1;
+		mapAreaY1 = pos.y() + MAP_TILE_GRID_Y1;
+		mapAreaX2 = pos.x() + MAP_TILE_GRID_X2;
+		mapAreaY2 = pos.y() + MAP_TILE_GRID_Y2;
 
-		setWarpMap(gx, gy);
+		if (mapAreaX1 < 0)
+			mapAreaX1 = 0;
+		if (mapAreaY1 < 0)
+			mapAreaY1 = 0;
+		if (mapAreaX2 > nowFloorGxSize)
+			mapAreaX2 = nowFloorGxSize;
+		if (mapAreaY2 > nowFloorGySize)
+			mapAreaY2 = nowFloorGySize;
+
+		mapAreaWidth = mapAreaX2 - mapAreaX1;
+		mapAreaHeight = mapAreaY2 - mapAreaY1;
+		nowVx = 0;
+		nowVy = 0;
+		nowSpdRate = 1;
+		viewPointX = nowX;
+		viewPointY = nowY;
+		moveRouteCnt = 0;
+		moveRouteCnt2 = 0;
+		moveStackFlag = false;
+
+		mouseLeftPushTime = 0;
+		beforeMouseLeftPushTime = 0;
+		//	autoMapSeeFlag = FALSE;
 	}
 
-	unsigned int TimeGetTime(void)
+	void PaletteChange(int palNo, int time);
+
+	void RealTimeToSATime(LSTIME* lstime);
+
+	inline void redrawMap(void) { oldGx = -1; oldGy = -1; }
+
+	inline void setPcWarpPoint(const QPoint& pos) { setWarpMap(pos); }
+
+	inline void resetPc(void) { pc.status &= (~CHR_STATUS_LEADER); }
+
+	inline void setMap(int floor, const QPoint& pos) { nowFloor = floor; setWarpMap(pos); }
+
+	inline unsigned long long TimeGetTime(void)
 	{
 #ifdef _TIME_GET_TIME
 		static __int64 time;
@@ -1740,19 +2244,19 @@ private:
 		return (unsigned int)(time = CurrentTick.QuadPart / tickCount.QuadPart);
 		//return GetTickCount();
 #else
-		return GetTickCount();
-		//return timeGetTime();
+		return QDateTime::currentMSecsSinceEpoch();
 #endif
 	}
 
-	void setWarpMap(int gx, int gy)
+	inline void setWarpMap(const QPoint& pos)
 	{
-		nowGx = gx;
-		nowGy = gy;
-		nowX = (float)nowGx * GRID_SIZE;
-		nowY = (float)nowGy * GRID_SIZE;
-		nextGx = nowGx;
-		nextGy = nowGy;
+		//nowGx = gx;
+		//nowGy = gy;
+		nowPoint = pos;
+		nowX = (float)pos.x() * GRID_SIZE;
+		nowY = (float)pos.y() * GRID_SIZE;
+		nextGx = pos.x();
+		nextGy = pos.y();
 		nowVx = 0;
 		nowVy = 0;
 		nowSpdRate = 1;
@@ -1789,93 +2293,340 @@ private:
 	void setPcParam(const QString& name, const QString& freeName, int level, const QString& petname, int petlevel, int nameColor, int walk, int height);
 #endif
 
-	void resetPc(void)
-	{
-		pc.status &= (~CHR_STATUS_LEADER);
-	}
+#pragma endregion
 
-	void setMap(int floor, int gx, int gy)
-	{
-		nowFloor = floor;
-		setWarpMap(gx, gy);
-	}
+private://lssproto
+#pragma region lssproto
+	void lssproto_W_send(const QPoint& pos, char* direction);
+	void lssproto_W2_send(const QPoint& pos, char* direction);
+	//Cary say 戰鬥結束後的大地圖座標
+	void lssproto_XYD_recv(const QPoint& pos, int dir);
+	void lssproto_EV_send(int event, int seqno, const QPoint& pos, int dir);
+	void lssproto_EV_recv(int seqno, int result);
+	void lssproto_EN_send(const QPoint& pos);
+	void lssproto_DU_send(const QPoint& pos);
+	void lssproto_EN_recv(int result, int field);
+	void lssproto_EO_send(int dummy);
+	void lssproto_BU_send(int dummy);
+	void lssproto_JB_send(const QPoint& pos);
+	void lssproto_LB_send(const QPoint& pos);
+	void lssproto_RS_recv(char* data);
+	void lssproto_RD_recv(char* data);
+	void lssproto_B_send(const QString& command);
+	void lssproto_B_recv(char* command);
+	void lssproto_SKD_send(int dir, int index);
+	void lssproto_ID_send(const QPoint& pos, int haveitemindex, int toindex);
+	void lssproto_PI_send(const QPoint& pos, int dir);
+	void lssproto_DI_send(const QPoint& pos, int itemindex);
+	void lssproto_DG_send(const QPoint& pos, int amount);
+	void lssproto_DP_send(const QPoint& pos, int petindex);
+	void lssproto_I_recv(char* data);
+	void lssproto_MI_send(int fromindex, int toindex);
+	void lssproto_SI_recv(int fromindex, int toindex);
+	void lssproto_MSG_send(int index, char* message, int color);
+	//Cary say 收到普通郵件或寵物郵件
+	void lssproto_MSG_recv(int aindex, char* text, int color);
+	void lssproto_PMSG_send(int index, int petindex, int itemindex, char* message, int color);
+	void lssproto_PME_recv(int objindex, int graphicsno, const QPoint& pos, int dir, int flg, int no, char* cdata);
+	void lssproto_AB_send(int fd);
+	void lssproto_AB_recv(char* data);
+	void lssproto_ABI_recv(int num, char* data);
+	void lssproto_DAB_send(int index);
+	void lssproto_AAB_send(const QPoint& pos);
+	void lssproto_L_send(int dir);
+	void lssproto_TK_send(const QPoint& pos, char* message, int color, int area);
+	void lssproto_TK_recv(int index, char* message, int color);
+	void lssproto_MC_recv(int fl, int x1, int y1, int x2, int y2, int tilesum, int objsum, int eventsum, char* data);
+	void lssproto_M_send(int fl, int x1, int y1, int x2, int y2);
+	void lssproto_M_recv(int fl, int x1, int y1, int x2, int y2, char* data);
+	void lssproto_C_send(int index);
+	void lssproto_C_recv(char* data);
+	void lssproto_CA_recv(char* data);
+	void lssproto_CD_recv(char* data);
+	void lssproto_R_recv(char* data);
+	void lssproto_S_send(char* category);
+	void lssproto_S_recv(char* data);
+	void lssproto_D_recv(int category, int dx, int dy, char* data);
+	void lssproto_FS_send(int flg);
+	void lssproto_FS_recv(int flg);
+	void lssproto_HL_send(int flg);
+	//戰鬥中是否要Help
+	void lssproto_HL_recv(int flg);
+	void lssproto_PR_send(const QPoint& pos, int request);
+	void lssproto_PR_recv(int request, int result);
+	void lssproto_KS_send(int petarray);
+	//Cary say 指定那一只寵物出場戰鬥
+	void lssproto_KS_recv(int petarray, int result);
 
-	void resetMap(void)
-	{
-		nowGx = (int)(nowX / GRID_SIZE);
-		nowGy = (int)(nowY / GRID_SIZE);
-		nextGx = nowGx;
-		nextGy = nowGy;
-		nowX = (float)nowGx * GRID_SIZE;
-		nowY = (float)nowGy * GRID_SIZE;
-		oldGx = -1;
-		oldGy = -1;
-		oldNextGx = -1;
-		oldNextGy = -1;
-		mapAreaX1 = nowGx + MAP_TILE_GRID_X1;
-		mapAreaY1 = nowGy + MAP_TILE_GRID_Y1;
-		mapAreaX2 = nowGx + MAP_TILE_GRID_X2;
-		mapAreaY2 = nowGy + MAP_TILE_GRID_Y2;
+#ifdef _STANDBYPET
+	void lssproto_SPET_send(int standbypet);
+	void lssproto_SPET_recv(int standbypet, int result);
+#endif
 
-		if (mapAreaX1 < 0)
-			mapAreaX1 = 0;
-		if (mapAreaY1 < 0)
-			mapAreaY1 = 0;
-		if (mapAreaX2 > nowFloorGxSize)
-			mapAreaX2 = nowFloorGxSize;
-		if (mapAreaY2 > nowFloorGySize)
-			mapAreaY2 = nowFloorGySize;
+	void lssproto_AC_send(const QPoint& pos, int actionno);
+	void lssproto_MU_send(const QPoint& pos, int array, int toindex);
+	void lssproto_PS_send(int havepetindex, int havepetskill, int toindex, char* data);
+	//Cary say 寵物合成
+	void lssproto_PS_recv(int result, int havepetindex, int havepetskill, int toindex);
+	void lssproto_ST_send(int titleindex);
+	void lssproto_DT_send(int titleindex);
+	void lssproto_FT_send(char* data);
+	//Cary say 取得可加的屬性點數
+	void lssproto_SKUP_recv(int point);
+	void lssproto_SKUP_send(int skillid);
+	void lssproto_KN_send(int havepetindex, char* data);
+	void lssproto_WN_recv(int windowtype, int buttontype, int seqno, int objindex, char* data);
+	void lssproto_WN_send(const QPoint& pos, int seqno, int objindex, int select, char* data);
+	void lssproto_EF_recv(int effect, int level, char* option);
+	void lssproto_SE_recv(const QPoint& pos, int senumber, int sw);
+	void lssproto_SP_send(const QPoint& pos, int dir);
+#ifdef _NEW_CLIENT_LOGIN
+	void lssproto_ClientLogin_send(char* cdkey, char* passwd, char* mac, int selectServerIndex, char* ip);
+#else
+	void lssproto_ClientLogin_send(char* cdkey, char* passwd);
+#endif
+	void lssproto_ClientLogin_recv(char* result);
 
-		mapAreaWidth = mapAreaX2 - mapAreaX1;
-		mapAreaHeight = mapAreaY2 - mapAreaY1;
-		nowVx = 0;
-		nowVy = 0;
-		nowSpdRate = 1;
-		viewPointX = nowX;
-		viewPointY = nowY;
-		moveRouteCnt = 0;
-		moveRouteCnt2 = 0;
-		moveStackFlag = false;
-		mouseCursorMode = MOUSE_CURSOR_MODE_NORMAL;
-		mouseLeftPushTime = 0;
-		beforeMouseLeftPushTime = 0;
-		//	autoMapSeeFlag = FALSE;
-	}
+	void lssproto_CreateNewChar_send(int dataplacenum, char* charname, int imgno, int faceimgno, int vital, int str, int tgh, int dex, int earth, int water, int fire, int wind, int hometown);
+	void lssproto_CreateNewChar_recv(char* result, char* data);
+	void lssproto_CharDelete_send(char* charname);
+	void lssproto_CharDelete_recv(char* result, char* data);
+	void lssproto_CharLogin_send(char* charname);
+	void lssproto_CharLogin_recv(char* result, char* data);
+	void lssproto_CharList_send(int fd);
+	void lssproto_CharList_recv(char* result, char* data);
+	void lssproto_CharLogout_send(int Flg);
+	void lssproto_CharLogout_recv(char* result, char* data);
+	void lssproto_ProcGet_send(int fd);
+	void lssproto_ProcGet_recv(char* data);
+	void lssproto_PlayerNumGet_send(int fd);
+	void lssproto_PlayerNumGet_recv(int logincount, int player);
+	void lssproto_Echo_send(char* test);
+	void lssproto_Echo_recv(char* test);
+	void lssproto_Shutdown_send(char* passwd, int min);
+	void lssproto_NU_recv(int AddCount);
+	void lssproto_TD_send(char* data);
+	void lssproto_TD_recv(char* data);
+	void lssproto_FM_send(char* data);
+	void lssproto_FM_recv(char* data);
+	//Cary say 取得轉生的特效
+	void lssproto_WO_recv(int effect);
+	void lssproto_PETST_send(int nPet, int sPet);// sPet  0:休息 1:等待 4:郵件
+	void lssproto_BM_send(int iindex);             // _BLACK_MARKET
+#ifdef _FIX_DEL_MAP
+	void lssproto_DM_send(int fd);                         // WON ADD 玩家抽地圖送監獄
+#endif
+#ifdef _MIND_ICON 
+	void lssproto_MA_send(const QPoint& pos, int nMind);
+#endif
+#ifdef _ITEM_CRACKER 
+	void lssproto_IC_recv(const QPoint& pos);
+#endif
+#ifdef _MAGIC_NOCAST//沈默
+	void lssproto_NC_recv(int flg);
+#endif
 
-	void PaletteChange(int palNo, int time);
+#ifdef _CHECK_GAMESPEED
+	void lssproto_CS_send(int fd);
+	void lssproto_CS_recv(int deltimes);
+	int lssproto_getdelaytimes();
+	void lssproto_setdelaytimes(int delays);
+#endif
 
-	void RealTimeToSATime(LSTIME* lstime);
+#ifdef _TEAM_KICKPARTY
+	void lssproto_KTEAM_send(int si);
+#endif
 
-	bool mapCheckSum(int floor, int x1, int y1, int x2, int y2, int tileSum, int partsSum, int eventSum);
-	bool writeMap(int floor, int x1, int y1, int x2, int y2, unsigned short* tile, unsigned short* parts, unsigned short* event);
-	void setEventMemory(int x, int y, unsigned short ev);
+#ifdef _PETS_SELECTCON
+	void lssproto_PETST_recv(int petarray, int result);
+#endif
+#ifdef _CHATROOMPROTOCOL			// (不可開) Syu ADD 聊天室頻道
+	void lssproto_CHATROOM_send(char* data);
+	void lssproto_CHATROOM_recv(char* data);
+#endif
+#ifdef _NEWREQUESTPROTOCOL			// (不可開) Syu ADD 新增Protocol要求細項
+	void lssproto_RESIST_send(char* data);
+	void lssproto_RESIST_recv(char* data);
+#endif
 
-public:
-	bool IS_ONLINE_FLAG = false;
-	bool IS_BATTLE_FLAG = false;
+#ifdef _ALCHEPLUS
+	void lssproto_ALCHEPLUS_send(char* data);
+	void lssproto_ALCHEPLUS_recv(char* data);
+#endif
 
-	std::atomic_bool isPacketAutoClear = false;
-	bool disconnectflag = false;
+#ifdef _OUTOFBATTLESKILL			// (不可開) Syu ADD 非戰鬥時技能Protocol
+	void lssproto_BATTLESKILL_send(int SkillNum);
+	void lssproto_BATTLESKILL_recv(char* data);
+#endif
+	void lssproto_CHAREFFECT_recv(char* data);
 
-	bool enablePlayerWork = false;
-	bool enablePetWork = false;
-	bool enemyAllReady = false;
+#ifdef _STREET_VENDOR
+	void lssproto_STREET_VENDOR_send(char* data);	// 擺攤功能
+	void lssproto_STREET_VENDOR_recv(char* data);	// 擺攤功能
+#endif
 
-	QFuture<void> ayncBattleCommand;
+#ifdef _JOBDAILY
+	void lssproto_JOBDAILY_send(char* data);
+	void lssproto_JOBDAILY_recv(char* data);
+#endif
+
+#ifdef _FAMILYBADGE_
+	void lssproto_FamilyBadge_send(int fd);
+	void lssproto_FamilyBadge_recv(char* data);
+#endif
+
+#ifdef _TEACHER_SYSTEM
+	void lssproto_TEACHER_SYSTEM_send(char* data);	// 導師功能
+	void lssproto_TEACHER_SYSTEM_recv(char* data);
+#endif
+
+#ifdef _ADD_STATUS_2
+	void lssproto_S2_send(char* data);
+	void lssproto_S2_recv(char* data);
+#endif
+
+#ifdef _ITEM_FIREWORK
+	void lssproto_Firework_recv(int nCharaindex, int nType, int nActionNum);	// 煙火功能
+#endif
+#ifdef _PET_ITEM
+	void lssproto_PetItemEquip_send(const QPoint& pos, int nPetNo, int nItemNo, int nDestNO);	// 寵物裝備功能
+#endif
+#ifdef _THEATER
+	void lssproto_TheaterData_recv(char* pData);
+#endif
+#ifdef _MOVE_SCREEN
+	void lssproto_MoveScreen_recv(BOOL bMoveScreenMode, int iXY);	// client 移動熒幕
+#endif
+#ifdef _GET_HOSTNAME
+	void lssproto_HostName_send(int fd);
+#endif
+
+#ifdef _NPC_MAGICCARD
+	void lssproto_MagiccardAction_recv(char* data);	//魔法牌功能
+	void lssproto_MagiccardDamage_recv(int position, int damage, int offsetx, int offsety);
+#endif
+
+#ifdef  _NPC_DANCE
+	void lssproto_DancemanOption_recv(int option);	//動一動狀態
+#endif
+
+#ifdef _ANNOUNCEMENT_
+
+	void lssproto_DENGON_recv(char* data, int colors, int nums);
+#endif
+#ifdef _HUNDRED_KILL
+	void lssproto_hundredkill_recv(int flag);
+#endif
+#ifdef _PK2007
+	void lssproto_pkList_send(int fd);
+	void lssproto_pkList_recv(int count, char* data);
+#endif
+#ifdef _NEW_SYSTEM_MENU
+	void lssproto_SaMenu_send(int index);
+#endif
+
+#ifdef _PETBLESS_
+	void lssproto_petbless_send(int petpos, int type);
+#endif
+#ifdef _RIDEQUERY_
+	void lssproto_RideQuery_send(int fd);
+#endif
+#ifdef _PET_SKINS
+	void lssproto_PetSkins_recv(char* data);
+#endif
+
+#ifdef _CHARSIGNDAY_
+	void lssproto_SignDay_send(int fd);
+#endif
+
+	void lssproto_ShopOk_send(int n);
+#pragma endregion
+
+	void lssproto_CustomWN_recv(const QString& data);
+	void lssproto_CustomTK_recv(const QString& data);
+
+	int appendReadBuf(const QByteArray& data);
+	QByteArrayList splitLinesFromReadBuf();
+	int a62toi(const QString& a) const;
+	int getStringToken(const QString& src, const QString& delim, int count, QString& out) const;
+	int getIntegerToken(const QString& src, const QString& delim, int count) const;
+	int getInteger62Token(const QString& src, const QString& delim, int count) const;
+	QString makeStringFromEscaped(const QString& src) const;
+	//int a62toi(char* a) const;
+
+private:
+	QFutureSynchronizer<void> ayncBattleCommandSync;
+	QFuture<void> ayncBattleCommandFuture;
+	QMutex ayncBattleCommandMutex;
 	std::atomic_bool ayncBattleCommandFlag = false;
-	QElapsedTimer battleDurationTimer;
-	QElapsedTimer normalDurationTimer;
+
+	std::atomic_bool IS_BATTLE_FLAG = false;
+	std::atomic_bool IS_ONLINE_FLAG = false;
+
+	std::atomic_bool isEnemyAllReady = false;
+
 	QElapsedTimer eottlTimer;
-	bool isEOTTLSend = false;
+	QElapsedTimer connectingTimer;
+	bool petEscapeEnableTempFlag = false;
+	int tempCatchPetTargetIndex = -1;
+	int JobdailyGetMax = 0;  //是否有接收到資料
+	mutable QReadWriteLock battleStateLocker;
+	mutable QReadWriteLock onlineStateLocker;
+	mutable QReadWriteLock worldStateLocker;
+	mutable QReadWriteLock gameStateLocker;
 
-	int battle_total_time = 0;
-	int battle_totol = 0;
+	battledata_t battleData;
+	mutable QReadWriteLock battleDataLocker;
 
-	int  TalkMode = 0;						//0:一般 1:密語 2: 隊伍 3:家族 4:職業 
+	bool IS_WAITFOT_SKUP_RECV = false;
+	QFuture<void> skupFuture;
 
+	bool IS_LOCKATTACK_ESCAPE_DISABLE = false;
+
+	//client original
+#pragma region ClientOriginal
+	int  talkMode = 0;						//0:一般 1:密語 2: 隊伍 3:家族 4:職業 
+
+	MAGIC magic[MAX_MAGIC] = {};
+
+
+	BATTLE_RESULT_MSG battleResultMsg = {};
+
+	ADDRESS_BOOK addressBook[MAX_ADR_BOOK] = {};
+
+	JOBDAILY jobdaily[MAXMISSION] = {};
+
+	CHARLISTTABLE chartable[MAXCHARACTER] = {};
+
+	short partyModeFlag = 0;
+	MAIL_HISTORY MailHistory[MAX_ADR_BOOK] = {};
 	unsigned int ProcNo = 0u;
 	unsigned int SubProcNo = 0u;
 	unsigned int MenuToggleFlag = 0u;
+
+	PALETTE_STATE PalState = {};
+
+	int opp_showindex = 0;
+	QString opp_sockfd;
+	QString opp_name;
+	QString opp_goldmount;
+	int showindex[7] = { 0 };
+	int tradeWndDropGoldGet = 0;
+	QString opp_itemgraph;
+	QString  opp_itemname;
+	QString opp_itemeffect;
+	QString opp_itemindex;
+	QString opp_itemdamage;
+	QString trade_kind;
+	QString trade_command;
+	int tradeStatus = 0;
+	int tradePetIndex = -1;
+	PET tradePet[2] = {};
+	showitem opp_item[MAX_MAXHAVEITEM];	//交易道具阵列增为15个
+	showpet opp_pet[MAX_PET];
+	QStringList myitem_tradeList;
+	QStringList mypet_tradeList = { "P|-1", "P|-1", "P|-1" , "P|-1", "P|-1" };
+	int mygoldtrade = 0;
 
 	short prSendFlag = 0i16;
 
@@ -1893,8 +2644,8 @@ public:
 	int BattleMapNo = 0;
 
 	LSTIME SaTime = { 0 };
-	long serverTime = 0L;
-	long FirstTime = 0L;
+	unsigned long long serverTime = 0ULL;
+	unsigned long long FirstTime = 0ULL;
 	int SaTimeZoneNo = 0;
 
 	short charDelStatus = 0;
@@ -1907,32 +2658,16 @@ public:
 	short eventEnemySendId = 0i16;
 	short eventEnemySendFlag = 0i16;
 
-	short sendEnFlag = 0i16;
-	short duelSendFlag = 0i16;
-	short jbSendFlag = 0i16;
+	unsigned short event_[MAP_X_SIZE * MAP_Y_SIZE];	// ????
+
 	short helpFlag = 0i16;
 
-	bool BattleTurnReceiveFlag = false;
 	int BattleMyNo = 0;
 	int BattleBpFlag = 0;
 	int BattleEscFlag = 0;
 	int BattleMyMp = 0;
 	int BattleAnimFlag = 0;
-	int BattleSvTurnNo = 0;
-	int BattleCliTurnNo = 0;
 	int BattlePetStMenCnt = 0;
-
-	bool BattlePetReceiveFlag = false;
-	int BattlePetReceivePetNo = -1;
-	int battlePetNoBak = -2;
-
-	int BattleCmdReadPointer = 0;
-	int BattleStatusReadPointer = 0;
-	int BattleCmdWritePointer = 0;
-	int BattleStatusWritePointer = 0;
-	QString BattleCmdBak[BATTLE_BUF_SIZE] = {};
-	QString  BattleStatus[BATTLE_COMMAND_SIZE] = {};
-	QString  BattleStatusBak[BATTLE_BUF_SIZE] = {};
 
 	int StatusUpPoint = 0;
 
@@ -1952,15 +2687,16 @@ public:
 	int palNo = 0;
 	int palTime = 0;
 
-	QString nowFloorName = "";
+	int nowFloorCache = 0;
 	bool mapEmptyFlag = false;
-	int nowFloor = 0;
 	int nowFloorGxSize = 0, nowFloorGySize = 0;
 	int oldGx = -1, oldGy = -1;
 	int mapAreaX1 = 0, mapAreaY1 = 0, mapAreaX2 = 0, mapAreaY2 = 0;
-	int nowGx = 0, nowGy = 0;
+	//int nowGx = 0, nowGy = 0;
+
 	int mapAreaWidth = 0, mapAreaHeight = 0;
-	float nowX = (float)nowGx * GRID_SIZE, nowY = (float)nowGy * GRID_SIZE;
+	float nowX = (float)0 * GRID_SIZE;
+	float nowY = (float)0 * GRID_SIZE;
 	int nextGx = 0, nextGy = 0;
 	float nowVx = 0.0f, nowVy = 0.0f, nowSpdRate = 1.0f;
 	int oldNextGx = -1, oldNextGy = -1;
@@ -1979,9 +2715,6 @@ public:
 	short maxEncountPercentage = 0i16;
 	short nowEncountExtra = 0i16;
 	int MapWmdFlagBak = 0;
-	unsigned short event_[MAP_X_SIZE * MAP_Y_SIZE] = {};
-
-	short mouseCursorMode = MOUSE_CURSOR_MODE_NORMAL;
 
 	bool TimeZonePalChangeFlag = false;
 	short drawTimeAnimeFlag = 0;
@@ -1994,54 +2727,111 @@ public:
 	short charListStatus = 0i16;
 
 	short sTeacherSystemBtn = 0i16;
+#pragma endregion
 
+public:
+	//custom
+	bool disconnectflag = false;
+
+	bool IS_TRADING = false;
+
+	bool IS_TCP_CONNECTION_OK_TO_USE = false;
+
+	bool IS_WAITFOR_JOBDAILY_FLAG = false;
+	bool IS_WAITFOR_BANK_FLAG = false;
+	bool IS_WAITFOR_DIALOG_FLAG = false;
+	bool IS_WAITFOR_EXTRA_DIALOG_INFO_FLAG = false;
+
+	bool IS_WAITFOR_CUSTOM_DIALOG_FLAG = false;
+
+	std::atomic_bool  isBattleDialogReady = false;
+	std::atomic_bool isEOTTLSend = false;
+	std::atomic_int lastEOTime = 0;
+
+	QElapsedTimer loginTimer;
+	QElapsedTimer battleDurationTimer;
+	QElapsedTimer normalDurationTimer;
+
+	int BattleCliTurnNo = 0;
+	int battle_total_time = 0;
+	int battle_totol = 0;
+
+	int nowFloor = 0;
+	util::SafeData<QPoint> nowPoint;
+	QString nowFloorName = "";
+
+	QString protoBattleLogName = "";
+
+	//main datas shared with script thread
+	util::SafeHash<QString, QVariant> hashpc;
+	util::SafeHash<int, QHash<QString, QVariant>> hashmagic;
+	util::SafeHash<int, QHash<QString, QVariant>> hashskill;
+	util::SafeHash<int, QHash<QString, QVariant>> hashpet;
+	util::SafeHash<int, QHash<int, QHash<QString, QVariant>>> hashpetskill;
+	util::SafeHash<int, QHash<QString, QVariant>> hashparty;
+	util::SafeHash<int, QHash<QString, QVariant>> hashitem;
+	util::SafeHash<int, QHash<QString, QVariant>> hashequip;
+	util::SafeHash<int, QHash<int, QHash<QString, QVariant>>> hashpetequip;
+	util::SafeHash<QString, QVariant> hashmap;
+	util::SafeHash<int, QHash<QString, QVariant>> hashbattle;
+	util::SafeData<QString> hashbattlefield;
+
+	QSharedPointer<MapAnalyzer> mapAnalyzer;
+
+	util::SafeData<currencydata_t> currencyData = {};
+	util::SafeData<customdialog_t> customDialog = {};
+
+	QReadWriteLock pointMutex;//用於保護人物座標更新順序
+	QMutex swapItemMutex;//用於保護物品數據更新順序
+	mutable QMutex pcMutex_;//用於保護人物數據更新順序
 	PC pc = {};
 
-	battledata_t battleData;
-
-	PALETTE_STATE 	PalState = {};
-
-	MAIL_HISTORY MailHistory[MAX_ADR_BOOK] = {};
 	PET pet[MAX_PET] = {};
-
-#ifdef _CHAR_PROFESSION			// WON ADD 人物職業
-	PROFESSION_SKILL profession_skill[MAX_PROFESSION_SKILL];
-#endif
-
-	MAGIC magic[MAX_MAGIC] = {};
 
 #ifdef MAX_AIRPLANENUM
 	PARTY party[MAX_AIRPLANENUM];
 #else
 	PARTY party[MAX_PARTY] = {};
 #endif
-	short partyModeFlag = 0;
 
-
-	CHARLISTTABLE chartable[MAXCHARACTER] = {};
-
-	ADDRESS_BOOK addressBook[MAX_ADR_BOOK] = {};
-
-	BATTLE_RESULT_MSG battleResultMsg = {};
+#ifdef _CHAR_PROFESSION			// WON ADD 人物職業
+	PROFESSION_SKILL profession_skill[MAX_PROFESSION_SKILL];
+#endif
 
 	PET_SKILL petSkill[MAX_PET][MAX_SKILL] = {};
 
-	JOBDAILY jobdaily[MAXMISSION] = {};
-	int JobdailyGetMax = 0;  //是否有接收到資料
+	dialog_t currentDialog = {};
+	util::SafeHash<int, mapunit_t> mapUnitHash;
+	util::SafeHash<QPoint, mapunit_t> npcUnitPointHash;
+	util::SafeQueue<QPair<int, QString>> chatQueue;
 
-signals:
-	void write(QTcpSocket* clientSocket, QByteArray ba, int size);
+	QPair<int, QVector<bankpet_t>> currentBankPetList;
+	util::SafeVector<ITEM> currentBankItemList;
 
-private slots:
-	void onWrite(QTcpSocket* clientSocket, QByteArray ba, int size);
-	void onNewConnection();
-	void onClientReadyRead();
+	QElapsedTimer repTimer;
+	util::AfkRecorder recorder[1 + MAX_PET] = {};
+
+	//用於緩存要發送到UI的數據(開啟子窗口初始化並加載當前最新數據時使用)
+	util::SafeHash<int, QVariant> playerInfoColContents;
+	util::SafeHash<int, QVariant> itemInfoRowContents;
+	util::SafeHash<int, QVariant> equipInfoRowContents;
+	QStringList enemyNameListCache;
+	QVariant topInfoContents;
+	QVariant bottomInfoContents;
+	QString timeLabelContents;
+	QString labelPlayerAction;
+	QString labelPetAction;
+
 private:
-	std::atomic_bool isRequestInterrupted = false;
-	int sockfd_ = 0;
+	QFutureSynchronizer <void> sync_;
+
 	unsigned short port_ = 0;
-	QScopedPointer<QTcpServer> server_;
+
+	QSharedPointer<QTcpServer> server_;
+
 	QList<QTcpSocket*> clientSockets_;
 
+	QByteArray net_readbuf;
 
+	QMutex net_mutex;
 };

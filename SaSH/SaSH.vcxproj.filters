@@ -62,6 +62,15 @@
     <Filter Include="Source Files\forms\script_setting">
       <UniqueIdentifier>{75b5d882-887f-4bd5-bbbd-bbe9d4ad517e}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\map">
+      <UniqueIdentifier>{be3ca5ac-95d1-4c20-9fbe-b10be8033cbe}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\script">
+      <UniqueIdentifier>{6f340115-dccf-4873-92f4-a203398dd783}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\update">
+      <UniqueIdentifier>{b4e70ffc-60fb-407b-ac92-f64e44b5259b}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <QtRcc Include="resource.qrc">
@@ -147,9 +156,6 @@
     <ClCompile Include="form\afkform.cpp">
       <Filter>Source Files\forms\afk</Filter>
     </ClCompile>
-    <ClCompile Include="form\mapform.cpp">
-      <Filter>Source Files\forms\map</Filter>
-    </ClCompile>
     <ClCompile Include="form\scriptform.cpp">
       <Filter>Source Files\forms\script</Filter>
     </ClCompile>
@@ -164,6 +170,78 @@
     </ClCompile>
     <ClCompile Include="injector.cpp">
       <Filter>Source Files\util</Filter>
+    </ClCompile>
+    <ClCompile Include="map\astar.cpp">
+      <Filter>Source Files\map</Filter>
+    </ClCompile>
+    <ClCompile Include="map\mapanalyzer.cpp">
+      <Filter>Source Files\map</Filter>
+    </ClCompile>
+    <ClCompile Include="model\mapglwidget.cpp">
+      <Filter>Source Files\model</Filter>
+    </ClCompile>
+    <ClCompile Include="form\mapwidget.cpp">
+      <Filter>Source Files\forms\map</Filter>
+    </ClCompile>
+    <ClCompile Include="model\combobox.cpp">
+      <Filter>Source Files\model</Filter>
+    </ClCompile>
+    <ClCompile Include="script\lexer.cpp">
+      <Filter>Source Files\script</Filter>
+    </ClCompile>
+    <ClCompile Include="script\parser.cpp">
+      <Filter>Source Files\script</Filter>
+    </ClCompile>
+    <ClCompile Include="script\interpreter.cpp">
+      <Filter>Source Files\script</Filter>
+    </ClCompile>
+    <ClCompile Include="form\mapform.cpp">
+      <Filter>Source Files\forms\map</Filter>
+    </ClCompile>
+    <ClCompile Include="script\move.cpp">
+      <Filter>Source Files\script</Filter>
+    </ClCompile>
+    <ClCompile Include="script\check.cpp">
+      <Filter>Source Files\script</Filter>
+    </ClCompile>
+    <ClCompile Include="script\system.cpp">
+      <Filter>Source Files\script</Filter>
+    </ClCompile>
+    <ClCompile Include="script\action.cpp">
+      <Filter>Source Files\script</Filter>
+    </ClCompile>
+    <ClCompile Include="model\highlighter.cpp">
+      <Filter>Source Files\model</Filter>
+    </ClCompile>
+    <ClCompile Include="model\listview.cpp">
+      <Filter>Source Files\model</Filter>
+    </ClCompile>
+    <ClCompile Include="update\curldownload.cpp">
+      <Filter>Source Files\update</Filter>
+    </ClCompile>
+    <ClCompile Include="gdatatime.cpp">
+      <Filter>Source Files\util</Filter>
+    </ClCompile>
+    <ClCompile Include="update\qdownloader.cpp">
+      <Filter>Source Files\update</Filter>
+    </ClCompile>
+    <ClCompile Include="crypto.cpp">
+      <Filter>Source Files\script</Filter>
+    </ClCompile>
+    <ClCompile Include="form\replaceform.cpp">
+      <Filter>Source Files\forms\dialog</Filter>
+    </ClCompile>
+    <ClCompile Include="model\codeeditor.cpp">
+      <Filter>Source Files\model</Filter>
+    </ClCompile>
+    <ClCompile Include="model\fastlabel.cpp">
+      <Filter>Source Files\model</Filter>
+    </ClCompile>
+    <ClCompile Include="model\qthumbnailform.cpp">
+      <Filter>Source Files\model</Filter>
+    </ClCompile>
+    <ClCompile Include="model\qthumbnailwidget.cpp">
+      <Filter>Source Files\model</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -221,9 +299,6 @@
     <QtMoc Include="form\afkform.h">
       <Filter>Source Files\forms\afk</Filter>
     </QtMoc>
-    <QtMoc Include="form\mapform.h">
-      <Filter>Source Files\forms\map</Filter>
-    </QtMoc>
     <QtMoc Include="form\scriptform.h">
       <Filter>Source Files\forms\script</Filter>
     </QtMoc>
@@ -235,6 +310,48 @@
     </QtMoc>
     <QtMoc Include="form\abilityform.h">
       <Filter>Source Files\forms\dialog</Filter>
+    </QtMoc>
+    <QtMoc Include="model\mapglwidget.h">
+      <Filter>Source Files\model</Filter>
+    </QtMoc>
+    <QtMoc Include="form\mapwidget.h">
+      <Filter>Source Files\forms\map</Filter>
+    </QtMoc>
+    <QtMoc Include="model\combobox.h">
+      <Filter>Source Files\model</Filter>
+    </QtMoc>
+    <QtMoc Include="script\interpreter.h">
+      <Filter>Source Files\script</Filter>
+    </QtMoc>
+    <QtMoc Include="form\mapform.h">
+      <Filter>Source Files\forms\map</Filter>
+    </QtMoc>
+    <QtMoc Include="model\codeeditor.h">
+      <Filter>Source Files\model</Filter>
+    </QtMoc>
+    <QtMoc Include="model\listview.h">
+      <Filter>Source Files\model</Filter>
+    </QtMoc>
+    <QtMoc Include="update\qdownloader.h">
+      <Filter>Source Files\update</Filter>
+    </QtMoc>
+    <QtMoc Include="form\replaceform.h">
+      <Filter>Source Files\forms\dialog</Filter>
+    </QtMoc>
+    <QtMoc Include="script\parser.h">
+      <Filter>Source Files\script</Filter>
+    </QtMoc>
+    <QtMoc Include="model\fastlabel.h">
+      <Filter>Source Files\model</Filter>
+    </QtMoc>
+    <QtMoc Include="model\threadplugin.h">
+      <Filter>Source Files\model</Filter>
+    </QtMoc>
+    <QtMoc Include="model\qthumbnailform.h">
+      <Filter>Source Files\model</Filter>
+    </QtMoc>
+    <QtMoc Include="model\qthumbnailwidget.h">
+      <Filter>Source Files\model</Filter>
     </QtMoc>
   </ItemGroup>
   <ItemGroup>
@@ -256,6 +373,35 @@
     <ClInclude Include="injector.h">
       <Filter>Source Files\util</Filter>
     </ClInclude>
+    <ClInclude Include="map\astar.h">
+      <Filter>Source Files\map</Filter>
+    </ClInclude>
+    <ClInclude Include="map\mapanalyzer.h">
+      <Filter>Source Files\map</Filter>
+    </ClInclude>
+    <ClInclude Include="script\lexer.h">
+      <Filter>Source Files\script</Filter>
+    </ClInclude>
+    <ClInclude Include="model\treewidgetitem.h">
+      <Filter>Source Files\model</Filter>
+    </ClInclude>
+    <ClInclude Include="model\highlighter.h">
+      <Filter>Source Files\model</Filter>
+    </ClInclude>
+    <ClInclude Include="update\curldownload.h">
+      <Filter>Source Files\update</Filter>
+    </ClInclude>
+    <ClInclude Include="gdatetime.h">
+      <Filter>Source Files\util</Filter>
+    </ClInclude>
+    <ClInclude Include="crypto.h">
+      <Filter>Source Files\script</Filter>
+    </ClInclude>
+    <ClInclude Include="resource.h" />
+    <ClInclude Include="resource1.h" />
+    <ClInclude Include="spdloger.hpp">
+      <Filter>Source Files\3rdparty</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <QtUic Include="form\selecttargetform.ui">
@@ -268,9 +414,6 @@
       <Filter>Form Files</Filter>
     </QtUic>
     <QtUic Include="form\generalform.ui">
-      <Filter>Form Files</Filter>
-    </QtUic>
-    <QtUic Include="form\mapform.ui">
       <Filter>Form Files</Filter>
     </QtUic>
     <QtUic Include="form\afkform.ui">
@@ -309,6 +452,18 @@
     <QtUic Include="form\abilityform.ui">
       <Filter>Form Files</Filter>
     </QtUic>
+    <QtUic Include="form\mapwidget.ui">
+      <Filter>Form Files</Filter>
+    </QtUic>
+    <QtUic Include="form\mapform.ui">
+      <Filter>Form Files</Filter>
+    </QtUic>
+    <QtUic Include="update\qdownloader.ui">
+      <Filter>Source Files\update</Filter>
+    </QtUic>
+    <QtUic Include="model\qthumbnailform.ui">
+      <Filter>Source Files\model</Filter>
+    </QtUic>
   </ItemGroup>
   <ItemGroup>
     <QtTranslation Include="translations\qt_zh_TW.ts">
@@ -317,5 +472,10 @@
     <QtTranslation Include="translations\qt_zh_CN.ts">
       <Filter>Translation Files</Filter>
     </QtTranslation>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="main.rc">
+      <Filter>Resource Files</Filter>
+    </ResourceCompile>
   </ItemGroup>
 </Project>

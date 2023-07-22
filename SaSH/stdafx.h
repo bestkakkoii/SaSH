@@ -6,6 +6,7 @@
 
 #ifdef QT_NO_DEBUG
 #define QT_NO_DEBUG_OUTPUT
+#define QT_NO_INFO_OUTPUT
 #endif
 
 #ifndef DISABLE_COPY
@@ -69,7 +70,7 @@ public:\
 #include <tchar.h>
 #include <functional>
 #include <limits>
-#include < direct.h >
+#include <type_traits> 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // QT header
 #include <QtGlobal>
@@ -82,7 +83,8 @@ public:\
 //#include <QNetworkRequest>
 //#include <QNetworkAccessManager>
 //#include <QHttpMultiPart>
-
+#include <QDockWidget>
+#include <QSystemTrayIcon>
 #include <QSysInfo>
 #include <QDebug>
 #include <QClipboard>
@@ -103,6 +105,12 @@ public:\
 #include <QTableWidget>
 #include <QListWidget>
 #include <QComboBox>
+#include <QGroupBox>
+#include <QSpinBox>
+#include <QGridLayout>
+#include <QHBoxLayout>
+#include <QPlainTextEdit>
+#include <QRadioButton>
 #include <QTextEdit>
 #include <QGraphicsDropShadowEffect>
 #include <QHBoxLayout>
@@ -119,6 +127,7 @@ public:\
 #include <QCheckBox>
 #include <QLineEdit>
 #include <QProgressBar>
+#include <QScrollBar>
 
 
 #include <QStringListModel>
@@ -186,6 +195,7 @@ public:\
 #include <QList>
 #include <QMap>
 #include <QHash>
+#include <QStack>
 #include <QPoint>
 #include <QQueue>
 #include <QMultiHash>
@@ -216,6 +226,7 @@ public:\
 #define MINT_USE_SEPARATE_NAMESPACE
 #include <MINT/MINT.h>
 #endif
+
 //
 ////#include <blockallocator/blockallocator.h>
 //#include <simplecrypt.h>
@@ -227,6 +238,10 @@ public:\
 
 //custom
 #include "qscopedhandle.h"
-
+#include "combobox.h"
+#include "listview.h"
+#include "treewidgetitem.h"
+#include "3rdparty/simplecrypt.h"
+#include "gdatetime.h"
 
 #endif // __cplusplus

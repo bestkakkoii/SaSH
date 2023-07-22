@@ -28,13 +28,19 @@
            <layout class="QHBoxLayout" name="horizontalLayout_7">
             <item>
              <widget class="QLabel" name="label">
+              <property name="maximumSize">
+               <size>
+                <width>50</width>
+                <height>16777215</height>
+               </size>
+              </property>
               <property name="text">
                <string>select pet</string>
               </property>
              </widget>
             </item>
             <item>
-             <widget class="QComboBox" name="comboBox"/>
+             <widget class="ComboBox" name="comboBox"/>
             </item>
            </layout>
           </item>
@@ -62,6 +68,12 @@
             </item>
             <item>
              <widget class="QLabel" name="label_2">
+              <property name="minimumSize">
+               <size>
+                <width>45</width>
+                <height>0</height>
+               </size>
+              </property>
               <property name="text">
                <string>level</string>
               </property>
@@ -69,6 +81,12 @@
             </item>
             <item>
              <widget class="QLabel" name="label_3">
+              <property name="minimumSize">
+               <size>
+                <width>45</width>
+                <height>0</height>
+               </size>
+              </property>
               <property name="text">
                <string>hp</string>
               </property>
@@ -76,6 +94,12 @@
             </item>
             <item>
              <widget class="QLabel" name="label_4">
+              <property name="minimumSize">
+               <size>
+                <width>45</width>
+                <height>0</height>
+               </size>
+              </property>
               <property name="text">
                <string>atk</string>
               </property>
@@ -83,6 +107,12 @@
             </item>
             <item>
              <widget class="QLabel" name="label_5">
+              <property name="minimumSize">
+               <size>
+                <width>45</width>
+                <height>0</height>
+               </size>
+              </property>
               <property name="text">
                <string>def</string>
               </property>
@@ -90,6 +120,12 @@
             </item>
             <item>
              <widget class="QLabel" name="label_6">
+              <property name="minimumSize">
+               <size>
+                <width>45</width>
+                <height>0</height>
+               </size>
+              </property>
               <property name="text">
                <string>agi</string>
               </property>
@@ -120,19 +156,84 @@
              </spacer>
             </item>
             <item>
-             <widget class="QSpinBox" name="spinBox"/>
+             <widget class="QSpinBox" name="spinBox_base_level">
+              <property name="minimumSize">
+               <size>
+                <width>50</width>
+                <height>0</height>
+               </size>
+              </property>
+              <property name="minimum">
+               <number>1</number>
+              </property>
+              <property name="maximum">
+               <number>255</number>
+              </property>
+             </widget>
             </item>
             <item>
-             <widget class="QSpinBox" name="spinBox_8"/>
+             <widget class="QSpinBox" name="spinBox_base_hp">
+              <property name="minimumSize">
+               <size>
+                <width>50</width>
+                <height>0</height>
+               </size>
+              </property>
+              <property name="minimum">
+               <number>1</number>
+              </property>
+              <property name="maximum">
+               <number>9999</number>
+              </property>
+             </widget>
             </item>
             <item>
-             <widget class="QSpinBox" name="spinBox_12"/>
+             <widget class="QSpinBox" name="spinBox_base_atk">
+              <property name="minimumSize">
+               <size>
+                <width>50</width>
+                <height>0</height>
+               </size>
+              </property>
+              <property name="minimum">
+               <number>1</number>
+              </property>
+              <property name="maximum">
+               <number>9999</number>
+              </property>
+             </widget>
             </item>
             <item>
-             <widget class="QSpinBox" name="spinBox_16"/>
+             <widget class="QSpinBox" name="spinBox_base_def">
+              <property name="minimumSize">
+               <size>
+                <width>50</width>
+                <height>0</height>
+               </size>
+              </property>
+              <property name="minimum">
+               <number>1</number>
+              </property>
+              <property name="maximum">
+               <number>9999</number>
+              </property>
+             </widget>
             </item>
             <item>
-             <widget class="QSpinBox" name="spinBox_20"/>
+             <widget class="QSpinBox" name="spinBox_base_agi">
+              <property name="minimumSize">
+               <size>
+                <width>50</width>
+                <height>0</height>
+               </size>
+              </property>
+              <property name="minimum">
+               <number>1</number>
+              </property>
+              <property name="maximum">
+               <number>9999</number>
+              </property>
+             </widget>
             </item>
            </layout>
           </item>
@@ -159,19 +260,84 @@
              </spacer>
             </item>
             <item>
-             <widget class="QSpinBox" name="spinBox_2"/>
+             <widget class="QSpinBox" name="spinBox_current_level">
+              <property name="minimumSize">
+               <size>
+                <width>50</width>
+                <height>0</height>
+               </size>
+              </property>
+              <property name="minimum">
+               <number>1</number>
+              </property>
+              <property name="maximum">
+               <number>255</number>
+              </property>
+             </widget>
             </item>
             <item>
-             <widget class="QSpinBox" name="spinBox_9"/>
+             <widget class="QSpinBox" name="spinBox_current_hp">
+              <property name="minimumSize">
+               <size>
+                <width>50</width>
+                <height>0</height>
+               </size>
+              </property>
+              <property name="minimum">
+               <number>1</number>
+              </property>
+              <property name="maximum">
+               <number>9999</number>
+              </property>
+             </widget>
             </item>
             <item>
-             <widget class="QSpinBox" name="spinBox_13"/>
+             <widget class="QSpinBox" name="spinBox_current_atk">
+              <property name="minimumSize">
+               <size>
+                <width>50</width>
+                <height>0</height>
+               </size>
+              </property>
+              <property name="minimum">
+               <number>1</number>
+              </property>
+              <property name="maximum">
+               <number>9999</number>
+              </property>
+             </widget>
             </item>
             <item>
-             <widget class="QSpinBox" name="spinBox_17"/>
+             <widget class="QSpinBox" name="spinBox_current_def">
+              <property name="minimumSize">
+               <size>
+                <width>50</width>
+                <height>0</height>
+               </size>
+              </property>
+              <property name="minimum">
+               <number>1</number>
+              </property>
+              <property name="maximum">
+               <number>9999</number>
+              </property>
+             </widget>
             </item>
             <item>
-             <widget class="QSpinBox" name="spinBox_21"/>
+             <widget class="QSpinBox" name="spinBox_current_agi">
+              <property name="minimumSize">
+               <size>
+                <width>50</width>
+                <height>0</height>
+               </size>
+              </property>
+              <property name="minimum">
+               <number>1</number>
+              </property>
+              <property name="maximum">
+               <number>9999</number>
+              </property>
+             </widget>
             </item>
            </layout>
           </item>
@@ -198,19 +364,54 @@
              </spacer>
             </item>
             <item>
-             <widget class="QSpinBox" name="spinBox_3"/>
+             <widget class="QDoubleSpinBox" name="doubleSpinBox">
+              <property name="minimumSize">
+               <size>
+                <width>50</width>
+                <height>0</height>
+               </size>
+              </property>
+             </widget>
             </item>
             <item>
-             <widget class="QSpinBox" name="spinBox_10"/>
+             <widget class="QDoubleSpinBox" name="doubleSpinBox_hp">
+              <property name="minimumSize">
+               <size>
+                <width>50</width>
+                <height>0</height>
+               </size>
+              </property>
+             </widget>
             </item>
             <item>
-             <widget class="QSpinBox" name="spinBox_14"/>
+             <widget class="QDoubleSpinBox" name="doubleSpinBox_atk">
+              <property name="minimumSize">
+               <size>
+                <width>50</width>
+                <height>0</height>
+               </size>
+              </property>
+             </widget>
             </item>
             <item>
-             <widget class="QSpinBox" name="spinBox_18"/>
+             <widget class="QDoubleSpinBox" name="doubleSpinBox_def">
+              <property name="minimumSize">
+               <size>
+                <width>50</width>
+                <height>0</height>
+               </size>
+              </property>
+             </widget>
             </item>
             <item>
-             <widget class="QSpinBox" name="spinBox_22"/>
+             <widget class="QDoubleSpinBox" name="doubleSpinBox_agi">
+              <property name="minimumSize">
+               <size>
+                <width>50</width>
+                <height>0</height>
+               </size>
+              </property>
+             </widget>
             </item>
            </layout>
           </item>
@@ -237,19 +438,102 @@
              </spacer>
             </item>
             <item>
-             <widget class="QSpinBox" name="spinBox_4"/>
+             <widget class="QSpinBox" name="spinBox_expect_level">
+              <property name="minimumSize">
+               <size>
+                <width>50</width>
+                <height>0</height>
+               </size>
+              </property>
+              <property name="readOnly">
+               <bool>false</bool>
+              </property>
+              <property name="minimum">
+               <number>1</number>
+              </property>
+              <property name="maximum">
+               <number>255</number>
+              </property>
+              <property name="value">
+               <number>160</number>
+              </property>
+             </widget>
             </item>
             <item>
-             <widget class="QSpinBox" name="spinBox_11"/>
+             <widget class="QSpinBox" name="spinBox_expect_hp">
+              <property name="minimumSize">
+               <size>
+                <width>50</width>
+                <height>0</height>
+               </size>
+              </property>
+              <property name="readOnly">
+               <bool>true</bool>
+              </property>
+              <property name="minimum">
+               <number>1</number>
+              </property>
+              <property name="maximum">
+               <number>9999</number>
+              </property>
+             </widget>
             </item>
             <item>
-             <widget class="QSpinBox" name="spinBox_15"/>
+             <widget class="QSpinBox" name="spinBox_expect_atk">
+              <property name="minimumSize">
+               <size>
+                <width>50</width>
+                <height>0</height>
+               </size>
+              </property>
+              <property name="readOnly">
+               <bool>true</bool>
+              </property>
+              <property name="minimum">
+               <number>1</number>
+              </property>
+              <property name="maximum">
+               <number>9999</number>
+              </property>
+             </widget>
             </item>
             <item>
-             <widget class="QSpinBox" name="spinBox_19"/>
+             <widget class="QSpinBox" name="spinBox_expect_def">
+              <property name="minimumSize">
+               <size>
+                <width>50</width>
+                <height>0</height>
+               </size>
+              </property>
+              <property name="readOnly">
+               <bool>true</bool>
+              </property>
+              <property name="minimum">
+               <number>1</number>
+              </property>
+              <property name="maximum">
+               <number>9999</number>
+              </property>
+             </widget>
             </item>
             <item>
-             <widget class="QSpinBox" name="spinBox_23"/>
+             <widget class="QSpinBox" name="spinBox_expect_agi">
+              <property name="minimumSize">
+               <size>
+                <width>50</width>
+                <height>0</height>
+               </size>
+              </property>
+              <property name="readOnly">
+               <bool>true</bool>
+              </property>
+              <property name="minimum">
+               <number>1</number>
+              </property>
+              <property name="maximum">
+               <number>9999</number>
+              </property>
+             </widget>
             </item>
            </layout>
           </item>
@@ -276,14 +560,14 @@
              </spacer>
             </item>
             <item>
-             <widget class="QPushButton" name="pushButton">
+             <widget class="QPushButton" name="pushButton_calc">
               <property name="text">
                <string>calculate</string>
               </property>
              </widget>
             </item>
             <item>
-             <widget class="QPushButton" name="pushButton_2">
+             <widget class="QPushButton" name="pushButton_clear">
               <property name="text">
                <string>clear</string>
               </property>
@@ -327,6 +611,13 @@
   </layout>
  </widget>
  <layoutdefault spacing="6" margin="11"/>
+ <customwidgets>
+  <customwidget>
+   <class>ComboBox</class>
+   <extends>QComboBox</extends>
+   <header location="global">combobox.h</header>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections/>
 </ui>

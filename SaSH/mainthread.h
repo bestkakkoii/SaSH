@@ -1,26 +1,36 @@
-﻿#pragma once
+﻿/*
+				GNU GENERAL PUBLIC LICENSE
+				   Version 2, June 1991
+COPYRIGHT (C) Bestkakkoii 2023 All Rights Reserved.
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU General Public License for more details.
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+
+*/
+
+#pragma once
 #include <QObject>
-#include "util.h"
+
+#include <threadplugin.h>
+#include <util.h>
 
 class QThread;
 class Server;
 
-class MainObject : public QObject
+class MainObject : public ThreadPlugin
 {
 	Q_OBJECT
 public:
-	MainObject(QObject* parent = nullptr);
+	explicit MainObject(QObject* parent);
 	virtual ~MainObject();
-
-	void requestInterruption()
-	{
-		isRequestInterrupted.store(true, std::memory_order_release);
-	}
-
-	bool isInterruptionRequested() const
-	{
-		return isRequestInterrupted.load(std::memory_order_acquire);
-	}
 
 signals:
 	void finished();
@@ -28,12 +38,12 @@ signals:
 public slots:
 	void run();
 
-
 private:
 
 
 	void mainProc();
 
+	void updateAfkInfos();
 	void setUserDatas();
 
 	int checkAndRunFunctions();
@@ -42,19 +52,40 @@ private:
 	void checkEtcFlag();
 	void checkAutoWalk();
 	void checkAutoDropItems();
-
+	void checkAutoJoin();
+	void checkAutoHeal();
+	void checkAutoDropPet();
+	void checkAutoLockPet();
+	void checkAutoLockSchedule();
+	void checkAutoEatBoostExpItem();
+	void checkRecordableNpcInfo();
+private:
+	void battleTimeThread();
 
 private:
-
-
-	std::atomic_bool isRequestInterrupted = false;
+	util::REMOVE_THREAD_REASON remove_thread_reason = util::REASON_NO_ERROR;
 
 	QFuture<void> autowalk_future_;
 	std::atomic_bool autowalk_future_cancel_flag_ = false;
 
+	QFuture<void> autojoin_future_;
+	std::atomic_bool autojoin_future_cancel_flag_ = false;
+
+	QFuture<void> battleTime_future_;
+	std::atomic_bool battleTime_future_cancel_flag_ = false;
+
+	QFuture<void> autoheal_future_;
+	std::atomic_bool autoheal_future_cancel_flag_ = false;
+
+	QFuture<void> autodroppet_future_;
+	std::atomic_bool autodroppet_future_cancel_flag_ = false;
+
+	QFutureSynchronizer <void> pointerWriterSync_;
+
 	bool login_run_once_flag_ = false;
 	bool battle_run_once_flag_ = false;
 
+	bool flagBattleDialogEnable_ = false;
 	bool flagAutoLoginEnable_ = false;
 	bool flagAutoReconnectEnable_ = false;
 	bool flagLogOutEnable_ = false;
@@ -107,10 +138,10 @@ class ThreadManager : public QObject
 public:
 	static ThreadManager& getInstance()
 	{
-		static ThreadManager* instance = new ThreadManager();
-		return *instance;
+		static ThreadManager instance;
+		return instance;
 	}
-	void close()
+	inline void close()
 	{
 		if (thread_ != nullptr)
 		{
@@ -128,7 +159,7 @@ private:
 	ThreadManager() = default;
 
 public:
-	bool createThread(QObject* parent = nullptr);
+	bool createThread(QObject* parent);
 
 private:
 	QThread* thread_ = nullptr;

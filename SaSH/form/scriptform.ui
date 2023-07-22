@@ -6,12 +6,15 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>343</width>
-    <height>434</height>
+    <width>259</width>
+    <height>220</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>ScriptForm</string>
+  </property>
+  <property name="styleSheet">
+   <string notr="true"/>
   </property>
   <layout class="QGridLayout" name="gridLayout">
    <property name="leftMargin">
@@ -30,91 +33,143 @@
     <number>1</number>
    </property>
    <item row="0" column="0">
-    <layout class="QVBoxLayout" name="verticalLayout_2">
-     <property name="spacing">
-      <number>1</number>
+    <widget class="QSplitter" name="splitter">
+     <property name="orientation">
+      <enum>Qt::Vertical</enum>
      </property>
-     <item>
-      <widget class="QSplitter" name="splitter">
-       <property name="orientation">
-        <enum>Qt::Vertical</enum>
+     <widget class="QTreeWidget" name="treeWidget_script">
+      <property name="editTriggers">
+       <set>QAbstractItemView::NoEditTriggers</set>
+      </property>
+      <property name="sortingEnabled">
+       <bool>true</bool>
+      </property>
+      <column>
+       <property name="text">
+        <string>refresh</string>
        </property>
-       <widget class="QWidget" name="">
-        <layout class="QVBoxLayout" name="verticalLayout">
+      </column>
+     </widget>
+     <widget class="QWidget" name="">
+      <layout class="QVBoxLayout" name="verticalLayout">
+       <item>
+        <layout class="QHBoxLayout" name="horizontalLayout">
          <property name="spacing">
           <number>1</number>
          </property>
          <item>
-          <widget class="QTreeWidget" name="treeWidget_script">
-           <column>
-            <property name="text">
-             <string>scripts</string>
-            </property>
-           </column>
+          <widget class="QLabel" name="label_path">
+           <property name="minimumSize">
+            <size>
+             <width>180</width>
+             <height>0</height>
+            </size>
+           </property>
+           <property name="maximumSize">
+            <size>
+             <width>180</width>
+             <height>16777215</height>
+            </size>
+           </property>
+           <property name="text">
+            <string/>
+           </property>
           </widget>
          </item>
          <item>
-          <layout class="QHBoxLayout" name="horizontalLayout_script">
-           <property name="spacing">
-            <number>1</number>
+          <widget class="QLabel" name="label_script_row">
+           <property name="maximumSize">
+            <size>
+             <width>25</width>
+             <height>16777215</height>
+            </size>
            </property>
-           <item>
-            <widget class="QLabel" name="label_script_path">
-             <property name="text">
-              <string>script:</string>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <widget class="QLabel" name="label_script_row">
-             <property name="text">
-              <string>current row: 0/0</string>
-             </property>
-             <property name="alignment">
-              <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-             </property>
-            </widget>
-           </item>
-          </layout>
+           <property name="text">
+            <string>row:</string>
+           </property>
+           <property name="alignment">
+            <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="FastLabel" name="label_row" native="true">
+           <property name="minimumSize">
+            <size>
+             <width>30</width>
+             <height>0</height>
+            </size>
+           </property>
+          </widget>
          </item>
         </layout>
-       </widget>
-       <widget class="QTableWidget" name="tableWidget_script"/>
-      </widget>
-     </item>
-     <item>
-      <layout class="QHBoxLayout" name="horizontalLayout_script2">
-       <property name="spacing">
-        <number>1</number>
-       </property>
+       </item>
        <item>
-        <widget class="QPushButton" name="pushButton_script_start">
-         <property name="text">
-          <string>start</string>
+        <widget class="QTableWidget" name="tableWidget_script">
+         <property name="editTriggers">
+          <set>QAbstractItemView::NoEditTriggers</set>
          </property>
+         <column>
+          <property name="text">
+           <string>command</string>
+          </property>
+         </column>
+         <column>
+          <property name="text">
+           <string>params</string>
+          </property>
+         </column>
         </widget>
        </item>
        <item>
-        <widget class="QPushButton" name="pushButton_script_pause">
-         <property name="text">
-          <string>pause</string>
+        <layout class="QHBoxLayout" name="horizontalLayout_script2">
+         <property name="spacing">
+          <number>1</number>
          </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QPushButton" name="pushButton_script_stop">
-         <property name="text">
-          <string>stop</string>
-         </property>
-        </widget>
+         <item>
+          <widget class="QPushButton" name="pushButton_script_start">
+           <property name="text">
+            <string>start</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="pushButton_script_pause">
+           <property name="enabled">
+            <bool>false</bool>
+           </property>
+           <property name="text">
+            <string>pause</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="pushButton_script_stop">
+           <property name="enabled">
+            <bool>false</bool>
+           </property>
+           <property name="text">
+            <string>stop</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
        </item>
       </layout>
-     </item>
-    </layout>
+     </widget>
+    </widget>
    </item>
   </layout>
  </widget>
  <layoutdefault spacing="6" margin="11"/>
+ <customwidgets>
+  <customwidget>
+   <class>FastLabel</class>
+   <extends>QWidget</extends>
+   <header location="global">fastlabel.h</header>
+   <container>1</container>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections/>
 </ui>

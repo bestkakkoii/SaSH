@@ -1,8 +1,27 @@
-﻿#include "stdafx.h"
+﻿/*
+				GNU GENERAL PUBLIC LICENSE
+				   Version 2, June 1991
+COPYRIGHT (C) Bestkakkoii 2023 All Rights Reserved.
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU General Public License for more details.
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+
+*/
+
+#include "stdafx.h"
 #include "playerinfoform.h"
 #include "abilityform.h"
 
 #include "signaldispatcher.h"
+#include "injector.h"
 
 PlayerInfoForm::PlayerInfoForm(QWidget* parent)
 	: QWidget(parent)
@@ -22,7 +41,7 @@ PlayerInfoForm::PlayerInfoForm(QWidget* parent)
 		tableWidget->setSelectionBehavior(QAbstractItemView::SelectRows);
 		//set auto resize to form size
 		tableWidget->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
-		tableWidget->verticalHeader()->setSectionResizeMode(QHeaderView::Stretch);
+		tableWidget->verticalHeader()->setSectionResizeMode(QHeaderView::Fixed);
 
 		tableWidget->setStyleSheet(R"(
 		QTableWidget { font-size:11px; } 
@@ -54,10 +73,29 @@ PlayerInfoForm::PlayerInfoForm(QWidget* parent)
 
 	connect(ui.tableWidget->horizontalHeader(), &QHeaderView::sectionClicked, this, &PlayerInfoForm::onHeaderClicked);
 
-	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
+	Injector& injector = Injector::getInstance();
+	if (!injector.server.isNull())
+	{
+		util::SafeHash<int, QVariant> playerInfoColContents = injector.server->playerInfoColContents;
+		for (auto it = playerInfoColContents.begin(); it != playerInfoColContents.end(); ++it)
+		{
+			onUpdatePlayerInfoColContents(it.key(), it.value());
+		}
 
+		int stone = injector.server->getPC().gold;
+		onUpdatePlayerInfoStone(stone);
+
+		for (int i = 0; i < MAX_PET; ++i)
+		{
+			PET pet = injector.server->pet[i];
+			onUpdatePlayerInfoPetState(i, pet.state);
+		}
+	}
+
+	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
 	connect(&signalDispatcher, &SignalDispatcher::updatePlayerInfoColContents, this, &PlayerInfoForm::onUpdatePlayerInfoColContents);
 	connect(&signalDispatcher, &SignalDispatcher::updatePlayerInfoStone, this, &PlayerInfoForm::onUpdatePlayerInfoStone);
+	connect(&signalDispatcher, &SignalDispatcher::updatePlayerInfoPetState, this, &PlayerInfoForm::onUpdatePlayerInfoPetState);
 }
 
 PlayerInfoForm::~PlayerInfoForm()
@@ -70,7 +108,7 @@ void PlayerInfoForm::onResetControlTextLanguage()
 		tr("name"), tr("freename"), "",
 		tr("level"), tr("exp"), tr("nextexp"), tr("leftexp"), "",
 		tr("hp"), tr("mp"), tr("chasma/loyal"),
-		tr("atk"), tr("def"), tr("agi"), tr("luck")
+		tr("atk"), tr("def"), tr("agi"), tr("luck"), tr("power"),
 	};
 
 	//put on first col
@@ -153,6 +191,39 @@ void PlayerInfoForm::onUpdatePlayerInfoColContents(int col, const QVariant& data
 void PlayerInfoForm::onUpdatePlayerInfoStone(int stone)
 {
 	ui.label->setText(tr("stone:%1").arg(stone));
+}
+
+void PlayerInfoForm::onUpdatePlayerInfoPetState(int petIndex, int state)
+{
+	int col = petIndex + 1;
+	if (col < 0 || col >= ui.tableWidget->columnCount())
+		return;
+
+	const QStringList stateStrList = {
+		tr("battle"), tr("standby"), tr("mail"), tr("rest"), tr("ride")
+	};
+
+	--state;
+	if (state < 0 || state >= stateStrList.size())
+		return;
+
+	//設置指定 col = petIndex + 1的 header
+	QString petName = QString(tr("pet%1 (%2)")).arg(petIndex + 1).arg(stateStrList.at(state));
+
+	//get item 
+	QTableWidgetItem* item = ui.tableWidget->horizontalHeaderItem(col + 1);
+	if (item)
+	{
+		item->setText(petName);
+	}
+	else
+	{
+		item = new QTableWidgetItem(petName);
+		if (item)
+		{
+			ui.tableWidget->setHorizontalHeaderItem(col, item);
+		}
+	}
 }
 
 void PlayerInfoForm::onHeaderClicked(int logicalIndex)

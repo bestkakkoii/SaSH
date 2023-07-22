@@ -1,9 +1,28 @@
-﻿#include "stdafx.h"
+﻿/*
+				GNU GENERAL PUBLIC LICENSE
+				   Version 2, June 1991
+COPYRIGHT (C) Bestkakkoii 2023 All Rights Reserved.
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU General Public License for more details.
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+
+*/
+
+#include "stdafx.h"
 #include "battleinfoform.h"
 
 #include "signaldispatcher.h"
+#include "injector.h"
 
-constexpr int max_col = 2;
+//constexpr int max_col = 2;
 constexpr int max_row = 10;
 
 BattleInfoForm::BattleInfoForm(QWidget* parent)
@@ -14,6 +33,8 @@ BattleInfoForm::BattleInfoForm(QWidget* parent)
 	qRegisterMetaType<QVariant>("QVariant");
 	qRegisterMetaType<QVariant>("QVariant&");
 
+	ui.label_time->setFlag(Qt::AlignCenter | Qt::AlignVCenter);
+
 	auto setTableWidget = [](QTableWidget* tableWidget)->void
 	{
 		//tablewidget set single selection
@@ -21,8 +42,8 @@ BattleInfoForm::BattleInfoForm(QWidget* parent)
 		//tablewidget set selection behavior
 		tableWidget->setSelectionBehavior(QAbstractItemView::SelectRows);
 		//set auto resize to form size
-		tableWidget->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
-		tableWidget->verticalHeader()->setSectionResizeMode(QHeaderView::Stretch);
+		tableWidget->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
+		tableWidget->verticalHeader()->setSectionResizeMode(QHeaderView::Fixed);
 
 		tableWidget->setStyleSheet(R"(
 		QTableWidget { font-size:11px; } 
@@ -57,6 +78,22 @@ BattleInfoForm::BattleInfoForm(QWidget* parent)
 	setTableWidget(ui.tableWidget_top);
 	setTableWidget(ui.tableWidget_bottom);
 
+	Injector& injector = Injector::getInstance();
+	if (!injector.server.isNull())
+	{
+		QVariant topInfoContents = injector.server->topInfoContents;
+		QVariant bottomInfoContents = injector.server->bottomInfoContents;
+		QString timeLabelContents = injector.server->timeLabelContents;
+		QString labelPlayerAction = injector.server->labelPlayerAction;
+		QString labelPetAction = injector.server->labelPetAction;
+
+		onUpdateTopInfoContents(topInfoContents);
+		onUpdateBottomInfoContents(bottomInfoContents);
+		onUpdateTimeLabelContents(timeLabelContents);
+		onUpdateLabelPlayerAction(labelPlayerAction);
+		onUpdateLabelPetAction(labelPetAction);
+	}
+
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
 	connect(&signalDispatcher, &SignalDispatcher::updateTopInfoContents, this, &BattleInfoForm::onUpdateTopInfoContents, Qt::UniqueConnection);
 	connect(&signalDispatcher, &SignalDispatcher::updateBottomInfoContents, this, &BattleInfoForm::onUpdateBottomInfoContents, Qt::UniqueConnection);
@@ -69,16 +106,16 @@ BattleInfoForm::~BattleInfoForm()
 {
 }
 
-
-void BattleInfoForm::onUpdateTopInfoContents(const QVariant& data)
+void BattleInfoForm::onUpdateTopInfoContents(const QVariant& dat)
 {
-	updateItemInfoRowContents(ui.tableWidget_top, data);
+	updateItemInfoRowContents(ui.tableWidget_top, dat);
 }
 
-void BattleInfoForm::onUpdateBottomInfoContents(const QVariant& data)
+void BattleInfoForm::onUpdateBottomInfoContents(const QVariant& dat)
 {
-	updateItemInfoRowContents(ui.tableWidget_bottom, data);
+	updateItemInfoRowContents(ui.tableWidget_bottom, dat);
 }
+
 void BattleInfoForm::onUpdateTimeLabelContents(const QString& text)
 {
 	ui.label_time->setText(text);
@@ -86,15 +123,15 @@ void BattleInfoForm::onUpdateTimeLabelContents(const QString& text)
 
 void BattleInfoForm::onUpdateLabelPlayerAction(const QString& text)
 {
-	ui.label_charaction->setText(tr("char action:") + text);
+	ui.label_charaction->setText(text);
 }
 
 void BattleInfoForm::onUpdateLabelPetAction(const QString& text)
 {
-	ui.label_petaction->setText(tr("pet action:") + text);
+	ui.label_petaction->setText(text);
 }
 
-void BattleInfoForm::updateItemInfoRowContents(QTableWidget* tableWidget, const QVariant& data)
+void BattleInfoForm::updateItemInfoRowContents(QTableWidget* tableWidget, const QVariant& dat)
 {
 	//13 11 10 12 14 back
 	//18 16 15 17 19 front     
@@ -136,10 +173,10 @@ void BattleInfoForm::updateItemInfoRowContents(QTableWidget* tableWidget, const 
 	*/
 
 	// 檢查是否為 QVector<QStringList>
-	if (data.type() != QVariant::Type::UserType)
+	if (dat.type() != QVariant::Type::UserType)
 		return;
 
-	QVector<QStringList> list = data.value<QVector<QStringList>>();
+	QVector<QStringList> list = dat.value<QVector<QStringList>>();
 
 	if (list.isEmpty())
 		return;
@@ -191,24 +228,24 @@ void BattleInfoForm::updateItemInfoRowContents(QTableWidget* tableWidget, const 
 	};
 
 	const QString objectName = tableWidget->objectName();
-	const bool isTop = objectName.contains("top", Qt::CaseInsensitive);
+	//const bool isTop = objectName.contains("top", Qt::CaseInsensitive);
 
 	bool ok = false;
-	for (const QStringList item : list)
+	for (const QStringList& l : list)
 	{
-		if (item.size() != 3)
+		if (l.size() != 3)
 		{
 			continue;
 		}
 
-		int pos = item.at(0).toInt(&ok);
+		int pos = l.at(0).toInt(&ok);
 		if (!ok)
 		{
 			continue;
 		}
 
-		const QString text = item.at(1);
-		const QString ride = item.at(2);
+		QString text = l.at(1);
+		const QString ride = l.at(2);
 
 		const QPair<int, int> fill = fill_hash.value(pos, QPair<int, int>{ -1, -1 });
 		if (fill.first == -1)
@@ -218,7 +255,9 @@ void BattleInfoForm::updateItemInfoRowContents(QTableWidget* tableWidget, const 
 
 
 		if (fill.first % 2)
+		{
 			setText(fill.first, fill.second, "    " + text);
+		}
 		else
 			setText(fill.first, fill.second, text);
 

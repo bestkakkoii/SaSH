@@ -34,7 +34,7 @@
      <property name="orientation">
       <enum>Qt::Horizontal</enum>
      </property>
-     <widget class="QWidget" name="">
+     <widget class="QWidget" name="layoutWidget">
       <layout class="QVBoxLayout" name="verticalLayout_2">
        <property name="spacing">
         <number>1</number>
@@ -116,7 +116,7 @@
        </item>
       </layout>
      </widget>
-     <widget class="QWidget" name="">
+     <widget class="QWidget" name="layoutWidget1">
       <layout class="QVBoxLayout" name="verticalLayout_item">
        <property name="spacing">
         <number>1</number>
@@ -143,7 +143,7 @@
           <widget class="QPushButton" name="pushButton_refresh">
            <property name="maximumSize">
             <size>
-             <width>16777215</width>
+             <width>50</width>
              <height>20</height>
             </size>
            </property>

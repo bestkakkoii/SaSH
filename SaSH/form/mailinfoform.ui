@@ -41,6 +41,9 @@
        </property>
        <item>
         <widget class="QRadioButton" name="radioButton_mailregular">
+         <property name="enabled">
+          <bool>false</bool>
+         </property>
          <property name="text">
           <string>mail</string>
          </property>
@@ -51,6 +54,9 @@
        </item>
        <item>
         <widget class="QRadioButton" name="radioButton_mailpet">
+         <property name="enabled">
+          <bool>false</bool>
+         </property>
          <property name="text">
           <string>delivery</string>
          </property>
@@ -58,6 +64,9 @@
        </item>
        <item>
         <widget class="QRadioButton" name="radioButton_3">
+         <property name="enabled">
+          <bool>false</bool>
+         </property>
          <property name="text">
           <string>auto send sp item</string>
          </property>
@@ -102,10 +111,16 @@
          </property>
          <item row="0" column="0">
           <widget class="QSplitter" name="splitter">
+           <property name="enabled">
+            <bool>false</bool>
+           </property>
            <property name="orientation">
             <enum>Qt::Horizontal</enum>
            </property>
            <widget class="QTableWidget" name="tableWidget">
+            <property name="enabled">
+             <bool>false</bool>
+            </property>
             <column>
              <property name="text">
               <string>name</string>
@@ -150,10 +165,17 @@
                 </widget>
                </item>
                <item>
-                <widget class="QSpinBox" name="spinBox"/>
+                <widget class="QSpinBox" name="spinBox">
+                 <property name="enabled">
+                  <bool>false</bool>
+                 </property>
+                </widget>
                </item>
                <item>
                 <widget class="QCheckBox" name="checkBox">
+                 <property name="enabled">
+                  <bool>false</bool>
+                 </property>
                  <property name="text">
                   <string>show input</string>
                  </property>
@@ -162,7 +184,11 @@
               </layout>
              </item>
              <item>
-              <widget class="QTextEdit" name="textEdit"/>
+              <widget class="QTextEdit" name="textEdit">
+               <property name="enabled">
+                <bool>false</bool>
+               </property>
+              </widget>
              </item>
              <item>
               <layout class="QHBoxLayout" name="horizontalLayout_2">
@@ -191,6 +217,9 @@
                </item>
                <item>
                 <widget class="QCheckBox" name="checkBox_2">
+                 <property name="enabled">
+                  <bool>false</bool>
+                 </property>
                  <property name="text">
                   <string>auto reply</string>
                  </property>
@@ -199,7 +228,11 @@
               </layout>
              </item>
              <item>
-              <widget class="QTextEdit" name="textEdit_2"/>
+              <widget class="QTextEdit" name="textEdit_2">
+               <property name="enabled">
+                <bool>false</bool>
+               </property>
+              </widget>
              </item>
              <item>
               <layout class="QHBoxLayout" name="horizontalLayout_3">
@@ -208,6 +241,9 @@
                </property>
                <item>
                 <widget class="QPushButton" name="pushButton">
+                 <property name="enabled">
+                  <bool>false</bool>
+                 </property>
                  <property name="text">
                   <string>send to</string>
                  </property>
@@ -215,6 +251,9 @@
                </item>
                <item>
                 <widget class="QPushButton" name="pushButton_2">
+                 <property name="enabled">
+                  <bool>false</bool>
+                 </property>
                  <property name="text">
                   <string>save content</string>
                  </property>
@@ -222,6 +261,9 @@
                </item>
                <item>
                 <widget class="QPushButton" name="pushButton_3">
+                 <property name="enabled">
+                  <bool>false</bool>
+                 </property>
                  <property name="text">
                   <string>delete content</string>
                  </property>
@@ -284,7 +326,7 @@
              </property>
             </column>
            </widget>
-           <widget class="QWidget" name="layoutWidget">
+           <widget class="QWidget" name="layoutWidget1">
             <layout class="QVBoxLayout" name="verticalLayout_4">
              <property name="spacing">
               <number>1</number>
