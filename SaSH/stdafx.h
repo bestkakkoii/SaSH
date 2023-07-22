@@ -237,11 +237,11 @@ public:\
 
 
 //custom
-#include "qscopedhandle.h"
-#include "combobox.h"
-#include "listview.h"
-#include "treewidgetitem.h"
+#include <qscopedhandle.h>
+#include <combobox.h>
+#include <listview.h>
+#include <treewidgetitem.h>
 #include "3rdparty/simplecrypt.h"
-#include "gdatetime.h"
+#include <gdatetime.h>
 
 #endif // __cplusplus

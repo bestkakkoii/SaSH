@@ -28,7 +28,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #endif
 #include <exprtk/exprtk.hpp>
 
-#include "spdloger.hpp"
+#include <spdloger.hpp>
 extern QString g_logger_name;
 
 //"調用" 傳參數最小佔位

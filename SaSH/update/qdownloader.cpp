@@ -19,14 +19,22 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "stdafx.h"
 #include "qdownloader.h"
 #include "curldownload.h"
-#include "gdatetime.h"
+#include <gdatetime.h>
 #include "util.h"
 
 #include <cpr/cpr.h>
 
 //Qt Private
-#include <QtGui/5.15.2/QtGui/private/qzipreader_p.h>
-#include <QtGui/5.15.2/QtGui/private/qzipwriter_p.h>
+#include <QtGui/private/qzipreader_p.h>
+#include <QtGui/private/qzipwriter_p.h>
+
+#ifdef _DEBUG
+#pragma comment(lib, "cpr-d.lib")
+#pragma comment(lib, "libcurl-d.lib")
+#else
+#pragma comment(lib, "cpr.lib")
+#pragma comment(lib, "libcurl.lib")
+#endif
 
 
 static std::vector<QProgressBar*> g_vProgressBar;

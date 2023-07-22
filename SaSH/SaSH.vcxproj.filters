@@ -105,9 +105,6 @@
     <ClCompile Include="util.cpp">
       <Filter>Source Files\util</Filter>
     </ClCompile>
-    <ClCompile Include="qscopedhandle.cpp">
-      <Filter>Source Files\util</Filter>
-    </ClCompile>
     <ClCompile Include="mainthread.cpp">
       <Filter>Source Files\main</Filter>
     </ClCompile>
@@ -216,14 +213,8 @@
     <ClCompile Include="update\curldownload.cpp">
       <Filter>Source Files\update</Filter>
     </ClCompile>
-    <ClCompile Include="gdatatime.cpp">
-      <Filter>Source Files\util</Filter>
-    </ClCompile>
     <ClCompile Include="update\qdownloader.cpp">
       <Filter>Source Files\update</Filter>
-    </ClCompile>
-    <ClCompile Include="crypto.cpp">
-      <Filter>Source Files\script</Filter>
     </ClCompile>
     <ClCompile Include="form\replaceform.cpp">
       <Filter>Source Files\forms\dialog</Filter>
@@ -240,8 +231,11 @@
     <ClCompile Include="model\qthumbnailwidget.cpp">
       <Filter>Source Files\model</Filter>
     </ClCompile>
-    <ClCompile Include="net\webauthenticator.cpp">
-      <Filter>Source Files\net</Filter>
+    <ClCompile Include="model\qscopedhandle.cpp">
+      <Filter>Source Files\model</Filter>
+    </ClCompile>
+    <ClCompile Include="model\gdatatime.cpp">
+      <Filter>Source Files\model</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -250,9 +244,6 @@
     </QtMoc>
     <QtMoc Include="model\progressbar.h">
       <Filter>Source Files\model</Filter>
-    </QtMoc>
-    <QtMoc Include="net\webauthenticator.h">
-      <Filter>Source Files\net</Filter>
     </QtMoc>
     <QtMoc Include="model\signaldispatcher.h">
       <Filter>Source Files\model</Filter>
@@ -364,9 +355,6 @@
     <ClInclude Include="util.h">
       <Filter>Source Files\util</Filter>
     </ClInclude>
-    <ClInclude Include="qscopedhandle.h">
-      <Filter>Source Files\util</Filter>
-    </ClInclude>
     <ClInclude Include="net\autil.h">
       <Filter>Source Files\net</Filter>
     </ClInclude>
@@ -391,16 +379,13 @@
     <ClInclude Include="update\curldownload.h">
       <Filter>Source Files\update</Filter>
     </ClInclude>
-    <ClInclude Include="gdatetime.h">
-      <Filter>Source Files\util</Filter>
-    </ClInclude>
-    <ClInclude Include="crypto.h">
-      <Filter>Source Files\script</Filter>
-    </ClInclude>
     <ClInclude Include="resource.h" />
     <ClInclude Include="resource1.h" />
-    <ClInclude Include="spdloger.hpp">
-      <Filter>Source Files\3rdparty</Filter>
+    <ClInclude Include="model\qscopedhandle.h">
+      <Filter>Source Files\model</Filter>
+    </ClInclude>
+    <ClInclude Include="model\gdatetime.h">
+      <Filter>Source Files\model</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

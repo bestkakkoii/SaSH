@@ -25,8 +25,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include <QOpenGLFunctions>
 #include <QtGui>
 #include <QtGui/qopenglcontext.h>
-#pragma comment(lib, "Glu32.lib")
-#pragma comment(lib, "OpenGL32.lib")
 
 class MapGLWidget : public QOpenGLWidget, protected QOpenGLFunctions
 {

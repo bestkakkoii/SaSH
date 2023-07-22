@@ -67,7 +67,7 @@
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
-      <AdditionalIncludeDirectories>$(SolutionDir)$(ProjectName);$(SolutionDir)$(ProjectName)\include;$(SolutionDir)$(ProjectName)\model;D:\Program Files (x86)\OpenSSL-Win32\include;D:\Qt\5.15.2\msvc2019\include\QtGui\5.15.2;D:\Qt\5.15.2\msvc2019\include\QtCore\5.15.2;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)$(ProjectName);$(SolutionDir)$(ProjectName)\include;$(SolutionDir)$(ProjectName)\model;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <WarningLevel>Level3</WarningLevel>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <ExceptionHandling>Async</ExceptionHandling>
@@ -81,7 +81,7 @@
     </ClCompile>
     <Link>
       <UACExecutionLevel>RequireAdministrator</UACExecutionLevel>
-      <AdditionalLibraryDirectories>$(SolutionDir)$(ProjectName)\lib;D:\Program Files (x86)\OpenSSL-Win32\lib\VC;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(SolutionDir)$(ProjectName)\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
       <DelayLoadDLLs>%(DelayLoadDLLs)</DelayLoadDLLs>
       <GenerateMapFile>true</GenerateMapFile>
@@ -97,7 +97,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
-      <AdditionalIncludeDirectories>$(SolutionDir)$(ProjectName);$(SolutionDir)$(ProjectName)\include;$(SolutionDir)$(ProjectName)\model;D:\Program Files (x86)\OpenSSL-Win32\include;D:\Qt\5.15.2\msvc2019\include\QtGui\5.15.2;D:\Qt\5.15.2\msvc2019\include\QtCore\5.15.2;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)$(ProjectName);$(SolutionDir)$(ProjectName)\include;$(SolutionDir)$(ProjectName)\model;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <WarningLevel>Level3</WarningLevel>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <AssemblerOutput>All</AssemblerOutput>
@@ -112,7 +112,7 @@
     </ClCompile>
     <Link>
       <UACExecutionLevel>RequireAdministrator</UACExecutionLevel>
-      <AdditionalLibraryDirectories>$(SolutionDir)$(ProjectName)\lib;D:\Program Files (x86)\OpenSSL-Win32\lib\VC;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(SolutionDir)$(ProjectName)\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateMapFile>true</GenerateMapFile>
       <MapExports>true</MapExports>
       <AssemblyDebug>true</AssemblyDebug>
@@ -154,7 +154,6 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="3rdparty\simplecrypt.cpp" />
-    <ClCompile Include="crypto.cpp" />
     <ClCompile Include="form\abilityform.cpp" />
     <ClCompile Include="form\afkform.cpp" />
     <ClCompile Include="form\afkinfoform.cpp" />
@@ -172,7 +171,6 @@
     <ClCompile Include="form\replaceform.cpp" />
     <ClCompile Include="form\scriptform.cpp" />
     <ClCompile Include="form\scriptsettingform.cpp" />
-    <ClCompile Include="gdatatime.cpp" />
     <ClCompile Include="injector.cpp" />
     <ClCompile Include="mainthread.cpp">
       <DynamicSource Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">input</DynamicSource>
@@ -190,20 +188,15 @@
     </ClCompile>
     <ClCompile Include="model\combobox.cpp" />
     <ClCompile Include="model\fastlabel.cpp" />
+    <ClCompile Include="model\gdatatime.cpp" />
     <ClCompile Include="model\highlighter.cpp" />
     <ClCompile Include="model\listview.cpp" />
     <ClCompile Include="model\mapglwidget.cpp" />
+    <ClCompile Include="model\qscopedhandle.cpp" />
     <ClCompile Include="model\qthumbnailform.cpp" />
     <ClCompile Include="model\qthumbnailwidget.cpp" />
     <ClCompile Include="net\autil.cpp" />
     <ClCompile Include="net\tcpserver.cpp" />
-    <ClCompile Include="net\webauthenticator.cpp">
-      <DynamicSource Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">input</DynamicSource>
-      <QtMocFileName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">%(Filename).moc</QtMocFileName>
-      <DynamicSource Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">input</DynamicSource>
-      <QtMocFileName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">%(Filename).moc</QtMocFileName>
-    </ClCompile>
-    <ClCompile Include="qscopedhandle.cpp" />
     <ClCompile Include="script\action.cpp" />
     <ClCompile Include="script\check.cpp" />
     <ClCompile Include="script\interpreter.cpp" />
@@ -221,7 +214,6 @@
     <QtMoc Include="form\otherform.h" />
     <QtMoc Include="form\scriptform.h" />
     <QtMoc Include="form\scriptsettingform.h" />
-    <QtMoc Include="net\webauthenticator.h" />
     <QtMoc Include="model\signaldispatcher.h" />
     <QtMoc Include="mainthread.h" />
     <QtMoc Include="net\tcpserver.h" />
@@ -235,9 +227,7 @@
     <QtMoc Include="form\abilityform.h" />
     <QtMoc Include="form\mapwidget.h" />
     <QtMoc Include="form\mapform.h" />
-    <ClInclude Include="crypto.h" />
     <QtMoc Include="form\replaceform.h" />
-    <ClInclude Include="gdatetime.h" />
     <ClInclude Include="injector.h" />
     <ClInclude Include="map\astar.h" />
     <ClInclude Include="map\mapanalyzer.h" />
@@ -245,20 +235,20 @@
     <QtMoc Include="model\combobox.h" />
     <QtMoc Include="model\codeeditor.h" />
     <QtMoc Include="model\fastlabel.h" />
+    <ClInclude Include="model\gdatetime.h" />
     <ClInclude Include="model\highlighter.h" />
     <QtMoc Include="model\listview.h" />
     <QtMoc Include="model\threadplugin.h" />
     <QtMoc Include="model\qthumbnailform.h" />
     <QtMoc Include="model\qthumbnailwidget.h" />
+    <ClInclude Include="model\qscopedhandle.h" />
     <ClInclude Include="model\treewidgetitem.h" />
     <ClInclude Include="net\autil.h" />
-    <ClInclude Include="qscopedhandle.h" />
     <QtMoc Include="script\interpreter.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="resource1.h" />
     <ClInclude Include="script\lexer.h" />
     <QtMoc Include="script\parser.h" />
-    <ClInclude Include="spdloger.hpp" />
     <ClInclude Include="update\curldownload.h" />
     <QtMoc Include="update\qdownloader.h" />
     <ClInclude Include="util.h" />
