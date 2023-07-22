@@ -317,6 +317,8 @@ bool Interpreter::readFile(const QString& fileName, QString* pcontent, bool* isP
 
 		if (isPrivate != nullptr)
 			*isPrivate = true;
+#else
+		return false;
 #endif
 	}
 
