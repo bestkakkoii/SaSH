@@ -102,9 +102,6 @@
     <ClCompile Include="3rdparty\simplecrypt.cpp">
       <Filter>Source Files\3rdparty</Filter>
     </ClCompile>
-    <ClCompile Include="net\webauthenticator.cpp">
-      <Filter>Source Files\net</Filter>
-    </ClCompile>
     <ClCompile Include="util.cpp">
       <Filter>Source Files\util</Filter>
     </ClCompile>
@@ -242,6 +239,9 @@
     </ClCompile>
     <ClCompile Include="model\qthumbnailwidget.cpp">
       <Filter>Source Files\model</Filter>
+    </ClCompile>
+    <ClCompile Include="net\webauthenticator.cpp">
+      <Filter>Source Files\net</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

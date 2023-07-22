@@ -27,9 +27,6 @@
     <ClInclude Include="pch.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="autil.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="syncclient.h">
       <Filter>Source Files\tcp</Filter>
     </ClInclude>
@@ -45,9 +42,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="pch.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="autil.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

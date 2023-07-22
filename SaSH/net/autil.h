@@ -72,14 +72,14 @@ namespace Autil
 	int __stdcall util_destring(int sliceno, char* value);
 	int __stdcall util_mkstring(char* buffer, char* value);
 
-	// 辅助函数，处理整数参数
+	// 輔助函數，處理整數參數
 	template<typename Arg>
 	inline void util_SendProcessArg(int& sum, char* buffer, Arg arg)
 	{
 		sum += util_mkint(buffer, arg);
 	}
 
-	// 辅助函数，处理字符串参数（重载版本）
+	// 輔助函數，處理字符串參數（重載版本）
 	inline void util_SendProcessArg(int& sum, char* buffer, char* arg)
 	{
 		sum += util_mkstring(buffer, arg);
@@ -93,7 +93,7 @@ namespace Autil
 		util_SendProcessArgs(sum, buffer, args...);
 	}
 
-	// 輔助函數，处理最后一个参数
+	// 輔助函數，處理最後一個參數
 	template<typename Arg>
 	void util_SendProcessArgs(int& sum, char* buffer, Arg arg)
 	{

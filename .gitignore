@@ -60,7 +60,6 @@ compile_commands.json
 /sadll/Release
 /SaSH/Debug
 /SaSH/Release
-/sadll/sadll.cpp
 /SaSH/crypto.cpp
 /SaSH/net/webauthenticator.cpp
 /SaSH/net/webauthenticator.h
