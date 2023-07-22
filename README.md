@@ -127,6 +127,42 @@ The decision to remove these files was made to prioritize the security and prote
 
 ---
 
+### Common Modification Steps for Features
+
+#### Add New Script Commands
+
+1. For core commands, add corresponding enumeration values in lexer.h.
+For general commands, add corresponding traditional and simplified Chinese command mappings to `static const QHash<QString, RESERVE> keywords` in script/lexer.cpp.
+
+2. In script/interpreter.h, add the declaration of corresponding functions, e.g., `qint64 sleep(qint64 currentline, const TokenMap& TK);` .
+Register the corresponding functions in openLibsBIG5, openLibsGB2312, and openLibsUTF8 in script/interpreter.cpp.
+
+3. In a file under the script category, define the content of the new command.
+
+- When defining a function for a new command, always use functions like `checkString`, `checkInteger`, `toVariant`, and `checkRange` to access parameters through parameter indices.
+
+- For conditional jumps, use `checkJump` at the end of the function to correctly or incorrectly jump based on the result. Use the enumeration values `SuccessJump` or `FailedJump` as the last parameter. For example, `return checkJump(TK, 7, bret, FailedJump);` means the 7th parameter is the jump line or label, `bret` is the result (true or false), and the jump is performed only when the result is false.
+
+- Note that core commands do not need separate registration; instead, new core commands need to be declared and defined in script/parser.h and script/parser.cpp. Add corresponding switch cases in `void Parser::processTokens()` .
+
+#### Add New Save File Items
+
+1. First, add the corresponding enumeration value in util.h under enum UserSetting.
+
+2. Add the corresponding JSON key-value string mapping for file saving in `static const QHash<UserSetting, QString> user_setting_string_hash` in util.h.
+
+3. In injector.h, add the corresponding default values to `userSetting_value_hash_`, `userSetting_enable_hash_`, or `userSetting_string_hash_` based on the setting type (integer, boolean, or string).
+
+4. For script `set` commands, add the new settings to `qint64 Interpreter::set(qint64 currentline, const TokenMap& TK)` in script/system.cpp.
+
+- For UI additions, place them under the form category. Try to avoid complex logic in the UI and save functionality to the above hash containers for asynchronous processing by mainthread.cpp.
+
+#### Strict Rules to Follow
+
+Regardless of the limitations of C++ or other factors, avoid directly handling complex logic in the UI or directly manipulating the UI from other threads. Instead, use signaldispatcher.h to handle tasks via signals and slots.
+
+---
+
 ### 常用功能修改步驟
 
 #### 新增腳本命令
@@ -141,7 +177,7 @@ The decision to remove these files was made to prioritize the security and prote
 
 - 定義新命令的函數中取參數一律使用 `checkString`, `checkInteger`, `toVariant`, `checkRange` 等函數透過傳入參數索引取值
 - 對於跳轉 則在定義函數末尾使用 `checkJump` 正確或錯誤跳轉，使用最後一個參數輸入枚舉值 `SuccessJump` 或 `FailedJump` 操作
-- 如 `return checkJump(TK, 7, bret, FailedJump);` 代表 第7個參數為跳轉行數或標記，bret為結果真或假，結果為假才跳轉
+- 如 `return checkJump(TK, 7, bret, FailedJump);` 代表 第7個參數為跳轉行數或標記，`bret` 為結果真或假，結果為假才跳轉
 
 - 注意，核心命令不需要另外註冊取代的是需要在 script/parser.h script/parser.cpp 中新增對應的聲明和定義，
 並在 `void Parser::processTokens()` 中增加對應switch項
@@ -155,7 +191,7 @@ The decision to remove these files was made to prioritize the security and prote
 3. 在 injector.h 中的 `userSetting_value_hash_`, `userSetting_enable_hash_` 或 `userSetting_string_hash_` 中心增對應預設值
 取決於設置類型 分別為整數、布爾或字符串三種
 
-4. 對於腳本set命令則須要到 script/system.cpp 的 `qint64 Interpreter::set(qint64 currentline, const TokenMap& TK)` 中新增
+4. 對於腳本 `set` 命令則須要到 script/system.cpp 的 `qint64 Interpreter::set(qint64 currentline, const TokenMap& TK)` 中新增
 
 5. UI新增一律都在 form 分類中，所有的功能邏輯盡可能不在UI內執行，而是保存到上述的 hash容器中交由 mainthread.cpp 異步處理
 
