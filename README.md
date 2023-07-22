@@ -2,10 +2,12 @@
 
 SaSupremeHelper is an assistant application for you to play StoneAge8001 with highly automated game experience.
 石器助手是一個用於遊戲石器時代8001端的工具，讓你擁有高度自動化的遊戲體驗。
+
 ### Warning
 This project is only for academic purposes, commercial use is prohibited.
 You are prohibited to publish this project elsewhere.
 However we make no promises to your game accounts and so you have to use this project at your own risk, including taking any damage to your accounts from scripts and binaries.
+
 ### 特別聲明 
 本項目僅供學習交流，禁止用於商業用途。
 本項目內的所有資源文件和程序，禁止在 GitHub/lovesa論壇 以外的任何地方進行轉載或發布。
