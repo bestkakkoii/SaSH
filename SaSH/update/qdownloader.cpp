@@ -225,10 +225,10 @@ QDownloader::QDownloader(QWidget* parent)
 
 	resetProgress(0);
 
-	g_vpfnProgressFunc.push_back(onProgress);
-	g_vpfnProgressFunc.push_back(onProgress_2);
-	g_vpfnProgressFunc.push_back(onProgress_3);
-	g_vpfnProgressFunc.push_back(onProgress_4);
+	g_vpfnProgressFunc.push_back(&onProgress<0>);
+	g_vpfnProgressFunc.push_back(&onProgress<1>);
+	g_vpfnProgressFunc.push_back(&onProgress<2>);
+	g_vpfnProgressFunc.push_back(&onProgress<3>);
 
 	rcPath_ = QString("%1/%2/").arg(szSysTmpDir_).arg(pid_);
 	QDir dir(rcPath_);
@@ -654,27 +654,11 @@ void QDownloader::setProgressValue(int i, double totalToDownload, double nowDown
 	}
 }
 
-int QDownloader::onProgress(void*, double totalToDownload, double nowDownloaded, double totalToUpLoad, double nowUpLoaded)
+template <int Index>
+int QDownloader::onProgress(void* clientp, double totalToDownload, double nowDownloaded, double totalToUpLoad, double nowUpLoaded)
 {
-	setProgressValue(0, totalToDownload, nowDownloaded, totalToUpLoad, nowUpLoaded);
-	return 0;
-}
-
-int QDownloader::onProgress_2(void*, double totalToDownload, double nowDownloaded, double totalToUpLoad, double nowUpLoaded)
-{
-	setProgressValue(1, totalToDownload, nowDownloaded, totalToUpLoad, nowUpLoaded);
-	return 0;
-}
-
-int QDownloader::onProgress_3(void*, double totalToDownload, double nowDownloaded, double totalToUpLoad, double nowUpLoaded)
-{
-	setProgressValue(2, totalToDownload, nowDownloaded, totalToUpLoad, nowUpLoaded);
-	return 0;
-}
-
-int QDownloader::onProgress_4(void*, double totalToDownload, double nowDownloaded, double totalToUpLoad, double nowUpLoaded)
-{
-	setProgressValue(3, totalToDownload, nowDownloaded, totalToUpLoad, nowUpLoaded);
+	QDownloader* downloader = static_cast<QDownloader*>(clientp);
+	downloader->setProgressValue(Index, totalToDownload, nowDownloaded, totalToUpLoad, nowUpLoaded);
 	return 0;
 }
 

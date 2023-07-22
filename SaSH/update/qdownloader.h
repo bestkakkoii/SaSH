@@ -33,7 +33,6 @@ constexpr size_t MAX_DOWNLOAD_THREAD = 4u;
 class QDownloader : public QWidget
 {
 	Q_OBJECT
-
 public:
 	QDownloader(QWidget* parent = nullptr);
 
@@ -55,10 +54,9 @@ private:
 	bool asyncDownloadFile(const QString& szUrl, const QString& dir, const QString& szSaveFileName);
 
 	static void setProgressValue(int i, double totalToDownload, double nowDownloaded, double totalToUpLoad, double nowUpLoaded);
-	static int onProgress(void* ptr, double totalToDownload, double nowDownloaded, double totalToUpLoad, double nowUpLoaded);
-	static int onProgress_2(void* ptr, double totalToDownload, double nowDownloaded, double totalToUpLoad, double nowUpLoaded);
-	static int onProgress_3(void* ptr, double totalToDownload, double nowDownloaded, double totalToUpLoad, double nowUpLoaded);
-	static int onProgress_4(void* ptr, double totalToDownload, double nowDownloaded, double totalToUpLoad, double nowUpLoaded);
+
+	template <int Index>
+	static int onProgress(void* clientp, double totalToDownload, double nowDownloaded, double totalToUpLoad, double nowUpLoaded);
 
 	QString Sha3_512(const QString& fileNamePath) const;
 	void QDownloader::downloadAndExtractZip(const QString& url, const QString& targetDir);
