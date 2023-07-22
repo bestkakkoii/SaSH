@@ -52,17 +52,15 @@ compile_commands.json
 *creator.user*
 
 *_qmlcache.qrc
-/.vs/SaSH
+/.vs
+/Debug
+/Release
+/ReleaseTool
 /sadll/Debug
 /sadll/Release
 /SaSH/Debug
 /SaSH/Release
-/ReleaseTool
-/Debug
-/Release
+/sadll/sadll.cpp
 /SaSH/crypto.cpp
 /SaSH/net/webauthenticator.cpp
 /SaSH/net/webauthenticator.h
-/sadll/sadll.cpp
-/.vs
-/Release/SaSH.exe
