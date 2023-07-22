@@ -122,3 +122,37 @@ The decision to remove these files was made to prioritize the security and prote
 2. **驗證碼OCR：** 無法進行驗證碼的圖片字符識別。
 
 3. **網絡驗證：** 無法順利地進行網絡驗證，即驗證用戶或設備的身份。
+
+---
+
+### 常用功能修改步驟
+
+#### 新增腳本命令
+
+1. 核心命令需要在lexer.h新增對應枚舉值、
+一般命令只需要在 script/lexer.cpp 的 `static const QHash<QString, RESERVE> keywords` 中 添加對應繁簡中英文的命令
+
+2. 在 script/interpreter.h 增加對應的函數聲明，如:`qint64 sleep(qint64 currentline, const TokenMap& TK);`
+並在 script/interpreter.cpp 中的 openLibsBIG5, openLibsGB2312, openLibsUTF8 註冊對應函數
+
+3. script分類下的文件中挑個地方定義新命令的內容
+
+- 注意，核心命令不需要另外註冊取代的是需要在 script/parser.h script/parser.cpp 中新增對應的聲明和定義，
+並在 `void Parser::processTokens()` 中增加對應switch項
+
+#### 人物存檔新增項
+
+1. 首先在 util.h 中的 `enum UserSetting` 新增對應枚舉值
+
+2. 在 util.h 中的 `static const QHash<UserSetting, QString> user_setting_string_hash` 中新增對應json存檔所用的鍵值字符串映射
+
+3. 在 injector.h 中的 `userSetting_value_hash_`, `userSetting_enable_hash_` 或 `userSetting_string_hash_` 中心增對應預設值
+取決於設置類型 分別為整數、布爾或字符串三種
+
+4. 對於腳本set命令則須要到 script/system.cpp 的 `qint64 Interpreter::set(qint64 currentline, const TokenMap& TK)` 中新增
+
+5. UI新增一律都在 form 分類中，所有的功能邏輯盡可能不在UI內執行，而是保存到上述的 hash容器中交由 mainthread.cpp 異步處理
+
+#### 嚴守的規則
+
+不管是基於C++本身的限制也好，或其他因素，嚴禁在UI內直接處理邏輯，或在其他線程直接操作UI，請一律交由 signaldispatcher.h 透過信號槽處理
