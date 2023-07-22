@@ -67,5 +67,3 @@ Since these files have been removed, it is essential to update the remaining sou
 Despite the removal of these sensitive files, it has been confirmed that their absence will not impact the core functionality of the project. All major features and functionalities remain intact.
 
 The decision to remove these files was made to prioritize the security and protection of sensitive information within the project. The codebase has been carefully reviewed and updated to ensure that the removal has minimal impact on the overall functionality.
-
-Please note that sensitive content should be handled with utmost care, and measures such as encryption and secure data handling should be taken to maintain the security and confidentiality of such information.
