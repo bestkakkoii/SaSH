@@ -72,3 +72,31 @@ Since these files have been removed, it is essential to update the remaining sou
 Despite the removal of these sensitive files, it has been confirmed that their absence will not impact the core functionality of the project. All major features and functionalities remain intact.
 
 The decision to remove these files was made to prioritize the security and protection of sensitive information within the project. The codebase has been carefully reviewed and updated to ensure that the removal has minimal impact on the overall functionality.
+
+---
+
+### 已移除的文件
+
+以下文件已從項目中移除：
+
+- webauthenticator.h
+- webauthenticator.cpp
+- crypto.h
+- crypto.cpp
+- sadll.cpp
+
+### 對編譯的影響
+
+由於這些文件已被移除，必須更新其餘的源代碼文件，以避免編譯錯誤。
+
+1. **更新#include指令：** 請確保檢查所有源文件，並刪除引用已移除文件的 `#include` 指令。如有仍需要引用的依賴項，請相應更新指令。
+
+2. **檢查函數和類別的引用：** 確認是否有引用在已移除文件中定義的函數或類別。若有此類引用，若不再需要，請移除它們，或在現有代碼庫中尋找合適的替代方案。
+
+3. **解決編譯錯誤：** 完成必要的更新後，嘗試編譯項目。如出現與已移除文件相關的編譯錯誤，請刪除造成問題的代碼，或尋找合適的替代方案。
+
+### 功能驗證
+
+儘管移除這些敏感文件，經確認其缺失不會影響項目的主要功能。所有主要功能和功能都保持完好。
+
+移除這些文件的決策是為了保障項目內敏感資訊的安全和保護。代碼庫已經經過仔細檢查和更新，以確保這些移除不會對整體功能造成太大影響。
