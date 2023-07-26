@@ -196,6 +196,12 @@
        </item>
        <item>
         <widget class="QGroupBox" name="groupBox_afk_battle_pet">
+         <property name="minimumSize">
+          <size>
+           <width>490</width>
+           <height>0</height>
+          </size>
+         </property>
          <property name="styleSheet">
           <string notr="true">QGroupBox { color:rgb(100,149,237) }</string>
          </property>
@@ -342,6 +348,12 @@
        </item>
        <item>
         <widget class="QGroupBox" name="groupBox_heal_battle">
+         <property name="minimumSize">
+          <size>
+           <width>0</width>
+           <height>238</height>
+          </size>
+         </property>
          <property name="styleSheet">
           <string notr="true">QGroupBox { color:rgb(100,149,237) }</string>
          </property>
@@ -663,7 +675,7 @@
              </widget>
             </item>
             <item>
-             <widget class="QLabel" name="label">
+             <widget class="QLabel" name="label_32">
               <property name="maximumSize">
                <size>
                 <width>23</width>
@@ -679,6 +691,71 @@
              <widget class="QSpinBox" name="spinBox_itemhealmp">
               <property name="maximum">
                <number>1500</number>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+          <item>
+           <layout class="QHBoxLayout" name="horizontalLayout_12">
+            <item>
+             <widget class="QCheckBox" name="checkBox_magicmp">
+              <property name="maximumSize">
+               <size>
+                <width>70</width>
+                <height>16777215</height>
+               </size>
+              </property>
+              <property name="text">
+               <string>magic mp</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QComboBox" name="comboBox_magicmp">
+              <property name="minimumSize">
+               <size>
+                <width>179</width>
+                <height>0</height>
+               </size>
+              </property>
+              <property name="baseSize">
+               <size>
+                <width>193</width>
+                <height>0</height>
+               </size>
+              </property>
+              <property name="layoutDirection">
+               <enum>Qt::LeftToRight</enum>
+              </property>
+             </widget>
+            </item>
+            <item alignment="Qt::AlignLeft">
+             <widget class="QLabel" name="label_31">
+              <property name="minimumSize">
+               <size>
+                <width>0</width>
+                <height>0</height>
+               </size>
+              </property>
+              <property name="maximumSize">
+               <size>
+                <width>23</width>
+                <height>16777215</height>
+               </size>
+              </property>
+              <property name="text">
+               <string>char</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QSpinBox" name="spinBox_magicmp">
+              <property name="minimumSize">
+               <size>
+                <width>178</width>
+                <height>0</height>
+               </size>
               </property>
              </widget>
             </item>
@@ -768,6 +845,9 @@
          <layout class="QVBoxLayout" name="verticalLayout_11">
           <item>
            <layout class="QHBoxLayout" name="horizontalLayout_10">
+            <property name="spacing">
+             <number>6</number>
+            </property>
             <item>
              <widget class="QLabel" name="label_4">
               <property name="text">

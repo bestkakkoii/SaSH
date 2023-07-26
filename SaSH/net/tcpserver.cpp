@@ -3596,7 +3596,7 @@ void Server::lssproto_JOBDAILY_recv(char* cdata)
 	QString getdata;
 	QString perdata;
 
-	//StockChatBufferLine(data,FONT_PAL_RED); 
+	//StockChatBufferLine(data,FONT_PAL_RED);
 	for (JOBDAILY& it : jobdaily)
 	{
 		it = {};
@@ -4082,7 +4082,7 @@ void Server::lssproto_M_recv(int fl, int x1, int y1, int x2, int y2, char* cdata
 #ifdef _CHAR_PROFESSION			// WON ADD 人物職業
 //    #ifdef _GM_IDENTIFY		// Rog ADD GM識別
 //  void setPcParam(char *name, char *freeName, int level, char *petname, int petlevel, int nameColor, int walk, int height, int profession_class, int profession_level, int profession_exp, int profession_skill_point , char *gm_name)
-//    void setPcParam(char *name, char *freeName, int level, char *petname, int petlevel, int nameColor, int walk, int height, int profession_class, int profession_level, int profession_skill_point , char *gm_name)    
+//    void setPcParam(char *name, char *freeName, int level, char *petname, int petlevel, int nameColor, int walk, int height, int profession_class, int profession_level, int profession_skill_point , char *gm_name)
 //	#else
 //	void setPcParam(char *name, char *freeName, int level, char *petname, int petlevel, int nameColor, int walk, int height, int profession_class, int profession_level, int profession_exp, int profession_skill_point)
 #ifdef _ALLDOMAN // (不可開) Syu ADD 排行榜NPC
@@ -4318,7 +4318,7 @@ void Server::lssproto_C_recv(char* cdata)
 				//    #endif
 #else
 				setPcParam(name, freeName, level, petname, petlevel, nameColor, walkable, height);
-#endif				
+#endif
 				pc.nameColor = charNameColor;
 				//setPcNameColor(charNameColor);
 				if ((pc.status & CHR_STATUS_LEADER) != 0 && party[0].useFlag != 0)
@@ -4351,7 +4351,7 @@ void Server::lssproto_C_recv(char* cdata)
 #ifdef _NPC_PICTURE
 				setNpcCharObj(id, graNo, x, y, dir, fmname, name, freeName,
 					level, petname, petlevel, nameColor, walkable, height, charType, profession_class, picture);
-#else				
+#else
 				//setNpcCharObj(id, graNo, x, y, dir, fmname, name, freeName,
 				//	level, petname, petlevel, nameColor, walkable, height, charType, profession_class);
 #endif
@@ -4522,7 +4522,7 @@ void Server::lssproto_C_recv(char* cdata)
 			level, petname, petlevel, nameColor, 0, height, 2, 0);*/
 #endif
 #endif
-#else			
+#else
 #ifdef _NPC_EVENT_NOTICE
 		setNpcCharObj(id, graNo, x, y, dir, "", name, "",
 			level, petname, petlevel, nameColor, 0, height, 2, 0
@@ -4839,7 +4839,7 @@ void Server::lssproto_CA_recv(char* cdata)
 		//ptAct = getCharObjAct(charindex);
 		//if (ptAct == NULL)
 		//{
-		//	
+		//
 		//	tellflag = 0;
 		//	for (j = 0; j < tellCindex; ++j)
 		//	{
@@ -6233,7 +6233,7 @@ void Server::lssproto_S_recv(char* cdata)
 			no = i * 16;
 #else
 			no = i * 15;
-#endif	
+#endif
 #else
 			no = i * 14;
 #endif
@@ -6540,7 +6540,7 @@ void Server::lssproto_TD_recv(char* cdata)//交易
 
 	getStringToken(data, "|", 1, Head);
 
-	// 交易开启资料初始化	
+	// 交易开启资料初始化
 	if (Head.startsWith("C"))
 	{
 
@@ -8480,7 +8480,7 @@ void Server::withdrawGold(int gold, bool isPublic)
 	lssproto_FM_send(const_cast<char*>(str.c_str()));
 }
 
-//存取家族個人銀行封包 家族個人"B|G|%d" 正數存 負數取  家族共同 "B|T|%d" 
+//存取家族個人銀行封包 家族個人"B|G|%d" 正數存 負數取  家族共同 "B|T|%d"
 //設置騎乘 "R|P|寵物編號0-4"，"R|P|-1"取消騎乘
 void Server::lssproto_FM_send(char* data)
 {
@@ -9345,7 +9345,7 @@ void Server::tradeComplete(const QString& name)
 	//G|142|
 }
 
-//發起交易請求封包 發起交易D|D   放置物品:T|87|02020202|I|1|23  
+//發起交易請求封包 發起交易D|D   放置物品:T|87|02020202|I|1|23
 void Server::lssproto_TD_send(char* data)
 {
 	//QByteArray buffer(Autil::NETDATASIZE, '\0');
@@ -9799,7 +9799,7 @@ void Server::mouseMove(int x, int y)
 	injector.sendMessage(WM_MOUSEMOVE, NULL, data);
 }
 
-//滑鼠移動 + 左鍵 
+//滑鼠移動 + 左鍵
 void Server::leftClick(int x, int y)
 {
 	Injector& injector = Injector::getInstance();
@@ -10939,7 +10939,7 @@ int Server::playerDoBattleWork()
 	//if (pc.battlePetNo < 0 || pc.battlePetNo >= MAX_PET)
 	//	mem::writeInt(injector.getProcess(), injector.getProcessModule() + 0xE21E4, 0, sizeof(short));
 	//else
-	//	
+	//
 
 	//
 	return 1;
@@ -11514,6 +11514,39 @@ void Server::handlePlayerBattleLogics()
 		}
 	} while (false);
 
+	//嗜血补气
+	do
+	{
+		bool magicMp = injector.getEnableHash(util::kBattleMagicMpEnable);
+		if (!magicMp)
+			break;
+
+		int tempTarget = -1;
+		int charMpPercent = injector.getValueHash(util::kBattleMagicMpValue);
+		if (!checkPlayerMp(charMpPercent, &tempTarget, true) && (BattleMyMp > 0) )
+		{
+			break;
+		}
+
+		int magicIndex = injector.getValueHash(util::kBattleMagicMpMagicValue);
+		if (magicIndex < 0)
+			break;
+		target = 1;
+		if (fixPlayerTargetBySkillIndex(magicIndex, tempTarget, &target) && (target >= 0 && target <= 22))
+		{
+			if (isPlayerHpEnoughForSkill(magicIndex))
+			{
+				sendBattlePlayerJobSkillAct(magicIndex, target);
+				return;
+			}
+			else
+			{
+				break;
+			}
+		}
+
+	} while (false);
+
 	//道具補氣
 	do
 	{
@@ -11524,7 +11557,7 @@ void Server::handlePlayerBattleLogics()
 		int tempTarget = -1;
 		//bool ok = false;
 		int charMpPercent = injector.getValueHash(util::kBattleItemHealMpValue);
-		if (!checkPlayerMp(charMpPercent, &tempTarget, true) && BattleMyMp > 0)
+		if (!checkPlayerMp(charMpPercent, &tempTarget, true) && (BattleMyMp > 0))
 		{
 			break;
 		}
@@ -11907,25 +11940,7 @@ void Server::handlePlayerBattleLogics()
 			break;
 
 		bool isProfession = magicIndex > (MAX_MAGIC - 1);
-		if (isProfession) //0 ~ MAX_PROFESSION_SKILL
-		{
-			magicIndex -= MAX_MAGIC;
-			target = -1;
-			if (fixPlayerTargetBySkillIndex(magicIndex, tempTarget, &target) && (target >= 0 && target <= 22))
-			{
-				if (isPlayerMpEnoughForSkill(magicIndex))
-				{
-					sendBattlePlayerJobSkillAct(magicIndex, target);
-					return;
-				}
-				else
-				{
-					tempTarget = getBattleSelectableEnemyTarget(bt);
-					sendBattlePlayerAttackAct(tempTarget);
-				}
-			}
-		}
-		else
+		if (!isProfession) // ifMagic
 		{
 			target = -1;
 			if (fixPlayerTargetByMagicIndex(magicIndex, tempTarget, &target) && (target >= 0 && target <= 21))
@@ -12646,6 +12661,18 @@ bool Server::isPlayerMpEnoughForSkill(int magicIndex) const
 	return true;
 }
 
+//戰鬥檢查HP是否足夠施放技能
+bool Server::isPlayerHpEnoughForSkill(int magicIndex) const
+{
+	if (magicIndex < 0 || magicIndex >= MAX_PROFESSION_SKILL)
+		return false;
+	//pc.hpPercent = util::percent(pc.hp, pc.maxHp);
+	if (MIN_HP_PERCENT > pc.hpPercent)
+		return false;
+
+	return true;
+}
+
 //戰場上單位排序
 void Server::sortBattleUnit(QVector<battleobject_t>& v) const
 {
@@ -13091,7 +13118,10 @@ bool Server::fixPlayerTargetBySkillIndex(int magicIndex, int oldtarget, int* tar
 	}
 	case MAGIC_TARGET_NONE://無
 	{
-		oldtarget = -1;
+		//oldtarget = -1;
+		//break;
+		if (oldtarget != 0)
+			oldtarget = 0;
 		break;
 	}
 	case MAGIC_TARGET_OTHERWITHOUTMYSELF://我方任意除了自己

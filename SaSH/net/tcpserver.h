@@ -125,7 +125,7 @@ constexpr int SKILL_NAME_LEN = 24;
 constexpr int SKILL_MEMO_LEN = 72;
 constexpr int MAX_SKILL = 7;
 
-
+constexpr int MIN_HP_PERCENT = 10;
 
 constexpr int MAX_GOLD = 1000000;
 constexpr int MAX_BANKGOLD = 10000000;
@@ -240,7 +240,7 @@ constexpr int JOY_CTRL_C = (1 << 24);	/* Ctrl + C					*/
 constexpr int JOY_CTRL_V = (1 << 23);	/* Ctrl + V					*/
 constexpr int JOY_CTRL_T = (1 << 22);	/* Ctrl + T					*/
 
-//#define MAIL_STR_LEN 140		
+//#define MAIL_STR_LEN 140
 //#define MAIL_DATE_STR_LEN 20
 constexpr int MAIL_MAX_HISTORY = 20;
 constexpr int MAX_CHAT_REGISTY_STR = 8;
@@ -280,25 +280,25 @@ constexpr int EVENING_TO_NIGHT = 300;
 #endif
 
 static const char* palFileName[] = {
-	"data\\pal\\Palet_1.sap",	// 
-	"data\\pal\\Palet_2.sap",	// 
-	"data\\pal\\Palet_3.sap",	// 
+	"data\\pal\\Palet_1.sap",	//
+	"data\\pal\\Palet_2.sap",	//
+	"data\\pal\\Palet_3.sap",	//
 	"data\\pal\\Palet_4.sap",	//
 
-	"data\\pal\\Palet_5.sap",	// 
+	"data\\pal\\Palet_5.sap",	//
 	"data\\pal\\Palet_6.sap",	//
-	"data\\pal\\Palet_7.sap",	// 
+	"data\\pal\\Palet_7.sap",	//
 	"data\\pal\\Palet_8.sap",	//
-	"data\\pal\\Palet_9.sap",	// 
-	"data\\pal\\Palet_10.sap",	// 
-	"data\\pal\\Palet_11.sap",	// 
+	"data\\pal\\Palet_9.sap",	//
+	"data\\pal\\Palet_10.sap",	//
+	"data\\pal\\Palet_11.sap",	//
 	"data\\pal\\Palet_12.sap",	//
 	"data\\pal\\Palet_13.sap",	//
 	"data\\pal\\Palet_14.sap",	//
 	"data\\pal\\Palet_15.sap",	//
 	"data\\pal\\Palet_0.sap",	//Waei logo
-	"white.sap",				// 
-	"black.sap",				// 
+	"white.sap",				//
+	"black.sap",				//
 };
 
 constexpr int MAX_PAL = sizeof(palFileName) / sizeof(palFileName[0]);
@@ -818,7 +818,7 @@ enum
 	FMMEMBER_NONE = -1,  // 未加入任何家族
 	FMMEMBER_MEMBER = 1,   // 一般成員
 	FMMEMBER_APPLY,        // 申請加入家族
-	FMMEMBER_LEADER,       // 家族族長        
+	FMMEMBER_LEADER,       // 家族族長
 	FMMEMBER_ELDER,        // 長老
 	//FMMEMBER_INVITE,     // 祭司
 	//FMMEMBER_BAILEE,     // 財務長
@@ -1026,10 +1026,10 @@ enum TalkMode
 //	void* pYobi;							//備用的struct指標
 //	void* pOther;						//其它用途struct指標
 //	UCHAR 	prio;							//action處理時的優先順序
-//	UCHAR 	dispPrio;						//秀圖時的優先順序	
+//	UCHAR 	dispPrio;						//秀圖時的優先順序
 //	int 	x, y;							//圖的座標
 //	int		hitDispNo;						//是否命中目標編號
-//	BOOL	deathFlag;						//此action是否死亡旗標	
+//	BOOL	deathFlag;						//此action是否死亡旗標
 //	int 	dx, dy;							//秀圖座標位移量
 //	int 	dir;							//方向
 //	int 	delta;  						//合成向量
@@ -1045,8 +1045,8 @@ enum TalkMode
 //	int 	maxMp;
 //	int 	level;
 //	int 	status;
-//	int 	itemNameColor;				
-//	int		charNameColor;				
+//	int 	itemNameColor;
+//	int		charNameColor;
 //
 //	int		bmpNo;							//圖號
 //	int		bmpNo_bak;							//備份圖號
@@ -1059,22 +1059,22 @@ enum TalkMode
 //	int		nextGx, nextGy;					//下一個座標
 //	int		bufGx[10], bufGy[10];			//從目前座標到下一個座標之間座標的buffer
 //	short	bufCount;						//設定目前要走到那一個座標
-//	short	walkFlag;				
+//	short	walkFlag;
 //	float	mx, my;							//地圖座標
-//	float	vx, vy;							
+//	float	vx, vy;
 //
 //	//屬性
-//	short 	earth;							
-//	short 	water;						
-//	short 	fire;					
-//	short 	wind;					
+//	short 	earth;
+//	short 	water;
+//	short 	fire;
+//	short 	wind;
 //	//rader使用
-//	int		dirCnt;					
+//	int		dirCnt;
 //	//gemini使用
 //	int		spd;							//移動的速度(0~63)
 //	int		crs;							//方向(0~31)(正上方為0,順時鐘方向)
-//	int		h_mini;							
-//	int		v_mini;						
+//	int		h_mini;
+//	int		v_mini;
 //	//pattern使用
 //	int		anim_chr_no;					//人物的編號(anim_tbl.h的編號)
 //	int		anim_chr_no_bak;				//上一次的人物編號
@@ -1086,7 +1086,7 @@ enum TalkMode
 //	int		anim_frame_cnt;					//這張frame停留時間
 //	int		anim_x;							//X座標(Sprbin+Adrnbin)
 //	int		anim_y;							//Y座標(Sprbin+Adrnbin)
-//	int		anim_hit;					
+//	int		anim_hit;
 //	// shan add +1
 //	char    fmname[33];			            // 家族名稱
 //	// Robin 0728 ride Pet
@@ -1119,15 +1119,15 @@ enum TalkMode
 //	int noticeNo;
 //#endif
 //
-//#ifdef _SKILL_ROAR  
+//#ifdef _SKILL_ROAR
 //	int		petRoar;		//大吼(克年獸)
-//#endif 
+//#endif
 //#ifdef _SKILL_SELFEXPLODE //自爆
 //	int		petSelfExplode;
-//#endif 
+//#endif
 //#ifdef _MAGIC_DEEPPOISION   //劇毒
 //	int		petDeepPoision;
-//#endif 
+//#endif
 //
 //#ifdef _CHAR_PROFESSION			// WON ADD 人物職業
 //	int		profession_class;
@@ -1316,7 +1316,7 @@ typedef struct tagPC
 	//	int profession_exp;
 	int profession_skill_point = 0;
 	QString profession_class_name = "";
-#endif	
+#endif
 #ifdef _ALLDOMAN // (不可開) Syu ADD 排行榜NPC
 	int herofloor = 0;
 #endif
@@ -2115,6 +2115,7 @@ private:
 
 	bool isPlayerMpEnoughForMagic(int magicIndex) const;
 	bool isPlayerMpEnoughForSkill(int magicIndex) const;
+	bool isPlayerHpEnoughForSkill(int magicIndex) const;
 
 	void sortBattleUnit(QVector<battleobject_t>& v) const;
 
@@ -2151,7 +2152,7 @@ private:
 
 #pragma endregion
 
-#pragma region SAClientOriginal 
+#pragma region SAClientOriginal
 	//StoneAge Client Original Functions
 	bool CheckMailNoReadFlag();
 
@@ -2280,7 +2281,7 @@ private:
 #ifdef _CHAR_PROFESSION			// WON ADD 人物職業
 	//    #ifdef _GM_IDENTIFY		// Rog ADD GM識別
 	//  void setPcParam(char *name, char *freeName, int level, char *petname, int petlevel, int nameColor, int walk, int height, int profession_class, int profession_level, int profession_exp, int profession_skill_point , char *gm_name);
-	//    void setPcParam(char *name, char *freeName, int level, char *petname, int petlevel, int nameColor, int walk, int height, int profession_class, int profession_level, int profession_skill_point , char *gm_name)   ; 
+	//    void setPcParam(char *name, char *freeName, int level, char *petname, int petlevel, int nameColor, int walk, int height, int profession_class, int profession_level, int profession_skill_point , char *gm_name)   ;
 	//	#else
 	//	void setPcParam(char *name, char *freeName, int level, char *petname, int petlevel, int nameColor, int walk, int height, int profession_class, int profession_level, int profession_exp, int profession_skill_point);
 #ifdef _ALLDOMAN // (不可開) Syu ADD 排行榜NPC
@@ -2416,10 +2417,10 @@ private://lssproto
 #ifdef _FIX_DEL_MAP
 	void lssproto_DM_send(int fd);                         // WON ADD 玩家抽地圖送監獄
 #endif
-#ifdef _MIND_ICON 
+#ifdef _MIND_ICON
 	void lssproto_MA_send(const QPoint& pos, int nMind);
 #endif
-#ifdef _ITEM_CRACKER 
+#ifdef _ITEM_CRACKER
 	void lssproto_IC_recv(const QPoint& pos);
 #endif
 #ifdef _MAGIC_NOCAST//沈默
@@ -2585,7 +2586,7 @@ private:
 
 	//client original
 #pragma region ClientOriginal
-	int  talkMode = 0;						//0:一般 1:密語 2: 隊伍 3:家族 4:職業 
+	int  talkMode = 0;						//0:一般 1:密語 2: 隊伍 3:家族 4:職業
 
 	MAGIC magic[MAX_MAGIC] = {};
 

@@ -601,7 +601,7 @@ qint64 Interpreter::set(qint64 currentline, const TokenMap& TK)
 			{ u8"捉寵血量", util::kBattleCatchTargetMaxHpEnable },//{ u8"捉寵目標最大耐久力", util::kBattleCatchTargetMaxHpValue },
 			{ u8"捉寵目標", util::kBattleCatchPetNameString },
 			{ u8"捉寵寵技能", util::kBattleCatchPetSkillEnable },////{ u8"捉寵戰寵技能索引", util::kBattleCatchPetSkillValue },
-			{ u8"捉寵道具", util::kBattleCatchPlayerItemEnable },//{ u8"捉寵使用道具直到血量低於", util::kBattleCatchTargetItemHpValue },{ u8"捉寵道具", util::kBattleCatchPlayerItemString }, 
+			{ u8"捉寵道具", util::kBattleCatchPlayerItemEnable },//{ u8"捉寵使用道具直到血量低於", util::kBattleCatchTargetItemHpValue },{ u8"捉寵道具", util::kBattleCatchPlayerItemString },
 			{ u8"捉寵精靈", util::kBattleCatchPlayerMagicEnable },//{ u8"捉寵使用精靈直到血量低於", util::kBattleCatchTargetMagicHpValue },{ u8"捉寵人物精靈索引", util::kBattleCatchPlayerMagicValue },
 
 			{ u8"自動組隊", util::kAutoJoinEnable },//{ u8"自動組隊名稱", util::kAutoFunNameString },	{ u8"自動移動功能編號", util::kAutoFunTypeValue },
@@ -612,7 +612,7 @@ qint64 Interpreter::set(qint64 currentline, const TokenMap& TK)
 
 			{ u8"道具補氣", util::kNormalItemHealMpEnable },//{ u8"ItemHealMpNormalValue", util::kNormalItemHealMpValue },{ u8"平時道具補氣", util::kNormalItemHealMpItemString },
 			{ u8"戰鬥道具補氣", util::kBattleItemHealMpEnable },//{ u8"戰鬥道具補氣人物", util::kBattleItemHealMpValue },{ u8"戰鬥道具補氣 ", util::kBattleItemHealMpItemString },
-
+			{ u8"戰鬥嗜血補氣", util::kBattleMagicMpEnable },//{ u8"戰鬥嗜血補氣技能", util::kBattleMagicMpMagicValue },{ u8"戰鬥嗜血補氣百分比", util::kBattleMagicMpValue },
 
 			/*{u8"MagicHealCharNormalValue", util::kNormalMagicHealCharValue},
 			{ u8"MagicHealPetNormalValue", util::kNormalMagicHealPetValue },
@@ -723,7 +723,7 @@ qint64 Interpreter::set(qint64 currentline, const TokenMap& TK)
 			{ u8"捉宠血量", util::kBattleCatchTargetMaxHpEnable },//{ u8"捉宠目标最大耐久力", util::kBattleCatchTargetMaxHpValue },
 			{ u8"捉宠目标", util::kBattleCatchPetNameString },
 			{ u8"捉宠宠技能", util::kBattleCatchPetSkillEnable },////{ u8"捉宠战宠技能索引", util::kBattleCatchPetSkillValue },
-			{ u8"捉宠道具", util::kBattleCatchPlayerItemEnable },//{ u8"捉宠使用道具直到血量低于", util::kBattleCatchTargetItemHpValue },{ u8"捉宠道具", util::kBattleCatchPlayerItemString }, 
+			{ u8"捉宠道具", util::kBattleCatchPlayerItemEnable },//{ u8"捉宠使用道具直到血量低于", util::kBattleCatchTargetItemHpValue },{ u8"捉宠道具", util::kBattleCatchPlayerItemString },
 			{ u8"捉宠精灵", util::kBattleCatchPlayerMagicEnable },//{ u8"捉宠使用精灵直到血量低于", util::kBattleCatchTargetMagicHpValue },{ u8"捉宠人物精灵索引", util::kBattleCatchPlayerMagicValue },
 
 			{ u8"自动组队", util::kAutoJoinEnable },//{ u8"自动组队名称", util::kAutoFunNameString },	{ u8"自动移动功能编号", util::kAutoFunTypeValue },
@@ -734,7 +734,7 @@ qint64 Interpreter::set(qint64 currentline, const TokenMap& TK)
 
 			{ u8"道具补气", util::kNormalItemHealMpEnable },//{ u8"ItemHealMpNormalValue", util::kNormalItemHealMpValue },{ u8"平时道具补气", util::kNormalItemHealMpItemString },
 			{ u8"战斗道具补气", util::kBattleItemHealMpEnable },//{ u8"战斗道具补气人物", util::kBattleItemHealMpValue },{ u8"战斗道具补气 ", util::kBattleItemHealMpItemString },
-
+			{ u8"战斗嗜血补气", util::kBattleMagicMpEnable },//{ u8"战斗嗜血补气技能", util::kBattleMagicMpMagicValue },{ u8"战斗嗜血补气百分比", util::kBattleMagicMpValue },
 
 			/*{u8"MagicHealCharNormalValue", util::kNormalMagicHealCharValue},
 			{ u8"MagicHealPetNormalValue", util::kNormalMagicHealPetValue },

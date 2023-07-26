@@ -281,6 +281,11 @@ void AfkForm::onCheckBoxStateChanged(int state)
 	{
 		injector.setEnableHash(util::kBattleItemReviveEnable, isChecked);
 	}
+	else if (name == "checkBox_magicmp")
+	{
+		injector.setEnableHash(util::kBattleMagicMpEnable, isChecked);
+		break;
+	}
 
 	//normal heal
 	else if (name == "checkBox_magicheal_normal")
@@ -395,6 +400,11 @@ void AfkForm::onSpinBoxValueChanged(int value)
 	else if (name == "spinBox_itemhealmp")
 	{
 		injector.setValueHash(util::kBattleItemHealMpValue, value);
+	}
+	else if (name == "spinBox_magicmp")
+	{
+		injector.setValueHash(util::kBattleMagicMpValue, value);
+		break;
 	}
 
 	//normal heal
@@ -587,6 +597,13 @@ void AfkForm::onComboBoxCurrentIndexChanged(int value)
 	else if (name == "comboBox_magicrevive")
 	{
 		injector.setValueHash(util::kBattleMagicReviveMagicValue, value != -1 ? value : 0);
+	}
+
+	//magic mp
+	else if (name == "comboBox_magicmp")
+	{
+		injector.setValueHash(util::kBattleMagicMpMagicValue, value != -1 ? value : 0);
+		break;
 	}
 
 	//normal
@@ -905,6 +922,8 @@ void AfkForm::onApplyHashSettingsToUI()
 	ui.comboBox_normalaction_pet_level->setCurrentIndex(injector.getValueHash(util::kBattlePetNormalActionLevelValue));
 
 	ui.comboBox_magicheal->setCurrentIndex(injector.getValueHash(util::kBattleMagicHealMagicValue));
+	ui.comboBox_magicrevive->setCurrentIndex(injector.getValueHash(util::kBattleMagicReviveMagicValue));
+	ui.comboBox_magicmp->setCurrentIndex(injector.getValueHash(util::kBattleMagicMpMagicValue));
 
 	ui.comboBox_itemheal->setCurrentText(injector.getStringHash(util::kBattleItemHealItemString));
 	ui.comboBox_itemhealmp->setCurrentText(injector.getStringHash(util::kBattleItemHealMpItemString));
@@ -922,6 +941,7 @@ void AfkForm::onApplyHashSettingsToUI()
 	ui.spinBox_itemheal_pet->setValue(injector.getValueHash(util::kBattleItemHealPetValue));
 	ui.spinBox_itemheal_allie->setValue(injector.getValueHash(util::kBattleItemHealAllieValue));
 	ui.spinBox_itemhealmp->setValue(injector.getValueHash(util::kBattleItemHealMpValue));
+	ui.spinBox_magicmp->setValue(injector.getValueHash(util::kBattleMagicMpValue));
 
 	ui.spinBox_magicheal_normal_char->setValue(injector.getValueHash(util::kNormalMagicHealCharValue));
 	ui.spinBox_magicheal_normal_pet->setValue(injector.getValueHash(util::kNormalMagicHealPetValue));
@@ -1062,6 +1082,22 @@ void AfkForm::onUpdateComboBoxItemText(int type, const QStringList& textList)
 			combo->setCurrentIndex(nOriginalIndex);
 		};
 
+		auto appendProfText = [&actionList, &textList](QComboBox* combo, bool notBattle = false)->void
+		{
+			combo->blockSignals(true);
+			int nOriginalIndex = combo->currentIndex();
+			combo->clear();
+
+			int textListSize = textList.size();
+			for (int i = CHAR_EQUIPPLACENUM; i < textListSize; ++i)
+			{
+				combo->addItem(QString("%1:%2").arg(i-CHAR_EQUIPPLACENUM+1).arg(textList[i]));
+			}
+
+			combo->blockSignals(false);
+			combo->setCurrentIndex(nOriginalIndex);
+		};
+
 		//battle
 		appendMagicText(ui.comboBox_normalaction_char_action);
 		appendMagicText(ui.comboBox_crossaction_char_action);
@@ -1069,6 +1105,7 @@ void AfkForm::onUpdateComboBoxItemText(int type, const QStringList& textList)
 		appendMagicText(ui.comboBox_magicheal, true);
 		appendMagicText(ui.comboBox_magicrevive, true);
 		appendMagicText(ui.comboBox_magicheal_normal, true);
+		appendProfText(ui.comboBox_magicmp);
 		Injector& injector = Injector::getInstance();
 		if (!injector.server.isNull() && injector.server->getOnlineFlag())
 		{
