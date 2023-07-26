@@ -160,6 +160,22 @@ Register the corresponding functions in openLibsBIG5, openLibsGB2312, and openLi
 
 Regardless of the limitations of C++ or other factors, avoid directly handling complex logic in the UI or directly manipulating the UI from other threads. Instead, use signaldispatcher.h to handle tasks via signals and slots.
 
+### Debug compilation issues
+
+1. Mainland users can use the mirror to install QT, such as: .\qt-unified-windows-x64-4.6.0-online.exe --mirror http://mirrors.tuna.tsinghua.edu.cn/qt
+
+2. When the DLL is missing, you need to decompress and copy the content in SaSH_dbg_package.7z to Debug and Release.
+
+3. Line 266 in SaSH\SaSH\injector.cpp needs to be
+     dllPath = R"(YourPath\Debug\sadll.dll)";
+     Change to your own absolute path.
+
+4. You need to put all qm translation files compiled with Linguist into SaSH\translations.
+
+### Script syntax documentation
+
+See [https://gitee.com/Bestkakkoii/sash/wikis](https://gitee.com/Bestkakkoii/sash/wikis) for details.
+
 ---
 
 ### 常用功能修改步驟
@@ -198,7 +214,7 @@ Regardless of the limitations of C++ or other factors, avoid directly handling c
 
 不管是基於C++本身的限制也好，或其他因素，嚴禁在UI內直接處理太過複雜的邏輯，或在其他線程直接操作UI，請一律交由 signaldispatcher.h 透過信號槽處理
 
-#### 調試編譯問題
+### 調試編譯問題
 
 1. 大陸用戶可使用鏡像安裝QT，如： .\qt-unified-windows-x64-4.6.0-online.exe --mirror http://mirrors.tuna.tsinghua.edu.cn/qt
 
@@ -210,4 +226,6 @@ Regardless of the limitations of C++ or other factors, avoid directly handling c
 
 4. 需要將 使用Linguist編譯好的qm翻譯文件放到 SaSH\translations 中。
 
-5. 使用腳本IDE需要拷貝外掛釋放版本中的lib到Debug和Realease目錄中。
+### 腳本語法說明文檔
+
+詳見 [https://gitee.com/Bestkakkoii/sash/wikis](https://gitee.com/Bestkakkoii/sash/wikis)。
