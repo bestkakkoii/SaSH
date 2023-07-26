@@ -382,6 +382,10 @@
         <translation>道具補氣</translation>
     </message>
     <message>
+        <source>masic mp</source>
+        <translation>嗜血補氣</translation>
+    </message>
+    <message>
         <source>char</source>
         <translation>人物</translation>
     </message>

@@ -36,7 +36,7 @@ CodeEditor::CodeEditor(QWidget* parent)
 	QsciScintilla::setFont(font);
 	//代碼提示autoCompletion
 #ifdef _DEBUG
-	QFile f(R"(D:\Users\bestkakkoii\Desktop\SaSH\lib\completion_api.txt)");
+	QFile f(R"(..\Debug\lib\completion_api.txt)");
 #else
 	QFile f(QString(R"(%1\lib\completion_api.txt)").arg(QApplication::applicationDirPath()));
 #endif
