@@ -390,6 +390,10 @@
         <translation>精灵復活</translation>
     </message>
     <message>
+        <source>masic mp</source>
+        <translation>嗜血补气</translation>
+    </message>
+    <message>
         <source>item revive</source>
         <translation>道具復活</translation>
     </message>
