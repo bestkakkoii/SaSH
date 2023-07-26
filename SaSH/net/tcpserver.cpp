@@ -1530,7 +1530,7 @@ int Server::SaDispatchMessage(char* encoded)
 	Autil::SliceCount = 0;
 	return BC_ABOUT_TO_END;
 
-	}
+}
 
 //人物刪除
 void Server::lssproto_CharDelete_recv(char* cresult, char* cdata)
@@ -1647,8 +1647,8 @@ void Server::lssproto_EV_recv(int seqno, int result)
 				eventEnemySendFlag = 0;
 			}
 		}
-			}
-		}
+	}
+}
 
 //開關切換
 void Server::lssproto_FS_recv(int flg)
@@ -1765,8 +1765,8 @@ void Server::lssproto_AB_recv(char* cdata)
 			}
 		}
 #endif
-				}
-			}
+	}
+}
 
 //名片數據
 void Server::lssproto_ABI_recv(int num, char* cdata)
@@ -1807,7 +1807,7 @@ void Server::lssproto_ABI_recv(int num, char* cdata)
 		addressBook[num].useFlag = useFlag;
 		addressBook[num].name[0] = '\0';
 		return;
-}
+	}
 
 #ifdef _EXTEND_AB
 	if (num == MAX_ADR_BOOK - 1)
@@ -1846,7 +1846,7 @@ void Server::lssproto_ABI_recv(int num, char* cdata)
 #endif
 
 
-		}
+}
 
 //戰後獎勵 (逃跑或被打死不會有)
 void Server::lssproto_RS_recv(char* cdata)
@@ -2562,7 +2562,7 @@ void Server::lssproto_EF_recv(int effect, int level, char* coption)
 	}
 #endif
 	// Terry end
-	}
+}
 
 //開始戰鬥
 void Server::lssproto_EN_recv(int result, int field)
@@ -3113,7 +3113,7 @@ void Server::lssproto_B_recv(char* ccommand)
 	else if (first == "bn")
 	{
 		//bn|5|BD|r0|0|2|A0|pA0|mA|BE|e0|f1|
-			}
+	}
 #ifdef PK_SYSTEtimer__BY_ZHU
 	else if (first == "Z")
 	{
@@ -3173,7 +3173,7 @@ void Server::lssproto_B_recv(char* ccommand)
 			//BattleCmdWritePointer = (BattleCmdWritePointer + 1) & (BATTLE_BUF_SIZE - 1);
 		//}
 	}
-		}
+}
 
 #ifdef _PETS_SELECTCON
 //寵物狀態改變 (不是每個私服都有)
@@ -3217,8 +3217,8 @@ void Server::lssproto_KS_recv(int petarray, int result)
 					pc.selectPetNo[i] = FALSE;
 					--cnt;
 				}
+			}
 		}
-	}
 
 		QVector<int> v;
 		for (const auto& it : pc.selectPetNo)
@@ -3256,7 +3256,7 @@ void Server::lssproto_KS_recv(int petarray, int result)
 		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
 
 		emit signalDispatcher.updateComboBoxItemText(util::kComboBoxPetAction, skillNameList);
-}
+	}
 #ifdef _AFTER_TRADE_PETWAIT_
 	else
 	{
@@ -3277,7 +3277,7 @@ void Server::lssproto_KS_recv(int petarray, int result)
 		pet[petarray].state = kBattle;
 		emit signalDispatcher.updatePetHpProgressValue(_pet.level, _pet.hp, _pet.maxHp);
 	}
-	}
+}
 
 #ifdef _STANDBYPET
 //寵物等待狀態改變 (不是每個私服都有)
@@ -3821,8 +3821,8 @@ void Server::lssproto_TK_recv(int index, char* cmessage, int color)
 				{
 					recorder[0].goldearn += nGold;
 				}
-}
-}
+			}
+		}
 		//"P|P|拾獲 337181 Stone"
 
 		if (message.simplified().contains(rexPickGold))
@@ -3873,7 +3873,7 @@ void Server::lssproto_TK_recv(int index, char* cmessage, int color)
 				if (szToken == "TK")
 				{
 					//InitSelectChar(message, 0);
-			}
+				}
 				else if (szToken == "TE")
 				{
 					//InitSelectChar(message, 1);
@@ -3928,7 +3928,7 @@ void Server::lssproto_TK_recv(int index, char* cmessage, int color)
 			{
 				pc.gold -= 200;
 				emit signalDispatcher.updatePlayerInfoStone(pc.gold);
-				}
+			}
 #ifdef _FONT_SIZE
 #ifdef _MESSAGE_FRONT_
 		StockChatBufferLineExt(msg - 2, color, fontsize);
@@ -3987,7 +3987,7 @@ void Server::lssproto_TK_recv(int index, char* cmessage, int color)
 				//pc.status |= CHR_STATUS_FUKIDASHI;
 			}
 		}
-		}
+	}
 
 	chatQueue.enqueue(QPair{ color ,msg });
 	emit signalDispatcher.appendChatLog(msg, color);
@@ -4130,7 +4130,7 @@ void Server::lssproto_M_recv(int fl, int x1, int y1, int x2, int y2, char* cdata
 		}
 	}
 	emit signalDispatcher.updateMapLabelTextChanged(QString("%1(%2)").arg(nowFloorName).arg(nowFloor));
-		}
+}
 
 #ifdef _CHAR_PROFESSION			// WON ADD 人物職業
 //    #ifdef _GM_IDENTIFY		// Rog ADD GM識別
@@ -4323,7 +4323,7 @@ void Server::lssproto_C_recv(char* cdata)
 			{
 				extern char* FreeGetTitleStr(int id);
 				sprintf(titlestr, "%s", FreeGetTitleStr(titleindex));
-		}
+			}
 #endif
 #ifdef _CHAR_PROFESSION			// WON ADD 人物職業
 			getStringToken(bigtoken, "|", 18, smalltoken);
@@ -4392,8 +4392,8 @@ void Server::lssproto_C_recv(char* cdata)
 							pc.status |= CHR_STATUS_LEADER;
 						break;
 					}
+				}
 			}
-}
 			else
 			{
 #ifdef _CHAR_PROFESSION			// WON ADD 人物職業
@@ -4481,7 +4481,7 @@ void Server::lssproto_C_recv(char* cdata)
 			mapUnitHash.insert(id, unit);
 
 			break;
-}
+		}
 		case 2://OBJTYPE_ITEM
 		{
 			getStringToken(bigtoken, "|", 2, smalltoken);
@@ -4740,7 +4740,7 @@ void Server::lssproto_C_recv(char* cdata)
 				mapUnitHash.insert(id, unit);
 
 				//setItemCharObj(id, graNo, x, y, 0, classNo, info);
-		}
+			}
 			else
 			{
 				getStringToken(bigtoken, "|", 4, smalltoken);
@@ -4782,7 +4782,7 @@ void Server::lssproto_C_recv(char* cdata)
 					}
 				}
 			}
-}
+		}
 #endif
 #pragma endregion
 	}
@@ -4880,14 +4880,14 @@ void Server::lssproto_CA_recv(char* cdata)
 							old_lssproto_AC_send(sockfd, nowGx, nowGy, 5);
 						setPcAction(5);
 #endif
-			}
-		}
+					}
+				}
 				else
 #endif
 					//changePcAct(x, y, dir, act, effectno, effectparam1, effectparam2);
-	}
+			}
 			continue;
-}
+		}
 
 		//ptAct = getCharObjAct(charindex);
 		//if (ptAct == NULL)
@@ -4924,7 +4924,7 @@ void Server::lssproto_CA_recv(char* cdata)
 #endif
 		//changeCharAct(ptAct, x, y, dir, act, effectno, effectparam1, effectparam2);
 	//}
-}
+	}
 }
 
 //刪除指定一個或多個周圍人、NPC單位
@@ -5299,7 +5299,7 @@ void Server::lssproto_S_recv(char* cdata)
 					{
 						pc.dp = getIntegerToken(data, "|", i);// 0x00800000
 						i++;
-				}
+					}
 					else if (mask == 0x01000000)
 					{
 						pc.transmigration = getIntegerToken(data, "|", i);// 0x01000000
@@ -5348,9 +5348,9 @@ void Server::lssproto_S_recv(char* cdata)
 						i++;
 					}
 #endif
+				}
 			}
 		}
-	}
 
 		//updataPcAct();
 		if ((pc.status & CHR_STATUS_LEADER) != 0 && party[0].useFlag != 0)
@@ -5497,7 +5497,7 @@ void Server::lssproto_S_recv(char* cdata)
 				if (no == pc.mailPetNo)
 					pc.mailPetNo = -1;
 				pc.selectPetNo[no] = FALSE;
-	}
+			}
 			pet[no] = {};
 		}
 		else
@@ -5689,7 +5689,7 @@ void Server::lssproto_S_recv(char* cdata)
 						{
 							pet[no].oldhp = getIntegerToken(data, "|", i);
 							i++;
-					}
+						}
 						else if (mask == 0x400000)
 						{
 							pet[no].oldatk = getIntegerToken(data, "|", i);
@@ -5738,10 +5738,10 @@ void Server::lssproto_S_recv(char* cdata)
 							i++;
 						}
 #endif
+					}
 				}
 			}
-}
-	}
+		}
 
 		if (pc.ridePetNo >= 0 && pc.ridePetNo < MAX_PET)
 		{
@@ -5792,7 +5792,7 @@ void Server::lssproto_S_recv(char* cdata)
 			emit signalDispatcher.updatePlayerInfoColContents(i + 1, var);
 		}
 
-}
+	}
 #pragma endregion
 #pragma region EncountPercentage
 	else if (first == "E") // E nowEncountPercentage
@@ -6016,7 +6016,7 @@ void Server::lssproto_S_recv(char* cdata)
 		}
 		party[no].hpPercent = util::percent(party[no].hp, party[no].maxHp);
 		updateTeamInfo();
-					}
+	}
 #pragma endregion
 #pragma region ItemInfo
 	else if (first == "I") //I 道具
@@ -6226,7 +6226,7 @@ void Server::lssproto_S_recv(char* cdata)
 			makeStringFromEscaped(memo);
 			memo = memo.simplified();
 			profession_skill[i].memo = memo;
-				}
+		}
 
 		QStringList magicNameList;
 		for (i = 0; i < MAX_MAGIC; ++i)
@@ -6242,7 +6242,7 @@ void Server::lssproto_S_recv(char* cdata)
 #ifdef _SKILLSORT
 		SortSkill();
 #endif
-		}
+	}
 #endif
 #pragma endregion
 #pragma region PRO3_ADDSKILL
@@ -6355,8 +6355,8 @@ void Server::lssproto_S_recv(char* cdata)
 #ifdef _ITEM_COUNTDOWN
 			pet[nPetIndex].item[i].counttime = getIntegerToken(data, "|", no + 16);
 #endif
-			}
 		}
+	}
 #endif
 #pragma endregion
 #pragma region S_recv_Unknown
@@ -6412,7 +6412,7 @@ void Server::lssproto_S_recv(char* cdata)
 	{
 		qDebug() << "[" << first << "]:" << data;
 	}
-	}
+}
 
 //客戶端登入(進去選人畫面)
 void Server::lssproto_ClientLogin_recv(char* cresult)
@@ -6444,9 +6444,9 @@ void Server::lssproto_ClientLogin_recv(char* cresult)
 
 		//DeathAllAction();
 
-}
+	}
 	//}
-			}
+}
 
 //新增人物
 void Server::lssproto_CreateNewChar_recv(char* cresult, char* cdata)
@@ -6522,7 +6522,7 @@ void Server::lssproto_CharList_recv(char* cresult, char* cdata)
 		//setCharacterList(nm, opt);
 	}
 	//}
-	}
+}
 
 //人物登出(不是每個私服都有，有些是直接切斷後跳回帳號密碼頁)
 void Server::lssproto_CharLogout_recv(char* cresult, char* cdata)
@@ -6578,7 +6578,7 @@ void Server::lssproto_CharLogin_recv(char* cresult, char* cdata)
 	angelMsg[0] = NULL;
 #endif
 	//}
-	}
+}
 
 void Server::lssproto_TD_recv(char* cdata)//交易
 {
@@ -6796,8 +6796,8 @@ void Server::lssproto_TD_recv(char* cdata)//交易
 		if (pc.trade_confirm == 3)
 		{
 			//我方已點確認後，收到對方點確認
+		}
 	}
-}
 	// end
 
 	if (trade_kind.startsWith("A"))

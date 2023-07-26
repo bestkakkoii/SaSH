@@ -310,6 +310,7 @@ static const QHash<QString, RESERVE> keywords = {
 	{ u8"reg", TK_CMD },
 	{ u8"timer", TK_CMD },
 	{ u8"menu", TK_CMD },
+	{ u8"dofile", TK_CMD },
 
 	//check info
 	{ u8"ifbattle", TK_CMD },

@@ -89,6 +89,7 @@ namespace util
 	constexpr const char* SA_NAME = "sa_8001.exe";
 	constexpr const char* CODEPAGE_DEFAULT = "UTF-8";
 	constexpr const char* SCRIPT_SUFFIX_DEFAULT = ".txt";
+	constexpr const char* SCRIPT_LUA_SUFFIX_DEFAULT = ".lua";
 	constexpr const char* SCRIPT_PRIVATE_SUFFIX_DEFAULT = ".sac";
 	typedef enum
 	{
@@ -1551,7 +1552,6 @@ namespace util
 		mutable QReadWriteLock lock_;
 	};
 
-
 	struct MapData
 	{
 		int floor = 0;
@@ -1930,8 +1930,46 @@ namespace util
 		QSet<uchar*> m_maps;
 	};
 
-	void sortWindows(const QVector<HWND>& windowList, bool alignLeft);
+	static bool readFile(const QString& fileName, QString* pcontent, bool* isPrivate)
+	{
+		util::QScopedFile f(fileName, QIODevice::ReadOnly | QIODevice::Text);
+		if (!f.isOpen())
+			return false;
 
+		QString c;
+		if (fileName.endsWith(util::SCRIPT_LUA_SUFFIX_DEFAULT))
+		{
+			QTextStream in(&f);
+			in.setCodec(util::CODEPAGE_DEFAULT);
+			c = in.readAll();
+			c.replace("\r\n", "\n");
+			if (isPrivate != nullptr)
+				*isPrivate = false;
+		}
+		else if (fileName.endsWith(util::SCRIPT_PRIVATE_SUFFIX_DEFAULT))
+		{
+#ifdef CRYPTO_H
+			Crypto crypto;
+			if (!crypto.decodeScript(fileName, c))
+				return false;
+
+			if (isPrivate != nullptr)
+				*isPrivate = true;
+#else
+			return false;
+#endif
+		}
+
+		if (pcontent != nullptr)
+		{
+			*pcontent = c;
+			return true;
+		}
+
+		return false;
+	}
+
+	void sortWindows(const QVector<HWND>& windowList, bool alignLeft);
 
 #pragma region swap_row
 	inline void SwapRow(QTableWidget* p, QListWidget* p2, int selectRow, int targetRow)

@@ -1102,6 +1102,7 @@ void Interpreter::openLibsUTF8()
 	registerFunction(u8"reg", &Interpreter::reg);
 	registerFunction(u8"timer", &Interpreter::timer);
 	registerFunction(u8"menu", &Interpreter::menu);
+	registerFunction(u8"dofile", &Interpreter::dofile);
 
 	//check
 	registerFunction(u8"ifdaily", &Interpreter::ifdaily);

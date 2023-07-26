@@ -48,7 +48,8 @@ const char* Highlighter::keywords(int set) const
 			"walkpos w dir findpath movetonpc lclick rclick ldbclick dragto warp "
 			"learn trade run dostring sellpet mail reg "
 			"regex upper lower half toint tostr todb replace find full "
-			"bh bj bp bs be bd bi bn bw bwf bwait bend ";
+			"bh bj bp bs be bd bi bn bw bwf bwait bend "
+			"dofile ";
 	}
 	case 3://QsciLexerLua::StringTableMathsFunction//草綠
 	{

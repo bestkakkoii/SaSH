@@ -1091,7 +1091,8 @@ qint64 Interpreter::set(qint64 currentline, const TokenMap& TK)
 		{
 			injector.setValueHash(util::kBattleCatchTargetMagicHpValue, value);
 			injector.setValueHash(util::kBattleCatchPlayerMagicValue, value2);
-		}else if (type == util::kBattleMagicMpEnable && ok)
+		}
+		else if (type == util::kBattleMagicMpEnable && ok)
 		{
 			injector.setValueHash(util::kBattleMagicMpMagicValue, value);
 			injector.setValueHash(util::kBattleMagicMpValue, value2);
@@ -1666,6 +1667,26 @@ qint64 Interpreter::ocr(qint64 currentline, const TokenMap& TK)
 		}
 	}
 #endif
+
+	return Parser::kNoChange;
+}
+
+#include "script_lua/clua.h"
+qint64 Interpreter::dofile(qint64 currentline, const TokenMap& TK)
+{
+	QString fileName = "";
+	checkString(TK, 1, &fileName);
+	if (fileName.isEmpty())
+		return Parser::kArgError;
+
+	QString content;
+	bool isPrivate = false;
+	if (!util::readFile(fileName, &content, &isPrivate))
+		return Parser::kArgError;
+
+	CLua lua(content);
+	lua.start();
+	lua.wait();
 
 	return Parser::kNoChange;
 }

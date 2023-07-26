@@ -1440,6 +1440,11 @@ color: rgb(208, 208, 208);
            </item>
            <item>
             <property name="text">
+             <string>dofile</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
              <string>dlg</string>
             </property>
            </item>
