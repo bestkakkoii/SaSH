@@ -331,7 +331,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, DWORD message, LPARAM wParam, LPARAM lParam)
 		SetWindowLongW(g_MainHwnd, GWL_WNDPROC, reinterpret_cast<LONG_PTR>(g_OldWndProc));
 		FreeLibraryAndExitThread(g_hDllModule, 0);
 		return 1;
-}
+	}
 	case kGetModule:
 	{
 		return reinterpret_cast<int>(GetModuleHandleW(nullptr));
@@ -756,37 +756,37 @@ void GameService::Send(const std::string& str)
 //解密跟分析封包流程一般都在外掛端處理，這裡只是為了要在快戰打開時攔截轉場封包，但其實直接攔截EN函數也是一樣的
 int SaDispatchMessage(int fd, char* encoded)
 {
-	int		func = 0, fieldcount = 0;
-	int		iChecksum = 0, iChecksumrecv = 0;
-	std::unique_ptr<char[]> raw(new char[Autil::NETBUFSIZ]());
+	//int		func = 0, fieldcount = 0;
+	//int		iChecksum = 0, iChecksumrecv = 0;
+	//std::unique_ptr<char[]> raw(new char[Autil::NETBUFSIZ]());
 
-	Autil::util_DecodeMessage(raw.get(), Autil::NETBUFSIZ, encoded);
-	Autil::util_SplitMessage(raw.get(), Autil::NETBUFSIZ, const_cast<char*>(Autil::SEPARATOR));
-	if (Autil::util_GetFunctionFromSlice(&func, &fieldcount) != 1)
-	{
-		return 0;
-	}
+	//Autil::util_DecodeMessage(raw.get(), Autil::NETBUFSIZ, encoded);
+	//Autil::util_SplitMessage(raw.get(), Autil::NETBUFSIZ, const_cast<char*>(Autil::SEPARATOR));
+	//if (Autil::util_GetFunctionFromSlice(&func, &fieldcount) != 1)
+	//{
+	//	return 0;
+	//}
 
-	//std::cout << "fun: " << std::to_string(func) << " fieldcount: " << std::to_string(fieldcount) << std::endl;
+	////std::cout << "fun: " << std::to_string(func) << " fieldcount: " << std::to_string(fieldcount) << std::endl;
 
-	auto CHECKFUN = [&func](int cmpfunc) -> bool { return (func == cmpfunc); };
+	//auto CHECKFUN = [&func](int cmpfunc) -> bool { return (func == cmpfunc); };
 
-	if (CHECKFUN(Autil::LSSPROTO_EN_RECV) /*Battle EncountFlag //開始戰鬥 7*/)
-	{
-		Autil::SliceCount = 0;
-		return 2;
-	}
-	else if (CHECKFUN(Autil::LSSPROTO_CLIENTLOGIN_RECV)/*選人畫面 72*/)
-	{
-		return 0;
-	}
-	else if (CHECKFUN(Autil::LSSPROTO_CHARLIST_RECV)/*選人頁面資訊 80*/)
-	{
-		return 0;
-	}
+	//case Autil::LSSPROTO_EN_RECV) /*Battle EncountFlag //開始戰鬥 7*/)
+	//{
+	//	Autil::SliceCount = 0;
+	//	return 2;
+	//}
+	//else case Autil::LSSPROTO_CLIENTLOGIN_RECV)/*選人畫面 72*/)
+	//{
+	//	return 0;
+	//}
+	//else case Autil::LSSPROTO_CHARLIST_RECV)/*選人頁面資訊 80*/)
+	//{
+	//	return 0;
+	//}
 
-	Autil::SliceCount = 0;
-	return 1;
+	//Autil::SliceCount = 0;
+	//return 1;
 }
 #endif
 
