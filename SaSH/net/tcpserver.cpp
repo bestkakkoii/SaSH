@@ -7046,8 +7046,8 @@ void Server::sortItem()
 			if (pc.maxload != 0 && pc.item[j].pile >= pc.maxload)
 				continue;
 
-			//if (!isItemStackable(pc.item[i].sendFlag))
-			//	continue;
+			if (!isItemStackable(pc.item[i].sendFlag))
+				continue;
 
 			if (!pc.item[i].name.isEmpty()
 				&& (pc.item[i].name == pc.item[j].name)
