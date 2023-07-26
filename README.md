@@ -10,7 +10,7 @@ This project is only for academic purposes, commercial use is prohibited.
 You are prohibited to publish this project elsewhere.
 However we make no promises to your game accounts and so you have to use this project at your own risk, including taking any damage to your accounts from scripts and binaries.
 
-### 特別聲明 
+### 特別聲明
 本項目僅供學習交流，禁止用於商業用途。
 本項目內的所有資源文件和程序，禁止在 GitHub/lovesa論壇 以外的任何地方進行轉載或發布。
 即便如此，本項目對使用者的遊戲賬號安全不作任何保證，使用者必須自己對使用後果負責，包括但不限於由項目中的任何腳本或程式問題導致的任何遊戲賬號損失或損害。
@@ -197,3 +197,17 @@ Regardless of the limitations of C++ or other factors, avoid directly handling c
 #### 嚴守的規則
 
 不管是基於C++本身的限制也好，或其他因素，嚴禁在UI內直接處理太過複雜的邏輯，或在其他線程直接操作UI，請一律交由 signaldispatcher.h 透過信號槽處理
+
+#### 調試編譯問題
+
+1. 大陸用戶可使用鏡像安裝QT，如： .\qt-unified-windows-x64-4.6.0-online.exe --mirror http://mirrors.tuna.tsinghua.edu.cn/qt
+
+2. 缺少DLL時，需要將 SaSH_dbg_package.7z 中的內容，解壓拷貝到Debug和Release下。
+
+3. 需要將 SaSH\SaSH\injector.cpp 中 266行
+    dllPath = R"(YourPath\Debug\sadll.dll)";
+    改為自己的絕對路徑。
+
+4. 需要將 使用Linguist編譯好的qm翻譯文件放到 SaSH\translations 中。
+
+5. 使用腳本IDE需要拷貝外掛釋放版本中的lib到Debug和Realease目錄中。

@@ -1757,7 +1757,7 @@ void ScriptSettingForm::on_treeWidget_functionList_itemSelectionChanged()
 			break;
 		}
 #ifdef _DEBUG
-		QString mdFullPath = R"(D:\Users\bestkakkoii\Desktop\SaSH_x86\lib\doc)";
+		QString mdFullPath = R"(..\Debug\lib\doc)";
 #else
 		QString mdFullPath = QString("%1/lib/doc").arg(QCoreApplication::applicationDirPath());
 #endif
