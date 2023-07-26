@@ -1067,6 +1067,7 @@ qint64 Interpreter::set(qint64 currentline, const TokenMap& TK)
 	//0:close >1:open two qint64 value
 	switch (type)
 	{
+	case util::kBattleMagicMpEnable:
 	case util::kBattleCatchPlayerMagicEnable:
 	{
 		qint64 value = 0;
@@ -1090,6 +1091,11 @@ qint64 Interpreter::set(qint64 currentline, const TokenMap& TK)
 		{
 			injector.setValueHash(util::kBattleCatchTargetMagicHpValue, value);
 			injector.setValueHash(util::kBattleCatchPlayerMagicValue, value2);
+		}else if (type == util::kBattleMagicMpEnable && ok)
+		{
+			injector.setValueHash(util::kBattleMagicMpMagicValue, value);
+			injector.setValueHash(util::kBattleMagicMpValue, value2);
+			break;
 		}
 		emit signalDispatcher.applyHashSettingsToUI();
 		return Parser::kNoChange;
