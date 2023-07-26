@@ -2984,6 +2984,7 @@ void Server::lssproto_B_recv(char* ccommand)
 
 		bt.player.pos = BattleMyNo;
 		pc.mp = BattleMyMp;
+		pc.mpPercent = util::percent(pc.mp, pc.maxMp);
 		setBattleData(bt);
 		updateCurrentSideRange(bt);
 		isEnemyAllReady.store(false, std::memory_order_release);
@@ -11581,7 +11582,7 @@ void Server::handlePlayerBattleLogics()
 		if (itemIndex == -1)
 			break;
 
-		target = -1;
+		target = 0;
 		if (fixPlayerTargetByItemIndex(itemIndex, tempTarget, &target) && (target == BattleMyNo))
 		{
 			sendBattlePlayerItemAct(itemIndex, target);

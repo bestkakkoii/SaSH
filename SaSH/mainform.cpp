@@ -975,7 +975,7 @@ void MainForm::resetControlTextLanguage()
 	default:
 		translator_.load(QString("%1/translations/qt_en_US.qm").arg(QApplication::applicationDirPath()));
 		break;
-}
+	}
 #else
 	switch (acp)
 	{
