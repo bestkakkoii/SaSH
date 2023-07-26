@@ -71,6 +71,9 @@
     <Filter Include="Source Files\update">
       <UniqueIdentifier>{b4e70ffc-60fb-407b-ac92-f64e44b5259b}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\script_lua">
+      <UniqueIdentifier>{583cb0c4-32dc-4b00-b31a-7ff9bbcff365}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <QtRcc Include="resource.qrc">
@@ -237,6 +240,9 @@
     <ClCompile Include="model\gdatatime.cpp">
       <Filter>Source Files\model</Filter>
     </ClCompile>
+    <ClCompile Include="script_lua\clua.cpp">
+      <Filter>Source Files\script_lua</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="mainform.h">
@@ -343,6 +349,9 @@
     </QtMoc>
     <QtMoc Include="model\qthumbnailwidget.h">
       <Filter>Source Files\model</Filter>
+    </QtMoc>
+    <QtMoc Include="script_lua\clua.h">
+      <Filter>Source Files\script_lua</Filter>
     </QtMoc>
   </ItemGroup>
   <ItemGroup>

@@ -67,7 +67,7 @@
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
-      <AdditionalIncludeDirectories>$(SolutionDir)$(ProjectName);$(SolutionDir)$(ProjectName)\include;$(SolutionDir)$(ProjectName)\model;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)$(ProjectName);$(SolutionDir)$(ProjectName)\include;$(SolutionDir)$(ProjectName)\include\lua;$(SolutionDir)$(ProjectName)\model;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <WarningLevel>Level3</WarningLevel>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <ExceptionHandling>Async</ExceptionHandling>
@@ -96,7 +96,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
-      <AdditionalIncludeDirectories>$(SolutionDir)$(ProjectName);$(SolutionDir)$(ProjectName)\include;$(SolutionDir)$(ProjectName)\model;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)$(ProjectName);$(SolutionDir)$(ProjectName)\include;$(SolutionDir)$(ProjectName)\include\lua;$(SolutionDir)$(ProjectName)\model;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <WarningLevel>Level3</WarningLevel>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <AssemblerOutput>All</AssemblerOutput>
@@ -203,6 +203,7 @@
     <ClCompile Include="script\move.cpp" />
     <ClCompile Include="script\parser.cpp" />
     <ClCompile Include="script\system.cpp" />
+    <ClCompile Include="script_lua\clua.cpp" />
     <ClCompile Include="update\curldownload.cpp" />
     <ClCompile Include="update\qdownloader.cpp" />
     <ClCompile Include="util.cpp" />
@@ -248,6 +249,7 @@
     <ClInclude Include="resource1.h" />
     <ClInclude Include="script\lexer.h" />
     <QtMoc Include="script\parser.h" />
+    <QtMoc Include="script_lua\clua.h" />
     <ClInclude Include="update\curldownload.h" />
     <QtMoc Include="update\qdownloader.h" />
     <ClInclude Include="util.h" />
