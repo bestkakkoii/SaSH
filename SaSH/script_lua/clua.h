@@ -86,6 +86,8 @@ namespace luadebug
 
 	void checkStopAndPause(const sol::this_state& s);
 
+	//遞歸獲取每一層目錄
+	void getPackagePath(const QString base, QStringList* result);
 
 	//從錯誤訊息中擷取行號
 	static const QRegularExpression rexGetLine(R"(at[\s]*line[\s]*(\d+))");

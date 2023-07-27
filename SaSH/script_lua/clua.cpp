@@ -180,6 +180,23 @@ void luadebug::hookProc(lua_State* L, lua_Debug* ar)
 	}
 }
 
+//遞歸獲取每一層目錄
+void luadebug::getPackagePath(const QString base, QStringList* result)
+{
+	QDir dir(base);
+	if (!dir.exists())
+		return;
+	dir.setFilter(QDir::Dirs | QDir::NoDotAndDotDot);
+	dir.setSorting(QDir::DirsFirst);
+	QFileInfoList list = dir.entryInfoList();
+	for (int i = 0; i < list.size(); ++i)
+	{
+		QFileInfo fileInfo = list.at(i);
+		result->append(fileInfo.filePath());
+		getPackagePath(fileInfo.filePath(), result);
+	}
+}
+
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 CLua::CLua(QObject* parent)
@@ -313,9 +330,23 @@ void CLua::proc()
 			collectgarbage("step", 1024);
 		)");
 
-
 		//回收垃圾
 		lua_.collect_garbage();
+
+		//Add additional package path.
+		QStringList paths;
+		std::string package_path = lua_["package"]["path"];
+		paths.append(QString::fromUtf8(package_path.c_str()).replace("\\", "/"));
+
+		QStringList dirs;
+		luadebug::getPackagePath(QCoreApplication::applicationDirPath() + "/", &dirs);
+		for (const QString& it : dirs)
+		{
+			QString path = it + "/?.lua";
+			paths.append(path.replace("\\", "/"));
+		}
+
+		lua_["package"]["path"] = std::string(paths.join(";").toUtf8().constData());
 
 #ifdef OPEN_HOOK
 		lua_sethook(L, (lua_Hook)&luadebug::hookProc, LUA_MASKLINE | LUA_MASKCALL | LUA_MASKRET, NULL);// | LUA_MASKCOUNT 
