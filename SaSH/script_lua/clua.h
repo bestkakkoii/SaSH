@@ -119,6 +119,14 @@ public:
 	CLua(const QString& content, QObject* parent = nullptr);
 	virtual ~CLua();
 
+	void start();
+	void wait();
+
+signals:
+	void finished();
+
+private slots:
+	void proc();
 
 private:
 	void open_enumlibs();
