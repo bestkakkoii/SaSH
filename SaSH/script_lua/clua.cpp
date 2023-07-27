@@ -313,6 +313,7 @@ void CLua::proc()
 			collectgarbage("step", 1024);
 		)");
 
+
 		//回收垃圾
 		lua_.collect_garbage();
 
