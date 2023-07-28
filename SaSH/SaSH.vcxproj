@@ -204,6 +204,7 @@
     <ClCompile Include="script\parser.cpp" />
     <ClCompile Include="script\system.cpp" />
     <ClCompile Include="script_lua\clua.cpp" />
+    <ClCompile Include="script_lua\luasystem.cpp" />
     <ClCompile Include="update\curldownload.cpp" />
     <ClCompile Include="update\qdownloader.cpp" />
     <ClCompile Include="util.cpp" />

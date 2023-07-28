@@ -85,6 +85,12 @@ namespace luadebug
 	void tryPopCustomErrorMsg(const sol::this_state& s, const LUA_ERROR_TYPE element, const QVariant& p1 = 0, const QVariant& p2 = 0, const QVariant& p3 = 0, const QVariant& p4 = 0);
 
 	void checkStopAndPause(const sol::this_state& s);
+	bool checkBattleThenWait(const sol::this_state& s);
+
+	bool isInterruptionRequested(const sol::this_state& s);
+
+	//根據傳入function的循環執行結果等待超時或條件滿足提早結束
+	bool waitfor(const sol::this_state& s, qint64 timeout, std::function<bool()> exprfun);
 
 	//遞歸獲取每一層目錄
 	void getPackagePath(const QString base, QStringList* result);
@@ -112,6 +118,34 @@ private:
 	lua_Integer a_ = 0;
 };
 
+class CLuaSystem
+{
+public:
+	CLuaSystem() = default;
+	~CLuaSystem() = default;
+
+	lua_Integer sleep(lua_Integer value, sol::this_state s);
+	lua_Integer logout(sol::this_state s);
+	lua_Integer logback(sol::this_state s);
+	lua_Integer eo(sol::this_state s);
+	lua_Integer announce(sol::object ostr, sol::this_state s);
+	lua_Integer announce(sol::object ostr, lua_Integer color, sol::this_state s);
+	lua_Integer announce(std::string format, sol::object ostr, lua_Integer color, sol::this_state s);
+	lua_Integer messagebox(sol::object ostr, sol::this_state s);
+	lua_Integer talk(sol::object ostr, sol::this_state s);
+	lua_Integer cleanchat(sol::this_state s);
+	lua_Integer menu(lua_Integer index, sol::this_state s);
+	lua_Integer menu(lua_Integer type, lua_Integer index, sol::this_state s);
+	lua_Integer savesetting(const std::string& fileName, sol::this_state s);
+	lua_Integer loadsetting(const std::string& fileName, sol::this_state s);
+
+	lua_Integer press(const std::string& buttonStr, sol::object onpcName, sol::object odlgId, sol::this_state s);
+	lua_Integer press(lua_Integer row, sol::object onpcName, sol::object odlgId, sol::this_state s);
+	lua_Integer input(const std::string& str, sol::object onpcName, sol::object odlgId, sol::this_state s);
+
+	lua_Integer set(lua_Integer enumInt, sol::object p1, sol::object p2, sol::object p3, sol::object p4, sol::object p5, sol::object p6, sol::object p7, sol::this_state s);
+};
+
 class CLua : public ThreadPlugin
 {
 	Q_OBJECT
@@ -133,6 +167,7 @@ private slots:
 private:
 	void open_enumlibs();
 	void open_testlibs();
+	void open_systemlibs();
 
 private:
 	sol::state lua_;
@@ -144,4 +179,7 @@ private:
 	QString scriptContent_;
 	bool isSubScript_ = false;
 	bool isDebug_ = false;
+
+private:
+	CLuaSystem luaSystem_;
 };

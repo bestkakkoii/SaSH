@@ -2,6 +2,7 @@
 #include "clua.h"
 
 #include "signaldispatcher.h"
+#include "injector.h"
 
 
 #if QT_NO_DEBUG
@@ -122,6 +123,16 @@ QString luadebug::getErrorMsgLocatedLine(const QString& str, int* retline)
 	return cmpstr;
 }
 
+bool luadebug::isInterruptionRequested(const sol::this_state& s)
+{
+	sol::state_view lua(s.lua_state());
+	CLua* pLua = lua["_THIS"].get<CLua*>();
+	if (pLua == nullptr)
+		return false;
+
+	return pLua->isInterruptionRequested();
+}
+
 void luadebug::checkStopAndPause(const sol::this_state& s)
 {
 	sol::state_view lua(s.lua_state());
@@ -136,6 +147,39 @@ void luadebug::checkStopAndPause(const sol::this_state& s)
 		return;
 	}
 	pLua->checkPause();
+}
+
+bool luadebug::checkBattleThenWait(const sol::this_state& s)
+{
+	checkStopAndPause(s);
+
+	Injector& injector = Injector::getInstance();
+	bool bret = false;
+	if (injector.server->getBattleFlag())
+	{
+		QElapsedTimer timer; timer.start();
+		bret = true;
+		for (;;)
+		{
+			if (isInterruptionRequested(s))
+				break;
+
+			if (!injector.server.isNull())
+				break;
+
+			checkStopAndPause(s);
+
+			if (!injector.server->getBattleFlag())
+				break;
+			if (timer.hasExpired(180000))
+				break;
+
+			QThread::msleep(100);
+		}
+
+		QThread::msleep(500);
+	}
+	return bret;
 }
 
 //lua函數鉤子 這裡主要用於控制 暫停、終止腳本、獲取棧數據、變量數據...或其他操作
@@ -195,6 +239,39 @@ void luadebug::getPackagePath(const QString base, QStringList* result)
 		result->append(fileInfo.filePath());
 		getPackagePath(fileInfo.filePath(), result);
 	}
+}
+
+//根據傳入function的循環執行結果等待超時或條件滿足提早結束
+bool luadebug::waitfor(const sol::this_state& s, qint64 timeout, std::function<bool()> exprfun)
+{
+	if (timeout < 0)
+		timeout = std::numeric_limits<qint64>::max();
+
+	Injector& injector = Injector::getInstance();
+	bool bret = false;
+	QElapsedTimer timer; timer.start();
+	for (;;)
+	{
+		checkStopAndPause(s);
+
+		if (isInterruptionRequested(s))
+			break;
+
+		if (timer.hasExpired(timeout))
+			break;
+
+		if (injector.server.isNull())
+			break;
+
+		if (exprfun())
+		{
+			bret = true;
+			break;
+		}
+
+		QThread::msleep(100);
+	}
+	return bret;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -293,6 +370,43 @@ void CLua::open_testlibs()
 	*/
 }
 
+//luasystem.cpp
+void CLua::open_systemlibs()
+{
+	sol::usertype<CLuaSystem> sys = lua_.new_usertype<CLuaSystem>("System",
+		sol::call_constructor,
+		sol::constructors<CLuaSystem()>(),
+
+		"sleep", &CLuaSystem::sleep,
+		"logout", &CLuaSystem::logout,
+		"logback", &CLuaSystem::logback,
+		"eo", &CLuaSystem::eo,
+		"print", sol::overload(
+			sol::resolve<lua_Integer(sol::object ostr, sol::this_state s)>(&CLuaSystem::announce),
+			sol::resolve<lua_Integer(sol::object ostr, lua_Integer color, sol::this_state s)>(&CLuaSystem::announce),
+			sol::resolve<lua_Integer(std::string format, sol::object ostr, lua_Integer color, sol::this_state s)>(&CLuaSystem::announce)
+		),
+
+		"msg", &CLuaSystem::messagebox,
+		"say", &CLuaSystem::talk,
+		"cls", &CLuaSystem::cleanchat,
+		"menu", sol::overload(
+			sol::resolve<lua_Integer(lua_Integer index, sol::this_state s)>(&CLuaSystem::menu),
+			sol::resolve<lua_Integer(lua_Integer type, lua_Integer index, sol::this_state s)>(&CLuaSystem::menu)
+		),
+
+		"saveset", &CLuaSystem::savesetting,
+		"loadset", &CLuaSystem::loadsetting,
+		"button", sol::overload(
+			sol::resolve<lua_Integer(const std::string & buttonStr, sol::object onpcName, sol::object odlgId, sol::this_state s)>(&CLuaSystem::press),
+			sol::resolve<lua_Integer(lua_Integer row, sol::object onpcName, sol::object odlgId, sol::this_state s)>(&CLuaSystem::press)
+		),
+
+		"input", &CLuaSystem::input,
+		"set", &CLuaSystem::set
+	);
+}
+
 void CLua::proc()
 {
 	do
@@ -322,6 +436,7 @@ void CLua::proc()
 
 		open_enumlibs();
 		open_testlibs();
+		open_systemlibs();
 
 		//執行短腳本
 		lua_.safe_script(R"(
