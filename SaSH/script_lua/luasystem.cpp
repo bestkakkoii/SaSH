@@ -92,7 +92,7 @@ lua_Integer CLuaSystem::announce(std::string format, sol::object ostr, lua_Integ
 	else if (ostr.is<double>())
 		text = QString::number(ostr.as<double>(), 'f', 16);
 	else if (ostr.is<std::string>())
-		text = QString::fromStdString(ostr.as<std::string>());
+		text = QString::fromUtf8(ostr.as<const char*>());
 	else if (ostr.is<sol::table>())
 	{
 		QStringList list;
@@ -107,7 +107,7 @@ lua_Integer CLuaSystem::announce(std::string format, sol::object ostr, lua_Integ
 			else if (v.second.is<double>())
 				list << QString("%1:%2").arg(v.first.as<lua_Integer>()).arg(v.second.as<double>(), 0, 'f', 16);
 			else if (v.second.is<std::string>())
-				list << QString("%1:%2").arg(v.first.as<lua_Integer>()).arg(QString::fromStdString(v.second.as<std::string>()));
+				list << QString("%1:%2").arg(v.first.as<lua_Integer>()).arg(QString::fromUtf8(v.second.as<const char*>()));
 			else
 				list << "(invalid type)";
 		}
