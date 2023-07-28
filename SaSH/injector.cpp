@@ -260,11 +260,9 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 
 	do
 	{
-#if QT_NO_DEBUG
+
 		dllPath = QCoreApplication::applicationDirPath() + "/" + InjectDllName;
-#else
-		dllPath = R"(YourPath\Debug\sadll.dll)";
-#endif
+
 		fi.setFile(dllPath);
 		fileNameOnly = fi.fileName();
 

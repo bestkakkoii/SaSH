@@ -286,11 +286,12 @@ CLua::CLua(const QString& content, QObject* parent)
 	: ThreadPlugin(parent)
 	, scriptContent_(content)
 {
-
+	qDebug() << "CLua";
 }
 
 CLua::~CLua()
 {
+	qDebug() << "~CLua";
 }
 
 void CLua::start()
@@ -299,15 +300,22 @@ void CLua::start()
 	if (nullptr == thread_)
 		return;
 
+	moveToThread(thread_);
+
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
 	connect(this, &CLua::finished, thread_, &QThread::quit);
 	connect(thread_, &QThread::finished, thread_, &QThread::deleteLater);
 	connect(thread_, &QThread::started, this, &CLua::proc);
 	connect(this, &CLua::finished, this, [this]()
 		{
+			requestInterruption();
+			thread_->requestInterruption();
+			thread_->quit();
+			thread_->wait();
 			thread_ = nullptr;
-			qDebug() << "Interpreter::finished";
+			qDebug() << "CLua::finished";
 		});
+
 
 	thread_->start();
 }
@@ -464,11 +472,11 @@ void CLua::proc()
 		lua_["package"]["path"] = std::string(paths.join(";").toUtf8().constData());
 
 #ifdef OPEN_HOOK
-		lua_sethook(L, (lua_Hook)&luadebug::hookProc, LUA_MASKLINE | LUA_MASKCALL | LUA_MASKRET, NULL);// | LUA_MASKCOUNT 
+		lua_sethook(L, &luadebug::hookProc, LUA_MASKLINE | LUA_MASKCALL | LUA_MASKRET, NULL);// | LUA_MASKCOUNT 
 #endif
 
 		QStringList tableStrs;
-		std::string luaCode = scriptContent_.toStdString();
+		std::string luaCode = scriptContent_.toUtf8();
 
 		//安全模式下執行lua腳本
 		sol::protected_function_result loaded_chunk = lua_.safe_script(luaCode.c_str(), sol::script_pass_on_error);
@@ -627,5 +635,5 @@ void CLua::proc()
 		//QLuaDebuger::logMessageExportEx(s, table);
 	} while (false);
 
-
+	emit finished();
 }
