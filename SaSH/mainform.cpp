@@ -980,15 +980,15 @@ void MainForm::resetControlTextLanguage()
 	switch (acp)
 	{
 	case 936:
-		translator_.load(R"(translations\qt_zh_CN.qm)");
+		translator_.load(R"(E:\test\SaSH-master (1)\SaSH\translations\qt_zh_CN.qm)");
 		break;
 		//English
 	case 950:
-		translator_.load(R"(translations\qt_zh_TW.qm)");
+		translator_.load(R"(E:\test\SaSH-master (1)\SaSH\translations\qt_zh_TW.qm)");
 		break;
 		//Chinese
 	default:
-		translator_.load(R"(translations\qt_en_US.qm)");
+		translator_.load(R"(E:\test\SaSH-master (1)\SaSH\translations\qt_zh_TW.qm)");
 		break;
 	}
 #endif
