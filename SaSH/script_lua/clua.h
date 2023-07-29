@@ -131,7 +131,7 @@ public:
 	lua_Integer announce(sol::object ostr, sol::this_state s);
 	lua_Integer announce(sol::object ostr, lua_Integer color, sol::this_state s);
 	lua_Integer announce(std::string format, sol::object ostr, lua_Integer color, sol::this_state s);
-	lua_Integer messagebox(sol::object ostr, sol::this_state s);
+	lua_Integer messagebox(sol::object ostr, sol::object otype, sol::this_state s);
 	lua_Integer talk(sol::object ostr, sol::this_state s);
 	lua_Integer cleanchat(sol::this_state s);
 	lua_Integer menu(lua_Integer index, sol::this_state s);

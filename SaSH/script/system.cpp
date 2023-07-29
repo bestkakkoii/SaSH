@@ -935,13 +935,13 @@ qint64 Interpreter::set(qint64 currentline, const TokenMap& TK)
 		{
 			injector.setEnableHash(util::kAutoBattleEnable, !ok);
 			if (ok)
-				injector.server->asyncBattleAction();
+				injector.server->asyncBattleWork(false);//async
 		}
 		else if (type == util::kAutoBattleEnable && ok)
 		{
 			injector.setEnableHash(util::kFastBattleEnable, !ok);
 			if (ok)
-				injector.server->asyncBattleAction();
+				injector.server->asyncBattleWork(false);//async
 		}
 		else if (type == util::kAutoWalkEnable && ok)
 			injector.setEnableHash(util::kFastWalkEnable, !ok);

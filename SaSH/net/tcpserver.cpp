@@ -435,7 +435,7 @@ void Server::onClientReadyRead()
 				int value = mem::read<short>(injector.getProcess(), injector.getProcessModule() + 0xE21E4);
 				announce(QString("[async battle] 战斗面板生成了 类别:%1").arg(value));
 				isBattleDialogReady.store(true, std::memory_order_release);
-				asyncBattleWork(true);
+				asyncBattleWork(true);//sync
 				return;
 			}
 			else if (preStr.startsWith("dk|"))
@@ -3100,7 +3100,7 @@ void Server::lssproto_B_recv(char* ccommand)
 		}
 		setBattleData(bt);
 
-		asyncBattleWork(true);
+		asyncBattleWork(true);//sync
 	}
 	else if (first == "U")
 	{
@@ -7091,7 +7091,7 @@ void Server::sortItem()
 	QMutexLocker lock(&swapItemMutex);
 
 	int j = 0;
-	for (int i = MAX_ITEM - 1; i > CHAR_EQUIPPLACENUM; i--)
+	for (int i = MAX_ITEM - 1; i > CHAR_EQUIPPLACENUM; --i)
 	{
 		for (j = CHAR_EQUIPPLACENUM; j < i; ++j)
 		{
@@ -7101,8 +7101,8 @@ void Server::sortItem()
 			if (pc.maxload != 0 && pc.item[j].pile >= pc.maxload)
 				continue;
 
-			//if (!isItemStackable(pc.item[i].sendFlag))
-			//	continue;
+			if (!isItemStackable(pc.item[i].sendFlag))
+				continue;
 
 			if (!pc.item[i].name.isEmpty()
 				&& (pc.item[i].name == pc.item[j].name)
@@ -10762,7 +10762,12 @@ inline bool Server::checkFlagState(int pos)
 void Server::asyncBattleWork(bool wait)
 {
 	QMutexLocker lock(&ayncBattleCommandMutex);
-	asyncBattleAction();
+
+	if (wait)
+		asyncBattleAction();
+	else
+		QtConcurrent::run(this, &Server::asyncBattleAction);
+
 	//Injector& injector = Injector::getInstance();
 	//bool FastCheck = injector.getEnableHash(util::kFastBattleEnable);
 	//bool normalCheck = injector.getEnableHash(util::kAutoBattleEnable);

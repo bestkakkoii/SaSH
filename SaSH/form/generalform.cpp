@@ -628,7 +628,7 @@ void GeneralForm::onCheckBoxStateChanged(int state)
 		injector.setEnableHash(util::kFastBattleEnable, isChecked);
 		if (!bOriginal && isChecked && !injector.server.isNull())
 		{
-			injector.server->asyncBattleWork(false);
+			injector.server->asyncBattleWork(false);//async
 		}
 		return;
 	}
@@ -644,7 +644,7 @@ void GeneralForm::onCheckBoxStateChanged(int state)
 		injector.setEnableHash(util::kAutoBattleEnable, isChecked);
 		if (!bOriginal && isChecked && !injector.server.isNull())
 		{
-			injector.server->asyncBattleWork(false);
+			injector.server->asyncBattleWork(false);//async
 		}
 
 		return;
