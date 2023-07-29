@@ -2681,8 +2681,7 @@ void Server::lssproto_B_recv(char* ccommand)
 		bt.player = {};
 		bt.objects.clear();
 		bt.objects.resize(MAX_ENEMY);
-		bt.charAlreadyAction = false;
-		bt.charAlreadyAction = false;
+
 		int i = 0;
 		int n = 0;
 		bt.fieldAttr = getIntegerToken(data, "|", 1);
@@ -3038,8 +3037,6 @@ void Server::lssproto_B_recv(char* ccommand)
 		bt.player.pos = BattleMyNo;
 		pc.mp = BattleMyMp;
 		pc.mpPercent = util::percent(pc.mp, pc.maxMp);
-		bt.charAlreadyAction = false;
-		bt.charAlreadyAction = false;
 		setBattleData(bt);
 		updateCurrentSideRange(bt);
 		isEnemyAllReady.store(false, std::memory_order_release);
@@ -10856,7 +10853,7 @@ void Server::asyncBattleAction()
 	bool normalChecked = injector.getEnableHash(util::kAutoBattleEnable) || (fastChecked && getWorldStatus() == 10);
 	if (normalChecked && !checkGW(10, 4))
 	{
-		announce("[async battle] 画面不对,当前游戏状态[%1]，画面状态[%2].arg(getWorldStatus()).arg(getGameStatus())", 7);
+		announce("[async battle] 画面不对", 7);
 		return;
 	}
 
@@ -10905,52 +10902,79 @@ void Server::asyncBattleAction()
 		isEnemyAllReady.store(false, std::memory_order_release);
 	};
 
-	battledata_t bt = getBattleData();
-	//人物和宠物分开发 TODO 修正多个BA人物多次发出战斗指令的问题
-	if (!checkFlagState(BattleMyNo) && !bt.charAlreadyAction)
+	battledata_t bt = {};
+
+	//人物和宠物分开发
+	if (!checkFlagState(BattleMyNo))
 	{
+		bt = getBattleData();
 		announce(QString("[async battle] 准备发出人物战斗指令"));
-		delay(u8"人物");
-		//解析人物战斗逻辑并发送指令
-		playerDoBattleWork();
-		announce("[async battle] 人物战斗指令发送完毕");
-		bt.charAlreadyAction = true;
+		if (!hasUnMoveableStatue(bt.player.status))
+		{
+			delay(u8"人物");
+
+			//解析人物战斗逻辑并发送指令
+			if (playerDoBattleWork() == 1)
+			{
+				announce("[async battle] 人物战斗指令发送完毕");
+				if (pc.battlePetNo == -1)
+				{
+					setCurrentRoundEnd();
+					return;
+				}
+			}
+			else
+				announce("[async battle] 人物战斗指令发送失败", 7);
+		}
+		else
+		{
+			announce("[async battle] 人物在不可动作的异常状态中", 6);
+			sendBattlePlayerDoNothing();
+			announce("[async battle] 人物战斗指令发送完毕");
+			if (pc.battlePetNo == -1)
+			{
+				setCurrentRoundEnd();
+				return;
+			}
+		}
 	}
 	else
 		announce("[async battle] 人物已经出手过了，忽略动作", 7);
 
-	if (pc.battlePetNo < 0 || pc.battlePetNo >= MAX_PET)
+	if (pc.battlePetNo >= 0 && pc.battlePetNo < MAX_PET)
 	{
-		announce("[async battle] 无战宠，忽略战宠动作", 7);
-		bt.petAlreadyAction = true;
-		setCurrentRoundEnd();
-		return;
-	}
-
-	//TODO 修正宠物指令在多个BA时候重复发送的问题
-	if (!checkFlagState(BattleMyNo + 5) && !bt.petAlreadyAction)
-	{
-		announce(QString("[async battle] 准备发出宠物战斗指令"));
-		petDoBattleWork();
-		announce("[async battle] 宠物战斗指令发送完毕");
-		bt.petAlreadyAction = true;
-		setCurrentRoundEnd();
+		if (!checkFlagState(BattleMyNo + 5))
+		{
+			bt = getBattleData();
+			announce(QString("[async battle] 准备发出宠物战斗指令"));
+			if (!hasUnMoveableStatue(bt.pet.status))
+			{
+				if (petDoBattleWork() == 1)
+				{
+					announce("[async battle] 宠物战斗指令发送完毕");
+					setCurrentRoundEnd();
+				}
+				else
+					announce("[async battle] 宠物战斗指令发送失败", 7);
+			}
+			else
+			{
+				announce("[async battle] 宠物在不可动作的异常状态中", 6);
+				sendBattlePetDoNothing();
+				announce("[async battle] 宠物战斗指令发送完毕");
+				setCurrentRoundEnd();
+			}
+		}
+		else
+			announce("[async battle] 宠物已经出手过了，忽略动作", 7);
 	}
 	else
-		announce("[async battle] 宠物已经出手过了，忽略动作", 7);
-	return;
+		announce("[async battle] 无战宠，忽略战宠动作", 7);
 }
 
 //人物戰鬥
 int Server::playerDoBattleWork()
 {
-	battledata_t bt = getBattleData();
-	if (hasUnMoveableStatue(bt.player.status))
-	{
-		sendBattlePlayerDoNothing();
-		announce("[async battle] 人物在不可动作的异常状态中，指令发送完毕", 6);
-		return 1;
-	}
 	Injector& injector = Injector::getInstance();
 	do
 	{
@@ -10968,7 +10992,7 @@ int Server::playerDoBattleWork()
 	//if (pc.battlePetNo < 0 || pc.battlePetNo >= MAX_PET)
 	//	mem::writeInt(injector.getProcess(), injector.getProcessModule() + 0xE21E4, 0, sizeof(short));
 	//else
-	//	
+	//
 
 	//
 	return 1;
@@ -10979,12 +11003,12 @@ int Server::petDoBattleWork()
 {
 	if (pc.battlePetNo < 0 || pc.battlePetNo >= MAX_PET)
 		return 0;
-	battledata_t bt = getBattleData();
+
 	Injector& injector = Injector::getInstance();
 	do
 	{
 		//自動逃跑
-		if (hasUnMoveableStatue(bt.pet.status) || injector.getEnableHash(util::kAutoEscapeEnable) || petEscapeEnableTempFlag)
+		if (injector.getEnableHash(util::kAutoEscapeEnable) || petEscapeEnableTempFlag)
 		{
 			sendBattlePetDoNothing();
 			break;

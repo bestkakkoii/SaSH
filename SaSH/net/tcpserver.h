@@ -1638,8 +1638,7 @@ typedef struct battledata_s
 	QVector<battleobject_t> objects;
 	QVector<battleobject_t> allies;
 	QVector<battleobject_t> enemies;
-	bool charAlreadyAction = false;
-	bool petAlreadyAction = false;
+
 } battledata_t;
 
 

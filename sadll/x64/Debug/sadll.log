@@ -1,0 +1,2 @@
+﻿  pch.cpp
+E:\test\SaSH-master (1)\SaSH\sadll\pch.h(23,10): fatal  error C1083: 无法打开包括文件: “MINT/MINT.h”: No such file or directory
