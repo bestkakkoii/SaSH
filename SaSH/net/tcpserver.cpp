@@ -10761,7 +10761,7 @@ inline bool Server::checkFlagState(int pos)
 //異步處理自動/快速戰鬥邏輯和發送封包
 void Server::asyncBattleWork(bool wait)
 {
-	QMutexLocker lock(&ayncBattleCommandMutex);
+
 
 	if (wait)
 		asyncBattleAction();
@@ -10806,6 +10806,8 @@ void Server::asyncBattleWork(bool wait)
 
 void Server::asyncBattleAction()
 {
+	QMutexLocker lock(&ayncBattleCommandMutex);
+
 	constexpr int MAX_DELAY = 100;
 
 	Injector& injector = Injector::getInstance();
