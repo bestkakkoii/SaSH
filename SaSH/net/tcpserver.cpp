@@ -9507,7 +9507,7 @@ void Server::saMenu(int n)
 	if (getBattleFlag())
 		return;
 
-	lssproto_ShopOk_send(n);
+	lssproto_SaMenu_send(n);
 }
 
 //新菜單封包
