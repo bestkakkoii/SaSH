@@ -1977,7 +1977,7 @@ void Server::swapItemLocal(int from, int to)
 //道具位置交換
 void Server::lssproto_SI_recv(int from, int to)
 {
-	QMutexLocker locker(&swapItemMutex);
+	QMutexLocker locker(&swapItemMutex_);
 	swapItemLocal(from, to);
 	refreshItemInfo(from);
 	refreshItemInfo(to);
@@ -1986,7 +1986,7 @@ void Server::lssproto_SI_recv(int from, int to)
 //道具數據改變
 void Server::lssproto_I_recv(char* cdata)
 {
-	QMutexLocker locker(&swapItemMutex);
+	QMutexLocker locker(&swapItemMutex_);
 	QString data = util::toUnicode(cdata);
 	if (data.isEmpty())
 		return;
@@ -4003,7 +4003,7 @@ void Server::lssproto_MC_recv(int fl, int x1, int y1, int x2, int y2, int tileSu
 	if (data.isEmpty())
 		return;
 
-	QWriteLocker locker(&pointMutex);
+	QWriteLocker locker(&pointMutex_);
 
 	QString showString, floorName;
 
@@ -4070,7 +4070,7 @@ void Server::lssproto_M_recv(int fl, int x1, int y1, int x2, int y2, char* cdata
 	if (data.isEmpty())
 		return;
 
-	QWriteLocker locker(&pointMutex);
+	QWriteLocker locker(&pointMutex_);
 
 	QString showString, floorName, tilestring, partsstring, eventstring, tmp;
 
@@ -6026,7 +6026,7 @@ void Server::lssproto_S_recv(char* cdata)
 	{
 		int i, no;
 		QString temp;
-		QMutexLocker lock(&swapItemMutex);
+		QMutexLocker lock(&swapItemMutex_);
 
 		for (i = 0; i < MAX_ITEM; ++i)
 		{
@@ -7088,7 +7088,7 @@ void Server::sortItem()
 	if (!injector.getEnableHash(util::kAutoStackEnable))
 		return;
 
-	QMutexLocker lock(&swapItemMutex);
+	QMutexLocker lock(&swapItemMutex_);
 
 	int j = 0;
 	for (int i = MAX_ITEM - 1; i > CHAR_EQUIPPLACENUM; --i)
@@ -7965,7 +7965,7 @@ void Server::move(const QPoint& p, const QString& dir)
 	if (p.x() < 0 || p.x() > 1500 || p.y() < 0 || p.y() > 1500)
 		return;
 
-	QWriteLocker locker(&pointMutex);
+	QWriteLocker locker(&pointMutex_);
 
 	std::string sdir = dir.toStdString();
 	lssproto_W2_send(p, const_cast<char*>(sdir.c_str()));
@@ -7983,7 +7983,7 @@ void Server::move(const QPoint& p)
 	if (p.x() < 0 || p.x() > 1500 || p.y() < 0 || p.y() > 1500)
 		return;
 
-	QWriteLocker locker(&pointMutex);
+	QWriteLocker locker(&pointMutex_);
 
 	Injector& injector = Injector::getInstance();
 	injector.sendMessage(Injector::kSetMove, p.x(), p.y());
@@ -10233,7 +10233,7 @@ QPoint Server::getPoint()
 	if (hProcess == 0 || hProcess == INVALID_HANDLE_VALUE)
 		return QPoint{};
 
-	QReadLocker locker(&pointMutex);
+	QReadLocker locker(&pointMutex_);
 	int x = mem::read<int>(hProcess, hModule + kOffestNowX);
 	int y = mem::read<int>(hProcess, hModule + kOffestNowY);
 	return QPoint(x, y);
@@ -10250,7 +10250,7 @@ void Server::setPoint(const QPoint& pos)
 	if (hProcess == 0 || hProcess == INVALID_HANDLE_VALUE)
 		return;
 
-	QWriteLocker locker(&pointMutex);
+	QWriteLocker locker(&pointMutex_);
 	mem::write<int>(hProcess, hModule + kOffestNowX, pos.x());
 	mem::write<int>(hProcess, hModule + kOffestNowY, pos.y());
 }
@@ -10286,7 +10286,7 @@ void Server::updateDatasFromMemory()
 
 	//本来应该一次性读取整个结构体的，但我们不需要这麽多讯息
 	{
-		QMutexLocker locker(&swapItemMutex);
+		QMutexLocker locker(&swapItemMutex_);
 		for (int i = 0; i < MAX_ITEM; ++i)
 		{
 			constexpr int item_offest = 0x184;
@@ -10539,7 +10539,7 @@ void Server::reloadHashVar(const QString& typeStr)
 	}
 	else if (typeStr == "item")
 	{
-		QMutexLocker locker(&swapItemMutex);
+		QMutexLocker locker(&swapItemMutex_);
 		util::SafeHash<int, QHash<QString, QVariant>> _hashitem;
 		for (int i = CHAR_EQUIPPLACENUM; i < MAX_ITEM; ++i)
 		{
@@ -10568,7 +10568,7 @@ void Server::reloadHashVar(const QString& typeStr)
 	}
 	else if (typeStr == "equip")
 	{
-		QMutexLocker locker(&swapItemMutex);
+		QMutexLocker locker(&swapItemMutex_);
 		util::SafeHash<int, QHash<QString, QVariant>> _hashequip;
 		for (int i = 0; i < CHAR_EQUIPPLACENUM; ++i)
 		{

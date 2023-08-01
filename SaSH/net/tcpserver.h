@@ -2585,6 +2585,16 @@ private:
 
 	bool IS_LOCKATTACK_ESCAPE_DISABLE = false;
 
+	QReadWriteLock pointMutex_;//用於保護人物座標更新順序
+	QMutex swapItemMutex_;//用於保護物品數據更新順序
+	mutable QMutex pcMutex_;//用於保護人物數據更新順序
+	PC pc = {};
+
+#ifdef _CHAR_PROFESSION			// WON ADD 人物職業
+	PROFESSION_SKILL profession_skill[MAX_PROFESSION_SKILL];
+#endif
+
+	PET_SKILL petSkill[MAX_PET][MAX_SKILL] = {};
 	//client original
 #pragma region ClientOriginal
 	int  talkMode = 0;						//0:一般 1:密語 2: 隊伍 3:家族 4:職業
@@ -2783,26 +2793,6 @@ public:
 	util::SafeData<currencydata_t> currencyData = {};
 	util::SafeData<customdialog_t> customDialog = {};
 
-	QReadWriteLock pointMutex;//用於保護人物座標更新順序
-	QMutex swapItemMutex;//用於保護物品數據更新順序
-	mutable QMutex pcMutex_;//用於保護人物數據更新順序
-	PC pc = {};
-
-	PET pet[MAX_PET] = {};
-
-#ifdef MAX_AIRPLANENUM
-	PARTY party[MAX_AIRPLANENUM];
-#else
-	PARTY party[MAX_PARTY] = {};
-#endif
-
-#ifdef _CHAR_PROFESSION			// WON ADD 人物職業
-	PROFESSION_SKILL profession_skill[MAX_PROFESSION_SKILL];
-#endif
-
-	PET_SKILL petSkill[MAX_PET][MAX_SKILL] = {};
-
-	dialog_t currentDialog = {};
 	util::SafeHash<int, mapunit_t> mapUnitHash;
 	util::SafeHash<QPoint, mapunit_t> npcUnitPointHash;
 	util::SafeQueue<QPair<int, QString>> chatQueue;
@@ -2812,6 +2802,17 @@ public:
 
 	QElapsedTimer repTimer;
 	util::AfkRecorder recorder[1 + MAX_PET] = {};
+
+
+	PET pet[MAX_PET] = {};
+
+#ifdef MAX_AIRPLANENUM
+	PARTY party_[MAX_AIRPLANENUM];
+#else
+	PARTY party[MAX_PARTY] = {};
+#endif
+
+	dialog_t currentDialog = {};
 
 	//用於緩存要發送到UI的數據(開啟子窗口初始化並加載當前最新數據時使用)
 	util::SafeHash<int, QVariant> playerInfoColContents;
