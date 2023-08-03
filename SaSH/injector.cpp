@@ -260,14 +260,14 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 
 	do
 	{
-
-		dllPath = QCoreApplication::applicationDirPath() + "/" + InjectDllName;
+		QString applicationDirPath = util::applicationDirPath();
+		dllPath = applicationDirPath + "/" + InjectDllName;
 
 		fi.setFile(dllPath);
 		fileNameOnly = fi.fileName();
 
 		//檢查dll生成日期必須與當前exe相同日或更早
-		QFileInfo exeInfo(QCoreApplication::applicationFilePath());
+		QFileInfo exeInfo(applicationDirPath);
 
 		if (fi.exists() && fi.lastModified() > exeInfo.lastModified())
 		{

@@ -714,7 +714,7 @@ void ScriptSettingForm::fileSave(const QString& d, DWORD flag)
 	if (injector.IS_SCRIPT_FLAG.load(std::memory_order_acquire))
 		return;
 
-	const QString directoryName(QApplication::applicationDirPath() + "/script");
+	const QString directoryName(util::applicationDirPath() + "/script");
 	const QDir dir(directoryName);
 	if (!dir.exists())
 		dir.mkdir(directoryName);
@@ -725,11 +725,12 @@ void ScriptSettingForm::fileSave(const QString& d, DWORD flag)
 		return;
 
 	//backup
-	QDir bakDir(QApplication::applicationDirPath() + "/script/bak");
+	QString applicationDirPath = util::applicationDirPath();
+	QDir bakDir(applicationDirPath + "/script/bak");
 	if (!bakDir.exists())
-		bakDir.mkdir(QApplication::applicationDirPath() + "/script/bak");
+		bakDir.mkdir(applicationDirPath + "/script/bak");
 	QFileInfo fi(fileName);
-	QString backupName(QString("%1/script/bak/%2.bak").arg(QApplication::applicationDirPath()).arg(fi.fileName()));
+	QString backupName(QString("%1/script/bak/%2.bak").arg(applicationDirPath).arg(fi.fileName()));
 	QFile::remove(backupName);
 	QFile::copy(fileName, backupName);
 
@@ -844,7 +845,7 @@ void ScriptSettingForm::onReloadScriptList()
 		item = q_check_ptr(new TreeWidgetItem);
 		if (!item) break;
 
-		util::loadAllFileLists(item, QApplication::applicationDirPath() + "/script/", &newScriptList);
+		util::loadAllFileLists(item, util::applicationDirPath() + "/script/", &newScriptList);
 
 		m_scriptList = newScriptList;
 		ui.treeWidget_scriptList->setUpdatesEnabled(false);
@@ -982,7 +983,7 @@ void ScriptSettingForm::onScriptTreeWidgetDoubleClicked(QTreeWidgetItem* item, i
 				strpath += "/";
 		}
 
-		strpath = QApplication::applicationDirPath() + "/script/" + strpath;
+		strpath = util::applicationDirPath() + "/script/" + strpath;
 		strpath.replace("*", "");
 
 		onAddErrorMarker(-1, false);
@@ -1047,7 +1048,7 @@ void ScriptSettingForm::onActionTriggered()
 	}
 	else if (name == "actionSaveAs")
 	{
-		const QString directoryName(QApplication::applicationDirPath() + "/script");
+		const QString directoryName(util::applicationDirPath() + "/script");
 		const QDir dir(directoryName);
 		if (!dir.exists())
 			dir.mkdir(directoryName);
@@ -1081,7 +1082,7 @@ void ScriptSettingForm::onActionTriggered()
 	}
 	else if (name == "actionDirectory")
 	{
-		QDesktopServices::openUrl(QUrl::fromLocalFile(QApplication::applicationDirPath() + "/script"));
+		QDesktopServices::openUrl(QUrl::fromLocalFile(util::applicationDirPath() + "/script"));
 	}
 	else if (name == "actionMark")
 	{
@@ -1107,7 +1108,7 @@ void ScriptSettingForm::onActionTriggered()
 		int num = 1;
 		for (;;)
 		{
-			QString strpath = (QApplication::applicationDirPath() + QString("/script/Untitled-%1.txt").arg(num));
+			QString strpath = (util::applicationDirPath() + QString("/script/Untitled-%1.txt").arg(num));
 			if (!QFile::exists(strpath))
 			{
 				QFile file(strpath);
@@ -1759,7 +1760,7 @@ void ScriptSettingForm::on_treeWidget_functionList_itemSelectionChanged()
 #ifdef _DEBUG
 		QString mdFullPath = R"(..\Debug\lib\doc)";
 #else
-		QString mdFullPath = QString("%1/lib/doc").arg(QCoreApplication::applicationDirPath());
+		QString mdFullPath = QString("%1/lib/doc").arg(util::applicationDirPath());
 #endif
 		QDir dir(mdFullPath);
 		if (!dir.exists())
@@ -1814,7 +1815,7 @@ QString ScriptSettingForm::getFullPath(QTreeWidgetItem* item)
 			strpath += "/";
 	}
 
-	strpath = QApplication::applicationDirPath() + "/script/" + strpath;
+	strpath = util::applicationDirPath() + "/script/" + strpath;
 	strpath.replace("*", "");
 
 	QFileInfo info(strpath);

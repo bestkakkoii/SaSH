@@ -445,7 +445,7 @@ qint64 Interpreter::savesetting(qint64 currentline, const TokenMap& TK)
 
 	fileName.replace("\\", "/");
 
-	fileName = QCoreApplication::applicationDirPath() + "/settings/" + fileName;
+	fileName = util::applicationDirPath() + "/settings/" + fileName;
 	fileName.replace("\\", "/");
 	fileName.replace("//", "/");
 
@@ -481,7 +481,7 @@ qint64 Interpreter::loadsetting(qint64 currentline, const TokenMap& TK)
 
 	fileName.replace("\\", "/");
 
-	fileName = QCoreApplication::applicationDirPath() + "/settings/" + fileName;
+	fileName = util::applicationDirPath() + "/settings/" + fileName;
 	fileName.replace("\\", "/");
 	fileName.replace("//", "/");
 

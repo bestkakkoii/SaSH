@@ -456,7 +456,7 @@ void ScriptForm::onScriptTreeWidgetDoubleClicked(QTreeWidgetItem* item, int colu
 				strpath += "/";
 		}
 
-		strpath = QApplication::applicationDirPath() + "/script/" + strpath;
+		strpath = util::applicationDirPath() + "/script/" + strpath;
 		strpath.replace("*", "");
 
 		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
@@ -485,7 +485,7 @@ void ScriptForm::onReloadScriptList()
 		item = q_check_ptr(new TreeWidgetItem);
 		if (!item) break;
 
-		util::loadAllFileLists(item, QApplication::applicationDirPath() + "/script/", &newScriptList);
+		util::loadAllFileLists(item, util::applicationDirPath() + "/script/", &newScriptList);
 
 		scriptList_ = newScriptList;
 		ui.treeWidget_script->setUpdatesEnabled(false);

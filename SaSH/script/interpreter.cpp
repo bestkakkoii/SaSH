@@ -1598,7 +1598,7 @@ qint64 Interpreter::run(qint64 currentline, const TokenMap& TK)
 
 	fileName.replace("\\", "/");
 
-	fileName = QCoreApplication::applicationDirPath() + "/script/" + fileName;
+	fileName = util::applicationDirPath() + "/script/" + fileName;
 	fileName.replace("\\", "/");
 	fileName.replace("//", "/");
 

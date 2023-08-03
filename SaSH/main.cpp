@@ -18,6 +18,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 #include "stdafx.h"
 #include "mainform.h"
+#include "util.h"
 #include <QtWidgets/QApplication>
 
 #pragma comment(lib, "ws2_32.lib")
@@ -294,10 +295,10 @@ int main(int argc, char* argv[])
 	SetConsoleCP(CP_UTF8);
 	SetConsoleOutputCP(CP_UTF8);
 	setlocale(LC_ALL, "en_US.UTF-8");
-	QTextCodec* codec = QTextCodec::codecForName("UTF-8");
+	QTextCodec* codec = QTextCodec::codecForName("utf-8");
 	QTextCodec::setCodecForLocale(codec);
 
-	QString currentWorkPath = QCoreApplication::applicationDirPath();
+	QString currentWorkPath = util::applicationDirPath();
 	QDir dir(currentWorkPath + "/lib");
 	if (!dir.exists())
 		dir.mkpath(".");

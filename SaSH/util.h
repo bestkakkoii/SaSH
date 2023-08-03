@@ -745,6 +745,25 @@ namespace util
 		{-1, -1}, //西北2
 	};
 
+	Q_REQUIRED_RESULT inline static QString applicationDirPath()
+	{
+		QString path = QCoreApplication::applicationDirPath();
+		QTextCodec* codec = nullptr;
+		UINT acp = GetACP();
+		if (acp == 936)
+			codec = QTextCodec::codecForName("gb2312");
+		else if (acp == 950)
+			codec = QTextCodec::codecForName("big5");
+		else
+			codec = QTextCodec::codecForName("utf-8");
+
+		std::string str = codec->fromUnicode(path).toStdString();
+
+		QString ret = codec->toUnicode(str.c_str());
+
+		return ret;
+	}
+
 	Q_REQUIRED_RESULT inline static const int __vectorcall percent(int value, int total)
 	{
 		if (value == 1 && total > 0)
@@ -923,7 +942,7 @@ namespace util
 
 		//directory
 		//自身目錄往上一層
-		QString directory = QCoreApplication::applicationDirPath();
+		QString directory = util::applicationDirPath();
 		directory = QDir::toNativeSeparators(directory);
 		directory = QDir::cleanPath(directory + QDir::separator() + "..");
 		dialog.setDirectory(directory);
@@ -1578,15 +1597,15 @@ namespace util
 		UINT acp = ::GetACP();
 		if (acp == 950)
 		{
-			return (QCoreApplication::applicationDirPath() + QString("/map/point_zh_TW.json"));
+			return (util::applicationDirPath() + QString("/map/point_zh_TW.json"));
 		}
 		else if (acp == 936)
 		{
-			return (QCoreApplication::applicationDirPath() + QString("/map/point_zh_CN.json"));
+			return (util::applicationDirPath() + QString("/map/point_zh_CN.json"));
 		}
 		else
 		{
-			return (QCoreApplication::applicationDirPath() + QString("/map/point.json"));
+			return (util::applicationDirPath() + QString("/map/point.json"));
 		}
 	}
 

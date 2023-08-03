@@ -116,7 +116,7 @@ void GeneralForm::onComboBoxClicked()
 	if (name == "comboBox_setting")
 	{
 		QVector<QPair<QString, QString>> fileList;
-		if (!util::enumAllFiles(QCoreApplication::applicationDirPath() + "/settings", ".json", &fileList))
+		if (!util::enumAllFiles(util::applicationDirPath() + "/settings", ".json", &fileList))
 			return;
 
 		ui.comboBox_setting->clear();

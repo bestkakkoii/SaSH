@@ -65,7 +65,7 @@ MapWidget::MapWidget(QWidget* parent)
 
 	util::FormSettingManager formManager(this);
 	formManager.loadSettings();
-	}
+}
 
 MapWidget::~MapWidget()
 {
@@ -637,7 +637,7 @@ void MapWidget::onDownloadMapTimeout()
 		setWindowTitle(caption);
 
 		injector.server->mapAnalyzer->clear(floor);
-		const QString fileName(QCoreApplication::applicationDirPath() + "/map/" + QString::number(floor) + ".dat");
+		const QString fileName(util::applicationDirPath() + "/map/" + QString::number(floor) + ".dat");
 		QFile file(fileName);
 		if (file.exists())
 		{

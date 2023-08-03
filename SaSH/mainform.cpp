@@ -965,15 +965,15 @@ void MainForm::resetControlTextLanguage()
 	switch (acp)
 	{
 	case 936:
-		translator_.load(QString("%1/translations/qt_zh_CN.qm").arg(QApplication::applicationDirPath()));
+		translator_.load(QString("%1/translations/qt_zh_CN.qm").arg(util::applicationDirPath()));
 		break;
 		//English
 	case 950:
-		translator_.load(QString("%1/translations/qt_zh_TW.qm").arg(QApplication::applicationDirPath()));
+		translator_.load(QString("%1/translations/qt_zh_TW.qm").arg(util::applicationDirPath()));
 		break;
 		//Chinese
 	default:
-		translator_.load(QString("%1/translations/qt_en_US.qm").arg(QApplication::applicationDirPath()));
+		translator_.load(QString("%1/translations/qt_en_US.qm").arg(util::applicationDirPath()));
 		break;
 	}
 #else
@@ -1109,7 +1109,7 @@ void MainForm::onSaveHashSettings(const QString& name, bool isFullPath)
 
 		newFileName += ".json";
 
-		QString directory = QCoreApplication::applicationDirPath() + "/settings/";
+		QString directory = util::applicationDirPath() + "/settings/";
 		fileName = QString(directory + newFileName);
 
 		QDir dir(directory);
@@ -1189,7 +1189,7 @@ void MainForm::onLoadHashSettings(const QString& name, bool isFullPath)
 
 		newFileName += ".json";
 
-		QString directory = QCoreApplication::applicationDirPath() + "/settings/";
+		QString directory = util::applicationDirPath() + "/settings/";
 		fileName = QString(directory + newFileName);
 
 		QDir dir(directory);
