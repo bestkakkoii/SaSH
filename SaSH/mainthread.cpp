@@ -387,9 +387,14 @@ int MainObject::checkAndRunFunctions()
 		}
 
 		const QString fileName(qgetenv("JSON_PATH"));
-		util::Config config(fileName);
+		QStringList list;
 		extern int g_CurrentListIndex;//generalform.cpp
-		QStringList list = config.readStringArray("System", "Server", QString("List_%1").arg(g_CurrentListIndex));
+
+		{
+			util::Config config(fileName);
+			list = config.readStringArray("System", "Server", QString("List_%1").arg(g_CurrentListIndex));
+		}
+
 		QStringList serverNameList;
 		QStringList subServerNameList;
 		for (const QString& it : list)

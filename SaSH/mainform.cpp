@@ -1137,8 +1137,6 @@ void MainForm::onSaveHashSettings(const QString& name, bool isFullPath)
 			return;
 	}
 
-	util::Config config(fileName);
-
 	Injector& injector = Injector::getInstance();
 	util::SafeHash<util::UserSetting, bool> enableHash = injector.getEnableHash();
 	util::SafeHash<util::UserSetting, int> valueHash = injector.getValueHash();
@@ -1146,6 +1144,7 @@ void MainForm::onSaveHashSettings(const QString& name, bool isFullPath)
 
 	QHash<util::UserSetting, QString> jsonKeyHash = util::user_setting_string_hash;
 
+	util::Config config(fileName);
 	for (QHash < util::UserSetting, bool>::const_iterator iter = enableHash.begin(); iter != enableHash.end(); ++iter)
 	{
 		util::UserSetting hkey = iter.key();
@@ -1221,8 +1220,6 @@ void MainForm::onLoadHashSettings(const QString& name, bool isFullPath)
 	if (!QFile::exists(fileName))
 		return;
 
-	util::Config config(fileName);
-
 	Injector& injector = Injector::getInstance();
 	util::SafeHash<util::UserSetting, bool> enableHash;
 	util::SafeHash<util::UserSetting, int> valueHash;
@@ -1230,34 +1227,37 @@ void MainForm::onLoadHashSettings(const QString& name, bool isFullPath)
 
 	QHash<util::UserSetting, QString> jsonKeyHash = util::user_setting_string_hash;
 
-	for (QHash < util::UserSetting, QString>::const_iterator iter = jsonKeyHash.begin(); iter != jsonKeyHash.end(); ++iter)
 	{
-		QString key = iter.value();
-		if (!key.endsWith("Enable"))
-			continue;
-		bool value = config.readBool("User", "Enable", key);
-		util::UserSetting hkey = iter.key();
-		enableHash.insert(hkey, value);
-	}
+		util::Config config(fileName);
+		for (QHash < util::UserSetting, QString>::const_iterator iter = jsonKeyHash.begin(); iter != jsonKeyHash.end(); ++iter)
+		{
+			QString key = iter.value();
+			if (!key.endsWith("Enable"))
+				continue;
+			bool value = config.readBool("User", "Enable", key);
+			util::UserSetting hkey = iter.key();
+			enableHash.insert(hkey, value);
+		}
 
-	for (QHash < util::UserSetting, QString>::const_iterator iter = jsonKeyHash.begin(); iter != jsonKeyHash.end(); ++iter)
-	{
-		QString key = iter.value();
-		if (!key.endsWith("Value"))
-			continue;
-		int value = config.readInt("User", "Value", key);
-		util::UserSetting hkey = iter.key();
-		valueHash.insert(hkey, value);
-	}
+		for (QHash < util::UserSetting, QString>::const_iterator iter = jsonKeyHash.begin(); iter != jsonKeyHash.end(); ++iter)
+		{
+			QString key = iter.value();
+			if (!key.endsWith("Value"))
+				continue;
+			int value = config.readInt("User", "Value", key);
+			util::UserSetting hkey = iter.key();
+			valueHash.insert(hkey, value);
+		}
 
-	for (QHash < util::UserSetting, QString>::const_iterator iter = jsonKeyHash.begin(); iter != jsonKeyHash.end(); ++iter)
-	{
-		QString key = iter.value();
-		if (!key.endsWith("String"))
-			continue;
-		QString value = config.readString("User", "String", key);
-		util::UserSetting hkey = iter.key();
-		stringHash.insert(hkey, value);
+		for (QHash < util::UserSetting, QString>::const_iterator iter = jsonKeyHash.begin(); iter != jsonKeyHash.end(); ++iter)
+		{
+			QString key = iter.value();
+			if (!key.endsWith("String"))
+				continue;
+			QString value = config.readString("User", "String", key);
+			util::UserSetting hkey = iter.key();
+			stringHash.insert(hkey, value);
+		}
 	}
 
 	injector.setEnableHash(enableHash);

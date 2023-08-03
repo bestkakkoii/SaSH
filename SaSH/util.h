@@ -934,6 +934,19 @@ namespace util
 			if (fileNames.size() > 0)
 			{
 				QString fileName = fileNames.at(0);
+
+				QTextCodec* codec = nullptr;
+				UINT acp = GetACP();
+				if (acp == 936)
+					codec = QTextCodec::codecForName("gb2312");
+				else if (acp == 950)
+					codec = QTextCodec::codecForName("big5");
+				else
+					codec = QTextCodec::codecForName("utf-8");
+
+				std::string str = codec->fromUnicode(fileName).data();
+				fileName = codec->toUnicode(str.c_str());
+
 				if (retstring)
 					*retstring = fileName;
 
@@ -1584,7 +1597,7 @@ namespace util
 		Config(const QString& fileName);
 		~Config();
 
-		bool open(const QString& fileName);
+		bool open();
 		void sync();
 
 		void removeSec(const QString sec);
@@ -1620,6 +1633,8 @@ namespace util
 
 	private:
 		QJsonDocument document_;
+
+		QFile file_ = {};
 
 		QString fileName_ = "\0";
 
