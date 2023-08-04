@@ -1495,8 +1495,7 @@ void MainObject::checkAutoHeal()
 					if (magicIndex < 0 || magicIndex >= MAX_MAGIC)
 						break;
 
-					injector.server->reloadHashVar("magic");
-					int targetType = injector.server->hashmagic.value(magicIndex).value("target").toInt();
+					int targetType = injector.server->getMagic(magicIndex).target;
 					if ((targetType != MAGIC_TARGET_MYSELF) && (targetType != MAGIC_TARGET_OTHER))
 						break;
 

@@ -774,8 +774,8 @@ qint64 Interpreter::kick(qint64, const TokenMap& TK)
 			bool bret = false;
 			for (qint64 i = 1; i < MAX_PARTY; ++i)
 			{
-				util::SafeHash<QString, QVariant> party = injector.server->hashparty.value(i);
-				if (party.value("valid").toLongLong() == 0)
+				PARTY party = injector.server->getParty(i);
+				if (party.useFlag == 0)
 					continue;
 
 				for (QString it : list)
@@ -788,11 +788,11 @@ qint64 Interpreter::kick(qint64, const TokenMap& TK)
 						isExact = false;
 					}
 
-					if (isExact && party.value("name").toString() == newName)
+					if (isExact && party.name == newName)
 					{
 						bret = true;
 					}
-					else if (!isExact && party.value("name").toString().contains(newName))
+					else if (!isExact && party.name.contains(newName))
 					{
 						bret = true;
 					}

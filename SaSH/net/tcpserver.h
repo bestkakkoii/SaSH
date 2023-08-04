@@ -2021,7 +2021,6 @@ public://actions
 	void setPlayerFaceDirection(int dir);
 	void setPlayerFaceDirection(const QString& dirStr);
 
-	int getPetSize() const;
 	int getPartySize() const;
 	QStringList getJoinableUnitList() const;
 	bool getItemIndexsByName(const QString& name, const QString& memo, QVector<int>* pv);
@@ -2081,6 +2080,24 @@ public://actions
 	void setBattleEnd();
 
 	void reloadHashVar(const QString& typeStr);
+
+	MAGIC getMagic(int magicIndex) const { return magic[magicIndex]; }
+	PROFESSION_SKILL getSkill(int skillIndex) const { return profession_skill[skillIndex]; }
+	PET getPet(int petIndex) const { return pet[petIndex]; }
+	int getPetSize() const
+	{
+		int n = 0;
+		for (const PET& it : pet)
+		{
+			if (it.level > 0 && it.useFlag == 1 && it.maxHp > 0)
+				++n;
+		}
+		return n;
+	}
+	PET_SKILL getPetSkill(int petIndex, int skillIndex) const { return petSkill[petIndex][skillIndex]; }
+	PARTY getParty(int partyIndex) const { return party[partyIndex]; }
+	ITEM getPetEquip(int petIndex, int equipIndex) const { return pet[petIndex].item[equipIndex]; }
+
 private:
 	void setWindowTitle();
 	void refreshItemInfo(int index);
@@ -2601,7 +2618,6 @@ private:
 
 	MAGIC magic[MAX_MAGIC] = {};
 
-
 	BATTLE_RESULT_MSG battleResultMsg = {};
 
 	ADDRESS_BOOK addressBook[MAX_ADR_BOOK] = {};
@@ -2775,15 +2791,6 @@ public:
 	QString protoBattleLogName = "";
 
 	//main datas shared with script thread
-	util::SafeHash<QString, QVariant> hashpc;
-	util::SafeHash<int, QHash<QString, QVariant>> hashmagic;
-	util::SafeHash<int, QHash<QString, QVariant>> hashskill;
-	util::SafeHash<int, QHash<QString, QVariant>> hashpet;
-	util::SafeHash<int, QHash<int, QHash<QString, QVariant>>> hashpetskill;
-	util::SafeHash<int, QHash<QString, QVariant>> hashparty;
-	util::SafeHash<int, QHash<QString, QVariant>> hashitem;
-	util::SafeHash<int, QHash<QString, QVariant>> hashequip;
-	util::SafeHash<int, QHash<int, QHash<QString, QVariant>>> hashpetequip;
 	util::SafeHash<QString, QVariant> hashmap;
 	util::SafeHash<int, QHash<QString, QVariant>> hashbattle;
 	util::SafeData<QString> hashbattlefield;
