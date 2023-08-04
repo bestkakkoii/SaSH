@@ -1480,7 +1480,7 @@ bool Interpreter::findPath(QPoint dst, qint64 steplen, qint64 step_cost, qint64 
 			if (src == dst)
 			{
 				cost = timer.elapsed();
-				if (cost > 2000)
+				if (cost > 5000)
 				{
 					QThread::msleep(500);
 
