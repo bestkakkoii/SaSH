@@ -87,7 +87,7 @@ PlayerInfoForm::PlayerInfoForm(QWidget* parent)
 
 		for (int i = 0; i < MAX_PET; ++i)
 		{
-			PET pet = injector.server->pet[i];
+			PET pet = injector.server->getPet(i);
 			onUpdatePlayerInfoPetState(i, pet.state);
 		}
 	}

@@ -241,7 +241,7 @@ void OtherForm::onButtonClicked()
 		for (int i = 0; i < MAX_PET; ++i)
 		{
 			QString text;
-			PET pet = injector.server->pet[i];
+			PET pet = injector.server->getPet(i);
 			if (pet.useFlag == 1 && !pet.name.isEmpty())
 				text = QString("%1:%2").arg(i + 1).arg(pet.name.simplified());
 			else
@@ -412,7 +412,7 @@ void OtherForm::onComboBoxClicked()
 		{
 			for (int i = 0; i < MAX_PET; ++i)
 			{
-				PET pet = injector.server->pet[i];
+				PET pet = injector.server->getPet(i);
 				if (pet.name.isEmpty() || pet.useFlag == 0)
 				{
 					list.append(QString("%1:").arg(i + 1));
@@ -503,7 +503,7 @@ void OtherForm::onApplyHashSettingsToUI()
 	{
 		for (int i = 0; i < MAX_PET; ++i)
 		{
-			PET pet = injector.server->pet[i];
+			PET pet = injector.server->getPet(i);
 			if (pet.name.isEmpty() || pet.useFlag == 0)
 			{
 				list.append(QString("%1:").arg(i + 1));

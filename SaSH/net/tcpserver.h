@@ -2607,6 +2607,14 @@ private:
 	mutable QMutex pcMutex_;//用於保護人物數據更新順序
 	PC pc = {};
 
+	PET pet[MAX_PET] = {};
+
+#ifdef MAX_AIRPLANENUM
+	PARTY party_[MAX_AIRPLANENUM];
+#else
+	PARTY party[MAX_PARTY] = {};
+#endif
+
 #ifdef _CHAR_PROFESSION			// WON ADD 人物職業
 	PROFESSION_SKILL profession_skill[MAX_PROFESSION_SKILL];
 #endif
@@ -2810,14 +2818,6 @@ public:
 	QElapsedTimer repTimer;
 	util::AfkRecorder recorder[1 + MAX_PET] = {};
 
-
-	PET pet[MAX_PET] = {};
-
-#ifdef MAX_AIRPLANENUM
-	PARTY party_[MAX_AIRPLANENUM];
-#else
-	PARTY party[MAX_PARTY] = {};
-#endif
 
 	dialog_t currentDialog = {};
 

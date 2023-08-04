@@ -378,7 +378,7 @@ int MainObject::checkAndRunFunctions()
 
 		for (int i = 0; i < MAX_PET; ++i)
 		{
-			PET pet = injector.server->pet[i];
+			PET pet = injector.server->getPet(i);
 			recorder = {};
 			recorder.levelrecord = pet.level;
 			recorder.exprecord = pet.exp;
@@ -639,9 +639,11 @@ void MainObject::setUserDatas()
 	injector.setUserData(util::kUserItemNames, itemNames);
 
 	QStringList petNames;
-	for (const PET& pet : injector.server->pet)
+
+	for (int i = 0; i < MAX_PET; ++i)
 	{
-		if (pet.name.isEmpty())
+		PET pet = injector.server->getPet(i);
+		if (pet.name.isEmpty() || pet.useFlag == 0)
 			continue;
 
 		petNames.append(pet.name);
@@ -1128,7 +1130,7 @@ void MainObject::checkAutoJoin()
 						QThread::msleep(1000);
 						bool ok = false;
 
-						QString name = injector.server->party[0].name;
+						QString name = injector.server->getParty(0).name;
 						if (!name.isEmpty() && leader.contains(name))
 						{
 							return;
@@ -1578,7 +1580,7 @@ void MainObject::checkAutoDropPet()
 					if (!checkStatus())
 						return;
 
-					PET pet = injector.server->pet[i];
+					PET pet = injector.server->getPet(i);
 					if (pet.useFlag == 0 || pet.maxHp <= 0 || pet.level <= 0)
 						continue;
 
@@ -1670,7 +1672,7 @@ void MainObject::checkAutoLockPet()
 		int lockPetIndex = injector.getValueHash(util::kLockPetValue);
 		if (lockPetIndex >= 0 && lockPetIndex < MAX_PET)
 		{
-			PET pet = injector.server->pet[lockPetIndex];
+			PET pet = injector.server->getPet(lockPetIndex);
 			if (pet.state != PetState::kBattle)
 			{
 				injector.server->setPetState(lockPetIndex, kBattle);
@@ -1684,7 +1686,7 @@ void MainObject::checkAutoLockPet()
 		int lockRideIndex = injector.getValueHash(util::kLockRideValue);
 		if (lockRideIndex >= 0 && lockRideIndex < MAX_PET)
 		{
-			PET pet = injector.server->pet[lockRideIndex];
+			PET pet = injector.server->getPet(lockRideIndex);
 			if (pet.state != PetState::kRide)
 			{
 				injector.server->setPetState(lockRideIndex, kRide);
@@ -1776,7 +1778,7 @@ void MainObject::checkAutoLockSchedule()
 
 					PetState type = hashType.value(typeStr, kRest);
 
-					PET pet = injector.server->pet[petIndex];
+					PET pet = injector.server->getPet(petIndex);
 
 					if (pet.level >= level)
 						continue;
@@ -1815,7 +1817,7 @@ void MainObject::checkAutoLockSchedule()
 
 		if (rindex != -1)
 		{
-			PET pet = injector.server->pet[rindex];
+			PET pet = injector.server->getPet(rindex);
 			if (pet.hp <= 1)
 			{
 				injector.server->setPetState(rindex, kRest);
@@ -1828,7 +1830,7 @@ void MainObject::checkAutoLockSchedule()
 
 		if (bindex != -1)
 		{
-			PET pet = injector.server->pet[bindex];
+			PET pet = injector.server->getPet(bindex);
 			if (pet.hp <= 1)
 			{
 				injector.server->setPetState(bindex, kRest);
@@ -1844,7 +1846,7 @@ void MainObject::checkAutoLockSchedule()
 			if (bindex == i || rindex == i)
 				continue;
 
-			PET pet = injector.server->pet[i];
+			PET pet = injector.server->getPet(i);
 			if ((pet.state != kRest && pet.state != kStandby) && set == util::kLockPetScheduleString)
 				injector.server->setPetState(i, kRest);
 		}

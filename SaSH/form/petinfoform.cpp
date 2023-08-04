@@ -116,7 +116,7 @@ void PetInfoForm::on_comboBox_clicked()
 	for (int i = 0; i < MAX_PET; ++i)
 	{
 		QVector<int> v;
-		PET pet = injector.server->pet[i];
+		PET pet = injector.server->getPet(i);
 		QString name = QString::number(i + 1) + ":";
 		if (!pet.name.isEmpty() && pet.useFlag == 1)
 		{

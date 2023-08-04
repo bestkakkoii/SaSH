@@ -572,7 +572,12 @@ qint64 Interpreter::sellpet(qint64, const TokenMap& TK)
 		if (injector.server.isNull())
 			return Parser::kError;
 
-		if (injector.server->pet[petIndex - 1].useFlag == 0)
+		if (petIndex - 1 < 0 || petIndex - 1 >= MAX_PET)
+			return Parser::kArgError;
+
+		PET pet = injector.server->getPet(petIndex - 1);
+
+		if (pet.useFlag == 0)
 			continue;
 
 		bool bret = false;
@@ -1753,7 +1758,8 @@ qint64 Interpreter::trade(qint64, const TokenMap& TK)
 
 			if (bret && index >= 0 && index < MAX_PET)
 			{
-				if (injector.server->pet[index].useFlag == 1)
+				PET pet = injector.server->getPet(index);
+				if (pet.useFlag == 1)
 					petIndexVec.append(index);
 			}
 		}
