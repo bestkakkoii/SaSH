@@ -1440,7 +1440,7 @@ void MainObject::checkAutoHeal()
 						break;
 
 					injector.server->useItem(itemIndex, 0);
-					QThread::msleep(1000);
+					QThread::msleep(300);
 				}
 
 				//平時道具補血
@@ -1514,7 +1514,7 @@ void MainObject::checkAutoHeal()
 						break;
 
 					injector.server->useItem(itemIndex, target);
-					QThread::msleep(1000);
+					QThread::msleep(300);
 				}
 
 				//平時精靈補血
@@ -1568,7 +1568,7 @@ void MainObject::checkAutoHeal()
 						break;
 
 					injector.server->useMagic(magicIndex, target);
-					QThread::msleep(500);
+					QThread::msleep(300);
 				}
 			}
 		);

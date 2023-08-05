@@ -39,11 +39,10 @@ public slots:
 	void run();
 
 private:
-
-
 	void mainProc();
 
 	void updateAfkInfos();
+
 	void setUserDatas();
 
 	int checkAndRunFunctions();
