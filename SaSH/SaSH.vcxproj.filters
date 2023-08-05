@@ -246,6 +246,9 @@
     <ClCompile Include="script_lua\luasystem.cpp">
       <Filter>Source Files\script_lua</Filter>
     </ClCompile>
+    <ClCompile Include="net\lssproto.cpp">
+      <Filter>Source Files\net</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="mainform.h">
@@ -398,6 +401,12 @@
     </ClInclude>
     <ClInclude Include="model\gdatetime.h">
       <Filter>Source Files\model</Filter>
+    </ClInclude>
+    <ClInclude Include="net\lssproto.h">
+      <Filter>Source Files\net</Filter>
+    </ClInclude>
+    <ClInclude Include="net\database.h">
+      <Filter>Source Files\net</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
