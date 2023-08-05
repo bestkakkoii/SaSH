@@ -582,7 +582,7 @@ private:
 #else
 		return QDateTime::currentMSecsSinceEpoch();
 #endif
-}
+	}
 
 	inline void setWarpMap(const QPoint& pos)
 	{
@@ -614,15 +614,25 @@ private:
 	}
 
 #ifdef _CHAR_PROFESSION			// WON ADD 人物職業
-	//    #ifdef _GM_IDENTIFY		// Rog ADD GM識別
-	//  void setPcParam(char *name, char *freeName, int level, char *petname, int petlevel, int nameColor, int walk, int height, int profession_class, int profession_level, int profession_exp, int profession_skill_point , char *gm_name);
-	//    void setPcParam(char *name, char *freeName, int level, char *petname, int petlevel, int nameColor, int walk, int height, int profession_class, int profession_level, int profession_skill_point , char *gm_name)   ;
-	//	#else
-	//	void setPcParam(char *name, char *freeName, int level, char *petname, int petlevel, int nameColor, int walk, int height, int profession_class, int profession_level, int profession_exp, int profession_skill_point);
 #ifdef _ALLDOMAN // (不可開) Syu ADD 排行榜NPC
-	void setPcParam(const QString& name, const QString& freeName, int level, const QString& petname, int petlevel, int nameColor, int walk, int height, int profession_class, int profession_level, int profession_skill_point, int herofloor);
+	void setPcParam(const QString& name
+		, const QString& freeName
+		, int level, const QString& petname
+		, int petlevel, int nameColor
+		, int walk, int height
+		, int profession_class
+		, int profession_level
+		, int profession_skill_point
+		, int herofloor);
 #else
-	void setPcParam(const QString& name, const QString& freeName, int level, const QString& petname, int petlevel, int nameColor, int walk, int height, int profession_class, int profession_level, int profession_skill_point);
+	void setPcParam(const QString& name
+		, const QString& freeName
+		, int level, const QString& petname
+		, int petlevel, int nameColor
+		, int walk, int height
+		, int profession_class
+		, int profession_level
+		, int profession_skill_point);
 #endif
 	// 	#endif
 #else
@@ -1037,4 +1047,4 @@ private://lssproto_recv
 	virtual void lssproto_CustomWN_recv(const QString& data) override;
 	virtual void lssproto_CustomTK_recv(const QString& data) override;
 #pragma endregion
-	};
+};

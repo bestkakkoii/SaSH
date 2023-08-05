@@ -4502,19 +4502,41 @@ void Server::tradeComplete(const QString& name)
 
 #pragma region SAOriginal
 #ifdef _CHAR_PROFESSION			// WON ADD 人物職業
-//    #ifdef _GM_IDENTIFY		// Rog ADD GM識別
-//  void setPcParam(char *name, char *freeName, int level, char *petname, int petlevel, int nameColor, int walk, int height, int profession_class, int profession_level, int profession_exp, int profession_skill_point , char *gm_name)
-//    void setPcParam(char *name, char *freeName, int level, char *petname, int petlevel, int nameColor, int walk, int height, int profession_class, int profession_level, int profession_skill_point , char *gm_name)
-//	#else
-//	void setPcParam(char *name, char *freeName, int level, char *petname, int petlevel, int nameColor, int walk, int height, int profession_class, int profession_level, int profession_exp, int profession_skill_point)
 #ifdef _ALLDOMAN // (不可開) Syu ADD 排行榜NPC
-void Server::setPcParam(const QString& name, const QString& freeName, int level, const QString& petname, int petlevel, int nameColor, int walk, int height, int profession_class, int profession_level, int profession_skill_point, int herofloor)
+void Server::setPcParam(const QString& name
+	, const QString& freeName
+	, int level
+	, const QString& petname
+	, int petlevel
+	, int nameColor, int walk
+	, int height
+	, int profession_class
+	, int profession_level
+	, int profession_skill_point
+	, int herofloor)
 #else
-void Server::setPcParam(const QString& name, const QString& freeName, int level, const QString& petname, int petlevel, int nameColor, int walk, int height, int profession_class, int profession_level, int profession_skill_point)
+void Server::setPcParam(const QString& name
+	, const QString& freeName
+	, int level
+	, const QString& petname
+	, int petlevel
+	, int nameColor
+	, int walk
+	, int height
+	, int profession_class
+	, int profession_level
+	, int profession_skill_point)
 #endif
-// 	#endif
+	// 	#endif
 #else
-void Server::setPcParam(const QString& name, const QString& freeName, int level, const QString& petname, int petlevel, int nameColor, int walk, int height)
+void Server::setPcParam(const QString& name
+	, const QString& freeName
+	, int level
+	, const QString& petname
+	, int petlevel
+	, int nameColor
+	, int walk
+	, int height)
 #endif
 {
 #ifdef _GM_IDENTIFY		// Rog ADD GM識別
@@ -7716,10 +7738,10 @@ void Server::lssproto_PR_recv(int request, int result)
 				}
 				party[i] = {};
 				teamInfoList.append("");
-			}
-			pc.status &= (~CHR_STATUS_LEADER);
 		}
+			pc.status &= (~CHR_STATUS_LEADER);
 	}
+}
 	prSendFlag = 0;
 
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
@@ -7793,12 +7815,12 @@ void Server::lssproto_AB_recv(char* cdata)
 			{
 				MailHistory[i] = MailHistory[i];
 
-			}
+		}
 			addressBook[i].useFlag = 0;
 			addressBook[i].name.clear();
 			addressBook[i] = {};
 			continue;
-		}
+	}
 
 #ifdef _EXTEND_AB
 		if (i == MAX_ADR_BOOK - 1)
@@ -9161,7 +9183,7 @@ void Server::lssproto_KS_recv(int petarray, int result)
 		pet[petarray].state = kBattle;
 		emit signalDispatcher.updatePetHpProgressValue(_pet.level, _pet.hp, _pet.maxHp);
 	}
-}
+		}
 
 #ifdef _STANDBYPET
 //寵物等待狀態改變 (不是每個私服都有)
@@ -9740,13 +9762,13 @@ void Server::lssproto_TK_recv(int index, char* cmessage, int color)
 				if (szToken == "TK")
 				{
 					//InitSelectChar(message, 0);
-				}
+			}
 				else if (szToken == "TE")
 				{
 					//InitSelectChar(message, 1);
 				}
 				return;
-			}
+		}
 			else
 			{
 
@@ -9784,7 +9806,7 @@ void Server::lssproto_TK_recv(int index, char* cmessage, int color)
 
 				//SaveChatData(msg, szToken[0], false);
 			}
-		}
+	}
 		else
 			getStringToken(message, "|", 2, msg);
 #ifdef _TALK_WINDOW
@@ -9795,7 +9817,7 @@ void Server::lssproto_TK_recv(int index, char* cmessage, int color)
 			{
 				pc.gold -= 200;
 				emit signalDispatcher.updatePlayerInfoStone(pc.gold);
-			}
+}
 #ifdef _FONT_SIZE
 #ifdef _MESSAGE_FRONT_
 		StockChatBufferLineExt(msg - 2, color, fontsize);
@@ -9852,13 +9874,13 @@ void Server::lssproto_TK_recv(int index, char* cmessage, int color)
 			{
 				// 1000
 				//pc.status |= CHR_STATUS_FUKIDASHI;
-			}
-		}
+}
 	}
+}
 
 	chatQueue.enqueue(QPair{ color ,msg });
 	emit signalDispatcher.appendChatLog(msg, color);
-}
+	}
 
 //地圖數據更新，重新繪製地圖
 void Server::lssproto_MC_recv(int fl, int x1, int y1, int x2, int y2, int tileSum, int partsSum, int eventSum, char* cdata)
@@ -10157,7 +10179,7 @@ void Server::lssproto_C_recv(char* cdata)
 				{
 					party[0].level = pc.level;
 					party[0].name = pc.name;
-				}
+			}
 #ifdef MAX_AIRPLANENUM
 				for (j = 0; j < MAX_AIRPLANENUM; ++j)
 #else
@@ -10171,8 +10193,8 @@ void Server::lssproto_C_recv(char* cdata)
 							pc.status |= CHR_STATUS_LEADER;
 						break;
 					}
-				}
-			}
+		}
+		}
 			else
 			{
 #ifdef _CHAR_PROFESSION			// WON ADD 人物職業
@@ -10229,7 +10251,7 @@ void Server::lssproto_C_recv(char* cdata)
 					//}
 					//setCharNameColor(ptAct, charNameColor);
 				//}
-			}
+				}
 
 			if (name == u8"を�そó")//排除亂碼
 				break;
@@ -10260,7 +10282,7 @@ void Server::lssproto_C_recv(char* cdata)
 			mapUnitHash.insert(id, unit);
 
 			break;
-		}
+			}
 		case 2://OBJTYPE_ITEM
 		{
 			getStringToken(bigtoken, "|", 2, smalltoken);
@@ -11160,7 +11182,7 @@ void Server::lssproto_S_recv(char* cdata)
 		playerInfoColContents.insert(0, var);
 		emit signalDispatcher.updatePlayerInfoColContents(0, var);
 		setWindowTitle();
-	}
+					}
 #pragma endregion
 #pragma region FamilyInfo
 	else if (first == "F") // F 家族狀態
@@ -11524,7 +11546,7 @@ void Server::lssproto_S_recv(char* cdata)
 			emit signalDispatcher.updatePlayerInfoColContents(i + 1, var);
 		}
 
-	}
+						}
 #pragma endregion
 #pragma region EncountPercentage
 	else if (first == "E") // E nowEncountPercentage
@@ -11644,7 +11666,7 @@ void Server::lssproto_S_recv(char* cdata)
 					if (no2 == -1 && i > no)
 						no2 = i;
 				}
-			}
+		}
 			if (checkPartyCount <= 1)
 			{
 				partyModeFlag = 0;
@@ -11661,7 +11683,7 @@ void Server::lssproto_S_recv(char* cdata)
 			}
 			updateTeamInfo();
 			return;
-		}
+	}
 
 		partyModeFlag = 1;
 		prSendFlag = 0;
@@ -11747,7 +11769,7 @@ void Server::lssproto_S_recv(char* cdata)
 		}
 		party[no].hpPercent = util::percent(party[no].hp, party[no].maxHp);
 		updateTeamInfo();
-	}
+					}
 #pragma endregion
 #pragma region ItemInfo
 	else if (first == "I") //I 道具
@@ -11873,7 +11895,7 @@ void Server::lssproto_S_recv(char* cdata)
 			itemList.append(it.name);
 		}
 		emit signalDispatcher.updateComboBoxItemText(util::kComboBoxItem, itemList);
-	}
+		}
 #pragma endregion
 #pragma region PetSkill
 	else if (first == "W")//接收到的寵物技能
@@ -12086,7 +12108,7 @@ void Server::lssproto_S_recv(char* cdata)
 			pet[nPetIndex].item[i].counttime = getIntegerToken(data, "|", no + 16);
 #endif
 		}
-	}
+		}
 #endif
 #pragma endregion
 #pragma region S_recv_Unknown
@@ -12142,7 +12164,7 @@ void Server::lssproto_S_recv(char* cdata)
 	{
 		qDebug() << "[" << first << "]:" << data;
 	}
-}
+	}
 
 //客戶端登入(進去選人畫面)
 void Server::lssproto_ClientLogin_recv(char* cresult)
@@ -12265,7 +12287,7 @@ void Server::lssproto_CharLogin_recv(char* cresult, char* cdata)
 #ifdef __NEW_CLIENT
 		hPing = CreateThread(NULL, 0, PingFunc, &sin_server.sin_addr, 0, &dwPingID);
 #endif
-	}
+}
 
 #ifdef __NEW_CLIENT
 #ifdef _NEW_WGS_MSG				// WON ADD WGS的新視窗
@@ -12277,7 +12299,7 @@ void Server::lssproto_CharLogin_recv(char* cresult, char* cdata)
 	angelFlag = FALSE;
 	angelMsg[0] = NULL;
 #endif
-}
+	}
 
 void Server::lssproto_TD_recv(char* cdata)//交易
 {
@@ -12502,7 +12524,7 @@ void Server::lssproto_TD_recv(char* cdata)//交易
 		mypet_tradeList = QStringList{ "P|-1", "P|-1", "P|-1" , "P|-1", "P|-1" };
 		mygoldtrade = 0;
 	}
-}
+		}
 
 void Server::lssproto_CHAREFFECT_recv(char* cdata)
 {
