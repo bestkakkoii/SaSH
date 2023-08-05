@@ -748,20 +748,20 @@ namespace util
 	Q_REQUIRED_RESULT inline static QString applicationDirPath()
 	{
 		QString path = QCoreApplication::applicationDirPath();
-		QTextCodec* codec = nullptr;
-		UINT acp = GetACP();
-		if (acp == 936)
-			codec = QTextCodec::codecForName("gb2312");
-		else if (acp == 950)
-			codec = QTextCodec::codecForName("big5");
-		else
-			codec = QTextCodec::codecForName("utf-8");
+		//QTextCodec* codec = nullptr;
+		//UINT acp = GetACP();
+		//if (acp == 936)
+		//	codec = QTextCodec::codecForName("gb2312");
+		//else if (acp == 950)
+		//	codec = QTextCodec::codecForName("big5");
+		//else
+		//	codec = QTextCodec::codecForName("utf-8");
 
-		std::string str = codec->fromUnicode(path).toStdString();
+		std::string str = path.toLocal8Bit().data();
 
-		QString ret = codec->toUnicode(str.c_str());
+		//QString ret = codec->toUnicode(str.c_str());
 
-		return ret;
+		return QString::fromStdString(str); //ret;
 	}
 
 	Q_REQUIRED_RESULT inline static const int __vectorcall percent(int value, int total)

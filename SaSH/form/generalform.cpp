@@ -119,17 +119,25 @@ void GeneralForm::onComboBoxClicked()
 		if (!util::enumAllFiles(util::applicationDirPath() + "/settings", ".json", &fileList))
 			return;
 
+		int currentIndex = ui.comboBox_setting->currentIndex();
+		ui.comboBox_setting->blockSignals(true);
 		ui.comboBox_setting->clear();
 		for (const QPair<QString, QString>& pair : fileList)
 		{
 			ui.comboBox_setting->addItem(pair.first, pair.second);
 		}
+
+		ui.comboBox_setting->setCurrentIndex(currentIndex);
+
+		ui.comboBox_setting->blockSignals(false);
+		return;
 	}
-	else if (name == "comboBox_server")
+	if (name == "comboBox_server")
 	{
 		createServerList();
+		return;
 	}
-	else if (name == "comboBox_paths")
+	if (name == "comboBox_paths")
 	{
 		QListView* pListView = qobject_cast<QListView*>(ui.comboBox_paths->view());
 		if (pListView)
@@ -182,6 +190,7 @@ void GeneralForm::onComboBoxClicked()
 		config.writeStringArray("System", "Command", "DirPath", newPaths);
 		ui.comboBox_paths->setCurrentIndex(currentIndex);
 		ui.comboBox_paths->blockSignals(false);
+		return;
 	}
 }
 
@@ -829,8 +838,11 @@ void GeneralForm::onComboBoxCurrentIndexChanged(int value)
 		if (fileName.isEmpty())
 			return;
 
-		util::Config config(fileName);
-		config.write("System", "Server", "LastServerListSelection", ui.comboBox_serverlist->currentIndex());
+		{
+			util::Config config(fileName);
+			config.write("System", "Server", "LastServerListSelection", ui.comboBox_serverlist->currentIndex());
+		}
+
 		emit ui.comboBox_server->clicked();
 	}
 	else if (name == "comboBox_server")
@@ -1054,36 +1066,36 @@ void GeneralForm::createServerList()
 		if (list.isEmpty())
 		{
 			static const QStringList defaultListSO = {
-				"「活动互动」1线|活动电信1线, 活动联通1线, 活动移动1线, 活动海外1线",
-				"「摆摊交易」4线|摆摊电信4线, 摆摊联通4线, 摆摊移动4线, 摆摊海外4线",
-				"练级挂机5线|族战电信5线, 族战联通5线, 石器移动5线, 石器海外5线",
-				"练级挂机6线|石器电信6线, 石器联通6线, 石器移动6线, 石器海外6线",
-				"「庄园族战」2线|族战电信2线, 族战联通2线, 族战移动2线, 族战海外2线",
-				"练级挂机7线|石器挂机7线",
-				"练级挂机8线|石器电信8线, 石器联通8线",
-				"练级挂机13|电信 13专线, 联通 13专线, 移动 13专线, 海外 13专线",
-				"「双号副本」3线|石器电信3线, 石器联通3线, 石器移动3线, 石器海外3线",
-				"「练级副本」9线|石器电信9线, 石器联通9线",
-				"10 19 20线|挂机 10专线, 备用 10专线, 电信 19专线, 其他 19专线, 电信 20专线, 其他 20专线",
-				"11 21 22线|挂机 11专线, 备用 11专线, 电信 21专线, 其他 21专线, 电信 22专线, 其他 22专线, 电信 23专线, 其他 23专线",
-				"全球加速12|电信 12专线, 联通 12专线, 移动 12专线, 港澳台 12线, 美国 12专线",
-				"14 16 17 18|电信 14专线, 联通移动14线, 移动 14专线, 海外 14专线,电信 16专线, 联通 16专线, 移动 16专线, 海外 16专线, 电信 17专线, 联通 17专线, 移动 17专线, 海外 17专线, 电信 18专线, 联通 18专线, 移动 18专线",
-				"公司专线15|公司电信15, 公司联通15, 「活动互动」1线, 「摆摊交易」4线",
+				"1|「活动互动」1线|活动电信1线, 活动联通1线, 活动移动1线, 活动海外1线",
+				"2|「摆摊交易」4线|摆摊电信4线, 摆摊联通4线, 摆摊移动4线, 摆摊海外4线",
+				"3|练级挂机5线|族战电信5线, 族战联通5线, 石器移动5线, 石器海外5线",
+				"4|练级挂机6线|石器电信6线, 石器联通6线, 石器移动6线, 石器海外6线",
+				"5|「庄园族战」2线|族战电信2线, 族战联通2线, 族战移动2线, 族战海外2线",
+				"6|练级挂机7线|石器挂机7线",
+				"7|练级挂机8线|石器电信8线, 石器联通8线",
+				"8|练级挂机13|电信 13专线, 联通 13专线, 移动 13专线, 海外 13专线",
+				"9|「双号副本」3线|石器电信3线, 石器联通3线, 石器移动3线, 石器海外3线",
+				"10|「练级副本」9线|石器电信9线, 石器联通9线",
+				"11|10 19 20线|挂机 10专线, 备用 10专线, 电信 19专线, 其他 19专线, 电信 20专线, 其他 20专线",
+				"12|11 21 22线|挂机 11专线, 备用 11专线, 电信 21专线, 其他 21专线, 电信 22专线, 其他 22专线, 电信 23专线, 其他 23专线",
+				"13|全球加速12|电信 12专线, 联通 12专线, 移动 12专线, 港澳台 12线, 美国 12专线",
+				"14|14 16 17 18|电信 14专线, 联通移动14线, 移动 14专线, 海外 14专线,电信 16专线, 联通 16专线, 移动 16专线, 海外 16专线, 电信 17专线, 联通 17专线, 移动 17专线, 海外 17专线, 电信 18专线, 联通 18专线, 移动 18专线",
+				"15|公司专线15|公司电信15, 公司联通15, 「活动互动」1线, 「摆摊交易」4线",
 			};
 
 			static const QStringList defaultListSE = {
-				"1线∥活动互动|电信活动1线, 联通活动1线, 移动活动1线, 海外活动1线",
-				"2线∥摆摊交易|电信摆摊2线, 联通摆摊2线, 移动摆摊2线, 海外摆摊2线",
-				"3线∥庄园族战|电信族战3线, 联通族战3线, 移动族战3线, 海外族战3线",
-				"4线∥练级挂机|电信练级4线, 联通练级4线, 移动练级4线, 海外练级4线",
-				"5线∥练级挂机|电信练级5线, 联通练级5线, 移动练级5线, 海外练级5线",
-				"6线∥练级挂机|电信练级6线, 联通练级6线, 移动练级6线, 海外练级6线",
-				"7线∥练级挂机|电信练级7线, 联通练级7线, 移动练级7线, 海外练级7线",
-				"8线∥练级挂机|电信练级8线, 联通练级8线, 移动练级8线, 海外练级8线, 备用练级8线",
-				"9线∥练级挂机|电信练级9线, 联通练级9线, 移动练级9线, 海外练级9线, 备用练级9线",
-				"15线∥公司专线|电信公司15线, 联通公司15线, 移动公司15线, 海外公司15线",
-				"21线∥会员专线|电信会员21线, 联通会员21线, 移动会员21线, 海外会员21线",
-				"22线∥会员专线|电信会员22线, 联通会员22线, 移动会员22线, 海外会员22线",
+				"1|1线∥活动互动|电信活动1线, 联通活动1线, 移动活动1线, 海外活动1线",
+				"2|2线∥摆摊交易|电信摆摊2线, 联通摆摊2线, 移动摆摊2线, 海外摆摊2线",
+				"3|3线∥庄园族战|电信族战3线, 联通族战3线, 移动族战3线, 海外族战3线",
+				"4|4线∥练级挂机|电信练级4线, 联通练级4线, 移动练级4线, 海外练级4线",
+				"5|5线∥练级挂机|电信练级5线, 联通练级5线, 移动练级5线, 海外练级5线",
+				"6|6线∥练级挂机|电信练级6线, 联通练级6线, 移动练级6线, 海外练级6线",
+				"7|7线∥练级挂机|电信练级7线, 联通练级7线, 移动练级7线, 海外练级7线",
+				"8|8线∥练级挂机|电信练级8线, 联通练级8线, 移动练级8线, 海外练级8线, 备用练级8线",
+				"9|9线∥练级挂机|电信练级9线, 联通练级9线, 移动练级9线, 海外练级9线, 备用练级9线",
+				"10|15线∥公司专线|电信公司15线, 联通公司15线, 移动公司15线, 海外公司15线",
+				"11|21线∥会员专线|电信会员21线, 联通会员21线, 移动会员21线, 海外会员21线",
+				"12|22线∥会员专线|电信会员22线, 联通会员22线, 移动会员22线, 海外会员22线",
 			};
 
 			list = currentListIndex == 0 ? defaultListSO : defaultListSE;
@@ -1093,6 +1105,7 @@ void GeneralForm::createServerList()
 
 	QString currentText = ui.comboBox_server->currentText();
 	int currentIndex = ui.comboBox_server->currentIndex();
+
 	ui.comboBox_server->setUpdatesEnabled(false);
 	ui.comboBox_subserver->setUpdatesEnabled(false);
 	ui.comboBox_server->clear();
@@ -1106,7 +1119,12 @@ void GeneralForm::createServerList()
 		if (subList.isEmpty())
 			continue;
 
-		if (subList.size() != 2)
+		if (subList.size() != 3)
+			continue;
+
+		QString indexStr = subList.takeFirst();
+		//檢查是否為數字
+		if (indexStr.toInt() <= 0)
 			continue;
 
 		QString server = subList.takeFirst();
@@ -1124,10 +1142,10 @@ void GeneralForm::createServerList()
 			continue;
 		ui.comboBox_subserver->addItems(subList);
 	}
+
 	Injector& injector = Injector::getInstance();
 	injector.serverNameList = serverNameList;
 	injector.subServerNameList = subServerNameList;
-
 
 	if (currentIndex >= 0)
 		ui.comboBox_server->setCurrentIndex(currentIndex);
@@ -1136,5 +1154,4 @@ void GeneralForm::createServerList()
 	ui.comboBox_subserver->setCurrentIndex(0);
 	ui.comboBox_server->setUpdatesEnabled(true);
 	ui.comboBox_subserver->setUpdatesEnabled(true);
-
 }
