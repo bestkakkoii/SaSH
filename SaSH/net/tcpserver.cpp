@@ -2988,7 +2988,7 @@ void Server::setBattleEnd()
 	}
 
 	Injector& injector = Injector::getInstance();
-	if (injector.getEnableHash(util::kFastBattleEnable))
+	if (injector.getEnableHash(util::kFastBattleEnable) || injector.getEnableHash(util::kAutoBattleEnable))
 	{
 		lssproto_EO_send(0);
 		lssproto_Echo_send(const_cast<char*>("hoge"));
@@ -3982,14 +3982,14 @@ int Server::getItemIndexByName(const QString& name, bool isExact, const QString&
 	{
 		if (pc.item[i].name.isEmpty())
 			continue;
-
-		if (isExact && newMemo.isEmpty() && (newStr == pc.item[i].name))
+		QString curItemStr = pc.item[i].name.simplified();
+		if (isExact && newMemo.isEmpty() && (newStr == curItemStr))
 			return i;
-		else if (!isExact && newMemo.isEmpty() && pc.item[i].name.contains(newStr))
+		else if (!isExact && newMemo.isEmpty() && curItemStr.contains(newStr))
 			return i;
-		else if (isExact && !newMemo.isEmpty() && (pc.item[i].memo.contains(newMemo)) && (newStr == pc.item[i].name))
+		else if (isExact && !newMemo.isEmpty() && (pc.item[i].memo.contains(newMemo)) && (newStr == curItemStr))
 			return i;
-		else if (!isExact && !newMemo.isEmpty() && (pc.item[i].memo.contains(newMemo)) && pc.item[i].name.contains(newStr))
+		else if (!isExact && !newMemo.isEmpty() && (pc.item[i].memo.contains(newMemo)) && curItemStr.contains(newStr))
 			return i;
 	}
 
