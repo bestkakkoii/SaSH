@@ -1567,7 +1567,7 @@ qint64 Interpreter::leftclick(qint64, const TokenMap& TK)
 	checkInteger(TK, 2, &y);
 	QPoint p(x, y);
 
-	injector.server->leftClick(p.x(), p.y());
+	injector.leftClick(p.x(), p.y());
 
 	return Parser::kNoChange;
 }
@@ -1585,7 +1585,7 @@ qint64 Interpreter::rightclick(qint64, const TokenMap& TK)
 	checkInteger(TK, 2, &y);
 	QPoint p(x, y);
 
-	injector.server->rightClick(p.x(), p.y());
+	injector.rightClick(p.x(), p.y());
 
 	return Parser::kNoChange;
 }
@@ -1603,7 +1603,7 @@ qint64 Interpreter::leftdoubleclick(qint64, const TokenMap& TK)
 	checkInteger(TK, 2, &y);
 	QPoint p(x, y);
 
-	injector.server->leftDoubleClick(p.x(), p.y());
+	injector.leftDoubleClick(p.x(), p.y());
 
 	return Parser::kNoChange;
 }
@@ -1629,7 +1629,7 @@ qint64 Interpreter::mousedragto(qint64, const TokenMap& TK)
 	checkInteger(TK, 2, &yto);
 	QPoint pto(xto, yto);
 
-	injector.server->dragto(pfrom.x(), pfrom.y(), pto.x(), pto.y());
+	injector.dragto(pfrom.x(), pfrom.y(), pto.x(), pto.y());
 
 	return Parser::kNoChange;
 }

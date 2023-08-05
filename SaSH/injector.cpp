@@ -487,3 +487,55 @@ bool Injector::isWindowAlive() const
 	}
 	return false;
 }
+
+void Injector::mouseMove(int x, int y) const
+{
+	LPARAM data = MAKELPARAM(x, y);
+	sendMessage(WM_MOUSEMOVE, NULL, data);
+}
+
+//滑鼠移動 + 左鍵
+void Injector::leftClick(int x, int y) const
+{
+	LPARAM data = MAKELPARAM(x, y);
+	sendMessage(WM_MOUSEMOVE, NULL, data);
+	QThread::msleep(50);
+	sendMessage(WM_LBUTTONDOWN, MK_LBUTTON, data);
+	QThread::msleep(50);
+	sendMessage(WM_LBUTTONUP, MK_LBUTTON, data);
+	QThread::msleep(50);
+}
+
+void Injector::leftDoubleClick(int x, int y) const
+{
+	LPARAM data = MAKELPARAM(x, y);
+	sendMessage(WM_MOUSEMOVE, NULL, data);
+	QThread::msleep(50);
+	sendMessage(WM_LBUTTONDBLCLK, MK_LBUTTON, data);
+	QThread::msleep(50);
+}
+
+void Injector::rightClick(int x, int y) const
+{
+	LPARAM data = MAKELPARAM(x, y);
+	sendMessage(WM_MOUSEMOVE, NULL, data);
+	QThread::msleep(50);
+	sendMessage(WM_RBUTTONDOWN, MK_RBUTTON, data);
+	QThread::msleep(50);
+	sendMessage(WM_RBUTTONUP, MK_RBUTTON, data);
+	QThread::msleep(50);
+}
+
+void Injector::dragto(int x1, int y1, int x2, int y2) const
+{
+	LPARAM datafrom = MAKELPARAM(x1, y1);
+	LPARAM datato = MAKELPARAM(x2, y2);
+	sendMessage(WM_MOUSEMOVE, NULL, datafrom);
+	QThread::msleep(50);
+	sendMessage(WM_LBUTTONDOWN, MK_LBUTTON, datafrom);
+	QThread::msleep(50);
+	sendMessage(WM_MOUSEMOVE, NULL, datato);
+	QThread::msleep(50);
+	sendMessage(WM_LBUTTONUP, MK_LBUTTON, datato);
+	QThread::msleep(50);
+}

@@ -52,6 +52,7 @@ private:
 	void checkEtcFlag();
 	void checkAutoWalk();
 	void checkAutoDropItems();
+	void checkAutoDropMeat(const QStringList& items);
 	void checkAutoJoin();
 	void checkAutoHeal();
 	void checkAutoDropPet();

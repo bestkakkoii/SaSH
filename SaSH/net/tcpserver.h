@@ -214,7 +214,7 @@ private slots:
 
 
 private:
-	int SaDispatchMessage(char* encoded);
+	int saDispatchMessage(char* encoded);
 
 	void handleData(QTcpSocket* clientSocket, QByteArray data);
 
@@ -234,17 +234,6 @@ public://actions
 	QString getBadStatusString(unsigned int status);
 
 	QString getFieldString(unsigned int field);
-
-	void mouseMove(int x, int y);
-
-	void leftClick(int x, int y);
-
-	void leftDoubleClick(int x, int y);
-
-	void rightClick(int x, int y);
-
-	void dragto(int x1, int y1, int x2, int y2);
-
 
 	void unlockSecurityCode(const QString& code);
 
@@ -433,6 +422,8 @@ public://actions
 	PARTY getParty(int partyIndex) const { return party[partyIndex]; }
 	ITEM getPetEquip(int petIndex, int equipIndex) const { return pet[petIndex].item[equipIndex]; }
 
+	Q_REQUIRED_RESULT int findInjuriedAllie();
+
 private:
 	void setWindowTitle();
 	void refreshItemInfo(int index);
@@ -454,9 +445,6 @@ private:
 	QString getAreaString(int target);
 	Q_REQUIRED_RESULT bool matchPetNameByIndex(int index, const QString& name);
 
-	Q_REQUIRED_RESULT int findInjuriedAllie();
-
-	void checkAutoDropMeat(const QStringList& items);
 
 #pragma region BattleFunctions
 	int playerDoBattleWork();
@@ -506,9 +494,6 @@ private:
 
 #pragma region SAClientOriginal
 	//StoneAge Client Original Functions
-	bool CheckMailNoReadFlag();
-
-	void clearPartyParam();
 
 	void swapItemLocal(int from, int to);
 
@@ -577,9 +562,7 @@ private:
 		//	autoMapSeeFlag = FALSE;
 	}
 
-	void PaletteChange(int palNo, int time);
-
-	void RealTimeToSATime(LSTIME* lstime);
+	void realTimeToSATime(LSTIME* lstime);
 
 	inline void redrawMap(void) { oldGx = -1; oldGy = -1; }
 
@@ -599,7 +582,7 @@ private:
 #else
 		return QDateTime::currentMSecsSinceEpoch();
 #endif
-	}
+}
 
 	inline void setWarpMap(const QPoint& pos)
 	{
@@ -714,8 +697,6 @@ private:
 	unsigned int ProcNo = 0u;
 	unsigned int SubProcNo = 0u;
 	unsigned int MenuToggleFlag = 0u;
-
-	PALETTE_STATE PalState = {};
 
 	int opp_showindex = 0;
 	QString opp_sockfd;
@@ -1056,4 +1037,4 @@ private://lssproto_recv
 	virtual void lssproto_CustomWN_recv(const QString& data) override;
 	virtual void lssproto_CustomTK_recv(const QString& data) override;
 #pragma endregion
-};
+	};

@@ -480,6 +480,9 @@ int MainObject::checkAndRunFunctions()
 		//檢查自動丟棄道具
 		checkAutoDropItems();
 
+		SPD_LOG(g_logger_name, "[mainthread] checkAutoDropMeat");
+		checkAutoDropMeat(QStringList());
+
 		SPD_LOG(g_logger_name, "[mainthread] checkAutoEatBoostExpItem");
 		//檢查自動吃道具
 		checkAutoEatBoostExpItem();
@@ -1081,6 +1084,66 @@ void MainObject::checkAutoDropItems()
 				injector.server->dropItem(i);
 			}
 		}
+	}
+}
+
+//檢查並自動吃肉、或丟肉
+void MainObject::checkAutoDropMeat(const QStringList& item)
+{
+	Injector& injector = Injector::getInstance();
+	if (injector.server.isNull())
+		return;
+
+	if (!injector.getEnableHash(util::kAutoDropMeatEnable))
+		return;
+
+	bool bret = false;
+	constexpr const char* meat = u8"肉";
+	constexpr const char* memo = u8"耐久力";
+
+	if (!item.isEmpty())
+	{
+		for (const QString& it : item)
+		{
+			QString newItemNmae = it.simplified();
+			if (newItemNmae.contains(meat))
+			{
+				bret = true;
+				break;
+			}
+		}
+	}
+	else
+	{
+		PC pc = injector.server->getPC();
+		for (const ITEM& it : pc.item)
+		{
+			QString newItemNmae = it.name.simplified();
+			if (!newItemNmae.isEmpty() && newItemNmae.contains(meat))
+			{
+				bret = true;
+				break;
+			}
+		}
+	}
+
+	if (!bret)
+		return;
+
+	int index = 0;
+	PC pc = injector.server->getPC();
+	for (const ITEM& item : pc.item)
+	{
+		QString newItemNmae = item.name.simplified();
+		QString newItemMemo = item.memo.simplified();
+		if (newItemNmae.contains(meat))
+		{
+			if (!newItemMemo.contains(memo) && (newItemNmae != QString(u8"味道爽口的肉湯")) && (newItemNmae != QString(u8"味道爽口的肉汤")))
+				injector.server->dropItem(index);
+			else
+				injector.server->useItem(index, injector.server->findInjuriedAllie());
+		}
+		++index;
 	}
 }
 
