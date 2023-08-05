@@ -382,7 +382,8 @@ public://actions
 		return IS_ONLINE_FLAG.load(std::memory_order_acquire);
 	}
 
-	PC getPC() const { QMutexLocker lock(&pcMutex_); return pc; }
+	PC getPC() const { QMutexLocker lock(&pcMutex_); return pc_; }
+	void setPC(PC pc) { QMutexLocker lock(&pcMutex_); pc_ = pc; }
 
 	void sortItem();
 
@@ -423,11 +424,11 @@ public://actions
 	ITEM getPetEquip(int petIndex, int equipIndex) const { return pet[petIndex].item[equipIndex]; }
 
 	Q_REQUIRED_RESULT int findInjuriedAllie();
-
+	void refreshItemInfo();
 private:
 	void setWindowTitle();
 	void refreshItemInfo(int index);
-	void refreshItemInfo();
+
 
 	void setBattleFlag(bool enable);
 	inline void setOnlineFlag(bool enable)
@@ -568,7 +569,7 @@ private:
 
 	inline void setPcWarpPoint(const QPoint& pos) { setWarpMap(pos); }
 
-	inline void resetPc(void) { pc.status &= (~CHR_STATUS_LEADER); }
+	inline void resetPc(void) { QMutexLocker lock(&pcMutex_); pc_.status &= (~CHR_STATUS_LEADER); }
 
 	inline void setMap(int floor, const QPoint& pos) { nowFloor = floor; setWarpMap(pos); }
 
@@ -673,7 +674,8 @@ private:
 	QReadWriteLock pointMutex_;//用於保護人物座標更新順序
 	QMutex swapItemMutex_;//用於保護物品數據更新順序
 	mutable QMutex pcMutex_;//用於保護人物數據更新順序
-	PC pc = {};
+	PC pc_ = {};
+	ITEM pcitem[MAX_ITEM] = {};
 
 	PET pet[MAX_PET] = {};
 

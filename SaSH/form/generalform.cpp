@@ -236,6 +236,7 @@ void GeneralForm::onButtonClicked()
 		if (!newPaths.contains(newPath))
 			newPaths.append(newPath);
 
+		ui.comboBox_paths->blockSignals(true);
 		ui.comboBox_paths->clear();
 		for (const QString& it : newPaths)
 		{
@@ -249,6 +250,7 @@ void GeneralForm::onButtonClicked()
 		}
 
 		ui.comboBox_paths->setCurrentIndex(ui.comboBox_paths->count() - 1);
+		ui.comboBox_paths->blockSignals(false);
 		config.writeStringArray("System", "Command", "DirPath", newPaths);
 	}
 

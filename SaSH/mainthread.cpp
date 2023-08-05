@@ -1085,6 +1085,7 @@ void MainObject::checkAutoDropItems()
 			}
 		}
 	}
+	injector.server->refreshItemInfo();
 }
 
 //檢查並自動吃肉、或丟肉
@@ -1145,6 +1146,8 @@ void MainObject::checkAutoDropMeat(const QStringList& item)
 		}
 		++index;
 	}
+
+	injector.server->refreshItemInfo();
 }
 
 //自動組隊
@@ -1440,7 +1443,7 @@ void MainObject::checkAutoHeal()
 						break;
 
 					injector.server->useItem(itemIndex, 0);
-					QThread::msleep(300);
+					QThread::msleep(200);
 				}
 
 				//平時道具補血
@@ -1514,7 +1517,7 @@ void MainObject::checkAutoHeal()
 						break;
 
 					injector.server->useItem(itemIndex, target);
-					QThread::msleep(300);
+					QThread::msleep(200);
 				}
 
 				//平時精靈補血
@@ -1568,7 +1571,7 @@ void MainObject::checkAutoHeal()
 						break;
 
 					injector.server->useMagic(magicIndex, target);
-					QThread::msleep(300);
+					QThread::msleep(100);
 				}
 			}
 		);
