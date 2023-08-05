@@ -419,9 +419,6 @@
     <QtUic Include="form\infoform.ui">
       <Filter>Form Files</Filter>
     </QtUic>
-    <QtUic Include="form\generalform.ui">
-      <Filter>Form Files</Filter>
-    </QtUic>
     <QtUic Include="form\afkform.ui">
       <Filter>Form Files</Filter>
     </QtUic>
@@ -469,6 +466,9 @@
     </QtUic>
     <QtUic Include="model\qthumbnailform.ui">
       <Filter>Source Files\model</Filter>
+    </QtUic>
+    <QtUic Include="form\generalform.ui">
+      <Filter>Form Files</Filter>
     </QtUic>
   </ItemGroup>
   <ItemGroup>
