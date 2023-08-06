@@ -615,7 +615,7 @@ qint64 Interpreter::set(qint64 currentline, const TokenMap& TK)
 
 			{ u8"道具補氣", util::kNormalItemHealMpEnable },//{ u8"ItemHealMpNormalValue", util::kNormalItemHealMpValue },{ u8"平時道具補氣", util::kNormalItemHealMpItemString },
 			{ u8"戰鬥道具補氣", util::kBattleItemHealMpEnable },//{ u8"戰鬥道具補氣人物", util::kBattleItemHealMpValue },{ u8"戰鬥道具補氣 ", util::kBattleItemHealMpItemString },
-			{ u8"戰鬥嗜血補氣", util::kBattleMagicMpEnable },//{ u8"戰鬥嗜血補氣技能", util::kBattleMagicMpMagicValue },{ u8"戰鬥嗜血補氣百分比", util::kBattleMagicMpValue },
+			{ u8"戰鬥嗜血補氣", util::kBattleSkillMpEnable },//{ u8"戰鬥嗜血補氣技能", util::kBattleSkillMpSkillValue },{ u8"戰鬥嗜血補氣百分比", util::kBattleSkillMpValue },
 
 			/*{u8"MagicHealCharNormalValue", util::kNormalMagicHealCharValue},
 			{ u8"MagicHealPetNormalValue", util::kNormalMagicHealPetValue },
@@ -737,7 +737,7 @@ qint64 Interpreter::set(qint64 currentline, const TokenMap& TK)
 
 			{ u8"道具补气", util::kNormalItemHealMpEnable },//{ u8"ItemHealMpNormalValue", util::kNormalItemHealMpValue },{ u8"平时道具补气", util::kNormalItemHealMpItemString },
 			{ u8"战斗道具补气", util::kBattleItemHealMpEnable },//{ u8"战斗道具补气人物", util::kBattleItemHealMpValue },{ u8"战斗道具补气 ", util::kBattleItemHealMpItemString },
-			{ u8"战斗嗜血补气", util::kBattleMagicMpEnable },//{ u8"战斗嗜血补气技能", util::kBattleMagicMpMagicValue },{ u8"战斗嗜血补气百分比", util::kBattleMagicMpValue },
+			{ u8"战斗嗜血补气", util::kBattleSkillMpEnable },//{ u8"战斗嗜血补气技能", util::kBattleSkillMpSkillValue },{ u8"战斗嗜血补气百分比", util::kBattleSkillMpValue },
 
 			/*{u8"MagicHealCharNormalValue", util::kNormalMagicHealCharValue},
 			{ u8"MagicHealPetNormalValue", util::kNormalMagicHealPetValue },
@@ -1067,10 +1067,35 @@ qint64 Interpreter::set(qint64 currentline, const TokenMap& TK)
 		break;
 	}
 
+	// if (type == util::kBattleSkillMpEnable)
+	// {
+	// 	qint64 value1 = 0;
+	// 	checkInteger(TK, 2, &value1);
+
+	// 	--value1;
+	// 	if (value1 < 0)
+	// 		value1 = 0;
+
+	// 	qint64 value2 = 0;
+	// 	if (!checkInteger(TK, 3, &value2))
+	// 		return Parser::kArgError;
+	// 	bool ok = value2 > 0;
+	// 	if (value2 < 0)
+	// 		value2 = 0;
+
+	// 	injector.setEnableHash(type, ok);
+	// 	if (ok)
+	// 	{
+	// 		injector.setValueHash(util::kBattleSkillMpSkillValue, value1);
+	// 		injector.setValueHash(util::kBattleSkillMpValue, value2);
+	// 		emit signalDispatcher.applyHashSettingsToUI();
+	// 		return Parser::kNoChange;
+	// 	}
+	// }
+
 	//0:close >1:open two qint64 value
 	switch (type)
 	{
-	case util::kBattleMagicMpEnable:
 	case util::kBattleCatchPlayerMagicEnable:
 	{
 		qint64 value = 0;
@@ -1094,12 +1119,6 @@ qint64 Interpreter::set(qint64 currentline, const TokenMap& TK)
 		{
 			injector.setValueHash(util::kBattleCatchTargetMagicHpValue, value);
 			injector.setValueHash(util::kBattleCatchPlayerMagicValue, value2);
-		}
-		else if (type == util::kBattleMagicMpEnable && ok)
-		{
-			injector.setValueHash(util::kBattleMagicMpMagicValue, value);
-			injector.setValueHash(util::kBattleMagicMpValue, value2);
-			break;
 		}
 		emit signalDispatcher.applyHashSettingsToUI();
 		return Parser::kNoChange;
@@ -1158,7 +1177,6 @@ qint64 Interpreter::set(qint64 currentline, const TokenMap& TK)
 			injector.setValueHash(util::kBattlePetRoundActionLevelValue, value4);
 			//injector.setValueHash(util::kBattlePetRoundActionTargetValue, value5);
 		}
-
 		break;
 	}
 	default:
@@ -1232,8 +1250,6 @@ qint64 Interpreter::set(qint64 currentline, const TokenMap& TK)
 			injector.setValueHash(util::kBattlePetCrossActionRoundValue, value2);
 			//injector.setValueHash(util::kBattlePetCrossActionTargetValue, value3);
 		}
-
-
 		emit signalDispatcher.applyHashSettingsToUI();
 		return Parser::kNoChange;
 	}

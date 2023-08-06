@@ -269,7 +269,7 @@ namespace util
 		kBattleMagicHealMagicValue,
 		kBattleMagicReviveMagicValue,
 		kNormalMagicHealMagicValue,
-		kBattleMagicMpMagicValue,
+		kBattleSkillMpSkillValue,
 
 		//afk->heal spinbox
 		kBattleMagicHealCharValue,
@@ -281,7 +281,7 @@ namespace util
 		kBattleItemHealAllieValue,
 
 		kBattleItemHealMpValue,
-		kBattleMagicMpValue,
+		kBattleSkillMpValue,
 
 		kNormalMagicHealCharValue,
 		kNormalMagicHealPetValue,
@@ -394,7 +394,7 @@ namespace util
 		kBattleItemHealMpEnable,
 		kBattleMagicReviveEnable,
 		kBattleItemReviveEnable,
-		kBattleMagicMpEnable,
+		kBattleSkillMpEnable,
 
 		kNormalMagicHealEnable,
 		kNormalItemHealEnable,
@@ -549,8 +549,8 @@ namespace util
 		{ kBattleMagicHealMagicValue, "BattleMagicHealMagicValue" },
 		{ kBattleMagicReviveMagicValue, "BattleMagicReviveMagicValue" },
 		{ kNormalMagicHealMagicValue, "NormalMagicHealMagicValue" },
-		{ kBattleMagicMpMagicValue, "BattleMagicMpMagicValue" },
-		{ kBattleMagicMpValue, "BattleMagicMpValue" },
+		{ kBattleSkillMpSkillValue, "BattleSkillMpSkillValue" },
+		{ kBattleSkillMpValue, "BattleSkillMpValue" },
 
 		//afk->heal spinbox
 		{ kBattleMagicHealCharValue, "MagicHealCharValue" },
@@ -667,7 +667,7 @@ namespace util
 		{ kBattleItemHealMpEnable, "BattleItemHealMpEnable" },
 		{ kBattleMagicReviveEnable, "BattleMagicReviveEnable" },
 		{ kBattleItemReviveEnable, "BattleItemReviveEnable" },
-		{ kBattleMagicMpEnable, "BattleMagicMpEnable" },
+		{ kBattleSkillMpEnable, "BattleSkillMpEnable" },
 
 		{ kNormalMagicHealEnable, "NormalMagicHealEnable" },
 		{ kNormalItemHealEnable, "NormalItemHealEnable" },
