@@ -32,6 +32,37 @@ qint64 Interpreter::useitem(qint64, const TokenMap& TK)
 
 	checkBattleThenWait();
 
+	QHash<QString, qint64> hash = {
+		{ u8"自己", 0},
+		{ u8"戰寵", injector.server->getPC().battlePetNo},
+		{ u8"騎寵", injector.server->getPC().ridePetNo},
+		{ u8"隊長", 6},
+
+		{ u8"自己", 0},
+		{ u8"战宠", injector.server->getPC().battlePetNo},
+		{ u8"骑宠", injector.server->getPC().ridePetNo},
+		{ u8"队长", 6},
+
+		{ u8"self", 0},
+		{ u8"battlepet", injector.server->getPC().battlePetNo},
+		{ u8"ride", injector.server->getPC().ridePetNo},
+		{ u8"leader", 6},
+	};
+
+	for (qint64 i = 0; i < MAX_PET; ++i)
+	{
+		hash.insert(u8"寵物" + QString::number(i + 1), i + 1);
+		hash.insert(u8"宠物" + QString::number(i + 1), i + 1);
+		hash.insert(u8"pet" + QString::number(i + 1), i + 1);
+	}
+
+	for (qint64 i = 1; i < MAX_PARTY; ++i)
+	{
+		hash.insert(u8"隊員" + QString::number(i), i + 1 + MAX_PET);
+		hash.insert(u8"队员" + QString::number(i), i + 1 + MAX_PET);
+		hash.insert(u8"teammate" + QString::number(i), i + 1 + MAX_PET);
+	}
+
 	QString itemName;
 	QString itemMemo;
 	QStringList itemNames;
@@ -56,42 +87,10 @@ qint64 Interpreter::useitem(qint64, const TokenMap& TK)
 			QString targetTypeName;
 			checkString(TK, 3, &targetTypeName);
 			if (targetTypeName.isEmpty())
-			{
 				target = 0;
-
-			}
 			else
 			{
-				QHash<QString, qint64> hash = {
-					{ u8"自己", 0},
-					{ u8"戰寵", injector.server->getPC().battlePetNo},
-					{ u8"騎寵", injector.server->getPC().ridePetNo},
-					{ u8"隊長", 6},
 
-					{ u8"自己", 0},
-					{ u8"战宠", injector.server->getPC().battlePetNo},
-					{ u8"骑宠", injector.server->getPC().ridePetNo},
-					{ u8"队长", 6},
-
-					{ u8"self", 0},
-					{ u8"battlepet", injector.server->getPC().battlePetNo},
-					{ u8"ride", injector.server->getPC().ridePetNo},
-					{ u8"leader", 6},
-				};
-
-				for (qint64 i = 0; i < MAX_PET; ++i)
-				{
-					hash.insert(u8"寵物" + QString::number(i + 1), i + 1);
-					hash.insert(u8"宠物" + QString::number(i + 1), i + 1);
-					hash.insert(u8"pet" + QString::number(i + 1), i + 1);
-				}
-
-				for (qint64 i = 1; i < MAX_PARTY; ++i)
-				{
-					hash.insert(u8"隊員" + QString::number(i), i + 1 + MAX_PET);
-					hash.insert(u8"队员" + QString::number(i), i + 1 + MAX_PET);
-					hash.insert(u8"teammate" + QString::number(i), i + 1 + MAX_PET);
-				}
 
 				if (!hash.contains(targetTypeName))
 					return Parser::kArgError;
@@ -107,7 +106,24 @@ qint64 Interpreter::useitem(qint64, const TokenMap& TK)
 		min += CHAR_EQUIPPLACENUM;
 		max += CHAR_EQUIPPLACENUM;
 
+		target = -2;
 		checkInteger(TK, 2, &target);
+		if (target == -2)
+		{
+			QString targetTypeName;
+			checkString(TK, 2, &targetTypeName);
+			if (targetTypeName.isEmpty())
+				target = 0;
+			else
+			{
+				if (!hash.contains(targetTypeName))
+					return Parser::kArgError;
+
+				target = hash.value(targetTypeName, -1);
+				if (target < 0)
+					return Parser::kArgError;
+			}
+		}
 
 		checkString(TK, 3, &itemName);
 		checkString(TK, 4, &itemMemo);
