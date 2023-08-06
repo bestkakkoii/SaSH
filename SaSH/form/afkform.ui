@@ -712,7 +712,7 @@
              </widget>
             </item>
             <item>
-             <widget class="QComboBox" name="comboBox_skillMp">
+             <widget class="ComboBox" name="comboBox_skillMp">
               <property name="minimumSize">
                <size>
                 <width>179</width>
@@ -1106,7 +1106,7 @@
                </widget>
               </item>
               <item>
-               <widget class="QComboBox" name="comboBox_itemheal_normal">
+               <widget class="ComboBox" name="comboBox_itemheal_normal">
                 <property name="editable">
                  <bool>true</bool>
                 </property>
