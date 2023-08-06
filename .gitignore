@@ -64,3 +64,4 @@ compile_commands.json
 /SaSH/net/webauthenticator.cpp
 /SaSH/net/webauthenticator.h
 .vscode/settings.json
+SaSH/SaSH.vcxproj.user
