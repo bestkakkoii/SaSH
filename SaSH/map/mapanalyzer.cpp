@@ -1670,7 +1670,7 @@ bool __fastcall MapAnalyzer::loadFromBinary(int floor, map_t* _map)
 		return false;
 
 
-	const QString fileName(QCoreApplication::applicationDirPath() + "/map/" + QString::number(floor) + ".dat");
+	const QString fileName(util::applicationDirPath() + "/map/" + QString::number(floor) + ".dat");
 	if (!QFile::exists(fileName)) return false;
 
 	std::string f(fileName.toStdString());
@@ -1744,7 +1744,7 @@ bool __fastcall MapAnalyzer::saveAsBinary(map_t map, const QString& fileName)
 	QString newFileName(fileName);
 	if (fileName.isEmpty())
 	{
-		QDir dir(QCoreApplication::applicationDirPath() + "/map");
+		QDir dir(util::applicationDirPath() + "/map");
 		if (!dir.exists())
 			dir.mkpath(dir.absolutePath());
 

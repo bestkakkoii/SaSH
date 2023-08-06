@@ -177,7 +177,7 @@ bool QDownloader::checkUpdate(QString* current, QString* ptext)
 
 QDownloader::QDownloader(QWidget* parent)
 	: QWidget(parent)
-	, szCurrentDirectory_(QCoreApplication::applicationDirPath() + "/")
+	, szCurrentDirectory_(util::applicationDirPath() + "/")
 	, szCurrentDotExe_(szCurrentDirectory_ + kBackupExecuteFile)
 	, szCurrentDotExeAsDotTmp_(szCurrentDirectory_ + kBackupExecuteFileTmp)
 	, sz7zDotExe_(szCurrentDirectory_ + "7z.exe")
@@ -194,7 +194,7 @@ QDownloader::QDownloader(QWidget* parent)
 	::SetLayeredWindowAttributes((HWND)winId(), NULL, 0, LWA_ALPHA);
 
 	//install font
-	QFontDatabase::addApplicationFont(QCoreApplication::applicationDirPath() + "/JoysticMonospace.ttf");
+	QFontDatabase::addApplicationFont(util::applicationDirPath() + "/JoysticMonospace.ttf");
 	QFont font("JoysticMonospace", 9);
 	setFont(font);
 
@@ -327,7 +327,7 @@ void QDownloader::start()
 
 	QFuture<void>future = QtConcurrent::run([this]()->void
 		{
-			QString mdFullPath = QString("%1/lib/doc").arg(QCoreApplication::applicationDirPath());
+			QString mdFullPath = QString("%1/lib/doc").arg(util::applicationDirPath());
 			downloadAndExtractZip(doc_URL, mdFullPath);
 		});
 

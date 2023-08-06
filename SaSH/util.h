@@ -745,6 +745,25 @@ namespace util
 		{-1, -1}, //西北2
 	};
 
+	Q_REQUIRED_RESULT inline static QString applicationDirPath()
+	{
+		QString path = QCoreApplication::applicationDirPath();
+		//QTextCodec* codec = nullptr;
+		//UINT acp = GetACP();
+		//if (acp == 936)
+		//	codec = QTextCodec::codecForName("gb2312");
+		//else if (acp == 950)
+		//	codec = QTextCodec::codecForName("big5");
+		//else
+		//	codec = QTextCodec::codecForName("utf-8");
+
+		std::string str = path.toLocal8Bit().data();
+
+		//QString ret = codec->toUnicode(str.c_str());
+
+		return QString::fromStdString(str); //ret;
+	}
+
 	Q_REQUIRED_RESULT inline static const int __vectorcall percent(int value, int total)
 	{
 		if (value == 1 && total > 0)
@@ -923,7 +942,7 @@ namespace util
 
 		//directory
 		//自身目錄往上一層
-		QString directory = QCoreApplication::applicationDirPath();
+		QString directory = util::applicationDirPath();
 		directory = QDir::toNativeSeparators(directory);
 		directory = QDir::cleanPath(directory + QDir::separator() + "..");
 		dialog.setDirectory(directory);
@@ -934,6 +953,19 @@ namespace util
 			if (fileNames.size() > 0)
 			{
 				QString fileName = fileNames.at(0);
+
+				QTextCodec* codec = nullptr;
+				UINT acp = GetACP();
+				if (acp == 936)
+					codec = QTextCodec::codecForName("gb2312");
+				else if (acp == 950)
+					codec = QTextCodec::codecForName("big5");
+				else
+					codec = QTextCodec::codecForName("utf-8");
+
+				std::string str = codec->fromUnicode(fileName).data();
+				fileName = codec->toUnicode(str.c_str());
+
 				if (retstring)
 					*retstring = fileName;
 
@@ -1565,15 +1597,15 @@ namespace util
 		UINT acp = ::GetACP();
 		if (acp == 950)
 		{
-			return (QCoreApplication::applicationDirPath() + QString("/map/point_zh_TW.json"));
+			return (util::applicationDirPath() + QString("/map/point_zh_TW.json"));
 		}
 		else if (acp == 936)
 		{
-			return (QCoreApplication::applicationDirPath() + QString("/map/point_zh_CN.json"));
+			return (util::applicationDirPath() + QString("/map/point_zh_CN.json"));
 		}
 		else
 		{
-			return (QCoreApplication::applicationDirPath() + QString("/map/point.json"));
+			return (util::applicationDirPath() + QString("/map/point.json"));
 		}
 	}
 
@@ -1584,7 +1616,7 @@ namespace util
 		Config(const QString& fileName);
 		~Config();
 
-		bool open(const QString& fileName);
+		bool open();
 		void sync();
 
 		void removeSec(const QString sec);
@@ -1620,6 +1652,8 @@ namespace util
 
 	private:
 		QJsonDocument document_;
+
+		QFile file_ = {};
 
 		QString fileName_ = "\0";
 

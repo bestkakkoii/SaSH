@@ -138,6 +138,16 @@ public:
 
 	inline void setUserData(util::UserData type, const QVariant& data) { userData_hash_.insert(type, QVariant::fromValue(data)); }
 
+	void mouseMove(int x, int y) const;
+
+	void leftClick(int x, int y) const;
+
+	void leftDoubleClick(int x, int y) const;
+
+	void rightClick(int x, int y) const;
+
+	void dragto(int x1, int y1, int x2, int y2) const;
+
 private:
 	static BOOL CALLBACK EnumWindowsCallback(HWND handle, LPARAM lParam)
 	{

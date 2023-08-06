@@ -146,6 +146,9 @@ qint64 Interpreter::press(qint64 currentline, const TokenMap& TK)
 	qint64 dialogid = -1;
 	checkInteger(TK, 3, &dialogid);
 
+	qint64 ext = 0;
+	checkInteger(TK, 4, &ext);
+
 	if (text.isEmpty() && row == 0)
 		return Parser::kArgError;
 
@@ -153,7 +156,7 @@ qint64 Interpreter::press(qint64 currentline, const TokenMap& TK)
 	{
 		BUTTON_TYPE button = buttonMap.value(text.toUpper(), BUTTON_NOTUSED);
 		if (button != BUTTON_NOTUSED)
-			injector.server->press(button, dialogid, npcId);
+			injector.server->press(button, dialogid, npcId + ext);
 		else
 		{
 			dialog_t dialog = injector.server->currentDialog;
@@ -172,12 +175,12 @@ qint64 Interpreter::press(qint64 currentline, const TokenMap& TK)
 				{
 					if (!isExact && textList.at(i).toUpper().contains(newText))
 					{
-						injector.server->press(i + 1, dialogid, npcId);
+						injector.server->press(i + 1, dialogid, npcId + ext);
 						break;
 					}
 					else if (isExact && textList.at(i).toUpper() == newText)
 					{
-						injector.server->press(i + 1, dialogid, npcId);
+						injector.server->press(i + 1, dialogid, npcId + ext);
 						break;
 					}
 				}
@@ -185,7 +188,7 @@ qint64 Interpreter::press(qint64 currentline, const TokenMap& TK)
 		}
 	}
 	else if (row > 0)
-		injector.server->press(row, dialogid, npcId);
+		injector.server->press(row, dialogid, npcId + ext);
 
 	return Parser::kNoChange;
 }
@@ -445,7 +448,7 @@ qint64 Interpreter::savesetting(qint64 currentline, const TokenMap& TK)
 
 	fileName.replace("\\", "/");
 
-	fileName = QCoreApplication::applicationDirPath() + "/settings/" + fileName;
+	fileName = util::applicationDirPath() + "/settings/" + fileName;
 	fileName.replace("\\", "/");
 	fileName.replace("//", "/");
 
@@ -481,7 +484,7 @@ qint64 Interpreter::loadsetting(qint64 currentline, const TokenMap& TK)
 
 	fileName.replace("\\", "/");
 
-	fileName = QCoreApplication::applicationDirPath() + "/settings/" + fileName;
+	fileName = util::applicationDirPath() + "/settings/" + fileName;
 	fileName.replace("\\", "/");
 	fileName.replace("//", "/");
 
@@ -1680,7 +1683,7 @@ qint64 Interpreter::ocr(qint64 currentline, const TokenMap& TK)
 		{
 			if (debugmode == 0)
 				injector.server->inputtext(ret);
-		}
+}
 	}
 #endif
 

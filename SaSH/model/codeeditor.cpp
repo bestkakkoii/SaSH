@@ -22,7 +22,7 @@ CodeEditor::CodeEditor(QWidget* parent)
 
 {
 	//install font
-	QFontDatabase::addApplicationFont(QCoreApplication::applicationDirPath() + "/YaHei Consolas Hybrid 1.12.ttf");
+	QFontDatabase::addApplicationFont("YaHei Consolas Hybrid 1.12.ttf");
 	QFont _font("YaHei Consolas Hybrid", 12, 570/*QFont::DemiBold*/, false);
 	setFont(_font);
 	font = _font;
@@ -38,7 +38,7 @@ CodeEditor::CodeEditor(QWidget* parent)
 #ifdef _DEBUG
 	QFile f(R"(..\Debug\lib\completion_api.txt)");
 #else
-	QFile f(QString(R"(%1\lib\completion_api.txt)").arg(QApplication::applicationDirPath()));
+	QFile f(R"(.\lib\completion_api.txt)");
 #endif
 
 	if (f.open(QIODevice::ReadOnly))

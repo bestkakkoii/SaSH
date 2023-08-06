@@ -210,7 +210,7 @@ lua_Integer CLuaSystem::savesetting(const std::string& sfileName, sol::this_stat
 {
 	QString fileName = QString::fromUtf8(sfileName.c_str());
 	fileName.replace("\\", "/");
-	fileName = QCoreApplication::applicationDirPath() + "/settings/" + fileName;
+	fileName = util::applicationDirPath() + "/settings/" + fileName;
 	fileName.replace("\\", "/");
 	fileName.replace("//", "/");
 
@@ -234,7 +234,7 @@ lua_Integer CLuaSystem::loadsetting(const std::string& sfileName, sol::this_stat
 {
 	QString fileName = QString::fromUtf8(sfileName.c_str());
 	fileName.replace("\\", "/");
-	fileName = QCoreApplication::applicationDirPath() + "/settings/" + fileName;
+	fileName = util::applicationDirPath() + "/settings/" + fileName;
 	fileName.replace("\\", "/");
 	fileName.replace("//", "/");
 

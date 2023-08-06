@@ -39,11 +39,10 @@ public slots:
 	void run();
 
 private:
-
-
 	void mainProc();
 
 	void updateAfkInfos();
+
 	void setUserDatas();
 
 	int checkAndRunFunctions();
@@ -52,6 +51,7 @@ private:
 	void checkEtcFlag();
 	void checkAutoWalk();
 	void checkAutoDropItems();
+	void checkAutoDropMeat(const QStringList& items);
 	void checkAutoJoin();
 	void checkAutoHeal();
 	void checkAutoDropPet();

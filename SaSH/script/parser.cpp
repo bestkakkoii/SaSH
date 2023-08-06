@@ -1829,12 +1829,48 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 		if (typeStr.isEmpty())
 			break;
 
-		injector.server->reloadHashVar("player");
-		VariantSafeHash hashpc = injector.server->hashpc;
-		if (!hashpc.contains(typeStr))
+		PC _pc = injector.server->getPC();
+		QHash<QString, QVariant> hash = {
+			{ "dir", _pc.dir },
+			{ "hp", _pc.hp }, { "maxhp", _pc.maxHp }, { "hpp", _pc.hpPercent },
+			{ "mp", _pc.mp }, { "maxmp", _pc.maxMp }, { "mpp", _pc.mpPercent },
+			{ "vit", _pc.vital },
+			{ "str", _pc.str }, { "tgh", _pc.tgh }, { "dex", _pc.dex },
+			{ "exp", _pc.exp }, { "maxexp", _pc.maxExp },
+			{ "lv", _pc.level },
+			{ "atk", _pc.atk }, { "def", _pc.def },
+			{ "agi", _pc.quick }, { "chasma", _pc.charm }, { "luck", _pc.luck },
+			{ "earth", _pc.earth }, { "water", _pc.water }, { "fire", _pc.fire }, { "wind", _pc.wind },
+			{ "stone", _pc.gold },
+
+			{ "titleNo", _pc.titleNo },
+			{ "dp", _pc.dp },
+			{ "name", _pc.name },
+			{ "fname", _pc.freeName },
+			{ "namecolor", _pc.nameColor },
+			{ "battlepet", _pc.battlePetNo },
+			{ "mailpet", _pc.mailPetNo },
+			//{ "", _pc.standbyPet },
+			//{ "", _pc.battleNo },
+			//{ "", _pc.sideNo },
+			//{ "", _pc.helpMode },
+			//{ "", _pc._pcNameColor },
+			{ "turn", _pc.transmigration },
+			//{ "", _pc.chusheng },
+			{ "familyname", _pc.familyName },
+			//{ "", _pc.familyleader },
+			{ "ridename", _pc.ridePetName },
+			{ "ridelv", _pc.ridePetLevel },
+			{ "earnstone", injector.server->recorder[0].goldearn },
+			{ "earnrep", injector.server->recorder[0].repearn > 0 ? (injector.server->recorder[0].repearn / (injector.server->repTimer.elapsed() / 1000)) * 3600 : 0 },
+			//{ "", _pc.familySprite },
+			//{ "", _pc.baseGraNo },
+		};
+
+		if (!hash.contains(typeStr))
 			break;
 
-		varValue = hashpc.value(typeStr);
+		varValue = hash.value(typeStr);
 		bret = varValue.isValid();
 		break;
 	}
@@ -1844,18 +1880,27 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 		if (!checkInteger(currentLineTokens_, 3, &magicIndex))
 			break;
 
+		if (magicIndex < 0 || magicIndex > MAX_MAGIC)
+			break;
+
 		QString typeStr;
 		checkString(currentLineTokens_, 4, &typeStr);
 		typeStr = typeStr.simplified().toLower();
 		if (typeStr.isEmpty())
 			break;
 
-		injector.server->reloadHashVar("magic");
-		util::SafeHash<int, QVariantHash> hashmagic = injector.server->hashmagic;
-		if (!hashmagic.contains(magicIndex))
-			break;
+		MAGIC m = injector.server->getMagic(magicIndex);
 
-		QVariantHash hash = hashmagic.value(magicIndex);
+		const QVariantHash hash = {
+			{ "valid", m.useFlag ? 1 : 0 },
+			{ "cost", m.mp },
+			{ "field", m.field },
+			{ "target", m.target },
+			{ "deadTargetFlag", m.deadTargetFlag },
+			{ "name", m.name },
+			{ "memo", m.memo },
+		};
+
 		if (!hash.contains(typeStr))
 			break;
 
@@ -1875,12 +1920,18 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 		if (typeStr.isEmpty())
 			break;
 
-		injector.server->reloadHashVar("skill");
-		util::SafeHash<int, QVariantHash> hashskill = injector.server->hashskill;
-		if (!hashskill.contains(skillIndex))
-			break;
+		PROFESSION_SKILL s = injector.server->getSkill(skillIndex);
 
-		QVariantHash hash = hashskill.value(skillIndex);
+		const QHash<QString, QVariant> hash = {
+			{ "valid", s.useFlag ? 1 : 0 },
+			{ "cost", s.costmp },
+			//{ "field", s. },
+			{ "target", s.target },
+			//{ "", s.deadTargetFlag },
+			{ "name", s.name },
+			{ "memo", s.memo },
+		};
+
 		if (!hash.contains(typeStr))
 			break;
 
@@ -1899,11 +1950,9 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 
 			if (typeStr == "count")
 			{
-				injector.server->reloadHashVar("pet");
-				varValue = injector.server->hashpet.size();
+				varValue = injector.server->getPetSize();
 				bret = true;
 			}
-
 
 			break;
 		}
@@ -1914,12 +1963,37 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 		if (typeStr.isEmpty())
 			break;
 
-		injector.server->reloadHashVar("pet");
-		util::SafeHash<int, QVariantHash> hashpet = injector.server->hashpet;
-		if (!hashpet.contains(petIndex))
-			break;
+		const QHash<PetState, QString> petStateHash = {
+			{ kBattle, u8"battle" },
+			{ kStandby , u8"standby" },
+			{ kMail, u8"mail" },
+			{ kRest, u8"rest" },
+			{ kRide, u8"ride" },
+		};
 
-		QVariantHash hash = hashpet.value(petIndex);
+		PET _pet = injector.server->getPet(petIndex);
+
+		const QVariantHash hash = {
+			{ "index", _pet.index + 1 },						//位置
+			{ "graNo", _pet.graNo },						//圖號
+			{ "hp", _pet.hp }, { "maxhp", _pet.maxHp }, { "hpp", _pet.hpPercent },					//血量
+			{ "mp", _pet.mp }, { "maxmp", _pet.maxMp }, { "mpp", _pet.mpPercent },					//魔力
+			{ "exp", _pet.exp }, { "maxexp", _pet.maxExp },				//經驗值
+			{ "lv", _pet.level },						//等級
+			{ "atk", _pet.atk },						//攻擊力
+			{ "def", _pet.def },						//防禦力
+			{ "agi", _pet.quick },						//速度
+			{ "loyal", _pet.ai },							//AI
+			{ "earth", _pet.earth }, { "water", _pet.water }, { "fire", _pet.fire }, { "wind", _pet.wind },
+			{ "maxskill", _pet.maxSkill },
+			{ "turn", _pet.trn },						// 寵物轉生數
+			{ "name", _pet.name },
+			{ "fname", _pet.freeName },
+			{ "valid", _pet.useFlag ? 1ll : 0ll },
+			{ "turn", _pet.trn },
+			{ "state", petStateHash.value(_pet.state) },
+		};
+
 		if (!hash.contains(typeStr))
 			break;
 
@@ -1933,8 +2007,14 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 		if (!checkInteger(currentLineTokens_, 3, &petIndex))
 			break;
 
+		if (petIndex < 0 || petIndex >= MAX_PET)
+			break;
+
 		qint64 skillIndex = -1;
 		if (!checkInteger(currentLineTokens_, 4, &skillIndex))
+			break;
+
+		if (skillIndex < 0 || skillIndex >= MAX_SKILL)
 			break;
 
 		QString typeStr;
@@ -1943,20 +2023,21 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 		if (typeStr.isEmpty())
 			break;
 
-		injector.server->reloadHashVar("petskill");
-		util::SafeHash<int, QHash<int, QVariantHash>> hashpetskill = injector.server->hashpetskill;
-		if (!hashpetskill.contains(petIndex))
+		PET_SKILL _petskill = injector.server->getPetSkill(petIndex, skillIndex);
+
+		const QHash<QString, QVariant> hash = {
+			{ "valid", _petskill.useFlag ? 1 : 0 },
+			//{ "", _petskill.field },
+			{ "target", _petskill.target },
+			//{ "", _petskill.deadTargetFlag },
+			{ "name", _petskill.name },
+			{ "memo", _petskill.memo },
+		};
+
+		if (!hash.contains(typeStr))
 			break;
 
-		QHash<int, QVariantHash> hash = hashpetskill.value(petIndex);
-		if (!hash.contains(skillIndex))
-			break;
-
-		QVariantHash hash2 = hash.value(skillIndex);
-		if (!hash2.contains(typeStr))
-			break;
-
-		varValue = hash2.value(typeStr);
+		varValue = hash.value(typeStr);
 		bret = varValue.isValid();
 		break;
 	}
@@ -2036,20 +2117,34 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 			}
 		}
 
+		int index = itemIndex + CHAR_EQUIPPLACENUM - 1;
+		if (index < CHAR_EQUIPPLACENUM || index >= MAX_ITEM)
+			break;
+
 		QString typeStr;
 		checkString(currentLineTokens_, 4, &typeStr);
 		typeStr = typeStr.simplified().toLower();
 		if (typeStr.isEmpty())
 			break;
 
-		injector.server->reloadHashVar("item");
-		util::SafeHash<int, QVariantHash> hashitem = injector.server->hashitem;
-		if (!hashitem.contains(itemIndex))
-			break;
+		PC pc = injector.server->getPC();
+		ITEM item = pc.item[index];
 
-		QVariantHash hash = hashitem.value(itemIndex);
-		if (!hash.contains(typeStr))
-			break;
+		const QHash<QString, QVariant> hash = {
+			//{ "", item.color },
+			{ "grano", item.graNo },
+			{ "lv", item.level },
+			{ "stack", item.pile },
+			{ "valid", item.useFlag ? 1 : 0 },
+			{ "field", item.field },
+			{ "target", item.target },
+			//{ "", item.deadTargetFlag },
+			//{ "", item.sendFlag },
+			{ "name", item.name },
+			{ "name2", item.name2 },
+			{ "memo", item.memo },
+			{ "dura", item.damage },
+		};
 
 		varValue = hash.value(typeStr);
 		bret = varValue.isValid();
@@ -2061,20 +2156,34 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 		if (!checkInteger(currentLineTokens_, 3, &itemIndex))
 			break;
 
+		int index = itemIndex - 1;
+		if (index < 0 || index >= CHAR_EQUIPPLACENUM)
+			break;
+
 		QString typeStr;
 		checkString(currentLineTokens_, 4, &typeStr);
 		typeStr = typeStr.simplified().toLower();
 		if (typeStr.isEmpty())
 			break;
 
-		injector.server->reloadHashVar("equip");
-		util::SafeHash<int, QVariantHash> hashitem = injector.server->hashequip;
-		if (!hashitem.contains(itemIndex))
-			break;
+		PC pc = injector.server->getPC();
+		ITEM item = pc.item[index];
 
-		QVariantHash hash = hashitem.value(itemIndex);
-		if (!hash.contains(typeStr))
-			break;
+		const QHash<QString, QVariant> hash = {
+			//{ "", item.color },
+			{ "grano", item.graNo },
+			{ "lv", item.level },
+			{ "stack", item.pile },
+			{ "valid", item.useFlag ? 1 : 0 },
+			{ "field", item.field },
+			{ "target", item.target },
+			//{ "", item.deadTargetFlag },
+			//{ "", item.sendFlag },
+			{ "name", item.name },
+			{ "name2", item.name2 },
+			{ "memo", item.memo },
+			{ "dura", item.damage },
+		};
 
 		varValue = hash.value(typeStr);
 		bret = varValue.isValid();
@@ -2086,8 +2195,14 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 		if (!checkInteger(currentLineTokens_, 3, &petIndex))
 			break;
 
+		if (petIndex < 0 || petIndex >= MAX_PET)
+			break;
+
 		qint64 itemIndex = -1;
 		if (!checkInteger(currentLineTokens_, 4, &itemIndex))
+			break;
+
+		if (itemIndex < 0 || itemIndex >= MAX_PET_ITEM)
 			break;
 
 		QString typeStr;
@@ -2096,20 +2211,27 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 		if (typeStr.isEmpty())
 			break;
 
-		injector.server->reloadHashVar("petequip");
-		util::SafeHash<int, QHash<int, QVariantHash>> hashpetequip = injector.server->hashpetequip;
-		if (!hashpetequip.contains(petIndex))
+		ITEM item = injector.server->getPetEquip(petIndex, itemIndex);
+		const QHash<QString, QVariant> hash = {
+			//{ "", item.color },
+			{ "grano", item.graNo },
+			{ "level", item.level },
+			{ "stack", item.pile },
+			{ "valid", item.useFlag ? 1 : 0 },
+			{ "field", item.field },
+			{ "target", item.target },
+			//{ "", item.deadTargetFlag },
+			//{ "", item.sendFlag },
+			{ "name", item.name },
+			{ "name2", item.name2 },
+			{ "memo", item.memo },
+			{ "dura", item.damage },
+		};
+
+		if (!hash.contains(typeStr))
 			break;
 
-		QHash<int, QVariantHash> hash = hashpetequip.value(petIndex);
-		if (!hash.contains(itemIndex))
-			break;
-
-		QVariantHash hash2 = hash.value(itemIndex);
-		if (!hash2.contains(typeStr))
-			break;
-
-		varValue = hash2.value(typeStr);
+		varValue = hash.value(typeStr);
 		bret = varValue.isValid();
 		break;
 	}
@@ -2119,20 +2241,26 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 		if (!checkInteger(currentLineTokens_, 3, &partyIndex))
 			break;
 
+		if (partyIndex < 0 || partyIndex >= MAX_PARTY)
+			break;
+
 		QString typeStr;
 		checkString(currentLineTokens_, 4, &typeStr);
 		typeStr = typeStr.simplified().toLower();
 		if (typeStr.isEmpty())
 			break;
 
-		injector.server->reloadHashVar("party");
-		util::SafeHash<int, QVariantHash> hashparty = injector.server->hashparty;
-		if (!hashparty.contains(partyIndex))
-			break;
-
-		QVariantHash hash = hashparty.value(partyIndex);
-		if (!hash.contains(typeStr))
-			break;
+		PARTY _party = injector.server->getParty(partyIndex);
+		const QHash<QString, QVariant> hash = {
+			{ "valid", _party.useFlag ? 1 : 0 },
+			{ "id", _party.id },
+			{ "lv", _party.level },
+			{ "maxhp", _party.maxHp },
+			{ "hp", _party.hp },
+			{ "hpp", _party.hpPercent },
+			{ "mp", _party.mp },
+			{ "name", _party.name },
+		};
 
 		varValue = hash.value(typeStr);
 		bret = varValue.isValid();
@@ -2179,7 +2307,7 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 				if (i >= dialogStrList.size())
 					break;
 
-				texts << dialogStrList.at(i).simplified();
+				texts.append(dialogStrList.at(i).simplified());
 			}
 
 			varValue = texts.join("\n");

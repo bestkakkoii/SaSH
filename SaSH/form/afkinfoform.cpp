@@ -99,7 +99,7 @@ void AfkInfoForm::onButtonClicked()
 
 	for (int i = 0; i < MAX_PET; ++i)
 	{
-		PET pet = injector.server->pet[i];
+		PET pet = injector.server->getPet(i);
 		recorder = {};
 		recorder.levelrecord = pet.level;
 		recorder.exprecord = pet.exp;

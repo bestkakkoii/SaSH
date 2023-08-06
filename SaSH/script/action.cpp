@@ -572,7 +572,12 @@ qint64 Interpreter::sellpet(qint64, const TokenMap& TK)
 		if (injector.server.isNull())
 			return Parser::kError;
 
-		if (injector.server->pet[petIndex - 1].useFlag == 0)
+		if (petIndex - 1 < 0 || petIndex - 1 >= MAX_PET)
+			return Parser::kArgError;
+
+		PET pet = injector.server->getPet(petIndex - 1);
+
+		if (pet.useFlag == 0)
 			continue;
 
 		bool bret = false;
@@ -774,8 +779,8 @@ qint64 Interpreter::kick(qint64, const TokenMap& TK)
 			bool bret = false;
 			for (qint64 i = 1; i < MAX_PARTY; ++i)
 			{
-				util::SafeHash<QString, QVariant> party = injector.server->hashparty.value(i);
-				if (party.value("valid").toLongLong() == 0)
+				PARTY party = injector.server->getParty(i);
+				if (party.useFlag == 0)
 					continue;
 
 				for (QString it : list)
@@ -788,11 +793,11 @@ qint64 Interpreter::kick(qint64, const TokenMap& TK)
 						isExact = false;
 					}
 
-					if (isExact && party.value("name").toString() == newName)
+					if (isExact && party.name == newName)
 					{
 						bret = true;
 					}
-					else if (!isExact && party.value("name").toString().contains(newName))
+					else if (!isExact && party.name.contains(newName))
 					{
 						bret = true;
 					}
@@ -1562,7 +1567,7 @@ qint64 Interpreter::leftclick(qint64, const TokenMap& TK)
 	checkInteger(TK, 2, &y);
 	QPoint p(x, y);
 
-	injector.server->leftClick(p.x(), p.y());
+	injector.leftClick(p.x(), p.y());
 
 	return Parser::kNoChange;
 }
@@ -1580,7 +1585,7 @@ qint64 Interpreter::rightclick(qint64, const TokenMap& TK)
 	checkInteger(TK, 2, &y);
 	QPoint p(x, y);
 
-	injector.server->rightClick(p.x(), p.y());
+	injector.rightClick(p.x(), p.y());
 
 	return Parser::kNoChange;
 }
@@ -1598,7 +1603,7 @@ qint64 Interpreter::leftdoubleclick(qint64, const TokenMap& TK)
 	checkInteger(TK, 2, &y);
 	QPoint p(x, y);
 
-	injector.server->leftDoubleClick(p.x(), p.y());
+	injector.leftDoubleClick(p.x(), p.y());
 
 	return Parser::kNoChange;
 }
@@ -1624,7 +1629,7 @@ qint64 Interpreter::mousedragto(qint64, const TokenMap& TK)
 	checkInteger(TK, 2, &yto);
 	QPoint pto(xto, yto);
 
-	injector.server->dragto(pfrom.x(), pfrom.y(), pto.x(), pto.y());
+	injector.dragto(pfrom.x(), pfrom.y(), pto.x(), pto.y());
 
 	return Parser::kNoChange;
 }
@@ -1753,7 +1758,8 @@ qint64 Interpreter::trade(qint64, const TokenMap& TK)
 
 			if (bret && index >= 0 && index < MAX_PET)
 			{
-				if (injector.server->pet[index].useFlag == 1)
+				PET pet = injector.server->getPet(index);
+				if (pet.useFlag == 1)
 					petIndexVec.append(index);
 			}
 		}

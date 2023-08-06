@@ -462,7 +462,7 @@ void CLua::proc()
 		paths.append(QString::fromUtf8(package_path.c_str()).replace("\\", "/"));
 
 		QStringList dirs;
-		luadebug::getPackagePath(QCoreApplication::applicationDirPath() + "/", &dirs);
+		luadebug::getPackagePath(util::applicationDirPath() + "/", &dirs);
 		for (const QString& it : dirs)
 		{
 			QString path = it + "/?.lua";

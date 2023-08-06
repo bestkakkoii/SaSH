@@ -37,15 +37,15 @@ private slots:
 private:
 	Ui::PetInfoFormClass ui;
 
-	int base_level = 0;
-	int base_maxHp = 0;
-	int base_atk = 0;
-	int base_def = 0;
-	int base_agi = 0;
+	int base_level_ = 0;
+	int base_maxHp_ = 0;
+	int base_atk_ = 0;
+	int base_def_ = 0;
+	int base_agi_ = 0;
 
-	int cur_level = 0;
-	int cur_maxHp = 0;
-	int cur_atk = 0;
-	int cur_def = 0;
-	int cur_agi = 0;
+	int cur_level_ = 0;
+	int cur_maxHp_ = 0;
+	int cur_atk_ = 0;
+	int cur_def_ = 0;
+	int cur_agi_ = 0;
 };

@@ -203,10 +203,14 @@ void MapForm::onUpdateNpcList(int floor)
 	ui.tableWidget_map->setHorizontalHeaderLabels(header);
 
 	QString key = QString::number(floor);
-	util::Config config(util::getPointFileName());
-	QList<util::MapData> datas = config.readMapData(key);
-	if (datas.isEmpty())
-		return;
+	QList<util::MapData> datas;
+
+	{
+		util::Config config(util::getPointFileName());
+		datas = config.readMapData(key);
+		if (datas.isEmpty())
+			return;
+	}
 
 	int size = datas.size();
 	resizeTableWidgetRow(size);

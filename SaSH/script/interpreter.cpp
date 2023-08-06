@@ -611,55 +611,57 @@ bool Interpreter::compare(CompareArea area, const TokenMap& TK)
 
 		b = parser_.checkValue(TK, 4, QVariant::String);
 
+		PET pet = injector.server->getPet(petIndex);
+
 		switch (cmpType)
 		{
 		case kPetName:
-			a = injector.server->pet[petIndex].name;
+			a = pet.name;
 			break;
 		case kPetFreeName:
-			a = injector.server->pet[petIndex].freeName;
+			a = pet.freeName;
 			break;
 		case kPetLevel:
-			a = injector.server->pet[petIndex].level;
+			a = pet.level;
 			break;
 		case kPetHp:
-			a = injector.server->pet[petIndex].hp;
+			a = pet.hp;
 			break;
 		case kPetMaxHp:
-			a = injector.server->pet[petIndex].maxHp;
+			a = pet.maxHp;
 			break;
 		case kPetHpPercent:
-			a = injector.server->pet[petIndex].hpPercent;
+			a = pet.hpPercent;
 			break;
 		case kPetExp:
-			a = injector.server->pet[petIndex].exp;
+			a = pet.exp;
 			break;
 		case kPetMaxExp:
-			a = injector.server->pet[petIndex].maxExp;
+			a = pet.maxExp;
 			break;
 		case kPetAtk:
-			a = injector.server->pet[petIndex].atk;
+			a = pet.atk;
 			break;
 		case kPetDef:
-			a = injector.server->pet[petIndex].def;
+			a = pet.def;
 			break;
 		case kPetLoyal:
-			a = injector.server->pet[petIndex].ai;
+			a = pet.ai;
 			break;
 		case kPetTurn:
-			a = injector.server->pet[petIndex].trn;
+			a = pet.trn;
 			break;
 		case kPetEarth:
-			a = injector.server->pet[petIndex].earth;
+			a = pet.earth;
 			break;
 		case kPetWater:
-			a = injector.server->pet[petIndex].water;
+			a = pet.water;
 			break;
 		case kPetFire:
-			a = injector.server->pet[petIndex].fire;
+			a = pet.fire;
 			break;
 		case kPetWind:
-			a = injector.server->pet[petIndex].wind;
+			a = pet.wind;
 			break;
 		case kPetState:
 		{
@@ -682,7 +684,7 @@ bool Interpreter::compare(CompareArea area, const TokenMap& TK)
 				{ u8"rest", kRest },
 				{ u8"ride", kRide },
 			};
-			PetState state = injector.server->pet[petIndex].state;
+			PetState state = pet.state;
 			PetState cmpstate = hash.value(b.toString().toLower(), kNoneState);
 			if (cmpstate == 0)
 				return false;
@@ -1478,7 +1480,7 @@ bool Interpreter::findPath(QPoint dst, qint64 steplen, qint64 step_cost, qint64 
 			if (src == dst)
 			{
 				cost = timer.elapsed();
-				if (cost > 2000)
+				if (cost > 5000)
 				{
 					QThread::msleep(500);
 
@@ -1598,7 +1600,7 @@ qint64 Interpreter::run(qint64 currentline, const TokenMap& TK)
 
 	fileName.replace("\\", "/");
 
-	fileName = QCoreApplication::applicationDirPath() + "/script/" + fileName;
+	fileName = util::applicationDirPath() + "/script/" + fileName;
 	fileName.replace("\\", "/");
 	fileName.replace("//", "/");
 

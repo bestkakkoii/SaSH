@@ -378,7 +378,7 @@ int MainObject::checkAndRunFunctions()
 
 		for (int i = 0; i < MAX_PET; ++i)
 		{
-			PET pet = injector.server->pet[i];
+			PET pet = injector.server->getPet(i);
 			recorder = {};
 			recorder.levelrecord = pet.level;
 			recorder.exprecord = pet.exp;
@@ -387,9 +387,14 @@ int MainObject::checkAndRunFunctions()
 		}
 
 		const QString fileName(qgetenv("JSON_PATH"));
-		util::Config config(fileName);
+		QStringList list;
 		extern int g_CurrentListIndex;//generalform.cpp
-		QStringList list = config.readStringArray("System", "Server", QString("List_%1").arg(g_CurrentListIndex));
+
+		{
+			util::Config config(fileName);
+			list = config.readStringArray("System", "Server", QString("List_%1").arg(g_CurrentListIndex));
+		}
+
 		QStringList serverNameList;
 		QStringList subServerNameList;
 		for (const QString& it : list)
@@ -474,6 +479,9 @@ int MainObject::checkAndRunFunctions()
 		SPD_LOG(g_logger_name, "[mainthread] checkAutoDropItems");
 		//檢查自動丟棄道具
 		checkAutoDropItems();
+
+		SPD_LOG(g_logger_name, "[mainthread] checkAutoDropMeat");
+		checkAutoDropMeat(QStringList());
 
 		SPD_LOG(g_logger_name, "[mainthread] checkAutoEatBoostExpItem");
 		//檢查自動吃道具
@@ -634,9 +642,11 @@ void MainObject::setUserDatas()
 	injector.setUserData(util::kUserItemNames, itemNames);
 
 	QStringList petNames;
-	for (const PET& pet : injector.server->pet)
+
+	for (int i = 0; i < MAX_PET; ++i)
 	{
-		if (pet.name.isEmpty())
+		PET pet = injector.server->getPet(i);
+		if (pet.name.isEmpty() || pet.useFlag == 0)
 			continue;
 
 		petNames.append(pet.name);
@@ -1075,6 +1085,69 @@ void MainObject::checkAutoDropItems()
 			}
 		}
 	}
+	injector.server->refreshItemInfo();
+}
+
+//檢查並自動吃肉、或丟肉
+void MainObject::checkAutoDropMeat(const QStringList& item)
+{
+	Injector& injector = Injector::getInstance();
+	if (injector.server.isNull())
+		return;
+
+	if (!injector.getEnableHash(util::kAutoDropMeatEnable))
+		return;
+
+	bool bret = false;
+	constexpr const char* meat = u8"肉";
+	constexpr const char* memo = u8"耐久力";
+
+	if (!item.isEmpty())
+	{
+		for (const QString& it : item)
+		{
+			QString newItemNmae = it.simplified();
+			if (newItemNmae.contains(meat))
+			{
+				bret = true;
+				break;
+			}
+		}
+	}
+	else
+	{
+		PC pc = injector.server->getPC();
+		for (const ITEM& it : pc.item)
+		{
+			QString newItemNmae = it.name.simplified();
+			if (!newItemNmae.isEmpty() && newItemNmae.contains(meat))
+			{
+				bret = true;
+				break;
+			}
+		}
+	}
+
+	if (!bret)
+		return;
+
+	int index = 0;
+	PC pc = injector.server->getPC();
+	for (const ITEM& item : pc.item)
+	{
+		QString newItemNmae = item.name.simplified();
+		QString newItemMemo = item.memo.simplified();
+		if (newItemNmae.contains(meat))
+		{
+			if (!newItemMemo.contains(memo) && (newItemNmae != QString(u8"味道爽口的肉湯")) && (newItemNmae != QString(u8"味道爽口的肉汤")))
+				injector.server->dropItem(index);
+			else
+				injector.server->useItem(index, injector.server->findInjuriedAllie());
+		}
+		++index;
+	}
+
+	injector.server->refreshItemInfo();
 }
 
 //自動組隊
@@ -1123,7 +1196,7 @@ void MainObject::checkAutoJoin()
 						QThread::msleep(1000);
 						bool ok = false;
 
-						QString name = injector.server->party[0].name;
+						QString name = injector.server->getParty(0).name;
 						if (!name.isEmpty() && leader.contains(name))
 						{
 							return;
@@ -1370,7 +1443,7 @@ void MainObject::checkAutoHeal()
 						break;
 
 					injector.server->useItem(itemIndex, 0);
-					QThread::msleep(1000);
+					QThread::msleep(200);
 				}
 
 				//平時道具補血
@@ -1444,7 +1517,7 @@ void MainObject::checkAutoHeal()
 						break;
 
 					injector.server->useItem(itemIndex, target);
-					QThread::msleep(1000);
+					QThread::msleep(200);
 				}
 
 				//平時精靈補血
@@ -1490,8 +1563,7 @@ void MainObject::checkAutoHeal()
 					if (magicIndex < 0 || magicIndex >= MAX_MAGIC)
 						break;
 
-					injector.server->reloadHashVar("magic");
-					int targetType = injector.server->hashmagic.value(magicIndex).value("target").toInt();
+					int targetType = injector.server->getMagic(magicIndex).target;
 					if ((targetType != MAGIC_TARGET_MYSELF) && (targetType != MAGIC_TARGET_OTHER))
 						break;
 
@@ -1499,7 +1571,7 @@ void MainObject::checkAutoHeal()
 						break;
 
 					injector.server->useMagic(magicIndex, target);
-					QThread::msleep(500);
+					QThread::msleep(100);
 				}
 			}
 		);
@@ -1574,7 +1646,7 @@ void MainObject::checkAutoDropPet()
 					if (!checkStatus())
 						return;
 
-					PET pet = injector.server->pet[i];
+					PET pet = injector.server->getPet(i);
 					if (pet.useFlag == 0 || pet.maxHp <= 0 || pet.level <= 0)
 						continue;
 
@@ -1666,7 +1738,7 @@ void MainObject::checkAutoLockPet()
 		int lockPetIndex = injector.getValueHash(util::kLockPetValue);
 		if (lockPetIndex >= 0 && lockPetIndex < MAX_PET)
 		{
-			PET pet = injector.server->pet[lockPetIndex];
+			PET pet = injector.server->getPet(lockPetIndex);
 			if (pet.state != PetState::kBattle)
 			{
 				injector.server->setPetState(lockPetIndex, kBattle);
@@ -1680,7 +1752,7 @@ void MainObject::checkAutoLockPet()
 		int lockRideIndex = injector.getValueHash(util::kLockRideValue);
 		if (lockRideIndex >= 0 && lockRideIndex < MAX_PET)
 		{
-			PET pet = injector.server->pet[lockRideIndex];
+			PET pet = injector.server->getPet(lockRideIndex);
 			if (pet.state != PetState::kRide)
 			{
 				injector.server->setPetState(lockRideIndex, kRide);
@@ -1772,7 +1844,7 @@ void MainObject::checkAutoLockSchedule()
 
 					PetState type = hashType.value(typeStr, kRest);
 
-					PET pet = injector.server->pet[petIndex];
+					PET pet = injector.server->getPet(petIndex);
 
 					if (pet.level >= level)
 						continue;
@@ -1811,7 +1883,7 @@ void MainObject::checkAutoLockSchedule()
 
 		if (rindex != -1)
 		{
-			PET pet = injector.server->pet[rindex];
+			PET pet = injector.server->getPet(rindex);
 			if (pet.hp <= 1)
 			{
 				injector.server->setPetState(rindex, kRest);
@@ -1824,7 +1896,7 @@ void MainObject::checkAutoLockSchedule()
 
 		if (bindex != -1)
 		{
-			PET pet = injector.server->pet[bindex];
+			PET pet = injector.server->getPet(bindex);
 			if (pet.hp <= 1)
 			{
 				injector.server->setPetState(bindex, kRest);
@@ -1840,7 +1912,7 @@ void MainObject::checkAutoLockSchedule()
 			if (bindex == i || rindex == i)
 				continue;
 
-			PET pet = injector.server->pet[i];
+			PET pet = injector.server->getPet(i);
 			if ((pet.state != kRest && pet.state != kStandby) && set == util::kLockPetScheduleString)
 				injector.server->setPetState(i, kRest);
 		}

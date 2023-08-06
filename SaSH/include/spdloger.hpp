@@ -42,7 +42,7 @@ inline void SPD_INIT(const std::wstring& name, const std::wstring& fileName)
 {
 	try
 	{
-		QString path(QString("%1/log/").arg(QCoreApplication::applicationDirPath()));
+		QString path(QString("%1/log/").arg(util::applicationDirPath()));
 		QDir dir(path);
 		if (!dir.exists())
 		{
@@ -85,7 +85,7 @@ inline void SPD_INIT(int index)
 
 		QDateTime time = QDateTime::currentDateTime();
 		QString timeStr = time.toString("yyyyMMdd");
-		QString fileName = QString("%1/log/%2%3.log").arg(QCoreApplication::applicationDirPath()).arg(name).arg(timeStr).toLower();
+		QString fileName = QString("%1/log/%2%3.log").arg(util::applicationDirPath()).arg(name).arg(timeStr).toLower();
 		QFile file(fileName);
 		if (file.exists())
 			file.remove();
@@ -109,7 +109,7 @@ inline QString SPD_INIT(const QString& filename)
 		//file name format: year_month_day_hours_ID_index
 		QDateTime time = QDateTime::currentDateTime();
 		QString timeStr = time.toString("yyyyMMdd");
-		fileName = QString("%1/log/%2%3.log").arg(QCoreApplication::applicationDirPath()).arg(name).arg(timeStr).toLower();
+		fileName = QString("%1/log/%2%3.log").arg(util::applicationDirPath()).arg(name).arg(timeStr).toLower();
 		std::wstring sfileName = fileName.toStdWString();
 		SPD_INIT(sname, sfileName);
 		return name;

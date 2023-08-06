@@ -23,46 +23,52 @@ QReadWriteLock g_fileLock;
 
 util::Config::Config(const QString& fileName)
 	: fileName_(fileName)
+	, file_(fileName)
 {
-	g_fileLock.lockForRead();
-	isVaild = open(fileName);
-	g_fileLock.unlock();
+	g_fileLock.lockForWrite();//附加文件寫鎖
+	isVaild = open();
+	//g_fileLock.unlock();
 }
 
 util::Config::~Config()
 {
-	if (isVaild)
-		sync();
+	//g_fileLock.lockForWrite();//附加文件寫鎖
+	sync();//同步數據
+	g_fileLock.unlock();//解鎖
 }
 
-bool util::Config::open(const QString& fileName)
+bool util::Config::open()
 {
-
-	QFile file(fileName);
-	if (!file.exists())
+	bool enableReopen = false;
+	if (!file_.exists())
 	{
-		// 文件不存在，创建新文件
-		if (!file.open(QIODevice::ReadWrite | QIODevice::Append))
+		//文件不存在，以全新文件複寫方式打開
+		if (!file_.open(QIODevice::ReadWrite | QIODevice::Truncate | QIODevice::Text))
 		{
 			return false;
 		}
 	}
 	else
 	{
-		// 文件存在，以只读模式打开
-		if (!file.open(QIODevice::ReadOnly))
+		//文件存在，以普通讀寫方式打開
+		if (!file_.open(QIODevice::ReadWrite | QIODevice::Text))
 		{
 			return false;
 		}
-
+		enableReopen = true;
 	}
 
-	QByteArray allData = file.readAll();
-	file.close();
+	QTextStream stream(&file_);
+	stream.setCodec("UTF-8");
+	QString text = stream.readAll();
+	QByteArray allData = text.toUtf8();
 
-	if (allData.isEmpty())
+	if (allData.simplified().isEmpty())
+	{
 		return true;
+	}
 
+	//解析json
 	QJsonParseError jsonError;
 	document_ = QJsonDocument::fromJson(allData, &jsonError);
 	if (jsonError.error != QJsonParseError::NoError)
@@ -71,6 +77,7 @@ bool util::Config::open(const QString& fileName)
 		return false;
 	}
 
+	//把json轉換成qvariantmap
 	QJsonObject root = document_.object();
 	cache_ = root.toVariantMap();
 
@@ -79,21 +86,27 @@ bool util::Config::open(const QString& fileName)
 
 void util::Config::sync()
 {
-	if (hasChanged_)
+	if (isVaild && hasChanged_)
 	{
-		g_fileLock.lockForWrite();
 		QJsonObject root = QJsonObject::fromVariantMap(cache_);
 		document_.setObject(root);
 		QByteArray data = document_.toJson(QJsonDocument::Indented);
-		QFile file(fileName_);
-		if (file.open(QIODevice::WriteOnly))
+
+		if (file_.isOpen())
 		{
-			file.write(data);
-			file.flush();
-			file.close();
+			file_.close();
 		}
-		g_fileLock.unlock();
+
+		//總是以全新寫入的方式
+		if (!file_.open(QIODevice::ReadWrite | QIODevice::Truncate))
+		{
+			return;
+		}
+
+		file_.write(data);
+		file_.flush();
 	}
+	file_.close();
 }
 
 void util::Config::removeSec(const QString sec)
@@ -118,7 +131,7 @@ void util::Config::write(const QString& sec, const QString& key, const QString& 
 	}
 	else
 	{
-		QJsonObject json = cache_[sec].toJsonObject();
+		QJsonObject json = cache_.value(sec).toJsonObject();
 
 		if (!json.contains(key))
 		{
@@ -129,7 +142,7 @@ void util::Config::write(const QString& sec, const QString& key, const QString& 
 		}
 		else
 		{
-			QJsonObject subjson = json[key].toObject();
+			QJsonObject subjson = json.value(key).toObject();
 			subjson.insert(sub, QJsonValue::fromVariant(value));
 			json.insert(key, QJsonValue(subjson));
 			cache_.insert(sec, QJsonValue(json));
@@ -149,9 +162,9 @@ void util::Config::write(const QString& sec, const QString& key, const QVariant&
 	}
 	else
 	{
-		QJsonObject json = cache_[sec].toJsonObject();
+		QJsonObject json = cache_.value(sec).toJsonObject();
 		json.insert(key, QJsonValue::fromVariant(value));
-		cache_[sec] = QJsonValue(json);
+		cache_.insert(sec, QJsonValue(json));
 	}
 	if (!hasChanged_)
 		hasChanged_ = true;
@@ -170,12 +183,14 @@ QString util::Config::readString(const QString& sec, const QString& key, const Q
 	{
 		return 0;
 	}
-	QJsonObject json = cache_[sec].toJsonObject();
+
+	QJsonObject json = cache_.value(sec).toJsonObject();
 	if (!json.contains(key))
 	{
 		return 0;
 	}
-	QJsonObject subjson = json[key].toObject();
+
+	QJsonObject subjson = json.value(key).toObject();
 	if (!subjson.contains(sub))
 	{
 		return 0;
@@ -186,10 +201,10 @@ QString util::Config::readString(const QString& sec, const QString& key, const Q
 void util::Config::WriteHash(const QString& sec, const QString& key, QMap<QString, QPair<bool, QString>>& hash)
 {
 	//將將多餘的都刪除
-	QJsonObject json = cache_[sec].toJsonObject();
+	QJsonObject json = cache_.value(sec).toJsonObject();
 	if (json.contains(key))
 	{
-		QJsonObject subjson = json[key].toObject();
+		QJsonObject subjson = json.value(key).toObject();
 		for (auto it = subjson.begin(); it != subjson.end();)
 		{
 			if (!hash.contains(it.key()))
@@ -201,6 +216,7 @@ void util::Config::WriteHash(const QString& sec, const QString& key, QMap<QStrin
 				++it;
 			}
 		}
+
 		json.insert(key, QJsonValue(subjson));
 		cache_.insert(sec, QJsonValue(json));
 	}
@@ -217,12 +233,13 @@ void util::Config::WriteHash(const QString& sec, const QString& key, QMap<QStrin
 			subsubjson.insert("value", it.value().second);
 			subjson.insert(it.key(), subsubjson);
 		}
+
 		j.insert(key, subjson);
 		cache_.insert(sec, QJsonValue(j));
 	}
 	else
 	{
-		QJsonObject j = cache_[sec].toJsonObject();
+		QJsonObject j = cache_.value(sec).toJsonObject();
 		if (!j.contains(key))
 		{
 			QJsonObject subjson;
@@ -233,12 +250,13 @@ void util::Config::WriteHash(const QString& sec, const QString& key, QMap<QStrin
 				subsubjson.insert("value", it.value().second);
 				subjson.insert(it.key(), subsubjson);
 			}
+
 			j.insert(key, subjson);
 			cache_.insert(sec, QJsonValue(j));
 		}
 		else
 		{
-			QJsonObject subjson = json[key].toObject();
+			QJsonObject subjson = json.value(key).toObject();
 			for (auto it = hash.cbegin(); it != hash.cend(); ++it)
 			{
 				QJsonObject subsubjson;
@@ -246,6 +264,7 @@ void util::Config::WriteHash(const QString& sec, const QString& key, QMap<QStrin
 				subsubjson.insert("value", it.value().second);
 				subjson.insert(it.key(), subsubjson);
 			}
+
 			json.insert(key, subjson);
 			cache_.insert(sec, QJsonValue(json));
 		}
@@ -259,12 +278,14 @@ QMap<QString, QPair<bool, QString>> util::Config::EnumString(const QString& sec,
 	{
 		return ret;
 	}
-	QJsonObject json = cache_[sec].toJsonObject();
+
+	QJsonObject json = cache_.value(sec).toJsonObject();
 	if (!json.contains(key))
 	{
 		return ret;
 	}
-	QJsonObject subjson = json[key].toObject();
+
+	QJsonObject subjson = json.value(key).toObject();
 	for (auto it = subjson.begin(); it != subjson.end(); ++it)
 	{
 		QPair<bool, QString> pair;
@@ -317,6 +338,7 @@ qreal util::Config::readDouble(const QString& sec, const QString& key, qreal ret
 			return json.value(key).toDouble();
 		}
 	}
+
 	return retnot;
 }
 
@@ -330,6 +352,7 @@ int util::Config::readInt(const QString& sec, const QString& key) const
 			return json.value(key).toInt();
 		}
 	}
+
 	return 0;
 }
 
@@ -339,17 +362,20 @@ int util::Config::readInt(const QString& sec, const QString& key, const QString&
 	{
 		return 0;
 	}
+
 	QJsonObject json = cache_[sec].toJsonObject();
 	if (!json.contains(key))
 	{
 		return 0;
 	}
+
 	QJsonObject subjson = json[key].toObject();
 	if (!subjson.contains(sub))
 	{
 		return 0;
 	}
-	return subjson[sub].toInt();
+
+	return subjson.value(sub).toInt();
 }
 
 QString util::Config::readString(const QString& key) const
@@ -382,6 +408,7 @@ bool util::Config::readBool(const QString& sec, const QString& key) const
 			return json.value(key).toBool();
 		}
 	}
+
 	return false;
 }
 
@@ -391,17 +418,20 @@ bool util::Config::readBool(const QString& sec, const QString& key, const QStrin
 	{
 		return false;
 	}
-	QJsonObject json = cache_[sec].toJsonObject();
+
+	QJsonObject json = cache_.value(sec).toJsonObject();
 	if (!json.contains(key))
 	{
 		return false;
 	}
-	QJsonObject subjson = json[key].toObject();
+
+	QJsonObject subjson = json.value(key).toObject();
 	if (!subjson.contains(sub))
 	{
 		return false;
 	}
-	return subjson[sub].toBool();
+
+	return subjson.value(sub).toBool();
 }
 
 int util::Config::readInt(const QString& key) const
@@ -420,15 +450,15 @@ QList<int> util::Config::readIntArray(const QString& sec, const QString& key, co
 
 	if (cache_.contains(sec))
 	{
-		QJsonObject json = cache_[sec].toJsonObject();
+		QJsonObject json = cache_.value(sec).toJsonObject();
 
 		if (json.contains(key))
 		{
-			QJsonObject subJson = json[key].toObject();
+			QJsonObject subJson = json.value(key).toObject();
 
 			if (subJson.contains(sub))
 			{
-				QJsonArray jsonArray = subJson[sub].toArray();
+				QJsonArray jsonArray = subJson.value(sub).toArray();
 
 				for (const QJsonValue& value : jsonArray)
 				{
@@ -447,15 +477,15 @@ QStringList util::Config::readStringArray(const QString& sec, const QString& key
 
 	if (cache_.contains(sec))
 	{
-		QJsonObject json = cache_[sec].toJsonObject();
+		QJsonObject json = cache_.value(sec).toJsonObject();
 
 		if (json.contains(key))
 		{
-			QJsonObject subJson = json[key].toObject();
+			QJsonObject subJson = json.value(key).toObject();
 
 			if (subJson.contains(sub))
 			{
-				QJsonArray jsonArray = subJson[sub].toArray();
+				QJsonArray jsonArray = subJson.value(sub).toArray();
 
 				for (const QJsonValue& value : jsonArray)
 				{
@@ -474,7 +504,7 @@ void util::Config::writeStringArray(const QString& sec, const QString& key, cons
 
 	if (cache_.contains(sec))
 	{
-		json = cache_[sec].toJsonObject();
+		json = cache_.value(sec).toJsonObject();
 	}
 
 	QJsonArray jsonArray;
@@ -488,33 +518,34 @@ void util::Config::writeStringArray(const QString& sec, const QString& key, cons
 
 	if (json.contains(key))
 	{
-		subJson = json[key].toObject();
+		subJson = json.value(key).toObject();
 	}
 
-	subJson[sub] = jsonArray;
-	json[key] = subJson;
-	cache_[sec] = json;
+	subJson.insert(sub, jsonArray);
+	json.insert(key, subJson);
+	cache_.insert(sec, json);
 
 	if (!hasChanged_)
-	{
 		hasChanged_ = true;
-	}
 }
 
 void util::Config::writeIntArray(const QString& sec, const QString& key, const QList<int>& values)
 {
 	if (!cache_.contains(sec))
 	{
-		cache_[sec] = QJsonObject();
+		cache_.insert(sec, QJsonObject());
 	}
+
 	QVariantList variantList;
 	for (int value : values)
 	{
 		variantList.append(value);
 	}
-	QJsonObject json = cache_[sec].toJsonObject();
-	json[key] = QJsonArray::fromVariantList(variantList);
-	cache_[sec] = json;
+
+	QJsonObject json = cache_.value(sec).toJsonObject();
+	json.insert(key, QJsonArray::fromVariantList(variantList));
+	cache_.insert(sec, json);
+
 	if (!hasChanged_)
 		hasChanged_ = true;
 }
@@ -542,14 +573,12 @@ void util::Config::writeIntArray(const QString& sec, const QString& key, const Q
 		subJson = json[key].toObject();
 	}
 
-	subJson[sub] = jsonArray;
-	json[key] = subJson;
-	cache_[sec] = json;
+	subJson.insert(sub, jsonArray);
+	json.insert(key, subJson);
+	cache_.insert(sec, json);
 
 	if (!hasChanged_)
-	{
 		hasChanged_ = true;
-	}
 }
 
 void util::Config::writeMapData(const QString&, const util::MapData& data)
@@ -568,7 +597,7 @@ void util::Config::writeMapData(const QString&, const util::MapData& data)
 		jarray.append(text);
 	}
 
-	cache_[key] = jarray;
+	cache_.insert(key, jarray);
 
 	if (!hasChanged_)
 		hasChanged_ = true;
@@ -582,7 +611,7 @@ QList<util::MapData> util::Config::readMapData(const QString& key) const
 	if (!cache_.contains(key))
 		return result;
 
-	QJsonArray jarray = cache_[key].toJsonArray();
+	QJsonArray jarray = cache_.value(key).toJsonArray();
 	if (jarray.isEmpty())
 		return result;
 
