@@ -531,6 +531,61 @@
     </message>
 </context>
 <context>
+    <name>CLua</name>
+    <message>
+        <source>========== lua error result with an EXCEPTION ==========</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>&gt; lua script stop by flag change to false</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>&gt; lua script stop with user request</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>&gt; lua script stop from script request</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>&gt; lua script stop from parent script request</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>&gt; lua script stop from it&apos;s distructor</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>&gt; message: </source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>========== lua script stop with an ERROR ==========</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>&gt; reason: </source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>========== lua script normally end ==========</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>&gt; return value:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>========== lua normal result with EXCEPTION ==========</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>&gt; (unknown type of data)</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>ChatInfoForm</name>
     <message>
         <source>normal</source>
@@ -2020,6 +2075,10 @@ No new version available. Do you still want to update?</source>
         <source>clear</source>
         <translation>清空</translation>
     </message>
+    <message>
+        <source>power</source>
+        <translation>戰力</translation>
+    </message>
 </context>
 <context>
     <name>PlayerInfoForm</name>
@@ -2102,6 +2161,10 @@ No new version available. Do you still want to update?</source>
     <message>
         <source>pet%1 (%2)</source>
         <translation>寵物%1 (%2)</translation>
+    </message>
+    <message>
+        <source>power</source>
+        <translation>野生戰力</translation>
     </message>
 </context>
 <context>
@@ -2187,15 +2250,6 @@ No new version available. Do you still want to update?</source>
     <message>
         <source>script settings</source>
         <translation>腳本編輯</translation>
-    </message>
-    <message>
-        <source><byte value="xd"/>
-=======<byte value="xd"/>
-NAME：%3<byte value="xd"/>
-=======<byte value="xd"/>
-MESSAGE：<byte value="xd"/>
-%4</source>
-        <translation></translation>
     </message>
     <message>
         <source>use %1 to %2</source>
@@ -2684,6 +2738,46 @@ MESSAGE：<byte value="xd"/>
     <message>
         <source>&lt;Syntax Error&gt;Extra &apos;%1&apos; for statement &apos;%2&apos; at line: %3</source>
         <translation>&lt;語法錯誤&gt; &apos;%2&apos; 缺少與之配對的 &apos;%1&apos; 於行號: %3</translation>
+    </message>
+    <message>
+        <source>invalid value type</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>invalid value of &apos;type&apos;</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>FLAG_DETECT_STOP</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>REQUEST_STOP_FROM_USER</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>REQUEST_STOP_FROM_SCRIP</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>REQUEST_STOP_FROM_PARENT_SCRIP</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>REQUEST_STOP_FROM_DISTRUCTOR</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>request param size is %1, but import %2</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>no param request, but import %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>request param size is between %1 to %2, but import %3</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
@@ -3933,6 +4027,18 @@ MESSAGE：<byte value="xd"/>
     </message>
     <message>
         <source>swapitem</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>dofile</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>continue</source>
+        <translation>繼續</translation>
+    </message>
+    <message>
+        <source>if</source>
         <translation></translation>
     </message>
 </context>
