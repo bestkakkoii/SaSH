@@ -349,13 +349,13 @@ qint64 Interpreter::waitdlg(qint64 currentline, const TokenMap& TK)
 				if (index < 0 || index >= dialogStrList.size())
 					break;
 
-				QString text = dialogStrList.at(index);
+				QString text = dialogStrList.at(index).simplified();
 				if (text.isEmpty())
 					continue;
 
 				for (const QString& cmpStr : cmpStrs)
 				{
-					if (text.contains(cmpStr, Qt::CaseInsensitive))
+					if (text.contains(cmpStr.simplified(), Qt::CaseInsensitive))
 					{
 						return true;
 					}

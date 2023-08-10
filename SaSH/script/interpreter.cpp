@@ -805,9 +805,6 @@ bool Interpreter::waitfor(qint64 timeout, std::function<bool()> exprfun)
 		if (isInterruptionRequested())
 			break;
 
-		if (timer.hasExpired(timeout))
-			break;
-
 		if (injector.server.isNull())
 			break;
 
@@ -816,6 +813,9 @@ bool Interpreter::waitfor(qint64 timeout, std::function<bool()> exprfun)
 			bret = true;
 			break;
 		}
+
+		if (timer.hasExpired(timeout))
+			break;
 
 		QThread::msleep(100);
 	}

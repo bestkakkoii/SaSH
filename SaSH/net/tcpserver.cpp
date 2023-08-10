@@ -8292,6 +8292,7 @@ void Server::lssproto_WN_recv(int windowtype, int buttontype, int seqno, int obj
 	if (data.isEmpty() && buttontype == 0)
 		return;
 
+
 	IS_WAITFOR_DIALOG_FLAG = false;
 
 	//第一部分是把按鈕都拆出來
@@ -8332,6 +8333,7 @@ void Server::lssproto_WN_recv(int windowtype, int buttontype, int seqno, int obj
 
 	//下面是開始檢查寄放處, 寵店
 	data.replace("\\n", "\n");
+	data.replace("\\c", ",");
 	data = data.trimmed();
 
 	static const QStringList BankPetList = {

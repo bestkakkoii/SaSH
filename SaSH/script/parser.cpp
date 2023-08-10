@@ -2201,6 +2201,7 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 		qint64 itemIndex = -1;
 		if (!checkInteger(currentLineTokens_, 4, &itemIndex))
 			break;
+		--itemIndex;
 
 		if (itemIndex < 0 || itemIndex >= MAX_PET_ITEM)
 			break;
@@ -2240,6 +2241,7 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 		qint64 partyIndex = -1;
 		if (!checkInteger(currentLineTokens_, 3, &partyIndex))
 			break;
+		--partyIndex;
 
 		if (partyIndex < 0 || partyIndex >= MAX_PARTY)
 			break;
@@ -2271,6 +2273,7 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 		qint64 chatIndex = -1;
 		if (!checkInteger(currentLineTokens_, 3, &chatIndex))
 			break;
+
 		if (chatIndex < 1 || chatIndex > 20)
 			break;
 
@@ -2333,7 +2336,6 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 		if (typeStr.isEmpty())
 			break;
 
-
 		injector.server->IS_WAITFOR_EXTRA_DIALOG_INFO_FLAG = true;
 		injector.server->shopOk(2);
 
@@ -2351,6 +2353,7 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 
 			QThread::msleep(100);
 		}
+
 		//qint64 rep = 0;   // 聲望
 		//qint64 ene = 0;   // 氣勢
 		//qint64 shl = 0;   // 貝殼
