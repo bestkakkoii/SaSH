@@ -3595,30 +3595,30 @@ void Server::setPetState(int petIndex, PetState state)
 	{
 	case kBattle:
 	{
-		if (pc.ridePetNo == petIndex)
-			setRidePet(-1);
+		//if (pc.ridePetNo == petIndex)
+		//	setRidePet(-1);
 
 		setFightPet(petIndex);
 
-		if (pc.ridePetNo == petIndex)
-		{
-			pc.ridePetNo = -1;
-			mem::write<int>(hProcess, hModule + kOffestRidePetIndex, -1);
-			emit signalDispatcher.updateRideHpProgressValue(0, 0, 100);
-		}
+		//if (pc.ridePetNo == petIndex)
+		//{
+		//	pc.ridePetNo = -1;
+		//	mem::write<int>(hProcess, hModule + kOffestRidePetIndex, -1);
+		//	emit signalDispatcher.updateRideHpProgressValue(0, 0, 100);
+		//}
 
-		if (pc.mailPetNo == petIndex)
-		{
-			pc.mailPetNo = -1;
-			mem::write<short>(hProcess, hModule + kOffestMailPetIndex, -1);
-		}
+		//if (pc.mailPetNo == petIndex)
+		//{
+		//	pc.mailPetNo = -1;
+		//	mem::write<short>(hProcess, hModule + kOffestMailPetIndex, -1);
+		//}
 
-		pet[petIndex].state = kBattle;
-		pc.battleNo = petIndex;
-		pc.selectPetNo[petIndex] = TRUE;
-		mem::write<short>(hProcess, hModule + kOffestSelectPetArray + (petIndex * sizeof(short)), TRUE);
-		PET _pet = pet[petIndex];
-		emit signalDispatcher.updatePetHpProgressValue(_pet.level, _pet.hp, _pet.maxHp);
+		//pet[petIndex].state = kBattle;
+		//pc.battleNo = petIndex;
+		//pc.selectPetNo[petIndex] = TRUE;
+		//mem::write<short>(hProcess, hModule + kOffestSelectPetArray + (petIndex * sizeof(short)), TRUE);
+		//PET _pet = pet[petIndex];
+		//emit signalDispatcher.updatePetHpProgressValue(_pet.level, _pet.hp, _pet.maxHp);
 		break;
 	}
 	case kStandby:
@@ -3717,39 +3717,39 @@ void Server::setPetState(int petIndex, PetState state)
 			break;
 		}
 
-		if (pc.battlePetNo == petIndex)
-			setFightPet(-1);
+		//if (pc.battlePetNo == petIndex)
+		//	setFightPet(-1);
 
 		if (pc.ridePetNo != petIndex)
 			setRidePet(petIndex);
 
 		setRidePet(petIndex);
 
-		if (pc.mailPetNo == petIndex)
-		{
-			pc.mailPetNo = -1;
-			mem::write<short>(hProcess, hModule + kOffestMailPetIndex, -1);
-		}
+		//if (pc.mailPetNo == petIndex)
+		//{
+		//	pc.mailPetNo = -1;
+		//	mem::write<short>(hProcess, hModule + kOffestMailPetIndex, -1);
+		//}
 
-		if (pc.battlePetNo == petIndex)
-		{
-			pc.battlePetNo = -1;
-			emit signalDispatcher.updatePetHpProgressValue(0, 0, 100);
-		}
+		//if (pc.battlePetNo == petIndex)
+		//{
+		//	pc.battlePetNo = -1;
+		//	emit signalDispatcher.updatePetHpProgressValue(0, 0, 100);
+		//}
 
-		pet[petIndex].state = kRide;
-		pc.ridePetNo = petIndex;
-		pc.selectPetNo[petIndex] = FALSE;
-		mem::write<int>(hProcess, hModule + kOffestRidePetIndex, petIndex);
-		mem::write<short>(hProcess, hModule + kOffestSelectPetArray + (petIndex * sizeof(short)), FALSE);
-		PET _pet = pet[petIndex];
-		emit signalDispatcher.updateRideHpProgressValue(_pet.level, _pet.hp, _pet.maxHp);
+		//pet[petIndex].state = kRide;
+		//pc.ridePetNo = petIndex;
+		//pc.selectPetNo[petIndex] = FALSE;
+		//mem::write<int>(hProcess, hModule + kOffestRidePetIndex, petIndex);
+		//mem::write<short>(hProcess, hModule + kOffestSelectPetArray + (petIndex * sizeof(short)), FALSE);
+		//PET _pet = pet[petIndex];
+		//emit signalDispatcher.updateRideHpProgressValue(_pet.level, _pet.hp, _pet.maxHp);
 		break;
 	}
 	default:
 		break;
 	}
-	setPC(pc);
+	//setPC(pc);
 }
 
 void Server::setAllPetState()
