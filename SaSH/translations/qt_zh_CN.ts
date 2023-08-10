@@ -390,7 +390,7 @@
         <translation>精灵復活</translation>
     </message>
     <message>
-        <source>masic mp</source>
+        <source>skill mp</source>
         <translation>嗜血补气</translation>
     </message>
     <message>

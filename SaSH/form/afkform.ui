@@ -699,7 +699,7 @@
           <item>
            <layout class="QHBoxLayout" name="horizontalLayout_12">
             <item>
-             <widget class="QCheckBox" name="checkBox_magicmp">
+             <widget class="QCheckBox" name="checkBox_skillMp">
               <property name="maximumSize">
                <size>
                 <width>70</width>
@@ -707,12 +707,12 @@
                </size>
               </property>
               <property name="text">
-               <string>magic mp</string>
+               <string>skill mp</string>
               </property>
              </widget>
             </item>
             <item>
-             <widget class="QComboBox" name="comboBox_magicmp">
+             <widget class="ComboBox" name="comboBox_skillMp">
               <property name="minimumSize">
                <size>
                 <width>179</width>
@@ -750,7 +750,7 @@
              </widget>
             </item>
             <item>
-             <widget class="QSpinBox" name="spinBox_magicmp">
+             <widget class="QSpinBox" name="spinBox_skillMp">
               <property name="minimumSize">
                <size>
                 <width>178</width>
@@ -1106,7 +1106,7 @@
                </widget>
               </item>
               <item>
-               <widget class="QComboBox" name="comboBox_itemheal_normal">
+               <widget class="ComboBox" name="comboBox_itemheal_normal">
                 <property name="editable">
                  <bool>true</bool>
                 </property>

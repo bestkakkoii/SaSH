@@ -4904,7 +4904,7 @@ int Server::playerDoBattleWork()
 	//if (pc.battlePetNo < 0 || pc.battlePetNo >= MAX_PET)
 	//	mem::writeInt(injector.getProcess(), injector.getProcessModule() + 0xE21E4, 0, sizeof(short));
 	//else
-	//	
+	//
 
 	//
 	return 1;
@@ -5487,18 +5487,18 @@ void Server::handlePlayerBattleLogics()
 	//嗜血补气
 	do
 	{
-		bool magicMp = injector.getEnableHash(util::kBattleMagicMpEnable);
-		if (!magicMp)
+		bool skillMp = injector.getEnableHash(util::kBattleSkillMpEnable);
+		if (!skillMp)
 			break;
 
 		int tempTarget = -1;
-		int charMpPercent = injector.getValueHash(util::kBattleMagicMpValue);
+		int charMpPercent = injector.getValueHash(util::kBattleSkillMpValue);
 		if (!checkPlayerMp(charMpPercent, &tempTarget, true) && (BattleMyMp > 0))
 		{
 			break;
 		}
 
-		int magicIndex = injector.getValueHash(util::kBattleMagicMpMagicValue);
+		int magicIndex = injector.getValueHash(util::kBattleSkillMpSkillValue);
 		if (magicIndex < 0)
 			break;
 		target = 1;
