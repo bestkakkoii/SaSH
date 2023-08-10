@@ -1382,6 +1382,7 @@ typedef struct tagPET
 
 	//custom
 	PetState state = PetState::kNoneState;
+	qreal power = 0.0;
 } PET;
 
 

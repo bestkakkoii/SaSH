@@ -1219,8 +1219,6 @@ qint64 Interpreter::mainScriptCallBack(qint64 currentLine, const TokenMap& TK)
 	if (skip)
 		return 1;
 
-	SPD_LOG(g_logger_name, QString("[interpreter callback] line: %1").arg(currentLine + 1));
-
 	emit signalDispatcher.scriptLabelRowTextChanged(currentLine + 1, parser_.getToken().size(), false);
 
 	if (TK.contains(0) && TK.value(0).type == TK_PAUSE)
@@ -1229,24 +1227,17 @@ qint64 Interpreter::mainScriptCallBack(qint64 currentLine, const TokenMap& TK)
 		emit signalDispatcher.scriptPaused();
 	}
 
-	SPD_LOG(g_logger_name, "[interpreter callback] check pause");
 	checkPause();
-
-	SPD_LOG(g_logger_name, "[interpreter callback] check break markers");
 
 	util::SafeHash<qint64, break_marker_t> markers = break_markers.value(scriptFileName_);
 	const util::SafeHash<qint64, break_marker_t> step_marker = step_markers.value(scriptFileName_);
 	if (!(markers.contains(currentLine) || step_marker.contains(currentLine)))
 	{
-		SPD_LOG(g_logger_name, "[interpreter callback] no markers, return now");
 		return 1;//檢查是否有中斷點
 	}
 
-	SPD_LOG(g_logger_name, "[interpreter callback] has break marker, pause now");
-
 	paused();
 
-	SPD_LOG(g_logger_name, "[interpreter callback] emit marker info changed");
 	if (markers.contains(currentLine))
 	{
 		//叫用次數+1
@@ -1305,17 +1296,9 @@ void Interpreter::proc()
 
 		openLibs();
 
-		SPD_LOG(g_logger_name, "[interpreter] started");
-
 		parser_.parse(beginLine_);
 
-		SPD_LOG(g_logger_name, "[interpreter] finished");
-
-
-
 	} while (false);
-
-	SPD_LOG(g_logger_name, "[interpreter] cleanning...");
 
 	for (auto& it : subInterpreterList_)
 	{
@@ -1326,18 +1309,12 @@ void Interpreter::proc()
 	}
 	futureSync_.waitForFinished();
 
-	SPD_LOG(g_logger_name, "[interpreter] clean subscript done.");
-
 	if (!isSubScript())
 		injector.IS_SCRIPT_FLAG.store(false, std::memory_order_release);
 	isRunning_.store(false, std::memory_order_release);
 
-	SPD_LOG(g_logger_name, "[interpreter] turn script flag off");
-
 	emit finished();
 	emit signalDispatcher.scriptFinished();
-
-	SPD_LOG(g_logger_name, "[interpreter] emit finished signal");
 
 	if (!g_logger_name.isEmpty())
 		SPD_CLOSE(g_logger_name.toStdString());

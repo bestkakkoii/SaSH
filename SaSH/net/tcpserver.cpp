@@ -11610,14 +11610,14 @@ void Server::lssproto_S_recv(char* cdata)
 			QVariantList varList;
 			if (_pet.useFlag == 1)
 			{
+				pet[i].power = (((static_cast<double>(_pet.atk + _pet.def + _pet.quick) + (static_cast<double>(_pet.maxHp) / 4.0)) / static_cast<double>(_pet.level)) * 100.0);
 				varList = QVariantList{
 					_pet.name, _pet.freeName, "",
 					QObject::tr("%1(%2tr)").arg(_pet.level).arg(_pet.trn), _pet.exp, _pet.maxExp, _pet.maxExp - _pet.exp, "",
 					QString("%1/%2").arg(_pet.hp).arg(_pet.maxHp), "",
-					_pet.ai, _pet.atk, _pet.def, _pet.quick, "",
-					(((static_cast<double>(_pet.atk + _pet.def + _pet.quick) + (static_cast<double>(_pet.maxHp) / 4.0)) / static_cast<double>(_pet.level)) * 100.0)
-				};
+					_pet.ai, _pet.atk, _pet.def, _pet.quick, "", pet[i].power
 
+				};
 			}
 			else
 			{
