@@ -450,6 +450,7 @@ int MainObject::checkAndRunFunctions()
 		{
 			battle_run_once_flag_ = true;
 			emit signalDispatcher.updateStatusLabelTextChanged(util::kLabelStatusInNormal);
+
 		}
 
 		//紀錄NPC
@@ -758,24 +759,24 @@ void MainObject::checkControl()
 		injector.postMessage(Injector::kEnableOptimize, bChecked, NULL);
 	}
 
-	//同步鎖定移動
-	bChecked = injector.getEnableHash(util::kLockMoveEnable);
-	bool isFastBattle = injector.getEnableHash(util::kFastBattleEnable);
-	if (!bChecked && isFastBattle && injector.server->getBattleFlag())//如果有開啟快速戰鬥，那必須在戰鬥時鎖定移動
-	{
-		flagLockMoveEnable_ = true;
-		injector.sendMessage(Injector::kEnableMoveLock, true, NULL);
-	}
-	else if (!bChecked && isFastBattle && !injector.server->getBattleFlag()) //如果有開啟快速戰鬥，但是不在戰鬥時，那就不鎖定移動
-	{
-		flagLockMoveEnable_ = false;
-		injector.sendMessage(Injector::kEnableMoveLock, false, NULL);
-	}
-	else if (flagLockMoveEnable_ != bChecked) //如果沒有開啟快速戰鬥，那就照常
-	{
-		flagLockMoveEnable_ = bChecked;
-		injector.sendMessage(Injector::kEnableMoveLock, bChecked, NULL);
-	}
+	////同步鎖定移動
+	//bChecked = injector.getEnableHash(util::kLockMoveEnable);
+	//bool isFastBattle = injector.getEnableHash(util::kFastBattleEnable);
+	//if (!bChecked && isFastBattle && injector.server->getBattleFlag())//如果有開啟快速戰鬥，那必須在戰鬥時鎖定移動
+	//{
+	//	flagLockMoveEnable_ = true;
+	//	injector.sendMessage(Injector::kEnableMoveLock, true, NULL);
+	//}
+	//else if (!bChecked && isFastBattle && !injector.server->getBattleFlag()) //如果有開啟快速戰鬥，但是不在戰鬥時，那就不鎖定移動
+	//{
+	//	flagLockMoveEnable_ = false;
+	//	injector.sendMessage(Injector::kEnableMoveLock, false, NULL);
+	//}
+	//else if (flagLockMoveEnable_ != bChecked) //如果沒有開啟快速戰鬥，那就照常
+	//{
+	//	flagLockMoveEnable_ = bChecked;
+	//	injector.sendMessage(Injector::kEnableMoveLock, bChecked, NULL);
+	//}
 
 	//自動戰鬥，異步戰鬥面板開關
 	bool bCheckedFastBattle = injector.getEnableHash(util::kFastBattleEnable);
@@ -1718,6 +1719,7 @@ void MainObject::checkAutoLockPet()
 	if (injector.server.isNull())
 		return;
 
+	bool iswait = false;
 	bool enableLockPet = injector.getEnableHash(util::kLockPetEnable) && !injector.getEnableHash(util::kLockPetScheduleEnable);
 	if (enableLockPet)
 	{
@@ -1728,6 +1730,7 @@ void MainObject::checkAutoLockPet()
 			if (pet.state != PetState::kBattle)
 			{
 				injector.server->setPetState(lockPetIndex, kBattle);
+				iswait = true;
 			}
 		}
 	}
@@ -1742,8 +1745,14 @@ void MainObject::checkAutoLockPet()
 			if (pet.state != PetState::kRide)
 			{
 				injector.server->setPetState(lockRideIndex, kRide);
+				iswait = true;
 			}
 		}
+	}
+
+	if (iswait)
+	{
+		QThread::msleep(1000);
 	}
 }
 

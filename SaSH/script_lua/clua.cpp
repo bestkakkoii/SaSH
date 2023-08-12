@@ -451,10 +451,10 @@ void CLua::proc()
 			collectgarbage("setpause", 100)
 			collectgarbage("setstepmul", 100);
 			collectgarbage("step", 1024);
-		)");
 
-		//回收垃圾
-		lua_.collect_garbage();
+			sys = System();
+			print = sys:print;
+		)");
 
 		//Add additional package path.
 		QStringList paths;
