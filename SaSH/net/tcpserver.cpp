@@ -2575,25 +2575,25 @@ void Server::setBattleFlag(bool enable)
 	IS_BATTLE_FLAG.store(enable, std::memory_order_release);
 	isBattleDialogReady.store(false, std::memory_order_release);
 
-	Injector& injector = Injector::getInstance();
-	HANDLE hProcess = injector.getProcess();
-	DWORD hModule = injector.getProcessModule();
+	//Injector& injector = Injector::getInstance();
+	//HANDLE hProcess = injector.getProcess();
+	//DWORD hModule = injector.getProcessModule();
 
 	//這裡關乎頭上是否會出現V.S.圖標
-	int status = mem::read<short>(hProcess, hModule + kOffestPlayerStatus);
-	if (enable)
-	{
-		if (!checkAND(status, CHR_STATUS_BATTLE))
-			status |= CHR_STATUS_BATTLE;
-	}
-	else
-	{
-		if (checkAND(status, CHR_STATUS_BATTLE))
-			status &= ~CHR_STATUS_BATTLE;
-	}
+	//int status = mem::read<short>(hProcess, hModule + kOffestPlayerStatus);
+	//if (enable)
+	//{
+	//	if (!checkAND(status, CHR_STATUS_BATTLE))
+	//		status |= CHR_STATUS_BATTLE;
+	//}
+	//else
+	//{
+	//	if (checkAND(status, CHR_STATUS_BATTLE))
+	//		status &= ~CHR_STATUS_BATTLE;
+	//}
 
-	mem::write<int>(hProcess, hModule + kOffestPlayerStatus, status);
-	mem::write<int>(hProcess, hModule + kOffestBattleStatus, enable ? 1 : 0);
+	//mem::write<int>(hProcess, hModule + kOffestPlayerStatus, status);
+	//mem::write<int>(hProcess, hModule + kOffestBattleStatus, enable ? 1 : 0);
 }
 
 void Server::setWindowTitle()
