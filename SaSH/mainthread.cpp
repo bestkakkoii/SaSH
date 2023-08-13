@@ -761,6 +761,7 @@ void MainObject::checkControl()
 
 	////同步鎖定移動
 	//bChecked = injector.getEnableHash(util::kLockMoveEnable);
+
 	//bool isFastBattle = injector.getEnableHash(util::kFastBattleEnable);
 	//if (!bChecked && isFastBattle && injector.server->getBattleFlag())//如果有開啟快速戰鬥，那必須在戰鬥時鎖定移動
 	//{

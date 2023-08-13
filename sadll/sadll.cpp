@@ -1412,13 +1412,15 @@ void GameService::WM_EnableMoveLock(bool enable)
 		IS_MOVE_LOCK = enable;
 		DWORD* pMoveStart = CONVERT_GAMEVAR<DWORD*>(0x42795 + 0x6);
 		*pMoveStart = !enable ? 1UL : 0UL;
-		if (!enable)
-		{
-			pMoveStart = CONVERT_GAMEVAR<DWORD*>(0x4181198);
-			*pMoveStart = 0UL;
-			pMoveStart = CONVERT_GAMEVAR<DWORD*>(0x41829FC);
-			*pMoveStart = 0UL;
-		}
+
+	}
+
+	if (!enable)
+	{
+		DWORD* pMoveStart = CONVERT_GAMEVAR<DWORD*>(0x4181198);
+		*pMoveStart = 0UL;
+		pMoveStart = CONVERT_GAMEVAR<DWORD*>(0x41829FC);
+		*pMoveStart = 0UL;
 	}
 
 	//DWORD* pMoveLock = CONVERT_GAMEVAR<DWORD*>(0x4275E);

@@ -547,6 +547,7 @@ void GeneralForm::onCheckBoxStateChanged(int state)
 	if (name == "checkBox_lockmove")
 	{
 		injector.setEnableHash(util::kLockMoveEnable, isChecked);
+		injector.sendMessage(Injector::kEnableMoveLock, isChecked, NULL);
 		return;
 	}
 
