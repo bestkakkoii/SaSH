@@ -847,7 +847,7 @@ QQ 群:
 %1
 
 特别感谢:
-eric, 辉, match_stick 热心帮忙测试、查找bug，和给予大量优质的建议
+eric, 辉, match_stick, 手柄, 老花, 小雅 热心帮忙测试、查找bug，和给予大量优质的建议
 )")
 .arg(util::buildDateTime(nullptr)));
 	}

@@ -2982,7 +2982,6 @@ bool Server::login(int s)
 				if (timer.hasExpired(1000))
 					break;
 
-				qDebug() << "util::kStatusSelectServer" << x << "y:" << y;
 			}
 		}
 		break;
@@ -3023,7 +3022,6 @@ bool Server::login(int s)
 				if (timer.hasExpired(1000))
 					break;
 
-				qDebug() << "kStatusSelectSubServer" << "x:" << x << "y:" << y;
 			}
 			break;
 		}
@@ -3061,7 +3059,6 @@ bool Server::login(int s)
 				if (timer.hasExpired(1000))
 					break;
 
-				qDebug() << "kStatusSelectSubServer_2" << "x:" << x << "y:" << y;
 			}
 			connectingTimer.restart();
 		}

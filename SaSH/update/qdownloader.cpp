@@ -76,7 +76,7 @@ QString QDownloader::Sha3_512(const QString& fileNamePath) const
 }
 
 QString etag = "\0";
-constexpr int UPDATE_TIME_MIN = 3 * 60;
+constexpr int UPDATE_TIME_MIN = 5 * 60;
 bool QDownloader::checkUpdate(QString* current, QString* ptext)
 {
 	QString exeFileName = QCoreApplication::applicationFilePath();
@@ -121,8 +121,8 @@ bool QDownloader::checkUpdate(QString* current, QString* ptext)
 
 
 			QDateTime gmtTime = locale.toDateTime(lastModifiedStr, "ddd, dd MMM yyyy hh:mm:ss 'GMT'");
-			//補8小時
-			//zipModified = gmtTime.addSecs(8ll * 60ll * 60ll);
+			//補-8小時
+			zipModified = gmtTime.addSecs(-8ll * 60ll * 60ll);
 			qDebug() << "SaSH 7z file modified time:" << zipModified.toString("yyyy-MM-dd hh:mm:ss");
 			if (!zipModified.isValid())
 			{
