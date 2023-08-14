@@ -422,6 +422,157 @@ qint64 Interpreter::logback(qint64 currentline, const TokenMap& TK)
 	return Parser::kNoChange;
 }
 
+qint64 Interpreter::createch(qint64 currentline, const TokenMap& TK)
+{
+	Injector& injector = Injector::getInstance();
+	if (injector.server.isNull())
+		return Parser::kError;
+
+	qint64 dataplacenum = -1;
+	if (!checkInteger(TK, 1, &dataplacenum))
+		return Parser::kArgError;
+	if (dataplacenum != 1 && dataplacenum != 2)
+		return Parser::kArgError;
+	--dataplacenum;
+
+	QString charname;
+	if (!checkString(TK, 2, &charname))
+		return Parser::kArgError;
+	if (charname.isEmpty())
+		return Parser::kArgError;
+
+	qint64 imgno = 0;
+	if (!checkInteger(TK, 3, &imgno))
+		imgno = 100050;
+	if (imgno <= 0)
+		imgno = 100050;
+
+	qint64 faceimgno = 0;
+	if (!checkInteger(TK, 4, &faceimgno))
+		faceimgno = 30250;
+	if (faceimgno <= 0)
+		faceimgno = 30250;
+
+	qint64 vit = 0;
+	if (!checkInteger(TK, 5, &vit))
+		return Parser::kArgError;
+	if (vit < 0)
+		return Parser::kArgError;
+
+	qint64 str = 0;
+	if (!checkInteger(TK, 6, &str))
+		return Parser::kArgError;
+	if (str < 0)
+		return Parser::kArgError;
+
+	qint64 tgh = 0;
+	if (!checkInteger(TK, 7, &tgh))
+		return Parser::kArgError;
+	if (tgh < 0)
+		return Parser::kArgError;
+
+	qint64 dex = 0;
+	if (!checkInteger(TK, 8, &dex))
+		return Parser::kArgError;
+	if (dex < 0)
+		return Parser::kArgError;
+
+	if (vit + str + tgh + dex != 20)
+		return Parser::kArgError;
+
+	qint64 earth = 0;
+	if (!checkInteger(TK, 9, &earth))
+		return Parser::kArgError;
+	if (earth < 0)
+		return Parser::kArgError;
+
+	qint64 water = 0;
+	if (!checkInteger(TK, 10, &water))
+		return Parser::kArgError;
+	if (water < 0)
+		return Parser::kArgError;
+
+	qint64 fire = 0;
+	if (!checkInteger(TK, 11, &fire))
+		return Parser::kArgError;
+	if (fire < 0)
+		return Parser::kArgError;
+	qint64 wind = 0;
+	if (!checkInteger(TK, 12, &wind))
+		return Parser::kArgError;
+	if (wind < 0)
+		return Parser::kArgError;
+
+	if (earth + water + fire + wind != 10)
+		return Parser::kArgError;
+
+	qint64 hometown = -1;
+	if (!checkInteger(TK, 13, &hometown))
+	{
+		static const QHash<QString, qint64> hash = {
+			{ "薩姆吉爾",0 }, { "瑪麗娜絲", 1 }, { "加加", 2 }, { "卡魯它那", 3 },
+			{ "萨姆吉尔",0 }, { "玛丽娜丝", 1 }, { "加加", 2 }, { "卡鲁它那", 3 },
+		};
+
+		QString hometownstr;
+		if (!checkString(TK, 13, &hometownstr))
+			return Parser::kArgError;
+		if (hometownstr.isEmpty())
+			return Parser::kArgError;
+
+		hometown = hash.value(hometownstr, -1);
+		if (hometown == -1)
+			return Parser::kArgError;
+	}
+	else
+	{
+		return Parser::kArgError;
+		if (hometown <= 0 || hometown > 4)
+			hometown = 1;
+		--hometown;
+	}
+
+	injector.server->createCharacter(static_cast<int>(dataplacenum)
+		, charname
+		, static_cast<int>(imgno)
+		, static_cast<int>(faceimgno)
+		, static_cast<int>(vit)
+		, static_cast<int>(str)
+		, static_cast<int>(tgh)
+		, static_cast<int>(dex)
+		, static_cast<int>(earth)
+		, static_cast<int>(water)
+		, static_cast<int>(fire)
+		, static_cast<int>(wind)
+		, static_cast<int>(hometown));
+
+	return Parser::kNoChange;
+}
+
+qint64 Interpreter::delch(qint64 currentline, const TokenMap& TK)
+{
+	Injector& injector = Injector::getInstance();
+	if (injector.server.isNull())
+		return Parser::kError;
+
+	QString name;
+	if (!checkString(TK, 1, &name))
+		return Parser::kArgError;
+	if (name.isEmpty())
+		return Parser::kArgError;
+
+	QString password;
+	if (!checkString(TK, 2, &password))
+		return Parser::kArgError;
+	if (password.isEmpty())
+		return Parser::kArgError;
+
+	injector.server->deleteCharacter(name, password);
+
+	return Parser::kNoChange;
+}
+
+
 qint64 Interpreter::cleanchat(qint64 currentline, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance();
@@ -1683,7 +1834,7 @@ qint64 Interpreter::ocr(qint64 currentline, const TokenMap& TK)
 		{
 			if (debugmode == 0)
 				injector.server->inputtext(ret);
-}
+		}
 	}
 #endif
 

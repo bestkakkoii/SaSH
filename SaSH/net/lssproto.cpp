@@ -246,3 +246,28 @@ void Lssproto::lssproto_B_send(const QString& command)
 	std::string cmd = command.toUpper().toStdString();
 	Autil::util_Send(LSSPROTO_B_SEND, const_cast<char*>(cmd.c_str()));
 }
+
+//創建人物
+void Lssproto::lssproto_CreateNewChar_send(
+	int dataplacenum,
+	char* charname,
+	int imgno,
+	int faceimgno,
+	int vital,
+	int str,
+	int tgh,
+	int dex,
+	int earth,
+	int water,
+	int fire,
+	int wind,
+	int hometown)
+{
+	Autil::util_Send(LSSPROTO_CREATENEWCHAR_SEND, dataplacenum, charname, imgno, faceimgno, vital, str, tgh, dex, earth, water, fire, wind, hometown);
+}
+
+//刪除人物
+void Lssproto::lssproto_CharDelete_send(char* charname, char* securityCode)
+{
+	Autil::util_Send(LSSPROTO_CHARDELETE_SEND, charname, securityCode);
+}

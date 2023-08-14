@@ -49,7 +49,7 @@ const char* Highlighter::keywords(int set) const
 			"learn trade run dostring sellpet mail reg "
 			"regex upper lower half toint tostr todb replace find full "
 			"bh bj bp bs be bd bi bn bw bwf bwait bend "
-			"dofile ";
+			"dofile createch delch ";
 	}
 	case 3://QsciLexerLua::StringTableMathsFunction//草綠
 	{

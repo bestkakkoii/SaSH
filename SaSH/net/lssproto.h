@@ -107,7 +107,7 @@ public:
 	void lssproto_ClientLogin_send(char* cdkey, char* passwd);
 #endif
 	void lssproto_CreateNewChar_send(int dataplacenum, char* charname, int imgno, int faceimgno, int vital, int str, int tgh, int dex, int earth, int water, int fire, int wind, int hometown);
-	void lssproto_CharDelete_send(char* charname);
+	void lssproto_CharDelete_send(char* charname, char* securityCode);
 	void lssproto_CharLogin_send(char* charname);
 	void lssproto_CharList_send(int fd);
 	void lssproto_CharLogout_send(int Flg);

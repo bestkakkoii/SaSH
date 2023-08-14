@@ -24,6 +24,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "map/mapanalyzer.h"
 #include "script/interpreter.h"
 
+#pragma comment(lib, "winmm.lib")
+
 #include <spdloger.hpp>
 extern QString g_logger_name;//parser.cpp
 
@@ -1552,7 +1554,7 @@ int Server::getGameStatus()
 	return mem::read<int>(injector.getProcess(), injector.getProcessModule() + kOffestGameStatus);
 }
 
-bool Server::checkGW(int w, int g)
+bool Server::checkWG(int w, int g)
 {
 	return getWorldStatus() == w && getGameStatus() == g;
 }
@@ -2739,6 +2741,59 @@ void Server::talk(const QString& text, int color, TalkMode mode)
 	lssproto_TK_send(getPoint(), const_cast<char*>(str.c_str()), color, 3);
 	if (bRecover)
 		setSwitcher(flg);
+}
+
+void Server::createCharacter(int dataplacenum
+	, const QString& charname
+	, int imgno
+	, int faceimgno
+	, int vit
+	, int str
+	, int tgh
+	, int dex
+	, int earth
+	, int water
+	, int fire
+	, int wind
+	, int hometown)
+{
+	//hometown: 薩姆0 漁村1 加加2 卡魯3
+	if (!checkWG(3, 11))
+		return;
+
+	std::string sname = util::fromUnicode(charname);
+	lssproto_CreateNewChar_send(dataplacenum, const_cast<char*>(sname.c_str()), imgno, faceimgno, vit, str, tgh, dex, earth, water, fire, wind, hometown);
+
+	Injector& injector = Injector::getInstance();
+	HANDLE hProcess = injector.getProcess();
+	int hModule = injector.getProcessModule();
+	mem::write<int>(hProcess, hModule + 0x421C000, 1);
+	int time = timeGetTime();
+	mem::write<int>(hProcess, hModule + 0x421C004, time);
+	//mem::write<int>(hProcess, hModule + 0x4152B44, 2);
+	setWorldStatus(4);
+	setGameStatus(31);
+}
+
+void Server::deleteCharacter(const QString& charname, const QString password)
+{
+	if (!checkWG(3, 11))
+		return;
+
+	std::string sname = util::fromUnicode(charname);
+	std::string spassword = util::fromUnicode(password);
+	lssproto_CharDelete_send(const_cast<char*>(sname.c_str()), const_cast<char*>(spassword.c_str()));
+	Injector& injector = Injector::getInstance();
+	HANDLE hProcess = injector.getProcess();
+	int hModule = injector.getProcessModule();
+
+	mem::write<int>(hProcess, hModule + 0x421C000, 1);
+	mem::write<int>(hProcess, hModule + 0x415EF6C, 2);
+
+	int time = timeGetTime();
+	mem::write<int>(hProcess, hModule + 0x421C004, time);
+
+	setGameStatus(21);
 }
 
 //老菜單
@@ -4875,7 +4930,7 @@ void Server::asyncBattleAction()
 	//自动战斗打开 或 快速战斗打开且处于战斗场景
 	bool fastChecked = injector.getEnableHash(util::kFastBattleEnable);
 	bool normalChecked = injector.getEnableHash(util::kAutoBattleEnable) || (fastChecked && getWorldStatus() == 10);
-	if (normalChecked && !checkGW(10, 4))
+	if (normalChecked && !checkWG(10, 4))
 	{
 		announce("[async battle] 画面不对,当前游戏状态[%1]，画面状态[%2].arg(getWorldStatus()).arg(getGameStatus())", 7);
 		return;
@@ -7847,12 +7902,12 @@ void Server::lssproto_PR_recv(int request, int result)
 			{
 				teamInfoList.append("");
 				continue;
-		}
+			}
 			QString text = QString("%1 LV:%2 HP:%3/%4 MP:%5").arg(party[i].name).arg(party[i].level)
 				.arg(party[i].hp).arg(party[i].maxHp).arg(party[i].hpPercent);
 			teamInfoList.append(text);
+		}
 	}
-}
 	else
 	{
 		if (request == 0 && result == 1)
@@ -7960,7 +8015,7 @@ void Server::lssproto_AB_recv(char* cdata)
 			addressBook[i].name.clear();
 			addressBook[i] = {};
 			continue;
-	}
+		}
 
 #ifdef _EXTEND_AB
 		if (i == MAX_ADR_BOOK - 1)
@@ -7997,8 +8052,8 @@ void Server::lssproto_AB_recv(char* cdata)
 			}
 		}
 #endif
-				}
-			}
+	}
+}
 
 //名片數據
 void Server::lssproto_ABI_recv(int num, char* cdata)
@@ -8022,7 +8077,7 @@ void Server::lssproto_ABI_recv(int num, char* cdata)
 	if (useFlag < 0)
 	{
 		useFlag = 0;
-}
+	}
 	if (useFlag == 0)
 	{
 		if (MailHistory[num].dateStr[MAIL_MAX_HISTORY - 1][0] != 0)
@@ -8070,7 +8125,7 @@ void Server::lssproto_ABI_recv(int num, char* cdata)
 		}
 	}
 #endif
-		}
+}
 
 //戰後獎勵 (逃跑或被打死不會有)
 void Server::lssproto_RS_recv(char* cdata)
@@ -8357,7 +8412,7 @@ void Server::lssproto_I_recv(char* cdata)
 #endif
 			*/
 
-}
+	}
 
 	setPC(pc);
 
@@ -9313,12 +9368,12 @@ void Server::lssproto_KS_recv(int petarray, int result)
 			for (i = 0; i < MAX_SKILL; ++i)
 			{
 				skillNameList.append(petSkill[petarray][i].name);
-				}
 			}
+		}
 		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
 
 		emit signalDispatcher.updateComboBoxItemText(util::kComboBoxPetAction, skillNameList);
-		}
+	}
 #ifdef _AFTER_TRADE_PETWAIT_
 	else
 	{
@@ -9342,7 +9397,7 @@ void Server::lssproto_KS_recv(int petarray, int result)
 		pet[petarray].state = kBattle;
 		emit signalDispatcher.updatePetHpProgressValue(_pet.level, _pet.hp, _pet.maxHp);
 	}
-	}
+}
 
 #ifdef _STANDBYPET
 //寵物等待狀態改變 (不是每個私服都有)
@@ -9820,7 +9875,7 @@ void Server::lssproto_Firework_recv(int nCharaindex, int nType, int nActionNum)
 		//pAct = getCharObjAct(nCharaindex);
 		//changeCharAct(pAct, 0, 0, 0, 51, nType, nActionNum, 0);
 	}
-	}
+}
 #endif
 
 #ifdef _ANNOUNCEMENT_
@@ -9892,7 +9947,7 @@ void Server::lssproto_TK_recv(int index, char* cmessage, int color)
 					recorder[0].goldearn += nGold;
 				}
 			}
-	}
+		}
 
 #ifndef _CHANNEL_MODIFY
 		getStringToken(message, "|", 2, msg);
@@ -10024,7 +10079,7 @@ void Server::lssproto_TK_recv(int index, char* cmessage, int color)
 				sprintf_s(secretName, "%s ", tellName);
 			}
 			else StockChatBufferLine(msg, color);
-			}
+		}
 #else
 #ifdef _FONT_SIZE
 		StockChatBufferLineExt(msg, color, fontsize);
@@ -10041,7 +10096,7 @@ void Server::lssproto_TK_recv(int index, char* cmessage, int color)
 				//pc.status |= CHR_STATUS_FUKIDASHI;
 			}
 		}
-		}
+	}
 
 	setPC(pc);
 
@@ -10359,7 +10414,7 @@ void Server::lssproto_C_recv(char* cdata)
 						if (j == 0)
 							pc.status |= CHR_STATUS_LEADER;
 						break;
-			}
+					}
 				}
 			}
 			else
@@ -10748,12 +10803,12 @@ void Server::lssproto_C_recv(char* cdata)
 							//setMoneyCharObj(id, 24052, x, y, 0, money, info);
 						}
 					}
+				}
+			}
 		}
-		}
-	}
 #endif
 #pragma endregion
-}
+	}
 
 	setPC(pc);
 }
@@ -10855,9 +10910,9 @@ void Server::lssproto_CA_recv(char* cdata)
 				else
 #endif
 					//changePcAct(x, y, dir, act, effectno, effectparam1, effectparam2);
-		}
+			}
 			continue;
-	}
+		}
 
 		//ptAct = getCharObjAct(charindex);
 		//if (ptAct == NULL)
@@ -10894,7 +10949,7 @@ void Server::lssproto_CA_recv(char* cdata)
 #endif
 		//changeCharAct(ptAct, x, y, dir, act, effectno, effectparam1, effectparam2);
 	//}
-}
+	}
 }
 
 //刪除指定一個或多個周圍人、NPC單位
@@ -10991,7 +11046,7 @@ void Server::lssproto_S_recv(char* cdata)
 		extern void SkyIslandSetNo(int fl);
 		SkyIslandSetNo(fl);
 #endif
-		}
+	}
 #pragma endregion
 #pragma region TimeModify
 	else if (first == "D")// D 修正時間
@@ -12337,7 +12392,7 @@ void Server::lssproto_S_recv(char* cdata)
 	}
 
 	setPC(pc);
-	}
+}
 
 //客戶端登入(進去選人畫面)
 void Server::lssproto_ClientLogin_recv(char* cresult)
@@ -12377,7 +12432,7 @@ void Server::lssproto_CreateNewChar_recv(char* cresult, char* cdata)
 	{
 		//創建人物內容提示
 	}
-	}
+}
 
 //更新人物列表
 void Server::lssproto_CharList_recv(char* cresult, char* cdata)
@@ -12460,7 +12515,7 @@ void Server::lssproto_CharLogin_recv(char* cresult, char* cdata)
 #ifdef __NEW_CLIENT
 		hPing = CreateThread(NULL, 0, PingFunc, &sin_server.sin_addr, 0, &dwPingID);
 #endif
-}
+	}
 
 #ifdef __NEW_CLIENT
 #ifdef _NEW_WGS_MSG				// WON ADD WGS的新視窗
@@ -12832,5 +12887,5 @@ bool Server::captchaOCR(QString* pmsg)
 		announce("<ocr>failed! error:" + errorMsg);
 
 	return false;
-		}
+}
 #endif

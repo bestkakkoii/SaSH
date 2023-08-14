@@ -1450,6 +1450,16 @@ color: rgb(208, 208, 208);
            </item>
            <item>
             <property name="text">
+             <string>delch</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>createch</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
              <string>cls</string>
             </property>
            </item>

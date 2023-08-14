@@ -223,7 +223,7 @@ public://actions
 
 	Q_REQUIRED_RESULT int getGameStatus();
 
-	Q_REQUIRED_RESULT bool checkGW(int w, int g);
+	Q_REQUIRED_RESULT bool checkWG(int w, int g);
 
 	Q_REQUIRED_RESULT int getUnloginStatus();
 	void setWorldStatus(int w);
@@ -249,6 +249,21 @@ public://actions
 
 	void announce(const QString& msg, int color = 4);
 
+	void createCharacter(int dataplacenum
+		, const QString& charname
+		, int imgno
+		, int faceimgno
+		, int vit
+		, int str
+		, int tgh
+		, int dex
+		, int earth
+		, int water
+		, int fire
+		, int wind
+		, int hometown);
+
+	void deleteCharacter(const QString& name, const QString securityCode);
 
 	void talk(const QString& text, int color = 0, TalkMode mode = kTalkNormal);
 	void inputtext(const QString& text, int dialogid = -1, int npcid = -1);
