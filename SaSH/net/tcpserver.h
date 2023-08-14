@@ -373,6 +373,7 @@ public://actions
 
 	bool checkPlayerMp(int cmpvalue, int* target = nullptr, bool useequal = false);
 	bool checkPlayerHp(int cmpvalue, int* target = nullptr, bool useequal = false);
+	bool checkRideHp(int cmpvalue, int* target = nullptr, bool useequal = false);
 	bool checkPetHp(int cmpvalue, int* target = nullptr, bool useequal = false);
 	bool checkPartyHp(int cmpvalue, int* target);
 

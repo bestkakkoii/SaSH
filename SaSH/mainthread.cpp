@@ -1457,12 +1457,17 @@ void MainObject::checkAutoHeal()
 						ok = true;
 						target = 0;
 					}
-					if (!ok && (petPercent > 0) && injector.server->checkPetHp(charPercent))
+					if (!ok && (petPercent > 0) && injector.server->checkPetHp(petPercent))
 					{
 						ok = true;
 						target = injector.server->getPC().battlePetNo + 1;
 					}
-					if (!ok && (alliePercent > 0) && injector.server->checkPartyHp(charPercent, &target))
+					if (!ok && (petPercent > 0) && injector.server->checkRideHp(petPercent))
+					{
+						ok = true;
+						target = injector.server->getPC().ridePetNo + 1;
+					}
+					if (!ok && (alliePercent > 0) && injector.server->checkPartyHp(alliePercent, &target))
 					{
 						ok = true;
 						target += MAX_PET;
@@ -1532,12 +1537,17 @@ void MainObject::checkAutoHeal()
 						ok = true;
 						target = 0;
 					}
-					if (!ok && (petPercent > 0) && injector.server->checkPetHp(charPercent))
+					if (!ok && (petPercent > 0) && injector.server->checkPetHp(petPercent))
 					{
 						ok = true;
 						target = injector.server->getPC().battlePetNo + 1;
 					}
-					if (!ok && (alliePercent > 0) && injector.server->checkPartyHp(charPercent, &target))
+					if (!ok && (petPercent > 0) && injector.server->checkRideHp(petPercent))
+					{
+						ok = true;
+						target = injector.server->getPC().ridePetNo + 1;
+					}
+					if (!ok && (alliePercent > 0) && injector.server->checkPartyHp(alliePercent, &target))
 					{
 						ok = true;
 						target += MAX_PET;

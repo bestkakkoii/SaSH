@@ -5140,6 +5140,30 @@ bool Server::checkPetHp(int cmpvalue, int* target, bool useequal)
 	return false;
 };
 
+//檢測騎寵血量
+bool Server::checkRideHp(int cmpvalue, int* target, bool useequal)
+{
+	PC pc = getPC();
+	int i = pc.ridePetNo;
+	if (i < 0 || i >= MAX_PET)
+		return false;
+
+	if (useequal && (pet[i].hpPercent <= cmpvalue) && (pet[i].level > 0) && (pet[i].maxHp > 0))
+	{
+		if (target)
+			*target = BattleMyNo + 5;
+		return true;
+	}
+	else if (!useequal && (pet[i].hpPercent < cmpvalue) && (pet[i].level > 0) && (pet[i].maxHp > 0))
+	{
+		if (target)
+			*target = BattleMyNo + 5;
+		return true;
+	}
+
+	return false;
+};
+
 //檢測隊友血量
 bool Server::checkPartyHp(int cmpvalue, int* target)
 {
