@@ -2770,7 +2770,7 @@ void Server::createCharacter(int dataplacenum
 	mem::write<int>(hProcess, hModule + 0x421C000, 1);
 	int time = timeGetTime();
 	mem::write<int>(hProcess, hModule + 0x421C004, time);
-	//mem::write<int>(hProcess, hModule + 0x4152B44, 2);
+	mem::write<int>(hProcess, hModule + 0x4152B44, 2);
 	setWorldStatus(4);
 	setGameStatus(31);
 }

@@ -430,10 +430,24 @@ qint64 Interpreter::createch(qint64 currentline, const TokenMap& TK)
 
 	qint64 dataplacenum = -1;
 	if (!checkInteger(TK, 1, &dataplacenum))
+	{
+		QString dataplace;
+		if (!checkString(TK, 1, &dataplace))
+			return Parser::kArgError;
+		if (dataplace == "左")
+			dataplacenum = 0;
+		else if (dataplace == "右")
+			dataplacenum = 1;
+		else
+			return Parser::kArgError;
+	}
+	else
+	{
 		return Parser::kArgError;
-	if (dataplacenum != 1 && dataplacenum != 2)
-		return Parser::kArgError;
-	--dataplacenum;
+		if (dataplacenum != 1 && dataplacenum != 2)
+			return Parser::kArgError;
+		--dataplacenum;
+	}
 
 	QString charname;
 	if (!checkString(TK, 2, &charname))
