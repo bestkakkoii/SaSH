@@ -2603,6 +2603,8 @@ void Server::setBattleFlag(bool enable)
 	mem::write<int>(hProcess, hModule + 0x415EF9C, 0);
 	mem::write<int>(hProcess, hModule + 0x4181D44, 0);
 	mem::write<int>(hProcess, hModule + 0x41829F8, 0);
+
+	mem::write<int>(hProcess, hModule + 0x415F4EC, 30);
 }
 
 void Server::setWindowTitle()
@@ -2862,38 +2864,63 @@ bool Server::login(int s)
 
 	QElapsedTimer timer; timer.start();
 
+	const QString fileName(qgetenv("JSON_PATH"));
+	util::Config config(fileName);
 	switch (status)
 	{
 	case util::kStatusBusy:
 	{
-		injector.leftDoubleClick(315, 255);
+		QList<int> list = config.readIntArray("System", "Login", "Busy");
+		if (list.size() == 2)
+			injector.leftDoubleClick(list.at(0), list.at(1));
+		else
+		{
+			injector.leftDoubleClick(315, 255);
+			config.writeIntArray("System", "Login", "Busy", { 315, 255 });
+		}
 		break;
 	}
 	case util::kStatusTimeout:
 	{
-		injector.leftDoubleClick(315, 253);
+		QList<int> list = config.readIntArray("System", "Login", "Timeout");
+		if (list.size() == 2)
+			injector.leftDoubleClick(list.at(0), list.at(1));
+		else
+		{
+			injector.leftDoubleClick(315, 253);
+			config.writeIntArray("System", "Login", "Timeout", { 315, 253 });
+		}
 		break;
 	}
 	case util::kNoUserNameOrPassword:
 	{
-		injector.leftDoubleClick(315, 253);
+		QList<int> list = config.readIntArray("System", "Login", "NoUserNameOrPassword");
+		if (list.size() == 2)
+			injector.leftDoubleClick(list.at(0), list.at(1));
+		else
+		{
+			injector.leftDoubleClick(315, 253);
+			config.writeIntArray("System", "Login", "NoUserNameOrPassword", { 315, 253 });
+		}
 		break;
 	}
 	case util::kStatusInputUser:
 	{
 		Injector& injector = Injector::getInstance();
-		//static const QRegularExpression accountRegex("[A-Za-z\\d]{4,25}");// 4-15个字符
-		//static const QRegularExpression passwordRegex("[A-Za-z\\d]{4,25}");// 6-20个字符
-
 		if (!account.isEmpty())
-		{
 			mem::writeString(injector.getProcess(), injector.getProcessModule() + kOffestAccount, account);
-		}
+
 		if (!password.isEmpty())
-		{
 			mem::writeString(injector.getProcess(), injector.getProcessModule() + kOffestPassword, password);
+
+		QList<int> list = config.readIntArray("System", "Login", "OK");
+		if (list.size() == 2)
+			injector.leftDoubleClick(list.at(0), list.at(1));
+		else
+		{
+			injector.leftDoubleClick(380, 310);
+			config.writeIntArray("System", "Login", "OK", { 380, 310 });
 		}
-		injector.leftDoubleClick(380, 310);
 		break;
 	}
 	case util::kStatusSelectServer:
@@ -2927,6 +2954,18 @@ bool Server::login(int s)
 
 			int x = 160 + (a * 125);
 			int y = 165 + (b * 25);
+
+			QList<int> list = config.readIntArray("System", "Login", "SelectServer");
+			if (list.size() == 4)
+			{
+				x = list.at(0) + (a * list.at(1));
+				y = list.at(2) + (b * list.at(3));
+			}
+			else
+			{
+				config.writeIntArray("System", "Login", "SelectServer", { 160, 125, 165, 25 });
+			}
+
 			for (;;)
 			{
 				injector.mouseMove(x, y);
@@ -2955,6 +2994,18 @@ bool Server::login(int s)
 		{
 			int x = 500;
 			int y = 340;
+
+			QList<int> list = config.readIntArray("System", "Login", "SelectSubServerGoBack");
+			if (list.size() == 2)
+			{
+				x = list.at(0);
+				y = list.at(1);
+			}
+			else
+			{
+				config.writeIntArray("System", "Login", "SelectSubServer", { 500, 340 });
+			}
+
 			for (;;)
 			{
 				injector.mouseMove(x, y);
@@ -2981,6 +3032,18 @@ bool Server::login(int s)
 		{
 			int x = 250;
 			int y = 265 + (subserver * 20);
+
+			QList<int> list = config.readIntArray("System", "Login", "SelectSubServer");
+			if (list.size() == 3)
+			{
+				x = list.at(0);
+				y = list.at(1) + (subserver * list.at(2));
+			}
+			else
+			{
+				config.writeIntArray("System", "Login", "SelectSubServer", { 250, 265, 20 });
+			}
+
 			for (;;)
 			{
 				injector.mouseMove(x, y);
@@ -3007,7 +3070,24 @@ bool Server::login(int s)
 	case util::kStatusSelectCharacter:
 	{
 		if (position >= 0 && position <= 1)
-			injector.leftDoubleClick(100 + (position * 300), 340);
+		{
+
+			int x = 100 + (position * 300);
+			int y = 340;
+
+			QList<int> list = config.readIntArray("System", "Login", "SelectCharacter");
+			if (list.size() == 3)
+			{
+				x = list.at(0) + (position * list.at(1));
+				y = list.at(2);
+			}
+			else
+			{
+				config.writeIntArray("System", "Login", "SelectCharacter", { 100, 300, 340 });
+			}
+
+			injector.leftDoubleClick(x, y);
+		}
 		break;
 	}
 	case util::kStatusLogined:
@@ -7770,12 +7850,12 @@ void Server::lssproto_PR_recv(int request, int result)
 			{
 				teamInfoList.append("");
 				continue;
-			}
+		}
 			QString text = QString("%1 LV:%2 HP:%3/%4 MP:%5").arg(party[i].name).arg(party[i].level)
 				.arg(party[i].hp).arg(party[i].maxHp).arg(party[i].hpPercent);
 			teamInfoList.append(text);
-		}
 	}
+}
 	else
 	{
 		if (request == 0 && result == 1)
@@ -7883,7 +7963,7 @@ void Server::lssproto_AB_recv(char* cdata)
 			addressBook[i].name.clear();
 			addressBook[i] = {};
 			continue;
-		}
+	}
 
 #ifdef _EXTEND_AB
 		if (i == MAX_ADR_BOOK - 1)
@@ -7920,8 +8000,8 @@ void Server::lssproto_AB_recv(char* cdata)
 			}
 		}
 #endif
-	}
-}
+				}
+			}
 
 //名片數據
 void Server::lssproto_ABI_recv(int num, char* cdata)
@@ -7945,7 +8025,7 @@ void Server::lssproto_ABI_recv(int num, char* cdata)
 	if (useFlag < 0)
 	{
 		useFlag = 0;
-	}
+}
 	if (useFlag == 0)
 	{
 		if (MailHistory[num].dateStr[MAIL_MAX_HISTORY - 1][0] != 0)
@@ -7993,7 +8073,7 @@ void Server::lssproto_ABI_recv(int num, char* cdata)
 		}
 	}
 #endif
-}
+		}
 
 //戰後獎勵 (逃跑或被打死不會有)
 void Server::lssproto_RS_recv(char* cdata)
@@ -8280,7 +8360,7 @@ void Server::lssproto_I_recv(char* cdata)
 #endif
 			*/
 
-	}
+}
 
 	setPC(pc);
 
@@ -9236,12 +9316,12 @@ void Server::lssproto_KS_recv(int petarray, int result)
 			for (i = 0; i < MAX_SKILL; ++i)
 			{
 				skillNameList.append(petSkill[petarray][i].name);
+				}
 			}
-		}
 		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
 
 		emit signalDispatcher.updateComboBoxItemText(util::kComboBoxPetAction, skillNameList);
-	}
+		}
 #ifdef _AFTER_TRADE_PETWAIT_
 	else
 	{
@@ -9265,7 +9345,7 @@ void Server::lssproto_KS_recv(int petarray, int result)
 		pet[petarray].state = kBattle;
 		emit signalDispatcher.updatePetHpProgressValue(_pet.level, _pet.hp, _pet.maxHp);
 	}
-}
+	}
 
 #ifdef _STANDBYPET
 //寵物等待狀態改變 (不是每個私服都有)
@@ -9743,7 +9823,7 @@ void Server::lssproto_Firework_recv(int nCharaindex, int nType, int nActionNum)
 		//pAct = getCharObjAct(nCharaindex);
 		//changeCharAct(pAct, 0, 0, 0, 51, nType, nActionNum, 0);
 	}
-}
+	}
 #endif
 
 #ifdef _ANNOUNCEMENT_
@@ -9815,7 +9895,7 @@ void Server::lssproto_TK_recv(int index, char* cmessage, int color)
 					recorder[0].goldearn += nGold;
 				}
 			}
-		}
+	}
 
 #ifndef _CHANNEL_MODIFY
 		getStringToken(message, "|", 2, msg);
@@ -9947,7 +10027,7 @@ void Server::lssproto_TK_recv(int index, char* cmessage, int color)
 				sprintf_s(secretName, "%s ", tellName);
 			}
 			else StockChatBufferLine(msg, color);
-		}
+			}
 #else
 #ifdef _FONT_SIZE
 		StockChatBufferLineExt(msg, color, fontsize);
@@ -9964,7 +10044,7 @@ void Server::lssproto_TK_recv(int index, char* cmessage, int color)
 				//pc.status |= CHR_STATUS_FUKIDASHI;
 			}
 		}
-	}
+		}
 
 	setPC(pc);
 
@@ -10282,7 +10362,7 @@ void Server::lssproto_C_recv(char* cdata)
 						if (j == 0)
 							pc.status |= CHR_STATUS_LEADER;
 						break;
-					}
+			}
 				}
 			}
 			else
@@ -10671,12 +10751,12 @@ void Server::lssproto_C_recv(char* cdata)
 							//setMoneyCharObj(id, 24052, x, y, 0, money, info);
 						}
 					}
-				}
-			}
 		}
+		}
+	}
 #endif
 #pragma endregion
-	}
+}
 
 	setPC(pc);
 }
@@ -10778,9 +10858,9 @@ void Server::lssproto_CA_recv(char* cdata)
 				else
 #endif
 					//changePcAct(x, y, dir, act, effectno, effectparam1, effectparam2);
-			}
-			continue;
 		}
+			continue;
+	}
 
 		//ptAct = getCharObjAct(charindex);
 		//if (ptAct == NULL)
@@ -10817,7 +10897,7 @@ void Server::lssproto_CA_recv(char* cdata)
 #endif
 		//changeCharAct(ptAct, x, y, dir, act, effectno, effectparam1, effectparam2);
 	//}
-	}
+}
 }
 
 //刪除指定一個或多個周圍人、NPC單位
@@ -10914,7 +10994,7 @@ void Server::lssproto_S_recv(char* cdata)
 		extern void SkyIslandSetNo(int fl);
 		SkyIslandSetNo(fl);
 #endif
-	}
+		}
 #pragma endregion
 #pragma region TimeModify
 	else if (first == "D")// D 修正時間
@@ -12260,7 +12340,7 @@ void Server::lssproto_S_recv(char* cdata)
 	}
 
 	setPC(pc);
-}
+	}
 
 //客戶端登入(進去選人畫面)
 void Server::lssproto_ClientLogin_recv(char* cresult)
@@ -12300,7 +12380,7 @@ void Server::lssproto_CreateNewChar_recv(char* cresult, char* cdata)
 	{
 		//創建人物內容提示
 	}
-}
+	}
 
 //更新人物列表
 void Server::lssproto_CharList_recv(char* cresult, char* cdata)
@@ -12383,7 +12463,7 @@ void Server::lssproto_CharLogin_recv(char* cresult, char* cdata)
 #ifdef __NEW_CLIENT
 		hPing = CreateThread(NULL, 0, PingFunc, &sin_server.sin_addr, 0, &dwPingID);
 #endif
-	}
+}
 
 #ifdef __NEW_CLIENT
 #ifdef _NEW_WGS_MSG				// WON ADD WGS的新視窗
@@ -12755,5 +12835,5 @@ bool Server::captchaOCR(QString* pmsg)
 		announce("<ocr>failed! error:" + errorMsg);
 
 	return false;
-}
+		}
 #endif

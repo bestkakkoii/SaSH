@@ -1006,7 +1006,6 @@ void MainObject::checkAutoWalk()
 
 						//移動
 						injector.server->move(QPoint(x, y));
-						injector.server->move(QPoint(x, y), "gcgc");
 					}
 					else if (enableFastAutoWalk) //快速遇敵 (封包)
 						injector.server->move(QPoint(0, 0), "gcgc");
