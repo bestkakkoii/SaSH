@@ -2357,6 +2357,38 @@ void Server::refreshItemInfo()
 	}
 }
 
+void Server::updateItemByMemory()
+{
+	//本来应该一次性读取整个结构体的，但我们不需要这麽多讯息
+
+	QMutexLocker locker(&swapItemMutex_);
+	Injector& injector = Injector::getInstance();
+	int hModule = injector.getProcessModule();
+	HANDLE hProcess = injector.getProcess();
+	PC pc = getPC();
+	for (int i = 0; i < MAX_ITEM; ++i)
+	{
+		constexpr int item_offest = 0x184;
+		pc.item[i].useFlag = mem::read<short>(hProcess, hModule + 0x422C028 + i * item_offest);
+		if (pc.item[i].useFlag != 1)
+		{
+			pc.item[i] = {};
+			continue;
+		}
+
+		pc.item[i].name = mem::readString(hProcess, hModule + 0x422C032 + i * item_offest, ITEM_NAME_LEN, true, false);
+		pc.item[i].memo = mem::readString(hProcess, hModule + 0x422C060 + i * item_offest, ITEM_MEMO_LEN, true, false);
+		if (i >= CHAR_EQUIPPLACENUM)
+			pc.item[i].pile = mem::read<short>(hProcess, hModule + 0x422BF58 + i * item_offest);
+		else
+			pc.item[i].pile = 1;
+
+		if (pc.item[i].pile == 0)
+			pc.item[i].pile = 1;
+	}
+	setPC(pc);
+}
+
 //讀取內存刷新各種基礎數據，有些封包數據不明確、或不確定，用來補充不足的部分
 void Server::updateDatasFromMemory()
 {
@@ -2386,31 +2418,7 @@ void Server::updateDatasFromMemory()
 	nowPoint = point;
 	emit signalDispatcher.updateCoordsPosLabelTextChanged(QString("%1,%2").arg(point.x()).arg(point.y()));
 
-
-	//本来应该一次性读取整个结构体的，但我们不需要这麽多讯息
-	{
-		QMutexLocker locker(&swapItemMutex_);
-		for (int i = 0; i < MAX_ITEM; ++i)
-		{
-			constexpr int item_offest = 0x184;
-			pc.item[i].useFlag = mem::read<short>(hProcess, hModule + 0x422C028 + i * item_offest);
-			if (pc.item[i].useFlag != 1)
-			{
-				pc.item[i] = {};
-				continue;
-			}
-
-			pc.item[i].name = mem::readString(hProcess, hModule + 0x422C032 + i * item_offest, ITEM_NAME_LEN, true, false);
-			pc.item[i].memo = mem::readString(hProcess, hModule + 0x422C060 + i * item_offest, ITEM_MEMO_LEN, true, false);
-			if (i >= CHAR_EQUIPPLACENUM)
-				pc.item[i].pile = mem::read<short>(hProcess, hModule + 0x422BF58 + i * item_offest);
-			else
-				pc.item[i].pile = 1;
-
-			if (pc.item[i].pile == 0)
-				pc.item[i].pile = 1;
-		}
-	}
+	updateItemByMemory();
 
 	//每隻寵物如果處於等待或戰鬥則為1
 	mem::read(hProcess, hModule + kOffestSelectPetArray, sizeof(pc.selectPetNo), pc.selectPetNo);
@@ -9445,7 +9453,7 @@ void Server::lssproto_KS_recv(int petarray, int result)
 		pet[petarray].state = kBattle;
 		emit signalDispatcher.updatePetHpProgressValue(_pet.level, _pet.hp, _pet.maxHp);
 	}
-	}
+}
 
 #ifdef _STANDBYPET
 //寵物等待狀態改變 (不是每個私服都有)
@@ -10036,7 +10044,7 @@ void Server::lssproto_TK_recv(int index, char* cmessage, int color)
 					//InitSelectChar(message, 1);
 				}
 				return;
-		}
+			}
 			else
 			{
 
@@ -10074,7 +10082,7 @@ void Server::lssproto_TK_recv(int index, char* cmessage, int color)
 
 				//SaveChatData(msg, szToken[0], false);
 			}
-	}
+		}
 		else
 			getStringToken(message, "|", 2, msg);
 #ifdef _TALK_WINDOW
@@ -10143,8 +10151,8 @@ void Server::lssproto_TK_recv(int index, char* cmessage, int color)
 				// 1000
 				//pc.status |= CHR_STATUS_FUKIDASHI;
 			}
-}
-}
+		}
+	}
 
 	setPC(pc);
 
@@ -10859,7 +10867,7 @@ void Server::lssproto_C_recv(char* cdata)
 	}
 
 	setPC(pc);
-	}
+}
 
 //周圍人、NPC..等等狀態改變必定是 _C_recv已經新增過的單位
 void Server::lssproto_CA_recv(char* cdata)
@@ -10922,7 +10930,7 @@ void Server::lssproto_CA_recv(char* cdata)
 			//effectno = smalltoken.toInt();
 			//effectparam1 = getIntegerToken(bigtoken, "|", 7);
 			//effectparam2 = getIntegerToken(bigtoken, "|", 8);
-	}
+		}
 
 
 		if (pc.id == charindex)
@@ -10960,7 +10968,7 @@ void Server::lssproto_CA_recv(char* cdata)
 					//changePcAct(x, y, dir, act, effectno, effectparam1, effectparam2);
 			}
 			continue;
-				}
+		}
 
 		//ptAct = getCharObjAct(charindex);
 		//if (ptAct == NULL)
@@ -10997,8 +11005,8 @@ void Server::lssproto_CA_recv(char* cdata)
 #endif
 		//changeCharAct(ptAct, x, y, dir, act, effectno, effectparam1, effectparam2);
 	//}
-		}
-			}
+	}
+}
 
 //刪除指定一個或多個周圍人、NPC單位
 void Server::lssproto_CD_recv(char* cdata)
@@ -11378,7 +11386,7 @@ void Server::lssproto_S_recv(char* cdata)
 #endif
 				}
 			}
-					}
+		}
 
 		//updataPcAct();
 		if ((pc.status & CHR_STATUS_LEADER) != 0 && party[0].useFlag != 0)
@@ -11456,7 +11464,7 @@ void Server::lssproto_S_recv(char* cdata)
 		playerInfoColContents.insert(0, var);
 		emit signalDispatcher.updatePlayerInfoColContents(0, var);
 		setWindowTitle();
-				}
+	}
 #pragma endregion
 #pragma region FamilyInfo
 	else if (first == "F") // F 家族狀態
@@ -11768,8 +11776,8 @@ void Server::lssproto_S_recv(char* cdata)
 #endif
 					}
 				}
-						}
-						}
+			}
+		}
 
 		if (pc.ridePetNo >= 0 && pc.ridePetNo < MAX_PET)
 		{
@@ -11820,7 +11828,7 @@ void Server::lssproto_S_recv(char* cdata)
 			emit signalDispatcher.updatePlayerInfoColContents(i + 1, var);
 		}
 
-					}
+	}
 #pragma endregion
 #pragma region EncountPercentage
 	else if (first == "E") // E nowEncountPercentage
@@ -12440,7 +12448,7 @@ void Server::lssproto_S_recv(char* cdata)
 	}
 
 	setPC(pc);
-		}
+}
 
 //客戶端登入(進去選人畫面)
 void Server::lssproto_ClientLogin_recv(char* cresult)
@@ -12525,7 +12533,7 @@ void Server::lssproto_CharList_recv(char* cresult, char* cdata)
 		getStringToken(data, "|", i * 2 + 1, nm);
 		getStringToken(data, "|", i * 2 + 2, opt);
 	}
-	}
+}
 
 //人物登出(不是每個私服都有，有些是直接切斷後跳回帳號密碼頁)
 void Server::lssproto_CharLogout_recv(char* cresult, char* cdata)
@@ -12803,7 +12811,7 @@ void Server::lssproto_TD_recv(char* cdata)//交易
 		mypet_tradeList = QStringList{ "P|-1", "P|-1", "P|-1" , "P|-1", "P|-1" };
 		mygoldtrade = 0;
 	}
-		}
+}
 
 void Server::lssproto_CHAREFFECT_recv(char* cdata)
 {

@@ -181,6 +181,7 @@ qint64 Interpreter::ifitem(qint64 currentline, const TokenMap& TK)
 	if (injector.server.isNull())
 		return Parser::kError;
 
+	injector.server->updateItemByMemory();
 	bool bret = compare(kAreaItem, TK);
 
 	return checkJump(TK, 5, bret, SuccessJump);
@@ -498,6 +499,8 @@ qint64 Interpreter::waititem(qint64 currentline, const TokenMap& TK)
 
 	qint64 timeout = DEFAULT_FUNCTION_TIMEOUT;
 	checkInteger(TK, 4, &timeout);
+
+	injector.server->updateItemByMemory();
 
 	bool bret = waitfor(timeout, [&injector, min, max, itemNames, itemMemos]()->bool
 		{

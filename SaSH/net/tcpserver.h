@@ -332,6 +332,7 @@ public://actions
 	void setStandbyPet(int standbypets);
 	void setPetState(int petIndex, int state);
 
+	void updateItemByMemory();
 	void updateDatasFromMemory();
 
 	void asyncBattleWork(bool wait);

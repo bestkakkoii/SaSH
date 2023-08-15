@@ -446,7 +446,6 @@ qint64 Interpreter::createch(qint64 currentline, const TokenMap& TK)
 	}
 	else
 	{
-		return Parser::kArgError;
 		if (dataplacenum != 1 && dataplacenum != 2)
 			return Parser::kArgError;
 		--dataplacenum;
