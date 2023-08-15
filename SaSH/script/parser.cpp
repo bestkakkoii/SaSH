@@ -2223,6 +2223,9 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 	}
 	case kDialogInfo:
 	{
+		if (!injector.server->isDialogVisible())
+			break;
+
 		qint64 dialogIndex = -1;
 		if (!checkInteger(currentLineTokens_, 3, &dialogIndex))
 		{
@@ -2236,7 +2239,24 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 				varValue = dialog.seqno;
 				bret = varValue.isValid();
 			}
-
+			else if (typeStr == "unitid")
+			{
+				qint64 unitid = injector.server->currentDialog.objindex;
+				varValue = unitid;
+				bret = varValue.isValid();
+			}
+			else if (typeStr == "type")
+			{
+				qint64 type = injector.server->currentDialog.windowtype;
+				varValue = type;
+				bret = varValue.isValid();
+			}
+			else if (typeStr == "button")
+			{
+				QStringList list = injector.server->currentDialog.linebuttontext;
+				varValue = list.join("|");
+				bret = varValue.isValid();
+			}
 			break;
 		}
 

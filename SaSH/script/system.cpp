@@ -129,19 +129,22 @@ qint64 Interpreter::press(qint64 currentline, const TokenMap& TK)
 	checkBattleThenWait();
 
 	QString text;
-	checkString(TK, 1, &text);
-
 	qint64 row = 0;
-	checkInteger(TK, 1, &row);
+	if (!checkInteger(TK, 1, &row))
+	{
+		if (!checkString(TK, 1, &text))
+			return Parser::kArgError;
+		if (text.isEmpty())
+			return Parser::kArgError;
+	}
 
 	QString npcName;
 	qint64 npcId = -1;
 	checkString(TK, 2, &npcName);
+
 	mapunit_t unit;
 	if (!npcName.isEmpty() && injector.server->findUnit(npcName, util::OBJ_NPC, &unit))
-	{
 		npcId = unit.id;
-	}
 
 	qint64 dialogid = -1;
 	checkInteger(TK, 3, &dialogid);
@@ -1544,6 +1547,8 @@ qint64 Interpreter::regex(qint64 currentline, const TokenMap& TK)
 	QString varValue;
 	if (!checkString(TK, 2, &varValue))
 		return Parser::kArgError;
+	if (varValue.isEmpty())
+		return Parser::kArgError;
 
 	QString text;
 	checkString(TK, 3, &text);
@@ -1606,16 +1611,18 @@ qint64 Interpreter::find(qint64 currentline, const TokenMap& TK)
 		return Parser::kArgError;
 
 	QString varValue;
-	if (!checkString(TK, 1, &varValue))
+	if (!checkString(TK, 2, &varValue))
 		return Parser::kArgError;
+	if (varValue.isEmpty())
+		return Parser::kNoChange;
 
 	QString text1;
-	checkString(TK, 2, &text1);
+	checkString(TK, 3, &text1);
 	if (text1.isEmpty())
 		return Parser::kArgError;
 
 	QString text2;
-	checkString(TK, 3, &text2);
+	checkString(TK, 4, &text2);
 
 	//查找 src 中 text1 到 text2 之间的文本 如果 text2 为空 则查找 text1 到行尾的文本
 

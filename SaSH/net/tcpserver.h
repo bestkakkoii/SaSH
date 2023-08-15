@@ -380,6 +380,8 @@ public://actions
 	bool isPetSpotEmpty() const;
 	int checkJobDailyState(const QString& missionName);
 
+	bool isDialogVisible() const;
+
 	void setPlayerFreeName(const QString& name);
 	void setPetFreeName(int petIndex, const QString& name);
 
@@ -599,7 +601,7 @@ private:
 #else
 		return QDateTime::currentMSecsSinceEpoch();
 #endif
-	}
+}
 
 	inline void setWarpMap(const QPoint& pos)
 	{

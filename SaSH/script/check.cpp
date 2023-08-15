@@ -321,6 +321,9 @@ qint64 Interpreter::waitdlg(qint64 currentline, const TokenMap& TK)
 	if (injector.server.isNull())
 		return Parser::kError;
 
+	if (!injector.server->isDialogVisible())
+		return checkJump(TK, 4, false, FailedJump);
+
 	QString cmpStr;
 	checkString(TK, 1, &cmpStr);
 	if (cmpStr.isEmpty())
