@@ -528,6 +528,9 @@ qint64 Interpreter::createch(qint64 currentline, const TokenMap& TK)
 		static const QHash<QString, qint64> hash = {
 			{ "薩姆吉爾",0 }, { "瑪麗娜絲", 1 }, { "加加", 2 }, { "卡魯它那", 3 },
 			{ "萨姆吉尔",0 }, { "玛丽娜丝", 1 }, { "加加", 2 }, { "卡鲁它那", 3 },
+
+			{ "薩姆吉爾村",0 }, { "瑪麗娜絲村", 1 }, { "加加村", 2 }, { "卡魯它那村", 3 },
+			{ "萨姆吉尔村",0 }, { "玛丽娜丝村", 1 }, { "加加村", 2 }, { "卡鲁它那村", 3 },
 		};
 
 		QString hometownstr;
@@ -538,14 +541,15 @@ qint64 Interpreter::createch(qint64 currentline, const TokenMap& TK)
 
 		hometown = hash.value(hometownstr, -1);
 		if (hometown == -1)
-			return Parser::kArgError;
+			hometown = 1;
 	}
 	else
 	{
 		return Parser::kArgError;
 		if (hometown <= 0 || hometown > 4)
 			hometown = 1;
-		--hometown;
+		else
+			--hometown;
 	}
 
 	injector.server->createCharacter(static_cast<int>(dataplacenum)
@@ -1855,7 +1859,7 @@ qint64 Interpreter::ocr(qint64 currentline, const TokenMap& TK)
 			if (debugmode == 0)
 				injector.server->inputtext(ret);
 		}
-	}
+}
 #endif
 
 	return Parser::kNoChange;
