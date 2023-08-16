@@ -1839,6 +1839,32 @@ qint64 Interpreter::mail(qint64, const TokenMap& TK)
 	return Parser::kNoChange;
 }
 
+qint64 Interpreter::doffstone(qint64 currentline, const TokenMap& TK)
+{
+	Injector& injector = Injector::getInstance();
+
+	if (injector.server.isNull())
+		return Parser::kError;
+
+	qint64 gold = 0;
+	if (!checkInteger(TK, 1, &gold))
+		return Parser::kArgError;
+
+	if (gold == -1)
+	{
+		PC pc = injector.server->getPC();
+		gold = pc.gold;
+	}
+
+	if (gold <= 0)
+		return Parser::kArgError;
+
+
+	injector.server->dropGold(gold);
+
+	return Parser::kNoChange;
+}
+
 //battle
 qint64 Interpreter::bh(qint64, const TokenMap& TK)//atk
 {

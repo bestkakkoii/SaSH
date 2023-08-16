@@ -211,8 +211,8 @@ bool Parser::compare(const QVariant& a, const QVariant& b, RESERVE type) const
 	}
 	else
 	{
-		QString strA = a.toString();
-		QString strB = b.toString();
+		QString strA = a.toString().simplified();
+		QString strB = b.toString().simplified();
 
 		// 根据 type 进行相应的比较操作
 		switch (type)
@@ -822,7 +822,10 @@ bool Parser::checkCallStack()
 		//匹配棧頂紀錄的function名稱與當前執行名稱是否一致
 		QString oldname = tokens_.value(lastRow).value(1).data.toString();
 		if (oldname != funname)
-			break;
+		{
+			if (!checkString(tokens_.value(lastRow), 1, &oldname))
+				break;
+		}
 
 		return false;
 	} while (false);
@@ -1757,7 +1760,8 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 		return false;
 
 	SystemVarName index = systemVarNameHash.value(trimmedStr);
-	bool bret = false;
+	bool bret = true;
+	varValue = "";
 	switch (index)
 	{
 	case kPlayerInfo:
@@ -1766,7 +1770,9 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 		checkString(currentLineTokens_, 3, &typeStr);
 		typeStr = typeStr.simplified().toLower();
 		if (typeStr.isEmpty())
+		{
 			break;
+		}
 
 		PC _pc = injector.server->getPC();
 		QHash<QString, QVariant> hash = {
@@ -1818,6 +1824,7 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 		qint64 magicIndex = -1;
 		if (!checkInteger(currentLineTokens_, 3, &magicIndex))
 			break;
+		--magicIndex;
 
 		if (magicIndex < 0 || magicIndex > MAX_MAGIC)
 			break;
@@ -1844,13 +1851,15 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 			break;
 
 		varValue = hash.value(typeStr);
-		bret = varValue.isValid();
 		break;
 	}
 	case kSkillInfo:
 	{
 		qint64 skillIndex = -1;
 		if (!checkInteger(currentLineTokens_, 3, &skillIndex))
+			break;
+		--skillIndex;
+		if (skillIndex < 0 || skillIndex > MAX_SKILL)
 			break;
 
 		QString typeStr;
@@ -1875,7 +1884,6 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 			break;
 
 		varValue = hash.value(typeStr);
-		bret = varValue.isValid();
 		break;
 	}
 	case kPetInfo:
@@ -1895,6 +1903,10 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 
 			break;
 		}
+		--petIndex;
+
+		if (petIndex < 0 || petIndex > MAX_PET)
+			break;
 
 		QString typeStr;
 		checkString(currentLineTokens_, 4, &typeStr);
@@ -1910,7 +1922,7 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 			{ kRide, u8"ride" },
 		};
 
-		PET _pet = injector.server->getPet(petIndex);
+		PET _pet = injector.server->getPet(petIndex - 1);
 
 		QVariantHash hash = {
 			{ "index", _pet.index + 1 },						//位置
@@ -1938,7 +1950,6 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 			break;
 
 		varValue = hash.value(typeStr);
-		bret = varValue.isValid();
 		break;
 	}
 	case kPetSkillInfo:
@@ -1978,7 +1989,6 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 			break;
 
 		varValue = hash.value(typeStr);
-		bret = varValue.isValid();
 		break;
 	}
 	case kMapInfo:
@@ -1995,7 +2005,6 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 			break;
 
 		varValue = hashmap.value(typeStr);
-		bret = varValue.isValid();
 		break;
 	}
 	case kItemInfo:
@@ -2015,7 +2024,6 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 						size = itemIndexs.size();
 
 					varValue = size;
-					bret = varValue.isValid();
 					break;
 				}
 				else if (typeStr == "count")
@@ -2032,7 +2040,6 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 					}
 
 					varValue = count;
-					bret = varValue.isValid();
 				}
 				else
 				{
@@ -2051,7 +2058,6 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 							varValue = index + 1 - CHAR_EQUIPPLACENUM;
 						else
 							varValue = index + 1 + 100;
-						bret = varValue.isValid();
 					}
 				}
 			}
@@ -2087,7 +2093,6 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 		};
 
 		varValue = hash.value(typeStr);
-		bret = varValue.isValid();
 		break;
 	}
 	case kEquipInfo:
@@ -2126,7 +2131,6 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 		};
 
 		varValue = hash.value(typeStr);
-		bret = varValue.isValid();
 		break;
 	}
 	case kPetEquipInfo:
@@ -2134,6 +2138,7 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 		qint64 petIndex = -1;
 		if (!checkInteger(currentLineTokens_, 3, &petIndex))
 			break;
+		--petIndex;
 
 		if (petIndex < 0 || petIndex >= MAX_PET)
 			break;
@@ -2173,7 +2178,6 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 			break;
 
 		varValue = hash.value(typeStr);
-		bret = varValue.isValid();
 		break;
 	}
 	case kPartyInfo:
@@ -2205,7 +2209,6 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 		};
 
 		varValue = hash.value(typeStr);
-		bret = varValue.isValid();
 		break;
 	}
 	case kChatInfo:
@@ -2218,13 +2221,11 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 			break;
 
 		varValue = injector.server->getChatHistory(chatIndex - 1);
-		bret = varValue.isValid();
 		break;
 	}
 	case kDialogInfo:
 	{
-		if (!injector.server->isDialogVisible())
-			break;
+		bool valid = injector.server->isDialogVisible();
 
 		qint64 dialogIndex = -1;
 		if (!checkInteger(currentLineTokens_, 3, &dialogIndex))
@@ -2235,28 +2236,54 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 
 			if (typeStr == "id")
 			{
+				if (!valid)
+				{
+					varValue = 0;
+					break;
+				}
+
 				dialog_t dialog = injector.server->currentDialog;
 				varValue = dialog.seqno;
-				bret = varValue.isValid();
 			}
 			else if (typeStr == "unitid")
 			{
+				if (!valid)
+				{
+					varValue = 0;
+					break;
+				}
+
 				qint64 unitid = injector.server->currentDialog.objindex;
 				varValue = unitid;
-				bret = varValue.isValid();
 			}
 			else if (typeStr == "type")
 			{
+				if (!valid)
+				{
+					varValue = 0;
+					break;
+				}
+
 				qint64 type = injector.server->currentDialog.windowtype;
 				varValue = type;
-				bret = varValue.isValid();
 			}
 			else if (typeStr == "button")
 			{
+				if (!valid)
+				{
+					varValue = "";
+					break;
+				}
+
 				QStringList list = injector.server->currentDialog.linebuttontext;
 				varValue = list.join("|");
-				bret = varValue.isValid();
 			}
+			break;
+		}
+
+		if (!valid)
+		{
+			varValue = "";
 			break;
 		}
 
@@ -2283,9 +2310,6 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 
 			varValue = dialogStrList.at(index);
 		}
-
-
-		bret = varValue.isValid();
 		break;
 	}
 	case kPointInfo:
@@ -2324,41 +2348,35 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 		if (typeStr == "exp")
 		{
 			varValue = currency.expbufftime;
-			bret = varValue.isValid();
 		}
 		else if (typeStr == "rep")
 		{
 			varValue = currency.prestige;
-			bret = varValue.isValid();
 		}
 		else if (typeStr == "ene")
 		{
 			varValue = currency.energy;
-			bret = varValue.isValid();
 		}
 		else if (typeStr == "shl")
 		{
 			varValue = currency.shell;
-			bret = varValue.isValid();
 		}
 		else if (typeStr == "vit")
 		{
 			varValue = currency.vitality;
-			bret = varValue.isValid();
 		}
 		else if (typeStr == "pts")
 		{
 			varValue = currency.points;
-			bret = varValue.isValid();
 		}
 		else if (typeStr == "vip")
 		{
 			varValue = currency.VIPPoints;
-			bret = varValue.isValid();
 		}
+		else
+			break;
 
-		if (bret)
-			injector.server->press(BUTTON_CANCEL);
+		injector.server->press(BUTTON_CANCEL);
 
 		break;
 	}
@@ -2375,12 +2393,10 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 			if (typeStr == "round")
 			{
 				varValue = injector.server->BattleCliTurnNo;
-				bret = varValue.isValid();
 			}
 			else if (typeStr == "field")
 			{
 				varValue = injector.server->hashbattlefield.get();
-				bret = varValue.isValid();
 			}
 			break;
 		}
@@ -2398,14 +2414,413 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 			break;
 
 		varValue = hash.value(typeStr);
-		bret = varValue.isValid();
 		break;
 	}
 	default:
+	{
 		break;
+	}
 	}
 
 	return bret;
+}
+
+void Parser::replaceIfKeyword(QString& expr)
+{
+	Injector& injector = Injector::getInstance();
+	if (injector.server.isNull())
+		return;
+
+	QString rexStart = "pet";
+	const QString rexMiddleStart = R"(\[(?:'([^']*)'|")";
+	const QString rexMiddleMid = R"(([^ "]*))";
+	const QString rexMEnd = R"("|(\d+))\])";
+	const QString rexExtra = R"(\.(\w+))";
+
+	static const QRegularExpression rexPlayer(R"(char\.(\w+))");
+	const QRegularExpression rexPet(rexStart + rexMiddleStart + rexMiddleMid + rexMEnd + rexExtra);
+	static const QRegularExpression rexItem(R"(item\[(\d+)\]\.(\w+))");
+	rexStart = "item";
+	const QRegularExpression rexItemEx(rexStart + rexMiddleStart + rexMiddleMid + rexMEnd + rexExtra);
+	rexStart = "team";
+	const QRegularExpression rexTeam(rexStart + rexMiddleStart + rexMiddleMid + rexMEnd);
+	rexStart = "pet";
+	const QRegularExpression rexPetEx(rexStart + rexMiddleStart + rexMiddleMid + rexMEnd);
+
+
+	PC _pc = injector.server->getPC();
+
+	QVariant a = 0;
+
+
+	QRegularExpressionMatch match = rexPlayer.match(expr);
+	//char\.(\w+)
+	if (match.hasMatch())
+	{
+		QString strType = match.captured(1).simplified().toLower();
+		if (strType.isEmpty())
+			return;
+
+		CompareType cmpType = comparePcTypeMap.value(strType.toLower(), kCompareTypeNone);
+		if (cmpType == kCompareTypeNone)
+			return;
+
+		switch (cmpType)
+		{
+		case kPlayerName:
+			a = QString("'%1'").arg(_pc.name);
+			break;
+		case kPlayerFreeName:
+			a = QString("'%1'").arg(_pc.freeName);
+			break;
+		case kPlayerLevel:
+			a = _pc.level;
+			break;
+		case kPlayerHp:
+			a = _pc.hp;
+			break;
+		case kPlayerMaxHp:
+			a = _pc.maxHp;
+			break;
+		case kPlayerHpPercent:
+			a = _pc.hpPercent;
+			break;
+		case kPlayerMp:
+			a = _pc.mp;
+			break;
+		case kPlayerMaxMp:
+			a = _pc.maxMp;
+			break;
+		case kPlayerMpPercent:
+			a = _pc.mpPercent;
+			break;
+		case kPlayerExp:
+			a = _pc.exp;
+			break;
+		case kPlayerMaxExp:
+			a = _pc.maxExp;
+			break;
+		case kPlayerStone:
+			a = _pc.gold;
+			break;
+		case kPlayerVit:
+			a = _pc.vital;
+			break;
+		case kPlayerStr:
+			a = _pc.str;
+			break;
+		case kPlayerTgh:
+			a = _pc.tgh;
+			break;
+		case kPlayerDex:
+			a = _pc.dex;
+			break;
+		case kPlayerAtk:
+			a = _pc.atk;
+			break;
+		case kPlayerDef:
+			a = _pc.def;
+			break;
+		case kPlayerChasma:
+			a = _pc.charm;
+			break;
+		case kPlayerTurn:
+			a = _pc.transmigration;
+			break;
+		case kPlayerEarth:
+			a = _pc.earth;
+			break;
+		case kPlayerWater:
+			a = _pc.water;
+			break;
+		case kPlayerFire:
+			a = _pc.fire;
+			break;
+		case kPlayerWind:
+			a = _pc.wind;
+			break;
+		default:
+			break;
+		}
+
+		expr.replace(QString("char.%1").arg(strType), a.toString());
+	}
+
+	//pet\[(?:'([^']*)'|"([^ "]*)"|(\d+))\]\.(\w+)
+	match = rexPet.match(expr);
+	if (match.hasMatch())
+	{
+		QString strIndex = match.captured(1).simplified().toLower();
+		if (strIndex.isEmpty())
+			strIndex = match.captured(2).simplified().toLower();
+		if (strIndex.isEmpty())
+			strIndex = match.captured(3).simplified().toLower();
+		if (strIndex.isEmpty())
+			return;
+
+		QString strType = match.captured(4).simplified().toLower();
+		if (strIndex.isEmpty() || strType.isEmpty())
+			return;
+
+		CompareType cmpType = comparePetTypeMap.value(strType.toLower(), kCompareTypeNone);
+		if (cmpType == kCompareTypeNone)
+			return;
+
+		int index = strIndex.toInt() - 1;
+		if (index < 0 || index >= MAX_PET)
+		{
+			QHash<QString, qint64> hash = {
+				{ u8"戰寵", _pc.battlePetNo },
+				{ u8"騎寵", _pc.ridePetNo },
+				{ u8"战宠", _pc.battlePetNo },
+				{ u8"骑宠", _pc.ridePetNo },
+				{ u8"battlepet", _pc.battlePetNo },
+				{ u8"ride", _pc.ridePetNo },
+			};
+
+			if (!hash.contains(strIndex))
+				return;
+
+			index = hash.value(strIndex);
+		}
+
+		PET pet = injector.server->getPet(index);
+
+		switch (cmpType)
+		{
+		case kPetName:
+			a = QString("'%1'").arg(pet.name);
+			break;
+		case kPetFreeName:
+			a = QString("'%1'").arg(pet.freeName);
+			break;
+		case kPetLevel:
+			a = pet.level;
+			break;
+		case kPetHp:
+			a = pet.hp;
+			break;
+		case kPetMaxHp:
+			a = pet.maxHp;
+			break;
+		case kPetHpPercent:
+			a = pet.hpPercent;
+			break;
+		case kPetExp:
+			a = pet.exp;
+			break;
+		case kPetMaxExp:
+			a = pet.maxExp;
+			break;
+		case kPetAtk:
+			a = pet.atk;
+			break;
+		case kPetDef:
+			a = pet.def;
+			break;
+		case kPetLoyal:
+			a = pet.ai;
+			break;
+		case kPetTurn:
+			a = pet.trn;
+			break;
+		case kPetEarth:
+			a = pet.earth;
+			break;
+		case kPetWater:
+			a = pet.water;
+			break;
+		case kPetFire:
+			a = pet.fire;
+			break;
+		case kPetWind:
+			a = pet.wind;
+			break;
+		case kPetState:
+		{
+			const QHash<QString, PetState> hash = {
+				{ u8"battle", kBattle },
+				{ u8"standby", kStandby },
+				{ u8"mail", kMail },
+				{ u8"rest", kRest },
+				{ u8"ride", kRide },
+			};
+
+			PetState state = pet.state;
+			QString str = hash.key(state, "");
+			if (str.isEmpty())
+				return;
+
+			a = QString("'%1'").arg(str);
+			break;
+		}
+		default:
+			break;
+		}
+
+		expr.replace(QString("pet[%1].%2").arg(strIndex).arg(strType), a.toString());
+		expr.replace(QString("pet['%1'].%2").arg(strIndex).arg(strType), a.toString());
+		expr.replace(QString("pet[\"%1\"].%2").arg(strIndex).arg(strType), a.toString());
+	}
+
+	//item\[(\d+)\]\.(\w+)
+	match = rexItem.match(expr);
+	if (match.hasMatch())
+	{
+		QString strIndex = match.captured(1).simplified().toLower();
+		QString strType = match.captured(2).simplified().toLower();
+
+		if (strIndex.isEmpty() || strType.isEmpty())
+			return;
+
+		CompareType cmpType = compareItemTypeMap.value(strType.toLower(), kCompareTypeNone);
+		if (cmpType == kCompareTypeNone)
+			return;
+
+		int index = strIndex.toInt() - 1;
+		if (index >= 100 && index < 100 + CHAR_EQUIPPLACENUM)
+		{
+			index -= 100;
+		}
+		else if (index >= 0 && index <= MAX_ITEM - CHAR_EQUIPPLACENUM)
+		{
+			index += CHAR_EQUIPPLACENUM;
+		}
+		else
+			return;
+
+		if (index < 0 || index >= MAX_ITEM)
+			return;
+
+		ITEM item = _pc.item[index];
+
+		switch (cmpType)
+		{
+		case kItemName:
+			a = QString("'%1'").arg(item.name);
+			break;
+		case kItemMemo:
+			a = QString("'%1'").arg(item.memo);
+			break;
+		case kItemDura:
+		{
+			QString damage = item.damage.simplified();
+			if (damage.contains("%"))
+				damage.replace("%", "");
+			if (damage.contains("％"))
+				damage.replace("％", "");
+
+			bool ok = false;
+			int dura = damage.toInt(&ok);
+			if (!ok)
+				a = 100;
+			else
+				a = dura;
+			break;
+		}
+		case kItemLevel:
+			a = item.level;
+			break;
+		case kItemStack:
+			a = item.pile;
+			break;
+		default:
+			break;
+		}
+
+		expr.replace(QString("item[%1].%2").arg(strIndex).arg(strType), a.toString());
+	}
+
+	//item\[(?:'([^']*)'|"([^ "]*)"|(\d+))\]\.(\w+)
+	match = rexItemEx.match(expr);
+	if (match.hasMatch())
+	{
+		QString strIndex = match.captured(1).simplified().toLower();
+		if (strIndex.isEmpty())
+			strIndex = match.captured(2).simplified().toLower();
+		if (strIndex.isEmpty())
+			strIndex = match.captured(3).simplified().toLower();
+		if (strIndex.isEmpty())
+			return;
+
+		QString strType = match.captured(4).simplified().toLower();
+
+		CompareType cmpType = compareItemTypeMap.value(strType.toLower(), kCompareTypeNone);
+		if (cmpType == kCompareTypeNone)
+			return;
+
+		switch (cmpType)
+		{
+		case kitemCount:
+		{
+			QVector<int> v;
+			qint64 count = 0;
+			QStringList args = strIndex.split(util::rexOR);
+			QString itemName = args.at(0).simplified();
+			QString itemMemo;
+			if (args.size() > 1)
+				itemMemo = args.at(1).simplified();
+
+			if (injector.server->getItemIndexsByName(itemName, itemMemo, &v))
+			{
+				for (const int it : v)
+					count += _pc.item[it].pile;
+			}
+
+			break;
+		}
+		default:
+			break;
+		}
+
+		expr.replace(QString("item[%1].%2").arg(strIndex).arg(strType), a.toString());
+		expr.replace(QString("item['%1'].%2").arg(strIndex).arg(strType), a.toString());
+		expr.replace(QString("item[\"%1\"].%2").arg(strIndex).arg(strType), a.toString());
+	}
+
+	//pet\[(?:'([^']*)'|"([^ "]*)"|(\d+))\]
+	match = rexPetEx.match(expr);
+	if (match.hasMatch())
+	{
+		QString strIndex = match.captured(1).simplified().toLower();
+		if (strIndex.isEmpty())
+			strIndex = match.captured(2).simplified().toLower();
+		if (strIndex.isEmpty())
+			strIndex = match.captured(3).simplified().toLower();
+		if (strIndex.isEmpty())
+			return;
+
+		if (strIndex == "count")
+		{
+			a = injector.server->getPartySize();
+		}
+
+		expr.replace(QString("pet[%1]").arg(strIndex), a.toString());
+		expr.replace(QString("pet['%1']").arg(strIndex), a.toString());
+		expr.replace(QString("pet[\"%1\"]").arg(strIndex), a.toString());
+	}
+
+	//team\[(?:'([^']*)'|"([^ "]*)"|(\d+))\]
+	match = rexTeam.match(expr);
+	if (match.hasMatch())
+	{
+		QString strIndex = match.captured(1).simplified().toLower();
+		if (strIndex.isEmpty())
+			strIndex = match.captured(2).simplified().toLower();
+		if (strIndex.isEmpty())
+			strIndex = match.captured(3).simplified().toLower();
+		if (strIndex.isEmpty())
+			return;
+
+		if (strIndex == "count")
+		{
+			a = injector.server->getPartySize();
+		}
+
+		expr.replace(QString("team[%1]").arg(strIndex), a.toString());
+		expr.replace(QString("team['%1']").arg(strIndex), a.toString());
+		expr.replace(QString("team[\"%1\"]").arg(strIndex), a.toString());
+	}
 }
 
 //處理if
@@ -2413,12 +2828,18 @@ bool Parser::processIfCompare()
 {
 	QString expr = getToken<QString>(1);
 
-	replaceToVariable(expr);
+	for (int i = 0; i < 4; ++i)
+	{
+		replaceIfKeyword(expr);
+		replaceToVariable(expr);
+	}
 
 	if (expr.contains("\""))
 	{
 		expr = expr.replace("\"", "\'");
 	}
+
+	insertGlobalVar("_IFEXPR", expr);
 
 	double dvalue = 0.0;
 	bool result = false;

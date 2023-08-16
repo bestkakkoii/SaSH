@@ -575,10 +575,11 @@ qint64 Interpreter::delch(qint64 currentline, const TokenMap& TK)
 	if (injector.server.isNull())
 		return Parser::kError;
 
-	QString name;
-	if (!checkString(TK, 1, &name))
+	qint64 index = -1;
+	if (!checkInteger(TK, 1, &index))
 		return Parser::kArgError;
-	if (name.isEmpty())
+	--index;
+	if (index < 0 || index > MAXCHARACTER)
 		return Parser::kArgError;
 
 	QString password;
@@ -587,7 +588,10 @@ qint64 Interpreter::delch(qint64 currentline, const TokenMap& TK)
 	if (password.isEmpty())
 		return Parser::kArgError;
 
-	injector.server->deleteCharacter(name, password);
+	qint64 backtofirst = 0;
+	checkInteger(TK, 3, &backtofirst);
+
+	injector.server->deleteCharacter(index, password, backtofirst > 0);
 
 	return Parser::kNoChange;
 }
@@ -1858,7 +1862,7 @@ qint64 Interpreter::ocr(qint64 currentline, const TokenMap& TK)
 		{
 			if (debugmode == 0)
 				injector.server->inputtext(ret);
-		}
+}
 }
 #endif
 

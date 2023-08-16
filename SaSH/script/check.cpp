@@ -247,16 +247,23 @@ qint64 Interpreter::waitpet(qint64 currentline, const TokenMap& TK)
 	qint64 timeout = DEFAULT_FUNCTION_TIMEOUT;
 	checkInteger(TK, 2, &timeout);
 
-	QElapsedTimer timer; timer.start();
-	bool bret = waitfor(timeout, [&injector, petName]()->bool
-		{
-			QVector<int> v;
-			return injector.server->getPetIndexsByName(petName, &v);
-		});
+	bool bret = false;
+	if (timeout == 0)
+	{
+		QVector<int> v;
+		bret = injector.server->getPetIndexsByName(petName, &v);
+	}
+	else
+	{
+		bret = waitfor(timeout, [&injector, petName]()->bool
+			{
+				QVector<int> v;
+				return injector.server->getPetIndexsByName(petName, &v);
+			});
+	}
 
 	return checkJump(TK, 3, bret, SuccessJump);
 }
-
 
 qint64 Interpreter::waitmap(qint64 currentline, const TokenMap& TK)
 {
@@ -279,35 +286,48 @@ qint64 Interpreter::waitmap(qint64 currentline, const TokenMap& TK)
 	if (floor == 0 && mapname.isEmpty())
 		return Parser::kError;
 
-	bool bret = waitfor(timeout, [&injector, floor, mapnames]()->bool
+	auto check = [&injector, floor, mapnames]()
+	{
+		if (floor != 0)
+			return floor == injector.server->nowFloor;
+		else
 		{
-			if (floor != 0)
-				return floor == injector.server->nowFloor;
-			else
+			for (const QString& mapname : mapnames)
 			{
-				for (const QString& mapname : mapnames)
+				bool ok;
+				qint64 fr = mapname.toLongLong(&ok);
+				if (ok)
 				{
-					bool ok;
-					qint64 fr = mapname.toLongLong(&ok);
-					if (ok)
+					if (fr == injector.server->nowFloor)
+						return true;
+				}
+				else
+				{
+					if (mapname.startsWith("?"))
 					{
-						if (fr == injector.server->nowFloor)
-							return true;
+						QString newName = mapname.mid(1);
+						return injector.server->nowFloorName.contains(newName);
 					}
 					else
-					{
-						if (mapname.startsWith("?"))
-						{
-							QString newName = mapname.mid(1);
-							return injector.server->nowFloorName.contains(newName);
-						}
-						else
-							return mapname == injector.server->nowFloorName;
-					}
+						return mapname == injector.server->nowFloorName;
 				}
 			}
-			return false;
-		});
+		}
+		return false;
+	};
+
+	bool bret = false;
+	if (timeout == 0)
+	{
+		bret = check();
+	}
+	else
+	{
+		bret = waitfor(timeout, [&check]()->bool
+			{
+				return check();
+			});
+	}
 
 	if (!bret && timeout > 2000)
 		injector.server->EO();
@@ -326,25 +346,52 @@ qint64 Interpreter::waitdlg(qint64 currentline, const TokenMap& TK)
 		return checkJump(TK, 4, false, FailedJump);
 
 	QString cmpStr;
-	checkString(TK, 1, &cmpStr);
-	if (cmpStr.isEmpty())
-		return Parser::kArgError;
-	QStringList cmpStrs = cmpStr.split(util::rexOR, Qt::SkipEmptyParts);
-
-	qint64 min = 1;
-	qint64 max = MAX_DIALOG_LINE;
-	if (!checkRange(TK, 2, &min, &max))
-		return Parser::kArgError;
-	if (min == max)
+	qint64 dlgid = -1;
+	if (!checkString(TK, 1, &cmpStr))
 	{
-		++min;
-		++max;
+		if (!checkInteger(TK, 1, &dlgid))
+			return Parser::kArgError;
 	}
 
-	qint64 timeout = DEFAULT_FUNCTION_TIMEOUT;
-	checkInteger(TK, 3, &timeout);
+	if (dlgid == -1 && cmpStr.isEmpty())
+		return Parser::kArgError;
 
-	bool bret = waitfor(timeout, [&injector, min, max, cmpStrs]()->bool
+	bool bret = false;
+	if (dlgid != -1)
+	{
+		qint64 timeout = DEFAULT_FUNCTION_TIMEOUT;
+		checkInteger(TK, 2, &timeout);
+
+		if (timeout == 0)
+			bret = injector.server->currentDialog.seqno == dlgid;
+		else
+		{
+			bret = waitfor(timeout, [&injector, dlgid]()->bool
+				{
+					return injector.server->currentDialog.seqno == dlgid;
+				});
+		}
+
+		return checkJump(TK, 3, bret, FailedJump);
+	}
+	else
+	{
+		QStringList cmpStrs = cmpStr.split(util::rexOR, Qt::SkipEmptyParts);
+
+		qint64 min = 1;
+		qint64 max = MAX_DIALOG_LINE;
+		if (!checkRange(TK, 2, &min, &max))
+			return Parser::kArgError;
+		if (min == max)
+		{
+			++min;
+			++max;
+		}
+
+		qint64 timeout = DEFAULT_FUNCTION_TIMEOUT;
+		checkInteger(TK, 3, &timeout);
+
+		auto check = [&injector, min, max, cmpStrs]()->bool
 		{
 			QStringList dialogStrList = injector.server->currentDialog.linedatas;
 			for (qint64 i = min; i <= max; ++i)
@@ -367,10 +414,23 @@ qint64 Interpreter::waitdlg(qint64 currentline, const TokenMap& TK)
 			}
 
 			return false;
-		});
+		};
 
+		if (timeout == 0)
+		{
+			bret = check();
+		}
+		else
+		{
+			bret = waitfor(timeout, [&check]()->bool
+				{
+					return check();
+				});
 
-	return checkJump(TK, 4, bret, FailedJump);
+		}
+
+		return checkJump(TK, 4, bret, FailedJump);
+	}
 }
 
 qint64 Interpreter::waitsay(qint64 currentline, const TokenMap& TK)
@@ -396,28 +456,43 @@ qint64 Interpreter::waitsay(qint64 currentline, const TokenMap& TK)
 		return Parser::kArgError;
 	QStringList cmpStrs = cmpStr.split(util::rexOR, Qt::SkipEmptyParts);
 
+	bool bret = false;
 	qint64 timeout = DEFAULT_FUNCTION_TIMEOUT;
 	checkInteger(TK, 3, &timeout);
 
-	bool bret = waitfor(timeout, [&injector, min, max, cmpStrs]()->bool
+	auto check = [&injector, min, max, cmpStrs]()->bool
+	{
+		for (qint64 i = min; i <= max; ++i)
 		{
-			for (qint64 i = min; i <= max; ++i)
-			{
-				QString text = injector.server->getChatHistory(i - 1).simplified();
-				if (text.isEmpty())
-					continue;
+			QString text = injector.server->getChatHistory(i - 1).simplified();
+			if (text.isEmpty())
+				continue;
 
-				for (const QString& cmpStr : cmpStrs)
+			for (const QString& cmpStr : cmpStrs)
+			{
+				if (text.contains(cmpStr.simplified(), Qt::CaseInsensitive))
 				{
-					if (text.contains(cmpStr, Qt::CaseInsensitive))
-					{
-						return true;
-					}
+					return true;
 				}
 			}
+		}
 
-			return false;
-		});
+		return false;
+	};
+
+	if (timeout == 0)
+	{
+		bret = check();
+	}
+	else
+	{
+		bret = waitfor(timeout, [&check]()->bool
+			{
+				return check();
+			});
+	}
+
+
 
 	return checkJump(TK, 4, bret, FailedJump);
 }
@@ -435,10 +510,18 @@ qint64 Interpreter::waitteam(qint64 currentline, const TokenMap& TK)
 	qint64 timeout = DEFAULT_FUNCTION_TIMEOUT;
 	checkInteger(TK, 1, &timeout);
 
-	bool bret = waitfor(timeout, [&pc]()->bool
-		{
-			return (pc.status & CHR_STATUS_LEADER) || (pc.status & CHR_STATUS_PARTY);
-		});
+	bool bret = false;
+	if (timeout == 0)
+	{
+		bret = (pc.status & CHR_STATUS_LEADER) || (pc.status & CHR_STATUS_PARTY);;
+	}
+	else
+	{
+		bret = waitfor(timeout, [&pc]()->bool
+			{
+				return (pc.status & CHR_STATUS_LEADER) || (pc.status & CHR_STATUS_PARTY);
+			});
+	}
 
 	return checkJump(TK, 2, bret, FailedJump);
 }
@@ -502,63 +585,76 @@ qint64 Interpreter::waititem(qint64 currentline, const TokenMap& TK)
 
 	injector.server->updateItemByMemory();
 
-	bool bret = waitfor(timeout, [&injector, min, max, itemNames, itemMemos]()->bool
+	auto check = [&injector, min, max, itemNames, itemMemos]()->bool
+	{
+		for (qint64 i = min; i <= max; ++i)
 		{
-			for (qint64 i = min; i <= max; ++i)
+			ITEM item = injector.server->getPC().item[i];
+			if (item.useFlag == 0 || item.name.isEmpty())
+				continue;
+
+			if (itemMemos.isEmpty())
 			{
-				ITEM item = injector.server->getPC().item[i];
-				if (item.useFlag == 0 || item.name.isEmpty())
-					continue;
+				for (const QString& it : itemNames)
+				{
 
-				if (itemMemos.isEmpty())
-				{
-					for (const QString& it : itemNames)
+					if (item.name == it.simplified())
 					{
-
-						if (item.name == it)
-						{
-							return true;
-						}
-						else if (it.startsWith(kFuzzyPrefix))
-						{
-							QString newName = it.mid(1);
-							if (item.name.contains(newName))
-							{
-								return true;
-							}
-						}
+						return true;
 					}
-				}
-				else if (itemNames.isEmpty())
-				{
-					for (const QString& it : itemMemos)
+					else if (it.startsWith(kFuzzyPrefix))
 					{
-						if (item.name.contains(it))
-							return true;
-					}
-				}
-				else if (itemMemos.size() == itemNames.size())
-				{
-					for (qint64 j = 0; j < itemNames.size(); ++j)
-					{
-						if (item.name == itemNames.at(j) && item.memo.contains(itemMemos.at(j)))
+						QString newName = it.mid(1).simplified();
+						if (item.name.contains(newName))
 						{
 							return true;
-						}
-						else if (itemNames.at(j).startsWith(kFuzzyPrefix))
-						{
-							QString newName = itemNames.at(j).mid(1);
-							if (item.name.contains(newName) && item.memo.contains(itemMemos.at(j)))
-							{
-								return true;
-							}
 						}
 					}
 				}
 			}
+			else if (itemNames.isEmpty())
+			{
+				for (const QString& it : itemMemos)
+				{
+					if (item.name.contains(it.simplified()))
+						return true;
+				}
+			}
+			else if (itemMemos.size() == itemNames.size())
+			{
+				for (qint64 j = 0; j < itemNames.size(); ++j)
+				{
+					if (item.name == itemNames.at(j).simplified() && item.memo.contains(itemMemos.at(j).simplified()))
+					{
+						return true;
+					}
+					else if (itemNames.at(j).startsWith(kFuzzyPrefix))
+					{
+						QString newName = itemNames.at(j).mid(1).simplified();
+						if (item.name.contains(newName.simplified()) && item.memo.contains(itemMemos.at(j).simplified()))
+						{
+							return true;
+						}
+					}
+				}
+			}
+		}
 
-			return false;
-		});
+		return false;
+	};
+
+	bool bret = false;
+	if (timeout == 0)
+	{
+		bret = check();
+	}
+	else
+	{
+		bret = waitfor(timeout, [&check]()->bool
+			{
+				return check();
+			});
+	}
 
 	return checkJump(TK, 5, bret, FailedJump);
 }

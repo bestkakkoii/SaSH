@@ -926,6 +926,7 @@ void Interpreter::openLibsBIG5()
 	registerFunction(u8"學習", &Interpreter::learn);
 	registerFunction(u8"交易", &Interpreter::trade);
 	registerFunction(u8"寄信", &Interpreter::mail);
+	registerFunction(u8"丟棄石幣", &Interpreter::doffstone);
 
 	registerFunction(u8"記錄身上裝備", &Interpreter::recordequip);
 	registerFunction(u8"裝上記錄裝備", &Interpreter::wearequip);
@@ -1047,6 +1048,7 @@ void Interpreter::openLibsGB2312()
 	registerFunction(u8"学习", &Interpreter::learn);
 	registerFunction(u8"交易", &Interpreter::trade);
 	registerFunction(u8"寄信", &Interpreter::mail);
+	registerFunction(u8"丢弃石币", &Interpreter::doffstone);
 
 	registerFunction(u8"记录身上装备", &Interpreter::recordequip);
 	registerFunction(u8"装上记录装备", &Interpreter::wearequip);
@@ -1167,6 +1169,7 @@ void Interpreter::openLibsUTF8()
 	registerFunction(u8"learn", &Interpreter::learn);
 	registerFunction(u8"trade", &Interpreter::trade);
 	registerFunction(u8"mail", &Interpreter::mail);
+	registerFunction(u8"doffstone", &Interpreter::doffstone);
 
 	registerFunction(u8"requip", &Interpreter::recordequip);
 	registerFunction(u8"wequip", &Interpreter::wearequip);

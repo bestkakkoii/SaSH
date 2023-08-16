@@ -24,9 +24,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 //全局關鍵字映射表 這裡是新增新的命令的第一步，其他需要在interpreter.cpp中新增註冊新函數，這裡不添加的話，腳本分析後會忽略未知的命令
 static const QHash<QString, RESERVE> keywords = {
 #pragma region zh_TW
-	//test
-	{ u8"測試", TK_CMD },
-
 	//keyword
 	{ u8"調用", TK_CALL },
 	{ u8"行數", TK_GOTO },
@@ -120,6 +117,7 @@ static const QHash<QString, RESERVE> keywords = {
 	{ u8"學習", TK_CMD },
 	{ u8"交易", TK_CMD },
 	{ u8"寄信", TK_CMD },
+	{ u8"丟棄石幣", TK_CMD },
 
 	//action with sub cmd
 	{ u8"組隊", TK_CMD },
@@ -147,10 +145,6 @@ static const QHash<QString, RESERVE> keywords = {
 #pragma endregion
 
 #pragma region zh_CN
-
-	//test
-	{ u8"测试", TK_CMD },
-
 	//keyword
 	{ u8"调用", TK_CALL },
 	{ u8"行数", TK_GOTO },
@@ -244,6 +238,7 @@ static const QHash<QString, RESERVE> keywords = {
 	{ u8"学习", TK_CMD },
 	{ u8"交易", TK_CMD },
 	{ u8"寄信", TK_CMD },
+	{ u8"丢弃石币", TK_CMD },
 
 	//action with sub cmd
 	{ u8"组队", TK_CMD },
@@ -368,6 +363,7 @@ static const QHash<QString, RESERVE> keywords = {
 	{ u8"trade", TK_CMD },
 	{ u8"dostring", TK_CMD },
 	{ u8"mail", TK_CMD },
+	{ u8"doffstone", TK_CMD },
 
 	//action with sub cmd
 	{ u8"join", TK_CMD },

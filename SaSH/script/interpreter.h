@@ -83,123 +83,7 @@ private:
 	qint64 mainScriptCallBack(qint64 currentLine, const TokenMap& token);
 
 private:
-	enum CompareArea
-	{
-		kAreaPlayer,
-		kAreaPet,
-		kAreaItem,
-		kAreaCount,
-	};
 
-	enum CompareType
-	{
-		kCompareTypeNone,
-		kPlayerName,
-		kPlayerFreeName,
-		kPlayerLevel,
-		kPlayerHp,
-		kPlayerMaxHp,
-		kPlayerHpPercent,
-		kPlayerMp,
-		kPlayerMaxMp,
-		kPlayerMpPercent,
-		kPlayerExp,
-		kPlayerMaxExp,
-		kPlayerStone,
-		kPlayerAtk,
-		kPlayerDef,
-		kPlayerAgi,
-		kPlayerChasma,
-		kPlayerTurn,
-		kPlayerEarth,
-		kPlayerWater,
-		kPlayerFire,
-		kPlayerWind,
-
-		kPetName,
-		kPetFreeName,
-		kPetLevel,
-		kPetHp,
-		kPetMaxHp,
-		kPetHpPercent,
-		kPetExp,
-		kPetMaxExp,
-		kPetAtk,
-		kPetDef,
-		kPetAgi,
-		kPetLoyal,
-		kPetTurn,
-		kPetState,
-		kPetEarth,
-		kPetWater,
-		kPetFire,
-		kPetWind,
-
-		kitemCount,
-
-		kTeamCount,
-		kPetCount,
-
-	};
-
-	inline static const QHash<QString, CompareType> comparePcTypeMap = {
-		{ u8"name", kPlayerName },
-		{ u8"fname", kPlayerFreeName },
-		{ u8"lv", kPlayerLevel },
-		{ u8"hp", kPlayerHp },
-		{ u8"maxhp", kPlayerMaxHp },
-		{ u8"hpp", kPlayerHpPercent },
-		{ u8"mp", kPlayerMp },
-		{ u8"maxmp", kPlayerMaxMp },
-		{ u8"mpp", kPlayerMpPercent },
-		{ u8"exp", kPlayerExp },
-		{ u8"maxexp", kPlayerMaxExp },
-		{ u8"stone", kPlayerStone },
-		{ u8"atk", kPlayerAtk },
-		{ u8"def", kPlayerDef },
-		{ u8"agi", kPlayerAgi },
-		{ u8"chasma", kPlayerChasma },
-		{ u8"turn", kPlayerTurn },
-		{ u8"earth", kPlayerEarth },
-		{ u8"water", kPlayerWater },
-		{ u8"fire", kPlayerFire },
-		{ u8"wind", kPlayerWind },
-	};
-
-	inline static const QHash<QString, CompareType> comparePetTypeMap = {
-		{ u8"name", kPetName },
-		{ u8"fname", kPetFreeName },
-		{ u8"lv", kPetLevel },
-		{ u8"hp", kPetHp },
-		{ u8"maxhp", kPetMaxHp },
-		{ u8"hpp", kPetHpPercent },
-		{ u8"exp", kPetExp },
-		{ u8"maxexp", kPetMaxExp },
-		{ u8"atk", kPetAtk },
-		{ u8"def", kPetDef },
-		{ u8"agi", kPetAgi },
-		{ u8"loyal", kPetLoyal },
-		{ u8"turn", kPetTurn },
-		{ u8"state", kPetState },
-		{ u8"earth", kPetEarth },
-		{ u8"water", kPetWater },
-		{ u8"fire", kPetFire },
-		{ u8"wind", kPetWind },
-	};
-
-	inline static const QHash<QString, CompareType> compareAmountTypeMap = {
-		{ u8"道具數量", kitemCount },
-		{ u8"組隊人數", kTeamCount },
-		{ u8"寵物數量", kPetCount },
-
-		{ u8"道具数量", kitemCount },
-		{ u8"组队人数", kTeamCount },
-		{ u8"宠物数量", kPetCount },
-
-		{ u8"ifitem", kitemCount },
-		{ u8"ifteam", kTeamCount },
-		{ u8"ifpet", kPetCount },
-	};
 
 	template<typename Func>
 	void registerFunction(const QString functionName, Func fun);
@@ -307,6 +191,7 @@ private: //註冊給Parser的函數
 	qint64 addpoint(qint64 currentline, const TokenMap& TK);
 	qint64 learn(qint64 currentline, const TokenMap& TK);
 	qint64 trade(qint64 currentline, const TokenMap& TK);
+	qint64 doffstone(qint64 currentline, const TokenMap& TK);
 
 	qint64 recordequip(qint64 currentline, const TokenMap& TK);
 	qint64 wearequip(qint64 currentline, const TokenMap& TK);

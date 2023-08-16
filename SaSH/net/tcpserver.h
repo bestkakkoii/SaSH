@@ -263,7 +263,7 @@ public://actions
 		, int wind
 		, int hometown);
 
-	void deleteCharacter(const QString& name, const QString securityCode);
+	void deleteCharacter(int index, const QString securityCode, bool backtofirst = false);
 
 	void talk(const QString& text, int color = 0, TalkMode mode = kTalkNormal);
 	void inputtext(const QString& text, int dialogid = -1, int npcid = -1);
@@ -313,6 +313,8 @@ public://actions
 	bool addPoint(int skillid, int amt);
 
 	void pickItem(int dir);
+
+	void dropGold(int gold);
 
 	void depositGold(int gold, bool isPublic);
 	void withdrawGold(int gold, bool isPublic);
@@ -381,7 +383,7 @@ public://actions
 	bool isPetSpotEmpty() const;
 	int checkJobDailyState(const QString& missionName);
 
-	bool isDialogVisible() const;
+	bool isDialogVisible();
 
 	void setPlayerFreeName(const QString& name);
 	void setPetFreeName(int petIndex, const QString& name);
@@ -900,7 +902,6 @@ public:
 
 	QElapsedTimer repTimer;
 	util::AfkRecorder recorder[1 + MAX_PET] = {};
-
 
 	dialog_t currentDialog = {};
 

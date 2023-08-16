@@ -2095,6 +2095,11 @@ color: rgb(208, 208, 208);
            </item>
            <item>
             <property name="text">
+             <string>doffstone</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
              <string>doffpet</string>
             </property>
            </item>

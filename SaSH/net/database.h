@@ -1482,9 +1482,10 @@ typedef struct tagCHARLISTTABLE
 	int str = 0;
 	int def = 0;
 	int agi = 0;
-	int app = 0;
+	int chasma = 0;
 	int attr[4] = { 0,0,0,0 };
 	int dp = 0;
+	bool valid = false;
 } CHARLISTTABLE;
 #ifdef _AIDENGLU_
 typedef struct
