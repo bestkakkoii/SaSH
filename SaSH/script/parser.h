@@ -94,8 +94,20 @@ enum CompareType
 	kItemLevel,
 	kItemStack,
 
+	kTeamName,
+	kTeamLevel,
+	kTeamHp,
+	kTeamMaxHp,
+	kTeamHpPercent,
+	kTeamMp,
+
 	kTeamCount,
 	kPetCount,
+
+	kMapName,
+	kMapFloor,
+	kMapX,
+	kMapY,
 
 };
 
@@ -106,6 +118,22 @@ inline static const QHash<QString, CompareType> compareItemTypeMap = {
 	{ u8"dura", kItemDura },
 	{ u8"lv", kItemLevel },
 	{ u8"stack", kItemStack },
+};
+
+inline static const QHash<QString, CompareType> compareTeamTypeMap = {
+	{ u8"name", kTeamName },
+	{ u8"lv", kTeamLevel },
+	{ u8"hp", kTeamHp },
+	{ u8"maxhp", kTeamMaxHp },
+	{ u8"hpp", kTeamHpPercent },
+	{ u8"mp", kTeamMp },
+};
+
+inline static const QHash<QString, CompareType> compareMapTypeMap = {
+	{ u8"name", kMapName },
+	{ u8"floor", kMapFloor },
+	{ u8"x", kMapX },
+	{ u8"y", kMapY },
 };
 
 inline static const QHash<QString, CompareType> comparePcTypeMap = {
@@ -452,7 +480,7 @@ private:
 
 	bool isTextWrapped(const QString& text, const QString& keyword);
 	void replaceToVariable(QString& str);
-	void replaceIfKeyword(QString& expr);
+	void replaceSysConstKeyword(QString& expr);
 	void cycleReplace(QString& expr);
 	bool checkCallStack();
 	bool checkFuzzyValue(const QString& varName, QVariant* pvalue);

@@ -1611,6 +1611,11 @@ color: rgb(208, 208, 208);
           </item>
           <item>
            <property name="text">
+            <string>const</string>
+           </property>
+          </item>
+          <item>
+           <property name="text">
             <string>check fun</string>
            </property>
            <item>

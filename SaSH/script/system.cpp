@@ -225,7 +225,6 @@ qint64 Interpreter::announce(qint64 currentline, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance();
 
-
 	QString text;
 	if (!checkString(TK, 1, &text))
 	{
@@ -1862,8 +1861,8 @@ qint64 Interpreter::ocr(qint64 currentline, const TokenMap& TK)
 		{
 			if (debugmode == 0)
 				injector.server->inputtext(ret);
-}
-}
+		}
+	}
 #endif
 
 	return Parser::kNoChange;
