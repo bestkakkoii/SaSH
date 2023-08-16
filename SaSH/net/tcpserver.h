@@ -303,7 +303,7 @@ public://actions
 
 	void createRemoteDialog(int button, const QString& text);
 
-	void mail(int index, const QString& text);
+	void mail(const QVariant& card, const QString& text, int petIndex, const QString& itemName, const QString& itemMemo);
 
 	void warp();
 
@@ -604,7 +604,7 @@ private:
 #else
 		return QDateTime::currentMSecsSinceEpoch();
 #endif
-}
+	}
 
 	inline void setWarpMap(const QPoint& pos)
 	{

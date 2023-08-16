@@ -1735,15 +1735,17 @@ void Server::getPlayerMaxCarryingCapacity()
 		//負重|负重
 		static const QRegularExpression re("負重|负重");
 		int index = item.memo.indexOf(re);
-		QString buf = item.memo.mid(index + 3);
-		bool ok = false;
-		int value = buf.toInt(&ok);
-		if (ok && value > 0)
+		if (index != -1)
 		{
-			pc.maxload += value;
-			setPC(pc);
+
+			QString buf = item.memo.mid(index + 3);
+			bool ok = false;
+			int value = buf.toInt(&ok);
+			if (ok && value > 0)
+				pc.maxload += value;
 		}
 	}
+	setPC(pc);
 }
 
 int Server::getPartySize() const
@@ -3675,13 +3677,50 @@ void Server::kickteam(int n)
 		lssproto_KTEAM_send(n);
 }
 
-void Server::mail(int index, const QString& text)
+void Server::mail(const QVariant& card, const QString& text, int petIndex, const QString& itemName, const QString& itemMemo)
 {
 	if (!getOnlineFlag())
 		return;
 
 	if (getBattleFlag())
 		return;
+
+	int index = -1;
+	if (card.type() == QVariant::Type::Int || card.type() == QVariant::Type::LongLong)
+		index = card.toInt();
+	else if (card.type() == QVariant::Type::String)
+	{
+		bool isExact = false;
+		QString name = card.toString();
+		if (name.startsWith("?"))
+		{
+			name = name.mid(1);
+			isExact = true;
+		}
+
+		for (int i = 0; i < MAX_ADR_BOOK; i++)
+		{
+			if (addressBook[i].useFlag == 0)
+				continue;
+
+			if (isExact)
+			{
+				if (name == addressBook[i].name)
+				{
+					index = i;
+					break;
+				}
+			}
+			else
+			{
+				if (addressBook[i].name.contains(name))
+				{
+					index = i;
+					break;
+				}
+			}
+		}
+	}
 
 	if (index < 0 || index > MAX_ADR_BOOK)
 		return;
@@ -3693,7 +3732,25 @@ void Server::mail(int index, const QString& text)
 		return;
 
 	std::string sstr = util::fromUnicode(text);
-	lssproto_MSG_send(index, const_cast<char*>(sstr.c_str()), NULL);
+	if (itemName.isEmpty() && itemMemo.isEmpty() && (petIndex < 0 || petIndex > MAX_PET))
+	{
+		lssproto_MSG_send(index, const_cast<char*>(sstr.c_str()), NULL);
+	}
+	else
+	{
+		int itemIndex = getItemIndexByName(itemName, true, itemMemo);
+		if (itemIndex < 0 || itemIndex >= MAX_ITEM)
+			return;
+
+		PET pet = getPet(petIndex);
+		if (pet.useFlag == 0)
+			return;
+
+		if (pet.state != kMail)
+			setPetState(petIndex, kMail);
+
+		lssproto_PMSG_send(index, petIndex, itemIndex, const_cast<char*>(sstr.c_str()), NULL);
+	}
 }
 
 //加點
@@ -4279,6 +4336,7 @@ void Server::sortItem()
 	if (!injector.getEnableHash(util::kAutoStackEnable))
 		return;
 
+	getPlayerMaxCarryingCapacity();
 	PC pc = getPC();
 
 	QMutexLocker lock(&swapItemMutex_);
@@ -4291,11 +4349,12 @@ void Server::sortItem()
 			if (pc.item[i].useFlag == 0)
 				continue;
 
-			if (pc.maxload != 0 && pc.item[j].pile >= pc.maxload)
+
+			if (pc.maxload > 0 && pc.item[j].pile >= pc.maxload)
 				continue;
 
-			if (!isItemStackable(pc.item[i].sendFlag))
-				continue;
+			//if (!isItemStackable(pc.item[i].sendFlag))
+			//	continue;
 
 			if (!pc.item[i].name.isEmpty()
 				&& (pc.item[i].name == pc.item[j].name)
@@ -8029,8 +8088,8 @@ void Server::lssproto_PR_recv(int request, int result)
 				teamInfoList.append("");
 			}
 			pc.status &= (~CHR_STATUS_LEADER);
+		}
 	}
-}
 	setPC(pc);
 	prSendFlag = 0;
 
@@ -8145,11 +8204,11 @@ void Server::lssproto_AB_recv(char* cdata)
 				{
 					sprintf_s(addressBook[i].planetname, "%s", gmsv[j].name);
 					break;
+				}
+			}
 		}
-		}
-	}
 #endif
-}
+	}
 }
 
 //名片數據
@@ -8218,9 +8277,9 @@ void Server::lssproto_ABI_recv(int num, char* cdata)
 			{
 				sprintf_s(addressBook[num].planetname, 64, "%s", gmsv[j].name);
 				break;
+			}
+		}
 	}
-}
-}
 #endif
 }
 
@@ -8508,7 +8567,7 @@ void Server::lssproto_I_recv(char* cdata)
 #endif
 			*/
 
-		}
+	}
 
 	setPC(pc);
 
@@ -9486,8 +9545,8 @@ void Server::lssproto_KS_recv(int petarray, int result)
 			pc.selectPetNo[petarray] = 0;
 			if (petarray == pc.battlePetNo)
 				pc.battlePetNo = -1;
+		}
 	}
-}
 #endif
 
 	setPC(pc);
@@ -9706,7 +9765,7 @@ void Server::lssproto_Echo_recv(char* test)
 
 #endif
 #endif
-	}
+}
 
 // Robin 2001/04/06
 void Server::lssproto_NU_recv(int AddCount)
@@ -10200,13 +10259,13 @@ void Server::lssproto_TK_recv(int index, char* cmessage, int color)
 				//pc.status |= CHR_STATUS_FUKIDASHI;
 			}
 		}
-			}
+	}
 
 	setPC(pc);
 
 	chatQueue.enqueue(QPair{ color ,msg });
 	emit signalDispatcher.appendChatLog(msg, color);
-				}
+}
 
 //地圖數據更新，重新繪製地圖
 void Server::lssproto_MC_recv(int fl, int x1, int y1, int x2, int y2, int tileSum, int partsSum, int eventSum, char* cdata)
@@ -10505,7 +10564,7 @@ void Server::lssproto_C_recv(char* cdata)
 				{
 					party[0].level = pc.level;
 					party[0].name = pc.name;
-		}
+				}
 #ifdef MAX_AIRPLANENUM
 				for (j = 0; j < MAX_AIRPLANENUM; ++j)
 #else
@@ -10577,7 +10636,7 @@ void Server::lssproto_C_recv(char* cdata)
 					//}
 					//setCharNameColor(ptAct, charNameColor);
 				//}
-				}
+			}
 
 			if (name == u8"を�そó")//排除亂碼
 				break;
@@ -10906,16 +10965,16 @@ void Server::lssproto_C_recv(char* cdata)
 						{
 							//setMoneyCharObj(id, 24052, x, y, 0, money, info);
 						}
-		}
-	}
-}
+					}
+				}
 			}
+		}
 #endif
 #pragma endregion
-		}
+	}
 
 	setPC(pc);
-	}
+}
 
 //周圍人、NPC..等等狀態改變必定是 _C_recv已經新增過的單位
 void Server::lssproto_CA_recv(char* cdata)
@@ -11009,14 +11068,14 @@ void Server::lssproto_CA_recv(char* cdata)
 							old_lssproto_AC_send(sockfd, nowGx, nowGy, 5);
 						setPcAction(5);
 #endif
-		}
-	}
+					}
+				}
 				else
 #endif
 					//changePcAct(x, y, dir, act, effectno, effectparam1, effectparam2);
-}
+			}
 			continue;
-}
+		}
 
 		//ptAct = getCharObjAct(charindex);
 		//if (ptAct == NULL)
@@ -11822,10 +11881,10 @@ void Server::lssproto_S_recv(char* cdata)
 							i++;
 						}
 #endif
-						}
-						}
 					}
 				}
+			}
+		}
 
 		if (pc.ridePetNo >= 0 && pc.ridePetNo < MAX_PET)
 		{
@@ -11876,7 +11935,7 @@ void Server::lssproto_S_recv(char* cdata)
 			emit signalDispatcher.updatePlayerInfoColContents(i + 1, var);
 		}
 
-			}
+	}
 #pragma endregion
 #pragma region EncountPercentage
 	else if (first == "E") // E nowEncountPercentage
@@ -12215,7 +12274,7 @@ void Server::lssproto_S_recv(char* cdata)
 #endif
 
 			refreshItemInfo(i);
-	}
+		}
 
 		QStringList itemList;
 		for (const ITEM& it : pc.item)
@@ -12225,7 +12284,7 @@ void Server::lssproto_S_recv(char* cdata)
 			itemList.append(it.name);
 		}
 		emit signalDispatcher.updateComboBoxItemText(util::kComboBoxItem, itemList);
-		}
+	}
 #pragma endregion
 #pragma region PetSkill
 	else if (first == "W")//接收到的寵物技能
@@ -12437,7 +12496,7 @@ void Server::lssproto_S_recv(char* cdata)
 #ifdef _ITEM_COUNTDOWN
 			pet[nPetIndex].item[i].counttime = getIntegerToken(data, "|", no + 16);
 #endif
-	}
+		}
 	}
 #endif
 #pragma endregion
@@ -12679,7 +12738,7 @@ void Server::lssproto_CharLogin_recv(char* cresult, char* cdata)
 	angelFlag = FALSE;
 	angelMsg[0] = NULL;
 #endif
-	}
+}
 
 void Server::lssproto_TD_recv(char* cdata)//交易
 {

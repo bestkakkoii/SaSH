@@ -493,7 +493,7 @@ qint64 Interpreter::buy(qint64, const TokenMap& TK)
 	checkString(TK, 3, &npcName);
 
 	if (npcName.isEmpty())
-		injector.server->buy(itemIndex, count);
+		injector.server->buy(itemIndex, count, kDialogBuy);
 	else
 	{
 		mapunit_t unit;
@@ -539,7 +539,7 @@ qint64 Interpreter::sell(qint64, const TokenMap& TK)
 	itemIndexs.erase(it, itemIndexs.end());
 
 	if (npcName.isEmpty())
-		injector.server->sell(itemIndexs);
+		injector.server->sell(itemIndexs, kDialogSell);
 	else
 	{
 		mapunit_t unit;
@@ -1834,7 +1834,22 @@ qint64 Interpreter::mail(qint64, const TokenMap& TK)
 	if (text.isEmpty())
 		return Parser::kArgError;
 
-	injector.server->mail(addrIndex, text);
+	qint64 petIndex = -1;
+	checkInteger(TK, 3, &petIndex);
+	--petIndex;
+	if (petIndex < 0 || petIndex >= MAX_PET)
+		return Parser::kArgError;
+
+	QString itemName = "";
+	checkString(TK, 4, &itemName);
+
+	QString itemMemo = "";
+	checkString(TK, 5, &itemMemo);
+
+	if (itemMemo.isEmpty() && !itemName.isEmpty())
+		return Parser::kArgError;
+
+	injector.server->mail(addrIndex, text, petIndex, itemName, itemMemo);
 
 	return Parser::kNoChange;
 }
@@ -1859,6 +1874,7 @@ qint64 Interpreter::doffstone(qint64 currentline, const TokenMap& TK)
 	if (gold <= 0)
 		return Parser::kArgError;
 
+	checkBattleThenWait();
 
 	injector.server->dropGold(gold);
 

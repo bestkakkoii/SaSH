@@ -435,6 +435,7 @@ bool Parser::checkString(const TokenMap& TK, qint64 idx, QString* ret)
 				return false;
 
 			*ret = var.toString();
+			cycleReplace(*ret);
 		}
 	}
 	else
@@ -516,7 +517,8 @@ bool Parser::checkInteger(const TokenMap& TK, qint64 idx, qint64* ret)
 
 			QString varValueStr = var.toString();
 
-			replaceToVariable(varValueStr);
+			//replaceToVariable(varValueStr);
+			cycleReplace(varValueStr);
 
 			qint64 value = 0;
 			if (!exprTo(varValueStr, &value))
@@ -530,6 +532,7 @@ bool Parser::checkInteger(const TokenMap& TK, qint64 idx, qint64* ret)
 	}
 	else
 		return false;
+
 
 	return true;
 }
@@ -574,7 +577,13 @@ bool Parser::toVariant(const TokenMap& TK, qint64 idx, QVariant* ret)
 			}
 		}
 		else
-			*ret = var.toString();
+		{
+			QString s = var.toString();
+
+			cycleReplace(s);
+
+			*ret = s;
+		}
 	}
 	else
 	{
@@ -915,9 +924,24 @@ void Parser::replaceToVariable(QString& expr)
 		if (replaceToStr.isEmpty())
 			replaceToStr = checkStr;
 
-		int index = expr.indexOf(checkStr, 0, sen);
-		if (index == -1)
+		//不允許對帶有'對象'運算符且'不含方括號'的字串操作
+		if (expr.contains(".") && !expr.contains("[") && !expr.contains("]"))
 			return false;
+
+		int index = -1;
+		if (expr.contains("[") && expr.contains("]"))
+		{
+			//index從 [ 開始算起
+			index = expr.indexOf(checkStr, expr.indexOf("[", 0, sen), sen);
+			if (index == -1)
+				return false;
+		}
+		else
+		{
+			index = expr.indexOf(checkStr, 0, sen);
+			if (index == -1)
+				return false;
+		}
 
 		bool skip = false;
 		do
@@ -930,16 +954,15 @@ void Parser::replaceToVariable(QString& expr)
 				if (ch == '\'' || ch == '"')
 					return false;
 
-				if (ch == ' ' || ch == ',' || ch == ')')
+				if (ch == ' ' || ch == ',' || ch == ')' || ch == ']')
 					break;
 				++end;
 			}
+
 			//index 到 end 之間的字符串
 			QString endStr = expr.mid(index, end - index);
 			if (endStr != checkStr)
-			{
 				return false;
-			}
 
 			//replace to VAR_REPLACE_PLACEHOLD
 			expr.replace(index, checkStr.length(), replaceToStr);
@@ -1264,7 +1287,7 @@ void Parser::recordFunctionChunks()
 			chunkHash.insert(indentLevel, chunk);
 		}
 		//紀錄function起始行
-		if (cmd == "function")
+		else if (cmd == "function")
 		{
 			QString name = tokens.value(1).data.toString();
 			chunk.name = name;
@@ -1293,12 +1316,16 @@ void Parser::recordForChunks()
 	{
 		qint64 row = it.key();
 		TokenMap tokens = it.value();
-		QString cmd = tokens.value(0).data.toString();
+		QString cmd = tokens.value(0).data.toString().simplified();
 		ForChunk chunk = chunkHash.value(indentLevel, ForChunk{});
+		QString scopeKey = "";
+
 		if (!chunk.name.isEmpty() && chunk.begin >= 0 && chunk.end > 0)
 		{
 			chunkHash.remove(indentLevel);
-			forChunks_.insert(chunk.name, chunk);
+			if (scopeKey.isEmpty() && !chunk.name.isEmpty())
+				scopeKey = QString("%1_%2").arg(chunk.name).arg(chunk.begin);
+			forChunks_.insert(scopeKey, chunk);
 		}
 
 		//紀錄function結束行
@@ -1310,16 +1337,19 @@ void Parser::recordForChunks()
 			if (!chunk.name.isEmpty() && chunk.begin >= 0 && chunk.end > 0)
 			{
 				chunkHash.remove(indentLevel);
-				forChunks_.insert(chunk.name, chunk);
+
+				if (scopeKey.isEmpty() && !chunk.name.isEmpty())
+					scopeKey = QString("%1_%2").arg(chunk.name).arg(chunk.begin);
+				forChunks_.insert(scopeKey, chunk);
 				continue;
 			}
 
 			chunkHash.insert(indentLevel, chunk);
 		}
 		//紀錄function起始行
-		if (cmd == "for")
+		else if (cmd == "for")
 		{
-			QString name = tokens.value(1).data.toString();
+			QString name = tokens.value(1).data.toString().simplified();
 			chunk.name = name;
 			chunk.begin = row;
 			chunkHash.insert(indentLevel, chunk);
@@ -2425,6 +2455,15 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 	return bret;
 }
 
+void Parser::cycleReplace(QString& expr)
+{
+	for (int i = 0; i < 4; ++i)
+	{
+		replaceIfKeyword(expr);
+		replaceToVariable(expr);
+	}
+}
+
 void Parser::replaceIfKeyword(QString& expr)
 {
 	Injector& injector = Injector::getInstance();
@@ -2468,10 +2507,10 @@ void Parser::replaceIfKeyword(QString& expr)
 		switch (cmpType)
 		{
 		case kPlayerName:
-			a = QString("'%1'").arg(_pc.name);
+			a = _pc.name;
 			break;
 		case kPlayerFreeName:
-			a = QString("'%1'").arg(_pc.freeName);
+			a = _pc.freeName;
 			break;
 		case kPlayerLevel:
 			a = _pc.level;
@@ -2589,10 +2628,10 @@ void Parser::replaceIfKeyword(QString& expr)
 		switch (cmpType)
 		{
 		case kPetName:
-			a = QString("'%1'").arg(pet.name);
+			a = pet.name;
 			break;
 		case kPetFreeName:
-			a = QString("'%1'").arg(pet.freeName);
+			a = pet.freeName;
 			break;
 		case kPetLevel:
 			a = pet.level;
@@ -2651,7 +2690,7 @@ void Parser::replaceIfKeyword(QString& expr)
 			if (str.isEmpty())
 				return;
 
-			a = QString("'%1'").arg(str);
+			a = str;
 			break;
 		}
 		default:
@@ -2697,10 +2736,10 @@ void Parser::replaceIfKeyword(QString& expr)
 		switch (cmpType)
 		{
 		case kItemName:
-			a = QString("'%1'").arg(item.name);
+			a = item.name;
 			break;
 		case kItemMemo:
-			a = QString("'%1'").arg(item.memo);
+			a = item.memo;
 			break;
 		case kItemDura:
 		{
@@ -2767,6 +2806,7 @@ void Parser::replaceIfKeyword(QString& expr)
 					count += _pc.item[it].pile;
 			}
 
+			a = count;
 			break;
 		}
 		default:
@@ -2793,11 +2833,10 @@ void Parser::replaceIfKeyword(QString& expr)
 		if (strIndex == "count")
 		{
 			a = injector.server->getPartySize();
+			expr.replace(QString("pet[%1]").arg(strIndex), a.toString());
+			expr.replace(QString("pet['%1']").arg(strIndex), a.toString());
+			expr.replace(QString("pet[\"%1\"]").arg(strIndex), a.toString());
 		}
-
-		expr.replace(QString("pet[%1]").arg(strIndex), a.toString());
-		expr.replace(QString("pet['%1']").arg(strIndex), a.toString());
-		expr.replace(QString("pet[\"%1\"]").arg(strIndex), a.toString());
 	}
 
 	//team\[(?:'([^']*)'|"([^ "]*)"|(\d+))\]
@@ -2815,11 +2854,10 @@ void Parser::replaceIfKeyword(QString& expr)
 		if (strIndex == "count")
 		{
 			a = injector.server->getPartySize();
+			expr.replace(QString("team[%1]").arg(strIndex), a.toString());
+			expr.replace(QString("team['%1']").arg(strIndex), a.toString());
+			expr.replace(QString("team[\"%1\"]").arg(strIndex), a.toString());
 		}
-
-		expr.replace(QString("team[%1]").arg(strIndex), a.toString());
-		expr.replace(QString("team['%1']").arg(strIndex), a.toString());
-		expr.replace(QString("team[\"%1\"]").arg(strIndex), a.toString());
 	}
 }
 
@@ -2828,16 +2866,43 @@ bool Parser::processIfCompare()
 {
 	QString expr = getToken<QString>(1);
 
-	for (int i = 0; i < 4; ++i)
-	{
-		replaceIfKeyword(expr);
-		replaceToVariable(expr);
-	}
+	cycleReplace(expr);
 
 	if (expr.contains("\""))
 	{
-		expr = expr.replace("\"", "\'");
+		expr = expr.replace("\"", "'");
 	}
+
+	static const QRegularExpression rexIfExpr(R"((\s*([=<>!]=|[<>]=|[<>!])\s*))");
+	QStringList list = expr.split(rexIfExpr, Qt::SkipEmptyParts);
+	if (list.size() != 2)
+		return checkJump(currentLineTokens_, 2, false, SuccessJump) == kHasJump;
+
+	QRegularExpressionMatch match = rexIfExpr.match(expr);
+	QString op = match.captured(1).simplified();
+	if (op.isEmpty())
+		return checkJump(currentLineTokens_, 2, false, SuccessJump) == kHasJump;
+
+	bool aOk = false;
+	bool bOk = false;
+
+	QString aStr = list.at(0);
+	aStr.toInt(&aOk);
+	if (!aOk)
+	{
+		if (!aStr.startsWith("'"))
+			aStr = QString("'%1'").arg(aStr);
+	}
+
+	QString bStr = list.at(1);
+	bStr.toInt(&bOk);
+	if (!bOk)
+	{
+		if (!bStr.startsWith("'"))
+			bStr = QString("'%1'").arg(bStr);
+	}
+
+	expr = QString("%1 %2 %3").arg(aStr).arg(op).arg(bStr);
 
 	insertGlobalVar("_IFEXPR", expr);
 
@@ -3218,7 +3283,9 @@ bool Parser::processFor()
 		stepVar = 1ll;
 	qint64 step = stepVar.toLongLong();
 
-	if (!isLocalVarContains(varName))
+	QString scopedKey = QString("%1_%2").arg(varName).arg(lineNumber_);
+
+	if (forStack_.isEmpty() || (forStack_.top().first != varName) || (forStack_.top().second != lineNumber_))
 	{
 		insertLocalVar(varName, var.toLongLong());
 		forStack_.push(qMakePair(varName, lineNumber_));//for行號入棧
@@ -3232,11 +3299,10 @@ bool Parser::processFor()
 		qint64 nvalue = value.toLongLong();
 		if (nvalue >= breakValue)
 		{
-			if (!forStack_.isEmpty() && forChunks_.contains(varName))
+			if (!forStack_.isEmpty() && forChunks_.contains(scopedKey))
 			{
-				qint64 endline = forChunks_.value(varName).end + 1;
+				qint64 endline = forChunks_.value(scopedKey).end + 1;
 				forStack_.pop();//for行號出棧
-				removeLocalVar(varName);
 				jumpto(endline, true);
 				return true;
 			}
@@ -3276,12 +3342,13 @@ bool Parser::processBreak()
 		return false;
 
 	QString varName = forStack_.top().first;
-	if (!forChunks_.contains(varName))
+	QString scopedKey = QString("%1_%2").arg(varName).arg(forStack_.top().second);
+
+	if (!forChunks_.contains(scopedKey))
 		return false;
 
-	qint64 endline = forChunks_.value(varName).end + 1;
+	qint64 endline = forChunks_.value(scopedKey).end + 1;
 
-	removeLocalVar(varName);
 	forStack_.pop();//for行號出棧
 
 	jumpto(endline, true);

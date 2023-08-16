@@ -453,6 +453,7 @@ private:
 	bool isTextWrapped(const QString& text, const QString& keyword);
 	void replaceToVariable(QString& str);
 	void replaceIfKeyword(QString& expr);
+	void cycleReplace(QString& expr);
 	bool checkCallStack();
 	bool checkFuzzyValue(const QString& varName, QVariant* pvalue);
 
