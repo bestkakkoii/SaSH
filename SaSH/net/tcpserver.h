@@ -406,7 +406,7 @@ public://actions
 	PC getPC() const { QMutexLocker lock(&pcMutex_); return pc_; }
 	void setPC(PC pc) { QMutexLocker lock(&pcMutex_); pc_ = pc; }
 
-	void sortItem();
+	void sortItem(bool deepSort = false);
 
 	QPoint getPoint();
 	void setPoint(const QPoint& pos);

@@ -648,6 +648,8 @@ MainForm::MainForm(QWidget* parent)
 	setAttribute(Qt::WA_StyledBackground, true);
 	setAttribute(Qt::WA_StaticContents, true);
 	setWindowFlags(windowFlags() & ~Qt::WindowMaximizeButtonHint);
+	setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
+	setFixedSize(283, 481);
 	setStyleSheet("QMainWindow{ border-radius: 10px; }");
 
 	qRegisterMetaType<QVariant>("QVariant");

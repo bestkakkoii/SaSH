@@ -977,7 +977,7 @@ enum TalkMode
 #pragma endregion
 
 #pragma region Structs
-
+#pragma pack(4) 
 //typedef struct action
 //{
 //	struct 	action* pPrev, * pNext;			//上一個及下一個action指標
@@ -1651,5 +1651,7 @@ typedef struct currencydata_s
 	int points = 0;        // 積分
 	int VIPPoints = 0;  // 會員點
 } currencydata_t;
+
+#pragma pack()
 
 #pragma endregion

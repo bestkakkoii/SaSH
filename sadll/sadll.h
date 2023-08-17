@@ -246,6 +246,8 @@ public://hook
 
 	DWORD WINAPI New_TimeGetTime();
 
+	void WINAPI New_Sleep(DWORD dwMilliseconds);
+
 	void __cdecl New_PlaySound(int a, int b, int c);
 	void __cdecl New_BattleProc();
 	void __cdecl New_BattleCommandReady();
@@ -275,6 +277,9 @@ public://hook
 
 	using pfnTimeGetTime = DWORD(__stdcall*)();
 	pfnTimeGetTime pTimeGetTime = nullptr;
+
+	using pfnSleep = void(__stdcall*)(DWORD dwMilliseconds);
+	pfnSleep pSleep = nullptr;
 
 	//BOOL WINAPI New_QueryPerformanceCounter(LARGE_INTEGER* lpPerformanceCount);
 	using pfnQueryPerformanceCounter = BOOL(__stdcall*)(LARGE_INTEGER*);

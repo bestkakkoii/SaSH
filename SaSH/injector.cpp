@@ -147,13 +147,13 @@ bool Injector::createProcess(Injector::process_information_t& pi)
 	//啟動參數
 
 	//updated realbin:138 adrnbin:138 sprbin:116 spradrnbin:116 adrntrue:5 realtrue:13 encode:0 windowmode
-	commandList.append("update");
+	commandList.append("updated");
 	commandList.append(mkcmd("realbin", nRealBin));
 	commandList.append(mkcmd("adrnbin", nAdrnBin));
 	commandList.append(mkcmd("sprbin", nSprBin));
 	commandList.append(mkcmd("spradrnbin", nSprAdrnBin));
-	commandList.append(mkcmd("adrntrue", nAdrnTrue));
 	commandList.append(mkcmd("realtrue", nRealTrue));
+	commandList.append(mkcmd("adrntrue", nAdrnTrue));
 	commandList.append(mkcmd("encode", nEncode));
 	commandList.append("windowmode");
 
@@ -313,8 +313,16 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 
 		//去除改變窗口大小的屬性
 		LONG dwStyle = ::GetWindowLongW(pi.hWnd, GWL_STYLE);
-		dwStyle &= ~(WS_SIZEBOX | WS_MAXIMIZEBOX);
-		::SetWindowLongW(pi.hWnd, GWL_STYLE, dwStyle);
+		LONG tempStyle = dwStyle;
+
+		if (dwStyle & WS_SIZEBOX)
+			dwStyle &= ~WS_SIZEBOX;
+
+		if (dwStyle & WS_MAXIMIZEBOX)
+			dwStyle &= ~WS_MAXIMIZEBOX;
+
+		if (tempStyle != dwStyle)
+			::SetWindowLongW(pi.hWnd, GWL_STYLE, dwStyle);
 
 		pi.dwThreadId = ::GetWindowThreadProcessId(pi.hWnd, nullptr);
 

@@ -204,10 +204,10 @@ void MainObject::mainProc()
 	QElapsedTimer freeMemTimer; freeMemTimer.start();
 	//首次先釋放一次記憶體，並且開始計時
 	if (injector.getEnableHash(util::kAutoFreeMemoryEnable))
-	{
 		freeMemTimer.restart();
-		mem::freeUnuseMemory(injector.getProcess());
-	}
+
+	mem::freeUnuseMemory(injector.getProcess());
+	mem::freeUnuseMemory(GetCurrentProcess());
 
 	for (;;)
 	{
@@ -238,10 +238,11 @@ void MainObject::mainProc()
 		}
 
 		//自動釋放記憶體
-		if (injector.getEnableHash(util::kAutoFreeMemoryEnable) && freeMemTimer.hasExpired(10ll * 60ll * 1000ll))
+		if (injector.getEnableHash(util::kAutoFreeMemoryEnable) && freeMemTimer.hasExpired(5ll * 60ll * 1000ll))
 		{
 			freeMemTimer.restart();
 			mem::freeUnuseMemory(injector.getProcess());
+			mem::freeUnuseMemory(GetCurrentProcess());
 		}
 		else
 			freeMemTimer.restart();
@@ -427,7 +428,6 @@ int MainObject::checkAndRunFunctions()
 			QString logname = QString("battle_%1_%2_%3").arg(pc.name).arg(pc.freeName).arg(_getpid());
 			injector.server->protoBattleLogName = SPD_INIT(logname);
 		}
-
 		return 1;
 	}
 
@@ -471,6 +471,7 @@ int MainObject::checkAndRunFunctions()
 		//檢查自動丟棄道具
 		checkAutoDropItems();
 
+		//自動丟/吃肉
 		checkAutoDropMeat(QStringList());
 
 		//檢查自動吃道具
@@ -482,6 +483,7 @@ int MainObject::checkAndRunFunctions()
 		//鎖寵排程
 		checkAutoLockSchedule();
 
+		//自動疊加
 		injector.server->sortItem();
 		return 1;
 	}
