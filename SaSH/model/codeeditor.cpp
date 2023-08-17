@@ -249,7 +249,7 @@ void CodeEditor::keyPressEvent(QKeyEvent* e)
 		}
 		case Qt::Key_O:
 		{
-			foldAll();
+			foldAll(true);
 			return;
 		}
 		case Qt::Key_G:

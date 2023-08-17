@@ -1077,6 +1077,7 @@ bool Lexer::getStringToken(QString& src, const QString& delim, QString& out)
 	return true;
 }
 
+//檢查指定詞組配對
 void Lexer::checkPairs(const QString& beginstr, const QString& endstr, const QHash<qint64, TokenMap>& stokenmaps)
 {
 	QMap<qint64, QString> unpairedFunctions;
@@ -1090,7 +1091,6 @@ void Lexer::checkPairs(const QString& beginstr, const QString& endstr, const QHa
 	for (auto it = tokenmaps.cbegin(); it != tokenmaps.cend(); ++it)
 	{
 		qint64 row = it.key();
-		//RESERVE type = it.value().value(0).type;
 		QString statement = it.value().value(0).data.toString().simplified();
 
 		if (statement != beginstr && statement != endstr)
@@ -1140,8 +1140,92 @@ void Lexer::checkPairs(const QString& beginstr, const QString& endstr, const QHa
 	}
 }
 
+//檢查單行字符配對
+void Lexer::checkSingleRowPairs(const QString& beginstr, const QString& endstr, const QHash<qint64, TokenMap>& stokenmaps)
+{
+	QMap<qint64, QVector<int>> unpairedFunctions; // <Row, Vector of unpaired start indices>
+	QMap<qint64, QVector<int>> unpairedEnds;      // <Row, Vector of unpaired end indices>
+
+	QMap<qint64, TokenMap> tokenmaps;
+	for (auto it = stokenmaps.cbegin(); it != stokenmaps.cend(); ++it)
+		tokenmaps.insert(it.key(), it.value());
+
+	for (auto it = tokenmaps.cbegin(); it != tokenmaps.cend(); ++it)
+	{
+		qint64 row = it.key();
+		QStringList tmp;
+		for (auto it2 = it.value().cbegin(); it2 != it.value().cend(); ++it2)
+			tmp.append(it2.value().data.toString().simplified());
+
+		QString statement = tmp.join(" ");
+
+
+
+		QVector<int> startIndices;
+		QVector<int> endIndices;
+
+		for (int index = 0; index < statement.length(); ++index)
+		{
+			QChar currentChar = statement.at(index);
+
+			if (currentChar == beginstr)
+			{
+				startIndices.append(index);
+			}
+			else if (currentChar == endstr)
+			{
+				if (!startIndices.isEmpty())
+				{
+					startIndices.removeLast(); // Matched, remove the last start index
+				}
+				else
+				{
+					endIndices.append(index); // Unpaired end index
+				}
+			}
+		}
+
+		// Remaining unpaired start indices are stored as unpairedFunctions
+		unpairedFunctions[row] = startIndices;
+
+		// Remaining unpaired end indices are stored as unpairedEnds
+		unpairedEnds[row] = endIndices;
+	}
+
+	// 打印所有不成對的 beginstr 語句
+	for (auto it = unpairedFunctions.cbegin(); it != unpairedFunctions.cend(); ++it)
+	{
+		qint64 row = it.key();
+		QVector<int> unpairedIndices = it.value();
+
+		for (int index : unpairedIndices)
+		{
+			QString statement = tokenmaps[row].value(0).data.toString().simplified();
+			QString errorMessage = QString(QObject::tr("Unpaired '%1' at row %2, index %3: '%4'")).arg(beginstr).arg(row).arg(index).arg(statement);
+			showError(errorMessage);
+		}
+	}
+
+	// 打印所有不成對的 endstr 語句
+	for (auto it = unpairedEnds.cbegin(); it != unpairedEnds.cend(); ++it)
+	{
+		qint64 row = it.key();
+		QVector<int> unpairedIndices = it.value();
+
+		for (int index : unpairedIndices)
+		{
+			QString statement = tokenmaps[row].value(0).data.toString().simplified();
+			QString errorMessage = QString(QObject::tr("Unpaired '%1' at row %2, index %3: '%4'")).arg(endstr).arg(row).arg(index).arg(statement);
+			showError(errorMessage);
+		}
+	}
+}
+
 void Lexer::checkFunctionPairs(const QHash<qint64, TokenMap>& stokenmaps)
 {
 	checkPairs("function", "end", stokenmaps);
 	checkPairs("for", "endfor", stokenmaps);
+	checkSingleRowPairs("(", ")", stokenmaps);
+	checkSingleRowPairs("[", "]", stokenmaps);
+	checkSingleRowPairs("{", "}", stokenmaps);
 }

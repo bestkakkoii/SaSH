@@ -153,6 +153,7 @@ private:
 	void tokenized(qint64 currentLine, const QString& line, TokenMap* ptoken, QHash<QString, qint64>* plabel);
 
 	void checkPairs(const QString& beginstr, const QString& endstr, const QHash<qint64, TokenMap>& stokenmaps);
+	void checkSingleRowPairs(const QString& beginstr, const QString& endstr, const QHash<qint64, TokenMap>& stokenmaps);
 	void checkFunctionPairs(const QHash<qint64, TokenMap>& tokenmaps);
 
 	void showError(const QString text, ErrorType type = kTypeError);
