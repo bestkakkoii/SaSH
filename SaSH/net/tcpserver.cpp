@@ -1709,6 +1709,7 @@ int Server::getUnloginStatus()
 void Server::getPlayerMaxCarryingCapacity()
 {
 	PC pc = getPC();
+	int nowMaxload = pc.maxload;
 	switch (pc.transmigration)
 	{
 	case 0:
@@ -1745,6 +1746,10 @@ void Server::getPlayerMaxCarryingCapacity()
 				pc.maxload += value;
 		}
 	}
+
+	if (pc.maxload < nowMaxload)
+		pc.maxload = nowMaxload;
+
 	setPC(pc);
 }
 
@@ -4338,34 +4343,134 @@ void Server::sortItem()
 
 	getPlayerMaxCarryingCapacity();
 	PC pc = getPC();
-
-	QMutexLocker lock(&swapItemMutex_);
-
 	int j = 0;
-	for (int i = MAX_ITEM - 1; i > CHAR_EQUIPPLACENUM; --i)
+	int i = 0;
+
+	if (swapitemModeFlag == 0)
 	{
-		for (j = CHAR_EQUIPPLACENUM; j < i; ++j)
+		QMutexLocker lock(&swapItemMutex_);
+		swapitemModeFlag = 1;
+
+		for (i = MAX_ITEM - 1; i > CHAR_EQUIPPLACENUM; --i)
 		{
-			if (pc.item[i].useFlag == 0)
-				continue;
-
-
-			if (pc.maxload > 0 && pc.item[j].pile >= pc.maxload)
-				continue;
-
-			//if (!isItemStackable(pc.item[i].sendFlag))
-			//	continue;
-
-			if (!pc.item[i].name.isEmpty()
-				&& (pc.item[i].name == pc.item[j].name)
-				&& (pc.item[i].memo == pc.item[j].memo)
-				&& (pc.item[i].graNo == pc.item[j].graNo))
+			for (j = CHAR_EQUIPPLACENUM; j < i; ++j)
 			{
+				if (pc.item[i].useFlag == 0)
+					continue;
+
+				//if (!isItemStackable(pc.item[i].sendFlag))
+				//	continue;
+
+				if (pc.item[i].name.isEmpty())
+					continue;
+
+				if (pc.item[i].name != pc.item[j].name)
+					continue;
+
+				if (pc.item[i].memo != pc.item[j].memo)
+					continue;
+
+				if (pc.item[i].graNo != pc.item[j].graNo)
+					continue;
+
+				if (pc.maxload <= 0)
+					continue;
+
+				if (pc.item[j].pile >= pc.maxload)
+				{
+					pc.maxload = pc.item[j].pile;
+					if (pc.item[j].pile != pc.item[j].maxStack)
+					{
+						pc.item[j].maxStack = pc.item[j].pile;
+						swapItem(i, j);
+					}
+					continue;
+				}
+
+				if (pc.item[i].pile > pc.item[j].pile)
+					continue;
+
+				pc.item[j].maxStack = pc.item[j].pile;
 				swapItem(i, j);
 			}
 		}
 	}
+	else if (swapitemModeFlag == 1)
+	{
+		QMutexLocker lock(&swapItemMutex_);
+		swapitemModeFlag = 2;
 
+		//補齊  item[i].useFlag == 0 的空格
+		for (i = MAX_ITEM - 1; i > CHAR_EQUIPPLACENUM; --i)
+		{
+			for (j = CHAR_EQUIPPLACENUM; j < i; ++j)
+			{
+				if (pc.item[i].useFlag == 0)
+					continue;
+
+				if (pc.item[j].useFlag == 0)
+				{
+					swapItem(i, j);
+				}
+			}
+		}
+	}
+	else
+	{
+		QMutexLocker lock(&swapItemMutex_);
+		swapitemModeFlag = 0;
+
+		static const QLocale locale;
+		static const QCollator collator(locale);
+
+		//按 pc.item[i].name 名稱排序
+		for (i = MAX_ITEM - 1; i > CHAR_EQUIPPLACENUM; --i)
+		{
+			for (j = CHAR_EQUIPPLACENUM; j < i; ++j)
+			{
+				if (pc.item[i].useFlag == 0)
+					continue;
+
+				if (pc.item[j].useFlag == 0)
+					continue;
+
+				if (pc.item[i].name.isEmpty())
+					continue;
+
+				if (pc.item[j].name.isEmpty())
+					continue;
+
+				if (pc.item[i].name != pc.item[j].name)
+				{
+					if (collator.compare(pc.item[i].name, pc.item[j].name) < 0)
+					{
+						swapItem(i, j);
+					}
+				}
+				else if (pc.item[i].memo != pc.item[j].memo)
+				{
+					if (collator.compare(pc.item[i].memo, pc.item[j].memo) < 0)
+					{
+						swapItem(i, j);
+					}
+				}
+				else if (pc.item[i].graNo != pc.item[j].graNo)
+				{
+					if (pc.item[i].graNo < pc.item[j].graNo)
+					{
+						swapItem(i, j);
+					}
+				}
+				//數量少的放前面
+				else if (pc.item[i].pile < pc.item[j].pile)
+				{
+					swapItem(i, j);
+				}
+			}
+		}
+	}
+
+	setPC(pc);
 	refreshItemInfo();
 }
 

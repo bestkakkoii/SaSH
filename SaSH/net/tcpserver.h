@@ -711,6 +711,8 @@ private:
 #endif
 
 	PET_SKILL petSkill[MAX_PET][MAX_SKILL] = {};
+
+	int swapitemModeFlag = 0;
 	//client original
 #pragma region ClientOriginal
 	int  talkMode = 0;						//0:一般 1:密語 2: 隊伍 3:家族 4:職業

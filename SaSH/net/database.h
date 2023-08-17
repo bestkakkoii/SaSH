@@ -1203,7 +1203,7 @@ typedef struct tagITEM
 #endif
 
 	//custom
-	int maxPile = -1;
+	int maxStack = -1;
 } ITEM;
 
 typedef struct tagPC
