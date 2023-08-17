@@ -19,11 +19,13 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "stdafx.h"
 #include "progressbar.h"
 
-void setProgressBarStyle(QProgressBar* pProgress, const QString& qstrcolor)
+#include <QPainterPath>
+
+void ProgressBar::setProgressBarStyle(QProgressBar* pProgress, const QString& qstrcolor)
 {
 	QString styleSheet = QString(R"(
 		QProgressBar {
-			border: 1px solid black;
+			border: 0px solid black;
 			border-radius: 0px;
 			text-align: center;
 			background-color: rbg(255, 255, 255);
@@ -100,4 +102,9 @@ void ProgressBar::onCurrentValueChanged(int level, int value, int maxvalue)
 			.arg("%p%");
 	}
 	setFormat(text);
+}
+
+void ProgressBar::paintEvent(QPaintEvent* event)
+{
+	QProgressBar::paintEvent(event);
 }

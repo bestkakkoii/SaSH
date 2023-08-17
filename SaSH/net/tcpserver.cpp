@@ -2534,8 +2534,8 @@ void Server::setWindowTitle()
 		positionName = QString::number(position);
 
 	PC pc = getPC();
-	QString title = QString("SaSH [%1:%2] - %3 Lv:%4 HP:%5/%6 MP:%7/%8") \
-		.arg(subServerName).arg(positionName).arg(pc.name).arg(pc.level).arg(pc.hp).arg(pc.maxHp).arg(pc.mp).arg(pc.maxMp);
+	QString title = QString("SaSH [%1:%2] - %3 Lv:%4 HP:%5/%6 MP:%7/%8 $:%9") \
+		.arg(subServerName).arg(positionName).arg(pc.name).arg(pc.level).arg(pc.hp).arg(pc.maxHp).arg(pc.mp).arg(pc.maxMp).arg(pc.gold);
 	std::wstring wtitle = title.toStdWString();
 	SetWindowTextW(injector.getProcessWindow(), wtitle.c_str());
 }

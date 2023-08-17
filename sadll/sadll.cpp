@@ -966,26 +966,25 @@ DWORD WINAPI GameService::New_TimeGetTime()
 std::atomic_int sleepCount = 0;
 void WINAPI GameService::New_Sleep(DWORD dwMilliseconds)
 {
+	//do
+	//{
+	//	if (dwMilliseconds != 0)
+	//		break;
 
-	do
-	{
-		if (dwMilliseconds != 0)
-			break;
+	//	auto count = sleepCount.load(std::memory_order_acquire);
+	//	sleepCount.fetch_add(1, std::memory_order_release);
+	//	if (count == 0)
+	//		break;
 
-		auto count = sleepCount.load(std::memory_order_acquire);
-		sleepCount.fetch_add(1, std::memory_order_release);
-		if (count == 0)
-			break;
+	//	if (count > 5)
+	//	{
+	//		sleepCount.store(0, std::memory_order_release);
+	//		break;
+	//	}
 
-		if (count > 5)
-		{
-			sleepCount.store(0, std::memory_order_release);
-			break;
-		}
+	//	dwMilliseconds = 1;
 
-		dwMilliseconds = 1;
-
-	} while (false);
+	//} while (false);
 
 	pSleep(dwMilliseconds);
 }
@@ -1095,7 +1094,7 @@ void GameService::WM_SetOptimize(bool enable)
 		//util::MemoryMove(optimizeAddr, "\xA1\x0C\xA9\x54\x00\x6A\x00", 7);
 
 		//sa_8001.exe+129E7 - 75 37                 - jne sa_8001sf.exe+12A20
-		util::MemoryMove(optimizeAddr, "\x75\x37", 2);
+		//util::MemoryMove(optimizeAddr, "\x75\x37", 2);
 
 		*CONVERT_GAMEVAR<int*>(0xAB7C8) = 14;
 	}
@@ -1107,7 +1106,7 @@ void GameService::WM_SetOptimize(bool enable)
 		//util::MemoryMove(optimizeAddr, "\xEB\x10\x90\x90\x90\x90\x90", 7);
 
 		//sa_8001.exe+129E7 - EB 12                 - jmp sa_8001sf.exe+129FB
-		util::MemoryMove(optimizeAddr, "\xEB\x12", 2);
+		//util::MemoryMove(optimizeAddr, "\xEB\x12", 2);
 
 		*CONVERT_GAMEVAR<int*>(0xAB7C8) = 0;
 	}

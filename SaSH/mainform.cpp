@@ -679,6 +679,7 @@ MainForm::MainForm(QWidget* parent)
 		ui.progressBar_pcmp->setType(ProgressBar::kMP);
 		ui.progressBar_pethp->setType(ProgressBar::kHP);
 		ui.progressBar_ridehp->setType(ProgressBar::kHP);
+
 		connect(&signalDispatcher, &SignalDispatcher::updateCharHpProgressValue, ui.progressBar_pchp, &ProgressBar::onCurrentValueChanged);
 		connect(&signalDispatcher, &SignalDispatcher::updateCharMpProgressValue, ui.progressBar_pcmp, &ProgressBar::onCurrentValueChanged);
 		connect(&signalDispatcher, &SignalDispatcher::updatePetHpProgressValue, ui.progressBar_pethp, &ProgressBar::onCurrentValueChanged);

@@ -41,7 +41,10 @@ public slots:
 	void onCurrentValueChanged(int level, int value, int maxvalue);
 
 protected:
-	//void paintEvent(QPaintEvent* event) override;
+	void paintEvent(QPaintEvent* event) override;
+
+private:
+	void setProgressBarStyle(QProgressBar* pProgress, const QString& qstrcolor);
 
 private:
 	int level_ = 0;
