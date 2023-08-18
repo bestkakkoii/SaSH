@@ -226,6 +226,8 @@ See [https://gitee.com/Bestkakkoii/sash/wikis](https://gitee.com/Bestkakkoii/sas
 
 4. 需要將 使用Linguist編譯好的qm翻譯文件放到 SaSH\translations 中。
 
+5. 建置後出現找不到bind7z.bat請打開項目設置->建置事件->建置後事件，將 命令列 中的內容移除
+
 ### 腳本語法說明文檔
 
 詳見 [https://gitee.com/Bestkakkoii/sash/wikis](https://gitee.com/Bestkakkoii/sash/wikis)。
