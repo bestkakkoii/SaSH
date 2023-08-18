@@ -596,6 +596,8 @@ void Injector::hide(int mode)
 	}
 
 	sendMessage(kEnableWindowHide, true, NULL);
+
+	mem::freeUnuseMemory(getProcess());
 }
 
 void Injector::show()
