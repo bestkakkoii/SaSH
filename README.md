@@ -218,17 +218,17 @@ See [https://gitee.com/Bestkakkoii/sash/wikis](https://gitee.com/Bestkakkoii/sas
 
 1. 大陸用戶可使用鏡像安裝QT，如： .\qt-unified-windows-x64-4.6.0-online.exe --mirror http://mirrors.tuna.tsinghua.edu.cn/qt
 
-2. 缺少DLL時，需要將 SaSH_dbg_package.7z 中的內容，解壓拷貝到Debug和Release下。
+2. 缺少DLL時，需要將 bin 中的內容拷貝到 Debug 或 Release 下。
 
-3. 需要將 SaSH\SaSH\injector.cpp 中 266行
-    dllPath = R"(YourPath\Debug\sadll.dll)";
+3. 需要將 `SaSH\SaSH\injector.cpp` 中 `266行`
+    `dllPath = R"(YourPath\Debug\sadll.dll)";`
     改為自己的絕對路徑。
 
 4. 需要將 使用Linguist編譯好的qm翻譯文件放到 SaSH\translations 中。
 
 5. 建置後出現找不到bind7z.bat請打開項目設置->建置事件->建置後事件，將 命令列 中的內容移除
 
-6. 首次編譯後請打開`Qt 5.15.2 (MSVC 2019 32-bit)` cd到Relase後輸入 `windeployqt SaSH.exe`
+6. 首次編譯後請打開 `Qt 5.15.2 (MSVC 2019 32-bit)` cd 到 Relase/Debug 後輸入 `windeployqt SaSH.exe`
 
 ### 腳本語法說明文檔
 
