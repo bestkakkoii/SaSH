@@ -1118,6 +1118,9 @@ void GameService::WM_SetWindowHide(bool enable)
 
 		//聊天紀錄顯示行數數量
 		nowChatRowCount_ = *CONVERT_GAMEVAR<int*>(0xA2674);
+		if (nowChatRowCount_ == 0)
+			nowChatRowCount_ = 10;
+
 		//聊天紀錄顯示行數數量設為0
 		*CONVERT_GAMEVAR<int*>(0xA2674) = 0;
 	}
