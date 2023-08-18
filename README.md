@@ -228,6 +228,8 @@ See [https://gitee.com/Bestkakkoii/sash/wikis](https://gitee.com/Bestkakkoii/sas
 
 5. 建置後出現找不到bind7z.bat請打開項目設置->建置事件->建置後事件，將 命令列 中的內容移除
 
+6.首次編譯後請打開`Qt 5.15.2 (MSVC 2019 32-bit)` cd到Relase後輸入 `windeployqt SaSH.exe`
+
 ### 腳本語法說明文檔
 
 詳見 [https://gitee.com/Bestkakkoii/sash/wikis](https://gitee.com/Bestkakkoii/sash/wikis)。
