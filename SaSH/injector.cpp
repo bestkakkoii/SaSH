@@ -586,18 +586,16 @@ void Injector::hide(int mode)
 
 	//設置透明度
 	SetLayeredWindowAttributes(hWnd, 0, 0, LWA_ALPHA);
-	nowChatRowCount_ = mem::read<int>(getProcess(), getProcessModule() + 0xA2674);
-	mem::write<int>(getProcess(), getProcessModule() + 0xA2674, 0);//聊天紀錄的行數
 
 	if (mode == 1)
 	{
-		mem::write<int>(getProcess(), getProcessModule() + 0x4160210, 0);//禁用畫面渲染
-
 		//minimize
 		ShowWindow(hWnd, SW_MINIMIZE);
 		//hide
 		ShowWindow(hWnd, SW_HIDE);
 	}
+
+	sendMessage(kEnableWindowHide, true, NULL);
 }
 
 void Injector::show()
@@ -606,8 +604,7 @@ void Injector::show()
 	if (hWnd == nullptr)
 		return;
 
-	mem::write<int>(getProcess(), getProcessModule() + 0x4160210, 1);//啟用畫面渲染
-	mem::write<int>(getProcess(), getProcessModule() + 0xA2674, nowChatRowCount_);//聊天紀錄的行數
+	sendMessage(kEnableWindowHide, false, NULL);
 
 	bool isWin7 = false;
 	//get windows version

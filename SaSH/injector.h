@@ -70,6 +70,7 @@ public:
 		kSetBlockPacket,
 		kBattleTimeExtend,
 		kEnableOptimize,
+		kEnableWindowHide,
 
 		//Action
 		kSendAnnounce,

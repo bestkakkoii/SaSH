@@ -429,6 +429,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, DWORD message, LPARAM wParam, LPARAM lParam)
 		g_GameService.WM_SetOptimize(wParam);
 		return 1;
 	}
+	case kEnableWindowHide:
+	{
+		g_GameService.WM_SetWindowHide(wParam);
+		return 1;
+	}
 	//action
 	case kSendAnnounce://公告
 	{
@@ -963,28 +968,10 @@ DWORD WINAPI GameService::New_TimeGetTime()
 	return g_dwHookTime;
 }
 
-std::atomic_int sleepCount = 0;
 void WINAPI GameService::New_Sleep(DWORD dwMilliseconds)
 {
-	//do
-	//{
-	//	if (dwMilliseconds != 0)
-	//		break;
-
-	//	auto count = sleepCount.load(std::memory_order_acquire);
-	//	sleepCount.fetch_add(1, std::memory_order_release);
-	//	if (count == 0)
-	//		break;
-
-	//	if (count > 5)
-	//	{
-	//		sleepCount.store(0, std::memory_order_release);
-	//		break;
-	//	}
-
-	//	dwMilliseconds = 1;
-
-	//} while (false);
+	if (enableSleepAdjust.load(std::memory_order_acquire) && dwMilliseconds == 0)
+		dwMilliseconds = 1;
 
 	pSleep(dwMilliseconds);
 }
@@ -1088,27 +1075,67 @@ void GameService::WM_SetOptimize(bool enable)
 	if (!enable)
 	{
 		/*
-		sa_8001.exe+129E9 - A1 0CA95400           - mov eax,[sa_8001.exe+14A90C] { (05205438) }
-		sa_8001.exe+129EE - 6A 00                 - push 00 { 0 }
-		*/
-		//util::MemoryMove(optimizeAddr, "\xA1\x0C\xA9\x54\x00\x6A\x00", 7);
+		//sa_8001.exe+129E9 - A1 0CA95400           - mov eax,[sa_8001.exe+14A90C] { (05205438) }
+		//sa_8001.exe+129EE - 6A 00                 - push 00 { 0 }
+		util::MemoryMove(optimizeAddr, "\xA1\x0C\xA9\x54\x00\x6A\x00", 7);
 
 		//sa_8001.exe+129E7 - 75 37                 - jne sa_8001sf.exe+12A20
-		//util::MemoryMove(optimizeAddr, "\x75\x37", 2);
+		util::MemoryMove(optimizeAddr, "\x75\x37", 2);
+		*/
 
 		*CONVERT_GAMEVAR<int*>(0xAB7C8) = 14;
 	}
 	else
 	{
 		/*
-		sa_8001.exe+129E9 - EB 10                 - jmp sa_8001.exe+129FB
-		*/
-		//util::MemoryMove(optimizeAddr, "\xEB\x10\x90\x90\x90\x90\x90", 7);
+		//sa_8001.exe+129E9 - EB 10                 - jmp sa_8001.exe+129FB
+		util::MemoryMove(optimizeAddr, "\xEB\x10\x90\x90\x90\x90\x90", 7);
 
 		//sa_8001.exe+129E7 - EB 12                 - jmp sa_8001sf.exe+129FB
-		//util::MemoryMove(optimizeAddr, "\xEB\x12", 2);
+		util::MemoryMove(optimizeAddr, "\xEB\x12", 2);
+		*/
 
 		*CONVERT_GAMEVAR<int*>(0xAB7C8) = 0;
+	}
+}
+
+//隱藏窗口
+void GameService::WM_SetWindowHide(bool enable)
+{
+	if (!enable)
+	{
+		//sa_8001sf.exe+129E7 - 75 37                 - jne sa_8001sf.exe+12A20 資源優化關閉
+		util::MemoryMove(CONVERT_GAMEVAR<DWORD>(0x129E7), "\x75\x37", 2);
+
+		//sa_8001sf.exe+1DFFD - 74 31                 - je sa_8001sf.exe+1E030
+		util::MemoryMove(CONVERT_GAMEVAR<DWORD>(0x1DFFD), "\x74\x31", 2);
+
+		//sa_8001sf.exe+1DEE4 - 83 F9 0E              - cmp ecx,7F { 14 } 加速相關
+		util::MemoryMove(CONVERT_GAMEVAR<DWORD>(0x1DEE4), "\x83\xF9\x0E", 3);
+
+		//Sleep停止更改
+		enableSleepAdjust.store(false, std::memory_order_release);
+
+		//聊天紀錄顯示行數數量
+		nowChatRowCount_ = *CONVERT_GAMEVAR<int*>(0xA2674);
+		//聊天紀錄顯示行數數量設為0
+		*CONVERT_GAMEVAR<int*>(0xA2674) = 0;
+	}
+	else
+	{
+		*CONVERT_GAMEVAR<int*>(0xA2674) = nowChatRowCount_; //還原聊天紀錄顯示行數數量
+
+		//sa_8001sf.exe+129E7 - EB 37                 - jmp sa_8001sf.exe+12A20 資源優化開啟
+		util::MemoryMove(CONVERT_GAMEVAR<DWORD>(0x129E7), "\xEB\x37", 2);
+
+		//sa_8001sf.exe+1DFFD - EB 31                 - jmp sa_8001sf.exe+1E030 強制跳過整個背景繪製
+		util::MemoryMove(CONVERT_GAMEVAR<DWORD>(0x1DFFD), "\xEB\x31", 2);
+
+		//sa_8001sf.exe+1DEE4 - 83 F9 0E              - cmp ecx,05 { 14 } 加速相關
+		util::MemoryMove(CONVERT_GAMEVAR<DWORD>(0x1DEE4), "\x83\xF9\x7F", 3);
+
+		//Sleep強制更改
+		enableSleepAdjust.store(true, std::memory_order_release);
 	}
 }
 
@@ -1434,7 +1461,7 @@ void GameService::WM_SetBoostSpeed(bool enable, int speed)
 		{
 			*pSpeed = 14 - speed + 1;
 			//sa_8001sf.exe+1DEE4 - 83 F9 0E              - cmp ecx,0E { 14 }
-			util::MemoryMove(pBoostSpeed, "\x83\xF9\x05", 3);
+			util::MemoryMove(pBoostSpeed, "\x83\xF9\x0E", 3);
 			speedBoostValue = 1;
 		}
 		else if (speed > 14 && speed <= 125)

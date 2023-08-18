@@ -58,6 +58,7 @@ namespace util
 		kSetBlockPacket,
 		kBattleTimeExtend,
 		kEnableOptimize,
+		kEnableWindowHide,
 
 		//Action
 		kSendAnnounce,
@@ -206,6 +207,7 @@ public:
 	void WM_EnableBattleDialog(bool enable);
 	void WM_SetGameStatus(int status);
 	void WM_SetOptimize(bool enable);
+	void WM_SetWindowHide(bool enable);
 
 	void WM_Announce(char* str, int color);
 	void WM_Move(int x, int y);
@@ -323,4 +325,6 @@ private:
 	int currentSound_ = 15;
 
 	DWORD speedBoostValue = 1;
+	std::atomic_bool enableSleepAdjust = false;
+	int nowChatRowCount_ = 0;
 };
