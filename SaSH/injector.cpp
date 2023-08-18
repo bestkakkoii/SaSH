@@ -547,3 +547,98 @@ void Injector::dragto(int x1, int y1, int x2, int y2) const
 	sendMessage(WM_LBUTTONUP, MK_LBUTTON, datato);
 	QThread::msleep(50);
 }
+
+void Injector::hide(int mode)
+{
+	HWND hWnd = getProcessWindow();
+	if (hWnd == nullptr)
+		return;
+
+	bool isWin7 = false;
+	//get windows version
+	QOperatingSystemVersion version = QOperatingSystemVersion::current();
+	if (version <= QOperatingSystemVersion::Windows7)
+		isWin7 = true;
+
+	LONG_PTR exstyle = GetWindowLongPtr(hWnd, GWL_EXSTYLE);
+
+	//retore before hide
+	ShowWindow(hWnd, SW_RESTORE);
+
+	//add tool window style to hide from taskbar
+
+	if (!isWin7)
+	{
+		if (!(exstyle & WS_EX_TOOLWINDOW))
+			exstyle |= WS_EX_TOOLWINDOW;
+	}
+	else
+	{
+		//add tool window style to hide from taskbar
+		if (!(exstyle & WS_EX_APPWINDOW))
+			exstyle |= WS_EX_APPWINDOW;
+	}
+
+	//添加透明化屬性
+	if (!(exstyle & WS_EX_LAYERED))
+		exstyle |= WS_EX_LAYERED;
+	SetWindowLongPtr(hWnd, GWL_EXSTYLE, exstyle);
+
+	//設置透明度
+	SetLayeredWindowAttributes(hWnd, 0, 0, LWA_ALPHA);
+	nowChatRowCount_ = mem::read<int>(getProcess(), getProcessModule() + 0xA2674);
+	mem::write<int>(getProcess(), getProcessModule() + 0xA2674, 0);//聊天紀錄的行數
+
+	if (mode == 1)
+	{
+		mem::write<int>(getProcess(), getProcessModule() + 0x4160210, 0);//禁用畫面渲染
+
+		//minimize
+		ShowWindow(hWnd, SW_MINIMIZE);
+		//hide
+		ShowWindow(hWnd, SW_HIDE);
+	}
+}
+
+void Injector::show()
+{
+	HWND hWnd = getProcessWindow();
+	if (hWnd == nullptr)
+		return;
+
+	mem::write<int>(getProcess(), getProcessModule() + 0x4160210, 1);//啟用畫面渲染
+	mem::write<int>(getProcess(), getProcessModule() + 0xA2674, nowChatRowCount_);//聊天紀錄的行數
+
+	bool isWin7 = false;
+	//get windows version
+	QOperatingSystemVersion version = QOperatingSystemVersion::current();
+	if (version <= QOperatingSystemVersion::Windows7)
+		isWin7 = true;
+
+	LONG_PTR exstyle = GetWindowLongPtr(hWnd, GWL_EXSTYLE);
+
+	if (!isWin7)
+	{
+		//remove tool window style to show from taskbar
+		if (exstyle & WS_EX_TOOLWINDOW)
+			exstyle &= ~WS_EX_TOOLWINDOW;
+	}
+	else
+	{
+		//remove tool window style to show from taskbar
+		if (exstyle & WS_EX_APPWINDOW)
+			exstyle &= ~WS_EX_APPWINDOW;
+	}
+
+	//移除透明化屬性
+	if (exstyle & WS_EX_LAYERED)
+		exstyle &= ~WS_EX_LAYERED;
+	SetWindowLongPtr(hWnd, GWL_EXSTYLE, exstyle);
+
+	//active once
+	ShowWindow(hWnd, SW_RESTORE);
+	ShowWindow(hWnd, SW_SHOW);
+
+	//bring to top once
+	SetForegroundWindow(hWnd);
+}

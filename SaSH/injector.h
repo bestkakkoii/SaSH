@@ -148,6 +148,10 @@ public:
 
 	void dragto(int x1, int y1, int x2, int y2) const;
 
+	void hide(int mode = 0);
+
+	void show();
+
 private:
 	static BOOL CALLBACK EnumWindowsCallback(HWND handle, LPARAM lParam)
 	{
@@ -193,6 +197,8 @@ private:
 	HMODULE hookdllModule_ = NULL;
 	process_information_t pi_ = {};
 	QScopedHandle processHandle_;
+
+	int nowChatRowCount_ = 0;
 
 	util::SafeHash<util::UserData, QVariant> userData_hash_ = {
 		{ util::kUserItemNames, QStringList() },

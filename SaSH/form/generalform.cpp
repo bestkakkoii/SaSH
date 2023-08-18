@@ -431,86 +431,12 @@ void GeneralForm::onCheckBoxStateChanged(int state)
 
 	if (name == "checkBox_hidewindow")
 	{
-		static int nowChatRowCount = 0;
-
 		injector.setEnableHash(util::kHideWindowEnable, isChecked);
-		HWND hWnd = injector.getProcessWindow();
-		if (hWnd)
-		{
-			//bool isWin7;
-			////get windows version
-			//auto version = QOperatingSystemVersion::current();
-			//if (version <= QOperatingSystemVersion::Windows7)
-			//	isWin7 = true;
-			//else
-			//	isWin7 = false;
-			//LONG_PTR exstyle = GetWindowLongPtr(hWnd, GWL_EXSTYLE);
-			if (isChecked)
-			{
-				//minimize
-				ShowWindow(hWnd, SW_MINIMIZE);
-				//hide
-				ShowWindow(hWnd, SW_HIDE);
+		if (isChecked)
+			injector.hide();
+		else
+			injector.show();
 
-
-
-				//retore before hide
-				//ShowWindow(hWnd, SW_RESTORE);
-
-				//add tool window style to hide from taskbar
-
-				//if (!isWin7)
-				//{
-				//	if (!(exstyle & WS_EX_TOOLWINDOW))
-				//		exstyle |= WS_EX_TOOLWINDOW;
-				//}
-				//else
-				//{
-				//	//add tool window style to hide from taskbar
-				//	if (!(exstyle & WS_EX_APPWINDOW))
-				//		exstyle |= WS_EX_APPWINDOW;
-				//}
-
-				////添加透明化屬性
-				//if (!(exstyle & WS_EX_LAYERED))
-				//	exstyle |= WS_EX_LAYERED;
-				//SetWindowLongPtr(hWnd, GWL_EXSTYLE, exstyle);
-
-				////設置透明度
-				//SetLayeredWindowAttributes(hWnd, 0, 0, LWA_ALPHA);
-				mem::write<int>(injector.getProcess(), injector.getProcessModule() + 0x4160210, 0);
-				nowChatRowCount = mem::read<int>(injector.getProcess(), injector.getProcessModule() + 0xA2674);
-				mem::write<int>(injector.getProcess(), injector.getProcessModule() + 0xA2674, 0);
-			}
-			else
-			{
-				mem::write<int>(injector.getProcess(), injector.getProcessModule() + 0x4160210, 1);
-				mem::write<int>(injector.getProcess(), injector.getProcessModule() + 0xA2674, nowChatRowCount);
-				//if (!isWin7)
-				//{
-				//	//remove tool window style to show from taskbar
-				//	if (exstyle & WS_EX_TOOLWINDOW)
-				//		exstyle &= ~WS_EX_TOOLWINDOW;
-				//}
-				//else
-				//{
-				//	//remove tool window style to show from taskbar
-				//	if (exstyle & WS_EX_APPWINDOW)
-				//		exstyle &= ~WS_EX_APPWINDOW;
-				//}
-
-				////移除透明化屬性
-				//if (exstyle & WS_EX_LAYERED)
-				//	exstyle &= ~WS_EX_LAYERED;
-				//SetWindowLongPtr(hWnd, GWL_EXSTYLE, exstyle);
-
-				//active once
-				ShowWindow(hWnd, SW_RESTORE);
-				ShowWindow(hWnd, SW_SHOW);
-				//bring to top once
-				SetForegroundWindow(hWnd);
-			}
-		}
 		return;
 	}
 
