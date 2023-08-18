@@ -1468,6 +1468,13 @@ void Parser::replaceToVariable(QString& expr)
 			index = expr.indexOf(checkStr, 0, sen);
 			if (index == -1)
 				return false;
+
+			if (index > 0)
+			{
+				QChar ch = expr.at(index - 1);
+				if (ch != ' ' && ch != ',' && ch != '(' && ch != '[' && ch != '{' && ch != '<' && ch != '.')
+					return false;
+			}
 		}
 
 		int countCheckStr = expr.count(checkStr, sen);
