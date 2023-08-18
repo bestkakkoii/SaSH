@@ -326,5 +326,5 @@ private:
 
 	DWORD speedBoostValue = 1;
 	std::atomic_bool enableSleepAdjust = false;
-	int nowChatRowCount_ = 0;
+	int nowChatRowCount_ = 10;
 };
