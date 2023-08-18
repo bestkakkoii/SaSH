@@ -653,7 +653,7 @@ void MainObject::checkControl()
 	if (injector.server.isNull())
 		return;
 
-	//隱藏視窗按下，異步隱藏
+	//隱藏人物按下，異步隱藏
 	bool bChecked = injector.getEnableHash(util::kHideCharacterEnable);
 	if (flagHideCharacterEnable_ != bChecked)
 	{

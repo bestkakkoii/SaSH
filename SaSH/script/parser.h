@@ -363,7 +363,7 @@ public:
 		}
 	}
 
-	void jump(qint64 line, bool noStack);
+	bool jump(qint64 line, bool noStack);
 	void jumpto(qint64 line, bool noStack);
 	bool jump(const QString& name, bool noStack);
 
@@ -497,7 +497,7 @@ private:
 	template <typename T>
 	bool exprTo(T value, QString expr, T* ret);
 
-	void handleError(qint64 err);
+	void handleError(qint64 err, const QString& addition = "");
 	void checkArgs();
 	void recordFunctionChunks();
 	void recordForChunks();

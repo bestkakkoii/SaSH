@@ -103,10 +103,14 @@ void Parser::parse(qint64 line)
 }
 
 //處理錯誤
-void Parser::handleError(qint64 err)
+void Parser::handleError(qint64 err, const QString& addition)
 {
 	if (err == kNoChange)
 		return;
+
+	QString extMsg;
+	if (!addition.isEmpty())
+		extMsg = " " + addition;
 
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
 	if (err == kError)
@@ -118,18 +122,18 @@ void Parser::handleError(qint64 err)
 	case kNoChange:
 		return;
 	case kError:
-		msg = QObject::tr("unknown error");
+		msg = QObject::tr("unknown error") + extMsg;
 		break;
 	case kArgError:
-		msg = QObject::tr("argument error");
+		msg = QObject::tr("argument error") + extMsg;
 		break;
 	case kLabelError:
-		msg = QObject::tr("label incorrect or not exist");
+		msg = QObject::tr("label incorrect or not exist") + extMsg;
 		break;
 	case kUnknownCommand:
 	{
 		QString cmd = currentLineTokens_.value(0).data.toString();
-		msg = QObject::tr("unknown command: %1").arg(cmd);
+		msg = QObject::tr("unknown command: %1").arg(cmd) + extMsg;
 		break;
 	}
 	default:
@@ -1662,11 +1666,12 @@ void Parser::replaceToVariable(QString& expr)
 }
 
 //行跳轉
-void Parser::jump(qint64 line, bool noStack)
+bool Parser::jump(qint64 line, bool noStack)
 {
 	if (!noStack)
 		jmpStack_.push(lineNumber_ + 1);
 	lineNumber_ += line;
+	return true;
 }
 
 //指定行跳轉
@@ -1688,25 +1693,27 @@ bool Parser::jump(const QString& name, bool noStack)
 		{
 			qint64 returnIndex = jmpStack_.pop();//jump行號出棧
 			qint64 jumpLineCount = returnIndex - lineNumber_;
-			jump(jumpLineCount, true);
-			return true;
+
+			return jump(jumpLineCount, true);
 		}
 		return false;
 	}
 	else if (name.toLower() == "return")
 	{
-		if (!callArgsStack_.isEmpty())
-			callArgsStack_.pop();//call行號出棧
-		if (!localVarStack_.isEmpty())
-			localVarStack_.pop();//label局變量出棧
+		bool bret = false;
 		if (!callStack_.isEmpty())
 		{
 			qint64 returnIndex = callStack_.pop();
 			qint64 jumpLineCount = returnIndex - lineNumber_;
-			jump(jumpLineCount, true);
-			return true;
+
+			bret = jump(jumpLineCount, true);
 		}
-		return false;
+
+		if (!callArgsStack_.isEmpty())
+			callArgsStack_.pop();//call行號出棧
+		if (!localVarStack_.isEmpty())
+			localVarStack_.pop();//label局變量出棧
+		return bret;
 	}
 	else if (name.toLower() == "continue")
 	{
@@ -1729,7 +1736,7 @@ bool Parser::jump(const QString& name, bool noStack)
 	jumpLine = matchLineFromLabel(name);
 	if (jumpLine == -1)
 	{
-		handleError(kLabelError);
+		handleError(kLabelError, QString("'%1'").arg(name));
 		return false;
 	}
 
@@ -1737,8 +1744,8 @@ bool Parser::jump(const QString& name, bool noStack)
 		jmpStack_.push(lineNumber_ + 1);
 
 	qint64 jumpLineCount = jumpLine - lineNumber_;
-	jump(jumpLineCount, true);
-	return true;
+
+	return jump(jumpLineCount, true);
 }
 
 //處理"變量"運算
