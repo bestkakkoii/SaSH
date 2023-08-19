@@ -1849,7 +1849,7 @@ qint64 Interpreter::mail(qint64, const TokenMap& TK)
 	QString itemMemo = "";
 	checkString(TK, 5, &itemMemo);
 
-	if (itemMemo.isEmpty() && !itemName.isEmpty())
+	if (petIndex != -1 && itemMemo.isEmpty() && !itemName.isEmpty())
 		return Parser::kArgError;
 
 	injector.server->mail(addrIndex, text, petIndex, itemName, itemMemo);

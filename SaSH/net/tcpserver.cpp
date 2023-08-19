@@ -3616,9 +3616,6 @@ void Server::mail(const QVariant& card, const QString& text, int petIndex, const
 	if (addressBook[index].useFlag == 0)
 		return;
 
-	if (addressBook[index].onlineFlag == 0)
-		return;
-
 	std::string sstr = util::fromUnicode(text);
 	if (itemName.isEmpty() && itemMemo.isEmpty() && (petIndex < 0 || petIndex > MAX_PET))
 	{
@@ -3626,6 +3623,9 @@ void Server::mail(const QVariant& card, const QString& text, int petIndex, const
 	}
 	else
 	{
+		if (addressBook[index].onlineFlag == 0)
+			return;
+
 		int itemIndex = getItemIndexByName(itemName, true, itemMemo);
 		if (itemIndex < 0 || itemIndex >= MAX_ITEM)
 			return;
