@@ -146,7 +146,7 @@ qint64 Interpreter::useitem(qint64, const TokenMap& TK)
 					memo = itemMemos.takeFirst();
 
 				QVector<int> v;
-				if (!injector.server->getItemIndexsByName(name, memo, &v))
+				if (!injector.server->getItemIndexsByName(name, memo, &v, CHAR_EQUIPPLACENUM))
 					continue;
 
 				qint64 totalUse = target - 100;
@@ -185,7 +185,7 @@ qint64 Interpreter::useitem(qint64, const TokenMap& TK)
 					name = itemNames.takeFirst();
 
 				QVector<int> v;
-				if (!injector.server->getItemIndexsByName(name, memo, &v))
+				if (!injector.server->getItemIndexsByName(name, memo, &v, CHAR_EQUIPPLACENUM))
 					continue;
 
 				qint64 totalUse = target - 100;
@@ -227,7 +227,7 @@ qint64 Interpreter::useitem(qint64, const TokenMap& TK)
 			QString memo;
 			if (itemMemos.size() > 0)
 				memo = itemMemos.takeFirst();
-			qint64 itemIndex = injector.server->getItemIndexByName(itemName, true, memo);
+			qint64 itemIndex = injector.server->getItemIndexByName(itemName, true, memo, CHAR_EQUIPPLACENUM);
 			if (itemIndex == -1)
 				continue;
 
@@ -241,7 +241,7 @@ qint64 Interpreter::useitem(qint64, const TokenMap& TK)
 			QString name;
 			if (itemNames.size() > 0)
 				name = itemNames.takeFirst();
-			qint64 itemIndex = injector.server->getItemIndexByName(itemName, true, memo);
+			qint64 itemIndex = injector.server->getItemIndexByName(itemName, true, memo, CHAR_EQUIPPLACENUM);
 			if (itemIndex == -1)
 				continue;
 
@@ -282,42 +282,15 @@ qint64 Interpreter::dropitem(qint64, const TokenMap& TK)
 		if (itemNames.isEmpty())
 			return Parser::kArgError + 3ll;
 
-		QStringList itemNameList = itemNames.split(util::rexOR, Qt::SkipEmptyParts);
-		if (itemNameList.isEmpty())
-			return Parser::kArgError + 3ll;
+		QVector<int> indexs;
+		injector.server->getItemIndexsByName(itemNames, "", &indexs, min, max);
 
-		QVector<qint64> indexs;
-		PC pc = injector.server->getPC();
-		for (qint64 i = CHAR_EQUIPPLACENUM; i < MAX_ITEM; ++i)
-		{
-			ITEM item = pc.item[i];
-			for (const QString& name : itemNameList)
-			{
-				if (item.name == name)
-				{
-					if (!indexs.contains(i))
-						indexs.append(i);
-				}
-				else if (name.startsWith(kFuzzyPrefix))
-				{
-					QString newName = name;
-					newName.remove(0, 1);
-					if (item.name.contains(newName))
-					{
-						if (!indexs.contains(i))
-							indexs.append(i);
-					}
-				}
-			}
-		}
-
-		//排除掉所有包含再indexs的
+		//排除掉所有包含在indexs的
 		for (qint64 i = min; i <= max; ++i)
 		{
 			if (!indexs.contains(i))
 				injector.server->dropItem(i);
 		}
-
 	}
 	else
 	{
@@ -540,7 +513,7 @@ qint64 Interpreter::sell(qint64, const TokenMap& TK)
 	for (const QString& it : nameList)
 	{
 		QVector<int> indexs;
-		if (!injector.server->getItemIndexsByName(it, "", &indexs))
+		if (!injector.server->getItemIndexsByName(it, "", &indexs, CHAR_EQUIPPLACENUM))
 			continue;
 		itemIndexs.append(indexs);
 	}
@@ -1053,7 +1026,7 @@ qint64 Interpreter::wearequip(qint64, const TokenMap& TK)
 		if (item.name == recordedItem.name && item.memo == recordedItem.memo)
 			continue;
 
-		qint64 itemIndex = injector.server->getItemIndexByName(recordedItem.name);
+		qint64 itemIndex = injector.server->getItemIndexByName(recordedItem.name, true, "", CHAR_EQUIPPLACENUM);
 		if (itemIndex == -1)
 			continue;
 
@@ -1145,7 +1118,7 @@ qint64 Interpreter::petequip(qint64, const TokenMap& TK)
 	if (itemName.isEmpty())
 		return Parser::kArgError;
 
-	qint64 itemIndex = injector.server->getItemIndexByName(itemName);
+	qint64 itemIndex = injector.server->getItemIndexByName(itemName, true, "", CHAR_EQUIPPLACENUM);
 	if (itemIndex != -1)
 		injector.server->petitemswap(petIndex, itemIndex, -1);
 
@@ -1286,7 +1259,6 @@ qint64 Interpreter::deposititem(qint64, const TokenMap& TK)
 	min += CHAR_EQUIPPLACENUM;
 	max += CHAR_EQUIPPLACENUM;
 
-
 	QString itemName;
 	checkString(TK, 2, &itemName);
 
@@ -1300,7 +1272,7 @@ qint64 Interpreter::deposititem(qint64, const TokenMap& TK)
 		for (const QString& name : itemNames)
 		{
 			QVector<int> v;
-			if (!injector.server->getItemIndexsByName(name, "", &v))
+			if (!injector.server->getItemIndexsByName(name, "", &v, CHAR_EQUIPPLACENUM))
 				return Parser::kArgError;
 			else
 				allv.append(v);
@@ -1324,7 +1296,6 @@ qint64 Interpreter::deposititem(qint64, const TokenMap& TK)
 			//injector.server->press(1);
 			//waitfor(1000, [&injector]()->bool { return !injector.server->IS_WAITFOR_DIALOG_FLAG; });
 		}
-
 	}
 	else
 	{
@@ -1339,7 +1310,6 @@ qint64 Interpreter::deposititem(qint64, const TokenMap& TK)
 
 			injector.server->depositItem(i);
 			injector.server->press(1);
-
 		}
 	}
 

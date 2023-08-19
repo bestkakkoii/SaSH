@@ -2229,7 +2229,7 @@ No new version available. Do you still want to update?</source>
     </message>
     <message>
         <source>website</source>
-        <translation>网站</translation>
+        <translation>关于</translation>
     </message>
     <message>
         <source>close</source>

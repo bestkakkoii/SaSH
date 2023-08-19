@@ -579,83 +579,23 @@ qint64 Interpreter::waititem(qint64 currentline, const TokenMap& TK)
 	if (itemName.isEmpty() && itemMemo.isEmpty())
 		return Parser::kArgError + 1ll;
 
-	QStringList itemNames = itemName.split(util::rexOR);
-	QStringList itemMemos = itemMemo.split(util::rexOR);
-
-
 	qint64 timeout = DEFAULT_FUNCTION_TIMEOUT;
 	checkInteger(TK, 4, &timeout);
 
 	injector.server->updateItemByMemory();
 
-	auto check = [&injector, min, max, itemNames, itemMemos]()->bool
-	{
-		for (qint64 i = min; i <= max; ++i)
-		{
-			ITEM item = injector.server->getPC().item[i];
-			if (item.useFlag == 0 || item.name.isEmpty())
-				continue;
-
-			if (itemMemos.isEmpty())
-			{
-				for (const QString& it : itemNames)
-				{
-
-					if (item.name == it.simplified())
-					{
-						return true;
-					}
-					else if (it.startsWith(kFuzzyPrefix))
-					{
-						QString newName = it.mid(1).simplified();
-						if (item.name.contains(newName))
-						{
-							return true;
-						}
-					}
-				}
-			}
-			else if (itemNames.isEmpty())
-			{
-				for (const QString& it : itemMemos)
-				{
-					if (item.name.contains(it.simplified()))
-						return true;
-				}
-			}
-			else if (itemMemos.size() == itemNames.size())
-			{
-				for (qint64 j = 0; j < itemNames.size(); ++j)
-				{
-					if (item.name == itemNames.at(j).simplified() && item.memo.contains(itemMemos.at(j).simplified()))
-					{
-						return true;
-					}
-					else if (itemNames.at(j).startsWith(kFuzzyPrefix))
-					{
-						QString newName = itemNames.at(j).mid(1).simplified();
-						if (item.name.contains(newName.simplified()) && item.memo.contains(itemMemos.at(j).simplified()))
-						{
-							return true;
-						}
-					}
-				}
-			}
-		}
-
-		return false;
-	};
-
 	bool bret = false;
 	if (timeout == 0)
 	{
-		bret = check();
+		QVector<int> vec;
+		bret = injector.server->getItemIndexsByName(itemName, itemMemo, &vec, min, max);
 	}
 	else
 	{
-		bret = waitfor(timeout, [&check]()->bool
+		bret = waitfor(timeout, [&injector, itemName, itemMemo, min, max]()->bool
 			{
-				return check();
+				QVector<int> vec;
+				return injector.server->getItemIndexsByName(itemName, itemMemo, &vec, min, max);
 			});
 	}
 

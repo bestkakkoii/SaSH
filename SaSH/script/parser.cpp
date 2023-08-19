@@ -1427,10 +1427,8 @@ void Parser::replaceSysConstKeyword(QString& expr)
 	match = rexMap.match(expr);
 	if (match.hasMatch())
 	{
-		QString strIndex = match.captured(1).simplified().toLower();
-		QString strType = match.captured(2).simplified().toLower();
-
-		if (strIndex.isEmpty() || strType.isEmpty())
+		QString strType = match.captured(1).simplified().toLower();
+		if (strType.isEmpty())
 			return;
 
 		CompareType cmpType = compareMapTypeMap.value(strType.toLower(), kCompareTypeNone);

@@ -1711,7 +1711,7 @@ QStringList Server::getJoinableUnitList() const
 };
 
 //使用道具名稱枚舉所有道具索引
-bool Server::getItemIndexsByName(const QString& name, const QString& memo, QVector<int>* pv)
+bool Server::getItemIndexsByName(const QString& name, const QString& memo, QVector<int>* pv, int from, int to)
 {
 	bool isExact = true;
 	QString newName = name.simplified();
@@ -1761,7 +1761,7 @@ bool Server::getItemIndexsByName(const QString& name, const QString& memo, QVect
 }
 
 //根據道具名稱(或包含說明文)獲取模糊或精確匹配道具索引
-int Server::getItemIndexByName(const QString& name, bool isExact, const QString& memo) const
+int Server::getItemIndexByName(const QString& name, bool isExact, const QString& memo, int from, int to) const
 {
 	if (name.isEmpty())
 		return -1;
@@ -1777,7 +1777,7 @@ int Server::getItemIndexByName(const QString& name, bool isExact, const QString&
 
 	PC pc = getPC();
 
-	for (int i = 0; i < MAX_ITEM; ++i)
+	for (int i = from; i < to; ++i)
 	{
 		QString itemName = pc.item[i].name.simplified();
 		if (itemName.isEmpty() || pc.item[i].useFlag == 0)
@@ -3318,7 +3318,7 @@ void Server::sell(const QString& name, const QString& memo, int seqno, int objin
 		objindex = dialog.objindex;
 
 	QVector<int> indexs;
-	if (!getItemIndexsByName(name, memo, &indexs))
+	if (!getItemIndexsByName(name, memo, &indexs, CHAR_EQUIPPLACENUM))
 		return;
 
 	sell(indexs, seqno, objindex);
@@ -3686,7 +3686,7 @@ void Server::mail(const QVariant& card, const QString& text, int petIndex, const
 		if (addressBook[index].onlineFlag == 0)
 			return;
 
-		int itemIndex = getItemIndexByName(itemName, true, itemMemo);
+		int itemIndex = getItemIndexByName(itemName, true, itemMemo, CHAR_EQUIPPLACENUM);
 		if (itemIndex < 0 || itemIndex >= MAX_ITEM)
 			return;
 
@@ -4567,7 +4567,7 @@ void Server::craft(util::CraftType type, const QStringList& ingres)
 
 	for (const QString& it : ingres)
 	{
-		int index = getItemIndexByName(it, true);
+		int index = getItemIndexByName(it, true, "", CHAR_EQUIPPLACENUM);
 		if (index == -1)
 			return;
 
@@ -5621,7 +5621,7 @@ void Server::handlePlayerBattleLogics()
 			items = text.split(util::rexOR, Qt::SkipEmptyParts);
 			for (const QString& str : items)
 			{
-				itemIndex = getItemIndexByName(str);
+				itemIndex = getItemIndexByName(str, true, "", CHAR_EQUIPPLACENUM);
 				if (itemIndex != -1)
 					break;
 			}
@@ -5764,7 +5764,7 @@ void Server::handlePlayerBattleLogics()
 		int itemIndex = -1;
 		for (const QString& str : items)
 		{
-			itemIndex = getItemIndexByName(str);
+			itemIndex = getItemIndexByName(str, true, "", CHAR_EQUIPPLACENUM);
 			if (itemIndex != -1)
 				break;
 		}
@@ -5899,7 +5899,7 @@ void Server::handlePlayerBattleLogics()
 		int itemIndex = -1;
 		for (const QString& str : items)
 		{
-			itemIndex = getItemIndexByName(str);
+			itemIndex = getItemIndexByName(str, true, "", CHAR_EQUIPPLACENUM);
 			if (itemIndex != -1)
 				break;
 		}
@@ -6335,7 +6335,7 @@ void Server::handlePlayerBattleLogics()
 		bool meatProiory = injector.getEnableHash(util::kBattleItemHealMeatPriorityEnable);
 		if (meatProiory)
 		{
-			itemIndex = getItemIndexByName(u8"肉", false, u8"耐久力");
+			itemIndex = getItemIndexByName(u8"肉", false, u8"耐久力", CHAR_EQUIPPLACENUM);
 		}
 
 		if (itemIndex == -1)
@@ -6350,7 +6350,7 @@ void Server::handlePlayerBattleLogics()
 
 			for (const QString& str : items)
 			{
-				itemIndex = getItemIndexByName(str);
+				itemIndex = getItemIndexByName(str, true, "", CHAR_EQUIPPLACENUM);
 				if (itemIndex != -1)
 					break;
 			}

@@ -365,8 +365,8 @@ public://actions
 
 	int getPartySize() const;
 	QStringList getJoinableUnitList() const;
-	bool getItemIndexsByName(const QString& name, const QString& memo, QVector<int>* pv);
-	int getItemIndexByName(const QString& name, bool isExact = true, const QString& memo = "") const;
+	bool getItemIndexsByName(const QString& name, const QString& memo, QVector<int>* pv, int from = 0, int to = MAX_ITEM);
+	int getItemIndexByName(const QString& name, bool isExact = true, const QString& memo = "", int from = 0, int to = MAX_ITEM) const;
 	int getPetSkillIndexByName(int& petIndex, const QString& name) const;
 	bool getPetIndexsByName(const QString& name, QVector<int>* pv) const;
 	int getMagicIndexByName(const QString& name, bool isExact = true) const;
@@ -605,7 +605,7 @@ private:
 #else
 		return QDateTime::currentMSecsSinceEpoch();
 #endif
-}
+	}
 
 	inline void setWarpMap(const QPoint& pos)
 	{

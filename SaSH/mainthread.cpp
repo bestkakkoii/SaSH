@@ -917,7 +917,7 @@ void MainObject::checkAutoSortItem()
 	if (injector.server.isNull())
 		return;
 
-	if (!injector.getEnableHash(util::kAutoStackEnable))
+	if (injector.getEnableHash(util::kAutoStackEnable))
 	{
 		if (autosortitem_future_.isRunning())
 			return;
