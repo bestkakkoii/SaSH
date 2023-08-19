@@ -499,7 +499,7 @@ qint64 Interpreter::buy(qint64, const TokenMap& TK)
 	checkString(TK, 3, &npcName);
 
 	if (npcName.isEmpty())
-		injector.server->buy(itemIndex, count, kDialogBuy);
+		injector.server->buy(itemIndex, count);
 	else
 	{
 		mapunit_t unit;
@@ -545,7 +545,7 @@ qint64 Interpreter::sell(qint64, const TokenMap& TK)
 	itemIndexs.erase(it, itemIndexs.end());
 
 	if (npcName.isEmpty())
-		injector.server->sell(itemIndexs, kDialogSell);
+		injector.server->sell(itemIndexs);
 	else
 	{
 		mapunit_t unit;
