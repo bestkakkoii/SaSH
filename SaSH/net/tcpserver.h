@@ -443,6 +443,7 @@ public://actions
 	PET_SKILL getPetSkill(int petIndex, int skillIndex) const { return petSkill[petIndex][skillIndex]; }
 	PARTY getParty(int partyIndex) const { return party[partyIndex]; }
 	ITEM getPetEquip(int petIndex, int equipIndex) const { return pet[petIndex].item[equipIndex]; }
+	ADDRESS_BOOK getAddressBook(int index) const { return addressBook[index]; }
 
 	Q_REQUIRED_RESULT int findInjuriedAllie();
 	void refreshItemInfo();
@@ -604,7 +605,7 @@ private:
 #else
 		return QDateTime::currentMSecsSinceEpoch();
 #endif
-	}
+}
 
 	inline void setWarpMap(const QPoint& pos)
 	{

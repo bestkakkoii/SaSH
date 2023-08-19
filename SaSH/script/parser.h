@@ -101,6 +101,12 @@ enum CompareType
 	kTeamHpPercent,
 	kTeamMp,
 
+	kCardName,
+	kCardOnlineState,
+	kCardTurn,
+	kCardDp,
+	kCardLevel,
+
 	kTeamCount,
 	kPetCount,
 
@@ -109,6 +115,14 @@ enum CompareType
 	kMapX,
 	kMapY,
 
+};
+
+inline static const QHash<QString, CompareType> compareCardTypeMap = {
+	{ u8"name", kCardName },
+	{ u8"online", kCardOnlineState },
+	{ u8"turn", kCardTurn },
+	{ u8"dp", kCardDp },
+	{ u8"lv", kCardLevel },
 };
 
 inline static const QHash<QString, CompareType> compareItemTypeMap = {
