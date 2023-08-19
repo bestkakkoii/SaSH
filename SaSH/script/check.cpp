@@ -342,9 +342,6 @@ qint64 Interpreter::waitdlg(qint64 currentline, const TokenMap& TK)
 	if (injector.server.isNull())
 		return Parser::kError;
 
-	if (!injector.server->isDialogVisible())
-		return checkJump(TK, 4, false, FailedJump);
-
 	QString cmpStr;
 	qint64 dlgid = -1;
 	if (!checkString(TK, 1, &cmpStr))
@@ -363,12 +360,15 @@ qint64 Interpreter::waitdlg(qint64 currentline, const TokenMap& TK)
 		checkInteger(TK, 2, &timeout);
 
 		if (timeout == 0)
-			bret = injector.server->currentDialog.seqno == dlgid;
+			bret = injector.server->currentDialog.get().seqno == dlgid;
 		else
 		{
 			bret = waitfor(timeout, [&injector, dlgid]()->bool
 				{
-					return injector.server->currentDialog.seqno == dlgid;
+					if (!injector.server->isDialogVisible())
+						return false;
+
+					return injector.server->currentDialog.get().seqno == dlgid;
 				});
 		}
 
@@ -393,7 +393,10 @@ qint64 Interpreter::waitdlg(qint64 currentline, const TokenMap& TK)
 
 		auto check = [&injector, min, max, cmpStrs]()->bool
 		{
-			QStringList dialogStrList = injector.server->currentDialog.linedatas;
+			if (!injector.server->isDialogVisible())
+				return false;
+
+			QStringList dialogStrList = injector.server->currentDialog.get().linedatas;
 			for (qint64 i = min; i <= max; ++i)
 			{
 				int index = i - 1;

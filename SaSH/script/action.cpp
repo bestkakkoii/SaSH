@@ -1836,9 +1836,12 @@ qint64 Interpreter::mail(qint64, const TokenMap& TK)
 
 	qint64 petIndex = -1;
 	checkInteger(TK, 3, &petIndex);
-	--petIndex;
-	if (petIndex < 0 || petIndex >= MAX_PET)
-		return Parser::kArgError;
+	if (petIndex != -1)
+	{
+		--petIndex;
+		if (petIndex < 0 || petIndex >= MAX_PET)
+			return Parser::kArgError;
+	}
 
 	QString itemName = "";
 	checkString(TK, 4, &itemName);

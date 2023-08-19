@@ -1105,12 +1105,12 @@ void GameService::WM_SetWindowHide(bool enable)
 	if (!enable)
 	{
 		//sa_8001sf.exe+129E7 - 75 37                 - jne sa_8001sf.exe+12A20 資源優化關閉
-		util::MemoryMove(CONVERT_GAMEVAR<DWORD>(0x129E7), "\x75\x37", 2);
+		util::MemoryMove(CONVERT_GAMEVAR<DWORD>(0x129E7), "\xEB\x12", 2);
 
 		//sa_8001sf.exe+1DFFD - 74 31                 - je sa_8001sf.exe+1E030
 		util::MemoryMove(CONVERT_GAMEVAR<DWORD>(0x1DFFD), "\x74\x31", 2);
 
-		//sa_8001sf.exe+1DEE4 - 83 F9 0E              - cmp ecx,7F { 14 } 加速相關
+		//sa_8001sf.exe+1DEE4 - 83 F9 0E              - cmp ecx,0E { 14 } 加速相關
 		util::MemoryMove(CONVERT_GAMEVAR<DWORD>(0x1DEE4), "\x83\xF9\x0E", 3);
 
 		//Sleep停止更改

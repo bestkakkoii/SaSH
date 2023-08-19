@@ -2856,7 +2856,7 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 					break;
 				}
 
-				qint64 unitid = injector.server->currentDialog.objindex;
+				qint64 unitid = injector.server->currentDialog.get().objindex;
 				varValue = unitid;
 			}
 			else if (typeStr == "type")
@@ -2867,7 +2867,7 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 					break;
 				}
 
-				qint64 type = injector.server->currentDialog.windowtype;
+				qint64 type = injector.server->currentDialog.get().windowtype;
 				varValue = type;
 			}
 			else if (typeStr == "button")
@@ -2878,7 +2878,7 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 					break;
 				}
 
-				QStringList list = injector.server->currentDialog.linebuttontext;
+				QStringList list = injector.server->currentDialog.get().linebuttontext;
 				varValue = list.join("|");
 			}
 			break;
@@ -2890,7 +2890,7 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 			break;
 		}
 
-		QStringList dialogStrList = injector.server->currentDialog.linedatas;
+		QStringList dialogStrList = injector.server->currentDialog.get().linedatas;
 
 		if (dialogIndex == -1)
 		{

@@ -2787,12 +2787,6 @@ bool Server::isDialogVisible()
 	int hModule = injector.getProcessModule();
 
 	bool bret = mem::read<int>(hProcess, hModule + 0xB83EC) != -1;
-	if (!bret)
-	{
-		QMutexLocker locker(&net_mutex);
-		currentDialog = {};
-	}
-
 	return bret;
 }
 #pragma endregion
@@ -8671,7 +8665,7 @@ void Server::lssproto_WN_recv(int windowtype, int buttontype, int seqno, int obj
 			it = it.simplified();
 	}
 
-	currentDialog = (dialog_t{ windowtype, buttontype, seqno, objindex, data, linedatas, strList });
+	currentDialog.set(dialog_t{ windowtype, buttontype, seqno, objindex, data, linedatas, strList });
 
 	for (const QString& it : BankPetList)
 	{
