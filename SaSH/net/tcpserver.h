@@ -354,7 +354,7 @@ public://actions
 	void cleanChatHistory();
 	QString getChatHistory(int index);
 
-	bool findUnit(const QString& name, int type, mapunit_t* unit, const QString freename = "", int modelid = -1);
+	bool findUnit(const QString& name, int type, mapunit_t* unit, const QString& freename = "", int modelid = -1);
 
 	void setTeamState(bool join);
 	void kickteam(int n);

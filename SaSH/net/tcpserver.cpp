@@ -2022,21 +2022,25 @@ int Server::checkJobDailyState(const QString& missionName)
 }
 
 //查找指定類型和名稱的單位
-bool Server::findUnit(const QString& name, int type, mapunit_t* unit, const QString freename, int modelid)
+bool Server::findUnit(const QString& name, int type, mapunit_t* punit, const QString& freename, int modelid)
 {
 	QList<mapunit_t> units = mapUnitHash.values();
+
 	QString newName = name.simplified();
-	QStringList strList = newName.split(util::rexOR, Qt::SkipEmptyParts);
+	QStringList nameList = newName.split(util::rexOR, Qt::SkipEmptyParts);
+
 	QString newFreeName = freename.simplified();
-	if (strList.size() == 2)
+	QStringList freeNameList = newName.split(util::rexOR);
+
+	if (nameList.size() == 2)
 	{
 		bool ok = false;
 		QPoint point;
-		point.setX(strList.at(0).simplified().toInt(&ok));
+		point.setX(nameList.at(0).simplified().toInt(&ok));
 		if (!ok)
 			return false;
 
-		point.setY(strList.at(1).simplified().toInt(&ok));
+		point.setY(nameList.at(1).simplified().toInt(&ok));
 		if (!ok)
 			return false;
 
@@ -2047,7 +2051,7 @@ bool Server::findUnit(const QString& name, int type, mapunit_t* unit, const QStr
 
 			if (it.p == point)
 			{
-				*unit = it;
+				*punit = it;
 				setPlayerFaceToPoint(point);
 				return true;
 			}
@@ -2056,61 +2060,73 @@ bool Server::findUnit(const QString& name, int type, mapunit_t* unit, const QStr
 	}
 	else
 	{
-		for (const mapunit_t& it : units)
+		auto check = [&punit, &units, type](int id, QString newName, const QString& newFreeName)
 		{
-			if (it.graNo == 0 || it.graNo == 9999)
-				continue;
-
-			if (modelid != -1)
+			for (const mapunit_t& it : units)
 			{
-				if (it.graNo == modelid)
-				{
-					*unit = it;
-					return true;
-				}
-				continue;
-			}
+				if (it.graNo == 0 || it.graNo == 9999)
+					continue;
 
-			QString newNpcName = it.name.simplified();
-
-			if (newFreeName.isEmpty())
-			{
-
-				if ((newNpcName == newName) && (it.objType == type))
+				if (id != -1)
 				{
-					*unit = it;
-					return true;
-				}
-				else if (newName.startsWith("?") && (it.objType == type))
-				{
-					QString newName = newName.mid(1).simplified();
-					if (newNpcName.contains(newName))
+					if (it.graNo == id)
 					{
-						*unit = it;
+						*punit = it;
 						return true;
+					}
+					continue;
+				}
+
+				QString newNpcName = it.name.simplified();
+
+				if (newFreeName.isEmpty())
+				{
+
+					if ((newNpcName == newName) && (it.objType == type))
+					{
+						*punit = it;
+						return true;
+					}
+					else if (newName.startsWith("?") && (it.objType == type))
+					{
+						QString newName = newName.mid(1).simplified();
+						if (newNpcName.contains(newName))
+						{
+							*punit = it;
+							return true;
+						}
+					}
+				}
+				else
+				{
+					QString newNPCFreeName = it.freeName.simplified();
+					if ((newNpcName == newName) && (newNPCFreeName.contains(newFreeName)) && (it.objType == type))
+					{
+						*punit = it;
+						return true;
+					}
+					else if (newName.startsWith("?") && (it.objType == type))
+					{
+						newName = newName.mid(1).simplified();
+						if (newNpcName.contains(newName) && (newNPCFreeName.contains(newFreeName)))
+						{
+							*punit = it;
+							return true;
+						}
 					}
 				}
 			}
-			else
-			{
-				QString newNPCFreeName = it.freeName.simplified();
-				if ((newNpcName == name) && (newNPCFreeName.contains(freename)) && (it.objType == type))
-				{
-					*unit = it;
-					return true;
-				}
-				else if (name.startsWith("?") && (it.objType == type))
-				{
-					newName = name.mid(1).simplified();
-					if (newNpcName.contains(newName) && (newNPCFreeName.contains(freename)))
-					{
-						*unit = it;
-						return true;
-					}
-				}
-			}
+		};
+
+		for (const auto& tmpName : nameList)
+		{
+			QString tmpFreeName;
+			if (freeNameList.size() > 0)
+				tmpFreeName = freeNameList.takeFirst();
+
+			if (check(modelid, tmpName, tmpFreeName))
+				return true;
 		}
-
 	}
 	return false;
 }
@@ -8204,8 +8220,8 @@ void Server::lssproto_AB_recv(char* cdata)
 					sprintf_s(addressBook[i].planetname, "%s", gmsv[j].name);
 					break;
 				}
-			}
-		}
+	}
+}
 #endif
 	}
 }
@@ -8277,8 +8293,8 @@ void Server::lssproto_ABI_recv(int num, char* cdata)
 				sprintf_s(addressBook[num].planetname, 64, "%s", gmsv[j].name);
 				break;
 			}
-		}
 	}
+}
 #endif
 }
 
@@ -8566,7 +8582,7 @@ void Server::lssproto_I_recv(char* cdata)
 #endif
 			*/
 
-	}
+}
 
 	setPC(pc);
 
@@ -9544,8 +9560,8 @@ void Server::lssproto_KS_recv(int petarray, int result)
 			pc.selectPetNo[petarray] = 0;
 			if (petarray == pc.battlePetNo)
 				pc.battlePetNo = -1;
-		}
 	}
+}
 #endif
 
 	setPC(pc);
@@ -10137,7 +10153,7 @@ void Server::lssproto_TK_recv(int index, char* cmessage, int color)
 			else
 			{
 				fontsize = 0;
-			}
+		}
 #endif
 			if (szToken.size() > 1)
 			{
@@ -10258,13 +10274,13 @@ void Server::lssproto_TK_recv(int index, char* cmessage, int color)
 				//pc.status |= CHR_STATUS_FUKIDASHI;
 			}
 		}
-	}
+			}
 
 	setPC(pc);
 
 	chatQueue.enqueue(QPair{ color ,msg });
 	emit signalDispatcher.appendChatLog(msg, color);
-}
+	}
 
 //地圖數據更新，重新繪製地圖
 void Server::lssproto_MC_recv(int fl, int x1, int y1, int x2, int y2, int tileSum, int partsSum, int eventSum, char* cdata)
@@ -10508,7 +10524,7 @@ void Server::lssproto_C_recv(char* cdata)
 			{
 				extern char* FreeGetTitleStr(int id);
 				sprintf(titlestr, "%s", FreeGetTitleStr(titleindex));
-			}
+		}
 #endif
 #ifdef _CHAR_PROFESSION			// WON ADD 人物職業
 			getStringToken(bigtoken, "|", 18, smalltoken);
@@ -10578,7 +10594,7 @@ void Server::lssproto_C_recv(char* cdata)
 						break;
 					}
 				}
-			}
+				}
 			else
 			{
 #ifdef _CHAR_PROFESSION			// WON ADD 人物職業
@@ -10614,7 +10630,7 @@ void Server::lssproto_C_recv(char* cdata)
 				if (charType == 13 && noticeNo > 0)
 				{
 					setNpcNotice(ptAct, noticeNo);
-				}
+			}
 #endif
 				//if (ptAct != NULL)
 				//{
@@ -10635,7 +10651,7 @@ void Server::lssproto_C_recv(char* cdata)
 					//}
 					//setCharNameColor(ptAct, charNameColor);
 				//}
-			}
+		}
 
 			if (name == u8"を�そó")//排除亂碼
 				break;
@@ -10666,7 +10682,7 @@ void Server::lssproto_C_recv(char* cdata)
 			mapUnitHash.insert(id, unit);
 
 			break;
-		}
+	}
 		case 2://OBJTYPE_ITEM
 		{
 			getStringToken(bigtoken, "|", 2, smalltoken);
@@ -10966,8 +10982,8 @@ void Server::lssproto_C_recv(char* cdata)
 						}
 					}
 				}
-			}
-		}
+}
+}
 #endif
 #pragma endregion
 	}
@@ -11068,13 +11084,13 @@ void Server::lssproto_CA_recv(char* cdata)
 						setPcAction(5);
 #endif
 					}
-				}
+		}
 				else
 #endif
 					//changePcAct(x, y, dir, act, effectno, effectparam1, effectparam2);
-			}
+	}
 			continue;
-		}
+}
 
 		//ptAct = getCharObjAct(charindex);
 		//if (ptAct == NULL)
@@ -12273,7 +12289,7 @@ void Server::lssproto_S_recv(char* cdata)
 #endif
 
 			refreshItemInfo(i);
-		}
+	}
 
 		QStringList itemList;
 		for (const ITEM& it : pc.item)
@@ -12283,7 +12299,7 @@ void Server::lssproto_S_recv(char* cdata)
 			itemList.append(it.name);
 		}
 		emit signalDispatcher.updateComboBoxItemText(util::kComboBoxItem, itemList);
-	}
+}
 #pragma endregion
 #pragma region PetSkill
 	else if (first == "W")//接收到的寵物技能
@@ -12495,7 +12511,7 @@ void Server::lssproto_S_recv(char* cdata)
 #ifdef _ITEM_COUNTDOWN
 			pet[nPetIndex].item[i].counttime = getIntegerToken(data, "|", no + 16);
 #endif
-		}
+	}
 	}
 #endif
 #pragma endregion
@@ -12613,7 +12629,7 @@ void Server::lssproto_CharList_recv(char* cresult, char* cdata)
 		PcLanded.登陸延時時間 = TimeGetTime() + 2000;
 #endif
 		return;
-	}
+}
 
 	//if (netproc_sending == NETPROC_SENDING)
 	//{
@@ -12737,7 +12753,7 @@ void Server::lssproto_CharLogin_recv(char* cresult, char* cdata)
 	angelFlag = FALSE;
 	angelMsg[0] = NULL;
 #endif
-}
+	}
 
 void Server::lssproto_TD_recv(char* cdata)//交易
 {
