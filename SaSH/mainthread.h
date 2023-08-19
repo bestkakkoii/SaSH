@@ -49,6 +49,7 @@ private:
 
 	void checkControl();
 	void checkEtcFlag();
+	void checkAutoSortItem();
 	void checkAutoWalk();
 	void checkAutoDropItems();
 	void checkAutoDropMeat(const QStringList& items);
@@ -79,6 +80,9 @@ private:
 
 	QFuture<void> autodroppet_future_;
 	std::atomic_bool autodroppet_future_cancel_flag_ = false;
+
+	QFuture<void> autosortitem_future_;
+	std::atomic_bool autosortitem_future_cancel_flag_ = false;
 
 	QFutureSynchronizer <void> pointerWriterSync_;
 

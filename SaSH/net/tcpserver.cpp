@@ -2083,7 +2083,7 @@ bool Server::findUnit(const QString& name, int type, mapunit_t* unit, const QStr
 				}
 				else if (newName.startsWith("?") && (it.objType == type))
 				{
-					QString newName = newName.mid(1);
+					QString newName = newName.mid(1).simplified();
 					if (newNpcName.contains(newName))
 					{
 						*unit = it;
@@ -2101,7 +2101,7 @@ bool Server::findUnit(const QString& name, int type, mapunit_t* unit, const QStr
 				}
 				else if (name.startsWith("?") && (it.objType == type))
 				{
-					newName = name.mid(1);
+					newName = name.mid(1).simplified();
 					if (newNpcName.contains(newName) && (newNPCFreeName.contains(freename)))
 					{
 						*unit = it;
@@ -4220,10 +4220,6 @@ void Server::setPlayerFaceDirection(const QString& dirStr)
 //物品排序
 void Server::sortItem(bool deepSort)
 {
-	Injector& injector = Injector::getInstance();
-	if (!injector.getEnableHash(util::kAutoStackEnable))
-		return;
-
 	getPlayerMaxCarryingCapacity();
 	PC pc = getPC();
 	int j = 0;
@@ -4260,6 +4256,19 @@ void Server::sortItem(bool deepSort)
 				if (pc.maxload <= 0)
 					continue;
 
+				QString key = QString("%1|%2|%3").arg(pc.item[j].name).arg(pc.item[j].memo).arg(pc.item[j].graNo);
+				if (pc.item[j].pile > 1 && !itemStackFlagHash.contains(key))
+					itemStackFlagHash.insert(key, true);
+				else
+				{
+					swapItem(i, j);
+					itemStackFlagHash.insert(key, false);
+					continue;
+				}
+
+				if (itemStackFlagHash.contains(key) && !itemStackFlagHash.value(key) && pc.item[j].pile == 1)
+					continue;
+
 				if (pc.item[j].pile >= pc.maxload)
 				{
 					pc.maxload = pc.item[j].pile;
@@ -4275,6 +4284,7 @@ void Server::sortItem(bool deepSort)
 					continue;
 
 				pc.item[j].maxStack = pc.item[j].pile;
+
 				swapItem(i, j);
 			}
 		}

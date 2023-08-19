@@ -180,6 +180,14 @@ void MainObject::run()
 		autodroppet_future_.waitForFinished();
 	}
 
+	//關閉自動疊加
+	if (autosortitem_future_.isRunning())
+	{
+		autosortitem_future_cancel_flag_.store(true, std::memory_order_release);
+		autosortitem_future_.cancel();
+		autosortitem_future_.waitForFinished();
+	}
+
 	pointerWriterSync_.waitForFinished();
 
 	//強制關閉遊戲進程
@@ -484,7 +492,7 @@ int MainObject::checkAndRunFunctions()
 		checkAutoLockSchedule();
 
 		//自動疊加
-		injector.server->sortItem();
+		checkAutoSortItem();
 		return 1;
 	}
 	else //戰鬥中
@@ -900,6 +908,47 @@ void MainObject::checkEtcFlag()
 
 	if (hasChange)
 		injector.server->setSwitcher(flg);
+}
+
+//自動疊加
+void MainObject::checkAutoSortItem()
+{
+	Injector& injector = Injector::getInstance();
+	if (injector.server.isNull())
+		return;
+
+	if (!injector.getEnableHash(util::kAutoStackEnable))
+	{
+		if (autosortitem_future_.isRunning())
+			return;
+
+		autosortitem_future_ = QtConcurrent::run([&injector, this]()
+			{
+				int	i = 0;
+				constexpr int duration = 3;
+
+				for (;;)
+				{
+					for (i = 0; i < duration; ++i)
+					{
+						if (injector.server.isNull())
+							return;
+						QThread::msleep(1000);
+					}
+
+					injector.server->sortItem();
+				}
+			});
+	}
+	else
+	{
+		if (autosortitem_future_.isRunning())
+		{
+			autosortitem_future_cancel_flag_.store(true, std::memory_order_release);
+			autosortitem_future_.cancel();
+			autosortitem_future_.waitForFinished();
+		}
+	}
 }
 
 //走路遇敵
