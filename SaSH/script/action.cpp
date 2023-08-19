@@ -1840,13 +1840,12 @@ qint64 Interpreter::mail(qint64, const TokenMap& TK)
 		if (addrIndex <= 0 || addrIndex >= MAX_ADR_BOOK)
 			return Parser::kArgError;
 		--addrIndex;
+
 		card = addrIndex;
 	}
 
 	QString text;
 	checkString(TK, 2, &text);
-	if (text.isEmpty())
-		return Parser::kArgError;
 
 	qint64 petIndex = -1;
 	checkInteger(TK, 3, &petIndex);
