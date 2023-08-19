@@ -498,14 +498,17 @@ qint64 Interpreter::buy(qint64, const TokenMap& TK)
 	QString npcName;
 	checkString(TK, 3, &npcName);
 
+	qint64 dlgid = -1;
+	checkInteger(TK, 4, &dlgid);
+
 	if (npcName.isEmpty())
-		injector.server->buy(itemIndex, count);
+		injector.server->buy(itemIndex, count, dlgid);
 	else
 	{
 		mapunit_t unit;
 		if (injector.server->findUnit(npcName, util::OBJ_NPC, &unit))
 		{
-			injector.server->buy(itemIndex, count, kDialogBuy, unit.id);
+			injector.server->buy(itemIndex, count, dlgid, unit.id);
 		}
 	}
 
@@ -530,6 +533,8 @@ qint64 Interpreter::sell(qint64, const TokenMap& TK)
 	QString npcName;
 	checkString(TK, 2, &npcName);
 
+	qint64 dlgid = -1;
+	checkInteger(TK, 3, &dlgid);
 
 	QVector<int> itemIndexs;
 	for (const QString& it : nameList)
@@ -545,14 +550,13 @@ qint64 Interpreter::sell(qint64, const TokenMap& TK)
 	itemIndexs.erase(it, itemIndexs.end());
 
 	if (npcName.isEmpty())
-		injector.server->sell(itemIndexs);
+		injector.server->sell(itemIndexs, dlgid);
 	else
 	{
 		mapunit_t unit;
 		if (injector.server->findUnit(npcName, util::OBJ_NPC, &unit))
 		{
-			injector.server->sell(itemIndexs, kDialogSell, unit.id);
-
+			injector.server->sell(itemIndexs, dlgid, unit.id);
 		}
 	}
 
