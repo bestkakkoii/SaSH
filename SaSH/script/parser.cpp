@@ -124,9 +124,6 @@ void Parser::handleError(qint64 err, const QString& addition)
 	case kError:
 		msg = QObject::tr("unknown error") + extMsg;
 		break;
-	case kArgError:
-		msg = QObject::tr("argument error") + extMsg;
-		break;
 	case kLabelError:
 		msg = QObject::tr("label incorrect or not exist") + extMsg;
 		break;
@@ -137,7 +134,17 @@ void Parser::handleError(qint64 err, const QString& addition)
 		break;
 	}
 	default:
+	{
+		if (err >= kArgError && err <= kArgError + 20ll)
+		{
+			if (err == kArgError)
+				msg = QObject::tr("argument error");
+			else
+				msg = QObject::tr("argument error idx:%1").arg(err - kArgError);
+			break;
+		}
 		break;
+	}
 	}
 
 	emit signalDispatcher.appendScriptLog(QObject::tr("error occured at line %1. detail:%2").arg(lineNumber_ + 1).arg(msg), 6);
@@ -676,7 +683,7 @@ qint64 Parser::checkJump(const TokenMap& TK, qint64 idx, bool expr, JumpBehavior
 					line = value;
 			}
 			else
-				return Parser::kArgError;
+				return Parser::kArgError + idx;
 		}
 
 		if (label.isEmpty() && line == 0)
@@ -691,7 +698,7 @@ qint64 Parser::checkJump(const TokenMap& TK, qint64 idx, bool expr, JumpBehavior
 			jump(line, false);
 		}
 		else
-			return Parser::kArgError;
+			return Parser::kArgError + idx;
 
 		return Parser::kHasJump;
 	}

@@ -27,15 +27,15 @@ qint64 Interpreter::reg(qint64 currentline, const TokenMap& TK)
 {
 	QString text;
 	if (!checkString(TK, 1, &text))
-		return Parser::kArgError;
+		return Parser::kArgError + 1ll;
 
 	QString typeStr;
 	if (!checkString(TK, 2, &typeStr))
-		return Parser::kArgError;
+		return Parser::kArgError + 2ll;
 
 	QHash<QString, qint64> hash = parser_.getLabels();
 	if (!hash.contains(text))
-		return Parser::kArgError;
+		return Parser::kArgError + 1ll;
 
 	parser_.insertUserCallBack(text, typeStr);
 	return Parser::kNoChange;
@@ -47,7 +47,7 @@ qint64 Interpreter::timer(qint64 currentline, const TokenMap& TK)
 	qint64 pointer = 0;
 	if (!checkInteger(TK, 1, &pointer))
 	{
-		return Parser::kArgError;
+		return Parser::kArgError + 1ll;
 	}
 	else if (pointer == 0)
 	{
@@ -97,7 +97,7 @@ qint64 Interpreter::sleep(qint64 currentline, const TokenMap& TK)
 {
 	qint64 t;
 	if (!checkInteger(TK, 1, &t))
-		return Parser::kArgError;
+		return Parser::kArgError + 1ll;
 
 	if (t >= 1000)
 	{
@@ -133,9 +133,9 @@ qint64 Interpreter::press(qint64 currentline, const TokenMap& TK)
 	if (!checkInteger(TK, 1, &row))
 	{
 		if (!checkString(TK, 1, &text))
-			return Parser::kArgError;
+			return Parser::kArgError + 1ll;
 		if (text.isEmpty())
-			return Parser::kArgError;
+			return Parser::kArgError + 1ll;
 	}
 
 	QString npcName;
@@ -153,7 +153,7 @@ qint64 Interpreter::press(qint64 currentline, const TokenMap& TK)
 	checkInteger(TK, 4, &ext);
 
 	if (text.isEmpty() && row == 0)
-		return Parser::kArgError;
+		return Parser::kArgError + 1ll;
 
 	if (!text.isEmpty())
 	{
@@ -230,7 +230,7 @@ qint64 Interpreter::announce(qint64 currentline, const TokenMap& TK)
 	{
 		qint64 value = 0;
 		if (!checkInteger(TK, 1, &value))
-			return Parser::kArgError;
+			return Parser::kArgError + 1ll;
 
 		text = QString::number(value);
 	}
@@ -268,7 +268,7 @@ qint64 Interpreter::input(qint64 currentline, const TokenMap& TK)
 	{
 		qint64 value = 0;
 		if (!checkInteger(TK, 1, &value))
-			return Parser::kArgError;
+			return Parser::kArgError + 1ll;
 
 		text = QString::number(value);
 	}
@@ -297,7 +297,7 @@ qint64 Interpreter::messagebox(qint64 currentline, const TokenMap& TK)
 	{
 		qint64 value = 0;
 		if (!checkInteger(TK, 1, &value))
-			return Parser::kArgError;
+			return Parser::kArgError + 1ll;
 
 		text = QString::number(value);
 	}
@@ -338,7 +338,7 @@ qint64 Interpreter::talk(qint64 currentline, const TokenMap& TK)
 	{
 		qint64 value = 0;
 		if (!checkInteger(TK, 1, &value))
-			return Parser::kArgError;
+			return Parser::kArgError + 1ll;
 
 		text = QString::number(value);
 	}
@@ -379,16 +379,16 @@ qint64 Interpreter::menu(qint64 currentline, const TokenMap& TK)
 
 	qint64 index = 0;
 	if (!checkInteger(TK, 1, &index))
-		return Parser::kArgError;
+		return Parser::kArgError + 1ll;
 	--index;
 	if (index < 0)
-		return Parser::kArgError;
+		return Parser::kArgError + 1ll;
 
 	qint64 type = 1;
 	checkInteger(TK, 2, &type);
 	--type;
 	if (type < 0 || type > 1)
-		return Parser::kArgError;
+		return Parser::kArgError + 2ll;
 
 	if (type == 0)
 	{
@@ -435,26 +435,26 @@ qint64 Interpreter::createch(qint64 currentline, const TokenMap& TK)
 	{
 		QString dataplace;
 		if (!checkString(TK, 1, &dataplace))
-			return Parser::kArgError;
+			return Parser::kArgError + 1ll;
 		if (dataplace == "左")
 			dataplacenum = 0;
 		else if (dataplace == "右")
 			dataplacenum = 1;
 		else
-			return Parser::kArgError;
+			return Parser::kArgError + 1ll;
 	}
 	else
 	{
 		if (dataplacenum != 1 && dataplacenum != 2)
-			return Parser::kArgError;
+			return Parser::kArgError + 1ll;
 		--dataplacenum;
 	}
 
 	QString charname;
 	if (!checkString(TK, 2, &charname))
-		return Parser::kArgError;
+		return Parser::kArgError + 2ll;
 	if (charname.isEmpty())
-		return Parser::kArgError;
+		return Parser::kArgError + 2ll;
 
 	qint64 imgno = 0;
 	if (!checkInteger(TK, 3, &imgno))
@@ -470,53 +470,53 @@ qint64 Interpreter::createch(qint64 currentline, const TokenMap& TK)
 
 	qint64 vit = 0;
 	if (!checkInteger(TK, 5, &vit))
-		return Parser::kArgError;
+		return Parser::kArgError + 5ll;
 	if (vit < 0)
-		return Parser::kArgError;
+		return Parser::kArgError + 5ll;
 
 	qint64 str = 0;
 	if (!checkInteger(TK, 6, &str))
-		return Parser::kArgError;
+		return Parser::kArgError + 6ll;
 	if (str < 0)
-		return Parser::kArgError;
+		return Parser::kArgError + 6ll;
 
 	qint64 tgh = 0;
 	if (!checkInteger(TK, 7, &tgh))
-		return Parser::kArgError;
+		return Parser::kArgError + 7ll;
 	if (tgh < 0)
-		return Parser::kArgError;
+		return Parser::kArgError + 7ll;
 
 	qint64 dex = 0;
 	if (!checkInteger(TK, 8, &dex))
-		return Parser::kArgError;
+		return Parser::kArgError + 8ll;
 	if (dex < 0)
-		return Parser::kArgError;
+		return Parser::kArgError + 8ll;
 
 	if (vit + str + tgh + dex != 20)
 		return Parser::kArgError;
 
 	qint64 earth = 0;
 	if (!checkInteger(TK, 9, &earth))
-		return Parser::kArgError;
+		return Parser::kArgError + 9ll;
 	if (earth < 0)
-		return Parser::kArgError;
+		return Parser::kArgError + 9ll;
 
 	qint64 water = 0;
 	if (!checkInteger(TK, 10, &water))
-		return Parser::kArgError;
+		return Parser::kArgError + 10ll;
 	if (water < 0)
-		return Parser::kArgError;
+		return Parser::kArgError + 10ll;
 
 	qint64 fire = 0;
 	if (!checkInteger(TK, 11, &fire))
-		return Parser::kArgError;
+		return Parser::kArgError + 11ll;
 	if (fire < 0)
-		return Parser::kArgError;
+		return Parser::kArgError + 11ll;
 	qint64 wind = 0;
 	if (!checkInteger(TK, 12, &wind))
-		return Parser::kArgError;
+		return Parser::kArgError + 12ll;
 	if (wind < 0)
-		return Parser::kArgError;
+		return Parser::kArgError + 12ll;
 
 	if (earth + water + fire + wind != 10)
 		return Parser::kArgError;
@@ -534,9 +534,9 @@ qint64 Interpreter::createch(qint64 currentline, const TokenMap& TK)
 
 		QString hometownstr;
 		if (!checkString(TK, 13, &hometownstr))
-			return Parser::kArgError;
+			return Parser::kArgError + 13ll;
 		if (hometownstr.isEmpty())
-			return Parser::kArgError;
+			return Parser::kArgError + 13ll;
 
 		hometown = hash.value(hometownstr, -1);
 		if (hometown == -1)
@@ -544,7 +544,6 @@ qint64 Interpreter::createch(qint64 currentline, const TokenMap& TK)
 	}
 	else
 	{
-		return Parser::kArgError;
 		if (hometown <= 0 || hometown > 4)
 			hometown = 1;
 		else
@@ -576,16 +575,16 @@ qint64 Interpreter::delch(qint64 currentline, const TokenMap& TK)
 
 	qint64 index = -1;
 	if (!checkInteger(TK, 1, &index))
-		return Parser::kArgError;
+		return Parser::kArgError + 1ll;
 	--index;
 	if (index < 0 || index > MAXCHARACTER)
-		return Parser::kArgError;
+		return Parser::kArgError + 1ll;
 
 	QString password;
 	if (!checkString(TK, 2, &password))
-		return Parser::kArgError;
+		return Parser::kArgError + 2ll;
 	if (password.isEmpty())
-		return Parser::kArgError;
+		return Parser::kArgError + 2ll;
 
 	qint64 backtofirst = 0;
 	checkInteger(TK, 3, &backtofirst);
@@ -672,7 +671,7 @@ qint64 Interpreter::loadsetting(qint64 currentline, const TokenMap& TK)
 	}
 
 	if (!QFile::exists(fileName))
-		return Parser::kArgError;
+		return Parser::kArgError + 1ll;
 
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
 	emit signalDispatcher.loadHashSettings(fileName, true);
@@ -936,7 +935,7 @@ qint64 Interpreter::set(qint64 currentline, const TokenMap& TK)
 
 	util::UserSetting type = hash.value(typeStr, util::kSettingNotUsed);
 	if (type == util::kSettingNotUsed)
-		return Parser::kArgError;
+		return Parser::kArgError + 1ll;
 
 	if (type == util::kScriptDebugModeEnable)
 	{
@@ -1472,16 +1471,16 @@ qint64 Interpreter::dlg(qint64 currentline, const TokenMap& TK)
 
 	QString varName = TK.value(1).data.toString();
 	if (varName.isEmpty())
-		return Parser::kArgError;
+		return Parser::kArgError + 1ll;
 
 	QString buttonStrs;
 	checkString(TK, 2, &buttonStrs);
 	if (buttonStrs.isEmpty())
-		return Parser::kArgError;
+		return Parser::kArgError + 2ll;
 
 	QString text;
 	if (!checkString(TK, 3, &text))
-		return Parser::kArgError;
+		return Parser::kArgError + 3ll;
 
 	qint64 timeout = DEFAULT_FUNCTION_TIMEOUT;
 	checkInteger(TK, 4, &timeout);
@@ -1495,7 +1494,7 @@ qint64 Interpreter::dlg(qint64 currentline, const TokenMap& TK)
 	for (const QString& str : buttonStrList)
 	{
 		if (!buttonMap.contains(str))
-			return Parser::kArgError;
+			return Parser::kArgError + 2ll;
 		quint32 value = buttonMap.value(str);
 		buttonFlag |= value;
 	}
@@ -1548,18 +1547,18 @@ qint64 Interpreter::regex(qint64 currentline, const TokenMap& TK)
 
 	QString varName = TK.value(1).data.toString();
 	if (varName.isEmpty())
-		return Parser::kArgError;
+		return Parser::kArgError + 1ll;
 
 	QString varValue;
 	if (!checkString(TK, 2, &varValue))
-		return Parser::kArgError;
+		return Parser::kArgError + 2ll;
 	if (varValue.isEmpty())
-		return Parser::kArgError;
+		return Parser::kArgError + 2ll;
 
 	QString text;
 	checkString(TK, 3, &text);
 	if (text.isEmpty())
-		return Parser::kArgError;
+		return Parser::kArgError + 3ll;
 
 	qint64 capture = 1;
 	checkInteger(TK, 4, &capture);
@@ -1614,18 +1613,18 @@ qint64 Interpreter::find(qint64 currentline, const TokenMap& TK)
 {
 	QString varName = TK.value(1).data.toString();
 	if (varName.isEmpty())
-		return Parser::kArgError;
+		return Parser::kArgError + 1ll;
 
 	QString varValue;
 	if (!checkString(TK, 2, &varValue))
-		return Parser::kArgError;
+		return Parser::kArgError + 2ll;
 	if (varValue.isEmpty())
 		return Parser::kNoChange;
 
 	QString text1;
 	checkString(TK, 3, &text1);
 	if (text1.isEmpty())
-		return Parser::kArgError;
+		return Parser::kArgError + 3ll;
 
 	QString text2;
 	checkString(TK, 4, &text2);
@@ -1662,12 +1661,12 @@ qint64 Interpreter::half(qint64 currentline, const TokenMap& TK)
 
 	QString varName = TK.value(1).data.toString();
 	if (varName.isEmpty())
-		return Parser::kArgError;
+		return Parser::kArgError + 1ll;
 
 	QString text;
 	checkString(TK, 2, &text);
 	if (text.isEmpty())
-		return Parser::kArgError;
+		return Parser::kArgError + 2ll;
 
 	QString result = text;
 	qint64 size = FullWidth.size();
@@ -1690,12 +1689,12 @@ qint64 Interpreter::full(qint64 currentline, const TokenMap& TK)
 
 	QString varName = TK.value(1).data.toString();
 	if (varName.isEmpty())
-		return Parser::kArgError;
+		return Parser::kArgError + 1ll;
 
 	QString text;
 	checkString(TK, 2, &text);
 	if (text.isEmpty())
-		return Parser::kArgError;
+		return Parser::kArgError + 2ll;
 
 	QString result = text;
 	qint64 size = FullWidth.size();
@@ -1713,12 +1712,12 @@ qint64 Interpreter::upper(qint64 currentline, const TokenMap& TK)
 {
 	QString varName = TK.value(1).data.toString();
 	if (varName.isEmpty())
-		return Parser::kArgError;
+		return Parser::kArgError + 1ll;
 
 	QString text;
 	checkString(TK, 2, &text);
 	if (text.isEmpty())
-		return Parser::kArgError;
+		return Parser::kArgError + 2ll;
 
 	QString result = text.toUpper();
 
@@ -1731,12 +1730,12 @@ qint64 Interpreter::lower(qint64 currentline, const TokenMap& TK)
 {
 	QString varName = TK.value(1).data.toString();
 	if (varName.isEmpty())
-		return Parser::kArgError;
+		return Parser::kArgError + 1ll;
 
 	QString text;
 	checkString(TK, 2, &text);
 	if (text.isEmpty())
-		return Parser::kArgError;
+		return Parser::kArgError + 2ll;
 
 	QString result = text.toLower();
 
@@ -1749,21 +1748,21 @@ qint64 Interpreter::replace(qint64 currentline, const TokenMap& TK)
 {
 	QString varName = TK.value(1).data.toString();
 	if (varName.isEmpty())
-		return Parser::kArgError;
+		return Parser::kArgError + 1ll;
 
 	QString varValue;
 	if (!checkString(TK, 1, &varValue))
-		return Parser::kArgError;
+		return Parser::kArgError + 1ll;
 
 	QString cmpText;
 	checkString(TK, 2, &cmpText);
 	if (cmpText.isEmpty())
-		return Parser::kArgError;
+		return Parser::kArgError + 2ll;
 
 	QString replaceText;
 	checkString(TK, 3, &replaceText);
 	if (replaceText.isEmpty())
-		return Parser::kArgError;
+		return Parser::kArgError + 3ll;
 
 	bool isrex = false;
 	qint64 n = 0;
@@ -1790,14 +1789,14 @@ qint64 Interpreter::toint(qint64 currentline, const TokenMap& TK)
 {
 	QString varName = TK.value(1).data.toString();
 	if (varName.isEmpty())
-		return Parser::kArgError;
+		return Parser::kArgError + 1ll;
 
 	QString text;
 	if (!checkString(TK, 2, &text))
 	{
 		qint64 i = 0;
 		if (!checkInteger(TK, 2, &i))
-			return Parser::kArgError;
+			return Parser::kArgError + 2ll;
 		text = QString::number(i);
 	}
 
@@ -1816,7 +1815,7 @@ qint64 Interpreter::tostr(qint64 currentline, const TokenMap& TK)
 {
 	QString varName = TK.value(1).data.toString();
 	if (varName.isEmpty())
-		return Parser::kArgError;
+		return Parser::kArgError + 1ll;
 
 	QString text;
 	if (!checkString(TK, 2, &text))
@@ -1847,11 +1846,11 @@ qint64 Interpreter::ocr(qint64 currentline, const TokenMap& TK)
 	QString key = "";
 	checkString(TK, 2, &key);
 	if (key.isEmpty())
-		return Parser::kArgError;
+		return Parser::kArgError + 2ll;
 
 	constexpr const char* keyword = "qwertyuiopasdfghjklzxcvbnmQERTYUIOPASDFGHJKLZXCVBNM";
 	if (key != keyword)
-		return Parser::kArgError;
+		return Parser::kArgError + 2ll;
 
 #ifdef OCR_ENABLE
 	QString ret;

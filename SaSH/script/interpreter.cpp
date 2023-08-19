@@ -1567,7 +1567,7 @@ qint64 Interpreter::run(qint64 currentline, const TokenMap& TK)
 	QString fileName;
 	checkString(TK, 1, &fileName);
 	if (fileName.isEmpty())
-		return Parser::kArgError;
+		return Parser::kArgError + 1ll;
 
 	VarShareMode varShareMode = kNotShare;
 	qint64 nShared = 0;
@@ -1600,7 +1600,7 @@ qint64 Interpreter::run(qint64 currentline, const TokenMap& TK)
 	}
 
 	if (!QFile::exists(fileName))
-		return Parser::kArgError;
+		return Parser::kArgError + 1ll;
 
 	if (kSync == asyncMode)
 	{
@@ -1649,7 +1649,7 @@ qint64 Interpreter::dostring(qint64 currentline, const TokenMap& TK)
 	QString text;
 	checkString(TK, 1, &text);
 	if (text.isEmpty())
-		return Parser::kArgError;
+		return Parser::kArgError + 1ll;
 
 	QString script = text;
 	script.replace("\\r\\n", "\r\n");

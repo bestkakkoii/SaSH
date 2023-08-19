@@ -256,8 +256,8 @@ public:
 		kNoChange,
 		kError,
 		kLabelError,
-		kArgError = 10,
 		kUnknownCommand,
+		kArgError = 100,
 	};
 
 	enum Mode

@@ -1102,6 +1102,11 @@ void GameService::WM_SetOptimize(bool enable)
 //隱藏窗口
 void GameService::WM_SetWindowHide(bool enable)
 {
+	//聊天紀錄顯示行數數量設為0
+	nowChatRowCount_ = *CONVERT_GAMEVAR<int*>(0xA2674);
+	if (nowChatRowCount_ < 20)
+		*CONVERT_GAMEVAR<int*>(0xA2674) = 20;
+
 	if (!enable)
 	{
 		//sa_8001sf.exe+129E7 - 75 37                 - jne sa_8001sf.exe+12A20 資源優化關閉
@@ -1115,18 +1120,9 @@ void GameService::WM_SetWindowHide(bool enable)
 
 		//Sleep停止更改
 		enableSleepAdjust.store(false, std::memory_order_release);
-
-		////聊天紀錄顯示行數數量設為0
-		//*CONVERT_GAMEVAR<int*>(0xA2674) = nowChatRowCount_; //還原聊天紀錄顯示行數數量
-
 	}
 	else
 	{
-		////聊天紀錄顯示行數數量
-		//nowChatRowCount_ = *CONVERT_GAMEVAR<int*>(0xA2674);
-		//if (nowChatRowCount_ == 0)
-		//	nowChatRowCount_ = 10;
-
 		*CONVERT_GAMEVAR<int*>(0xA2674) = 0;
 
 		//sa_8001sf.exe+129E7 - EB 37                 - jmp sa_8001sf.exe+12A20 資源優化開啟

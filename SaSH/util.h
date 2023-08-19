@@ -757,11 +757,11 @@ namespace util
 		//else
 		//	codec = QTextCodec::codecForName("utf-8");
 
-		std::string str = path.toLocal8Bit().data();
+		//std::string str = path.toLocal8Bit().data();
 
 		//QString ret = codec->toUnicode(str.c_str());
 
-		return QString::fromStdString(str); //ret;
+		return path; //ret;
 	}
 
 	Q_REQUIRED_RESULT inline static const int __vectorcall percent(int value, int total)

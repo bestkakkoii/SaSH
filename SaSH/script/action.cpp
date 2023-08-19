@@ -75,7 +75,7 @@ qint64 Interpreter::useitem(qint64, const TokenMap& TK)
 		checkString(TK, 1, &itemName);
 		checkString(TK, 2, &itemMemo);
 		if (itemName.isEmpty() && itemMemo.isEmpty())
-			return Parser::kArgError;
+			return Parser::kArgError + 1ll;
 
 		itemNames = itemName.split(util::rexOR);
 		itemMemos = itemMemo.split(util::rexOR);
@@ -93,11 +93,11 @@ qint64 Interpreter::useitem(qint64, const TokenMap& TK)
 
 
 				if (!hash.contains(targetTypeName))
-					return Parser::kArgError;
+					return Parser::kArgError + 3ll;
 
 				target = hash.value(targetTypeName, -1);
 				if (target < 0)
-					return Parser::kArgError;
+					return Parser::kArgError + 3ll;
 			}
 		}
 	}
@@ -117,18 +117,18 @@ qint64 Interpreter::useitem(qint64, const TokenMap& TK)
 			else
 			{
 				if (!hash.contains(targetTypeName))
-					return Parser::kArgError;
+					return Parser::kArgError + 2ll;
 
 				target = hash.value(targetTypeName, -1);
 				if (target < 0)
-					return Parser::kArgError;
+					return Parser::kArgError + 2ll;
 			}
 		}
 
 		checkString(TK, 3, &itemName);
 		checkString(TK, 4, &itemMemo);
 		if (itemName.isEmpty() && itemMemo.isEmpty())
-			return Parser::kArgError;
+			return Parser::kArgError + 3ll;
 
 		itemNames = itemName.split(util::rexOR);
 		itemMemos = itemMemo.split(util::rexOR);
@@ -265,14 +265,14 @@ qint64 Interpreter::dropitem(qint64, const TokenMap& TK)
 	checkString(TK, 1, &tempName);
 	checkString(TK, 2, &memo);
 	if (tempName.isEmpty() && memo.isEmpty())
-		return Parser::kArgError;
+		return Parser::kArgError + 1ll;
 
 	//指定丟棄白名單，位於白名單的物品不丟棄
 	if (tempName == QString(u8"非"))
 	{
 		qint64 min = 0, max = static_cast<qint64>(MAX_ITEM - CHAR_EQUIPPLACENUM - 1);
 		if (!checkRange(TK, 2, &min, &max))
-			return Parser::kArgError;
+			return Parser::kArgError + 2ll;
 
 		min += CHAR_EQUIPPLACENUM;
 		max += CHAR_EQUIPPLACENUM;
@@ -280,11 +280,11 @@ qint64 Interpreter::dropitem(qint64, const TokenMap& TK)
 		QString itemNames;
 		checkString(TK, 3, &itemNames);
 		if (itemNames.isEmpty())
-			return Parser::kArgError;
+			return Parser::kArgError + 3ll;
 
 		QStringList itemNameList = itemNames.split(util::rexOR, Qt::SkipEmptyParts);
 		if (itemNameList.isEmpty())
-			return Parser::kArgError;
+			return Parser::kArgError + 3ll;
 
 		QVector<qint64> indexs;
 		PC pc = injector.server->getPC();
@@ -325,7 +325,7 @@ qint64 Interpreter::dropitem(qint64, const TokenMap& TK)
 
 		QStringList itemNameList = itemNames.split(util::rexOR, Qt::SkipEmptyParts);
 		if (itemNameList.isEmpty())
-			return Parser::kArgError;
+			return Parser::kArgError + 1ll;
 
 		//qint64 size = itemNameList.size();
 		for (const QString& name : itemNameList)
@@ -353,9 +353,9 @@ qint64 Interpreter::swapitem(qint64 currentline, const TokenMap& TK)
 
 	qint64 a = 0, b = 0;
 	if (!checkInteger(TK, 1, &a))
-		return Parser::kArgError;
+		return Parser::kArgError + 1ll;
 	if (!checkInteger(TK, 2, &b))
-		return Parser::kArgError;
+		return Parser::kArgError + 2ll;
 
 	if (a > 100)
 		a -= 100;
@@ -369,8 +369,11 @@ qint64 Interpreter::swapitem(qint64 currentline, const TokenMap& TK)
 	--a;
 	--b;
 
-	if (a < 0 || a >= MAX_ITEM || b < 0 || b >= MAX_ITEM)
-		return Parser::kArgError;
+	if (a < 0 || a >= MAX_ITEM)
+		return Parser::kArgError + 1ll;
+
+	if (b < 0 || b >= MAX_ITEM)
+		return Parser::kArgError + 2ll;
 
 	injector.server->swapItem(a, b);
 
@@ -424,7 +427,7 @@ qint64 Interpreter::setpetstate(qint64, const TokenMap& TK)
 	checkInteger(TK, 1, &petIndex);
 	petIndex -= 1;
 	if (petIndex < 0 || petIndex >= MAX_PET)
-		return Parser::kArgError;
+		return Parser::kArgError + 1ll;
 
 	QString stateStr;
 	checkString(TK, 2, &stateStr);
@@ -483,11 +486,14 @@ qint64 Interpreter::buy(qint64, const TokenMap& TK)
 	checkInteger(TK, 1, &itemIndex);
 	itemIndex -= 1;
 
+	if (itemIndex < 0)
+		return Parser::kArgError + 1ll;
+
 	qint64 count = 0;
 	checkInteger(TK, 2, &count);
 
-	if (itemIndex < 0 || count <= 0)
-		return Parser::kArgError;
+	if (count <= 0)
+		return Parser::kArgError + 2ll;
 
 	QString npcName;
 	checkString(TK, 3, &npcName);
@@ -519,7 +525,7 @@ qint64 Interpreter::sell(qint64, const TokenMap& TK)
 	checkString(TK, 1, &name);
 	QStringList nameList = name.split(util::rexOR, Qt::SkipEmptyParts);
 	if (nameList.isEmpty())
-		return Parser::kArgError;
+		return Parser::kArgError + 1ll;
 
 	QString npcName;
 	checkString(TK, 2, &npcName);
@@ -576,7 +582,7 @@ qint64 Interpreter::sellpet(qint64, const TokenMap& TK)
 		min = 0;
 		checkInteger(TK, 1, &min);
 		if (min <= 0 || min > MAX_PET)
-			return Parser::kArgError;
+			return Parser::kArgError + 1ll;
 		max = min;
 	}
 
@@ -589,7 +595,7 @@ qint64 Interpreter::sellpet(qint64, const TokenMap& TK)
 			return Parser::kError;
 
 		if (petIndex - 1 < 0 || petIndex - 1 >= MAX_PET)
-			return Parser::kArgError;
+			return Parser::kArgError + 1ll;
 
 		PET pet = injector.server->getPet(petIndex - 1);
 
@@ -662,7 +668,7 @@ qint64 Interpreter::make(qint64, const TokenMap& TK)
 
 	QStringList ingreNameList = ingreName.split(util::rexOR, Qt::SkipEmptyParts);
 	if (ingreNameList.isEmpty())
-		return Parser::kArgError;
+		return Parser::kArgError + 1ll;
 
 	injector.server->craft(util::kCraftItem, ingreNameList);
 
@@ -683,7 +689,7 @@ qint64 Interpreter::cook(qint64, const TokenMap& TK)
 
 	QStringList ingreNameList = ingreName.split(util::rexOR, Qt::SkipEmptyParts);
 	if (ingreNameList.isEmpty())
-		return Parser::kArgError;
+		return Parser::kArgError + 1ll;
 
 	injector.server->craft(util::kCraftFood, ingreNameList);
 
@@ -702,20 +708,20 @@ qint64 Interpreter::learn(qint64, const TokenMap& TK)
 	qint64 petIndex = 0;
 	checkInteger(TK, 1, &petIndex);
 	if (petIndex <= 0 || petIndex >= 6)
-		return Parser::kArgError;
+		return Parser::kArgError + 1ll;
 	--petIndex;
 
 	qint64 skillIndex = 0;
 	checkInteger(TK, 2, &skillIndex);
 	if (skillIndex <= 0)
-		return Parser::kArgError;
+		return Parser::kArgError + 2ll;
 	--skillIndex;
 
 
 	qint64 spot = 0;
 	checkInteger(TK, 3, &spot);
 	if (spot <= 0 || spot > static_cast<qint64>(MAX_SKILL + 1))
-		return Parser::kArgError;
+		return Parser::kArgError + 3ll;
 	--spot;
 
 	QString npcName;
@@ -788,7 +794,7 @@ qint64 Interpreter::kick(qint64, const TokenMap& TK)
 		{
 			QStringList list = exceptName.split(util::rexOR, Qt::SkipEmptyParts);
 			if (list.isEmpty() || list.size() > 4)
-				return Parser::kArgError;
+				return Parser::kArgError + 1ll;
 
 			QVector<qint64> wrongIndex;
 
@@ -853,7 +859,7 @@ qint64 Interpreter::usemagic(qint64, const TokenMap& TK)
 	QString magicName;
 	checkString(TK, 1, &magicName);
 	if (magicName.isEmpty())
-		return Parser::kArgError;
+		return Parser::kArgError + 1ll;
 
 	qint64 target = -1;
 	checkInteger(TK, 2, &target);
@@ -868,8 +874,6 @@ qint64 Interpreter::usemagic(qint64, const TokenMap& TK)
 		}
 		else
 		{
-
-
 			QHash<QString, qint64> hash = {
 				{ u8"自己", 0},
 				{ u8"戰寵", injector.server->getPC().battlePetNo},
@@ -902,17 +906,17 @@ qint64 Interpreter::usemagic(qint64, const TokenMap& TK)
 			}
 
 			if (!hash.contains(targetTypeName))
-				return Parser::kArgError;
+				return Parser::kArgError + 2ll;
 
 			target = hash.value(targetTypeName, -1);
 			if (target < 0)
-				return Parser::kArgError;
+				return Parser::kArgError + 2ll;
 		}
 	}
 
 	qint64 magicIndex = injector.server->getMagicIndexByName(magicName);
 	if (magicIndex < 0)
-		return Parser::kArgError;
+		return Parser::kArgError + 1ll;
 
 	injector.server->useMagic(magicIndex, target);
 
@@ -931,7 +935,7 @@ qint64 Interpreter::pickitem(qint64, const TokenMap& TK)
 	QString dirStr;
 	checkString(TK, 1, &dirStr);
 	if (dirStr.isEmpty())
-		return Parser::kArgError;
+		return Parser::kArgError + 1ll;
 
 	if (dirStr.startsWith(u8"全"))
 	{
@@ -945,7 +949,7 @@ qint64 Interpreter::pickitem(qint64, const TokenMap& TK)
 	{
 		DirType type = dirMap.value(dirStr, kDirNone);
 		if (type == kDirNone)
-			return Parser::kArgError;
+			return Parser::kArgError + 1ll;
 		injector.server->setPlayerFaceDirection(type);
 		injector.server->pickItem(type);
 	}
@@ -968,11 +972,11 @@ qint64 Interpreter::depositgold(qint64, const TokenMap& TK)
 	qint64 gold;
 	checkInteger(TK, 1, &gold);
 
+	if (gold <= 0)
+		return Parser::kArgError + 1ll;
+
 	qint64 isPublic = 0;
 	checkInteger(TK, 2, &isPublic);
-
-	if (gold <= 0)
-		return Parser::kArgError;
 
 	if (gold > injector.server->getPC().gold)
 		gold = injector.server->getPC().gold;
@@ -1071,7 +1075,7 @@ qint64 Interpreter::unwearequip(qint64, const TokenMap& TK)
 		QString partStr;
 		checkString(TK, 1, &partStr);
 		if (partStr.isEmpty())
-			return Parser::kArgError;
+			return Parser::kArgError + 1ll;
 
 		if (partStr.toLower() == "all" || partStr.toLower() == QString("全部"))
 		{
@@ -1081,7 +1085,7 @@ qint64 Interpreter::unwearequip(qint64, const TokenMap& TK)
 		{
 			part = equipMap.value(partStr.toLower(), CHAR_EQUIPNONE);
 			if (part == CHAR_EQUIPNONE)
-				return Parser::kArgError;
+				return Parser::kArgError + 1ll;
 		}
 	}
 	else
@@ -1125,10 +1129,12 @@ qint64 Interpreter::petequip(qint64, const TokenMap& TK)
 
 	qint64 petIndex = -1;
 	if (!checkInteger(TK, 1, &petIndex))
-		return Parser::kArgError;
+		return Parser::kArgError + 1ll;
+
+	--petIndex;
 
 	if (petIndex < 0 || petIndex >= MAX_PET)
-		return Parser::kArgError;
+		return Parser::kArgError + 1ll;
 
 	QString itemName;
 	checkString(TK, 2, &itemName);
@@ -1155,10 +1161,12 @@ qint64 Interpreter::petunequip(qint64, const TokenMap& TK)
 
 	qint64 petIndex = -1;
 	if (!checkInteger(TK, 1, &petIndex))
-		return Parser::kArgError;
+		return Parser::kArgError + 1l;
+
+	--petIndex;
 
 	if (petIndex < 0 || petIndex >= MAX_PET)
-		return Parser::kArgError;
+		return Parser::kArgError + 1ll;
 
 
 	if (!checkInteger(TK, 2, &part) || part < 1)
@@ -1166,7 +1174,7 @@ qint64 Interpreter::petunequip(qint64, const TokenMap& TK)
 		QString partStr;
 		checkString(TK, 2, &partStr);
 		if (partStr.isEmpty())
-			return Parser::kArgError;
+			return Parser::kArgError + 2ll;
 
 		if (partStr.toLower() == "all" || partStr.toLower() == QString("全部"))
 		{
@@ -1176,7 +1184,7 @@ qint64 Interpreter::petunequip(qint64, const TokenMap& TK)
 		{
 			part = petEquipMap.value(partStr.toLower(), PET_EQUIPNONE);
 			if (part == PET_EQUIPNONE)
-				return Parser::kArgError;
+				return Parser::kArgError + 2ll;
 		}
 	}
 	else
@@ -1224,11 +1232,11 @@ qint64 Interpreter::depositpet(qint64, const TokenMap& TK)
 	{
 		checkString(TK, 1, &petName);
 		if (petName.isEmpty())
-			return Parser::kArgError;
+			return Parser::kArgError + 1ll;
 	}
 
 	if (petIndex == 0 && petName.isEmpty())
-		return Parser::kArgError;
+		return Parser::kArgError + 1ll;
 
 	if (petIndex > 0)
 		--petIndex;
@@ -1236,12 +1244,12 @@ qint64 Interpreter::depositpet(qint64, const TokenMap& TK)
 	{
 		QVector<int> v;
 		if (!injector.server->getPetIndexsByName(petName, &v))
-			return Parser::kArgError;
+			return Parser::kArgError + 1ll;
 		petIndex = v.first();
 	}
 
 	if (petIndex == -1)
-		return Parser::kArgError;
+		return Parser::kArgError + 1ll;
 
 	injector.server->IS_WAITFOR_DIALOG_FLAG = true;
 	injector.server->depositPet(petIndex);
@@ -1269,7 +1277,7 @@ qint64 Interpreter::deposititem(qint64, const TokenMap& TK)
 
 	qint64 min = 0, max = static_cast<qint64>(MAX_ITEM - CHAR_EQUIPPLACENUM - 1);
 	if (!checkRange(TK, 1, &min, &max))
-		return Parser::kArgError;
+		return Parser::kArgError + 1ll;
 
 	min += CHAR_EQUIPPLACENUM;
 	max += CHAR_EQUIPPLACENUM;
@@ -1282,7 +1290,7 @@ qint64 Interpreter::deposititem(qint64, const TokenMap& TK)
 	{
 		QStringList itemNames = itemName.split(util::rexOR, Qt::SkipEmptyParts);
 		if (itemNames.isEmpty())
-			return Parser::kArgError;
+			return Parser::kArgError + 2ll;
 
 		QVector<int> allv;
 		for (const QString& name : itemNames)
@@ -1346,7 +1354,7 @@ qint64 Interpreter::withdrawpet(qint64, const TokenMap& TK)
 	QString petName;
 	checkString(TK, 1, &petName);
 	if (petName.isEmpty())
-		return Parser::kArgError;
+		return Parser::kArgError + 1ll;
 
 	qint64 level = 0;
 	checkInteger(TK, 2, &level);
@@ -1452,7 +1460,7 @@ qint64 Interpreter::withdrawitem(qint64, const TokenMap& TK)
 		isAll = true;
 
 	if (itemListSize == 0 && memoListSize == 0)
-		return Parser::kArgError;
+		return Parser::kArgError + 1ll;
 
 	qint64 max = 0;
 	// max 以大於0且最小的為主 否則以不為0的為主
@@ -1537,12 +1545,7 @@ qint64 Interpreter::addpoint(qint64, const TokenMap& TK)
 	QString pointName;
 	checkString(TK, 1, &pointName);
 	if (pointName.isEmpty())
-		return Parser::kArgError;
-
-	qint64 max = 0;
-	checkInteger(TK, 2, &max);
-	if (max <= 0)
-		return Parser::kArgError;
+		return Parser::kArgError + 1ll;
 
 	static const QHash<QString, qint64> hash = {
 		{ u8"體力", 0},
@@ -1563,7 +1566,12 @@ qint64 Interpreter::addpoint(qint64, const TokenMap& TK)
 
 	qint64 point = hash.value(pointName.toLower(), -1);
 	if (point == -1)
-		return Parser::kArgError;
+		return Parser::kArgError + 1ll;
+
+	qint64 max = 0;
+	checkInteger(TK, 2, &max);
+	if (max <= 0)
+		return Parser::kArgError + 2ll;
 
 	injector.server->addPoint(point, max);
 
@@ -1662,7 +1670,7 @@ qint64 Interpreter::trade(qint64, const TokenMap& TK)
 	QString name;
 	checkString(TK, 1, &name);
 	if (name.isEmpty())
-		return Parser::kArgError;
+		return Parser::kArgError + 1ll;
 
 	QString itemListStr;
 	checkString(TK, 2, &itemListStr);
@@ -1710,7 +1718,7 @@ qint64 Interpreter::trade(qint64, const TokenMap& TK)
 			qint64 min = 1;
 			qint64 max = static_cast<qint64>(MAX_ITEM - CHAR_EQUIPPLACENUM);
 			if (!checkRange(TK, 2, &min, &max))
-				return Parser::kArgError;
+				return Parser::kArgError + 2ll;
 
 			for (qint64 i = min; i <= max; ++i)
 				itemIndexList.append(QString::number(i));
@@ -1743,7 +1751,7 @@ qint64 Interpreter::trade(qint64, const TokenMap& TK)
 			//ok = true;
 		}
 		else
-			return Parser::kArgError;
+			return Parser::kArgError + 2ll;
 	}
 
 	if (!petListStr.isEmpty())
@@ -1759,7 +1767,7 @@ qint64 Interpreter::trade(qint64, const TokenMap& TK)
 			qint64 min = 1;
 			qint64 max = MAX_PET;
 			if (!checkRange(TK, 2, &min, &max))
-				return Parser::kArgError;
+				return Parser::kArgError + 2ll;
 
 			for (qint64 i = min; i <= max; ++i)
 				petIndexList.append(QString::number(i));
@@ -1790,7 +1798,7 @@ qint64 Interpreter::trade(qint64, const TokenMap& TK)
 			//ok = true;
 		}
 		else
-			return Parser::kArgError;
+			return Parser::kArgError + 3ll;
 	}
 
 	if (gold > 0 && gold <= injector.server->getPC().gold)
@@ -1829,16 +1837,16 @@ qint64 Interpreter::mail(qint64, const TokenMap& TK)
 	if (!checkInteger(TK, 1, &addrIndex))
 	{
 		if (!checkString(TK, 1, &name))
-			return Parser::kArgError;
+			return Parser::kArgError + 1ll;
 		if (name.isEmpty())
-			return Parser::kArgError;
+			return Parser::kArgError + 1ll;
 
 		card = name;
 	}
 	else
 	{
 		if (addrIndex <= 0 || addrIndex >= MAX_ADR_BOOK)
-			return Parser::kArgError;
+			return Parser::kArgError + 1ll;
 		--addrIndex;
 
 		card = addrIndex;
@@ -1853,7 +1861,7 @@ qint64 Interpreter::mail(qint64, const TokenMap& TK)
 	{
 		--petIndex;
 		if (petIndex < 0 || petIndex >= MAX_PET)
-			return Parser::kArgError;
+			return Parser::kArgError + 3ll;
 	}
 
 	QString itemName = "";
@@ -1863,7 +1871,7 @@ qint64 Interpreter::mail(qint64, const TokenMap& TK)
 	checkString(TK, 5, &itemMemo);
 
 	if (petIndex != -1 && itemMemo.isEmpty() && !itemName.isEmpty())
-		return Parser::kArgError;
+		return Parser::kArgError + 4ll;
 
 	injector.server->mail(card, text, petIndex, itemName, itemMemo);
 
@@ -1879,7 +1887,7 @@ qint64 Interpreter::doffstone(qint64 currentline, const TokenMap& TK)
 
 	qint64 gold = 0;
 	if (!checkInteger(TK, 1, &gold))
-		return Parser::kArgError;
+		return Parser::kArgError + 1ll;
 
 	if (gold == -1)
 	{
@@ -1888,7 +1896,7 @@ qint64 Interpreter::doffstone(qint64 currentline, const TokenMap& TK)
 	}
 
 	if (gold <= 0)
-		return Parser::kArgError;
+		return Parser::kArgError + 1ll;
 
 	checkBattleThenWait();
 
@@ -1911,7 +1919,7 @@ qint64 Interpreter::bh(qint64, const TokenMap& TK)//atk
 	qint64 index = 0;
 	checkInteger(TK, 1, &index);
 	if (index <= 0)
-		return Parser::kArgError;
+		return Parser::kArgError + 1ll;
 	--index;
 
 	injector.server->sendBattlePlayerAttackAct(index);
@@ -1931,13 +1939,13 @@ qint64 Interpreter::bj(qint64, const TokenMap& TK)//magic
 	qint64 magicIndex = 0;
 	checkInteger(TK, 1, &magicIndex);
 	if (magicIndex <= 0)
-		return Parser::kArgError;
+		return Parser::kArgError + 1ll;
 	--magicIndex;
 
 	qint64 target = 0;
 	checkInteger(TK, 2, &target);
 	if (target <= 0)
-		return Parser::kArgError;
+		return Parser::kArgError + 2ll;
 	--target;
 
 	injector.server->sendBattlePlayerMagicAct(magicIndex, target);
@@ -1957,13 +1965,13 @@ qint64 Interpreter::bp(qint64, const TokenMap& TK)//skill
 	qint64 skillIndex = 0;
 	checkInteger(TK, 1, &skillIndex);
 	if (skillIndex <= 0)
-		return Parser::kArgError;
+		return Parser::kArgError + 1ll;
 	--skillIndex;
 
 	qint64 target = 0;
 	checkInteger(TK, 2, &target);
 	if (target <= 0)
-		return Parser::kArgError;
+		return Parser::kArgError + 2ll;
 	--target;
 
 	injector.server->sendBattlePlayerJobSkillAct(skillIndex, target);
@@ -1983,7 +1991,7 @@ qint64 Interpreter::bs(qint64, const TokenMap& TK)//switch
 	qint64 index = 0;
 	checkInteger(TK, 1, &index);
 	if (index <= 0)
-		return Parser::kArgError;
+		return Parser::kArgError + 1ll;
 	--index;
 	injector.server->sendBattlePlayerSwitchPetAct(index);
 
@@ -2030,14 +2038,14 @@ qint64 Interpreter::bi(qint64, const TokenMap& TK)//item
 	qint64 index = 0;
 	checkInteger(TK, 1, &index);
 	if (index <= 0)
-		return Parser::kArgError;
+		return Parser::kArgError + 1ll;
 	--index;
 	index += CHAR_EQUIPPLACENUM;
 
 	qint64 target = 1;
 	checkInteger(TK, 2, &target);
 	if (target <= 0)
-		return Parser::kArgError;
+		return Parser::kArgError + 2ll;
 	--target;
 
 	injector.server->sendBattlePlayerItemAct(index, target);
@@ -2057,7 +2065,7 @@ qint64 Interpreter::bt(qint64, const TokenMap& TK)//catch
 	qint64 index = 0;
 	checkInteger(TK, 1, &index);
 	if (index <= 0)
-		return Parser::kArgError;
+		return Parser::kArgError + 1ll;
 	--index;
 
 	injector.server->sendBattlePlayerCatchPetAct(index);
@@ -2091,13 +2099,13 @@ qint64 Interpreter::bw(qint64, const TokenMap& TK)//petskill
 	qint64 skillIndex = 0;
 	checkInteger(TK, 1, &skillIndex);
 	if (skillIndex <= 0)
-		return Parser::kArgError;
+		return Parser::kArgError + 1ll;
 	--skillIndex;
 
 	qint64 target = 0;
 	checkInteger(TK, 2, &target);
 	if (target <= 0)
-		return Parser::kArgError;
+		return Parser::kArgError + 1ll;
 	--target;
 
 	injector.server->sendBattlePetSkillAct(skillIndex, target);

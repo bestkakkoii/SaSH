@@ -32,7 +32,7 @@ qint64 Interpreter::ifdaily(qint64, const TokenMap& TK)
 	QString text;
 	checkString(TK, 1, &text);
 	if (text.isEmpty())
-		return Parser::kArgError;
+		return Parser::kArgError + 1ll;
 
 	qint64 status = injector.server->checkJobDailyState(text);
 	if (status == 1)//已完成
@@ -242,7 +242,7 @@ qint64 Interpreter::waitpet(qint64 currentline, const TokenMap& TK)
 	QString petName;
 	checkString(TK, 1, &petName);
 	if (petName.isEmpty())
-		return Parser::kArgError;
+		return Parser::kArgError + 1ll;
 
 	qint64 timeout = DEFAULT_FUNCTION_TIMEOUT;
 	checkInteger(TK, 2, &timeout);
@@ -347,11 +347,11 @@ qint64 Interpreter::waitdlg(qint64 currentline, const TokenMap& TK)
 	if (!checkString(TK, 1, &cmpStr))
 	{
 		if (!checkInteger(TK, 1, &dlgid))
-			return Parser::kArgError;
+			return Parser::kArgError + 1ll;
 	}
 
 	if (dlgid == -1 && cmpStr.isEmpty())
-		return Parser::kArgError;
+		return Parser::kArgError + 1ll;
 
 	bool bret = false;
 	if (dlgid != -1)
@@ -381,7 +381,7 @@ qint64 Interpreter::waitdlg(qint64 currentline, const TokenMap& TK)
 		qint64 min = 1;
 		qint64 max = MAX_DIALOG_LINE;
 		if (!checkRange(TK, 2, &min, &max))
-			return Parser::kArgError;
+			return Parser::kArgError + 2ll;
 		if (min == max)
 		{
 			++min;
@@ -446,7 +446,7 @@ qint64 Interpreter::waitsay(qint64 currentline, const TokenMap& TK)
 	qint64 min = 1;
 	qint64 max = MAX_CHAT_HISTORY;
 	if (!checkRange(TK, 1, &min, &max))
-		return Parser::kArgError;
+		return Parser::kArgError + 1ll;
 	if (min == max)
 	{
 		++min;
@@ -456,7 +456,7 @@ qint64 Interpreter::waitsay(qint64 currentline, const TokenMap& TK)
 	QString cmpStr;
 	checkString(TK, 2, &cmpStr);
 	if (cmpStr.isEmpty())
-		return Parser::kArgError;
+		return Parser::kArgError + 2ll;
 	QStringList cmpStrs = cmpStr.split(util::rexOR, Qt::SkipEmptyParts);
 
 	bool bret = false;
@@ -543,7 +543,7 @@ qint64 Interpreter::waititem(qint64 currentline, const TokenMap& TK)
 		QString partStr;
 		checkString(TK, 1, &partStr);
 		if (partStr.isEmpty())
-			return Parser::kArgError;
+			return Parser::kArgError + 1ll;
 
 		if (partStr.toLower() == "all" || partStr.toLower() == QString("全部"))
 		{
@@ -554,7 +554,7 @@ qint64 Interpreter::waititem(qint64 currentline, const TokenMap& TK)
 		{
 			min = equipMap.value(partStr.toLower(), CHAR_EQUIPNONE);
 			if (min == CHAR_EQUIPNONE)
-				return Parser::kArgError;
+				return Parser::kArgError + 2ll;
 			max = min;
 			isEquip = true;
 		}
@@ -577,7 +577,7 @@ qint64 Interpreter::waititem(qint64 currentline, const TokenMap& TK)
 	QString itemMemo;
 	checkString(TK, 3, &itemMemo);
 	if (itemName.isEmpty() && itemMemo.isEmpty())
-		return Parser::kArgError;
+		return Parser::kArgError + 1ll;
 
 	QStringList itemNames = itemName.split(util::rexOR);
 	QStringList itemMemos = itemMemo.split(util::rexOR);

@@ -922,6 +922,8 @@ void MainObject::checkAutoSortItem()
 		if (autosortitem_future_.isRunning())
 			return;
 
+		autosortitem_future_cancel_flag_.store(false, std::memory_order_release);
+
 		autosortitem_future_ = QtConcurrent::run([&injector, this]()
 			{
 				int	i = 0;
@@ -933,6 +935,10 @@ void MainObject::checkAutoSortItem()
 					{
 						if (injector.server.isNull())
 							return;
+
+						if (autosortitem_future_cancel_flag_.load(std::memory_order_acquire))
+							return;
+
 						QThread::msleep(1000);
 					}
 

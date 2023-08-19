@@ -49,7 +49,7 @@ qint64 Interpreter::setdir(qint64 currentline, const TokenMap& TK)
 		injector.server->setPlayerFaceDirection(dirStr);
 	}
 	else
-		return Parser::kArgError;
+		return Parser::kArgError + 1ll;
 
 	return Parser::kNoChange;
 }
@@ -72,8 +72,11 @@ qint64 Interpreter::move(qint64 currentline, const TokenMap& TK)
 	qint64 timeout = DEFAULT_FUNCTION_TIMEOUT;
 	checkInteger(TK, 3, &timeout);
 
-	if (p.x() < 0 || p.x() >= 1500 || p.y() < 0 || p.y() >= 1500)
-		return Parser::kArgError;
+	if (p.x() < 0 || p.x() >= 1500)
+		return Parser::kArgError + 1ll;
+
+	if (p.y() < 0 || p.y() >= 1500)
+		return Parser::kArgError + 2ll;
 
 	injector.server->move(p);
 	QThread::msleep(1);
@@ -109,8 +112,11 @@ qint64 Interpreter::fastmove(qint64 currentline, const TokenMap& TK)
 	{
 		if (checkInteger(TK, 2, &y))
 		{
-			if (x < 0 || x >= 1500 || y < 0 || y >= 1500)
-				return Parser::kArgError;
+			if (x < 0 || x >= 1500)
+				return Parser::kArgError + 1ll;
+
+			if (y < 0 || y >= 1500)
+				return Parser::kArgError + 2ll;
 
 			p = QPoint(x, y);
 		}
@@ -125,7 +131,7 @@ qint64 Interpreter::fastmove(qint64 currentline, const TokenMap& TK)
 	else if (checkString(TK, 1, &dirStr))
 	{
 		if (!dirMap.contains(dirStr.toUpper().simplified()))
-			return Parser::kArgError;
+			return Parser::kArgError + 1ll;
 
 		DirType dir = dirMap.value(dirStr.toUpper().simplified());
 		//計算出往該方向10格的坐標
@@ -156,8 +162,11 @@ qint64 Interpreter::packetmove(qint64 currentline, const TokenMap& TK)
 	QString dirStr;
 	checkString(TK, 3, &dirStr);
 
-	if (p.x() < 0 || p.x() >= 1500 || p.y() < 0 || p.y() >= 1500)
-		return Parser::kArgError;
+	if (p.x() < 0 || p.x() >= 1500)
+		return Parser::kArgError + 1ll;
+
+	if (p.y() < 0 || p.y() >= 1500)
+		return Parser::kArgError + 2ll;
 
 	injector.server->move(p, dirStr);
 
@@ -180,7 +189,7 @@ qint64 Interpreter::findpath(qint64 currentline, const TokenMap& TK)
 	if (!checkInteger(TK, 1, &x))
 	{
 		if (!checkString(TK, 1, &name))
-			return Parser::kArgError;
+			return Parser::kArgError + 1ll;
 	}
 	else
 		checkInteger(TK, 2, &y);
@@ -253,15 +262,18 @@ qint64 Interpreter::findpath(qint64 currentline, const TokenMap& TK)
 		}
 
 		if (p.isNull())
-			return Parser::kNoChange;
+			return Parser::kArgError + 1ll;
 	}
 	else
 		checkInteger(TK, 3, &steplen);
 
 
 	//findpath 不允許接受為0的xy座標
-	if (p.x() < 0 || p.x() >= 1500 || p.y() < 0 || p.y() >= 1500)
-		return Parser::kArgError;
+	if (p.x() < 0 || p.x() >= 1500)
+		return Parser::kArgError + 1ll;
+
+	if (p.y() < 0 || p.y() >= 1500)
+		return Parser::kArgError + 2ll;
 
 	if (findPath(p, steplen))
 	{
@@ -286,13 +298,13 @@ qint64 Interpreter::movetonpc(qint64 currentline, const TokenMap& TK)
 	if (!checkInteger(TK, 1, &modelid))
 	{
 		if (!checkString(TK, 1, &cmpNpcName))
-			return Parser::kArgError;
+			return Parser::kArgError + 1ll;
 	}
 
 	QString cmpFreeName;
 	checkString(TK, 2, &cmpFreeName);
 	if (cmpFreeName.isEmpty() && cmpNpcName.isEmpty() && modelid == -1)
-		return Parser::kArgError;
+		return Parser::kArgError + 2ll;
 
 	qint64 x = 0;
 	qint64 y = 0;
@@ -304,8 +316,11 @@ qint64 Interpreter::movetonpc(qint64 currentline, const TokenMap& TK)
 	checkInteger(TK, 5, &timeout);
 
 	//findpath 不允許接受為0的xy座標
-	if (p.x() <= 0 || p.x() >= 1500 || p.y() <= 0 || p.y() >= 1500)
-		return Parser::kArgError;
+	if (p.x() <= 0 || p.x() >= 1500)
+		return Parser::kArgError + 1ll;
+
+	if (p.y() <= 0 || p.y() >= 1500)
+		return Parser::kArgError + 2ll;
 
 	mapunit_s unit;
 	qint64 dir = -1;
@@ -364,27 +379,33 @@ qint64 Interpreter::warp(qint64 currentline, const TokenMap& TK)
 	checkInteger(TK, 1, &xfrom);
 	checkInteger(TK, 2, &yfrom);
 	QPoint pfrom(xfrom, yfrom);
-	if (pfrom.isNull() || pfrom.x() < 0 || pfrom.x() > 1500 || pfrom.y() < 0 || pfrom.y() > 1500)
-		return Parser::kArgError;
+	if (pfrom.x() < 0 || pfrom.x() > 1500)
+		return Parser::kArgError + 1ll;
+
+	if (pfrom.y() < 0 || pfrom.y() > 1500)
+		return Parser::kArgError + 2ll;
 
 	qint64 xto = 0;
 	qint64 yto = 0;
 	checkInteger(TK, 3, &xto);
 	checkInteger(TK, 4, &yto);
 	QPoint pto(xto, yto);
-	if (pto.isNull() || pto.x() < 0 || pto.x() > 1500 || pto.y() < 0 || pto.y() > 1500)
-		return Parser::kArgError;
+	if (pto.x() < 0 || pto.x() > 1500)
+		return Parser::kArgError + 3ll;
+
+	if (pto.y() < 0 || pto.y() > 1500)
+		return Parser::kArgError + 4ll;
 
 	qint64 floor = 0;
 	QString floorName;
 	if (!checkInteger(TK, 5, &floor))
 	{
 		if (!checkString(TK, 5, &floorName))
-			return Parser::kArgError;
+			return Parser::kArgError + 5ll;
 	}
 
 	if (floor == 0 && floorName.isEmpty())
-		return Parser::kArgError;
+		return Parser::kArgError + 5ll;
 
 	qint64 timeout = DEFAULT_FUNCTION_TIMEOUT;
 	checkInteger(TK, 6, &timeout);
