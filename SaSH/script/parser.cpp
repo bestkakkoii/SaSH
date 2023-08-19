@@ -140,7 +140,7 @@ void Parser::handleError(qint64 err, const QString& addition)
 			if (err == kArgError)
 				msg = QObject::tr("argument error");
 			else
-				msg = QObject::tr("argument error idx:%1").arg(err - kArgError);
+				msg = QObject::tr("argument error") + QString(" idx:%1").arg(err - kArgError);
 			break;
 		}
 		break;
@@ -3656,6 +3656,7 @@ void Parser::processTokens()
 			case kError:
 			case kArgError:
 			case kUnknownCommand:
+			default:
 			{
 				SPD_LOG(g_logger_name, "[parser] Command has error", SPD_WARN);
 				handleError(ret);
@@ -3669,8 +3670,7 @@ void Parser::processTokens()
 				SPD_LOG(g_logger_name, "[parser] Command has error, not user callback was found", SPD_WARN);
 				break;
 			}
-			default:
-				break;
+			break;
 			}
 
 			break;
