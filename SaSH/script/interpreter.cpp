@@ -1191,10 +1191,10 @@ void Interpreter::openLibsUTF8()
 	registerFunction(u8"rclick", &Interpreter::rightclick);
 	registerFunction(u8"ldbclick", &Interpreter::leftdoubleclick);
 	registerFunction(u8"dragto", &Interpreter::mousedragto);
+	registerFunction(u8"dlg", &Interpreter::dlg);
 
 	//hide
 	registerFunction(u8"ocr", &Interpreter::ocr);
-	registerFunction(u8"dlg", &Interpreter::dlg);
 
 	//battle
 	registerFunction(u8"bh", &Interpreter::bh);//atk

@@ -1715,10 +1715,12 @@ bool Server::getItemIndexsByName(const QString& name, const QString& memo, QVect
 {
 	bool isExact = true;
 	QString newName = name.simplified();
+	QString newMemo = name.simplified();
+
 	if (name.startsWith("?"))
 	{
 		isExact = false;
-		newName = name.mid(1);
+		newName = name.mid(1).simplified();
 	}
 
 	PC pc = getPC();
@@ -1727,9 +1729,11 @@ bool Server::getItemIndexsByName(const QString& name, const QString& memo, QVect
 	for (int i = 0; i < MAX_ITEM; ++i)
 	{
 		QString itemName = pc.item[i].name.simplified();
-
 		if (itemName.isEmpty() || pc.item[i].useFlag == 0)
 			continue;
+
+		QString itemMemo = pc.item[i].memo.simplified();
+
 		if (memo.isEmpty())
 		{
 			if (isExact && (newName == itemName))
@@ -1737,13 +1741,16 @@ bool Server::getItemIndexsByName(const QString& name, const QString& memo, QVect
 			else if (!isExact && (itemName.contains(newName)))
 				v.append(i);
 		}
+		else if (name.isEmpty())
+		{
+			if (itemMemo.contains(newMemo))
+				v.append(i);
+		}
 		else
 		{
-			QString itemMemo = pc.item[i].memo.simplified();
-
-			if (isExact && (newName == itemName) && (itemMemo.contains(memo)))
+			if (isExact && (newName == itemName) && (itemMemo.contains(newMemo)))
 				v.append(i);
-			else if (!isExact && (itemName.contains(newName)) && (itemMemo.contains(memo)))
+			else if (!isExact && (itemName.contains(newName)) && (itemMemo.contains(newMemo)))
 				v.append(i);
 		}
 	}
@@ -1772,18 +1779,19 @@ int Server::getItemIndexByName(const QString& name, bool isExact, const QString&
 
 	for (int i = 0; i < MAX_ITEM; ++i)
 	{
-		if (pc.item[i].name.isEmpty())
+		QString itemName = pc.item[i].name.simplified();
+		if (itemName.isEmpty() || pc.item[i].useFlag == 0)
 			continue;
-		QString curItemStr = pc.item[i].name.simplified();
+
 		QString itemMemo = pc.item[i].memo.simplified();
 
-		if (isExact && newMemo.isEmpty() && (newStr == curItemStr))
+		if (isExact && newMemo.isEmpty() && (newStr == itemName))
 			return i;
-		else if (!isExact && newMemo.isEmpty() && curItemStr.contains(newStr))
+		else if (!isExact && newMemo.isEmpty() && itemName.contains(newStr))
 			return i;
-		else if (isExact && !newMemo.isEmpty() && (itemMemo.contains(newMemo)) && (newStr == curItemStr))
+		else if (isExact && !newMemo.isEmpty() && (itemMemo.contains(newMemo)) && (newStr == itemName))
 			return i;
-		else if (!isExact && !newMemo.isEmpty() && (itemMemo.contains(newMemo)) && curItemStr.contains(newStr))
+		else if (!isExact && !newMemo.isEmpty() && (itemMemo.contains(newMemo)) && itemName.contains(newStr))
 			return i;
 	}
 
@@ -2022,31 +2030,35 @@ int Server::checkJobDailyState(const QString& missionName)
 }
 
 //查找指定類型和名稱的單位
-bool Server::findUnit(const QString& name, int type, mapunit_t* punit, const QString& freename, int modelid)
+bool Server::findUnit(const QString& nameSrc, int type, mapunit_t* punit, const QString& freenameSrc, int modelid)
 {
 	QList<mapunit_t> units = mapUnitHash.values();
 
-	QString newName = name.simplified();
-	QStringList nameList = newName.split(util::rexOR, Qt::SkipEmptyParts);
+	QString newSrcName = nameSrc.simplified();
+	QStringList nameSrcList = newSrcName.split(util::rexOR, Qt::SkipEmptyParts);
 
-	QString newFreeName = freename.simplified();
-	QStringList freeNameList = newName.split(util::rexOR);
+	QString newSrcFreeName = freenameSrc.simplified();
+	QStringList freeNameSrcList = newSrcFreeName.split(util::rexOR);
 
-	if (nameList.size() == 2)
+	//coord
+	if (nameSrcList.size() == 2)
 	{
 		bool ok = false;
 		QPoint point;
-		point.setX(nameList.at(0).simplified().toInt(&ok));
+		point.setX(nameSrcList.at(0).simplified().toInt(&ok));
 		if (!ok)
 			return false;
 
-		point.setY(nameList.at(1).simplified().toInt(&ok));
+		point.setY(nameSrcList.at(1).simplified().toInt(&ok));
 		if (!ok)
 			return false;
 
 		for (const mapunit_t& it : units)
 		{
 			if (it.graNo == 0 || it.graNo == 9999)
+				continue;
+
+			if (it.objType != type)
 				continue;
 
 			if (it.p == point)
@@ -2058,57 +2070,77 @@ bool Server::findUnit(const QString& name, int type, mapunit_t* punit, const QSt
 		}
 		return false;
 	}
+	else if (modelid != -1)
+	{
+		for (const mapunit_t& it : units)
+		{
+			if (it.graNo == 0 || it.graNo == 9999)
+				continue;
+
+			if (it.graNo == modelid)
+			{
+				*punit = it;
+				return true;
+			}
+		}
+	}
 	else
 	{
-		auto check = [&punit, &units, type](int id, QString newName, const QString& newFreeName)
+		auto check = [&punit, &units, type](QString name, QString freeName)
 		{
+			name = name.simplified();
+			freeName = freeName.simplified();
+
 			for (const mapunit_t& it : units)
 			{
-				if (it.graNo == 0 || it.graNo == 9999)
+				if (it.graNo == 0)
 					continue;
 
-				if (id != -1)
+				if (it.objType != type)
+					continue;
+
+				QString newUnitName = it.name.simplified();
+				QString newUnitFreeName = it.freeName.simplified();
+
+				if (freeName.isEmpty())
 				{
-					if (it.graNo == id)
+					if (newUnitName == name)
 					{
 						*punit = it;
 						return true;
 					}
-					continue;
-				}
-
-				QString newNpcName = it.name.simplified();
-
-				if (newFreeName.isEmpty())
-				{
-
-					if ((newNpcName == newName) && (it.objType == type))
+					else if (name.startsWith("?"))
 					{
-						*punit = it;
-						return true;
-					}
-					else if (newName.startsWith("?") && (it.objType == type))
-					{
-						QString newName = newName.mid(1).simplified();
-						if (newNpcName.contains(newName))
+						QString newName = name.mid(1).simplified();
+						if (newUnitName.contains(newName))
 						{
 							*punit = it;
 							return true;
 						}
 					}
 				}
-				else
+				else if (name.isEmpty())
 				{
-					QString newNPCFreeName = it.freeName.simplified();
-					if ((newNpcName == newName) && (newNPCFreeName.contains(newFreeName)) && (it.objType == type))
+					if (newUnitFreeName.contains(freeName))
 					{
 						*punit = it;
 						return true;
 					}
-					else if (newName.startsWith("?") && (it.objType == type))
+				}
+				else
+				{
+					if (newUnitFreeName.isEmpty())
+						continue;
+
+					if ((newUnitName == name) && (newUnitFreeName.contains(freeName)))
 					{
-						newName = newName.mid(1).simplified();
-						if (newNpcName.contains(newName) && (newNPCFreeName.contains(newFreeName)))
+						*punit = it;
+						return true;
+					}
+					else if (name.startsWith("?"))
+					{
+						QString newName = name.mid(1).simplified();
+						if (newUnitName.contains(newName) && (newUnitFreeName.contains(freeName)))
 						{
 							*punit = it;
 							return true;
@@ -2120,13 +2152,23 @@ bool Server::findUnit(const QString& name, int type, mapunit_t* punit, const QSt
 			return false;
 		};
 
-		for (const auto& tmpName : nameList)
+		for (const auto& tmpName : nameSrcList)
 		{
 			QString tmpFreeName;
-			if (freeNameList.size() > 0)
-				tmpFreeName = freeNameList.takeFirst();
+			if (freeNameSrcList.size() > 0)
+				tmpFreeName = freeNameSrcList.takeFirst();
 
-			if (check(modelid, tmpName, tmpFreeName))
+			if (check(tmpName, tmpFreeName))
+				return true;
+		}
+
+		for (const auto& tmpFreeName : nameSrcList)
+		{
+			QString tmpName;
+			if (freeNameSrcList.size() > 0)
+				tmpName = nameSrcList.takeFirst();
+
+			if (check(tmpName, tmpFreeName))
 				return true;
 		}
 	}
@@ -8222,8 +8264,8 @@ void Server::lssproto_AB_recv(char* cdata)
 					sprintf_s(addressBook[i].planetname, "%s", gmsv[j].name);
 					break;
 				}
-	}
-}
+			}
+		}
 #endif
 	}
 }
@@ -8295,8 +8337,8 @@ void Server::lssproto_ABI_recv(int num, char* cdata)
 				sprintf_s(addressBook[num].planetname, 64, "%s", gmsv[j].name);
 				break;
 			}
+		}
 	}
-}
 #endif
 }
 
@@ -8584,7 +8626,7 @@ void Server::lssproto_I_recv(char* cdata)
 #endif
 			*/
 
-}
+	}
 
 	setPC(pc);
 
@@ -9562,8 +9604,8 @@ void Server::lssproto_KS_recv(int petarray, int result)
 			pc.selectPetNo[petarray] = 0;
 			if (petarray == pc.battlePetNo)
 				pc.battlePetNo = -1;
+		}
 	}
-}
 #endif
 
 	setPC(pc);
@@ -10155,7 +10197,7 @@ void Server::lssproto_TK_recv(int index, char* cmessage, int color)
 			else
 			{
 				fontsize = 0;
-		}
+			}
 #endif
 			if (szToken.size() > 1)
 			{
@@ -10276,13 +10318,13 @@ void Server::lssproto_TK_recv(int index, char* cmessage, int color)
 				//pc.status |= CHR_STATUS_FUKIDASHI;
 			}
 		}
-			}
+	}
 
 	setPC(pc);
 
 	chatQueue.enqueue(QPair{ color ,msg });
 	emit signalDispatcher.appendChatLog(msg, color);
-	}
+}
 
 //地圖數據更新，重新繪製地圖
 void Server::lssproto_MC_recv(int fl, int x1, int y1, int x2, int y2, int tileSum, int partsSum, int eventSum, char* cdata)
@@ -10526,7 +10568,7 @@ void Server::lssproto_C_recv(char* cdata)
 			{
 				extern char* FreeGetTitleStr(int id);
 				sprintf(titlestr, "%s", FreeGetTitleStr(titleindex));
-		}
+			}
 #endif
 #ifdef _CHAR_PROFESSION			// WON ADD 人物職業
 			getStringToken(bigtoken, "|", 18, smalltoken);
@@ -10596,7 +10638,7 @@ void Server::lssproto_C_recv(char* cdata)
 						break;
 					}
 				}
-				}
+			}
 			else
 			{
 #ifdef _CHAR_PROFESSION			// WON ADD 人物職業
@@ -10632,7 +10674,7 @@ void Server::lssproto_C_recv(char* cdata)
 				if (charType == 13 && noticeNo > 0)
 				{
 					setNpcNotice(ptAct, noticeNo);
-			}
+				}
 #endif
 				//if (ptAct != NULL)
 				//{
@@ -10653,7 +10695,7 @@ void Server::lssproto_C_recv(char* cdata)
 					//}
 					//setCharNameColor(ptAct, charNameColor);
 				//}
-		}
+			}
 
 			if (name == u8"を�そó")//排除亂碼
 				break;
@@ -10684,7 +10726,7 @@ void Server::lssproto_C_recv(char* cdata)
 			mapUnitHash.insert(id, unit);
 
 			break;
-	}
+		}
 		case 2://OBJTYPE_ITEM
 		{
 			getStringToken(bigtoken, "|", 2, smalltoken);
@@ -10984,8 +11026,8 @@ void Server::lssproto_C_recv(char* cdata)
 						}
 					}
 				}
-}
-}
+			}
+		}
 #endif
 #pragma endregion
 	}
@@ -11086,13 +11128,13 @@ void Server::lssproto_CA_recv(char* cdata)
 						setPcAction(5);
 #endif
 					}
-		}
+				}
 				else
 #endif
 					//changePcAct(x, y, dir, act, effectno, effectparam1, effectparam2);
-	}
+			}
 			continue;
-}
+		}
 
 		//ptAct = getCharObjAct(charindex);
 		//if (ptAct == NULL)
@@ -12291,7 +12333,7 @@ void Server::lssproto_S_recv(char* cdata)
 #endif
 
 			refreshItemInfo(i);
-	}
+		}
 
 		QStringList itemList;
 		for (const ITEM& it : pc.item)
@@ -12301,7 +12343,7 @@ void Server::lssproto_S_recv(char* cdata)
 			itemList.append(it.name);
 		}
 		emit signalDispatcher.updateComboBoxItemText(util::kComboBoxItem, itemList);
-}
+	}
 #pragma endregion
 #pragma region PetSkill
 	else if (first == "W")//接收到的寵物技能
@@ -12513,7 +12555,7 @@ void Server::lssproto_S_recv(char* cdata)
 #ifdef _ITEM_COUNTDOWN
 			pet[nPetIndex].item[i].counttime = getIntegerToken(data, "|", no + 16);
 #endif
-	}
+		}
 	}
 #endif
 #pragma endregion
@@ -12631,7 +12673,7 @@ void Server::lssproto_CharList_recv(char* cresult, char* cdata)
 		PcLanded.登陸延時時間 = TimeGetTime() + 2000;
 #endif
 		return;
-}
+	}
 
 	//if (netproc_sending == NETPROC_SENDING)
 	//{
@@ -12755,7 +12797,7 @@ void Server::lssproto_CharLogin_recv(char* cresult, char* cdata)
 	angelFlag = FALSE;
 	angelMsg[0] = NULL;
 #endif
-	}
+}
 
 void Server::lssproto_TD_recv(char* cdata)//交易
 {

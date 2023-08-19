@@ -975,15 +975,21 @@ void Parser::replaceSysConstKeyword(QString& expr)
 
 	static const QRegularExpression rexPlayer(R"(char\.(\w+))");
 	const QRegularExpression rexPet(rexStart + rexMiddleStart + rexMiddleMid + rexMEnd + rexExtra);
-	static const QRegularExpression rexItem(R"(item\[(\d+)\]\.(\w+))");
-	rexStart = "item";
-	const QRegularExpression rexItemEx(rexStart + rexMiddleStart + rexMiddleMid + rexMEnd + rexExtra);
-	rexStart = "team";
-	const QRegularExpression rexTeamEx(rexStart + rexMiddleStart + rexMiddleMid + rexMEnd);
-	rexStart = "team";
-	const QRegularExpression rexTeam(rexStart + rexMiddleStart + rexMiddleMid + rexMEnd + rexExtra);
+
 	rexStart = "pet";
 	const QRegularExpression rexPetEx(rexStart + rexMiddleStart + rexMiddleMid + rexMEnd);
+
+	static const QRegularExpression rexItem(R"(item\[(\d+)\]\.(\w+))");
+
+	rexStart = "item";
+	const QRegularExpression rexItemEx(rexStart + rexMiddleStart + rexMiddleMid + rexMEnd + rexExtra);
+
+	rexStart = "team";
+	const QRegularExpression rexTeamEx(rexStart + rexMiddleStart + rexMiddleMid + rexMEnd);
+
+	rexStart = "team";
+	const QRegularExpression rexTeam(rexStart + rexMiddleStart + rexMiddleMid + rexMEnd + rexExtra);
+
 	static const QRegularExpression rexMap(R"(map\.(\w+))");
 
 	PC _pc = injector.server->getPC();
