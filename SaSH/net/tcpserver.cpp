@@ -2116,6 +2116,8 @@ bool Server::findUnit(const QString& name, int type, mapunit_t* punit, const QSt
 					}
 				}
 			}
+
+			return false;
 		};
 
 		for (const auto& tmpName : nameList)
