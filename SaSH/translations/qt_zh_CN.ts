@@ -1603,6 +1603,10 @@ No new version available. Do you still want to update?</source>
         <source>SaSH</source>
         <translation>石器圣手</translation>
     </message>
+    <message>
+        <source>Stone:</source>
+        <translation>石币:</translation>
+    </message>
 </context>
 <context>
     <name>MainObject</name>
@@ -2777,6 +2781,10 @@ No new version available. Do you still want to update?</source>
     </message>
     <message>
         <source>request param size is between %1 to %2, but import %3</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Unpaired &apos;%1&apos; at row %2, index %3: &apos;%4&apos;</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -4040,6 +4048,22 @@ No new version available. Do you still want to update?</source>
     <message>
         <source>if</source>
         <translation></translation>
+    </message>
+    <message>
+        <source>delch</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>createch</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>const</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>doffstone</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>

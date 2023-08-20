@@ -106,6 +106,48 @@ iAlP690UuUa4mTSSRkP2fNFj39/Ksw/7sD4xnT/gcJm4+1RiRQn36JfOSA==
 
 Crypto::Crypto() {}
 
+//void Crypto::generateAndSaveRSAKeys()
+//{
+//	int bits = 4096;
+//	unsigned long e = RSA_F4;
+//
+//	BIGNUM* bne = BN_new();
+//	BN_set_word(bne, e);
+//
+//	RSA* rsa = RSA_new();
+//	RSA_generate_key_ex(rsa, bits, bne, NULL);
+//
+//	BIO* bioPublic = BIO_new(BIO_s_mem());
+//	PEM_write_bio_RSAPublicKey(bioPublic, rsa);
+//
+//	BUF_MEM* publicKeyBuffer;
+//	BIO_get_mem_ptr(bioPublic, &publicKeyBuffer);
+//	QByteArray publicKey((char*)publicKeyBuffer->data, publicKeyBuffer->length);
+//
+//	QFile filePublic("d:/publicKey.pem");
+//	filePublic.open(QIODevice::WriteOnly);
+//	filePublic.write(publicKey);
+//	filePublic.close();
+//
+//	BIO* bioPrivate = BIO_new(BIO_s_mem());
+//	PEM_write_bio_RSAPrivateKey(bioPrivate, rsa, NULL, NULL, 0, NULL, NULL);
+//
+//	BUF_MEM* privateKeyBuffer;
+//	BIO_get_mem_ptr(bioPrivate, &privateKeyBuffer);
+//	QByteArray privateKey((char*)privateKeyBuffer->data, privateKeyBuffer->length);
+//
+//	QFile filePrivate("d:/privateKey.pem");
+//	filePrivate.open(QIODevice::WriteOnly);
+//	filePrivate.write(privateKey);
+//	filePrivate.close();
+//
+//	// Don't forget to free resources
+//	BIO_free_all(bioPublic);
+//	BIO_free_all(bioPrivate);
+//	RSA_free(rsa);
+//	BN_free(bne);
+//}
+
 QByteArray Crypto::aesEncrypt(const QByteArray& data, const QByteArray& key)
 {
 	// Generate IV
@@ -319,48 +361,6 @@ QByteArray Crypto::rsaDecrypt(const QByteArray& encryptedData, const QByteArray&
 
 }
 
-//void Crypto::generateAndSaveRSAKeys()
-//{
-//	int bits = 4096;
-//	unsigned long e = RSA_F4;
-//
-//	BIGNUM* bne = BN_new();
-//	BN_set_word(bne, e);
-//
-//	RSA* rsa = RSA_new();
-//	RSA_generate_key_ex(rsa, bits, bne, NULL);
-//
-//	BIO* bioPublic = BIO_new(BIO_s_mem());
-//	PEM_write_bio_RSAPublicKey(bioPublic, rsa);
-//
-//	BUF_MEM* publicKeyBuffer;
-//	BIO_get_mem_ptr(bioPublic, &publicKeyBuffer);
-//	QByteArray publicKey((char*)publicKeyBuffer->data, publicKeyBuffer->length);
-//
-//	QFile filePublic("d:/publicKey.pem");
-//	filePublic.open(QIODevice::WriteOnly);
-//	filePublic.write(publicKey);
-//	filePublic.close();
-//
-//	BIO* bioPrivate = BIO_new(BIO_s_mem());
-//	PEM_write_bio_RSAPrivateKey(bioPrivate, rsa, NULL, NULL, 0, NULL, NULL);
-//
-//	BUF_MEM* privateKeyBuffer;
-//	BIO_get_mem_ptr(bioPrivate, &privateKeyBuffer);
-//	QByteArray privateKey((char*)privateKeyBuffer->data, privateKeyBuffer->length);
-//
-//	QFile filePrivate("d:/privateKey.pem");
-//	filePrivate.open(QIODevice::WriteOnly);
-//	filePrivate.write(privateKey);
-//	filePrivate.close();
-//
-//	// Don't forget to free resources
-//	BIO_free_all(bioPublic);
-//	BIO_free_all(bioPrivate);
-//	RSA_free(rsa);
-//	BN_free(bne);
-//}
-
 bool Crypto::encodeScript(const QString& scriptFileName, const QString& userAesKey)
 {
 	QFile file(scriptFileName);
@@ -369,46 +369,51 @@ bool Crypto::encodeScript(const QString& scriptFileName, const QString& userAesK
 		// Handle error
 		return false;
 	}
-	QTextStream in(&file);
-	in.setCodec("UTF-8");
-	QString text = in.readAll();
-	QByteArray scriptData = text.toUtf8();
-	file.close();
-
-	if (scriptData.isEmpty())
+	
+	do
 	{
-		return false;
-	}
+		QTextStream in(&file);
+		in.setCodec("UTF-8");
+		QString text = in.readAll();
+		QByteArray scriptData = text.toUtf8();
+		file.close();
 
-	QByteArray encryptedScript = Crypto::aesEncrypt(scriptData, userAesKey.toUtf8());
-	if (encryptedScript.isEmpty())
-	{
-		return false;
-	}
+		if (scriptData.isEmpty())
+		{
+			return false;
+		}
 
-	QByteArray encryptedKey = Crypto::rsaEncrypt(userAesKey.toUtf8(), RSA_PUBLIC_KEY);
-	if (encryptedKey.isEmpty())
-	{
-		return false;
-	}
+		QByteArray encryptedScript = Crypto::aesEncrypt(scriptData, userAesKey.toUtf8());
+		if (encryptedScript.isEmpty())
+		{
+			return false;
+		}
 
-	QFileInfo fileInfo(scriptFileName);
-	QString newFileName = fileInfo.absolutePath() + "/" + fileInfo.baseName() + util::SCRIPT_PRIVATE_SUFFIX_DEFAULT;
-	QFile encryptedFile(newFileName);
-	if (!encryptedFile.open(QIODevice::WriteOnly | QIODevice::Truncate))
-	{
-		// Handle error
-		return false;
-	}
+		QByteArray encryptedKey = Crypto::rsaEncrypt(userAesKey.toUtf8(), RSA_PUBLIC_KEY);
+		if (encryptedKey.isEmpty())
+		{
+			return false;
+		}
 
-	//to viewable hex text
-	QTextStream out(&encryptedFile);
-	out.setCodec("UTF-8");
-	out << encryptedKey.toHex() << '\n' << encryptedScript.toHex() << Qt::endl;
+		QFileInfo fileInfo(scriptFileName);
+		QString newFileName = fileInfo.absolutePath() + "/" + fileInfo.baseName() + util::SCRIPT_PRIVATE_SUFFIX_DEFAULT;
+		QFile encryptedFile(newFileName);
+		if (!encryptedFile.open(QIODevice::WriteOnly | QIODevice::Truncate))
+		{
+			// Handle error
+			return false;
+		}
 
-	encryptedFile.flush();
-	encryptedFile.close();
-	return true;
+		//to viewable hex text
+		QTextStream out(&encryptedFile);
+		out.setCodec("UTF-8");
+		out << encryptedKey.toHex() << '\n' << encryptedScript.toHex() << Qt::endl;
+
+		encryptedFile.flush();
+		encryptedFile.close();
+	} while (false);
+
+	return false;
 }
 
 bool Crypto::decodeScript(const QString& scriptFileName, QString& scriptContent)
@@ -468,6 +473,7 @@ bool Crypto::decodeScript(const QString& scriptFileName, const QString& userAesK
 
 	QTextStream in(&encryptedFile);
 	in.setCodec("UTF-8");
+	
 	QString encryptedKey = in.readLine();
 	if (encryptedKey.isEmpty())
 	{

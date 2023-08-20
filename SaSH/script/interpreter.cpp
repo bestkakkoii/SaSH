@@ -1577,6 +1577,9 @@ qint64 Interpreter::run(qint64 currentline, const TokenMap& TK)
 
 	qint64 beginLine = 0;
 	checkInteger(TK, 3, &beginLine);
+	--beginLine;
+	if (beginLine < 0)
+		beginLine = 0;
 
 	RunFileMode asyncMode = kSync;
 	qint64 nAsync = 0;
@@ -1620,14 +1623,14 @@ qint64 Interpreter::run(qint64 currentline, const TokenMap& TK)
 	}
 	else
 	{
-		futureSync_.addFuture(QtConcurrent::run([this, beginLine, fileName]()->bool
+		futureSync_.addFuture(QtConcurrent::run([this, beginLine, fileName, varShareMode]()->bool
 			{
 				QSharedPointer<Interpreter> interpreter(new Interpreter());
 				if (!interpreter.isNull())
 				{
 					subInterpreterList_.append(interpreter);
 					interpreter->setSubScript(true);
-					if (interpreter->doFile(beginLine, fileName, this, kNotShare, kAsync))
+					if (interpreter->doFile(beginLine, fileName, this, varShareMode, kAsync))
 						return true;
 				}
 				return false;

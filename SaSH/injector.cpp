@@ -99,40 +99,40 @@ bool Injector::createProcess(Injector::process_information_t& pi)
 	int nEncode = 0;
 
 	bool canSave = false;
-	int tmp = config.readInt("System", "Command", "realbin");
+	int tmp = config.read<int>("System", "Command", "realbin");
 	if (tmp)
 		nRealBin = tmp;
 	else
 		canSave = true;
 
-	tmp = config.readInt("System", "Command", "adrnbin");
+	tmp = config.read<int>("System", "Command", "adrnbin");
 	if (tmp)
 		nAdrnBin = tmp;
 	else
 		canSave = true;
 
-	tmp = config.readInt("System", "Command", "sprbin");
+	tmp = config.read<int>("System", "Command", "sprbin");
 	if (tmp)
 		nSprBin = tmp;
 	else
 		canSave = true;
 
-	tmp = config.readInt("System", "Command", "spradrnbin");
+	tmp = config.read<int>("System", "Command", "spradrnbin");
 	if (tmp)
 		nSprAdrnBin = tmp;
-	tmp = config.readInt("System", "Command", "realtrue");
+	tmp = config.read<int>("System", "Command", "realtrue");
 	if (tmp)
 		nRealTrue = tmp;
 	else
 		canSave = true;
 
-	tmp = config.readInt("System", "Command", "adrntrue");
+	tmp = config.read<int>("System", "Command", "adrntrue");
 	if (tmp)
 		nAdrnTrue = tmp;
 	else
 		canSave = true;
 
-	tmp = config.readInt("System", "Command", "encode");
+	tmp = config.read<int>("System", "Command", "encode");
 	if (tmp)
 		nEncode = tmp;
 	else

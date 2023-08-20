@@ -162,41 +162,87 @@
         <number>1</number>
        </property>
        <item>
-        <layout class="QHBoxLayout" name="horizontalLayout_3">
+        <layout class="QHBoxLayout" name="horizontalLayout_9">
+         <property name="spacing">
+          <number>1</number>
+         </property>
          <item>
-          <widget class="QLabel" name="label_status_">
-           <property name="minimumSize">
-            <size>
-             <width>30</width>
-             <height>14</height>
-            </size>
-           </property>
-           <property name="maximumSize">
-            <size>
-             <width>30</width>
-             <height>14</height>
-            </size>
-           </property>
-           <property name="text">
-            <string>Status:</string>
-           </property>
-          </widget>
+          <layout class="QHBoxLayout" name="horizontalLayout_3">
+           <item>
+            <widget class="QLabel" name="label_status_">
+             <property name="minimumSize">
+              <size>
+               <width>30</width>
+               <height>14</height>
+              </size>
+             </property>
+             <property name="maximumSize">
+              <size>
+               <width>30</width>
+               <height>14</height>
+              </size>
+             </property>
+             <property name="text">
+              <string>Status:</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="FastLabel" name="label_status" native="true">
+             <property name="minimumSize">
+              <size>
+               <width>0</width>
+               <height>14</height>
+              </size>
+             </property>
+             <property name="maximumSize">
+              <size>
+               <width>16777215</width>
+               <height>14</height>
+              </size>
+             </property>
+            </widget>
+           </item>
+          </layout>
          </item>
          <item>
-          <widget class="FastLabel" name="label_status" native="true">
-           <property name="minimumSize">
-            <size>
-             <width>0</width>
-             <height>14</height>
-            </size>
-           </property>
-           <property name="maximumSize">
-            <size>
-             <width>16777215</width>
-             <height>14</height>
-            </size>
-           </property>
-          </widget>
+          <layout class="QHBoxLayout" name="horizontalLayout_8">
+           <item>
+            <widget class="QLabel" name="label_stone_">
+             <property name="minimumSize">
+              <size>
+               <width>30</width>
+               <height>14</height>
+              </size>
+             </property>
+             <property name="maximumSize">
+              <size>
+               <width>30</width>
+               <height>14</height>
+              </size>
+             </property>
+             <property name="text">
+              <string>Stone:</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="FastLabel" name="label_stone" native="true">
+             <property name="minimumSize">
+              <size>
+               <width>0</width>
+               <height>14</height>
+              </size>
+             </property>
+             <property name="maximumSize">
+              <size>
+               <width>16777215</width>
+               <height>14</height>
+              </size>
+             </property>
+            </widget>
+           </item>
+          </layout>
          </item>
         </layout>
        </item>

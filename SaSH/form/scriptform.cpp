@@ -117,7 +117,7 @@ ScriptForm::ScriptForm(QWidget* parent)
 	util::Config config(fileName);
 
 	Injector& injector = Injector::getInstance();
-	injector.currentScriptFileName = config.readString(objectName(), "LastModifyFile");
+	injector.currentScriptFileName = config.read<QString>(objectName(), "LastModifyFile");
 	if (!injector.currentScriptFileName.isEmpty() && QFile::exists(injector.currentScriptFileName))
 	{
 		emit signalDispatcher.loadFileToTable(injector.currentScriptFileName);

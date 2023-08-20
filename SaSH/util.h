@@ -1628,27 +1628,141 @@ namespace util
 		void WriteHash(const QString& sec, const QString& key, QMap<QString, QPair<bool, QString>>& hash);
 		QMap<QString, QPair<bool, QString>> EnumString(const QString& sec, const QString& key) const;
 
-		QString readString(const QString& sec, const QString& key, const QString& sub) const;
-		QString readString(const QString& sec, const QString& key) const;
-		QString readString(const QString& key) const;
-		bool readBool(const QString& key) const;
-		bool readBool(const QString& sec, const QString& key) const;
-		bool readBool(const QString& sec, const QString& key, const QString& sub) const;
-		int readInt(const QString& key) const;
-		int readInt(const QString& sec, const QString& key) const;
-		int readInt(const QString& sec, const QString& key, const QString& sub) const;
-		qreal readDouble(const QString& sec, const QString& key, qreal retnot) const;
-		int readInt(const QString& sec, const QString& key, int retnot) const;
+		template <typename T>
+		T read(const QString& sec, const QString& key, const QString& sub) const
+		{
+			if (!cache_.contains(sec))
+			{
+				return T();
+			}
 
-		void writeIntArray(const QString& sec, const QString& key, const QList<int>& values);
-		void writeIntArray(const QString& sec, const QString& key, const QString& sub, const QList<int>& values);
-		QList<int> readIntArray(const QString& sec, const QString& key, const QString& sub) const;
-		QStringList readStringArray(const QString& sec, const QString& key, const QString& sub) const;
-		void writeStringArray(const QString& sec, const QString& key, const QString& sub, const QStringList values);
+			QJsonObject json = cache_.value(sec).toJsonObject();
+			if (!json.contains(key))
+			{
+				return T();
+			}
 
-		void util::Config::writeMapData(const QString& sec, const util::MapData& data);
+			QJsonObject subjson = json.value(key).toObject();
+			if (!subjson.contains(sub))
+			{
+				return T();
+			}
+			return subjson[sub].toVariant().value<T>();
+		}
 
-		QList<util::MapData> util::Config::readMapData(const QString& key) const;
+		template <typename T>
+		T read(const QString& sec, const QString& key) const
+		{
+			//read json value from cache_
+			if (cache_.contains(sec))
+			{
+				QJsonObject json = cache_.value(sec).toJsonObject();
+				if (json.contains(key))
+				{
+					return json.value(key).toVariant().value<T>();
+				}
+			}
+			return T();
+		}
+
+		template <typename T>
+		T read(const QString& key) const
+		{
+			if (cache_.contains(key))
+			{
+				return cache_.value(key).value<T>();
+			}
+
+			return T();
+		}
+
+		template <typename T>
+		QList<T> readArray(const QString& sec, const QString& key, const QString& sub) const
+		{
+			QList<T> result;
+			QVariant variant;
+
+			if (cache_.contains(sec))
+			{
+				QJsonObject json = cache_.value(sec).toJsonObject();
+
+				if (json.contains(key))
+				{
+					QJsonObject subJson = json.value(key).toObject();
+
+					if (subJson.contains(sub))
+					{
+						QJsonArray jsonArray = subJson.value(sub).toArray();
+
+						for (const QJsonValue& value : jsonArray)
+						{
+							variant = value.toVariant();
+							result.append(variant.value<T>());
+						}
+					}
+				}
+			}
+
+			return result;
+		}
+
+		template <typename T>
+		void writeArray(const QString& sec, const QString& key, const QList<T>& values)
+		{
+			if (!cache_.contains(sec))
+			{
+				cache_.insert(sec, QJsonObject());
+			}
+
+			QVariantList variantList;
+			for (const T& value : values)
+			{
+				variantList.append(value);
+			}
+
+			QJsonObject json = cache_.value(sec).toJsonObject();
+			json.insert(key, QJsonArray::fromVariantList(variantList));
+			cache_.insert(sec, json);
+
+			if (!hasChanged_)
+				hasChanged_ = true;
+		}
+
+		template <typename T>
+		void writeArray(const QString& sec, const QString& key, const QString& sub, const QList<T>& values)
+		{
+			QJsonObject json;
+
+			if (cache_.contains(sec))
+			{
+				json = cache_.value(sec).toJsonObject();
+			}
+
+			QJsonArray jsonArray;
+
+			for (const T& value : values)
+			{
+				jsonArray.append(value);
+			}
+
+			QJsonObject subJson;
+
+			if (json.contains(key))
+			{
+				subJson = json.value(key).toObject();
+			}
+
+			subJson.insert(sub, jsonArray);
+			json.insert(key, subJson);
+			cache_.insert(sec, json);
+
+			if (!hasChanged_)
+				hasChanged_ = true;
+		}
+
+		void writeMapData(const QString& sec, const util::MapData& data);
+
+		QList<util::MapData> readMapData(const QString& key) const;
 
 	private:
 		QJsonDocument document_;

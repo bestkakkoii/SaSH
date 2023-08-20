@@ -691,6 +691,7 @@ MainForm::MainForm(QWidget* parent)
 		connect(&signalDispatcher, &SignalDispatcher::updateMapLabelTextChanged, this, &MainForm::onUpdateMapLabelTextChanged);
 		connect(&signalDispatcher, &SignalDispatcher::updateCursorLabelTextChanged, this, &MainForm::onUpdateCursorLabelTextChanged);
 		connect(&signalDispatcher, &SignalDispatcher::updateCoordsPosLabelTextChanged, this, &MainForm::onUpdateCoordsPosLabelTextChanged);
+		connect(&signalDispatcher, &SignalDispatcher::updatePlayerInfoStone, this, &MainForm::onUpdateStonePosLabelTextChanged);
 	}
 
 	ui.tabWidget_main->clear();
@@ -1092,6 +1093,11 @@ void MainForm::onUpdateCoordsPosLabelTextChanged(const QString& text)
 	ui.label_coords->setText(text);
 }
 
+void MainForm::onUpdateStonePosLabelTextChanged(int ntext)
+{
+	ui.label_stone->setText(QString::number(ntext));
+}
+
 void MainForm::onUpdateMainFormTitle(const QString& text)
 {
 	setWindowTitle(QString("SaSH-%1").arg(text));
@@ -1237,7 +1243,7 @@ void MainForm::onLoadHashSettings(const QString& name, bool isFullPath)
 			QString key = iter.value();
 			if (!key.endsWith("Enable"))
 				continue;
-			bool value = config.readBool("User", "Enable", key);
+			bool value = config.read<bool>("User", "Enable", key);
 			util::UserSetting hkey = iter.key();
 			enableHash.insert(hkey, value);
 		}
@@ -1247,7 +1253,7 @@ void MainForm::onLoadHashSettings(const QString& name, bool isFullPath)
 			QString key = iter.value();
 			if (!key.endsWith("Value"))
 				continue;
-			int value = config.readInt("User", "Value", key);
+			int value = config.read<int>("User", "Value", key);
 			util::UserSetting hkey = iter.key();
 			valueHash.insert(hkey, value);
 		}
@@ -1257,7 +1263,7 @@ void MainForm::onLoadHashSettings(const QString& name, bool isFullPath)
 			QString key = iter.value();
 			if (!key.endsWith("String"))
 				continue;
-			QString value = config.readString("User", "String", key);
+			QString value = config.read<QString>("User", "String", key);
 			util::UserSetting hkey = iter.key();
 			stringHash.insert(hkey, value);
 		}

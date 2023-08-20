@@ -153,7 +153,7 @@ void GeneralForm::onComboBoxClicked()
 			return;
 
 		util::Config config(fileName);
-		QStringList paths = config.readStringArray("System", "Command", "DirPath");
+		QStringList paths = config.readArray<QString>("System", "Command", "DirPath");
 		QStringList newPaths;
 
 		if (paths.isEmpty())
@@ -189,7 +189,8 @@ void GeneralForm::onComboBoxClicked()
 			QString pathName = pathInfo.fileName();
 			ui.comboBox_paths->addItem(pathName + "/" + fName, it);
 		}
-		config.writeStringArray("System", "Command", "DirPath", newPaths);
+
+		config.writeArray<QString>("System", "Command", "DirPath", newPaths);
 		ui.comboBox_paths->setCurrentIndex(currentIndex);
 		ui.comboBox_paths->blockSignals(false);
 		return;
@@ -222,7 +223,7 @@ void GeneralForm::onButtonClicked()
 			return;
 
 		util::Config config(fileName);
-		QStringList paths = config.readStringArray("System", "Command", "DirPath");
+		QStringList paths = config.readArray<QString>("System", "Command", "DirPath");
 		QStringList newPaths;
 
 		for (const QString& path : paths)
@@ -251,7 +252,7 @@ void GeneralForm::onButtonClicked()
 
 		ui.comboBox_paths->setCurrentIndex(ui.comboBox_paths->count() - 1);
 		ui.comboBox_paths->blockSignals(false);
-		config.writeStringArray("System", "Command", "DirPath", newPaths);
+		config.writeArray<QString>("System", "Command", "DirPath", newPaths);
 	}
 
 	if (name == "pushButton_setting")
@@ -867,7 +868,7 @@ void GeneralForm::onApplyHashSettingsToUI()
 	if (!fileName.isEmpty())
 	{
 		util::Config config(fileName);
-		int index = config.readInt("System", "Command", "LastSelection");
+		int index = config.read<int>("System", "Command", "LastSelection");
 
 		if (index >= 0 && index < ui.comboBox_paths->count())
 		{
@@ -878,7 +879,7 @@ void GeneralForm::onApplyHashSettingsToUI()
 		else if (ui.comboBox_paths->count() > 0)
 			ui.comboBox_paths->setCurrentIndex(0);
 
-		int count = config.readInt("System", "Server", "ListCount");
+		int count = config.read<int>("System", "Server", "ListCount");
 		if (count <= 0)
 		{
 			count = 2;
@@ -892,7 +893,7 @@ void GeneralForm::onApplyHashSettingsToUI()
 			ui.comboBox_serverlist->addItem(tr("ServerList%1").arg(i + 1), i);
 		}
 
-		int lastServerListSelection = config.readInt("System", "Server", "LastServerListSelection");
+		int lastServerListSelection = config.read<int>("System", "Server", "LastServerListSelection");
 		if (lastServerListSelection >= 0 && lastServerListSelection < count)
 			ui.comboBox_serverlist->setCurrentIndex(lastServerListSelection);
 		else if (ui.comboBox_serverlist->count() > 0)
@@ -1026,7 +1027,7 @@ void GeneralForm::createServerList()
 		util::Config config(fileName);
 
 		g_CurrentListIndex = currentListIndex;
-		list = config.readStringArray("System", "Server", QString("List_%1").arg(currentListIndex));
+		list = config.readArray<QString>("System", "Server", QString("List_%1").arg(currentListIndex));
 		if (list.isEmpty())
 		{
 			static const QStringList defaultListSO = {
@@ -1063,7 +1064,7 @@ void GeneralForm::createServerList()
 			};
 
 			list = currentListIndex == 0 ? defaultListSO : defaultListSE;
-			config.writeStringArray("System", "Server", QString("List_%1").arg(currentListIndex), list);
+			config.writeArray<QString>("System", "Server", QString("List_%1").arg(currentListIndex), list);
 		}
 	}
 

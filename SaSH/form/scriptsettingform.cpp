@@ -161,14 +161,14 @@ ScriptSettingForm::ScriptSettingForm(QWidget* parent)
 	util::Config config(fileName);
 
 
-	injector.currentScriptFileName = config.readString(objectName(), "LastModifyFile");
+	injector.currentScriptFileName = config.read<QString>(objectName(), "LastModifyFile");
 	if (!injector.currentScriptFileName.isEmpty() && QFile::exists(injector.currentScriptFileName))
 	{
 		emit signalDispatcher.loadFileToTable(injector.currentScriptFileName);
 	}
 
 	QString ObjectName = ui.widget->objectName();
-	int fontSize = config.readInt(objectName(), ObjectName, "FontSize");
+	int fontSize = config.read<int>(objectName(), ObjectName, "FontSize");
 	if (fontSize > 0)
 	{
 		font = ui.widget->getOldFont();
@@ -178,7 +178,7 @@ ScriptSettingForm::ScriptSettingForm(QWidget* parent)
 	}
 
 	ObjectName = ui.listView_log->objectName();
-	fontSize = config.readInt(objectName(), ObjectName, "FontSize");
+	fontSize = config.read<int>(objectName(), ObjectName, "FontSize");
 	if (fontSize > 0)
 	{
 		QFont f = ui.listView_log->font();
@@ -187,7 +187,7 @@ ScriptSettingForm::ScriptSettingForm(QWidget* parent)
 	}
 
 	ObjectName = ui.textBrowser->objectName();
-	fontSize = config.readInt(objectName(), ObjectName, "FontSize");
+	fontSize = config.read<int>(objectName(), ObjectName, "FontSize");
 	if (fontSize > 0)
 	{
 		font = ui.textBrowser->font();

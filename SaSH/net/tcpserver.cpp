@@ -2931,37 +2931,37 @@ bool Server::login(int s)
 	{
 	case util::kStatusBusy:
 	{
-		QList<int> list = config.readIntArray("System", "Login", "Busy");
+		QList<int> list = config.readArray<int>("System", "Login", "Busy");
 		if (list.size() == 2)
 			injector.leftDoubleClick(list.at(0), list.at(1));
 		else
 		{
 			injector.leftDoubleClick(315, 255);
-			config.writeIntArray("System", "Login", "Busy", { 315, 255 });
+			config.writeArray<int>("System", "Login", "Busy", { 315, 255 });
 		}
 		break;
 	}
 	case util::kStatusTimeout:
 	{
-		QList<int> list = config.readIntArray("System", "Login", "Timeout");
+		QList<int> list = config.readArray<int>("System", "Login", "Timeout");
 		if (list.size() == 2)
 			injector.leftDoubleClick(list.at(0), list.at(1));
 		else
 		{
 			injector.leftDoubleClick(315, 253);
-			config.writeIntArray("System", "Login", "Timeout", { 315, 253 });
+			config.writeArray<int>("System", "Login", "Timeout", { 315, 253 });
 		}
 		break;
 	}
 	case util::kNoUserNameOrPassword:
 	{
-		QList<int> list = config.readIntArray("System", "Login", "NoUserNameOrPassword");
+		QList<int> list = config.readArray<int>("System", "Login", "NoUserNameOrPassword");
 		if (list.size() == 2)
 			injector.leftDoubleClick(list.at(0), list.at(1));
 		else
 		{
 			injector.leftDoubleClick(315, 253);
-			config.writeIntArray("System", "Login", "NoUserNameOrPassword", { 315, 253 });
+			config.writeArray<int>("System", "Login", "NoUserNameOrPassword", { 315, 253 });
 		}
 		break;
 	}
@@ -2974,13 +2974,13 @@ bool Server::login(int s)
 		if (!password.isEmpty())
 			mem::writeString(injector.getProcess(), injector.getProcessModule() + kOffestPassword, password);
 
-		QList<int> list = config.readIntArray("System", "Login", "OK");
+		QList<int> list = config.readArray<int>("System", "Login", "OK");
 		if (list.size() == 2)
 			injector.leftDoubleClick(list.at(0), list.at(1));
 		else
 		{
 			injector.leftDoubleClick(380, 310);
-			config.writeIntArray("System", "Login", "OK", { 380, 310 });
+			config.writeArray<int>("System", "Login", "OK", { 380, 310 });
 		}
 		break;
 	}
@@ -3016,7 +3016,7 @@ bool Server::login(int s)
 			int x = 160 + (a * 125);
 			int y = 165 + (b * 25);
 
-			QList<int> list = config.readIntArray("System", "Login", "SelectServer");
+			QList<int> list = config.readArray<int>("System", "Login", "SelectServer");
 			if (list.size() == 4)
 			{
 				x = list.at(0) + (a * list.at(1));
@@ -3024,7 +3024,7 @@ bool Server::login(int s)
 			}
 			else
 			{
-				config.writeIntArray("System", "Login", "SelectServer", { 160, 125, 165, 25 });
+				config.writeArray<int>("System", "Login", "SelectServer", { 160, 125, 165, 25 });
 			}
 
 			for (;;)
@@ -3055,7 +3055,7 @@ bool Server::login(int s)
 			int x = 500;
 			int y = 340;
 
-			QList<int> list = config.readIntArray("System", "Login", "SelectSubServerGoBack");
+			QList<int> list = config.readArray<int>("System", "Login", "SelectSubServerGoBack");
 			if (list.size() == 2)
 			{
 				x = list.at(0);
@@ -3063,7 +3063,7 @@ bool Server::login(int s)
 			}
 			else
 			{
-				config.writeIntArray("System", "Login", "SelectSubServer", { 500, 340 });
+				config.writeArray<int>("System", "Login", "SelectSubServer", QList<int>{ 500, 340 });
 			}
 
 			for (;;)
@@ -3092,7 +3092,7 @@ bool Server::login(int s)
 			int x = 250;
 			int y = 265 + (subserver * 20);
 
-			QList<int> list = config.readIntArray("System", "Login", "SelectSubServer");
+			QList<int> list = config.readArray<int>("System", "Login", "SelectSubServer");
 			if (list.size() == 3)
 			{
 				x = list.at(0);
@@ -3100,7 +3100,7 @@ bool Server::login(int s)
 			}
 			else
 			{
-				config.writeIntArray("System", "Login", "SelectSubServer", { 250, 265, 20 });
+				config.writeArray<int>("System", "Login", "SelectSubServer", { 250, 265, 20 });
 			}
 
 			for (;;)
@@ -3133,7 +3133,7 @@ bool Server::login(int s)
 			int x = 100 + (position * 300);
 			int y = 340;
 
-			QList<int> list = config.readIntArray("System", "Login", "SelectCharacter");
+			QList<int> list = config.readArray<int>("System", "Login", "SelectCharacter");
 			if (list.size() == 3)
 			{
 				x = list.at(0) + (position * list.at(1));
@@ -3141,7 +3141,7 @@ bool Server::login(int s)
 			}
 			else
 			{
-				config.writeIntArray("System", "Login", "SelectCharacter", { 100, 300, 340 });
+				config.writeArray<int>("System", "Login", "SelectCharacter", { 100, 300, 340 });
 			}
 
 			injector.leftDoubleClick(x, y);
@@ -10258,6 +10258,7 @@ void Server::lssproto_TK_recv(int index, char* cmessage, int color)
 			if (msg == "成立聊天室扣除２００石幣")
 			{
 				pc.gold -= 200;
+
 				emit signalDispatcher.updatePlayerInfoStone(pc.gold);
 			}
 #ifdef _FONT_SIZE

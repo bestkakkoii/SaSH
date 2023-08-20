@@ -291,44 +291,56 @@ int MainObject::checkAndRunFunctions()
 	{
 		return 0;
 	}
-	else if (status == util::kStatusInputUser ||
-		status == util::kStatusSelectServer ||
-		status == util::kStatusSelectSubServer ||
-		status == util::kStatusSelectCharacter ||
-		status == util::kStatusDisconnect ||
-		status == util::kStatusTimeout ||
-		status == util::kStatusBusy ||
-		status == util::kStatusConnecting ||
-		status == util::kNoUserNameOrPassword ||
-		!injector.server->getOnlineFlag())
+	else
 	{
-		//每次登出後只會執行一次
-		if (!login_run_once_flag_)
+		switch (status)
 		{
-			login_run_once_flag_ = true;
+		default:
+		{
+			if (injector.server->getOnlineFlag())
+				break;
 
-			SPD_CLOSE(injector.server->protoBattleLogName.toStdString());
-
-
-			for (int i = 0; i < 15; ++i)
+			Q_FALLTHROUGH();
+		}
+		case util::kStatusInputUser:
+		case util::kStatusSelectServer:
+		case util::kStatusSelectSubServer:
+		case util::kStatusSelectCharacter:
+		case util::kStatusDisconnect:
+		case util::kStatusTimeout:
+		case util::kStatusBusy:
+		case util::kStatusConnecting:
+		case util::kNoUserNameOrPassword:
+		{
+			//每次登出後只會執行一次
+			if (!login_run_once_flag_)
 			{
-				if (isInterruptionRequested())
-					return 0;
-				QThread::msleep(100);
-			}
-			injector.server->clear();
-			if (!injector.chatLogModel.isNull())
-				injector.chatLogModel->clear();
-		}
+				login_run_once_flag_ = true;
 
-		injector.server->loginTimer.restart();
-		//自動登入 或 斷線重連
-		if (injector.getEnableHash(util::kAutoLoginEnable) || injector.getEnableHash(util::kAutoReconnectEnable))
-		{
-			if (injector.server->login(status))
-				QThread::msleep(200);
+				SPD_CLOSE(injector.server->protoBattleLogName.toStdString());
+
+				for (int i = 0; i < 15; ++i)
+				{
+					if (isInterruptionRequested())
+						return 0;
+					QThread::msleep(100);
+				}
+
+				injector.server->clear();
+				if (!injector.chatLogModel.isNull())
+					injector.chatLogModel->clear();
+			}
+
+			injector.server->loginTimer.restart();
+			//自動登入 或 斷線重連
+			if (injector.getEnableHash(util::kAutoLoginEnable) || injector.getEnableHash(util::kAutoReconnectEnable))
+			{
+				if (injector.server->login(status))
+					QThread::msleep(200);
+			}
+			return 1;
 		}
-		return 1;
+		}
 	}
 
 	//每次登入後只會執行一次
@@ -401,7 +413,7 @@ int MainObject::checkAndRunFunctions()
 
 		{
 			util::Config config(fileName);
-			list = config.readStringArray("System", "Server", QString("List_%1").arg(g_CurrentListIndex));
+			list = config.readArray<QString>("System", "Server", QString("List_%1").arg(g_CurrentListIndex));
 		}
 
 		QStringList serverNameList;
@@ -424,6 +436,7 @@ int MainObject::checkAndRunFunctions()
 			serverNameList.append(server);
 			subServerNameList.append(subList);
 		}
+
 		Injector& injector = Injector::getInstance();
 		injector.serverNameList = serverNameList;
 		injector.subServerNameList = subServerNameList;
@@ -439,6 +452,7 @@ int MainObject::checkAndRunFunctions()
 		return 1;
 	}
 
+	//更新掛機資訊
 	updateAfkInfos();
 
 	//更新數據緩存(跨線程安全容器)
@@ -458,7 +472,6 @@ int MainObject::checkAndRunFunctions()
 		{
 			battle_run_once_flag_ = true;
 			emit signalDispatcher.updateStatusLabelTextChanged(util::kLabelStatusInNormal);
-
 		}
 
 		//紀錄NPC
@@ -933,6 +946,9 @@ void MainObject::checkAutoSortItem()
 				{
 					for (i = 0; i < duration; ++i)
 					{
+						if (isInterruptionRequested())
+							return;
+
 						if (injector.server.isNull())
 							return;
 
@@ -1425,7 +1441,6 @@ void MainObject::checkAutoHeal()
 	{
 		autoheal_future_ = QtConcurrent::run([this]()->void
 			{
-
 				Injector& injector = Injector::getInstance();
 
 				QStringList items;
