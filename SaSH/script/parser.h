@@ -150,7 +150,7 @@ inline static const QHash<QString, CompareType> compareBattleUnitTypeMap = {
 	{ u8"pos", kBattleUnitPos },
 	{ u8"name", kBattleUnitName },
 	{ u8"fname", kBattleUnitFreeName },
-	{ u8"model", kBattleUnitModelId },
+	{ u8"modelid", kBattleUnitModelId },
 	{ u8"lv", kBattleUnitLevel },
 	{ u8"hp", kBattleUnitHp },
 	{ u8"maxhp", kBattleUnitMaxHp },

@@ -1566,31 +1566,35 @@ void Parser::replaceSysConstKeyword(QString& expr)
 		if (index < 0 || index >= units.size())
 			return;
 
+		mapunit_t unit = units.at(index);
+		if (!unit.isvisible)
+			return;
+
 		switch (cmpType)
 		{
 		case kUnitName:
-			a = units.at(index).name;
+			a = unit.name;
 			break;
 		case kUnitFreeName:
-			a = units.at(index).freeName;
+			a = unit.freeName;
 			break;
 		case kUnitFamilyName:
-			a = units.at(index).fmname;
+			a = unit.fmname;
 			break;
 		case kUnitLevel:
-			a = units.at(index).level;
+			a = unit.level;
 			break;
 		case kUnitDir:
-			a = units.at(index).dir;
+			a = unit.dir;
 			break;
 		case kUnitX:
-			a = units.at(index).p.x();
+			a = unit.p.x();
 			break;
 		case kUnitY:
-			a = units.at(index).p.y();
+			a = unit.p.y();
 			break;
 		case kUnitGold:
-			a = units.at(index).gold;
+			a = unit.gold;
 			break;
 		}
 
@@ -1622,10 +1626,20 @@ void Parser::replaceSysConstKeyword(QString& expr)
 			return;
 
 		battledata_t battle = injector.server->getBattleData();
-		if (index < 0 || index >= battle.objects.size())
+		int pos = -1;
+		for (int i = 0; i < battle.objects.size(); i++)
+		{
+			if (battle.objects.at(i).pos == index)
+			{
+				pos = i;
+				break;
+			}
+		}
+
+		if (pos < 0)
 			return;
 
-		battleobject_t obj = battle.objects.at(index);
+		battleobject_t obj = battle.objects.at(pos);
 
 		switch (cmpType)
 		{
@@ -1675,6 +1689,8 @@ void Parser::replaceSysConstKeyword(QString& expr)
 			a = obj.rideHpPercent;
 			break;
 		}
+
+		expr.replace(QString("battle[%1].%2").arg(strIndex).arg(strType), a.toString());
 	}
 
 	//battle\[(?:'([^']*)'|"([^ "]*)"|(\d+))\]
@@ -2130,7 +2146,7 @@ void Parser::recordFunctionChunks()
 	for (auto it = functionChunks_.cbegin(); it != functionChunks_.cend(); ++it)
 		qDebug() << it.key() << it.value().name << it.value().begin << it.value().end;
 #endif
-	}
+}
 
 //更新並記錄每個 for 塊的開始行和結束行
 void Parser::recordForChunks()
