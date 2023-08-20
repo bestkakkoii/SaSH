@@ -444,6 +444,11 @@ public://actions
 	PARTY getParty(int partyIndex) const { return party[partyIndex]; }
 	ITEM getPetEquip(int petIndex, int equipIndex) const { return pet[petIndex].item[equipIndex]; }
 	ADDRESS_BOOK getAddressBook(int index) const { return addressBook[index]; }
+	battledata_t getBattleData() const
+	{
+		QReadLocker locker(&battleDataLocker);
+		return battleData;
+	}
 
 	Q_REQUIRED_RESULT int findInjuriedAllie();
 	void refreshItemInfo();
@@ -500,12 +505,6 @@ private:
 	bool fixPetTargetBySkillIndex(int skillIndex, int oldtarget, int* target) const;
 	void updateCurrentSideRange(battledata_t& bt);
 	inline bool checkFlagState(int pos);
-
-	battledata_t getBattleData() const
-	{
-		QReadLocker locker(&battleDataLocker);
-		return battleData;
-	}
 
 	void setBattleData(const battledata_t& data)
 	{
@@ -605,7 +604,7 @@ private:
 #else
 		return QDateTime::currentMSecsSinceEpoch();
 #endif
-	}
+}
 
 	inline void setWarpMap(const QPoint& pos)
 	{
@@ -1073,4 +1072,4 @@ private://lssproto_recv
 	virtual void lssproto_CustomWN_recv(const QString& data) override;
 	virtual void lssproto_CustomTK_recv(const QString& data) override;
 #pragma endregion
-};
+	};

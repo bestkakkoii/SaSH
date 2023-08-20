@@ -86,6 +86,7 @@ enum CompareType
 	kPetWater,
 	kPetFire,
 	kPetWind,
+	kPetPower,
 
 	kitemCount,
 	kItemName,
@@ -107,6 +108,34 @@ enum CompareType
 	kCardDp,
 	kCardLevel,
 
+	kUnitName,
+	kUnitFreeName,
+	kUnitFamilyName,
+	kUnitLevel,
+	kUnitDir,
+	kUnitX,
+	kUnitY,
+	kUnitGold,
+
+	kBattleUnitPos,
+	kBattleUnitName,
+	kBattleUnitFreeName,
+	kBattleUnitModelId,
+	kBattleUnitLevel,
+	kBattleUnitHp,
+	kBattleUnitMaxHp,
+	kBattleUnitHpPercent,
+	kBattleUnitStatus,
+	kBattleUnitRideFlag,
+	kBattleUnitRideName,
+	kBattleUnitRideLevel,
+	kBattleUnitRideHp,
+	kBattleUnitRideMaxHp,
+	kBattleUnitRideHpPercent,
+
+	kBattleRound,
+	kBattleField,
+
 	kTeamCount,
 	kPetCount,
 
@@ -115,6 +144,40 @@ enum CompareType
 	kMapX,
 	kMapY,
 
+};
+
+inline static const QHash<QString, CompareType> compareBattleUnitTypeMap = {
+	{ u8"pos", kBattleUnitPos },
+	{ u8"name", kBattleUnitName },
+	{ u8"fname", kBattleUnitFreeName },
+	{ u8"model", kBattleUnitModelId },
+	{ u8"lv", kBattleUnitLevel },
+	{ u8"hp", kBattleUnitHp },
+	{ u8"maxhp", kBattleUnitMaxHp },
+	{ u8"hpp", kBattleUnitHpPercent },
+	{ u8"status", kBattleUnitStatus },
+	{ u8"ride", kBattleUnitRideFlag },
+	{ u8"ridename", kBattleUnitRideName },
+	{ u8"ridelevel", kBattleUnitRideLevel },
+	{ u8"ridehp", kBattleUnitRideHp },
+	{ u8"ridemaxhp", kBattleUnitRideMaxHp },
+	{ u8"ridehpp", kBattleUnitRideHpPercent },
+};
+
+inline static const QHash<QString, CompareType> compareBattleTypeMap = {
+	{ u8"round", kBattleRound },
+	{ u8"field", kBattleField },
+};
+
+inline static const QHash<QString, CompareType> compareUnitTypeMap = {
+	{ u8"name", kUnitName },
+	{ u8"fname", kUnitFreeName },
+	{ u8"family", kUnitFamilyName },
+	{ u8"lv", kUnitLevel },
+	{ u8"dir", kUnitDir },
+	{ u8"x", kUnitX },
+	{ u8"y", kUnitY },
+	{ u8"gold", kUnitGold },
 };
 
 inline static const QHash<QString, CompareType> compareCardTypeMap = {
@@ -197,6 +260,7 @@ inline static const QHash<QString, CompareType> comparePetTypeMap = {
 	{ u8"water", kPetWater },
 	{ u8"fire", kPetFire },
 	{ u8"wind", kPetWind },
+	{ u8"power", kPetPower },
 };
 
 inline static const QHash<QString, CompareType> compareAmountTypeMap = {

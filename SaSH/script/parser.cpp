@@ -711,17 +711,22 @@ void Parser::checkArgs()
 {
 	//check rest of the tokens is exist push to stack 	QStack<QVariantList> callArgs_
 	QVariantList list;
-	qint64 size = tokens_.value(lineNumber_).size();
-	for (qint64 i = kCallPlaceHoldSize; i < size; ++i)
+	if (tokens_.contains(lineNumber_))
 	{
-		TokenMap map = tokens_.value(lineNumber_);
-		Token token = map.value(i);
-		QVariant var = checkValue(map, i, QVariant::String);
+		TokenMap TK = tokens_.value(lineNumber_);
+		qint64 size = TK.size();
+		for (qint64 i = kCallPlaceHoldSize; i < size; ++i)
+		{
+			Token token = TK.value(i);
+			QVariant var = checkValue(TK, i, QVariant::Int);
+			if (!var.isValid())
+				var = 0ll;
 
-		if (token.type != TK_FUZZY)
-			list.append(var);
-		else
-			list.append(0ll);
+			if (token.type != TK_FUZZY)
+				list.append(var);
+			else
+				list.append(0ll);
+		}
 	}
 
 	//無論如何都要在調用call之後壓入新的參數堆棧
@@ -998,6 +1003,15 @@ void Parser::replaceSysConstKeyword(QString& expr)
 	rexStart = "chat";
 	const QRegularExpression rexChatEx(rexStart + rexMiddleStart + rexMiddleMid + rexMEnd);
 
+	rexStart = "unit";
+	const QRegularExpression rexUnit(rexStart + rexMiddleStart + rexMiddleMid + rexMEnd + rexExtra);
+
+	rexStart = "battle";
+	const QRegularExpression rexBattle(rexStart + rexMiddleStart + rexMiddleMid + rexMEnd + rexExtra);
+
+	rexStart = "battle";
+	const QRegularExpression rexBattleEx(rexStart + rexMiddleStart + rexMiddleMid + rexMEnd);
+
 	PC _pc = injector.server->getPC();
 
 	QVariant a = 0;
@@ -1090,7 +1104,7 @@ void Parser::replaceSysConstKeyword(QString& expr)
 			a = _pc.wind;
 			break;
 		default:
-			break;
+			return;
 		}
 
 		expr.replace(QString("char.%1").arg(strType), a.toString());
@@ -1204,8 +1218,10 @@ void Parser::replaceSysConstKeyword(QString& expr)
 			a = str;
 			break;
 		}
+		case kPetPower:
+			a = qFloor((static_cast<double>(pet.atk + pet.def + pet.quick) + (static_cast<double>(pet.maxHp) / 4.0)));
 		default:
-			break;
+			return;
 		}
 
 		expr.replace(QString("pet[%1].%2").arg(strIndex).arg(strType), a.toString());
@@ -1296,7 +1312,7 @@ void Parser::replaceSysConstKeyword(QString& expr)
 			a = item.pile;
 			break;
 		default:
-			break;
+			return;
 		}
 
 		expr.replace(QString("item[%1].%2").arg(strIndex).arg(strType), a.toString());
@@ -1342,7 +1358,7 @@ void Parser::replaceSysConstKeyword(QString& expr)
 			break;
 		}
 		default:
-			break;
+			return;
 		}
 
 		expr.replace(QString("item[%1].%2").arg(strIndex).arg(strType), a.toString());
@@ -1394,7 +1410,7 @@ void Parser::replaceSysConstKeyword(QString& expr)
 			a = injector.server->getParty(index).mp;
 			break;
 		default:
-			break;
+			return;
 		}
 
 		expr.replace(QString("team[%1].%2").arg(strIndex).arg(strType), a.toString());
@@ -1450,7 +1466,7 @@ void Parser::replaceSysConstKeyword(QString& expr)
 			a = injector.server->getPoint().y();
 			break;
 		default:
-			break;
+			return;
 		}
 
 		expr.replace(QString("map.%1").arg(strType), a.toString());
@@ -1497,6 +1513,8 @@ void Parser::replaceSysConstKeyword(QString& expr)
 		case kCardLevel:
 			a = injector.server->getAddressBook(index).level;
 			break;
+		default:
+			return;
 		}
 
 		expr.replace(QString("card[%1].%2").arg(strIndex).arg(strType), a.toString());
@@ -1520,6 +1538,177 @@ void Parser::replaceSysConstKeyword(QString& expr)
 
 		a = injector.server->getChatHistory(index);
 		expr.replace(QString("chat[%1]").arg(strIndex), a.toString());
+	}
+
+	//unit\[(?:'([^']*)'|"([^ "]*)"|(\d+))\]\.(\w+)
+	match = rexUnit.match(expr);
+	if (match.hasMatch())
+	{
+		QString strIndex = match.captured(1).simplified().toLower();
+		if (strIndex.isEmpty())
+			strIndex = match.captured(2).simplified().toLower();
+		if (strIndex.isEmpty())
+			strIndex = match.captured(3).simplified().toLower();
+		if (strIndex.isEmpty())
+			return;
+
+		QString strType = match.captured(4).simplified().toLower();
+		if (strIndex.isEmpty() || strType.isEmpty())
+			return;
+
+		CompareType cmpType = compareUnitTypeMap.value(strType.toLower(), kCompareTypeNone);
+		if (cmpType == kCompareTypeNone)
+			return;
+
+		QList<mapunit_t> units = injector.server->mapUnitHash.values();
+
+		int index = strIndex.toInt() - 1;
+		if (index < 0 || index >= units.size())
+			return;
+
+		switch (cmpType)
+		{
+		case kUnitName:
+			a = units.at(index).name;
+			break;
+		case kUnitFreeName:
+			a = units.at(index).freeName;
+			break;
+		case kUnitFamilyName:
+			a = units.at(index).fmname;
+			break;
+		case kUnitLevel:
+			a = units.at(index).level;
+			break;
+		case kUnitDir:
+			a = units.at(index).dir;
+			break;
+		case kUnitX:
+			a = units.at(index).p.x();
+			break;
+		case kUnitY:
+			a = units.at(index).p.y();
+			break;
+		case kUnitGold:
+			a = units.at(index).gold;
+			break;
+		}
+
+		expr.replace(QString("unit[%1].%2").arg(strIndex).arg(strType), a.toString());
+	}
+
+	//battle\[(?:'([^']*)'|"([^ "]*)"|(\d+))\]\.(\w+)
+	match = rexBattle.match(expr);
+	if (match.hasMatch())
+	{
+		QString strIndex = match.captured(1).simplified().toLower();
+		if (strIndex.isEmpty())
+			strIndex = match.captured(2).simplified().toLower();
+		if (strIndex.isEmpty())
+			strIndex = match.captured(3).simplified().toLower();
+		if (strIndex.isEmpty())
+			return;
+
+		QString strType = match.captured(4).simplified().toLower();
+		if (strIndex.isEmpty() || strType.isEmpty())
+			return;
+
+		CompareType cmpType = compareBattleUnitTypeMap.value(strType.toLower(), kCompareTypeNone);
+		if (cmpType == kCompareTypeNone)
+			return;
+
+		int index = strIndex.toInt() - 1;
+		if (index < 0 || index >= MAX_ENEMY)
+			return;
+
+		battledata_t battle = injector.server->getBattleData();
+		if (index < 0 || index >= battle.objects.size())
+			return;
+
+		battleobject_t obj = battle.objects.at(index);
+
+		switch (cmpType)
+		{
+		case kBattleUnitPos:
+			a = obj.pos + 1;
+			break;
+		case kBattleUnitName:
+			a = obj.name;
+			break;
+		case kBattleUnitFreeName:
+			a = obj.freename;
+			break;
+		case kBattleUnitModelId:
+			a = obj.faceid;
+			break;
+		case kBattleUnitLevel:
+			a = obj.level;
+			break;
+		case kBattleUnitHp:
+			a = obj.hp;
+			break;
+		case kBattleUnitMaxHp:
+			a = obj.maxHp;
+			break;
+		case kBattleUnitHpPercent:
+			a = obj.hpPercent;
+			break;
+		case kBattleUnitStatus:
+			a = injector.server->getBadStatusString(obj.status);
+			break;
+		case kBattleUnitRideFlag:
+			a = obj.rideFlag > 0;
+			break;
+		case kBattleUnitRideName:
+			a = obj.rideName;
+			break;
+		case kBattleUnitRideLevel:
+			a = obj.rideLevel;
+			break;
+		case kBattleUnitRideHp:
+			a = obj.rideHp;
+			break;
+		case kBattleUnitRideMaxHp:
+			a = obj.rideMaxHp;
+			break;
+		case kBattleUnitRideHpPercent:
+			a = obj.rideHpPercent;
+			break;
+		}
+	}
+
+	//battle\[(?:'([^']*)'|"([^ "]*)"|(\d+))\]
+	match = rexBattleEx.match(expr);
+	if (match.hasMatch())
+	{
+		QString strIndex = match.captured(1).simplified().toLower();
+		if (strIndex.isEmpty())
+			strIndex = match.captured(2).simplified().toLower();
+		if (strIndex.isEmpty())
+			strIndex = match.captured(3).simplified().toLower();
+		if (strIndex.isEmpty())
+			return;
+
+		QString strType = match.captured(4).simplified().toLower();
+		if (strIndex.isEmpty() || strType.isEmpty())
+			return;
+
+		CompareType cmpType = compareBattleUnitTypeMap.value(strType.toLower(), kCompareTypeNone);
+		if (cmpType == kCompareTypeNone)
+			return;
+
+		bool bret = false;
+		if (strIndex == "round")
+			a = injector.server->BattleCliTurnNo;
+		else if (strIndex == "field")
+			a = injector.server->hashbattlefield.get();
+
+		if (bret)
+		{
+			expr.replace(QString("battle[%1]").arg(strIndex), a.toString());
+			expr.replace(QString("battle['%1']").arg(strIndex), a.toString());
+			expr.replace(QString("battle[\"%1\"]").arg(strIndex), a.toString());
+		}
 	}
 }
 
@@ -1941,7 +2130,7 @@ void Parser::recordFunctionChunks()
 	for (auto it = functionChunks_.cbegin(); it != functionChunks_.cend(); ++it)
 		qDebug() << it.key() << it.value().name << it.value().begin << it.value().end;
 #endif
-}
+	}
 
 //更新並記錄每個 for 塊的開始行和結束行
 void Parser::recordForChunks()
@@ -2576,7 +2765,7 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 		}
 		--petIndex;
 
-		if (petIndex < 0 || petIndex > MAX_PET)
+		if (petIndex < 0 || petIndex >= MAX_PET)
 			break;
 
 		QString typeStr;
@@ -2593,7 +2782,7 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 			{ kRide, u8"ride" },
 		};
 
-		PET _pet = injector.server->getPet(petIndex - 1);
+		PET _pet = injector.server->getPet(petIndex);
 
 		QVariantHash hash = {
 			{ "index", _pet.index + 1 },						//位置
