@@ -5061,115 +5061,48 @@ void Server::doBattleWork(bool async)
 		QtConcurrent::run(this, &Server::asyncBattleAction);
 	else if (!async && (!normalChecked && getWorldStatus() == 9))
 	{
-		QtConcurrent::run([this]()
-			{
-				Injector& injector = Injector::getInstance();
-				battledata_t bt = getBattleData();
-				if (!bt.charAlreadyAction)
-				{
-					bt.charAlreadyAction = true;
-
-					//战斗延时
-					int delay = injector.getValueHash(util::kBattleActionDelayValue);
-					if (delay > 0)
-					{
-						if (delay > 1000)
-						{
-							for (int i = 0; i < delay / 1000; ++i)
-							{
-								QThread::msleep(1000);
-								if (isInterruptionRequested())
-									return;
-							}
-
-							QThread::msleep(delay % 1000);
-						}
-						else
-							QThread::msleep(delay);
-					}
-
-					playerDoBattleWork();
-				}
-
-				if (!bt.petAlreadyAction)
-				{
-					bt.petAlreadyAction = true;
-					petDoBattleWork();
-				}
-
-				lssproto_EO_send(0);
-				isEnemyAllReady.store(false, std::memory_order_release);
-			});
+		QtConcurrent::run(this, &Server::syncBattleAction);
 	}
 }
 
 void Server::syncBattleAction()
 {
 	Injector& injector = Injector::getInstance();
-
-	if (!isEnemyAllReady.load(std::memory_order_acquire))
+	battledata_t bt = getBattleData();
+	if (!bt.charAlreadyAction)
 	{
-		announce("[async battle] 敌方尚未准备完成，忽略动作", 7);
-		return;
-	}
+		bt.charAlreadyAction = true;
 
-	auto delay = [this, &injector](const QString& name)
-	{
 		//战斗延时
 		int delay = injector.getValueHash(util::kBattleActionDelayValue);
-		if (delay <= 0)
+		if (delay > 0)
 		{
-			return;
-		}
-
-		announce(QString("[async battle] 战斗 %1 开始延时 %2 毫秒").arg(name).arg(delay), 6);
-
-		if (delay > 1000)
-		{
-			for (int i = 0; i < delay / 1000; ++i)
+			if (delay > 1000)
 			{
-				QThread::msleep(1000);
-				if (isInterruptionRequested())
-					return;
+				for (int i = 0; i < delay / 1000; ++i)
+				{
+					QThread::msleep(1000);
+					if (isInterruptionRequested())
+						return;
+				}
+
+				QThread::msleep(delay % 1000);
 			}
-
-			QThread::msleep(delay % 1000);
+			else
+				QThread::msleep(delay);
 		}
-		else
-		{
-			QThread::msleep(delay);
-		}
-	};
 
-	auto setCurrentRoundEnd = [this]()
-	{
-		//这里不发的话一般战斗、和快战都不会再收到后续的封包 (应该?)
-		lssproto_Echo_send(const_cast<char*>("hoge"));
-		isEnemyAllReady.store(false, std::memory_order_release);
-	};
-
-	//人物和宠物分开发 TODO 修正多个BA人物多次发出战斗指令的问题
-	if (!checkFlagState(BattleMyNo))
-	{
-		delay(u8"人物");
-		//解析人物战斗逻辑并发送指令
 		playerDoBattleWork();
-
 	}
 
-	int battlePetIndex = pc_.battlePetNo;
-	if (battlePetIndex < 0 || battlePetIndex >= MAX_PET)
+	if (!bt.petAlreadyAction)
 	{
-		setCurrentRoundEnd();
-		return;
-	}
-
-	//TODO 修正宠物指令在多个BA时候重复发送的问题
-	if (!checkFlagState(BattleMyNo + 5))
-	{
+		bt.petAlreadyAction = true;
 		petDoBattleWork();
-		setCurrentRoundEnd();
 	}
+
+	lssproto_EO_send(0);
+	isEnemyAllReady.store(false, std::memory_order_release);
 }
 
 void Server::asyncBattleAction()
@@ -8245,10 +8178,10 @@ void Server::lssproto_PR_recv(int request, int result)
 				}
 				party[i] = {};
 				teamInfoList.append("");
-		}
+			}
 			pc.status &= (~CHR_STATUS_LEADER);
+		}
 	}
-}
 	setPC(pc);
 	prSendFlag = 0;
 
@@ -8325,12 +8258,12 @@ void Server::lssproto_AB_recv(char* cdata)
 			{
 				MailHistory[i] = MailHistory[i];
 
-		}
+			}
 			addressBook[i].useFlag = 0;
 			addressBook[i].name.clear();
 			addressBook[i] = {};
 			continue;
-	}
+		}
 
 #ifdef _EXTEND_AB
 		if (i == MAX_ADR_BOOK - 1)
@@ -9715,7 +9648,7 @@ void Server::lssproto_KS_recv(int petarray, int result)
 		pet[petarray].state = kBattle;
 		emit signalDispatcher.updatePetHpProgressValue(_pet.level, _pet.hp, _pet.maxHp);
 	}
-		}
+}
 
 #ifdef _STANDBYPET
 //寵物等待狀態改變 (不是每個私服都有)
@@ -10299,13 +10232,13 @@ void Server::lssproto_TK_recv(int index, char* cmessage, int color)
 				if (szToken == "TK")
 				{
 					//InitSelectChar(message, 0);
-			}
+				}
 				else if (szToken == "TE")
 				{
 					//InitSelectChar(message, 1);
 				}
 				return;
-		}
+			}
 			else
 			{
 
@@ -10343,7 +10276,7 @@ void Server::lssproto_TK_recv(int index, char* cmessage, int color)
 
 				//SaveChatData(msg, szToken[0], false);
 			}
-	}
+		}
 		else
 			getStringToken(message, "|", 2, msg);
 #ifdef _TALK_WINDOW
@@ -10355,7 +10288,7 @@ void Server::lssproto_TK_recv(int index, char* cmessage, int color)
 				pc.gold -= 200;
 
 				emit signalDispatcher.updatePlayerInfoStone(pc.gold);
-}
+			}
 #ifdef _FONT_SIZE
 #ifdef _MESSAGE_FRONT_
 		StockChatBufferLineExt(msg - 2, color, fontsize);
@@ -10412,15 +10345,15 @@ void Server::lssproto_TK_recv(int index, char* cmessage, int color)
 			{
 				// 1000
 				//pc.status |= CHR_STATUS_FUKIDASHI;
-}
+			}
+		}
 	}
-}
 
 	setPC(pc);
 
 	chatQueue.enqueue(QPair{ color ,msg });
 	emit signalDispatcher.appendChatLog(msg, color);
-	}
+}
 
 //地圖數據更新，重新繪製地圖
 void Server::lssproto_MC_recv(int fl, int x1, int y1, int x2, int y2, int tileSum, int partsSum, int eventSum, char* cdata)
@@ -10719,7 +10652,7 @@ void Server::lssproto_C_recv(char* cdata)
 				{
 					party[0].level = pc.level;
 					party[0].name = pc.name;
-			}
+				}
 #ifdef MAX_AIRPLANENUM
 				for (j = 0; j < MAX_AIRPLANENUM; ++j)
 #else
@@ -10733,8 +10666,8 @@ void Server::lssproto_C_recv(char* cdata)
 							pc.status |= CHR_STATUS_LEADER;
 						break;
 					}
-		}
-		}
+				}
+			}
 			else
 			{
 #ifdef _CHAR_PROFESSION			// WON ADD 人物職業
@@ -10791,7 +10724,7 @@ void Server::lssproto_C_recv(char* cdata)
 					//}
 					//setCharNameColor(ptAct, charNameColor);
 				//}
-				}
+			}
 
 			if (name == u8"を�そó")//排除亂碼
 				break;
@@ -10822,7 +10755,7 @@ void Server::lssproto_C_recv(char* cdata)
 			mapUnitHash.insert(id, unit);
 
 			break;
-			}
+		}
 		case 2://OBJTYPE_ITEM
 		{
 			getStringToken(bigtoken, "|", 2, smalltoken);
@@ -11129,7 +11062,7 @@ void Server::lssproto_C_recv(char* cdata)
 	}
 
 	setPC(pc);
-		}
+}
 
 //周圍人、NPC..等等狀態改變必定是 _C_recv已經新增過的單位
 void Server::lssproto_CA_recv(char* cdata)
@@ -11726,7 +11659,7 @@ void Server::lssproto_S_recv(char* cdata)
 		playerInfoColContents.insert(0, var);
 		emit signalDispatcher.updatePlayerInfoColContents(0, var);
 		setWindowTitle();
-					}
+	}
 #pragma endregion
 #pragma region FamilyInfo
 	else if (first == "F") // F 家族狀態
@@ -12090,7 +12023,7 @@ void Server::lssproto_S_recv(char* cdata)
 			emit signalDispatcher.updatePlayerInfoColContents(i + 1, var);
 		}
 
-						}
+	}
 #pragma endregion
 #pragma region EncountPercentage
 	else if (first == "E") // E nowEncountPercentage
@@ -12210,7 +12143,7 @@ void Server::lssproto_S_recv(char* cdata)
 					if (no2 == -1 && i > no)
 						no2 = i;
 				}
-		}
+			}
 			if (checkPartyCount <= 1)
 			{
 				partyModeFlag = 0;
@@ -12227,7 +12160,7 @@ void Server::lssproto_S_recv(char* cdata)
 			}
 			updateTeamInfo();
 			return;
-	}
+		}
 
 		partyModeFlag = 1;
 		prSendFlag = 0;
@@ -12313,7 +12246,7 @@ void Server::lssproto_S_recv(char* cdata)
 		}
 		party[no].hpPercent = util::percent(party[no].hp, party[no].maxHp);
 		updateTeamInfo();
-					}
+	}
 #pragma endregion
 #pragma region ItemInfo
 	else if (first == "I") //I 道具
@@ -12439,7 +12372,7 @@ void Server::lssproto_S_recv(char* cdata)
 			itemList.append(it.name);
 		}
 		emit signalDispatcher.updateComboBoxItemText(util::kComboBoxItem, itemList);
-		}
+	}
 #pragma endregion
 #pragma region PetSkill
 	else if (first == "W")//接收到的寵物技能
@@ -12652,7 +12585,7 @@ void Server::lssproto_S_recv(char* cdata)
 			pet[nPetIndex].item[i].counttime = getIntegerToken(data, "|", no + 16);
 #endif
 		}
-		}
+	}
 #endif
 #pragma endregion
 #pragma region S_recv_Unknown
@@ -12710,7 +12643,7 @@ void Server::lssproto_S_recv(char* cdata)
 	}
 
 	setPC(pc);
-	}
+}
 
 //客戶端登入(進去選人畫面)
 void Server::lssproto_ClientLogin_recv(char* cresult)
@@ -12889,7 +12822,7 @@ void Server::lssproto_CharLogin_recv(char* cresult, char* cdata)
 #ifdef __NEW_CLIENT
 		hPing = CreateThread(NULL, 0, PingFunc, &sin_server.sin_addr, 0, &dwPingID);
 #endif
-}
+	}
 
 #ifdef __NEW_CLIENT
 #ifdef _NEW_WGS_MSG				// WON ADD WGS的新視窗
@@ -12901,7 +12834,7 @@ void Server::lssproto_CharLogin_recv(char* cresult, char* cdata)
 	angelFlag = FALSE;
 	angelMsg[0] = NULL;
 #endif
-	}
+}
 
 void Server::lssproto_TD_recv(char* cdata)//交易
 {
@@ -13129,7 +13062,7 @@ void Server::lssproto_TD_recv(char* cdata)//交易
 		mypet_tradeList = QStringList{ "P|-1", "P|-1", "P|-1" , "P|-1", "P|-1" };
 		mygoldtrade = 0;
 	}
-		}
+}
 
 void Server::lssproto_CHAREFFECT_recv(char* cdata)
 {
