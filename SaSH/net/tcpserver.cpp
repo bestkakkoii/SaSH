@@ -5032,16 +5032,16 @@ void Server::setBattleEnd()
 		ayncBattleCommandFlag.store(true, std::memory_order_release);
 		ayncBattleCommandSync.clearFutures();
 		ayncBattleCommandFlag.store(false, std::memory_order_release);
-	}
 
-	lssproto_EO_send(0);
-	//lssproto_Echo_send(const_cast<char*>("hoge"));
+		lssproto_EO_send(0);
+		//lssproto_Echo_send(const_cast<char*>("hoge"));
 
-	setBattleFlag(false);
+		setBattleFlag(false);
 
-	if (getWorldStatus() == 10)
-	{
-		setGameStatus(7);
+		if (getWorldStatus() == 10)
+		{
+			setGameStatus(7);
+		}
 	}
 }
 
@@ -5064,8 +5064,19 @@ void Server::doBattleWork(bool async)
 	{
 		QtConcurrent::run([this]()
 			{
-				playerDoBattleWork();
-				petDoBattleWork();
+				battledata_t bt = getBattleData();
+				if (!checkFlagState(BattleMyNo) && !bt.charAlreadyAction)
+				{
+					bt.charAlreadyAction = true;
+					playerDoBattleWork();
+				}
+				if (!checkFlagState(BattleMyNo + 5) && !bt.petAlreadyAction)
+				{
+					bt.petAlreadyAction = true;
+					petDoBattleWork();
+				}
+				lssproto_EO_send(0);
+				lssproto_Echo_send(const_cast<char*>("hoge"));
 				isEnemyAllReady.store(false, std::memory_order_release);
 			});
 	}
