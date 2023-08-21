@@ -1719,7 +1719,7 @@ void Parser::replaceSysConstKeyword(QString& expr)
 		switch (cmpType)
 		{
 		case kBattleRound:
-			a = injector.server->BattleCliTurnNo + 1;
+			a = injector.server->battleCurrentRound + 1;
 			break;
 		case kBattleField:
 			a = injector.server->getFieldString(battle.fieldAttr);
@@ -3308,7 +3308,7 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 
 			if (typeStr == "round")
 			{
-				varValue = injector.server->BattleCliTurnNo;
+				varValue = injector.server->battleCurrentRound;
 			}
 			else if (typeStr == "field")
 			{

@@ -791,7 +791,7 @@ private:
 	int BattleBpFlag = 0;
 	int BattleEscFlag = 0;
 	int BattleMyMp = 0;
-	int BattleAnimFlag = 0;
+	int battleCurrentAnimeFlag = 0;
 	int BattlePetStMenCnt = 0;
 
 	int StatusUpPoint = 0;
@@ -877,7 +877,7 @@ public:
 	QElapsedTimer battleDurationTimer;
 	QElapsedTimer normalDurationTimer;
 
-	int BattleCliTurnNo = 0;
+	int battleCurrentRound = 0;
 	int battle_total_time = 0;
 	int battle_totol = 0;
 
