@@ -263,7 +263,7 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID)
 #endif
 
 #ifdef _DEBUG
-			//CreateConsole();
+			CreateConsole();
 #endif
 		}
 		DisableThreadLibraryCalls(hModule);
@@ -304,6 +304,36 @@ LRESULT CALLBACK WndProc(HWND hWnd, DWORD message, LPARAM wParam, LPARAM lParam)
 		PostMessageW(g_ParenthWnd, message + WM_USER, wParam, lParam);
 		break;
 	}
+	case WM_KEYDOWN:
+	{
+		if ((wParam == 'V' && GetKeyState(VK_CONTROL) < 0) && OpenClipboard(hWnd))
+		{
+			std::cout << "PASTE" << std::endl;
+			HANDLE hClipboardData = GetClipboardData(CF_TEXT);
+			if (hClipboardData)
+			{
+				char* pszText = static_cast<char*>(GlobalLock(hClipboardData));
+				if (pszText != nullptr)
+				{
+					int index = *CONVERT_GAMEVAR<int*>(0x415EF50);
+					if (index == 0 || strlen(CONVERT_GAMEVAR<char*>(0x414F278)) == 0)
+					{
+						memset(CONVERT_GAMEVAR<char*>(0x414F278), 0, 20u);
+						_snprintf_s(CONVERT_GAMEVAR<char*>(0x414F278), 20u, _TRUNCATE, "%s", pszText);
+					}
+					else
+					{
+						memset(CONVERT_GAMEVAR<char*>(0x415AA58), 0, 20u);
+						_snprintf_s(CONVERT_GAMEVAR<char*>(0x415AA58), 20u, _TRUNCATE, "%s", pszText);
+					}
+					GlobalUnlock(hClipboardData);
+				}
+			}
+			CloseClipboard();
+			return 1;
+		}
+		break;
+	}
 	case WM_KEYUP:
 	{
 		//檢查是否為delete
@@ -331,7 +361,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, DWORD message, LPARAM wParam, LPARAM lParam)
 		SetWindowLongW(g_MainHwnd, GWL_WNDPROC, reinterpret_cast<LONG_PTR>(g_OldWndProc));
 		FreeLibraryAndExitThread(g_hDllModule, 0);
 		return 1;
-	}
+}
 	case kGetModule:
 	{
 		return reinterpret_cast<int>(GetModuleHandleW(nullptr));

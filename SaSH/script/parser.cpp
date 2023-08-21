@@ -1224,9 +1224,9 @@ void Parser::replaceSysConstKeyword(QString& expr)
 			return;
 		}
 
-		expr.replace(QString("pet[%1].%2").arg(strIndex).arg(strType), a.toString());
 		expr.replace(QString("pet['%1'].%2").arg(strIndex).arg(strType), a.toString());
 		expr.replace(QString("pet[\"%1\"].%2").arg(strIndex).arg(strType), a.toString());
+		expr.replace(QString("pet[%1].%2").arg(strIndex).arg(strType), a.toString());
 	}
 
 	//pet\[(?:'([^']*)'|"([^ "]*)"|(\d+))\]
@@ -1244,9 +1244,9 @@ void Parser::replaceSysConstKeyword(QString& expr)
 		if (strIndex == "count")
 		{
 			a = injector.server->getPartySize();
-			expr.replace(QString("pet[%1]").arg(strIndex), a.toString());
 			expr.replace(QString("pet['%1']").arg(strIndex), a.toString());
 			expr.replace(QString("pet[\"%1\"]").arg(strIndex), a.toString());
+			expr.replace(QString("pet[%1]").arg(strIndex), a.toString());
 		}
 	}
 
@@ -1361,9 +1361,9 @@ void Parser::replaceSysConstKeyword(QString& expr)
 			return;
 		}
 
-		expr.replace(QString("item[%1].%2").arg(strIndex).arg(strType), a.toString());
 		expr.replace(QString("item['%1'].%2").arg(strIndex).arg(strType), a.toString());
 		expr.replace(QString("item[\"%1\"].%2").arg(strIndex).arg(strType), a.toString());
+		expr.replace(QString("item[%1].%2").arg(strIndex).arg(strType), a.toString());
 	}
 
 	//team\[(?:'([^']*)'|"([^ "]*)"|(\d+))\]\.(\w+)
@@ -1413,9 +1413,9 @@ void Parser::replaceSysConstKeyword(QString& expr)
 			return;
 		}
 
-		expr.replace(QString("team[%1].%2").arg(strIndex).arg(strType), a.toString());
 		expr.replace(QString("team['%1'].%2").arg(strIndex).arg(strType), a.toString());
 		expr.replace(QString("team[\"%1\"].%2").arg(strIndex).arg(strType), a.toString());
+		expr.replace(QString("team[%1].%2").arg(strIndex).arg(strType), a.toString());
 	}
 
 	//team\[(?:'([^']*)'|"([^ "]*)"|(\d+))\]
@@ -1433,9 +1433,9 @@ void Parser::replaceSysConstKeyword(QString& expr)
 		if (strIndex == "count")
 		{
 			a = injector.server->getPartySize();
-			expr.replace(QString("team[%1]").arg(strIndex), a.toString());
 			expr.replace(QString("team['%1']").arg(strIndex), a.toString());
 			expr.replace(QString("team[\"%1\"]").arg(strIndex), a.toString());
+			expr.replace(QString("team[%1]").arg(strIndex), a.toString());
 		}
 	}
 
@@ -1596,6 +1596,11 @@ void Parser::replaceSysConstKeyword(QString& expr)
 		case kUnitGold:
 			a = unit.gold;
 			break;
+		case kUnitModelId:
+			a = unit.graNo;
+			break;
+		default:
+			return;
 		}
 
 		expr.replace(QString("unit[%1].%2").arg(strIndex).arg(strType), a.toString());
@@ -1705,26 +1710,45 @@ void Parser::replaceSysConstKeyword(QString& expr)
 		if (strIndex.isEmpty())
 			return;
 
-		CompareType cmpType = compareBattleUnitTypeMap.value(strIndex.toLower(), kCompareTypeNone);
+		CompareType cmpType = compareBattleTypeMap.value(strIndex.toLower(), kCompareTypeNone);
 		if (cmpType == kCompareTypeNone)
 			return;
+
+		battledata_t battle = injector.server->getBattleData();
 
 		switch (cmpType)
 		{
 		case kBattleRound:
-			a = injector.server->BattleCliTurnNo;
+			a = injector.server->BattleCliTurnNo + 1;
 			break;
-
 		case kBattleField:
-			a = injector.server->BattleCliTurnNo;
+			a = injector.server->getFieldString(battle.fieldAttr);
+			break;
+		case kBattleDuration:
+			a = injector.server->battleDurationTimer.elapsed() / 1000;
+			break;
+		case kBattleTotalDuration:
+			a = injector.server->battle_total_time / 1000 / 60;
+			break;
+		case kBattleTotalCombat:
+			a = injector.server->battle_totol;
 			break;
 		default:
 			return;
 		}
 
-		expr.replace(QString("battle[%1]").arg(strIndex), a.toString());
 		expr.replace(QString("battle['%1']").arg(strIndex), a.toString());
 		expr.replace(QString("battle[\"%1\"]").arg(strIndex), a.toString());
+		expr.replace(QString("battle[%1]").arg(strIndex), a.toString());
+	}
+
+	if (expr.contains("_GAME_"))
+	{
+		expr.replace("_GAME_", QString::number(injector.server->getGameStatus()));
+	}
+	else if (expr.contains("_WORLD_"))
+	{
+		expr.replace("_WORLD_", QString::number(injector.server->getWorldStatus()));
 	}
 }
 
@@ -2139,8 +2163,8 @@ void Parser::recordFunctionChunks()
 			chunk.begin = row;
 			chunkHash.insert(indentLevel, chunk);
 			++indentLevel;
-		}
 	}
+}
 
 #ifdef _DEBUG
 	for (auto it = functionChunks_.cbegin(); it != functionChunks_.cend(); ++it)

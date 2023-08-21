@@ -1457,59 +1457,59 @@ int Server::getUnloginStatus()
 
 	if (0 == W && 0 == G)
 	{
-		return util::kStatusDisappear;
+		return util::kStatusDisappear;//窗口不存在
 	}
 	if (11 == W && 2 == G)
 	{
 		setOnlineFlag(false);
 		emit signalDispatcher.updateStatusLabelTextChanged(util::kLabelStatusDisconnected);
-		return util::kStatusDisconnect;
+		return util::kStatusDisconnect;//斷線
 	}
 	else if ((2 == W && 5 == G) || (6 == W && 1 == G))//|| (9 == W && 102 == G) || (9 == W && 0 == G) || (9 == W && 103 == G)
 	{
 		emit signalDispatcher.updateStatusLabelTextChanged(util::kLabelStatusConnecting);
-		return util::kStatusConnecting;
+		return util::kStatusConnecting;//連線中
 	}
 	else if (3 == W && 101 == G)
 	{
 		setOnlineFlag(false);
 		emit signalDispatcher.updateStatusLabelTextChanged(util::kLabelStatusBusy);
-		return util::kStatusBusy;
+		return util::kStatusBusy;//忙碌
 	}
 	else if (2 == W && 101 == G)
 	{
 		setOnlineFlag(false);
 		emit signalDispatcher.updateStatusLabelTextChanged(util::kLabelStatusTimeout);
-		return util::kStatusTimeout;
+		return util::kStatusTimeout;//逾時
 	}
 	else if (1 == W && 101 == G)
 	{
 		setOnlineFlag(false);
 		emit signalDispatcher.updateStatusLabelTextChanged(util::kLabelNoUserNameOrPassword);
-		return util::kNoUserNameOrPassword;
+		return util::kNoUserNameOrPassword;//無帳號密碼
 	}
 	else if ((1 == W && 2 == G) || (1 == W && 3 == G))
 	{
 		setOnlineFlag(false);
 		emit signalDispatcher.updateStatusLabelTextChanged(util::kLabelStatusLogining);
-		return util::kStatusInputUser;
+		return util::kStatusInputUser;//輸入帳號密碼
 	}
 	else if (2 == W && 2 == G)
 	{
 		setOnlineFlag(false);
 		emit signalDispatcher.updateStatusLabelTextChanged(util::kLabelStatusSelectServer);
-		return util::kStatusSelectServer;
+		return util::kStatusSelectServer;//選擇伺服器
 	}
 	else if (2 == W && 3 == G)
 	{
 		setOnlineFlag(false);
 		emit signalDispatcher.updateStatusLabelTextChanged(util::kLabelStatusSelectSubServer);
-		return util::kStatusSelectSubServer;
+		return util::kStatusSelectSubServer;//選擇子伺服器(分流)
 	}
 	else if ((3 == W && 11 == G) || (3 == W && 1 == G))
 	{
 		emit signalDispatcher.updateStatusLabelTextChanged(util::kLabelStatusSelectPosition);
-		return util::kStatusSelectCharacter;
+		return util::kStatusSelectCharacter;//選擇人物
 	}
 	else if ((9 == W && 200 == G) || (9 == W && 201 == G) || (9 == W && 202 == G) || (9 == W && 203 == G) || (9 == W && 204 == G))//刷新
 	{
@@ -1588,7 +1588,7 @@ int Server::getUnloginStatus()
 		return util::kStatusUnknown;
 	}
 	else if (9 == W && 3 == G)
-		return util::kStatusLogined;
+		return util::kStatusLogined;//已丁入(平時且無其他對話框或特殊場景)
 
 	qDebug() << "getUnloginStatus: " << W << " " << G;
 	return util::kStatusUnknown;
@@ -3143,6 +3143,9 @@ bool Server::login(int s)
 			{
 				config.writeArray<int>("System", "Login", "SelectCharacter", { 100, 300, 340 });
 			}
+
+			if (!chartable[position].valid)
+				break;
 
 			injector.leftDoubleClick(x, y);
 		}
@@ -5077,8 +5080,11 @@ void Server::syncBattleAction()
 	{
 		//战斗延时
 		int delay = injector.getValueHash(util::kBattleActionDelayValue);
-		if (delay <= 0)
+		if (delay < 100)
+		{
+			QThread::msleep(100);
 			return;
+		}
 
 		announce(QString("[async battle] 战斗 %1 开始延时 %2 毫秒").arg(name).arg(delay), 6);
 
@@ -5189,8 +5195,11 @@ void Server::asyncBattleAction()
 	{
 		//战斗延时
 		int delay = injector.getValueHash(util::kBattleActionDelayValue);
-		if (delay <= 0)
+		if (delay < 100)
+		{
+			QThread::msleep(100);
 			return;
+		}
 
 		announce(QString("[async battle] 战斗 %1 开始延时 %2 毫秒").arg(name).arg(delay), 6);
 
@@ -8324,7 +8333,7 @@ void Server::lssproto_AB_recv(char* cdata)
 		}
 #endif
 	}
-	}
+}
 
 //名片數據
 void Server::lssproto_ABI_recv(int num, char* cdata)
@@ -11150,7 +11159,7 @@ void Server::lssproto_CA_recv(char* cdata)
 			//effectno = smalltoken.toInt();
 			//effectparam1 = getIntegerToken(bigtoken, "|", 7);
 			//effectparam2 = getIntegerToken(bigtoken, "|", 8);
-	}
+		}
 
 
 		if (pc.id == charindex)
@@ -11225,7 +11234,7 @@ void Server::lssproto_CA_recv(char* cdata)
 #endif
 		//changeCharAct(ptAct, x, y, dir, act, effectno, effectparam1, effectparam2);
 	//}
-}
+	}
 }
 
 //刪除指定一個或多個周圍人、NPC單位
@@ -11605,8 +11614,8 @@ void Server::lssproto_S_recv(char* cdata)
 					}
 #endif
 				}
-				}
 			}
+		}
 
 		//updataPcAct();
 		if ((pc.status & CHR_STATUS_LEADER) != 0 && party[0].useFlag != 0)
@@ -11684,7 +11693,7 @@ void Server::lssproto_S_recv(char* cdata)
 		playerInfoColContents.insert(0, var);
 		emit signalDispatcher.updatePlayerInfoColContents(0, var);
 		setWindowTitle();
-		}
+	}
 #pragma endregion
 #pragma region FamilyInfo
 	else if (first == "F") // F 家族狀態
@@ -11995,9 +12004,9 @@ void Server::lssproto_S_recv(char* cdata)
 						}
 #endif
 					}
-					}
 				}
 			}
+		}
 
 		if (pc.ridePetNo >= 0 && pc.ridePetNo < MAX_PET)
 		{
@@ -12048,7 +12057,7 @@ void Server::lssproto_S_recv(char* cdata)
 			emit signalDispatcher.updatePlayerInfoColContents(i + 1, var);
 		}
 
-			}
+	}
 #pragma endregion
 #pragma region EncountPercentage
 	else if (first == "E") // E nowEncountPercentage
@@ -12610,7 +12619,7 @@ void Server::lssproto_S_recv(char* cdata)
 			pet[nPetIndex].item[i].counttime = getIntegerToken(data, "|", no + 16);
 #endif
 		}
-		}
+	}
 #endif
 #pragma endregion
 #pragma region S_recv_Unknown
@@ -12668,7 +12677,7 @@ void Server::lssproto_S_recv(char* cdata)
 	}
 
 	setPC(pc);
-	}
+}
 
 //客戶端登入(進去選人畫面)
 void Server::lssproto_ClientLogin_recv(char* cresult)
@@ -12744,6 +12753,9 @@ void Server::lssproto_CharList_recv(char* cresult, char* cdata)
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
 	emit signalDispatcher.updateStatusLabelTextChanged(util::kLabelStatusGettingPlayerList);
 
+	for (i = 0; i < MAXCHARACTER; ++i)
+		chartable[i] = {};
+
 	QVector<CHARLISTTABLE> vec;
 	for (i = 0; i < MAXCHARACTER; ++i)
 	{
@@ -12790,6 +12802,8 @@ void Server::lssproto_CharList_recv(char* cresult, char* cdata)
 				table.attr[3] = args.at(12).toInt();
 				if (table.attr[3] < 0 || table.attr[3] > 100)
 					table.attr[3] = 0;
+
+				table.pos = index;
 				vec.append(table);
 			}
 		}
@@ -12798,8 +12812,11 @@ void Server::lssproto_CharList_recv(char* cresult, char* cdata)
 	int size = vec.size();
 	for (i = 0; i < size; ++i)
 	{
-		if (i >= 0 && i < MAXCHARACTER)
-			chartable[i] = vec.at(i);
+		if (i < 0 || i >= MAXCHARACTER)
+			continue;
+
+		int index = vec.at(i).pos;
+		chartable[index] = vec.at(i);
 	}
 }
 

@@ -116,6 +116,7 @@ enum CompareType
 	kUnitX,
 	kUnitY,
 	kUnitGold,
+	kUnitModelId,
 
 	kBattleUnitPos,
 	kBattleUnitName,
@@ -135,6 +136,9 @@ enum CompareType
 
 	kBattleRound,
 	kBattleField,
+	kBattleDuration,
+	kBattleTotalDuration,
+	kBattleTotalCombat,
 
 	kTeamCount,
 	kPetCount,
@@ -167,6 +171,10 @@ inline static const QHash<QString, CompareType> compareBattleUnitTypeMap = {
 inline static const QHash<QString, CompareType> compareBattleTypeMap = {
 	{ u8"round", kBattleRound },
 	{ u8"field", kBattleField },
+	{ u8"duration", kBattleDuration },
+	{ u8"totalduration", kBattleTotalDuration },
+	{ u8"totalcombat", kBattleTotalCombat },
+
 };
 
 inline static const QHash<QString, CompareType> compareUnitTypeMap = {
@@ -178,6 +186,7 @@ inline static const QHash<QString, CompareType> compareUnitTypeMap = {
 	{ u8"x", kUnitX },
 	{ u8"y", kUnitY },
 	{ u8"gold", kUnitGold },
+	{ u8"modelid", kUnitModelId },
 };
 
 inline static const QHash<QString, CompareType> compareCardTypeMap = {

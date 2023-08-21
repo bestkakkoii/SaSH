@@ -1761,8 +1761,6 @@ qint64 Interpreter::replace(qint64 currentline, const TokenMap& TK)
 
 	QString replaceText;
 	checkString(TK, 3, &replaceText);
-	if (replaceText.isEmpty())
-		return Parser::kArgError + 3ll;
 
 	bool isrex = false;
 	qint64 n = 0;

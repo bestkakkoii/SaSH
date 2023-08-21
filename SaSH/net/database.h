@@ -1486,6 +1486,7 @@ typedef struct tagCHARLISTTABLE
 	int attr[4] = { 0,0,0,0 };
 	int dp = 0;
 	bool valid = false;
+	int pos = -1;
 } CHARLISTTABLE;
 #ifdef _AIDENGLU_
 typedef struct
