@@ -219,10 +219,10 @@ public:
 
 public://g-var
 	int* g_sockfd = nullptr;
-
-private:
 	int* g_world_status = nullptr;
 	int* g_game_status = nullptr;
+private:
+
 
 	bool IS_BATTLE_PROC_FLAG = false;
 	bool IS_TIME_LOCK_FLAG = false;

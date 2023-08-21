@@ -1746,7 +1746,8 @@ void Parser::replaceSysConstKeyword(QString& expr)
 	{
 		expr.replace("_GAME_", QString::number(injector.server->getGameStatus()));
 	}
-	else if (expr.contains("_WORLD_"))
+
+	if (expr.contains("_WORLD_"))
 	{
 		expr.replace("_WORLD_", QString::number(injector.server->getWorldStatus()));
 	}
@@ -2163,8 +2164,8 @@ void Parser::recordFunctionChunks()
 			chunk.begin = row;
 			chunkHash.insert(indentLevel, chunk);
 			++indentLevel;
+		}
 	}
-}
 
 #ifdef _DEBUG
 	for (auto it = functionChunks_.cbegin(); it != functionChunks_.cend(); ++it)
@@ -3352,36 +3353,30 @@ bool Parser::processIfCompare()
 		expr = expr.replace("\"", "'");
 	}
 
-	static const QRegularExpression rexIfExpr(R"((\s*([=<>!]=|[<>]=|[<>!])\s*))");
-	QStringList list = expr.split(rexIfExpr, Qt::SkipEmptyParts);
-	if (list.size() != 2)
-		return checkJump(currentLineTokens_, 2, false, SuccessJump) == kHasJump;
-
-	QRegularExpressionMatch match = rexIfExpr.match(expr);
-	QString op = match.captured(1).simplified();
-	if (op.isEmpty())
-		return checkJump(currentLineTokens_, 2, false, SuccessJump) == kHasJump;
-
-	bool aOk = false;
-	bool bOk = false;
-
-	QString aStr = list.at(0);
-	aStr.toInt(&aOk);
-	if (!aOk)
+	static const QRegularExpression re(R"([A-Za-z\d\p{Han}_'"]+)");
+	auto matchit = re.globalMatch(expr);
+	while (matchit.hasNext())
 	{
-		if (!aStr.startsWith("'"))
-			aStr = QString("'%1'").arg(aStr);
-	}
+		//兩側加上引號
+		auto match = matchit.next();
+		QString text = match.captured(0);
 
-	QString bStr = list.at(1);
-	bStr.toInt(&bOk);
-	if (!bOk)
-	{
-		if (!bStr.startsWith("'"))
-			bStr = QString("'%1'").arg(bStr);
-	}
+		bool ok = false;
+		text.toInt(&ok);
+		if (ok)
+			continue;
 
-	expr = QString("%1 %2 %3").arg(aStr).arg(op).arg(bStr);
+		if (text == "and" || text == "or")
+			continue;
+
+		QString newText = text;
+		if (!newText.startsWith("'"))
+			newText = "'" + newText;
+		if (!newText.endsWith("'"))
+			newText = newText + "'";
+
+		expr.replace(text, newText);
+	}
 
 	insertGlobalVar("_IFEXPR", expr);
 

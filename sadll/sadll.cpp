@@ -263,7 +263,7 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID)
 #endif
 
 #ifdef _DEBUG
-			CreateConsole();
+			//CreateConsole();
 #endif
 		}
 		DisableThreadLibraryCalls(hModule);
@@ -306,30 +306,37 @@ LRESULT CALLBACK WndProc(HWND hWnd, DWORD message, LPARAM wParam, LPARAM lParam)
 	}
 	case WM_KEYDOWN:
 	{
-		if ((wParam == 'V' && GetKeyState(VK_CONTROL) < 0) && OpenClipboard(hWnd))
+		//按下CTRL+V
+		if ((wParam == 'V' && GetKeyState(VK_CONTROL) < 0))
 		{
-			std::cout << "PASTE" << std::endl;
-			HANDLE hClipboardData = GetClipboardData(CF_TEXT);
-			if (hClipboardData)
+			if (((1 == *g_GameService.g_world_status && 2 == *g_GameService.g_game_status)
+				|| (1 == *g_GameService.g_world_status && 3 == *g_GameService.g_game_status))
+				&& OpenClipboard(hWnd))
 			{
-				char* pszText = static_cast<char*>(GlobalLock(hClipboardData));
-				if (pszText != nullptr)
+				HANDLE hClipboardData = GetClipboardData(CF_TEXT);
+				if (hClipboardData)
 				{
-					int index = *CONVERT_GAMEVAR<int*>(0x415EF50);
-					if (index == 0 || strlen(CONVERT_GAMEVAR<char*>(0x414F278)) == 0)
+					char* pszText = static_cast<char*>(GlobalLock(hClipboardData));
+					if (pszText != nullptr)
 					{
-						memset(CONVERT_GAMEVAR<char*>(0x414F278), 0, 20u);
-						_snprintf_s(CONVERT_GAMEVAR<char*>(0x414F278), 20u, _TRUNCATE, "%s", pszText);
+						int index = *CONVERT_GAMEVAR<int*>(0x415EF50);
+						if (index == 0 || strlen(CONVERT_GAMEVAR<char*>(0x414F278)) == 0)
+						{
+							memset(CONVERT_GAMEVAR<char*>(0x414F278), 0, 20u);
+							_snprintf_s(CONVERT_GAMEVAR<char*>(0x414F278), 20u, _TRUNCATE, "%s", pszText);
+						}
+						else
+						{
+							memset(CONVERT_GAMEVAR<char*>(0x415AA58), 0, 20u);
+							_snprintf_s(CONVERT_GAMEVAR<char*>(0x415AA58), 20u, _TRUNCATE, "%s", pszText);
+						}
+						GlobalUnlock(hClipboardData);
 					}
-					else
-					{
-						memset(CONVERT_GAMEVAR<char*>(0x415AA58), 0, 20u);
-						_snprintf_s(CONVERT_GAMEVAR<char*>(0x415AA58), 20u, _TRUNCATE, "%s", pszText);
-					}
-					GlobalUnlock(hClipboardData);
 				}
+				CloseClipboard();
+				return 1;
 			}
-			CloseClipboard();
+			SendMessage(hWnd, WM_PASTE, 0, 0);
 			return 1;
 		}
 		break;
@@ -361,7 +368,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, DWORD message, LPARAM wParam, LPARAM lParam)
 		SetWindowLongW(g_MainHwnd, GWL_WNDPROC, reinterpret_cast<LONG_PTR>(g_OldWndProc));
 		FreeLibraryAndExitThread(g_hDllModule, 0);
 		return 1;
-}
+	}
 	case kGetModule:
 	{
 		return reinterpret_cast<int>(GetModuleHandleW(nullptr));
@@ -608,7 +615,6 @@ extern "C"
 	}
 }
 
-
 void GameService::initialize(unsigned short port)
 {
 	if (isInitialized_.load(std::memory_order_acquire))
@@ -627,9 +633,10 @@ void GameService::initialize(unsigned short port)
 
 	g_sockfd = CONVERT_GAMEVAR<int*>(0x421B404);//套接字
 
-#ifdef AUTIL_H
+
 	g_world_status = CONVERT_GAMEVAR<int*>(0x4230DD8);
 	g_game_status = CONVERT_GAMEVAR<int*>(0x4230DF0);
+#ifdef AUTIL_H
 	Autil::PersonalKey = CONVERT_GAMEVAR<char*>(0x4AC0898);//封包解密密鑰
 #endif
 
@@ -1101,6 +1108,9 @@ void GameService::WM_SetGameStatus(int status)
 //資源優化
 void GameService::WM_SetOptimize(bool enable)
 {
+	if (g_hGameModule == nullptr)
+		return;
+
 	DWORD optimizeAddr = CONVERT_GAMEVAR<DWORD>(0x129E7);
 	if (!enable)
 	{
@@ -1132,6 +1142,9 @@ void GameService::WM_SetOptimize(bool enable)
 //隱藏窗口
 void GameService::WM_SetWindowHide(bool enable)
 {
+	if (g_hGameModule == nullptr)
+		return;
+
 	//聊天紀錄顯示行數數量設為0
 	nowChatRowCount_ = *CONVERT_GAMEVAR<int*>(0xA2674);
 	if (nowChatRowCount_ < 20)
@@ -1634,6 +1647,8 @@ void GameService::WM_CleanChatHistory()
 //創建對話框
 void GameService::WM_CreateDialog(int button, const char* data)
 {
+	if (g_hGameModule == nullptr)
+		return;
 	//push 45ADF50
 	//push 4D2  //自訂對話框編號
 	//push 10E1 //自訂NPCID

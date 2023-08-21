@@ -2459,7 +2459,6 @@ void Server::reloadHashVar(const QString& typeStr)
 	QString newTypeStr = typeStr.simplified().toLower();
 	if (newTypeStr == "map")
 	{
-		QMutexLocker locker(&net_mutex);
 		QPoint point = getPoint();
 		const util::SafeHash<QString, QVariant> _hashmap = {
 			{ "floor", nowFloor },
@@ -2472,7 +2471,6 @@ void Server::reloadHashVar(const QString& typeStr)
 	}
 	else if (newTypeStr == "battle")
 	{
-		QMutexLocker locker(&net_mutex);
 		util::SafeHash<int, QHash<QString, QVariant>> _hashbattle;
 		battledata_t bt = getBattleData();
 		QVector<battleobject_t> objects = bt.objects;
@@ -5037,7 +5035,7 @@ void Server::setBattleEnd()
 	}
 
 	lssproto_EO_send(0);
-	lssproto_Echo_send(const_cast<char*>("hoge"));
+	//lssproto_Echo_send(const_cast<char*>("hoge"));
 
 	setBattleFlag(false);
 
@@ -5062,8 +5060,15 @@ void Server::doBattleWork(bool async)
 	bool normalChecked = injector.getEnableHash(util::kAutoBattleEnable) || (fastChecked && getWorldStatus() == 10);
 	if (async || (normalChecked && checkWG(10, 4)))
 		QtConcurrent::run(this, &Server::asyncBattleAction);
-	else if (!normalChecked && checkWG(9, 3))
-		syncBattleAction();
+	else if (!async && (!normalChecked && getWorldStatus() == 9))
+	{
+		QtConcurrent::run([this]()
+			{
+				playerDoBattleWork();
+				petDoBattleWork();
+				isEnemyAllReady.store(false, std::memory_order_release);
+			});
+	}
 }
 
 void Server::syncBattleAction()
@@ -5237,7 +5242,7 @@ void Server::asyncBattleAction()
 
 		//这里不发的话一般战斗、和快战都不会再收到后续的封包 (应该?)
 		//lssproto_EO_send(0);
-		lssproto_Echo_send(const_cast<char*>("hoge"));
+		//lssproto_Echo_send(const_cast<char*>("hoge"));
 		isEnemyAllReady.store(false, std::memory_order_release);
 	};
 
@@ -8525,7 +8530,6 @@ void Server::lssproto_RD_recv(char* cdata)
 //道具位置交換
 void Server::lssproto_SI_recv(int from, int to)
 {
-	QMutexLocker locker(&swapItemMutex_);
 	swapItemLocal(from, to);
 	refreshItemInfo();
 }
@@ -9506,6 +9510,7 @@ void Server::lssproto_B_recv(char* ccommand)
 		if (BattleAnimFlag <= 0)
 			return;
 
+		bool actEnable = false;
 		int enemyOkCount = 0;
 		battleobject_t empty = {};
 		if (!bt.objects.isEmpty())
@@ -9544,11 +9549,13 @@ void Server::lssproto_B_recv(char* ccommand)
 			{
 				announce("[async battle] 敌方全部准备完毕");
 				isEnemyAllReady.store(true, std::memory_order_release);
+				actEnable = true;
 			}
 		}
 		setBattleData(bt);
 
-		doBattleWork(false);//sync
+		if (actEnable)
+			doBattleWork(false);//sync
 	}
 	else if (first == "U")
 	{
