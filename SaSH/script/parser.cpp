@@ -1705,26 +1705,26 @@ void Parser::replaceSysConstKeyword(QString& expr)
 		if (strIndex.isEmpty())
 			return;
 
-		QString strType = match.captured(4).simplified().toLower();
-		if (strIndex.isEmpty() || strType.isEmpty())
-			return;
-
-		CompareType cmpType = compareBattleUnitTypeMap.value(strType.toLower(), kCompareTypeNone);
+		CompareType cmpType = compareBattleUnitTypeMap.value(strIndex.toLower(), kCompareTypeNone);
 		if (cmpType == kCompareTypeNone)
 			return;
 
-		bool bret = false;
-		if (strIndex == "round")
-			a = injector.server->BattleCliTurnNo;
-		else if (strIndex == "field")
-			a = injector.server->hashbattlefield.get();
-
-		if (bret)
+		switch (cmpType)
 		{
-			expr.replace(QString("battle[%1]").arg(strIndex), a.toString());
-			expr.replace(QString("battle['%1']").arg(strIndex), a.toString());
-			expr.replace(QString("battle[\"%1\"]").arg(strIndex), a.toString());
+		case kBattleRound:
+			a = injector.server->BattleCliTurnNo;
+			break;
+
+		case kBattleField:
+			a = injector.server->BattleCliTurnNo;
+			break;
+		default:
+			return;
 		}
+
+		expr.replace(QString("battle[%1]").arg(strIndex), a.toString());
+		expr.replace(QString("battle['%1']").arg(strIndex), a.toString());
+		expr.replace(QString("battle[\"%1\"]").arg(strIndex), a.toString());
 	}
 }
 

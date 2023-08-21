@@ -337,7 +337,8 @@ public://actions
 	void updateItemByMemory();
 	void updateDatasFromMemory();
 
-	void asyncBattleWork(bool wait);
+	void doBattleWork(bool async);
+	void syncBattleAction();
 	void asyncBattleAction();
 
 	void downloadMap();
@@ -604,7 +605,7 @@ private:
 #else
 		return QDateTime::currentMSecsSinceEpoch();
 #endif
-}
+	}
 
 	inline void setWarpMap(const QPoint& pos)
 	{
@@ -1072,4 +1073,4 @@ private://lssproto_recv
 	virtual void lssproto_CustomWN_recv(const QString& data) override;
 	virtual void lssproto_CustomTK_recv(const QString& data) override;
 #pragma endregion
-	};
+};
