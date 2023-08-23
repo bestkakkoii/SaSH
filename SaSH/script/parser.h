@@ -574,9 +574,6 @@ private:
 	bool checkCallStack();
 	bool checkFuzzyValue(const QString& varName, QVariant* pvalue);
 
-	template<typename T>
-	T calc(const QVariant& a, const QVariant& b, RESERVE operatorType);
-
 	bool exprTo(QString expr, QString* ret);
 
 	template <typename T>
@@ -693,7 +690,6 @@ private:
 
 	Q_REQUIRED_RESULT inline RESERVE getTokenType(qint64 index) const { return currentLineTokens_.value(index).type; }
 	Q_REQUIRED_RESULT TokenMap getCurrentTokens() const { return currentLineTokens_; }
-	void variableCalculate(RESERVE op, QVariant* var, const QVariant& varValue);
 	qint64 matchLineFromLabel(const QString& label) const
 	{
 		if (functionChunks_.contains(label))

@@ -169,41 +169,6 @@ void Parser::handleError(qint64 err, const QString& addition)
 	emit signalDispatcher.appendScriptLog(QObject::tr("error occured at line %1. detail:%2").arg(lineNumber_ + 1).arg(msg), 6);
 }
 
-//變量運算
-template<typename T>
-T Parser::calc(const QVariant& a, const QVariant& b, RESERVE operatorType)
-{
-	if constexpr (std::is_integral<T>::value)
-	{
-		if (operatorType == TK_ADD)
-		{
-			return a.value<T>() + b.value<T>();
-		}
-		else if (operatorType == TK_SUB)
-		{
-			return a.value<T>() - b.value<T>();
-		}
-		else if (operatorType == TK_MUL)
-		{
-			return a.value<T>() * b.value<T>();
-		}
-		else if (operatorType == TK_DIV)
-		{
-			return a.value<T>() / b.value<T>();
-		}
-		else if (operatorType == TK_INC)
-		{
-			return a.value<T>() + 1;
-		}
-		else if (operatorType == TK_DEC)
-		{
-			return a.value<T>() - 1;
-		}
-	}
-
-	return T();
-}
-
 //比較兩個 QVariant 以 a 的類型為主
 bool Parser::compare(const QVariant& a, const QVariant& b, RESERVE type) const
 {
@@ -1946,57 +1911,6 @@ bool Parser::jump(const QString& name, bool noStack)
 	return jump(jumpLineCount, true);
 }
 
-//處理"變量"運算
-void Parser::variableCalculate(RESERVE op, QVariant* pvar, const QVariant& varValue)
-{
-	if (nullptr == pvar)
-		return;
-
-	QVariant::Type type = pvar->type();
-
-	switch (op)
-	{
-	case TK_ADD:
-		*pvar = calc<qint64>(*pvar, varValue, op);
-		break;
-	case TK_SUB:
-		*pvar = calc<qint64>(*pvar, varValue, op);
-		break;
-	case TK_MUL:
-		*pvar = calc<qint64>(*pvar, varValue, op);
-		break;
-	case TK_DIV:
-		*pvar = calc<qint64>(*pvar, varValue, op);
-		break;
-	case TK_INC:
-		*pvar = calc<qint64>(*pvar, varValue, op);
-		break;
-	case TK_DEC:
-		*pvar = calc<qint64>(*pvar, varValue, op);
-		break;
-	case TK_MOD:
-		*pvar = pvar->toLongLong() % varValue.toLongLong();
-		break;
-	case TK_AND:
-		*pvar = pvar->toLongLong() & varValue.toLongLong();
-		break;
-	case TK_OR:
-		*pvar = pvar->toLongLong() | varValue.toLongLong();
-		break;
-	case TK_XOR:
-		*pvar = pvar->toLongLong() ^ varValue.toLongLong();
-		break;
-	case TK_SHL:
-		*pvar = pvar->toLongLong() << varValue.toLongLong();
-		break;
-	case TK_SHR:
-		*pvar = pvar->toLongLong() >> varValue.toLongLong();
-		break;
-	default:
-		break;
-	}
-}
-
 //更新並記錄每個函數塊的開始行和結束行
 void Parser::recordFunctionChunks()
 {
@@ -2849,6 +2763,20 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 		PC pc = injector.server->getPC();
 		ITEM item = pc.item[index];
 
+		QString damage = item.damage.simplified();
+		qint64 damageValue = 0;
+		if (damage.contains("%"))
+			damage.replace("%", "");
+		if (damage.contains("％"))
+			damage.replace("％", "");
+
+		bool ok = false;
+		int dura = damage.toLongLong(&ok);
+		if (!ok && !damage.isEmpty())
+			damageValue = 100;
+		else
+			damageValue = dura;
+
 		QHash<QString, QVariant> hash = {
 			//{ "", item.color },
 			{ "grano", item.graNo },
@@ -2862,7 +2790,7 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 			{ "name", item.name },
 			{ "name2", item.name2 },
 			{ "memo", item.memo },
-			{ "dura", item.damage },
+			{ "dura", damageValue },
 		};
 
 		varValue = hash.value(typeStr);
@@ -2887,6 +2815,20 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 		PC pc = injector.server->getPC();
 		ITEM item = pc.item[index];
 
+		QString damage = item.damage.simplified();
+		qint64 damageValue = 0;
+		if (damage.contains("%"))
+			damage.replace("%", "");
+		if (damage.contains("％"))
+			damage.replace("％", "");
+
+		bool ok = false;
+		int dura = damage.toLongLong(&ok);
+		if (!ok && !damage.isEmpty())
+			damageValue = 100;
+		else
+			damageValue = dura;
+
 		QHash<QString, QVariant> hash = {
 			//{ "", item.color },
 			{ "grano", item.graNo },
@@ -2900,7 +2842,7 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 			{ "name", item.name },
 			{ "name2", item.name2 },
 			{ "memo", item.memo },
-			{ "dura", item.damage },
+			{ "dura", damageValue },
 		};
 
 		varValue = hash.value(typeStr);
@@ -2941,7 +2883,7 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 
 		bool ok = false;
 		int dura = damage.toLongLong(&ok);
-		if (!ok)
+		if (!ok && !damage.isEmpty())
 			damageValue = 100;
 		else
 			damageValue = dura;
@@ -3278,11 +3220,12 @@ void Parser::processFormation()
 
 	auto formatTime = [](qint64 seconds)->QString
 	{
-		qint64 hours = seconds / 3600ll;
+		qint64 day = seconds / 86400ll;
+		qint64 hours = (seconds % 86400ll) / 3600ll;
 		qint64 minutes = (seconds % 3600ll) / 60ll;
 		qint64 remainingSeconds = seconds % 60ll;
 
-		return QString(QObject::tr("%1 hour %2 min %3 sec")).arg(hours).arg(minutes).arg(remainingSeconds);
+		return QString(QObject::tr("%1 day %2 hour %3 min %4 sec")).arg(day).arg(hours).arg(minutes).arg(remainingSeconds);
 	};
 
 	do

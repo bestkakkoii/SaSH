@@ -1095,6 +1095,10 @@
         <source>test</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>tset</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>InfoForm</name>
@@ -1656,7 +1660,7 @@ No new version available. Do you still want to update?</source>
     </message>
     <message>
         <source>&lt;error&gt;battle time out</source>
-        <translation>&lt;錯誤&gt;戰鬥超時</translation>
+        <translation type="vanished">&lt;錯誤&gt;戰鬥超時</translation>
     </message>
 </context>
 <context>
@@ -2669,7 +2673,7 @@ No new version available. Do you still want to update?</source>
     </message>
     <message>
         <source>%1 hour %2 min %3 sec</source>
-        <translation>%1 時 %2 分 %3 秒</translation>
+        <translation type="vanished">%1 時 %2 分 %3 秒</translation>
     </message>
     <message>
         <source>label incorrect or not exist</source>
@@ -2786,6 +2790,14 @@ No new version available. Do you still want to update?</source>
     <message>
         <source>Unpaired &apos;%1&apos; at row %2, index %3: &apos;%4&apos;</source>
         <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>lua error: %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>%1 day %2 hour %3 min %4 sec</source>
+        <translation>%1 日 %2 時 %3 分 %4 秒</translation>
     </message>
 </context>
 <context>
