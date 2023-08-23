@@ -23,10 +23,10 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "injector.h"
 #include "interpreter.h"
 
-#ifdef _DEBUG
-#define exprtk_enable_debugging
-#endif
-#include <exprtk/exprtk.hpp>
+//#ifdef _DEBUG
+//#define exprtk_enable_debugging
+//#endif
+//#include <exprtk/exprtk.hpp>
 
 #include <spdloger.hpp>
 extern QString g_logger_name;
@@ -42,6 +42,19 @@ Parser::Parser()
 	qDebug() << "Parser is created!!";
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
 	connect(&signalDispatcher, &SignalDispatcher::nodifyAllStop, this, &Parser::requestInterruption, Qt::UniqueConnection);
+
+	lua_.open_libraries(
+		sol::lib::base,
+		sol::lib::package,
+		sol::lib::os,
+		sol::lib::string,
+		sol::lib::math,
+		sol::lib::table,
+		sol::lib::debug,
+		sol::lib::utf8,
+		sol::lib::coroutine,
+		sol::lib::io
+	);
 }
 
 Parser::~Parser()
@@ -131,6 +144,12 @@ void Parser::handleError(qint64 err, const QString& addition)
 	{
 		QString cmd = currentLineTokens_.value(0).data.toString();
 		msg = QObject::tr("unknown command: %1").arg(cmd) + extMsg;
+		break;
+	}
+	case kLuaError:
+	{
+		QString cmd = currentLineTokens_.value(0).data.toString();
+		msg = QObject::tr("lua error: %1").arg(cmd) + extMsg;
 		break;
 	}
 	default:
@@ -254,41 +273,40 @@ bool Parser::compare(const QVariant& a, const QVariant& b, RESERVE type) const
 	return false; // 不支持的类型，返回 false
 }
 
-//取表達式結果
-template <typename T>
-bool Parser::exprMakeValue(const QString& expr, T* ret)
+bool Parser::exprTo(QString expr, QString* ret)
 {
-	using TKSymbolTable = exprtk::symbol_table<double>;
-	using TKExpression = exprtk::expression<double>;
-	using TKParser = exprtk::parser<double>;
+	if (nullptr == ret)
+		return false;
 
+	expr = expr.simplified();
+
+	QString exprStr = QString("%1\nreturn %2;").arg(localVarList.join("\n")).arg(expr);
+	const std::string exprStrUTF8 = exprStr.toUtf8().constData();
+	sol::protected_function_result loaded_chunk = lua_.safe_script(exprStrUTF8.c_str(), sol::script_pass_on_error);
+	lua_.collect_garbage();
+	if (!loaded_chunk.valid())
+	{
+		sol::error err = loaded_chunk;
+		QString errStr = QString::fromUtf8(err.what());
+		handleError(kLuaError, errStr);
+		return false;
+	}
+
+	sol::object retObject;
 	try
 	{
-		TKSymbolTable symbolTable;
-		symbolTable.add_constants();
-
-		TKParser parser;
-		TKExpression expression;
-		expression.register_symbol_table(symbolTable);
-
-		const QByteArray exprStrUTF8 = expr.toUtf8();
-		const std::string exprStr = std::string(exprStrUTF8.constData(), exprStrUTF8.size());
-		if (!parser.compile(exprStr, expression))
-			return false;
-
-		if (ret != nullptr)
-			*ret = static_cast<T>(expression.value());
-		return true;
-	}
-	catch (const std::exception& e)
-	{
-		SPD_LOG(g_logger_name, QString("[parser] exprTo exception: %1").arg(e.what()), SPD_ERROR);
+		retObject = loaded_chunk;
 	}
 	catch (...)
 	{
-		SPD_LOG(g_logger_name, "[parser] exprTo unknown exception", SPD_ERROR);
+		return false;
 	}
 
+	if (retObject.is<std::string>())
+	{
+		*ret = QString::fromUtf8(retObject.as<std::string>().c_str());
+		return true;
+	}
 	return false;
 }
 
@@ -296,105 +314,96 @@ bool Parser::exprMakeValue(const QString& expr, T* ret)
 template <typename T>
 bool Parser::exprTo(QString expr, T* ret)
 {
-	expr.replace("^", " xor ");
-	expr.replace("~", " nor ");
-	expr.replace("&&", " and ");
-	expr.replace("||", " or ");
+	if (nullptr == ret)
+		return false;
+
 	expr = expr.simplified();
 
-	bool result = exprMakeValue(expr, ret);
-	if (result)
-		return true;
-
-	static const QStringList logicOp = { "==", "!=", "<=", ">=", "<", ">" };
-	//檢查表達式是否包含邏輯運算符
-	QString opStr;
-	for (const auto& op : logicOp)
+	QString exprStr = QString("%1\nreturn %2;").arg(localVarList.join("\n")).arg(expr);
+	const std::string exprStrUTF8 = exprStr.toUtf8().constData();
+	sol::protected_function_result loaded_chunk = lua_.safe_script(exprStrUTF8.c_str(), sol::script_pass_on_error);
+	lua_.collect_garbage();
+	if (!loaded_chunk.valid())
 	{
-		if (expr.contains(op))
-		{
-			opStr = op;
-			break;
-		}
+		sol::error err = loaded_chunk;
+		QString errStr = QString::fromUtf8(err.what());
+		handleError(kLuaError, errStr);
+		return false;
 	}
 
-	static const QHash<QString, RESERVE> hash = {
-		{ "==", TK_EQ }, // "=="
-		{ "!=", TK_NEQ }, // "!="
-		{ ">", TK_GT }, // ">"
-		{ "<", TK_LT }, // "<"
-		{ ">=", TK_GEQ }, // ">="
-		{ "<=", TK_LEQ }, // "<="
-	};
-
-	//以邏輯符號為分界分割左右邊
-	QStringList exprList;
-	QVariant A;
-	QVariant B;
-	if (opStr.isEmpty())
-		return false;
-
-	exprList = expr.split(opStr, Qt::SkipEmptyParts);
-
-	if (exprList.size() != 2)
-		return false;
-
-	A = exprList.at(0).trimmed();
-	B = exprList.at(1).trimmed();
-
-	RESERVE type = hash.value(opStr, TK_UNK);
-	if (type == TK_UNK)
-		return false;
-
-	result = compare(A, B, type);
-
-	if (ret != nullptr)
-		*ret = static_cast<T>(result);
-
-	return true;
-}
-
-//取表達式結果
-template <typename T>
-bool Parser::exprTo(T value, QString expr, T* ret)
-{
-	using TKSymbolTable = exprtk::symbol_table<double>;
-	using TKExpression = exprtk::expression<double>;
-	using TKParser = exprtk::parser<double>;
-
-	constexpr auto varName = "A";
+	sol::object retObject;
 	try
 	{
-		TKSymbolTable symbolTable;
-		symbolTable.add_constants();
-		double dvalue = static_cast<double>(value);
-		symbolTable.add_variable(varName, dvalue);
-
-
-		TKParser parser;
-		TKExpression expression;
-		expression.register_symbol_table(symbolTable);
-
-		QString newExpr = QString("%1 %2").arg(varName).arg(expr);
-
-		const std::string exprStr = newExpr.toStdString();
-		if (!parser.compile(exprStr, expression))
-			return false;
-
-		expression.value();
-		dvalue = symbolTable.variable_ref(varName);
-
-		if (ret != nullptr)
-			*ret = static_cast<T>(dvalue);
-		return true;
-	}
-	catch (const std::exception& e)
-	{
-		SPD_LOG(g_logger_name, QString("[parser] exprTo2 exception: %1").arg(e.what()), SPD_ERROR);
+		retObject = loaded_chunk;
 	}
 	catch (...)
 	{
-		SPD_LOG(g_logger_name, "[parser] exprTo2 unknown exception", SPD_ERROR);
+		return false;
+	}
+
+	if (retObject.is<bool>())
+	{
+		*ret = retObject.as<bool>() ? 1ll : 0ll;
+		return true;
+	}
+	else if (retObject.is<qint64>())
+	{
+		*ret = retObject.as<qint64>();
+		return true;
+	}
+	else if (retObject.is<double>())
+	{
+		*ret = static_cast<qint64>(qFloor(retObject.as<double>()));
+		return true;
+	}
+	return false;
+}
+
+//取表達式結果 += -= *= /= %= ^=
+template <typename T>
+bool Parser::exprCAOSTo(T value, QString expr, T* ret)
+{
+	expr = expr.simplified();
+
+	//取類別
+	QStringList exprList = expr.split("=");
+	if (exprList.size() != 2)
+		return false;
+
+	lua_.set("_CAOS", value);
+
+	QString exprStr = QString("%1\n_CAOS = _CAOS %2 %3\nreturn _CAOS;").arg(localVarList.join("\n")).arg(exprList[0]).arg(exprList[1]);
+
+	const std::string exprStrUTF8 = exprStr.toUtf8().constData();
+	sol::protected_function_result loaded_chunk = lua_.safe_script(exprStrUTF8.c_str(), sol::script_pass_on_error);
+	lua_.collect_garbage();
+	if (!loaded_chunk.valid())
+		return false;
+
+	sol::object retObject;
+	try
+	{
+		retObject = loaded_chunk;
+	}
+	catch (...)
+	{
+		return false;
+	}
+
+	if (retObject.is<bool>())
+	{
+		*ret = retObject.as<bool>() ? 1ll : 0ll;
+		return true;
+	}
+	else if (retObject.is<qint64>())
+	{
+		*ret = retObject.as<qint64>();
+		return true;
+	}
+	else if (retObject.is<double>())
+	{
+		*ret = static_cast<qint64>(qFloor(retObject.as<double>()));
+		return true;
 	}
 
 	return false;
@@ -452,7 +461,17 @@ bool Parser::checkString(const TokenMap& TK, qint64 idx, QString* ret)
 				return false;
 
 			*ret = var.toString();
-			cycleReplace(*ret);
+			if (cycleReplace(*ret))
+			{
+				QString exprStrUTF8;
+				if (exprTo(*ret, &exprStrUTF8))
+				{
+					*ret = exprStrUTF8;
+					return true;
+				}
+				else
+					return false;
+			}
 
 			//所有數學運算符號
 			static const QRegularExpression regOp(R"(\+|\-|\*|\/|\%)");
@@ -959,29 +978,50 @@ bool Parser::isTextWrapped(const QString& text, const QString& keyword)
 }
 
 //表達式替換內容
-void Parser::cycleReplace(QString& expr)
+bool Parser::cycleReplace(const QString& expr)
 {
-	//為了保證可以交互嵌套所以多幾次循環替換
-	for (int i = 0; i < 4; ++i)
+	QVariantHash globalVars = getGlobalVars();
+	for (auto it = globalVars.cbegin(); it != globalVars.cend(); ++it)
 	{
-		replaceSysConstKeyword(expr);
-		replaceToVariable(expr);
+		QString key = it.key();
+		QByteArray keyBytes = key.toUtf8();
+		QString value = it.value().toString();
+		if (it.value().type() == QVariant::String)
+			value = QString("'%1'").arg(value);
+		QByteArray valueBytes = value.toUtf8();
+
+		lua_.set(keyBytes.constData(), valueBytes.constData());
 	}
+
+	QVariantHash localVars = getLocalVars();
+	localVarList.clear();
+	for (auto it = localVars.cbegin(); it != localVars.cend(); ++it)
+	{
+		QString key = it.key();
+		QString value = it.value().toString();
+		if (it.value().type() == QVariant::String)
+			value = QString("'%1'").arg(value);
+		QString local = QString("local %1 = %2;").arg(key).arg(value);
+		localVarList.append(local);
+	}
+
+	return updateSysConstKeyword(expr);
 }
 
 //表達式替換系統常量
-void Parser::replaceSysConstKeyword(QString& expr)
+bool Parser::updateSysConstKeyword(const QString& expr)
 {
 	Injector& injector = Injector::getInstance();
 	if (injector.server.isNull())
-		return;
+		return false;
 
+	bool bret = false;
 	QString rexStart = "pet";
 
 	//這裡寫成一串會出現VS語法bug，所以分開寫
 	const QString rexMiddleStart = R"(\[(?:'([^']*)'|")";
 	const QString rexMiddleMid = R"(([^ "]*))";
-	const QString rexMEnd = R"("|(\d+))\])";
+	const QString rexMEnd = R"("|([\w\p{Han}]+))\])";
 	const QString rexExtra = R"(\.(\w+))";
 
 	static const QRegularExpression rexPlayer(R"(char\.(\w+))");
@@ -990,7 +1030,7 @@ void Parser::replaceSysConstKeyword(QString& expr)
 	rexStart = "pet";
 	const QRegularExpression rexPetEx(rexStart + rexMiddleStart + rexMiddleMid + rexMEnd);
 
-	static const QRegularExpression rexItem(R"(item\[(\d+)\]\.(\w+))");
+	static const QRegularExpression rexItem(R"(item\[([\w\p{Han}]+)\]\.(\w+))");
 
 	rexStart = "item";
 	const QRegularExpression rexItemEx(rexStart + rexMiddleStart + rexMiddleMid + rexMEnd + rexExtra);
@@ -1007,7 +1047,7 @@ void Parser::replaceSysConstKeyword(QString& expr)
 	const QRegularExpression rexCard(rexStart + rexMiddleStart + rexMiddleMid + rexMEnd + rexExtra);
 
 	rexStart = "chat";
-	const QRegularExpression rexChatEx(rexStart + rexMiddleStart + rexMiddleMid + rexMEnd);
+	const QRegularExpression rexChat(rexStart + rexMiddleStart + rexMiddleMid + rexMEnd);
 
 	rexStart = "unit";
 	const QRegularExpression rexUnit(rexStart + rexMiddleStart + rexMiddleMid + rexMEnd + rexExtra);
@@ -1020,287 +1060,192 @@ void Parser::replaceSysConstKeyword(QString& expr)
 
 	PC _pc = injector.server->getPC();
 
-	QVariant a = 0;
-
-
 	QRegularExpressionMatch match = rexPlayer.match(expr);
 	//char\.(\w+)
 	if (match.hasMatch())
 	{
-		QString strType = match.captured(1).simplified().toLower();
-		if (strType.isEmpty())
-			return;
-
-		CompareType cmpType = comparePcTypeMap.value(strType.toLower(), kCompareTypeNone);
-		if (cmpType == kCompareTypeNone)
-			return;
-
-		switch (cmpType)
+		bret = true;
+		if (!lua_["char"].valid())
+			lua_["char"] = lua_.create_table();
+		else
 		{
-		case kPlayerName:
-			a = _pc.name;
-			break;
-		case kPlayerFreeName:
-			a = _pc.freeName;
-			break;
-		case kPlayerLevel:
-			a = _pc.level;
-			break;
-		case kPlayerHp:
-			a = _pc.hp;
-			break;
-		case kPlayerMaxHp:
-			a = _pc.maxHp;
-			break;
-		case kPlayerHpPercent:
-			a = _pc.hpPercent;
-			break;
-		case kPlayerMp:
-			a = _pc.mp;
-			break;
-		case kPlayerMaxMp:
-			a = _pc.maxMp;
-			break;
-		case kPlayerMpPercent:
-			a = _pc.mpPercent;
-			break;
-		case kPlayerExp:
-			a = _pc.exp;
-			break;
-		case kPlayerMaxExp:
-			a = _pc.maxExp;
-			break;
-		case kPlayerStone:
-			a = _pc.gold;
-			break;
-		case kPlayerVit:
-			a = _pc.vital;
-			break;
-		case kPlayerStr:
-			a = _pc.str;
-			break;
-		case kPlayerTgh:
-			a = _pc.tgh;
-			break;
-		case kPlayerDex:
-			a = _pc.dex;
-			break;
-		case kPlayerAtk:
-			a = _pc.atk;
-			break;
-		case kPlayerDef:
-			a = _pc.def;
-			break;
-		case kPlayerChasma:
-			a = _pc.charm;
-			break;
-		case kPlayerTurn:
-			a = _pc.transmigration;
-			break;
-		case kPlayerEarth:
-			a = _pc.earth;
-			break;
-		case kPlayerWater:
-			a = _pc.water;
-			break;
-		case kPlayerFire:
-			a = _pc.fire;
-			break;
-		case kPlayerWind:
-			a = _pc.wind;
-			break;
-		default:
-			return;
+			if (!lua_["char"].is<sol::table>())
+				lua_["char"] = lua_.create_table();
 		}
 
-		expr.replace(QString("char.%1").arg(strType), a.toString());
+		lua_["char"]["name"] = _pc.name.toUtf8().constData();
+
+		lua_["char"]["freeName"] = _pc.freeName.toUtf8().constData();
+
+		lua_["char"]["level"] = _pc.level;
+
+		lua_["char"]["hp"] = _pc.hp;
+
+		lua_["char"]["maxHp"] = _pc.maxHp;
+
+		lua_["char"]["hpPercent"] = _pc.hpPercent;
+
+		lua_["char"]["mp"] = _pc.mp;
+
+		lua_["char"]["maxMp"] = _pc.maxMp;
+
+		lua_["char"]["mpPercent"] = _pc.mpPercent;
+
+		lua_["char"]["exp"] = _pc.exp;
+
+		lua_["char"]["maxExp"] = _pc.maxExp;
+
+		lua_["char"]["stone"] = _pc.gold;
+
+		lua_["char"]["vit"] = _pc.vital;
+
+		lua_["char"]["str"] = _pc.str;
+
+		lua_["char"]["tgh"] = _pc.tgh;
+
+		lua_["char"]["dex"] = _pc.dex;
+
+		lua_["char"]["atk"] = _pc.atk;
+
+		lua_["char"]["def"] = _pc.def;
+
+		lua_["char"]["chasma"] = _pc.charm;
+
+		lua_["char"]["turn"] = _pc.transmigration;
+
+		lua_["char"]["earth"] = _pc.earth;
+
+		lua_["char"]["water"] = _pc.water;
+
+		lua_["char"]["fire"] = _pc.fire;
+
+		lua_["char"]["wind"] = _pc.wind;
 	}
 
 	//pet\[(?:'([^']*)'|"([^ "]*)"|(\d+))\]\.(\w+)
 	match = rexPet.match(expr);
 	if (match.hasMatch())
 	{
-		QString strIndex = match.captured(1).simplified().toLower();
-		if (strIndex.isEmpty())
-			strIndex = match.captured(2).simplified().toLower();
-		if (strIndex.isEmpty())
-			strIndex = match.captured(3).simplified().toLower();
-		if (strIndex.isEmpty())
-			return;
-
-		QString strType = match.captured(4).simplified().toLower();
-		if (strIndex.isEmpty() || strType.isEmpty())
-			return;
-
-		CompareType cmpType = comparePetTypeMap.value(strType.toLower(), kCompareTypeNone);
-		if (cmpType == kCompareTypeNone)
-			return;
-
-		int index = strIndex.toInt() - 1;
-		if (index < 0 || index >= MAX_PET)
+		bret = true;
+		if (!lua_["pet"].valid())
+			lua_["pet"] = lua_.create_table();
+		else
 		{
-			QHash<QString, qint64> hash = {
-				{ u8"戰寵", _pc.battlePetNo },
-				{ u8"騎寵", _pc.ridePetNo },
-				{ u8"战宠", _pc.battlePetNo },
-				{ u8"骑宠", _pc.ridePetNo },
-				{ u8"battlepet", _pc.battlePetNo },
-				{ u8"ride", _pc.ridePetNo },
-			};
-
-			if (!hash.contains(strIndex))
-				return;
-
-			index = hash.value(strIndex);
+			if (!lua_["pet"].is<sol::table>())
+				lua_["pet"] = lua_.create_table();
 		}
 
-		PET pet = injector.server->getPet(index);
+		const QHash<QString, PetState> hash = {
+			{ u8"battle", kBattle },
+			{ u8"standby", kStandby },
+			{ u8"mail", kMail },
+			{ u8"rest", kRest },
+			{ u8"ride", kRide },
+		};
 
-		switch (cmpType)
+		for (int i = 0; i < MAX_ITEM; ++i)
 		{
-		case kPetName:
-			a = pet.name;
-			break;
-		case kPetFreeName:
-			a = pet.freeName;
-			break;
-		case kPetLevel:
-			a = pet.level;
-			break;
-		case kPetHp:
-			a = pet.hp;
-			break;
-		case kPetMaxHp:
-			a = pet.maxHp;
-			break;
-		case kPetHpPercent:
-			a = pet.hpPercent;
-			break;
-		case kPetExp:
-			a = pet.exp;
-			break;
-		case kPetMaxExp:
-			a = pet.maxExp;
-			break;
-		case kPetAtk:
-			a = pet.atk;
-			break;
-		case kPetDef:
-			a = pet.def;
-			break;
-		case kPetLoyal:
-			a = pet.ai;
-			break;
-		case kPetTurn:
-			a = pet.trn;
-			break;
-		case kPetEarth:
-			a = pet.earth;
-			break;
-		case kPetWater:
-			a = pet.water;
-			break;
-		case kPetFire:
-			a = pet.fire;
-			break;
-		case kPetWind:
-			a = pet.wind;
-			break;
-		case kPetState:
-		{
-			const QHash<QString, PetState> hash = {
-				{ u8"battle", kBattle },
-				{ u8"standby", kStandby },
-				{ u8"mail", kMail },
-				{ u8"rest", kRest },
-				{ u8"ride", kRide },
-			};
+			PET pet = injector.server->getPet(i);
+			int index = i + 1;
+
+			if (!lua_["pet"][index].valid())
+				lua_["pet"][index] = lua_.create_table();
+			else
+			{
+				if (!lua_["pet"][index].is<sol::table>())
+					lua_["pet"][index] = lua_.create_table();
+			}
+
+			lua_["pet"][index]["name"] = pet.name.toUtf8().constData();
+
+			lua_["pet"][index]["freeName"] = pet.freeName.toUtf8().constData();
+
+			lua_["pet"][index]["level"] = pet.level;
+
+			lua_["pet"][index]["hp"] = pet.hp;
+
+			lua_["pet"][index]["maxHp"] = pet.maxHp;
+
+			lua_["pet"][index]["hpPercent"] = pet.hpPercent;
+
+			lua_["pet"][index]["exp"] = pet.exp;
+
+			lua_["pet"][index]["maxExp"] = pet.maxExp;
+
+			lua_["pet"][index]["atk"] = pet.atk;
+
+			lua_["pet"][index]["def"] = pet.def;
+
+			lua_["pet"][index]["loyal"] = pet.ai;
+
+			lua_["pet"][index]["turn"] = pet.trn;
+
+			lua_["pet"][index]["earth"] = pet.earth;
+
+			lua_["pet"][index]["water"] = pet.water;
+
+			lua_["pet"][index]["fire"] = pet.fire;
+
+			lua_["pet"][index]["wind"] = pet.wind;
 
 			PetState state = pet.state;
 			QString str = hash.key(state, "");
-			if (str.isEmpty())
-			{
-				a = "";
-				break;
-			}
+			lua_["pet"][index]["state"] = str.toUtf8().constData();
 
-			a = str;
-			break;
+			lua_["pet"][index]["power"] = qFloor((static_cast<double>(pet.atk + pet.def + pet.quick) + (static_cast<double>(pet.maxHp) / 4.0)));
 		}
-		case kPetPower:
-			a = qFloor((static_cast<double>(pet.atk + pet.def + pet.quick) + (static_cast<double>(pet.maxHp) / 4.0)));
-			break;
-		default:
-			return;
-		}
-
-		expr.replace(QString("pet['%1'].%2").arg(strIndex).arg(strType), a.toString());
-		expr.replace(QString("pet[\"%1\"].%2").arg(strIndex).arg(strType), a.toString());
-		expr.replace(QString("pet[%1].%2").arg(strIndex).arg(strType), a.toString());
 	}
 
 	//pet\[(?:'([^']*)'|"([^ "]*)"|(\d+))\]
 	match = rexPetEx.match(expr);
 	if (match.hasMatch())
 	{
-		QString strIndex = match.captured(1).simplified().toLower();
-		if (strIndex.isEmpty())
-			strIndex = match.captured(2).simplified().toLower();
-		if (strIndex.isEmpty())
-			strIndex = match.captured(3).simplified().toLower();
-		if (strIndex.isEmpty())
-			return;
-
-		if (strIndex == "count")
+		bret = true;
+		if (!lua_["pet"].valid())
+			lua_["pet"] = lua_.create_table();
+		else
 		{
-			a = injector.server->getPartySize();
-			expr.replace(QString("pet['%1']").arg(strIndex), a.toString());
-			expr.replace(QString("pet[\"%1\"]").arg(strIndex), a.toString());
-			expr.replace(QString("pet[%1]").arg(strIndex), a.toString());
+			if (!lua_["pet"].is<sol::table>())
+				lua_["pet"] = lua_.create_table();
 		}
+
+		lua_["pet"]["count"] = injector.server->getPetSize();
 	}
 
 	//item\[(\d+)\]\.(\w+)
 	match = rexItem.match(expr);
 	if (match.hasMatch())
 	{
-		QString strIndex = match.captured(1).simplified().toLower();
-		QString strType = match.captured(2).simplified().toLower();
-
-		if (strIndex.isEmpty() || strType.isEmpty())
-			return;
-
-		CompareType cmpType = compareItemTypeMap.value(strType.toLower(), kCompareTypeNone);
-		if (cmpType == kCompareTypeNone)
-			return;
-
-		int index = strIndex.toInt() - 1;
-		if (index >= 100 && index < 100 + CHAR_EQUIPPLACENUM)
-		{
-			index -= 100;
-		}
-		else if (index >= 0 && index <= MAX_ITEM - CHAR_EQUIPPLACENUM)
-		{
-			index += CHAR_EQUIPPLACENUM;
-		}
+		bret = true;
+		if (!lua_["item"].valid())
+			lua_["item"] = lua_.create_table();
 		else
-			return;
-
-		if (index < 0 || index >= MAX_ITEM)
-			return;
-
-		ITEM item = _pc.item[index];
-
-		switch (cmpType)
 		{
-		case kItemName:
-			a = item.name;
-			break;
-		case kItemMemo:
-			a = item.memo;
-			break;
-		case kItemDura:
+			if (!lua_["item"].is<sol::table>())
+				lua_["item"] = lua_.create_table();
+		}
+
+		for (int i = 0; i < MAX_ITEM; ++i)
 		{
+			ITEM item = _pc.item[i];
+			int index = i + 1;
+			if (i < CHAR_EQUIPPLACENUM)
+				index += 100;
+			else
+				index = index - CHAR_EQUIPPLACENUM;
+
+			if (!lua_["item"][index].valid())
+				lua_["item"][index] = lua_.create_table();
+			else
+			{
+				if (!lua_["item"][index].is<sol::table>())
+					lua_["item"][index] = lua_.create_table();
+			}
+
+			lua_["item"][index]["name"] = item.name.toUtf8().constData();
+
+			lua_["item"][index]["memo"] = item.memo.toUtf8().constData();
+
 			QString damage = item.damage.simplified();
 			if (damage.contains("%"))
 				damage.replace("%", "");
@@ -1308,459 +1253,387 @@ void Parser::replaceSysConstKeyword(QString& expr)
 				damage.replace("％", "");
 
 			bool ok = false;
-			int dura = damage.toLongLong(&ok);
-			if (!ok)
-				a = 100;
+			qint64 dura = damage.toLongLong(&ok);
+			if (!ok && !damage.isEmpty())
+				lua_["item"][index]["dura"] = 100;
 			else
-				a = dura;
-			break;
-		}
-		case kItemLevel:
-			a = item.level;
-			break;
-		case kItemStack:
-			a = item.pile;
-			break;
-		default:
-			return;
-		}
+				lua_["item"][index]["dura"] = dura;
 
-		expr.replace(QString("item[%1].%2").arg(strIndex).arg(strType), a.toString());
+			lua_["item"][index]["level"] = item.level;
+
+			lua_["item"][index]["stack"] = item.pile;
+		}
 	}
 
 	//item\[(?:'([^']*)'|"([^ "]*)"|(\d+))\]
 	match = rexItemEx.match(expr);
 	if (match.hasMatch())
 	{
-		QString strIndex = match.captured(1).simplified().toLower();
-		if (strIndex.isEmpty())
-			strIndex = match.captured(2).simplified().toLower();
-		if (strIndex.isEmpty())
-			strIndex = match.captured(3).simplified().toLower();
-		if (strIndex.isEmpty())
-			return;
-
-		QString strType = match.captured(4).simplified().toLower();
-
-		CompareType cmpType = compareItemTypeMap.value(strType.toLower(), kCompareTypeNone);
-		if (cmpType == kCompareTypeNone)
-			return;
-
-		switch (cmpType)
+		if (!lua_["item"].valid())
+			lua_["item"] = lua_.create_table();
+		else
 		{
-		case kitemCount:
-		{
-			QVector<int> v;
-			qint64 count = 0;
-			QStringList args = strIndex.split(util::rexOR);
-			QString itemName = args.at(0).simplified();
-			QString itemMemo;
-			if (args.size() > 1)
-				itemMemo = args.at(1).simplified();
+			if (!lua_["item"].is<sol::table>())
+				lua_["item"] = lua_.create_table();
+		}
 
-			if (injector.server->getItemIndexsByName(itemName, itemMemo, &v))
+		for (const ITEM& it : _pc.item)
+		{
+			QVector<int> vWithNameAndMemo;
+			QVector<int> vWithName;
+			QVector<int> vWithMemo;
+			qint64 countWithNameAndMemo = 0;
+			qint64 countWithName = 0;
+			qint64 countWithMemo = 0;
+			QString itemName = it.name.simplified();
+			QString itemMemo = it.memo.simplified();
+
+			if (!injector.server->getItemIndexsByName(itemName, itemMemo, &vWithNameAndMemo) &&
+				!injector.server->getItemIndexsByName(itemName, "", &vWithName) &&
+				!injector.server->getItemIndexsByName("", itemMemo, &vWithMemo))
+				continue;
+
+			for (const int it : vWithNameAndMemo)
+				countWithNameAndMemo += _pc.item[it].pile;
+
+			for (const int it : vWithName)
+				countWithName += _pc.item[it].pile;
+
+			for (const int it : vWithMemo)
+				countWithMemo += _pc.item[it].pile;
+
+			QString keyWithNameAndMemo = QString("%1|%2").arg(itemName).arg(itemMemo);
+			QString keyWithName = QString("%1").arg(itemName);
+			QString keyWithMemo = QString("|%1").arg(itemMemo);
+
+			if (!lua_["item"][keyWithNameAndMemo.toUtf8().constData()].valid())
+				lua_["item"][keyWithNameAndMemo.toUtf8().constData()] = lua_.create_table();
+			else
 			{
-				for (const int it : v)
-					count += _pc.item[it].pile;
+				if (!lua_["item"][keyWithNameAndMemo.toUtf8().constData()].is<sol::table>())
+					lua_["item"][keyWithNameAndMemo.toUtf8().constData()] = lua_.create_table();
 			}
 
-			a = count;
-			break;
-		}
-		default:
-			return;
-		}
+			if (!lua_["item"][keyWithName.toUtf8().constData()].valid())
+				lua_["item"][keyWithName.toUtf8().constData()] = lua_.create_table();
+			else
+			{
+				if (!lua_["item"][keyWithName.toUtf8().constData()].is<sol::table>())
+					lua_["item"][keyWithName.toUtf8().constData()] = lua_.create_table();
+			}
 
-		expr.replace(QString("item['%1'].%2").arg(strIndex).arg(strType), a.toString());
-		expr.replace(QString("item[\"%1\"].%2").arg(strIndex).arg(strType), a.toString());
-		expr.replace(QString("item[%1].%2").arg(strIndex).arg(strType), a.toString());
+			if (!lua_["item"][keyWithMemo.toUtf8().constData()].valid())
+				lua_["item"][keyWithMemo.toUtf8().constData()] = lua_.create_table();
+			else
+			{
+				if (!lua_["item"][keyWithMemo.toUtf8().constData()].is<sol::table>())
+					lua_["item"][keyWithMemo.toUtf8().constData()] = lua_.create_table();
+			}
+
+			lua_["item"][keyWithNameAndMemo.toUtf8().constData()]["count"] = countWithNameAndMemo;
+			lua_["item"][keyWithName.toUtf8().constData()]["count"] = countWithName;
+			lua_["item"][keyWithMemo.toUtf8().constData()]["count"] = countWithMemo;
+			bret = true;
+		}
 	}
 
 	//team\[(?:'([^']*)'|"([^ "]*)"|(\d+))\]\.(\w+)
 	match = rexTeam.match(expr);
 	if (match.hasMatch())
 	{
-		QString strIndex = match.captured(1).simplified().toLower();
-		if (strIndex.isEmpty())
-			strIndex = match.captured(2).simplified().toLower();
-		if (strIndex.isEmpty())
-			strIndex = match.captured(3).simplified().toLower();
-		if (strIndex.isEmpty())
-			return;
-
-		QString strType = match.captured(4).simplified().toLower();
-
-		CompareType cmpType = compareTeamTypeMap.value(strType.toLower(), kCompareTypeNone);
-		if (cmpType == kCompareTypeNone)
-			return;
-
-		int index = strIndex.toInt() - 1;
-		if (index < 0 || index >= MAX_PARTY)
-			return;
-
-		switch (cmpType)
+		bret = true;
+		if (!lua_["team"].valid())
+			lua_["team"] = lua_.create_table();
+		else
 		{
-		case kTeamName:
-			a = injector.server->getParty(index).name;
-			break;
-		case kTeamLevel:
-			a = injector.server->getParty(index).level;
-			break;
-		case kTeamHp:
-			a = injector.server->getParty(index).hp;
-			break;
-
-		case kTeamMaxHp:
-			a = injector.server->getParty(index).maxHp;
-			break;
-		case kTeamHpPercent:
-			a = injector.server->getParty(index).hpPercent;
-			break;
-		case kTeamMp:
-			a = injector.server->getParty(index).mp;
-			break;
-		default:
-			return;
+			if (!lua_["team"].is<sol::table>())
+				lua_["team"] = lua_.create_table();
 		}
 
-		expr.replace(QString("team['%1'].%2").arg(strIndex).arg(strType), a.toString());
-		expr.replace(QString("team[\"%1\"].%2").arg(strIndex).arg(strType), a.toString());
-		expr.replace(QString("team[%1].%2").arg(strIndex).arg(strType), a.toString());
+		for (int i = 0; i < MAX_PARTY; ++i)
+		{
+			PARTY party = injector.server->getParty(i);
+			int index = i + 1;
+			if (!lua_["team"][index].valid())
+				lua_["team"][index] = lua_.create_table();
+			else
+			{
+				if (!lua_["team"][index].is<sol::table>())
+					lua_["team"][index] = lua_.create_table();
+			}
+
+			lua_["team"][index]["name"] = party.name.toUtf8().constData();
+
+			lua_["team"][index]["level"] = party.level;
+
+			lua_["team"][index]["hp"] = party.hp;
+
+			lua_["team"][index]["maxhp"] = party.maxHp;
+
+			lua_["team"][index]["hpp"] = party.hpPercent;
+
+			lua_["team"][index]["mp"] = party.mp;
+		}
 	}
 
 	//team\[(?:'([^']*)'|"([^ "]*)"|(\d+))\]
 	match = rexTeamEx.match(expr);
 	if (match.hasMatch())
 	{
-		QString strIndex = match.captured(1).simplified().toLower();
-		if (strIndex.isEmpty())
-			strIndex = match.captured(2).simplified().toLower();
-		if (strIndex.isEmpty())
-			strIndex = match.captured(3).simplified().toLower();
-		if (strIndex.isEmpty())
-			return;
-
-		if (strIndex == "count")
+		bret = true;
+		if (!lua_["team"].valid())
+			lua_["team"] = lua_.create_table();
+		else
 		{
-			a = injector.server->getPartySize();
-			expr.replace(QString("team['%1']").arg(strIndex), a.toString());
-			expr.replace(QString("team[\"%1\"]").arg(strIndex), a.toString());
-			expr.replace(QString("team[%1]").arg(strIndex), a.toString());
+			if (!lua_["team"].is<sol::table>())
+				lua_["team"] = lua_.create_table();
 		}
+
+		lua_["team"]["count"] = static_cast<qint64>(injector.server->getPartySize());
 	}
 
 	//map\.(\w+)
 	match = rexMap.match(expr);
 	if (match.hasMatch())
 	{
-		QString strType = match.captured(1).simplified().toLower();
-		if (strType.isEmpty())
-			return;
-
-		CompareType cmpType = compareMapTypeMap.value(strType.toLower(), kCompareTypeNone);
-		if (cmpType == kCompareTypeNone)
-			return;
-
-		switch (cmpType)
+		bret = true;
+		if (!lua_["map"].valid())
+			lua_["map"] = lua_.create_table();
+		else
 		{
-		case kMapName:
-			a = injector.server->nowFloorName;
-			break;
-		case kMapFloor:
-			a = injector.server->nowFloor;
-			break;
-		case kMapX:
-			a = injector.server->getPoint().x();
-			break;
-		case kMapY:
-			a = injector.server->getPoint().y();
-			break;
-		default:
-			return;
+			if (!lua_["map"].is<sol::table>())
+				lua_["map"] = lua_.create_table();
 		}
 
-		expr.replace(QString("map.%1").arg(strType), a.toString());
+		lua_["map"]["name"] = injector.server->nowFloorName.toUtf8().constData();
+
+		lua_["map"]["floor"] = injector.server->nowFloor;
+
+		lua_["map"]["x"] = injector.server->getPoint().x();
+
+		lua_["map"]["y"] = injector.server->getPoint().y();
 	}
 
 	//card\[(?:'([^']*)'|"([^ "]*)"|(\d+))\]\.(\w+)
 	match = rexCard.match(expr);
 	if (match.hasMatch())
 	{
-		QString strIndex = match.captured(1).simplified().toLower();
-		if (strIndex.isEmpty())
-			strIndex = match.captured(2).simplified().toLower();
-		if (strIndex.isEmpty())
-			strIndex = match.captured(3).simplified().toLower();
-		if (strIndex.isEmpty())
-			return;
-
-		QString strType = match.captured(4).simplified().toLower();
-		if (strIndex.isEmpty() || strType.isEmpty())
-			return;
-
-		CompareType cmpType = compareCardTypeMap.value(strType.toLower(), kCompareTypeNone);
-		if (cmpType == kCompareTypeNone)
-			return;
-
-		int index = strIndex.toInt() - 1;
-		if (index < 0 || index > MAX_ADR_BOOK)
-			return;
-
-		switch (cmpType)
+		bret = true;
+		if (!lua_["card"].valid())
+			lua_["card"] = lua_.create_table();
+		else
 		{
-		case kCardName:
-			a = injector.server->getAddressBook(index).name;
-			break;
-		case kCardOnlineState:
-			a = injector.server->getAddressBook(index).onlineFlag > 0 ? 1 : 0;
-			break;
-		case kCardTurn:
-			a = injector.server->getAddressBook(index).transmigration;
-			break;
-		case kCardDp:
-			a = injector.server->getAddressBook(index).dp;
-			break;
-		case kCardLevel:
-			a = injector.server->getAddressBook(index).level;
-			break;
-		default:
-			return;
+			if (!lua_["card"].is<sol::table>())
+				lua_["card"] = lua_.create_table();
 		}
 
-		expr.replace(QString("card[%1].%2").arg(strIndex).arg(strType), a.toString());
+		for (int i = 0; i < MAX_ADR_BOOK; ++i)
+		{
+			ADDRESS_BOOK addressBook = injector.server->getAddressBook(i);
+			int index = i + 1;
+			if (!lua_["card"][index].valid())
+				lua_["card"][index] = lua_.create_table();
+			else
+			{
+				if (!lua_["card"][index].is<sol::table>())
+					lua_["card"][index] = lua_.create_table();
+			}
+
+			lua_["card"][index]["name"] = addressBook.name.toUtf8().constData();
+
+			lua_["card"][index]["online"] = addressBook.onlineFlag > 0 ? 1 : 0;
+
+			lua_["card"][index]["turn"] = addressBook.transmigration;
+
+			lua_["card"][index]["dp"] = addressBook.dp;
+
+			lua_["card"][index]["lv"] = addressBook.level;
+		}
 	}
 
 	//chat\[(?:'([^']*)'|"([^ "]*)"|(\d+))\]
-	match = rexTeamEx.match(expr);
+	match = rexChat.match(expr);
 	if (match.hasMatch())
 	{
-		QString strIndex = match.captured(1).simplified().toLower();
-		if (strIndex.isEmpty())
-			strIndex = match.captured(2).simplified().toLower();
-		if (strIndex.isEmpty())
-			strIndex = match.captured(3).simplified().toLower();
-		if (strIndex.isEmpty())
-			return;
+		bret = true;
+		if (!lua_["chat"].valid())
+			lua_["chat"] = lua_.create_table();
+		else
+		{
+			if (!lua_["chat"].is<sol::table>())
+				lua_["chat"] = lua_.create_table();
+		}
 
-		int index = strIndex.toInt() - 1;
-		if (index < 0 || index >= MAX_CHAT_HISTORY)
-			return;
+		for (int i = 0; i < MAX_CHAT_HISTORY; ++i)
+		{
+			QString text = injector.server->getChatHistory(i);
+			int index = i + 1;
 
-		a = injector.server->getChatHistory(index);
-		expr.replace(QString("chat[%1]").arg(strIndex), a.toString());
+			if (!lua_["chat"][index].valid())
+				lua_["chat"][index] = lua_.create_table();
+			else
+			{
+				if (!lua_["chat"][index].is<sol::table>())
+					lua_["chat"][index] = lua_.create_table();
+			}
+
+			lua_["chat"][index] = text.toUtf8().constData();
+		}
 	}
 
 	//unit\[(?:'([^']*)'|"([^ "]*)"|(\d+))\]\.(\w+)
 	match = rexUnit.match(expr);
 	if (match.hasMatch())
 	{
-		QString strIndex = match.captured(1).simplified().toLower();
-		if (strIndex.isEmpty())
-			strIndex = match.captured(2).simplified().toLower();
-		if (strIndex.isEmpty())
-			strIndex = match.captured(3).simplified().toLower();
-		if (strIndex.isEmpty())
-			return;
-
-		QString strType = match.captured(4).simplified().toLower();
-		if (strIndex.isEmpty() || strType.isEmpty())
-			return;
-
-		CompareType cmpType = compareUnitTypeMap.value(strType.toLower(), kCompareTypeNone);
-		if (cmpType == kCompareTypeNone)
-			return;
+		bret = true;
+		if (!lua_["unit"].valid())
+			lua_["unit"] = lua_.create_table();
+		else
+		{
+			if (!lua_["unit"].is<sol::table>())
+				lua_["unit"] = lua_.create_table();
+		}
 
 		QList<mapunit_t> units = injector.server->mapUnitHash.values();
 
-		int index = strIndex.toInt() - 1;
-		if (index < 0 || index >= units.size())
-			return;
-
-		mapunit_t unit = units.at(index);
-		if (!unit.isvisible)
-			return;
-
-		switch (cmpType)
+		int size = units.size();
+		for (int i = 0; i < size; ++i)
 		{
-		case kUnitName:
-			a = unit.name;
-			break;
-		case kUnitFreeName:
-			a = unit.freeName;
-			break;
-		case kUnitFamilyName:
-			a = unit.fmname;
-			break;
-		case kUnitLevel:
-			a = unit.level;
-			break;
-		case kUnitDir:
-			a = unit.dir;
-			break;
-		case kUnitX:
-			a = unit.p.x();
-			break;
-		case kUnitY:
-			a = unit.p.y();
-			break;
-		case kUnitGold:
-			a = unit.gold;
-			break;
-		case kUnitModelId:
-			a = unit.graNo;
-			break;
-		default:
-			return;
-		}
+			mapunit_t unit = units.at(i);
+			if (!unit.isvisible)
+				continue;
 
-		expr.replace(QString("unit[%1].%2").arg(strIndex).arg(strType), a.toString());
+			int index = i + 1;
+
+			if (!lua_["unit"][index].valid())
+				lua_["unit"][index] = lua_.create_table();
+			else
+			{
+				if (!lua_["unit"][index].is<sol::table>())
+					lua_["unit"][index] = lua_.create_table();
+			}
+
+			lua_["unit"][index]["name"] = unit.name.toUtf8().constData();
+
+			lua_["unit"][index]["fname"] = unit.freeName.toUtf8().constData();
+
+			lua_["unit"][index]["family"] = unit.fmname.toUtf8().constData();
+
+			lua_["unit"][index]["lv"] = unit.level;
+
+			lua_["unit"][index]["dir"] = unit.dir;
+
+			lua_["unit"][index]["x"] = unit.p.x();
+
+			lua_["unit"][index]["y"] = unit.p.y();
+
+			lua_["unit"][index]["gold"] = unit.gold;
+
+			lua_["unit"][index]["model"] = unit.graNo;
+		}
 	}
 
 	//battle\[(?:'([^']*)'|"([^ "]*)"|(\d+))\]\.(\w+)
 	match = rexBattle.match(expr);
 	if (match.hasMatch())
 	{
-		QString strIndex = match.captured(1).simplified().toLower();
-		if (strIndex.isEmpty())
-			strIndex = match.captured(2).simplified().toLower();
-		if (strIndex.isEmpty())
-			strIndex = match.captured(3).simplified().toLower();
-		if (strIndex.isEmpty())
-			return;
-
-		QString strType = match.captured(4).simplified().toLower();
-		if (strIndex.isEmpty() || strType.isEmpty())
-			return;
-
-		CompareType cmpType = compareBattleUnitTypeMap.value(strType.toLower(), kCompareTypeNone);
-		if (cmpType == kCompareTypeNone)
-			return;
-
-		int index = strIndex.toInt() - 1;
-		if (index < 0 || index >= MAX_ENEMY)
-			return;
-
+		bret = true;
 		battledata_t battle = injector.server->getBattleData();
-		int pos = -1;
-		for (int i = 0; i < battle.objects.size(); i++)
+
+		if (!lua_["battle"].valid())
+			lua_["battle"] = lua_.create_table();
+		else
 		{
-			if (battle.objects.at(i).pos == index)
+			if (!lua_["battle"].is<sol::table>())
+				lua_["battle"] = lua_.create_table();
+		}
+
+		int size = battle.objects.size();
+		for (int i = 0; i < size; ++i)
+		{
+			battleobject_t obj = battle.objects.at(i);
+			int index = i + 1;
+
+			if (!lua_["battle"][index].valid())
+				lua_["battle"][index] = lua_.create_table();
+			else
 			{
-				pos = i;
-				break;
+				if (!lua_["battle"][index].is<sol::table>())
+					lua_["battle"][index] = lua_.create_table();
 			}
+
+			lua_["battle"][index]["index"] = static_cast<qint64>(obj.pos + 1);
+
+			lua_["battle"][index]["name"] = obj.name.toUtf8().constData();
+
+			lua_["battle"][index]["fname"] = obj.freename.toUtf8().constData();
+
+			lua_["battle"][index]["model"] = obj.faceid;
+
+			lua_["battle"][index]["lv"] = obj.level;
+
+			lua_["battle"][index]["hp"] = obj.hp;
+
+			lua_["battle"][index]["maxhp"] = obj.maxHp;
+
+			lua_["battle"][index]["hpp"] = obj.hpPercent;
+
+			lua_["battle"][index]["status"] = injector.server->getBadStatusString(obj.status).toUtf8().constData();
+
+			lua_["battle"][index]["ride"] = obj.rideFlag > 0 ? 1 : 0;
+
+			lua_["battle"][index]["ridename"] = obj.rideName.toUtf8().constData();
+
+			lua_["battle"][index]["ridelv"] = obj.rideLevel;
+
+			lua_["battle"][index]["ridehp"] = obj.rideHp;
+
+			lua_["battle"][index]["ridemaxhp"] = obj.rideMaxHp;
+
+			lua_["battle"][index]["ridehpp"] = obj.rideHpPercent;
 		}
-
-		if (pos < 0)
-			return;
-
-		battleobject_t obj = battle.objects.at(pos);
-
-		switch (cmpType)
-		{
-		case kBattleUnitPos:
-			a = obj.pos + 1;
-			break;
-		case kBattleUnitName:
-			a = obj.name;
-			break;
-		case kBattleUnitFreeName:
-			a = obj.freename;
-			break;
-		case kBattleUnitModelId:
-			a = obj.faceid;
-			break;
-		case kBattleUnitLevel:
-			a = obj.level;
-			break;
-		case kBattleUnitHp:
-			a = obj.hp;
-			break;
-		case kBattleUnitMaxHp:
-			a = obj.maxHp;
-			break;
-		case kBattleUnitHpPercent:
-			a = obj.hpPercent;
-			break;
-		case kBattleUnitStatus:
-			a = injector.server->getBadStatusString(obj.status);
-			break;
-		case kBattleUnitRideFlag:
-			a = obj.rideFlag > 0;
-			break;
-		case kBattleUnitRideName:
-			a = obj.rideName;
-			break;
-		case kBattleUnitRideLevel:
-			a = obj.rideLevel;
-			break;
-		case kBattleUnitRideHp:
-			a = obj.rideHp;
-			break;
-		case kBattleUnitRideMaxHp:
-			a = obj.rideMaxHp;
-			break;
-		case kBattleUnitRideHpPercent:
-			a = obj.rideHpPercent;
-			break;
-		}
-
-		expr.replace(QString("battle[%1].%2").arg(strIndex).arg(strType), a.toString());
 	}
 
 	//battle\[(?:'([^']*)'|"([^ "]*)"|(\d+))\]
 	match = rexBattleEx.match(expr);
 	if (match.hasMatch())
 	{
-		QString strIndex = match.captured(1).simplified().toLower();
-		if (strIndex.isEmpty())
-			strIndex = match.captured(2).simplified().toLower();
-		if (strIndex.isEmpty())
-			strIndex = match.captured(3).simplified().toLower();
-		if (strIndex.isEmpty())
-			return;
-
-		CompareType cmpType = compareBattleTypeMap.value(strIndex.toLower(), kCompareTypeNone);
-		if (cmpType == kCompareTypeNone)
-			return;
+		bret = true;
+		if (!lua_["battle"].valid())
+			lua_["battle"] = lua_.create_table();
+		else
+		{
+			if (!lua_["battle"].is<sol::table>())
+				lua_["battle"] = lua_.create_table();
+		}
 
 		battledata_t battle = injector.server->getBattleData();
 
-		switch (cmpType)
-		{
-		case kBattleRound:
-			a = injector.server->battleCurrentRound + 1;
-			break;
-		case kBattleField:
-			a = injector.server->getFieldString(battle.fieldAttr);
-			break;
-		case kBattleDuration:
-			a = injector.server->battleDurationTimer.elapsed() / 1000;
-			break;
-		case kBattleTotalDuration:
-			a = injector.server->battle_total_time / 1000 / 60;
-			break;
-		case kBattleTotalCombat:
-			a = injector.server->battle_totol;
-			break;
-		default:
-			return;
-		}
+		lua_["battle"]["round"] = injector.server->battleCurrentRound + 1;
 
-		expr.replace(QString("battle['%1']").arg(strIndex), a.toString());
-		expr.replace(QString("battle[\"%1\"]").arg(strIndex), a.toString());
-		expr.replace(QString("battle[%1]").arg(strIndex), a.toString());
+		lua_["battle"]["field"] = injector.server->getFieldString(battle.fieldAttr).toUtf8().constData();
+
+		lua_["battle"]["dura"] = static_cast<qint64>(injector.server->battleDurationTimer.elapsed() / 1000ll);
+
+		lua_["battle"]["totaldura"] = static_cast<qint64>(injector.server->battle_total_time / 1000 / 60);
+
+		lua_["battle"]["totalcombat"] = injector.server->battle_totol;
+
 	}
 
 	if (expr.contains("_GAME_"))
 	{
-		expr.replace("_GAME_", QString::number(injector.server->getGameStatus()));
+		bret = true;
+		lua_.set("_GAME_", injector.server->getGameStatus());
 	}
 
 	if (expr.contains("_WORLD_"))
 	{
-		expr.replace("_WORLD_", QString::number(injector.server->getWorldStatus()));
+		bret = true;
+		lua_.set("_WORLD_", injector.server->getWorldStatus());
 	}
+
+	return bret;
 }
 
 //將表達式中所有變量替換成實際數值
@@ -2374,11 +2247,8 @@ void Parser::processVariable(RESERVE type)
 			break;
 
 		QVariant varValue;
-		if (processGetSystemVarValue(varName, typeStr, varValue))
-		{
-			insertVar(varName, varValue);
+		if (!processGetSystemVarValue(varName, typeStr, varValue))
 			break;
-		}
 
 		//插入全局變量表
 		insertVar(varName, varValue);
@@ -2452,7 +2322,6 @@ void Parser::processLocalVariable()
 		{
 			QVariant varValue2 = varValue;
 			QString expr = varValue.toString();
-			replaceToVariable(expr);
 			if (exprTo(expr, &varValue2) && varValue2.isValid())
 				varValue = varValue2.toString();
 		}
@@ -2499,7 +2368,7 @@ void Parser::processMultiVariable()
 		{
 			QVariant varValue2 = varValue;
 			QString expr = varValue.toString();
-			replaceToVariable(expr);
+
 			if (exprTo(expr, &varValue2) && varValue2.isValid())
 				varValue = varValue2.toLongLong();
 		}
@@ -2548,7 +2417,7 @@ void Parser::processVariableCAOs()
 
 	QVariant var = checkValue(currentLineTokens_, 0, QVariant::LongLong);
 	QVariant::Type type = var.type();
-	QString opStr = getToken<QString>(1);
+	QString opStr = getToken<QString>(1).simplified();
 
 	QVariant varValue = checkValue(currentLineTokens_, 2, QVariant::LongLong);
 
@@ -2576,7 +2445,7 @@ void Parser::processVariableCAOs()
 		if (type == QVariant::Int || type == QVariant::LongLong || type == QVariant::Double)
 		{
 			qint64 value = 0;
-			if (!exprTo(var.toLongLong(), QString("%1 %2").arg(opStr).arg(QString::number(varValue.toDouble(), 'f', 16)), &value))
+			if (!exprCAOSTo(var.toLongLong(), QString("%1 %2").arg(opStr).arg(varValue.toLongLong()), &value))
 				return;
 			var = value;
 		}
@@ -2599,8 +2468,6 @@ void Parser::processVariableExpr()
 	QString expr;
 	if (!checkString(currentLineTokens_, 1, &expr))
 		return;
-
-	replaceToVariable(expr);
 
 	QVariant::Type type = varValue.type();
 
@@ -3358,62 +3225,13 @@ bool Parser::processIfCompare()
 		expr = expr.replace("\"", "'");
 	}
 
-	static const QRegularExpression re(R"([A-Za-z\d\p{Han}_'"]+)");
-	auto matchit = re.globalMatch(expr);
-	while (matchit.hasNext())
-	{
-		//兩側加上引號
-		auto match = matchit.next();
-		QString text = match.captured(0).simplified();
-
-		// include '('
-		bool hasLeftBracket = text.startsWith('(');
-		if (hasLeftBracket)
-			text = text.mid(1);
-
-		// include ')'
-		bool hasRightBracket = text.endsWith(')');
-		if (hasRightBracket)
-			text = text.left(text.length() - 1);
-
-		bool ok = false;
-		text.toInt(&ok);
-		if (ok)
-			continue;
-
-		if (text == "and" || text == "or")
-			continue;
-
-		QString newText = text.simplified();
-
-		if (newText.isEmpty() || newText == "''" || newText == "\"\"")
-			continue;
-
-		if (!newText.startsWith("'"))
-			newText = "'" + newText;
-		if (!newText.endsWith("'"))
-			newText = newText + "'";
-
-		if (hasLeftBracket)
-			newText = "(" + newText;
-
-		if (hasRightBracket)
-			newText = newText + ")";
-
-		expr.replace(text, newText);
-	}
-
-	//去除多餘的 '''
-	expr = expr.replace("'''", "'");
-
-	insertGlobalVar("_IFEXPR", expr);
-
-	double dvalue = 0.0;
+	qint64 nvalue = 0;
 	bool result = false;
-	if (exprTo(expr, &dvalue))
+	if (exprTo(expr, &nvalue))
 	{
-		result = dvalue > 0.0;
+		result = nvalue != 0;
 	}
+	insertGlobalVar("_IFEXPR", nvalue);
 
 	return checkJump(currentLineTokens_, 2, result, SuccessJump) == kHasJump;
 }

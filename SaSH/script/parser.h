@@ -23,6 +23,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 #include "threadplugin.h"
 #include "util.h"
+#include "script_lua/clua.h"
 
 using CommandRegistry = std::function<qint64(qint64 currentLine, const TokenMap& token)>;
 
@@ -344,6 +345,7 @@ public:
 		kError,
 		kLabelError,
 		kUnknownCommand,
+		kLuaError,
 		kArgError = 100,
 	};
 
@@ -567,22 +569,21 @@ private:
 
 	bool isTextWrapped(const QString& text, const QString& keyword);
 	void replaceToVariable(QString& str);
-	void replaceSysConstKeyword(QString& expr);
-	void cycleReplace(QString& expr);
+	bool updateSysConstKeyword(const QString& expr);
+	bool cycleReplace(const QString& expr);
 	bool checkCallStack();
 	bool checkFuzzyValue(const QString& varName, QVariant* pvalue);
 
 	template<typename T>
 	T calc(const QVariant& a, const QVariant& b, RESERVE operatorType);
 
-	template <typename T>
-	bool exprMakeValue(const QString& expr, T* ret);
+	bool exprTo(QString expr, QString* ret);
 
 	template <typename T>
 	bool exprTo(QString expr, T* ret);
 
 	template <typename T>
-	bool exprTo(T value, QString expr, T* ret);
+	bool exprCAOSTo(T value, QString expr, T* ret);
 
 	void handleError(qint64 err, const QString& addition = "");
 	void checkArgs();
@@ -626,6 +627,17 @@ private:
 			variables_->remove(name);
 	}
 
+	Q_REQUIRED_RESULT inline QVariantHash getGlobalVars()
+	{
+		if (globalVarLock_ == nullptr)
+			return QVariantHash();
+
+		QReadLocker locker(globalVarLock_);
+		if (variables_ != nullptr)
+			return variables_->toHash();
+		return QVariantHash();
+	}
+
 	inline void clearGlobalVar()
 	{
 		if (globalVarLock_ == nullptr)
@@ -634,6 +646,14 @@ private:
 		QWriteLocker locker(globalVarLock_);
 		if (variables_ != nullptr)
 			variables_->clear();
+	}
+
+	Q_REQUIRED_RESULT inline QVariantHash getLocalVars() const
+	{
+		if (!localVarStack_.isEmpty())
+			return localVarStack_.top();
+		else
+			return QVariantHash{};
 	}
 
 	Q_REQUIRED_RESULT inline QVariantHash& getLocalVarsRef()
@@ -714,6 +734,8 @@ private:
 		qint64 end = -1;
 	} ForChunk;
 
+	sol::state lua_;
+
 	QHash<qint64, TokenMap> tokens_;						//當前運行腳本的每一行token
 	mutable QReadWriteLock* globalVarLock_ = nullptr;		//全局變量鎖指針
 	VariantSafeHash* variables_ = nullptr;					//全局變量容器指針
@@ -729,6 +751,7 @@ private:
 	QStack<QVariantList> callArgsStack_;					//"調用"命令參數棧
 	QVariantList emptyArgs_;								//空參數(參數棧為空得情況下壓入一個空容器)
 	QStack<QVariantHash> localVarStack_;					//局變量棧
+	QStringList localVarList;								//lua局變量
 	QVariantHash emptyLocalVars_;							//空局變量(局變量棧為空得情況下壓入一個空容器)
 
 	TokenMap currentLineTokens_;							//當前行token

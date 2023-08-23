@@ -226,14 +226,14 @@ qint64 Interpreter::announce(qint64 currentline, const TokenMap& TK)
 	Injector& injector = Injector::getInstance();
 
 	QString text;
-	if (!checkString(TK, 1, &text))
+	qint64 value = 0;
+	if (!checkInteger(TK, 1, &value))
 	{
-		qint64 value = 0;
-		if (!checkInteger(TK, 1, &value))
+		if (!checkString(TK, 1, &text))
 			return Parser::kArgError + 1ll;
-
-		text = QString::number(value);
 	}
+	else
+		text = QString::number(value);
 
 	qint64 color = 4;
 	checkInteger(TK, 2, &color);
@@ -264,14 +264,14 @@ qint64 Interpreter::input(qint64 currentline, const TokenMap& TK)
 		return Parser::kError;
 
 	QString text;
-	if (!checkString(TK, 1, &text))
+	qint64 value = 0;
+	if (!checkInteger(TK, 1, &value))
 	{
-		qint64 value = 0;
-		if (!checkInteger(TK, 1, &value))
+		if (!checkString(TK, 1, &text))
 			return Parser::kArgError + 1ll;
-
-		text = QString::number(value);
 	}
+	else
+		text = QString::number(value);
 
 	QString npcName;
 	qint64 npcId = -1;
@@ -293,14 +293,14 @@ qint64 Interpreter::input(qint64 currentline, const TokenMap& TK)
 qint64 Interpreter::messagebox(qint64 currentline, const TokenMap& TK)
 {
 	QString text;
-	if (!checkString(TK, 1, &text))
+	qint64 value = 0;
+	if (!checkInteger(TK, 1, &value))
 	{
-		qint64 value = 0;
-		if (!checkInteger(TK, 1, &value))
+		if (!checkString(TK, 1, &text))
 			return Parser::kArgError + 1ll;
-
-		text = QString::number(value);
 	}
+	else
+		text = QString::number(value);
 
 	qint64 type = 0;
 	checkInteger(TK, 2, &type);
@@ -334,14 +334,14 @@ qint64 Interpreter::talk(qint64 currentline, const TokenMap& TK)
 		return Parser::kError;
 
 	QString text;
-	if (!checkString(TK, 1, &text))
+	qint64 value = 0;
+	if (!checkInteger(TK, 1, &value))
 	{
-		qint64 value = 0;
-		if (!checkInteger(TK, 1, &value))
+		if (!checkString(TK, 1, &text))
 			return Parser::kArgError + 1ll;
-
-		text = QString::number(value);
 	}
+	else
+		text = QString::number(value);
 
 	qint64 color = 4;
 	checkInteger(TK, 2, &color);
