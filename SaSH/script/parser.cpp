@@ -296,6 +296,12 @@ bool Parser::exprMakeValue(const QString& expr, T* ret)
 template <typename T>
 bool Parser::exprTo(QString expr, T* ret)
 {
+	expr.replace("^", " xor ");
+	expr.replace("~", " nor ");
+	expr.replace("&&", " and ");
+	expr.replace("||", " or ");
+	expr = expr.simplified();
+
 	bool result = exprMakeValue(expr, ret);
 	if (result)
 		return true;
@@ -1213,13 +1219,17 @@ void Parser::replaceSysConstKeyword(QString& expr)
 			PetState state = pet.state;
 			QString str = hash.key(state, "");
 			if (str.isEmpty())
-				return;
+			{
+				a = "";
+				break;
+			}
 
 			a = str;
 			break;
 		}
 		case kPetPower:
 			a = qFloor((static_cast<double>(pet.atk + pet.def + pet.quick) + (static_cast<double>(pet.maxHp) / 4.0)));
+			break;
 		default:
 			return;
 		}
@@ -1976,11 +1986,6 @@ void Parser::replaceToVariable(QString& expr)
 			expr.replace(CONST_STR_PLACEHOLD, oldText);
 		}
 	}
-
-	expr.replace("^", " xor ");
-	expr.replace("~", " nor ");
-	expr.replace("&&", " and ");
-	expr.replace("||", " or ");
 
 	expr = expr.trimmed();
 }
@@ -3344,7 +3349,7 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 //處理if
 bool Parser::processIfCompare()
 {
-	QString expr = getToken<QString>(1);
+	QString expr = getToken<QString>(1).simplified();
 
 	cycleReplace(expr);
 
@@ -3359,7 +3364,17 @@ bool Parser::processIfCompare()
 	{
 		//兩側加上引號
 		auto match = matchit.next();
-		QString text = match.captured(0);
+		QString text = match.captured(0).simplified();
+
+		// include '('
+		bool hasLeftBracket = text.startsWith('(');
+		if (hasLeftBracket)
+			text = text.mid(1);
+
+		// include ')'
+		bool hasRightBracket = text.endsWith(')');
+		if (hasRightBracket)
+			text = text.left(text.length() - 1);
 
 		bool ok = false;
 		text.toInt(&ok);
@@ -3369,14 +3384,27 @@ bool Parser::processIfCompare()
 		if (text == "and" || text == "or")
 			continue;
 
-		QString newText = text;
+		QString newText = text.simplified();
+
+		if (newText.isEmpty() || newText == "''" || newText == "\"\"")
+			continue;
+
 		if (!newText.startsWith("'"))
 			newText = "'" + newText;
 		if (!newText.endsWith("'"))
 			newText = newText + "'";
 
+		if (hasLeftBracket)
+			newText = "(" + newText;
+
+		if (hasRightBracket)
+			newText = newText + ")";
+
 		expr.replace(text, newText);
 	}
+
+	//去除多餘的 '''
+	expr = expr.replace("'''", "'");
 
 	insertGlobalVar("_IFEXPR", expr);
 

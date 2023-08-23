@@ -1871,12 +1871,12 @@ qint64 Interpreter::dofile(qint64 currentline, const TokenMap& TK)
 	QString fileName = "";
 	checkString(TK, 1, &fileName);
 	if (fileName.isEmpty())
-		return Parser::kArgError;
+		return Parser::kArgError + 1ll;
 
 	QString content;
 	bool isPrivate = false;
 	if (!util::readFile(fileName, &content, &isPrivate))
-		return Parser::kArgError;
+		return Parser::kArgError + 1ll;
 
 	CLua lua(content);
 	lua.start();
