@@ -242,10 +242,12 @@ See [https://gitee.com/Bestkakkoii/sash/wikis](https://gitee.com/Bestkakkoii/sas
 
 ### 貢獻/參與者
 
-感謝所有參與到開發/測試中的朋友們，是大家的幫助讓 SaSH 越來越好！ (\*´▽｀)ノノ
+感謝所有參與到開發/測試中的朋友們，大家的幫助讓 SaSH 越來越好！ (\*´▽｀)ノノ
 
 [![Contributors](https://contrib.rocks/image?repo=bestkakkoii/SaSH)](https://github.com/bestkakkoii/SaSH/graphs/contributors)
 
 ## 广告
 
 用户交流 QQ 群：[石器助手SaSH](https://qm.qq.com/cgi-bin/qm/qr?k=Z9Tf9t4AS4BG12sVB_SUPV88rJGrwMXW&jump_from=webapi&authKey=lYhKc6dK6bdCoFgEaPe4wQGjhcN9i79/BPkhP5oHcUIY7nr5LYiKS0cRsZhR31yi)<br>
+
+如果覺得SaSH對你有幫助，幫忙點個 Star 吧！～（github網頁最上方右上角的小星星），這就是對我們最大的支持了！
