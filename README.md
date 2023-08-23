@@ -2,7 +2,7 @@
 
 <img alt="LOGO" src="https://www.lovesa.cc/static/image/common/stoneii.png" width="256" height="256" />
 
-# Sash
+# SaSH
 
 <br>
 <div>
@@ -19,7 +19,7 @@
 <br>
 
 
-SaSupremeHelper is an assistant application for you to play StoneAge8001 with highly automated game experience. 石器助手是一個用於遊戲石器時代8001端的工具，讓你擁有高度自動化的遊戲體驗。
+StoneAge Supreme Helper(SaSH) is an assistant application for you to play StoneAge8001 with highly automated game experience. 石器助手(SaSH)是一個用於遊戲石器時代8001端的工具，讓你擁有高度自動化的遊戲體驗。
 
 </div>
 
