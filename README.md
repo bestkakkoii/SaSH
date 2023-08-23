@@ -19,18 +19,15 @@
 <br>
 
 
-SaSupremeHelper is an assistant application for you to play StoneAge8001 with highly automated game experience.
-石器助手是一個用於遊戲石器時代8001端的工具，讓你擁有高度自動化的遊戲體驗。
+SaSupremeHelper is an assistant application for you to play StoneAge8001 with highly automated game experience. 石器助手是一個用於遊戲石器時代8001端的工具，讓你擁有高度自動化的遊戲體驗。
+
+</div>
 
 ### Warning
-This project is only for academic purposes, commercial use is prohibited.
-You are prohibited to publish this project elsewhere.
-However we make no promises to your game accounts and so you have to use this project at your own risk, including taking any damage to your accounts from scripts and binaries.
+This project is only for academic purposes, commercial use is prohibited. You are prohibited to publish this project elsewhere. However we make no promises to your game accounts and so you have to use this project at your own risk, including taking any damage to your accounts from scripts and binaries.
 
 ### 特別聲明
-本項目僅供學習交流，禁止用於商業用途。
-本項目內的所有資源文件和程序，禁止在 GitHub/lovesa論壇 以外的任何地方進行轉載或發布。
-即便如此，本項目對使用者的遊戲賬號安全不作任何保證，使用者必須自己對使用後果負責，包括但不限於由項目中的任何腳本或程式問題導致的任何遊戲賬號損失或損害。
+本項目僅供學習交流，禁止用於商業用途。本項目內的所有資源文件和程序，禁止在 GitHub/lovesa論壇 以外的任何地方進行轉載或發布。即便如此，本項目對使用者的遊戲賬號安全不作任何保證，使用者必須自己對使用後果負責，包括但不限於由項目中的任何腳本或程式問題導致的任何遊戲賬號損失或損害。
 
 ---
 
@@ -62,9 +59,9 @@ Glu32.lib, OpenGL32.lib, cpr.lib, libcurl.lib(libcurl.dll), qscintilla2_qt5.lib
 
 **Gernel Setting 一般設置**
 
-(/std:c++17)
-(/std:c17)
-(/utf-8)
+(/std:c++17)<br>
+(/std:c17)<br>
+(/utf-8)<br>
 
 **Default CodePage 預設編碼頁**
 
@@ -147,17 +144,15 @@ The decision to remove these files was made to prioritize the security and prote
 
 #### Add New Script Commands
 
-1. For core commands, add corresponding enumeration values in lexer.h.
-For general commands, add corresponding traditional and simplified Chinese command mappings to `static const QHash<QString, RESERVE> keywords` in script/lexer.cpp.
+1. For core commands, add corresponding enumeration values in lexer.h. For general commands, add corresponding traditional and simplified Chinese command mappings to `static const QHash<QString, RESERVE> keywords` in script/lexer.cpp.
 
-2. In script/interpreter.h, add the declaration of corresponding functions, e.g., `qint64 sleep(qint64 currentline, const TokenMap& TK);` .
-Register the corresponding functions in openLibsBIG5, openLibsGB2312, and openLibsUTF8 in script/interpreter.cpp.
+2. In script/interpreter.h, add the declaration of corresponding functions, e.g., `qint64 sleep(qint64 currentline, const TokenMap& TK);` . Register the corresponding functions in openLibsBIG5, openLibsGB2312, and openLibsUTF8 in script/interpreter.cpp.
 
 3. In a file under the script category, define the content of the new command.
 
 - When defining a function for a new command, always use functions like `checkString`, `checkInteger`, `toVariant`, and `checkRange` to access parameters through parameter indices.
 
-- For conditional jumps, use `checkJump` at the end of the function to correctly or incorrectly jump based on the result. Use the enumeration values `SuccessJump` or `FailedJump` as the last parameter. For example, `return checkJump(TK, 7, bret, FailedJump);` means the 7th parameter is the jump line or label, `bret` is the result (true or false), and the jump is performed only when the result is false.
+- For conditional jumps, use `checkJump` at the end of the function to correctly or incorrectly jump based on the result. Use the enumeration values `SuccessJump` or `FailedJump` as the last parameter. For example `return checkJump(TK, 7, bret, FailedJump);` means the 7th parameter is the jump line or label, `bret` is the result (true or false), and the jump is performed only when the result is false.
 
 - Note that core commands do not need separate registration; instead, new core commands need to be declared and defined in script/parser.h and script/parser.cpp. Add corresponding switch cases in `void Parser::processTokens()` .
 
@@ -199,11 +194,9 @@ See [https://gitee.com/Bestkakkoii/sash/wikis](https://gitee.com/Bestkakkoii/sas
 
 #### 新增腳本命令
 
-1. 核心命令需要在lexer.h新增對應枚舉值、
-一般命令只需要在 script/lexer.cpp 的 `static const QHash<QString, RESERVE> keywords` 中 添加對應繁簡中英文的命令
+1. 核心命令需要在lexer.h新增對應枚舉值、一般命令只需要在 script/lexer.cpp 的 `static const QHash<QString, RESERVE> keywords` 中 添加對應繁簡中英文的命令
 
-2. 在 script/interpreter.h 增加對應的函數聲明，如:`qint64 sleep(qint64 currentline, const TokenMap& TK);`
-並在 script/interpreter.cpp 中的 openLibsBIG5, openLibsGB2312, openLibsUTF8 註冊對應函數
+2. 在 script/interpreter.h 增加對應的函數聲明，如:`qint64 sleep(qint64 currentline, const TokenMap& TK);` 並在 script/interpreter.cpp 中的 openLibsBIG5, openLibsGB2312, openLibsUTF8 註冊對應函數
 
 3. script分類下的文件中挑個地方定義新命令的內容
 
@@ -211,8 +204,7 @@ See [https://gitee.com/Bestkakkoii/sash/wikis](https://gitee.com/Bestkakkoii/sas
 - 對於跳轉 則在定義函數末尾使用 `checkJump` 正確或錯誤跳轉，使用最後一個參數輸入枚舉值 `SuccessJump` 或 `FailedJump` 操作
 - 如 `return checkJump(TK, 7, bret, FailedJump);` 代表 第7個參數為跳轉行數或標記，`bret` 為結果真或假，結果為假才跳轉
 
-- 注意，核心命令不需要另外註冊取代的是需要在 script/parser.h script/parser.cpp 中新增對應的聲明和定義，
-並在 `void Parser::processTokens()` 中增加對應switch項
+- 注意，核心命令不需要另外註冊取代的是需要在 script/parser.h script/parser.cpp 中新增對應的聲明和定義，並在 `void Parser::processTokens()` 中增加對應switch項
 
 #### 人物存檔新增項
 
@@ -220,8 +212,7 @@ See [https://gitee.com/Bestkakkoii/sash/wikis](https://gitee.com/Bestkakkoii/sas
 
 2. 在 util.h 中的 `static const QHash<UserSetting, QString> user_setting_string_hash` 中新增對應json存檔所用的鍵值字符串映射
 
-3. 在 injector.h 中的 `userSetting_value_hash_`, `userSetting_enable_hash_` 或 `userSetting_string_hash_` 中心增對應預設值
-取決於設置類型 分別為整數、布爾或字符串三種
+3. 在 injector.h 中的 `userSetting_value_hash_`, `userSetting_enable_hash_` 或 `userSetting_string_hash_` 中心增對應預設值，取決於設置類型 分別為整數、布爾或字符串三種
 
 4. 對於腳本 `set` 命令則須要到 script/system.cpp 的 `qint64 Interpreter::set(qint64 currentline, const TokenMap& TK)` 中新增
 
@@ -237,9 +228,7 @@ See [https://gitee.com/Bestkakkoii/sash/wikis](https://gitee.com/Bestkakkoii/sas
 
 2. 缺少DLL時，需要將 bin 中的內容拷貝到 Debug 或 Release 下。
 
-3. 需要將 `SaSH\SaSH\injector.cpp` 中 `266行`
-    `dllPath = R"(YourPath\Debug\sadll.dll)";`
-    改為自己的絕對路徑。
+3. 需要將 `SaSH\SaSH\injector.cpp` 中 `266行` `dllPath = R"(YourPath\Debug\sadll.dll)";` 改為自己的絕對路徑。
 
 4. 需要將 使用Linguist編譯好的qm翻譯文件放到 SaSH\translations 中。
 
@@ -259,4 +248,4 @@ See [https://gitee.com/Bestkakkoii/sash/wikis](https://gitee.com/Bestkakkoii/sas
 
 ## 广告
 
-用户交流 QQ 群：[224068611](https://qm.qq.com/cgi-bin/qm/qr?k=Z9Tf9t4AS4BG12sVB_SUPV88rJGrwMXW&jump_from=webapi&authKey=lYhKc6dK6bdCoFgEaPe4wQGjhcN9i79/BPkhP5oHcUIY7nr5LYiKS0cRsZhR31yi)<br>
+用户交流 QQ 群：[石器助手SaSH](https://qm.qq.com/cgi-bin/qm/qr?k=Z9Tf9t4AS4BG12sVB_SUPV88rJGrwMXW&jump_from=webapi&authKey=lYhKc6dK6bdCoFgEaPe4wQGjhcN9i79/BPkhP5oHcUIY7nr5LYiKS0cRsZhR31yi)<br>
