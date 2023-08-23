@@ -1,6 +1,19 @@
 # Sash
 
-**QQ:** 224068611
+<br>
+<div>
+    <img alt="C++" src="https://img.shields.io/badge/c++-17-%2300599C?logo=cplusplus">
+</div>
+<div>
+    <img alt="platform" src="https://img.shields.io/badge/platform-Windows-blueviolet">
+</div>
+<div>
+    <img alt="license" src="https://img.shields.io/github/license/bestkakkoii/SaSH">
+    <img alt="commit" src="https://img.shields.io/github/commit-activity/m/bestkakkoii/SaSH?color=%23ff69b4">
+    <img alt="stars" src="https://img.shields.io/github/stars/bestkakkoii/SaSH?style=social">
+</div>
+<br>
+
 
 SaSupremeHelper is an assistant application for you to play StoneAge8001 with highly automated game experience.
 石器助手是一個用於遊戲石器時代8001端的工具，讓你擁有高度自動化的遊戲體驗。
@@ -233,3 +246,13 @@ See [https://gitee.com/Bestkakkoii/sash/wikis](https://gitee.com/Bestkakkoii/sas
 ### 腳本語法說明文檔
 
 詳見 [https://gitee.com/Bestkakkoii/sash/wikis](https://gitee.com/Bestkakkoii/sash/wikis)。
+
+### 貢獻/參與者
+
+感謝所有參與到開發/測試中的朋友們，是大家的幫助讓 SaSH 越來越好！ (\*´▽｀)ノノ
+
+[![Contributors](https://contrib.rocks/image?repo=bestkakkoii/SaSH)](https://github.com/bestkakkoii/SaSH/graphs/contributors)
+
+## 广告
+
+用户交流 QQ 群：[224068611](https://qm.qq.com/cgi-bin/qm/qr?k=Z9Tf9t4AS4BG12sVB_SUPV88rJGrwMXW&jump_from=webapi&authKey=lYhKc6dK6bdCoFgEaPe4wQGjhcN9i79/BPkhP5oHcUIY7nr5LYiKS0cRsZhR31yi)<br>
