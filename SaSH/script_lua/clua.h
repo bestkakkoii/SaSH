@@ -1,4 +1,22 @@
-﻿#pragma once
+﻿/*
+				GNU GENERAL PUBLIC LICENSE
+				   Version 2, June 1991
+COPYRIGHT (C) Bestkakkoii 2023 All Rights Reserved.
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU General Public License for more details.
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+
+*/
+
+#pragma once
 
 #include <threadplugin.h>
 #include <util.h>
@@ -127,19 +145,28 @@ public:
 	CLuaUtil() = default;
 	~CLuaUtil() = default;
 
-	qint64 ocr(qint64 currentline, sol::this_state s);
-	qint64 dlg(qint64 currentline, sol::this_state s);
-	qint64 regex(qint64 currentline, sol::this_state s);
-	qint64 find(qint64 currentline, sol::this_state s);
-	qint64 half(qint64 currentline, sol::this_state s);
-	qint64 full(qint64 currentline, sol::this_state s);
-	qint64 upper(qint64 currentline, sol::this_state s);
-	qint64 lower(qint64 currentline, sol::this_state s);
-	qint64 replace(qint64 currentline, sol::this_state s);
-	qint64 toint(std::string str, sol::this_state s);
-	qint64 tostr(sol::object onumber, sol::this_state s);
+	//qint64 createDialog(qint64 currentline, sol::this_state s);
+	//qint64 regex(qint64 currentline, sol::this_state s);
+	//qint64 find(qint64 currentline, sol::this_state s);
+	//qint64 half(qint64 currentline, sol::this_state s);
+	//qint64 full(qint64 currentline, sol::this_state s);
+	//qint64 upper(qint64 currentline, sol::this_state s);
+	//qint64 lower(qint64 currentline, sol::this_state s);
+	//qint64 replace(qint64 currentline, sol::this_state s);
+	//qint64 trim(std::string str, sol::this_state s);
 
-	qint64 trim(std::string str, sol::this_state s);
+	bool getChar(sol::table dstTable, sol::this_state s);
+	bool getPet(sol::table dstTable, sol::this_state s);
+	bool getTeam(sol::table dstTable, sol::this_state s);
+	bool getCard(sol::table dstTable, sol::this_state s);
+	bool getChat(sol::table dstTable, sol::this_state s);
+	bool getDialog(sol::table dstTable, sol::this_state s);
+	bool getUnit(sol::table dstTable, sol::this_state s);
+	bool getBattleUnit(sol::table dstTable, sol::this_state s);
+	bool getDaily(sol::table dstTable, sol::this_state s);
+	bool getItem(sol::table dstTable, sol::this_state s);
+	bool getSkill(sol::table dstTable, sol::this_state s);
+	bool getMagic(sol::table dstTable, sol::this_state s);
 };
 
 class CLuaSystem
@@ -149,28 +176,28 @@ public:
 	~CLuaSystem() = default;
 
 	//global
-	qint64 sleep(qint64 value, sol::this_state s);
-	qint64 announce(sol::object ostr, sol::object ocolor, sol::this_state s);
-	qint64 messagebox(sol::object ostr, sol::object otype, sol::this_state s);
-	qint64 savesetting(const std::string& fileName, sol::this_state s);
-	qint64 loadsetting(const std::string& fileName, sol::this_state s);
+	qint64 sleep(qint64 value, sol::this_state s);//ok
+	qint64 announce(sol::object ostr, sol::object ocolor, sol::this_state s);//ok
+	qint64 messagebox(sol::object ostr, sol::object otype, sol::this_state s);//ok
+	qint64 savesetting(const std::string& fileName, sol::this_state s);//ok
+	qint64 loadsetting(const std::string& fileName, sol::this_state s);//ok
 	qint64 set(qint64 enumInt, sol::object p1, sol::object p2, sol::object p3, sol::object p4, sol::object p5, sol::object p6, sol::object p7, sol::this_state s);
-	qint64 leftclick(qint64 x, qint64 y, sol::this_state s);
-	qint64 rightclick(qint64 x, qint64 y, sol::this_state s);
-	qint64 leftdoubleclick(qint64 x, qint64 y, sol::this_state s);
-	qint64 mousedragto(qint64 x1, qint64 y1, qint64 x2, qint64 y2, sol::this_state s);
+	qint64 leftclick(qint64 x, qint64 y, sol::this_state s);//ok
+	qint64 rightclick(qint64 x, qint64 y, sol::this_state s);//ok
+	qint64 leftdoubleclick(qint64 x, qint64 y, sol::this_state s);//ok
+	qint64 mousedragto(qint64 x1, qint64 y1, qint64 x2, qint64 y2, sol::this_state s);//ok
 
 	//meta
-	qint64 logout(sol::this_state s);
-	qint64 logback(sol::this_state s);
-	qint64 eo(sol::this_state s);
-	qint64 cleanchat(sol::this_state s);
+	qint64 logout(sol::this_state s);//ok
+	qint64 logback(sol::this_state s);//ok
+	qint64 eo(sol::this_state s);//ok
+	qint64 cleanchat(sol::this_state s);//ok
 	qint64 talk(sol::object ostr, sol::this_state s);
-	qint64 menu(qint64 index, sol::this_state s);
-	qint64 menu(qint64 type, qint64 index, sol::this_state s);
-	qint64 press(const std::string& buttonStr, sol::object onpcName, sol::object odlgId, sol::this_state s);
-	qint64 press(qint64 row, sol::object onpcName, sol::object odlgId, sol::this_state s);
-	qint64 input(const std::string& str, sol::object onpcName, sol::object odlgId, sol::this_state s);
+	qint64 menu(qint64 index, sol::this_state s);//ok
+	qint64 menu(qint64 type, qint64 index, sol::this_state s);//ok
+	qint64 press(std::string buttonStr, qint64 unitid, qint64 dialogid, sol::this_state s);//ok
+	qint64 press(qint64 row, qint64 unitid, qint64 dialogid, sol::this_state s);//ok
+	qint64 input(const std::string& str, qint64 unitid, qint64 dialogid, sol::this_state s);//ok
 };
 
 class CLuaItem
@@ -179,20 +206,30 @@ public:
 	CLuaItem() = default;
 	~CLuaItem() = default;
 
-	qint64 use(qint64 currentline, sol::this_state s);
-	qint64 drop(qint64 currentline, sol::this_state s);
-	qint64 pick(qint64 currentline, sol::this_state s);
-	qint64 swap(qint64 currentline, sol::this_state s);
-	qint64 make(qint64 currentline, sol::this_state s);
-	qint64 cook(qint64 currentline, sol::this_state s);
-	qint64 buy(qint64 currentline, sol::this_state s);
-	qint64 sell(qint64 currentline, sol::this_state s);
-	qint64 wear(qint64 currentline, sol::this_state s);
-	qint64 unwear(qint64 currentline, sol::this_state s);
-	qint64 trade(qint64 currentline, sol::this_state s);
-	qint64 deposit(qint64 currentline, sol::this_state s);
-	qint64 withdraw(qint64 currentline, sol::this_state s);
-	qint64 record(qint64 currentline, sol::this_state s);//equip
+	qint64 use(qint64 itemIndex, qint64 target, sol::this_state s);
+	qint64 drop(qint64 itemIndex, sol::this_state s);
+	qint64 pick(qint64 dir, sol::this_state s);
+	qint64 swap(qint64 from, qint64 to, sol::this_state s);
+	qint64 craft(qint64 type, sol::table ingreList, sol::this_state s);
+	qint64 buy(qint64 productIndex, qint64 amount, qint64 unitid, qint64 dialogid, sol::this_state s);
+	qint64 sell(qint64 itemIndex, qint64 unitid, qint64 dialogid, sol::this_state s);
+
+	qint64 deposit(qint64 itemIndex, qint64 unitid, qint64 dialogid, sol::this_state s);
+	qint64 withdraw(qint64 itemIndex, qint64 unitid, qint64 dialogid, sol::this_state s);
+};
+
+class CLuaTrade
+{
+public:
+	CLuaTrade() = default;
+	~CLuaTrade() = default;
+	//bool start(std::string sname, qint64 timeout);
+	//void comfirm(std::string sname);
+	//void cancel();
+	//void appendItems(std::string sname, sol::table itemIndexs);
+	//void appendGold(std::string sname, qint64 gold);
+	//void appendPets(std::string sname, sol::table petIndex);
+	//void complete(std::string sname);
 };
 
 class CLuaChar
@@ -201,20 +238,19 @@ public:
 	CLuaChar() = default;
 	~CLuaChar() = default;
 
-	qint64 rename(qint64 currentline, sol::this_state s);
-	qint64 use(qint64 currentline, sol::this_state s);
-	qint64 deposit(qint64 currentline, sol::this_state s);//gold
-	qint64 withdraw(qint64 currentline, sol::this_state s);//gold
-	qint64 drop(qint64 currentline, sol::this_state s);//gold
-	qint64 mail(qint64 currentline, sol::this_state s);
-	qint64 add(qint64 currentline, sol::this_state s);//skup point
+	qint64 rename(std::string sfname, sol::this_state s);
+	qint64 useMagic(qint64 magicIndex, qint64 target, sol::this_state s);
+	qint64 depositGold(qint64 gold, sol::object oispublic, sol::this_state s);
+	qint64 withdrawGold(qint64 gold, sol::object oispublic, sol::this_state s);
+	qint64 dropGold(qint64 gold, sol::this_state s);
+	qint64 mail(qint64 cardIndex, std::string stext, qint64 petIndex, std::string sitemName, std::string sitemMemo, sol::this_state s);
+	qint64 mail(qint64 cardIndex, std::string stext, sol::this_state s);
+	qint64 skillUp(qint64 abilityIndex, qint64 amount, sol::this_state s);
 
 	//action-group
-	qint64 join(qint64 currentline, sol::this_state s);
-	qint64 leave(qint64 currentline, sol::this_state s);
-	qint64 kick(qint64 currentline, sol::this_state s);
+	qint64 setTeamState(bool join, sol::this_state s);
+	qint64 kick(qint64 teammateIndex, sol::this_state s);
 };
-
 
 class CLuaPet
 {
@@ -222,15 +258,13 @@ public:
 	CLuaPet() = default;
 	~CLuaPet() = default;
 
-	qint64 setstate(qint64 currentline, sol::this_state s);
-	qint64 drop(qint64 currentline, sol::this_state s);
-	qint64 rename(qint64 currentline, sol::this_state s);
-	qint64 sell(qint64 currentline, sol::this_state s);
-	qint64 learn(qint64 currentline, sol::this_state s);
-	qint64 equip(qint64 currentline, sol::this_state s);
-	qint64 unequip(qint64 currentline, sol::this_state s);
-	qint64 deposit(qint64 currentline, sol::this_state s);
-	qint64 withdraw(qint64 currentline, sol::this_state s);
+	qint64 setState(qint64 petIndex, qint64 state, sol::this_state s);
+	qint64 drop(qint64 petIndex, sol::this_state s);
+	qint64 rename(qint64 petIndex, std::string name, sol::this_state s);
+	qint64 learn(qint64 fromSkillIndex, qint64 petIndex, qint64 toSkillIndex, qint64 unitid, qint64 dialogid, sol::this_state s);
+	qint64 swap(qint64 petIndex, qint64 from, qint64 to, sol::this_state s);
+	qint64 deposit(qint64 petIndex, qint64 unitid, qint64 dialogid, sol::this_state s);
+	qint64 withdraw(qint64 petIndex, qint64 unitid, qint64 dialogid, sol::this_state s);
 };
 
 class CLuaMap
@@ -239,14 +273,13 @@ public:
 	CLuaMap() = default;
 	~CLuaMap() = default;
 
-	qint64 setdir(qint64 currentline, sol::this_state s);
-	qint64 move(qint64 currentline, sol::this_state s);
-	qint64 fastmove(qint64 currentline, sol::this_state s);
-	qint64 packetmove(qint64 currentline, sol::this_state s);
-	qint64 findpath(qint64 currentline, sol::this_state s);
-	qint64 movetonpc(qint64 currentline, sol::this_state s);
-	qint64 warp(qint64 currentline, sol::this_state s);
-	qint64 teleport(qint64 currentline, sol::this_state s);
+	qint64 setDir(qint64 dir, sol::this_state s);
+	qint64 setDir(qint64 x, qint64 y, sol::this_state s);
+	qint64 setDir(std::string sdir, sol::this_state s);
+
+	qint64 move(qint64 x, qint64 y, sol::this_state s);
+	qint64 packetMove(qint64 x, qint64 y, std::string sdir, sol::this_state s);
+	qint64 teleport(sol::this_state s);
 };
 
 class CLuaBattle
@@ -255,19 +288,17 @@ public:
 	CLuaBattle() = default;
 	~CLuaBattle() = default;
 
-	qint64 bh(qint64 currentline, sol::this_state s);//atk
-	qint64 bj(qint64 currentline, sol::this_state s);//magic
-	qint64 bp(qint64 currentline, sol::this_state s);//skill
-	qint64 bs(qint64 currentline, sol::this_state s);//switch
-	qint64 be(qint64 currentline, sol::this_state s);//escape
-	qint64 bd(qint64 currentline, sol::this_state s);//defense
-	qint64 bi(qint64 currentline, sol::this_state s);//item
-	qint64 bt(qint64 currentline, sol::this_state s);//catch
-	qint64 bn(qint64 currentline, sol::this_state s);//nothing
-	qint64 bw(qint64 currentline, sol::this_state s);//petskill
-	qint64 bwf(qint64 currentline, sol::this_state s);//pet nothing
-	qint64 bwait(qint64 currentline, sol::this_state s);//wait
-	qint64 bend(qint64 currentline, sol::this_state s);//wait
+	qint64 charUseAttack(qint64 objIndex, sol::this_state s);//atk
+	qint64 charUseMagic(qint64 magicIndex, qint64 objIndex, sol::this_state s);//magic
+	qint64 charUseSkill(qint64 skillIndex, qint64 objIndex, sol::this_state s);//skill
+	qint64 switchPet(qint64 petIndex, sol::this_state s);//switch
+	qint64 escape(sol::this_state s);//escape
+	qint64 defense(sol::this_state s);//defense
+	qint64 useItem(qint64 itemIndex, qint64 objIndex, sol::this_state s);//item
+	qint64 catchPet(qint64 objIndex, sol::this_state s);//catch
+	qint64 nothing(sol::this_state s);//nothing
+	qint64 petUseSkill(qint64 petSkillIndex, qint64 objIndex, sol::this_state s);//petskill
+	qint64 petNothing(sol::this_state s);//pet nothing
 };
 
 class CLua : public ThreadPlugin
@@ -291,7 +322,13 @@ private slots:
 private:
 	void open_enumlibs();
 	void open_testlibs();
-	void open_systemlibs();
+	void open_utillibs();
+	void open_syslibs();
+	void open_itemlibs();
+	void open_charlibs();
+	void open_petlibs();
+	void open_maplibs();
+	void open_battlelibs();
 
 private:
 	sol::state lua_;
@@ -306,4 +343,9 @@ private:
 
 private:
 	CLuaSystem luaSystem_;
+	CLuaItem luaItem_;
+	CLuaChar luaChar_;
+	CLuaPet luaPet_;
+	CLuaMap luaMap_;
+	CLuaBattle luaBattle_;
 };

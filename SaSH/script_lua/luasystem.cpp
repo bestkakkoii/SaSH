@@ -1,4 +1,22 @@
-﻿#include "stdafx.h"
+﻿/*
+				GNU GENERAL PUBLIC LICENSE
+				   Version 2, June 1991
+COPYRIGHT (C) Bestkakkoii 2023 All Rights Reserved.
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU General Public License for more details.
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+
+*/
+
+#include "stdafx.h"
 #include "clua.h"
 #include "injector.h"
 #include "signaldispatcher.h"
@@ -254,18 +272,84 @@ qint64 CLuaSystem::loadsetting(const std::string& sfileName, sol::this_state s)
 	return TRUE;
 }
 
-qint64 CLuaSystem::press(const std::string& buttonStr, sol::object onpcName, sol::object odlgId, sol::this_state s)
+qint64 CLuaSystem::press(std::string sbuttonStr, qint64 unitid, qint64 dialogid, sol::this_state s)
 {
-	return 0;
-}
-qint64 CLuaSystem::press(qint64 row, sol::object onpcName, sol::object odlgId, sol::this_state s)
-{
-	return 0;
+	Injector& injector = Injector::getInstance();
+	if (injector.server.isNull())
+		return FALSE;
+
+	luadebug::checkBattleThenWait(s);
+
+	QString text = QString::fromUtf8(sbuttonStr.c_str());
+	qint64 row = -1;
+	BUTTON_TYPE button = buttonMap.value(text.toUpper(), BUTTON_NOTUSED);
+	if (button == BUTTON_NOTUSED)
+	{
+		qint64 row = -1;
+		dialog_t dialog = injector.server->currentDialog;
+		QStringList textList = dialog.linebuttontext;
+		if (!textList.isEmpty())
+		{
+			bool isExact = true;
+			QString newText = text.toUpper();
+			if (newText.startsWith(""))
+			{
+				newText = newText.mid(1);
+				isExact = false;
+			}
+
+			for (qint64 i = 0; i < textList.size(); ++i)
+			{
+				if (!isExact && textList.at(i).toUpper().contains(newText))
+				{
+					row = i;
+					break;
+				}
+				else if (isExact && textList.at(i).toUpper() == newText)
+				{
+					row = i;
+					break;
+				}
+			}
+		}
+	}
+
+	if (button != BUTTON_NOTUSED)
+		injector.server->press(button, unitid, dialogid);
+	else if (row != -1)
+		injector.server->press(row, unitid, dialogid);
+	else
+		return FALSE;
+
+	return TRUE;
 }
 
-qint64 CLuaSystem::input(const std::string& str, sol::object onpcName, sol::object odlgId, sol::this_state s)
+qint64 CLuaSystem::press(qint64 row, qint64 unitid, qint64 dialogid, sol::this_state s)
 {
-	return 0;
+	Injector& injector = Injector::getInstance();
+	if (injector.server.isNull())
+		return FALSE;
+
+	luadebug::checkBattleThenWait(s);
+
+	injector.server->press(row, unitid, dialogid);
+
+	return TRUE;
+}
+
+qint64 CLuaSystem::input(const std::string& str, qint64 unitid, qint64 dialogid, sol::this_state s)
+{
+	Injector& injector = Injector::getInstance();
+	if (injector.server.isNull())
+		return FALSE;
+
+	luadebug::checkBattleThenWait(s);
+
+	QString text = QString::fromUtf8(str.c_str());
+
+	injector.server->inputtext(text, unitid, dialogid);
+
+	return TRUE;
 }
 
 qint64 CLuaSystem::leftclick(qint64 x, qint64 y, sol::this_state s)
@@ -275,6 +359,7 @@ qint64 CLuaSystem::leftclick(qint64 x, qint64 y, sol::this_state s)
 		return FALSE;
 
 	injector.leftClick(x, y);
+	return TRUE;
 }
 
 qint64 CLuaSystem::rightclick(qint64 x, qint64 y, sol::this_state s)
@@ -284,6 +369,7 @@ qint64 CLuaSystem::rightclick(qint64 x, qint64 y, sol::this_state s)
 		return FALSE;
 
 	injector.rightClick(x, y);
+	return TRUE;
 }
 qint64 CLuaSystem::leftdoubleclick(qint64 x, qint64 y, sol::this_state s)
 {
@@ -292,6 +378,7 @@ qint64 CLuaSystem::leftdoubleclick(qint64 x, qint64 y, sol::this_state s)
 		return FALSE;
 
 	injector.leftDoubleClick(x, y);
+	return TRUE;
 }
 
 qint64 CLuaSystem::mousedragto(qint64 x1, qint64 y1, qint64 x2, qint64 y2, sol::this_state s)
@@ -301,9 +388,10 @@ qint64 CLuaSystem::mousedragto(qint64 x1, qint64 y1, qint64 x2, qint64 y2, sol::
 		return FALSE;
 
 	injector.dragto(x1, y1, x2, y2);
+	return TRUE;
 }
 
 qint64 CLuaSystem::set(qint64 enumInt, sol::object p1, sol::object p2, sol::object p3, sol::object p4, sol::object p5, sol::object p6, sol::object p7, sol::this_state s)
 {
-	return 0;
+	return TRUE;
 }

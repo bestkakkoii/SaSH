@@ -1503,7 +1503,7 @@ typedef struct
 }Landed;
 #endif
 
-constexpr int MAXMISSION = 300;
+constexpr int MAX_MISSION = 300;
 typedef struct tagJOBDAILY
 {
 	int JobId = 0;								// 任務編號

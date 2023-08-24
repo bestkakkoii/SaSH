@@ -205,7 +205,13 @@
     <ClCompile Include="script\parser.cpp" />
     <ClCompile Include="script\system.cpp" />
     <ClCompile Include="script_lua\clua.cpp" />
+    <ClCompile Include="script_lua\luabattle.cpp" />
+    <ClCompile Include="script_lua\luachar.cpp" />
+    <ClCompile Include="script_lua\luaitem.cpp" />
+    <ClCompile Include="script_lua\luamap.cpp" />
+    <ClCompile Include="script_lua\luapet.cpp" />
     <ClCompile Include="script_lua\luasystem.cpp" />
+    <ClCompile Include="script_lua\luautil.cpp" />
     <ClCompile Include="update\curldownload.cpp" />
     <ClCompile Include="update\qdownloader.cpp" />
     <ClCompile Include="util.cpp" />

@@ -1,4 +1,22 @@
-﻿#include "stdafx.h"
+﻿/*
+				GNU GENERAL PUBLIC LICENSE
+				   Version 2, June 1991
+COPYRIGHT (C) Bestkakkoii 2023 All Rights Reserved.
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU General Public License for more details.
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+
+*/
+
+#include "stdafx.h"
 #include "clua.h"
 
 #include "signaldispatcher.h"
@@ -382,12 +400,12 @@ void CLua::open_testlibs()
 		sol::constructors<
 		/*建構函數多載*/
 		CLuaTest(sol::this_state),
-		CLuaTest(lua_Integer a, sol::this_state)>(),
+		CLuaTest(qint64 a, sol::this_state)>(),
 
 		//成員函數多載
 		"add", sol::overload(
-			sol::resolve<lua_Integer(lua_Integer a, lua_Integer b)>(&CLuaTest::add),
-			sol::resolve<lua_Integer(lua_Integer b)>(&CLuaTest::add)
+			sol::resolve<qint64(qint64 a, qint64 b)>(&CLuaTest::add),
+			sol::resolve<qint64(qint64 b)>(&CLuaTest::add)
 		),
 
 		//成員函數聲明
@@ -405,39 +423,181 @@ void CLua::open_testlibs()
 	*/
 }
 
+void CLua::open_utillibs()
+{
+	lua_.new_usertype<CLuaUtil>("InfoClass",
+		sol::call_constructor,
+		sol::constructors<CLuaUtil()>(),
+		"char", &CLuaUtil::getChar,
+		"pet", &CLuaUtil::getPet,
+		"team", &CLuaUtil::getTeam,
+		"card", &CLuaUtil::getCard,
+		"chat", &CLuaUtil::getChat,
+		"dialog", &CLuaUtil::getDialog,
+		"unit", &CLuaUtil::getUnit,
+		"battlUnit", &CLuaUtil::getBattleUnit,
+		"daily", &CLuaUtil::getDaily,
+		"item", &CLuaUtil::getItem,
+		"skill", &CLuaUtil::getSkill,
+		"magic", &CLuaUtil::getMagic
+	);
+
+
+	lua_.safe_script(R"(
+			info = InfoClass();
+		)");
+}
+
 //luasystem.cpp
-void CLua::open_systemlibs()
+void CLua::open_syslibs()
 {
 	lua_.set_function("sleep", &CLuaSystem::sleep, &luaSystem_);
 	lua_.set_function("printf", &CLuaSystem::announce, &luaSystem_);
 	lua_.safe_script("print = printf");
 
-	//sol::usertype<CLuaSystem> sys = lua_.new_usertype<CLuaSystem>("System",
-	//	sol::call_constructor,
-	//	sol::constructors<CLuaSystem()>(),
+	lua_.set_function("msg", &CLuaSystem::messagebox, &luaSystem_);
+	lua_.set_function("saveset", &CLuaSystem::savesetting, &luaSystem_);
+	lua_.set_function("loadset", &CLuaSystem::loadsetting, &luaSystem_);
+	lua_.set_function("set", &CLuaSystem::set, &luaSystem_);
+	lua_.set_function("lclick", &CLuaSystem::leftclick, &luaSystem_);
+	lua_.set_function("rclick", &CLuaSystem::rightclick, &luaSystem_);
+	lua_.set_function("dbclick", &CLuaSystem::leftdoubleclick, &luaSystem_);
+	lua_.set_function("dragto", &CLuaSystem::mousedragto, &luaSystem_);
 
-	//	"logout", &CLuaSystem::logout,
-	//	"logback", &CLuaSystem::logback,
-	//	"eo", &CLuaSystem::eo,
+	lua_.new_usertype<CLuaSystem>("SystemClass",
+		sol::call_constructor,
+		sol::constructors<CLuaSystem()>(),
 
-	//	"msg", &CLuaSystem::messagebox,
-	//	"say", &CLuaSystem::talk,
-	//	"cls", &CLuaSystem::cleanchat,
-	//	"menu", sol::overload(
-	//		sol::resolve<lua_Integer(lua_Integer index, sol::this_state s)>(&CLuaSystem::menu),
-	//		sol::resolve<lua_Integer(lua_Integer type, lua_Integer index, sol::this_state s)>(&CLuaSystem::menu)
-	//	),
+		"out", &CLuaSystem::logout,
+		"back", &CLuaSystem::logback,
+		"eo", &CLuaSystem::eo,
+		"say", &CLuaSystem::talk,
+		"clearChat", &CLuaSystem::cleanchat,
+		"menu", sol::overload(
+			sol::resolve<qint64(qint64, sol::this_state)>(&CLuaSystem::menu),
+			sol::resolve<qint64(qint64, qint64, sol::this_state)>(&CLuaSystem::menu)
+		),
 
-	//	"saveset", &CLuaSystem::savesetting,
-	//	"loadset", &CLuaSystem::loadsetting,
-	//	"button", sol::overload(
-	//		sol::resolve<lua_Integer(const std::string & buttonStr, sol::object onpcName, sol::object odlgId, sol::this_state s)>(&CLuaSystem::press),
-	//		sol::resolve<lua_Integer(lua_Integer row, sol::object onpcName, sol::object odlgId, sol::this_state s)>(&CLuaSystem::press)
-	//	),
+		"press", sol::overload(
+			sol::resolve<qint64(std::string, qint64, qint64, sol::this_state)>(&CLuaSystem::press),
+			sol::resolve<qint64(qint64, qint64, qint64, sol::this_state)>(&CLuaSystem::press)
+		),
 
-	//	"input", &CLuaSystem::input,
-	//	"set", &CLuaSystem::set
-	//);
+		"input", &CLuaSystem::input
+	);
+
+	lua_.safe_script(R"(
+			sys = SystemClass();
+		)");
+}
+
+void CLua::open_itemlibs()
+{
+	lua_.new_usertype<CLuaItem>("ItemClass",
+		sol::call_constructor,
+		sol::constructors<CLuaItem()>(),
+		"use", &CLuaItem::use,
+		"drop", &CLuaItem::drop,
+		"pick", &CLuaItem::pick,
+		"swap", &CLuaItem::swap,
+		"craft", &CLuaItem::craft,
+		"buy", &CLuaItem::buy,
+		"sell", &CLuaItem::sell,
+
+		"deposit", &CLuaItem::deposit,
+		"withdraw", &CLuaItem::withdraw
+	);
+
+	lua_.safe_script(R"(
+			item = ItemClass();
+		)");
+}
+
+void CLua::open_charlibs()
+{
+	lua_.new_usertype<CLuaChar>("CharClass",
+		sol::call_constructor,
+		sol::constructors<CLuaChar()>(),
+		"rename", &CLuaChar::rename,
+		"useMagic", &CLuaChar::useMagic,
+		"depositGold", &CLuaChar::depositGold,
+		"withdrawGold", &CLuaChar::withdrawGold,
+		"dropGold", &CLuaChar::dropGold,
+		"mail", sol::overload(
+			sol::resolve<qint64(qint64, std::string, qint64, std::string, std::string, sol::this_state)>(&CLuaChar::mail),
+			sol::resolve<qint64(qint64, std::string, sol::this_state)>(&CLuaChar::mail)
+		),
+		"skillUp", &CLuaChar::skillUp,
+
+		"setTeamState", &CLuaChar::setTeamState,
+		"kick", &CLuaChar::kick
+	);
+
+	lua_.safe_script(R"(
+			char = CharClass();
+		)");
+}
+
+void CLua::open_petlibs()
+{
+	lua_.new_usertype<CLuaPet>("PetClass",
+		sol::call_constructor,
+		sol::constructors<CLuaPet()>(),
+		"setState", &CLuaPet::setState,
+		"drop", &CLuaPet::drop,
+		"rename", &CLuaPet::rename,
+		"learn", &CLuaPet::learn,
+		"swap", &CLuaPet::swap,
+		"deposit", &CLuaPet::deposit,
+		"withdraw", &CLuaPet::withdraw
+	);
+
+	lua_.safe_script(R"(
+			pet = PetClass();
+		)");
+}
+
+void CLua::open_maplibs()
+{
+	lua_.new_usertype<CLuaMap>("MapClass",
+		sol::call_constructor,
+		sol::constructors<CLuaMap()>(),
+		"setDir", sol::overload(
+			sol::resolve<qint64(qint64, sol::this_state)>(&CLuaMap::setDir),
+			sol::resolve<qint64(qint64, qint64, sol::this_state) >(&CLuaMap::setDir),
+			sol::resolve<qint64(std::string, sol::this_state) >(&CLuaMap::setDir)
+		),
+		"setState", &CLuaMap::move,
+		"setState", &CLuaMap::packetMove,
+		"teleport", &CLuaMap::teleport
+	);
+
+	lua_.safe_script(R"(
+			map = MapClass();
+		)");
+}
+
+void CLua::open_battlelibs()
+{
+	lua_.new_usertype<CLuaBattle>("BattleClass",
+		sol::call_constructor,
+		sol::constructors<CLuaBattle()>(),
+		"charUseAttack", &CLuaBattle::charUseAttack,
+		"charUseMagic", &CLuaBattle::charUseMagic,
+		"charUseSkill", &CLuaBattle::charUseSkill,
+		"switchPet", &CLuaBattle::switchPet,
+		"escape", &CLuaBattle::escape,
+		"defense", &CLuaBattle::defense,
+		"useItem", &CLuaBattle::useItem,
+		"catchPet", &CLuaBattle::catchPet,
+		"nothing", &CLuaBattle::nothing,
+		"petUseSkill", &CLuaBattle::petUseSkill,
+		"petNothing", &CLuaBattle::petNothing
+	);
+
+	lua_.safe_script(R"(
+			battle = BattleClass();
+		)");
 }
 
 void CLua::proc()
@@ -470,7 +630,13 @@ void CLua::proc()
 
 		open_enumlibs();
 		//open_testlibs();
-		open_systemlibs();
+		open_utillibs();
+		open_syslibs();
+		open_itemlibs();
+		open_charlibs();
+		open_petlibs();
+		open_maplibs();
+		open_battlelibs();
 
 		//執行短腳本
 		lua_.safe_script(R"(

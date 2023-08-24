@@ -249,6 +249,24 @@
     <ClCompile Include="net\lssproto.cpp">
       <Filter>Source Files\net</Filter>
     </ClCompile>
+    <ClCompile Include="script_lua\luachar.cpp">
+      <Filter>Source Files\script_lua</Filter>
+    </ClCompile>
+    <ClCompile Include="script_lua\luaitem.cpp">
+      <Filter>Source Files\script_lua</Filter>
+    </ClCompile>
+    <ClCompile Include="script_lua\luapet.cpp">
+      <Filter>Source Files\script_lua</Filter>
+    </ClCompile>
+    <ClCompile Include="script_lua\luamap.cpp">
+      <Filter>Source Files\script_lua</Filter>
+    </ClCompile>
+    <ClCompile Include="script_lua\luabattle.cpp">
+      <Filter>Source Files\script_lua</Filter>
+    </ClCompile>
+    <ClCompile Include="script_lua\luautil.cpp">
+      <Filter>Source Files\script_lua</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="mainform.h">

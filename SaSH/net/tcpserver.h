@@ -345,7 +345,7 @@ public://actions
 	void downloadMap(int x, int y);
 
 	bool tradeStart(const QString& name, int timeout);
-	void tradeComfirm(const QString name);
+	void tradeComfirm(const QString& name);
 	void tradeCancel();
 	void tradeAppendItems(const QString& name, const QVector<int>& itemIndexs);
 	void tradeAppendGold(const QString& name, int gold);
@@ -725,7 +725,7 @@ private:
 
 	ADDRESS_BOOK addressBook[MAX_ADR_BOOK] = {};
 
-	JOBDAILY jobdaily[MAXMISSION] = {};
+	JOBDAILY jobdaily[MAX_MISSION] = {};
 
 	CHARLISTTABLE chartable[MAXCHARACTER] = {};
 
