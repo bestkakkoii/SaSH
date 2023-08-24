@@ -333,6 +333,7 @@ bool Interpreter::readFile(const QString& fileName, QString* pcontent, bool* isP
 
 void Interpreter::stop()
 {
+	emit stoped();
 	requestInterruption();
 }
 
@@ -1647,7 +1648,7 @@ qint64 Interpreter::dostring(qint64 currentline, const TokenMap& TK)
 	Injector& injector = Injector::getInstance();
 
 	if (injector.server.isNull())
-		return Parser::kError;
+		return Parser::kServerNotReady;
 
 	QString text;
 	checkString(TK, 1, &text);
@@ -1696,6 +1697,43 @@ qint64 Interpreter::dostring(qint64 currentline, const TokenMap& TK)
 			QThread::msleep(100);
 		}
 	}
+
+	return Parser::kNoChange;
+}
+
+#include "script_lua/clua.h"
+qint64 Interpreter::dofile(qint64 currentline, const TokenMap& TK)
+{
+	QString fileName = "";
+	checkString(TK, 1, &fileName);
+	if (fileName.isEmpty())
+		return Parser::kArgError + 1ll;
+
+	fileName.replace("\\", "/");
+
+	fileName = util::applicationDirPath() + "/script/" + fileName;
+	fileName.replace("\\", "/");
+	fileName.replace("//", "/");
+
+	QFileInfo fileInfo(fileName);
+	QString suffix = fileInfo.suffix();
+	if (suffix.isEmpty())
+		fileName += ".lua";
+	else if (suffix != "lua")
+	{
+		fileName.replace(suffix, "lua");
+	}
+
+	QString content;
+	bool isPrivate = false;
+	if (!util::readFile(fileName, &content, &isPrivate))
+		return Parser::kArgError + 1ll;
+
+	QSharedPointer<CLua> lua(new CLua(content));
+	connect(this, &Interpreter::stoped, lua.get(), &CLua::requestInterruption, Qt::UniqueConnection);
+
+	lua->start();
+	lua->wait();
 
 	return Parser::kNoChange;
 }

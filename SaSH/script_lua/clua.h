@@ -101,21 +101,45 @@ namespace luadebug
 	Q_REQUIRED_RESULT QString getErrorMsgLocatedLine(const QString& str, int* retline);
 
 	void hookProc(lua_State* L, lua_Debug* ar);
+
+	void logExport(const sol::this_state& s, const QStringList& datas, qint64 color);
+	void logExport(const sol::this_state& s, const QString& data, qint64 color);
 }
 
 class CLuaTest
 {
 public:
 	CLuaTest(sol::this_state) {};
-	CLuaTest(lua_Integer a, sol::this_state) : a_(a) {};
+	CLuaTest(qint64 a, sol::this_state) : a_(a) {};
 	~CLuaTest() = default;
-	lua_Integer add(lua_Integer a, lua_Integer b) { return a + b; };
-	lua_Integer add(lua_Integer b) { return a_ + b; };
+	qint64 add(qint64 a, qint64 b) { return a + b; };
+	qint64 add(qint64 b) { return a_ + b; };
 
-	lua_Integer sub(lua_Integer a, lua_Integer b) { return a - b; };
+	qint64 sub(qint64 a, qint64 b) { return a - b; };
 
 private:
-	lua_Integer a_ = 0;
+	qint64 a_ = 0;
+};
+
+class CLuaUtil
+{
+public:
+	CLuaUtil() = default;
+	~CLuaUtil() = default;
+
+	qint64 ocr(qint64 currentline, sol::this_state s);
+	qint64 dlg(qint64 currentline, sol::this_state s);
+	qint64 regex(qint64 currentline, sol::this_state s);
+	qint64 find(qint64 currentline, sol::this_state s);
+	qint64 half(qint64 currentline, sol::this_state s);
+	qint64 full(qint64 currentline, sol::this_state s);
+	qint64 upper(qint64 currentline, sol::this_state s);
+	qint64 lower(qint64 currentline, sol::this_state s);
+	qint64 replace(qint64 currentline, sol::this_state s);
+	qint64 toint(std::string str, sol::this_state s);
+	qint64 tostr(sol::object onumber, sol::this_state s);
+
+	qint64 trim(std::string str, sol::this_state s);
 };
 
 class CLuaSystem
@@ -124,26 +148,126 @@ public:
 	CLuaSystem() = default;
 	~CLuaSystem() = default;
 
-	lua_Integer sleep(lua_Integer value, sol::this_state s);
-	lua_Integer logout(sol::this_state s);
-	lua_Integer logback(sol::this_state s);
-	lua_Integer eo(sol::this_state s);
-	lua_Integer announce(sol::object ostr, sol::this_state s);
-	lua_Integer announce(sol::object ostr, lua_Integer color, sol::this_state s);
-	lua_Integer announce(std::string format, sol::object ostr, lua_Integer color, sol::this_state s);
-	lua_Integer messagebox(sol::object ostr, sol::object otype, sol::this_state s);
-	lua_Integer talk(sol::object ostr, sol::this_state s);
-	lua_Integer cleanchat(sol::this_state s);
-	lua_Integer menu(lua_Integer index, sol::this_state s);
-	lua_Integer menu(lua_Integer type, lua_Integer index, sol::this_state s);
-	lua_Integer savesetting(const std::string& fileName, sol::this_state s);
-	lua_Integer loadsetting(const std::string& fileName, sol::this_state s);
+	//global
+	qint64 sleep(qint64 value, sol::this_state s);
+	qint64 announce(sol::object ostr, sol::object ocolor, sol::this_state s);
+	qint64 messagebox(sol::object ostr, sol::object otype, sol::this_state s);
+	qint64 savesetting(const std::string& fileName, sol::this_state s);
+	qint64 loadsetting(const std::string& fileName, sol::this_state s);
+	qint64 set(qint64 enumInt, sol::object p1, sol::object p2, sol::object p3, sol::object p4, sol::object p5, sol::object p6, sol::object p7, sol::this_state s);
+	qint64 leftclick(qint64 x, qint64 y, sol::this_state s);
+	qint64 rightclick(qint64 x, qint64 y, sol::this_state s);
+	qint64 leftdoubleclick(qint64 x, qint64 y, sol::this_state s);
+	qint64 mousedragto(qint64 x1, qint64 y1, qint64 x2, qint64 y2, sol::this_state s);
 
-	lua_Integer press(const std::string& buttonStr, sol::object onpcName, sol::object odlgId, sol::this_state s);
-	lua_Integer press(lua_Integer row, sol::object onpcName, sol::object odlgId, sol::this_state s);
-	lua_Integer input(const std::string& str, sol::object onpcName, sol::object odlgId, sol::this_state s);
+	//meta
+	qint64 logout(sol::this_state s);
+	qint64 logback(sol::this_state s);
+	qint64 eo(sol::this_state s);
+	qint64 cleanchat(sol::this_state s);
+	qint64 talk(sol::object ostr, sol::this_state s);
+	qint64 menu(qint64 index, sol::this_state s);
+	qint64 menu(qint64 type, qint64 index, sol::this_state s);
+	qint64 press(const std::string& buttonStr, sol::object onpcName, sol::object odlgId, sol::this_state s);
+	qint64 press(qint64 row, sol::object onpcName, sol::object odlgId, sol::this_state s);
+	qint64 input(const std::string& str, sol::object onpcName, sol::object odlgId, sol::this_state s);
+};
 
-	lua_Integer set(lua_Integer enumInt, sol::object p1, sol::object p2, sol::object p3, sol::object p4, sol::object p5, sol::object p6, sol::object p7, sol::this_state s);
+class CLuaItem
+{
+public:
+	CLuaItem() = default;
+	~CLuaItem() = default;
+
+	qint64 use(qint64 currentline, sol::this_state s);
+	qint64 drop(qint64 currentline, sol::this_state s);
+	qint64 pick(qint64 currentline, sol::this_state s);
+	qint64 swap(qint64 currentline, sol::this_state s);
+	qint64 make(qint64 currentline, sol::this_state s);
+	qint64 cook(qint64 currentline, sol::this_state s);
+	qint64 buy(qint64 currentline, sol::this_state s);
+	qint64 sell(qint64 currentline, sol::this_state s);
+	qint64 wear(qint64 currentline, sol::this_state s);
+	qint64 unwear(qint64 currentline, sol::this_state s);
+	qint64 trade(qint64 currentline, sol::this_state s);
+	qint64 deposit(qint64 currentline, sol::this_state s);
+	qint64 withdraw(qint64 currentline, sol::this_state s);
+	qint64 record(qint64 currentline, sol::this_state s);//equip
+};
+
+class CLuaChar
+{
+public:
+	CLuaChar() = default;
+	~CLuaChar() = default;
+
+	qint64 rename(qint64 currentline, sol::this_state s);
+	qint64 use(qint64 currentline, sol::this_state s);
+	qint64 deposit(qint64 currentline, sol::this_state s);//gold
+	qint64 withdraw(qint64 currentline, sol::this_state s);//gold
+	qint64 drop(qint64 currentline, sol::this_state s);//gold
+	qint64 mail(qint64 currentline, sol::this_state s);
+	qint64 add(qint64 currentline, sol::this_state s);//skup point
+
+	//action-group
+	qint64 join(qint64 currentline, sol::this_state s);
+	qint64 leave(qint64 currentline, sol::this_state s);
+	qint64 kick(qint64 currentline, sol::this_state s);
+};
+
+
+class CLuaPet
+{
+public:
+	CLuaPet() = default;
+	~CLuaPet() = default;
+
+	qint64 setstate(qint64 currentline, sol::this_state s);
+	qint64 drop(qint64 currentline, sol::this_state s);
+	qint64 rename(qint64 currentline, sol::this_state s);
+	qint64 sell(qint64 currentline, sol::this_state s);
+	qint64 learn(qint64 currentline, sol::this_state s);
+	qint64 equip(qint64 currentline, sol::this_state s);
+	qint64 unequip(qint64 currentline, sol::this_state s);
+	qint64 deposit(qint64 currentline, sol::this_state s);
+	qint64 withdraw(qint64 currentline, sol::this_state s);
+};
+
+class CLuaMap
+{
+public:
+	CLuaMap() = default;
+	~CLuaMap() = default;
+
+	qint64 setdir(qint64 currentline, sol::this_state s);
+	qint64 move(qint64 currentline, sol::this_state s);
+	qint64 fastmove(qint64 currentline, sol::this_state s);
+	qint64 packetmove(qint64 currentline, sol::this_state s);
+	qint64 findpath(qint64 currentline, sol::this_state s);
+	qint64 movetonpc(qint64 currentline, sol::this_state s);
+	qint64 warp(qint64 currentline, sol::this_state s);
+	qint64 teleport(qint64 currentline, sol::this_state s);
+};
+
+class CLuaBattle
+{
+public:
+	CLuaBattle() = default;
+	~CLuaBattle() = default;
+
+	qint64 bh(qint64 currentline, sol::this_state s);//atk
+	qint64 bj(qint64 currentline, sol::this_state s);//magic
+	qint64 bp(qint64 currentline, sol::this_state s);//skill
+	qint64 bs(qint64 currentline, sol::this_state s);//switch
+	qint64 be(qint64 currentline, sol::this_state s);//escape
+	qint64 bd(qint64 currentline, sol::this_state s);//defense
+	qint64 bi(qint64 currentline, sol::this_state s);//item
+	qint64 bt(qint64 currentline, sol::this_state s);//catch
+	qint64 bn(qint64 currentline, sol::this_state s);//nothing
+	qint64 bw(qint64 currentline, sol::this_state s);//petskill
+	qint64 bwf(qint64 currentline, sol::this_state s);//pet nothing
+	qint64 bwait(qint64 currentline, sol::this_state s);//wait
+	qint64 bend(qint64 currentline, sol::this_state s);//wait
 };
 
 class CLua : public ThreadPlugin

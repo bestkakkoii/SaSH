@@ -28,7 +28,7 @@ qint64 Interpreter::setdir(qint64 currentline, const TokenMap& TK)
 	Injector& injector = Injector::getInstance();
 
 	if (injector.server.isNull())
-		return Parser::kError;
+		return Parser::kServerNotReady;
 
 	checkBattleThenWait();
 
@@ -59,7 +59,7 @@ qint64 Interpreter::move(qint64 currentline, const TokenMap& TK)
 	Injector& injector = Injector::getInstance();
 
 	if (injector.server.isNull())
-		return Parser::kError;
+		return Parser::kServerNotReady;
 
 	checkBattleThenWait();
 
@@ -100,7 +100,7 @@ qint64 Interpreter::fastmove(qint64 currentline, const TokenMap& TK)
 	Injector& injector = Injector::getInstance();
 
 	if (injector.server.isNull())
-		return Parser::kError;
+		return Parser::kServerNotReady;
 
 	checkBattleThenWait();
 
@@ -150,7 +150,7 @@ qint64 Interpreter::packetmove(qint64 currentline, const TokenMap& TK)
 	Injector& injector = Injector::getInstance();
 
 	if (injector.server.isNull())
-		return Parser::kError;
+		return Parser::kServerNotReady;
 
 	checkBattleThenWait();
 
@@ -178,7 +178,7 @@ qint64 Interpreter::findpath(qint64 currentline, const TokenMap& TK)
 	Injector& injector = Injector::getInstance();
 
 	if (injector.server.isNull())
-		return Parser::kError;
+		return Parser::kServerNotReady;
 
 	checkBattleThenWait();
 	qint64 steplen = 3;
@@ -289,7 +289,7 @@ qint64 Interpreter::movetonpc(qint64 currentline, const TokenMap& TK)
 	Injector& injector = Injector::getInstance();
 
 	if (injector.server.isNull())
-		return Parser::kError;
+		return Parser::kServerNotReady;
 
 	checkBattleThenWait();
 
@@ -358,7 +358,7 @@ qint64 Interpreter::teleport(qint64 currentline, const TokenMap& TK)
 	Injector& injector = Injector::getInstance();
 
 	if (injector.server.isNull())
-		return Parser::kError;
+		return Parser::kServerNotReady;
 
 	checkBattleThenWait();
 
@@ -372,7 +372,7 @@ qint64 Interpreter::warp(qint64 currentline, const TokenMap& TK)
 	Injector& injector = Injector::getInstance();
 
 	if (injector.server.isNull())
-		return Parser::kError;
+		return Parser::kServerNotReady;
 
 	qint64 xfrom = 0;
 	qint64 yfrom = 0;

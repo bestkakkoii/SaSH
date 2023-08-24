@@ -124,7 +124,7 @@ qint64 Interpreter::press(qint64 currentline, const TokenMap& TK)
 	Injector& injector = Injector::getInstance();
 
 	if (injector.server.isNull())
-		return Parser::kError;
+		return Parser::kServerNotReady;
 
 	checkBattleThenWait();
 
@@ -200,7 +200,7 @@ qint64 Interpreter::eo(qint64 currentline, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance();
 	if (injector.server.isNull())
-		return Parser::kError;
+		return Parser::kServerNotReady;
 
 	checkBattleThenWait();
 
@@ -261,7 +261,7 @@ qint64 Interpreter::input(qint64 currentline, const TokenMap& TK)
 	Injector& injector = Injector::getInstance();
 
 	if (injector.server.isNull())
-		return Parser::kError;
+		return Parser::kServerNotReady;
 
 	QString text;
 	qint64 value = 0;
@@ -331,7 +331,7 @@ qint64 Interpreter::talk(qint64 currentline, const TokenMap& TK)
 	Injector& injector = Injector::getInstance();
 
 	if (injector.server.isNull())
-		return Parser::kError;
+		return Parser::kServerNotReady;
 
 	QString text;
 	qint64 value = 0;
@@ -373,7 +373,7 @@ qint64 Interpreter::menu(qint64 currentline, const TokenMap& TK)
 	Injector& injector = Injector::getInstance();
 
 	if (injector.server.isNull())
-		return Parser::kError;
+		return Parser::kServerNotReady;
 
 	checkBattleThenWait();
 
@@ -415,7 +415,7 @@ qint64 Interpreter::logback(qint64 currentline, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance();
 	if (injector.server.isNull())
-		return Parser::kError;
+		return Parser::kServerNotReady;
 
 	checkBattleThenWait();
 
@@ -428,7 +428,7 @@ qint64 Interpreter::createch(qint64 currentline, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance();
 	if (injector.server.isNull())
-		return Parser::kError;
+		return Parser::kServerNotReady;
 
 	qint64 dataplacenum = -1;
 	if (!checkInteger(TK, 1, &dataplacenum))
@@ -571,7 +571,7 @@ qint64 Interpreter::delch(qint64 currentline, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance();
 	if (injector.server.isNull())
-		return Parser::kError;
+		return Parser::kServerNotReady;
 
 	qint64 index = -1;
 	if (!checkInteger(TK, 1, &index))
@@ -613,7 +613,7 @@ qint64 Interpreter::savesetting(qint64 currentline, const TokenMap& TK)
 		{
 			Injector& injector = Injector::getInstance();
 			if (injector.server.isNull())
-				return Parser::kError;
+				return Parser::kServerNotReady;
 
 			fileName = injector.server->getPC().name;
 		}
@@ -649,7 +649,7 @@ qint64 Interpreter::loadsetting(qint64 currentline, const TokenMap& TK)
 		{
 			Injector& injector = Injector::getInstance();
 			if (injector.server.isNull())
-				return Parser::kError;
+				return Parser::kServerNotReady;
 
 			fileName = injector.server->getPC().name;
 		}
@@ -686,7 +686,7 @@ qint64 Interpreter::set(qint64 currentline, const TokenMap& TK)
 
 	QString typeStr;
 	if (!checkString(TK, 1, &typeStr))
-		return Parser::kError;
+		return Parser::kArgError + 1ll;
 
 	const QHash<QString, util::UserSetting> hash = {
 		{ u8"debug", util::kScriptDebugModeEnable },
@@ -1467,7 +1467,7 @@ qint64 Interpreter::dlg(qint64 currentline, const TokenMap& TK)
 	Injector& injector = Injector::getInstance();
 
 	if (injector.server.isNull())
-		return Parser::kError;
+		return Parser::kServerNotReady;
 
 	QString varName = TK.value(1).data.toString();
 	if (varName.isEmpty())
@@ -1836,7 +1836,7 @@ qint64 Interpreter::ocr(qint64 currentline, const TokenMap& TK)
 	Injector& injector = Injector::getInstance();
 
 	if (injector.server.isNull())
-		return Parser::kError;
+		return Parser::kServerNotReady;
 
 	qint64 debugmode = 0;
 	checkInteger(TK, 1, &debugmode);
@@ -1861,26 +1861,6 @@ qint64 Interpreter::ocr(qint64 currentline, const TokenMap& TK)
 		}
 	}
 #endif
-
-	return Parser::kNoChange;
-}
-
-#include "script_lua/clua.h"
-qint64 Interpreter::dofile(qint64 currentline, const TokenMap& TK)
-{
-	QString fileName = "";
-	checkString(TK, 1, &fileName);
-	if (fileName.isEmpty())
-		return Parser::kArgError + 1ll;
-
-	QString content;
-	bool isPrivate = false;
-	if (!util::readFile(fileName, &content, &isPrivate))
-		return Parser::kArgError + 1ll;
-
-	CLua lua(content);
-	lua.start();
-	lua.wait();
 
 	return Parser::kNoChange;
 }

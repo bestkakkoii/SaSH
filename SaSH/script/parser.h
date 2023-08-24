@@ -343,6 +343,7 @@ public:
 		kHasJump = 0,
 		kNoChange,
 		kError,
+		kServerNotReady,
 		kLabelError,
 		kUnknownCommand,
 		kLuaError,

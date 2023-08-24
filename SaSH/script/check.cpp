@@ -27,7 +27,7 @@ qint64 Interpreter::ifdaily(qint64, const TokenMap& TK)
 	Injector& injector = Injector::getInstance();
 
 	if (injector.server.isNull())
-		return Parser::kError;
+		return Parser::kServerNotReady;
 
 	QString text;
 	checkString(TK, 1, &text);
@@ -48,7 +48,7 @@ qint64 Interpreter::ifbattle(qint64, const TokenMap& TK)
 	Injector& injector = Injector::getInstance();
 
 	if (injector.server.isNull())
-		return Parser::kError;
+		return Parser::kServerNotReady;
 
 	return checkJump(TK, 1, injector.server->getBattleFlag(), SuccessJump);
 }
@@ -58,7 +58,7 @@ qint64 Interpreter::ifonline(qint64, const TokenMap& TK)
 	Injector& injector = Injector::getInstance();
 
 	if (injector.server.isNull())
-		return Parser::kError;
+		return Parser::kServerNotReady;
 
 	return checkJump(TK, 1, injector.server->getOnlineFlag(), SuccessJump);
 }
@@ -68,7 +68,7 @@ qint64 Interpreter::ifnormal(qint64, const TokenMap& TK)
 	Injector& injector = Injector::getInstance();
 
 	if (injector.server.isNull())
-		return Parser::kError;
+		return Parser::kServerNotReady;
 
 	return checkJump(TK, 1, !injector.server->getBattleFlag(), SuccessJump);
 }
@@ -78,7 +78,7 @@ qint64 Interpreter::ifpos(qint64, const TokenMap& TK)
 	Injector& injector = Injector::getInstance();
 
 	if (injector.server.isNull())
-		return Parser::kError;
+		return Parser::kServerNotReady;
 
 	checkBattleThenWait();
 
@@ -96,7 +96,7 @@ qint64 Interpreter::ifmap(qint64 currentline, const TokenMap& TK)
 	Injector& injector = Injector::getInstance();
 
 	if (injector.server.isNull())
-		return Parser::kError;
+		return Parser::kServerNotReady;
 
 	checkBattleThenWait();
 
@@ -145,7 +145,7 @@ qint64 Interpreter::checkunit(qint64, const TokenMap&)
 	Injector& injector = Injector::getInstance();
 
 	if (injector.server.isNull())
-		return Parser::kError;
+		return Parser::kServerNotReady;
 
 	return Parser::kNoChange;
 }
@@ -155,7 +155,7 @@ qint64 Interpreter::ifplayer(qint64 currentline, const TokenMap& TK)
 	Injector& injector = Injector::getInstance();
 
 	if (injector.server.isNull())
-		return Parser::kError;
+		return Parser::kServerNotReady;
 
 	bool bret = compare(kAreaPlayer, TK);
 
@@ -167,7 +167,7 @@ qint64 Interpreter::ifpetex(qint64 currentline, const TokenMap& TK)
 	Injector& injector = Injector::getInstance();
 
 	if (injector.server.isNull())
-		return Parser::kError;
+		return Parser::kServerNotReady;
 
 	bool bret = compare(kAreaPet, TK);
 
@@ -179,7 +179,7 @@ qint64 Interpreter::ifitem(qint64 currentline, const TokenMap& TK)
 	Injector& injector = Injector::getInstance();
 
 	if (injector.server.isNull())
-		return Parser::kError;
+		return Parser::kServerNotReady;
 
 	injector.server->updateItemByMemory();
 	bool bret = compare(kAreaItem, TK);
@@ -192,7 +192,7 @@ qint64 Interpreter::ifteam(qint64 currentline, const TokenMap& TK)
 	Injector& injector = Injector::getInstance();
 
 	if (injector.server.isNull())
-		return Parser::kError;
+		return Parser::kServerNotReady;
 
 	bool bret = compare(kAreaCount, TK);
 
@@ -204,7 +204,7 @@ qint64 Interpreter::ifpet(qint64 currentline, const TokenMap& TK)
 	Injector& injector = Injector::getInstance();
 
 	if (injector.server.isNull())
-		return Parser::kError;
+		return Parser::kServerNotReady;
 
 	bool bret = compare(kAreaCount, TK);
 
@@ -216,7 +216,7 @@ qint64 Interpreter::ifitemfull(qint64 currentline, const TokenMap& TK)
 	Injector& injector = Injector::getInstance();
 
 	if (injector.server.isNull())
-		return Parser::kError;
+		return Parser::kServerNotReady;
 
 	bool bret = true;
 	for (qint64 i = CHAR_EQUIPPLACENUM; i < MAX_ITEM; ++i)
@@ -237,7 +237,7 @@ qint64 Interpreter::waitpet(qint64 currentline, const TokenMap& TK)
 	Injector& injector = Injector::getInstance();
 
 	if (injector.server.isNull())
-		return Parser::kError;
+		return Parser::kServerNotReady;
 
 	QString petName;
 	checkString(TK, 1, &petName);
@@ -270,7 +270,7 @@ qint64 Interpreter::waitmap(qint64 currentline, const TokenMap& TK)
 	Injector& injector = Injector::getInstance();
 
 	if (injector.server.isNull())
-		return Parser::kError;
+		return Parser::kServerNotReady;
 
 	checkBattleThenWait();
 
@@ -284,7 +284,7 @@ qint64 Interpreter::waitmap(qint64 currentline, const TokenMap& TK)
 	checkInteger(TK, 2, &timeout);
 
 	if (floor == 0 && mapname.isEmpty())
-		return Parser::kError;
+		return Parser::kServerNotReady;
 
 	auto check = [&injector, floor, mapnames]()
 	{
@@ -340,7 +340,7 @@ qint64 Interpreter::waitdlg(qint64 currentline, const TokenMap& TK)
 	Injector& injector = Injector::getInstance();
 
 	if (injector.server.isNull())
-		return Parser::kError;
+		return Parser::kServerNotReady;
 
 	QString cmpStr;
 	qint64 dlgid = -1;
@@ -441,7 +441,7 @@ qint64 Interpreter::waitsay(qint64 currentline, const TokenMap& TK)
 	Injector& injector = Injector::getInstance();
 
 	if (injector.server.isNull())
-		return Parser::kError;
+		return Parser::kServerNotReady;
 
 	qint64 min = 1;
 	qint64 max = MAX_CHAT_HISTORY;
@@ -506,7 +506,7 @@ qint64 Interpreter::waitteam(qint64 currentline, const TokenMap& TK)
 	Injector& injector = Injector::getInstance();
 
 	if (injector.server.isNull())
-		return Parser::kError;
+		return Parser::kServerNotReady;
 
 	PC pc = injector.server->getPC();
 
@@ -534,7 +534,7 @@ qint64 Interpreter::waititem(qint64 currentline, const TokenMap& TK)
 	Injector& injector = Injector::getInstance();
 
 	if (injector.server.isNull())
-		return Parser::kError;
+		return Parser::kServerNotReady;
 
 	qint64 min = 0, max = static_cast<qint64>(MAX_ITEM - CHAR_EQUIPPLACENUM - 1);
 	bool isEquip = false;

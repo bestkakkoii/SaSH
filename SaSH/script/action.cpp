@@ -28,7 +28,7 @@ qint64 Interpreter::useitem(qint64, const TokenMap& TK)
 	Injector& injector = Injector::getInstance();
 
 	if (injector.server.isNull())
-		return Parser::kError;
+		return Parser::kServerNotReady;
 
 	checkBattleThenWait();
 
@@ -256,7 +256,7 @@ qint64 Interpreter::dropitem(qint64, const TokenMap& TK)
 	Injector& injector = Injector::getInstance();
 
 	if (injector.server.isNull())
-		return Parser::kError;
+		return Parser::kServerNotReady;
 
 	checkBattleThenWait();
 
@@ -320,7 +320,7 @@ qint64 Interpreter::swapitem(qint64 currentline, const TokenMap& TK)
 	Injector& injector = Injector::getInstance();
 
 	if (injector.server.isNull())
-		return Parser::kError;
+		return Parser::kServerNotReady;
 
 	checkBattleThenWait();
 
@@ -358,7 +358,7 @@ qint64 Interpreter::playerrename(qint64, const TokenMap& TK)
 	Injector& injector = Injector::getInstance();
 
 	if (injector.server.isNull())
-		return Parser::kError;
+		return Parser::kServerNotReady;
 
 	QString newName;
 	checkString(TK, 1, &newName);
@@ -373,7 +373,7 @@ qint64 Interpreter::petrename(qint64, const TokenMap& TK)
 	Injector& injector = Injector::getInstance();
 
 	if (injector.server.isNull())
-		return Parser::kError;
+		return Parser::kServerNotReady;
 
 	qint64 petIndex = -1;
 	checkInteger(TK, 1, &petIndex);
@@ -392,7 +392,7 @@ qint64 Interpreter::setpetstate(qint64, const TokenMap& TK)
 	Injector& injector = Injector::getInstance();
 
 	if (injector.server.isNull())
-		return Parser::kError;
+		return Parser::kServerNotReady;
 
 	checkBattleThenWait();
 
@@ -420,7 +420,7 @@ qint64 Interpreter::droppet(qint64, const TokenMap& TK)
 	Injector& injector = Injector::getInstance();
 
 	if (injector.server.isNull())
-		return Parser::kError;
+		return Parser::kServerNotReady;
 
 	checkBattleThenWait();
 
@@ -451,7 +451,7 @@ qint64 Interpreter::buy(qint64, const TokenMap& TK)
 	Injector& injector = Injector::getInstance();
 
 	if (injector.server.isNull())
-		return Parser::kError;
+		return Parser::kServerNotReady;
 
 	checkBattleThenWait();
 
@@ -493,7 +493,7 @@ qint64 Interpreter::sell(qint64, const TokenMap& TK)
 	Injector& injector = Injector::getInstance();
 
 	if (injector.server.isNull())
-		return Parser::kError;
+		return Parser::kServerNotReady;
 
 	checkBattleThenWait();
 
@@ -541,7 +541,7 @@ qint64 Interpreter::sellpet(qint64, const TokenMap& TK)
 	Injector& injector = Injector::getInstance();
 
 	if (injector.server.isNull())
-		return Parser::kError;
+		return Parser::kServerNotReady;
 
 	checkBattleThenWait();
 
@@ -569,7 +569,7 @@ qint64 Interpreter::sellpet(qint64, const TokenMap& TK)
 			return Parser::kNoChange;
 
 		if (injector.server.isNull())
-			return Parser::kError;
+			return Parser::kServerNotReady;
 
 		if (petIndex - 1 < 0 || petIndex - 1 >= MAX_PET)
 			return Parser::kArgError + 1ll;
@@ -586,7 +586,7 @@ qint64 Interpreter::sellpet(qint64, const TokenMap& TK)
 				return Parser::kNoChange;
 
 			if (injector.server.isNull())
-				return Parser::kError;
+				return Parser::kServerNotReady;
 
 			dialog_t dialog = injector.server->currentDialog;
 			switch (dialog.seqno)
@@ -636,7 +636,7 @@ qint64 Interpreter::make(qint64, const TokenMap& TK)
 	Injector& injector = Injector::getInstance();
 
 	if (injector.server.isNull())
-		return Parser::kError;
+		return Parser::kServerNotReady;
 
 	checkBattleThenWait();
 
@@ -657,7 +657,7 @@ qint64 Interpreter::cook(qint64, const TokenMap& TK)
 	Injector& injector = Injector::getInstance();
 
 	if (injector.server.isNull())
-		return Parser::kError;
+		return Parser::kServerNotReady;
 
 	checkBattleThenWait();
 
@@ -678,7 +678,7 @@ qint64 Interpreter::learn(qint64, const TokenMap& TK)
 	Injector& injector = Injector::getInstance();
 
 	if (injector.server.isNull())
-		return Parser::kError;
+		return Parser::kServerNotReady;
 
 	checkBattleThenWait();
 
@@ -728,7 +728,7 @@ qint64 Interpreter::join(qint64, const TokenMap& TK)
 	Injector& injector = Injector::getInstance();
 
 	if (injector.server.isNull())
-		return Parser::kError;
+		return Parser::kServerNotReady;
 
 	checkBattleThenWait();
 
@@ -742,7 +742,7 @@ qint64 Interpreter::leave(qint64, const TokenMap& TK)
 	Injector& injector = Injector::getInstance();
 
 	if (injector.server.isNull())
-		return Parser::kError;
+		return Parser::kServerNotReady;
 
 	checkBattleThenWait();
 
@@ -756,7 +756,7 @@ qint64 Interpreter::kick(qint64, const TokenMap& TK)
 	Injector& injector = Injector::getInstance();
 
 	if (injector.server.isNull())
-		return Parser::kError;
+		return Parser::kServerNotReady;
 
 	checkBattleThenWait();
 
@@ -829,7 +829,7 @@ qint64 Interpreter::usemagic(qint64, const TokenMap& TK)
 	Injector& injector = Injector::getInstance();
 
 	if (injector.server.isNull())
-		return Parser::kError;
+		return Parser::kServerNotReady;
 
 	checkBattleThenWait();
 
@@ -905,7 +905,7 @@ qint64 Interpreter::pickitem(qint64, const TokenMap& TK)
 	Injector& injector = Injector::getInstance();
 
 	if (injector.server.isNull())
-		return Parser::kError;
+		return Parser::kServerNotReady;
 
 	checkBattleThenWait();
 
@@ -939,7 +939,7 @@ qint64 Interpreter::depositgold(qint64, const TokenMap& TK)
 	Injector& injector = Injector::getInstance();
 
 	if (injector.server.isNull())
-		return Parser::kError;
+		return Parser::kServerNotReady;
 
 	checkBattleThenWait();
 
@@ -968,7 +968,7 @@ qint64 Interpreter::withdrawgold(qint64, const TokenMap& TK)
 	Injector& injector = Injector::getInstance();
 
 	if (injector.server.isNull())
-		return Parser::kError;
+		return Parser::kServerNotReady;
 
 	checkBattleThenWait();
 
@@ -989,7 +989,7 @@ qint64 Interpreter::recordequip(qint64, const TokenMap& TK)
 	Injector& injector = Injector::getInstance();
 
 	if (injector.server.isNull())
-		return Parser::kError;
+		return Parser::kServerNotReady;
 
 	if (!injector.server->getOnlineFlag())
 		return Parser::kNoChange;
@@ -1009,7 +1009,7 @@ qint64 Interpreter::wearequip(qint64, const TokenMap& TK)
 	Injector& injector = Injector::getInstance();
 
 	if (injector.server.isNull())
-		return Parser::kError;
+		return Parser::kServerNotReady;
 
 	checkBattleThenWait();
 
@@ -1041,7 +1041,7 @@ qint64 Interpreter::unwearequip(qint64, const TokenMap& TK)
 	Injector& injector = Injector::getInstance();
 
 	if (injector.server.isNull())
-		return Parser::kError;
+		return Parser::kServerNotReady;
 
 	checkBattleThenWait();
 
@@ -1100,7 +1100,7 @@ qint64 Interpreter::petequip(qint64, const TokenMap& TK)
 	Injector& injector = Injector::getInstance();
 
 	if (injector.server.isNull())
-		return Parser::kError;
+		return Parser::kServerNotReady;
 
 	checkBattleThenWait();
 
@@ -1130,7 +1130,7 @@ qint64 Interpreter::petunequip(qint64, const TokenMap& TK)
 	Injector& injector = Injector::getInstance();
 
 	if (injector.server.isNull())
-		return Parser::kError;
+		return Parser::kServerNotReady;
 
 	checkBattleThenWait();
 
@@ -1199,7 +1199,7 @@ qint64 Interpreter::depositpet(qint64, const TokenMap& TK)
 	Injector& injector = Injector::getInstance();
 
 	if (injector.server.isNull())
-		return Parser::kError;
+		return Parser::kServerNotReady;
 
 	checkBattleThenWait();
 
@@ -1248,7 +1248,7 @@ qint64 Interpreter::deposititem(qint64, const TokenMap& TK)
 	Injector& injector = Injector::getInstance();
 
 	if (injector.server.isNull())
-		return Parser::kError;
+		return Parser::kServerNotReady;
 
 	checkBattleThenWait();
 
@@ -1321,7 +1321,7 @@ qint64 Interpreter::withdrawpet(qint64, const TokenMap& TK)
 	Injector& injector = Injector::getInstance();
 
 	if (injector.server.isNull())
-		return Parser::kError;
+		return Parser::kServerNotReady;
 
 	checkBattleThenWait();
 
@@ -1413,7 +1413,7 @@ qint64 Interpreter::withdrawitem(qint64, const TokenMap& TK)
 	Injector& injector = Injector::getInstance();
 
 	if (injector.server.isNull())
-		return Parser::kError;
+		return Parser::kServerNotReady;
 
 	checkBattleThenWait();
 
@@ -1512,7 +1512,7 @@ qint64 Interpreter::addpoint(qint64, const TokenMap& TK)
 	Injector& injector = Injector::getInstance();
 
 	if (injector.server.isNull())
-		return Parser::kError;
+		return Parser::kServerNotReady;
 
 	checkBattleThenWait();
 
@@ -1557,7 +1557,7 @@ qint64 Interpreter::leftclick(qint64, const TokenMap& TK)
 	Injector& injector = Injector::getInstance();
 
 	if (injector.server.isNull())
-		return Parser::kError;
+		return Parser::kServerNotReady;
 
 	qint64 x = 0;
 	qint64 y = 0;
@@ -1575,7 +1575,7 @@ qint64 Interpreter::rightclick(qint64, const TokenMap& TK)
 	Injector& injector = Injector::getInstance();
 
 	if (injector.server.isNull())
-		return Parser::kError;
+		return Parser::kServerNotReady;
 
 	qint64 x = 0;
 	qint64 y = 0;
@@ -1593,7 +1593,7 @@ qint64 Interpreter::leftdoubleclick(qint64, const TokenMap& TK)
 	Injector& injector = Injector::getInstance();
 
 	if (injector.server.isNull())
-		return Parser::kError;
+		return Parser::kServerNotReady;
 
 	qint64 x = 0;
 	qint64 y = 0;
@@ -1611,7 +1611,7 @@ qint64 Interpreter::mousedragto(qint64, const TokenMap& TK)
 	Injector& injector = Injector::getInstance();
 
 	if (injector.server.isNull())
-		return Parser::kError;
+		return Parser::kServerNotReady;
 
 	checkBattleThenWait();
 
@@ -1637,7 +1637,7 @@ qint64 Interpreter::trade(qint64, const TokenMap& TK)
 	Injector& injector = Injector::getInstance();
 
 	if (injector.server.isNull())
-		return Parser::kError;
+		return Parser::kServerNotReady;
 
 	checkBattleThenWait();
 
@@ -1803,7 +1803,7 @@ qint64 Interpreter::mail(qint64, const TokenMap& TK)
 	Injector& injector = Injector::getInstance();
 
 	if (injector.server.isNull())
-		return Parser::kError;
+		return Parser::kServerNotReady;
 
 	QVariant card;
 	QString name;
@@ -1857,7 +1857,7 @@ qint64 Interpreter::doffstone(qint64 currentline, const TokenMap& TK)
 	Injector& injector = Injector::getInstance();
 
 	if (injector.server.isNull())
-		return Parser::kError;
+		return Parser::kServerNotReady;
 
 	qint64 gold = 0;
 	if (!checkInteger(TK, 1, &gold))
@@ -1885,7 +1885,7 @@ qint64 Interpreter::bh(qint64, const TokenMap& TK)//atk
 	Injector& injector = Injector::getInstance();
 
 	if (injector.server.isNull())
-		return Parser::kError;
+		return Parser::kServerNotReady;
 
 	if (!injector.server->getBattleFlag())
 		return Parser::kNoChange;
@@ -1905,7 +1905,7 @@ qint64 Interpreter::bj(qint64, const TokenMap& TK)//magic
 	Injector& injector = Injector::getInstance();
 
 	if (injector.server.isNull())
-		return Parser::kError;
+		return Parser::kServerNotReady;
 
 	if (!injector.server->getBattleFlag())
 		return Parser::kNoChange;
@@ -1931,7 +1931,7 @@ qint64 Interpreter::bp(qint64, const TokenMap& TK)//skill
 	Injector& injector = Injector::getInstance();
 
 	if (injector.server.isNull())
-		return Parser::kError;
+		return Parser::kServerNotReady;
 
 	if (!injector.server->getBattleFlag())
 		return Parser::kNoChange;
@@ -1957,7 +1957,7 @@ qint64 Interpreter::bs(qint64, const TokenMap& TK)//switch
 	Injector& injector = Injector::getInstance();
 
 	if (injector.server.isNull())
-		return Parser::kError;
+		return Parser::kServerNotReady;
 
 	if (!injector.server->getBattleFlag())
 		return Parser::kNoChange;
@@ -1976,7 +1976,7 @@ qint64 Interpreter::be(qint64, const TokenMap& TK)//escape
 	Injector& injector = Injector::getInstance();
 
 	if (injector.server.isNull())
-		return Parser::kError;
+		return Parser::kServerNotReady;
 
 	if (!injector.server->getBattleFlag())
 		return Parser::kNoChange;
@@ -1990,7 +1990,7 @@ qint64 Interpreter::bd(qint64, const TokenMap& TK)//defense
 	Injector& injector = Injector::getInstance();
 
 	if (injector.server.isNull())
-		return Parser::kError;
+		return Parser::kServerNotReady;
 
 	if (!injector.server->getBattleFlag())
 		return Parser::kNoChange;
@@ -2004,7 +2004,7 @@ qint64 Interpreter::bi(qint64, const TokenMap& TK)//item
 	Injector& injector = Injector::getInstance();
 
 	if (injector.server.isNull())
-		return Parser::kError;
+		return Parser::kServerNotReady;
 
 	if (!injector.server->getBattleFlag())
 		return Parser::kNoChange;
@@ -2031,7 +2031,7 @@ qint64 Interpreter::bt(qint64, const TokenMap& TK)//catch
 	Injector& injector = Injector::getInstance();
 
 	if (injector.server.isNull())
-		return Parser::kError;
+		return Parser::kServerNotReady;
 
 	if (!injector.server->getBattleFlag())
 		return Parser::kNoChange;
@@ -2051,7 +2051,7 @@ qint64 Interpreter::bn(qint64, const TokenMap& TK)//nothing
 	Injector& injector = Injector::getInstance();
 
 	if (injector.server.isNull())
-		return Parser::kError;
+		return Parser::kServerNotReady;
 
 	if (!injector.server->getBattleFlag())
 		return Parser::kNoChange;
@@ -2065,7 +2065,7 @@ qint64 Interpreter::bw(qint64, const TokenMap& TK)//petskill
 	Injector& injector = Injector::getInstance();
 
 	if (injector.server.isNull())
-		return Parser::kError;
+		return Parser::kServerNotReady;
 
 	if (!injector.server->getBattleFlag())
 		return Parser::kNoChange;
@@ -2091,7 +2091,7 @@ qint64 Interpreter::bwf(qint64, const TokenMap& TK)//pet nothing
 	Injector& injector = Injector::getInstance();
 
 	if (injector.server.isNull())
-		return Parser::kError;
+		return Parser::kServerNotReady;
 
 	if (!injector.server->getBattleFlag())
 		return Parser::kNoChange;
@@ -2104,7 +2104,7 @@ qint64 Interpreter::bwait(qint64, const TokenMap& TK)
 	Injector& injector = Injector::getInstance();
 
 	if (injector.server.isNull())
-		return Parser::kError;
+		return Parser::kServerNotReady;
 
 	if (!injector.server->getBattleFlag())
 		return Parser::kNoChange;
@@ -2134,7 +2134,7 @@ qint64 Interpreter::bend(qint64, const TokenMap& TK)
 	Injector& injector = Injector::getInstance();
 
 	if (injector.server.isNull())
-		return Parser::kError;
+		return Parser::kServerNotReady;
 
 	if (!injector.server->getBattleFlag())
 		return Parser::kNoChange;

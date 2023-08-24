@@ -1201,7 +1201,7 @@ void Lexer::checkSingleRowPairs(const QString& beginstr, const QString& endstr, 
 		for (int index : unpairedIndices)
 		{
 			QString statement = tokenmaps[row].value(0).data.toString().simplified();
-			QString errorMessage = QString(QObject::tr("Unpaired '%1' at row %2, index %3: '%4'")).arg(beginstr).arg(row).arg(index).arg(statement);
+			QString errorMessage = QString(QObject::tr("Unpaired '%1' at row %2, index %3: '%4'")).arg(beginstr).arg(row + 1).arg(index).arg(statement);
 			showError(errorMessage);
 		}
 	}
@@ -1215,7 +1215,7 @@ void Lexer::checkSingleRowPairs(const QString& beginstr, const QString& endstr, 
 		for (int index : unpairedIndices)
 		{
 			QString statement = tokenmaps[row].value(0).data.toString().simplified();
-			QString errorMessage = QString(QObject::tr("Unpaired '%1' at row %2, index %3: '%4'")).arg(endstr).arg(row).arg(index).arg(statement);
+			QString errorMessage = QString(QObject::tr("Unpaired '%1' at row %2, index %3: '%4'")).arg(endstr).arg(row + 1).arg(index).arg(statement);
 			showError(errorMessage);
 		}
 	}

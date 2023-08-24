@@ -241,6 +241,33 @@ void luadebug::getPackagePath(const QString base, QStringList* result)
 	}
 }
 
+void luadebug::logExport(const sol::this_state& s, const QStringList& datas, qint64 color)
+{
+	for (const QString& data : datas)
+	{
+		logExport(s, data, color);
+	}
+}
+
+void luadebug::logExport(const sol::this_state& s, const QString& data, qint64 color)
+{
+
+	//打印當前時間
+	const QDateTime time(QDateTime::currentDateTime());
+	const QString timeStr(time.toString("hh:mm:ss:zzz"));
+	QString msg = "\0";
+	QString src = "\0";
+
+	qint64 currentline = getCurrentLine(s);
+
+	msg = (QString("[%1 | @%2]: %3\0") \
+		.arg(timeStr)
+		.arg(currentline + 1, 3, 10, QLatin1Char(' ')).arg(data));
+
+	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
+	emit signalDispatcher.appendScriptLog(msg, color);
+}
+
 //根據傳入function的循環執行結果等待超時或條件滿足提早結束
 bool luadebug::waitfor(const sol::this_state& s, qint64 timeout, std::function<bool()> exprfun)
 {
@@ -381,38 +408,36 @@ void CLua::open_testlibs()
 //luasystem.cpp
 void CLua::open_systemlibs()
 {
-	sol::usertype<CLuaSystem> sys = lua_.new_usertype<CLuaSystem>("System",
-		sol::call_constructor,
-		sol::constructors<CLuaSystem()>(),
+	lua_.set_function("sleep", &CLuaSystem::sleep, &luaSystem_);
+	lua_.set_function("printf", &CLuaSystem::announce, &luaSystem_);
+	lua_.safe_script("print = printf");
 
-		"sleep", &CLuaSystem::sleep,
-		"logout", &CLuaSystem::logout,
-		"logback", &CLuaSystem::logback,
-		"eo", &CLuaSystem::eo,
-		"print", sol::overload(
-			sol::resolve<lua_Integer(sol::object ostr, sol::this_state s)>(&CLuaSystem::announce),
-			sol::resolve<lua_Integer(sol::object ostr, lua_Integer color, sol::this_state s)>(&CLuaSystem::announce),
-			sol::resolve<lua_Integer(std::string format, sol::object ostr, lua_Integer color, sol::this_state s)>(&CLuaSystem::announce)
-		),
+	//sol::usertype<CLuaSystem> sys = lua_.new_usertype<CLuaSystem>("System",
+	//	sol::call_constructor,
+	//	sol::constructors<CLuaSystem()>(),
 
-		"msg", &CLuaSystem::messagebox,
-		"say", &CLuaSystem::talk,
-		"cls", &CLuaSystem::cleanchat,
-		"menu", sol::overload(
-			sol::resolve<lua_Integer(lua_Integer index, sol::this_state s)>(&CLuaSystem::menu),
-			sol::resolve<lua_Integer(lua_Integer type, lua_Integer index, sol::this_state s)>(&CLuaSystem::menu)
-		),
+	//	"logout", &CLuaSystem::logout,
+	//	"logback", &CLuaSystem::logback,
+	//	"eo", &CLuaSystem::eo,
 
-		"saveset", &CLuaSystem::savesetting,
-		"loadset", &CLuaSystem::loadsetting,
-		"button", sol::overload(
-			sol::resolve<lua_Integer(const std::string & buttonStr, sol::object onpcName, sol::object odlgId, sol::this_state s)>(&CLuaSystem::press),
-			sol::resolve<lua_Integer(lua_Integer row, sol::object onpcName, sol::object odlgId, sol::this_state s)>(&CLuaSystem::press)
-		),
+	//	"msg", &CLuaSystem::messagebox,
+	//	"say", &CLuaSystem::talk,
+	//	"cls", &CLuaSystem::cleanchat,
+	//	"menu", sol::overload(
+	//		sol::resolve<lua_Integer(lua_Integer index, sol::this_state s)>(&CLuaSystem::menu),
+	//		sol::resolve<lua_Integer(lua_Integer type, lua_Integer index, sol::this_state s)>(&CLuaSystem::menu)
+	//	),
 
-		"input", &CLuaSystem::input,
-		"set", &CLuaSystem::set
-	);
+	//	"saveset", &CLuaSystem::savesetting,
+	//	"loadset", &CLuaSystem::loadsetting,
+	//	"button", sol::overload(
+	//		sol::resolve<lua_Integer(const std::string & buttonStr, sol::object onpcName, sol::object odlgId, sol::this_state s)>(&CLuaSystem::press),
+	//		sol::resolve<lua_Integer(lua_Integer row, sol::object onpcName, sol::object odlgId, sol::this_state s)>(&CLuaSystem::press)
+	//	),
+
+	//	"input", &CLuaSystem::input,
+	//	"set", &CLuaSystem::set
+	//);
 }
 
 void CLua::proc()
@@ -423,6 +448,7 @@ void CLua::proc()
 			break;
 
 		lua_State* L = lua_.lua_state();
+		sol::this_state s = L;
 
 		lua_.set("_THIS", this);// 將this指針傳給lua設置全局變量
 		lua_.set("_THIS_PARENT", parent_);// 將父類指針傳給lua設置全局變量
@@ -443,7 +469,7 @@ void CLua::proc()
 		);
 
 		open_enumlibs();
-		open_testlibs();
+		//open_testlibs();
 		open_systemlibs();
 
 		//執行短腳本
@@ -451,9 +477,6 @@ void CLua::proc()
 			collectgarbage("setpause", 100)
 			collectgarbage("setstepmul", 100);
 			collectgarbage("step", 1024);
-
-			sys = System();
-			print = sys:print;
 		)");
 
 		//Add additional package path.
@@ -544,6 +567,10 @@ void CLua::proc()
 		}
 		else
 		{
+#ifdef _DEBUG
+			isDebug_ = true;
+#endif
+
 			if (isDebug_)
 			{
 				//get script return value
@@ -566,9 +593,9 @@ void CLua::proc()
 				{
 					tableStrs << QString("> (boolean)%1").arg(retObject.as<bool>() ? "true" : "false");
 				}
-				else if (retObject.is<int>())
+				else if (retObject.is<qint64>())
 				{
-					tableStrs << "> (integer)" + QString::number(retObject.as<int>());
+					tableStrs << "> (integer)" + QString::number(retObject.as<qint64>());
 
 				}
 				else if (retObject.is<double>())
@@ -577,7 +604,7 @@ void CLua::proc()
 				}
 				else if (retObject.is<std::string>())
 				{
-					tableStrs << "> (string)" + QString::fromUtf8(retObject.as<const char*>());
+					tableStrs << "> (string)" + QString::fromUtf8(retObject.as<std::string>().c_str());
 				}
 				else if (retObject == sol::lua_nil)
 				{
@@ -594,15 +621,15 @@ void CLua::proc()
 						sol::object val = it.second;
 						if (!key.valid() || !val.valid()) continue;
 						if (!key.is<std::string>() && !key.is<int>()) continue;
-						QString qkey = key.is<std::string>() ? QString::fromUtf8(key.as<const char*>()) : QString::number(key.as<int>());
+						QString qkey = key.is<std::string>() ? QString::fromUtf8(key.as<std::string>().c_str()) : QString::number(key.as<int>());
 
 						if (val.is<bool>())
 						{
 							tableStrs << QString(R"(>     ["%1"] = (boolean)%2,)").arg(qkey).arg(val.as<bool>() ? "true" : "false");
 						}
-						else if (val.is<int>())
+						else if (val.is<qint64>())
 						{
-							tableStrs << QString(R"(>     ["%1"] = (integer)%2,)").arg(qkey).arg(val.as<int>());
+							tableStrs << QString(R"(>     ["%1"] = (integer)%2,)").arg(qkey).arg(val.as<qint64>());
 						}
 						else if (val.is<double>())
 						{
@@ -610,7 +637,7 @@ void CLua::proc()
 						}
 						else if (val.is<std::string>())
 						{
-							tableStrs << QString(R"(>     ["%1"] = (string)%2,)").arg(qkey).arg(QString::fromUtf8(val.as<const char*>()));
+							tableStrs << QString(R"(>     ["%1"] = (string)%2,)").arg(qkey).arg(QString::fromUtf8(val.as<std::string>().c_str()));
 						}
 						else if (val.is<sol::table>())
 						{
@@ -632,7 +659,7 @@ void CLua::proc()
 			}
 		}
 
-		//QLuaDebuger::logMessageExportEx(s, table);
+		luadebug::logExport(s, tableStrs, 0);
 	} while (false);
 
 	emit finished();
