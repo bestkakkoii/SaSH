@@ -26,6 +26,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "form/afkform.h"
 #include "form/otherform.h"
 #include "form/scriptform.h"
+#include "form/luascriptform.h"
 #include "form/infoform.h"
 #include "form/mapwidget.h"
 
@@ -740,6 +741,12 @@ MainForm::MainForm(QWidget* parent)
 		{
 			ui.tabWidget_main->addTab(pScriptForm_, tr("script"));
 		}
+
+		pLuaScriptForm_ = new LuaScriptForm;
+		if (pLuaScriptForm_)
+		{
+			ui.tabWidget_main->addTab(pLuaScriptForm_, tr("lua"));
+		}
 	}
 
 	resetControlTextLanguage();
@@ -979,7 +986,7 @@ void MainForm::resetControlTextLanguage()
 	default:
 		translator_.load(QString("%1/translations/qt_en_US.qm").arg(util::applicationDirPath()));
 		break;
-	}
+}
 #else
 	switch (acp)
 	{

@@ -534,7 +534,7 @@
     <name>CLua</name>
     <message>
         <source>========== lua error result with an EXCEPTION ==========</source>
-        <translation type="unfinished"></translation>
+        <translation>========== lua 因錯誤而拋出異常 ==========</translation>
     </message>
     <message>
         <source>&gt; lua script stop by flag change to false</source>
@@ -558,31 +558,31 @@
     </message>
     <message>
         <source>&gt; message: </source>
-        <translation type="unfinished"></translation>
+        <translation>&gt; 訊息: </translation>
     </message>
     <message>
         <source>========== lua script stop with an ERROR ==========</source>
-        <translation type="unfinished"></translation>
+        <translation>========== lua 因錯誤而停止 ==========</translation>
     </message>
     <message>
         <source>&gt; reason: </source>
-        <translation type="unfinished"></translation>
+        <translation>&gt; 原因: </translation>
     </message>
     <message>
         <source>========== lua script normally end ==========</source>
-        <translation type="unfinished"></translation>
+        <translation>========== lua 正常結束 ==========</translation>
     </message>
     <message>
         <source>&gt; return value:</source>
-        <translation type="unfinished"></translation>
+        <translation>&gt; 返回值:</translation>
     </message>
     <message>
         <source>========== lua normal result with EXCEPTION ==========</source>
-        <translation type="unfinished"></translation>
+        <translation>========== lua 正常退出但拋出異常 ==========</translation>
     </message>
     <message>
         <source>&gt; (unknown type of data)</source>
-        <translation type="unfinished"></translation>
+        <translation>&gt; (未知的類型)</translation>
     </message>
 </context>
 <context>
@@ -1248,6 +1248,60 @@
     </message>
 </context>
 <context>
+    <name>LuaScriptForm</name>
+    <message>
+        <source>resume</source>
+        <translation>恢復</translation>
+    </message>
+    <message>
+        <source>pause</source>
+        <translation>暫停</translation>
+    </message>
+    <message>
+        <source>start</source>
+        <translation>開始</translation>
+    </message>
+    <message>
+        <source>command</source>
+        <translation>指令</translation>
+    </message>
+    <message>
+        <source>params</source>
+        <translation>內容</translation>
+    </message>
+</context>
+<context>
+    <name>LuaScriptFormClass</name>
+    <message>
+        <source>LuaScriptForm</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>refresh</source>
+        <translation>刷新腳本列表</translation>
+    </message>
+    <message>
+        <source>row:</source>
+        <translation>行:</translation>
+    </message>
+    <message>
+        <source>content</source>
+        <translation>內容</translation>
+    </message>
+    <message>
+        <source>start</source>
+        <translation>開始</translation>
+    </message>
+    <message>
+        <source>pause</source>
+        <translation>暫停</translation>
+    </message>
+    <message>
+        <source>stop</source>
+        <translation>停止</translation>
+    </message>
+</context>
+<context>
     <name>MailInfoFormClass</name>
     <message>
         <source>MailInfoForm</source>
@@ -1571,6 +1625,10 @@ Update process will cause all the games to be closed, are you sure to continue?<
 No new version available. Do you still want to update?</source>
         <translation>當前版本:%1
 沒有找到新版本，您還要繼續更新嗎?</translation>
+    </message>
+    <message>
+        <source>lua</source>
+        <translation></translation>
     </message>
 </context>
 <context>
@@ -2749,11 +2807,11 @@ No new version available. Do you still want to update?</source>
     </message>
     <message>
         <source>invalid value type</source>
-        <translation type="unfinished"></translation>
+        <translation>數值類型不合法</translation>
     </message>
     <message>
         <source>invalid value of &apos;type&apos;</source>
-        <translation type="unfinished"></translation>
+        <translation>&apos;type&apos; 數值不合法</translation>
     </message>
     <message>
         <source>FLAG_DETECT_STOP</source>
@@ -2793,11 +2851,19 @@ No new version available. Do you still want to update?</source>
     </message>
     <message>
         <source>lua error: %1</source>
-        <translation type="unfinished"></translation>
+        <translation>lua 錯誤: %1</translation>
     </message>
     <message>
         <source>%1 day %2 hour %3 min %4 sec</source>
         <translation>%1 日 %2 時 %3 分 %4 秒</translation>
+    </message>
+    <message>
+        <source>server not ready</source>
+        <translation>服務端未準備完成</translation>
+    </message>
+    <message>
+        <source>invalid value of &apos;color&apos;</source>
+        <translation>數值 &apos;color&apos; 不合法</translation>
     </message>
 </context>
 <context>
@@ -4063,19 +4129,19 @@ No new version available. Do you still want to update?</source>
     </message>
     <message>
         <source>delch</source>
-        <translation type="unfinished"></translation>
+        <translation></translation>
     </message>
     <message>
         <source>createch</source>
-        <translation type="unfinished"></translation>
+        <translation></translation>
     </message>
     <message>
         <source>const</source>
-        <translation type="unfinished"></translation>
+        <translation></translation>
     </message>
     <message>
         <source>doffstone</source>
-        <translation type="unfinished"></translation>
+        <translation></translation>
     </message>
 </context>
 <context>

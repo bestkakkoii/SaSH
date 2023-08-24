@@ -280,6 +280,7 @@ public:
 	qint64 move(qint64 x, qint64 y, sol::this_state s);
 	qint64 packetMove(qint64 x, qint64 y, std::string sdir, sol::this_state s);
 	qint64 teleport(sol::this_state s);
+	qint64 findPath(qint64 x, qint64 y, qint64 len, qint64 timeout, sol::object ofunction, sol::object ocallbackSpeed, sol::this_state s);
 };
 
 class CLuaBattle
@@ -312,6 +313,7 @@ public:
 
 	void start();
 	void wait();
+	inline bool isRunning() const { return isRunning_.load(std::memory_order_acquire) && !isInterruptionRequested(); }
 
 signals:
 	void finished();
@@ -340,6 +342,7 @@ private:
 	QString scriptContent_;
 	bool isSubScript_ = false;
 	bool isDebug_ = false;
+	std::atomic_bool isRunning_ = false;
 
 private:
 	CLuaSystem luaSystem_;

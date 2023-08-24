@@ -188,7 +188,19 @@ bool CLuaUtil::getCard(sol::table dstTable, sol::this_state s)
 
 	for (int i = 0; i < MAX_ADR_BOOK; ++i)
 	{
+		ADDRESS_BOOK adrBook = injector.server->getAddressBook(i);
 
+		if (!dstTable[i + 1].is<sol::table>())
+			dstTable[i + 1] = lua.create_table();
+
+		dstTable[i + 1]["index"] = i + 1;
+		dstTable[i + 1]["valid"] = adrBook.useFlag == 1;
+		dstTable[i + 1]["online"] = adrBook.onlineFlag == 1;
+		dstTable[i + 1]["lv"] = adrBook.level;
+		dstTable[i + 1]["turn"] = adrBook.transmigration;
+		dstTable[i + 1]["dp"] = adrBook.dp;
+		dstTable[i + 1]["modelid"] = adrBook.graNo;
+		dstTable[i + 1]["name"] = adrBook.name.toUtf8().constData();
 	}
 
 	return TRUE;
@@ -257,6 +269,7 @@ bool CLuaUtil::getUnit(sol::table dstTable, sol::this_state s)
 		if (!dstTable[i + 1].is<sol::table>())
 			dstTable[i + 1] = lua.create_table();
 
+		dstTable[i + 1]["index"] = i + 1;
 		dstTable[i + 1]["unitid"] = unit.id;
 		dstTable[i + 1]["modelid"] = unit.graNo;
 		dstTable[i + 1]["x"] = unit.x;
@@ -313,6 +326,7 @@ bool CLuaUtil::getBattleUnit(sol::table dstTable, sol::this_state s)
 
 		battleobject_t battleObject = battleObjects[i];
 
+		dstTable[i + 1]["index"] = i + 1;
 		dstTable[i + 1]["pos"] = battleObject.pos;
 		dstTable[i + 1]["name"] = battleObject.name.toUtf8().constData();
 		dstTable[i + 1]["freename"] = battleObject.freename.toUtf8().constData();
@@ -346,7 +360,15 @@ bool CLuaUtil::getDaily(sol::table dstTable, sol::this_state s)
 
 	for (int i = 0; i < MAX_MISSION; ++i)
 	{
+		JOBDAILY jobDaily = injector.server->getJobDaily(i);
 
+		if (!dstTable[i + 1].is<sol::table>())
+			dstTable[i + 1] = lua.create_table();
+
+		dstTable[i + 1]["index"] = i + 1;
+		dstTable[i + 1]["id"] = jobDaily.JobId;
+		dstTable[i + 1]["explain"] = jobDaily.explain.toUtf8().constData();
+		dstTable[i + 1]["state"] = jobDaily.state.toUtf8().constData();
 	}
 
 	return TRUE;
@@ -371,6 +393,7 @@ bool CLuaUtil::getItem(sol::table dstTable, sol::this_state s)
 		if (!dstTable[i + 1].is<sol::table>())
 			dstTable[i + 1] = lua.create_table();
 
+		dstTable[i + 1]["index"] = i + 1;
 		dstTable[i + 1]["color"] = item.color;
 		dstTable[i + 1]["modelid"] = item.graNo;
 		dstTable[i + 1]["lv"] = item.level;
@@ -419,6 +442,7 @@ bool CLuaUtil::getSkill(sol::table dstTable, sol::this_state s)
 		if (!dstTable[i + 1].is<sol::table>())
 			dstTable[i + 1] = lua.create_table();
 
+		dstTable[i + 1]["index"] = i + 1;
 		dstTable[i + 1]["valid"] = skill.useFlag == 1;
 		dstTable[i + 1]["id"] = skill.skillId;
 		dstTable[i + 1]["target"] = skill.target;
@@ -450,6 +474,7 @@ bool CLuaUtil::getMagic(sol::table dstTable, sol::this_state s)
 		if (!dstTable[i + 1].is<sol::table>())
 			dstTable[i + 1] = lua.create_table();
 
+		dstTable[i + 1]["index"] = i + 1;
 		dstTable[i + 1]["valid"] = magic.useFlag == 1;
 		dstTable[i + 1]["costmp"] = magic.mp;
 		dstTable[i + 1]["field"] = magic.field;

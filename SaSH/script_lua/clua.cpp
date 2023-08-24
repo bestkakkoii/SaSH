@@ -233,8 +233,12 @@ void luadebug::hookProc(lua_State* L, lua_Debug* ar)
 	case LUA_HOOKLINE:
 	{
 		//進入新行
+		sol::state_view lua(s.lua_state());
+		qint64 currentLine = ar->currentline;
+		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
+		qint64 max = lua["_ROWCOUNT"];
+		emit signalDispatcher.scriptLabelRowTextChanged(currentLine, max, false);
 		luadebug::checkStopAndPause(s);
-
 		break;
 	}
 	default:
@@ -453,7 +457,10 @@ void CLua::open_syslibs()
 {
 	lua_.set_function("sleep", &CLuaSystem::sleep, &luaSystem_);
 	lua_.set_function("printf", &CLuaSystem::announce, &luaSystem_);
-	lua_.safe_script("print = printf");
+	lua_.safe_script(R"(
+		_print = print;
+		print = printf;
+	)");
 
 	lua_.set_function("msg", &CLuaSystem::messagebox, &luaSystem_);
 	lua_.set_function("saveset", &CLuaSystem::savesetting, &luaSystem_);
@@ -567,9 +574,10 @@ void CLua::open_maplibs()
 			sol::resolve<qint64(qint64, qint64, sol::this_state) >(&CLuaMap::setDir),
 			sol::resolve<qint64(std::string, sol::this_state) >(&CLuaMap::setDir)
 		),
-		"setState", &CLuaMap::move,
-		"setState", &CLuaMap::packetMove,
-		"teleport", &CLuaMap::teleport
+		"move", &CLuaMap::move,
+		"packetMove", &CLuaMap::packetMove,
+		"teleport", &CLuaMap::teleport,
+		"findPath", &CLuaMap::findPath
 	);
 
 	lua_.safe_script(R"(
@@ -607,12 +615,15 @@ void CLua::proc()
 		if (scriptContent_.simplified().isEmpty())
 			break;
 
+		isRunning_.store(true, std::memory_order_release);
+
 		lua_State* L = lua_.lua_state();
 		sol::this_state s = L;
 
 		lua_.set("_THIS", this);// 將this指針傳給lua設置全局變量
 		lua_.set("_THIS_PARENT", parent_);// 將父類指針傳給lua設置全局變量
 		lua_.set("_INDEX", index_);
+		lua_.set("_ROWCOUNT", scriptContent_.split("\n").size());
 
 		//打開lua原生庫
 		lua_.open_libraries(
@@ -828,5 +839,6 @@ void CLua::proc()
 		luadebug::logExport(s, tableStrs, 0);
 	} while (false);
 
+	isRunning_.store(false, std::memory_order_release);
 	emit finished();
 }

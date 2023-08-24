@@ -450,6 +450,7 @@ public://actions
 		QReadLocker locker(&battleDataLocker);
 		return battleData;
 	}
+	JOBDAILY getJobDaily(int index) const { return jobdaily[index]; }
 
 	Q_REQUIRED_RESULT int findInjuriedAllie();
 	void refreshItemInfo();

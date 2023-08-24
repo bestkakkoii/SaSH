@@ -32,6 +32,7 @@ class MapForm;
 class AfkForm;
 class OtherForm;
 class ScriptForm;
+class LuaScriptForm;
 
 class InfoForm;
 class MapWidget;
@@ -92,6 +93,7 @@ private:
 	AfkForm* pAfkForm_ = nullptr;
 	OtherForm* pOtherForm_ = nullptr;
 	ScriptForm* pScriptForm_ = nullptr;
+	LuaScriptForm* pLuaScriptForm_ = nullptr;
 
 	int interfaceCount_ = 0;
 

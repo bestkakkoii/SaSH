@@ -347,6 +347,45 @@ QList<util::MapData> util::Config::readMapData(const QString& key) const
 	return result;
 }
 
+QFileInfoList util::loadAllFileLists(TreeWidgetItem* root, const QString& path, const QString& suffix, const QString& icon, QStringList* list)
+{
+	/*添加path路徑文件*/
+	QDir dir(path); //遍歷各級子目錄
+	QDir dir_file(path); //遍歷子目錄中所有文件
+	dir_file.setFilter(QDir::Files | QDir::Hidden | QDir::NoSymLinks); //獲取當前所有文件
+	dir_file.setSorting(QDir::Size | QDir::Reversed);
+	const QStringList filters = { QString("*%1").arg(suffix) };
+	dir_file.setNameFilters(filters);
+	QFileInfoList list_file = dir_file.entryInfoList();
+	for (const QFileInfo& item : list_file)
+	{ //將當前目錄中所有文件添加到treewidget中
+		if (list)
+			list->append(item.fileName());
+		TreeWidgetItem* child = q_check_ptr(new TreeWidgetItem(QStringList{ item.fileName() }, 1));
+		child->setIcon(0, QIcon(QPixmap(icon)));
+
+		root->addChild(child);
+	}
+
+	QFileInfoList file_list = dir.entryInfoList(QDir::Files | QDir::Hidden | QDir::NoSymLinks);
+	const QFileInfoList folder_list = dir.entryInfoList(QDir::Dirs | QDir::NoDotAndDotDot); //獲取當前所有目錄
+	int count = folder_list.size();
+	for (int i = 0; i != count; ++i) //自動遞歸添加各目錄到上一級目錄
+	{
+		const QString namepath = folder_list.at(i).absoluteFilePath(); //獲取路徑
+		const QFileInfo folderinfo = folder_list.at(i);
+		const QString name = folderinfo.fileName(); //獲取目錄名
+		if (list)
+			list->append(name);
+		TreeWidgetItem* childroot = q_check_ptr(new TreeWidgetItem(QStringList{ name }, 0));
+		childroot->setIcon(0, QIcon(QPixmap(":/image/icon_directory.png")));
+		root->addChild(childroot); //將當前目錄添加成path的子項
+		const QFileInfoList child_file_list = loadAllFileLists(childroot, namepath, suffix, icon, list); //遞歸添加子目錄
+		file_list.append(child_file_list);
+	}
+	return file_list;
+}
+
 QFileInfoList util::loadAllFileLists(TreeWidgetItem* root, const QString& path, QStringList* list)
 {
 	/*添加path路徑文件*/

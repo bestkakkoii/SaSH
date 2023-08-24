@@ -161,6 +161,7 @@
     <ClCompile Include="form\generalform.cpp" />
     <ClCompile Include="form\infoform.cpp" />
     <ClCompile Include="form\iteminfoform.cpp" />
+    <ClCompile Include="form\luascriptform.cpp" />
     <ClCompile Include="form\mailinfoform.cpp" />
     <ClCompile Include="form\mapform.cpp" />
     <ClCompile Include="form\mapwidget.cpp" />
@@ -236,6 +237,7 @@
     <QtMoc Include="form\mapwidget.h" />
     <QtMoc Include="form\mapform.h" />
     <QtMoc Include="form\replaceform.h" />
+    <QtMoc Include="form\luascriptform.h" />
     <ClInclude Include="injector.h" />
     <ClInclude Include="map\astar.h" />
     <ClInclude Include="map\mapanalyzer.h" />
@@ -272,6 +274,7 @@
     <QtUic Include="form\generalform.ui" />
     <QtUic Include="form\infoform.ui" />
     <QtUic Include="form\iteminfoform.ui" />
+    <QtUic Include="form\luascriptform.ui" />
     <QtUic Include="form\mailinfoform.ui" />
     <QtUic Include="form\mapform.ui" />
     <QtUic Include="form\mapwidget.ui" />

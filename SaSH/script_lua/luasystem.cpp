@@ -33,8 +33,7 @@ qint64 CLuaSystem::sleep(qint64 t, sol::this_state s)
 		for (; i < size; ++i)
 		{
 			QThread::msleep(1000UL);
-			if (luadebug::isInterruptionRequested(s))
-				return FALSE;
+			luadebug::checkStopAndPause(s);
 		}
 
 		if (i % 1000 > 0)
@@ -95,6 +94,7 @@ qint64 CLuaSystem::eo(sol::this_state s)
 //這裡還沒想好format格式怎麼設計，暫時先放著
 qint64 CLuaSystem::announce(sol::object ostr, sol::object ocolor, sol::this_state s)
 {
+	sol::state_view lua(s);
 	QString text;
 	if (ostr.is<qint64>())
 		text = QString::number(ostr.as<qint64>());
@@ -141,6 +141,10 @@ qint64 CLuaSystem::announce(sol::object ostr, sol::object ocolor, sol::this_stat
 	}
 
 	Injector& injector = Injector::getInstance();
+	sol::safe_function print = lua["_print"];
+	if (print.valid())
+		print(text.toUtf8().constData());
+
 	luadebug::logExport(s, text, color);
 	if (color != -2 && !injector.server.isNull())
 	{
