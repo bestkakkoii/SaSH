@@ -1,6 +1,6 @@
 ﻿/*
-				GNU GENERAL PUBLIC LICENSE
-				   Version 2, June 1991
+			   GNU GENERAL PUBLIC LICENSE
+				  Version 2, June 1991
 COPYRIGHT (C) Bestkakkoii 2023 All Rights Reserved.
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -1669,11 +1669,17 @@ bool __fastcall MapAnalyzer::loadFromBinary(int floor, map_t* _map)
 	if (!floor)
 		return false;
 
+	extern int g_CurrentListIndex;
+	const QString dirPath(QString("%1/map/%2").arg(util::applicationDirPath()).arg(g_CurrentListIndex));
+	QDir dir(dirPath);
+	if (!dir.exists())
+		dir.mkdir(dirPath);
 
-	const QString fileName(util::applicationDirPath() + "/map/" + QString::number(floor) + ".dat");
-	if (!QFile::exists(fileName)) return false;
+	const QString fileName(QString("%1/%2.dat").arg(dirPath).arg(floor));
+	if (!QFile::exists(fileName))
+		return false;
 
-	std::string f(fileName.toStdString());
+	std::string f = fileName.toUtf8().constData();
 	std::ifstream ifs(f, std::ios::binary | std::ios::in);
 	if (!ifs.is_open())
 	{
@@ -1744,15 +1750,17 @@ bool __fastcall MapAnalyzer::saveAsBinary(map_t map, const QString& fileName)
 	QString newFileName(fileName);
 	if (fileName.isEmpty())
 	{
-		QDir dir(util::applicationDirPath() + "/map");
+		extern int g_CurrentListIndex;
+		const QString dirPath(QString("%1/map/%2").arg(util::applicationDirPath()).arg(g_CurrentListIndex));
+		QDir dir(dirPath);
 		if (!dir.exists())
-			dir.mkpath(dir.absolutePath());
+			dir.mkdir(dirPath);
 
-		newFileName = dir.absolutePath() + "/" + QString::number(map.floor) + ".dat";
+		newFileName = QString("%1/%2.dat").arg(dirPath).arg(map.floor);
 	}
 
 	//write to binary file
-	std::string f = newFileName.toStdString();
+	std::string f = newFileName.toUtf8().constData();
 	std::ofstream ofs(f, std::ios::binary | std::ios::out | std::ios::trunc);
 	if (!ofs.is_open())
 	{

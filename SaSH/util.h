@@ -1598,22 +1598,7 @@ namespace util
 		int y = 0;
 	};
 
-	static inline QString getPointFileName()
-	{
-		UINT acp = ::GetACP();
-		if (acp == 950)
-		{
-			return (util::applicationDirPath() + QString("/map/point_zh_TW.json"));
-		}
-		else if (acp == 936)
-		{
-			return (util::applicationDirPath() + QString("/map/point_zh_CN.json"));
-		}
-		else
-		{
-			return (util::applicationDirPath() + QString("/map/point.json"));
-		}
-	}
+	QString getPointFileName();
 
 	//Json配置讀寫
 	class Config
