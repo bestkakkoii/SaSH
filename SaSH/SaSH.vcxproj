@@ -196,7 +196,9 @@
     <ClCompile Include="model\qthumbnailform.cpp" />
     <ClCompile Include="model\qthumbnailwidget.cpp" />
     <ClCompile Include="net\autil.cpp" />
+    <ClCompile Include="net\descrypt.cpp" />
     <ClCompile Include="net\lssproto.cpp" />
+    <ClCompile Include="net\macchanger.cpp" />
     <ClCompile Include="net\tcpserver.cpp" />
     <ClCompile Include="script\action.cpp" />
     <ClCompile Include="script\check.cpp" />
@@ -256,7 +258,9 @@
     <ClInclude Include="net\autil.h" />
     <QtMoc Include="script\interpreter.h" />
     <ClInclude Include="net\database.h" />
+    <ClInclude Include="net\descrypt.h" />
     <ClInclude Include="net\lssproto.h" />
+    <ClInclude Include="net\macchanger.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="resource1.h" />
     <ClInclude Include="script\lexer.h" />

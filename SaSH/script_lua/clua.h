@@ -118,6 +118,9 @@ namespace luadebug
 	static const QRegularExpression reGetLineEx(R"(\]:(\d+)(?=\s*:))");
 	Q_REQUIRED_RESULT QString getErrorMsgLocatedLine(const QString& str, int* retline);
 
+	QPair<QString, QString> getVars(lua_State*& L, int si, int depth);
+	QString getTableVars(lua_State*& L, int si, int depth);
+
 	void hookProc(lua_State* L, lua_Debug* ar);
 
 	void logExport(const sol::this_state& s, const QStringList& datas, qint64 color);

@@ -269,6 +269,8 @@ Server::Server(QObject* parent)
 	ayncBattleCommandSync.setCancelOnWait(true);
 
 	mapAnalyzer.reset(new MapAnalyzer);
+
+	Autil::PersonalKey.set("upupupupp");
 }
 
 Server::~Server()
@@ -345,7 +347,7 @@ void Server::clear()
 	}
 
 	// 清理 CHARLISTTABLE 数组中的每个元素
-	for (int i = 0; i < MAXCHARACTER; ++i)
+	for (int i = 0; i < MAX_CHARACTER; ++i)
 	{
 		chartable[i] = {};
 	}
@@ -1481,6 +1483,12 @@ int Server::getUnloginStatus()
 		setOnlineFlag(false);
 		emit signalDispatcher.updateStatusLabelTextChanged(util::kLabelStatusTimeout);
 		return util::kStatusTimeout;//逾時
+	}
+	else if (6 == W && 101 == G)
+	{
+		setOnlineFlag(false);
+		emit signalDispatcher.updateStatusLabelTextChanged(util::kLabelStatusLoginFailed);
+		return util::kStatusLoginFailed;//逾時
 	}
 	else if (1 == W && 101 == G)
 	{
@@ -2746,7 +2754,7 @@ void Server::createCharacter(int dataplacenum
 
 void Server::deleteCharacter(int index, const QString password, bool backtofirst)
 {
-	if (index < 0 || index > MAXCHARACTER)
+	if (index < 0 || index > MAX_CHARACTER)
 		return;
 
 	if (!checkWG(3, 11))
@@ -2893,11 +2901,53 @@ void Server::logBack()
 	lssproto_CharLogout_send(1);
 }
 
+#include "macchanger.h"
+#include "descrypt.h"
+void Server::clientLogin(const QString& userName, const QString& password)
+{
+	std::string sname = util::fromUnicode(userName);
+	std::string spassword = util::fromUnicode(password);
+	MyMACAddr m;
+	std::string mac = m.GenRandMAC();
+	std::string ip = "192.168.1.1";
+	int serverIndex = 0;
+
+	char userId[32] = {};
+	char userPassword[32] = {};
+	//clientLoginStatus = 0;
+	_snprintf_s(userId, sizeof(userId), _TRUNCATE, "%s", sname.c_str());
+	//sacrypt::ecb_crypt("f;encor1c", userId, sizeof(userId), sacrypt::DES_DECRYPT);
+	_snprintf_s(userPassword, sizeof(userPassword), _TRUNCATE, "%s", spassword.c_str());
+	//sacrypt::ecb_crypt("f;encor1c", userPassword, sizeof(userPassword), sacrypt::DES_DECRYPT);
+
+	lssproto_ClientLogin_send(userId
+		, userPassword
+		, const_cast<char*>(mac.c_str())
+		, serverIndex
+		, const_cast<char*>(ip.c_str())
+		, WITH_CDKEY | WITH_PASSWORD | WITH_MACADDRESS);
+}
+
+void Server::playerLogin(int index)
+{
+	if (index < 0 || index >= MAX_CHARACTER)
+		return;
+
+	if (!chartable[index].valid)
+		return;
+
+	std::string name = util::fromUnicode(chartable[index].name);
+
+	lssproto_CharLogin_send(const_cast<char*>(name.c_str()));
+}
+
 //登入
 bool Server::login(int s)
 {
 	util::UnLoginStatus status = static_cast<util::UnLoginStatus>(s);
 	Injector& injector = Injector::getInstance();
+	HANDLE hProcess = injector.getProcess();
+	DWORD hModule = injector.getProcessModule();
 
 	int server = injector.getValueHash(util::kServerValue);
 	int subserver = injector.getValueHash(util::kSubServerValue);
@@ -2927,6 +2977,18 @@ bool Server::login(int s)
 	util::Config config(fileName);
 	switch (status)
 	{
+	case util::kStatusLoginFailed:
+	{
+		QList<int> list = config.readArray<int>("System", "Login", "LoginFailed");
+		if (list.size() == 2)
+			injector.leftDoubleClick(list.at(0), list.at(1));
+		else
+		{
+			injector.leftDoubleClick(315, 255);
+			config.writeArray<int>("System", "Login", "LoginFailed", { 315, 255 });
+		}
+		break;
+	}
 	case util::kStatusBusy:
 	{
 		QList<int> list = config.readArray<int>("System", "Login", "Busy");
@@ -2965,13 +3027,47 @@ bool Server::login(int s)
 	}
 	case util::kStatusInputUser:
 	{
-		Injector& injector = Injector::getInstance();
 		if (!account.isEmpty())
-			mem::writeString(injector.getProcess(), injector.getProcessModule() + kOffestAccount, account);
+			mem::writeString(hProcess, hModule + kOffestAccount, account);
 
 		if (!password.isEmpty())
-			mem::writeString(injector.getProcess(), injector.getProcessModule() + kOffestPassword, password);
+			mem::writeString(hProcess, hModule + kOffestPassword, password);
 
+		std::string saccount = util::fromUnicode(account);
+		std::string spassword = util::fromUnicode(password);
+
+#ifndef USE_MOUSE
+		if (account.isEmpty() || password.isEmpty())
+			break;
+
+		//sa_8001.exe+2086A - 09 09                 - or [ecx],ecx
+		char userAccount[32] = {};
+		char userPassword[32] = {};
+		_snprintf_s(userAccount, sizeof(userAccount), _TRUNCATE, "%s", saccount.c_str());
+		sacrypt::ecb_crypt("f;encor1c", userAccount, sizeof(userAccount), sacrypt::DES_DECRYPT);
+		_snprintf_s(userPassword, sizeof(userPassword), _TRUNCATE, "%s", spassword.c_str());
+		sacrypt::ecb_crypt("f;encor1c", userPassword, sizeof(userPassword), sacrypt::DES_DECRYPT);
+		mem::write(hProcess, hModule + kOffestAccountECB, userAccount, sizeof(userAccount));
+		mem::write(hProcess, hModule + kOffestPasswordECB, userPassword, sizeof(userPassword));
+
+		//sa_8001.exe+206F1 - 0F84 1A020000         - je sa_8001.exe+20911
+		mem::write<BYTE>(hProcess, hModule + 0x206F2, 0x84);//進入OK點擊事件
+
+		timer.restart();
+		for (;;)
+		{
+			QThread::msleep(100);
+			if (getWorldStatus() == 2)
+				break;
+			if (timer.hasExpired(1000))
+				break;
+
+		}
+
+		//sa_8001.exe+206F1 - 0F85 1A020000         - jne sa_8001.exe+20911
+		mem::write<BYTE>(hProcess, hModule + 0x206F2, 0x85);//還原OK點擊事件
+		Q_FALLTHROUGH();
+#else
 		QList<int> list = config.readArray<int>("System", "Login", "OK");
 		if (list.size() == 2)
 			injector.leftDoubleClick(list.at(0), list.at(1));
@@ -2981,9 +3077,38 @@ bool Server::login(int s)
 			config.writeArray<int>("System", "Login", "OK", { 380, 310 });
 		}
 		break;
+#endif
 	}
 	case util::kStatusSelectServer:
 	{
+		if (server < 0 && server >= 15)
+			break;
+#ifndef USE_MOUSE
+		/*
+		sa_8001.exe+21536 - B8 00000000           - mov eax,00000000 { 0 }
+		sa_8001.exe+2153B - EB 07                 - jmp sa_8001.exe+21544
+		sa_8001.exe+2153D - 90                    - nop
+		*/
+		BYTE code[8] = { 0xB8, static_cast<BYTE>(server), 0x00, 0x00, 0x00, 0xEB, 0x07, 0x90 };
+		mem::write(hProcess, hModule + 0x21536, code, sizeof(code));//進入伺服器點擊事件
+
+		timer.restart();
+		for (;;)
+		{
+			if (getGameStatus() == 3)
+				break;
+			if (timer.hasExpired(1000))
+				break;
+			QThread::msleep(100);
+		}
+
+		/*
+		sa_8001.exe+21536 - 0F8C 91000000         - jl sa_8001.exe+215CD
+		sa_8001.exe+2153C - 3B C1                 - cmp eax,ecx
+		*/
+		mem::write(hProcess, hModule + 0x21536, const_cast<char*>("\x0F\x8C\x91\x00\x00\x00\x3B\xC1"), 8);//還原伺服器點擊事件
+		Q_FALLTHROUGH();
+#else
 		constexpr int table[48] = {
 			0, 0, 0,
 			1, 0, 1,
@@ -3006,48 +3131,113 @@ bool Server::login(int s)
 			15, 3, 3,
 		};
 
-		if (server >= 0 && server < 15)
+		const int a = table[server * 3 + 1];
+		const int b = table[server * 3 + 2];
+
+		int x = 160 + (a * 125);
+		int y = 165 + (b * 25);
+
+		QList<int> list = config.readArray<int>("System", "Login", "SelectServer");
+		if (list.size() == 4)
 		{
-			const int a = table[server * 3 + 1];
-			const int b = table[server * 3 + 2];
+			x = list.at(0) + (a * list.at(1));
+			y = list.at(2) + (b * list.at(3));
+		}
+		else
+		{
+			config.writeArray<int>("System", "Login", "SelectServer", { 160, 125, 165, 25 });
+		}
 
-			int x = 160 + (a * 125);
-			int y = 165 + (b * 25);
-
-			QList<int> list = config.readArray<int>("System", "Login", "SelectServer");
-			if (list.size() == 4)
+		for (;;)
+		{
+			injector.mouseMove(x, y);
+			int value = mem::read<int>(injector.getProcess(), injector.getProcessModule() + kOffestMousePointedIndex);
+			if (value != -1)
 			{
-				x = list.at(0) + (a * list.at(1));
-				y = list.at(2) + (b * list.at(3));
+				injector.leftDoubleClick(x, y);
+				break;
 			}
-			else
-			{
-				config.writeArray<int>("System", "Login", "SelectServer", { 160, 125, 165, 25 });
-			}
+			x -= 5;
+			if (x <= 0)
+				break;
 
-			for (;;)
-			{
-				injector.mouseMove(x, y);
-				int value = mem::read<int>(injector.getProcess(), injector.getProcessModule() + kOffestMousePointedIndex);
-				if (value != -1)
-				{
-					injector.leftDoubleClick(x, y);
-					break;
-				}
-				x -= 5;
-				if (x <= 0)
-					break;
+			if (timer.hasExpired(1000))
+				break;
 
-				if (timer.hasExpired(1000))
-					break;
-
-			}
 		}
 		break;
+#endif
 	}
 	case util::kStatusSelectSubServer:
 	{
-		int serverIndex = mem::read<int>(injector.getProcess(), injector.getProcessModule() + kOffestServerIndex);
+		if (subserver < 0 || subserver >= 15)
+			break;
+
+		int serverIndex = mem::read<int>(hProcess, hModule + kOffestServerIndex);
+
+#ifndef USE_MOUSE
+		/*
+		sa_8001.exe+2186C - 8D 0C D2              - lea ecx,[edx+edx*8]
+		sa_8001.exe+2186F - C1 E1 03              - shl ecx,03 { 3 }
+
+		sa_8001.exe+21881 - 66 8B 89 2CEDEB04     - mov cx,[ecx+sa_8001.exe+4ABED2C]
+		sa_8001.exe+21888 - 66 03 C8              - add cx,ax
+
+		sa_8001.exe+2189B - 66 89 0D 88424C00     - mov [sa_8001.exe+C4288],cx { (23) }
+
+		*/
+
+		int ecxValue = serverIndex + (serverIndex * 8);
+		ecxValue <<= 3;
+		short cxValue = mem::read<short>(hProcess, ecxValue + hModule + 0x4ABED2C);
+		cxValue += static_cast<short>(subserver);
+
+		mem::write<short>(hProcess, hModule + 0xC4288, cxValue);//選擇伺服器+分流
+
+		/*
+		sa_8001.exe+2189B - 90                    - nop
+		sa_8001.exe+2189C - 90                    - nop
+		sa_8001.exe+2189D - 90                    - nop
+		sa_8001.exe+2189E - 90                    - nop
+		sa_8001.exe+2189F - 90                    - nop
+		sa_8001.exe+218A0 - 90                    - nop
+		sa_8001.exe+218A1 - 90                    - nop
+		*/
+		mem::write(hProcess, hModule + 0x2189B, const_cast<char*>("\x90\x90\x90\x90\x90\x90\x90"), 7);//防止被複寫
+
+		//sa_8001.exe+21A53 - 0FBF 05 88424C00      - movsx eax,word ptr [sa_8001.exe+C4288] { (0) } << 這裡決定最後登入的伺服器
+
+		/*
+		sa_8001.exe+21864 - BA 00000000           - mov edx,00000007 { 0 }
+		sa_8001.exe+21869 - 90                    - nop
+		sa_8001.exe+2186A - 90                    - nop
+		sa_8001.exe+2186B - 90                    - nop
+		*/
+		BYTE bser = static_cast<BYTE>(serverIndex) + 1ui8;
+		BYTE code[8] = { 0xBA, bser, 0x00, 0x00, 0x00, 0x90, 0x90, 0x90 };
+		mem::write(hProcess, hModule + 0x21864, code, sizeof(code));//進入分流點擊事件
+
+		timer.restart();
+		connectingTimer.restart();
+		for (;;)
+		{
+			if (getGameStatus() > 3)
+				break;
+			if (timer.hasExpired(1000))
+				break;
+			QThread::msleep(100);
+		}
+
+		/*
+		sa_8001.exe+21864 - 3B C6                 - cmp eax,esi
+		sa_8001.exe+21866 - 0F8C 97000000         - jl sa_8001.exe+21903
+		*/
+		mem::write(hProcess, hModule + 0x21864, const_cast<char*>("\x3B\xC6\x0F\x8C\x97\x00\x00\x00"), 8);//還原分流點擊事件
+
+		//sa_8001.exe+2189B - 66 89 0D 88424C00     - mov [sa_8001.exe+C4288],cx { (23) }
+		mem::write(hProcess, hModule + 0x2189B, const_cast<char*>("\x66\x89\x0D\x88\x42\x4C\x00"), 7);//還原複寫伺服器+分流
+		break;
+#else
 		if (server != serverIndex)
 		{
 			int x = 500;
@@ -3119,34 +3309,40 @@ bool Server::login(int s)
 					break;
 
 			}
-			connectingTimer.restart();
 		}
 		break;
+#endif
 	}
 	case util::kStatusSelectCharacter:
 	{
-		if (position >= 0 && position <= 1)
+		if (position < 0 && position >= MAX_CHARACTER)
+			break;
+
+		//#ifndef USE_MOUSE
+				//playerLogin(position);
+				//setGameStatus(1);
+				//setWorldStatus(5);
+				//QThread::msleep(1000);
+		//#else
+		int x = 100 + (position * 300);
+		int y = 340;
+
+		QList<int> list = config.readArray<int>("System", "Login", "SelectCharacter");
+		if (list.size() == 3)
 		{
-
-			int x = 100 + (position * 300);
-			int y = 340;
-
-			QList<int> list = config.readArray<int>("System", "Login", "SelectCharacter");
-			if (list.size() == 3)
-			{
-				x = list.at(0) + (position * list.at(1));
-				y = list.at(2);
-			}
-			else
-			{
-				config.writeArray<int>("System", "Login", "SelectCharacter", { 100, 300, 340 });
-			}
-
-			if (!chartable[position].valid)
-				break;
-
-			injector.leftDoubleClick(x, y);
+			x = list.at(0) + (position * list.at(1));
+			y = list.at(2);
 		}
+		else
+		{
+			config.writeArray<int>("System", "Login", "SelectCharacter", { 100, 300, 340 });
+		}
+
+		if (!chartable[position].valid)
+			break;
+
+		injector.leftDoubleClick(x, y);
+		//#endif
 		break;
 	}
 	case util::kStatusLogined:
@@ -3156,7 +3352,7 @@ bool Server::login(int s)
 	}
 	case util::kStatusConnecting:
 	{
-		if (connectingTimer.hasExpired(5000))
+		if (connectingTimer.hasExpired(3000))
 		{
 			setWorldStatus(7);
 			setGameStatus(0);
@@ -5107,7 +5303,8 @@ void Server::syncBattleAction()
 		petDoBattleWork();
 	}
 
-	lssproto_EO_send(0);
+	if (injector.getEnableHash(util::kBattleAutoEOEnable))
+		lssproto_EO_send(0);
 	isEnemyAllReady.store(false, std::memory_order_release);
 }
 
@@ -5212,7 +5409,9 @@ void Server::asyncBattleAction()
 		}
 
 		//这里不发的话一般战斗、和快战都不会再收到后续的封包 (应该?)
-		//lssproto_EO_send(0);
+		Injector& injector = Injector::getInstance();
+		if (injector.getEnableHash(util::kBattleAutoEOEnable))
+			lssproto_EO_send(0);
 		//lssproto_Echo_send(const_cast<char*>("hoge"));
 		isEnemyAllReady.store(false, std::memory_order_release);
 	};
@@ -12726,11 +12925,11 @@ void Server::lssproto_CharList_recv(char* cresult, char* cdata)
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
 	emit signalDispatcher.updateStatusLabelTextChanged(util::kLabelStatusGettingPlayerList);
 
-	for (i = 0; i < MAXCHARACTER; ++i)
+	for (i = 0; i < MAX_CHARACTER; ++i)
 		chartable[i] = {};
 
 	QVector<CHARLISTTABLE> vec;
-	for (i = 0; i < MAXCHARACTER; ++i)
+	for (i = 0; i < MAX_CHARACTER; ++i)
 	{
 		CHARLISTTABLE table = {};
 		nm.clear();
@@ -12751,7 +12950,7 @@ void Server::lssproto_CharList_recv(char* cresult, char* cdata)
 			if (args.size() < 13)
 				continue;
 			int index = args.at(0).toInt();
-			if (index >= 0 && index < MAXCHARACTER)
+			if (index >= 0 && index < MAX_CHARACTER)
 			{
 				table.valid = true;
 				table.name = nm;
@@ -12785,7 +12984,7 @@ void Server::lssproto_CharList_recv(char* cresult, char* cdata)
 	int size = vec.size();
 	for (i = 0; i < size; ++i)
 	{
-		if (i < 0 || i >= MAXCHARACTER)
+		if (i < 0 || i >= MAX_CHARACTER)
 			continue;
 
 		int index = vec.at(i).pos;

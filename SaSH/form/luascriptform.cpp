@@ -135,6 +135,9 @@ void LuaScriptForm::onScriptStarted()
 	if (injector.currentScriptFileName.isEmpty())
 		return;
 
+	if (!injector.currentScriptFileName.contains(util::SCRIPT_LUA_SUFFIX_DEFAULT))
+		return;
+
 	if (!clua_.isNull())
 	{
 		clua_->requestInterruption();
@@ -317,6 +320,9 @@ void LuaScriptForm::loadFile(const QString& fileName)
 	Injector& injector = Injector::getInstance();
 	QString content;
 	bool isPrivate = false;
+	if (!fileName.contains(util::SCRIPT_LUA_SUFFIX_DEFAULT))
+		return;
+
 	if (!util::readFile(fileName, &content, &isPrivate))
 		return;
 

@@ -577,7 +577,7 @@ qint64 Interpreter::delch(qint64 currentline, const TokenMap& TK)
 	if (!checkInteger(TK, 1, &index))
 		return Parser::kArgError + 1ll;
 	--index;
-	if (index < 0 || index > MAXCHARACTER)
+	if (index < 0 || index > MAX_CHARACTER)
 		return Parser::kArgError + 1ll;
 
 	QString password;

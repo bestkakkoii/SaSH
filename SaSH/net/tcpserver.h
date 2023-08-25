@@ -231,6 +231,9 @@ public://actions
 
 	bool login(int s);
 
+	void clientLogin(const QString& userName, const QString& password);
+	void playerLogin(int index);
+
 	QString getBadStatusString(unsigned int status);
 
 	QString getFieldString(unsigned int field);
@@ -728,7 +731,7 @@ private:
 
 	JOBDAILY jobdaily[MAX_MISSION] = {};
 
-	CHARLISTTABLE chartable[MAXCHARACTER] = {};
+	CHARLISTTABLE chartable[MAX_CHARACTER] = {};
 
 	short partyModeFlag = 0;
 	MAIL_HISTORY MailHistory[MAX_ADR_BOOK] = {};

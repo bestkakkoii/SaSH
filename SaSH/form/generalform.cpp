@@ -343,9 +343,11 @@ void GeneralForm::onButtonClicked()
 
 	if (name == "pushButton_pick")
 	{
-		injector.server->useMagic(CHAR_EQUIPPLACENUM, 0);
+		if (!injector.server.isNull())
+			injector.server->playerLogin(0);
 		return;
 	}
+
 	if (name == "pushButton_watch")
 	{
 
@@ -722,6 +724,12 @@ void GeneralForm::onCheckBoxStateChanged(int state)
 		return;
 	}
 
+	if (name == "checkBox_battleautoeo")
+	{
+		injector.setEnableHash(util::kBattleAutoEOEnable, isChecked);
+		return;
+	}
+
 	//shortcut switcher
 	if (name == "checkBox_switcher_team")
 	{
@@ -882,7 +890,7 @@ void GeneralForm::onApplyHashSettingsToUI()
 		int count = config.read<int>("System", "Server", "ListCount");
 		if (count <= 0)
 		{
-			count = 2;
+			count = 3;
 			config.write("System", "Server", "ListCount", count);
 		}
 
@@ -922,6 +930,11 @@ void GeneralForm::onApplyHashSettingsToUI()
 		ui.comboBox_position->setCurrentIndex(value);
 	else
 		ui.comboBox_position->setCurrentIndex(0);
+
+	if (enableHash.value(util::kWindowDockEnable))
+		ui.pushButton_dock->setText(tr("undock"));
+	else
+		ui.pushButton_dock->setText(tr("dock"));
 
 	ui.comboBox_locktime->setCurrentIndex(valueHash.value(util::kLockTimeValue));
 	ui.checkBox_autologin->setChecked(enableHash.value(util::kAutoLoginEnable));
@@ -965,6 +978,7 @@ void GeneralForm::onApplyHashSettingsToUI()
 	ui.checkBox_lockescape->setChecked(enableHash.value(util::kLockEscapeEnable));
 	ui.checkBox_battletimeextend->setChecked(enableHash.value(util::kBattleTimeExtendEnable));
 	ui.checkBox_falldownescape->setChecked(enableHash.value(util::kFallDownEscapeEnable));
+	ui.checkBox_battleautoeo->setChecked(enableHash.value(util::kBattleAutoEOEnable));
 
 	//switcher
 	ui.checkBox_switcher_team->setChecked(enableHash.value(util::kSwitcherTeamEnable));
@@ -1063,8 +1077,29 @@ void GeneralForm::createServerList()
 				"12|22线∥会员专线|电信会员22线, 联通会员22线, 移动会员22线, 海外会员22线",
 			};
 
-			list = currentListIndex == 0 ? defaultListSO : defaultListSE;
-			config.writeArray<QString>("System", "Server", QString("List_%1").arg(currentListIndex), list);
+			static const QStringList defaultListXGSA = {
+				"1|满天星|电信线路, 网通线路",
+				"2|薰衣草|电信线路, 网通线路",
+				"3|紫罗兰|电信线路, 网通线路",
+				"4|风信子|电信线路, 网通线路",
+				"5|待宵草|电信线路, 网通线路",
+				"6|欧薄菏|电信线路, 网通线路",
+				"7|车前草|电信线路, 网通线路",
+				"8|石竹花|电信线路, 网通线路",
+				"9|勿忘我|电信线路, 网通线路",
+			};
+
+			const QList<QStringList> defaultList = {
+				defaultListSO,
+				defaultListSE,
+				defaultListXGSA,
+			};
+
+			for (int i = 0; i < defaultList.size(); ++i)
+				config.writeArray<QString>("System", "Server", QString("List_%1").arg(i), defaultList.at(i));
+
+			if (currentListIndex >= 0 && currentListIndex < defaultList.size())
+				list = defaultList.at(currentListIndex);
 		}
 	}
 

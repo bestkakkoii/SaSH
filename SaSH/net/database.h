@@ -25,9 +25,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 constexpr size_t LINEBUFSIZ = 8192;
 
 #ifdef _MORECHARACTERS_
-constexpr int MAXCHARACTER = 4;
+constexpr int MAX_CHARACTER = 4;
 #else
-constexpr int MAXCHARACTER = 2;
+constexpr int MAX_CHARACTER = 2;
 #endif
 constexpr int CHAR_NAME_LEN = 16;
 constexpr int CHAR_FREENAME_LEN = 32;
@@ -266,6 +266,16 @@ constexpr int MAX_PAL = sizeof(palFileName) / sizeof(palFileName[0]);
 #pragma endregion
 
 #pragma region Enums
+
+enum ClientLoginFlag
+{
+	WITH_CDKEY = 0x1,
+	WITH_PASSWORD = 0x2,
+	WITH_MACADDRESS = 0x4,
+	WITH_SELECTSERVERINDEX = 0x8,
+	WITH_IPADDRESS = 0x10,
+	WITH_ALL = WITH_CDKEY | WITH_PASSWORD | WITH_MACADDRESS | WITH_SELECTSERVERINDEX | WITH_IPADDRESS,
+};
 
 enum FUNCTIONTYPE
 {
@@ -532,7 +542,9 @@ enum GameDataOffest
 {
 	kOffestPersonalKey = 0x4AC0898,
 	kOffestAccount = 0x414F278,
+	kOffestAccountECB = 0x415703C,
 	kOffestPassword = 0x415AA58,
+	kOffestPasswordECB = 0x4156280,
 	kOffestServerIndex = 0x415EF28,
 	kOffestSubServerIndex = 0xC4288,
 	kOffestPositionIndex = 0x4ABE270,

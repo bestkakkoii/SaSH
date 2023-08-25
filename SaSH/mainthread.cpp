@@ -219,11 +219,6 @@ void MainObject::mainProc()
 
 	for (;;)
 	{
-#ifdef _DEBUG
-		QThread::msleep(300);
-#else
-		QThread::msleep(300);
-#endif
 		//檢查是否接收到停止執行的訊號
 		if (isInterruptionRequested())
 		{
@@ -242,6 +237,7 @@ void MainObject::mainProc()
 		//檢查TCP是否握手成功
 		if (!injector.server->IS_TCP_CONNECTION_OK_TO_USE)
 		{
+			QThread::msleep(500);
 			continue;
 		}
 
@@ -261,18 +257,27 @@ void MainObject::mainProc()
 		int status = checkAndRunFunctions();
 
 		//這裡是預留的暫時沒作用
-		if (status == 1)//非登入狀態 或 平時
+		if (status == 1)//非登入狀態
+		{
+			continue;
+		}
+		else if (status == 2)//平時
 		{
 
 		}
-		else if (status == 2)//戰鬥中不延時
+		else if (status == 3)//戰鬥中不延時
 		{
 		}
 		else//錯誤
 		{
 			break;
 		}
-		QThread::yieldCurrentThread();
+
+#ifdef _DEBUG
+		QThread::msleep(300);
+#else
+		QThread::msleep(300);
+#endif
 	}
 }
 
@@ -335,7 +340,7 @@ int MainObject::checkAndRunFunctions()
 			if (injector.getEnableHash(util::kAutoLoginEnable) || injector.getEnableHash(util::kAutoReconnectEnable))
 			{
 				if (injector.server->login(status))
-					QThread::msleep(200);
+					QThread::msleep(0);
 			}
 			return 1;
 		}
@@ -448,7 +453,7 @@ int MainObject::checkAndRunFunctions()
 			QString logname = QString("battle_%1_%2_%3").arg(pc.name).arg(pc.freeName).arg(_getpid());
 			injector.server->protoBattleLogName = SPD_INIT(logname);
 		}
-		return 1;
+		return 2;
 	}
 
 	//更新掛機資訊
@@ -505,7 +510,7 @@ int MainObject::checkAndRunFunctions()
 
 		//自動疊加
 		checkAutoSortItem();
-		return 1;
+		return 2;
 	}
 	else //戰鬥中
 	{
@@ -523,7 +528,7 @@ int MainObject::checkAndRunFunctions()
 			battleTime_future_ = QtConcurrent::run(this, &MainObject::battleTimeThread);
 		}
 
-		return 2;
+		return 3;
 	}
 
 	return 1;

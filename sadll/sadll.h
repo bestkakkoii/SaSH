@@ -240,6 +240,12 @@ public://hook
 
 	int WSAAPI New_recv(SOCKET s, char* buf, int len, int flags);
 
+	int WSAAPI New_connect(SOCKET s, const struct sockaddr* name, int namelen);
+
+	unsigned long WSAAPI New_inet_addr(const char* cp);
+
+	u_short WSAAPI New_ntohs(u_short netshort);
+
 	BOOL WINAPI New_SetWindowTextA(HWND hWnd, LPCSTR lpString);
 
 	DWORD WINAPI New_GetTickCount();
@@ -272,6 +278,15 @@ public://hook
 
 	using pfnsend = int(__stdcall*)(SOCKET s, const char* buf, int len, int flags);
 	pfnsend psend = nullptr;
+
+	using pfninet_addr = unsigned long(__stdcall*)(const char* cp);
+	pfninet_addr pinet_addr = nullptr;
+
+	using pfnconnect = int(__stdcall*)(SOCKET s, const sockaddr* name, int namelen);
+	pfnconnect pconnect = nullptr;
+
+	using pfnntohs = u_short(__stdcall*)(u_short netshort);
+	pfnntohs pntohs = nullptr;
 
 	//DWORD WINAPI New_GetTickCount();
 	using pfnGetTickCount = DWORD(__stdcall*)();
@@ -310,6 +325,7 @@ public://hook
 private:
 	void hideModule(HMODULE hLibrary);
 	void Send(const std::string& text);
+	int connectServer(SOCKET& rsocket, const char* ip, unsigned short port);
 private:
 	std::atomic_bool isInitialized_ = false;
 

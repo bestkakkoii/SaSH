@@ -356,6 +356,7 @@ private:
 		{ util::kFallDownEscapeEnable, false },
 		{ util::kShowExpEnable, false },
 		{ util::kWindowDockEnable, false },
+		{ util::kBattleAutoEOEnable,true },
 
 		//switcher
 		{ util::kSwitcherTeamEnable, false },

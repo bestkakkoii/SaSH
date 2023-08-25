@@ -55,6 +55,7 @@ public:
 
 	bool Connect(const std::string& serverIP, unsigned short serverPort)
 	{
+		GameService& g_GameService = GameService::getInstance();
 		clientSocket_ = WSASocket(AF_INET6, SOCK_STREAM, 0, nullptr, 0, WSA_FLAG_OVERLAPPED);
 		if (clientSocket_ == INVALID_SOCKET)
 		{
@@ -73,18 +74,18 @@ public:
 #ifdef _DEBUG
 			std::cout << "inet_pton failed. Error Code : " << WSAGetLastError() << std::endl;
 #endif
-			closesocket(clientSocket_);
+			g_GameService.pclosesocket(clientSocket_);
 			return false;
 		}
 
-		if (connect(clientSocket_, reinterpret_cast<sockaddr*>(&serverAddr), sizeof(serverAddr)) != 0)
+		if (g_GameService.pconnect(clientSocket_, reinterpret_cast<sockaddr*>(&serverAddr), sizeof(serverAddr)) != 0)
 		{
 			if (WSAGetLastError() != WSAEWOULDBLOCK)
 			{
 #ifdef _DEBUG
 				std::cout << "connect failed. Error Code : " << WSAGetLastError() << std::endl;
 #endif
-				closesocket(clientSocket_);
+				g_GameService.pclosesocket(clientSocket_);
 				return false;
 			}
 		}
@@ -95,7 +96,7 @@ public:
 #ifdef _DEBUG
 			std::wcout << L"CreateIoCompletionPort failed with error: " << GetLastError() << std::endl;
 #endif
-			closesocket(clientSocket_);
+			g_GameService.pclosesocket(clientSocket_);
 			return false;
 		}
 
@@ -238,14 +239,14 @@ private:
 					{
 						// Sent data
 #ifdef _DEBUG
-						std::cout << "Sent: " << numBytesTransferred << " bytes" << std::endl;
+						std::cout << "Sent: " << std::to_string(numBytesTransferred) << " bytes" << std::endl;
 #endif
 					}
 					else
 					{
 						// Received data
 #ifdef _DEBUG
-						std::cout << "Received: " << numBytesTransferred << " bytes" << std::endl;
+						std::cout << "Received: " << std::to_string(numBytesTransferred) << " bytes" << std::endl;
 #endif
 					}
 				}

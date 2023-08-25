@@ -650,7 +650,7 @@ MainForm::MainForm(QWidget* parent)
 	setAttribute(Qt::WA_StaticContents, true);
 	setWindowFlags(windowFlags() & ~Qt::WindowMaximizeButtonHint);
 	setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
-	setFixedSize(283, 481);
+	setFixedSize(290, 481);
 	setStyleSheet("QMainWindow{ border-radius: 10px; }");
 
 	qRegisterMetaType<QVariant>("QVariant");
@@ -971,8 +971,6 @@ void MainForm::resetControlTextLanguage()
 {
 	const UINT acp = ::GetACP();
 
-#if QT_NO_DEBUG
-
 	switch (acp)
 	{
 	case 936:
@@ -986,23 +984,7 @@ void MainForm::resetControlTextLanguage()
 	default:
 		translator_.load(QString("%1/translations/qt_en_US.qm").arg(util::applicationDirPath()));
 		break;
-}
-#else
-	switch (acp)
-	{
-	case 936:
-		translator_.load(R"(translations\qt_zh_CN.qm)");
-		break;
-		//English
-	case 950:
-		translator_.load(R"(translations\qt_zh_TW.qm)");
-		break;
-		//Chinese
-	default:
-		translator_.load(R"(translations\qt_en_US.qm)");
-		break;
 	}
-#endif
 
 	qApp->installTranslator(&translator_);
 	this->ui.retranslateUi(this);
@@ -1078,6 +1060,7 @@ void MainForm::onUpdateStatusLabelTextChanged(int status)
 		{ util::kLabelStatusInBattle, tr("in battle") },
 		{ util::kLabelStatusBusy, tr("busy") },
 		{ util::kLabelStatusTimeout, tr("timeout") },
+		{ util::kLabelStatusLoginFailed, tr("login failed")},
 		{ util::kLabelNoUserNameOrPassword, tr("no username or password") },
 		{ util::kLabelStatusDisconnected, tr("disconnected")},
 		{ util::kLabelStatusConnecting, tr("connecting")},

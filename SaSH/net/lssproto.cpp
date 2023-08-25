@@ -271,3 +271,20 @@ void Lssproto::lssproto_CharDelete_send(char* charname, char* securityCode)
 {
 	Autil::util_Send(LSSPROTO_CHARDELETE_SEND, charname, securityCode);
 }
+
+void Lssproto::lssproto_ClientLogin_send(char* cdkey, char* passwd, char* mac, int selectServerIndex, char* ip, DWORD flags)
+{
+	if ((flags & WITH_ALL) == WITH_ALL)
+		Autil::util_Send(LSSPROTO_CLIENTLOGIN_SEND, cdkey, passwd, mac, selectServerIndex, ip);
+	else if ((flags & (WITH_CDKEY | WITH_PASSWORD | WITH_MACADDRESS | WITH_SELECTSERVERINDEX)) == (WITH_CDKEY | WITH_PASSWORD | WITH_MACADDRESS | WITH_SELECTSERVERINDEX))
+		Autil::util_Send(LSSPROTO_CLIENTLOGIN_SEND, cdkey, passwd, mac, selectServerIndex);
+	else if ((flags & (WITH_CDKEY | WITH_PASSWORD | WITH_MACADDRESS)) == (WITH_CDKEY | WITH_PASSWORD | WITH_MACADDRESS))
+		Autil::util_Send(LSSPROTO_CLIENTLOGIN_SEND, cdkey, passwd, mac);
+	else if ((flags & (WITH_CDKEY | WITH_PASSWORD)) == (WITH_CDKEY | WITH_PASSWORD))
+		Autil::util_Send(LSSPROTO_CLIENTLOGIN_SEND, cdkey, passwd);
+}
+
+void Lssproto::lssproto_CharLogin_send(char* charname)
+{
+	Autil::util_Send(LSSPROTO_CHARLOGIN_SEND, charname);
+}

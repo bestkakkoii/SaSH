@@ -92,41 +92,71 @@ qint64 CLuaSystem::eo(sol::this_state s)
 }
 
 //這裡還沒想好format格式怎麼設計，暫時先放著
-qint64 CLuaSystem::announce(sol::object ostr, sol::object ocolor, sol::this_state s)
+qint64 CLuaSystem::announce(sol::object maybe_defaulted, sol::object ocolor, sol::this_state s)
 {
 	sol::state_view lua(s);
-	QString text;
-	if (ostr.is<qint64>())
-		text = QString::number(ostr.as<qint64>());
-	else if (ostr.is<double>())
-		text = QString::number(ostr.as<double>(), 'f', 16);
-	else if (ostr.is<std::string>())
-		text = QString::fromUtf8(ostr.as<std::string>().c_str());
-	else if (ostr.is<sol::table>())
+	luadebug::tryPopCustomErrorMsg(s, luadebug::ERROR_PARAM_SIZE_RANGE, 1, 3);
+	QString msg("\0");
+	QString raw("\0");
+	if (maybe_defaulted == sol::lua_nil)
 	{
-		QStringList list;
-		sol::table t = ostr.as<sol::table>();
-		list << "{";
+		raw = "nil";
+		msg = "(nil)";
+	}
+	else if (maybe_defaulted.is<bool>())
+	{
+		bool value = maybe_defaulted.as<bool>();
+		raw = QString(value ? "true" : "false");
+		msg = "(boolean)" + raw;
+	}
+	else if (maybe_defaulted.is<qlonglong>())
+	{
+		const qlonglong value = maybe_defaulted.as<qlonglong>();
+		raw = (QString::number(value));
+		msg = "(integer)" + raw;
+	}
+	else if (maybe_defaulted.is<qreal>())
+	{
+		const qreal value = maybe_defaulted.as<qreal>();
+		raw = (QString::number(value, 'f', 16));
+		msg = "(number)" + raw;
+	}
+	else if (maybe_defaulted.is<std::string>())
+	{
+		raw = QString::fromUtf8(maybe_defaulted.as<std::string>().c_str());
+		msg = "(string)" + raw;
+	}
+	else if (maybe_defaulted.is<const char*>())
+	{
+		raw = (maybe_defaulted.as<const char*>());
+		msg = "(string)" + raw;
+	}
+	else if (maybe_defaulted.is<std::wstring>())
+	{
+		raw = QString::fromStdWString(maybe_defaulted.as<std::wstring>());
+		msg = "(utf8-string)" + raw;
+	}
+	else if (maybe_defaulted.is<sol::table>())
+	{
+		//print table
+		raw = luadebug::getTableVars(s.L, 1, 10);
+		msg = "(table)\r\n" + raw;
 
-		//print key : value
-		for (auto& v : t)
-		{
-			if (v.second.is<qint64>())
-				list << QString("%1:%2").arg(v.first.as<qint64>()).arg(v.second.as<qint64>());
-			else if (v.second.is<double>())
-				list << QString("%1:%2").arg(v.first.as<qint64>()).arg(v.second.as<double>(), 0, 'f', 16);
-			else if (v.second.is<std::string>())
-				list << QString("%1:%2").arg(v.first.as<qint64>()).arg(QString::fromUtf8(v.second.as<const char*>()));
-			else
-				list << "(invalid type)";
-		}
-
-		list << "}";
-
-		text = list.join(" ");
 	}
 	else
-		luadebug::tryPopCustomErrorMsg(s, luadebug::ERROR_PARAM_TYPE, false, 1, QObject::tr("invalid value type"));
+	{
+		//print type name
+		switch (maybe_defaulted.get_type())
+		{
+		case sol::type::function: msg = "(function)"; break;
+		case sol::type::userdata: msg = "(userdata)"; break;
+		case sol::type::thread: msg = "(thread)"; break;
+		case sol::type::lightuserdata: msg = "(lightuserdata)"; break;
+		case sol::type::none: msg = "(none)"; break;
+		case sol::type::poly: msg = "(poly)"; break;
+		default: msg = "print error: other type, unable to show"; break;
+		}
+	}
 
 	int color = 4;
 	if (ocolor.is<qint64>())
@@ -142,15 +172,46 @@ qint64 CLuaSystem::announce(sol::object ostr, sol::object ocolor, sol::this_stat
 
 	Injector& injector = Injector::getInstance();
 	sol::safe_function print = lua["_print"];
-	if (print.valid())
-		print(text.toUtf8().constData());
 
-	luadebug::logExport(s, text, color);
-	if (color != -2 && !injector.server.isNull())
+	bool split = false;
+	QStringList l;
+	if (msg.contains("\r\n"))
 	{
-		injector.server->announce(text, color);
-		return TRUE;
+		l = msg.split("\r\n");
+		luadebug::logExport(s, l, color);
+		split = true;
 	}
+	else if (msg.contains("\n"))
+	{
+		l = msg.split("\n");
+		luadebug::logExport(s, l, color);
+		split = true;
+	}
+	else
+	{
+		luadebug::logExport(s, msg, color);
+	}
+
+	bool announceOk = color != -2 && !injector.server.isNull();
+
+	if (split)
+	{
+		for (const QString& it : l)
+		{
+			if (print.valid())
+				print(it.toUtf8().constData());
+			if (announceOk)
+				injector.server->announce(it, color);
+		}
+	}
+	else
+	{
+		if (print.valid())
+			print(msg.toUtf8().constData());
+		if (announceOk)
+			injector.server->announce(msg, color);
+	}
+
 	return FALSE;
 }
 

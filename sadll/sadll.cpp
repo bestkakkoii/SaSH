@@ -263,7 +263,7 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID)
 #endif
 
 #ifdef _DEBUG
-			//CreateConsole();
+			CreateConsole();
 #endif
 		}
 		DisableThreadLibraryCalls(hModule);
@@ -376,17 +376,17 @@ LRESULT CALLBACK WndProc(HWND hWnd, DWORD message, LPARAM wParam, LPARAM lParam)
 	case kSendPacket:
 	{
 		//從外掛送來的封包
-		if (*g_GameService.g_sockfd == INVALID_SOCKET)
+		if ((*g_GameService.g_sockfd == INVALID_SOCKET) || (*g_GameService.g_sockfd == NULL) || (lParam == NULL))
 			return 0;
 
 		DWORD dwBytesSent = 0;
 		//int nRet = g_GameService.psend(*g_GameService.g_sockfd, reinterpret_cast<char*>(wParam), static_cast<int>(lParam), NULL);
-		int nRet = ::send(*g_GameService.g_sockfd, reinterpret_cast<char*>(wParam), static_cast<int>(lParam), NULL);
+		int nRet = g_GameService.psend(*g_GameService.g_sockfd, reinterpret_cast<char*>(wParam), static_cast<int>(lParam), NULL);
 #ifdef _DEBUG
-		//std::cout << "kSendPacket:::  sockfd:" << std::to_string(*g_GameService.g_sockfd)
-		//	<< " address:0x" << std::hex << wParam
-		//	<< " size:" << std::to_string(lParam)
-		//	<< " errorcode:" << WSAGetLastError() << std::endl;
+		std::cout << "kSendPacket:::  sockfd:" << std::to_string(*g_GameService.g_sockfd)
+			<< " address:0x" << std::hex << wParam
+			<< " size:" << std::to_string(lParam)
+			<< " errorcode:" << WSAGetLastError() << std::endl;
 #endif
 		return nRet;
 	}
@@ -533,6 +533,27 @@ extern "C"
 		return g_GameService.New_closesocket(s);
 	}
 
+	//new connect
+	int WSAAPI New_connect(SOCKET s, const struct sockaddr* name, int namelen)
+	{
+		GameService& g_GameService = GameService::getInstance();
+		return g_GameService.New_connect(s, name, namelen);
+	}
+
+	//new inet_addr
+	unsigned long WSAAPI New_inet_addr(const char* cp)
+	{
+		GameService& g_GameService = GameService::getInstance();
+		return g_GameService.New_inet_addr(cp);
+	}
+
+	//new ntohs
+	u_short WSAAPI New_ntohs(u_short netshort)
+	{
+		GameService& g_GameService = GameService::getInstance();
+		return g_GameService.New_ntohs(netshort);
+	}
+
 	//new SetWindowTextA
 	BOOL WINAPI New_SetWindowTextA(HWND hWnd, LPCSTR lpString)
 	{
@@ -649,11 +670,38 @@ void GameService::initialize(unsigned short port)
 	pLssproto_WN_send = CONVERT_GAMEVAR<pfnLssproto_WN_send>(0x8FDC0);//對話框發送封包
 	pLssproto_TK_send = CONVERT_GAMEVAR<pfnLssproto_TK_send>(0x8F7C0);//喊話發送封包
 
-	/*WINAPI*/
+	/*
+		sa_8001.exe+91710 - FF 25 08C04900        - jmp dword ptr [sa_8001.exe+9C008] { ->DINPUT.DirectInputCreateA }
+
+		sa_8001.exe+91722 - FF 25 A4C24900        - jmp dword ptr [sa_8001.exe+9C2A4] { ->->KERNELBASE.GetLastError }
+
+		sa_8001.exe+9172E - FF 25 A8C24900        - jmp dword ptr [sa_8001.exe+9C2A8] { ->WS2_32._WSAFDIsSet }
+		sa_8001.exe+91734 - FF 25 B0C24900        - jmp dword ptr [sa_8001.exe+9C2B0] { ->WS2_32.select }
+		sa_8001.exe+9173A - FF 25 B4C24900        - jmp dword ptr [sa_8001.exe+9C2B4] { ->WS2_32.WSAStartup }
+		sa_8001.exe+91740 - FF 25 B8C24900        - jmp dword ptr [sa_8001.exe+9C2B8] { ->WS2_32.WSACleanup }
+		sa_8001.exe+91746 - FF 25 BCC24900        - jmp dword ptr [sa_8001.exe+9C2BC] { ->WS2_32.connect }
+		sa_8001.exe+9174C - FF 25 C0C24900        - jmp dword ptr [sa_8001.exe+9C2C0] { ->WS2_32.gethostbyname }
+		sa_8001.exe+91752 - FF 25 C4C24900        - jmp dword ptr [sa_8001.exe+9C2C4] { ->WS2_32.inet_addr }
+		sa_8001.exe+91758 - FF 25 C8C24900        - jmp dword ptr [sa_8001.exe+9C2C8] { ->WS2_32.ntohs }
+		sa_8001.exe+9175E - FF 25 CCC24900        - jmp dword ptr [sa_8001.exe+9C2CC] { ->WS2_32.ioctlsocket }
+		sa_8001.exe+91764 - E9 A70E8962           - jmp 62D22610
+		sa_8001.exe+91769 - CC                    - int 3
+		sa_8001.exe+9176A - FF 25 DCC24900        - jmp dword ptr [sa_8001.exe+9C2DC] { ->WSOCK32.setsockopt }
+		sa_8001.exe+91770 - FF 25 D0C24900        - jmp dword ptr [sa_8001.exe+9C2D0] { ->WSOCK32.recvfrom }
+		sa_8001.exe+91776 - FF 25 D4C24900        - jmp dword ptr [sa_8001.exe+9C2D4] { ->WS2_32.sendto }
+
+	*/
+
+	/*WSAAPI*/
 	psocket = CONVERT_GAMEVAR<pfnsocket>(0x91764);//::socket;
 	psend = CONVERT_GAMEVAR<pfnsend>(0x9171C); //::send;
 	precv = CONVERT_GAMEVAR<pfnrecv>(0x91728);//這裡直接勾::recv會無效，遊戲通常會複寫另一個call dword ptr指向recv
 	pclosesocket = CONVERT_GAMEVAR<pfnclosesocket>(0x91716);//::closesocket;
+	//pinet_addr = CONVERT_GAMEVAR<pfninet_addr>(0x9C2C4); //::inet_addr; //
+	//pntohs = ::ntohs; //CONVERT_GAMEVAR<pfnntohs>(0x9C2C8);//
+	pconnect = ::connect;//CONVERT_GAMEVAR<pfnconnect>(0x9C2BC);
+
+	/*WINAPI*/
 	pSetWindowTextA = ::SetWindowTextA;//防止部分私服調用A類函數，導致其他語系系統的窗口標題亂碼
 	pGetTickCount = ::GetTickCount;
 	pQueryPerformanceCounter = ::QueryPerformanceCounter;
@@ -698,6 +746,10 @@ void GameService::initialize(unsigned short port)
 	DetourAttach(&(PVOID&)psend, ::New_send);
 	DetourAttach(&(PVOID&)precv, ::New_recv);
 	DetourAttach(&(PVOID&)pclosesocket, ::New_closesocket);
+	//DetourAttach(&(PVOID&)pinet_addr, ::New_inet_addr);
+	//DetourAttach(&(PVOID&)pntohs, ::New_ntohs);
+	DetourAttach(&(PVOID&)pconnect, ::New_connect);
+
 	DetourAttach(&(PVOID&)pSetWindowTextA, ::New_SetWindowTextA);
 	DetourAttach(&(PVOID&)pGetTickCount, ::New_GetTickCount);
 	DetourAttach(&(PVOID&)pQueryPerformanceCounter, ::New_QueryPerformanceCounter);
@@ -749,6 +801,10 @@ void GameService::initialize(unsigned short port)
 		}
 	}
 #endif
+
+	//SOCKET fd = INVALID_SOCKET;
+	//if (connectServer(fd, "103.36.167.114", 9078) == 1)
+	//	*g_sockfd = fd;
 }
 
 //這裡的東西其實沒有太大必要，一般外掛斷開就直接關遊戲了，如果需要設計能重連才需要
@@ -774,6 +830,10 @@ void GameService::uninitialize()
 	DetourDetach(&(PVOID&)psocket, ::New_socket);
 	DetourDetach(&(PVOID&)psend, ::New_send);
 	DetourDetach(&(PVOID&)pclosesocket, ::New_closesocket);
+	//DetourDetach(&(PVOID&)pinet_addr, ::New_inet_addr);
+	//DetourDetach(&(PVOID&)pntohs, ::New_ntohs);
+	DetourDetach(&(PVOID&)pconnect, ::New_connect);
+
 	DetourDetach(&(PVOID&)pSetWindowTextA, ::New_SetWindowTextA);
 	DetourDetach(&(PVOID&)pGetTickCount, ::New_GetTickCount);
 	DetourDetach(&(PVOID&)pQueryPerformanceCounter, ::New_QueryPerformanceCounter);
@@ -854,6 +914,35 @@ int WSAAPI GameService::New_send(SOCKET s, const char* buf, int len, int flags)
 {
 	int ret = psend(s, buf, len, flags);
 	return ret;
+}
+
+int WSAAPI GameService::New_connect(SOCKET s, const struct sockaddr* name, int namelen)
+{
+	if (s && name != nullptr)
+	{
+		if (name->sa_family == AF_INET)
+		{
+			struct sockaddr_in* sockaddr_ipv4 = (struct sockaddr_in*)name;
+			char ipStr[INET_ADDRSTRLEN];
+			inet_ntop(AF_INET, &(sockaddr_ipv4->sin_addr), ipStr, sizeof(ipStr));
+			uint16_t port = ntohs(sockaddr_ipv4->sin_port);
+
+			std::cout << "IPv4 Address: " << ipStr << " Port: " << port << std::endl;
+		}
+	}
+	return pconnect(s, name, namelen);
+}
+
+unsigned long WSAAPI GameService::New_inet_addr(const char* cp)
+{
+	std::cout << "inet_addr: " << std::string(cp) << std::endl;
+	return pinet_addr(cp);
+}
+
+u_short WSAAPI GameService::New_ntohs(u_short netshort)
+{
+	std::cout << "ntohs: " << std::to_string(netshort) << std::endl;
+	return pntohs(netshort);
 }
 
 //hook recv將封包全部轉發給外掛，本來準備完全由外掛處理好再發回來，但效果不盡人意
@@ -1771,3 +1860,82 @@ sa_8001sf.exe+8D57F - C3                    - ret
 //	//int* addr4230DF0 = CONVERT_GAMEVAR<int*>(0x4230DF0);
 //	//(*addr4230DF0)++;
 //}
+
+////
+
+int GameService::connectServer(SOCKET& rsocket, const char* ip, unsigned short port)
+{
+	int nRet = -1;
+	BOOL bConnected = FALSE;
+
+	rsocket = psocket(AF_INET, SOCK_STREAM, 0);
+	//套接字創建失敗！
+	if (rsocket == INVALID_SOCKET)
+		return -1;
+
+	sockaddr_in serverAddr{};
+	serverAddr.sin_family = AF_INET;
+	serverAddr.sin_port = htons(port);
+
+	if (inet_pton(AF_INET, ip, &(serverAddr.sin_addr)) <= 0)
+	{
+		std::cout << "Invalid address/ Address not supported \n";
+		return -1;
+	}
+
+	//設置接收超時時間為35秒
+	int nTimeout = 35000;
+	if (setsockopt(rsocket, SOL_SOCKET, SO_RCVTIMEO, (char*)&nTimeout, sizeof(nTimeout)) == SOCKET_ERROR)
+	{
+		std::cout << "setsockopt failed with error code : " << WSAGetLastError() << std::endl;
+		return -2;
+	}
+
+	//把當前套接字設為非阻塞模式
+	unsigned long nFlag = 1;
+	nRet = ioctlsocket(rsocket, FIONBIO, (unsigned long*)&nFlag);
+	if (nRet == SOCKET_ERROR)//把當前套接字設為非阻塞模式失敗!
+	{
+		std::cout << "ioctlsocket failed with error code : " << WSAGetLastError() << std::endl;
+		return -3;
+	}
+
+	//非阻塞模式下執行I/O操作時，Winsock函數會立即返回並交出控制權。這種模式使用起來比較覆雜，
+	//因為函數在沒有運行完成就進行返回，會不斷地返回WSAEWOULDBLOCK錯誤。
+	if (pconnect(rsocket, (struct sockaddr*)&serverAddr, sizeof(serverAddr)) == SOCKET_ERROR)
+	{
+		struct timeval timeout = { 0 };
+		timeout.tv_sec = 10;	//連接超時時間為10秒,此值過小會造成多線程同時連接服務端時因無法建立連接而通信失敗
+		timeout.tv_usec = 0;	//產生此情況的原因是線程的執行順序是不可預知的
+
+		fd_set fdWrite;
+		FD_ZERO(&fdWrite);
+		FD_SET(rsocket, &fdWrite);
+
+		int nError = -1;
+		int nLen = sizeof(int);
+		nRet = select(rsocket, 0, &fdWrite, 0, &timeout);
+		if (nRet > 0)
+		{
+			getsockopt(rsocket, SOL_SOCKET, SO_ERROR, (char*)&nError, &nLen);
+			if (nError != 0)
+				bConnected = FALSE;
+			else
+				bConnected = TRUE;
+		}
+		else
+			bConnected = FALSE;
+	}
+
+	//再設置回阻塞模式
+	nFlag = 0;
+	ioctlsocket(rsocket, FIONBIO, (unsigned long*)&nFlag);
+	//若連接失敗則返回
+	if (bConnected == FALSE)//與服務器建立連接失敗！
+	{
+		std::cout << "connect failed with error code : " << WSAGetLastError() << std::endl;
+		return -4;
+	}
+
+	return 1;
+}

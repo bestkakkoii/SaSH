@@ -134,6 +134,10 @@ void ScriptForm::onScriptStarted()
 	if (injector.currentScriptFileName.isEmpty())
 		return;
 
+	if (!injector.currentScriptFileName.contains(util::SCRIPT_SUFFIX_DEFAULT)
+		&& !injector.currentScriptFileName.contains(util::SCRIPT_PRIVATE_SUFFIX_DEFAULT))
+		return;
+
 	if (!interpreter_.isNull())
 	{
 		interpreter_->requestInterruption();
@@ -143,7 +147,6 @@ void ScriptForm::onScriptStarted()
 	{
 		return;
 	}
-
 
 	if (!injector.scriptLogModel.isNull())
 		injector.scriptLogModel->clear();
@@ -311,6 +314,9 @@ void ScriptForm::onScriptLabelRowTextChanged(int row, int max, bool noSelect)
 void ScriptForm::loadFile(const QString& fileName)
 {
 	if (fileName.isEmpty())
+		return;
+
+	if (!fileName.contains(util::SCRIPT_SUFFIX_DEFAULT) && !fileName.contains(util::SCRIPT_PRIVATE_SUFFIX_DEFAULT))
 		return;
 
 	if (interpreter_.isNull())

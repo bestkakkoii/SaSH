@@ -49,6 +49,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #define _SKILL_ADDBARRIER
 #define _OBJSEND_C
 #define _NEWSHOP_
+#define _NEW_CLIENT_LOGIN
 #pragma endregion
 
 #include "database.h"
@@ -101,14 +102,11 @@ public:
 	void lssproto_KN_send(int havepetindex, char* data);
 	void lssproto_WN_send(const QPoint& pos, int seqno, int objindex, int select, char* data);
 	void lssproto_SP_send(const QPoint& pos, int dir);
-#ifdef _NEW_CLIENT_LOGIN
-	void lssproto_ClientLogin_send(char* cdkey, char* passwd, char* mac, int selectServerIndex, char* ip);
-#else
-	void lssproto_ClientLogin_send(char* cdkey, char* passwd);
-#endif
+	void lssproto_ClientLogin_send(char* cdkey, char* passwd, char* mac, int selectServerIndex, char* ip, DWORD flags);
 	void lssproto_CreateNewChar_send(int dataplacenum, char* charname, int imgno, int faceimgno, int vital, int str, int tgh, int dex, int earth, int water, int fire, int wind, int hometown);
 	void lssproto_CharDelete_send(char* charname, char* securityCode);
 	void lssproto_CharLogin_send(char* charname);
+
 	void lssproto_CharList_send(int fd);
 	void lssproto_CharLogout_send(int Flg);
 	void lssproto_ProcGet_send(int fd);

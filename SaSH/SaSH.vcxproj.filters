@@ -270,6 +270,12 @@
     <ClCompile Include="form\luascriptform.cpp">
       <Filter>Source Files\forms\script</Filter>
     </ClCompile>
+    <ClCompile Include="net\macchanger.cpp">
+      <Filter>Source Files\net</Filter>
+    </ClCompile>
+    <ClCompile Include="net\descrypt.cpp">
+      <Filter>Source Files\net</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="mainform.h">
@@ -430,6 +436,12 @@
       <Filter>Source Files\net</Filter>
     </ClInclude>
     <ClInclude Include="net\database.h">
+      <Filter>Source Files\net</Filter>
+    </ClInclude>
+    <ClInclude Include="net\macchanger.h">
+      <Filter>Source Files\net</Filter>
+    </ClInclude>
+    <ClInclude Include="net\descrypt.h">
       <Filter>Source Files\net</Filter>
     </ClInclude>
   </ItemGroup>

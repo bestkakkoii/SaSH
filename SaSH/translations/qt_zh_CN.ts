@@ -852,10 +852,6 @@
         <translation>启动石器</translation>
     </message>
     <message>
-        <source>SP:</source>
-        <translation></translation>
-    </message>
-    <message>
         <source>boost</source>
         <translation>加速</translation>
     </message>
@@ -905,7 +901,7 @@
     </message>
     <message>
         <source>support fun</source>
-        <translation>辅助功能</translation>
+        <translation type="vanished">辅助功能</translation>
     </message>
     <message>
         <source>hide char</source>
@@ -941,7 +937,7 @@
     </message>
     <message>
         <source>battle fun</source>
-        <translation>战斗功能</translation>
+        <translation type="vanished">战斗功能</translation>
     </message>
     <message>
         <source>auto walk</source>
@@ -1096,8 +1092,8 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>tset</source>
-        <translation type="unfinished"></translation>
+        <source>autoeo</source>
+        <translation>自动EO</translation>
     </message>
 </context>
 <context>

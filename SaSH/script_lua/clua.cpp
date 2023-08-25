@@ -141,6 +141,119 @@ QString luadebug::getErrorMsgLocatedLine(const QString& str, int* retline)
 	return cmpstr;
 }
 
+QString luadebug::getTableVars(lua_State*& L, int si, int depth)
+{
+	if (!L) return "\0";
+	QPair<QString, QString> pa;
+	int pos_si = si > 0 ? si : (si - 1);
+	QString ret("{");
+	int top = lua_gettop(L);
+	lua_pushnil(L);
+	int empty = 1;
+	while (lua_next(L, pos_si) != 0)
+	{
+		if (empty)
+		{
+			ret += ("\r\n");
+			empty = 0;
+		}
+
+		int i;
+		for (i = 0; i < depth; i++)
+		{
+			ret += (" ");
+		}
+
+		ret += ("[");
+		pa = getVars(L, -2, -1);
+		ret += (R"(")" + pa.second + R"(")");
+		ret += ("] = ");
+		if (depth > 20)
+		{
+			ret += ("{...}");
+		}
+		else
+		{
+			pa = getVars(L, -1, depth + 1);
+			ret += (pa.first + " " + pa.second);
+		}
+		lua_pop(L, 1);
+		ret += (",\r\n");
+	}
+
+	if (empty)
+	{
+		ret += (" }");
+	}
+	else
+	{
+		int i;
+		for (i = 0; i < depth - 1; i++)
+		{
+			ret += (" ");
+		}
+		ret += ("}");
+	}
+	lua_settop(L, top);
+	return ret;
+}
+
+QPair<QString, QString> luadebug::getVars(lua_State*& L, int si, int depth)
+{
+	switch (lua_type(L, si))
+	{
+	case LUA_TNIL:
+	{
+		return { "(nil)" , "nil" };
+	}
+
+	case LUA_TNUMBER:
+	{
+		return { "(integer)", QString::number(luaL_checkinteger(L, si)) };
+	}
+
+	case LUA_TBOOLEAN:
+	{
+		return { "(boolean)", lua_toboolean(L, si) ? "true" : "false" };
+	}
+
+	case LUA_TFUNCTION:
+	{
+		lua_CFunction func = lua_tocfunction(L, si);
+		if (func != NULL)
+		{
+			return { "(C function)", QString("0x%1").arg(QString::number(reinterpret_cast<qint64>(func)),16) };
+		}
+		else
+		{
+			return { "(function)", QString("0x%1").arg(QString::number(reinterpret_cast<qint64>(func)),16) };
+		}
+		break;
+	}
+
+
+	case LUA_TUSERDATA:
+	{
+		return { "(user data)", QString("0x%1").arg(QString::number(reinterpret_cast<qint64>(lua_touserdata(L, si)),16)) };
+	}
+
+	case LUA_TSTRING:
+	{
+		return { "(string)", luaL_checkstring(L, si) };
+	}
+
+	case LUA_TTABLE:
+	{
+		//print_table_var(state, si, depth);
+		return { "(table)" , getTableVars(L, si, depth) };
+	}
+
+	default:
+		break;
+	}
+	return { "", "" };
+}
+
 bool luadebug::isInterruptionRequested(const sol::this_state& s)
 {
 	sol::state_view lua(s.lua_state());

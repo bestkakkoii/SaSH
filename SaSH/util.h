@@ -148,6 +148,7 @@ namespace util
 		kLabelStatusInBattle,//戰鬥中
 		kLabelStatusBusy,//忙碌中
 		kLabelStatusTimeout,//連線逾時
+		kLabelStatusLoginFailed,//登入失敗
 		kLabelNoUserNameOrPassword,//無帳號密碼
 		kLabelStatusDisconnected,//斷線
 		kLabelStatusConnecting,//連線中
@@ -204,6 +205,7 @@ namespace util
 		kStatusTimeout,
 		kNoUserNameOrPassword,
 		kStatusBusy,
+		kStatusLoginFailed,
 	};
 
 	enum CraftType
@@ -373,6 +375,7 @@ namespace util
 		kFallDownEscapeEnable,
 		kShowExpEnable,
 		kWindowDockEnable,
+		kBattleAutoEOEnable,
 
 		//switcher
 		kSwitcherTeamEnable,
@@ -645,7 +648,9 @@ namespace util
 		{ kBattleTimeExtendEnable, "BattleTimeExtendEnable" },
 		{ kFallDownEscapeEnable, "FallDownEscapeEnable" },
 		{ kShowExpEnable, "ShowExpEnable" },
-		{ kWindowDockEnable, "kWindowDockEnable" },
+		{ kWindowDockEnable, "WindowDockEnable" },
+		{ kBattleAutoEOEnable ,"BattleAutoEOEnable" },
+
 		{ kSettingMaxEnable, "SettingMaxEnable" },
 
 		//switcher
