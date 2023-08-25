@@ -406,8 +406,10 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 			if (!IsWindow(pi.hWnd))
 				break;
 
-			if (SendMessageTimeoutW(pi.hWnd, WM_NULL, 0, 0, SMTO_ABORTIFHUNG | SMTO_ERRORONEXIT, MessageTimeout, nullptr) == 0)
+			if (sendMessage(WM_NULL, 0, 0) == 0)
 				break;
+
+			QThread::msleep(100);
 		}
 
 		if (NULL == hModule_)

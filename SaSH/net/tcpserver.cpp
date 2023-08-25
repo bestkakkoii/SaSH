@@ -3056,17 +3056,20 @@ bool Server::login(int s)
 		timer.restart();
 		for (;;)
 		{
-			QThread::msleep(100);
 			if (getWorldStatus() == 2)
 				break;
+
 			if (timer.hasExpired(1000))
 				break;
 
+			if (isInterruptionRequested())
+				return false;
+
+			QThread::msleep(100);
 		}
 
 		//sa_8001.exe+206F1 - 0F85 1A020000         - jne sa_8001.exe+20911
 		mem::write<BYTE>(hProcess, hModule + 0x206F2, 0x85);//還原OK點擊事件
-		Q_FALLTHROUGH();
 #else
 		QList<int> list = config.readArray<int>("System", "Login", "OK");
 		if (list.size() == 2)
@@ -3075,9 +3078,9 @@ bool Server::login(int s)
 		{
 			injector.leftDoubleClick(380, 310);
 			config.writeArray<int>("System", "Login", "OK", { 380, 310 });
-		}
-		break;
+	}
 #endif
+		break;
 	}
 	case util::kStatusSelectServer:
 	{
@@ -3097,8 +3100,13 @@ bool Server::login(int s)
 		{
 			if (getGameStatus() == 3)
 				break;
+
 			if (timer.hasExpired(1000))
 				break;
+
+			if (isInterruptionRequested())
+				return false;
+
 			QThread::msleep(100);
 		}
 
@@ -3107,7 +3115,6 @@ bool Server::login(int s)
 		sa_8001.exe+2153C - 3B C1                 - cmp eax,ecx
 		*/
 		mem::write(hProcess, hModule + 0x21536, const_cast<char*>("\x0F\x8C\x91\x00\x00\x00\x3B\xC1"), 8);//還原伺服器點擊事件
-		Q_FALLTHROUGH();
 #else
 		constexpr int table[48] = {
 			0, 0, 0,
@@ -3164,10 +3171,10 @@ bool Server::login(int s)
 			if (timer.hasExpired(1000))
 				break;
 
-		}
-		break;
-#endif
 	}
+#endif
+		break;
+}
 	case util::kStatusSelectSubServer:
 	{
 		if (subserver < 0 || subserver >= 15)
@@ -3223,8 +3230,13 @@ bool Server::login(int s)
 		{
 			if (getGameStatus() > 3)
 				break;
+
 			if (timer.hasExpired(1000))
 				break;
+
+			if (isInterruptionRequested())
+				return false;
+
 			QThread::msleep(100);
 		}
 
@@ -3236,7 +3248,6 @@ bool Server::login(int s)
 
 		//sa_8001.exe+2189B - 66 89 0D 88424C00     - mov [sa_8001.exe+C4288],cx { (23) }
 		mem::write(hProcess, hModule + 0x2189B, const_cast<char*>("\x66\x89\x0D\x88\x42\x4C\x00"), 7);//還原複寫伺服器+分流
-		break;
 #else
 		if (server != serverIndex)
 		{
@@ -3308,10 +3319,10 @@ bool Server::login(int s)
 				if (timer.hasExpired(1000))
 					break;
 
-			}
-		}
-		break;
+	}
+	}
 #endif
+		break;
 	}
 	case util::kStatusSelectCharacter:
 	{
@@ -3345,11 +3356,6 @@ bool Server::login(int s)
 		//#endif
 		break;
 	}
-	case util::kStatusLogined:
-	{
-		disconnectflag = false;
-		return true;
-	}
 	case util::kStatusConnecting:
 	{
 		if (connectingTimer.hasExpired(3000))
@@ -3360,12 +3366,17 @@ bool Server::login(int s)
 		}
 		break;
 	}
+	case util::kStatusLogined:
+	{
+		disconnectflag = false;
+		return true;
+	}
 	default:
 		break;
-	}
+		}
 	disconnectflag = false;
 	return false;
-}
+	}
 
 #pragma endregion
 
@@ -5175,7 +5186,7 @@ void Server::setPcParam(const QString& name
 #endif
 
 	setPC(pc);
-}
+		}
 
 void Server::realTimeToSATime(LSTIME* lstime)
 {
@@ -8504,8 +8515,8 @@ void Server::lssproto_AB_recv(char* cdata)
 					sprintf_s(addressBook[i].planetname, "%s", gmsv[j].name);
 					break;
 				}
-			}
-		}
+	}
+}
 #endif
 	}
 }
@@ -8577,8 +8588,8 @@ void Server::lssproto_ABI_recv(int num, char* cdata)
 				sprintf_s(addressBook[num].planetname, 64, "%s", gmsv[j].name);
 				break;
 			}
-		}
 	}
+}
 #endif
 }
 
@@ -8865,7 +8876,7 @@ void Server::lssproto_I_recv(char* cdata)
 #endif
 			*/
 
-	}
+}
 
 	setPC(pc);
 
@@ -9839,8 +9850,8 @@ void Server::lssproto_KS_recv(int petarray, int result)
 			pc.selectPetNo[petarray] = 0;
 			if (petarray == pc.battlePetNo)
 				pc.battlePetNo = -1;
-		}
 	}
+}
 #endif
 
 	setPC(pc);
@@ -10431,7 +10442,7 @@ void Server::lssproto_TK_recv(int index, char* cmessage, int color)
 			else
 			{
 				fontsize = 0;
-			}
+		}
 #endif
 			if (szToken.size() > 1)
 			{
@@ -10553,13 +10564,13 @@ void Server::lssproto_TK_recv(int index, char* cmessage, int color)
 				//pc.status |= CHR_STATUS_FUKIDASHI;
 			}
 		}
-	}
+			}
 
 	setPC(pc);
 
 	chatQueue.enqueue(QPair{ color ,msg });
 	emit signalDispatcher.appendChatLog(msg, color);
-}
+	}
 
 //地圖數據更新，重新繪製地圖
 void Server::lssproto_MC_recv(int fl, int x1, int y1, int x2, int y2, int tileSum, int partsSum, int eventSum, char* cdata)
@@ -10803,7 +10814,7 @@ void Server::lssproto_C_recv(char* cdata)
 			{
 				extern char* FreeGetTitleStr(int id);
 				sprintf(titlestr, "%s", FreeGetTitleStr(titleindex));
-			}
+		}
 #endif
 #ifdef _CHAR_PROFESSION			// WON ADD 人物職業
 			getStringToken(bigtoken, "|", 18, smalltoken);
@@ -10873,7 +10884,7 @@ void Server::lssproto_C_recv(char* cdata)
 						break;
 					}
 				}
-			}
+				}
 			else
 			{
 #ifdef _CHAR_PROFESSION			// WON ADD 人物職業
@@ -10909,7 +10920,7 @@ void Server::lssproto_C_recv(char* cdata)
 				if (charType == 13 && noticeNo > 0)
 				{
 					setNpcNotice(ptAct, noticeNo);
-				}
+			}
 #endif
 				//if (ptAct != NULL)
 				//{
@@ -10930,7 +10941,7 @@ void Server::lssproto_C_recv(char* cdata)
 					//}
 					//setCharNameColor(ptAct, charNameColor);
 				//}
-			}
+		}
 
 			if (name == u8"を�そó")//排除亂碼
 				break;
@@ -10961,7 +10972,7 @@ void Server::lssproto_C_recv(char* cdata)
 			mapUnitHash.insert(id, unit);
 
 			break;
-		}
+	}
 		case 2://OBJTYPE_ITEM
 		{
 			getStringToken(bigtoken, "|", 2, smalltoken);
@@ -11261,14 +11272,14 @@ void Server::lssproto_C_recv(char* cdata)
 						}
 					}
 				}
-			}
-		}
+}
+}
 #endif
 #pragma endregion
 	}
 
 	setPC(pc);
-}
+	}
 
 //周圍人、NPC..等等狀態改變必定是 _C_recv已經新增過的單位
 void Server::lssproto_CA_recv(char* cdata)
@@ -11363,13 +11374,13 @@ void Server::lssproto_CA_recv(char* cdata)
 						setPcAction(5);
 #endif
 					}
-				}
+		}
 				else
 #endif
 					//changePcAct(x, y, dir, act, effectno, effectparam1, effectparam2);
-			}
+	}
 			continue;
-		}
+}
 
 		//ptAct = getCharObjAct(charindex);
 		//if (ptAct == NULL)
@@ -11402,12 +11413,12 @@ void Server::lssproto_CA_recv(char* cdata)
 		{
 			memset(ptAct->szStreetVendorTitle, 0, sizeof(ptAct->szStreetVendorTitle));
 			strncpy_s(ptAct->szStreetVendorTitle, szStreetVendorTitle, sizeof(szStreetVendorTitle));
-		}
+}
 #endif
 		//changeCharAct(ptAct, x, y, dir, act, effectno, effectparam1, effectparam2);
 	//}
-	}
-}
+		}
+			}
 
 //刪除指定一個或多個周圍人、NPC單位
 void Server::lssproto_CD_recv(char* cdata)
@@ -12568,7 +12579,7 @@ void Server::lssproto_S_recv(char* cdata)
 #endif
 
 			refreshItemInfo(i);
-		}
+	}
 
 		QStringList itemList;
 		for (const ITEM& it : pc.item)
@@ -12578,7 +12589,7 @@ void Server::lssproto_S_recv(char* cdata)
 			itemList.append(it.name);
 		}
 		emit signalDispatcher.updateComboBoxItemText(util::kComboBoxItem, itemList);
-	}
+}
 #pragma endregion
 #pragma region PetSkill
 	else if (first == "W")//接收到的寵物技能
@@ -12790,7 +12801,7 @@ void Server::lssproto_S_recv(char* cdata)
 #ifdef _ITEM_COUNTDOWN
 			pet[nPetIndex].item[i].counttime = getIntegerToken(data, "|", no + 16);
 #endif
-		}
+	}
 	}
 #endif
 #pragma endregion
@@ -12849,7 +12860,7 @@ void Server::lssproto_S_recv(char* cdata)
 	}
 
 	setPC(pc);
-}
+		}
 
 //客戶端登入(進去選人畫面)
 void Server::lssproto_ClientLogin_recv(char* cresult)
@@ -12908,7 +12919,7 @@ void Server::lssproto_CharList_recv(char* cresult, char* cdata)
 		PcLanded.登陸延時時間 = TimeGetTime() + 2000;
 #endif
 		return;
-	}
+}
 
 	//if (netproc_sending == NETPROC_SENDING)
 	//{
@@ -13040,7 +13051,7 @@ void Server::lssproto_CharLogin_recv(char* cresult, char* cdata)
 	angelFlag = FALSE;
 	angelMsg[0] = NULL;
 #endif
-}
+	}
 
 void Server::lssproto_TD_recv(char* cdata)//交易
 {

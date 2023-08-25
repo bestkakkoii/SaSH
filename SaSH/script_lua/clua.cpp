@@ -947,11 +947,11 @@ void CLua::proc()
 				}
 				tableStrs << ">";
 			}
-		}
+	}
 
 		luadebug::logExport(s, tableStrs, 0);
-	} while (false);
+} while (false);
 
-	isRunning_.store(false, std::memory_order_release);
-	emit finished();
+isRunning_.store(false, std::memory_order_release);
+emit finished();
 }

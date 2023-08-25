@@ -217,8 +217,16 @@ void MainObject::mainProc()
 	mem::freeUnuseMemory(injector.getProcess());
 	mem::freeUnuseMemory(GetCurrentProcess());
 
+	bool nodelay = false;
 	for (;;)
 	{
+		if (nodelay)
+		{
+			nodelay = false;
+		}
+		else
+			QThread::msleep(300);
+
 		//檢查是否接收到停止執行的訊號
 		if (isInterruptionRequested())
 		{
@@ -238,6 +246,7 @@ void MainObject::mainProc()
 		if (!injector.server->IS_TCP_CONNECTION_OK_TO_USE)
 		{
 			QThread::msleep(500);
+			nodelay = true;
 			continue;
 		}
 
@@ -259,6 +268,7 @@ void MainObject::mainProc()
 		//這裡是預留的暫時沒作用
 		if (status == 1)//非登入狀態
 		{
+			QThread::msleep(100);
 			continue;
 		}
 		else if (status == 2)//平時
@@ -273,11 +283,7 @@ void MainObject::mainProc()
 			break;
 		}
 
-#ifdef _DEBUG
-		QThread::msleep(300);
-#else
-		QThread::msleep(300);
-#endif
+		QThread::yieldCurrentThread();
 	}
 }
 
@@ -323,12 +329,12 @@ int MainObject::checkAndRunFunctions()
 
 				SPD_CLOSE(injector.server->protoBattleLogName.toStdString());
 
-				for (int i = 0; i < 15; ++i)
-				{
-					if (isInterruptionRequested())
-						return 0;
-					QThread::msleep(100);
-				}
+				//for (int i = 0; i < 15; ++i)
+				//{
+				//	if (isInterruptionRequested())
+				//		return 0;
+				//	QThread::msleep(100);
+				//}
 
 				injector.server->clear();
 				if (!injector.chatLogModel.isNull())
