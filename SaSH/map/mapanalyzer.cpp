@@ -1868,7 +1868,7 @@ bool __fastcall MapAnalyzer::calcNewRoute(const map_t& map, const QPoint& src, c
 	QVector<QPoint> pathret = {};
 
 	CAStar astar;
-	CAStarParam param(map.height, map.width, callback, src, dst);
+	CAStarParam param(map.height, map.width, true, callback, src, dst);
 
 	pathret = astar.find(param);
 
@@ -1907,7 +1907,7 @@ bool __fastcall MapAnalyzer::isPassable(int floor, const QPoint& src, const QPoi
 		BlockAllocator allocator;
 #endif
 		CAStar a;
-		const CAStarParam p(map.height, map.width, can_pass, src, dst);
+		const CAStarParam p(map.height, map.width, true, can_pass, src, dst);
 		QVector<QPoint> pathret;
 		pathret = a.find(p);
 		return pathret.size() > 0;

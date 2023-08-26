@@ -37,8 +37,8 @@ public:
 
 	explicit CAStarParam() : height(0), width(0), corner(true) {}
 
-	explicit CAStarParam(int height, int width, const Callback& callback, const QPoint& start, const QPoint& end) :
-		height(height), width(width), start(start), end(end), corner(true), can_pass(callback)
+	explicit CAStarParam(int height, int width, bool corner, const Callback& callback, const QPoint& start, const QPoint& end) :
+		height(height), width(width), start(start), end(end), corner(corner), can_pass(callback)
 	{
 	}
 };

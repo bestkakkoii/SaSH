@@ -26,6 +26,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include <cassert>
 
 //#define USE_BSTAR
+//#define Octile_distance
 
 #pragma region ASTAR
 
@@ -152,16 +153,26 @@ void CAStar::percolate_up(int& hole)
 	}
 }
 
-//#define Euclidean_distance
 #if defined(Chebyshev_distance)
-__forceinline int Chebyshev_Distance(const QPoint& current, const QPoint& end)
+__forceinline int __fastcall Chebyshev_Distance(const QPoint& current, const QPoint& end)
 {
 	return std::max(std::abs(current.x() - end.x()), std::abs(current.y() - end.y()));
 }
 #elif defined(Euclidean_distance)
-__forceinline int Euclidean_Distance(const QPoint& current, const QPoint& end)
+__forceinline int __fastcall Euclidean_Distance(const QPoint& current, const QPoint& end)
 {
 	return std::sqrt(std::pow(current.x() - end.x(), 2) + std::pow(current.y() - end.y(), 2));
+}
+#elif defined(Octile_distance)
+__forceinline int __fastcall Octile_Distance(const QPoint& current, const QPoint& end)
+{
+	int dx = std::abs(current.x() - end.x());
+	int dy = std::abs(current.y() - end.y());
+
+	int D = 1;
+	double D2 = std::sqrt(2);
+
+	return static_cast<int>(D * (dx + dy) + (D2 - 2 * D) * std::min(dx, dy));
 }
 #endif
 // 計算G值
@@ -173,6 +184,9 @@ __forceinline int CAStar::calcul_g_value(Node*& parent, const QPoint& current)
 	return g_value += parent->g;
 #elif defined(Euclidean_distance)
 	int g_value = qFloor(Euclidean_Distance(current, parent->pos)) == 2 ? kObliqueValue : kStepValue;
+	return g_value += parent->g;
+#elif defined(Octile_distance)
+	int g_value = qFloor(Octile_Distance(current, parent->pos)) == 2 ? kObliqueValue : kStepValue;
 	return g_value += parent->g;
 #else
 	int g_value = (current - parent->pos).manhattanLength() == 2 ? kObliqueValue : kStepValue;
@@ -188,6 +202,8 @@ __forceinline int CAStar::calcul_h_value(const QPoint& current, const QPoint& en
 	int h_value = Chebyshev_Distance(current, end);
 #elif defined(Euclidean_distance)
 	int h_value = Euclidean_Distance(current, end);
+#elif defined(Octile_distance)
+	int h_value = Octile_Distance(current, end);
 #else
 	int h_value = (end - current).manhattanLength();
 
@@ -237,6 +253,8 @@ bool CAStar::can_pass(const QPoint& current, const QPoint& destination, const bo
 		if (qFloor(Chebyshev_Distance(destination, current)) == 1)
 #elif defined(Euclidean_distance)
 		if (qFloor(Euclidean_Distance(destination, current)) == 1)
+#elif defined(Octile_distance)
+		if (qFloor(Octile_Distance(destination, current)) == 1)
 #else
 		if ((destination - current).manhattanLength() == 1)
 #endif
