@@ -53,10 +53,10 @@ private:
 	void overwriteCurrentExecutable();
 	bool asyncDownloadFile(const QString& szUrl, const QString& dir, const QString& szSaveFileName);
 
-	static void setProgressValue(int i, double totalToDownload, double nowDownloaded, double totalToUpLoad, double nowUpLoaded);
+	static void setProgressValue(int i, qreal totalToDownload, qreal nowDownloaded, qreal totalToUpLoad, qreal nowUpLoaded);
 
 	template <int Index>
-	static int onProgress(void* clientp, double totalToDownload, double nowDownloaded, double totalToUpLoad, double nowUpLoaded);
+	static int onProgress(void* clientp, qint64 totalToDownload, qint64 nowDownloaded, qint64 totalToUpLoad, qint64 nowUpLoaded);
 
 	QString Sha3_512(const QString& fileNamePath) const;
 	void QDownloader::downloadAndExtractZip(const QString& url, const QString& targetDir);

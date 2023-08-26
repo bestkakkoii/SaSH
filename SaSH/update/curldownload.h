@@ -26,27 +26,28 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include <QFuture>
 #include <QtConcurrent/QtConcurrent>
 
+using pfnProgressFunc = int(_cdecl*)(void* clientp, qint64 totalToDownload, qint64 nowDownloaded, qint64 totalToUpLoad, qint64 nowUpLoaded);
+
 struct tNode
 {
 	FILE* fp = nullptr;
 	long startPos = 0U;
 	long endPos = 0U;
+	long totalSize = 0U;
 	void* curl = nullptr;
 	void* header = nullptr;
 	int id = 0;
 	int index = 0;
 	QFuture<void> tid;
+	pfnProgressFunc progressFunc = nullptr;
 };
-
-
-using pfnProgressFunc = int(_cdecl*)(void* clientp, double totalToDownload, double nowDownloaded, double totalToUpLoad, double nowUpLoaded);
 
 class CurlDownload
 {
 public:
 	CurlDownload();
 
-	virtual ~CurlDownload() = default;
+	virtual ~CurlDownload();
 
 	inline void setProgressFunPtrs(const std::vector<pfnProgressFunc>& vpfnProgressFunc) { vpfnProgressFunc_ = vpfnProgressFunc; }
 

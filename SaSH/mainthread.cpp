@@ -23,6 +23,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "net/autil.h"
 #include <injector.h>
 #include "map/mapanalyzer.h"
+#include "update/qdownloader.h"
 
 #include <spdloger.hpp>
 extern QString g_logger_name;//parser.cpp
@@ -381,12 +382,20 @@ int MainObject::checkAndRunFunctions()
 		QDateTime due = current.addYears(99);
 		const QString dueStr(due.toString("yyyy-MM-dd hh:mm:ss"));
 
-		const QString url("");//https://bbs.shiqi.so https://www.lovesa.cc
+		const QString url("https://www.lovesa.cc");
+
+		QString currentVerStr;
+		QString newestVerStr;
+
+		if (!QDownloader::checkUpdate(&currentVerStr, &newestVerStr))
+		{
+			newestVerStr = util::buildDateTime(nullptr);
+		}
 
 		const QString version = QString("%1.%2.%3")
 			.arg(SASH_VERSION_MAJOR) \
 			.arg(SASH_VERSION_MINOR) \
-			.arg(util::buildDateTime(nullptr));
+			.arg(newestVerStr);
 		injector.server->announce(tr("Welcome to use SaSH，For more information please visit %1").arg(url));
 		injector.server->announce(tr("You are using %1 account, due date is:%2").arg(isbeta ? tr("trial") : tr("subscribed")).arg(dueStr));
 		injector.server->announce(tr("StoneAge SaSH forum url:%1, newest version is %2").arg(url).arg(version));

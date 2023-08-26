@@ -443,7 +443,7 @@ private:
 
 		{ util::kMailWhiteListString , "" },
 
-		{ util::kEOCommandString, "/jk" },
+		{ util::kEOCommandString, "/EO" },
 
 	};
 };

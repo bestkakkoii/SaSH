@@ -31,9 +31,13 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #ifdef _DEBUG
 #pragma comment(lib, "cpr-d.lib")
 #pragma comment(lib, "libcurl-d.lib")
+#pragma comment(lib, "libcrypto32MDd.lib")
+#pragma comment(lib, "libssl32MDd.lib")
 #else
 #pragma comment(lib, "cpr.lib")
 #pragma comment(lib, "libcurl.lib")
+#pragma comment(lib, "libcrypto32MD.lib")
+#pragma comment(lib, "libssl32MD.lib")
 #endif
 
 
@@ -42,7 +46,7 @@ static QMutex g_mutex;
 
 static std::vector<pfnProgressFunc> g_vpfnProgressFunc;
 //constexpr int g_nProcessPrecision = 10;
-double g_current[MAX_DOWNLOAD_THREAD] = {};
+qreal g_current[MAX_DOWNLOAD_THREAD] = {};
 constexpr const char* URL = "https://www.lovesa.cc/SaSH/update/SaSH.7z";
 constexpr const char* sz7zEXE_URL = "https://www.lovesa.cc/SaSH/update/7z.exe";
 constexpr const char* sz7zDLL_URL = "https://www.lovesa.cc/SaSH/update/7z.dll";
@@ -75,15 +79,22 @@ QString QDownloader::Sha3_512(const QString& fileNamePath) const
 	return result;
 }
 
-QString etag = "\0";
-constexpr int UPDATE_TIME_MIN = 5 * 60;
+QString g_etag;
+constexpr int UPDATE_TIME_MIN = 3 * 60;
 bool QDownloader::checkUpdate(QString* current, QString* ptext)
 {
 	QString exeFileName = QCoreApplication::applicationFilePath();
+
+	{
+		util::Config config(qgetenv("JSON_PATH"));
+		g_etag = config.read<QString>("System", "Update", "ETag");
+		g_etag.replace("\"", "");
+	}
+
 	QUrl zipUrl(URL);
 
 	cpr::Header header;
-	header.insert({ "If-None-Match", etag.toUtf8().constData() });
+	header.insert({ "If-None-Match", g_etag.toUtf8().constData() });
 
 	cpr::Response response = cpr::Head(cpr::Url(zipUrl.toString().toStdString()), header);
 
@@ -100,19 +111,23 @@ bool QDownloader::checkUpdate(QString* current, QString* ptext)
 		QDateTime zipModified;
 		QDateTime exeModified;
 		QLocale locale(QLocale::English);
+		bool skipModifyTimeCheck = false;
 		if (response.header.count("ETag"))
 		{
 			QString newEtag = QString::fromStdString(response.header["ETag"]);
-			if (newEtag != etag)
+			newEtag.replace("\"", "");
+			if ((!newEtag.isEmpty() && !g_etag.isEmpty() && newEtag != g_etag) || g_etag.isEmpty())
 			{
 				qDebug() << "New version available!" << newEtag;
-				etag = newEtag;
+				g_etag = newEtag;
+				skipModifyTimeCheck = true;
 			}
 			else
 			{
 				qDebug() << "No new version available." << newEtag;
 			}
 		}
+
 		if (response.header.count("Last-Modified"))
 		{
 			QString lastModifiedStr = QString::fromStdString(response.header["Last-Modified"]);
@@ -147,6 +162,9 @@ bool QDownloader::checkUpdate(QString* current, QString* ptext)
 		if (current != nullptr)
 			*current = exeModified.toString("yyyy-MM-dd hh:mm:ss");
 
+		if (skipModifyTimeCheck)
+			break;
+
 		int timeDiffInSeconds = exeModified.secsTo(zipModified);
 
 		// Check if the remote file is newer than the local file
@@ -170,6 +188,7 @@ bool QDownloader::checkUpdate(QString* current, QString* ptext)
 		{
 			qDebug() << "SaSH.exe newer than SaSH.7z, time diff:" << timeDiffInSeconds;
 		}
+
 	} while (false);
 
 	return bret;
@@ -268,19 +287,19 @@ void QDownloader::showEvent(QShowEvent* event)
 
 		for (int i = 0; i < MAX_DOWNLOAD_THREAD; ++i)
 		{
-
-
 			connect(&timer_[i], &QTimer::timeout, this,
 				[i]()->void
 				{
-					if (DO_NOT_SHOW)
+					if (DO_NOT_SHOW.load(std::memory_order_acquire))
 					{
 						QCoreApplication::processEvents();
 						return;
 					}
-					if (g_vProgressBar[i]->value() != g_current[i])
+
+					int percent = qFloor(g_current[i]);
+					if (g_vProgressBar[i]->value() != percent)
 					{
-						g_vProgressBar[i]->setValue(g_current[i]);
+						g_vProgressBar[i]->setValue(percent);
 						g_vProgressBar[i]->repaint();
 					}
 					QCoreApplication::processEvents();
@@ -293,17 +312,17 @@ void QDownloader::showEvent(QShowEvent* event)
 			[this]()->void
 			{
 				//是否全部100%
-				double sum = 0.0;
-				for (const double& it : g_current)
+				qreal sum = 0.0;
+				for (const qreal& it : g_current)
 				{
 					sum += it;
 				}
 				//計算總和百分比 label按照比例向右移動 總距離為 900 當前進度為 100% x = 900
-				double percent = sum / MAX_DOWNLOAD_THREAD;
+				qreal percent = sum / static_cast<qreal>(MAX_DOWNLOAD_THREAD);
 				ui.label->move(MAX_GIF_MOVE_WIDTH * (percent + 1.0) / 100, 10);
 				QCoreApplication::processEvents();
 
-				if (sum < 100.0 * MAX_DOWNLOAD_THREAD)
+				if (sum < 100.0 * static_cast<qreal>(MAX_DOWNLOAD_THREAD))
 				{
 					return;
 				}
@@ -374,7 +393,7 @@ void QDownloader::resetProgress(int value)
 {
 	for (int j = 0; j < MAX_DOWNLOAD_THREAD; ++j)
 	{
-		g_current[j] = value;
+		g_current[j] = static_cast<qreal>(value);
 		g_vProgressBar[j]->setMinimum(0);
 		g_vProgressBar[j]->setMaximum(100);
 		g_vProgressBar[j]->setValue(value);
@@ -481,7 +500,7 @@ void QDownloader::overwriteCurrentExecutable()
 
 	QFile Dot7zEXE(sz7zDotExe_);
 	QFile Dot7zDLL(sz7zDotDll_);
-	DO_NOT_SHOW = true;
+	DO_NOT_SHOW.store(true, std::memory_order_release);
 
 	QString shaexe = "\0";
 	if (!Dot7zEXE.exists() || (Dot7zEXE.exists() && ((shaexe = Sha3_512(sz7zDotExe_)) != SHA512_7ZEXE)))
@@ -509,7 +528,7 @@ void QDownloader::overwriteCurrentExecutable()
 		f.waitForFinished();
 		QCoreApplication::processEvents();
 	}
-	DO_NOT_SHOW = false;
+	DO_NOT_SHOW.store(false, std::memory_order_release);
 
 	resetProgress(100);
 
@@ -621,6 +640,11 @@ void QDownloader::overwriteCurrentExecutable()
 	bat += "del %0";
 	bat += "exit\r\n";
 	CreateAndRunBat(szSysTmpDir_, bat);
+
+	{
+		util::Config config(qgetenv("JSON_PATH"));
+		config.write("System", "Update", "ETag", g_etag);
+	}
 	QCoreApplication::quit();
 }
 
@@ -632,17 +656,17 @@ bool QDownloader::asyncDownloadFile(const QString& szUrl, const QString& dir, co
 	{
 		QSharedPointer<CurlDownload> cur(q_check_ptr(new CurlDownload()));
 		cur->setProgressFunPtrs(g_vpfnProgressFunc);
-		cur->downLoad(MAX_DOWNLOAD_THREAD, strUrl.toUtf8().data(), dir.toUtf8().data(), szSaveFileName.toUtf8().data());
+		cur->downLoad(MAX_DOWNLOAD_THREAD, strUrl.toUtf8().constData(), dir.toUtf8().constData(), szSaveFileName.toUtf8().constData());
 		return true;
 	}
 	return false;
 }
 
-void QDownloader::setProgressValue(int i, double totalToDownload, double nowDownloaded, double, double)
+void QDownloader::setProgressValue(int i, qreal totalToDownload, qreal nowDownloaded, qreal, qreal)
 {
 	if (totalToDownload > 0)
 	{
-		int percentage = (int)(nowDownloaded / totalToDownload * 100);
+		qreal percentage = (nowDownloaded / totalToDownload * 100.0);
 		//if (percentage % g_nProcessPrecision == 0)
 		{
 			if (g_current[i] != percentage)
@@ -655,7 +679,7 @@ void QDownloader::setProgressValue(int i, double totalToDownload, double nowDown
 }
 
 template <int Index>
-int QDownloader::onProgress(void* clientp, double totalToDownload, double nowDownloaded, double totalToUpLoad, double nowUpLoaded)
+int QDownloader::onProgress(void* clientp, qint64 totalToDownload, qint64 nowDownloaded, qint64 totalToUpLoad, qint64 nowUpLoaded)
 {
 	QDownloader* downloader = static_cast<QDownloader*>(clientp);
 	downloader->setProgressValue(Index, totalToDownload, nowDownloaded, totalToUpLoad, nowUpLoaded);
