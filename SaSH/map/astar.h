@@ -70,7 +70,7 @@ private:
 		/**
 		 * 計算f值
 		 */
-		inline int __fastcall  f() const { return g + h; }
+		inline int __fastcall f() const { return g + h; }
 
 		inline Node(const QPoint& pos)
 			: g(0), h(0), pos(pos), parent(nullptr), state(NodeState::NOTEXIST)
@@ -87,27 +87,27 @@ public:
 	/**
 	 * 獲取直行估值
 	 */
-	constexpr int __fastcall  get_step_value() const;
+	constexpr int __fastcall get_step_value() const;
 
 	/**
 	 * 獲取拐角估值
 	 */
-	constexpr int __fastcall  get_oblique_value() const;
+	constexpr int __fastcall get_oblique_value() const;
 
 	/**
 	 * 設置直行估值
 	 */
-	constexpr void __fastcall  set_step_value(int value);
+	constexpr void __fastcall set_step_value(int value);
 
 	/**
 	 * 獲取拐角估值
 	 */
-	constexpr void __fastcall  set_oblique_value(int value);
+	constexpr void __fastcall set_oblique_value(int value);
 
 	/**
 	 * 執行尋路操作
 	 */
-	QVector<QPoint> __fastcall  find(const CAStarParam& param);
+	QVector<QPoint> __fastcall find(const CAStarParam& param);
 
 private:
 	/**
@@ -118,68 +118,73 @@ private:
 	/**
 	 * 初始化參數
 	 */
-	void __fastcall  init(const CAStarParam& param);
+	void __fastcall init(const CAStarParam& param);
 
 	/**
 	 * 參數是否有效
 	 */
-	bool __fastcall  is_vlid_params(const CAStarParam& param) const;
+	bool __fastcall is_vlid_params(const CAStarParam& param) const;
 
 private:
 	/**
 	 * 二叉堆上濾
 	 */
-	void __fastcall  percolate_up(int& hole);
+	void __fastcall percolate_up(int& hole);
 
 	/**
 	 * 獲取節點索引
 	 */
-	bool __fastcall  get_node_index(Node*& node, int* index);
+	bool __fastcall get_node_index(Node*& node, int* index);
 
 	/**
 	 * 計算G值
 	 */
-	__forceinline int __fastcall  calcul_g_value(Node*& parent, const QPoint& current);
+	__forceinline int __fastcall calcul_g_value(Node*& parent, const QPoint& current);
 
 	/**
 	 * 計算F值
 	 */
-	__forceinline int __fastcall  calcul_h_value(const QPoint& current, const QPoint& end);
+	__forceinline int __fastcall calcul_h_value(const QPoint& current, const QPoint& end);
+
+	/**
+	 * B星計算F值
+	 */
+	__forceinline int __fastcall calcul_bstar_h_value(const QPoint& current, const QPoint& end, const QPoint& start);
 
 	/**
 	 * 節點是否存在於開啟列表
 	 */
-	__forceinline bool __fastcall  in_open_list(const QPoint& pos, Node*& out_node);
+	__forceinline bool __fastcall in_open_list(const QPoint& pos, Node*& out_node);
 
 	/**
 	 * 節點是否存在於關閉列表
 	 */
-	__forceinline bool __fastcall  in_closed_list(const QPoint& pos);
+	__forceinline bool __fastcall in_closed_list(const QPoint& pos);
 
 	/**
 	 * 是否可通過
 	 */
-	bool __fastcall  can_pass(const QPoint& pos);
+	bool __fastcall can_pass(const QPoint& pos);
 
 	/**
 	 * 當前點是否可到達目標點
 	 */
-	bool __fastcall  can_pass(const QPoint& current, const QPoint& destination, const bool& allow_corner);
+	bool __fastcall can_pass(const QPoint& current, const QPoint& destination, const bool& allow_corner);
 
 	/**
 	 * 查找附近可通過的節點
 	 */
-	void __fastcall  find_can_pass_nodes(const QPoint& current, const bool& allow_corner, QVector<QPoint>* out_lists);
+	void __fastcall find_can_pass_nodes(const QPoint& current, const bool& allow_corner, QVector<QPoint>* out_lists);
 
 	/**
 	 * 處理找到節點的情況
 	 */
-	void __fastcall  handle_found_node(Node*& current, Node*& destination);
+	void __fastcall handle_found_node(Node*& current, Node*& destination);
 
 	/**
 	 * 處理未找到節點的情況
 	 */
-	void __fastcall  handle_not_found_node(Node*& current, Node*& destination, const QPoint& end);
+	void __fastcall handle_not_found_node(Node*& current, Node*& destination, const QPoint& end);
 
 private:
 	int                     step_val_;

@@ -25,6 +25,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #endif
 #include <cassert>
 
+#define USE_BSTAR
+
 #pragma region ASTAR
 
 constexpr int kStepValue = 24;//10;
@@ -121,9 +123,9 @@ bool CAStar::get_node_index(Node*& node, int* index)
 		if (open_list_[*index]->pos == node->pos)
 		{
 			return true;
-	}
+		}
 		++(*index);
-}
+	}
 	return false;
 }
 
@@ -191,6 +193,17 @@ __forceinline int CAStar::calcul_h_value(const QPoint& current, const QPoint& en
 
 #endif
 	return h_value * kStepValue;
+}
+
+//B*算法的啟發式函數計算
+__forceinline int CAStar::calcul_bstar_h_value(const QPoint& current, const QPoint& end, const QPoint& start)
+{
+	int dx1 = current.x() - end.x();
+	int dy1 = current.y() - end.y();
+	int dx2 = start.x() - end.x();
+	int dy2 = start.y() - end.y();
+	int cross = abs(dx1 * dy2 - dx2 * dy1);
+	return cross * kStepValue;
 }
 
 // 節點是否存在於開啟列表
@@ -293,8 +306,8 @@ void CAStar::handle_found_node(Node*& current, Node*& destination)
 		else
 		{
 			assert(false);
+		}
 	}
-}
 }
 
 // 處理未找到節點的情況
@@ -335,8 +348,8 @@ QVector<QPoint> CAStar::find(const CAStarParam& param)
 	constexpr size_t alloc_size(1u);
 	// 將起點放入開啟列表
 	//Node* start_node = new(allocator_->allocate(sizeof(Node))) Node(param.start);
-	Node* start_node = allocator_->allocate(alloc_size);  // 分配内存
-	std::allocator_traits<std::pmr::polymorphic_allocator<Node>>::construct(*allocator_, start_node, param.start);// 构造对象
+	Node* start_node = allocator_->allocate(alloc_size);  // 分配內存
+	std::allocator_traits<std::pmr::polymorphic_allocator<Node>>::construct(*allocator_, start_node, param.start);// 構造對象
 	open_list_.push_back(start_node);
 	Node*& reference_node = mapping_[start_node->pos.y() * width_ + start_node->pos.x()];
 	reference_node = start_node;
@@ -390,10 +403,31 @@ QVector<QPoint> CAStar::find(const CAStarParam& param)
 			}
 			else
 			{
-				//next_node = new(allocator_->allocate(sizeof(Node))) Node(nearby_nodes[index]);
-				next_node = allocator_->allocate(alloc_size);  // 分配内存
-				std::allocator_traits<std::pmr::polymorphic_allocator<Node>>::construct(*allocator_, next_node, nearby_nodes[index]);// 构造对象
+#ifdef USE_BSTAR
+				next_node = allocator_->allocate(alloc_size);  // 分配內存
+				std::allocator_traits<std::pmr::polymorphic_allocator<Node>>::construct(*allocator_, next_node, nearby_nodes[index]);// 構造對象
+				next_node->parent = current;
+				next_node->g = calcul_g_value(current, next_node->pos);
+				next_node->h = calcul_bstar_h_value(next_node->pos, param.end, param.start); // 使用B*啟發式函數
+
+				Node*& reference_node = mapping_[(int)next_node->pos.y() * width_ + (int)next_node->pos.x()];
+				reference_node = next_node;
+				reference_node->state = NodeState::IN_OPENLIST;
+
+				open_list_.push_back(next_node);
+#if _MSVC_LANG > 201703L
+				std::ranges::push_heap(open_list_, [](const Node* a, const Node* b)->bool
+#else
+				std::push_heap(open_list_.begin(), open_list_.end(), [](const Node* a, const Node* b)->bool
+#endif
+					{
+						return a->f() > b->f();
+					});
+#else
+				next_node = allocator_->allocate(alloc_size);  // 分配內存
+				std::allocator_traits<std::pmr::polymorphic_allocator<Node>>::construct(*allocator_, next_node, nearby_nodes[index]);// 構造對象
 				handle_not_found_node(current, next_node, param.end);
+#endif
 			}
 			++index;
 		}

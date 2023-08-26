@@ -1458,7 +1458,6 @@ bool Interpreter::findPath(QPoint dst, qint64 steplen, qint64 step_cost, qint64 
 			injector.server->move(point);
 			if (step_cost > 0)
 				QThread::msleep(step_cost);
-			//QThread::msleep(50);
 		}
 
 		if (!checkBattleThenWait())
