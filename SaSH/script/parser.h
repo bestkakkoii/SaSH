@@ -578,10 +578,12 @@ private:
 	bool exprTo(QString expr, QString* ret);
 
 	template <typename T>
-	bool exprTo(QString expr, T* ret);
+	typename std::enable_if<std::is_same<T, qint64>::value || std::is_same<T, qreal>::value || std::is_same<T, QVariant>::value, bool>::type
+		exprTo(QString expr, T* ret);
 
 	template <typename T>
-	bool exprCAOSTo(T value, QString expr, T* ret);
+	typename std::enable_if<std::is_same<T, qint64>::value || std::is_same<T, qreal>::value || std::is_same<T, QVariant>::value, bool>::type
+		exprCAOSTo(T value, QString expr, T* ret);
 
 	void handleError(qint64 err, const QString& addition = "");
 	void checkArgs();

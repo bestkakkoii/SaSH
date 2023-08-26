@@ -181,10 +181,13 @@ qint64 Interpreter::findpath(qint64 currentline, const TokenMap& TK)
 		return Parser::kServerNotReady;
 
 	checkBattleThenWait();
-	qint64 steplen = 3;
+
 	qint64 x = 0;
 	qint64 y = 0;
 	QPoint p;
+	qint64 steplen = 3;
+	qint64 step_cost = 10;
+	qint64 timeout = 180000;
 	QString name;
 	if (!checkInteger(TK, 1, &x))
 	{
@@ -263,10 +266,19 @@ qint64 Interpreter::findpath(qint64 currentline, const TokenMap& TK)
 
 		if (p.isNull())
 			return Parser::kArgError + 1ll;
+
+		checkInteger(TK, 3, &step_cost);
+
+		checkInteger(TK, 4, &timeout);
 	}
 	else
+	{
 		checkInteger(TK, 3, &steplen);
 
+		checkInteger(TK, 4, &step_cost);
+
+		checkInteger(TK, 5, &timeout);
+	}
 
 	//findpath 不允許接受為0的xy座標
 	if (p.x() < 0 || p.x() >= 1500)
@@ -275,7 +287,7 @@ qint64 Interpreter::findpath(qint64 currentline, const TokenMap& TK)
 	if (p.y() < 0 || p.y() >= 1500)
 		return Parser::kArgError + 2ll;
 
-	if (findPath(p, steplen))
+	if (findPath(p, steplen, step_cost, timeout))
 	{
 		if (!name.isEmpty() && (findNpcCallBack(name, p, &dir)) && dir != -1)
 			injector.server->setPlayerFaceDirection(dir);

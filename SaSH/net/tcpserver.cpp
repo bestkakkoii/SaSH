@@ -1488,7 +1488,7 @@ int Server::getUnloginStatus()
 	{
 		setOnlineFlag(false);
 		emit signalDispatcher.updateStatusLabelTextChanged(util::kLabelStatusLoginFailed);
-		return util::kStatusLoginFailed;//逾時
+		return util::kStatusLoginFailed;//簽入失敗
 	}
 	else if (1 == W && 101 == G)
 	{
@@ -1596,7 +1596,7 @@ int Server::getUnloginStatus()
 		return util::kStatusUnknown;
 	}
 	else if (9 == W && 3 == G)
-		return util::kStatusLogined;//已丁入(平時且無其他對話框或特殊場景)
+		return util::kStatusLogined;//已豋入(平時且無其他對話框或特殊場景)
 
 	qDebug() << "getUnloginStatus: " << W << " " << G;
 	return util::kStatusUnknown;
@@ -2713,6 +2713,7 @@ void Server::talk(const QString& text, int color, TalkMode mode)
 		setSwitcher(flg);
 }
 
+//創建人物
 void Server::createCharacter(int dataplacenum
 	, const QString& charname
 	, int imgno
@@ -2727,13 +2728,13 @@ void Server::createCharacter(int dataplacenum
 	, int wind
 	, int hometown)
 {
+	//hometown: 薩姆0 漁村1 加加2 卡魯3
 	if (dataplacenum != 0 && dataplacenum != 1)
 		return;
 
 	if (chartable[dataplacenum].valid)
 		return;
 
-	//hometown: 薩姆0 漁村1 加加2 卡魯3
 	if (!checkWG(3, 11))
 		return;
 

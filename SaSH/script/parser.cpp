@@ -250,8 +250,13 @@ bool Parser::exprTo(QString expr, QString* ret)
 
 	expr = expr.simplified();
 
-	if (expr == "return" || expr == "back" || expr == "continue" || expr == "continue" || expr == "break")
-		return false;
+	if (expr == "return" || expr == "back" || expr == "continue" || expr == "break"
+		|| expr == QString(u8"返回") || expr == QString(u8"跳回") || expr == QString(u8"繼續") || expr == QString(u8"跳出")
+		|| expr == QString(u8"继续"))
+	{
+		*ret = expr;
+		return true;
+	}
 
 	QString exprStr = QString("%1\nreturn %2;").arg(localVarList.join("\n")).arg(expr);
 	const std::string exprStrUTF8 = exprStr.toUtf8().constData();
@@ -262,8 +267,7 @@ bool Parser::exprTo(QString expr, QString* ret)
 		sol::error err = loaded_chunk;
 		QString errStr = QString::fromUtf8(err.what());
 		handleError(kLuaError, errStr);
-		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
-		emit signalDispatcher.messageBoxShow(exprStr);
+		insertGlobalVar("_LUAEXPR", exprStr);
 		return false;
 	}
 
@@ -287,15 +291,13 @@ bool Parser::exprTo(QString expr, QString* ret)
 
 //取表達式結果
 template <typename T>
-bool Parser::exprTo(QString expr, T* ret)
+typename std::enable_if<std::is_same<T, qint64>::value || std::is_same<T, qreal>::value || std::is_same<T, QVariant>::value, bool>::type
+Parser::exprTo(QString expr, T* ret)
 {
 	if (nullptr == ret)
 		return false;
 
 	expr = expr.simplified();
-
-	if (expr == "return" || expr == "back" || expr == "continue" || expr == "continue" || expr == "break")
-		return false;
 
 	QString exprStr = QString("%1\nreturn %2;").arg(localVarList.join("\n")).arg(expr);
 	const std::string exprStrUTF8 = exprStr.toUtf8().constData();
@@ -306,8 +308,7 @@ bool Parser::exprTo(QString expr, T* ret)
 		sol::error err = loaded_chunk;
 		QString errStr = QString::fromUtf8(err.what());
 		handleError(kLuaError, errStr);
-		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
-		emit signalDispatcher.messageBoxShow(exprStr);
+		insertGlobalVar("_LUAEXPR", exprStr);
 		return false;
 	}
 
@@ -341,15 +342,13 @@ bool Parser::exprTo(QString expr, T* ret)
 
 //取表達式結果 += -= *= /= %= ^=
 template <typename T>
-bool Parser::exprCAOSTo(T value, QString expr, T* ret)
+typename std::enable_if<std::is_same<T, qint64>::value || std::is_same<T, qreal>::value || std::is_same<T, QVariant>::value, bool>::type
+Parser::exprCAOSTo(T value, QString expr, T* ret)
 {
 	if (nullptr == ret)
 		return false;
 
 	expr = expr.simplified();
-
-	if (expr == "return" || expr == "back" || expr == "continue" || expr == "continue" || expr == "break")
-		return false;
 
 	//取類別
 	QStringList exprList = expr.split("=");
@@ -368,8 +367,7 @@ bool Parser::exprCAOSTo(T value, QString expr, T* ret)
 		sol::error err = loaded_chunk;
 		QString errStr = QString::fromUtf8(err.what());
 		handleError(kLuaError, errStr);
-		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
-		emit signalDispatcher.messageBoxShow(exprStr);
+		insertGlobalVar("_LUAEXPR", exprStr);
 		return false;
 	}
 
@@ -453,15 +451,10 @@ bool Parser::checkString(const TokenMap& TK, qint64 idx, QString* ret)
 		* ret = var.toString();
 		cycleReplace(*ret);
 		QString exprStrUTF8;
-		if (exprTo(*ret, &exprStrUTF8))
-		{
-			*ret = exprStrUTF8;
-			return true;
-		}
-		else
+		if (!exprTo(*ret, &exprStrUTF8))
 			return false;
 
-
+		*ret = exprStrUTF8;
 		//}
 	}
 	else
@@ -1925,7 +1918,8 @@ void Parser::jumpto(qint64 line, bool noStack)
 //標記跳轉
 bool Parser::jump(const QString& name, bool noStack)
 {
-	if (name.toLower() == "back")
+	QString newName = name.toLower();
+	if (newName == "back" || newName == QString(u8"跳回"))
 	{
 		if (!jmpStack_.isEmpty())
 		{
@@ -1936,7 +1930,7 @@ bool Parser::jump(const QString& name, bool noStack)
 		}
 		return false;
 	}
-	else if (name.toLower() == "return")
+	else if (newName == "return" || newName == QString(u8"返回"))
 	{
 		bool bret = false;
 		if (!callStack_.isEmpty())
@@ -1953,11 +1947,11 @@ bool Parser::jump(const QString& name, bool noStack)
 			localVarStack_.pop();//label局變量出棧
 		return bret;
 	}
-	else if (name.toLower() == "continue")
+	else if (newName == "continue" || newName == QString(u8"繼續") || newName == QString(u8"继续"))
 	{
 		return processContinue();
 	}
-	else if (name.toLower() == "break")
+	else if (newName == "break" || newName == QString(u8"跳出"))
 	{
 		return processBreak();
 	}
