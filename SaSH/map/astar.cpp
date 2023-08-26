@@ -25,7 +25,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #endif
 #include <cassert>
 
-#define USE_BSTAR
+//#define USE_BSTAR
 
 #pragma region ASTAR
 

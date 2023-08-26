@@ -186,7 +186,7 @@ qint64 Interpreter::findpath(qint64 currentline, const TokenMap& TK)
 	qint64 y = 0;
 	QPoint p;
 	qint64 steplen = 3;
-	qint64 step_cost = 0;
+	qint64 step_cost = 10;
 	qint64 timeout = 180000;
 	QString name;
 	if (!checkInteger(TK, 1, &x))
