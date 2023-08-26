@@ -60,7 +60,7 @@ class Lssproto
 public:
 	void lssproto_W_send(const QPoint& pos, char* direction);
 	void lssproto_W2_send(const QPoint& pos, char* direction);
-	void lssproto_EV_send(int event, int seqno, const QPoint& pos, int dir);
+	void lssproto_EV_send(int event, int dialogid, const QPoint& pos, int dir);
 	void lssproto_EN_send(const QPoint& pos);
 	void lssproto_DU_send(const QPoint& pos);
 	void lssproto_EO_send(int dummy);
@@ -71,12 +71,12 @@ public:
 	void lssproto_SKD_send(int dir, int index);
 	void lssproto_ID_send(const QPoint& pos, int haveitemindex, int toindex);
 	void lssproto_PI_send(const QPoint& pos, int dir);
-	void lssproto_DI_send(const QPoint& pos, int itemindex);
+	void lssproto_DI_send(const QPoint& pos, int itemIndex);
 	void lssproto_DG_send(const QPoint& pos, int amount);
 	void lssproto_DP_send(const QPoint& pos, int petindex);
 	void lssproto_MI_send(int fromindex, int toindex);
 	void lssproto_MSG_send(int index, char* message, int color);
-	void lssproto_PMSG_send(int index, int petindex, int itemindex, char* message, int color);
+	void lssproto_PMSG_send(int index, int petindex, int itemIndex, char* message, int color);
 	void lssproto_AB_send(int fd);
 	void lssproto_DAB_send(int index);
 	void lssproto_AAB_send(const QPoint& pos);
@@ -100,7 +100,7 @@ public:
 	void lssproto_FT_send(char* data);
 	void lssproto_SKUP_send(int skillid);
 	void lssproto_KN_send(int havepetindex, char* data);
-	void lssproto_WN_send(const QPoint& pos, int seqno, int objindex, int select, char* data);
+	void lssproto_WN_send(const QPoint& pos, int dialogid, int unitid, int select, char* data);
 	void lssproto_SP_send(const QPoint& pos, int dir);
 	void lssproto_ClientLogin_send(char* cdkey, char* passwd, char* mac, int selectServerIndex, char* ip, DWORD flags);
 	void lssproto_CreateNewChar_send(int dataplacenum, char* charname, int imgno, int faceimgno, int vital, int str, int tgh, int dex, int earth, int water, int fire, int wind, int hometown);
@@ -186,7 +186,7 @@ public:
 
 #pragma region Lssproto_Recv
 	virtual void lssproto_XYD_recv(const QPoint& pos, int dir) = 0;//戰鬥結束後的大地圖座標
-	virtual void lssproto_EV_recv(int seqno, int result) = 0;
+	virtual void lssproto_EV_recv(int dialogid, int result) = 0;
 	virtual void lssproto_EN_recv(int result, int field) = 0;
 	virtual void lssproto_RS_recv(char* data) = 0;
 	virtual void lssproto_RD_recv(char* data) = 0;
@@ -194,7 +194,7 @@ public:
 	virtual void lssproto_I_recv(char* data) = 0;
 	virtual void lssproto_SI_recv(int fromindex, int toindex) = 0;
 	virtual void lssproto_MSG_recv(int aindex, char* text, int color) = 0;	//收到普通郵件或寵物郵件
-	virtual void lssproto_PME_recv(int objindex, int graphicsno, const QPoint& pos, int dir, int flg, int no, char* cdata) = 0;
+	virtual void lssproto_PME_recv(int unitid, int graphicsno, const QPoint& pos, int dir, int flg, int no, char* cdata) = 0;
 	virtual void lssproto_AB_recv(char* data) = 0;
 	virtual void lssproto_ABI_recv(int num, char* data) = 0;
 	virtual void lssproto_TK_recv(int index, char* message, int color) = 0;
@@ -215,7 +215,7 @@ public:
 #endif
 	virtual void lssproto_PS_recv(int result, int havepetindex, int havepetskill, int toindex) = 0;	//寵物合成
 	virtual void lssproto_SKUP_recv(int point) = 0;//取得可加的屬性點數
-	virtual void lssproto_WN_recv(int windowtype, int buttontype, int seqno, int objindex, char* data) = 0;
+	virtual void lssproto_WN_recv(int windowtype, int buttontype, int dialogid, int unitid, char* data) = 0;
 	virtual void lssproto_EF_recv(int effect, int level, char* option) = 0;
 	virtual void lssproto_SE_recv(const QPoint& pos, int senumber, int sw) = 0;
 	virtual void lssproto_ClientLogin_recv(char* result) = 0;

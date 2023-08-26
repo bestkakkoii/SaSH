@@ -590,16 +590,16 @@ int Server::saDispatchMessage(char* encoded)
 	}
 	case LSSPROTO_EV_RECV: /*WRAP 4*/
 	{
-		int seqno = 0;
+		int dialogid = 0;
 		int result = 0;
-		iChecksum += Autil::util_deint(2, &seqno);
+		iChecksum += Autil::util_deint(2, &dialogid);
 		iChecksum += Autil::util_deint(3, &result);
 		Autil::util_deint(4, &iChecksumrecv);
 		if (iChecksum != iChecksumrecv)
 			return 0;
 
-		qDebug() << "LSSPROTO_EV_RECV" << "seqno" << seqno << "result" << result;
-		lssproto_EV_recv(seqno, result);
+		qDebug() << "LSSPROTO_EV_RECV" << "dialogid" << dialogid << "result" << result;
+		lssproto_EV_recv(dialogid, result);
 		break;
 	}
 	case LSSPROTO_EN_RECV: /*Battle EncountFlag //開始戰鬥 7*/
@@ -698,7 +698,7 @@ int Server::saDispatchMessage(char* encoded)
 	}
 	case LSSPROTO_PME_RECV:/*28*/
 	{
-		int objindex;
+		int unitid;
 		int graphicsno;
 		int x;
 		int y;
@@ -707,7 +707,7 @@ int Server::saDispatchMessage(char* encoded)
 		int no;
 		//char data[Autil::NETDATASIZE] = {}; memset(data, 0, sizeof(data.data()));
 
-		iChecksum += Autil::util_deint(2, &objindex);
+		iChecksum += Autil::util_deint(2, &unitid);
 		iChecksum += Autil::util_deint(3, &graphicsno);
 		iChecksum += Autil::util_deint(4, &x);
 		iChecksum += Autil::util_deint(5, &y);
@@ -719,9 +719,9 @@ int Server::saDispatchMessage(char* encoded)
 		if (iChecksum != iChecksumrecv)
 			return 0;
 
-		qDebug() << "LSSPROTO_PME_RECV" << "objindex" << objindex << "graphicsno" << graphicsno <<
+		qDebug() << "LSSPROTO_PME_RECV" << "unitid" << unitid << "graphicsno" << graphicsno <<
 			"x" << x << "y" << y << "dir" << dir << "flg" << flg << "no" << no << "cdata" << util::toUnicode(data.data());
-		lssproto_PME_recv(objindex, graphicsno, QPoint(x, y), dir, flg, no, data.data());
+		lssproto_PME_recv(unitid, graphicsno, QPoint(x, y), dir, flg, no, data.data());
 		break;
 	}
 	case LSSPROTO_AB_RECV:/* 30*/
@@ -1000,21 +1000,21 @@ int Server::saDispatchMessage(char* encoded)
 	{
 		int windowtype;
 		int buttontype;
-		int seqno;
-		int objindex;
+		int dialogid;
+		int unitid;
 		//char data[Autil::NETDATASIZE] = {}; memset(data, 0, sizeof(data.data()));
 
 		iChecksum += Autil::util_deint(2, &windowtype);
 		iChecksum += Autil::util_deint(3, &buttontype);
-		iChecksum += Autil::util_deint(4, &seqno);
-		iChecksum += Autil::util_deint(5, &objindex);
+		iChecksum += Autil::util_deint(4, &dialogid);
+		iChecksum += Autil::util_deint(5, &unitid);
 		iChecksum += Autil::util_destring(6, data.data());
 		Autil::util_deint(7, &iChecksumrecv);
 		if (iChecksum != iChecksumrecv)
 			return 0;
 
-		qDebug() << "LSSPROTO_WN_RECV" << "windowtype" << windowtype << "buttontype" << buttontype << "seqno" << seqno << "objindex" << objindex << "data" << util::toUnicode(data.data());
-		lssproto_WN_recv(windowtype, buttontype, seqno, objindex, data.data());
+		qDebug() << "LSSPROTO_WN_RECV" << "windowtype" << windowtype << "buttontype" << buttontype << "dialogid" << dialogid << "unitid" << unitid << "data" << util::toUnicode(data.data());
+		lssproto_WN_recv(windowtype, buttontype, dialogid, unitid, data.data());
 		break;
 	}
 	case LSSPROTO_EF_RECV: /*天氣68*/
@@ -1659,7 +1659,7 @@ int Server::getPartySize() const
 		for (int i = 0; i < MAX_PARTY; ++i)
 		{
 			PARTY party = getParty(i);
-			if (party.useFlag <= 0)
+			if (!party.valid)
 				continue;
 			if (party.level <= 0)
 				continue;
@@ -1737,7 +1737,7 @@ bool Server::getItemIndexsByName(const QString& name, const QString& memo, QVect
 	for (int i = 0; i < MAX_ITEM; ++i)
 	{
 		QString itemName = pc.item[i].name.simplified();
-		if (itemName.isEmpty() || pc.item[i].useFlag == 0)
+		if (itemName.isEmpty() || !pc.item[i].valid)
 			continue;
 
 		QString itemMemo = pc.item[i].memo.simplified();
@@ -1788,7 +1788,7 @@ int Server::getItemIndexByName(const QString& name, bool isExact, const QString&
 	for (int i = from; i < to; ++i)
 	{
 		QString itemName = pc.item[i].name.simplified();
-		if (itemName.isEmpty() || pc.item[i].useFlag == 0)
+		if (itemName.isEmpty() || !pc.item[i].valid)
 			continue;
 
 		QString itemMemo = pc.item[i].memo.simplified();
@@ -1817,7 +1817,7 @@ int Server::getPetSkillIndexByName(int& petIndex, const QString& name) const
 			for (int i = 0; i < MAX_SKILL; ++i)
 			{
 				QString petSkillName = petSkill[j][i].name.simplified();
-				if (petSkillName.isEmpty() || petSkill[j][i].useFlag == 0)
+				if (petSkillName.isEmpty() || !petSkill[j][i].valid)
 					continue;
 
 				if (petSkillName == newName)
@@ -1842,7 +1842,7 @@ int Server::getPetSkillIndexByName(int& petIndex, const QString& name) const
 		for (int i = 0; i < MAX_SKILL; ++i)
 		{
 			QString petSkillName = petSkill[petIndex][i].name.simplified();
-			if (petSkillName.isEmpty() || petSkill[petIndex][i].useFlag == 0)
+			if (petSkillName.isEmpty() || !petSkill[petIndex][i].valid)
 				continue;
 
 			if (petSkillName == newName)
@@ -1872,7 +1872,7 @@ bool Server::getPetIndexsByName(const QString& name, QVector<int>* pv) const
 
 		PET _pet = pet[i];
 		QString newPetName = _pet.name.simplified();
-		if (newPetName.isEmpty() || _pet.useFlag == 0)
+		if (newPetName.isEmpty() || !_pet.valid)
 			continue;
 
 		for (QString name : nameList)
@@ -1909,7 +1909,7 @@ int Server::getItemEmptySpotIndex() const
 	for (int i = CHAR_EQUIPPLACENUM; i < MAX_ITEM; ++i)
 	{
 		QString name = pc.item[i].name.simplified();
-		if (name.isEmpty() || pc.item[i].useFlag == 0)
+		if (name.isEmpty() || !pc.item[i].valid)
 			return i;
 	}
 
@@ -1923,7 +1923,7 @@ bool Server::getItemEmptySpotIndexs(QVector<int>* pv) const
 	for (int i = CHAR_EQUIPPLACENUM; i < MAX_ITEM; ++i)
 	{
 		QString name = pc.item[i].name.simplified();
-		if (name.isEmpty() || pc.item[i].useFlag == 0)
+		if (name.isEmpty() || !pc.item[i].valid)
 			v.append(i);
 	}
 	if (pv)
@@ -2063,7 +2063,7 @@ bool Server::findUnit(const QString& nameSrc, int type, mapunit_t* punit, const 
 
 		for (const mapunit_t& it : units)
 		{
-			if (it.graNo == 0 || it.graNo == 9999)
+			if (it.modelid == 0 || it.modelid == 9999)
 				continue;
 
 			if (it.objType != type)
@@ -2082,10 +2082,10 @@ bool Server::findUnit(const QString& nameSrc, int type, mapunit_t* punit, const 
 	{
 		for (const mapunit_t& it : units)
 		{
-			if (it.graNo == 0 || it.graNo == 9999)
+			if (it.modelid == 0 || it.modelid == 9999)
 				continue;
 
-			if (it.graNo == modelid)
+			if (it.modelid == modelid)
 			{
 				*punit = it;
 				return true;
@@ -2101,7 +2101,7 @@ bool Server::findUnit(const QString& nameSrc, int type, mapunit_t* punit, const 
 
 			for (const mapunit_t& it : units)
 			{
-				if (it.graNo == 0)
+				if (it.modelid == 0)
 					continue;
 
 				if (it.objType != type)
@@ -2216,11 +2216,11 @@ bool Server::matchPetNameByIndex(int index, const QString& cmpname)
 		return false;
 
 	QString name = pet[index].name.simplified();
-	QString freename = pet[index].freeName.simplified();
+	QString freeName = pet[index].freeName.simplified();
 
 	if (!name.isEmpty() && newCmpName == name)
 		return true;
-	if (!freename.isEmpty() && newCmpName == freename)
+	if (!freeName.isEmpty() && newCmpName == freeName)
 		return true;
 
 	return false;
@@ -2266,7 +2266,7 @@ void Server::refreshItemInfo(int i)
 			QObject::tr("gloves")
 		};
 
-		if (!pc.item[i].name.isEmpty() && (pc.item[i].useFlag != 0))
+		if (!pc.item[i].name.isEmpty() && (pc.item[i].valid != 0))
 		{
 			if (pc.item[i].name2.isEmpty())
 				varList = { equipVHeaderList.at(i), pc.item[i].name, pc.item[i].damage,	pc.item[i].memo };
@@ -2284,7 +2284,7 @@ void Server::refreshItemInfo(int i)
 	}
 	else
 	{
-		if (!pc.item[i].name.isEmpty() && (pc.item[i].useFlag != 0))
+		if (!pc.item[i].name.isEmpty() && (pc.item[i].valid != 0))
 		{
 			if (pc.item[i].name2.isEmpty())
 				varList = { i - CHAR_EQUIPPLACENUM + 1, pc.item[i].name, pc.item[i].pile, pc.item[i].damage, pc.item[i].level, pc.item[i].memo };
@@ -2333,8 +2333,8 @@ void Server::updateItemByMemory()
 	for (int i = 0; i < MAX_ITEM; ++i)
 	{
 		constexpr int item_offest = 0x184;
-		pc.item[i].useFlag = mem::read<short>(hProcess, hModule + 0x422C028 + i * item_offest);
-		if (pc.item[i].useFlag != 1)
+		pc.item[i].valid = mem::read<short>(hProcess, hModule + 0x422C028 + i * item_offest) > 0;
+		if (pc.item[i].valid != 1)
 		{
 			pc.item[i] = {};
 			continue;
@@ -2488,8 +2488,8 @@ void Server::reloadHashVar(const QString& typeStr)
 			const QHash<QString, QVariant> hash = {
 				{ "pos", battle.pos + 1 },
 				{ "name", battle.name },
-				{ "fname", battle.freename },
-				{ "modelid", battle.faceid },
+				{ "fname", battle.freeName },
+				{ "modelid", battle.modelid },
 				{ "lv", battle.level },
 				{ "hp", battle.hp },
 				{ "maxhp", battle.maxHp },
@@ -3078,7 +3078,7 @@ bool Server::login(int s)
 		{
 			injector.leftDoubleClick(380, 310);
 			config.writeArray<int>("System", "Login", "OK", { 380, 310 });
-	}
+		}
 #endif
 		break;
 	}
@@ -3171,10 +3171,10 @@ bool Server::login(int s)
 			if (timer.hasExpired(1000))
 				break;
 
-	}
+		}
 #endif
 		break;
-}
+	}
 	case util::kStatusSelectSubServer:
 	{
 		if (subserver < 0 || subserver >= 15)
@@ -3319,8 +3319,8 @@ bool Server::login(int s)
 				if (timer.hasExpired(1000))
 					break;
 
-	}
-	}
+			}
+		}
 #endif
 		break;
 	}
@@ -3373,10 +3373,10 @@ bool Server::login(int s)
 	}
 	default:
 		break;
-		}
+	}
 	disconnectflag = false;
 	return false;
-	}
+}
 
 #pragma endregion
 
@@ -3397,7 +3397,7 @@ void Server::createRemoteDialog(int button, const QString& text)
 	injector.sendMessage(Injector::kCreateDialog, button, ptr);
 }
 
-void Server::press(BUTTON_TYPE select, int seqno, int objindex)
+void Server::press(BUTTON_TYPE select, int dialogid, int unitid)
 {
 	if (!getOnlineFlag())
 		return;
@@ -3406,11 +3406,11 @@ void Server::press(BUTTON_TYPE select, int seqno, int objindex)
 		return;
 
 	dialog_t dialog = currentDialog;
-	if (seqno == -1)
-		seqno = dialog.seqno;
+	if (dialogid == -1)
+		dialogid = dialog.dialogid;
 
-	if (objindex == -1)
-		objindex = dialog.objindex;
+	if (unitid == -1)
+		unitid = dialog.unitid;
 
 	char data[2] = { '\0', '\0' };
 	if (BUTTON_BUY == select)
@@ -3448,13 +3448,13 @@ void Server::press(BUTTON_TYPE select, int seqno, int objindex)
 			select = BUTTON_CANCEL;
 	}
 
-	lssproto_WN_send(getPoint(), seqno, objindex, select, const_cast<char*>(data));
+	lssproto_WN_send(getPoint(), dialogid, unitid, select, const_cast<char*>(data));
 
 	Injector& injector = Injector::getInstance();
 	injector.sendMessage(Injector::kDistoryDialog, NULL, NULL);
 }
 
-void Server::press(int row, int seqno, int objindex)
+void Server::press(int row, int dialogid, int unitid)
 {
 	if (!getOnlineFlag())
 		return;
@@ -3463,21 +3463,21 @@ void Server::press(int row, int seqno, int objindex)
 		return;
 
 	dialog_t dialog = currentDialog;
-	if (seqno == -1)
-		seqno = dialog.seqno;
+	if (dialogid == -1)
+		dialogid = dialog.dialogid;
 
-	if (objindex == -1)
-		objindex = dialog.objindex;
+	if (unitid == -1)
+		unitid = dialog.unitid;
 	QString qrow = QString::number(row);
 	std::string srow = qrow.toStdString();
-	lssproto_WN_send(getPoint(), seqno, objindex, BUTTON_NOTUSED, const_cast<char*>(srow.c_str()));
+	lssproto_WN_send(getPoint(), dialogid, unitid, BUTTON_NOTUSED, const_cast<char*>(srow.c_str()));
 
 	Injector& injector = Injector::getInstance();
 	injector.sendMessage(Injector::kDistoryDialog, NULL, NULL);
 }
 
 //買東西
-void Server::buy(int index, int amt, int seqno, int objindex)
+void Server::buy(int index, int amt, int dialogid, int unitid)
 {
 	if (!getOnlineFlag())
 		return;
@@ -3492,22 +3492,22 @@ void Server::buy(int index, int amt, int seqno, int objindex)
 		return;
 
 	dialog_t dialog = currentDialog;
-	if (seqno == -1)
-		seqno = dialog.seqno;
+	if (dialogid == -1)
+		dialogid = dialog.dialogid;
 
-	if (objindex == -1)
-		objindex = dialog.objindex;
+	if (unitid == -1)
+		unitid = dialog.unitid;
 
 	QString qrow = QString("%1\\z%2").arg(index + 1).arg(amt);
 	std::string srow = qrow.toStdString();
-	lssproto_WN_send(getPoint(), seqno, objindex, BUTTON_NOTUSED, const_cast<char*>(srow.c_str()));
+	lssproto_WN_send(getPoint(), dialogid, unitid, BUTTON_NOTUSED, const_cast<char*>(srow.c_str()));
 
 	Injector& injector = Injector::getInstance();
 	injector.sendMessage(Injector::kDistoryDialog, NULL, NULL);
 }
 
 //賣東西
-void Server::sell(const QString& name, const QString& memo, int seqno, int objindex)
+void Server::sell(const QString& name, const QString& memo, int dialogid, int unitid)
 {
 	if (!getOnlineFlag())
 		return;
@@ -3519,21 +3519,21 @@ void Server::sell(const QString& name, const QString& memo, int seqno, int objin
 		return;
 
 	dialog_t dialog = currentDialog;
-	if (seqno == -1)
-		seqno = dialog.seqno;
+	if (dialogid == -1)
+		dialogid = dialog.dialogid;
 
-	if (objindex == -1)
-		objindex = dialog.objindex;
+	if (unitid == -1)
+		unitid = dialog.unitid;
 
 	QVector<int> indexs;
 	if (!getItemIndexsByName(name, memo, &indexs, CHAR_EQUIPPLACENUM))
 		return;
 
-	sell(indexs, seqno, objindex);
+	sell(indexs, dialogid, unitid);
 }
 
 //賣東西
-void Server::sell(int index, int seqno, int objindex)
+void Server::sell(int index, int dialogid, int unitid)
 {
 	if (!getOnlineFlag())
 		return;
@@ -3545,26 +3545,26 @@ void Server::sell(int index, int seqno, int objindex)
 		return;
 
 	PC pc = getPC();
-	if (pc.item[index].name.isEmpty() || pc.item[index].useFlag == 0)
+	if (pc.item[index].name.isEmpty() || !pc.item[index].valid)
 		return;
 
 	dialog_t dialog = currentDialog;
-	if (seqno == -1)
-		seqno = dialog.seqno;
+	if (dialogid == -1)
+		dialogid = dialog.dialogid;
 
-	if (objindex == -1)
-		objindex = dialog.objindex;
+	if (unitid == -1)
+		unitid = dialog.unitid;
 
 	QString qrow = QString("%1\\z%2").arg(index).arg(pc.item[index].pile);
 	std::string srow = qrow.toStdString();
-	lssproto_WN_send(getPoint(), seqno, objindex, BUTTON_NOTUSED, const_cast<char*>(srow.c_str()));
+	lssproto_WN_send(getPoint(), dialogid, unitid, BUTTON_NOTUSED, const_cast<char*>(srow.c_str()));
 
 	Injector& injector = Injector::getInstance();
 	injector.sendMessage(Injector::kDistoryDialog, NULL, NULL);
 }
 
 //賣東西
-void Server::sell(const QVector<int>& indexs, int seqno, int objindex)
+void Server::sell(const QVector<int>& indexs, int dialogid, int unitid)
 {
 	if (!getOnlineFlag())
 		return;
@@ -3576,11 +3576,11 @@ void Server::sell(const QVector<int>& indexs, int seqno, int objindex)
 		return;
 
 	dialog_t dialog = currentDialog;
-	if (seqno == -1)
-		seqno = dialog.seqno;
+	if (dialogid == -1)
+		dialogid = dialog.dialogid;
 
-	if (objindex == -1)
-		objindex = dialog.objindex;
+	if (unitid == -1)
+		unitid = dialog.unitid;
 
 	QStringList list;
 	for (const int it : indexs)
@@ -3588,12 +3588,12 @@ void Server::sell(const QVector<int>& indexs, int seqno, int objindex)
 		if (it < 0 || it >= MAX_ITEM)
 			continue;
 
-		sell(it, seqno, objindex);
+		sell(it, dialogid, unitid);
 	}
 }
 
 //寵物學技能
-void Server::learn(int skillIndex, int petIndex, int spot, int seqno, int objindex)
+void Server::learn(int skillIndex, int petIndex, int spot, int dialogid, int unitid)
 {
 	if (!getOnlineFlag())
 		return;
@@ -3611,21 +3611,21 @@ void Server::learn(int skillIndex, int petIndex, int spot, int seqno, int objind
 		return;
 
 	dialog_t dialog = currentDialog;
-	if (seqno == -1)
-		seqno = dialog.seqno;
+	if (dialogid == -1)
+		dialogid = dialog.dialogid;
 
-	if (objindex == -1)
-		objindex = dialog.objindex;
+	if (unitid == -1)
+		unitid = dialog.unitid;
 	//8\z3\z3\z1000 技能
 	QString qrow = QString("%1\\z%3\\z%3\\z%4").arg(skillIndex + 1).arg(petIndex + 1).arg(spot + 1).arg(0);
 	std::string srow = qrow.toStdString();
-	lssproto_WN_send(getPoint(), seqno, objindex, BUTTON_NOTUSED, const_cast<char*>(srow.c_str()));
+	lssproto_WN_send(getPoint(), dialogid, unitid, BUTTON_NOTUSED, const_cast<char*>(srow.c_str()));
 
 	Injector& injector = Injector::getInstance();
 	injector.sendMessage(Injector::kDistoryDialog, NULL, NULL);
 }
 
-void Server::depositItem(int itemIndex, int seqno, int objindex)
+void Server::depositItem(int itemIndex, int dialogid, int unitid)
 {
 	if (!getOnlineFlag())
 		return;
@@ -3637,38 +3637,18 @@ void Server::depositItem(int itemIndex, int seqno, int objindex)
 		return;
 
 	dialog_t dialog = currentDialog;
-	if (seqno == -1)
-		seqno = dialog.seqno;
+	if (dialogid == -1)
+		dialogid = dialog.dialogid;
 
-	if (objindex == -1)
-		objindex = dialog.objindex;
-
-	QString qstr = QString::number(itemIndex + 1);
-	std::string srow = qstr.toStdString();
-	lssproto_WN_send(getPoint(), seqno, objindex, BUTTON_NOTUSED, const_cast<char*>(srow.c_str()));
-}
-
-void Server::withdrawItem(int itemIndex, int seqno, int objindex)
-{
-	if (!getOnlineFlag())
-		return;
-
-	if (getBattleFlag())
-		return;
-
-	dialog_t dialog = currentDialog;
-	if (seqno == -1)
-		seqno = dialog.seqno;
-
-	if (objindex == -1)
-		objindex = dialog.objindex;
+	if (unitid == -1)
+		unitid = dialog.unitid;
 
 	QString qstr = QString::number(itemIndex + 1);
 	std::string srow = qstr.toStdString();
-	lssproto_WN_send(getPoint(), seqno, objindex, BUTTON_NOTUSED, const_cast<char*>(srow.c_str()));
+	lssproto_WN_send(getPoint(), dialogid, unitid, BUTTON_NOTUSED, const_cast<char*>(srow.c_str()));
 }
 
-void Server::depositPet(int petIndex, int seqno, int objindex)
+void Server::withdrawItem(int itemIndex, int dialogid, int unitid)
 {
 	if (!getOnlineFlag())
 		return;
@@ -3677,18 +3657,18 @@ void Server::depositPet(int petIndex, int seqno, int objindex)
 		return;
 
 	dialog_t dialog = currentDialog;
-	if (seqno == -1)
-		seqno = dialog.seqno;
+	if (dialogid == -1)
+		dialogid = dialog.dialogid;
 
-	if (objindex == -1)
-		objindex = dialog.objindex;
+	if (unitid == -1)
+		unitid = dialog.unitid;
 
-	QString qstr = QString::number(petIndex + 1);
+	QString qstr = QString::number(itemIndex + 1);
 	std::string srow = qstr.toStdString();
-	lssproto_WN_send(getPoint(), seqno, objindex, BUTTON_NOTUSED, const_cast<char*>(srow.c_str()));
+	lssproto_WN_send(getPoint(), dialogid, unitid, BUTTON_NOTUSED, const_cast<char*>(srow.c_str()));
 }
 
-void Server::withdrawPet(int petIndex, int seqno, int objindex)
+void Server::depositPet(int petIndex, int dialogid, int unitid)
 {
 	if (!getOnlineFlag())
 		return;
@@ -3697,19 +3677,39 @@ void Server::withdrawPet(int petIndex, int seqno, int objindex)
 		return;
 
 	dialog_t dialog = currentDialog;
-	if (seqno == -1)
-		seqno = dialog.seqno;
+	if (dialogid == -1)
+		dialogid = dialog.dialogid;
 
-	if (objindex == -1)
-		objindex = dialog.objindex;
+	if (unitid == -1)
+		unitid = dialog.unitid;
 
 	QString qstr = QString::number(petIndex + 1);
 	std::string srow = qstr.toStdString();
-	lssproto_WN_send(getPoint(), seqno, objindex, BUTTON_NOTUSED, const_cast<char*>(srow.c_str()));
+	lssproto_WN_send(getPoint(), dialogid, unitid, BUTTON_NOTUSED, const_cast<char*>(srow.c_str()));
+}
+
+void Server::withdrawPet(int petIndex, int dialogid, int unitid)
+{
+	if (!getOnlineFlag())
+		return;
+
+	if (getBattleFlag())
+		return;
+
+	dialog_t dialog = currentDialog;
+	if (dialogid == -1)
+		dialogid = dialog.dialogid;
+
+	if (unitid == -1)
+		unitid = dialog.unitid;
+
+	QString qstr = QString::number(petIndex + 1);
+	std::string srow = qstr.toStdString();
+	lssproto_WN_send(getPoint(), dialogid, unitid, BUTTON_NOTUSED, const_cast<char*>(srow.c_str()));
 }
 
 //遊戲對話框輸入文字送出
-void Server::inputtext(const QString& text, int seqno, int objindex)
+void Server::inputtext(const QString& text, int dialogid, int unitid)
 {
 	if (!getOnlineFlag())
 		return;
@@ -3718,17 +3718,17 @@ void Server::inputtext(const QString& text, int seqno, int objindex)
 		return;
 
 	dialog_t dialog = currentDialog;
-	if (seqno == -1)
-		seqno = dialog.seqno;
-	if (objindex == -1)
-		objindex = dialog.objindex;
+	if (dialogid == -1)
+		dialogid = dialog.dialogid;
+	if (unitid == -1)
+		unitid = dialog.unitid;
 	std::string s = util::fromUnicode(text);
 	//if (dialog.buttontype & BUTTON_YES)
-	//	lssproto_WN_send(getPoint(), seqno, objindex, BUTTON_YES, const_cast<char*>(s.c_str()));
+	//	lssproto_WN_send(getPoint(), dialogid, unitid, BUTTON_YES, const_cast<char*>(s.c_str()));
 	//else if (dialog.buttontype & BUTTON_OK)
-	//	lssproto_WN_send(getPoint(), seqno, objindex, BUTTON_OK, const_cast<char*>(s.c_str()));
+	//	lssproto_WN_send(getPoint(), dialogid, unitid, BUTTON_OK, const_cast<char*>(s.c_str()));
 	//else
-	lssproto_WN_send(getPoint(), seqno, objindex, BUTTON_OK, const_cast<char*>(s.c_str()));
+	lssproto_WN_send(getPoint(), dialogid, unitid, BUTTON_OK, const_cast<char*>(s.c_str()));
 	Injector& injector = Injector::getInstance();
 	injector.sendMessage(Injector::kDistoryDialog, NULL, NULL);
 }
@@ -3757,7 +3757,7 @@ void Server::unlockSecurityCode(const QString& code)
 	lssproto_WN_send(getPoint(), kDialogSecurityCode, -1, NULL, const_cast<char*>(scode.c_str()));
 }
 
-void Server::windowPacket(const QString& command, int seqno, int objindex)
+void Server::windowPacket(const QString& command, int dialogid, int unitid)
 {
 	//SI|itemIndex(0-15)|Stack(-1)
 	//TI|itemIndex(0-59)|Stack(-1)
@@ -3772,7 +3772,7 @@ void Server::windowPacket(const QString& command, int seqno, int objindex)
 		return;
 
 	std::string s = util::fromUnicode(command);
-	lssproto_WN_send(getPoint(), seqno, objindex, NULL, const_cast<char*>(s.c_str()));
+	lssproto_WN_send(getPoint(), dialogid, unitid, NULL, const_cast<char*>(s.c_str()));
 }
 #pragma endregion
 
@@ -3794,7 +3794,7 @@ void Server::useMagic(int magicIndex, int target)
 
 	if (magicIndex < MAX_MAGIC && !isPlayerMpEnoughForMagic(magicIndex))
 		return;
-	else if (getPC().item[magicIndex].useFlag == 0)
+	else if (!getPC().item[magicIndex].valid)
 		return;
 
 	lssproto_MU_send(getPoint(), magicIndex, target);
@@ -3829,7 +3829,7 @@ void Server::kickteam(int n)
 		return;
 	}
 
-	if (party[n].useFlag == 1)
+	if (party[n].valid)
 		lssproto_KTEAM_send(n);
 }
 
@@ -3856,7 +3856,7 @@ void Server::mail(const QVariant& card, const QString& text, int petIndex, const
 
 		for (int i = 0; i < MAX_ADR_BOOK; i++)
 		{
-			if (addressBook[i].useFlag == 0)
+			if (!addressBook[i].valid)
 				continue;
 
 			if (isExact)
@@ -3881,7 +3881,7 @@ void Server::mail(const QVariant& card, const QString& text, int petIndex, const
 	if (index < 0 || index > MAX_ADR_BOOK)
 		return;
 
-	if (addressBook[index].useFlag == 0)
+	if (!addressBook[index].valid)
 		return;
 
 	std::string sstr = util::fromUnicode(text);
@@ -3891,7 +3891,7 @@ void Server::mail(const QVariant& card, const QString& text, int petIndex, const
 	}
 	else
 	{
-		if (addressBook[index].onlineFlag == 0)
+		if (!addressBook[index].onlineFlag)
 			return;
 
 		int itemIndex = getItemIndexByName(itemName, true, itemMemo, CHAR_EQUIPPLACENUM);
@@ -3899,7 +3899,7 @@ void Server::mail(const QVariant& card, const QString& text, int petIndex, const
 			return;
 
 		PET pet = getPet(petIndex);
-		if (pet.useFlag == 0)
+		if (!pet.valid)
 			return;
 
 		if (pet.state != kMail)
@@ -4327,11 +4327,11 @@ void Server::warp()
 	struct
 	{
 		short ev = 0;
-		short seqno = 0;
+		short dialogid = 0;
 	}ev;
 
 	if (mem::read(injector.getProcess(), injector.getProcessModule() + kOffestEV, sizeof(ev), &ev))
-		lssproto_EV_send(ev.ev, ev.seqno, getPoint(), -1);
+		lssproto_EV_send(ev.ev, ev.dialogid, getPoint(), -1);
 }
 
 //計算方向
@@ -4503,7 +4503,7 @@ void Server::sortItem(bool deepSort)
 		{
 			for (j = CHAR_EQUIPPLACENUM; j < i; ++j)
 			{
-				if (pc.item[i].useFlag == 0)
+				if (!pc.item[i].valid)
 					continue;
 
 				//if (!isItemStackable(pc.item[i].sendFlag))
@@ -4518,13 +4518,13 @@ void Server::sortItem(bool deepSort)
 				if (pc.item[i].memo != pc.item[j].memo)
 					continue;
 
-				if (pc.item[i].graNo != pc.item[j].graNo)
+				if (pc.item[i].modelid != pc.item[j].modelid)
 					continue;
 
 				if (pc.maxload <= 0)
 					continue;
 
-				QString key = QString("%1|%2|%3").arg(pc.item[j].name).arg(pc.item[j].memo).arg(pc.item[j].graNo);
+				QString key = QString("%1|%2|%3").arg(pc.item[j].name).arg(pc.item[j].memo).arg(pc.item[j].modelid);
 				if (pc.item[j].pile > 1 && !itemStackFlagHash.contains(key))
 					itemStackFlagHash.insert(key, true);
 				else
@@ -4562,15 +4562,15 @@ void Server::sortItem(bool deepSort)
 		QMutexLocker lock(&swapItemMutex_);
 		swapitemModeFlag = 2;
 
-		//補齊  item[i].useFlag == 0 的空格
+		//補齊  item[i].valid == false 的空格
 		for (i = MAX_ITEM - 1; i > CHAR_EQUIPPLACENUM; --i)
 		{
 			for (j = CHAR_EQUIPPLACENUM; j < i; ++j)
 			{
-				if (pc.item[i].useFlag == 0)
+				if (!pc.item[i].valid)
 					continue;
 
-				if (pc.item[j].useFlag == 0)
+				if (!pc.item[j].valid)
 				{
 					swapItem(i, j);
 				}
@@ -4590,10 +4590,10 @@ void Server::sortItem(bool deepSort)
 		{
 			for (j = CHAR_EQUIPPLACENUM; j < i; ++j)
 			{
-				if (pc.item[i].useFlag == 0)
+				if (!pc.item[i].valid)
 					continue;
 
-				if (pc.item[j].useFlag == 0)
+				if (!pc.item[j].valid)
 					continue;
 
 				if (pc.item[i].name.isEmpty())
@@ -4616,9 +4616,9 @@ void Server::sortItem(bool deepSort)
 						swapItem(i, j);
 					}
 				}
-				else if (pc.item[i].graNo != pc.item[j].graNo)
+				else if (pc.item[i].modelid != pc.item[j].modelid)
 				{
-					if (pc.item[i].graNo < pc.item[j].graNo)
+					if (pc.item[i].modelid < pc.item[j].modelid)
 					{
 						swapItem(i, j);
 					}
@@ -4649,7 +4649,7 @@ void Server::dropItem(int index)
 		return;
 
 	PC pc = getPC();
-	if (pc.item[index].name.isEmpty() || pc.item[index].useFlag == 0)
+	if (pc.item[index].name.isEmpty() || !pc.item[index].valid)
 		return;
 
 	lssproto_DI_send(getPoint(), index);
@@ -5001,7 +5001,7 @@ void Server::tradeAppendPets(const QString& name, const QVector<int>& petIndexs)
 		QStringList list;
 		for (const auto& it : petSkill[index])
 		{
-			if (it.useFlag == 0)
+			if (!it.valid)
 				list.append("");
 			else
 				list.append(it.name);
@@ -5045,7 +5045,7 @@ void Server::tradeComplete(const QString& name)
 		if (it.name.isEmpty())
 			opptradelist.append("I|-1");
 		else
-			opptradelist.append(QString("I|%1").arg(it.itemindex));
+			opptradelist.append(QString("I|%1").arg(it.itemIndex));
 	}
 
 	for (const showpet& it : opp_pet)
@@ -5186,7 +5186,7 @@ void Server::setPcParam(const QString& name
 #endif
 
 	setPC(pc);
-		}
+}
 
 void Server::realTimeToSATime(LSTIME* lstime)
 {
@@ -5618,7 +5618,7 @@ bool Server::checkPartyHp(int cmpvalue, int* target)
 
 	for (int i = 0; i < MAX_PARTY; ++i)
 	{
-		if (party[i].hpPercent < cmpvalue && party[i].level > 0 && party[i].maxHp > 0 && party[i].useFlag == 1)
+		if (party[i].hpPercent < cmpvalue && party[i].level > 0 && party[i].maxHp > 0 && party[i].valid)
 		{
 			*target = i;
 			return true;
@@ -5633,7 +5633,7 @@ bool Server::isPetSpotEmpty() const
 {
 	for (int i = 0; i < MAX_PET; ++i)
 	{
-		if ((pet[i].level <= 0) || (pet[i].maxHp <= 0) || (pet[i].useFlag <= 0))
+		if ((pet[i].level <= 0) || (pet[i].maxHp <= 0) || (!pet[i].valid))
 			return false;
 	}
 
@@ -7221,7 +7221,7 @@ bool Server::isPlayerMpEnoughForMagic(int magicIndex) const
 		return false;
 
 	PC pc = getPC();
-	if (magic[magicIndex].mp > pc.mp)
+	if (magic[magicIndex].costmp > pc.mp)
 		return false;
 
 	return true;
@@ -7268,7 +7268,7 @@ void Server::sortBattleUnit(QVector<battleobject_t>& v) const
 	{
 		for (const battleobject_t& obj : dstv)
 		{
-			if ((obj.hp > 0) && (obj.level > 0) && (obj.maxHp > 0) && (obj.faceid > 0) && (obj.pos == it)
+			if ((obj.hp > 0) && (obj.level > 0) && (obj.maxHp > 0) && (obj.modelid > 0) && (obj.pos == it)
 				&& !(obj.status & BC_FLG_DEAD) && !(obj.status & BC_FLG_HIDE))
 			{
 				newv.append(obj);
@@ -8001,7 +8001,7 @@ void Server::sendBattlePlayerAttackAct(int target)
 	battledata_t bt = getBattleData();
 	battleobject_t obj = bt.objects.value(target, battleobject_t{});
 
-	const QString name = !obj.name.isEmpty() ? obj.name : obj.freename;
+	const QString name = !obj.name.isEmpty() ? obj.name : obj.freeName;
 	const QString text(QObject::tr("use attack [%1]%2").arg(target + 1).arg(name));
 	if (labelPlayerAction != text)
 	{
@@ -8036,7 +8036,7 @@ void Server::sendBattlePlayerMagicAct(int magicIndex, int target)
 	{
 		battledata_t bt = getBattleData();
 		battleobject_t obj = bt.objects.value(target, battleobject_t{});
-		QString name = !obj.name.isEmpty() ? obj.name : obj.freename;
+		QString name = !obj.name.isEmpty() ? obj.name : obj.freeName;
 		text = QObject::tr("use magic %1 to [%2]%3").arg(magicName).arg(target + 1).arg(name);
 	}
 	else
@@ -8076,7 +8076,7 @@ void Server::sendBattlePlayerJobSkillAct(int skillIndex, int target)
 	{
 		battledata_t bt = getBattleData();
 		battleobject_t obj = bt.objects.value(target, battleobject_t{});
-		QString name = !obj.name.isEmpty() ? obj.name : obj.freename;
+		QString name = !obj.name.isEmpty() ? obj.name : obj.freeName;
 		text = QObject::tr("use skill %1 to [%2]%3").arg(skillName).arg(target + 1).arg(name);
 	}
 	else
@@ -8118,7 +8118,7 @@ void Server::sendBattlePlayerItemAct(int itemIndex, int target)
 	{
 		battledata_t bt = getBattleData();
 		battleobject_t obj = bt.objects.value(target, battleobject_t{});
-		QString name = !obj.name.isEmpty() ? obj.name : obj.freename;
+		QString name = !obj.name.isEmpty() ? obj.name : obj.freeName;
 		text = QObject::tr("use item %1 to [%2]%3").arg(itemName).arg(target + 1).arg(name);
 	}
 	else
@@ -8193,7 +8193,7 @@ void Server::sendBattlePlayerCatchPetAct(int target)
 
 	battledata_t bt = getBattleData();
 	battleobject_t obj = bt.objects.value(target, battleobject_t{});
-	QString name = !obj.name.isEmpty() ? obj.name : obj.freename;
+	QString name = !obj.name.isEmpty() ? obj.name : obj.freeName;
 	const QString text(QObject::tr("catch [%1]%2").arg(target).arg(name));
 
 	if (labelPlayerAction != text)
@@ -8216,7 +8216,7 @@ void Server::sendBattlePlayerSwitchPetAct(int petIndex)
 	if (petIndex < 0 || petIndex >= MAX_PET)
 		return;
 
-	if (pet[petIndex].useFlag == 0)
+	if (!pet[petIndex].valid)
 		return;
 
 	if (pet[petIndex].hp <= 0)
@@ -8289,7 +8289,7 @@ void Server::sendBattlePetSkillAct(int skillIndex, int target)
 		{
 			battledata_t bt = getBattleData();
 			battleobject_t obj = bt.objects.value(target, battleobject_t{});
-			name = !obj.name.isEmpty() ? obj.name : obj.freename;
+			name = !obj.name.isEmpty() ? obj.name : obj.freeName;
 		}
 		else
 			name = QObject::tr("self");
@@ -8364,7 +8364,7 @@ void Server::lssproto_PR_recv(int request, int result)
 
 		for (int i = 0; i < MAX_PARTY; ++i)
 		{
-			if (party[i].name.isEmpty() || (party[i].useFlag == 0) || (party[i].maxHp <= 0))
+			if (party[i].name.isEmpty() || (!party[i].valid) || (party[i].maxHp <= 0))
 			{
 				teamInfoList.append("");
 				continue;
@@ -8387,7 +8387,7 @@ void Server::lssproto_PR_recv(int request, int result)
 			for (i = 0; i < MAX_PARTY; ++i)
 #endif
 			{
-				if (party[i].useFlag != 0)
+				if (party[i].valid != 0)
 				{
 					if (party[i].id == pc.id)
 					{
@@ -8408,7 +8408,7 @@ void Server::lssproto_PR_recv(int request, int result)
 }
 
 //地圖轉移
-void Server::lssproto_EV_recv(int seqno, int result)
+void Server::lssproto_EV_recv(int dialogid, int result)
 {
 	Injector& injector = Injector::getInstance();
 	int floor = mem::read<int>(injector.getProcess(), injector.getProcessModule() + kOffestNowFloor);
@@ -8448,7 +8448,7 @@ void Server::lssproto_AB_recv(char* cdata)
 	int no;
 	QString name;
 	int flag;
-	int useFlag;
+	bool valid;
 #ifdef _MAILSHOWPLANET				// (可開放) Syu ADD 顯示名片星球
 	QString planetid;
 	int j;
@@ -8461,15 +8461,11 @@ void Server::lssproto_AB_recv(char* cdata)
 	{
 		//no = i * 6; //the second
 		no = i * 8;
-		useFlag = getIntegerToken(data, "|", no + 1);
-		if (useFlag == -1)
-		{
-			useFlag = 0;
-		}
-		if (useFlag <= 0)
+		valid = getIntegerToken(data, "|", no + 1) > 0;
+		if (!valid)
 		{
 #if 0
-			if (addressBook[i].useFlag == 1)
+			if (addressBook[i].valid)
 #else
 			if (!MailHistory[i].dateStr[MAIL_MAX_HISTORY - 1].isEmpty())
 #endif
@@ -8477,7 +8473,7 @@ void Server::lssproto_AB_recv(char* cdata)
 				MailHistory[i] = MailHistory[i];
 
 			}
-			addressBook[i].useFlag = 0;
+			addressBook[i].valid = false;
 			addressBook[i].name.clear();
 			addressBook[i] = {};
 			continue;
@@ -8485,11 +8481,11 @@ void Server::lssproto_AB_recv(char* cdata)
 
 #ifdef _EXTEND_AB
 		if (i == MAX_ADR_BOOK - 1)
-			addressBook[i].useFlag = useFlag;
+			addressBook[i].valid = valid;
 		else
-			addressBook[i].useFlag = 1;
+			addressBook[i].valid = true;
 #else
-		addressBook[i].useFlag = 1;
+		addressBook[i].valid = true;
 #endif
 
 		flag = getStringToken(data, "|", no + 2, name);
@@ -8502,7 +8498,7 @@ void Server::lssproto_AB_recv(char* cdata)
 		addressBook[i].level = getIntegerToken(data, "|", no + 3);
 		addressBook[i].dp = getIntegerToken(data, "|", no + 4);
 		addressBook[i].onlineFlag = (short)getIntegerToken(data, "|", no + 5);
-		addressBook[i].graNo = getIntegerToken(data, "|", no + 6);
+		addressBook[i].modelid = getIntegerToken(data, "|", no + 6);
 		addressBook[i].transmigration = getIntegerToken(data, "|", no + 7);
 #ifdef _MAILSHOWPLANET				// (可開放) Syu ADD 顯示名片星球
 		for (j = 0; j < MAX_GMSV; ++j)
@@ -8515,8 +8511,8 @@ void Server::lssproto_AB_recv(char* cdata)
 					sprintf_s(addressBook[i].planetname, "%s", gmsv[j].name);
 					break;
 				}
-	}
-}
+			}
+		}
 #endif
 	}
 }
@@ -8530,7 +8526,7 @@ void Server::lssproto_ABI_recv(int num, char* cdata)
 
 	QString name;
 	//int nameLen;
-	int useFlag;
+	bool valid;
 #ifdef _MAILSHOWPLANET				// (可開放) Syu ADD 顯示名片星球
 	QString planetid[8];
 	int j;
@@ -8539,29 +8535,26 @@ void Server::lssproto_ABI_recv(int num, char* cdata)
 	if (num >= MAX_ADR_BOOK)
 		return;
 
-	useFlag = getIntegerToken(data, "|", 1);
-	if (useFlag < 0)
-	{
-		useFlag = 0;
-	}
-	if (useFlag == 0)
+	valid = getIntegerToken(data, "|", 1) > 0;
+
+	if (!valid)
 	{
 		if (MailHistory[num].dateStr[MAIL_MAX_HISTORY - 1][0] != 0)
 		{
 			MailHistory[num].clear();
 		}
-		addressBook[num].useFlag = useFlag;
+		addressBook[num].valid = valid;
 		addressBook[num].name[0] = '\0';
 		return;
 	}
 
 #ifdef _EXTEND_AB
 	if (num == MAX_ADR_BOOK - 1)
-		addressBook[num].useFlag = useFlag;
+		addressBook[num].valid = valid;
 	else
-		addressBook[num].useFlag = 1;
+		addressBook[num].valid = true;
 #else
-	addressBook[num].useFlag = useFlag;
+	addressBook[num].valid = valid;
 #endif
 
 	getStringToken(data, "|", 2, name);
@@ -8572,7 +8565,7 @@ void Server::lssproto_ABI_recv(int num, char* cdata)
 	addressBook[num].level = getIntegerToken(data, "|", 3);
 	addressBook[num].dp = getIntegerToken(data, "|", 4);
 	addressBook[num].onlineFlag = (short)getIntegerToken(data, "|", 5);
-	addressBook[num].graNo = getIntegerToken(data, "|", 6);
+	addressBook[num].modelid = getIntegerToken(data, "|", 6);
 	addressBook[num].transmigration = getIntegerToken(data, "|", 7);
 
 #ifdef _MAILSHOWPLANET				// (可開放) Syu ADD 顯示名片星球
@@ -8588,8 +8581,8 @@ void Server::lssproto_ABI_recv(int num, char* cdata)
 				sprintf_s(addressBook[num].planetname, 64, "%s", gmsv[j].name);
 				break;
 			}
+		}
 	}
-}
 #endif
 }
 
@@ -8775,13 +8768,13 @@ void Server::lssproto_I_recv(char* cdata)
 		name = name.simplified();
 		if (name.isEmpty())
 		{
-			pc.item[i].useFlag = 0;
+			pc.item[i].valid = false;
 			pc.item[i].name.clear();
 			pc.item[i] = {};
 			refreshItemInfo(i);
 			continue;
 		}
-		pc.item[i].useFlag = 1;
+		pc.item[i].valid = true;
 		pc.item[i].name = name;
 		getStringToken(data, "|", no + 3, name2);//第二個道具名
 		makeStringFromEscaped(name2);
@@ -8794,7 +8787,7 @@ void Server::lssproto_I_recv(char* cdata)
 		makeStringFromEscaped(memo);
 		memo = memo.simplified();
 		pc.item[i].memo = memo;
-		pc.item[i].graNo = getIntegerToken(data, "|", no + 6);//道具形像
+		pc.item[i].modelid = getIntegerToken(data, "|", no + 6);//道具形像
 		pc.item[i].field = getIntegerToken(data, "|", no + 7);//
 		pc.item[i].target = getIntegerToken(data, "|", no + 8);
 		if (pc.item[i].target >= 100)
@@ -8827,7 +8820,7 @@ void Server::lssproto_I_recv(char* cdata)
 			makeStringFromEscaped(pile);
 			pile = pile.simplified();
 			pc.item[i].pile = pile.toInt();
-			if (pc.item[i].useFlag == 1 && pc.item[i].pile == 0)
+			if (pc.item[i].valid && pc.item[i].pile == 0)
 				pc.item[i].pile = 1;
 		}
 #endif
@@ -8864,7 +8857,7 @@ void Server::lssproto_I_recv(char* cdata)
 			makeStringFromEscaped(jigsaw);
 			strcpy( pc.item[i].jigsaw, jigsaw );
 			if( i == JigsawIdx ){
-				SetJigsaw( pc.item[i].graNo, pc.item[i].jigsaw );
+				SetJigsaw( pc.item[i].modelid, pc.item[i].jigsaw );
 			}
 		}
 #endif
@@ -8876,7 +8869,7 @@ void Server::lssproto_I_recv(char* cdata)
 #endif
 			*/
 
-}
+	}
 
 	setPC(pc);
 
@@ -8891,7 +8884,7 @@ void Server::lssproto_I_recv(char* cdata)
 }
 
 //對話框
-void Server::lssproto_WN_recv(int windowtype, int buttontype, int seqno, int objindex, char* cdata)
+void Server::lssproto_WN_recv(int windowtype, int buttontype, int dialogid, int unitid, char* cdata)
 {
 	QString data = util::toUnicode(cdata);
 	if (data.isEmpty() && buttontype == 0)
@@ -8985,7 +8978,7 @@ void Server::lssproto_WN_recv(int windowtype, int buttontype, int seqno, int obj
 			it = it.simplified();
 	}
 
-	currentDialog.set(dialog_t{ windowtype, buttontype, seqno, objindex, data, linedatas, strList });
+	currentDialog.set(dialog_t{ windowtype, buttontype, dialogid, unitid, data, linedatas, strList });
 
 	for (const QString& it : BankPetList)
 	{
@@ -9031,7 +9024,7 @@ void Server::lssproto_WN_recv(int windowtype, int buttontype, int seqno, int obj
 			getStringToken(data, "|", 1 + index * 7, temp);
 			if (temp.isEmpty())
 				break;
-			item.useFlag = 1;
+			item.valid = true;
 			item.name = temp;
 
 			getStringToken(data, "|", 6 + index * 7, temp);
@@ -9128,7 +9121,7 @@ void Server::lssproto_WN_recv(int windowtype, int buttontype, int seqno, int obj
 	{
 		if (data.contains(it, Qt::CaseInsensitive))
 		{
-			press(BUTTON_AUTO, seqno, objindex);
+			press(BUTTON_AUTO, dialogid, unitid);
 			return;
 		}
 	}
@@ -9153,7 +9146,7 @@ void Server::lssproto_WN_recv(int windowtype, int buttontype, int seqno, int obj
 		{
 			if (data.contains(str, Qt::CaseInsensitive))
 			{
-				press(BUTTON_AUTO, seqno, objindex);
+				press(BUTTON_AUTO, dialogid, unitid);
 				break;
 			}
 		}
@@ -9162,7 +9155,7 @@ void Server::lssproto_WN_recv(int windowtype, int buttontype, int seqno, int obj
 
 }
 
-void Server::lssproto_PME_recv(int objindex,
+void Server::lssproto_PME_recv(int unitid,
 	int graphicsno, const QPoint& pos, int dir, int flg, int no, char* cdata)
 {
 	if (getBattleFlag())
@@ -9191,7 +9184,7 @@ void Server::lssproto_PME_recv(int objindex,
 		int x;
 		int y;
 		int dir;
-		int graNo;
+		int modelid;
 		int level;
 		int nameColor;
 		QString name;
@@ -9213,7 +9206,7 @@ void Server::lssproto_PME_recv(int objindex,
 		getStringToken(data, "|", ps++, smalltoken);
 		dir = (smalltoken.toInt() + 3) % 8;
 		getStringToken(data, "|", ps++, smalltoken);
-		graNo = smalltoken.toInt();
+		modelid = smalltoken.toInt();
 		getStringToken(data, "|", ps++, smalltoken);
 		level = smalltoken.toInt();
 		nameColor = getIntegerToken(data, "|", ps++);
@@ -9349,10 +9342,10 @@ void Server::lssproto_B_recv(char* ccommand)
 			getStringToken(data, "|", i * 13 + 4, temp);
 			makeStringFromEscaped(temp);
 			temp = temp.simplified();
-			obj.freename = temp;
+			obj.freeName = temp;
 
 			getStringToken(data, "|", i * 13 + 5, temp);
-			obj.faceid = temp.toInt(nullptr, 16);
+			obj.modelid = temp.toInt(nullptr, 16);
 
 			getStringToken(data, "|", i * 13 + 6, temp);
 			obj.level = temp.toInt(nullptr, 16);
@@ -9386,7 +9379,7 @@ void Server::lssproto_B_recv(char* ccommand)
 
 			obj.rideHpPercent = util::percent(obj.rideHp, obj.rideMaxHp);
 
-			if ((pos >= bt.enemymin) && (pos <= bt.enemymax) && obj.rideFlag == 0 && obj.faceid > 0 && !obj.name.isEmpty())
+			if ((pos >= bt.enemymin) && (pos <= bt.enemymax) && obj.rideFlag == 0 && obj.modelid > 0 && !obj.name.isEmpty())
 			{
 				if (!enemyNameListCache.contains(obj.name))
 				{
@@ -9404,8 +9397,8 @@ void Server::lssproto_B_recv(char* ccommand)
 			{
 				bt.player.pos = pos;
 				bt.player.name = obj.name;
-				bt.player.freename = obj.freename;
-				bt.player.faceid = obj.faceid;
+				bt.player.freeName = obj.freeName;
+				bt.player.modelid = obj.modelid;
 				bt.player.level = obj.level;
 				bt.player.hp = obj.hp;
 				bt.player.maxHp = obj.maxHp;
@@ -9466,13 +9459,13 @@ void Server::lssproto_B_recv(char* ccommand)
 			//分開記錄敵我數據
 			if (pos >= bt.alliemin && pos <= bt.alliemax)
 			{
-				if (obj.faceid > 0 && obj.maxHp > 0 && obj.level > 0 && !checkAND(obj.status, BC_FLG_HIDE))
+				if (obj.modelid > 0 && obj.maxHp > 0 && obj.level > 0 && !checkAND(obj.status, BC_FLG_HIDE))
 					bt.allies.append(obj);
 			}
 
 			if (pos >= bt.enemymin && pos <= bt.enemymax)
 			{
-				if (obj.faceid > 0 && obj.maxHp > 0 && obj.level > 0 && !checkAND(obj.status, BC_FLG_HIDE))
+				if (obj.modelid > 0 && obj.maxHp > 0 && obj.level > 0 && !checkAND(obj.status, BC_FLG_HIDE))
 					bt.enemies.append(obj);
 			}
 
@@ -9558,7 +9551,7 @@ void Server::lssproto_B_recv(char* ccommand)
 		if (BattleMyNo >= 0 && BattleMyNo < bt.objects.size())
 		{
 			battleobject_t obj = bt.objects.value(BattleMyNo + 5, battleobject_t{});
-			if (obj.level <= 0 || obj.maxHp <= 0 || obj.faceid <= 0)
+			if (obj.level <= 0 || obj.maxHp <= 0 || obj.modelid <= 0)
 			{
 				int petIndex = pc.battlePetNo;
 				if (petIndex >= 0)
@@ -9594,8 +9587,8 @@ void Server::lssproto_B_recv(char* ccommand)
 				{
 					bt.pet.pos = obj.pos;
 					bt.pet.name = obj.name;
-					bt.pet.freename = obj.freename;
-					bt.pet.faceid = obj.faceid;
+					bt.pet.freeName = obj.freeName;
+					bt.pet.modelid = obj.modelid;
 					bt.pet.level = obj.level;
 					bt.pet.hp = obj.hp;
 					bt.pet.maxHp = obj.maxHp;
@@ -9630,7 +9623,7 @@ void Server::lssproto_B_recv(char* ccommand)
 		bool isAllieAllDead = true;
 		for (const battleobject_t& it : bt.objects)
 		{
-			if ((it.level > 0 && it.maxHp > 0 && it.hp > 0 && it.faceid > 0) || checkAND(it.status, BC_FLG_HIDE))
+			if ((it.level > 0 && it.maxHp > 0 && it.hp > 0 && it.modelid > 0) || checkAND(it.status, BC_FLG_HIDE))
 			{
 				if (it.pos >= bt.alliemin && it.pos <= bt.alliemax)
 				{
@@ -9703,11 +9696,11 @@ void Server::lssproto_B_recv(char* ccommand)
 				if (checkFlagState(i) && !bt.objects.value(i, empty).ready)
 				{
 					if (i == BattleMyNo)
-						announce(QString("[async battle] 自己 [%1]%2(%3) 已出手").arg(i + 1).arg(bt.objects.value(i, empty).name).arg(bt.objects.value(i, empty).freename));
+						announce(QString("[async battle] 自己 [%1]%2(%3) 已出手").arg(i + 1).arg(bt.objects.value(i, empty).name).arg(bt.objects.value(i, empty).freeName));
 					if (i == BattleMyNo + 5)
-						announce(QString("[async battle] 戰寵 [%1]%2(%3) 已出手").arg(i + 1).arg(bt.objects.value(i, empty).name).arg(bt.objects.value(i, empty).freename));
+						announce(QString("[async battle] 戰寵 [%1]%2(%3) 已出手").arg(i + 1).arg(bt.objects.value(i, empty).name).arg(bt.objects.value(i, empty).freeName));
 					else
-						announce(QString("[async battle] 隊友 [%1]%2(%3) 已出手").arg(i + 1).arg(bt.objects.value(i, empty).name).arg(bt.objects.value(i, empty).freename));
+						announce(QString("[async battle] 隊友 [%1]%2(%3) 已出手").arg(i + 1).arg(bt.objects.value(i, empty).name).arg(bt.objects.value(i, empty).freeName));
 					objs[i].ready = true;
 				}
 			}
@@ -9850,8 +9843,8 @@ void Server::lssproto_KS_recv(int petarray, int result)
 			pc.selectPetNo[petarray] = 0;
 			if (petarray == pc.battlePetNo)
 				pc.battlePetNo = -1;
+		}
 	}
-}
 #endif
 
 	setPC(pc);
@@ -10442,7 +10435,7 @@ void Server::lssproto_TK_recv(int index, char* cmessage, int color)
 			else
 			{
 				fontsize = 0;
-		}
+			}
 #endif
 			if (szToken.size() > 1)
 			{
@@ -10564,13 +10557,13 @@ void Server::lssproto_TK_recv(int index, char* cmessage, int color)
 				//pc.status |= CHR_STATUS_FUKIDASHI;
 			}
 		}
-			}
+	}
 
 	setPC(pc);
 
 	chatQueue.enqueue(QPair{ color ,msg });
 	emit signalDispatcher.appendChatLog(msg, color);
-	}
+}
 
 //地圖數據更新，重新繪製地圖
 void Server::lssproto_MC_recv(int fl, int x1, int y1, int x2, int y2, int tileSum, int partsSum, int eventSum, char* cdata)
@@ -10725,7 +10718,7 @@ void Server::lssproto_C_recv(char* cdata)
 	if (data.isEmpty())
 		return;
 
-	int i, j, id, x, y, dir, graNo, level, nameColor, walkable, height, classNo, money, charType, charNameColor;
+	int i, j, id, x, y, dir, modelid, level, nameColor, walkable, height, classNo, money, charType, charNameColor;
 	QString bigtoken, smalltoken, name, freeName, info, fmname, petname;
 #ifdef _CHARTITLE_STR_
 	QString titlestr;
@@ -10778,8 +10771,8 @@ void Server::lssproto_C_recv(char* cdata)
 			getStringToken(bigtoken, "|", 6, smalltoken);
 			dir = (smalltoken.toInt() + 3) % 8;
 			getStringToken(bigtoken, "|", 7, smalltoken);
-			graNo = smalltoken.toInt();
-			if (graNo == 9999) continue;
+			modelid = smalltoken.toInt();
+			if (modelid == 9999) continue;
 			getStringToken(bigtoken, "|", 8, smalltoken);
 			level = smalltoken.toInt();
 			nameColor = getIntegerToken(bigtoken, "|", 9);
@@ -10814,7 +10807,7 @@ void Server::lssproto_C_recv(char* cdata)
 			{
 				extern char* FreeGetTitleStr(int id);
 				sprintf(titlestr, "%s", FreeGetTitleStr(titleindex));
-		}
+			}
 #endif
 #ifdef _CHAR_PROFESSION			// WON ADD 人物職業
 			getStringToken(bigtoken, "|", 18, smalltoken);
@@ -10865,7 +10858,7 @@ void Server::lssproto_C_recv(char* cdata)
 #endif
 				pc.nameColor = charNameColor;
 				//setPcNameColor(charNameColor);
-				if ((pc.status & CHR_STATUS_LEADER) != 0 && party[0].useFlag != 0)
+				if ((pc.status & CHR_STATUS_LEADER) != 0 && party[0].valid != 0)
 				{
 					party[0].level = pc.level;
 					party[0].name = pc.name;
@@ -10876,7 +10869,7 @@ void Server::lssproto_C_recv(char* cdata)
 				for (j = 0; j < MAX_PARTY; ++j)
 #endif
 				{
-					if (party[j].useFlag != 0 && party[j].id == id)
+					if (party[j].valid != 0 && party[j].id == id)
 					{
 						pc.status |= CHR_STATUS_PARTY;
 						if (j == 0)
@@ -10884,25 +10877,25 @@ void Server::lssproto_C_recv(char* cdata)
 						break;
 					}
 				}
-				}
+			}
 			else
 			{
 #ifdef _CHAR_PROFESSION			// WON ADD 人物職業
 #ifdef _GM_IDENTIFY		// Rog ADD GM識別
-				setNpcCharObj(id, graNo, x, y, dir, fmname, name, freeName,
+				setNpcCharObj(id, modelid, x, y, dir, fmname, name, freeName,
 					level, petname, petlevel, nameColor, walkable, height, charType, profession_class, gm_name);
 #else
 #ifdef _NPC_PICTURE
-				setNpcCharObj(id, graNo, x, y, dir, fmname, name, freeName,
+				setNpcCharObj(id, modelid, x, y, dir, fmname, name, freeName,
 					level, petname, petlevel, nameColor, walkable, height, charType, profession_class, picture);
 #else
-				//setNpcCharObj(id, graNo, x, y, dir, fmname, name, freeName,
+				//setNpcCharObj(id, modelid, x, y, dir, fmname, name, freeName,
 				//	level, petname, petlevel, nameColor, walkable, height, charType, profession_class);
 #endif
 #endif
 #else
 #ifdef _NPC_EVENT_NOTICE
-				setNpcCharObj(id, graNo, x, y, dir, fmname, name, freeName,
+				setNpcCharObj(id, modelid, x, y, dir, fmname, name, freeName,
 					level, petname, petlevel, nameColor, walkable, height, charType, noticeNo
 #ifdef _CHARTITLE_STR_
 					, titlestr
@@ -10910,7 +10903,7 @@ void Server::lssproto_C_recv(char* cdata)
 
 				);
 #else
-				setNpcCharObj(id, graNo, x, y, dir, fmname, name, freeName,
+				setNpcCharObj(id, modelid, x, y, dir, fmname, name, freeName,
 					level, petname, petlevel, nameColor, walkable, height, charType);
 #endif
 #endif
@@ -10920,7 +10913,7 @@ void Server::lssproto_C_recv(char* cdata)
 				if (charType == 13 && noticeNo > 0)
 				{
 					setNpcNotice(ptAct, noticeNo);
-			}
+				}
 #endif
 				//if (ptAct != NULL)
 				//{
@@ -10930,7 +10923,7 @@ void Server::lssproto_C_recv(char* cdata)
 					//for (j = 0; j < MAX_PARTY; ++j)
 #endif
 					//{
-					//	if (party[j].useFlag != 0 && party[j].id == id)
+					//	if (party[j].valid != 0 && party[j].id == id)
 					//	{
 					//		//party[j].ptAct = ptAct;
 					//		//setCharParty(ptAct);
@@ -10941,7 +10934,7 @@ void Server::lssproto_C_recv(char* cdata)
 					//}
 					//setCharNameColor(ptAct, charNameColor);
 				//}
-		}
+			}
 
 			if (name == u8"を�そó")//排除亂碼
 				break;
@@ -10953,7 +10946,7 @@ void Server::lssproto_C_recv(char* cdata)
 			unit.y = y;
 			unit.p = QPoint(x, y);
 			unit.dir = (dir + 5) % 8;;
-			unit.graNo = graNo;
+			unit.modelid = modelid;
 			unit.level = level;
 			unit.nameColor = nameColor;
 			unit.name = name;
@@ -10961,18 +10954,18 @@ void Server::lssproto_C_recv(char* cdata)
 			unit.walkable = walkable;
 			unit.height = height;
 			unit.charNameColor = charNameColor;
-			unit.fmname = fmname;
+			unit.family = fmname;
 			unit.petname = petname;
 			unit.petlevel = petlevel;
 			unit.profession_class = profession_class;
 			unit.profession_level = profession_level;
 			unit.profession_skill_point = profession_skill_point;
-			unit.isvisible = graNo != 0 && graNo != 9999;
+			unit.isVisible = modelid > 0 && modelid != 9999;
 			unit.objType = unit.type == CHAR_TYPEPLAYER ? util::OBJ_HUMAN : util::OBJ_NPC;
 			mapUnitHash.insert(id, unit);
 
 			break;
-	}
+		}
 		case 2://OBJTYPE_ITEM
 		{
 			getStringToken(bigtoken, "|", 2, smalltoken);
@@ -10982,7 +10975,7 @@ void Server::lssproto_C_recv(char* cdata)
 			getStringToken(bigtoken, "|", 4, smalltoken);
 			y = smalltoken.toInt();
 			getStringToken(bigtoken, "|", 5, smalltoken);
-			graNo = smalltoken.toInt();
+			modelid = smalltoken.toInt();
 			classNo = getIntegerToken(bigtoken, "|", 6);
 			getStringToken(bigtoken, "|", 7, info);
 			makeStringFromEscaped(info);
@@ -10993,10 +10986,10 @@ void Server::lssproto_C_recv(char* cdata)
 			unit.x = x;
 			unit.y = y;
 			unit.p = QPoint(x, y);
-			unit.graNo = graNo;
+			unit.modelid = modelid;
 			unit.classNo = classNo;
 			unit.item_name = info;
-			unit.isvisible = graNo != 0 && graNo != 9999;
+			unit.isVisible = modelid > 0 && modelid != 9999;
 			unit.objType = util::OBJ_ITEM;
 			mapUnitHash.insert(id, unit);
 
@@ -11018,7 +11011,7 @@ void Server::lssproto_C_recv(char* cdata)
 			unit.y = y;
 			unit.p = QPoint(x, y);
 			unit.gold = money;
-			unit.isvisible = true;
+			unit.isVisible = true;
 			unit.objType = util::OBJ_GOLD;
 			mapUnitHash.insert(id, unit);
 
@@ -11034,7 +11027,7 @@ void Server::lssproto_C_recv(char* cdata)
 			getStringToken(bigtoken, "|", 4, smalltoken);
 			dir = (smalltoken.toInt() + 3) % 8;
 			getStringToken(bigtoken, "|", 5, smalltoken);
-			graNo = smalltoken.toInt();
+			modelid = smalltoken.toInt();
 			getStringToken(bigtoken, "|", 6, smalltoken);
 			x = smalltoken.toInt();
 			getStringToken(bigtoken, "|", 7, smalltoken);
@@ -11047,35 +11040,35 @@ void Server::lssproto_C_recv(char* cdata)
 			unit.y = y;
 			unit.p = QPoint(x, y);
 			unit.dir = dir;
-			unit.graNo = graNo;
-			unit.isvisible = graNo != 0 && graNo != 9999;
+			unit.modelid = modelid;
+			unit.isVisible = modelid > 0 && modelid != 9999;
 			unit.objType = util::OBJ_HUMAN;
 			mapUnitHash.insert(id, unit);
 		}
 
 #ifdef _CHAR_PROFESSION			// WON ADD 人物職業
 #ifdef _GM_IDENTIFY		// Rog ADD GM識別
-		setNpcCharObj(id, graNo, x, y, dir, "", name, "",
+		setNpcCharObj(id, modelid, x, y, dir, "", name, "",
 			level, petname, petlevel, nameColor, 0, height, 2, 0, "");
 #else
 #ifdef _NPC_PICTURE
-		setNpcCharObj(id, graNo, x, y, dir, "", name, "",
+		setNpcCharObj(id, modelid, x, y, dir, "", name, "",
 			level, petname, petlevel, nameColor, 0, height, 2, 0, 0);
 #else
-		/*setNpcCharObj(id, graNo, x, y, dir, "", name, "",
+		/*setNpcCharObj(id, modelid, x, y, dir, "", name, "",
 			level, petname, petlevel, nameColor, 0, height, 2, 0);*/
 #endif
 #endif
 #else
 #ifdef _NPC_EVENT_NOTICE
-		setNpcCharObj(id, graNo, x, y, dir, "", name, "",
+		setNpcCharObj(id, modelid, x, y, dir, "", name, "",
 			level, petname, petlevel, nameColor, 0, height, 2, 0
 #ifdef _CHARTITLE_STR_
 			, titlestr
 #endif
 		);
 #else
-		setNpcCharObj(id, graNo, x, y, dir, "", name, "",
+		setNpcCharObj(id, modelid, x, y, dir, "", name, "",
 			level, petname, petlevel, nameColor, 0, height, 2);
 #endif
 #endif
@@ -11098,7 +11091,7 @@ void Server::lssproto_C_recv(char* cdata)
 			getStringToken(bigtoken, "|", 5, smalltoken);
 			dir = (smalltoken.toInt() + 3) % 8;
 			getStringToken(bigtoken, "|", 6, smalltoken);
-			graNo = smalltoken.toInt();
+			modelid = smalltoken.toInt();
 			getStringToken(bigtoken, "|", 7, smalltoken);
 			level = smalltoken.toInt();
 			nameColor = getIntegerToken(bigtoken, "|", 8);
@@ -11125,7 +11118,7 @@ void Server::lssproto_C_recv(char* cdata)
 			unit.x = x;
 			unit.y = y;
 			unit.p = QPoint(x, y);
-			unit.graNo = graNo;
+			unit.modelid = modelid;
 			unit.dir = dir;
 			unit.level = level;
 			unit.name = name;
@@ -11137,33 +11130,33 @@ void Server::lssproto_C_recv(char* cdata)
 			unit.fmname = fmname;
 			unit.petname = petname;
 			unit.petlevel = petlevel;
-			unit.isvisible = graNo > 0;
+			unit.isvisible = modelid > 0;
 			mapUnitHash.insert(id, unit);
 
 			if (pc.id == id)
 			{
 				//if (pc.ptAct == NULL)
 				//{
-				//	//createPc(graNo, x, y, dir);
+				//	//createPc(modelid, x, y, dir);
 				//	//updataPcAct();
 				//}
 				//else
 				{
-					pc.graNo = graNo;
+					pc.modelid = modelid;
 					pc.dir = dir;
 				}
 				updateMapArea();
 				setPcParam(name, freeName, level, petname, petlevel, nameColor, walkable, height, profession_class, profession_level, profession_skill_point);
 				//setPcNameColor(charNameColor);
 				if ((pc.status & CHR_STATUS_LEADER) != 0
-					&& party[0].useFlag != 0)
+					&& party[0].valid != 0)
 				{
 					party[0].level = pc.level;
 					party[0].name = pc.name;
 				}
 				for (j = 0; j < MAX_PARTY; ++j)
 				{
-					if (party[j].useFlag != 0 && party[j].id == id)
+					if (party[j].valid != 0 && party[j].id == id)
 					{
 						//party[j].ptAct = pc.ptAct;
 						pc.status |= CHR_STATUS_PARTY;
@@ -11178,17 +11171,17 @@ void Server::lssproto_C_recv(char* cdata)
 			else
 			{
 #ifdef _NPC_PICTURE
-				setNpcCharObj(id, graNo, x, y, dir, fmname, name, freeName,
+				setNpcCharObj(id, modelid, x, y, dir, fmname, name, freeName,
 					level, petname, petlevel, nameColor, walkable, height, charType, 0);
 #else
-				//setNpcCharObj(id, graNo, x, y, dir, fmname, name, freeName, level, petname, petlevel, nameColor, walkable, height, charType);
+				//setNpcCharObj(id, modelid, x, y, dir, fmname, name, freeName, level, petname, petlevel, nameColor, walkable, height, charType);
 #endif
 				//ptAct = getCharObjAct(id);
 				//if (ptAct != NULL)
 				//{
 				//	for (j = 0; j < MAX_PARTY; ++j)
 				//	{
-				//		if (party[j].useFlag != 0 && party[j].id == id)
+				//		if (party[j].valid != 0 && party[j].id == id)
 				//		{
 				//			//party[j].ptAct = ptAct;
 				//			setCharParty(ptAct);
@@ -11215,7 +11208,7 @@ void Server::lssproto_C_recv(char* cdata)
 				getStringToken(bigtoken, "|", 3, smalltoken);
 				y = smalltoken.toInt();
 				getStringToken(bigtoken, "|", 4, smalltoken);
-				graNo = smalltoken.toInt();
+				modelid = smalltoken.toInt();
 				classNo = getIntegerToken(bigtoken, "|", 5);
 				getStringToken(bigtoken, "|", 6, info);
 				makeStringFromEscaped(info);
@@ -11225,12 +11218,12 @@ void Server::lssproto_C_recv(char* cdata)
 				unit.x = x;
 				unit.y = y;
 				unit.p = QPoint(x, y);
-				unit.graNo = graNo;
+				unit.modelid = modelid;
 				unit.classNo = classNo;
 				unit.info = info;
 				mapUnitHash.insert(id, unit);
 
-				//setItemCharObj(id, graNo, x, y, 0, classNo, info);
+				//setItemCharObj(id, modelid, x, y, 0, classNo, info);
 			}
 			else
 			{
@@ -11272,14 +11265,14 @@ void Server::lssproto_C_recv(char* cdata)
 						}
 					}
 				}
-}
-}
+			}
+		}
 #endif
 #pragma endregion
 	}
 
 	setPC(pc);
-	}
+}
 
 //周圍人、NPC..等等狀態改變必定是 _C_recv已經新增過的單位
 void Server::lssproto_CA_recv(char* cdata)
@@ -11374,13 +11367,13 @@ void Server::lssproto_CA_recv(char* cdata)
 						setPcAction(5);
 #endif
 					}
-		}
+				}
 				else
 #endif
 					//changePcAct(x, y, dir, act, effectno, effectparam1, effectparam2);
-	}
+			}
 			continue;
-}
+		}
 
 		//ptAct = getCharObjAct(charindex);
 		//if (ptAct == NULL)
@@ -11413,12 +11406,12 @@ void Server::lssproto_CA_recv(char* cdata)
 		{
 			memset(ptAct->szStreetVendorTitle, 0, sizeof(ptAct->szStreetVendorTitle));
 			strncpy_s(ptAct->szStreetVendorTitle, szStreetVendorTitle, sizeof(szStreetVendorTitle));
-}
+		}
 #endif
 		//changeCharAct(ptAct, x, y, dir, act, effectno, effectparam1, effectparam2);
 	//}
-		}
-			}
+	}
+}
 
 //刪除指定一個或多個周圍人、NPC單位
 void Server::lssproto_CD_recv(char* cdata)
@@ -11553,7 +11546,7 @@ void Server::lssproto_S_recv(char* cdata)
 			pc.mpPercent = util::percent(pc.mp, pc.maxMp);
 			//
 
-			pc.vital = getIntegerToken(data, "|", 6);		// 0x00000020
+			pc.vit = getIntegerToken(data, "|", 6);		// 0x00000020
 			pc.str = getIntegerToken(data, "|", 7);		// 0x00000040
 			pc.tgh = getIntegerToken(data, "|", 8);		// 0x00000080
 			pc.dex = getIntegerToken(data, "|", 9);		// 0x00000100
@@ -11562,8 +11555,8 @@ void Server::lssproto_S_recv(char* cdata)
 			pc.level = getIntegerToken(data, "|", 12);		// 0x00000800
 			pc.atk = getIntegerToken(data, "|", 13);		// 0x00001000
 			pc.def = getIntegerToken(data, "|", 14);		// 0x00002000
-			pc.quick = getIntegerToken(data, "|", 15);		// 0x00004000
-			pc.charm = getIntegerToken(data, "|", 16);		// 0x00008000
+			pc.agi = getIntegerToken(data, "|", 15);		// 0x00004000
+			pc.chasma = getIntegerToken(data, "|", 16);		// 0x00008000
 			pc.luck = getIntegerToken(data, "|", 17);		// 0x00010000
 			pc.earth = getIntegerToken(data, "|", 18);		// 0x00020000
 			pc.water = getIntegerToken(data, "|", 19);		// 0x00040000
@@ -11655,7 +11648,7 @@ void Server::lssproto_S_recv(char* cdata)
 					}
 					else if (mask == 0x00000020)
 					{
-						pc.vital = getIntegerToken(data, "|", i);// 0x00000020
+						pc.vit = getIntegerToken(data, "|", i);// 0x00000020
 						i++;
 					}
 					else if (mask == 0x00000040)
@@ -11700,12 +11693,12 @@ void Server::lssproto_S_recv(char* cdata)
 					}
 					else if (mask == 0x00004000)
 					{
-						pc.quick = getIntegerToken(data, "|", i);// 0x00004000
+						pc.agi = getIntegerToken(data, "|", i);// 0x00004000
 						i++;
 					}
 					else if (mask == 0x00008000)
 					{
-						pc.charm = getIntegerToken(data, "|", i);// 0x00008000
+						pc.chasma = getIntegerToken(data, "|", i);// 0x00008000
 						i++;
 					}
 					else if (mask == 0x00010000)
@@ -11801,7 +11794,7 @@ void Server::lssproto_S_recv(char* cdata)
 		}
 
 		//updataPcAct();
-		if ((pc.status & CHR_STATUS_LEADER) != 0 && party[0].useFlag != 0)
+		if ((pc.status & CHR_STATUS_LEADER) != 0 && party[0].valid != 0)
 		{
 			party[0].level = pc.level;
 			party[0].maxHp = pc.maxHp;
@@ -11868,7 +11861,7 @@ void Server::lssproto_S_recv(char* cdata)
 			pc.name, pc.freeName, "",
 			QObject::tr("%1(%2tr)").arg(pc.level).arg(pc.transmigration), pc.exp, pc.maxExp, pc.exp > pc.maxExp ? 0 : pc.maxExp - pc.exp, "",
 			QString("%1/%2").arg(pc.hp).arg(pc.maxHp), QString("%1/%2").arg(pc.mp).arg(pc.maxMp),
-			pc.charm, pc.atk, pc.def, pc.quick, pc.luck
+			pc.chasma, pc.atk, pc.def, pc.agi, pc.luck
 		};
 
 		QVariant var = QVariant::fromValue(varList);
@@ -11881,12 +11874,12 @@ void Server::lssproto_S_recv(char* cdata)
 #pragma region FamilyInfo
 	else if (first == "F") // F 家族狀態
 	{
-		QString familyName;
+		QString family;
 
-		getStringToken(data, "|", 1, familyName);
-		makeStringFromEscaped(familyName);
-		familyName = familyName.simplified();
-		pc.familyName = familyName;
+		getStringToken(data, "|", 1, family);
+		makeStringFromEscaped(family);
+		family = family.simplified();
+		pc.family = family;
 
 		pc.familyleader = getIntegerToken(data, "|", 2);
 		pc.channel = getIntegerToken(data, "|", 3);
@@ -11909,7 +11902,7 @@ void Server::lssproto_S_recv(char* cdata)
 		pc.mp = getIntegerToken(data, "|", 2);
 		pc.exp = getIntegerToken(data, "|", 3);
 		//updataPcAct();
-		if ((pc.status & CHR_STATUS_LEADER) != 0 && party[0].useFlag != 0)
+		if ((pc.status & CHR_STATUS_LEADER) != 0 && party[0].valid != 0)
 			party[0].hp = pc.hp;
 
 		//custom
@@ -11938,7 +11931,7 @@ void Server::lssproto_S_recv(char* cdata)
 		kubun = getInteger62Token(data, "|", 1);
 		if (kubun == 0)
 		{
-			if (pet[no].useFlag)
+			if (pet[no].valid)
 			{
 				if (no == pc.battlePetNo)
 					pc.battlePetNo = -1;
@@ -11950,10 +11943,10 @@ void Server::lssproto_S_recv(char* cdata)
 		}
 		else
 		{
-			pet[no].useFlag = 1;
+			pet[no].valid = true;
 			if (kubun == 1)
 			{
-				pet[no].graNo = getIntegerToken(data, "|", 2);		// 0x00000002
+				pet[no].modelid = getIntegerToken(data, "|", 2);		// 0x00000002
 				pet[no].hp = getIntegerToken(data, "|", 3);		// 0x00000004
 				pet[no].maxHp = getIntegerToken(data, "|", 4);		// 0x00000008
 				pet[no].mp = getIntegerToken(data, "|", 5);		// 0x00000010
@@ -11968,15 +11961,15 @@ void Server::lssproto_S_recv(char* cdata)
 				pet[no].level = getIntegerToken(data, "|", 9);		// 0x00000100
 				pet[no].atk = getIntegerToken(data, "|", 10);		// 0x00000200
 				pet[no].def = getIntegerToken(data, "|", 11);		// 0x00000400
-				pet[no].quick = getIntegerToken(data, "|", 12);		// 0x00000800
-				pet[no].ai = getIntegerToken(data, "|", 13);		// 0x00001000
+				pet[no].agi = getIntegerToken(data, "|", 12);		// 0x00000800
+				pet[no].loyal = getIntegerToken(data, "|", 13);		// 0x00001000
 				pet[no].earth = getIntegerToken(data, "|", 14);		// 0x00002000
 				pet[no].water = getIntegerToken(data, "|", 15);		// 0x00004000
 				pet[no].fire = getIntegerToken(data, "|", 16);		// 0x00008000
 				pet[no].wind = getIntegerToken(data, "|", 17);		// 0x00010000
 				pet[no].maxSkill = getIntegerToken(data, "|", 18);		// 0x00020000
 				pet[no].changeNameFlag = getIntegerToken(data, "|", 19);// 0x00040000
-				pet[no].trn = getIntegerToken(data, "|", 20);
+				pet[no].transmigration = getIntegerToken(data, "|", 20);
 #ifdef _SHOW_FUSION
 				pet[no].fusion = getIntegerToken(data, "|", 21);
 				getStringToken(data, "|", 22, name);// 0x00080000
@@ -12024,7 +12017,7 @@ void Server::lssproto_S_recv(char* cdata)
 					{
 						if (mask == 0x00000002)
 						{
-							pet[no].graNo = getIntegerToken(data, "|", i);// 0x00000002
+							pet[no].modelid = getIntegerToken(data, "|", i);// 0x00000002
 							i++;
 						}
 						else if (mask == 0x00000004)
@@ -12078,12 +12071,12 @@ void Server::lssproto_S_recv(char* cdata)
 						}
 						else if (mask == 0x00000800)
 						{
-							pet[no].quick = getIntegerToken(data, "|", i);// 0x00000800
+							pet[no].agi = getIntegerToken(data, "|", i);// 0x00000800
 							i++;
 						}
 						else if (mask == 0x00001000)
 						{
-							pet[no].ai = getIntegerToken(data, "|", i);// 0x00001000
+							pet[no].loyal = getIntegerToken(data, "|", i);// 0x00001000
 							i++;
 						}
 						else if (mask == 0x00002000)
@@ -12217,14 +12210,14 @@ void Server::lssproto_S_recv(char* cdata)
 		{
 			PET _pet = pet[i];
 			QVariantList varList;
-			if (_pet.useFlag == 1)
+			if (_pet.valid)
 			{
-				pet[i].power = (((static_cast<double>(_pet.atk + _pet.def + _pet.quick) + (static_cast<double>(_pet.maxHp) / 4.0)) / static_cast<double>(_pet.level)) * 100.0);
+				pet[i].power = (((static_cast<double>(_pet.atk + _pet.def + _pet.agi) + (static_cast<double>(_pet.maxHp) / 4.0)) / static_cast<double>(_pet.level)) * 100.0);
 				varList = QVariantList{
 					_pet.name, _pet.freeName, "",
-					QObject::tr("%1(%2tr)").arg(_pet.level).arg(_pet.trn), _pet.exp, _pet.maxExp, _pet.maxExp - _pet.exp, "",
+					QObject::tr("%1(%2tr)").arg(_pet.level).arg(_pet.transmigration), _pet.exp, _pet.maxExp, _pet.maxExp - _pet.exp, "",
 					QString("%1/%2").arg(_pet.hp).arg(_pet.maxHp), "",
-					_pet.ai, _pet.atk, _pet.def, _pet.quick, "", pet[i].power
+					_pet.loyal, _pet.atk, _pet.def, _pet.agi, "", pet[i].power
 
 				};
 			}
@@ -12265,10 +12258,10 @@ void Server::lssproto_S_recv(char* cdata)
 		if (data.isEmpty())
 			return;
 
-		magic[no].useFlag = getIntegerToken(data, "|", 1);
-		if (magic[no].useFlag != 0)
+		magic[no].valid = getIntegerToken(data, "|", 1) > 0;
+		if (magic[no].valid)
 		{
-			magic[no].mp = getIntegerToken(data, "|", 2);
+			magic[no].costmp = getIntegerToken(data, "|", 2);
 			magic[no].field = getIntegerToken(data, "|", 3);
 			magic[no].target = getIntegerToken(data, "|", 4);
 			if (magic[no].target >= 100)
@@ -12309,7 +12302,7 @@ void Server::lssproto_S_recv(char* cdata)
 			QStringList teamInfoList;
 			for (int i = 0; i < MAX_PARTY; ++i)
 			{
-				if (party[i].name.isEmpty() || (party[i].useFlag == 0) || (party[i].maxHp <= 0))
+				if (party[i].name.isEmpty() || (!party[i].valid) || (party[i].maxHp <= 0))
 				{
 					party[i] = {};
 					teamInfoList.append("");
@@ -12339,12 +12332,12 @@ void Server::lssproto_S_recv(char* cdata)
 		kubun = getInteger62Token(data, "|", 1);
 		if (kubun == 0)
 		{
-			if (party[no].useFlag != 0 && party[no].id != pc.id)
+			if (party[no].valid != 0 && party[no].id != pc.id)
 			{
 
 			}
 
-			party[no].useFlag = 0;
+			party[no].valid = false;
 			party[no] = {};
 			checkPartyCount = 0;
 			no2 = -1;
@@ -12354,7 +12347,7 @@ void Server::lssproto_S_recv(char* cdata)
 			for (i = 0; i < MAX_PARTY; ++i)
 #endif
 			{
-				if (party[i].useFlag != 0)
+				if (party[i].valid != 0)
 				{
 					checkPartyCount++;
 					if (no2 == -1 && i > no)
@@ -12381,7 +12374,7 @@ void Server::lssproto_S_recv(char* cdata)
 
 		partyModeFlag = 1;
 		prSendFlag = 0;
-		party[no].useFlag = 1;
+		party[no].valid = true;
 
 		if (kubun == 1)
 		{
@@ -12510,13 +12503,13 @@ void Server::lssproto_S_recv(char* cdata)
 			temp = temp.simplified();
 			if (temp.isEmpty())
 			{
-				pc.item[i].useFlag = 0;
+				pc.item[i].valid = false;
 				pc.item[i].name.clear();
 				pc.item[i] = {};
 				refreshItemInfo(i);
 				continue;
 			}
-			pc.item[i].useFlag = 1;
+			pc.item[i].valid = true;
 			pc.item[i].name = temp.simplified();
 			getStringToken(data, "|", no + 2, temp);
 			makeStringFromEscaped(temp);
@@ -12529,7 +12522,7 @@ void Server::lssproto_S_recv(char* cdata)
 			makeStringFromEscaped(temp);
 			temp = temp.simplified();
 			pc.item[i].memo = temp;
-			pc.item[i].graNo = getIntegerToken(data, "|", no + 5);
+			pc.item[i].modelid = getIntegerToken(data, "|", no + 5);
 			pc.item[i].field = getIntegerToken(data, "|", no + 6);
 			pc.item[i].target = getIntegerToken(data, "|", no + 7);
 			if (pc.item[i].target >= 100)
@@ -12579,7 +12572,7 @@ void Server::lssproto_S_recv(char* cdata)
 #endif
 
 			refreshItemInfo(i);
-	}
+		}
 
 		QStringList itemList;
 		for (const ITEM& it : pc.item)
@@ -12589,7 +12582,7 @@ void Server::lssproto_S_recv(char* cdata)
 			itemList.append(it.name);
 		}
 		emit signalDispatcher.updateComboBoxItemText(util::kComboBoxItem, itemList);
-}
+	}
 #pragma endregion
 #pragma region PetSkill
 	else if (first == "W")//接收到的寵物技能
@@ -12609,7 +12602,7 @@ void Server::lssproto_S_recv(char* cdata)
 
 		for (i = 0; i < MAX_SKILL; ++i)
 		{
-			petSkill[no][i].useFlag = 0;
+			petSkill[no][i].valid = false;
 		}
 
 		QStringList skillNameList;
@@ -12621,7 +12614,7 @@ void Server::lssproto_S_recv(char* cdata)
 			temp = temp.simplified();
 			if (temp.isEmpty())
 				continue;
-			petSkill[no][i].useFlag = 1;
+			petSkill[no][i].valid = true;
 			petSkill[no][i].name = temp;
 			petSkill[no][i].skillId = getIntegerToken(data, "|", no2 + 1);
 			petSkill[no][i].field = getIntegerToken(data, "|", no2 + 2);
@@ -12649,13 +12642,13 @@ void Server::lssproto_S_recv(char* cdata)
 
 		for (i = 0; i < MAX_PROFESSION_SKILL; ++i)
 		{
-			profession_skill[i].useFlag = 0;
+			profession_skill[i].valid = false;
 			profession_skill[i].kind = 0;
 		}
 		for (i = 0; i < MAX_PROFESSION_SKILL; ++i)
 		{
 			count = i * 9;
-			profession_skill[i].useFlag = getIntegerToken(data, "|", 1 + count);
+			profession_skill[i].valid = getIntegerToken(data, "|", 1 + count) > 0;
 			profession_skill[i].skillId = getIntegerToken(data, "|", 2 + count);
 			profession_skill[i].target = getIntegerToken(data, "|", 3 + count);
 			profession_skill[i].kind = getIntegerToken(data, "|", 4 + count);
@@ -12747,7 +12740,7 @@ void Server::lssproto_S_recv(char* cdata)
 				pet[nPetIndex].item[i] = {};
 				continue;
 			}
-			pet[nPetIndex].item[i].useFlag = 1;
+			pet[nPetIndex].item[i].valid = true;
 			pet[nPetIndex].item[i].name = szData;
 			getStringToken(data, "|", no + 2, szData);
 			makeStringFromEscaped(szData);
@@ -12760,7 +12753,7 @@ void Server::lssproto_S_recv(char* cdata)
 			makeStringFromEscaped(szData);
 			szData = szData.simplified();
 			pet[nPetIndex].item[i].memo = szData.simplified();
-			pet[nPetIndex].item[i].graNo = getIntegerToken(data, "|", no + 5);
+			pet[nPetIndex].item[i].modelid = getIntegerToken(data, "|", no + 5);
 			pet[nPetIndex].item[i].field = getIntegerToken(data, "|", no + 6);
 			pet[nPetIndex].item[i].target = getIntegerToken(data, "|", no + 7);
 			if (pet[nPetIndex].item[i].target >= 100)
@@ -12793,7 +12786,7 @@ void Server::lssproto_S_recv(char* cdata)
 			pet[nPetIndex].item[i].jigsaw = szData;
 			//可拿給寵物裝備的道具,就不會是拼圖了,以下就免了
 			//if( i == JigsawIdx )
-			//	SetJigsaw( pc.item[i].graNo, pc.item[i].jigsaw );
+			//	SetJigsaw( pc.item[i].modelid, pc.item[i].jigsaw );
 #endif
 #ifdef _NPC_ITEMUP
 			pet[nPetIndex].item[i].itemup = getIntegerToken(data, "|", no + 15);
@@ -12801,7 +12794,7 @@ void Server::lssproto_S_recv(char* cdata)
 #ifdef _ITEM_COUNTDOWN
 			pet[nPetIndex].item[i].counttime = getIntegerToken(data, "|", no + 16);
 #endif
-	}
+		}
 	}
 #endif
 #pragma endregion
@@ -12860,7 +12853,7 @@ void Server::lssproto_S_recv(char* cdata)
 	}
 
 	setPC(pc);
-		}
+}
 
 //客戶端登入(進去選人畫面)
 void Server::lssproto_ClientLogin_recv(char* cresult)
@@ -12919,7 +12912,7 @@ void Server::lssproto_CharList_recv(char* cresult, char* cdata)
 		PcLanded.登陸延時時間 = TimeGetTime() + 2000;
 #endif
 		return;
-}
+	}
 
 	//if (netproc_sending == NETPROC_SENDING)
 	//{
@@ -12965,7 +12958,7 @@ void Server::lssproto_CharList_recv(char* cresult, char* cdata)
 			{
 				table.valid = true;
 				table.name = nm;
-				table.faceGraNo = args.at(1).toInt();
+				table.faceid = args.at(1).toInt();
 				table.level = args.at(2).toInt();
 				table.hp = args.at(3).toInt();
 				table.str = args.at(4).toInt();
@@ -13051,7 +13044,7 @@ void Server::lssproto_CharLogin_recv(char* cresult, char* cdata)
 	angelFlag = FALSE;
 	angelMsg[0] = NULL;
 #endif
-	}
+}
 
 void Server::lssproto_TD_recv(char* cdata)//交易
 {
@@ -13131,7 +13124,7 @@ void Server::lssproto_TD_recv(char* cdata)//交易
 				tradePetIndex = objno;
 				tradePet[0].index = objno;
 
-				if (pet[objno].useFlag && pc.ridePetNo != objno)
+				if (pet[objno].valid && pc.ridePetNo != objno)
 				{
 					if (pet[objno].freeName[0] != NULL)
 						tradePet[0].name = pet[objno].freeName;
@@ -13140,8 +13133,8 @@ void Server::lssproto_TD_recv(char* cdata)//交易
 					tradePet[0].level = pet[objno].level;
 					tradePet[0].atk = pet[objno].atk;
 					tradePet[0].def = pet[objno].def;
-					tradePet[0].quick = pet[objno].quick;
-					tradePet[0].graNo = pet[objno].graNo;
+					tradePet[0].agi = pet[objno].agi;
+					tradePet[0].modelid = pet[objno].modelid;
 
 					showindex[3] = 3;
 					//DeathAction(pActPet4);

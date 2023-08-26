@@ -120,7 +120,7 @@ void PetInfoForm::on_comboBox_clicked()
 		QVector<int> v;
 		PET pet = injector.server->getPet(i);
 		QString name = QString::number(i + 1) + ":";
-		if (!pet.name.isEmpty() && pet.useFlag == 1)
+		if (!pet.name.isEmpty() && pet.valid)
 		{
 			if (!pet.freeName.isEmpty())
 				name += pet.freeName;
@@ -130,7 +130,7 @@ void PetInfoForm::on_comboBox_clicked()
 			v.append(pet.maxHp);
 			v.append(pet.atk);
 			v.append(pet.def);
-			v.append(pet.quick);
+			v.append(pet.agi);
 		}
 		else
 			v.resize(5);

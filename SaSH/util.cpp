@@ -818,26 +818,3 @@ void util::sortWindows(const QVector<HWND>& windowList, bool alignLeft)
 		}
 	}
 }
-
-static QString util::getPointFileName()
-{
-	extern int g_CurrentListIndex;
-	const QString dirPath(QString("%1/map/%2").arg(util::applicationDirPath()).arg(g_CurrentListIndex));
-	QDir dir(dirPath);
-	if (!dir.exists())
-		dir.mkdir(dirPath);
-
-	UINT acp = ::GetACP();
-	if (acp == 950)
-	{
-		return (dirPath + QString("/point_zh_TW.json"));
-	}
-	else if (acp == 936)
-	{
-		return (dirPath + QString("/point_zh_CN.json"));
-	}
-	else
-	{
-		return (dirPath + QString("/point.json"));
-	}
-}

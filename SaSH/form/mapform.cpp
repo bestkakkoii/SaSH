@@ -206,7 +206,8 @@ void MapForm::onUpdateNpcList(int floor)
 	QList<util::MapData> datas;
 
 	{
-		util::Config config(util::getPointFileName());
+		Injector& injector = Injector::getInstance();
+		util::Config config(injector.getPointFileName());
 		datas = config.readMapData(key);
 		if (datas.isEmpty())
 			return;

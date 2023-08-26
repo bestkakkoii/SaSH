@@ -1669,8 +1669,8 @@ bool __fastcall MapAnalyzer::loadFromBinary(int floor, map_t* _map)
 	if (!floor)
 		return false;
 
-	extern int g_CurrentListIndex;
-	const QString dirPath(QString("%1/map/%2").arg(util::applicationDirPath()).arg(g_CurrentListIndex));
+	Injector& injector = Injector::getInstance();
+	const QString dirPath(QString("%1/map/%2").arg(util::applicationDirPath()).arg(injector.currentServerListIndex));
 	QDir dir(dirPath);
 	if (!dir.exists())
 		dir.mkdir(dirPath);
@@ -1750,8 +1750,8 @@ bool __fastcall MapAnalyzer::saveAsBinary(map_t map, const QString& fileName)
 	QString newFileName(fileName);
 	if (fileName.isEmpty())
 	{
-		extern int g_CurrentListIndex;
-		const QString dirPath(QString("%1/map/%2").arg(util::applicationDirPath()).arg(g_CurrentListIndex));
+		Injector& injector = Injector::getInstance();
+		const QString dirPath(QString("%1/map/%2").arg(util::applicationDirPath()).arg(injector.currentServerListIndex));
 		QDir dir(dirPath);
 		if (!dir.exists())
 			dir.mkdir(dirPath);
@@ -1849,7 +1849,7 @@ bool __fastcall MapAnalyzer::calcNewRoute(const map_t& map, const QPoint& src, c
 			if (injector.server->npcUnitPointHash.contains(point))
 			{
 				mapunit_t unit = injector.server->npcUnitPointHash.value(point);
-				if (unit.type == util::OBJ_NPC && unit.graNo > 0)
+				if (unit.type == util::OBJ_NPC && unit.modelid > 0)
 					return false;
 			}
 

@@ -34,10 +34,10 @@ void Lssproto::lssproto_FS_send(int flg)
 	Autil::util_Send(LSSPROTO_FS_SEND, flg);
 }
 
-//對話框封包 關於seqno: 送買242 賣243
-void Lssproto::lssproto_WN_send(const QPoint& pos, int seqno, int objindex, int select, char* data)
+//對話框封包 關於dialogid: 送買242 賣243
+void Lssproto::lssproto_WN_send(const QPoint& pos, int dialogid, int unitid, int select, char* data)
 {
-	Autil::util_Send(LSSPROTO_WN_SEND, pos.x(), pos.y(), seqno, objindex, select, data);
+	Autil::util_Send(LSSPROTO_WN_SEND, pos.x(), pos.y(), dialogid, unitid, select, data);
 }
 
 //設置寵物狀態封包  0:休息 1:戰鬥或等待 4:郵件
@@ -89,9 +89,9 @@ void Lssproto::lssproto_Echo_send(char* test)
 }
 
 //丟棄道具封包
-void Lssproto::lssproto_DI_send(const QPoint& pos, int itemindex)
+void Lssproto::lssproto_DI_send(const QPoint& pos, int itemIndex)
 {
-	Autil::util_Send(LSSPROTO_DI_SEND, pos.x(), pos.y(), itemindex);
+	Autil::util_Send(LSSPROTO_DI_SEND, pos.x(), pos.y(), itemIndex);
 }
 
 //使用道具封包
@@ -150,9 +150,9 @@ void Lssproto::lssproto_M_send(int fl, int x1, int y1, int x2, int y2)
 }
 
 //地圖轉移封包
-void Lssproto::lssproto_EV_send(int e, int seqno, const QPoint& pos, int dir)
+void Lssproto::lssproto_EV_send(int e, int dialogid, const QPoint& pos, int dir)
 {
-	Autil::util_Send(LSSPROTO_EV_SEND, e, seqno, pos.x(), pos.y(), dir);
+	Autil::util_Send(LSSPROTO_EV_SEND, e, dialogid, pos.x(), pos.y(), dir);
 }
 
 //組隊封包
@@ -191,18 +191,18 @@ void Lssproto::lssproto_DG_send(const QPoint& pos, int amount)
 }
 
 //寵物郵件封包
-void Lssproto::lssproto_PMSG_send(int index, int petindex, int itemindex, char* message, int color)
+void Lssproto::lssproto_PMSG_send(int index, int petindex, int itemIndex, char* message, int color)
 {
-	Autil::util_Send(LSSPROTO_PMSG_SEND, index, petindex, itemindex, message, color);
+	Autil::util_Send(LSSPROTO_PMSG_SEND, index, petindex, itemIndex, message, color);
 }
 
-//人物改名封包 (freename)
+//人物改名封包 (freeName)
 void Lssproto::lssproto_FT_send(char* data)
 {
 	Autil::util_Send(LSSPROTO_FT_SEND, data);
 }
 
-//寵物改名封包 (freename)
+//寵物改名封包 (freeName)
 void Lssproto::lssproto_KN_send(int havepetindex, char* data)
 {
 	Autil::util_Send(LSSPROTO_KN_SEND, havepetindex, data);

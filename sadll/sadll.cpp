@@ -623,10 +623,10 @@ extern "C"
 	}
 
 	//lssproto_WN_send
-	void _cdecl New_lssproto_WN_send(int fd, int x, int y, int seqno, int objindex, int select, char* data)
+	void _cdecl New_lssproto_WN_send(int fd, int x, int y, int dialogid, int unitid, int select, char* data)
 	{
 		GameService& g_GameService = GameService::getInstance();
-		return g_GameService.New_lssproto_WN_send(fd, x, y, seqno, objindex, select, data);
+		return g_GameService.New_lssproto_WN_send(fd, x, y, dialogid, unitid, select, data);
 	}
 
 	void __cdecl New_lssproto_TK_send(int fd, int x, int y, const char* message, int color, int area)
@@ -1145,9 +1145,9 @@ void GameService::New_lssproto_EN_recv(int fd, int result, int field)
 }
 
 //WN對話框發包攔截
-void GameService::New_lssproto_WN_send(int fd, int x, int y, int seqno, int objindex, int select, const char* data)
+void GameService::New_lssproto_WN_send(int fd, int x, int y, int dialogid, int unitid, int select, const char* data)
 {
-	if (objindex == 1234 && seqno == 4321)
+	if (unitid == 1234 && dialogid == 4321)
 	{
 		std::string str = "dk|";
 		str += std::to_string(x) + "|";
@@ -1159,7 +1159,7 @@ void GameService::New_lssproto_WN_send(int fd, int x, int y, int seqno, int obji
 		return;
 	}
 
-	pLssproto_WN_send(fd, x, y, seqno, objindex, select, data);
+	pLssproto_WN_send(fd, x, y, dialogid, unitid, select, data);
 }
 
 //TK對話框收包攔截

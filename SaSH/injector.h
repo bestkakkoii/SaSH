@@ -153,6 +153,8 @@ public:
 
 	void show();
 
+	QString getPointFileName();
+
 private:
 	static BOOL CALLBACK EnumWindowsCallback(HWND handle, LPARAM lParam)
 	{
@@ -191,7 +193,10 @@ public:
 	QMutex globalMutex; //用於保證 主線程 | 收包線程 | 腳本線程 數據同步的主要鎖
 
 	util::SafeData<QStringList> serverNameList;
+
 	util::SafeData<QStringList> subServerNameList;
+
+	int currentServerListIndex = 0;
 
 private:
 	int hModule_ = NULL;

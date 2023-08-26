@@ -1028,19 +1028,19 @@ void GeneralForm::onGameStart()
 	}
 }
 
-int g_CurrentListIndex = 0;
 void GeneralForm::createServerList()
 {
 	int currentListIndex = ui.comboBox_serverlist->currentIndex();
 	if (currentListIndex < 0)
 		currentListIndex = 0;
 	QStringList list;
+	Injector& injector = Injector::getInstance();
 
 	{
 		const QString fileName(qgetenv("JSON_PATH"));
 		util::Config config(fileName);
 
-		g_CurrentListIndex = currentListIndex;
+		injector.currentServerListIndex = currentListIndex;
 		list = config.readArray<QString>("System", "Server", QString("List_%1").arg(currentListIndex));
 		if (list.isEmpty())
 		{
@@ -1143,7 +1143,6 @@ void GeneralForm::createServerList()
 		ui.comboBox_subserver->addItems(subList);
 	}
 
-	Injector& injector = Injector::getInstance();
 	injector.serverNameList = serverNameList;
 	injector.subServerNameList = subServerNameList;
 

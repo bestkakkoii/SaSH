@@ -541,7 +541,7 @@ bool Interpreter::compare(CompareArea area, const TokenMap& TK)
 			a = _pc.def;
 			break;
 		case kPlayerChasma:
-			a = _pc.charm;
+			a = _pc.chasma;
 			break;
 		case kPlayerTurn:
 			a = _pc.transmigration;
@@ -647,10 +647,10 @@ bool Interpreter::compare(CompareArea area, const TokenMap& TK)
 			a = pet.def;
 			break;
 		case kPetLoyal:
-			a = pet.ai;
+			a = pet.loyal;
 			break;
 		case kPetTurn:
-			a = pet.trn;
+			a = pet.transmigration;
 			break;
 		case kPetEarth:
 			a = pet.earth;

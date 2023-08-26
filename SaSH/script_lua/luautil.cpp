@@ -28,13 +28,17 @@ bool CLuaUtil::getChar(sol::table dstTable, sol::this_state s)
 		return FALSE;
 
 	PC pc = injector.server->getPC();
+	QPoint pos = injector.server->getPoint();
 
 	//clear table
 	dstTable.clear();
 
 	//get data
-	dstTable["modelid"] = pc.graNo;
-	dstTable["faceid"] = pc.faceGraNo;
+	dstTable["x"] = pos.x();
+	dstTable["y"] = pos.y();
+	dstTable["floor"] = injector.server->nowFloor;
+	dstTable["modelid"] = pc.modelid;
+	dstTable["faceid"] = pc.faceid;
 	dstTable["unitid"] = pc.id;
 	dstTable["dir"] = pc.dir + 1;
 	dstTable["hp"] = pc.hp;
@@ -43,7 +47,7 @@ bool CLuaUtil::getChar(sol::table dstTable, sol::this_state s)
 	dstTable["mp"] = pc.mp;
 	dstTable["maxmp"] = pc.maxMp;
 	dstTable["mpp"] = pc.mpPercent;
-	dstTable["vit"] = pc.vital;
+	dstTable["vit"] = pc.vit;
 	dstTable["str"] = pc.str;
 	dstTable["tgh"] = pc.tgh;
 	dstTable["dex"] = pc.dex;
@@ -52,8 +56,8 @@ bool CLuaUtil::getChar(sol::table dstTable, sol::this_state s)
 	dstTable["lv"] = pc.level;
 	dstTable["atk"] = pc.atk;
 	dstTable["def"] = pc.def;
-	dstTable["agi"] = pc.quick;
-	dstTable["chasma"] = pc.charm;
+	dstTable["agi"] = pc.agi;
+	dstTable["chasma"] = pc.chasma;
 	dstTable["luck"] = pc.luck;
 	dstTable["earth"] = pc.earth;
 	dstTable["water"] = pc.water;
@@ -72,7 +76,7 @@ bool CLuaUtil::getChar(sol::table dstTable, sol::this_state s)
 	dstTable["battleside"] = pc.sideNo + 1;
 	dstTable["help"] = pc.helpMode;
 	dstTable["turn"] = pc.transmigration;
-	dstTable["family"] = pc.familyName.toUtf8().constData();
+	dstTable["family"] = pc.family.toUtf8().constData();
 	dstTable["familyleader"] = pc.familyleader;
 	dstTable["channel"] = pc.channel;
 	dstTable["quickchannel"] = pc.quickChannel;
@@ -113,7 +117,7 @@ bool CLuaUtil::getPet(sol::table dstTable, sol::this_state s)
 			dstTable[i + 1] = lua.create_table();
 
 		dstTable[i + 1]["index"] = i + 1;
-		dstTable[i + 1]["modelid"] = pet.graNo;
+		dstTable[i + 1]["modelid"] = pet.modelid;
 		dstTable[i + 1]["hp"] = pet.hp;
 		dstTable[i + 1]["maxhp"] = pet.maxHp;
 		dstTable[i + 1]["hpp"] = pet.hpPercent;
@@ -125,19 +129,19 @@ bool CLuaUtil::getPet(sol::table dstTable, sol::this_state s)
 		dstTable[i + 1]["lv"] = pet.level;
 		dstTable[i + 1]["atk"] = pet.atk;
 		dstTable[i + 1]["def"] = pet.def;
-		dstTable[i + 1]["agi"] = pet.quick;
-		dstTable[i + 1]["loyal"] = pet.ai;
+		dstTable[i + 1]["agi"] = pet.agi;
+		dstTable[i + 1]["loyal"] = pet.loyal;
 		dstTable[i + 1]["earth"] = pet.earth;
 		dstTable[i + 1]["water"] = pet.water;
 		dstTable[i + 1]["fire"] = pet.fire;
 		dstTable[i + 1]["wind"] = pet.wind;
 		dstTable[i + 1]["maxskill"] = pet.maxSkill;
-		dstTable[i + 1]["turn"] = pet.trn;
+		dstTable[i + 1]["turn"] = pet.transmigration;
 		dstTable[i + 1]["fusion"] = pet.fusion;
 		dstTable[i + 1]["status"] = pet.status;
 		dstTable[i + 1]["name"] = pet.name.toUtf8().constData();
 		dstTable[i + 1]["freename"] = pet.freeName.toUtf8().constData();
-		dstTable[i + 1]["valid"] = pet.useFlag == 1;
+		dstTable[i + 1]["valid"] = pet.valid;
 		dstTable[i + 1]["changename"] = pet.changeNameFlag == 1;
 		dstTable[i + 1]["state"] = pet.state + 1;
 		dstTable[i + 1]["power"] = pet.power;
@@ -163,7 +167,7 @@ bool CLuaUtil::getTeam(sol::table dstTable, sol::this_state s)
 			dstTable[i + 1] = lua.create_table();
 
 		dstTable[i + 1]["index"] = i + 1;
-		dstTable[i + 1]["valid"] = party.useFlag == 1;
+		dstTable[i + 1]["valid"] = party.valid;
 		dstTable[i + 1]["id"] = party.id;
 		dstTable[i + 1]["lv"] = party.level;
 		dstTable[i + 1]["maxhp"] = party.maxHp;
@@ -194,12 +198,12 @@ bool CLuaUtil::getCard(sol::table dstTable, sol::this_state s)
 			dstTable[i + 1] = lua.create_table();
 
 		dstTable[i + 1]["index"] = i + 1;
-		dstTable[i + 1]["valid"] = adrBook.useFlag == 1;
+		dstTable[i + 1]["valid"] = adrBook.valid;
 		dstTable[i + 1]["online"] = adrBook.onlineFlag == 1;
 		dstTable[i + 1]["lv"] = adrBook.level;
 		dstTable[i + 1]["turn"] = adrBook.transmigration;
 		dstTable[i + 1]["dp"] = adrBook.dp;
-		dstTable[i + 1]["modelid"] = adrBook.graNo;
+		dstTable[i + 1]["modelid"] = adrBook.modelid;
 		dstTable[i + 1]["name"] = adrBook.name.toUtf8().constData();
 	}
 
@@ -271,7 +275,7 @@ bool CLuaUtil::getUnit(sol::table dstTable, sol::this_state s)
 
 		dstTable[i + 1]["index"] = i + 1;
 		dstTable[i + 1]["unitid"] = unit.id;
-		dstTable[i + 1]["modelid"] = unit.graNo;
+		dstTable[i + 1]["modelid"] = unit.modelid;
 		dstTable[i + 1]["x"] = unit.x;
 		dstTable[i + 1]["y"] = unit.y;
 		dstTable[i + 1]["dir"] = unit.dir + 1;
@@ -282,7 +286,7 @@ bool CLuaUtil::getUnit(sol::table dstTable, sol::this_state s)
 		dstTable[i + 1]["walkable"] = unit.walkable;
 		dstTable[i + 1]["height"] = unit.height;
 		dstTable[i + 1]["charnamecolor"] = unit.charNameColor;
-		dstTable[i + 1]["family"] = unit.fmname.toUtf8().constData();
+		dstTable[i + 1]["family"] = unit.family.toUtf8().constData();
 		dstTable[i + 1]["petname"] = unit.petname.toUtf8().constData();
 		dstTable[i + 1]["petlv"] = unit.petlevel;
 		dstTable[i + 1]["class"] = unit.classNo;
@@ -292,7 +296,7 @@ bool CLuaUtil::getUnit(sol::table dstTable, sol::this_state s)
 		dstTable[i + 1]["skilllv"] = unit.profession_level;
 		dstTable[i + 1]["skillpoint"] = unit.profession_skill_point;
 		dstTable[i + 1]["type"] = unit.objType;
-		dstTable[i + 1]["visible"] = unit.isvisible;
+		dstTable[i + 1]["visible"] = unit.isVisible;
 	}
 
 	return TRUE;
@@ -329,8 +333,8 @@ bool CLuaUtil::getBattleUnit(sol::table dstTable, sol::this_state s)
 		dstTable[i + 1]["index"] = i + 1;
 		dstTable[i + 1]["pos"] = battleObject.pos;
 		dstTable[i + 1]["name"] = battleObject.name.toUtf8().constData();
-		dstTable[i + 1]["freename"] = battleObject.freename.toUtf8().constData();
-		dstTable[i + 1]["modelid"] = battleObject.faceid;
+		dstTable[i + 1]["freename"] = battleObject.freeName.toUtf8().constData();
+		dstTable[i + 1]["modelid"] = battleObject.modelid;
 		dstTable[i + 1]["lv"] = battleObject.level;
 		dstTable[i + 1]["hp"] = battleObject.hp;
 		dstTable[i + 1]["maxhp"] = battleObject.maxHp;
@@ -395,11 +399,11 @@ bool CLuaUtil::getItem(sol::table dstTable, sol::this_state s)
 
 		dstTable[i + 1]["index"] = i + 1;
 		dstTable[i + 1]["color"] = item.color;
-		dstTable[i + 1]["modelid"] = item.graNo;
+		dstTable[i + 1]["modelid"] = item.modelid;
 		dstTable[i + 1]["lv"] = item.level;
 		dstTable[i + 1]["stack"] = item.pile;
 		dstTable[i + 1]["alch"] = item.alch.toUtf8().constData();
-		dstTable[i + 1]["valid"] = item.useFlag == 1;
+		dstTable[i + 1]["valid"] = item.valid;
 		dstTable[i + 1]["field"] = item.field;
 		dstTable[i + 1]["target"] = item.target;
 		dstTable[i + 1]["deadtarget"] = item.deadTargetFlag;
@@ -443,7 +447,7 @@ bool CLuaUtil::getSkill(sol::table dstTable, sol::this_state s)
 			dstTable[i + 1] = lua.create_table();
 
 		dstTable[i + 1]["index"] = i + 1;
-		dstTable[i + 1]["valid"] = skill.useFlag == 1;
+		dstTable[i + 1]["valid"] = skill.valid;
 		dstTable[i + 1]["id"] = skill.skillId;
 		dstTable[i + 1]["target"] = skill.target;
 		dstTable[i + 1]["kind"] = skill.kind;
@@ -475,8 +479,8 @@ bool CLuaUtil::getMagic(sol::table dstTable, sol::this_state s)
 			dstTable[i + 1] = lua.create_table();
 
 		dstTable[i + 1]["index"] = i + 1;
-		dstTable[i + 1]["valid"] = magic.useFlag == 1;
-		dstTable[i + 1]["costmp"] = magic.mp;
+		dstTable[i + 1]["valid"] = magic.valid;
+		dstTable[i + 1]["costmp"] = magic.costmp;
 		dstTable[i + 1]["field"] = magic.field;
 		dstTable[i + 1]["target"] = magic.target;
 		dstTable[i + 1]["deadtarget"] = magic.deadTargetFlag;

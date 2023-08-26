@@ -419,11 +419,10 @@ int MainObject::checkAndRunFunctions()
 
 		const QString fileName(qgetenv("JSON_PATH"));
 		QStringList list;
-		extern int g_CurrentListIndex;//generalform.cpp
 
 		{
 			util::Config config(fileName);
-			list = config.readArray<QString>("System", "Server", QString("List_%1").arg(g_CurrentListIndex));
+			list = config.readArray<QString>("System", "Server", QString("List_%1").arg(injector.currentServerListIndex));
 		}
 
 		QStringList serverNameList;
@@ -665,7 +664,7 @@ void MainObject::setUserDatas()
 	for (int i = 0; i < MAX_PET; ++i)
 	{
 		PET pet = injector.server->getPet(i);
-		if (pet.name.isEmpty() || pet.useFlag == 0)
+		if (pet.name.isEmpty() || !pet.valid)
 			continue;
 
 		petNames.append(pet.name);
@@ -1725,12 +1724,12 @@ void MainObject::checkAutoDropPet()
 						return;
 
 					PET pet = injector.server->getPet(i);
-					if (pet.useFlag == 0 || pet.maxHp <= 0 || pet.level <= 0)
+					if (!pet.valid || pet.maxHp <= 0 || pet.level <= 0)
 						continue;
 
 					double str = pet.atk;
 					double def = pet.def;
-					double agi = pet.quick;
+					double agi = pet.agi;
 					double aggregate = ((str + def + agi + (static_cast<double>(pet.maxHp) / 4.0)) / static_cast<double>(pet.level)) * 100.0;
 
 					bool okDrop = false;
@@ -2033,7 +2032,7 @@ void MainObject::checkAutoEatBoostExpItem()
 	for (int i = 0; i < MAX_ITEM; ++i)
 	{
 		ITEM item = injector.server->getPC().item[i];
-		if (item.name.isEmpty() || item.memo.isEmpty() || item.useFlag == 0)
+		if (item.name.isEmpty() || item.memo.isEmpty() || !item.valid)
 			continue;
 
 		if (item.memo.contains(u8"經驗值上升") || item.memo.contains(u8"经验值上升"))
@@ -2079,7 +2078,7 @@ void MainObject::checkRecordableNpcInfo()
 
 				injector.server->npcUnitPointHash.insert(QPoint(unit.x, unit.y), unit);
 
-				util::Config config(util::getPointFileName());
+				util::Config config(injector.getPointFileName());
 				util::MapData d;
 				int nowFloor = injector.server->nowFloor;
 				QPoint nowPoint = injector.server->getPoint();

@@ -64,6 +64,15 @@ void Injector::clear()//static
 		util::SafeHash<util::UserSetting, int> valueHash = instance->getValueHash();
 		util::SafeHash<util::UserSetting, bool> enableHash = instance->getEnableHash();
 		util::SafeHash<util::UserSetting, QString> stringHash = instance->getStringHash();
+
+		QStringList _serverNameList = instance->serverNameList.get();
+
+		QStringList _subServerNameList = instance->subServerNameList.get();
+
+		int _currentServerListIndex = instance->currentServerListIndex;
+
+		QString _currentScriptFileName = instance->currentScriptFileName;
+
 		delete instance;
 		instance = new Injector();
 		if (instance)
@@ -72,6 +81,14 @@ void Injector::clear()//static
 			instance->setValueHash(valueHash);
 			instance->setEnableHash(enableHash);
 			instance->setStringHash(stringHash);
+
+			instance->serverNameList.set(_serverNameList);
+
+			instance->subServerNameList.set(_subServerNameList);
+
+			instance->currentServerListIndex = _currentServerListIndex;
+
+			instance->currentScriptFileName = _currentScriptFileName;
 		}
 	}
 }
@@ -642,4 +659,27 @@ void Injector::show()
 
 	//bring to top once
 	SetForegroundWindow(hWnd);
+}
+
+QString Injector::getPointFileName()
+{
+
+	const QString dirPath(QString("%1/map/%2").arg(util::applicationDirPath()).arg(currentServerListIndex));
+	QDir dir(dirPath);
+	if (!dir.exists())
+		dir.mkdir(dirPath);
+
+	UINT acp = ::GetACP();
+	if (acp == 950)
+	{
+		return (dirPath + QString("/point_zh_TW.json"));
+	}
+	else if (acp == 936)
+	{
+		return (dirPath + QString("/point_zh_CN.json"));
+	}
+	else
+	{
+		return (dirPath + QString("/point.json"));
+	}
 }

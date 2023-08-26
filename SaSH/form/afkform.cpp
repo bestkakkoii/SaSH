@@ -1214,7 +1214,7 @@ void AfkForm::onUpdateComboBoxItemText(int type, const QStringList& textList)
 			for (int i = CHAR_EQUIPPLACENUM; i < MAX_ITEM; ++i)
 			{
 				ITEM item = pc.item[i];
-				QString text = QString("%1:%2").arg(i - CHAR_EQUIPPLACENUM + 1).arg(item.useFlag == 1 ? item.name : "");
+				QString text = QString("%1:%2").arg(i - CHAR_EQUIPPLACENUM + 1).arg(item.valid ? item.name : "");
 				ui.comboBox_magicheal_normal->addItem(text);
 				int index = ui.comboBox_magicheal_normal->count() - 1;
 				ui.comboBox_magicheal_normal->setItemData(index, text, Qt::ToolTipRole);

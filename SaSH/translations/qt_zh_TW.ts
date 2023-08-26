@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <!DOCTYPE TS>
 <TS version="2.1" language="zh_TW">
 <context>
@@ -2149,7 +2149,7 @@ No new version available. Do you still want to update?</source>
         <translation>名稱</translation>
     </message>
     <message>
-        <source>freename</source>
+        <source>freeName</source>
         <translation>別名</translation>
     </message>
     <message>

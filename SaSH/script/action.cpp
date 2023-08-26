@@ -576,7 +576,7 @@ qint64 Interpreter::sellpet(qint64, const TokenMap& TK)
 
 		PET pet = injector.server->getPet(petIndex - 1);
 
-		if (pet.useFlag == 0)
+		if (!pet.valid)
 			continue;
 
 		bool bret = false;
@@ -589,7 +589,7 @@ qint64 Interpreter::sellpet(qint64, const TokenMap& TK)
 				return Parser::kServerNotReady;
 
 			dialog_t dialog = injector.server->currentDialog;
-			switch (dialog.seqno)
+			switch (dialog.dialogid)
 			{
 			case 263:
 			{
@@ -779,7 +779,7 @@ qint64 Interpreter::kick(qint64, const TokenMap& TK)
 			for (qint64 i = 1; i < MAX_PARTY; ++i)
 			{
 				PARTY party = injector.server->getParty(i);
-				if (party.useFlag == 0)
+				if (!party.valid)
 					continue;
 
 				for (QString it : list)
@@ -1020,7 +1020,7 @@ qint64 Interpreter::wearequip(qint64, const TokenMap& TK)
 	{
 		ITEM item = injector.server->getPC().item[i];
 		ITEM recordedItem = recordedEquip_.value(i);
-		if (recordedItem.useFlag == 0 || recordedItem.name.isEmpty())
+		if (!recordedItem.valid || recordedItem.name.isEmpty())
 			continue;
 
 		if (item.name == recordedItem.name && item.memo == recordedItem.memo)
@@ -1302,7 +1302,7 @@ qint64 Interpreter::deposititem(qint64, const TokenMap& TK)
 		for (qint64 i = CHAR_EQUIPPLACENUM; i < MAX_ITEM; ++i)
 		{
 			ITEM item = injector.server->getPC().item[i];
-			if (item.name.isEmpty() || item.useFlag == 0)
+			if (item.name.isEmpty() || !item.valid)
 				continue;
 
 			if (i < min || i > max)
@@ -1707,7 +1707,7 @@ qint64 Interpreter::trade(qint64, const TokenMap& TK)
 			index += CHAR_EQUIPPLACENUM;
 			if (bret && index >= CHAR_EQUIPPLACENUM && index < MAX_ITEM)
 			{
-				if (injector.server->getPC().item[index].useFlag == 1)
+				if (injector.server->getPC().item[index].valid)
 					itemIndexVec.append(index);
 			}
 		}
@@ -1757,7 +1757,7 @@ qint64 Interpreter::trade(qint64, const TokenMap& TK)
 			if (bret && index >= 0 && index < MAX_PET)
 			{
 				PET pet = injector.server->getPet(index);
-				if (pet.useFlag == 1)
+				if (pet.valid)
 					petIndexVec.append(index);
 			}
 		}

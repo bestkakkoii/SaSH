@@ -215,7 +215,7 @@ qint64 Interpreter::findpath(qint64 currentline, const TokenMap& TK)
 	if (p.isNull() && !name.isEmpty())
 	{
 		QString key = QString::number(injector.server->nowFloor);
-		util::Config config(util::getPointFileName());
+		util::Config config(injector.getPointFileName());
 		QList<util::MapData> datas = config.readMapData(key);
 		if (datas.isEmpty())
 			return Parser::kNoChange;

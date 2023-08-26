@@ -293,14 +293,14 @@ public://actions
 
 	void setSwitcher(int flg);
 
-	void press(BUTTON_TYPE select, int seqno = -1, int objindex = -1);
-	void press(int row, int seqno = -1, int objindex = -1);
+	void press(BUTTON_TYPE select, int dialogid = -1, int unitid = -1);
+	void press(int row, int dialogid = -1, int unitid = -1);
 
-	void buy(int index, int amt, int seqno = -1, int objindex = -1);
-	void sell(const QVector<int>& indexs, int seqno = -1, int objindex = -1);
-	void sell(int index, int seqno = -1, int objindex = -1);
-	void sell(const QString& name, const QString& memo = "", int seqno = -1, int objindex = -1);
-	void learn(int skillIndex, int petIndex, int spot, int seqno = -1, int objindex = -1);
+	void buy(int index, int amt, int dialogid = -1, int unitid = -1);
+	void sell(const QVector<int>& indexs, int dialogid = -1, int unitid = -1);
+	void sell(int index, int dialogid = -1, int unitid = -1);
+	void sell(const QString& name, const QString& memo = "", int dialogid = -1, int unitid = -1);
+	void learn(int skillIndex, int petIndex, int spot, int dialogid = -1, int unitid = -1);
 
 	void craft(util::CraftType type, const QStringList& ingres);
 
@@ -322,11 +322,11 @@ public://actions
 	void depositGold(int gold, bool isPublic);
 	void withdrawGold(int gold, bool isPublic);
 
-	void depositPet(int petIndex, int seqno = -1, int objindex = -1);
-	void withdrawPet(int petIndex, int seqno = -1, int objindex = -1);
+	void depositPet(int petIndex, int dialogid = -1, int unitid = -1);
+	void withdrawPet(int petIndex, int dialogid = -1, int unitid = -1);
 
-	void depositItem(int index, int seqno = -1, int objindex = -1);
-	void withdrawItem(int itemIndex, int seqno = -1, int objindex = -1);
+	void depositItem(int index, int dialogid = -1, int unitid = -1);
+	void withdrawItem(int itemIndex, int dialogid = -1, int unitid = -1);
 
 	bool captchaOCR(QString* pmsg);
 
@@ -358,7 +358,7 @@ public://actions
 	void cleanChatHistory();
 	QString getChatHistory(int index);
 
-	bool findUnit(const QString& name, int type, mapunit_t* unit, const QString& freename = "", int modelid = -1);
+	bool findUnit(const QString& name, int type, mapunit_t* unit, const QString& freeName = "", int modelid = -1);
 
 	void setTeamState(bool join);
 	void kickteam(int n);
@@ -439,7 +439,7 @@ public://actions
 		int n = 0;
 		for (const PET& it : pet)
 		{
-			if (it.level > 0 && it.useFlag == 1 && it.maxHp > 0)
+			if (it.level > 0 && it.valid && it.maxHp > 0)
 				++n;
 		}
 		return n;
@@ -949,7 +949,7 @@ private://lssproto
 private://lssproto_recv
 #pragma region Lssproto_Recv
 	virtual void lssproto_XYD_recv(const QPoint& pos, int dir) override;//戰鬥結束後的大地圖座標
-	virtual void lssproto_EV_recv(int seqno, int result) override;
+	virtual void lssproto_EV_recv(int dialogid, int result) override;
 	virtual void lssproto_EN_recv(int result, int field) override;
 	virtual void lssproto_RS_recv(char* data) override;
 	virtual void lssproto_RD_recv(char* data) override;
@@ -957,7 +957,7 @@ private://lssproto_recv
 	virtual void lssproto_I_recv(char* data) override;
 	virtual void lssproto_SI_recv(int fromindex, int toindex) override;
 	virtual void lssproto_MSG_recv(int aindex, char* text, int color) override;	//收到普通郵件或寵物郵件
-	virtual void lssproto_PME_recv(int objindex, int graphicsno, const QPoint& pos, int dir, int flg, int no, char* cdata) override;
+	virtual void lssproto_PME_recv(int unitid, int graphicsno, const QPoint& pos, int dir, int flg, int no, char* cdata) override;
 	virtual void lssproto_AB_recv(char* data) override;
 	virtual void lssproto_ABI_recv(int num, char* data) override;
 	virtual void lssproto_TK_recv(int index, char* message, int color) override;
@@ -978,7 +978,7 @@ private://lssproto_recv
 #endif
 	virtual void lssproto_PS_recv(int result, int havepetindex, int havepetskill, int toindex) override;	//寵物合成
 	virtual void lssproto_SKUP_recv(int point) override;//取得可加的屬性點數
-	virtual void lssproto_WN_recv(int windowtype, int buttontype, int seqno, int objindex, char* data) override;
+	virtual void lssproto_WN_recv(int windowtype, int buttontype, int dialogid, int unitid, char* data) override;
 	virtual void lssproto_EF_recv(int effect, int level, char* option) override;
 	virtual void lssproto_SE_recv(const QPoint& pos, int senumber, int sw) override;
 	virtual void lssproto_ClientLogin_recv(char* result) override;

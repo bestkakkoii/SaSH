@@ -990,143 +990,145 @@ enum TalkMode
 
 #pragma region Structs
 #pragma pack(4) 
-//typedef struct action
-//{
-//	struct 	action* pPrev, * pNext;			//上一個及下一個action指標
-//	void 	(*func)(struct action*);	//action所執行的function的指標
-//	void* pYobi;							//備用的struct指標
-//	void* pOther;						//其它用途struct指標
-//	UCHAR 	prio;							//action處理時的優先順序
-//	UCHAR 	dispPrio;						//秀圖時的優先順序
-//	int 	x, y;							//圖的座標
-//	int		hitDispNo;						//是否命中目標編號
-//	BOOL	deathFlag;						//此action是否死亡旗標
-//	int 	dx, dy;							//秀圖座標位移量
-//	int 	dir;							//方向
-//	int 	delta;  						//合成向量
-//
-//	char 	name[29];						//名字
-//	char 	freeName[33];					//free name
-//	int 	hp;
-//#ifdef _PET_ITEM
-//	int		iOldHp;
-//#endif
-//	int 	maxHp;
-//	int 	mp;
-//	int 	maxMp;
-//	int 	level;
-//	int 	status;
-//	int 	itemNameColor;
-//	int		charNameColor;
-//
-//	int		bmpNo;							//圖號
-//	int		bmpNo_bak;							//備份圖號
-//	int		atr;							//屬性
-//	int		state;							//狀態
-//	int		actNo;							//行動編號
-//	int		damage;
-//
-//	int		gx, gy;							//在目前的地圖上的座標
-//	int		nextGx, nextGy;					//下一個座標
-//	int		bufGx[10], bufGy[10];			//從目前座標到下一個座標之間座標的buffer
-//	short	bufCount;						//設定目前要走到那一個座標
-//	short	walkFlag;
-//	float	mx, my;							//地圖座標
-//	float	vx, vy;
-//
-//	//屬性
-//	short 	earth;
-//	short 	water;
-//	short 	fire;
-//	short 	wind;
-//	//rader使用
-//	int		dirCnt;
-//	//gemini使用
-//	int		spd;							//移動的速度(0~63)
-//	int		crs;							//方向(0~31)(正上方為0,順時鐘方向)
-//	int		h_mini;
-//	int		v_mini;
-//	//pattern使用
-//	int		anim_chr_no;					//人物的編號(anim_tbl.h的編號)
-//	int		anim_chr_no_bak;				//上一次的人物編號
-//	int		anim_no;						//人物的動作編號
-//	int		anim_no_bak;					//上一次的人物編號
-//	int		anim_ang;						//動作的方向(0~7)(下0)
-//	int		anim_ang_bak;					//上一次的方向
-//	int		anim_cnt;						//第幾張frame
-//	int		anim_frame_cnt;					//這張frame停留時間
-//	int		anim_x;							//X座標(Sprbin+Adrnbin)
-//	int		anim_y;							//Y座標(Sprbin+Adrnbin)
-//	int		anim_hit;
-//	// shan add +1
-//	char    fmname[33];			            // 家族名稱
-//	// Robin 0728 ride Pet
-//	int		onRide;
-//	char	petName[16 + 1];
-//	int		petLevel;
-//	int		petHp;
-//	int		petMaxHp;
-//	int		petDamage;
-//	int		petFall;
-//#ifdef _MIND_ICON
-//	unsigned int sMindIcon;
-//#endif
-//#ifdef _SHOWFAMILYBADGE_
-//	unsigned int sFamilyIcon;
-//#endif
-//#ifdef FAMILY_MANOR_
-//	unsigned int mFamilyIcon;
-//#endif
-//#ifdef _CHAR_MANOR_
-//	unsigned int mManorIcon;
-//#endif
-//#ifdef _CHARTITLE_STR_
-//	TITLE_STR TitleText;
-//#endif
-//#ifdef _CHARTITLE_
-//	unsigned int TitleIcon;
-//#endif
-//#ifdef _NPC_EVENT_NOTICE
-//	int noticeNo;
-//#endif
-//
-//#ifdef _SKILL_ROAR
-//	int		petRoar;		//大吼(克年獸)
-//#endif
-//#ifdef _SKILL_SELFEXPLODE //自爆
-//	int		petSelfExplode;
-//#endif
-//#ifdef _MAGIC_DEEPPOISION   //劇毒
-//	int		petDeepPoision;
-//#endif
-//
-//#ifdef _CHAR_PROFESSION			// WON ADD 人物職業
-//	int		profession_class;
-//#endif
-//	//#ifdef _BATTLESKILL				// (不可開) Syu ADD 戰鬥技能介面
-//	int		warrioreffect;
-//	//#endif
-//#ifdef _GM_IDENTIFY		// Rog ADD GM識別
-//	char gm_name[33];
-//#endif
-//#ifdef _STREET_VENDOR
-//	char szStreetVendorTitle[64];
-//#endif
-//#ifdef _NPC_PICTURE
-//	int picture;
-//	int picturetemp;
-//#endif
-//#ifdef _PETSKILL_RIDE
-//	int saveride;
-//#endif
-//#ifdef _MOUSE_DBL_CLICK
-//	int index;	// 禁斷!! Server中的charaindex
-//#endif
-//
-//#ifdef _SFUMATO
-//	int sfumato;		// 二次渲染圖層色彩
-//#endif
-//}ACTION;
+#if 0
+typedef struct action
+{
+	struct 	action* pPrev, * pNext;			//上一個及下一個action指標
+	void 	(*func)(struct action*);	//action所執行的function的指標
+	void* pYobi;							//備用的struct指標
+	void* pOther;						//其它用途struct指標
+	UCHAR 	prio;							//action處理時的優先順序
+	UCHAR 	dispPrio;						//秀圖時的優先順序
+	int 	x, y;							//圖的座標
+	int		hitDispNo;						//是否命中目標編號
+	BOOL	deathFlag;						//此action是否死亡旗標
+	int 	dx, dy;							//秀圖座標位移量
+	int 	dir;							//方向
+	int 	delta;  						//合成向量
+
+	char 	name[29];						//名字
+	char 	freeName[33];					//free name
+	int 	hp;
+#ifdef _PET_ITEM
+	int		iOldHp;
+#endif
+	int 	maxHp;
+	int 	mp;
+	int 	maxMp;
+	int 	level;
+	int 	status;
+	int 	itemNameColor;
+	int		charNameColor;
+
+	int		bmpNo;							//圖號
+	int		bmpNo_bak;							//備份圖號
+	int		atr;							//屬性
+	int		state;							//狀態
+	int		actNo;							//行動編號
+	int		damage;
+
+	int		gx, gy;							//在目前的地圖上的座標
+	int		nextGx, nextGy;					//下一個座標
+	int		bufGx[10], bufGy[10];			//從目前座標到下一個座標之間座標的buffer
+	short	bufCount;						//設定目前要走到那一個座標
+	short	walkFlag;
+	float	mx, my;							//地圖座標
+	float	vx, vy;
+
+	//屬性
+	short 	earth;
+	short 	water;
+	short 	fire;
+	short 	wind;
+	//rader使用
+	int		dirCnt;
+	//gemini使用
+	int		spd;							//移動的速度(0~63)
+	int		crs;							//方向(0~31)(正上方為0,順時鐘方向)
+	int		h_mini;
+	int		v_mini;
+	//pattern使用
+	int		anim_chr_no;					//人物的編號(anim_tbl.h的編號)
+	int		anim_chr_no_bak;				//上一次的人物編號
+	int		anim_no;						//人物的動作編號
+	int		anim_no_bak;					//上一次的人物編號
+	int		anim_ang;						//動作的方向(0~7)(下0)
+	int		anim_ang_bak;					//上一次的方向
+	int		anim_cnt;						//第幾張frame
+	int		anim_frame_cnt;					//這張frame停留時間
+	int		anim_x;							//X座標(Sprbin+Adrnbin)
+	int		anim_y;							//Y座標(Sprbin+Adrnbin)
+	int		anim_hit;
+	// shan add +1
+	char    fmname[33];			            // 家族名稱
+	// Robin 0728 ride Pet
+	int		onRide;
+	char	petName[16 + 1];
+	int		petLevel;
+	int		petHp;
+	int		petMaxHp;
+	int		petDamage;
+	int		petFall;
+#ifdef _MIND_ICON
+	unsigned int sMindIcon;
+#endif
+#ifdef _SHOWFAMILYBADGE_
+	unsigned int sFamilyIcon;
+#endif
+#ifdef FAMILY_MANOR_
+	unsigned int mFamilyIcon;
+#endif
+#ifdef _CHAR_MANOR_
+	unsigned int mManorIcon;
+#endif
+#ifdef _CHARTITLE_STR_
+	TITLE_STR TitleText;
+#endif
+#ifdef _CHARTITLE_
+	unsigned int TitleIcon;
+#endif
+#ifdef _NPC_EVENT_NOTICE
+	int noticeNo;
+#endif
+
+#ifdef _SKILL_ROAR
+	int		petRoar;		//大吼(克年獸)
+#endif
+#ifdef _SKILL_SELFEXPLODE //自爆
+	int		petSelfExplode;
+#endif
+#ifdef _MAGIC_DEEPPOISION   //劇毒
+	int		petDeepPoision;
+#endif
+
+#ifdef _CHAR_PROFESSION			// WON ADD 人物職業
+	int		profession_class;
+#endif
+	//#ifdef _BATTLESKILL				// (不可開) Syu ADD 戰鬥技能介面
+	int		warrioreffect;
+	//#endif
+#ifdef _GM_IDENTIFY		// Rog ADD GM識別
+	char gm_name[33];
+#endif
+#ifdef _STREET_VENDOR
+	char szStreetVendorTitle[64];
+#endif
+#ifdef _NPC_PICTURE
+	int picture;
+	int picturetemp;
+#endif
+#ifdef _PETSKILL_RIDE
+	int saveride;
+#endif
+#ifdef _MOUSE_DBL_CLICK
+	int index;	// 禁斷!! Server中的charaindex
+#endif
+
+#ifdef _SFUMATO
+	int sfumato;		// 二次渲染圖層色彩
+#endif
+}ACTION;
+#endif
 
 typedef struct customdialog_s
 {
@@ -1149,8 +1151,8 @@ typedef struct tagITEM_BUFFER
 	int 	defX = 0, defY = 0;
 	int 	bmpNo = 0;
 	int 	dispPrio = 0;
-	BOOL	dragFlag = FALSE;
-	BOOL	mixFlag = FALSE;
+	bool	dragFlag = false;
+	bool	mixFlag = false;
 }ITEM_BUFFER;
 
 typedef struct tagMAIL_HISTORY
@@ -1181,7 +1183,7 @@ typedef struct tagMAIL_HISTORY
 typedef struct tagITEM
 {
 	int color = 0;
-	int graNo = 0;
+	int modelid = 0;
 	int level = 0;
 #ifdef _ITEM_PILENUMS
 	int pile = 0;
@@ -1189,7 +1191,7 @@ typedef struct tagITEM
 #ifdef _ALCHEMIST //#ifdef _ITEMSET7_TXT
 	QString alch;
 #endif
-	short useFlag = 0i16;
+	bool valid = false;
 	short field = 0i16;
 	short target = 0i16;
 	short deadTargetFlag = 0i16;
@@ -1220,18 +1222,18 @@ typedef struct tagITEM
 
 typedef struct tagPC
 {
-	int graNo = 0;
-	int faceGraNo = 0;
+	int modelid = 0;
+	int faceid = 0;
 	int id = 0;
 	int dir = 0;
 	int hp = 0, maxHp = 0, hpPercent = 0;
 	int mp = 0, maxMp = 0, mpPercent = 0;
-	int vital = 0;
+	int vit = 0;
 	int str = 0, tgh = 0, dex = 0;
 	int exp = 0, maxExp = 0;
 	int level = 0;
 	int atk = 0, def = 0;
-	int quick = 0, charm = 0, luck = 0;
+	int agi = 0, chasma = 0, luck = 0;
 	int earth = 0, water = 0, fire = 0, wind = 0;
 	int gold = 0;
 #ifdef _NEW_MANOR_LAW
@@ -1260,9 +1262,9 @@ typedef struct tagPC
 	ITEM item[MAX_ITEM] = { 0 };
 	//ACTION* ptAct;
 	int pcNameColor = 0;
-	short transmigration = 0i16;
+	int transmigration = 0i16;
 	QString chusheng = "";
-	QString familyName = "";
+	QString family = "";
 	int familyleader = 0;
 	int channel = 0;
 	int quickChannel = 0;
@@ -1351,18 +1353,18 @@ typedef struct tagPALETTE_STATE
 typedef struct tagPET
 {
 	int index = 0;						//位置
-	int graNo = 0;						//圖號
+	int modelid = 0;						//圖號
 	int hp = 0, maxHp = 0, hpPercent = 0;					//血量
 	int mp = 0, maxMp = 0, mpPercent = 0;					//魔力
 	int exp = 0, maxExp = 0;				//經驗值
 	int level = 0;						//等級
 	int atk = 0;						//攻擊力
 	int def = 0;						//防禦力
-	int quick = 0;						//速度
-	int ai = 0;							//AI
+	int agi = 0;						//速度
+	int loyal = 0;							//AI
 	int earth = 0, water = 0, fire = 0, wind = 0;
 	int maxSkill = 0;
-	int trn = 0;						// 寵物轉生數
+	int transmigration = 0;						// 寵物轉生數
 #ifdef _SHOW_FUSION
 	int fusion = 0;						// low word: 寵蛋旗標, hi word: 物種編碼
 #endif
@@ -1373,7 +1375,7 @@ typedef struct tagPET
 #endif
 	QString name = "";
 	QString freeName = "";
-	short useFlag = 0i16;
+	bool valid = false;
 	short changeNameFlag = 0i16;
 #ifdef _PET_ITEM
 	ITEM item[MAX_PET_ITEM] = {};		// 寵物道具
@@ -1400,8 +1402,8 @@ typedef struct tagPET
 
 typedef struct tagMAGIC
 {
-	short useFlag = 0i16;
-	int mp = 0;
+	bool valid = false;
+	int costmp = 0;
 	short field = 0i16;
 	short target = 0i16;
 	short deadTargetFlag = 0i16;
@@ -1412,7 +1414,7 @@ typedef struct tagMAGIC
 
 typedef struct tagPARTY
 {
-	short useFlag = 0i16;
+	bool valid = false;
 	int id = 0;
 	int level = 0;
 	int maxHp = 0;
@@ -1426,12 +1428,12 @@ typedef struct tagPARTY
 
 typedef struct tagADDRESS_BOOK
 {
-	short useFlag = 0i16;
-	short onlineFlag = 0i16;
+	bool valid = false;
+	bool onlineFlag = false;
 	int level = 0;
-	short transmigration = 0i16;
+	int transmigration = 0i16;
 	int dp = 0;
-	int graNo = 0;
+	int modelid = 0;
 	QString name = "";
 #ifdef _MAILSHOWPLANET				// (可開放) Syu ADD 顯示名片星球
 	QString planetname = "";
@@ -1448,7 +1450,7 @@ typedef struct tagBATTLE_RESULT_CHR
 
 typedef struct tagBATTLE_RESULT_MSG
 {
-	short useFlag = 0i16;
+	bool valid = false;
 	BATTLE_RESULT_CHR resChr[RESULT_CHR_EXP] = {};
 	QString item[RESULT_ITEM_COUNT] = {};
 } BATTLE_RESULT_MSG;
@@ -1456,7 +1458,7 @@ typedef struct tagBATTLE_RESULT_MSG
 
 typedef struct tagPET_SKILL
 {
-	short useFlag = 0i16;
+	bool valid = false;
 	short skillId = 0i16;
 	short field = 0i16;
 	short target = 0i16;
@@ -1467,7 +1469,7 @@ typedef struct tagPET_SKILL
 #ifdef _CHAR_PROFESSION			// WON ADD 人物職業
 typedef struct tagPROFESSION_SKILL
 {
-	short useFlag = 0i16;
+	bool valid = false;
 	short skillId = 0i16;
 	short target = 0i16;
 	short kind = 0i16;
@@ -1489,7 +1491,7 @@ typedef struct tagCHARLISTTABLE
 	short level = 0i16;
 	int login = 0;
 
-	int faceGraNo = 0;
+	int faceid = 0;
 	int hp = 0;
 	int str = 0;
 	int def = 0;
@@ -1526,11 +1528,11 @@ typedef struct tagJOBDAILY
 struct showitem
 {
 	QString name;
-	QString freename;
+	QString freeName;
 	QString graph;
 	QString effect;
 	QString color;
-	QString itemindex;
+	QString itemIndex;
 	QString damage;
 };
 
@@ -1575,8 +1577,8 @@ typedef struct dialog_s
 {
 	int windowtype = 0;
 	int buttontype = 0;
-	int seqno = 0;
-	int objindex = 0;
+	int dialogid = 0;
+	int unitid = 0;
 	QString data = "";
 	QStringList linedatas;
 	QStringList linebuttontext;
@@ -1587,8 +1589,8 @@ typedef struct battleobject_s
 {
 	int pos = -1;
 	QString name = "";
-	QString freename = "";
-	int faceid = 0;
+	QString freeName = "";
+	int modelid = 0;
 	int level = 0;
 	int hp = 0;
 	int maxHp = 0;
@@ -1621,7 +1623,7 @@ typedef struct mapunit_s
 {
 	CHAR_TYPE type = CHAR_TYPENONE;
 	int id = 0;
-	int graNo = 0;
+	int modelid = 0;
 	int x = 0;
 	int y = 0;
 	QPoint p;
@@ -1633,7 +1635,7 @@ typedef struct mapunit_s
 	bool walkable = false;
 	int height = 0;
 	int charNameColor = 0;
-	QString fmname = "";
+	QString family = "";
 	QString petname = "";
 	int petlevel = 0;
 	int classNo = 0;
@@ -1643,7 +1645,7 @@ typedef struct mapunit_s
 	int profession_level = 0;
 	int profession_skill_point = 0;
 	util::ObjectType objType = util::ObjectType::OBJ_UNKNOWN;
-	bool isvisible = false;
+	bool isVisible = false;
 	CHR_STATUS status = CHR_STATUS::CHR_STATUS_NONE;
 } mapunit_t;
 

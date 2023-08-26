@@ -222,7 +222,7 @@ qint64 Interpreter::ifitemfull(qint64 currentline, const TokenMap& TK)
 	for (qint64 i = CHAR_EQUIPPLACENUM; i < MAX_ITEM; ++i)
 	{
 		ITEM item = injector.server->getPC().item[i];
-		if (item.useFlag == 0 || item.name.isEmpty())
+		if (!item.valid || item.name.isEmpty())
 		{
 			bret = false;
 			break;
@@ -360,7 +360,7 @@ qint64 Interpreter::waitdlg(qint64 currentline, const TokenMap& TK)
 		checkInteger(TK, 2, &timeout);
 
 		if (timeout == 0)
-			bret = injector.server->currentDialog.get().seqno == dlgid;
+			bret = injector.server->currentDialog.get().dialogid == dlgid;
 		else
 		{
 			bret = waitfor(timeout, [&injector, dlgid]()->bool
@@ -368,7 +368,7 @@ qint64 Interpreter::waitdlg(qint64 currentline, const TokenMap& TK)
 					if (!injector.server->isDialogVisible())
 						return false;
 
-					return injector.server->currentDialog.get().seqno == dlgid;
+					return injector.server->currentDialog.get().dialogid == dlgid;
 				});
 		}
 

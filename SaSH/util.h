@@ -1598,8 +1598,6 @@ namespace util
 		int y = 0;
 	};
 
-	QString getPointFileName();
-
 	//Json配置讀寫
 	class Config
 	{

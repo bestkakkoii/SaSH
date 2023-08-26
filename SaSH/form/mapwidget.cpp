@@ -298,7 +298,7 @@ void MapWidget::onRefreshTimeOut()
 		{
 			if (!u.name.isEmpty() && (u.name != _ch.name))
 			{
-				if (u.isvisible)
+				if (u.isVisible)
 				{
 					vSTAIR.append(QString("[%1]%2").arg(typeStr).arg(u.name));
 					vSTAIR.append(QString("%1,%2").arg(it.p.x()).arg(it.p.y()));
@@ -344,7 +344,7 @@ void MapWidget::onRefreshTimeOut()
 			}
 			case util::OBJ_PET:
 			{
-				if (it.isvisible)
+				if (it.isVisible)
 					vPET.append(it.freeName.isEmpty() ? QString(tr("[P]%2")).arg(it.name) : QString(tr("[P]%2")).arg(it.freeName));
 				else
 					vPET.append(it.freeName.isEmpty() ? QString(tr("X[P]%2")).arg(it.name) : QString(tr("[P]%2")).arg(it.freeName));
@@ -353,7 +353,7 @@ void MapWidget::onRefreshTimeOut()
 			}
 			case util::OBJ_HUMAN:
 			{
-				if (it.isvisible)
+				if (it.isVisible)
 					vHUMAN.append(QString(tr("[H]%1")).arg(it.name));
 				else
 					vHUMAN.append(QString(tr("X[H]%1")).arg(it.name));
@@ -362,10 +362,10 @@ void MapWidget::onRefreshTimeOut()
 			}
 			case util::OBJ_NPC:
 			{
-				if (it.isvisible)
-					vNPC.append(QString("[NPC][%1]%2").arg(it.graNo).arg(it.name));
+				if (it.isVisible)
+					vNPC.append(QString("[NPC][%1]%2").arg(it.modelid).arg(it.name));
 				else
-					vNPC.append(QString(tr("X[NPC][%1]%2")).arg(it.graNo).arg(it.name));
+					vNPC.append(QString(tr("X[NPC][%1]%2")).arg(it.modelid).arg(it.name));
 				vNPC.append(QString("%1,%2").arg(it.p.x()).arg(it.p.y()));
 				break;
 			}
@@ -396,7 +396,7 @@ void MapWidget::onRefreshTimeOut()
 
 				if (!it.name.isEmpty())
 				{
-					if (it.isvisible)
+					if (it.isVisible)
 					{
 						vSTAIR.append(QString("[%1]%2").arg(typeStr).arg(it.name));
 						vSTAIR.append(QString("%1,%2").arg(it.p.x()).arg(it.p.y()));

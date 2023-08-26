@@ -1557,11 +1557,11 @@ void ScriptSettingForm::on_treeWidget_functionList_itemDoubleClicked(QTreeWidget
 	if (str == "button" || str == "input")
 	{
 		dialog_t dialog = injector.server->currentDialog;
-		QString npcName = injector.server->mapUnitHash.value(dialog.objindex).name;
+		QString npcName = injector.server->mapUnitHash.value(dialog.unitid).name;
 		if (npcName.isEmpty())
 			return;
 
-		str = QString("%1 '', '%2', %3").arg(str).arg(npcName).arg(dialog.seqno);
+		str = QString("%1 '', '%2', %3").arg(str).arg(npcName).arg(dialog.dialogid);
 	}
 	else if (str == "waitdlg")
 	{
@@ -1580,11 +1580,11 @@ void ScriptSettingForm::on_treeWidget_functionList_itemDoubleClicked(QTreeWidget
 	else if (str == "learn")
 	{
 		dialog_t dialog = injector.server->currentDialog;
-		QString npcName = injector.server->mapUnitHash.value(dialog.objindex).name;
+		QString npcName = injector.server->mapUnitHash.value(dialog.unitid).name;
 		if (npcName.isEmpty())
 			return;
 
-		str = QString("%1 0, 0, 0, '%2', %3").arg(str).arg(npcName).arg(dialog.seqno);
+		str = QString("%1 0, 0, 0, '%2', %3").arg(str).arg(npcName).arg(dialog.dialogid);
 	}
 	else if (str == "findpath" || str == "move")
 	{
@@ -1694,7 +1694,7 @@ void ScriptSettingForm::on_treeWidget_functionList_itemDoubleClicked(QTreeWidget
 		}
 
 		//移动至NPC 参数1:NPC名称, 参数2:NPC暱称, 参数3:东坐标, 参数4:南坐标, 参数5:超时时间, 参数6:错误跳转
-		str = QString("movetonpc %1, '', %2, %3, 10000, -1").arg(unit.graNo).arg(unit.p.x()).arg(unit.p.y());
+		str = QString("movetonpc %1, '', %2, %3, 10000, -1").arg(unit.modelid).arg(unit.p.x()).arg(unit.p.y());
 	}
 	ui.widget->insert(str);
 }

@@ -1041,6 +1041,11 @@ bool Parser::updateSysConstKeyword(const QString& expr)
 	rexStart = "battle";
 	const QRegularExpression rexBattleEx(rexStart + rexMiddleStart + rexMiddleMid + rexMEnd);
 
+	rexStart = "dialog";
+	const QRegularExpression rexDialog(rexStart + rexMiddleStart + rexMiddleMid + rexMEnd);
+
+	static const QRegularExpression rexDialogEx(R"(dialog\.(\w+))");
+
 	PC _pc = injector.server->getPC();
 
 	QRegularExpressionMatch match = rexPlayer.match(expr);
@@ -1058,7 +1063,7 @@ bool Parser::updateSysConstKeyword(const QString& expr)
 
 		lua_["char"]["name"] = _pc.name.toUtf8().constData();
 
-		lua_["char"]["freeName"] = _pc.freeName.toUtf8().constData();
+		lua_["char"]["freename"] = _pc.freeName.toUtf8().constData();
 
 		lua_["char"]["level"] = _pc.level;
 
@@ -1080,7 +1085,7 @@ bool Parser::updateSysConstKeyword(const QString& expr)
 
 		lua_["char"]["stone"] = _pc.gold;
 
-		lua_["char"]["vit"] = _pc.vital;
+		lua_["char"]["vit"] = _pc.vit;
 
 		lua_["char"]["str"] = _pc.str;
 
@@ -1092,7 +1097,7 @@ bool Parser::updateSysConstKeyword(const QString& expr)
 
 		lua_["char"]["def"] = _pc.def;
 
-		lua_["char"]["chasma"] = _pc.charm;
+		lua_["char"]["chasma"] = _pc.chasma;
 
 		lua_["char"]["turn"] = _pc.transmigration;
 
@@ -1141,7 +1146,7 @@ bool Parser::updateSysConstKeyword(const QString& expr)
 
 			lua_["pet"][index]["name"] = pet.name.toUtf8().constData();
 
-			lua_["pet"][index]["freeName"] = pet.freeName.toUtf8().constData();
+			lua_["pet"][index]["freename"] = pet.freeName.toUtf8().constData();
 
 			lua_["pet"][index]["level"] = pet.level;
 
@@ -1159,9 +1164,9 @@ bool Parser::updateSysConstKeyword(const QString& expr)
 
 			lua_["pet"][index]["def"] = pet.def;
 
-			lua_["pet"][index]["loyal"] = pet.ai;
+			lua_["pet"][index]["loyal"] = pet.loyal;
 
-			lua_["pet"][index]["turn"] = pet.trn;
+			lua_["pet"][index]["turn"] = pet.transmigration;
 
 			lua_["pet"][index]["earth"] = pet.earth;
 
@@ -1175,7 +1180,7 @@ bool Parser::updateSysConstKeyword(const QString& expr)
 			QString str = hash.key(state, "");
 			lua_["pet"][index]["state"] = str.toUtf8().constData();
 
-			lua_["pet"][index]["power"] = qFloor((static_cast<double>(pet.atk + pet.def + pet.quick) + (static_cast<double>(pet.maxHp) / 4.0)));
+			lua_["pet"][index]["power"] = qFloor((static_cast<double>(pet.atk + pet.def + pet.agi) + (static_cast<double>(pet.maxHp) / 4.0)));
 		}
 	}
 
@@ -1424,7 +1429,7 @@ bool Parser::updateSysConstKeyword(const QString& expr)
 
 			lua_["card"][index]["name"] = addressBook.name.toUtf8().constData();
 
-			lua_["card"][index]["online"] = addressBook.onlineFlag > 0 ? 1 : 0;
+			lua_["card"][index]["online"] = addressBook.onlineFlag ? 1 : 0;
 
 			lua_["card"][index]["turn"] = addressBook.transmigration;
 
@@ -1483,7 +1488,7 @@ bool Parser::updateSysConstKeyword(const QString& expr)
 		for (int i = 0; i < size; ++i)
 		{
 			mapunit_t unit = units.at(i);
-			if (!unit.isvisible)
+			if (!unit.isVisible)
 				continue;
 
 			int index = i + 1;
@@ -1500,7 +1505,7 @@ bool Parser::updateSysConstKeyword(const QString& expr)
 
 			lua_["unit"][index]["fname"] = unit.freeName.toUtf8().constData();
 
-			lua_["unit"][index]["family"] = unit.fmname.toUtf8().constData();
+			lua_["unit"][index]["family"] = unit.family.toUtf8().constData();
 
 			lua_["unit"][index]["lv"] = unit.level;
 
@@ -1512,7 +1517,7 @@ bool Parser::updateSysConstKeyword(const QString& expr)
 
 			lua_["unit"][index]["gold"] = unit.gold;
 
-			lua_["unit"][index]["model"] = unit.graNo;
+			lua_["unit"][index]["model"] = unit.modelid;
 		}
 	}
 
@@ -1549,9 +1554,9 @@ bool Parser::updateSysConstKeyword(const QString& expr)
 
 			lua_["battle"][index]["name"] = obj.name.toUtf8().constData();
 
-			lua_["battle"][index]["fname"] = obj.freename.toUtf8().constData();
+			lua_["battle"][index]["fname"] = obj.freeName.toUtf8().constData();
 
-			lua_["battle"][index]["model"] = obj.faceid;
+			lua_["battle"][index]["model"] = obj.modelid;
 
 			lua_["battle"][index]["lv"] = obj.level;
 
@@ -1602,6 +1607,58 @@ bool Parser::updateSysConstKeyword(const QString& expr)
 
 		lua_["battle"]["totalcombat"] = injector.server->battle_totol;
 
+	}
+
+	//dialog\[(?:'([^']*)'|"([^ "]*)"|(\d+))\]
+	match = rexDialog.match(expr);
+	if (match.hasMatch())
+	{
+		bret = true;
+		if (!lua_["dialog"].valid())
+			lua_["dialog"] = lua_.create_table();
+		else
+		{
+			if (!lua_["dialog"].is<sol::table>())
+				lua_["dialog"] = lua_.create_table();
+		}
+
+		QStringList dialog = injector.server->currentDialog.get().linedatas;
+		int size = dialog.size();
+		for (int i = 0; i < size; ++i)
+		{
+			QString text = dialog.at(i);
+			int index = i + 1;
+
+			if (!lua_["dialog"][index].valid())
+				lua_["dialog"][index] = lua_.create_table();
+			else
+			{
+				if (!lua_["dialog"][index].is<sol::table>())
+					lua_["dialog"][index] = lua_.create_table();
+			}
+
+			lua_["dialog"][index] = text.toUtf8().constData();
+		}
+	}
+
+	//dialog\.(\w+)
+	match = rexDialogEx.match(expr);
+	if (match.hasMatch())
+	{
+		bret = true;
+		if (!lua_["dialog"].valid())
+			lua_["dialog"] = lua_.create_table();
+		else
+		{
+			if (!lua_["dialog"].is<sol::table>())
+				lua_["dialog"] = lua_.create_table();
+		}
+
+		dialog_t dialog = injector.server->currentDialog.get();
+
+		lua_["dialog"]["id"] = dialog.dialogid;
+		lua_["dialog"]["unitid"] = dialog.unitid;
+		lua_["dialog"]["unitid"] = dialog.windowtype;
 	}
 
 	if (expr.contains("_GAME_"))
@@ -2481,12 +2538,12 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 			{ "dir", _pc.dir },
 			{ "hp", _pc.hp }, { "maxhp", _pc.maxHp }, { "hpp", _pc.hpPercent },
 			{ "mp", _pc.mp }, { "maxmp", _pc.maxMp }, { "mpp", _pc.mpPercent },
-			{ "vit", _pc.vital },
+			{ "vit", _pc.vit },
 			{ "str", _pc.str }, { "tgh", _pc.tgh }, { "dex", _pc.dex },
 			{ "exp", _pc.exp }, { "maxexp", _pc.maxExp },
 			{ "lv", _pc.level },
 			{ "atk", _pc.atk }, { "def", _pc.def },
-			{ "agi", _pc.quick }, { "chasma", _pc.charm }, { "luck", _pc.luck },
+			{ "agi", _pc.agi }, { "chasma", _pc.chasma }, { "luck", _pc.luck },
 			{ "earth", _pc.earth }, { "water", _pc.water }, { "fire", _pc.fire }, { "wind", _pc.wind },
 			{ "stone", _pc.gold },
 
@@ -2504,7 +2561,7 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 			//{ "", _pc._pcNameColor },
 			{ "turn", _pc.transmigration },
 			//{ "", _pc.chusheng },
-			{ "familyname", _pc.familyName },
+			{ "familyname", _pc.family },
 			//{ "", _pc.familyleader },
 			{ "ridename", _pc.ridePetName },
 			{ "ridelv", _pc.ridePetLevel },
@@ -2540,8 +2597,8 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 		MAGIC m = injector.server->getMagic(magicIndex);
 
 		const QVariantHash hash = {
-			{ "valid", m.useFlag ? 1 : 0 },
-			{ "cost", m.mp },
+			{ "valid", m.valid ? 1 : 0 },
+			{ "cost", m.costmp },
 			{ "field", m.field },
 			{ "target", m.target },
 			{ "deadTargetFlag", m.deadTargetFlag },
@@ -2573,7 +2630,7 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 		PROFESSION_SKILL s = injector.server->getSkill(skillIndex);
 
 		const QHash<QString, QVariant> hash = {
-			{ "valid", s.useFlag ? 1 : 0 },
+			{ "valid", s.valid ? 1 : 0 },
 			{ "cost", s.costmp },
 			//{ "field", s. },
 			{ "target", s.target },
@@ -2628,22 +2685,22 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 
 		QVariantHash hash = {
 			{ "index", _pet.index + 1 },						//位置
-			{ "graNo", _pet.graNo },						//圖號
+			{ "modelid", _pet.modelid },						//圖號
 			{ "hp", _pet.hp }, { "maxhp", _pet.maxHp }, { "hpp", _pet.hpPercent },					//血量
 			{ "mp", _pet.mp }, { "maxmp", _pet.maxMp }, { "mpp", _pet.mpPercent },					//魔力
 			{ "exp", _pet.exp }, { "maxexp", _pet.maxExp },				//經驗值
 			{ "lv", _pet.level },						//等級
 			{ "atk", _pet.atk },						//攻擊力
 			{ "def", _pet.def },						//防禦力
-			{ "agi", _pet.quick },						//速度
-			{ "loyal", _pet.ai },							//AI
+			{ "agi", _pet.agi },						//速度
+			{ "loyal", _pet.loyal },							//AI
 			{ "earth", _pet.earth }, { "water", _pet.water }, { "fire", _pet.fire }, { "wind", _pet.wind },
 			{ "maxskill", _pet.maxSkill },
-			{ "turn", _pet.trn },						// 寵物轉生數
+			{ "turn", _pet.transmigration },						// 寵物轉生數
 			{ "name", _pet.name },
 			{ "fname", _pet.freeName },
-			{ "valid", _pet.useFlag ? 1ll : 0ll },
-			{ "turn", _pet.trn },
+			{ "valid", _pet.valid ? 1ll : 0ll },
+			{ "turn", _pet.transmigration },
 			{ "state", petStateHash.value(_pet.state) },
 			{ "power", static_cast<qint64>(qFloor(_pet.power)) }
 		};
@@ -2679,7 +2736,7 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 		PET_SKILL _petskill = injector.server->getPetSkill(petIndex, skillIndex);
 
 		QHash<QString, QVariant> hash = {
-			{ "valid", _petskill.useFlag ? 1 : 0 },
+			{ "valid", _petskill.valid ? 1 : 0 },
 			//{ "", _petskill.field },
 			{ "target", _petskill.target },
 			//{ "", _petskill.deadTargetFlag },
@@ -2794,10 +2851,10 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 
 		QHash<QString, QVariant> hash = {
 			//{ "", item.color },
-			{ "grano", item.graNo },
+			{ "grano", item.modelid },
 			{ "lv", item.level },
 			{ "stack", item.pile },
-			{ "valid", item.useFlag ? 1 : 0 },
+			{ "valid", item.valid ? 1 : 0 },
 			{ "field", item.field },
 			{ "target", item.target },
 			//{ "", item.deadTargetFlag },
@@ -2846,10 +2903,10 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 
 		QHash<QString, QVariant> hash = {
 			//{ "", item.color },
-			{ "grano", item.graNo },
+			{ "grano", item.modelid },
 			{ "lv", item.level },
 			{ "stack", item.pile },
-			{ "valid", item.useFlag ? 1 : 0 },
+			{ "valid", item.valid ? 1 : 0 },
 			{ "field", item.field },
 			{ "target", item.target },
 			//{ "", item.deadTargetFlag },
@@ -2905,10 +2962,10 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 
 		QHash<QString, QVariant> hash = {
 			//{ "", item.color },
-			{ "grano", item.graNo },
+			{ "grano", item.modelid },
 			{ "level", item.level },
 			{ "stack", item.pile },
-			{ "valid", item.useFlag ? 1 : 0 },
+			{ "valid", item.valid ? 1 : 0 },
 			{ "field", item.field },
 			{ "target", item.target },
 			//{ "", item.deadTargetFlag },
@@ -2943,7 +3000,7 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 
 		PARTY _party = injector.server->getParty(partyIndex);
 		QHash<QString, QVariant> hash = {
-			{ "valid", _party.useFlag ? 1 : 0 },
+			{ "valid", _party.valid ? 1 : 0 },
 			{ "id", _party.id },
 			{ "lv", _party.level },
 			{ "maxhp", _party.maxHp },
@@ -2988,7 +3045,7 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 				}
 
 				dialog_t dialog = injector.server->currentDialog;
-				varValue = dialog.seqno;
+				varValue = dialog.dialogid;
 			}
 			else if (typeStr == "unitid")
 			{
@@ -2998,7 +3055,7 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 					break;
 				}
 
-				qint64 unitid = injector.server->currentDialog.get().objindex;
+				qint64 unitid = injector.server->currentDialog.get().unitid;
 				varValue = unitid;
 			}
 			else if (typeStr == "type")
