@@ -365,6 +365,13 @@ int main(int argc, char* argv[])
 	QTextCodec* codec = QTextCodec::codecForName("utf-8");
 	QTextCodec::setCodecForLocale(codec);
 
+	QOperatingSystemVersion version = QOperatingSystemVersion::current();
+	if (version <= QOperatingSystemVersion::Windows7)
+	{
+		QMessageBox::critical(nullptr, "Fatal Error", "Sorry Windows 7 or lower platform is not supported");
+		return -1;
+	}
+
 	QString currentWorkPath = util::applicationDirPath();
 	QDir dir(currentWorkPath + "/lib");
 	if (!dir.exists())
