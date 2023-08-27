@@ -583,7 +583,7 @@ private:
 
 	template <typename T>
 	typename std::enable_if<std::is_same<T, qint64>::value || std::is_same<T, qreal>::value, bool>::type
-		exprCAOSTo(T value, QString expr, T* ret);
+		exprCAOSTo(const QString& varName, QString expr, T* ret);
 
 	void handleError(qint64 err, const QString& addition = "");
 	void checkArgs();

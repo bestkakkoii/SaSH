@@ -367,21 +367,16 @@ Parser::exprTo(QString expr, T* ret)
 //取表達式結果 += -= *= /= %= ^=
 template <typename T>
 typename std::enable_if<std::is_same<T, qint64>::value || std::is_same<T, qreal>::value, bool>::type
-Parser::exprCAOSTo(T value, QString expr, T* ret)
+Parser::exprCAOSTo(const QString& varName, QString expr, T* ret)
 {
 	if (nullptr == ret)
 		return false;
 
 	expr = expr.simplified();
 
-	//取類別
-	QStringList exprList = expr.split("=");
-	if (exprList.size() != 2)
-		return false;
+	QString exprStr = QString("%1\n%2 = %3 %4;\nreturn %5;")
+		.arg(localVarList.join("\n")).arg(varName).arg(varName).arg(expr).arg(varName);
 
-	lua_.set("_CAOS", value);
-
-	QString exprStr = QString("%1\n_CAOS = _CAOS %2 %3\nreturn _CAOS;").arg(localVarList.join("\n")).arg(exprList[0]).arg(exprList[1]);
 	insertGlobalVar("_LUAEXPR", exprStr);
 
 	const std::string exprStrUTF8 = exprStr.toUtf8().constData();
@@ -2392,7 +2387,6 @@ void Parser::processVariableIncDec()
 
 	RESERVE op = getTokenType(1);
 
-
 	QVariantHash args = getLocalVars();
 
 	qint64 value = 0;
@@ -2418,44 +2412,61 @@ void Parser::processVariableCAOs()
 	if (varName.isEmpty())
 		return;
 
+	QVariant varFirst = checkValue(currentLineTokens_, 0, QVariant::LongLong);
+	QVariant::Type typeFirst = varFirst.type();
+
 	RESERVE op = getTokenType(1);
 
-	QVariant var = checkValue(currentLineTokens_, 0, QVariant::LongLong);
-	QVariant::Type type = var.type();
-	QString opStr = getToken<QString>(1).simplified();
+	QVariant varSecond = checkValue(currentLineTokens_, 2, QVariant::LongLong);
+	QVariant::Type typeSecond = varSecond.type();
 
-	QVariant varValue = checkValue(currentLineTokens_, 2, QVariant::LongLong);
-
-	if (type == QVariant::String)
+	if (typeFirst == QVariant::String)
 	{
-		if (varValue.type() == QVariant::String && op == TK_ADD)
+		if (typeSecond == QVariant::String && op == TK_ADD)
 		{
-			QString newStr = varValue.toString();
-			//前後如果包含單引號 或雙引號則去除
-			if (newStr.startsWith('\'') || newStr.startsWith('"'))
-				newStr = newStr.mid(1);
-			if (newStr.endsWith('\'') || newStr.endsWith('"'))
-				newStr = newStr.left(newStr.length() - 1);
+			QString exprStr = QString("%1 .. %2").arg(varFirst.toString()).arg(varSecond.toString());
+			insertGlobalVar("_LUAEXPR", exprStr);
 
-			QString str = var.toString() + newStr;
-			insertVar(varName, str);
+			const std::string exprStrUTF8 = exprStr.toUtf8().constData();
+			sol::protected_function_result loaded_chunk = lua_.safe_script(exprStrUTF8.c_str(), sol::script_pass_on_error);
+			lua_.collect_garbage();
+			if (!loaded_chunk.valid())
+			{
+				sol::error err = loaded_chunk;
+				QString errStr = QString::fromUtf8(err.what());
+				handleError(kLuaError, errStr);
+				return;
+			}
+
+			sol::object retObject;
+			try
+			{
+				retObject = loaded_chunk;
+			}
+			catch (...)
+			{
+				return;
+			}
+
+			if (retObject.is<std::string>())
+			{
+				insertVar(varName, QString::fromUtf8(retObject.as<std::string>().c_str()));
+			}
 		}
 		return;
 	}
-	else
-	{
-		if (type == QVariant::Int || type == QVariant::LongLong || type == QVariant::Double)
-		{
-			qint64 value = 0;
-			if (!exprCAOSTo(var.toLongLong(), QString("%1 %2").arg(opStr).arg(varValue.toLongLong()), &value))
-				return;
-			var = value;
-		}
-		else
-			return;
-	}
 
-	insertVar(varName, var);
+	if (typeFirst != QVariant::Int && typeFirst != QVariant::LongLong && typeFirst != QVariant::Double)
+		return;
+
+	QString opStr = getToken<QString>(1).simplified();
+	opStr.replace("=", "");
+
+	qint64 value = 0;
+	QString expr = QString("%1 %2").arg(opStr).arg(varSecond.toLongLong());
+	if (!exprCAOSTo(varName, expr, &value))
+		return;
+	insertVar(varName, value);
 }
 
 //處理變量表達式
@@ -3255,13 +3266,16 @@ bool Parser::processIfCompare()
 		expr = expr.replace("\"", "'");
 	}
 
+	insertGlobalVar("_IFEXPR", expr);
+
 	qint64 nvalue = 0;
 	bool result = false;
 	if (exprTo(expr, &nvalue))
 	{
 		result = nvalue != 0;
 	}
-	insertGlobalVar("_IFEXPR", nvalue);
+
+	insertGlobalVar("_IFRESULT", nvalue);
 
 	return checkJump(currentLineTokens_, 2, result, SuccessJump) == kHasJump;
 }

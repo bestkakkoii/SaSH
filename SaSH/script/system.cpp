@@ -1543,8 +1543,6 @@ qint64 Interpreter::dlg(qint64 currentline, const TokenMap& TK)
 
 qint64 Interpreter::regex(qint64 currentline, const TokenMap& TK)
 {
-	//Injector& injector = Injector::getInstance();
-
 	QString varName = TK.value(1).data.toString();
 	if (varName.isEmpty())
 		return Parser::kArgError + 1ll;
