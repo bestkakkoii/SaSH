@@ -28,7 +28,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 //#endif
 //#include <exprtk/exprtk.hpp>
 
-#include <spdloger.hpp>
+#include <spdlogger.hpp>
 extern QString g_logger_name;
 
 //"調用" 傳參數最小佔位
@@ -259,6 +259,8 @@ bool Parser::exprTo(QString expr, QString* ret)
 	}
 
 	QString exprStr = QString("%1\nreturn %2;").arg(localVarList.join("\n")).arg(expr);
+	insertGlobalVar("_LUAEXPR", exprStr);
+
 	const std::string exprStrUTF8 = exprStr.toUtf8().constData();
 	sol::protected_function_result loaded_chunk = lua_.safe_script(exprStrUTF8.c_str(), sol::script_pass_on_error);
 	lua_.collect_garbage();
@@ -267,7 +269,6 @@ bool Parser::exprTo(QString expr, QString* ret)
 		sol::error err = loaded_chunk;
 		QString errStr = QString::fromUtf8(err.what());
 		handleError(kLuaError, errStr);
-		insertGlobalVar("_LUAEXPR", exprStr);
 		return false;
 	}
 
@@ -299,7 +300,22 @@ Parser::exprTo(QString expr, T* ret)
 
 	expr = expr.simplified();
 
+	if (expr == "return" || expr == "back" || expr == "continue" || expr == "break"
+		|| expr == QString(u8"返回") || expr == QString(u8"跳回") || expr == QString(u8"繼續") || expr == QString(u8"跳出")
+		|| expr == QString(u8"继续"))
+	{
+		if constexpr (std::is_same<T, QVariant>::value)
+		{
+			*ret = expr;
+			return true;
+		}
+
+		return false;
+	}
+
 	QString exprStr = QString("%1\nreturn %2;").arg(localVarList.join("\n")).arg(expr);
+	insertGlobalVar("_LUAEXPR", exprStr);
+
 	const std::string exprStrUTF8 = exprStr.toUtf8().constData();
 	sol::protected_function_result loaded_chunk = lua_.safe_script(exprStrUTF8.c_str(), sol::script_pass_on_error);
 	lua_.collect_garbage();
@@ -308,7 +324,6 @@ Parser::exprTo(QString expr, T* ret)
 		sol::error err = loaded_chunk;
 		QString errStr = QString::fromUtf8(err.what());
 		handleError(kLuaError, errStr);
-		insertGlobalVar("_LUAEXPR", exprStr);
 		return false;
 	}
 
@@ -337,12 +352,21 @@ Parser::exprTo(QString expr, T* ret)
 		*ret = static_cast<qint64>(qFloor(retObject.as<double>()));
 		return true;
 	}
+	else if (retObject.is<std::string>())
+	{
+		if constexpr (std::is_same<T, QVariant>::value)
+		{
+			*ret = QString::fromUtf8(retObject.as<std::string>().c_str());
+			return true;
+		}
+	}
+
 	return false;
 }
 
 //取表達式結果 += -= *= /= %= ^=
 template <typename T>
-typename std::enable_if<std::is_same<T, qint64>::value || std::is_same<T, qreal>::value || std::is_same<T, QVariant>::value, bool>::type
+typename std::enable_if<std::is_same<T, qint64>::value || std::is_same<T, qreal>::value, bool>::type
 Parser::exprCAOSTo(T value, QString expr, T* ret)
 {
 	if (nullptr == ret)
@@ -358,6 +382,7 @@ Parser::exprCAOSTo(T value, QString expr, T* ret)
 	lua_.set("_CAOS", value);
 
 	QString exprStr = QString("%1\n_CAOS = _CAOS %2 %3\nreturn _CAOS;").arg(localVarList.join("\n")).arg(exprList[0]).arg(exprList[1]);
+	insertGlobalVar("_LUAEXPR", exprStr);
 
 	const std::string exprStrUTF8 = exprStr.toUtf8().constData();
 	sol::protected_function_result loaded_chunk = lua_.safe_script(exprStrUTF8.c_str(), sol::script_pass_on_error);
@@ -367,7 +392,6 @@ Parser::exprCAOSTo(T value, QString expr, T* ret)
 		sol::error err = loaded_chunk;
 		QString errStr = QString::fromUtf8(err.what());
 		handleError(kLuaError, errStr);
-		insertGlobalVar("_LUAEXPR", exprStr);
 		return false;
 	}
 
@@ -433,9 +457,7 @@ bool Parser::checkString(const TokenMap& TK, qint64 idx, QString* ret)
 		//	QVariant::Type vtype = args.value(varName).type();
 		//	if (vtype != QVariant::Int && vtype != QVariant::LongLong && vtype != QVariant::Double && vtype != QVariant::String)
 		//		return false;
-
 		//	*ret = args.value(varName).toString();
-
 		//	return true;
 		//}
 		//else if (isGlobalVarContains(varName))
@@ -443,19 +465,21 @@ bool Parser::checkString(const TokenMap& TK, qint64 idx, QString* ret)
 		//	var = getGlobalVarValue(varName);
 		//	if (var.type() == QVariant::List)
 		//		return false;
-
 		//	*ret = var.toString();
 		//}
 		//else
 		//{
+		//}
+
 		* ret = var.toString();
-		cycleReplace(*ret);
+
+		importVariablesToLua(*ret);
+
 		QString exprStrUTF8;
 		if (!exprTo(*ret, &exprStrUTF8))
 			return false;
 
 		*ret = exprStrUTF8;
-		//}
 	}
 	else
 		return false;
@@ -495,7 +519,6 @@ bool Parser::checkInteger(const TokenMap& TK, qint64 idx, qint64* ret)
 		////檢查是否為區域變量
 		//QVariantHash args = getLocalVars();
 		//QString varName = var.toString();
-
 		//if (args.contains(varName)
 		//	&& (args.value(varName).type() == QVariant::Int
 		//		|| args.value(varName).type() == QVariant::LongLong
@@ -511,7 +534,6 @@ bool Parser::checkInteger(const TokenMap& TK, qint64 idx, qint64* ret)
 		//		*ret = value;
 		//	else
 		//		return false;
-
 		//	return true;
 		//}
 		//else if (isGlobalVarContains(varName))
@@ -531,17 +553,17 @@ bool Parser::checkInteger(const TokenMap& TK, qint64 idx, qint64* ret)
 		//}
 		//else
 		//{
+		//}
 
 		QString varValueStr = var.toString();
 
-		cycleReplace(varValueStr);
+		importVariablesToLua(varValueStr);
 
 		qint64 value = 0;
 		if (!exprTo(varValueStr, &value))
 			return false;
 
 		*ret = value;
-		//}
 	}
 	else
 		return false;
@@ -574,7 +596,6 @@ bool Parser::toVariant(const TokenMap& TK, qint64 idx, QVariant* ret)
 		//		*ret = args.value(varName).toString();
 		//	else
 		//		return false;
-
 		//	return true;
 		//}
 		//else if (isGlobalVarContains(varName))
@@ -591,19 +612,20 @@ bool Parser::toVariant(const TokenMap& TK, qint64 idx, QVariant* ret)
 		//}
 		//else
 		//{
+		//}
+
 		QString s = var.toString();
 
-		cycleReplace(s);
+		importVariablesToLua(s);
 
 		QString exprStrUTF8;
 		qint64 value = 0;
-		if (exprTo(s, &exprStrUTF8))
-			*ret = exprStrUTF8;
-		else if (exprTo(s, &value))
+		if (exprTo(s, &value))
 			*ret = value;
+		else if (exprTo(s, &exprStrUTF8))
+			*ret = exprStrUTF8;
 		else
 			*ret = var;
-		//}
 	}
 	else
 	{
@@ -630,10 +652,10 @@ QVariant Parser::checkValue(const TokenMap TK, qint64 idx, QVariant::Type type)
 	}
 	else
 	{
-		if (type == QVariant::Int || type == QVariant::LongLong || type == QVariant::Double)
-			varValue = 0ll;
-		else if (type == QVariant::String)
+		if (type == QVariant::String)
 			varValue = "";
+		else
+			varValue = 0ll;
 	}
 
 	return varValue;
@@ -658,7 +680,7 @@ qint64 Parser::checkJump(const TokenMap& TK, qint64 idx, bool expr, JumpBehavior
 		qint64 line = 0;
 		if (TK.contains(idx))
 		{
-			QVariant var = checkValue(TK, idx, QVariant::Double);//這裡故意用Double，這樣最後沒有結果時強制報參數錯誤
+			QVariant var = checkValue(TK, idx, QVariant::LongLong);
 			QVariant::Type type = var.type();
 			if (type == QVariant::String)
 			{
@@ -943,7 +965,7 @@ bool Parser::isTextWrapped(const QString& text, const QString& keyword)
 }
 
 //表達式替換內容
-bool Parser::cycleReplace(const QString& expr)
+bool Parser::importVariablesToLua(const QString& expr)
 {
 	QVariantHash globalVars = getGlobalVars();
 	for (auto it = globalVars.cbegin(); it != globalVars.cend(); ++it)
@@ -3226,7 +3248,7 @@ bool Parser::processIfCompare()
 {
 	QString expr = getToken<QString>(1).simplified();
 
-	cycleReplace(expr);
+	importVariablesToLua(expr);
 
 	if (expr.contains("\""))
 	{

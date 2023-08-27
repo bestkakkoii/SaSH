@@ -166,13 +166,11 @@ __forceinline int __fastcall Euclidean_Distance(const QPoint& current, const QPo
 #elif defined(Octile_distance)
 __forceinline int __fastcall Octile_Distance(const QPoint& current, const QPoint& end)
 {
-	int dx = std::abs(current.x() - end.x());
-	int dy = std::abs(current.y() - end.y());
-
-	int D = 1;
-	double D2 = std::sqrt(2);
-
-	return static_cast<int>(D * (dx + dy) + (D2 - 2 * D) * std::min(dx, dy));
+	unsigned int dx = abs(current.x() - end.x());
+	unsigned int dy = abs(current.y() - end.y());
+	if (dx > dy)
+		return kStepValue * dx + (kObliqueValue - kStepValue) * dy;
+	return kStepValue * dy + (kObliqueValue - kStepValue) * dx;
 }
 #endif
 // 計算G值

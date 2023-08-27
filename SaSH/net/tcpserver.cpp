@@ -26,7 +26,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 #pragma comment(lib, "winmm.lib")
 
-#include <spdloger.hpp>
+#include <spdlogger.hpp>
 extern QString g_logger_name;//parser.cpp
 
 #pragma region StringControl

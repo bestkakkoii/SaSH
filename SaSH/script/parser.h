@@ -571,7 +571,7 @@ private:
 	bool isTextWrapped(const QString& text, const QString& keyword);
 	void replaceToVariable(QString& str);
 	bool updateSysConstKeyword(const QString& expr);
-	bool cycleReplace(const QString& expr);
+	bool importVariablesToLua(const QString& expr);
 	bool checkCallStack();
 	bool checkFuzzyValue(const QString& varName, QVariant* pvalue);
 
@@ -582,7 +582,7 @@ private:
 		exprTo(QString expr, T* ret);
 
 	template <typename T>
-	typename std::enable_if<std::is_same<T, qint64>::value || std::is_same<T, qreal>::value || std::is_same<T, QVariant>::value, bool>::type
+	typename std::enable_if<std::is_same<T, qint64>::value || std::is_same<T, qreal>::value, bool>::type
 		exprCAOSTo(T value, QString expr, T* ret);
 
 	void handleError(qint64 err, const QString& addition = "");

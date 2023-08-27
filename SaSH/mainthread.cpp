@@ -25,7 +25,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "map/mapanalyzer.h"
 #include "update/qdownloader.h"
 
-#include <spdloger.hpp>
+#include <spdlogger.hpp>
 extern QString g_logger_name;//parser.cpp
 
 bool ThreadManager::createThread(QObject* parent)
