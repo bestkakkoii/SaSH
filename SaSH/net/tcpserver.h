@@ -944,7 +944,7 @@ private://lssproto
 	int getStringToken(const QString& src, const QString& delim, int count, QString& out) const;
 	int getIntegerToken(const QString& src, const QString& delim, int count) const;
 	int getInteger62Token(const QString& src, const QString& delim, int count) const;
-	QString makeStringFromEscaped(const QString& src) const;
+	QString makeStringFromEscaped(QString& src) const;
 
 private://lssproto_recv
 #pragma region Lssproto_Recv

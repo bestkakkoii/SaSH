@@ -63,6 +63,9 @@ SelectTargetForm::SelectTargetForm(int type, QString* dst, QWidget* parent)
 	};
 
 	setWindowTitle(title_hash.value(type_, tr("unknown")));
+
+	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
+	connect(&signalDispatcher, &SignalDispatcher::updateTeamInfo, this, &SelectTargetForm::onUpdateTeamInfo, Qt::UniqueConnection);
 }
 
 SelectTargetForm::~SelectTargetForm()
@@ -285,4 +288,19 @@ QString SelectTargetForm::generateShortName(unsigned int flg)
 	}
 
 	return shortName;
+}
+
+void SelectTargetForm::onUpdateTeamInfo(const QStringList& strList)
+{
+	for (int i = 0; i <= MAX_PARTY; ++i)
+	{
+		QString objName = QString("checkBox_teammate%1").arg(i);
+		QCheckBox* label = ui.groupBox->findChild<QCheckBox*>(objName);
+		if (!label)
+			continue;
+		if (i >= strList.size())
+			break;
+
+		label->setText(strList[i]);
+	}
 }

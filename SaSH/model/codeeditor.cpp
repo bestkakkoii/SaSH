@@ -59,7 +59,6 @@ CodeEditor::CodeEditor(QWidget* parent)
 	}
 
 	////Acs[None|All|Document|APIs]禁用自動補全提示功能|所有可用的資源|當前文檔中出現的名稱都自動補全提示|使用QsciAPIs類加入的名稱都自動補全提示
-
 	setAutoCompletionSource(QsciScintilla::AcsAll);//自動補全。對於所有Ascii字符
 	setAutoCompletionCaseSensitivity(true);//大小寫敏感度，設置lexer可能會更改，不過貌似沒啥效果
 	setAutoCompletionThreshold(1);//設置每輸入一個字符就會出現自動補全的提示
@@ -104,7 +103,7 @@ CodeEditor::CodeEditor(QWidget* parent)
 	setBackspaceUnindents(true);//退格鍵將取消縮進一行而不是刪除一個字符
 
 	setTabIndents(true);//True如果行前空格數少於tabWidth，補齊空格數,False如果在文字前tab同true，如果在行首tab，則直接增加tabwidth個空格
-	setBraceMatching(QsciScintilla::SloppyBraceMatch);//括號匹配
+	setBraceMatching(QsciScintilla::StrictBraceMatch);//括號匹配
 	//indicatorClicked(int 	line,int 	index,Qt::KeyboardModifiers state)
 	//indicatorReleased
 
@@ -122,6 +121,7 @@ CodeEditor::CodeEditor(QWidget* parent)
 	setIndicatorHoverForegroundColor(QColor(17, 61, 111));
 	setIndicatorHoverStyle(QsciScintilla::FullBoxIndicator);
 	setIndicatorOutlineColor(QColor(104, 119, 135));
+
 
 	setMatchedBraceBackgroundColor(QColor(17, 61, 111));//括號等選取顏色
 	setMatchedBraceForegroundColor(QColor(180, 180, 177));

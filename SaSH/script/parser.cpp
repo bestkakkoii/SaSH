@@ -55,6 +55,59 @@ Parser::Parser()
 		sol::lib::coroutine,
 		sol::lib::io
 	);
+
+	lua_.set_function("input", [this](sol::object oargs, sol::this_state s)->sol::object
+		{
+			SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
+
+			std::string sargs = "";
+			if (oargs.is<std::string>())
+				sargs = oargs.as<std::string>();
+
+			QString args = QString::fromUtf8(sargs.c_str());
+
+			QStringList argList = args.split(util::rexOR, Qt::SkipEmptyParts);
+			qint64 type = QInputDialog::InputMode::TextInput;
+			QString msg;
+			QVariant var;
+			bool ok = false;
+			if (argList.size() > 0)
+			{
+				type = argList.front().toLongLong(&ok) - 1ll;
+				if (type < 0 || type > 2)
+					type = QInputDialog::InputMode::TextInput;
+			}
+
+			if (argList.size() > 1)
+			{
+				msg = argList.at(1);
+			}
+
+			if (argList.size() > 2)
+			{
+				if (type == QInputDialog::IntInput)
+					var = QVariant(argList.at(2).toLongLong(&ok));
+				else if (type == QInputDialog::DoubleInput)
+					var = QVariant(argList.at(2).toDouble(&ok));
+				else
+					var = QVariant(argList.at(2));
+			}
+
+			emit signalDispatcher.inputBoxShow(msg, type, &var);
+
+			if (var.toLongLong() == 987654321ll)
+			{
+				requestInterruption();
+				return sol::lua_nil;
+			}
+
+			if (type == QInputDialog::IntInput)
+				return sol::make_object(s, var.toLongLong());
+			else if (type == QInputDialog::DoubleInput)
+				return sol::make_object(s, static_cast<qint64>(qFloor(var.toDouble())));
+			else
+				return sol::make_object(s, var.toString().toUtf8().constData());
+		});
 }
 
 Parser::~Parser()
@@ -680,6 +733,10 @@ qint64 Parser::checkJump(const TokenMap& TK, qint64 idx, bool expr, JumpBehavior
 			if (type == QVariant::String)
 			{
 				label = var.toString();
+				if (label.startsWith("'") || label.startsWith("\""))
+					label = label.mid(1);
+				if (label.endsWith("'") || label.endsWith("\""))
+					label = label.left(label.length() - 1);
 			}
 			else if (type == QVariant::Int || type == QVariant::LongLong || type == QVariant::Double)
 			{
@@ -1141,7 +1198,7 @@ bool Parser::updateSysConstKeyword(const QString& expr)
 			{ u8"ride", kRide },
 		};
 
-		for (int i = 0; i < MAX_ITEM; ++i)
+		for (int i = 0; i < MAX_PET; ++i)
 		{
 			PET pet = injector.server->getPet(i);
 			int index = i + 1;
@@ -1243,6 +1300,20 @@ bool Parser::updateSysConstKeyword(const QString& expr)
 			lua_["item"][index]["name"] = item.name.toUtf8().constData();
 
 			lua_["item"][index]["memo"] = item.memo.toUtf8().constData();
+
+			if (item.name == "惡魔寶石" || item.name == "恶魔宝石")
+			{
+				static QRegularExpression rex("(\\d+)");
+				QRegularExpressionMatch match = rex.match(item.memo);
+				if (match.hasMatch())
+				{
+					QString str = match.captured(1);
+					bool ok = false;
+					qint64 dura = str.toLongLong(&ok);
+					if (ok)
+						lua_["item"][index]["count"] = dura;
+				}
+			}
 
 			QString damage = item.damage.simplified();
 			if (damage.contains("%"))
@@ -1634,9 +1705,15 @@ bool Parser::updateSysConstKeyword(const QString& expr)
 
 		QStringList dialog = injector.server->currentDialog.get().linedatas;
 		int size = dialog.size();
-		for (int i = 0; i < size; ++i)
+		bool visible = injector.server->isDialogVisible();
+		for (int i = 0; i < MAX_DIALOG_LINE; ++i)
 		{
-			QString text = dialog.at(i);
+			QString text;
+			if (i >= size || !visible)
+				text = "";
+			else
+				text = dialog.at(i);
+
 			int index = i + 1;
 
 			if (!lua_["dialog"][index].valid())
@@ -2242,7 +2319,10 @@ void Parser::processVariable(RESERVE type)
 			break;
 
 		//取第二個參數(類別字符串)
-		QString typeStr = getToken<QString>(2);
+		QString typeStr;
+		if (!checkString(currentLineTokens_, 2, &typeStr))
+			break;
+
 		if (typeStr.isEmpty())
 			break;
 
@@ -2313,11 +2393,6 @@ void Parser::processLocalVariable()
 			varValue = firstValue;
 		}
 
-		if (checkFuzzyValue(varName, &varValue))
-		{
-			continue;
-		}
-
 		if (varValue.type() == QVariant::String && currentLineTokens_.value(i + 1).type != TK_CSTRING)
 		{
 			QVariant varValue2 = varValue;
@@ -2337,8 +2412,24 @@ void Parser::processMultiVariable()
 	QString varNameStr = getToken<QString>(0);
 	QStringList varNames = varNameStr.split(util::rexComma, Qt::SkipEmptyParts);
 	qint64 varCount = varNames.count();
+	qint64 value = 0;
 
-	QVariant firstValue = checkValue(currentLineTokens_, 1, QVariant::LongLong);
+	QVariant firstValue;
+
+	QString preExpr = getToken<QString>(1);
+	if (preExpr.contains("input("))
+	{
+		exprTo(preExpr, &firstValue);
+	}
+	else
+		firstValue = checkValue(currentLineTokens_, 1, QVariant::LongLong);
+
+	if (varCount == 1)
+	{
+		insertVar(varNames.front(), firstValue);
+		return;
+	}
+
 	for (qint64 i = 0; i < varCount; ++i)
 	{
 		QString varName = varNames.at(i);
@@ -2353,15 +2444,16 @@ void Parser::processMultiVariable()
 			continue;
 		}
 
-		QVariant varValue = checkValue(currentLineTokens_, i + 1, QVariant::LongLong);
+		QVariant varValue;
+		preExpr = getToken<QString>(i + 1);
+		if (preExpr.contains("input("))
+			exprTo(preExpr, &varValue);
+		else
+			varValue = checkValue(currentLineTokens_, i + 1, QVariant::LongLong);
+
 		if (i > 0 && !varValue.isValid())
 		{
 			varValue = firstValue;
-		}
-
-		if (checkFuzzyValue(varName, &varValue))
-		{
-			continue;
 		}
 
 		if (varValue.type() == QVariant::String && currentLineTokens_.value(i + 1).type != TK_CSTRING)
@@ -2870,11 +2962,26 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 			damage.replace("％", "");
 
 		bool ok = false;
-		int dura = damage.toLongLong(&ok);
+		qint64 dura = damage.toLongLong(&ok);
 		if (!ok && !damage.isEmpty())
 			damageValue = 100;
 		else
 			damageValue = dura;
+
+		qint64 countdura = 0;
+		if (item.name == "惡魔寶石" || item.name == "恶魔宝石")
+		{
+			static QRegularExpression rex("(\\d+)");
+			QRegularExpressionMatch match = rex.match(item.memo);
+			if (match.hasMatch())
+			{
+				QString str = match.captured(1);
+				bool ok = false;
+				dura = str.toLongLong(&ok);
+				if (ok)
+					countdura = dura;
+			}
+		}
 
 		QHash<QString, QVariant> hash = {
 			//{ "", item.color },
@@ -2890,6 +2997,7 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 			{ "name2", item.name2 },
 			{ "memo", item.memo },
 			{ "dura", damageValue },
+			{ "count", countdura }
 		};
 
 		varValue = hash.value(typeStr);

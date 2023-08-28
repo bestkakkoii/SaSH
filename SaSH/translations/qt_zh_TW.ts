@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <!DOCTYPE TS>
 <TS version="2.1" language="zh_TW">
 <context>
@@ -1088,12 +1088,12 @@
         <translation>吸附</translation>
     </message>
     <message>
-        <source>test</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>autoeo</source>
         <translation>自動EO</translation>
+    </message>
+    <message>
+        <source>afk</source>
+        <translation>掛機</translation>
     </message>
 </context>
 <context>
@@ -1428,7 +1428,7 @@
     </message>
     <message>
         <source>afk</source>
-        <translation>掛機</translation>
+        <translation type="vanished">掛機</translation>
     </message>
     <message>
         <source>other</source>
@@ -1625,6 +1625,10 @@ No new version available. Do you still want to update?</source>
     <message>
         <source>lua</source>
         <translation></translation>
+    </message>
+    <message>
+        <source>login failed</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
@@ -2150,7 +2154,7 @@ No new version available. Do you still want to update?</source>
     </message>
     <message>
         <source>freeName</source>
-        <translation>別名</translation>
+        <translation type="vanished">別名</translation>
     </message>
     <message>
         <source>level</source>
@@ -2227,6 +2231,10 @@ No new version available. Do you still want to update?</source>
     <message>
         <source>power</source>
         <translation>野生戰力</translation>
+    </message>
+    <message>
+        <source>freename</source>
+        <translation>別名</translation>
     </message>
 </context>
 <context>

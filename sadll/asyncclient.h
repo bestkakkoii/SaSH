@@ -154,25 +154,25 @@ public:
 		}
 	}
 
-	void Receive(size_t bufferSize)
+	void Receive(LPWSABUF wsabuf)
 	{
 		if (clientSocket_ == INVALID_SOCKET)
 			return;
 
-		if (bufferSize <= 0)
+		if (wsabuf == nullptr)
 			return;
 
 		OVERLAPPED* overlapped = GetOverlapped();
-		char* buffer = GetBuffer(bufferSize);
+		char* buffer = GetBuffer(wsabuf->len);
 
 		memset(overlapped, 0, sizeof(OVERLAPPED));
-		memset(buffer, 0, bufferSize);
+		memset(buffer, 0, wsabuf->len);
 
-		WSABUF wsabuf = { static_cast<ULONG>(bufferSize) , buffer };
+		wsabuf->buf = buffer;
 
 		DWORD flags = 0;
 
-		if (WSARecv(clientSocket_, &wsabuf, 1, nullptr, &flags, overlapped, nullptr) == SOCKET_ERROR)
+		if (WSARecv(clientSocket_, wsabuf, 1, nullptr, &flags, overlapped, nullptr) == SOCKET_ERROR)
 		{
 			if (WSAGetLastError() != WSA_IO_PENDING)
 			{
@@ -183,6 +183,8 @@ public:
 				ReleaseOverlapped(overlapped);
 				ReleaseBuffer(buffer);
 			}
+
+			return;
 		}
 	}
 

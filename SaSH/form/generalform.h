@@ -3,6 +3,7 @@
 #include <QWidget>
 #include "ui_generalform.h"
 
+class AfkForm;
 class GeneralForm : public QWidget
 {
 	Q_OBJECT
@@ -33,5 +34,6 @@ private:
 	void createServerList();
 private:
 	Ui::GeneralFormClass ui;
+	AfkForm* pAfkForm_ = nullptr;
 	QHash<int, QHash<QString, QStringList>> serverList;
 };

@@ -263,7 +263,7 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID)
 #endif
 
 #ifdef _DEBUG
-			CreateConsole();
+			//CreateConsole();
 #endif
 		}
 		DisableThreadLibraryCalls(hModule);
@@ -622,6 +622,13 @@ extern "C"
 		return g_GameService.New_lssproto_EN_recv(fd, result, field);
 	}
 
+	//lssproto_B_recv
+	void __cdecl New_lssproto_B_recv(int fd, char* command)
+	{
+		GameService& g_GameService = GameService::getInstance();
+		return g_GameService.New_lssproto_B_recv(fd, command);
+	}
+
 	//lssproto_WN_send
 	void _cdecl New_lssproto_WN_send(int fd, int x, int y, int dialogid, int unitid, int select, char* data)
 	{
@@ -667,6 +674,7 @@ void GameService::initialize(unsigned short port)
 	pBattleProc = CONVERT_GAMEVAR<pfnBattleProc>(0x3940);//戰鬥循環
 	pTimeProc = CONVERT_GAMEVAR<pfnTimeProc>(0x1E6D0);//刷新時間循環
 	pLssproto_EN_recv = CONVERT_GAMEVAR<pfnLssproto_EN_recv>(0x64E10);//進戰鬥封包
+	pLssproto_B_recv = CONVERT_GAMEVAR<pfnLssproto_B_recv>(0x64EF0);//戰鬥封包
 	pLssproto_WN_send = CONVERT_GAMEVAR<pfnLssproto_WN_send>(0x8FDC0);//對話框發送封包
 	pLssproto_TK_send = CONVERT_GAMEVAR<pfnLssproto_TK_send>(0x8F7C0);//喊話發送封包
 
@@ -748,7 +756,9 @@ void GameService::initialize(unsigned short port)
 	DetourAttach(&(PVOID&)pclosesocket, ::New_closesocket);
 	//DetourAttach(&(PVOID&)pinet_addr, ::New_inet_addr);
 	//DetourAttach(&(PVOID&)pntohs, ::New_ntohs);
+#ifdef _DEBUG
 	DetourAttach(&(PVOID&)pconnect, ::New_connect);
+#endif
 
 	DetourAttach(&(PVOID&)pSetWindowTextA, ::New_SetWindowTextA);
 	DetourAttach(&(PVOID&)pGetTickCount, ::New_GetTickCount);
@@ -760,6 +770,7 @@ void GameService::initialize(unsigned short port)
 	DetourAttach(&(PVOID&)pBattleProc, ::New_BattleProc);
 	DetourAttach(&(PVOID&)pTimeProc, ::New_TimeProc);
 	DetourAttach(&(PVOID&)pLssproto_EN_recv, ::New_lssproto_EN_recv);
+	DetourAttach(&(PVOID&)pLssproto_B_recv, ::New_lssproto_B_recv);
 	DetourAttach(&(PVOID&)pLssproto_WN_send, ::New_lssproto_WN_send);
 	DetourAttach(&(PVOID&)pLssproto_TK_send, ::New_lssproto_TK_send);
 
@@ -775,10 +786,10 @@ void GameService::initialize(unsigned short port)
 		if (asyncClient_ != nullptr && asyncClient_->Connect(IPV6_DEFAULT, port))
 		{
 			asyncClient_->Start();
-#ifdef NDEBUG
-			if (g_hDllModule != nullptr)
-				hideModule(g_hDllModule);
-#endif
+			//#ifdef NDEBUG
+			//			if (g_hDllModule != nullptr)
+			//				hideModule(g_hDllModule);
+			//#endif
 		}
 	}
 #else
@@ -832,7 +843,9 @@ void GameService::uninitialize()
 	DetourDetach(&(PVOID&)pclosesocket, ::New_closesocket);
 	//DetourDetach(&(PVOID&)pinet_addr, ::New_inet_addr);
 	//DetourDetach(&(PVOID&)pntohs, ::New_ntohs);
+#ifdef _DEBUG
 	DetourDetach(&(PVOID&)pconnect, ::New_connect);
+#endif
 
 	DetourDetach(&(PVOID&)pSetWindowTextA, ::New_SetWindowTextA);
 	DetourDetach(&(PVOID&)pGetTickCount, ::New_GetTickCount);
@@ -844,6 +857,7 @@ void GameService::uninitialize()
 	DetourDetach(&(PVOID&)pBattleProc, ::New_BattleProc);
 	DetourDetach(&(PVOID&)pTimeProc, ::New_TimeProc);
 	DetourDetach(&(PVOID&)pLssproto_EN_recv, ::New_lssproto_EN_recv);
+	DetourDetach(&(PVOID&)pLssproto_B_recv, ::New_lssproto_B_recv);
 	DetourDetach(&(PVOID&)pLssproto_WN_send, ::New_lssproto_WN_send);
 	DetourDetach(&(PVOID&)pLssproto_TK_send, ::New_lssproto_TK_send);
 
@@ -971,7 +985,9 @@ int WSAAPI GameService::New_recv(SOCKET s, char* buf, int len, int flags)
 #ifdef USE_ASYNC_TCP
 		//轉發給外掛
 		if (asyncClient_)
+		{
 			asyncClient_->Send(buf, recvlen);
+		}
 #else
 		//轉發給外掛
 		if (syncClient_)
@@ -1142,6 +1158,13 @@ void GameService::New_lssproto_EN_recv(int fd, int result, int field)
 {
 	if (!IS_ENCOUNT_BLOCK_FLAG)
 		pLssproto_EN_recv(fd, result, field);
+}
+
+//B封包攔截，戰鬥封包
+void GameService::New_lssproto_B_recv(int fd, char* command)
+{
+	if (!IS_ENCOUNT_BLOCK_FLAG)
+		pLssproto_B_recv(fd, command);
 }
 
 //WN對話框發包攔截

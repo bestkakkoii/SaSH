@@ -114,58 +114,65 @@ int Server::getInteger62Token(const QString& src, const QString& delim, int coun
 	return a62toi(s);
 }
 
-QString Server::makeStringFromEscaped(const QString& src) const
+QString Server::makeStringFromEscaped(QString& src) const
 {
-	struct EscapeChar
-	{
-		QChar escapechar;
-		QChar escapedchar;
-	};
+	src.replace("\\n", "\n");
+	src.replace("\\c", ",");
+	src.replace("\\z", "|");
+	src.replace("\\y", "\\");
+	src = src.simplified();
+	return src;
 
-	static const EscapeChar escapeChar[] = {
-		{ QChar('n'), QChar('\n') },
-		{ QChar('c'), QChar(',')},
-		{ QChar('z'), QChar('|')},
-		{ QChar('y'), QChar('\\') },
-	};
+	//struct EscapeChar
+	//{
+	//	QChar escapechar;
+	//	QChar escapedchar;
+	//};
 
-	QString result;
-	int srclen = src.length();
+	//static const EscapeChar escapeChar[] = {
+	//	{ QChar('n'), QChar('\n') },
+	//	{ QChar('c'), QChar(',')},
+	//	{ QChar('z'), QChar('|')},
+	//	{ QChar('y'), QChar('\\') },
+	//};
 
-	for (int i = 0; i < srclen; ++i)
-	{
-		if (src[i] == '\\' && i + 1 < srclen)
-		{
-			QChar nextChar = src[i + 1];
+	//QString result;
+	//int srclen = src.length();
 
-			bool isDBCSLeadByte = false;
-			if (nextChar.isHighSurrogate() && i + 2 < srclen && src[i + 2].isLowSurrogate())
-			{
-				result.append(src.midRef(i, 2));
-				i += 2;
-				isDBCSLeadByte = true;
-			}
+	//for (int i = 0; i < srclen; ++i)
+	//{
+	//	if (src[i] == '\\' && i + 1 < srclen)
+	//	{
+	//		QChar nextChar = src[i + 1];
 
-			if (!isDBCSLeadByte)
-			{
-				for (int j = 0; j < sizeof(escapeChar) / sizeof(escapeChar[0]); ++j)
-				{
-					if (escapeChar[j].escapedchar == nextChar)
-					{
-						result.append(escapeChar[j].escapechar);
-						i++;
-						break;
-					}
-				}
-			}
-		}
-		else
-		{
-			result.append(src[i]);
-		}
-	}
+	//		bool isDBCSLeadByte = false;
+	//		if (nextChar.isHighSurrogate() && i + 2 < srclen && src[i + 2].isLowSurrogate())
+	//		{
+	//			result.append(src.midRef(i, 2));
+	//			i += 2;
+	//			isDBCSLeadByte = true;
+	//		}
 
-	return result;
+	//		if (!isDBCSLeadByte)
+	//		{
+	//			for (int j = 0; j < sizeof(escapeChar) / sizeof(escapeChar[0]); ++j)
+	//			{
+	//				if (escapeChar[j].escapedchar == nextChar)
+	//				{
+	//					result.append(escapeChar[j].escapechar);
+	//					i++;
+	//					break;
+	//				}
+	//			}
+	//		}
+	//	}
+	//	else
+	//	{
+	//		result.append(src[i]);
+	//	}
+	//}
+
+	//return result;
 }
 
 #if 0
@@ -410,7 +417,7 @@ void Server::onNewConnection()
 	clientSocket->setSocketOption(QAbstractSocket::SendBufferSizeSocketOption, 8191);
 	clientSocket->setSocketOption(QAbstractSocket::ReceiveBufferSizeSocketOption, 8191);
 
-	connect(clientSocket, &QTcpSocket::readyRead, this, &Server::onClientReadyRead);
+	connect(clientSocket, &QTcpSocket::readyRead, this, &Server::onClientReadyRead, Qt::QueuedConnection);
 	connect(this, &Server::write, this, &Server::onWrite, Qt::QueuedConnection);
 }
 
@@ -1654,7 +1661,7 @@ int Server::getPartySize() const
 {
 	int count = 0;
 	PC pc = getPC();
-	if ((pc.status & CHR_STATUS_LEADER) || (pc.status & CHR_STATUS_PARTY))
+	if (checkAND(pc.status, CHR_STATUS_LEADER) || checkAND(pc.status, CHR_STATUS_PARTY))
 	{
 		for (int i = 0; i < MAX_PARTY; ++i)
 		{
@@ -1723,7 +1730,7 @@ bool Server::getItemIndexsByName(const QString& name, const QString& memo, QVect
 {
 	bool isExact = true;
 	QString newName = name.simplified();
-	QString newMemo = name.simplified();
+	QString newMemo = memo.simplified();
 
 	if (name.startsWith("?"))
 	{
@@ -1737,11 +1744,12 @@ bool Server::getItemIndexsByName(const QString& name, const QString& memo, QVect
 	for (int i = 0; i < MAX_ITEM; ++i)
 	{
 		QString itemName = pc.item[i].name.simplified();
+		QString itemMemo = pc.item[i].memo.simplified();
+
 		if (itemName.isEmpty() || !pc.item[i].valid)
 			continue;
 
-		QString itemMemo = pc.item[i].memo.simplified();
-
+		//說明為空
 		if (memo.isEmpty())
 		{
 			if (isExact && (newName == itemName))
@@ -1749,12 +1757,14 @@ bool Server::getItemIndexsByName(const QString& name, const QString& memo, QVect
 			else if (!isExact && (itemName.contains(newName)))
 				v.append(i);
 		}
+		//道具名稱為空
 		else if (name.isEmpty())
 		{
 			if (itemMemo.contains(newMemo))
 				v.append(i);
 		}
-		else
+		//兩者都不為空
+		else if (!itemName.isEmpty() && !itemMemo.isEmpty())
 		{
 			if (isExact && (newName == itemName) && (itemMemo.contains(newMemo)))
 				v.append(i);
@@ -1765,6 +1775,7 @@ bool Server::getItemIndexsByName(const QString& name, const QString& memo, QVect
 
 	if (pv)
 		*pv = v;
+
 	return !v.isEmpty();
 }
 
@@ -2051,34 +2062,37 @@ bool Server::findUnit(const QString& nameSrc, int type, mapunit_t* punit, const 
 	//coord
 	if (nameSrcList.size() == 2)
 	{
-		bool ok = false;
-		QPoint point;
-		point.setX(nameSrcList.at(0).simplified().toInt(&ok));
-		if (!ok)
-			return false;
-
-		point.setY(nameSrcList.at(1).simplified().toInt(&ok));
-		if (!ok)
-			return false;
-
-		for (const mapunit_t& it : units)
+		do
 		{
-			if (it.modelid == 0 || it.modelid == 9999)
-				continue;
+			bool ok = false;
+			QPoint point;
+			point.setX(nameSrcList.at(0).simplified().toInt(&ok));
+			if (!ok)
+				break;
 
-			if (it.objType != type)
-				continue;
+			point.setY(nameSrcList.at(1).simplified().toInt(&ok));
+			if (!ok)
+				break;
 
-			if (it.p == point)
+			for (const mapunit_t& it : units)
 			{
-				*punit = it;
-				setPlayerFaceToPoint(point);
-				return true;
+				if (it.modelid == 0 || it.modelid == 9999)
+					continue;
+
+				if (it.objType != type)
+					continue;
+
+				if (it.p == point)
+				{
+					*punit = it;
+					setPlayerFaceToPoint(point);
+					return true;
+				}
 			}
-		}
-		return false;
+		} while (false);
 	}
-	else if (modelid != -1)
+
+	if (modelid != -1)
 	{
 		for (const mapunit_t& it : units)
 		{
@@ -2404,9 +2418,9 @@ void Server::updateDatasFromMemory()
 	pc.status = mem::read<short>(hProcess, hModule + kOffestPlayerStatus);
 
 	short isInTeam = mem::read<short>(hProcess, hModule + kOffestTeamState);
-	if (isInTeam == 1 && !(pc.status & CHR_STATUS_PARTY))
+	if (isInTeam == 1 && !checkAND(pc.status, CHR_STATUS_PARTY))
 		pc.status |= CHR_STATUS_PARTY;
-	else if (isInTeam == 0 && (pc.status & CHR_STATUS_PARTY))
+	else if (isInTeam == 0 && checkAND(pc.status, CHR_STATUS_PARTY))
 		pc.status &= (~CHR_STATUS_PARTY);
 
 	setPC(pc);
@@ -2685,27 +2699,25 @@ void Server::talk(const QString& text, int color, TalkMode mode)
 	bool bRecover = false;
 	PC pc = getPC();
 	int flg = pc.etcFlag;
-	QString msg;
+	QString msg = "P|";
 	if (mode == kTalkGlobal)
-		msg = ("P|/XJ ");
+		msg += ("/XJ ");
 	else if (mode == kTalkFamily)
-		msg = ("P|/FM ");
+		msg += ("/FM ");
 	else if (mode == kTalkWorld)
-		msg = ("P|/WD ");
+		msg += ("/WD ");
 	else if (mode == kTalkTeam)
 	{
 		int newflg = flg;
-		if (!(newflg & PC_ETCFLAG_PARTY_CHAT))
+		if (!checkAND(newflg, PC_ETCFLAG_PARTY_CHAT))
 		{
 			newflg |= PC_ETCFLAG_PARTY_CHAT;
 			setSwitcher(newflg);
 			bRecover = true;
+			QThread::msleep(100);
 		}
-		msg = ("P|");
-
 	}
-	else
-		msg = ("P|");
+
 	msg += text;
 	std::string str = util::fromUnicode(msg);
 	lssproto_TK_send(getPoint(), const_cast<char*>(str.c_str()), color, 3);
@@ -3028,18 +3040,16 @@ bool Server::login(int s)
 	}
 	case util::kStatusInputUser:
 	{
-		if (!account.isEmpty())
-			mem::writeString(hProcess, hModule + kOffestAccount, account);
+		if (account.isEmpty() || password.isEmpty())
+			break;
 
-		if (!password.isEmpty())
-			mem::writeString(hProcess, hModule + kOffestPassword, password);
+		injector.mouseMove(0, 0);
+
+		mem::writeString(hProcess, hModule + kOffestAccount, account);
+		mem::writeString(hProcess, hModule + kOffestPassword, password);
 
 		std::string saccount = util::fromUnicode(account);
 		std::string spassword = util::fromUnicode(password);
-
-#ifndef USE_MOUSE
-		if (account.isEmpty() || password.isEmpty())
-			break;
 
 		//sa_8001.exe+2086A - 09 09                 - or [ecx],ecx
 		char userAccount[32] = {};
@@ -3055,13 +3065,17 @@ bool Server::login(int s)
 		mem::write<BYTE>(hProcess, hModule + 0x206F2, 0x84);//進入OK點擊事件
 
 		timer.restart();
+		bool ok = true;
 		for (;;)
 		{
 			if (getWorldStatus() == 2)
 				break;
 
-			if (timer.hasExpired(1000))
+			if (timer.hasExpired(3000))
+			{
+				ok = false;
 				break;
+			}
 
 			if (isInterruptionRequested())
 				return false;
@@ -3071,22 +3085,28 @@ bool Server::login(int s)
 
 		//sa_8001.exe+206F1 - 0F85 1A020000         - jne sa_8001.exe+20911
 		mem::write<BYTE>(hProcess, hModule + 0x206F2, 0x85);//還原OK點擊事件
-#else
-		QList<int> list = config.readArray<int>("System", "Login", "OK");
-		if (list.size() == 2)
-			injector.leftDoubleClick(list.at(0), list.at(1));
-		else
+
+		if (!ok)
 		{
-			injector.leftDoubleClick(380, 310);
-			config.writeArray<int>("System", "Login", "OK", { 380, 310 });
+			QList<int> list = config.readArray<int>("System", "Login", "OK");
+			if (list.size() == 2)
+				injector.leftDoubleClick(list.at(0), list.at(1));
+			else
+			{
+				injector.leftDoubleClick(380, 310);
+				config.writeArray<int>("System", "Login", "OK", { 380, 310 });
+			}
 		}
-#endif
+
 		break;
 	}
 	case util::kStatusSelectServer:
 	{
 		if (server < 0 && server >= 15)
 			break;
+
+		injector.mouseMove(0, 0);
+
 #ifndef USE_MOUSE
 		/*
 		sa_8001.exe+21536 - B8 00000000           - mov eax,00000000 { 0 }
@@ -3180,6 +3200,8 @@ bool Server::login(int s)
 	{
 		if (subserver < 0 || subserver >= 15)
 			break;
+
+		injector.mouseMove(0, 0);
 
 		int serverIndex = mem::read<int>(hProcess, hModule + kOffestServerIndex);
 
@@ -3435,17 +3457,17 @@ void Server::press(BUTTON_TYPE select, int dialogid, int unitid)
 	}
 	else if (BUTTON_AUTO == select)
 	{
-		if (dialog.buttontype & BUTTON_OK)
+		if (checkAND(dialog.buttontype, BUTTON_OK))
 			select = BUTTON_OK;
-		else if (dialog.buttontype & BUTTON_YES)
+		else if (checkAND(dialog.buttontype, BUTTON_YES))
 			select = BUTTON_YES;
-		else if (dialog.buttontype & BUTTON_NEXT)
+		else if (checkAND(dialog.buttontype, BUTTON_NEXT))
 			select = BUTTON_NEXT;
-		else if (dialog.buttontype & BUTTON_PREVIOUS)
+		else if (checkAND(dialog.buttontype, BUTTON_PREVIOUS))
 			select = BUTTON_PREVIOUS;
-		else if (dialog.buttontype & BUTTON_NO)
+		else if (checkAND(dialog.buttontype, BUTTON_NO))
 			select = BUTTON_NO;
-		else if (dialog.buttontype & BUTTON_CANCEL)
+		else if (checkAND(dialog.buttontype, BUTTON_CANCEL))
 			select = BUTTON_CANCEL;
 	}
 
@@ -3724,11 +3746,7 @@ void Server::inputtext(const QString& text, int dialogid, int unitid)
 	if (unitid == -1)
 		unitid = dialog.unitid;
 	std::string s = util::fromUnicode(text);
-	//if (dialog.buttontype & BUTTON_YES)
-	//	lssproto_WN_send(getPoint(), dialogid, unitid, BUTTON_YES, const_cast<char*>(s.c_str()));
-	//else if (dialog.buttontype & BUTTON_OK)
-	//	lssproto_WN_send(getPoint(), dialogid, unitid, BUTTON_OK, const_cast<char*>(s.c_str()));
-	//else
+
 	lssproto_WN_send(getPoint(), dialogid, unitid, BUTTON_OK, const_cast<char*>(s.c_str()));
 	Injector& injector = Injector::getInstance();
 	injector.sendMessage(Injector::kDistoryDialog, NULL, NULL);
@@ -5270,37 +5288,38 @@ void Server::doBattleWork(bool async)
 	if (!fastChecked && !normalChecked)
 		return;
 
-	if (async || (normalChecked && checkWG(10, 4)))
-		QtConcurrent::run(this, &Server::asyncBattleAction);
-	else if (!async && getWorldStatus() == 9)
-		syncBattleAction();
+	//if (async || (normalChecked && checkWG(10, 4)))
+	//	QtConcurrent::run(this, &Server::asyncBattleAction);
+	//else if (!async && getWorldStatus() == 9)
+	//	syncBattleAction();
+
+	QtConcurrent::run(this, &Server::asyncBattleAction);
 }
 
 void Server::syncBattleAction()
 {
-	if (!isEnemyAllReady.load(std::memory_order_acquire))
-		return;
-
 	Injector& injector = Injector::getInstance();
 	battledata_t bt = getBattleData();
 	if (!bt.charAlreadyAction)
 	{
 		bt.charAlreadyAction = true;
 
-		//战斗延时
+		//戰鬥延時
 		int delay = injector.getValueHash(util::kBattleActionDelayValue);
 		if (delay > 0)
 		{
 			if (delay > 1000)
 			{
-				for (int i = 0; i < delay / 1000; ++i)
+				int maxDelaySize = delay / 1000;
+				for (int i = 0; i < maxDelaySize; ++i)
 				{
 					QThread::msleep(1000);
 					if (isInterruptionRequested())
 						return;
 				}
 
-				QThread::msleep(delay % 1000);
+				if (delay % 1000 > 0)
+					QThread::msleep(delay % 1000);
 			}
 			else
 				QThread::msleep(delay);
@@ -5332,31 +5351,31 @@ void Server::asyncBattleAction()
 	{
 		if (ayncBattleCommandFlag.load(std::memory_order_acquire))
 		{
-			announce("[async battle] 从外部中断的战斗等待", 7);
+			//announce("[async battle] 从外部中断的战斗等待", 7);
 			return false;
 		}
 
 		if (!getOnlineFlag())
 		{
-			announce("[async battle] 人物不在线上，忽略动作", 7);
+			//announce("[async battle] 人物不在线上，忽略动作", 7);
 			return false;
 		}
 
 		if (!getBattleFlag())
 		{
-			announce("[async battle] 人物不在战斗中，忽略动作", 7);
+			//announce("[async battle] 人物不在战斗中，忽略动作", 7);
 			return false;
 		}
 
-		if (!isEnemyAllReady.load(std::memory_order_acquire))
-		{
-			announce("[async battle] 敌方尚未准备完成，忽略动作", 7);
-			return false;
-		}
+		//if (!isEnemyAllReady.load(std::memory_order_acquire))
+		//{
+		//	//announce("[async battle] 敌方尚未准备完成，忽略动作", 7);
+		//	return false;
+		//}
 
 		if (!injector.getEnableHash(util::kAutoBattleEnable) && !injector.getEnableHash(util::kFastBattleEnable))
 		{
-			announce("[async battle] 快战或自动战斗没有开启，忽略动作", 7);
+			//announce("[async battle] 快战或自动战斗没有开启，忽略动作", 7);
 			return false;
 		}
 
@@ -5366,43 +5385,41 @@ void Server::asyncBattleAction()
 	if (!checkAllFlags())
 		return;
 
-	//自动战斗打开 或 快速战斗打开且处于战斗场景
+	//自動戰鬥打開 或 快速戰鬥打開且處於戰鬥場景
 	bool fastChecked = injector.getEnableHash(util::kFastBattleEnable);
 	bool normalChecked = injector.getEnableHash(util::kAutoBattleEnable);
 	fastChecked = fastChecked || (normalChecked && getWorldStatus() == 9);
 	normalChecked = normalChecked || (fastChecked && getWorldStatus() == 10);
 	if (normalChecked && !checkWG(10, 4))
 	{
-		announce("[async battle] 画面不对,当前游戏状态[%1]，画面状态[%2].arg(getWorldStatus()).arg(getGameStatus())", 7);
+		//announce(QString("[async battle] 画面不对,当前游戏状态[%1]，画面状态[%2]").arg(getWorldStatus()).arg(getGameStatus()), 7);
 		return;
 	}
 
-	auto delay = [this, &injector, &checkAllFlags](const QString& name)
+	auto delay = [&checkAllFlags, &injector]()
 	{
-		//战斗延时
+		//戰鬥延時
 		int delay = injector.getValueHash(util::kBattleActionDelayValue);
 		if (delay <= 0)
-		{
 			return;
-		}
 
-		announce(QString("[async battle] 战斗 %1 开始延时 %2 毫秒").arg(name).arg(delay), 6);
+		//announce(QString("[async battle] 战斗 %1 开始延时 %2 毫秒").arg(name).arg(delay), 6);
 
 		if (delay > 1000)
 		{
-			for (int i = 0; i < delay / 1000; ++i)
+			int maxDelaySize = delay / 1000;
+			for (int i = 0; i < maxDelaySize; ++i)
 			{
 				QThread::msleep(1000);
 				if (!checkAllFlags())
 					return;
 			}
 
-			QThread::msleep(delay % 1000);
+			if (delay % 1000 > 0)
+				QThread::msleep(delay % 1000);
 		}
 		else
-		{
 			QThread::msleep(delay);
-		}
 	};
 
 	auto setCurrentRoundEnd = [this, normalChecked]()
@@ -5434,7 +5451,7 @@ void Server::asyncBattleAction()
 	{
 		bt.charAlreadyAction = true;
 		//announce(QString("[async battle] 准备发出人物战斗指令"));
-		delay(u8"人物");
+		delay();
 		//解析人物战斗逻辑并发送指令
 		playerDoBattleWork();
 		//announce("[async battle] 人物战斗指令发送完毕");
@@ -5614,7 +5631,7 @@ bool Server::checkPartyHp(int cmpvalue, int* target)
 		return false;
 
 	PC pc = getPC();
-	if (!(pc.status & CHR_STATUS_PARTY) && !(pc.status & CHR_STATUS_LEADER))
+	if (!checkAND(pc.status, CHR_STATUS_PARTY) && !checkAND(pc.status, CHR_STATUS_LEADER))
 		return false;
 
 	for (int i = 0; i < MAX_PARTY; ++i)
@@ -5982,7 +5999,7 @@ void Server::handlePlayerBattleLogics()
 		int tempTarget = -1;
 		bool ok = false;
 		unsigned int targetFlags = injector.getValueHash(util::kBattleItemReviveTargetValue);
-		if (targetFlags & kSelectPet)
+		if (checkAND(targetFlags, kSelectPet))
 		{
 			if (checkPetHp(NULL, &tempTarget, true))
 			{
@@ -5992,7 +6009,7 @@ void Server::handlePlayerBattleLogics()
 
 		if (!ok)
 		{
-			if ((targetFlags & kSelectAllieAny) || (targetFlags & kSelectAllieAll))
+			if (checkAND(targetFlags, kSelectAllieAny) || checkAND(targetFlags, kSelectAllieAll))
 			{
 				if (checkAllieHp(NULL, &tempTarget, true))
 				{
@@ -6042,7 +6059,7 @@ void Server::handlePlayerBattleLogics()
 		int tempTarget = -1;
 		bool ok = false;
 		unsigned int targetFlags = injector.getValueHash(util::kBattleMagicReviveTargetValue);
-		if (targetFlags & kSelectPet)
+		if (checkAND(targetFlags, kSelectPet))
 		{
 			if (checkPetHp(NULL, &tempTarget, true))
 			{
@@ -6052,7 +6069,7 @@ void Server::handlePlayerBattleLogics()
 
 		if (!ok)
 		{
-			if ((targetFlags & kSelectAllieAny) || (targetFlags & kSelectAllieAll))
+			if (checkAND(targetFlags, kSelectAllieAny) || checkAND(targetFlags, kSelectAllieAll))
 			{
 				if (checkAllieHp(NULL, &tempTarget, true))
 				{
@@ -6217,18 +6234,18 @@ void Server::handlePlayerBattleLogics()
 		}
 
 		unsigned int targetFlags = injector.getValueHash(util::kBattleCharRoundActionTargetValue);
-		if (targetFlags & kSelectEnemyAny)
+		if (checkAND(targetFlags, kSelectEnemyAny))
 		{
 			if (target == -1)
 				tempTarget = getBattleSelectableEnemyTarget(bt);
 			else
 				tempTarget = target;
 		}
-		else if (targetFlags & kSelectEnemyAll)
+		else if (checkAND(targetFlags, kSelectEnemyAll))
 		{
 			tempTarget = 21;
 		}
-		else if (targetFlags & kSelectEnemyFront)
+		else if (checkAND(targetFlags, kSelectEnemyFront))
 		{
 			if (target == -1)
 				tempTarget = getBattleSelectableEnemyOneRowTarget(bt, true) + 20;
@@ -6236,39 +6253,69 @@ void Server::handlePlayerBattleLogics()
 				tempTarget = target + 20;
 
 		}
-		else if (targetFlags & kSelectEnemyBack)
+		else if (checkAND(targetFlags, kSelectEnemyBack))
 		{
 			if (target == -1)
 				tempTarget = getBattleSelectableEnemyOneRowTarget(bt, false) + 20;
 			else
 				tempTarget = target + 20;
 		}
-		else if (targetFlags & kSelectSelf)
+		else if (checkAND(targetFlags, kSelectSelf))
 		{
 			tempTarget = BattleMyNo;
 		}
-		else if (targetFlags & kSelectPet)
+		else if (checkAND(targetFlags, kSelectPet))
 		{
 			tempTarget = BattleMyNo + 5;
 		}
-		else if ((targetFlags & kSelectAllieAny))
+		else if (checkAND(targetFlags, kSelectAllieAny))
 		{
 			tempTarget = getBattleSelectableAllieTarget(bt);
 		}
-		else if (targetFlags & kSelectAllieAll)
+		else if (checkAND(targetFlags, kSelectAllieAll))
 		{
 			tempTarget = 20;
 		}
-		else if (targetFlags & kSelectLeader) {}
-		else if (targetFlags & kSelectLeaderPet) {}
-		else if (targetFlags & kSelectTeammate1) {}
-		else if (targetFlags & kSelectTeammate1Pet) {}
-		else if (targetFlags & kSelectTeammate2) {}
-		else if (targetFlags & kSelectTeammate2Pet) {}
-		else if (targetFlags & kSelectTeammate3) {}
-		else if (targetFlags & kSelectTeammate3Pet) {}
-		else if (targetFlags & kSelectTeammate4) {}
-		else if (targetFlags & kSelectTeammate4Pet) {}
+		else if (checkAND(targetFlags, kSelectLeader))
+		{
+			tempTarget = bt.alliemin + 0;
+		}
+		else if (checkAND(targetFlags, kSelectLeaderPet))
+		{
+			tempTarget = bt.alliemin + 0 + 5;
+		}
+		else if (checkAND(targetFlags, kSelectTeammate1))
+		{
+			tempTarget = bt.alliemin + 1;
+		}
+		else if (checkAND(targetFlags, kSelectTeammate1Pet))
+		{
+			tempTarget = bt.alliemin + 1 + 5;
+		}
+		else if (checkAND(targetFlags, kSelectTeammate2))
+		{
+			tempTarget = bt.alliemin + 2;
+		}
+		else if (checkAND(targetFlags, kSelectTeammate2Pet))
+		{
+			tempTarget = bt.alliemin + 2 + 5;
+		}
+		else if (checkAND(targetFlags, kSelectTeammate3))
+		{
+			tempTarget = bt.alliemin + 3;
+		}
+		else if (checkAND(targetFlags, kSelectTeammate3Pet))
+		{
+			tempTarget = bt.alliemin + 3 + 5;
+		}
+		else if (checkAND(targetFlags, kSelectTeammate4))
+		{
+			tempTarget = bt.alliemin + 4;
+		}
+		else if (checkAND(targetFlags, kSelectTeammate4Pet))
+		{
+			tempTarget = bt.alliemin + 4 + 5;
+		}
 
 		if (actionType == 0)
 		{
@@ -6356,57 +6403,87 @@ void Server::handlePlayerBattleLogics()
 		}
 
 		unsigned int targetFlags = injector.getValueHash(util::kBattleCharCrossActionTargetValue);
-		if (targetFlags & kSelectEnemyAny)
+		if (checkAND(targetFlags, kSelectEnemyAny))
 		{
 			if (target == -1)
 				tempTarget = getBattleSelectableEnemyTarget(bt);
 			else
 				tempTarget = target;
 		}
-		else if (targetFlags & kSelectEnemyAll)
+		else if (checkAND(targetFlags, kSelectEnemyAll))
 		{
 			tempTarget = 21;
 		}
-		else if (targetFlags & kSelectEnemyFront)
+		else if (checkAND(targetFlags, kSelectEnemyFront))
 		{
 			if (target == -1)
 				tempTarget = getBattleSelectableEnemyOneRowTarget(bt, true) + 20;
 			else
 				tempTarget = target + 20;
 		}
-		else if (targetFlags & kSelectEnemyBack)
+		else if (checkAND(targetFlags, kSelectEnemyBack))
 		{
 			if (target == -1)
 				tempTarget = getBattleSelectableEnemyOneRowTarget(bt, false) + 20;
 			else
 				tempTarget = target + 20;
 		}
-		else if (targetFlags & kSelectSelf)
+		else if (checkAND(targetFlags, kSelectSelf))
 		{
 			tempTarget = BattleMyNo;
 		}
-		else if (targetFlags & kSelectPet)
+		else if (checkAND(targetFlags, kSelectPet))
 		{
 			tempTarget = BattleMyNo + 5;
 		}
-		else if ((targetFlags & kSelectAllieAny))
+		else if (checkAND(targetFlags, kSelectAllieAny))
 		{
 			tempTarget = getBattleSelectableAllieTarget(bt);
 		}
-		else if (targetFlags & kSelectAllieAll)
+		else if (checkAND(targetFlags, kSelectAllieAll))
 		{
 			tempTarget = 20;
 		}
-		else if (targetFlags & kSelectLeader) {}
-		else if (targetFlags & kSelectLeaderPet) {}
-		else if (targetFlags & kSelectTeammate1) {}
-		else if (targetFlags & kSelectTeammate1Pet) {}
-		else if (targetFlags & kSelectTeammate2) {}
-		else if (targetFlags & kSelectTeammate2Pet) {}
-		else if (targetFlags & kSelectTeammate3) {}
-		else if (targetFlags & kSelectTeammate3Pet) {}
-		else if (targetFlags & kSelectTeammate4) {}
-		else if (targetFlags & kSelectTeammate4Pet) {}
+		else if (checkAND(targetFlags, kSelectLeader))
+		{
+			tempTarget = bt.alliemin + 0;
+		}
+		else if (checkAND(targetFlags, kSelectLeaderPet))
+		{
+			tempTarget = bt.alliemin + 0 + 5;
+		}
+		else if (checkAND(targetFlags, kSelectTeammate1))
+		{
+			tempTarget = bt.alliemin + 1;
+		}
+		else if (checkAND(targetFlags, kSelectTeammate1Pet))
+		{
+			tempTarget = bt.alliemin + 1 + 5;
+		}
+		else if (checkAND(targetFlags, kSelectTeammate2))
+		{
+			tempTarget = bt.alliemin + 2;
+		}
+		else if (checkAND(targetFlags, kSelectTeammate2Pet))
+		{
+			tempTarget = bt.alliemin + 2 + 5;
+		}
+		else if (checkAND(targetFlags, kSelectTeammate3))
+		{
+			tempTarget = bt.alliemin + 3;
+		}
+		else if (checkAND(targetFlags, kSelectTeammate3Pet))
+		{
+			tempTarget = bt.alliemin + 3 + 5;
+		}
+		else if (checkAND(targetFlags, kSelectTeammate4))
+		{
+			tempTarget = bt.alliemin + 4;
+		}
+		else if (checkAND(targetFlags, kSelectTeammate4Pet))
+		{
+			tempTarget = bt.alliemin + 4 + 5;
+		}
 
 		if (actionType == 0)
 		{
@@ -6480,7 +6557,7 @@ void Server::handlePlayerBattleLogics()
 		int petPercent = injector.getValueHash(util::kBattleMagicHealPetValue);
 		int alliePercent = injector.getValueHash(util::kBattleMagicHealAllieValue);
 
-		if (targetFlags & kSelectSelf)
+		if (checkAND(targetFlags, kSelectSelf))
 		{
 			if (checkPlayerHp(charPercent, &tempTarget))
 			{
@@ -6490,7 +6567,7 @@ void Server::handlePlayerBattleLogics()
 
 		if (!ok)
 		{
-			if (targetFlags & kSelectPet)
+			if (checkAND(targetFlags, kSelectPet))
 			{
 				if (checkPetHp(petPercent, &tempTarget))
 				{
@@ -6501,7 +6578,7 @@ void Server::handlePlayerBattleLogics()
 
 		if (!ok)
 		{
-			if ((targetFlags & kSelectAllieAny) || (targetFlags & kSelectAllieAll))
+			if (checkAND(targetFlags, kSelectAllieAny) || checkAND(targetFlags, kSelectAllieAll))
 			{
 				if (checkAllieHp(alliePercent, &tempTarget, false))
 				{
@@ -6550,7 +6627,7 @@ void Server::handlePlayerBattleLogics()
 		int charPercent = injector.getValueHash(util::kBattleItemHealCharValue);
 		int petPercent = injector.getValueHash(util::kBattleItemHealPetValue);
 		int alliePercent = injector.getValueHash(util::kBattleItemHealAllieValue);
-		if (targetFlags & kSelectSelf)
+		if (checkAND(targetFlags, kSelectSelf))
 		{
 			if (checkPlayerHp(charPercent, &tempTarget))
 			{
@@ -6560,7 +6637,7 @@ void Server::handlePlayerBattleLogics()
 
 		if (!ok)
 		{
-			if (targetFlags & kSelectPet)
+			if (checkAND(targetFlags, kSelectPet))
 			{
 				if (checkPetHp(petPercent, &tempTarget))
 				{
@@ -6571,7 +6648,7 @@ void Server::handlePlayerBattleLogics()
 
 		if (!ok)
 		{
-			if ((targetFlags & kSelectAllieAny) || (targetFlags & kSelectAllieAll))
+			if (checkAND(targetFlags, kSelectAllieAny) || checkAND(targetFlags, kSelectAllieAll))
 			{
 				if (checkAllieHp(alliePercent, &tempTarget, false))
 				{
@@ -6662,57 +6739,87 @@ void Server::handlePlayerBattleLogics()
 		}
 
 		unsigned int targetFlags = injector.getValueHash(util::kBattleCharNormalActionTargetValue);
-		if (targetFlags & kSelectEnemyAny)
+		if (checkAND(targetFlags, kSelectEnemyAny))
 		{
 			if (target == -1)
 				tempTarget = getBattleSelectableEnemyTarget(bt);
 			else
 				tempTarget = target;
 		}
-		else if (targetFlags & kSelectEnemyAll)
+		else if (checkAND(targetFlags, kSelectEnemyAll))
 		{
 			tempTarget = 21;
 		}
-		else if (targetFlags & kSelectEnemyFront)
+		else if (checkAND(targetFlags, kSelectEnemyFront))
 		{
 			if (target == -1)
 				tempTarget = getBattleSelectableEnemyOneRowTarget(bt, true) + 20;
 			else
 				tempTarget = target + 20;
 		}
-		else if (targetFlags & kSelectEnemyBack)
+		else if (checkAND(targetFlags, kSelectEnemyBack))
 		{
 			if (target == -1)
 				tempTarget = getBattleSelectableEnemyOneRowTarget(bt, false) + 20;
 			else
 				tempTarget = target + 20;
 		}
-		else if (targetFlags & kSelectSelf)
+		else if (checkAND(targetFlags, kSelectSelf))
 		{
 			tempTarget = BattleMyNo;
 		}
-		else if (targetFlags & kSelectPet)
+		else if (checkAND(targetFlags, kSelectPet))
 		{
 			tempTarget = BattleMyNo + 5;
 		}
-		else if ((targetFlags & kSelectAllieAny))
+		else if (checkAND(targetFlags, kSelectAllieAny))
 		{
 			tempTarget = getBattleSelectableAllieTarget(bt);
 		}
-		else if (targetFlags & kSelectAllieAll)
+		else if (checkAND(targetFlags, kSelectAllieAll))
 		{
 			tempTarget = 20;
 		}
-		else if (targetFlags & kSelectLeader) {}
-		else if (targetFlags & kSelectLeaderPet) {}
-		else if (targetFlags & kSelectTeammate1) {}
-		else if (targetFlags & kSelectTeammate1Pet) {}
-		else if (targetFlags & kSelectTeammate2) {}
-		else if (targetFlags & kSelectTeammate2Pet) {}
-		else if (targetFlags & kSelectTeammate3) {}
-		else if (targetFlags & kSelectTeammate3Pet) {}
-		else if (targetFlags & kSelectTeammate4) {}
-		else if (targetFlags & kSelectTeammate4Pet) {}
+		else if (checkAND(targetFlags, kSelectLeader))
+		{
+			tempTarget = bt.alliemin + 0;
+		}
+		else if (checkAND(targetFlags, kSelectLeaderPet))
+		{
+			tempTarget = bt.alliemin + 0 + 5;
+		}
+		else if (checkAND(targetFlags, kSelectTeammate1))
+		{
+			tempTarget = bt.alliemin + 1;
+		}
+		else if (checkAND(targetFlags, kSelectTeammate1Pet))
+		{
+			tempTarget = bt.alliemin + 1 + 5;
+		}
+		else if (checkAND(targetFlags, kSelectTeammate2))
+		{
+			tempTarget = bt.alliemin + 2;
+		}
+		else if (checkAND(targetFlags, kSelectTeammate2Pet))
+		{
+			tempTarget = bt.alliemin + 2 + 5;
+		}
+		else if (checkAND(targetFlags, kSelectTeammate3))
+		{
+			tempTarget = bt.alliemin + 3;
+		}
+		else if (checkAND(targetFlags, kSelectTeammate3Pet))
+		{
+			tempTarget = bt.alliemin + 3 + 5;
+		}
+		else if (checkAND(targetFlags, kSelectTeammate4))
+		{
+			tempTarget = bt.alliemin + 4;
+		}
+		else if (checkAND(targetFlags, kSelectTeammate4Pet))
+		{
+			tempTarget = bt.alliemin + 4 + 5;
+		}
 
 		if (actionType == 0)
 		{
@@ -6884,57 +6991,87 @@ void Server::handlePetBattleLogics()
 		}
 
 		unsigned int targetFlags = injector.getValueHash(util::kBattlePetRoundActionTargetValue);
-		if (targetFlags & kSelectEnemyAny)
+		if (checkAND(targetFlags, kSelectEnemyAny))
 		{
 			if (target == -1)
 				tempTarget = getBattleSelectableEnemyTarget(bt);
 			else
 				tempTarget = target;
 		}
-		else if (targetFlags & kSelectEnemyAll)
+		else if (checkAND(targetFlags, kSelectEnemyAll))
 		{
 			tempTarget = 21;
 		}
-		else if (targetFlags & kSelectEnemyFront)
+		else if (checkAND(targetFlags, kSelectEnemyFront))
 		{
 			if (target == -1)
 				tempTarget = getBattleSelectableEnemyOneRowTarget(bt, true) + 20;
 			else
 				tempTarget = target;
 		}
-		else if (targetFlags & kSelectEnemyBack)
+		else if (checkAND(targetFlags, kSelectEnemyBack))
 		{
 			if (target == -1)
 				tempTarget = getBattleSelectableEnemyOneRowTarget(bt, false) + 20;
 			else
 				tempTarget = target;
 		}
-		else if (targetFlags & kSelectSelf)
+		else if (checkAND(targetFlags, kSelectSelf))
 		{
 			tempTarget = BattleMyNo;
 		}
-		else if (targetFlags & kSelectPet)
+		else if (checkAND(targetFlags, kSelectPet))
 		{
 			tempTarget = BattleMyNo + 5;
 		}
-		else if ((targetFlags & kSelectAllieAny))
+		else if (checkAND(targetFlags, kSelectAllieAny))
 		{
 			tempTarget = getBattleSelectableAllieTarget(bt);
 		}
-		else if (targetFlags & kSelectAllieAll)
+		else if (checkAND(targetFlags, kSelectAllieAll))
 		{
 			tempTarget = 20;
 		}
-		else if (targetFlags & kSelectLeader) {}
-		else if (targetFlags & kSelectLeaderPet) {}
-		else if (targetFlags & kSelectTeammate1) {}
-		else if (targetFlags & kSelectTeammate1Pet) {}
-		else if (targetFlags & kSelectTeammate2) {}
-		else if (targetFlags & kSelectTeammate2Pet) {}
-		else if (targetFlags & kSelectTeammate3) {}
-		else if (targetFlags & kSelectTeammate3Pet) {}
-		else if (targetFlags & kSelectTeammate4) {}
-		else if (targetFlags & kSelectTeammate4Pet) {}
+		else if (checkAND(targetFlags, kSelectLeader))
+		{
+			tempTarget = bt.alliemin + 0;
+		}
+		else if (checkAND(targetFlags, kSelectLeaderPet))
+		{
+			tempTarget = bt.alliemin + 0 + 5;
+		}
+		else if (checkAND(targetFlags, kSelectTeammate1))
+		{
+			tempTarget = bt.alliemin + 1;
+		}
+		else if (checkAND(targetFlags, kSelectTeammate1Pet))
+		{
+			tempTarget = bt.alliemin + 1 + 5;
+		}
+		else if (checkAND(targetFlags, kSelectTeammate2))
+		{
+			tempTarget = bt.alliemin + 2;
+		}
+		else if (checkAND(targetFlags, kSelectTeammate2Pet))
+		{
+			tempTarget = bt.alliemin + 2 + 5;
+		}
+		else if (checkAND(targetFlags, kSelectTeammate3))
+		{
+			tempTarget = bt.alliemin + 3;
+		}
+		else if (checkAND(targetFlags, kSelectTeammate3Pet))
+		{
+			tempTarget = bt.alliemin + 3 + 5;
+		}
+		else if (checkAND(targetFlags, kSelectTeammate4))
+		{
+			tempTarget = bt.alliemin + 4;
+		}
+		else if (checkAND(targetFlags, kSelectTeammate4Pet))
+		{
+			tempTarget = bt.alliemin + 4 + 5;
+		}
 
 		int actionType = injector.getValueHash(util::kBattlePetRoundActionTypeValue);
 
@@ -6965,57 +7102,87 @@ void Server::handlePetBattleLogics()
 		}
 
 		unsigned int targetFlags = injector.getValueHash(util::kBattlePetCrossActionTargetValue);
-		if (targetFlags & kSelectEnemyAny)
+		if (checkAND(targetFlags, kSelectEnemyAny))
 		{
 			if (target == -1)
 				tempTarget = getBattleSelectableEnemyTarget(bt);
 			else
 				tempTarget = target;
 		}
-		else if (targetFlags & kSelectEnemyAll)
+		else if (checkAND(targetFlags, kSelectEnemyAll))
 		{
 			tempTarget = 21;
 		}
-		else if (targetFlags & kSelectEnemyFront)
+		else if (checkAND(targetFlags, kSelectEnemyFront))
 		{
 			if (target == -1)
 				tempTarget = getBattleSelectableEnemyOneRowTarget(bt, true) + 20;
 			else
 				tempTarget = target;
 		}
-		else if (targetFlags & kSelectEnemyBack)
+		else if (checkAND(targetFlags, kSelectEnemyBack))
 		{
 			if (target == -1)
 				tempTarget = getBattleSelectableEnemyOneRowTarget(bt, false) + 20;
 			else
 				tempTarget = target;
 		}
-		else if (targetFlags & kSelectSelf)
+		else if (checkAND(targetFlags, kSelectSelf))
 		{
 			tempTarget = BattleMyNo;
 		}
-		else if (targetFlags & kSelectPet)
+		else if (checkAND(targetFlags, kSelectPet))
 		{
 			tempTarget = BattleMyNo + 5;
 		}
-		else if ((targetFlags & kSelectAllieAny))
+		else if (checkAND(targetFlags, kSelectAllieAny))
 		{
 			tempTarget = getBattleSelectableAllieTarget(bt);
 		}
-		else if (targetFlags & kSelectAllieAll)
+		else if (checkAND(targetFlags, kSelectAllieAll))
 		{
 			tempTarget = 20;
 		}
-		else if (targetFlags & kSelectLeader) {}
-		else if (targetFlags & kSelectLeaderPet) {}
-		else if (targetFlags & kSelectTeammate1) {}
-		else if (targetFlags & kSelectTeammate1Pet) {}
-		else if (targetFlags & kSelectTeammate2) {}
-		else if (targetFlags & kSelectTeammate2Pet) {}
-		else if (targetFlags & kSelectTeammate3) {}
-		else if (targetFlags & kSelectTeammate3Pet) {}
-		else if (targetFlags & kSelectTeammate4) {}
-		else if (targetFlags & kSelectTeammate4Pet) {}
+		else if (checkAND(targetFlags, kSelectLeader))
+		{
+			tempTarget = bt.alliemin + 0;
+		}
+		else if (checkAND(targetFlags, kSelectLeaderPet))
+		{
+			tempTarget = bt.alliemin + 0 + 5;
+		}
+		else if (checkAND(targetFlags, kSelectTeammate1))
+		{
+			tempTarget = bt.alliemin + 1;
+		}
+		else if (checkAND(targetFlags, kSelectTeammate1Pet))
+		{
+			tempTarget = bt.alliemin + 1 + 5;
+		}
+		else if (checkAND(targetFlags, kSelectTeammate2))
+		{
+			tempTarget = bt.alliemin + 2;
+		}
+		else if (checkAND(targetFlags, kSelectTeammate2Pet))
+		{
+			tempTarget = bt.alliemin + 2 + 5;
+		}
+		else if (checkAND(targetFlags, kSelectTeammate3))
+		{
+			tempTarget = bt.alliemin + 3;
+		}
+		else if (checkAND(targetFlags, kSelectTeammate3Pet))
+		{
+			tempTarget = bt.alliemin + 3 + 5;
+		}
+		else if (checkAND(targetFlags, kSelectTeammate4))
+		{
+			tempTarget = bt.alliemin + 4;
+		}
+		else if (checkAND(targetFlags, kSelectTeammate4Pet))
+		{
+			tempTarget = bt.alliemin + 4 + 5;
+		}
 
 		int actionType = injector.getValueHash(util::kBattlePetCrossActionTypeValue);
 
@@ -7070,57 +7237,87 @@ void Server::handlePetBattleLogics()
 		}
 
 		unsigned int targetFlags = injector.getValueHash(util::kBattlePetNormalActionTargetValue);
-		if (targetFlags & kSelectEnemyAny)
+		if (checkAND(targetFlags, kSelectEnemyAny))
 		{
 			if (target == -1)
 				tempTarget = getBattleSelectableEnemyTarget(bt);
 			else
 				tempTarget = target;
 		}
-		else if (targetFlags & kSelectEnemyAll)
+		else if (checkAND(targetFlags, kSelectEnemyAll))
 		{
 			tempTarget = 21;
 		}
-		else if (targetFlags & kSelectEnemyFront)
+		else if (checkAND(targetFlags, kSelectEnemyFront))
 		{
 			if (target == -1)
 				tempTarget = getBattleSelectableEnemyOneRowTarget(bt, true) + 20;
 			else
 				tempTarget = target;
 		}
-		else if (targetFlags & kSelectEnemyBack)
+		else if (checkAND(targetFlags, kSelectEnemyBack))
 		{
 			if (target == -1)
 				tempTarget = getBattleSelectableEnemyOneRowTarget(bt, false) + 20;
 			else
 				tempTarget = target;
 		}
-		else if (targetFlags & kSelectSelf)
+		else if (checkAND(targetFlags, kSelectSelf))
 		{
 			tempTarget = BattleMyNo;
 		}
-		else if (targetFlags & kSelectPet)
+		else if (checkAND(targetFlags, kSelectPet))
 		{
 			tempTarget = BattleMyNo + 5;
 		}
-		else if ((targetFlags & kSelectAllieAny))
+		else if (checkAND(targetFlags, kSelectAllieAny))
 		{
 			tempTarget = getBattleSelectableAllieTarget(bt);
 		}
-		else if (targetFlags & kSelectAllieAll)
+		else if (checkAND(targetFlags, kSelectAllieAll))
 		{
 			tempTarget = 20;
 		}
-		else if (targetFlags & kSelectLeader) {}
-		else if (targetFlags & kSelectLeaderPet) {}
-		else if (targetFlags & kSelectTeammate1) {}
-		else if (targetFlags & kSelectTeammate1Pet) {}
-		else if (targetFlags & kSelectTeammate2) {}
-		else if (targetFlags & kSelectTeammate2Pet) {}
-		else if (targetFlags & kSelectTeammate3) {}
-		else if (targetFlags & kSelectTeammate3Pet) {}
-		else if (targetFlags & kSelectTeammate4) {}
-		else if (targetFlags & kSelectTeammate4Pet) {}
+		else if (checkAND(targetFlags, kSelectLeader))
+		{
+			tempTarget = bt.alliemin + 0;
+		}
+		else if (checkAND(targetFlags, kSelectLeaderPet))
+		{
+			tempTarget = bt.alliemin + 0 + 5;
+		}
+		else if (checkAND(targetFlags, kSelectTeammate1))
+		{
+			tempTarget = bt.alliemin + 1;
+		}
+		else if (checkAND(targetFlags, kSelectTeammate1Pet))
+		{
+			tempTarget = bt.alliemin + 1 + 5;
+		}
+		else if (checkAND(targetFlags, kSelectTeammate2))
+		{
+			tempTarget = bt.alliemin + 2;
+		}
+		else if (checkAND(targetFlags, kSelectTeammate2Pet))
+		{
+			tempTarget = bt.alliemin + 2 + 5;
+		}
+		else if (checkAND(targetFlags, kSelectTeammate3))
+		{
+			tempTarget = bt.alliemin + 3;
+		}
+		else if (checkAND(targetFlags, kSelectTeammate3Pet))
+		{
+			tempTarget = bt.alliemin + 3 + 5;
+		}
+		else if (checkAND(targetFlags, kSelectTeammate4))
+		{
+			tempTarget = bt.alliemin + 4;
+		}
+		else if (checkAND(targetFlags, kSelectTeammate4Pet))
+		{
+			tempTarget = bt.alliemin + 4 + 5;
+		}
 
 		int actionType = injector.getValueHash(util::kBattlePetNormalActionTypeValue);
 
@@ -7270,7 +7467,7 @@ void Server::sortBattleUnit(QVector<battleobject_t>& v) const
 		for (const battleobject_t& obj : dstv)
 		{
 			if ((obj.hp > 0) && (obj.level > 0) && (obj.maxHp > 0) && (obj.modelid > 0) && (obj.pos == it)
-				&& !(obj.status & BC_FLG_DEAD) && !(obj.status & BC_FLG_HIDE))
+				&& !checkAND(obj.status, BC_FLG_DEAD) && !checkAND(obj.status, BC_FLG_HIDE))
 			{
 				newv.append(obj);
 				break;
@@ -8427,13 +8624,13 @@ void Server::lssproto_FS_recv(int flg)
 
 	Injector& injector = Injector::getInstance();
 
-	injector.setEnableHash(util::kSwitcherTeamEnable, (flg & PC_ETCFLAG_GROUP) != 0);//組隊開關
-	injector.setEnableHash(util::kSwitcherPKEnable, (flg & PC_ETCFLAG_PK) != 0);//決鬥開關
-	injector.setEnableHash(util::kSwitcherCardEnable, (flg & PC_ETCFLAG_CARD) != 0);//名片開關
-	injector.setEnableHash(util::kSwitcherTradeEnable, (flg & PC_ETCFLAG_TRADE) != 0);//交易開關
-	injector.setEnableHash(util::kSwitcherWorldEnable, (flg & PC_ETCFLAG_WORLD) != 0);//世界頻道開關
-	injector.setEnableHash(util::kSwitcherFamilyEnable, (flg & PC_ETCFLAG_FM) != 0);//家族頻道開關
-	injector.setEnableHash(util::kSwitcherJobEnable, (flg & PC_ETCFLAG_JOB) != 0);//職業頻道開關
+	injector.setEnableHash(util::kSwitcherTeamEnable, checkAND(flg, PC_ETCFLAG_GROUP) != 0);//組隊開關
+	injector.setEnableHash(util::kSwitcherPKEnable, checkAND(flg, PC_ETCFLAG_PK) != 0);//決鬥開關
+	injector.setEnableHash(util::kSwitcherCardEnable, checkAND(flg, PC_ETCFLAG_CARD) != 0);//名片開關
+	injector.setEnableHash(util::kSwitcherTradeEnable, checkAND(flg, PC_ETCFLAG_TRADE) != 0);//交易開關
+	injector.setEnableHash(util::kSwitcherWorldEnable, checkAND(flg, PC_ETCFLAG_WORLD) != 0);//世界頻道開關
+	injector.setEnableHash(util::kSwitcherFamilyEnable, checkAND(flg, PC_ETCFLAG_FM) != 0);//家族頻道開關
+	injector.setEnableHash(util::kSwitcherJobEnable, checkAND(flg, PC_ETCFLAG_JOB) != 0);//職業頻道開關
 
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
 	emit signalDispatcher.applyHashSettingsToUI();
@@ -8495,7 +8692,7 @@ void Server::lssproto_AB_recv(char* cdata)
 			break;
 
 		makeStringFromEscaped(name);
-		addressBook[i].name = name.simplified();
+		addressBook[i].name = name;
 		addressBook[i].level = getIntegerToken(data, "|", no + 3);
 		addressBook[i].dp = getIntegerToken(data, "|", no + 4);
 		addressBook[i].onlineFlag = (short)getIntegerToken(data, "|", no + 5);
@@ -8560,7 +8757,6 @@ void Server::lssproto_ABI_recv(int num, char* cdata)
 
 	getStringToken(data, "|", 2, name);
 	makeStringFromEscaped(name);
-	name = name.simplified();
 
 	addressBook[num].name = name;
 	addressBook[num].level = getIntegerToken(data, "|", 3);
@@ -8666,17 +8862,14 @@ void Server::lssproto_RS_recv(char* cdata)
 	getStringToken(data, ",", i + 1, token);
 	getStringToken(token, "|", 1, item);
 	makeStringFromEscaped(item);
-	item = item.simplified();
 
 	appendList(item);
 	getStringToken(token, "|", 2, item);
 	makeStringFromEscaped(item);
-	item = item.simplified();
 
 	appendList(item);
 	getStringToken(token, "|", 3, item);
 	makeStringFromEscaped(item);
-	item = item.simplified();
 
 	appendList(item);
 
@@ -8766,7 +8959,6 @@ void Server::lssproto_I_recv(char* cdata)
 			break;
 
 		makeStringFromEscaped(name);
-		name = name.simplified();
 		if (name.isEmpty())
 		{
 			pc.item[i].valid = false;
@@ -8779,14 +8971,14 @@ void Server::lssproto_I_recv(char* cdata)
 		pc.item[i].name = name;
 		getStringToken(data, "|", no + 3, name2);//第二個道具名
 		makeStringFromEscaped(name2);
-		name2 = name2.simplified();
+
 		pc.item[i].name2 = name2;
 		pc.item[i].color = getIntegerToken(data, "|", no + 4);//顏色
 		if (pc.item[i].color < 0)
 			pc.item[i].color = 0;
 		getStringToken(data, "|", no + 5, memo);//道具介紹
 		makeStringFromEscaped(memo);
-		memo = memo.simplified();
+
 		pc.item[i].memo = memo;
 		pc.item[i].modelid = getIntegerToken(data, "|", no + 6);//道具形像
 		pc.item[i].field = getIntegerToken(data, "|", no + 7);//
@@ -8808,7 +9000,7 @@ void Server::lssproto_I_recv(char* cdata)
 			QString damage;
 			getStringToken(data, "|", no + 11, damage);
 			makeStringFromEscaped(damage);
-			damage = damage.simplified();
+
 			if (damage.size() <= 16)
 			{
 				pc.item[i].damage = damage;
@@ -8819,7 +9011,7 @@ void Server::lssproto_I_recv(char* cdata)
 			QString pile;
 			getStringToken(data, "|", no + 12, pile);
 			makeStringFromEscaped(pile);
-			pile = pile.simplified();
+
 			pc.item[i].pile = pile.toInt();
 			if (pc.item[i].valid && pc.item[i].pile == 0)
 				pc.item[i].pile = 1;
@@ -8831,7 +9023,7 @@ void Server::lssproto_I_recv(char* cdata)
 			QString alch;
 			getStringToken(data, "|", no + 13, alch);
 			makeStringFromEscaped(alch);
-			alch = alch.simplified();
+
 			pc.item[i].alch = alch;
 		}
 #endif
@@ -8840,7 +9032,7 @@ void Server::lssproto_I_recv(char* cdata)
 			QString type;
 			getStringToken(data, "|", no + 14, type);
 			makeStringFromEscaped(type);
-			type = type.simplified();
+
 			pc.item[i].type = type.toInt();
 		}
 
@@ -9213,10 +9405,10 @@ void Server::lssproto_PME_recv(int unitid,
 		nameColor = getIntegerToken(data, "|", ps++);
 		getStringToken(data, "|", ps++, name);
 		makeStringFromEscaped(name);
-		name = name.simplified();
+
 		getStringToken(data, "|", ps++, freeName);
 		makeStringFromEscaped(freeName);
-		freeName = freeName.simplified();
+
 		getStringToken(data, "|", ps++, smalltoken);
 		walkable = smalltoken.toInt();
 		getStringToken(data, "|", ps++, smalltoken);
@@ -9337,12 +9529,12 @@ void Server::lssproto_B_recv(char* ccommand)
 
 			getStringToken(data, "|", i * 13 + 3, temp);
 			makeStringFromEscaped(temp);
-			temp = temp.simplified();
+
 			obj.name = temp;
 
 			getStringToken(data, "|", i * 13 + 4, temp);
 			makeStringFromEscaped(temp);
-			temp = temp.simplified();
+
 			obj.freeName = temp;
 
 			getStringToken(data, "|", i * 13 + 5, temp);
@@ -9366,7 +9558,7 @@ void Server::lssproto_B_recv(char* ccommand)
 
 			getStringToken(data, "|", i * 13 + 11, temp);
 			makeStringFromEscaped(temp);
-			temp = temp.simplified();
+
 			obj.rideName = temp;
 
 			getStringToken(data, "|", i * 13 + 12, temp);
@@ -9648,6 +9840,8 @@ void Server::lssproto_B_recv(char* ccommand)
 				announce("[async battle] 敌方全部阵亡，结束战斗");
 			//setBattleEnd();
 		}
+		else
+			doBattleWork(false);//sync
 	}
 	else if (first == "P")
 	{
@@ -9723,9 +9917,9 @@ void Server::lssproto_B_recv(char* ccommand)
 			{
 				announce("[async battle] 敌方全部准备完毕");
 				isEnemyAllReady.store(true, std::memory_order_release);
-				doBattleWork(false);//sync
 			}
 		}
+
 		setBattleData(bt);
 	}
 	else if (first == "U")
@@ -9918,7 +10112,7 @@ void Server::lssproto_MSG_recv(int aindex, char* ctext, int color)
 
 	QString temp = MailHistory[aindex].str[MailHistory[aindex].newHistoryNo];
 	makeStringFromEscaped(temp);
-	temp = temp.simplified();
+
 	MailHistory[aindex].str[MailHistory[aindex].newHistoryNo] = temp;
 
 
@@ -9934,7 +10128,7 @@ void Server::lssproto_MSG_recv(int aindex, char* ctext, int color)
 
 		temp = MailHistory[aindex].petName[MailHistory[aindex].newHistoryNo];
 		makeStringFromEscaped(temp);
-		temp = temp.simplified();
+
 		MailHistory[aindex].petName[MailHistory[aindex].newHistoryNo] = temp;
 
 		MailHistory[aindex].itemGraNo[MailHistory[aindex].newHistoryNo] = getIntegerToken(text, "|", 6);
@@ -10367,7 +10561,7 @@ void Server::lssproto_TK_recv(int index, char* cmessage, int color)
 	QString message = util::toUnicode(cmessage);
 	if (message.isEmpty())
 		return;
-	message = makeStringFromEscaped(message);
+	makeStringFromEscaped(message);
 
 	static const QRegularExpression rexGetGold(u8R"(得到(\d+)石)");
 	static const QRegularExpression rexPickGold(u8R"([獲|获] (\d+) Stone)");
@@ -10375,7 +10569,6 @@ void Server::lssproto_TK_recv(int index, char* cmessage, int color)
 	PC pc = getPC();
 
 	getStringToken(message, "|", 1, id);
-
 
 	if (id.startsWith("P"))
 	{
@@ -10425,7 +10618,7 @@ void Server::lssproto_TK_recv(int index, char* cmessage, int color)
 		{
 			getStringToken(message, "|", 3, msg);
 			makeStringFromEscaped(msg);
-			msg = msg.simplified();
+
 #ifdef _FONT_SIZE
 			char token[10];
 			if (getStringToken(message, "|", 4, sizeof(token) - 1, token) == 1)
@@ -10579,6 +10772,7 @@ void Server::lssproto_MC_recv(int fl, int x1, int y1, int x2, int y2, int tileSu
 
 	getStringToken(data, "|", 1, showString);
 	makeStringFromEscaped(showString);
+
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
 	//Injector& injector = Injector::getInstance();
 	//BB414 418118C 4181D3C
@@ -10588,9 +10782,11 @@ void Server::lssproto_MC_recv(int fl, int x1, int y1, int x2, int y2, int tileSu
 
 	getStringToken(showString, "|", 1, floorName);
 	makeStringFromEscaped(floorName);
+
 	static const QRegularExpression re(R"(\\z(\d*))");
 	if (floorName.contains(re))
 		floorName.remove(re);
+
 	nowFloorName = floorName.simplified();
 	palNo = -2;
 	getStringToken(showString, "|", 2, strPal);
@@ -10648,15 +10844,18 @@ void Server::lssproto_M_recv(int fl, int x1, int y1, int x2, int y2, char* cdata
 
 	getStringToken(data, "|", 1, showString);
 	makeStringFromEscaped(showString);
+
 	nowFloor = fl;
 
 	QString strPal;
 
 	getStringToken(showString, "|", 1, floorName);
 	makeStringFromEscaped(floorName);
+
 	static const QRegularExpression re(R"(\\z(\d*))");
 	if (floorName.contains(re))
 		floorName.remove(re);
+
 	nowFloorName = floorName.simplified();
 	palNo = -2;
 	getStringToken(showString, "|", 2, strPal);
@@ -10779,10 +10978,10 @@ void Server::lssproto_C_recv(char* cdata)
 			nameColor = getIntegerToken(bigtoken, "|", 9);
 			getStringToken(bigtoken, "|", 10, name);
 			makeStringFromEscaped(name);
-			name = name.simplified();
+
 			getStringToken(bigtoken, "|", 11, freeName);
 			makeStringFromEscaped(freeName);
-			freeName = freeName.simplified();
+
 			getStringToken(bigtoken, "|", 12, smalltoken);
 			walkable = smalltoken.toInt();
 			getStringToken(bigtoken, "|", 13, smalltoken);
@@ -10790,10 +10989,10 @@ void Server::lssproto_C_recv(char* cdata)
 			charNameColor = getIntegerToken(bigtoken, "|", 14);
 			getStringToken(bigtoken, "|", 15, fmname);
 			makeStringFromEscaped(fmname);
-			fmname = fmname.simplified();
+
 			getStringToken(bigtoken, "|", 16, petname);
 			makeStringFromEscaped(petname);
-			petname = petname.simplified();
+
 			getStringToken(bigtoken, "|", 17, smalltoken);
 			petlevel = smalltoken.toInt();
 #ifdef _NPC_EVENT_NOTICE
@@ -10859,7 +11058,7 @@ void Server::lssproto_C_recv(char* cdata)
 #endif
 				pc.nameColor = charNameColor;
 				//setPcNameColor(charNameColor);
-				if ((pc.status & CHR_STATUS_LEADER) != 0 && party[0].valid != 0)
+				if (checkAND(pc.status, CHR_STATUS_LEADER) != 0 && party[0].valid != 0)
 				{
 					party[0].level = pc.level;
 					party[0].name = pc.name;
@@ -10980,7 +11179,6 @@ void Server::lssproto_C_recv(char* cdata)
 			classNo = getIntegerToken(bigtoken, "|", 6);
 			getStringToken(bigtoken, "|", 7, info);
 			makeStringFromEscaped(info);
-			info = info.simplified();
 
 			mapunit_t unit = mapUnitHash.value(id);
 			unit.id = id;
@@ -11024,7 +11222,7 @@ void Server::lssproto_C_recv(char* cdata)
 			id = a62toi(smalltoken);
 			getStringToken(bigtoken, "|", 3, name);
 			makeStringFromEscaped(name);
-			name = name.simplified();
+
 			getStringToken(bigtoken, "|", 4, smalltoken);
 			dir = (smalltoken.toInt() + 3) % 8;
 			getStringToken(bigtoken, "|", 5, smalltoken);
@@ -11149,7 +11347,7 @@ void Server::lssproto_C_recv(char* cdata)
 				updateMapArea();
 				setPcParam(name, freeName, level, petname, petlevel, nameColor, walkable, height, profession_class, profession_level, profession_skill_point);
 				//setPcNameColor(charNameColor);
-				if ((pc.status & CHR_STATUS_LEADER) != 0
+				if (checkAND(pc.status, CHR_STATUS_LEADER) != 0
 					&& party[0].valid != 0)
 				{
 					party[0].level = pc.level;
@@ -11481,7 +11679,7 @@ void Server::lssproto_S_recv(char* cdata)
 			{
 				SubProcNo = 200;
 				//warpEffectProc();
-				if (MenuToggleFlag & JOY_CTRL_M)
+				if (checkAND(MenuToggleFlag, JOY_CTRL_M))
 					MapWmdFlagBak = 1;
 			}
 			resetPc();
@@ -11578,11 +11776,11 @@ void Server::lssproto_S_recv(char* cdata)
 #endif
 			getStringToken(data, "|", 30, name);
 			makeStringFromEscaped(name);
-			name = name.simplified();
+
 			pc.name = name;
 			getStringToken(data, "|", 31, freeName);
 			makeStringFromEscaped(freeName);
-			freeName = freeName.simplified();
+
 			pc.freeName = freeName;
 #ifdef _NEW_ITEM_
 			pc.道具欄狀態 = getIntegerToken(data, "|", 32);
@@ -11609,7 +11807,7 @@ void Server::lssproto_S_recv(char* cdata)
 			i = 2;
 			for (; mask > 0; mask <<= 1)
 			{
-				if (kubun & mask)
+				if (checkAND(kubun, mask))
 				{
 					if (mask == 0x00000002) // ( 1 << 1 )
 					{
@@ -11751,7 +11949,7 @@ void Server::lssproto_S_recv(char* cdata)
 					{
 						getStringToken(data, "|", i, name);// 0x01000000
 						makeStringFromEscaped(name);
-						name = name.simplified();
+
 						pc.name = name;
 						i++;
 					}
@@ -11759,7 +11957,7 @@ void Server::lssproto_S_recv(char* cdata)
 					{
 						getStringToken(data, "|", i, freeName);// 0x02000000
 						makeStringFromEscaped(freeName);
-						freeName = freeName.simplified();
+
 						pc.freeName = freeName;
 						i++;
 					}
@@ -11795,7 +11993,7 @@ void Server::lssproto_S_recv(char* cdata)
 		}
 
 		//updataPcAct();
-		if ((pc.status & CHR_STATUS_LEADER) != 0 && party[0].valid != 0)
+		if (checkAND(pc.status, CHR_STATUS_LEADER) && party[0].valid != 0)
 		{
 			party[0].level = pc.level;
 			party[0].maxHp = pc.maxHp;
@@ -11879,7 +12077,7 @@ void Server::lssproto_S_recv(char* cdata)
 
 		getStringToken(data, "|", 1, family);
 		makeStringFromEscaped(family);
-		family = family.simplified();
+
 		pc.family = family;
 
 		pc.familyleader = getIntegerToken(data, "|", 2);
@@ -11903,7 +12101,7 @@ void Server::lssproto_S_recv(char* cdata)
 		pc.mp = getIntegerToken(data, "|", 2);
 		pc.exp = getIntegerToken(data, "|", 3);
 		//updataPcAct();
-		if ((pc.status & CHR_STATUS_LEADER) != 0 && party[0].valid != 0)
+		if (checkAND(pc.status, CHR_STATUS_LEADER) && party[0].valid != 0)
 			party[0].hp = pc.hp;
 
 		//custom
@@ -11975,11 +12173,11 @@ void Server::lssproto_S_recv(char* cdata)
 				pet[no].fusion = getIntegerToken(data, "|", 21);
 				getStringToken(data, "|", 22, name);// 0x00080000
 				makeStringFromEscaped(name);
-				name = name.simplified();
+
 				pet[no].name = name;
 				getStringToken(data, "|", 23, freeName);// 0x00100000
 				makeStringFromEscaped(freeName);
-				freeName = freeName.simplified();
+
 				pet[no].freeName = freeName;
 #else
 				getStringToken(data, "|", 21, name);// 0x00080000
@@ -12014,7 +12212,7 @@ void Server::lssproto_S_recv(char* cdata)
 				i = 2;
 				for (; mask > 0; mask <<= 1)
 				{
-					if (kubun & mask)
+					if (checkAND(kubun, mask))
 					{
 						if (mask == 0x00000002)
 						{
@@ -12114,7 +12312,7 @@ void Server::lssproto_S_recv(char* cdata)
 						{
 							getStringToken(data, "|", i, name);// 0x00080000
 							makeStringFromEscaped(name);
-							name = name.simplified();
+
 							pet[no].name = name;
 							i++;
 						}
@@ -12122,7 +12320,7 @@ void Server::lssproto_S_recv(char* cdata)
 						{
 							getStringToken(data, "|", i, freeName);// 0x00100000
 							makeStringFromEscaped(freeName);
-							freeName = freeName.simplified();
+
 							pet[no].freeName = freeName;
 							i++;
 						}
@@ -12274,11 +12472,11 @@ void Server::lssproto_S_recv(char* cdata)
 				magic[no].deadTargetFlag = 0;
 			getStringToken(data, "|", 5, name);
 			makeStringFromEscaped(name);
-			name = name.simplified();
+
 			magic[no].name = name;
 			getStringToken(data, "|", 6, memo);
 			makeStringFromEscaped(memo);
-			memo = memo.simplified();
+
 			magic[no].memo = memo;
 		}
 		else
@@ -12386,7 +12584,7 @@ void Server::lssproto_S_recv(char* cdata)
 			party[no].mp = getIntegerToken(data, "|", 6);	// 0x00000020
 			getStringToken(data, "|", 7, name);	// 0x00000040
 			makeStringFromEscaped(name);
-			name = name.simplified();
+
 			party[no].name = name;
 		}
 		else
@@ -12395,7 +12593,7 @@ void Server::lssproto_S_recv(char* cdata)
 			i = 2;
 			for (; mask > 0; mask <<= 1)
 			{
-				if (kubun & mask)
+				if (checkAND(kubun, mask))
 				{
 					if (mask == 0x00000002)
 					{
@@ -12426,7 +12624,7 @@ void Server::lssproto_S_recv(char* cdata)
 					{
 						getStringToken(data, "|", i, name);// 0x00000040
 						makeStringFromEscaped(name);
-						name = name.simplified();
+
 						party[no].name = name;
 						i++;
 					}
@@ -12501,7 +12699,7 @@ void Server::lssproto_S_recv(char* cdata)
 #endif//_ITEM_JIGSAW
 			getStringToken(data, "|", no + 1, temp);
 			makeStringFromEscaped(temp);
-			temp = temp.simplified();
+
 			if (temp.isEmpty())
 			{
 				pc.item[i].valid = false;
@@ -12514,14 +12712,14 @@ void Server::lssproto_S_recv(char* cdata)
 			pc.item[i].name = temp.simplified();
 			getStringToken(data, "|", no + 2, temp);
 			makeStringFromEscaped(temp);
-			temp = temp.simplified();
+
 			pc.item[i].name2 = temp;
 			pc.item[i].color = getIntegerToken(data, "|", no + 3);
 			if (pc.item[i].color < 0)
 				pc.item[i].color = 0;
 			getStringToken(data, "|", no + 4, temp);
 			makeStringFromEscaped(temp);
-			temp = temp.simplified();
+
 			pc.item[i].memo = temp;
 			pc.item[i].modelid = getIntegerToken(data, "|", no + 5);
 			pc.item[i].field = getIntegerToken(data, "|", no + 6);
@@ -12539,18 +12737,17 @@ void Server::lssproto_S_recv(char* cdata)
 			// 顯示物品耐久度
 			getStringToken(data, "|", no + 10, temp);
 			makeStringFromEscaped(temp);
-			temp = temp.simplified();
+
 			pc.item[i].damage = temp;
 #ifdef _ITEM_PILENUMS
 			getStringToken(data, "|", no + 11, temp);
 			makeStringFromEscaped(temp);
-			temp = temp.simplified();
+
 			pc.item[i].pile = temp.toInt();
 #endif
 #ifdef _ALCHEMIST //_ITEMSET7_TXT
 			getStringToken(data, "|", no + 12, temp);
 			makeStringFromEscaped(temp);
-			temp = temp.simplified();
 			pc.item[i].alch = temp;
 #endif
 #ifdef _PET_ITEM
@@ -12562,7 +12759,8 @@ void Server::lssproto_S_recv(char* cdata)
 #endif
 #ifdef _ITEM_JIGSAW
 			getStringToken(data, "|", no + 14, temp);
-			pc.item[i].jigsaw = temp.simplified();
+			makeStringFromEscaped(temp);
+			pc.item[i].jigsaw = temp;
 
 #endif
 #ifdef _NPC_ITEMUP
@@ -12612,7 +12810,7 @@ void Server::lssproto_S_recv(char* cdata)
 			no2 = i * 5;
 			getStringToken(data, "|", no2 + 4, temp);
 			makeStringFromEscaped(temp);
-			temp = temp.simplified();
+
 			if (temp.isEmpty())
 				continue;
 			petSkill[no][i].valid = true;
@@ -12622,7 +12820,7 @@ void Server::lssproto_S_recv(char* cdata)
 			petSkill[no][i].target = getIntegerToken(data, "|", no2 + 3);
 			getStringToken(data, "|", no2 + 5, temp);
 			makeStringFromEscaped(temp);
-			temp = temp.simplified();
+
 			petSkill[no][i].memo = temp;
 
 			if ((pc.battlePetNo >= 0) && pc.battlePetNo < MAX_PET)
@@ -12659,12 +12857,12 @@ void Server::lssproto_S_recv(char* cdata)
 
 			getStringToken(data, "|", 8 + count, name);
 			makeStringFromEscaped(name);
-			name = name.simplified();
+
 			profession_skill[i].name = name;
 
 			getStringToken(data, "|", 9 + count, memo);
 			makeStringFromEscaped(memo);
-			memo = memo.simplified();
+
 			profession_skill[i].memo = memo;
 		}
 
@@ -12735,7 +12933,7 @@ void Server::lssproto_S_recv(char* cdata)
 #endif
 			getStringToken(data, "|", no + 1, szData);
 			makeStringFromEscaped(szData);
-			szData = szData.simplified();
+
 			if (szData.isEmpty())	// 沒道具
 			{
 				pet[nPetIndex].item[i] = {};
@@ -12745,14 +12943,14 @@ void Server::lssproto_S_recv(char* cdata)
 			pet[nPetIndex].item[i].name = szData;
 			getStringToken(data, "|", no + 2, szData);
 			makeStringFromEscaped(szData);
-			szData = szData.simplified();
+
 			pet[nPetIndex].item[i].name2 = szData;
 			pet[nPetIndex].item[i].color = getIntegerToken(data, "|", no + 3);
 			if (pet[nPetIndex].item[i].color < 0)
 				pet[nPetIndex].item[i].color = 0;
 			getStringToken(data, "|", no + 4, szData);
 			makeStringFromEscaped(szData);
-			szData = szData.simplified();
+
 			pet[nPetIndex].item[i].memo = szData.simplified();
 			pet[nPetIndex].item[i].modelid = getIntegerToken(data, "|", no + 5);
 			pet[nPetIndex].item[i].field = getIntegerToken(data, "|", no + 6);
@@ -12770,20 +12968,20 @@ void Server::lssproto_S_recv(char* cdata)
 			// 顯示物品耐久度
 			getStringToken(data, "|", no + 10, szData);
 			makeStringFromEscaped(szData);
-			szData = szData.simplified();
+
 			pet[nPetIndex].item[i].damage = szData;
 			pet[nPetIndex].item[i].pile = getIntegerToken(data, "|", no + 11);
 #ifdef _ALCHEMIST //_ITEMSET7_TXT
 			getStringToken(data, "|", no + 12, szData);
 			makeStringFromEscaped(szData);
-			szData = szData.simplified();
+
 			pet[nPetIndex].item[i].alch = szData;
 #endif
 			pet[nPetIndex].item[i].type = getIntegerToken(data, "|", no + 13);
 #ifdef _ITEM_JIGSAW
 			getStringToken(data, "|", no + 14, szData);
 			makeStringFromEscaped(szData);
-			szData = szData.simplified();
+
 			pet[nPetIndex].item[i].jigsaw = szData;
 			//可拿給寵物裝備的道具,就不會是拼圖了,以下就免了
 			//if( i == JigsawIdx )

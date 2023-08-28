@@ -1,4 +1,5 @@
 ﻿#include "stdafx.h"
+#include "form/afkform.h"
 #include "generalform.h"
 #include "selectobjectform.h"
 
@@ -341,10 +342,26 @@ void GeneralForm::onButtonClicked()
 		return;
 	}
 
-	if (name == "pushButton_pick")
+	if (name == "pushButton_afksetting")
 	{
-		if (!injector.server.isNull())
-			injector.server->playerLogin(0);
+
+		if (pAfkForm_ == nullptr)
+		{
+			pAfkForm_ = new AfkForm;
+			if (pAfkForm_ != nullptr)
+			{
+				emit pAfkForm_->resetControlTextLanguage();
+				pAfkForm_->show();
+			}
+		}
+		else
+		{
+			if (pAfkForm_->isHidden())
+				pAfkForm_->show();
+			else
+				pAfkForm_->hide();
+		}
+
 		return;
 	}
 

@@ -1394,7 +1394,7 @@ qint64 Interpreter::withdrawpet(qint64, const TokenMap& TK)
 			break;
 		}
 
-		if (button & BUTTON_NEXT)
+		if ((button & BUTTON_NEXT) == BUTTON_NEXT)
 		{
 			injector.server->IS_WAITFOR_BANK_FLAG = true;
 			injector.server->press(BUTTON_NEXT);

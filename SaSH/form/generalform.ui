@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>385</width>
-    <height>487</height>
+    <width>312</width>
+    <height>349</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -39,7 +39,7 @@
     <rect>
      <x>0</x>
      <y>280</y>
-     <width>151</width>
+     <width>141</width>
      <height>51</height>
     </rect>
    </property>
@@ -363,7 +363,7 @@
     <rect>
      <x>150</x>
      <y>100</y>
-     <width>66</width>
+     <width>131</width>
      <height>16</height>
     </rect>
    </property>
@@ -382,22 +382,6 @@
    </property>
    <property name="text">
     <string>lock image</string>
-   </property>
-  </widget>
-  <widget class="QCheckBox" name="checkBox_nothing_3">
-   <property name="enabled">
-    <bool>false</bool>
-   </property>
-   <property name="geometry">
-    <rect>
-     <x>220</x>
-     <y>100</y>
-     <width>66</width>
-     <height>16</height>
-    </rect>
-   </property>
-   <property name="text">
-    <string/>
    </property>
   </widget>
   <widget class="QCheckBox" name="checkBox_showexp">
@@ -847,7 +831,7 @@
      <rect>
       <x>70</x>
       <y>204</y>
-      <width>63</width>
+      <width>71</width>
       <height>16</height>
      </rect>
     </property>
@@ -868,7 +852,7 @@
      <string>start</string>
     </property>
    </widget>
-   <widget class="QWidget" name="">
+   <widget class="QWidget" name="layoutWidget">
     <property name="geometry">
      <rect>
       <x>5</x>
@@ -903,7 +887,7 @@
     </layout>
    </widget>
   </widget>
-  <widget class="QWidget" name="">
+  <widget class="QWidget" name="layoutWidget">
    <property name="geometry">
     <rect>
      <x>0</x>
@@ -921,10 +905,16 @@
       <property name="enabled">
        <bool>true</bool>
       </property>
+      <property name="minimumSize">
+       <size>
+        <width>34</width>
+        <height>24</height>
+       </size>
+      </property>
       <property name="maximumSize">
        <size>
-        <width>40</width>
-        <height>16777215</height>
+        <width>34</width>
+        <height>24</height>
        </size>
       </property>
       <property name="text">
@@ -937,10 +927,16 @@
       <property name="enabled">
        <bool>true</bool>
       </property>
+      <property name="minimumSize">
+       <size>
+        <width>34</width>
+        <height>24</height>
+       </size>
+      </property>
       <property name="maximumSize">
        <size>
-        <width>40</width>
-        <height>16777215</height>
+        <width>34</width>
+        <height>24</height>
        </size>
       </property>
       <property name="text">
@@ -956,10 +952,16 @@
       <property name="enabled">
        <bool>true</bool>
       </property>
+      <property name="minimumSize">
+       <size>
+        <width>34</width>
+        <height>24</height>
+       </size>
+      </property>
       <property name="maximumSize">
        <size>
-        <width>40</width>
-        <height>16777215</height>
+        <width>34</width>
+        <height>24</height>
        </size>
       </property>
       <property name="text">
@@ -977,8 +979,14 @@
       </property>
       <property name="minimumSize">
        <size>
-        <width>0</width>
-        <height>0</height>
+        <width>34</width>
+        <height>24</height>
+       </size>
+      </property>
+      <property name="maximumSize">
+       <size>
+        <width>34</width>
+        <height>24</height>
        </size>
       </property>
       <property name="text">
@@ -991,10 +999,16 @@
       <property name="enabled">
        <bool>true</bool>
       </property>
+      <property name="minimumSize">
+       <size>
+        <width>34</width>
+        <height>24</height>
+       </size>
+      </property>
       <property name="maximumSize">
        <size>
-        <width>40</width>
-        <height>16777215</height>
+        <width>34</width>
+        <height>24</height>
        </size>
       </property>
       <property name="tabletTracking">
@@ -1006,18 +1020,24 @@
      </widget>
     </item>
     <item row="1" column="1">
-     <widget class="QPushButton" name="pushButton_pick">
+     <widget class="QPushButton" name="pushButton_afksetting">
       <property name="enabled">
        <bool>true</bool>
       </property>
+      <property name="minimumSize">
+       <size>
+        <width>34</width>
+        <height>24</height>
+       </size>
+      </property>
       <property name="maximumSize">
        <size>
-        <width>40</width>
-        <height>16777215</height>
+        <width>34</width>
+        <height>24</height>
        </size>
       </property>
       <property name="text">
-       <string>test</string>
+       <string>afk</string>
       </property>
      </widget>
     </item>
@@ -1026,10 +1046,16 @@
       <property name="enabled">
        <bool>true</bool>
       </property>
+      <property name="minimumSize">
+       <size>
+        <width>34</width>
+        <height>24</height>
+       </size>
+      </property>
       <property name="maximumSize">
        <size>
-        <width>40</width>
-        <height>16777215</height>
+        <width>34</width>
+        <height>24</height>
        </size>
       </property>
       <property name="text">
@@ -1047,8 +1073,14 @@
       </property>
       <property name="minimumSize">
        <size>
-        <width>0</width>
-        <height>0</height>
+        <width>34</width>
+        <height>24</height>
+       </size>
+      </property>
+      <property name="maximumSize">
+       <size>
+        <width>34</width>
+        <height>24</height>
        </size>
       </property>
       <property name="text">

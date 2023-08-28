@@ -1225,6 +1225,7 @@ void ScriptSettingForm::on_widget_cursorPositionChanged(int line, int index)
 
 void ScriptSettingForm::on_widget_textChanged()
 {
+	ui.widget->selectToMatchingBrace();
 	Injector& injector = Injector::getInstance();
 	const QString text(ui.widget->text());
 	if (m_scripts.value(injector.currentScriptFileName, "") != text)
@@ -1239,9 +1240,6 @@ void ScriptSettingForm::on_widget_textChanged()
 		m_isModified = false;
 		ui.widget->setModified(false);
 	}
-	//int line = -1, index = -1;
-	//ui.widget->getCursorPosition(&line, &index);
-	//on_widget_cursorPositionChanged(line, index);
 }
 
 //查找命令
@@ -2111,7 +2109,7 @@ void ScriptSettingForm::onDecryptSave()
 	{
 		ui.statusBar->showMessage(tr("Decrypt password can not be empty"), 3000);
 		return;
-	}
+}
 
 	Crypto crypto;
 	QString content;

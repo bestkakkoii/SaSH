@@ -91,6 +91,7 @@ protected:
 
 private:
 	void jumpToLineDialog();
+
 };
 
 class JumpToLineDialog : public QDialog

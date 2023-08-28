@@ -758,6 +758,7 @@ qint64 Interpreter::set(qint64 currentline, const TokenMap& TK)
 			{ u8"落馬逃跑", util::kFallDownEscapeEnable },
 			{ u8"顯示經驗", util::kShowExpEnable },
 			{ u8"窗口吸附", util::kWindowDockEnable },
+			{ u8"自動EO", util::kBattleAutoEOEnable },
 
 			{ u8"隊伍開關", util::kSwitcherTeamEnable },
 			{ u8"PK開關", util::kSwitcherPKEnable },
@@ -880,6 +881,7 @@ qint64 Interpreter::set(qint64 currentline, const TokenMap& TK)
 			{ u8"落马逃跑", util::kFallDownEscapeEnable },
 			{ u8"显示经验", util::kShowExpEnable },
 			{ u8"窗口吸附", util::kWindowDockEnable },
+			{ u8"自动EO", util::kBattleAutoEOEnable },
 
 			{ u8"队伍开关", util::kSwitcherTeamEnable },
 			{ u8"PK开关", util::kSwitcherPKEnable },
@@ -1089,6 +1091,7 @@ qint64 Interpreter::set(qint64 currentline, const TokenMap& TK)
 	case util::kFallDownEscapeEnable:
 	case util::kShowExpEnable:
 	case util::kWindowDockEnable:
+	case util::kBattleAutoEOEnable:
 
 		//switcher
 	case util::kSwitcherTeamEnable:
@@ -1614,15 +1617,12 @@ qint64 Interpreter::find(qint64 currentline, const TokenMap& TK)
 		return Parser::kArgError + 1ll;
 
 	QString varValue;
-	if (!checkString(TK, 2, &varValue))
-		return Parser::kArgError + 2ll;
+	checkString(TK, 2, &varValue);
 	if (varValue.isEmpty())
 		return Parser::kNoChange;
 
 	QString text1;
 	checkString(TK, 3, &text1);
-	if (text1.isEmpty())
-		return Parser::kArgError + 3ll;
 
 	QString text2;
 	checkString(TK, 4, &text2);
@@ -1631,7 +1631,7 @@ qint64 Interpreter::find(qint64 currentline, const TokenMap& TK)
 
 	qint64 pos1 = varValue.indexOf(text1);
 	if (pos1 < 0)
-		return Parser::kNoChange;
+		pos1 = 0;
 
 	qint64 pos2 = -1;
 	if (text2.isEmpty())

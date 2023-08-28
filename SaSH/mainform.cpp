@@ -23,7 +23,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "form/selectobjectform.h"
 #include "form/generalform.h"
 #include "form/mapform.h"
-#include "form/afkform.h"
 #include "form/otherform.h"
 #include "form/scriptform.h"
 #include "form/luascriptform.h"
@@ -596,6 +595,22 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, long* res
 	return false;
 }
 
+//void MainForm::paintEvent(QPaintEvent* e)
+//{
+//	Injector& injector = Injector::getInstance();
+//	HWND hWnd = injector.getProcessWindow();
+//	if (hWnd != nullptr)
+//	{
+//		//movewindow to refresh
+//		RECT rect;
+//		GetWindowRect(hWnd, &rect);
+//		MoveWindow(hWnd, 0, 0, rect.right - rect.left, rect.bottom - rect.top, TRUE);
+//	}
+//
+//
+//	QMainWindow::paintEvent(e);
+//}
+
 //窗口移動事件
 void MainForm::moveEvent(QMoveEvent* e)
 {
@@ -711,23 +726,6 @@ MainForm::MainForm(QWidget* parent)
 		if (pMapForm_)
 		{
 			ui.tabWidget_main->addTab(pMapForm_, tr("map"));
-		}
-
-		pAfkForm_ = new AfkForm;
-		if (pAfkForm_)
-		{
-			pAfkForm_->hide();
-			QPushButton* pButton = new QPushButton(tr("afk"));
-			if (pButton)
-			{
-				//insert to tab
-				ui.tabWidget_main->addTab(pButton, tr("afk"));
-				//push to open afkform
-				connect(pButton, &QPushButton::clicked, this, [this]()
-					{
-						pAfkForm_->show();
-					});
-			}
 		}
 
 		pOtherForm_ = new OtherForm;
@@ -1024,19 +1022,15 @@ void MainForm::resetControlTextLanguage()
 	//reset tab text
 	ui.tabWidget_main->setTabText(0, tr("general"));
 	ui.tabWidget_main->setTabText(1, tr("map"));
-	ui.tabWidget_main->setTabText(2, tr("afk"));
-	ui.tabWidget_main->setTabText(3, tr("other"));
-	ui.tabWidget_main->setTabText(4, tr("script"));
-
+	ui.tabWidget_main->setTabText(2, tr("other"));
+	ui.tabWidget_main->setTabText(3, tr("script"));
+	ui.tabWidget_main->setTabText(4, "lua");
 
 	if (pGeneralForm_)
 		emit pGeneralForm_->resetControlTextLanguage();
 
 	if (pInfoForm_)
 		emit pInfoForm_->resetControlTextLanguage();
-
-	if (pAfkForm_)
-		emit pAfkForm_->resetControlTextLanguage();
 
 	if (pOtherForm_)
 		emit pOtherForm_->resetControlTextLanguage();
@@ -1319,7 +1313,8 @@ void MainForm::onInputBoxShow(const QString& text, int type, QVariant* retvalue)
 	newText.replace("\\f", "\f");
 	newText.replace("\\a", "\a");
 
-	QInputDialog inputDialog(this);
+	QInputDialog inputDialog;
+	inputDialog.setModal(true);
 	inputDialog.setLabelText(newText);
 	QInputDialog::InputMode mode = static_cast<QInputDialog::InputMode>(type);
 	inputDialog.setInputMode(mode);

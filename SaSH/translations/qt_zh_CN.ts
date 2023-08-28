@@ -1088,12 +1088,12 @@
         <translation>吸附</translation>
     </message>
     <message>
-        <source>test</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>autoeo</source>
         <translation>自动EO</translation>
+    </message>
+    <message>
+        <source>afk</source>
+        <translation>挂机</translation>
     </message>
 </context>
 <context>
@@ -1428,7 +1428,7 @@
     </message>
     <message>
         <source>afk</source>
-        <translation>挂机</translation>
+        <translation type="vanished">挂机</translation>
     </message>
     <message>
         <source>other</source>
@@ -1625,6 +1625,10 @@ No new version available. Do you still want to update?</source>
     <message>
         <source>lua</source>
         <translation></translation>
+    </message>
+    <message>
+        <source>login failed</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
@@ -2150,7 +2154,7 @@ No new version available. Do you still want to update?</source>
     </message>
     <message>
         <source>freeName</source>
-        <translation>别名</translation>
+        <translation type="vanished">别名</translation>
     </message>
     <message>
         <source>level</source>
@@ -2227,6 +2231,10 @@ No new version available. Do you still want to update?</source>
     <message>
         <source>power</source>
         <translation>野生战力</translation>
+    </message>
+    <message>
+        <source>freename</source>
+        <translation>别名</translation>
     </message>
 </context>
 <context>

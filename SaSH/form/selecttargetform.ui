@@ -150,7 +150,7 @@
             <item>
              <widget class="QCheckBox" name="checkBox_leader">
               <property name="enabled">
-               <bool>false</bool>
+               <bool>true</bool>
               </property>
               <property name="sizePolicy">
                <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
@@ -166,7 +166,7 @@
             <item>
              <widget class="QCheckBox" name="checkBox_leader_pet">
               <property name="enabled">
-               <bool>false</bool>
+               <bool>true</bool>
               </property>
               <property name="text">
                <string>pet</string>
@@ -183,7 +183,7 @@
             <item>
              <widget class="QCheckBox" name="checkBox_teammate1">
               <property name="enabled">
-               <bool>false</bool>
+               <bool>true</bool>
               </property>
               <property name="sizePolicy">
                <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
@@ -199,7 +199,7 @@
             <item>
              <widget class="QCheckBox" name="checkBox_teammate1_pet">
               <property name="enabled">
-               <bool>false</bool>
+               <bool>true</bool>
               </property>
               <property name="text">
                <string>pet</string>
@@ -216,7 +216,7 @@
             <item>
              <widget class="QCheckBox" name="checkBox_teammate2">
               <property name="enabled">
-               <bool>false</bool>
+               <bool>true</bool>
               </property>
               <property name="sizePolicy">
                <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
@@ -232,7 +232,7 @@
             <item>
              <widget class="QCheckBox" name="checkBox_teammate2_pet">
               <property name="enabled">
-               <bool>false</bool>
+               <bool>true</bool>
               </property>
               <property name="text">
                <string>pet</string>
@@ -249,7 +249,7 @@
             <item>
              <widget class="QCheckBox" name="checkBox_teammate3">
               <property name="enabled">
-               <bool>false</bool>
+               <bool>true</bool>
               </property>
               <property name="sizePolicy">
                <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
@@ -265,7 +265,7 @@
             <item>
              <widget class="QCheckBox" name="checkBox_teammate3_pet">
               <property name="enabled">
-               <bool>false</bool>
+               <bool>true</bool>
               </property>
               <property name="text">
                <string>pet</string>
@@ -282,7 +282,7 @@
             <item>
              <widget class="QCheckBox" name="checkBox_teammate4">
               <property name="enabled">
-               <bool>false</bool>
+               <bool>true</bool>
               </property>
               <property name="sizePolicy">
                <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
@@ -298,7 +298,7 @@
             <item>
              <widget class="QCheckBox" name="checkBox_teammate4_pet">
               <property name="enabled">
-               <bool>false</bool>
+               <bool>true</bool>
               </property>
               <property name="text">
                <string>pet</string>

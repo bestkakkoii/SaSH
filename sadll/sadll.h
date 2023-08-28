@@ -261,6 +261,7 @@ public://hook
 	void __cdecl New_BattleCommandReady();
 	void __cdecl New_TimeProc(int fd);
 	void __cdecl New_lssproto_EN_recv(int fd, int result, int field);
+	void __cdecl New_lssproto_B_recv(int fd, char* command);
 	void __cdecl New_lssproto_WN_send(int fd, int x, int y, int dialogid, int unitid, int select, const char* data);
 	void __cdecl New_lssproto_TK_send(int fd, int x, int y, const char* message, int color, int area);
 	//setwindowtexta
@@ -315,6 +316,9 @@ public://hook
 
 	using pfnLssproto_EN_recv = void(__cdecl*)(int, int, int);
 	pfnLssproto_EN_recv pLssproto_EN_recv = nullptr;
+
+	using pfnLssproto_B_recv = void(__cdecl*)(int, char*);
+	pfnLssproto_B_recv pLssproto_B_recv = nullptr;
 
 	using pfnLssproto_WN_send = void(__cdecl*)(int, int, int, int, int, int, const char*);
 	pfnLssproto_WN_send pLssproto_WN_send = nullptr;

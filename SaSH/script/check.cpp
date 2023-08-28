@@ -576,6 +576,7 @@ qint64 Interpreter::waititem(qint64 currentline, const TokenMap& TK)
 
 	QString itemMemo;
 	checkString(TK, 3, &itemMemo);
+
 	if (itemName.isEmpty() && itemMemo.isEmpty())
 		return Parser::kArgError + 1ll;
 

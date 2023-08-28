@@ -166,7 +166,7 @@ QColor Highlighter::defaultPaper(int style) const
 // auto-completion.
 const char* Highlighter::autoCompletionFillups() const
 {
-	return "(";
+	return "] ) } \" '";
 }
 
 // Return the list of characters that can end a block.
@@ -175,7 +175,7 @@ const char* Highlighter::blockEnd(int* style) const
 	if (style)
 		*style = Operator;
 
-	return "end";
+	return "end endfor";
 }
 
 const char* Highlighter::blockStartKeyword(int* style) const
@@ -183,7 +183,7 @@ const char* Highlighter::blockStartKeyword(int* style) const
 	if (style)
 		*style = Keyword;
 
-	return "function";
+	return "function for";
 }
 
 // Return the list of characters that can start a block.
@@ -192,7 +192,7 @@ const char* Highlighter::blockStart(int* style) const
 	if (style)
 		*style = Operator;
 
-	return "\0";
+	return "function for";
 }
 
 // Return the string of characters that comprise a word.

@@ -91,7 +91,7 @@
       <BuildAction>false</BuildAction>
     </QtTranslation>
     <PostBuildEvent>
-      <Command>$(SolutionDir)ReleaseTool\bind7z.bat</Command>
+      <Command>$(SolutionDir)ReleaseTool\UPXCompressAndUpload.bat</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">

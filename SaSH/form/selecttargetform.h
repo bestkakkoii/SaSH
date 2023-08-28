@@ -36,6 +36,7 @@ protected:
 private slots:
 	void onCheckBoxStateChanged(int state);
 	void onAccept();
+	void onUpdateTeamInfo(const QStringList& strList);
 private:
 	void checkControls();
 

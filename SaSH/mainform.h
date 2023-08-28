@@ -29,7 +29,6 @@ class QSystemTrayIcon;
 
 class GeneralForm;
 class MapForm;
-class AfkForm;
 class OtherForm;
 class ScriptForm;
 class LuaScriptForm;
@@ -57,6 +56,9 @@ protected:
 	//接收原生的窗口消息
 	bool nativeEvent(const QByteArray& eventType, void* message, long* result) override;
 
+	//paint
+	//void paintEvent(QPaintEvent* e) override;
+
 	//window move
 	void moveEvent(QMoveEvent* e) override;
 
@@ -82,6 +84,7 @@ private slots:
 
 	void onAppendScriptLog(const QString& text, int color = 0);
 	void onAppendChatLog(const QString& text, int color = 0);
+
 private:
 	Ui::MainFormClass ui;
 	QMenuBar* pMenuBar_ = nullptr;
@@ -90,7 +93,7 @@ private:
 
 	GeneralForm* pGeneralForm_ = nullptr;
 	MapForm* pMapForm_ = nullptr;
-	AfkForm* pAfkForm_ = nullptr;
+
 	OtherForm* pOtherForm_ = nullptr;
 	ScriptForm* pScriptForm_ = nullptr;
 	LuaScriptForm* pLuaScriptForm_ = nullptr;
