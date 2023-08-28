@@ -111,4 +111,26 @@ namespace Autil
 		util_mkint(buffer, iChecksum);
 		util_SendMesg(func, buffer);
 	}
+
+	template<typename... Args>
+	bool util_Receive(Args*... args) {
+		int iChecksum = 0;  // 局部變量
+		int iChecksumrecv = 0;
+		int nextSlice = 2;
+
+		// 解碼參數並累加到 iChecksum
+		auto decode_and_accumulate = [&iChecksum, &nextSlice](auto* val) {
+			if constexpr (std::is_same_v<std::remove_pointer_t<decltype(val)>, int>) {
+				iChecksum += Autil::util_deint(nextSlice++, val);
+			}
+			else if constexpr (std::is_same_v<std::remove_pointer_t<decltype(val)>, char>) {
+				iChecksum += Autil::util_destring(nextSlice++, val);
+			}
+		};
+		(decode_and_accumulate(args), ...);
+
+		// 獲取並校驗 iChecksum
+		Autil::util_deint(nextSlice, &iChecksumrecv);
+		return (iChecksum == iChecksumrecv);
+	}
 }

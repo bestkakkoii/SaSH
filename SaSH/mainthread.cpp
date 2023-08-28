@@ -408,6 +408,9 @@ int MainObject::checkAndRunFunctions()
 		}
 
 		injector.server->loginTimer.restart();
+
+		injector.server->battle_total_time.store(0, std::memory_order_release);
+
 		PC pc = injector.server->getPC();
 		util::AfkRecorder recorder;
 		recorder.levelrecord = pc.level;
@@ -498,6 +501,12 @@ int MainObject::checkAndRunFunctions()
 		//檢查開關 (隊伍、交易、名片...等等)
 		checkEtcFlag();
 
+		//自動鎖寵
+		checkAutoLockPet();
+
+		//鎖寵排程
+		checkAutoLockSchedule();
+
 		//自動組隊、跟隨
 		checkAutoJoin();
 
@@ -515,12 +524,6 @@ int MainObject::checkAndRunFunctions()
 
 		//檢查自動吃道具
 		checkAutoEatBoostExpItem();
-
-		//自動鎖寵
-		checkAutoLockPet();
-
-		//鎖寵排程
-		checkAutoLockSchedule();
 
 		//自動疊加
 		checkAutoSortItem();
@@ -632,19 +635,7 @@ void MainObject::battleTimeThread()
 		if (isInterruptionRequested())
 			break;
 
-		//刷新要顯示的戰鬥時間和相關數據
-		double time = injector.server->battleDurationTimer.elapsed() / 1000.0;
-		QString battle_time_text = QString(tr("%1 count    no %2 round    duration: %3 sec    total time: %4 minues"))
-			.arg(injector.server->battle_totol)
-			.arg(injector.server->battleCurrentRound + 1)
-			.arg(QString::number(time, 'f', 3))
-			.arg(injector.server->battle_total_time / 1000 / 60);
-
-		if (battle_time_text.isEmpty() || injector.server->timeLabelContents != battle_time_text)
-		{
-			injector.server->timeLabelContents = battle_time_text;
-			emit signalDispatcher.updateTimeLabelContents(battle_time_text);
-		}
+		injector.server->updateBattleTimeInfo();
 		QThread::msleep(50);
 	}
 	battleTime_future_cancel_flag_.store(false, std::memory_order_release);
@@ -1819,21 +1810,6 @@ void MainObject::checkAutoLockPet()
 		return;
 
 	bool iswait = false;
-	bool enableLockPet = injector.getEnableHash(util::kLockPetEnable) && !injector.getEnableHash(util::kLockPetScheduleEnable);
-	if (enableLockPet)
-	{
-		int lockPetIndex = injector.getValueHash(util::kLockPetValue);
-		if (lockPetIndex >= 0 && lockPetIndex < MAX_PET)
-		{
-			PET pet = injector.server->getPet(lockPetIndex);
-			if (pet.state != PetState::kBattle)
-			{
-				injector.server->setPetState(lockPetIndex, kBattle);
-				iswait = true;
-			}
-		}
-	}
-
 	bool enableLockRide = injector.getEnableHash(util::kLockRideEnable) && !injector.getEnableHash(util::kLockPetScheduleEnable);
 	if (enableLockRide)
 	{
@@ -1844,6 +1820,21 @@ void MainObject::checkAutoLockPet()
 			if (pet.state != PetState::kRide)
 			{
 				injector.server->setPetState(lockRideIndex, kRide);
+				iswait = true;
+			}
+		}
+	}
+
+	bool enableLockPet = injector.getEnableHash(util::kLockPetEnable) && !injector.getEnableHash(util::kLockPetScheduleEnable);
+	if (enableLockPet)
+	{
+		int lockPetIndex = injector.getValueHash(util::kLockPetValue);
+		if (lockPetIndex >= 0 && lockPetIndex < MAX_PET)
+		{
+			PET pet = injector.server->getPet(lockPetIndex);
+			if (pet.state != PetState::kBattle)
+			{
+				injector.server->setPetState(lockPetIndex, kBattle);
 				iswait = true;
 			}
 		}

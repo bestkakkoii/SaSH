@@ -734,7 +734,7 @@ bool Interpreter::compare(CompareArea area, const TokenMap& TK)
 			if (injector.server->getItemIndexsByName(itemName, itemMemo, &v))
 			{
 				for (const int it : v)
-					count += _pc.item[it].pile;
+					count += _pc.item[it].stack;
 			}
 
 			a = count;

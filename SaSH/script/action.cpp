@@ -156,7 +156,7 @@ qint64 Interpreter::useitem(qint64, const TokenMap& TK)
 				for (const qint64& it : v)
 				{
 					ITEM item = pc.item[it];
-					qint64 size = pc.item[it].pile;
+					qint64 size = pc.item[it].stack;
 					for (qint64 i = 0; i < size; ++i)
 					{
 						injector.server->useItem(it, 0);
@@ -195,7 +195,7 @@ qint64 Interpreter::useitem(qint64, const TokenMap& TK)
 				for (const qint64& it : v)
 				{
 					ITEM item = pc.item[it];
-					qint64 size = pc.item[it].pile;
+					qint64 size = pc.item[it].stack;
 					for (qint64 i = 0; i < size; ++i)
 					{
 						injector.server->useItem(it, 0);

@@ -401,7 +401,7 @@ bool CLuaUtil::getItem(sol::table dstTable, sol::this_state s)
 		dstTable[i + 1]["color"] = item.color;
 		dstTable[i + 1]["modelid"] = item.modelid;
 		dstTable[i + 1]["lv"] = item.level;
-		dstTable[i + 1]["stack"] = item.pile;
+		dstTable[i + 1]["stack"] = item.stack;
 		dstTable[i + 1]["alch"] = item.alch.toUtf8().constData();
 		dstTable[i + 1]["valid"] = item.valid;
 		dstTable[i + 1]["field"] = item.field;

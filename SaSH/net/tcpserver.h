@@ -185,6 +185,7 @@ enum BufferControl
 	BC_NEED_TO_CLEAN,
 	BC_HAS_NEXT,
 	BC_ABOUT_TO_END,
+	BC_INVALID,
 };
 
 class MapAnalyzer;
@@ -430,6 +431,7 @@ public://actions
 	void setBattleEnd();
 
 	void reloadHashVar(const QString& typeStr);
+	void updateBattleTimeInfo();
 
 	MAGIC getMagic(int magicIndex) const { return magic[magicIndex]; }
 	PROFESSION_SKILL getSkill(int skillIndex) const { return profession_skill[skillIndex]; }
@@ -880,10 +882,12 @@ public:
 	QElapsedTimer loginTimer;
 	QElapsedTimer battleDurationTimer;
 	QElapsedTimer normalDurationTimer;
+	QElapsedTimer oneRoundDurationTimer;
 
-	int battleCurrentRound = 0;
-	int battle_total_time = 0;
-	int battle_totol = 0;
+	std::atomic_int battleCurrentRound = 0;
+	std::atomic_llong battle_total_time = 0;
+	std::atomic_int battle_total = 0;
+	std::atomic_llong battle_one_round_time = 0;
 
 	int nowFloor = 0;
 	util::SafeData<QPoint> nowPoint;

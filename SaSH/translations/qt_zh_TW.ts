@@ -1698,7 +1698,7 @@ No new version available. Do you still want to update?</source>
     </message>
     <message>
         <source>%1 count    no %2 round    duration: %3 sec    total time: %4 minues</source>
-        <translation>第 %1 局&#x3000;&#x3000;第 %2 回合&#x3000;&#x3000;回合時間: %3 秒&#x3000;&#x3000;累積時間: %4 分鐘</translation>
+        <translation type="vanished">第 %1 局&#x3000;&#x3000;第 %2 回合&#x3000;&#x3000;回合時間: %3 秒&#x3000;&#x3000;累積時間: %4 分鐘</translation>
     </message>
     <message>
         <source>%1 (avg exp: %2)</source>
@@ -1719,6 +1719,14 @@ No new version available. Do you still want to update?</source>
     <message>
         <source>&lt;error&gt;battle time out</source>
         <translation type="vanished">&lt;錯誤&gt;戰鬥超時</translation>
+    </message>
+    <message>
+        <source>%1 count    no %2 round    duration: %3 sec    cost: %4ms    total time: %5 minues</source>
+        <translation type="vanished">第 %1 局&#x3000;&#x3000;第 %2 回合&#x3000;&#x3000;局時間: %3 秒&#x3000;&#x3000;回合時間: %4 毫秒&#x3000;&#x3000;累積時間: %5 分鐘</translation>
+    </message>
+    <message>
+        <source>%1 count    no %2 round    duration: %3 sec    cost: %4 sec    total time: %5 minues</source>
+        <translation type="vanished">第 %1 局&#x3000;&#x3000;第 %2 回合&#x3000;&#x3000;局時間: %3 秒&#x3000;&#x3000;回合時間: %4 秒&#x3000;&#x3000;累積時間: %5 分鐘</translation>
     </message>
 </context>
 <context>
@@ -2868,6 +2876,10 @@ No new version available. Do you still want to update?</source>
     <message>
         <source>invalid value of &apos;color&apos;</source>
         <translation>數值 &apos;color&apos; 不合法</translation>
+    </message>
+    <message>
+        <source>%1 count    no %2 round    duration: %3 sec    cost: %4 sec    total time: %5 minues</source>
+        <translation>第 %1 局&#x3000;&#x3000;第 %2 回合&#x3000;&#x3000;局時間: %3 秒&#x3000;&#x3000;回合時間: %4 秒&#x3000;&#x3000;累積時間: %5 分鐘</translation>
     </message>
 </context>
 <context>

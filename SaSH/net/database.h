@@ -1186,7 +1186,7 @@ typedef struct tagITEM
 	int modelid = 0;
 	int level = 0;
 #ifdef _ITEM_PILENUMS
-	int pile = 0;
+	int stack = 0;
 #endif
 #ifdef _ALCHEMIST //#ifdef _ITEMSET7_TXT
 	QString alch;
