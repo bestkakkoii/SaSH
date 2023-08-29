@@ -1225,7 +1225,6 @@ void ScriptSettingForm::on_widget_cursorPositionChanged(int line, int index)
 
 void ScriptSettingForm::on_widget_textChanged()
 {
-	ui.widget->selectToMatchingBrace();
 	Injector& injector = Injector::getInstance();
 	const QString text(ui.widget->text());
 	if (m_scripts.value(injector.currentScriptFileName, "") != text)
@@ -1297,13 +1296,13 @@ void ScriptSettingForm::onScriptLabelRowTextChanged(int line, int, bool)
 	//ui.widget->setCursorPosition(line, ui.widget->SendScintilla(QsciScintilla::SCI_LINELENGTH, line) - 1);
 	//ui.widget->SendScintilla(QsciScintilla::SCI_SETSELECTIONMODE, QsciScintilla::SC_SEL_LINES);
 	QString text = ui.widget->text(line - 1);
-	ui.widget->setCursorPosition(line - 1, text.size());
+	//ui.widget->setCursorPosition(line - 1 - 1, text.size());
 	ui.widget->setSelection(line - 1, 0, line - 1, text.size());
 	ui.widget->setCaretLineBackgroundColor(QColor(71, 71, 71));//光標所在行背景顏色
 	ui.widget->setUpdatesEnabled(true);
 
 	//確保光標示在可視範圍內
-	//ui.widget->ensureLineVisible(line);
+	ui.widget->ensureLineVisible(line - 1);
 }
 
 //切換光標和焦點所在行
@@ -1312,7 +1311,7 @@ void ScriptSettingForm::onEditorCursorPositionChanged(int line, int index)
 	if (line < 0)
 		line = 0;
 
-	ui.widget->setCursorPosition(line, ui.widget->SendScintilla(QsciScintilla::SCI_LINELENGTH, line - 1) - 1);
+	//ui.widget->setCursorPosition(line, ui.widget->SendScintilla(QsciScintilla::SCI_LINELENGTH, line - 1) - 1);
 	ui.widget->SendScintilla(QsciScintilla::SCI_SETSELECTIONMODE, QsciScintilla::SC_SEL_LINES);
 
 	if (NULL == index)
@@ -1321,7 +1320,7 @@ void ScriptSettingForm::onEditorCursorPositionChanged(int line, int index)
 		ui.widget->setCaretLineBackgroundColor(QColor(0xff, 0x80, 0x80));//光標所在行背景顏色
 
 	//確保光標示在可視範圍內
-	ui.widget->ensureLineVisible(line);
+	ui.widget->ensureLineVisible(line - 1);
 }
 
 //標記列表點擊
@@ -1992,10 +1991,10 @@ void ScriptSettingForm::on_treeWidget_breakList_itemDoubleClicked(QTreeWidgetIte
 	if (!item->text(3).isEmpty() && item->text(3) == injector.currentScriptFileName)
 	{
 		int line = item->text(2).toInt();
-		ui.widget->setCursorPosition(line, 0);
+		//ui.widget->setCursorPosition(line, 0);
 		QString text = ui.widget->text(line - 1);
 		ui.widget->setSelection(line - 1, 0, line - 1, text.length());
-		ui.widget->ensureLineVisible(line);
+		ui.widget->ensureLineVisible(line - 1);
 	}
 }
 
@@ -2016,10 +2015,10 @@ void ScriptSettingForm::on_listView_log_doubleClicked(const QModelIndex& index)
 
 		if (!line.isEmpty())
 		{
-			ui.widget->setCursorPosition(line.toInt(), 0);
+			//ui.widget->setCursorPosition(line.toInt(), 0);
 			text = ui.widget->text(line.toInt() - 1);
 			ui.widget->setSelection(line.toInt() - 1, 0, line.toInt() - 1, text.length());
-			ui.widget->ensureLineVisible(line.toInt());
+			ui.widget->ensureLineVisible(line.toInt() - 1);
 			return;
 		}
 	}
@@ -2032,10 +2031,10 @@ void ScriptSettingForm::on_listView_log_doubleClicked(const QModelIndex& index)
 		QString line = match.captured(1);
 		if (!line.isEmpty())
 		{
-			ui.widget->setCursorPosition(line.toInt(), 0);
+			//ui.widget->setCursorPosition(line.toInt(), 0);
 			text = ui.widget->text(line.toInt() - 1);
 			ui.widget->setSelection(line.toInt() - 1, 0, line.toInt() - 1, text.length());
-			ui.widget->ensureLineVisible(line.toInt());
+			ui.widget->ensureLineVisible(line.toInt() - 1);
 			return;
 		}
 	}
@@ -2109,7 +2108,7 @@ void ScriptSettingForm::onDecryptSave()
 	{
 		ui.statusBar->showMessage(tr("Decrypt password can not be empty"), 3000);
 		return;
-}
+	}
 
 	Crypto crypto;
 	QString content;

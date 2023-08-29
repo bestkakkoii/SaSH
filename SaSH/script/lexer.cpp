@@ -392,6 +392,8 @@ static const QHash<QString, RESERVE> keywords = {
 	{ u8"ocr", TK_CMD },
 	{ u8"dlg", TK_CMD },
 	{ u8"regex", TK_CMD },
+	{ u8"rex", TK_CMD },
+	{ u8"rexg", TK_CMD },
 	{ u8"find", TK_CMD },
 	{ u8"half", TK_CMD },
 	{ u8"full", TK_CMD },
@@ -481,6 +483,8 @@ void Lexer::tokenized(qint64 currentLine, const QString& line, TokenMap* ptoken,
 		static const QRegularExpression rexCallFunction(R"(([\w\p{Han}]+)\s*\(([\w\W\p{Han}]*)\))");
 		static const QRegularExpression rexCallFor(R"([fF][oO][rR]\s*\(*([\w\p{Han}]+)\s*=\s*([^,]+)\s*,\s*([^,]+)\s*[\)]*)");
 		static const QRegularExpression rexCallFor2(R"([fF][oO][rR]\s*\(*([\w\p{Han}]+)\s*=\s*([^,]+)\s*,\s*([^,]+)\s*,\s*([^,\)]+)\s*[\)]*)");
+		static const QRegularExpression rexTable(R"(([\w\d\p{Han}]+)\s*=\s*(\{[\s\S]*\}))");
+		static const QRegularExpression rexLocalTable(R"([lL][oO][cC][aA][lL]\s+([\w\d\p{Han}]+)\s*=\s*(\{[\s\S]*\}))");
 		//處理if正則
 		if (raw.contains(varIf))
 		{
@@ -501,6 +505,32 @@ void Lexer::tokenized(qint64 currentLine, const QString& line, TokenMap* ptoken,
 					else
 						createToken(pos + 2, TK_STRING, exprList.at(1), exprList.at(1), ptoken);
 				}
+				break;
+			}
+		}
+		//處理單一全局數組
+		else if (raw.count("=") == 1 && raw.contains(rexLocalTable) && !raw.front().isDigit() && raw.contains("{") && raw.contains("}"))
+		{
+			QRegularExpressionMatch match = rexLocalTable.match(raw);
+			if (match.hasMatch())
+			{
+				QString varName = match.captured(1).simplified();
+				QString expr = match.captured(2).simplified();
+				createToken(pos, TK_LOCALTABLE, varName, varName, ptoken);
+				createToken(pos + 1, TK_LOCALTABLE, expr, expr, ptoken);
+				break;
+			}
+		}
+		//處理單一局數組
+		else if (raw.count("=") == 1 && raw.contains(rexTable) && !raw.front().isDigit() && raw.contains("{") && raw.contains("}"))
+		{
+			QRegularExpressionMatch match = rexTable.match(raw);
+			if (match.hasMatch())
+			{
+				QString varName = match.captured(1).simplified();
+				QString expr = match.captured(2).simplified();
+				createToken(pos, TK_TABLE, varName, varName, ptoken);
+				createToken(pos + 1, TK_TABLE, expr, expr, ptoken);
 				break;
 			}
 		}

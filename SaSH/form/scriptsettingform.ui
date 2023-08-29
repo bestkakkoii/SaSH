@@ -1305,6 +1305,16 @@ color: rgb(208, 208, 208);
            </item>
            <item>
             <property name="text">
+             <string>rexg</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>rex</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
              <string>replace</string>
             </property>
            </item>

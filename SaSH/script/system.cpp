@@ -764,6 +764,7 @@ qint64 Interpreter::set(qint64 currentline, const TokenMap& TK)
 			{ u8"PK開關", util::kSwitcherPKEnable },
 			{ u8"交名開關", util::kSwitcherCardEnable },
 			{ u8"交易開關", util::kSwitcherTradeEnable },
+			{ u8"組頻開關", util::kSwitcherGroupEnable },
 			{ u8"家頻開關", util::kSwitcherFamilyEnable },
 			{ u8"職頻開關", util::kSwitcherJobEnable },
 			{ u8"世界開關", util::kSwitcherWorldEnable },
@@ -887,6 +888,7 @@ qint64 Interpreter::set(qint64 currentline, const TokenMap& TK)
 			{ u8"PK开关", util::kSwitcherPKEnable },
 			{ u8"交名开关", util::kSwitcherCardEnable },
 			{ u8"交易开关", util::kSwitcherTradeEnable },
+			{ u8"组频开关", util::kSwitcherGroupEnable },
 			{ u8"家频开关", util::kSwitcherFamilyEnable },
 			{ u8"职频开关", util::kSwitcherJobEnable },
 			{ u8"世界开关", util::kSwitcherWorldEnable },
@@ -1098,6 +1100,7 @@ qint64 Interpreter::set(qint64 currentline, const TokenMap& TK)
 	case util::kSwitcherPKEnable:
 	case util::kSwitcherCardEnable:
 	case util::kSwitcherTradeEnable:
+	case util::kSwitcherGroupEnable:
 	case util::kSwitcherFamilyEnable:
 	case util::kSwitcherJobEnable:
 	case util::kSwitcherWorldEnable:
@@ -1123,8 +1126,8 @@ qint64 Interpreter::set(qint64 currentline, const TokenMap& TK)
 				injector.server->doBattleWork(true);//async
 		}
 		else if (type == util::kAutoWalkEnable && ok)
-			injector.setEnableHash(util::kFastWalkEnable, !ok);
-		else if (type == util::kFastWalkEnable && ok)
+			injector.setEnableHash(util::kFastAutoWalkEnable, !ok);
+		else if (type == util::kFastAutoWalkEnable && ok)
 			injector.setEnableHash(util::kAutoWalkEnable, !ok);
 
 		emit signalDispatcher.applyHashSettingsToUI();
@@ -1610,6 +1613,105 @@ qint64 Interpreter::regex(qint64 currentline, const TokenMap& TK)
 	return Parser::kNoChange;
 }
 
+qint64 Interpreter::rex(qint64 currentline, const TokenMap& TK)
+{
+	QString src;
+	if (!checkString(TK, 1, &src))
+		return Parser::kArgError + 1ll;
+	if (src.isEmpty())
+		return Parser::kArgError + 1ll;
+
+	QString expr;
+	if (!checkString(TK, 2, &expr))
+		return Parser::kArgError + 2ll;
+	if (expr.isEmpty())
+		return Parser::kArgError + 2ll;
+
+	QString varName = TK.value(3).data.toString();
+	if (varName.isEmpty())
+		return Parser::kArgError + 4ll;
+
+	QString varRefSize = TK.value(4).data.toString();
+
+	const QRegularExpression regex(expr);
+
+	QRegularExpressionMatch match = regex.match(src);
+	if (!varRefSize.isEmpty())
+		parser_.insertVar(varRefSize, match.lastCapturedIndex() + 1);
+
+	QStringList resultList;
+
+	for (qint64 i = 4; i < TK.size(); ++i)
+	{
+
+		if (varName.isEmpty())
+			continue;
+
+		if (match.hasMatch())
+		{
+			qint64 capture = i - 4;
+			if (capture < 0 || capture > match.lastCapturedIndex())
+				continue;
+
+			QString result = match.captured(capture);
+			resultList.append(QString("'%1'").arg(result));
+		}
+	}
+
+	parser_.insertVar(varName, QString("{ %1 }").arg(resultList.join(", ")));
+
+	return Parser::kNoChange;
+}
+
+qint64 Interpreter::rexg(qint64 currentline, const TokenMap& TK)
+{
+	QString src;
+	if (!checkString(TK, 1, &src))
+		return Parser::kArgError + 1ll;
+	if (src.isEmpty())
+		return Parser::kArgError + 1ll;
+
+	QString expr;
+	if (!checkString(TK, 2, &expr))
+		return Parser::kArgError + 2ll;
+	if (expr.isEmpty())
+		return Parser::kArgError + 2ll;
+
+	QString varName = TK.value(3).data.toString();
+	if (varName.isEmpty())
+		return Parser::kArgError + 3ll;
+
+	QString varRefSize = TK.value(4).data.toString();
+
+	const QRegularExpression regex(expr);
+
+	QRegularExpressionMatchIterator matchs = regex.globalMatch(src);
+	qint64 n = 0;
+
+	int i = 4;
+	QStringList resultList;
+	while (matchs.hasNext())
+	{
+		QRegularExpressionMatch match = matchs.next();
+
+		if (match.hasMatch())
+		{
+			for (const auto& capture : match.capturedTexts())
+			{
+				++n;
+				resultList.append(QString("'%1'").arg(capture));
+			}
+		}
+	}
+
+	if (!varRefSize.isEmpty())
+		parser_.insertVar(varRefSize, n);
+
+	parser_.insertVar(varName, QString("{ %1 }").arg(resultList.join(", ")));
+
+	return Parser::kNoChange;
+}
+
 qint64 Interpreter::find(qint64 currentline, const TokenMap& TK)
 {
 	QString varName = TK.value(1).data.toString();
@@ -1856,8 +1958,8 @@ qint64 Interpreter::ocr(qint64 currentline, const TokenMap& TK)
 		{
 			if (debugmode == 0)
 				injector.server->inputtext(ret);
-		}
-	}
+}
+}
 #endif
 
 	return Parser::kNoChange;

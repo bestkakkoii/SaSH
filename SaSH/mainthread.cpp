@@ -270,6 +270,7 @@ void MainObject::mainProc()
 		if (status == 1)//非登入狀態
 		{
 			QThread::msleep(100);
+			nodelay = true;
 			continue;
 		}
 		else if (status == 2)//平時
@@ -317,7 +318,6 @@ int MainObject::checkAndRunFunctions()
 		case util::kStatusSelectServer:
 		case util::kStatusSelectSubServer:
 		case util::kStatusSelectCharacter:
-		case util::kStatusDisconnect:
 		case util::kStatusTimeout:
 		case util::kStatusBusy:
 		case util::kStatusConnecting:
@@ -330,13 +330,6 @@ int MainObject::checkAndRunFunctions()
 
 				SPD_CLOSE(injector.server->protoBattleLogName.toStdString());
 
-				//for (int i = 0; i < 15; ++i)
-				//{
-				//	if (isInterruptionRequested())
-				//		return 0;
-				//	QThread::msleep(100);
-				//}
-
 				injector.server->clear();
 				if (!injector.chatLogModel.isNull())
 					injector.chatLogModel->clear();
@@ -344,11 +337,14 @@ int MainObject::checkAndRunFunctions()
 
 			injector.server->loginTimer.restart();
 			//自動登入 或 斷線重連
-			if (injector.getEnableHash(util::kAutoLoginEnable) || injector.getEnableHash(util::kAutoReconnectEnable))
-			{
-				if (injector.server->login(status))
-					QThread::msleep(0);
-			}
+			if (injector.getEnableHash(util::kAutoLoginEnable) || injector.server->IS_DISCONNECTED)
+				injector.server->login(status);
+			return 1;
+		}
+		case util::kStatusDisconnect:
+		{
+			if (injector.getEnableHash(util::kAutoReconnectEnable))
+				injector.server->login(status);
 			return 1;
 		}
 		}
@@ -890,6 +886,17 @@ void MainObject::checkEtcFlag()
 			flg |= PC_ETCFLAG_TRADE;
 		else
 			flg &= ~PC_ETCFLAG_TRADE;
+
+		hasChange = true;
+	}
+
+	bCurrent = injector.getEnableHash(util::kSwitcherGroupEnable);
+	if (toBool(PC_ETCFLAG_PARTY_CHAT) != bCurrent)
+	{
+		if (bCurrent)
+			flg |= PC_ETCFLAG_PARTY_CHAT;
+		else
+			flg &= ~PC_ETCFLAG_PARTY_CHAT;
 
 		hasChange = true;
 	}

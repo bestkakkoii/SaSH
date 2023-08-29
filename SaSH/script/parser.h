@@ -551,6 +551,7 @@ private:
 	void processVariableCAOs();
 	void processVariableExpr();
 	void processMultiVariable();
+	void processTable();
 	void processFormation();
 	void processRandom();
 	bool processCall();

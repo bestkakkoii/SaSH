@@ -47,7 +47,7 @@ const char* Highlighter::keywords(int set) const
 			"wequip pequip puequip skup join leave kick move "
 			"walkpos w dir findpath movetonpc lclick rclick ldbclick dragto warp "
 			"learn trade run dostring sellpet mail reg "
-			"regex upper lower half toint tostr todb replace find full "
+			"regex rex rexg upper lower half toint tostr todb replace find full "
 			"bh bj bp bs be bd bi bn bw bwf bwait bend "
 			"dofile createch delch doffstone ";
 	}

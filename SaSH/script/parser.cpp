@@ -1027,12 +1027,21 @@ bool Parser::importVariablesToLua(const QString& expr)
 		QString value = it.value().toString();
 		if (it.value().type() == QVariant::String)
 		{
-			bool ok = false;
-			it.value().toInt(&ok);
-			if (!ok || value.isEmpty())
-				lua_.set(keyBytes.constData(), value.toUtf8().constData());
-			else
-				lua_.set(keyBytes.constData(), it.value().toLongLong());
+			if (!value.startsWith("{") && !value.endsWith("}"))
+			{
+				bool ok = false;
+				it.value().toInt(&ok);
+				if (!ok || value.isEmpty())
+					lua_.set(keyBytes.constData(), value.toUtf8().constData());
+				else
+					lua_.set(keyBytes.constData(), it.value().toLongLong());
+			}
+			else//table
+			{
+				QString content = QString("%1 = %2;").arg(key).arg(value);
+				std::string contentBytes = content.toUtf8().constData();
+				lua_.safe_script(contentBytes);
+			}
 		}
 		else
 			lua_.set(keyBytes.constData(), it.value().toLongLong());
@@ -1044,10 +1053,11 @@ bool Parser::importVariablesToLua(const QString& expr)
 	{
 		QString key = it.key();
 		QString value = it.value().toString();
-		if (it.value().type() == QVariant::String)
+		if (it.value().type() == QVariant::String && !value.startsWith("{") && !value.endsWith("}"))
 		{
 			bool ok = false;
 			it.value().toInt(&ok);
+
 			if (!ok || value.isEmpty())
 				value = QString("'%1'").arg(value);
 		}
@@ -1077,19 +1087,19 @@ bool Parser::updateSysConstKeyword(const QString& expr)
 	static const QRegularExpression rexPlayer(R"(char\.(\w+))");
 	const QRegularExpression rexPet(rexStart + rexMiddleStart + rexMiddleMid + rexMEnd + rexExtra);
 
-	rexStart = "pet";
-	const QRegularExpression rexPetEx(rexStart + rexMiddleStart + rexMiddleMid + rexMEnd);
+	static const QRegularExpression rexPetEx(R"(pet\.(\w+))");
 
 	static const QRegularExpression rexItem(R"(item\[([\w\p{Han}]+)\]\.(\w+))");
 
 	rexStart = "item";
 	const QRegularExpression rexItemEx(rexStart + rexMiddleStart + rexMiddleMid + rexMEnd + rexExtra);
 
-	rexStart = "team";
-	const QRegularExpression rexTeamEx(rexStart + rexMiddleStart + rexMiddleMid + rexMEnd);
+	static const QRegularExpression rexItemSup(R"(item\.(\w+))");
 
 	rexStart = "team";
 	const QRegularExpression rexTeam(rexStart + rexMiddleStart + rexMiddleMid + rexMEnd + rexExtra);
+
+	static const QRegularExpression rexTeamEx(R"(team\.(\w+))");
 
 	static const QRegularExpression rexMap(R"(map\.(\w+))");
 
@@ -1105,8 +1115,7 @@ bool Parser::updateSysConstKeyword(const QString& expr)
 	rexStart = "battle";
 	const QRegularExpression rexBattle(rexStart + rexMiddleStart + rexMiddleMid + rexMEnd + rexExtra);
 
-	rexStart = "battle";
-	const QRegularExpression rexBattleEx(rexStart + rexMiddleStart + rexMiddleMid + rexMEnd);
+	static const QRegularExpression rexBattleEx(R"(battle\.(\w+))");
 
 	rexStart = "dialog";
 	const QRegularExpression rexDialog(rexStart + rexMiddleStart + rexMiddleMid + rexMEnd);
@@ -1231,6 +1240,8 @@ bool Parser::updateSysConstKeyword(const QString& expr)
 
 			lua_["pet"][index]["def"] = pet.def;
 
+			lua_["pet"][index]["agi"] = pet.agi;
+
 			lua_["pet"][index]["loyal"] = pet.loyal;
 
 			lua_["pet"][index]["turn"] = pet.transmigration;
@@ -1251,7 +1262,7 @@ bool Parser::updateSysConstKeyword(const QString& expr)
 		}
 	}
 
-	//pet\[(?:'([^']*)'|"([^ "]*)"|(\d+))\]
+	//pet\.(\w+)
 	match = rexPetEx.match(expr);
 	if (match.hasMatch())
 	{
@@ -1406,6 +1417,24 @@ bool Parser::updateSysConstKeyword(const QString& expr)
 		}
 	}
 
+	//item\.(\w+)
+	match = rexItemSup.match(expr);
+	if (match.hasMatch())
+	{
+		bret = true;
+		if (!lua_["item"].valid())
+			lua_["item"] = lua_.create_table();
+		else
+		{
+			if (!lua_["item"].is<sol::table>())
+				lua_["item"] = lua_.create_table();
+		}
+
+		QVector<int> itemIndexs;
+		injector.server->getItemEmptySpotIndexs(&itemIndexs);
+		lua_["item"]["space"] = itemIndexs.size();
+	}
+
 	//team\[(?:'([^']*)'|"([^ "]*)"|(\d+))\]\.(\w+)
 	match = rexTeam.match(expr);
 	if (match.hasMatch())
@@ -1445,7 +1474,7 @@ bool Parser::updateSysConstKeyword(const QString& expr)
 		}
 	}
 
-	//team\[(?:'([^']*)'|"([^ "]*)"|(\d+))\]
+	//team\.(\w+)
 	match = rexTeamEx.match(expr);
 	if (match.hasMatch())
 	{
@@ -1637,7 +1666,7 @@ bool Parser::updateSysConstKeyword(const QString& expr)
 
 			lua_["battle"][index]["fname"] = obj.freeName.toUtf8().constData();
 
-			lua_["battle"][index]["model"] = obj.modelid;
+			lua_["battle"][index]["modelid"] = obj.modelid;
 
 			lua_["battle"][index]["lv"] = obj.level;
 
@@ -1663,7 +1692,7 @@ bool Parser::updateSysConstKeyword(const QString& expr)
 		}
 	}
 
-	//battle\[(?:'([^']*)'|"([^ "]*)"|(\d+))\]
+	//battle\.(\w+)
 	match = rexBattleEx.match(expr);
 	if (match.hasMatch())
 	{
@@ -1687,7 +1716,6 @@ bool Parser::updateSysConstKeyword(const QString& expr)
 		lua_["battle"]["totaldura"] = static_cast<qint64>(injector.server->battle_total_time.load(std::memory_order_acquire) / 1000 / 60);
 
 		lua_["battle"]["totalcombat"] = injector.server->battle_total.load(std::memory_order_acquire);
-
 	}
 
 	//dialog\[(?:'([^']*)'|"([^ "]*)"|(\d+))\]
@@ -2468,6 +2496,18 @@ void Parser::processMultiVariable()
 		insertVar(varName, varValue);
 		firstValue = varValue;
 	}
+}
+
+//處理數組(表)
+void Parser::processTable()
+{
+	QString varName = getToken<QString>(0);
+	QString expr = getToken<QString>(1);
+	RESERVE type = getTokenType(1);
+	if (type == TK_LOCALTABLE)
+		insertLocalVar(varName, expr);
+	else
+		insertGlobalVar(varName, expr);
 }
 
 //處理變量自增自減
@@ -3984,6 +4024,12 @@ void Parser::processTokens()
 		case TK_VARCLR:
 		{
 			processVariable(currentType);
+			break;
+		}
+		case TK_TABLE:
+		case TK_LOCALTABLE:
+		{
+			processTable();
 			break;
 		}
 		case TK_MULTIVAR:

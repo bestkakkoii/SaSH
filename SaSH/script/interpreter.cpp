@@ -1081,6 +1081,8 @@ void Interpreter::openLibsUTF8()
 
 	//core
 	registerFunction(u8"regex", &Interpreter::regex);
+	registerFunction(u8"rex", &Interpreter::rex);
+	registerFunction(u8"rexg", &Interpreter::rexg);
 	registerFunction(u8"find", &Interpreter::find);
 	registerFunction(u8"half", &Interpreter::half);
 	registerFunction(u8"full", &Interpreter::full);

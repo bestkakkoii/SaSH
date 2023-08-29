@@ -40,6 +40,8 @@ enum RESERVE
 	TK_INT,			//任何整數
 	TK_DOUBLE,		//任何符點數
 	TK_BOOL,		//"真" "假" "true" 或 "false"
+	TK_TABLE,
+	TK_LOCALTABLE,
 
 	//邏輯符號
 	TK_GT,  //">"

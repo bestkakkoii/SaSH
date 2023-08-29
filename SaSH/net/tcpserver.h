@@ -862,8 +862,6 @@ private:
 
 public:
 	//custom
-	bool disconnectflag = false;
-
 	bool IS_TRADING = false;
 
 	bool IS_TCP_CONNECTION_OK_TO_USE = false;
@@ -874,6 +872,8 @@ public:
 	bool IS_WAITFOR_EXTRA_DIALOG_INFO_FLAG = false;
 
 	bool IS_WAITFOR_CUSTOM_DIALOG_FLAG = false;
+
+	bool IS_DISCONNECTED = false;
 
 	std::atomic_bool  isBattleDialogReady = false;
 	std::atomic_bool isEOTTLSend = false;

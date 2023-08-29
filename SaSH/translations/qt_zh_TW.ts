@@ -1001,7 +1001,7 @@
     </message>
     <message>
         <source>PM</source>
-        <translation>密</translation>
+        <translation type="vanished">密</translation>
     </message>
     <message>
         <source>FM</source>
@@ -1094,6 +1094,10 @@
     <message>
         <source>afk</source>
         <translation>掛機</translation>
+    </message>
+    <message>
+        <source>GM</source>
+        <translation>組</translation>
     </message>
 </context>
 <context>
@@ -1628,7 +1632,7 @@ No new version available. Do you still want to update?</source>
     </message>
     <message>
         <source>login failed</source>
-        <translation type="unfinished"></translation>
+        <translation>登入失敗</translation>
     </message>
 </context>
 <context>
@@ -4157,6 +4161,14 @@ No new version available. Do you still want to update?</source>
     </message>
     <message>
         <source>doffstone</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>rexg</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>rex</source>
         <translation></translation>
     </message>
 </context>

@@ -220,6 +220,8 @@ private: //註冊給Parser的函數
 	qint64 ocr(qint64 currentline, const TokenMap& TK);
 	qint64 dlg(qint64 currentline, const TokenMap& TK);
 	qint64 regex(qint64 currentline, const TokenMap& TK);
+	qint64 rex(qint64 currentline, const TokenMap& TK);
+	qint64 rexg(qint64 currentline, const TokenMap& TK);
 	qint64 find(qint64 currentline, const TokenMap& TK);
 	qint64 half(qint64 currentline, const TokenMap& TK);
 	qint64 full(qint64 currentline, const TokenMap& TK);

@@ -94,12 +94,12 @@
      </widget>
     </item>
     <item row="1" column="0">
-     <widget class="QCheckBox" name="checkBox_switcher_pm">
+     <widget class="QCheckBox" name="checkBox_switcher_group">
       <property name="enabled">
-       <bool>false</bool>
+       <bool>true</bool>
       </property>
       <property name="text">
-       <string>PM</string>
+       <string>GM</string>
       </property>
      </widget>
     </item>

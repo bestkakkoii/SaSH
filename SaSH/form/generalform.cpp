@@ -772,6 +772,12 @@ void GeneralForm::onCheckBoxStateChanged(int state)
 		return;
 	}
 
+	if (name == "checkBox_switcher_group")
+	{
+		injector.setEnableHash(util::kSwitcherGroupEnable, isChecked);
+		return;
+	}
+
 	if (name == "checkBox_switcher_family")
 	{
 		injector.setEnableHash(util::kSwitcherFamilyEnable, isChecked);
@@ -1002,7 +1008,7 @@ void GeneralForm::onApplyHashSettingsToUI()
 	ui.checkBox_switcher_pk->setChecked(enableHash.value(util::kSwitcherPKEnable));
 	ui.checkBox_switcher_card->setChecked(enableHash.value(util::kSwitcherCardEnable));
 	ui.checkBox_switcher_trade->setChecked(enableHash.value(util::kSwitcherTradeEnable));
-	ui.checkBox_switcher_pm->setChecked(enableHash.value(util::kSwitcherFamilyEnable));
+	ui.checkBox_switcher_group->setChecked(enableHash.value(util::kSwitcherGroupEnable));
 	ui.checkBox_switcher_family->setChecked(enableHash.value(util::kSwitcherFamilyEnable));
 	ui.checkBox_switcher_job->setChecked(enableHash.value(util::kSwitcherJobEnable));
 	ui.checkBox_switcher_world->setChecked(enableHash.value(util::kSwitcherWorldEnable));
