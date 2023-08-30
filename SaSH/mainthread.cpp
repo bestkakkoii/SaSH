@@ -458,6 +458,15 @@ int MainObject::checkAndRunFunctions()
 		injector.serverNameList = serverNameList;
 		injector.subServerNameList = subServerNameList;
 
+		QStringList itemList;
+		for (const ITEM& it : pc.item)
+		{
+			if (it.name.isEmpty())
+				continue;
+			itemList.append(it.name);
+		}
+
+		emit signalDispatcher.updateComboBoxItemText(util::kComboBoxItem, itemList);
 		emit signalDispatcher.updateNpcList(injector.server->nowFloor);
 		emit signalDispatcher.applyHashSettingsToUI();
 

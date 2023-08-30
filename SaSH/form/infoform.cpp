@@ -42,6 +42,34 @@ InfoForm::InfoForm(int defaultPage, QWidget* parent)
 
 	connect(this, &InfoForm::resetControlTextLanguage, this, &InfoForm::onResetControlTextLanguage, Qt::UniqueConnection);
 
+	setStyleSheet(R"(
+QWidget{ background-color: rgb(245, 245, 245); }
+
+QPushButton {
+	background-color: #F9F9F9;
+	border: 1px solid #000000;
+	padding: 3px;
+}
+
+QPushButton:hover {
+	background-color: #2C71D6;
+}
+
+QPushButton:pressed, QPushButton:checked {
+	background-color: #3282F6;
+	border: 1px solid #ffffff;
+}
+
+)");
+
+
+	QGridLayout* gridLayout = new QGridLayout;
+	QOpenGLWidget* openGLWidget = new QOpenGLWidget;
+	openGLWidget->setLayout(gridLayout);
+	gridLayout->addWidget(ui.tabWidget);
+	gridLayout->setMargin(0);
+
+	ui.gridLayout->addWidget(openGLWidget);
 
 	ui.tabWidget->clear();
 	util::setTab(ui.tabWidget);

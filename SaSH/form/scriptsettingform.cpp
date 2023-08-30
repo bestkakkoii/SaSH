@@ -75,6 +75,19 @@ ScriptSettingForm::ScriptSettingForm(QWidget* parent)
 	ui.treeWidget_functionList->sortItems(0, Qt::AscendingOrder);
 
 
+	QGridLayout* gridLayout = new QGridLayout;
+	gridLayout->addWidget(ui.listView_log);
+	gridLayout->setMargin(0);
+
+	ui.openGLWidget_2->setLayout(gridLayout);
+
+	QGridLayout* gridLayoutDebug = new QGridLayout;
+	gridLayoutDebug->addWidget(ui.treeWidget_debuger_custom);
+	gridLayoutDebug->setMargin(0);
+
+	ui.openGLWidget_3->setLayout(gridLayoutDebug);
+
+
 	ui.menuBar->setMinimumWidth(200);
 
 	//載入固定狀態

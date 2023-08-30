@@ -28,6 +28,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "form/luascriptform.h"
 #include "form/infoform.h"
 #include "form/mapwidget.h"
+#include "form/copyrightdialog.h"
 
 //menu action forms
 #include "form/scriptsettingform.h"
@@ -46,34 +47,6 @@ void createMenu(QMenuBar* pMenuBar)
 		return;
 
 #pragma region StyleSheet
-	//constexpr const char* styleText = u8R"(
-	//			QMenu {
-	//				background-color: rgb(249, 249, 249); /*整個背景*/
-	//				border: 0px;
-	//				/*item寬度*/
-	//				width: 150px;
-	//			
-	//			}
-	//			QMenu::item {
-	//				font-size: 9pt;
-	//				/*color: rgb(225, 225, 225); 字體顏色*/
-	//				border: 2px; solid rgb(249, 249, 249); /*item選框*/
-	//				background-color: rgb(249, 249, 249);
-	//				padding: 10px 10px; /*設置菜單項文字上下和左右的內邊距，效果就是菜單中的條目左右上下有了間隔*/
-	//				margin: 2px 2px; /*設置菜單項的外邊距*/
-	//				/*item高度*/	
-	//				height: 10px;
-	//			}
-	//			QMenu::item:selected {
-	//				background-color: rgb(240, 240, 240); /*選中的樣式*/
-	//				border: 2px solid rgb(249, 249, 249); /*選中狀態下的邊框*/
-	//			}
-	//			QMenu::item:pressed {
-	//				/*菜單項按下效果
-	//				border: 0px; /*solid rgb(60, 60, 61);*/
-	//				background-color: rgb(50, 130, 246);
-	//			}
-	//		)";
 	constexpr const char* styleText = u8R"(
 				QMenu {
 					background-color: rgb(249, 249, 249); /*整個背景*/
@@ -108,58 +81,72 @@ void createMenu(QMenuBar* pMenuBar)
 	pMenuBar->setAttribute(Qt::WA_StyledBackground, true);
 	pMenuBar->clear();
 
-	auto createAction = [](QMenu* parent, const QString& text = "", const QString& name = "")->void
+	auto createAction = [](QMenu* parent, const QString& text, const QString& name, const int& key)
 	{
 		if (!parent)
 			return;
 
-		QAction* pAction = new QAction(text, parent);
+		QString shortcutText = QKeySequence(key).toString(QKeySequence::NativeText);
+
+		QFontMetrics fontMetrics(QApplication::font());
+		int textWidth = fontMetrics.horizontalAdvance(text);
+		int shortcutWidth = fontMetrics.horizontalAdvance(shortcutText);
+		int totalWidth = 130;  // 文本和快捷键部分的总宽度
+		int spaceCount = (totalWidth - textWidth - shortcutWidth) / fontMetrics.horizontalAdvance(' ');
+
+		QString alignedText = text + QString(spaceCount, ' ') + shortcutText;
+
+		QAction* pAction = new QAction(alignedText, parent);
 		if (!pAction)
 			return;
 		if (!text.isEmpty() && !name.isEmpty())
 		{
 			pAction->setObjectName(name);
+			pAction->setShortcut(QKeySequence(key));
+			parent->addAction(pAction);
 		}
 		else
 			pAction->setSeparator(true);
+
 		parent->addAction(pAction);
 	};
 
-	auto create = [&createAction](const QVector<QPair<QString, QString>>& table, QMenu* pMenu)
+	auto create = [&createAction](const QVector<std::tuple<QString, QString, int>>& table, QMenu* pMenu)
 	{
-		for (auto& pair : table)
+		for (const std::tuple<QString, QString, int>& tuple : table)
 		{
-			if (pair.first.isEmpty() || pair.second.isEmpty())
+			if (std::get<0>(tuple).isEmpty() || std::get<1>(tuple).isEmpty())
 			{
-				createAction(pMenu);
+				createAction(pMenu, "", "", Qt::Key_unknown);
 				continue;
 			}
-			createAction(pMenu, pair.first, pair.second);
+
+			createAction(pMenu, std::get<0>(tuple), std::get<1>(tuple), std::get<2>(tuple));
 		}
 	};
 
-	const QVector<QPair<QString, QString>> systemTable = {
-		{ QObject::tr("hide"), "actionHide" },
-		{ "","" },
-		{ QObject::tr("website"), "actionWebsite" },
-		{ QObject::tr("scriptdoc"), "actionInfo" },
-		{ "", "" },
-		{ QObject::tr("close"), "actionClose" },
-		{ QObject::tr("close game"), "actionCloseGame" },
+	const QVector<std::tuple<QString, QString, int>> systemTable = {
+		{ QObject::tr("hide"), "actionHide", Qt::Key_F9},
+		{ "","" , Qt::Key_unknown},
+		{ QObject::tr("website"), "actionWebsite", Qt::Key_unknown },
+		{ QObject::tr("scriptdoc"), "actionInfo", Qt::Key_unknown },
+		{ "", "", Qt::Key_unknown },
+		{ QObject::tr("close"), "actionClose", Qt::ALT | Qt::Key_F4 },
+		{ QObject::tr("close game"), "actionCloseGame", Qt::ALT | Qt::Key_F4 },
 	};
 
-	const QVector<QPair<QString, QString>> otherTable = {
-		{ QObject::tr("otherinfo"), "actionOtherInfo" },
-		{ QObject::tr("map"), "actionMap" },
-		{ "","" },
-		{ QObject::tr("script settings"), "actionScriptSettings" }
+	const QVector<std::tuple<QString, QString, int>> otherTable = {
+		{ QObject::tr("otherinfo"), "actionOtherInfo", Qt::Key_F5 },
+		{ QObject::tr("script settings"), "actionScriptSettings", Qt::Key_F7 },
+		{ "","", Qt::Key_unknown },
+		{ QObject::tr("map"), "actionMap", Qt::Key_F8 },
 	};
 
-	const QVector<QPair<QString, QString>> fileTable = {
-		{ QObject::tr("save"), "actionSave" },
-		{ QObject::tr("load"), "actionLoad" },
-		{ "","" },
-		{ QObject::tr("checkupdate"), "actionUpdate" },
+	const QVector<std::tuple<QString, QString, int>> fileTable = {
+		{ QObject::tr("save"), "actionSave", Qt::CTRL + Qt::Key_S },
+		{ QObject::tr("load"), "actionLoad", Qt::CTRL + Qt::Key_O },
+		{ "","", Qt::Key_unknown },
+		{ QObject::tr("checkupdate"), "actionUpdate", Qt::CTRL + Qt::Key_U },
 	};
 
 	QMenu* pMenuSystem = new QMenu(QObject::tr("system"));
@@ -666,7 +653,7 @@ MainForm::MainForm(QWidget* parent)
 	setWindowFlags(windowFlags() & ~Qt::WindowMaximizeButtonHint);
 	setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
 	setFixedSize(290, 481);
-	setStyleSheet("QMainWindow{ border-radius: 10px; }");
+	setStyleSheet("QMainWindow{ border-radius: 10px; background-color: rgb(245, 245, 245); } ");
 
 	qRegisterMetaType<QVariant>("QVariant");
 	qRegisterMetaType<QVariant>("QVariant&");
@@ -839,26 +826,32 @@ void MainForm::onMenuActionTriggered()
 
 	else if (actionName == "actionWebsite")
 	{
-		QMessageBox::information(this, "SaSH",
-			QString(u8R"(
-作者:
-飞 Philip
+		CopyRightDialog* pCopyRightDialog = new CopyRightDialog(this);
+		if (pCopyRightDialog)
+		{
+			pCopyRightDialog->exec();
+		}
 
-Copyright ©2019-2023 Bestkakkoii llc. All rights reserved.
-
-论坛:
-https://www.lovesa.cc
-
-QQ 群:
-224068611
-
-当前版本:
-%1
-
-特别感谢:
-eric, 辉, match_stick, 手柄, 老花, 小雅 热心帮忙测试、查找bug，和给予大量优质的建议
-)")
-.arg(util::buildDateTime(nullptr)));
+		//		QMessageBox::information(this, "SaSH",
+		//			QString(u8R"(
+		//作者:
+		//飞 Philip
+		//
+		//Copyright ©2019-2023 Bestkakkoii llc. All rights reserved.
+		//
+		//论坛:
+		//https://www.lovesa.cc
+		//
+		//QQ 群:
+		//224068611
+		//
+		//当前版本:
+		//%1
+		//
+		//特别感谢:
+		//eric, 辉, match_stick, 手柄, 老花, 小雅 热心帮忙测试、查找bug，和给予大量优质的建议
+		//)")
+		//.arg(util::buildDateTime(nullptr)));
 	}
 
 	else if (actionName == "actionClose")

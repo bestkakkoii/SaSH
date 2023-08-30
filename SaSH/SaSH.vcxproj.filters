@@ -276,6 +276,9 @@
     <ClCompile Include="net\descrypt.cpp">
       <Filter>Source Files\net</Filter>
     </ClCompile>
+    <ClCompile Include="form\copyrightdialog.cpp">
+      <Filter>Source Files\forms</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="mainform.h">
@@ -388,6 +391,9 @@
     </QtMoc>
     <QtMoc Include="form\luascriptform.h">
       <Filter>Source Files\forms\script</Filter>
+    </QtMoc>
+    <QtMoc Include="form\copyrightdialog.h">
+      <Filter>Source Files\forms</Filter>
     </QtMoc>
   </ItemGroup>
   <ItemGroup>
@@ -508,6 +514,9 @@
     </QtUic>
     <QtUic Include="form\luascriptform.ui">
       <Filter>Form Files</Filter>
+    </QtUic>
+    <QtUic Include="form\copyrightdialog.ui">
+      <Filter>Source Files\forms</Filter>
     </QtUic>
   </ItemGroup>
   <ItemGroup>

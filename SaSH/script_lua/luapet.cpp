@@ -70,7 +70,7 @@ qint64 CLuaPet::learn(qint64 fromSkillIndex, qint64 petIndex, qint64 toSkillInde
 
 	luadebug::checkBattleThenWait(s);
 
-	injector.server->learn(--fromSkillIndex, --petIndex, --toSkillIndex, unitid, dialogid);
+	injector.server->learn(--fromSkillIndex, --petIndex, --toSkillIndex, dialogid, unitid);
 
 	return TRUE;
 }
@@ -96,7 +96,7 @@ qint64 CLuaPet::deposit(qint64 petIndex, qint64 unitid, qint64 dialogid, sol::th
 
 	luadebug::checkBattleThenWait(s);
 
-	injector.server->depositPet(--petIndex, unitid, dialogid);
+	injector.server->depositPet(--petIndex, dialogid, unitid);
 
 	return TRUE;
 }
@@ -109,7 +109,7 @@ qint64 CLuaPet::withdraw(qint64 petIndex, qint64 unitid, qint64 dialogid, sol::t
 
 	luadebug::checkBattleThenWait(s);
 
-	injector.server->withdrawPet(--petIndex, unitid, dialogid);
+	injector.server->withdrawPet(--petIndex, dialogid, unitid);
 
 	return TRUE;
 }

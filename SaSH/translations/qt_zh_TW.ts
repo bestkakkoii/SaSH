@@ -648,6 +648,44 @@
     </message>
 </context>
 <context>
+    <name>CopyRightDialog</name>
+    <message>
+        <source>About %1</source>
+        <translation type="vanished">關於 %1</translation>
+    </message>
+</context>
+<context>
+    <name>CopyRightDialogClass</name>
+    <message>
+        <source>About</source>
+        <translation>關於</translation>
+    </message>
+    <message>
+        <source>Installed:</source>
+        <translation>已安裝的依賴項:</translation>
+    </message>
+    <message>
+        <source>copy info</source>
+        <translation>複製資訊</translation>
+    </message>
+    <message>
+        <source>sys info</source>
+        <translation>系統資訊</translation>
+    </message>
+    <message>
+        <source>Dxdiag</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>Product information:</source>
+        <translation>產品詳細資訊:</translation>
+    </message>
+    <message>
+        <source>Warning: This project is only for academic purposes, commercial use is prohibited. You are prohibited to publish this project elsewhere. However we make no promises to your game accounts and so you have to use this project at your own risk, including taking any damage to your accounts from scripts and binaries.</source>
+        <translation type="vanished">警告: 本項目僅供學習交流，禁止用於商業用途。本項目內的所有資源文件和程序，禁止在 GitHub/lovesa論壇 以外的任何地方進行轉載或發布。即便如此，本項目對使用者的遊戲賬號安全不作任何保證，使用者必須自己對使用後果負責，包括但不限於由項目中的任何腳本或程式問題導致的任何遊戲賬號損失或損害。</translation>
+    </message>
+</context>
+<context>
     <name>FindDialog</name>
     <message>
         <source>Find What:</source>
@@ -1029,7 +1067,7 @@
     </message>
     <message>
         <source>save</source>
-        <translation>儲存設置</translation>
+        <translation>存</translation>
     </message>
     <message>
         <source>leave</source>
@@ -1045,7 +1083,7 @@
     </message>
     <message>
         <source>load</source>
-        <translation>讀取設置</translation>
+        <translation>讀</translation>
     </message>
     <message>
         <source>logback</source>
@@ -1098,6 +1136,10 @@
     <message>
         <source>GM</source>
         <translation>組</translation>
+    </message>
+    <message>
+        <source>auto switch</source>
+        <translation>自動換寵</translation>
     </message>
 </context>
 <context>
@@ -2863,7 +2905,7 @@ No new version available. Do you still want to update?</source>
     </message>
     <message>
         <source>Unpaired &apos;%1&apos; at row %2, index %3: &apos;%4&apos;</source>
-        <translation type="unfinished"></translation>
+        <translation>未配對的 &apos;%1&apos; 位於第 %2 行, 索引 %3: &apos;%4&apos;</translation>
     </message>
     <message>
         <source>lua error: %1</source>
@@ -2884,6 +2926,26 @@ No new version available. Do you still want to update?</source>
     <message>
         <source>%1 count    no %2 round    duration: %3 sec    cost: %4 sec    total time: %5 minues</source>
         <translation>第 %1 局&#x3000;&#x3000;第 %2 回合&#x3000;&#x3000;局時間: %3 秒&#x3000;&#x3000;回合時間: %4 秒&#x3000;&#x3000;累積時間: %5 分鐘</translation>
+    </message>
+    <message>
+        <source>About %1</source>
+        <translation>關於 %1</translation>
+    </message>
+    <message>
+        <source>%1 (%2 bit) - %3.%4.%5</source>
+        <translation>%1 (%2 位元) - %3.%4.%5</translation>
+    </message>
+    <message>
+        <source>Version %1.%2.%3</source>
+        <translation>版本 %1.%2.%3</translation>
+    </message>
+    <message>
+        <source>All right reserved.</source>
+        <translation>著作權所有，並保留一切權利。</translation>
+    </message>
+    <message>
+        <source>Warning: This project is only for academic purposes,commercial use is prohibited.You are prohibited to publish this project elsewhere.However we make no promises to your game accounts and so you have to use this project at your own risk,including taking any damage to your accounts from scripts and binaries.</source>
+        <translation>警告: 本項目僅供學習交流，禁止用於商業用途。本項目內的所有資源文件和程序，禁止在 GitHub/lovesa論壇 以外的任何地方進行轉載或發布。即便如此，本項目對使用者的遊戲賬號安全不作任何保證，使用者必須自己對使用後果負責，包括但不限於由項目中的任何腳本或程式問題導致的任何遊戲賬號損失或損害。</translation>
     </message>
 </context>
 <context>

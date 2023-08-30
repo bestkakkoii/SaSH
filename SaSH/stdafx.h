@@ -101,6 +101,7 @@ public:\
 #include <QFileDialog>
 #include <QDialog>
 #include <QLabel>
+#include <QWidgetAction>
 #include <QListView>
 #include <QTableWidget>
 #include <QListWidget>
@@ -119,6 +120,9 @@ public:\
 #include <QMovie>
 #include <QStackedWidget>
 #include <QDesktopServices>
+#include <QOpenGLWidget>
+#include <QOpenGLFunctions>
+#include <QGridLayout>
 //#include <QSoundEffect>
 #include <QMessageBox>
 #include <QScreen>

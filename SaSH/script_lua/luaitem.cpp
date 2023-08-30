@@ -108,7 +108,7 @@ qint64 CLuaItem::buy(qint64 productIndex, qint64 amount, qint64 unitid, qint64 d
 
 	luadebug::checkBattleThenWait(s);
 
-	injector.server->buy(--productIndex, amount, unitid);
+	injector.server->buy(--productIndex, amount, dialogid, unitid);
 
 	return TRUE;
 }
@@ -121,9 +121,15 @@ qint64 CLuaItem::sell(qint64 itemIndex, qint64 unitid, qint64 dialogid, sol::thi
 
 	luadebug::checkBattleThenWait(s);
 
-	injector.server->sell(--itemIndex, unitid, dialogid);
+	if (itemIndex > 0 && itemIndex <= static_cast<qint64>(MAX_ITEM - CHAR_EQUIPPLACENUM))
+	{
+		itemIndex = itemIndex - 1 + CHAR_EQUIPPLACENUM;
+		injector.server->sell(itemIndex, dialogid, unitid);
 
-	return TRUE;
+		return TRUE;
+	}
+
+	return FALSE;
 }
 
 qint64 CLuaItem::deposit(qint64 itemIndex, qint64 unitid, qint64 dialogid, sol::this_state s)
@@ -134,7 +140,7 @@ qint64 CLuaItem::deposit(qint64 itemIndex, qint64 unitid, qint64 dialogid, sol::
 
 	luadebug::checkBattleThenWait(s);
 
-	injector.server->depositItem(--itemIndex, unitid, dialogid);
+	injector.server->depositItem(--itemIndex, dialogid, unitid);
 
 	return TRUE;
 }
@@ -147,7 +153,7 @@ qint64 CLuaItem::withdraw(qint64 itemIndex, qint64 unitid, qint64 dialogid, sol:
 
 	luadebug::checkBattleThenWait(s);
 
-	injector.server->withdrawItem(--itemIndex, unitid, dialogid);
+	injector.server->withdrawItem(--itemIndex, dialogid, unitid);
 
 	return TRUE;
 }

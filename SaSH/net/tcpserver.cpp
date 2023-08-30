@@ -2472,8 +2472,6 @@ void Server::talk(const QString& text, int color, TalkMode mode)
 		{
 			newflg |= PC_ETCFLAG_PARTY_CHAT;
 			setSwitcher(newflg);
-			Injector& injector = Injector::getInstance();
-			QThread::msleep(100);
 		}
 	}
 
@@ -2594,7 +2592,7 @@ void Server::setSwitcher(int flg, bool enable)
 		pc.etcFlag |= flg;
 	else
 		pc.etcFlag &= ~flg;
-	setPC(pc);
+
 	setSwitcher(pc.etcFlag);
 }
 
@@ -2871,7 +2869,7 @@ bool Server::login(int s)
 #endif
 
 		break;
-		}
+	}
 	case util::kStatusSelectServer:
 	{
 		if (server < 0 && server >= 15)
@@ -3168,9 +3166,9 @@ bool Server::login(int s)
 	}
 	default:
 		break;
-		}
-	return false;
 	}
+	return false;
+}
 
 #pragma endregion
 
@@ -4976,7 +4974,7 @@ void Server::setPcParam(const QString& name
 #endif
 
 	setPC(pc);
-		}
+}
 
 void Server::realTimeToSATime(LSTIME* lstime)
 {
@@ -8396,14 +8394,14 @@ void Server::lssproto_FS_recv(int flg)
 
 	Injector& injector = Injector::getInstance();
 
-	injector.setEnableHash(util::kSwitcherTeamEnable, checkAND(flg, PC_ETCFLAG_GROUP) != 0);//組隊開關
-	injector.setEnableHash(util::kSwitcherPKEnable, checkAND(flg, PC_ETCFLAG_PK) != 0);//決鬥開關
-	injector.setEnableHash(util::kSwitcherCardEnable, checkAND(flg, PC_ETCFLAG_CARD) != 0);//名片開關
-	injector.setEnableHash(util::kSwitcherTradeEnable, checkAND(flg, PC_ETCFLAG_TRADE) != 0);//交易開關
-	injector.setEnableHash(util::kSwitcherWorldEnable, checkAND(flg, PC_ETCFLAG_WORLD) != 0);//世界頻道開關
-	injector.setEnableHash(util::kSwitcherGroupEnable, checkAND(flg, PC_ETCFLAG_FM) != 0);//組隊頻道開關
-	injector.setEnableHash(util::kSwitcherFamilyEnable, checkAND(flg, PC_ETCFLAG_FM) != 0);//家族頻道開關
-	injector.setEnableHash(util::kSwitcherJobEnable, checkAND(flg, PC_ETCFLAG_JOB) != 0);//職業頻道開關
+	injector.setEnableHash(util::kSwitcherTeamEnable, checkAND(flg, PC_ETCFLAG_GROUP));//組隊開關
+	injector.setEnableHash(util::kSwitcherPKEnable, checkAND(flg, PC_ETCFLAG_PK));//決鬥開關
+	injector.setEnableHash(util::kSwitcherCardEnable, checkAND(flg, PC_ETCFLAG_CARD));//名片開關
+	injector.setEnableHash(util::kSwitcherTradeEnable, checkAND(flg, PC_ETCFLAG_TRADE));//交易開關
+	injector.setEnableHash(util::kSwitcherWorldEnable, checkAND(flg, PC_ETCFLAG_WORLD));//世界頻道開關
+	injector.setEnableHash(util::kSwitcherGroupEnable, checkAND(flg, PC_ETCFLAG_PARTY_CHAT));//組隊頻道開關
+	injector.setEnableHash(util::kSwitcherFamilyEnable, checkAND(flg, PC_ETCFLAG_FM));//家族頻道開關
+	injector.setEnableHash(util::kSwitcherJobEnable, checkAND(flg, PC_ETCFLAG_JOB));//職業頻道開關
 
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
 	emit signalDispatcher.applyHashSettingsToUI();
@@ -9815,7 +9813,7 @@ void Server::lssproto_KS_recv(int petarray, int result)
 		pet[petarray].state = kBattle;
 		emit signalDispatcher.updatePetHpProgressValue(_pet.level, _pet.hp, _pet.maxHp);
 	}
-	}
+}
 
 #ifdef _STANDBYPET
 //寵物等待狀態改變 (不是每個私服都有)
@@ -10406,7 +10404,7 @@ void Server::lssproto_TK_recv(int index, char* cmessage, int color)
 					//InitSelectChar(message, 1);
 				}
 				return;
-		}
+			}
 			else
 			{
 
@@ -10444,7 +10442,7 @@ void Server::lssproto_TK_recv(int index, char* cmessage, int color)
 
 				//SaveChatData(msg, szToken[0], false);
 			}
-	}
+		}
 		else
 			getStringToken(message, "|", 2, msg);
 #ifdef _TALK_WINDOW
@@ -10514,8 +10512,8 @@ void Server::lssproto_TK_recv(int index, char* cmessage, int color)
 				// 1000
 				//pc.status |= CHR_STATUS_FUKIDASHI;
 			}
-}
-}
+		}
+	}
 
 	setPC(pc);
 
@@ -11235,7 +11233,7 @@ void Server::lssproto_C_recv(char* cdata)
 	}
 
 	setPC(pc);
-	}
+}
 
 //周圍人、NPC..等等狀態改變必定是 _C_recv已經新增過的單位
 void Server::lssproto_CA_recv(char* cdata)
@@ -11298,7 +11296,7 @@ void Server::lssproto_CA_recv(char* cdata)
 			//effectno = smalltoken.toInt();
 			//effectparam1 = getIntegerToken(bigtoken, "|", 7);
 			//effectparam2 = getIntegerToken(bigtoken, "|", 8);
-	}
+		}
 
 
 		if (pc.id == charindex)
@@ -11336,7 +11334,7 @@ void Server::lssproto_CA_recv(char* cdata)
 					//changePcAct(x, y, dir, act, effectno, effectparam1, effectparam2);
 			}
 			continue;
-				}
+		}
 
 		//ptAct = getCharObjAct(charindex);
 		//if (ptAct == NULL)
@@ -11373,8 +11371,8 @@ void Server::lssproto_CA_recv(char* cdata)
 #endif
 		//changeCharAct(ptAct, x, y, dir, act, effectno, effectparam1, effectparam2);
 	//}
-		}
-			}
+	}
+}
 
 //刪除指定一個或多個周圍人、NPC單位
 void Server::lssproto_CD_recv(char* cdata)
@@ -11754,7 +11752,7 @@ void Server::lssproto_S_recv(char* cdata)
 #endif
 				}
 			}
-					}
+		}
 
 		if (checkAND(pc.status, CHR_STATUS_LEADER) && party[0].valid)
 		{
@@ -11831,7 +11829,7 @@ void Server::lssproto_S_recv(char* cdata)
 		playerInfoColContents.insert(0, var);
 		emit signalDispatcher.updatePlayerInfoColContents(0, var);
 		setWindowTitle();
-				}
+	}
 #pragma endregion
 #pragma region FamilyInfo
 	else if (first == "F") // F 家族狀態
@@ -12143,8 +12141,8 @@ void Server::lssproto_S_recv(char* cdata)
 #endif
 					}
 				}
-						}
-						}
+			}
+		}
 
 		if (pc.ridePetNo >= 0 && pc.ridePetNo < MAX_PET)
 		{
@@ -12195,7 +12193,7 @@ void Server::lssproto_S_recv(char* cdata)
 			emit signalDispatcher.updatePlayerInfoColContents(i + 1, var);
 		}
 
-					}
+	}
 #pragma endregion
 #pragma region EncountPercentage
 	else if (first == "E") // E nowEncountPercentage
@@ -12815,7 +12813,7 @@ void Server::lssproto_S_recv(char* cdata)
 	}
 
 	setPC(pc);
-		}
+}
 
 //客戶端登入(進去選人畫面)
 void Server::lssproto_ClientLogin_recv(char* cresult)
@@ -12956,7 +12954,7 @@ void Server::lssproto_CharList_recv(char* cresult, char* cdata)
 		int index = vec.at(i).pos;
 		chartable[index] = vec.at(i);
 	}
-	}
+}
 
 //人物登出(不是每個私服都有，有些是直接切斷後跳回帳號密碼頁)
 void Server::lssproto_CharLogout_recv(char* cresult, char* cdata)
@@ -13234,7 +13232,7 @@ void Server::lssproto_TD_recv(char* cdata)//交易
 		mypet_tradeList = QStringList{ "P|-1", "P|-1", "P|-1" , "P|-1", "P|-1" };
 		mygoldtrade = 0;
 	}
-		}
+}
 
 void Server::lssproto_CHAREFFECT_recv(char* cdata)
 {

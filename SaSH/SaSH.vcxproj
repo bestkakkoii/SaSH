@@ -37,12 +37,12 @@
   </ImportGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|Win32'" Label="QtSettings">
     <QtInstall>5.15.2_msvc2019</QtInstall>
-    <QtModules>core;opengl;network;gui;widgets;concurrent</QtModules>
+    <QtModules>core;opengl;network;gui;svg;widgets;concurrent</QtModules>
     <QtBuildConfig>debug</QtBuildConfig>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|Win32'" Label="QtSettings">
     <QtInstall>5.15.2_msvc2019</QtInstall>
-    <QtModules>core;opengl;network;gui;widgets;concurrent</QtModules>
+    <QtModules>core;opengl;network;gui;svg;widgets;concurrent</QtModules>
     <QtBuildConfig>release</QtBuildConfig>
   </PropertyGroup>
   <Target Name="QtMsBuildNotFound" BeforeTargets="CustomBuild;ClCompile" Condition="!Exists('$(QtMsBuild)\qt.targets') or !Exists('$(QtMsBuild)\qt.props')">
@@ -158,6 +158,7 @@
     <ClCompile Include="form\afkinfoform.cpp" />
     <ClCompile Include="form\battleinfoform.cpp" />
     <ClCompile Include="form\chatinfoform.cpp" />
+    <ClCompile Include="form\copyrightdialog.cpp" />
     <ClCompile Include="form\generalform.cpp" />
     <ClCompile Include="form\infoform.cpp" />
     <ClCompile Include="form\iteminfoform.cpp" />
@@ -240,6 +241,7 @@
     <QtMoc Include="form\mapform.h" />
     <QtMoc Include="form\replaceform.h" />
     <QtMoc Include="form\luascriptform.h" />
+    <QtMoc Include="form\copyrightdialog.h" />
     <ClInclude Include="injector.h" />
     <ClInclude Include="map\astar.h" />
     <ClInclude Include="map\mapanalyzer.h" />
@@ -275,6 +277,7 @@
     <QtUic Include="form\afkinfoform.ui" />
     <QtUic Include="form\battleinfoform.ui" />
     <QtUic Include="form\chatinfoform.ui" />
+    <QtUic Include="form\copyrightdialog.ui" />
     <QtUic Include="form\generalform.ui" />
     <QtUic Include="form\infoform.ui" />
     <QtUic Include="form\iteminfoform.ui" />

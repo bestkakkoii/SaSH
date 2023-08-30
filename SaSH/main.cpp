@@ -187,10 +187,10 @@ LONG CALLBACK MinidumpCallback(PEXCEPTION_POINTERS pException)
 		if (!pException)
 			break;
 
-		//if (pException->ExceptionRecord->ExceptionFlags != EXCEPTION_NONCONTINUABLE)
-		//{
-		//	return EXCEPTION_CONTINUE_EXECUTION;
-		//}
+		if (pException->ExceptionRecord->ExceptionFlags != EXCEPTION_NONCONTINUABLE)
+		{
+			return EXCEPTION_CONTINUE_EXECUTION;
+		}
 
 		auto PathFileExists = [](const wchar_t* name)->BOOL
 		{

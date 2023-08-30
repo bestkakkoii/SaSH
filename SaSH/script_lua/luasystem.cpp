@@ -380,9 +380,9 @@ qint64 CLuaSystem::press(std::string sbuttonStr, qint64 unitid, qint64 dialogid,
 	}
 
 	if (button != BUTTON_NOTUSED)
-		injector.server->press(button, unitid, dialogid);
+		injector.server->press(button, dialogid, unitid);
 	else if (row != -1)
-		injector.server->press(row, unitid, dialogid);
+		injector.server->press(row, dialogid, unitid);
 	else
 		return FALSE;
 
@@ -397,7 +397,7 @@ qint64 CLuaSystem::press(qint64 row, qint64 unitid, qint64 dialogid, sol::this_s
 
 	luadebug::checkBattleThenWait(s);
 
-	injector.server->press(row, unitid, dialogid);
+	injector.server->press(row, dialogid, unitid);
 
 	return TRUE;
 }
@@ -412,7 +412,7 @@ qint64 CLuaSystem::input(const std::string& str, qint64 unitid, qint64 dialogid,
 
 	QString text = QString::fromUtf8(str.c_str());
 
-	injector.server->inputtext(text, unitid, dialogid);
+	injector.server->inputtext(text, dialogid, unitid);
 
 	return TRUE;
 }

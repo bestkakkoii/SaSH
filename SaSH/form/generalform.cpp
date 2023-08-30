@@ -317,12 +317,15 @@ void GeneralForm::onButtonClicked()
 
 	if (name == "pushButton_joingroup")
 	{
+		if (!injector.server.isNull())
+			injector.server->setTeamState(true);
 		return;
 	}
 
 	if (name == "pushButton_leavegroup")
 	{
-
+		if (!injector.server.isNull())
+			injector.server->setTeamState(false);
 		return;
 	}
 
