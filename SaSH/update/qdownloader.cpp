@@ -95,8 +95,8 @@ bool QDownloader::checkUpdate(QString* current, QString* ptext)
 
 	cpr::Header header;
 	header.insert({ "If-None-Match", g_etag.toUtf8().constData() });
-
-	cpr::Response response = cpr::Head(cpr::Url(zipUrl.toString().toStdString()), header);
+	std::string zipUrlUtf8 = zipUrl.toString().toUtf8().constData();
+	cpr::Response response = cpr::Head(cpr::Url(zipUrlUtf8), header);
 
 	bool bret = false;
 	do
@@ -114,7 +114,7 @@ bool QDownloader::checkUpdate(QString* current, QString* ptext)
 		bool skipModifyTimeCheck = false;
 		if (response.header.count("ETag"))
 		{
-			QString newEtag = QString::fromStdString(response.header["ETag"]);
+			QString newEtag = QString::fromUtf8(response.header["ETag"].c_str());
 			newEtag.replace("\"", "");
 			if ((!newEtag.isEmpty() && !g_etag.isEmpty() && newEtag != g_etag) || g_etag.isEmpty())
 			{
@@ -130,7 +130,7 @@ bool QDownloader::checkUpdate(QString* current, QString* ptext)
 
 		if (response.header.count("Last-Modified"))
 		{
-			QString lastModifiedStr = QString::fromStdString(response.header["Last-Modified"]);
+			QString lastModifiedStr = QString::fromUtf8(response.header["Last-Modified"].c_str());
 			//Tue, 18 Apr 2023 01:01:06 GMT
 			qDebug() << "SaSH 7z file last modified time:" << lastModifiedStr;
 
@@ -731,9 +731,9 @@ void QDownloader::downloadAndExtractZip(const QString& url, const QString& targe
 	if (file.exists())
 		file.remove();
 
-	std::string surl = url.toStdString();
+	std::string surl = url.toUtf8().constData();
 
-	std::string filename = filePath.toStdString();
+	std::string filename = filePath.toUtf8().constData();
 	bool success = false;
 	while (!success)
 	{

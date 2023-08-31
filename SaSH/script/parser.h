@@ -542,6 +542,7 @@ public:
 		}
 	}
 
+	QString getLuaTableString(const sol::table& t, int& deepth);
 private:
 	void processTokens();
 	qint64 processCommand();
@@ -552,6 +553,7 @@ private:
 	void processVariableExpr();
 	void processMultiVariable();
 	void processTable();
+	void processTableSet();
 	void processFormation();
 	void processRandom();
 	bool processCall();

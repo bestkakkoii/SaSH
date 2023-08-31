@@ -451,6 +451,7 @@ void Lexer::tokenized(qint64 currentLine, const QString& line, TokenMap* ptoken,
 	QString token;
 	QVariant data;
 	QString raw = line.trimmed();
+	QString originalRaw = raw;
 	RESERVE type = TK_UNK;
 
 	ptoken->clear();
@@ -707,6 +708,27 @@ void Lexer::tokenized(qint64 currentLine, const QString& line, TokenMap* ptoken,
 			type = keywords.value(token, TK_UNK);
 			if (type == TK_UNK)
 			{
+				static const QRegularExpression rexTableSet(R"(([\w\p{Han}]+)(?:\['*"*(\w+\p{Han}*)'*"*\])?)");
+				if (token.contains(rexTableSet))
+				{
+					QRegularExpressionMatch match = rexTableSet.match(token);
+					if (match.hasMatch())
+					{
+						QString varName = match.captured(1).simplified();
+						if (originalRaw.contains("local"), Qt::CaseInsensitive)
+						{
+							createToken(pos, TK_LOCALTABLESET, varName, varName, ptoken);
+							createToken(pos + 1, TK_STRING, originalRaw, originalRaw, ptoken);
+						}
+						else
+						{
+							createToken(pos, TK_TABLESET, varName, varName, ptoken);
+							createToken(pos + 1, TK_STRING, originalRaw, originalRaw, ptoken);
+						}
+						break;
+					}
+				}
+
 				showError(QObject::tr("<Warning>Unknown command '%1' has been ignored at line: %2").arg(token).arg(currentLine + 1), kTypeWarning);
 				createEmptyToken(pos, ptoken);
 				break;

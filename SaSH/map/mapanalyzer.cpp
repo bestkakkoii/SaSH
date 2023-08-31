@@ -1772,7 +1772,7 @@ bool __fastcall MapAnalyzer::saveAsBinary(map_t map, const QString& fileName)
 	ofs.write(reinterpret_cast<const char*>(&map.floor), sizeof(short));
 	ofs.write(reinterpret_cast<const char*>(&map.width), sizeof(short));
 	ofs.write(reinterpret_cast<const char*>(&map.height), sizeof(short));
-	std::string name(map.name.toStdString());
+	std::string name(map.name.toUtf8().constData());
 	ofs.write(name.c_str(), 24);
 	uint16_t x = 0;
 	uint16_t y = 0;

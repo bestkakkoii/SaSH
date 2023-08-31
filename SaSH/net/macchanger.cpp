@@ -272,7 +272,7 @@ std::string MyMACAddr::AssingRndMAC()
 							(const BYTE*)newMACAddr, sizeof(TCHAR) * ((DWORD)_tcslen(newMACAddr) + 1)) == ERROR_SUCCESS)
 						{
 							retstring = newMAC;
-							//wcout << L"[+]新的隨機MAC: " << QString(newMAC.c_str()).toStdString().c_str() << endl;
+							//wcout << L"[+]新的隨機MAC: " << QString(newMAC.c_str()).toUtf8().constData().c_str() << endl;
 							DisableEnableConnections(false, wAdapterName);
 							DisableEnableConnections(true, wAdapterName);
 						}

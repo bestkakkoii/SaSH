@@ -450,6 +450,6 @@ QString CurlDownload::oneShotDownload(const std::string szUrl)
 		return "";
 	}
 
-	return QString::fromStdString(response.text);
+	return QString::fromUtf8(response.text);
 #endif
 }

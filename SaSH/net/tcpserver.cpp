@@ -3261,7 +3261,7 @@ void Server::press(int row, int dialogid, int unitid)
 	if (unitid == -1)
 		unitid = dialog.unitid;
 	QString qrow = QString::number(row);
-	std::string srow = qrow.toStdString();
+	std::string srow = util::fromUnicode(qrow);
 	lssproto_WN_send(getPoint(), dialogid, unitid, BUTTON_NOTUSED, const_cast<char*>(srow.c_str()));
 
 	Injector& injector = Injector::getInstance();
@@ -3291,7 +3291,7 @@ void Server::buy(int index, int amt, int dialogid, int unitid)
 		unitid = dialog.unitid;
 
 	QString qrow = QString("%1\\z%2").arg(index + 1).arg(amt);
-	std::string srow = qrow.toStdString();
+	std::string srow = util::fromUnicode(qrow);
 	lssproto_WN_send(getPoint(), dialogid, unitid, BUTTON_NOTUSED, const_cast<char*>(srow.c_str()));
 
 	Injector& injector = Injector::getInstance();
@@ -3348,7 +3348,7 @@ void Server::sell(int index, int dialogid, int unitid)
 		unitid = dialog.unitid;
 
 	QString qrow = QString("%1\\z%2").arg(index).arg(pc.item[index].stack);
-	std::string srow = qrow.toStdString();
+	std::string srow = util::fromUnicode(qrow);
 	lssproto_WN_send(getPoint(), dialogid, unitid, BUTTON_NOTUSED, const_cast<char*>(srow.c_str()));
 
 	Injector& injector = Injector::getInstance();
@@ -3410,7 +3410,7 @@ void Server::learn(int skillIndex, int petIndex, int spot, int dialogid, int uni
 		unitid = dialog.unitid;
 	//8\z3\z3\z1000 技能
 	QString qrow = QString("%1\\z%3\\z%3\\z%4").arg(skillIndex + 1).arg(petIndex + 1).arg(spot + 1).arg(0);
-	std::string srow = qrow.toStdString();
+	std::string srow = util::fromUnicode(qrow);
 	lssproto_WN_send(getPoint(), dialogid, unitid, BUTTON_NOTUSED, const_cast<char*>(srow.c_str()));
 
 	Injector& injector = Injector::getInstance();
@@ -3436,7 +3436,7 @@ void Server::depositItem(int itemIndex, int dialogid, int unitid)
 		unitid = dialog.unitid;
 
 	QString qstr = QString::number(itemIndex + 1);
-	std::string srow = qstr.toStdString();
+	std::string srow = util::fromUnicode(qstr);
 	lssproto_WN_send(getPoint(), dialogid, unitid, BUTTON_NOTUSED, const_cast<char*>(srow.c_str()));
 }
 
@@ -3456,7 +3456,7 @@ void Server::withdrawItem(int itemIndex, int dialogid, int unitid)
 		unitid = dialog.unitid;
 
 	QString qstr = QString::number(itemIndex + 1);
-	std::string srow = qstr.toStdString();
+	std::string srow = util::fromUnicode(qstr);
 	lssproto_WN_send(getPoint(), dialogid, unitid, BUTTON_NOTUSED, const_cast<char*>(srow.c_str()));
 }
 
@@ -3476,7 +3476,7 @@ void Server::depositPet(int petIndex, int dialogid, int unitid)
 		unitid = dialog.unitid;
 
 	QString qstr = QString::number(petIndex + 1);
-	std::string srow = qstr.toStdString();
+	std::string srow = util::fromUnicode(qstr);
 	lssproto_WN_send(getPoint(), dialogid, unitid, BUTTON_NOTUSED, const_cast<char*>(srow.c_str()));
 }
 
@@ -3496,7 +3496,7 @@ void Server::withdrawPet(int petIndex, int dialogid, int unitid)
 		unitid = dialog.unitid;
 
 	QString qstr = QString::number(petIndex + 1);
-	std::string srow = qstr.toStdString();
+	std::string srow = util::fromUnicode(qstr);
 	lssproto_WN_send(getPoint(), dialogid, unitid, BUTTON_NOTUSED, const_cast<char*>(srow.c_str()));
 }
 
@@ -3541,7 +3541,7 @@ void Server::unlockSecurityCode(const QString& code)
 	//	return;
 	//}
 
-	std::string scode = code.toStdString();
+	std::string scode = util::fromUnicode(code);
 	lssproto_WN_send(getPoint(), kDialogSecurityCode, -1, NULL, const_cast<char*>(scode.c_str()));
 }
 
@@ -3987,7 +3987,7 @@ void Server::setFightPet(int petIndex)
 void Server::setRidePet(int petIndex)
 {
 	QString str = QString("R|P|%1").arg(petIndex);
-	std::string sstr = str.toStdString();
+	std::string sstr = util::fromUnicode(str);
 	lssproto_FM_send(const_cast<char*>(sstr.c_str()));
 }
 
@@ -4153,7 +4153,7 @@ void Server::move(const QPoint& p, const QString& dir)
 
 	QWriteLocker locker(&pointMutex_);
 
-	std::string sdir = dir.toStdString();
+	std::string sdir = util::fromUnicode(dir);
 	lssproto_W2_send(p, const_cast<char*>(sdir.c_str()));
 }
 
@@ -4205,7 +4205,7 @@ void Server::setPlayerFaceDirection(int dir)
 
 	const QString dirchr = "ABCDEFGH";
 	QString dirStr = dirchr[dir];
-	std::string sdirStr = dirStr.toUpper().toStdString();
+	std::string sdirStr = util::fromUnicode(dirStr.toUpper());
 	lssproto_W2_send(getPoint(), const_cast<char*>(sdirStr.c_str()));
 
 	//這裡是用來使遊戲動畫跟著轉向
@@ -4255,7 +4255,7 @@ void Server::setPlayerFaceDirection(const QString& dirStr)
 		dir = dirchr.indexOf(dirhash.value(dirStr), 0, Qt::CaseInsensitive);
 		qdirStr = dirhash.value(dirStr);
 	}
-	std::string sdirStr = qdirStr.toUpper().toStdString();
+	std::string sdirStr = util::fromUnicode(qdirStr.toUpper());
 	lssproto_W2_send(getPoint(), const_cast<char*>(sdirStr.c_str()));
 
 	//這裡是用來使遊戲動畫跟著轉向
@@ -4571,7 +4571,7 @@ void Server::craft(util::CraftType type, const QStringList& ingres)
 	}
 
 	QString qstr = itemIndexs.join("|");
-	std::string str = qstr.toStdString();
+	std::string str = util::fromUnicode(qstr);
 	lssproto_PS_send(petIndex, skillIndex, NULL, const_cast<char*>(str.c_str()));
 }
 
@@ -4587,7 +4587,7 @@ void Server::depositGold(int gold, bool isPublic)
 		return;
 
 	QString qstr = QString("B|%1|%2").arg(!isPublic ? "G" : "T").arg(gold);
-	std::string str = qstr.toStdString();
+	std::string str = util::fromUnicode(qstr);
 	lssproto_FM_send(const_cast<char*>(str.c_str()));
 }
 
@@ -4603,7 +4603,7 @@ void Server::withdrawGold(int gold, bool isPublic)
 		return;
 
 	QString qstr = QString("B|%1|%2").arg(!isPublic ? "G" : "T").arg(-gold);
-	std::string str = qstr.toStdString();
+	std::string str = util::fromUnicode(qstr);
 	lssproto_FM_send(const_cast<char*>(str.c_str()));
 }
 

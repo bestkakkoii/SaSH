@@ -941,8 +941,8 @@ void MainForm::onMenuActionTriggered()
 		}
 		else
 		{
-			ret = QMessageBox::information(this, tr("Update"), tr("Current version:%1\nNo new version available. Do you still want to update?") \
-				.arg(current), \
+			ret = QMessageBox::information(this, tr("Update"), tr("Current version:%1\nNew version:%2\nNo new version available. Do you still want to update?") \
+				.arg(current).arg(result), \
 				QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
 		}
 

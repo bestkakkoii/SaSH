@@ -243,7 +243,7 @@ void Lssproto::lssproto_SaMenu_send(int index)
 //戰鬥指令封包
 void Lssproto::lssproto_B_send(const QString& command)
 {
-	std::string cmd = command.toUpper().toStdString();
+	std::string cmd = util::fromUnicode(command.toUpper());
 	Autil::util_Send(LSSPROTO_B_SEND, const_cast<char*>(cmd.c_str()));
 }
 

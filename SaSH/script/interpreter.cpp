@@ -1329,7 +1329,7 @@ void Interpreter::proc()
 	emit signalDispatcher.scriptFinished();
 
 	if (!g_logger_name.isEmpty())
-		SPD_CLOSE(g_logger_name.toStdString());
+		SPD_CLOSE(g_logger_name.toUtf8().constData());
 }
 
 //檢查是否戰鬥，如果是則等待，並在戰鬥結束後停滯一段時間

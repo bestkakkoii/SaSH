@@ -340,6 +340,12 @@ bool Parser::exprTo(QString expr, QString* ret)
 		*ret = QString::fromUtf8(retObject.as<std::string>().c_str());
 		return true;
 	}
+	else if (retObject.is<sol::table>())
+	{
+		int deep = 10;
+		*ret = getLuaTableString(retObject.as<sol::table>(), deep);
+		return true;
+	}
 	return false;
 }
 
@@ -352,19 +358,6 @@ Parser::exprTo(QString expr, T* ret)
 		return false;
 
 	expr = expr.simplified();
-
-	if (expr == "return" || expr == "back" || expr == "continue" || expr == "break"
-		|| expr == QString(u8"返回") || expr == QString(u8"跳回") || expr == QString(u8"繼續") || expr == QString(u8"跳出")
-		|| expr == QString(u8"继续"))
-	{
-		if constexpr (std::is_same<T, QVariant>::value)
-		{
-			*ret = expr;
-			return true;
-		}
-
-		return false;
-	}
 
 	QString exprStr = QString("%1\nreturn %2;").arg(localVarList.join("\n")).arg(expr);
 	insertGlobalVar("_LUAEXPR", exprStr);
@@ -728,26 +721,38 @@ qint64 Parser::checkJump(const TokenMap& TK, qint64 idx, bool expr, JumpBehavior
 		qint64 line = 0;
 		if (TK.contains(idx))
 		{
-			QVariant var = checkValue(TK, idx, QVariant::LongLong);
-			QVariant::Type type = var.type();
-			if (type == QVariant::String)
+			QString preCheck = TK.value(idx).data.toString().simplified();
+
+			if (preCheck == "return" || preCheck == "back" || preCheck == "continue" || preCheck == "break"
+				|| preCheck == QString(u8"返回") || expr == QString(u8"跳回") || preCheck == QString(u8"繼續") || preCheck == QString(u8"跳出")
+				|| preCheck == QString(u8"继续"))
 			{
-				label = var.toString();
-				if (label.startsWith("'") || label.startsWith("\""))
-					label = label.mid(1);
-				if (label.endsWith("'") || label.endsWith("\""))
-					label = label.left(label.length() - 1);
-			}
-			else if (type == QVariant::Int || type == QVariant::LongLong || type == QVariant::Double)
-			{
-				bool ok = false;
-				qint64 value = 0;
-				value = var.toLongLong(&ok);
-				if (ok)
-					line = value;
+
+				label = preCheck;
 			}
 			else
-				return Parser::kArgError + idx;
+			{
+				QVariant var = checkValue(TK, idx, QVariant::LongLong);
+				QVariant::Type type = var.type();
+				if (type == QVariant::String)
+				{
+					label = var.toString();
+					if (label.startsWith("'") || label.startsWith("\""))
+						label = label.mid(1);
+					if (label.endsWith("'") || label.endsWith("\""))
+						label = label.left(label.length() - 1);
+				}
+				else if (type == QVariant::Int || type == QVariant::LongLong || type == QVariant::Double)
+				{
+					bool ok = false;
+					qint64 value = 0;
+					value = var.toLongLong(&ok);
+					if (ok)
+						line = value;
+				}
+				else
+					return Parser::kArgError + idx;
+			}
 		}
 
 		if (label.isEmpty() && line == 0)
@@ -2154,7 +2159,7 @@ void Parser::recordFunctionChunks()
 	for (auto it = functionChunks_.cbegin(); it != functionChunks_.cend(); ++it)
 		qDebug() << it.key() << it.value().name << it.value().begin << it.value().end;
 #endif
-}
+	}
 
 //更新並記錄每個 for 塊的開始行和結束行
 void Parser::recordForChunks()
@@ -2498,6 +2503,33 @@ void Parser::processMultiVariable()
 	}
 }
 
+QString Parser::getLuaTableString(const sol::table& t, int& deepth)
+{
+	if (deepth <= 0)
+		return "";
+
+	QString ret = "{ ";
+
+	QStringList results;
+
+	for (const auto& pair : t)
+	{
+		if (pair.second.is<sol::table>())
+			getLuaTableString(pair.second.as<sol::table>(), ++deepth);
+		else if (pair.second.is<qint64>())
+			results.append(QString::number(pair.second.as<qint64>()));
+		else if (pair.second.is<double>())
+			results.append(QString::number(qFloor(pair.second.as<double>())));
+		else if (pair.second.is<std::string>())
+			results.append(QString::fromUtf8(pair.second.as<std::string>().c_str()));
+	}
+
+	ret += results.join(", ");
+	ret += " }";
+
+	return ret;
+}
+
 //處理數組(表)
 void Parser::processTable()
 {
@@ -2508,6 +2540,100 @@ void Parser::processTable()
 		insertLocalVar(varName, expr);
 	else
 		insertGlobalVar(varName, expr);
+}
+
+//處理表元素設值
+void Parser::processTableSet()
+{
+	QString varName = getToken<QString>(0);
+	QString expr = getToken<QString>(1);
+	if (expr.isEmpty())
+		return;
+
+	importVariablesToLua(expr);
+
+	RESERVE type = getTokenType(0);
+	if (type == TK_TABLESET && isGlobalVarContains(varName))
+	{
+		QString globalVar = getGlobalVarValue(varName).toString();
+		if (!globalVar.startsWith("{") || !globalVar.endsWith("}"))
+			return;
+
+		QString exprStr = QString("%1\n%2 = %3;\n%4;\nreturn %5;").arg(localVarList.join("\n")).arg(varName).arg(globalVar).arg(expr).arg(varName);
+		insertGlobalVar("_LUAEXPR", exprStr);
+
+		const std::string exprStrUTF8 = exprStr.toUtf8().constData();
+		sol::protected_function_result loaded_chunk = lua_.safe_script(exprStrUTF8.c_str(), sol::script_pass_on_error);
+		lua_.collect_garbage();
+		if (!loaded_chunk.valid())
+		{
+			sol::error err = loaded_chunk;
+			QString errStr = QString::fromUtf8(err.what());
+			handleError(kLuaError, errStr);
+			return;
+		}
+
+		sol::object retObject;
+		try
+		{
+			retObject = loaded_chunk;
+		}
+		catch (...)
+		{
+			return;
+		}
+
+		if (!retObject.is<sol::table>())
+			return;
+
+		int deepth = 10;
+		QString resultStr = getLuaTableString(retObject.as<sol::table>(), deepth);
+		if (resultStr.isEmpty())
+			return;
+
+		insertGlobalVar(varName, resultStr);
+	}
+	else if (isLocalVarContains(varName))
+	{
+		QString localVar = getLocalVarValue(varName).toString();
+		if (!localVar.startsWith("{") || !localVar.endsWith("}"))
+			return;
+
+		QString exprStr = QString("%1\n%2;\nreturn %3;").arg(localVarList.join("\n")).arg(expr).arg(varName);
+		insertGlobalVar("_LUAEXPR", exprStr);
+
+		const std::string exprStrUTF8 = exprStr.toUtf8().constData();
+		sol::protected_function_result loaded_chunk = lua_.safe_script(exprStrUTF8.c_str(), sol::script_pass_on_error);
+		lua_.collect_garbage();
+		if (!loaded_chunk.valid())
+		{
+			sol::error err = loaded_chunk;
+			QString errStr = QString::fromUtf8(err.what());
+			handleError(kLuaError, errStr);
+			return;
+		}
+
+		sol::object retObject;
+		try
+		{
+			retObject = loaded_chunk;
+		}
+		catch (...)
+		{
+			return;
+		}
+
+		if (!retObject.is<sol::table>())
+			return;
+
+		int deepth = 10;
+		QString resultStr = getLuaTableString(retObject.as<sol::table>(), deepth);
+		if (resultStr.isEmpty())
+			return;
+
+		insertLocalVar(varName, resultStr);
+	}
+
 }
 
 //處理變量自增自減
@@ -4024,6 +4150,12 @@ void Parser::processTokens()
 		case TK_VARCLR:
 		{
 			processVariable(currentType);
+			break;
+		}
+		case TK_LOCALTABLESET:
+		case TK_TABLESET:
+		{
+			processTableSet();
 			break;
 		}
 		case TK_TABLE:

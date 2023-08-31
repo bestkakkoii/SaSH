@@ -42,6 +42,8 @@ enum RESERVE
 	TK_BOOL,		//"真" "假" "true" 或 "false"
 	TK_TABLE,
 	TK_LOCALTABLE,
+	TK_TABLESET,
+	TK_LOCALTABLESET,
 
 	//邏輯符號
 	TK_GT,  //">"

@@ -49,7 +49,7 @@ void luadebug::tryPopCustomErrorMsg(const sol::this_state& s, const LUA_ERROR_TY
 	{
 		//用戶請求停止
 		const QString qmsgstr(errormsg_str.value(element));
-		const std::string str(qmsgstr.toStdString());
+		const std::string str(qmsgstr.toUtf8().constData());
 		luaL_error(L, str.c_str());
 		break;
 	}
@@ -57,7 +57,7 @@ void luadebug::tryPopCustomErrorMsg(const sol::this_state& s, const LUA_ERROR_TY
 	{
 		int topsize = lua_gettop(L);
 		const QString qmsgstr(QString(errormsg_str.value(element)).arg(p1.toInt()).arg(topsize));
-		const std::string str(qmsgstr.toStdString());
+		const std::string str(qmsgstr.toUtf8().constData());
 		luaL_argcheck(L, topsize == p1.toInt(), topsize, str.c_str());
 		break;
 	}
@@ -65,7 +65,7 @@ void luadebug::tryPopCustomErrorMsg(const sol::this_state& s, const LUA_ERROR_TY
 	{
 		int topsize = lua_gettop(L);
 		const QString qmsgstr(QString(errormsg_str.value(element)).arg(topsize));
-		const std::string str(qmsgstr.toStdString());
+		const std::string str(qmsgstr.toUtf8().constData());
 		luaL_argcheck(L, topsize == 0, 1, str.c_str());
 		break;
 	}
@@ -73,21 +73,21 @@ void luadebug::tryPopCustomErrorMsg(const sol::this_state& s, const LUA_ERROR_TY
 	{
 		int topsize = lua_gettop(L);
 		const QString qmsgstr(QString(errormsg_str.value(element)).arg(p1.toInt()).arg(p2.toInt()).arg(topsize));
-		const std::string str(qmsgstr.toStdString());
+		const std::string str(qmsgstr.toUtf8().constData());
 		luaL_argcheck(L, topsize >= p1.toInt() && topsize <= p2.toInt(), 1, str.c_str());
 		break;
 	}
 	case ERROR_PARAM_VALUE://數值錯誤 p1 第幾個參數 p2邏輯 str訊息
 	{
 		const QString qmsgstr(p3.toString());
-		const std::string str(qmsgstr.toStdString());
+		const std::string str(qmsgstr.toUtf8().constData());
 		luaL_argcheck(L, p2.toBool(), p1.toInt(), str.c_str());
 		break;
 	}
 	case ERROR_PARAM_TYPE://參數預期錯誤 p1 第幾個參數 p2邏輯 str訊息
 	{
 		const QString qmsgstr(p3.toString());
-		const std::string str(qmsgstr.toStdString());
+		const std::string str(qmsgstr.toUtf8().constData());
 		luaL_argexpected(L, p2.toBool(), p1.toInt(), str.c_str());
 		break;
 	}

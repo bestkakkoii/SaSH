@@ -328,7 +328,7 @@ int MainObject::checkAndRunFunctions()
 			{
 				login_run_once_flag_ = true;
 
-				SPD_CLOSE(injector.server->protoBattleLogName.toStdString());
+				SPD_CLOSE(injector.server->protoBattleLogName.toUtf8().constData());
 
 				injector.server->clear();
 				if (!injector.chatLogModel.isNull())
