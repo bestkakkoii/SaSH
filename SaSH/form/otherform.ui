@@ -47,7 +47,7 @@
       <enum>QTabWidget::Rounded</enum>
      </property>
      <property name="currentIndex">
-      <number>1</number>
+      <number>0</number>
      </property>
      <property name="documentMode">
       <bool>false</bool>
@@ -930,7 +930,7 @@
       <attribute name="title">
        <string>other2</string>
       </attribute>
-      <layout class="QGridLayout" name="gridLayout_34">
+      <layout class="QVBoxLayout" name="verticalLayout_9">
        <property name="leftMargin">
         <number>1</number>
        </property>
@@ -943,137 +943,169 @@
        <property name="bottomMargin">
         <number>1</number>
        </property>
-       <property name="spacing">
-        <number>1</number>
-       </property>
-       <item row="0" column="0">
-        <layout class="QVBoxLayout" name="verticalLayout_28">
-         <property name="spacing">
-          <number>1</number>
+       <item>
+        <widget class="QGroupBox" name="groupBox_7">
+         <property name="styleSheet">
+          <string notr="true">QGroupBox { color:rgb(100,149,237) }</string>
          </property>
-         <item>
-          <widget class="QGroupBox" name="groupBox_7">
-           <property name="styleSheet">
-            <string notr="true">QGroupBox { color:rgb(100,149,237) }</string>
-           </property>
-           <property name="title">
-            <string>security</string>
-           </property>
-           <layout class="QGridLayout" name="gridLayout_33">
-            <property name="leftMargin">
-             <number>1</number>
-            </property>
-            <property name="topMargin">
-             <number>1</number>
-            </property>
-            <property name="rightMargin">
-             <number>1</number>
-            </property>
-            <property name="bottomMargin">
-             <number>1</number>
-            </property>
+         <property name="title">
+          <string>security</string>
+         </property>
+         <layout class="QVBoxLayout" name="verticalLayout_8">
+          <property name="leftMargin">
+           <number>1</number>
+          </property>
+          <property name="topMargin">
+           <number>1</number>
+          </property>
+          <property name="rightMargin">
+           <number>1</number>
+          </property>
+          <property name="bottomMargin">
+           <number>1</number>
+          </property>
+          <item>
+           <layout class="QHBoxLayout" name="horizontalLayout_104">
             <property name="spacing">
              <number>1</number>
             </property>
-            <item row="0" column="0">
-             <layout class="QVBoxLayout" name="verticalLayout_27">
+            <item>
+             <layout class="QHBoxLayout" name="horizontalLayout_101">
               <property name="spacing">
                <number>1</number>
               </property>
               <item>
-               <layout class="QHBoxLayout" name="horizontalLayout_104">
-                <property name="spacing">
-                 <number>1</number>
+               <widget class="QLabel" name="label_50">
+                <property name="text">
+                 <string>account</string>
                 </property>
-                <item>
-                 <layout class="QHBoxLayout" name="horizontalLayout_101">
-                  <property name="spacing">
-                   <number>1</number>
-                  </property>
-                  <item>
-                   <widget class="QLabel" name="label_50">
-                    <property name="text">
-                     <string>account</string>
-                    </property>
-                   </widget>
-                  </item>
-                  <item>
-                   <widget class="QLineEdit" name="lineEdit_gameaccount"/>
-                  </item>
-                 </layout>
-                </item>
-                <item>
-                 <layout class="QHBoxLayout" name="horizontalLayout_102">
-                  <property name="spacing">
-                   <number>1</number>
-                  </property>
-                  <item>
-                   <widget class="QLabel" name="label_51">
-                    <property name="text">
-                     <string>password</string>
-                    </property>
-                   </widget>
-                  </item>
-                  <item>
-                   <widget class="QLineEdit" name="lineEdit_gamepassword"/>
-                  </item>
-                 </layout>
-                </item>
-               </layout>
+               </widget>
               </item>
               <item>
-               <layout class="QHBoxLayout" name="horizontalLayout_103">
-                <property name="spacing">
-                 <number>1</number>
+               <widget class="QLineEdit" name="lineEdit_gameaccount"/>
+              </item>
+             </layout>
+            </item>
+            <item>
+             <layout class="QHBoxLayout" name="horizontalLayout_102">
+              <property name="spacing">
+               <number>1</number>
+              </property>
+              <item>
+               <widget class="QLabel" name="label_51">
+                <property name="text">
+                 <string>password</string>
                 </property>
-                <item>
-                 <widget class="QLabel" name="label_52">
-                  <property name="text">
-                   <string>security code</string>
-                  </property>
-                 </widget>
-                </item>
-                <item>
-                 <widget class="QLineEdit" name="lineEdit_gamesecuritycode"/>
-                </item>
-               </layout>
+               </widget>
               </item>
               <item>
-               <layout class="QHBoxLayout" name="horizontalLayout_105">
-                <property name="spacing">
-                 <number>1</number>
-                </property>
-                <item>
-                 <widget class="QCheckBox" name="checkBox_antiantibot">
-                  <property name="enabled">
-                   <bool>false</bool>
-                  </property>
-                  <property name="text">
-                   <string>anti-anti-bot</string>
-                  </property>
-                 </widget>
-                </item>
-               </layout>
+               <widget class="QLineEdit" name="lineEdit_gamepassword"/>
               </item>
              </layout>
             </item>
            </layout>
-          </widget>
-         </item>
-         <item>
-          <spacer name="verticalSpacer_2">
-           <property name="orientation">
-            <enum>Qt::Vertical</enum>
-           </property>
-           <property name="sizeHint" stdset="0">
-            <size>
-             <width>20</width>
-             <height>40</height>
-            </size>
-           </property>
-          </spacer>
-         </item>
-        </layout>
+          </item>
+          <item>
+           <layout class="QHBoxLayout" name="horizontalLayout_103">
+            <property name="spacing">
+             <number>1</number>
+            </property>
+            <item>
+             <widget class="QLabel" name="label_52">
+              <property name="text">
+               <string>security code</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QLineEdit" name="lineEdit_gamesecuritycode"/>
+            </item>
+           </layout>
+          </item>
+          <item>
+           <layout class="QHBoxLayout" name="horizontalLayout_105">
+            <property name="spacing">
+             <number>1</number>
+            </property>
+            <item>
+             <widget class="QCheckBox" name="checkBox_antiantibot">
+              <property name="enabled">
+               <bool>false</bool>
+              </property>
+              <property name="text">
+               <string>anti-anti-bot</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+          <item>
+           <layout class="QHBoxLayout" name="horizontalLayout_3">
+            <item>
+             <widget class="QLabel" name="label_9">
+              <property name="text">
+               <string>remote whitelist</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QLineEdit" name="lineEdit_remotewhitelist"/>
+            </item>
+           </layout>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
+        <widget class="QGroupBox" name="groupBox">
+         <property name="styleSheet">
+          <string notr="true">QGroupBox { color:rgb(100,149,237) }</string>
+         </property>
+         <property name="title">
+          <string>other</string>
+         </property>
+         <layout class="QVBoxLayout" name="verticalLayout_7">
+          <property name="leftMargin">
+           <number>1</number>
+          </property>
+          <property name="topMargin">
+           <number>1</number>
+          </property>
+          <property name="rightMargin">
+           <number>1</number>
+          </property>
+          <property name="bottomMargin">
+           <number>1</number>
+          </property>
+          <item>
+           <layout class="QHBoxLayout" name="horizontalLayout_4">
+            <item>
+             <widget class="QLabel" name="label_10">
+              <property name="text">
+               <string>EO cmd</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QLineEdit" name="lineEdit_eocmd"/>
+            </item>
+           </layout>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
+        <spacer name="verticalSpacer_2">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>202</height>
+          </size>
+         </property>
+        </spacer>
        </item>
       </layout>
      </widget>

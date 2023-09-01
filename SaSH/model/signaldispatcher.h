@@ -106,6 +106,7 @@ signals:
 	void reloadScriptList();
 	void varInfoImported(const QHash<QString, QVariant>& d);
 
+	void scriptSpeedChanged(int speed);
 
 	void callStackInfoChanged(const QVariant& var);
 	void jumpStackInfoChanged(const QVariant& var);

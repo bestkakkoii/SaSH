@@ -91,7 +91,7 @@ ItemInfoForm::ItemInfoForm(QWidget* parent)
 			Injector& injector = Injector::getInstance();
 			if (!injector.server.isNull())
 			{
-				for (int i = 0; i < 9; ++i)
+				for (int i = 0; i < 4; ++i)
 					injector.server->sortItem(true);
 			}
 		});

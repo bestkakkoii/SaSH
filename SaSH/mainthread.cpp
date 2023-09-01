@@ -466,6 +466,8 @@ int MainObject::checkAndRunFunctions()
 			QString logname = QString("battle_%1_%2_%3").arg(pc.name).arg(pc.freeName).arg(_getpid());
 			injector.server->protoBattleLogName = SPD_INIT(logname);
 		}
+
+		injector.server->updateComboBoxList();
 		return 2;
 	}
 

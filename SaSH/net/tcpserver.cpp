@@ -4314,7 +4314,7 @@ void Server::sortItem(bool deepSort)
 	int j = 0;
 	int i = 0;
 
-	if (swapitemModeFlag == 0)
+	if (swapitemModeFlag == 0 || !deepSort)
 	{
 		QMutexLocker lock(&swapItemMutex_);
 		if (deepSort)
@@ -8735,168 +8735,172 @@ void Server::lssproto_SI_recv(int from, int to)
 {
 	swapItemLocal(from, to);
 	refreshItemInfo();
+	updateComboBoxList();
 }
 
 //道具數據改變
 void Server::lssproto_I_recv(char* cdata)
 {
 	PC pc = getPC();
-	QMutexLocker locker(&swapItemMutex_);
-	QString data = util::toUnicode(cdata);
-	if (data.isEmpty())
-		return;
 
-	int i, j;
-	int no;
-	QString name;
-	QString name2;
-	QString memo;
-	//char *data = "9|烏力斯坦的肉||0|耐久力10前後回覆|24002|0|1|0|7|不會損壞|1|肉|20||10|烏力斯坦的肉||0|耐久力10前後回覆|24002|0|1|0|7|不會損壞|1|肉|20|";
-	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
-
-	for (j = 0; ; ++j)
 	{
+		QMutexLocker locker(&swapItemMutex_);
+		QString data = util::toUnicode(cdata);
+		if (data.isEmpty())
+			return;
+
+		int i, j;
+		int no;
+		QString name;
+		QString name2;
+		QString memo;
+		//char *data = "9|烏力斯坦的肉||0|耐久力10前後回覆|24002|0|1|0|7|不會損壞|1|肉|20||10|烏力斯坦的肉||0|耐久力10前後回覆|24002|0|1|0|7|不會損壞|1|肉|20|";
+		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
+
+		for (j = 0; ; ++j)
+		{
 #ifdef _ITEM_JIGSAW
 #ifdef _NPC_ITEMUP
 #ifdef _ITEM_COUNTDOWN
-		no = j * 17;
+			no = j * 17;
 #else
-		no = j * 16;
+			no = j * 16;
 #endif
 #else
-		no = j * 15;
+			no = j * 15;
 #endif
 #else
 #ifdef _PET_ITEM
-		no = j * 14;
+			no = j * 14;
 #else
 #ifdef _ITEM_PILENUMS
 #ifdef _ALCHEMIST
 #ifdef _MAGIC_ITEM_
-		no = j * 15;
+			no = j * 15;
 #else
-		no = j * 13;
+			no = j * 13;
 #endif
 #else
-		no = j * 12;
+			no = j * 12;
 #endif
 #else
 
-		no = j * 11;
+			no = j * 11;
 #endif
 #endif//_PET_ITEM
 #endif//_ITEM_JIGSAW
-		i = getIntegerToken(data, "|", no + 1);//道具位
-		if (getStringToken(data, "|", no + 2, name) == 1)//道具名
-			break;
+			i = getIntegerToken(data, "|", no + 1);//道具位
+			if (getStringToken(data, "|", no + 2, name) == 1)//道具名
+				break;
 
-		if (i < 0 || i >= MAX_ITEM)
-			break;
+			if (i < 0 || i >= MAX_ITEM)
+				break;
 
-		makeStringFromEscaped(name);
-		if (name.isEmpty())
-		{
-			pc.item[i].valid = false;
-			pc.item[i].name.clear();
-			pc.item[i] = {};
-			refreshItemInfo(i);
-			continue;
-		}
-		pc.item[i].valid = true;
-		pc.item[i].name = name;
-		getStringToken(data, "|", no + 3, name2);//第二個道具名
-		makeStringFromEscaped(name2);
-
-		pc.item[i].name2 = name2;
-		pc.item[i].color = getIntegerToken(data, "|", no + 4);//顏色
-		if (pc.item[i].color < 0)
-			pc.item[i].color = 0;
-		getStringToken(data, "|", no + 5, memo);//道具介紹
-		makeStringFromEscaped(memo);
-
-		pc.item[i].memo = memo;
-		pc.item[i].modelid = getIntegerToken(data, "|", no + 6);//道具形像
-		pc.item[i].field = getIntegerToken(data, "|", no + 7);//
-		pc.item[i].target = getIntegerToken(data, "|", no + 8);
-		if (pc.item[i].target >= 100)
-		{
-			pc.item[i].target %= 100;
-			pc.item[i].deadTargetFlag = 1;
-		}
-		else
-		{
-			pc.item[i].deadTargetFlag = 0;
-		}
-		pc.item[i].level = getIntegerToken(data, "|", no + 9);//等級
-		pc.item[i].sendFlag = getIntegerToken(data, "|", no + 10);
-
-		{
-			// 顯示物品耐久度
-			QString damage;
-			getStringToken(data, "|", no + 11, damage);
-			makeStringFromEscaped(damage);
-
-			if (damage.size() <= 16)
+			makeStringFromEscaped(name);
+			if (name.isEmpty())
 			{
-				pc.item[i].damage = damage;
+				pc.item[i].valid = false;
+				pc.item[i].name.clear();
+				pc.item[i] = {};
+				refreshItemInfo(i);
+				continue;
 			}
-		}
-#ifdef _ITEM_PILENUMS
-		{
-			QString pile;
-			getStringToken(data, "|", no + 12, pile);
-			makeStringFromEscaped(pile);
+			pc.item[i].valid = true;
+			pc.item[i].name = name;
+			getStringToken(data, "|", no + 3, name2);//第二個道具名
+			makeStringFromEscaped(name2);
 
-			pc.item[i].stack = pile.toInt();
-			if (pc.item[i].valid && pc.item[i].stack == 0)
-				pc.item[i].stack = 1;
-		}
+			pc.item[i].name2 = name2;
+			pc.item[i].color = getIntegerToken(data, "|", no + 4);//顏色
+			if (pc.item[i].color < 0)
+				pc.item[i].color = 0;
+			getStringToken(data, "|", no + 5, memo);//道具介紹
+			makeStringFromEscaped(memo);
+
+			pc.item[i].memo = memo;
+			pc.item[i].modelid = getIntegerToken(data, "|", no + 6);//道具形像
+			pc.item[i].field = getIntegerToken(data, "|", no + 7);//
+			pc.item[i].target = getIntegerToken(data, "|", no + 8);
+			if (pc.item[i].target >= 100)
+			{
+				pc.item[i].target %= 100;
+				pc.item[i].deadTargetFlag = 1;
+			}
+			else
+			{
+				pc.item[i].deadTargetFlag = 0;
+			}
+			pc.item[i].level = getIntegerToken(data, "|", no + 9);//等級
+			pc.item[i].sendFlag = getIntegerToken(data, "|", no + 10);
+
+			{
+				// 顯示物品耐久度
+				QString damage;
+				getStringToken(data, "|", no + 11, damage);
+				makeStringFromEscaped(damage);
+
+				if (damage.size() <= 16)
+				{
+					pc.item[i].damage = damage;
+				}
+			}
+#ifdef _ITEM_PILENUMS
+			{
+				QString pile;
+				getStringToken(data, "|", no + 12, pile);
+				makeStringFromEscaped(pile);
+
+				pc.item[i].stack = pile.toInt();
+				if (pc.item[i].valid && pc.item[i].stack == 0)
+					pc.item[i].stack = 1;
+			}
 #endif
 
 #ifdef _ALCHEMIST //_ITEMSET7_TXT
-		{
-			QString alch;
-			getStringToken(data, "|", no + 13, alch);
-			makeStringFromEscaped(alch);
+			{
+				QString alch;
+				getStringToken(data, "|", no + 13, alch);
+				makeStringFromEscaped(alch);
 
-			pc.item[i].alch = alch;
-		}
+				pc.item[i].alch = alch;
+			}
 #endif
 #ifdef _PET_ITEM
-		{
-			QString type;
-			getStringToken(data, "|", no + 14, type);
-			makeStringFromEscaped(type);
+			{
+				QString type;
+				getStringToken(data, "|", no + 14, type);
+				makeStringFromEscaped(type);
 
-			pc.item[i].type = type.toInt();
-		}
+				pc.item[i].type = type.toInt();
+			}
 
-		refreshItemInfo(i);
+			refreshItemInfo(i);
 #else
 #ifdef _MAGIC_ITEM_
-		pc.item[i].道具類型 = getIntegerToken(data, "|", no + 14);
+			pc.item[i].道具類型 = getIntegerToken(data, "|", no + 14);
 #endif
 #endif
-		/*
-#ifdef _ITEM_JIGSAW
-		{
-			char jigsaw[10];
-			getStringToken(data, "|", no + 15, sizeof(jigsaw) - 1, jigsaw);
-			makeStringFromEscaped(jigsaw);
-			strcpy( pc.item[i].jigsaw, jigsaw );
-			if( i == JigsawIdx ){
-				SetJigsaw( pc.item[i].modelid, pc.item[i].jigsaw );
+			/*
+	#ifdef _ITEM_JIGSAW
+			{
+				char jigsaw[10];
+				getStringToken(data, "|", no + 15, sizeof(jigsaw) - 1, jigsaw);
+				makeStringFromEscaped(jigsaw);
+				strcpy( pc.item[i].jigsaw, jigsaw );
+				if( i == JigsawIdx ){
+					SetJigsaw( pc.item[i].modelid, pc.item[i].jigsaw );
+				}
 			}
-		}
-#endif
-#ifdef _NPC_ITEMUP
-			pc.item[i].itemup = getIntegerToken(data, "|", no + 16);
-#endif
-#ifdef _ITEM_COUNTDOWN
-			pc.item[i].counttime = getIntegerToken(data, "|", no + 17);
-#endif
-			*/
+	#endif
+	#ifdef _NPC_ITEMUP
+				pc.item[i].itemup = getIntegerToken(data, "|", no + 16);
+	#endif
+	#ifdef _ITEM_COUNTDOWN
+				pc.item[i].counttime = getIntegerToken(data, "|", no + 17);
+	#endif
+				*/
 
+		}
 	}
 
 	setPC(pc);
@@ -12727,7 +12731,7 @@ void Server::lssproto_S_recv(char* cdata)
 			{
 				pet[nPetIndex].item[i] = {};
 				continue;
-		}
+			}
 			pet[nPetIndex].item[i].valid = true;
 			pet[nPetIndex].item[i].name = szData;
 			getStringToken(data, "|", no + 2, szData);
@@ -12802,7 +12806,7 @@ void Server::lssproto_S_recv(char* cdata)
 		//小块肉||0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|
 		//小块肉||0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|
 		//|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
-}
+	}
 	else if (first == "H")
 	{
 		//H0|0|  //0~19
@@ -12843,7 +12847,7 @@ void Server::lssproto_S_recv(char* cdata)
 	setPC(pc);
 
 	updateComboBoxList();
-		}
+}
 
 //客戶端登入(進去選人畫面)
 void Server::lssproto_ClientLogin_recv(char* cresult)
@@ -13262,7 +13266,7 @@ void Server::lssproto_TD_recv(char* cdata)//交易
 		mypet_tradeList = QStringList{ "P|-1", "P|-1", "P|-1" , "P|-1", "P|-1" };
 		mygoldtrade = 0;
 	}
-		}
+}
 
 void Server::lssproto_CHAREFFECT_recv(char* cdata)
 {

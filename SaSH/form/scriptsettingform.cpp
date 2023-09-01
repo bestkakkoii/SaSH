@@ -18,6 +18,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 #include "stdafx.h"
 #include "scriptsettingform.h"
+#include "model/customtitlebar.h"
 
 #include "injector.h"
 #include "signaldispatcher.h"
@@ -31,19 +32,39 @@ extern util::SafeHash<QString, util::SafeHash<qint64, break_marker_t>> forward_m
 extern util::SafeHash<QString, util::SafeHash<qint64, break_marker_t>> error_markers;//interpreter.cpp//用於標示錯誤發生行(紅線)
 extern util::SafeHash<QString, util::SafeHash<qint64, break_marker_t>> step_markers;//interpreter.cpp//隱式標記中斷點用於單步執行(無)
 
+
 ScriptSettingForm::ScriptSettingForm(QWidget* parent)
 	: QMainWindow(parent)
 {
 	ui.setupUi(this);
+	setAttribute(Qt::WA_DeleteOnClose);
+	setWindowFlags(Qt::FramelessWindowHint);
+
+	CustomTitleBar* titleBar = new CustomTitleBar(this);
+	setMenuWidget(titleBar);
+
+	connect(titleBar, &CustomTitleBar::maximizeClicked, this, [this]()
+		{
+			if (isMaximized())
+				showNormal();
+			else
+				showMaximized();
+		});
+
+	//Qt::WindowFlags windowflag = this->windowFlags();
+	//windowflag |= Qt::WindowType::Tool;
+	//setWindowFlag(Qt::WindowType::Tool);
+
+	qRegisterMetaType<QVector<int>>();
 
 	installEventFilter(this);
-	setAttribute(Qt::WA_DeleteOnClose);
-	qRegisterMetaType<QVector<int>>();
 
 	//reset font size
 	QFont font = ui.listView_log->font();
 	font.setPointSize(12);
 	ui.listView_log->setFont(font);
+
+
 
 	takeCentralWidget();
 	setDockNestingEnabled(true);
@@ -130,6 +151,9 @@ ScriptSettingForm::ScriptSettingForm(QWidget* parent)
 	connect(ui.actionLogback, &QAction::triggered, this, &ScriptSettingForm::onActionTriggered);
 	connect(ui.actionSaveEncode, &QAction::triggered, this, &ScriptSettingForm::onActionTriggered);
 	connect(ui.actionSaveDecode, &QAction::triggered, this, &ScriptSettingForm::onActionTriggered);
+
+	connect(this, &ScriptSettingForm::editorCursorPositionChanged, this, &ScriptSettingForm::onEditorCursorPositionChanged, Qt::QueuedConnection);
+	connect(this, &ScriptSettingForm::breakMarkInfoImport, this, &ScriptSettingForm::onBreakMarkInfoImport, Qt::QueuedConnection);
 
 
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
@@ -239,18 +263,30 @@ void ScriptSettingForm::createSpeedSpinBox()
 		   border:1px solid rgb(153,153,153);
 		}
 	)");
-	connect(pSpeedSpinBox, static_cast<void (QSpinBox::*)(int)>(&QSpinBox::valueChanged), this, [](int value)
-		{
-			Injector& injector = Injector::getInstance();
-			injector.setValueHash(util::kScriptSpeedValue, value);
-		});
+
+	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
+	connect(&signalDispatcher, &SignalDispatcher::scriptSpeedChanged, this, &ScriptSettingForm::onSpeedChanged);
+
+	connect(pSpeedSpinBox, static_cast<void (QSpinBox::*)(int)>(&QSpinBox::valueChanged), this, &ScriptSettingForm::onSpeedChanged);
 
 	ui.mainToolBar->addWidget(pSpeedSpinBox);
 }
 
 ScriptSettingForm::~ScriptSettingForm()
 {
+	qDebug() << "~ScriptSettingForm";
+}
 
+void ScriptSettingForm::onSpeedChanged(int value)
+{
+	pSpeedSpinBox->blockSignals(true);
+	pSpeedSpinBox->setValue(value);
+	pSpeedSpinBox->blockSignals(false);
+
+	Injector& injector = Injector::getInstance();
+	injector.setValueHash(util::kScriptSpeedValue, value);
+	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
+	emit signalDispatcher.applyHashSettingsToUI();
 }
 
 void ScriptSettingForm::showEvent(QShowEvent* e)
@@ -261,31 +297,35 @@ void ScriptSettingForm::showEvent(QShowEvent* e)
 
 void ScriptSettingForm::closeEvent(QCloseEvent* e)
 {
-	util::FormSettingManager formSettingManager(this);
-	formSettingManager.saveSettings();
+	do
+	{
+		util::FormSettingManager formSettingManager(this);
+		formSettingManager.saveSettings();
 
-	const QString fileName(qgetenv("JSON_PATH"));
-	if (fileName.isEmpty())
-		return;
+		const QString fileName(qgetenv("JSON_PATH"));
+		if (fileName.isEmpty())
+			break;
 
-	if (!QFile::exists(fileName))
-		return;
-	util::Config config(fileName);
-	Injector& injector = Injector::getInstance();
-	config.write(objectName(), "LastModifyFile", injector.currentScriptFileName);
+		if (!QFile::exists(fileName))
+			break;
+
+		util::Config config(fileName);
+		Injector& injector = Injector::getInstance();
+		config.write(objectName(), "LastModifyFile", injector.currentScriptFileName);
 
 
-	QString ObjectName = ui.widget->objectName();
-	QFont font = ui.widget->getOldFont();
-	config.write(objectName(), ObjectName, "FontSize", font.pointSize());
+		QString ObjectName = ui.widget->objectName();
+		QFont font = ui.widget->getOldFont();
+		config.write(objectName(), ObjectName, "FontSize", font.pointSize());
 
-	ObjectName = ui.listView_log->objectName();
-	font = ui.listView_log->font();
-	config.write(objectName(), ObjectName, "FontSize", font.pointSize());
+		ObjectName = ui.listView_log->objectName();
+		font = ui.listView_log->font();
+		config.write(objectName(), ObjectName, "FontSize", font.pointSize());
 
-	ObjectName = ui.textBrowser->objectName();
-	font = ui.textBrowser->font();
-	config.write(objectName(), ObjectName, "FontSize", font.pointSize());
+		ObjectName = ui.textBrowser->objectName();
+		font = ui.textBrowser->font();
+		config.write(objectName(), ObjectName, "FontSize", font.pointSize());
+	} while (false);
 
 	QMainWindow::closeEvent(e);
 }
@@ -543,33 +583,57 @@ void ScriptSettingForm::setMark(CodeEditor::SymbolHandler element, util::SafeHas
 			break;
 		}
 
+		Injector& injector = Injector::getInstance();
+		util::SafeHash<qint64, break_marker_t> markers = hash.value(injector.currentScriptFileName);
+
 		if (b)
 		{
-			Injector& injector = Injector::getInstance();
-			break_marker_t bk = {};
+			break_marker_t bk = markers.value(liner);
 			bk.line = liner;
 			bk.content = ui.widget->text(liner);
-			bk.count = NULL;
 			bk.maker = static_cast<qint64>(element);
-			util::SafeHash<qint64, break_marker_t> markers = hash.value(injector.currentScriptFileName);
 			markers.insert(liner, bk);
 			hash.insert(injector.currentScriptFileName, markers);
-
-			ui.widget->markerAdd(liner, element); // 添加标签
-			onEditorCursorPositionChanged(liner, 0);
+			ui.widget->markerAdd(liner, element);
+			emit editorCursorPositionChanged(liner, 0);
 		}
-		else if (!b)
+		else
 		{
-			Injector& injector = Injector::getInstance();
-			util::SafeHash<qint64, break_marker_t> markers = hash.value(injector.currentScriptFileName);
 			if (markers.contains(liner))
 			{
 				markers.remove(liner);
 				hash.insert(injector.currentScriptFileName, markers);
+				ui.widget->markerDelete(liner, element);
 			}
-			ui.widget->markerDelete(liner, element);
 		}
 	} while (false);
+}
+
+void ScriptSettingForm::setStepMarks()
+{
+	QString content = ui.widget->text();
+	QStringList list = content.split("\n");
+	if (list.isEmpty())
+		return;
+
+	int maxliner = list.size();
+	int index = 1;
+
+	Injector& injector = Injector::getInstance();
+	util::SafeHash<qint64, break_marker_t> markers = step_markers.value(injector.currentScriptFileName);
+	break_marker_t bk = {};
+
+	for (int i = 0; i < maxliner; ++i)
+	{
+		index = i + 1;
+		bk = markers.value(index);
+		bk.line = index;
+		bk.content = list.at(i);
+		bk.maker = static_cast<qint64>(CodeEditor::SymbolHandler::SYM_STEP);
+		markers.insert(index, bk);
+	}
+
+	step_markers.insert(injector.currentScriptFileName, markers);
 }
 
 void ScriptSettingForm::onAddForwardMarker(int liner, bool b)
@@ -582,20 +646,20 @@ void ScriptSettingForm::onAddErrorMarker(int liner, bool b)
 	setMark(CodeEditor::SymbolHandler::SYM_TRIANGLE, error_markers, liner, b);
 }
 
-void ScriptSettingForm::onAddStepMarker(int, bool b)
+void ScriptSettingForm::onAddStepMarker(int liner, bool b)
 {
 	if (!b)
 	{
-		this->setMark(CodeEditor::SymbolHandler::SYM_STEP, step_markers, -1, false);
+		ui.widget->setUpdatesEnabled(false);
+		setMark(CodeEditor::SymbolHandler::SYM_STEP, step_markers, -1, false);
+		ui.widget->setUpdatesEnabled(true);
 	}
 	else
 	{
-		int size = ui.widget->lines();
-		for (int i = 0; i < size; ++i)
-		{
-			this->setMark(CodeEditor::SymbolHandler::SYM_STEP, step_markers, i, true);
-		}
-		onScriptBreakMode();
+		ui.widget->setUpdatesEnabled(false);
+		setStepMarks();
+		ui.widget->setUpdatesEnabled(true);
+		emit SignalDispatcher::getInstance().scriptBreaked();
 	}
 }
 
@@ -615,7 +679,8 @@ void ScriptSettingForm::reshowBreakMarker()
 			ui.widget->markerAdd(bit.line, CodeEditor::SymbolHandler::SYM_POINT);
 		}
 	}
-	onBreakMarkInfoImport();
+
+	emit breakMarkInfoImport();
 }
 
 void ScriptSettingForm::onAddBreakMarker(int liner, bool b)
@@ -631,14 +696,15 @@ void ScriptSettingForm::onAddBreakMarker(int liner, bool b)
 
 		if (b)
 		{
-			break_marker_t bk = {};
+			util::SafeHash<qint64, break_marker_t> markers = break_markers.value(injector.currentScriptFileName);
+			break_marker_t bk = markers.value(liner);
 			bk.line = liner;
 			bk.content = ui.widget->text(liner);
 			if (bk.content.simplified().isEmpty() || bk.content.simplified().indexOf("//") == 0 || bk.content.simplified().indexOf("/*") == 0)
 				return;
-			bk.count = NULL;
+
 			bk.maker = static_cast<qint64>(CodeEditor::SymbolHandler::SYM_POINT);
-			util::SafeHash<qint64, break_marker_t> markers = break_markers.value(injector.currentScriptFileName);
+
 			markers.insert(liner, bk);
 			break_markers.insert(injector.currentScriptFileName, markers);
 			ui.widget->markerAdd(liner, CodeEditor::SymbolHandler::SYM_POINT);
@@ -655,11 +721,13 @@ void ScriptSettingForm::onAddBreakMarker(int liner, bool b)
 			ui.widget->markerDelete(liner, CodeEditor::SymbolHandler::SYM_POINT);
 		}
 	} while (false);
-	onBreakMarkInfoImport();
+
+	emit breakMarkInfoImport();
 }
 
 void ScriptSettingForm::onBreakMarkInfoImport()
 {
+	ui.treeWidget_breakList->setUpdatesEnabled(false);
 
 	QList<QTreeWidgetItem*> trees = {};
 	ui.treeWidget_breakList->clear();
@@ -678,6 +746,8 @@ void ScriptSettingForm::onBreakMarkInfoImport()
 		}
 		ui.treeWidget_breakList->addTopLevelItems(trees);
 	}
+
+	ui.treeWidget_breakList->setUpdatesEnabled(true);
 }
 
 void ScriptSettingForm::on_widget_marginClicked(int margin, int line, Qt::KeyboardModifiers state)
@@ -685,6 +755,7 @@ void ScriptSettingForm::on_widget_marginClicked(int margin, int line, Qt::Keyboa
 	Q_UNUSED(margin);
 	int mask = ui.widget->markersAtLine(line);
 
+	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
 	switch (state)
 	{
 	case Qt::ControlModifier: // 按下Ctrl键
@@ -693,11 +764,11 @@ void ScriptSettingForm::on_widget_marginClicked(int margin, int line, Qt::Keyboa
 	{
 		if (ui.widget->isBreak(mask))
 		{
-			onAddBreakMarker(line, false);
+			emit signalDispatcher.addBreakMarker(line, false);
 		}
 		else
 		{
-			onAddBreakMarker(line, true);
+			emit signalDispatcher.addBreakMarker(line, true);
 		}
 		break;
 	}
@@ -828,9 +899,10 @@ void ScriptSettingForm::fileSave(const QString& d, DWORD flag)
 
 	onWidgetModificationChanged(true);
 
-	onAddErrorMarker(-1, false);
-	onAddForwardMarker(-1, false);
-	onAddStepMarker(-1, false);
+	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
+	emit signalDispatcher.addForwardMarker(-1, false);
+	emit signalDispatcher.addErrorMarker(-1, false);
+	emit signalDispatcher.addStepMarker(-1, false);
 	forward_markers.clear();
 	error_markers.clear();
 	step_markers.clear();
@@ -863,7 +935,9 @@ void ScriptSettingForm::onReloadScriptList()
 		util::loadAllFileLists(item, util::applicationDirPath() + "/script/", &newScriptList);
 
 		m_scriptList = newScriptList;
+
 		ui.treeWidget_scriptList->setUpdatesEnabled(false);
+
 		ui.treeWidget_scriptList->clear();
 		ui.treeWidget_scriptList->addTopLevelItem(item);
 		//展開全部第一層
@@ -922,9 +996,11 @@ void ScriptSettingForm::loadFile(const QString& fileName)
 
 	ui.widget->setUpdatesEnabled(true);
 
-	onAddErrorMarker(-1, false);
-	onAddForwardMarker(-1, false);
-	onAddStepMarker(-1, false);
+	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
+	emit signalDispatcher.addForwardMarker(-1, false);
+	emit signalDispatcher.addErrorMarker(-1, false);
+	emit signalDispatcher.addStepMarker(-1, false);
+
 	forward_markers.clear();
 	error_markers.clear();
 	step_markers.clear();
@@ -952,9 +1028,11 @@ void ScriptSettingForm::loadFile(const QString& fileName)
 void ScriptSettingForm::setContinue()
 {
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
-	onAddErrorMarker(-1, false);
-	onAddForwardMarker(-1, false);
-	onAddStepMarker(-1, false);
+
+	emit signalDispatcher.addForwardMarker(-1, false);
+	emit signalDispatcher.addErrorMarker(-1, false);
+	emit signalDispatcher.addStepMarker(-1, false);
+
 	forward_markers.clear();
 	error_markers.clear();
 	step_markers.clear();
@@ -1001,14 +1079,15 @@ void ScriptSettingForm::onScriptTreeWidgetDoubleClicked(QTreeWidgetItem* item, i
 		strpath = util::applicationDirPath() + "/script/" + strpath;
 		strpath.replace("*", "");
 
-		onAddErrorMarker(-1, false);
-		onAddForwardMarker(-1, false);
-		onAddStepMarker(-1, false);
+		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
+		emit signalDispatcher.addForwardMarker(-1, false);
+		emit signalDispatcher.addErrorMarker(-1, false);
+		emit signalDispatcher.addStepMarker(-1, false);
+
 		forward_markers.clear();
 		error_markers.clear();
 		step_markers.clear();
 
-		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
 		emit signalDispatcher.loadFileToTable(strpath);
 
 	} while (false);
@@ -1057,8 +1136,8 @@ void ScriptSettingForm::onActionTriggered()
 	}
 	else if (name == "actionStep")
 	{
-		onAddErrorMarker(-1, false);
-		onAddForwardMarker(-1, false);
+		emit signalDispatcher.addForwardMarker(-1, false);
+		emit signalDispatcher.addErrorMarker(-1, false);
 		emit signalDispatcher.scriptBreaked();
 	}
 	else if (name == "actionSaveAs")
@@ -1104,7 +1183,7 @@ void ScriptSettingForm::onActionTriggered()
 		int line = -1;
 		int index = -1;
 		ui.widget->getCursorPosition(&line, &index);
-		on_widget_marginClicked(NULL, line, Qt::NoModifier);
+		emit ui.widget->marginClicked(NULL, line, Qt::NoModifier);
 	}
 	else if (name == "actionLogback")
 	{
@@ -1136,7 +1215,9 @@ void ScriptSettingForm::onActionTriggered()
 					file.flush();
 					file.close();
 				}
+
 				loadFile(strpath);
+
 				emit signalDispatcher.reloadScriptList();
 				break;
 			}
@@ -1165,6 +1246,7 @@ void ScriptSettingForm::on_comboBox_labels_clicked()
 {
 	static const QRegularExpression rex_divLabel(u8R"((label\s+[\p{Han}\w]+))");
 	ui.comboBox_labels->blockSignals(true);
+
 	//將所有lua function 和 label加入 combobox並使其能定位行號
 	int line = -1, index = -1;
 	ui.widget->getCursorPosition(&line, &index);
@@ -1192,6 +1274,7 @@ void ScriptSettingForm::on_comboBox_labels_clicked()
 		}
 	}
 	ui.comboBox_labels->setCurrentIndex(cur);
+
 	ui.comboBox_labels->blockSignals(false);
 }
 
@@ -1323,11 +1406,8 @@ void ScriptSettingForm::onScriptLabelRowTextChanged(int line, int, bool)
 //切換光標和焦點所在行
 void ScriptSettingForm::onEditorCursorPositionChanged(int line, int index)
 {
-	if (line < 0)
-		line = 0;
-
 	//ui.widget->setCursorPosition(line, ui.widget->SendScintilla(QsciScintilla::SCI_LINELENGTH, line - 1) - 1);
-	ui.widget->SendScintilla(QsciScintilla::SCI_SETSELECTIONMODE, QsciScintilla::SC_SEL_LINES);
+	//ui.widget->SendScintilla(QsciScintilla::SCI_SETSELECTIONMODE, QsciScintilla::SC_SEL_LINES);
 
 	if (NULL == index)
 		ui.widget->setCaretLineBackgroundColor(QColor(71, 71, 71));//光標所在行背景顏色
@@ -1335,6 +1415,8 @@ void ScriptSettingForm::onEditorCursorPositionChanged(int line, int index)
 		ui.widget->setCaretLineBackgroundColor(QColor(0xff, 0x80, 0x80));//光標所在行背景顏色
 
 	//確保光標示在可視範圍內
+	if (line - 1 < 0)
+		line = 1;
 	ui.widget->ensureLineVisible(line - 1);
 }
 
@@ -1345,7 +1427,7 @@ void ScriptSettingForm::on_comboBox_labels_currentIndexChanged(int)
 	if (var.isValid())
 	{
 		int line = var.toInt();
-		onEditorCursorPositionChanged(line, NULL);
+		emit editorCursorPositionChanged(line, NULL);
 	}
 }
 
@@ -1355,7 +1437,7 @@ void ScriptSettingForm::on_comboBox_functions_currentIndexChanged(int)
 	if (var.isValid())
 	{
 		int line = var.toInt();
-		onEditorCursorPositionChanged(line, NULL);
+		emit editorCursorPositionChanged(line, NULL);
 	}
 }
 
@@ -1805,9 +1887,9 @@ void ScriptSettingForm::on_treeWidget_functionList_itemSelectionChanged()
 		ui.textBrowser->setUpdatesEnabled(true);
 
 		return;
-		} while (false);
+	} while (false);
 
-	}
+}
 
 QString ScriptSettingForm::getFullPath(QTreeWidgetItem* item)
 {
@@ -1954,7 +2036,9 @@ void ScriptSettingForm::createScriptListContextMenu()
 			{
 				file.remove();
 			}
-			onReloadScriptList();
+
+			SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
+			emit signalDispatcher.reloadScriptList();
 		});
 
 	connect(renameAction, &QAction::triggered, this, [this]()
@@ -1992,7 +2076,9 @@ void ScriptSettingForm::createScriptListContextMenu()
 			{
 				// Show the context menu at the requested position
 				menu->exec(ui.treeWidget_scriptList->mapToGlobal(pos));
-				onReloadScriptList();
+
+				SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
+				emit signalDispatcher.reloadScriptList();
 			}
 		});
 }
@@ -2097,7 +2183,7 @@ void ScriptSettingForm::onEncryptSave()
 	else
 	{
 		ui.statusBar->showMessage(tr("Encrypt script save failed"), 3000);
-}
+	}
 #endif
 }
 
@@ -2144,4 +2230,35 @@ void ScriptSettingForm::onDecryptSave()
 		ui.statusBar->showMessage(tr("Decrypt password is incorrect"), 3000);
 	}
 #endif
+}
+
+bool ScriptSettingForm::nativeEvent(const QByteArray& eventType, void* message, long* result)
+{
+	MSG* msg = (MSG*)message;
+	switch (msg->message)
+	{
+	case WM_NCHITTEST:
+		int xPos = GET_X_LPARAM(msg->lParam) - this->frameGeometry().x();
+		int yPos = GET_Y_LPARAM(msg->lParam) - this->frameGeometry().y();
+		if (xPos < boundaryWidth_ && yPos < boundaryWidth_)                    //左上角
+			*result = HTTOPLEFT;
+		else if (xPos >= width() - boundaryWidth_ && yPos < boundaryWidth_)          //右上角
+			*result = HTTOPRIGHT;
+		else if (xPos < boundaryWidth_ && yPos >= height() - boundaryWidth_)         //左下角
+			*result = HTBOTTOMLEFT;
+		else if (xPos >= width() - boundaryWidth_ && yPos >= height() - boundaryWidth_)//右下角
+			*result = HTBOTTOMRIGHT;
+		else if (xPos < boundaryWidth_)                                     //左边
+			*result = HTLEFT;
+		else if (xPos >= width() - boundaryWidth_)                              //右边
+			*result = HTRIGHT;
+		else if (yPos < boundaryWidth_)                                       //上边
+			*result = HTTOP;
+		else if (yPos >= height() - boundaryWidth_)                             //下边
+			*result = HTBOTTOM;
+		else              //其他部分不做处理，返回false，留给其他事件处理器处理
+			return false;
+		return true;
+	}
+	return false;         //此处返回false，留给其他事件处理器处理
 }

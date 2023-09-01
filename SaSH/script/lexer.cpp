@@ -731,7 +731,7 @@ void Lexer::tokenized(qint64 currentLine, const QString& line, TokenMap* ptoken,
 					}
 				}
 
-				showError(QObject::tr("<Warning>Unknown command '%1' has been ignored at line: %2").arg(token).arg(currentLine + 1), kTypeWarning);
+				showError(QString("[wran] ") + QObject::tr("<Warning>Unknown command '%1' has been ignored at line: %2").arg(token).arg(currentLine + 1), kTypeWarning);
 				createEmptyToken(pos, ptoken);
 				break;
 			}
@@ -1180,7 +1180,7 @@ void Lexer::checkPairs(const QString& beginstr, const QString& endstr, const QHa
 	{
 		qint64 row = it.key();
 		QString statement = it.value();
-		QString errorMessage = QObject::tr("<Syntax Error>Missing '%1' for statement '%2' at line: %3").arg(endstr).arg(statement).arg(row + 1);
+		QString errorMessage = QString("[wran] ") + QObject::tr("<Syntax Error>Missing '%1' for statement '%2' at line: %3").arg(endstr).arg(statement).arg(row + 1);
 		showError(errorMessage);
 	}
 
@@ -1189,7 +1189,7 @@ void Lexer::checkPairs(const QString& beginstr, const QString& endstr, const QHa
 	{
 		qint64 row = it.key();
 		QString statement = it.value();
-		QString errorMessage = QObject::tr("<Syntax Error>Extra '%1' for statement '%2' at line: %3").arg(endstr).arg(statement).arg(row + 1);
+		QString errorMessage = QString("[wran] ") + QObject::tr("<Syntax Error>Extra '%1' for statement '%2' at line: %3").arg(endstr).arg(statement).arg(row + 1);
 		showError(errorMessage);
 	}
 }
@@ -1255,7 +1255,7 @@ void Lexer::checkSingleRowPairs(const QString& beginstr, const QString& endstr, 
 		for (int index : unpairedIndices)
 		{
 			QString statement = tokenmaps[row].value(0).data.toString().simplified();
-			QString errorMessage = QString(QObject::tr("Unpaired '%1' at row %2, index %3: '%4'")).arg(beginstr).arg(row + 1).arg(index).arg(statement);
+			QString errorMessage = QString("[wran] ") + QString(QObject::tr("Unpaired '%1' at row %2, index %3: '%4'")).arg(beginstr).arg(row + 1).arg(index).arg(statement);
 			showError(errorMessage);
 		}
 	}
@@ -1269,7 +1269,7 @@ void Lexer::checkSingleRowPairs(const QString& beginstr, const QString& endstr, 
 		for (int index : unpairedIndices)
 		{
 			QString statement = tokenmaps[row].value(0).data.toString().simplified();
-			QString errorMessage = QString(QObject::tr("Unpaired '%1' at row %2, index %3: '%4'")).arg(endstr).arg(row + 1).arg(index).arg(statement);
+			QString errorMessage = QString("[wran] ") + QString(QObject::tr("Unpaired '%1' at row %2, index %3: '%4'")).arg(endstr).arg(row + 1).arg(index).arg(statement);
 			showError(errorMessage);
 		}
 	}

@@ -47,12 +47,12 @@ public:
 
 	inline void checkPause()
 	{
+		pausedMutex_.lock();
 		if (isPaused_.load(std::memory_order_acquire))
 		{
-			pausedMutex_.lock();
 			waitCondition_.wait(&pausedMutex_);
-			pausedMutex_.unlock();
 		}
+		pausedMutex_.unlock();
 	}
 
 public slots:
@@ -64,12 +64,18 @@ public slots:
 
 	void paused()
 	{
+		pausedMutex_.lock();
 		isPaused_.store(true, std::memory_order_release);
+		pausedMutex_.unlock();
 	}
 
 	void resumed()
 	{
-		isPaused_ = false;
+		{
+			pausedMutex_.lock();
+			isPaused_.store(false, std::memory_order_release);
+			pausedMutex_.unlock();
+		}
 		waitCondition_.wakeAll();
 	}
 

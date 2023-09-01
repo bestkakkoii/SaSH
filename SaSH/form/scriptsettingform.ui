@@ -2025,7 +2025,7 @@ background-color: rgb(31, 31, 31);</string>
           <property name="styleSheet">
            <string notr="true">QListView {
     /*color: rgb(214,214,214);*/
-    background: rgb(31,31,31);
+    background: rgb(37,37,38);
     border: 1px solid rgb(61,61,61);
     alternate-background-color: #525252;
     gridline-color: transparent;
@@ -2034,7 +2034,7 @@ background-color: rgb(31, 31, 31);</string>
 
 QListView QTableCornerButton::section {
     /*color: rgb(214,214,214);*/
-    background: rgb(31,31,31);
+    background: rgb(37,37,38);
     border: 0px solid #418bc9;/*边框*/
     border-radius:0px;/*边框圆角*/
     border-color: rgb(41, 139, 201);/*边框颜色*/
@@ -2044,12 +2044,12 @@ QListView QTableCornerButton::section {
 
 QListView::item {
     /*color: rgb(214,214,214);*/
-    background: rgb(31,31,31);
+    background: rgb(37,37,38);
 }
 
 QListView::item:selected {
     /*color: rgb(214,214,214);*/
-    background:rgb(61,61,61); /* qlineargradient(spread:pad, x1:0, y1:0, x2:0, y2:1, stop:0 #484848, stop:1 #383838);*/
+    background:rgb(43,83,125); /* qlineargradient(spread:pad, x1:0, y1:0, x2:0, y2:1, stop:0 #484848, stop:1 #383838);*/
 }
 
 QListView::item:hover {
@@ -2058,7 +2058,7 @@ QListView::item:hover {
 
 QHeaderView {
     text-align: center;
-    background: rgb(31,31,31);
+    background: rgb(37,37,38);
     padding: 0px;
     margin: 0px;
     color: rgb(250,250,250);
@@ -2068,7 +2068,7 @@ QHeaderView {
 
 QHeaderView::section::vertical {
     text-align: center;
-    background: rgb(31,31,31);
+    background: rgb(37,37,38);
     padding: 3px;
     margin: 0px;
     color: rgb(250,250,250);
@@ -2080,7 +2080,7 @@ QHeaderView::section::vertical {
 
 QHeaderView::section::horizontal{
     text-align: center;
-    background: rgb(31,31,31);
+    background: rgb(37,37,38);
     padding: 3px;
     margin: 0px;
     color: rgb(250,250,250);

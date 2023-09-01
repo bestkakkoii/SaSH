@@ -123,6 +123,8 @@ bool Interpreter::doFile(qint64 beginLine, const QString& fileName, Interpreter*
 		emit signalDispatcher.scriptContentChanged(fileName, QVariant::fromValue(QHash<qint64, TokenMap>{}));
 	}
 
+	scriptFileName_ = fileName;
+
 	pCallback = [parent, &signalDispatcher, mode, this](qint64 currentLine, const TokenMap& TK)->qint64
 	{
 		if (parent == nullptr)
@@ -154,6 +156,35 @@ bool Interpreter::doFile(qint64 beginLine, const QString& fileName, Interpreter*
 		}
 
 		parent->checkPause();
+
+		if (mode == kSync)
+		{
+			util::SafeHash<qint64, break_marker_t> breakMarkers = break_markers.value(scriptFileName_);
+			const util::SafeHash<qint64, break_marker_t> stepMarkers = step_markers.value(scriptFileName_);
+			if (!(breakMarkers.contains(currentLine) || stepMarkers.contains(currentLine)))
+			{
+				return 1;//檢查是否有中斷點
+			}
+
+			parent->paused();
+
+			if (breakMarkers.contains(currentLine))
+			{
+				//叫用次數+1
+				break_marker_t mark = breakMarkers.value(currentLine);
+				++mark.count;
+
+				//重新插入斷下的紀錄
+				breakMarkers.insert(currentLine, mark);
+				break_markers.insert(scriptFileName_, breakMarkers);
+				//所有行插入隱式斷點(用於單步)
+				emit signalDispatcher.addStepMarker(currentLine, true);
+			}
+
+			emit signalDispatcher.addForwardMarker(currentLine, true);
+
+			parent->checkPause();
+		}
 
 		return 1;
 	};
@@ -1241,30 +1272,31 @@ qint64 Interpreter::mainScriptCallBack(qint64 currentLine, const TokenMap& TK)
 
 	checkPause();
 
-	util::SafeHash<qint64, break_marker_t> markers = break_markers.value(scriptFileName_);
-	const util::SafeHash<qint64, break_marker_t> step_marker = step_markers.value(scriptFileName_);
-	if (!(markers.contains(currentLine) || step_marker.contains(currentLine)))
+	util::SafeHash<qint64, break_marker_t> breakMarkers = break_markers.value(scriptFileName_);
+	const util::SafeHash<qint64, break_marker_t> stepMarkers = step_markers.value(scriptFileName_);
+	if (!(breakMarkers.contains(currentLine) || stepMarkers.contains(currentLine)))
 	{
 		return 1;//檢查是否有中斷點
 	}
 
 	paused();
 
-	if (markers.contains(currentLine))
+	if (breakMarkers.contains(currentLine))
 	{
 		//叫用次數+1
-		break_marker_t mark = markers.value(currentLine);
+		break_marker_t mark = breakMarkers.value(currentLine);
 		++mark.count;
 
 		//重新插入斷下的紀錄
-		markers.insert(currentLine, mark);
-		break_markers.insert(scriptFileName_, markers);
-
+		breakMarkers.insert(currentLine, mark);
+		break_markers.insert(scriptFileName_, breakMarkers);
 		//所有行插入隱式斷點(用於單步)
 		emit signalDispatcher.addStepMarker(currentLine, true);
 	}
 
 	emit signalDispatcher.addForwardMarker(currentLine, true);
+
+	checkPause();
 
 	return 1;
 }
@@ -1610,8 +1642,16 @@ qint64 Interpreter::run(qint64 currentline, const TokenMap& TK)
 		{
 			interpreter->setSubScript(true);
 
+			QString scriptFileName_ = injector.currentScriptFileName;
+			injector.currentScriptFileName = fileName;
+
 			if (!interpreter->doFile(beginLine, fileName, this, varShareMode))
+			{
+				injector.currentScriptFileName = scriptFileName_;
 				return Parser::kError;
+			}
+
+			injector.currentScriptFileName = scriptFileName_;
 
 			//還原顯示
 			SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();

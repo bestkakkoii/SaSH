@@ -106,6 +106,8 @@ ScriptForm::ScriptForm(QWidget* parent)
 	connect(&signalDispatcher, &SignalDispatcher::scriptPaused, this, &ScriptForm::onScriptPaused, Qt::QueuedConnection);
 	connect(&signalDispatcher, &SignalDispatcher::scriptResumed, this, &ScriptForm::onScriptResumed, Qt::QueuedConnection);
 	connect(&signalDispatcher, &SignalDispatcher::scriptBreaked, this, &ScriptForm::onScriptResumed, Qt::QueuedConnection);
+
+	connect(&signalDispatcher, &SignalDispatcher::applyHashSettingsToUI, this, &ScriptForm::onApplyHashSettingsToUI, Qt::UniqueConnection);
 	emit signalDispatcher.reloadScriptList();
 
 	const QString fileName(qgetenv("JSON_PATH"));
@@ -122,6 +124,8 @@ ScriptForm::ScriptForm(QWidget* parent)
 	{
 		emit signalDispatcher.loadFileToTable(injector.currentScriptFileName);
 	}
+
+	connect(ui.spinBox_speed, static_cast<void (QSpinBox::*)(int)>(&QSpinBox::valueChanged), this, &ScriptForm::onSpeedChanged);
 }
 
 ScriptForm::~ScriptForm()
@@ -508,4 +512,22 @@ void ScriptForm::onReloadScriptList()
 
 		ui.treeWidget_script->setUpdatesEnabled(true);
 	} while (false);
+}
+
+void ScriptForm::onSpeedChanged(int value)
+{
+	Injector& injector = Injector::getInstance();
+	injector.setValueHash(util::kScriptSpeedValue, value);
+
+	emit SignalDispatcher::getInstance().scriptSpeedChanged(value);
+}
+
+void ScriptForm::onApplyHashSettingsToUI()
+{
+	Injector& injector = Injector::getInstance();
+	util::SafeHash<util::UserSetting, bool> enableHash = injector.getEnableHash();
+	util::SafeHash<util::UserSetting, int> valueHash = injector.getValueHash();
+	util::SafeHash<util::UserSetting, QString> stringHash = injector.getStringHash();
+
+	ui.spinBox_speed->setValue(valueHash.value(util::kScriptSpeedValue));
 }

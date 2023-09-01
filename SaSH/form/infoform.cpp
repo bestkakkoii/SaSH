@@ -40,6 +40,10 @@ InfoForm::InfoForm(int defaultPage, QWidget* parent)
 	setAttribute(Qt::WA_StyledBackground, true);
 	setAttribute(Qt::WA_StaticContents, true);
 
+	Qt::WindowFlags windowflag = this->windowFlags();
+	windowflag |= Qt::WindowType::Tool;
+	setWindowFlag(Qt::WindowType::Tool);
+
 	connect(this, &InfoForm::resetControlTextLanguage, this, &InfoForm::onResetControlTextLanguage, Qt::UniqueConnection);
 
 	setStyleSheet(R"(

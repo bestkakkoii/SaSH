@@ -50,6 +50,9 @@ private slots:
 	void onScriptFinished();
 	void onScriptStarted();
 
+	void onSpeedChanged(int value);
+
+	void onApplyHashSettingsToUI();
 private:
 	void setTableWidgetItem(int row, int col, const QString& text);
 	void resizeTableWidgetRow(int max);

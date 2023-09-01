@@ -156,9 +156,6 @@
     <ClCompile Include="form\scriptform.cpp">
       <Filter>Source Files\forms\script</Filter>
     </ClCompile>
-    <ClCompile Include="form\scriptsettingform.cpp">
-      <Filter>Source Files\forms\script_setting</Filter>
-    </ClCompile>
     <ClCompile Include="form\afkinfoform.cpp">
       <Filter>Source Files\forms\Info\sub</Filter>
     </ClCompile>
@@ -279,6 +276,12 @@
     <ClCompile Include="form\copyrightdialog.cpp">
       <Filter>Source Files\forms</Filter>
     </ClCompile>
+    <ClCompile Include="form\scriptsettingform.cpp">
+      <Filter>Source Files\forms\script_setting</Filter>
+    </ClCompile>
+    <ClCompile Include="model\customtitlebar.cpp">
+      <Filter>Source Files\model</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="mainform.h">
@@ -394,6 +397,9 @@
     </QtMoc>
     <QtMoc Include="form\copyrightdialog.h">
       <Filter>Source Files\forms</Filter>
+    </QtMoc>
+    <QtMoc Include="model\customtitlebar.h">
+      <Filter>Source Files\model</Filter>
     </QtMoc>
   </ItemGroup>
   <ItemGroup>

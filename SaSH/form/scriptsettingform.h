@@ -38,6 +38,19 @@ protected:
 	void closeEvent(QCloseEvent* e) override;
 	bool eventFilter(QObject* obj, QEvent* e) override;
 
+	bool nativeEvent(const QByteArray& eventType, void* message, long* result) override;
+
+	void mousePressEvent(QMouseEvent* e)  override
+	{
+		if (e->button() == Qt::LeftButton)
+			clickPos_ = e->pos();
+	}
+	void mouseMoveEvent(QMouseEvent* e) override
+	{
+		if (e->buttons() & Qt::LeftButton)
+			move(e->pos() + pos() - clickPos_);
+	}
+
 private:
 	void fileSave(const QString& d, DWORD flag);
 
@@ -45,6 +58,7 @@ private:
 
 	void onReloadScriptList();
 
+	void setStepMarks();
 	void setMark(CodeEditor::SymbolHandler element, util::SafeHash<QString, util::SafeHash<qint64, break_marker_t>>& hash, int liner, bool b);
 
 	void varInfoImport(QTreeWidget* tree, const QHash<QString, QVariant>& d);
@@ -59,6 +73,10 @@ private:
 	QString getFullPath(QTreeWidgetItem* item);
 
 	void setContinue();
+
+signals:
+	void editorCursorPositionChanged(int line, int index);
+	void breakMarkInfoImport();
 
 private slots:
 	void onApplyHashSettingsToUI();
@@ -78,6 +96,8 @@ private slots:
 	void onScriptStopMode();
 	void onScriptBreakMode();
 	void onScriptPauseMode();
+
+	void onSpeedChanged(int value);
 
 	void onScriptLabelRowTextChanged(int row, int max, bool noSelect);
 
@@ -119,7 +139,11 @@ private:
 	QHash<QString, QSharedPointer<QTextDocument>> document_;
 	QSpinBox* pSpeedSpinBox = nullptr;
 
-
 	QString currentRenameText_ = "";
 	QString currentRenamePath_ = "";
+
+
+
+	int boundaryWidth_ = 4;
+	QPoint clickPos_;
 };

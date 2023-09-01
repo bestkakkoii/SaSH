@@ -429,6 +429,10 @@
         <source>other</source>
         <translation>其他</translation>
     </message>
+    <message>
+        <source>ms</source>
+        <translation>毫秒</translation>
+    </message>
 </context>
 <context>
     <name>AfkInfoForm</name>
@@ -2140,6 +2144,14 @@ No new version available. Do you still want to update?</source>
     <message>
         <source>×</source>
         <translation></translation>
+    </message>
+    <message>
+        <source>remote whitelist</source>
+        <translation>远程邮件白名单</translation>
+    </message>
+    <message>
+        <source>EO cmd</source>
+        <translation>EO命令</translation>
     </message>
 </context>
 <context>

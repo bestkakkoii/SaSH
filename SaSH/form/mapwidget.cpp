@@ -23,19 +23,38 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "net/tcpserver.h"
 #include "map/mapanalyzer.h"
 #include "script/interpreter.h"
+#include "model/customtitlebar.h"
 
 constexpr int MAP_REFRESH_TIME = 100;
 constexpr int MAX_BLOCK_SIZE = 24;
 
 MapWidget::MapWidget(QWidget* parent)
-	: QWidget(parent)
+	: QMainWindow(parent)
 {
 	ui.setupUi(this);
 	setAttribute(Qt::WA_DeleteOnClose);
 	setStyleSheet("background-color:rgb(0,0,1)");
+
 	setAttribute(Qt::WA_OpaquePaintEvent, true);
 	setAttribute(Qt::WA_NoSystemBackground);
 	setAttribute(Qt::WA_WState_WindowOpacitySet);
+
+	Qt::WindowFlags windowflag = this->windowFlags();
+	windowflag |= Qt::WindowType::Tool;
+	setWindowFlag(Qt::WindowType::Tool);
+
+	setWindowFlags(Qt::FramelessWindowHint);
+
+	CustomTitleBar* titleBar = new CustomTitleBar(this);
+	setMenuWidget(titleBar);
+
+	connect(titleBar, &CustomTitleBar::maximizeClicked, this, [this]()
+		{
+			if (isMaximized())
+				showNormal();
+			else
+				showMaximized();
+		});
 
 	//set header text
 	ui.tableWidget_NPCList->setColumnCount(2);
@@ -887,4 +906,35 @@ void MapWidget::on_tableWidget_NPCList_cellDoubleClicked(int row, int)
 	}
 
 	interpreter_->doString(QString(u8"findpath %1, %2, 1").arg(x).arg(y), nullptr, Interpreter::kNotShare);
+}
+
+bool MapWidget::nativeEvent(const QByteArray& eventType, void* message, long* result)
+{
+	MSG* msg = (MSG*)message;
+	switch (msg->message)
+	{
+	case WM_NCHITTEST:
+		int xPos = GET_X_LPARAM(msg->lParam) - this->frameGeometry().x();
+		int yPos = GET_Y_LPARAM(msg->lParam) - this->frameGeometry().y();
+		if (xPos < boundaryWidth_ && yPos < boundaryWidth_)                    //左上角
+			*result = HTTOPLEFT;
+		else if (xPos >= width() - boundaryWidth_ && yPos < boundaryWidth_)          //右上角
+			*result = HTTOPRIGHT;
+		else if (xPos < boundaryWidth_ && yPos >= height() - boundaryWidth_)         //左下角
+			*result = HTBOTTOMLEFT;
+		else if (xPos >= width() - boundaryWidth_ && yPos >= height() - boundaryWidth_)//右下角
+			*result = HTBOTTOMRIGHT;
+		else if (xPos < boundaryWidth_)                                     //左边
+			*result = HTLEFT;
+		else if (xPos >= width() - boundaryWidth_)                              //右边
+			*result = HTRIGHT;
+		else if (yPos < boundaryWidth_)                                       //上边
+			*result = HTTOP;
+		else if (yPos >= height() - boundaryWidth_)                             //下边
+			*result = HTBOTTOM;
+		else              //其他部分不做处理，返回false，留给其他事件处理器处理
+			return false;
+		return true;
+	}
+	return false;         //此处返回false，留给其他事件处理器处理
 }

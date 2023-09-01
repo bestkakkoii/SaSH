@@ -28,7 +28,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 //#include "mapglwidget.h"
 #endif
 class Interpreter;
-class MapWidget : public QWidget
+class MapWidget : public QMainWindow
 {
 	Q_OBJECT;
 public:
@@ -74,6 +74,9 @@ private:
 
 	QTimer gltimer_;
 
+	int boundaryWidth_ = 4;
+	QPoint clickPos_;
+
 	//qreal zoom_value_ = 0.0;
 protected:
 	void leaveEvent(QEvent*) override;
@@ -87,6 +90,20 @@ protected:
 		setAttribute(Qt::WA_Mapped);
 		QWidget::showEvent(e);
 	}
+
+	bool nativeEvent(const QByteArray& eventType, void* message, long* result) override;
+
+	void mousePressEvent(QMouseEvent* e)  override
+	{
+		if (e->button() == Qt::LeftButton)
+			clickPos_ = e->pos();
+	}
+	void mouseMoveEvent(QMouseEvent* e) override
+	{
+		if (e->buttons() & Qt::LeftButton)
+			move(e->pos() + pos() - clickPos_);
+	}
+
 private slots:
 	void onRefreshTimeOut();
 	void onClear();

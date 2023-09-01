@@ -1119,13 +1119,13 @@ qint64 Interpreter::set(qint64 currentline, const TokenMap& TK)
 		if (type == util::kFastBattleEnable && ok)
 		{
 			injector.setEnableHash(util::kAutoBattleEnable, !ok);
-			if (ok)
+			if (ok && !injector.server.isNull())
 				injector.server->doBattleWork(true);//async
 		}
 		else if (type == util::kAutoBattleEnable && ok)
 		{
 			injector.setEnableHash(util::kFastBattleEnable, !ok);
-			if (ok)
+			if (ok && !injector.server.isNull())
 				injector.server->doBattleWork(true);//async
 		}
 		else if (type == util::kAutoWalkEnable && ok)
@@ -1961,8 +1961,8 @@ qint64 Interpreter::ocr(qint64 currentline, const TokenMap& TK)
 		{
 			if (debugmode == 0)
 				injector.server->inputtext(ret);
-}
-}
+		}
+	}
 #endif
 
 	return Parser::kNoChange;

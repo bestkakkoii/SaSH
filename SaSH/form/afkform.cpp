@@ -32,6 +32,10 @@ AfkForm::AfkForm(QWidget* parent)
 	ui.setupUi(this);
 	//util::setTab(ui.tabWidget_afk);
 
+	Qt::WindowFlags windowflag = this->windowFlags();
+	windowflag |= Qt::WindowType::Tool;
+	setWindowFlag(Qt::WindowType::Tool);
+
 	connect(this, &AfkForm::resetControlTextLanguage, this, &AfkForm::onResetControlTextLanguage, Qt::UniqueConnection);
 
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();

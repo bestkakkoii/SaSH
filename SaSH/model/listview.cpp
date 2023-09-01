@@ -323,27 +323,67 @@ QVariant StringListModel::data(const QModelIndex& index, int role) const
 	{
 
 		static const QHash<int, QColor> hash = {
-			{ 0, QColor(255,255,255) },
-			{ 1, QColor(0,255,255) },
-			{ 2, QColor(255,0,255) },
-			{ 3, QColor(0,0,255) },
-			{ 4, QColor(255,255,0) },
-			{ 5, QColor(0,255,0) },
-			{ 6, QColor(255,0,0) },
+			//{ 0, QColor(241,241,241) },
+			//{ 1, QColor(0,255,255) },
+			//{ 2, QColor(255,0,255) },
+			//{ 3, QColor(0,0,255) },
+			//{ 4, QColor(255,255,0) },
+			//{ 5, QColor(0,255,0) },
+			//{ 6, QColor(255,0,0) },
+			//{ 7, QColor(160,160,164) },
+			//{ 8, QColor(166,202,240) },
+			//{ 9, QColor(192,220,192) },
+			//{ 10, QColor(218,175,66) },
+			{ 0, QColor(241,241,241) },
+			{ 1, QColor(85,170,255) },
+			{ 2, QColor(190,25,220) },
+			{ 3, QColor(49,74,153) },
+			{ 4, QColor(220,220,170) },
+			{ 5, QColor(181,206,168) },
+			{ 6, QColor(255,128,128) },
 			{ 7, QColor(160,160,164) },
 			{ 8, QColor(166,202,240) },
 			{ 9, QColor(192,220,192) },
 			{ 10, QColor(218,175,66) },
 		};
 
+		static const QRegularExpression rexError(u8R"(((?i)\[error\]|\[錯誤\]|\[错误\]))");
+		static const QRegularExpression rexFatal(u8R"(((?i)\[fatal\]|\[異常\]|\[异常\]))");
+		static const QRegularExpression rexWarn(u8R"(((?i)\[warn\]|\[警告\]|\[警告\]))");
+		static const QRegularExpression rexInfo(u8R"(((?i)\[info\]|\[資訊\]|\[资讯\]))");
+		static const QBrush colorError(QColor(255, 128, 128));
+		static const QBrush colorFatal(QColor(168, 46, 46));
+		static const QBrush colorWarn(QColor(206, 145, 120));
+		static const QBrush colorInfo(QColor(181, 206, 168));
+		static const QBrush colorOther(QColor(212, 212, 212));
+
 		QVector<int> colorlist = getColorList();
 		int i = index.row();
 		int size = colorlist.size();
 		if (i >= size || i < 0)
-			return QColor(255, 255, 255);
+			return QColor(241, 241, 241);
+
+		QVector<QString> list = getList();
+		QString data = list.at(i);
+		if (data.contains(rexError))
+		{
+			return colorError;
+		}
+		else if (data.contains(rexFatal))
+		{
+			return colorFatal;
+		}
+		else if (data.contains(rexWarn))
+		{
+			return colorWarn;
+		}
+		else if (data.contains(rexInfo))
+		{
+			return colorInfo;
+		}
 
 		int color = colorlist.at(i);
-		return hash.value(color, QColor(255, 255, 255));
+		return hash.value(color, QColor(241, 241, 241));
 	}
 	default:
 		break;

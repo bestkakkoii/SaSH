@@ -106,6 +106,8 @@ LuaScriptForm::LuaScriptForm(QWidget* parent)
 	connect(&signalDispatcher, &SignalDispatcher::scriptPaused, this, &LuaScriptForm::onScriptPaused, Qt::QueuedConnection);
 	connect(&signalDispatcher, &SignalDispatcher::scriptResumed, this, &LuaScriptForm::onScriptResumed, Qt::QueuedConnection);
 	connect(&signalDispatcher, &SignalDispatcher::scriptBreaked, this, &LuaScriptForm::onScriptResumed, Qt::QueuedConnection);
+
+	connect(&signalDispatcher, &SignalDispatcher::applyHashSettingsToUI, this, &LuaScriptForm::onApplyHashSettingsToUI, Qt::UniqueConnection);
 	emit signalDispatcher.reloadScriptList();
 
 	const QString fileName(qgetenv("JSON_PATH"));
@@ -122,6 +124,8 @@ LuaScriptForm::LuaScriptForm(QWidget* parent)
 	{
 		emit signalDispatcher.loadFileToTable(injector.currentScriptFileName);
 	}
+
+	connect(ui.spinBox_speed, static_cast<void (QSpinBox::*)(int)>(&QSpinBox::valueChanged), this, &LuaScriptForm::onSpeedChanged);
 }
 
 LuaScriptForm::~LuaScriptForm()
@@ -461,4 +465,22 @@ void LuaScriptForm::onReloadScriptList()
 
 		ui.treeWidget_script->setUpdatesEnabled(true);
 	} while (false);
+}
+
+void LuaScriptForm::onSpeedChanged(int value)
+{
+	Injector& injector = Injector::getInstance();
+	injector.setValueHash(util::kScriptSpeedValue, value);
+
+	emit SignalDispatcher::getInstance().scriptSpeedChanged(value);
+}
+
+void LuaScriptForm::onApplyHashSettingsToUI()
+{
+	Injector& injector = Injector::getInstance();
+	util::SafeHash<util::UserSetting, bool> enableHash = injector.getEnableHash();
+	util::SafeHash<util::UserSetting, int> valueHash = injector.getValueHash();
+	util::SafeHash<util::UserSetting, QString> stringHash = injector.getStringHash();
+
+	ui.spinBox_speed->setValue(valueHash.value(util::kScriptSpeedValue));
 }

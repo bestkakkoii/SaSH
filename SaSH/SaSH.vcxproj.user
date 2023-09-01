@@ -5,6 +5,6 @@
     <QtLastBackgroundBuild>2023-08-30T02:52:24.9788346Z</QtLastBackgroundBuild>
   </PropertyGroup>
   <PropertyGroup Label="QtSettings" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <QtLastBackgroundBuild>2023-08-31T09:52:27.6291776Z</QtLastBackgroundBuild>
+    <QtLastBackgroundBuild>2023-09-01T15:33:41.1914206Z</QtLastBackgroundBuild>
   </PropertyGroup>
 </Project>

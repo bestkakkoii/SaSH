@@ -224,7 +224,7 @@ void Parser::handleError(qint64 err, const QString& addition)
 	}
 	}
 
-	emit signalDispatcher.appendScriptLog(QObject::tr("error occured at line %1. detail:%2").arg(lineNumber_ + 1).arg(msg), 6);
+	emit signalDispatcher.appendScriptLog(QString("[error] ") + QObject::tr("error occured at line %1. detail:%2").arg(lineNumber_ + 1).arg(msg), 6);
 }
 
 //比較兩個 QVariant 以 a 的類型為主
@@ -3934,7 +3934,7 @@ void Parser::processDelay()
 		QThread::msleep(extraDelay);
 	}
 
-	std::this_thread::sleep_for(std::chrono::microseconds(1));
+	QThread::msleep(1);
 }
 
 //處理"遍歷"

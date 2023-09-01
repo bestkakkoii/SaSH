@@ -171,7 +171,12 @@
     <ClCompile Include="form\playerinfoform.cpp" />
     <ClCompile Include="form\replaceform.cpp" />
     <ClCompile Include="form\scriptform.cpp" />
-    <ClCompile Include="form\scriptsettingform.cpp" />
+    <ClCompile Include="form\scriptsettingform.cpp">
+      <DynamicSource Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">input</DynamicSource>
+      <QtMocFileName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">%(Filename).moc</QtMocFileName>
+      <DynamicSource Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">input</DynamicSource>
+      <QtMocFileName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">%(Filename).moc</QtMocFileName>
+    </ClCompile>
     <ClCompile Include="injector.cpp" />
     <ClCompile Include="mainthread.cpp">
       <DynamicSource Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">input</DynamicSource>
@@ -188,6 +193,7 @@
       <QtMocFileName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">%(Filename).moc</QtMocFileName>
     </ClCompile>
     <ClCompile Include="model\combobox.cpp" />
+    <ClCompile Include="model\customtitlebar.cpp" />
     <ClCompile Include="model\fastlabel.cpp" />
     <ClCompile Include="model\gdatatime.cpp" />
     <ClCompile Include="model\highlighter.cpp" />
@@ -249,6 +255,7 @@
     <QtMoc Include="model\combobox.h" />
     <QtMoc Include="model\codeeditor.h" />
     <QtMoc Include="model\fastlabel.h" />
+    <QtMoc Include="model\customtitlebar.h" />
     <ClInclude Include="model\gdatetime.h" />
     <ClInclude Include="model\highlighter.h" />
     <QtMoc Include="model\listview.h" />

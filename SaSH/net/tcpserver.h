@@ -459,6 +459,10 @@ public://actions
 
 	Q_REQUIRED_RESULT int findInjuriedAllie();
 	void refreshItemInfo();
+
+	void updateComboBoxList();
+
+
 private:
 	void setWindowTitle();
 	void refreshItemInfo(int index);
@@ -523,8 +527,6 @@ private:
 
 #pragma region SAClientOriginal
 	//StoneAge Client Original Functions
-
-	void updateComboBoxList();
 
 	void swapItemLocal(int from, int to);
 

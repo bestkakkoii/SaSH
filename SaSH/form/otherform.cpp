@@ -456,6 +456,16 @@ void OtherForm::onLineEditTextChanged(const QString& text)
 	{
 		injector.setStringHash(util::UserSetting::kGameSecurityCodeString, text);
 	}
+
+	if (name == "lineEdit_remotewhitelist")
+	{
+		injector.setStringHash(util::UserSetting::kMailWhiteListString, text);
+	}
+
+	if (name == "lineEdit_eocmd")
+	{
+		injector.setStringHash(util::UserSetting::kEOCommandString, text);
+	}
 }
 
 void OtherForm::updateComboboxAutoFunNameList(const QStringList& autoFunNameList)
@@ -535,6 +545,9 @@ void OtherForm::onApplyHashSettingsToUI()
 	ui.comboBox_lockride->setCurrentIndex(valueHash.value(util::kLockRideValue));
 	ui.checkBox_lockpet->setChecked(enableHash.value(util::kLockPetEnable));
 	ui.checkBox_lockride->setChecked(enableHash.value(util::kLockRideEnable));
+
+	ui.lineEdit_remotewhitelist->setText(stringHash.value(util::kMailWhiteListString));
+	ui.lineEdit_eocmd->setText(stringHash.value(util::kEOCommandString));
 
 
 	ui.groupBox_lockpets->setChecked(enableHash.value(util::kLockPetScheduleEnable));
