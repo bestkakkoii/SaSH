@@ -10309,8 +10309,8 @@ void Server::lssproto_TK_recv(int index, char* cmessage, int color)
 		return;
 	makeStringFromEscaped(message);
 
-	static const QRegularExpression rexGetGold(u8R"(得到(\d+)石)");
-	static const QRegularExpression rexPickGold(u8R"([獲|获] (\d+) Stone)");
+	static const QRegularExpression rexGetGold(u8R"(到\s*(\d+)\s*石)");
+	static const QRegularExpression rexPickGold(u8R"([獲|获]\s*(\d+)\s*Stone)");
 
 	PC pc = getPC();
 
