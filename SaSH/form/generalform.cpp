@@ -744,6 +744,12 @@ void GeneralForm::onCheckBoxStateChanged(int state)
 		return;
 	}
 
+	if (name == "checkBox_autoswitch")
+	{
+		injector.setEnableHash(util::kBattleAutoSwitchEnable, isChecked);
+		return;
+	}
+
 	if (name == "checkBox_battleautoeo")
 	{
 		injector.setEnableHash(util::kBattleAutoEOEnable, isChecked);
@@ -1004,6 +1010,7 @@ void GeneralForm::onApplyHashSettingsToUI()
 	ui.checkBox_lockescape->setChecked(enableHash.value(util::kLockEscapeEnable));
 	ui.checkBox_battletimeextend->setChecked(enableHash.value(util::kBattleTimeExtendEnable));
 	ui.checkBox_falldownescape->setChecked(enableHash.value(util::kFallDownEscapeEnable));
+	ui.checkBox_autoswitch->setChecked(enableHash.value(util::kBattleAutoSwitchEnable));
 	ui.checkBox_battleautoeo->setChecked(enableHash.value(util::kBattleAutoEOEnable));
 
 	//switcher

@@ -21,6 +21,20 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "injector.h"
 #include "signaldispatcher.h"
 
+bool CLuaUtil::getSys(sol::table dstTable, sol::this_state s)
+{
+	Injector& injector = Injector::getInstance();
+	if (injector.server.isNull())
+		return FALSE;
+
+	dstTable.clear();
+
+	dstTable["game"] = injector.server->getGameStatus();
+	dstTable["world"] = injector.server->getWorldStatus();
+
+	return TRUE;
+}
+
 bool CLuaUtil::getChar(sol::table dstTable, sol::this_state s)
 {
 	Injector& injector = Injector::getInstance();
@@ -248,6 +262,9 @@ bool CLuaUtil::getDialog(sol::table dstTable, sol::this_state s)
 
 		dstTable[i + 1] = dialogList[i].toUtf8().constData();
 	}
+
+	dstTable["id"] = injector.server->currentDialog.get().dialogid;
+	dstTable["unitid"] = injector.server->currentDialog.get().unitid;
 
 	return TRUE;
 }

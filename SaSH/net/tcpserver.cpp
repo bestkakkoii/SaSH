@@ -5471,6 +5471,38 @@ void Server::handlePlayerBattleLogics(const battledata_t& bt)
 		return false;
 	};
 
+	//自動換寵
+	do
+	{
+		bool autoSwitch = injector.getEnableHash(util::kBattleAutoSwitchEnable);
+		if (!autoSwitch)
+			break;
+
+		if (bt.pet.hp > 0 && bt.pet.level > 0)
+			break;
+
+		QVector<int> standybyPets;
+		for (const PET& pet : this->pet)
+		{
+			if (pet.level <= 0 || pet.maxHp <= 0 || !pet.valid)
+				continue;
+
+			if (pet.state != PetState::kStandby)
+				continue;
+
+			standybyPets.push_back(pet.index);
+		}
+
+		if (standybyPets.isEmpty())
+			break;
+
+		int petIndex = standybyPets.takeFirst();
+
+		sendBattlePlayerSwitchPetAct(petIndex);
+		return;
+
+	} while (false);
+
 	//自動捉寵
 	do
 	{

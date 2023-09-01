@@ -375,6 +375,7 @@ namespace util
 		kFallDownEscapeEnable,
 		kShowExpEnable,
 		kWindowDockEnable,
+		kBattleAutoSwitchEnable,
 		kBattleAutoEOEnable,
 
 		//switcher
@@ -650,6 +651,7 @@ namespace util
 		{ kFallDownEscapeEnable, "FallDownEscapeEnable" },
 		{ kShowExpEnable, "ShowExpEnable" },
 		{ kWindowDockEnable, "WindowDockEnable" },
+		{ kBattleAutoSwitchEnable, "BattleAutoSwitchEnable" },
 		{ kBattleAutoEOEnable ,"BattleAutoEOEnable" },
 
 		{ kSettingMaxEnable, "SettingMaxEnable" },
@@ -2132,7 +2134,7 @@ namespace util
 #else
 			return false;
 #endif
-		}
+	}
 
 		if (pcontent != nullptr)
 		{
@@ -2141,7 +2143,7 @@ namespace util
 		}
 
 		return false;
-	}
+}
 
 	void sortWindows(const QVector<HWND>& windowList, bool alignLeft);
 

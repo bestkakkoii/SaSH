@@ -158,6 +158,7 @@ public:
 	//qint64 replace(qint64 currentline, sol::this_state s);
 	//qint64 trim(std::string str, sol::this_state s);
 
+	bool getSys(sol::table dstTable, sol::this_state s);
 	bool getChar(sol::table dstTable, sol::this_state s);
 	bool getPet(sol::table dstTable, sol::this_state s);
 	bool getTeam(sol::table dstTable, sol::this_state s);
@@ -184,7 +185,7 @@ public:
 	qint64 messagebox(sol::object ostr, sol::object otype, sol::this_state s);//ok
 	qint64 savesetting(const std::string& fileName, sol::this_state s);//ok
 	qint64 loadsetting(const std::string& fileName, sol::this_state s);//ok
-	qint64 set(qint64 enumInt, sol::object p1, sol::object p2, sol::object p3, sol::object p4, sol::object p5, sol::object p6, sol::object p7, sol::this_state s);
+	qint64 set(std::string enumStr, sol::object p1, sol::object p2, sol::object p3, sol::object p4, sol::object p5, sol::object p6, sol::object p7, sol::this_state s);
 	qint64 leftclick(qint64 x, qint64 y, sol::this_state s);//ok
 	qint64 rightclick(qint64 x, qint64 y, sol::this_state s);//ok
 	qint64 leftdoubleclick(qint64 x, qint64 y, sol::this_state s);//ok

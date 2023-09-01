@@ -361,9 +361,10 @@ private:
 		{ util::kLockEscapeEnable, false },
 		{ util::kBattleTimeExtendEnable, true },
 		{ util::kFallDownEscapeEnable, false },
-		{ util::kShowExpEnable, false },
+		{ util::kShowExpEnable, true },
 		{ util::kWindowDockEnable, false },
-		{ util::kBattleAutoEOEnable,true },
+		{ util::kBattleAutoSwitchEnable, true },
+		{ util::kBattleAutoEOEnable, true },
 
 		//switcher
 		{ util::kSwitcherTeamEnable, false },
