@@ -86,11 +86,58 @@ QMenu::item:disabled{background:rgb(46, 46, 46); color:rgb(92,92,92);}
 QMenu::QAbstractItemView{color:rgb(214,214,214);padding-left:8px;padding-top:7px;padding-bottom:8px;padding-right:10px;background-color:rgb(46, 46, 46);}
 
 QToolTip{border-style:none; background-color: rgb(57, 58, 60);color: rgb(208, 208, 208);}
-</string>
-  </property>
-  <widget class="QWidget" name="centralWidget">
-   <property name="styleSheet">
-    <string notr="true">QTabWidget::pane{
+
+QWidget{
+    color: rgb(214,214,214);
+    background: rgb(31,31,31);
+}
+
+QDockWidget {
+    color: rgb(178,178,178);
+    border-top:2px solid #7160E8;
+    border-bottom:1px solid rgb(61,61,61);
+    border-right:1px solid rgb(61,61,61);
+    border-left:1px solid rgb(61,61,61);
+    /*titlebar-close-icon: url(close.png);
+    titlebar-normal-icon: url(undock.png);*/
+}
+
+QDockWidget::title {
+    color: rgb(178,178,178);
+    background: rgb(31,31,31);
+}
+
+QDockWidget::close-button, QDockWidget::float-button {
+    border: 1px solid transparent;
+    background: transparent;
+    padding: 0px;
+}
+
+QDockWidget::close-button:hover, QDockWidget::float-button:hover {
+	color: rgb(26,26,26);
+    background: rgb(250,250,250);
+    width: 12px;
+    height: 12px;
+}
+
+QDockWidget::close-button:pressed, QDockWidget::float-button:pressed {
+	color: rgb(86,86,86);
+    background: rgb(100,100,100);
+    width: 12px;
+    height: 12px;
+}
+
+QDockWidget::close-button {
+    width: 12px;
+    height: 12px;
+}
+
+QDockWidget::float-button {
+    width: 12px;
+    height: 12px;
+}
+
+QTabWidget::pane{
 top:0px;
 border-top:2px solid #7160E8;
 border-bottom:1px solid rgb(61,61,61);
@@ -106,7 +153,11 @@ left:5px;
 border:none;
 }
 
-QDockWidget QTabBar::tab:first{
+#detailWgt, #appealReasonWgt{
+border:none;
+}
+
+QTabBar::tab:first{
 color:rgb(178,178,178);
 background:rgb(46,46,46);
 
@@ -120,7 +171,7 @@ margin-right:0px;
 border-top:2px solid rgb(31, 31, 31);
 }
 
-QDockWidget QTabBar::tab:middle{
+QTabBar::tab:middle{
 color:rgb(178,178,178);
 background:rgb(46,46,46);
 padding-left:0px;
@@ -134,7 +185,7 @@ border-top:2px solid rgb(31, 31, 31);
 
 }
 
-QDockWidget QTabBar::tab:last{
+QTabBar::tab:last{
 color:rgb(178,178,178);
 background:rgb(46,46,46);
 
@@ -148,14 +199,14 @@ margin-right:0px;
 border-top:2px solid rgb(31, 31, 31);
 }
 
-QDockWidget QTabBar::tab:selected{
+QTabBar::tab:selected{
 color:rgb(250,250,250);
 background:rgb(61,61,61);
 border-top:2px solid #7160E8;
 
 }
 
-QDockWidget QTabBar::tab:hover{
+QTabBar::tab:hover{
 color:rgb(250,250,250);
 background:rgb(61,61,61);
 padding-left:0px;
@@ -167,6 +218,10 @@ margin-right:0px;
 }
 
 </string>
+  </property>
+  <widget class="QWidget" name="centralWidget">
+   <property name="styleSheet">
+    <string notr="true"/>
    </property>
    <layout class="QGridLayout" name="gridLayout_8">
     <item row="1" column="0">
@@ -178,8 +233,7 @@ margin-right:0px;
        </sizepolicy>
       </property>
       <property name="styleSheet">
-       <string notr="true">color: rgb(250, 250, 250);
-background-color: rgb(31, 31, 31);</string>
+       <string notr="true"/>
       </property>
       <property name="features">
        <set>QDockWidget::NoDockWidgetFeatures</set>
@@ -241,8 +295,8 @@ QTreeWidget::item {
 }
 
 QTreeWidget::item:selected {
-    color: rgb(250,250,250);
-    background:rgb(61,61,61); /* qlineargradient(spread:pad, x1:0, y1:0, x2:0, y2:1, stop:0 #484848, stop:1 #383838);*/
+    color: rgb(214,214,214);
+    background:rgb(113,96,232); /* qlineargradient(spread:pad, x1:0, y1:0, x2:0, y2:1, stop:0 #484848, stop:1 #383838);*/
 }
 
 QTreeWidget::item:hover {
@@ -316,7 +370,7 @@ QScrollBar::sub-line:vertical {
 
 QScrollBar:horizontal {
     background: rgb(46,46,46);
-	min-height: 10px;  
+	min-height: 60px;  
 }
 
 QScrollBar::handle:horizontal {
@@ -1256,7 +1310,7 @@ color: rgb(208, 208, 208);
          <widget class="QLineEdit" name="lineEdit_searchFunction">
           <property name="styleSheet">
            <string notr="true">QLineEdit{
-  color:rgb(250,250,250);
+  color:rgb(214,214,214);
   font-size:12px;
   padding: 1px 15px 1px 3px;
   border:1px solid rgb(66,66,66);
@@ -1290,8 +1344,7 @@ QLineEdit::hover{
        </sizepolicy>
       </property>
       <property name="styleSheet">
-       <string notr="true">color: rgb(250, 250, 250);
-background-color: rgb(31, 31, 31);</string>
+       <string notr="true"/>
       </property>
       <property name="features">
        <set>QDockWidget::NoDockWidgetFeatures</set>
@@ -1353,8 +1406,8 @@ QTreeWidget::item {
 }
 
 QTreeWidget::item:selected {
-    color: rgb(250,250,250);
-    background:rgb(61,61,61); /* qlineargradient(spread:pad, x1:0, y1:0, x2:0, y2:1, stop:0 #484848, stop:1 #383838);*/
+    color: rgb(214,214,214);
+    background:rgb(113,96,232); /* qlineargradient(spread:pad, x1:0, y1:0, x2:0, y2:1, stop:0 #484848, stop:1 #383838);*/
 }
 
 QTreeWidget::item:hover {
@@ -1428,7 +1481,7 @@ QScrollBar::sub-line:vertical {
 
 QScrollBar:horizontal {
     background: rgb(46,46,46);
-	min-height: 10px;  
+	min-height: 60px;  
 }
 
 QScrollBar::handle:horizontal {
@@ -1492,8 +1545,7 @@ color: rgb(208, 208, 208);
        </sizepolicy>
       </property>
       <property name="styleSheet">
-       <string notr="true">color: rgb(250, 250, 250);
-background-color: rgb(31, 31, 31);</string>
+       <string notr="true"/>
       </property>
       <property name="features">
        <set>QDockWidget::NoDockWidgetFeatures</set>
@@ -1985,8 +2037,7 @@ QToolTip{border-style:none; background-color: rgb(57, 58, 60);color: rgb(208, 20
        </size>
       </property>
       <property name="styleSheet">
-       <string notr="true">color: rgb(250, 250, 250);
-background-color: rgb(31, 31, 31);</string>
+       <string notr="true"/>
       </property>
       <property name="features">
        <set>QDockWidget::NoDockWidgetFeatures</set>
@@ -2198,8 +2249,7 @@ color: rgb(208, 208, 208);
        </sizepolicy>
       </property>
       <property name="styleSheet">
-       <string notr="true">color: rgb(250, 250, 250);
-background-color: rgb(31, 31, 31);</string>
+       <string notr="true"/>
       </property>
       <property name="floating">
        <bool>false</bool>
@@ -2313,7 +2363,7 @@ margin-right:0px;
            <enum>QTabWidget::South</enum>
           </property>
           <property name="currentIndex">
-           <number>0</number>
+           <number>2</number>
           </property>
           <widget class="QWidget" name="tab_6">
            <attribute name="title">
@@ -2375,8 +2425,8 @@ QTreeWidget::item {
 }
 
 QTreeWidget::item:selected {
-    color: rgb(250,250,250);
-    background:rgb(61,61,61); /* qlineargradient(spread:pad, x1:0, y1:0, x2:0, y2:1, stop:0 #484848, stop:1 #383838);*/
+    color: rgb(214,214,214);
+    background:rgb(113,96,232); /* qlineargradient(spread:pad, x1:0, y1:0, x2:0, y2:1, stop:0 #484848, stop:1 #383838);*/
 }
 
 QTreeWidget::item:hover {
@@ -2450,7 +2500,7 @@ QScrollBar::sub-line:vertical {
 
 QScrollBar:horizontal {
     background: rgb(46,46,46);
-	min-height: 10px;  
+	min-height: 60px;  
 }
 
 QScrollBar::handle:horizontal {
@@ -2575,8 +2625,8 @@ QTreeWidget::item {
 }
 
 QTreeWidget::item:selected {
-    color: rgb(250,250,250);
-    background:rgb(61,61,61); /* qlineargradient(spread:pad, x1:0, y1:0, x2:0, y2:1, stop:0 #484848, stop:1 #383838);*/
+    color: rgb(214,214,214);
+    background:rgb(113,96,232); /* qlineargradient(spread:pad, x1:0, y1:0, x2:0, y2:1, stop:0 #484848, stop:1 #383838);*/
 }
 
 QTreeWidget::item:hover {
@@ -2650,7 +2700,7 @@ QScrollBar::sub-line:vertical {
 
 QScrollBar:horizontal {
     background: rgb(46,46,46);
-	min-height: 10px;  
+	min-height: 60px;  
 }
 
 QScrollBar::handle:horizontal {
@@ -2769,8 +2819,8 @@ QTreeWidget::item {
 }
 
 QTreeWidget::item:selected {
-    color: rgb(250,250,250);
-    background:rgb(61,61,61); /* qlineargradient(spread:pad, x1:0, y1:0, x2:0, y2:1, stop:0 #484848, stop:1 #383838);*/
+    color: rgb(214,214,214);
+    background:rgb(113,96,232); /* qlineargradient(spread:pad, x1:0, y1:0, x2:0, y2:1, stop:0 #484848, stop:1 #383838);*/
 }
 
 QTreeWidget::item:hover {
@@ -2844,7 +2894,7 @@ QScrollBar::sub-line:vertical {
 
 QScrollBar:horizontal {
     background: rgb(46,46,46);
-	min-height: 10px;  
+	min-height: 60px;  
 }
 
 QScrollBar::handle:horizontal {
@@ -2959,8 +3009,8 @@ QTreeWidget::item {
 }
 
 QTreeWidget::item:selected {
-    color: rgb(250,250,250);
-    background:rgb(61,61,61); /* qlineargradient(spread:pad, x1:0, y1:0, x2:0, y2:1, stop:0 #484848, stop:1 #383838);*/
+    color: rgb(214,214,214);
+    background:rgb(113,96,232); /* qlineargradient(spread:pad, x1:0, y1:0, x2:0, y2:1, stop:0 #484848, stop:1 #383838);*/
 }
 
 QTreeWidget::item:hover {
@@ -3034,7 +3084,7 @@ QScrollBar::sub-line:vertical {
 
 QScrollBar:horizontal {
     background: rgb(46,46,46);
-	min-height: 10px;  
+	min-height: 60px;  
 }
 
 QScrollBar::handle:horizontal {
@@ -3140,8 +3190,7 @@ color: rgb(208, 208, 208);
   <widget class="QStatusBar" name="statusBar"/>
   <widget class="QDockWidget" name="dockWidget_des">
    <property name="styleSheet">
-    <string notr="true">color: rgb(250, 250, 250);
-background-color: rgb(31, 31, 31);</string>
+    <string notr="true"/>
    </property>
    <property name="windowTitle">
     <string>des</string>
@@ -3166,8 +3215,9 @@ background-color: rgb(31, 31, 31);</string>
      <item row="0" column="0">
       <widget class="QTextBrowser" name="textBrowser">
        <property name="styleSheet">
-        <string notr="true">color: rgb(200, 200, 200);
-background-color: rgb(61, 61, 61);</string>
+        <string notr="true">color: rgb(214,214,214);
+background: rgb(37,37,38);
+border: 1px solid rgb(61,61,61);</string>
        </property>
       </widget>
      </item>
@@ -3176,8 +3226,7 @@ background-color: rgb(61, 61, 61);</string>
   </widget>
   <widget class="QDockWidget" name="dockWidget_mark">
    <property name="styleSheet">
-    <string notr="true">color: rgb(250, 250, 250);
-background-color: rgb(31, 31, 31);</string>
+    <string notr="true"/>
    </property>
    <property name="windowTitle">
     <string>mark</string>
@@ -3239,8 +3288,8 @@ QTreeWidget::item {
 }
 
 QTreeWidget::item:selected {
-    color: rgb(250,250,250);
-    background:rgb(61,61,61); /* qlineargradient(spread:pad, x1:0, y1:0, x2:0, y2:1, stop:0 #484848, stop:1 #383838);*/
+    color: rgb(214,214,214);
+    background:rgb(113,96,232); /* qlineargradient(spread:pad, x1:0, y1:0, x2:0, y2:1, stop:0 #484848, stop:1 #383838);*/
 }
 
 QTreeWidget::item:hover {

@@ -43,14 +43,6 @@ ScriptSettingForm::ScriptSettingForm(QWidget* parent)
 	CustomTitleBar* titleBar = new CustomTitleBar(this);
 	setMenuWidget(titleBar);
 
-	connect(titleBar, &CustomTitleBar::maximizeClicked, this, [this]()
-		{
-			if (isMaximized())
-				showNormal();
-			else
-				showMaximized();
-		});
-
 	//Qt::WindowFlags windowflag = this->windowFlags();
 	//windowflag |= Qt::WindowType::Tool;
 	//setWindowFlag(Qt::WindowType::Tool);
@@ -1273,6 +1265,10 @@ void ScriptSettingForm::on_comboBox_labels_clicked()
 			}
 		}
 	}
+
+	if (cur < 0 || cur >= ui.comboBox_functions->count())
+		cur = 0;
+
 	ui.comboBox_labels->setCurrentIndex(cur);
 
 	ui.comboBox_labels->blockSignals(false);
@@ -1308,6 +1304,10 @@ void ScriptSettingForm::on_comboBox_functions_clicked()
 			}
 		}
 	}
+
+	if (cur < 0 || cur >= ui.comboBox_functions->count())
+		cur = 0;
+
 	ui.comboBox_functions->setCurrentIndex(cur);
 	ui.comboBox_functions->blockSignals(false);
 }
@@ -2259,6 +2259,6 @@ bool ScriptSettingForm::nativeEvent(const QByteArray& eventType, void* message, 
 		else              //其他部分不做处理，返回false，留给其他事件处理器处理
 			return false;
 		return true;
-	}
+}
 	return false;         //此处返回false，留给其他事件处理器处理
 }

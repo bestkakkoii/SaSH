@@ -1,7 +1,8 @@
 ﻿#include "stdafx.h"
 #include "customtitlebar.h"
 
-CustomTitleBar::CustomTitleBar(QWidget* parent) : QWidget(parent)
+CustomTitleBar::CustomTitleBar(QWidget* parent)
+	: QWidget(parent), parent_(parent)
 {
 	setAttribute(Qt::WA_StyledBackground);
 	setFixedHeight(35);
@@ -45,9 +46,14 @@ QPushButton:pressed, QPushButton:checked {
 	QPushButton* minimizeButton = new QPushButton("");
 	minimizeButton->setFixedSize(35, 35);
 	minimizeButton->setIcon(QIcon(":/image/icon_min"));
-	QPushButton* maximizeButton = new QPushButton("");
-	maximizeButton->setFixedSize(35, 35);
-	maximizeButton->setIcon(QIcon(":/image/icon_max"));
+	maximizeButton_ = new QPushButton("");
+	maximizeButton_->setFixedSize(35, 35);
+
+	if (!parent_->isMaximized())
+		maximizeButton_->setIcon(QIcon(":/image/icon_max.png"));
+	else
+		maximizeButton_->setIcon(QIcon(":/image/icon_restoredown.png"));
+
 	QPushButton* closeButton = new QPushButton("");
 	closeButton->setFixedSize(35, 35);
 	closeButton->setIcon(QIcon(":/image/icon_close"));
@@ -58,11 +64,11 @@ QPushButton:pressed, QPushButton:checked {
 	layout->addWidget(icon);
 	layout->addWidget(titleLabel_);
 	layout->addWidget(minimizeButton);
-	layout->addWidget(maximizeButton);
+	layout->addWidget(maximizeButton_);
 	layout->addWidget(closeButton);
 
 	connect(minimizeButton, &QPushButton::clicked, parent, &QMainWindow::showMinimized);
-	connect(maximizeButton, &QPushButton::clicked, this, &CustomTitleBar::toggleMaximize);
+	connect(maximizeButton_, &QPushButton::clicked, this, &CustomTitleBar::toggleMaximize);
 	connect(closeButton, &QPushButton::clicked, parent, &QMainWindow::close);
 	connect(parent, &QMainWindow::windowTitleChanged, this, &CustomTitleBar::onTitleChanged);
 }
@@ -83,7 +89,7 @@ void CustomTitleBar::onTitleChanged(const QString& title)
 void CustomTitleBar::mouseDoubleClickEvent(QMouseEvent* event)
 {
 	Q_UNUSED(event);
-	emit maximizeClicked();
+	toggleMaximize();
 }
 
 void CustomTitleBar::mousePressEvent(QMouseEvent* event)
@@ -121,5 +127,14 @@ void CustomTitleBar::mouseReleaseEvent(QMouseEvent* event)
 
 void CustomTitleBar::toggleMaximize()
 {
-	emit maximizeClicked();
+	if (parent_->isMaximized())
+	{
+		parent_->showNormal();
+		maximizeButton_->setIcon(QIcon(":/image/icon_max.png"));
+	}
+	else
+	{
+		parent_->showMaximized();
+		maximizeButton_->setIcon(QIcon(":/image/icon_restoredown.png"));
+	}
 }

@@ -8,10 +8,6 @@ public:
 	explicit CustomTitleBar(QWidget* parent = nullptr);
 	virtual ~CustomTitleBar();
 
-signals:
-	void maximizeClicked();
-	void closeClicked();
-
 public:
 	void onTitleChanged(const QString& title);
 
@@ -24,7 +20,10 @@ protected:
 private slots:
 	void toggleMaximize();
 
+
 private:
 	QLabel* titleLabel_ = nullptr;
+	QPushButton* maximizeButton_ = nullptr;
 	QPoint dragStartPosition_ = QPoint();
+	QWidget* parent_ = nullptr;
 };

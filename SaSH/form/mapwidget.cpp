@@ -48,14 +48,6 @@ MapWidget::MapWidget(QWidget* parent)
 	CustomTitleBar* titleBar = new CustomTitleBar(this);
 	setMenuWidget(titleBar);
 
-	connect(titleBar, &CustomTitleBar::maximizeClicked, this, [this]()
-		{
-			if (isMaximized())
-				showNormal();
-			else
-				showMaximized();
-		});
-
 	//set header text
 	ui.tableWidget_NPCList->setColumnCount(2);
 	ui.tableWidget_NPCList->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
@@ -618,7 +610,7 @@ void MapWidget::downloadNextBlock()
 	// 更新下載進度
 	downloadCount_++;
 	downloadMapProgress_ = static_cast<qreal>(downloadCount_) / totalMapBlocks_ * 100.0;
-}
+	}
 
 void MapWidget::onDownloadMapTimeout()
 {
