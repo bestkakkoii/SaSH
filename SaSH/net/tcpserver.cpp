@@ -779,7 +779,7 @@ int Server::saDispatchMessage(char* encoded)
 		if (!Autil::util_Receive(data.data()))
 			return 0;
 
-		//qDebug() << "LSSPROTO_S_RECV" << util::toUnicode(data.data());
+		qDebug() << "LSSPROTO_S_RECV" << util::toUnicode(data.data());
 		lssproto_S_recv(data.data());
 		break;
 	}
@@ -2396,6 +2396,46 @@ void Server::cleanChatHistory()
 	chatQueue.clear();
 	if (!injector.chatLogModel.isNull())
 		injector.chatLogModel->clear();
+}
+
+void Server::updateComboBoxList()
+{
+	PC pc = getPC();
+	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
+	QStringList itemList;
+	for (const ITEM& it : pc.item)
+	{
+		if (it.name.isEmpty())
+			continue;
+		itemList.append(it.name);
+	}
+
+	emit signalDispatcher.updateComboBoxItemText(util::kComboBoxItem, itemList);
+
+	QStringList magicNameList;
+	for (int i = 0; i < MAX_MAGIC; ++i)
+	{
+		MAGIC magic = getMagic(i);
+		magicNameList.append(magic.name);
+	}
+	for (int i = 0; i < MAX_PROFESSION_SKILL; ++i)
+	{
+		PROFESSION_SKILL profession_skill = getSkill(i);
+		magicNameList.append(profession_skill.name);
+	}
+	emit signalDispatcher.updateComboBoxItemText(util::kComboBoxCharAction, magicNameList);
+
+	int battlePetIndex = pc.battlePetNo;
+	if (battlePetIndex >= 0)
+	{
+		QStringList skillNameList;
+		for (int i = 0; i < MAX_SKILL; ++i)
+		{
+			PET_SKILL petSkill = getPetSkill(battlePetIndex, i);
+			skillNameList.append(petSkill.name);
+		}
+		emit signalDispatcher.updateComboBoxItemText(util::kComboBoxPetAction, skillNameList);
+	}
 }
 #pragma endregion
 
@@ -8861,14 +8901,7 @@ void Server::lssproto_I_recv(char* cdata)
 
 	setPC(pc);
 
-	QStringList itemList;
-	for (const ITEM& it : pc.item)
-	{
-		if (it.name.isEmpty())
-			continue;
-		itemList.append(it.name);
-	}
-	emit signalDispatcher.updateComboBoxItemText(util::kComboBoxItem, itemList);
+	updateComboBoxList();
 }
 
 //對話框
@@ -9796,17 +9829,6 @@ void Server::lssproto_KS_recv(int petarray, int result)
 			}
 		}
 
-		QStringList skillNameList;
-		if ((petarray >= 0) && petarray < MAX_PET)
-		{
-			for (i = 0; i < MAX_SKILL; ++i)
-			{
-				skillNameList.append(petSkill[petarray][i].name);
-			}
-		}
-		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
-
-		emit signalDispatcher.updateComboBoxItemText(util::kComboBoxPetAction, skillNameList);
 	}
 #ifdef _AFTER_TRADE_PETWAIT_
 	else
@@ -9831,6 +9853,8 @@ void Server::lssproto_KS_recv(int petarray, int result)
 		pet[petarray].state = kBattle;
 		emit signalDispatcher.updatePetHpProgressValue(_pet.level, _pet.hp, _pet.maxHp);
 	}
+
+	updateComboBoxList();
 }
 
 #ifdef _STANDBYPET
@@ -12261,13 +12285,7 @@ void Server::lssproto_S_recv(char* cdata)
 			magic[no] = {};
 		}
 
-		QStringList magicNameList;
-		for (int i = 0; i < MAX_MAGIC; ++i)
-		{
-			magicNameList.append(magic[i].name);
-		}
 
-		emit signalDispatcher.updateComboBoxItemText(util::kComboBoxCharAction, magicNameList);
 	}
 #pragma endregion
 #pragma region TeamInfo
@@ -12558,6 +12576,14 @@ void Server::lssproto_S_recv(char* cdata)
 			itemList.append(it.name);
 		}
 		emit signalDispatcher.updateComboBoxItemText(util::kComboBoxItem, itemList);
+
+		QStringList magicNameList;
+		for (int i = 0; i < MAX_MAGIC; ++i)
+		{
+			magicNameList.append(magic[i].name);
+		}
+
+		emit signalDispatcher.updateComboBoxItemText(util::kComboBoxCharAction, magicNameList);
 	}
 #pragma endregion
 #pragma region PetSkill
@@ -12603,9 +12629,6 @@ void Server::lssproto_S_recv(char* cdata)
 			if ((pc.battlePetNo >= 0) && pc.battlePetNo < MAX_PET)
 				skillNameList.append(petSkill[no][i].name);
 		}
-
-		if ((pc.battlePetNo >= 0) && pc.battlePetNo < MAX_PET)
-			emit signalDispatcher.updateComboBoxItemText(util::kComboBoxPetAction, skillNameList);
 	}
 #pragma endregion
 #pragma region PlayerSkill
@@ -12642,17 +12665,6 @@ void Server::lssproto_S_recv(char* cdata)
 
 			profession_skill[i].memo = memo;
 		}
-
-		QStringList magicNameList;
-		for (i = 0; i < MAX_MAGIC; ++i)
-		{
-			magicNameList.append(magic[i].name);
-		}
-		for (i = 0; i < MAX_PROFESSION_SKILL; ++i)
-		{
-			magicNameList.append(profession_skill[i].name);
-		}
-		emit signalDispatcher.updateComboBoxItemText(util::kComboBoxCharAction, magicNameList);
 
 #ifdef _SKILLSORT
 		SortSkill();
@@ -12715,7 +12727,7 @@ void Server::lssproto_S_recv(char* cdata)
 			{
 				pet[nPetIndex].item[i] = {};
 				continue;
-			}
+		}
 			pet[nPetIndex].item[i].valid = true;
 			pet[nPetIndex].item[i].name = szData;
 			getStringToken(data, "|", no + 2, szData);
@@ -12790,7 +12802,7 @@ void Server::lssproto_S_recv(char* cdata)
 		//小块肉||0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|
 		//小块肉||0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|
 		//|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
-	}
+}
 	else if (first == "H")
 	{
 		//H0|0|  //0~19
@@ -12829,7 +12841,9 @@ void Server::lssproto_S_recv(char* cdata)
 	}
 
 	setPC(pc);
-}
+
+	updateComboBoxList();
+		}
 
 //客戶端登入(進去選人畫面)
 void Server::lssproto_ClientLogin_recv(char* cresult)
@@ -13248,7 +13262,7 @@ void Server::lssproto_TD_recv(char* cdata)//交易
 		mypet_tradeList = QStringList{ "P|-1", "P|-1", "P|-1" , "P|-1", "P|-1" };
 		mygoldtrade = 0;
 	}
-}
+		}
 
 void Server::lssproto_CHAREFFECT_recv(char* cdata)
 {

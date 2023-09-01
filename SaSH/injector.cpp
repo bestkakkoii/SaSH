@@ -475,10 +475,10 @@ bool Injector::isWindowAlive() const
 	if (!isValid())
 		return false;
 
-#ifndef _DEBUG
-	if (SendMessageTimeoutW(pi_.hWnd, WM_NULL, 0, 0, SMTO_ABORTIFHUNG | SMTO_ERRORONEXIT, MessageTimeout, nullptr) <= 0)
-		return false;
-#endif
+	//#ifndef _DEBUG
+	//	if (SendMessageTimeoutW(pi_.hWnd, WM_NULL, 0, 0, SMTO_ABORTIFHUNG | SMTO_ERRORONEXIT, MessageTimeout, nullptr) <= 0)
+	//		return false;
+	//#endif
 
 	if (IsWindow(pi_.hWnd))
 		return true;

@@ -946,7 +946,7 @@ void AfkForm::onResetControlTextLanguage()
 	appendCharAction(ui.comboBox_magicheal_normal, true);
 	for (int i = CHAR_EQUIPPLACENUM; i < MAX_ITEM; ++i)
 	{
-		QString text = QString("%1:").arg(i + 1);
+		QString text = QString("%1:").arg(i + 1 - CHAR_EQUIPPLACENUM);
 		ui.comboBox_magicheal_normal->addItem(text);
 		int index = ui.comboBox_magicheal_normal->count() - 1;
 		ui.comboBox_magicheal_normal->setItemData(index, text, Qt::ToolTipRole);
@@ -1098,6 +1098,7 @@ void AfkForm::onUpdateComboBoxItemText(int type, const QStringList& textList)
 	auto appendText = [&textList](QComboBox* combo, int max, bool noIndex)->void
 	{
 		combo->blockSignals(true);
+		combo->setUpdatesEnabled(false);
 		int nOriginalIndex = combo->currentIndex();
 		combo->clear();
 		int size = textList.size();
@@ -1129,6 +1130,8 @@ void AfkForm::onUpdateComboBoxItemText(int type, const QStringList& textList)
 			index = combo->count() - 1;
 			combo->setItemData(index, text, Qt::ToolTipRole);
 		}
+
+		combo->setUpdatesEnabled(true);
 		combo->blockSignals(false);
 		combo->setCurrentIndex(nOriginalIndex);
 	};
@@ -1144,9 +1147,10 @@ void AfkForm::onUpdateComboBoxItemText(int type, const QStringList& textList)
 			tr("gloves")
 		};
 
-		auto appendMagicText = [&actionList, &textList](QComboBox* combo, bool notBattle = false)->void
+		auto appendMagicText = [this, &actionList, &textList](QComboBox* combo, bool notBattle = false)->void
 		{
 			combo->blockSignals(true);
+			combo->setUpdatesEnabled(false);
 			int nOriginalIndex = combo->currentIndex();
 			combo->clear();
 			int size = actionList.size();
@@ -1179,6 +1183,21 @@ void AfkForm::onUpdateComboBoxItemText(int type, const QStringList& textList)
 				combo->addItem(QString("%1:%2").arg(i - size + 4).arg(textList[i]));
 			}
 
+			Injector& injector = Injector::getInstance();
+			if (!injector.server.isNull() && injector.server->getOnlineFlag() && combo == ui.comboBox_magicheal_normal)
+			{
+				PC pc = injector.server->getPC();
+				for (int i = CHAR_EQUIPPLACENUM; i < MAX_ITEM; ++i)
+				{
+					ITEM item = pc.item[i];
+					QString text = QString("%1:%2").arg(i - CHAR_EQUIPPLACENUM + 1).arg(item.name);
+					ui.comboBox_magicheal_normal->addItem(text);
+					int index = ui.comboBox_magicheal_normal->count() - 1;
+					ui.comboBox_magicheal_normal->setItemData(index, text, Qt::ToolTipRole);
+				}
+			}
+
+			combo->setUpdatesEnabled(true);
 			combo->blockSignals(false);
 			combo->setCurrentIndex(nOriginalIndex);
 		};
@@ -1207,19 +1226,7 @@ void AfkForm::onUpdateComboBoxItemText(int type, const QStringList& textList)
 		appendMagicText(ui.comboBox_magicrevive, true);
 		appendMagicText(ui.comboBox_magicheal_normal, true);
 		appendProfText(ui.comboBox_skillMp);
-		Injector& injector = Injector::getInstance();
-		if (!injector.server.isNull() && injector.server->getOnlineFlag())
-		{
-			PC pc = injector.server->getPC();
-			for (int i = CHAR_EQUIPPLACENUM; i < MAX_ITEM; ++i)
-			{
-				ITEM item = pc.item[i];
-				QString text = QString("%1:%2").arg(i - CHAR_EQUIPPLACENUM + 1).arg(item.valid ? item.name : "");
-				ui.comboBox_magicheal_normal->addItem(text);
-				int index = ui.comboBox_magicheal_normal->count() - 1;
-				ui.comboBox_magicheal_normal->setItemData(index, text, Qt::ToolTipRole);
-			}
-		}
+
 
 		//catch
 		appendMagicText(ui.comboBox_autocatchpet_magic);

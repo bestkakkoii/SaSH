@@ -458,15 +458,6 @@ int MainObject::checkAndRunFunctions()
 		injector.serverNameList = serverNameList;
 		injector.subServerNameList = subServerNameList;
 
-		QStringList itemList;
-		for (const ITEM& it : pc.item)
-		{
-			if (it.name.isEmpty())
-				continue;
-			itemList.append(it.name);
-		}
-
-		emit signalDispatcher.updateComboBoxItemText(util::kComboBoxItem, itemList);
 		emit signalDispatcher.updateNpcList(injector.server->nowFloor);
 		emit signalDispatcher.applyHashSettingsToUI();
 
@@ -1553,31 +1544,23 @@ void MainObject::checkAutoHeal()
 						ok = true;
 						target = 0;
 					}
-					if (!ok && (petPercent > 0) && injector.server->checkPetHp(petPercent))
+					else if (!ok && (petPercent > 0) && injector.server->checkPetHp(petPercent))
 					{
 						ok = true;
 						target = injector.server->getPC().battlePetNo + 1;
 					}
-					if (!ok && (petPercent > 0) && injector.server->checkRideHp(petPercent))
+					else if (!ok && (petPercent > 0) && injector.server->checkRideHp(petPercent))
 					{
 						ok = true;
 						target = injector.server->getPC().ridePetNo + 1;
 					}
-					if (!ok && (alliePercent > 0) && injector.server->checkPartyHp(alliePercent, &target))
+					else if (!ok && (alliePercent > 0) && injector.server->checkPartyHp(alliePercent, &target))
 					{
 						ok = true;
 						target += MAX_PET;
 					}
 
 					if (!ok || target == -1)
-						break;
-
-					QString text = injector.getStringHash(util::kNormalItemHealItemString).simplified();
-					if (text.isEmpty())
-						break;
-
-					items = text.split(util::rexOR, Qt::SkipEmptyParts);
-					if (items.isEmpty())
 						break;
 
 					itemIndex = -1;
@@ -1589,6 +1572,9 @@ void MainObject::checkAutoHeal()
 
 					if (itemIndex == -1)
 					{
+						QString text = injector.getStringHash(util::kNormalItemHealItemString).simplified();
+
+						items = text.split(util::rexOR, Qt::SkipEmptyParts);
 						for (const QString& str : items)
 						{
 							itemIndex = injector.server->getItemIndexByName(str);
@@ -1636,17 +1622,17 @@ void MainObject::checkAutoHeal()
 						ok = true;
 						target = 0;
 					}
-					if (!ok && (petPercent > 0) && injector.server->checkPetHp(petPercent))
+					else if (!ok && (petPercent > 0) && injector.server->checkPetHp(petPercent))
 					{
 						ok = true;
 						target = injector.server->getPC().battlePetNo + 1;
 					}
-					if (!ok && (petPercent > 0) && injector.server->checkRideHp(petPercent))
+					else if (!ok && (petPercent > 0) && injector.server->checkRideHp(petPercent))
 					{
 						ok = true;
 						target = injector.server->getPC().ridePetNo + 1;
 					}
-					if (!ok && (alliePercent > 0) && injector.server->checkPartyHp(alliePercent, &target))
+					else if (!ok && (alliePercent > 0) && injector.server->checkPartyHp(alliePercent, &target))
 					{
 						ok = true;
 						target += MAX_PET;
@@ -1656,15 +1642,18 @@ void MainObject::checkAutoHeal()
 						break;
 
 					int magicIndex = injector.getValueHash(util::kNormalMagicHealMagicValue);
-					if (magicIndex < 0 || magicIndex >= MAX_MAGIC)
+					if (magicIndex < 0 || magicIndex >= MAX_ITEM)
 						break;
 
-					int targetType = injector.server->getMagic(magicIndex).target;
-					if ((targetType != MAGIC_TARGET_MYSELF) && (targetType != MAGIC_TARGET_OTHER))
-						break;
+					if (magicIndex < CHAR_EQUIPPLACENUM)
+					{
+						int targetType = injector.server->getMagic(magicIndex).target;
+						if ((targetType != MAGIC_TARGET_MYSELF) && (targetType != MAGIC_TARGET_OTHER))
+							break;
 
-					if ((targetType == MAGIC_TARGET_MYSELF) && (target != 0))
-						break;
+						if ((targetType == MAGIC_TARGET_MYSELF) && (target != 0))
+							break;
+					}
 
 					injector.server->useMagic(magicIndex, target);
 					QThread::msleep(100);

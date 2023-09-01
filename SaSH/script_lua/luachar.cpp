@@ -149,7 +149,7 @@ qint64 CLuaChar::setTeamState(bool join, sol::this_state s)
 	return TRUE;
 }
 
-qint64 CLuaChar::kick(qint64 teammateIndex, sol::this_state s)\
+qint64 CLuaChar::kick(qint64 teammateIndex, sol::this_state s)
 {
 	Injector& injector = Injector::getInstance();
 	if (injector.server.isNull())

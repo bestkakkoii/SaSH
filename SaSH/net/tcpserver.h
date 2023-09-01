@@ -524,6 +524,8 @@ private:
 #pragma region SAClientOriginal
 	//StoneAge Client Original Functions
 
+	void updateComboBoxList();
+
 	void swapItemLocal(int from, int to);
 
 	void updateMapArea(void)
@@ -611,7 +613,7 @@ private:
 #else
 		return QDateTime::currentMSecsSinceEpoch();
 #endif
-	}
+}
 
 	inline void setWarpMap(const QPoint& pos)
 	{
