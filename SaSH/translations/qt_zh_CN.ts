@@ -1665,7 +1665,7 @@ Update process will cause all the games to be closed, are you sure to continue?<
     <message>
         <source>Current version:%1
 No new version available. Do you still want to update?</source>
-        <translation>当前版本:%1
+        <translation type="vanished">当前版本:%1
 没有找到新版本，您还要继续更新吗?</translation>
     </message>
     <message>
@@ -1675,6 +1675,15 @@ No new version available. Do you still want to update?</source>
     <message>
         <source>login failed</source>
         <translation>登入失败</translation>
+    </message>
+    <message>
+        <source>Current version:%1
+New version:%2
+No new version available. Do you still want to update?</source>
+        <translation>当前版本:%1
+新版本:%2
+
+没有找到新版本，您还要继续更新吗?</translation>
     </message>
 </context>
 <context>
@@ -3209,6 +3218,10 @@ No new version available. Do you still want to update?</source>
     <message>
         <source>List</source>
         <translation>列表</translation>
+    </message>
+    <message>
+        <source>Table</source>
+        <translation>表</translation>
     </message>
 </context>
 <context>

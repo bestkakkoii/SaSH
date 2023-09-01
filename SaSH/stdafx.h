@@ -51,6 +51,8 @@ public:\
 #include <netfw.h>
 #include <iomanip>
 #include <psapi.h>
+#include <chrono>
+#include <thread>
 #if _MSVC_LANG > 201703L
 #include <ranges>
 #endif

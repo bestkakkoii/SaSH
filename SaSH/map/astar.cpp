@@ -26,12 +26,12 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include <cassert>
 
 //#define USE_BSTAR
-//#define Octile_distance
+#define Octile_distance
 
 #pragma region ASTAR
 
-constexpr int kStepValue = 24;//10;
-constexpr int kObliqueValue = 32;//14;
+constexpr int kStepValue = 24;
+constexpr int kObliqueValue = 32;
 
 CAStar::CAStar()
 	: step_val_(kStepValue)
@@ -166,8 +166,9 @@ __forceinline int __fastcall Euclidean_Distance(const QPoint& current, const QPo
 #elif defined(Octile_distance)
 __forceinline int __fastcall Octile_Distance(const QPoint& current, const QPoint& end)
 {
-	unsigned int dx = abs(current.x() - end.x());
-	unsigned int dy = abs(current.y() - end.y());
+	unsigned int dx = std::abs(current.x() - end.x());
+	unsigned int dy = std::abs(current.y() - end.y());
+
 	if (dx > dy)
 		return kStepValue * dx + (kObliqueValue - kStepValue) * dy;
 	return kStepValue * dy + (kObliqueValue - kStepValue) * dx;
@@ -401,7 +402,7 @@ QVector<QPoint> CAStar::find(const CAStarParam& param)
 			std::reverse(paths.begin(), paths.end());
 #endif
 			break;
-		}
+			}
 
 		// 查找周圍可通過節點
 		nearby_nodes.clear();
@@ -438,16 +439,16 @@ QVector<QPoint> CAStar::find(const CAStarParam& param)
 #endif
 					{
 						return a->f() > b->f();
-					});
+		});
 #else
 				next_node = allocator_->allocate(alloc_size);  // 分配內存
 				std::allocator_traits<std::pmr::polymorphic_allocator<Node>>::construct(*allocator_, next_node, nearby_nodes[index]);// 構造對象
 				handle_not_found_node(current, next_node, param.end);
 #endif
-			}
-			++index;
 		}
+			++index;
 	}
+}
 
 	clear();
 	return paths;

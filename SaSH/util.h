@@ -827,14 +827,49 @@ namespace util
 
 	static inline QString buildDateTime(QDateTime* date)
 	{
+		//QString dateTime(global_date);
+		//const QString time(global_time);
+		//dateTime.replace("  ", " 0");//注意" "是兩個空格，用於日期為單數時需要轉成“空格+0”
+		//static const QDateTime d(QLocale(QLocale::English).toDateTime(dateTime, "MMM dd yyyy"));
+		//static const QString str = QString("%1 %2").arg(d.toString("yyyy-MM-dd")).arg(time);
+		//QDateTime dt = QDateTime::fromString(str, "yyyy-MM-dd hh:mm:ss");
+		//dt.addSecs(-16ll * 60ll * 60ll);
+		//if (date)
+		//	*date = QDateTime::fromString(str, "yyyy-MM-dd hh:mm:ss");
+		//return QString("%1-%2").arg(d.toString("yyyyMMdd")).arg(time);
+
 		QString dateTime(global_date);
 		const QString time(global_time);
-		dateTime.replace("  ", " 0");//注意" "是兩個空格，用於日期為單數時需要轉成“空格+0”
+		dateTime.replace("  ", " 0"); // 注意" "是两个空格，用于日期为单数时需要转成“空格+0”
+
+		// 创建 QDateTime 对象以解析日期部分
 		static const QDateTime d(QLocale(QLocale::English).toDateTime(dateTime, "MMM dd yyyy"));
-		static const QString str = QString("%1 %2").arg(d.toString("yyyy-MM-dd")).arg(time);
+
+		// 获取日期对应的时区
+		QTimeZone timeZone = QTimeZone::systemTimeZone();
+
+		// 判断是否在夏令时期间
+		bool isDST = timeZone.isDaylightTime(d);
+
+		// 构建日期时间字符串
+		static const QString format = "yyyy-MM-dd hh:mm:ss";
+		QString str = QString("%1 %2").arg(d.toString("yyyy-MM-dd")).arg(time);
+		QDateTime dt = QDateTime::fromString(str, format);
+
+		// 根据夏令时调整时间
+		if (isDST)
+		{
+			dt = dt.addSecs(+15ll * 60ll * 60ll); // 考虑夏令时变化和 -16 小时
+		}
+		else
+		{
+			dt = dt.addSecs(+16ll * 60ll * 60ll); // 考虑 -16 小时
+		}
+
 		if (date)
-			*date = QDateTime::fromString(str, "yyyy-MM-dd hh:mm:ss");
-		return QString("%1-%2").arg(d.toString("yyyyMMdd")).arg(time);
+			*date = dt;
+
+		return dt.toString("yyyyMMdd-hh:mm:ss");
 	}
 
 	static void setTab(QTabWidget* pTab)

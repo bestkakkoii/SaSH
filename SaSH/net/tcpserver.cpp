@@ -445,7 +445,6 @@ void Server::onClientReadyRead()
 			{
 				Injector& injector = Injector::getInstance();
 				int value = mem::read<short>(injector.getProcess(), injector.getProcessModule() + 0xE21E4);
-				announce(QString("[async battle] 战斗面板生成了 类别:%1").arg(value));
 				isBattleDialogReady.store(true, std::memory_order_release);
 				doBattleWork(false);//sync
 				return;
@@ -1432,7 +1431,7 @@ QString Server::getChatHistory(int index)
 	constexpr int MAX_CHAT_BUFFER = 0x10C;
 	int ptr = hModule + kOffestChatBuffer + ((total - index) * MAX_CHAT_BUFFER);
 
-	return mem::readString(hProcess, ptr, 0x10C, false);
+	return mem::readString(hProcess, ptr, MAX_CHAT_BUFFER, false);
 }
 
 //獲取周圍玩家名稱列表
@@ -2294,9 +2293,6 @@ void Server::swapItemLocal(int from, int to)
 
 void Server::setWorldStatus(int w)
 {
-#ifdef _DEBUG
-	announce(QString("[async battle] 將 W值從 %1 改為 %2").arg(getWorldStatus()).arg(w));
-#endif
 	QWriteLocker lock(&worldStateLocker);
 	Injector& injector = Injector::getInstance();
 	mem::write<int>(injector.getProcess(), injector.getProcessModule() + kOffestWorldStatus, w);
@@ -2304,9 +2300,6 @@ void Server::setWorldStatus(int w)
 
 void Server::setGameStatus(int g)
 {
-#ifdef _DEBUG
-	announce(QString("[async battle] 將 G值從 %1 改為 %2").arg(getGameStatus()).arg(g));
-#endif
 	QWriteLocker lock(&gameStateLocker);
 	Injector& injector = Injector::getInstance();
 	mem::write<int>(injector.getProcess(), injector.getProcessModule() + kOffestGameStatus, g);
@@ -5096,13 +5089,13 @@ void Server::syncBattleAction()
 				QThread::msleep(delay);
 		}
 
-		playerDoBattleWork();
+		playerDoBattleWork(bt);
 	}
 
 	if (!bt.petAlreadyAction)
 	{
 		bt.petAlreadyAction = true;
-		petDoBattleWork();
+		petDoBattleWork(bt);
 	}
 
 	if (injector.getEnableHash(util::kBattleAutoEOEnable))
@@ -5223,7 +5216,7 @@ void Server::asyncBattleAction()
 		//announce(QString("[async battle] 准备发出人物战斗指令"));
 		delay();
 		//解析人物战斗逻辑并发送指令
-		playerDoBattleWork();
+		playerDoBattleWork(bt);
 		//announce("[async battle] 人物战斗指令发送完毕");
 
 	}
@@ -5242,16 +5235,15 @@ void Server::asyncBattleAction()
 	{
 		bt.petAlreadyAction = true;
 		//announce(QString("[async battle] 准备发出宠物战斗指令"));
-		petDoBattleWork();
+		petDoBattleWork(bt);
 		//announce("[async battle] 宠物战斗指令发送完毕");
 		setCurrentRoundEnd();
 	}
 }
 
 //人物戰鬥
-int Server::playerDoBattleWork()
+int Server::playerDoBattleWork(const battledata_t& bt)
 {
-	battledata_t bt = getBattleData();
 	if (hasUnMoveableStatue(bt.player.status))
 	{
 		sendBattlePlayerDoNothing();
@@ -5268,7 +5260,7 @@ int Server::playerDoBattleWork()
 			break;
 		}
 
-		handlePlayerBattleLogics();
+		handlePlayerBattleLogics(bt);
 
 	} while (false);
 
@@ -5282,12 +5274,12 @@ int Server::playerDoBattleWork()
 }
 
 //寵物戰鬥
-int Server::petDoBattleWork()
+int Server::petDoBattleWork(const battledata_t& bt)
 {
 	PC pc = getPC();
 	if (pc.battlePetNo < 0 || pc.battlePetNo >= MAX_PET)
 		return 0;
-	battledata_t bt = getBattleData();
+
 	Injector& injector = Injector::getInstance();
 	do
 	{
@@ -5298,7 +5290,7 @@ int Server::petDoBattleWork()
 			break;
 		}
 
-		handlePetBattleLogics();
+		handlePetBattleLogics(bt);
 
 	} while (false);
 	//mem::writeInt(injector.getProcess(), injector.getProcessModule() + 0xE21E4, 0, sizeof(short));
@@ -5429,7 +5421,7 @@ bool Server::isPetSpotEmpty() const
 }
 
 //人物戰鬥邏輯(這裡因為懶了所以寫了一坨狗屎)
-void Server::handlePlayerBattleLogics()
+void Server::handlePlayerBattleLogics(const battledata_t& bt)
 {
 	using namespace util;
 	Injector& injector = Injector::getInstance();
@@ -5438,7 +5430,7 @@ void Server::handlePlayerBattleLogics()
 	petEscapeEnableTempFlag = false; //用於在必要的時候切換戰寵動作為逃跑模式
 
 	QStringList items;
-	battledata_t bt = getBattleData();
+
 	QVector<battleobject_t> battleObjects = bt.enemies;
 	QVector<battleobject_t> tempbattleObjects;
 	sortBattleUnit(battleObjects);
@@ -6434,7 +6426,7 @@ void Server::handlePlayerBattleLogics()
 		bool meatProiory = injector.getEnableHash(util::kBattleItemHealMeatPriorityEnable);
 		if (meatProiory)
 		{
-			itemIndex = getItemIndexByName(u8"肉", false, u8"耐久力", CHAR_EQUIPPLACENUM);
+			itemIndex = getItemIndexByName(u8"?肉", false, u8"耐久力", CHAR_EQUIPPLACENUM);
 		}
 
 		if (itemIndex == -1)
@@ -6654,11 +6646,11 @@ void Server::handlePlayerBattleLogics()
 }
 
 //寵物戰鬥邏輯(這裡因為懶了所以寫了一坨狗屎)
-void Server::handlePetBattleLogics()
+void Server::handlePetBattleLogics(const battledata_t& bt)
 {
 	using namespace util;
 	Injector& injector = Injector::getInstance();
-	battledata_t bt = getBattleData();
+
 	QVector<battleobject_t> battleObjects = bt.enemies;
 	QVector<battleobject_t> tempbattleObjects;
 	sortBattleUnit(battleObjects);
@@ -7366,7 +7358,7 @@ int Server::getBattleSelectableAllieTarget(const battledata_t& bt) const
 }
 
 //戰鬥匹配敵方名稱
-bool Server::matchBattleEnemyByName(const QString& name, bool isExact, QVector<battleobject_t> src, QVector<battleobject_t>* v) const
+bool Server::matchBattleEnemyByName(const QString& name, bool isExact, const QVector<battleobject_t>& src, QVector<battleobject_t>* v) const
 {
 	QVector<battleobject_t> tempv;
 	if (name.isEmpty())
@@ -7408,7 +7400,7 @@ bool Server::matchBattleEnemyByName(const QString& name, bool isExact, QVector<b
 }
 
 //戰鬥匹配敵方最低等級
-bool Server::matchBattleEnemyByLevel(int level, QVector<battleobject_t> src, QVector<battleobject_t>* v) const
+bool Server::matchBattleEnemyByLevel(int level, const QVector<battleobject_t>& src, QVector<battleobject_t>* v) const
 {
 	QVector<battleobject_t> tempv;
 	if (level <= 0 || level > 255)
@@ -7435,7 +7427,7 @@ bool Server::matchBattleEnemyByLevel(int level, QVector<battleobject_t> src, QVe
 }
 
 //戰鬥匹配敵方最大血量
-bool Server::matchBattleEnemyByMaxHp(int maxHp, QVector<battleobject_t> src, QVector<battleobject_t>* v) const
+bool Server::matchBattleEnemyByMaxHp(int maxHp, const QVector<battleobject_t>& src, QVector<battleobject_t>* v) const
 {
 	QVector<battleobject_t> tempv;
 	if (maxHp <= 0 || maxHp > 100000)
@@ -9214,7 +9206,6 @@ void Server::lssproto_EN_recv(int result, int field)
 	//開始戰鬥為1，未開始戰鬥為0
 	if (result > 0)
 	{
-		//announce("[async battle] 收到战斗开始封包");
 		setBattleFlag(true);
 		IS_LOCKATTACK_ESCAPE_DISABLE = false;
 		battle_total.fetch_add(1, std::memory_order_release);
@@ -9247,8 +9238,6 @@ void Server::lssproto_B_recv(char* ccommand)
 		QVector<QStringList> topList;
 		QVector<QStringList> bottomList;
 
-		//announce("[async battle] ----------------------------------------------");
-		//announce("[async battle] 收到新的战斗 C 数据");
 		/*
 		//BC|戰場屬性（0:無屬性,1:地,2:水,3:火,4:風）|人物在組隊中的位置|人物名稱|人物稱號|人物形象編號|人物等級(16進制)|當前HP|最大HP|人物狀態（死亡，中毒等）|是否騎乘標志(0:未騎，1騎,-1落馬)|騎寵名稱|騎寵等級|騎寵HP|騎寵最大HP|戰寵在隊伍中的位置|戰寵名稱|未知|戰寵形象|戰寵等級|戰寵HP|戰寵最大HP|戰寵異常狀態（昏睡，死亡，中毒等）|0||0|0|0|
 		//敵1位置|敵1名稱|未知|敵1形象|敵1等級|敵1HP|敵1最大HP|敵人異常狀態（死亡，中毒等）|0||0|0|0|
@@ -9634,8 +9623,6 @@ void Server::lssproto_B_recv(char* ccommand)
 		battleCurrentAnimeFlag = list.at(0).toInt(nullptr, 16);
 		battleCurrentRound.store(list.at(1).toInt(nullptr, 16), std::memory_order_release);
 
-		//announce(QString("[async battle] 收到新的战斗 A 数据  回合:%1").arg(battleCurrentRound.load(std::memory_order_acquire)));
-
 		if (battleCurrentAnimeFlag <= 0)
 			return;
 
@@ -9675,7 +9662,6 @@ void Server::lssproto_B_recv(char* ccommand)
 
 			if (enemyOkCount > 0 && !isEnemyAllReady.load(std::memory_order_acquire))
 			{
-				announce("[async battle] 敌方全部准备完毕");
 				isEnemyAllReady.store(true, std::memory_order_release);
 			}
 		}
@@ -10153,8 +10139,6 @@ void Server::lssproto_NC_recv(int flg)
 		NoCastFlag = true;
 	else
 	{
-		//announce("[async battle] 收到结束战斗封包");
-		//setBattleEnd();
 		NoCastFlag = false;
 	}
 }

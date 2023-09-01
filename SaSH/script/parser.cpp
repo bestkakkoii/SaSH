@@ -2159,7 +2159,7 @@ void Parser::recordFunctionChunks()
 	for (auto it = functionChunks_.cbegin(); it != functionChunks_.cend(); ++it)
 		qDebug() << it.key() << it.value().name << it.value().begin << it.value().end;
 #endif
-	}
+}
 
 //更新並記錄每個 for 塊的開始行和結束行
 void Parser::recordForChunks()
@@ -2511,18 +2511,55 @@ QString Parser::getLuaTableString(const sol::table& t, int& deepth)
 	QString ret = "{ ";
 
 	QStringList results;
+	QStringList strKeyResults;
 
 	for (const auto& pair : t)
 	{
+		qint64 nKey = 0;
+		QString key = "";
+		QString value = "";
+		if (pair.first.is<qint64>())
+		{
+			nKey = pair.first.as<qint64>() - 1;
+		}
+		else
+			key = QString::fromUtf8(pair.first.as<std::string>().c_str());
+
 		if (pair.second.is<sol::table>())
-			getLuaTableString(pair.second.as<sol::table>(), ++deepth);
+			value = getLuaTableString(pair.second.as<sol::table>(), ++deepth);
 		else if (pair.second.is<qint64>())
-			results.append(QString::number(pair.second.as<qint64>()));
+			value = QString::number(pair.second.as<qint64>());
 		else if (pair.second.is<double>())
-			results.append(QString::number(qFloor(pair.second.as<double>())));
+			value = QString::number(qFloor(pair.second.as<double>()));
 		else if (pair.second.is<std::string>())
-			results.append(QString::fromUtf8(pair.second.as<std::string>().c_str()));
+			value = QString("'%1'").arg(QString::fromUtf8(pair.second.as<std::string>().c_str()));
+		else if (pair.second.is<bool>())
+			value = pair.second.as<bool>() ? "true" : "false";
+		else
+			value = "nil";
+
+		if (key.isEmpty())
+		{
+			if (nKey >= results.size())
+			{
+				for (qint64 i = results.size(); i <= nKey; ++i)
+					results.append("nil");
+			}
+
+			results[nKey] = value;
+		}
+		else
+			strKeyResults.append(QString("%1 = %2").arg(key).arg(value));
 	}
+
+	std::sort(strKeyResults.begin(), strKeyResults.end(), [](const QString& a, const QString& b)
+		{
+			static const QLocale locale;
+			static const QCollator collator(locale);
+			return collator.compare(a, b) < 0;
+		});
+
+	results.append(strKeyResults);
 
 	ret += results.join(", ");
 	ret += " }";
@@ -2553,47 +2590,8 @@ void Parser::processTableSet()
 	importVariablesToLua(expr);
 
 	RESERVE type = getTokenType(0);
-	if (type == TK_TABLESET && isGlobalVarContains(varName))
-	{
-		QString globalVar = getGlobalVarValue(varName).toString();
-		if (!globalVar.startsWith("{") || !globalVar.endsWith("}"))
-			return;
 
-		QString exprStr = QString("%1\n%2 = %3;\n%4;\nreturn %5;").arg(localVarList.join("\n")).arg(varName).arg(globalVar).arg(expr).arg(varName);
-		insertGlobalVar("_LUAEXPR", exprStr);
-
-		const std::string exprStrUTF8 = exprStr.toUtf8().constData();
-		sol::protected_function_result loaded_chunk = lua_.safe_script(exprStrUTF8.c_str(), sol::script_pass_on_error);
-		lua_.collect_garbage();
-		if (!loaded_chunk.valid())
-		{
-			sol::error err = loaded_chunk;
-			QString errStr = QString::fromUtf8(err.what());
-			handleError(kLuaError, errStr);
-			return;
-		}
-
-		sol::object retObject;
-		try
-		{
-			retObject = loaded_chunk;
-		}
-		catch (...)
-		{
-			return;
-		}
-
-		if (!retObject.is<sol::table>())
-			return;
-
-		int deepth = 10;
-		QString resultStr = getLuaTableString(retObject.as<sol::table>(), deepth);
-		if (resultStr.isEmpty())
-			return;
-
-		insertGlobalVar(varName, resultStr);
-	}
-	else if (isLocalVarContains(varName))
+	if (isLocalVarContains(varName))
 	{
 		QString localVar = getLocalVarValue(varName).toString();
 		if (!localVar.startsWith("{") || !localVar.endsWith("}"))
@@ -2633,7 +2631,46 @@ void Parser::processTableSet()
 
 		insertLocalVar(varName, resultStr);
 	}
+	else if (type == TK_TABLESET && isGlobalVarContains(varName))
+	{
+		QString globalVar = getGlobalVarValue(varName).toString();
+		if (!globalVar.startsWith("{") || !globalVar.endsWith("}"))
+			return;
 
+		QString exprStr = QString("%1\n%2 = %3;\n%4;\nreturn %5;").arg(localVarList.join("\n")).arg(varName).arg(globalVar).arg(expr).arg(varName);
+		insertGlobalVar("_LUAEXPR", exprStr);
+
+		const std::string exprStrUTF8 = exprStr.toUtf8().constData();
+		sol::protected_function_result loaded_chunk = lua_.safe_script(exprStrUTF8.c_str(), sol::script_pass_on_error);
+		lua_.collect_garbage();
+		if (!loaded_chunk.valid())
+		{
+			sol::error err = loaded_chunk;
+			QString errStr = QString::fromUtf8(err.what());
+			handleError(kLuaError, errStr);
+			return;
+		}
+
+		sol::object retObject;
+		try
+		{
+			retObject = loaded_chunk;
+		}
+		catch (...)
+		{
+			return;
+		}
+
+		if (!retObject.is<sol::table>())
+			return;
+
+		int deepth = 10;
+		QString resultStr = getLuaTableString(retObject.as<sol::table>(), deepth);
+		if (resultStr.isEmpty())
+			return;
+
+		insertGlobalVar(varName, resultStr);
+	}
 }
 
 //處理變量自增自減
@@ -3896,7 +3933,8 @@ void Parser::processDelay()
 	{
 		QThread::msleep(extraDelay);
 	}
-	QThread::msleep(1);
+
+	std::this_thread::sleep_for(std::chrono::microseconds(1));
 }
 
 //處理"遍歷"
@@ -3941,7 +3979,7 @@ bool Parser::processFor()
 			return false;
 
 		qint64 nvalue = value.toLongLong();
-		if (nvalue >= breakValue)
+		if ((nvalue >= breakValue && step >= 0) || (nvalue <= breakValue && step < 0))
 		{
 			if (!forStack_.isEmpty() && forChunks_.contains(scopedKey))
 			{

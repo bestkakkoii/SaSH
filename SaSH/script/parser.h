@@ -543,6 +543,7 @@ public:
 	}
 
 	QString getLuaTableString(const sol::table& t, int& deepth);
+
 private:
 	void processTokens();
 	qint64 processCommand();
@@ -719,6 +720,7 @@ private:
 	}
 
 	void generateStackInfo(qint64 type);
+
 
 private:
 	//函數代碼塊

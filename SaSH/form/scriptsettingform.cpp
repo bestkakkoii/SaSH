@@ -102,7 +102,9 @@ ScriptSettingForm::ScriptSettingForm(QWidget* parent)
 
 	//ui.listView_log->setModel(thread->getScriptLogModel());
 
-	ui.listView_log->setWordWrap(false);
+	ui.listView_log->setWordWrap(true);
+	ui.listView_log->setUniformItemSizes(true);
+	ui.listView_log->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
 	ui.listView_log->setTextElideMode(Qt::ElideNone);
 	ui.listView_log->setResizeMode(QListView::Adjust);
 	ui.listView_log->installEventFilter(this);
@@ -1451,8 +1453,12 @@ void ScriptSettingForm::varInfoImport(QTreeWidget* tree, const QHash<QString, QV
 			}
 			case QVariant::String:
 			{
-				varType = tr("String");
 				varValueStr = var.toString();
+				if (varValueStr.startsWith("{") && varValueStr.endsWith("}"))
+					varType = tr("Table");
+				else
+					varType = tr("String");
+
 				break;
 			}
 			case QVariant::Bool:
@@ -1508,9 +1514,7 @@ void ScriptSettingForm::onVarInfoImport(const QHash<QString, QVariant>& d)
 
 	currentGlobalVarInfo_ = d;
 	QStringList systemVarList = {
-		//utf8
-		"tick", "stick", "chname", "chfname", "chlv", "chhp", "chmp", "chdp", "stone", "px", "py",
-			"floor", "frname", "date", "time", "earnstone", "expbuff", "dlgid", "bt"
+
 	};
 
 	QHash<QString, QVariant> globalVarInfo;
@@ -1801,9 +1805,9 @@ void ScriptSettingForm::on_treeWidget_functionList_itemSelectionChanged()
 		ui.textBrowser->setUpdatesEnabled(true);
 
 		return;
-	} while (false);
+		} while (false);
 
-}
+	}
 
 QString ScriptSettingForm::getFullPath(QTreeWidgetItem* item)
 {
@@ -2093,7 +2097,7 @@ void ScriptSettingForm::onEncryptSave()
 	else
 	{
 		ui.statusBar->showMessage(tr("Encrypt script save failed"), 3000);
-	}
+}
 #endif
 }
 

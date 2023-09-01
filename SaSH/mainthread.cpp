@@ -1584,14 +1584,17 @@ void MainObject::checkAutoHeal()
 					bool meatProiory = injector.getEnableHash(util::kNormalItemHealMeatPriorityEnable);
 					if (meatProiory)
 					{
-						itemIndex = injector.server->getItemIndexByName(u8"肉", false, u8"耐久力");
+						itemIndex = injector.server->getItemIndexByName(u8"?肉", false, u8"耐久力");
 					}
 
-					for (const QString& str : items)
+					if (itemIndex == -1)
 					{
-						itemIndex = injector.server->getItemIndexByName(str);
-						if (itemIndex != -1)
-							break;
+						for (const QString& str : items)
+						{
+							itemIndex = injector.server->getItemIndexByName(str);
+							if (itemIndex != -1)
+								break;
+						}
 					}
 
 					if (itemIndex == -1)

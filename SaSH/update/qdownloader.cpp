@@ -80,7 +80,7 @@ QString QDownloader::Sha3_512(const QString& fileNamePath) const
 }
 
 QString g_etag;
-constexpr int UPDATE_TIME_MIN = 3 * 60;
+constexpr int UPDATE_TIME_MIN = 5 * 60;
 bool QDownloader::checkUpdate(QString* current, QString* ptext)
 {
 	QString exeFileName = QCoreApplication::applicationFilePath();
@@ -120,6 +120,7 @@ bool QDownloader::checkUpdate(QString* current, QString* ptext)
 			{
 				qDebug() << "New version available!" << newEtag;
 				g_etag = newEtag;
+				bret = true;
 				skipModifyTimeCheck = true;
 			}
 			else
@@ -137,7 +138,8 @@ bool QDownloader::checkUpdate(QString* current, QString* ptext)
 
 			QDateTime gmtTime = locale.toDateTime(lastModifiedStr, "ddd, dd MMM yyyy hh:mm:ss 'GMT'");
 			//補-8小時
-			zipModified = gmtTime.addSecs(-8ll * 60ll * 60ll);
+			zipModified = gmtTime.addSecs(8ll * 60ll * 60ll);
+
 			qDebug() << "SaSH 7z file modified time:" << zipModified.toString("yyyy-MM-dd hh:mm:ss");
 			if (!zipModified.isValid())
 			{
@@ -537,11 +539,8 @@ void QDownloader::overwriteCurrentExecutable()
 	//將當前目錄下所有文件壓縮(7z)成備份，檔案名稱為  SaSH_backup_當前日期時間 
 	constexpr auto buildDateTime = []()
 	{
-		QString dateTime(global_date);
-		QString time(global_time);
-		dateTime.replace("  ", " 0");//注意" "是兩個空格，用於日期為單數時需要轉成“空格+0”
-		const QDateTime d(QLocale(QLocale::English).toDateTime(dateTime, "MMM dd yyyy"));
-		return QString("v1.0.%1-%2").arg(d.toString("yyyyMMdd")).arg(time.replace(":", ""));
+		QString d = util::buildDateTime(nullptr);
+		return QString("v1.0.%1").arg(d).replace(":", "");
 	};
 	QString szBackup7zFileName = QString(kBackupfileName1).arg(buildDateTime());
 	QString szBackup7zFilePath = QString("%1%2").arg(rcPath_).arg(szBackup7zFileName);

@@ -86,6 +86,16 @@ ItemInfoForm::ItemInfoForm(QWidget* parent)
 		}
 	}
 
+	connect(ui.pushButton_refresh, &QPushButton::clicked, this, []()
+		{
+			Injector& injector = Injector::getInstance();
+			if (!injector.server.isNull())
+			{
+				for (int i = 0; i < 9; ++i)
+					injector.server->sortItem(true);
+			}
+		});
+
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
 	connect(&signalDispatcher, &SignalDispatcher::updateEquipInfoRowContents, this, &ItemInfoForm::onUpdateEquipInfoRowContents, Qt::UniqueConnection);
 	connect(&signalDispatcher, &SignalDispatcher::updateItemInfoRowContents, this, &ItemInfoForm::onUpdateItemInfoRowContents, Qt::UniqueConnection);

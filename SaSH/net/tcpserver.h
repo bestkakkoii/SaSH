@@ -482,10 +482,10 @@ private:
 
 
 #pragma region BattleFunctions
-	int playerDoBattleWork();
-	void handlePlayerBattleLogics();
-	int petDoBattleWork();
-	void handlePetBattleLogics();
+	int playerDoBattleWork(const battledata_t& bt);
+	void handlePlayerBattleLogics(const battledata_t& bt);
+	int petDoBattleWork(const battledata_t& bt);
+	void handlePetBattleLogics(const battledata_t& bt);
 
 
 	bool isPlayerMpEnoughForMagic(int magicIndex) const;
@@ -500,9 +500,9 @@ private:
 
 	Q_REQUIRED_RESULT int getBattleSelectableAllieTarget(const battledata_t& bt) const;
 
-	Q_REQUIRED_RESULT bool matchBattleEnemyByName(const QString& name, bool isExact, QVector<battleobject_t> src, QVector<battleobject_t>* v) const;
-	Q_REQUIRED_RESULT bool matchBattleEnemyByLevel(int level, QVector<battleobject_t> src, QVector<battleobject_t>* v) const;
-	Q_REQUIRED_RESULT bool matchBattleEnemyByMaxHp(int maxHp, QVector<battleobject_t> src, QVector<battleobject_t>* v) const;
+	Q_REQUIRED_RESULT bool matchBattleEnemyByName(const QString& name, bool isExact, const QVector<battleobject_t>& src, QVector<battleobject_t>* v) const;
+	Q_REQUIRED_RESULT bool matchBattleEnemyByLevel(int level, const QVector<battleobject_t>& src, QVector<battleobject_t>* v) const;
+	Q_REQUIRED_RESULT bool matchBattleEnemyByMaxHp(int maxHp, const QVector<battleobject_t>& src, QVector<battleobject_t>* v) const;
 
 	Q_REQUIRED_RESULT int getGetPetSkillIndexByName(int petIndex, const QString& name) const;
 

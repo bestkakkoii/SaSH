@@ -473,8 +473,8 @@ void Lexer::tokenized(qint64 currentLine, const QString& line, TokenMap* ptoken,
 			raw = raw.mid(0, commentIndex).trimmed();
 
 		bool doNotLowerCase = false;
-		static const QRegularExpression rexMultiVar(R"(^\s*([_a-zA-Z\p{Han}][_a-zA-Z0-9\p{Han}]*(?:\s*,\s*[_a-zA-Z\p{Han}][_a-zA-Z0-9\p{Han}]*)*)\s*=\s*([^,]+(?:\s*,\s*[^,]+)*)$)");//a,b,c = 1,2,3
-		static const QRegularExpression rexMultiLocalVar(R"([lL][oO][cC][aA][lL]\s+([_a-zA-Z\p{Han}][_a-zA-Z0-9\p{Han}]*(?:\s*,\s*[_a-zA-Z\p{Han}][_a-zA-Z0-9\p{Han}]*)*)\s*=\s*([^,]+(?:\s*,\s*[^,]+)*)$)");//local a,b,c = 1,2,3
+		static const QRegularExpression rexMultiVar(R"(^\s*([_a-zA-Z\p{Han}][\w\p{Han}]*(?:\s*,\s*[_a-zA-Z\p{Han}][\w\p{Han}]*)*)\s*=\s*([^,]+(?:\s*,\s*[^,]+)*)$)");//a,b,c = 1,2,3
+		static const QRegularExpression rexMultiLocalVar(R"([lL][oO][cC][aA][lL]\s+([_a-zA-Z\p{Han}][\w\p{Han}]*(?:\s*,\s*[_a-zA-Z\p{Han}][\w\p{Han}]*)*)\s*=\s*([^,]+(?:\s*,\s*[^,]+)*)$)");//local a,b,c = 1,2,3
 		static const QRegularExpression varIncDec(R"(([\p{Han}\w]+)(\+\+|--))");//++ --
 		static const QRegularExpression varCAOs(R"((?!\d)([\p{Han}\w]+)\s+([+\-*\/&|^%]\=)\s+([\W\w\s\p{Han}]+))");//+= -= *= /= &= |= ^= %=
 		static const QRegularExpression varExpr(R"(([\w\p{Han}]+)\s+\=\s+([\W\w\s\p{Han}]+))");//x = expr
@@ -506,6 +506,80 @@ void Lexer::tokenized(qint64 currentLine, const QString& line, TokenMap* ptoken,
 					else
 						createToken(pos + 2, TK_STRING, exprList.at(1), exprList.at(1), ptoken);
 				}
+				break;
+			}
+		}
+		//處理for 3參
+		else if (raw.contains(rexCallFor2))
+		{
+			QRegularExpressionMatch match = rexCallFor2.match(raw);
+			if (match.hasMatch())
+			{
+				QString varName = match.captured(1).simplified();
+				QString exprA = match.captured(2).simplified();
+				QString exprB = match.captured(3).simplified();
+				QString exprC = match.captured(4).simplified();
+
+				QString cmd = "for";
+				createToken(pos, TK_FOR, cmd, cmd, ptoken);
+				createToken(pos + 1, TK_STRING, varName, varName, ptoken);
+				createToken(pos + 2, TK_STRING, exprA, exprA, ptoken);
+				createToken(pos + 3, TK_STRING, exprB, exprB, ptoken);
+				createToken(pos + 4, TK_STRING, exprC, exprC, ptoken);
+				break;
+			}
+		}
+		//處理for 2參
+		else if (raw.contains(rexCallFor))
+		{
+			QRegularExpressionMatch match = rexCallFor.match(raw);
+			if (match.hasMatch())
+			{
+				QString varName = match.captured(1).simplified();
+				QString exprA = match.captured(2).simplified();
+				QString exprB = match.captured(3).simplified();
+
+				QString cmd = "for";
+				createToken(pos, TK_FOR, cmd, cmd, ptoken);
+				createToken(pos + 1, TK_STRING, varName, varName, ptoken);
+				createToken(pos + 2, TK_STRING, exprA, exprA, ptoken);
+				createToken(pos + 3, TK_STRING, exprB, exprB, ptoken);
+				break;
+			}
+		}
+		//處理自增自減
+		else if ((raw.count("++") == 1 || raw.count("--") == 1) && raw.contains(varIncDec) && !raw.front().isDigit())
+		{
+			//拆分出變數名稱 和 運算符
+			QRegularExpressionMatch match = varIncDec.match(raw);
+			if (match.hasMatch())
+			{
+				QString varName = match.captured(1).simplified();
+				QString op = match.captured(2).simplified();
+
+				createToken(pos, TK_INCDEC, varName, varName, ptoken);
+				createToken(pos + 1, op == "++" ? TK_INC : TK_DEC, op, op, ptoken);
+				break;
+			}
+		}
+		//處理+= -+ *= /= %= |= &= 
+		else if (raw.contains(varCAOs) && !raw.front().isDigit())
+		{
+			QRegularExpressionMatch match = varCAOs.match(raw);
+			if (match.hasMatch())
+			{
+				QString notuse;
+				QString varName = match.captured(1).simplified();
+				QString op = match.captured(2).simplified();
+				QString value = match.captured(3).simplified();
+				qint64 p = pos + 1;
+				RESERVE optype = getTokenType(p, TK_CAOS, op, op);
+				++p;
+				RESERVE valuetype = getTokenType(p, optype, value, value);
+
+				createToken(pos, TK_CAOS, varName, varName, ptoken);
+				createToken(pos + 1, optype, op, op, ptoken);
+				createToken(pos + 2, valuetype, value, value, ptoken);
 				break;
 			}
 		}
@@ -563,42 +637,7 @@ void Lexer::tokenized(qint64 currentLine, const QString& line, TokenMap* ptoken,
 				doNotLowerCase = true;
 			}
 		}
-		//處理自增自減
-		else if ((raw.count("++") == 1 || raw.count("--") == 1) && raw.contains(varIncDec) && !raw.front().isDigit())
-		{
-			//拆分出變數名稱 和 運算符
-			QRegularExpressionMatch match = varIncDec.match(raw);
-			if (match.hasMatch())
-			{
-				QString varName = match.captured(1).simplified();
-				QString op = match.captured(2).simplified();
 
-				createToken(pos, TK_INCDEC, varName, varName, ptoken);
-				createToken(pos + 1, op == "++" ? TK_INC : TK_DEC, op, op, ptoken);
-				break;
-			}
-		}
-		//處理+= -+ *= /= %= |= &= 
-		else if (raw.contains(varCAOs) && !raw.front().isDigit())
-		{
-			QRegularExpressionMatch match = varCAOs.match(raw);
-			if (match.hasMatch())
-			{
-				QString notuse;
-				QString varName = match.captured(1).simplified();
-				QString op = match.captured(2).simplified();
-				QString value = match.captured(3).simplified();
-				qint64 p = pos + 1;
-				RESERVE optype = getTokenType(p, TK_CAOS, op, op);
-				++p;
-				RESERVE valuetype = getTokenType(p, optype, value, value);
-
-				createToken(pos, TK_CAOS, varName, varName, ptoken);
-				createToken(pos + 1, optype, op, op, ptoken);
-				createToken(pos + 2, valuetype, value, value, ptoken);
-				break;
-			}
-		}
 		//處理變量賦值數學表達式
 		else if (raw.contains(varExpr) && raw.contains(varAnyOp) && !raw.front().isDigit())
 		{
@@ -612,42 +651,6 @@ void Lexer::tokenized(qint64 currentLine, const QString& line, TokenMap* ptoken,
 				createToken(pos + 1, TK_STRING, expr, expr, ptoken);
 			}
 			break;
-		}
-		else if (raw.contains(rexCallFor2))
-		{
-			QRegularExpressionMatch match = rexCallFor2.match(raw);
-			if (match.hasMatch())
-			{
-				QString varName = match.captured(1).simplified();
-				QString exprA = match.captured(2).simplified();
-				QString exprB = match.captured(3).simplified();
-				QString exprC = match.captured(4).simplified();
-
-				QString cmd = "for";
-				createToken(pos, TK_FOR, cmd, cmd, ptoken);
-				createToken(pos + 1, TK_STRING, varName, varName, ptoken);
-				createToken(pos + 2, TK_STRING, exprA, exprA, ptoken);
-				createToken(pos + 3, TK_STRING, exprB, exprB, ptoken);
-				createToken(pos + 4, TK_STRING, exprC, exprC, ptoken);
-				break;
-			}
-		}
-		else if (raw.contains(rexCallFor))
-		{
-			QRegularExpressionMatch match = rexCallFor.match(raw);
-			if (match.hasMatch())
-			{
-				QString varName = match.captured(1).simplified();
-				QString exprA = match.captured(2).simplified();
-				QString exprB = match.captured(3).simplified();
-
-				QString cmd = "for";
-				createToken(pos, TK_FOR, cmd, cmd, ptoken);
-				createToken(pos + 1, TK_STRING, varName, varName, ptoken);
-				createToken(pos + 2, TK_STRING, exprA, exprA, ptoken);
-				createToken(pos + 3, TK_STRING, exprB, exprB, ptoken);
-				break;
-			}
 		}
 		else
 		{
@@ -703,7 +706,6 @@ void Lexer::tokenized(qint64 currentLine, const QString& line, TokenMap* ptoken,
 					break;
 				}
 			}
-
 			//檢查第一個TOKEN是否存在於關鍵字表，否則視為空行
 			type = keywords.value(token, TK_UNK);
 			if (type == TK_UNK)

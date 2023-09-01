@@ -1266,10 +1266,6 @@ qint64 Interpreter::mainScriptCallBack(qint64 currentLine, const TokenMap& TK)
 
 	emit signalDispatcher.addForwardMarker(currentLine, true);
 
-	QCoreApplication::processEvents();
-
-	//checkPause();
-
 	return 1;
 }
 
@@ -1613,6 +1609,7 @@ qint64 Interpreter::run(qint64 currentline, const TokenMap& TK)
 		if (!interpreter.isNull())
 		{
 			interpreter->setSubScript(true);
+
 			if (!interpreter->doFile(beginLine, fileName, this, varShareMode))
 				return Parser::kError;
 
