@@ -26,7 +26,20 @@
    <string>SaSH</string>
   </property>
   <property name="styleSheet">
-   <string notr="true"/>
+   <string notr="true">QPushButton {
+	background-color: #F9F9F9;
+	border: 1px solid #000000;
+	padding: 3px;
+}
+
+QPushButton:hover {
+	background-color: #3282F6;
+}
+
+QPushButton:pressed, QPushButton:checked {
+	background-color: #3282F6;
+	border: 1px solid #ffffff;
+}</string>
   </property>
   <widget class="QWidget" name="centralWidget">
    <property name="styleSheet">

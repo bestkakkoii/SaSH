@@ -760,8 +760,6 @@ void QDownloader::downloadAndExtractZip(const QString& url, const QString& targe
 
 	QZipReader reader(filePath);
 	reader.extractAll(targetDir);
-	if (file.exists())
-		file.remove();
 }
 
 //void QDownloader::downloadAndExtractZip(const QString& url, const QString& targetDir) const

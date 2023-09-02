@@ -87,6 +87,26 @@ MapForm::MapForm(QWidget* parent)
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
 	connect(&signalDispatcher, &SignalDispatcher::updateNpcList, this, &MapForm::onUpdateNpcList, Qt::UniqueConnection);
 
+	setStyleSheet(R"(
+QWidget{ background-color: rgb(245, 245, 245); }
+
+QPushButton {
+	background-color: #F9F9F9;
+	border: 1px solid #000000;
+	padding: 3px;
+}
+
+QPushButton:hover {
+	background-color: #3282F6;
+}
+
+QPushButton:pressed, QPushButton:checked {
+	background-color: #3282F6;
+	border: 1px solid #ffffff;
+}
+
+)");
+
 }
 
 MapForm::~MapForm()
