@@ -26,8 +26,15 @@ class AbilityForm : public QDialog
 	Q_OBJECT
 
 public:
-	AbilityForm(QWidget* parent = nullptr);
-	~AbilityForm();
+	explicit AbilityForm(QWidget* parent = nullptr);
+	virtual ~AbilityForm();
+
+protected:
+	virtual void showEvent(QShowEvent* e) override
+	{
+		setAttribute(Qt::WA_Mapped);
+		QDialog::showEvent(e);
+	}
 
 private slots:
 	void onButtonClicked();

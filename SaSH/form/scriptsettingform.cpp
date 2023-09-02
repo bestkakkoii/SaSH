@@ -104,12 +104,12 @@ ScriptSettingForm::ScriptSettingForm(QWidget* parent)
 	ui.menuBar->setMinimumWidth(200);
 
 	//載入固定狀態
-	m_staticLabel.setParent(this);
-	m_staticLabel.setFrameStyle(QFrame::NoFrame);
-	m_staticLabel.setText(QString(tr("row:%1 | size:%2 | index:%3 | %4").arg(1).arg(0).arg(1).arg("CRLF")));
-	m_staticLabel.setOpenExternalLinks(true);
-	m_staticLabel.setStyleSheet("color: rgb(250, 250, 250);background-color: rgb(31, 31, 31);border:none");
-	ui.statusBar->addPermanentWidget(&m_staticLabel);
+	staticLabel_.setParent(this);
+	staticLabel_.setFrameStyle(QFrame::NoFrame);
+	staticLabel_.setText(QString(tr("row:%1 | size:%2 | index:%3 | %4").arg(1).arg(0).arg(1).arg("CRLF")));
+	staticLabel_.setOpenExternalLinks(true);
+	staticLabel_.setStyleSheet("color: rgb(250, 250, 250);background-color: rgb(31, 31, 31);border:none");
+	ui.statusBar->addPermanentWidget(&staticLabel_);
 	ui.statusBar->setStyleSheet("color: rgb(250, 250, 250);background-color: rgb(31, 31, 31);border:none");
 
 
@@ -926,7 +926,7 @@ void ScriptSettingForm::onReloadScriptList()
 
 		util::loadAllFileLists(item, util::applicationDirPath() + "/script/", &newScriptList);
 
-		m_scriptList = newScriptList;
+		scriptList_ = newScriptList;
 
 		ui.treeWidget_scriptList->setUpdatesEnabled(false);
 
@@ -1231,7 +1231,7 @@ void ScriptSettingForm::onWidgetModificationChanged(bool changed)
 {
 	if (!changed) return;
 	Injector& injector = Injector::getInstance();
-	m_scripts.insert(injector.currentScriptFileName, ui.widget->text());
+	scripts_.insert(injector.currentScriptFileName, ui.widget->text());
 }
 
 void ScriptSettingForm::on_comboBox_labels_clicked()
@@ -1318,23 +1318,23 @@ void ScriptSettingForm::on_widget_cursorPositionChanged(int line, int index)
 	const QString modeStr(mode == QsciScintilla::EolWindows ? "CRLF" : mode == QsciScintilla::EolUnix ? "LF" : "CR");
 	//獲取當前行字
 	const QString lineText = ui.widget->text(line);
-	m_staticLabel.setText(QString(tr("row:%1 | size:%2 | index:%3 | %4").arg(line + 1).arg(lineText.size()).arg(index).arg(modeStr)));
+	staticLabel_.setText(QString(tr("row:%1 | size:%2 | index:%3 | %4").arg(line + 1).arg(lineText.size()).arg(index).arg(modeStr)));
 }
 
 void ScriptSettingForm::on_widget_textChanged()
 {
 	Injector& injector = Injector::getInstance();
 	const QString text(ui.widget->text());
-	if (m_scripts.value(injector.currentScriptFileName, "") != text)
+	if (scripts_.value(injector.currentScriptFileName, "") != text)
 	{
-		m_scripts.insert(injector.currentScriptFileName, text);
-		m_isModified = true;
+		scripts_.insert(injector.currentScriptFileName, text);
+		isModified_ = true;
 		ui.widget->setModified(true);
 		emit ui.widget->modificationChanged(true);
 	}
 	else
 	{
-		m_isModified = false;
+		isModified_ = false;
 		ui.widget->setModified(false);
 	}
 }
@@ -2238,6 +2238,9 @@ bool ScriptSettingForm::nativeEvent(const QByteArray& eventType, void* message, 
 	switch (msg->message)
 	{
 	case WM_NCHITTEST:
+		if (isMaximized())
+			return false;
+
 		int xPos = GET_X_LPARAM(msg->lParam) - this->frameGeometry().x();
 		int yPos = GET_Y_LPARAM(msg->lParam) - this->frameGeometry().y();
 		if (xPos < boundaryWidth_ && yPos < boundaryWidth_)                    //左上角
@@ -2259,6 +2262,6 @@ bool ScriptSettingForm::nativeEvent(const QByteArray& eventType, void* message, 
 		else              //其他部分不做处理，返回false，留给其他事件处理器处理
 			return false;
 		return true;
-}
+	}
 	return false;         //此处返回false，留给其他事件处理器处理
 }

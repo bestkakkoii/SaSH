@@ -296,6 +296,27 @@ bool Parser::compare(const QVariant& a, const QVariant& b, RESERVE type) const
 	return false; // 不支持的类型，返回 false
 }
 
+void Parser::checkConditionalOp(QString& expr)
+{
+	static const QRegularExpression rexConditional(R"(([^\,]+)\s+\?\s+([^\,]+)\s+\:\s+([^\,]+))");
+	if (expr.contains(rexConditional))
+	{
+		QRegularExpressionMatch match = rexConditional.match(expr);
+		if (match.hasMatch())
+		{
+			//left ? mid : right
+			QString left = match.captured(1);
+			QString mid = match.captured(2);
+			QString right = match.captured(3);
+
+			//to lua style: (left and { mid } or { right })[1]
+
+			QString luaExpr = QString("(((((%1) == true) or ((%1) > 0)) and { %2 } or { %3 })[1])").arg(left).arg(mid).arg(right);
+			expr = luaExpr;
+		}
+	}
+}
+
 bool Parser::exprTo(QString expr, QString* ret)
 {
 	if (nullptr == ret)
@@ -310,6 +331,8 @@ bool Parser::exprTo(QString expr, QString* ret)
 		*ret = expr;
 		return true;
 	}
+
+	checkConditionalOp(expr);
 
 	QString exprStr = QString("%1\nreturn %2;").arg(localVarList.join("\n")).arg(expr);
 	insertGlobalVar("_LUAEXPR", exprStr);
@@ -359,6 +382,8 @@ Parser::exprTo(QString expr, T* ret)
 
 	expr = expr.simplified();
 
+	checkConditionalOp(expr);
+
 	QString exprStr = QString("%1\nreturn %2;").arg(localVarList.join("\n")).arg(expr);
 	insertGlobalVar("_LUAEXPR", exprStr);
 
@@ -388,6 +413,14 @@ Parser::exprTo(QString expr, T* ret)
 		*ret = retObject.as<bool>() ? 1ll : 0ll;
 		return true;
 	}
+	else if (retObject.is<std::string>())
+	{
+		if constexpr (std::is_same<T, QVariant>::value)
+		{
+			*ret = QString::fromUtf8(retObject.as<std::string>().c_str());
+			return true;
+		}
+	}
 	else if (retObject.is<qint64>())
 	{
 		*ret = retObject.as<qint64>();
@@ -397,14 +430,6 @@ Parser::exprTo(QString expr, T* ret)
 	{
 		*ret = static_cast<qint64>(qFloor(retObject.as<double>()));
 		return true;
-	}
-	else if (retObject.is<std::string>())
-	{
-		if constexpr (std::is_same<T, QVariant>::value)
-		{
-			*ret = QString::fromUtf8(retObject.as<std::string>().c_str());
-			return true;
-		}
 	}
 
 	return false;
@@ -419,6 +444,8 @@ Parser::exprCAOSTo(const QString& varName, QString expr, T* ret)
 		return false;
 
 	expr = expr.simplified();
+
+	checkConditionalOp(expr);
 
 	QString exprStr = QString("%1\n%2 = %3 %4;\nreturn %5;")
 		.arg(localVarList.join("\n")).arg(varName).arg(varName).arg(expr).arg(varName);
@@ -2527,12 +2554,12 @@ QString Parser::getLuaTableString(const sol::table& t, int& deepth)
 
 		if (pair.second.is<sol::table>())
 			value = getLuaTableString(pair.second.as<sol::table>(), ++deepth);
+		else if (pair.second.is<std::string>())
+			value = QString("'%1'").arg(QString::fromUtf8(pair.second.as<std::string>().c_str()));
 		else if (pair.second.is<qint64>())
 			value = QString::number(pair.second.as<qint64>());
 		else if (pair.second.is<double>())
 			value = QString::number(qFloor(pair.second.as<double>()));
-		else if (pair.second.is<std::string>())
-			value = QString("'%1'").arg(QString::fromUtf8(pair.second.as<std::string>().c_str()));
 		else if (pair.second.is<bool>())
 			value = pair.second.as<bool>() ? "true" : "false";
 		else

@@ -45,8 +45,8 @@ public slots:
 	void onApplyHashSettingsToUI();
 
 protected:
-	void showEvent(QShowEvent* e);
-	void closeEvent(QCloseEvent* e);
+	virtual void showEvent(QShowEvent* e) override;
+	virtual void closeEvent(QCloseEvent* e) override;
 
 private:
 	Ui::InfoFormClass ui;

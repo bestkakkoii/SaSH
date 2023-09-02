@@ -26,15 +26,28 @@ class BattleInfoForm : public QWidget
 	Q_OBJECT
 
 public:
-	BattleInfoForm(QWidget* parent = nullptr);
-	~BattleInfoForm();
+	explicit BattleInfoForm(QWidget* parent = nullptr);
+
+	virtual ~BattleInfoForm();
 
 private slots:
 	void onUpdateTopInfoContents(const QVariant& data);
+
 	void onUpdateBottomInfoContents(const QVariant& data);
+
 	void onUpdateTimeLabelContents(const QString& text);
+
 	void onUpdateLabelPlayerAction(const QString& text);
+
 	void onUpdateLabelPetAction(const QString& text);
+
+protected:
+	virtual void showEvent(QShowEvent* e) override
+	{
+		setAttribute(Qt::WA_Mapped);
+		QWidget::showEvent(e);
+	}
+
 private:
 	void updateItemInfoRowContents(QTableWidget* tableWidget, const QVariant& data);
 

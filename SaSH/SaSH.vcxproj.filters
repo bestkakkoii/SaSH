@@ -436,8 +436,6 @@
     <ClInclude Include="update\curldownload.h">
       <Filter>Source Files\update</Filter>
     </ClInclude>
-    <ClInclude Include="resource.h" />
-    <ClInclude Include="resource1.h" />
     <ClInclude Include="model\qscopedhandle.h">
       <Filter>Source Files\model</Filter>
     </ClInclude>
@@ -455,6 +453,12 @@
     </ClInclude>
     <ClInclude Include="net\descrypt.h">
       <Filter>Source Files\net</Filter>
+    </ClInclude>
+    <ClInclude Include="resource1.h">
+      <Filter>Resource Files</Filter>
+    </ClInclude>
+    <ClInclude Include="resource.h">
+      <Filter>Resource Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -509,9 +513,6 @@
     <QtUic Include="form\mapform.ui">
       <Filter>Form Files</Filter>
     </QtUic>
-    <QtUic Include="update\qdownloader.ui">
-      <Filter>Source Files\update</Filter>
-    </QtUic>
     <QtUic Include="model\qthumbnailform.ui">
       <Filter>Source Files\model</Filter>
     </QtUic>
@@ -523,6 +524,9 @@
     </QtUic>
     <QtUic Include="form\copyrightdialog.ui">
       <Filter>Source Files\forms</Filter>
+    </QtUic>
+    <QtUic Include="update\qdownloader.ui">
+      <Filter>Form Files</Filter>
     </QtUic>
   </ItemGroup>
   <ItemGroup>

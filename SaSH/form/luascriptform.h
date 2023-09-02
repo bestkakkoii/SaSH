@@ -27,44 +27,65 @@ class LuaScriptForm : public QWidget
 	Q_OBJECT
 
 public:
-	LuaScriptForm(QWidget* parent = nullptr);
-	~LuaScriptForm();
+	explicit LuaScriptForm(QWidget* parent = nullptr);
+
+	virtual ~LuaScriptForm();
+
 	void loadFile(const QString& fileName);
 
 private slots:
 	void onButtonClicked();
 
 	void onReloadScriptList();
+
 	void onScriptTreeWidgetHeaderClicked(int logicalIndex);
+
 	void onScriptTreeWidgetDoubleClicked(QTreeWidgetItem* item, int column);
 
-
 	void onScriptContentChanged(const QString& fileName, const QVariant& tokens);
+
 	void onScriptTableWidgetClicked(QTableWidgetItem* item);
+
 	void onScriptLabelRowTextChanged(int row, int max, bool noSelect);
+
 	void onCurrentTableWidgetItemChanged(QTableWidgetItem* current, QTableWidgetItem* previous);
 
 	void onScriptPaused();
+
 	void onScriptResumed();
+
 	void onScriptStoped();
+
 	void onScriptFinished();
+
 	void onScriptStarted();
 
 	void onSpeedChanged(int value);
 
 	void onApplyHashSettingsToUI();
+
+protected:
+	virtual void showEvent(QShowEvent* e) override
+	{
+		setAttribute(Qt::WA_Mapped);
+		QWidget::showEvent(e);
+	}
+
 private:
 	void setTableWidgetItem(int row, int col, const QString& text);
+
 	void resizeTableWidgetRow(int max);
 
 private:
 	Ui::LuaScriptFormClass ui;
 
-
 	bool IS_LOADING = false;
+
 	QStringList scriptList_;
+
 	int selectedRow_ = 0;
 
 	QScopedPointer<CLua> clua_;
+
 	QThread* thread_ = nullptr;
 };

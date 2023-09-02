@@ -41,23 +41,28 @@ public:
 		kBlackList,
 	};
 
-	explicit SelectObjectForm(TitleType type, QWidget* parent = nullptr);
+	SelectObjectForm(TitleType type, QWidget* parent = nullptr);
+
 	virtual ~SelectObjectForm();
+
 	void setRecviveList(QStringList* pList);
 
 public slots:
 	void setList(const QStringList& objectList);
+
 	void setSelectList(const QStringList& objectList);
 
 protected:
-	void showEvent(QShowEvent* e);
+	virtual void showEvent(QShowEvent* e) override;
 
 private slots:
 	void onButtonClicked();
+
 	void onAccept();
 
 private:
 	void deleteItem();
+
 	void appendItem();
 
 private:

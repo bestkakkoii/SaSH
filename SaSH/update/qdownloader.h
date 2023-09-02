@@ -34,7 +34,7 @@ class QDownloader : public QWidget
 {
 	Q_OBJECT
 public:
-	QDownloader(QWidget* parent = nullptr);
+	explicit QDownloader(QWidget* parent = nullptr);
 
 	virtual ~QDownloader();
 
@@ -43,14 +43,16 @@ public:
 	static bool checkUpdate(QString* current, QString* ptext);
 
 protected:
-	void showEvent(QShowEvent* event) override;
+	virtual void showEvent(QShowEvent* event) override;
 
 private:
 	QProgressBar* createProgressBar(int startY);
 	/////////////////////////////////////////////
 
 	void resetProgress(int value);
+
 	void overwriteCurrentExecutable();
+
 	bool asyncDownloadFile(const QString& szUrl, const QString& dir, const QString& szSaveFileName);
 
 	static void setProgressValue(int i, qreal totalToDownload, qreal nowDownloaded, qreal totalToUpLoad, qreal nowUpLoaded);
@@ -59,7 +61,9 @@ private:
 	static int onProgress(void* clientp, qint64 totalToDownload, qint64 nowDownloaded, qint64 totalToUpLoad, qint64 nowUpLoaded);
 
 	QString Sha3_512(const QString& fileNamePath) const;
+
 	void QDownloader::downloadAndExtractZip(const QString& url, const QString& targetDir);
+
 private:
 	Ui::QDownloaderClass ui;
 

@@ -610,7 +610,7 @@ void MapWidget::downloadNextBlock()
 	// 更新下載進度
 	downloadCount_++;
 	downloadMapProgress_ = static_cast<qreal>(downloadCount_) / totalMapBlocks_ * 100.0;
-	}
+}
 
 void MapWidget::onDownloadMapTimeout()
 {
@@ -906,6 +906,9 @@ bool MapWidget::nativeEvent(const QByteArray& eventType, void* message, long* re
 	switch (msg->message)
 	{
 	case WM_NCHITTEST:
+		if (isMaximized())
+			return false;
+
 		int xPos = GET_X_LPARAM(msg->lParam) - this->frameGeometry().x();
 		int yPos = GET_Y_LPARAM(msg->lParam) - this->frameGeometry().y();
 		if (xPos < boundaryWidth_ && yPos < boundaryWidth_)                    //左上角

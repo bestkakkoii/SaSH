@@ -1233,4 +1233,6 @@ qint64 CLuaSystem::set(std::string enumStr, sol::object p1, sol::object p2, sol:
 	default:
 		break;
 	}
+
+	return FALSE;
 }

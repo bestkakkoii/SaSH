@@ -26,14 +26,26 @@ class PetInfoForm : public QWidget
 	Q_OBJECT
 
 public:
-	PetInfoForm(QWidget* parent = nullptr);
+	explicit PetInfoForm(QWidget* parent = nullptr);
+
 	virtual ~PetInfoForm();
 
 private slots:
 	void on_comboBox_currentIndexChanged(int index);
+
 	void on_comboBox_clicked();
+
 	void on_pushButton_calc_clicked();
+
 	void on_pushButton_clear_clicked();
+
+protected:
+	virtual void showEvent(QShowEvent* e) override
+	{
+		setAttribute(Qt::WA_Mapped);
+		QWidget::showEvent(e);
+	}
+
 private:
 	Ui::PetInfoFormClass ui;
 

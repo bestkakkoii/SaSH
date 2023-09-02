@@ -26,17 +26,26 @@ class PlayerInfoForm : public QWidget
 	Q_OBJECT
 
 public:
-	PlayerInfoForm(QWidget* parent = nullptr);
-	~PlayerInfoForm();
+	explicit PlayerInfoForm(QWidget* parent = nullptr);
+
+	virtual ~PlayerInfoForm();
 
 public slots:
 	void onResetControlTextLanguage();
-private slots:
 
+private slots:
 	void onUpdatePlayerInfoColContents(int col, const QVariant& data);
 	void onUpdatePlayerInfoStone(int stone);
 	void onHeaderClicked(int logicalIndex);
 	void onUpdatePlayerInfoPetState(int petIndex, int state);
+
+protected:
+	virtual void showEvent(QShowEvent* e) override
+	{
+		setAttribute(Qt::WA_Mapped);
+		QWidget::showEvent(e);
+	}
+
 private:
 	Ui::PlayerInfoFormClass ui;
 };

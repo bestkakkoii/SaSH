@@ -26,20 +26,32 @@ class ItemInfoForm : public QWidget
 	Q_OBJECT
 
 public:
-	ItemInfoForm(QWidget* parent = nullptr);
-	~ItemInfoForm();
+	explicit ItemInfoForm(QWidget* parent = nullptr);
+
+	virtual ~ItemInfoForm();
 
 public slots:
 	void onResetControlTextLanguage();
 
 private slots:
 	void onUpdateItemInfoRowContents(int row, const QVariant& data);
+
 	void onUpdateEquipInfoRowContents(int row, const QVariant& data);
 
 	void on_tableWidget_item_cellDoubleClicked(int row, int column);
+
 	void on_tableWidget_equip_cellDoubleClicked(int row, int column);
+
+protected:
+	virtual void showEvent(QShowEvent* e) override
+	{
+		setAttribute(Qt::WA_Mapped);
+		QWidget::showEvent(e);
+	}
+
 private:
 	void updateItemInfoRowContents(QTableWidget* tableWidget, int row, const QVariant& data);
+
 private:
 	Ui::ItemInfoFormClass ui;
 };

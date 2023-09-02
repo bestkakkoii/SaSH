@@ -31,21 +31,26 @@ class ScriptSettingForm : public QMainWindow
 	Q_OBJECT
 
 public:
-	ScriptSettingForm(QWidget* parent = nullptr);
+	explicit ScriptSettingForm(QWidget* parent = nullptr);
+
 	virtual ~ScriptSettingForm();
+
 protected:
-	void showEvent(QShowEvent* e) override;
-	void closeEvent(QCloseEvent* e) override;
-	bool eventFilter(QObject* obj, QEvent* e) override;
+	virtual void showEvent(QShowEvent* e) override;
 
-	bool nativeEvent(const QByteArray& eventType, void* message, long* result) override;
+	virtual void closeEvent(QCloseEvent* e) override;
 
-	void mousePressEvent(QMouseEvent* e)  override
+	virtual bool eventFilter(QObject* obj, QEvent* e) override;
+
+	virtual bool nativeEvent(const QByteArray& eventType, void* message, long* result) override;
+
+	virtual void mousePressEvent(QMouseEvent* e)  override
 	{
 		if (e->button() == Qt::LeftButton)
 			clickPos_ = e->pos();
 	}
-	void mouseMoveEvent(QMouseEvent* e) override
+
+	virtual void mouseMoveEvent(QMouseEvent* e) override
 	{
 		if (e->buttons() & Qt::LeftButton)
 			move(e->pos() + pos() - clickPos_);
@@ -59,9 +64,11 @@ private:
 	void onReloadScriptList();
 
 	void setStepMarks();
+
 	void setMark(CodeEditor::SymbolHandler element, util::SafeHash<QString, util::SafeHash<qint64, break_marker_t>>& hash, int liner, bool b);
 
 	void varInfoImport(QTreeWidget* tree, const QHash<QString, QVariant>& d);
+
 	void stackInfoImport(QTreeWidget* tree, const QVector<QPair<int, QString>>& vec);
 
 	void reshowBreakMarker();
@@ -76,6 +83,7 @@ private:
 
 signals:
 	void editorCursorPositionChanged(int line, int index);
+
 	void breakMarkInfoImport();
 
 private slots:
@@ -126,14 +134,16 @@ private slots:
 	void on_treeWidget_breakList_itemDoubleClicked(QTreeWidgetItem* item, int column);
 
 	void on_listView_log_doubleClicked(const QModelIndex& index);
+
 private:
 	Ui::ScriptSettingFormClass ui;
-	QLabel m_staticLabel;
-	bool IS_LOADING = false;
-	bool m_isModified = false;
-	QStringList m_scriptList;
 
-	QHash<QString, QString> m_scripts;
+	QLabel staticLabel_;
+	bool IS_LOADING = false;
+	bool isModified_ = false;
+	QStringList scriptList_;
+
+	QHash<QString, QString> scripts_;
 	QHash<QString, QVariant> currentGlobalVarInfo_;
 	QHash<QString, QVariant> currentLocalVarInfo_;
 	QHash<QString, QSharedPointer<QTextDocument>> document_;
@@ -142,8 +152,6 @@ private:
 	QString currentRenameText_ = "";
 	QString currentRenamePath_ = "";
 
-
-
-	int boundaryWidth_ = 4;
+	const int boundaryWidth_ = 1;
 	QPoint clickPos_;
 };

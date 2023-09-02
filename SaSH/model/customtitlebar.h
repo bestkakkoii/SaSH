@@ -1,6 +1,5 @@
 ﻿#pragma once
 
-
 class CustomTitleBar : public QWidget
 {
 	Q_OBJECT
@@ -12,10 +11,16 @@ public:
 	void onTitleChanged(const QString& title);
 
 protected:
-	void mouseDoubleClickEvent(QMouseEvent* event) override;
-	void mousePressEvent(QMouseEvent* event) override;
-	void mouseMoveEvent(QMouseEvent* event) override;
-	void mouseReleaseEvent(QMouseEvent* event) override;
+	virtual void showEvent(QShowEvent* e) override
+	{
+		setAttribute(Qt::WA_Mapped);
+		QWidget::showEvent(e);
+	}
+
+	virtual void mouseDoubleClickEvent(QMouseEvent* event) override;
+	virtual void mousePressEvent(QMouseEvent* event) override;
+	virtual void mouseMoveEvent(QMouseEvent* event) override;
+	virtual void mouseReleaseEvent(QMouseEvent* event) override;
 
 private slots:
 	void toggleMaximize();

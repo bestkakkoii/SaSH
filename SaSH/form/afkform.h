@@ -17,7 +17,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 */
 
 #pragma once
-
 #include <QWidget>
 #include "ui_afkform.h"
 
@@ -26,18 +25,23 @@ class AfkForm : public QWidget
 	Q_OBJECT
 
 public:
-	AfkForm(QWidget* parent = nullptr);
-	~AfkForm();
+	explicit AfkForm(QWidget* parent = nullptr);
+	virtual ~AfkForm();
 
 signals:
 	void resetControlTextLanguage();
 
 private slots:
 	void onButtonClicked();
+
 	void onCheckBoxStateChanged(int state);
+
 	void onSpinBoxValueChanged(int value);
+
 	void onComboBoxCurrentIndexChanged(int value);
+
 	void onComboBoxClicked();
+
 	void onComboBoxTextChanged(const QString& text);
 
 	void onApplyHashSettingsToUI();
@@ -47,7 +51,13 @@ private slots:
 	void onUpdateComboBoxItemText(int type, const QStringList& textList);
 
 protected:
-	void closeEvent(QCloseEvent* event) override;
+	virtual void showEvent(QShowEvent* e) override
+	{
+		setAttribute(Qt::WA_Mapped);
+		QWidget::showEvent(e);
+	}
+
+	virtual void closeEvent(QCloseEvent* event) override;
 
 private:
 	void updateTargetButtonText();

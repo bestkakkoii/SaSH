@@ -26,8 +26,15 @@ class MailInfoForm : public QWidget
 	Q_OBJECT
 
 public:
-	MailInfoForm(QWidget* parent = nullptr);
-	~MailInfoForm();
+	explicit MailInfoForm(QWidget* parent = nullptr);
+	virtual ~MailInfoForm();
+
+protected:
+	virtual void showEvent(QShowEvent* e) override
+	{
+		setAttribute(Qt::WA_Mapped);
+		QWidget::showEvent(e);
+	}
 
 private:
 	Ui::MailInfoFormClass ui;

@@ -33,10 +33,73 @@ class MapWidget : public QMainWindow
 	Q_OBJECT;
 public:
 	explicit MapWidget(QWidget* parent);
+
 	virtual ~MapWidget();
+
+signals:
+	void on_close(int index);
+
+protected:
+	virtual void leaveEvent(QEvent*) override;
+
+	virtual void closeEvent(QCloseEvent* event) override;
+
+	virtual void showEvent(QShowEvent* e) override
+	{
+		setAttribute(Qt::WA_Mapped);
+		QWidget::showEvent(e);
+	}
+
+	virtual bool nativeEvent(const QByteArray& eventType, void* message, long* result) override;
+
+	virtual void mousePressEvent(QMouseEvent* e)  override
+	{
+		if (e->button() == Qt::LeftButton)
+			clickPos_ = e->pos();
+	}
+
+	virtual void mouseMoveEvent(QMouseEvent* e) override
+	{
+		if (e->buttons() & Qt::LeftButton)
+			move(e->pos() + pos() - clickPos_);
+	}
+
+#if !OPEN_GL_ON
+	virtual void paintEvent(QPaintEvent* pevent) override;
+
+	int paintEngine() { return 0; }
+#endif
+
+private slots:
+	void onRefreshTimeOut();
+
+	void onClear();
+
+	void onDownloadMapTimeout();
+
+	void on_tableWidget_NPCList_cellDoubleClicked(int row, int column);
+
+	void on_openGLWidget_notifyMouseMove(Qt::MouseButton button, const QPointF& gpos, const QPointF& pos);
+
+	void on_openGLWidget_notifyMousePosition(const QPointF& pos);
+
+	void on_openGLWidget_notifyRightClick();
+
+	void on_openGLWidget_notifyLeftClick(const QPointF& gpos, const QPointF& pos);
+
+	void on_openGLWidget_notifyLeftRelease();
+
+	void on_openGLWidget_notifyWheelMove(const QPointF& zoom, const QPointF& pos);
+
+	void on_pushButton_download_clicked();
+
+	void on_pushButton_findPath_clicked();
+
+	void on_pushButton_returnBase_clicked();
 
 private:
 	void __fastcall downloadNextBlock();
+
 	void __fastcall updateNpcListAllContents(const QVariant& d);
 
 private:
@@ -74,62 +137,12 @@ private:
 
 	QTimer gltimer_;
 
-	int boundaryWidth_ = 4;
+	const int boundaryWidth_ = 1;
+
 	QPoint clickPos_;
 
-	//qreal zoom_value_ = 0.0;
-protected:
-	void leaveEvent(QEvent*) override;
-
-	void closeEvent(QCloseEvent* event) override;
-
-	int paintEngine() { return 0; }
-
-	void showEvent(QShowEvent* e) override
-	{
-		setAttribute(Qt::WA_Mapped);
-		QWidget::showEvent(e);
-	}
-
-	bool nativeEvent(const QByteArray& eventType, void* message, long* result) override;
-
-	void mousePressEvent(QMouseEvent* e)  override
-	{
-		if (e->button() == Qt::LeftButton)
-			clickPos_ = e->pos();
-	}
-	void mouseMoveEvent(QMouseEvent* e) override
-	{
-		if (e->buttons() & Qt::LeftButton)
-			move(e->pos() + pos() - clickPos_);
-	}
-
-private slots:
-	void onRefreshTimeOut();
-	void onClear();
-
-	void onDownloadMapTimeout();
-
-	void on_tableWidget_NPCList_cellDoubleClicked(int row, int column);
-
-	void on_openGLWidget_notifyMouseMove(Qt::MouseButton button, const QPointF& gpos, const QPointF& pos);
-	void on_openGLWidget_notifyMousePosition(const QPointF& pos);
-	void on_openGLWidget_notifyRightClick();
-	void on_openGLWidget_notifyLeftClick(const QPointF& gpos, const QPointF& pos);
-	void on_openGLWidget_notifyLeftRelease();
-	void on_openGLWidget_notifyWheelMove(const QPointF& zoom, const QPointF& pos);
-
-	void on_pushButton_download_clicked();
-	void on_pushButton_findPath_clicked();
-	void on_pushButton_returnBase_clicked();
 #else
-protected:
 	QTimer timer_;
-
-	void paintEvent(QPaintEvent* pevent) override;
 #endif
-
-signals:
-	void on_close(int index);
 };
 #endif

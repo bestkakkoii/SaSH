@@ -481,9 +481,9 @@ void Lexer::tokenized(qint64 currentLine, const QString& line, TokenMap* ptoken,
 		static const QRegularExpression varAnyOp(R"([+\-*\/%&|^\(\)])");//+ - * / % & | ^ ( )
 		static const QRegularExpression varIf(R"([iI][fF][\(|\s+]([\d\w\W\p{Han}]+\s*[<|>|\=|!][\=]*\s*[\d\w\W\p{Han}]+))");//if (expr)
 		static const QRegularExpression rexFunction(R"([fF][uU][nN][cC][tT][iI][oO][nN]\s+([\w\p{Han}\d]+)\s*\(([\w\W\p{Han}]*)\))");
-		static const QRegularExpression rexCallFunction(R"(([\w\p{Han}]+)\s*\(([\w\W\p{Han}]*)\))");
+		static const QRegularExpression rexCallFunction(R"(^([\w\p{Han}]+)\s*\(([\w\W\p{Han}]*)\)$)");
 		static const QRegularExpression rexCallFor(R"([fF][oO][rR]\s*\(*([\w\p{Han}]+)\s*=\s*([^,]+)\s*,\s*([^,]+)\s*[\)]*)");
-		static const QRegularExpression rexCallFor2(R"([fF][oO][rR]\s*\(*([\w\p{Han}]+)\s*=\s*([^,]+)\s*,\s*([^,]+)\s*,\s*([^,\)]+)\s*[\)]*)");
+		static const QRegularExpression rexCallForWithStep(R"([fF][oO][rR]\s*\(*([\w\p{Han}]+)\s*=\s*([^,]+)\s*,\s*([^,]+)\s*,\s*([^,\)]+)\s*[\)]*)");
 		static const QRegularExpression rexTable(R"(([\w\d\p{Han}]+)\s*=\s*(\{[\s\S]*\}))");
 		static const QRegularExpression rexLocalTable(R"([lL][oO][cC][aA][lL]\s+([\w\d\p{Han}]+)\s*=\s*(\{[\s\S]*\}))");
 		//處理if正則
@@ -510,9 +510,9 @@ void Lexer::tokenized(qint64 currentLine, const QString& line, TokenMap* ptoken,
 			}
 		}
 		//處理for 3參
-		else if (raw.contains(rexCallFor2))
+		else if (raw.contains(rexCallForWithStep))
 		{
-			QRegularExpressionMatch match = rexCallFor2.match(raw);
+			QRegularExpressionMatch match = rexCallForWithStep.match(raw);
 			if (match.hasMatch())
 			{
 				QString varName = match.captured(1).simplified();

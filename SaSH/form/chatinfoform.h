@@ -27,18 +27,27 @@ class ChatInfoForm : public QWidget
 	Q_OBJECT
 
 public:
-	ChatInfoForm(QWidget* parent = nullptr);
+	explicit ChatInfoForm(QWidget* parent = nullptr);
+
 	virtual ~ChatInfoForm();
 
 signals:
 	void resetControlTextLanguage();
+
 public:
 	void onResetControlTextLanguage();
+
 protected:
 	bool eventFilter(QObject* watched, QEvent* e) override;
+
+	virtual void showEvent(QShowEvent* e) override
+	{
+		setAttribute(Qt::WA_Mapped);
+		QWidget::showEvent(e);
+	}
+
 private slots:
 	void onApplyHashSettingsToUI();
-
 
 private:
 	Ui::ChatInfoFormClass ui;

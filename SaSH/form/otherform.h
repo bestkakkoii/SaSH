@@ -25,7 +25,8 @@ class OtherForm : public QWidget
 {
 	Q_OBJECT
 public:
-	OtherForm(QWidget* parent = nullptr);
+	explicit OtherForm(QWidget* parent = nullptr);
+
 	virtual ~OtherForm();
 
 signals:
@@ -33,7 +34,6 @@ signals:
 
 public slots:
 	void onApplyHashSettingsToUI();
-
 
 private slots:
 	void onResetControlTextLanguage();
@@ -47,8 +47,17 @@ private slots:
 	void onLineEditTextChanged(const QString& text);
 	void onUpdateTeamInfo(const QStringList& text);
 	void onListWidgetDoubleClicked(QListWidgetItem* item);
+
+protected:
+	virtual void showEvent(QShowEvent* e) override
+	{
+		setAttribute(Qt::WA_Mapped);
+		QWidget::showEvent(e);
+	}
+
 private:
 	void updateComboboxAutoFunNameList(const QStringList& textList);
+
 private:
 	Ui::OtherFormClass ui;
 };

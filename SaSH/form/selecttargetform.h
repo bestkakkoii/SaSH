@@ -28,15 +28,21 @@ class SelectTargetForm : public QDialog
 	Q_OBJECT
 public:
 	SelectTargetForm(int type, QString* dst, QWidget* parent = nullptr);
+
 	virtual ~SelectTargetForm();
+
 	static Q_REQUIRED_RESULT QString generateShortName(unsigned int flg);
+
 protected:
-	void showEvent(QShowEvent* e);
+	virtual void showEvent(QShowEvent* e) override;
 
 private slots:
 	void onCheckBoxStateChanged(int state);
+
 	void onAccept();
+
 	void onUpdateTeamInfo(const QStringList& strList);
+
 private:
 	void checkControls();
 

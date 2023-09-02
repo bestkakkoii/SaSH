@@ -579,6 +579,7 @@ private:
 	bool checkCallStack();
 	bool checkFuzzyValue(const QString& varName, QVariant* pvalue);
 
+	void checkConditionalOp(QString& expr);
 	bool exprTo(QString expr, QString* ret);
 
 	template <typename T>

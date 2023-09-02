@@ -26,7 +26,8 @@ class MapForm : public QWidget
 	Q_OBJECT
 
 public:
-	MapForm(QWidget* parent = nullptr);
+	explicit MapForm(QWidget* parent = nullptr);
+
 	virtual ~MapForm();
 
 private slots:
@@ -37,12 +38,22 @@ private slots:
 	void onTableWidgetCellDoubleClicked(int row, int col);
 
 	void onScriptFinished();
+
+protected:
+	virtual void showEvent(QShowEvent* e) override
+	{
+		setAttribute(Qt::WA_Mapped);
+		QWidget::showEvent(e);
+	}
+
 private:
 	void updateTableWidgetContent(int row, int col, const QString& text);
+
 	void resizeTableWidgetRow(int max);
 
 private:
 	Ui::MapFormClass ui;
+
 	QHash<int, QPoint> npc_hash_;
 
 	QScopedPointer<Interpreter> interpreter_;

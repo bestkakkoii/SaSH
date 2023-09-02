@@ -26,13 +26,24 @@ class AfkInfoForm : public QWidget
 	Q_OBJECT
 
 public:
-	AfkInfoForm(QWidget* parent = nullptr);
-	~AfkInfoForm();
+	explicit AfkInfoForm(QWidget* parent = nullptr);
+
+	virtual ~AfkInfoForm();
+
+protected:
+	virtual void showEvent(QShowEvent* e) override
+	{
+		setAttribute(Qt::WA_Mapped);
+		QWidget::showEvent(e);
+	}
 
 private slots:
 	void onResetControlTextLanguage();
+
 	void onUpdateAfkInfoTable(int row, const QString& text);
+
 	void onButtonClicked();
+
 private:
 	void updateTableText(int row, int col, const QString& text);
 
