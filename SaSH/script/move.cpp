@@ -30,6 +30,7 @@ qint64 Interpreter::setdir(qint64 currentline, const TokenMap& TK)
 	if (injector.server.isNull())
 		return Parser::kServerNotReady;
 
+	checkOnlineThenWait();
 	checkBattleThenWait();
 
 	QString dirStr = "";
@@ -61,6 +62,7 @@ qint64 Interpreter::move(qint64 currentline, const TokenMap& TK)
 	if (injector.server.isNull())
 		return Parser::kServerNotReady;
 
+	checkOnlineThenWait();
 	checkBattleThenWait();
 
 	qint64 x = 0;
@@ -102,6 +104,7 @@ qint64 Interpreter::fastmove(qint64 currentline, const TokenMap& TK)
 	if (injector.server.isNull())
 		return Parser::kServerNotReady;
 
+	checkOnlineThenWait();
 	checkBattleThenWait();
 
 	qint64 x = 0;
@@ -152,6 +155,7 @@ qint64 Interpreter::packetmove(qint64 currentline, const TokenMap& TK)
 	if (injector.server.isNull())
 		return Parser::kServerNotReady;
 
+	checkOnlineThenWait();
 	checkBattleThenWait();
 
 	qint64 x = 0;
@@ -180,6 +184,7 @@ qint64 Interpreter::findpath(qint64 currentline, const TokenMap& TK)
 	if (injector.server.isNull())
 		return Parser::kServerNotReady;
 
+	checkOnlineThenWait();
 	checkBattleThenWait();
 
 	qint64 x = 0;
@@ -303,6 +308,7 @@ qint64 Interpreter::movetonpc(qint64 currentline, const TokenMap& TK)
 	if (injector.server.isNull())
 		return Parser::kServerNotReady;
 
+	checkOnlineThenWait();
 	checkBattleThenWait();
 
 	QString cmpNpcName;
@@ -372,6 +378,7 @@ qint64 Interpreter::teleport(qint64 currentline, const TokenMap& TK)
 	if (injector.server.isNull())
 		return Parser::kServerNotReady;
 
+	checkOnlineThenWait();
 	checkBattleThenWait();
 
 	injector.server->warp();
@@ -396,6 +403,9 @@ qint64 Interpreter::warp(qint64 currentline, const TokenMap& TK)
 
 	if (pfrom.y() < 0 || pfrom.y() > 1500)
 		return Parser::kArgError + 2ll;
+
+	checkOnlineThenWait();
+	checkBattleThenWait();
 
 	qint64 xto = 0;
 	qint64 yto = 0;

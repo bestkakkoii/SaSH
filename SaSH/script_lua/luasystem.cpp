@@ -246,7 +246,28 @@ qint64 CLuaSystem::messagebox(sol::object ostr, sol::object otype, sol::this_sta
 
 qint64 CLuaSystem::talk(sol::object ostr, sol::this_state s)
 {
-	return 0;
+	Injector& injector = Injector::getInstance();
+	if (!injector.server.isNull())
+		return FALSE;
+
+	QString text;
+	if (ostr.is<qint64>())
+		text = QString::number(ostr.as<qint64>());
+	else if (ostr.is<double>())
+		text = QString::number(ostr.as<double>(), 'f', 16);
+	else if (ostr.is<std::string>())
+		text = QString::fromUtf8(ostr.as<std::string>().c_str());
+	else if (ostr.is<sol::table>())
+	{
+		text = luadebug::getTableVars(s.L, 1, 10);
+	}
+	else
+		luadebug::tryPopCustomErrorMsg(s, luadebug::ERROR_PARAM_TYPE, false, 1, QObject::tr("invalid value type"));
+
+
+	injector.server->talk(text);
+
+	return TRUE;
 }
 
 qint64 CLuaSystem::cleanchat(sol::this_state s)

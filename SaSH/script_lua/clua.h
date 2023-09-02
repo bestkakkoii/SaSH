@@ -104,6 +104,7 @@ namespace luadebug
 
 	void checkStopAndPause(const sol::this_state& s);
 	bool checkBattleThenWait(const sol::this_state& s);
+	bool checkOnlineThenWait(const sol::this_state& s);
 
 	bool isInterruptionRequested(const sol::this_state& s);
 

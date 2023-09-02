@@ -94,6 +94,7 @@ private:
 
 private:
 	bool checkBattleThenWait();
+	bool checkOnlineThenWait();
 	bool findPath(QPoint dst, qint64 steplen, qint64 step_cost = 0, qint64 timeout = DEFAULT_FUNCTION_TIMEOUT * 36, std::function<qint64(QPoint& dst)> callback = nullptr, bool noAnnounce = false);
 
 	bool waitfor(qint64 timeout, std::function<bool()> exprfun);

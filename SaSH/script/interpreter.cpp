@@ -833,6 +833,7 @@ bool Interpreter::waitfor(qint64 timeout, std::function<bool()> exprfun)
 	for (;;)
 	{
 		checkPause();
+		checkOnlineThenWait();
 
 		if (isInterruptionRequested())
 			break;
@@ -1394,6 +1395,42 @@ bool Interpreter::checkBattleThenWait()
 	return bret;
 }
 
+bool Interpreter::checkOnlineThenWait()
+{
+	checkPause();
+
+	Injector& injector = Injector::getInstance();
+
+	if (!injector.server.isNull())
+		return false;
+
+	bool bret = false;
+
+	if (!injector.server->getOnlineFlag())
+	{
+		QElapsedTimer timer; timer.start();
+		bret = true;
+		for (;;)
+		{
+			if (isInterruptionRequested())
+				break;
+
+			if (!injector.server.isNull())
+				break;
+
+			checkPause();
+
+			if (injector.server->getOnlineFlag())
+				break;
+
+			QThread::msleep(100);
+		}
+
+		QThread::msleep(2000UL);
+	}
+	return bret;
+}
+
 bool Interpreter::findPath(QPoint dst, qint64 steplen, qint64 step_cost, qint64 timeout, std::function<qint64(QPoint& dst)> callback, bool noAnnounce)
 {
 	Injector& injector = Injector::getInstance();
@@ -1459,6 +1496,8 @@ bool Interpreter::findPath(QPoint dst, qint64 steplen, qint64 step_cost, qint64 
 
 	for (;;)
 	{
+		checkOnlineThenWait();
+
 		if (injector.server.isNull())
 			break;
 

@@ -1154,6 +1154,18 @@ bool Parser::updateSysConstKeyword(const QString& expr)
 
 	static const QRegularExpression rexDialogEx(R"(dialog\.(\w+))");
 
+	rexStart = "magic";
+	const QRegularExpression rexMagic(rexStart + rexMiddleStart + rexMiddleMid + rexMEnd + rexExtra);
+
+	rexStart = "skill";
+	const QRegularExpression rexSkill(rexStart + rexMiddleStart + rexMiddleMid + rexMEnd + rexExtra);
+
+	rexStart = "petskill";
+	const QRegularExpression rexPetSkill(rexStart + rexMiddleStart + rexMiddleMid + rexMEnd + rexMiddleStart + rexMiddleMid + rexMEnd + rexExtra);
+
+	rexStart = "petequip";
+	const QRegularExpression rexPetEquip(rexStart + rexMiddleStart + rexMiddleMid + rexMEnd + rexMiddleStart + rexMiddleMid + rexMEnd + rexExtra);
+
 	PC _pc = injector.server->getPC();
 
 	QRegularExpressionMatch match = rexPlayer.match(expr);
@@ -1216,6 +1228,20 @@ bool Parser::updateSysConstKeyword(const QString& expr)
 		lua_["char"]["fire"] = _pc.fire;
 
 		lua_["char"]["wind"] = _pc.wind;
+
+		lua_["char"]["modelid"] = _pc.modelid;
+
+		lua_["char"]["faceid"] = _pc.faceid;
+
+		lua_["char"]["family"] = _pc.family.toUtf8().constData();
+
+		lua_["char"]["battlepet"] = _pc.battlePetNo;
+
+		lua_["char"]["ridepet"] = _pc.ridePetNo;
+
+		lua_["char"]["mailpet"] = _pc.mailPetNo;
+
+		lua_["char"]["luck"] = _pc.luck;
 	}
 
 	//pet\[(?:'([^']*)'|"([^ "]*)"|(\d+))\]\.(\w+)
@@ -1252,6 +1278,8 @@ bool Parser::updateSysConstKeyword(const QString& expr)
 					lua_["pet"][index] = lua_.create_table();
 			}
 
+			lua_["pet"][index]["valid"] = pet.valid;
+
 			lua_["pet"][index]["name"] = pet.name.toUtf8().constData();
 
 			lua_["pet"][index]["fname"] = pet.freeName.toUtf8().constData();
@@ -1285,6 +1313,10 @@ bool Parser::updateSysConstKeyword(const QString& expr)
 			lua_["pet"][index]["fire"] = pet.fire;
 
 			lua_["pet"][index]["wind"] = pet.wind;
+
+			lua_["pet"][index]["modelid"] = pet.modelid;
+
+			lua_["pet"][index]["index"] = pet.index;
 
 			PetState state = pet.state;
 			QString str = hash.key(state, "");
@@ -1340,6 +1372,8 @@ bool Parser::updateSysConstKeyword(const QString& expr)
 					lua_["item"][index] = lua_.create_table();
 			}
 
+			lua_["item"][index]["valid"] = item.valid;
+
 			lua_["item"][index]["name"] = item.name.toUtf8().constData();
 
 			lua_["item"][index]["memo"] = item.memo.toUtf8().constData();
@@ -1374,6 +1408,13 @@ bool Parser::updateSysConstKeyword(const QString& expr)
 			lua_["item"][index]["lv"] = item.level;
 
 			lua_["item"][index]["stack"] = item.stack;
+
+			lua_["item"][index]["lv"] = item.level;
+			lua_["item"][index]["field"] = item.field;
+			lua_["item"][index]["target"] = item.target;
+			lua_["item"][index]["type"] = item.type;
+			lua_["item"][index]["modelid"] = item.modelid;
+			lua_["item"][index]["name2"] = item.name2.toUtf8().constData();
 		}
 	}
 
@@ -1492,6 +1533,10 @@ bool Parser::updateSysConstKeyword(const QString& expr)
 					lua_["team"][index] = lua_.create_table();
 			}
 
+			lua_["team"][index]["valid"] = party.valid;
+
+			lua_["team"][index]["id"] = party.id;
+
 			lua_["team"][index]["name"] = party.name.toUtf8().constData();
 
 			lua_["team"][index]["lv"] = party.level;
@@ -1569,6 +1614,8 @@ bool Parser::updateSysConstKeyword(const QString& expr)
 					lua_["card"][index] = lua_.create_table();
 			}
 
+			lua_["card"][index]["valid"] = addressBook.valid;
+
 			lua_["card"][index]["name"] = addressBook.name.toUtf8().constData();
 
 			lua_["card"][index]["online"] = addressBook.onlineFlag ? 1 : 0;
@@ -1643,6 +1690,10 @@ bool Parser::updateSysConstKeyword(const QString& expr)
 					lua_["unit"][index] = lua_.create_table();
 			}
 
+			lua_["unit"][index]["valid"] = unit.isVisible;
+
+			lua_["unit"][index]["id"] = unit.id;
+
 			lua_["unit"][index]["name"] = unit.name.toUtf8().constData();
 
 			lua_["unit"][index]["fname"] = unit.freeName.toUtf8().constData();
@@ -1659,7 +1710,7 @@ bool Parser::updateSysConstKeyword(const QString& expr)
 
 			lua_["unit"][index]["gold"] = unit.gold;
 
-			lua_["unit"][index]["model"] = unit.modelid;
+			lua_["unit"][index]["modelid"] = unit.modelid;
 		}
 	}
 
@@ -1691,6 +1742,8 @@ bool Parser::updateSysConstKeyword(const QString& expr)
 				if (!lua_["battle"][index].is<sol::table>())
 					lua_["battle"][index] = lua_.create_table();
 			}
+
+			lua_["battle"][index]["valid"] = obj.maxHp > 0 && obj.level > 0 && obj.modelid > 0;
 
 			lua_["battle"][index]["index"] = static_cast<qint64>(obj.pos + 1);
 
@@ -1806,6 +1859,171 @@ bool Parser::updateSysConstKeyword(const QString& expr)
 		lua_["dialog"]["id"] = dialog.dialogid;
 		lua_["dialog"]["unitid"] = dialog.unitid;
 		lua_["dialog"]["type"] = dialog.windowtype;
+		lua_["dialog"]["buttontext"] = dialog.linebuttontext.join("|").toUtf8().constData();
+		lua_["dialog"]["button"] = dialog.buttontype;
+	}
+
+
+	//magic\[(?:'([^']*)'|"([^ "]*)"|(\d+))\]\.(\w+)
+	match = rexMagic.match(expr);
+	if (match.hasMatch())
+	{
+		bret = true;
+
+		if (!lua_["magic"].valid())
+			lua_["magic"] = lua_.create_table();
+		else
+		{
+			if (!lua_["magic"].is<sol::table>())
+				lua_["magic"] = lua_.create_table();
+		}
+
+		for (int i = 0; i < MAX_MAGIC; ++i)
+		{
+			int index = i + 1;
+			MAGIC magic = injector.server->getMagic(i);
+			lua_["magic"][index]["valid"] = magic.valid;
+			lua_["magic"][index]["costmp"] = magic.costmp;
+			lua_["magic"][index]["field"] = magic.field;
+			lua_["magic"][index]["name"] = magic.name.toUtf8().constData();
+			lua_["magic"][index]["memo"] = magic.memo.toUtf8().constData();
+			lua_["magic"][index]["target"] = magic.target;
+		}
+	}
+
+	//skill\[(?:'([^']*)'|"([^ "]*)"|(\d+))\]\.(\w+)
+	match = rexSkill.match(expr);
+	if (match.hasMatch())
+	{
+		bret = true;
+
+		if (!lua_["skill"].valid())
+			lua_["skill"] = lua_.create_table();
+		else
+		{
+			if (!lua_["skill"].is<sol::table>())
+				lua_["skill"] = lua_.create_table();
+		}
+
+		for (int i = 0; i < MAX_PROFESSION_SKILL; ++i)
+		{
+			int index = i + 1;
+			PROFESSION_SKILL skill = injector.server->getSkill(i);
+
+			lua_["skill"][index]["valid"] = skill.valid;
+			lua_["skill"][index]["costmp"] = skill.costmp;
+			lua_["skill"][index]["modelid"] = skill.icon;
+			lua_["skill"][index]["type"] = skill.kind;
+			lua_["skill"][index]["lv"] = skill.skill_level;
+			lua_["skill"][index]["id"] = skill.skillId;
+			lua_["skill"][index]["name"] = skill.name.toUtf8().constData();
+			lua_["skill"][index]["memo"] = skill.memo.toUtf8().constData();
+			lua_["skill"][index]["target"] = skill.target;
+		}
+	}
+
+	//petskill\[(?:'([^']*)'|"([^ "]*)"|(\d+))\]\[(?:'([^']*)'|"([^ "]*)"|(\d+))\]\.(\w+)
+	match = rexPetSkill.match(expr);
+	if (match.hasMatch())
+	{
+		bret = true;
+
+		if (!lua_["petskill"].valid())
+			lua_["petskill"] = lua_.create_table();
+		else
+		{
+			if (!lua_["petskill"].is<sol::table>())
+				lua_["petskill"] = lua_.create_table();
+		}
+
+		int petIndex = -1;
+		int index = -1;
+		int i, j;
+		for (i = 0; i < MAX_PET; ++i)
+		{
+			petIndex = i + 1;
+
+			if (!lua_["petskill"][petIndex].valid())
+				lua_["petskill"][petIndex] = lua_.create_table();
+			else
+			{
+				if (!lua_["petskill"][petIndex].is<sol::table>())
+					lua_["petskill"][petIndex] = lua_.create_table();
+			}
+
+			for (j = 0; j < MAX_PROFESSION_SKILL; ++j)
+			{
+				index = j + 1;
+				PET_SKILL skill = injector.server->getPetSkill(i, j);
+
+				lua_["petskill"][petIndex][index]["valid"] = skill.valid;
+				lua_["petskill"][petIndex][index]["id"] = skill.skillId;
+				lua_["petskill"][petIndex][index]["field"] = skill.field;
+				lua_["petskill"][petIndex][index]["target"] = skill.target;
+				lua_["petskill"][petIndex][index]["name"] = skill.name.toUtf8().constData();
+				lua_["petskill"][petIndex][index]["memo"] = skill.memo.toUtf8().constData();
+
+			}
+		}
+	}
+
+	//petequip\[(?:'([^']*)'|"([^ "]*)"|(\d+))\]\[(?:'([^']*)'|"([^ "]*)"|(\d+))\]\.(\w+)
+	match = rexPetEquip.match(expr);
+	if (match.hasMatch())
+	{
+		bret = true;
+
+		if (!lua_["petequip"].valid())
+			lua_["petequip"] = lua_.create_table();
+		else
+		{
+			if (!lua_["petequip"].is<sol::table>())
+				lua_["petequip"] = lua_.create_table();
+		}
+
+		int petIndex = -1;
+		int index = -1;
+		int i, j;
+		for (i = 0; i < MAX_PET; ++i)
+		{
+			petIndex = i + 1;
+
+			if (!lua_["petequip"][petIndex].valid())
+				lua_["petequip"][petIndex] = lua_.create_table();
+			else
+			{
+				if (!lua_["petequip"][petIndex].is<sol::table>())
+					lua_["petequip"][petIndex] = lua_.create_table();
+			}
+
+			for (j = 0; j < MAX_PET_ITEM; ++j)
+			{
+				index = j + 1;
+
+				ITEM item = injector.server->getPetEquip(i, j);
+
+
+				QString damage = item.damage;
+				damage = damage.replace("%", "");
+				damage = damage.replace("％", "");
+				bool ok = false;
+				qint64 damageValue = damage.toLongLong(&ok);
+				if (!ok)
+					damageValue = 100;
+
+				lua_["petequip"][petIndex][index]["valid"] = item.valid;
+				lua_["petequip"][petIndex][index]["lv"] = item.level;
+				lua_["petequip"][petIndex][index]["field"] = item.field;
+				lua_["petequip"][petIndex][index]["target"] = item.target;
+				lua_["petequip"][petIndex][index]["type"] = item.type;
+				lua_["petequip"][petIndex][index]["modelid"] = item.modelid;
+				lua_["petequip"][petIndex][index]["dura"] = damageValue;
+				lua_["petequip"][petIndex][index]["name"] = item.name.toUtf8().constData();
+				lua_["petequip"][petIndex][index]["name2"] = item.name2.toUtf8().constData();
+				lua_["petequip"][petIndex][index]["memo"] = item.memo.toUtf8().constData();
+
+			}
+		}
 	}
 
 	if (expr.contains("_GAME_"))
@@ -2114,7 +2332,7 @@ bool Parser::jump(const QString& name, bool noStack)
 	if (jumpLine != -1 && name != "ctor" && name != "dtor")
 	{
 		callStack_.push(lineNumber_ + 1);
-		jumpto(jumpLine, true);
+		jumpto(jumpLine + 1, true);
 		skipFunctionChunkDisable_ = true;
 		return true;
 	}

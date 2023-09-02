@@ -357,6 +357,9 @@ qint64 Interpreter::talk(qint64 currentline, const TokenMap& TK)
 		talkmode = static_cast<TalkMode>(nTalkMode);
 	}
 
+	checkOnlineThenWait();
+	checkBattleThenWait();
+
 	injector.server->talk(text, color, talkmode);
 
 	return Parser::kNoChange;
@@ -364,6 +367,9 @@ qint64 Interpreter::talk(qint64 currentline, const TokenMap& TK)
 
 qint64 Interpreter::talkandannounce(qint64 currentline, const TokenMap& TK)
 {
+	checkOnlineThenWait();
+	checkBattleThenWait();
+
 	announce(currentline, TK);
 	return talk(currentline, TK);
 }
@@ -375,6 +381,7 @@ qint64 Interpreter::menu(qint64 currentline, const TokenMap& TK)
 	if (injector.server.isNull())
 		return Parser::kServerNotReady;
 
+	checkOnlineThenWait();
 	checkBattleThenWait();
 
 	qint64 index = 0;
@@ -405,8 +412,12 @@ qint64 Interpreter::menu(qint64 currentline, const TokenMap& TK)
 qint64 Interpreter::logout(qint64 currentline, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance();
-	if (!injector.server.isNull())
-		injector.server->logOut();
+	if (injector.server.isNull())
+		return Parser::kServerNotReady;
+
+	checkOnlineThenWait();
+
+	injector.server->logOut();
 
 	return Parser::kNoChange;
 }
@@ -417,6 +428,7 @@ qint64 Interpreter::logback(qint64 currentline, const TokenMap& TK)
 	if (injector.server.isNull())
 		return Parser::kServerNotReady;
 
+	checkOnlineThenWait();
 	checkBattleThenWait();
 
 	injector.server->logBack();
@@ -593,7 +605,6 @@ qint64 Interpreter::delch(qint64 currentline, const TokenMap& TK)
 
 	return Parser::kNoChange;
 }
-
 
 qint64 Interpreter::cleanchat(qint64 currentline, const TokenMap& TK)
 {
@@ -1494,6 +1505,9 @@ qint64 Interpreter::dlg(qint64 currentline, const TokenMap& TK)
 	qint64 timeout = DEFAULT_FUNCTION_TIMEOUT;
 	checkInteger(TK, 4, &timeout);
 
+	checkOnlineThenWait();
+	checkBattleThenWait();
+
 	text.replace("\\n", "\n");
 
 	buttonStrs = buttonStrs.toUpper();
@@ -1961,7 +1975,7 @@ qint64 Interpreter::ocr(qint64 currentline, const TokenMap& TK)
 		{
 			if (debugmode == 0)
 				injector.server->inputtext(ret);
-		}
+}
 	}
 #endif
 

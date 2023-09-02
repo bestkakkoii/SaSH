@@ -30,6 +30,7 @@ qint64 Interpreter::useitem(qint64, const TokenMap& TK)
 	if (injector.server.isNull())
 		return Parser::kServerNotReady;
 
+	checkOnlineThenWait();
 	checkBattleThenWait();
 
 	QHash<QString, qint64> hash = {
@@ -69,6 +70,8 @@ qint64 Interpreter::useitem(qint64, const TokenMap& TK)
 	QStringList itemMemos;
 
 	qint64 target = 0;
+	qint64 totalUse = 1;
+
 	qint64 min = 0, max = static_cast<qint64>(MAX_ITEM - CHAR_EQUIPPLACENUM - 1);
 	if (!checkRange(TK, 1, &min, &max))
 	{
@@ -100,6 +103,10 @@ qint64 Interpreter::useitem(qint64, const TokenMap& TK)
 					return Parser::kArgError + 3ll;
 			}
 		}
+
+		checkInteger(TK, 4, &totalUse);
+		if (totalUse <= 0)
+			return Parser::kArgError + 4ll;
 	}
 	else
 	{
@@ -149,7 +156,7 @@ qint64 Interpreter::useitem(qint64, const TokenMap& TK)
 				if (!injector.server->getItemIndexsByName(name, memo, &v, CHAR_EQUIPPLACENUM))
 					continue;
 
-				qint64 totalUse = target - 100;
+				totalUse = target - 100;
 
 				bool ok = false;
 				PC pc = injector.server->getPC();
@@ -227,11 +234,30 @@ qint64 Interpreter::useitem(qint64, const TokenMap& TK)
 			QString memo;
 			if (itemMemos.size() > 0)
 				memo = itemMemos.takeFirst();
-			qint64 itemIndex = injector.server->getItemIndexByName(itemName, true, memo, CHAR_EQUIPPLACENUM);
-			if (itemIndex == -1)
+
+			QVector<int> v;
+			if (!injector.server->getItemIndexsByName(itemName, memo, &v, CHAR_EQUIPPLACENUM))
 				continue;
 
-			injector.server->useItem(itemIndex, target);
+			if (totalUse == 1)
+			{
+				qint64 itemIndex = v.front();
+				injector.server->useItem(itemIndex, target);
+			}
+
+			int n = totalUse;
+			for (;;)
+			{
+				if (totalUse != -1 && n <= 0)
+					break;
+
+				if (v.size() == 0)
+					break;
+
+				qint64 itemIndex = v.takeFirst();
+				injector.server->useItem(itemIndex, target);
+				--n;
+			}
 		}
 	}
 	else
@@ -241,11 +267,30 @@ qint64 Interpreter::useitem(qint64, const TokenMap& TK)
 			QString name;
 			if (itemNames.size() > 0)
 				name = itemNames.takeFirst();
-			qint64 itemIndex = injector.server->getItemIndexByName(itemName, true, memo, CHAR_EQUIPPLACENUM);
-			if (itemIndex == -1)
+
+			QVector<int> v;
+			if (!injector.server->getItemIndexsByName(itemName, memo, &v, CHAR_EQUIPPLACENUM))
 				continue;
 
-			injector.server->useItem(itemIndex, target);
+			if (totalUse == 1)
+			{
+				qint64 itemIndex = v.front();
+				injector.server->useItem(itemIndex, target);
+			}
+
+			int n = totalUse;
+			for (;;)
+			{
+				if (totalUse != -1 && n <= 0)
+					break;
+
+				if (v.size() == 0)
+					break;
+
+				qint64 itemIndex = v.takeFirst();
+				injector.server->useItem(itemIndex, target);
+				--n;
+			}
 		}
 	}
 	return Parser::kNoChange;
@@ -258,14 +303,29 @@ qint64 Interpreter::dropitem(qint64, const TokenMap& TK)
 	if (injector.server.isNull())
 		return Parser::kServerNotReady;
 
+	checkOnlineThenWait();
 	checkBattleThenWait();
 
 	QString tempName;
 	QString memo;
+	qint64 itemIndex = -1;
 	checkString(TK, 1, &tempName);
+	checkInteger(TK, 1, &itemIndex);
+
 	checkString(TK, 2, &memo);
-	if (tempName.isEmpty() && memo.isEmpty())
+	if (tempName.isEmpty() && memo.isEmpty() && itemIndex == -1)
 		return Parser::kArgError + 1ll;
+	else if (tempName.isEmpty() && memo.isEmpty()
+		&& ((itemIndex >= 1 && itemIndex <= (MAX_ITEM - CHAR_EQUIPPLACENUM)) || (itemIndex >= 101 && itemIndex <= (CHAR_EQUIPPLACENUM + 100))))
+	{
+		if (itemIndex < 100)
+			--itemIndex;
+		else
+			itemIndex -= 100;
+
+		injector.server->dropItem(itemIndex);
+		return Parser::kNoChange;
+	}
 
 	//指定丟棄白名單，位於白名單的物品不丟棄
 	if (tempName == QString(u8"非"))
@@ -322,6 +382,7 @@ qint64 Interpreter::swapitem(qint64 currentline, const TokenMap& TK)
 	if (injector.server.isNull())
 		return Parser::kServerNotReady;
 
+	checkOnlineThenWait();
 	checkBattleThenWait();
 
 	qint64 a = 0, b = 0;
@@ -360,6 +421,8 @@ qint64 Interpreter::playerrename(qint64, const TokenMap& TK)
 	if (injector.server.isNull())
 		return Parser::kServerNotReady;
 
+	checkOnlineThenWait();
+
 	QString newName;
 	checkString(TK, 1, &newName);
 
@@ -374,6 +437,8 @@ qint64 Interpreter::petrename(qint64, const TokenMap& TK)
 
 	if (injector.server.isNull())
 		return Parser::kServerNotReady;
+
+	checkOnlineThenWait();
 
 	qint64 petIndex = -1;
 	checkInteger(TK, 1, &petIndex);
@@ -394,6 +459,7 @@ qint64 Interpreter::setpetstate(qint64, const TokenMap& TK)
 	if (injector.server.isNull())
 		return Parser::kServerNotReady;
 
+	checkOnlineThenWait();
 	checkBattleThenWait();
 
 	qint64 petIndex = -1;
@@ -422,6 +488,7 @@ qint64 Interpreter::droppet(qint64, const TokenMap& TK)
 	if (injector.server.isNull())
 		return Parser::kServerNotReady;
 
+	checkOnlineThenWait();
 	checkBattleThenWait();
 
 	qint64 petIndex = -1;
@@ -453,6 +520,7 @@ qint64 Interpreter::buy(qint64, const TokenMap& TK)
 	if (injector.server.isNull())
 		return Parser::kServerNotReady;
 
+	checkOnlineThenWait();
 	checkBattleThenWait();
 
 	qint64 itemIndex = -1;
@@ -495,6 +563,7 @@ qint64 Interpreter::sell(qint64, const TokenMap& TK)
 	if (injector.server.isNull())
 		return Parser::kServerNotReady;
 
+	checkOnlineThenWait();
 	checkBattleThenWait();
 
 	QString name;
@@ -543,6 +612,7 @@ qint64 Interpreter::sellpet(qint64, const TokenMap& TK)
 	if (injector.server.isNull())
 		return Parser::kServerNotReady;
 
+	checkOnlineThenWait();
 	checkBattleThenWait();
 
 	mapunit_t unit;
@@ -638,6 +708,7 @@ qint64 Interpreter::make(qint64, const TokenMap& TK)
 	if (injector.server.isNull())
 		return Parser::kServerNotReady;
 
+	checkOnlineThenWait();
 	checkBattleThenWait();
 
 	QString ingreName;
@@ -659,6 +730,7 @@ qint64 Interpreter::cook(qint64, const TokenMap& TK)
 	if (injector.server.isNull())
 		return Parser::kServerNotReady;
 
+	checkOnlineThenWait();
 	checkBattleThenWait();
 
 	QString ingreName;
@@ -680,6 +752,7 @@ qint64 Interpreter::learn(qint64, const TokenMap& TK)
 	if (injector.server.isNull())
 		return Parser::kServerNotReady;
 
+	checkOnlineThenWait();
 	checkBattleThenWait();
 
 	qint64 petIndex = 0;
@@ -730,6 +803,7 @@ qint64 Interpreter::join(qint64, const TokenMap& TK)
 	if (injector.server.isNull())
 		return Parser::kServerNotReady;
 
+	checkOnlineThenWait();
 	checkBattleThenWait();
 
 	injector.server->setTeamState(true);
@@ -744,6 +818,7 @@ qint64 Interpreter::leave(qint64, const TokenMap& TK)
 	if (injector.server.isNull())
 		return Parser::kServerNotReady;
 
+	checkOnlineThenWait();
 	checkBattleThenWait();
 
 	injector.server->setTeamState(false);
@@ -758,6 +833,7 @@ qint64 Interpreter::kick(qint64, const TokenMap& TK)
 	if (injector.server.isNull())
 		return Parser::kServerNotReady;
 
+	checkOnlineThenWait();
 	checkBattleThenWait();
 
 	//0解隊 1-4隊員
@@ -831,6 +907,7 @@ qint64 Interpreter::usemagic(qint64, const TokenMap& TK)
 	if (injector.server.isNull())
 		return Parser::kServerNotReady;
 
+	checkOnlineThenWait();
 	checkBattleThenWait();
 
 	QString magicName;
@@ -907,6 +984,7 @@ qint64 Interpreter::pickitem(qint64, const TokenMap& TK)
 	if (injector.server.isNull())
 		return Parser::kServerNotReady;
 
+	checkOnlineThenWait();
 	checkBattleThenWait();
 
 	QString dirStr;
@@ -941,6 +1019,7 @@ qint64 Interpreter::depositgold(qint64, const TokenMap& TK)
 	if (injector.server.isNull())
 		return Parser::kServerNotReady;
 
+	checkOnlineThenWait();
 	checkBattleThenWait();
 
 	if (injector.server->getPC().gold <= 0)
@@ -970,6 +1049,7 @@ qint64 Interpreter::withdrawgold(qint64, const TokenMap& TK)
 	if (injector.server.isNull())
 		return Parser::kServerNotReady;
 
+	checkOnlineThenWait();
 	checkBattleThenWait();
 
 	qint64 gold;
@@ -991,8 +1071,7 @@ qint64 Interpreter::recordequip(qint64, const TokenMap& TK)
 	if (injector.server.isNull())
 		return Parser::kServerNotReady;
 
-	if (!injector.server->getOnlineFlag())
-		return Parser::kNoChange;
+	checkOnlineThenWait();
 
 	recordedEquip_.clear();
 	for (qint64 i = 0; i < CHAR_EQUIPPLACENUM; ++i)
@@ -1011,6 +1090,7 @@ qint64 Interpreter::wearequip(qint64, const TokenMap& TK)
 	if (injector.server.isNull())
 		return Parser::kServerNotReady;
 
+	checkOnlineThenWait();
 	checkBattleThenWait();
 
 	if (!injector.server->getOnlineFlag())
@@ -1043,6 +1123,7 @@ qint64 Interpreter::unwearequip(qint64, const TokenMap& TK)
 	if (injector.server.isNull())
 		return Parser::kServerNotReady;
 
+	checkOnlineThenWait();
 	checkBattleThenWait();
 
 	qint64 part = CHAR_EQUIPNONE;
@@ -1102,6 +1183,7 @@ qint64 Interpreter::petequip(qint64, const TokenMap& TK)
 	if (injector.server.isNull())
 		return Parser::kServerNotReady;
 
+	checkOnlineThenWait();
 	checkBattleThenWait();
 
 	qint64 petIndex = -1;
@@ -1132,6 +1214,7 @@ qint64 Interpreter::petunequip(qint64, const TokenMap& TK)
 	if (injector.server.isNull())
 		return Parser::kServerNotReady;
 
+	checkOnlineThenWait();
 	checkBattleThenWait();
 
 	qint64 part = CHAR_EQUIPNONE;
@@ -1201,6 +1284,7 @@ qint64 Interpreter::depositpet(qint64, const TokenMap& TK)
 	if (injector.server.isNull())
 		return Parser::kServerNotReady;
 
+	checkOnlineThenWait();
 	checkBattleThenWait();
 
 	qint64 petIndex = 0;
@@ -1250,6 +1334,7 @@ qint64 Interpreter::deposititem(qint64, const TokenMap& TK)
 	if (injector.server.isNull())
 		return Parser::kServerNotReady;
 
+	checkOnlineThenWait();
 	checkBattleThenWait();
 
 	qint64 min = 0, max = static_cast<qint64>(MAX_ITEM - CHAR_EQUIPPLACENUM - 1);
@@ -1323,6 +1408,7 @@ qint64 Interpreter::withdrawpet(qint64, const TokenMap& TK)
 	if (injector.server.isNull())
 		return Parser::kServerNotReady;
 
+	checkOnlineThenWait();
 	checkBattleThenWait();
 
 	QString petName;
@@ -1415,6 +1501,7 @@ qint64 Interpreter::withdrawitem(qint64, const TokenMap& TK)
 	if (injector.server.isNull())
 		return Parser::kServerNotReady;
 
+	checkOnlineThenWait();
 	checkBattleThenWait();
 
 	QString itemNames;
@@ -1514,6 +1601,7 @@ qint64 Interpreter::addpoint(qint64, const TokenMap& TK)
 	if (injector.server.isNull())
 		return Parser::kServerNotReady;
 
+	checkOnlineThenWait();
 	checkBattleThenWait();
 
 	QString pointName;
@@ -1639,6 +1727,7 @@ qint64 Interpreter::trade(qint64, const TokenMap& TK)
 	if (injector.server.isNull())
 		return Parser::kServerNotReady;
 
+	checkOnlineThenWait();
 	checkBattleThenWait();
 
 	QString name;
@@ -1805,6 +1894,9 @@ qint64 Interpreter::mail(qint64, const TokenMap& TK)
 	if (injector.server.isNull())
 		return Parser::kServerNotReady;
 
+	checkOnlineThenWait();
+	checkBattleThenWait();
+
 	QVariant card;
 	QString name;
 	qint64 addrIndex = -1;
@@ -1862,6 +1954,9 @@ qint64 Interpreter::doffstone(qint64 currentline, const TokenMap& TK)
 	qint64 gold = 0;
 	if (!checkInteger(TK, 1, &gold))
 		return Parser::kArgError + 1ll;
+
+	checkOnlineThenWait();
+	checkBattleThenWait();
 
 	if (gold == -1)
 	{

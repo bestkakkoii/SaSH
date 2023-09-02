@@ -280,6 +280,39 @@ void luadebug::checkStopAndPause(const sol::this_state& s)
 	pLua->checkPause();
 }
 
+bool luadebug::checkOnlineThenWait(const sol::this_state& s)
+{
+	checkStopAndPause(s);
+
+	Injector& injector = Injector::getInstance();
+	bool bret = false;
+	if (!injector.server->getOnlineFlag())
+	{
+		QElapsedTimer timer; timer.start();
+		bret = true;
+		for (;;)
+		{
+			if (isInterruptionRequested(s))
+				break;
+
+			if (!injector.server.isNull())
+				break;
+
+			checkStopAndPause(s);
+
+			if (injector.server->getOnlineFlag())
+				break;
+			if (timer.hasExpired(180000))
+				break;
+
+			QThread::msleep(100);
+		}
+
+		QThread::msleep(500);
+	}
+	return bret;
+}
+
 bool luadebug::checkBattleThenWait(const sol::this_state& s)
 {
 	checkStopAndPause(s);
@@ -950,11 +983,11 @@ void CLua::proc()
 				}
 				tableStrs << ">";
 			}
-	}
+		}
 
 		luadebug::logExport(s, tableStrs, 0);
-} while (false);
+	} while (false);
 
-isRunning_.store(false, std::memory_order_release);
-emit finished();
+	isRunning_.store(false, std::memory_order_release);
+	emit finished();
 }

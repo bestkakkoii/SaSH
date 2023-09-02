@@ -29,7 +29,7 @@ qint64 CLuaPet::setState(qint64 petIndex, qint64 state, sol::this_state s)
 
 	luadebug::checkBattleThenWait(s);
 
-	injector.server->setPetState(--petIndex, state);
+	injector.server->setPetState(--petIndex, static_cast<PetState>(state));
 
 	return TRUE;
 }
