@@ -716,6 +716,41 @@ bool downloadFile(const std::string& url, const std::string& filename)
 	return false;
 }
 
+void extractZip(const QString& savepath, const QString& filepath)
+{
+	QDir dir(savepath);
+	if (!dir.exists())
+	{
+		dir.mkpath(savepath);
+	}
+
+	bool unzipok = false;
+	QZipReader zipreader(filepath);
+	unzipok = zipreader.extractAll(savepath);
+
+	for (int i = 0; i < zipreader.fileInfoList().size(); ++i)
+	{
+		QStringList paths = zipreader.fileInfoList().at(i).filePath.split("/");
+		paths.removeLast();
+		QString path = paths.join("/");
+		QDir subdir(savepath + "/" + path);
+		if (!subdir.exists())
+			dir.mkpath(QString::fromLocal8Bit("%1").arg(savepath + "/" + path));
+
+		QFile file(savepath + "/" + zipreader.fileInfoList().at(i).filePath);
+		file.open(QIODevice::WriteOnly);
+
+		QByteArray dt = zipreader.fileInfoList().at(i).filePath.toUtf8();
+		QString strtemp = QString::fromLocal8Bit(dt);
+
+		QByteArray array = zipreader.fileData(strtemp);
+		file.write(array);
+		file.close();
+
+
+	}
+}
+
 void QDownloader::downloadAndExtractZip(const QString& url, const QString& targetDir)
 {
 	constexpr const char* zipFile = "sash.zip";
@@ -758,8 +793,10 @@ void QDownloader::downloadAndExtractZip(const QString& url, const QString& targe
 		}
 	}
 
-	QZipReader reader(filePath);
-	reader.extractAll(targetDir);
+
+	extractZip(targetDir, filePath);
+	//QZipReader reader(filePath);
+	//reader.extractAll(targetDir);
 }
 
 //void QDownloader::downloadAndExtractZip(const QString& url, const QString& targetDir) const

@@ -345,11 +345,11 @@ int main(int argc, char* argv[])
 	QApplication::setAttribute(Qt::AA_EnableHighDpiScaling, true);
 	QApplication::setAttribute(Qt::AA_UseHighDpiPixmaps, true);
 	QApplication::setAttribute(Qt::AA_ShareOpenGLContexts, true);
-	QApplication::setAttribute(Qt::AA_UseDesktopOpenGL, true);
+	QApplication::setAttribute(Qt::AA_UseDesktopOpenGL, true);//AA_UseDesktopOpenGL, AA_UseOpenGLES, AA_UseSoftwareOpenGL
 	QGuiApplication::setHighDpiScaleFactorRoundingPolicy(Qt::HighDpiScaleFactorRoundingPolicy::PassThrough);
 
 	QSurfaceFormat format;
-	format.setRenderableType(QSurfaceFormat::OpenGL);
+	format.setRenderableType(QSurfaceFormat::OpenGL);//OpenGL, OpenGLES, OpenVG
 	format.setSwapBehavior(QSurfaceFormat::TripleBuffer);
 	QSurfaceFormat::setDefaultFormat(format);
 
