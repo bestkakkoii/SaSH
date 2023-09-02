@@ -34,7 +34,8 @@ const char* Highlighter::keywords(int set) const
 	{
 		//lua key word
 		return "goto call function end pause exit label jmp return back break for endfor continue "
-			"if ifmap ifplayer ifpet ifpetex ifitem ifteam ifitemfull ifdaily ifbattle ifpos ifonline ifnormal ";
+			"if ifmap ifplayer ifpet ifpetex ifitem ifteam ifitemfull ifdaily ifbattle ifpos ifonline ifnormal "
+			"waitdlg waitsay waititem waitmap waitteam ";
 	}
 	case 2://QsciLexerLua::BasicFunctions//黃色
 	{
@@ -53,7 +54,7 @@ const char* Highlighter::keywords(int set) const
 	}
 	case 3://QsciLexerLua::StringTableMathsFunction//草綠
 	{
-		return "";
+		return "string table ";
 	}
 	case 4://QsciLexerLua::CoroutinesIOSystemFacilities//青綠
 	{
@@ -61,7 +62,8 @@ const char* Highlighter::keywords(int set) const
 	}
 	case 5://KeywordSet5//深藍色
 	{
-		return "local var delete releaseall format rnd true false";
+		return "local var delete releaseall format rnd true false "
+			"int double bool ";
 	}
 	case 6://KeywordSet6//淺藍色
 	{
@@ -73,7 +75,7 @@ const char* Highlighter::keywords(int set) const
 	}
 	case 8://KeywordSet8//紫色
 	{
-		return "waitdlg waitsay waititem waitmap waitteam ";
+		return "_GAME_ _WORLD_ vret _IFEXPR _IFRESULT _LUARESULT _LUAEXPR";
 	}
 	case 9:
 		break;

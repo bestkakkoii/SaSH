@@ -215,9 +215,9 @@ void Parser::handleError(qint64 err, const QString& addition)
 		if (err >= kArgError && err <= kArgError + 20ll)
 		{
 			if (err == kArgError)
-				msg = QObject::tr("argument error");
+				msg = QObject::tr("argument error") + extMsg;
 			else
-				msg = QObject::tr("argument error") + QString(" idx:%1").arg(err - kArgError);
+				msg = QObject::tr("argument error") + QString(" idx:%1").arg(err - kArgError) + extMsg;
 			break;
 		}
 		break;
@@ -311,7 +311,7 @@ void Parser::checkConditionalOp(QString& expr)
 
 			//to lua style: (left and { mid } or { right })[1]
 
-			QString luaExpr = QString("(((((%1) == true) or ((%1) > 0)) and { %2 } or { %3 })[1])").arg(left).arg(mid).arg(right);
+			QString luaExpr = QString("(((((%1) ~= nil) and ((%1) == true) or (type(%1) == 'number' and (%1) > 0)) and { %2 } or { %3 })[1])").arg(left).arg(mid).arg(right);
 			expr = luaExpr;
 		}
 	}
@@ -2291,17 +2291,65 @@ void Parser::processLabel()
 
 	QVariantList args = getArgsRef();
 	QVariantHash labelVars;
+	const QStringList typeList = { "int", "double", "bool", "string", "table" };
+
 	for (qint64 i = kCallPlaceHoldSize; i < currentLineTokens_.size(); ++i)
 	{
 		Token token = currentLineTokens_.value(i);
 		if (token.type == TK_LABELVAR)
 		{
-			QString labelName = token.data.toString();
+			QString labelName = token.data.toString().simplified();
 			if (labelName.isEmpty())
 				continue;
 
-			if (!args.isEmpty() && (args.size() > (i - kCallPlaceHoldSize)) && (args.at(i - kCallPlaceHoldSize).isValid()))
-				labelVars.insert(labelName, args.at(i - kCallPlaceHoldSize));
+			QVariant currnetVar = args.at(i - kCallPlaceHoldSize);
+			QVariant::Type type = currnetVar.type();
+
+			if (!args.isEmpty() && (args.size() > (i - kCallPlaceHoldSize)) && (currnetVar.isValid()))
+			{
+				if (labelName.contains("int ", Qt::CaseInsensitive)
+					&& (type == QVariant::Type::Int || type == QVariant::Type::LongLong))
+				{
+					labelVars.insert(labelName.replace("int ", "", Qt::CaseInsensitive), currnetVar.toLongLong());
+				}
+				else if (labelName.contains("double ", Qt::CaseInsensitive) && (type == QVariant::Type::Double))
+				{
+					labelVars.insert(labelName.replace("double ", "", Qt::CaseInsensitive), static_cast<qint64>(qFloor(currnetVar.toDouble())));
+				}
+				else if (labelName.contains("string ", Qt::CaseInsensitive) && type == QVariant::Type::String)
+				{
+					labelVars.insert(labelName.replace("string ", "", Qt::CaseInsensitive), currnetVar.toString());
+				}
+				else if (labelName.contains("table ", Qt::CaseInsensitive)
+					&& type == QVariant::Type::String
+					&& currnetVar.toString().startsWith("{")
+					&& currnetVar.toString().endsWith("}"))
+				{
+					labelVars.insert(labelName.replace("table ", "", Qt::CaseInsensitive), currnetVar.toString());
+				}
+				else if (labelName.contains("bool ", Qt::CaseInsensitive)
+					&& (type == QVariant::Type::Int || type == QVariant::Type::LongLong || type == QVariant::Type::Bool))
+				{
+					labelVars.insert(labelName.replace("bool ", "", Qt::CaseInsensitive), currnetVar.toLongLong() > 0 ? 1ll : 0ll);
+				}
+				else
+				{
+					QString expectedType = labelName;
+					for (const QString& typeStr : typeList)
+					{
+						if (expectedType.startsWith(typeStr))
+						{
+							expectedType = type;
+							labelVars.insert(labelName, "nil");
+							handleError(kArgError + i - kCallPlaceHoldSize + 1, QString(QObject::tr("Invalid local variable type: %1")).arg(labelName));
+							break;
+						}
+					}
+
+					if (expectedType == labelName)
+						labelVars.insert(labelName, currnetVar);
+				}
+			}
 		}
 	}
 
@@ -3907,6 +3955,9 @@ bool Parser::processJump()
 //處理"返回"
 void Parser::processReturn()
 {
+	retValue_ = checkValue(currentLineTokens_, 1, QVariant::LongLong);
+	insertGlobalVar("vret", retValue_);
+
 	if (!callArgsStack_.isEmpty())
 		callArgsStack_.pop();//call行號出棧
 	if (!localVarStack_.isEmpty())

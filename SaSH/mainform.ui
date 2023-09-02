@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>303</width>
+    <width>290</width>
     <height>481</height>
    </rect>
   </property>
@@ -39,7 +39,9 @@ QPushButton:hover {
 QPushButton:pressed, QPushButton:checked {
 	background-color: #3282F6;
 	border: 1px solid #ffffff;
-}</string>
+}
+
+QGroupBox { color:rgb(100,149,237) }</string>
   </property>
   <widget class="QWidget" name="centralWidget">
    <property name="styleSheet">

@@ -758,6 +758,7 @@ private:
 	QStack<QVariantHash> localVarStack_;					//局變量棧
 	QStringList localVarList;								//lua局變量
 	QVariantHash emptyLocalVars_;							//空局變量(局變量棧為空得情況下壓入一個空容器)
+	QVariant retValue_;										//函數返回值
 
 	TokenMap currentLineTokens_;							//當前行token
 	RESERVE currentType_ = TK_UNK;							//當前行第一個token類型
