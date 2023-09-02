@@ -2337,13 +2337,13 @@ void Parser::processLabel()
 					QString expectedType = labelName;
 					for (const QString& typeStr : typeList)
 					{
-						if (expectedType.startsWith(typeStr))
-						{
-							expectedType = type;
-							labelVars.insert(labelName, "nil");
-							handleError(kArgError + i - kCallPlaceHoldSize + 1, QString(QObject::tr("Invalid local variable type: %1")).arg(labelName));
-							break;
-						}
+						if (!expectedType.startsWith(typeStr))
+							continue;
+
+						expectedType = typeStr;
+						labelVars.insert(labelName, "nil");
+						handleError(kArgError + i - kCallPlaceHoldSize + 1, QString(QObject::tr("Invalid local variable type expacted '%1' but got '%2'")).arg(expectedType).arg(currnetVar.typeName()));
+						break;
 					}
 
 					if (expectedType == labelName)
