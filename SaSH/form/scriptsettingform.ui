@@ -518,6 +518,11 @@ color: rgb(208, 208, 208);
              <string>delete</string>
             </property>
            </item>
+           <item>
+            <property name="text">
+             <string>const</string>
+            </property>
+           </item>
           </item>
           <item>
            <property name="text">
@@ -2363,7 +2368,7 @@ margin-right:0px;
            <enum>QTabWidget::South</enum>
           </property>
           <property name="currentIndex">
-           <number>2</number>
+           <number>0</number>
           </property>
           <widget class="QWidget" name="tab_6">
            <attribute name="title">

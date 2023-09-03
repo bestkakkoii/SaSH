@@ -105,25 +105,51 @@ namespace Autil
 	void util_Send(int func, Args... args)
 	{
 		int iChecksum = 0;
-		char buffer[NETDATASIZE] = {};
-		memset(buffer, 0, sizeof(buffer));
-		util_SendProcessArgs(iChecksum, buffer, args...);
-		util_mkint(buffer, iChecksum);
-		util_SendMesg(func, buffer);
+		std::unique_ptr <char[]> buffer(new char[NETDATASIZE]);
+		memset(buffer.get(), 0, NETDATASIZE);
+		util_SendProcessArgs(iChecksum, buffer.get(), args...);
+		util_mkint(buffer.get(), iChecksum);
+		util_SendMesg(func, buffer.get());
+	}
+
+	static void util_SendArgs(int func, std::vector<std::variant<int, std::string>>& args)
+	{
+		int iChecksum = 0;
+		std::unique_ptr <char[]> buffer(new char[NETDATASIZE]);
+		memset(buffer.get(), 0, NETDATASIZE);
+
+		for (const std::variant<int, std::string>& arg : args)
+		{
+			if (std::holds_alternative<int>(arg))
+			{
+				iChecksum += util_mkint(buffer.get(), std::get<int>(arg));
+			}
+			else if (std::holds_alternative<std::string>(arg))
+			{
+				iChecksum += util_mkstring(buffer.get(), const_cast<char*>(std::get<std::string>(arg).c_str()));
+			}
+		}
+
+		util_mkint(buffer.get(), iChecksum);
+		util_SendMesg(func, buffer.get());
 	}
 
 	template<typename... Args>
-	bool util_Receive(Args*... args) {
+	bool util_Receive(Args*... args)
+	{
 		int iChecksum = 0;  // 局部變量
 		int iChecksumrecv = 0;
 		int nextSlice = 2;
 
 		// 解碼參數並累加到 iChecksum
-		auto decode_and_accumulate = [&iChecksum, &nextSlice](auto* val) {
-			if constexpr (std::is_same_v<std::remove_pointer_t<decltype(val)>, int>) {
+		auto decode_and_accumulate = [&iChecksum, &nextSlice](auto* val)
+		{
+			if constexpr (std::is_same_v<std::remove_pointer_t<decltype(val)>, int>)
+			{
 				iChecksum += Autil::util_deint(nextSlice++, val);
 			}
-			else if constexpr (std::is_same_v<std::remove_pointer_t<decltype(val)>, char>) {
+			else if constexpr (std::is_same_v<std::remove_pointer_t<decltype(val)>, char>)
+			{
 				iChecksum += Autil::util_destring(nextSlice++, val);
 			}
 		};

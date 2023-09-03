@@ -305,6 +305,7 @@
     <ClCompile Include="form\selecttargetform.cpp" />
     <ClCompile Include="mainform.cpp" />
     <ClCompile Include="main.cpp" />
+    <None Include="cpp.hint" />
     <None Include="SaSH.ico" />
     <QtUic Include="model\qthumbnailform.ui" />
     <QtUic Include="update\qdownloader.ui" />

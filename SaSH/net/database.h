@@ -206,7 +206,7 @@ constexpr int MAX_CHAT_REGISTY_STR = 8;
 
 constexpr int MAX_ENEMY = 20;
 constexpr int MAX_CHAT_HISTORY = 20;
-constexpr int MAX_DIALOG_LINE = 10;
+constexpr int MAX_DIALOG_LINE = 100;
 
 constexpr int MAX_DIR = 8;
 

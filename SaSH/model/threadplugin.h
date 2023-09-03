@@ -25,6 +25,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include <QReadWriteLock>
 
 #include "signaldispatcher.h"
+#include <shared_mutex>
 class ThreadPlugin : public QObject
 {
 	Q_OBJECT
@@ -39,7 +40,7 @@ public:
 
 	Q_REQUIRED_RESULT inline bool isInterruptionRequested() const
 	{
-		QReadLocker locker(&lock_);
+		std::shared_lock<std::shared_mutex> lock(rwLock_);
 		return isInterruptionRequested_.load(std::memory_order_acquire);
 	}
 
@@ -47,18 +48,17 @@ public:
 
 	inline void checkPause()
 	{
-		pausedMutex_.lock();
+		std::unique_lock<std::mutex> lock(pausedMutex_);
 		if (isPaused_.load(std::memory_order_acquire))
 		{
-			waitCondition_.wait(&pausedMutex_);
+			pausedCondition_.wait(lock);
 		}
-		pausedMutex_.unlock();
 	}
 
 public slots:
 	void requestInterruption()
 	{
-		QWriteLocker locker(&lock_);
+		std::unique_lock<std::shared_mutex> lock(rwLock_);
 		isInterruptionRequested_.store(true, std::memory_order_release);
 	}
 
@@ -76,14 +76,14 @@ public slots:
 			isPaused_.store(false, std::memory_order_release);
 			pausedMutex_.unlock();
 		}
-		waitCondition_.wakeAll();
+		pausedCondition_.notify_all();
 	}
 
 private:
 	std::atomic_bool isInterruptionRequested_ = false;
-	mutable QReadWriteLock lock_;
+	mutable std::shared_mutex rwLock_;
 
 	std::atomic_bool isPaused_ = false;
-	QWaitCondition waitCondition_;
-	QMutex pausedMutex_;
+	std::condition_variable pausedCondition_;
+	std::mutex pausedMutex_;
 };

@@ -1,0 +1,6 @@
+// 提示檔案會協助 Visual Studio IDE 解譯 Visual C++ 識別碼
+// 例如函式和巨集的名稱。
+// 如需詳細資訊，請參閱 https://go.microsoft.com/fwlink/?linkid=865984
+#define Q_REQUIRED_RESULT
+#define Q_REQUIRED_RESULT __attribute__ ((__warn_unused_result__))
+#define Q_REQUIRED_RESULT [[nodiscard]]

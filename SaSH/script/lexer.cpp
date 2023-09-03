@@ -65,6 +65,7 @@ static const QHash<QString, RESERVE> keywords = {
 	{ u8"菜單", TK_CMD },
 	{ u8"創建人物", TK_CMD },
 	{ u8"刪除人物", TK_CMD },
+	{ u8"發包", TK_CMD },
 
 	//check info
 	{ u8"戰鬥中", TK_CMD },
@@ -186,6 +187,7 @@ static const QHash<QString, RESERVE> keywords = {
 	{ u8"菜单", TK_CMD },
 	{ u8"创建人物", TK_CMD },
 	{ u8"删除人物", TK_CMD },
+	{ u8"发包", TK_CMD },
 
 	//check info
 	{ u8"战斗中", TK_CMD },
@@ -312,6 +314,7 @@ static const QHash<QString, RESERVE> keywords = {
 	{ u8"dofile", TK_CMD },
 	{ u8"createch", TK_CMD },
 	{ u8"delch", TK_CMD },
+	{ u8"send", TK_CMD },
 
 	//check info
 	{ u8"ifbattle", TK_CMD },

@@ -1975,9 +1975,51 @@ qint64 Interpreter::ocr(qint64 currentline, const TokenMap& TK)
 		{
 			if (debugmode == 0)
 				injector.server->inputtext(ret);
-}
+		}
 	}
 #endif
+
+	return Parser::kNoChange;
+}
+
+
+#include "net/autil.h"
+qint64 Interpreter::send(qint64 currentline, const TokenMap& TK)
+{
+	Injector& injector = Injector::getInstance();
+
+	if (injector.server.isNull())
+		return Parser::kServerNotReady;
+
+	qint64 size = TK.size();
+
+	qint64 funId = -1;
+	if (!checkInteger(TK, 1, &funId))
+		return Parser::kArgError + 1ll;
+	if (funId <= 0)
+		return Parser::kArgError + 1ll;
+
+	std::vector<std::variant<int, std::string>> args;
+
+	for (int i = 2; i < size; ++i)
+	{
+		qint64 varIntValue;
+		QString varStringValue;
+		std::variant<int, std::string> var;
+
+		if (!checkInteger(TK, i, &varIntValue))
+		{
+			if (!checkString(TK, i, &varStringValue))
+				return Parser::kArgError + i;
+			args.emplace_back(util::fromUnicode(varStringValue));
+		}
+		else
+		{
+			args.emplace_back(static_cast<int>(varIntValue));
+		}
+	}
+
+	Autil::util_SendArgs(static_cast<int>(funId), args);
 
 	return Parser::kNoChange;
 }

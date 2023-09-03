@@ -332,6 +332,7 @@ bool Parser::exprTo(QString expr, QString* ret)
 		return true;
 	}
 
+	updateSysConstKeyword(expr);
 	checkConditionalOp(expr);
 
 	QString exprStr = QString("%1\nreturn %2;").arg(localVarList.join("\n")).arg(expr);
@@ -1108,69 +1109,68 @@ bool Parser::updateSysConstKeyword(const QString& expr)
 		return false;
 
 	bool bret = false;
-	QString rexStart = "pet";
+	//QString rexStart = "pet";
 
-	//這裡寫成一串會出現VS語法bug，所以分開寫
-	const QString rexMiddleStart = R"(\[(?:'([^']*)'|")";
-	const QString rexMiddleMid = R"(([^ "]*))";
-	const QString rexMEnd = R"("|([\w\p{Han}]+))\])";
-	const QString rexExtra = R"(\.(\w+))";
+	////這裡寫成一串會出現VS語法bug，所以分開寫
+	//const QString rexMiddleStart = R"(\[(?:'([^']*)'|")";
+	//const QString rexMiddleMid = R"(([^ "]*))";
+	//const QString rexMEnd = R"("|([\w\p{Han}]+))\])";
+	//const QString rexExtra = R"(\.(\w+))";
 
-	static const QRegularExpression rexPlayer(R"(char\.(\w+))");
-	const QRegularExpression rexPet(rexStart + rexMiddleStart + rexMiddleMid + rexMEnd + rexExtra);
+	//static const QRegularExpression rexPlayer(R"(char\.(\w+))");
+	//const QRegularExpression rexPet(rexStart + rexMiddleStart + rexMiddleMid + rexMEnd + rexExtra);
 
-	static const QRegularExpression rexPetEx(R"(pet\.(\w+))");
+	//static const QRegularExpression rexPetEx(R"(pet\.(\w+))");
 
-	static const QRegularExpression rexItem(R"(item\[([\w\p{Han}]+)\]\.(\w+))");
+	//static const QRegularExpression rexItem(R"(item\[([\w\p{Han}]+)\]\.(\w+))");
 
-	rexStart = "item";
-	const QRegularExpression rexItemEx(rexStart + rexMiddleStart + rexMiddleMid + rexMEnd + rexExtra);
+	//rexStart = "item";
+	//const QRegularExpression rexItemEx(rexStart + rexMiddleStart + rexMiddleMid + rexMEnd + rexExtra);
 
-	static const QRegularExpression rexItemSup(R"(item\.(\w+))");
+	//static const QRegularExpression rexItemSup(R"(item\.(\w+))");
 
-	rexStart = "team";
-	const QRegularExpression rexTeam(rexStart + rexMiddleStart + rexMiddleMid + rexMEnd + rexExtra);
+	//rexStart = "team";
+	//const QRegularExpression rexTeam(rexStart + rexMiddleStart + rexMiddleMid + rexMEnd + rexExtra);
 
-	static const QRegularExpression rexTeamEx(R"(team\.(\w+))");
+	//static const QRegularExpression rexTeamEx(R"(team\.(\w+))");
 
-	static const QRegularExpression rexMap(R"(map\.(\w+))");
+	//static const QRegularExpression rexMap(R"(map\.(\w+))");
 
-	rexStart = "card";
-	const QRegularExpression rexCard(rexStart + rexMiddleStart + rexMiddleMid + rexMEnd + rexExtra);
+	//rexStart = "card";
+	//const QRegularExpression rexCard(rexStart + rexMiddleStart + rexMiddleMid + rexMEnd + rexExtra);
 
-	rexStart = "chat";
-	const QRegularExpression rexChat(rexStart + rexMiddleStart + rexMiddleMid + rexMEnd);
+	//rexStart = "chat";
+	//const QRegularExpression rexChat(rexStart + rexMiddleStart + rexMiddleMid + rexMEnd);
 
-	rexStart = "unit";
-	const QRegularExpression rexUnit(rexStart + rexMiddleStart + rexMiddleMid + rexMEnd + rexExtra);
+	//rexStart = "unit";
+	//const QRegularExpression rexUnit(rexStart + rexMiddleStart + rexMiddleMid + rexMEnd + rexExtra);
 
-	rexStart = "battle";
-	const QRegularExpression rexBattle(rexStart + rexMiddleStart + rexMiddleMid + rexMEnd + rexExtra);
+	//rexStart = "battle";
+	//const QRegularExpression rexBattle(rexStart + rexMiddleStart + rexMiddleMid + rexMEnd + rexExtra);
 
-	static const QRegularExpression rexBattleEx(R"(battle\.(\w+))");
+	//static const QRegularExpression rexBattleEx(R"(battle\.(\w+))");
 
-	rexStart = "dialog";
-	const QRegularExpression rexDialog(rexStart + rexMiddleStart + rexMiddleMid + rexMEnd);
+	//rexStart = "dialog";
+	//const QRegularExpression rexDialog(rexStart + rexMiddleStart + rexMiddleMid + rexMEnd);
 
-	static const QRegularExpression rexDialogEx(R"(dialog\.(\w+))");
+	//static const QRegularExpression rexDialogEx(R"(dialog\.(\w+))");
 
-	rexStart = "magic";
-	const QRegularExpression rexMagic(rexStart + rexMiddleStart + rexMiddleMid + rexMEnd + rexExtra);
+	//rexStart = "magic";
+	//const QRegularExpression rexMagic(rexStart + rexMiddleStart + rexMiddleMid + rexMEnd + rexExtra);
 
-	rexStart = "skill";
-	const QRegularExpression rexSkill(rexStart + rexMiddleStart + rexMiddleMid + rexMEnd + rexExtra);
+	//rexStart = "skill";
+	//const QRegularExpression rexSkill(rexStart + rexMiddleStart + rexMiddleMid + rexMEnd + rexExtra);
 
-	rexStart = "petskill";
-	const QRegularExpression rexPetSkill(rexStart + rexMiddleStart + rexMiddleMid + rexMEnd + rexMiddleStart + rexMiddleMid + rexMEnd + rexExtra);
+	//rexStart = "petskill";
+	//const QRegularExpression rexPetSkill(rexStart + rexMiddleStart + rexMiddleMid + rexMEnd + rexMiddleStart + rexMiddleMid + rexMEnd + rexExtra);
 
-	rexStart = "petequip";
-	const QRegularExpression rexPetEquip(rexStart + rexMiddleStart + rexMiddleMid + rexMEnd + rexMiddleStart + rexMiddleMid + rexMEnd + rexExtra);
+	//rexStart = "petequip";
+	//const QRegularExpression rexPetEquip(rexStart + rexMiddleStart + rexMiddleMid + rexMEnd + rexMiddleStart + rexMiddleMid + rexMEnd + rexExtra);
 
 	PC _pc = injector.server->getPC();
 
-	QRegularExpressionMatch match = rexPlayer.match(expr);
 	//char\.(\w+)
-	if (match.hasMatch())
+	if (expr.contains("char"))
 	{
 		bret = true;
 		if (!lua_["char"].valid())
@@ -1245,8 +1245,7 @@ bool Parser::updateSysConstKeyword(const QString& expr)
 	}
 
 	//pet\[(?:'([^']*)'|"([^ "]*)"|(\d+))\]\.(\w+)
-	match = rexPet.match(expr);
-	if (match.hasMatch())
+	if (expr.contains("pet"))
 	{
 		bret = true;
 		if (!lua_["pet"].valid())
@@ -1327,8 +1326,7 @@ bool Parser::updateSysConstKeyword(const QString& expr)
 	}
 
 	//pet\.(\w+)
-	match = rexPetEx.match(expr);
-	if (match.hasMatch())
+	if (expr.contains("pet"))
 	{
 		bret = true;
 		if (!lua_["pet"].valid())
@@ -1343,8 +1341,7 @@ bool Parser::updateSysConstKeyword(const QString& expr)
 	}
 
 	//item\[(\d+)\]\.(\w+)
-	match = rexItem.match(expr);
-	if (match.hasMatch())
+	if (expr.contains("item"))
 	{
 		bret = true;
 		if (!lua_["item"].valid())
@@ -1407,6 +1404,11 @@ bool Parser::updateSysConstKeyword(const QString& expr)
 
 			lua_["item"][index]["lv"] = item.level;
 
+			if (item.valid && item.stack == 0)
+				item.stack = 1;
+			else if (!item.valid)
+				item.stack = 0;
+
 			lua_["item"][index]["stack"] = item.stack;
 
 			lua_["item"][index]["lv"] = item.level;
@@ -1418,9 +1420,9 @@ bool Parser::updateSysConstKeyword(const QString& expr)
 		}
 	}
 
+#if 0
 	//item\[(?:'([^']*)'|"([^ "]*)"|(\d+))\]
-	match = rexItemEx.match(expr);
-	if (match.hasMatch())
+	if (expr.contains("item"))
 	{
 		if (!lua_["item"].valid())
 			lua_["item"] = lua_.create_table();
@@ -1489,10 +1491,10 @@ bool Parser::updateSysConstKeyword(const QString& expr)
 			bret = true;
 		}
 	}
+#endif
 
 	//item\.(\w+)
-	match = rexItemSup.match(expr);
-	if (match.hasMatch())
+	if (expr.contains("item"))
 	{
 		bret = true;
 		if (!lua_["item"].valid())
@@ -1509,8 +1511,7 @@ bool Parser::updateSysConstKeyword(const QString& expr)
 	}
 
 	//team\[(?:'([^']*)'|"([^ "]*)"|(\d+))\]\.(\w+)
-	match = rexTeam.match(expr);
-	if (match.hasMatch())
+	if (expr.contains("team"))
 	{
 		bret = true;
 		if (!lua_["team"].valid())
@@ -1552,8 +1553,7 @@ bool Parser::updateSysConstKeyword(const QString& expr)
 	}
 
 	//team\.(\w+)
-	match = rexTeamEx.match(expr);
-	if (match.hasMatch())
+	if (expr.contains("team"))
 	{
 		bret = true;
 		if (!lua_["team"].valid())
@@ -1568,8 +1568,7 @@ bool Parser::updateSysConstKeyword(const QString& expr)
 	}
 
 	//map\.(\w+)
-	match = rexMap.match(expr);
-	if (match.hasMatch())
+	if (expr.contains("map"))
 	{
 		bret = true;
 		if (!lua_["map"].valid())
@@ -1590,8 +1589,7 @@ bool Parser::updateSysConstKeyword(const QString& expr)
 	}
 
 	//card\[(?:'([^']*)'|"([^ "]*)"|(\d+))\]\.(\w+)
-	match = rexCard.match(expr);
-	if (match.hasMatch())
+	if (expr.contains("card"))
 	{
 		bret = true;
 		if (!lua_["card"].valid())
@@ -1629,8 +1627,7 @@ bool Parser::updateSysConstKeyword(const QString& expr)
 	}
 
 	//chat\[(?:'([^']*)'|"([^ "]*)"|(\d+))\]
-	match = rexChat.match(expr);
-	if (match.hasMatch())
+	if (expr.contains("chat"))
 	{
 		bret = true;
 		if (!lua_["chat"].valid())
@@ -1659,8 +1656,7 @@ bool Parser::updateSysConstKeyword(const QString& expr)
 	}
 
 	//unit\[(?:'([^']*)'|"([^ "]*)"|(\d+))\]\.(\w+)
-	match = rexUnit.match(expr);
-	if (match.hasMatch())
+	if (expr.contains("unit"))
 	{
 		bret = true;
 		if (!lua_["unit"].valid())
@@ -1715,8 +1711,7 @@ bool Parser::updateSysConstKeyword(const QString& expr)
 	}
 
 	//battle\[(?:'([^']*)'|"([^ "]*)"|(\d+))\]\.(\w+)
-	match = rexBattle.match(expr);
-	if (match.hasMatch())
+	if (expr.contains("battle"))
 	{
 		bret = true;
 		battledata_t battle = injector.server->getBattleData();
@@ -1778,8 +1773,7 @@ bool Parser::updateSysConstKeyword(const QString& expr)
 	}
 
 	//battle\.(\w+)
-	match = rexBattleEx.match(expr);
-	if (match.hasMatch())
+	if (expr.contains("battle"))
 	{
 		bret = true;
 		if (!lua_["battle"].valid())
@@ -1804,8 +1798,7 @@ bool Parser::updateSysConstKeyword(const QString& expr)
 	}
 
 	//dialog\[(?:'([^']*)'|"([^ "]*)"|(\d+))\]
-	match = rexDialog.match(expr);
-	if (match.hasMatch())
+	if (expr.contains("dialog"))
 	{
 		bret = true;
 		if (!lua_["dialog"].valid())
@@ -1842,8 +1835,7 @@ bool Parser::updateSysConstKeyword(const QString& expr)
 	}
 
 	//dialog\.(\w+)
-	match = rexDialogEx.match(expr);
-	if (match.hasMatch())
+	if (expr.contains("dialog"))
 	{
 		bret = true;
 		if (!lua_["dialog"].valid())
@@ -1865,8 +1857,7 @@ bool Parser::updateSysConstKeyword(const QString& expr)
 
 
 	//magic\[(?:'([^']*)'|"([^ "]*)"|(\d+))\]\.(\w+)
-	match = rexMagic.match(expr);
-	if (match.hasMatch())
+	if (expr.contains("magic"))
 	{
 		bret = true;
 
@@ -1892,8 +1883,7 @@ bool Parser::updateSysConstKeyword(const QString& expr)
 	}
 
 	//skill\[(?:'([^']*)'|"([^ "]*)"|(\d+))\]\.(\w+)
-	match = rexSkill.match(expr);
-	if (match.hasMatch())
+	if (expr.contains("skill"))
 	{
 		bret = true;
 
@@ -1923,8 +1913,7 @@ bool Parser::updateSysConstKeyword(const QString& expr)
 	}
 
 	//petskill\[(?:'([^']*)'|"([^ "]*)"|(\d+))\]\[(?:'([^']*)'|"([^ "]*)"|(\d+))\]\.(\w+)
-	match = rexPetSkill.match(expr);
-	if (match.hasMatch())
+	if (expr.contains("petksill"))
 	{
 		bret = true;
 
@@ -1968,8 +1957,7 @@ bool Parser::updateSysConstKeyword(const QString& expr)
 	}
 
 	//petequip\[(?:'([^']*)'|"([^ "]*)"|(\d+))\]\[(?:'([^']*)'|"([^ "]*)"|(\d+))\]\.(\w+)
-	match = rexPetEquip.match(expr);
-	if (match.hasMatch())
+	if (expr.contains("petequip"))
 	{
 		bret = true;
 
@@ -2801,16 +2789,23 @@ QString Parser::getLuaTableString(const sol::table& t, int& deepth)
 	if (deepth <= 0)
 		return "";
 
-	QString ret = "{ ";
+	QString ret = "{\n";
 
 	QStringList results;
 	QStringList strKeyResults;
+
+	QString nowIndent = "";
+	for (int i = 0; i <= 10 - deepth + 1; ++i)
+	{
+		nowIndent += "    ";
+	}
 
 	for (const auto& pair : t)
 	{
 		qint64 nKey = 0;
 		QString key = "";
 		QString value = "";
+
 		if (pair.first.is<qint64>())
 		{
 			nKey = pair.first.as<qint64>() - 1;
@@ -2819,7 +2814,7 @@ QString Parser::getLuaTableString(const sol::table& t, int& deepth)
 			key = QString::fromUtf8(pair.first.as<std::string>().c_str());
 
 		if (pair.second.is<sol::table>())
-			value = getLuaTableString(pair.second.as<sol::table>(), ++deepth);
+			value = getLuaTableString(pair.second.as<sol::table>(), --deepth);
 		else if (pair.second.is<std::string>())
 			value = QString("'%1'").arg(QString::fromUtf8(pair.second.as<std::string>().c_str()));
 		else if (pair.second.is<qint64>())
@@ -2839,10 +2834,10 @@ QString Parser::getLuaTableString(const sol::table& t, int& deepth)
 					results.append("nil");
 			}
 
-			results[nKey] = value;
+			results[nKey] = nowIndent + value;
 		}
 		else
-			strKeyResults.append(QString("%1 = %2").arg(key).arg(value));
+			strKeyResults.append(nowIndent + QString("%1 = %2").arg(key).arg(value));
 	}
 
 	std::sort(strKeyResults.begin(), strKeyResults.end(), [](const QString& a, const QString& b)
@@ -2854,8 +2849,8 @@ QString Parser::getLuaTableString(const sol::table& t, int& deepth)
 
 	results.append(strKeyResults);
 
-	ret += results.join(", ");
-	ret += " }";
+	ret += results.join(",\n");
+	ret += "\n}";
 
 	return ret;
 }
@@ -4211,26 +4206,24 @@ void Parser::processDelay()
 {
 	Injector& injector = Injector::getInstance();
 	qint64 extraDelay = injector.getValueHash(util::kScriptSpeedValue);
-	if (extraDelay > 1000)
+	if (extraDelay > 1000ll)
 	{
 		//將超過1秒的延時分段
-		qint64 i = 0;
-		qint64 size = extraDelay / 1000;
+		qint64 i = 0ll;
+		qint64 size = extraDelay / 1000ll;
 		for (i = 0; i < size; ++i)
 		{
 			if (isInterruptionRequested())
 				return;
-			QThread::msleep(1000);
+			QThread::msleep(1000L);
 		}
-		if (extraDelay % 1000 > 0)
-			QThread::msleep(extraDelay % 1000);
+		if (extraDelay % 1000ll > 0ll)
+			QThread::msleep(extraDelay % 1000ll);
 	}
-	else if (extraDelay > 0)
+	else if (extraDelay > 0ll)
 	{
 		QThread::msleep(extraDelay);
 	}
-
-	QThread::msleep(1);
 }
 
 //處理"遍歷"
@@ -4444,6 +4437,7 @@ void Parser::processTokens()
 		}
 		case TK_CMD:
 		{
+			QThread::msleep(1);
 			qint64 ret = processCommand();
 			switch (ret)
 			{

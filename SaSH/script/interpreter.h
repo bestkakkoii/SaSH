@@ -137,6 +137,7 @@ private: //註冊給Parser的函數
 	qint64 dofile(qint64 currentline, const TokenMap& TK);
 	qint64 createch(qint64 currentline, const TokenMap& TK);
 	qint64 delch(qint64 currentline, const TokenMap& TK);
+	qint64 send(qint64 currentline, const TokenMap& TK);
 
 	//check
 	qint64 ifdaily(qint64 currentline, const TokenMap& TK);

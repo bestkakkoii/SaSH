@@ -901,6 +901,7 @@ void Interpreter::openLibsBIG5()
 	registerFunction(u8"菜單", &Interpreter::menu);
 	registerFunction(u8"創建人物", &Interpreter::createch);
 	registerFunction(u8"刪除人物", &Interpreter::delch);
+	registerFunction(u8"發包", &Interpreter::send);
 
 	//check
 	registerFunction(u8"任務狀態", &Interpreter::ifdaily);
@@ -1023,6 +1024,7 @@ void Interpreter::openLibsGB2312()
 	registerFunction(u8"菜单", &Interpreter::menu);
 	registerFunction(u8"创建人物", &Interpreter::createch);
 	registerFunction(u8"删除人物", &Interpreter::delch);
+	registerFunction(u8"发包", &Interpreter::send);
 
 	//check
 	registerFunction(u8"任务状态", &Interpreter::ifdaily);
@@ -1148,6 +1150,7 @@ void Interpreter::openLibsUTF8()
 	registerFunction(u8"dofile", &Interpreter::dofile);
 	registerFunction(u8"createch", &Interpreter::createch);
 	registerFunction(u8"delch", &Interpreter::delch);
+	registerFunction(u8"send", &Interpreter::send);
 
 	//check
 	registerFunction(u8"ifdaily", &Interpreter::ifdaily);
