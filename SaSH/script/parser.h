@@ -459,6 +459,8 @@ public:
 
 	bool checkString(const TokenMap& TK, qint64 idx, QString* ret);
 	bool checkInteger(const TokenMap& TK, qint64 idx, qint64* ret);
+	bool checkNumber(const TokenMap& TK, qint64 idx, double* ret);
+	bool checkBoolean(const TokenMap& TK, qint64 idx, bool* ret);
 
 	bool toVariant(const TokenMap& TK, qint64 idx, QVariant* ret);
 	bool compare(const QVariant& a, const QVariant& b, RESERVE type) const;
@@ -542,7 +544,7 @@ public:
 		}
 	}
 
-	QString getLuaTableString(const sol::table& t, int& deepth);
+	QString getLuaTableString(const sol::table& t, int& depth);
 
 private:
 	void processTokens();
@@ -583,11 +585,11 @@ private:
 	bool exprTo(QString expr, QString* ret);
 
 	template <typename T>
-	typename std::enable_if<std::is_same<T, qint64>::value || std::is_same<T, qreal>::value || std::is_same<T, QVariant>::value, bool>::type
+	typename std::enable_if<std::is_same<T, qint64>::value || std::is_same<T, double>::value || std::is_same<T, bool>::value || std::is_same<T, QVariant>::value, bool>::type
 		exprTo(QString expr, T* ret);
 
 	template <typename T>
-	typename std::enable_if<std::is_same<T, qint64>::value || std::is_same<T, qreal>::value, bool>::type
+	typename std::enable_if<std::is_same<T, qint64>::value || std::is_same<T, double>::value || std::is_same<T, bool>::value, bool>::type
 		exprCAOSTo(const QString& varName, QString expr, T* ret);
 
 	void handleError(qint64 err, const QString& addition = "");

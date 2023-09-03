@@ -104,9 +104,15 @@ Parser::Parser()
 			if (type == QInputDialog::IntInput)
 				return sol::make_object(s, var.toLongLong());
 			else if (type == QInputDialog::DoubleInput)
-				return sol::make_object(s, static_cast<qint64>(qFloor(var.toDouble())));
+				return sol::make_object(s, var.toDouble());
 			else
+			{
+				QString str = var.toString();
+				if (str.toLower() == "true" || str.toLower() == "false" || str.toLower() == "真" || str.toLower() == "假")
+					return sol::make_object(s, var.toBool());
+
 				return sol::make_object(s, var.toString().toUtf8().constData());
+			}
 		});
 }
 
@@ -234,8 +240,8 @@ bool Parser::compare(const QVariant& a, const QVariant& b, RESERVE type) const
 
 	if (aType == QVariant::Int || aType == QVariant::LongLong || aType == QVariant::Double)
 	{
-		qint64 numA = a.toLongLong();
-		qint64 numB = b.toLongLong();
+		qint64 numA = a.toDouble();
+		qint64 numB = b.toDouble();
 
 		// 根据 type 进行相应的比较操作
 		switch (type)
@@ -366,7 +372,7 @@ bool Parser::exprTo(QString expr, QString* ret)
 	}
 	else if (retObject.is<sol::table>())
 	{
-		int deep = 10;
+		int deep = 50;
 		*ret = getLuaTableString(retObject.as<sol::table>(), deep);
 		return true;
 	}
@@ -375,7 +381,7 @@ bool Parser::exprTo(QString expr, QString* ret)
 
 //取表達式結果
 template <typename T>
-typename std::enable_if<std::is_same<T, qint64>::value || std::is_same<T, qreal>::value || std::is_same<T, QVariant>::value, bool>::type
+typename std::enable_if<std::is_same<T, qint64>::value || std::is_same<T, double>::value || std::is_same<T, bool>::value || std::is_same<T, QVariant>::value, bool>::type
 Parser::exprTo(QString expr, T* ret)
 {
 	if (nullptr == ret)
@@ -411,7 +417,7 @@ Parser::exprTo(QString expr, T* ret)
 
 	if (retObject.is<bool>())
 	{
-		*ret = retObject.as<bool>() ? 1ll : 0ll;
+		*ret = retObject.as<bool>();
 		return true;
 	}
 	else if (retObject.is<std::string>())
@@ -429,7 +435,7 @@ Parser::exprTo(QString expr, T* ret)
 	}
 	else if (retObject.is<double>())
 	{
-		*ret = static_cast<qint64>(qFloor(retObject.as<double>()));
+		*ret = retObject.as<double>();
 		return true;
 	}
 
@@ -438,7 +444,7 @@ Parser::exprTo(QString expr, T* ret)
 
 //取表達式結果 += -= *= /= %= ^=
 template <typename T>
-typename std::enable_if<std::is_same<T, qint64>::value || std::is_same<T, qreal>::value, bool>::type
+typename std::enable_if<std::is_same<T, qint64>::value || std::is_same<T, double>::value || std::is_same<T, bool>::value, bool>::type
 Parser::exprCAOSTo(const QString& varName, QString expr, T* ret)
 {
 	if (nullptr == ret)
@@ -486,7 +492,7 @@ Parser::exprCAOSTo(const QString& varName, QString expr, T* ret)
 	}
 	else if (retObject.is<double>())
 	{
-		*ret = static_cast<qint64>(qFloor(retObject.as<double>()));
+		*ret = retObject.as<double>();
 		return true;
 	}
 
@@ -518,29 +524,7 @@ bool Parser::checkString(const TokenMap& TK, qint64 idx, QString* ret)
 	}
 	else if (type == TK_STRING || type == TK_CMD || type == TK_NAME || type == TK_LABELVAR || type == TK_CAOS)
 	{
-		////檢查是否為區域變量
-		//QVariantHash args = getLocalVars();
-		//QString varName = var.toString();
-		//if (args.contains(varName))
-		//{
-		//	QVariant::Type vtype = args.value(varName).type();
-		//	if (vtype != QVariant::Int && vtype != QVariant::LongLong && vtype != QVariant::Double && vtype != QVariant::String)
-		//		return false;
-		//	*ret = args.value(varName).toString();
-		//	return true;
-		//}
-		//else if (isGlobalVarContains(varName))
-		//{
-		//	var = getGlobalVarValue(varName);
-		//	if (var.type() == QVariant::List)
-		//		return false;
-		//	*ret = var.toString();
-		//}
-		//else
-		//{
-		//}
-
-		* ret = var.toString();
+		*ret = var.toString();
 
 		importVariablesToLua(*ret);
 
@@ -581,64 +565,167 @@ bool Parser::checkInteger(const TokenMap& TK, qint64 idx, qint64* ret)
 		qint64 value = var.toLongLong(&ok);
 		if (!ok)
 			return false;
+
 		*ret = value;
+		return true;
 	}
 	else if (type == TK_STRING || type == TK_CMD || type == TK_NAME || type == TK_LABELVAR || type == TK_CAOS)
 	{
-		////檢查是否為區域變量
-		//QVariantHash args = getLocalVars();
-		//QString varName = var.toString();
-		//if (args.contains(varName)
-		//	&& (args.value(varName).type() == QVariant::Int
-		//		|| args.value(varName).type() == QVariant::LongLong
-		//		|| args.value(varName).type() == QVariant::Double))
-		//{
-		//	*ret = args.value(varName).toLongLong();
-		//}
-		//else if (args.contains(varName) && args.value(varName).type() == QVariant::String)
-		//{
-		//	bool ok;
-		//	qint64 value = args.value(varName).toLongLong(&ok);
-		//	if (ok)
-		//		*ret = value;
-		//	else
-		//		return false;
-		//	return true;
-		//}
-		//else if (isGlobalVarContains(varName))
-		//{
-		//	QVariant gVar = getGlobalVarValue(varName);
-		//	if (gVar.type() == QVariant::Int || gVar.type() == QVariant::LongLong || gVar.type() == QVariant::Double)
-		//	{
-		//		bool ok;
-		//		qint64 value = gVar.toLongLong(&ok);
-		//		if (ok)
-		//			*ret = value;
-		//		else
-		//			return false;
-		//	}
-		//	else
-		//		return false;
-		//}
-		//else
-		//{
-		//}
-
 		QString varValueStr = var.toString();
 
 		importVariablesToLua(varValueStr);
 
-		qint64 value = 0;
+		QVariant value;
 		if (!exprTo(varValueStr, &value))
 			return false;
 
-		*ret = value;
+		if (value.type() == QVariant::LongLong || value.type() == QVariant::Int)
+		{
+			*ret = value.toLongLong();
+			return true;
+		}
+		else if (value.type() == QVariant::Double)
+		{
+			*ret = value.toDouble();
+			return true;
+		}
+		else if (value.type() == QVariant::Bool)
+		{
+			*ret = value.toBool() ? 1ll : 0ll;
+			return true;
+		}
+		else
+			return false;
 	}
-	else
+
+	if (type == TK_BOOL)
+	{
+		bool value = var.toBool();
+
+		*ret = value ? 1ll : 0ll;
+		return true;
+	}
+	else if (type == TK_DOUBLE)
+	{
+		bool ok = false;
+		double value = var.toDouble(&ok);
+		if (!ok)
+			return false;
+
+		*ret = value;
+		return true;
+	}
+	else if (type == TK_STRING || type == TK_CMD || type == TK_NAME || type == TK_LABELVAR || type == TK_CAOS)
+	{
+		QString varValueStr = var.toString();
+
+		importVariablesToLua(varValueStr);
+
+		QVariant value;
+		if (!exprTo(varValueStr, &value))
+			return false;
+
+		if (value.type() == QVariant::LongLong || value.type() == QVariant::Int)
+		{
+			*ret = value.toLongLong();
+			return true;
+		}
+	}
+
+	return false;
+}
+
+bool Parser::checkNumber(const TokenMap& TK, qint64 idx, double* ret)
+{
+	if (!TK.contains(idx))
+		return false;
+	if (ret == nullptr)
 		return false;
 
+	RESERVE type = TK.value(idx).type;
+	QVariant var = TK.value(idx).data;
 
-	return true;
+	if (!var.isValid())
+		return false;
+	if (type == TK_CSTRING)
+		return false;
+	else if ((var.toString().startsWith("\'") || var.toString().startsWith("\""))
+		&& (var.toString().endsWith("\'") || var.toString().endsWith("\"")))
+		return false;
+
+	if (type == TK_DOUBLE && var.type() == QVariant::Double)
+	{
+		bool ok = false;
+		double value = var.toDouble(&ok);
+		if (!ok)
+			return false;
+
+		*ret = value;
+		return true;
+	}
+	else if (type == TK_STRING || type == TK_CMD || type == TK_NAME || type == TK_LABELVAR || type == TK_CAOS)
+	{
+		QString varValueStr = var.toString();
+
+		importVariablesToLua(varValueStr);
+
+		QVariant value;
+		if (!exprTo(varValueStr, &value))
+			return false;
+
+		if (value.type() == QVariant::Double)
+		{
+			*ret = value.toDouble();
+			return true;
+		}
+	}
+
+	return false;
+}
+
+bool Parser::checkBoolean(const TokenMap& TK, qint64 idx, bool* ret)
+{
+	if (!TK.contains(idx))
+		return false;
+	if (ret == nullptr)
+		return false;
+
+	RESERVE type = TK.value(idx).type;
+	QVariant var = TK.value(idx).data;
+
+	if (!var.isValid())
+		return false;
+	if (type == TK_CSTRING)
+		return false;
+	else if ((var.toString().startsWith("\'") || var.toString().startsWith("\""))
+		&& (var.toString().endsWith("\'") || var.toString().endsWith("\"")))
+		return false;
+
+	if (type == TK_BOOL && var.type() == QVariant::Bool)
+	{
+		bool value = var.toBool();
+
+		*ret = value;
+		return true;
+	}
+	else if (type == TK_STRING || type == TK_CMD || type == TK_NAME || type == TK_LABELVAR || type == TK_CAOS)
+	{
+		QString varValueStr = var.toString();
+
+		importVariablesToLua(varValueStr);
+
+		QVariant value;
+		if (!exprTo(varValueStr, &value))
+			return false;
+
+		if (value.type() == QVariant::Bool)
+		{
+			*ret = value.toBool();
+			return true;
+		}
+	}
+
+	return false;
 }
 
 //嘗試取指定位置的token轉為QVariant
@@ -656,33 +743,6 @@ bool Parser::toVariant(const TokenMap& TK, qint64 idx, QVariant* ret)
 
 	if (type == TK_STRING || type == TK_CMD || type == TK_NAME || type == TK_LABELVAR || type == TK_CAOS)
 	{
-		//QVariantHash args = getLocalVars();
-		//QString varName = var.toString();
-		//if (args.contains(varName))
-		//{
-		//	QVariant::Type vtype = args.value(varName).type();
-		//	if (vtype == QVariant::Int || vtype == QVariant::LongLong || vtype == QVariant::Double || vtype == QVariant::String)
-		//		*ret = args.value(varName).toString();
-		//	else
-		//		return false;
-		//	return true;
-		//}
-		//else if (isGlobalVarContains(varName))
-		//{
-		//	QVariant gVar = getGlobalVarValue(varName);
-		//	bool ok;
-		//	qint64 value = gVar.toLongLong(&ok);
-		//	if (ok)
-		//		*ret = value;
-		//	else
-		//	{
-		//		*ret = gVar.toString();
-		//	}
-		//}
-		//else
-		//{
-		//}
-
 		QString s = var.toString();
 
 		importVariablesToLua(s);
@@ -695,6 +755,22 @@ bool Parser::toVariant(const TokenMap& TK, qint64 idx, QVariant* ret)
 			*ret = exprStrUTF8;
 		else
 			*ret = var;
+	}
+	else if (type == TK_BOOL)
+	{
+		bool ok = false;
+		qint64 value = var.toLongLong(&ok);
+		if (!ok)
+			return false;
+		*ret = value;
+	}
+	else if (type == TK_DOUBLE)
+	{
+		bool ok = false;
+		double value = var.toDouble(&ok);
+		if (!ok)
+			return false;
+		*ret = value;
 	}
 	else
 	{
@@ -710,8 +786,18 @@ QVariant Parser::checkValue(const TokenMap TK, qint64 idx, QVariant::Type type)
 	QVariant varValue;
 	qint64 ivalue;
 	QString text;
+	bool bvalue;
+	double dvalue;
 
-	if (checkInteger(currentLineTokens_, idx, &ivalue))
+	if (checkBoolean(currentLineTokens_, idx, &bvalue))
+	{
+		varValue = bvalue;
+	}
+	else if (checkNumber(currentLineTokens_, idx, &dvalue))
+	{
+		varValue = dvalue;
+	}
+	else if (checkInteger(currentLineTokens_, idx, &ivalue))
 	{
 		varValue = ivalue;
 	}
@@ -723,6 +809,10 @@ QVariant Parser::checkValue(const TokenMap TK, qint64 idx, QVariant::Type type)
 	{
 		if (type == QVariant::String)
 			varValue = "";
+		else if (type == QVariant::Double)
+			varValue = 0.0;
+		else if (type == QVariant::Bool)
+			varValue = false;
 		else
 			varValue = 0ll;
 	}
@@ -770,7 +860,7 @@ qint64 Parser::checkJump(const TokenMap& TK, qint64 idx, bool expr, JumpBehavior
 					if (label.endsWith("'") || label.endsWith("\""))
 						label = label.left(label.length() - 1);
 				}
-				else if (type == QVariant::Int || type == QVariant::LongLong || type == QVariant::Double)
+				else if (type == QVariant::Int || type == QVariant::LongLong || type == QVariant::Double || type == QVariant::Bool)
 				{
 					bool ok = false;
 					qint64 value = 0;
@@ -815,9 +905,9 @@ void Parser::checkArgs()
 		for (qint64 i = kCallPlaceHoldSize; i < size; ++i)
 		{
 			Token token = TK.value(i);
-			QVariant var = checkValue(TK, i, QVariant::Int);
+			QVariant var = checkValue(TK, i, QVariant::LongLong);
 			if (!var.isValid())
-				var = 0ll;
+				var = false;
 
 			if (token.type != TK_FUZZY)
 				list.append(var);
@@ -833,6 +923,7 @@ void Parser::checkArgs()
 //檢查是否使用問號關鍵字
 bool Parser::checkFuzzyValue(const QString& varName, QVariant* pvalue)
 {
+#if 0
 	QVariant varValue = currentLineTokens_.value(1).data;
 	if (!varValue.isValid())
 		return false;
@@ -923,6 +1014,7 @@ bool Parser::checkFuzzyValue(const QString& varName, QVariant* pvalue)
 
 	*pvalue = varValue;
 	insertVar(varName, varValue);
+#endif
 	return true;
 }
 
@@ -986,14 +1078,16 @@ void Parser::insertLocalVar(const QString& name, const QVariant& value)
 	if (value.isValid())
 	{
 		QVariant::Type type = value.type();
-		if (type != QVariant::LongLong && type != QVariant::String && type != QVariant::List)
+		if (type != QVariant::LongLong && type != QVariant::String
+			&& type != QVariant::Double
+			&& type != QVariant::Int && type != QVariant::Bool)
 		{
 			bool ok = false;
 			qint64 val = value.toLongLong(&ok);
 			if (ok)
 				hash.insert(name, val);
 			else
-				hash.insert(name, 0ll);
+				hash.insert(name, false);
 			return;
 		}
 		hash.insert(name, value);
@@ -1013,14 +1107,16 @@ void Parser::insertGlobalVar(const QString& name, const QVariant& value)
 		if (value.isValid())
 		{
 			QVariant::Type type = value.type();
-			if (type != QVariant::LongLong && type != QVariant::String && type != QVariant::List)
+			if (type != QVariant::LongLong && type != QVariant::String
+				&& type != QVariant::Double
+				&& type != QVariant::Int && type != QVariant::Bool)
 			{
 				bool ok = false;
 				qint64 val = value.toLongLong(&ok);
 				if (ok)
 					variables_->insert(name, val);
 				else
-					variables_->insert(name, 0ll);
+					variables_->insert(name, false);
 				return;
 			}
 			variables_->insert(name, value);
@@ -1063,7 +1159,7 @@ bool Parser::importVariablesToLua(const QString& expr)
 			if (!value.startsWith("{") && !value.endsWith("}"))
 			{
 				bool ok = false;
-				it.value().toInt(&ok);
+				it.value().toLongLong(&ok);
 				if (!ok || value.isEmpty())
 					lua_.set(keyBytes.constData(), value.toUtf8().constData());
 				else
@@ -1076,6 +1172,10 @@ bool Parser::importVariablesToLua(const QString& expr)
 				lua_.safe_script(contentBytes);
 			}
 		}
+		else if (it.value().type() == QVariant::Double)
+			lua_.set(keyBytes.constData(), it.value().toDouble());
+		else if (it.value().type() == QVariant::Bool)
+			lua_.set(keyBytes.constData(), it.value().toBool());
 		else
 			lua_.set(keyBytes.constData(), it.value().toLongLong());
 	}
@@ -1086,7 +1186,8 @@ bool Parser::importVariablesToLua(const QString& expr)
 	{
 		QString key = it.key();
 		QString value = it.value().toString();
-		if (it.value().type() == QVariant::String && !value.startsWith("{") && !value.endsWith("}"))
+		QVariant::Type type = it.value().type();
+		if (type == QVariant::String && !value.startsWith("{") && !value.endsWith("}"))
 		{
 			bool ok = false;
 			it.value().toInt(&ok);
@@ -1094,6 +1195,11 @@ bool Parser::importVariablesToLua(const QString& expr)
 			if (!ok || value.isEmpty())
 				value = QString("'%1'").arg(value);
 		}
+		else if (type == QVariant::Double)
+			value = QString("%1").arg(QString::number(it.value().toDouble(), 'f', 16));
+		else if (type == QVariant::Bool)
+			value = QString("%1").arg(it.value().toBool() ? "true" : "false");
+
 		QString local = QString("local %1 = %2;").arg(key).arg(value);
 		localVarList.append(local);
 	}
@@ -1323,7 +1429,7 @@ bool Parser::updateSysConstKeyword(const QString& expr)
 			QString str = hash.key(state, "");
 			lua_["pet"][index]["state"] = str.toUtf8().constData();
 
-			lua_["pet"][index]["power"] = qFloor((static_cast<double>(pet.atk + pet.def + pet.agi) + (static_cast<double>(pet.maxHp) / 4.0)));
+			lua_["pet"][index]["power"] = (static_cast<double>(pet.atk + pet.def + pet.agi) + (static_cast<double>(pet.maxHp) / 4.0));
 		}
 	}
 
@@ -2191,8 +2297,12 @@ void Parser::replaceToVariable(QString& expr)
 
 		if (value.type() == QVariant::String)
 			expr.replace(VAR_REPLACE_PLACEHOLD, QString(R"('%1')").arg(value.toString().trimmed()));
-		else if (value.type() == QVariant::Int || value.type() == QVariant::LongLong || value.type() == QVariant::Double)
+		else if (value.type() == QVariant::Int || value.type() == QVariant::LongLong)
 			expr.replace(VAR_REPLACE_PLACEHOLD, QString::number(value.toLongLong()));
+		else if (value.type() == QVariant::Double)
+			expr.replace(VAR_REPLACE_PLACEHOLD, QString::number(value.toDouble(), 'f', 16));
+		else if (value.type() == QVariant::Bool)
+			expr.replace(VAR_REPLACE_PLACEHOLD, value.toBool() ? "1" : "0");
 
 		if (!oldText.isEmpty())
 		{
@@ -2259,8 +2369,12 @@ void Parser::replaceToVariable(QString& expr)
 
 		if (value.type() == QVariant::String && !isTextWrapped(expr, name))
 			expr.replace(VAR_REPLACE_PLACEHOLD, QString(R"('%1')").arg(value.toString().trimmed()));
-		else if (value.type() == QVariant::Int || value.type() == QVariant::LongLong || value.type() == QVariant::Double)
+		else if (value.type() == QVariant::Int || value.type() == QVariant::LongLong)
 			expr.replace(VAR_REPLACE_PLACEHOLD, QString::number(value.toLongLong()));
+		else if (value.type() == QVariant::Double)
+			expr.replace(VAR_REPLACE_PLACEHOLD, QString::number(value.toDouble(), 'f', 16));
+		else if (value.type() == QVariant::Bool)
+			expr.replace(VAR_REPLACE_PLACEHOLD, value.toBool() ? "1" : "0");
 
 		if (!oldText.isEmpty())
 		{
@@ -2408,7 +2522,7 @@ void Parser::recordFunctionChunks()
 	for (auto it = functionChunks_.cbegin(); it != functionChunks_.cend(); ++it)
 		qDebug() << it.key() << it.value().name << it.value().begin << it.value().end;
 #endif
-	}
+}
 
 //更新並記錄每個 for 塊的開始行和結束行
 void Parser::recordForChunks()
@@ -2536,7 +2650,7 @@ void Parser::processLabel()
 				}
 				else if (labelName.contains("double ", Qt::CaseInsensitive) && (type == QVariant::Type::Double))
 				{
-					labelVars.insert(labelName.replace("double ", "", Qt::CaseInsensitive), static_cast<qint64>(qFloor(currnetVar.toDouble())));
+					labelVars.insert(labelName.replace("double ", "", Qt::CaseInsensitive), currnetVar.toDouble());
 				}
 				else if (labelName.contains("string ", Qt::CaseInsensitive) && type == QVariant::Type::String)
 				{
@@ -2552,7 +2666,7 @@ void Parser::processLabel()
 				else if (labelName.contains("bool ", Qt::CaseInsensitive)
 					&& (type == QVariant::Type::Int || type == QVariant::Type::LongLong || type == QVariant::Type::Bool))
 				{
-					labelVars.insert(labelName.replace("bool ", "", Qt::CaseInsensitive), currnetVar.toLongLong() > 0 ? 1ll : 0ll);
+					labelVars.insert(labelName.replace("bool ", "", Qt::CaseInsensitive), currnetVar.toBool());
 				}
 				else
 				{
@@ -2800,10 +2914,12 @@ void Parser::processMultiVariable()
 	}
 }
 
-QString Parser::getLuaTableString(const sol::table& t, int& deepth)
+QString Parser::getLuaTableString(const sol::table& t, int& depth)
 {
-	if (deepth <= 0)
+	if (depth <= 0)
 		return "";
+
+	--depth;
 
 	QString ret = "{\n";
 
@@ -2811,7 +2927,7 @@ QString Parser::getLuaTableString(const sol::table& t, int& deepth)
 	QStringList strKeyResults;
 
 	QString nowIndent = "";
-	for (int i = 0; i <= 10 - deepth + 1; ++i)
+	for (int i = 0; i <= 10 - depth + 1; ++i)
 	{
 		nowIndent += "    ";
 	}
@@ -2830,13 +2946,13 @@ QString Parser::getLuaTableString(const sol::table& t, int& deepth)
 			key = QString::fromUtf8(pair.first.as<std::string>().c_str());
 
 		if (pair.second.is<sol::table>())
-			value = getLuaTableString(pair.second.as<sol::table>(), --deepth);
+			value = getLuaTableString(pair.second.as<sol::table>(), depth);
 		else if (pair.second.is<std::string>())
 			value = QString("'%1'").arg(QString::fromUtf8(pair.second.as<std::string>().c_str()));
 		else if (pair.second.is<qint64>())
 			value = QString::number(pair.second.as<qint64>());
 		else if (pair.second.is<double>())
-			value = QString::number(qFloor(pair.second.as<double>()));
+			value = QString::number(pair.second.as<double>(), 'f', 16);
 		else if (pair.second.is<bool>())
 			value = pair.second.as<bool>() ? "true" : "false";
 		else
@@ -2928,8 +3044,8 @@ void Parser::processTableSet()
 		if (!retObject.is<sol::table>())
 			return;
 
-		int deepth = 10;
-		QString resultStr = getLuaTableString(retObject.as<sol::table>(), deepth);
+		int depth = 10;
+		QString resultStr = getLuaTableString(retObject.as<sol::table>(), depth);
 		if (resultStr.isEmpty())
 			return;
 
@@ -2968,8 +3084,8 @@ void Parser::processTableSet()
 		if (!retObject.is<sol::table>())
 			return;
 
-		int deepth = 10;
-		QString resultStr = getLuaTableString(retObject.as<sol::table>(), deepth);
+		int depth = 50;
+		QString resultStr = getLuaTableString(retObject.as<sol::table>(), depth);
 		if (resultStr.isEmpty())
 			return;
 
@@ -3062,7 +3178,16 @@ void Parser::processVariableCAOs()
 	opStr.replace("=", "");
 
 	qint64 value = 0;
-	QString expr = QString("%1 %2").arg(opStr).arg(varSecond.toLongLong());
+	QString expr = "";
+	if (typeFirst == QVariant::Int || typeFirst == QVariant::LongLong)
+		expr = QString("%1 %2").arg(opStr).arg(varSecond.toLongLong());
+	else if (typeFirst == QVariant::Double)
+		expr = QString("%1 %2").arg(opStr).arg(varSecond.toDouble());
+	else if (typeFirst == QVariant::Bool)
+		expr = QString("%1 %2").arg(opStr).arg(varSecond.toBool() ? 1 : 0);
+	else
+		return;
+
 	if (!exprCAOSTo(varName, expr, &value))
 		return;
 	insertVar(varName, value);
@@ -3084,9 +3209,23 @@ void Parser::processVariableExpr()
 	QVariant::Type type = varValue.type();
 
 	QVariant result;
-	if (type == QVariant::Int || type == QVariant::LongLong || type == QVariant::Double)
+	if (type == QVariant::Int || type == QVariant::LongLong)
 	{
 		qint64 value = 0;
+		if (!exprTo(expr, &value))
+			return;
+		result = value;
+	}
+	else if (type == QVariant::Double)
+	{
+		double value = 0;
+		if (!exprTo(expr, &value))
+			return;
+		result = value;
+	}
+	else if (type == QVariant::Bool)
+	{
+		bool value = false;
 		if (!exprTo(expr, &value))
 			return;
 		result = value;
@@ -3883,14 +4022,10 @@ bool Parser::processIfCompare()
 
 	insertGlobalVar("_IFEXPR", expr);
 
-	qint64 nvalue = 0;
 	bool result = false;
-	if (exprTo(expr, &nvalue))
-	{
-		result = nvalue != 0;
-	}
+	exprTo(expr, &result);
 
-	insertGlobalVar("_IFRESULT", nvalue);
+	insertGlobalVar("_IFRESULT", result);
 
 	return checkJump(currentLineTokens_, 2, result, SuccessJump) == kHasJump;
 }
@@ -4144,7 +4279,7 @@ bool Parser::processGoto()
 		{
 			QVariant var = checkValue(currentLineTokens_, 1, QVariant::LongLong);
 			QVariant::Type type = var.type();
-			if (type == QVariant::Int || type == QVariant::LongLong || type == QVariant::Double)
+			if (type == QVariant::Int || type == QVariant::LongLong || type == QVariant::Double || type == QVariant::Bool)
 			{
 				qint64 jumpLineCount = var.toLongLong();
 				if (jumpLineCount == 0)

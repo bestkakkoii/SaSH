@@ -226,14 +226,21 @@ qint64 Interpreter::announce(qint64 currentline, const TokenMap& TK)
 	Injector& injector = Injector::getInstance();
 
 	QString text;
-	qint64 value = 0;
-	if (!checkInteger(TK, 1, &value))
+	qreal number = 0.0;
+	bool boolean = false;
+
+	if (checkNumber(TK, 1, &number))
 	{
-		if (!checkString(TK, 1, &text))
-			return Parser::kArgError + 1ll;
+		text = QString::number(number, 'f', 16);
 	}
-	else
-		text = QString::number(value);
+	else if (checkBoolean(TK, 1, &boolean))
+	{
+		text = boolean ? "true" : "false";
+	}
+	else if (!checkString(TK, 1, &text))
+	{
+		text = TK.value(1).data.toString();
+	}
 
 	qint64 color = 4;
 	checkInteger(TK, 2, &color);
@@ -264,14 +271,21 @@ qint64 Interpreter::input(qint64 currentline, const TokenMap& TK)
 		return Parser::kServerNotReady;
 
 	QString text;
-	qint64 value = 0;
-	if (!checkInteger(TK, 1, &value))
+	qreal number = 0.0;
+	bool boolean = false;
+
+	if (checkNumber(TK, 1, &number))
 	{
-		if (!checkString(TK, 1, &text))
-			return Parser::kArgError + 1ll;
+		text = QString::number(number, 'f', 16);
 	}
-	else
-		text = QString::number(value);
+	else if (checkBoolean(TK, 1, &boolean))
+	{
+		text = boolean ? "true" : "false";
+	}
+	else if (!checkString(TK, 1, &text))
+	{
+		text = TK.value(1).data.toString();
+	}
 
 	QString npcName;
 	qint64 npcId = -1;
@@ -293,14 +307,21 @@ qint64 Interpreter::input(qint64 currentline, const TokenMap& TK)
 qint64 Interpreter::messagebox(qint64 currentline, const TokenMap& TK)
 {
 	QString text;
-	qint64 value = 0;
-	if (!checkInteger(TK, 1, &value))
+	qreal number = 0.0;
+	bool boolean = false;
+
+	if (checkNumber(TK, 1, &number))
 	{
-		if (!checkString(TK, 1, &text))
-			return Parser::kArgError + 1ll;
+		text = QString::number(number, 'f', 16);
 	}
-	else
-		text = QString::number(value);
+	else if (checkBoolean(TK, 1, &boolean))
+	{
+		text = boolean ? "true" : "false";
+	}
+	else if (!checkString(TK, 1, &text))
+	{
+		text = TK.value(1).data.toString();
+	}
 
 	qint64 type = 0;
 	checkInteger(TK, 2, &type);
@@ -334,14 +355,21 @@ qint64 Interpreter::talk(qint64 currentline, const TokenMap& TK)
 		return Parser::kServerNotReady;
 
 	QString text;
-	qint64 value = 0;
-	if (!checkInteger(TK, 1, &value))
+	qreal number = 0.0;
+	bool boolean = false;
+
+	if (checkNumber(TK, 1, &number))
 	{
-		if (!checkString(TK, 1, &text))
-			return Parser::kArgError + 1ll;
+		text = QString::number(number, 'f', 16);
 	}
-	else
-		text = QString::number(value);
+	else if (checkBoolean(TK, 1, &boolean))
+	{
+		text = boolean ? "true" : "false";
+	}
+	else if (!checkString(TK, 1, &text))
+	{
+		text = TK.value(1).data.toString();
+	}
 
 	qint64 color = 4;
 	checkInteger(TK, 2, &color);

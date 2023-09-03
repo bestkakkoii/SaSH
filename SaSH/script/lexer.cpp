@@ -785,21 +785,21 @@ void Lexer::tokenized(qint64 currentLine, const QString& line, TokenMap* ptoken,
 			}
 			else if (type == TK_BOOL)
 			{
-				type = TK_INT;
+				type = TK_BOOL;
 				//真為1，假為0, true為1，false為0
 				if (token.toLower() == "true" || token == "真")
-					data = QVariant::fromValue(1ll);
+					data = QVariant::fromValue(true);
 				else if (token.toLower() == "false" || token == "假")
-					data = QVariant::fromValue(0ll);
+					data = QVariant::fromValue(false);
 			}
 			else if (type == TK_DOUBLE)//對雙精度浮點數進行強制轉INT處理
 			{
 				bool ok;
-				qint64 floatValue = token.toLongLong(&ok);
+				double floatValue = token.toDouble(&ok);
 				if (ok)
 				{
 					data = QVariant::fromValue(floatValue);
-					type = TK_INT;
+					type = TK_DOUBLE;
 				}
 			}
 			else if (type == TK_CSTRING)//對常量字串進行轉換處理，去除首尾單引號、雙引號，並標記為常量字串

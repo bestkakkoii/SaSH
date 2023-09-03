@@ -330,10 +330,10 @@ bool Interpreter::readFile(const QString& fileName, QString* pcontent, bool* isP
 		return false;
 
 	QString c;
-	if (fileName.endsWith(util::SCRIPT_SUFFIX_DEFAULT))
+	if (fileName.endsWith(util::SCRIPT_DEFAULT_SUFFIX))
 	{
 		QTextStream in(&f);
-		in.setCodec(util::CODEPAGE_DEFAULT);
+		in.setCodec(util::DEFAULT_CODEPAGE);
 		c = in.readAll();
 		c.replace("\r\n", "\n");
 		if (isPrivate != nullptr)
@@ -385,6 +385,18 @@ bool Interpreter::checkString(const TokenMap& TK, qint64 idx, QString* ret)
 bool Interpreter::checkInteger(const TokenMap& TK, qint64 idx, qint64* ret)
 {
 	return parser_.checkInteger(TK, idx, ret);
+}
+
+//嘗試取指定位置的token轉為 double
+bool Interpreter::checkNumber(const TokenMap& TK, qint64 idx, double* ret)
+{
+	return parser_.checkNumber(TK, idx, ret);
+}
+
+//嘗試取指定位置的token轉為 bool
+bool Interpreter::checkBoolean(const TokenMap& TK, qint64 idx, bool* ret)
+{
+	return parser_.checkBoolean(TK, idx, ret);
 }
 
 //嘗試取指定位置的token轉為QVariant

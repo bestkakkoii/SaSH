@@ -247,7 +247,7 @@ qint64 CLuaSystem::messagebox(sol::object ostr, sol::object otype, sol::this_sta
 qint64 CLuaSystem::talk(sol::object ostr, sol::this_state s)
 {
 	Injector& injector = Injector::getInstance();
-	if (!injector.server.isNull())
+	if (injector.server.isNull())
 		return FALSE;
 
 	QString text;

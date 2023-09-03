@@ -100,6 +100,8 @@ private:
 	bool waitfor(qint64 timeout, std::function<bool()> exprfun);
 	bool checkString(const TokenMap& TK, qint64 idx, QString* ret);
 	bool checkInteger(const TokenMap& TK, qint64 idx, qint64* ret);
+	bool checkNumber(const TokenMap& TK, qint64 idx, double* ret);
+	bool checkBoolean(const TokenMap& TK, qint64 idx, bool* ret);
 	bool toVariant(const TokenMap& TK, qint64 idx, QVariant* ret);
 
 	qint64 checkJump(const TokenMap& TK, qint64 idx, bool expr, JumpBehavior behavior);

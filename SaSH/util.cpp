@@ -393,7 +393,7 @@ QFileInfoList util::loadAllFileLists(TreeWidgetItem* root, const QString& path, 
 	QDir dir_file(path); //遍歷子目錄中所有文件
 	dir_file.setFilter(QDir::Files | QDir::Hidden | QDir::NoSymLinks); //獲取當前所有文件
 	dir_file.setSorting(QDir::Size | QDir::Reversed);
-	const QStringList filters = { QString("*%1").arg(util::SCRIPT_SUFFIX_DEFAULT), QString("*%1").arg(util::SCRIPT_PRIVATE_SUFFIX_DEFAULT) };
+	const QStringList filters = { QString("*%1").arg(util::SCRIPT_DEFAULT_SUFFIX), QString("*%1").arg(util::SCRIPT_PRIVATE_SUFFIX_DEFAULT) };
 	dir_file.setNameFilters(filters);
 	QFileInfoList list_file = dir_file.entryInfoList();
 	for (const QFileInfo& item : list_file)
@@ -651,7 +651,7 @@ bool mem::write(HANDLE hProcess, DWORD baseAddress, T data)
 bool mem::writeString(HANDLE hProcess, DWORD baseAddress, const QString& str)
 {
 	if (!hProcess) return FALSE;
-	QTextCodec* codec = QTextCodec::codecForMib(2025);//QTextCodec::codecForName("gb2312");
+	QTextCodec* codec = QTextCodec::codecForName(util::DEFAULT_GAME_CODEPAGE);//QTextCodec::codecForMib(2025);//
 	QByteArray ba = codec->fromUnicode(str);
 	ba.append('\0');
 	char* pBuffer = ba.data();

@@ -362,7 +362,7 @@ int main(int argc, char* argv[])
 	SetConsoleCP(CP_UTF8);
 	SetConsoleOutputCP(CP_UTF8);
 	setlocale(LC_ALL, "en_US.UTF-8");
-	QTextCodec* codec = QTextCodec::codecForName("utf-8");
+	QTextCodec* codec = QTextCodec::codecForName(util::DEFAULT_CODEPAGE);
 	QTextCodec::setCodecForLocale(codec);
 
 	QOperatingSystemVersion version = QOperatingSystemVersion::current();

@@ -138,7 +138,7 @@ void ScriptForm::onScriptStarted()
 	if (injector.currentScriptFileName.isEmpty())
 		return;
 
-	if (!injector.currentScriptFileName.contains(util::SCRIPT_SUFFIX_DEFAULT)
+	if (!injector.currentScriptFileName.contains(util::SCRIPT_DEFAULT_SUFFIX)
 		&& !injector.currentScriptFileName.contains(util::SCRIPT_PRIVATE_SUFFIX_DEFAULT))
 		return;
 
@@ -320,7 +320,7 @@ void ScriptForm::loadFile(const QString& fileName)
 	if (fileName.isEmpty())
 		return;
 
-	if (!fileName.contains(util::SCRIPT_SUFFIX_DEFAULT) && !fileName.contains(util::SCRIPT_PRIVATE_SUFFIX_DEFAULT))
+	if (!fileName.contains(util::SCRIPT_DEFAULT_SUFFIX) && !fileName.contains(util::SCRIPT_PRIVATE_SUFFIX_DEFAULT))
 		return;
 
 	if (interpreter_.isNull())

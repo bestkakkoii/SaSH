@@ -817,7 +817,7 @@ void ScriptSettingForm::fileSave(const QString& d, DWORD flag)
 		return;
 
 	QTextStream ts(&file);
-	ts.setCodec(util::CODEPAGE_DEFAULT);
+	ts.setCodec(util::DEFAULT_CODEPAGE);
 	ts.setGenerateByteOrderMark(true);
 	ts.setLocale(QLocale::Chinese);
 
@@ -966,7 +966,7 @@ void ScriptSettingForm::loadFile(const QString& fileName)
 	int scollValue = ui.widget->verticalScrollBar()->value();
 
 	QTextStream in(&f);
-	in.setCodec(util::CODEPAGE_DEFAULT);
+	in.setCodec(util::DEFAULT_CODEPAGE);
 	QString c = in.readAll();
 	c.replace("\r\n", "\n");
 
@@ -1156,7 +1156,7 @@ void ScriptSettingForm::onActionTriggered()
 			if (file.open(QIODevice::WriteOnly | QIODevice::Truncate))
 			{
 				QTextStream ts(&file);
-				ts.setCodec(util::CODEPAGE_DEFAULT);
+				ts.setCodec(util::DEFAULT_CODEPAGE);
 				ts.setGenerateByteOrderMark(true);
 				ts << ui.widget->text() << Qt::endl;
 				file.flush();
@@ -1201,7 +1201,7 @@ void ScriptSettingForm::onActionTriggered()
 				if (file.open(QIODevice::WriteOnly | QIODevice::Truncate))
 				{
 					QTextStream ts(&file);
-					ts.setCodec(util::CODEPAGE_DEFAULT);
+					ts.setCodec(util::DEFAULT_CODEPAGE);
 					ts.setGenerateByteOrderMark(true);
 					ts << "" << Qt::endl;
 					file.flush();
@@ -1530,7 +1530,7 @@ void ScriptSettingForm::varInfoImport(QTreeWidget* tree, const QHash<QString, QV
 			case QVariant::Double:
 			{
 				varType = tr("Double");
-				varValueStr = QString::number(var.toDouble(), 'f', 8);
+				varValueStr = QString::number(var.toDouble(), 'f', 5);
 				break;
 			}
 			case QVariant::String:
@@ -1546,7 +1546,7 @@ void ScriptSettingForm::varInfoImport(QTreeWidget* tree, const QHash<QString, QV
 			case QVariant::Bool:
 			{
 				varType = tr("Bool");
-				varValueStr = var.toBool();
+				varValueStr = var.toBool() ? "true" : "false";
 				break;
 			}
 			case QVariant::LongLong:
@@ -1917,9 +1917,9 @@ QString ScriptSettingForm::getFullPath(QTreeWidgetItem* item)
 	QFileInfo info(strpath);
 	QString suffix = "." + info.suffix();
 	if (suffix.isEmpty())
-		strpath += util::SCRIPT_SUFFIX_DEFAULT;
-	if (suffix != util::SCRIPT_PRIVATE_SUFFIX_DEFAULT && suffix != util::SCRIPT_SUFFIX_DEFAULT)
-		strpath.replace(suffix, util::SCRIPT_SUFFIX_DEFAULT);
+		strpath += util::SCRIPT_DEFAULT_SUFFIX;
+	if (suffix != util::SCRIPT_PRIVATE_SUFFIX_DEFAULT && suffix != util::SCRIPT_DEFAULT_SUFFIX)
+		strpath.replace(suffix, util::SCRIPT_DEFAULT_SUFFIX);
 
 	return strpath;
 };
@@ -2174,7 +2174,7 @@ void ScriptSettingForm::onEncryptSave()
 	if (crypto.encodeScript(injector.currentScriptFileName, password))
 	{
 		QString newFileName = injector.currentScriptFileName;
-		newFileName.replace(util::SCRIPT_SUFFIX_DEFAULT, util::SCRIPT_PRIVATE_SUFFIX_DEFAULT);
+		newFileName.replace(util::SCRIPT_DEFAULT_SUFFIX, util::SCRIPT_PRIVATE_SUFFIX_DEFAULT);
 		injector.currentScriptFileName = newFileName;
 		ui.statusBar->showMessage(QString(tr("Encrypt script %1 saved")).arg(newFileName), 3000);
 		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
@@ -2219,7 +2219,7 @@ void ScriptSettingForm::onDecryptSave()
 	if (crypto.decodeScript(injector.currentScriptFileName, content))
 	{
 		QString newFileName = injector.currentScriptFileName;
-		newFileName.replace(util::SCRIPT_PRIVATE_SUFFIX_DEFAULT, util::SCRIPT_SUFFIX_DEFAULT);
+		newFileName.replace(util::SCRIPT_PRIVATE_SUFFIX_DEFAULT, util::SCRIPT_DEFAULT_SUFFIX);
 		injector.currentScriptFileName = newFileName;
 		ui.statusBar->showMessage(QString(tr("Decrypt script %1 saved")).arg(newFileName), 3000);
 		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();

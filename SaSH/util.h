@@ -87,8 +87,9 @@ namespace mem
 namespace util
 {
 	constexpr const char* SA_NAME = "sa_8001.exe";
-	constexpr const char* CODEPAGE_DEFAULT = "UTF-8";
-	constexpr const char* SCRIPT_SUFFIX_DEFAULT = ".txt";
+	constexpr const char* DEFAULT_CODEPAGE = "UTF-8";
+	constexpr const char* DEFAULT_GAME_CODEPAGE = "GBK";//gb18030/gb2312
+	constexpr const char* SCRIPT_DEFAULT_SUFFIX = ".txt";
 	constexpr const char* SCRIPT_LUA_SUFFIX_DEFAULT = ".lua";
 	constexpr const char* SCRIPT_PRIVATE_SUFFIX_DEFAULT = ".sac";
 	typedef enum
@@ -789,7 +790,7 @@ namespace util
 
 	inline Q_REQUIRED_RESULT QString toUnicode(const char* str, bool ext = true)
 	{
-		QTextCodec* codec = QTextCodec::codecForMib(2025);//取GB2312解碼器
+		QTextCodec* codec = QTextCodec::codecForName(util::DEFAULT_GAME_CODEPAGE);//QTextCodec::codecForMib(2025);//取GB2312解碼器
 		QString qstr = codec->toUnicode(str);//先以GB2312解碼轉成UNICODE
 		std::wstring wstr = qstr.toStdWString();
 		UINT ACP = ::GetACP();
@@ -1001,11 +1002,11 @@ namespace util
 				QTextCodec* codec = nullptr;
 				UINT acp = GetACP();
 				if (acp == 936)
-					codec = QTextCodec::codecForName("gb2312");
+					codec = QTextCodec::codecForName(util::DEFAULT_GAME_CODEPAGE);
 				else if (acp == 950)
 					codec = QTextCodec::codecForName("big5");
 				else
-					codec = QTextCodec::codecForName("utf-8");
+					codec = QTextCodec::codecForName(util::DEFAULT_CODEPAGE);
 
 				std::string str = codec->fromUnicode(fileName).data();
 				fileName = codec->toUnicode(str.c_str());
@@ -2116,7 +2117,7 @@ namespace util
 		if (fileName.endsWith(util::SCRIPT_LUA_SUFFIX_DEFAULT))
 		{
 			QTextStream in(&f);
-			in.setCodec(util::CODEPAGE_DEFAULT);
+			in.setCodec(util::DEFAULT_CODEPAGE);
 			c = in.readAll();
 			c.replace("\r\n", "\n");
 			if (isPrivate != nullptr)
@@ -2134,7 +2135,7 @@ namespace util
 #else
 			return false;
 #endif
-	}
+		}
 
 		if (pcontent != nullptr)
 		{
@@ -2143,7 +2144,7 @@ namespace util
 		}
 
 		return false;
-}
+	}
 
 	void sortWindows(const QVector<HWND>& windowList, bool alignLeft);
 
