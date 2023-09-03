@@ -7985,7 +7985,7 @@ bool Server::fixPetTargetBySkillIndex(int skillIndex, int oldtarget, int* target
 	}
 	case PETSKILL_TARGET_WITHOUTMYSELFANDPET:
 	{
-		int max = 9;
+		int max = MAX_ENEMY;
 		int min = 0;
 		if (BattleMyNo >= 10)
 		{
@@ -7994,10 +7994,6 @@ bool Server::fixPetTargetBySkillIndex(int skillIndex, int oldtarget, int* target
 		}
 
 		if (oldtarget < min || oldtarget > max)
-		{
-			oldtarget = -1;
-		}
-		else if (oldtarget == BattleMyNo)
 		{
 			oldtarget = -1;
 		}
