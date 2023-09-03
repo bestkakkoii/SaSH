@@ -3553,11 +3553,18 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 				else if (typeStr == "count")
 				{
 					QString itemName;
-					if (!checkString(currentLineTokens_, 4, &itemName))
+					checkString(currentLineTokens_, 4, &itemName);
+
+
+					QString memo;
+					checkString(currentLineTokens_, 5, &memo);
+
+					if (itemName.isEmpty() && memo.isEmpty())
 						break;
+
 					QVector<int> v;
 					qint64 count = 0;
-					if (injector.server->getItemIndexsByName(itemName, "", &v))
+					if (injector.server->getItemIndexsByName(itemName, memo, &v))
 					{
 						for (const int it : v)
 							count += injector.server->getPC().item[it].stack;

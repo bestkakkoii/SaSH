@@ -227,6 +227,7 @@ qint64 Interpreter::announce(qint64 currentline, const TokenMap& TK)
 
 	QString text;
 	qreal number = 0.0;
+	qint64 nnumber = 0;
 	bool boolean = false;
 
 	if (checkNumber(TK, 1, &number))
@@ -239,7 +240,10 @@ qint64 Interpreter::announce(qint64 currentline, const TokenMap& TK)
 	}
 	else if (!checkString(TK, 1, &text))
 	{
-		text = TK.value(1).data.toString();
+		if (checkInteger(TK, 1, &nnumber))
+			text = QString::number(nnumber);
+		else
+			text = TK.value(1).data.toString();
 	}
 
 	qint64 color = 4;
@@ -272,6 +276,7 @@ qint64 Interpreter::input(qint64 currentline, const TokenMap& TK)
 
 	QString text;
 	qreal number = 0.0;
+	qint64 nnumber = 0;
 	bool boolean = false;
 
 	if (checkNumber(TK, 1, &number))
@@ -284,7 +289,10 @@ qint64 Interpreter::input(qint64 currentline, const TokenMap& TK)
 	}
 	else if (!checkString(TK, 1, &text))
 	{
-		text = TK.value(1).data.toString();
+		if (checkInteger(TK, 1, &nnumber))
+			text = QString::number(nnumber);
+		else
+			text = TK.value(1).data.toString();
 	}
 
 	QString npcName;
@@ -308,6 +316,7 @@ qint64 Interpreter::messagebox(qint64 currentline, const TokenMap& TK)
 {
 	QString text;
 	qreal number = 0.0;
+	qint64 nnumber = 0;
 	bool boolean = false;
 
 	if (checkNumber(TK, 1, &number))
@@ -320,7 +329,10 @@ qint64 Interpreter::messagebox(qint64 currentline, const TokenMap& TK)
 	}
 	else if (!checkString(TK, 1, &text))
 	{
-		text = TK.value(1).data.toString();
+		if (checkInteger(TK, 1, &nnumber))
+			text = QString::number(nnumber);
+		else
+			text = TK.value(1).data.toString();
 	}
 
 	qint64 type = 0;
@@ -356,6 +368,7 @@ qint64 Interpreter::talk(qint64 currentline, const TokenMap& TK)
 
 	QString text;
 	qreal number = 0.0;
+	qint64 nnumber = 0;
 	bool boolean = false;
 
 	if (checkNumber(TK, 1, &number))
@@ -368,7 +381,10 @@ qint64 Interpreter::talk(qint64 currentline, const TokenMap& TK)
 	}
 	else if (!checkString(TK, 1, &text))
 	{
-		text = TK.value(1).data.toString();
+		if (checkInteger(TK, 1, &nnumber))
+			text = QString::number(nnumber);
+		else
+			text = TK.value(1).data.toString();
 	}
 
 	qint64 color = 4;
