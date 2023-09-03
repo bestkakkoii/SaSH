@@ -1315,7 +1315,9 @@ bool Parser::updateSysConstKeyword(const QString& expr)
 
 			lua_["pet"][index]["modelid"] = pet.modelid;
 
-			lua_["pet"][index]["index"] = pet.index;
+			lua_["pet"][index]["pos"] = pet.index;
+
+			lua_["pet"][index]["index"] = index;
 
 			PetState state = pet.state;
 			QString str = hash.key(state, "");
@@ -1370,6 +1372,8 @@ bool Parser::updateSysConstKeyword(const QString& expr)
 			}
 
 			lua_["item"][index]["valid"] = item.valid;
+
+			lua_["item"][index]["index"] = index;
 
 			lua_["item"][index]["name"] = item.name.toUtf8().constData();
 
@@ -1536,6 +1540,8 @@ bool Parser::updateSysConstKeyword(const QString& expr)
 
 			lua_["team"][index]["valid"] = party.valid;
 
+			lua_["team"][index]["index"] = index;
+
 			lua_["team"][index]["id"] = party.id;
 
 			lua_["team"][index]["name"] = party.name.toUtf8().constData();
@@ -1614,6 +1620,8 @@ bool Parser::updateSysConstKeyword(const QString& expr)
 
 			lua_["card"][index]["valid"] = addressBook.valid;
 
+			lua_["card"][index]["index"] = index;
+
 			lua_["card"][index]["name"] = addressBook.name.toUtf8().constData();
 
 			lua_["card"][index]["online"] = addressBook.onlineFlag ? 1 : 0;
@@ -1688,6 +1696,8 @@ bool Parser::updateSysConstKeyword(const QString& expr)
 
 			lua_["unit"][index]["valid"] = unit.isVisible;
 
+			lua_["unit"][index]["index"] = index;
+
 			lua_["unit"][index]["id"] = unit.id;
 
 			lua_["unit"][index]["name"] = unit.name.toUtf8().constData();
@@ -1708,6 +1718,8 @@ bool Parser::updateSysConstKeyword(const QString& expr)
 
 			lua_["unit"][index]["modelid"] = unit.modelid;
 		}
+
+		lua_["unit"]["count"] = size;
 	}
 
 	//battle\[(?:'([^']*)'|"([^ "]*)"|(\d+))\]\.(\w+)
@@ -1874,6 +1886,7 @@ bool Parser::updateSysConstKeyword(const QString& expr)
 			int index = i + 1;
 			MAGIC magic = injector.server->getMagic(i);
 			lua_["magic"][index]["valid"] = magic.valid;
+			lua_["magic"][index]["index"] = index;
 			lua_["magic"][index]["costmp"] = magic.costmp;
 			lua_["magic"][index]["field"] = magic.field;
 			lua_["magic"][index]["name"] = magic.name.toUtf8().constData();
@@ -1901,6 +1914,7 @@ bool Parser::updateSysConstKeyword(const QString& expr)
 			PROFESSION_SKILL skill = injector.server->getSkill(i);
 
 			lua_["skill"][index]["valid"] = skill.valid;
+			lua_["skill"][index]["index"] = index;
 			lua_["skill"][index]["costmp"] = skill.costmp;
 			lua_["skill"][index]["modelid"] = skill.icon;
 			lua_["skill"][index]["type"] = skill.kind;
@@ -1946,6 +1960,7 @@ bool Parser::updateSysConstKeyword(const QString& expr)
 				PET_SKILL skill = injector.server->getPetSkill(i, j);
 
 				lua_["petskill"][petIndex][index]["valid"] = skill.valid;
+				lua_["petskill"][petIndex][index]["index"] = index;
 				lua_["petskill"][petIndex][index]["id"] = skill.skillId;
 				lua_["petskill"][petIndex][index]["field"] = skill.field;
 				lua_["petskill"][petIndex][index]["target"] = skill.target;
@@ -2000,6 +2015,7 @@ bool Parser::updateSysConstKeyword(const QString& expr)
 					damageValue = 100;
 
 				lua_["petequip"][petIndex][index]["valid"] = item.valid;
+				lua_["petequip"][petIndex][index]["index"] = index;
 				lua_["petequip"][petIndex][index]["lv"] = item.level;
 				lua_["petequip"][petIndex][index]["field"] = item.field;
 				lua_["petequip"][petIndex][index]["target"] = item.target;
@@ -2392,7 +2408,7 @@ void Parser::recordFunctionChunks()
 	for (auto it = functionChunks_.cbegin(); it != functionChunks_.cend(); ++it)
 		qDebug() << it.key() << it.value().name << it.value().begin << it.value().end;
 #endif
-}
+	}
 
 //更新並記錄每個 for 塊的開始行和結束行
 void Parser::recordForChunks()

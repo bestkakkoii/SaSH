@@ -131,6 +131,8 @@ private:
 
 	QPointF curMousePos_ = { 0,0 };
 
+	static QHash<int, QHash<QPoint, QString>> entrances_;
+
 	int counter_ = 10;
 
 #if OPEN_GL_ON

@@ -2069,6 +2069,8 @@ void MainObject::checkRecordableNpcInfo()
 				return;
 
 			util::SafeHash<int, mapunit_t> units = injector.server->mapUnitHash;
+			util::Config config(injector.getPointFileName());
+
 			for (const mapunit_t& unit : units)
 			{
 				if (isInterruptionRequested())
@@ -2076,6 +2078,9 @@ void MainObject::checkRecordableNpcInfo()
 
 				if (injector.server.isNull())
 					return;
+
+				if (!injector.server->getOnlineFlag())
+					break;
 
 				if ((unit.objType != util::OBJ_NPC)
 					|| unit.name.isEmpty()
@@ -2088,7 +2093,6 @@ void MainObject::checkRecordableNpcInfo()
 
 				injector.server->npcUnitPointHash.insert(QPoint(unit.x, unit.y), unit);
 
-				util::Config config(injector.getPointFileName());
 				util::MapData d;
 				int nowFloor = injector.server->nowFloor;
 				QPoint nowPoint = injector.server->getPoint();
@@ -2128,14 +2132,82 @@ void MainObject::checkRecordableNpcInfo()
 								break;
 							}
 						}
+
 						if (!flag)
 						{
-							return;
+							continue;
 						}
 					}
 				}
 				config.writeMapData(unit.name, d);
-				SPD_LOG(g_logger_name, "[threadpool] recorded new npc infos");
+			}
+
+			static bool constDataInit = false;
+
+			if (constDataInit)
+				return;
+
+			constDataInit = true;
+
+			QFile file(util::applicationDirPath() + "/map/point.txt");
+
+			if (!file.open(QIODevice::ReadOnly))
+			{
+				qDebug() << "Failed to open point.dat";
+				return;
+			}
+
+			QTextStream in(&file);
+			in.setCodec("UTF-8");
+
+			const QString rawData(in.readAll());
+			file.close();
+
+			QStringList entrances = rawData.simplified().split(" ");
+
+			for (const QString& entrance : entrances)
+			{
+				const QStringList entranceData(entrance.split(util::rexOR));
+				if (entranceData.size() != 3)
+					continue;
+
+				bool ok = false;
+				const int floor = entranceData.at(0).toInt(&ok);
+				if (!ok)
+					continue;
+
+				const QString pointStr(entranceData.at(1));
+				const QStringList pointData(pointStr.split(util::rexComma));
+				if (pointData.size() != 2)
+					continue;
+
+				int x = pointData.at(0).toInt(&ok);
+				if (!ok)
+					continue;
+
+				int y = pointData.at(1).toInt(&ok);
+				if (!ok)
+					continue;
+
+				const QPoint pos(x, y);
+
+				const QString name(entranceData.at(2));
+
+				util::MapData d;
+				d.floor = floor;
+				d.name = name;
+				d.x = x;
+				d.y = y;
+
+				mapunit_t unit;
+				unit.x = x;
+				unit.y = y;
+				unit.p = pos;
+				unit.name = name;
+
+				injector.server->npcUnitPointHash.insert(pos, unit);
+
+				config.writeMapData(name, d);
 			}
 		}
 	));

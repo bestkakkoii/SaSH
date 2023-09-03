@@ -1201,7 +1201,7 @@ typedef struct tagITEM
 	QString memo = "";
 	QString damage = "";
 #ifdef _PET_ITEM
-	char type = '\0';
+	quint16 type = 0ui16;
 #endif
 #ifdef _ITEM_JIGSAW
 	QString jigsaw = "";

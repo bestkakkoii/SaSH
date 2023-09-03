@@ -1917,7 +1917,7 @@ No new version available. Do you still want to update?</source>
     <name>MapWidgetClass</name>
     <message>
         <source>MAPFORM</source>
-        <translation>大地圖</translation>
+        <translation type="vanished">大地圖</translation>
     </message>
     <message>
         <source>DOWNLOAD</source>
@@ -1938,6 +1938,10 @@ No new version available. Do you still want to update?</source>
     <message>
         <source>LOCATE</source>
         <translation>坐標</translation>
+    </message>
+    <message>
+        <source>MainWindow</source>
+        <translation></translation>
     </message>
 </context>
 <context>
@@ -2967,6 +2971,10 @@ No new version available. Do you still want to update?</source>
     <message>
         <source>Warning: This project is only for academic purposes,commercial use is prohibited.You are prohibited to publish this project elsewhere.However we make no promises to your game accounts and so you have to use this project at your own risk,including taking any damage to your accounts from scripts and binaries.</source>
         <translation>警告: 本項目僅供學習交流，禁止用於商業用途。本項目內的所有資源文件和程序，禁止在 GitHub/lovesa論壇 以外的任何地方進行轉載或發布。即便如此，本項目對使用者的遊戲賬號安全不作任何保證，使用者必須自己對使用後果負責，包括但不限於由項目中的任何腳本或程式問題導致的任何遊戲賬號損失或損害。</translation>
+    </message>
+    <message>
+        <source>Invalid local variable type expacted &apos;%1&apos; but got &apos;%2&apos;</source>
+        <translation>不合法的區域變量類型，預期為 &apos;%1&apos; 實際傳入 &apos;%2&apos;</translation>
     </message>
 </context>
 <context>

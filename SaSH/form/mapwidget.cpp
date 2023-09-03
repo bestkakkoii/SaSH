@@ -28,6 +28,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 constexpr int MAP_REFRESH_TIME = 100;
 constexpr int MAX_BLOCK_SIZE = 24;
 
+QHash<int, QHash<QPoint, QString>> MapWidget::entrances_;
+
 MapWidget::MapWidget(QWidget* parent)
 	: QMainWindow(parent)
 {
@@ -76,6 +78,63 @@ MapWidget::MapWidget(QWidget* parent)
 
 	util::FormSettingManager formManager(this);
 	formManager.loadSettings();
+
+	if (!entrances_.isEmpty())
+		return;
+
+	QFile file(util::applicationDirPath() + "/map/point.txt");
+
+	if (!file.open(QIODevice::ReadOnly))
+	{
+		qDebug() << "Failed to open point.dat";
+		return;
+	}
+
+	QTextStream in(&file);
+	in.setCodec("UTF-8");
+
+	const QString rawData(in.readAll());
+	file.close();
+
+	QStringList entrances = rawData.simplified().split(" ");
+	QHash<int, QHash<QPoint, QString>> preEntrances;
+
+	for (const QString& entrance : entrances)
+	{
+		const QStringList entranceData(entrance.split(util::rexOR));
+		if (entranceData.size() != 3)
+			continue;
+
+		bool ok = false;
+		const int floor = entranceData.at(0).toInt(&ok);
+		if (!ok)
+			continue;
+
+		const QString pointStr(entranceData.at(1));
+		const QStringList pointData(pointStr.split(util::rexComma));
+		if (pointData.size() != 2)
+			continue;
+
+		int x = pointData.at(0).toInt(&ok);
+		if (!ok)
+			continue;
+
+		int y = pointData.at(1).toInt(&ok);
+		if (!ok)
+			continue;
+
+		const QPoint pos(x, y);
+
+		const QString name(entranceData.at(2));
+
+
+		if (!preEntrances.contains(floor))
+			preEntrances.insert(floor, QHash<QPoint, QString>());
+
+		preEntrances[floor].insert(pos, name);
+	}
+
+	entrances_ = preEntrances;
 }
 
 MapWidget::~MapWidget()
@@ -280,27 +339,49 @@ void MapWidget::onRefreshTimeOut()
 	QStringList vSTAIR;
 	QSet<QPoint> stair_cache;
 
-	for (const qmappoint_t& it : m_map.stair)
+	for (qmappoint_t it : m_map.stair)
 	{
 		if (stair_cache.contains(it.p)) continue;
 		QString typeStr = "\0";
-		switch (it.type)
+
+		if (entrances_.contains(m_map.floor) && entrances_.value(m_map.floor).contains(it.p))
 		{
-		case util::OBJ_UP:
-			typeStr = tr("UP");
-			break;
-		case util::OBJ_DOWN:
-			typeStr = tr("DWON");
-			break;
-		case util::OBJ_JUMP:
-			typeStr = tr("JUMP");
-			break;
-		case util::OBJ_WARP:
-			typeStr = tr("WARP");
-			break;
-		default:
-			typeStr = tr("UNKNOWN");
-			continue;
+			typeStr = entrances_.value(m_map.floor).value(it.p);
+			it.p = entrances_.value(m_map.floor).key(typeStr, it.p);
+		}
+
+		if (typeStr.isEmpty())
+		{
+			for (const auto& p : util::fix_point)
+			{
+				if (entrances_.contains(m_map.floor) && entrances_.value(m_map.floor).contains(it.p + p))
+				{
+					typeStr = entrances_.value(m_map.floor).value(it.p + p);
+					it.p = entrances_.value(m_map.floor).key(typeStr, it.p + p);
+				}
+			}
+		}
+
+		if (typeStr.isEmpty())
+		{
+			switch (it.type)
+			{
+			case util::OBJ_UP:
+				typeStr = tr("UP");
+				break;
+			case util::OBJ_DOWN:
+				typeStr = tr("DWON");
+				break;
+			case util::OBJ_JUMP:
+				typeStr = tr("JUMP");
+				break;
+			case util::OBJ_WARP:
+				typeStr = tr("WARP");
+				break;
+			default:
+				typeStr = tr("UNKNOWN");
+				continue;
+			}
 		}
 
 		stair_cache.insert(it.p);
@@ -326,8 +407,8 @@ void MapWidget::onRefreshTimeOut()
 		vSTAIR.append(QString("%1,%2").arg(it.p.x()).arg(it.p.y()));
 	}
 
-	const QList<mapunit_t> units = unitHash.values();
-	for (const mapunit_t& it : units)
+	QList<mapunit_t> units = unitHash.values();
+	for (mapunit_t it : units)
 	{
 		if (it.objType == util::OBJ_GM)
 		{
@@ -385,24 +466,47 @@ void MapWidget::onRefreshTimeOut()
 			case util::OBJ_UP:
 			{
 				if (stair_cache.contains(it.p)) continue;
+
 				QString typeStr = "\0";
-				switch (it.objType)
+
+				if (entrances_.contains(m_map.floor) && entrances_.value(m_map.floor).contains(it.p))
 				{
-				case util::OBJ_UP:
-					typeStr = tr("UP");
-					break;
-				case util::OBJ_DOWN:
-					typeStr = tr("DWON");
-					break;
-				case util::OBJ_JUMP:
-					typeStr = tr("JUMP");
-					break;
-				case util::OBJ_WARP:
-					typeStr = tr("WARP");
-					break;
-				default:
-					typeStr = tr("UNKNOWN");
-					break;
+					typeStr = entrances_.value(m_map.floor).value(it.p);
+					it.p = entrances_.value(m_map.floor).key(typeStr, it.p);
+				}
+
+				if (typeStr.isEmpty())
+				{
+					for (const auto& p : util::fix_point)
+					{
+						if (entrances_.contains(m_map.floor) && entrances_.value(m_map.floor).contains(it.p + p))
+						{
+							typeStr = entrances_.value(m_map.floor).value(it.p + p);
+							it.p = entrances_.value(m_map.floor).key(typeStr, it.p + p);
+						}
+					}
+				}
+
+				if (typeStr.isEmpty())
+				{
+					switch (it.objType)
+					{
+					case util::OBJ_UP:
+						typeStr = tr("UP");
+						break;
+					case util::OBJ_DOWN:
+						typeStr = tr("DWON");
+						break;
+					case util::OBJ_JUMP:
+						typeStr = tr("JUMP");
+						break;
+					case util::OBJ_WARP:
+						typeStr = tr("WARP");
+						break;
+					default:
+						typeStr = tr("UNKNOWN");
+						break;
+					}
 				}
 
 				if (!it.name.isEmpty())
@@ -854,7 +958,11 @@ void MapWidget::on_tableWidget_NPCList_cellDoubleClicked(int row, int)
 			return;
 	}
 	else
+	{
+		interpreter_->doString(QString(u8"findpath %1, %2, 1").arg(x).arg(y), nullptr, Interpreter::kNotShare);
 		return;
+	}
+
 	int floor = injector.server->nowFloor;
 	QPoint point = injector.server->getPoint();
 	//npc前方一格
