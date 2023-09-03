@@ -9914,6 +9914,8 @@ void Server::lssproto_MSG_recv(int aindex, char* ctext, int color)
 	if (MailHistory[aindex].newHistoryNo <= -1)
 		MailHistory[aindex].newHistoryNo = MAIL_MAX_HISTORY - 1;
 
+	QStringList list = { addressBook[aindex].name };
+
 	getStringToken(text, "|", 1, MailHistory[aindex].dateStr[MailHistory[aindex].newHistoryNo]);
 
 	getStringToken(text, "|", 2, MailHistory[aindex].str[MailHistory[aindex].newHistoryNo]);
@@ -9922,6 +9924,7 @@ void Server::lssproto_MSG_recv(int aindex, char* ctext, int color)
 	makeStringFromEscaped(temp);
 
 	MailHistory[aindex].str[MailHistory[aindex].newHistoryNo] = temp;
+	list.append(temp);
 
 
 	noReadFlag = getIntegerToken(text, "|", 3);
@@ -9929,8 +9932,10 @@ void Server::lssproto_MSG_recv(int aindex, char* ctext, int color)
 	if (noReadFlag != -1)
 	{
 		MailHistory[aindex].noReadFlag[MailHistory[aindex].newHistoryNo] = noReadFlag;
+		list.append(QString::number(noReadFlag));
 
 		MailHistory[aindex].petLevel[MailHistory[aindex].newHistoryNo] = getIntegerToken(text, "|", 4);
+		list.append(QString::number(MailHistory[aindex].petLevel[MailHistory[aindex].newHistoryNo]));
 
 		getStringToken(text, "|", 5, MailHistory[aindex].petName[MailHistory[aindex].newHistoryNo]);
 
@@ -9938,17 +9943,24 @@ void Server::lssproto_MSG_recv(int aindex, char* ctext, int color)
 		makeStringFromEscaped(temp);
 
 		MailHistory[aindex].petName[MailHistory[aindex].newHistoryNo] = temp;
+		list.append(temp);
 
 		MailHistory[aindex].itemGraNo[MailHistory[aindex].newHistoryNo] = getIntegerToken(text, "|", 6);
+		list.append(QString::number(MailHistory[aindex].itemGraNo[MailHistory[aindex].newHistoryNo]));
 
 		//sprintf_s(moji, "收到%s送來的寵物郵件！", addressBook[aindex].name);
+		announce(list.join("|"), color);
 	}
 
 	else
 	{
 		MailHistory[aindex].noReadFlag[MailHistory[aindex].newHistoryNo] = TRUE;
+		list.append(QString::number(MailHistory[aindex].noReadFlag[MailHistory[aindex].newHistoryNo]));
+
+		announce(list.join("|"), color);
 
 		QString msg = MailHistory[aindex].str[MailHistory[aindex].newHistoryNo];
+
 		msg.replace("\\c", ",");
 		msg.replace("\\r\\n", "\n");
 		msg.replace("\\n", "\n");
@@ -9976,7 +9988,6 @@ void Server::lssproto_MSG_recv(int aindex, char* ctext, int color)
 					}
 				});
 		}
-
 		//sprintf_s(moji, "收到%s送來的郵件！", addressBook[aindex].name);
 	}
 
