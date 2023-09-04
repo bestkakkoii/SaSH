@@ -837,6 +837,10 @@ void ScriptSettingForm::fileSave(const QString& d, DWORD flag)
 		if (-1 == endIndex)
 		{
 			endIndex = trimmedLine.indexOf("end");
+			if (-1 == endIndex)
+			{
+				endIndex = trimmedLine.indexOf("until");
+			}
 		}
 
 		QString tmpLine;
@@ -866,15 +870,27 @@ void ScriptSettingForm::fileSave(const QString& d, DWORD flag)
 		{
 			indentLevel--;
 		}
+		else if (trimmedLine.startsWith("until") && !tmpLine.isEmpty())
+		{
+			indentLevel--;
+		}
 
 
 		QString indentedLine = QString("    ").repeated(indentLevel) + trimmedLine;
 		newContents.append(indentedLine);
-		if (trimmedLine.startsWith("function"))
+		if (trimmedLine.startsWith("function") || trimmedLine.startsWith("local function"))
 		{
 			indentLevel++;
 		}
 		else if (trimmedLine.startsWith("for ") || trimmedLine.startsWith("for (") || trimmedLine.startsWith("for("))
+		{
+			indentLevel++;
+		}
+		else if (trimmedLine.startsWith("while "))
+		{
+			indentLevel++;
+		}
+		else if (trimmedLine.startsWith("repeat "))
 		{
 			indentLevel++;
 		}

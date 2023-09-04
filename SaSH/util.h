@@ -39,6 +39,14 @@ constexpr int SASH_VERSION_MAJOR = 1;
 constexpr int SASH_VERSION_MINOR = 0;
 constexpr int SASH_VERSION_PATCH = 0;
 
+typedef struct break_marker_s
+{
+	qint64 line = 0;
+	qint64 count = 0;
+	qint64 maker = 0;
+	QString content = "\0";
+} break_marker_t;
+
 namespace mem
 {
 	bool read(HANDLE hProcess, DWORD desiredAccess, SIZE_T size, PVOID buffer);

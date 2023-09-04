@@ -23,14 +23,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "parser.h"
 #include "util.h"
 
-typedef struct break_marker_s
-{
-	qint64 line = 0;
-	qint64 count = 0;
-	qint64 maker = 0;
-	QString content = "\0";
-} break_marker_t;
-
 constexpr qint64 DEFAULT_FUNCTION_TIMEOUT = 5000;
 
 class Interpreter : public ThreadPlugin

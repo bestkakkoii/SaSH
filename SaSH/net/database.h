@@ -990,6 +990,7 @@ enum TalkMode
 
 #pragma region Structs
 #pragma pack(4) 
+
 #if 0
 typedef struct action
 {

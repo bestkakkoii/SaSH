@@ -457,6 +457,7 @@ public:
 	void jumpto(qint64 line, bool noStack);
 	bool jump(const QString& name, bool noStack);
 
+	void Parser::removeEscapeChar(QString* str) const;
 	bool checkString(const TokenMap& TK, qint64 idx, QString* ret);
 	bool checkInteger(const TokenMap& TK, qint64 idx, qint64* ret);
 	bool checkNumber(const TokenMap& TK, qint64 idx, double* ret);

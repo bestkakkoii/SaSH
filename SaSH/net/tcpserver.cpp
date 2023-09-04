@@ -5518,25 +5518,26 @@ void Server::handlePlayerBattleLogics(const battledata_t& bt)
 		if (!autoSwitch)
 			break;
 
-		if (bt.pet.hp > 0 && bt.pet.level > 0)
+		PC pc = getPC();
+
+		if (bt.objects[BattleMyNo + 5].modelid > 0 || !bt.objects[BattleMyNo + 5].name.isEmpty())
 			break;
 
-		QVector<int> standybyPets;
-		for (const PET& pet : this->pet)
+		int petIndex = -1;
+		for (int i = 0; i < MAX_PET; ++i)
 		{
-			if (pet.level <= 0 || pet.maxHp <= 0 || !pet.valid)
+			PET _pet = pet[i];
+			if (_pet.level <= 0 || _pet.maxHp <= 0 || _pet.hp < 1 || _pet.modelid == 0 || _pet.name.isEmpty())
 				continue;
 
-			if (pet.state != PetState::kStandby)
+			if (i == pc.battlePetNo)
 				continue;
 
-			standybyPets.push_back(pet.index);
+			petIndex = i;
 		}
 
-		if (standybyPets.isEmpty())
+		if (petIndex == -1)
 			break;
-
-		int petIndex = standybyPets.takeFirst();
 
 		sendBattlePlayerSwitchPetAct(petIndex);
 		return;
@@ -8544,7 +8545,7 @@ void Server::lssproto_AB_recv(char* cdata)
 		}
 #endif
 	}
-}
+	}
 
 //名片數據
 void Server::lssproto_ABI_recv(int num, char* cdata)
@@ -11353,7 +11354,7 @@ void Server::lssproto_CA_recv(char* cdata)
 			//effectno = smalltoken.toInt();
 			//effectparam1 = getIntegerToken(bigtoken, "|", 7);
 			//effectparam2 = getIntegerToken(bigtoken, "|", 8);
-		}
+	}
 
 
 		if (pc.id == charindex)
@@ -11428,7 +11429,7 @@ void Server::lssproto_CA_recv(char* cdata)
 #endif
 		//changeCharAct(ptAct, x, y, dir, act, effectno, effectparam1, effectparam2);
 	//}
-	}
+}
 }
 
 //刪除指定一個或多個周圍人、NPC單位
@@ -11808,8 +11809,8 @@ void Server::lssproto_S_recv(char* cdata)
 					}
 #endif
 				}
+				}
 			}
-		}
 
 		if (checkAND(pc.status, CHR_STATUS_LEADER) && party[0].valid)
 		{
@@ -11886,7 +11887,7 @@ void Server::lssproto_S_recv(char* cdata)
 		playerInfoColContents.insert(0, var);
 		emit signalDispatcher.updatePlayerInfoColContents(0, var);
 		setWindowTitle();
-	}
+		}
 #pragma endregion
 #pragma region FamilyInfo
 	else if (first == "F") // F 家族狀態
@@ -12197,9 +12198,9 @@ void Server::lssproto_S_recv(char* cdata)
 						}
 #endif
 					}
+					}
 				}
 			}
-		}
 
 		if (pc.ridePetNo >= 0 && pc.ridePetNo < MAX_PET)
 		{
@@ -12250,7 +12251,7 @@ void Server::lssproto_S_recv(char* cdata)
 			emit signalDispatcher.updatePlayerInfoColContents(i + 1, var);
 		}
 
-	}
+			}
 #pragma endregion
 #pragma region EncountPercentage
 	else if (first == "E") // E nowEncountPercentage
@@ -12800,7 +12801,7 @@ void Server::lssproto_S_recv(char* cdata)
 			pet[nPetIndex].item[i].counttime = getIntegerToken(data, "|", no + 16);
 #endif
 		}
-	}
+		}
 #endif
 #pragma endregion
 #pragma region S_recv_Unknown
@@ -12860,7 +12861,7 @@ void Server::lssproto_S_recv(char* cdata)
 	setPC(pc);
 
 	updateComboBoxList();
-}
+	}
 
 //客戶端登入(進去選人畫面)
 void Server::lssproto_ClientLogin_recv(char* cresult)

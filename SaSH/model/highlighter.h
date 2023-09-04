@@ -131,6 +131,8 @@ public:
 		//! An escape sequence.
 		EscapeSequence = 27,
 		InactiveEscapeSequence = EscapeSequence + 64,
+
+		NewlineArrow = 32,
 	};
 
 	const char* keywords(int set) const;

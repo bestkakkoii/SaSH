@@ -31,6 +31,11 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 #define OPEN_HOOK
 
+extern util::SafeHash<QString, util::SafeHash<qint64, break_marker_t>> break_markers;//interpreter.cpp//用於標記自訂義中斷點(紅點)
+extern util::SafeHash<QString, util::SafeHash<qint64, break_marker_t>> forward_markers;//interpreter.cpp//用於標示當前執行中斷處(黃箭頭)
+extern util::SafeHash<QString, util::SafeHash<qint64, break_marker_t>> error_markers;//interpreter.cpp//用於標示錯誤發生行(紅線)
+extern util::SafeHash<QString, util::SafeHash<qint64, break_marker_t>> step_markers;//interpreter.cpp//隱式標記中斷點用於單步執行(無)
+
 void luadebug::tryPopCustomErrorMsg(const sol::this_state& s, const LUA_ERROR_TYPE element, const QVariant& p1, const QVariant& p2, const QVariant& p3, const QVariant& p4)
 {
 	Q_UNUSED(p4);
@@ -346,18 +351,42 @@ bool luadebug::checkBattleThenWait(const sol::this_state& s)
 	return bret;
 }
 
+void luadebug::processDelay(const sol::this_state& s)
+{
+	Injector& injector = Injector::getInstance();
+	qint64 extraDelay = injector.getValueHash(util::kScriptSpeedValue);
+	if (extraDelay > 1000ll)
+	{
+		//將超過1秒的延時分段
+		qint64 i = 0ll;
+		qint64 size = extraDelay / 1000ll;
+		for (i = 0; i < size; ++i)
+		{
+			if (luadebug::isInterruptionRequested(s))
+				return;
+			QThread::msleep(1000L);
+		}
+		if (extraDelay % 1000ll > 0ll)
+			QThread::msleep(extraDelay % 1000ll);
+	}
+	else if (extraDelay > 0ll)
+	{
+		QThread::msleep(extraDelay);
+	}
+	QThread::msleep(1);
+}
+
 //lua函數鉤子 這裡主要用於控制 暫停、終止腳本、獲取棧數據、變量數據...或其他操作
 void luadebug::hookProc(lua_State* L, lua_Debug* ar)
 {
-	if (!L) return;
-	if (!ar) return;
+	if (!L)
+		return;
+
+	if (!ar)
+		return;
+
 	sol::this_state s = L;
 	sol::state_view lua(L);
-
-	//LUA_HOOKLINE://每執行一行
-	//LUA_HOOKCALL://函數開頭
-	//LUA_MASKCOUNT://每 n 個函數執行一次
-	//LUA_HOOKRET://函數結尾
 
 	switch (ar->event)
 	{
@@ -378,13 +407,73 @@ void luadebug::hookProc(lua_State* L, lua_Debug* ar)
 	}
 	case LUA_HOOKLINE:
 	{
-		//進入新行
 		sol::state_view lua(s.lua_state());
+		if (!lua["_DEBUG"].is<bool>() || lua["_DEBUG"].get<bool>())
+		{
+			processDelay(s);
+		}
+		else
+		{
+			luadebug::checkStopAndPause(s);
+			return;
+		}
+
 		qint64 currentLine = ar->currentline;
 		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
 		qint64 max = lua["_ROWCOUNT"];
 		emit signalDispatcher.scriptLabelRowTextChanged(currentLine, max, false);
+
 		luadebug::checkStopAndPause(s);
+
+		CLua* pLua = lua["_THIS"].get<CLua*>();
+		if (pLua == nullptr)
+			return;
+
+		Injector& injector = Injector::getInstance();
+		QString scriptFileName = injector.currentScriptFileName;
+
+		util::SafeHash<qint64, break_marker_t> breakMarkers = break_markers.value(scriptFileName);
+		const util::SafeHash<qint64, break_marker_t> stepMarkers = step_markers.value(scriptFileName);
+		if (!(breakMarkers.contains(currentLine) || stepMarkers.contains(currentLine)))
+		{
+			return;//檢查是否有中斷點
+		}
+
+		pLua->paused();
+
+		if (breakMarkers.contains(currentLine))
+		{
+			//叫用次數+1
+			break_marker_t mark = breakMarkers.value(currentLine);
+			++mark.count;
+
+			//重新插入斷下的紀錄
+			breakMarkers.insert(currentLine, mark);
+			break_markers.insert(scriptFileName, breakMarkers);
+			//所有行插入隱式斷點(用於單步)
+			emit signalDispatcher.addStepMarker(currentLine, true);
+		}
+
+		emit signalDispatcher.addForwardMarker(currentLine, true);
+
+		//獲取區域變量數值
+		int i;
+		const char* name = nullptr;
+		QVariantHash varhash;
+		for (i = 1; (name = lua_getlocal(L, ar, i)) != NULL; i++)
+		{
+			QPair<QString, QString> vs = getVars(L, i, 5);
+
+			QString key = QString("local|%1").arg(QString::fromUtf8(name));
+			varhash.insert(key, vs.second);
+			//var.type = vs.first.replace("(", "").replace(")", "");
+			lua_pop(L, 1);// no match, then pop out the var's value
+		}
+
+		emit signalDispatcher.varInfoImported(varhash);
+
+		luadebug::checkStopAndPause(s);
+
 		break;
 	}
 	default:
@@ -890,7 +979,7 @@ void CLua::proc()
 			}
 
 			tableStrs.append(qstrErr);
-		}
+			}
 		else
 		{
 #ifdef _DEBUG
@@ -986,8 +1075,10 @@ void CLua::proc()
 		}
 
 		luadebug::logExport(s, tableStrs, 0);
-	} while (false);
+		} while (false);
 
-	isRunning_.store(false, std::memory_order_release);
-	emit finished();
-}
+		isRunning_.store(false, std::memory_order_release);
+		emit finished();
+		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
+		emit signalDispatcher.scriptFinished();
+	}

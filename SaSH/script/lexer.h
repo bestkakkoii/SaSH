@@ -149,7 +149,12 @@ private:
 
 	QChar next(const QString& str, qint64& index) const;
 	RESERVE getTokenType(qint64& pos, RESERVE previous, QString& str, const QString raw) const;
-	bool getStringToken(QString& src, const QString& delim, QString& out);
+
+	bool getStringCommandToken(QString& src, const QString& delim, QString& out) const;
+	bool getStringToken(QString& src, const QString& delim, QString& out) const;
+	qint64 Lexer::findClosingQuoteIndex(const QString& src, QChar quoteChar, int startIndex) const;
+	void Lexer::extractAndRemoveToken(QString& src, const QString& delim, int startIndex, int endIndex, QString& out) const;
+	bool Lexer::isInsideQuotes(const QString& src, int index) const;
 
 	void createToken(qint64 index, RESERVE type, const QVariant& data, const QString& raw, TokenMap* ptoken);
 	void createEmptyToken(qint64 index, TokenMap* ptoken);

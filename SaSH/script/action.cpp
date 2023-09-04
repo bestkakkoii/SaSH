@@ -243,6 +243,7 @@ qint64 Interpreter::useitem(qint64, const TokenMap& TK)
 			{
 				qint64 itemIndex = v.front();
 				injector.server->useItem(itemIndex, target);
+				break;
 			}
 
 			int n = totalUse;
@@ -276,6 +277,7 @@ qint64 Interpreter::useitem(qint64, const TokenMap& TK)
 			{
 				qint64 itemIndex = v.front();
 				injector.server->useItem(itemIndex, target);
+				break;
 			}
 
 			int n = totalUse;

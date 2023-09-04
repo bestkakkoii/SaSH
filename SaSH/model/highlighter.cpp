@@ -27,7 +27,6 @@ Highlighter::Highlighter(QObject* parent)
 
 const char* Highlighter::keywords(int set) const
 {
-	//	qDebug() << set << QsciLexerLua::keywords(set);
 	switch (set)
 	{
 	case 1://粉色
@@ -35,7 +34,8 @@ const char* Highlighter::keywords(int set) const
 		//lua key word
 		return "goto call function end pause exit label jmp return back break for endfor continue "
 			"if ifmap ifplayer ifpet ifpetex ifitem ifteam ifitemfull ifdaily ifbattle ifpos ifonline ifnormal "
-			"waitdlg waitsay waititem waitmap waitteam ";
+			"waitdlg waitsay waititem waitmap waitteam "
+			"while repeat until do in then ";
 	}
 	case 2://QsciLexerLua::BasicFunctions//黃色
 	{
@@ -67,17 +67,20 @@ const char* Highlighter::keywords(int set) const
 	}
 	case 6://KeywordSet6//淺藍色
 	{
-		return "out player pet magic skill petskill equip petequip map dialog chat point battle ";
+		return "out player pet magic skill petskill equip petequip map dialog chat point battle char ";
 	}
 	case 7://KeywordSet7//土橘色
 	{
-		return "";
+		return "! ";
 	}
 	case 8://KeywordSet8//紫色
 	{
 		return "_GAME_ _WORLD_ vret _IFEXPR _IFRESULT _LUARESULT _LUAEXPR";
 	}
 	case 9:
+		return "";
+
+	default:
 		break;
 	}
 
@@ -89,51 +92,70 @@ QColor Highlighter::defaultColor(int style) const
 {
 	switch (style)
 	{
-		//case Default:
-			//return QColor(85, 85, 85);
-
-	case Comment://綠色
+		//綠色
+	case Comment:
 	case LineComment:
 		return QColor(106, 153, 85);
 
-	case Number://草綠
+		//草綠
+	case Number:
 		return QColor(181, 206, 168);
 
-	case Keyword://粉色
+		//粉色
+	case Keyword:
 		return QColor(197, 134, 192);
 
-	case BasicFunctions://土黃色
+		//土黃色
+	case BasicFunctions:
 		return QColor(220, 220, 170);
 
-	case CoroutinesIOSystemFacilities://草綠
+		//草綠
+	case CoroutinesIOSystemFacilities:
 		return QColor(181, 206, 168);
 
-	case KeywordSet7://土橘色
+		//土橘色
+	case Label:
 	case String:
 	case Character:
 	case LiteralString:
 	case Preprocessor:
 		return QColor(206, 145, 120);
-	case Label:
+
+	case KeywordSet7:
+	case Operator:
 		return QColor(206, 145, 0);
 
+		//灰白色
 	case Default:
-	case Operator://灰白色
 	case Identifier:
 		return QColor(212, 212, 212);
 
-	case StringTableMathsFunctions://青綠
+		//乳藍色
+
+		//return QColor(77, 177, 252);
+
+		//青綠
+	case StringTableMathsFunctions:
 	case UnclosedString:
 		return QColor(78, 201, 176);
 
+		//深藍色
 	case KeywordSet5:
-		return QColor(86, 156, 214);//深藍色
+		return QColor(86, 156, 214);
 
+		//淺藍色
 	case KeywordSet6:
-		return QColor(156, 220, 254);//淺藍色
+		return QColor(156, 220, 254);
 
+		//紫色
 	case KeywordSet8:
-		return QColor(190, 183, 255);//紫色
+		return QColor(190, 183, 255);
+
+	case NewlineArrow:
+		return QColor(80, 80, 255);
+
+	default:
+		break;
 	}
 
 	return QsciLexer::defaultColor(style);
@@ -151,7 +173,7 @@ QStringList Highlighter::autoCompletionWordSeparators() const
 {
 	QStringList wl;
 
-	wl << ":" << ".";
+	wl << ":" << "." << "[";
 
 	return wl;
 }
@@ -168,7 +190,7 @@ QColor Highlighter::defaultPaper(int style) const
 // auto-completion.
 const char* Highlighter::autoCompletionFillups() const
 {
-	return "] ) } \" '";
+	return "";
 }
 
 // Return the list of characters that can end a block.
@@ -177,7 +199,7 @@ const char* Highlighter::blockEnd(int* style) const
 	if (style)
 		*style = Operator;
 
-	return "end endfor";
+	return "end endfor until ";
 }
 
 const char* Highlighter::blockStartKeyword(int* style) const
@@ -185,7 +207,7 @@ const char* Highlighter::blockStartKeyword(int* style) const
 	if (style)
 		*style = Keyword;
 
-	return "function for";
+	return "function for while repeat ";
 }
 
 // Return the list of characters that can start a block.
@@ -194,13 +216,13 @@ const char* Highlighter::blockStart(int* style) const
 	if (style)
 		*style = Operator;
 
-	return "function for";
+	return "function for while repeat ";
 }
 
 // Return the string of characters that comprise a word.
 const char* Highlighter::wordCharacters() const
 {
-	return "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_#!";
+	return "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_#";
 }
 
 // Returns the end-of-line fill for a style.

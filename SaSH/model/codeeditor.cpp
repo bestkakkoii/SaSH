@@ -18,7 +18,6 @@ CodeEditor::CodeEditor(QWidget* parent)
 	: QsciScintilla(parent)
 	, textLexer(this)
 	, apis(&textLexer)
-	, font("YaHei Consolas Hybrid", 12, 570/*QFont::DemiBold*/, false)
 
 {
 	//install font
@@ -30,7 +29,7 @@ CodeEditor::CodeEditor(QWidget* parent)
 	textLexer.setDefaultFont(font);
 	setLexer(&textLexer);
 	SendScintilla(QsciScintilla::SCI_SETCODEPAGE, QsciScintilla::SC_CP_UTF8);//設置編碼為UTF-8
-	setUtf8(true);
+	setUtf8(true);//設置編碼為UTF-8
 	setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Maximum);
 
 	QsciScintilla::setFont(font);
@@ -59,10 +58,37 @@ CodeEditor::CodeEditor(QWidget* parent)
 	}
 
 	////Acs[None|All|Document|APIs]禁用自動補全提示功能|所有可用的資源|當前文檔中出現的名稱都自動補全提示|使用QsciAPIs類加入的名稱都自動補全提示
-	setAutoCompletionSource(QsciScintilla::AcsAll);//自動補全。對於所有Ascii字符
 	setAutoCompletionCaseSensitivity(true);//大小寫敏感度，設置lexer可能會更改，不過貌似沒啥效果
+	setAutoCompletionReplaceWord(false);//是否用補全的字符串替代光標右邊的字符串
+	setAutoCompletionShowSingle(false);//則當自動完成清單中只有一個條目時，將自動使用該條目
+	setAutoCompletionSource(QsciScintilla::AcsAll);//自動補全。對於所有Ascii字符
 	setAutoCompletionThreshold(1);//設置每輸入一個字符就會出現自動補全的提示
-	//setAutoCompletionReplaceWord(false);//是否用補全的字符串替代光標右邊的字符串
+
+	/*
+		AcusNever
+		The single entry is not used automatically and the auto-completion list is displayed.
+
+		AcusExplicit
+		The single entry is used automatically when auto-completion is explicitly requested (using autoCompleteFromAPIs() or autoCompleteFromDocument()) but not when auto-completion is triggered as the user types.
+
+		AcusAlways
+		The single entry is used automatically and the auto-completion list is not displayed.
+	*/
+	setAutoCompletionUseSingle(QsciScintilla::AcusNever);//當自動完成清單中只有一個條目時，將自動使用該條目
+
+	setAutoIndent(true);//換行後自動縮進
+	setBraceMatching(QsciScintilla::StrictBraceMatch);//括號匹配
+	setBackspaceUnindents(true);//退格鍵將取消縮進一行而不是刪除一個字符
+
+	//current line color
+	setCaretLineBackgroundColor(QColor(71, 71, 71));//光標所在行背景顏色
+	setCaretLineVisible(true); //是否高亮顯示光標所在行
+	setCaretWidth(2);//光標寬度，0表示不顯示光標
+	setCaretForegroundColor(QColor(174, 175, 173));  //光標顏色
+
+	setEolMode(QsciScintilla::EolWindows); //微軟風格換行符
+	setEolVisibility(false);//是否顯示換行符號
+
 	setAutoCompletionFillupsEnabled(true);
 
 	setCallTipsVisible(0);//顯示tip數量
@@ -78,40 +104,22 @@ CodeEditor::CodeEditor(QWidget* parent)
 	setWrapMode(QsciScintilla::WrapWord); //文本自動換行模式
 	setWrapVisualFlags(QsciScintilla::WrapFlagByText);
 
-	setEolMode(QsciScintilla::EolWindows); //微軟風格換行符
-
-	copyAvailable(true);//允許自動複製選中範圍
-
-	//setWhitespaceVisibility(QsciScintilla::WsVisibleOnlyInIndent);//此時空格為點，\t為箭頭
-	//setWhitespaceSize(2);//空格點大小
-	//setWhitespaceForegroundColor(QColor(85, 85, 85));
-	//
-	//connect(this, SIGNAL(modificationChanged(bool)), parent, SLOT(on_modificationChanged(bool)));
-	//connect(this, SIGNAL(cursorPositionChanged(int, int)), parent, SLOT(on_cursorPositionChanged(int, int)));
-
-	//sig selectionChanged()
-	//sig userListActivated(int 	id,const QString& string)
-	//sig cursorPositionChanged(	int 	line,int 	index)
-
-	//indent
-	setTabWidth(4);//\t寬度設為四個空格
-	setAutoIndent(true);//換行後自動縮進
 	setIndentationsUseTabs(false);//false用表示用空格代替\t
 	setIndentationGuides(true);//用tab鍵縮進時，在縮進位置上顯示一個豎點線，縮進有效，在字符串後加空格不顯示
 	setIndentationWidth(0);//如果在行首部空格位置tab，縮進的寬度字符數，並且不會轉換為空格
 
-	setBackspaceUnindents(true);//退格鍵將取消縮進一行而不是刪除一個字符
+	// 折疊標簽樣式
+	setFolding(QsciScintilla::BoxedTreeFoldStyle);//折疊樣式
+	setFoldMarginColors(QColor(165, 165, 165), QColor(61, 61, 61));//折疊欄顏色
 
 	setTabIndents(true);//True如果行前空格數少於tabWidth，補齊空格數,False如果在文字前tab同true，如果在行首tab，則直接增加tabwidth個空格
-	setBraceMatching(QsciScintilla::StrictBraceMatch);//括號匹配
-	//indicatorClicked(int 	line,int 	index,Qt::KeyboardModifiers state)
-	//indicatorReleased
+	setTabWidth(4);//\t寬度設為四個空格
 
-	//current line color
-	setCaretWidth(2);//光標寬度，0表示不顯示光標
-	setCaretForegroundColor(QColor(174, 175, 173));  //光標顏色
-	setCaretLineVisible(true); //是否高亮顯示光標所在行
-	setCaretLineBackgroundColor(QColor(71, 71, 71));//光標所在行背景顏色
+	setWhitespaceVisibility(QsciScintilla::WsInvisible);//此時空格為點，\t為箭頭
+	setWhitespaceSize(0);//空格點大小
+	setWhitespaceForegroundColor(QColor(85, 85, 85));
+
+	copyAvailable(true);//允許自動複製選中範圍
 
 	//selection color
 	setSelectionBackgroundColor(QColor(38, 79, 120));//選中文本背景色
@@ -122,7 +130,6 @@ CodeEditor::CodeEditor(QWidget* parent)
 	setIndicatorHoverStyle(QsciScintilla::FullBoxIndicator);
 	setIndicatorOutlineColor(QColor(104, 119, 135));
 
-
 	setMatchedBraceBackgroundColor(QColor(17, 61, 111));//括號等選取顏色
 	setMatchedBraceForegroundColor(QColor(180, 180, 177));
 	setUnmatchedBraceBackgroundColor(QColor(17, 61, 111));
@@ -132,10 +139,6 @@ CodeEditor::CodeEditor(QWidget* parent)
 	setHotspotWrap(true);
 	setHotspotBackgroundColor(QColor(30, 30, 30));
 	setHotspotForegroundColor(QColor(128, 128, 255));
-
-	// 折疊標簽樣式
-	setFolding(QsciScintilla::BoxedTreeFoldStyle);//折疊樣式
-	setFoldMarginColors(QColor(165, 165, 165), QColor(61, 61, 61));//折疊欄顏色
 
 	//行號顯示區域
 	setMarginType(0, QsciScintilla::NumberMargin);//設置標號為0的頁邊顯示行號
@@ -173,6 +176,21 @@ CodeEditor::CodeEditor(QWidget* parent)
 	markerDefine(QsciScintilla::Invisible, SYM_STEP);
 	setMarginMarkerMask(1, S_BREAK | S_ARROW | S_ERRORMARK | S_STEPMARK);
 	setMarginWidth(1, 20);
+
+
+	//
+	//connect(this, SIGNAL(modificationChanged(bool)), parent, SLOT(on_modificationChanged(bool)));
+	//connect(this, SIGNAL(cursorPositionChanged(int, int)), parent, SLOT(on_cursorPositionChanged(int, int)));
+
+	//sig selectionChanged()
+	//sig userListActivated(int 	id,const QString& string)
+	//sig cursorPositionChanged(	int 	line,int 	index)
+
+
+	//indicatorClicked(int 	line,int 	index,Qt::KeyboardModifiers state)
+	//indicatorReleased
+
+
 
 #pragma region style
 	setStyleSheet(
@@ -250,6 +268,11 @@ void CodeEditor::keyPressEvent(QKeyEvent* e)
 		case Qt::Key_O:
 		{
 			foldAll(true);
+			return;
+		}
+		case Qt::Key_M:
+		{
+			clearFolds();
 			return;
 		}
 		case Qt::Key_G:

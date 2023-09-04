@@ -476,19 +476,20 @@ void Lexer::tokenized(qint64 currentLine, const QString& line, TokenMap* ptoken,
 			raw = raw.mid(0, commentIndex).trimmed();
 
 		bool doNotLowerCase = false;
-		static const QRegularExpression rexMultiVar(R"(^\s*([_a-zA-Z\p{Han}][\w\p{Han}]*(?:\s*,\s*[_a-zA-Z\p{Han}][\w\p{Han}]*)*)\s*=\s*([^,]+(?:\s*,\s*[^,]+)*)$)");//a,b,c = 1,2,3
-		static const QRegularExpression rexMultiLocalVar(R"([lL][oO][cC][aA][lL]\s+([_a-zA-Z\p{Han}][\w\p{Han}]*(?:\s*,\s*[_a-zA-Z\p{Han}][\w\p{Han}]*)*)\s*=\s*([^,]+(?:\s*,\s*[^,]+)*)$)");//local a,b,c = 1,2,3
-		static const QRegularExpression varIncDec(R"(([\p{Han}\w]+)(\+\+|--))");//++ --
-		static const QRegularExpression varCAOs(R"((?!\d)([\p{Han}\w]+)\s+([+\-*\/&|^%]\=)\s+([\W\w\s\p{Han}]+))");//+= -= *= /= &= |= ^= %=
-		static const QRegularExpression varExpr(R"(([\w\p{Han}]+)\s+\=\s+([\W\w\s\p{Han}]+))");//x = expr
+		static const QRegularExpression rexMultiVar(R"(^\s*([_a-zA-Z\p{Han}][\w\p{Han}]*(?:\s*,\s*[_a-zA-Z\p{Han}][\w\p{Han}]*)*)\s*=\s*([^,]+(?:\s*,\s*[^,]+)*)$;*)");//a,b,c = 1,2,3
+		static const QRegularExpression rexMultiLocalVar(R"([lL][oO][cC][aA][lL]\s+([_a-zA-Z\p{Han}][\w\p{Han}]*(?:\s*,\s*[_a-zA-Z\p{Han}][\w\p{Han}]*)*)\s*=\s*([^,]+(?:\s*,\s*[^,]+)*)$;*)");//local a,b,c = 1,2,3
+		static const QRegularExpression varIncDec(R"(([\p{Han}\w]+)(\+\+|--);*)");//++ --
+		static const QRegularExpression varCAOs(R"((?!\d)([\p{Han}\w]+)\s+([+\-*\/&|^%]\=)\s+([\W\w\s\p{Han}]+);*)");//+= -= *= /= &= |= ^= %=
+		static const QRegularExpression varExpr(R"(([\w\p{Han}]+)\s+\=\s+([\W\w\s\p{Han}]+);*)");//x = expr
 		static const QRegularExpression varAnyOp(R"([+\-*\/%&|^\(\)])");//+ - * / % & | ^ ( )
 		static const QRegularExpression varIf(R"([iI][fF][\(|\s+]([\d\w\W\p{Han}]+\s*[<|>|\=|!][\=]*\s*[\d\w\W\p{Han}]+))");//if (expr)
 		static const QRegularExpression rexFunction(R"([fF][uU][nN][cC][tT][iI][oO][nN]\s+([\w\p{Han}\d]+)\s*\(([\w\W\p{Han}]*)\))");
-		static const QRegularExpression rexCallFunction(R"(^([\w\p{Han}]+)\s*\(([\w\W\p{Han}]*)\)$)");
+		static const QRegularExpression rexCallFunction(R"(^([\w\p{Han}]+)\s*\(([\w\W\p{Han}]*)\)$;*)");
 		static const QRegularExpression rexCallFor(R"([fF][oO][rR]\s*\(*([\w\p{Han}]+)\s*=\s*([^,]+)\s*,\s*([^,]+)\s*[\)]*)");
+		static const QRegularExpression rexCallForForever(R"([fF][oO][rR]\s*\(\s*,\s*,\s*\))");
 		static const QRegularExpression rexCallForWithStep(R"([fF][oO][rR]\s*\(*([\w\p{Han}]+)\s*=\s*([^,]+)\s*,\s*([^,]+)\s*,\s*([^,\)]+)\s*[\)]*)");
-		static const QRegularExpression rexTable(R"(([\w\d\p{Han}]+)\s*=\s*(\{[\s\S]*\}))");
-		static const QRegularExpression rexLocalTable(R"([lL][oO][cC][aA][lL]\s+([\w\d\p{Han}]+)\s*=\s*(\{[\s\S]*\}))");
+		static const QRegularExpression rexTable(R"(([\w\d\p{Han}]+)\s*=\s*(\{[\s\S]*\});*)");
+		static const QRegularExpression rexLocalTable(R"([lL][oO][cC][aA][lL]\s+([\w\d\p{Han}]+)\s*=\s*(\{[\s\S]*\});*)");
 		//處理if正則
 		if (raw.contains(varIf))
 		{
@@ -523,7 +524,7 @@ void Lexer::tokenized(qint64 currentLine, const QString& line, TokenMap* ptoken,
 				QString exprB = match.captured(3).simplified();
 				QString exprC = match.captured(4).simplified();
 
-				QString cmd = "for";
+				const QString cmd = "for";
 				createToken(pos, TK_FOR, cmd, cmd, ptoken);
 				createToken(pos + 1, TK_STRING, varName, varName, ptoken);
 				createToken(pos + 2, TK_STRING, exprA, exprA, ptoken);
@@ -542,12 +543,26 @@ void Lexer::tokenized(qint64 currentLine, const QString& line, TokenMap* ptoken,
 				QString exprA = match.captured(2).simplified();
 				QString exprB = match.captured(3).simplified();
 
-				QString cmd = "for";
+				const QString cmd = "for";
 				createToken(pos, TK_FOR, cmd, cmd, ptoken);
 				createToken(pos + 1, TK_STRING, varName, varName, ptoken);
 				createToken(pos + 2, TK_STRING, exprA, exprA, ptoken);
 				createToken(pos + 3, TK_STRING, exprB, exprB, ptoken);
 				break;
+			}
+		}
+		//處理for forver
+		else if (raw.contains(rexCallForForever))
+		{
+			QRegularExpressionMatch match = rexCallFor.match(raw);
+			if (match.hasMatch())
+			{
+				const QString varName = "forever";
+				QString cmd = "for";
+				createToken(pos, TK_FOR, cmd, cmd, ptoken);
+				createToken(pos + 1, TK_STRING, varName, varName, ptoken);
+				createToken(pos + 2, TK_STRING, "nil", "nil", ptoken);
+				createToken(pos + 3, TK_STRING, "nil", "nil", ptoken);
 			}
 		}
 		//處理自增自減
@@ -669,7 +684,14 @@ void Lexer::tokenized(qint64 currentLine, const QString& line, TokenMap* ptoken,
 				if (!match.hasMatch())
 					break;
 				token = "function";
-				raw = QString("%1,%2,%3").arg(match.captured(1).simplified(), match.captured(2).trimmed(), match.captured(3).trimmed());
+				QStringList args;
+				for (int i = 1; i <= 3; ++i)
+				{
+					args.append(match.captured(i).simplified());
+				}
+				raw = args.join(",").simplified();
+				if (raw.endsWith(","))
+					raw.chop(1);
 			}
 			else if (!isCommand && !raw.contains("function", Qt::CaseInsensitive) && raw.contains(rexCallFunction))
 			{
@@ -689,7 +711,7 @@ void Lexer::tokenized(qint64 currentLine, const QString& line, TokenMap* ptoken,
 			else
 			{
 				//以空格為分界分離出第一個TOKEN(命令)
-				if (!getStringToken(raw, " ", token))
+				if (!getStringCommandToken(raw, " ", token))
 				{
 					createEmptyToken(pos, ptoken);
 					break;
@@ -1070,70 +1092,6 @@ QChar Lexer::next(const QString& str, qint64& index) const
 	}
 }
 
-//根據指定分割符號取得字串
-bool Lexer::getStringToken(QString& src, const QString& delim, QString& out)
-{
-	if (src.isEmpty())
-		return false;
-
-	if (delim.isEmpty())
-		return false;
-
-	QString openingQuote = "\"";
-	QString closingQuote = "\"";
-
-	if (src.startsWith(openingQuote))
-	{
-		// Find the closing quote
-		qint64 closingQuoteIndex = src.indexOf(closingQuote, openingQuote.size());
-		if (closingQuoteIndex == -1)
-			return false;
-
-		// Extract the quoted token
-		out = src.mid(0, closingQuoteIndex + closingQuote.size()).trimmed();
-		src.remove(0, closingQuoteIndex + closingQuote.size());
-		src = src.trimmed();
-		if (src.startsWith(delim))
-			src.remove(0, delim.size());
-	}
-	else if (src.startsWith("'"))
-	{
-		// Find the closing single quote
-		qint64 closingSingleQuoteIndex = src.indexOf("'", 1);
-		if (closingSingleQuoteIndex == -1)
-			return false;
-
-		// Extract the quoted token
-		out = src.mid(0, closingSingleQuoteIndex + 1);
-		src.remove(0, closingSingleQuoteIndex + 1);
-		src = src.trimmed();
-		if (src.startsWith(delim))
-			src.remove(0, delim.size());
-	}
-	else
-	{
-		QStringList list = src.split(delim);
-		if (list.isEmpty())
-		{
-			// Empty token, treat it as an empty string
-			out = "";
-		}
-		else
-		{
-			out = list.first().trimmed();
-			qint64 size = out.size();
-
-			// Remove the first 'out' and 'delim' from src
-			src.remove(0, size + delim.size());
-			if (src.startsWith(delim))
-				src.remove(0, delim.size());
-			src = src.trimmed();
-		}
-	}
-
-	return true;
-}
-
 //檢查指定詞組配對
 void Lexer::checkPairs(const QString& beginstr, const QString& endstr, const QHash<qint64, TokenMap>& stokenmaps)
 {
@@ -1285,4 +1243,182 @@ void Lexer::checkFunctionPairs(const QHash<qint64, TokenMap>& stokenmaps)
 	checkSingleRowPairs("(", ")", stokenmaps);
 	checkSingleRowPairs("[", "]", stokenmaps);
 	checkSingleRowPairs("{", "}", stokenmaps);
+}
+
+//根據指定分割符號取得字串
+bool Lexer::getStringCommandToken(QString& src, const QString& delim, QString& out) const
+{
+	if (src.isEmpty())
+		return false;
+
+	if (delim.isEmpty())
+		return false;
+
+	QString openingQuote = "\"";
+	QString closingQuote = "\"";
+
+	if (src.startsWith(openingQuote))
+	{
+		// Find the closing quote
+		qint64 closingQuoteIndex = src.indexOf(closingQuote, openingQuote.size());
+		if (closingQuoteIndex == -1)
+			return false;
+
+		// Extract the quoted token
+		out = src.mid(0, closingQuoteIndex + closingQuote.size()).trimmed();
+		src.remove(0, closingQuoteIndex + closingQuote.size());
+		src = src.trimmed();
+		if (src.startsWith(delim))
+			src.remove(0, delim.size());
+	}
+	else if (src.startsWith("'"))
+	{
+		// Find the closing single quote
+		qint64 closingSingleQuoteIndex = src.indexOf("'", 1);
+		if (closingSingleQuoteIndex == -1)
+			return false;
+
+		// Extract the quoted token
+		out = src.mid(0, closingSingleQuoteIndex + 1);
+		src.remove(0, closingSingleQuoteIndex + 1);
+		src = src.trimmed();
+		if (src.startsWith(delim))
+			src.remove(0, delim.size());
+	}
+	else
+	{
+		QStringList list = src.split(delim);
+		if (list.isEmpty())
+		{
+			// Empty token, treat it as an empty string
+			out = "";
+		}
+		else
+		{
+			out = list.first().trimmed();
+			qint64 size = out.size();
+
+			// Remove the first 'out' and 'delim' from src
+			src.remove(0, size + delim.size());
+			if (src.startsWith(delim))
+				src.remove(0, delim.size());
+			src = src.trimmed();
+
+			if (src.endsWith(";"))
+				src.remove(src.size() - 1, 1);
+		}
+	}
+
+	return true;
+}
+
+bool Lexer::getStringToken(QString& src, const QString& delim, QString& out) const
+{
+	if (src.isEmpty())
+		return false;
+
+	if (!src.contains(delim))
+	{
+		out = src;
+		return true;
+	}
+
+	QChar singleQuote = '\'';
+	QChar doubleQuote = '"';
+	QChar semicolon = ';';
+
+	for (int i = 0; i < src.size(); ++i)
+	{
+		QChar currentChar = src.at(i);
+
+		if ((currentChar == singleQuote || currentChar == doubleQuote) && !isInsideQuotes(src, i))
+		{
+			qint64 closingQuoteIndex = findClosingQuoteIndex(src, currentChar, i);
+			if (closingQuoteIndex == -1)
+				return false;
+
+			extractAndRemoveToken(src, delim, i, closingQuoteIndex, out);
+			return true;
+		}
+		else if (currentChar == semicolon && !isInsideQuotes(src, i))
+		{
+			extractAndRemoveToken(src, delim, 0, i - 1, out);
+			return true;
+		}
+		else if (i + delim.size() <= src.size() && src.mid(i, delim.size()) == delim && !isInsideQuotes(src, i))
+		{
+			extractAndRemoveToken(src, delim, 0, i - 1, out);
+			return true;
+		}
+		else if (currentChar == '/' && i < src.size() - 1 && src.at(i + 1) == '/')
+		{
+			src.clear();
+			return false;
+		}
+	}
+
+	return false;
+}
+
+qint64 Lexer::findClosingQuoteIndex(const QString& src, QChar quoteChar, int startIndex) const
+{
+	QChar escapeChar = '\\';
+	bool escaped = false;
+
+	for (int i = startIndex + 1; i < src.size(); ++i)
+	{
+		QChar currentChar = src.at(i);
+
+		if (escaped)
+		{
+			escaped = false;
+		}
+		else if (currentChar == escapeChar)
+		{
+			escaped = true;
+		}
+		else if (currentChar == quoteChar)
+		{
+			return i;
+		}
+	}
+
+	return -1;
+}
+
+void Lexer::extractAndRemoveToken(QString& src, const QString& delim, int startIndex, int endIndex, QString& out) const
+{
+	out = src.mid(startIndex, endIndex - startIndex + 1).trimmed();
+	src.remove(startIndex, endIndex - startIndex + 1);
+
+	src = src.trimmed();
+	if (src.startsWith(delim))
+		src.remove(0, delim.size());
+}
+
+bool Lexer::isInsideQuotes(const QString& src, int index) const
+{
+	QChar singleQuote = '\'';
+	QChar doubleQuote = '"';
+	bool insideSingleQuotes = false;
+	bool insideDoubleQuotes = false;
+
+	for (int i = 0; i < src.size(); ++i)
+	{
+		if (i == index)
+			break;
+
+		QChar currentChar = src.at(i);
+
+		if (currentChar == singleQuote)
+		{
+			insideSingleQuotes = !insideSingleQuotes;
+		}
+		else if (currentChar == doubleQuote)
+		{
+			insideDoubleQuotes = !insideDoubleQuotes;
+		}
+	}
+
+	return insideSingleQuotes || insideDoubleQuotes;
 }

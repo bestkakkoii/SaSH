@@ -106,6 +106,8 @@ namespace luadebug
 	bool checkBattleThenWait(const sol::this_state& s);
 	bool checkOnlineThenWait(const sol::this_state& s);
 
+	void processDelay(const sol::this_state& s);
+
 	bool isInterruptionRequested(const sol::this_state& s);
 
 	//根據傳入function的循環執行結果等待超時或條件滿足提早結束

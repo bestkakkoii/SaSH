@@ -86,6 +86,10 @@ AfkForm::AfkForm(QWidget* parent)
 	formSettingManager.loadSettings();
 
 	emit signalDispatcher.applyHashSettingsToUI();
+
+	Injector& injector = Injector::getInstance();
+	if (!injector.server.isNull())
+		injector.server->updateComboBoxList();
 }
 
 AfkForm::~AfkForm()

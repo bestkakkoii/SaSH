@@ -240,6 +240,12 @@ void Lssproto::lssproto_SaMenu_send(int index)
 }
 #endif
 
+//求救
+void Lssproto::lssproto_HL_send(int flg)
+{
+	Autil::util_Send(LSSPROTO_HL_SEND, flg);
+}
+
 //戰鬥指令封包
 void Lssproto::lssproto_B_send(const QString& command)
 {
@@ -274,7 +280,7 @@ void Lssproto::lssproto_CharDelete_send(char* charname, char* securityCode)
 
 void Lssproto::lssproto_ClientLogin_send(char* cdkey, char* passwd, char* mac, int selectServerIndex, char* ip, DWORD flags)
 {
-	if ((flags & WITH_ALL) == WITH_ALL)
+	if ((flags & WITH_ALL) & WITH_ALL)
 		Autil::util_Send(LSSPROTO_CLIENTLOGIN_SEND, cdkey, passwd, mac, selectServerIndex, ip);
 	else if ((flags & (WITH_CDKEY | WITH_PASSWORD | WITH_MACADDRESS | WITH_SELECTSERVERINDEX)) == (WITH_CDKEY | WITH_PASSWORD | WITH_MACADDRESS | WITH_SELECTSERVERINDEX))
 		Autil::util_Send(LSSPROTO_CLIENTLOGIN_SEND, cdkey, passwd, mac, selectServerIndex);

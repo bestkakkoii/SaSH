@@ -499,6 +499,25 @@ Parser::exprCAOSTo(const QString& varName, QString expr, T* ret)
 	return false;
 }
 
+void Parser::removeEscapeChar(QString* str) const
+{
+	if (nullptr == str)
+		return;
+
+	str->replace("\\\"", "\"");
+	str->replace("\\\'", "\'");
+	str->replace("\\\\", "\\");
+	str->replace("\\n", "\n");
+	str->replace("\\r", "\r");
+	str->replace("\\t", "\t");
+	str->replace("\\b", "\b");
+	str->replace("\\f", "\f");
+	str->replace("\\v", "\v");
+	str->replace("\\a", "\a");
+	str->replace("\\?", "\?");
+	str->replace("\\0", "\0");
+}
+
 //嘗試取指定位置的token轉為字符串
 bool Parser::checkString(const TokenMap& TK, qint64 idx, QString* ret)
 {
@@ -516,16 +535,17 @@ bool Parser::checkString(const TokenMap& TK, qint64 idx, QString* ret)
 	if (type == TK_CSTRING)
 	{
 		*ret = var.toString();
+		removeEscapeChar(ret);
 	}
 	else if ((var.toString().startsWith("\'") || var.toString().startsWith("\""))
 		&& (var.toString().endsWith("\'") || var.toString().endsWith("\"")))
 	{
 		*ret = var.toString();
+		removeEscapeChar(ret);
 	}
 	else if (type == TK_STRING || type == TK_CMD || type == TK_NAME || type == TK_LABELVAR || type == TK_CAOS)
 	{
 		*ret = var.toString();
-
 		importVariablesToLua(*ret);
 
 		QString exprStrUTF8;
@@ -533,6 +553,7 @@ bool Parser::checkString(const TokenMap& TK, qint64 idx, QString* ret)
 			return false;
 
 		*ret = exprStrUTF8;
+
 	}
 	else
 		return false;
@@ -1341,11 +1362,11 @@ bool Parser::updateSysConstKeyword(const QString& expr)
 
 		lua_["char"]["family"] = _pc.family.toUtf8().constData();
 
-		lua_["char"]["battlepet"] = _pc.battlePetNo;
+		lua_["char"]["battlepet"] = _pc.battlePetNo + 1;
 
-		lua_["char"]["ridepet"] = _pc.ridePetNo;
+		lua_["char"]["ridepet"] = _pc.ridePetNo + 1;
 
-		lua_["char"]["mailpet"] = _pc.mailPetNo;
+		lua_["char"]["mailpet"] = _pc.mailPetNo + 1;
 
 		lua_["char"]["luck"] = _pc.luck;
 	}
@@ -1888,6 +1909,9 @@ bool Parser::updateSysConstKeyword(const QString& expr)
 
 			lua_["battle"][index]["ridehpp"] = obj.rideHpPercent;
 		}
+
+		lua_["battle"]["playerpos"] = static_cast<qint64>(battle.player.pos + 1);
+		lua_["battle"]["petpos"] = static_cast<qint64>(battle.pet.pos + 1);
 	}
 
 	//battle\.(\w+)
@@ -2638,6 +2662,9 @@ void Parser::processLabel()
 			if (labelName.isEmpty())
 				continue;
 
+			if (i - kCallPlaceHoldSize >= args.size())
+				break;
+
 			QVariant currnetVar = args.at(i - kCallPlaceHoldSize);
 			QVariant::Type type = currnetVar.type();
 
@@ -3317,8 +3344,8 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 			{ "name", _pc.name },
 			{ "fname", _pc.freeName },
 			{ "namecolor", _pc.nameColor },
-			{ "battlepet", _pc.battlePetNo },
-			{ "mailpet", _pc.mailPetNo },
+			{ "battlepet", _pc.battlePetNo + 1  },
+			{ "mailpet", _pc.mailPetNo + 1 },
 			//{ "", _pc.standbyPet },
 			//{ "", _pc.battleNo },
 			//{ "", _pc.sideNo },
@@ -4400,12 +4427,14 @@ bool Parser::processFor()
 	QVariant breakVar = checkValue(currentLineTokens_, 3, QVariant::LongLong);
 	if (breakVar.type() != QVariant::LongLong)
 		return false;
+
 	qint64 breakValue = breakVar.toLongLong();
 
 	//step var value
 	QVariant stepVar = checkValue(currentLineTokens_, 4, QVariant::LongLong);
 	if (stepVar.type() != QVariant::LongLong || stepVar.toLongLong() == 0)
 		stepVar = 1ll;
+
 	qint64 step = stepVar.toLongLong();
 
 	QString scopedKey = QString("%1_%2").arg(varName).arg(lineNumber_);
@@ -4421,6 +4450,9 @@ bool Parser::processFor()
 	}
 	else
 	{
+		if (varName == "forever")
+			return false;
+
 		QVariant value = getLocalVarValue(varName);
 		if (value.type() != QVariant::LongLong)
 			return false;
@@ -4595,7 +4627,9 @@ void Parser::processTokens()
 		}
 		case TK_CMD:
 		{
-			QThread::msleep(1);
+			if (!getGlobalVarValue("_DEBUG").toBool())
+				QThread::msleep(1);
+
 			qint64 ret = processCommand();
 			switch (ret)
 			{
