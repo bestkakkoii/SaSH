@@ -1722,7 +1722,7 @@ qint64 Interpreter::mousedragto(qint64, const TokenMap& TK)
 	return Parser::kNoChange;
 }
 
-qint64 Interpreter::trade(qint64, const TokenMap& TK)
+qint64 Interpreter::trade(qint64 currentLine, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance();
 
@@ -1761,7 +1761,7 @@ qint64 Interpreter::trade(qint64, const TokenMap& TK)
 
 	QPoint dst;
 	qint64 dir = injector.server->mapAnalyzer->calcBestFollowPointByDstPoint(injector.server->nowFloor, injector.server->getPoint(), unit.p, &dst, true, unit.dir);
-	if (dir == -1 || !findPath(dst, 1, 0, timeout))
+	if (dir == -1 || !findPath(currentLine, dst, 1, 0, timeout))
 		return Parser::kNoChange;
 
 	injector.server->setPlayerFaceDirection(dir);

@@ -373,7 +373,6 @@ void luadebug::processDelay(const sol::this_state& s)
 	{
 		QThread::msleep(extraDelay);
 	}
-	QThread::msleep(1);
 }
 
 //lua函數鉤子 這裡主要用於控制 暫停、終止腳本、獲取棧數據、變量數據...或其他操作
@@ -408,20 +407,22 @@ void luadebug::hookProc(lua_State* L, lua_Debug* ar)
 	case LUA_HOOKLINE:
 	{
 		sol::state_view lua(s.lua_state());
+
+		qint64 currentLine = ar->currentline;
+		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
+		qint64 max = lua["_ROWCOUNT"];
+		emit signalDispatcher.scriptLabelRowTextChanged(currentLine, max, false);
+
+		processDelay(s);
 		if (!lua["_DEBUG"].is<bool>() || lua["_DEBUG"].get<bool>())
 		{
-			processDelay(s);
+			QThread::msleep(1);
 		}
 		else
 		{
 			luadebug::checkStopAndPause(s);
 			return;
 		}
-
-		qint64 currentLine = ar->currentline;
-		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
-		qint64 max = lua["_ROWCOUNT"];
-		emit signalDispatcher.scriptLabelRowTextChanged(currentLine, max, false);
 
 		luadebug::checkStopAndPause(s);
 
@@ -979,7 +980,7 @@ void CLua::proc()
 			}
 
 			tableStrs.append(qstrErr);
-			}
+		}
 		else
 		{
 #ifdef _DEBUG
@@ -1075,10 +1076,10 @@ void CLua::proc()
 		}
 
 		luadebug::logExport(s, tableStrs, 0);
-		} while (false);
+	} while (false);
 
-		isRunning_.store(false, std::memory_order_release);
-		emit finished();
-		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
-		emit signalDispatcher.scriptFinished();
-	}
+	isRunning_.store(false, std::memory_order_release);
+	emit finished();
+	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
+	emit signalDispatcher.scriptFinished();
+}

@@ -5520,7 +5520,10 @@ void Server::handlePlayerBattleLogics(const battledata_t& bt)
 
 		PC pc = getPC();
 
-		if (bt.objects[BattleMyNo + 5].modelid > 0 || !bt.objects[BattleMyNo + 5].name.isEmpty())
+		if (bt.objects[BattleMyNo + 5].modelid > 0
+			|| !bt.objects[BattleMyNo + 5].name.isEmpty()
+			|| bt.objects[BattleMyNo + 5].level > 0
+			|| bt.objects[BattleMyNo + 5].maxHp > 0)
 			break;
 
 		int petIndex = -1;
@@ -5533,7 +5536,11 @@ void Server::handlePlayerBattleLogics(const battledata_t& bt)
 			if (i == pc.battlePetNo)
 				continue;
 
+			if (_pet.state == kRide)
+				continue;
+
 			petIndex = i;
+			break;
 		}
 
 		if (petIndex == -1)
@@ -8427,8 +8434,8 @@ void Server::lssproto_PR_recv(int request, int result)
 				teamInfoList.append("");
 			}
 			pc.status &= (~CHR_STATUS_LEADER);
-		}
 	}
+}
 	setPC(pc);
 	prSendFlag = 0;
 
@@ -8540,9 +8547,9 @@ void Server::lssproto_AB_recv(char* cdata)
 				{
 					sprintf_s(addressBook[i].planetname, "%s", gmsv[j].name);
 					break;
-				}
-			}
 		}
+	}
+}
 #endif
 	}
 	}
@@ -8609,8 +8616,8 @@ void Server::lssproto_ABI_recv(int num, char* cdata)
 			{
 				sprintf_s(addressBook[num].planetname, 64, "%s", gmsv[j].name);
 				break;
-			}
-		}
+	}
+}
 	}
 #endif
 }
@@ -8897,7 +8904,7 @@ void Server::lssproto_I_recv(char* cdata)
 	#endif
 				*/
 
-		}
+			}
 	}
 
 	setPC(pc);
@@ -9845,8 +9852,8 @@ void Server::lssproto_KS_recv(int petarray, int result)
 			pc.selectPetNo[petarray] = 0;
 			if (petarray == pc.battlePetNo)
 				pc.battlePetNo = -1;
+			}
 		}
-	}
 #endif
 
 	setPC(pc);
@@ -9862,7 +9869,7 @@ void Server::lssproto_KS_recv(int petarray, int result)
 	}
 
 	updateComboBoxList();
-}
+	}
 
 #ifdef _STANDBYPET
 //寵物等待狀態改變 (不是每個私服都有)
@@ -10079,7 +10086,7 @@ void Server::lssproto_Echo_recv(char* test)
 
 #endif
 #endif
-}
+	}
 
 // Robin 2001/04/06
 void Server::lssproto_NU_recv(int AddCount)
@@ -10571,13 +10578,13 @@ void Server::lssproto_TK_recv(int index, char* cmessage, int color)
 				//pc.status |= CHR_STATUS_FUKIDASHI;
 			}
 		}
-	}
+			}
 
 	setPC(pc);
 
 	chatQueue.enqueue(QPair{ color ,msg });
 	emit signalDispatcher.appendChatLog(msg, color);
-}
+			}
 
 //地圖數據更新，重新繪製地圖
 void Server::lssproto_MC_recv(int fl, int x1, int y1, int x2, int y2, int tileSum, int partsSum, int eventSum, char* cdata)
@@ -10882,7 +10889,7 @@ void Server::lssproto_C_recv(char* cdata)
 				{
 					party[0].level = pc.level;
 					party[0].name = pc.name;
-				}
+		}
 #ifdef MAX_AIRPLANENUM
 				for (j = 0; j < MAX_AIRPLANENUM; ++j)
 #else
@@ -10954,7 +10961,7 @@ void Server::lssproto_C_recv(char* cdata)
 					//}
 					//setCharNameColor(ptAct, charNameColor);
 				//}
-			}
+				}
 
 			if (name == u8"を�そó")//排除亂碼
 				break;
@@ -11282,16 +11289,16 @@ void Server::lssproto_C_recv(char* cdata)
 						{
 							//setMoneyCharObj(id, 24052, x, y, 0, money, info);
 						}
-					}
-				}
-			}
 		}
+	}
+}
+				}
 #endif
 #pragma endregion
-	}
+			}
 
 	setPC(pc);
-}
+		}
 
 //周圍人、NPC..等等狀態改變必定是 _C_recv已經新增過的單位
 void Server::lssproto_CA_recv(char* cdata)
@@ -11354,7 +11361,7 @@ void Server::lssproto_CA_recv(char* cdata)
 			//effectno = smalltoken.toInt();
 			//effectparam1 = getIntegerToken(bigtoken, "|", 7);
 			//effectparam2 = getIntegerToken(bigtoken, "|", 8);
-	}
+		}
 
 
 		if (pc.id == charindex)
@@ -11385,14 +11392,14 @@ void Server::lssproto_CA_recv(char* cdata)
 							old_lssproto_AC_send(sockfd, nowGx, nowGy, 5);
 						setPcAction(5);
 #endif
-					}
-				}
+		}
+	}
 				else
 #endif
 					//changePcAct(x, y, dir, act, effectno, effectparam1, effectparam2);
-			}
+}
 			continue;
-		}
+	}
 
 		//ptAct = getCharObjAct(charindex);
 		//if (ptAct == NULL)
@@ -11809,8 +11816,8 @@ void Server::lssproto_S_recv(char* cdata)
 					}
 #endif
 				}
-				}
 			}
+		}
 
 		if (checkAND(pc.status, CHR_STATUS_LEADER) && party[0].valid)
 		{
@@ -11887,7 +11894,7 @@ void Server::lssproto_S_recv(char* cdata)
 		playerInfoColContents.insert(0, var);
 		emit signalDispatcher.updatePlayerInfoColContents(0, var);
 		setWindowTitle();
-		}
+	}
 #pragma endregion
 #pragma region FamilyInfo
 	else if (first == "F") // F 家族狀態
@@ -12197,10 +12204,10 @@ void Server::lssproto_S_recv(char* cdata)
 							i++;
 						}
 #endif
-					}
+						}
+						}
 					}
 				}
-			}
 
 		if (pc.ridePetNo >= 0 && pc.ridePetNo < MAX_PET)
 		{
@@ -12584,7 +12591,7 @@ void Server::lssproto_S_recv(char* cdata)
 #endif
 
 			refreshItemInfo(i);
-		}
+	}
 
 		QStringList itemList;
 		for (const ITEM& it : pc.item)
@@ -12602,7 +12609,7 @@ void Server::lssproto_S_recv(char* cdata)
 		}
 
 		emit signalDispatcher.updateComboBoxItemText(util::kComboBoxCharAction, magicNameList);
-	}
+		}
 #pragma endregion
 #pragma region PetSkill
 	else if (first == "W")//接收到的寵物技能
@@ -12702,7 +12709,7 @@ void Server::lssproto_S_recv(char* cdata)
 		{
 			count = i * 1;
 			profession_skill[i].cooltime = getIntegerToken(data, "|", 1 + count);
-		}
+	}
 		break;
 	}
 #endif
@@ -12800,8 +12807,8 @@ void Server::lssproto_S_recv(char* cdata)
 #ifdef _ITEM_COUNTDOWN
 			pet[nPetIndex].item[i].counttime = getIntegerToken(data, "|", no + 16);
 #endif
-		}
-		}
+	}
+}
 #endif
 #pragma endregion
 #pragma region S_recv_Unknown
@@ -13052,7 +13059,7 @@ void Server::lssproto_CharLogin_recv(char* cresult, char* cdata)
 	angelFlag = FALSE;
 	angelMsg[0] = NULL;
 #endif
-}
+	}
 
 void Server::lssproto_TD_recv(char* cdata)//交易
 {

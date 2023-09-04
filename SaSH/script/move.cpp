@@ -177,7 +177,7 @@ qint64 Interpreter::packetmove(qint64 currentline, const TokenMap& TK)
 	return Parser::kNoChange;
 }
 
-qint64 Interpreter::findpath(qint64 currentline, const TokenMap& TK)
+qint64 Interpreter::findpath(qint64 currentLine, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance();
 
@@ -292,7 +292,7 @@ qint64 Interpreter::findpath(qint64 currentline, const TokenMap& TK)
 	if (p.y() < 0 || p.y() >= 1500)
 		return Parser::kArgError + 2ll;
 
-	if (findPath(p, steplen, step_cost, timeout))
+	if (findPath(currentLine, p, steplen, step_cost, timeout))
 	{
 		if (!name.isEmpty() && (findNpcCallBack(name, p, &dir)) && dir != -1)
 			injector.server->setPlayerFaceDirection(dir);
@@ -301,7 +301,7 @@ qint64 Interpreter::findpath(qint64 currentline, const TokenMap& TK)
 	return Parser::kNoChange;
 }
 
-qint64 Interpreter::movetonpc(qint64 currentline, const TokenMap& TK)
+qint64 Interpreter::movetonpc(qint64 currentLine, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance();
 
@@ -362,7 +362,7 @@ qint64 Interpreter::movetonpc(qint64 currentline, const TokenMap& TK)
 	};
 
 	bool bret = false;
-	if (findPath(p, 1, 0, timeout, findNpcCallBack, true) && dir != -1)
+	if (findPath(currentLine, p, 1, 0, timeout, findNpcCallBack, true) && dir != -1)
 	{
 		injector.server->setPlayerFaceDirection(dir);
 		bret = true;
@@ -386,7 +386,7 @@ qint64 Interpreter::teleport(qint64 currentline, const TokenMap& TK)
 	return Parser::kNoChange;
 }
 
-qint64 Interpreter::warp(qint64 currentline, const TokenMap& TK)
+qint64 Interpreter::warp(qint64 currentLine, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance();
 
@@ -436,7 +436,7 @@ qint64 Interpreter::warp(qint64 currentline, const TokenMap& TK)
 
 	do
 	{
-		if (!findPath(pfrom, 1, 0, timeout))
+		if (!findPath(currentLine, pfrom, 1, 0, timeout))
 			break;
 
 		bret = waitfor(timeout, [&injector, pto, floor, floorName]()->bool

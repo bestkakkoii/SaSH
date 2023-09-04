@@ -63,7 +63,7 @@ const char* Highlighter::keywords(int set) const
 	case 5://KeywordSet5//深藍色
 	{
 		return "local var delete releaseall format rnd true false "
-			"int double bool not and or";
+			"int double bool not and or nil";
 	}
 	case 6://KeywordSet6//淺藍色
 	{

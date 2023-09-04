@@ -554,7 +554,7 @@ void Lexer::tokenized(qint64 currentLine, const QString& line, TokenMap* ptoken,
 		//處理for forver
 		else if (raw.contains(rexCallForForever))
 		{
-			QRegularExpressionMatch match = rexCallFor.match(raw);
+			QRegularExpressionMatch match = rexCallForForever.match(raw);
 			if (match.hasMatch())
 			{
 				const QString varName = "forever";
@@ -563,6 +563,7 @@ void Lexer::tokenized(qint64 currentLine, const QString& line, TokenMap* ptoken,
 				createToken(pos + 1, TK_STRING, varName, varName, ptoken);
 				createToken(pos + 2, TK_STRING, "nil", "nil", ptoken);
 				createToken(pos + 3, TK_STRING, "nil", "nil", ptoken);
+				break;
 			}
 		}
 		//處理自增自減
@@ -601,7 +602,7 @@ void Lexer::tokenized(qint64 currentLine, const QString& line, TokenMap* ptoken,
 				break;
 			}
 		}
-		//處理單一全局數組
+		//處理單一局數組
 		else if (raw.count("=") == 1 && raw.contains(rexLocalTable) && !raw.front().isDigit() && raw.contains("{") && raw.contains("}"))
 		{
 			QRegularExpressionMatch match = rexLocalTable.match(raw);
@@ -614,7 +615,7 @@ void Lexer::tokenized(qint64 currentLine, const QString& line, TokenMap* ptoken,
 				break;
 			}
 		}
-		//處理單一局數組
+		//處理單一全局數組
 		else if (raw.count("=") == 1 && raw.contains(rexTable) && !raw.front().isDigit() && raw.contains("{") && raw.contains("}"))
 		{
 			QRegularExpressionMatch match = rexTable.match(raw);
@@ -775,7 +776,7 @@ void Lexer::tokenized(qint64 currentLine, const QString& line, TokenMap* ptoken,
 
 			if (raw.contains(","))
 			{
-				if (!getStringToken(raw, ",", token))
+				if (!getStringCommandToken(raw, ",", token))
 					break;
 			}
 			else if (raw.isEmpty())
@@ -1409,12 +1410,13 @@ bool Lexer::isInsideQuotes(const QString& src, int index) const
 			break;
 
 		QChar currentChar = src.at(i);
+		QChar previousChar = i > 0 ? src.at(i - 1) : QChar();
 
-		if (currentChar == singleQuote)
+		if (currentChar == singleQuote && previousChar != '\\')
 		{
 			insideSingleQuotes = !insideSingleQuotes;
 		}
-		else if (currentChar == doubleQuote)
+		else if (currentChar == doubleQuote && previousChar != '\\')
 		{
 			insideDoubleQuotes = !insideDoubleQuotes;
 		}

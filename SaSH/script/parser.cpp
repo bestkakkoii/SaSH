@@ -23,11 +23,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "injector.h"
 #include "interpreter.h"
 
-//#ifdef _DEBUG
-//#define exprtk_enable_debugging
-//#endif
-//#include <exprtk/exprtk.hpp>
-
 #include <spdlogger.hpp>
 extern QString g_logger_name;
 
@@ -131,42 +126,35 @@ void Parser::parse(qint64 line)
 	if (tokens_.isEmpty())
 		return;
 
+	bool hasLocalHash = false;
 	if (variables_ == nullptr)
 	{
 		variables_ = new VariantSafeHash();
 		if (variables_ == nullptr)
 			return;
+		hasLocalHash = true;
 	}
 
+	bool hasGlobalHash = false;
 	if (globalVarLock_ == nullptr)
 	{
 		globalVarLock_ = new QReadWriteLock();
 		if (globalVarLock_ == nullptr)
 			return;
+		hasGlobalHash = true;
 	}
 
-	try
-	{
-		processTokens();
-	}
-	catch (const std::exception& e)
-	{
-		SPD_LOG(g_logger_name, QString("[parser] processTokens exception: %1").arg(e.what()), SPD_ERROR);
-	}
-	catch (...)
-	{
-		SPD_LOG(g_logger_name, "[parser] processTokens unknown exception:", SPD_ERROR);
-	}
+	processTokens();
 
-	if (!isSubScript_)
+	if (!isSubScript_ || hasLocalHash || hasGlobalHash)
 	{
-		if (variables_ != nullptr)
+		if (variables_ != nullptr && hasLocalHash)
 		{
 			delete variables_;
 			variables_ = nullptr;
 		}
 
-		if (globalVarLock_ != nullptr)
+		if (globalVarLock_ != nullptr && hasGlobalHash)
 		{
 			delete globalVarLock_;
 			globalVarLock_ = nullptr;
@@ -330,6 +318,12 @@ bool Parser::exprTo(QString expr, QString* ret)
 
 	expr = expr.simplified();
 
+	if (expr.isEmpty())
+	{
+		*ret = expr;
+		return true;
+	}
+
 	if (expr == "return" || expr == "back" || expr == "continue" || expr == "break"
 		|| expr == QString(u8"返回") || expr == QString(u8"跳回") || expr == QString(u8"繼續") || expr == QString(u8"跳出")
 		|| expr == QString(u8"继续"))
@@ -338,7 +332,7 @@ bool Parser::exprTo(QString expr, QString* ret)
 		return true;
 	}
 
-	updateSysConstKeyword(expr);
+	importVariablesToLua(expr);
 	checkConditionalOp(expr);
 
 	QString exprStr = QString("%1\nreturn %2;").arg(localVarList.join("\n")).arg(expr);
@@ -389,6 +383,13 @@ Parser::exprTo(QString expr, T* ret)
 
 	expr = expr.simplified();
 
+	if (expr.isEmpty())
+	{
+		*ret = T();
+		return true;
+	}
+
+	importVariablesToLua(expr);
 	checkConditionalOp(expr);
 
 	QString exprStr = QString("%1\nreturn %2;").arg(localVarList.join("\n")).arg(expr);
@@ -452,6 +453,13 @@ Parser::exprCAOSTo(const QString& varName, QString expr, T* ret)
 
 	expr = expr.simplified();
 
+	if (expr.isEmpty())
+	{
+		*ret = T();
+		return true;
+	}
+
+	importVariablesToLua(expr);
 	checkConditionalOp(expr);
 
 	QString exprStr = QString("%1\n%2 = %3 %4;\nreturn %5;")
@@ -546,7 +554,6 @@ bool Parser::checkString(const TokenMap& TK, qint64 idx, QString* ret)
 	else if (type == TK_STRING || type == TK_CMD || type == TK_NAME || type == TK_LABELVAR || type == TK_CAOS)
 	{
 		*ret = var.toString();
-		importVariablesToLua(*ret);
 
 		QString exprStrUTF8;
 		if (!exprTo(*ret, &exprStrUTF8))
@@ -594,8 +601,6 @@ bool Parser::checkInteger(const TokenMap& TK, qint64 idx, qint64* ret)
 	{
 		QString varValueStr = var.toString();
 
-		importVariablesToLua(varValueStr);
-
 		QVariant value;
 		if (!exprTo(varValueStr, &value))
 			return false;
@@ -639,8 +644,6 @@ bool Parser::checkInteger(const TokenMap& TK, qint64 idx, qint64* ret)
 	else if (type == TK_STRING || type == TK_CMD || type == TK_NAME || type == TK_LABELVAR || type == TK_CAOS)
 	{
 		QString varValueStr = var.toString();
-
-		importVariablesToLua(varValueStr);
 
 		QVariant value;
 		if (!exprTo(varValueStr, &value))
@@ -688,8 +691,6 @@ bool Parser::checkNumber(const TokenMap& TK, qint64 idx, double* ret)
 	{
 		QString varValueStr = var.toString();
 
-		importVariablesToLua(varValueStr);
-
 		QVariant value;
 		if (!exprTo(varValueStr, &value))
 			return false;
@@ -733,8 +734,6 @@ bool Parser::checkBoolean(const TokenMap& TK, qint64 idx, bool* ret)
 	{
 		QString varValueStr = var.toString();
 
-		importVariablesToLua(varValueStr);
-
 		QVariant value;
 		if (!exprTo(varValueStr, &value))
 			return false;
@@ -765,8 +764,6 @@ bool Parser::toVariant(const TokenMap& TK, qint64 idx, QVariant* ret)
 	if (type == TK_STRING || type == TK_CMD || type == TK_NAME || type == TK_LABELVAR || type == TK_CAOS)
 	{
 		QString s = var.toString();
-
-		importVariablesToLua(s);
 
 		QString exprStrUTF8;
 		qint64 value = 0;
@@ -1025,7 +1022,7 @@ bool Parser::checkFuzzyValue(const QString& varName, QVariant* pvalue)
 			requestInterruption();
 			return false;
 		}
-	}
+		}
 
 	if (!varValue.isValid())
 		return false;
@@ -1037,7 +1034,7 @@ bool Parser::checkFuzzyValue(const QString& varName, QVariant* pvalue)
 	insertVar(varName, varValue);
 #endif
 	return true;
-}
+	}
 
 //檢查是否需要跳過整個function代碼塊
 bool Parser::checkCallStack()
@@ -1606,7 +1603,7 @@ bool Parser::updateSysConstKeyword(const QString& expr)
 			{
 				if (!lua_["item"][keyWithName.toUtf8().constData()].is<sol::table>())
 					lua_["item"][keyWithName.toUtf8().constData()] = lua_.create_table();
-			}
+		}
 
 			if (!lua_["item"][keyWithMemo.toUtf8().constData()].valid())
 				lua_["item"][keyWithMemo.toUtf8().constData()] = lua_.create_table();
@@ -1620,8 +1617,8 @@ bool Parser::updateSysConstKeyword(const QString& expr)
 			lua_["item"][keyWithName.toUtf8().constData()]["count"] = countWithName;
 			lua_["item"][keyWithMemo.toUtf8().constData()]["count"] = countWithMemo;
 			bret = true;
-		}
 	}
+}
 #endif
 
 	//item\.(\w+)
@@ -2541,11 +2538,6 @@ void Parser::recordFunctionChunks()
 			++indentLevel;
 		}
 	}
-
-#ifdef _DEBUG
-	for (auto it = functionChunks_.cbegin(); it != functionChunks_.cend(); ++it)
-		qDebug() << it.key() << it.value().name << it.value().begin << it.value().end;
-#endif
 }
 
 //更新並記錄每個 for 塊的開始行和結束行
@@ -2753,20 +2745,7 @@ qint64 Parser::processCommand()
 			return kError;
 		}
 
-		try
-		{
-			status = function(lineNumber_, tokens);
-		}
-		catch (const std::exception& e)
-		{
-			SPD_LOG(g_logger_name, QString("[parser] Command exception: %1").arg(e.what()), SPD_ERROR);
-			return kError;
-		}
-		catch (...)
-		{
-			SPD_LOG(g_logger_name, QString("[parser] Command unknown exception: %1").arg(commandName), SPD_ERROR);
-			return kError;
-		}
+		status = function(lineNumber_, tokens);
 	}
 	else
 	{
@@ -3035,10 +3014,11 @@ void Parser::processTableSet()
 		return;
 
 	importVariablesToLua(expr);
+	checkConditionalOp(expr);
 
 	RESERVE type = getTokenType(0);
 
-	if (isLocalVarContains(varName))
+	if (type == TK_LOCALTABLESET && isLocalVarContains(varName))
 	{
 		QString localVar = getLocalVarValue(varName).toString();
 		if (!localVar.startsWith("{") || !localVar.endsWith("}"))
@@ -3071,7 +3051,7 @@ void Parser::processTableSet()
 		if (!retObject.is<sol::table>())
 			return;
 
-		int depth = 10;
+		int depth = 50;
 		QString resultStr = getLuaTableString(retObject.as<sol::table>(), depth);
 		if (resultStr.isEmpty())
 			return;
@@ -3168,6 +3148,9 @@ void Parser::processVariableCAOs()
 		{
 			QString exprStr = QString("%1 .. %2").arg(varFirst.toString()).arg(varSecond.toString());
 			insertGlobalVar("_LUAEXPR", exprStr);
+
+			importVariablesToLua(exprStr);
+			checkConditionalOp(exprStr);
 
 			const std::string exprStrUTF8 = exprStr.toUtf8().constData();
 			sol::protected_function_result loaded_chunk = lua_.safe_script(exprStrUTF8.c_str(), sol::script_pass_on_error);
@@ -4045,19 +4028,11 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 //處理if
 bool Parser::processIfCompare()
 {
-	QString expr = getToken<QString>(1).simplified();
-
-	importVariablesToLua(expr);
-
-	if (expr.contains("\""))
-	{
-		expr = expr.replace("\"", "'");
-	}
-
-	insertGlobalVar("_IFEXPR", expr);
-
 	bool result = false;
-	exprTo(expr, &result);
+	QString expr = getToken<QString>(1).simplified();
+	insertGlobalVar("_IFEXPR", expr);
+	if (!expr.isEmpty())
+		exprTo(expr, &result);
 
 	insertGlobalVar("_IFRESULT", result);
 
@@ -4585,6 +4560,10 @@ void Parser::processTokens()
 		if (!skip)
 		{
 			processDelay();
+			if (!lua_["_DEBUG"].is<bool>() || lua_["_DEBUG"].get<bool>())
+			{
+				QThread::msleep(1);
+			}
 
 			if (callBack_ != nullptr)
 			{
@@ -4627,9 +4606,6 @@ void Parser::processTokens()
 		}
 		case TK_CMD:
 		{
-			if (!getGlobalVarValue("_DEBUG").toBool())
-				QThread::msleep(1);
-
 			qint64 ret = processCommand();
 			switch (ret)
 			{

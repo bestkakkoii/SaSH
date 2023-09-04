@@ -67,6 +67,8 @@ public slots:
 
 	void initShaders();
 
+	void initCube();
+
 signals:
 	void notifyMousePosition(const QPointF& pos);
 
@@ -85,41 +87,27 @@ private:
 
 	QPointF pLast_ = { 0.0, 0.0 };
 	QPointF movePoint_ = { 0.0, 0.0 };
-	QPointF offest = { 0.0, 0.0 };
+	QPointF offest_ = { 0.0, 0.0 };
 
-	QVector<QVector3D> vertices;
-
-	QVector<QVector2D> texCoords;
-
-	QOpenGLShaderProgram program;
-
-	QOpenGLTexture* texture = nullptr;
-	QOpenGLShader* vshader = nullptr;
-	QOpenGLShader* fshader = nullptr;
-
-	QMatrix4x4 projection;
-
-	QPixmap m_image;
+	QPixmap image_;
 
 	GLfloat scaleWidth_ = 0.0;
 	GLfloat scaleHeight_ = 0.0;
 
-	QPointF m_vStart = { 0.0, 0.0 };
-	QPointF m_vEnd = { 0.0, 0.0 };
+	QPointF vStart_ = { 0.0, 0.0 };
+	QPointF vEnd_ = { 0.0, 0.0 };
 
-	QPointF m_hStart = { 0.0, 0.0 };
-	QPointF m_hEnd = { 0.0, 0.0 };
+	QPointF hStart_ = { 0.0, 0.0 };
+	QPointF hEnd_ = { 0.0, 0.0 };
 
-	QPointF m_vCurStart = { 0.0, 0.0 };
-	QPointF m_vCurEnd = { 0.0, 0.0 };
+	QPointF vCurStart_ = { 0.0, 0.0 };
+	QPointF vCurEnd_ = { 0.0, 0.0 };
 
-	QPointF m_hCurStart = { 0.0, 0.0 };
-	QPointF m_hCurEnd = { 0.0, 0.0 };
+	QPointF hCurStart_ = { 0.0, 0.0 };
+	QPointF hCurEnd_ = { 0.0, 0.0 };
 
-	QRectF m_rect = { 0.0, 0.0, 0.0, 0.0 };
+	QRectF rect_ = { 0.0, 0.0, 0.0, 0.0 };
 
 	QRectF rectangle_dst_ = { 0.0, 0.0, 0.0, 0.0 };
 	QRectF rectangle_src_ = { 0.0, 0.0, 0.0, 0.0 };
-
-	GLuint m_imageTexture = 0;
 };

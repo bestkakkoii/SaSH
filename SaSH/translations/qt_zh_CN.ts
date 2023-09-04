@@ -2976,6 +2976,26 @@ No new version available. Do you still want to update?</source>
         <source>Invalid local variable type expacted &apos;%1&apos; but got &apos;%2&apos;</source>
         <translation>不合法的区域变量类型，预期为 &apos;%1&apos; 实际传入 &apos;%2&apos;</translation>
     </message>
+    <message>
+        <source>[error] &lt;findpath&gt;unable to findpath from %1, %2 to %3, %4</source>
+        <translation>[错误] &lt;寻路&gt;找不到从 %1, %2 到 %3, %4 路径</translation>
+    </message>
+    <message>
+        <source>&lt;findpath&gt;path found, from %1, %2 to %3, %4 cost:%5 step:%6</source>
+        <translation>&lt;寻路&gt;成功找到从 %1, %2 到 %3, %4 的路径，耗时：%5 步数:%6</translation>
+    </message>
+    <message>
+        <source>[warn] &lt;findpath&gt;detedted player ware blocked</source>
+        <translation>[警告] &lt;寻路&gt;检测到人物卡点</translation>
+    </message>
+    <message>
+        <source>[warn] &lt;findpath&gt;stop finding path due to timeout</source>
+        <translation>[警告] &lt;寻路&gt;超时，放弃寻路</translation>
+    </message>
+    <message>
+        <source>[warn] &lt;findpath&gt;stop finding path due to floor changed</source>
+        <translation>[警告] &lt;寻路&gt;地图已变更，放弃寻路</translation>
+    </message>
 </context>
 <context>
     <name>QThumbnailFormClass</name>

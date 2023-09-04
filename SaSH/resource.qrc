@@ -64,5 +64,6 @@
         <file>image/icon_vs-2022.svg</file>
         <file>image/icon_windows_10_11.svg</file>
         <file>image/icon_restoredown.png</file>
+        <file>image/hantapay.png</file>
     </qresource>
 </RCC>

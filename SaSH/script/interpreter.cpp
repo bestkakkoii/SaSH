@@ -1446,11 +1446,13 @@ bool Interpreter::checkOnlineThenWait()
 	return bret;
 }
 
-bool Interpreter::findPath(QPoint dst, qint64 steplen, qint64 step_cost, qint64 timeout, std::function<qint64(QPoint& dst)> callback, bool noAnnounce)
+bool Interpreter::findPath(qint64 currneLine, QPoint dst, qint64 steplen, qint64 step_cost, qint64 timeout, std::function<qint64(QPoint& dst)> callback, bool noAnnounce)
 {
 	Injector& injector = Injector::getInstance();
 	qint64 hModule = injector.getProcessModule();
 	HANDLE hProcess = injector.getProcess();
+
+	QString output = "";
 
 	bool isDebug = injector.getEnableHash(util::kScriptDebugModeEnable);
 	if (!isDebug)
@@ -1483,20 +1485,31 @@ bool Interpreter::findPath(QPoint dst, qint64 steplen, qint64 step_cost, qint64 
 		return false;
 
 	if (!noAnnounce && !injector.server.isNull())
-		injector.server->announce(QObject::tr("<findpath>start searching the path"));//"<尋路>開始搜尋路徑"
+	{
+		output = QObject::tr("<findpath>start searching the path");
+		injector.server->announce(output);//"<尋路>開始搜尋路徑"
+		logExport(currneLine, output, 4);
+	}
 
 	QVector<QPoint> path;
 	QElapsedTimer timer; timer.start();
 	if (mapAnalyzer.isNull() || !mapAnalyzer->calcNewRoute(_map, src, dst, &path))
 	{
-		if (!noAnnounce && !injector.server.isNull())
-			injector.server->announce(QObject::tr("<findpath>unable to findpath"));//"<尋路>找不到路徑"
+		output = QObject::tr("[error] <findpath>unable to findpath from %1, %2 to %3, %4").arg(src.x()).arg(src.y()).arg(dst.x()).arg(dst.y());
+		injector.server->announce(output);
+		logExport(currneLine, output, 4);
+
 		return false;
 	}
 
 	qint64 cost = static_cast<qint64>(timer.elapsed());
 	if (!noAnnounce && !injector.server.isNull())
-		injector.server->announce(QObject::tr("<findpath>path found, cost:%1 step:%2").arg(cost).arg(path.size()));//"<尋路>成功找到路徑，耗時：%1"
+	{
+		output = QObject::tr("<findpath>path found, from %1, %2 to %3, %4 cost:%5 step:%6")
+			.arg(src.x()).arg(src.y()).arg(dst.x()).arg(dst.y()).arg(cost).arg(path.size());
+		injector.server->announce(output);
+		logExport(currneLine, output, 4);
+	}
 
 	QPoint point;
 	qint64 steplen_cache = -1;
@@ -1581,7 +1594,11 @@ bool Interpreter::findPath(QPoint dst, qint64 steplen, qint64 step_cost, qint64 
 					continue;
 
 				if (!noAnnounce && !injector.server.isNull())
-					injector.server->announce(QObject::tr("<findpath>arrived destination, cost:%1").arg(timer.elapsed()));//"<尋路>已到達目的地，耗時：%1"
+				{
+					output = QObject::tr("<findpath>arrived destination, cost:%1").arg(cost);
+					injector.server->announce(output);
+					logExport(currneLine, output, 4);
+				}
 				return true;//已抵達true
 			}
 
@@ -1597,7 +1614,9 @@ bool Interpreter::findPath(QPoint dst, qint64 steplen, qint64 step_cost, qint64 
 			if (injector.server.isNull())
 				break;
 
-			injector.server->announce(QObject::tr("<findpath>detedted player ware blocked"));
+			output = QObject::tr("[warn] <findpath>detedted player ware blocked");
+			injector.server->announce(output);
+			logExport(currneLine, output, 4);
 			injector.server->EO();
 			QThread::msleep(500);
 
@@ -1607,9 +1626,9 @@ bool Interpreter::findPath(QPoint dst, qint64 steplen, qint64 step_cost, qint64 
 			//往隨機8個方向移動
 			point = getPos();
 			lastPoint = point;
-			point = point + util::fix_point.at(QRandomGenerator::global()->bounded(0, 7));
+			point = point + (util::fix_point.at(QRandomGenerator::global()->bounded(0, 7)) * 2);
 			injector.server->move(point);
-			QThread::msleep(100);
+			QThread::msleep(200);
 
 			continue;
 		}
@@ -1623,13 +1642,22 @@ bool Interpreter::findPath(QPoint dst, qint64 steplen, qint64 step_cost, qint64 
 		if (timer.hasExpired(timeout))
 		{
 			if (!injector.server.isNull())
-				injector.server->announce(QObject::tr("<findpath>stop finding path due to timeout"));//"<尋路>超時，放棄尋路"
+			{
+				output = QObject::tr("[warn] <findpath>stop finding path due to timeout");
+				injector.server->announce(output);
+				logExport(currneLine, output, 4);
+			}
 			break;
 		}
 
 		if (injector.server->nowFloor != current_floor)
 		{
-			injector.server->announce(QObject::tr("<findpath>stop finding path due to map changed"));//"<尋路>地圖已變更，放棄尋路"
+			if (!injector.server.isNull())
+			{
+				output = QObject::tr("[warn] <findpath>stop finding path due to floor changed");
+				injector.server->announce(output);
+				logExport(currneLine, output, 4);
+			}
 			break;
 		}
 

@@ -630,9 +630,6 @@ void MainObject::battleTimeThread()
 		if (!injector.server->getBattleFlag())
 			break;
 
-		if (isInterruptionRequested())
-			break;
-
 		injector.server->updateBattleTimeInfo();
 		QThread::msleep(50);
 	}

@@ -359,7 +359,7 @@ void ScriptForm::onScriptContentChanged(const QString& fileName, const QVariant&
 		RESERVE reserve = lineTokens.value(0).type;
 		QString cmd = lineTokens.value(0).raw.simplified();
 		QString argStr = params.join(", ");
-		if (TK_LOCAL == reserve)
+		if (TK_LOCAL == reserve || TK_LOCALTABLE == reserve)
 		{
 			setTableWidgetItem(row, 0, "[local]");
 			if (!argStr.isEmpty())
@@ -368,7 +368,7 @@ void ScriptForm::onScriptContentChanged(const QString& fileName, const QVariant&
 				setTableWidgetItem(row, 1, QString("%1 = \'\'").arg(cmd));
 			continue;
 		}
-		else if (TK_MULTIVAR == reserve)
+		else if (TK_MULTIVAR == reserve || TK_TABLE == reserve)
 		{
 			setTableWidgetItem(row, 0, "[global]");
 			if (!argStr.isEmpty())

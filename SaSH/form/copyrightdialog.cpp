@@ -110,6 +110,7 @@ CopyRightDialog::CopyRightDialog(QWidget* parent)
 
 	connect(ui.buttonBox, &QDialogButtonBox::accepted, this, &QDialog::accept);
 
+	ui.label->setPixmap(QPixmap(":/image/hantapay.png").scaled(150, 150));
 
 	ui.label_logo->setStyleSheet("color: rgb(111, 147, 198); font-family: 'Consolas';");
 
