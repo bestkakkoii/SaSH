@@ -44,7 +44,7 @@ protected:
 	void paintEvent(QPaintEvent* event) override;
 
 private:
-	void setProgressBarStyle(QProgressBar* pProgress, const QString& qstrcolor);
+	static void setProgressBarStyle(QProgressBar* pProgress, const QString& qstrcolor);
 
 private:
 	int level_ = 0;

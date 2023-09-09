@@ -19,6 +19,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #pragma once
 #include <QObject>
 #include "net/tcpserver.h"
+#include <model/scopedhandle.h>
 #include <util.h>
 
 class StringListModel;
@@ -198,11 +199,13 @@ public:
 
 	int currentServerListIndex = 0;
 
+	std::atomic_bool isScriptDebugModeEnable = true;
+
 private:
 	int hModule_ = NULL;
 	HMODULE hookdllModule_ = NULL;
 	process_information_t pi_ = {};
-	QScopedHandle processHandle_;
+	ScopedHandle processHandle_;
 
 	int nowChatRowCount_ = 0;
 
@@ -264,7 +267,6 @@ private:
 		//afk->heal combobox
 		{ util::kBattleMagicHealMagicValue, 0 },
 		{ util::kBattleMagicReviveMagicValue, 0 },
-		{ util::kBattleSkillMpSkillValue, 0 },
 
 		{ util::kNormalMagicHealMagicValue, 0 },
 

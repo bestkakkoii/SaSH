@@ -105,11 +105,8 @@ void MapGLWidget::paintGL()
 
 void MapGLWidget::setBackground(const QPixmap& image)
 {
-	if (image_ != image)
-	{
-		image_ = image;
-		update();
-	}
+	image_ = image;
+	update();
 }
 
 void MapGLWidget::setCurLineH(const QPointF& start, const QPointF& end)
@@ -150,18 +147,15 @@ void MapGLWidget::setLineV(const QPointF& start, const QPointF& end)
 
 void MapGLWidget::setRect(const QRectF& rect)
 {
-	if (rect_ != rect)
-		rect_ = rect;
+	rect_ = rect;
+
 }
 
 void MapGLWidget::setPix(const QPixmap& image, const QRectF& src, const QRectF& dst)
 {
-	if (image_ != image)
-	{
-		rectangle_src_ = src;
-		rectangle_dst_ = dst;
-		image_ = image;
-	}
+	rectangle_src_ = src;
+	rectangle_dst_ = dst;
+	image_ = image;
 }
 
 void MapGLWidget::mouseMoveEvent(QMouseEvent* event)

@@ -19,6 +19,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "stdafx.h"
 #include "copyrightdialog.h"
 #include <QWhatsThis>
+#include <QGraphicsSvgItem>
 
 #include "util.h"
 
@@ -56,7 +57,7 @@ static QStringList getInstalledProgramsByKeyword(const QStringList& keywords)
 	return resultList;
 }
 
-#include <QGraphicsSvgItem>
+
 class ClickableSvgItem : public QGraphicsSvgItem
 {
 public:
@@ -64,6 +65,12 @@ public:
 		: QGraphicsSvgItem(svgFilePath, parent), linkUrl_(linkUrl)
 	{
 		setFlags(QGraphicsItem::ItemIsSelectable | QGraphicsItem::ItemIsFocusable);
+
+		QGraphicsDropShadowEffect* shadowEffect = new QGraphicsDropShadowEffect;
+		shadowEffect->setBlurRadius(10); // 設置陰影的模糊半徑，根據需要調整
+		shadowEffect->setOffset(0, 1);   // 設置陰影的偏移量，根據需要調整
+		shadowEffect->setColor(Qt::black); // 設置陰影的顏色，根據需要調整
+		setGraphicsEffect(shadowEffect);
 	}
 
 protected:
@@ -161,30 +168,11 @@ CopyRightDialog::CopyRightDialog(QWidget* parent)
 	scene->addItem(item6);
 	scene->addItem(item7);
 
-	//	ui.textBroswer_webicon->setHtml(R"(<div align="center">
-	//<div>
-	//	<img src=":/image/icon_cplusplus17.svg" alt="C++" title="C++" width="73" height="20" style="border-radius: 50%;" />
-	//</div>
-	//<div>
-	//	<img src=":/image/icon_qt-5.15.svg" alt="Qt" title="Qt" width="85" height="20" style="border-radius: 50%;" />
-	//	<img src=":/image/icon_vs-2022.svg" alt="Visual Studio" title="Visual Studio" width="137" height="20" style="border-radius: 50%;" />
-	//</div>
-	//<div>
-	//	<img src=":/image/icon_platform-Windows-blueviolet.svg" alt="Platform" title="Platform" width="116" height="20" style="border-radius: 50%;" />
-	//	<img src=":/image/icon_windows_10_11.svg" alt="Windows" title="Windows" width="125" height="20" style="border-radius: 50%;" />
-	//</div>
-	//<div>
-	//	<img src=":/image/icon_license.svg" alt="License" title="License" width="102" height="20" style="border-radius: 50%;" />
-	//	<a target="_blank" href="https://github.com/bestkakkoii/SaSH"><img border="0" src=":/image/icon_github.svg" alt="Github" title="Github" width="135" height="20" style="border-radius: 50%;" /></a>
-	//</div>)");
-	//
-	//	ui.textBroswer_webicon->setOpenExternalLinks(true);
-
 	ui.label_nameandver->setText(QObject::tr("%1 (%2 bit) - %3.%4.%5")
-		.arg(programName).arg(nowSysBit).arg(SASH_VERSION_MAJOR).arg(SASH_VERSION_MINOR).arg(util::buildDateTime(nullptr)));
+		.arg(programName).arg(nowSysBit).arg(SASH_VERSION_MAJOR).arg(SASH_VERSION_MINOR).arg(compile::buildDateTime(nullptr)));
 
 	ui.label_version->setText(QObject::tr("Version %1.%2.%3")
-		.arg(SASH_VERSION_MAJOR).arg(SASH_VERSION_MINOR).arg(util::buildDateTime(nullptr)));
+		.arg(SASH_VERSION_MAJOR).arg(SASH_VERSION_MINOR).arg(compile::buildDateTime(nullptr)));
 
 	ui.label_copyrighttext->setText(QString(u8"© %1 %2").arg(yearStart).arg(companyName));
 
@@ -192,7 +180,6 @@ CopyRightDialog::CopyRightDialog(QWidget* parent)
 
 	ui.label_link->setText(QString(u8R"(<a href="%1" style="color:#6586B5; font-size: 14px; font-family: Consolas;"><strong>%2</strong> by %3</a>)")
 		.arg(webUrl).arg("lovesa").arg(AuthorName));
-
 	ui.label_link->setOpenExternalLinks(true);
 
 	ui.label_group->setText(QString(u8R"(<a target="_blank" href="%1"><img border="0" src="%2" alt="%3" title="%4"></a>)")
@@ -201,6 +188,8 @@ CopyRightDialog::CopyRightDialog(QWidget* parent)
 
 	ui.label_programname->setText(programName);
 
+	ui.label_thanks->setText(u8"特别感谢: eric、辉、match_stick、手柄、老花、小雅、大头鱼、Jin、瑤瑤、大树、gjw000 热心帮忙测试、查找Bug和给予大量优质的建议");
+
 	ui.label_warnings->setText(
 		QObject::tr("Warning: This project is only for academic purposes," \
 			"commercial use is prohibited." \
@@ -208,11 +197,13 @@ CopyRightDialog::CopyRightDialog(QWidget* parent)
 			"However we make no promises to your game accounts and so you have to use this project at your own risk," \
 			"including taking any damage to your accounts from scripts and binaries."));
 
-	ui.label_thanks->setText(u8"特别感谢: eric、辉、match_stick、手柄、老花、小雅、大头鱼、Jin、瑤瑤、大树、gjw000 热心帮忙测试、查找Bug和给予大量优质的建议");
+	ui.label_ad->setText(QString(u8R"(<a href="%1" style="color:#6586B5; font-size: 14px; font-family: Consolas;">%2</a>)")
+		.arg("https://mysa.cc").arg("盖亚石器攻略网"));
+	ui.label_ad->setOpenExternalLinks(true);
 
-	connect(ui.pushButton_copyinfo, &QPushButton::clicked, this, &CopyRightDialog::pushButton_copyinfo_clicked);
-	connect(ui.pushButton_sysinfo, &QPushButton::clicked, this, &CopyRightDialog::pushButton_sysinfo_clicked);
-	connect(ui.pushButton_dxdiag, &QPushButton::clicked, this, &CopyRightDialog::pushButton_dxdiag_clicked);
+	connect(ui.pushButton_copyinfo, &PushButton::clicked, this, &CopyRightDialog::pushButton_copyinfo_clicked);
+	connect(ui.pushButton_sysinfo, &PushButton::clicked, this, &CopyRightDialog::pushButton_sysinfo_clicked);
+	connect(ui.pushButton_dxdiag, &PushButton::clicked, this, &CopyRightDialog::pushButton_dxdiag_clicked);
 }
 
 CopyRightDialog::~CopyRightDialog()

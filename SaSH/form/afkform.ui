@@ -169,21 +169,21 @@
              <number>0</number>
             </property>
             <item>
-             <widget class="QPushButton" name="pushButton_roundaction_char">
+             <widget class="PushButton" name="pushButton_roundaction_char">
               <property name="text">
                <string>E</string>
               </property>
              </widget>
             </item>
             <item>
-             <widget class="QPushButton" name="pushButton_crossaction_char">
+             <widget class="PushButton" name="pushButton_crossaction_char">
               <property name="text">
                <string>E</string>
               </property>
              </widget>
             </item>
             <item>
-             <widget class="QPushButton" name="pushButton_normalaction_char">
+             <widget class="PushButton" name="pushButton_normalaction_char">
               <property name="text">
                <string>E</string>
               </property>
@@ -321,21 +321,21 @@
              <number>0</number>
             </property>
             <item>
-             <widget class="QPushButton" name="pushButton_roundaction_pet">
+             <widget class="PushButton" name="pushButton_roundaction_pet">
               <property name="text">
                <string>E</string>
               </property>
              </widget>
             </item>
             <item>
-             <widget class="QPushButton" name="pushButton_crossaction_pet">
+             <widget class="PushButton" name="pushButton_crossaction_pet">
               <property name="text">
                <string>E</string>
               </property>
              </widget>
             </item>
             <item>
-             <widget class="QPushButton" name="pushButton_normalaction_pet">
+             <widget class="PushButton" name="pushButton_normalaction_pet">
               <property name="text">
                <string>E</string>
               </property>
@@ -386,7 +386,7 @@
              <widget class="ComboBox" name="comboBox_magicheal"/>
             </item>
             <item>
-             <widget class="QPushButton" name="pushButton_magicheal">
+             <widget class="PushButton" name="pushButton_magicheal">
               <property name="text">
                <string>CP</string>
               </property>
@@ -521,7 +521,7 @@
              </widget>
             </item>
             <item>
-             <widget class="QPushButton" name="pushButton_itemheal">
+             <widget class="PushButton" name="pushButton_itemheal">
               <property name="text">
                <string>CP</string>
               </property>
@@ -711,25 +711,6 @@
               </property>
              </widget>
             </item>
-            <item>
-             <widget class="ComboBox" name="comboBox_skillMp">
-              <property name="minimumSize">
-               <size>
-                <width>179</width>
-                <height>0</height>
-               </size>
-              </property>
-              <property name="baseSize">
-               <size>
-                <width>193</width>
-                <height>0</height>
-               </size>
-              </property>
-              <property name="layoutDirection">
-               <enum>Qt::LeftToRight</enum>
-              </property>
-             </widget>
-            </item>
             <item alignment="Qt::AlignLeft">
              <widget class="QLabel" name="label_31">
               <property name="minimumSize">
@@ -751,6 +732,12 @@
             </item>
             <item>
              <widget class="QSpinBox" name="spinBox_skillMp">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
               <property name="minimumSize">
                <size>
                 <width>178</width>
@@ -786,7 +773,7 @@
              <widget class="ComboBox" name="comboBox_magicrevive"/>
             </item>
             <item>
-             <widget class="QPushButton" name="pushButton_magicrevive">
+             <widget class="PushButton" name="pushButton_magicrevive">
               <property name="text">
                <string>CP</string>
               </property>
@@ -823,7 +810,7 @@
              </widget>
             </item>
             <item>
-             <widget class="QPushButton" name="pushButton_itemrevive">
+             <widget class="PushButton" name="pushButton_itemrevive">
               <property name="text">
                <string>CP</string>
               </property>
@@ -1414,7 +1401,7 @@
              </widget>
             </item>
             <item>
-             <widget class="QPushButton" name="pushButton_autocatchpet">
+             <widget class="PushButton" name="pushButton_autocatchpet">
               <property name="enabled">
                <bool>true</bool>
               </property>
@@ -1865,7 +1852,7 @@
              </widget>
             </item>
             <item>
-             <widget class="QPushButton" name="pushButton_autodroppet">
+             <widget class="PushButton" name="pushButton_autodroppet">
               <property name="enabled">
                <bool>true</bool>
               </property>
@@ -2029,6 +2016,11 @@
  </widget>
  <layoutdefault spacing="6" margin="11"/>
  <customwidgets>
+  <customwidget>
+   <class>PushButton</class>
+   <extends>QPushButton</extends>
+   <header location="global">pushbutton.h</header>
+  </customwidget>
   <customwidget>
    <class>ComboBox</class>
    <extends>QComboBox</extends>

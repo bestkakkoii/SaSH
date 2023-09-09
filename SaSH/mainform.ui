@@ -26,22 +26,7 @@
    <string>SaSH</string>
   </property>
   <property name="styleSheet">
-   <string notr="true">QPushButton {
-	background-color: #F9F9F9;
-	border: 1px solid #000000;
-	padding: 3px;
-}
-
-QPushButton:hover {
-	background-color: #3282F6;
-}
-
-QPushButton:pressed, QPushButton:checked {
-	background-color: #3282F6;
-	border: 1px solid #ffffff;
-}
-
-QGroupBox { color:rgb(100,149,237) }</string>
+   <string notr="true"/>
   </property>
   <widget class="QWidget" name="centralWidget">
    <property name="styleSheet">
@@ -84,12 +69,12 @@ QGroupBox { color:rgb(100,149,237) }</string>
        <item>
         <layout class="QGridLayout" name="gridLayout_progressbar">
          <property name="spacing">
-          <number>1</number>
+          <number>0</number>
          </property>
          <item row="0" column="0">
           <layout class="QHBoxLayout" name="horizontalLayout">
            <property name="spacing">
-            <number>1</number>
+            <number>0</number>
            </property>
            <item>
             <widget class="ProgressBar" name="progressBar_pchp">
@@ -128,18 +113,24 @@ QGroupBox { color:rgb(100,149,237) }</string>
          <item row="1" column="0">
           <layout class="QHBoxLayout" name="horizontalLayout_2">
            <property name="spacing">
-            <number>1</number>
+            <number>0</number>
            </property>
            <item>
             <widget class="ProgressBar" name="progressBar_pethp">
              <property name="value">
               <number>80</number>
              </property>
+             <property name="alignment">
+              <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
+             </property>
              <property name="textVisible">
               <bool>true</bool>
              </property>
              <property name="invertedAppearance">
               <bool>false</bool>
+             </property>
+             <property name="textDirection">
+              <enum>QProgressBar::TopToBottom</enum>
              </property>
              <property name="format">
               <string>%p%</string>
@@ -171,6 +162,12 @@ QGroupBox { color:rgb(100,149,237) }</string>
          <property name="currentIndex">
           <number>-1</number>
          </property>
+         <property name="documentMode">
+          <bool>true</bool>
+         </property>
+         <property name="movable">
+          <bool>true</bool>
+         </property>
         </widget>
        </item>
        <item>
@@ -180,7 +177,7 @@ QGroupBox { color:rgb(100,149,237) }</string>
          </property>
          <layout class="QVBoxLayout" name="verticalLayout">
           <property name="spacing">
-           <number>1</number>
+           <number>0</number>
           </property>
           <property name="leftMargin">
            <number>0</number>
@@ -197,10 +194,13 @@ QGroupBox { color:rgb(100,149,237) }</string>
           <item>
            <layout class="QHBoxLayout" name="horizontalLayout_9">
             <property name="spacing">
-             <number>1</number>
+             <number>0</number>
             </property>
             <item>
              <layout class="QHBoxLayout" name="horizontalLayout_3">
+              <property name="spacing">
+               <number>0</number>
+              </property>
               <item>
                <widget class="QLabel" name="label_status_">
                 <property name="minimumSize">
@@ -241,7 +241,7 @@ QGroupBox { color:rgb(100,149,237) }</string>
             <item>
              <layout class="QHBoxLayout" name="horizontalLayout_8">
               <property name="spacing">
-               <number>1</number>
+               <number>0</number>
               </property>
               <item>
                <widget class="QLabel" name="label_stone_">
@@ -285,10 +285,13 @@ QGroupBox { color:rgb(100,149,237) }</string>
           <item>
            <layout class="QHBoxLayout" name="horizontalLayout_7">
             <property name="spacing">
-             <number>1</number>
+             <number>0</number>
             </property>
             <item>
              <layout class="QHBoxLayout" name="horizontalLayout_4">
+              <property name="spacing">
+               <number>0</number>
+              </property>
               <item>
                <widget class="QLabel" name="label_cursor_">
                 <property name="minimumSize">
@@ -315,6 +318,9 @@ QGroupBox { color:rgb(100,149,237) }</string>
             </item>
             <item>
              <layout class="QHBoxLayout" name="horizontalLayout_5">
+              <property name="spacing">
+               <number>0</number>
+              </property>
               <item>
                <widget class="QLabel" name="label_coords_">
                 <property name="minimumSize">
@@ -356,6 +362,9 @@ QGroupBox { color:rgb(100,149,237) }</string>
           </item>
           <item>
            <layout class="QHBoxLayout" name="horizontalLayout_6">
+            <property name="spacing">
+             <number>0</number>
+            </property>
             <item>
              <widget class="QLabel" name="label_map_">
               <property name="minimumSize">

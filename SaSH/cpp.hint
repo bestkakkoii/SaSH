@@ -4,3 +4,4 @@
 #define Q_REQUIRED_RESULT
 #define Q_REQUIRED_RESULT __attribute__ ((__warn_unused_result__))
 #define Q_REQUIRED_RESULT [[nodiscard]]
+#define Q_DECLARE_METATYPE(TYPE) Q_DECLARE_METATYPE_IMPL(TYPE)

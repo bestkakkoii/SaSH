@@ -86,7 +86,7 @@ ItemInfoForm::ItemInfoForm(QWidget* parent)
 		}
 	}
 
-	connect(ui.pushButton_refresh, &QPushButton::clicked, this, []()
+	connect(ui.pushButton_refresh, &PushButton::clicked, this, []()
 		{
 			Injector& injector = Injector::getInstance();
 			if (!injector.server.isNull())

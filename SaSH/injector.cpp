@@ -374,7 +374,7 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 			break;
 		}
 
-		QScopedHandle hThreadHandle(QScopedHandle::CREATE_REMOTE_THREAD, processHandle_,
+		ScopedHandle hThreadHandle(ScopedHandle::CREATE_REMOTE_THREAD, processHandle_,
 			reinterpret_cast<PVOID>(loadLibraryProc),
 			reinterpret_cast<LPVOID>(static_cast<DWORD>(lpParameter)));
 		if (hThreadHandle.isValid())
@@ -464,7 +464,7 @@ void Injector::remoteFreeModule()
 
 	mem::write<int>(processHandle_, lpParameter, reinterpret_cast<int>(hookdllModule_));
 
-	QScopedHandle hThreadHandle(QScopedHandle::CREATE_REMOTE_THREAD, processHandle_,
+	ScopedHandle hThreadHandle(ScopedHandle::CREATE_REMOTE_THREAD, processHandle_,
 		reinterpret_cast<LPVOID>(freeLibraryProc),
 		reinterpret_cast<LPVOID>(static_cast<DWORD>(lpParameter)));
 	WaitForSingleObject(hThreadHandle, 1000);
@@ -484,7 +484,7 @@ bool Injector::isWindowAlive() const
 		return true;
 
 	DWORD dwProcessId = NULL;
-	QScopedHandle hSnapshop(QScopedHandle::CREATE_TOOLHELP32_SNAPSHOT, TH32CS_SNAPPROCESS, dwProcessId);
+	ScopedHandle hSnapshop(ScopedHandle::CREATE_TOOLHELP32_SNAPSHOT, TH32CS_SNAPPROCESS, dwProcessId);
 	if (!hSnapshop.isValid())
 	{
 		return false;

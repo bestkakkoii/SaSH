@@ -32,10 +32,10 @@ const char* Highlighter::keywords(int set) const
 	case 1://粉色
 	{
 		//lua key word
-		return "goto call function end pause exit label jmp return back break for endfor continue "
+		return "goto call function end pause exit label jmp return back break for continue "
 			"if ifmap ifplayer ifpet ifpetex ifitem ifteam ifitemfull ifdaily ifbattle ifpos ifonline ifnormal "
 			"waitdlg waitsay waititem waitmap waitteam "
-			"while repeat until do in then ";
+			"while repeat until do in then else elseif ";
 	}
 	case 2://QsciLexerLua::BasicFunctions//黃色
 	{
@@ -62,8 +62,8 @@ const char* Highlighter::keywords(int set) const
 	}
 	case 5://KeywordSet5//深藍色
 	{
-		return "local var delete releaseall format rnd true false "
-			"int double bool not and or nil";
+		return "local var delete releaseall rnd true false any format "
+			"int double bool not and or nil ";
 	}
 	case 6://KeywordSet6//淺藍色
 	{
@@ -199,7 +199,7 @@ const char* Highlighter::blockEnd(int* style) const
 	if (style)
 		*style = Operator;
 
-	return "end endfor until ";
+	return "end until ";
 }
 
 const char* Highlighter::blockStartKeyword(int* style) const

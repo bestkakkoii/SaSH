@@ -70,7 +70,7 @@ AfkInfoForm::AfkInfoForm(QWidget* parent)
 
 	setTableWidget(ui.tableWidget);
 
-	connect(ui.pushButton, &QPushButton::clicked, this, &AfkInfoForm::onButtonClicked);
+	connect(ui.pushButton, &PushButton::clicked, this, &AfkInfoForm::onButtonClicked);
 
 	onResetControlTextLanguage();
 

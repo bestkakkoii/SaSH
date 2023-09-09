@@ -69,13 +69,9 @@ public slots:
 	void proc();
 
 private:
-	bool readFile(const QString& fileName, QString* pcontent, bool* isPrivate);
-	bool loadString(const QString& script, QHash<qint64, TokenMap>* ptokens, QHash<QString, qint64>* plabel);
-
 	qint64 mainScriptCallBack(qint64 currentLine, const TokenMap& token);
 
 private:
-
 
 	template<typename Func>
 	void registerFunction(const QString functionName, Func fun);
@@ -243,21 +239,15 @@ private: //註冊給Parser的函數
 	qint64 bwait(qint64 currentline, const TokenMap& TK);//wait
 	qint64 bend(qint64 currentline, const TokenMap& TK);//wait
 
-
 private:
-	qint64 beginLine_ = 0;
-
 	QThread* thread_ = nullptr;
-
 	Parser parser_;
 
 	std::atomic_bool isRunning_ = false;
-
-	QString scriptFileName_;
-
+	ParserCallBack pCallback = nullptr;
 	QList<QSharedPointer<Interpreter>> subInterpreterList_;
 	QFutureSynchronizer<bool> futureSync_;
-	ParserCallBack pCallback = nullptr;
-
 	QHash<QString, QSharedPointer<QElapsedTimer>> customTimer_;
+
+
 };

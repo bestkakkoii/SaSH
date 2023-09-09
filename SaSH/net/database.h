@@ -62,7 +62,7 @@ constexpr int MAX_ADR_BOOK_PAGE = 20;//20  //10   20050214 cyg 10 add to 20
 #else
 constexpr int MAX_ADR_BOOK_PAGE = 10;
 #endif
-constexpr int MAX_ADR_BOOK = (MAX_ADR_BOOK_COUNT * MAX_ADR_BOOK_PAGE);
+constexpr int MAX_ADDRESS_BOOK = (MAX_ADR_BOOK_COUNT * MAX_ADR_BOOK_PAGE);
 
 #ifdef _PRO3_ADDSKILL
 constexpr int MAX_PROFESSION_SKILL = 30;
@@ -1341,6 +1341,7 @@ typedef struct tagPC
 #endif
 	//custom
 	int maxload = -1;
+	int point = 0;
 } PC;
 
 constexpr int DEF_PAL = 0;

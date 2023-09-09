@@ -42,11 +42,11 @@ AfkForm::AfkForm(QWidget* parent)
 	connect(&signalDispatcher, &SignalDispatcher::applyHashSettingsToUI, this, &AfkForm::onApplyHashSettingsToUI, Qt::UniqueConnection);
 	connect(&signalDispatcher, &SignalDispatcher::updateComboBoxItemText, this, &AfkForm::onUpdateComboBoxItemText, Qt::UniqueConnection);
 
-	QList<QPushButton*> buttonList = util::findWidgets<QPushButton>(this);
+	QList<PushButton*> buttonList = util::findWidgets<PushButton>(this);
 	for (auto& button : buttonList)
 	{
 		if (button)
-			connect(button, &QPushButton::clicked, this, &AfkForm::onButtonClicked, Qt::UniqueConnection);
+			connect(button, &PushButton::clicked, this, &AfkForm::onButtonClicked, Qt::UniqueConnection);
 	}
 
 	QList <QCheckBox*> checkBoxList = util::findWidgets<QCheckBox>(this);
@@ -97,6 +97,15 @@ AfkForm::~AfkForm()
 
 }
 
+void AfkForm::showEvent(QShowEvent* e)
+{
+	setAttribute(Qt::WA_Mapped);
+	QWidget::showEvent(e);
+	Injector& injector = Injector::getInstance();
+	if (!injector.server.isNull())
+		injector.server->updateComboBoxList();
+}
+
 void AfkForm::closeEvent(QCloseEvent* event)
 {
 	util::FormSettingManager formSettingManager(this);
@@ -107,7 +116,7 @@ void AfkForm::closeEvent(QCloseEvent* event)
 
 void AfkForm::onButtonClicked()
 {
-	QPushButton* pPushButton = qobject_cast<QPushButton*>(sender());
+	PushButton* pPushButton = qobject_cast<PushButton*>(sender());
 	if (!pPushButton)
 		return;
 
@@ -689,13 +698,6 @@ void AfkForm::onComboBoxCurrentIndexChanged(int value)
 		return;
 	}
 
-	//skill mp
-	if (name == "comboBox_skillMp")
-	{
-		injector.setValueHash(util::kBattleSkillMpSkillValue, value != -1 ? value : 0);
-		return;
-	}
-
 	//normal
 	if (name == "comboBox_magicheal_normal")
 	{
@@ -732,11 +734,17 @@ void AfkForm::onComboBoxClicked()
 {
 	ComboBox* pComboBox = qobject_cast<ComboBox*>(sender());
 	if (!pComboBox)
+	{
+		pComboBox->setDisableFocusCheck(false);
 		return;
+	}
 
 	QString name = pComboBox->objectName();
 	if (name.isEmpty())
+	{
+		pComboBox->setDisableFocusCheck(false);
 		return;
+	}
 
 	Injector& injector = Injector::getInstance();
 
@@ -782,7 +790,10 @@ void AfkForm::onComboBoxClicked()
 	} while (false);
 
 	if (settingType == util::kSettingNotUsed)
+	{
+		pComboBox->setDisableFocusCheck(false);
 		return;
+	}
 
 	QString currentText = pComboBox->currentText();
 	pComboBox->clear();
@@ -791,6 +802,11 @@ void AfkForm::onComboBoxClicked()
 	//清除重複
 	itemList.removeDuplicates();
 	pComboBox->addItems(itemList);
+
+
+	pComboBox->setDisableFocusCheck(false);
+
+
 }
 
 void AfkForm::onComboBoxTextChanged(const QString& text)
@@ -841,6 +857,8 @@ void AfkForm::onResetControlTextLanguage()
 
 	auto appendRound = [](QComboBox* combo)->void
 	{
+		if (combo->hasFocus())
+			return;
 
 		combo->clear();
 		combo->addItem(tr("not use"));
@@ -855,6 +873,8 @@ void AfkForm::onResetControlTextLanguage()
 
 	auto appendEnemyAmount = [](QComboBox* combo)->void
 	{
+		if (combo->hasFocus())
+			return;
 
 		combo->clear();
 		combo->addItem(tr("not use"));
@@ -869,6 +889,8 @@ void AfkForm::onResetControlTextLanguage()
 
 	auto appendCrossRound = [](QComboBox* combo)->void
 	{
+		if (combo->hasFocus())
+			return;
 
 		combo->clear();
 		for (int i = 1; i <= 20; ++i)
@@ -882,6 +904,8 @@ void AfkForm::onResetControlTextLanguage()
 
 	auto appendEnemyLevel = [](QComboBox* combo)->void
 	{
+		if (combo->hasFocus())
+			return;
 
 		combo->clear();
 		combo->addItem(tr("not use"));
@@ -896,6 +920,8 @@ void AfkForm::onResetControlTextLanguage()
 
 	auto appendCharAction = [](QComboBox* combo, bool notBattle = false)->void
 	{
+		if (combo->hasFocus())
+			return;
 
 		combo->clear();
 		QStringList actionList = {
@@ -918,7 +944,6 @@ void AfkForm::onResetControlTextLanguage()
 
 	auto appendNumbers = [](QComboBox* combo, int max)->void
 	{
-
 		combo->clear();
 		for (int i = 1; i <= max; ++i)
 		{
@@ -954,6 +979,9 @@ void AfkForm::onResetControlTextLanguage()
 	appendCharAction(ui.comboBox_magicheal_normal, true);
 	for (int i = CHAR_EQUIPPLACENUM; i < MAX_ITEM; ++i)
 	{
+		if (ui.comboBox_magicheal_normal->hasFocus())
+			break;
+
 		QString text = QString("%1:").arg(i + 1 - CHAR_EQUIPPLACENUM);
 		ui.comboBox_magicheal_normal->addItem(text);
 		int index = ui.comboBox_magicheal_normal->count() - 1;
@@ -971,12 +999,17 @@ void AfkForm::onResetControlTextLanguage()
 
 	appendNumbers(ui.comboBox_autocatchpet_petskill, MAX_SKILL);
 
+	if (!ui.comboBox_autocatchpet_mode->hasFocus())
+	{
+		ui.comboBox_autocatchpet_mode->clear();
+		ui.comboBox_autocatchpet_mode->addItems(QStringList{ tr("escape from encounter") , tr("engage in encounter") });
+	}
 
-	ui.comboBox_autocatchpet_mode->clear();
-	ui.comboBox_autocatchpet_mode->addItems(QStringList{ tr("escape from encounter") , tr("engage in encounter") });
-
-	ui.comboBox_autowalkdir->clear();
-	ui.comboBox_autowalkdir->addItems(QStringList{ tr("↖↘"), tr("↗↙"), tr("random") });
+	if (!ui.comboBox_autowalkdir->hasFocus())
+	{
+		ui.comboBox_autowalkdir->clear();
+		ui.comboBox_autowalkdir->addItems(QStringList{ tr("↖↘"), tr("↗↙"), tr("random") });
+	}
 
 	updateTargetButtonText();
 }
@@ -991,7 +1024,6 @@ void AfkForm::onApplyHashSettingsToUI()
 		QString newTitle = QString("[%1] %2").arg(injector.server->getPC().name).arg(title);
 		setWindowTitle(newTitle);
 	}
-
 
 	//battle
 	ui.checkBox_magicheal->setChecked(injector.getEnableHash(util::kBattleMagicHealEnable));
@@ -1032,7 +1064,6 @@ void AfkForm::onApplyHashSettingsToUI()
 
 	ui.comboBox_magicheal->setCurrentIndex(injector.getValueHash(util::kBattleMagicHealMagicValue));
 	ui.comboBox_magicrevive->setCurrentIndex(injector.getValueHash(util::kBattleMagicReviveMagicValue));
-	ui.comboBox_skillMp->setCurrentIndex(injector.getValueHash(util::kBattleSkillMpSkillValue));
 
 	ui.comboBox_itemheal->setCurrentText(injector.getStringHash(util::kBattleItemHealItemString));
 	ui.comboBox_itemhealmp->setCurrentText(injector.getStringHash(util::kBattleItemHealMpItemString));
@@ -1233,7 +1264,7 @@ void AfkForm::onUpdateComboBoxItemText(int type, const QStringList& textList)
 		appendMagicText(ui.comboBox_magicheal, true);
 		appendMagicText(ui.comboBox_magicrevive, true);
 		appendMagicText(ui.comboBox_magicheal_normal, true);
-		appendProfText(ui.comboBox_skillMp);
+		//appendProfText(ui.comboBox_skillMp);
 
 
 		//catch

@@ -215,7 +215,9 @@ private slots:
 
 
 private:
-	int saDispatchMessage(char* encoded);
+	int dispatchMessage(char* encoded);
+
+	bool handleCustomMessage(QTcpSocket* clientSocket, const QByteArray& data);
 
 	void handleData(QTcpSocket* clientSocket, QByteArray data);
 
@@ -345,8 +347,8 @@ public://actions
 	void syncBattleAction();
 	void asyncBattleAction();
 
-	void downloadMap();
-	void downloadMap(int x, int y);
+	void downloadMap(int floor = -1);
+	void downloadMap(int x, int y, int floor = -1);
 
 	bool tradeStart(const QString& name, int timeout);
 	void tradeComfirm(const QString& name);
@@ -483,7 +485,36 @@ private:
 	inline Q_REQUIRED_RESULT constexpr bool isItemStackable(int flg) { return ((flg >> 2) & 1); }
 	QString getAreaString(int target);
 	Q_REQUIRED_RESULT bool matchPetNameByIndex(int index, const QString& name);
+	Q_REQUIRED_RESULT int getProfessionSkillIndexByName(const QString& names) const
+	{
+		int i = 0;
+		bool isExact = true;
+		QStringList list = names.split(util::rexOR, Qt::SkipEmptyParts);
+		for (QString name : list)
+		{
+			if (name.isEmpty())
+				continue;
 
+			if (name.startsWith("?"))
+			{
+				name = name.mid(1);
+				isExact = false;
+			}
+
+			for (i = 0; i < MAX_PROFESSION_SKILL; ++i)
+			{
+				if (!profession_skill[i].valid)
+					continue;
+
+				if (isExact && profession_skill[i].name == name)
+					return i;
+				else if (!isExact && profession_skill[i].name.contains(name))
+					return i;
+
+			}
+		}
+		return -1;
+	}
 
 #pragma region BattleFunctions
 	int playerDoBattleWork(const battledata_t& bt);
@@ -675,8 +706,6 @@ private:
 #pragma endregion
 
 private:
-	QFutureSynchronizer<void> ayncBattleCommandSync;
-	QFuture<void> ayncBattleCommandFuture;
 	QMutex ayncBattleCommandMutex;
 	std::atomic_bool ayncBattleCommandFlag = false;
 
@@ -712,7 +741,7 @@ private:
 	PET pet[MAX_PET] = {};
 
 #ifdef MAX_AIRPLANENUM
-	PARTY party_[MAX_AIRPLANENUM];
+	PARTY party[MAX_AIRPLANENUM];
 #else
 	PARTY party[MAX_PARTY] = {};
 #endif
@@ -725,26 +754,27 @@ private:
 
 	int swapitemModeFlag = 0;
 	QHash<QString, bool>itemStackFlagHash = {};
-	//client original
-#pragma region ClientOriginal
-	int  talkMode = 0;						//0:一般 1:密語 2: 隊伍 3:家族 4:職業
 
+	//client original 目前很多都是沒用處的
+#pragma region ClientOriginal
 	MAGIC magic[MAX_MAGIC] = {};
 
 	BATTLE_RESULT_MSG battleResultMsg = {};
 
-	ADDRESS_BOOK addressBook[MAX_ADR_BOOK] = {};
+	ADDRESS_BOOK addressBook[MAX_ADDRESS_BOOK] = {};
 
 	JOBDAILY jobdaily[MAX_MISSION] = {};
 
 	CHARLISTTABLE chartable[MAX_CHARACTER] = {};
 
-	short partyModeFlag = 0;
-	MAIL_HISTORY MailHistory[MAX_ADR_BOOK] = {};
+	MAIL_HISTORY mailHistory[MAX_ADDRESS_BOOK] = {};
+
+	bool hasTeam = false;
 	unsigned int ProcNo = 0u;
 	unsigned int SubProcNo = 0u;
 	unsigned int MenuToggleFlag = 0u;
 
+	//trade
 	int opp_showindex = 0;
 	QString opp_sockfd;
 	QString opp_name;
@@ -769,14 +799,11 @@ private:
 
 	short prSendFlag = 0i16;
 
-
 	short mailLampDrawFlag = 0i16;
 
 	short mapEffectRainLevel = 0i16;
 	short mapEffectSnowLevel = 0i16;
 	short mapEffectKamiFubukiLevel = 0i16;
-
-
 
 	LSTIME SaTime = { 0 };
 	unsigned long long serverTime = 0ULL;
@@ -803,8 +830,6 @@ private:
 	int BattleMyMp = 0;
 	int battleCurrentAnimeFlag = 0;
 	int BattlePetStMenCnt = 0;
-
-	int StatusUpPoint = 0;
 
 	int mailHistoryWndSelectNo = 0;
 	int mailHistoryWndPageNo = 0;
@@ -868,16 +893,15 @@ public:
 	//custom
 	bool IS_TRADING = false;
 
+	bool IS_DISCONNECTED = false;
+
 	bool IS_TCP_CONNECTION_OK_TO_USE = false;
 
 	bool IS_WAITFOR_JOBDAILY_FLAG = false;
 	bool IS_WAITFOR_BANK_FLAG = false;
 	bool IS_WAITFOR_DIALOG_FLAG = false;
 	bool IS_WAITFOR_EXTRA_DIALOG_INFO_FLAG = false;
-
 	bool IS_WAITFOR_CUSTOM_DIALOG_FLAG = false;
-
-	bool IS_DISCONNECTED = false;
 
 	std::atomic_bool  isBattleDialogReady = false;
 	std::atomic_bool isEOTTLSend = false;
@@ -933,8 +957,6 @@ public:
 	QString labelPetAction;
 
 private:
-	QFutureSynchronizer <void> sync_;
-
 	unsigned short port_ = 0;
 
 	QSharedPointer<QTcpServer> server_;
@@ -1085,4 +1107,4 @@ private://lssproto_recv
 	virtual void lssproto_CustomWN_recv(const QString& data) override;
 	virtual void lssproto_CustomTK_recv(const QString& data) override;
 #pragma endregion
-};
+	};

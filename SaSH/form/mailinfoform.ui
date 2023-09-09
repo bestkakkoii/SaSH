@@ -240,7 +240,7 @@
                 <number>1</number>
                </property>
                <item>
-                <widget class="QPushButton" name="pushButton">
+                <widget class="PushButton" name="pushButton">
                  <property name="enabled">
                   <bool>false</bool>
                  </property>
@@ -250,7 +250,7 @@
                 </widget>
                </item>
                <item>
-                <widget class="QPushButton" name="pushButton_2">
+                <widget class="PushButton" name="pushButton_2">
                  <property name="enabled">
                   <bool>false</bool>
                  </property>
@@ -260,7 +260,7 @@
                 </widget>
                </item>
                <item>
-                <widget class="QPushButton" name="pushButton_3">
+                <widget class="PushButton" name="pushButton_3">
                  <property name="enabled">
                   <bool>false</bool>
                  </property>
@@ -573,6 +573,13 @@
   </layout>
  </widget>
  <layoutdefault spacing="6" margin="11"/>
+ <customwidgets>
+  <customwidget>
+   <class>PushButton</class>
+   <extends>QPushButton</extends>
+   <header location="global">pushbutton.h</header>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections/>
 </ui>

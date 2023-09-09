@@ -1,6 +1,4 @@
-﻿
-//#pragma execution_character_set("utf-8")
-/*
+﻿/*
 * Copyright (C) 2016 SaEeD
 *
 * This program is free software; you can redistribute it and/or

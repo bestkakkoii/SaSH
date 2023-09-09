@@ -143,6 +143,7 @@ ScriptSettingForm::ScriptSettingForm(QWidget* parent)
 	connect(ui.actionLogback, &QAction::triggered, this, &ScriptSettingForm::onActionTriggered);
 	connect(ui.actionSaveEncode, &QAction::triggered, this, &ScriptSettingForm::onActionTriggered);
 	connect(ui.actionSaveDecode, &QAction::triggered, this, &ScriptSettingForm::onActionTriggered);
+	connect(ui.actionDebug, &QAction::triggered, this, &ScriptSettingForm::onActionTriggered);
 
 	connect(this, &ScriptSettingForm::editorCursorPositionChanged, this, &ScriptSettingForm::onEditorCursorPositionChanged, Qt::QueuedConnection);
 	connect(this, &ScriptSettingForm::breakMarkInfoImport, this, &ScriptSettingForm::onBreakMarkInfoImport, Qt::QueuedConnection);
@@ -369,6 +370,8 @@ void ScriptSettingForm::onApplyHashSettingsToUI()
 		ui.listView_log->setModel(injector.scriptLogModel.get());
 
 	pSpeedSpinBox->setValue(injector.getValueHash(util::kScriptSpeedValue));
+
+	ui.actionDebug->setChecked(injector.isScriptDebugModeEnable.load(std::memory_order_acquire));
 }
 
 void ScriptSettingForm::onScriptStartMode()
@@ -407,6 +410,12 @@ void ScriptSettingForm::onScriptStartMode()
 
 	//ui.mainToolBar->addAction(ui.actionStep);
 	ui.mainToolBar->addAction(ui.actionMark);
+
+	ui.mainToolBar->addSeparator();
+
+	ui.mainToolBar->addAction(ui.actionDebug);
+
+	ui.mainToolBar->addSeparator();
 
 	createSpeedSpinBox();
 
@@ -461,6 +470,12 @@ void ScriptSettingForm::onScriptStopMode()
 	ui.mainToolBar->addAction(ui.actionSaveEncode);
 	ui.mainToolBar->addAction(ui.actionSaveDecode);
 
+	ui.mainToolBar->addSeparator();
+
+	ui.mainToolBar->addAction(ui.actionDebug);
+
+	ui.mainToolBar->addSeparator();
+
 	createSpeedSpinBox();
 
 	ui.widget->setReadOnly(false);
@@ -511,6 +526,12 @@ void ScriptSettingForm::onScriptBreakMode()
 	ui.mainToolBar->addAction(ui.actionStep);
 	ui.mainToolBar->addAction(ui.actionMark);
 
+	ui.mainToolBar->addSeparator();
+
+	ui.mainToolBar->addAction(ui.actionDebug);
+
+	ui.mainToolBar->addSeparator();
+
 	createSpeedSpinBox();
 
 	//禁止編輯
@@ -557,7 +578,14 @@ void ScriptSettingForm::onScriptPauseMode()
 	ui.mainToolBar->addAction(ui.actionStep);
 	ui.mainToolBar->addAction(ui.actionMark);
 
+	ui.mainToolBar->addSeparator();
+
+	ui.mainToolBar->addAction(ui.actionDebug);
+
+	ui.mainToolBar->addSeparator();
+
 	createSpeedSpinBox();
+
 	//禁止編輯
 	ui.widget->setReadOnly(true);
 
@@ -786,6 +814,26 @@ void ScriptSettingForm::replaceCommas(QStringList& inputList)
 	inputList = outputList;
 }
 
+QString formatScriptLine(const QString& inputLine)
+{
+	//// 正則表達式檢查 { 後是否有空格，如果沒有則添加一個
+	//QString formattedLine = inputLine;
+	//QRegularExpression regex("\\{([^\\s])");
+	//formattedLine.replace(regex, "{ \\1");
+
+	//// 正則表達式檢查 } 前是否有空格，如果沒有則添加一個
+	//regex.setPattern("([^\\s])\\}");
+	//formattedLine.replace(regex, "\\1 }");
+
+	//return formattedLine;
+	QString formattedLine = inputLine;
+	QRegularExpression regex("\\{([^\\s'\"].*?[^\\s'\"])\\}");
+	formattedLine.replace(regex, "{ \\1 }");
+
+	return formattedLine;
+
+}
+
 void ScriptSettingForm::fileSave(const QString& d, DWORD flag)
 {
 	Injector& injector = Injector::getInstance();
@@ -833,14 +881,10 @@ void ScriptSettingForm::fileSave(const QString& d, DWORD flag)
 	for (const QString& line : contents)
 	{
 		QString trimmedLine = line.trimmed();
-		int endIndex = trimmedLine.indexOf("endfor");
+		int endIndex = trimmedLine.indexOf("end");
 		if (-1 == endIndex)
 		{
-			endIndex = trimmedLine.indexOf("end");
-			if (-1 == endIndex)
-			{
-				endIndex = trimmedLine.indexOf("until");
-			}
+			endIndex = trimmedLine.indexOf("until");
 		}
 
 		QString tmpLine;
@@ -862,11 +906,11 @@ void ScriptSettingForm::fileSave(const QString& d, DWORD flag)
 			}
 		}
 
-		if (trimmedLine.startsWith("endfor") && !tmpLine.isEmpty() && tmpLine == "endfor")
+		if (trimmedLine.startsWith("end") && !tmpLine.isEmpty() && tmpLine == "end")
 		{
 			indentLevel--;
 		}
-		else if (trimmedLine.startsWith("end") && !tmpLine.isEmpty() && tmpLine == "end")
+		else if (trimmedLine == "}")
 		{
 			indentLevel--;
 		}
@@ -878,7 +922,7 @@ void ScriptSettingForm::fileSave(const QString& d, DWORD flag)
 
 		QString indentedLine = QString("    ").repeated(indentLevel) + trimmedLine;
 		newContents.append(indentedLine);
-		if (trimmedLine.startsWith("function") || trimmedLine.startsWith("local function"))
+		if (trimmedLine.startsWith("function") || trimmedLine.startsWith("local function") || trimmedLine.endsWith("{"))
 		{
 			indentLevel++;
 		}
@@ -963,7 +1007,7 @@ void ScriptSettingForm::onReloadScriptList()
 
 void ScriptSettingForm::loadFile(const QString& fileName)
 {
-	util::QScopedFile f(fileName, QIODevice::ReadOnly | QIODevice::Text);
+	util::ScopedFile f(fileName, QIODevice::ReadOnly | QIODevice::Text);
 	if (!f.isOpen())
 		return;
 
@@ -987,7 +1031,8 @@ void ScriptSettingForm::loadFile(const QString& fileName)
 	c.replace("\r\n", "\n");
 
 	Injector& injector = Injector::getInstance();
-	injector.currentScriptFileName = fileName;
+	if (!injector.IS_SCRIPT_FLAG)
+		injector.currentScriptFileName = fileName;
 
 	if (!injector.server.isNull() && injector.server->getOnlineFlag())
 		setWindowTitle(QString("[%1] %2").arg(injector.server->getPC().name).arg(injector.currentScriptFileName));
@@ -1031,6 +1076,11 @@ void ScriptSettingForm::loadFile(const QString& fileName)
 
 	if (isReadOnly)
 		ui.widget->setReadOnly(true);
+
+	if (injector.IS_SCRIPT_FLAG)
+	{
+		onScriptStartMode();
+	}
 }
 
 void ScriptSettingForm::setContinue()
@@ -1240,6 +1290,10 @@ void ScriptSettingForm::onActionTriggered()
 	else if (name == "actionSaveDecode")
 	{
 		onDecryptSave();
+	}
+	else if (name == "actionDebug")
+	{
+		injector.isScriptDebugModeEnable.store(pAction->isChecked(), std::memory_order_release);
 	}
 }
 
@@ -1747,7 +1801,7 @@ void ScriptSettingForm::on_treeWidget_functionList_itemDoubleClicked(QTreeWidget
 	}
 	else if (str == "for")
 	{
-		str = QString("%1 i = 1, 10, 1\n    \nendfor").arg(str);
+		str = QString("%1 i = 1, 10, 1\n    \nend").arg(str);
 	}
 	else if (str == "movetonpc")
 	{
@@ -2124,7 +2178,7 @@ void ScriptSettingForm::on_listView_log_doubleClicked(const QModelIndex& index)
 		return;
 
 	// "於行號: 1" | "于行号: 1"  取最後 : 後面的數字
-	static const QRegularExpression re(u8"於行號: (\\d+)|于行号: (\\d+)");
+	static const QRegularExpression re(u8"@\\s*(\\d+)\\s*\\|");
 	QRegularExpressionMatch match = re.match(text);
 	if (match.hasMatch())
 	{

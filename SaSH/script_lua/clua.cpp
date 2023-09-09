@@ -411,7 +411,11 @@ void luadebug::hookProc(lua_State* L, lua_Debug* ar)
 		qint64 currentLine = ar->currentline;
 		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
 		qint64 max = lua["_ROWCOUNT"];
-		emit signalDispatcher.scriptLabelRowTextChanged(currentLine, max, false);
+
+		Injector& injector = Injector::getInstance();
+
+		if (injector.isScriptDebugModeEnable.load(std::memory_order_acquire))
+			emit signalDispatcher.scriptLabelRowTextChanged(currentLine, max, false);
 
 		processDelay(s);
 		if (!lua["_DEBUG"].is<bool>() || lua["_DEBUG"].get<bool>())
@@ -430,7 +434,6 @@ void luadebug::hookProc(lua_State* L, lua_Debug* ar)
 		if (pLua == nullptr)
 			return;
 
-		Injector& injector = Injector::getInstance();
 		QString scriptFileName = injector.currentScriptFileName;
 
 		util::SafeHash<qint64, break_marker_t> breakMarkers = break_markers.value(scriptFileName);
@@ -669,6 +672,7 @@ void CLua::open_utillibs()
 		sol::call_constructor,
 		sol::constructors<CLuaUtil()>(),
 		"sys", &CLuaUtil::getSys,
+		"map", &CLuaUtil::getMap,
 		"char", &CLuaUtil::getChar,
 		"pet", &CLuaUtil::getPet,
 		"team", &CLuaUtil::getTeam,
@@ -814,7 +818,8 @@ void CLua::open_maplibs()
 		"move", &CLuaMap::move,
 		"packetMove", &CLuaMap::packetMove,
 		"teleport", &CLuaMap::teleport,
-		"findPath", &CLuaMap::findPath
+		"findPath", &CLuaMap::findPath,
+		"download", &CLuaMap::downLoad
 	);
 
 	lua_.safe_script(R"(

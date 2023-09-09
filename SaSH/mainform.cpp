@@ -33,7 +33,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 //menu action forms
 #include "form/scriptsettingform.h"
 #include "model/qthumbnailform.h"
-#include "update/qdownloader.h"
+#include "update/downloader.h"
 
 //utilities
 #include "signaldispatcher.h"
@@ -91,7 +91,7 @@ void createMenu(QMenuBar* pMenuBar)
 		QFontMetrics fontMetrics(QApplication::font());
 		int textWidth = fontMetrics.horizontalAdvance(text);
 		int shortcutWidth = fontMetrics.horizontalAdvance(shortcutText);
-		int totalWidth = 130;  // 文本和快捷键部分的总宽度
+		constexpr int totalWidth = 130;  // 文本和快捷键部分的总宽度
 		int spaceCount = (totalWidth - textWidth - shortcutWidth) / fontMetrics.horizontalAdvance(' ');
 
 		QString alignedText = text + QString(spaceCount, ' ') + shortcutText;
@@ -653,7 +653,22 @@ MainForm::MainForm(QWidget* parent)
 	setWindowFlags(windowFlags() & ~Qt::WindowMaximizeButtonHint);
 	setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
 	setFixedSize(290, 481);
-	setStyleSheet("QMainWindow{ border-radius: 10px; background-color: rgb(245, 245, 245); } ");
+	setStyleSheet(R"(
+QMainWindow{
+	border-radius: 10px;
+	background-color: rgb(245, 245, 245);
+} 
+
+QGroupBox { 
+	color:rgb(100,149,237)
+}
+)");
+
+	QGraphicsDropShadowEffect* shadowEffect = new QGraphicsDropShadowEffect;
+	shadowEffect->setBlurRadius(10); // 設置陰影的模糊半徑，根據需要調整
+	shadowEffect->setOffset(0, 1);   // 設置陰影的偏移量，根據需要調整
+	shadowEffect->setColor(Qt::black); // 設置陰影的顏色，根據需要調整
+	setGraphicsEffect(shadowEffect);
 
 	qRegisterMetaType<QVariant>("QVariant");
 	qRegisterMetaType<QVariant>("QVariant&");
@@ -831,27 +846,6 @@ void MainForm::onMenuActionTriggered()
 		{
 			pCopyRightDialog->exec();
 		}
-
-		//		QMessageBox::information(this, "SaSH",
-		//			QString(u8R"(
-		//作者:
-		//飞 Philip
-		//
-		//Copyright ©2019-2023 Bestkakkoii llc. All rights reserved.
-		//
-		//论坛:
-		//https://www.lovesa.cc
-		//
-		//QQ 群:
-		//224068611
-		//
-		//当前版本:
-		//%1
-		//
-		//特别感谢:
-		//eric, 辉, match_stick, 手柄, 老花, 小雅 热心帮忙测试、查找bug，和给予大量优质的建议
-		//)")
-		//.arg(util::buildDateTime(nullptr)));
 	}
 
 	else if (actionName == "actionClose")
@@ -932,7 +926,7 @@ void MainForm::onMenuActionTriggered()
 		QString current;
 		QString result;
 		QMessageBox::StandardButton ret;
-		if (QDownloader::checkUpdate(&current, &result))
+		if (Downloader::checkUpdate(&current, &result))
 		{
 			ret = QMessageBox::warning(this, tr("Update"), \
 				tr("Current version:%1\nNew version:%2 were found!\n\nUpdate process will cause all the games to be closed, are you sure to continue?") \
@@ -949,7 +943,7 @@ void MainForm::onMenuActionTriggered()
 		if (QMessageBox::No == ret)
 			return;
 
-		QDownloader* downloader = q_check_ptr(new QDownloader());
+		Downloader* downloader = q_check_ptr(new Downloader());
 		if (downloader)
 		{
 			hide();
@@ -983,7 +977,7 @@ void MainForm::resetControlTextLanguage()
 	constexpr int VERSION_MAJOR = 1;
 	constexpr int VERSION_MINOR = 0;
 	//constexpr int VERSION_PATCH = 0;
-	const QString strversion = QString("%1.%2%3").arg(VERSION_MAJOR).arg(VERSION_MINOR).arg("." + util::buildDateTime(nullptr));
+	const QString strversion = QString("%1.%2%3").arg(VERSION_MAJOR).arg(VERSION_MINOR).arg("." + compile::buildDateTime(nullptr));
 	setWindowTitle(tr("SaSH - %1").arg(strversion));
 
 	if (pMenuBar_)

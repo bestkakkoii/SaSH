@@ -350,13 +350,13 @@ void CAStar::handle_not_found_node(Node*& current, Node*& destination, const QPo
 }
 
 // 執行尋路操作
-QVector<QPoint> CAStar::find(const CAStarParam& param)
+bool __fastcall CAStar::find(const CAStarParam& param, std::vector<QPoint>* pPaths)
 {
-	QVector<QPoint> paths;
 	if (!is_vlid_params(param))
-	{
-		return paths;
-	}
+		return false;
+
+	if (pPaths)
+		pPaths->clear();
 
 	// 初始化
 	init(param);
@@ -391,18 +391,24 @@ QVector<QPoint> CAStar::find(const CAStarParam& param)
 		// 是否找到終點
 		if (current->pos == param.end)
 		{
+			if (pPaths == nullptr)
+			{
+				clear();
+				return true;
+			}
+
 			while (current->parent)
 			{
-				paths.push_back(current->pos);
+				pPaths->push_back(current->pos);
 				current = current->parent;
 			}
 #if _MSVC_LANG > 201703L
-			std::ranges::reverse(paths);
+			std::ranges::reverse(*pPaths);
 #else
-			std::reverse(paths.begin(), paths.end());
+			std::reverse(pPaths->begin(), pPaths->end());
 #endif
 			break;
-			}
+		}
 
 		// 查找周圍可通過節點
 		nearby_nodes.clear();
@@ -439,18 +445,22 @@ QVector<QPoint> CAStar::find(const CAStarParam& param)
 #endif
 					{
 						return a->f() > b->f();
-		});
+					});
 #else
 				next_node = allocator_->allocate(alloc_size);  // 分配內存
 				std::allocator_traits<std::pmr::polymorphic_allocator<Node>>::construct(*allocator_, next_node, nearby_nodes[index]);// 構造對象
 				handle_not_found_node(current, next_node, param.end);
 #endif
-		}
+			}
 			++index;
+		}
 	}
-}
 
 	clear();
-	return paths;
+
+	if (pPaths != nullptr)
+		return !pPaths->empty();
+	else
+		return false;
 }
 #pragma endregion

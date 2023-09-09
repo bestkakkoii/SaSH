@@ -1,5 +1,10 @@
 ﻿#pragma once
-#pragma execution_character_set("utf-8")
+#ifndef UTF8_EXECUTION
+#define UTF8_EXECUTION
+#if _MSC_VER >= 1600 
+#pragma execution_character_set("utf-8") 
+#endif
+#endif
 #ifndef QT_USE_QSTRINGBUILDER
 #define QT_USE_QSTRINGBUILDER
 #endif
@@ -98,6 +103,7 @@ public:\
 #include <QInputDialog>
 #include <QWidget>
 #include <QtWidgets/QMainWindow>
+#include <QGraphicsDropShadowEffect>
 #include <QMenuBar>
 #include <QMenu>
 #include <QFileDialog>
@@ -180,7 +186,7 @@ public:\
 #include <QFontDataBase>
 #include <QLibrary>
 #include <QColor>
-
+#include <QPainterPath>
 // io
 #include <QFile>
 #include <QFileInfo>
@@ -221,33 +227,53 @@ public:\
 
 #include <QCryptographicHash>
 
+//Qt Private
+#include <QtGui/private/qzipreader_p.h>
+#include <QtGui/private/qzipwriter_p.h>
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // 3rd parties
-//#ifndef SOL_ALL_SAFETIES_ON
-//#define SOL_ALL_SAFETIES_ON 1
-//#include <sol/sol.hpp>
-//#endif
-//
+#ifndef SOL_ALL_SAFETIES_ON
+#define SOL_ALL_SAFETIES_ON 1
+#include <sol/sol.hpp>
+#endif
+
 #ifndef MINT_USE_SEPARATE_NAMESPACE
 #define MINT_USE_SEPARATE_NAMESPACE
 #include <MINT/MINT.h>
 #endif
 
-//
-////#include <blockallocator/blockallocator.h>
-//#include <simplecrypt.h>
-//
-//#include "qlog.hpp"
-//
-//#include "astar.h"
+#include <curl/curl.h>
 
+#include <cpr/cpr.h>
+
+#include <spdlogger.hpp>
+
+#include "3rdparty/simplecrypt.h"
 
 //custom
-#include <qscopedhandle.h>
-#include <combobox.h>
-#include <listview.h>
-#include <treewidgetitem.h>
-#include "3rdparty/simplecrypt.h"
-#include <gdatetime.h>
+#include <model/scopedhandle.h>
+#include <model/combobox.h>
+#include <model/listview.h>
+#include <model/treewidgetitem.h>
+#include <model/threadplugin.h>
+#include <model/signaldispatcher.h>
+#include <model/fastlabel.h>
+#include <model/customtitlebar.h>
+#include <model/mapglwidget.h>
+#include <model/progressbar.h>
+#include <model/pushButton.h>
+#include <model/qthumbnailform.h>
+#include <model/qthumbnailwidget.h>
+#include <model/codeeditor.h>
+
+#include <net/descrypt.h>
+#include <net/macchanger.h>
+
+#include "update/curldownload.h"
+
+#include "map/astar.h"
+
+#include "model/builddatetime.h"
 
 #endif // __cplusplus

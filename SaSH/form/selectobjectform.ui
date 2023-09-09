@@ -41,7 +41,7 @@
       <number>0</number>
      </property>
      <item>
-      <widget class="QComboBox" name="comboBox"/>
+      <widget class="ComboBox" name="comboBox"/>
      </item>
      <item>
       <layout class="QHBoxLayout" name="horizontalLayout">
@@ -49,7 +49,7 @@
         <number>1</number>
        </property>
        <item>
-        <widget class="QPushButton" name="pushButton_down">
+        <widget class="PushButton" name="pushButton_down">
          <property name="sizePolicy">
           <sizepolicy hsizetype="Minimum" vsizetype="Minimum">
            <horstretch>0</horstretch>
@@ -62,7 +62,7 @@
         </widget>
        </item>
        <item>
-        <widget class="QPushButton" name="pushButton_up">
+        <widget class="PushButton" name="pushButton_up">
          <property name="sizePolicy">
           <sizepolicy hsizetype="Minimum" vsizetype="Minimum">
            <horstretch>0</horstretch>
@@ -91,6 +91,18 @@
   </layout>
  </widget>
  <layoutdefault spacing="6" margin="11"/>
+ <customwidgets>
+  <customwidget>
+   <class>PushButton</class>
+   <extends>QPushButton</extends>
+   <header location="global">pushbutton.h</header>
+  </customwidget>
+  <customwidget>
+   <class>ComboBox</class>
+   <extends>QComboBox</extends>
+   <header location="global">combobox.h</header>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections/>
 </ui>

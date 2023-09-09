@@ -172,6 +172,13 @@
     </widget>
    </item>
    <item>
+    <widget class="QLabel" name="label_ad">
+     <property name="text">
+      <string/>
+     </property>
+    </widget>
+   </item>
+   <item>
     <widget class="QLabel" name="label_group">
      <property name="text">
       <string/>
@@ -219,21 +226,21 @@
      <item>
       <layout class="QVBoxLayout" name="verticalLayout">
        <item>
-        <widget class="QPushButton" name="pushButton_copyinfo">
+        <widget class="PushButton" name="pushButton_copyinfo">
          <property name="text">
           <string>copy info</string>
          </property>
         </widget>
        </item>
        <item>
-        <widget class="QPushButton" name="pushButton_sysinfo">
+        <widget class="PushButton" name="pushButton_sysinfo">
          <property name="text">
           <string>sys info</string>
          </property>
         </widget>
        </item>
        <item>
-        <widget class="QPushButton" name="pushButton_dxdiag">
+        <widget class="PushButton" name="pushButton_dxdiag">
          <property name="text">
           <string>Dxdiag</string>
          </property>
@@ -367,6 +374,13 @@
   </layout>
  </widget>
  <layoutdefault spacing="6" margin="11"/>
+ <customwidgets>
+  <customwidget>
+   <class>PushButton</class>
+   <extends>QPushButton</extends>
+   <header location="global">pushbutton.h</header>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections/>
 </ui>

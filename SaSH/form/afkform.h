@@ -51,11 +51,7 @@ private slots:
 	void onUpdateComboBoxItemText(int type, const QStringList& textList);
 
 protected:
-	virtual void showEvent(QShowEvent* e) override
-	{
-		setAttribute(Qt::WA_Mapped);
-		QWidget::showEvent(e);
-	}
+	virtual void showEvent(QShowEvent* e) override;
 
 	virtual void closeEvent(QCloseEvent* event) override;
 

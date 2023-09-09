@@ -31,9 +31,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include <QLocale>
 #include <QCollator>
 #include <QHash>
+#include <type_traits>
 #include "3rdparty/simplecrypt.h"
 #include "model/treewidgetitem.h"
-#include <type_traits>
 
 constexpr int SASH_VERSION_MAJOR = 1;
 constexpr int SASH_VERSION_MINOR = 0;
@@ -280,7 +280,6 @@ namespace util
 		kBattleMagicHealMagicValue,
 		kBattleMagicReviveMagicValue,
 		kNormalMagicHealMagicValue,
-		kBattleSkillMpSkillValue,
 
 		//afk->heal spinbox
 		kBattleMagicHealCharValue,
@@ -563,7 +562,6 @@ namespace util
 		{ kBattleMagicHealMagicValue, "BattleMagicHealMagicValue" },
 		{ kBattleMagicReviveMagicValue, "BattleMagicReviveMagicValue" },
 		{ kNormalMagicHealMagicValue, "NormalMagicHealMagicValue" },
-		{ kBattleSkillMpSkillValue, "BattleSkillMpSkillValue" },
 		{ kBattleSkillMpValue, "BattleSkillMpValue" },
 
 		//afk->heal spinbox
@@ -836,53 +834,6 @@ namespace util
 		return s;
 	}
 
-	static inline QString buildDateTime(QDateTime* date)
-	{
-		//QString dateTime(global_date);
-		//const QString time(global_time);
-		//dateTime.replace("  ", " 0");//注意" "是兩個空格，用於日期為單數時需要轉成“空格+0”
-		//static const QDateTime d(QLocale(QLocale::English).toDateTime(dateTime, "MMM dd yyyy"));
-		//static const QString str = QString("%1 %2").arg(d.toString("yyyy-MM-dd")).arg(time);
-		//QDateTime dt = QDateTime::fromString(str, "yyyy-MM-dd hh:mm:ss");
-		//dt.addSecs(-16ll * 60ll * 60ll);
-		//if (date)
-		//	*date = QDateTime::fromString(str, "yyyy-MM-dd hh:mm:ss");
-		//return QString("%1-%2").arg(d.toString("yyyyMMdd")).arg(time);
-
-		QString dateTime(global_date);
-		const QString time(global_time);
-		dateTime.replace("  ", " 0"); // 注意" "是两个空格，用于日期为单数时需要转成“空格+0”
-
-		// 创建 QDateTime 对象以解析日期部分
-		static const QDateTime d(QLocale(QLocale::English).toDateTime(dateTime, "MMM dd yyyy"));
-
-		// 获取日期对应的时区
-		QTimeZone timeZone = QTimeZone::systemTimeZone();
-
-		// 判断是否在夏令时期间
-		bool isDST = timeZone.isDaylightTime(d);
-
-		// 构建日期时间字符串
-		static const QString format = "yyyy-MM-dd hh:mm:ss";
-		QString str = QString("%1 %2").arg(d.toString("yyyy-MM-dd")).arg(time);
-		QDateTime dt = QDateTime::fromString(str, format);
-
-		// 根据夏令时调整时间
-		if (isDST)
-		{
-			dt = dt.addSecs(+15ll * 60ll * 60ll); // 考虑夏令时变化和 -16 小时
-		}
-		else
-		{
-			dt = dt.addSecs(+16ll * 60ll * 60ll); // 考虑 -16 小时
-		}
-
-		if (date)
-			*date = dt;
-
-		return dt.toString("yyyyMMdd-hh:mm:ss");
-	}
-
 	static void setTab(QTabWidget* pTab)
 	{
 		QString styleSheet = R"(
@@ -1082,6 +1033,16 @@ namespace util
 			.arg(days).arg(hours).arg(minutes).arg(seconds).arg(remainingMilliseconds);
 	}
 
+	static QString formatSeconds(qint64 seconds)
+	{
+		qint64 day = seconds / 86400ll;
+		qint64 hours = (seconds % 86400ll) / 3600ll;
+		qint64 minutes = (seconds % 3600ll) / 60ll;
+		qint64 remainingSeconds = seconds % 60ll;
+
+		return QString(QObject::tr("%1 day %2 hour %3 min %4 sec")).arg(day).arg(hours).arg(minutes).arg(remainingSeconds);
+	};
+
 	//基於Qt QHash 的線程安全Hash容器
 	template <typename K, typename V>
 	class SafeHash
@@ -1257,6 +1218,20 @@ namespace util
 		{
 			QReadLocker locker(&lock);
 			return hash.end();
+		}
+
+		//erase
+		inline  typename QHash<K, V>::iterator erase(typename QHash<K, V>::iterator it)
+		{
+			QWriteLocker locker(&lock);
+			return hash.erase(it);
+		}
+
+		//find
+		inline typename QHash<K, V>::iterator find(const K& key)
+		{
+			QReadLocker locker(&lock);
+			return hash.find(key);
 		}
 
 		QHash <K, V> toHash() const
@@ -2074,16 +2049,16 @@ namespace util
 	};
 
 	//智能文件句柄類
-	class QScopedFile : public QFile
+	class ScopedFile : public QFile
 	{
 	public:
-		QScopedFile(const QString& filename, OpenMode ioFlags)
+		ScopedFile(const QString& filename, OpenMode ioFlags)
 			: QFile(filename)
 		{
 			QFile::open(ioFlags);
 		}
 
-		~QScopedFile()
+		virtual ~ScopedFile()
 		{
 			if (m_maps.size())
 			{
@@ -2117,7 +2092,7 @@ namespace util
 
 	static bool readFile(const QString& fileName, QString* pcontent, bool* isPrivate)
 	{
-		util::QScopedFile f(fileName, QIODevice::ReadOnly | QIODevice::Text);
+		util::ScopedFile f(fileName, QIODevice::ReadOnly | QIODevice::Text);
 		if (!f.isOpen())
 			return false;
 
@@ -2300,6 +2275,7 @@ namespace util
 	//	Q_DECLARE_TYPEINFO(VirtualMemory, Q_MOVABLE_TYPE);
 	//#pragma warning(pop)
 
+	static const QRegularExpression rexSpace(R"([ ]+)");
 	static const QRegularExpression rexOR(R"(\s*\|\s*)");
 	static const QRegularExpression rexComma(R"(\s*,\s*)");
 	static const QRegularExpression rexSemicolon(R"(\s*;\s*)");

@@ -239,7 +239,7 @@ color: rgb(208, 208, 208);
             <number>1</number>
            </property>
            <item>
-            <widget class="QComboBox" name="comboBox_channel">
+            <widget class="ComboBox" name="comboBox_channel">
              <property name="maximumSize">
               <size>
                <width>60</width>
@@ -249,14 +249,14 @@ color: rgb(208, 208, 208);
             </widget>
            </item>
            <item>
-            <widget class="QComboBox" name="comboBox_send">
+            <widget class="ComboBox" name="comboBox_send">
              <property name="editable">
               <bool>true</bool>
              </property>
             </widget>
            </item>
            <item>
-            <widget class="QComboBox" name="comboBox_color">
+            <widget class="ComboBox" name="comboBox_color">
              <property name="maximumSize">
               <size>
                <width>60</width>
@@ -371,7 +371,7 @@ color: rgb(208, 208, 208);
             <widget class="QLineEdit" name="lineEdit"/>
            </item>
            <item>
-            <widget class="QPushButton" name="pushButton">
+            <widget class="PushButton" name="pushButton">
              <property name="text">
               <string>add</string>
              </property>
@@ -389,6 +389,16 @@ color: rgb(208, 208, 208);
  </widget>
  <layoutdefault spacing="6" margin="11"/>
  <customwidgets>
+  <customwidget>
+   <class>ComboBox</class>
+   <extends>QComboBox</extends>
+   <header location="global">combobox.h</header>
+  </customwidget>
+  <customwidget>
+   <class>PushButton</class>
+   <extends>QPushButton</extends>
+   <header location="global">pushbutton.h</header>
+  </customwidget>
   <customwidget>
    <class>ListView</class>
    <extends>QListView</extends>

@@ -3191,6 +3191,7 @@ color: rgb(208, 208, 208);
    <addaction name="actionSaveEncode"/>
    <addaction name="actionSaveDecode"/>
    <addaction name="separator"/>
+   <addaction name="actionDebug"/>
   </widget>
   <widget class="QStatusBar" name="statusBar"/>
   <widget class="QDockWidget" name="dockWidget_des">
@@ -3611,6 +3612,21 @@ color: rgb(208, 208, 208);
    </property>
    <property name="toolTip">
     <string>Continue</string>
+   </property>
+  </action>
+  <action name="actionDebug">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="../resource.qrc">
+     <normaloff>:/image/icon_debug.png</normaloff>:/image/icon_debug.png</iconset>
+   </property>
+   <property name="text">
+    <string>Debug</string>
+   </property>
+   <property name="toolTip">
+    <string>Debug</string>
    </property>
   </action>
  </widget>

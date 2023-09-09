@@ -83,7 +83,7 @@
            </widget>
           </item>
           <item>
-           <widget class="QPushButton" name="pushButton">
+           <widget class="PushButton" name="pushButton">
             <property name="minimumSize">
              <size>
               <width>21</width>
@@ -145,7 +145,7 @@
            </widget>
           </item>
           <item>
-           <widget class="QPushButton" name="pushButton_2">
+           <widget class="PushButton" name="pushButton_2">
             <property name="minimumSize">
              <size>
               <width>21</width>
@@ -207,7 +207,7 @@
            </widget>
           </item>
           <item>
-           <widget class="QPushButton" name="pushButton_3">
+           <widget class="PushButton" name="pushButton_3">
             <property name="minimumSize">
              <size>
               <width>21</width>
@@ -269,7 +269,7 @@
            </widget>
           </item>
           <item>
-           <widget class="QPushButton" name="pushButton_4">
+           <widget class="PushButton" name="pushButton_4">
             <property name="minimumSize">
              <size>
               <width>21</width>
@@ -344,7 +344,7 @@
            </spacer>
           </item>
           <item>
-           <widget class="QPushButton" name="pushButton_close">
+           <widget class="PushButton" name="pushButton_close">
             <property name="minimumSize">
              <size>
               <width>81</width>
@@ -366,6 +366,13 @@
   </layout>
  </widget>
  <layoutdefault spacing="6" margin="11"/>
+ <customwidgets>
+  <customwidget>
+   <class>PushButton</class>
+   <extends>QPushButton</extends>
+   <header location="global">pushbutton.h</header>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections/>
 </ui>

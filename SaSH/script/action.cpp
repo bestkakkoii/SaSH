@@ -1913,7 +1913,7 @@ qint64 Interpreter::mail(qint64, const TokenMap& TK)
 	}
 	else
 	{
-		if (addrIndex <= 0 || addrIndex >= MAX_ADR_BOOK)
+		if (addrIndex <= 0 || addrIndex >= MAX_ADDRESS_BOOK)
 			return Parser::kArgError + 1ll;
 		--addrIndex;
 

@@ -119,14 +119,14 @@
           <number>1</number>
          </property>
          <item>
-          <widget class="QPushButton" name="pushButton_script_start">
+          <widget class="PushButton" name="pushButton_script_start">
            <property name="text">
             <string>start</string>
            </property>
           </widget>
          </item>
          <item>
-          <widget class="QPushButton" name="pushButton_script_pause">
+          <widget class="PushButton" name="pushButton_script_pause">
            <property name="enabled">
             <bool>false</bool>
            </property>
@@ -136,7 +136,7 @@
           </widget>
          </item>
          <item>
-          <widget class="QPushButton" name="pushButton_script_stop">
+          <widget class="PushButton" name="pushButton_script_stop">
            <property name="enabled">
             <bool>false</bool>
            </property>
@@ -170,6 +170,11 @@
    <extends>QWidget</extends>
    <header location="global">fastlabel.h</header>
    <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>PushButton</class>
+   <extends>QPushButton</extends>
+   <header location="global">pushbutton.h</header>
   </customwidget>
  </customwidgets>
  <resources/>

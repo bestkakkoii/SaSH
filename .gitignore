@@ -60,8 +60,9 @@ compile_commands.json
 /sadll/Release
 /SaSH/Debug
 /SaSH/Release
+/SaSH/translations/qt_zh_CN.qm
+/SaSH/translations/qt_zh_TW.qm
 /SaSH/crypto.cpp
 /SaSH/net/webauthenticator.cpp
 /SaSH/net/webauthenticator.h
-.vscode/settings.json
-SaSH/SaSH.vcxproj.user
+/.vscode

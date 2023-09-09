@@ -34,11 +34,11 @@ AbilityForm::AbilityForm(QWidget* parent)
 	setStyleSheet("QDialog{border: 1px solid black;}");
 
 
-	QList<QPushButton*> buttonList = util::findWidgets<QPushButton>(this);
+	QList<PushButton*> buttonList = util::findWidgets<PushButton>(this);
 	for (auto& button : buttonList)
 	{
 		if (button)
-			connect(button, &QPushButton::clicked, this, &AbilityForm::onButtonClicked, Qt::UniqueConnection);
+			connect(button, &PushButton::clicked, this, &AbilityForm::onButtonClicked, Qt::UniqueConnection);
 	}
 }
 
@@ -49,7 +49,7 @@ AbilityForm::~AbilityForm()
 
 void AbilityForm::onButtonClicked()
 {
-	QPushButton* pPushButton = qobject_cast<QPushButton*>(sender());
+	PushButton* pPushButton = qobject_cast<PushButton*>(sender());
 	if (!pPushButton)
 		return;
 

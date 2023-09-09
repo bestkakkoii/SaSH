@@ -690,6 +690,17 @@
     </message>
 </context>
 <context>
+    <name>DownloaderClass</name>
+    <message>
+        <source>Downloader</source>
+        <translation>自動更新</translation>
+    </message>
+    <message>
+        <source>loading...</source>
+        <translation></translation>
+    </message>
+</context>
+<context>
     <name>FindDialog</name>
     <message>
         <source>Find What:</source>
@@ -863,7 +874,7 @@
     </message>
     <message>
         <source>login</source>
-        <translation>登陸</translation>
+        <translation type="vanished">登陸</translation>
     </message>
     <message>
         <source>main</source>
@@ -1023,7 +1034,7 @@
     </message>
     <message>
         <source>shortcut</source>
-        <translation>快捷開關</translation>
+        <translation type="vanished">快捷開關</translation>
     </message>
     <message>
         <source>TM</source>
@@ -2352,17 +2363,6 @@ No new version available. Do you still want to update?</source>
     </message>
 </context>
 <context>
-    <name>QDownloaderClass</name>
-    <message>
-        <source>QDownloader</source>
-        <translation>自動更新</translation>
-    </message>
-    <message>
-        <source>loading...</source>
-        <translation></translation>
-    </message>
-</context>
-<context>
     <name>QObject</name>
     <message>
         <source>system</source>
@@ -2782,7 +2782,7 @@ No new version available. Do you still want to update?</source>
     </message>
     <message>
         <source>error occured at line %1. detail:%2</source>
-        <translation>在行號 %1 發生錯誤，詳細內容:%2</translation>
+        <translation type="vanished">在行號 %1 發生錯誤，詳細內容:%2</translation>
     </message>
     <message>
         <source>&lt;findpath&gt;detedted player ware blocked</source>
@@ -2806,7 +2806,7 @@ No new version available. Do you still want to update?</source>
     </message>
     <message>
         <source>&lt;Warning&gt;Unknown command &apos;%1&apos; has been ignored at line: %2</source>
-        <translation>&lt;警告&gt;找到未知的命令 &apos;%1&apos; 位於第 %2 行</translation>
+        <translation type="vanished">&lt;警告&gt;找到未知的命令 &apos;%1&apos; 位於第 %2 行</translation>
     </message>
     <message>
         <source>&lt;Syntax Error&gt;Unexpected &apos;</source>
@@ -2882,11 +2882,11 @@ No new version available. Do you still want to update?</source>
     </message>
     <message>
         <source>&lt;Syntax Error&gt;Missing &apos;%1&apos; for statement &apos;%2&apos; at line: %3</source>
-        <translation>&lt;語法錯誤&gt; &apos;%2&apos; 缺少與之配對的 &apos;%1&apos; 於行號: %3</translation>
+        <translation type="vanished">&lt;語法錯誤&gt; &apos;%2&apos; 缺少與之配對的 &apos;%1&apos; 於行號: %3</translation>
     </message>
     <message>
         <source>&lt;Syntax Error&gt;Extra &apos;%1&apos; for statement &apos;%2&apos; at line: %3</source>
-        <translation>&lt;語法錯誤&gt; &apos;%2&apos; 缺少與之配對的 &apos;%1&apos; 於行號: %3</translation>
+        <translation type="vanished">&lt;語法錯誤&gt; &apos;%2&apos; 缺少與之配對的 &apos;%1&apos; 於行號: %3</translation>
     </message>
     <message>
         <source>invalid value type</source>
@@ -2930,11 +2930,11 @@ No new version available. Do you still want to update?</source>
     </message>
     <message>
         <source>Unpaired &apos;%1&apos; at row %2, index %3: &apos;%4&apos;</source>
-        <translation>未配對的 &apos;%1&apos; 位於第 %2 行, 索引 %3: &apos;%4&apos;</translation>
+        <translation type="vanished">未配對的 &apos;%1&apos; 位於第 %2 行, 索引 %3: &apos;%4&apos;</translation>
     </message>
     <message>
         <source>lua error: %1</source>
-        <translation>lua 錯誤: %1</translation>
+        <translation type="vanished">lua 錯誤: %1</translation>
     </message>
     <message>
         <source>%1 day %2 hour %3 min %4 sec</source>
@@ -2974,7 +2974,7 @@ No new version available. Do you still want to update?</source>
     </message>
     <message>
         <source>Invalid local variable type expacted &apos;%1&apos; but got &apos;%2&apos;</source>
-        <translation>不合法的區域變量類型，預期為 &apos;%1&apos; 實際傳入 &apos;%2&apos;</translation>
+        <translation type="vanished">不合法的區域變量類型，預期為 &apos;%1&apos; 實際傳入 &apos;%2&apos;</translation>
     </message>
     <message>
         <source>[error] &lt;findpath&gt;unable to findpath from %1, %2 to %3, %4</source>
@@ -2995,6 +2995,66 @@ No new version available. Do you still want to update?</source>
     <message>
         <source>[warn] &lt;findpath&gt;stop finding path due to floor changed</source>
         <translation>[警告] &lt;尋路&gt;地圖已變更，放棄尋路</translation>
+    </message>
+    <message>
+        <source>[error]</source>
+        <translation>[錯誤]</translation>
+    </message>
+    <message>
+        <source>[warn]</source>
+        <translation>[警告]</translation>
+    </message>
+    <message>
+        <source>[error] @ %1 | Escape character is not allowed outside of string literal.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>@ %1 | Unknown command &apos;%2&apos; has been ignored</source>
+        <translation>@ %1 | 已忽略未知的命令 &apos;%2&apos;</translation>
+    </message>
+    <message>
+        <source>@ %1 | Missing &apos;%2&apos; for statement &apos;%3&apos;</source>
+        <translation>@ %1 |  &apos;%3&apos; 遺漏了與之配對的 &apos;%2&apos;</translation>
+    </message>
+    <message>
+        <source>@ %1 | Unpaired &apos;%2&apos; index %3: &apos;%4&apos;</source>
+        <translation>@ %1 | 未完成配對的符號 &apos;%2&apos; 索引位置 %3: &apos;%4&apos;</translation>
+    </message>
+    <message>
+        <source>@ %1 | detail:%2</source>
+        <translation>@ %1 | 詳細訊息:%2</translation>
+    </message>
+    <message>
+        <source>@ %1 | Invalid local variable type expacted &apos;%2&apos; but got &apos;%3&apos;</source>
+        <translation>@ %1 | 傳入了不合法的參數類型，參數要求類型為 &apos;%2&apos; 但輸入類型為 &apos;%3&apos;</translation>
+    </message>
+    <message>
+        <source>@ %1 | extra &apos;%2&apos; were found</source>
+        <translation>@ %1 | 找到多餘的命令 &apos;%2&apos;</translation>
+    </message>
+    <message>
+        <source>@ %1 | Extra &apos;%2&apos; for statement &apos;%3&apos;</source>
+        <translation>@ %1 |  &apos;%3&apos; 中出現多於的 &apos;%2&apos;</translation>
+    </message>
+    <message>
+        <source>(cost:%1)</source>
+        <translation>(消耗:%1)</translation>
+    </message>
+    <message>
+        <source>@ %1 | &apos;%2&apos; must be used in a loop</source>
+        <translation>@ %1 | &apos;%2&apos; 必須放置在循環中</translation>
+    </message>
+    <message>
+        <source>@ %1 | &apos;%2&apos; must be used in a function</source>
+        <translation>@ %1 | &apos;%2&apos; 必須放置在功能\函數中</translation>
+    </message>
+    <message>
+        <source>[lua]:%1</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source> ========== script result : %1，cost %2 ==========</source>
+        <translation> ========== 腳本執行結果 : %1，耗時 %2 ==========</translation>
     </message>
 </context>
 <context>
@@ -4285,6 +4345,10 @@ No new version available. Do you still want to update?</source>
     <message>
         <source>rex</source>
         <translation></translation>
+    </message>
+    <message>
+        <source>Debug</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>

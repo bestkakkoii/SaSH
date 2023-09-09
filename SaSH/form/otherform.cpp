@@ -31,11 +31,11 @@ OtherForm::OtherForm(QWidget* parent)
 	connect(this, &OtherForm::resetControlTextLanguage, this, &OtherForm::onResetControlTextLanguage, Qt::UniqueConnection);
 
 
-	QList<QPushButton*> buttonList = util::findWidgets<QPushButton>(this);
+	QList<PushButton*> buttonList = util::findWidgets<PushButton>(this);
 	for (auto& button : buttonList)
 	{
 		if (button)
-			connect(button, &QPushButton::clicked, this, &OtherForm::onButtonClicked, Qt::UniqueConnection);
+			connect(button, &PushButton::clicked, this, &OtherForm::onButtonClicked, Qt::UniqueConnection);
 	}
 
 	QList <QCheckBox*> checkBoxList = util::findWidgets<QCheckBox>(this);
@@ -162,7 +162,7 @@ void OtherForm::onListWidgetDoubleClicked(QListWidgetItem* item)
 
 void OtherForm::onButtonClicked()
 {
-	QPushButton* pPushButton = qobject_cast<QPushButton*>(sender());
+	PushButton* pPushButton = qobject_cast<PushButton*>(sender());
 	if (!pPushButton)
 		return;
 
@@ -387,18 +387,27 @@ void OtherForm::onComboBoxClicked()
 {
 	ComboBox* pComboBox = qobject_cast<ComboBox*>(sender());
 	if (!pComboBox)
+	{
+		pComboBox->setDisableFocusCheck(false);
 		return;
+	}
 
 	QString name = pComboBox->objectName();
 	if (name.isEmpty())
+	{
+		pComboBox->setDisableFocusCheck(false);
 		return;
+	}
 
 	Injector& injector = Injector::getInstance();
 
 	if (name == "comboBox_autofunname")
 	{
 		if (injector.server.isNull())
+		{
+			pComboBox->setDisableFocusCheck(false);
 			return;
+		}
 
 		QStringList unitList = injector.server->getJoinableUnitList();
 		updateComboboxAutoFunNameList(unitList);
@@ -427,6 +436,8 @@ void OtherForm::onComboBoxClicked()
 			pComboBox->setCurrentIndex(oldIndex);
 	}
 
+
+	pComboBox->setDisableFocusCheck(false);
 }
 
 void OtherForm::onLineEditTextChanged(const QString& text)

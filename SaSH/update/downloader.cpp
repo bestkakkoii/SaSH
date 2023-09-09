@@ -17,9 +17,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 */
 
 #include "stdafx.h"
-#include "qdownloader.h"
+#include "downloader.h"
 #include "curldownload.h"
-#include <gdatetime.h>
+
 #include "util.h"
 
 #include <cpr/cpr.h>
@@ -67,7 +67,7 @@ constexpr int MAX_BAR_SEP_LEN = 10;
 constexpr int MAX_GIF_MOVE_WIDTH = 920;
 constexpr int PROGRESS_BAR_BEGIN_Y = 85;
 
-QString QDownloader::Sha3_512(const QString& fileNamePath) const
+QString Downloader::Sha3_512(const QString& fileNamePath) const
 {
 	QFile theFile(fileNamePath);
 	if (!theFile.exists())
@@ -81,7 +81,7 @@ QString QDownloader::Sha3_512(const QString& fileNamePath) const
 
 QString g_etag;
 constexpr int UPDATE_TIME_MIN = 5 * 60;
-bool QDownloader::checkUpdate(QString* current, QString* ptext)
+bool Downloader::checkUpdate(QString* current, QString* ptext)
 {
 	QString exeFileName = QCoreApplication::applicationFilePath();
 
@@ -158,7 +158,7 @@ bool QDownloader::checkUpdate(QString* current, QString* ptext)
 			break;
 		}
 
-		util::buildDateTime(&exeModified);
+		compile::buildDateTime(&exeModified);
 		qDebug() << "SaSH.exe file modified time:" << exeModified.toString("yyyy-MM-dd hh:mm:ss");
 
 		if (current != nullptr)
@@ -196,7 +196,7 @@ bool QDownloader::checkUpdate(QString* current, QString* ptext)
 	return bret;
 }
 
-QDownloader::QDownloader(QWidget* parent)
+Downloader::Downloader(QWidget* parent)
 	: QWidget(parent)
 	, szCurrentDirectory_(util::applicationDirPath() + "/")
 	, szCurrentDotExe_(szCurrentDirectory_ + kBackupExecuteFile)
@@ -221,7 +221,7 @@ QDownloader::QDownloader(QWidget* parent)
 
 	QGraphicsDropShadowEffect* shadowEffect = new QGraphicsDropShadowEffect(ui.widget);
 	// 陰影偏移
-	shadowEffect->setOffset(0, 0);
+	shadowEffect->setOffset(0, 1);
 	// 陰影顏色;
 	shadowEffect->setColor(Qt::black);
 	// 陰影半徑;
@@ -265,7 +265,7 @@ QDownloader::QDownloader(QWidget* parent)
 	resetProgress(0);
 }
 
-QDownloader::~QDownloader()
+Downloader::~Downloader()
 {
 	for (QTimer& it : timer_)
 	{
@@ -276,7 +276,7 @@ QDownloader::~QDownloader()
 	g_vpfnProgressFunc.clear();
 }
 
-void QDownloader::showEvent(QShowEvent* event)
+void Downloader::showEvent(QShowEvent* event)
 {
 	//首次show
 	static bool bFirstShow = true;
@@ -343,7 +343,7 @@ void QDownloader::showEvent(QShowEvent* event)
 	}
 }
 
-void QDownloader::start()
+void Downloader::start()
 {
 
 	QFuture<void>future = QtConcurrent::run([this]()->void
@@ -359,7 +359,7 @@ void QDownloader::start()
 	synchronizer_.addFuture(QtConcurrent::run([this]() { asyncDownloadFile(URL, rcPath_, szDownloadedFileName_); }));
 }
 
-QProgressBar* QDownloader::createProgressBar(int startY)
+QProgressBar* Downloader::createProgressBar(int startY)
 {
 	QProgressBar* pProgressBar = (new QProgressBar(ui.widget));
 	constexpr const char* cstyle = R"(
@@ -390,8 +390,7 @@ QProgressBar* QDownloader::createProgressBar(int startY)
 	return pProgressBar;
 }
 
-
-void QDownloader::resetProgress(int value)
+void Downloader::resetProgress(int value)
 {
 	for (int j = 0; j < MAX_DOWNLOAD_THREAD; ++j)
 	{
@@ -487,7 +486,7 @@ bool copyFile(const QString& qsrcPath, const QString& qdstPath, bool coverFileIf
 	return true;
 }
 
-void QDownloader::overwriteCurrentExecutable()
+void Downloader::overwriteCurrentExecutable()
 {
 	static bool ALREADY_RUN = false;
 	if (ALREADY_RUN) return;
@@ -539,7 +538,7 @@ void QDownloader::overwriteCurrentExecutable()
 	//將當前目錄下所有文件壓縮(7z)成備份，檔案名稱為  SaSH_backup_當前日期時間 
 	constexpr auto buildDateTime = []()
 	{
-		QString d = util::buildDateTime(nullptr);
+		QString d = compile::buildDateTime(nullptr);
 		return QString("v1.0.%1").arg(d).replace(":", "");
 	};
 	QString szBackup7zFileName = QString(kBackupfileName1).arg(buildDateTime());
@@ -647,7 +646,7 @@ void QDownloader::overwriteCurrentExecutable()
 	QCoreApplication::quit();
 }
 
-bool QDownloader::asyncDownloadFile(const QString& szUrl, const QString& dir, const QString& szSaveFileName)
+bool Downloader::asyncDownloadFile(const QString& szUrl, const QString& dir, const QString& szSaveFileName)
 {
 	QString strUrl = szUrl;
 
@@ -661,7 +660,7 @@ bool QDownloader::asyncDownloadFile(const QString& szUrl, const QString& dir, co
 	return false;
 }
 
-void QDownloader::setProgressValue(int i, qreal totalToDownload, qreal nowDownloaded, qreal, qreal)
+void Downloader::setProgressValue(int i, qreal totalToDownload, qreal nowDownloaded, qreal, qreal)
 {
 	if (totalToDownload > 0)
 	{
@@ -678,9 +677,9 @@ void QDownloader::setProgressValue(int i, qreal totalToDownload, qreal nowDownlo
 }
 
 template <int Index>
-int QDownloader::onProgress(void* clientp, qint64 totalToDownload, qint64 nowDownloaded, qint64 totalToUpLoad, qint64 nowUpLoaded)
+int Downloader::onProgress(void* clientp, qint64 totalToDownload, qint64 nowDownloaded, qint64 totalToUpLoad, qint64 nowUpLoaded)
 {
-	QDownloader* downloader = static_cast<QDownloader*>(clientp);
+	Downloader* downloader = static_cast<Downloader*>(clientp);
 	downloader->setProgressValue(Index, totalToDownload, nowDownloaded, totalToUpLoad, nowUpLoaded);
 	return 0;
 }
@@ -751,7 +750,7 @@ void extractZip(const QString& savepath, const QString& filepath)
 	}
 }
 
-void QDownloader::downloadAndExtractZip(const QString& url, const QString& targetDir)
+void Downloader::downloadAndExtractZip(const QString& url, const QString& targetDir)
 {
 	constexpr const char* zipFile = "sash.zip";
 
@@ -799,7 +798,7 @@ void QDownloader::downloadAndExtractZip(const QString& url, const QString& targe
 	//reader.extractAll(targetDir);
 }
 
-//void QDownloader::downloadAndExtractZip(const QString& url, const QString& targetDir) const
+//void Downloader::downloadAndExtractZip(const QString& url, const QString& targetDir) const
 //{
 //	constexpr const char* zipFile = "sash.zip";
 //

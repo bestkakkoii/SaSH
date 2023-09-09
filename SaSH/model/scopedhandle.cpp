@@ -17,34 +17,34 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 */
 
 #include "stdafx.h"
-#include "qscopedhandle.h"
+#include "scopedhandle.h"
 //#include "qlog.hpp"
 #include <TlHelp32.h>
 #include <qglobal.h>
 
-std::atomic_long QScopedHandle::m_handleCount = 0L;
-std::atomic_flag QScopedHandle::m_atlock = ATOMIC_FLAG_INIT;
+std::atomic_long ScopedHandle::m_handleCount = 0L;
+std::atomic_flag ScopedHandle::m_atlock = ATOMIC_FLAG_INIT;
 
-QScopedHandle::QScopedHandle(HANDLE_TYPE h)
+ScopedHandle::ScopedHandle(HANDLE_TYPE h)
 {
 	if (h == CREATE_EVENT)
 		createEvent();
 }
 
-QScopedHandle::QScopedHandle(HANDLE_TYPE h, DWORD dwFlags, DWORD th32ProcessID)
+ScopedHandle::ScopedHandle(HANDLE_TYPE h, DWORD dwFlags, DWORD th32ProcessID)
 	: enableAutoClose(true)
 {
 	if (h == CREATE_TOOLHELP32_SNAPSHOT)
 		createToolhelp32Snapshot(dwFlags, th32ProcessID);
 }
 
-QScopedHandle::QScopedHandle(DWORD dwProcess, bool bAutoClose)
+ScopedHandle::ScopedHandle(DWORD dwProcess, bool bAutoClose)
 	: enableAutoClose(bAutoClose)
 {
 	openProcess(dwProcess);
 }
 
-void QScopedHandle::reset(DWORD dwProcessId)
+void ScopedHandle::reset(DWORD dwProcessId)
 {
 	if (NULL != dwProcessId)
 	{
@@ -53,13 +53,13 @@ void QScopedHandle::reset(DWORD dwProcessId)
 	}
 }
 
-void QScopedHandle::reset()
+void ScopedHandle::reset()
 {
 	closeHandle();
 	this->m_handle = nullptr;
 }
 
-void QScopedHandle::reset(HANDLE handle)
+void ScopedHandle::reset(HANDLE handle)
 {
 	if (NULL != handle)
 	{
@@ -68,33 +68,33 @@ void QScopedHandle::reset(HANDLE handle)
 	}
 }
 
-QScopedHandle::QScopedHandle(int dwProcess, bool bAutoClose)
+ScopedHandle::ScopedHandle(int dwProcess, bool bAutoClose)
 	: enableAutoClose(bAutoClose)
 {
 	openProcess(static_cast<DWORD>(dwProcess));
 }
 
-QScopedHandle::QScopedHandle(HANDLE_TYPE h, HANDLE ProcessHandle, PVOID StartRoutine, PVOID Argument)
+ScopedHandle::ScopedHandle(HANDLE_TYPE h, HANDLE ProcessHandle, PVOID StartRoutine, PVOID Argument)
 	: enableAutoClose(true)
 {
 	if (h == CREATE_REMOTE_THREAD)
 		createThreadEx(ProcessHandle, StartRoutine, Argument);
 }
 
-QScopedHandle::QScopedHandle(HANDLE_TYPE h, HANDLE hSourceProcessHandle, HANDLE hSourceHandle, HANDLE hTargetProcessHandle, DWORD dwOptions)
+ScopedHandle::ScopedHandle(HANDLE_TYPE h, HANDLE hSourceProcessHandle, HANDLE hSourceHandle, HANDLE hTargetProcessHandle, DWORD dwOptions)
 	: enableAutoClose(true)
 {
 	if (h == DUPLICATE_HANDLE)
 		duplicateHandle(hSourceProcessHandle, hSourceHandle, hTargetProcessHandle, dwOptions);
 }
 
-QScopedHandle::~QScopedHandle()
+ScopedHandle::~ScopedHandle()
 {
 	if (enableAutoClose)
 		this->closeHandle();
 }
 
-void QScopedHandle::closeHandle()
+void ScopedHandle::closeHandle()
 {
 	QWriteLocker locker(&m_lock);
 	HANDLE h = this->m_handle;
@@ -113,7 +113,7 @@ void QScopedHandle::closeHandle()
 	}
 }
 
-HANDLE QScopedHandle::NtOpenProcess(DWORD dwProcess)
+HANDLE ScopedHandle::NtOpenProcess(DWORD dwProcess)
 {
 	HANDLE ProcessHandle = NULL;
 	using namespace MINT;
@@ -131,7 +131,7 @@ HANDLE QScopedHandle::NtOpenProcess(DWORD dwProcess)
 	return ret && ProcessHandle && ((ProcessHandle) != INVALID_HANDLE_VALUE) ? ProcessHandle : nullptr;
 };
 
-HANDLE QScopedHandle::ZwOpenProcess(DWORD dwProcess)
+HANDLE ScopedHandle::ZwOpenProcess(DWORD dwProcess)
 {
 	HANDLE ProcessHandle = (HANDLE)0;
 	MINT::OBJECT_ATTRIBUTES ObjectAttribute = {
@@ -146,7 +146,7 @@ HANDLE QScopedHandle::ZwOpenProcess(DWORD dwProcess)
 	return ret && ProcessHandle && ((ProcessHandle) != INVALID_HANDLE_VALUE) ? ProcessHandle : nullptr;
 };
 
-void QScopedHandle::openProcess(DWORD dwProcess)
+void ScopedHandle::openProcess(DWORD dwProcess)
 {
 	QWriteLocker locker(&m_lock);
 	HANDLE hprocess = NtOpenProcess(dwProcess);
@@ -174,7 +174,7 @@ void QScopedHandle::openProcess(DWORD dwProcess)
 		this->m_handle = nullptr;
 }
 
-void QScopedHandle::createToolhelp32Snapshot(DWORD dwFlags, DWORD th32ProcessID)
+void ScopedHandle::createToolhelp32Snapshot(DWORD dwFlags, DWORD th32ProcessID)
 {
 
 	QWriteLocker locker(&m_lock);
@@ -191,7 +191,7 @@ void QScopedHandle::createToolhelp32Snapshot(DWORD dwFlags, DWORD th32ProcessID)
 }
 
 
-void QScopedHandle::openProcessToken(HANDLE ProcessHandle, ACCESS_MASK DesiredAccess)
+void ScopedHandle::openProcessToken(HANDLE ProcessHandle, ACCESS_MASK DesiredAccess)
 {
 	QWriteLocker locker(&m_lock);
 	HANDLE hToken = nullptr;
@@ -209,7 +209,7 @@ void QScopedHandle::openProcessToken(HANDLE ProcessHandle, ACCESS_MASK DesiredAc
 }
 
 // 提權函數：提升為DEBUG權限
-BOOL QScopedHandle::EnableDebugPrivilege(HANDLE hProcess, const wchar_t* SE)
+BOOL ScopedHandle::EnableDebugPrivilege(HANDLE hProcess, const wchar_t* SE)
 {
 	if (!hProcess) return FALSE;
 	BOOL fOk = FALSE;
@@ -232,7 +232,7 @@ BOOL QScopedHandle::EnableDebugPrivilege(HANDLE hProcess, const wchar_t* SE)
 	return fOk;
 }
 
-void QScopedHandle::createThreadEx(HANDLE ProcessHandle, PVOID StartRoutine, PVOID Argument)
+void ScopedHandle::createThreadEx(HANDLE ProcessHandle, PVOID StartRoutine, PVOID Argument)
 {
 	QWriteLocker locker(&m_lock);
 	HANDLE hThread = nullptr;
@@ -252,7 +252,7 @@ void QScopedHandle::createThreadEx(HANDLE ProcessHandle, PVOID StartRoutine, PVO
 		this->m_handle = nullptr;
 }
 
-void QScopedHandle::duplicateHandle(HANDLE hSourceProcessHandle, HANDLE hSourceHandle, HANDLE hTargetProcessHandle, DWORD dwOptions)
+void ScopedHandle::duplicateHandle(HANDLE hSourceProcessHandle, HANDLE hSourceHandle, HANDLE hTargetProcessHandle, DWORD dwOptions)
 {
 	QWriteLocker locker(&m_lock);
 	HANDLE hTargetHandle = nullptr;
@@ -269,7 +269,7 @@ void QScopedHandle::duplicateHandle(HANDLE hSourceProcessHandle, HANDLE hSourceH
 		this->m_handle = nullptr;
 }
 
-void QScopedHandle::createEvent()
+void ScopedHandle::createEvent()
 {
 	QWriteLocker locker(&m_lock);
 	HANDLE hEvent = ::CreateEvent(NULL, FALSE, FALSE, NULL);

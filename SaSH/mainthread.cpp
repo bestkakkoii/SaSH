@@ -23,7 +23,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "net/autil.h"
 #include <injector.h>
 #include "map/mapanalyzer.h"
-#include "update/qdownloader.h"
+#include "update/downloader.h"
 
 #include <spdlogger.hpp>
 extern QString g_logger_name;//parser.cpp
@@ -383,9 +383,9 @@ int MainObject::checkAndRunFunctions()
 		QString currentVerStr;
 		QString newestVerStr;
 
-		if (!QDownloader::checkUpdate(&currentVerStr, &newestVerStr))
+		if (!Downloader::checkUpdate(&currentVerStr, &newestVerStr))
 		{
-			newestVerStr = util::buildDateTime(nullptr);
+			newestVerStr = compile::buildDateTime(nullptr);
 		}
 
 		const QString version = QString("%1.%2.%3")
@@ -1283,7 +1283,7 @@ void MainObject::checkAutoJoin()
 
 				constexpr int MAX_SINGLE_STEP = 3;
 				map_t map;
-				QVector<QPoint> path;
+				std::vector<QPoint> path;
 				QPoint current_point;
 				QPoint newpoint;
 				mapunit_t unit = {};
@@ -1387,7 +1387,7 @@ void MainObject::checkAutoJoin()
 						if (len < 0)
 							break;
 
-						if (len >= path.size())
+						if (len >= static_cast<int>(path.size()))
 							break;
 
 						injector.server->move(path.at(len));

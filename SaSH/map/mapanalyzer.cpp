@@ -439,6 +439,9 @@ static const QSet<uint16_t> ROAD = {
 	14020, 14021, 14022, 14023, 14024, 14025, 14026, 14027, 14028, 14029,
 	14030, 14031,
 
+	//沙姆島
+	23, 27, 40, 41, 42, 43, 44, 45,
+
 	//椅子
 	12807, 12808, 12809, 12810, 12811, 12812,
 };
@@ -1340,7 +1343,13 @@ bool __fastcall MapAnalyzer::getMapDataByFloor(int floor, map_t* map)
 {
 	if (maps_.contains(floor))
 	{
-		*map = maps_.value(floor);
+		map_t m = maps_.value(floor);
+		if (m.refCount == 0)
+			m.timer.start();
+
+		++m.refCount;
+		*map = m;
+		maps_.insert(floor, m);
 		return true;
 	}
 
@@ -1370,16 +1379,16 @@ QString __fastcall MapAnalyzer::getCurrentMapPath(int floor) const
 	return path;
 }
 
-bool __fastcall MapAnalyzer::readFromBinary(int floor, const QString& name, bool enableDraw)
+bool __fastcall MapAnalyzer::readFromBinary(int floor, const QString& name, bool enableDraw, bool enableRewrite)
 {
-	if (!floor)
+	if (floor < 0)
 		return false;
 
 	//{directory}/map/{floor}.dat
 	const QString path(getCurrentMapPath(floor));
 
 	//check file exist
-	util::QScopedFile file(path, QIODevice::ReadOnly);
+	util::ScopedFile file(path, QIODevice::ReadOnly);
 	if (!file.exists())
 	{
 		qDebug() << __FUNCTION__ << " @" << __LINE__ << " File not found.";
@@ -1420,11 +1429,23 @@ bool __fastcall MapAnalyzer::readFromBinary(int floor, const QString& name, bool
 	map.height = height;
 	map.name = name;
 
+	QHash<int, map_t>::iterator it = maps_.begin();
+	for (auto it = maps_.begin(); it != maps_.end(); ++it)
+	{
+		map_t& m = it.value();
+		if (m.floor == floor)
+			continue;
+
+		qint64 time = m.timer.elapsed();
+		if (time >= (5 * 60ll * 60ll) && m.refCount < 30)
+			it.value().data.clear();
+	}
+
 	if (map.data.size() > 0
 		&& map.data.size() == (height * width)
 		&& !pixMap_.value(floor).isNull()
 		&& height == map.height
-		&& width == map.width)
+		&& width == map.width && !enableRewrite)
 	{
 		return true;
 	}
@@ -1455,7 +1476,7 @@ bool __fastcall MapAnalyzer::readFromBinary(int floor, const QString& name, bool
 		}
 	};
 
-	if (loadFromBinary(floor, &map))
+	if (!enableRewrite && loadFromBinary(floor, &map))
 	{
 		draw();
 		return true;
@@ -1502,6 +1523,11 @@ bool __fastcall MapAnalyzer::readFromBinary(int floor, const QString& name, bool
 	util::ObjectType typeObject = util::OBJ_UNKNOWN;
 	util::ObjectType typeOriginal = util::OBJ_UNKNOWN;
 	QPoint point(0, 0);
+
+#ifdef _DEBUG
+	Injector& injector = Injector::getInstance();
+#endif
+
 	for (y = 0; y < height; ++y)
 	{
 		for (x = 0; x < width; ++x)
@@ -1520,14 +1546,12 @@ bool __fastcall MapAnalyzer::readFromBinary(int floor, const QString& name, bool
 			checkAndSetRockEx(map, point, sObject);
 
 			//調試專用
-			//if (point.x() == 471 && sObject > 0 && (point.y() >= 298 && point.x() <= 295))
-			//{
-			//	qDebug() << "";
-			//}
-			if (point == QPoint(71, 82))
+#ifdef _DEBUG
+			if (point == injector.server->getPoint())
 			{
-				qDebug() << sObject;
+				qDebug() << "ground:" << sGround << "object:" << sObject << "flag: HI[" << HIBYTE(sLabel) << "] LO[" << LOBYTE(sLabel) << "]";
 			}
+#endif
 
 			//排除樓梯或水晶
 			if ((util::OBJ_UP == typeOriginal) || (util::OBJ_DOWN == typeOriginal) || (util::OBJ_JUMP == typeOriginal) || (util::OBJ_WARP == typeOriginal) || (util::OBJ_ROCKEX == typeOriginal))
@@ -1833,15 +1857,29 @@ bool __fastcall MapAnalyzer::saveAsBinary(map_t map, const QString& fileName)
 	return true;
 }
 
-bool __fastcall MapAnalyzer::calcNewRoute(const map_t& map, const QPoint& src, const QPoint& dst, QVector<QPoint>* path)
+bool __fastcall MapAnalyzer::calcNewRoute(const map_t& map, const QPoint& src, const QPoint& dst, std::vector<QPoint>* pPaths)
 {
-	util::ObjectType obj = map.data.value(dst, util::OBJ_UNKNOWN);
-	bool isWrapPoint = (obj == util::OBJ_WARP) || (obj == util::OBJ_JUMP) || (obj == util::OBJ_UP) || (obj == util::OBJ_DOWN);
+	if (pPaths == nullptr)
+		return false;
+
+	if (src == dst)
+	{
+		pPaths->push_back(src);
+		return true;
+	}
+
+	util::ObjectType dstobj = map.data.value(dst, util::OBJ_UNKNOWN);
+	bool isDstAsWarpPoint = (dstobj == util::OBJ_WARP) || (dstobj == util::OBJ_JUMP) || (dstobj == util::OBJ_UP) || (dstobj == util::OBJ_DOWN);
+
+	if (!isDstAsWarpPoint && dstobj != util::OBJ_ROAD)
+		return false;
+
 	Injector& injector = Injector::getInstance();
 
-	Callback callback = [&map, &injector, isWrapPoint](const QPoint& point)->bool
+	Callback callback = [&map, &injector, isDstAsWarpPoint, &src](const QPoint& point)->bool
 	{
-		const util::ObjectType obj = map.data.value(point, util::OBJ_UNKNOWN);
+		if (point == src)
+			return true;
 
 		//村內避免踩NPC
 		if (map.floor == 2000)
@@ -1858,27 +1896,19 @@ bool __fastcall MapAnalyzer::calcNewRoute(const map_t& map, const QPoint& src, c
 				return false;
 		}
 
+		const util::ObjectType obj = map.data.value(point, util::OBJ_UNKNOWN);
+
 		//If the destination coordinates are a teleportation point, treat it as a non-obstacle
-		if (isWrapPoint)
+		if (isDstAsWarpPoint)
 			return (obj == util::OBJ_ROAD) || (obj == util::OBJ_WARP) || (obj == util::OBJ_JUMP) || (obj == util::OBJ_UP) || (obj == util::OBJ_DOWN);
 		else
 			return  (obj == util::OBJ_ROAD);
 	};
 
-	QVector<QPoint> pathret = {};
-
 	CAStar astar;
 	CAStarParam param(map.height, map.width, true, callback, src, dst);
 
-	pathret = astar.find(param);
-
-	bool bret = pathret.size() > 0;
-	if (bret)
-	{
-		if (path)
-			*path = pathret;
-	}
-	return bret;
+	return  astar.find(param, pPaths);
 }
 
 //快速檢查是否能通行
@@ -1908,13 +1938,11 @@ bool __fastcall MapAnalyzer::isPassable(int floor, const QPoint& src, const QPoi
 #endif
 		CAStar a;
 		const CAStarParam p(map.height, map.width, true, can_pass, src, dst);
-		QVector<QPoint> pathret;
-		pathret = a.find(p);
-		return pathret.size() > 0;
+		return a.find(p, nullptr);
 	} while (false);
 
 	return bret;
-}
+	}
 
 // 取靠近目標的最佳座標和方向
 int __fastcall MapAnalyzer::calcBestFollowPointByDstPoint(int floor, const QPoint& src, const QPoint& dst, QPoint* ret, bool enableExt, int npcdir)

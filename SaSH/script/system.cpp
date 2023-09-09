@@ -1132,7 +1132,6 @@ qint64 Interpreter::set(qint64 currentline, const TokenMap& TK)
 	case util::kLockMoveEnable:
 	case util::kLockImageEnable:
 	case util::kAutoDropMeatEnable:
-	case util::kAutoDropEnable:
 	case util::kAutoStackEnable:
 	case util::kKNPCEnable:
 	case util::kAutoAnswerEnable:

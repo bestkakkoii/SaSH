@@ -75,37 +75,17 @@ MapForm::MapForm(QWidget* parent)
 
 	setTableWidget(ui.tableWidget_map);
 
-	QList<QPushButton*> buttonList = util::findWidgets<QPushButton>(this);
+	QList<PushButton*> buttonList = util::findWidgets<PushButton>(this);
 	for (auto& button : buttonList)
 	{
 		if (button)
-			connect(button, &QPushButton::clicked, this, &MapForm::onButtonClicked, Qt::UniqueConnection);
+			connect(button, &PushButton::clicked, this, &MapForm::onButtonClicked, Qt::UniqueConnection);
 	}
 
 	connect(ui.tableWidget_map, &QTableWidget::cellDoubleClicked, this, &MapForm::onTableWidgetCellDoubleClicked, Qt::UniqueConnection);
 
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
 	connect(&signalDispatcher, &SignalDispatcher::updateNpcList, this, &MapForm::onUpdateNpcList, Qt::UniqueConnection);
-
-	setStyleSheet(R"(
-QWidget{ background-color: rgb(245, 245, 245); }
-
-QPushButton {
-	background-color: #F9F9F9;
-	border: 1px solid #000000;
-	padding: 3px;
-}
-
-QPushButton:hover {
-	background-color: #3282F6;
-}
-
-QPushButton:pressed, QPushButton:checked {
-	background-color: #3282F6;
-	border: 1px solid #ffffff;
-}
-
-)");
 
 }
 
@@ -125,7 +105,7 @@ void MapForm::onScriptFinished()
 
 void MapForm::onButtonClicked()
 {
-	QPushButton* pPushButton = qobject_cast<QPushButton*>(sender());
+	PushButton* pPushButton = qobject_cast<PushButton*>(sender());
 	if (!pPushButton)
 		return;
 

@@ -570,7 +570,7 @@
            </widget>
           </item>
           <item>
-           <widget class="QPushButton" name="pushButton_calc">
+           <widget class="PushButton" name="pushButton_calc">
             <property name="minimumSize">
              <size>
               <width>85</width>
@@ -694,7 +694,7 @@
            </widget>
           </item>
           <item>
-           <widget class="QPushButton" name="pushButton_clear">
+           <widget class="PushButton" name="pushButton_clear">
             <property name="minimumSize">
              <size>
               <width>85</width>
@@ -749,6 +749,11 @@
  </widget>
  <layoutdefault spacing="6" margin="11"/>
  <customwidgets>
+  <customwidget>
+   <class>PushButton</class>
+   <extends>QPushButton</extends>
+   <header location="global">pushbutton.h</header>
+  </customwidget>
   <customwidget>
    <class>ComboBox</class>
    <extends>QComboBox</extends>

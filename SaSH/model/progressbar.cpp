@@ -25,22 +25,26 @@ void ProgressBar::setProgressBarStyle(QProgressBar* pProgress, const QString& qs
 {
 	QString styleSheet = QString(R"(
 		QProgressBar {
-			border: 0px solid black;
-			border-radius: 0px;
+			border: 1px solid transparent;
+			border-radius: 5px;
 			text-align: center;
 			background-color: rbg(255, 255, 255);
-			/*text size*/
 			font-size: 10px;
 		}
 
 		QProgressBar::chunk {
+			border: 1px solid transparent;
 			background-color: %1;
-			margin: 0px; /* 调整chunk与边框的间距 */
-			subcontrol-position: left; /* 调整chunk的位置为左侧 */
+			/* subcontrol-position: left; 调整chunk的位置为左侧 */
+			border-radius: 5px;
 		}
 	)").arg(qstrcolor);
 
 	pProgress->setStyleSheet(styleSheet);
+	pProgress->setOrientation(Qt::Horizontal);
+	pProgress->setAlignment(Qt::AlignTop);
+	pProgress->setTextVisible(true);
+	pProgress->setTextDirection(QProgressBar::TopToBottom);
 }
 
 ProgressBar::ProgressBar(QWidget* parent)

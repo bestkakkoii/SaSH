@@ -17,7 +17,10 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 */
 
 #pragma once
-#pragma execution_character_set("utf-8")
+#if _MSC_VER >= 1600 
+#pragma execution_character_set("utf-8") 
+#endif
+
 #include <Windows.h>
 #include <unordered_map>
 #include <string>
@@ -80,6 +83,9 @@ typedef struct map_s
 	QSet<QPoint> workable = {};
 
 	QHash<QPoint, util::ObjectType> data;
+
+	int refCount = 0;
+	QElapsedTimer timer;
 }map_t;
 
 inline uint qHash(const QPoint& key, uint seed) Q_DECL_NOTHROW
@@ -99,9 +105,9 @@ class MapAnalyzer
 public:
 	MapAnalyzer();
 	virtual ~MapAnalyzer();
-	bool __fastcall readFromBinary(int floor, const QString& name, bool enableDraw = false);
+	bool __fastcall readFromBinary(int floor, const QString& name, bool enableDraw = false, bool enableRewrite = false);
 	bool __fastcall getMapDataByFloor(int floor, map_t* map);
-	bool __fastcall calcNewRoute(const map_t& map, const QPoint& src, const QPoint& dst, QVector<QPoint>* path);
+	bool __fastcall calcNewRoute(const map_t& map, const QPoint& src, const QPoint& dst, std::vector<QPoint>* pPaths);
 	void clear() { maps_.clear(); pixMap_.clear(); }
 	void clear(int floor) { maps_.remove(floor); pixMap_.remove(floor); }
 	bool __fastcall saveAsBinary(map_t map, const QString& fileName);

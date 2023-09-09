@@ -17,8 +17,8 @@
 */
 
 /* Smart Handle */
-#ifndef QSCOPEDHANDLE_H
-#define QSCOPEDHANDLE_H
+#ifndef SCOPEDHANDLE_H
+#define SCOPEDHANDLE_H
 #include <Windows.h>
 #ifndef MINT_USE_SEPARATE_NAMESPACE
 #define MINT_USE_SEPARATE_NAMESPACE
@@ -27,7 +27,7 @@
 #include <QReadWriteLock>
 #include <atomic>
 
-class QScopedHandle
+class ScopedHandle
 {
 private:
 	void closeHandle();
@@ -82,15 +82,15 @@ public:
 		CREATE_EVENT,
 	}HANDLE_TYPE;
 
-	QScopedHandle() = default;
-	explicit QScopedHandle(HANDLE_TYPE h);
-	explicit QScopedHandle(HANDLE_TYPE h, DWORD dwFlags, DWORD th32ProcessID);
-	explicit QScopedHandle(DWORD dwProcess, bool bAutoClose = true);
-	explicit QScopedHandle(int dwProcess, bool bAutoClose = true);
-	explicit QScopedHandle(HANDLE_TYPE h, HANDLE ProcessHandle, PVOID StartRoutine, PVOID Argument);
-	explicit QScopedHandle(HANDLE_TYPE h, HANDLE hSourceProcessHandle, HANDLE hSourceHandle, HANDLE hTargetProcessHandle, DWORD dwOptions);
-	explicit QScopedHandle(HANDLE handle) : m_handle(handle) {}
-	virtual ~QScopedHandle();
+	ScopedHandle() = default;
+	explicit ScopedHandle(HANDLE_TYPE h);
+	explicit ScopedHandle(HANDLE_TYPE h, DWORD dwFlags, DWORD th32ProcessID);
+	explicit ScopedHandle(DWORD dwProcess, bool bAutoClose = true);
+	explicit ScopedHandle(int dwProcess, bool bAutoClose = true);
+	explicit ScopedHandle(HANDLE_TYPE h, HANDLE ProcessHandle, PVOID StartRoutine, PVOID Argument);
+	explicit ScopedHandle(HANDLE_TYPE h, HANDLE hSourceProcessHandle, HANDLE hSourceHandle, HANDLE hTargetProcessHandle, DWORD dwOptions);
+	explicit ScopedHandle(HANDLE handle) : m_handle(handle) {}
+	virtual ~ScopedHandle();
 
 	void reset(DWORD dwProcessId);
 	void reset(HANDLE handle);
@@ -107,7 +107,7 @@ public:
 	}
 
 	//==
-	inline bool operator==(const QScopedHandle& other) const
+	inline bool operator==(const ScopedHandle& other) const
 	{
 		return this->m_handle == other.m_handle;
 	}
@@ -125,13 +125,13 @@ public:
 	}
 
 	//!=
-	inline bool operator!=(const QScopedHandle& other) const
+	inline bool operator!=(const ScopedHandle& other) const
 	{
 		return this->m_handle != other.m_handle;
 	}
 
 	// copy constructor
-	QScopedHandle(const QScopedHandle& other)
+	ScopedHandle(const ScopedHandle& other)
 	{
 		m_lock.lockForWrite();
 		this->m_handle = other.m_handle;
@@ -140,7 +140,7 @@ public:
 	}
 
 	// copy assignment
-	QScopedHandle& operator=(const QScopedHandle& other)
+	ScopedHandle& operator=(const ScopedHandle& other)
 	{
 		if (this != &other)
 		{
@@ -153,7 +153,7 @@ public:
 	}
 
 	//copy assignment from HANDLE
-	QScopedHandle& operator=(const HANDLE& other)
+	ScopedHandle& operator=(const HANDLE& other)
 	{
 		m_lock.lockForWrite();
 		this->m_handle = other;
@@ -162,7 +162,7 @@ public:
 	}
 
 	// move constructor
-	QScopedHandle(QScopedHandle&& other) noexcept
+	ScopedHandle(ScopedHandle&& other) noexcept
 	{
 		m_lock.lockForWrite();
 		this->m_handle = other.m_handle;
@@ -173,7 +173,7 @@ public:
 	}
 
 	// move assignment
-	QScopedHandle& operator=(QScopedHandle&& other) noexcept
+	ScopedHandle& operator=(ScopedHandle&& other) noexcept
 	{
 		if (this != &other)
 		{

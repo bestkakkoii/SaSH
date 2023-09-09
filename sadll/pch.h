@@ -1,6 +1,13 @@
 ﻿#ifndef PCH_H
 #define PCH_H
 
+#ifndef UTF8_EXECUTION
+#define UTF8_EXECUTION
+#if _MSC_VER >= 1600 
+#pragma execution_character_set("utf-8") 
+#endif
+#endif
+
 #ifdef __cplusplus
 
 #define WIN32_LEAN_AND_MEAN
@@ -25,10 +32,8 @@
 
 #include <detours.h>
 
-#ifndef UTF8_EXECUTION
-#define UTF8_EXECUTION
-#pragma execution_character_set("utf-8")
-#endif
+
+
 
 #endif
 

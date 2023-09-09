@@ -17,7 +17,10 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 */
 
 #pragma once
-#pragma execution_character_set("utf-8")
+#if _MSC_VER >= 1600 
+#pragma execution_character_set("utf-8") 
+#endif
+
 
 #include <memory_resource>
 #include <functional>
@@ -107,7 +110,7 @@ public:
 	/**
 	 * 執行尋路操作
 	 */
-	QVector<QPoint> __fastcall find(const CAStarParam& param);
+	bool __fastcall find(const CAStarParam& param, std::vector<QPoint>* pPath);
 
 private:
 	/**

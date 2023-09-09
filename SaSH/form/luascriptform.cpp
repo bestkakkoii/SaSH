@@ -83,11 +83,11 @@ LuaScriptForm::LuaScriptForm(QWidget* parent)
 
 	setTableWidget(ui.tableWidget_script, 8);
 
-	QList<QPushButton*> buttonList = util::findWidgets<QPushButton>(this);
+	QList<PushButton*> buttonList = util::findWidgets<PushButton>(this);
 	for (auto& button : buttonList)
 	{
 		if (button)
-			connect(button, &QPushButton::clicked, this, &LuaScriptForm::onButtonClicked, Qt::UniqueConnection);
+			connect(button, &PushButton::clicked, this, &LuaScriptForm::onButtonClicked, Qt::UniqueConnection);
 	}
 
 	connect(ui.treeWidget_script->header(), &QHeaderView::sectionClicked, this, &LuaScriptForm::onScriptTreeWidgetHeaderClicked);
@@ -216,7 +216,7 @@ void LuaScriptForm::onScriptFinished()
 
 void LuaScriptForm::onButtonClicked()
 {
-	QPushButton* pPushButton = qobject_cast<QPushButton*>(sender());
+	PushButton* pPushButton = qobject_cast<PushButton*>(sender());
 	if (!pPushButton)
 		return;
 

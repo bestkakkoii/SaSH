@@ -38,34 +38,20 @@ InfoForm::InfoForm(int defaultPage, QWidget* parent)
 
 	setAttribute(Qt::WA_DeleteOnClose);
 	setAttribute(Qt::WA_StyledBackground, true);
-	setAttribute(Qt::WA_StaticContents, true);
+
+	setStyleSheet(R"(background-color: #F9F9F9)");
 
 	Qt::WindowFlags windowflag = this->windowFlags();
 	windowflag |= Qt::WindowType::Tool;
 	setWindowFlag(Qt::WindowType::Tool);
 
+	QGraphicsDropShadowEffect* shadowEffect = new QGraphicsDropShadowEffect;
+	shadowEffect->setBlurRadius(10); // 設置陰影的模糊半徑，根據需要調整
+	shadowEffect->setOffset(0, 1);   // 設置陰影的偏移量，根據需要調整
+	shadowEffect->setColor(Qt::black); // 設置陰影的顏色，根據需要調整
+	setGraphicsEffect(shadowEffect);
+
 	connect(this, &InfoForm::resetControlTextLanguage, this, &InfoForm::onResetControlTextLanguage, Qt::UniqueConnection);
-
-	setStyleSheet(R"(
-QWidget{ background-color: rgb(245, 245, 245); }
-
-QPushButton {
-	background-color: #F9F9F9;
-	border: 1px solid #000000;
-	padding: 3px;
-}
-
-QPushButton:hover {
-	background-color: #2C71D6;
-}
-
-QPushButton:pressed, QPushButton:checked {
-	background-color: #3282F6;
-	border: 1px solid #ffffff;
-}
-
-)");
-
 
 	QGridLayout* gridLayout = new QGridLayout;
 	QOpenGLWidget* openGLWidget = new QOpenGLWidget;

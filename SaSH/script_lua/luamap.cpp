@@ -110,6 +110,73 @@ qint64 CLuaMap::teleport(sol::this_state s)
 	return TRUE;
 }
 
+qint64 CLuaMap::downLoad(sol::object ofloor, sol::this_state s)
+{
+	Injector& injector = Injector::getInstance();
+	if (injector.server.isNull())
+		return FALSE;
+
+	luadebug::checkBattleThenWait(s);
+
+	qint64 floor = -1;
+	if (ofloor.is<qint64>())
+	{
+		floor = ofloor.as<qint64>();
+	}
+
+	if (floor >= 0 || floor == -1)
+	{
+		injector.server->downloadMap(floor);
+	}
+	else if (floor == -2)
+	{
+		QString exePath = injector.currentGameExePath;
+		exePath = exePath.replace(QChar('\\'), QChar('/'));
+		//去掉sa_8001.exe
+		exePath = exePath.left(exePath.lastIndexOf(QChar('/')));
+		//補上map
+		exePath += "/map";
+
+		//遍歷.dat
+		struct map
+		{
+			int floor;
+			int size;
+		};
+		QList<map> list;
+		QDir dir(exePath);
+		dir.setFilter(QDir::Files | QDir::NoSymLinks);
+		QFileInfoList fileInfoList = dir.entryInfoList();
+		static const QRegularExpression reg("(\\d+).dat");
+		for (QFileInfo& fileInfo : fileInfoList)
+		{
+			QString fileName = fileInfo.fileName();
+			QRegularExpressionMatch match = reg.match(fileName.toLower());
+			if (match.hasMatch())
+			{
+				QString floor = match.captured(1);
+				int size = fileInfo.size();
+				list.append(map{ floor.toInt(), size });
+			}
+		}
+
+		//文件小到大排序
+		std::sort(list.begin(), list.end(), [](const map& ma, const map& mb)
+			{
+				return ma.size < mb.size;
+			});
+
+		for (const map& m : list)
+		{
+			injector.server->downloadMap(m.floor);
+		}
+	}
+	else
+		return FALSE;
+
+	return TRUE;
+}
+
 qint64 CLuaMap::findPath(qint64 x, qint64 y, qint64 steplen, qint64 timeout, sol::object ofunction, sol::object ocallbackSpeed, sol::this_state s)
 {
 	sol::state_view lua(s);
@@ -160,7 +227,7 @@ qint64 CLuaMap::findPath(qint64 x, qint64 y, qint64 steplen, qint64 timeout, sol
 	if (!noAnnounce && !injector.server.isNull())
 		injector.server->announce(QObject::tr("<findpath>start searching the path"));//"<尋路>開始搜尋路徑"
 
-	QVector<QPoint> path;
+	std::vector<QPoint> path;
 	QElapsedTimer timer; timer.start();
 	if (mapAnalyzer.isNull() || !mapAnalyzer->calcNewRoute(_map, src, dst, &path))
 	{

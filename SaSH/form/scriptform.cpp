@@ -83,11 +83,11 @@ ScriptForm::ScriptForm(QWidget* parent)
 
 	setTableWidget(ui.tableWidget_script, 8);
 
-	QList<QPushButton*> buttonList = util::findWidgets<QPushButton>(this);
+	QList<PushButton*> buttonList = util::findWidgets<PushButton>(this);
 	for (auto& button : buttonList)
 	{
 		if (button)
-			connect(button, &QPushButton::clicked, this, &ScriptForm::onButtonClicked, Qt::UniqueConnection);
+			connect(button, &PushButton::clicked, this, &ScriptForm::onButtonClicked, Qt::UniqueConnection);
 	}
 
 	connect(ui.treeWidget_script->header(), &QHeaderView::sectionClicked, this, &ScriptForm::onScriptTreeWidgetHeaderClicked);
@@ -142,22 +142,22 @@ void ScriptForm::onScriptStarted()
 		&& !injector.currentScriptFileName.contains(util::SCRIPT_PRIVATE_SUFFIX_DEFAULT))
 		return;
 
+
+
 	if (!interpreter_.isNull())
 	{
 		interpreter_->requestInterruption();
+
+		if (interpreter_->isRunning())
+			return;
 	}
 
-	if (interpreter_->isRunning())
-	{
-		return;
-	}
+	interpreter_.reset(new Interpreter());
 
 	if (!injector.scriptLogModel.isNull())
 		injector.scriptLogModel->clear();
 
-	interpreter_.reset(new Interpreter());
-
-	connect(interpreter_.data(), &Interpreter::finished, this, &ScriptForm::onScriptFinished);
+	connect(interpreter_.data(), &Interpreter::finished, this, &ScriptForm::onScriptFinished, Qt::UniqueConnection);
 
 	interpreter_->doFileWithThread(selectedRow_, injector.currentScriptFileName);
 
@@ -213,7 +213,7 @@ void ScriptForm::onScriptFinished()
 
 void ScriptForm::onButtonClicked()
 {
-	QPushButton* pPushButton = qobject_cast<QPushButton*>(sender());
+	PushButton* pPushButton = qobject_cast<PushButton*>(sender());
 	if (!pPushButton)
 		return;
 
@@ -327,6 +327,7 @@ void ScriptForm::loadFile(const QString& fileName)
 	{
 		interpreter_.reset(new Interpreter());
 	}
+
 	Injector& injector = Injector::getInstance();
 	injector.currentScriptFileName = fileName;
 	interpreter_->preview(fileName);
@@ -368,7 +369,7 @@ void ScriptForm::onScriptContentChanged(const QString& fileName, const QVariant&
 				setTableWidgetItem(row, 1, QString("%1 = \'\'").arg(cmd));
 			continue;
 		}
-		else if (TK_MULTIVAR == reserve || TK_TABLE == reserve)
+		else if (TK_MULTIVAR == reserve || TK_TABLE == reserve || TK_GLOBAL == reserve)
 		{
 			setTableWidgetItem(row, 0, "[global]");
 			if (!argStr.isEmpty())

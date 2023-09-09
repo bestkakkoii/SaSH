@@ -212,7 +212,7 @@ LONG CALLBACK MinidumpCallback(PEXCEPTION_POINTERS pException)
 			stLocalTime.wYear, stLocalTime.wMonth, stLocalTime.wDay,
 			stLocalTime.wHour, stLocalTime.wMinute, stLocalTime.wSecond);
 
-		QScopedHandle hDumpFile(CreateFile(pszFileName, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL));
+		ScopedHandle hDumpFile(CreateFile(pszFileName, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL));
 		if (hDumpFile == INVALID_HANDLE_VALUE)
 			break;
 
@@ -413,6 +413,7 @@ int main(int argc, char* argv[])
 		pool->setMaxThreadCount(count);
 
 	MainForm w;
+
 	w.show();
 	return a.exec();
 }

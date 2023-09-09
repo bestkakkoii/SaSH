@@ -21,6 +21,13 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "injector.h"
 #include "signaldispatcher.h"
 
+enum RTK
+{
+	RTK_EOF,
+	RTK_CONTINUE,
+};
+
+#pragma region KeyWord
 //全局關鍵字映射表 這裡是新增新的命令的第一步，其他需要在interpreter.cpp中新增註冊新函數，這裡不添加的話，腳本分析後會忽略未知的命令
 static const QHash<QString, RESERVE> keywords = {
 #pragma region zh_TW
@@ -32,16 +39,15 @@ static const QHash<QString, RESERVE> keywords = {
 	{ u8"返回跳轉", TK_BAK },
 	{ u8"結束", TK_END },
 	{ u8"暫停", TK_PAUSE },
-	{ u8"功能", TK_LABEL, },
+	{ u8"功能", TK_FUNCTION, },
 	{ u8"標記", TK_LABEL, },
 	{ u8"變量", TK_VARDECL },
 	{ u8"變量移除", TK_VARFREE },
 	{ u8"變量清空", TK_VARCLR },
 	{ u8"格式化", TK_FORMAT },
 	{ u8"隨機數", TK_RND },
-	{ u8"如果", TK_CMP },
+	{ u8"如果", TK_IF },
 	{ u8"遍歷", TK_FOR },
-	{ u8"遍歷結束", TK_ENDFOR },
 	{ u8"跳出", TK_BREAK },
 	{ u8"繼續", TK_CONTINUE },
 
@@ -154,16 +160,15 @@ static const QHash<QString, RESERVE> keywords = {
 	{ u8"返回跳转", TK_BAK },
 	{ u8"结束", TK_END },
 	{ u8"暂停", TK_PAUSE },
-	{ u8"功能", TK_LABEL, },
+	{ u8"功能", TK_FUNCTION, },
 	{ u8"标记", TK_LABEL, },
 	{ u8"变量", TK_VARDECL },
 	{ u8"变量移除", TK_VARFREE },
 	{ u8"变量清空", TK_VARCLR },
 	{ u8"格式化", TK_FORMAT },
 	{ u8"随机数", TK_RND },
-	{ u8"如果", TK_CMP },
+	{ u8"如果", TK_IF },
 	{ u8"遍历", TK_FOR },
-	{ u8"遍历结束", TK_ENDFOR },
 	{ u8"跳出", TK_BREAK },
 	{ u8"继续", TK_CONTINUE },
 
@@ -267,28 +272,27 @@ static const QHash<QString, RESERVE> keywords = {
 	{ u8"拖至", TK_CMD },
 
 #pragma endregion
-
+	{ u8"callwithname", TK_CALLWITHNAME },
 #pragma region en_US
 	//keyword
 	{ u8"call", TK_CALL },
 	{ u8"goto", TK_GOTO },
 	{ u8"jmp", TK_JMP },
-	{ u8"end", TK_RETURN },
+	{ u8"end", TK_END },
 	{ u8"return", TK_RETURN },
 	{ u8"back", TK_BAK },
-	{ u8"exit", TK_END },
+	{ u8"exit", TK_EXIT },
 	{ u8"pause", TK_PAUSE },
+	{ u8"function", TK_FUNCTION, },
 	{ u8"label", TK_LABEL, },
-	{ u8"function", TK_LABEL, },
 	{ u8"var", TK_VARDECL },
 	{ u8"local", TK_LOCAL },
 	{ u8"delete", TK_VARFREE },
 	{ u8"releaseall", TK_VARCLR },
 	{ u8"format", TK_FORMAT },
 	{ u8"rnd", TK_RND },
-	{ u8"if", TK_CMP },
+	{ u8"if", TK_IF },
 	{ u8"for", TK_FOR },
-	{ u8"endfor", TK_ENDFOR },
 	{ u8"break", TK_BREAK },
 	{ u8"continue", TK_CONTINUE },
 
@@ -426,22 +430,1383 @@ static const QHash<QString, RESERVE> keywords = {
 	//... 其他後續增加的關鍵字
 };
 
+#ifdef TEST_LEXER
+static const QHash<QString, RESERVE> keyHash = {
+	{ u8"local", TK_LOCAL }, { u8"局", TK_LOCAL },
+
+	{ u8"or", TK_OROR }, { u8"或", TK_OROR },
+	{ u8"and", TK_ANDAND }, { u8"與", TK_ANDAND },
+
+	{ u8"not", TK_NOT }, { u8"否", TK_ANDAND },
+
+	{ u8"any", TK_ANY }, { u8"任意", TK_ANY },
+	{ u8"double", TK_DOUBLE }, { u8"浮點數", TK_DOUBLE }, { u8"浮点数", TK_DOUBLE },
+	{ u8"bool", TK_BOOL }, { u8"布爾值", TK_BOOL }, { u8"布尔值", TK_BOOL },
+	{ u8"int", TK_INT }, { u8"整數", TK_INT }, { u8"整数", TK_INT },
+	{ u8"string", TK_STRING }, { u8"字符串", TK_STRING },
+	{ u8"table", TK_TABLE }, { u8"表", TK_TABLE },
+	{ u8"nil", TK_NIL }, { u8"空", TK_NIL },
+
+	{ u8"in", TK_IN },
+	{ u8"do", TK_DO },
+	{ u8"then", TK_THEN },
+
+	{ u8"while", TK_THEN }, { u8"循環", TK_THEN }, { u8"循环", TK_THEN },
+
+	{ u8"function", TK_FUNCTION }, { u8"功能", TK_FUNCTION },
+	{ u8"end", TK_END }, { u8"結束", TK_END }, { u8"结束", TK_END },
+
+	{ u8"repeat", TK_REPEAT }, { u8"重複", TK_REPEAT },
+	{ u8"until", TK_UNTIL }, { u8"直到", TK_UNTIL },
+
+	{ u8"if", TK_IF }, { u8"如果", TK_IF },
+	{ u8"else", TK_ELSE }, { u8"否則", TK_ELSE }, { u8"否则", TK_ELSE },
+	{ u8"elseif", TK_ELSEIF }, { u8"否則如果", TK_ELSEIF }, { u8"否则如果", TK_ELSEIF },
+
+	{ u8"for", TK_FOR }, { u8"遍歷", TK_FOR }, { u8"遍历", TK_FOR },
+	{ u8"function", TK_FUNCTION },
+
+	{ u8"return", TK_RETURN }, { u8"返回", TK_RETURN },
+	{ u8"break", TK_BREAK }, { u8"跳出", TK_BREAK },
+	{ u8"continue", TK_CONTINUE }, { u8"繼續", TK_CONTINUE }, { u8"继续", TK_CONTINUE },
+
+	{ u8"true", TK_TRUE }, { u8"真", TK_TRUE },
+	{ u8"false", TK_FALSE }, { u8"假", TK_FALSE },
+
+	{ u8"goto", TK_GOTO }, { u8"跳轉", TK_GOTO }, { u8"跳转", TK_GOTO },
+
+	{ u8"jmp", TK_JMP }, { u8"跳至", TK_JMP },
+
+	{ u8"label", TK_LABEL }, { u8"標記", TK_LABEL }, { u8"标记", TK_LABEL },
+};
+#endif
+#pragma endregion
+
+#pragma region  Tool
 void Lexer::showError(const QString text, ErrorType type)
 {
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
-	emit signalDispatcher.appendScriptLog(text, type);
+
+	if (type == kTypeError)
+		emit signalDispatcher.appendScriptLog(QObject::tr("[error]") + text, 0);
+	else
+		emit signalDispatcher.appendScriptLog(QObject::tr("[warn]") + text, 0);
 }
 
-//插入新TOKEN
-void Lexer::createToken(qint64 index, RESERVE type, const QVariant& data, const QString& raw, TokenMap* ptoken)
+bool Lexer::isTable(const QString& str) const
 {
-	ptoken->insert(index, Token{ type, data, raw });
+	return str.startsWith("{") && str.endsWith("}");
 }
 
-//插入空行TOKEN
-void Lexer::createEmptyToken(qint64 index, TokenMap* ptoken)
+bool Lexer::isDouble(const QString& str) const
 {
-	ptoken->insert(index, Token{ TK_WHITESPACE, "", "" });
+	if (str.count('.') != 1)
+		return false;
+
+	qint64 size = str.size();
+	for (qint64 i = 0; i < size; ++i)
+	{
+		if (!str.at(i).isDigit() && str.at(i) != '.')
+			return false;
+	}
+
+	bool ok;
+	str.toDouble(&ok);
+	return ok;
+}
+
+bool Lexer::isInteger(const QString& str) const
+{
+	qint64 size = str.size();
+	for (qint64 i = 0; i < size; ++i)
+	{
+		if (i == 0 && (str.at(i) == '+' || str.at(i) == '-'))
+		{
+			continue;
+		}
+		if (!str.at(i).isDigit())
+			return false;
+	}
+
+	bool ok;
+	str.toLongLong(&ok);
+	return ok;
+}
+
+bool Lexer::isBool(const QString& str) const
+{
+	return (str == QString(u8"真") || str == QString(u8"假") || str.toLower() == "true" || str.toLower() == "false");
+}
+
+bool Lexer::isLabelName(const QString& str, RESERVE previousType) const
+{
+	//check not start from number
+	if (str.isEmpty() || str.at(0).isDigit())
+		return false;
+
+	return previousType == TK_LABEL;
+}
+
+bool Lexer::isConstString(const QString& str) const
+{
+	static const QRegularExpression re(R"('\s*+\s*')");
+	return (str.startsWith("\'") || str.startsWith("\"")) && (str.endsWith("\'") || str.endsWith("\"")) && !str.contains(re);
+}
+
+bool Lexer::isLabel(const QString& str) const
+{
+	return  keywords.value(str, TK_UNK) == TK_LABEL;
+}
+
+bool Lexer::isSpace(const QChar& ch) const
+{
+	static const QRegularExpression re("\\s?");
+	return re.match(ch).hasMatch();
+}
+
+bool Lexer::isComment(const QChar& ch) const
+{
+	return (ch == '/');
+}
+
+bool Lexer::isOperator(const QChar& ch) const
+{
+	return (
+		(ch == '<') || (ch == '>') ||
+		(ch == '+') || (ch == '-') || (ch == '*') || (ch == '/') ||
+		(ch == '%') ||
+		(ch == '&') || (ch == '|') || (ch == '~') || (ch == '^') ||
+		(ch == '!')
+		);
+}
+#pragma endregion
+
+//////////////////////////////////////////////////////////////////////////
+
+#pragma region TEST
+#ifdef TEST_LEXER
+#ifdef _DEBUG
+void debugOutput(TokenMap* ptoken)
+{
+	for (auto it = ptoken->constBegin(); it != ptoken->constEnd(); ++it)
+	{
+		qint64 key = it.key();
+		Token value = it.value();
+
+		qDebug() << "No:" << key << "type:" << value.type << "value:" << value.data;
+	}
+}
+#endif
+
+//根據index取得當前字元
+QChar Lexer::Reader::peek()
+{
+	qint64 index = nowIndex_;
+	if (index < 0 || index >= nowTokenLength_)
+	{
+		return QChar();
+	}
+
+	return nowToken_.at(index);
+}
+
+//根據index取得下一個字元
+QChar Lexer::Reader::next()
+{
+	qint64 index = nowIndex_;
+	++index;
+	if (index <= 0ll || index >= nowTokenLength_)
+	{
+		return QChar();
+	}
+
+	return nowToken_.at(index);
+}
+
+//根據index取得上一個字元
+QChar Lexer::Reader::prev()
+{
+	qint64 index = nowIndex_;
+	--index;
+	if (index <= 0ll || index >= nowTokenLength_)
+	{
+		return QChar();
+	}
+
+	return nowToken_.at(index);
+}
+
+bool Lexer::Reader::checkNext(QChar ch)
+{
+	return next() == ch;
+}
+
+bool Lexer::Reader::checkPrev(QChar ch)
+{
+	return prev() == ch;
+}
+
+bool Lexer::tokenized(Lexer* pLexer, const QString& script)
+{
+	if (script.isEmpty())
+		return false;
+
+	if (pLexer == nullptr)
+		return false;
+
+	pLexer->clear();
+	pLexer->reader_.clear();
+
+	Injector& injector = Injector::getInstance();
+	if (!injector.scriptLogModel.isNull())
+		injector.scriptLogModel->clear();
+
+
+	RESERVE controlReserve = TK_NONE;
+	qint64 currentIndentLevel = 0;
+
+	QStringList tokenStringList;
+	pLexer->splitToStringToken(script, &tokenStringList);
+	qDebug() << tokenStringList;
+	RESERVE previous = TK_NONE;
+	qint64 size = tokenStringList.size();
+	qint64 i, j, n = 0ll;
+	qint64 line = 0ll;
+	QList<Token> tokenList;
+	for (;;)
+	{
+		Token tk = pLexer->getNextToken(previous, tokenStringList);
+		previous = tk.type;
+
+		tokenList.append(tk);
+		if (tokenStringList.isEmpty())
+			break;
+	}
+
+	size = tokenList.size();
+
+	for (i = 0; i < size; ++i)
+	{
+		Token prevTk;
+		Token& nowTk = tokenList[i];
+		Token nextTk;
+		if (i > 0)
+			prevTk = tokenList.at(i - 1);
+		if (i < size - 1)
+			nextTk = tokenList.at(i + 1);
+
+		if (prevTk.type != TK_NEWLINE && prevTk.type != TK_COLON)
+		{
+			continue;
+		}
+
+		if (nowTk.type == TK_UNK && nextTk.type == TK_LPAREN)
+			nowTk.type = TK_CALLNAME;
+
+	}
+
+	for (i = 0; i < size; ++i)
+	{
+		const Token nowTk = tokenList.at(i);
+		if (nowTk.type == TK_NEWLINE)
+		{
+			++line;
+			qDebug() << "[type]:" << nowTk.type << "[data]:" << nowTk.data;
+			continue;
+		}
+
+		switch (nowTk.type)
+		{
+		case TK_LABEL:
+		{
+			pLexer->labelList_.insert(nowTk.data.toString(), line);
+			break;
+		}
+		case TK_FUNCTIONNAME:
+		{
+			controlReserve = TK_FUNCTION;
+			++currentIndentLevel;
+
+			FunctionNode functionNode;
+			functionNode.name = nowTk.data.toString();
+			functionNode.beginLine = line;
+			functionNode.endLine = -1; // 初始结束行号设为 -1
+			functionNode.level = currentIndentLevel;
+			functionNode.field = currentIndentLevel == 1 ? kGlobal : kLocal;
+
+			functionNode.argList = {};
+
+			bool isRef = false;
+			RESERVE typeReserve = TK_ANY;
+			n = 1;
+			for (;;)
+			{
+				j = i + n;
+				if (j >= size)
+					break;
+
+				Token& tmpTk = tokenList[j];
+				if (tmpTk.type == TK_RPAREN)//新行或右括號結束
+					break;
+
+				do
+				{
+					if (tmpTk.type == TK_COMMA)
+						break;
+
+					if (tmpTk.type == TK_LPAREN)
+						break;
+
+					if (tmpTk.data.toString() == "&")
+					{
+						isRef = true;
+						typeReserve = TK_REF;
+						break;
+					}
+
+
+					if (keyHash.contains(tmpTk.data.toString()))
+					{
+						typeReserve = keyHash.value(tmpTk.data.toString());
+						break;
+					}
+
+					if (isRef)
+					{
+						tmpTk.type = typeReserve;
+						functionNode.argList.append(qMakePair(typeReserve, QString("&" + tmpTk.data.toString())));
+						typeReserve = TK_ANY;
+						isRef = false;
+						break;
+					}
+
+					tmpTk.type = typeReserve;
+					functionNode.argList.append(qMakePair(typeReserve, tmpTk.data));
+					typeReserve = TK_ANY;
+				} while (false);
+
+				++n;
+			}
+
+			pLexer->functionNodeList_.append(functionNode);
+
+			break;
+		}
+		case TK_FOR:
+		{
+			controlReserve = TK_FOR;
+			++currentIndentLevel;
+
+			ForNode forNode;
+			forNode.beginLine = line;
+			forNode.endLine = -1; // 初始结束行号设为 -1
+			forNode.level = currentIndentLevel;
+			forNode.field = currentIndentLevel == 1 ? kGlobal : kLocal;
+
+			n = 1;
+			for (;;)
+			{
+				j = i + n;
+				if (j >= size)
+					break;
+
+				Token tmpTk = tokenList.at(j);
+				if (tmpTk.data.toString() == "do")//取到 do 為止
+					break;
+
+				do
+				{
+					if (tmpTk.type == TK_COMMA)
+						break;
+
+					if (tmpTk.type == TK_LPAREN)
+						break;
+
+					if (forNode.varName.isEmpty() && tmpTk.data.type() == QVariant::String && tmpTk.data.toString() != "do")
+					{
+						forNode.varName = tmpTk.data.toString();
+						break;
+					}
+
+					if (tmpTk.type == TK_ASSIGN)
+						break;
+
+					if (!forNode.beginValue.isValid() && tmpTk.data.toString() != "do")
+					{
+						forNode.beginValue = tmpTk.data;
+						break;
+					}
+
+					if ((!forNode.endValue.isValid() || forNode.endValue == forNode.beginValue) && tmpTk.data.toString() != "do")
+					{
+						forNode.endValue = tmpTk.data;
+						break;
+					}
+
+					if ((!forNode.stepValue.isValid() || forNode.stepValue.toLongLong() == 0) && tmpTk.data.toString() != "do")
+					{
+						forNode.stepValue = tmpTk.data;
+						break;
+					}
+
+				} while (false);
+
+				++n;
+			}
+
+			pLexer->forNodeList_.append(forNode);
+
+			break;
+		}
+		case TK_RETURN:
+		{
+			//QStringList returnTypes;
+
+			//for (qint64 i = 1; i < tk.size(); ++i)
+			//{
+			//	Token token = tk.value(i);
+			//	if (token.type == TK_COMMENT)
+			//		continue;
+			//	returnTypes.append(token.data.toString());
+			//}
+
+			//if (!pLexer->functionNodeList_.isEmpty())
+			//{
+			//	pLexer->functionNodeList_.last().returnTypes.insert(i, returnTypes);
+			//}
+			break;
+		}
+		case TK_END:
+		{
+			if (controlReserve == TK_FUNCTION)
+			{
+				if (!pLexer->functionNodeList_.isEmpty())
+				{
+					pLexer->functionNodeList_.last().endLine = line;
+					qDebug() << "function:" << pLexer->functionNodeList_.last().name << pLexer->functionNodeList_.last().argList;
+				}
+			}
+			else if (controlReserve == TK_FOR)
+			{
+				if (!pLexer->forNodeList_.isEmpty())
+				{
+					pLexer->forNodeList_.last().endLine = line;
+					qDebug() << "for:" << pLexer->forNodeList_.last().varName << pLexer->forNodeList_.last().beginValue << pLexer->forNodeList_.last().endValue << pLexer->forNodeList_.last().stepValue;
+				}
+			}
+			else if (controlReserve == TK_WHILE)
+			{
+
+			}
+			else if (controlReserve == TK_REPEAT)
+			{
+
+			}
+
+			controlReserve = TK_END;
+			--currentIndentLevel;
+			break;
+		}
+		default:
+			break;
+		}
+
+		qDebug() << "[type]:" << nowTk.type << "[data]:" << nowTk.data;
+	}
+
+	QStringList content;
+	for (const Token& it : tokenList)
+	{
+		content.append(it.raw);
+	}
+
+	QString c = content.join(" ");
+
+	qDebug() << c;
+
+#if 0
+	for (qint64 i = 0; i < size; ++i)
+	{
+		TokenMap tk;
+		//單獨處理每一行的TOKEN
+		if (pLexer->useNewLexer)
+			pLexer->tokenizedNew(lines.at(i), &tk);
+		else
+			pLexer->tokenized(i, lines.at(i), &tk, &pLexer->labelList_);
+		tokens.insert(i, tk);
+
+		if (!pLexer->useNewLexer)
+			continue;
+
+		RESERVE reserve = tk.value(0).type;
+
+		switch (reserve)
+		{
+		case TK_LABEL:
+		{
+			pLexer->labelList_.insert(tk.value(0).data.toString(), i);
+			break;
+		}
+		case TK_FUNCTION:
+		{
+			controlReserve = TK_FUNCTION;
+			++currentIndentLevel;
+
+			FunctionNode functionNode;
+			functionNode.name = tk.value(1).data.toString();
+			functionNode.beginLine = i;
+			functionNode.endLine = -1; // 初始结束行号设为 -1
+			functionNode.level = currentIndentLevel;
+			functionNode.field = currentIndentLevel == 1 ? kGlobal : kLocal;
+
+			functionNode.argList = tk.value(2).data.value<VarPairList>();
+
+			pLexer->functionNodeList_.append(functionNode);
+
+			break;
+		}
+		case TK_FOR:
+		{
+			controlReserve = TK_FOR;
+			++currentIndentLevel;
+
+			ForNode forNode;
+			forNode.beginLine = i;
+			forNode.endLine = -1; // 初始结束行号设为 -1
+			forNode.level = currentIndentLevel;
+			forNode.field = currentIndentLevel == 1 ? kGlobal : kLocal;
+
+			forNode.varName = tk.value(1).data.toString();
+			//----------------------------2 是 = 符號
+			forNode.beginValue = tk.value(3).data.toLongLong();
+			forNode.endValue = tk.value(4).data.toLongLong();
+
+			pLexer->forNodeList_.append(forNode);
+
+			break;
+		}
+		case TK_WHILE:
+		{
+			controlReserve = TK_WHILE;
+			++currentIndentLevel;
+			break;
+		}
+		case TK_REPEAT:
+		{
+			controlReserve = TK_REPEAT;
+			++currentIndentLevel;
+			break;
+		}
+		case TK_RETURN:
+		{
+			QStringList returnTypes;
+
+			for (qint64 i = 1; i < tk.size(); ++i)
+			{
+				Token token = tk.value(i);
+				if (token.type == TK_COMMENT)
+					continue;
+				returnTypes.append(token.data.toString());
+			}
+
+			if (!pLexer->functionNodeList_.isEmpty())
+			{
+				pLexer->functionNodeList_.last().returnTypes.insert(i, returnTypes);
+			}
+			break;
+		}
+		case TK_END:
+		{
+			if (controlReserve == TK_FUNCTION)
+			{
+				if (!pLexer->functionNodeList_.isEmpty())
+				{
+					pLexer->functionNodeList_.last().endLine = i;
+				}
+			}
+			else if (controlReserve == TK_FOR)
+			{
+				if (!pLexer->forNodeList_.isEmpty())
+				{
+					pLexer->forNodeList_.last().endLine = i;
+				}
+			}
+			else if (controlReserve == TK_WHILE)
+			{
+
+			}
+			else if (controlReserve == TK_REPEAT)
+			{
+
+			}
+
+			controlReserve = TK_END;
+			--currentIndentLevel;
+			break;
+		}
+		default:
+			break;
+		}
+	}
+
+	pLexer->tokens_ = tokens;
+#endif
+	return true;
+}
+
+bool Lexer::splitToStringToken(QString src, QStringList* pTokenStringList)
+{
+	//markers
+	qint64 sQuote = 0i64; // 是否在單引號內
+	qint64 dQuote = 0i64; // 是否在雙引號內
+	qint64 waitforCommantEnd = 0i64; // 是否在註解內
+	qint64 waitforBlockCommantEnd = 0i64; // 是否在區塊註解內
+
+	QStringList tokenStringList;
+
+	reader_.resetIndex();
+	reader_.resetToken(src);
+
+	QChar u = 0ui16;
+	QChar ch = 0ui16;
+
+	qint64 line = 0;
+
+	for (;;)
+	{
+		u = reader_.peek();
+
+		switch (u.unicode())
+		{
+		case L'\r':
+		{
+			if (!waitforBlockCommantEnd)
+				reader_.takeStored();
+			else
+				reader_.store(u);
+			break;
+		}
+		case L'\n':
+		{
+			if (sQuote > 0 || dQuote > 0)
+				break;
+
+			if (waitforCommantEnd)
+			{
+				waitforCommantEnd = false;
+				reader_.takeStored();
+			}
+
+			if (!waitforBlockCommantEnd)
+			{
+				reader_.takeStored();
+				reader_.store(u);
+				reader_.takeStored();
+				++line;
+			}
+			else
+				reader_.store(u);
+
+			break;
+		}
+		case L'\\':
+		{
+			if (sQuote == 0 && dQuote == 0)
+			{
+				showError(QObject::tr("[error] @ %1 | Escape character is not allowed outside of string literal.").arg(line));
+				return RTK_EOF;
+			}
+
+			reader_.store(u);
+			break;
+		}
+		case L'\'':
+		case L'"':
+		{
+			if (waitforCommantEnd || waitforBlockCommantEnd)
+			{
+				reader_.store(u);
+				break;
+			}
+
+			if (sQuote > 0 || dQuote > 0)
+			{
+				sQuote = 0;
+				dQuote = 0;
+
+				reader_.store(u);
+				reader_.takeStored();
+				break;
+			}
+
+			reader_.takeStored();
+			++dQuote;
+			++sQuote;
+			reader_.store(u);
+
+			break;
+		}
+		case L'*': // *, *=
+		{
+			if (waitforCommantEnd)
+			{
+				reader_.store(u);
+				break;
+			}
+
+			if (sQuote > 0 || dQuote > 0)
+			{
+				reader_.store(u);
+				break;
+			}
+
+			ch = reader_.next();
+			if (ch == L'/')
+			{
+				if (waitforBlockCommantEnd)
+				{
+					waitforBlockCommantEnd = false;
+					reader_.store(u);
+					reader_.movenext();
+					reader_.store(reader_.peek());
+					reader_.takeStored();
+				}
+			}
+
+			if (waitforBlockCommantEnd)
+			{
+				reader_.store(u);
+				break;
+			}
+
+			reader_.takeStored();
+			reader_.store(u);
+			reader_.takeStored();
+			break;
+		}
+		case L'/': // /, /=
+		{
+			if (sQuote > 0 || dQuote > 0)
+			{
+				reader_.store(u);
+				break;
+			}
+
+			ch = reader_.next();
+			if (ch == L'/' && !waitforCommantEnd) // //, /*
+			{
+				waitforCommantEnd = true;
+				reader_.takeStored();
+				reader_.store(u);
+				reader_.movenext();
+				reader_.store(reader_.peek());
+				break;
+			}
+			else if (ch == L'*' && !waitforBlockCommantEnd) // //, /*
+			{
+				waitforBlockCommantEnd = true;
+				reader_.takeStored();
+				reader_.store(u);
+				reader_.movenext();
+				reader_.store(reader_.peek());
+				break;
+			}
+
+			if (waitforCommantEnd || waitforBlockCommantEnd)
+			{
+				reader_.store(u);
+				break;
+			}
+
+			reader_.takeStored();
+			reader_.store(u);
+			reader_.takeStored();
+			break;
+		}
+		case L' ':
+		{
+			if (waitforCommantEnd || waitforBlockCommantEnd)
+			{
+				reader_.store(u);
+				break;
+			}
+
+			if (sQuote > 0 || dQuote > 0)
+			{
+				reader_.store(u);
+				break;
+			}
+
+			reader_.takeStored();
+			break;
+		}
+		case L'(':
+		case L')':
+		case L'}':
+		case L'{':
+		case L'[':
+		case L']':
+		case L',':
+		case L'#': // #
+		case L'?': // ?:
+		case L':': // :
+		case L';':
+		case L'+':
+		case L'-':
+		case L'%':
+		case L'&':
+		case L'^':
+		case L'<':
+		case L'>':
+		case L'=':
+		case L'~':
+		case L'_':
+		case L'.':
+		{
+			if (waitforCommantEnd || waitforBlockCommantEnd)
+			{
+				reader_.store(u);
+				break;
+			}
+
+			if (sQuote > 0 || dQuote > 0)
+			{
+				reader_.store(u);
+				break;
+			}
+
+			reader_.takeStored();
+			reader_.store(u);
+			reader_.takeStored();
+			break;
+		}
+		case L'\0':
+		{
+			if (pTokenStringList != nullptr)
+				*pTokenStringList = reader_.getList();
+			return true;
+		}
+		default:
+			reader_.store(u);
+			break;
+		}
+
+		reader_.movenext();
+	}
+
+	return false;
+}
+
+bool Lexer::checkOperator(RESERVE previous, QString& tokenStr, RESERVE* pReserve)
+{
+	if (tokenStr.isEmpty())
+		return false;
+
+	if (pReserve == nullptr)
+		return false;
+
+	QChar u = tokenStr.front();
+	QChar ch = L'\0';
+	bool bret = true;
+
+	reader_.resetIndex();
+	reader_.resetToken(tokenStr);
+
+	switch (u.unicode())
+	{
+	case L'+': // +, ++, +=
+	{
+		ch = reader_.next();
+		if (ch == L'+') // ++
+			*pReserve = TK_INC;
+		else if (ch == L'=') // +=
+			*pReserve = TK_ADD_ASSIGN;
+		else // +
+		{
+			if (previous == TK_CSTRING)
+				*pReserve = TK_DOTDOT;
+			else
+				*pReserve = TK_ADD;
+		}
+
+		break;
+	}
+	case L'-': //  -, --, -=
+	{
+		ch = reader_.next();
+		if (ch == L'-') // --
+			*pReserve = TK_DEC;
+		else if (ch == L'=') // -=
+			*pReserve = TK_SUB_ASSIGN;
+		else // -
+			*pReserve = TK_SUB;
+
+		break;
+	}
+	case L'*': // *, *=
+	{
+		ch = reader_.next();
+		if (ch == L'=') // *=
+			*pReserve = TK_MUL_ASSIGN;
+		else if (ch == L'/') // */
+			*pReserve = TK_COMMENT;
+		else // *
+			*pReserve = TK_MUL;
+
+		break;
+	}
+	case L'/': // /, /=
+	{
+		ch = reader_.next();
+		if (ch == L'=') // /=
+			*pReserve = TK_DIV_ASSIGN;
+		else if (ch == L'/' || ch == '*') // //, /*
+			*pReserve = TK_COMMENT;
+		else // /
+			*pReserve = TK_DIV;
+
+		break;
+	}
+	case L'%': // %, %=
+	{
+		ch = reader_.next();
+		if (ch == L'=') // %=
+			*pReserve = TK_MOD_ASSIGN;
+		else // %
+			*pReserve = TK_MOD;
+
+		break;
+	}
+	case L'!': // !, !=
+	{
+		ch = reader_.next();
+		if (ch == L'=')
+			*pReserve = TK_NEQ;
+		else
+			*pReserve = TK_NOT;
+
+		break;
+	}
+	case L'=': // =, ==
+	{
+		ch = reader_.next();
+		if (ch == L'=') // ==
+			*pReserve = TK_EQ;
+		else // =
+			*pReserve = TK_ASSIGN;
+
+		break;
+	}
+	case L'>': // >, >=, >>, >>=
+	{
+		ch = reader_.next();
+		if (ch == L'=') // >=
+			*pReserve = TK_GEQ;
+		else if (ch == L'>') // >>
+		{
+			ch = reader_.next();
+			if (ch == L'=') // >>=
+				*pReserve = TK_SHR_ASSIGN;
+			else
+				*pReserve = TK_SHR;
+		}
+		else
+			*pReserve = TK_GT;
+
+		break;
+	}
+	case L'<': // <, <=, <<, <<=
+	{
+		ch = reader_.next();
+		if (ch == L'=') // <=
+			*pReserve = TK_LEQ;
+		else if (ch == L'<') // <<
+		{
+			ch = reader_.next();
+			if (ch == L'=') // <<=
+				*pReserve = TK_SHL_ASSIGN;
+			else
+				*pReserve = TK_SHL;
+		}
+		else
+			*pReserve = TK_LT;
+
+		break;
+	}
+	case L'&': // &, &&, &=
+	{
+		ch = reader_.next();
+		if (ch == L'=') // &=
+			*pReserve = TK_AND_ASSIGN;
+		else if (ch == L'&') // &&
+			*pReserve = TK_ANDAND;
+		else if (ch != L'\0' && ch != L',') // &xxxx
+			*pReserve = TK_REF;
+		else // &
+			*pReserve = TK_AND;
+
+		break;
+	}
+	case L'|': // |, |=
+	{
+		ch = reader_.next();
+		if (ch == L'=') // |=
+			*pReserve = TK_OR_ASSIGN;
+		else if (ch == L'|') // ||
+			*pReserve = TK_OROR;
+		else // |
+			*pReserve = TK_OR;
+
+		break;
+	}
+	case L'^': // ^, ^=
+	{
+		ch = reader_.next();
+		if (ch == L'=')
+			*pReserve = TK_XOR_ASSIGN;
+		else
+			*pReserve = TK_XOR;
+
+		break;
+	}
+	case L'~': // ~, ~=
+	{
+		ch = reader_.next();
+		if (ch == L'=') // ~=
+			*pReserve = TK_NEQ;
+		else // ~
+			*pReserve = TK_NOT;
+
+		break;
+	}
+	case L'?': // ?:
+	{
+		*pReserve = TK_FUZZY;
+		break;
+	}
+	case L':': // :
+	{
+		*pReserve = TK_COLON;
+		break;
+	}
+	case L'.': // ., ..
+	{
+		ch = reader_.next();
+		if (ch == L'.')
+			*pReserve = TK_DOTDOT;
+		else
+			*pReserve = TK_DOT;
+		break;
+	}
+	case L'#': // #
+	{
+		*pReserve = TK_SHARP;
+		break;
+	}
+	case L',':
+	{
+		*pReserve = TK_COMMA;
+		break;
+	}
+	case L'(':
+	{
+		if (previous == TK_FUNCTIONNAME)
+			beginFunctionArgsDeclaration_ = true;
+
+		if (previous == TK_FOR)
+			beginForArgs_ = true;
+
+		*pReserve = TK_LPAREN;
+		break;
+	}
+	case L')':
+	{
+		if (beginFunctionArgsDeclaration_)
+		{
+			beginFunctionArgsDeclaration_ = false;
+			functionArgList_.clear();
+		}
+
+		if (beginForArgs_)
+			beginForArgs_ = false;
+
+		*pReserve = TK_RPAREN;
+		break;
+	}
+	case L'[':
+	{
+		*pReserve = TK_LBRACKET;
+		break;
+	}
+	case L']':
+	{
+		*pReserve = TK_RBRACKET;
+		break;
+	}
+	case L'{':
+	{
+		*pReserve = TK_LBRACE;
+		break;
+	}
+	case L'}':
+	{
+		*pReserve = TK_RBRACE;
+		break;
+	}
+	default:
+		bret = false;
+		break;
+	}
+
+	reader_.resetIndex();
+	return  bret;
+}
+
+Token Lexer::getNextToken(RESERVE previous, QStringList& refTokenStringList)
+{
+	if (refTokenStringList.isEmpty())
+		return Token();
+
+	Token token;
+	QString front = refTokenStringList.front();
+	refTokenStringList.pop_front();
+
+	if (keyHash.contains(front))
+	{
+		return Token{ keyHash.value(front), front, front };
+	}
+
+	//標記名稱
+	if (previous == TK_LABEL)
+	{
+		return Token{ TK_LABELNAME, front, front };
+	}
+
+	//跳轉目標標記
+	if (previous == TK_GOTO)
+	{
+		return  Token{ TK_LABELNAME, front, front };
+	}
+
+	RESERVE opReserve = TK_UNK;
+	if (checkOperator(previous, front, &opReserve))
+	{
+		return Token{ opReserve, front, front };
+	}
+
+	//函數名稱
+	if (previous == TK_FUNCTION)
+	{
+		beginFunctionDeclaration_ = false;
+		beginFunctionNameDeclaration_ = true;
+		return Token{ TK_FUNCTIONNAME, front, front };
+	}
+
+	//函數傳參
+	if (beginFunctionNameDeclaration_ || beginFunctionArgsDeclaration_)
+	{
+		beginFunctionNameDeclaration_ = false;
+		beginFunctionArgsDeclaration_ = true;
+
+		token = Token{ TK_FUNCTIONARG, front, front };
+		functionArgList_.append(token);
+		return token;
+	}
+
+	//返回值
+	if (previous == TK_RETURN)
+	{
+		return Token{ TK_RETURNVALUE, front, front };
+	}
+
+	//更多返回值
+	if (previous == TK_RETURNVALUE)
+	{
+		return Token{ TK_RETURNVALUE, front, front };
+	}
+
+	if (beginForArgs_)
+	{
+		bool ok = false;
+		qint64 value = front.toLongLong(&ok);
+		if (ok && !front.startsWith("'") && !front.startsWith("\""))
+			token = Token{ TK_FORARG, value, front };
+		else
+			token = Token{ TK_FORARG, front, front };
+		forArgList_.append(token);
+		return token;
+	}
+
+	if (isConstString(front))
+	{
+		return Token{ TK_STRINGVALUE, front, front };
+	}
+
+	if (isBool(front))
+	{
+		QVariant value = front == "true" || front == "真" ? true : false;
+		return Token{ TK_BOOLVALUE, value, front };
+	}
+
+	if (isDouble(front))
+	{
+		QVariant value = front.toDouble();
+		return Token{ TK_DOUBLEVALUE, value, front };
+	}
+
+	if (isInteger(front))
+	{
+		QVariant value = front.toLongLong();
+		return Token{ TK_INTVALUE, value, front };
+	}
+
+	if (front == "nil")
+	{
+		return Token{ TK_NIL, QVariant(), front };
+	}
+
+	if (front == "\n")
+	{
+		return Token{ TK_NEWLINE, front, front };
+	}
+
+	return Token{ TK_UNK, front, front };
+}
+
+
+//將lua table轉換成字串
+QString Lexer::getLuaTableString(const sol::table& t, int& depth)
+{
+	if (depth <= 0)
+		return "";
+
+	--depth;
+
+	QString ret = "{\n";
+
+	QStringList results;
+	QStringList strKeyResults;
+
+	QString nowIndent = "";
+	for (int i = 0; i <= 10 - depth + 1; ++i)
+	{
+		nowIndent += "    ";
+	}
+
+	for (const auto& pair : t)
+	{
+		qint64 nKey = 0;
+		QString key = "";
+		QString value = "";
+
+		if (pair.first.is<qint64>())
+		{
+			nKey = pair.first.as<qint64>() - 1;
+		}
+		else
+			key = QString::fromUtf8(pair.first.as<std::string>().c_str());
+
+		if (pair.second.is<sol::table>())
+			value = getLuaTableString(pair.second.as<sol::table>(), depth);
+		else if (pair.second.is<std::string>())
+			value = QString("'%1'").arg(QString::fromUtf8(pair.second.as<std::string>().c_str()));
+		else if (pair.second.is<qint64>())
+			value = QString::number(pair.second.as<qint64>());
+		else if (pair.second.is<double>())
+			value = QString::number(pair.second.as<double>(), 'f', 16);
+		else if (pair.second.is<bool>())
+			value = pair.second.as<bool>() ? "true" : "false";
+		else
+			value = "nil";
+
+		if (key.isEmpty())
+		{
+			if (nKey >= results.size())
+			{
+				for (qint64 i = results.size(); i <= nKey; ++i)
+					results.append("nil");
+			}
+
+			results[nKey] = nowIndent + value;
+		}
+		else
+			strKeyResults.append(nowIndent + QString("%1 = %2").arg(key).arg(value));
+	}
+
+	std::sort(strKeyResults.begin(), strKeyResults.end(), [](const QString& a, const QString& b)
+		{
+			static const QLocale locale;
+			static const QCollator collator(locale);
+			return collator.compare(a, b) < 0;
+		});
+
+	results.append(strKeyResults);
+
+	ret += results.join(",\n");
+	ret += "\n}";
+
+	return ret;
+}
+
+//將字符串解析成lua table
+sol::object Lexer::getLuaTableFromString(const QString& str)
+{
+	const QString expr(QString("return %1;").arg(str));
+	const std::string exprStrUTF8 = expr.toUtf8().constData();
+	sol::protected_function_result loaded_chunk = lua_.safe_script(exprStrUTF8.c_str(), sol::script_pass_on_error);
+	lua_.collect_garbage();
+
+	if (!loaded_chunk.valid())
+	{
+		sol::error err = loaded_chunk;
+		qDebug() << err.what();
+		return sol::lua_nil;
+	}
+
+	sol::object retObject;
+	try
+	{
+		retObject = loaded_chunk;
+	}
+	catch (...)
+	{
+		return sol::lua_nil;
+	}
+
+	if (retObject.is<sol::table>())
+		return retObject;
+
+	return sol::lua_nil;
+}
+
+#endif
+#pragma endregion
+
+#pragma region OLD
+
+//解析整個腳本至多個TOKEN
+bool Lexer::tokenized(Lexer* pLexer, const QString& script)
+{
+	Injector& injector = Injector::getInstance();
+	if (!injector.scriptLogModel.isNull())
+		injector.scriptLogModel->clear();
+
+	pLexer->clear();
+
+	QStringList lines = script.split("\n");
+	qint64 size = lines.size();
+	for (qint64 i = 0; i < size; ++i)
+	{
+		TokenMap tk;
+		pLexer->tokenized(i, lines.at(i), &tk, &pLexer->labelList_);
+		pLexer->tokens_.insert(i, tk);
+	}
+
+	pLexer->recordNode();
+
+	pLexer->checkFunctionPairs(pLexer->tokens_);
+
+	return true;
 }
 
 //解析單行內容至多個TOKEN
@@ -476,45 +1841,55 @@ void Lexer::tokenized(qint64 currentLine, const QString& line, TokenMap* ptoken,
 			raw = raw.mid(0, commentIndex).trimmed();
 
 		bool doNotLowerCase = false;
-		static const QRegularExpression rexMultiVar(R"(^\s*([_a-zA-Z\p{Han}][\w\p{Han}]*(?:\s*,\s*[_a-zA-Z\p{Han}][\w\p{Han}]*)*)\s*=\s*([^,]+(?:\s*,\s*[^,]+)*)$;*)");//a,b,c = 1,2,3
-		static const QRegularExpression rexMultiLocalVar(R"([lL][oO][cC][aA][lL]\s+([_a-zA-Z\p{Han}][\w\p{Han}]*(?:\s*,\s*[_a-zA-Z\p{Han}][\w\p{Han}]*)*)\s*=\s*([^,]+(?:\s*,\s*[^,]+)*)$;*)");//local a,b,c = 1,2,3
-		static const QRegularExpression varIncDec(R"(([\p{Han}\w]+)(\+\+|--);*)");//++ --
-		static const QRegularExpression varCAOs(R"((?!\d)([\p{Han}\w]+)\s+([+\-*\/&|^%]\=)\s+([\W\w\s\p{Han}]+);*)");//+= -= *= /= &= |= ^= %=
-		static const QRegularExpression varExpr(R"(([\w\p{Han}]+)\s+\=\s+([\W\w\s\p{Han}]+);*)");//x = expr
-		static const QRegularExpression varAnyOp(R"([+\-*\/%&|^\(\)])");//+ - * / % & | ^ ( )
-		static const QRegularExpression varIf(R"([iI][fF][\(|\s+]([\d\w\W\p{Han}]+\s*[<|>|\=|!][\=]*\s*[\d\w\W\p{Han}]+))");//if (expr)
-		static const QRegularExpression rexFunction(R"([fF][uU][nN][cC][tT][iI][oO][nN]\s+([\w\p{Han}\d]+)\s*\(([\w\W\p{Han}]*)\))");
-		static const QRegularExpression rexCallFunction(R"(^([\w\p{Han}]+)\s*\(([\w\W\p{Han}]*)\)$;*)");
+		//a,b,c = 1,2,3
+		static const QRegularExpression rexMultiVar(R"(^\s*([_a-zA-Z\p{Han}][\w\p{Han}]*(?:\s*,\s*[_a-zA-Z\p{Han}][\w\p{Han}]*)*)\s*=\s*([^,]+(?:\s*,\s*[^,]+)*)$\;*)");
+		//local a,b,c = 1,2,3
+		static const QRegularExpression rexMultiLocalVar(R"([lL][oO][cC][aA][lL]\s+([_a-zA-Z\p{Han}][\w\p{Han}]*(?:\s*,\s*[_a-zA-Z\p{Han}][\w\p{Han}]*)*)\s*=\s*([^,]+(?:\s*,\s*[^,]+)*)$\;*)");
+		//var++, var--
+		static const QRegularExpression varIncDec(R"(([\p{Han}\w]+)(\+\+|--)\;*)");
+		//+= -= *= /= &= |= ^= %=
+		static const QRegularExpression varCAOs(R"((?!\d)([\p{Han}\w]+)\s+([+\-*\/&|^%]\=)\s+([\W\w\s\p{Han}]+)\;*)");
+		//x = expr
+		static const QRegularExpression varExpr(R"(([\w\p{Han}]+)\s*\=\s*([\W\w\s\p{Han}]+)\;*)");
+		//+ - * / % & | ^ ( )
+		static const QRegularExpression varAnyOp(R"([+\-*\/%&|^\(\)])");
+		//if expr op expr
+		static const QRegularExpression varIf(R"([iI][fF][\s*\(\s*|\s+]([\w\W\p{Han}]+\s*[<|>|\=|!][\=]*\s*[\w\W\p{Han}]+)\s*,\s*([\w\W\p{Han}]+))");
+		//if expr
+		static const QRegularExpression varIf2(R"([iI][fF][\s*\(\s*|\s+]\s*([\w\W\p{Han}]+)\s*,\s*([\w\W\p{Han}]+))");
+		//function name()
+		static const QRegularExpression rexFunction(R"([fF][uU][nN][cC][tT][iI][oO][nN]\s+([\w\p{Han}]+)\s*\(([\w\W\p{Han}]*)\))");
+		//xxx()
+		static const QRegularExpression rexCallFunction(R"(^([\w\p{Han}]+)\s*\(([\w\W\p{Han}]*)\)$\;*)");
+		//for i = 1, 10 or for i = 1, 10, 2 or for (i = 1, 10) or for (i = 1, 10, 2)
 		static const QRegularExpression rexCallFor(R"([fF][oO][rR]\s*\(*([\w\p{Han}]+)\s*=\s*([^,]+)\s*,\s*([^,]+)\s*[\)]*)");
-		static const QRegularExpression rexCallForForever(R"([fF][oO][rR]\s*\(\s*,\s*,\s*\))");
+		static const QRegularExpression rexCallForForever(R"([fF][oO][rR]\s*\(*\s*,\s*,\s*\)*\s*[do]*)");
 		static const QRegularExpression rexCallForWithStep(R"([fF][oO][rR]\s*\(*([\w\p{Han}]+)\s*=\s*([^,]+)\s*,\s*([^,]+)\s*,\s*([^,\)]+)\s*[\)]*)");
-		static const QRegularExpression rexTable(R"(([\w\d\p{Han}]+)\s*=\s*(\{[\s\S]*\});*)");
-		static const QRegularExpression rexLocalTable(R"([lL][oO][cC][aA][lL]\s+([\w\d\p{Han}]+)\s*=\s*(\{[\s\S]*\});*)");
-		//處理if正則
-		if (raw.contains(varIf))
+		static const QRegularExpression rexTable(R"(([\w\p{Han}]+)\s*=\s*(\{[\s\S]*\})\;*)");
+		static const QRegularExpression rexLocalTable(R"([lL][oO][cC][aA][lL]\s+([\w\p{Han}]+)\s*=\s*(\{[\s\S]*\})\;*)");
+		//處理if
+		if (raw.startsWith("if"))
 		{
 			QRegularExpressionMatch match = varIf.match(raw);
+			if (!match.hasMatch())
+				match = varIf2.match(raw);
+
 			if (match.hasMatch())
 			{
 				QString cmd = "if";
-				QString expr = match.captured(1).simplified();
-				QStringList exprList = expr.split(util::rexComma);
-				createToken(pos, TK_CMP, cmd, cmd, ptoken);
-				createToken(pos + 1, TK_STRING, exprList.at(0), exprList.at(0), ptoken);
-				if (exprList.size() > 1)
-				{
-					bool ok;
-					qint64 value = exprList.at(1).toLongLong(&ok);
-					if (ok)
-						createToken(pos + 2, TK_INT, value, exprList.at(1), ptoken);
-					else
-						createToken(pos + 2, TK_STRING, exprList.at(1), exprList.at(1), ptoken);
-				}
+				QString expr = match.captured(1).simplified();//表達式
+				QString jmpExpr = match.captured(2).simplified();//跳轉表達式
+				createToken(pos, TK_IF, cmd, cmd, ptoken);
+				createToken(pos + 1, TK_EXPR, expr, expr, ptoken);
+				if (isInteger(jmpExpr))
+					createToken(pos + 2, TK_INT, jmpExpr.toLongLong(), jmpExpr, ptoken);
+				else
+					createToken(pos + 2, TK_STRING, jmpExpr, jmpExpr, ptoken);
 				break;
 			}
 		}
 		//處理for 3參
-		else if (raw.contains(rexCallForWithStep))
+		if (raw.contains(rexCallForWithStep))
 		{
 			QRegularExpressionMatch match = rexCallForWithStep.match(raw);
 			if (match.hasMatch())
@@ -530,8 +1905,8 @@ void Lexer::tokenized(qint64 currentLine, const QString& line, TokenMap* ptoken,
 				createToken(pos + 2, TK_STRING, exprA, exprA, ptoken);
 				createToken(pos + 3, TK_STRING, exprB, exprB, ptoken);
 				createToken(pos + 4, TK_STRING, exprC, exprC, ptoken);
-				break;
 			}
+			break;
 		}
 		//處理for 2參
 		else if (raw.contains(rexCallFor))
@@ -548,8 +1923,8 @@ void Lexer::tokenized(qint64 currentLine, const QString& line, TokenMap* ptoken,
 				createToken(pos + 1, TK_STRING, varName, varName, ptoken);
 				createToken(pos + 2, TK_STRING, exprA, exprA, ptoken);
 				createToken(pos + 3, TK_STRING, exprB, exprB, ptoken);
-				break;
 			}
+			break;
 		}
 		//處理for forver
 		else if (raw.contains(rexCallForForever))
@@ -557,14 +1932,14 @@ void Lexer::tokenized(qint64 currentLine, const QString& line, TokenMap* ptoken,
 			QRegularExpressionMatch match = rexCallForForever.match(raw);
 			if (match.hasMatch())
 			{
-				const QString varName = "forever";
+				const QString varName = "";
 				QString cmd = "for";
 				createToken(pos, TK_FOR, cmd, cmd, ptoken);
 				createToken(pos + 1, TK_STRING, varName, varName, ptoken);
-				createToken(pos + 2, TK_STRING, "nil", "nil", ptoken);
-				createToken(pos + 3, TK_STRING, "nil", "nil", ptoken);
-				break;
+				createToken(pos + 2, TK_STRING, "", "", ptoken);
+				createToken(pos + 3, TK_STRING, "", "", ptoken);
 			}
+			break;
 		}
 		//處理自增自減
 		else if ((raw.count("++") == 1 || raw.count("--") == 1) && raw.contains(varIncDec) && !raw.front().isDigit())
@@ -578,8 +1953,8 @@ void Lexer::tokenized(qint64 currentLine, const QString& line, TokenMap* ptoken,
 
 				createToken(pos, TK_INCDEC, varName, varName, ptoken);
 				createToken(pos + 1, op == "++" ? TK_INC : TK_DEC, op, op, ptoken);
-				break;
 			}
+			break;
 		}
 		//處理+= -+ *= /= %= |= &= 
 		else if (raw.contains(varCAOs) && !raw.front().isDigit())
@@ -599,10 +1974,10 @@ void Lexer::tokenized(qint64 currentLine, const QString& line, TokenMap* ptoken,
 				createToken(pos, TK_CAOS, varName, varName, ptoken);
 				createToken(pos + 1, optype, op, op, ptoken);
 				createToken(pos + 2, valuetype, value, value, ptoken);
-				break;
 			}
+			break;
 		}
-		//處理單一局數組
+		//處理單一局表
 		else if (raw.count("=") == 1 && raw.contains(rexLocalTable) && !raw.front().isDigit() && raw.contains("{") && raw.contains("}"))
 		{
 			QRegularExpressionMatch match = rexLocalTable.match(raw);
@@ -612,10 +1987,10 @@ void Lexer::tokenized(qint64 currentLine, const QString& line, TokenMap* ptoken,
 				QString expr = match.captured(2).simplified();
 				createToken(pos, TK_LOCALTABLE, varName, varName, ptoken);
 				createToken(pos + 1, TK_LOCALTABLE, expr, expr, ptoken);
-				break;
 			}
+			break;
 		}
-		//處理單一全局數組
+		//處理單一全局表
 		else if (raw.count("=") == 1 && raw.contains(rexTable) && !raw.front().isDigit() && raw.contains("{") && raw.contains("}"))
 		{
 			QRegularExpressionMatch match = rexTable.match(raw);
@@ -625,8 +2000,8 @@ void Lexer::tokenized(qint64 currentLine, const QString& line, TokenMap* ptoken,
 				QString expr = match.captured(2).simplified();
 				createToken(pos, TK_TABLE, varName, varName, ptoken);
 				createToken(pos + 1, TK_TABLE, expr, expr, ptoken);
-				break;
 			}
+			break;
 		}
 		//處理單一或多個局變量聲明+初始化
 		else if (raw.count("=") == 1 && raw.contains(rexMultiLocalVar)
@@ -706,7 +2081,7 @@ void Lexer::tokenized(qint64 currentLine, const QString& line, TokenMap* ptoken,
 				if (type == TK_UNK)
 				{
 					raw = QString("%1,%2").arg(token, raw);
-					token = "call";
+					token = "callwithname";
 				}
 			}
 			else
@@ -743,21 +2118,13 @@ void Lexer::tokenized(qint64 currentLine, const QString& line, TokenMap* ptoken,
 					if (match.hasMatch())
 					{
 						QString varName = match.captured(1).simplified();
-						if (originalRaw.contains("local"), Qt::CaseInsensitive)
-						{
-							createToken(pos, TK_LOCALTABLESET, varName, varName, ptoken);
-							createToken(pos + 1, TK_STRING, originalRaw, originalRaw, ptoken);
-						}
-						else
-						{
-							createToken(pos, TK_TABLESET, varName, varName, ptoken);
-							createToken(pos + 1, TK_STRING, originalRaw, originalRaw, ptoken);
-						}
+						createToken(pos, TK_TABLESET, varName, varName, ptoken);
+						createToken(pos + 1, TK_STRING, originalRaw, originalRaw, ptoken);
 						break;
 					}
 				}
 
-				showError(QString("[wran] ") + QObject::tr("<Warning>Unknown command '%1' has been ignored at line: %2").arg(token).arg(currentLine + 1), kTypeWarning);
+				showError(QObject::tr("@ %1 | Unknown command '%2' has been ignored").arg(currentLine + 1).arg(token), kTypeWarning);
 				createEmptyToken(pos, ptoken);
 				break;
 			}
@@ -776,7 +2143,7 @@ void Lexer::tokenized(qint64 currentLine, const QString& line, TokenMap* ptoken,
 
 			if (raw.contains(","))
 			{
-				if (!getStringCommandToken(raw, ",", token))
+				if (getStringCommandToken(raw, ",", token) == RTK_EOF)
 					break;
 			}
 			else if (raw.isEmpty())
@@ -834,7 +2201,7 @@ void Lexer::tokenized(qint64 currentLine, const QString& line, TokenMap* ptoken,
 			{
 				data = QVariant::fromValue(token);
 			}
-			else if (type == TK_LABELVAR)//處理調用傳參
+			else if (type == TK_FUNCTIONARG)//處理調用傳參
 			{
 				if ((token.startsWith("\"") || token.startsWith("\'")) && (token.endsWith("\"") || token.endsWith("\'")))
 				{
@@ -844,7 +2211,7 @@ void Lexer::tokenized(qint64 currentLine, const QString& line, TokenMap* ptoken,
 
 				data = QVariant::fromValue(token);
 			}
-			else if (type == TK_NAME)//保存標記名稱
+			else if (type == TK_LABELNAME)//保存標記名稱
 			{
 				data = QVariant::fromValue(token);
 				if (prevType == TK_LABEL)
@@ -861,98 +2228,325 @@ void Lexer::tokenized(qint64 currentLine, const QString& line, TokenMap* ptoken,
 	} while (false);
 }
 
-//解析整個腳本至多個TOKEN
-bool Lexer::tokenized(const QString& script, QHash<qint64, TokenMap>* ptokens, QHash<QString, qint64>* plabel)
+//更新並記錄每個函數塊的開始行和結束行
+void Lexer::recordNode()
 {
-	Injector& injector = Injector::getInstance();
-	if (!injector.scriptLogModel.isNull())
-		injector.scriptLogModel->clear();
+	QHash<qint64, FunctionNode> chunkHash;
+	QMap<qint64, TokenMap> map;
+	for (auto it = tokens_.cbegin(); it != tokens_.cend(); ++it)
+		map.insert(it.key(), it.value());
 
-	Lexer lexer;
-	QHash<qint64, TokenMap> tokens;
-	QHash<QString, qint64> labels;
-	QStringList lines = script.split("\n");
-	qint64 size = lines.size();
-	for (qint64 i = 0; i < size; ++i)
+	//這裡是為了避免沒有透過call調用函數的情況
+	QStack<RESERVE> reserveStack;
+	QStack<FunctionNode> functionNodeStack;
+	QStack<ForNode> forNodeStack;
+
+	QList<Node> extraEndNodeList;
+	qint64 currentIndentLevel = 0;
+	for (auto it = map.cbegin(); it != map.cend(); ++it)
 	{
-		TokenMap tk;
-		lexer.tokenized(i, lines.at(i), &tk, &labels);
-		tokens.insert(i, tk);
+		qint64 row = it.key();
+		TokenMap tk = it.value();
+
+		switch (tk.value(0).type)
+		{
+		case TK_FUNCTION:
+		{
+			reserveStack.push(TK_FUNCTION);
+			++currentIndentLevel;
+
+			FunctionNode functionNode;
+			functionNode.name = tk.value(1).data.toString();
+			functionNode.beginLine = row;
+			functionNode.endLine = -1; // 初始结束行号设为 -1
+			functionNode.level = currentIndentLevel;
+			functionNode.field = currentIndentLevel == 1 ? kGlobal : kLocal;
+
+			functionNode.argList = {};
+
+			functionNodeStack.push(functionNode);
+
+
+
+			break;
+		}
+		case TK_FOR:
+		{
+			reserveStack.push(TK_FOR);
+			++currentIndentLevel;
+
+			ForNode forNode;
+			forNode.beginLine = row;
+			forNode.endLine = -1; // 初始结束行号设为 -1
+			forNode.level = currentIndentLevel;
+			forNode.field = currentIndentLevel == 1 ? kGlobal : kLocal;
+
+			forNode.varName = tk.value(1).data.toString();
+			//----------------------------2 是 = 符號
+			forNode.beginValue = tk.value(3).data.toLongLong();
+			forNode.endValue = tk.value(4).data.toLongLong();
+
+			forNodeStack.push(forNode);
+
+			break;
+		}
+		case TK_RETURN:
+		{
+			QStringList returnTypes;
+
+			for (qint64 i = 1; i < tk.size(); ++i)
+			{
+				Token token = tk.value(i);
+				if (token.type == TK_COMMENT)
+					continue;
+				returnTypes.append(token.data.toString());
+			}
+
+			if (!functionNodeStack.isEmpty())
+			{
+				FunctionNode functionNode = functionNodeStack.pop();
+				functionNode.returnTypes.insert(row, returnTypes);
+				functionNodeStack.push(functionNode);
+			}
+			break;
+		}
+		case TK_END:
+		{
+			if (reserveStack.isEmpty())
+			{
+				Node node;
+				node.beginLine = row;
+				node.endLine = row;
+				node.level = currentIndentLevel;
+				node.field = currentIndentLevel <= 1 ? kGlobal : kLocal;
+				extraEndNodeList.append(node);
+				break;
+			}
+
+			RESERVE reserve = reserveStack.pop();
+
+			if (reserve == TK_FUNCTION)
+			{
+				if (!functionNodeStack.isEmpty())
+				{
+					FunctionNode functionNode = functionNodeStack.pop();
+					functionNode.endLine = row;
+					functionNodeList_.append(functionNode);
+				}
+			}
+			else if (reserve == TK_FOR)
+			{
+				if (!forNodeStack.isEmpty())
+				{
+					ForNode forNode = forNodeStack.pop();
+					forNode.endLine = row;
+					forNodeList_.append(forNode);
+				}
+			}
+			else if (reserve == TK_WHILE)
+			{
+
+			}
+			else if (reserve == TK_REPEAT)
+			{
+
+			}
+
+			--currentIndentLevel;
+			break;
+		}
+		}
 	}
 
-	lexer.checkFunctionPairs(tokens);
-
-	if (ptokens != nullptr && plabel != nullptr)
+	QList<ForNode> forNodes = forNodeList_;
+	QList<FunctionNode> functionNodes = functionNodeList_;
+	for (auto it = map.cbegin(); it != map.cend(); ++it)
 	{
-		*ptokens = tokens;
-		*plabel = labels;
-		return true;
+		qint64 row = it.key();
+		TokenMap tk = it.value();
+
+		switch (tk.value(0).type)
+		{
+		case TK_CONTINUE:
+		case TK_BREAK:
+		{
+			bool ok = false;
+
+			for (auto it = forNodes.constBegin(); it != forNodes.constEnd(); ++it)
+			{
+				ForNode node = *it;
+				if (row > node.beginLine && row < node.endLine)
+				{
+					ok = true;
+					break;
+				}
+			}
+
+			if (!ok)
+			{
+				QString errorMessage = QObject::tr("@ %1 | '%2' must be used in a loop").arg(row + 1).arg(tk.value(0).type == TK_BREAK ? "break" : "continue");
+				showError(errorMessage, kTypeError);
+			}
+
+			break;
+		}
+		case TK_RETURN:
+		{
+			bool ok = false;
+
+			for (auto it = functionNodes.constBegin(); it != functionNodes.constEnd(); ++it)
+			{
+				FunctionNode node = *it;
+				if (row > node.beginLine && row < node.endLine)
+				{
+					ok = true;
+					break;
+				}
+			}
+
+			if (!ok)
+			{
+				QString errorMessage = QObject::tr("@ %1 | '%2' must be used in a function").arg(row + 1).arg("return");
+				showError(errorMessage, kTypeError);
+			}
+
+			break;
+		}
+		default:
+		{
+			RESERVE reserve = TK_UNK;
+			for (int i = tk.size() - 1; i >= 0; --i)
+			{
+				Token token = tk.value(i);
+				if (token.raw == "break")
+				{
+					reserve = TK_BREAK;
+					break;
+				}
+				else if (token.raw == "continue")
+				{
+					reserve = TK_CONTINUE;
+					break;
+				}
+				else if (token.raw == "return")
+				{
+					reserve = TK_RETURN;
+					break;
+				}
+			}
+
+			if (reserve == TK_UNK)
+				break;
+
+			switch (reserve)
+			{
+			case TK_CONTINUE:
+			case TK_BREAK:
+			{
+				bool ok = false;
+
+				for (auto it = forNodes.constBegin(); it != forNodes.constEnd(); ++it)
+				{
+					ForNode node = *it;
+					if (row > node.beginLine && row < node.endLine)
+					{
+						ok = true;
+						break;
+					}
+				}
+
+				if (!ok)
+				{
+					QString errorMessage = QObject::tr("@ %1 | '%2' must be used in a loop").arg(row + 1).arg(reserve == TK_BREAK ? "break" : "continue");
+					showError(errorMessage, kTypeError);
+				}
+
+				break;
+			}
+			case TK_RETURN:
+			{
+				bool ok = false;
+
+				for (auto it = functionNodes.constBegin(); it != functionNodes.constEnd(); ++it)
+				{
+					FunctionNode node = *it;
+					if (row > node.beginLine && row < node.endLine)
+					{
+						ok = true;
+						break;
+					}
+				}
+
+				if (!ok)
+				{
+					QString errorMessage = QObject::tr("@ %1 | '%2' must be used in a function").arg(row + 1).arg("return");
+					showError(errorMessage, kTypeError);
+				}
+
+				break;
+			}
+			}
+
+			break;
+		}
+		}
 	}
 
-	return false;
+	for (const auto& it : functionNodeList_)
+	{
+		if (it.endLine == -1)
+		{
+			QString errorMessage = QObject::tr("@ %1 | Missing '%2' for statement '%3'").arg(it.beginLine + 1).arg("end").arg("function");
+			showError(errorMessage, kTypeError);
+		}
+	}
+
+	for (const auto& it : forNodeList_)
+	{
+		if (it.endLine == -1)
+		{
+			QString errorMessage = QObject::tr("@ %1 | Missing '%2' for statement '%3'").arg(it.beginLine + 1).arg("end").arg("for");
+			showError(errorMessage, kTypeError);
+		}
+	}
+
+	for (const auto& it : extraEndNodeList)
+	{
+		QString errorMessage = QObject::tr("@ %1 | extra '%2' were found").arg(it.beginLine + 1).arg("end");
+		showError(errorMessage, kTypeError);
+	}
 }
 
-bool Lexer::isDouble(const QString& str) const
+//插入新TOKEN
+void Lexer::createToken(qint64 index, RESERVE type, const QVariant& data, const QString& raw, TokenMap* ptoken)
 {
-	if (str.count('.') != 1)
-		return false;
-	bool ok;
-	str.toDouble(&ok);
-	return ok;
+	if (ptoken != nullptr)
+		ptoken->insert(index, Token{ type, data, raw });
 }
 
-bool Lexer::isInteger(const QString& str) const
+//插入新TOKEN到index位置，將原本的TOKEN後移
+void Lexer::insertToken(qint64 index, RESERVE type, const QVariant& data, const QString& raw, TokenMap* ptoken)
 {
-	bool ok;
-	str.toLongLong(&ok);
-	return ok;
-}
+	TokenMap tokenMap;
+	tokenMap.insert(index, Token{ type, data, raw });
 
-//預留的類型，但一般用戶容易混淆，所以實際上並沒有使用
-bool Lexer::isBool(const QString& str) const
+	for (auto it = ptoken->constBegin(); it != ptoken->constEnd(); ++it)
+	{
+		qint64 key = it.key();
+		if (key + 1 <= index)
+			continue;
+
+		Token token = it.value();
+		tokenMap.insert(key + 1, token);
+	}
+
+	*ptoken = tokenMap;
+};
+
+//插入空行TOKEN
+void Lexer::createEmptyToken(qint64 index, TokenMap* ptoken)
 {
-	return (str == QString(u8"真") || str == QString(u8"假") || str.toLower() == "true" || str.toLower() == "false");
-}
-
-bool Lexer::isName(const QString& str, RESERVE previousType) const
-{
-	//check not start from number
-	if (str.isEmpty() || str.at(0).isDigit())
-		return false;
-
-	return previousType == TK_LABEL || previousType == TK_CALL || previousType == TK_GOTO;
-}
-
-bool Lexer::isConstString(const QString& str) const
-{
-	return (str.startsWith("\'") || str.startsWith("\"")) && (str.endsWith("\'") || str.endsWith("\""));
-}
-
-bool Lexer::isLabel(const QString& str) const
-{
-	return  keywords.value(str, TK_UNK) == TK_LABEL;
-}
-
-bool Lexer::isSpace(const QChar& ch) const
-{
-	static const QRegularExpression re("\\s?");
-	return re.match(ch).hasMatch();
-}
-
-bool Lexer::isComment(const QChar& ch) const
-{
-	return (ch == '/');
-}
-
-bool Lexer::isOperator(const QChar& ch) const
-{
-	return (
-		(ch == '<') || (ch == '>') ||
-		(ch == '+') || (ch == '-') || (ch == '*') || (ch == '/') ||
-		(ch == '%') ||
-		(ch == '&') || (ch == '|') || (ch == '~') || (ch == '^') ||
-		(ch == '!')
-		);
+	ptoken->insert(index, Token{ TK_WHITESPACE, "", "" });
 }
 
 //根據容取TOKEN應該定義的類型
@@ -1057,10 +2651,10 @@ RESERVE Lexer::getTokenType(qint64& pos, RESERVE previous, QString& str, const Q
 		str = str.toLower();
 		return TK_BOOL;
 	}
-	else if (previous == TK_NAME || previous == TK_LABELVAR)
+	else if (previous == TK_FUNCTIONNAME || previous == TK_FUNCTIONARG)
 	{
-		//如果前一個TOKEN是label名或區域變量名，那麼接下來的TOKEN都視為區域變量名
-		return TK_LABELVAR;
+		//如果前一個TOKEN是function名或區域變量名，那麼接下來的TOKEN都視為區域變量名
+		return TK_FUNCTIONARG;
 	}
 	else if (isDouble(str))
 	{
@@ -1070,27 +2664,17 @@ RESERVE Lexer::getTokenType(qint64& pos, RESERVE previous, QString& str, const Q
 	{
 		return TK_INT;
 	}
-	else if (isName(str, previous))
+	else if (isLabelName(str, previous))
 	{
-		return TK_NAME;
+		return TK_LABELNAME;
+	}
+	else if (previous == TK_FUNCTION)
+	{
+		return TK_FUNCTIONNAME;
 	}
 
 	//其他的都默認為字符串
 	return TK_STRING;
-}
-
-//根據index取得下一個字元
-QChar Lexer::next(const QString& str, qint64& index) const
-{
-	if (index < static_cast<qint64>(str.length()) - 1ll)
-	{
-		++index;
-		return str.at(index);
-	}
-	else
-	{
-		return QChar();
-	}
 }
 
 //檢查指定詞組配對
@@ -1142,8 +2726,8 @@ void Lexer::checkPairs(const QString& beginstr, const QString& endstr, const QHa
 	{
 		qint64 row = it.key();
 		QString statement = it.value();
-		QString errorMessage = QString("[wran] ") + QObject::tr("<Syntax Error>Missing '%1' for statement '%2' at line: %3").arg(endstr).arg(statement).arg(row + 1);
-		showError(errorMessage);
+		QString errorMessage = QObject::tr("@ %1 | Missing '%2' for statement '%3'").arg(row + 1).arg(endstr).arg(statement);
+		showError(errorMessage, kTypeWarning);
 	}
 
 	// 打印所有不成對的 "end" 語句
@@ -1151,8 +2735,8 @@ void Lexer::checkPairs(const QString& beginstr, const QString& endstr, const QHa
 	{
 		qint64 row = it.key();
 		QString statement = it.value();
-		QString errorMessage = QString("[wran] ") + QObject::tr("<Syntax Error>Extra '%1' for statement '%2' at line: %3").arg(endstr).arg(statement).arg(row + 1);
-		showError(errorMessage);
+		QString errorMessage = QObject::tr("@ %1 | Extra '%2' for statement '%3'").arg(row + 1).arg(endstr).arg(statement);
+		showError(errorMessage, kTypeWarning);
 	}
 }
 
@@ -1217,8 +2801,8 @@ void Lexer::checkSingleRowPairs(const QString& beginstr, const QString& endstr, 
 		for (int index : unpairedIndices)
 		{
 			QString statement = tokenmaps[row].value(0).data.toString().simplified();
-			QString errorMessage = QString("[wran] ") + QString(QObject::tr("Unpaired '%1' at row %2, index %3: '%4'")).arg(beginstr).arg(row + 1).arg(index).arg(statement);
-			showError(errorMessage);
+			QString errorMessage = QString(QObject::tr("@ %1 | Unpaired '%2' index %3: '%4'")).arg(row + 1).arg(beginstr).arg(index).arg(statement);
+			showError(errorMessage, kTypeWarning);
 		}
 	}
 
@@ -1231,16 +2815,14 @@ void Lexer::checkSingleRowPairs(const QString& beginstr, const QString& endstr, 
 		for (int index : unpairedIndices)
 		{
 			QString statement = tokenmaps[row].value(0).data.toString().simplified();
-			QString errorMessage = QString("[wran] ") + QString(QObject::tr("Unpaired '%1' at row %2, index %3: '%4'")).arg(endstr).arg(row + 1).arg(index).arg(statement);
-			showError(errorMessage);
+			QString errorMessage = QString(QObject::tr("@ %1 | Unpaired '%2' index %3: '%4'")).arg(row + 1).arg(endstr).arg(index).arg(statement);
+			showError(errorMessage, kTypeWarning);
 		}
 	}
 }
 
 void Lexer::checkFunctionPairs(const QHash<qint64, TokenMap>& stokenmaps)
 {
-	checkPairs("function", "end", stokenmaps);
-	checkPairs("for", "endfor", stokenmaps);
 	checkSingleRowPairs("(", ")", stokenmaps);
 	checkSingleRowPairs("[", "]", stokenmaps);
 	checkSingleRowPairs("{", "}", stokenmaps);
@@ -1304,61 +2886,16 @@ bool Lexer::getStringCommandToken(QString& src, const QString& delim, QString& o
 			if (src.startsWith(delim))
 				src.remove(0, delim.size());
 			src = src.trimmed();
-
-			if (src.endsWith(";"))
-				src.remove(src.size() - 1, 1);
 		}
 	}
+
+	if (src.endsWith(";"))
+		src.remove(src.size() - 1, 1);
+
+	if (out.endsWith(";"))
+		out.remove(out.size() - 1, 1);
 
 	return true;
-}
-
-bool Lexer::getStringToken(QString& src, const QString& delim, QString& out) const
-{
-	if (src.isEmpty())
-		return false;
-
-	if (!src.contains(delim))
-	{
-		out = src;
-		return true;
-	}
-
-	QChar singleQuote = '\'';
-	QChar doubleQuote = '"';
-	QChar semicolon = ';';
-
-	for (int i = 0; i < src.size(); ++i)
-	{
-		QChar currentChar = src.at(i);
-
-		if ((currentChar == singleQuote || currentChar == doubleQuote) && !isInsideQuotes(src, i))
-		{
-			qint64 closingQuoteIndex = findClosingQuoteIndex(src, currentChar, i);
-			if (closingQuoteIndex == -1)
-				return false;
-
-			extractAndRemoveToken(src, delim, i, closingQuoteIndex, out);
-			return true;
-		}
-		else if (currentChar == semicolon && !isInsideQuotes(src, i))
-		{
-			extractAndRemoveToken(src, delim, 0, i - 1, out);
-			return true;
-		}
-		else if (i + delim.size() <= src.size() && src.mid(i, delim.size()) == delim && !isInsideQuotes(src, i))
-		{
-			extractAndRemoveToken(src, delim, 0, i - 1, out);
-			return true;
-		}
-		else if (currentChar == '/' && i < src.size() - 1 && src.at(i + 1) == '/')
-		{
-			src.clear();
-			return false;
-		}
-	}
-
-	return false;
 }
 
 qint64 Lexer::findClosingQuoteIndex(const QString& src, QChar quoteChar, int startIndex) const
@@ -1424,3 +2961,5 @@ bool Lexer::isInsideQuotes(const QString& src, int index) const
 
 	return insideSingleQuotes || insideDoubleQuotes;
 }
+
+#pragma endregion

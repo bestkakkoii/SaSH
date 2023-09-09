@@ -21,12 +21,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include <threadplugin.h>
 #include <util.h>
 
-#ifndef SOL_ALL_SAFETIES_ON
-#define SOL_ALL_SAFETIES_ON 1
-#include <lua/lua.hpp>
-#include <sol/sol.hpp>
-#endif
-
 namespace luadebug
 {
 	enum LUA_ERROR_TYPE
@@ -162,6 +156,7 @@ public:
 	//qint64 trim(std::string str, sol::this_state s);
 
 	bool getSys(sol::table dstTable, sol::this_state s);
+	bool getMap(sol::table dstTable, sol::this_state s);
 	bool getChar(sol::table dstTable, sol::this_state s);
 	bool getPet(sol::table dstTable, sol::this_state s);
 	bool getTeam(sol::table dstTable, sol::this_state s);
@@ -288,6 +283,7 @@ public:
 	qint64 packetMove(qint64 x, qint64 y, std::string sdir, sol::this_state s);
 	qint64 teleport(sol::this_state s);
 	qint64 findPath(qint64 x, qint64 y, qint64 len, qint64 timeout, sol::object ofunction, sol::object ocallbackSpeed, sol::this_state s);
+	qint64 downLoad(sol::object floor, sol::this_state s);
 };
 
 class CLuaBattle

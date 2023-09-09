@@ -19,7 +19,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #pragma once
 
 #include <QWidget>
-#include "ui_qdownloader.h"
+#include "ui_downloader.h"
 #include <QTimer>
 #include <QFutureSynchronizer>
 #include <QDir>
@@ -30,13 +30,13 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 constexpr size_t MAX_DOWNLOAD_THREAD = 4u;
 
-class QDownloader : public QWidget
+class Downloader : public QWidget
 {
 	Q_OBJECT
 public:
-	explicit QDownloader(QWidget* parent = nullptr);
+	explicit Downloader(QWidget* parent = nullptr);
 
-	virtual ~QDownloader();
+	virtual ~Downloader();
 
 	void start();
 
@@ -62,10 +62,10 @@ private:
 
 	QString Sha3_512(const QString& fileNamePath) const;
 
-	void QDownloader::downloadAndExtractZip(const QString& url, const QString& targetDir);
+	void Downloader::downloadAndExtractZip(const QString& url, const QString& targetDir);
 
 private:
-	Ui::QDownloaderClass ui;
+	Ui::DownloaderClass ui;
 
 	QTimer labelTimer_;
 	QTimer timer_[MAX_DOWNLOAD_THREAD];

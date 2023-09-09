@@ -18,9 +18,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 #include "stdafx.h"
 #include "curldownload.h"
-#ifndef CURLINC_CURL_H
+
 #include <curl/curl.h>
-//#include <cpr/cpr.h>
 #ifdef _DEBUG
 #pragma comment(lib, "libcurl-d.lib")
 #pragma comment(lib, "libcrypto32MDd.lib")
@@ -30,7 +29,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #pragma comment(lib, "libcrypto32MD.lib")
 #pragma comment(lib, "libssl32MD.lib")
 #endif
-#endif
+
 std::atomic_int CurlDownload::threadCnt_ = 0;
 QMutex CurlDownload::mutex_;
 
@@ -44,7 +43,7 @@ CurlDownload::~CurlDownload()
 
 bool CurlDownload::downLoad(int threadNum, std::string Url, std::string Path, std::string fileName)
 {
-#ifndef CPR_CPR_H
+#ifndef USE_CPR
 	if (!threadNum)
 		return false;
 
@@ -272,7 +271,7 @@ size_t CurlDownload::writeFunc(void* ptr, size_t size, size_t nmemb, void* userd
 
 long CurlDownload::getDownloadFileLenth(const char* url)
 {
-#ifndef CPR_CPR_H
+#ifndef USE_CPR
 	qreal downloadFileLenth = 0;
 	CURL* handle = curl_easy_init();
 
@@ -309,7 +308,7 @@ long CurlDownload::getDownloadFileLenth(const char* url)
 
 void CurlDownload::workThread(void* pData)
 {
-#ifndef CPR_CPR_H
+#ifndef USE_CPR
 	tNode* pNode = reinterpret_cast<tNode*>(pData);
 
 	int res = curl_easy_perform(pNode->curl);
@@ -360,7 +359,7 @@ void CurlDownload::workThread(void* pData)
 #endif
 }
 
-#ifndef CPR_CPR_H
+#ifndef USE_CPR
 static size_t write_data(char* ptr, size_t size, size_t nmemb, void* userdata)
 {
 	std::string* pstr = reinterpret_cast<std::string*>(userdata);
@@ -372,7 +371,7 @@ static size_t write_data(char* ptr, size_t size, size_t nmemb, void* userdata)
 //一次性獲取小文件內容
 QString CurlDownload::oneShotDownload(const std::string szUrl)
 {
-#ifndef CPR_CPR_H
+#ifndef USE_CPR
 	CURL* curl = curl_easy_init();
 	if (curl == nullptr)
 	{
@@ -450,6 +449,6 @@ QString CurlDownload::oneShotDownload(const std::string szUrl)
 		return "";
 	}
 
-	return QString::fromUtf8(response.text);
+	return QString::fromUtf8(response.text.c_str());
 #endif
 }

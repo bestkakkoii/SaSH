@@ -140,7 +140,7 @@
           </widget>
          </item>
          <item>
-          <widget class="QPushButton" name="pushButton_refresh">
+          <widget class="PushButton" name="pushButton_refresh">
            <property name="maximumSize">
             <size>
              <width>50</width>
@@ -207,6 +207,13 @@
   </layout>
  </widget>
  <layoutdefault spacing="6" margin="11"/>
+ <customwidgets>
+  <customwidget>
+   <class>PushButton</class>
+   <extends>QPushButton</extends>
+   <header location="global">pushbutton.h</header>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections/>
 </ui>

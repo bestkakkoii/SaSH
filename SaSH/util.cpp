@@ -17,7 +17,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 */
 
 #include "stdafx.h"
-#include <util.h>
+#include "util.h"
 
 QReadWriteLock g_fileLock;
 
@@ -738,7 +738,7 @@ DWORD mem::getRemoteModuleHandle(DWORD dwProcessId, const QString& moduleName)
 {
 	MODULEENTRY32 moduleEntry;
 	//  获取进程快照中包含在th32ProcessID中指定的进程的所有的模块。
-	QScopedHandle hSnapshot(QScopedHandle::CREATE_TOOLHELP32_SNAPSHOT, TH32CS_SNAPMODULE, dwProcessId);
+	ScopedHandle hSnapshot(ScopedHandle::CREATE_TOOLHELP32_SNAPSHOT, TH32CS_SNAPMODULE, dwProcessId);
 	if (!hSnapshot.isValid()) return NULL;
 
 	memset(&moduleEntry, 0, sizeof(MODULEENTRY32W));

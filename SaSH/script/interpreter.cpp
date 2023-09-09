@@ -63,33 +63,21 @@ void Interpreter::doFileWithThread(qint64 beginLine, const QString& fileName)
 	if (nullptr == thread_)
 		return;
 
-	QString content;
-	bool isPrivate = false;
-	if (!readFile(fileName, &content, &isPrivate))
+	if (!parser_.loadFile(fileName, nullptr))
 		return;
 
-	scriptFileName_ = fileName;
-
-	QHash<qint64, TokenMap> tokens;
-	QHash<QString, qint64> labels;
-	if (!loadString(content, &tokens, &labels))
-		return;
-
-	parser_.setTokens(tokens);
-	parser_.setLabels(labels);
-
-	beginLine_ = beginLine;
+	parser_.setBeginLine(beginLine);
 
 	moveToThread(thread_);
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
-	connect(this, &Interpreter::finished, thread_, &QThread::quit);
-	connect(thread_, &QThread::finished, thread_, &QThread::deleteLater);
-	connect(thread_, &QThread::started, this, &Interpreter::proc);
+	connect(this, &Interpreter::finished, thread_, &QThread::quit, Qt::UniqueConnection);
+	connect(thread_, &QThread::finished, thread_, &QThread::deleteLater, Qt::UniqueConnection);
+	connect(thread_, &QThread::started, this, &Interpreter::proc, Qt::UniqueConnection);
 	connect(this, &Interpreter::finished, this, [this]()
 		{
 			thread_ = nullptr;
 			qDebug() << "Interpreter::finished";
-		});
+		}, Qt::UniqueConnection);
 
 	thread_->start();
 }
@@ -100,30 +88,25 @@ bool Interpreter::doFile(qint64 beginLine, const QString& fileName, Interpreter*
 	if (mode == kAsync)
 		parser_.setMode(Parser::kAsync);
 
-	QString content;
-	bool isPrivate = false;
-	if (!readFile(fileName, &content, &isPrivate))
-		return false;
-
-	QHash<qint64, TokenMap> tokens;
-	QHash<QString, qint64> labels;
-	if (!loadString(content, &tokens, &labels))
+	if (!parser_.loadFile(fileName, nullptr))
 		return false;
 
 	isRunning_.store(true, std::memory_order_release);
 
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
+
+	bool isPrivate = parser_.isPrivate();
 	if (!isPrivate && mode == kSync)
 	{
 		emit signalDispatcher.loadFileToTable(fileName);
-		emit signalDispatcher.scriptContentChanged(fileName, QVariant::fromValue(tokens));
+		emit signalDispatcher.scriptContentChanged(fileName, QVariant::fromValue(parser_.getTokens()));
 	}
 	else if (isPrivate && mode == kSync)
 	{
 		emit signalDispatcher.scriptContentChanged(fileName, QVariant::fromValue(QHash<qint64, TokenMap>{}));
 	}
 
-	scriptFileName_ = fileName;
+	parser_.setScriptFileName(fileName);
 
 	pCallback = [parent, &signalDispatcher, mode, this](qint64 currentLine, const TokenMap& TK)->qint64
 	{
@@ -139,14 +122,15 @@ bool Interpreter::doFile(qint64 beginLine, const QString& fileName, Interpreter*
 		RESERVE currentType = TK.value(0).type;
 
 		bool skip = currentType == RESERVE::TK_WHITESPACE
-			|| currentType == RESERVE::TK_SPACE
 			|| currentType == RESERVE::TK_COMMENT
 			|| currentType == RESERVE::TK_UNK;
 
 		if (skip)
 			return 1;
 
-		if (mode == kSync)
+		Injector& injector = Injector::getInstance();
+
+		if (mode == kSync && injector.isScriptDebugModeEnable.load(std::memory_order_acquire))
 			emit signalDispatcher.scriptLabelRowTextChanged(currentLine + 1, this->parser_.getToken().size(), false);
 
 		if (TK.contains(0) && TK.value(0).type == TK_PAUSE)
@@ -159,8 +143,9 @@ bool Interpreter::doFile(qint64 beginLine, const QString& fileName, Interpreter*
 
 		if (mode == kSync)
 		{
-			util::SafeHash<qint64, break_marker_t> breakMarkers = break_markers.value(scriptFileName_);
-			const util::SafeHash<qint64, break_marker_t> stepMarkers = step_markers.value(scriptFileName_);
+			QString scriptFileName = parser_.getScriptFileName();
+			util::SafeHash<qint64, break_marker_t> breakMarkers = break_markers.value(scriptFileName);
+			const util::SafeHash<qint64, break_marker_t> stepMarkers = step_markers.value(scriptFileName);
 			if (!(breakMarkers.contains(currentLine) || stepMarkers.contains(currentLine)))
 			{
 				return 1;//檢查是否有中斷點
@@ -176,7 +161,7 @@ bool Interpreter::doFile(qint64 beginLine, const QString& fileName, Interpreter*
 
 				//重新插入斷下的紀錄
 				breakMarkers.insert(currentLine, mark);
-				break_markers.insert(scriptFileName_, breakMarkers);
+				break_markers.insert(scriptFileName, breakMarkers);
 				//所有行插入隱式斷點(用於單步)
 				emit signalDispatcher.addStepMarker(currentLine, true);
 			}
@@ -197,8 +182,6 @@ bool Interpreter::doFile(qint64 beginLine, const QString& fileName, Interpreter*
 			parser_.setVariablesPointer(pparentHash, pparentLock);
 	}
 
-	parser_.setTokens(tokens);
-	parser_.setLabels(labels);
 	parser_.setCallBack(pCallback);
 	openLibs();
 
@@ -209,7 +192,7 @@ bool Interpreter::doFile(qint64 beginLine, const QString& fileName, Interpreter*
 }
 
 //新線程下執行一段腳本內容
-void Interpreter::doString(const QString& script, Interpreter* parent, VarShareMode shareMode)
+void Interpreter::doString(const QString& content, Interpreter* parent, VarShareMode shareMode)
 {
 	parser_.setMode(Parser::kAsync);
 
@@ -217,7 +200,7 @@ void Interpreter::doString(const QString& script, Interpreter* parent, VarShareM
 	if (nullptr == thread_)
 		return;
 
-	QString newString = script;
+	QString newString = content;
 	newString.replace("\\r", "\r");
 	newString.replace("\\n", "\n");
 	newString.replace("\r\n", "\n");
@@ -225,17 +208,13 @@ void Interpreter::doString(const QString& script, Interpreter* parent, VarShareM
 
 	setSubScript(true);
 
-	QHash<qint64, TokenMap> tokens;
-	QHash<QString, qint64> labels;
-	if (!loadString(script, &tokens, &labels))
+
+	if (!parser_.loadString(content))
 		return;
 
 	isRunning_.store(true, std::memory_order_release);
 
-	parser_.setTokens(tokens);
-	parser_.setLabels(labels);
-
-	beginLine_ = 0;
+	parser_.setBeginLine(0);
 
 	if (parent)
 	{
@@ -250,7 +229,6 @@ void Interpreter::doString(const QString& script, Interpreter* parent, VarShareM
 			RESERVE currentType = TK.value(0).type;
 
 			bool skip = currentType == RESERVE::TK_WHITESPACE
-				|| currentType == RESERVE::TK_SPACE
 				|| currentType == RESERVE::TK_COMMENT
 				|| currentType == RESERVE::TK_UNK;
 
@@ -281,8 +259,6 @@ void Interpreter::doString(const QString& script, Interpreter* parent, VarShareM
 	}
 
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
-	parser_.setTokens(tokens);
-	parser_.setLabels(labels);
 
 	openLibs();
 
@@ -297,69 +273,17 @@ void Interpreter::doString(const QString& script, Interpreter* parent, VarShareM
 //先行解析token並發送給UI顯示
 void Interpreter::preview(const QString& fileName)
 {
-	QString content;
-	bool isPrivate = false;
-	if (!readFile(fileName, &content, &isPrivate))
-		return;
-
-	QHash<qint64, TokenMap> tokens;
-	QHash<QString, qint64> labels;
-	if (!loadString(content, &tokens, &labels))
+	if (!parser_.loadFile(fileName, nullptr))
 		return;
 
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
-	if (isPrivate)
+	if (parser_.isPrivate())
 	{
 		emit signalDispatcher.scriptContentChanged(fileName, QVariant::fromValue(QHash<qint64, TokenMap>{}));
 		return;
 	}
-	emit signalDispatcher.scriptContentChanged(fileName, QVariant::fromValue(tokens));
-}
 
-//將腳本內容轉換成Token
-bool Interpreter::loadString(const QString& script, QHash<qint64, TokenMap>* ptokens, QHash<QString, qint64>* plabel)
-{
-	return Lexer::tokenized(script, ptokens, plabel);
-}
-
-//讀入文件內容
-bool Interpreter::readFile(const QString& fileName, QString* pcontent, bool* isPrivate)
-{
-	util::QScopedFile f(fileName, QIODevice::ReadOnly | QIODevice::Text);
-	if (!f.isOpen())
-		return false;
-
-	QString c;
-	if (fileName.endsWith(util::SCRIPT_DEFAULT_SUFFIX))
-	{
-		QTextStream in(&f);
-		in.setCodec(util::DEFAULT_CODEPAGE);
-		c = in.readAll();
-		c.replace("\r\n", "\n");
-		if (isPrivate != nullptr)
-			*isPrivate = false;
-	}
-	else if (fileName.endsWith(util::SCRIPT_PRIVATE_SUFFIX_DEFAULT))
-	{
-#ifdef CRYPTO_H
-		Crypto crypto;
-		if (!crypto.decodeScript(fileName, c))
-			return false;
-
-		if (isPrivate != nullptr)
-			*isPrivate = true;
-#else
-		return false;
-#endif
-	}
-
-	if (pcontent != nullptr)
-	{
-		*pcontent = c;
-		return true;
-	}
-
-	return false;
+	emit signalDispatcher.scriptContentChanged(fileName, QVariant::fromValue(parser_.getTokens()));
 }
 
 void Interpreter::stop()
@@ -425,7 +349,7 @@ bool Interpreter::checkRange(const TokenMap& TK, qint64 idx, qint64* min, qint64
 		return true;
 	}
 
-	QVariant var = parser_.checkValue(TK, idx, QVariant::Double);
+	QVariant var = parser_.checkValue(TK, idx);
 	if (!var.isValid())
 		return false;
 
@@ -537,7 +461,7 @@ bool Interpreter::compare(CompareArea area, const TokenMap& TK)
 		if (!TK.contains(3))
 			return false;
 
-		b = parser_.checkValue(TK, 3, QVariant::String);
+		b = parser_.checkValue(TK, 3);
 		PC _pc = injector.server->getPC();
 		switch (cmpType)
 		{
@@ -653,7 +577,7 @@ bool Interpreter::compare(CompareArea area, const TokenMap& TK)
 		if (!TK.contains(4))
 			return false;
 
-		b = parser_.checkValue(TK, 4, QVariant::String);
+		b = parser_.checkValue(TK, 4);
 
 		PET pet = injector.server->getPet(petIndex);
 
@@ -765,7 +689,7 @@ bool Interpreter::compare(CompareArea area, const TokenMap& TK)
 		if (!TK.contains(4))
 			return false;
 
-		b = parser_.checkValue(TK, 4, QVariant::String);
+		b = parser_.checkValue(TK, 4);
 
 		switch (cmpType)
 		{
@@ -804,7 +728,7 @@ bool Interpreter::compare(CompareArea area, const TokenMap& TK)
 		if (!TK.contains(2))
 			return false;
 
-		b = parser_.checkValue(TK, 2, QVariant::String);
+		b = parser_.checkValue(TK, 2);
 
 		switch (cmpType)
 		{
@@ -1271,14 +1195,16 @@ qint64 Interpreter::mainScriptCallBack(qint64 currentLine, const TokenMap& TK)
 	RESERVE currentType = TK.value(0).type;
 
 	bool skip = currentType == RESERVE::TK_WHITESPACE
-		|| currentType == RESERVE::TK_SPACE
 		|| currentType == RESERVE::TK_COMMENT
 		|| currentType == RESERVE::TK_UNK;
 
 	if (skip)
 		return 1;
 
-	emit signalDispatcher.scriptLabelRowTextChanged(currentLine + 1, parser_.getToken().size(), false);
+	Injector& injector = Injector::getInstance();
+
+	if (injector.isScriptDebugModeEnable.load(std::memory_order_acquire))
+		emit signalDispatcher.scriptLabelRowTextChanged(currentLine + 1, parser_.getToken().size(), false);
 
 	if (TK.contains(0) && TK.value(0).type == TK_PAUSE)
 	{
@@ -1288,8 +1214,9 @@ qint64 Interpreter::mainScriptCallBack(qint64 currentLine, const TokenMap& TK)
 
 	checkPause();
 
-	util::SafeHash<qint64, break_marker_t> breakMarkers = break_markers.value(scriptFileName_);
-	const util::SafeHash<qint64, break_marker_t> stepMarkers = step_markers.value(scriptFileName_);
+	QString scriptFileName = parser_.getScriptFileName();
+	util::SafeHash<qint64, break_marker_t> breakMarkers = break_markers.value(scriptFileName);
+	const util::SafeHash<qint64, break_marker_t> stepMarkers = step_markers.value(scriptFileName);
 	if (!(breakMarkers.contains(currentLine) || stepMarkers.contains(currentLine)))
 	{
 		return 1;//檢查是否有中斷點
@@ -1305,7 +1232,7 @@ qint64 Interpreter::mainScriptCallBack(qint64 currentLine, const TokenMap& TK)
 
 		//重新插入斷下的紀錄
 		breakMarkers.insert(currentLine, mark);
-		break_markers.insert(scriptFileName_, breakMarkers);
+		break_markers.insert(scriptFileName, breakMarkers);
 		//所有行插入隱式斷點(用於單步)
 		emit signalDispatcher.addStepMarker(currentLine, true);
 	}
@@ -1352,7 +1279,7 @@ void Interpreter::proc()
 
 		openLibs();
 
-		parser_.parse(beginLine_);
+		parser_.parse();
 
 	} while (false);
 
@@ -1491,7 +1418,7 @@ bool Interpreter::findPath(qint64 currneLine, QPoint dst, qint64 steplen, qint64
 		logExport(currneLine, output, 4);
 	}
 
-	QVector<QPoint> path;
+	std::vector<QPoint> path;
 	QElapsedTimer timer; timer.start();
 	if (mapAnalyzer.isNull() || !mapAnalyzer->calcNewRoute(_map, src, dst, &path))
 	{
@@ -1626,9 +1553,17 @@ bool Interpreter::findPath(qint64 currneLine, QPoint dst, qint64 steplen, qint64
 			//往隨機8個方向移動
 			point = getPos();
 			lastPoint = point;
-			point = point + (util::fix_point.at(QRandomGenerator::global()->bounded(0, 7)) * 2);
-			injector.server->move(point);
-			QThread::msleep(200);
+			QPoint stockPoint = getPos();
+			for (qint64 i = 0; i < 10; ++i)
+			{
+				point = point + (util::fix_point.at(QRandomGenerator::global()->bounded(0, 7)) * 5);
+				injector.server->move(point);
+				QThread::msleep(200);
+				checkBattleThenWait();
+				src = getPos();
+				if (stockPoint != src)
+					break;
+			}
 
 			continue;
 		}

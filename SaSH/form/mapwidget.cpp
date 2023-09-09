@@ -27,6 +27,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 constexpr int MAP_REFRESH_TIME = 100;
 constexpr int MAX_BLOCK_SIZE = 24;
+constexpr int MAX_DOWNLOAD_DELAY = 0;
 
 QHash<int, QHash<QPoint, QString>> MapWidget::entrances_;
 
@@ -49,6 +50,13 @@ MapWidget::MapWidget(QWidget* parent)
 
 	CustomTitleBar* titleBar = new CustomTitleBar(this);
 	setMenuWidget(titleBar);
+
+
+	QGraphicsDropShadowEffect* shadowEffect = new QGraphicsDropShadowEffect;
+	shadowEffect->setBlurRadius(10); // 設置陰影的模糊半徑，根據需要調整
+	shadowEffect->setOffset(0, 1);   // 設置陰影的偏移量，根據需要調整
+	shadowEffect->setColor(Qt::black); // 設置陰影的顏色，根據需要調整
+	setGraphicsEffect(shadowEffect);
 
 	//set header text
 	ui.tableWidget_NPCList->setColumnCount(2);
@@ -74,7 +82,6 @@ MapWidget::MapWidget(QWidget* parent)
 #endif
 
 	connect(&downloadMapTimer_, &QTimer::timeout, this, &MapWidget::onDownloadMapTimeout);
-	downloadMapTimer_.start(500);
 
 	util::FormSettingManager formManager(this);
 	formManager.loadSettings();
@@ -741,6 +748,7 @@ void MapWidget::onDownloadMapTimeout()
 
 	if (downloadMapProgress_ >= 100.0)
 	{
+		downloadMapTimer_.stop();
 		const QPoint qp_current = injector.server->getPoint();
 		QString caption(tr("%1 map:%2 floor:%3 [%4,%5] mouse:%6,%7")
 			.arg(injector.server->getPC().name)
@@ -748,7 +756,7 @@ void MapWidget::onDownloadMapTimeout()
 			.arg(injector.server->nowFloor)
 			.arg(qp_current.x()).arg(qp_current.y())
 			.arg(qFloor(curMousePos_.x())).arg(qFloor(curMousePos_.y())));
-		caption += " " + tr("downloading(%1%2)").arg(QString::number(downloadMapProgress_, 'f', 2)).arg("%");
+		caption += " " + tr("downloading(%1%2)").arg(QString::number(100.00, 'f', 2)).arg("%");
 		setWindowTitle(caption);
 
 		injector.server->mapAnalyzer->clear(floor);
@@ -760,12 +768,17 @@ void MapWidget::onDownloadMapTimeout()
 		}
 		isDownloadingMap_ = false;
 		injector.server->EO();
-		injector.server->mapAnalyzer->readFromBinary(floor, name, true);
+		injector.server->mapAnalyzer->readFromBinary(floor, name, true, true);
+		if (!ui.pushButton_download->isEnabled())
+			ui.pushButton_download->setEnabled(true);
 	}
 }
 
 void MapWidget::on_pushButton_download_clicked()
 {
+	if (isDownloadingMap_)
+		return;
+
 	Injector& injector = Injector::getInstance();
 
 	if (injector.server.isNull())
@@ -791,6 +804,7 @@ void MapWidget::on_pushButton_download_clicked()
 	totalMapBlocks_ = static_cast<qreal>(totalBlocks);
 
 	isDownloadingMap_ = true;
+	downloadMapTimer_.start(MAX_DOWNLOAD_DELAY);
 }
 
 void MapWidget::on_pushButton_returnBase_clicked()

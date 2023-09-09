@@ -20,16 +20,16 @@ GeneralForm::GeneralForm(QWidget* parent)
 	connect(this, &GeneralForm::resetControlTextLanguage, this, &GeneralForm::onResetControlTextLanguage, Qt::UniqueConnection);
 
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
-	connect(&signalDispatcher, &SignalDispatcher::setStartButtonEnabled, ui.pushButton_start, &QPushButton::setEnabled, Qt::UniqueConnection);
+	connect(&signalDispatcher, &SignalDispatcher::setStartButtonEnabled, ui.pushButton_start, &PushButton::setEnabled, Qt::UniqueConnection);
 	connect(&signalDispatcher, &SignalDispatcher::applyHashSettingsToUI, this, &GeneralForm::onApplyHashSettingsToUI, Qt::UniqueConnection);
 	connect(&signalDispatcher, &SignalDispatcher::gameStarted, this, &GeneralForm::onGameStart, Qt::UniqueConnection);
 
 
-	QList<QPushButton*> buttonList = util::findWidgets<QPushButton>(this);
+	QList<PushButton*> buttonList = util::findWidgets<PushButton>(this);
 	for (auto& button : buttonList)
 	{
 		if (button)
-			connect(button, &QPushButton::clicked, this, &GeneralForm::onButtonClicked, Qt::UniqueConnection);
+			connect(button, &PushButton::clicked, this, &GeneralForm::onButtonClicked, Qt::UniqueConnection);
 	}
 
 	QList <QCheckBox*> checkBoxList = util::findWidgets<QCheckBox>(this);
@@ -108,17 +108,26 @@ void GeneralForm::onComboBoxClicked()
 {
 	ComboBox* pComboBox = qobject_cast<ComboBox*>(sender());
 	if (!pComboBox)
+	{
+		pComboBox->setDisableFocusCheck(false);
 		return;
+	}
 
 	QString name = pComboBox->objectName();
 	if (name.isEmpty())
+	{
+		pComboBox->setDisableFocusCheck(false);
 		return;
+	}
 
 	if (name == "comboBox_setting")
 	{
 		QVector<QPair<QString, QString>> fileList;
 		if (!util::enumAllFiles(util::applicationDirPath() + "/settings", ".json", &fileList))
+		{
+			pComboBox->setDisableFocusCheck(false);
 			return;
+		}
 
 		int currentIndex = ui.comboBox_setting->currentIndex();
 		ui.comboBox_setting->blockSignals(true);
@@ -131,12 +140,14 @@ void GeneralForm::onComboBoxClicked()
 		ui.comboBox_setting->setCurrentIndex(currentIndex);
 
 		ui.comboBox_setting->blockSignals(false);
+		pComboBox->setDisableFocusCheck(false);
 		return;
 	}
 
 	if (name == "comboBox_server")
 	{
 		createServerList();
+		pComboBox->setDisableFocusCheck(false);
 		return;
 	}
 
@@ -151,7 +162,10 @@ void GeneralForm::onComboBoxClicked()
 
 		const QString fileName(qgetenv("JSON_PATH"));
 		if (fileName.isEmpty())
+		{
+			pComboBox->setDisableFocusCheck(false);
 			return;
+		}
 
 		util::Config config(fileName);
 		QStringList paths = config.readArray<QString>("System", "Command", "DirPath");
@@ -161,7 +175,10 @@ void GeneralForm::onComboBoxClicked()
 		{
 			QString path;
 			if (!util::createFileDialog(util::SA_NAME, &path, this))
+			{
+				pComboBox->setDisableFocusCheck(false);
 				return;
+			}
 			else
 				paths.append(path);
 		}
@@ -175,7 +192,10 @@ void GeneralForm::onComboBoxClicked()
 		}
 
 		if (newPaths.isEmpty())
+		{
+			pComboBox->setDisableFocusCheck(false);
 			return;
+		}
 
 		int currentIndex = ui.comboBox_paths->currentIndex();
 		ui.comboBox_paths->blockSignals(true);
@@ -194,13 +214,14 @@ void GeneralForm::onComboBoxClicked()
 		config.writeArray<QString>("System", "Command", "DirPath", newPaths);
 		ui.comboBox_paths->setCurrentIndex(currentIndex);
 		ui.comboBox_paths->blockSignals(false);
+		pComboBox->setDisableFocusCheck(false);
 		return;
 	}
 }
 
 void GeneralForm::onButtonClicked()
 {
-	QPushButton* pPushButton = qobject_cast<QPushButton*>(sender());
+	PushButton* pPushButton = qobject_cast<PushButton*>(sender());
 	if (!pPushButton)
 		return;
 

@@ -35,6 +35,24 @@ bool CLuaUtil::getSys(sol::table dstTable, sol::this_state s)
 	return TRUE;
 }
 
+bool CLuaUtil::getMap(sol::table dstTable, sol::this_state s)
+{
+	Injector& injector = Injector::getInstance();
+	if (injector.server.isNull())
+		return FALSE;
+
+	dstTable.clear();
+
+	dstTable["floor"] = injector.server->nowFloor;
+	dstTable["name"] = injector.server->nowFloorName.toUtf8().constData();
+
+	QPoint pos = injector.server->getPoint();
+	dstTable["x"] = pos.x();
+	dstTable["y"] = pos.y();
+
+	return TRUE;
+}
+
 bool CLuaUtil::getChar(sol::table dstTable, sol::this_state s)
 {
 	Injector& injector = Injector::getInstance();
@@ -42,15 +60,12 @@ bool CLuaUtil::getChar(sol::table dstTable, sol::this_state s)
 		return FALSE;
 
 	PC pc = injector.server->getPC();
-	QPoint pos = injector.server->getPoint();
+
 
 	//clear table
 	dstTable.clear();
 
 	//get data
-	dstTable["x"] = pos.x();
-	dstTable["y"] = pos.y();
-	dstTable["floor"] = injector.server->nowFloor;
 	dstTable["modelid"] = pc.modelid;
 	dstTable["faceid"] = pc.faceid;
 	dstTable["unitid"] = pc.id;
@@ -204,7 +219,7 @@ bool CLuaUtil::getCard(sol::table dstTable, sol::this_state s)
 	//clear table
 	dstTable.clear();
 
-	for (int i = 0; i < MAX_ADR_BOOK; ++i)
+	for (int i = 0; i < MAX_ADDRESS_BOOK; ++i)
 	{
 		ADDRESS_BOOK adrBook = injector.server->getAddressBook(i);
 
