@@ -124,11 +124,11 @@ public:
 
 	Q_REQUIRED_RESULT inline QString getStringHash(util::UserSetting setting) const { return userSetting_string_hash_.value(setting); }
 
-	Q_REQUIRED_RESULT inline util::SafeHash<util::UserSetting, int> getValueHash() const { return userSetting_value_hash_; }
+	Q_REQUIRED_RESULT inline QHash<util::UserSetting, int> getValueHash() const { return userSetting_value_hash_.toHash(); }
 
-	Q_REQUIRED_RESULT inline util::SafeHash<util::UserSetting, bool> getEnableHash() const { return userSetting_enable_hash_; }
+	Q_REQUIRED_RESULT inline QHash<util::UserSetting, bool> getEnableHash() const { return userSetting_enable_hash_.toHash(); }
 
-	Q_REQUIRED_RESULT inline util::SafeHash<util::UserSetting, QString> getStringHash() const { return userSetting_string_hash_; }
+	Q_REQUIRED_RESULT inline QHash<util::UserSetting, QString> getStringHash() const { return userSetting_string_hash_.toHash(); }
 
 	inline void setValueHash(const util::SafeHash<util::UserSetting, int>& hash) { userSetting_value_hash_ = hash; }
 

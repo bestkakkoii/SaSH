@@ -142,90 +142,6 @@ qint64 Interpreter::ifmap(qint64 currentline, const TokenMap& TK)
 	return checkJump(TK, 2, check(), SuccessJump);
 }
 
-qint64 Interpreter::checkunit(qint64, const TokenMap&)
-{
-	Injector& injector = Injector::getInstance();
-
-	if (injector.server.isNull())
-		return Parser::kServerNotReady;
-
-	checkOnlineThenWait();
-	checkBattleThenWait();
-
-	return Parser::kNoChange;
-}
-
-qint64 Interpreter::ifplayer(qint64 currentline, const TokenMap& TK)
-{
-	Injector& injector = Injector::getInstance();
-
-	if (injector.server.isNull())
-		return Parser::kServerNotReady;
-
-	checkOnlineThenWait();
-
-	bool bret = compare(kAreaPlayer, TK);
-
-	return checkJump(TK, 4, bret, SuccessJump);
-}
-
-qint64 Interpreter::ifpetex(qint64 currentline, const TokenMap& TK)
-{
-	Injector& injector = Injector::getInstance();
-
-	if (injector.server.isNull())
-		return Parser::kServerNotReady;
-
-	checkOnlineThenWait();
-
-	bool bret = compare(kAreaPet, TK);
-
-	return checkJump(TK, 5, bret, SuccessJump);
-}
-
-qint64 Interpreter::ifitem(qint64 currentline, const TokenMap& TK)
-{
-	Injector& injector = Injector::getInstance();
-
-	if (injector.server.isNull())
-		return Parser::kServerNotReady;
-
-	checkOnlineThenWait();
-
-	injector.server->updateItemByMemory();
-	bool bret = compare(kAreaItem, TK);
-
-	return checkJump(TK, 5, bret, SuccessJump);
-}
-
-qint64 Interpreter::ifteam(qint64 currentline, const TokenMap& TK)
-{
-	Injector& injector = Injector::getInstance();
-
-	if (injector.server.isNull())
-		return Parser::kServerNotReady;
-
-	checkOnlineThenWait();
-
-	bool bret = compare(kAreaCount, TK);
-
-	return checkJump(TK, 3, bret, SuccessJump);
-}
-
-qint64 Interpreter::ifpet(qint64 currentline, const TokenMap& TK)
-{
-	Injector& injector = Injector::getInstance();
-
-	if (injector.server.isNull())
-		return Parser::kServerNotReady;
-
-	checkOnlineThenWait();
-
-	bool bret = compare(kAreaCount, TK);
-
-	return checkJump(TK, 3, bret, SuccessJump);
-}
-
 qint64 Interpreter::ifitemfull(qint64 currentline, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance();
@@ -247,6 +163,47 @@ qint64 Interpreter::ifitemfull(qint64 currentline, const TokenMap& TK)
 	}
 
 	return checkJump(TK, 1, bret, SuccessJump);
+}
+
+qint64 Interpreter::ifitem(qint64 currentline, const TokenMap& TK)
+{
+	Injector& injector = Injector::getInstance();
+
+	if (injector.server.isNull())
+		return Parser::kServerNotReady;
+
+	QString itemName;
+	checkString(TK, 1, &itemName);
+
+	QString itemMemo;
+	checkString(TK, 2, &itemMemo);
+
+	if (itemName.isEmpty() && itemMemo.isEmpty())
+		return Parser::kArgError + 1ll;
+
+	checkOnlineThenWait();
+
+	QString exprStr = TK.value(3).data.toString();
+
+	qint64 count = 0;
+	QVector<int> v;
+	if (injector.server->getItemIndexsByName(itemName, itemMemo, &v))
+	{
+		PC pc = injector.server->getPC();
+		for (const int it : v)
+		{
+			if (pc.item[it].stack > 0)
+				count += pc.item[it].stack;
+		}
+	}
+
+	QString expr = QString("return (%1 %2);").arg(count).arg(exprStr);
+
+	QVariant retValue = parser_.luaDoString(expr);
+
+	bool bret = retValue.toBool();
+
+	return checkJump(TK, 4, bret, SuccessJump);
 }
 
 qint64 Interpreter::waitpet(qint64 currentline, const TokenMap& TK)

@@ -28,11 +28,10 @@ namespace Autil
 	constexpr size_t SLICE_SIZE = 65500;
 	constexpr size_t LBUFSIZE = 65500;
 	constexpr size_t SBUFSIZE = 4096;
-	extern QByteArray MesgSlice[];//autil.cpp//[][Autil::SLICE_SIZE];	// store message slices
+	extern QByteArray MesgSlice[];
 	extern util::SafeData<size_t> SliceCount;//autil.cpp		// count slices in MesgSlice
 
 	constexpr size_t PERSONALKEYSIZE = 32;
-	//extern QScopedArrayPointer<char> PersonalKey;
 	extern util::SafeData<QString> PersonalKey;//autil.cpp
 
 	constexpr const char* SEPARATOR = ";";
@@ -40,7 +39,6 @@ namespace Autil
 	constexpr const char* DEFAULTTABLE = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz{}";
 	constexpr const char* DEFAULTFUNCBEGIN = "&";
 	constexpr const char* DEFAULTFUNCEND = "#";
-
 
 	void __stdcall util_Init(void);
 	void __stdcall util_Release(void);
@@ -87,7 +85,7 @@ namespace Autil
 
 	// 輔助函數，遞歸處理參數
 	template<typename Arg, typename... Args>
-	void util_SendProcessArgs(int& sum, char* buffer, Arg arg, Args... args)
+	inline void util_SendProcessArgs(int& sum, char* buffer, Arg arg, Args... args)
 	{
 		util_SendProcessArg(sum, buffer, arg);
 		util_SendProcessArgs(sum, buffer, args...);
@@ -95,47 +93,27 @@ namespace Autil
 
 	// 輔助函數，處理最後一個參數
 	template<typename Arg>
-	void util_SendProcessArgs(int& sum, char* buffer, Arg arg)
+	inline void util_SendProcessArgs(int& sum, char* buffer, Arg arg)
 	{
 		util_SendProcessArg(sum, buffer, arg);
 	}
 
 	// 主發送函數
 	template<typename... Args>
-	void util_Send(int func, Args... args)
+	inline void util_Send(int func, Args... args)
 	{
 		int iChecksum = 0;
-		std::unique_ptr <char[]> buffer(new char[NETDATASIZE]);
-		memset(buffer.get(), 0, NETDATASIZE);
-		util_SendProcessArgs(iChecksum, buffer.get(), args...);
-		util_mkint(buffer.get(), iChecksum);
-		util_SendMesg(func, buffer.get());
+		char buffer[NETDATASIZE] = {};
+		memset(buffer, 0, sizeof(buffer));
+		util_SendProcessArgs(iChecksum, buffer, args...);
+		util_mkint(buffer, iChecksum);
+		util_SendMesg(func, buffer);
 	}
 
-	static void util_SendArgs(int func, std::vector<std::variant<int, std::string>>& args)
-	{
-		int iChecksum = 0;
-		std::unique_ptr <char[]> buffer(new char[NETDATASIZE]);
-		memset(buffer.get(), 0, NETDATASIZE);
-
-		for (const std::variant<int, std::string>& arg : args)
-		{
-			if (std::holds_alternative<int>(arg))
-			{
-				iChecksum += util_mkint(buffer.get(), std::get<int>(arg));
-			}
-			else if (std::holds_alternative<std::string>(arg))
-			{
-				iChecksum += util_mkstring(buffer.get(), const_cast<char*>(std::get<std::string>(arg).c_str()));
-			}
-		}
-
-		util_mkint(buffer.get(), iChecksum);
-		util_SendMesg(func, buffer.get());
-	}
+	void util_SendArgs(int func, std::vector<std::variant<int, std::string>>& args);
 
 	template<typename... Args>
-	bool util_Receive(Args*... args)
+	inline bool util_Receive(Args*... args)
 	{
 		int iChecksum = 0;  // 局部變量
 		int iChecksumrecv = 0;
@@ -155,7 +133,6 @@ namespace Autil
 		};
 		(decode_and_accumulate(args), ...);
 
-		// 獲取並校驗 iChecksum
 		Autil::util_deint(nextSlice, &iChecksumrecv);
 		return (iChecksum == iChecksumrecv);
 	}

@@ -39,7 +39,6 @@ public:
 	void clear();
 	void setItemData(int index, const QVariant& value, int role = Qt::UserRole + 1);
 
-	void setDisableFocusCheck(bool disableFocusCheck) { disableFocusCheck_ = disableFocusCheck; }
 protected:
 	virtual void mousePressEvent(QMouseEvent* e);  //重寫鼠標點擊事件
 
@@ -48,6 +47,6 @@ signals:
 	void clicked();  //自定義點擊信號，在mousePressEvent事件發生時觸發，名字無所謂，隨自己喜歡就行
 
 private:
-	bool disableFocusCheck_ = false;
+
 };
 #endif // COMBOBOX_H

@@ -664,11 +664,11 @@ QGroupBox {
 }
 )");
 
-	QGraphicsDropShadowEffect* shadowEffect = new QGraphicsDropShadowEffect;
-	shadowEffect->setBlurRadius(10); // 設置陰影的模糊半徑，根據需要調整
-	shadowEffect->setOffset(0, 1);   // 設置陰影的偏移量，根據需要調整
-	shadowEffect->setColor(Qt::black); // 設置陰影的顏色，根據需要調整
-	setGraphicsEffect(shadowEffect);
+	//QGraphicsDropShadowEffect* shadowEffect = new QGraphicsDropShadowEffect;
+	//shadowEffect->setBlurRadius(10); // 設置陰影的模糊半徑，根據需要調整
+	//shadowEffect->setOffset(0, 1);   // 設置陰影的偏移量，根據需要調整
+	//shadowEffect->setColor(Qt::black); // 設置陰影的顏色，根據需要調整
+	//setGraphicsEffect(shadowEffect);
 
 	qRegisterMetaType<QVariant>("QVariant");
 	qRegisterMetaType<QVariant>("QVariant&");
@@ -1118,9 +1118,9 @@ void MainForm::onSaveHashSettings(const QString& name, bool isFullPath)
 	}
 
 	Injector& injector = Injector::getInstance();
-	util::SafeHash<util::UserSetting, bool> enableHash = injector.getEnableHash();
-	util::SafeHash<util::UserSetting, int> valueHash = injector.getValueHash();
-	util::SafeHash<util::UserSetting, QString> stringHash = injector.getStringHash();
+	QHash<util::UserSetting, bool> enableHash = injector.getEnableHash();
+	QHash<util::UserSetting, int> valueHash = injector.getValueHash();
+	QHash<util::UserSetting, QString> stringHash = injector.getStringHash();
 
 	QHash<util::UserSetting, QString> jsonKeyHash = util::user_setting_string_hash;
 
@@ -1201,9 +1201,9 @@ void MainForm::onLoadHashSettings(const QString& name, bool isFullPath)
 		return;
 
 	Injector& injector = Injector::getInstance();
-	util::SafeHash<util::UserSetting, bool> enableHash;
-	util::SafeHash<util::UserSetting, int> valueHash;
-	util::SafeHash<util::UserSetting, QString> stringHash;
+	QHash<util::UserSetting, bool> enableHash;
+	QHash<util::UserSetting, int> valueHash;
+	QHash<util::UserSetting, QString> stringHash;
 
 	QHash<util::UserSetting, QString> jsonKeyHash = util::user_setting_string_hash;
 

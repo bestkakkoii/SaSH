@@ -59,7 +59,9 @@ protected:
 private:
 	void fileSave(const QString& d, DWORD flag);
 
-	void replaceCommas(QStringList& inputList);
+	void replaceCommas(QString& inputList);
+
+	QString formatCode(const QString& content);
 
 	void onReloadScriptList();
 

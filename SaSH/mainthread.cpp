@@ -226,7 +226,7 @@ void MainObject::mainProc()
 			nodelay = false;
 		}
 		else
-			QThread::msleep(300);
+			QThread::msleep(200);
 
 		//檢查是否接收到停止執行的訊號
 		if (isInterruptionRequested())
@@ -246,7 +246,7 @@ void MainObject::mainProc()
 		//檢查TCP是否握手成功
 		if (!injector.server->IS_TCP_CONNECTION_OK_TO_USE)
 		{
-			QThread::msleep(500);
+			QThread::msleep(100);
 			nodelay = true;
 			continue;
 		}
@@ -354,7 +354,7 @@ int MainObject::checkAndRunFunctions()
 	if (login_run_once_flag_)
 	{
 		login_run_once_flag_ = false;
-		for (int i = 0; i < 50; ++i)
+		for (int i = 0; i < 30; ++i)
 		{
 			if (isInterruptionRequested())
 				return 0;
@@ -666,7 +666,8 @@ void MainObject::setUserDatas()
 	}
 	injector.setUserData(util::kUserPetNames, petNames);
 
-	injector.setUserData(util::kUserEnemyNames, injector.server->enemyNameListCache);
+	QStringList enemyNameListCache = injector.server->enemyNameListCache.get();
+	injector.setUserData(util::kUserEnemyNames, enemyNameListCache);
 
 }
 
@@ -2066,7 +2067,8 @@ void MainObject::checkRecordableNpcInfo()
 				return;
 
 			util::SafeHash<int, mapunit_t> units = injector.server->mapUnitHash;
-			util::Config config(injector.getPointFileName());
+
+			QHash<QString, util::MapData> hash;
 
 			for (const mapunit_t& unit : units)
 			{
@@ -2136,7 +2138,17 @@ void MainObject::checkRecordableNpcInfo()
 						}
 					}
 				}
-				config.writeMapData(unit.name, d);
+				//config.writeMapData(unit.name, d);
+				hash.insert(unit.name, d);
+			}
+
+			if (!hash.isEmpty())
+			{
+				util::Config config(injector.getPointFileName());
+				for (auto it = hash.begin(); it != hash.end(); ++it)
+				{
+					config.writeMapData(it.key(), it.value());
+				}
 			}
 
 			static bool constDataInit = false;
@@ -2146,6 +2158,7 @@ void MainObject::checkRecordableNpcInfo()
 
 			constDataInit = true;
 
+			util::Config config(injector.getPointFileName());
 			QFile file(util::applicationDirPath() + "/map/point.txt");
 
 			if (!file.open(QIODevice::ReadOnly))
@@ -2155,8 +2168,8 @@ void MainObject::checkRecordableNpcInfo()
 			}
 
 			QTextStream in(&file);
-			in.setCodec("UTF-8");
-
+			in.setCodec(util::DEFAULT_CODEPAGE);
+			in.setGenerateByteOrderMark(true);
 			const QString rawData(in.readAll());
 			file.close();
 

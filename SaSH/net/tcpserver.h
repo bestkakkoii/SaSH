@@ -561,7 +561,7 @@ private:
 
 	void swapItemLocal(int from, int to);
 
-	void updateMapArea(void)
+	void updateMapArea()
 	{
 		QPoint pos = getPoint();
 		mapAreaX1 = pos.x() + MAP_TILE_GRID_X1;
@@ -582,59 +582,9 @@ private:
 		mapAreaHeight = mapAreaY2 - mapAreaY1;
 	}
 
-	void resetMap(void)
-	{
-		//nowGx = (int)(nowX / GRID_SIZE);
-		//nowGy = (int)(nowY / GRID_SIZE);
-		QPoint pos(nowX / GRID_SIZE, nowY / GRID_SIZE);
-		nowPoint = pos;
-		nextGx = pos.x();
-		nextGy = pos.y();
-		nowX = (float)pos.x() * GRID_SIZE;
-		nowY = (float)pos.y() * GRID_SIZE;
-		oldGx = -1;
-		oldGy = -1;
-		oldNextGx = -1;
-		oldNextGy = -1;
-		mapAreaX1 = pos.x() + MAP_TILE_GRID_X1;
-		mapAreaY1 = pos.y() + MAP_TILE_GRID_Y1;
-		mapAreaX2 = pos.x() + MAP_TILE_GRID_X2;
-		mapAreaY2 = pos.y() + MAP_TILE_GRID_Y2;
-
-		if (mapAreaX1 < 0)
-			mapAreaX1 = 0;
-		if (mapAreaY1 < 0)
-			mapAreaY1 = 0;
-		if (mapAreaX2 > nowFloorGxSize)
-			mapAreaX2 = nowFloorGxSize;
-		if (mapAreaY2 > nowFloorGySize)
-			mapAreaY2 = nowFloorGySize;
-
-		mapAreaWidth = mapAreaX2 - mapAreaX1;
-		mapAreaHeight = mapAreaY2 - mapAreaY1;
-		nowVx = 0;
-		nowVy = 0;
-		nowSpdRate = 1;
-		viewPointX = nowX;
-		viewPointY = nowY;
-		moveRouteCnt = 0;
-		moveRouteCnt2 = 0;
-		moveStackFlag = false;
-
-		mouseLeftPushTime = 0;
-		beforeMouseLeftPushTime = 0;
-		//	autoMapSeeFlag = FALSE;
-	}
-
 	void realTimeToSATime(LSTIME* lstime);
 
-	inline void redrawMap(void) { oldGx = -1; oldGy = -1; }
-
-	inline void setPcWarpPoint(const QPoint& pos) { setWarpMap(pos); }
-
-	inline void resetPc(void) { QMutexLocker lock(&pcMutex_); pc_.status &= (~CHR_STATUS_LEADER); }
-
-	inline void setMap(int floor, const QPoint& pos) { nowFloor = floor; setWarpMap(pos); }
+	inline void setFloor(int floor) { nowFloor = floor; }
 
 	inline unsigned long long TimeGetTime(void)
 	{
@@ -645,35 +595,6 @@ private:
 		//return GetTickCount();
 #else
 		return QDateTime::currentMSecsSinceEpoch();
-#endif
-}
-
-	inline void setWarpMap(const QPoint& pos)
-	{
-		//nowGx = gx;
-		//nowGy = gy;
-		nowPoint = pos;
-		nowX = (float)pos.x() * GRID_SIZE;
-		nowY = (float)pos.y() * GRID_SIZE;
-		nextGx = pos.x();
-		nextGy = pos.y();
-		nowVx = 0;
-		nowVy = 0;
-		nowSpdRate = 1;
-		oldGx = -1;
-		oldGy = -1;
-		oldNextGx = -1;
-		oldNextGy = -1;
-		viewPointX = nowX;
-		viewPointY = nowY;
-		wnCloseFlag = 1;
-#ifdef _AniCrossFrame	   // Syu ADD 動畫層遊過畫面生物
-		extern void crossAniRelease();
-		crossAniRelease();
-#endif
-#ifdef _SURFACE_ANIM       //ROG ADD 動態場景
-		extern void ReleaseSpecAnim();
-		ReleaseSpecAnim();
 #endif
 	}
 
@@ -949,12 +870,12 @@ public:
 	util::SafeHash<int, QVariant> playerInfoColContents;
 	util::SafeHash<int, QVariant> itemInfoRowContents;
 	util::SafeHash<int, QVariant> equipInfoRowContents;
-	QStringList enemyNameListCache;
-	QVariant topInfoContents;
-	QVariant bottomInfoContents;
-	QString timeLabelContents;
-	QString labelPlayerAction;
-	QString labelPetAction;
+	util::SafeData<QStringList> enemyNameListCache;
+	util::SafeData<QVariant> topInfoContents;
+	util::SafeData<QVariant> bottomInfoContents;
+	util::SafeData<QString> timeLabelContents;
+	util::SafeData<QString> labelPlayerAction;
+	util::SafeData<QString> labelPetAction;
 
 private:
 	unsigned short port_ = 0;
@@ -1107,4 +1028,4 @@ private://lssproto_recv
 	virtual void lssproto_CustomWN_recv(const QString& data) override;
 	virtual void lssproto_CustomTK_recv(const QString& data) override;
 #pragma endregion
-	};
+};

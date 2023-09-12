@@ -96,10 +96,6 @@ private:
 	bool checkRange(const TokenMap& TK, qint64 idx, qint64* min, qint64* max);
 	bool checkRelationalOperator(const TokenMap& TK, qint64 idx, RESERVE* ret) const;
 
-	bool compare(const QVariant& a, const QVariant& b, RESERVE type) const;
-
-	bool compare(CompareArea area, const TokenMap& TK);
-
 	void logExport(qint64 currentline, const QString& text, qint64 color = 0);
 
 	void setError(const QString& error) { parser_.setLastErrorMessage(error); }
@@ -135,22 +131,16 @@ private: //註冊給Parser的函數
 	qint64 ifnormal(qint64 currentline, const TokenMap& TK);
 	qint64 ifonline(qint64 currentline, const TokenMap& TK);
 	qint64 ifpos(qint64 currentline, const TokenMap& TK);
-	qint64 waitmap(qint64 currentline, const TokenMap& TK);
 	qint64 ifmap(qint64 currentline, const TokenMap& TK);
+	qint64 ifitemfull(qint64 currentline, const TokenMap& TK);
+	qint64 ifitem(qint64 currentline, const TokenMap& TK);
+
 	qint64 waitdlg(qint64 currentline, const TokenMap& TK);
 	qint64 waitsay(qint64 currentline, const TokenMap& TK);
-	qint64 checkunit(qint64 currentline, const TokenMap& TK);
-	qint64 ifplayer(qint64 currentline, const TokenMap& TK);
-	qint64 ifpetex(qint64 currentline, const TokenMap& TK);
-	qint64 ifitem(qint64 currentline, const TokenMap& TK);
-	qint64 ifpet(qint64 currentline, const TokenMap& TK);
-	qint64 ifitemfull(qint64 currentline, const TokenMap& TK);
+	qint64 waitmap(qint64 currentline, const TokenMap& TK);
 	qint64 waititem(qint64 currentline, const TokenMap& TK);
 	qint64 waitpet(qint64 currentline, const TokenMap& TK);
-	//check-group
 	qint64 waitteam(qint64 currentline, const TokenMap& TK);
-	qint64 ifteam(qint64 currentline, const TokenMap& TK);
-
 
 	//move
 	qint64 setdir(qint64 currentline, const TokenMap& TK);

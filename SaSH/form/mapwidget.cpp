@@ -98,8 +98,8 @@ MapWidget::MapWidget(QWidget* parent)
 	}
 
 	QTextStream in(&file);
-	in.setCodec("UTF-8");
-
+	in.setCodec(util::DEFAULT_CODEPAGE);
+	in.setGenerateByteOrderMark(true);
 	const QString rawData(in.readAll());
 	file.close();
 

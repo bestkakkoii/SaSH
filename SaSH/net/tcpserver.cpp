@@ -260,7 +260,7 @@ Server::~Server()
 //用於清空部分數據 主要用於登出後清理數據避免數據混亂，每次登出後都應該清除大部分的基礎訊息
 void Server::clear()
 {
-	enemyNameListCache.clear();
+	enemyNameListCache.set(QStringList{});
 	mapUnitHash.clear();
 	chatQueue.clear();
 	for (int i = 0; i < MAX_PET + 1; ++i)
@@ -373,8 +373,8 @@ void Server::onClientReadyRead()
 	if (!clientSocket)
 		return;
 	QByteArray badata = clientSocket->readAll();
-
-	Injector& injector = Injector::getInstance();
+	if (badata.isEmpty())
+		return;
 
 	QtConcurrent::run([this, clientSocket, badata]()
 		{
@@ -443,18 +443,21 @@ void Server::handleData(QTcpSocket*, QByteArray badata)
 	if (net_readbuf.isEmpty())
 		return;
 
-	SPD_LOG(g_logger_name, QString("[proto] Received %1 bytes from client but actual len is: %2").arg(badata.size()).arg(badata.trimmed().size()));
+	//SPD_LOG(g_logger_name, QString("[proto] Received %1 bytes from client but actual len is: %2").arg(badata.size()).arg(badata.trimmed().size()));
 
-	Injector& injector = Injector::getInstance();
-	QString key = mem::readString(injector.getProcess(), injector.getProcessModule() + kOffestPersonalKey, Autil::PERSONALKEYSIZE, true, true);
-	if (key != Autil::PersonalKey)
-		Autil::PersonalKey = key;
+	if (getWorldStatus() <= 8)
+	{
+		Injector& injector = Injector::getInstance();
+		QString key = mem::readString(injector.getProcess(), injector.getProcessModule() + kOffestPersonalKey, Autil::PERSONALKEYSIZE, true, true);
+		if (key != Autil::PersonalKey)
+			Autil::PersonalKey.set(key);
+	}
 
 	QByteArrayList dataList = splitLinesFromReadBuf();
 	if (dataList.isEmpty())
 		return;
 
-	SPD_LOG(g_logger_name, QString("[proto] Received %1 lines from client").arg(dataList.size()));
+	//SPD_LOG(g_logger_name, QString("[proto] Received %1 lines from client").arg(dataList.size()));
 
 	for (QByteArray& ba : dataList)
 	{
@@ -510,7 +513,7 @@ int Server::dispatchMessage(char* encoded)
 	if (func == LSSPROTO_ERROR_RECV)
 		return -1;
 
-	SPD_LOG(g_logger_name, QString("[proto] lssproto func: %1").arg(func));
+	//SPD_LOG(g_logger_name, QString("[proto] lssproto func: %1").arg(func));
 
 	switch (func)
 	{
@@ -1112,6 +1115,13 @@ int Server::dispatchMessage(char* encoded)
 	}
 	case 220:
 	{
+		break;
+	}
+	case 300:
+	{
+		if (!Autil::util_Receive(data.data()))
+			return 0;
+
 		break;
 	}
 	default:
@@ -2077,7 +2087,7 @@ void Server::updateDatasFromMemory()
 	if (nowFloor != floor)
 		emit signalDispatcher.updateNpcList(floor);
 
-	nowFloor = floor;
+	setFloor(floor);
 
 	PC pc = getPC();
 	pc.dir = mem::read<int>(hProcess, hModule + kOffestDir) + 5 % 8;
@@ -2378,7 +2388,7 @@ void Server::updateComboBoxList()
 		int textWidth = fontMetrics.horizontalAdvance(magic.name);
 		QString shortText = QString(QObject::tr("(cost:%1)")).arg(magic.costmp);
 		int shortcutWidth = fontMetrics.horizontalAdvance(shortText);
-		constexpr int totalWidth = 140;
+		constexpr int totalWidth = 130;
 		int spaceCount = (totalWidth - textWidth - shortcutWidth) / fontMetrics.horizontalAdvance(' ');
 
 		QString alignedText = magic.name + QString(spaceCount, ' ') + shortText;
@@ -2397,7 +2407,7 @@ void Server::updateComboBoxList()
 			int textWidth = fontMetrics.horizontalAdvance(profession_skill.name);
 			QString shortText = QString("(%1%)").arg(profession_skill.skill_level);
 			int shortcutWidth = fontMetrics.horizontalAdvance(shortText);
-			constexpr int totalWidth = 160;
+			constexpr int totalWidth = 150;
 			int spaceCount = (totalWidth - textWidth - shortcutWidth) / fontMetrics.horizontalAdvance(' ');
 
 			if (i < 9)
@@ -3172,7 +3182,7 @@ bool Server::login(int s)
 	}
 	case util::kStatusConnecting:
 	{
-		if (connectingTimer.hasExpired(3000))
+		if (connectingTimer.hasExpired(2000))
 		{
 			setWorldStatus(7);
 			setGameStatus(0);
@@ -5975,11 +5985,11 @@ void Server::handlePlayerBattleLogics(const battledata_t& bt)
 			break;
 
 		int tempTarget = -1;
-		int charMpPercent = injector.getValueHash(util::kBattleSkillMpValue);
-		if (!checkPlayerMp(charMpPercent, &tempTarget, true) && (BattleMyMp > 0))
+		int charMp = injector.getValueHash(util::kBattleSkillMpValue);
+		if ((BattleMyMp > charMp) && (BattleMyMp > 0))
 			break;
 
-		int skillIndex = getProfessionSkillIndexByName("血狂");
+		int skillIndex = getProfessionSkillIndexByName("?嗜血");
 		if (skillIndex < 0)
 			break;
 
@@ -8746,7 +8756,6 @@ void Server::lssproto_SI_recv(int from, int to)
 {
 	swapItemLocal(from, to);
 	refreshItemInfo();
-	updateComboBoxList();
 }
 
 //道具數據改變
@@ -8915,8 +8924,6 @@ void Server::lssproto_I_recv(char* cdata)
 	}
 
 	setPC(pc);
-
-	updateComboBoxList();
 }
 
 //對話框
@@ -9429,15 +9436,18 @@ void Server::lssproto_B_recv(char* ccommand)
 
 			if ((pos >= bt.enemymin) && (pos <= bt.enemymax) && obj.rideFlag == 0 && obj.modelid > 0 && !obj.name.isEmpty())
 			{
-				if (!enemyNameListCache.contains(obj.name))
+				QStringList _enemyNameListCache = enemyNameListCache.get();
+				if (!_enemyNameListCache.contains(obj.name))
 				{
-					enemyNameListCache.append(obj.name);
+					_enemyNameListCache.append(obj.name);
 
-					if (enemyNameListCache.size() > 1)
+					if (_enemyNameListCache.size() > 1)
 					{
-						enemyNameListCache.removeDuplicates();
-						std::sort(enemyNameListCache.begin(), enemyNameListCache.end(), util::customStringCompare);
+						_enemyNameListCache.removeDuplicates();
+						std::sort(_enemyNameListCache.begin(), _enemyNameListCache.end(), util::customStringCompare);
 					}
+
+					enemyNameListCache.set(_enemyNameListCache);
 				}
 			}
 
@@ -9774,8 +9784,6 @@ void Server::lssproto_B_recv(char* ccommand)
 	{
 		qDebug() << "lssproto_B_recv: unknown command" << command;
 	}
-
-
 }
 
 #ifdef _PETS_SELECTCON
@@ -9875,8 +9883,6 @@ void Server::lssproto_KS_recv(int petarray, int result)
 		pet[petarray].state = kBattle;
 		emit signalDispatcher.updatePetHpProgressValue(_pet.level, _pet.hp, _pet.maxHp);
 	}
-
-	updateComboBoxList();
 }
 
 #ifdef _STANDBYPET
@@ -10054,9 +10060,32 @@ void Server::lssproto_XYD_recv(const QPoint& pos, int dir)
 	//pc.dir = dir;
 
 	setBattleEnd();
-	updateMapArea();
-	setPcWarpPoint(pos);
 	setPoint(pos);
+
+	nowPoint = pos;
+	nowX = (float)pos.x() * GRID_SIZE;
+	nowY = (float)pos.y() * GRID_SIZE;
+	nextGx = pos.x();
+	nextGy = pos.y();
+	nowVx = 0;
+	nowVy = 0;
+	nowSpdRate = 1;
+	oldGx = -1;
+	oldGy = -1;
+	oldNextGx = -1;
+	oldNextGy = -1;
+	viewPointX = nowX;
+	viewPointY = nowY;
+	wnCloseFlag = 1;
+#ifdef _AniCrossFrame	   // Syu ADD 動畫層遊過畫面生物
+	extern void crossAniRelease();
+	crossAniRelease();
+#endif
+#ifdef _SURFACE_ANIM       //ROG ADD 動態場景
+	extern void ReleaseSpecAnim();
+	ReleaseSpecAnim();
+#endif
+	updateMapArea();
 
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
 	emit signalDispatcher.updateCoordsPosLabelTextChanged(QString("%1,%2").arg(pos.x()).arg(pos.y()));
@@ -10605,7 +10634,7 @@ void Server::lssproto_MC_recv(int fl, int x1, int y1, int x2, int y2, int tileSu
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
 	//Injector& injector = Injector::getInstance();
 	//BB414 418118C 4181D3C
-	nowFloor = fl;
+	setFloor(fl);
 
 	QString strPal;
 
@@ -10674,7 +10703,7 @@ void Server::lssproto_M_recv(int fl, int x1, int y1, int x2, int y2, char* cdata
 	getStringToken(data, "|", 1, showString);
 	makeStringFromEscaped(showString);
 
-	nowFloor = fl;
+	setFloor(fl);
 
 	QString strPal;
 
@@ -10724,7 +10753,8 @@ void Server::lssproto_M_recv(int fl, int x1, int y1, int x2, int y2, char* cdata
 	{
 		if (nowFloor == fl)
 		{
-			redrawMap();
+			oldGx = -1;
+			oldGy = -1;
 			floorChangeFlag = false;
 			if (warpEffectStart)
 				warpEffectOk = true;
@@ -11511,7 +11541,6 @@ void Server::lssproto_S_recv(char* cdata)
 				if (checkAND(MenuToggleFlag, JOY_CTRL_M))
 					MapWmdFlagBak = 1;
 			}
-			resetPc();
 			warpEffectFlag = false;
 			warpEffectStart = true;
 		}
@@ -11521,15 +11550,54 @@ void Server::lssproto_S_recv(char* cdata)
 		maxy = getIntegerToken(data, "|", 3);
 		gx = getIntegerToken(data, "|", 4);
 		gy = getIntegerToken(data, "|", 5);
-		setMap(fl, QPoint(gx, gy));
-		//createMap(fl, maxx, maxy);
+		setFloor(fl);
+		setPoint(QPoint(gx, gy));
+
 		nowFloorGxSize = maxx;
 		nowFloorGySize = maxy;
-		//resetCharObj();
+
 		mapEmptyFlag = false;
 		nowEncountPercentage = minEncountPercentage;
 		nowEncountExtra = 0;
-		resetMap();
+
+		QPoint pos(nowX / GRID_SIZE, nowY / GRID_SIZE);
+		nowPoint = pos;
+		nextGx = pos.x();
+		nextGy = pos.y();
+		nowX = (float)pos.x() * GRID_SIZE;
+		nowY = (float)pos.y() * GRID_SIZE;
+		oldGx = -1;
+		oldGy = -1;
+		oldNextGx = -1;
+		oldNextGy = -1;
+		mapAreaX1 = pos.x() + MAP_TILE_GRID_X1;
+		mapAreaY1 = pos.y() + MAP_TILE_GRID_Y1;
+		mapAreaX2 = pos.x() + MAP_TILE_GRID_X2;
+		mapAreaY2 = pos.y() + MAP_TILE_GRID_Y2;
+
+		if (mapAreaX1 < 0)
+			mapAreaX1 = 0;
+		if (mapAreaY1 < 0)
+			mapAreaY1 = 0;
+		if (mapAreaX2 > nowFloorGxSize)
+			mapAreaX2 = nowFloorGxSize;
+		if (mapAreaY2 > nowFloorGySize)
+			mapAreaY2 = nowFloorGySize;
+
+		mapAreaWidth = mapAreaX2 - mapAreaX1;
+		mapAreaHeight = mapAreaY2 - mapAreaY1;
+		nowVx = 0;
+		nowVy = 0;
+		nowSpdRate = 1;
+		viewPointX = nowX;
+		viewPointY = nowY;
+		moveRouteCnt = 0;
+		moveRouteCnt2 = 0;
+		moveStackFlag = false;
+
+		mouseLeftPushTime = 0;
+		beforeMouseLeftPushTime = 0;
+
 		transmigrationEffectFlag = 0;
 #ifdef __SKYISLAND
 		extern void SkyIslandSetNo(int fl);
@@ -12856,8 +12924,6 @@ void Server::lssproto_S_recv(char* cdata)
 	}
 
 	setPC(pc);
-
-	updateComboBoxList();
 }
 
 //客戶端登入(進去選人畫面)

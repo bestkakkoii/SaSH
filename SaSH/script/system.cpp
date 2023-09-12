@@ -1267,6 +1267,7 @@ qint64 Interpreter::set(qint64 currentline, const TokenMap& TK)
 	case util::kLockTimeEnable:
 	case util::kLockPetEnable:
 	case util::kLockRideEnable:
+	case util::kBattleSkillMpEnable:
 	{
 		qint64 value = 0;
 		if (!checkInteger(TK, 2, &value))
@@ -1295,7 +1296,8 @@ qint64 Interpreter::set(qint64 currentline, const TokenMap& TK)
 			injector.setValueHash(util::kBattleCatchTargetMaxHpValue, value + 1);
 		else if (type == util::kBattleCatchPetSkillEnable && ok)
 			injector.setValueHash(util::kBattleCatchPetSkillValue, value);
-
+		else if (type == util::kBattleSkillMpEnable && ok)
+			injector.setValueHash(util::kBattleSkillMpValue, value + 1);
 		emit signalDispatcher.applyHashSettingsToUI();
 		return Parser::kNoChange;
 	}

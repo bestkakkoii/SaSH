@@ -1035,6 +1035,8 @@ qint64 CLuaSystem::set(std::string enumStr, sol::object p1, sol::object p2, sol:
 			injector.setValueHash(util::kBattleCatchTargetMaxHpValue, value + 1);
 		else if (type == util::kBattleCatchPetSkillEnable && ok)
 			injector.setValueHash(util::kBattleCatchPetSkillValue, value);
+		else if (type == util::kBattleSkillMpEnable && ok)
+			injector.setValueHash(util::kBattleSkillMpValue, value + 1);
 
 		emit signalDispatcher.applyHashSettingsToUI();
 		return TRUE;

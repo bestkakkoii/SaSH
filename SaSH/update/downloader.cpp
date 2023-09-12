@@ -22,8 +22,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 #include "util.h"
 
-#include <cpr/cpr.h>
-
 //Qt Private
 #include <QtGui/private/qzipreader_p.h>
 #include <QtGui/private/qzipwriter_p.h>
@@ -409,7 +407,8 @@ void CreateAndRunBat(const QString& path, const QString& data)
 	if (file.open(QIODevice::WriteOnly | QIODevice::Text | QIODevice::Truncate))
 	{
 		QTextStream out(&file);
-		out.setCodec("UTF-8");
+		out.setCodec(util::DEFAULT_CODEPAGE);
+		out.setGenerateByteOrderMark(true);
 		out << data;
 		file.flush();
 		file.close();

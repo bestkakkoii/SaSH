@@ -993,6 +993,8 @@ namespace util
 
 	bool enumAllFiles(const QString dir, const QString suffix, QVector<QPair<QString, QString>>* result);
 
+	void searchFiles(const QString& dir, const QString& fileNamePart, const QString& suffixWithDot, QList<QString>* result);
+
 	template<typename T>
 	QList<T*> findWidgets(QWidget* widget)
 	{
@@ -2101,6 +2103,7 @@ namespace util
 		{
 			QTextStream in(&f);
 			in.setCodec(util::DEFAULT_CODEPAGE);
+			in.setGenerateByteOrderMark(true);
 			c = in.readAll();
 			c.replace("\r\n", "\n");
 			if (isPrivate != nullptr)
@@ -2118,7 +2121,7 @@ namespace util
 #else
 			return false;
 #endif
-		}
+	}
 
 		if (pcontent != nullptr)
 		{
@@ -2127,7 +2130,7 @@ namespace util
 		}
 
 		return false;
-	}
+}
 
 	void sortWindows(const QVector<HWND>& windowList, bool alignLeft);
 

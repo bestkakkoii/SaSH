@@ -81,15 +81,14 @@ AfkForm::AfkForm(QWidget* parent)
 	}
 	onResetControlTextLanguage();
 
+	Injector& injector = Injector::getInstance();
+	if (!injector.server.isNull())
+		injector.server->updateComboBoxList();
 
 	util::FormSettingManager formSettingManager(this);
 	formSettingManager.loadSettings();
 
 	emit signalDispatcher.applyHashSettingsToUI();
-
-	Injector& injector = Injector::getInstance();
-	if (!injector.server.isNull())
-		injector.server->updateComboBoxList();
 }
 
 AfkForm::~AfkForm()
@@ -735,19 +734,14 @@ void AfkForm::onComboBoxClicked()
 	ComboBox* pComboBox = qobject_cast<ComboBox*>(sender());
 	if (!pComboBox)
 	{
-		pComboBox->setDisableFocusCheck(false);
 		return;
 	}
 
 	QString name = pComboBox->objectName();
 	if (name.isEmpty())
 	{
-		pComboBox->setDisableFocusCheck(false);
 		return;
 	}
-
-	Injector& injector = Injector::getInstance();
-
 
 	util::UserSetting settingType = util::kSettingNotUsed;
 
@@ -789,24 +783,23 @@ void AfkForm::onComboBoxClicked()
 		}
 	} while (false);
 
-	if (settingType == util::kSettingNotUsed)
-	{
-		pComboBox->setDisableFocusCheck(false);
+	Injector& injector = Injector::getInstance();
+	if (injector.server.isNull())
 		return;
+
+	if (name.contains("item"))
+	{
+		QString currentText = pComboBox->currentText();
+		pComboBox->clear();
+		QStringList itemList = injector.getUserData(util::kUserItemNames).toStringList();
+		itemList.prepend(currentText);
+		itemList.removeDuplicates();
+		pComboBox->addItems(itemList);
 	}
-
-	QString currentText = pComboBox->currentText();
-	pComboBox->clear();
-	QStringList itemList = injector.getUserData(util::kUserItemNames).toStringList();
-	itemList.prepend(currentText);
-	//清除重複
-	itemList.removeDuplicates();
-	pComboBox->addItems(itemList);
-
-
-	pComboBox->setDisableFocusCheck(false);
-
-
+	else
+	{
+		injector.server->updateComboBoxList();
+	}
 }
 
 void AfkForm::onComboBoxTextChanged(const QString& text)
@@ -940,6 +933,18 @@ void AfkForm::onResetControlTextLanguage()
 			int index = combo->count() - 1;
 			combo->setItemData(index, QString("%1").arg(actionList[i]), Qt::ToolTipRole);
 		}
+
+		if (notBattle)
+			return;
+
+		for (int i = 0; i < MAX_PROFESSION_SKILL; ++i)
+		{
+			QString text = QString("%1:").arg(i + 1);
+			combo->addItem(text);
+			int index = combo->count() - 1;
+			combo->setItemData(index, text, Qt::ToolTipRole);
+		}
+
 	};
 
 	auto appendNumbers = [](QComboBox* combo, int max)->void
@@ -973,8 +978,8 @@ void AfkForm::onResetControlTextLanguage()
 	appendCharAction(ui.comboBox_roundaction_char_action);
 	appendCharAction(ui.comboBox_crossaction_char_action);
 	appendCharAction(ui.comboBox_normalaction_char_action);
-	appendCharAction(ui.comboBox_magicheal, true);
-	appendCharAction(ui.comboBox_magicrevive, true);
+	appendCharAction(ui.comboBox_magicheal, false);
+	appendCharAction(ui.comboBox_magicrevive, false);
 
 	appendCharAction(ui.comboBox_magicheal_normal, true);
 	for (int i = CHAR_EQUIPPLACENUM; i < MAX_ITEM; ++i)
@@ -1065,6 +1070,8 @@ void AfkForm::onApplyHashSettingsToUI()
 	ui.comboBox_magicheal->setCurrentIndex(injector.getValueHash(util::kBattleMagicHealMagicValue));
 	ui.comboBox_magicrevive->setCurrentIndex(injector.getValueHash(util::kBattleMagicReviveMagicValue));
 
+	ui.checkBox_skillMp->setChecked(injector.getEnableHash(util::kBattleSkillMpEnable));
+
 	ui.comboBox_itemheal->setCurrentText(injector.getStringHash(util::kBattleItemHealItemString));
 	ui.comboBox_itemhealmp->setCurrentText(injector.getStringHash(util::kBattleItemHealMpItemString));
 	ui.comboBox_itemrevive->setCurrentText(injector.getStringHash(util::kBattleItemReviveItemString));
@@ -1083,6 +1090,7 @@ void AfkForm::onApplyHashSettingsToUI()
 	ui.spinBox_itemhealmp->setValue(injector.getValueHash(util::kBattleItemHealMpValue));
 	ui.spinBox_skillMp->setValue(injector.getValueHash(util::kBattleSkillMpValue));
 
+	ui.comboBox_magicheal_normal->setCurrentIndex(injector.getValueHash(util::kNormalMagicHealMagicValue));
 	ui.spinBox_magicheal_normal_char->setValue(injector.getValueHash(util::kNormalMagicHealCharValue));
 	ui.spinBox_magicheal_normal_pet->setValue(injector.getValueHash(util::kNormalMagicHealPetValue));
 	ui.spinBox_magicheal_normal_allie->setValue(injector.getValueHash(util::kNormalMagicHealAllieValue));
@@ -1170,9 +1178,9 @@ void AfkForm::onUpdateComboBoxItemText(int type, const QStringList& textList)
 			combo->setItemData(index, text, Qt::ToolTipRole);
 		}
 
+		combo->setCurrentIndex(nOriginalIndex);
 		combo->setUpdatesEnabled(true);
 		combo->blockSignals(false);
-		combo->setCurrentIndex(nOriginalIndex);
 	};
 
 	switch (type)
@@ -1193,6 +1201,7 @@ void AfkForm::onUpdateComboBoxItemText(int type, const QStringList& textList)
 			int nOriginalIndex = combo->currentIndex();
 			combo->clear();
 			int size = actionList.size();
+			int n = 0;
 			for (int i = 0; i < size; ++i)
 			{
 				QString text;
@@ -1211,6 +1220,7 @@ void AfkForm::onUpdateComboBoxItemText(int type, const QStringList& textList)
 
 				int index = combo->count() - 1;
 				combo->setItemData(index, text, Qt::ToolTipRole);
+				++n;
 			}
 
 			int textListSize = textList.size();
@@ -1220,6 +1230,7 @@ void AfkForm::onUpdateComboBoxItemText(int type, const QStringList& textList)
 					continue;
 
 				combo->addItem(QString("%1:%2").arg(i - size + 4).arg(textList[i]));
+				++n;
 			}
 
 			Injector& injector = Injector::getInstance();
@@ -1236,14 +1247,15 @@ void AfkForm::onUpdateComboBoxItemText(int type, const QStringList& textList)
 				}
 			}
 
+			combo->setCurrentIndex(nOriginalIndex);
 			combo->setUpdatesEnabled(true);
 			combo->blockSignals(false);
-			combo->setCurrentIndex(nOriginalIndex);
 		};
 
 		auto appendProfText = [&actionList, &textList](QComboBox* combo, bool notBattle = false)->void
 		{
 			combo->blockSignals(true);
+			combo->setUpdatesEnabled(false);
 			int nOriginalIndex = combo->currentIndex();
 			combo->clear();
 
@@ -1253,8 +1265,9 @@ void AfkForm::onUpdateComboBoxItemText(int type, const QStringList& textList)
 				combo->addItem(QString("%1:%2").arg(i - CHAR_EQUIPPLACENUM + 1).arg(textList[i]));
 			}
 
-			combo->blockSignals(false);
 			combo->setCurrentIndex(nOriginalIndex);
+			combo->setUpdatesEnabled(true);
+			combo->blockSignals(false);
 		};
 
 		//battle
