@@ -219,7 +219,7 @@ bool MainForm::nativeEvent(const QByteArray&, void* message, long* result)
 	{
 		if (!injector.server.isNull())
 		{
-			injector.server->IS_TCP_CONNECTION_OK_TO_USE.store(true, std::memory_order_release);
+			injector.server->IS_REMOTE_TCP_CLIENT_READY.store(true, std::memory_order_release);
 			qDebug() << "tcp ok";
 		}
 		return true;
@@ -335,7 +335,7 @@ bool MainForm::nativeEvent(const QByteArray&, void* message, long* result)
 		if (injector.server.isNull())
 			return true;
 
-		bool ok = injector.server->IS_TCP_CONNECTION_OK_TO_USE.load(std::memory_order_acquire);
+		bool ok = injector.server->IS_REMOTE_TCP_CLIENT_READY.load(std::memory_order_acquire);
 		if (!ok)
 			return true;
 		else

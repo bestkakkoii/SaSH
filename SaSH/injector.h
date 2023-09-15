@@ -96,7 +96,7 @@ public:
 
 	Q_REQUIRED_RESULT inline DWORD getProcessId() const { return pi_.dwProcessId; }
 
-	Q_REQUIRED_RESULT inline int getProcessModule() const { return hModule_; }
+	Q_REQUIRED_RESULT inline quint64 getProcessModule() const { return hModule_; }
 
 	Q_REQUIRED_RESULT inline bool isValid() const { return hModule_ != NULL && pi_.dwProcessId != NULL && pi_.hWnd != nullptr && processHandle_.isValid(); }
 
@@ -171,20 +171,34 @@ private:
 
 	static BOOL CALLBACK EnumWindowsCallback(HWND handle, LPARAM lParam)
 	{
-		lpprocess_information_t data = reinterpret_cast<lpprocess_information_t>(lParam);
-		DWORD dwProcessId = 0;
 		do
 		{
-			if (!handle || !lParam || reinterpret_cast<quint64>(handle) == qgetenv("SASH_HWND").toULongLong())
+			if (handle == nullptr)
 				break;
 
+			if (lParam == NULL)
+				break;
+
+			if (reinterpret_cast<quint64>(handle) == qgetenv("SASH_HWND").toULongLong())
+				break;
+
+			DWORD dwProcessId = 0;
 			::GetWindowThreadProcessId(handle, &dwProcessId);
-			if (data->dwProcessId == dwProcessId && IsWindowVisible(handle) && !IsConsoleWindow(handle))
-			{
-				data->hWnd = handle;
-				return FALSE;
-			}
+
+			lpprocess_information_t data = reinterpret_cast<lpprocess_information_t>(lParam);
+			if (!IsWindowVisible(handle))
+				break;
+
+			if (IsConsoleWindow(handle))
+				break;
+
+			if (data->dwProcessId != dwProcessId)
+				break;
+
+			data->hWnd = handle;
+			return FALSE;
 		} while (false);
+
 		return TRUE;
 	}
 
@@ -215,7 +229,7 @@ public:
 	std::atomic_bool isScriptDebugModeEnable = true;
 
 private:
-	int hModule_ = NULL;
+	quint64 hModule_ = NULL;
 	HMODULE hookdllModule_ = NULL;
 	process_information_t pi_ = {};
 	ScopedHandle processHandle_;

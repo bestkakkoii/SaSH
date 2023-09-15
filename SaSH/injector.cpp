@@ -23,7 +23,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 Injector* Injector::instance = nullptr;
 
 constexpr const char* InjectDllName = "sadll.dll";
-constexpr int MessageTimeout = 10000;
+constexpr int MessageTimeout = 15000;
 
 inline __declspec(naked) DWORD* getKernel32()
 {
@@ -269,12 +269,12 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 		return false;
 	}
 
-	constexpr qint64 MAX_TIMEOUT = 15000;
+	constexpr qint64 MAX_TIMEOUT = 30000;
 	bool bret = 0;
 	QElapsedTimer timer;
 	DWORD* kernel32Module = nullptr;
 	FARPROC loadLibraryProc = nullptr;
-	DWORD hModule = NULL;
+	HMODULE hModule = nullptr;
 	QString dllPath = "\0";
 	QFileInfo fi;
 	QString fileNameOnly;
@@ -290,13 +290,13 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 
 		qDebug() << "file OK";
 
-		pi.hWnd = NULL;
+		pi.hWnd = nullptr;
 
 		timer.start();
 
 		if (nullptr == pi.hWnd)
 		{
-			for (;;)//超過N秒自動退出
+			for (;;)
 			{
 				::EnumWindows(EnumWindowsCallback, reinterpret_cast<LPARAM>(&pi));
 				if (pi.hWnd)
@@ -306,8 +306,13 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 					if (dwProcessId == pi.dwProcessId)
 						break;
 				}
+
 				if (timer.hasExpired(MAX_TIMEOUT))
+				{
+					emit signalDispatcher.messageBoxShow(tr("EnumWindows timeout"));
 					break;
+				}
+
 				QThread::msleep(100);
 			}
 		}
@@ -315,7 +320,6 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 		if (nullptr == pi.hWnd)
 		{
 			*pReason = util::REASON_ENUM_WINDOWS_FAIL;
-			emit signalDispatcher.messageBoxShow(tr("EnumWindows fail"));
 			break;
 		}
 
@@ -325,10 +329,6 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 
 		if (skip)
 			break;
-
-		//去除改變窗口大小的屬性
-		::SetWindowLongW(pi.hWnd, GWL_STYLE, WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX | WS_VISIBLE);
-		::SetWindowLongW(pi.hWnd, GWL_EXSTYLE, WS_EX_OVERLAPPEDWINDOW);
 
 		pi.dwThreadId = ::GetWindowThreadProcessId(pi.hWnd, nullptr);
 
@@ -359,42 +359,55 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 			processHandle_.reset(pi.dwProcessId);
 
 		const util::VirtualMemory lpParameter(processHandle_, dllPath, util::VirtualMemory::kUnicode, true);
-		if (NULL == lpParameter)
+		if (!lpParameter.isValid())
 		{
 			*pReason = util::REASON_VIRTUAL_ALLOC_FAIL;
 			emit signalDispatcher.messageBoxShow(tr("VirtualAllocEx fail"));
 			break;
 		}
 
+		//創建遠程線程調用LoadLibrary 
 		ScopedHandle hThreadHandle(ScopedHandle::CREATE_REMOTE_THREAD, processHandle_,
 			reinterpret_cast<PVOID>(loadLibraryProc),
 			reinterpret_cast<LPVOID>(static_cast<quint64>(lpParameter)));
-		if (hThreadHandle.isValid())
-		{
-			timer.restart();
-			for (;;)
-			{
-				hModule = mem::getRemoteModuleHandle(pi.dwProcessId, fileNameOnly);
-				if (hModule)
-					break;
-
-				if (timer.hasExpired(MAX_TIMEOUT))
-					break;
-
-				if (timer.hasExpired(10000) && !IsWindow(pi.hWnd))
-					break;
-
-				if (SendMessageTimeoutW(pi.hWnd, WM_NULL, 0, 0, SMTO_ABORTIFHUNG | SMTO_ERRORONEXIT, MessageTimeout, nullptr) <= 0)
-					break;
-
-				QThread::msleep(100);
-			}
-		}
-
-		if (NULL == hModule)
+		if (!hThreadHandle.isValid())
 		{
 			*pReason = util::REASON_INJECT_LIBRARY_FAIL;
-			emit signalDispatcher.messageBoxShow(tr("Inject library fail"));
+			emit signalDispatcher.messageBoxShow(tr("CreateRemoteThread fail"));
+			break;
+		}
+
+		timer.restart();
+		for (;;)
+		{
+			hModule = reinterpret_cast<HMODULE>(mem::getRemoteModuleHandle(pi.dwProcessId, fileNameOnly));
+			if (hModule != nullptr)
+				break;
+
+			if (timer.hasExpired(5000))
+			{
+				emit signalDispatcher.messageBoxShow(tr("timeout and unable to get remote module handle"));
+				break;
+			}
+
+			if (timer.hasExpired(2500) && !IsWindow(pi.hWnd))
+			{
+				emit signalDispatcher.messageBoxShow(tr("timeout and window disappear while get remote module handle"));
+				break;
+			}
+
+			if (SendMessageTimeoutW(pi.hWnd, WM_NULL, 0, 0, SMTO_ABORTIFHUNG | SMTO_ERRORONEXIT, MessageTimeout, nullptr) <= 0)
+			{
+				emit signalDispatcher.messageBoxShow(tr("SendMessageTimeoutW fail window is hung or exit while get remote module handle"));
+				break;
+			}
+
+			QThread::msleep(100);
+		}
+
+		if (nullptr == hModule)
+		{
+			*pReason = util::REASON_INJECT_LIBRARY_FAIL;
 			break;
 		}
 
@@ -402,22 +415,34 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 
 		pi_ = pi;
 		parent = qgetenv("SASH_HWND").toULongLong();
+		//通知客戶端初始化
 		sendMessage(kInitialize, port, parent);
 
+		//這裡如果能收到回傳消息代表Hook已經完成
 		timer.restart();
 		for (;;)
 		{
-			if ((hModule_ = sendMessage(kGetModule, NULL, NULL)) != NULL)
+			hModule_ = sendMessage(kGetModule, NULL, NULL);
+			if (hModule_ != NULL)
 				break;
 
-			if (timer.hasExpired(MAX_TIMEOUT))
+			if (timer.hasExpired(5000))
+			{
+				emit signalDispatcher.messageBoxShow(tr("timeout and unable to get remote execute module handle"));
 				break;
+			}
 
-			if (timer.hasExpired(10000) && !IsWindow(pi.hWnd))
+			if (timer.hasExpired(5000) && !IsWindow(pi.hWnd))
+			{
+				emit signalDispatcher.messageBoxShow(tr("timeout and window disappear while get remote execute module handle"));
 				break;
+			}
 
 			if (SendMessageTimeoutW(pi.hWnd, WM_NULL, 0, 0, SMTO_ABORTIFHUNG | SMTO_ERRORONEXIT, MessageTimeout, nullptr) <= 0)
+			{
+				emit signalDispatcher.messageBoxShow(tr("SendMessageTimeoutW fail window is hung or exit while get remote execute module handle"));
 				break;
+			}
 
 			QThread::msleep(100);
 		}
@@ -425,18 +450,23 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 		if (NULL == hModule_)
 		{
 			*pReason = util::REASON_INJECT_LIBRARY_FAIL;
-			emit signalDispatcher.messageBoxShow(tr("Unable to get remote module handle"));
 			break;
 		}
 
 		qDebug() << "module OK";
 
 		hookdllModule_ = reinterpret_cast<HMODULE>(hModule);
+
+		//去除改變窗口大小的屬性
+		::SetWindowLongW(pi.hWnd, GWL_STYLE, WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX | WS_VISIBLE);
+		::SetWindowLongW(pi.hWnd, GWL_EXSTYLE, WS_EX_OVERLAPPEDWINDOW);
+
 		bret = true;
 	} while (false);
 
 	if (!bret)
-		pi_ = { 0 };
+		pi_ = {};
+
 	return bret;
 }
 

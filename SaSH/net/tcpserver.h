@@ -818,7 +818,7 @@ public:
 
 	bool IS_DISCONNECTED = false;
 
-	std::atomic_bool IS_TCP_CONNECTION_OK_TO_USE = false;
+	std::atomic_bool IS_REMOTE_TCP_CLIENT_READY = false;
 
 	bool IS_WAITFOR_JOBDAILY_FLAG = false;
 	bool IS_WAITFOR_BANK_FLAG = false;

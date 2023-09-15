@@ -88,7 +88,7 @@ namespace mem
 	Q_REQUIRED_RESULT int virtualAlloc(HANDLE hProcess, int size);
 	Q_REQUIRED_RESULT int virtualAllocW(HANDLE hProcess, const QString& str);
 	Q_REQUIRED_RESULT int virtualAllocA(HANDLE hProcess, const QString& str);
-	Q_REQUIRED_RESULT DWORD getRemoteModuleHandle(DWORD dwProcessId, const QString& moduleName);
+	Q_REQUIRED_RESULT quint64 getRemoteModuleHandle(DWORD dwProcessId, const QString& moduleName);
 	void freeUnuseMemory(HANDLE hProcess);
 }
 
@@ -2121,7 +2121,7 @@ namespace util
 #else
 			return false;
 #endif
-	}
+		}
 
 		if (pcontent != nullptr)
 		{
@@ -2130,7 +2130,7 @@ namespace util
 		}
 
 		return false;
-}
+	}
 
 	void sortWindows(const QVector<HWND>& windowList, bool alignLeft);
 
