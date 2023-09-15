@@ -62,7 +62,7 @@ private:
 
 	QString Sha3_512(const QString& fileNamePath) const;
 
-	void Downloader::downloadAndExtractZip(const QString& url, const QString& targetDir);
+	void downloadAndExtractZip(const QString& url, const QString& targetDir);
 
 private:
 	Ui::DownloaderClass ui;

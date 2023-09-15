@@ -29,12 +29,6 @@ class Interpreter : public ThreadPlugin
 {
 	Q_OBJECT
 public:
-	enum RunFileMode
-	{
-		kSync,
-		kAsync,
-	};
-
 	enum VarShareMode
 	{
 		kNotShare,
@@ -53,11 +47,13 @@ public:
 
 	void doFileWithThread(qint64 beginLine, const QString& fileName);
 
-	bool doFile(qint64 beginLine, const QString& fileName, Interpreter* parent, VarShareMode shareMode, RunFileMode noShow = kSync);
+	bool doFile(qint64 beginLine, const QString& fileName, Interpreter* parent, VarShareMode shareMode, Parser::Mode noShow = Parser::kSync);
 
 	void stop();
 
 	inline void setSubScript(bool is) { parser_.setSubScript(is); }
+
+	inline void setMode(Parser::Mode mode) { parser_.setMode(mode); }
 
 	Q_REQUIRED_RESULT inline bool isSubScript() const { return parser_.isSubScript(); }
 
@@ -210,8 +206,6 @@ private: //註冊給Parser的函數
 	qint64 upper(qint64 currentline, const TokenMap& TK);
 	qint64 lower(qint64 currentline, const TokenMap& TK);
 	qint64 replace(qint64 currentline, const TokenMap& TK);
-	qint64 toint(qint64 currentline, const TokenMap& TK);
-	qint64 tostr(qint64 currentline, const TokenMap& TK);
 	//qint64 todb(qint64 currentline, const TokenMap& TK);
 
 	//battle

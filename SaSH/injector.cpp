@@ -22,8 +22,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 Injector* Injector::instance = nullptr;
 
-constexpr const char* InjectDllName = u8"sadll.dll";
-constexpr int MessageTimeout = 3000;
+constexpr const char* InjectDllName = "sadll.dll";
+constexpr int MessageTimeout = 10000;
 
 inline __declspec(naked) DWORD* getKernel32()
 {
@@ -179,10 +179,8 @@ bool Injector::createProcess(Injector::process_information_t& pi)
 	process.setArguments(commandList);
 	process.setProgram(path);
 	process.setWorkingDirectory(QFileInfo(path).absolutePath());
-
-	if (process.startDetached(&pid) && pid)
+	if (process.startDetached(&pid) && pid != 0)
 	{
-
 		pi.dwProcessId = pid;
 		if (canSave)
 		{
@@ -202,17 +200,16 @@ bool Injector::createProcess(Injector::process_information_t& pi)
 	return false;
 }
 
-int Injector::sendMessage(int msg, int wParam, int lParam) const
+quint64 Injector::sendMessage(quint64 msg, quint64 wParam, qint64 lParam) const
 {
 	if (msg == WM_NULL)
 		return 0;
-
 	DWORD dwResult = 0L;
 	SendMessageTimeoutW(pi_.hWnd, msg, wParam, lParam, SMTO_ABORTIFHUNG | SMTO_ERRORONEXIT, MessageTimeout, &dwResult);
 	return static_cast<int>(dwResult);
 }
 
-bool Injector::postMessage(int msg, int wParam, int lParam) const
+bool Injector::postMessage(quint64 msg, quint64 wParam, qint64 lParam) const
 {
 	if (msg < 0) return false;
 	BOOL ret = PostMessageW(pi_.hWnd, msg, wParam, lParam);
@@ -258,13 +255,21 @@ DWORD WINAPI Injector::getFunAddr(const DWORD* DllBase, const char* FunName)
 
 bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short port, util::LPREMOVE_THREAD_REASON pReason)
 {
+	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
+
 	if (!pi.dwProcessId)
+	{
+		emit signalDispatcher.messageBoxShow(tr("dwProcessId is null!"));
 		return false;
+	}
 
 	if (nullptr == pReason)
+	{
+		emit signalDispatcher.messageBoxShow(tr("pReason is null!"));
 		return false;
+	}
 
-	constexpr qint64 MAX_TIMEOUT = 10000;
+	constexpr qint64 MAX_TIMEOUT = 15000;
 	bool bret = 0;
 	QElapsedTimer timer;
 	DWORD* kernel32Module = nullptr;
@@ -273,7 +278,7 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 	QString dllPath = "\0";
 	QFileInfo fi;
 	QString fileNameOnly;
-	DWORD parent = NULL;
+	qint64 parent = NULL;
 
 	do
 	{
@@ -282,14 +287,6 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 
 		fi.setFile(dllPath);
 		fileNameOnly = fi.fileName();
-
-		//檢查dll生成日期必須與當前exe相同日或更早
-		QFileInfo exeInfo(applicationDirPath);
-
-		if (fi.exists() && fi.lastModified() > exeInfo.lastModified())
-		{
-			break;
-		}
 
 		qDebug() << "file OK";
 
@@ -318,6 +315,7 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 		if (nullptr == pi.hWnd)
 		{
 			*pReason = util::REASON_ENUM_WINDOWS_FAIL;
+			emit signalDispatcher.messageBoxShow(tr("EnumWindows fail"));
 			break;
 		}
 
@@ -329,38 +327,31 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 			break;
 
 		//去除改變窗口大小的屬性
-		LONG dwStyle = ::GetWindowLongW(pi.hWnd, GWL_STYLE);
-		LONG tempStyle = dwStyle;
-
-		if (dwStyle & WS_SIZEBOX)
-			dwStyle &= ~WS_SIZEBOX;
-
-		if (dwStyle & WS_MAXIMIZEBOX)
-			dwStyle &= ~WS_MAXIMIZEBOX;
-
-		if (tempStyle != dwStyle)
-			::SetWindowLongW(pi.hWnd, GWL_STYLE, dwStyle);
+		::SetWindowLongW(pi.hWnd, GWL_STYLE, WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX | WS_VISIBLE);
+		::SetWindowLongW(pi.hWnd, GWL_EXSTYLE, WS_EX_OVERLAPPEDWINDOW);
 
 		pi.dwThreadId = ::GetWindowThreadProcessId(pi.hWnd, nullptr);
 
-
-		kernel32Module = getKernel32();//::GetModuleHandleW(L"kernel32.dll");
+		kernel32Module = getKernel32();
 		if (nullptr == kernel32Module)
 		{
 			*pReason = util::REASON_GET_KERNEL32_FAIL;
+			emit signalDispatcher.messageBoxShow(tr("Get kernel32 module handle fail"));
 			break;
 		}
 
-		loadLibraryProc = reinterpret_cast<FARPROC>(getFunAddr(kernel32Module, u8"LoadLibraryW"));
+		loadLibraryProc = reinterpret_cast<FARPROC>(getFunAddr(kernel32Module, "LoadLibraryW"));
 		if (nullptr == loadLibraryProc)
 		{
 			*pReason = util::REASON_GET_KERNEL32_UNDOCUMENT_API_FAIL;
+			emit signalDispatcher.messageBoxShow(tr("Get LoadLibraryW address fail"));
 			break;
 		}
 
 		if (!isHandleValid(pi.dwProcessId))
 		{
 			*pReason = util::REASON_OPEN_PROCESS_FAIL;
+			emit signalDispatcher.messageBoxShow(tr("OpenProcess fail"));
 			break;
 		}
 
@@ -371,12 +362,13 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 		if (NULL == lpParameter)
 		{
 			*pReason = util::REASON_VIRTUAL_ALLOC_FAIL;
+			emit signalDispatcher.messageBoxShow(tr("VirtualAllocEx fail"));
 			break;
 		}
 
 		ScopedHandle hThreadHandle(ScopedHandle::CREATE_REMOTE_THREAD, processHandle_,
 			reinterpret_cast<PVOID>(loadLibraryProc),
-			reinterpret_cast<LPVOID>(static_cast<DWORD>(lpParameter)));
+			reinterpret_cast<LPVOID>(static_cast<quint64>(lpParameter)));
 		if (hThreadHandle.isValid())
 		{
 			timer.restart();
@@ -389,7 +381,7 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 				if (timer.hasExpired(MAX_TIMEOUT))
 					break;
 
-				if (!IsWindow(pi.hWnd))
+				if (timer.hasExpired(10000) && !IsWindow(pi.hWnd))
 					break;
 
 				if (SendMessageTimeoutW(pi.hWnd, WM_NULL, 0, 0, SMTO_ABORTIFHUNG | SMTO_ERRORONEXIT, MessageTimeout, nullptr) <= 0)
@@ -402,13 +394,14 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 		if (NULL == hModule)
 		{
 			*pReason = util::REASON_INJECT_LIBRARY_FAIL;
+			emit signalDispatcher.messageBoxShow(tr("Inject library fail"));
 			break;
 		}
 
 		qDebug() << "inject OK";
 
 		pi_ = pi;
-		parent = qgetenv("SASH_HWND").toULong();
+		parent = qgetenv("SASH_HWND").toULongLong();
 		sendMessage(kInitialize, port, parent);
 
 		timer.restart();
@@ -420,10 +413,10 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 			if (timer.hasExpired(MAX_TIMEOUT))
 				break;
 
-			if (!IsWindow(pi.hWnd))
+			if (timer.hasExpired(10000) && !IsWindow(pi.hWnd))
 				break;
 
-			if (sendMessage(WM_NULL, 0, 0) == 0)
+			if (SendMessageTimeoutW(pi.hWnd, WM_NULL, 0, 0, SMTO_ABORTIFHUNG | SMTO_ERRORONEXIT, MessageTimeout, nullptr) <= 0)
 				break;
 
 			QThread::msleep(100);
@@ -432,6 +425,7 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 		if (NULL == hModule_)
 		{
 			*pReason = util::REASON_INJECT_LIBRARY_FAIL;
+			emit signalDispatcher.messageBoxShow(tr("Unable to get remote module handle"));
 			break;
 		}
 
@@ -454,7 +448,7 @@ void Injector::remoteFreeModule()
 	sendMessage(kUninitialize, NULL, NULL);
 	DWORD* kernel32Module = getKernel32();//::GetModuleHandleW(L"kernel32.dll");
 	if (kernel32Module == nullptr) return;
-	FARPROC freeLibraryProc = reinterpret_cast<FARPROC>(getFunAddr(kernel32Module, u8"FreeLibrary"));
+	FARPROC freeLibraryProc = reinterpret_cast<FARPROC>(getFunAddr(kernel32Module, "FreeLibrary"));
 
 	const util::VirtualMemory lpParameter(processHandle_, sizeof(int), true);
 	if (NULL == lpParameter)
@@ -518,6 +512,8 @@ bool Injector::isWindowAlive() const
 void Injector::mouseMove(int x, int y) const
 {
 	LPARAM data = MAKELPARAM(x, y);
+	SetWindowPos(pi_.hWnd, HWND_TOP, 0, 0, 0, 0, SWP_ASYNCWINDOWPOS | SWP_NOMOVE | SWP_NOSIZE);
+	sendMessage(WM_ACTIVATE, MAKEWPARAM(WA_ACTIVE, 0), NULL);
 	sendMessage(WM_MOUSEMOVE, NULL, data);
 }
 
@@ -525,7 +521,7 @@ void Injector::mouseMove(int x, int y) const
 void Injector::leftClick(int x, int y) const
 {
 	LPARAM data = MAKELPARAM(x, y);
-	sendMessage(WM_MOUSEMOVE, NULL, data);
+	mouseMove(x, y);
 	QThread::msleep(50);
 	sendMessage(WM_LBUTTONDOWN, MK_LBUTTON, data);
 	QThread::msleep(50);
@@ -536,7 +532,7 @@ void Injector::leftClick(int x, int y) const
 void Injector::leftDoubleClick(int x, int y) const
 {
 	LPARAM data = MAKELPARAM(x, y);
-	sendMessage(WM_MOUSEMOVE, NULL, data);
+	mouseMove(x, y);
 	QThread::msleep(50);
 	sendMessage(WM_LBUTTONDBLCLK, MK_LBUTTON, data);
 	QThread::msleep(50);
@@ -545,7 +541,7 @@ void Injector::leftDoubleClick(int x, int y) const
 void Injector::rightClick(int x, int y) const
 {
 	LPARAM data = MAKELPARAM(x, y);
-	sendMessage(WM_MOUSEMOVE, NULL, data);
+	mouseMove(x, y);
 	QThread::msleep(50);
 	sendMessage(WM_RBUTTONDOWN, MK_RBUTTON, data);
 	QThread::msleep(50);
@@ -557,11 +553,11 @@ void Injector::dragto(int x1, int y1, int x2, int y2) const
 {
 	LPARAM datafrom = MAKELPARAM(x1, y1);
 	LPARAM datato = MAKELPARAM(x2, y2);
-	sendMessage(WM_MOUSEMOVE, NULL, datafrom);
+	mouseMove(x1, y1);
 	QThread::msleep(50);
 	sendMessage(WM_LBUTTONDOWN, MK_LBUTTON, datafrom);
 	QThread::msleep(50);
-	sendMessage(WM_MOUSEMOVE, NULL, datato);
+	mouseMove(x2, y2);
 	QThread::msleep(50);
 	sendMessage(WM_LBUTTONUP, MK_LBUTTON, datato);
 	QThread::msleep(50);
@@ -601,6 +597,7 @@ void Injector::hide(int mode)
 	//添加透明化屬性
 	if (!(exstyle & WS_EX_LAYERED))
 		exstyle |= WS_EX_LAYERED;
+
 	SetWindowLongPtr(hWnd, GWL_EXSTYLE, exstyle);
 
 	//設置透明度

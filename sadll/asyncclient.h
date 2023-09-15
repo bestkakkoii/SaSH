@@ -22,8 +22,12 @@ public:
 		WSADATA data;
 		if (WSAStartup(MAKEWORD(2, 2), &data) != 0)
 		{
+			lastError_ = WSAGetLastError();
 #ifdef _DEBUG
 			std::cout << "WSAStartup failed with error: " << WSAGetLastError() << std::endl;
+#else
+			std::wstring error = GetLastError() + L" (@" + std::to_wstring(__LINE__) + L")";
+			MessageBox(nullptr, error.c_str(), L"Error", MB_OK | MB_ICONERROR);
 #endif
 			return;
 		}
@@ -32,8 +36,12 @@ public:
 		completionPort_ = CreateIoCompletionPort(INVALID_HANDLE_VALUE, nullptr, 0, 0);
 		if (completionPort_ == nullptr)
 		{
+			lastError_ = ::GetLastError();
 #ifdef _DEBUG
 			std::wcout << L"CreateIoCompletionPort failed with error: " << GetLastError() << std::endl;
+#else
+			std::wstring error = GetLastError() + L" (@" + std::to_wstring(__LINE__) + L")";
+			MessageBox(nullptr, error.c_str(), L"Error", MB_OK | MB_ICONERROR);
 #endif
 			WSACleanup();
 			return;
@@ -59,8 +67,12 @@ public:
 		clientSocket_ = WSASocket(AF_INET6, SOCK_STREAM, 0, nullptr, 0, WSA_FLAG_OVERLAPPED);
 		if (clientSocket_ == INVALID_SOCKET)
 		{
+			lastError_ = WSAGetLastError();
 #ifdef _DEBUG
 			std::cout << "WSASocket failed with error: " << WSAGetLastError() << std::endl;
+#else
+			std::wstring error = GetLastError() + L" (@" + std::to_wstring(__LINE__) + L")";
+			MessageBox(nullptr, error.c_str(), L"Error", MB_OK | MB_ICONERROR);
 #endif
 			return false;
 		}
@@ -71,8 +83,12 @@ public:
 
 		if (inet_pton(AF_INET6, serverIP.c_str(), &(serverAddr.sin6_addr)) <= 0)
 		{
+			lastError_ = WSAGetLastError();
 #ifdef _DEBUG
 			std::cout << "inet_pton failed. Error Code : " << WSAGetLastError() << std::endl;
+#else
+			std::wstring error = GetLastError() + L" (@" + std::to_wstring(__LINE__) + L")";
+			MessageBox(nullptr, error.c_str(), L"Error", MB_OK | MB_ICONERROR);
 #endif
 			g_GameService.pclosesocket(clientSocket_);
 			return false;
@@ -80,10 +96,14 @@ public:
 
 		if (g_GameService.pconnect(clientSocket_, reinterpret_cast<sockaddr*>(&serverAddr), sizeof(serverAddr)) != 0)
 		{
-			if (WSAGetLastError() != WSAEWOULDBLOCK)
+			lastError_ = WSAGetLastError();
+			if (lastError_ != WSAEWOULDBLOCK)
 			{
 #ifdef _DEBUG
 				std::cout << "connect failed. Error Code : " << WSAGetLastError() << std::endl;
+#else
+				std::wstring error = GetLastError() + L" (@" + std::to_wstring(__LINE__) + L")";
+				MessageBox(nullptr, error.c_str(), L"Error", MB_OK | MB_ICONERROR);
 #endif
 				g_GameService.pclosesocket(clientSocket_);
 				return false;
@@ -93,8 +113,12 @@ public:
 		// Associate the socket with the completion port
 		if (CreateIoCompletionPort(reinterpret_cast<HANDLE>(clientSocket_), completionPort_, 0, 0) == nullptr)
 		{
+			lastError_ = ::GetLastError();
 #ifdef _DEBUG
 			std::wcout << L"CreateIoCompletionPort failed with error: " << GetLastError() << std::endl;
+#else
+			std::wstring error = GetLastError() + L" (@" + std::to_wstring(__LINE__) + L")";
+			MessageBox(nullptr, error.c_str(), L"Error", MB_OK | MB_ICONERROR);
 #endif
 			g_GameService.pclosesocket(clientSocket_);
 			return false;
@@ -115,8 +139,12 @@ public:
 		completionThread_ = CreateThread(nullptr, 0, CompletionThreadProc, this, 0, &threadId);
 		if (completionThread_ == nullptr)
 		{
+			lastError_ = ::GetLastError();
 #ifdef _DEBUG
 			std::wcout << L"CreateThread failed with error: " << GetLastError() << std::endl;
+#else
+			std::wstring error = GetLastError() + L" (@" + std::to_wstring(__LINE__) + L")";
+			MessageBox(nullptr, error.c_str(), L"Error", MB_OK | MB_ICONERROR);
 #endif
 			return;
 		}
@@ -141,11 +169,14 @@ public:
 
 		if (WSASend(clientSocket_, &wsabuf, 1, nullptr, 0, overlapped, nullptr) == SOCKET_ERROR)
 		{
-			if (WSAGetLastError() != WSA_IO_PENDING)
+			lastError_ = WSAGetLastError();
+			if (lastError_ != WSA_IO_PENDING)
 			{
-				lastError_ = WSAGetLastError();
 #ifdef _DEBUG
 				std::cout << "WSASend failed with error: " << lastError_ << std::endl;
+#else
+				std::wstring error = GetLastError() + L" (@" + std::to_wstring(__LINE__) + L")";
+				MessageBox(nullptr, error.c_str(), L"Error", MB_OK | MB_ICONERROR);
 #endif
 				ReleaseOverlapped(overlapped);
 				ReleaseBuffer(buffer);
@@ -226,6 +257,9 @@ private:
 					client->lastError_ = WSAGetLastError();
 #ifdef _DEBUG
 					std::cout << "I/O operation failed with error: " << client->lastError_ << std::endl;
+#else
+					std::wstring error = client->GetLastError() + L" (@" + std::to_wstring(__LINE__) + L")";
+					MessageBox(nullptr, error.c_str(), L"Error", MB_OK | MB_ICONERROR);
 #endif
 					client->ReleaseOverlapped(overlapped);
 				}
@@ -258,6 +292,9 @@ private:
 					client->lastError_ = static_cast<DWORD>(overlapped->Internal);
 #ifdef _DEBUG
 					std::cout << "I/O operation failed with error: " << client->lastError_ << std::endl;
+#else
+					std::wstring error = client->GetLastError() + L" (@" + std::to_wstring(__LINE__) + L")";
+					MessageBox(nullptr, error.c_str(), L"Error", MB_OK | MB_ICONERROR);
 #endif
 				}
 

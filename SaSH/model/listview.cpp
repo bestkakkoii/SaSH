@@ -347,10 +347,10 @@ QVariant StringListModel::data(const QModelIndex& index, int role) const
 			{ 10, QColor(218,175,66) },
 		};
 
-		static const QRegularExpression rexError(u8R"(((?i)\[error\]|\[錯誤\]|\[错误\]))");
-		static const QRegularExpression rexFatal(u8R"(((?i)\[fatal\]|\[異常\]|\[异常\]))");
-		static const QRegularExpression rexWarn(u8R"(((?i)\[warn\]|\[警告\]|\[警告\]))");
-		static const QRegularExpression rexInfo(u8R"(((?i)\[info\]|\[資訊\]|\[资讯\]))");
+		static const QRegularExpression rexError(R"(((?i)\[error\]|\[錯誤\]|\[错误\]))");
+		static const QRegularExpression rexFatal(R"(((?i)\[fatal\]|\[異常\]|\[异常\]))");
+		static const QRegularExpression rexWarn(R"(((?i)\[warn\]|\[警告\]|\[警告\]))");
+		static const QRegularExpression rexInfo(R"(((?i)\[info\]|\[資訊\]|\[资讯\]))");
 		static const QBrush colorError(QColor(255, 128, 128));
 		static const QBrush colorFatal(QColor(168, 46, 46));
 		static const QBrush colorWarn(QColor(206, 145, 120));

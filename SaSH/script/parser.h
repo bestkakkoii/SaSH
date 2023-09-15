@@ -152,139 +152,139 @@ enum CompareType
 };
 
 inline static const QHash<QString, CompareType> compareBattleUnitTypeMap = {
-	{ u8"pos", kBattleUnitPos },
-	{ u8"name", kBattleUnitName },
-	{ u8"fname", kBattleUnitFreeName },
-	{ u8"modelid", kBattleUnitModelId },
-	{ u8"lv", kBattleUnitLevel },
-	{ u8"hp", kBattleUnitHp },
-	{ u8"maxhp", kBattleUnitMaxHp },
-	{ u8"hpp", kBattleUnitHpPercent },
-	{ u8"status", kBattleUnitStatus },
-	{ u8"ride", kBattleUnitRideFlag },
-	{ u8"ridename", kBattleUnitRideName },
-	{ u8"ridelevel", kBattleUnitRideLevel },
-	{ u8"ridehp", kBattleUnitRideHp },
-	{ u8"ridemaxhp", kBattleUnitRideMaxHp },
-	{ u8"ridehpp", kBattleUnitRideHpPercent },
+	{ "pos", kBattleUnitPos },
+	{ "name", kBattleUnitName },
+	{ "fname", kBattleUnitFreeName },
+	{ "modelid", kBattleUnitModelId },
+	{ "lv", kBattleUnitLevel },
+	{ "hp", kBattleUnitHp },
+	{ "maxhp", kBattleUnitMaxHp },
+	{ "hpp", kBattleUnitHpPercent },
+	{ "status", kBattleUnitStatus },
+	{ "ride", kBattleUnitRideFlag },
+	{ "ridename", kBattleUnitRideName },
+	{ "ridelevel", kBattleUnitRideLevel },
+	{ "ridehp", kBattleUnitRideHp },
+	{ "ridemaxhp", kBattleUnitRideMaxHp },
+	{ "ridehpp", kBattleUnitRideHpPercent },
 };
 
 inline static const QHash<QString, CompareType> compareBattleTypeMap = {
-	{ u8"round", kBattleRound },
-	{ u8"field", kBattleField },
-	{ u8"duration", kBattleDuration },
-	{ u8"totalduration", kBattleTotalDuration },
-	{ u8"totalcombat", kBattleTotalCombat },
+	{ "round", kBattleRound },
+	{ "field", kBattleField },
+	{ "duration", kBattleDuration },
+	{ "totalduration", kBattleTotalDuration },
+	{ "totalcombat", kBattleTotalCombat },
 
 };
 
 inline static const QHash<QString, CompareType> compareUnitTypeMap = {
-	{ u8"name", kUnitName },
-	{ u8"fname", kUnitFreeName },
-	{ u8"family", kUnitFamilyName },
-	{ u8"lv", kUnitLevel },
-	{ u8"dir", kUnitDir },
-	{ u8"x", kUnitX },
-	{ u8"y", kUnitY },
-	{ u8"gold", kUnitGold },
-	{ u8"modelid", kUnitModelId },
+	{ "name", kUnitName },
+	{ "fname", kUnitFreeName },
+	{ "family", kUnitFamilyName },
+	{ "lv", kUnitLevel },
+	{ "dir", kUnitDir },
+	{ "x", kUnitX },
+	{ "y", kUnitY },
+	{ "gold", kUnitGold },
+	{ "modelid", kUnitModelId },
 };
 
 inline static const QHash<QString, CompareType> compareCardTypeMap = {
-	{ u8"name", kCardName },
-	{ u8"online", kCardOnlineState },
-	{ u8"turn", kCardTurn },
-	{ u8"dp", kCardDp },
-	{ u8"lv", kCardLevel },
+	{ "name", kCardName },
+	{ "online", kCardOnlineState },
+	{ "turn", kCardTurn },
+	{ "dp", kCardDp },
+	{ "lv", kCardLevel },
 };
 
 inline static const QHash<QString, CompareType> compareItemTypeMap = {
-	{ u8"count", kitemCount },
-	{ u8"name", kItemName },
-	{ u8"memo", kItemMemo },
-	{ u8"dura", kItemDura },
-	{ u8"lv", kItemLevel },
-	{ u8"stack", kItemStack },
+	{ "count", kitemCount },
+	{ "name", kItemName },
+	{ "memo", kItemMemo },
+	{ "dura", kItemDura },
+	{ "lv", kItemLevel },
+	{ "stack", kItemStack },
 };
 
 inline static const QHash<QString, CompareType> compareTeamTypeMap = {
-	{ u8"name", kTeamName },
-	{ u8"lv", kTeamLevel },
-	{ u8"hp", kTeamHp },
-	{ u8"maxhp", kTeamMaxHp },
-	{ u8"hpp", kTeamHpPercent },
-	{ u8"mp", kTeamMp },
+	{ "name", kTeamName },
+	{ "lv", kTeamLevel },
+	{ "hp", kTeamHp },
+	{ "maxhp", kTeamMaxHp },
+	{ "hpp", kTeamHpPercent },
+	{ "mp", kTeamMp },
 };
 
 inline static const QHash<QString, CompareType> compareMapTypeMap = {
-	{ u8"name", kMapName },
-	{ u8"floor", kMapFloor },
-	{ u8"x", kMapX },
-	{ u8"y", kMapY },
+	{ "name", kMapName },
+	{ "floor", kMapFloor },
+	{ "x", kMapX },
+	{ "y", kMapY },
 };
 
 inline static const QHash<QString, CompareType> comparePcTypeMap = {
-	{ u8"name", kPlayerName },
-	{ u8"fname", kPlayerFreeName },
-	{ u8"lv", kPlayerLevel },
-	{ u8"hp", kPlayerHp },
-	{ u8"maxhp", kPlayerMaxHp },
-	{ u8"hpp", kPlayerHpPercent },
-	{ u8"mp", kPlayerMp },
-	{ u8"maxmp", kPlayerMaxMp },
-	{ u8"mpp", kPlayerMpPercent },
-	{ u8"exp", kPlayerExp },
-	{ u8"maxexp", kPlayerMaxExp },
-	{ u8"stone", kPlayerStone },
-	{ u8"vit", kPlayerVit },
-	{ u8"str", kPlayerStr },
-	{ u8"tgh", kPlayerTgh },
-	{ u8"def", kPlayerDex },
-	{ u8"atk", kPlayerAtk },
-	{ u8"def", kPlayerDef },
-	{ u8"agi", kPlayerAgi },
-	{ u8"chasma", kPlayerChasma },
-	{ u8"turn", kPlayerTurn },
-	{ u8"earth", kPlayerEarth },
-	{ u8"water", kPlayerWater },
-	{ u8"fire", kPlayerFire },
-	{ u8"wind", kPlayerWind },
+	{ "name", kPlayerName },
+	{ "fname", kPlayerFreeName },
+	{ "lv", kPlayerLevel },
+	{ "hp", kPlayerHp },
+	{ "maxhp", kPlayerMaxHp },
+	{ "hpp", kPlayerHpPercent },
+	{ "mp", kPlayerMp },
+	{ "maxmp", kPlayerMaxMp },
+	{ "mpp", kPlayerMpPercent },
+	{ "exp", kPlayerExp },
+	{ "maxexp", kPlayerMaxExp },
+	{ "stone", kPlayerStone },
+	{ "vit", kPlayerVit },
+	{ "str", kPlayerStr },
+	{ "tgh", kPlayerTgh },
+	{ "def", kPlayerDex },
+	{ "atk", kPlayerAtk },
+	{ "def", kPlayerDef },
+	{ "agi", kPlayerAgi },
+	{ "chasma", kPlayerChasma },
+	{ "turn", kPlayerTurn },
+	{ "earth", kPlayerEarth },
+	{ "water", kPlayerWater },
+	{ "fire", kPlayerFire },
+	{ "wind", kPlayerWind },
 };
 
 inline static const QHash<QString, CompareType> comparePetTypeMap = {
-	{ u8"name", kPetName },
-	{ u8"fname", kPetFreeName },
-	{ u8"lv", kPetLevel },
-	{ u8"hp", kPetHp },
-	{ u8"maxhp", kPetMaxHp },
-	{ u8"hpp", kPetHpPercent },
-	{ u8"exp", kPetExp },
-	{ u8"maxexp", kPetMaxExp },
-	{ u8"atk", kPetAtk },
-	{ u8"def", kPetDef },
-	{ u8"agi", kPetAgi },
-	{ u8"loyal", kPetLoyal },
-	{ u8"turn", kPetTurn },
-	{ u8"state", kPetState },
-	{ u8"earth", kPetEarth },
-	{ u8"water", kPetWater },
-	{ u8"fire", kPetFire },
-	{ u8"wind", kPetWind },
-	{ u8"power", kPetPower },
+	{ "name", kPetName },
+	{ "fname", kPetFreeName },
+	{ "lv", kPetLevel },
+	{ "hp", kPetHp },
+	{ "maxhp", kPetMaxHp },
+	{ "hpp", kPetHpPercent },
+	{ "exp", kPetExp },
+	{ "maxexp", kPetMaxExp },
+	{ "atk", kPetAtk },
+	{ "def", kPetDef },
+	{ "agi", kPetAgi },
+	{ "loyal", kPetLoyal },
+	{ "turn", kPetTurn },
+	{ "state", kPetState },
+	{ "earth", kPetEarth },
+	{ "water", kPetWater },
+	{ "fire", kPetFire },
+	{ "wind", kPetWind },
+	{ "power", kPetPower },
 };
 
 inline static const QHash<QString, CompareType> compareAmountTypeMap = {
-	{ u8"道具數量", kitemCount },
-	{ u8"組隊人數", kTeamCount },
-	{ u8"寵物數量", kPetCount },
+	{ "道具數量", kitemCount },
+	{ "組隊人數", kTeamCount },
+	{ "寵物數量", kPetCount },
 
-	{ u8"道具数量", kitemCount },
-	{ u8"组队人数", kTeamCount },
-	{ u8"宠物数量", kPetCount },
+	{ "道具数量", kitemCount },
+	{ "组队人数", kTeamCount },
+	{ "宠物数量", kPetCount },
 
-	{ u8"ifitem", kitemCount },
-	{ u8"ifteam", kTeamCount },
-	{ u8"ifpet", kPetCount },
+	{ "ifitem", kitemCount },
+	{ "ifteam", kTeamCount },
+	{ "ifpet", kPetCount },
 };
 
 static const QSet<RESERVE> operatorTypes = {
@@ -372,6 +372,7 @@ public:
 	inline Q_REQUIRED_RESULT qint64 getBeginLine() const { return lineNumber_; }
 	inline Q_REQUIRED_RESULT QString getScriptFileName() const { return scriptFileName_; }
 	inline Q_REQUIRED_RESULT bool isPrivate() const { return isPrivate_; }
+	inline Q_REQUIRED_RESULT Mode getMode() const { return mode_; }
 	inline Q_REQUIRED_RESULT QHash<qint64, TokenMap> getTokens() const { return tokens_; }
 	inline Q_REQUIRED_RESULT QHash<QString, qint64> getLabels() const { return labels_; }
 	inline Q_REQUIRED_RESULT QList<FunctionNode> getFunctionNodeList() const { return functionNodeList_; }
@@ -379,6 +380,12 @@ public:
 	inline void setScriptFileName(const QString& scriptFileName) { scriptFileName_ = scriptFileName; }
 	inline void setBeginLine(const qint64 beginLine) { lineNumber_ = beginLine; }
 	inline void setPrivate(bool isPrivate) { isPrivate_ = isPrivate; }
+
+	inline void setTokens(const QHash<qint64, TokenMap>& tokens) { tokens_ = tokens; }
+	inline void setLabels(const QHash<QString, qint64>& labels) { labels_ = labels; }
+	inline void setFunctionNodeList(const QList<FunctionNode>& functionNodeList) { functionNodeList_ = functionNodeList; }
+	inline void setForNodeList(const QList<ForNode>& forNodeList) { forNodeList_ = forNodeList; }
+
 	inline void setCallBack(ParserCallBack callBack) { callBack_ = callBack; }
 
 	bool loadFile(const QString& fileName, QString* pcontent);
@@ -394,8 +401,6 @@ public:
 	QString getLastErrorMessage() const { return lastErrorMesssage_; }
 
 	inline Q_REQUIRED_RESULT bool hasToken() const { return !tokens_.isEmpty(); }
-
-	inline Q_REQUIRED_RESULT const QHash<qint64, TokenMap> getToken() const { return tokens_; }
 
 	inline Q_REQUIRED_RESULT qint64 getCurrentLine() const { return lineNumber_; }
 
@@ -423,7 +428,7 @@ public:
 	void jumpto(qint64 line, bool noStack);
 	bool jump(const QString& name, bool noStack);
 
-	void Parser::removeEscapeChar(QString* str) const;
+	void removeEscapeChar(QString* str) const;
 	bool checkString(const TokenMap& TK, qint64 idx, QString* ret);
 	bool checkInteger(const TokenMap& TK, qint64 idx, qint64* ret);
 	bool checkNumber(const TokenMap& TK, qint64 idx, double* ret);
@@ -484,7 +489,7 @@ private:
 	bool processEndFor();
 	bool processBreak();
 	bool processContinue();
-	bool processGetSystemVarValue(const QString& varName, QString& valueStr, QVariant& varValue);
+	bool processGetSystemVarValue(QString& valueStr, QVariant& varValue);
 	bool processIfCompare();
 
 	bool updateSysConstKeyword(const QString& expr);
@@ -493,6 +498,8 @@ private:
 	void exportVarInfo();
 
 	void checkConditionalOp(QString& expr);
+
+	void createTreeWidgetItems(QList<QTreeWidgetItem*>* pTrees, const QHash<QString, QVariant>& d);
 
 	template <typename T>
 	typename std::enable_if<
@@ -530,15 +537,11 @@ private:
 
 	Q_REQUIRED_RESULT QVariantHash& getLocalVarsRef();
 
-	inline void next() { ++lineNumber_; }
+	void next();
 
-	inline Q_REQUIRED_RESULT bool empty() const { return !tokens_.contains(lineNumber_); }
+	Q_REQUIRED_RESULT bool empty() const;
 
-	inline Q_REQUIRED_RESULT RESERVE getCurrentFirstTokenType() const
-	{
-		Token token = currentLineTokens_.value(0, Token{});
-		return token.type;
-	}
+	Q_REQUIRED_RESULT RESERVE getCurrentFirstTokenType() const;
 
 	template <typename T>
 	inline Q_REQUIRED_RESULT T getToken(qint64 index) const

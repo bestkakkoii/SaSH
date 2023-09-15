@@ -32,7 +32,7 @@ PetInfoForm::~PetInfoForm()
 {
 }
 
-void PetInfoForm::on_comboBox_currentIndexChanged(int index)
+void PetInfoForm::on_comboBox_currentIndexChanged(int)
 {
 	QString str = ui.comboBox->currentText();
 	if (str.isEmpty())
@@ -179,7 +179,6 @@ void PetInfoForm::on_pushButton_calc_clicked()
 	int diff_def = cur_def_ - base_def_;
 	int diff_agi = cur_agi_ - base_agi_;
 
-	constexpr double rate_level = 1.0;
 	double rate_maxHp = calcRate(diff_maxHp, diff_level);
 	double rate_atk = calcRate(diff_atk, diff_level);
 	double rate_def = calcRate(diff_def, diff_level);

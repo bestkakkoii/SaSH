@@ -142,11 +142,12 @@ int GameService::getLineFromReadBuf(char* output, int maxlen)
 }
 #endif
 
-#ifdef _DEBUG
 void CreateConsole()
 {
 	if (!AllocConsole())
 	{
+		std::wstring message = L"AllocConsole failed with error: " + std::to_wstring(GetLastError());
+		MessageBox(nullptr, message.c_str(), L"Error", MB_OK);
 		return;
 	}
 	FILE* fDummy;
@@ -170,7 +171,6 @@ void CreateConsole()
 	std::wcin.clear();
 
 }
-#endif
 
 #ifdef USE_MINIDUMP
 #include <DbgHelp.h>
@@ -256,14 +256,19 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID)
 		if (hWnd != nullptr)
 		{
 			g_MainHwnd = hWnd;
-			g_OldWndProc = reinterpret_cast<WNDPROC>(GetWindowLongW(hWnd, GWL_WNDPROC));
-			SetWindowLongW(hWnd, GWL_WNDPROC, reinterpret_cast<LONG_PTR>(WndProc));
+			g_OldWndProc = reinterpret_cast<WNDPROC>(GetWindowLongA(hWnd, GWL_WNDPROC));
+			SetWindowLongA(hWnd, GWL_WNDPROC, reinterpret_cast<LONG_PTR>(WndProc));
 #ifdef USE_MINIDUMP
-			SetUnhandledExceptionFilter(MinidumpCallback);
+			//SetUnhandledExceptionFilter(MinidumpCallback);
 #endif
 
 #ifdef _DEBUG
-			//CreateConsole();
+			CreateConsole();
+			std::cout << "DllMain:::  hModule:" << std::hex << hModule << " ul_reason_for_call:" << std::dec << ul_reason_for_call << std::endl;
+			std::cout << "DllMain:::  g_hGameModule:" << std::hex << g_hGameModule << " g_MainThreadId:" << std::dec << g_MainThreadId << std::endl;
+			std::cout << "DllMain:::  g_MainThreadHandle:" << std::hex << g_MainThreadHandle << " g_MainHwnd:" << std::dec << g_MainHwnd << std::endl;
+			std::cout << "DllMain:::  g_OldWndProc:" << std::hex << g_OldWndProc << std::endl;
+			std::cout << "DllMain:::  newWndProc:" << std::hex << reinterpret_cast<LONG_PTR>(WndProc) << std::endl;
 #endif
 		}
 		DisableThreadLibraryCalls(hModule);
@@ -272,7 +277,7 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID)
 	{
 		GameService& g_GameService = GameService::getInstance();
 		g_GameService.uninitialize();
-		SetWindowLongW(g_MainHwnd, GWL_WNDPROC, reinterpret_cast<LONG_PTR>(g_OldWndProc));
+		SetWindowLongA(g_MainHwnd, GWL_WNDPROC, reinterpret_cast<LONG_PTR>(g_OldWndProc));
 	}
 
 	return TRUE;
@@ -286,13 +291,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, DWORD message, LPARAM wParam, LPARAM lParam)
 	{
 	case WM_NULL:
 		return 1;
-	case WM_MOVE + WM_USER:
-	{
-		int x = LOWORD(lParam);
-		int y = HIWORD(lParam);
-		SetWindowPos(g_MainHwnd, nullptr, x, y, 0, 0, SWP_NOSIZE | SWP_NOZORDER);
-		return 1;
-	}
 	case WM_CLOSE:
 	{
 		MINT::NtTerminateProcess(GetCurrentProcess(), 0);
@@ -350,6 +348,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, DWORD message, LPARAM wParam, LPARAM lParam)
 		}
 		break;
 	}
+	//case 0xAE:
+	//{
+	//	std::cout << "0xAE wparam: " << wParam << " lparam: " << lParam << std::endl;
+	//	break;
+	//}
 	case kInitialize:
 	{
 #ifdef _DEBUG
@@ -500,7 +503,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, DWORD message, LPARAM wParam, LPARAM lParam)
 	default:
 		break;
 	}
-	return CallWindowProcW(g_OldWndProc, g_MainHwnd, message, wParam, lParam);
+	return CallWindowProcA(g_OldWndProc, g_MainHwnd, message, wParam, lParam);
 }
 
 extern "C"
@@ -583,6 +586,12 @@ extern "C"
 	{
 		GameService& g_GameService = GameService::getInstance();
 		return g_GameService.New_Sleep(dwMilliseconds);
+	}
+
+	BOOL WINAPI New_IsIconic(HWND hWnd)
+	{
+		GameService& g_GameService = GameService::getInstance();
+		return g_GameService.New_IsIconic(hWnd);
 	}
 
 	/////// game client ///////
@@ -716,6 +725,10 @@ void GameService::initialize(unsigned short port)
 	pTimeGetTime = ::timeGetTime;
 	pSleep = ::Sleep;
 
+	//DINPUT.dll+76FE - FF 15 7812477C        - call dword ptr [DINPUT.dll+21278] { ->USER32.IsIconic }
+	//pIsIconic = ::IsIconic;
+
+
 	//禁止遊戲內切AI SE切AI會崩潰
 	DWORD paddr = CONVERT_GAMEVAR <DWORD>(0x1DF82);
 	util::MemoryMove(paddr, "\xB8\x00\x00\x00\x00", 5);//只要點pgup或pgdn就會切0
@@ -765,6 +778,7 @@ void GameService::initialize(unsigned short port)
 	DetourAttach(&(PVOID&)pQueryPerformanceCounter, ::New_QueryPerformanceCounter);
 	DetourAttach(&(PVOID&)pTimeGetTime, ::New_TimeGetTime);
 	DetourAttach(&(PVOID&)pSleep, ::New_Sleep);
+	//DetourAttach(&(PVOID&)pIsIconic, ::New_IsIconic);
 
 	DetourAttach(&(PVOID&)pPlaySound, ::New_PlaySound);
 	DetourAttach(&(PVOID&)pBattleProc, ::New_BattleProc);
@@ -785,6 +799,7 @@ void GameService::initialize(unsigned short port)
 		asyncClient_.reset(new AsyncClient());
 		if (asyncClient_ != nullptr && asyncClient_->Connect(IPV6_DEFAULT, port))
 		{
+			std::cout << "connect success" << std::endl;
 			asyncClient_->Start();
 			//#ifdef NDEBUG
 			//			if (g_hDllModule != nullptr)
@@ -852,6 +867,7 @@ void GameService::uninitialize()
 	DetourDetach(&(PVOID&)pQueryPerformanceCounter, ::New_QueryPerformanceCounter);
 	DetourDetach(&(PVOID&)pTimeGetTime, ::New_TimeGetTime);
 	DetourDetach(&(PVOID&)pSleep, ::New_Sleep);
+	//DetourDetach(&(PVOID&)pIsIconic, ::New_IsIconic);
 
 	DetourDetach(&(PVOID&)pPlaySound, ::New_PlaySound);
 	DetourDetach(&(PVOID&)pBattleProc, ::New_BattleProc);
@@ -986,6 +1002,7 @@ int WSAAPI GameService::New_recv(SOCKET s, char* buf, int len, int flags)
 		//轉發給外掛
 		if (asyncClient_)
 		{
+			std::cout << "send recv: " << std::to_string(recvlen) << std::endl;
 			asyncClient_->Send(buf, recvlen);
 		}
 #else
@@ -1116,6 +1133,11 @@ void WINAPI GameService::New_Sleep(DWORD dwMilliseconds)
 		dwMilliseconds = 1;
 
 	pSleep(dwMilliseconds);
+}
+
+BOOL WINAPI GameService::New_IsIconic(HWND hWnd)
+{
+	return FALSE;
 }
 
 //////////////////////////////////////////////////////////////////////

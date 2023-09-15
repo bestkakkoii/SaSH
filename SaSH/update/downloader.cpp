@@ -26,19 +26,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include <QtGui/private/qzipreader_p.h>
 #include <QtGui/private/qzipwriter_p.h>
 
-#ifdef _DEBUG
-#pragma comment(lib, "cpr-d.lib")
-#pragma comment(lib, "libcurl-d.lib")
-#pragma comment(lib, "libcrypto32MDd.lib")
-#pragma comment(lib, "libssl32MDd.lib")
-#else
-#pragma comment(lib, "cpr.lib")
-#pragma comment(lib, "libcurl.lib")
-#pragma comment(lib, "libcrypto32MD.lib")
-#pragma comment(lib, "libssl32MD.lib")
-#endif
-
-
 static std::vector<QProgressBar*> g_vProgressBar;
 static QMutex g_mutex;
 
@@ -78,11 +65,41 @@ QString Downloader::Sha3_512(const QString& fileNamePath) const
 }
 
 QString g_etag;
+QString g_lastModified;
 constexpr int UPDATE_TIME_MIN = 5 * 60;
+
+size_t HeaderCallback(void* contents, size_t size, size_t nmemb, void*)
+{
+	size_t totalSize = size * nmemb;
+	std::string header(static_cast<char*>(contents), totalSize);
+	QString qheader = QString::fromUtf8(header.c_str());
+
+	QString checkstr = "etag:";
+	if (qheader.startsWith(checkstr))
+	{
+		g_etag = qheader.mid(checkstr.size()).simplified();
+	}
+
+	checkstr = "last-modified:";
+	if (qheader.startsWith(checkstr))
+	{
+		g_lastModified = qheader.mid(checkstr.size()).simplified();
+	}
+
+	return totalSize;
+}
+
 bool Downloader::checkUpdate(QString* current, QString* ptext)
 {
-	QString exeFileName = QCoreApplication::applicationFilePath();
+	QDateTime exeModified;
+	compile::buildDateTime(&exeModified);
+	qDebug() << "SaSH.exe file modified time:" << exeModified.toString("yyyy-MM-dd hh:mm:ss");
 
+	if (current != nullptr)
+		*current = exeModified.toString("yyyy-MM-dd hh:mm:ss");
+
+	QString exeFileName = QCoreApplication::applicationFilePath();
+	g_lastModified.clear();
 	{
 		util::Config config(qgetenv("JSON_PATH"));
 		g_etag = config.read<QString>("System", "Update", "ETag");
@@ -91,28 +108,40 @@ bool Downloader::checkUpdate(QString* current, QString* ptext)
 
 	QUrl zipUrl(URL);
 
-	cpr::Header header;
-	header.insert({ "If-None-Match", g_etag.toUtf8().constData() });
-	std::string zipUrlUtf8 = zipUrl.toString().toUtf8().constData();
-	cpr::Response response = cpr::Head(cpr::Url(zipUrlUtf8), header);
+	CURL* curl = nullptr;
+	CURLcode res;
+
+	curl = curl_easy_init();
 
 	bool bret = false;
 	do
 	{
-		if (response.error.code != cpr::ErrorCode::OK)
+		if (curl == nullptr)
+			break;
+
+		QString url = URL;
+		curl_easy_setopt(curl, CURLOPT_URL, url.toUtf8().constData());
+		curl_easy_setopt(curl, CURLOPT_HEADERFUNCTION, HeaderCallback);
+		curl_easy_setopt(curl, CURLOPT_NOBODY, 1L);
+		curl_easy_setopt(curl, CURLOPT_FILETIME, 1L);
+
+		res = curl_easy_perform(curl);
+
+		curl_easy_cleanup(curl);
+
+		if (res != CURLE_OK)
 		{
-			qDebug() << "HTTP request failed: " << response.error.message.c_str();
+			std::cerr << "curl_easy_perform() failed: " << curl_easy_strerror(res) << std::endl;
 			break;
 		}
 
 		// Get modify time from server
 		QDateTime zipModified;
-		QDateTime exeModified;
 		QLocale locale(QLocale::English);
 		bool skipModifyTimeCheck = false;
-		if (response.header.count("ETag"))
+		if (!g_etag.isEmpty())
 		{
-			QString newEtag = QString::fromUtf8(response.header["ETag"].c_str());
+			QString newEtag = g_etag;
 			newEtag.replace("\"", "");
 			if ((!newEtag.isEmpty() && !g_etag.isEmpty() && newEtag != g_etag) || g_etag.isEmpty())
 			{
@@ -127,9 +156,9 @@ bool Downloader::checkUpdate(QString* current, QString* ptext)
 			}
 		}
 
-		if (response.header.count("Last-Modified"))
+		if (!g_lastModified.isEmpty())
 		{
-			QString lastModifiedStr = QString::fromUtf8(response.header["Last-Modified"].c_str());
+			QString lastModifiedStr = g_lastModified;
 			//Tue, 18 Apr 2023 01:01:06 GMT
 			qDebug() << "SaSH 7z file last modified time:" << lastModifiedStr;
 
@@ -155,12 +184,6 @@ bool Downloader::checkUpdate(QString* current, QString* ptext)
 			qWarning() << "No Last-Modified header available.";
 			break;
 		}
-
-		compile::buildDateTime(&exeModified);
-		qDebug() << "SaSH.exe file modified time:" << exeModified.toString("yyyy-MM-dd hh:mm:ss");
-
-		if (current != nullptr)
-			*current = exeModified.toString("yyyy-MM-dd hh:mm:ss");
 
 		if (skipModifyTimeCheck)
 			break;
@@ -683,34 +706,50 @@ int Downloader::onProgress(void* clientp, qint64 totalToDownload, qint64 nowDown
 	return 0;
 }
 
+static std::int64_t s_totalSize = 0;
+
+size_t WriteCallback(void* contents, size_t size, size_t nmemb, void* userp)
+{
+	std::ofstream* file = static_cast<std::ofstream*>(userp);
+	size_t totalSize = size * nmemb;
+	file->write(static_cast<char*>(contents), totalSize);
+	s_totalSize += totalSize;
+	return totalSize;
+}
+
 bool downloadFile(const std::string& url, const std::string& filename)
 {
-	static cpr::cpr_off_t s_totalSize = 0;
-	std::string tmp_filename = filename;
-	std::ofstream of(tmp_filename, std::ios::binary | std::ios::app);
-	auto pos = of.tellp();
+	CURL* curl;
+	CURLcode res;
 
-	cpr::Url cpr_url{url};
-	cpr::Session s;
-	s.SetUrl(cpr_url);
-	s.SetHeader(cpr::Header{{"Accept-Encoding", "gzip"}});
+	std::ofstream ofs(filename, std::ios::binary | std::ios::app);
+	auto pos = ofs.tellp();
 
-	auto fileLength = s.GetDownloadFileLength();
-	s.SetRange(cpr::Range{pos, fileLength - 1});
-
-	cpr::Response response = s.Download(of);
-	s_totalSize += response.downloaded_bytes;
-
-	if (s_totalSize >= fileLength)
+	curl = curl_easy_init();
+	if (curl)
 	{
-		s_totalSize = 0;
-		of.flush();
-		of.close();
-		return true;
+		curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
+		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
+		curl_easy_setopt(curl, CURLOPT_WRITEDATA, &ofs);
+		curl_easy_setopt(curl, CURLOPT_RESUME_FROM, pos);
+
+		res = curl_easy_perform(curl);
+
+		curl_easy_cleanup(curl);
+
+		if (res == CURLE_OK)
+		{
+			ofs.close();
+			return true;
+		}
+		else
+		{
+			std::cerr << "curl_easy_perform() failed: " << curl_easy_strerror(res) << std::endl;
+			ofs.close();
+			return false;
+		}
 	}
 
-	of.flush();
-	of.close();
 	return false;
 }
 
@@ -744,8 +783,6 @@ void extractZip(const QString& savepath, const QString& filepath)
 		QByteArray array = zipreader.fileData(strtemp);
 		file.write(array);
 		file.close();
-
-
 	}
 }
 

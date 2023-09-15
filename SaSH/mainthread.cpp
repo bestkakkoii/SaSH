@@ -28,7 +28,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include <spdlogger.hpp>
 extern QString g_logger_name;//parser.cpp
 
-bool ThreadManager::createThread(QObject* parent)
+bool ThreadManager::createThread(QObject*)
 {
 	if (thread_)
 		return false;
@@ -86,38 +86,41 @@ void MainObject::run()
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
 
 	Injector::process_information_t process_info;
-	util::REMOVE_THREAD_REASON remove_thread_reason = util::REASON_NO_ERROR;
+	remove_thread_reason = util::REASON_NO_ERROR;
 	QElapsedTimer timer; timer.start();
 	do
 	{
 		//檢查服務端是否實例化
 		if (injector.server.isNull())
+		{
+			emit signalDispatcher.messageBoxShow(tr("Server is not initialized!"));
 			break;
+		}
 
 		//檢查服務端是否正在運行並且正在監聽
 		if (!injector.server->isListening())
+		{
+			emit signalDispatcher.messageBoxShow(tr("Server is not listening!"));
 			break;
+		}
 
 		emit signalDispatcher.updateStatusLabelTextChanged(util::kLabelStatusOpening);
-		//有些時候太快創建遊戲進程會閃退，原因不明，所以延遲一下
-		//QThread::msleep(1000);
+
 		//創建遊戲進程
 		if (!injector.createProcess(process_info))
 		{
+			emit signalDispatcher.messageBoxShow(tr("Create process failed!"));
 			break;
 		}
 
 		if (remove_thread_reason != util::REASON_NO_ERROR)
 			break;
 
-		//QThread::msleep(1000);
-
 		emit signalDispatcher.updateStatusLabelTextChanged(util::kLabelStatusOpened);
 
 		//注入dll 並通知客戶端要連入的port
 		if (!injector.injectLibrary(process_info, injector.server->getPort(), &remove_thread_reason))
 		{
-			qDebug() << "injectLibrary failed. reason:" << remove_thread_reason;
 			break;
 		}
 
@@ -125,17 +128,21 @@ void MainObject::run()
 		for (;;)
 		{
 			if (injector.server->hasClientExist())
+			{
 				break;
+			}
 
 			if (isInterruptionRequested())
 			{
 				remove_thread_reason = util::REASON_REQUEST_STOP;
+				emit signalDispatcher.messageBoxShow(tr("User requested to stop!"));
 				break;
 			}
 
 			if (timer.hasExpired(15000))
 			{
 				remove_thread_reason = util::REASON_TCP_CONNECTION_TIMEOUT;
+				emit signalDispatcher.messageBoxShow(tr("TCP connection timeout!"));
 				break;
 			}
 			QThread::msleep(100);
@@ -210,6 +217,7 @@ void MainObject::run()
 void MainObject::mainProc()
 {
 	Injector& injector = Injector::getInstance();
+	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
 	QElapsedTimer freeMemTimer; freeMemTimer.start();
 	//首次先釋放一次記憶體，並且開始計時
 	if (injector.getEnableHash(util::kAutoFreeMemoryEnable))
@@ -217,6 +225,8 @@ void MainObject::mainProc()
 
 	mem::freeUnuseMemory(injector.getProcess());
 	mem::freeUnuseMemory(GetCurrentProcess());
+
+	QElapsedTimer timer; timer.start();
 
 	bool nodelay = false;
 	for (;;)
@@ -226,7 +236,7 @@ void MainObject::mainProc()
 			nodelay = false;
 		}
 		else
-			QThread::msleep(200);
+			QThread::msleep(300);
 
 		//檢查是否接收到停止執行的訊號
 		if (isInterruptionRequested())
@@ -239,17 +249,24 @@ void MainObject::mainProc()
 		if (!injector.isWindowAlive())
 		{
 			remove_thread_reason = util::REASON_TARGET_WINDOW_DISAPPEAR;
-			qDebug() << "window is disappear!";
 			break;
 		}
 
 		//檢查TCP是否握手成功
-		if (!injector.server->IS_TCP_CONNECTION_OK_TO_USE)
+		if (!injector.server->IS_TCP_CONNECTION_OK_TO_USE.load(std::memory_order_acquire))
 		{
-			QThread::msleep(100);
+			QThread::msleep(500);
 			nodelay = true;
+			if (timer.hasExpired(10000))
+			{
+				emit signalDispatcher.messageBoxShow(tr("TCP connection timeout!"));
+				break;
+			}
+
 			continue;
 		}
+
+		timer.restart();
 
 		//自動釋放記憶體
 		if (injector.getEnableHash(util::kAutoFreeMemoryEnable) && freeMemTimer.hasExpired(15ll * 60ll * 1000ll))
@@ -354,7 +371,7 @@ int MainObject::checkAndRunFunctions()
 	if (login_run_once_flag_)
 	{
 		login_run_once_flag_ = false;
-		for (int i = 0; i < 30; ++i)
+		for (int i = 0; i < 50; ++i)
 		{
 			if (isInterruptionRequested())
 				return 0;
@@ -433,30 +450,29 @@ int MainObject::checkAndRunFunctions()
 			list = config.readArray<QString>("System", "Server", QString("List_%1").arg(injector.currentServerListIndex));
 		}
 
-		QStringList serverNameList;
-		QStringList subServerNameList;
-		for (const QString& it : list)
-		{
-			QStringList subList = it.split(util::rexOR, Qt::SkipEmptyParts);
-			if (subList.isEmpty())
-				continue;
+		//QStringList serverNameList;
+		//QStringList subServerNameList;
+		//for (const QString& it : list)
+		//{
+		//	QStringList subList = it.split(util::rexOR, Qt::SkipEmptyParts);
+		//	if (subList.isEmpty())
+		//		continue;
 
-			if (subList.size() != 2)
-				continue;
+		//	if (subList.size() != 2)
+		//		continue;
 
-			QString server = subList.takeFirst();
+		//	QString server = subList.takeFirst();
 
-			subList = subList.first().split(util::rexComma, Qt::SkipEmptyParts);
-			if (subList.isEmpty())
-				continue;
+		//	subList = subList.first().split(util::rexComma, Qt::SkipEmptyParts);
+		//	if (subList.isEmpty())
+		//		continue;
 
-			serverNameList.append(server);
-			subServerNameList.append(subList);
-		}
+		//	serverNameList.append(server);
+		//	subServerNameList.append(subList);
+		//}
 
-		Injector& injector = Injector::getInstance();
-		injector.serverNameList = serverNameList;
-		injector.subServerNameList = subServerNameList;
+		//injector.serverNameList = serverNameList;
+		//injector.subServerNameList = subServerNameList;
 
 		emit signalDispatcher.updateNpcList(injector.server->nowFloor);
 		emit signalDispatcher.applyHashSettingsToUI();
@@ -612,7 +628,6 @@ void MainObject::updateAfkInfos()
 void MainObject::battleTimeThread()
 {
 	Injector& injector = Injector::getInstance();
-	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
 	for (;;)
 	{
 		if (isInterruptionRequested())
@@ -811,24 +826,38 @@ void MainObject::checkControl()
 	bChecked = injector.getEnableHash(util::kAutoBattleEnable) || bCheckedFastBattle;
 	if (bChecked)
 	{
-		flagBattleDialogEnable_ = false;
-		injector.postMessage(Injector::kEnableBattleDialog, false, NULL);
+		if (flagBattleDialogEnable_)
+		{
+			flagBattleDialogEnable_ = false;
+			injector.postMessage(Injector::kEnableBattleDialog, false, NULL);
+		}
 	}
-	else if (!bChecked && !flagBattleDialogEnable_)
+	else
 	{
-		flagBattleDialogEnable_ = true;
-		injector.postMessage(Injector::kEnableBattleDialog, true, NULL);
+		if (!flagBattleDialogEnable_)
+		{
+			flagBattleDialogEnable_ = true;
+			injector.postMessage(Injector::kEnableBattleDialog, true, NULL);
+		}
 	}
 
 	//快速戰鬥，異步阻止戰鬥封包
 	int W = injector.server->getWorldStatus();
 	if (bCheckedFastBattle && W == 9) //如果有開啟快速戰鬥，且畫面不在戰鬥中
 	{
-		injector.postMessage(Injector::kSetBlockPacket, true, NULL);
+		if (!flagBlockPacketEnable_)
+		{
+			flagBlockPacketEnable_ = true;
+			injector.postMessage(Injector::kSetBlockPacket, true, NULL);
+		}
 	}
 	else
 	{
-		injector.postMessage(Injector::kSetBlockPacket, false, NULL);
+		if (flagBlockPacketEnable_)
+		{
+			flagBlockPacketEnable_ = false;
+			injector.postMessage(Injector::kSetBlockPacket, false, NULL);
+		}
 	}
 }
 
@@ -1164,7 +1193,7 @@ void MainObject::checkAutoDropItems()
 }
 
 //檢查並自動吃肉、或丟肉
-void MainObject::checkAutoDropMeat(const QStringList& item)
+void MainObject::checkAutoDropMeat(const QStringList& items)
 {
 	Injector& injector = Injector::getInstance();
 	if (injector.server.isNull())
@@ -1174,12 +1203,12 @@ void MainObject::checkAutoDropMeat(const QStringList& item)
 		return;
 
 	bool bret = false;
-	constexpr const char* meat = u8"肉";
-	constexpr const char* memo = u8"耐久力";
+	constexpr const char* meat = "肉";
+	constexpr const char* memo = "耐久力";
 
-	if (!item.isEmpty())
+	if (!items.isEmpty())
 	{
-		for (const QString& it : item)
+		for (const QString& it : items)
 		{
 			QString newItemNmae = it.simplified();
 			if (newItemNmae.contains(meat))
@@ -1214,7 +1243,7 @@ void MainObject::checkAutoDropMeat(const QStringList& item)
 		QString newItemMemo = item.memo.simplified();
 		if (newItemNmae.contains(meat))
 		{
-			if (!newItemMemo.contains(memo) && (newItemNmae != QString(u8"味道爽口的肉湯")) && (newItemNmae != QString(u8"味道爽口的肉汤")))
+			if (!newItemMemo.contains(memo) && (newItemNmae != QString("味道爽口的肉湯")) && (newItemNmae != QString("味道爽口的肉汤")))
 				injector.server->dropItem(index);
 			else
 				injector.server->useItem(index, injector.server->findInjuriedAllie());
@@ -1269,7 +1298,6 @@ void MainObject::checkAutoJoin()
 					if ((ch.status & CHR_STATUS_LEADER) || (ch.status & CHR_STATUS_PARTY))
 					{
 						QThread::msleep(1000);
-						bool ok = false;
 
 						QString name = injector.server->getParty(0).name;
 						if (!name.isEmpty() && leader.contains(name))
@@ -1567,7 +1595,7 @@ void MainObject::checkAutoHeal()
 					bool meatProiory = injector.getEnableHash(util::kNormalItemHealMeatPriorityEnable);
 					if (meatProiory)
 					{
-						itemIndex = injector.server->getItemIndexByName(u8"?肉", false, u8"耐久力");
+						itemIndex = injector.server->getItemIndexByName("?肉", false, "耐久力");
 					}
 
 					if (itemIndex == -1)
@@ -2043,7 +2071,7 @@ void MainObject::checkAutoEatBoostExpItem()
 		if (item.name.isEmpty() || item.memo.isEmpty() || !item.valid)
 			continue;
 
-		if (item.memo.contains(u8"經驗值上升") || item.memo.contains(u8"经验值上升"))
+		if (item.memo.contains("經驗值上升") || item.memo.contains("经验值上升"))
 		{
 			if (injector.server.isNull())
 				return;

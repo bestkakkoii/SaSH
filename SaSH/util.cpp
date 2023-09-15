@@ -841,12 +841,12 @@ void util::sortWindows(const QVector<HWND>& windowList, bool alignLeft)
 		// 根據對齊方式設置窗口位置
 		if (alignLeft)
 		{
-			SetWindowPos(hwnd, nullptr, x, y, 0, 0, SWP_NOSIZE | SWP_NOZORDER); // 左對齊
+			SetWindowPos(hwnd, nullptr, x, y, 0, 0, SWP_ASYNCWINDOWPOS | SWP_NOSIZE | SWP_NOZORDER | SWP_SHOWWINDOW); // 左對齊
 		}
 		else
 		{
 			int xPos = screenWidth - (x + windowWidth);
-			SetWindowPos(hwnd, nullptr, xPos, y, 0, 0, SWP_NOSIZE | SWP_NOZORDER);// 右對齊
+			SetWindowPos(hwnd, nullptr, xPos, y, 0, 0, SWP_ASYNCWINDOWPOS | SWP_NOSIZE | SWP_NOZORDER | SWP_SHOWWINDOW);// 右對齊
 		}
 
 		// 更新下一個窗口的位置

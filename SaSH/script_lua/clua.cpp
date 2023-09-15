@@ -462,21 +462,21 @@ void luadebug::hookProc(lua_State* L, lua_Debug* ar)
 
 		emit signalDispatcher.addForwardMarker(currentLine, true);
 
-		//獲取區域變量數值
-		int i;
-		const char* name = nullptr;
-		QVariantHash varhash;
-		for (i = 1; (name = lua_getlocal(L, ar, i)) != NULL; i++)
-		{
-			QPair<QString, QString> vs = getVars(L, i, 5);
+		////獲取區域變量數值
+		//int i;
+		//const char* name = nullptr;
+		//QVariantHash varhash;
+		//for (i = 1; (name = lua_getlocal(L, ar, i)) != NULL; i++)
+		//{
+		//	QPair<QString, QString> vs = getVars(L, i, 5);
 
-			QString key = QString("local|%1").arg(QString::fromUtf8(name));
-			varhash.insert(key, vs.second);
-			//var.type = vs.first.replace("(", "").replace(")", "");
-			lua_pop(L, 1);// no match, then pop out the var's value
-		}
+		//	QString key = QString("local|%1").arg(QString::fromUtf8(name));
+		//	varhash.insert(key, vs.second);
+		//	//var.type = vs.first.replace("(", "").replace(")", "");
+		//	lua_pop(L, 1);// no match, then pop out the var's value
+		//}
 
-		emit signalDispatcher.varInfoImported(varhash);
+		//emit signalDispatcher.varInfoImported(varhash);
 
 		luadebug::checkStopAndPause(s);
 
@@ -920,7 +920,7 @@ void CLua::proc()
 #endif
 
 		QStringList tableStrs;
-		std::string luaCode = scriptContent_.toUtf8();
+		std::string luaCode = scriptContent_.toUtf8().constData();
 
 		//安全模式下執行lua腳本
 		sol::protected_function_result loaded_chunk = lua_.safe_script(luaCode.c_str(), sol::script_pass_on_error);

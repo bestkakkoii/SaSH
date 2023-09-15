@@ -32,10 +32,11 @@ const char* Highlighter::keywords(int set) const
 	case 1://粉色
 	{
 		//lua key word
-		return "goto call function end pause exit label jmp return back break for continue "
-			"if ifmap ifpet ifitem ifteam ifitemfull ifdaily ifbattle ifpos ifonline ifnormal "
+		return "call pause exit label jmp return back continue "
+			"ifmap ifpet ifitem ifteam ifitemfull ifdaily ifbattle ifpos ifonline ifnormal "
 			"waitdlg waitsay waititem waitmap waitteam "
-			"while repeat until do in then else elseif ";
+			/*lua original*/
+			"function end goto break for while if repeat until do in then else elseif ";
 	}
 	case 2://QsciLexerLua::BasicFunctions//黃色
 	{
@@ -50,7 +51,27 @@ const char* Highlighter::keywords(int set) const
 			"learn trade run dostring sellpet mail reg "
 			"regex rex rexg upper lower half toint tostr todb replace find full "
 			"bh bj bp bs be bd bi bn bw bwf bwait bend "
-			"dofile createch delch doffstone send ";
+			"dofile createch delch doffstone send format "
+			/*lua original*/
+			"assert collectgarbage "
+			"coroutine.close coroutine.create coroutine.isyieldable coroutine.resume coroutine.running coroutine.status coroutine.wrap coroutine.yield "
+			"debug.debug debug.gethook debug.getinfo debug.getlocal debug.getmetatable debug.getregistry debug.getupvalue debug.getuservalue debug.setcstacklimit debug.sethook "
+			"debug.setlocal debug.setmetatable debug.setupvalue debug.setuservalue debug.traceback debug.upvalueid debug.upvaluejoin "
+			"dofile error "
+			"file:close file:flush file:lines file:read file:seek file:setvbuf file:write "
+			"getmetatable io.close io.flush io.input io.lines io.open io.output io.popen io.read io.tmpfile io.type io.write "
+			"ipairs load loadfile "
+			"math.abs math.acos math.asin math.atan math.ceil math.cos math.deg math.exp math.floor math.fmod math.log "
+			"math.max math.min math.modf math.rad math.random math.randomseed math.sin math.sqrt math.tan math.tointeger math.type math.ult "
+			"next "
+			"os.clock os.date os.difftime os.execute os.exit os.getenv os.remove os.rename os.setlocale os.time os.tmpname "
+			"package.loadlib package.searchpath "
+			"pairs pcall print rawequal rawget rawlen rawset require select setmetatable "
+			"string.byte string.char string.dump string.find string.format string.gmatch string.gsub string.len string.lower "
+			"string.match string.pack string.packsize string.rep string.reverse string.sub string.unpack string.upper "
+			"table.concat table.insert table.move table.pack table.remove table.sort table.unpack "
+			"tonumber tostring type "
+			"utf8.char utf8.codepoint utf8.codes utf8.len utf8.offset warn xpcall ";
 	}
 	case 3://QsciLexerLua::StringTableMathsFunction//草綠
 	{
@@ -62,20 +83,25 @@ const char* Highlighter::keywords(int set) const
 	}
 	case 5://KeywordSet5//深藍色
 	{
-		return "local var delete releaseall rnd true false any format "
+		return "local var delete releaseall rnd true false any "
 			"int double bool not and or nil ";
 	}
 	case 6://KeywordSet6//淺藍色
 	{
-		return "out player pet magic skill petskill equip petequip map dialog chat point battle char ";
+		return "out player pet magic skill petskill equip petequip map dialog chat point battle char "
+			/*lua original*/
+			"math os file debug coroutine utf8 package io ";
 	}
 	case 7://KeywordSet7//土橘色
 	{
-		return "! ";
+		return "";
 	}
 	case 8://KeywordSet8//紫色
 	{
-		return "_GAME_ _WORLD_ vret _IFEXPR _IFRESULT _LUARESULT _LUAEXPR";
+		return "_GAME_ _WORLD_ vret _IFEXPR _IFRESULT _LUARESULT _LUAEXPR "
+			/*lua original*/
+			"_G _VERSION "
+			"utf8.charpattern package.path package.preload package.searchers package.config package.cpath package.loaded math.huge math.maxinteger math.mininteger math.pi ";
 	}
 	case 9:
 		return "";

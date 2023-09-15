@@ -85,7 +85,8 @@ enum RESERVE
 	TK_DO,
 	TK_THEN,
 	TK_CALL,			// "調用" 調用標記
-	TK_CALLWITHNAME,
+	TK_CALLWITHNAME,	// "調用" 調用函數名稱
+	TK_CALLLUA,
 	TK_GOTO,			// "跳轉" 跳轉至標記
 	TK_JMP,				// 跳轉到指定行號
 	TK_RETURN,			// "返回" 用於返回調用處的下一行
@@ -258,11 +259,11 @@ private:
 
 	bool getStringCommandToken(QString& src, const QString& delim, QString& out) const;
 
-	qint64 Lexer::findClosingQuoteIndex(const QString& src, QChar quoteChar, int startIndex) const;
+	qint64 findClosingQuoteIndex(const QString& src, QChar quoteChar, int startIndex) const;
 
-	void Lexer::extractAndRemoveToken(QString& src, const QString& delim, int startIndex, int endIndex, QString& out) const;
+	void extractAndRemoveToken(QString& src, const QString& delim, int startIndex, int endIndex, QString& out) const;
 
-	bool Lexer::isInsideQuotes(const QString& src, int index) const;
+	bool isInsideQuotes(const QString& src, int index) const;
 
 	void checkPairs(const QString& beginstr, const QString& endstr, const QHash<qint64, TokenMap>& stokenmaps);
 

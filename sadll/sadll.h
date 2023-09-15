@@ -74,6 +74,18 @@ namespace util
 		HWND window_handle;
 	};
 
+	bool IsConsoleWindow(HWND hwnd)
+	{
+		DWORD dwStyle = GetWindowLong(hwnd, GWL_STYLE);
+		DWORD dwExStyle = GetWindowLong(hwnd, GWL_EXSTYLE);
+		if ((dwStyle & WS_OVERLAPPEDWINDOW) == WS_OVERLAPPEDWINDOW &&
+			(dwExStyle & WS_EX_APPWINDOW) == WS_EX_APPWINDOW) {
+			return true;
+		}
+
+		return false;
+	}
+
 	inline bool IsCurrentWindow(const HWND handle)
 	{
 		if ((GetWindow(handle, GW_OWNER) == nullptr) && (IsWindowVisible(handle)))
@@ -87,7 +99,7 @@ namespace util
 		handle_data& data = *(handle_data*)lParam;
 		unsigned long process_id = 0;
 		GetWindowThreadProcessId(handle, &process_id);
-		if (data.process_id != process_id || !IsCurrentWindow(handle))
+		if (data.process_id != process_id || !IsCurrentWindow(handle) || IsConsoleWindow(handle))
 			return TRUE;
 		data.window_handle = handle;
 		return FALSE;
@@ -256,6 +268,8 @@ public://hook
 
 	void WINAPI New_Sleep(DWORD dwMilliseconds);
 
+	BOOL WINAPI New_IsIconic(HWND hWnd);
+
 	void __cdecl New_PlaySound(int a, int b, int c);
 	void __cdecl New_BattleProc();
 	void __cdecl New_BattleCommandReady();
@@ -298,6 +312,9 @@ public://hook
 
 	using pfnSleep = void(__stdcall*)(DWORD dwMilliseconds);
 	pfnSleep pSleep = nullptr;
+
+	using pfnIsIconic = BOOL(__stdcall*)(HWND hWnd);
+	pfnIsIconic pIsIconic = nullptr;
 
 	//BOOL WINAPI New_QueryPerformanceCounter(LARGE_INTEGER* lpPerformanceCount);
 	using pfnQueryPerformanceCounter = BOOL(__stdcall*)(LARGE_INTEGER*);

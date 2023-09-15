@@ -121,19 +121,19 @@ CopyRightDialog::CopyRightDialog(QWidget* parent)
 
 	ui.label_logo->setStyleSheet("color: rgb(111, 147, 198); font-family: 'Consolas';");
 
-	const QString programName(u8"StoneAge Supreme Helper");
-	const QString companyName(u8"Bestkakkoii llc.");
-	const QString AuthorName(u8"Philip飞");
-	const QString webUrl(u8"https://www.lovesa.cc");
+	const QString programName("StoneAge Supreme Helper");
+	const QString companyName("Bestkakkoii llc.");
+	const QString AuthorName("Philip飞");
+	const QString webUrl("https://www.lovesa.cc");
 	constexpr int nowSysBit = QSysInfo::WordSize;
 	constexpr int yearStart = 2023;
-	const QString qqImage(u8R"(:/image/icon_group.png)");
-	const QString qqLink(u8"https://qm.qq.com/cgi-bin/qm/qr?"
+	const QString qqImage(R"(:/image/icon_group.png)");
+	const QString qqLink("https://qm.qq.com/cgi-bin/qm/qr?"
 		"k=Mm_Asx4CFMhLWttW10ScuPngFPFgGNFP" \
 		"&jump_from=webapi" \
 		"&authKey=4C/22fh/ddibr24j1XMXr4cq3GXffyyKSVEDqP5PeCecCLZnCAIQrF6lD5cXjXql");
 
-	const QString qqLiskTitle(u8"石器助手SaSH");
+	const QString qqLiskTitle("石器助手SaSH");
 
 	setWindowTitle(QObject::tr("About %1").arg(programName));
 
@@ -174,21 +174,21 @@ CopyRightDialog::CopyRightDialog(QWidget* parent)
 	ui.label_version->setText(QObject::tr("Version %1.%2.%3")
 		.arg(SASH_VERSION_MAJOR).arg(SASH_VERSION_MINOR).arg(compile::buildDateTime(nullptr)));
 
-	ui.label_copyrighttext->setText(QString(u8"© %1 %2").arg(yearStart).arg(companyName));
+	ui.label_copyrighttext->setText(QString("© %1 %2").arg(yearStart).arg(companyName));
 
 	ui.label_txt->setText(QObject::tr("All right reserved."));
 
-	ui.label_link->setText(QString(u8R"(<a href="%1" style="color:#6586B5; font-size: 14px; font-family: Consolas;"><strong>%2</strong> by %3</a>)")
+	ui.label_link->setText(QString(R"(<a href="%1" style="color:#6586B5; font-size: 14px; font-family: Consolas;"><strong>%2</strong> by %3</a>)")
 		.arg(webUrl).arg("lovesa").arg(AuthorName));
 	ui.label_link->setOpenExternalLinks(true);
 
-	ui.label_group->setText(QString(u8R"(<a target="_blank" href="%1"><img border="0" src="%2" alt="%3" title="%4"></a>)")
+	ui.label_group->setText(QString(R"(<a target="_blank" href="%1"><img border="0" src="%2" alt="%3" title="%4"></a>)")
 		.arg(qqLink).arg(qqImage).arg(qqLiskTitle).arg(qqLiskTitle));
 	ui.label_group->setOpenExternalLinks(true);
 
 	ui.label_programname->setText(programName);
 
-	ui.label_thanks->setText(u8"特别感谢: eric、辉、match_stick、手柄、老花、小雅、大头鱼、Jin、瑤瑤、大树、gjw000 热心帮忙测试、查找Bug和给予大量优质的建议");
+	ui.label_thanks->setText("特别感谢: eric、辉、match_stick、手柄、老花、小雅、大头鱼、Jin、瑤瑤、大树、gjw000 热心帮忙测试、查找Bug和给予大量优质的建议");
 
 	ui.label_warnings->setText(
 		QObject::tr("Warning: This project is only for academic purposes," \
@@ -197,7 +197,7 @@ CopyRightDialog::CopyRightDialog(QWidget* parent)
 			"However we make no promises to your game accounts and so you have to use this project at your own risk," \
 			"including taking any damage to your accounts from scripts and binaries."));
 
-	ui.label_ad->setText(QString(u8R"(<a href="%1" style="color:#6586B5; font-size: 14px; font-family: Consolas;">%2</a>)")
+	ui.label_ad->setText(QString(R"(<a href="%1" style="color:#6586B5; font-size: 14px; font-family: Consolas;">%2</a>)")
 		.arg("https://mysa.cc").arg("盖亚石器攻略网"));
 	ui.label_ad->setOpenExternalLinks(true);
 

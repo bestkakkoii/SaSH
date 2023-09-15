@@ -19,6 +19,20 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "stdafx.h"
 #include "curldownload.h"
 
+#ifdef _WIN64
+#ifdef _DEBUG
+#pragma comment(lib, "libcurl_a64_debug.lib")
+#else
+#pragma comment(lib, "libcurl_a64.lib")
+#endif
+#else
+#ifdef _DEBUG
+#pragma comment(lib, "libcurl-d.lib")
+#else
+#pragma comment(lib, "libcurl.lib")
+#endif
+#endif
+
 std::atomic_int CurlDownload::threadCnt_ = 0;
 QMutex CurlDownload::mutex_;
 

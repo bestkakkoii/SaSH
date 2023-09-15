@@ -146,10 +146,10 @@ void OtherForm::onListWidgetDoubleClicked(QListWidgetItem* item)
 		QStringList list;
 		for (int i = 0; i < size; ++i)
 		{
-			QListWidgetItem* item = ui.listWidget_lockpets->item(i);
-			if (item)
+			QListWidgetItem* pitem = ui.listWidget_lockpets->item(i);
+			if (pitem)
 			{
-				QString str = item->text().simplified();
+				QString str = pitem->text().simplified();
 				if (str.isEmpty())
 					continue;
 				list.append(str);
@@ -320,7 +320,7 @@ void OtherForm::onCheckBoxStateChanged(int state)
 	}
 }
 
-void OtherForm::onSpinBoxValueChanged(int value)
+void OtherForm::onSpinBoxValueChanged(int)
 {
 	QSpinBox* pSpinBox = qobject_cast<QSpinBox*>(sender());
 	if (!pSpinBox)

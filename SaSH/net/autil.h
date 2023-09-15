@@ -71,8 +71,7 @@ namespace Autil
 	int __stdcall util_mkstring(char* buffer, char* value);
 
 	// 輔助函數，處理整數參數
-	template<typename Arg>
-	inline void util_SendProcessArg(int& sum, char* buffer, Arg arg)
+	inline void util_SendProcessArg(int& sum, char* buffer, int arg)
 	{
 		sum += util_mkint(buffer, arg);
 	}
