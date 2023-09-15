@@ -499,8 +499,6 @@ private:
 
 	void checkConditionalOp(QString& expr);
 
-	void createTreeWidgetItems(QList<QTreeWidgetItem*>* pTrees, const QHash<QString, QVariant>& d);
-
 	template <typename T>
 	typename std::enable_if<
 		std::is_same<T, QString>::value ||
@@ -574,8 +572,11 @@ private:
 
 	void generateStackInfo(qint64 type);
 
-private:
+public:
 	sol::state lua_;
+
+private:
+
 	Lexer lexer_;
 
 	QString scriptFileName_;

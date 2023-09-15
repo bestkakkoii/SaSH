@@ -2134,6 +2134,8 @@ namespace util
 
 	void sortWindows(const QVector<HWND>& windowList, bool alignLeft);
 
+	bool writeFireWallOverXP(const LPCTSTR& ruleName, const LPCTSTR& appPath, bool NoopIfExist);
+
 #pragma region swap_row
 	inline void SwapRow(QTableWidget* p, QListWidget* p2, int selectRow, int targetRow)
 	{

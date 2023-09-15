@@ -83,6 +83,8 @@ private:
 
 	void setContinue();
 
+	void createTreeWidgetItems(Parser* pparser, QList<QTreeWidgetItem*>* pTrees, const QHash<QString, QVariant>& d);
+
 signals:
 	void editorCursorPositionChanged(int line, int index);
 
@@ -112,7 +114,7 @@ private slots:
 	void onScriptLabelRowTextChanged(int row, int max, bool noSelect);
 
 	void loadFile(const QString& fileName);
-	void onVarInfoImport(QList<QTreeWidgetItem*> pNode);
+	void onVarInfoImport(void* p, const QHash<QString, QVariant>&);
 
 
 	void onCallStackInfoChanged(const QVariant& var);

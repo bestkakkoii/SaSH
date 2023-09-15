@@ -105,7 +105,7 @@ signals:
 	void scriptContentChanged(const QString& fileName, const QVariant& tokens);
 	void loadFileToTable(const QString& fileName);
 	void reloadScriptList();
-	void varInfoImported(QList<QTreeWidgetItem*> pTreeNode);
+	void varInfoImported(void* p, const QHash<QString, QVariant>& pTreeNode);
 
 	void scriptSpeedChanged(int speed);
 

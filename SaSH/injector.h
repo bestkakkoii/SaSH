@@ -85,6 +85,7 @@ public:
 	{
 		qint64 dwProcessId = NULL;
 		DWORD dwThreadId = NULL;
+		HANDLE hThread = nullptr;
 		HWND hWnd = nullptr;
 	} process_information_t, * pprocess_information_t, * lpprocess_information_t;
 

@@ -50,6 +50,7 @@ QPushButton:pressed, QPushButton:checked {
 		minimizeButton = new QPushButton("");
 		minimizeButton->setFixedSize(35, 35);
 		minimizeButton->setIcon(QIcon(":/image/icon_min"));
+		connect(minimizeButton, &QPushButton::clicked, parent, &QMainWindow::showMinimized);
 	}
 
 	if (button & kMaximizeButton)
@@ -61,6 +62,7 @@ QPushButton:pressed, QPushButton:checked {
 			maximizeButton_->setIcon(QIcon(":/image/icon_max.png"));
 		else
 			maximizeButton_->setIcon(QIcon(":/image/icon_restoredown.png"));
+		connect(maximizeButton_, &QPushButton::clicked, this, &CustomTitleBar::toggleMaximize);
 	}
 
 	QPushButton* closeButton = nullptr;
@@ -69,6 +71,7 @@ QPushButton:pressed, QPushButton:checked {
 		closeButton = new QPushButton("");
 		closeButton->setFixedSize(35, 35);
 		closeButton->setIcon(QIcon(":/image/icon_close"));
+		connect(closeButton, &QPushButton::clicked, parent, &QMainWindow::close);
 	}
 
 	QHBoxLayout* layout = new QHBoxLayout(this);
@@ -84,9 +87,6 @@ QPushButton:pressed, QPushButton:checked {
 	if (closeButton != nullptr)
 		layout->addWidget(closeButton);
 
-	connect(minimizeButton, &QPushButton::clicked, parent, &QMainWindow::showMinimized);
-	connect(maximizeButton_, &QPushButton::clicked, this, &CustomTitleBar::toggleMaximize);
-	connect(closeButton, &QPushButton::clicked, parent, &QMainWindow::close);
 	connect(parent, &QMainWindow::windowTitleChanged, this, &CustomTitleBar::onTitleChanged);
 }
 

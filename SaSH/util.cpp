@@ -858,3 +858,133 @@ void util::sortWindows(const QVector<HWND>& windowList, bool alignLeft)
 		}
 	}
 }
+
+bool util::writeFireWallOverXP(const LPCTSTR& ruleName, const LPCTSTR& appPath, bool NoopIfExist)
+{
+	bool bret = false;
+	HRESULT hrComInit = S_OK;
+	HRESULT hr = S_OK;
+
+	INetFwPolicy2* pNetFwPolicy2 = NULL;
+	INetFwRules* pFwRules = NULL;
+	INetFwRule* pFwRule = NULL;
+
+	BSTR bstrRuleName = SysAllocString(ruleName);
+	BSTR bstrAppName = SysAllocString(appPath);
+
+	// Initialize COM.
+	hrComInit = CoInitializeEx(
+		0,
+		COINIT_APARTMENTTHREADED);
+
+	do
+	{
+		// Ignore RPC_E_CHANGED_MODE; this just means that COM has already been
+	// initialized with a different mode. Since we don't care what the mode is,
+	// we'll just use the existing mode.
+		if (hrComInit != RPC_E_CHANGED_MODE)
+		{
+			if (FAILED(hrComInit))
+			{
+				//print << "CoInitializeEx failed: " << hrComInit << Qt::endl;
+				bret = false;
+				break;
+			}
+		}
+
+		// Retrieve INetFwPolicy2
+		hr = CoCreateInstance(
+			__uuidof(NetFwPolicy2),
+			NULL,
+			CLSCTX_INPROC_SERVER,
+			__uuidof(INetFwPolicy2),
+			(void**)&pNetFwPolicy2);
+
+		if (FAILED(hr))
+		{
+			//print << "CoCreateInstance for INetFwPolicy2 failed : " << hr << Qt::endl;
+			bret = false;
+			break;
+		}
+
+		// Retrieve INetFwRules
+		hr = pNetFwPolicy2->get_Rules(&pFwRules);
+		if (FAILED(hr))
+		{
+			//print << "get_Rules failed: " << hr << Qt::endl;
+			bret = false;
+			break;
+		}
+
+		// see if existed
+		if (NoopIfExist)
+		{
+			hr = pFwRules->Item(bstrRuleName, &pFwRule);
+			if (hr == S_OK)
+			{
+				//print << "Firewall Item existed" << hr << Qt::endl;
+				bret = false;
+				break;
+			}
+		}
+
+		// Create a new Firewall Rule object.
+		hr = CoCreateInstance(
+			__uuidof(NetFwRule),
+			NULL,
+			CLSCTX_INPROC_SERVER,
+			__uuidof(INetFwRule),
+			(void**)&pFwRule);
+		if (FAILED(hr))
+		{
+			// printf("CoCreateInstance for Firewall Rule failed: 0x%08lx\n", hr << Qt::endl;
+			bret = false;
+			break;
+		}
+
+		// Populate the Firewall Rule object
+
+		pFwRule->put_Name(bstrRuleName);
+		pFwRule->put_ApplicationName(bstrAppName);
+		pFwRule->put_Action(NET_FW_ACTION_ALLOW);
+		pFwRule->put_Enabled(VARIANT_TRUE);
+
+		// Add the Firewall Rule
+		hr = pFwRules->Add(pFwRule);
+		if (FAILED(hr))
+		{
+			// printf("Firewall Rule Add failed: 0x%08lx\n", hr << Qt::endl;
+			bret = false;
+			break;
+		}
+	} while (false);
+
+	// Free BSTR's
+	SysFreeString(bstrRuleName);
+	SysFreeString(bstrAppName);
+
+	// Release the INetFwRule object
+	if (pFwRule != NULL)
+	{
+		pFwRule->Release();
+	}
+
+	// Release the INetFwRules object
+	if (pFwRules != NULL)
+	{
+		pFwRules->Release();
+	}
+
+	// Release the INetFwPolicy2 object
+	if (pNetFwPolicy2 != NULL)
+	{
+		pNetFwPolicy2->Release();
+	}
+
+	// Uninitialize COM.
+	if (SUCCEEDED(hrComInit))
+	{
+		CoUninitialize();
+	}
+	return bret;
+}
