@@ -104,6 +104,7 @@ public:
 	bool createProcess(process_information_t& pi);
 
 	bool inject(HANDLE hProcess, QString dllPath);
+	bool injectex(HANDLE hProcess, QString dllPath);
 
 	bool injectLibrary(process_information_t& pi, unsigned short port, util::LPREMOVE_THREAD_REASON pReason);
 

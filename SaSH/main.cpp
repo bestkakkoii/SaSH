@@ -103,7 +103,7 @@ void qtMessageHandler(QtMsgType type, const QMessageLogContext& context, const Q
 
 		CreateConsole();
 		QTextStream out(stderr);
-		out.setCodec("UTF-8");
+		out.setCodec(util::DEFAULT_CODEPAGE);
 		out << QString("Qt exception caught: ") << QString(e.what()) << Qt::endl;
 		out << QString("Context: ") << context.file << ":" << context.line << " - " << context.function << Qt::endl;
 		out << QString("Message: ") << msg << QString(e.what()) << Qt::endl;
@@ -412,8 +412,8 @@ int main(int argc, char* argv[])
 	qSetMessagePattern("[%{threadid}] [@%{line}] [%{function}] [%{type}] %{message}");//%{file} 
 #else
 	qInstallMessageHandler(qtMessageHandler);
-	//SetUnhandledExceptionFilter(MinidumpCallback); //SEH
-	//preventSetUnhandledExceptionFilter();
+	SetUnhandledExceptionFilter(MinidumpCallback); //SEH
+	preventSetUnhandledExceptionFilter();
 	//AddVectoredExceptionHandler(0, MinidumpCallback); //VEH
 	//CreateConsole();
 #endif
