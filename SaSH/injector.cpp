@@ -198,6 +198,12 @@ bool Injector::createProcess(Injector::process_information_t& pi)
 	pi.dwProcessId = _pi.dwProcessId;
 	pi.hThread = _pi.hThread;
 	processHandle_.reset(_pi.hProcess);
+
+	QString fullpath = path.toLower();
+	fullpath.replace("/", "\\");
+	std::wstring wsfullpath = fullpath.toStdWString();
+	util::writeFireWallOverXP(wsfullpath.c_str(), wsfullpath.c_str(), true);
+
 	ResumeThread(_pi.hThread);
 #else
 	QProcess process;
@@ -281,6 +287,82 @@ DWORD WINAPI Injector::getFunAddr(const DWORD* DllBase, const char* FunName)
 	return (DWORD)NULL;
 }
 
+bool Injector::inject(HANDLE hProcess, QString dllPath)
+{
+	struct InjectData
+	{
+		DWORD loadlibraryaddr = 0;  //+ 0
+		DWORD getlasterroraddr = 0; //+ 4
+		DWORD getmodulehandleaddr = 0; //+ 8
+		DWORD dllfullpathaddr = 0;  //+ C
+		DWORD remotemodule = 0;     //+ 10
+		DWORD lastError = 0;        //+ 14
+		DWORD gamemodule = 0;       //+ 18
+
+	};
+
+	InjectData d;
+	DWORD* kernel32Module = getKernel32();
+	d.loadlibraryaddr = getFunAddr(kernel32Module, "LoadLibraryW");
+	d.getlasterroraddr = getFunAddr(kernel32Module, "GetLastError");
+	d.getmodulehandleaddr = getFunAddr(kernel32Module, "GetModuleHandleW");
+	util::VirtualMemory dllfullpathaddr(hProcess, dllPath, util::VirtualMemory::kUnicode, true);
+	d.dllfullpathaddr = dllfullpathaddr;
+
+	util::VirtualMemory injectdata(hProcess, sizeof(InjectData), true);
+	mem::write(hProcess, injectdata, &d, sizeof(InjectData));
+
+	/*
+	08130019 - 8B 44 24 04           - mov eax,[esp+04]
+	0813001D - 8B D8                 - mov ebx,eax
+	0813001F - 8B 48 0C              - mov ecx,[eax+0C]
+	08130022 - 51                    - push ecx
+	08130023 - FF 13                 - call dword ptr [ebx]
+	08130025 - 89 43 10              - mov [ebx+10],eax
+	08130028 - 8B 43 04              - mov eax,[ebx+04]
+	0813002B - FF D0                 - call eax
+	0813002D - 89 43 14              - mov [ebx+14],eax
+	08130030 - 8B 43 08              - mov eax,[ebx+08]
+	08130033 - 6A 00                 - push 00 { 0 }
+	08130035 - FF D0                 - call eax
+	08130037 - 89 43 18              - mov [ebx+18],eax
+	0813003A - C3                    - ret
+	*/
+
+	util::VirtualMemory remoteFunc(hProcess, 100, true);
+	mem::write(hProcess, remoteFunc, const_cast<char*>("\x8B\x44\x24\x04\x8B\xD8\x8B\x48\x0C\x51\xFF\x13\x89\x43\x10\x8B\x43\x04\xFF\xD0\x89\x43\x14\x8B\x43\x08\x6A\x00\xFF\xD0\x89\x43\x18\xC3"), 36);
+
+	{
+		ScopedHandle hThreadHandle(
+			ScopedHandle::CREATE_REMOTE_THREAD,
+			hProcess,
+			reinterpret_cast<PVOID>(static_cast<quint64>(remoteFunc)),
+			reinterpret_cast<LPVOID>(static_cast<quint64>(injectdata)));
+	}
+
+	mem::read(hProcess, injectdata, sizeof(InjectData), &d);
+	if (d.lastError != 0)
+	{
+		FormatMessageW( //取得錯誤訊息
+			FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+			NULL,
+			d.lastError,
+			MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+			(LPWSTR)&d.lastError,
+			0,
+			NULL);
+
+		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
+		emit signalDispatcher.messageBoxShow(QString::fromWCharArray(L"Inject fail, error code: %1, %2").arg(d.lastError).arg(reinterpret_cast<wchar_t*>(d.lastError)));
+		return false;
+	}
+
+	hModule_ = d.gamemodule;
+	hookdllModule_ = reinterpret_cast<HMODULE>(d.remotemodule);
+	qDebug() << "inject OK" << "0x" + QString::number(d.remotemodule, 16);
+	return d.gamemodule > 0 && d.remotemodule > 0;
+}
+
 bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short port, util::LPREMOVE_THREAD_REASON pReason)
 {
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
@@ -300,21 +382,19 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 	constexpr qint64 MAX_TIMEOUT = 30000;
 	bool bret = 0;
 	QElapsedTimer timer;
-	DWORD* kernel32Module = nullptr;
-	FARPROC loadLibraryProc = nullptr;
-	HMODULE hModule = nullptr;
 	QString dllPath = "\0";
-	QFileInfo fi;
-	QString fileNameOnly;
 	qint64 parent = NULL;
-
 	do
 	{
 		QString applicationDirPath = util::applicationDirPath();
 		dllPath = applicationDirPath + "/" + InjectDllName;
 
-		fi.setFile(dllPath);
-		fileNameOnly = fi.fileName();
+		QFileInfo fi(dllPath);
+		if (!fi.exists())
+		{
+			emit signalDispatcher.messageBoxShow(tr("Dll is not exist at %1").arg(dllPath));
+			break;
+		}
 
 		qDebug() << "file OK";
 
@@ -349,16 +429,140 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 		if (nullptr == pi.hWnd)
 		{
 			*pReason = util::REASON_ENUM_WINDOWS_FAIL;
-			break;
+			continue;
 		}
 
 		qDebug() << "HWND OK";
 
-		bool skip = false;
+		//紀錄線程ID(目前沒有使用到只是先記錄著)
+		pi.dwThreadId = ::GetWindowThreadProcessId(pi.hWnd, nullptr);
 
-		if (skip)
+
+		//嘗試打開進程句柄並檢查是否成功
+		if (!isHandleValid(pi.dwProcessId))
+		{
+			*pReason = util::REASON_OPEN_PROCESS_FAIL;
+			emit signalDispatcher.messageBoxShow(tr("OpenProcess fail"));
+			continue;
+		}
+
+		if (!processHandle_.isValid())
+			processHandle_.reset(pi.dwProcessId);
+
+		inject(processHandle_, dllPath);
+
+		if (hookdllModule_ == 0)
+		{
+			*pReason = util::REASON_INJECT_LIBRARY_FAIL;
+			continue;
+		}
+
+		if (NULL == hModule_)
+		{
+			*pReason = util::REASON_INJECT_LIBRARY_FAIL;
+			continue;
+		}
+
+		pi_ = pi;
+		parent = qgetenv("SASH_HWND").toULongLong();
+
+		//通知客戶端初始化，並提供port端口讓客戶端連進來、另外提供本窗口句柄讓子進程反向檢查外掛是否退出
+		sendMessage(kInitialize, port, parent);
+
+		//去除改變窗口大小的屬性
+		::SetWindowLongW(pi.hWnd, GWL_STYLE, WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX | WS_VISIBLE);
+		::SetWindowLongW(pi.hWnd, GWL_EXSTYLE, WS_EX_OVERLAPPEDWINDOW);
+
+		bret = true;
+	} while (false);
+
+	if (!bret)
+		pi_ = {};
+
+	return bret;
+}
+
+bool Injector::injectLibraryOld(Injector::process_information_t& pi, unsigned short port, util::LPREMOVE_THREAD_REASON pReason)
+{
+	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
+
+	if (!pi.dwProcessId)
+	{
+		emit signalDispatcher.messageBoxShow(tr("dwProcessId is null!"));
+		return false;
+	}
+
+	if (nullptr == pReason)
+	{
+		emit signalDispatcher.messageBoxShow(tr("pReason is null!"));
+		return false;
+	}
+
+	constexpr qint64 MAX_TIMEOUT = 30000;
+	bool bret = 0;
+	QElapsedTimer timer;
+	DWORD* kernel32Module = nullptr;
+	FARPROC loadLibraryProc = nullptr;
+	quint64 nRemoteModule = 0;
+	QString dllPath = "\0";
+	qint64 parent = NULL;
+	qint64 tryCount = 10;
+	for (;;)
+	{
+		if (--tryCount <= 0)
+		{
 			break;
+		}
 
+		QString applicationDirPath = util::applicationDirPath();
+		dllPath = applicationDirPath + "/" + InjectDllName;
+
+		QFileInfo fi(dllPath);
+		if (!fi.exists())
+		{
+			emit signalDispatcher.messageBoxShow(tr("Dll is not exist at %1").arg(dllPath));
+			break;
+		}
+
+		qDebug() << "file OK";
+
+		pi.hWnd = nullptr;
+
+		timer.start();
+
+		if (nullptr == pi.hWnd)
+		{
+			//查找窗口句炳
+			for (;;)
+			{
+				::EnumWindows(EnumWindowsCallback, reinterpret_cast<LPARAM>(&pi));
+				if (pi.hWnd)
+				{
+					DWORD dwProcessId = 0;
+					::GetWindowThreadProcessId(pi.hWnd, &dwProcessId);
+					if (dwProcessId == pi.dwProcessId)
+						break;
+				}
+
+				if (timer.hasExpired(MAX_TIMEOUT))
+				{
+					emit signalDispatcher.messageBoxShow(tr("EnumWindows timeout"));
+					break;
+				}
+
+				QThread::msleep(100);
+			}
+		}
+
+		if (nullptr == pi.hWnd)
+		{
+			*pReason = util::REASON_ENUM_WINDOWS_FAIL;
+			continue;
+		}
+
+		qDebug() << "HWND OK";
+
+		//紀錄線程ID(目前沒有使用到只是先記錄著)
 		pi.dwThreadId = ::GetWindowThreadProcessId(pi.hWnd, nullptr);
 
 		//取kernel32.dll入口指針
@@ -367,7 +571,7 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 		{
 			*pReason = util::REASON_GET_KERNEL32_FAIL;
 			emit signalDispatcher.messageBoxShow(tr("Get kernel32 module handle fail"));
-			break;
+			continue;
 		}
 
 		//取LoadLibraryW函數指針
@@ -376,7 +580,7 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 		{
 			*pReason = util::REASON_GET_KERNEL32_UNDOCUMENT_API_FAIL;
 			emit signalDispatcher.messageBoxShow(tr("Get LoadLibraryW address fail"));
-			break;
+			continue;
 		}
 
 		//嘗試打開進程句柄並檢查是否成功
@@ -384,11 +588,13 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 		{
 			*pReason = util::REASON_OPEN_PROCESS_FAIL;
 			emit signalDispatcher.messageBoxShow(tr("OpenProcess fail"));
-			break;
+			continue;
 		}
 
 		if (!processHandle_.isValid())
 			processHandle_.reset(pi.dwProcessId);
+
+		qDebug() << "test Inject" << inject(processHandle_, dllPath);
 
 		//在遠程進程中分配內存
 		const util::VirtualMemory lpParameter(processHandle_, dllPath, util::VirtualMemory::kUnicode, true);
@@ -396,57 +602,51 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 		{
 			*pReason = util::REASON_VIRTUAL_ALLOC_FAIL;
 			emit signalDispatcher.messageBoxShow(tr("VirtualAllocEx fail"));
-			break;
+			continue;
 		}
 
 		//創建遠程線程調用LoadLibrary 
 		{
-			ScopedHandle hThreadHandle(ScopedHandle::CREATE_REMOTE_THREAD, processHandle_,
+			ScopedHandle hThreadHandle(
+				ScopedHandle::CREATE_REMOTE_THREAD,
+				processHandle_,
 				reinterpret_cast<PVOID>(loadLibraryProc),
 				reinterpret_cast<LPVOID>(static_cast<quint64>(lpParameter)));
 			if (!hThreadHandle.isValid())
 			{
 				*pReason = util::REASON_INJECT_LIBRARY_FAIL;
 				emit signalDispatcher.messageBoxShow(tr("CreateRemoteThread fail"));
-				break;
+				continue;
 			}
-
-			WaitForSingleObject(hThreadHandle, INFINITE);
 		}
 
 		//dll注入後嘗試取得dll的基址
 		timer.restart();
 		for (;;)
 		{
-			hModule = reinterpret_cast<HMODULE>(mem::getRemoteModuleHandle(pi.dwProcessId, fileNameOnly));
-			if (hModule != nullptr)
+			nRemoteModule = mem::getRemoteModuleHandle(pi.dwProcessId, InjectDllName);
+			if (nRemoteModule > 0)
 				break;
 
-			if (timer.hasExpired(5000))
+			if (timer.hasExpired(15000))
 			{
 				emit signalDispatcher.messageBoxShow(tr("timeout and unable to get remote module handle"));
 				break;
 			}
 
-			if (timer.hasExpired(2500) && !IsWindow(pi.hWnd))
+			if (timer.hasExpired(5000) && !IsWindow(pi.hWnd))
 			{
 				emit signalDispatcher.messageBoxShow(tr("timeout and window disappear while get remote module handle"));
-				break;
-			}
-
-			if (SendMessageTimeoutW(pi.hWnd, WM_NULL, 0, 0, SMTO_ABORTIFHUNG | SMTO_ERRORONEXIT, MessageTimeout, nullptr) <= 0)
-			{
-				emit signalDispatcher.messageBoxShow(tr("SendMessageTimeoutW fail window is hung or exit while get remote module handle"));
 				break;
 			}
 
 			QThread::msleep(100);
 		}
 
-		if (nullptr == hModule)
+		if (nRemoteModule == 0)
 		{
 			*pReason = util::REASON_INJECT_LIBRARY_FAIL;
-			break;
+			continue;
 		}
 
 		qDebug() << "inject OK";
@@ -477,31 +677,26 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 				break;
 			}
 
-			if (SendMessageTimeoutW(pi.hWnd, WM_NULL, 0, 0, SMTO_ABORTIFHUNG | SMTO_ERRORONEXIT, MessageTimeout, nullptr) <= 0)
-			{
-				emit signalDispatcher.messageBoxShow(tr("SendMessageTimeoutW fail window is hung or exit while get remote execute module handle"));
-				break;
-			}
-
 			QThread::msleep(100);
 		}
 
 		if (NULL == hModule_)
 		{
 			*pReason = util::REASON_INJECT_LIBRARY_FAIL;
-			break;
+			continue;
 		}
 
 		qDebug() << "module OK";
 
-		hookdllModule_ = reinterpret_cast<HMODULE>(hModule);
+		hookdllModule_ = reinterpret_cast<HMODULE>(nRemoteModule);
 
 		//去除改變窗口大小的屬性
 		::SetWindowLongW(pi.hWnd, GWL_STYLE, WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX | WS_VISIBLE);
 		::SetWindowLongW(pi.hWnd, GWL_EXSTYLE, WS_EX_OVERLAPPEDWINDOW);
 
 		bret = true;
-	} while (false);
+		break;
+	}
 
 	if (!bret)
 		pi_ = {};

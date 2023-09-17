@@ -23,7 +23,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 #include "signaldispatcher.h"
 
-qint64 Interpreter::reg(qint64 currentline, const TokenMap& TK)
+qint64 Interpreter::reg(qint64, const TokenMap& TK)
 {
 	QString text;
 	if (!checkString(TK, 1, &text))
@@ -41,7 +41,7 @@ qint64 Interpreter::reg(qint64 currentline, const TokenMap& TK)
 	return Parser::kNoChange;
 }
 
-qint64 Interpreter::timer(qint64 currentline, const TokenMap& TK)
+qint64 Interpreter::timer(qint64, const TokenMap& TK)
 {
 	QString varName = TK.value(2).data.toString();
 	qint64 pointer = 0;
@@ -93,7 +93,7 @@ qint64 Interpreter::timer(qint64 currentline, const TokenMap& TK)
 	return Parser::kNoChange;
 }
 
-qint64 Interpreter::sleep(qint64 currentline, const TokenMap& TK)
+qint64 Interpreter::sleep(qint64, const TokenMap& TK)
 {
 	qint64 t;
 	if (!checkInteger(TK, 1, &t))
@@ -119,7 +119,7 @@ qint64 Interpreter::sleep(qint64 currentline, const TokenMap& TK)
 	return Parser::kNoChange;
 }
 
-qint64 Interpreter::press(qint64 currentline, const TokenMap& TK)
+qint64 Interpreter::press(qint64, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance();
 
@@ -196,7 +196,7 @@ qint64 Interpreter::press(qint64 currentline, const TokenMap& TK)
 	return Parser::kNoChange;
 }
 
-qint64 Interpreter::eo(qint64 currentline, const TokenMap& TK)
+qint64 Interpreter::eo(qint64, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance();
 	if (injector.server.isNull())
@@ -267,7 +267,7 @@ qint64 Interpreter::announce(qint64 currentline, const TokenMap& TK)
 	return Parser::kNoChange;
 }
 
-qint64 Interpreter::input(qint64 currentline, const TokenMap& TK)
+qint64 Interpreter::input(qint64, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance();
 
@@ -312,7 +312,7 @@ qint64 Interpreter::input(qint64 currentline, const TokenMap& TK)
 	return Parser::kNoChange;
 }
 
-qint64 Interpreter::messagebox(qint64 currentline, const TokenMap& TK)
+qint64 Interpreter::messagebox(qint64, const TokenMap& TK)
 {
 	QString text;
 	qreal number = 0.0;
@@ -359,7 +359,7 @@ qint64 Interpreter::messagebox(qint64 currentline, const TokenMap& TK)
 	return Parser::kNoChange;
 }
 
-qint64 Interpreter::talk(qint64 currentline, const TokenMap& TK)
+qint64 Interpreter::talk(qint64, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance();
 
@@ -418,7 +418,7 @@ qint64 Interpreter::talkandannounce(qint64 currentline, const TokenMap& TK)
 	return talk(currentline, TK);
 }
 
-qint64 Interpreter::menu(qint64 currentline, const TokenMap& TK)
+qint64 Interpreter::menu(qint64, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance();
 
@@ -441,6 +441,8 @@ qint64 Interpreter::menu(qint64 currentline, const TokenMap& TK)
 	if (type < 0 || type > 1)
 		return Parser::kArgError + 2ll;
 
+	injector.server->IS_WAITFOR_EXTRA_DIALOG_INFO_FLAG = true;
+
 	if (type == 0)
 	{
 		injector.server->saMenu(index);
@@ -450,10 +452,25 @@ qint64 Interpreter::menu(qint64 currentline, const TokenMap& TK)
 		injector.server->shopOk(index);
 	}
 
+	QElapsedTimer timer; timer.start();
+	for (;;)
+	{
+		if (isInterruptionRequested())
+			return false;
+
+		if (timer.hasExpired(1000))
+			break;
+
+		if (!injector.server->IS_WAITFOR_EXTRA_DIALOG_INFO_FLAG)
+			break;
+
+		QThread::msleep(100);
+	}
+
 	return Parser::kNoChange;
 }
 
-qint64 Interpreter::logout(qint64 currentline, const TokenMap& TK)
+qint64 Interpreter::logout(qint64, const TokenMap&)
 {
 	Injector& injector = Injector::getInstance();
 	if (injector.server.isNull())
@@ -466,7 +483,7 @@ qint64 Interpreter::logout(qint64 currentline, const TokenMap& TK)
 	return Parser::kNoChange;
 }
 
-qint64 Interpreter::logback(qint64 currentline, const TokenMap& TK)
+qint64 Interpreter::logback(qint64, const TokenMap&)
 {
 	Injector& injector = Injector::getInstance();
 	if (injector.server.isNull())
@@ -480,7 +497,7 @@ qint64 Interpreter::logback(qint64 currentline, const TokenMap& TK)
 	return Parser::kNoChange;
 }
 
-qint64 Interpreter::createch(qint64 currentline, const TokenMap& TK)
+qint64 Interpreter::createch(qint64, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance();
 	if (injector.server.isNull())
@@ -623,7 +640,7 @@ qint64 Interpreter::createch(qint64 currentline, const TokenMap& TK)
 	return Parser::kNoChange;
 }
 
-qint64 Interpreter::delch(qint64 currentline, const TokenMap& TK)
+qint64 Interpreter::delch(qint64, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance();
 	if (injector.server.isNull())
@@ -650,7 +667,7 @@ qint64 Interpreter::delch(qint64 currentline, const TokenMap& TK)
 	return Parser::kNoChange;
 }
 
-qint64 Interpreter::cleanchat(qint64 currentline, const TokenMap& TK)
+qint64 Interpreter::cleanchat(qint64, const TokenMap&)
 {
 	Injector& injector = Injector::getInstance();
 	if (!injector.server.isNull())
@@ -659,7 +676,7 @@ qint64 Interpreter::cleanchat(qint64 currentline, const TokenMap& TK)
 	return Parser::kNoChange;
 }
 
-qint64 Interpreter::savesetting(qint64 currentline, const TokenMap& TK)
+qint64 Interpreter::savesetting(qint64, const TokenMap& TK)
 {
 	QString fileName;
 	if (!checkString(TK, 1, &fileName))
@@ -695,7 +712,7 @@ qint64 Interpreter::savesetting(qint64 currentline, const TokenMap& TK)
 	return Parser::kNoChange;
 }
 
-qint64 Interpreter::loadsetting(qint64 currentline, const TokenMap& TK)
+qint64 Interpreter::loadsetting(qint64, const TokenMap& TK)
 {
 	QString fileName;
 	if (!checkString(TK, 1, &fileName))
@@ -734,7 +751,7 @@ qint64 Interpreter::loadsetting(qint64 currentline, const TokenMap& TK)
 	return Parser::kNoChange;
 }
 
-qint64 Interpreter::set(qint64 currentline, const TokenMap& TK)
+qint64 Interpreter::set(qint64, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance();
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
@@ -1527,7 +1544,7 @@ qint64 Interpreter::set(qint64 currentline, const TokenMap& TK)
 
 ///////////////////////////////////////////////////////////////
 
-qint64 Interpreter::dlg(qint64 currentline, const TokenMap& TK)
+qint64 Interpreter::dlg(qint64, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance();
 
@@ -1609,7 +1626,7 @@ qint64 Interpreter::dlg(qint64 currentline, const TokenMap& TK)
 	return checkJump(TK, 6, bret, FailedJump);
 }
 
-qint64 Interpreter::regex(qint64 currentline, const TokenMap& TK)
+qint64 Interpreter::regex(qint64, const TokenMap& TK)
 {
 	QString varName = TK.value(1).data.toString();
 	if (varName.isEmpty())
@@ -1675,7 +1692,7 @@ qint64 Interpreter::regex(qint64 currentline, const TokenMap& TK)
 	return Parser::kNoChange;
 }
 
-qint64 Interpreter::rex(qint64 currentline, const TokenMap& TK)
+qint64 Interpreter::rex(qint64, const TokenMap& TK)
 {
 	QString src;
 	if (!checkString(TK, 1, &src))
@@ -1725,7 +1742,7 @@ qint64 Interpreter::rex(qint64 currentline, const TokenMap& TK)
 	return Parser::kNoChange;
 }
 
-qint64 Interpreter::rexg(qint64 currentline, const TokenMap& TK)
+qint64 Interpreter::rexg(qint64, const TokenMap& TK)
 {
 	QString src;
 	if (!checkString(TK, 1, &src))
@@ -1750,7 +1767,6 @@ qint64 Interpreter::rexg(qint64 currentline, const TokenMap& TK)
 	QRegularExpressionMatchIterator matchs = regex.globalMatch(src);
 	qint64 n = 0;
 
-	int i = 4;
 	QStringList resultList;
 	while (matchs.hasNext())
 	{
@@ -1774,7 +1790,7 @@ qint64 Interpreter::rexg(qint64 currentline, const TokenMap& TK)
 	return Parser::kNoChange;
 }
 
-qint64 Interpreter::find(qint64 currentline, const TokenMap& TK)
+qint64 Interpreter::find(qint64, const TokenMap& TK)
 {
 	QString varName = TK.value(1).data.toString();
 	if (varName.isEmpty())
@@ -1813,7 +1829,7 @@ qint64 Interpreter::find(qint64 currentline, const TokenMap& TK)
 	return Parser::kNoChange;
 }
 
-qint64 Interpreter::half(qint64 currentline, const TokenMap& TK)
+qint64 Interpreter::half(qint64, const TokenMap& TK)
 {
 	const QString FullWidth = "０１２３４５６７８９"
 		"ａｂｃｄｅｆｇｈｉｊｋｌｍｎｏｐｑｒｓｔｕｖｗｘｙｚ"
@@ -1841,7 +1857,7 @@ qint64 Interpreter::half(qint64 currentline, const TokenMap& TK)
 	return Parser::kNoChange;
 }
 
-qint64 Interpreter::full(qint64 currentline, const TokenMap& TK)
+qint64 Interpreter::full(qint64, const TokenMap& TK)
 {
 	const QString FullWidth = "０１２３４５６７８９"
 		"ａｂｃｄｅｆｇｈｉｊｋｌｍｎｏｐｑｒｓｔｕｖｗｘｙｚ"
@@ -1870,7 +1886,7 @@ qint64 Interpreter::full(qint64 currentline, const TokenMap& TK)
 	return Parser::kNoChange;
 }
 
-qint64 Interpreter::upper(qint64 currentline, const TokenMap& TK)
+qint64 Interpreter::upper(qint64, const TokenMap& TK)
 {
 	QString varName = TK.value(1).data.toString();
 	if (varName.isEmpty())
@@ -1888,7 +1904,7 @@ qint64 Interpreter::upper(qint64 currentline, const TokenMap& TK)
 	return Parser::kNoChange;
 }
 
-qint64 Interpreter::lower(qint64 currentline, const TokenMap& TK)
+qint64 Interpreter::lower(qint64, const TokenMap& TK)
 {
 	QString varName = TK.value(1).data.toString();
 	if (varName.isEmpty())
@@ -1906,7 +1922,7 @@ qint64 Interpreter::lower(qint64 currentline, const TokenMap& TK)
 	return Parser::kNoChange;
 }
 
-qint64 Interpreter::replace(qint64 currentline, const TokenMap& TK)
+qint64 Interpreter::replace(qint64, const TokenMap& TK)
 {
 	QString varName = TK.value(1).data.toString();
 	if (varName.isEmpty())
@@ -1945,7 +1961,7 @@ qint64 Interpreter::replace(qint64 currentline, const TokenMap& TK)
 	return Parser::kNoChange;
 }
 
-qint64 Interpreter::ocr(qint64 currentline, const TokenMap& TK)
+qint64 Interpreter::ocr(qint64, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance();
 
@@ -1980,7 +1996,7 @@ qint64 Interpreter::ocr(qint64 currentline, const TokenMap& TK)
 }
 
 #include "net/autil.h"
-qint64 Interpreter::send(qint64 currentline, const TokenMap& TK)
+qint64 Interpreter::send(qint64, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance();
 

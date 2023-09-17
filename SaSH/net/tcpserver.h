@@ -844,8 +844,6 @@ public:
 	util::SafeData<QPoint> nowPoint;
 	QString nowFloorName = "";
 
-	QString protoBattleLogName = "";
-
 	//main datas shared with script thread
 	util::SafeHash<QString, QVariant> hashmap;
 	util::SafeHash<int, QHash<QString, QVariant>> hashbattle;

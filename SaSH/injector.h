@@ -103,7 +103,11 @@ public:
 
 	bool createProcess(process_information_t& pi);
 
+	bool inject(HANDLE hProcess, QString dllPath);
+
 	bool injectLibrary(process_information_t& pi, unsigned short port, util::LPREMOVE_THREAD_REASON pReason);
+
+	bool injectLibraryOld(Injector::process_information_t& pi, unsigned short port, util::LPREMOVE_THREAD_REASON pReason);
 
 	void remoteFreeModule();
 
@@ -180,15 +184,15 @@ private:
 			if (lParam == NULL)
 				break;
 
-			if (reinterpret_cast<quint64>(handle) == qgetenv("SASH_HWND").toULongLong())
-				break;
+			//if (reinterpret_cast<quint64>(handle) == qgetenv("SASH_HWND").toULongLong())
+			//	break;
 
 			DWORD dwProcessId = 0;
 			::GetWindowThreadProcessId(handle, &dwProcessId);
 
 			lpprocess_information_t data = reinterpret_cast<lpprocess_information_t>(lParam);
-			if (!IsWindowVisible(handle))
-				break;
+			//if (!IsWindowVisible(handle))
+			//	break;
 
 			if (IsConsoleWindow(handle))
 				break;

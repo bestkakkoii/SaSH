@@ -21,7 +21,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "injector.h"
 #include "signaldispatcher.h"
 
-bool CLuaUtil::getSys(sol::table dstTable, sol::this_state s)
+bool CLuaUtil::getSys(sol::table dstTable, sol::this_state)
 {
 	Injector& injector = Injector::getInstance();
 	if (injector.server.isNull())
@@ -35,7 +35,7 @@ bool CLuaUtil::getSys(sol::table dstTable, sol::this_state s)
 	return TRUE;
 }
 
-bool CLuaUtil::getMap(sol::table dstTable, sol::this_state s)
+bool CLuaUtil::getMap(sol::table dstTable, sol::this_state)
 {
 	Injector& injector = Injector::getInstance();
 	if (injector.server.isNull())
@@ -53,7 +53,7 @@ bool CLuaUtil::getMap(sol::table dstTable, sol::this_state s)
 	return TRUE;
 }
 
-bool CLuaUtil::getChar(sol::table dstTable, sol::this_state s)
+bool CLuaUtil::getChar(sol::table dstTable, sol::this_state)
 {
 	Injector& injector = Injector::getInstance();
 	if (injector.server.isNull())
@@ -239,7 +239,7 @@ bool CLuaUtil::getCard(sol::table dstTable, sol::this_state s)
 	return TRUE;
 }
 
-bool CLuaUtil::getChat(sol::table dstTable, sol::this_state s)
+bool CLuaUtil::getChat(sol::table dstTable, sol::this_state)
 {
 	Injector& injector = Injector::getInstance();
 	if (injector.server.isNull())

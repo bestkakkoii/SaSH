@@ -154,9 +154,9 @@ qint64 CLuaMap::downLoad(sol::object ofloor, sol::this_state s)
 			QRegularExpressionMatch match = reg.match(fileName.toLower());
 			if (match.hasMatch())
 			{
-				QString floor = match.captured(1);
+				QString fl = match.captured(1);
 				int size = fileInfo.size();
-				list.append(map{ floor.toInt(), size });
+				list.append(map{ fl.toInt(), size });
 			}
 		}
 

@@ -23,7 +23,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "map/mapanalyzer.h"
 
 //move
-qint64 Interpreter::setdir(qint64 currentline, const TokenMap& TK)
+qint64 Interpreter::setdir(qint64, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance();
 
@@ -55,7 +55,7 @@ qint64 Interpreter::setdir(qint64 currentline, const TokenMap& TK)
 	return Parser::kNoChange;
 }
 
-qint64 Interpreter::move(qint64 currentline, const TokenMap& TK)
+qint64 Interpreter::move(qint64, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance();
 
@@ -97,7 +97,7 @@ qint64 Interpreter::move(qint64 currentline, const TokenMap& TK)
 	return Parser::kNoChange;
 }
 
-qint64 Interpreter::fastmove(qint64 currentline, const TokenMap& TK)
+qint64 Interpreter::fastmove(qint64, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance();
 
@@ -148,7 +148,7 @@ qint64 Interpreter::fastmove(qint64 currentline, const TokenMap& TK)
 	return Parser::kNoChange;
 }
 
-qint64 Interpreter::packetmove(qint64 currentline, const TokenMap& TK)
+qint64 Interpreter::packetmove(qint64, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance();
 
@@ -371,7 +371,7 @@ qint64 Interpreter::movetonpc(qint64 currentLine, const TokenMap& TK)
 	return checkJump(TK, 6, bret, FailedJump);
 }
 
-qint64 Interpreter::teleport(qint64 currentline, const TokenMap& TK)
+qint64 Interpreter::teleport(qint64, const TokenMap&)
 {
 	Injector& injector = Injector::getInstance();
 

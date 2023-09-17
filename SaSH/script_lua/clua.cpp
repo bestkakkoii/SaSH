@@ -272,7 +272,6 @@ bool luadebug::isInterruptionRequested(const sol::this_state& s)
 void luadebug::checkStopAndPause(const sol::this_state& s)
 {
 	sol::state_view lua(s.lua_state());
-	lua_State* L = s.lua_state();
 	CLua* pLua = lua["_THIS"].get<CLua*>();
 	if (pLua == nullptr)
 		return;
@@ -406,8 +405,6 @@ void luadebug::hookProc(lua_State* L, lua_Debug* ar)
 	}
 	case LUA_HOOKLINE:
 	{
-		sol::state_view lua(s.lua_state());
-
 		qint64 currentLine = ar->currentline;
 		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
 		qint64 max = lua["_ROWCOUNT"];
@@ -592,7 +589,6 @@ void CLua::start()
 
 	moveToThread(thread_);
 
-	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
 	connect(this, &CLua::finished, thread_, &QThread::quit);
 	connect(thread_, &QThread::finished, thread_, &QThread::deleteLater);
 	connect(thread_, &QThread::started, this, &CLua::proc);
@@ -965,7 +961,6 @@ void CLua::proc()
 							tableStrs << tr("> lua script stop from parent script request");
 						else if (msg.contains("REQUEST_STOP_FROM_DISTRUCTOR"))
 							tableStrs << tr("> lua script stop from it's distructor");
-						//SPD_LOG(GLOBAL_LOG_ID, QString("%1 [index:%2] Lua Info:%3").arg(__FUNCTION__).arg(m_index).arg(msg));
 						//emit this->addErrorMarker(retline, true);
 						if (isDebug_)
 							tableStrs << tr("> message: ");
@@ -974,7 +969,6 @@ void CLua::proc()
 					else
 					{
 						tableStrs << tr("========== lua script stop with an ERROR ==========");
-						//SPD_LOG(GLOBAL_LOG_ID, QString("%1 [index:%2] Lua Warn:%3").arg(__FUNCTION__).arg(m_index).arg(msg), SPD_WARN);
 						if (isDebug_)
 							tableStrs << tr("> reason: ");
 						tableStrs << "> [error]:" + msg;

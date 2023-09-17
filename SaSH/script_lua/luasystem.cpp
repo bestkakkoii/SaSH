@@ -49,7 +49,7 @@ qint64 CLuaSystem::sleep(qint64 t, sol::this_state s)
 	return TRUE;
 }
 
-qint64 CLuaSystem::logout(sol::this_state s)
+qint64 CLuaSystem::logout(sol::this_state)
 {
 	Injector& injector = Injector::getInstance();
 	if (!injector.server.isNull())
@@ -61,7 +61,7 @@ qint64 CLuaSystem::logout(sol::this_state s)
 	return FALSE;
 }
 
-qint64 CLuaSystem::logback(sol::this_state s)
+qint64 CLuaSystem::logback(sol::this_state)
 {
 	Injector& injector = Injector::getInstance();
 	if (!injector.server.isNull())
@@ -270,7 +270,7 @@ qint64 CLuaSystem::talk(sol::object ostr, sol::this_state s)
 	return TRUE;
 }
 
-qint64 CLuaSystem::cleanchat(sol::this_state s)
+qint64 CLuaSystem::cleanchat(sol::this_state)
 {
 	Injector& injector = Injector::getInstance();
 	if (injector.server.isNull())
@@ -310,7 +310,7 @@ qint64 CLuaSystem::menu(qint64 type, qint64 index, sol::this_state s)
 	return TRUE;
 }
 
-qint64 CLuaSystem::savesetting(const std::string& sfileName, sol::this_state s)
+qint64 CLuaSystem::savesetting(const std::string& sfileName, sol::this_state)
 {
 	QString fileName = QString::fromUtf8(sfileName.c_str());
 	fileName.replace("\\", "/");
@@ -334,7 +334,7 @@ qint64 CLuaSystem::savesetting(const std::string& sfileName, sol::this_state s)
 	return TRUE;
 }
 
-qint64 CLuaSystem::loadsetting(const std::string& sfileName, sol::this_state s)
+qint64 CLuaSystem::loadsetting(const std::string& sfileName, sol::this_state)
 {
 	QString fileName = QString::fromUtf8(sfileName.c_str());
 	fileName.replace("\\", "/");
@@ -371,7 +371,6 @@ qint64 CLuaSystem::press(std::string sbuttonStr, qint64 unitid, qint64 dialogid,
 	BUTTON_TYPE button = buttonMap.value(text.toUpper(), BUTTON_NOTUSED);
 	if (button == BUTTON_NOTUSED)
 	{
-		qint64 row = -1;
 		dialog_t dialog = injector.server->currentDialog;
 		QStringList textList = dialog.linebuttontext;
 		if (!textList.isEmpty())
@@ -438,7 +437,7 @@ qint64 CLuaSystem::input(const std::string& str, qint64 unitid, qint64 dialogid,
 	return TRUE;
 }
 
-qint64 CLuaSystem::leftclick(qint64 x, qint64 y, sol::this_state s)
+qint64 CLuaSystem::leftclick(qint64 x, qint64 y, sol::this_state)
 {
 	Injector& injector = Injector::getInstance();
 	if (injector.server.isNull())
@@ -448,7 +447,7 @@ qint64 CLuaSystem::leftclick(qint64 x, qint64 y, sol::this_state s)
 	return TRUE;
 }
 
-qint64 CLuaSystem::rightclick(qint64 x, qint64 y, sol::this_state s)
+qint64 CLuaSystem::rightclick(qint64 x, qint64 y, sol::this_state)
 {
 	Injector& injector = Injector::getInstance();
 	if (injector.server.isNull())
@@ -458,7 +457,7 @@ qint64 CLuaSystem::rightclick(qint64 x, qint64 y, sol::this_state s)
 	return TRUE;
 }
 
-qint64 CLuaSystem::leftdoubleclick(qint64 x, qint64 y, sol::this_state s)
+qint64 CLuaSystem::leftdoubleclick(qint64 x, qint64 y, sol::this_state)
 {
 	Injector& injector = Injector::getInstance();
 	if (injector.server.isNull())
@@ -468,7 +467,7 @@ qint64 CLuaSystem::leftdoubleclick(qint64 x, qint64 y, sol::this_state s)
 	return TRUE;
 }
 
-qint64 CLuaSystem::mousedragto(qint64 x1, qint64 y1, qint64 x2, qint64 y2, sol::this_state s)
+qint64 CLuaSystem::mousedragto(qint64 x1, qint64 y1, qint64 x2, qint64 y2, sol::this_state)
 {
 	Injector& injector = Injector::getInstance();
 	if (injector.server.isNull())
@@ -478,7 +477,7 @@ qint64 CLuaSystem::mousedragto(qint64 x1, qint64 y1, qint64 x2, qint64 y2, sol::
 	return TRUE;
 }
 
-qint64 CLuaSystem::set(std::string enumStr, sol::object p1, sol::object p2, sol::object p3, sol::object p4, sol::object p5, sol::object p6, sol::object p7, sol::this_state s)
+qint64 CLuaSystem::set(std::string enumStr, sol::object p1, sol::object p2, sol::object p3, sol::object p4, sol::object p5, sol::object p6, sol::object p7, sol::this_state)
 {
 	Injector& injector = Injector::getInstance();
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();

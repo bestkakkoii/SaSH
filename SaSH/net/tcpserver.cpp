@@ -26,9 +26,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 #pragma comment(lib, "winmm.lib")
 
-#include <spdlogger.hpp>
-extern QString g_logger_name;//parser.cpp
-
 #pragma region StringControl
 // 0-9,a-z(10-35),A-Z(36-61)
 int Server::a62toi(const QString& a) const
@@ -425,8 +422,7 @@ bool Server::handleCustomMessage(QTcpSocket*, const QByteArray& badata)
 
 	if (preStr.startsWith("bPK"))
 	{
-		Injector& injector = Injector::getInstance();
-		int value = mem::read<short>(injector.getProcess(), injector.getProcessModule() + 0xE21E4);
+		//int value = mem::read<short>(injector.getProcess(), injector.getProcessModule() + 0xE21E4);
 		isBattleDialogReady.store(true, std::memory_order_release);
 		doBattleWork(false);//sync
 		return true;
@@ -460,8 +456,6 @@ void Server::handleData(QTcpSocket*, QByteArray badata)
 		qDebug() << "net_readbuf is empty";
 		return;
 	}
-
-	//SPD_LOG(g_logger_name, QString("[proto] Received %1 bytes from client but actual len is: %2").arg(badata.size()).arg(badata.trimmed().size()));
 
 	qDebug() << QString("[proto] Received %1 bytes from client but actual len is: %2").arg(badata.size()).arg(badata.trimmed().size());
 
@@ -557,8 +551,6 @@ int Server::dispatchMessage(char* encoded)
 
 	if (func == LSSPROTO_ERROR_RECV)
 		return -1;
-
-	//SPD_LOG(g_logger_name, QString("[proto] lssproto func: %1").arg(func));
 
 	switch (func)
 	{
@@ -1420,10 +1412,10 @@ int Server::getPartySize() const
 	{
 		for (int i = 0; i < MAX_PARTY; ++i)
 		{
-			PARTY party = getParty(i);
-			if (!party.valid)
+			PARTY _party = getParty(i);
+			if (!_party.valid)
 				continue;
-			if (party.level <= 0)
+			if (_party.level <= 0)
 				continue;
 
 			++count;
@@ -1495,8 +1487,20 @@ bool Server::getItemIndexsByName(const QString& name, const QString& memo, QVect
 
 	PC pc = getPC();
 
+	if (to >= MAX_ITEM)
+		to = MAX_ITEM;
+
+	if (from <= 0)
+		from = 0;
+
+	if (from >= to)
+		from = 0;
+
+	if (from == to)
+		++to;
+
 	QVector<int> v;
-	for (int i = 0; i < MAX_ITEM; ++i)
+	for (int i = from; i < to; ++i)
 	{
 		QString itemName = pc.item[i].name.simplified();
 		QString itemMemo = pc.item[i].memo.simplified();
@@ -1626,10 +1630,10 @@ int Server::getPetSkillIndexByName(int& petIndex, const QString& name) const
 }
 
 //使用名稱枚舉所有寵物索引
-bool Server::getPetIndexsByName(const QString& name, QVector<int>* pv) const
+bool Server::getPetIndexsByName(const QString& qname, QVector<int>* pv) const
 {
 	QVector<int> v;
-	QStringList nameList = name.simplified().split(util::rexOR, Qt::SkipEmptyParts);
+	QStringList nameList = qname.simplified().split(util::rexOR, Qt::SkipEmptyParts);
 
 	for (int i = 0; i < MAX_PET; ++i)
 	{
@@ -2434,36 +2438,36 @@ void Server::updateComboBoxList()
 	QStringList magicNameList;
 	for (int i = 0; i < MAX_MAGIC; ++i)
 	{
-		MAGIC magic = getMagic(i);
-		int textWidth = fontMetrics.horizontalAdvance(magic.name);
-		QString shortText = QString(QObject::tr("(cost:%1)")).arg(magic.costmp);
+		MAGIC m = getMagic(i);
+		int textWidth = fontMetrics.horizontalAdvance(m.name);
+		QString shortText = QString(QObject::tr("(cost:%1)")).arg(m.costmp);
 		int shortcutWidth = fontMetrics.horizontalAdvance(shortText);
 		constexpr int totalWidth = 130;
 		int spaceCount = (totalWidth - textWidth - shortcutWidth) / fontMetrics.horizontalAdvance(' ');
 
-		QString alignedText = magic.name + QString(spaceCount, ' ') + shortText;
+		QString alignedText = m.name + QString(spaceCount, ' ') + shortText;
 
 		magicNameList.append(alignedText);
 	}
 
 	for (int i = 0; i < MAX_PROFESSION_SKILL; ++i)
 	{
-		PROFESSION_SKILL profession_skill = getSkill(i);
-		if (profession_skill.valid)
+		PROFESSION_SKILL proskill = getSkill(i);
+		if (proskill.valid)
 		{
-			if (profession_skill.name.size() == 3)
-				profession_skill.name += "　";
+			if (proskill.name.size() == 3)
+				proskill.name += "　";
 
-			int textWidth = fontMetrics.horizontalAdvance(profession_skill.name);
-			QString shortText = QString("(%1%)").arg(profession_skill.skill_level);
+			int textWidth = fontMetrics.horizontalAdvance(proskill.name);
+			QString shortText = QString("(%1%)").arg(proskill.skill_level);
 			int shortcutWidth = fontMetrics.horizontalAdvance(shortText);
 			constexpr int totalWidth = 150;
 			int spaceCount = (totalWidth - textWidth - shortcutWidth) / fontMetrics.horizontalAdvance(' ');
 
 			if (i < 9)
-				profession_skill.name += "  ";
+				proskill.name += "  ";
 
-			QString alignedText = profession_skill.name + QString(spaceCount, ' ') + shortText;
+			QString alignedText = proskill.name + QString(spaceCount, ' ') + shortText;
 
 			magicNameList.append(alignedText);
 		}
@@ -2479,8 +2483,8 @@ void Server::updateComboBoxList()
 		QStringList skillNameList;
 		for (int i = 0; i < MAX_SKILL; ++i)
 		{
-			PET_SKILL petSkill = getPetSkill(battlePetIndex, i);
-			skillNameList.append(petSkill.name + ":" + petSkill.memo);
+			PET_SKILL petskill = getPetSkill(battlePetIndex, i);
+			skillNameList.append(petskill.name + ":" + petskill.memo);
 		}
 		emit signalDispatcher.updateComboBoxItemText(util::kComboBoxPetAction, skillNameList);
 	}
@@ -2497,7 +2501,6 @@ void Server::announce(const QString& msg, int color)
 	{
 		if (!injector.getEnableHash(util::kScriptDebugModeEnable))
 			return;
-		SPD_LOG(protoBattleLogName, msg);
 		return;
 	}
 
@@ -2649,6 +2652,8 @@ void Server::shopOk(int n)
 	if (getBattleFlag())
 		return;
 
+	QMutexLocker locker(&net_mutex);
+
 	//SE 1隨身倉庫 2查看聲望氣勢
 	lssproto_ShopOk_send(n);
 }
@@ -2661,6 +2666,8 @@ void Server::saMenu(int n)
 
 	if (getBattleFlag())
 		return;
+
+	QMutexLocker locker(&net_mutex);
 
 	lssproto_SaMenu_send(n);
 }
@@ -3767,11 +3774,11 @@ void Server::mail(const QVariant& card, const QString& text, int petIndex, const
 		if (itemIndex < 0 || itemIndex >= MAX_ITEM)
 			return;
 
-		PET pet = getPet(petIndex);
-		if (!pet.valid)
+		PET _pet = getPet(petIndex);
+		if (!_pet.valid)
 			return;
 
-		if (pet.state != kMail)
+		if (_pet.state != kMail)
 			setPetState(petIndex, kMail);
 
 		lssproto_PMSG_send(index, petIndex, itemIndex, const_cast<char*>(sstr.c_str()), NULL);
@@ -4145,8 +4152,6 @@ void Server::downloadMap(int floor)
 		return;
 
 	bool IsDownloadingMap = true;
-
-	int original = floor;
 
 	if (floor == -1)
 		floor = nowFloor;
@@ -4913,18 +4918,18 @@ void Server::tradeAppendPets(const QString& name, const QVector<int>& petIndexs)
 			continue;
 
 		PET _pet = pet[index];
-		QStringList list;
+		QStringList slist;
 		for (const auto& it : petSkill[index])
 		{
 			if (!it.valid)
-				list.append("");
+				slist.append("");
 			else
-				list.append(it.name);
+				slist.append(it.name);
 		}
-		list.append(_pet.name);
-		list.append(_pet.freeName);
+		slist.append(_pet.name);
+		slist.append(_pet.freeName);
 
-		QString cmd = QString("T|%1|%2|P|3|%3|%4").arg(opp_sockfd).arg(opp_name).arg(index).arg(list.join("|"));
+		QString cmd = QString("T|%1|%2|P|3|%3|%4").arg(opp_sockfd).arg(opp_name).arg(index).arg(slist.join("|"));
 		std::string scmd = util::fromUnicode(cmd);
 		lssproto_TD_send(const_cast<char*>(scmd.c_str()));
 		list[index] = QString("P|%1").arg(index);
@@ -5164,7 +5169,7 @@ inline bool Server::checkFlagState(int pos)
 }
 
 //異步處理自動/快速戰鬥邏輯和發送封包
-void Server::doBattleWork(bool async)
+void Server::doBattleWork(bool)
 {
 	Injector& injector = Injector::getInstance();
 	bool fastChecked = injector.getEnableHash(util::kFastBattleEnable);
@@ -5223,8 +5228,6 @@ void Server::syncBattleAction()
 void Server::asyncBattleAction()
 {
 	QMutexLocker lock(&ayncBattleCommandMutex);
-
-	constexpr int MAX_DELAY = 100;
 
 	Injector& injector = Injector::getInstance();
 
@@ -5573,12 +5576,41 @@ void Server::handlePlayerBattleLogics(const battledata_t& bt)
 			if (obj.pos < min || obj.pos > max)
 				continue;
 
-			if (!useequal && (obj.hpPercent < cmpvalue))
+			if (!useequal && (obj.maxHp > 0 && obj.hpPercent < cmpvalue))
 			{
 				*target = obj.pos;
 				return true;
 			}
-			else if (useequal && (obj.hpPercent <= cmpvalue))
+			else if (useequal && (obj.maxHp > 0 && obj.hpPercent <= cmpvalue))
+			{
+				*target = obj.pos;
+				return true;
+			}
+		}
+
+		return false;
+	};
+
+	auto checkDeadAllie = [this, &bt](int* target)->bool
+	{
+		if (!target)
+			return false;
+
+		int min = 0;
+		int max = 9;
+		if (BattleMyNo >= 10)
+		{
+			min = 10;
+			max = 19;
+		}
+
+		QVector<battleobject_t> battleObjects = bt.objects;
+		for (const battleobject_t& obj : battleObjects)
+		{
+			if (obj.pos < min || obj.pos > max)
+				continue;
+
+			if ((obj.maxHp > 0) && ((obj.hp == 0) || checkAND(obj.status, BC_FLG_DEAD)))
 			{
 				*target = obj.pos;
 				return true;
@@ -5932,7 +5964,7 @@ void Server::handlePlayerBattleLogics(const battledata_t& bt)
 		unsigned int targetFlags = injector.getValueHash(util::kBattleItemReviveTargetValue);
 		if (checkAND(targetFlags, kSelectPet))
 		{
-			if (checkPetHp(NULL, &tempTarget, true))
+			if (bt.objects.at(BattleMyNo + 5).hp == 0 || checkAND(bt.objects.at(BattleMyNo + 5).status, BC_FLG_DEAD))
 			{
 				ok = true;
 			}
@@ -5942,13 +5974,12 @@ void Server::handlePlayerBattleLogics(const battledata_t& bt)
 		{
 			if (checkAND(targetFlags, kSelectAllieAny) || checkAND(targetFlags, kSelectAllieAll))
 			{
-				if (checkAllieHp(NULL, &tempTarget, true))
+				if (bt.objects.at(BattleMyNo + 5).maxHp > 0 && checkDeadAllie(&tempTarget))
 				{
 					ok = true;
 				}
 			}
 		}
-
 
 		if (!ok)
 			break;
@@ -5990,9 +6021,9 @@ void Server::handlePlayerBattleLogics(const battledata_t& bt)
 		int tempTarget = -1;
 		bool ok = false;
 		unsigned int targetFlags = injector.getValueHash(util::kBattleMagicReviveTargetValue);
-		if (checkAND(targetFlags, kSelectPet))
+		if (checkAND(targetFlags, kSelectPet) && bt.objects.at(BattleMyNo + 5).maxHp > 0)
 		{
-			if (checkPetHp(NULL, &tempTarget, true))
+			if (bt.objects.at(BattleMyNo + 5).hp == 0 || checkAND(bt.objects.at(BattleMyNo + 5).status, BC_FLG_DEAD))
 			{
 				ok = true;
 			}
@@ -6002,7 +6033,7 @@ void Server::handlePlayerBattleLogics(const battledata_t& bt)
 		{
 			if (checkAND(targetFlags, kSelectAllieAny) || checkAND(targetFlags, kSelectAllieAll))
 			{
-				if (checkAllieHp(NULL, &tempTarget, true))
+				if (checkDeadAllie(&tempTarget))
 				{
 					ok = true;
 				}
@@ -6047,7 +6078,6 @@ void Server::handlePlayerBattleLogics(const battledata_t& bt)
 		if (!skillMp)
 			break;
 
-		int tempTarget = -1;
 		int charMp = injector.getValueHash(util::kBattleSkillMpValue);
 		if ((BattleMyMp > charMp) && (BattleMyMp > 0))
 			break;
@@ -6487,11 +6517,12 @@ void Server::handlePlayerBattleLogics(const battledata_t& bt)
 			}
 		}
 
-		if (!ok)
+		if (!ok && bt.objects.at(BattleMyNo + 5).maxHp > 0)
 		{
 			if (checkAND(targetFlags, kSelectPet))
 			{
-				if (checkPetHp(petPercent, &tempTarget))
+				if (bt.objects.at(BattleMyNo + 5).hpPercent <= petPercent && bt.objects.at(BattleMyNo + 5).hp > 0 &&
+					!checkAND(bt.objects.at(BattleMyNo + 5).status, BC_FLG_DEAD) && !checkAND(bt.objects.at(BattleMyNo + 5).status, BC_FLG_HIDE))
 				{
 					ok = true;
 				}
@@ -6559,9 +6590,10 @@ void Server::handlePlayerBattleLogics(const battledata_t& bt)
 
 		if (!ok)
 		{
-			if (checkAND(targetFlags, kSelectPet))
+			if (checkAND(targetFlags, kSelectPet) && bt.objects.at(BattleMyNo + 5).maxHp > 0)
 			{
-				if (checkPetHp(petPercent, &tempTarget))
+				if (bt.objects.at(BattleMyNo + 5).hpPercent <= petPercent && bt.objects.at(BattleMyNo + 5).hp > 0 &&
+					!checkAND(bt.objects.at(BattleMyNo + 5).status, BC_FLG_DEAD) && !checkAND(bt.objects.at(BattleMyNo + 5).status, BC_FLG_HIDE))
 				{
 					ok = true;
 				}
@@ -8524,7 +8556,7 @@ void Server::lssproto_PR_recv(int request, int result)
 }
 
 //地圖轉移
-void Server::lssproto_EV_recv(int dialogid, int result)
+void Server::lssproto_EV_recv(int, int)
 {
 	Injector& injector = Injector::getInstance();
 	int floor = mem::read<int>(injector.getProcess(), injector.getProcessModule() + kOffestNowFloor);
@@ -8838,7 +8870,6 @@ void Server::lssproto_I_recv(char* cdata)
 		QString name2;
 		QString memo;
 		//char *data = "9|烏力斯坦的肉||0|耐久力10前後回覆|24002|0|1|0|7|不會損壞|1|肉|20||10|烏力斯坦的肉||0|耐久力10前後回覆|24002|0|1|0|7|不會損壞|1|肉|20|";
-		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
 
 		for (j = 0; ; ++j)
 		{
@@ -9295,7 +9326,7 @@ void Server::lssproto_PME_recv(int unitid,
 		int id;
 		int x;
 		int y;
-		int dir;
+		int direction;
 		int modelid;
 		int level;
 		int nameColor;
@@ -9316,7 +9347,7 @@ void Server::lssproto_PME_recv(int unitid,
 		getStringToken(data, "|", ps++, smalltoken);
 		y = smalltoken.toInt();
 		getStringToken(data, "|", ps++, smalltoken);
-		dir = (smalltoken.toInt() + 3) % 8;
+		direction = (smalltoken.toInt() + 3) % 8;
 		getStringToken(data, "|", ps++, smalltoken);
 		modelid = smalltoken.toInt();
 		getStringToken(data, "|", ps++, smalltoken);
@@ -9351,13 +9382,13 @@ void Server::lssproto_EF_recv(int effect, int level, char* coption)
 }
 
 //求救
-void Server::lssproto_HL_recv(int flg)
+void Server::lssproto_HL_recv(int)
 {
 
 }
 
 //開始戰鬥
-void Server::lssproto_EN_recv(int result, int field)
+void Server::lssproto_EN_recv(int result, int)
 {
 	//開始戰鬥為1，未開始戰鬥為0
 	if (result > 0)
@@ -9670,7 +9701,7 @@ void Server::lssproto_B_recv(char* ccommand)
 			obj = bt.objects.value(BattleMyNo + 5, battleobject_t{});
 			if (obj.level <= 0 || obj.maxHp <= 0 || obj.modelid <= 0)
 			{
-				int petIndex = pc.battlePetNo;
+				qint64 petIndex = pc.battlePetNo;
 				if (petIndex >= 0)
 				{
 					setFightPet(-1);
@@ -9745,6 +9776,8 @@ void Server::lssproto_B_recv(char* ccommand)
 				announce("[async battle] 我方全部阵亡，结束战斗");
 			if (isEnemyAllDead)
 				announce("[async battle] 敌方全部阵亡，结束战斗");
+
+			setBattleEnd();
 		}
 
 		qDebug() << "-------------------- cost:" << timer.elapsed() << "ms --------------------";
@@ -11969,17 +12002,17 @@ void Server::lssproto_S_recv(char* cdata)
 
 		if (pc.ridePetNo < 0)
 		{
-			for (int i = 0; i < MAX_PET; ++i)
+			for (int j = 0; j < MAX_PET; ++j)
 			{
-				if (pet[i].state == kRide)
+				if (pet[j].state == kRide)
 				{
-					if (pc.selectPetNo[i] == TRUE)
+					if (pc.selectPetNo[j] == TRUE)
 					{
-						pet[i].state = kStandby;
+						pet[j].state = kStandby;
 					}
 					else
 					{
-						pet[i].state = kRest;
+						pet[j].state = kRest;
 					}
 				}
 			}
@@ -11994,17 +12027,17 @@ void Server::lssproto_S_recv(char* cdata)
 
 		if (pc.battlePetNo < 0)
 		{
-			for (int i = 0; i < MAX_PET; ++i)
+			for (int j = 0; j < MAX_PET; ++j)
 			{
-				if (pet[i].state == kBattle)
+				if (pet[j].state == kBattle)
 				{
-					if (pc.selectPetNo[i] == TRUE)
+					if (pc.selectPetNo[j] == TRUE)
 					{
-						pet[i].state = kStandby;
+						pet[j].state = kStandby;
 					}
 					else
 					{
-						pet[i].state = kRest;
+						pet[j].state = kRest;
 					}
 				}
 			}
@@ -12359,31 +12392,31 @@ void Server::lssproto_S_recv(char* cdata)
 			emit signalDispatcher.updatePetHpProgressValue(0, 0, 100);
 		}
 
-		for (int i = 0; i < MAX_PET; ++i)
+		for (int j = 0; j < MAX_PET; ++j)
 		{
-			PET _pet = pet[i];
+			PET _pet = pet[j];
 			QVariantList varList;
 			if (_pet.valid)
 			{
-				pet[i].power = (((static_cast<double>(_pet.atk + _pet.def + _pet.agi) + (static_cast<double>(_pet.maxHp) / 4.0)) / static_cast<double>(_pet.level)) * 100.0);
+				pet[j].power = (((static_cast<double>(_pet.atk + _pet.def + _pet.agi) + (static_cast<double>(_pet.maxHp) / 4.0)) / static_cast<double>(_pet.level)) * 100.0);
 				varList = QVariantList{
 					_pet.name, _pet.freeName, "",
 					QObject::tr("%1(%2tr)").arg(_pet.level).arg(_pet.transmigration), _pet.exp, _pet.maxExp, _pet.maxExp - _pet.exp, "",
 					QString("%1/%2").arg(_pet.hp).arg(_pet.maxHp), "",
-					_pet.loyal, _pet.atk, _pet.def, _pet.agi, "", pet[i].power
+					_pet.loyal, _pet.atk, _pet.def, _pet.agi, "", pet[j].power
 
 				};
 			}
 			else
 			{
-				for (int i = 0; i < 16; ++i)
+				for (int k = 0; k < 16; ++k)
 					varList.append("");
 
 			}
 
 			QVariant var = QVariant::fromValue(varList);
-			playerInfoColContents.insert(i + 1, var);
-			emit signalDispatcher.updatePlayerInfoColContents(i + 1, var);
+			playerInfoColContents.insert(j + 1, var);
+			emit signalDispatcher.updatePlayerInfoColContents(j + 1, var);
 		}
 
 	}
@@ -12726,9 +12759,9 @@ void Server::lssproto_S_recv(char* cdata)
 		emit signalDispatcher.updateComboBoxItemText(util::kComboBoxItem, itemList);
 
 		QStringList magicNameList;
-		for (int i = 0; i < MAX_MAGIC; ++i)
+		for (int j = 0; j < MAX_MAGIC; ++j)
 		{
-			magicNameList.append(magic[i].name);
+			magicNameList.append(magic[j].name);
 		}
 
 		emit signalDispatcher.updateComboBoxItemText(util::kComboBoxCharAction, magicNameList);
@@ -13447,10 +13480,10 @@ void Server::lssproto_CustomTK_recv(const QString& data)
 	if (dataList.size() != 5)
 		return;
 
-	int x = dataList.at(0).toInt();
-	int y = dataList.at(1).toInt();
-	int color = dataList.at(2).toInt();
-	int area = dataList.at(3).toInt();
+	//int x = dataList.at(0).toInt();
+	//int y = dataList.at(1).toInt();
+	//int color = dataList.at(2).toInt();
+	//int area = dataList.at(3).toInt();
 	QString dataStr = dataList.at(4).simplified();
 	QStringList args = dataStr.split(" ", Qt::SkipEmptyParts);
 	if (args.isEmpty())

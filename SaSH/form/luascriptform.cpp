@@ -367,7 +367,7 @@ void LuaScriptForm::onScriptContentChanged(const QString& fileName, const QVaria
 	}
 }
 
-void LuaScriptForm::onCurrentTableWidgetItemChanged(QTableWidgetItem* current, QTableWidgetItem*)
+void LuaScriptForm::onCurrentTableWidgetItemChanged(QTableWidgetItem*, QTableWidgetItem*)
 {
 	//if (!current)
 	//	return;

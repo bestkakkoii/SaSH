@@ -259,12 +259,6 @@ private:
 
 	bool getStringCommandToken(QString& src, const QString& delim, QString& out) const;
 
-	qint64 findClosingQuoteIndex(const QString& src, QChar quoteChar, int startIndex) const;
-
-	void extractAndRemoveToken(QString& src, const QString& delim, int startIndex, int endIndex, QString& out) const;
-
-	bool isInsideQuotes(const QString& src, int index) const;
-
 	void checkPairs(const QString& beginstr, const QString& endstr, const QHash<qint64, TokenMap>& stokenmaps);
 
 	void checkSingleRowPairs(const QString& beginstr, const QString& endstr, const QHash<qint64, TokenMap>& stokenmaps);

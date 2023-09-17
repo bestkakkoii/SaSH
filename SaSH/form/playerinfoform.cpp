@@ -135,16 +135,16 @@ void PlayerInfoForm::onResetControlTextLanguage()
 	}
 }
 
-void PlayerInfoForm::onUpdatePlayerInfoColContents(int col, const QVariant& data)
+void PlayerInfoForm::onUpdatePlayerInfoColContents(int col, const QVariant& d)
 {
 	// 檢查是否為 QVariantList
-	if (data.type() != QVariant::List)
+	if (d.type() != QVariant::List)
 		return;
 
 	col += 1;
 
 	// 取得 QVariantList
-	QVariantList list = data.toList();
+	QVariantList list = d.toList();
 
 	// 取得 QVariantList 的大小
 	const int size = list.size();
