@@ -581,9 +581,10 @@ qint64 Interpreter::sell(qint64, const TokenMap& TK)
 	checkInteger(TK, 3, &dlgid);
 
 	QVector<int> itemIndexs;
+	QVector<int> indexs;
 	for (const QString& it : nameList)
 	{
-		QVector<int> indexs;
+		indexs.clear();
 		if (!injector.server->getItemIndexsByName(it, "", &indexs, CHAR_EQUIPPLACENUM))
 			continue;
 		itemIndexs.append(indexs);

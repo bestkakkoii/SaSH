@@ -1431,16 +1431,16 @@ QString Server::getChatHistory(int index)
 
 	Injector& injector = Injector::getInstance();
 	HANDLE hProcess = injector.getProcess();
-	int hModule = injector.getProcessModule();
+	quint64 hModule = injector.getProcessModule();
 
-	int total = mem::read<int>(hProcess, hModule + kOffestChatBufferMaxCount);
+	quint64 total = static_cast<quint64>(mem::read<quint32>(hProcess, hModule + kOffestChatBufferMaxCount));
 	if (index > total)
 		return "\0";
-
-	//int maxptr = mem::read<int>(hProcess, hModule + 0x146278);
-
-	constexpr int MAX_CHAT_BUFFER = 0x10C;
-	int ptr = hModule + kOffestChatBuffer + ((total - index) * MAX_CHAT_BUFFER);
+	constexpr quint64 MAX_CHAT_BUFFER = 0x10C;
+	quint64 ptr = hModule + kOffestChatBuffer + ((total - index) * MAX_CHAT_BUFFER);
+	quint64 maxptr = static_cast<quint64>(mem::read<quint32>(hProcess, hModule + 0x146278));
+	if (ptr > maxptr)
+		return "\0";
 
 	return mem::readString(hProcess, ptr, MAX_CHAT_BUFFER, false);
 }
@@ -1746,7 +1746,7 @@ QString Server::getFieldString(unsigned int field)
 QPoint Server::getPoint()
 {
 	Injector& injector = Injector::getInstance();
-	int hModule = injector.getProcessModule();
+	quint64 hModule = injector.getProcessModule();
 	if (hModule == 0)
 		return QPoint{};
 
@@ -2100,10 +2100,10 @@ void Server::updateItemByMemory()
 
 	QMutexLocker locker(&swapItemMutex_);
 	Injector& injector = Injector::getInstance();
-	int hModule = injector.getProcessModule();
+	quint64 hModule = injector.getProcessModule();
 	HANDLE hProcess = injector.getProcess();
 	PC pc = getPC();
-	for (int i = 0; i < MAX_ITEM; ++i)
+	for (quint64 i = 0; i < MAX_ITEM; ++i)
 	{
 		constexpr int item_offest = 0x184;
 		pc.item[i].valid = mem::read<short>(hProcess, hModule + 0x422C028 + i * item_offest) > 0;
@@ -2134,7 +2134,7 @@ void Server::updateDatasFromMemory()
 		return;
 
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
-	int hModule = injector.getProcessModule();
+	quint64 hModule = injector.getProcessModule();
 	HANDLE hProcess = injector.getProcess();
 
 	//地圖數據 原因同上
@@ -2338,7 +2338,7 @@ void Server::setBattleFlag(bool enable)
 
 	Injector& injector = Injector::getInstance();
 	HANDLE hProcess = injector.getProcess();
-	DWORD hModule = injector.getProcessModule();
+	quint64 hModule = injector.getProcessModule();
 
 	//這裡關乎頭上是否會出現V.S.圖標
 	int status = mem::read<short>(hProcess, hModule + kOffestPlayerStatus);
@@ -2396,7 +2396,7 @@ void Server::setWindowTitle()
 void Server::setPoint(const QPoint& pos)
 {
 	Injector& injector = Injector::getInstance();
-	int hModule = injector.getProcessModule();
+	quint64 hModule = injector.getProcessModule();
 	if (hModule == 0)
 		return;
 
@@ -2594,7 +2594,7 @@ void Server::createCharacter(int dataplacenum
 
 	Injector& injector = Injector::getInstance();
 	HANDLE hProcess = injector.getProcess();
-	int hModule = injector.getProcessModule();
+	quint64 hModule = injector.getProcessModule();
 	mem::write<int>(hProcess, hModule + 0x421C000, 1);
 	int time = timeGetTime();
 	mem::write<int>(hProcess, hModule + 0x421C004, time);
@@ -2619,7 +2619,7 @@ void Server::deleteCharacter(int index, const QString password, bool backtofirst
 
 	Injector& injector = Injector::getInstance();
 	HANDLE hProcess = injector.getProcess();
-	int hModule = injector.getProcessModule();
+	quint64 hModule = injector.getProcessModule();
 
 	mem::write<int>(hProcess, hModule + 0x4230A88, index);
 	mem::writeString(hProcess, hModule + 0x421BF74, table.name);
@@ -2706,7 +2706,7 @@ bool Server::isDialogVisible()
 
 	Injector& injector = Injector::getInstance();
 	HANDLE hProcess = injector.getProcess();
-	int hModule = injector.getProcessModule();
+	quint64 hModule = injector.getProcessModule();
 
 	bool bret = mem::read<int>(hProcess, hModule + 0xB83EC) != -1;
 	return bret;
@@ -2801,7 +2801,7 @@ bool Server::login(int s)
 	util::UnLoginStatus status = static_cast<util::UnLoginStatus>(s);
 	Injector& injector = Injector::getInstance();
 	HANDLE hProcess = injector.getProcess();
-	DWORD hModule = injector.getProcessModule();
+	quint64 hModule = injector.getProcessModule();
 
 	int server = injector.getValueHash(util::kServerValue);
 	int subserver = injector.getValueHash(util::kSubServerValue);
@@ -3875,7 +3875,7 @@ void Server::setPetState(int petIndex, PetState state)
 	QMutexLocker locker(&net_mutex);
 
 	HANDLE hProcess = injector.getProcess();
-	int hModule = injector.getProcessModule();
+	quint64 hModule = injector.getProcessModule();
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
 
 	PC pc = getPC();
@@ -3940,7 +3940,7 @@ void Server::setPetState(int petIndex, PetState state)
 
 		pet[petIndex].state = kStandby;
 		pc.selectPetNo[petIndex] = TRUE;
-		mem::write<short>(hProcess, hModule + kOffestSelectPetArray + (petIndex * sizeof(short)), TRUE);
+		mem::write<short>(hProcess, hModule + kOffestSelectPetArray + static_cast<quint64>(petIndex * sizeof(short)), TRUE);
 		break;
 	}
 	case kMail:
@@ -3963,7 +3963,7 @@ void Server::setPetState(int petIndex, PetState state)
 		pc.mailPetNo = petIndex;
 		pc.selectPetNo[petIndex] = FALSE;
 		mem::write<short>(hProcess, hModule + kOffestMailPetIndex, petIndex);
-		mem::write<short>(hProcess, hModule + kOffestSelectPetArray + (petIndex * sizeof(short)), FALSE);
+		mem::write<short>(hProcess, hModule + kOffestSelectPetArray + static_cast<quint64>(petIndex * sizeof(short)), FALSE);
 		break;
 	}
 	case kRest:
@@ -3994,7 +3994,7 @@ void Server::setPetState(int petIndex, PetState state)
 
 		pet[petIndex].state = kRest;
 		pc.selectPetNo[petIndex] = FALSE;
-		mem::write<short>(hProcess, hModule + kOffestSelectPetArray + (petIndex * sizeof(short)), FALSE);
+		mem::write<short>(hProcess, hModule + kOffestSelectPetArray + static_cast<quint64>(petIndex * sizeof(short)), FALSE);
 
 		break;
 	}
@@ -4098,7 +4098,7 @@ void Server::setPetState(int petIndex, int state)
 
 	Injector& injector = Injector::getInstance();
 	HANDLE hProcess = injector.getProcess();
-	int hModule = injector.getProcessModule();
+	quint64 hModule = injector.getProcessModule();
 	if (state == 0)
 	{
 		if (pet[petIndex].state == kMail)
@@ -4343,13 +4343,13 @@ void Server::setPlayerFaceDirection(int dir)
 	//這裡是用來使遊戲動畫跟著轉向
 	Injector& injector = Injector::getInstance();
 	HANDLE hProcess = injector.getProcess();
-	int hModule = injector.getProcessModule();
+	quint64 hModule = injector.getProcessModule();
 	int newdir = (dir + 3) % 8;
 	int p = mem::read<int>(hProcess, hModule + 0x422E3AC);
 	if (p)
 	{
 		mem::write<int>(hProcess, hModule + 0x422BE94, newdir);
-		mem::write<int>(hProcess, p + 0x150, newdir);
+		mem::write<int>(hProcess, 0x150ll + p, newdir);
 	}
 }
 
@@ -4393,13 +4393,13 @@ void Server::setPlayerFaceDirection(const QString& dirStr)
 	//這裡是用來使遊戲動畫跟著轉向
 	Injector& injector = Injector::getInstance();
 	HANDLE hProcess = injector.getProcess();
-	int hModule = injector.getProcessModule();
+	quint64 hModule = injector.getProcessModule();
 	int newdir = (dir + 3) % 8;
 	int p = mem::read<int>(hProcess, hModule + 0x422E3AC);
 	if (p)
 	{
 		mem::write<int>(hProcess, hModule + 0x422BE94, newdir);
-		mem::write<int>(hProcess, p + 0x150, newdir);
+		mem::write<int>(hProcess, 0x150ll + p, newdir);
 	}
 }
 #pragma endregion

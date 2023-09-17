@@ -245,7 +245,7 @@ public:\
 
 #include <curl/curl.h>
 
-#include "3rdparty/simplecrypt.h"
+#include <simplecrypt.h>
 
 //custom
 #include <model/scopedhandle.h>

@@ -26,9 +26,6 @@
     <Filter Include="Source Files\forms">
       <UniqueIdentifier>{e835f35a-6bb1-41d9-92d9-b87ac29a94c9}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source Files\3rdparty">
-      <UniqueIdentifier>{83059031-dc11-45c4-bac0-ed82ec6f2a78}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Source Files\util">
       <UniqueIdentifier>{e3028531-c791-4635-a410-7e5f7f95f5b7}</UniqueIdentifier>
     </Filter>
@@ -101,9 +98,6 @@
     </ClCompile>
     <ClCompile Include="model\progressbar.cpp">
       <Filter>Source Files\model</Filter>
-    </ClCompile>
-    <ClCompile Include="3rdparty\simplecrypt.cpp">
-      <Filter>Source Files\3rdparty</Filter>
     </ClCompile>
     <ClCompile Include="util.cpp">
       <Filter>Source Files\util</Filter>
@@ -411,9 +405,6 @@
   <ItemGroup>
     <ClInclude Include="stdafx.h">
       <Filter>Source Files\main</Filter>
-    </ClInclude>
-    <ClInclude Include="3rdparty\simplecrypt.h">
-      <Filter>Source Files\3rdparty</Filter>
     </ClInclude>
     <ClInclude Include="util.h">
       <Filter>Source Files\util</Filter>
