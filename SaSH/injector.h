@@ -97,18 +97,17 @@ public:
 
 	Q_REQUIRED_RESULT inline DWORD getProcessId() const { return pi_.dwProcessId; }
 
-	Q_REQUIRED_RESULT inline quint64 getProcessModule() const { return hModule_; }
+	Q_REQUIRED_RESULT inline quint64 getProcessModule() const { return hGameModule_; }
 
-	Q_REQUIRED_RESULT inline bool isValid() const { return hModule_ != NULL && pi_.dwProcessId != NULL && pi_.hWnd != nullptr && processHandle_.isValid(); }
+	Q_REQUIRED_RESULT inline bool isValid() const { return hGameModule_ != NULL && pi_.dwProcessId != NULL && pi_.hWnd != nullptr && processHandle_.isValid(); }
 
 	bool createProcess(process_information_t& pi);
 
-	bool inject(HANDLE hProcess, QString dllPath);
-	bool injectex(HANDLE hProcess, QString dllPath);
-
 	bool injectLibrary(process_information_t& pi, unsigned short port, util::LPREMOVE_THREAD_REASON pReason);
 
+#if 0
 	bool injectLibraryOld(Injector::process_information_t& pi, unsigned short port, util::LPREMOVE_THREAD_REASON pReason);
+#endif
 
 	void remoteFreeModule();
 
@@ -210,8 +209,6 @@ private:
 
 	Q_REQUIRED_RESULT bool isHandleValid(qint64 pid);
 
-	DWORD WINAPI getFunAddr(const DWORD* DllBase, const char* FunName);
-
 public:
 	QString currentGameExePath;//當前使用的遊戲進程完整路徑
 
@@ -235,7 +232,7 @@ public:
 	std::atomic_bool isScriptDebugModeEnable = true;
 
 private:
-	quint64 hModule_ = NULL;
+	quint64 hGameModule_ = NULL;
 	HMODULE hookdllModule_ = NULL;
 	process_information_t pi_ = {};
 	ScopedHandle processHandle_;
