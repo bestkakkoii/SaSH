@@ -318,7 +318,8 @@ qint64 Interpreter::dropitem(qint64, const TokenMap& TK)
 	if (tempName.isEmpty() && memo.isEmpty() && itemIndex == -1)
 		return Parser::kArgError + 1ll;
 	else if (tempName.isEmpty() && memo.isEmpty()
-		&& ((itemIndex >= 1 && itemIndex <= (MAX_ITEM - CHAR_EQUIPPLACENUM)) || (itemIndex >= 101 && itemIndex <= (CHAR_EQUIPPLACENUM + 100))))
+		&& ((itemIndex >= 1 && itemIndex <= static_cast<qint64>(MAX_ITEM - CHAR_EQUIPPLACENUM))
+			|| (itemIndex >= 101 && itemIndex <= static_cast<qint64>(CHAR_EQUIPPLACENUM + 100))))
 	{
 		if (itemIndex < 100)
 			--itemIndex;
@@ -1224,7 +1225,7 @@ qint64 Interpreter::petunequip(qint64, const TokenMap& TK)
 
 	qint64 petIndex = -1;
 	if (!checkInteger(TK, 1, &petIndex))
-		return Parser::kArgError + 1l;
+		return Parser::kArgError + 1ll;
 
 	--petIndex;
 
