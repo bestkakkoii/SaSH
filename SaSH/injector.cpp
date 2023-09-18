@@ -187,7 +187,7 @@ bool Injector::createProcess(Injector::process_information_t& pi)
 		nullptr,
 		nullptr,
 		TRUE,
-		CREATE_UNICODE_ENVIRONMENT | INHERIT_PARENT_AFFINITY | CREATE_PRESERVE_CODE_AUTHZ_LEVEL,
+		CREATE_SUSPENDED | CREATE_UNICODE_ENVIRONMENT | INHERIT_PARENT_AFFINITY,
 		nullptr,
 		directory.toStdWString().data(),
 		&si,
@@ -204,6 +204,7 @@ bool Injector::createProcess(Injector::process_information_t& pi)
 	std::wstring wsfullpath = fullpath.toStdWString();
 	util::writeFireWallOverXP(wsfullpath.c_str(), wsfullpath.c_str(), true);
 
+	ResumeThread(_pi.hThread);
 #else
 	QProcess process;
 	qint64 pid = 0;
@@ -284,144 +285,6 @@ DWORD WINAPI Injector::getFunAddr(const DWORD* DllBase, const char* FunName)
 			return pEAT[pEOT[i]] + (DWORD)DllBase;
 	}
 	return (DWORD)NULL;
-}
-
-bool Injector::injectex(HANDLE hProcess, QString dllPath)
-{
-	/*
-	unsigned int CALLBACK ThreadFunc(PVOID pArguments)
-	{
-		InjectData* data = reinterpret_cast<InjectData*>(pArguments);
-		DWORD* kernel32Base = 0;
-		__asm
-		{
-			mov eax, fs: [0x30] ;
-			mov eax, [eax + 0xC];
-			mov eax, [eax + 0x1C];
-			mov eax, [eax];
-			mov eax, [eax];
-			mov eax, [eax + 0x8];
-			mov kernel32Base, eax;
-		}
-
-		data->remoteModule = (DWORD)(reinterpret_cast<pfnLoadLibraryW>(kernel32Base + 0x1D8A0)(reinterpret_cast<LPCWSTR>(data->dllFullPathAddr)));
-		data->lastError = reinterpret_cast<pfnGetLastError>(kernel32Base + 0x16E30)();
-		data->gameModule = (DWORD)(reinterpret_cast<pfnGetModuleHandleW>(kernel32Base + 0x1C7F0)(0));
-		return 0;
-	}
-	*/
-
-	unsigned char data[128] = {
-		0x55,										//push ebp
-		0x8B, 0xEC,									//mov ebp,esp
-		0x51,										//push ecx
-		0x56,										//push esi
-
-		//init local variable to 0
-		0xC7, 0x45, 0xFC, 0x00, 0x00, 0x00, 0x00,	//mov [ebp-04],00000000 { 0 }
-
-		//get kernel32 base
-		0x64, 0xA1, 0x30, 0x00, 0x00, 0x00,			//mov eax,fs:[00000030] { 48 }
-		0x8B, 0x40, 0x0C,							//mov eax,[eax+0C]
-		0x8B, 0x40, 0x1C,							//mov eax,[eax+1C]
-		0x8B, 0x00,									//mov eax,[eax]
-		0x8B, 0x00,									//mov eax,[eax]
-		0x8B, 0x40, 0x08,							//mov eax,[eax+08]
-
-		//copy kernel32base to local variable [ebp-04]
-		0x89, 0x45, 0xFC,							//mov [ebp-04],eax
-
-		//move pointer of dll path to esi
-		0x8B, 0x75, 0x08,							//mov esi,[ebp+08]
-
-		//kernel32base + 1D8A0 (LoadLibraryW)
-		0x8B, 0x45, 0xFC,							//mov eax,[ebp-04]
-		0x05, 0xA0, 0xD8, 0x01, 0x00,				//add eax,0001D8A0
-
-		//call loadlibrary
-		0xFF, 0x36,									//push [esi]
-		0xFF, 0xD0,									//call eax
-
-		//copy to data->remoteModule
-		0x89, 0x46, 0x04,							//mov [esi+04],eax
-
-		//kernel32base + 0x16E30 (GetLastError)
-		0x8B, 0x45, 0xFC,							//mov eax,[ebp-04]
-		0x05, 0x30, 0x6E, 0x01, 0x00,				//add eax,00016E30
-
-		//call GetLastError
-		0xFF, 0xD0,									//call eax
-
-		//copy to data->lastError
-		0x89, 0x46, 0x08,							//mov [esi+08],eax
-
-		//kernel32base + 0x1C7F0 (GetModuleHandleW)
-		0x8B, 0x45, 0xFC,							//mov eax,[ebp-04]
-		0x05, 0xF0, 0xC7, 0x01, 0x00,				//add eax,0001C7F0
-
-		//call GetModuleHandleW
-		0x6A, 0x00,									//push 00 { 0 }
-		0xFF, 0xD0,									//call eax
-
-		//copy to data->gameModule
-		0x89, 0x46, 0x0C,							//mov [esi+0C],eax
-
-		//return 0;
-		0x33, 0xC0,									//xor eax,eax
-
-		0x5E,										//pop esi
-		0x8B, 0xE5,									//mov esp,ebp
-		0x5D,										//pop ebp
-		0xC2, 0x04, 0x00							//ret 0004
-	};
-
-	struct InjectData
-	{
-		DWORD dllFullPathAddr = 0;
-		DWORD remoteModule = 0;
-		DWORD lastError = 0;
-		DWORD gameModule = 0;
-	};
-
-	InjectData d;
-	util::VirtualMemory dllFullPathAddr(hProcess, dllPath, util::VirtualMemory::kUnicode, true);
-	d.dllFullPathAddr = dllFullPathAddr;
-
-	util::VirtualMemory injectdata(hProcess, sizeof(InjectData), true);
-	mem::write(hProcess, injectdata, &d, sizeof(InjectData));
-
-	util::VirtualMemory remoteFunc(hProcess, sizeof(data), true);
-	mem::write(hProcess, remoteFunc, data, sizeof(data));
-
-	{
-		ScopedHandle hThreadHandle(
-			ScopedHandle::CREATE_REMOTE_THREAD,
-			hProcess,
-			reinterpret_cast<PVOID>(static_cast<quint64>(remoteFunc)),
-			reinterpret_cast<LPVOID>(static_cast<quint64>(injectdata)));
-	}
-
-	mem::read(hProcess, injectdata, sizeof(InjectData), &d);
-	if (d.lastError != 0)
-	{
-		FormatMessageW( //取得錯誤訊息
-			FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
-			NULL,
-			d.lastError,
-			MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-			(LPWSTR)&d.lastError,
-			0,
-			NULL);
-
-		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
-		emit signalDispatcher.messageBoxShow(QString::fromWCharArray(L"Inject fail, error code: %1, %2").arg(d.lastError).arg(reinterpret_cast<wchar_t*>(d.lastError)));
-		return false;
-	}
-
-	hModule_ = d.gameModule;
-	hookdllModule_ = reinterpret_cast<HMODULE>(d.remoteModule);
-	qDebug() << "inject OK" << "0x" + QString::number(d.remoteModule, 16);
-	return d.gameModule > 0 && d.remoteModule > 0;
 }
 
 bool Injector::inject(HANDLE hProcess, QString dllPath)
@@ -586,7 +449,7 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 		if (!processHandle_.isValid())
 			processHandle_.reset(pi.dwProcessId);
 
-		injectex(processHandle_, dllPath);
+		inject(processHandle_, dllPath);
 
 		if (hookdllModule_ == 0)
 		{
