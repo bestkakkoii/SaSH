@@ -385,8 +385,6 @@ public:
 
 	bool loadString(const QString& content);
 
-	QVariant luaDoString(QString expr);
-
 public:
 	inline ParserError lastCriticalError() const { return lastCriticalError_; }
 
@@ -396,10 +394,6 @@ public:
 	inline Q_REQUIRED_RESULT bool hasToken() const { return !tokens_.isEmpty(); }
 
 	inline Q_REQUIRED_RESULT const QHash<qint64, TokenMap> getToken() const { return tokens_; }
-
-	inline Q_REQUIRED_RESULT qint64 getCurrentLine() const { return lineNumber_; }
-
-	inline Q_REQUIRED_RESULT qint64 getLineCount() const { return tokens_.size(); }
 
 	inline void setCurrentLine(qint64 line) { lineNumber_ = line; }
 
@@ -493,6 +487,8 @@ private:
 	void exportVarInfo();
 
 	void checkConditionalOp(QString& expr);
+
+	QVariant luaDoString(QString expr);
 
 	template <typename T>
 	typename std::enable_if<

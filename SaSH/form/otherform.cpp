@@ -388,14 +388,14 @@ void OtherForm::onComboBoxClicked()
 	ComboBox* pComboBox = qobject_cast<ComboBox*>(sender());
 	if (!pComboBox)
 	{
-
+		pComboBox->setDisableFocusCheck(false);
 		return;
 	}
 
 	QString name = pComboBox->objectName();
 	if (name.isEmpty())
 	{
-
+		pComboBox->setDisableFocusCheck(false);
 		return;
 	}
 
@@ -405,7 +405,7 @@ void OtherForm::onComboBoxClicked()
 	{
 		if (injector.server.isNull())
 		{
-
+			pComboBox->setDisableFocusCheck(false);
 			return;
 		}
 
@@ -437,7 +437,7 @@ void OtherForm::onComboBoxClicked()
 	}
 
 
-
+	pComboBox->setDisableFocusCheck(false);
 }
 
 void OtherForm::onLineEditTextChanged(const QString& text)
@@ -500,9 +500,9 @@ void OtherForm::onResetControlTextLanguage()
 void OtherForm::onApplyHashSettingsToUI()
 {
 	Injector& injector = Injector::getInstance();
-	QHash<util::UserSetting, bool> enableHash = injector.getEnableHash();
-	QHash<util::UserSetting, int> valueHash = injector.getValueHash();
-	QHash<util::UserSetting, QString> stringHash = injector.getStringHash();
+	util::SafeHash<util::UserSetting, bool> enableHash = injector.getEnableHash();
+	util::SafeHash<util::UserSetting, int> valueHash = injector.getValueHash();
+	util::SafeHash<util::UserSetting, QString> stringHash = injector.getStringHash();
 
 	if (ui.comboBox_lockride->count() == 0 || ui.comboBox_lockpet->count() == 0)
 	{

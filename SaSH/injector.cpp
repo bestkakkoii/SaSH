@@ -61,9 +61,9 @@ void Injector::clear()//static
 		instance->pi_ = {  };
 		instance->processHandle_.reset();
 		//紀錄當前設置
-		QHash<util::UserSetting, int> valueHash = instance->getValueHash();
-		QHash<util::UserSetting, bool> enableHash = instance->getEnableHash();
-		QHash<util::UserSetting, QString> stringHash = instance->getStringHash();
+		util::SafeHash<util::UserSetting, int> valueHash = instance->getValueHash();
+		util::SafeHash<util::UserSetting, bool> enableHash = instance->getEnableHash();
+		util::SafeHash<util::UserSetting, QString> stringHash = instance->getStringHash();
 
 		QStringList _serverNameList = instance->serverNameList.get();
 

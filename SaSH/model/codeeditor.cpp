@@ -43,8 +43,8 @@ CodeEditor::CodeEditor(QWidget* parent)
 	if (f.open(QIODevice::ReadOnly))
 	{
 		QTextStream ts(&f);
-		ts.setCodec(util::DEFAULT_CODEPAGE);
-		ts.setGenerateByteOrderMark(true);
+		ts.setCodec("UTF-8");
+
 		for (;;)
 		{
 			QString line(ts.readLine());
@@ -86,7 +86,7 @@ CodeEditor::CodeEditor(QWidget* parent)
 	setCaretWidth(2);//光標寬度，0表示不顯示光標
 	setCaretForegroundColor(QColor(174, 175, 173));  //光標顏色
 
-	setEolMode(QsciScintilla::EolUnix); //微軟風格換行符
+	setEolMode(QsciScintilla::EolWindows); //微軟風格換行符
 	setEolVisibility(false);//是否顯示換行符號
 
 	setAutoCompletionFillupsEnabled(true);

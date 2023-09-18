@@ -744,9 +744,6 @@
                 <height>0</height>
                </size>
               </property>
-              <property name="maximum">
-               <number>10000</number>
-              </property>
              </widget>
             </item>
            </layout>
@@ -2020,14 +2017,14 @@
  <layoutdefault spacing="6" margin="11"/>
  <customwidgets>
   <customwidget>
-   <class>ComboBox</class>
-   <extends>QComboBox</extends>
-   <header location="global">combobox.h</header>
-  </customwidget>
-  <customwidget>
    <class>PushButton</class>
    <extends>QPushButton</extends>
    <header location="global">pushbutton.h</header>
+  </customwidget>
+  <customwidget>
+   <class>ComboBox</class>
+   <extends>QComboBox</extends>
+   <header location="global">combobox.h</header>
   </customwidget>
  </customwidgets>
  <resources/>

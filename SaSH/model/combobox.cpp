@@ -185,19 +185,20 @@ ComboBox::ComboBox(QWidget* parent) :QComboBox(parent)
 	setStyleSheet(R"(
 QComboBox QAbstractItemView { 
     min-width: 200px;
-    border-radius: 1px;
+    border-radius: 3px;
     border: 0px solid #ccc;
 }
 )");
 	setView(q_check_ptr(new QListView()));
 	view()->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
-	setFixedHeight(18);
+	setFixedHeight(17);
 
-	//QGraphicsDropShadowEffect* shadowEffect = new QGraphicsDropShadowEffect;
-	//shadowEffect->setBlurRadius(5); // 設置陰影的模糊半徑，根據需要調整
-	//shadowEffect->setOffset(0, 1);   // 設置陰影的偏移量，根據需要調整
-	//shadowEffect->setColor(Qt::black); // 設置陰影的顏色，根據需要調整
-	//setGraphicsEffect(shadowEffect);
+
+	QGraphicsDropShadowEffect* shadowEffect = new QGraphicsDropShadowEffect;
+	shadowEffect->setBlurRadius(5); // 設置陰影的模糊半徑，根據需要調整
+	shadowEffect->setOffset(0, 1);   // 設置陰影的偏移量，根據需要調整
+	shadowEffect->setColor(Qt::black); // 設置陰影的顏色，根據需要調整
+	setGraphicsEffect(shadowEffect);
 }
 
 ComboBox::~ComboBox()
@@ -208,37 +209,69 @@ void ComboBox::mousePressEvent(QMouseEvent* e)
 {
 	if (e->button() == Qt::LeftButton)//判斷是不是鼠標左鍵按下了
 	{
+		disableFocusCheck_ = true;
 		emit clicked();//是的話就發送咱們定義的信號
 	}
 	QComboBox::mousePressEvent(e);//如果你不寫這一句，事件傳遞到上一步就停止，
+	//就不接著向下發了，父類也就沒辦法處理點擊事件了
 }
 
 void ComboBox::addItem(const QString& text, const QVariant& userData)
 {
-	QComboBox::addItem(text, userData);
+	if (!hasFocus() || disableFocusCheck_)
+	{
+		blockSignals(true);
+		QComboBox::addItem(text, userData);
+		blockSignals(false);
+	}
 }
 
 void ComboBox::addItem(const QIcon& icon, const QString& text, const QVariant& userData)
 {
-	QComboBox::addItem(icon, text, userData);
+	if (!hasFocus() || disableFocusCheck_)
+	{
+		blockSignals(true);
+		QComboBox::addItem(icon, text, userData);
+		blockSignals(false);
+	}
 }
 
 void ComboBox::addItems(const QStringList& texts)
 {
-	QComboBox::addItems(texts);
+	if (!hasFocus() || disableFocusCheck_)
+	{
+		blockSignals(true);
+		QComboBox::addItems(texts);
+		blockSignals(false);
+	}
 }
 
 void ComboBox::setCurrentIndex(int index)
 {
-	QComboBox::setCurrentIndex(index);
+	if (!hasFocus() || disableFocusCheck_)
+	{
+		blockSignals(true);
+		QComboBox::setCurrentIndex(index);
+		blockSignals(false);
+	}
 }
 
 void ComboBox::clear()
 {
-	QComboBox::clear();
+	if (!hasFocus() || disableFocusCheck_)
+	{
+		blockSignals(true);
+		QComboBox::clear();
+		blockSignals(false);
+	}
 }
 
 void ComboBox::setItemData(int index, const QVariant& value, int role)
 {
-	QComboBox::setItemData(index, value, role);
+	if (!hasFocus() || disableFocusCheck_)
+	{
+		blockSignals(true);
+		QComboBox::setItemData(index, value, role);
+		blockSignals(false);
+	}
 }

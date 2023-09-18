@@ -109,14 +109,14 @@ void GeneralForm::onComboBoxClicked()
 	ComboBox* pComboBox = qobject_cast<ComboBox*>(sender());
 	if (!pComboBox)
 	{
-
+		pComboBox->setDisableFocusCheck(false);
 		return;
 	}
 
 	QString name = pComboBox->objectName();
 	if (name.isEmpty())
 	{
-
+		pComboBox->setDisableFocusCheck(false);
 		return;
 	}
 
@@ -125,7 +125,7 @@ void GeneralForm::onComboBoxClicked()
 		QVector<QPair<QString, QString>> fileList;
 		if (!util::enumAllFiles(util::applicationDirPath() + "/settings", ".json", &fileList))
 		{
-
+			pComboBox->setDisableFocusCheck(false);
 			return;
 		}
 
@@ -140,14 +140,14 @@ void GeneralForm::onComboBoxClicked()
 		ui.comboBox_setting->setCurrentIndex(currentIndex);
 
 		ui.comboBox_setting->blockSignals(false);
-
+		pComboBox->setDisableFocusCheck(false);
 		return;
 	}
 
 	if (name == "comboBox_server")
 	{
 		createServerList();
-
+		pComboBox->setDisableFocusCheck(false);
 		return;
 	}
 
@@ -163,7 +163,7 @@ void GeneralForm::onComboBoxClicked()
 		const QString fileName(qgetenv("JSON_PATH"));
 		if (fileName.isEmpty())
 		{
-
+			pComboBox->setDisableFocusCheck(false);
 			return;
 		}
 
@@ -176,7 +176,7 @@ void GeneralForm::onComboBoxClicked()
 			QString path;
 			if (!util::createFileDialog(util::SA_NAME, &path, this))
 			{
-
+				pComboBox->setDisableFocusCheck(false);
 				return;
 			}
 			else
@@ -193,7 +193,7 @@ void GeneralForm::onComboBoxClicked()
 
 		if (newPaths.isEmpty())
 		{
-
+			pComboBox->setDisableFocusCheck(false);
 			return;
 		}
 
@@ -214,7 +214,7 @@ void GeneralForm::onComboBoxClicked()
 		config.writeArray<QString>("System", "Command", "DirPath", newPaths);
 		ui.comboBox_paths->setCurrentIndex(currentIndex);
 		ui.comboBox_paths->blockSignals(false);
-
+		pComboBox->setDisableFocusCheck(false);
 		return;
 	}
 }
@@ -921,9 +921,9 @@ void GeneralForm::onComboBoxCurrentIndexChanged(int value)
 void GeneralForm::onApplyHashSettingsToUI()
 {
 	Injector& injector = Injector::getInstance();
-	QHash<util::UserSetting, bool> enableHash = injector.getEnableHash();
-	QHash<util::UserSetting, int> valueHash = injector.getValueHash();
-	QHash<util::UserSetting, QString> stringHash = injector.getStringHash();
+	util::SafeHash<util::UserSetting, bool> enableHash = injector.getEnableHash();
+	util::SafeHash<util::UserSetting, int> valueHash = injector.getValueHash();
+	util::SafeHash<util::UserSetting, QString> stringHash = injector.getStringHash();
 
 	const QString fileName(qgetenv("JSON_PATH"));
 	if (!fileName.isEmpty())

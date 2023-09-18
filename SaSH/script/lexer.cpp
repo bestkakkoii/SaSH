@@ -86,7 +86,10 @@ static const QHash<QString, RESERVE> keywords = {
 	{ u8"道具", TK_CMD },
 	{ u8"道具數量", TK_CMD },
 	{ u8"背包滿", TK_CMD },
+	{ u8"人物狀態", TK_CMD },
 	{ u8"寵物有", TK_CMD },
+	{ u8"寵物狀態", TK_CMD },
+	{ u8"寵物數量", TK_CMD },
 	{ u8"任務狀態", TK_CMD },
 
 	//actions
@@ -204,7 +207,9 @@ static const QHash<QString, RESERVE> keywords = {
 	{ u8"道具", TK_CMD },
 	{ u8"道具数量", TK_CMD },
 	{ u8"背包满", TK_CMD },
+	{ u8"人物状态", TK_CMD },
 	{ u8"宠物有", TK_CMD },
+	{ u8"宠物状态", TK_CMD },
 	{ u8"宠物数量", TK_CMD },
 	{ u8"任务状态", TK_CMD },
 
@@ -323,7 +328,9 @@ static const QHash<QString, RESERVE> keywords = {
 	{ u8"ifmap", TK_CMD },
 	{ u8"ifitem", TK_CMD },
 	{ u8"ifitemfull", TK_CMD },
+	{ u8"ifplayer", TK_CMD },
 	{ u8"ifpet", TK_CMD },
+	{ u8"ifpetex", TK_CMD },
 	{ u8"ifdaily", TK_CMD },
 
 	{ u8"waitmap", TK_CMD },
@@ -1861,17 +1868,8 @@ void Lexer::tokenized(qint64 currentLine, const QString& line, TokenMap* ptoken,
 		static const QRegularExpression rexTable(R"(([\w\p{Han}]+)\s*=\s*(\{[\s\S]*\})\;*)");
 		static const QRegularExpression rexLocalTable(R"([lL][oO][cC][aA][lL]\s+([\w\p{Han}]+)\s*=\s*(\{[\s\S]*\})\;*)");
 		//處理if
-		if (raw.startsWith("if") && !raw.startsWith("ifitem"))
+		if (raw.startsWith("if"))
 		{
-			if (raw.startsWith("ifpet"))
-			{
-				raw.replace("ifpet", "if pet.count");
-			}
-			else if (raw.startsWith("ifteam"))
-			{
-				raw.replace("ifteam", "if team.count");
-			}
-
 			QRegularExpressionMatch match = varIf.match(raw);
 			if (!match.hasMatch())
 				match = varIf2.match(raw);

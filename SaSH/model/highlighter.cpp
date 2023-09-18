@@ -33,7 +33,7 @@ const char* Highlighter::keywords(int set) const
 	{
 		//lua key word
 		return "goto call function end pause exit label jmp return back break for continue "
-			"if ifmap ifpet ifitem ifteam ifitemfull ifdaily ifbattle ifpos ifonline ifnormal "
+			"if ifmap ifplayer ifpet ifpetex ifitem ifteam ifitemfull ifdaily ifbattle ifpos ifonline ifnormal "
 			"waitdlg waitsay waititem waitmap waitteam "
 			"while repeat until do in then else elseif ";
 	}

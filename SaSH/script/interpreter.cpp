@@ -130,7 +130,7 @@ bool Interpreter::doFile(qint64 beginLine, const QString& fileName, Interpreter*
 
 		Injector& injector = Injector::getInstance();
 
-		if (mode == kSync)
+		if (mode == kSync && injector.isScriptDebugModeEnable.load(std::memory_order_acquire))
 			emit signalDispatcher.scriptLabelRowTextChanged(currentLine + 1, this->parser_.getToken().size(), false);
 
 		if (TK.contains(0) && TK.value(0).type == TK_PAUSE)
@@ -428,6 +428,335 @@ bool Interpreter::checkRelationalOperator(const TokenMap& TK, qint64 idx, RESERV
 	return true;
 }
 
+//比較兩個QVariant以 a 的類型為主
+bool Interpreter::compare(const QVariant& a, const QVariant& b, RESERVE type) const
+{
+	return parser_.compare(a, b, type);
+}
+
+bool Interpreter::compare(CompareArea area, const TokenMap& TK)
+{
+	Injector& injector = Injector::getInstance();
+	if (injector.server.isNull())
+		return false;
+
+	RESERVE op;
+	QVariant b;
+	QVariant a;
+
+	if (area == kAreaPlayer)
+	{
+		QString cmpTypeStr;
+		checkString(TK, 1, &cmpTypeStr);
+		if (cmpTypeStr.isEmpty())
+			return false;
+
+		CompareType cmpType = comparePcTypeMap.value(cmpTypeStr.toLower(), kCompareTypeNone);
+		if (cmpType == kCompareTypeNone)
+			return false;
+
+		if (!checkRelationalOperator(TK, 2, &op))
+			return false;
+
+		if (!TK.contains(3))
+			return false;
+
+		b = parser_.checkValue(TK, 3);
+		PC _pc = injector.server->getPC();
+		switch (cmpType)
+		{
+		case kPlayerName:
+			a = _pc.name;
+			break;
+		case kPlayerFreeName:
+			a = _pc.freeName;
+			break;
+		case kPlayerLevel:
+			a = _pc.level;
+			break;
+		case kPlayerHp:
+			a = _pc.hp;
+			break;
+		case kPlayerMaxHp:
+			a = _pc.maxHp;
+			break;
+		case kPlayerHpPercent:
+			a = _pc.hpPercent;
+			break;
+		case kPlayerMp:
+			a = _pc.mp;
+			break;
+		case kPlayerMaxMp:
+			a = _pc.maxMp;
+			break;
+		case kPlayerMpPercent:
+			a = _pc.mpPercent;
+			break;
+		case kPlayerExp:
+			a = _pc.exp;
+			break;
+		case kPlayerMaxExp:
+			a = _pc.maxExp;
+			break;
+		case kPlayerStone:
+			a = _pc.gold;
+			break;
+		case kPlayerAtk:
+			a = _pc.atk;
+			break;
+		case kPlayerDef:
+			a = _pc.def;
+			break;
+		case kPlayerChasma:
+			a = _pc.chasma;
+			break;
+		case kPlayerTurn:
+			a = _pc.transmigration;
+			break;
+		case kPlayerEarth:
+			a = _pc.earth;
+			break;
+		case kPlayerWater:
+			a = _pc.water;
+			break;
+		case kPlayerFire:
+			a = _pc.fire;
+			break;
+		case kPlayerWind:
+			a = _pc.wind;
+			break;
+		default:
+			return false;
+		}
+	}
+	else if (area == kAreaPet)
+	{
+		qint64 petIndex = 0;
+
+		checkInteger(TK, 1, &petIndex);
+		--petIndex;
+		if (petIndex < 0)
+		{
+			QString petTypeName;
+			checkString(TK, 1, &petTypeName);
+			if (petTypeName.isEmpty())
+				return false;
+
+			PC _pc = injector.server->getPC();
+
+			QHash<QString, qint64> hash = {
+				{ u8"戰寵", _pc.battlePetNo },
+				{ u8"騎寵", _pc.ridePetNo },
+				{ u8"战宠", _pc.battlePetNo },
+				{ u8"骑宠", _pc.ridePetNo },
+				{ u8"battlepet", _pc.battlePetNo },
+				{ u8"ride", _pc.ridePetNo },
+			};
+
+			if (!hash.contains(petTypeName))
+				return false;
+
+			petIndex = hash.value(petTypeName, -1);
+			if (petIndex < 0)
+				return false;
+		}
+
+		QString cmpTypeStr;
+		checkString(TK, 2, &cmpTypeStr);
+		if (cmpTypeStr.isEmpty())
+			return false;
+
+		CompareType cmpType = comparePetTypeMap.value(cmpTypeStr.toLower(), kCompareTypeNone);
+		if (cmpType == kCompareTypeNone)
+			return false;
+
+
+		if (!checkRelationalOperator(TK, 3, &op))
+			return false;
+
+		if (!TK.contains(4))
+			return false;
+
+		b = parser_.checkValue(TK, 4);
+
+		PET pet = injector.server->getPet(petIndex);
+
+		switch (cmpType)
+		{
+		case kPetName:
+			a = pet.name;
+			break;
+		case kPetFreeName:
+			a = pet.freeName;
+			break;
+		case kPetLevel:
+			a = pet.level;
+			break;
+		case kPetHp:
+			a = pet.hp;
+			break;
+		case kPetMaxHp:
+			a = pet.maxHp;
+			break;
+		case kPetHpPercent:
+			a = pet.hpPercent;
+			break;
+		case kPetExp:
+			a = pet.exp;
+			break;
+		case kPetMaxExp:
+			a = pet.maxExp;
+			break;
+		case kPetAtk:
+			a = pet.atk;
+			break;
+		case kPetDef:
+			a = pet.def;
+			break;
+		case kPetLoyal:
+			a = pet.loyal;
+			break;
+		case kPetTurn:
+			a = pet.transmigration;
+			break;
+		case kPetEarth:
+			a = pet.earth;
+			break;
+		case kPetWater:
+			a = pet.water;
+			break;
+		case kPetFire:
+			a = pet.fire;
+			break;
+		case kPetWind:
+			a = pet.wind;
+			break;
+		case kPetState:
+		{
+			const QHash<QString, PetState> hash = {
+				{ u8"戰鬥", kBattle },
+				{ u8"等待", kStandby },
+				{ u8"郵件", kMail },
+				{ u8"休息", kRest },
+				{ u8"騎乘", kRide },
+
+				{ u8"战斗", kBattle },
+				{ u8"等待", kStandby },
+				{ u8"邮件", kMail },
+				{ u8"休息", kRest },
+				{ u8"骑乘", kRide },
+
+				{ u8"battle", kBattle },
+				{ u8"standby", kStandby },
+				{ u8"mail", kMail },
+				{ u8"rest", kRest },
+				{ u8"ride", kRide },
+			};
+			PetState state = pet.state;
+			PetState cmpstate = hash.value(b.toString().toLower(), kNoneState);
+			if (cmpstate == 0)
+				return false;
+
+			a = state;
+			b = cmpstate;
+			break;
+		}
+		default:
+			return false;
+		}
+	}
+	else if (area == kAreaItem)
+	{
+		QString cmpTypeStr;
+		checkString(TK, 0, &cmpTypeStr);
+		if (cmpTypeStr.isEmpty())
+			return false;
+
+		CompareType cmpType = compareAmountTypeMap.value(cmpTypeStr, kCompareTypeNone);
+		if (cmpType == kCompareTypeNone)
+			return false;
+
+		QString itemName;
+		checkString(TK, 1, &itemName);
+		QString itemMemo;
+		checkString(TK, 2, &itemMemo);
+		if (itemName.isEmpty() && itemMemo.isEmpty())
+			return false;
+
+		if (!checkRelationalOperator(TK, 3, &op))
+			return false;
+
+		if (!TK.contains(4))
+			return false;
+
+		b = parser_.checkValue(TK, 4);
+
+		switch (cmpType)
+		{
+		case kitemCount:
+		{
+			QVector<int> v;
+			qint64 count = 0;
+			PC _pc = injector.server->getPC();
+			if (injector.server->getItemIndexsByName(itemName, itemMemo, &v))
+			{
+				for (const int it : v)
+					count += _pc.item[it].stack;
+			}
+
+			a = count;
+			break;
+		}
+		default:
+			return false;
+		}
+	}
+	else if (area == kAreaCount)
+	{
+		QString cmpTypeStr;
+		checkString(TK, 0, &cmpTypeStr);
+		if (cmpTypeStr.isEmpty())
+			return false;
+
+		CompareType cmpType = compareAmountTypeMap.value(cmpTypeStr, kCompareTypeNone);
+		if (cmpType == kCompareTypeNone)
+			return false;
+
+		if (!checkRelationalOperator(TK, 1, &op))
+			return false;
+
+		if (!TK.contains(2))
+			return false;
+
+		b = parser_.checkValue(TK, 2);
+
+		switch (cmpType)
+		{
+		case kTeamCount:
+		{
+			qint64 count = injector.server->getPartySize();
+			a = count;
+			break;
+		}
+		case kPetCount:
+		{
+			qint64 count = injector.server->getPetSize();
+			a = count;
+			break;
+		}
+		default:
+			return false;
+		}
+	}
+	else
+		return false;
+
+	if (!a.isValid() || !b.isValid())
+		return false;
+
+	return compare(a, b, op);
+}
+
 //根據傳入function的循環執行結果等待超時或條件滿足提早結束
 bool Interpreter::waitfor(qint64 timeout, std::function<bool()> exprfun)
 {
@@ -517,15 +846,23 @@ void Interpreter::openLibsBIG5()
 	registerFunction(u8"在線中", &Interpreter::ifonline);
 	registerFunction(u8"查坐標", &Interpreter::ifpos);
 	registerFunction(u8"查座標", &Interpreter::ifpos);
-	registerFunction(u8"地圖快判", &Interpreter::ifmap);
-	registerFunction(u8"背包滿", &Interpreter::ifitemfull);
-
 	registerFunction(u8"地圖", &Interpreter::waitmap);
+	registerFunction(u8"地圖快判", &Interpreter::ifmap);
 	registerFunction(u8"對話", &Interpreter::waitdlg);
+	registerFunction(u8"看見", &Interpreter::checkunit);
 	registerFunction(u8"聽見", &Interpreter::waitsay);
+
+	registerFunction(u8"人物狀態", &Interpreter::ifplayer);
+	registerFunction(u8"寵物狀態", &Interpreter::ifpetex);
+	registerFunction(u8"道具數量", &Interpreter::ifitem);
+	registerFunction(u8"組隊人數", &Interpreter::ifteam);
+	registerFunction(u8"寵物數量", &Interpreter::ifpet);
 	registerFunction(u8"寵物有", &Interpreter::waitpet);
 	registerFunction(u8"道具", &Interpreter::waititem);
+	registerFunction(u8"背包滿", &Interpreter::ifitemfull);
+	//check-group
 	registerFunction(u8"組隊有", &Interpreter::waitteam);
+
 
 	//move
 	registerFunction(u8"方向", &Interpreter::setdir);
@@ -635,8 +972,14 @@ void Interpreter::openLibsGB2312()
 	registerFunction(u8"地图", &Interpreter::waitmap);
 	registerFunction(u8"地图快判", &Interpreter::ifmap);
 	registerFunction(u8"对话", &Interpreter::waitdlg);
+	registerFunction(u8"看见", &Interpreter::checkunit);
 	registerFunction(u8"听见", &Interpreter::waitsay);
 
+	registerFunction(u8"人物状态", &Interpreter::ifplayer);
+	registerFunction(u8"宠物状态", &Interpreter::ifpetex);
+	registerFunction(u8"道具数量", &Interpreter::ifitem);
+	registerFunction(u8"组队人数", &Interpreter::ifteam);
+	registerFunction(u8"宠物数量", &Interpreter::ifpet);
 	registerFunction(u8"宠物有", &Interpreter::waitpet);
 	registerFunction(u8"道具", &Interpreter::waititem);
 	registerFunction(u8"背包满", &Interpreter::ifitemfull);
@@ -752,8 +1095,12 @@ void Interpreter::openLibsUTF8()
 	registerFunction(u8"ifonline", &Interpreter::ifonline);
 	registerFunction(u8"ifpos", &Interpreter::ifpos);
 	registerFunction(u8"ifmap", &Interpreter::ifmap);
-	registerFunction(u8"ifitemfull", &Interpreter::ifitemfull);
+	registerFunction(u8"ifplayer", &Interpreter::ifplayer);
+	registerFunction(u8"ifpetex", &Interpreter::ifpetex);
 	registerFunction(u8"ifitem", &Interpreter::ifitem);
+	registerFunction(u8"ifteam", &Interpreter::ifteam);
+	registerFunction(u8"ifpet", &Interpreter::ifpet);
+	registerFunction(u8"ifitemfull", &Interpreter::ifitemfull);
 
 	registerFunction(u8"waitmap", &Interpreter::waitmap);
 	registerFunction(u8"waitdlg", &Interpreter::waitdlg);
@@ -856,9 +1203,8 @@ qint64 Interpreter::mainScriptCallBack(qint64 currentLine, const TokenMap& TK)
 
 	Injector& injector = Injector::getInstance();
 
-	bool isDebug = injector.isScriptDebugModeEnable.load(std::memory_order_acquire);
-
-	emit signalDispatcher.scriptLabelRowTextChanged(currentLine + 1, parser_.getLineCount(), false);
+	if (injector.isScriptDebugModeEnable.load(std::memory_order_acquire))
+		emit signalDispatcher.scriptLabelRowTextChanged(currentLine + 1, parser_.getToken().size(), false);
 
 	if (TK.contains(0) && TK.value(0).type == TK_PAUSE)
 	{
@@ -867,9 +1213,6 @@ qint64 Interpreter::mainScriptCallBack(qint64 currentLine, const TokenMap& TK)
 	}
 
 	checkPause();
-
-	if (!isDebug)
-		return 1;
 
 	QString scriptFileName = parser_.getScriptFileName();
 	util::SafeHash<qint64, break_marker_t> breakMarkers = break_markers.value(scriptFileName);
@@ -1293,18 +1636,11 @@ qint64 Interpreter::run(qint64 currentline, const TokenMap& TK)
 
 	fileName.replace("\\", "/");
 
+	fileName = util::applicationDirPath() + "/script/" + fileName;
+	fileName.replace("\\", "/");
+	fileName.replace("//", "/");
+
 	QFileInfo fileInfo(fileName);
-	if (!fileInfo.isAbsolute())
-	{
-		fileName = util::applicationDirPath() + "/script/" + fileName;
-		fileName.replace("\\", "/");
-		fileName.replace("//", "/");
-	}
-
-	fileInfo = QFileInfo(fileName);
-	if (fileInfo.isDir())
-		return Parser::kArgError + 1ll;
-
 	QString suffix = fileInfo.suffix();
 	if (suffix.isEmpty())
 		fileName += ".txt";

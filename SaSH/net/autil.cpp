@@ -235,7 +235,6 @@ int __stdcall Autil::util_GetFunctionFromSlice(int* func, int* fieldcount)
 //
 void __stdcall Autil::util_DiscardMessage(void)
 {
-	QMutexLocker locker(&MesgMutex);
 	SliceCount = 0;
 }
 
@@ -749,26 +748,4 @@ int __stdcall Autil::util_mkstring(char* buffer, char* value)
 	strcat_s(buffer, NETDATASIZE, t1.data());
 
 	return strlen(value);
-}
-
-void Autil::util_SendArgs(int func, std::vector<std::variant<int, std::string>>& args)
-{
-	int iChecksum = 0;
-	char buffer[NETDATASIZE] = {};
-	memset(buffer, 0, sizeof(buffer));
-
-	for (const std::variant<int, std::string>& arg : args)
-	{
-		if (std::holds_alternative<int>(arg))
-		{
-			iChecksum += util_mkint(buffer, std::get<int>(arg));
-		}
-		else if (std::holds_alternative<std::string>(arg))
-		{
-			iChecksum += util_mkstring(buffer, const_cast<char*>(std::get<std::string>(arg).c_str()));
-		}
-	}
-
-	util_mkint(buffer, iChecksum);
-	util_SendMesg(func, buffer);
 }

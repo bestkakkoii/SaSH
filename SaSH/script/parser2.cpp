@@ -45,7 +45,6 @@ bool Parser2::loadFile(const QString& fileName, QString* pcontent)
 	{
 		QTextStream in(&f);
 		in.setCodec(util::DEFAULT_CODEPAGE);
-		in.setGenerateByteOrderMark(true);
 		c = in.readAll();
 		c.replace("\r\n", "\n");
 		isPrivate_ = false;

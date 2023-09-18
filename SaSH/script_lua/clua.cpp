@@ -414,10 +414,11 @@ void luadebug::hookProc(lua_State* L, lua_Debug* ar)
 
 		Injector& injector = Injector::getInstance();
 
-		emit signalDispatcher.scriptLabelRowTextChanged(currentLine, max, false);
+		if (injector.isScriptDebugModeEnable.load(std::memory_order_acquire))
+			emit signalDispatcher.scriptLabelRowTextChanged(currentLine, max, false);
 
 		processDelay(s);
-		if (!lua["_DEBUG"].is<bool>() || lua["_DEBUG"].get<bool>() || injector.isScriptDebugModeEnable.load(std::memory_order_acquire))
+		if (!lua["_DEBUG"].is<bool>() || lua["_DEBUG"].get<bool>())
 		{
 			QThread::msleep(1);
 		}
@@ -428,9 +429,6 @@ void luadebug::hookProc(lua_State* L, lua_Debug* ar)
 		}
 
 		luadebug::checkStopAndPause(s);
-
-		if (!injector.isScriptDebugModeEnable.load(std::memory_order_acquire))
-			return;
 
 		CLua* pLua = lua["_THIS"].get<CLua*>();
 		if (pLua == nullptr)

@@ -81,11 +81,11 @@ BattleInfoForm::BattleInfoForm(QWidget* parent)
 	Injector& injector = Injector::getInstance();
 	if (!injector.server.isNull())
 	{
-		QVariant topInfoContents = injector.server->topInfoContents.get();
-		QVariant bottomInfoContents = injector.server->bottomInfoContents.get();
-		QString timeLabelContents = injector.server->timeLabelContents.get();
-		QString labelPlayerAction = injector.server->labelPlayerAction.get();
-		QString labelPetAction = injector.server->labelPetAction.get();
+		QVariant topInfoContents = injector.server->topInfoContents;
+		QVariant bottomInfoContents = injector.server->bottomInfoContents;
+		QString timeLabelContents = injector.server->timeLabelContents;
+		QString labelPlayerAction = injector.server->labelPlayerAction;
+		QString labelPetAction = injector.server->labelPetAction;
 
 		onUpdateTopInfoContents(topInfoContents);
 		onUpdateBottomInfoContents(bottomInfoContents);

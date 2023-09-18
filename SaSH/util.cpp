@@ -51,17 +51,16 @@ bool util::Config::open()
 	else
 	{
 		//文件存在，以普通讀寫方式打開
-		if (!file_.open(QIODevice::ReadOnly | QIODevice::Text))
+		if (!file_.open(QIODevice::ReadWrite | QIODevice::Text))
 		{
 			return false;
 		}
 		enableReopen = true;
 	}
 
-	QTextStream in(&file_);
-	in.setCodec(util::DEFAULT_CODEPAGE);
-	in.setGenerateByteOrderMark(true);
-	QString text = in.readAll();
+	QTextStream stream(&file_);
+	stream.setCodec("UTF-8");
+	QString text = stream.readAll();
 	QByteArray allData = text.toUtf8();
 
 	if (allData.simplified().isEmpty())
@@ -89,8 +88,6 @@ void util::Config::sync()
 {
 	if (isVaild && hasChanged_)
 	{
-		hasChanged_ = false;
-
 		QJsonObject root = QJsonObject::fromVariantMap(cache_);
 		document_.setObject(root);
 		QByteArray data = document_.toJson(QJsonDocument::Indented);
@@ -101,15 +98,12 @@ void util::Config::sync()
 		}
 
 		//總是以全新寫入的方式
-		if (!file_.open(QIODevice::WriteOnly | QIODevice::Truncate | QIODevice::Text))
+		if (!file_.open(QIODevice::ReadWrite | QIODevice::Truncate))
 		{
 			return;
 		}
 
-		QTextStream out(&file_);
-		out.setCodec(util::DEFAULT_CODEPAGE);
-		out.setGenerateByteOrderMark(true);
-		out << data;
+		file_.write(data);
 		file_.flush();
 	}
 	file_.close();
@@ -471,40 +465,6 @@ bool util::enumAllFiles(const QString dir, const QString suffix, QVector<QPair<Q
 	}
 
 	return true; // 遍歷成功，返回成功
-}
-
-void util::searchFiles(const QString& dir, const QString& fileNamePart, const QString& suffixWithDot, QList<QString>* result)
-{
-	QDir d(dir);
-	if (!d.exists())
-		return;
-
-	QFileInfoList list = d.entryInfoList(QDir::Files | QDir::Dirs | QDir::NoDotAndDotDot);
-	for (const QFileInfo& fileInfo : list)
-	{
-		if (fileInfo.isFile())
-		{
-			if (fileInfo.fileName().contains(fileNamePart, Qt::CaseInsensitive) && fileInfo.suffix() == suffixWithDot.mid(1))
-			{
-				QFile file(fileInfo.absoluteFilePath());
-				if (file.open(QIODevice::ReadOnly | QIODevice::Text))
-				{
-					QTextStream in(&file);
-					in.setCodec(util::DEFAULT_CODEPAGE);
-					in.setGenerateByteOrderMark(true);
-					//將文件名置於前方
-					QString fileContent = QString("# %1\n---\n%2").arg(fileInfo.fileName()).arg(in.readAll());
-					file.close();
-
-					result->append(fileContent);
-				}
-			}
-		}
-		else if (fileInfo.isDir())
-		{
-			searchFiles(fileInfo.absoluteFilePath(), fileNamePart, suffixWithDot, result);
-		}
-	}
 }
 
 void util::FormSettingManager::loadSettings()
