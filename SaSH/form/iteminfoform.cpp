@@ -158,15 +158,15 @@ void ItemInfoForm::onResetControlTextLanguage()
 	}
 }
 
-void ItemInfoForm::updateItemInfoRowContents(QTableWidget* tableWidget, int row, const QVariant& d)
+void ItemInfoForm::updateItemInfoRowContents(QTableWidget* tableWidget, int row, const QVariant& data)
 {
 
 	// 檢查是否為 QVariantList
-	if (d.type() != QVariant::List)
+	if (data.type() != QVariant::List)
 		return;
 
 	// 取得 QVariantList
-	QVariantList list = d.toList();
+	QVariantList list = data.toList();
 
 	// 取得 QVariantList 的大小
 	const int size = list.size();
@@ -208,17 +208,17 @@ void ItemInfoForm::updateItemInfoRowContents(QTableWidget* tableWidget, int row,
 	}
 }
 
-void ItemInfoForm::onUpdateEquipInfoRowContents(int row, const QVariant& d)
+void ItemInfoForm::onUpdateEquipInfoRowContents(int row, const QVariant& data)
 {
-	updateItemInfoRowContents(ui.tableWidget_equip, row, d);
+	updateItemInfoRowContents(ui.tableWidget_equip, row, data);
 }
 
-void ItemInfoForm::onUpdateItemInfoRowContents(int row, const QVariant& d)
+void ItemInfoForm::onUpdateItemInfoRowContents(int row, const QVariant& data)
 {
-	updateItemInfoRowContents(ui.tableWidget_item, row - 9, d);
+	updateItemInfoRowContents(ui.tableWidget_item, row - 9, data);
 }
 
-void ItemInfoForm::on_tableWidget_item_cellDoubleClicked(int row, int)
+void ItemInfoForm::on_tableWidget_item_cellDoubleClicked(int row, int column)
 {
 	Injector& injector = Injector::getInstance();
 	if (injector.server.isNull())
@@ -227,7 +227,7 @@ void ItemInfoForm::on_tableWidget_item_cellDoubleClicked(int row, int)
 	injector.server->useItem(row + CHAR_EQUIPPLACENUM, 0);
 }
 
-void ItemInfoForm::on_tableWidget_equip_cellDoubleClicked(int row, int)
+void ItemInfoForm::on_tableWidget_equip_cellDoubleClicked(int row, int column)
 {
 	Injector& injector = Injector::getInstance();
 	if (injector.server.isNull())

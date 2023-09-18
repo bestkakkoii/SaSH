@@ -23,6 +23,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "injector.h"
 #include "interpreter.h"
 
+extern QString g_logger_name;
+
 //"調用" 傳參數最小佔位
 constexpr qint64 kCallPlaceHoldSize = 2;
 //"格式化" 最小佔位
@@ -579,7 +581,7 @@ QVariant Parser::luaDoString(QString expr)
 		int deep = kMaxLuaTableDepth;
 		return getLuaTableString(retObject.as<sol::table>(), deep);
 	}
-	//qDebug() << static_cast<int>(retObject.get_type());
+	qDebug() << static_cast<int>(retObject.get_type());
 	return "nil";
 }
 
@@ -1081,7 +1083,7 @@ qint64 Parser::checkJump(const TokenMap& TK, qint64 idx, bool expr, JumpBehavior
 }
 
 //檢查"調用"是否傳入參數
-void Parser::checkCallArgs(qint64)
+void Parser::checkCallArgs(qint64 line)
 {
 	//check rest of the tokens is exist push to stack 	QStack<QVariantList> callArgs_
 	QVariantList list;
@@ -2094,6 +2096,14 @@ bool Parser::updateSysConstKeyword(const QString& expr)
 		{
 			petIndex = i + 1;
 
+			if (!lua_["petskill"][petIndex].valid())
+				lua_["petskill"][petIndex] = lua_.create_table();
+			else
+			{
+				if (!lua_["petskill"][petIndex].is<sol::table>())
+					lua_["petskill"][petIndex] = lua_.create_table();
+			}
+
 			for (j = 0; j < MAX_SKILL; ++j)
 			{
 				index = j + 1;
@@ -2163,34 +2173,6 @@ bool Parser::updateSysConstKeyword(const QString& expr)
 
 			}
 		}
-	}
-
-	if (expr.contains("point"))
-	{
-		if (!lua_["point"].valid())
-			lua_["point"] = lua_.create_table();
-		else
-		{
-			if (!lua_["point"].is<sol::table>())
-				lua_["point"] = lua_.create_table();
-		}
-
-		currencydata_t currency = injector.server->currencyData;
-
-		lua_["point"]["exp"] = currency.expbufftime;
-
-		lua_["point"]["rep"] = currency.prestige;
-
-		lua_["point"]["ene"] = currency.energy;
-
-		lua_["point"]["shl"] = currency.shell;
-
-		lua_["point"]["vit"] = currency.vitality;
-
-		lua_["point"]["pts"] = currency.points;
-
-		lua_["point"]["vip"] = currency.VIPPoints;
-
 	}
 
 	if (expr.contains("_GAME_"))
@@ -3095,7 +3077,7 @@ bool Parser::processGetSystemVarValue(QString& valueStr, QVariant& varValue)
 			if (isInterruptionRequested())
 				return false;
 
-			if (timer.hasExpired(1000))
+			if (timer.hasExpired(5000))
 				break;
 
 			if (!injector.server->IS_WAITFOR_EXTRA_DIALOG_INFO_FLAG)
@@ -3297,6 +3279,7 @@ qint64 Parser::processCommand()
 	QVariant varValue = commandToken.data;
 	if (!varValue.isValid())
 	{
+		SPD_LOG(g_logger_name, QString("[parser] Invalid command: %1").arg(commandToken.data.toString()), SPD_WARN);
 		return kUnknownCommand;
 	}
 
@@ -3308,6 +3291,7 @@ qint64 Parser::processCommand()
 		CommandRegistry function = commandRegistry_.value(commandName, nullptr);
 		if (function == nullptr)
 		{
+			SPD_LOG(g_logger_name, QString("[parser] Command pointer is nullptr: %1").arg(commandName), SPD_WARN);
 			return kUnknownCommand;
 		}
 
@@ -3315,6 +3299,7 @@ qint64 Parser::processCommand()
 	}
 	else
 	{
+		SPD_LOG(g_logger_name, QString("[parser] Command not found: %1").arg(commandName), SPD_WARN);
 		return kUnknownCommand;
 	}
 
@@ -4176,12 +4161,7 @@ bool Parser::processFor()
 
 		++node.callCount;
 		if (!node.varName.isEmpty())
-		{
-			if (isGlobalVarContains(node.varName))
-				insertGlobalVar(node.varName, nBeginValue);
-			else
-				insertLocalVar(node.varName, nBeginValue);
-		}
+			insertLocalVar(node.varName, nBeginValue);
 		forStack_.push(node);
 		currentField.push(TK_FOR);
 	}
@@ -4192,11 +4172,7 @@ bool Parser::processFor()
 		if (node.varName.isEmpty())
 			return false;
 
-		QVariant localValue;
-		if (isLocalVarContains(node.varName))
-			localValue = getLocalVarValue(node.varName);
-		else
-			localValue = getGlobalVarValue(node.varName);
+		QVariant localValue = getLocalVarValue(node.varName);
 
 		if (localValue.type() != QVariant::LongLong)
 			return false;
@@ -4214,7 +4190,7 @@ bool Parser::processFor()
 		else
 		{
 			nNowLocal += nStepValue;
-			insertVar(node.varName, nNowLocal);
+			insertLocalVar(node.varName, nNowLocal);
 		}
 	}
 	return false;
@@ -4424,6 +4400,7 @@ void Parser::processTokens()
 			case kUnknownCommand:
 			default:
 			{
+				SPD_LOG(g_logger_name, "[parser] Command has error", SPD_WARN);
 				handleError(ret);
 				name.clear();
 				break;
@@ -4574,6 +4551,7 @@ void Parser::processTokens()
 		default:
 		{
 			qDebug() << "Unexpected token type:" << currentType;
+			SPD_LOG(g_logger_name, "[parser] Unexpected token type", SPD_WARN);
 			break;
 		}
 		}

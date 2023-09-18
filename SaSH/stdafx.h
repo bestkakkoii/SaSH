@@ -245,6 +245,8 @@ public:\
 
 #include <curl/curl.h>
 
+#include <spdlogger.hpp>
+
 #include "3rdparty/simplecrypt.h"
 
 //custom

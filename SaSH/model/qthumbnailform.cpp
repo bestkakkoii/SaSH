@@ -178,8 +178,36 @@ void QThumbnailForm::RemoteMousePress(HWND hWnd, const POINT& point, Qt::MouseBu
 	}
 }
 
+int findbyName(QList<HWND> v, const QString& name, HWND* phWnd)
+{
+	////查找 ->GetCharData().name
+	//int size = v.size();
+	//for (int i = 0; i < size; ++i)
+	//{
+	//	if (!v.at(i)) continue;
+	//	if (v.at(i)->GetCharData().name == name)
+	//	{
+	//		if (phWnd)
+	//			*phWnd = v.at(i);
+	//		return i;
+	//	}
+	//}
+	return -1;
+};
+
 int QThumbnailForm::findbyIndex(QList<HWND> v, int index, HWND* phWnd)
 {
+	//int size = v.size();
+	//for (int i = 0; i < size; ++i)
+	//{
+	//	if (v.at(i)) continue;
+	//	if (v.at(i)->GetIndex() == index)
+	//	{
+	//		if (phWnd)
+	//			*phWnd = v.at(i);
+	//		return i;
+	//	}
+	//}
 	QReadLocker locker(&m_lock);
 	if (index < 0 || index >= m_hWnds.size())
 		return -1;

@@ -98,7 +98,7 @@ public:
 
 	inline bool isValid() const
 	{
-		return ((this->m_handle) != INVALID_HANDLE_VALUE) && (this->m_handle != nullptr);
+		return ((this->m_handle) != INVALID_HANDLE_VALUE) && (this->m_handle);
 	}
 
 	inline operator HANDLE() const

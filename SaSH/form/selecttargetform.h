@@ -53,7 +53,7 @@ private:
 	QString* dst_ = nullptr;
 };
 
-inline bool createSelectTargetForm(int type, QString* dst, QWidget* perent)
+static bool createSelectTargetForm(int type, QString* dst, QWidget* perent)
 {
 	SelectTargetForm* pObjForm = new SelectTargetForm(type, dst, perent);
 	if (pObjForm)

@@ -299,7 +299,7 @@ LONG CALLBACK MinidumpCallback(PEXCEPTION_POINTERS pException)
 		if (pException->ExceptionRecord->ExceptionFlags == EXCEPTION_NONCONTINUABLE)
 		{
 			throw;
-			//return EXCEPTION_EXECUTE_HANDLER;
+			return EXCEPTION_EXECUTE_HANDLER;
 		}
 	} while (false);
 	return EXCEPTION_CONTINUE_SEARCH;
@@ -310,43 +310,44 @@ LRESULT CALLBACK WndProc(HWND hWnd, DWORD message, LPARAM wParam, LPARAM lParam)
 //
 BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID)
 {
-	static bool init = false;
-	if (DLL_PROCESS_ATTACH == ul_reason_for_call && !init)
+	if (DLL_PROCESS_ATTACH == ul_reason_for_call)
 	{
+		DWORD ThreadId = GetCurrentThreadId();
+		if (g_MainThreadId != 0 && g_MainThreadId != ThreadId)
+			return TRUE;
+
+		GetModuleFileNameW(nullptr, g_szGameModulePath, MAX_PATH);
+		g_hDllModule = hModule;
+		g_hGameModule = GetModuleHandleW(nullptr);
+		g_MainThreadId = ThreadId;
+		g_MainThreadHandle = GetCurrentThread();
 		HWND hWnd = util::GetCurrentWindowHandle();
 		if (hWnd != nullptr)
 		{
-			init = true;
-			GetModuleFileNameW(nullptr, g_szGameModulePath, MAX_PATH);
-			g_hDllModule = hModule;
-			g_hGameModule = GetModuleHandleW(nullptr);
-			g_MainThreadId = GetCurrentThreadId();
-			g_MainThreadHandle = GetCurrentThread();
 			g_MainHwnd = hWnd;
-			g_OldWndProc = reinterpret_cast<WNDPROC>(GetWindowLongW(hWnd, GWL_WNDPROC));
-			SetWindowLongW(hWnd, GWL_WNDPROC, reinterpret_cast<LONG_PTR>(WndProc));
+			g_OldWndProc = reinterpret_cast<WNDPROC>(GetWindowLongA(hWnd, GWL_WNDPROC));
+			SetWindowLongA(hWnd, GWL_WNDPROC, reinterpret_cast<LONG_PTR>(WndProc));
 #ifdef USE_MINIDUMP
 			SetUnhandledExceptionFilter(MinidumpCallback);
 			preventSetUnhandledExceptionFilter();
 #endif
 
 #ifdef _DEBUG
-			//CreateConsole();
-			//std::cout << "DllMain:::  hModule:" << std::hex << hModule << " ul_reason_for_call:" << std::dec << ul_reason_for_call << std::endl;
-			//std::cout << "DllMain:::  g_hGameModule:" << std::hex << g_hGameModule << " g_MainThreadId:" << std::dec << g_MainThreadId << std::endl;
-			//std::cout << "DllMain:::  g_MainThreadHandle:" << std::hex << g_MainThreadHandle << " g_MainHwnd:" << std::dec << g_MainHwnd << std::endl;
-			//std::cout << "DllMain:::  g_OldWndProc:" << std::hex << g_OldWndProc << std::endl;
-			//std::cout << "DllMain:::  newWndProc:" << std::hex << reinterpret_cast<LONG_PTR>(WndProc) << std::endl;
+			CreateConsole();
+			std::cout << "DllMain:::  hModule:" << std::hex << hModule << " ul_reason_for_call:" << std::dec << ul_reason_for_call << std::endl;
+			std::cout << "DllMain:::  g_hGameModule:" << std::hex << g_hGameModule << " g_MainThreadId:" << std::dec << g_MainThreadId << std::endl;
+			std::cout << "DllMain:::  g_MainThreadHandle:" << std::hex << g_MainThreadHandle << " g_MainHwnd:" << std::dec << g_MainHwnd << std::endl;
+			std::cout << "DllMain:::  g_OldWndProc:" << std::hex << g_OldWndProc << std::endl;
+			std::cout << "DllMain:::  newWndProc:" << std::hex << reinterpret_cast<LONG_PTR>(WndProc) << std::endl;
 #endif
-			DisableThreadLibraryCalls(hModule);
 		}
+		DisableThreadLibraryCalls(hModule);
 	}
-	else if (DLL_PROCESS_DETACH == ul_reason_for_call && init)
+	else if (DLL_PROCESS_DETACH == ul_reason_for_call)
 	{
-		init = false;
 		GameService& g_GameService = GameService::getInstance();
 		g_GameService.uninitialize();
-		SetWindowLongW(g_MainHwnd, GWL_WNDPROC, reinterpret_cast<LONG_PTR>(g_OldWndProc));
+		SetWindowLongA(g_MainHwnd, GWL_WNDPROC, reinterpret_cast<LONG_PTR>(g_OldWndProc));
 	}
 
 	return TRUE;
@@ -439,7 +440,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, DWORD message, LPARAM wParam, LPARAM lParam)
 		g_GameService.uninitialize();
 		SetWindowLongW(g_MainHwnd, GWL_WNDPROC, reinterpret_cast<LONG_PTR>(g_OldWndProc));
 		FreeLibraryAndExitThread(g_hDllModule, 0);
-		//return 1;
+		return 1;
 	}
 	case kGetModule:
 	{
@@ -451,6 +452,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, DWORD message, LPARAM wParam, LPARAM lParam)
 		if ((*g_GameService.g_sockfd == INVALID_SOCKET) || (*g_GameService.g_sockfd == NULL) || (lParam == NULL))
 			return 0;
 
+		DWORD dwBytesSent = 0;
+		//int nRet = g_GameService.psend(*g_GameService.g_sockfd, reinterpret_cast<char*>(wParam), static_cast<int>(lParam), NULL);
 		int nRet = g_GameService.psend(*g_GameService.g_sockfd, reinterpret_cast<char*>(wParam), static_cast<int>(lParam), NULL);
 #ifdef _DEBUG
 		std::cout << "kSendPacket:::  sockfd:" << std::to_string(*g_GameService.g_sockfd)
@@ -570,7 +573,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, DWORD message, LPARAM wParam, LPARAM lParam)
 	default:
 		break;
 	}
-	return CallWindowProcW(g_OldWndProc, g_MainHwnd, message, wParam, lParam);
+	return CallWindowProcA(g_OldWndProc, g_MainHwnd, message, wParam, lParam);
 }
 
 extern "C"
@@ -1162,7 +1165,7 @@ int WSAAPI GameService::New_closesocket(SOCKET s)
 }
 
 //防止其他私服使用A類函數導致標題亂碼
-BOOL WSAAPI GameService::New_SetWindowTextA(HWND, LPCSTR)
+BOOL WSAAPI GameService::New_SetWindowTextA(HWND hWnd, LPCSTR lpString)
 {
 	return TRUE;
 }
@@ -1202,7 +1205,7 @@ void WINAPI GameService::New_Sleep(DWORD dwMilliseconds)
 	pSleep(dwMilliseconds);
 }
 
-BOOL WINAPI GameService::New_IsIconic(HWND)
+BOOL WINAPI GameService::New_IsIconic(HWND hWnd)
 {
 	return FALSE;
 }
@@ -1312,7 +1315,7 @@ void GameService::WM_SetOptimize(bool enable)
 	if (g_hGameModule == nullptr)
 		return;
 
-	//DWORD optimizeAddr = CONVERT_GAMEVAR<DWORD>(0x129E7);
+	DWORD optimizeAddr = CONVERT_GAMEVAR<DWORD>(0x129E7);
 	if (!enable)
 	{
 		/*
@@ -1473,7 +1476,7 @@ void GameService::WM_EnableEffect(bool enable)
 	if (g_hGameModule == nullptr)
 		return;
 	DWORD effectAddr = CONVERT_GAMEVAR<DWORD>(0x434DD);
-	//DWORD effectAddr2 = CONVERT_GAMEVAR<DWORD>(0x482F0);
+	DWORD effectAddr2 = CONVERT_GAMEVAR<DWORD>(0x482F0);
 	DWORD effectAddr3 = CONVERT_GAMEVAR<DWORD>(0x48DE6);
 	DWORD effectAddr4 = CONVERT_GAMEVAR<DWORD>(0x49029);
 	DWORD effectAddr5 = CONVERT_GAMEVAR<DWORD>(0x7BDF2);
@@ -1564,7 +1567,7 @@ void GameService::WM_SetTimeLock(bool enable, int time)
 {
 	if (g_hGameModule == nullptr)
 		return;
-	//DWORD timerefreshAddr = CONVERT_GAMEVAR<DWORD>(0x1E6D0);
+	DWORD timerefreshAddr = CONVERT_GAMEVAR<DWORD>(0x1E6D0);
 	if (!enable)
 	{
 		//sa_8001sf.exe+1E6D0 - 56                    - push esi

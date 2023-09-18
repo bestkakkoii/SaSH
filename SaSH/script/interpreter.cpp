@@ -32,6 +32,8 @@ util::SafeHash<QString, util::SafeHash<qint64, break_marker_t>> forward_markers;
 util::SafeHash<QString, util::SafeHash<qint64, break_marker_t>> error_markers;//用於標示錯誤發生行(紅線)
 util::SafeHash<QString, util::SafeHash<qint64, break_marker_t>> step_markers;//隱式標記中斷點用於單步執行(無)
 
+QString g_logger_name = "";
+
 Interpreter::Interpreter()
 	: ThreadPlugin(nullptr)
 {
@@ -125,6 +127,8 @@ bool Interpreter::doFile(qint64 beginLine, const QString& fileName, Interpreter*
 		if (skip)
 			return 1;
 
+		Injector& injector = Injector::getInstance();
+
 		if (mode == Parser::kSync)
 			emit signalDispatcher.scriptLabelRowTextChanged(currentLine + 1, this->parser_.getTokens().size(), false);
 
@@ -213,7 +217,7 @@ void Interpreter::doString(const QString& content, Interpreter* parent, VarShare
 
 	if (parent)
 	{
-		pCallback = [parent, this](qint64, const TokenMap& TK)->qint64
+		pCallback = [parent, this](qint64 currentLine, const TokenMap& TK)->qint64
 		{
 			if (parent->isInterruptionRequested())
 				return 0;
@@ -905,6 +909,18 @@ void Interpreter::proc()
 		if (!isSubScript())
 		{
 			injector.IS_SCRIPT_FLAG.store(true, std::memory_order_release);
+			if (!injector.server.isNull())
+			{
+				PC pc = injector.server->getPC();
+				QString logname = QString("%1_%2_3").arg(pc.name).arg(pc.freeName).arg(_getpid());
+				if (logname.isEmpty())
+					logname = QString("noname_%1").arg(_getpid());
+
+				g_logger_name = SPD_INIT(logname);
+
+			}
+			else
+				g_logger_name = SPD_INIT(QString("noname_%1").arg(_getpid()));
 		}
 
 		parser_.setCallBack(pCallback);
@@ -930,6 +946,9 @@ void Interpreter::proc()
 
 	emit finished();
 	emit signalDispatcher.scriptFinished();
+
+	if (!g_logger_name.isEmpty())
+		SPD_CLOSE(g_logger_name.toUtf8().constData());
 }
 
 //檢查是否戰鬥，如果是則等待，並在戰鬥結束後停滯一段時間
@@ -1236,7 +1255,7 @@ bool Interpreter::findPath(qint64 currneLine, QPoint dst, qint64 steplen, qint64
 }
 
 //執行子腳本
-qint64 Interpreter::run(qint64, const TokenMap& TK)
+qint64 Interpreter::run(qint64 currentline, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance();
 
@@ -1345,7 +1364,7 @@ qint64 Interpreter::run(qint64, const TokenMap& TK)
 }
 
 //執行代碼塊
-qint64 Interpreter::dostring(qint64, const TokenMap& TK)
+qint64 Interpreter::dostring(qint64 currentline, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance();
 
@@ -1405,7 +1424,7 @@ qint64 Interpreter::dostring(qint64, const TokenMap& TK)
 }
 
 #include "script_lua/clua.h"
-qint64 Interpreter::dofile(qint64, const TokenMap& TK)
+qint64 Interpreter::dofile(qint64 currentline, const TokenMap& TK)
 {
 	QString fileName = "";
 	checkString(TK, 1, &fileName);

@@ -92,7 +92,7 @@ qint64 Interpreter::ifpos(qint64, const TokenMap& TK)
 	return checkJump(TK, 3, injector.server->getPoint() == p, SuccessJump);
 }
 
-qint64 Interpreter::ifmap(qint64, const TokenMap& TK)
+qint64 Interpreter::ifmap(qint64 currentline, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance();
 
@@ -117,10 +117,10 @@ qint64 Interpreter::ifmap(qint64, const TokenMap& TK)
 			for (const QString& mapname : mapnames)
 			{
 				bool ok;
-				qint64 fl = mapname.toLongLong(&ok);
+				qint64 floor = mapname.toLongLong(&ok);
 				if (ok)
 				{
-					if (fl == injector.server->nowFloor)
+					if (floor == injector.server->nowFloor)
 						return true;
 				}
 				else
@@ -142,7 +142,7 @@ qint64 Interpreter::ifmap(qint64, const TokenMap& TK)
 	return checkJump(TK, 2, check(), SuccessJump);
 }
 
-qint64 Interpreter::ifitemfull(qint64, const TokenMap& TK)
+qint64 Interpreter::ifitemfull(qint64 currentline, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance();
 
@@ -165,7 +165,7 @@ qint64 Interpreter::ifitemfull(qint64, const TokenMap& TK)
 	return checkJump(TK, 1, bret, SuccessJump);
 }
 
-qint64 Interpreter::ifitem(qint64, const TokenMap& TK)
+qint64 Interpreter::ifitem(qint64 currentline, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance();
 
@@ -206,7 +206,7 @@ qint64 Interpreter::ifitem(qint64, const TokenMap& TK)
 	return checkJump(TK, 4, bret, SuccessJump);
 }
 
-qint64 Interpreter::waitpet(qint64, const TokenMap& TK)
+qint64 Interpreter::waitpet(qint64 currentline, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance();
 
@@ -241,7 +241,7 @@ qint64 Interpreter::waitpet(qint64, const TokenMap& TK)
 	return checkJump(TK, 3, bret, SuccessJump);
 }
 
-qint64 Interpreter::waitmap(qint64, const TokenMap& TK)
+qint64 Interpreter::waitmap(qint64 currentline, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance();
 
@@ -312,7 +312,7 @@ qint64 Interpreter::waitmap(qint64, const TokenMap& TK)
 	return checkJump(TK, 3, bret, FailedJump);
 }
 
-qint64 Interpreter::waitdlg(qint64, const TokenMap& TK)
+qint64 Interpreter::waitdlg(qint64 currentline, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance();
 
@@ -416,7 +416,7 @@ qint64 Interpreter::waitdlg(qint64, const TokenMap& TK)
 	}
 }
 
-qint64 Interpreter::waitsay(qint64, const TokenMap& TK)
+qint64 Interpreter::waitsay(qint64 currentline, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance();
 
@@ -482,7 +482,7 @@ qint64 Interpreter::waitsay(qint64, const TokenMap& TK)
 }
 
 //check->group
-qint64 Interpreter::waitteam(qint64, const TokenMap& TK)
+qint64 Interpreter::waitteam(qint64 currentline, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance();
 
@@ -513,7 +513,7 @@ qint64 Interpreter::waitteam(qint64, const TokenMap& TK)
 	return checkJump(TK, 2, bret, FailedJump);
 }
 
-qint64 Interpreter::waititem(qint64, const TokenMap& TK)
+qint64 Interpreter::waititem(qint64 currentline, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance();
 
@@ -523,7 +523,7 @@ qint64 Interpreter::waititem(qint64, const TokenMap& TK)
 	checkOnlineThenWait();
 	checkBattleThenWait();
 
-	qint64 min = 0, max = static_cast<qint64>(MAX_ITEM);
+	qint64 min = 0, max = static_cast<qint64>(MAX_ITEM - CHAR_EQUIPPLACENUM - 1);
 	bool isEquip = false;
 	if (!checkRange(TK, 1, &min, &max))
 	{

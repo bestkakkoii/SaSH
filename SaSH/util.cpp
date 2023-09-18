@@ -19,218 +19,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "stdafx.h"
 #include "util.h"
 
-#pragma region mem
-bool mem::read(HANDLE hProcess, quint64 desiredAccess, SIZE_T size, PVOID buffer)
-{
-	if (!size)return FALSE;
-	if (!buffer) return FALSE;
-	if (!hProcess) return FALSE;
-	if (!desiredAccess) return FALSE;
-	//ULONG oldProtect = NULL;
-	//VirtualProtectEx(m_pi.hProcess, buffer, size, PAGE_EXECUTE_READWRITE, &oldProtect);
-	BOOL ret = NT_SUCCESS(MINT::NtReadVirtualMemory(hProcess, reinterpret_cast<PVOID>(desiredAccess), buffer, size, NULL));
-	//VirtualProtectEx(m_pi.hProcess, buffer, size, oldProtect, &oldProtect);
-	return ret == TRUE;
-}
-
-
-template<typename T, typename>
-T mem::read(HANDLE hProcess, quint64 desiredAccess)
-{
-	if (!hProcess) return T();
-
-	T buffer{};
-	SIZE_T size = sizeof(T);
-	if (!size) return T();
-	BOOL ret = mem::read(hProcess, desiredAccess, size, &buffer);
-	return ret ? buffer : T();
-}
-
-float mem::readFloat(HANDLE hProcess, quint64 desiredAccess)
-{
-	if (!hProcess) return 0.0f;
-	if (!desiredAccess) return 0.0f;
-	float buffer = 0;
-	SIZE_T size = sizeof(float);
-	BOOL ret = read(hProcess, desiredAccess, size, &buffer);
-	return (ret) ? (buffer) : 0.0f;
-}
-
-qreal mem::readDouble(HANDLE hProcess, quint64 desiredAccess)
-{
-	if (!hProcess) return 0.0;
-	if (!desiredAccess) return 0.0;
-	qreal buffer = 0;
-	SIZE_T size = sizeof(qreal);
-	BOOL ret = read(hProcess, desiredAccess, size, &buffer);
-	return (ret == TRUE) ? (buffer) : 0.0;
-}
-
-QString mem::readString(HANDLE hProcess, quint64 desiredAccess, SIZE_T size, bool enableTrim, bool keepOriginal)
-{
-	if (!hProcess) return "\0";
-	if (!desiredAccess) return "\0";
-
-	QScopedArrayPointer <char> p(q_check_ptr(new char[size + 1]));
-	memset(p.get(), 0, size + 1);
-	SIZE_T sizet = size;
-	BOOL ret = read(hProcess, desiredAccess, sizet, p.get());
-	if (!keepOriginal)
-	{
-		std::string s = p.get();
-		QString retstring = (ret == TRUE) ? (util::toUnicode(s.c_str(), enableTrim)) : "";
-		return retstring;
-	}
-	else
-	{
-		QString retstring = (ret == TRUE) ? QString(p.get()) : "";
-		return retstring;
-	}
-
-}
-
-bool mem::write(HANDLE hProcess, quint64 baseAddress, PVOID buffer, SIZE_T dwSize)
-{
-	if (!hProcess) return FALSE;
-	ULONG oldProtect = NULL;
-
-	VirtualProtectEx(hProcess, (LPVOID)baseAddress, dwSize, PAGE_EXECUTE_READWRITE, &oldProtect);
-	BOOL ret = WriteProcessMemory(hProcess, reinterpret_cast<PVOID>(baseAddress), buffer, dwSize, NULL);
-	VirtualProtectEx(hProcess, (LPVOID)baseAddress, dwSize, oldProtect, &oldProtect);
-	return ret == TRUE;
-}
-
-template<typename T, typename>
-bool mem::write(HANDLE hProcess, quint64 baseAddress, T data)
-{
-	if (!hProcess) return false;
-	if (!baseAddress) return false;
-	PVOID pBuffer = &data;
-	BOOL ret = write(hProcess, baseAddress, pBuffer, sizeof(T));
-	return ret == TRUE;
-}
-
-bool mem::writeString(HANDLE hProcess, quint64 baseAddress, const QString& str)
-{
-	if (!hProcess) return FALSE;
-	QTextCodec* codec = QTextCodec::codecForName(util::DEFAULT_GAME_CODEPAGE);//QTextCodec::codecForMib(2025);//
-	QByteArray ba = codec->fromUnicode(str);
-	ba.append('\0');
-	char* pBuffer = ba.data();
-	SIZE_T len = ba.size();
-	QScopedArrayPointer <char> p(q_check_ptr(new char[len + 1]()));
-	memset(p.get(), 0, len + 1);
-	_snprintf_s(p.get(), len + 1, _TRUNCATE, "%s\0", pBuffer);
-	BOOL ret = write(hProcess, baseAddress, p.get(), len + 1);
-	p.reset(nullptr);
-	return ret == TRUE;
-}
-
-quint64 mem::virtualAlloc(HANDLE hProcess, SIZE_T size)
-{
-	if (!hProcess) return 0;
-	DWORD ptr = NULL;
-	SIZE_T sizet = static_cast<SIZE_T>(size);
-
-	BOOL ret = NT_SUCCESS(MINT::NtAllocateVirtualMemory(hProcess, (PVOID*)&ptr, NULL, &sizet, MEM_COMMIT, PAGE_EXECUTE_READWRITE));
-	if (ret == TRUE)
-	{
-		return static_cast<int>(ptr);
-	}
-	else
-		return NULL;
-	//return static_cast<int>(this->VirtualAllocEx(m_pi.nWnd, NULL, size, 0));
-}
-
-quint64 mem::virtualAllocA(HANDLE hProcess, const QString& str)
-{
-	int ret = NULL;
-	do
-	{
-		if (!hProcess)
-			break;
-
-		ret = virtualAlloc(hProcess, str.toLocal8Bit().size() * 2 * sizeof(char) + 1);
-		if (ret == FALSE)
-			break;
-		if (!writeString(hProcess, ret, str))
-		{
-			virtualFree(hProcess, ret);
-			ret = NULL;
-			break;
-		}
-	} while (false);
-	return ret;
-}
-
-quint64 mem::virtualAllocW(HANDLE hProcess, const QString& str)
-{
-	int ret = NULL;
-	do
-	{
-		if (!hProcess)
-			break;
-
-		std::wstring wstr(str.toStdWString());
-		wstr += L'\0';
-		ret = virtualAlloc(hProcess, wstr.length() * sizeof(wchar_t) + 1);
-		if (!ret)
-			break;
-		if (!write(hProcess, ret, (PVOID)wstr.c_str(), wstr.length() * sizeof(wchar_t) + 1))
-		{
-			virtualFree(hProcess, ret);
-			ret = NULL;
-			break;
-		}
-	} while (false);
-	return ret;
-}
-
-bool mem::virtualFree(HANDLE hProcess, quint64 baseAddress)
-{
-	if (!hProcess) return FALSE;
-	if (baseAddress == NULL) return FALSE;
-	SIZE_T size = 0;
-	BOOL ret = NT_SUCCESS(MINT::NtFreeVirtualMemory(hProcess, (PVOID*)&baseAddress, &size, MEM_RELEASE));
-	return ret == TRUE;
-	//return static_cast<int>(this->VirtualFreeEx(m_pi.nWnd, static_cast<qlonglong>(baseAddress)));
-}
-
-quint64 mem::getRemoteModuleHandle(DWORD dwProcessId, const QString& moduleName)
-{
-	MODULEENTRY32 moduleEntry;
-	//  获取进程快照中包含在th32ProcessID中指定的进程的所有的模块。
-	ScopedHandle hSnapshot(ScopedHandle::CREATE_TOOLHELP32_SNAPSHOT, TH32CS_SNAPMODULE, dwProcessId);
-	if (!hSnapshot.isValid()) return NULL;
-
-	memset(&moduleEntry, 0, sizeof(MODULEENTRY32W));
-	moduleEntry.dwSize = sizeof(MODULEENTRY32W);
-	if (!Module32FirstW(hSnapshot, &moduleEntry))
-		return NULL;
-	else
-	{
-		const QString str(QString::fromWCharArray(moduleEntry.szModule));
-		if (str == moduleName)
-			return reinterpret_cast<quint64>(moduleEntry.hModule);
-	}
-
-	do
-	{
-		const QString str(QString::fromWCharArray(moduleEntry.szModule));
-		if (str == moduleName)
-			return reinterpret_cast<quint64>(moduleEntry.hModule);
-	} while (Module32NextW(hSnapshot, &moduleEntry));
-	return NULL;
-}
-
-void mem::freeUnuseMemory(HANDLE hProcess)
-{
-	SetProcessWorkingSetSizeEx(hProcess, (SIZE_T)-1, (SIZE_T)-1, 0);
-	K32EmptyWorkingSet(hProcess);
-}
-#pragma endregion
-
-#pragma region config
 QReadWriteLock g_fileLock;
 
 util::Config::Config(const QString& fileName)
@@ -564,99 +352,6 @@ QList<util::MapData> util::Config::readMapData(const QString& key) const
 
 	return result;
 }
-#pragma endregion
-
-void util::FormSettingManager::loadSettings()
-{
-	util::Crypt crypt;
-	const QString fileName(qgetenv("JSON_PATH"));
-	if (fileName.isEmpty())
-		return;
-
-	if (!QFile::exists(fileName))
-		return;
-
-	Config config(fileName);
-
-	QString ObjectName;
-	if (mainwindow_ != nullptr)
-	{
-		ObjectName = mainwindow_->objectName();
-	}
-	else
-	{
-		ObjectName = widget_->objectName();
-	}
-
-
-	QString strSize = config.read<QString>(ObjectName, "Size");
-	QSize size;
-	if (!strSize.isEmpty())
-	{
-		QStringList list = strSize.split(util::rexComma, Qt::SkipEmptyParts);
-		if (list.size() == 2)
-		{
-			size.setWidth(list.at(0).toInt());
-			size.setHeight(list.at(1).toInt());
-		}
-	}
-
-	QByteArray geometry;
-	QString qstrGeometry = config.read<QString>("Form", ObjectName, "Geometry");
-	if (!qstrGeometry.isEmpty())
-		geometry = crypt.decryptToByteArray(qstrGeometry);//DECODE
-
-	if (mainwindow_ != nullptr)
-	{
-		QByteArray state;
-		QString qstrState = config.read<QString>("Form", ObjectName, "State");
-		if (!qstrState.isEmpty())
-			state = crypt.decryptToByteArray(qstrState);//DECODE
-		mainwindow_->resize(size);
-		if (!geometry.isEmpty())
-			mainwindow_->restoreGeometry(geometry);
-		if (!state.isEmpty())
-			mainwindow_->restoreState(state, 3);
-	}
-	else
-	{
-		widget_->resize(size);
-		if (!geometry.isEmpty())
-			widget_->restoreGeometry(geometry);
-	}
-
-}
-
-void util::FormSettingManager::saveSettings()
-{
-	util::Crypt crypt;
-	const QString fileName(qgetenv("JSON_PATH"));
-	if (fileName.isEmpty())
-		return;
-
-	Config config(fileName);
-	QString ObjectName;
-	QString qstrGeometry;
-	QString qstrState;
-	QSize size;
-	if (mainwindow_ != nullptr)
-	{
-		ObjectName = mainwindow_->objectName();
-		qstrGeometry = crypt.encryptFromByteArray(mainwindow_->saveGeometry());//ENCODE
-		qstrState = crypt.encryptFromByteArray(mainwindow_->saveState(3));//ENCODE
-		size = mainwindow_->size();
-		config.write("Form", ObjectName, "State", qstrState);
-	}
-	else
-	{
-		ObjectName = widget_->objectName();
-		qstrGeometry = crypt.encryptFromByteArray(widget_->saveGeometry());//ENCODE
-		size = widget_->size();
-	}
-
-	config.write("Form", ObjectName, "Geometry", qstrGeometry);
-	config.write("Form", ObjectName, "Size", QString("%1,%2").arg(size.width()).arg(size.height()));
-}
 
 QFileInfoList util::loadAllFileLists(TreeWidgetItem* root, const QString& path, const QString& suffix, const QString& icon, QStringList* list)
 {
@@ -812,6 +507,306 @@ void util::searchFiles(const QString& dir, const QString& fileNamePart, const QS
 	}
 }
 
+void util::FormSettingManager::loadSettings()
+{
+	util::Crypt crypt;
+	const QString fileName(qgetenv("JSON_PATH"));
+	if (fileName.isEmpty())
+		return;
+
+	if (!QFile::exists(fileName))
+		return;
+
+	Config config(fileName);
+
+	QString ObjectName;
+	if (mainwindow_ != nullptr)
+	{
+		ObjectName = mainwindow_->objectName();
+	}
+	else
+	{
+		ObjectName = widget_->objectName();
+	}
+
+
+	QString strSize = config.read<QString>(ObjectName, "Size");
+	QSize size;
+	if (!strSize.isEmpty())
+	{
+		QStringList list = strSize.split(util::rexComma, Qt::SkipEmptyParts);
+		if (list.size() == 2)
+		{
+			size.setWidth(list.at(0).toInt());
+			size.setHeight(list.at(1).toInt());
+		}
+	}
+
+	QByteArray geometry;
+	QString qstrGeometry = config.read<QString>("Form", ObjectName, "Geometry");
+	if (!qstrGeometry.isEmpty())
+		geometry = crypt.decryptToByteArray(qstrGeometry);//DECODE
+
+	if (mainwindow_ != nullptr)
+	{
+		QByteArray state;
+		QString qstrState = config.read<QString>("Form", ObjectName, "State");
+		if (!qstrState.isEmpty())
+			state = crypt.decryptToByteArray(qstrState);//DECODE
+		mainwindow_->resize(size);
+		if (!geometry.isEmpty())
+			mainwindow_->restoreGeometry(geometry);
+		if (!state.isEmpty())
+			mainwindow_->restoreState(state, 3);
+	}
+	else
+	{
+		widget_->resize(size);
+		if (!geometry.isEmpty())
+			widget_->restoreGeometry(geometry);
+	}
+
+}
+void util::FormSettingManager::saveSettings()
+{
+	util::Crypt crypt;
+	const QString fileName(qgetenv("JSON_PATH"));
+	if (fileName.isEmpty())
+		return;
+
+	Config config(fileName);
+	QString ObjectName;
+	QString qstrGeometry;
+	QString qstrState;
+	QSize size;
+	if (mainwindow_ != nullptr)
+	{
+		ObjectName = mainwindow_->objectName();
+		qstrGeometry = crypt.encryptFromByteArray(mainwindow_->saveGeometry());//ENCODE
+		qstrState = crypt.encryptFromByteArray(mainwindow_->saveState(3));//ENCODE
+		size = mainwindow_->size();
+		config.write("Form", ObjectName, "State", qstrState);
+	}
+	else
+	{
+		ObjectName = widget_->objectName();
+		qstrGeometry = crypt.encryptFromByteArray(widget_->saveGeometry());//ENCODE
+		size = widget_->size();
+	}
+
+	config.write("Form", ObjectName, "Geometry", qstrGeometry);
+	config.write("Form", ObjectName, "Size", QString("%1,%2").arg(size.width()).arg(size.height()));
+}
+
+bool mem::read(HANDLE hProcess, DWORD desiredAccess, SIZE_T size, PVOID buffer)
+{
+	if (!size)return FALSE;
+	if (!buffer) return FALSE;
+	if (!hProcess) return FALSE;
+	if (!desiredAccess) return FALSE;
+	//ULONG oldProtect = NULL;
+	//VirtualProtectEx(m_pi.hProcess, buffer, size, PAGE_EXECUTE_READWRITE, &oldProtect);
+	BOOL ret = NT_SUCCESS(MINT::NtReadVirtualMemory(hProcess, reinterpret_cast<PVOID>(desiredAccess), buffer, size, NULL));
+	//VirtualProtectEx(m_pi.hProcess, buffer, size, oldProtect, &oldProtect);
+	return ret == TRUE;
+}
+
+
+template<typename T, typename>
+T mem::read(HANDLE hProcess, DWORD desiredAccess)
+{
+	if (!hProcess) return T();
+
+	T buffer{};
+	SIZE_T size = sizeof(T);
+	if (!size) return T();
+	BOOL ret = mem::read(hProcess, desiredAccess, size, &buffer);
+	return ret ? buffer : T();
+}
+
+float mem::readFloat(HANDLE hProcess, DWORD desiredAccess)
+{
+	if (!hProcess) return 0.0f;
+	if (!desiredAccess) return 0.0f;
+	float buffer = 0;
+	SIZE_T size = sizeof(float);
+	BOOL ret = read(hProcess, desiredAccess, size, &buffer);
+	return (ret) ? (buffer) : 0.0f;
+}
+
+qreal mem::readDouble(HANDLE hProcess, DWORD desiredAccess)
+{
+	if (!hProcess) return 0.0;
+	if (!desiredAccess) return 0.0;
+	qreal buffer = 0;
+	SIZE_T size = sizeof(qreal);
+	BOOL ret = read(hProcess, desiredAccess, size, &buffer);
+	return (ret == TRUE) ? (buffer) : 0.0;
+}
+
+QString mem::readString(HANDLE hProcess, DWORD desiredAccess, int size, bool enableTrim, bool keepOriginal)
+{
+	if (!hProcess) return "\0";
+	if (!desiredAccess) return "\0";
+
+	QScopedArrayPointer <char> p(q_check_ptr(new char[size + 1]));
+	memset(p.get(), 0, size + 1);
+	SIZE_T sizet = size;
+	BOOL ret = read(hProcess, desiredAccess, sizet, p.get());
+	if (!keepOriginal)
+	{
+		std::string s = p.get();
+		QString retstring = (ret == TRUE) ? (util::toUnicode(s.c_str(), enableTrim)) : "";
+		return retstring;
+	}
+	else
+	{
+		QString retstring = (ret == TRUE) ? QString(p.get()) : "";
+		return retstring;
+	}
+
+}
+
+bool mem::write(HANDLE hProcess, DWORD baseAddress, PVOID buffer, SIZE_T dwSize)
+{
+	if (!hProcess) return FALSE;
+	ULONG oldProtect = NULL;
+
+	VirtualProtectEx(hProcess, (LPVOID)baseAddress, dwSize, PAGE_EXECUTE_READWRITE, &oldProtect);
+	BOOL ret = WriteProcessMemory(hProcess, reinterpret_cast<PVOID>(baseAddress), buffer, dwSize, NULL);
+	VirtualProtectEx(hProcess, (LPVOID)baseAddress, dwSize, oldProtect, &oldProtect);
+	return ret == TRUE;
+}
+
+template<typename T, typename>
+bool mem::write(HANDLE hProcess, DWORD baseAddress, T data)
+{
+	if (!hProcess) return false;
+	if (!baseAddress) return false;
+	PVOID pBuffer = &data;
+	BOOL ret = write(hProcess, baseAddress, pBuffer, sizeof(T));
+	return ret == TRUE;
+}
+
+bool mem::writeString(HANDLE hProcess, DWORD baseAddress, const QString& str)
+{
+	if (!hProcess) return FALSE;
+	QTextCodec* codec = QTextCodec::codecForName(util::DEFAULT_GAME_CODEPAGE);//QTextCodec::codecForMib(2025);//
+	QByteArray ba = codec->fromUnicode(str);
+	ba.append('\0');
+	char* pBuffer = ba.data();
+	SIZE_T len = ba.size();
+	QScopedArrayPointer <char> p(q_check_ptr(new char[len + 1]()));
+	memset(p.get(), 0, len + 1);
+	_snprintf_s(p.get(), len + 1, _TRUNCATE, "%s\0", pBuffer);
+	BOOL ret = write(hProcess, baseAddress, p.get(), len + 1);
+	p.reset(nullptr);
+	return ret == TRUE;
+}
+
+int mem::virtualAlloc(HANDLE hProcess, int size)
+{
+	if (!hProcess) return 0;
+	DWORD ptr = NULL;
+	SIZE_T sizet = static_cast<SIZE_T>(size);
+
+	BOOL ret = NT_SUCCESS(MINT::NtAllocateVirtualMemory(hProcess, (PVOID*)&ptr, NULL, &sizet, MEM_COMMIT, PAGE_EXECUTE_READWRITE));
+	if (ret == TRUE)
+	{
+		return static_cast<int>(ptr);
+	}
+	else
+		return NULL;
+	//return static_cast<int>(this->VirtualAllocEx(m_pi.nWnd, NULL, size, 0));
+}
+
+int mem::virtualAllocA(HANDLE hProcess, const QString& str)
+{
+	int ret = NULL;
+	do
+	{
+		if (!hProcess)
+			break;
+
+		ret = virtualAlloc(hProcess, str.toLocal8Bit().size() * 2 * sizeof(char) + 1);
+		if (ret == FALSE)
+			break;
+		if (!writeString(hProcess, ret, str))
+		{
+			virtualFree(hProcess, ret);
+			ret = NULL;
+			break;
+		}
+	} while (false);
+	return ret;
+}
+
+int mem::virtualAllocW(HANDLE hProcess, const QString& str)
+{
+	int ret = NULL;
+	do
+	{
+		if (!hProcess)
+			break;
+
+		std::wstring wstr(str.toStdWString());
+		wstr += L'\0';
+		ret = virtualAlloc(hProcess, wstr.length() * sizeof(wchar_t) + 1);
+		if (!ret)
+			break;
+		if (!write(hProcess, ret, (PVOID)wstr.c_str(), wstr.length() * sizeof(wchar_t) + 1))
+		{
+			virtualFree(hProcess, ret);
+			ret = NULL;
+			break;
+		}
+	} while (false);
+	return ret;
+}
+
+bool mem::virtualFree(HANDLE hProcess, int baseAddress)
+{
+	if (!hProcess) return FALSE;
+	if (baseAddress == NULL) return FALSE;
+	SIZE_T size = 0;
+	BOOL ret = NT_SUCCESS(MINT::NtFreeVirtualMemory(hProcess, (PVOID*)&baseAddress, &size, MEM_RELEASE));
+	return ret == TRUE;
+	//return static_cast<int>(this->VirtualFreeEx(m_pi.nWnd, static_cast<qlonglong>(baseAddress)));
+}
+
+quint64 mem::getRemoteModuleHandle(DWORD dwProcessId, const QString& moduleName)
+{
+	MODULEENTRY32 moduleEntry;
+	//  获取进程快照中包含在th32ProcessID中指定的进程的所有的模块。
+	ScopedHandle hSnapshot(ScopedHandle::CREATE_TOOLHELP32_SNAPSHOT, TH32CS_SNAPMODULE, dwProcessId);
+	if (!hSnapshot.isValid()) return NULL;
+
+	memset(&moduleEntry, 0, sizeof(MODULEENTRY32W));
+	moduleEntry.dwSize = sizeof(MODULEENTRY32W);
+	if (!Module32FirstW(hSnapshot, &moduleEntry))
+		return NULL;
+	else
+	{
+		const QString str(QString::fromWCharArray(moduleEntry.szModule));
+		if (str == moduleName)
+			return reinterpret_cast<quint64>(moduleEntry.hModule);
+	}
+
+	do
+	{
+		const QString str(QString::fromWCharArray(moduleEntry.szModule));
+		if (str == moduleName)
+			return reinterpret_cast<quint64>(moduleEntry.hModule);
+	} while (Module32NextW(hSnapshot, &moduleEntry));
+	return NULL;
+}
+
+void mem::freeUnuseMemory(HANDLE hProcess)
+{
+	SetProcessWorkingSetSizeEx(hProcess, -1, -1, 0);
+	K32EmptyWorkingSet(hProcess);
+}
+
 void util::sortWindows(const QVector<HWND>& windowList, bool alignLeft)
 {
 	if (windowList.isEmpty())
@@ -866,7 +861,7 @@ void util::sortWindows(const QVector<HWND>& windowList, bool alignLeft)
 
 bool util::writeFireWallOverXP(const LPCTSTR& ruleName, const LPCTSTR& appPath, bool NoopIfExist)
 {
-	bool bret = true;
+	bool bret = false;
 	HRESULT hrComInit = S_OK;
 	HRESULT hr = S_OK;
 
@@ -876,7 +871,6 @@ bool util::writeFireWallOverXP(const LPCTSTR& ruleName, const LPCTSTR& appPath, 
 
 	BSTR bstrRuleName = SysAllocString(ruleName);
 	BSTR bstrAppName = SysAllocString(appPath);
-	BSTR bstrDescription = SysAllocString(ruleName);
 
 	// Initialize COM.
 	hrComInit = CoInitializeEx(
@@ -952,11 +946,8 @@ bool util::writeFireWallOverXP(const LPCTSTR& ruleName, const LPCTSTR& appPath, 
 
 		pFwRule->put_Name(bstrRuleName);
 		pFwRule->put_ApplicationName(bstrAppName);
-		pFwRule->put_Description(bstrDescription);
-		pFwRule->put_Protocol(NET_FW_IP_PROTOCOL_ANY);
 		pFwRule->put_Action(NET_FW_ACTION_ALLOW);
 		pFwRule->put_Enabled(VARIANT_TRUE);
-		pFwRule->put_Profiles(NET_FW_PROFILE2_ALL);
 
 		// Add the Firewall Rule
 		hr = pFwRules->Add(pFwRule);
@@ -971,7 +962,6 @@ bool util::writeFireWallOverXP(const LPCTSTR& ruleName, const LPCTSTR& appPath, 
 	// Free BSTR's
 	SysFreeString(bstrRuleName);
 	SysFreeString(bstrAppName);
-	SysFreeString(bstrDescription);
 
 	// Release the INetFwRule object
 	if (pFwRule != NULL)

@@ -373,33 +373,31 @@ void registryInitialize()
 
 int main(int argc, char* argv[])
 {
-	//全局編碼設置
-	SetConsoleCP(CP_UTF8);
-	SetConsoleOutputCP(CP_UTF8);
-	setlocale(LC_ALL, "en_US.UTF-8");
-
-	//DPI相關設置
 	QApplication::setAttribute(Qt::AA_Use96Dpi, true);// DPI support
+	//QApplication::setAttribute(Qt::AA_DisableHighDpiScaling, false);
 	QApplication::setAttribute(Qt::AA_EnableHighDpiScaling, true);
 	QApplication::setAttribute(Qt::AA_UseHighDpiPixmaps, true);
 	QApplication::setAttribute(Qt::AA_ShareOpenGLContexts, true);
 	QApplication::setAttribute(Qt::AA_UseDesktopOpenGL, true);//AA_UseDesktopOpenGL, AA_UseOpenGLES, AA_UseSoftwareOpenGL
 	QGuiApplication::setHighDpiScaleFactorRoundingPolicy(Qt::HighDpiScaleFactorRoundingPolicy::PassThrough);
 
-	//OpenGL相關設置
 	QSurfaceFormat format;
 	format.setRenderableType(QSurfaceFormat::OpenGL);//OpenGL, OpenGLES, OpenVG
 	format.setSwapBehavior(QSurfaceFormat::TripleBuffer);
 	QSurfaceFormat::setDefaultFormat(format);
 
-	//////// 以上必須在 QApplication a(argc, argv); 之前設置否則無效 ////////
-
-	//實例化Qt應用程序
 	QApplication a(argc, argv);
 
-	//////// 以下必須在 QApplication a(argc, argv); 之後設置否則會崩潰 ////////
+#ifdef _DEBUG
+	qSetMessagePattern("[%{threadid}] [@%{line}] [%{function}] [%{type}] %{message}");//%{file} 
+#endif
 
-	//檢查系統版本
+	SetConsoleCP(CP_UTF8);
+	SetConsoleOutputCP(CP_UTF8);
+	setlocale(LC_ALL, "en_US.UTF-8");
+	QTextCodec* codec = QTextCodec::codecForName(util::DEFAULT_CODEPAGE);
+	QTextCodec::setCodecForLocale(codec);
+
 	QOperatingSystemVersion version = QOperatingSystemVersion::current();
 	if (version <= QOperatingSystemVersion::Windows7)
 	{
@@ -407,28 +405,6 @@ int main(int argc, char* argv[])
 		return -1;
 	}
 
-	//調試相關設置
-#ifdef _DEBUG
-	qSetMessagePattern("[%{threadid}] [@%{line}] [%{function}] [%{type}] %{message}");//%{file} 
-#else
-	qInstallMessageHandler(qtMessageHandler);
-	//SetUnhandledExceptionFilter(MinidumpCallback); //SEH
-	//preventSetUnhandledExceptionFilter();
-	//AddVectoredExceptionHandler(0, MinidumpCallback); //VEH
-	//CreateConsole();
-#endif
-
-	//Qt全局編碼設置
-	QTextCodec* codec = QTextCodec::codecForName(util::DEFAULT_CODEPAGE);
-	QTextCodec::setCodecForLocale(codec);
-
-	//全局線程池設置
-	int count = QThread::idealThreadCount();
-	QThreadPool* pool = QThreadPool::globalInstance();
-	if (pool != nullptr)
-		pool->setMaxThreadCount(count);
-
-	//必要目錄設置
 	QString currentWorkPath = util::applicationDirPath();
 	QDir dir(currentWorkPath + "/lib");
 	if (!dir.exists())
@@ -442,24 +418,18 @@ int main(int argc, char* argv[])
 	if (!dirset.exists())
 		dirset.mkpath(".");
 
-	//字體設置
 	fontInitialize(currentWorkPath, a);
-
-	//註冊表設置
 	registryInitialize();
 
-	//防火牆設置
-	QString fullpath = QCoreApplication::applicationFilePath().toLower();
-	fullpath.replace("/", "\\");
-	std::wstring wsfullpath = fullpath.toStdWString();
-	util::writeFireWallOverXP(wsfullpath.c_str(), wsfullpath.c_str(), true);
+	wchar_t szAppPath[MAX_PATH] = {};
+	GetModuleFileName(NULL, szAppPath, MAX_PATH);
+	constexpr const wchar_t* name = L"StoneAgeSupremeHelper";
+	util::writeFireWallOverXP(name, szAppPath, true);
 
-	//環境變量設置
 	QString path = currentWorkPath + "/system.json";
 	qputenv("JSON_PATH", path.toUtf8());
 	qputenv("DIR_PATH", currentWorkPath.toUtf8());
 
-	//清理臨時文件
 	QStringList filters;
 	filters << "*.tmp";
 	QDirIterator it(currentWorkPath, filters, QDir::Files, QDirIterator::Subdirectories);
@@ -469,8 +439,21 @@ int main(int argc, char* argv[])
 		QFile::remove(it.filePath());
 	}
 
-	//實例化主窗口
+#if QT_NO_DEBUG
+	qInstallMessageHandler(qtMessageHandler);
+	//SetUnhandledExceptionFilter(MinidumpCallback); //SEH
+	//preventSetUnhandledExceptionFilter();
+	//AddVectoredExceptionHandler(0, MinidumpCallback); //VEH
+	//CreateConsole();
+#endif
+
+	int count = QThread::idealThreadCount();
+	QThreadPool* pool = QThreadPool::globalInstance();
+	if (pool != nullptr)
+		pool->setMaxThreadCount(count);
+
 	MainForm w;
+
 	w.show();
 	return a.exec();
 }

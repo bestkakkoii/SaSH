@@ -7,7 +7,6 @@
 #include <QFile>
 #include <QKeyEvent>
 #include <qdialogbuttonbox.h>
-#include "util.h"
 
 #ifdef _DEBUG
 #pragma comment(lib, "qscintilla2_qt5d.lib")

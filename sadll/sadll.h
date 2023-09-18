@@ -99,7 +99,7 @@ namespace util
 		handle_data& data = *(handle_data*)lParam;
 		unsigned long process_id = 0;
 		GetWindowThreadProcessId(handle, &process_id);
-		if (data.process_id != process_id)
+		if (data.process_id != process_id || !IsCurrentWindow(handle) || IsConsoleWindow(handle))
 			return TRUE;
 		data.window_handle = handle;
 		return FALSE;

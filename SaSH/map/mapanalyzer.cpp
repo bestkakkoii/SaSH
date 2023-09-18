@@ -1430,15 +1430,15 @@ bool __fastcall MapAnalyzer::readFromBinary(int floor, const QString& name, bool
 	map.name = name;
 
 	QHash<int, map_t>::iterator it = maps_.begin();
-	for (auto subit = maps_.begin(); subit != maps_.end(); ++subit)
+	for (auto it = maps_.begin(); it != maps_.end(); ++it)
 	{
-		map_t& m = subit.value();
+		map_t& m = it.value();
 		if (m.floor == floor)
 			continue;
 
 		qint64 time = m.timer.elapsed();
 		if (time >= (5 * 60ll * 60ll) && m.refCount < 30)
-			subit.value().data.clear();
+			it.value().data.clear();
 	}
 
 	if (map.data.size() > 0
@@ -1942,7 +1942,7 @@ bool __fastcall MapAnalyzer::isPassable(int floor, const QPoint& src, const QPoi
 	} while (false);
 
 	return bret;
-}
+	}
 
 // 取靠近目標的最佳座標和方向
 int __fastcall MapAnalyzer::calcBestFollowPointByDstPoint(int floor, const QPoint& src, const QPoint& dst, QPoint* ret, bool enableExt, int npcdir)

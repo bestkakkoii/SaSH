@@ -78,8 +78,8 @@ GeneralForm::GeneralForm(QWidget* parent)
 					isFirstInstance = true;
 				else
 					MINT::NtTerminateProcess(GetCurrentProcess(), 0);
-			});
-	}
+});
+}
 #endif
 #endif
 }
@@ -268,16 +268,16 @@ void GeneralForm::onButtonClicked()
 		{
 			//只顯示 上一級文件夾名稱/fileName
 			QFileInfo fileInfo(it);
+			QString fileName = fileInfo.fileName();
 			QString path = fileInfo.path();
 			QFileInfo pathInfo(path);
 			QString pathName = pathInfo.fileName();
-			ui.comboBox_paths->addItem(pathName + "/" + fileInfo.fileName(), it);
+			ui.comboBox_paths->addItem(pathName + "/" + fileName, it);
 		}
 
 		ui.comboBox_paths->setCurrentIndex(ui.comboBox_paths->count() - 1);
 		ui.comboBox_paths->blockSignals(false);
 		config.writeArray<QString>("System", "Command", "DirPath", newPaths);
-		return;
 	}
 
 	if (name == "pushButton_setting")
@@ -291,7 +291,6 @@ void GeneralForm::onButtonClicked()
 
 		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
 		emit signalDispatcher.loadHashSettings(fileName, true);
-		return;
 	}
 
 	if (name == "pushButton_logout")
@@ -568,10 +567,10 @@ void GeneralForm::onCheckBoxStateChanged(int state)
 		QStringList dstList;
 		QStringList srcSelectList;
 
-		QVariant d = injector.getUserData(util::kUserItemNames);
-		if (d.isValid())
+		QVariant data = injector.getUserData(util::kUserItemNames);
+		if (data.isValid())
 		{
-			srcSelectList = d.toStringList();
+			srcSelectList = data.toStringList();
 		}
 
 		QString src = injector.getStringHash(util::kAutoDropItemString);
@@ -688,10 +687,10 @@ void GeneralForm::onCheckBoxStateChanged(int state)
 		QStringList dstList;
 		QStringList srcSelectList;
 
-		QVariant d = injector.getUserData(util::kUserEnemyNames);
-		if (d.isValid())
+		QVariant data = injector.getUserData(util::kUserEnemyNames);
+		if (data.isValid())
 		{
-			srcSelectList = d.toStringList();
+			srcSelectList = data.toStringList();
 		}
 		srcSelectList.removeDuplicates();
 
@@ -730,10 +729,10 @@ void GeneralForm::onCheckBoxStateChanged(int state)
 		QStringList dstList;
 		QStringList srcSelectList;
 
-		QVariant d = injector.getUserData(util::kUserEnemyNames);
-		if (d.isValid())
+		QVariant data = injector.getUserData(util::kUserEnemyNames);
+		if (data.isValid())
 		{
-			srcSelectList = d.toStringList();
+			srcSelectList = data.toStringList();
 		}
 		srcSelectList.removeDuplicates();
 

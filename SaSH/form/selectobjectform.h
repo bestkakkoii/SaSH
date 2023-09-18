@@ -71,7 +71,7 @@ private:
 	TitleType type_;
 };
 
-inline bool createSelectObjectForm(SelectObjectForm::TitleType type, const QStringList& srcselectlist, const QStringList& srclist, QStringList* dst, QWidget* perent)
+static bool createSelectObjectForm(SelectObjectForm::TitleType type, const QStringList& srcselectlist, const QStringList& srclist, QStringList* dst, QWidget* perent)
 {
 	QStringList recviveList;
 	SelectObjectForm* pObjForm = new SelectObjectForm(type, perent);

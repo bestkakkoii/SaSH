@@ -25,6 +25,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "map/mapanalyzer.h"
 #include "update/downloader.h"
 
+#include <spdlogger.hpp>
+extern QString g_logger_name;//parser.cpp
+
 bool ThreadManager::createThread(QObject*)
 {
 	if (thread_)
@@ -108,6 +111,10 @@ void MainObject::run()
 		{
 			emit signalDispatcher.messageBoxShow(tr("Create process failed!"));
 			break;
+		}
+		else
+		{
+			QThread::msleep(2000);
 		}
 
 		if (remove_thread_reason != util::REASON_NO_ERROR)
@@ -349,6 +356,8 @@ int MainObject::checkAndRunFunctions()
 			{
 				login_run_once_flag_ = true;
 
+				SPD_CLOSE(injector.server->protoBattleLogName.toUtf8().constData());
+
 				injector.server->clear();
 				if (!injector.chatLogModel.isNull())
 					injector.chatLogModel->clear();
@@ -482,6 +491,7 @@ int MainObject::checkAndRunFunctions()
 		if (injector.getEnableHash(util::kScriptDebugModeEnable))
 		{
 			QString logname = QString("battle_%1_%2_%3").arg(pc.name).arg(pc.freeName).arg(_getpid());
+			injector.server->protoBattleLogName = SPD_INIT(logname);
 		}
 
 		injector.server->updateComboBoxList();
@@ -568,36 +578,35 @@ int MainObject::checkAndRunFunctions()
 
 void MainObject::updateAfkInfos()
 {
+	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
 	Injector& injector = Injector::getInstance();
 	if (injector.server.isNull())
 		return;
 
-	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
-
 	int duration = injector.server->loginTimer.elapsed();
-	emit signalDispatcher.updateAfkInfoTable(0, util::formatMilliseconds(duration));
+	signalDispatcher.updateAfkInfoTable(0, util::formatMilliseconds(duration));
 
 	util::AfkRecorder recorder = injector.server->recorder[0];
 
 	int avgLevelPerHour = 0;
 	if (duration > 0 && recorder.leveldifference > 0)
 		avgLevelPerHour = static_cast<int>(recorder.leveldifference * 3600000.0 / duration);
-	emit signalDispatcher.updateAfkInfoTable(2, QString(tr("%1→%2 (avg level: %3)"))
+	signalDispatcher.updateAfkInfoTable(2, QString(tr("%1→%2 (avg level: %3)"))
 		.arg(recorder.levelrecord).arg(recorder.levelrecord + recorder.leveldifference).arg(avgLevelPerHour));
 
 	int avgExpPerHour = 0;
 	if (duration > 0 && recorder.expdifference > 0)
 		avgExpPerHour = static_cast<int>(recorder.expdifference * 3600000.0 / duration);
 
-	emit signalDispatcher.updateAfkInfoTable(3, tr("%1 (avg exp: %2)").arg(recorder.expdifference).arg(avgExpPerHour));
+	signalDispatcher.updateAfkInfoTable(3, tr("%1 (avg exp: %2)").arg(recorder.expdifference).arg(avgExpPerHour));
 
-	emit signalDispatcher.updateAfkInfoTable(4, QString::number(recorder.deadthcount));
+	signalDispatcher.updateAfkInfoTable(4, QString::number(recorder.deadthcount));
 
 
 	int avgGoldPerHour = 0;
 	if (duration > 0 && recorder.goldearn > 0)
 		avgGoldPerHour = static_cast<int>(recorder.goldearn * 3600000.0 / duration);
-	emit signalDispatcher.updateAfkInfoTable(5, tr("%1 (avg gold: %2)").arg(recorder.goldearn).arg(avgGoldPerHour));
+	signalDispatcher.updateAfkInfoTable(5, tr("%1 (avg gold: %2)").arg(recorder.goldearn).arg(avgGoldPerHour));
 
 	constexpr int n = 7;
 	int j = 0;
@@ -609,18 +618,18 @@ void MainObject::updateAfkInfos()
 		if (duration > 0 && recorder.leveldifference > 0)
 			avgExpPerHour = static_cast<int>(recorder.leveldifference * 3600000.0 / duration);
 
-		emit signalDispatcher.updateAfkInfoTable(i + n + j, QString(tr("%1→%2 (avg level: %3)"))
+		signalDispatcher.updateAfkInfoTable(i + n + j, QString(tr("%1→%2 (avg level: %3)"))
 			.arg(recorder.levelrecord).arg(recorder.levelrecord + recorder.leveldifference).arg(avgExpPerHour));
 
 		avgExpPerHour = 0;
 		if (duration > 0 && recorder.expdifference > 0)
 			avgExpPerHour = static_cast<int>(recorder.expdifference * 3600000.0 / duration);
-		emit signalDispatcher.updateAfkInfoTable(i + n + 1 + j, tr("%1 (avg exp: %2)").arg(recorder.expdifference).arg(avgExpPerHour));
+		signalDispatcher.updateAfkInfoTable(i + n + 1 + j, tr("%1 (avg exp: %2)").arg(recorder.expdifference).arg(avgExpPerHour));
 
-		emit signalDispatcher.updateAfkInfoTable(i + n + 2 + j, QString::number(recorder.deadthcount));
+		signalDispatcher.updateAfkInfoTable(i + n + 2 + j, QString::number(recorder.deadthcount));
 
 
-		emit signalDispatcher.updateAfkInfoTable(i + n + 3 + j, "");
+		signalDispatcher.updateAfkInfoTable(i + n + 3 + j, "");
 
 		j += 3;
 

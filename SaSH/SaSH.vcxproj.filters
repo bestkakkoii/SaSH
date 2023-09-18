@@ -282,6 +282,9 @@
     <ClCompile Include="model\customtitlebar.cpp">
       <Filter>Source Files\model</Filter>
     </ClCompile>
+    <ClCompile Include="script\parser2.cpp">
+      <Filter>Source Files\script</Filter>
+    </ClCompile>
     <ClCompile Include="model\pushbutton.cpp">
       <Filter>Source Files\model</Filter>
     </ClCompile>
@@ -465,6 +468,9 @@
     </ClInclude>
     <ClInclude Include="resource.h">
       <Filter>Resource Files</Filter>
+    </ClInclude>
+    <ClInclude Include="script\parser2.h">
+      <Filter>Source Files\script</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

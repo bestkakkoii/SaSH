@@ -49,45 +49,45 @@ typedef struct break_marker_s
 
 namespace mem
 {
-	bool read(HANDLE hProcess, quint64 baseAddress, SIZE_T size, PVOID buffer);
+	bool read(HANDLE hProcess, DWORD desiredAccess, SIZE_T size, PVOID buffer);
 	template<typename T, typename = std::enable_if_t<std::is_arithmetic_v<T> && !std::is_pointer_v<T>>>
-	Q_REQUIRED_RESULT T read(HANDLE hProcess, quint64 baseAddress);
+	Q_REQUIRED_RESULT T read(HANDLE hProcess, DWORD desiredAccess);
 
-	template char read<char>(HANDLE hProcess, quint64 baseAddress);
-	template short read<short>(HANDLE hProcess, quint64 baseAddress);
-	template int read<int>(HANDLE hProcess, quint64 baseAddress);
-	template float read<float>(HANDLE hProcess, quint64 baseAddress);
-	template long read<long>(HANDLE hProcess, quint64 baseAddress);
-	template long long read<long long>(HANDLE hProcess, quint64 baseAddress);
-	template unsigned char read<unsigned char>(HANDLE hProcess, quint64 baseAddress);
-	template unsigned short read<unsigned short>(HANDLE hProcess, quint64 baseAddress);
-	template unsigned int read<unsigned int>(HANDLE hProcess, quint64 baseAddress);
-	template unsigned long read<unsigned long>(HANDLE hProcess, quint64 baseAddress);
-	template unsigned long long read<unsigned long long>(HANDLE hProcess, quint64 baseAddress);
+	template char read<char>(HANDLE hProcess, DWORD desiredAccess);
+	template short read<short>(HANDLE hProcess, DWORD desiredAccess);
+	template int read<int>(HANDLE hProcess, DWORD desiredAccess);
+	template float read<float>(HANDLE hProcess, DWORD desiredAccess);
+	template long read<long>(HANDLE hProcess, DWORD desiredAccess);
+	template long long read<long long>(HANDLE hProcess, DWORD desiredAccess);
+	template unsigned char read<unsigned char>(HANDLE hProcess, DWORD desiredAccess);
+	template unsigned short read<unsigned short>(HANDLE hProcess, DWORD desiredAccess);
+	template unsigned int read<unsigned int>(HANDLE hProcess, DWORD desiredAccess);
+	template unsigned long read<unsigned long>(HANDLE hProcess, DWORD desiredAccess);
+	template unsigned long long read<unsigned long long>(HANDLE hProcess, DWORD desiredAccess);
 
 	template<typename T, typename = std::enable_if_t<std::is_arithmetic_v<T> && !std::is_pointer_v<T>>>
-	bool write(HANDLE hProcess, quint64 baseAddress, T data);
-	template bool write<char>(HANDLE hProcess, quint64 baseAddress, char data);
-	template bool write<short>(HANDLE hProcess, quint64 baseAddress, short data);
-	template bool write<int>(HANDLE hProcess, quint64 baseAddress, int data);
-	template bool write<float>(HANDLE hProcess, quint64 baseAddress, float data);
-	template bool write<long>(HANDLE hProcess, quint64 baseAddress, long data);
-	template bool write<long long>(HANDLE hProcess, quint64 baseAddress, long long data);
-	template bool write<unsigned char>(HANDLE hProcess, quint64 baseAddress, unsigned char data);
-	template bool write<unsigned short>(HANDLE hProcess, quint64 baseAddress, unsigned short data);
-	template bool write<unsigned int>(HANDLE hProcess, quint64 baseAddress, unsigned int data);
-	template bool write<unsigned long>(HANDLE hProcess, quint64 baseAddress, unsigned long data);
-	template bool write<unsigned long long>(HANDLE hProcess, quint64 baseAddress, unsigned long long data);
+	bool write(HANDLE hProcess, DWORD baseAddress, T data);
+	template bool write<char>(HANDLE hProcess, DWORD baseAddress, char data);
+	template bool write<short>(HANDLE hProcess, DWORD baseAddress, short data);
+	template bool write<int>(HANDLE hProcess, DWORD baseAddress, int data);
+	template bool write<float>(HANDLE hProcess, DWORD baseAddress, float data);
+	template bool write<long>(HANDLE hProcess, DWORD baseAddress, long data);
+	template bool write<long long>(HANDLE hProcess, DWORD baseAddress, long long data);
+	template bool write<unsigned char>(HANDLE hProcess, DWORD baseAddress, unsigned char data);
+	template bool write<unsigned short>(HANDLE hProcess, DWORD baseAddress, unsigned short data);
+	template bool write<unsigned int>(HANDLE hProcess, DWORD baseAddress, unsigned int data);
+	template bool write<unsigned long>(HANDLE hProcess, DWORD baseAddress, unsigned long data);
+	template bool write<unsigned long long>(HANDLE hProcess, DWORD baseAddress, unsigned long long data);
 
-	Q_REQUIRED_RESULT float readFloat(HANDLE hProcess, quint64 baseAddress);
-	Q_REQUIRED_RESULT qreal readDouble(HANDLE hProcess, quint64 baseAddress);
-	Q_REQUIRED_RESULT QString readString(HANDLE hProcess, quint64 baseAddress, SIZE_T size, bool enableTrim = true, bool keepOriginal = false);
-	bool write(HANDLE hProcess, quint64 baseAddress, PVOID buffer, SIZE_T dwSize);
-	bool writeString(HANDLE hProcess, quint64 baseAddress, const QString& str);
-	bool virtualFree(HANDLE hProcess, quint64 baseAddress);
-	Q_REQUIRED_RESULT quint64 virtualAlloc(HANDLE hProcess, SIZE_T size);
-	Q_REQUIRED_RESULT quint64 virtualAllocW(HANDLE hProcess, const QString& str);
-	Q_REQUIRED_RESULT quint64 virtualAllocA(HANDLE hProcess, const QString& str);
+	Q_REQUIRED_RESULT float readFloat(HANDLE hProcess, DWORD desiredAccess);
+	Q_REQUIRED_RESULT qreal readDouble(HANDLE hProcess, DWORD desiredAccess);
+	Q_REQUIRED_RESULT QString readString(HANDLE hProcess, DWORD desiredAccess, int size, bool enableTrim = true, bool keepOriginal = false);
+	bool write(HANDLE hProcess, DWORD baseAddress, PVOID buffer, SIZE_T dwSize);
+	bool writeString(HANDLE hProcess, DWORD baseAddress, const QString& str);
+	bool virtualFree(HANDLE hProcess, int baseAddress);
+	Q_REQUIRED_RESULT int virtualAlloc(HANDLE hProcess, int size);
+	Q_REQUIRED_RESULT int virtualAllocW(HANDLE hProcess, const QString& str);
+	Q_REQUIRED_RESULT int virtualAllocA(HANDLE hProcess, const QString& str);
 	Q_REQUIRED_RESULT quint64 getRemoteModuleHandle(DWORD dwProcessId, const QString& moduleName);
 	void freeUnuseMemory(HANDLE hProcess);
 }
@@ -834,7 +834,7 @@ namespace util
 		return s;
 	}
 
-	inline void setTab(QTabWidget* pTab)
+	static void setTab(QTabWidget* pTab)
 	{
 		QString styleSheet = R"(
 			QTabWidget{
@@ -926,7 +926,7 @@ namespace util
 		pTabBar->setExpanding(true);
 	}
 
-	inline bool createFileDialog(const QString& name, QString* retstring, QWidget* parent)
+	static bool createFileDialog(const QString& name, QString* retstring, QWidget* parent)
 	{
 		QFileDialog dialog(parent);
 		dialog.setModal(true);
@@ -1022,7 +1022,7 @@ namespace util
 		return widgets;
 	}
 
-	inline QString formatMilliseconds(qint64 milliseconds)
+	static QString formatMilliseconds(qint64 milliseconds)
 	{
 		qint64 totalSeconds = milliseconds / 1000ll;
 		qint64 days = totalSeconds / (24ll * 60ll * 60ll);
@@ -1035,7 +1035,7 @@ namespace util
 			.arg(days).arg(hours).arg(minutes).arg(seconds).arg(remainingMilliseconds);
 	}
 
-	inline QString formatSeconds(qint64 seconds)
+	static QString formatSeconds(qint64 seconds)
 	{
 		qint64 day = seconds / 86400ll;
 		qint64 hours = (seconds % 86400ll) / 3600ll;
@@ -2092,7 +2092,7 @@ namespace util
 		QSet<uchar*> m_maps;
 	};
 
-	inline bool readFile(const QString& fileName, QString* pcontent, bool* isPrivate)
+	static bool readFile(const QString& fileName, QString* pcontent, bool* isPrivate)
 	{
 		util::ScopedFile f(fileName, QIODevice::ReadOnly | QIODevice::Text);
 		if (!f.isOpen())

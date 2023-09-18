@@ -27,7 +27,6 @@ std::atomic_flag ScopedHandle::m_atlock = ATOMIC_FLAG_INIT;
 
 ScopedHandle::ScopedHandle(HANDLE_TYPE h)
 {
-	EnableDebugPrivilege(GetCurrentProcess());
 	if (h == CREATE_EVENT)
 		createEvent();
 }
@@ -35,7 +34,6 @@ ScopedHandle::ScopedHandle(HANDLE_TYPE h)
 ScopedHandle::ScopedHandle(HANDLE_TYPE h, DWORD dwFlags, DWORD th32ProcessID)
 	: enableAutoClose(true)
 {
-	EnableDebugPrivilege(GetCurrentProcess());
 	if (h == CREATE_TOOLHELP32_SNAPSHOT)
 		createToolhelp32Snapshot(dwFlags, th32ProcessID);
 }
@@ -43,7 +41,6 @@ ScopedHandle::ScopedHandle(HANDLE_TYPE h, DWORD dwFlags, DWORD th32ProcessID)
 ScopedHandle::ScopedHandle(DWORD dwProcess, bool bAutoClose)
 	: enableAutoClose(bAutoClose)
 {
-	EnableDebugPrivilege(GetCurrentProcess());
 	openProcess(dwProcess);
 }
 
@@ -51,7 +48,6 @@ void ScopedHandle::reset(DWORD dwProcessId)
 {
 	if (NULL != dwProcessId)
 	{
-		EnableDebugPrivilege(GetCurrentProcess());
 		closeHandle();
 		openProcess(dwProcessId);
 	}
@@ -59,7 +55,6 @@ void ScopedHandle::reset(DWORD dwProcessId)
 
 void ScopedHandle::reset()
 {
-	EnableDebugPrivilege(GetCurrentProcess());
 	closeHandle();
 	this->m_handle = nullptr;
 }
@@ -68,9 +63,7 @@ void ScopedHandle::reset(HANDLE handle)
 {
 	if (NULL != handle)
 	{
-		EnableDebugPrivilege(GetCurrentProcess());
 		closeHandle();
-		EnableDebugPrivilege(handle);
 		m_handle = handle;
 	}
 }
@@ -78,7 +71,6 @@ void ScopedHandle::reset(HANDLE handle)
 ScopedHandle::ScopedHandle(int dwProcess, bool bAutoClose)
 	: enableAutoClose(bAutoClose)
 {
-	EnableDebugPrivilege(GetCurrentProcess());
 	openProcess(static_cast<DWORD>(dwProcess));
 }
 
@@ -176,7 +168,6 @@ void ScopedHandle::openProcess(DWORD dwProcess)
 		addHandleCount();
 		//print << "openProcess:" << (hprocess) << "Total Handle:" << getHandleCount() << Qt::endl;
 		this->m_handle = hprocess;
-		EnableDebugPrivilege(hprocess);
 		hprocess = nullptr;
 	}
 	else

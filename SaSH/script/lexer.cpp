@@ -1775,6 +1775,7 @@ sol::object Lexer::getLuaTableFromString(const QString& str)
 //解析整個腳本至多個TOKEN
 bool Lexer::tokenized(Lexer* pLexer, const QString& script)
 {
+	Injector& injector = Injector::getInstance();
 	pLexer->clear();
 
 	QStringList lines = script.split("\n");
@@ -1838,17 +1839,17 @@ void Lexer::tokenized(qint64 currentLine, const QString& line, TokenMap* ptoken,
 		//+ - * / % & | ^ ( )
 		static const QRegularExpression varAnyOp(R"([+\-*\/%&|^\(\)])");
 		//if expr op expr
-		static const QRegularExpression varIf(R"(^\s*[iI][fF][\s*\(\s*|\s+]([\w\W\p{Han}]+\s*[<|>|\=|!][\=]*\s*[\w\W\p{Han}]+)\s*,\s*([\w\W\p{Han}]+)\s*[then]*)");
+		static const QRegularExpression varIf(R"(^\s*[iI][fF][\s*\(\s*|\s+]([\w\W\p{Han}]+\s*[<|>|\=|!][\=]*\s*[\w\W\p{Han}]+)\s*,\s*([\w\W\p{Han}]+))");
 		//if expr
-		static const QRegularExpression varIf2(R"(^\s*[iI][fF][\s*\(\s*|\s+]\s*([\w\W\p{Han}]+)\s*,\s*([\w\W\p{Han}]+)\s*[then]*)");
+		static const QRegularExpression varIf2(R"(^\s*[iI][fF][\s*\(\s*|\s+]\s*([\w\W\p{Han}]+)\s*,\s*([\w\W\p{Han}]+))");
 		//function name()
 		static const QRegularExpression rexFunction(R"(^\s*[fF][uU][nN][cC][tT][iI][oO][nN]\s+([\w\p{Han}]+)\s*\(([\w\W\p{Han}]*)\))");
 		//xxx()
 		static const QRegularExpression rexCallFunction(R"(^\s*^([\w\p{Han}]+)\s*\(([\w\W\p{Han}]*)\)$\;*)");
 		//for i = 1, 10 or for i = 1, 10, 2 or for (i = 1, 10) or for (i = 1, 10, 2)
-		static const QRegularExpression rexCallFor(R"(^\s*[fF][oO][rR]\s*\(*([\w\p{Han}]+)\s*=\s*([^,]+)\s*,\s*([^,]+)\s*[\)]*\s*[do]*)");
+		static const QRegularExpression rexCallFor(R"(^\s*[fF][oO][rR]\s*\(*([\w\p{Han}]+)\s*=\s*([^,]+)\s*,\s*([^,]+)\s*[\)]*)");
 		static const QRegularExpression rexCallForForever(R"(^\s*[fF][oO][rR]\s*\(*\s*,\s*,\s*\)*\s*[do]*)");
-		static const QRegularExpression rexCallForWithStep(R"(^\s*[fF][oO][rR]\s*\(*([\w\p{Han}]+)\s*=\s*([^,]+)\s*,\s*([^,]+)\s*,\s*([^,\)]+)\s*[\)]*\s*[do]*)");
+		static const QRegularExpression rexCallForWithStep(R"(^\s*[fF][oO][rR]\s*\(*([\w\p{Han}]+)\s*=\s*([^,]+)\s*,\s*([^,]+)\s*,\s*([^,\)]+)\s*[\)]*)");
 		static const QRegularExpression rexTable(R"(^\s*([\w\p{Han}]+)\s*=\s*(\{[\s\S]*\})\;*)");
 		static const QRegularExpression rexLocalTable(R"(^\s*[lL][oO][cC][aA][lL]\s+([\w\p{Han}]+)\s*=\s*(\{[\s\S]*\})\;*)");
 		//處理if
@@ -2399,9 +2400,9 @@ void Lexer::recordNode()
 		{
 			bool ok = false;
 
-			for (auto subit = functionNodes.constBegin(); subit != functionNodes.constEnd(); ++subit)
+			for (auto it = functionNodes.constBegin(); it != functionNodes.constEnd(); ++it)
 			{
-				FunctionNode node = *subit;
+				FunctionNode node = *it;
 				if (row > node.beginLine && row < node.endLine)
 				{
 					ok = true;
@@ -2555,7 +2556,7 @@ void Lexer::createEmptyToken(qint64 index, TokenMap* ptoken)
 }
 
 //根據容取TOKEN應該定義的類型
-RESERVE Lexer::getTokenType(qint64&, RESERVE previous, QString& str, const QString raw) const
+RESERVE Lexer::getTokenType(qint64& pos, RESERVE previous, QString& str, const QString raw) const
 {
 	//findex = 0;
 
@@ -2986,6 +2987,70 @@ bool Lexer::getStringCommandToken(QString& src, const QString& delim, QString& o
 	//	out.remove(out.size() - 1, 1);
 
 	//return true;
+}
+
+qint64 Lexer::findClosingQuoteIndex(const QString& src, QChar quoteChar, int startIndex) const
+{
+	QChar escapeChar = '\\';
+	bool escaped = false;
+
+	for (int i = startIndex + 1; i < src.size(); ++i)
+	{
+		QChar currentChar = src.at(i);
+
+		if (escaped)
+		{
+			escaped = false;
+		}
+		else if (currentChar == escapeChar)
+		{
+			escaped = true;
+		}
+		else if (currentChar == quoteChar)
+		{
+			return i;
+		}
+	}
+
+	return -1;
+}
+
+void Lexer::extractAndRemoveToken(QString& src, const QString& delim, int startIndex, int endIndex, QString& out) const
+{
+	out = src.mid(startIndex, endIndex - startIndex + 1).trimmed();
+	src.remove(startIndex, endIndex - startIndex + 1);
+
+	src = src.trimmed();
+	if (src.startsWith(delim))
+		src.remove(0, delim.size());
+}
+
+bool Lexer::isInsideQuotes(const QString& src, int index) const
+{
+	QChar singleQuote = '\'';
+	QChar doubleQuote = '"';
+	bool insideSingleQuotes = false;
+	bool insideDoubleQuotes = false;
+
+	for (int i = 0; i < src.size(); ++i)
+	{
+		if (i == index)
+			break;
+
+		QChar currentChar = src.at(i);
+		QChar previousChar = i > 0 ? src.at(i - 1) : QChar();
+
+		if (currentChar == singleQuote && previousChar != '\\')
+		{
+			insideSingleQuotes = !insideSingleQuotes;
+		}
+		else if (currentChar == doubleQuote && previousChar != '\\')
+		{
+			insideDoubleQuotes = !insideDoubleQuotes;
+		}
+	}
+
+	return insideSingleQuotes || insideDoubleQuotes;
 }
 
 #pragma endregion

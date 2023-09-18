@@ -1,6 +1,4 @@
 ﻿#pragma once
-#if 0
-
 //spdlog
 #define SPDLOG_TRACE_ON
 #define SPDLOG_DEBUG_ON
@@ -289,4 +287,3 @@ inline void SPD_LOG(const std::string& name, const std::string& msg, SPD_LOGTYPE
 
 	}
 }
-#endif
