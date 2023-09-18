@@ -112,10 +112,6 @@ void MainObject::run()
 			emit signalDispatcher.messageBoxShow(tr("Create process failed!"));
 			break;
 		}
-		else
-		{
-			QThread::msleep(2000);
-		}
 
 		if (remove_thread_reason != util::REASON_NO_ERROR)
 			break;
@@ -257,24 +253,17 @@ void MainObject::mainProc()
 		}
 
 		//檢查TCP是否握手成功
-		if (!injector.server.isNull())
+		if (!injector.server->IS_TCP_CONNECTION_OK_TO_USE.load(std::memory_order_acquire))
 		{
-			if (!injector.server->IS_REMOTE_TCP_CLIENT_READY.load(std::memory_order_acquire))
+			QThread::msleep(500);
+			nodelay = true;
+			if (timer.hasExpired(10000))
 			{
-				nodelay = true;
-				if (timer.hasExpired(30000))
-				{
-					emit signalDispatcher.messageBoxShow(tr("TCP connection timeout!"));
-					break;
-				}
-				QThread::msleep(100);
-				continue;
+				emit signalDispatcher.messageBoxShow(tr("TCP connection timeout!"));
+				break;
 			}
-		}
-		else
-		{
-			remove_thread_reason = util::REASON_TARGET_WINDOW_DISAPPEAR;
-			break;
+
+			continue;
 		}
 
 		timer.restart();

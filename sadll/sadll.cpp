@@ -175,75 +175,6 @@ void CreateConsole()
 #ifdef USE_MINIDUMP
 #include <DbgHelp.h>
 #pragma comment(lib, "dbghelp.lib")
-
-#include <DbgHelp.h>
-#pragma comment(lib, "dbghelp.lib")
-
-#if defined _M_X64 || defined _M_IX86
-LPTOP_LEVEL_EXCEPTION_FILTER WINAPI
-dummySetUnhandledExceptionFilter(
-	LPTOP_LEVEL_EXCEPTION_FILTER)
-{
-	return NULL;
-}
-#else
-#error "This code works only for x86 and x64!"
-#endif
-
-BOOL preventSetUnhandledExceptionFilter()
-{
-	HMODULE hKernel32 = LoadLibraryW(L"kernel32.dll");
-	if (hKernel32 == nullptr)
-		return FALSE;
-
-	void* pOrgEntry = GetProcAddress(hKernel32, "SetUnhandledExceptionFilter");
-	if (pOrgEntry == nullptr)
-		return FALSE;
-
-	DWORD dwOldProtect = 0;
-	SIZE_T jmpSize = 5;
-#ifdef _M_X64
-	jmpSize = 13;
-#endif
-	BOOL bProt = VirtualProtect(pOrgEntry, jmpSize, PAGE_EXECUTE_READWRITE, &dwOldProtect);
-
-	BYTE newJump[20];
-	memset(newJump, 0, sizeof(newJump));
-	void* pNewFunc = &dummySetUnhandledExceptionFilter;
-#ifdef _M_IX86
-	DWORD dwOrgEntryAddr = (DWORD)pOrgEntry;
-	dwOrgEntryAddr += jmpSize; // add 5 for 5 op-codes for jmp rel32
-	DWORD dwNewEntryAddr = (DWORD)pNewFunc;
-	DWORD dwRelativeAddr = dwNewEntryAddr - dwOrgEntryAddr;
-	// JMP rel32: Jump near, relative, displacement relative to next instruction.
-	newJump[0] = 0xE9;  // JMP rel32
-	memcpy(&newJump[1], &dwRelativeAddr, sizeof(pNewFunc));
-#elif _M_X64
-	// We must use R10 or R11, because these are "scratch" registers 
-	// which need not to be preserved accross function calls
-	// For more info see: Register Usage for x64 64-Bit
-	// http://msdn.microsoft.com/en-us/library/ms794547.aspx
-	// Thanks to Matthew Smith!!!
-	newJump[0] = 0x49;  // MOV R11, ...
-	newJump[1] = 0xBB;  // ...
-	memcpy(&newJump[2], &pNewFunc, sizeof(pNewFunc));
-	//pCur += sizeof (ULONG_PTR);
-	newJump[10] = 0x41;  // JMP R11, ...
-	newJump[11] = 0xFF;  // ...
-	newJump[12] = 0xE3;  // ...
-#endif
-	SIZE_T bytesWritten;
-	BOOL bRet = WriteProcessMemory(GetCurrentProcess(),
-		pOrgEntry, newJump, jmpSize, &bytesWritten);
-
-	if (bProt != FALSE)
-	{
-		DWORD dwBuf;
-		VirtualProtect(pOrgEntry, jmpSize, dwOldProtect, &dwBuf);
-	}
-	return bRet;
-}
-
 LONG CALLBACK MinidumpCallback(PEXCEPTION_POINTERS pException)
 {
 	do
@@ -328,8 +259,7 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID)
 			g_OldWndProc = reinterpret_cast<WNDPROC>(GetWindowLongA(hWnd, GWL_WNDPROC));
 			SetWindowLongA(hWnd, GWL_WNDPROC, reinterpret_cast<LONG_PTR>(WndProc));
 #ifdef USE_MINIDUMP
-			SetUnhandledExceptionFilter(MinidumpCallback);
-			preventSetUnhandledExceptionFilter();
+			//SetUnhandledExceptionFilter(MinidumpCallback);
 #endif
 
 #ifdef _DEBUG

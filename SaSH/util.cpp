@@ -774,7 +774,7 @@ bool mem::virtualFree(HANDLE hProcess, int baseAddress)
 	//return static_cast<int>(this->VirtualFreeEx(m_pi.nWnd, static_cast<qlonglong>(baseAddress)));
 }
 
-quint64 mem::getRemoteModuleHandle(DWORD dwProcessId, const QString& moduleName)
+DWORD mem::getRemoteModuleHandle(DWORD dwProcessId, const QString& moduleName)
 {
 	MODULEENTRY32 moduleEntry;
 	//  获取进程快照中包含在th32ProcessID中指定的进程的所有的模块。
@@ -789,14 +789,14 @@ quint64 mem::getRemoteModuleHandle(DWORD dwProcessId, const QString& moduleName)
 	{
 		const QString str(QString::fromWCharArray(moduleEntry.szModule));
 		if (str == moduleName)
-			return reinterpret_cast<quint64>(moduleEntry.hModule);
+			return reinterpret_cast<DWORD>(moduleEntry.hModule);
 	}
 
 	do
 	{
 		const QString str(QString::fromWCharArray(moduleEntry.szModule));
 		if (str == moduleName)
-			return reinterpret_cast<quint64>(moduleEntry.hModule);
+			return reinterpret_cast<DWORD>(moduleEntry.hModule);
 	} while (Module32NextW(hSnapshot, &moduleEntry));
 	return NULL;
 }
