@@ -1848,7 +1848,7 @@ void Lexer::tokenized(qint64 currentLine, const QString& line, TokenMap* ptoken,
 		//var++, var--
 		static const QRegularExpression varIncDec(R"(([\p{Han}\w]+)(\+\+|--)\;*)");
 		//+= -= *= /= &= |= ^= %=
-		static const QRegularExpression varCAOs(R"((?!\d)([\p{Han}\w]+)\s+([+\-*\/&|^%]\=)\s+([\W\w\s\p{Han}]+)\;*)");
+		static const QRegularExpression varCAOs(R"((?!\d)([\p{Han}\w]+)\s*([+\-*\/&|^%]\=)\s*([\W\w\s\p{Han}]+)\;*)");
 		//x = expr
 		static const QRegularExpression varExpr(R"(([\w\p{Han}]+)\s*\=\s*([\W\w\s\p{Han}]+)\;*)");
 		//+ - * / % & | ^ ( )

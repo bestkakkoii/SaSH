@@ -21,6 +21,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 #include "signaldispatcher.h"
 #include "injector.h"
+#include "../script/parser.h"
 
 
 #if QT_NO_DEBUG
@@ -474,7 +475,8 @@ void luadebug::hookProc(lua_State* L, lua_Debug* ar)
 			lua_pop(L, 1);// no match, then pop out the var's value
 		}
 
-		emit signalDispatcher.varInfoImported(varhash);
+		Parser parser;
+		emit signalDispatcher.varInfoImported(&parser, varhash);
 
 		luadebug::checkStopAndPause(s);
 
@@ -1078,13 +1080,13 @@ void CLua::proc()
 				}
 				tableStrs << ">";
 			}
-		}
+	}
 
 		luadebug::logExport(s, tableStrs, 0);
-	} while (false);
+} while (false);
 
-	isRunning_.store(false, std::memory_order_release);
-	emit finished();
-	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
-	emit signalDispatcher.scriptFinished();
+isRunning_.store(false, std::memory_order_release);
+emit finished();
+SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
+emit signalDispatcher.scriptFinished();
 }

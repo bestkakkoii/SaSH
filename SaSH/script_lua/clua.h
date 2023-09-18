@@ -335,8 +335,11 @@ private:
 	void open_maplibs();
 	void open_battlelibs();
 
-private:
+public:
 	sol::state lua_;
+
+private:
+
 	CLua* parent_ = nullptr;
 	QThread* thread_ = nullptr;
 	DWORD tid_ = 0UL;

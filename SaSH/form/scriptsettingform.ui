@@ -14,7 +14,210 @@
    <string>ScriptSettingForm</string>
   </property>
   <property name="styleSheet">
-   <string notr="true"/>
+   <string notr="true">QMainWindow{
+color: rgb(250, 250, 250);
+background-color: rgb(31, 31, 31);
+}
+
+QToolBar{
+color: rgb(250, 250, 250);
+background-color: rgb(31, 31, 31);
+border:none;
+height:18px
+}
+
+QToolButton{
+color: rgb(250, 250, 250);
+background-color: rgb(31, 31, 31);
+border:none;
+min-height:30
+}
+
+QToolButton::hover{
+color: rgb(250, 250, 250);
+background-color: rgb(61,61,61);
+border: 1px solid rgb(112,112,112);
+min-height:30
+}
+
+QToolButton:pressed,QToolButton:checked {
+color: rgb(250, 250, 250);
+background-color: rgb(61,61,61);
+border: 1px solid rgb(46,46,46);
+min-height:30
+
+}
+
+QStatusBar{
+color: rgb(250, 250, 250);
+background-color: rgb(31, 31, 31);
+border:none;
+}
+
+QStatusBar::item {
+     border: 0px solid red;
+}
+
+QMenuBar{
+color: rgb(214,214,214); 
+background-color: rgb(31,31,31)
+}
+
+QMenuBar::item {
+spacing: 0px;
+margin-top: 1px;
+margin-left: 1px;
+padding: 3px 8px;
+color: rgb(214,214,214); 
+background: transparent;
+border-radius: 0px;
+width: 65px;
+height: 26px;
+}
+
+QMenuBar::item:selected{
+border:1px solid rgb(112,112,112);background-color:rgb(61,61,61);color:rgb(250,250,250);}
+
+QMenu{background-color:rgb(46, 46, 46); padding:5px; border: 1px solid rgb(66,66,66);}
+QMenu::item{color:rgb(214,214,214);padding-left:8px;padding-top:7px;padding-bottom:8px;padding-right:10px;background-color:rgb(46, 46, 46);}
+QMenu::item:selected{border:1px solid rgb(112,112,112);color:rgb(250,250,250);background-color:rgb(61,61,61);}
+QMenu::item:hover{border:1px solid rgb(112,112,112);background-color:rgb(250,250,250);}
+QMenu::item:disabled{background:rgb(46, 46, 46); color:rgb(92,92,92);}
+QMenu::QAbstractItemView{color:rgb(214,214,214);padding-left:8px;padding-top:7px;padding-bottom:8px;padding-right:10px;background-color:rgb(46, 46, 46);}
+
+QToolTip{border-style:none; background-color: rgb(57, 58, 60);color: rgb(208, 208, 208);}
+
+QWidget{
+    color: rgb(214,214,214);
+    background: rgb(31,31,31);
+}
+
+QDockWidget {
+    color: rgb(178,178,178);
+    border-top:2px solid #7160E8;
+    border-bottom:1px solid rgb(61,61,61);
+    border-right:1px solid rgb(61,61,61);
+    border-left:1px solid rgb(61,61,61);
+    /*titlebar-close-icon: url(close.png);
+    titlebar-normal-icon: url(undock.png);*/
+}
+
+QDockWidget::title {
+    color: rgb(178,178,178);
+    background: rgb(31,31,31);
+}
+
+QDockWidget::close-button, QDockWidget::float-button {
+    border: 1px solid transparent;
+    background: transparent;
+    padding: 0px;
+}
+
+QDockWidget::close-button:hover, QDockWidget::float-button:hover {
+	color: rgb(26,26,26);
+    background: rgb(250,250,250);
+    width: 12px;
+    height: 12px;
+}
+
+QDockWidget::close-button:pressed, QDockWidget::float-button:pressed {
+	color: rgb(86,86,86);
+    background: rgb(100,100,100);
+    width: 12px;
+    height: 12px;
+}
+
+QDockWidget::close-button {
+    width: 12px;
+    height: 12px;
+}
+
+QDockWidget::float-button {
+    width: 12px;
+    height: 12px;
+}
+
+QTabWidget::pane{
+top:0px;
+border-top:2px solid #7160E8;
+border-bottom:1px solid rgb(61,61,61);
+border-right:1px solid rgb(61,61,61);
+border-left:1px solid rgb(61,61,61);
+}
+
+QTabWidget::tab-bar
+{
+alignment: left;
+top:0px;
+left:5px;
+border:none;
+}
+
+#detailWgt, #appealReasonWgt{
+border:none;
+}
+
+QTabBar::tab:first{
+color:rgb(178,178,178);
+background:rgb(46,46,46);
+
+padding-left:0px;
+padding-right:0px;
+width:100px;
+height:24px;
+margin-left:0px;
+margin-right:0px;
+
+border-top:2px solid rgb(31, 31, 31);
+}
+
+QTabBar::tab:middle{
+color:rgb(178,178,178);
+background:rgb(46,46,46);
+padding-left:0px;
+padding-right:0px;
+width:100px;
+height:24px;
+margin-left:0px;
+margin-right:0px;
+
+border-top:2px solid rgb(31, 31, 31);
+
+}
+
+QTabBar::tab:last{
+color:rgb(178,178,178);
+background:rgb(46,46,46);
+
+padding-left:0px;
+padding-right:0px;
+width:100px;
+height:24px;
+margin-left:0px;
+margin-right:0px;
+
+border-top:2px solid rgb(31, 31, 31);
+}
+
+QTabBar::tab:selected{
+color:rgb(250,250,250);
+background:rgb(61,61,61);
+border-top:2px solid #7160E8;
+
+}
+
+QTabBar::tab:hover{
+color:rgb(250,250,250);
+background:rgb(61,61,61);
+padding-left:0px;
+padding-right:0px;
+width:100px;
+height:24px;
+margin-left:0px;
+margin-right:0px;
+}
+
+</string>
   </property>
   <widget class="QWidget" name="centralWidget">
    <property name="styleSheet">
@@ -55,7 +258,152 @@
         <item row="1" column="0">
          <widget class="QTreeWidget" name="treeWidget_functionList">
           <property name="styleSheet">
-           <string notr="true"/>
+           <string notr="true">QTreeWidget {
+    color: rgb(214,214,214);
+    background: rgb(31,31,31);
+    border: 1px solid rgb(61,61,61);
+    alternate-background-color: #525252;
+    gridline-color: transparent;
+	 font-size:12px;
+	outline:none;
+}
+
+QTreeWidget::branch{
+    background: rgb(31,31,31);
+}
+
+QTreeWidget::branch:closed:has-children:!has-siblings,
+QTreeWidget::branch:closed:has-children:has-siblings {
+    border-image: none;
+    image: url(:/image/icon_down_arrow2.png);
+}
+
+
+QTreeWidget::branch:open:has-children:!has-siblings,
+QTreeWidget::branch:open:has-children:has-siblings  {
+    border-image: none;
+    image: url(:/image/icon_up_arrow2.png);
+}
+
+
+
+QTreeWidget::item {
+    color: rgb(214,214,214);
+    background: rgb(31,31,31);
+    /*margin:13px;*/
+    /*background-clip: margin;*/
+}
+
+QTreeWidget::item:selected {
+    color: rgb(214,214,214);
+    background:rgb(113,96,232); /* qlineargradient(spread:pad, x1:0, y1:0, x2:0, y2:1, stop:0 #484848, stop:1 #383838);*/
+}
+
+QTreeWidget::item:hover {
+    background:rgb(61,61,61);
+}
+
+QHeaderView {
+    text-align: center;
+    background: rgb(31,31,31);
+    padding: 0px;
+    margin: 0px;
+    color: rgb(250,250,250);
+    border: 0px solid rgb(61,61,61);
+
+}
+
+QHeaderView::section::vertical {
+    text-align: center;
+    background: rgb(31,31,31);
+    padding: 3px;
+    margin: 0px;
+    color: rgb(250,250,250);
+    border: 0px solid rgb(61,61,61);
+    border-left-width: 0;
+	border-bottom-width: 1;
+	border-right-width: 1;
+}
+
+QHeaderView::section::horizontal{
+    text-align: center;
+    background: rgb(31,31,31);
+    padding: 3px;
+    margin: 0px;
+    color: rgb(250,250,250);
+    border: 0px solid rgb(61,61,61);
+    border-left-width: 0;
+	border-bottom-width: 1;
+	border-right-width: 1;
+}
+
+QScrollBar:vertical {
+	min-height: 10px;  
+    background: rgb(46,46,46);
+}
+
+QScrollBar::handle:vertical {
+    background: rgb(71,71,71);
+  	border: 4px solid  rgb(46,46,46);
+}
+
+QScrollBar::handle:hover:vertical,
+QScrollBar::handle:pressed:vertical {
+    background: rgb(153,153,153);
+}
+
+QScrollBar::sub-page:vertical {
+    background:transparent
+}
+
+QScrollBar::add-page:vertical {
+    background:transparent
+}
+
+QScrollBar::add-line:vertical {
+    background:transparent
+}
+
+QScrollBar::sub-line:vertical {
+    background:transparent
+}
+
+QScrollBar:horizontal {
+    background: rgb(46,46,46);
+	min-height: 60px;  
+}
+
+QScrollBar::handle:horizontal {
+    background: rgb(71,71,71);
+  	border: 3px solid  rgb(46,46,46);
+}
+
+QScrollBar::handle:hover:horizontal,
+QScrollBar::handle:pressed:horizontal {
+    background: rgb(153,153,153);
+}
+
+QScrollBar::sub-page:horizontal {
+    background: 444444;
+}
+
+QScrollBar::add-page:horizontal {
+    background: 5B5B5B;
+}
+
+QScrollBar::add-line:horizontal {
+    background: none;
+}
+
+QScrollBar::sub-line:horizontal {
+    background: none;
+}
+
+QToolTip{
+border-style:none; 
+background-color: rgb(57, 58, 60);
+color: rgb(208, 208, 208);
+}</string>
           </property>
           <property name="editTriggers">
            <set>QAbstractItemView::NoEditTriggers</set>
@@ -966,7 +1314,22 @@
         <item row="0" column="0">
          <widget class="QLineEdit" name="lineEdit_searchFunction">
           <property name="styleSheet">
-           <string notr="true"/>
+           <string notr="true">QLineEdit{
+  color:rgb(214,214,214);
+  font-size:12px;
+  padding: 1px 15px 1px 3px;
+  border:1px solid rgb(66,66,66);
+  background: rgb(56,56,56);
+}
+
+QLineEdit::hover{
+  color:rgb(250,250,250);
+  font-size:12px;
+  padding: 1px 15px 1px 3px;
+  border:1px solid rgb(153,153,153);
+  background: rgb(31,31,31);
+}
+</string>
           </property>
           <property name="placeholderText">
            <string>search command</string>
@@ -1011,7 +1374,152 @@
         <item row="0" column="0">
          <widget class="QTreeWidget" name="treeWidget_scriptList">
           <property name="styleSheet">
-           <string notr="true"/>
+           <string notr="true">QTreeWidget {
+    color: rgb(214,214,214);
+    background: rgb(31,31,31);
+    border: 1px solid rgb(61,61,61);
+    alternate-background-color: #525252;
+    gridline-color: transparent;
+	 font-size:12px;
+	outline:none;
+}
+
+QTreeWidget::branch{
+    background: rgb(31,31,31);
+}
+
+QTreeWidget::branch:closed:has-children:!has-siblings,
+QTreeWidget::branch:closed:has-children:has-siblings {
+    border-image: none;
+    image: url(:/image/icon_down_arrow2.png);
+}
+
+
+QTreeWidget::branch:open:has-children:!has-siblings,
+QTreeWidget::branch:open:has-children:has-siblings  {
+    border-image: none;
+    image: url(:/image/icon_up_arrow2.png);
+}
+
+
+
+QTreeWidget::item {
+    color: rgb(214,214,214);
+    background: rgb(31,31,31);
+    /*margin:13px;*/
+    /*background-clip: margin;*/
+}
+
+QTreeWidget::item:selected {
+    color: rgb(214,214,214);
+    background:rgb(113,96,232); /* qlineargradient(spread:pad, x1:0, y1:0, x2:0, y2:1, stop:0 #484848, stop:1 #383838);*/
+}
+
+QTreeWidget::item:hover {
+    background:rgb(61,61,61);
+}
+
+QHeaderView {
+    text-align: center;
+    background: rgb(31,31,31);
+    padding: 0px;
+    margin: 0px;
+    color: rgb(250,250,250);
+    border: 0px solid rgb(61,61,61);
+
+}
+
+QHeaderView::section::vertical {
+    text-align: center;
+    background: rgb(31,31,31);
+    padding: 3px;
+    margin: 0px;
+    color: rgb(250,250,250);
+    border: 0px solid rgb(61,61,61);
+    border-left-width: 0;
+	border-bottom-width: 1;
+	border-right-width: 1;
+}
+
+QHeaderView::section::horizontal{
+    text-align: center;
+    background: rgb(31,31,31);
+    padding: 3px;
+    margin: 0px;
+    color: rgb(250,250,250);
+    border: 0px solid rgb(61,61,61);
+    border-left-width: 0;
+	border-bottom-width: 1;
+	border-right-width: 1;
+}
+
+QScrollBar:vertical {
+	min-height: 10px;  
+    background: rgb(46,46,46);
+}
+
+QScrollBar::handle:vertical {
+    background: rgb(71,71,71);
+  	border: 4px solid  rgb(46,46,46);
+}
+
+QScrollBar::handle:hover:vertical,
+QScrollBar::handle:pressed:vertical {
+    background: rgb(153,153,153);
+}
+
+QScrollBar::sub-page:vertical {
+    background:transparent
+}
+
+QScrollBar::add-page:vertical {
+    background:transparent
+}
+
+QScrollBar::add-line:vertical {
+    background:transparent
+}
+
+QScrollBar::sub-line:vertical {
+    background:transparent
+}
+
+QScrollBar:horizontal {
+    background: rgb(46,46,46);
+	min-height: 60px;  
+}
+
+QScrollBar::handle:horizontal {
+    background: rgb(71,71,71);
+  	border: 3px solid  rgb(46,46,46);
+}
+
+QScrollBar::handle:hover:horizontal,
+QScrollBar::handle:pressed:horizontal {
+    background: rgb(153,153,153);
+}
+
+QScrollBar::sub-page:horizontal {
+    background: 444444;
+}
+
+QScrollBar::add-page:horizontal {
+    background: 5B5B5B;
+}
+
+QScrollBar::add-line:horizontal {
+    background: none;
+}
+
+QScrollBar::sub-line:horizontal {
+    background: none;
+}
+
+QToolTip{
+border-style:none; 
+background-color: rgb(57, 58, 60);
+color: rgb(208, 208, 208);
+}</string>
           </property>
           <property name="editTriggers">
            <set>QAbstractItemView::NoEditTriggers</set>
@@ -1096,7 +1604,168 @@
              </size>
             </property>
             <property name="styleSheet">
-             <string notr="true"/>
+             <string notr="true">/* 未下拉时，QComboBox的样式 */
+QComboBox {
+    border: 1px solid #424242;   /* 边框 */
+    border-radius: 0px;   /* 圆角 */
+    /*padding: 1px 13px 1px 3px;    字体填衬 */
+    color: rgb(250,250,250);
+    /*font: normal normal 15px &quot;Microsoft YaHei&quot;*/;
+    background:#383838;
+}
+
+QComboBox::hover {
+    border: 1px solid #424242;   /* 边框 */
+    border-radius: 0px;   /* 圆角 */
+    /*padding: 1px 18px 1px 3px;    字体填衬 */
+    color: rgb(250,250,250);
+    /*font: normal normal 15px &quot;Microsoft YaHei&quot;*/;
+    background:#3D3D3D;
+}
+ 
+/* 下拉后，整个下拉窗体样式 */
+QComboBox QAbstractItemView {
+    outline: 0px solid #1F1F1F;   /* 选定项的虚框 */
+    border: 1px solid #424242;    /* 整个下拉窗体的边框 */
+    color: #FAFAFA;
+    background-color: #2E2E2E;   /* 整个下拉窗体的背景色 */
+    selection-background-color: #3D3D3D;   /* 整个下拉窗体被选中项的背景色 */
+}
+ 
+/* 下拉后，整个下拉窗体每项的样式 */
+QComboBox QAbstractItemView::item {
+    height: 15px;  /* 项的高度（设置pComboBox-&gt;setView(new QListView());后，该项才起作用） */
+	border: 0px solid #707070;
+	background-color: #2E2E2E;
+}
+ 
+/* 下拉后，整个下拉窗体越过每项的样式 */
+QComboBox QAbstractItemView::item:hover {
+    color: #FAFAFA;
+	border: 1px solid #707070;
+    background-color:  #3D3D3D;   /* 整个下拉窗体越过每项的背景色 */
+}
+ 
+/* 下拉后，整个下拉窗体被选择的每项的样式 */
+QComboBox QAbstractItemView::item:selected {
+    color: #FAFAFA;
+	/*border: 1px solid #707070;*/
+    background-color:  #3D3D3D; 
+}
+
+
+QComboBox QAbstractScrollArea QScrollBar:vertical {
+    background: #2E2E2E;
+	width:  15px;
+	min-height: 60px;  
+}
+
+QComboBox QAbstractScrollArea QScrollBar::handle:vertical {
+	background: #4D4D4D;
+  	border: 3px solid  #2E2E2E;
+	width:  15px;
+	min-height: 60px;  
+}
+
+QComboBox QAbstractScrollArea QScrollBar::handle:hover:vertical,
+QComboBox QAbstractScrollArea QScrollBar::handle:pressed:vertical {
+    background: #999999; 
+}
+
+QComboBox QAbstractScrollArea QScrollBar::sub-page:vertical {
+    background: 444444;
+}
+
+QComboBox QAbstractScrollArea QScrollBar::add-page:vertical {
+    background: 5B5B5B;
+}
+
+QComboBox QAbstractScrollArea QScrollBar::add-line:vertical {
+    background: none;
+}
+
+QComboBox QAbstractScrollArea QScrollBar::sub-line:vertical {
+    background: none;
+}
+ 
+
+ 
+/* 设置为可编辑（setEditable(true)）editable时，编辑区域的样式 */
+QComboBox:editable {
+    background: #383838;
+}
+ 
+/* 设置为非编辑（setEditable(false)）!editable时，整个QComboBox的样式 */
+QComboBox:!editable {
+    background:#383838;
+}
+ 
+/* 设置为可编辑editable时，点击整个QComboBox的样式 */
+QComboBox:editable:on {
+    background:#383838;
+}
+ 
+/* 设置为非编辑!editable时，点击整个QComboBox的样式 */
+QComboBox:!editable:on {
+    background:#383838;
+}
+ 
+/* 设置为可编辑editable时，下拉框的样式 */
+QComboBox::drop-down:editable {
+    background:#383838;
+}
+ 
+/* 设置为可编辑editable时，点击下拉框的样式 */
+QComboBox::drop-down:editable:on {
+    background:#383838;
+}
+ 
+/* 设置为非编辑!editable时，下拉框的样式 */
+QComboBox::drop-down:!editable {
+    background: #383838;
+}
+ 
+/* 设置为非编辑!editable时，点击下拉框的样式 */
+QComboBox::drop-down:!editable:on {
+    background:#383838;
+}
+ 
+/* 点击QComboBox */
+QComboBox:on {
+}
+ 
+/* 下拉框样式 */
+QComboBox::drop-down {
+    subcontrol-origin: padding;   /* 子控件在父元素中的原点矩形。如果未指定此属性，则默认为padding。 */
+    subcontrol-position: top right;   /* 下拉框的位置（右上） */
+    width: 15px;   /* 下拉框的宽度 */
+ 
+    border-left-width: 0px;   /* 下拉框的左边界线宽度 */
+    border-left-color: #383838;   /* 下拉框的左边界线颜色 */
+    border-left-style: solid;   /* 下拉框的左边界线为实线 */
+    border-top-right-radius: 0px;   /* 下拉框的右上边界线的圆角半径（应和整个QComboBox右上边界线的圆角半径一致） */
+    border-bottom-right-radius: 0px;   /* 同上 */
+}
+　/* 越过下拉框样式 */
+ 
+　QComboBox::drop-down:hover {
+ 
+　　　background:#3D3D3D;
+ 
+　}
+/* 下拉箭头样式 */ QComboBox::down-arrow {
+ width: 15px; /* 下拉箭头的宽度（建议与下拉框drop-down的宽度一致） */ 
+background: transparent; /* 下拉箭头的的背景色 */ 
+padding: 0px 0px 0px 0px; /* 上内边距、右内边距、下内边距、左内边距 */ 
+image: url(:/image/icon_down_arrow.png);
+} 
+
+/* 点击下拉箭头 */
+ QComboBox::down-arrow:on {
+	image: url(:/image/icon_up_arrow.png);
+}
+
+</string>
             </property>
            </widget>
           </item>
@@ -1121,7 +1790,168 @@
              </size>
             </property>
             <property name="styleSheet">
-             <string notr="true"/>
+             <string notr="true">/* 未下拉时，QComboBox的样式 */
+QComboBox {
+    border: 1px solid #424242;   /* 边框 */
+    border-radius: 0px;   /* 圆角 */
+    /*padding: 1px 13px 1px 3px;    字体填衬 */
+    color: rgb(250,250,250);
+    /*font: normal normal 15px &quot;Microsoft YaHei&quot;*/;
+    background:#383838;
+}
+
+QComboBox::hover {
+    border: 1px solid #424242;   /* 边框 */
+    border-radius: 0px;   /* 圆角 */
+    /*padding: 1px 18px 1px 3px;    字体填衬 */
+    color: rgb(250,250,250);
+    /*font: normal normal 15px &quot;Microsoft YaHei&quot;*/;
+    background:#3D3D3D;
+}
+ 
+/* 下拉后，整个下拉窗体样式 */
+QComboBox QAbstractItemView {
+    outline: 0px solid #1F1F1F;   /* 选定项的虚框 */
+    border: 1px solid #424242;    /* 整个下拉窗体的边框 */
+    color: #FAFAFA;
+    background-color: #2E2E2E;   /* 整个下拉窗体的背景色 */
+    selection-background-color: #3D3D3D;   /* 整个下拉窗体被选中项的背景色 */
+}
+ 
+/* 下拉后，整个下拉窗体每项的样式 */
+QComboBox QAbstractItemView::item {
+    height: 15px;  /* 项的高度（设置pComboBox-&gt;setView(new QListView());后，该项才起作用） */
+	border: 0px solid #707070;
+	background-color: #2E2E2E;
+}
+ 
+/* 下拉后，整个下拉窗体越过每项的样式 */
+QComboBox QAbstractItemView::item:hover {
+    color: #FAFAFA;
+	border: 1px solid #707070;
+    background-color:  #3D3D3D;   /* 整个下拉窗体越过每项的背景色 */
+}
+ 
+/* 下拉后，整个下拉窗体被选择的每项的样式 */
+QComboBox QAbstractItemView::item:selected {
+    color: #FAFAFA;
+	/*border: 1px solid #707070;*/
+    background-color:  #3D3D3D; 
+}
+
+
+QComboBox QAbstractScrollArea QScrollBar:vertical {
+    background: #2E2E2E;
+	width:  15px;
+	min-height: 60px;  
+}
+
+QComboBox QAbstractScrollArea QScrollBar::handle:vertical {
+	background: #4D4D4D;
+  	border: 3px solid  #2E2E2E;
+	width:  15px;
+	min-height: 60px;  
+}
+
+QComboBox QAbstractScrollArea QScrollBar::handle:hover:vertical,
+QComboBox QAbstractScrollArea QScrollBar::handle:pressed:vertical {
+    background: #999999; 
+}
+
+QComboBox QAbstractScrollArea QScrollBar::sub-page:vertical {
+    background: 444444;
+}
+
+QComboBox QAbstractScrollArea QScrollBar::add-page:vertical {
+    background: 5B5B5B;
+}
+
+QComboBox QAbstractScrollArea QScrollBar::add-line:vertical {
+    background: none;
+}
+
+QComboBox QAbstractScrollArea QScrollBar::sub-line:vertical {
+    background: none;
+}
+ 
+
+ 
+/* 设置为可编辑（setEditable(true)）editable时，编辑区域的样式 */
+QComboBox:editable {
+    background: #383838;
+}
+ 
+/* 设置为非编辑（setEditable(false)）!editable时，整个QComboBox的样式 */
+QComboBox:!editable {
+    background:#383838;
+}
+ 
+/* 设置为可编辑editable时，点击整个QComboBox的样式 */
+QComboBox:editable:on {
+    background:#383838;
+}
+ 
+/* 设置为非编辑!editable时，点击整个QComboBox的样式 */
+QComboBox:!editable:on {
+    background:#383838;
+}
+ 
+/* 设置为可编辑editable时，下拉框的样式 */
+QComboBox::drop-down:editable {
+    background:#383838;
+}
+ 
+/* 设置为可编辑editable时，点击下拉框的样式 */
+QComboBox::drop-down:editable:on {
+    background:#383838;
+}
+ 
+/* 设置为非编辑!editable时，下拉框的样式 */
+QComboBox::drop-down:!editable {
+    background: #383838;
+}
+ 
+/* 设置为非编辑!editable时，点击下拉框的样式 */
+QComboBox::drop-down:!editable:on {
+    background:#383838;
+}
+ 
+/* 点击QComboBox */
+QComboBox:on {
+}
+ 
+/* 下拉框样式 */
+QComboBox::drop-down {
+    subcontrol-origin: padding;   /* 子控件在父元素中的原点矩形。如果未指定此属性，则默认为padding。 */
+    subcontrol-position: top right;   /* 下拉框的位置（右上） */
+    width: 15px;   /* 下拉框的宽度 */
+ 
+    border-left-width: 0px;   /* 下拉框的左边界线宽度 */
+    border-left-color: #383838;   /* 下拉框的左边界线颜色 */
+    border-left-style: solid;   /* 下拉框的左边界线为实线 */
+    border-top-right-radius: 0px;   /* 下拉框的右上边界线的圆角半径（应和整个QComboBox右上边界线的圆角半径一致） */
+    border-bottom-right-radius: 0px;   /* 同上 */
+}
+　/* 越过下拉框样式 */
+ 
+　QComboBox::drop-down:hover {
+ 
+　　　background:#3D3D3D;
+ 
+　}
+/* 下拉箭头样式 */ QComboBox::down-arrow {
+ width: 15px; /* 下拉箭头的宽度（建议与下拉框drop-down的宽度一致） */ 
+background: transparent; /* 下拉箭头的的背景色 */ 
+padding: 0px 0px 0px 0px; /* 上内边距、右内边距、下内边距、左内边距 */ 
+image: url(:/image/icon_down_arrow.png);
+} 
+
+/* 点击下拉箭头 */
+ QComboBox::down-arrow:on {
+	image: url(:/image/icon_up_arrow.png);
+}
+
+</string>
             </property>
            </widget>
           </item>
@@ -1144,7 +1974,56 @@
              </sizepolicy>
             </property>
             <property name="styleSheet">
-             <string notr="true"/>
+             <string notr="true">QWidget{
+color: rgb(250, 250, 250);
+background-color: rgb(31, 31, 31);
+}
+
+QToolBar{
+color: rgb(250, 250, 250);
+background-color: rgb(31, 31, 31);
+border:none;
+}
+
+QToolButton{
+color: rgb(250, 250, 250);
+background-color: rgb(31, 31, 31);
+border:none;
+min-height:30
+}
+
+QToolButton::hover{
+color: rgb(250, 250, 250);
+background-color: rgb(61,61,61);
+border: 1px solid rgb(112,112,112);
+min-height:30
+}
+
+QToolButton:pressed,QToolButton:checked {
+color: rgb(250, 250, 250);
+background-color: rgb(61,61,61);
+border: 1px solid rgb(46,46,46);
+min-height:30
+
+}
+
+QStatusBar{
+color: rgb(250, 250, 250);
+background-color: rgb(31, 31, 31);
+border:none;
+}
+
+QStatusBar::item {
+     border: 0px solid red;
+}
+
+QListWidget{
+color: rgb(0, 0, 0);
+background-color: rgb(250, 250, 250);
+}
+
+QToolTip{border-style:none; background-color: rgb(57, 58, 60);color: rgb(208, 208, 208);}
+</string>
             </property>
            </widget>
           </item>
@@ -1200,7 +2079,144 @@
            <enum>Qt::CustomContextMenu</enum>
           </property>
           <property name="styleSheet">
-           <string notr="true"/>
+           <string notr="true">QListView {
+    /*color: rgb(214,214,214);*/
+    background: rgb(37,37,38);
+    border: 1px solid rgb(61,61,61);
+    alternate-background-color: #525252;
+    gridline-color: transparent;
+	outline:none;
+}
+
+QListView QTableCornerButton::section {
+    /*color: rgb(214,214,214);*/
+    background: rgb(37,37,38);
+    border: 0px solid #418bc9;/*边框*/
+    border-radius:0px;/*边框圆角*/
+    border-color: rgb(41, 139, 201);/*边框颜色*/
+    font: bold 11pt;/*字体大小*/
+    padding:12px 0 0 10px;/*内边距*/
+ }
+
+QListView::item {
+    /*color: rgb(214,214,214);*/
+    background: rgb(37,37,38);
+}
+
+QListView::item:selected {
+    /*color: rgb(214,214,214);*/
+    background:rgb(43,83,125); /* qlineargradient(spread:pad, x1:0, y1:0, x2:0, y2:1, stop:0 #484848, stop:1 #383838);*/
+}
+
+QListView::item:hover {
+    background:rgb(61,61,61);
+}
+
+QHeaderView {
+    text-align: center;
+    background: rgb(37,37,38);
+    padding: 0px;
+    margin: 0px;
+    color: rgb(250,250,250);
+    border: 0px solid rgb(61,61,61);
+
+}
+
+QHeaderView::section::vertical {
+    text-align: center;
+    background: rgb(37,37,38);
+    padding: 3px;
+    margin: 0px;
+    color: rgb(250,250,250);
+    border: 0px solid rgb(61,61,61);
+    border-left-width: 0;
+	border-bottom-width: 1;
+	border-right-width: 1;
+}
+
+QHeaderView::section::horizontal{
+    text-align: center;
+    background: rgb(37,37,38);
+    padding: 3px;
+    margin: 0px;
+    color: rgb(250,250,250);
+    border: 0px solid rgb(61,61,61);
+    border-left-width: 0;
+	border-bottom-width: 1;
+	border-right-width: 1;
+}
+
+QScrollBar:vertical {
+    background: rgb(46,46,46);
+	width: 20px;
+	height:20px;
+}
+
+QScrollBar::handle:vertical {
+    background: rgb(71,71,71);
+  	border: 3px solid  rgb(46,46,46);
+}
+
+QScrollBar::handle:hover:vertical,
+QScrollBar::handle:pressed:vertical {
+    background: rgb(153,153,153);
+}
+
+QScrollBar::sub-page:vertical {
+	height:9px;
+    background: 444444;
+}
+
+QScrollBar::add-page:vertical {
+	height:9px;
+    background: 5B5B5B;
+}
+
+QScrollBar::add-line:vertical {
+	height:9px;
+    background: none;
+}
+
+QScrollBar::sub-line:vertical {
+	height:9px;
+    background: none;
+}
+
+QScrollBar:horizontal {
+    background: rgb(46,46,46);
+}
+
+QScrollBar::handle:horizontal {
+    background: rgb(71,71,71);
+  	border: 3px solid  rgb(46,46,46);
+}
+
+QScrollBar::handle:hover:horizontal,
+QScrollBar::handle:pressed:horizontal {
+    background: rgb(153,153,153);
+}
+
+QScrollBar::sub-page:horizontal {
+    background: 444444;
+}
+
+QScrollBar::add-page:horizontal {
+    background: 5B5B5B;
+}
+
+QScrollBar::add-line:horizontal {
+    background: none;
+}
+
+QScrollBar::sub-line:horizontal {
+    background: none;
+}
+
+QToolTip{
+border-style:none; 
+background-color: rgb(57, 58, 60);
+color: rgb(208, 208, 208);
+}</string>
           </property>
           <property name="editTriggers">
            <set>QAbstractItemView::NoEditTriggers</set>
@@ -1266,7 +2282,87 @@
         <item row="0" column="0">
          <widget class="QTabWidget" name="tabWidget">
           <property name="styleSheet">
-           <string notr="true"/>
+           <string notr="true">QTabWidget::pane{
+top:0px;
+border-top:2px solid #7160E8;
+border-bottom:1px solid rgb(61,61,61);
+border-right:1px solid rgb(61,61,61);
+border-left:1px solid rgb(61,61,61);
+}
+
+QTabWidget::tab-bar
+{
+alignment: left;
+top:0px;
+left:5px;
+border:none;
+}
+
+#detailWgt, #appealReasonWgt{
+border:none;
+}
+
+QTabBar::tab:first{
+color:rgb(178,178,178);
+background:rgb(46,46,46);
+
+padding-left:0px;
+padding-right:0px;
+width:100px;
+height:24px;
+margin-left:0px;
+margin-right:0px;
+
+border-top:2px solid rgb(31, 31, 31);
+}
+
+QTabBar::tab:middle{
+color:rgb(178,178,178);
+background:rgb(46,46,46);
+padding-left:0px;
+padding-right:0px;
+width:100px;
+height:24px;
+margin-left:0px;
+margin-right:0px;
+
+border-top:2px solid rgb(31, 31, 31);
+
+}
+
+QTabBar::tab:last{
+color:rgb(178,178,178);
+background:rgb(46,46,46);
+
+padding-left:0px;
+padding-right:0px;
+width:100px;
+height:24px;
+margin-left:0px;
+margin-right:0px;
+
+border-top:2px solid rgb(31, 31, 31);
+}
+
+QTabBar::tab:selected{
+color:rgb(250,250,250);
+background:rgb(61,61,61);
+border-top:2px solid #7160E8;
+
+}
+
+QTabBar::tab:hover{
+color:rgb(250,250,250);
+background:rgb(61,61,61);
+padding-left:0px;
+padding-right:0px;
+width:100px;
+height:24px;
+margin-left:0px;
+margin-right:0px;
+}
+
+</string>
           </property>
           <property name="tabPosition">
            <enum>QTabWidget::South</enum>
@@ -1297,7 +2393,152 @@
             <item row="0" column="1">
              <widget class="QTreeWidget" name="treeWidget_debuger_custom">
               <property name="styleSheet">
-               <string notr="true"/>
+               <string notr="true">QTreeWidget {
+    color: rgb(214,214,214);
+    background: rgb(31,31,31);
+    border: 1px solid rgb(61,61,61);
+    alternate-background-color: #525252;
+    gridline-color: transparent;
+	 font-size:12px;
+	outline:none;
+}
+
+QTreeWidget::branch{
+    background: rgb(31,31,31);
+}
+
+QTreeWidget::branch:closed:has-children:!has-siblings,
+QTreeWidget::branch:closed:has-children:has-siblings {
+    border-image: none;
+    image: url(:/image/icon_down_arrow2.png);
+}
+
+
+QTreeWidget::branch:open:has-children:!has-siblings,
+QTreeWidget::branch:open:has-children:has-siblings  {
+    border-image: none;
+    image: url(:/image/icon_up_arrow2.png);
+}
+
+
+
+QTreeWidget::item {
+    color: rgb(214,214,214);
+    background: rgb(31,31,31);
+    /*margin:13px;*/
+    /*background-clip: margin;*/
+}
+
+QTreeWidget::item:selected {
+    color: rgb(214,214,214);
+    background:rgb(113,96,232); /* qlineargradient(spread:pad, x1:0, y1:0, x2:0, y2:1, stop:0 #484848, stop:1 #383838);*/
+}
+
+QTreeWidget::item:hover {
+    background:rgb(61,61,61);
+}
+
+QHeaderView {
+    text-align: center;
+    background: rgb(31,31,31);
+    padding: 0px;
+    margin: 0px;
+    color: rgb(250,250,250);
+    border: 0px solid rgb(61,61,61);
+
+}
+
+QHeaderView::section::vertical {
+    text-align: center;
+    background: rgb(31,31,31);
+    padding: 3px;
+    margin: 0px;
+    color: rgb(250,250,250);
+    border: 0px solid rgb(61,61,61);
+    border-left-width: 0;
+	border-bottom-width: 1;
+	border-right-width: 1;
+}
+
+QHeaderView::section::horizontal{
+    text-align: center;
+    background: rgb(31,31,31);
+    padding: 3px;
+    margin: 0px;
+    color: rgb(250,250,250);
+    border: 0px solid rgb(61,61,61);
+    border-left-width: 0;
+	border-bottom-width: 1;
+	border-right-width: 1;
+}
+
+QScrollBar:vertical {
+	min-height: 10px;  
+    background: rgb(46,46,46);
+}
+
+QScrollBar::handle:vertical {
+    background: rgb(71,71,71);
+  	border: 4px solid  rgb(46,46,46);
+}
+
+QScrollBar::handle:hover:vertical,
+QScrollBar::handle:pressed:vertical {
+    background: rgb(153,153,153);
+}
+
+QScrollBar::sub-page:vertical {
+    background:transparent
+}
+
+QScrollBar::add-page:vertical {
+    background:transparent
+}
+
+QScrollBar::add-line:vertical {
+    background:transparent
+}
+
+QScrollBar::sub-line:vertical {
+    background:transparent
+}
+
+QScrollBar:horizontal {
+    background: rgb(46,46,46);
+	min-height: 60px;  
+}
+
+QScrollBar::handle:horizontal {
+    background: rgb(71,71,71);
+  	border: 3px solid  rgb(46,46,46);
+}
+
+QScrollBar::handle:hover:horizontal,
+QScrollBar::handle:pressed:horizontal {
+    background: rgb(153,153,153);
+}
+
+QScrollBar::sub-page:horizontal {
+    background: 444444;
+}
+
+QScrollBar::add-page:horizontal {
+    background: 5B5B5B;
+}
+
+QScrollBar::add-line:horizontal {
+    background: none;
+}
+
+QScrollBar::sub-line:horizontal {
+    background: none;
+}
+
+QToolTip{
+border-style:none; 
+background-color: rgb(57, 58, 60);
+color: rgb(208, 208, 208);
+}</string>
               </property>
               <property name="sortingEnabled">
                <bool>true</bool>
@@ -1352,7 +2593,152 @@
             <item row="0" column="0">
              <widget class="QTreeWidget" name="treeWidget_debuger_global">
               <property name="styleSheet">
-               <string notr="true"/>
+               <string notr="true">QTreeWidget {
+    color: rgb(214,214,214);
+    background: rgb(31,31,31);
+    border: 1px solid rgb(61,61,61);
+    alternate-background-color: #525252;
+    gridline-color: transparent;
+	 font-size:12px;
+	outline:none;
+}
+
+QTreeWidget::branch{
+    background: rgb(31,31,31);
+}
+
+QTreeWidget::branch:closed:has-children:!has-siblings,
+QTreeWidget::branch:closed:has-children:has-siblings {
+    border-image: none;
+    image: url(:/image/icon_down_arrow2.png);
+}
+
+
+QTreeWidget::branch:open:has-children:!has-siblings,
+QTreeWidget::branch:open:has-children:has-siblings  {
+    border-image: none;
+    image: url(:/image/icon_up_arrow2.png);
+}
+
+
+
+QTreeWidget::item {
+    color: rgb(214,214,214);
+    background: rgb(31,31,31);
+    /*margin:13px;*/
+    /*background-clip: margin;*/
+}
+
+QTreeWidget::item:selected {
+    color: rgb(214,214,214);
+    background:rgb(113,96,232); /* qlineargradient(spread:pad, x1:0, y1:0, x2:0, y2:1, stop:0 #484848, stop:1 #383838);*/
+}
+
+QTreeWidget::item:hover {
+    background:rgb(61,61,61);
+}
+
+QHeaderView {
+    text-align: center;
+    background: rgb(31,31,31);
+    padding: 0px;
+    margin: 0px;
+    color: rgb(250,250,250);
+    border: 0px solid rgb(61,61,61);
+
+}
+
+QHeaderView::section::vertical {
+    text-align: center;
+    background: rgb(31,31,31);
+    padding: 3px;
+    margin: 0px;
+    color: rgb(250,250,250);
+    border: 0px solid rgb(61,61,61);
+    border-left-width: 0;
+	border-bottom-width: 1;
+	border-right-width: 1;
+}
+
+QHeaderView::section::horizontal{
+    text-align: center;
+    background: rgb(31,31,31);
+    padding: 3px;
+    margin: 0px;
+    color: rgb(250,250,250);
+    border: 0px solid rgb(61,61,61);
+    border-left-width: 0;
+	border-bottom-width: 1;
+	border-right-width: 1;
+}
+
+QScrollBar:vertical {
+	min-height: 10px;  
+    background: rgb(46,46,46);
+}
+
+QScrollBar::handle:vertical {
+    background: rgb(71,71,71);
+  	border: 4px solid  rgb(46,46,46);
+}
+
+QScrollBar::handle:hover:vertical,
+QScrollBar::handle:pressed:vertical {
+    background: rgb(153,153,153);
+}
+
+QScrollBar::sub-page:vertical {
+    background:transparent
+}
+
+QScrollBar::add-page:vertical {
+    background:transparent
+}
+
+QScrollBar::add-line:vertical {
+    background:transparent
+}
+
+QScrollBar::sub-line:vertical {
+    background:transparent
+}
+
+QScrollBar:horizontal {
+    background: rgb(46,46,46);
+	min-height: 60px;  
+}
+
+QScrollBar::handle:horizontal {
+    background: rgb(71,71,71);
+  	border: 3px solid  rgb(46,46,46);
+}
+
+QScrollBar::handle:hover:horizontal,
+QScrollBar::handle:pressed:horizontal {
+    background: rgb(153,153,153);
+}
+
+QScrollBar::sub-page:horizontal {
+    background: 444444;
+}
+
+QScrollBar::add-page:horizontal {
+    background: 5B5B5B;
+}
+
+QScrollBar::add-line:horizontal {
+    background: none;
+}
+
+QScrollBar::sub-line:horizontal {
+    background: none;
+}
+
+QToolTip{
+border-style:none; 
+background-color: rgb(57, 58, 60);
+color: rgb(208, 208, 208);
+}</string>
               </property>
               <property name="sortingEnabled">
                <bool>true</bool>
@@ -1401,7 +2787,152 @@
             <item row="0" column="0">
              <widget class="QTreeWidget" name="treeWidget_debuger_callstack">
               <property name="styleSheet">
-               <string notr="true"/>
+               <string notr="true">QTreeWidget {
+    color: rgb(214,214,214);
+    background: rgb(31,31,31);
+    border: 1px solid rgb(61,61,61);
+    alternate-background-color: #525252;
+    gridline-color: transparent;
+	 font-size:12px;
+	outline:none;
+}
+
+QTreeWidget::branch{
+    background: rgb(31,31,31);
+}
+
+QTreeWidget::branch:closed:has-children:!has-siblings,
+QTreeWidget::branch:closed:has-children:has-siblings {
+    border-image: none;
+    image: url(:/image/icon_down_arrow2.png);
+}
+
+
+QTreeWidget::branch:open:has-children:!has-siblings,
+QTreeWidget::branch:open:has-children:has-siblings  {
+    border-image: none;
+    image: url(:/image/icon_up_arrow2.png);
+}
+
+
+
+QTreeWidget::item {
+    color: rgb(214,214,214);
+    background: rgb(31,31,31);
+    /*margin:13px;*/
+    /*background-clip: margin;*/
+}
+
+QTreeWidget::item:selected {
+    color: rgb(214,214,214);
+    background:rgb(113,96,232); /* qlineargradient(spread:pad, x1:0, y1:0, x2:0, y2:1, stop:0 #484848, stop:1 #383838);*/
+}
+
+QTreeWidget::item:hover {
+    background:rgb(61,61,61);
+}
+
+QHeaderView {
+    text-align: center;
+    background: rgb(31,31,31);
+    padding: 0px;
+    margin: 0px;
+    color: rgb(250,250,250);
+    border: 0px solid rgb(61,61,61);
+
+}
+
+QHeaderView::section::vertical {
+    text-align: center;
+    background: rgb(31,31,31);
+    padding: 3px;
+    margin: 0px;
+    color: rgb(250,250,250);
+    border: 0px solid rgb(61,61,61);
+    border-left-width: 0;
+	border-bottom-width: 1;
+	border-right-width: 1;
+}
+
+QHeaderView::section::horizontal{
+    text-align: center;
+    background: rgb(31,31,31);
+    padding: 3px;
+    margin: 0px;
+    color: rgb(250,250,250);
+    border: 0px solid rgb(61,61,61);
+    border-left-width: 0;
+	border-bottom-width: 1;
+	border-right-width: 1;
+}
+
+QScrollBar:vertical {
+	min-height: 10px;  
+    background: rgb(46,46,46);
+}
+
+QScrollBar::handle:vertical {
+    background: rgb(71,71,71);
+  	border: 4px solid  rgb(46,46,46);
+}
+
+QScrollBar::handle:hover:vertical,
+QScrollBar::handle:pressed:vertical {
+    background: rgb(153,153,153);
+}
+
+QScrollBar::sub-page:vertical {
+    background:transparent
+}
+
+QScrollBar::add-page:vertical {
+    background:transparent
+}
+
+QScrollBar::add-line:vertical {
+    background:transparent
+}
+
+QScrollBar::sub-line:vertical {
+    background:transparent
+}
+
+QScrollBar:horizontal {
+    background: rgb(46,46,46);
+	min-height: 60px;  
+}
+
+QScrollBar::handle:horizontal {
+    background: rgb(71,71,71);
+  	border: 3px solid  rgb(46,46,46);
+}
+
+QScrollBar::handle:hover:horizontal,
+QScrollBar::handle:pressed:horizontal {
+    background: rgb(153,153,153);
+}
+
+QScrollBar::sub-page:horizontal {
+    background: 444444;
+}
+
+QScrollBar::add-page:horizontal {
+    background: 5B5B5B;
+}
+
+QScrollBar::add-line:horizontal {
+    background: none;
+}
+
+QScrollBar::sub-line:horizontal {
+    background: none;
+}
+
+QToolTip{
+border-style:none; 
+background-color: rgb(57, 58, 60);
+color: rgb(208, 208, 208);
+}</string>
               </property>
               <property name="editTriggers">
                <set>QAbstractItemView::NoEditTriggers</set>
@@ -1446,7 +2977,152 @@
             <item row="0" column="0">
              <widget class="QTreeWidget" name="treeWidget_debuger_jmpstack">
               <property name="styleSheet">
-               <string notr="true"/>
+               <string notr="true">QTreeWidget {
+    color: rgb(214,214,214);
+    background: rgb(31,31,31);
+    border: 1px solid rgb(61,61,61);
+    alternate-background-color: #525252;
+    gridline-color: transparent;
+	 font-size:12px;
+	outline:none;
+}
+
+QTreeWidget::branch{
+    background: rgb(31,31,31);
+}
+
+QTreeWidget::branch:closed:has-children:!has-siblings,
+QTreeWidget::branch:closed:has-children:has-siblings {
+    border-image: none;
+    image: url(:/image/icon_down_arrow2.png);
+}
+
+
+QTreeWidget::branch:open:has-children:!has-siblings,
+QTreeWidget::branch:open:has-children:has-siblings  {
+    border-image: none;
+    image: url(:/image/icon_up_arrow2.png);
+}
+
+
+
+QTreeWidget::item {
+    color: rgb(214,214,214);
+    background: rgb(31,31,31);
+    /*margin:13px;*/
+    /*background-clip: margin;*/
+}
+
+QTreeWidget::item:selected {
+    color: rgb(214,214,214);
+    background:rgb(113,96,232); /* qlineargradient(spread:pad, x1:0, y1:0, x2:0, y2:1, stop:0 #484848, stop:1 #383838);*/
+}
+
+QTreeWidget::item:hover {
+    background:rgb(61,61,61);
+}
+
+QHeaderView {
+    text-align: center;
+    background: rgb(31,31,31);
+    padding: 0px;
+    margin: 0px;
+    color: rgb(250,250,250);
+    border: 0px solid rgb(61,61,61);
+
+}
+
+QHeaderView::section::vertical {
+    text-align: center;
+    background: rgb(31,31,31);
+    padding: 3px;
+    margin: 0px;
+    color: rgb(250,250,250);
+    border: 0px solid rgb(61,61,61);
+    border-left-width: 0;
+	border-bottom-width: 1;
+	border-right-width: 1;
+}
+
+QHeaderView::section::horizontal{
+    text-align: center;
+    background: rgb(31,31,31);
+    padding: 3px;
+    margin: 0px;
+    color: rgb(250,250,250);
+    border: 0px solid rgb(61,61,61);
+    border-left-width: 0;
+	border-bottom-width: 1;
+	border-right-width: 1;
+}
+
+QScrollBar:vertical {
+	min-height: 10px;  
+    background: rgb(46,46,46);
+}
+
+QScrollBar::handle:vertical {
+    background: rgb(71,71,71);
+  	border: 4px solid  rgb(46,46,46);
+}
+
+QScrollBar::handle:hover:vertical,
+QScrollBar::handle:pressed:vertical {
+    background: rgb(153,153,153);
+}
+
+QScrollBar::sub-page:vertical {
+    background:transparent
+}
+
+QScrollBar::add-page:vertical {
+    background:transparent
+}
+
+QScrollBar::add-line:vertical {
+    background:transparent
+}
+
+QScrollBar::sub-line:vertical {
+    background:transparent
+}
+
+QScrollBar:horizontal {
+    background: rgb(46,46,46);
+	min-height: 60px;  
+}
+
+QScrollBar::handle:horizontal {
+    background: rgb(71,71,71);
+  	border: 3px solid  rgb(46,46,46);
+}
+
+QScrollBar::handle:hover:horizontal,
+QScrollBar::handle:pressed:horizontal {
+    background: rgb(153,153,153);
+}
+
+QScrollBar::sub-page:horizontal {
+    background: 444444;
+}
+
+QScrollBar::add-page:horizontal {
+    background: 5B5B5B;
+}
+
+QScrollBar::add-line:horizontal {
+    background: none;
+}
+
+QScrollBar::sub-line:horizontal {
+    background: none;
+}
+
+QToolTip{
+border-style:none; 
+background-color: rgb(57, 58, 60);
+color: rgb(208, 208, 208);
+}</string>
               </property>
               <property name="editTriggers">
                <set>QAbstractItemView::NoEditTriggers</set>
@@ -1485,7 +3161,7 @@
      <x>0</x>
      <y>0</y>
      <width>1452</width>
-     <height>21</height>
+     <height>23</height>
     </rect>
    </property>
   </widget>
@@ -1545,7 +3221,9 @@
      <item row="0" column="0">
       <widget class="QTextBrowser" name="textBrowser">
        <property name="styleSheet">
-        <string notr="true"/>
+        <string notr="true">color: rgb(214,214,214);
+background: rgb(37,37,38);
+border: 1px solid rgb(61,61,61);</string>
        </property>
       </widget>
      </item>
@@ -1579,7 +3257,152 @@
      <item row="0" column="0">
       <widget class="QTreeWidget" name="treeWidget_breakList">
        <property name="styleSheet">
-        <string notr="true"/>
+        <string notr="true">QTreeWidget {
+    color: rgb(214,214,214);
+    background: rgb(31,31,31);
+    border: 1px solid rgb(61,61,61);
+    alternate-background-color: #525252;
+    gridline-color: transparent;
+	 font-size:12px;
+	outline:none;
+}
+
+QTreeWidget::branch{
+    background: rgb(31,31,31);
+}
+
+QTreeWidget::branch:closed:has-children:!has-siblings,
+QTreeWidget::branch:closed:has-children:has-siblings {
+    border-image: none;
+    image: url(:/image/icon_down_arrow2.png);
+}
+
+
+QTreeWidget::branch:open:has-children:!has-siblings,
+QTreeWidget::branch:open:has-children:has-siblings  {
+    border-image: none;
+    image: url(:/image/icon_up_arrow2.png);
+}
+
+
+
+QTreeWidget::item {
+    color: rgb(214,214,214);
+    background: rgb(31,31,31);
+    /*margin:13px;*/
+    /*background-clip: margin;*/
+}
+
+QTreeWidget::item:selected {
+    color: rgb(214,214,214);
+    background:rgb(113,96,232); /* qlineargradient(spread:pad, x1:0, y1:0, x2:0, y2:1, stop:0 #484848, stop:1 #383838);*/
+}
+
+QTreeWidget::item:hover {
+    background:rgb(61,61,61);
+}
+
+QHeaderView {
+    text-align: center;
+    background: rgb(31,31,31);
+    padding: 0px;
+    margin: 0px;
+    color: rgb(250,250,250);
+    border: 0px solid rgb(61,61,61);
+
+}
+
+QHeaderView::section::vertical {
+    text-align: center;
+    background: rgb(31,31,31);
+    padding: 3px;
+    margin: 0px;
+    color: rgb(250,250,250);
+    border: 0px solid rgb(61,61,61);
+    border-left-width: 0;
+	border-bottom-width: 1;
+	border-right-width: 1;
+}
+
+QHeaderView::section::horizontal{
+    text-align: center;
+    background: rgb(31,31,31);
+    padding: 3px;
+    margin: 0px;
+    color: rgb(250,250,250);
+    border: 0px solid rgb(61,61,61);
+    border-left-width: 0;
+	border-bottom-width: 1;
+	border-right-width: 1;
+}
+
+QScrollBar:vertical {
+	min-height: 10px;  
+    background: rgb(46,46,46);
+}
+
+QScrollBar::handle:vertical {
+    background: rgb(71,71,71);
+  	border: 4px solid  rgb(46,46,46);
+}
+
+QScrollBar::handle:hover:vertical,
+QScrollBar::handle:pressed:vertical {
+    background: rgb(153,153,153);
+}
+
+QScrollBar::sub-page:vertical {
+    background:transparent
+}
+
+QScrollBar::add-page:vertical {
+    background:transparent
+}
+
+QScrollBar::add-line:vertical {
+    background:transparent
+}
+
+QScrollBar::sub-line:vertical {
+    background:transparent
+}
+
+QScrollBar:horizontal {
+    background: rgb(46,46,46);
+	min-height: 60px;  
+}
+
+QScrollBar::handle:horizontal {
+    background: rgb(71,71,71);
+  	border: 3px solid  rgb(46,46,46);
+}
+
+QScrollBar::handle:hover:horizontal,
+QScrollBar::handle:pressed:horizontal {
+    background: rgb(153,153,153);
+}
+
+QScrollBar::sub-page:horizontal {
+    background: 444444;
+}
+
+QScrollBar::add-page:horizontal {
+    background: 5B5B5B;
+}
+
+QScrollBar::add-line:horizontal {
+    background: none;
+}
+
+QScrollBar::sub-line:horizontal {
+    background: none;
+}
+
+QToolTip{
+border-style:none; 
+background-color: rgb(57, 58, 60);
+color: rgb(208, 208, 208);
+}</string>
        </property>
        <property name="editTriggers">
         <set>QAbstractItemView::NoEditTriggers</set>

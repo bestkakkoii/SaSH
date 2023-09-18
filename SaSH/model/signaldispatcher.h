@@ -104,7 +104,7 @@ signals:
 	void scriptContentChanged(const QString& fileName, const QVariant& tokens);
 	void loadFileToTable(const QString& fileName);
 	void reloadScriptList();
-	void varInfoImported(const QHash<QString, QVariant>& d);
+	void varInfoImported(void* p, const QVariantHash& d);
 
 	void scriptSpeedChanged(int speed);
 

@@ -29,12 +29,6 @@ class Interpreter : public ThreadPlugin
 {
 	Q_OBJECT
 public:
-	enum RunFileMode
-	{
-		kSync,
-		kAsync,
-	};
-
 	enum VarShareMode
 	{
 		kNotShare,
@@ -53,7 +47,7 @@ public:
 
 	void doFileWithThread(qint64 beginLine, const QString& fileName);
 
-	bool doFile(qint64 beginLine, const QString& fileName, Interpreter* parent, VarShareMode shareMode, RunFileMode noShow = kSync);
+	bool doFile(qint64 beginLine, const QString& fileName, Interpreter* parent, VarShareMode shareMode, Parser::Mode noShow = Parser::kSync);
 
 	void stop();
 

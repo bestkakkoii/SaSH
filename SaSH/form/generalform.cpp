@@ -57,6 +57,7 @@ GeneralForm::GeneralForm(QWidget* parent)
 	}
 
 	pAfkForm_ = new AfkForm;
+	pAfkForm_->hide();
 
 	emit ui.comboBox_paths->clicked();
 	emit signalDispatcher.applyHashSettingsToUI();
@@ -78,7 +79,7 @@ GeneralForm::GeneralForm(QWidget* parent)
 				else
 					MINT::NtTerminateProcess(GetCurrentProcess(), 0);
 			});
-}
+	}
 #endif
 #endif
 }
@@ -111,14 +112,12 @@ void GeneralForm::onComboBoxClicked()
 	ComboBox* pComboBox = qobject_cast<ComboBox*>(sender());
 	if (!pComboBox)
 	{
-		pComboBox->setDisableFocusCheck(false);
 		return;
 	}
 
 	QString name = pComboBox->objectName();
 	if (name.isEmpty())
 	{
-		pComboBox->setDisableFocusCheck(false);
 		return;
 	}
 
@@ -127,7 +126,6 @@ void GeneralForm::onComboBoxClicked()
 		QVector<QPair<QString, QString>> fileList;
 		if (!util::enumAllFiles(util::applicationDirPath() + "/settings", ".json", &fileList))
 		{
-			pComboBox->setDisableFocusCheck(false);
 			return;
 		}
 
@@ -142,14 +140,14 @@ void GeneralForm::onComboBoxClicked()
 		ui.comboBox_setting->setCurrentIndex(currentIndex);
 
 		ui.comboBox_setting->blockSignals(false);
-		pComboBox->setDisableFocusCheck(false);
+
 		return;
 	}
 
 	if (name == "comboBox_server")
 	{
 		createServerList();
-		pComboBox->setDisableFocusCheck(false);
+
 		return;
 	}
 
@@ -165,7 +163,6 @@ void GeneralForm::onComboBoxClicked()
 		const QString fileName(qgetenv("JSON_PATH"));
 		if (fileName.isEmpty())
 		{
-			pComboBox->setDisableFocusCheck(false);
 			return;
 		}
 
@@ -178,7 +175,7 @@ void GeneralForm::onComboBoxClicked()
 			QString path;
 			if (!util::createFileDialog(util::SA_NAME, &path, this))
 			{
-				pComboBox->setDisableFocusCheck(false);
+
 				return;
 			}
 			else
@@ -195,7 +192,6 @@ void GeneralForm::onComboBoxClicked()
 
 		if (newPaths.isEmpty())
 		{
-			pComboBox->setDisableFocusCheck(false);
 			return;
 		}
 
@@ -216,7 +212,7 @@ void GeneralForm::onComboBoxClicked()
 		config.writeArray<QString>("System", "Command", "DirPath", newPaths);
 		ui.comboBox_paths->setCurrentIndex(currentIndex);
 		ui.comboBox_paths->blockSignals(false);
-		pComboBox->setDisableFocusCheck(false);
+
 		return;
 	}
 }
@@ -267,16 +263,16 @@ void GeneralForm::onButtonClicked()
 		{
 			//只顯示 上一級文件夾名稱/fileName
 			QFileInfo fileInfo(it);
-			QString fileName = fileInfo.fileName();
 			QString path = fileInfo.path();
 			QFileInfo pathInfo(path);
 			QString pathName = pathInfo.fileName();
-			ui.comboBox_paths->addItem(pathName + "/" + fileName, it);
+			ui.comboBox_paths->addItem(pathName + "/" + fileInfo.fileName(), it);
 		}
 
 		ui.comboBox_paths->setCurrentIndex(ui.comboBox_paths->count() - 1);
 		ui.comboBox_paths->blockSignals(false);
 		config.writeArray<QString>("System", "Command", "DirPath", newPaths);
+		return;
 	}
 
 	if (name == "pushButton_setting")
@@ -290,6 +286,7 @@ void GeneralForm::onButtonClicked()
 
 		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
 		emit signalDispatcher.loadHashSettings(fileName, true);
+		return;
 	}
 
 	if (name == "pushButton_logout")
@@ -566,10 +563,10 @@ void GeneralForm::onCheckBoxStateChanged(int state)
 		QStringList dstList;
 		QStringList srcSelectList;
 
-		QVariant data = injector.getUserData(util::kUserItemNames);
-		if (data.isValid())
+		QVariant d = injector.getUserData(util::kUserItemNames);
+		if (d.isValid())
 		{
-			srcSelectList = data.toStringList();
+			srcSelectList = d.toStringList();
 		}
 
 		QString src = injector.getStringHash(util::kAutoDropItemString);
@@ -686,10 +683,10 @@ void GeneralForm::onCheckBoxStateChanged(int state)
 		QStringList dstList;
 		QStringList srcSelectList;
 
-		QVariant data = injector.getUserData(util::kUserEnemyNames);
-		if (data.isValid())
+		QVariant d = injector.getUserData(util::kUserEnemyNames);
+		if (d.isValid())
 		{
-			srcSelectList = data.toStringList();
+			srcSelectList = d.toStringList();
 		}
 		srcSelectList.removeDuplicates();
 
@@ -728,10 +725,10 @@ void GeneralForm::onCheckBoxStateChanged(int state)
 		QStringList dstList;
 		QStringList srcSelectList;
 
-		QVariant data = injector.getUserData(util::kUserEnemyNames);
-		if (data.isValid())
+		QVariant d = injector.getUserData(util::kUserEnemyNames);
+		if (d.isValid())
 		{
-			srcSelectList = data.toStringList();
+			srcSelectList = d.toStringList();
 		}
 		srcSelectList.removeDuplicates();
 
@@ -871,34 +868,26 @@ void GeneralForm::onComboBoxCurrentIndexChanged(int value)
 		}
 
 		emit ui.comboBox_server->clicked();
+		return;
 	}
 
 	if (name == "comboBox_server")
 	{
 		injector.setValueHash(util::kServerValue, value);
-		int currentIndex = ui.comboBox_subserver->currentIndex();
-		int currentServerList = ui.comboBox_serverlist->currentIndex();
-		if (currentServerList < 0)
-			currentServerList = 0;
-
-		ui.comboBox_subserver->setUpdatesEnabled(false);
-		ui.comboBox_subserver->clear();
-		ui.comboBox_subserver->addItems(serverList.value(currentServerList).value(ui.comboBox_server->currentText()));
-		if (currentIndex >= 0)
-			ui.comboBox_subserver->setCurrentIndex(currentIndex);
-		else
-			ui.comboBox_subserver->setCurrentIndex(0);
-		ui.comboBox_subserver->setUpdatesEnabled(true);
+		serverListReLoad();
+		return;
 	}
 
 	if (name == "comboBox_subserver")
 	{
 		injector.setValueHash(util::kSubServerValue, value);
+		return;
 	}
 
 	if (name == "comboBox_position")
 	{
 		injector.setValueHash(util::kPositionValue, value);
+		return;
 	}
 
 	if (name == "comboBox_locktime")
@@ -906,6 +895,7 @@ void GeneralForm::onComboBoxCurrentIndexChanged(int value)
 		injector.setValueHash(util::kLockTimeValue, value);
 		if (ui.checkBox_locktime->isChecked())
 			injector.sendMessage(Injector::kSetTimeLock, true, value);
+		return;
 	}
 
 	if (name == "comboBox_paths")
@@ -917,15 +907,16 @@ void GeneralForm::onComboBoxCurrentIndexChanged(int value)
 		int current = ui.comboBox_paths->currentIndex();
 		if (current >= 0)
 			config.write("System", "Command", "LastSelection", ui.comboBox_paths->currentIndex());
+		return;
 	}
 }
 
 void GeneralForm::onApplyHashSettingsToUI()
 {
 	Injector& injector = Injector::getInstance();
-	util::SafeHash<util::UserSetting, bool> enableHash = injector.getEnableHash();
-	util::SafeHash<util::UserSetting, int> valueHash = injector.getValueHash();
-	util::SafeHash<util::UserSetting, QString> stringHash = injector.getStringHash();
+	QHash<util::UserSetting, bool> enableHash = injector.getEnablesHash();
+	QHash<util::UserSetting, int> valueHash = injector.getValuesHash();
+	QHash<util::UserSetting, QString> stringHash = injector.getStringsHash();
 
 	const QString fileName(qgetenv("JSON_PATH"));
 	if (!fileName.isEmpty())
@@ -950,6 +941,7 @@ void GeneralForm::onApplyHashSettingsToUI()
 		}
 
 		ui.comboBox_serverlist->blockSignals(true);
+
 		ui.comboBox_serverlist->clear();
 		for (int i = 0; i < count; ++i)
 		{
@@ -973,6 +965,8 @@ void GeneralForm::onApplyHashSettingsToUI()
 		ui.comboBox_server->setCurrentIndex(value);
 	else
 		ui.comboBox_server->setCurrentIndex(0);
+
+	serverListReLoad();
 
 	value = valueHash.value(util::kSubServerValue);
 	if (value >= 0 && value < ui.comboBox_server->count())
@@ -1194,8 +1188,6 @@ void GeneralForm::createServerList()
 
 		serverList[currentListIndex].insert(server, subList);
 		ui.comboBox_server->addItem(server);
-		if (currentText != server)
-			continue;
 		ui.comboBox_subserver->addItems(subList);
 	}
 
@@ -1208,5 +1200,22 @@ void GeneralForm::createServerList()
 		ui.comboBox_server->setCurrentIndex(0);
 	ui.comboBox_subserver->setCurrentIndex(0);
 	ui.comboBox_server->setUpdatesEnabled(true);
+	ui.comboBox_subserver->setUpdatesEnabled(true);
+}
+
+void GeneralForm::serverListReLoad()
+{
+	int currentIndex = ui.comboBox_subserver->currentIndex();
+	int currentServerList = ui.comboBox_serverlist->currentIndex();
+	if (currentServerList < 0)
+		currentServerList = 0;
+
+	ui.comboBox_subserver->setUpdatesEnabled(false);
+	ui.comboBox_subserver->clear();
+	ui.comboBox_subserver->addItems(serverList.value(currentServerList).value(ui.comboBox_server->currentText()));
+	if (currentIndex >= 0)
+		ui.comboBox_subserver->setCurrentIndex(currentIndex);
+	else
+		ui.comboBox_subserver->setCurrentIndex(0);
 	ui.comboBox_subserver->setUpdatesEnabled(true);
 }

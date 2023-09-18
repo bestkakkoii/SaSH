@@ -320,7 +320,7 @@ void Parser::insertUserCallBack(const QString& name, const QString& type)
 //根據token解釋腳本
 void Parser::parse(qint64 line)
 {
-	lineNumber_ = line; //設置當前行號
+	setCurrentLine(line); //設置當前行號
 	callStack_.clear(); //清空調用棧
 	jmpStack_.clear();  //清空跳轉棧
 
@@ -375,7 +375,7 @@ void Parser::handleError(qint64 err, const QString& addition)
 
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
 	if (err == kError)
-		emit signalDispatcher.addErrorMarker(lineNumber_, err);
+		emit signalDispatcher.addErrorMarker(getCurrentLine(), err);
 
 	QString msg;
 	switch (err)
@@ -419,7 +419,7 @@ void Parser::handleError(qint64 err, const QString& addition)
 	}
 	}
 
-	emit signalDispatcher.appendScriptLog(QObject::tr("[error]") + QObject::tr("@ %1 | detail:%2").arg(lineNumber_ + 1).arg(msg), 6);
+	emit signalDispatcher.appendScriptLog(QObject::tr("[error]") + QObject::tr("@ %1 | detail:%2").arg(getCurrentLine() + 1).arg(msg), 6);
 }
 
 //比較兩個 QVariant 以 a 的類型為主
@@ -531,17 +531,18 @@ QVariant Parser::luaDoString(QString expr)
 	lua_.collect_garbage();
 	if (!loaded_chunk.valid())
 	{
+		qint64 currentLine = getCurrentLine();
 		sol::error err = loaded_chunk;
 		QString errStr = QString::fromUtf8(err.what());
-		if (!isGlobalVarContains(QString("_LUAERR@%1").arg(lineNumber_)))
-			insertGlobalVar(QString("_LUA_DO_STR_ERR@%1").arg(lineNumber_), exprStr);
+		if (!isGlobalVarContains(QString("_LUAERR@%1").arg(currentLine)))
+			insertGlobalVar(QString("_LUA_DO_STR_ERR@%1").arg(currentLine), exprStr);
 		else
 		{
 			for (qint64 i = 0; i < 1000; ++i)
 			{
-				if (!isGlobalVarContains(QString("_LUA_DO_STR_ERR@%1%2").arg(lineNumber_).arg(i)))
+				if (!isGlobalVarContains(QString("_LUA_DO_STR_ERR@%1%2").arg(currentLine).arg(i)))
 				{
-					insertGlobalVar(QString("_LUA_DO_STR_ERR@%1_%2").arg(lineNumber_).arg(i), exprStr);
+					insertGlobalVar(QString("_LUA_DO_STR_ERR@%1_%2").arg(currentLine).arg(i), exprStr);
 					break;
 				}
 			}
@@ -1079,9 +1080,10 @@ void Parser::checkCallArgs(qint64 line)
 {
 	//check rest of the tokens is exist push to stack 	QStack<QVariantList> callArgs_
 	QVariantList list;
-	if (tokens_.contains(lineNumber_))
+	qint64 currentLine = getCurrentLine();
+	if (tokens_.contains(currentLine))
 	{
-		TokenMap TK = tokens_.value(lineNumber_);
+		TokenMap TK = tokens_.value(currentLine);
 		qint64 size = TK.size();
 		for (qint64 i = kCallPlaceHoldSize; i < size; ++i)
 		{
@@ -2169,20 +2171,24 @@ bool Parser::updateSysConstKeyword(const QString& expr)
 //行跳轉
 bool Parser::jump(qint64 line, bool noStack)
 {
+	qint64 currentLine = getCurrentLine();
 	if (!noStack)
-		jmpStack_.push(lineNumber_ + 1);
-	lineNumber_ += line;
+		jmpStack_.push(currentLine + 1);
+	currentLine += line;
+	setCurrentLine(currentLine);
 	return true;
 }
 
 //指定行跳轉
 void Parser::jumpto(qint64 line, bool noStack)
 {
+	qint64 currentLine = getCurrentLine();
 	if (line - 1 < 0)
 		line = 1;
 	if (!noStack)
-		jmpStack_.push(lineNumber_ + 1);
-	lineNumber_ = line - 1;
+		jmpStack_.push(currentLine + 1);
+	currentLine = line - 1;
+	setCurrentLine(currentLine);
 }
 
 //標記跳轉
@@ -2194,7 +2200,7 @@ bool Parser::jump(const QString& name, bool noStack)
 		if (!jmpStack_.isEmpty())
 		{
 			qint64 returnIndex = jmpStack_.pop();//jump行號出棧
-			qint64 jumpLineCount = returnIndex - lineNumber_;
+			qint64 jumpLineCount = returnIndex - getCurrentLine();
 
 			return jump(jumpLineCount, true);
 		}
@@ -2218,7 +2224,7 @@ bool Parser::jump(const QString& name, bool noStack)
 	if (jumpLine != -1)
 	{
 		FunctionNode node = getFunctionNodeByName(name);
-		node.callFromLine = lineNumber_;
+		node.callFromLine = getCurrentLine();
 		callStack_.push(node);
 		jumpto(jumpLine, true);
 		skipFunctionChunkDisable_ = true;
@@ -2233,10 +2239,11 @@ bool Parser::jump(const QString& name, bool noStack)
 		return false;
 	}
 
+	qint64 currentLine = getCurrentLine();
 	if (!noStack)
-		jmpStack_.push(lineNumber_ + 1);
+		jmpStack_.push(currentLine + 1);
 
-	qint64 jumpLineCount = jumpLine - lineNumber_;
+	qint64 jumpLineCount = jumpLine - currentLine;
 
 	return jump(jumpLineCount, true);
 }
@@ -3196,7 +3203,7 @@ void Parser::processFunction()
 
 						expectedType = typeStr;
 						labelVars.insert(labelName, "nil");
-						handleError(kArgError + i - kCallPlaceHoldSize + 1, QString(QObject::tr("@ %1 | Invalid local variable type expacted '%2' but got '%3'")).arg(lineNumber_).arg(expectedType).arg(currnetVar.typeName()));
+						handleError(kArgError + i - kCallPlaceHoldSize + 1, QString(QObject::tr("@ %1 | Invalid local variable type expacted '%2' but got '%3'")).arg(getCurrentLine()).arg(expectedType).arg(currnetVar.typeName()));
 						break;
 					}
 
@@ -3250,7 +3257,7 @@ qint64 Parser::processCommand()
 			return kError;
 		}
 
-		status = function(lineNumber_, tokens);
+		status = function(getCurrentLine(), tokens);
 	}
 	else
 	{
@@ -3534,7 +3541,7 @@ void Parser::processTableSet(const QString& preVarName, const QVariant& value)
 		{
 			sol::error err = loaded_chunk;
 			QString errStr = QString::fromUtf8(err.what());
-			insertGlobalVar(QString("_LUAERR@%1").arg(lineNumber_), exprStr);
+			insertGlobalVar(QString("_LUAERR@%1").arg(getCurrentLine()), exprStr);
 			handleError(kLuaError, errStr);
 			return;
 		}
@@ -3575,7 +3582,7 @@ void Parser::processTableSet(const QString& preVarName, const QVariant& value)
 		{
 			sol::error err = loaded_chunk;
 			QString errStr = QString::fromUtf8(err.what());
-			insertGlobalVar(QString("_LUAERR@%1").arg(lineNumber_), exprStr);
+			insertGlobalVar(QString("_LUAERR@%1").arg(getCurrentLine()), exprStr);
 			handleError(kLuaError, errStr);
 			return;
 		}
@@ -3669,7 +3676,7 @@ void Parser::processVariableCAOs()
 			{
 				sol::error err = loaded_chunk;
 				QString errStr = QString::fromUtf8(err.what());
-				insertGlobalVar(QString("_LUAERR@%1").arg(lineNumber_), exprStr);
+				insertGlobalVar(QString("_LUAERR@%1").arg(getCurrentLine()), exprStr);
 				handleError(kLuaError, errStr);
 				return;
 			}
@@ -3864,7 +3871,7 @@ void Parser::processFormation()
 
 			QString msg = (QString("[%1 | @%2]: %3\0") \
 				.arg(timeStr)
-				.arg(lineNumber_ + 1, 3, 10, QLatin1Char(' ')).arg(formatedStr));
+				.arg(getCurrentLine() + 1, 3, 10, QLatin1Char(' ')).arg(formatedStr));
 
 			SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
 			emit signalDispatcher.appendScriptLog(msg, color);
@@ -3916,7 +3923,7 @@ bool Parser::processCall(RESERVE reserve)
 
 		FunctionNode node = getFunctionNodeByName(functionName);
 		++node.callCount;
-		node.callFromLine = lineNumber_;
+		node.callFromLine = getCurrentLine();
 		checkCallArgs(jumpLine);
 		jumpto(jumpLine + 1, true);
 		callStack_.push(node);
@@ -4041,7 +4048,7 @@ bool Parser::processReturn(qint64 takeReturnFrom)
 
 	FunctionNode node = callStack_.pop();
 	qint64 returnIndex = node.callFromLine + 1;
-	qint64 jumpLineCount = returnIndex - lineNumber_;
+	qint64 jumpLineCount = returnIndex - getCurrentLine();
 	jump(jumpLineCount, true);
 	return true;
 }
@@ -4051,12 +4058,12 @@ void Parser::processBack()
 {
 	if (jmpStack_.isEmpty())
 	{
-		lineNumber_ = 0;
+		setCurrentLine(0);
 		return;
 	}
 
 	qint64 returnIndex = jmpStack_.pop();//jump行號出棧
-	qint64 jumpLineCount = returnIndex - lineNumber_;
+	qint64 jumpLineCount = returnIndex - getCurrentLine();
 	jump(jumpLineCount, true);
 }
 
@@ -4113,9 +4120,10 @@ bool Parser::processFor()
 
 	qint64 nStepValue = stepValue.toLongLong();
 
-	if (forStack_.isEmpty() || forStack_.top().beginLine != lineNumber_)
+	qint64 currentLine = getCurrentLine();
+	if (forStack_.isEmpty() || forStack_.top().beginLine != currentLine)
 	{
-		ForNode node = getForNodeByLineIndex(lineNumber_);
+		ForNode node = getForNodeByLineIndex(currentLine);
 		node.beginValue = nBeginValue;
 		node.endValue = nEndValue;
 		node.stepValue = stepValue;
@@ -4286,7 +4294,8 @@ void Parser::processTokens()
 		if (mode_ == kSync && !skip)
 			exportVarInfo();
 
-		currentLineTokens_ = tokens_.value(lineNumber_);
+		qint64 currentLine = getCurrentLine();
+		currentLineTokens_ = tokens_.value(currentLine);
 
 		currentType = getCurrentFirstTokenType();
 
@@ -4311,7 +4320,7 @@ void Parser::processTokens()
 
 			if (callBack_ != nullptr)
 			{
-				qint64 status = callBack_(lineNumber_, currentLineTokens_);
+				qint64 status = callBack_(currentLine, currentLineTokens_);
 				if (status == kStop)
 					break;
 			}
@@ -4549,5 +4558,5 @@ void Parser::exportVarInfo()
 	}
 
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
-	emit signalDispatcher.varInfoImported(varhash);
+	emit signalDispatcher.varInfoImported(this, varhash);
 }

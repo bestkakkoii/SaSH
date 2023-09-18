@@ -66,7 +66,7 @@ void Interpreter::doFileWithThread(qint64 beginLine, const QString& fileName)
 	if (!parser_.loadFile(fileName, nullptr))
 		return;
 
-	parser_.setBeginLine(beginLine);
+	parser_.setCurrentLine(beginLine);
 
 	moveToThread(thread_);
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
@@ -83,9 +83,9 @@ void Interpreter::doFileWithThread(qint64 beginLine, const QString& fileName)
 }
 
 //同線程下執行腳本文件(實例新的interpreter)
-bool Interpreter::doFile(qint64 beginLine, const QString& fileName, Interpreter* parent, VarShareMode shareMode, RunFileMode mode)
+bool Interpreter::doFile(qint64 beginLine, const QString& fileName, Interpreter* parent, VarShareMode shareMode, Parser::Mode mode)
 {
-	if (mode == kAsync)
+	if (mode == Parser::kAsync)
 		parser_.setMode(Parser::kAsync);
 
 	if (!parser_.loadFile(fileName, nullptr))
@@ -96,12 +96,12 @@ bool Interpreter::doFile(qint64 beginLine, const QString& fileName, Interpreter*
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
 
 	bool isPrivate = parser_.isPrivate();
-	if (!isPrivate && mode == kSync)
+	if (!isPrivate && mode == Parser::kSync)
 	{
 		emit signalDispatcher.loadFileToTable(fileName);
 		emit signalDispatcher.scriptContentChanged(fileName, QVariant::fromValue(parser_.getTokens()));
 	}
-	else if (isPrivate && mode == kSync)
+	else if (isPrivate && mode == Parser::kSync)
 	{
 		emit signalDispatcher.scriptContentChanged(fileName, QVariant::fromValue(QHash<qint64, TokenMap>{}));
 	}
@@ -130,7 +130,7 @@ bool Interpreter::doFile(qint64 beginLine, const QString& fileName, Interpreter*
 
 		Injector& injector = Injector::getInstance();
 
-		if (mode == kSync && injector.isScriptDebugModeEnable.load(std::memory_order_acquire))
+		if (mode == Parser::kSync && injector.isScriptDebugModeEnable.load(std::memory_order_acquire))
 			emit signalDispatcher.scriptLabelRowTextChanged(currentLine + 1, this->parser_.getToken().size(), false);
 
 		if (TK.contains(0) && TK.value(0).type == TK_PAUSE)
@@ -141,7 +141,7 @@ bool Interpreter::doFile(qint64 beginLine, const QString& fileName, Interpreter*
 
 		parent->checkPause();
 
-		if (mode == kSync)
+		if (mode == Parser::kSync)
 		{
 			QString scriptFileName = parser_.getScriptFileName();
 			util::SafeHash<qint64, break_marker_t> breakMarkers = break_markers.value(scriptFileName);
@@ -214,7 +214,7 @@ void Interpreter::doString(const QString& content, Interpreter* parent, VarShare
 
 	isRunning_.store(true, std::memory_order_release);
 
-	parser_.setBeginLine(0);
+	parser_.setCurrentLine(0);
 
 	if (parent)
 	{
@@ -1628,19 +1628,26 @@ qint64 Interpreter::run(qint64 currentline, const TokenMap& TK)
 	if (beginLine < 0)
 		beginLine = 0;
 
-	RunFileMode asyncMode = kSync;
+	Parser::Mode asyncMode = Parser::kSync;
 	qint64 nAsync = 0;
 	checkInteger(TK, 4, &nAsync);
 	if (nAsync > 0)
-		asyncMode = kAsync;
+		asyncMode = Parser::kAsync;
 
 	fileName.replace("\\", "/");
-
-	fileName = util::applicationDirPath() + "/script/" + fileName;
-	fileName.replace("\\", "/");
-	fileName.replace("//", "/");
 
 	QFileInfo fileInfo(fileName);
+	if (!fileInfo.isAbsolute())
+	{
+		fileName = util::applicationDirPath() + "/script/" + fileName;
+		fileName.replace("\\", "/");
+		fileName.replace("//", "/");
+	}
+
+	fileInfo = QFileInfo(fileName);
+	if (fileInfo.isDir())
+		return Parser::kArgError + 1ll;
+
 	QString suffix = fileInfo.suffix();
 	if (suffix.isEmpty())
 		fileName += ".txt";
@@ -1652,30 +1659,40 @@ qint64 Interpreter::run(qint64 currentline, const TokenMap& TK)
 	if (!QFile::exists(fileName))
 		return Parser::kArgError + 1ll;
 
-	if (kSync == asyncMode)
+	if (Parser::kSync == asyncMode)
 	{
-		QScopedPointer<Interpreter> interpreter(new Interpreter());
-		if (!interpreter.isNull())
+		QHash<qint64, TokenMap> tokens = parser_.getTokens();
+		QHash<QString, qint64> labels = parser_.getLabels();
+		QList<FunctionNode> functionNodeList = parser_.getFunctionNodeList();
+		QList<ForNode> forNodeList = parser_.getForNodeList();
+		QString currentFileName = parser_.getScriptFileName();
+		qint64 currentLine = parser_.getCurrentLine();
+
+		Interpreter interpreter;
+
+		interpreter.setSubScript(true);
+		interpreter.parser_.setMode(asyncMode);
+
+		injector.currentScriptFileName = fileName;
+
+		if (!interpreter.doFile(beginLine, fileName, this, varShareMode))
 		{
-			interpreter->setSubScript(true);
-
-			QString scriptFileName_ = injector.currentScriptFileName;
-			injector.currentScriptFileName = fileName;
-
-			if (!interpreter->doFile(beginLine, fileName, this, varShareMode))
-			{
-				injector.currentScriptFileName = scriptFileName_;
-				return Parser::kError;
-			}
-
-			injector.currentScriptFileName = scriptFileName_;
-
-			//還原顯示
-			SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
-			QHash<qint64, TokenMap>currentToken = parser_.getToken();
-			emit signalDispatcher.loadFileToTable(scriptFileName_);
-			emit signalDispatcher.scriptContentChanged(scriptFileName_, QVariant::fromValue(currentToken));
+			return Parser::kError;
 		}
+
+		parser_.setTokens(tokens);
+		parser_.setLabels(labels);
+		parser_.setFunctionNodeList(functionNodeList);
+		parser_.setForNodeList(forNodeList);
+		parser_.setCurrentLine(currentLine);
+		injector.currentScriptFileName = currentFileName;
+
+		//還原顯示
+		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
+
+		emit signalDispatcher.loadFileToTable(currentFileName);
+
+		emit signalDispatcher.scriptContentChanged(currentFileName, QVariant::fromValue(tokens));
 	}
 	else
 	{
@@ -1686,7 +1703,8 @@ qint64 Interpreter::run(qint64 currentline, const TokenMap& TK)
 				{
 					subInterpreterList_.append(interpreter);
 					interpreter->setSubScript(true);
-					if (interpreter->doFile(beginLine, fileName, this, varShareMode, kAsync))
+					interpreter->parser_.setMode(Parser::kSync);
+					if (interpreter->doFile(beginLine, fileName, this, varShareMode, Parser::kAsync))
 						return true;
 				}
 				return false;
@@ -1725,21 +1743,22 @@ qint64 Interpreter::dostring(qint64 currentline, const TokenMap& TK)
 	if (nShared > 0)
 		varShareMode = kShare;
 
-	RunFileMode asyncMode = kSync;
+	Parser::Mode asyncMode = Parser::kSync;
 	qint64 nAsync = 0;
 	checkInteger(TK, 3, &nAsync);
 	if (nAsync > 0)
-		asyncMode = kAsync;
+		asyncMode = Parser::kAsync;
 
 	QSharedPointer<Interpreter> interpreter(new Interpreter());
 	if (!interpreter.isNull())
 	{
 		subInterpreterList_.append(interpreter);
 		interpreter->setSubScript(true);
+		interpreter->parser_.setMode(asyncMode);
 		interpreter->doString(script, this, varShareMode);
 	}
 
-	if (asyncMode == kSync)
+	if (asyncMode == Parser::kSync)
 	{
 		for (;;)
 		{

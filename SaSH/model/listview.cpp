@@ -26,6 +26,8 @@ constexpr int MAX_LIST_COUNT = 2048;
 ListView::ListView(QWidget* parent)
 	: QListView(parent)
 {
+	setWordWrap(true);
+	setUniformItemSizes(false);
 }
 
 void ListView::dataChanged(const QModelIndex& topLeft, const QModelIndex& bottomRight, const QVector<int>& roles)

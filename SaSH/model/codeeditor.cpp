@@ -21,18 +21,18 @@ CodeEditor::CodeEditor(QWidget* parent)
 
 {
 	//install font
-	//QFontDatabase::addApplicationFont("YaHei Consolas Hybrid 1.12.ttf");
-	//QFont _font("YaHei Consolas Hybrid", 12, 570/*QFont::DemiBold*/, false);
-	//setFont(_font);
-	//font = _font;
+	QFontDatabase::addApplicationFont("YaHei Consolas Hybrid 1.12.ttf");
+	QFont _font("YaHei Consolas Hybrid", 12, 570/*QFont::DemiBold*/, false);
+	setFont(_font);
+	font = _font;
 
-	//textLexer.setDefaultFont(font);
+	textLexer.setDefaultFont(font);
 	setLexer(&textLexer);
 	SendScintilla(QsciScintilla::SCI_SETCODEPAGE, QsciScintilla::SC_CP_UTF8);//設置編碼為UTF-8
 	setUtf8(true);//設置編碼為UTF-8
 	setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Maximum);
 
-	//QsciScintilla::setFont(font);
+	QsciScintilla::setFont(font);
 	//代碼提示autoCompletion
 #ifdef _DEBUG
 	QFile f(R"(..\Debug\lib\completion_api.txt)");
@@ -81,10 +81,10 @@ CodeEditor::CodeEditor(QWidget* parent)
 	setBackspaceUnindents(true);//退格鍵將取消縮進一行而不是刪除一個字符
 
 	//current line color
-	//setCaretLineBackgroundColor(QColor(71, 71, 71));//光標所在行背景顏色
+	setCaretLineBackgroundColor(QColor(71, 71, 71));//光標所在行背景顏色
 	setCaretLineVisible(true); //是否高亮顯示光標所在行
 	setCaretWidth(2);//光標寬度，0表示不顯示光標
-	//setCaretForegroundColor(QColor(174, 175, 173));  //光標顏色
+	setCaretForegroundColor(QColor(174, 175, 173));  //光標顏色
 
 	setEolMode(QsciScintilla::EolWindows); //微軟風格換行符
 	setEolVisibility(false);//是否顯示換行符號
@@ -92,10 +92,10 @@ CodeEditor::CodeEditor(QWidget* parent)
 	setAutoCompletionFillupsEnabled(true);
 
 	setCallTipsVisible(0);//顯示tip數量
-	//setCallTipsHighlightColor(QColor(61, 61, 61));
+	setCallTipsHighlightColor(QColor(61, 61, 61));
 	setCallTipsStyle(QsciScintilla::CallTipsContext);
 	setCallTipsPosition(QsciScintilla::CallTipsBelowText);
-	//setCallTipsBackgroundColor(QColor(31, 31, 31));
+	setCallTipsBackgroundColor(QColor(30, 30, 30));
 
 	setAnnotationDisplay(QsciScintilla::AnnotationBoxed);//註釋樣式
 
@@ -110,35 +110,35 @@ CodeEditor::CodeEditor(QWidget* parent)
 
 	// 折疊標簽樣式
 	setFolding(QsciScintilla::BoxedTreeFoldStyle);//折疊樣式
-	//setFoldMarginColors(QColor(165, 165, 165), QColor(61, 61, 61));//折疊欄顏色
+	setFoldMarginColors(QColor(165, 165, 165), QColor(61, 61, 61));//折疊欄顏色
 
 	setTabIndents(true);//True如果行前空格數少於tabWidth，補齊空格數,False如果在文字前tab同true，如果在行首tab，則直接增加tabwidth個空格
 	setTabWidth(4);//\t寬度設為四個空格
 
 	setWhitespaceVisibility(QsciScintilla::WsInvisible);//此時空格為點，\t為箭頭
 	setWhitespaceSize(0);//空格點大小
-	//setWhitespaceForegroundColor(QColor(85, 85, 85));
+	setWhitespaceForegroundColor(QColor(85, 85, 85));
 
 	copyAvailable(true);//允許自動複製選中範圍
 
 	//selection color
-	//setSelectionBackgroundColor(QColor(38, 79, 120));//選中文本背景色
+	setSelectionBackgroundColor(QColor(38, 79, 120));//選中文本背景色
 	setSelectionForegroundColor(Qt::white);//選中文本前景色
 
 	setIndicatorDrawUnder(true);
-	//setIndicatorHoverForegroundColor(QColor(17, 61, 111));
+	setIndicatorHoverForegroundColor(QColor(17, 61, 111));
 	setIndicatorHoverStyle(QsciScintilla::FullBoxIndicator);
-	//setIndicatorOutlineColor(QColor(104, 119, 135));
+	setIndicatorOutlineColor(QColor(104, 119, 135));
 
-	//setMatchedBraceBackgroundColor(QColor(17, 61, 111));//括號等選取顏色
-	//setMatchedBraceForegroundColor(QColor(180, 180, 177));
-	//setUnmatchedBraceBackgroundColor(QColor(17, 61, 111));
-	//setUnmatchedBraceForegroundColor(QColor(255, 0x80, 0x80));
+	setMatchedBraceBackgroundColor(QColor(17, 61, 111));//括號等選取顏色
+	setMatchedBraceForegroundColor(QColor(180, 180, 177));
+	setUnmatchedBraceBackgroundColor(QColor(17, 61, 111));
+	setUnmatchedBraceForegroundColor(QColor(255, 0x80, 0x80));
 
 	setHotspotUnderline(true);
 	setHotspotWrap(true);
-	//setHotspotBackgroundColor(QColor(30, 30, 30));
-	//setHotspotForegroundColor(QColor(128, 128, 255));
+	setHotspotBackgroundColor(QColor(30, 30, 30));
+	setHotspotForegroundColor(QColor(128, 128, 255));
 
 	//行號顯示區域
 	setMarginType(0, QsciScintilla::NumberMargin);//設置標號為0的頁邊顯示行號
@@ -148,8 +148,8 @@ CodeEditor::CodeEditor(QWidget* parent)
 
 	setMarginsFont(font);//設置頁邊字體
 	setMarginOptions(QsciScintilla::MoSublineSelect);
-	//setMarginsBackgroundColor(QColor(30, 30, 30));
-	//setMarginsForegroundColor(QColor(43, 145, 175));
+	setMarginsBackgroundColor(QColor(30, 30, 30));
+	setMarginsForegroundColor(QColor(43, 145, 175));
 
 	//斷點設置區域
 	setMarginType(1, QsciScintilla::SymbolMargin); //設置1號頁邊顯示符號
@@ -193,17 +193,28 @@ CodeEditor::CodeEditor(QWidget* parent)
 
 #pragma region style
 	QString style = R"(
+		#widget{
+			color: rgb(250, 250, 250);
+			background-color: rgb(30, 30, 30);
+		}
+
+		QToolTip{border-style:none; background-color: rgb(57, 58, 60);color: rgb(208, 208, 208);}
+
+
 		QScrollBar:vertical {
-		background: rgb(46,46,46);
-		max-width: 18px;}
+			background: rgb(46,46,46);
+			max-width: 18px;
+		}
 
 		QScrollBar::handle:vertical {
-		border: 5px solid rgb(46,46,46);
-		background: rgb(71,71,71);}
+			border: 5px solid rgb(46,46,46);
+			background: rgb(71,71,71);
+		}
 
 		QScrollBar::handle:hover:vertical,
 		QScrollBar::handle:pressed:vertical {
-		background: rgb(153,153,153);}
+			background: rgb(153,153,153);
+		}
 
 		QScrollBar::sub-page:vertical {background: 444444;}
 		QScrollBar::add-page:vertical {background: 5B5B5B;}
@@ -211,13 +222,15 @@ CodeEditor::CodeEditor(QWidget* parent)
 		QScrollBar::sub-line:vertical {background: none;}
 
 		QScrollBar:horizontal {
-		background: rgb(71,71,71);
-		border: 5px solid rgb(46,46,46);
-		max-height: 18px;}
+			background: rgb(71,71,71);
+			border: 5px solid rgb(46,46,46);
+			max-height: 18px;
+		}
 
 		QScrollBar::handle:horizontal {
-		border: 5px solid rgb(46,46,46);
-		background: rgb(71,71,71);}
+			border: 5px solid rgb(46,46,46);
+			background: rgb(71,71,71);
+		}
 
 		QScrollBar::handle:hover:horizontal,
 		QScrollBar::handle:pressed:horizontal { background: rgb(153,153,153);}
@@ -228,22 +241,22 @@ CodeEditor::CodeEditor(QWidget* parent)
 		QScrollBar::sub-line:horizontal {background: none;}
 
 		QListWidget{
-		color: rgb(0, 0, 0);
-		background-color: rgb(250, 250, 250);
+			color: rgb(0, 0, 0);
+			background-color: rgb(250, 250, 250);
 		}
 
         QListWidget::item{
-		color: rgb(0, 0, 0);
-		background-color: rgb(250, 250, 250);
+			color: rgb(0, 0, 0);
+			background-color: rgb(250, 250, 250);
 		}
 
 		QListWidget::item:selected{ 
-		color: rgb(0, 0, 0);
-		background-color: rgb(0, 120, 215);
+			color: rgb(0, 0, 0);
+			background-color: rgb(0, 120, 215);
 		}
 	)";
-
-	//setStyleSheet(style);
+	setAttribute(Qt::WA_StyledBackground);
+	setStyleSheet(style);
 #pragma endregion
 }
 

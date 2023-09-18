@@ -281,7 +281,7 @@ qint64 Interpreter::waitpet(qint64 currentline, const TokenMap& TK)
 			});
 	}
 
-	return checkJump(TK, 3, bret, SuccessJump);
+	return checkJump(TK, 3, bret, FailedJump);
 }
 
 qint64 Interpreter::waitmap(qint64 currentline, const TokenMap& TK)

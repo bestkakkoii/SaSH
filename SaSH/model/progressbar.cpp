@@ -54,7 +54,19 @@ ProgressBar::ProgressBar(QWidget* parent)
 	setRange(0, 100);
 	setValue(0);
 	setAttribute(Qt::WA_StyledBackground);
-	setStyleSheet("text-align: center;");
+	QString styleSheet = QString(R"(
+		QProgressBar {
+			text-align: left;
+			color: black;
+			background-color: #F0F0F0;
+		}
+
+		QProgressBar::chunk {
+			background-color: #F0F0F0;
+		}
+	)");
+
+	setStyleSheet(styleSheet);
 	setOrientation(Qt::Horizontal);
 	setAlignment(Qt::AlignTop);
 	setTextVisible(true);
@@ -96,7 +108,7 @@ void ProgressBar::onCurrentValueChanged(int level, int value, int maxvalue)
 	QString text;
 	if (kHP == type_)
 	{
-		text = QString("%1lv%2,hp%3/%4(%5)")
+		text = QString("%1 %2 %3/%4(%5)")
 			.arg(name_)
 			.arg(level_)
 			.arg("%v")
@@ -105,7 +117,7 @@ void ProgressBar::onCurrentValueChanged(int level, int value, int maxvalue)
 	}
 	else
 	{
-		text = QString("mp%1/%2(%3)")
+		text = QString("%1/%2(%3)")
 			.arg("%v")
 			.arg("%m")
 			.arg("%p%");

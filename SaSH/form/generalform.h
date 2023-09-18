@@ -42,6 +42,7 @@ protected:
 
 private:
 	void createServerList();
+	void serverListReLoad();
 
 private:
 	Ui::GeneralFormClass ui;

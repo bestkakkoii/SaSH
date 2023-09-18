@@ -500,9 +500,9 @@ void OtherForm::onResetControlTextLanguage()
 void OtherForm::onApplyHashSettingsToUI()
 {
 	Injector& injector = Injector::getInstance();
-	util::SafeHash<util::UserSetting, bool> enableHash = injector.getEnableHash();
-	util::SafeHash<util::UserSetting, int> valueHash = injector.getValueHash();
-	util::SafeHash<util::UserSetting, QString> stringHash = injector.getStringHash();
+	QHash<util::UserSetting, bool> enableHash = injector.getEnablesHash();
+	QHash<util::UserSetting, int> valueHash = injector.getValuesHash();
+	QHash<util::UserSetting, QString> stringHash = injector.getStringsHash();
 
 	if (ui.comboBox_lockride->count() == 0 || ui.comboBox_lockpet->count() == 0)
 	{

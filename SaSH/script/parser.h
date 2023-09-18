@@ -376,13 +376,19 @@ public:
 	inline Q_REQUIRED_RESULT QHash<QString, qint64> getLabels() const { return labels_; }
 	inline Q_REQUIRED_RESULT QList<FunctionNode> getFunctionNodeList() const { return functionNodeList_; }
 	inline Q_REQUIRED_RESULT QList<ForNode> getForNodeList() const { return forNodeList_; }
+	inline Q_REQUIRED_RESULT qint64 getCurrentLine() const { return lineNumber_; }
+
 	inline void setScriptFileName(const QString& scriptFileName) { scriptFileName_ = scriptFileName; }
-	inline void setBeginLine(const qint64 beginLine) { lineNumber_ = beginLine; }
+	inline void setCurrentLine(const qint64 line) { lineNumber_ = line; }
 	inline void setPrivate(bool isPrivate) { isPrivate_ = isPrivate; }
+	inline void setMode(Mode mode) { mode_ = mode; }
+	inline void setTokens(const QHash<qint64, TokenMap>& tokens) { tokens_ = tokens; }
+	inline void setLabels(const QHash<QString, qint64>& labels) { labels_ = labels; }
+	inline void setFunctionNodeList(const QList<FunctionNode>& functionNodeList) { functionNodeList_ = functionNodeList; }
+	inline void setForNodeList(const QList<ForNode>& forNodeList) { forNodeList_ = forNodeList; }
 	inline void setCallBack(ParserCallBack callBack) { callBack_ = callBack; }
 
 	bool loadFile(const QString& fileName, QString* pcontent);
-
 	bool loadString(const QString& content);
 
 public:
@@ -394,10 +400,6 @@ public:
 	inline Q_REQUIRED_RESULT bool hasToken() const { return !tokens_.isEmpty(); }
 
 	inline Q_REQUIRED_RESULT const QHash<qint64, TokenMap> getToken() const { return tokens_; }
-
-	inline void setCurrentLine(qint64 line) { lineNumber_ = line; }
-
-	inline void setMode(Mode mode) { mode_ = mode; }
 
 	void insertUserCallBack(const QString& name, const QString& type);
 
@@ -431,6 +433,8 @@ public:
 
 	bool isSubScript() const { return isSubScript_; }
 	void setSubScript(bool isSubScript) { isSubScript_ = isSubScript; }
+
+	QVariant luaDoString(QString expr);
 
 public:
 	Q_REQUIRED_RESULT VariantSafeHash* getGlobalVarPointer() const;
@@ -488,7 +492,7 @@ private:
 
 	void checkConditionalOp(QString& expr);
 
-	QVariant luaDoString(QString expr);
+
 
 	template <typename T>
 	typename std::enable_if<
@@ -567,8 +571,11 @@ private:
 
 	void generateStackInfo(qint64 type);
 
-private:
+public:
 	sol::state lua_;
+
+private:
+
 	Lexer lexer_;
 
 	QString scriptFileName_;

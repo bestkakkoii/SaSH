@@ -42,7 +42,11 @@ protected:
 
 	virtual bool eventFilter(QObject* obj, QEvent* e) override;
 
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
 	virtual bool nativeEvent(const QByteArray& eventType, void* message, long* result) override;
+#else
+	virtual bool nativeEvent(const QByteArray& eventType, void* message, qintptr* result) override;
+#endif
 
 	virtual void mousePressEvent(QMouseEvent* e)  override
 	{
@@ -59,7 +63,9 @@ protected:
 private:
 	void fileSave(const QString& d, DWORD flag);
 
-	void replaceCommas(QStringList& inputList);
+	void replaceCommas(QString& inputList);
+
+	QString formatCode(const QString& content);
 
 	void onReloadScriptList();
 
@@ -80,6 +86,8 @@ private:
 	QString getFullPath(QTreeWidgetItem* item);
 
 	void setContinue();
+
+	void createTreeWidgetItems(Parser* pparser, QList<QTreeWidgetItem*>* pTrees, const QHash<QString, QVariant>& d);
 
 signals:
 	void editorCursorPositionChanged(int line, int index);
@@ -110,7 +118,7 @@ private slots:
 	void onScriptLabelRowTextChanged(int row, int max, bool noSelect);
 
 	void loadFile(const QString& fileName);
-	void onVarInfoImport(const QHash<QString, QVariant>& d);
+	void onVarInfoImport(void* p, const QVariantHash&);
 
 
 	void onCallStackInfoChanged(const QVariant& var);

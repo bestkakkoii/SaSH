@@ -1028,6 +1028,8 @@ namespace util
 	QFileInfoList loadAllFileLists(TreeWidgetItem* root, const QString& path, QStringList* list = nullptr);
 	QFileInfoList loadAllFileLists(TreeWidgetItem* root, const QString& path, const QString& suffix, const QString& icon, QStringList* list = nullptr);
 
+	void searchFiles(const QString& dir, const QString& fileNamePart, const QString& suffixWithDot, QList<QString>* result);
+
 	bool enumAllFiles(const QString dir, const QString suffix, QVector<QPair<QString, QString>>* result);
 
 	template<typename T>

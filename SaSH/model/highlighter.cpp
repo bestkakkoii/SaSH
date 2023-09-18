@@ -21,68 +21,94 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 Highlighter::Highlighter(QObject* parent)
 	: QsciLexerLua(parent)
-	, m_font("YaHei Consolas Hybrid", 10, 570/*QFont::DemiBold*/, false)
+	, m_font("YaHei Consolas Hybrid", 12, 570/*QFont::DemiBold*/, false)
 {
 }
 
 const char* Highlighter::keywords(int set) const
 {
-	//switch (set)
-	//{
-	//case 1://粉色
-	//{
-	//	//lua key word
-	//	return "goto call function end pause exit label jmp return back break for continue "
-	//		"if ifmap ifplayer ifpet ifpetex ifitem ifteam ifitemfull ifdaily ifbattle ifpos ifonline ifnormal "
-	//		"waitdlg waitsay waititem waitmap waitteam "
-	//		"while repeat until do in then else elseif ";
-	//}
-	//case 2://QsciLexerLua::BasicFunctions//黃色
-	//{
-	//	return "ocr dlg "
-	//		"print sleep timer msg logout logback eo button say input menu "
-	//		"talk cls set saveset loadset "
-	//		"chpet chplayername chpetname chmap "
-	//		"usemagic doffpet buy sell useitem doffitem swapitem pickup put "
-	//		"get putpet getpet make cook uequip requip "
-	//		"wequip pequip puequip skup join leave kick move "
-	//		"walkpos w dir findpath movetonpc lclick rclick ldbclick dragto warp "
-	//		"learn trade run dostring sellpet mail reg "
-	//		"regex rex rexg upper lower half toint tostr todb replace find full "
-	//		"bh bj bp bs be bd bi bn bw bwf bwait bend "
-	//		"dofile createch delch doffstone send ";
-	//}
-	//case 3://QsciLexerLua::StringTableMathsFunction//草綠
-	//{
-	//	return "string table ";
-	//}
-	//case 4://QsciLexerLua::CoroutinesIOSystemFacilities//青綠
-	//{
-	//	return "";
-	//}
-	//case 5://KeywordSet5//深藍色
-	//{
-	//	return "local var delete releaseall rnd true false any format "
-	//		"int double bool not and or nil ";
-	//}
-	//case 6://KeywordSet6//淺藍色
-	//{
-	//	return "out player pet magic skill petskill equip petequip map dialog chat point battle char ";
-	//}
-	//case 7://KeywordSet7//土橘色
-	//{
-	//	return "! ";
-	//}
-	//case 8://KeywordSet8//紫色
-	//{
-	//	return "_GAME_ _WORLD_ vret _IFEXPR _IFRESULT _LUARESULT _LUAEXPR";
-	//}
-	//case 9:
-	//	return "";
+	switch (set)
+	{
+	case 1://粉色
+	{
+		//lua key word
+		return "call pause exit label jmp return back continue "
+			"ifmap ifpet ifitem ifteam ifitemfull ifdaily ifbattle ifpos ifonline ifnormal "
+			"waitdlg waitsay waititem waitmap waitteam waitpet "
+			/*lua original*/
+			"function end goto break for while if repeat until do in then else elseif ";
+	}
+	case 2://QsciLexerLua::BasicFunctions//黃色
+	{
+		return "ocr dlg "
+			"print sleep timer msg logout logback eo button say input menu "
+			"talk cls set saveset loadset "
+			"chpet chplayername chpetname chmap "
+			"usemagic doffpet buy sell useitem doffitem swapitem pickup put "
+			"get putpet getpet make cook uequip requip "
+			"wequip pequip puequip skup join leave kick move "
+			"walkpos w dir findpath movetonpc lclick rclick ldbclick dragto warp "
+			"learn trade run dostring sellpet mail reg "
+			"regex rex rexg upper lower half toint tostr todb replace find full "
+			"bh bj bp bs be bd bi bn bw bwf bwait bend "
+			"dofile createch delch doffstone send format "
+			/*lua original*/
+			"assert collectgarbage "
+			"coroutine.close coroutine.create coroutine.isyieldable coroutine.resume coroutine.running coroutine.status coroutine.wrap coroutine.yield "
+			"debug.debug debug.gethook debug.getinfo debug.getlocal debug.getmetatable debug.getregistry debug.getupvalue debug.getuservalue debug.setcstacklimit debug.sethook "
+			"debug.setlocal debug.setmetatable debug.setupvalue debug.setuservalue debug.traceback debug.upvalueid debug.upvaluejoin "
+			"dofile error "
+			"file:close file:flush file:lines file:read file:seek file:setvbuf file:write "
+			"getmetatable io.close io.flush io.input io.lines io.open io.output io.popen io.read io.tmpfile io.type io.write "
+			"ipairs load loadfile "
+			"math.abs math.acos math.asin math.atan math.ceil math.cos math.deg math.exp math.floor math.fmod math.log "
+			"math.max math.min math.modf math.rad math.random math.randomseed math.sin math.sqrt math.tan math.tointeger math.type math.ult "
+			"next "
+			"os.clock os.date os.difftime os.execute os.exit os.getenv os.remove os.rename os.setlocale os.time os.tmpname "
+			"package.loadlib package.searchpath "
+			"pairs pcall print rawequal rawget rawlen rawset require select setmetatable "
+			"string.byte string.char string.dump string.find string.format string.gmatch string.gsub string.len string.lower "
+			"string.match string.pack string.packsize string.rep string.reverse string.sub string.unpack string.upper "
+			"table.concat table.insert table.move table.pack table.remove table.sort table.unpack "
+			"tonumber tostring type "
+			"utf8.char utf8.codepoint utf8.codes utf8.len utf8.offset warn xpcall ";
+	}
+	case 3://QsciLexerLua::StringTableMathsFunction//草綠
+	{
+		return "string table ";
+	}
+	case 4://QsciLexerLua::CoroutinesIOSystemFacilities//青綠
+	{
+		return "";
+	}
+	case 5://KeywordSet5//深藍色
+	{
+		return "local var delete releaseall rnd true false any "
+			"int double bool not and or nil ";
+	}
+	case 6://KeywordSet6//淺藍色
+	{
+		return "out player pet magic skill petskill equip petequip map dialog chat point battle char "
+			/*lua original*/
+			"math os file debug coroutine utf8 package io ";
+	}
+	case 7://KeywordSet7//土橘色
+	{
+		return "";
+	}
+	case 8://KeywordSet8//紫色
+	{
+		return "_GAME_ _WORLD_ vret _IFEXPR _IFRESULT _LUARESULT _LUAEXPR "
+			/*lua original*/
+			"_G _VERSION "
+			"utf8.charpattern package.path package.preload package.searchers package.config package.cpath package.loaded math.huge math.maxinteger math.mininteger math.pi ";
+	}
+	case 9:
+		return "";
 
-	//default:
-	//	break;
-	//}
+	default:
+		break;
+	}
 
 	return QsciLexerLua::keywords(set);
 }
@@ -90,73 +116,73 @@ const char* Highlighter::keywords(int set) const
 // Returns the foreground colour of the text for a style.
 QColor Highlighter::defaultColor(int style) const
 {
-	//switch (style)
-	//{
-	//	//綠色
-	//case Comment:
-	//case LineComment:
-	//	return QColor(106, 153, 85);
+	switch (style)
+	{
+		//綠色
+	case Comment:
+	case LineComment:
+		return QColor(106, 153, 85);
 
-	//	//草綠
-	//case Number:
-	//	return QColor(181, 206, 168);
+		//草綠
+	case Number:
+		return QColor(181, 206, 168);
 
-	//	//粉色
-	//case Keyword:
-	//	return QColor(197, 134, 192);
+		//粉色
+	case Keyword:
+		return QColor(197, 134, 192);
 
-	//	//土黃色
-	//case BasicFunctions:
-	//	return QColor(220, 220, 170);
+		//土黃色
+	case BasicFunctions:
+		return QColor(220, 220, 170);
 
-	//	//草綠
-	//case CoroutinesIOSystemFacilities:
-	//	return QColor(181, 206, 168);
+		//草綠
+	case CoroutinesIOSystemFacilities:
+		return QColor(181, 206, 168);
 
-	//	//土橘色
-	//case Label:
-	//case String:
-	//case Character:
-	//case LiteralString:
-	//case Preprocessor:
-	//	return QColor(206, 145, 120);
+		//土橘色
+	case Label:
+	case String:
+	case Character:
+	case LiteralString:
+	case Preprocessor:
+		return QColor(206, 145, 120);
 
-	//case KeywordSet7:
-	//case Operator:
-	//	return QColor(206, 145, 0);
+	case KeywordSet7:
+	case Operator:
+		return QColor(206, 145, 0);
 
-	//	//灰白色
-	//case Default:
-	//case Identifier:
-	//	return QColor(212, 212, 212);
+		//灰白色
+	case Default:
+	case Identifier:
+		return QColor(212, 212, 212);
 
-	//	//乳藍色
+		//乳藍色
 
-	//	//return QColor(77, 177, 252);
+		//return QColor(77, 177, 252);
 
-	//	//青綠
-	//case StringTableMathsFunctions:
-	//case UnclosedString:
-	//	return QColor(78, 201, 176);
+		//青綠
+	case StringTableMathsFunctions:
+	case UnclosedString:
+		return QColor(78, 201, 176);
 
-	//	//深藍色
-	//case KeywordSet5:
-	//	return QColor(86, 156, 214);
+		//深藍色
+	case KeywordSet5:
+		return QColor(86, 156, 214);
 
-	//	//淺藍色
-	//case KeywordSet6:
-	//	return QColor(156, 220, 254);
+		//淺藍色
+	case KeywordSet6:
+		return QColor(156, 220, 254);
 
-	//	//紫色
-	//case KeywordSet8:
-	//	return QColor(190, 183, 255);
+		//紫色
+	case KeywordSet8:
+		return QColor(190, 183, 255);
 
-	//case NewlineArrow:
-	//	return QColor(80, 80, 255);
+	case NewlineArrow:
+		return QColor(80, 80, 255);
 
-	//default:
-	//	break;
-	//}
+	default:
+		break;
+	}
 
 	return QsciLexerLua::defaultColor(style);
 }
@@ -164,8 +190,7 @@ QColor Highlighter::defaultColor(int style) const
 // Returns the font of the text for a style.
 QFont Highlighter::defaultFont(int n) const
 {
-	//return m_font;
-	return QsciLexerLua::defaultFont(n);
+	return m_font;
 }
 
 // Return the set of character sequences that can separate auto-completion
@@ -178,8 +203,8 @@ QStringList Highlighter::autoCompletionWordSeparators() const
 // Returns the background colour of the text for a style.
 QColor Highlighter::defaultPaper(int style) const
 {
-	//return QColor(30, 30, 30);
-	return QsciLexerLua::defaultPaper(style);
+	return QColor(30, 30, 30);
+	//return QsciLexerLua::defaultPaper(style);
 }
 
 // Default implementation to return the set of fill up characters that can end

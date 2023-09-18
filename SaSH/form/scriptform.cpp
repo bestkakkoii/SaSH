@@ -526,9 +526,9 @@ void ScriptForm::onSpeedChanged(int value)
 void ScriptForm::onApplyHashSettingsToUI()
 {
 	Injector& injector = Injector::getInstance();
-	util::SafeHash<util::UserSetting, bool> enableHash = injector.getEnableHash();
-	util::SafeHash<util::UserSetting, int> valueHash = injector.getValueHash();
-	util::SafeHash<util::UserSetting, QString> stringHash = injector.getStringHash();
+	QHash<util::UserSetting, bool> enableHash = injector.getEnablesHash();
+	QHash<util::UserSetting, int> valueHash = injector.getValuesHash();
+	QHash<util::UserSetting, QString> stringHash = injector.getStringsHash();
 
 	ui.spinBox_speed->setValue(valueHash.value(util::kScriptSpeedValue));
 }

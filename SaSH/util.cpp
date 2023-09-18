@@ -1035,6 +1035,44 @@ QFileInfoList util::loadAllFileLists(TreeWidgetItem* root, const QString& path, 
 	return file_list;
 }
 
+void util::searchFiles(const QString& dir, const QString& fileNamePart, const QString& suffixWithDot, QList<QString>* result)
+{
+	QDir d(dir);
+	if (!d.exists())
+		return;
+
+	QFileInfoList list = d.entryInfoList(QDir::Files | QDir::Dirs | QDir::NoDotAndDotDot);
+	for (const QFileInfo& fileInfo : list)
+	{
+		if (fileInfo.isFile())
+		{
+			if (fileInfo.fileName().contains(fileNamePart, Qt::CaseInsensitive) && fileInfo.suffix() == suffixWithDot.mid(1))
+			{
+				QFile file(fileInfo.absoluteFilePath());
+				if (file.open(QIODevice::ReadOnly | QIODevice::Text))
+				{
+					QTextStream in(&file);
+#ifdef _WIN64
+					in.setEncoding(QStringConverter::Utf8);
+#else
+					in.setCodec(util::DEFAULT_CODEPAGE);
+#endif
+					in.setGenerateByteOrderMark(true);
+					//將文件名置於前方
+					QString fileContent = QString("# %1\n---\n%2").arg(fileInfo.fileName()).arg(in.readAll());
+					file.close();
+
+					result->append(fileContent);
+				}
+			}
+		}
+		else if (fileInfo.isDir())
+		{
+			searchFiles(fileInfo.absoluteFilePath(), fileNamePart, suffixWithDot, result);
+		}
+	}
+}
+
 bool util::enumAllFiles(const QString dir, const QString suffix, QVector<QPair<QString, QString>>* result)
 {
 	QDir directory(dir);
@@ -1111,12 +1149,12 @@ void util::sortWindows(const QVector<HWND>& windowList, bool alignLeft)
 		// 根據對齊方式設置窗口位置
 		if (alignLeft)
 		{
-			SetWindowPos(hwnd, nullptr, x, y, 0, 0, SWP_NOSIZE | SWP_NOZORDER); // 左對齊
+			SetWindowPos(hwnd, HWND_TOP, x, y, 0, 0, SWP_ASYNCWINDOWPOS | SWP_NOSIZE); // 左對齊
 		}
 		else
 		{
 			int xPos = screenWidth - (x + windowWidth);
-			SetWindowPos(hwnd, nullptr, xPos, y, 0, 0, SWP_NOSIZE | SWP_NOZORDER);// 右對齊
+			SetWindowPos(hwnd, HWND_TOP, xPos, y, 0, 0, SWP_ASYNCWINDOWPOS | SWP_NOSIZE);// 右對齊
 		}
 
 		// 更新下一個窗口的位置
