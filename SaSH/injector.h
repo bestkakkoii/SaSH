@@ -96,9 +96,9 @@ public:
 
 	Q_REQUIRED_RESULT inline DWORD getProcessId() const { return pi_.dwProcessId; }
 
-	Q_REQUIRED_RESULT inline int getProcessModule() const { return hModule_; }
+	Q_REQUIRED_RESULT inline int getProcessModule() const { return hGameModule_; }
 
-	Q_REQUIRED_RESULT inline bool isValid() const { return hModule_ != NULL && pi_.dwProcessId != NULL && pi_.hWnd != nullptr && processHandle_.isValid(); }
+	Q_REQUIRED_RESULT inline bool isValid() const { return hGameModule_ != NULL && pi_.dwProcessId != NULL && pi_.hWnd != nullptr && processHandle_.isValid(); }
 
 	bool createProcess(process_information_t& pi);
 
@@ -202,7 +202,7 @@ public:
 	std::atomic_bool isScriptDebugModeEnable = true;
 
 private:
-	int hModule_ = NULL;
+	quint64 hGameModule_ = NULL;
 	HMODULE hookdllModule_ = NULL;
 	process_information_t pi_ = {};
 	ScopedHandle processHandle_;

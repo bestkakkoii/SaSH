@@ -90,6 +90,43 @@ namespace mem
 	Q_REQUIRED_RESULT int virtualAllocA(HANDLE hProcess, const QString& str);
 	Q_REQUIRED_RESULT DWORD getRemoteModuleHandle(DWORD dwProcessId, const QString& moduleName);
 	void freeUnuseMemory(HANDLE hProcess);
+
+	typedef struct _IAT_EAT_INFO
+	{
+		char ModuleName[256] = {};
+		char FuncName[64] = {};
+		ULONG64 Address = 0;
+		ULONG64 RecordAddr = 0;
+		ULONG64 ModBase = 0;//just for export table
+	} IAT_EAT_INFO, * PIAT_EAT_INFO;
+
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+	inline __declspec(naked) DWORD* getKernel32()
+	{
+		__asm
+		{
+			mov eax, fs: [0x30]
+			mov eax, [eax + 0xC]
+			mov eax, [eax + 0x1C]
+			mov eax, [eax]
+			mov eax, [eax]
+			mov eax, [eax + 8]
+			ret
+		}
+	}
+#else
+	inline DWORD* getKernel32()
+	{
+		return (DWORD*)GetModuleHandleW(L"kernelbase.dll");
+	}
+#endif
+
+	DWORD getFunAddr(const DWORD* DllBase, const char* FunName);
+	HMODULE getRemoteModuleHandleByProcessHandleW(HANDLE hProcess, const QString& szModuleName);
+	long getProcessExportTable32(HANDLE hProcess, const QString& ModuleName, IAT_EAT_INFO tbinfo[], int tb_info_max);
+	ULONG64 getProcAddressIn32BitProcess(HANDLE hProcess, const QString& ModuleName, const QString& FuncName);
+	bool inject64(HANDLE hProcess, QString dllPath, HMODULE* phDllModule, quint64* phGameModule);//兼容64位注入32位
+	bool inject(HANDLE hProcess, QString dllPath, HMODULE* phDllModule, quint64* phGameModule);//32注入32
 }
 
 namespace util
@@ -2080,9 +2117,9 @@ namespace util
 			{
 				m_maps.insert(uc);
 				p = reinterpret_cast<T*>(uc);
-			}
+	}
 			return uc != nullptr;
-		}
+}
 
 		QFile& __fastcall  file() { return *this; }
 

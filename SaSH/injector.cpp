@@ -56,7 +56,7 @@ void Injector::clear()//static
 	if (instance != nullptr)
 	{
 		instance->server.reset(nullptr);
-		instance->hModule_ = NULL;
+		instance->hGameModule_ = NULL;
 		instance->hookdllModule_ = NULL;
 		instance->pi_ = {  };
 		instance->processHandle_.reset();
@@ -258,48 +258,47 @@ DWORD WINAPI Injector::getFunAddr(const DWORD* DllBase, const char* FunName)
 
 bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short port, util::LPREMOVE_THREAD_REASON pReason)
 {
+	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
+
 	if (!pi.dwProcessId)
+	{
+		emit signalDispatcher.messageBoxShow(tr("dwProcessId is null!"));
 		return false;
+	}
 
 	if (nullptr == pReason)
+	{
+		emit signalDispatcher.messageBoxShow(tr("pReason is null!"));
 		return false;
+	}
 
-	constexpr qint64 MAX_TIMEOUT = 10000;
+	constexpr qint64 MAX_TIMEOUT = 30000;
 	bool bret = 0;
 	QElapsedTimer timer;
-	DWORD* kernel32Module = nullptr;
-	FARPROC loadLibraryProc = nullptr;
-	DWORD hModule = NULL;
 	QString dllPath = "\0";
-	QFileInfo fi;
-	QString fileNameOnly;
-	DWORD parent = NULL;
-
+	qint64 parent = NULL;
 	do
 	{
 		QString applicationDirPath = util::applicationDirPath();
 		dllPath = applicationDirPath + "/" + InjectDllName;
 
-		fi.setFile(dllPath);
-		fileNameOnly = fi.fileName();
-
-		//檢查dll生成日期必須與當前exe相同日或更早
-		QFileInfo exeInfo(applicationDirPath);
-
-		if (fi.exists() && fi.lastModified() > exeInfo.lastModified())
+		QFileInfo fi(dllPath);
+		if (!fi.exists())
 		{
+			emit signalDispatcher.messageBoxShow(tr("Dll is not exist at %1").arg(dllPath));
 			break;
 		}
 
 		qDebug() << "file OK";
 
-		pi.hWnd = NULL;
+		pi.hWnd = nullptr;
 
 		timer.start();
 
 		if (nullptr == pi.hWnd)
 		{
-			for (;;)//超過N秒自動退出
+			//查找窗口句炳
+			for (;;)
 			{
 				::EnumWindows(EnumWindowsCallback, reinterpret_cast<LPARAM>(&pi));
 				if (pi.hWnd)
@@ -309,8 +308,13 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 					if (dwProcessId == pi.dwProcessId)
 						break;
 				}
+
 				if (timer.hasExpired(MAX_TIMEOUT))
+				{
+					emit signalDispatcher.messageBoxShow(tr("EnumWindows timeout"));
 					break;
+				}
+
 				QThread::msleep(100);
 			}
 		}
@@ -318,17 +322,50 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 		if (nullptr == pi.hWnd)
 		{
 			*pReason = util::REASON_ENUM_WINDOWS_FAIL;
-			break;
+			continue;
 		}
 
 		qDebug() << "HWND OK";
 
-		bool skip = false;
+		//紀錄線程ID(目前沒有使用到只是先記錄著)
+		pi.dwThreadId = ::GetWindowThreadProcessId(pi.hWnd, nullptr);
 
-		if (skip)
-			break;
+
+		//嘗試打開進程句柄並檢查是否成功
+		if (!isHandleValid(pi.dwProcessId))
+		{
+			*pReason = util::REASON_OPEN_PROCESS_FAIL;
+			emit signalDispatcher.messageBoxShow(tr("OpenProcess fail"));
+			continue;
+		}
+
+		if (!processHandle_.isValid())
+			processHandle_.reset(pi.dwProcessId);
+
+		mem::inject64(processHandle_, dllPath, &hookdllModule_, &hGameModule_);
+
+		if (hookdllModule_ == 0)
+		{
+			*pReason = util::REASON_INJECT_LIBRARY_FAIL;
+			continue;
+		}
+
+		if (NULL == hGameModule_)
+		{
+			*pReason = util::REASON_INJECT_LIBRARY_FAIL;
+			continue;
+		}
+
+		pi_ = pi;
+		parent = qgetenv("SASH_HWND").toULongLong();
+
+		//通知客戶端初始化，並提供port端口讓客戶端連進來、另外提供本窗口句柄讓子進程反向檢查外掛是否退出
+		sendMessage(kInitialize, port, parent);
 
 		//去除改變窗口大小的屬性
+		//::SetWindowLongW(pi.hWnd, GWL_STYLE, WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX | WS_VISIBLE);
+		//::SetWindowLongW(pi.hWnd, GWL_EXSTYLE, WS_EX_OVERLAPPEDWINDOW);
+			//去除改變窗口大小的屬性
 		LONG dwStyle = ::GetWindowLongW(pi.hWnd, GWL_STYLE);
 		LONG tempStyle = dwStyle;
 
@@ -341,108 +378,12 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 		if (tempStyle != dwStyle)
 			::SetWindowLongW(pi.hWnd, GWL_STYLE, dwStyle);
 
-		pi.dwThreadId = ::GetWindowThreadProcessId(pi.hWnd, nullptr);
-
-
-		kernel32Module = getKernel32();//::GetModuleHandleW(L"kernel32.dll");
-		if (nullptr == kernel32Module)
-		{
-			*pReason = util::REASON_GET_KERNEL32_FAIL;
-			break;
-		}
-
-		loadLibraryProc = reinterpret_cast<FARPROC>(getFunAddr(kernel32Module, u8"LoadLibraryW"));
-		if (nullptr == loadLibraryProc)
-		{
-			*pReason = util::REASON_GET_KERNEL32_UNDOCUMENT_API_FAIL;
-			break;
-		}
-
-		if (!isHandleValid(pi.dwProcessId))
-		{
-			*pReason = util::REASON_OPEN_PROCESS_FAIL;
-			break;
-		}
-
-		if (!processHandle_.isValid())
-			processHandle_.reset(pi.dwProcessId);
-
-		const util::VirtualMemory lpParameter(processHandle_, dllPath, util::VirtualMemory::kUnicode, true);
-		if (NULL == lpParameter)
-		{
-			*pReason = util::REASON_VIRTUAL_ALLOC_FAIL;
-			break;
-		}
-
-		ScopedHandle hThreadHandle(ScopedHandle::CREATE_REMOTE_THREAD, processHandle_,
-			reinterpret_cast<PVOID>(loadLibraryProc),
-			reinterpret_cast<LPVOID>(static_cast<DWORD>(lpParameter)));
-		if (hThreadHandle.isValid())
-		{
-			timer.restart();
-			for (;;)
-			{
-				hModule = mem::getRemoteModuleHandle(pi.dwProcessId, fileNameOnly);
-				if (hModule)
-					break;
-
-				if (timer.hasExpired(MAX_TIMEOUT))
-					break;
-
-				if (!IsWindow(pi.hWnd))
-					break;
-
-				if (SendMessageTimeoutW(pi.hWnd, WM_NULL, 0, 0, SMTO_ABORTIFHUNG | SMTO_ERRORONEXIT, MessageTimeout, nullptr) <= 0)
-					break;
-
-				QThread::msleep(100);
-			}
-		}
-
-		if (NULL == hModule)
-		{
-			*pReason = util::REASON_INJECT_LIBRARY_FAIL;
-			break;
-		}
-
-		qDebug() << "inject OK";
-
-		pi_ = pi;
-		parent = qgetenv("SASH_HWND").toULong();
-		sendMessage(kInitialize, port, parent);
-
-		timer.restart();
-		for (;;)
-		{
-			if ((hModule_ = sendMessage(kGetModule, NULL, NULL)) != NULL)
-				break;
-
-			if (timer.hasExpired(MAX_TIMEOUT))
-				break;
-
-			if (!IsWindow(pi.hWnd))
-				break;
-
-			if (sendMessage(WM_NULL, 0, 0) == 0)
-				break;
-
-			QThread::msleep(100);
-		}
-
-		if (NULL == hModule_)
-		{
-			*pReason = util::REASON_INJECT_LIBRARY_FAIL;
-			break;
-		}
-
-		qDebug() << "module OK";
-
-		hookdllModule_ = reinterpret_cast<HMODULE>(hModule);
 		bret = true;
 	} while (false);
 
 	if (!bret)
-		pi_ = { 0 };
+		pi_ = {};
+
 	return bret;
 }
 
