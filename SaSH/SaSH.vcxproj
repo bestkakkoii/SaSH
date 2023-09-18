@@ -23,7 +23,6 @@
     <PlatformToolset>v143</PlatformToolset>
     <EnableASAN>true</EnableASAN>
     <EnableFuzzer>true</EnableFuzzer>
-    <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
@@ -118,17 +117,16 @@
       <OmitFramePointers />
       <EnableFiberSafeOptimizations />
       <WholeProgramOptimization />
-      <SupportJustMyCode>false</SupportJustMyCode>
+      <SupportJustMyCode>true</SupportJustMyCode>
       <LanguageStandard_C>Default</LanguageStandard_C>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
     </ClCompile>
     <Link>
       <UACExecutionLevel>RequireAdministrator</UACExecutionLevel>
       <AdditionalLibraryDirectories>$(SolutionDir)$(ProjectName)\lib\$(Platform)\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <GenerateMapFile>false</GenerateMapFile>
-      <MapExports>false</MapExports>
+      <GenerateMapFile>true</GenerateMapFile>
+      <MapExports>true</MapExports>
       <AssemblyDebug>true</AssemblyDebug>
-      <LinkTimeCodeGeneration>Default</LinkTimeCodeGeneration>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|Win32'" Label="Configuration">
@@ -166,6 +164,7 @@
     </QtMoc>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="3rdparty\simplecrypt.cpp" />
     <ClCompile Include="form\abilityform.cpp" />
     <ClCompile Include="form\afkform.cpp" />
     <ClCompile Include="form\afkinfoform.cpp" />
@@ -239,6 +238,7 @@
     <ClCompile Include="update\curldownload.cpp" />
     <ClCompile Include="update\downloader.cpp" />
     <ClCompile Include="util.cpp" />
+    <ClInclude Include="3rdparty\simplecrypt.h" />
     <QtMoc Include="form\infoform.h" />
     <QtMoc Include="form\generalform.h" />
     <QtMoc Include="form\afkform.h" />

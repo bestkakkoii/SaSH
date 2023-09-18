@@ -1,4 +1,4 @@
-﻿// sol2
+// sol2
 
 // The MIT License (MIT)
 
@@ -33,12 +33,12 @@
 namespace sol {
 	namespace detail {
 		struct direct_error_tag { };
-		const auto direct_error = direct_error_tag{};
+		const auto direct_error = direct_error_tag {};
 
 		struct error_result {
 			int results;
 			const char* format_string;
-			std::array<const char*, 4> argument_strings = { { nullptr, nullptr, nullptr, nullptr } };
+			std::array<const char*, 4> argument_strings;
 
 			error_result() : results(0), format_string(nullptr) {
 			}

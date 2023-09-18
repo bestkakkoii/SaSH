@@ -1,4 +1,4 @@
-﻿// sol2
+// sol2
 
 // The MIT License (MIT)
 
@@ -55,7 +55,7 @@ namespace sol {
 		}
 		variadic_args(const variadic_args&) = default;
 		variadic_args& operator=(const variadic_args&) = default;
-		variadic_args(variadic_args&& o) noexcept : L(o.L), index(o.index), stacktop(o.stacktop) {
+		variadic_args(variadic_args&& o) : L(o.L), index(o.index), stacktop(o.stacktop) {
 			// Must be manual, otherwise destructor will screw us
 			// return count being 0 is enough to keep things clean
 			// but will be thorough
@@ -63,7 +63,7 @@ namespace sol {
 			o.index = 0;
 			o.stacktop = 0;
 		}
-		variadic_args& operator=(variadic_args&& o) noexcept {
+		variadic_args& operator=(variadic_args&& o) {
 			L = o.L;
 			index = o.index;
 			stacktop = o.stacktop;

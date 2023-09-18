@@ -32,6 +32,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include <QCollator>
 #include <QHash>
 #include <type_traits>
+#include "3rdparty/simplecrypt.h"
+#include "model/treewidgetitem.h"
 
 constexpr int SASH_VERSION_MAJOR = 1;
 constexpr int SASH_VERSION_MINOR = 0;
