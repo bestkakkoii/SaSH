@@ -6058,7 +6058,7 @@ void Server::handlePlayerBattleLogics(const battledata_t& bt)
 
 		if (isPlayerHpEnoughForSkill(skillIndex))
 		{
-			sendBattlePlayerJobSkillAct(skillIndex, BattleMyNo);
+			sendBattlePlayerJobSkillAct(skillIndex, 0);
 			return;
 		}
 
