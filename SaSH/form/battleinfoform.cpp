@@ -173,11 +173,7 @@ void BattleInfoForm::updateItemInfoRowContents(QTableWidget* tableWidget, const 
 	*/
 
 	// 檢查是否為 QVector<QStringList>
-#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
 	if (dat.type() != QVariant::Type::UserType)
-#else 
-	if (dat.typeId() != QMetaType::User)
-#endif
 		return;
 
 	QVector<QStringList> list = dat.value<QVector<QStringList>>();

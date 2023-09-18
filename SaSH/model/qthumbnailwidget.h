@@ -20,17 +20,14 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #define QTHUMBNAILWIDGET_H
 #include <QGuiApplication>
 #include <QOpenGLWidget>
-#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
 #include <QtGui/QOpenGLFunctions_4_5_Core>
 #include <QtGui/QOpenGLBuffer>
 #include <QtGui/QOpenGLFramebufferObject>
 #include <QtGui/QOpenGLVertexArrayObject>
 #include <QtGui/QOpenGLShaderProgram>
 #include <QtGui/QOpenGLTexture>
-#include <QtOpenGL/qgl.h>
-#endif
-#include <QOpenGLFunctions>
 #include <QtCore/QTimer>
+#include <QtOpenGL/qgl.h>
 #include <GL/glu.h>
 #include <GL/GL.h>
 
@@ -41,7 +38,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #pragma comment(lib, "Glu32.lib")
 #pragma comment(lib, "OpenGL32.lib")
 
-class QThumbnailWidget : public QOpenGLWidget, protected QOpenGLFunctions
+class QThumbnailWidget : public QOpenGLWidget, protected QOpenGLFunctions_4_5_Core
 {
 	Q_OBJECT
 
@@ -65,6 +62,13 @@ private:
 	QReadWriteLock m_lock;
 	QTimer m_timer;
 	HWND hWnd_ = NULL;
+	QSharedPointer<QOpenGLTexture> m_texture = nullptr;
+	QSharedPointer<QOpenGLShaderProgram> m_program = nullptr;
+
+	QSharedPointer<QOpenGLFramebufferObject> m_fbo = nullptr;
+	QOpenGLVertexArrayObject m_vao;
+	QOpenGLBuffer m_vbo;
+
 	GLuint textureId = 0;
 	QScreen* screen = nullptr;
 

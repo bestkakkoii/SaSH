@@ -21,9 +21,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 #ifdef _WIN64
 #ifdef _DEBUG
-#pragma comment(lib, "libcurl_a_debug.lib")
+#pragma comment(lib, "libcurl_a64_debug.lib")
 #else
-#pragma comment(lib, "libcurl_a.lib")
+#pragma comment(lib, "libcurl_a64.lib")
 #endif
 #else
 #ifdef _DEBUG

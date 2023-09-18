@@ -99,26 +99,16 @@ public:
 		ErrorIntegrityFailed, /*!< The integrity check of the data failed. Perhaps the wrong key was used. */
 	};
 
-	//enum to describe options that have been used for the encryption. Currently only one, but
-	//that only leaves room for future extensions like adding a cryptographic hash...
-	enum CryptoFlags
-	{
-		CryptoFlagNone = 0,
-		CryptoFlagCompression = 0x01,
-		CryptoFlagChecksum = 0x02,
-		CryptoFlagHash = 0x04
-	};
-
 	/**
 	  Constructor.
 
 	  Constructs a SimpleCrypt instance without a valid key set on it.
 	 */
 	SimpleCrypt() :
-		m_key(0),
-		m_compressionMode(CompressionAuto),
-		m_protectionMode(ProtectionChecksum),
-		m_lastError(ErrorNoError)
+	m_key(0),
+	m_compressionMode(CompressionAuto),
+	m_protectionMode(ProtectionChecksum),
+	m_lastError(ErrorNoError)
 	{}
 	/**
 	  Constructor.
@@ -126,10 +116,10 @@ public:
 	  Constructs a SimpleCrypt instance and initializes it with the given @arg key.
 	 */
 	explicit SimpleCrypt(quint64 key) :
-		m_key(key),
-		m_compressionMode(CompressionAuto),
-		m_protectionMode(ProtectionChecksum),
-		m_lastError(ErrorNoError)
+	m_key(key),
+	m_compressionMode(CompressionAuto),
+	m_protectionMode(ProtectionChecksum),
+	m_lastError(ErrorNoError)
 	{
 		splitKey();
 	}
@@ -230,7 +220,7 @@ public:
 
 		QByteArray ba = plaintext;
 
-		quint64 flags = CryptoFlagNone;
+		CryptoFlags flags = CryptoFlagNone;
 		if (m_compressionMode == CompressionAlways)
 		{
 			ba = qCompress(ba, 9); //maximum compression
@@ -239,7 +229,7 @@ public:
 		else if (m_compressionMode == CompressionAuto)
 		{
 			QByteArray compressed = qCompress(ba, 9);
-			if (compressed.size() < ba.size())
+			if (compressed.count() < ba.count())
 			{
 				ba = compressed;
 				flags |= CryptoFlagCompression;
@@ -251,12 +241,7 @@ public:
 		{
 			flags |= CryptoFlagChecksum;
 			QDataStream s(&integrityProtection, QIODevice::WriteOnly);
-#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
 			s << qChecksum(ba.constData(), ba.length());
-#else
-			//use QByteArrayView overload
-			s << qChecksum(QByteArrayView(ba));
-#endif
 		}
 		else if (m_protectionMode == ProtectionHash)
 		{
@@ -274,7 +259,7 @@ public:
 		int pos(0);
 		char lastChar(0);
 
-		int cnt = ba.size();
+		int cnt = ba.count();
 
 		while (pos < cnt)
 		{
@@ -356,7 +341,7 @@ public:
 
 		QByteArray ba = cypher;
 
-		if (cypher.size() < 3)
+		if (cypher.count() < 3)
 			return QByteArray();
 
 		char version = ba.at(0);
@@ -368,11 +353,11 @@ public:
 			return QByteArray();
 		}
 
-		quint64 flags = CryptoFlags(ba.at(1));
+		CryptoFlags flags = CryptoFlags(ba.at(1));
 
 		ba = ba.mid(2);
 		int pos(0);
-		int cnt(ba.size());
+		int cnt(ba.count());
 		char lastChar = 0;
 
 		while (pos < cnt)
@@ -386,7 +371,7 @@ public:
 		ba = ba.mid(1); //chop off the random number at the start
 
 		bool integrityOk(true);
-		if (flags & CryptoFlagChecksum)
+		if (flags.testFlag(CryptoFlagChecksum))
 		{
 			if (ba.length() < 2)
 			{
@@ -399,15 +384,10 @@ public:
 				s >> storedChecksum;
 			}
 			ba = ba.mid(2);
-#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
 			quint16 checksum = qChecksum(ba.constData(), ba.length());
-#else
-			//use QByteArrayView overload
-			quint16 checksum = qChecksum(QByteArrayView(ba));
-#endif
 			integrityOk = (checksum == storedChecksum);
 		}
-		else if (flags & CryptoFlagHash)
+		else if (flags.testFlag(CryptoFlagHash))
 		{
 			if (ba.length() < 20)
 			{
@@ -427,15 +407,23 @@ public:
 			return QByteArray();
 		}
 
-		if (flags & CryptoFlagCompression)
+		if (flags.testFlag(CryptoFlagCompression))
 			ba = qUncompress(ba);
 
 		m_lastError = ErrorNoError;
 		return ba;
 	}
 
-
-
+	//enum to describe options that have been used for the encryption. Currently only one, but
+	//that only leaves room for future extensions like adding a cryptographic hash...
+	enum CryptoFlag
+	{
+		CryptoFlagNone = 0,
+		CryptoFlagCompression = 0x01,
+		CryptoFlagChecksum = 0x02,
+		CryptoFlagHash = 0x04
+	};
+	Q_DECLARE_FLAGS(CryptoFlags, CryptoFlag);
 private:
 
 	void splitKey()
@@ -458,5 +446,6 @@ private:
 	IntegrityProtectionMode m_protectionMode;
 	Error m_lastError;
 };
+Q_DECLARE_OPERATORS_FOR_FLAGS(SimpleCrypt::CryptoFlags)
 
 #endif // SimpleCrypt_H

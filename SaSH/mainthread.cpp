@@ -557,7 +557,7 @@ int MainObject::checkAndRunFunctions()
 		if (!battleTime_future_.isRunning())
 		{
 			battleTime_future_cancel_flag_.store(false, std::memory_order_release);
-			battleTime_future_ = QtConcurrent::run([this]() { battleTimeThread(); });
+			battleTime_future_ = QtConcurrent::run(this, &MainObject::battleTimeThread);
 		}
 
 		return 3;
@@ -2198,11 +2198,7 @@ void MainObject::checkRecordableNpcInfo()
 			}
 
 			QTextStream in(&file);
-#ifdef _WIN64
-			in.setEncoding(QStringConverter::Utf8);
-#else
 			in.setCodec(util::DEFAULT_CODEPAGE);
-#endif
 			in.setGenerateByteOrderMark(true);
 			const QString rawData(in.readAll());
 			file.close();

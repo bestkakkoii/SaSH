@@ -197,11 +197,7 @@ enum InterfaceWindowType
 };
 
 //接收原生的窗口消息
-#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
 bool MainForm::nativeEvent(const QByteArray&, void* message, long* result)
-#else
-bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* result)
-#endif
 {
 	MSG* msg = static_cast<MSG*>(message);
 	Injector& injector = Injector::getInstance();

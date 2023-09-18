@@ -61,11 +61,7 @@ InfoForm::InfoForm(int defaultPage, QWidget* parent)
 	QOpenGLWidget* openGLWidget = new QOpenGLWidget;
 	openGLWidget->setLayout(gridLayout);
 	gridLayout->addWidget(ui.tabWidget);
-#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
 	gridLayout->setMargin(0);
-#else
-	gridLayout->setContentsMargins(0, 0, 0, 0);
-#endif
 
 	ui.gridLayout->addWidget(openGLWidget);
 

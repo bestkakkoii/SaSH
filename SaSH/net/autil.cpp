@@ -34,7 +34,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 namespace Autil
 {
 	QByteArray MesgSlice[sizeof(char*) * SLICE_SIZE];
-	std::atomic_uint64_t SliceCount;
+	util::SafeData<size_t> SliceCount;
 	util::SafeData<QString> PersonalKey;
 	QMutex MesgMutex;
 	QByteArray emptyByteArray(Autil::SLICE_SIZE, '\0');
@@ -46,34 +46,34 @@ namespace Autil
 void __stdcall Autil::util_Init(void)
 {
 	QMutexLocker locker(&MesgMutex);
-	constexpr uint64_t size = sizeof(char*) * Autil::SLICE_MAX;
-	for (uint64_t i = 0; i < size; ++i)
+	constexpr auto size = sizeof(char*) * Autil::SLICE_MAX;
+	for (int i = 0; i < size; ++i)
 	{
 		Autil::MesgSlice[i] = emptyByteArray;
 	}
-	SliceCount.store(0, std::memory_order_release);
+	SliceCount = 0;
 }
 
 void __stdcall Autil::util_Release(void)
 {
 	QMutexLocker locker(&MesgMutex);
-	constexpr uint64_t size = sizeof(char*) * Autil::SLICE_MAX;
-	for (uint64_t i = 0; i < size; ++i)
+	constexpr auto size = sizeof(char*) * Autil::SLICE_MAX;
+	for (int i = 0; i < size; ++i)
 	{
 		Autil::MesgSlice[i] = emptyByteArray;
 	}
-	SliceCount.store(0, std::memory_order_release);
+	SliceCount = 0;
 }
 
 void __stdcall Autil::util_Clear(void)
 {
 	QMutexLocker locker(&MesgMutex);
-	constexpr uint64_t size = sizeof(char*) * Autil::SLICE_MAX;
-	for (uint64_t i = 0; i < size; ++i)
+	constexpr auto size = sizeof(char*) * Autil::SLICE_MAX;
+	for (int i = 0; i < size; ++i)
 	{
 		Autil::MesgSlice[i] = emptyByteArray;
 	}
-	SliceCount.store(0, std::memory_order_release);
+	SliceCount = 0;
 }
 
 // -------------------------------------------------------------------
@@ -90,16 +90,17 @@ bool __stdcall Autil::util_SplitMessage(char* source, size_t dstlen, char* separ
 		char* ptr = nullptr;
 		char* head = source;
 
-		while ((ptr = reinterpret_cast<char*>(strstr(head, separator))) && (SliceCount.load(std::memory_order_acquire) <= Autil::SLICE_MAX))
+		while ((ptr = reinterpret_cast<char*>(strstr(head, separator))) && (SliceCount <= Autil::SLICE_MAX))
 		{
 			ptr[0] = '\0';
 			if (strlen(head) < Autil::SLICE_SIZE)
-			{
-				// discard slices too large
-				MesgSlice[SliceCount.load(std::memory_order_acquire)] = head;
-				uint64_t count = SliceCount.load(std::memory_order_acquire);
+			{	// discard slices too large
+				//strcpy_s(MesgSlice[SliceCount], Autil::SLICE_SIZE - 1, head);
+				//_snprintf_s(MesgSlice[SliceCount].data(), Autil::SLICE_SIZE, _TRUNCATE, "%s", head);
+				MesgSlice[SliceCount] = head;
+				int count = SliceCount;
 				++count;
-				SliceCount.store(count, std::memory_order_release);
+				SliceCount = count;
 			}
 
 			head = ptr + 1;
@@ -118,9 +119,9 @@ bool __stdcall Autil::util_SplitMessage(char* source, size_t dstlen, char* separ
 void __stdcall Autil::util_EncodeMessage(char* dst, size_t dstlen, char* src)
 {
 	std::mt19937 generator(std::random_device{}());
-	std::uniform_int_distribution<int64_t> distribution(0, 99);
-	int64_t rn = distribution(generator);
-	int64_t t1 = 0, t2 = 0;
+	std::uniform_int_distribution<int> distribution(0, 99);
+	int rn = distribution(generator);
+	int t1 = 0, t2 = 0;
 	//char t3[LBUFSIZE], tz[LBUFSIZE];
 	QByteArray t3(LBUFSIZE, '\0');
 	QByteArray tz(LBUFSIZE, '\0');
@@ -156,9 +157,9 @@ void __stdcall Autil::util_DecodeMessage(char* dst, size_t dstlen, char* src)
 
 	constexpr auto INTCODESIZE = (sizeof(int) * 8 + 5) / 6;
 
-	int64_t rn = 0;
+	int rn = 0;
 	int* t1 = nullptr;
-	int64_t t2 = 0;
+	int t2 = 0;
 	//char t3[4096], t4[4096];	// This buffer is enough for an integer.
 	//char tz[LBUFSIZE];
 	QByteArray t3(SBUFSIZE, '\0');
@@ -201,22 +202,22 @@ void __stdcall Autil::util_DecodeMessage(char* dst, size_t dstlen, char* src)
 //
 // arg: func=return function ID    fieldcount=return fields of the function
 // ret: 1=success  0=failed (function not complete)
-uint64_t __stdcall Autil::util_GetFunctionFromSlice(uint64_t* func, uint64_t* fieldcount)
+int __stdcall Autil::util_GetFunctionFromSlice(int* func, int* fieldcount)
 {
 	QMutexLocker locker(&MesgMutex);
 	//char t1[NETDATASIZE];
 	QByteArray t1(NETDATASIZE, '\0');
 	//memset(t1, 0, sizeof(t1));
-	uint64_t i = 0;
+	int i = 0;
 
 	if (strcmp(MesgSlice[0], DEFAULTFUNCBEGIN) != 0)
-		SliceCount.store(0, std::memory_order_release);
+		SliceCount = 0;
 
 	strcpy_s(t1.data(), NETDATASIZE, MesgSlice[1]);
 
 	// Robin adjust
 	//*func=atoi(t1);
-	*func = static_cast<uint64_t>(std::atoi(t1.data())) - 23;
+	*func = std::atoi(t1.data()) - 23;
 	for (i = 0; i < Autil::SLICE_MAX; ++i)
 	{
 		if (strcmp(MesgSlice[i], Autil::DEFAULTFUNCEND) == 0)
@@ -234,14 +235,15 @@ uint64_t __stdcall Autil::util_GetFunctionFromSlice(uint64_t* func, uint64_t* fi
 //
 void __stdcall Autil::util_DiscardMessage(void)
 {
-	SliceCount.store(0, std::memory_order_release);
+	QMutexLocker locker(&MesgMutex);
+	SliceCount = 0;
 }
 
 // -------------------------------------------------------------------
 // Send a message
 //
 // arg: fd=socket fd   func=function ID   buffer=data to send
-void __stdcall Autil::util_SendMesg(uint64_t func, char* buffer)
+void __stdcall Autil::util_SendMesg(int func, char* buffer)
 {
 	//char t1[NETDATASIZE], t2[NETDATASIZE];
 	//memset(t1, 0, sizeof(t1));
@@ -250,7 +252,7 @@ void __stdcall Autil::util_SendMesg(uint64_t func, char* buffer)
 	QByteArray t2(NETDATASIZE, '\0');
 
 	//sprintf_s(t1.data(), NETDATASIZE, "&;%d%s;#;", func + 13, buffer);
-	constexpr uint64_t FUNCTION_OFFSET = 13;
+	constexpr auto FUNCTION_OFFSET = 13;
 	constexpr auto FORMAT = "&;%d%s;#;";
 	_snprintf_s(t1.data(), NETDATASIZE, _TRUNCATE, FORMAT, func + FUNCTION_OFFSET, buffer);
 #ifdef _NEWNET_
@@ -277,10 +279,10 @@ void __stdcall Autil::util_SendMesg(uint64_t func, char* buffer)
 // arg: dst=8-bit string;  src=6-bit string;  len=src strlen;
 //      table=mapping table
 // ret: 0=failed  >0=bytes converted
-uint64_t __stdcall Autil::util_256to64(char* dst, char* src, size_t len, char* table)
+int __stdcall Autil::util_256to64(char* dst, char* src, int len, char* table)
 {
-	uint64_t dw = 0u, dwcounter = 0u;
-	uint64_t i = 0;
+	unsigned int dw = 0u, dwcounter = 0u;
+	int i = 0;
 
 	if (!dst || !src || !table)
 		return 0;
@@ -290,7 +292,7 @@ uint64_t __stdcall Autil::util_256to64(char* dst, char* src, size_t len, char* t
 
 	for (i = 0; i < len; ++i)
 	{
-		dw = ((static_cast<uint64_t>(src[i]) & 0xff) << ((i % 3) << 1)) | dw;
+		dw = ((static_cast<unsigned int>(src[i]) & 0xff) << ((i % 3) << 1)) | dw;
 
 		dst[dwcounter++] = table[dw & 0x3f];
 
@@ -316,13 +318,13 @@ uint64_t __stdcall Autil::util_256to64(char* dst, char* src, size_t len, char* t
 //
 // arg: dst=6-bit string;  src=8-bit string;  table=mapping table
 // ret: 0=failed  >0=bytes converted
-uint64_t __stdcall Autil::util_64to256(char* dst, char* src, char* table)
+int __stdcall Autil::util_64to256(char* dst, char* src, char* table)
 {
-	uint64_t i = 0u, j = 0u;
+	unsigned int i = 0u, j = 0u;
 	char* ptr = nullptr;
 
-	uint64_t dw = 0u;
-	uint64_t dwcounter = 0u;
+	unsigned int dw = 0u;
+	unsigned int dwcounter = 0u;
 
 	if (!dst || !src || !table)
 		return 0;
@@ -345,13 +347,13 @@ uint64_t __stdcall Autil::util_64to256(char* dst, char* src, char* table)
 
 		if (i % 4)
 		{
-			dw = (static_cast<uint64_t>(ptr - table) & 0x3f) << ((4 - (i % 4)) << 1) | dw;
+			dw = ((unsigned int)(ptr - table) & 0x3f) << ((4 - (i % 4)) << 1) | dw;
 			dst[dwcounter++] = dw & 0xff;
 			dw = dw >> 8;
 		}
 		else
 		{
-			dw = static_cast<uint64_t>(ptr - table) & 0x3f;
+			dw = (unsigned int)(ptr - table) & 0x3f;
 		}
 	}
 
@@ -368,10 +370,10 @@ uint64_t __stdcall Autil::util_64to256(char* dst, char* src, char* table)
 // arg: dst=6-bit string;  src=8-bit string;  len=src strlen;
 //      table=mapping table;  key=rotate key;
 // ret: 0=failed  >0=bytes converted
-uint64_t __stdcall Autil::util_256to64_shr(char* dst, char* src, size_t len, char* table, char* key)
+int __stdcall Autil::util_256to64_shr(char* dst, char* src, int len, char* table, char* key)
 {
-	uint64_t j = 0u;
-	uint64_t i = 0u;
+	unsigned int j = 0u;
+	int i = 0u;
 
 	if (!dst || !src || !table || !key)
 		return 0;
@@ -379,13 +381,13 @@ uint64_t __stdcall Autil::util_256to64_shr(char* dst, char* src, size_t len, cha
 	if (strlen(key) < 1)
 		return 0;	// key can't be empty.
 
-	uint64_t dw = 0u;
-	uint64_t dwcounter = 0u;
+	unsigned int dw = 0u;
+	unsigned int dwcounter = 0u;
 
 	j = 0;
 	for (i = 0; i < len; ++i)
 	{
-		dw = ((static_cast<uint64_t>(src[i]) & 0xff) << ((i % 3) << 1)) | dw;
+		dw = ((static_cast<unsigned int>(src[i]) & 0xff) << ((i % 3) << 1)) | dw;
 
 		dst[dwcounter++] = table[((dw & 0x3f) + key[j]) % 64];	// check!
 
@@ -421,7 +423,7 @@ uint64_t __stdcall Autil::util_256to64_shr(char* dst, char* src, size_t len, cha
 // arg: dst=8-bit string;  src=6-bit string;  table=mapping table;
 //      key=rotate key;
 // ret: 0=failed  >0=bytes converted
-uint64_t __stdcall Autil::util_shl_64to256(char* dst, char* src, char* table, char* key)
+int __stdcall Autil::util_shl_64to256(char* dst, char* src, char* table, char* key)
 {
 	unsigned int i = 0u, j = 0u, k = 0u;
 	char* ptr = nullptr;
@@ -492,7 +494,7 @@ uint64_t __stdcall Autil::util_shl_64to256(char* dst, char* src, char* table, ch
 // arg: dst=6-bit string;  src=8-bit string;  len=src strlen;
 //      table=mapping table;  key=rotate key;
 // ret: 0=failed  >0=bytes converted
-uint64_t __stdcall Autil::util_256to64_shl(char* dst, char* src, size_t len, char* table, char* key)
+int __stdcall Autil::util_256to64_shl(char* dst, char* src, int len, char* table, char* key)
 {
 	int i = 0, j = 0;
 
@@ -544,17 +546,17 @@ uint64_t __stdcall Autil::util_256to64_shl(char* dst, char* src, size_t len, cha
 // arg: dst=8-bit string;  src=6-bit string;  table=mapping table;
 //      key=rotate key;
 // ret: 0=failed  >0=bytes converted
-uint64_t __stdcall Autil::util_shr_64to256(char* dst, char* src, char* table, char* key)
+int __stdcall Autil::util_shr_64to256(char* dst, char* src, char* table, char* key)
 {
-	uint64_t i, k;
+	unsigned int i, k;
 	char* ptr = nullptr;
 
 	if (!key || (strlen(key) < 1))
 		return 0;	// must have key
 
-	uint64_t dw = 0u;
-	uint64_t dwcounter = 0u;
-	uint64_t j = 0u;
+	unsigned int dw = 0u;
+	unsigned int dwcounter = 0u;
+	unsigned int j = 0u;
 
 	if (!dst || !src || !table)
 		return 0;
@@ -578,7 +580,7 @@ uint64_t __stdcall Autil::util_shr_64to256(char* dst, char* src, char* table, ch
 		if (i % 4)
 		{
 			// check!
-			dw = (((static_cast<uint64_t>(ptr - table) & 0x3f) + key[j]) % 64)
+			dw = (((static_cast<unsigned int>(ptr - table) & 0x3f) + key[j]) % 64)
 				<< ((4 - (i % 4)) << 1) | dw;
 			j++;
 
@@ -591,7 +593,7 @@ uint64_t __stdcall Autil::util_shr_64to256(char* dst, char* src, char* table, ch
 		else
 		{
 			// check!
-			dw = ((static_cast<uint64_t>(ptr - table) & 0x3f) + key[j]) % 64;
+			dw = ((static_cast<unsigned int>(ptr - table) & 0x3f) + key[j]) % 64;
 			j++;
 
 			if (!key[j]) j = 0;
@@ -611,9 +613,9 @@ uint64_t __stdcall Autil::util_shr_64to256(char* dst, char* src, char* table, ch
 // The value "rule" indicates the swaping rule.  It's a 4 byte string
 // such as "1324" or "2431".
 //
-void __stdcall Autil::util_swapint(int64_t* dst, int64_t* src, char* rule)
+void __stdcall Autil::util_swapint(int* dst, int* src, char* rule)
 {
-	uint64_t i = 0;
+	int i = 0;
 	char* ptr = reinterpret_cast<char*>(src);
 	char* qtr = reinterpret_cast<char*>(dst);
 	for (i = 0; i < 4; ++i)
@@ -637,7 +639,7 @@ void __stdcall Autil::util_xorstring(char* dst, char* src)
 // -------------------------------------------------------------------
 // Shift the string right.
 //
-void __stdcall Autil::util_shrstring(char* dst, size_t dstlen, char* src, int64_t offs)
+void __stdcall Autil::util_shrstring(char* dst, size_t dstlen, char* src, int offs)
 {
 	char* ptr = nullptr;
 	//int len = strlen(src);
@@ -655,7 +657,7 @@ void __stdcall Autil::util_shrstring(char* dst, size_t dstlen, char* src, int64_
 // -------------------------------------------------------------------
 // Shift the string left.
 //
-void __stdcall Autil::util_shlstring(char* dst, size_t dstlen, char* src, int64_t offs)
+void __stdcall Autil::util_shlstring(char* dst, size_t dstlen, char* src, int offs)
 {
 	char* ptr = nullptr;
 	if (!dst || !src || (strlen(src) < 1))
@@ -673,11 +675,11 @@ void __stdcall Autil::util_shlstring(char* dst, size_t dstlen, char* src, int64_
 //
 // arg: sliceno=slice index in MesgSlice    value=result
 // ret: checksum, this value must match the one generated by util_mkint
-uint64_t __stdcall Autil::util_deint(uint64_t sliceno, int64_t* value)
+int __stdcall Autil::util_deint(int sliceno, int* value)
 {
 	QMutexLocker locker(&MesgMutex);
 	int* t1 = nullptr;
-	int64_t t2 = 0;
+	int t2 = 0;
 	//char t3[4096];	// This buffer is enough for an integer.
 	//memset(t3, 0, sizeof(t3));
 	QByteArray t3(SBUFSIZE, '\0');
@@ -698,9 +700,9 @@ uint64_t __stdcall Autil::util_deint(uint64_t sliceno, int64_t* value)
 //
 // arg: buffer=output   value=data to pack
 // ret: checksum, this value must match the one generated by util_deint
-uint64_t __stdcall Autil::util_mkint(char* buffer, int64_t value)
+int __stdcall Autil::util_mkint(char* buffer, int value)
 {
-	int64_t t1 = 0, t2 = 0;
+	int t1 = 0, t2 = 0;
 	//char t3[4096];	// This buffer is enough for an integer.
 	//memset(t3, 0, sizeof(t3));
 	QByteArray t3(SBUFSIZE, '\0');
@@ -723,7 +725,7 @@ uint64_t __stdcall Autil::util_mkint(char* buffer, int64_t value)
 //
 // arg: sliceno=slice index in MesgSlice    value=result
 // ret: checksum, this value must match the one generated by util_mkstring
-uint64_t __stdcall Autil::util_destring(uint64_t sliceno, char* value)
+int __stdcall Autil::util_destring(int sliceno, char* value)
 {
 	QMutexLocker locker(&MesgMutex);
 	Autil::util_shr_64to256(value, MesgSlice[sliceno].data(), const_cast<char*>(Autil::DEFAULTTABLE), PersonalKey.data().toUtf8().data());
@@ -736,7 +738,7 @@ uint64_t __stdcall Autil::util_destring(uint64_t sliceno, char* value)
 //
 // arg: buffer=output   value=data to pack
 // ret: checksum, this value must match the one generated by util_destring
-uint64_t __stdcall Autil::util_mkstring(char* buffer, char* value)
+int __stdcall Autil::util_mkstring(char* buffer, char* value)
 {
 	//char t1[Autil::SLICE_SIZE];
 	QByteArray t1(LBUFSIZE, '\0');

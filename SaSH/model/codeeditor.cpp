@@ -9,18 +9,10 @@
 #include <qdialogbuttonbox.h>
 #include "util.h"
 
-#ifdef _WIN64
-#ifdef _DEBUG
-#pragma comment(lib, "qscintilla2_qt6d.lib")
-#else
-#pragma comment(lib, "qscintilla2_qt6.lib")
-#endif
-#else
 #ifdef _DEBUG
 #pragma comment(lib, "qscintilla2_qt5d.lib")
 #else
 #pragma comment(lib, "qscintilla2_qt5.lib")
-#endif
 #endif
 
 CodeEditor::CodeEditor(QWidget* parent)
@@ -51,17 +43,12 @@ CodeEditor::CodeEditor(QWidget* parent)
 
 	if (f.open(QIODevice::ReadOnly))
 	{
-		QTextStream in(&f);
-#ifdef _WIN64
-		in.setEncoding(QStringConverter::Utf8);
-#else
-		in.setCodec(util::DEFAULT_CODEPAGE);
-#endif
-
-		in.setGenerateByteOrderMark(true);
+		QTextStream ts(&f);
+		ts.setCodec(util::DEFAULT_CODEPAGE);
+		ts.setGenerateByteOrderMark(true);
 		for (;;)
 		{
-			QString line(in.readLine());
+			QString line(ts.readLine());
 
 			if (line.isEmpty())
 				break;

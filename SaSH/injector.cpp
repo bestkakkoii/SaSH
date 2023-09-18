@@ -26,6 +26,7 @@ constexpr const char* InjectDllName = "sadll.dll";
 constexpr int MessageTimeout = 15000;
 
 Injector::Injector()
+	: globalMutex(QMutex::NonRecursive)
 {
 	scriptLogModel.reset(new StringListModel);
 	chatLogModel.reset(new StringListModel);
@@ -222,13 +223,8 @@ quint64 Injector::sendMessage(quint64 msg, quint64 wParam, qint64 lParam) const
 {
 	if (msg == WM_NULL)
 		return 0;
-#if _WIN64
-	DWORD_PTR dwResult = 0L;
-	SendMessageTimeoutW(pi_.hWnd, msg, wParam, lParam, SMTO_ABORTIFHUNG | SMTO_ERRORONEXIT, MessageTimeout, &dwResult);
-#else
 	DWORD dwResult = 0L;
 	SendMessageTimeoutW(pi_.hWnd, msg, wParam, lParam, SMTO_ABORTIFHUNG | SMTO_ERRORONEXIT, MessageTimeout, &dwResult);
-#endif
 	return static_cast<int>(dwResult);
 }
 
@@ -624,13 +620,13 @@ bool Injector::isWindowAlive() const
 	if (!isValid())
 		return false;
 
+	//#ifndef _DEBUG
+	//	if (SendMessageTimeoutW(pi_.hWnd, WM_NULL, 0, 0, SMTO_ABORTIFHUNG | SMTO_ERRORONEXIT, MessageTimeout, nullptr) <= 0)
+	//		return false;
+	//#endif
+
 	if (IsWindow(pi_.hWnd))
 		return true;
-
-#if _WIN64
-	return false;
-#else
-
 
 	DWORD dwProcessId = NULL;
 	ScopedHandle hSnapshop(ScopedHandle::CREATE_TOOLHELP32_SNAPSHOT, TH32CS_SNAPPROCESS, dwProcessId);
@@ -662,7 +658,6 @@ bool Injector::isWindowAlive() const
 		bResult = Process32NextW(hSnapshop, &program_info);
 	}
 	return false;
-#endif
 }
 
 void Injector::mouseMove(int x, int y) const

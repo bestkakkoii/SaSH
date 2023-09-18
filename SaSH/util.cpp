@@ -250,21 +250,20 @@ DWORD mem::getFunAddr(const DWORD* DllBase, const char* FunName)
 	return (DWORD)NULL;
 }
 
-HMODULE mem::getRemoteModuleHandleByProcessHandleW(HANDLE hProcess, const QString& szModuleName)
+HMODULE mem::getRemoteModuleHandleByProcessHandleA(HANDLE hProcess, const QString& szModuleName)
 {
-	HMODULE hMods[1024] = {};
+	HMODULE hMods[1024] = { 0 };
 	DWORD cbNeeded = 0, i = 0;
-	wchar_t szModName[MAX_PATH];
-	RtlZeroMemory(szModName, sizeof(szModName));
+	char szModName[MAX_PATH];
 	if (EnumProcessModulesEx(hProcess, hMods, sizeof(hMods), &cbNeeded, 3)) //http://msdn.microsoft.com/en-us/library/ms682633(v=vs.85).aspx
 	{
 		for (i = 0; i <= cbNeeded / sizeof(HMODULE); i++)
 		{
-			if (GetModuleFileNameExW(hProcess, hMods[i], szModName, sizeof(szModName)))
+			if (GetModuleFileNameExA(hProcess, hMods[i], szModName, sizeof(szModName)))
 			{
-				QString qfileName = QString::fromWCharArray(szModName);
+				QString qfileName = szModName;
 				qfileName.replace("/", "\\");
-				QFileInfo file(qfileName);
+				QFileInfo file(szModName);
 				//get file name only
 				qDebug() << file.fileName();
 				if (file.fileName().toLower() == szModuleName.toLower())
@@ -283,12 +282,13 @@ long mem::getProcessExportTable32(HANDLE hProcess, const QString& ModuleName, IA
 	PIMAGE_DOS_HEADER pDosHeader = (PIMAGE_DOS_HEADER)new BYTE[sizeof(IMAGE_DOS_HEADER)];
 	PIMAGE_NT_HEADERS32 pNtHeaders = (PIMAGE_NT_HEADERS32)new BYTE[sizeof(IMAGE_NT_HEADERS32)];
 	PIMAGE_EXPORT_DIRECTORY pExport = (PIMAGE_EXPORT_DIRECTORY)new BYTE[sizeof(IMAGE_EXPORT_DIRECTORY)];
+	ULONG64 dwStup = 0, dwOffset = 0;
 	char strName[130] = {};
-	RtlZeroMemory(strName, sizeof(strName));
 	//拿到目標模塊的BASE
-	muBase = (ULONG)getRemoteModuleHandleByProcessHandleW(hProcess, ModuleName);
+	muBase = (ULONG)getRemoteModuleHandleByProcessHandleA(hProcess, ModuleName);
 	if (!muBase)
 	{
+		//DbgStr("GetRemoteModuleHandleByProcessHandleA failed!","GetProcessExportTable32");
 		return 0;
 	}
 
@@ -305,7 +305,7 @@ long mem::getProcessExportTable32(HANDLE hProcess, const QString& ModuleName, IA
 	mem::read(hProcess, (muBase + pExport->Name), sizeof(strName), strName);
 	ULONG64 i = 0;
 
-	if (pExport->NumberOfNames < 0 || pExport->NumberOfNames > 8192)
+	if (pExport->NumberOfNames < 0 || pExport->NumberOfNames>8192)
 	{
 		return 0;
 	}
@@ -316,16 +316,16 @@ long mem::getProcessExportTable32(HANDLE hProcess, const QString& ModuleName, IA
 		ULONG64 ulPointer;
 		USHORT usFuncId;
 		ULONG64 ulFuncAddr;
-		ulPointer = static_cast<ULONG64>(mem::read<int>(hProcess, (muBase + pExport->AddressOfNames + i * static_cast<ULONG64>(sizeof(DWORD)))));
-		RtlZeroMemory(bFuncName, sizeof(bFuncName));
-		mem::read(hProcess, (muBase + ulPointer), sizeof(bFuncName), bFuncName);
-		usFuncId = mem::read<short>(hProcess, (muBase + pExport->AddressOfNameOrdinals + i * sizeof(short)));
-		ulPointer = static_cast<ULONG64>(mem::read<int>(hProcess, (muBase + pExport->AddressOfFunctions + static_cast<ULONG64>(sizeof(DWORD)) * usFuncId)));
+		ulPointer = static_cast<ULONG64>(mem::read<int>(hProcess, (muBase + pExport->AddressOfNames + i * 4)));
+		RtlZeroMemory(bFuncName, 100);
+		mem::read(hProcess, (muBase + ulPointer), 100, bFuncName);
+		usFuncId = mem::read<short>(hProcess, (muBase + pExport->AddressOfNameOrdinals + i * 2ll));
+		ulPointer = static_cast<ULONG64>(mem::read<int>(hProcess, (muBase + pExport->AddressOfFunctions + 4ll * usFuncId)));
 		ulFuncAddr = muBase + ulPointer;
 		_snprintf_s(tbinfo[count].ModuleName, sizeof(tbinfo[count].ModuleName), _TRUNCATE, "%s", ModuleName.toUtf8().constData());
 		_snprintf_s(tbinfo[count].FuncName, sizeof(tbinfo[count].FuncName), _TRUNCATE, "%s", bFuncName);
 		tbinfo[count].Address = ulFuncAddr;
-		tbinfo[count].RecordAddr = (ULONG64)(muBase + pExport->AddressOfFunctions + static_cast<ULONG64>(sizeof(DWORD)) * usFuncId);
+		tbinfo[count].RecordAddr = (ULONG64)(muBase + pExport->AddressOfFunctions + 4ll * usFuncId);
 		tbinfo[count].ModBase = muBase;
 		count++;
 		if (count > (ULONG)tb_info_max)
@@ -579,11 +579,7 @@ bool util::Config::open()
 	}
 
 	QTextStream in(&file_);
-#ifdef _WIN64
-	in.setEncoding(QStringConverter::Utf8);
-#else
 	in.setCodec(util::DEFAULT_CODEPAGE);
-#endif
 	in.setGenerateByteOrderMark(true);
 	QString text = in.readAll();
 	QByteArray allData = text.toUtf8();
@@ -631,11 +627,7 @@ void util::Config::sync()
 		}
 
 		QTextStream out(&file_);
-#ifdef _WIN64
-		out.setEncoding(QStringConverter::Utf8);
-#else
 		out.setCodec(util::DEFAULT_CODEPAGE);
-#endif
 		out.setGenerateByteOrderMark(true);
 		out << data;
 		file_.flush();
@@ -1111,11 +1103,7 @@ void util::searchFiles(const QString& dir, const QString& fileNamePart, const QS
 				if (file.open(QIODevice::ReadOnly | QIODevice::Text))
 				{
 					QTextStream in(&file);
-#ifdef _WIN64
-					in.setEncoding(QStringConverter::Utf8);
-#else
 					in.setCodec(util::DEFAULT_CODEPAGE);
-#endif
 					in.setGenerateByteOrderMark(true);
 					//將文件名置於前方
 					QString fileContent = QString("# %1\n---\n%2").arg(fileInfo.fileName()).arg(in.readAll());

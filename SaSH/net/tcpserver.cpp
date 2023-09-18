@@ -529,7 +529,7 @@ void Server::handleData(QTcpSocket*, QByteArray badata)
 //經由 handleData 調用同步解析數據
 int Server::dispatchMessage(char* encoded)
 {
-	uint64_t func = 0, fieldcount = 0;
+	int	func = 0, fieldcount = 0;
 
 	QByteArray raw(Autil::NETBUFSIZ, '\0');
 	if (tmpdata_.size() != Autil::NETBUFSIZ)
@@ -1173,7 +1173,7 @@ int Server::dispatchMessage(char* encoded)
 	}
 	}
 
-	Autil::util_DiscardMessage();
+	Autil::SliceCount = 0;
 	return BC_ABOUT_TO_END;
 }
 #pragma endregion
@@ -10724,9 +10724,9 @@ void Server::lssproto_TK_recv(int index, char* cmessage, int color)
 
 	setPC(pc);
 
-	chatQueue.enqueue(qMakePair(color, msg));
+	chatQueue.enqueue(QPair{ color ,msg });
 	emit signalDispatcher.appendChatLog(msg, color);
-}
+	}
 
 //地圖數據更新，重新繪製地圖
 void Server::lssproto_MC_recv(int fl, int x1, int y1, int x2, int y2, int tileSum, int partsSum, int eventSum, char* cdata)
@@ -11504,7 +11504,7 @@ void Server::lssproto_CA_recv(char* cdata)
 			//effectno = smalltoken.toInt();
 			//effectparam1 = getIntegerToken(bigtoken, "|", 7);
 			//effectparam2 = getIntegerToken(bigtoken, "|", 8);
-		}
+	}
 
 
 		if (pc.id == charindex)
@@ -11579,7 +11579,7 @@ void Server::lssproto_CA_recv(char* cdata)
 #endif
 		//changeCharAct(ptAct, x, y, dir, act, effectno, effectparam1, effectparam2);
 	//}
-	}
+}
 }
 
 //刪除指定一個或多個周圍人、NPC單位
@@ -11997,8 +11997,8 @@ void Server::lssproto_S_recv(char* cdata)
 					}
 #endif
 				}
+				}
 			}
-		}
 
 		if (checkAND(pc.status, CHR_STATUS_LEADER) && party[0].valid)
 		{
@@ -12075,7 +12075,7 @@ void Server::lssproto_S_recv(char* cdata)
 		playerInfoColContents.insert(0, var);
 		emit signalDispatcher.updatePlayerInfoColContents(0, var);
 		setWindowTitle();
-	}
+		}
 #pragma endregion
 #pragma region FamilyInfo
 	else if (first == "F") // F 家族狀態
@@ -12379,9 +12379,9 @@ void Server::lssproto_S_recv(char* cdata)
 						}
 #endif
 					}
+					}
 				}
 			}
-		}
 
 		if (pc.ridePetNo >= 0 && pc.ridePetNo < MAX_PET)
 		{
@@ -12432,7 +12432,7 @@ void Server::lssproto_S_recv(char* cdata)
 			emit signalDispatcher.updatePlayerInfoColContents(j + 1, var);
 		}
 
-	}
+			}
 #pragma endregion
 #pragma region EncountPercentage
 	else if (first == "E") // E nowEncountPercentage
@@ -12977,7 +12977,7 @@ void Server::lssproto_S_recv(char* cdata)
 			pet[nPetIndex].item[i].counttime = getIntegerToken(data, "|", no + 16);
 #endif
 		}
-	}
+		}
 #endif
 #pragma endregion
 #pragma region S_recv_Unknown
@@ -13035,7 +13035,7 @@ void Server::lssproto_S_recv(char* cdata)
 	}
 
 	setPC(pc);
-}
+	}
 
 //客戶端登入(進去選人畫面)
 void Server::lssproto_ClientLogin_recv(char* cresult)
