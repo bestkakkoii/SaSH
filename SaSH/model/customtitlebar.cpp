@@ -1,7 +1,7 @@
 ﻿#include "stdafx.h"
 #include "customtitlebar.h"
 
-CustomTitleBar::CustomTitleBar(DWORD button, QWidget* parent)
+CustomTitleBar::CustomTitleBar(QWidget* parent)
 	: QWidget(parent), parent_(parent)
 {
 	setAttribute(Qt::WA_StyledBackground);
@@ -43,46 +43,29 @@ QPushButton:pressed, QPushButton:checked {
 	titleLabel_ = new QLabel("sash");
 	titleLabel_->setFixedHeight(35);
 	titleLabel_->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+	QPushButton* minimizeButton = new QPushButton("");
+	minimizeButton->setFixedSize(35, 35);
+	minimizeButton->setIcon(QIcon(":/image/icon_min"));
+	maximizeButton_ = new QPushButton("");
+	maximizeButton_->setFixedSize(35, 35);
 
-	QPushButton* minimizeButton = nullptr;
-	if (button & kMinimizeButton)
-	{
-		minimizeButton = new QPushButton("");
-		minimizeButton->setFixedSize(35, 35);
-		minimizeButton->setIcon(QIcon(":/image/icon_min"));
-	}
+	if (!parent_->isMaximized())
+		maximizeButton_->setIcon(QIcon(":/image/icon_max.png"));
+	else
+		maximizeButton_->setIcon(QIcon(":/image/icon_restoredown.png"));
 
-	if (button & kMaximizeButton)
-	{
-		maximizeButton_ = new QPushButton("");
-		maximizeButton_->setFixedSize(35, 35);
-
-		if (!parent_->isMaximized())
-			maximizeButton_->setIcon(QIcon(":/image/icon_max.png"));
-		else
-			maximizeButton_->setIcon(QIcon(":/image/icon_restoredown.png"));
-	}
-
-	QPushButton* closeButton = nullptr;
-	if (button & kCloseButton)
-	{
-		closeButton = new QPushButton("");
-		closeButton->setFixedSize(35, 35);
-		closeButton->setIcon(QIcon(":/image/icon_close"));
-	}
+	QPushButton* closeButton = new QPushButton("");
+	closeButton->setFixedSize(35, 35);
+	closeButton->setIcon(QIcon(":/image/icon_close"));
 
 	QHBoxLayout* layout = new QHBoxLayout(this);
 	layout->setContentsMargins(5, 0, 0, 0);
 	layout->setSpacing(0);
 	layout->addWidget(icon);
-	if (titleLabel_ != nullptr)
-		layout->addWidget(titleLabel_);
-	if (minimizeButton != nullptr)
-		layout->addWidget(minimizeButton);
-	if (maximizeButton_ != nullptr)
-		layout->addWidget(maximizeButton_);
-	if (closeButton != nullptr)
-		layout->addWidget(closeButton);
+	layout->addWidget(titleLabel_);
+	layout->addWidget(minimizeButton);
+	layout->addWidget(maximizeButton_);
+	layout->addWidget(closeButton);
 
 	connect(minimizeButton, &QPushButton::clicked, parent, &QMainWindow::showMinimized);
 	connect(maximizeButton_, &QPushButton::clicked, this, &CustomTitleBar::toggleMaximize);
@@ -106,8 +89,6 @@ void CustomTitleBar::onTitleChanged(const QString& title)
 void CustomTitleBar::mouseDoubleClickEvent(QMouseEvent* event)
 {
 	Q_UNUSED(event);
-	if (maximizeButton_ == nullptr)
-		return;
 	toggleMaximize();
 }
 
@@ -146,9 +127,6 @@ void CustomTitleBar::mouseReleaseEvent(QMouseEvent* event)
 
 void CustomTitleBar::toggleMaximize()
 {
-	if (maximizeButton_ == nullptr)
-		return;
-
 	if (parent_->isMaximized())
 	{
 		parent_->showNormal();

@@ -154,6 +154,9 @@ void ScriptForm::onScriptStarted()
 
 	interpreter_.reset(new Interpreter());
 
+	if (!injector.scriptLogModel.isNull())
+		injector.scriptLogModel->clear();
+
 	connect(interpreter_.data(), &Interpreter::finished, this, &ScriptForm::onScriptFinished, Qt::UniqueConnection);
 
 	interpreter_->doFileWithThread(selectedRow_, injector.currentScriptFileName);
@@ -332,9 +335,6 @@ void ScriptForm::loadFile(const QString& fileName)
 
 void ScriptForm::onScriptContentChanged(const QString& fileName, const QVariant& vtokens)
 {
-	if (!vtokens.canConvert<QHash<qint64, TokenMap>>())
-		return;
-
 	QHash<qint64, TokenMap> tokens = vtokens.value<QHash<qint64, TokenMap>>();
 
 	int rowCount = tokens.size();

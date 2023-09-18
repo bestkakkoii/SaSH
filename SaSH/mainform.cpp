@@ -47,7 +47,7 @@ void createMenu(QMenuBar* pMenuBar)
 		return;
 
 #pragma region StyleSheet
-	constexpr const char* styleText = R"(
+	constexpr const char* styleText = u8R"(
 				QMenu {
 					background-color: rgb(249, 249, 249); /*整個背景*/
 					border: 0px;
@@ -197,7 +197,7 @@ enum InterfaceWindowType
 };
 
 //接收原生的窗口消息
-bool MainForm::nativeEvent(const QByteArray&, void* message, long* result)
+bool MainForm::nativeEvent(const QByteArray& eventType, void* message, long* result)
 {
 	MSG* msg = static_cast<MSG*>(message);
 	Injector& injector = Injector::getInstance();
@@ -219,7 +219,7 @@ bool MainForm::nativeEvent(const QByteArray&, void* message, long* result)
 	{
 		if (!injector.server.isNull())
 		{
-			injector.server->IS_TCP_CONNECTION_OK_TO_USE.store(true, std::memory_order_release);
+			injector.server->IS_TCP_CONNECTION_OK_TO_USE = true;
 			qDebug() << "tcp ok";
 		}
 		return true;
@@ -267,6 +267,7 @@ bool MainForm::nativeEvent(const QByteArray&, void* message, long* result)
 	}
 	case InterfaceMessage::kRunFile:
 	{
+		Injector& injector = Injector::getInstance();
 		if (injector.IS_SCRIPT_FLAG.load(std::memory_order_acquire))
 			return true;
 
@@ -291,6 +292,7 @@ bool MainForm::nativeEvent(const QByteArray&, void* message, long* result)
 	}
 	case InterfaceMessage::kStopFile:
 	{
+		Injector& injector = Injector::getInstance();
 		if (!injector.IS_SCRIPT_FLAG.load(std::memory_order_acquire))
 			return true;
 
@@ -304,6 +306,7 @@ bool MainForm::nativeEvent(const QByteArray&, void* message, long* result)
 	}
 	case InterfaceMessage::kRunGame:
 	{
+		Injector& injector = Injector::getInstance();
 		if (!injector.server.isNull())
 			return true;
 
@@ -317,6 +320,7 @@ bool MainForm::nativeEvent(const QByteArray&, void* message, long* result)
 	}
 	case InterfaceMessage::kCloseGame:
 	{
+		Injector& injector = Injector::getInstance();
 		if (injector.server.isNull())
 			return true;
 
@@ -331,11 +335,12 @@ bool MainForm::nativeEvent(const QByteArray&, void* message, long* result)
 		if (result == nullptr)
 			return true;
 
+		Injector& injector = Injector::getInstance();
 		int value = 0;
 		if (injector.server.isNull())
 			return true;
 
-		bool ok = injector.server->IS_TCP_CONNECTION_OK_TO_USE.load(std::memory_order_acquire);
+		bool ok = injector.server->IS_TCP_CONNECTION_OK_TO_USE;
 		if (!ok)
 			return true;
 		else
@@ -361,6 +366,7 @@ bool MainForm::nativeEvent(const QByteArray&, void* message, long* result)
 		if (result == nullptr)
 			return true;
 
+		Injector& injector = Injector::getInstance();
 		int value = 0;
 		if (injector.IS_SCRIPT_FLAG.load(std::memory_order_acquire))
 			value = 1;
@@ -460,10 +466,10 @@ bool MainForm::nativeEvent(const QByteArray&, void* message, long* result)
 				break;
 
 			QVector<HWND> hwnds;
-			for (const QString& it : strlist)
+			for (const QString& str : strlist)
 			{
 				bool ok = false;
-				qint64 nhwnd = it.simplified().toLongLong(&ok);
+				qint64 nhwnd = str.simplified().toLongLong(&ok);
 				if (!ok && nhwnd > 0)
 					continue;
 
@@ -512,10 +518,10 @@ bool MainForm::nativeEvent(const QByteArray&, void* message, long* result)
 				break;
 
 			QList<HWND> hwnds;
-			for (const QString& it : strlist)
+			for (const QString& str : strlist)
 			{
 				bool ok = false;
-				qint64 nhwnd = it.simplified().toLongLong(&ok);
+				qint64 nhwnd = str.simplified().toLongLong(&ok);
 				if (!ok && nhwnd > 0)
 					continue;
 
@@ -623,10 +629,7 @@ void MainForm::moveEvent(QMoveEvent* e)
 		}
 
 		//將目標窗口吸附在本窗口左側
-		int x = pos.x() - (rect.right - rect.left) + 1;
-		int y = pos.y();
-		//PostMessageW(hWnd, WM_MOVE + WM_USER, 0, MAKELPARAM(pos.x() - (rect.right - rect.left) + 1, pos.y()));
-		SetWindowPos(hWnd, nullptr, x, y, 0, 0, SWP_ASYNCWINDOWPOS | SWP_NOSIZE | SWP_NOZORDER | SWP_SHOWWINDOW);
+		PostMessageW(hWnd, WM_MOVE + WM_USER, 0, MAKELPARAM(pos.x() - 654, pos.y() - 31));
 
 
 	} while (false);
@@ -649,7 +652,7 @@ MainForm::MainForm(QWidget* parent)
 	setAttribute(Qt::WA_StaticContents, true);
 	setWindowFlags(windowFlags() & ~Qt::WindowMaximizeButtonHint);
 	setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
-	setFixedSize(290, 481 + 35);
+	setFixedSize(290, 481);
 	setStyleSheet(R"(
 QMainWindow{
 	border-radius: 10px;
@@ -660,8 +663,6 @@ QGroupBox {
 	color:rgb(100,149,237)
 }
 )");
-
-	setWindowFlags(Qt::FramelessWindowHint);
 
 	//QGraphicsDropShadowEffect* shadowEffect = new QGraphicsDropShadowEffect;
 	//shadowEffect->setBlurRadius(10); // 設置陰影的模糊半徑，根據需要調整
@@ -683,25 +684,13 @@ QGroupBox {
 	connect(&signalDispatcher, &SignalDispatcher::appendScriptLog, this, &MainForm::onAppendScriptLog, Qt::UniqueConnection);
 	connect(&signalDispatcher, &SignalDispatcher::appendChatLog, this, &MainForm::onAppendChatLog, Qt::UniqueConnection);
 
-	QMenuBar* pMenuBar = new QMenuBar;
+	QMenuBar* pMenuBar = new QMenuBar(this);
 	if (pMenuBar)
 	{
 		pMenuBar_ = pMenuBar;
 		pMenuBar->setObjectName("menuBar");
-		//setMenuBar(pMenuBar);
-		//ui.gridLayout_progressbar->addWidget(pMenuBar, 0, 0, 0, 0);
-		QToolBar* pToolBar = new QToolBar(this);
-
-		pToolBar->setObjectName("toolBar");
-		pToolBar->setMovable(false);
-		pToolBar->setFloatable(false);
-		addToolBar(Qt::TopToolBarArea, pToolBar);
-		pToolBar->addWidget(pMenuBar);
+		setMenuBar(pMenuBar);
 	}
-
-
-	CustomTitleBar* titleBar = new CustomTitleBar(CustomTitleBar::kMinimizeButton | CustomTitleBar::kCloseButton, this);
-	setMenuWidget(titleBar);
 
 	{
 		ui.progressBar_pchp->setType(ProgressBar::kHP);
@@ -775,20 +764,6 @@ QGroupBox {
 	qputenv("SASH_HWND", qwid.toUtf8());
 
 	emit signalDispatcher.updateStatusLabelTextChanged(util::kLabelStatusNotOpen);
-
-	const QString fileName(qgetenv("JSON_PATH"));
-	if (fileName.isEmpty())
-		return;
-
-	if (!QFile::exists(fileName))
-		return;
-	util::Config config(fileName);
-	Injector& injector = Injector::getInstance();
-	injector.currentScriptFileName = config.read<QString>(objectName(), "LastModifyFile");
-	if (!injector.currentScriptFileName.isEmpty() && QFile::exists(injector.currentScriptFileName))
-	{
-		emit signalDispatcher.loadFileToTable(injector.currentScriptFileName);
-	}
 }
 
 MainForm::~MainForm()
@@ -804,7 +779,7 @@ void MainForm::showEvent(QShowEvent* e)
 	QMainWindow::showEvent(e);
 }
 
-void MainForm::closeEvent(QCloseEvent*)
+void MainForm::closeEvent(QCloseEvent* e)
 {
 	util::FormSettingManager formManager(this);
 	formManager.saveSettings();

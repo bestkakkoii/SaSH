@@ -22,7 +22,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include <net/tcpserver.h>
 #include "injector.h"
 
-constexpr const char* kDefaultSuffix = ".dat";
+constexpr const char* kDefaultSuffix = u8".dat";
 
 //不可通行地面、物件數據 或 傳點|樓梯
 #pragma region StaticTable

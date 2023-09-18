@@ -211,7 +211,7 @@ int __stdcall Autil::util_GetFunctionFromSlice(int* func, int* fieldcount)
 	int i = 0;
 
 	if (strcmp(MesgSlice[0], DEFAULTFUNCBEGIN) != 0)
-		SliceCount = 0;
+		util_DiscardMessage();
 
 	strcpy_s(t1.data(), NETDATASIZE, MesgSlice[1]);
 

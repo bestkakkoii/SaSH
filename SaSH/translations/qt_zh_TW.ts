@@ -1204,45 +1204,6 @@
     </message>
 </context>
 <context>
-    <name>Injector</name>
-    <message>
-        <source>dwProcessId is null!</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>pReason is null!</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>EnumWindows fail</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Get kernel32 module handle fail</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Get LoadLibraryW address fail</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>OpenProcess fail</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>VirtualAllocEx fail</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Inject library fail</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Unable to get remote module handle</source>
-        <translation type="unfinished"></translation>
-    </message>
-</context>
-<context>
     <name>ItemInfoForm</name>
     <message>
         <source>head</source>
@@ -1836,26 +1797,6 @@ No new version available. Do you still want to update?</source>
     <message>
         <source>%1 count    no %2 round    duration: %3 sec    cost: %4 sec    total time: %5 minues</source>
         <translation type="vanished">第 %1 局&#x3000;&#x3000;第 %2 回合&#x3000;&#x3000;局時間: %3 秒&#x3000;&#x3000;回合時間: %4 秒&#x3000;&#x3000;累積時間: %5 分鐘</translation>
-    </message>
-    <message>
-        <source>Server is not initialized!</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Server is not listening!</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Create process failed!</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>User requested to stop!</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>TCP connection timeout!</source>
-        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
@@ -3115,50 +3056,6 @@ No new version available. Do you still want to update?</source>
         <source> ========== script result : %1，cost %2 ==========</source>
         <translation> ========== 腳本執行結果 : %1，耗時 %2 ==========</translation>
     </message>
-    <message>
-        <source>Table</source>
-        <translation>表</translation>
-    </message>
-    <message>
-        <source>Int</source>
-        <translation>整數型</translation>
-    </message>
-    <message>
-        <source>Double</source>
-        <translation>雙精度浮點型</translation>
-    </message>
-    <message>
-        <source>Bool</source>
-        <translation>布爾型</translation>
-    </message>
-    <message>
-        <source>Nil</source>
-        <translation>空</translation>
-    </message>
-    <message>
-        <source>GLOBAL</source>
-        <translation>全局變量</translation>
-    </message>
-    <message>
-        <source>LOCAL</source>
-        <translation>局變量</translation>
-    </message>
-    <message>
-        <source>UInt</source>
-        <translation>無符號整數型</translation>
-    </message>
-    <message>
-        <source>String</source>
-        <translation>字符串</translation>
-    </message>
-    <message>
-        <source>LongLong</source>
-        <translation>超長整數型</translation>
-    </message>
-    <message>
-        <source>ULongLong</source>
-        <translation>無符號超長整數型</translation>
-    </message>
 </context>
 <context>
     <name>QThumbnailFormClass</name>
@@ -3420,15 +3317,11 @@ No new version available. Do you still want to update?</source>
     </message>
     <message>
         <source>List</source>
-        <translation type="vanished">列表</translation>
+        <translation>列表</translation>
     </message>
     <message>
         <source>Table</source>
         <translation>表</translation>
-    </message>
-    <message>
-        <source>Nil</source>
-        <translation>空</translation>
     </message>
 </context>
 <context>
@@ -4455,7 +4348,7 @@ No new version available. Do you still want to update?</source>
     </message>
     <message>
         <source>Debug</source>
-        <translation>調式模式</translation>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>

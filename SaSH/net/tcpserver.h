@@ -38,145 +38,145 @@ static const QHash<QString, BUTTON_TYPE> buttonMap = {
 	{"AUTO", BUTTON_AUTO},
 
 	//big5
-	{"確認", BUTTON_YES},
-	{"確定", BUTTON_YES},
-	{"取消", BUTTON_NO},
-	{"好", BUTTON_YES},
-	{"不好", BUTTON_NO},
-	{"可以", BUTTON_YES},
-	{"不可以", BUTTON_NO},
-	{"上一頁", BUTTON_PREVIOUS},
-	{"上一步", BUTTON_PREVIOUS},
-	{"下一頁", BUTTON_NEXT},
-	{"下一步", BUTTON_NEXT},
-	{"買", BUTTON_BUY},
-	{"賣", BUTTON_SELL},
-	{"出去", BUTTON_OUT},
-	{"回上一頁", BUTTON_BACK},
+	{u8"確認", BUTTON_YES},
+	{u8"確定", BUTTON_YES},
+	{u8"取消", BUTTON_NO},
+	{u8"好", BUTTON_YES},
+	{u8"不好", BUTTON_NO},
+	{u8"可以", BUTTON_YES},
+	{u8"不可以", BUTTON_NO},
+	{u8"上一頁", BUTTON_PREVIOUS},
+	{u8"上一步", BUTTON_PREVIOUS},
+	{u8"下一頁", BUTTON_NEXT},
+	{u8"下一步", BUTTON_NEXT},
+	{u8"買", BUTTON_BUY},
+	{u8"賣", BUTTON_SELL},
+	{u8"出去", BUTTON_OUT},
+	{u8"回上一頁", BUTTON_BACK},
 
 	//gb2312
-	{"确认", BUTTON_YES},
-	{"确定", BUTTON_YES},
-	{"取消", BUTTON_NO},
-	{"好", BUTTON_YES},
-	{"不好", BUTTON_NO},
-	{"可以", BUTTON_YES},
-	{"不可以", BUTTON_NO},
-	{"上一页", BUTTON_PREVIOUS},
-	{"上一步", BUTTON_PREVIOUS},
-	{"下一页", BUTTON_NEXT},
-	{"下一步", BUTTON_NEXT},
-	{"买", BUTTON_BUY},
-	{"卖", BUTTON_SELL},
-	{"出去", BUTTON_OUT},
-	{"回上一页", BUTTON_BACK},
+	{u8"确认", BUTTON_YES},
+	{u8"确定", BUTTON_YES},
+	{u8"取消", BUTTON_NO},
+	{u8"好", BUTTON_YES},
+	{u8"不好", BUTTON_NO},
+	{u8"可以", BUTTON_YES},
+	{u8"不可以", BUTTON_NO},
+	{u8"上一页", BUTTON_PREVIOUS},
+	{u8"上一步", BUTTON_PREVIOUS},
+	{u8"下一页", BUTTON_NEXT},
+	{u8"下一步", BUTTON_NEXT},
+	{u8"买", BUTTON_BUY},
+	{u8"卖", BUTTON_SELL},
+	{u8"出去", BUTTON_OUT},
+	{u8"回上一页", BUTTON_BACK},
 };
 
 static const QHash<QString, PetState> petStateMap = {
-	{ "戰鬥", kBattle },
-	{ "等待", kStandby },
-	{ "郵件", kMail },
-	{ "休息", kRest },
-	{ "騎乘", kRide },
+	{ u8"戰鬥", kBattle },
+	{ u8"等待", kStandby },
+	{ u8"郵件", kMail },
+	{ u8"休息", kRest },
+	{ u8"騎乘", kRide },
 
-	{ "战斗", kBattle },
-	{ "等待", kStandby },
-	{ "邮件", kMail },
-	{ "休息", kRest },
-	{ "骑乘", kRide },
+	{ u8"战斗", kBattle },
+	{ u8"等待", kStandby },
+	{ u8"邮件", kMail },
+	{ u8"休息", kRest },
+	{ u8"骑乘", kRide },
 
-	{ "battle", kBattle },
-	{ "standby", kStandby },
-	{ "mail", kMail },
-	{ "rest", kRest },
-	{ "ride", kRide },
+	{ u8"battle", kBattle },
+	{ u8"standby", kStandby },
+	{ u8"mail", kMail },
+	{ u8"rest", kRest },
+	{ u8"ride", kRide },
 };
 
 static const QHash<QString, DirType> dirMap = {
-	{ "北", kDirNorth },
-	{ "東北", kDirNorthEast },
-	{ "東", kDirEast },
-	{ "東南", kDirSouthEast },
-	{ "南", kDirSouth },
-	{ "西南", kDirSouthWest },
-	{ "西", kDirWest },
-	{ "西北", kDirNorthWest },
+	{ u8"北", kDirNorth },
+	{ u8"東北", kDirNorthEast },
+	{ u8"東", kDirEast },
+	{ u8"東南", kDirSouthEast },
+	{ u8"南", kDirSouth },
+	{ u8"西南", kDirSouthWest },
+	{ u8"西", kDirWest },
+	{ u8"西北", kDirNorthWest },
 
-	{ "北", kDirNorth },
-	{ "东北", kDirNorthEast },
-	{ "东", kDirEast },
-	{ "东南", kDirSouthEast },
-	{ "南", kDirSouth },
-	{ "西南", kDirSouthWest },
-	{ "西", kDirWest },
-	{ "西北", kDirNorthWest },
+	{ u8"北", kDirNorth },
+	{ u8"东北", kDirNorthEast },
+	{ u8"东", kDirEast },
+	{ u8"东南", kDirSouthEast },
+	{ u8"南", kDirSouth },
+	{ u8"西南", kDirSouthWest },
+	{ u8"西", kDirWest },
+	{ u8"西北", kDirNorthWest },
 
-	{ "A", kDirNorth },
-	{ "B", kDirNorthEast },
-	{ "C", kDirEast },
-	{ "D", kDirSouthEast },
-	{ "E", kDirSouth },
-	{ "F", kDirSouthWest },
-	{ "G", kDirWest },
-	{ "H", kDirNorthWest },
+	{ u8"A", kDirNorth },
+	{ u8"B", kDirNorthEast },
+	{ u8"C", kDirEast },
+	{ u8"D", kDirSouthEast },
+	{ u8"E", kDirSouth },
+	{ u8"F", kDirSouthWest },
+	{ u8"G", kDirWest },
+	{ u8"H", kDirNorthWest },
 };
 
 static const QHash<QString, CHAR_EquipPlace> equipMap = {
-	{ "頭", CHAR_HEAD },
-	{ "身體", CHAR_BODY },
-	{ "右手", CHAR_ARM },
-	{ "左飾", CHAR_DECORATION1 },
-	{ "右飾", CHAR_DECORATION2 },
-	{ "腰帶", CHAR_EQBELT },
-	{ "左手", CHAR_EQSHIELD },
-	{ "鞋子", CHAR_EQSHOES },
-	{ "手套", CHAR_EQGLOVE },
+	{ u8"頭", CHAR_HEAD },
+	{ u8"身體", CHAR_BODY },
+	{ u8"右手", CHAR_ARM },
+	{ u8"左飾", CHAR_DECORATION1 },
+	{ u8"右飾", CHAR_DECORATION2 },
+	{ u8"腰帶", CHAR_EQBELT },
+	{ u8"左手", CHAR_EQSHIELD },
+	{ u8"鞋子", CHAR_EQSHOES },
+	{ u8"手套", CHAR_EQGLOVE },
 
-	{ "头", CHAR_HEAD },
-	{ "身体", CHAR_BODY },
-	{ "右手", CHAR_ARM },
-	{ "左饰", CHAR_DECORATION1 },
-	{ "右饰", CHAR_DECORATION2 },
-	{ "腰带", CHAR_EQBELT },
-	{ "左手", CHAR_EQSHIELD },
-	{ "鞋子", CHAR_EQSHOES },
-	{ "手套", CHAR_EQGLOVE },
+	{ u8"头", CHAR_HEAD },
+	{ u8"身体", CHAR_BODY },
+	{ u8"右手", CHAR_ARM },
+	{ u8"左饰", CHAR_DECORATION1 },
+	{ u8"右饰", CHAR_DECORATION2 },
+	{ u8"腰带", CHAR_EQBELT },
+	{ u8"左手", CHAR_EQSHIELD },
+	{ u8"鞋子", CHAR_EQSHOES },
+	{ u8"手套", CHAR_EQGLOVE },
 
-	{ "head", CHAR_HEAD },
-	{ "body", CHAR_BODY },
-	{ "right", CHAR_ARM },
-	{ "las", CHAR_DECORATION1 },
-	{ "ras", CHAR_DECORATION2 },
-	{ "belt", CHAR_EQBELT },
-	{ "left", CHAR_EQSHIELD },
-	{ "shoe", CHAR_EQSHOES },
-	{ "glove", CHAR_EQGLOVE },
+	{ u8"head", CHAR_HEAD },
+	{ u8"body", CHAR_BODY },
+	{ u8"right", CHAR_ARM },
+	{ u8"las", CHAR_DECORATION1 },
+	{ u8"ras", CHAR_DECORATION2 },
+	{ u8"belt", CHAR_EQBELT },
+	{ u8"left", CHAR_EQSHIELD },
+	{ u8"shoe", CHAR_EQSHOES },
+	{ u8"glove", CHAR_EQGLOVE },
 };
 
 static const QHash<QString, CHAR_EquipPlace> petEquipMap = {
-	{ "頭", PET_HEAD },
-	{ "翼", PET_WING },
-	{ "牙", PET_TOOTH },
-	{ "身體", PET_PLATE },
-	{ "背", PET_BACK },
-	{ "爪", PET_CLAW },
-	{ "腳", PET_FOOT },
+	{ u8"頭", PET_HEAD },
+	{ u8"翼", PET_WING },
+	{ u8"牙", PET_TOOTH },
+	{ u8"身體", PET_PLATE },
+	{ u8"背", PET_BACK },
+	{ u8"爪", PET_CLAW },
+	{ u8"腳", PET_FOOT },
 
-	{ "头", PET_HEAD },
-	{ "翼", PET_WING },
-	{ "牙", PET_TOOTH },
-	{ "身体", PET_PLATE },
-	{ "背", PET_BACK },
-	{ "爪", PET_CLAW },
-	{ "脚", PET_FOOT },
+	{ u8"头", PET_HEAD },
+	{ u8"翼", PET_WING },
+	{ u8"牙", PET_TOOTH },
+	{ u8"身体", PET_PLATE },
+	{ u8"背", PET_BACK },
+	{ u8"爪", PET_CLAW },
+	{ u8"脚", PET_FOOT },
 
-	{ "head", PET_HEAD },
-	{ "wing", PET_WING },
-	{ "tooth", PET_TOOTH },
-	{ "body", PET_PLATE },
-	{ "back", PET_BACK },
-	{ "claw", PET_CLAW },
-	{ "foot", PET_FOOT },
+	{ u8"head", PET_HEAD },
+	{ u8"wing", PET_WING },
+	{ u8"tooth", PET_TOOTH },
+	{ u8"body", PET_PLATE },
+	{ u8"back", PET_BACK },
+	{ u8"claw", PET_CLAW },
+	{ u8"foot", PET_FOOT },
 };
 
 enum BufferControl
@@ -676,8 +676,6 @@ private:
 	int swapitemModeFlag = 0;
 	QHash<QString, bool>itemStackFlagHash = {};
 
-	QVector<bool> battlePetDisableList_ = {};
-
 	//client original 目前很多都是沒用處的
 #pragma region ClientOriginal
 	MAGIC magic[MAX_MAGIC] = {};
@@ -818,7 +816,7 @@ public:
 
 	bool IS_DISCONNECTED = false;
 
-	std::atomic_bool IS_TCP_CONNECTION_OK_TO_USE = false;
+	bool IS_TCP_CONNECTION_OK_TO_USE = false;
 
 	bool IS_WAITFOR_JOBDAILY_FLAG = false;
 	bool IS_WAITFOR_BANK_FLAG = false;
@@ -826,7 +824,7 @@ public:
 	bool IS_WAITFOR_EXTRA_DIALOG_INFO_FLAG = false;
 	bool IS_WAITFOR_CUSTOM_DIALOG_FLAG = false;
 
-	std::atomic_bool isBattleDialogReady = false;
+	std::atomic_bool  isBattleDialogReady = false;
 	std::atomic_bool isEOTTLSend = false;
 	std::atomic_int lastEOTime = 0;
 
@@ -886,14 +884,12 @@ private:
 
 	QList<QTcpSocket*> clientSockets_;
 
-	QByteArray net_readbuf_;
+	QByteArray net_readbuf;
 
 	QMutex net_mutex;
 
-	QByteArray tmpdata_;
-
 private://lssproto
-	bool appendReadBuf(const QByteArray& data);
+	int appendReadBuf(const QByteArray& data);
 	QByteArrayList splitLinesFromReadBuf();
 	int a62toi(const QString& a) const;
 	int getStringToken(const QString& src, const QString& delim, int count, QString& out) const;

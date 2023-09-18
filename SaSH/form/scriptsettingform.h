@@ -112,7 +112,7 @@ private slots:
 	void onScriptLabelRowTextChanged(int row, int max, bool noSelect);
 
 	void loadFile(const QString& fileName);
-	void onVarInfoImport(QList<QTreeWidgetItem*> pNode);
+	void onVarInfoImport(const QHash<QString, QVariant>& d);
 
 
 	void onCallStackInfoChanged(const QVariant& var);

@@ -23,12 +23,11 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 #pragma comment(lib, "ws2_32.lib")
 
+#if QT_NO_DEBUG
 void CreateConsole()
 {
 	if (!AllocConsole())
 	{
-		std::wstring message = L"AllocConsole failed with error: " + std::to_wstring(GetLastError());
-		MessageBox(nullptr, message.c_str(), L"Error", MB_OK);
 		return;
 	}
 	FILE* fDummy;
@@ -56,7 +55,6 @@ void CreateConsole()
 	setlocale(LC_ALL, "en_US.UTF-8");
 }
 
-#if QT_NO_DEBUG
 void printStackTrace()
 {
 	QTextStream out(stderr);
@@ -120,7 +118,7 @@ void qtMessageHandler(QtMsgType type, const QMessageLogContext& context, const Q
 #if defined _M_X64 || defined _M_IX86
 LPTOP_LEVEL_EXCEPTION_FILTER WINAPI
 dummySetUnhandledExceptionFilter(
-	LPTOP_LEVEL_EXCEPTION_FILTER)
+	LPTOP_LEVEL_EXCEPTION_FILTER lpTopLevelExceptionFilter)
 {
 	return NULL;
 }
@@ -134,7 +132,7 @@ BOOL preventSetUnhandledExceptionFilter()
 	if (hKernel32 == nullptr)
 		return FALSE;
 
-	void* pOrgEntry = GetProcAddress(hKernel32, "SetUnhandledExceptionFilter");
+	void* pOrgEntry = GetProcAddress(hKernel32, u8"SetUnhandledExceptionFilter");
 	if (pOrgEntry == nullptr)
 		return FALSE;
 
@@ -315,7 +313,7 @@ void fontInitialize(const QString& currentWorkPath, QApplication& a)
 
 		if (acp == 950)
 		{
-			defaultFont = QFont("PMingLiU", 12, QFont::Normal);
+			defaultFont = QFont(u8"PMingLiU", 12, QFont::Normal);
 		}
 		else if (acp == 936)
 		{
@@ -404,10 +402,9 @@ int main(int argc, char* argv[])
 
 #if QT_NO_DEBUG
 	qInstallMessageHandler(qtMessageHandler);
-	//SetUnhandledExceptionFilter(MinidumpCallback); //SEH
-	//preventSetUnhandledExceptionFilter();
+	SetUnhandledExceptionFilter(MinidumpCallback); //SEH
+	preventSetUnhandledExceptionFilter();
 	//AddVectoredExceptionHandler(0, MinidumpCallback); //VEH
-	//CreateConsole();
 #endif
 
 	int count = QThread::idealThreadCount();

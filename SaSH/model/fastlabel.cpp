@@ -62,7 +62,7 @@ void FastLabel::resizeEvent(QResizeEvent*)
 	update();
 }
 
-void FastLabel::paintEvent(QPaintEvent*)
+void FastLabel::paintEvent(QPaintEvent* e)
 {
 	QPainter painter(this);
 	painter.setPen(QPen(text_color_));

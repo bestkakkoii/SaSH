@@ -38,7 +38,7 @@ ScriptSettingForm::ScriptSettingForm(QWidget* parent)
 	setAttribute(Qt::WA_DeleteOnClose);
 	setWindowFlags(Qt::FramelessWindowHint);
 
-	CustomTitleBar* titleBar = new CustomTitleBar(CustomTitleBar::kAllButton, this);
+	CustomTitleBar* titleBar = new CustomTitleBar(this);
 	setMenuWidget(titleBar);
 
 	//Qt::WindowFlags windowflag = this->windowFlags();
@@ -182,11 +182,6 @@ ScriptSettingForm::ScriptSettingForm(QWidget* parent)
 	onApplyHashSettingsToUI();
 	//ui.webEngineView->setUrl(QUrl("https://gitee.com/Bestkakkoii/sash/wikis/pages"));
 
-	if (!injector.currentScriptFileName.isEmpty() && QFile::exists(injector.currentScriptFileName))
-	{
-		emit signalDispatcher.loadFileToTable(injector.currentScriptFileName);
-	}
-
 	const QString fileName(qgetenv("JSON_PATH"));
 	if (fileName.isEmpty())
 		return;
@@ -194,6 +189,13 @@ ScriptSettingForm::ScriptSettingForm(QWidget* parent)
 	if (!QFile::exists(fileName))
 		return;
 	util::Config config(fileName);
+
+
+	injector.currentScriptFileName = config.read<QString>(objectName(), "LastModifyFile");
+	if (!injector.currentScriptFileName.isEmpty() && QFile::exists(injector.currentScriptFileName))
+	{
+		emit signalDispatcher.loadFileToTable(injector.currentScriptFileName);
+	}
 
 	QString ObjectName = ui.widget->objectName();
 	int fontSize = config.read<int>(objectName(), ObjectName, "FontSize");
@@ -340,7 +342,7 @@ bool ScriptSettingForm::eventFilter(QObject* obj, QEvent* e)
 	return QObject::eventFilter(obj, e);
 }
 
-bool ScriptSettingForm::nativeEvent(const QByteArray&, void* message, long* result)
+bool ScriptSettingForm::nativeEvent(const QByteArray& eventType, void* message, long* result)
 {
 	MSG* msg = (MSG*)message;
 	switch (msg->message)
@@ -1012,7 +1014,7 @@ void ScriptSettingForm::on_widget_textChanged()
 
 void ScriptSettingForm::on_comboBox_labels_clicked()
 {
-	static const QRegularExpression rex_divLabel(R"((label\s+[\p{Han}\w]+))");
+	static const QRegularExpression rex_divLabel(u8R"((label\s+[\p{Han}\w]+))");
 	ui.comboBox_labels->blockSignals(true);
 
 	//將所有lua function 和 label加入 combobox並使其能定位行號
@@ -1063,7 +1065,7 @@ void ScriptSettingForm::on_comboBox_labels_currentIndexChanged(int)
 
 void ScriptSettingForm::on_comboBox_functions_clicked()
 {
-	static const QRegularExpression rex_divLabel(R"((function\s+[\p{Han}\w]+))");
+	static const QRegularExpression rex_divLabel(u8R"((function\s+[\p{Han}\w]+))");
 	ui.comboBox_functions->blockSignals(true);
 	//將所有lua function 和 label加入 combobox並使其能定位行號
 	int line = -1, index = -1;
@@ -1278,7 +1280,7 @@ void ScriptSettingForm::on_treeWidget_functionList_itemDoubleClicked(QTreeWidget
 	ui.widget->insert(str);
 }
 
-void ScriptSettingForm::on_treeWidget_functionList_itemClicked(QTreeWidgetItem*, int)
+void ScriptSettingForm::on_treeWidget_functionList_itemClicked(QTreeWidgetItem* item, int column)
 {
 	emit ui.treeWidget_functionList->itemSelectionChanged();
 }
@@ -1457,7 +1459,7 @@ void ScriptSettingForm::on_listView_log_doubleClicked(const QModelIndex& index)
 		return;
 
 	// "於行號: 1" | "于行号: 1"  取最後 : 後面的數字
-	static const QRegularExpression re("@\\s*(\\d+)\\s*\\|");
+	static const QRegularExpression re(u8"@\\s*(\\d+)\\s*\\|");
 	QRegularExpressionMatch match = re.match(text);
 	if (match.hasMatch())
 	{
@@ -2032,7 +2034,7 @@ void ScriptSettingForm::onAddErrorMarker(int liner, bool b)
 	setMark(CodeEditor::SymbolHandler::SYM_TRIANGLE, error_markers, liner, b);
 }
 
-void ScriptSettingForm::onAddStepMarker(int, bool b)
+void ScriptSettingForm::onAddStepMarker(int liner, bool b)
 {
 	if (!b)
 	{
@@ -2149,46 +2151,41 @@ void ScriptSettingForm::onReloadScriptList()
 }
 
 //全局變量列表
-void ScriptSettingForm::onVarInfoImport(QList<QTreeWidgetItem*> nodes)
+void ScriptSettingForm::onVarInfoImport(const QHash<QString, QVariant>& d)
 {
-	ui.treeWidget_debuger_custom->setUpdatesEnabled(false);
-	ui.treeWidget_debuger_custom->clear();
-	ui.treeWidget_debuger_custom->addTopLevelItems(nodes);
-	ui.treeWidget_debuger_custom->setUpdatesEnabled(true);
+	if (currentGlobalVarInfo_ == d)
+		return;
 
-	//if (currentGlobalVarInfo_ == d)
-	//	return;
+	currentGlobalVarInfo_ = d;
+	QStringList systemVarList = {
 
-	//currentGlobalVarInfo_ = d;
-	//QStringList systemVarList = {
+	};
 
-	//};
+	QHash<QString, QVariant> globalVarInfo;
+	QHash<QString, QVariant> customVarInfo;
+	//如果key存在於系統變量列表中則添加到系統變量列表中
 
-	//QHash<QString, QVariant> globalVarInfo;
-	//QHash<QString, QVariant> customVarInfo;
-	////如果key存在於系統變量列表中則添加到系統變量列表中
+	QString key;
+	QStringList l;
+	for (auto it = d.cbegin(); it != d.cend(); ++it)
+	{
+		l = it.key().split(util::rexOR);
+		if (l.size() != 2)
+			continue;
 
-	//QString key;
-	//QStringList l;
-	//for (auto it = d.cbegin(); it != d.cend(); ++it)
-	//{
-	//	l = it.key().split(util::rexOR);
-	//	if (l.size() != 2)
-	//		continue;
+		key = l.at(1);
+		if (systemVarList.contains(key.simplified()))
+		{
+			globalVarInfo.insert(it.key(), it.value());
+		}
+		else if (!systemVarList.contains(key.simplified()))
+		{
+			customVarInfo.insert(it.key(), it.value());
+		}
+	}
 
-	//	key = l.at(1);
-	//	if (systemVarList.contains(key.simplified()))
-	//	{
-	//		globalVarInfo.insert(it.key(), it.value());
-	//	}
-	//	else if (!systemVarList.contains(key.simplified()))
-	//	{
-	//		customVarInfo.insert(it.key(), it.value());
-	//	}
-	//}
-
-	//varInfoImport(ui.treeWidget_debuger_global, globalVarInfo);
-	//varInfoImport(ui.treeWidget_debuger_custom, customVarInfo);
+	varInfoImport(ui.treeWidget_debuger_global, globalVarInfo);
+	varInfoImport(ui.treeWidget_debuger_custom, customVarInfo);
 }
 
 void ScriptSettingForm::onCallStackInfoChanged(const QVariant& var)

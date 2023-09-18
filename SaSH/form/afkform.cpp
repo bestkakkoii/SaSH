@@ -1252,21 +1252,23 @@ void AfkForm::onUpdateComboBoxItemText(int type, const QStringList& textList)
 			combo->blockSignals(false);
 		};
 
-		//auto appendProfText = [&actionList, &textList](QComboBox* combo, bool notBattle = false)->void
-		//{
-		//	combo->blockSignals(true);
-		//	combo->setUpdatesEnabled(false);
-		//	int nOriginalIndex = combo->currentIndex();
-		//	combo->clear();
-		//	int textListSize = textList.size();
-		//	for (int i = CHAR_EQUIPPLACENUM; i < textListSize; ++i)
-		//	{
-		//		combo->addItem(QString("%1:%2").arg(i - CHAR_EQUIPPLACENUM + 1).arg(textList[i]));
-		//	}
-		//	combo->setCurrentIndex(nOriginalIndex);
-		//	combo->setUpdatesEnabled(true);
-		//	combo->blockSignals(false);
-		//};
+		auto appendProfText = [&actionList, &textList](QComboBox* combo, bool notBattle = false)->void
+		{
+			combo->blockSignals(true);
+			combo->setUpdatesEnabled(false);
+			int nOriginalIndex = combo->currentIndex();
+			combo->clear();
+
+			int textListSize = textList.size();
+			for (int i = CHAR_EQUIPPLACENUM; i < textListSize; ++i)
+			{
+				combo->addItem(QString("%1:%2").arg(i - CHAR_EQUIPPLACENUM + 1).arg(textList[i]));
+			}
+
+			combo->setCurrentIndex(nOriginalIndex);
+			combo->setUpdatesEnabled(true);
+			combo->blockSignals(false);
+		};
 
 		//battle
 		appendMagicText(ui.comboBox_normalaction_char_action);

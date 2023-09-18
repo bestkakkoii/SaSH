@@ -152,6 +152,9 @@ void LuaScriptForm::onScriptStarted()
 		return;
 	}
 
+	if (!injector.scriptLogModel.isNull())
+		injector.scriptLogModel->clear();
+
 	QString content;
 	bool isPrivate = false;
 	if (!util::readFile(injector.currentScriptFileName, &content, &isPrivate))
@@ -341,9 +344,6 @@ void LuaScriptForm::loadFile(const QString& fileName)
 
 void LuaScriptForm::onScriptContentChanged(const QString& fileName, const QVariant& vtokens)
 {
-	if (!vtokens.canConvert<QStringList>())
-		return;
-
 	QStringList tokens = vtokens.value<QStringList>();
 
 	int rowCount = tokens.size();

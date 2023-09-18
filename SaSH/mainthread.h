@@ -90,7 +90,6 @@ private:
 	bool battle_run_once_flag_ = false;
 
 	bool flagBattleDialogEnable_ = false;
-	bool flagBlockPacketEnable_ = false;
 	bool flagAutoLoginEnable_ = false;
 	bool flagAutoReconnectEnable_ = false;
 	bool flagLogOutEnable_ = false;

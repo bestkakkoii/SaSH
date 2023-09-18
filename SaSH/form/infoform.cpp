@@ -39,11 +39,7 @@ InfoForm::InfoForm(int defaultPage, QWidget* parent)
 	setAttribute(Qt::WA_DeleteOnClose);
 	setAttribute(Qt::WA_StyledBackground, true);
 
-	setStyleSheet(R"(background-color: #F9F9F9; font-size: 12px;)");
-
-	QFont font = this->font();
-	font.setPointSize(12);
-	setFont(font);
+	setStyleSheet(R"(background-color: #F9F9F9)");
 
 	Qt::WindowFlags windowflag = this->windowFlags();
 	windowflag |= Qt::WindowType::Tool;

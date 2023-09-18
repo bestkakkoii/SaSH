@@ -108,9 +108,9 @@ public:
 
 	Q_REQUIRED_RESULT bool isWindowAlive() const;
 
-	quint64 sendMessage(quint64 msg, quint64 wParam, qint64 lParam) const;
+	int sendMessage(int msg, int wParam, int lParam) const;
 
-	bool postMessage(quint64 msg, quint64 wParam, qint64 lParam) const;
+	bool postMessage(int msg, int wParam, int lParam) const;
 
 	inline void setValueHash(util::UserSetting setting, int value) { userSetting_value_hash_.insert(setting, value); }
 
@@ -157,29 +157,16 @@ public:
 	QString getPointFileName();
 
 private:
-	static bool IsConsoleWindow(HWND hwnd)
-	{
-		DWORD dwStyle = GetWindowLong(hwnd, GWL_STYLE);
-		DWORD dwExStyle = GetWindowLong(hwnd, GWL_EXSTYLE);
-		if ((dwStyle & WS_OVERLAPPEDWINDOW) == WS_OVERLAPPEDWINDOW &&
-			(dwExStyle & WS_EX_APPWINDOW) == WS_EX_APPWINDOW) {
-			return true;
-		}
-
-		return false;
-	}
-
 	static BOOL CALLBACK EnumWindowsCallback(HWND handle, LPARAM lParam)
 	{
 		lpprocess_information_t data = reinterpret_cast<lpprocess_information_t>(lParam);
 		DWORD dwProcessId = 0;
 		do
 		{
-			if (!handle || !lParam || reinterpret_cast<quint64>(handle) == qgetenv("SASH_HWND").toULongLong())
-				break;
+			if (!handle || !lParam) break;
 
 			::GetWindowThreadProcessId(handle, &dwProcessId);
-			if (data->dwProcessId == dwProcessId && IsWindowVisible(handle) && !IsConsoleWindow(handle))
+			if (data->dwProcessId == dwProcessId && IsWindowVisible(handle))
 			{
 				data->hWnd = handle;
 				return FALSE;

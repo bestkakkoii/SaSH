@@ -69,7 +69,7 @@ void Interpreter::doFileWithThread(qint64 beginLine, const QString& fileName)
 	parser_.setBeginLine(beginLine);
 
 	moveToThread(thread_);
-
+	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
 	connect(this, &Interpreter::finished, thread_, &QThread::quit, Qt::UniqueConnection);
 	connect(thread_, &QThread::finished, thread_, &QThread::deleteLater, Qt::UniqueConnection);
 	connect(thread_, &QThread::started, this, &Interpreter::proc, Qt::UniqueConnection);
@@ -83,9 +83,10 @@ void Interpreter::doFileWithThread(qint64 beginLine, const QString& fileName)
 }
 
 //同線程下執行腳本文件(實例新的interpreter)
-bool Interpreter::doFile(qint64 beginLine, const QString& fileName, Interpreter* parent, VarShareMode shareMode, Parser::Mode mode)
+bool Interpreter::doFile(qint64 beginLine, const QString& fileName, Interpreter* parent, VarShareMode shareMode, RunFileMode mode)
 {
-	setMode(mode);
+	if (mode == kAsync)
+		parser_.setMode(Parser::kAsync);
 
 	if (!parser_.loadFile(fileName, nullptr))
 		return false;
@@ -95,12 +96,12 @@ bool Interpreter::doFile(qint64 beginLine, const QString& fileName, Interpreter*
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
 
 	bool isPrivate = parser_.isPrivate();
-	if (!isPrivate && mode == Parser::kSync)
+	if (!isPrivate && mode == kSync)
 	{
 		emit signalDispatcher.loadFileToTable(fileName);
 		emit signalDispatcher.scriptContentChanged(fileName, QVariant::fromValue(parser_.getTokens()));
 	}
-	else if (isPrivate && mode == Parser::kSync)
+	else if (isPrivate && mode == kSync)
 	{
 		emit signalDispatcher.scriptContentChanged(fileName, QVariant::fromValue(QHash<qint64, TokenMap>{}));
 	}
@@ -129,8 +130,8 @@ bool Interpreter::doFile(qint64 beginLine, const QString& fileName, Interpreter*
 
 		Injector& injector = Injector::getInstance();
 
-		if (mode == Parser::kSync)
-			emit signalDispatcher.scriptLabelRowTextChanged(currentLine + 1, this->parser_.getTokens().size(), false);
+		if (mode == kSync)
+			emit signalDispatcher.scriptLabelRowTextChanged(currentLine + 1, this->parser_.getToken().size(), false);
 
 		if (TK.contains(0) && TK.value(0).type == TK_PAUSE)
 		{
@@ -140,7 +141,7 @@ bool Interpreter::doFile(qint64 beginLine, const QString& fileName, Interpreter*
 
 		parent->checkPause();
 
-		if (mode == Parser::kSync)
+		if (mode == kSync)
 		{
 			QString scriptFileName = parser_.getScriptFileName();
 			util::SafeHash<qint64, break_marker_t> breakMarkers = break_markers.value(scriptFileName);
@@ -193,7 +194,7 @@ bool Interpreter::doFile(qint64 beginLine, const QString& fileName, Interpreter*
 //新線程下執行一段腳本內容
 void Interpreter::doString(const QString& content, Interpreter* parent, VarShareMode shareMode)
 {
-	setMode(Parser::kAsync);
+	parser_.setMode(Parser::kAsync);
 
 	thread_ = new QThread();
 	if (nullptr == thread_)
@@ -256,6 +257,8 @@ void Interpreter::doString(const QString& content, Interpreter* parent, VarShare
 				parser_.setVariablesPointer(pparentHash, pparentLock);
 		}
 	}
+
+	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
 
 	openLibs();
 
@@ -472,110 +475,112 @@ void Interpreter::openLibsBIG5()
 	/*註冊函數*/
 
 	//core
-	registerFunction("正則匹配", &Interpreter::regex);
-	registerFunction("查找", &Interpreter::find);
-	registerFunction("半角", &Interpreter::half);
-	registerFunction("全角", &Interpreter::full);
-	registerFunction("轉大寫", &Interpreter::upper);
-	registerFunction("轉小寫", &Interpreter::lower);
-	registerFunction("替換", &Interpreter::replace);
+	registerFunction(u8"正則匹配", &Interpreter::regex);
+	registerFunction(u8"查找", &Interpreter::find);
+	registerFunction(u8"半角", &Interpreter::half);
+	registerFunction(u8"全角", &Interpreter::full);
+	registerFunction(u8"轉大寫", &Interpreter::upper);
+	registerFunction(u8"轉小寫", &Interpreter::lower);
+	registerFunction(u8"替換", &Interpreter::replace);
+	registerFunction(u8"轉整", &Interpreter::toint);
+	registerFunction(u8"轉字", &Interpreter::tostr);
 
 	//system
-	registerFunction("延時", &Interpreter::sleep);
-	registerFunction("按鈕", &Interpreter::press);
-	registerFunction("元神歸位", &Interpreter::eo);
-	registerFunction("提示", &Interpreter::announce);
-	registerFunction("輸入", &Interpreter::input);
-	registerFunction("消息", &Interpreter::messagebox);
-	registerFunction("回點", &Interpreter::logback);
-	registerFunction("登出", &Interpreter::logout);
-	registerFunction("說話", &Interpreter::talk);
-	registerFunction("說出", &Interpreter::talkandannounce);
-	registerFunction("清屏", &Interpreter::cleanchat);
-	registerFunction("設置", &Interpreter::set);
-	registerFunction("儲存設置", &Interpreter::savesetting);
-	registerFunction("讀取設置", &Interpreter::loadsetting);
+	registerFunction(u8"延時", &Interpreter::sleep);
+	registerFunction(u8"按鈕", &Interpreter::press);
+	registerFunction(u8"元神歸位", &Interpreter::eo);
+	registerFunction(u8"提示", &Interpreter::announce);
+	registerFunction(u8"輸入", &Interpreter::input);
+	registerFunction(u8"消息", &Interpreter::messagebox);
+	registerFunction(u8"回點", &Interpreter::logback);
+	registerFunction(u8"登出", &Interpreter::logout);
+	registerFunction(u8"說話", &Interpreter::talk);
+	registerFunction(u8"說出", &Interpreter::talkandannounce);
+	registerFunction(u8"清屏", &Interpreter::cleanchat);
+	registerFunction(u8"設置", &Interpreter::set);
+	registerFunction(u8"儲存設置", &Interpreter::savesetting);
+	registerFunction(u8"讀取設置", &Interpreter::loadsetting);
 
-	registerFunction("執行", &Interpreter::run);
-	registerFunction("執行代碼", &Interpreter::dostring);
-	registerFunction("註冊", &Interpreter::reg);
-	registerFunction("計時", &Interpreter::timer);
-	registerFunction("菜單", &Interpreter::menu);
-	registerFunction("創建人物", &Interpreter::createch);
-	registerFunction("刪除人物", &Interpreter::delch);
-	registerFunction("發包", &Interpreter::send);
+	registerFunction(u8"執行", &Interpreter::run);
+	registerFunction(u8"執行代碼", &Interpreter::dostring);
+	registerFunction(u8"註冊", &Interpreter::reg);
+	registerFunction(u8"計時", &Interpreter::timer);
+	registerFunction(u8"菜單", &Interpreter::menu);
+	registerFunction(u8"創建人物", &Interpreter::createch);
+	registerFunction(u8"刪除人物", &Interpreter::delch);
+	registerFunction(u8"發包", &Interpreter::send);
 
 	//check
-	registerFunction("任務狀態", &Interpreter::ifdaily);
-	registerFunction("戰鬥中", &Interpreter::ifbattle);
-	registerFunction("平時中", &Interpreter::ifnormal);
-	registerFunction("在線中", &Interpreter::ifonline);
-	registerFunction("查坐標", &Interpreter::ifpos);
-	registerFunction("查座標", &Interpreter::ifpos);
-	registerFunction("地圖快判", &Interpreter::ifmap);
-	registerFunction("背包滿", &Interpreter::ifitemfull);
+	registerFunction(u8"任務狀態", &Interpreter::ifdaily);
+	registerFunction(u8"戰鬥中", &Interpreter::ifbattle);
+	registerFunction(u8"平時中", &Interpreter::ifnormal);
+	registerFunction(u8"在線中", &Interpreter::ifonline);
+	registerFunction(u8"查坐標", &Interpreter::ifpos);
+	registerFunction(u8"查座標", &Interpreter::ifpos);
+	registerFunction(u8"地圖快判", &Interpreter::ifmap);
+	registerFunction(u8"背包滿", &Interpreter::ifitemfull);
 
-	registerFunction("地圖", &Interpreter::waitmap);
-	registerFunction("對話", &Interpreter::waitdlg);
-	registerFunction("聽見", &Interpreter::waitsay);
-	registerFunction("寵物有", &Interpreter::waitpet);
-	registerFunction("道具", &Interpreter::waititem);
-	registerFunction("組隊有", &Interpreter::waitteam);
+	registerFunction(u8"地圖", &Interpreter::waitmap);
+	registerFunction(u8"對話", &Interpreter::waitdlg);
+	registerFunction(u8"聽見", &Interpreter::waitsay);
+	registerFunction(u8"寵物有", &Interpreter::waitpet);
+	registerFunction(u8"道具", &Interpreter::waititem);
+	registerFunction(u8"組隊有", &Interpreter::waitteam);
 
 	//move
-	registerFunction("方向", &Interpreter::setdir);
-	registerFunction("坐標", &Interpreter::move);
-	registerFunction("座標", &Interpreter::move);
-	registerFunction("移動", &Interpreter::fastmove);
-	registerFunction("尋路", &Interpreter::findpath);
-	registerFunction("封包移動", &Interpreter::packetmove);
-	registerFunction("移動至NPC", &Interpreter::movetonpc);
-	registerFunction("轉移", &Interpreter::teleport);
-	registerFunction("過點", &Interpreter::warp);
+	registerFunction(u8"方向", &Interpreter::setdir);
+	registerFunction(u8"坐標", &Interpreter::move);
+	registerFunction(u8"座標", &Interpreter::move);
+	registerFunction(u8"移動", &Interpreter::fastmove);
+	registerFunction(u8"尋路", &Interpreter::findpath);
+	registerFunction(u8"封包移動", &Interpreter::packetmove);
+	registerFunction(u8"移動至NPC", &Interpreter::movetonpc);
+	registerFunction(u8"轉移", &Interpreter::teleport);
+	registerFunction(u8"過點", &Interpreter::warp);
 
 	//action
-	registerFunction("使用道具", &Interpreter::useitem);
-	registerFunction("丟棄道具", &Interpreter::dropitem);
-	registerFunction("交換道具", &Interpreter::swapitem);
-	registerFunction("人物改名", &Interpreter::playerrename);
-	registerFunction("寵物改名", &Interpreter::petrename);
-	registerFunction("更換寵物", &Interpreter::setpetstate);
-	registerFunction("丟棄寵物", &Interpreter::droppet);
-	registerFunction("購買", &Interpreter::buy);
-	registerFunction("售賣", &Interpreter::sell);
-	registerFunction("賣寵", &Interpreter::sellpet);
-	registerFunction("加工", &Interpreter::make);
-	registerFunction("料理", &Interpreter::cook);
-	registerFunction("使用精靈", &Interpreter::usemagic);
-	registerFunction("撿物", &Interpreter::pickitem);
-	registerFunction("存錢", &Interpreter::depositgold);
-	registerFunction("提錢", &Interpreter::withdrawgold);
-	registerFunction("加點", &Interpreter::addpoint);
-	registerFunction("學習", &Interpreter::learn);
-	registerFunction("交易", &Interpreter::trade);
-	registerFunction("寄信", &Interpreter::mail);
-	registerFunction("丟棄石幣", &Interpreter::doffstone);
+	registerFunction(u8"使用道具", &Interpreter::useitem);
+	registerFunction(u8"丟棄道具", &Interpreter::dropitem);
+	registerFunction(u8"交換道具", &Interpreter::swapitem);
+	registerFunction(u8"人物改名", &Interpreter::playerrename);
+	registerFunction(u8"寵物改名", &Interpreter::petrename);
+	registerFunction(u8"更換寵物", &Interpreter::setpetstate);
+	registerFunction(u8"丟棄寵物", &Interpreter::droppet);
+	registerFunction(u8"購買", &Interpreter::buy);
+	registerFunction(u8"售賣", &Interpreter::sell);
+	registerFunction(u8"賣寵", &Interpreter::sellpet);
+	registerFunction(u8"加工", &Interpreter::make);
+	registerFunction(u8"料理", &Interpreter::cook);
+	registerFunction(u8"使用精靈", &Interpreter::usemagic);
+	registerFunction(u8"撿物", &Interpreter::pickitem);
+	registerFunction(u8"存錢", &Interpreter::depositgold);
+	registerFunction(u8"提錢", &Interpreter::withdrawgold);
+	registerFunction(u8"加點", &Interpreter::addpoint);
+	registerFunction(u8"學習", &Interpreter::learn);
+	registerFunction(u8"交易", &Interpreter::trade);
+	registerFunction(u8"寄信", &Interpreter::mail);
+	registerFunction(u8"丟棄石幣", &Interpreter::doffstone);
 
-	registerFunction("記錄身上裝備", &Interpreter::recordequip);
-	registerFunction("裝上記錄裝備", &Interpreter::wearequip);
-	registerFunction("卸下裝備", &Interpreter::unwearequip);
-	registerFunction("卸下寵裝備", &Interpreter::petunequip);
-	registerFunction("裝上寵裝備", &Interpreter::petequip);
+	registerFunction(u8"記錄身上裝備", &Interpreter::recordequip);
+	registerFunction(u8"裝上記錄裝備", &Interpreter::wearequip);
+	registerFunction(u8"卸下裝備", &Interpreter::unwearequip);
+	registerFunction(u8"卸下寵裝備", &Interpreter::petunequip);
+	registerFunction(u8"裝上寵裝備", &Interpreter::petequip);
 
-	registerFunction("存入寵物", &Interpreter::depositpet);
-	registerFunction("存入道具", &Interpreter::deposititem);
-	registerFunction("提出寵物", &Interpreter::withdrawpet);
-	registerFunction("提出道具", &Interpreter::withdrawitem);
+	registerFunction(u8"存入寵物", &Interpreter::depositpet);
+	registerFunction(u8"存入道具", &Interpreter::deposititem);
+	registerFunction(u8"提出寵物", &Interpreter::withdrawpet);
+	registerFunction(u8"提出道具", &Interpreter::withdrawitem);
 
 	//action->group
-	registerFunction("組隊", &Interpreter::join);
-	registerFunction("離隊", &Interpreter::leave);
-	registerFunction("踢走", &Interpreter::kick);
+	registerFunction(u8"組隊", &Interpreter::join);
+	registerFunction(u8"離隊", &Interpreter::leave);
+	registerFunction(u8"踢走", &Interpreter::kick);
 
-	registerFunction("左擊", &Interpreter::leftclick);
-	registerFunction("右擊", &Interpreter::rightclick);
-	registerFunction("左雙擊", &Interpreter::leftdoubleclick);
-	registerFunction("拖至", &Interpreter::mousedragto);
+	registerFunction(u8"左擊", &Interpreter::leftclick);
+	registerFunction(u8"右擊", &Interpreter::rightclick);
+	registerFunction(u8"左雙擊", &Interpreter::leftdoubleclick);
+	registerFunction(u8"拖至", &Interpreter::mousedragto);
 
 }
 
@@ -585,112 +590,114 @@ void Interpreter::openLibsGB2312()
 	/*註册函数*/
 
 	//core
-	registerFunction("正则匹配", &Interpreter::regex);
-	registerFunction("查找", &Interpreter::find);
-	registerFunction("半角", &Interpreter::half);
-	registerFunction("全角", &Interpreter::full);
-	registerFunction("转大写", &Interpreter::upper);
-	registerFunction("转小写", &Interpreter::lower);
-	registerFunction("替换", &Interpreter::replace);
+	registerFunction(u8"正则匹配", &Interpreter::regex);
+	registerFunction(u8"查找", &Interpreter::find);
+	registerFunction(u8"半角", &Interpreter::half);
+	registerFunction(u8"全角", &Interpreter::full);
+	registerFunction(u8"转大写", &Interpreter::upper);
+	registerFunction(u8"转小写", &Interpreter::lower);
+	registerFunction(u8"替换", &Interpreter::replace);
+	registerFunction(u8"转整", &Interpreter::toint);
+	registerFunction(u8"转字", &Interpreter::tostr);
 
 	//system
-	registerFunction("延时", &Interpreter::sleep);
-	registerFunction("按钮", &Interpreter::press);
-	registerFunction("元神归位", &Interpreter::eo);
-	registerFunction("提示", &Interpreter::announce);
-	registerFunction("输入", &Interpreter::input);
-	registerFunction("消息", &Interpreter::messagebox);
-	registerFunction("回点", &Interpreter::logback);
-	registerFunction("登出", &Interpreter::logout);
-	registerFunction("说话", &Interpreter::talk);
-	registerFunction("说出", &Interpreter::talkandannounce);
-	registerFunction("清屏", &Interpreter::cleanchat);
-	registerFunction("设置", &Interpreter::set);
-	registerFunction("储存设置", &Interpreter::savesetting);
-	registerFunction("读取设置", &Interpreter::loadsetting);
+	registerFunction(u8"延时", &Interpreter::sleep);
+	registerFunction(u8"按钮", &Interpreter::press);
+	registerFunction(u8"元神归位", &Interpreter::eo);
+	registerFunction(u8"提示", &Interpreter::announce);
+	registerFunction(u8"输入", &Interpreter::input);
+	registerFunction(u8"消息", &Interpreter::messagebox);
+	registerFunction(u8"回点", &Interpreter::logback);
+	registerFunction(u8"登出", &Interpreter::logout);
+	registerFunction(u8"说话", &Interpreter::talk);
+	registerFunction(u8"说出", &Interpreter::talkandannounce);
+	registerFunction(u8"清屏", &Interpreter::cleanchat);
+	registerFunction(u8"设置", &Interpreter::set);
+	registerFunction(u8"储存设置", &Interpreter::savesetting);
+	registerFunction(u8"读取设置", &Interpreter::loadsetting);
 
-	registerFunction("执行", &Interpreter::run);
-	registerFunction("执行代码", &Interpreter::dostring);
-	registerFunction("註册", &Interpreter::reg);
-	registerFunction("计时", &Interpreter::timer);
-	registerFunction("菜单", &Interpreter::menu);
-	registerFunction("创建人物", &Interpreter::createch);
-	registerFunction("删除人物", &Interpreter::delch);
-	registerFunction("发包", &Interpreter::send);
+	registerFunction(u8"执行", &Interpreter::run);
+	registerFunction(u8"执行代码", &Interpreter::dostring);
+	registerFunction(u8"註册", &Interpreter::reg);
+	registerFunction(u8"计时", &Interpreter::timer);
+	registerFunction(u8"菜单", &Interpreter::menu);
+	registerFunction(u8"创建人物", &Interpreter::createch);
+	registerFunction(u8"删除人物", &Interpreter::delch);
+	registerFunction(u8"发包", &Interpreter::send);
 
 	//check
-	registerFunction("任务状态", &Interpreter::ifdaily);
-	registerFunction("战斗中", &Interpreter::ifbattle);
-	registerFunction("平时中", &Interpreter::ifnormal);
-	registerFunction("在线中", &Interpreter::ifonline);
-	registerFunction("查坐标", &Interpreter::ifpos);
-	registerFunction("查座标", &Interpreter::ifpos);
-	registerFunction("地图", &Interpreter::waitmap);
-	registerFunction("地图快判", &Interpreter::ifmap);
-	registerFunction("对话", &Interpreter::waitdlg);
-	registerFunction("听见", &Interpreter::waitsay);
+	registerFunction(u8"任务状态", &Interpreter::ifdaily);
+	registerFunction(u8"战斗中", &Interpreter::ifbattle);
+	registerFunction(u8"平时中", &Interpreter::ifnormal);
+	registerFunction(u8"在线中", &Interpreter::ifonline);
+	registerFunction(u8"查坐标", &Interpreter::ifpos);
+	registerFunction(u8"查座标", &Interpreter::ifpos);
+	registerFunction(u8"地图", &Interpreter::waitmap);
+	registerFunction(u8"地图快判", &Interpreter::ifmap);
+	registerFunction(u8"对话", &Interpreter::waitdlg);
+	registerFunction(u8"听见", &Interpreter::waitsay);
 
-	registerFunction("宠物有", &Interpreter::waitpet);
-	registerFunction("道具", &Interpreter::waititem);
-	registerFunction("背包满", &Interpreter::ifitemfull);
+	registerFunction(u8"宠物有", &Interpreter::waitpet);
+	registerFunction(u8"道具", &Interpreter::waititem);
+	registerFunction(u8"背包满", &Interpreter::ifitemfull);
 	//check-group
-	registerFunction("组队有", &Interpreter::waitteam);
+	registerFunction(u8"组队有", &Interpreter::waitteam);
 
 
 	//move
-	registerFunction("方向", &Interpreter::setdir);
-	registerFunction("坐标", &Interpreter::move);
-	registerFunction("座标", &Interpreter::move);
-	registerFunction("移动", &Interpreter::fastmove);
-	registerFunction("寻路", &Interpreter::findpath);
-	registerFunction("封包移动", &Interpreter::packetmove);
-	registerFunction("移动至NPC", &Interpreter::movetonpc);
-	registerFunction("转移", &Interpreter::teleport);
-	registerFunction("过点", &Interpreter::warp);
+	registerFunction(u8"方向", &Interpreter::setdir);
+	registerFunction(u8"坐标", &Interpreter::move);
+	registerFunction(u8"座标", &Interpreter::move);
+	registerFunction(u8"移动", &Interpreter::fastmove);
+	registerFunction(u8"寻路", &Interpreter::findpath);
+	registerFunction(u8"封包移动", &Interpreter::packetmove);
+	registerFunction(u8"移动至NPC", &Interpreter::movetonpc);
+	registerFunction(u8"转移", &Interpreter::teleport);
+	registerFunction(u8"过点", &Interpreter::warp);
 
 	//action
-	registerFunction("使用道具", &Interpreter::useitem);
-	registerFunction("丢弃道具", &Interpreter::dropitem);
-	registerFunction("交换道具", &Interpreter::swapitem);
-	registerFunction("人物改名", &Interpreter::playerrename);
-	registerFunction("宠物改名", &Interpreter::petrename);
-	registerFunction("更换宠物", &Interpreter::setpetstate);
-	registerFunction("丢弃宠物", &Interpreter::droppet);
-	registerFunction("购买", &Interpreter::buy);
-	registerFunction("售卖", &Interpreter::sell);
-	registerFunction("卖宠", &Interpreter::sellpet);
-	registerFunction("加工", &Interpreter::make);
-	registerFunction("料理", &Interpreter::cook);
-	registerFunction("使用精灵", &Interpreter::usemagic);
-	registerFunction("捡物", &Interpreter::pickitem);
-	registerFunction("存钱", &Interpreter::depositgold);
-	registerFunction("提钱", &Interpreter::withdrawgold);
-	registerFunction("加点", &Interpreter::addpoint);
-	registerFunction("学习", &Interpreter::learn);
-	registerFunction("交易", &Interpreter::trade);
-	registerFunction("寄信", &Interpreter::mail);
-	registerFunction("丢弃石币", &Interpreter::doffstone);
+	registerFunction(u8"使用道具", &Interpreter::useitem);
+	registerFunction(u8"丢弃道具", &Interpreter::dropitem);
+	registerFunction(u8"交换道具", &Interpreter::swapitem);
+	registerFunction(u8"人物改名", &Interpreter::playerrename);
+	registerFunction(u8"宠物改名", &Interpreter::petrename);
+	registerFunction(u8"更换宠物", &Interpreter::setpetstate);
+	registerFunction(u8"丢弃宠物", &Interpreter::droppet);
+	registerFunction(u8"购买", &Interpreter::buy);
+	registerFunction(u8"售卖", &Interpreter::sell);
+	registerFunction(u8"卖宠", &Interpreter::sellpet);
+	registerFunction(u8"加工", &Interpreter::make);
+	registerFunction(u8"料理", &Interpreter::cook);
+	registerFunction(u8"使用精灵", &Interpreter::usemagic);
+	registerFunction(u8"捡物", &Interpreter::pickitem);
+	registerFunction(u8"存钱", &Interpreter::depositgold);
+	registerFunction(u8"提钱", &Interpreter::withdrawgold);
+	registerFunction(u8"加点", &Interpreter::addpoint);
+	registerFunction(u8"学习", &Interpreter::learn);
+	registerFunction(u8"交易", &Interpreter::trade);
+	registerFunction(u8"寄信", &Interpreter::mail);
+	registerFunction(u8"丢弃石币", &Interpreter::doffstone);
 
-	registerFunction("记录身上装备", &Interpreter::recordequip);
-	registerFunction("装上记录装备", &Interpreter::wearequip);
-	registerFunction("卸下装备", &Interpreter::unwearequip);
-	registerFunction("卸下宠装备", &Interpreter::petunequip);
-	registerFunction("装上宠装备", &Interpreter::petequip);
+	registerFunction(u8"记录身上装备", &Interpreter::recordequip);
+	registerFunction(u8"装上记录装备", &Interpreter::wearequip);
+	registerFunction(u8"卸下装备", &Interpreter::unwearequip);
+	registerFunction(u8"卸下宠装备", &Interpreter::petunequip);
+	registerFunction(u8"装上宠装备", &Interpreter::petequip);
 
-	registerFunction("存入宠物", &Interpreter::depositpet);
-	registerFunction("存入道具", &Interpreter::deposititem);
-	registerFunction("提出宠物", &Interpreter::withdrawpet);
-	registerFunction("提出道具", &Interpreter::withdrawitem);
+	registerFunction(u8"存入宠物", &Interpreter::depositpet);
+	registerFunction(u8"存入道具", &Interpreter::deposititem);
+	registerFunction(u8"提出宠物", &Interpreter::withdrawpet);
+	registerFunction(u8"提出道具", &Interpreter::withdrawitem);
 
 	//action->group
-	registerFunction("组队", &Interpreter::join);
-	registerFunction("离队", &Interpreter::leave);
-	registerFunction("踢走", &Interpreter::kick);
+	registerFunction(u8"组队", &Interpreter::join);
+	registerFunction(u8"离队", &Interpreter::leave);
+	registerFunction(u8"踢走", &Interpreter::kick);
 
-	registerFunction("左击", &Interpreter::leftclick);
-	registerFunction("右击", &Interpreter::rightclick);
-	registerFunction("左双击", &Interpreter::leftdoubleclick);
-	registerFunction("拖至", &Interpreter::mousedragto);
+	registerFunction(u8"左击", &Interpreter::leftclick);
+	registerFunction(u8"右击", &Interpreter::rightclick);
+	registerFunction(u8"左双击", &Interpreter::leftdoubleclick);
+	registerFunction(u8"拖至", &Interpreter::mousedragto);
 
 }
 
@@ -700,134 +707,136 @@ void Interpreter::openLibsUTF8()
 	/*註册函数*/
 
 	//core
-	registerFunction("regex", &Interpreter::regex);
-	registerFunction("rex", &Interpreter::rex);
-	registerFunction("rexg", &Interpreter::rexg);
-	registerFunction("find", &Interpreter::find);
-	registerFunction("half", &Interpreter::half);
-	registerFunction("full", &Interpreter::full);
-	registerFunction("upper", &Interpreter::upper);
-	registerFunction("lower", &Interpreter::lower);
-	registerFunction("replace", &Interpreter::replace);
+	registerFunction(u8"regex", &Interpreter::regex);
+	registerFunction(u8"rex", &Interpreter::rex);
+	registerFunction(u8"rexg", &Interpreter::rexg);
+	registerFunction(u8"find", &Interpreter::find);
+	registerFunction(u8"half", &Interpreter::half);
+	registerFunction(u8"full", &Interpreter::full);
+	registerFunction(u8"upper", &Interpreter::upper);
+	registerFunction(u8"lower", &Interpreter::lower);
+	registerFunction(u8"replace", &Interpreter::replace);
+	registerFunction(u8"toint", &Interpreter::toint);
+	registerFunction(u8"tostr", &Interpreter::tostr);
 
 	//system
-	registerFunction("sleep", &Interpreter::sleep);
-	registerFunction("button", &Interpreter::press);
-	registerFunction("eo", &Interpreter::eo);
-	registerFunction("print", &Interpreter::announce);
-	registerFunction("input", &Interpreter::input);
-	registerFunction("msg", &Interpreter::messagebox);
-	registerFunction("logback", &Interpreter::logback);
-	registerFunction("logout", &Interpreter::logout);
-	registerFunction("say", &Interpreter::talk);
-	registerFunction("talk", &Interpreter::talkandannounce);
-	registerFunction("cls", &Interpreter::cleanchat);
-	registerFunction("set", &Interpreter::set);
-	registerFunction("saveset", &Interpreter::savesetting);
-	registerFunction("loadset", &Interpreter::loadsetting);
+	registerFunction(u8"sleep", &Interpreter::sleep);
+	registerFunction(u8"button", &Interpreter::press);
+	registerFunction(u8"eo", &Interpreter::eo);
+	registerFunction(u8"print", &Interpreter::announce);
+	registerFunction(u8"input", &Interpreter::input);
+	registerFunction(u8"msg", &Interpreter::messagebox);
+	registerFunction(u8"logback", &Interpreter::logback);
+	registerFunction(u8"logout", &Interpreter::logout);
+	registerFunction(u8"say", &Interpreter::talk);
+	registerFunction(u8"talk", &Interpreter::talkandannounce);
+	registerFunction(u8"cls", &Interpreter::cleanchat);
+	registerFunction(u8"set", &Interpreter::set);
+	registerFunction(u8"saveset", &Interpreter::savesetting);
+	registerFunction(u8"loadset", &Interpreter::loadsetting);
 
-	registerFunction("run", &Interpreter::run);
-	registerFunction("dostring", &Interpreter::dostring);
-	registerFunction("reg", &Interpreter::reg);
-	registerFunction("timer", &Interpreter::timer);
-	registerFunction("menu", &Interpreter::menu);
-	registerFunction("dofile", &Interpreter::dofile);
-	registerFunction("createch", &Interpreter::createch);
-	registerFunction("delch", &Interpreter::delch);
-	registerFunction("send", &Interpreter::send);
+	registerFunction(u8"run", &Interpreter::run);
+	registerFunction(u8"dostring", &Interpreter::dostring);
+	registerFunction(u8"reg", &Interpreter::reg);
+	registerFunction(u8"timer", &Interpreter::timer);
+	registerFunction(u8"menu", &Interpreter::menu);
+	registerFunction(u8"dofile", &Interpreter::dofile);
+	registerFunction(u8"createch", &Interpreter::createch);
+	registerFunction(u8"delch", &Interpreter::delch);
+	registerFunction(u8"send", &Interpreter::send);
 
 	//check
-	registerFunction("ifdaily", &Interpreter::ifdaily);
-	registerFunction("ifbattle", &Interpreter::ifbattle);
-	registerFunction("ifnormal", &Interpreter::ifnormal);
-	registerFunction("ifonline", &Interpreter::ifonline);
-	registerFunction("ifpos", &Interpreter::ifpos);
-	registerFunction("ifmap", &Interpreter::ifmap);
-	registerFunction("ifitemfull", &Interpreter::ifitemfull);
-	registerFunction("ifitem", &Interpreter::ifitem);
+	registerFunction(u8"ifdaily", &Interpreter::ifdaily);
+	registerFunction(u8"ifbattle", &Interpreter::ifbattle);
+	registerFunction(u8"ifnormal", &Interpreter::ifnormal);
+	registerFunction(u8"ifonline", &Interpreter::ifonline);
+	registerFunction(u8"ifpos", &Interpreter::ifpos);
+	registerFunction(u8"ifmap", &Interpreter::ifmap);
+	registerFunction(u8"ifitemfull", &Interpreter::ifitemfull);
+	registerFunction(u8"ifitem", &Interpreter::ifitem);
 
-	registerFunction("waitmap", &Interpreter::waitmap);
-	registerFunction("waitdlg", &Interpreter::waitdlg);
-	registerFunction("waitsay", &Interpreter::waitsay);
-	registerFunction("waitpet", &Interpreter::waitpet);
-	registerFunction("waititem", &Interpreter::waititem);
+	registerFunction(u8"waitmap", &Interpreter::waitmap);
+	registerFunction(u8"waitdlg", &Interpreter::waitdlg);
+	registerFunction(u8"waitsay", &Interpreter::waitsay);
+	registerFunction(u8"waitpet", &Interpreter::waitpet);
+	registerFunction(u8"waititem", &Interpreter::waititem);
 
 	//check-group
-	registerFunction("waitteam", &Interpreter::waitteam);
+	registerFunction(u8"waitteam", &Interpreter::waitteam);
 
 
 	//move
-	registerFunction("dir", &Interpreter::setdir);
-	registerFunction("walkpos", &Interpreter::move);
-	registerFunction("move", &Interpreter::fastmove);
-	registerFunction("findpath", &Interpreter::findpath);
-	registerFunction("w", &Interpreter::packetmove);
-	registerFunction("movetonpc", &Interpreter::movetonpc);
-	registerFunction("chmap", &Interpreter::teleport);
-	registerFunction("warp", &Interpreter::warp);
+	registerFunction(u8"dir", &Interpreter::setdir);
+	registerFunction(u8"walkpos", &Interpreter::move);
+	registerFunction(u8"move", &Interpreter::fastmove);
+	registerFunction(u8"findpath", &Interpreter::findpath);
+	registerFunction(u8"w", &Interpreter::packetmove);
+	registerFunction(u8"movetonpc", &Interpreter::movetonpc);
+	registerFunction(u8"chmap", &Interpreter::teleport);
+	registerFunction(u8"warp", &Interpreter::warp);
 
 	//action
-	registerFunction("useitem", &Interpreter::useitem);
-	registerFunction("doffitem", &Interpreter::dropitem);
-	registerFunction("swapitem", &Interpreter::swapitem);
-	registerFunction("chplayername", &Interpreter::playerrename);
-	registerFunction("chpetname", &Interpreter::petrename);
-	registerFunction("chpet", &Interpreter::setpetstate);
-	registerFunction("doffpet", &Interpreter::droppet);
-	registerFunction("buy", &Interpreter::buy);
-	registerFunction("sell", &Interpreter::sell);
-	registerFunction("sellpet", &Interpreter::sellpet);
-	registerFunction("make", &Interpreter::make);
-	registerFunction("cook", &Interpreter::cook);
-	registerFunction("usemagic", &Interpreter::usemagic);
-	registerFunction("pickup", &Interpreter::pickitem);
-	registerFunction("save", &Interpreter::depositgold);
-	registerFunction("load", &Interpreter::withdrawgold);
-	registerFunction("skup", &Interpreter::addpoint);
-	registerFunction("learn", &Interpreter::learn);
-	registerFunction("trade", &Interpreter::trade);
-	registerFunction("mail", &Interpreter::mail);
-	registerFunction("doffstone", &Interpreter::doffstone);
+	registerFunction(u8"useitem", &Interpreter::useitem);
+	registerFunction(u8"doffitem", &Interpreter::dropitem);
+	registerFunction(u8"swapitem", &Interpreter::swapitem);
+	registerFunction(u8"chplayername", &Interpreter::playerrename);
+	registerFunction(u8"chpetname", &Interpreter::petrename);
+	registerFunction(u8"chpet", &Interpreter::setpetstate);
+	registerFunction(u8"doffpet", &Interpreter::droppet);
+	registerFunction(u8"buy", &Interpreter::buy);
+	registerFunction(u8"sell", &Interpreter::sell);
+	registerFunction(u8"sellpet", &Interpreter::sellpet);
+	registerFunction(u8"make", &Interpreter::make);
+	registerFunction(u8"cook", &Interpreter::cook);
+	registerFunction(u8"usemagic", &Interpreter::usemagic);
+	registerFunction(u8"pickup", &Interpreter::pickitem);
+	registerFunction(u8"save", &Interpreter::depositgold);
+	registerFunction(u8"load", &Interpreter::withdrawgold);
+	registerFunction(u8"skup", &Interpreter::addpoint);
+	registerFunction(u8"learn", &Interpreter::learn);
+	registerFunction(u8"trade", &Interpreter::trade);
+	registerFunction(u8"mail", &Interpreter::mail);
+	registerFunction(u8"doffstone", &Interpreter::doffstone);
 
-	registerFunction("requip", &Interpreter::recordequip);
-	registerFunction("wequip", &Interpreter::wearequip);
-	registerFunction("uequip", &Interpreter::unwearequip);
-	registerFunction("puequip", &Interpreter::petunequip);
-	registerFunction("pequip", &Interpreter::petequip);
+	registerFunction(u8"requip", &Interpreter::recordequip);
+	registerFunction(u8"wequip", &Interpreter::wearequip);
+	registerFunction(u8"uequip", &Interpreter::unwearequip);
+	registerFunction(u8"puequip", &Interpreter::petunequip);
+	registerFunction(u8"pequip", &Interpreter::petequip);
 
-	registerFunction("putpet", &Interpreter::depositpet);
-	registerFunction("put", &Interpreter::deposititem);
-	registerFunction("getpet", &Interpreter::withdrawpet);
-	registerFunction("get", &Interpreter::withdrawitem);
+	registerFunction(u8"putpet", &Interpreter::depositpet);
+	registerFunction(u8"put", &Interpreter::deposititem);
+	registerFunction(u8"getpet", &Interpreter::withdrawpet);
+	registerFunction(u8"get", &Interpreter::withdrawitem);
 
 	//action->group
-	registerFunction("join", &Interpreter::join);
-	registerFunction("leave", &Interpreter::leave);
-	registerFunction("kick", &Interpreter::kick);
+	registerFunction(u8"join", &Interpreter::join);
+	registerFunction(u8"leave", &Interpreter::leave);
+	registerFunction(u8"kick", &Interpreter::kick);
 
-	registerFunction("lclick", &Interpreter::leftclick);
-	registerFunction("rclick", &Interpreter::rightclick);
-	registerFunction("ldbclick", &Interpreter::leftdoubleclick);
-	registerFunction("dragto", &Interpreter::mousedragto);
-	registerFunction("dlg", &Interpreter::dlg);
+	registerFunction(u8"lclick", &Interpreter::leftclick);
+	registerFunction(u8"rclick", &Interpreter::rightclick);
+	registerFunction(u8"ldbclick", &Interpreter::leftdoubleclick);
+	registerFunction(u8"dragto", &Interpreter::mousedragto);
+	registerFunction(u8"dlg", &Interpreter::dlg);
 
 	//hide
-	registerFunction("ocr", &Interpreter::ocr);
+	registerFunction(u8"ocr", &Interpreter::ocr);
 
 	//battle
-	registerFunction("bh", &Interpreter::bh);//atk
-	registerFunction("bj", &Interpreter::bj);//magic
-	registerFunction("bp", &Interpreter::bp);//skill
-	registerFunction("bs", &Interpreter::bs);//switch
-	registerFunction("be", &Interpreter::be);//escape
-	registerFunction("bd", &Interpreter::bd);//defense
-	registerFunction("bi", &Interpreter::bi);//item
-	registerFunction("bt", &Interpreter::bt);//catch
-	registerFunction("bn", &Interpreter::bn);//nothing
-	registerFunction("bw", &Interpreter::bw);//petskill
-	registerFunction("bwf", &Interpreter::bwf);//pet nothing
-	registerFunction("bwait", &Interpreter::bwait);
-	registerFunction("bend", &Interpreter::bend);
+	registerFunction(u8"bh", &Interpreter::bh);//atk
+	registerFunction(u8"bj", &Interpreter::bj);//magic
+	registerFunction(u8"bp", &Interpreter::bp);//skill
+	registerFunction(u8"bs", &Interpreter::bs);//switch
+	registerFunction(u8"be", &Interpreter::be);//escape
+	registerFunction(u8"bd", &Interpreter::bd);//defense
+	registerFunction(u8"bi", &Interpreter::bi);//item
+	registerFunction(u8"bt", &Interpreter::bt);//catch
+	registerFunction(u8"bn", &Interpreter::bn);//nothing
+	registerFunction(u8"bw", &Interpreter::bw);//petskill
+	registerFunction(u8"bwf", &Interpreter::bwf);//pet nothing
+	registerFunction(u8"bwait", &Interpreter::bwait);
+	registerFunction(u8"bend", &Interpreter::bend);
 }
 
 qint64 Interpreter::mainScriptCallBack(qint64 currentLine, const TokenMap& TK)
@@ -1276,11 +1285,11 @@ qint64 Interpreter::run(qint64 currentline, const TokenMap& TK)
 	if (beginLine < 0)
 		beginLine = 0;
 
-	Parser::Mode asyncMode = Parser::kSync;
+	RunFileMode asyncMode = kSync;
 	qint64 nAsync = 0;
 	checkInteger(TK, 4, &nAsync);
 	if (nAsync > 0)
-		asyncMode = Parser::kAsync;
+		asyncMode = kAsync;
 
 	fileName.replace("\\", "/");
 
@@ -1307,40 +1316,30 @@ qint64 Interpreter::run(qint64 currentline, const TokenMap& TK)
 	if (!QFile::exists(fileName))
 		return Parser::kArgError + 1ll;
 
-	if (Parser::kSync == asyncMode)
+	if (kSync == asyncMode)
 	{
-		QHash<qint64, TokenMap> tokens = parser_.getTokens();
-		QHash<QString, qint64> labels = parser_.getLabels();
-		QList<FunctionNode> functionNodeList = parser_.getFunctionNodeList();
-		QList<ForNode> forNodeList = parser_.getForNodeList();
-		QString currentFileName = parser_.getScriptFileName();
-		qint64 currentLine = parser_.getCurrentLine();
-
-		Interpreter interpreter;
-
-		interpreter.setSubScript(true);
-		interpreter.setMode(asyncMode);
-
-		injector.currentScriptFileName = fileName;
-
-		if (!interpreter.doFile(beginLine, fileName, this, varShareMode))
+		QScopedPointer<Interpreter> interpreter(new Interpreter());
+		if (!interpreter.isNull())
 		{
-			return Parser::kError;
+			interpreter->setSubScript(true);
+
+			QString scriptFileName_ = injector.currentScriptFileName;
+			injector.currentScriptFileName = fileName;
+
+			if (!interpreter->doFile(beginLine, fileName, this, varShareMode))
+			{
+				injector.currentScriptFileName = scriptFileName_;
+				return Parser::kError;
+			}
+
+			injector.currentScriptFileName = scriptFileName_;
+
+			//還原顯示
+			SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
+			QHash<qint64, TokenMap>currentToken = parser_.getToken();
+			emit signalDispatcher.loadFileToTable(scriptFileName_);
+			emit signalDispatcher.scriptContentChanged(scriptFileName_, QVariant::fromValue(currentToken));
 		}
-
-		parser_.setTokens(tokens);
-		parser_.setLabels(labels);
-		parser_.setFunctionNodeList(functionNodeList);
-		parser_.setForNodeList(forNodeList);
-		parser_.setCurrentLine(currentLine);
-		injector.currentScriptFileName = currentFileName;
-
-		//還原顯示
-		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
-
-		emit signalDispatcher.loadFileToTable(currentFileName);
-
-		emit signalDispatcher.scriptContentChanged(currentFileName, QVariant::fromValue(tokens));
 	}
 	else
 	{
@@ -1351,8 +1350,7 @@ qint64 Interpreter::run(qint64 currentline, const TokenMap& TK)
 				{
 					subInterpreterList_.append(interpreter);
 					interpreter->setSubScript(true);
-					interpreter->setMode(Parser::kSync);
-					if (interpreter->doFile(beginLine, fileName, this, varShareMode, Parser::kAsync))
+					if (interpreter->doFile(beginLine, fileName, this, varShareMode, kAsync))
 						return true;
 				}
 				return false;
@@ -1391,22 +1389,21 @@ qint64 Interpreter::dostring(qint64 currentline, const TokenMap& TK)
 	if (nShared > 0)
 		varShareMode = kShare;
 
-	Parser::Mode asyncMode = Parser::kSync;
+	RunFileMode asyncMode = kSync;
 	qint64 nAsync = 0;
 	checkInteger(TK, 3, &nAsync);
 	if (nAsync > 0)
-		asyncMode = Parser::kAsync;
+		asyncMode = kAsync;
 
 	QSharedPointer<Interpreter> interpreter(new Interpreter());
 	if (!interpreter.isNull())
 	{
 		subInterpreterList_.append(interpreter);
 		interpreter->setSubScript(true);
-		interpreter->setMode(asyncMode);
 		interpreter->doString(script, this, varShareMode);
 	}
 
-	if (asyncMode == Parser::kSync)
+	if (asyncMode == kSync)
 	{
 		for (;;)
 		{
@@ -1471,13 +1468,9 @@ void Interpreter::logExport(qint64 currentline, const QString& data, qint64 colo
 	QString src = "\0";
 
 
-	msg = (QString("[%1 | @%2]%3%4: %5\0") \
+	msg = (QString("[%1 | @%2]: %3\0") \
 		.arg(timeStr)
-		.arg(currentline + 1, 3, 10, QLatin1Char(' '))
-		.arg(parser_.isSubScript() ? "[sub]" : "[main]")
-		.arg(!parser_.isSubScript() ? "" : parser_.getMode() == Parser::kSync ? "[async]" : "[sync]")
-		.arg(data));
-
+		.arg(currentline + 1, 3, 10, QLatin1Char(' ')).arg(data));
 
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
 	emit signalDispatcher.appendScriptLog(msg, color);

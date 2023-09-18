@@ -18,7 +18,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 #pragma once
 #include <QObject>
-#include <QTreeWidgetItem>
 
 class SignalDispatcher : public QObject
 {
@@ -105,7 +104,7 @@ signals:
 	void scriptContentChanged(const QString& fileName, const QVariant& tokens);
 	void loadFileToTable(const QString& fileName);
 	void reloadScriptList();
-	void varInfoImported(QList<QTreeWidgetItem*> pTreeNode);
+	void varInfoImported(const QHash<QString, QVariant>& d);
 
 	void scriptSpeedChanged(int speed);
 

@@ -352,14 +352,6 @@ bool CLuaUtil::getBattleUnit(sol::table dstTable, sol::this_state s)
 
 	dstTable["count"] = battleData.enemies.size();
 
-	dstTable["round"] = injector.server->battleCurrentRound.load(std::memory_order_acquire) + 1;
-
-	dstTable["dura"] = static_cast<qint64>(injector.server->battleDurationTimer.elapsed() / 1000ll);
-
-	dstTable["totaldura"] = static_cast<qint64>(injector.server->battle_total_time.load(std::memory_order_acquire) / 1000 / 60);
-
-	dstTable["totalcombat"] = injector.server->battle_total.load(std::memory_order_acquire);
-
 	for (int i = 0; i < MAX_ENEMY; ++i)
 	{
 		if (i >= battleObjects.size())
