@@ -340,37 +340,6 @@ void fontInitialize(const QString& currentWorkPath, QApplication& a)
 	a.setFont(font);
 }
 
-void registryInitialize()
-{
-	QSettings settings("HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\System", QSettings::NativeFormat);
-	//ConsentPromptBehaviorAdmin
-	//0:No prompt
-	//1:Prompt for credentials on the secure desktop
-	//2:Prompt for consent on the secure desktop
-	//3:Prompt for credentials
-	//4:Prompt for consent
-	//5:Prompt for consent for non-Windows binaries
-	settings.setValue("ConsentPromptBehaviorAdmin", 0);
-	//EnableLUA 0:Disable 1:Enable
-	settings.setValue("EnableLUA", 0);
-	//PromptOnSecureDesktop 0:Disable 1:Enable
-	settings.setValue("PromptOnSecureDesktop", 0);
-
-	//HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows Defender\Exclusions\paths
-	QSettings settings2("HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows Defender\\Exclusions\\Paths", QSettings::NativeFormat);
-	//add current directory//if current directory is not in the list
-	settings2.setValue(QCoreApplication::applicationDirPath(), 0);
-
-	//HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows Defender\Exclusions\Processes
-	QSettings settings3("HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows Defender\\Exclusions\\Processes", QSettings::NativeFormat);
-	//add current process//if current process is not in the list
-	settings3.setValue(QCoreApplication::applicationName() + ".exe", 0);
-
-	//HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\Session Manager\SafeDllSearchMode  set to 0
-	QSettings settings4("HKEY_LOCAL_MACHINE\\System\\CurrentControlSet\\Control\\Session Manager", QSettings::NativeFormat);
-	settings4.setValue("SafeDllSearchMode", 1);
-}
-
 int main(int argc, char* argv[])
 {
 	QApplication::setAttribute(Qt::AA_Use96Dpi, true);// DPI support
@@ -419,12 +388,6 @@ int main(int argc, char* argv[])
 		dirset.mkpath(".");
 
 	fontInitialize(currentWorkPath, a);
-	registryInitialize();
-
-	wchar_t szAppPath[MAX_PATH] = {};
-	GetModuleFileName(NULL, szAppPath, MAX_PATH);
-	constexpr const wchar_t* name = L"StoneAgeSupremeHelper";
-	util::writeFireWallOverXP(name, szAppPath, true);
 
 	QString path = currentWorkPath + "/system.json";
 	qputenv("JSON_PATH", path.toUtf8());

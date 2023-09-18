@@ -164,7 +164,6 @@ bool Injector::createProcess(Injector::process_information_t& pi)
 	//啟動參數
 
 	//updated realbin:138 adrnbin:138 sprbin:116 spradrnbin:116 adrntrue:5 realtrue:13 encode:0 windowmode
-	commandList.append(path);
 	commandList.append("updated");
 	commandList.append(mkcmd("realbin", nRealBin));
 	commandList.append(mkcmd("adrnbin", nAdrnBin));
@@ -175,57 +174,30 @@ bool Injector::createProcess(Injector::process_information_t& pi)
 	commandList.append(mkcmd("encode", nEncode));
 	commandList.append("windowmode");
 
-
-
-#define USE_NATIVE_CREATEPROCESS
-#ifdef USE_NATIVE_CREATEPROCESS
-	STARTUPINFOW si = { sizeof(si) };
-	PROCESS_INFORMATION _pi = { 0 };
-	QString directory = QFileInfo(path).absolutePath();
-	if (!CreateProcessW(path.toStdWString().c_str(),
-		commandList.join(" ").toStdWString().data(),
-		nullptr,
-		nullptr,
-		TRUE,
-		CREATE_SUSPENDED | CREATE_UNICODE_ENVIRONMENT | INHERIT_PARENT_AFFINITY,
-		nullptr,
-		directory.toStdWString().data(),
-		&si,
-		&_pi))
-		return false;
-
-	pi.dwThreadId = _pi.dwThreadId;
-	pi.dwProcessId = _pi.dwProcessId;
-	pi.hThread = _pi.hThread;
-	processHandle_.reset(_pi.hProcess);
-	ResumeThread(_pi.hThread);
-#else
 	QProcess process;
 	qint64 pid = 0;
 	process.setArguments(commandList);
 	process.setProgram(path);
 	process.setWorkingDirectory(QFileInfo(path).absolutePath());
-	if (!process.startDetached(&pid) || pid == 0)
-		return false;
-	pi.dwProcessId = pid;
-	processHandle_.reset(pi.dwProcessId);
-#endif
-
-
-
-	if (canSave)
+	if (process.startDetached(&pid) && pid != 0)
 	{
-		//保存啟動參數
-		config.write("System", "Command", "realbin", nRealBin);
-		config.write("System", "Command", "adrnbin", nAdrnBin);
-		config.write("System", "Command", "sprbin", nSprBin);
-		config.write("System", "Command", "spradrnbin", nSprAdrnBin);
-		config.write("System", "Command", "realtrue", nRealTrue);
-		config.write("System", "Command", "adrntrue", nAdrnTrue);
-		config.write("System", "Command", "encode", nEncode);
-	}
+		pi.dwProcessId = pid;
+		if (canSave)
+		{
+			//保存啟動參數
+			config.write("System", "Command", "realbin", nRealBin);
+			config.write("System", "Command", "adrnbin", nAdrnBin);
+			config.write("System", "Command", "sprbin", nSprBin);
+			config.write("System", "Command", "spradrnbin", nSprAdrnBin);
+			config.write("System", "Command", "realtrue", nRealTrue);
+			config.write("System", "Command", "adrntrue", nAdrnTrue);
+			config.write("System", "Command", "encode", nEncode);
+		}
 
-	return true;
+		processHandle_.reset(pi.dwProcessId);
+		return true;
+	}
+	return false;
 }
 
 quint64 Injector::sendMessage(quint64 msg, quint64 wParam, qint64 lParam) const
@@ -324,7 +296,6 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 
 		if (nullptr == pi.hWnd)
 		{
-			//查找窗口句炳
 			for (;;)
 			{
 				::EnumWindows(EnumWindowsCallback, reinterpret_cast<LPARAM>(&pi));
@@ -361,7 +332,6 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 
 		pi.dwThreadId = ::GetWindowThreadProcessId(pi.hWnd, nullptr);
 
-		//取kernel32.dll入口指針
 		kernel32Module = getKernel32();
 		if (nullptr == kernel32Module)
 		{
@@ -370,7 +340,6 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 			break;
 		}
 
-		//取LoadLibraryW函數指針
 		loadLibraryProc = reinterpret_cast<FARPROC>(getFunAddr(kernel32Module, "LoadLibraryW"));
 		if (nullptr == loadLibraryProc)
 		{
@@ -379,7 +348,6 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 			break;
 		}
 
-		//嘗試打開進程句柄並檢查是否成功
 		if (!isHandleValid(pi.dwProcessId))
 		{
 			*pReason = util::REASON_OPEN_PROCESS_FAIL;
@@ -390,7 +358,6 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 		if (!processHandle_.isValid())
 			processHandle_.reset(pi.dwProcessId);
 
-		//在遠程進程中分配內存
 		const util::VirtualMemory lpParameter(processHandle_, dllPath, util::VirtualMemory::kUnicode, true);
 		if (!lpParameter.isValid())
 		{
@@ -400,21 +367,16 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 		}
 
 		//創建遠程線程調用LoadLibrary 
+		ScopedHandle hThreadHandle(ScopedHandle::CREATE_REMOTE_THREAD, processHandle_,
+			reinterpret_cast<PVOID>(loadLibraryProc),
+			reinterpret_cast<LPVOID>(static_cast<quint64>(lpParameter)));
+		if (!hThreadHandle.isValid())
 		{
-			ScopedHandle hThreadHandle(ScopedHandle::CREATE_REMOTE_THREAD, processHandle_,
-				reinterpret_cast<PVOID>(loadLibraryProc),
-				reinterpret_cast<LPVOID>(static_cast<quint64>(lpParameter)));
-			if (!hThreadHandle.isValid())
-			{
-				*pReason = util::REASON_INJECT_LIBRARY_FAIL;
-				emit signalDispatcher.messageBoxShow(tr("CreateRemoteThread fail"));
-				break;
-			}
-
-			WaitForSingleObject(hThreadHandle, INFINITE);
+			*pReason = util::REASON_INJECT_LIBRARY_FAIL;
+			emit signalDispatcher.messageBoxShow(tr("CreateRemoteThread fail"));
+			break;
 		}
 
-		//dll注入後嘗試取得dll的基址
 		timer.restart();
 		for (;;)
 		{
@@ -453,8 +415,7 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 
 		pi_ = pi;
 		parent = qgetenv("SASH_HWND").toULongLong();
-
-		//通知客戶端初始化，並提供port端口讓客戶端連進來、另外提供本窗口句柄讓子進程反向檢查外掛是否退出
+		//通知客戶端初始化
 		sendMessage(kInitialize, port, parent);
 
 		//這裡如果能收到回傳消息代表Hook已經完成

@@ -312,12 +312,12 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID)
 {
 	if (DLL_PROCESS_ATTACH == ul_reason_for_call)
 	{
-		DWORD ThreadId = GetCurrentThreadId();
-		if (g_MainThreadId != 0 && g_MainThreadId != ThreadId)
-			return TRUE;
-
 		GetModuleFileNameW(nullptr, g_szGameModulePath, MAX_PATH);
 		g_hDllModule = hModule;
+		DWORD ThreadId = GetCurrentThreadId();
+		if (g_MainThreadId && g_MainThreadId != ThreadId)
+			return TRUE;
+
 		g_hGameModule = GetModuleHandleW(nullptr);
 		g_MainThreadId = ThreadId;
 		g_MainThreadHandle = GetCurrentThread();
