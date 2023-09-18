@@ -60,7 +60,12 @@ void CreateConsole()
 void printStackTrace()
 {
 	QTextStream out(stderr);
-	out.setCodec("UTF-8");
+#ifdef _WIN64
+	out.setEncoding(QStringConverter::Utf8);
+#else
+	out.setCodec(util::DEFAULT_CODEPAGE);
+#endif
+	out.setGenerateByteOrderMark(true);
 	void* stack[100];
 	unsigned short frames;
 	SYMBOL_INFO* symbol;
@@ -103,7 +108,11 @@ void qtMessageHandler(QtMsgType type, const QMessageLogContext& context, const Q
 
 		CreateConsole();
 		QTextStream out(stderr);
+#ifdef _WIN64
+		out.setEncoding(QStringConverter::Utf8);
+#else
 		out.setCodec(util::DEFAULT_CODEPAGE);
+#endif
 		out << QString("Qt exception caught: ") << QString(e.what()) << Qt::endl;
 		out << QString("Context: ") << context.file << ":" << context.line << " - " << context.function << Qt::endl;
 		out << QString("Message: ") << msg << QString(e.what()) << Qt::endl;

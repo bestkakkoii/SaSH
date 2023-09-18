@@ -22,7 +22,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include <TlHelp32.h>
 #include <qglobal.h>
 
-std::atomic_long ScopedHandle::m_handleCount = 0L;
+std::atomic_int64_t ScopedHandle::m_handleCount = 0L;
 std::atomic_flag ScopedHandle::m_atlock = ATOMIC_FLAG_INIT;
 
 ScopedHandle::ScopedHandle(HANDLE_TYPE h)
@@ -40,14 +40,14 @@ ScopedHandle::ScopedHandle(HANDLE_TYPE h, DWORD dwFlags, DWORD th32ProcessID)
 		createToolhelp32Snapshot(dwFlags, th32ProcessID);
 }
 
-ScopedHandle::ScopedHandle(DWORD dwProcess, bool bAutoClose)
+ScopedHandle::ScopedHandle(qint64 dwProcess, bool bAutoClose)
 	: enableAutoClose(bAutoClose)
 {
 	EnableDebugPrivilege(GetCurrentProcess());
 	openProcess(dwProcess);
 }
 
-void ScopedHandle::reset(DWORD dwProcessId)
+void ScopedHandle::reset(qint64 dwProcessId)
 {
 	if (NULL != dwProcessId)
 	{
@@ -73,13 +73,6 @@ void ScopedHandle::reset(HANDLE handle)
 		EnableDebugPrivilege(handle);
 		m_handle = handle;
 	}
-}
-
-ScopedHandle::ScopedHandle(int dwProcess, bool bAutoClose)
-	: enableAutoClose(bAutoClose)
-{
-	EnableDebugPrivilege(GetCurrentProcess());
-	openProcess(static_cast<DWORD>(dwProcess));
 }
 
 ScopedHandle::ScopedHandle(HANDLE_TYPE h, HANDLE ProcessHandle, PVOID StartRoutine, PVOID Argument)
@@ -121,7 +114,7 @@ void ScopedHandle::closeHandle()
 	}
 }
 
-HANDLE ScopedHandle::NtOpenProcess(DWORD dwProcess)
+HANDLE ScopedHandle::NtOpenProcess(qint64 dwProcess)
 {
 	HANDLE ProcessHandle = NULL;
 	using namespace MINT;
@@ -139,7 +132,7 @@ HANDLE ScopedHandle::NtOpenProcess(DWORD dwProcess)
 	return ret && ProcessHandle && ((ProcessHandle) != INVALID_HANDLE_VALUE) ? ProcessHandle : nullptr;
 };
 
-HANDLE ScopedHandle::ZwOpenProcess(DWORD dwProcess)
+HANDLE ScopedHandle::ZwOpenProcess(qint64 dwProcess)
 {
 	HANDLE ProcessHandle = (HANDLE)0;
 	MINT::OBJECT_ATTRIBUTES ObjectAttribute = {
@@ -154,7 +147,7 @@ HANDLE ScopedHandle::ZwOpenProcess(DWORD dwProcess)
 	return ret && ProcessHandle && ((ProcessHandle) != INVALID_HANDLE_VALUE) ? ProcessHandle : nullptr;
 };
 
-void ScopedHandle::openProcess(DWORD dwProcess)
+void ScopedHandle::openProcess(qint64 dwProcess)
 {
 	QWriteLocker locker(&m_lock);
 	HANDLE hprocess = NtOpenProcess(dwProcess);
@@ -183,7 +176,7 @@ void ScopedHandle::openProcess(DWORD dwProcess)
 		this->m_handle = nullptr;
 }
 
-void ScopedHandle::createToolhelp32Snapshot(DWORD dwFlags, DWORD th32ProcessID)
+void ScopedHandle::createToolhelp32Snapshot(DWORD dwFlags, qint64 th32ProcessID)
 {
 
 	QWriteLocker locker(&m_lock);

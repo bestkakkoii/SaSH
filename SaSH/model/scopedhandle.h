@@ -31,15 +31,15 @@ class ScopedHandle
 {
 private:
 	void closeHandle();
-	void openProcess(DWORD dwProcess);
-	void createToolhelp32Snapshot(DWORD dwFlags, DWORD th32ProcessID);
+	void openProcess(qint64 dwProcess);
+	void createToolhelp32Snapshot(DWORD dwFlags, qint64 th32ProcessID);
 	void createThreadEx(HANDLE ProcessHandle, PVOID StartRoutine, PVOID Argument);
 	void duplicateHandle(HANDLE hSourceProcessHandle, HANDLE hSourceHandle, HANDLE hTargetProcessHandle, DWORD dwOptions);
 	void openProcessToken(HANDLE ProcessHandle, ACCESS_MASK DesiredAccess);
 	void createEvent();
 
-	HANDLE NtOpenProcess(DWORD dwProcess);
-	HANDLE ZwOpenProcess(DWORD dwProcess);
+	HANDLE NtOpenProcess(qint64 dwProcess);
+	HANDLE ZwOpenProcess(qint64 dwProcess);
 
 	mutable QReadWriteLock m_lock;
 
@@ -47,28 +47,28 @@ private:
 
 	HANDLE m_handle = nullptr;
 
-	static std::atomic_long m_handleCount;
+	static std::atomic_int64_t m_handleCount;
 
 	static std::atomic_flag m_atlock;
 
 	inline static void addHandleCount()
 	{
 		while (m_atlock.test_and_set(std::memory_order_acquire));
-		++m_handleCount;
+		m_handleCount.fetch_add(1, std::memory_order_release);
 		m_atlock.clear(std::memory_order_release);
 	}
 
 	inline static void subHandleCount()
 	{
 		while (m_atlock.test_and_set(std::memory_order_acquire));
-		--m_handleCount;
+		m_handleCount.fetch_sub(1, std::memory_order_release);
 		m_atlock.clear(std::memory_order_release);
 	}
 
-	inline static LONG getHandleCount()
+	inline static qint64 getHandleCount()
 	{
 		while (m_atlock.test_and_set(std::memory_order_acquire));
-		long val = m_handleCount.load();
+		qint64 val = m_handleCount.load(std::memory_order_acquire);
 		m_atlock.clear(std::memory_order_release);
 		return val;
 	}
@@ -84,15 +84,14 @@ public:
 
 	ScopedHandle() = default;
 	explicit ScopedHandle(HANDLE_TYPE h);
-	explicit ScopedHandle(HANDLE_TYPE h, DWORD dwFlags, DWORD th32ProcessID);
-	explicit ScopedHandle(DWORD dwProcess, bool bAutoClose = true);
-	explicit ScopedHandle(int dwProcess, bool bAutoClose = true);
-	explicit ScopedHandle(HANDLE_TYPE h, HANDLE ProcessHandle, PVOID StartRoutine, PVOID Argument);
-	explicit ScopedHandle(HANDLE_TYPE h, HANDLE hSourceProcessHandle, HANDLE hSourceHandle, HANDLE hTargetProcessHandle, DWORD dwOptions);
 	explicit ScopedHandle(HANDLE handle) : m_handle(handle) {}
+	ScopedHandle(HANDLE_TYPE h, DWORD dwFlags, DWORD th32ProcessID);
+	ScopedHandle(qint64 dwProcess, bool bAutoClose = true);
+	ScopedHandle(HANDLE_TYPE h, HANDLE ProcessHandle, PVOID StartRoutine, PVOID Argument);
+	ScopedHandle(HANDLE_TYPE h, HANDLE hSourceProcessHandle, HANDLE hSourceHandle, HANDLE hTargetProcessHandle, DWORD dwOptions);
 	virtual ~ScopedHandle();
 
-	void reset(DWORD dwProcessId);
+	void reset(qint64 dwProcessId);
 	void reset(HANDLE handle);
 	void reset();
 

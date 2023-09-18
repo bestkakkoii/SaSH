@@ -29,7 +29,7 @@ namespace Autil
 	constexpr size_t LBUFSIZE = 65500;
 	constexpr size_t SBUFSIZE = 4096;
 	extern QByteArray MesgSlice[];
-	extern util::SafeData<size_t> SliceCount;//autil.cpp		// count slices in MesgSlice
+	extern std::atomic_uint64_t SliceCount;//autil.cpp		// count slices in MesgSlice
 
 	constexpr size_t PERSONALKEYSIZE = 32;
 	extern util::SafeData<QString> PersonalKey;//autil.cpp
@@ -46,65 +46,53 @@ namespace Autil
 	bool __stdcall util_SplitMessage(char* source, size_t dstlen, char* separator);
 	void __stdcall util_EncodeMessage(char* dst, size_t dstlen, char* src);
 	void __stdcall util_DecodeMessage(char* dst, size_t dstlen, char* src);
-	int __stdcall util_GetFunctionFromSlice(int* func, int* fieldcount);
+	uint64_t __stdcall util_GetFunctionFromSlice(uint64_t* func, uint64_t* fieldcount);
 	void __stdcall util_DiscardMessage(void);
-	void __stdcall util_SendMesg(int func, char* buffer);
+	void __stdcall util_SendMesg(uint64_t func, char* buffer);
 
 	// -------------------------------------------------------------------
 	// Encoding function units.  Use in Encrypting functions.
-	int __stdcall util_256to64(char* dst, char* src, int len, char* table);
-	int __stdcall util_64to256(char* dst, char* src, char* table);
-	int __stdcall util_256to64_shr(char* dst, char* src, int len, char* table, char* key);
-	int __stdcall util_shl_64to256(char* dst, char* src, char* table, char* key);
-	int __stdcall util_256to64_shl(char* dst, char* src, int len, char* table, char* key);
-	int __stdcall util_shr_64to256(char* dst, char* src, char* table, char* key);
+	uint64_t __stdcall util_256to64(char* dst, char* src, size_t len, char* table);
+	uint64_t __stdcall util_64to256(char* dst, char* src, char* table);
+	uint64_t __stdcall util_256to64_shr(char* dst, char* src, size_t len, char* table, char* key);
+	uint64_t __stdcall util_shl_64to256(char* dst, char* src, char* table, char* key);
+	uint64_t __stdcall util_256to64_shl(char* dst, char* src, size_t len, char* table, char* key);
+	uint64_t __stdcall util_shr_64to256(char* dst, char* src, char* table, char* key);
 
-	void __stdcall util_swapint(int* dst, int* src, char* rule);
+	void __stdcall util_swapint(int64_t* dst, int64_t* src, char* rule);
 	void __stdcall util_xorstring(char* dst, char* src);
-	void __stdcall util_shrstring(char* dst, size_t dstlen, char* src, int offs);
-	void __stdcall util_shlstring(char* dst, size_t dstlen, char* src, int offs);
+	void __stdcall util_shrstring(char* dst, size_t dstlen, char* src, int64_t offs);
+	void __stdcall util_shlstring(char* dst, size_t dstlen, char* src, int64_t offs);
 	// -------------------------------------------------------------------
 	// Encrypting functions
-	int __stdcall util_deint(int sliceno, int* value);
-	int __stdcall util_mkint(char* buffer, int value);
-	int __stdcall util_destring(int sliceno, char* value);
-	int __stdcall util_mkstring(char* buffer, char* value);
+	uint64_t __stdcall util_deint(uint64_t sliceno, int64_t* value);
+	uint64_t __stdcall util_mkint(char* buffer, int64_t value);
+	uint64_t __stdcall util_destring(uint64_t sliceno, char* value);
+	uint64_t __stdcall util_mkstring(char* buffer, char* value);
 
-	// 輔助函數，處理整數參數
-	inline void util_SendProcessArg(int& sum, char* buffer, int arg)
-	{
-		sum += util_mkint(buffer, arg);
-	}
-
-	// 輔助函數，處理字符串參數（重載版本）
-	inline void util_SendProcessArg(int& sum, char* buffer, char* arg)
-	{
-		sum += util_mkstring(buffer, arg);
-	}
-
-	// 輔助函數，遞歸處理參數
-	template<typename Arg, typename... Args>
-	inline void util_SendProcessArgs(int& sum, char* buffer, Arg arg, Args... args)
-	{
-		util_SendProcessArg(sum, buffer, arg);
-		util_SendProcessArgs(sum, buffer, args...);
-	}
-
-	// 輔助函數，處理最後一個參數
-	template<typename Arg>
-	inline void util_SendProcessArgs(int& sum, char* buffer, Arg arg)
-	{
-		util_SendProcessArg(sum, buffer, arg);
-	}
-
-	// 主發送函數
 	template<typename... Args>
 	inline void util_Send(int func, Args... args)
 	{
-		int iChecksum = 0;
+		uint64_t iChecksum = 0;
 		char buffer[NETDATASIZE] = {};
 		memset(buffer, 0, sizeof(buffer));
-		util_SendProcessArgs(iChecksum, buffer, args...);
+
+		// 编码参数并累加到 iChecksum
+		auto encode_and_accumulate = [&iChecksum, &buffer](auto arg)
+		{
+			if constexpr (std::is_same_v<std::remove_reference_t<decltype(arg)>, int>)
+			{
+				iChecksum += util_mkint(buffer, arg);
+			}
+			else if constexpr (std::is_same_v<std::remove_reference_t<decltype(arg)>, std::string>)
+			{
+				iChecksum += util_mkstring(buffer, arg);
+			}
+			// 可以根据需要添加其他类型的处理
+		};
+
+		(encode_and_accumulate(args), ...);
+
 		util_mkint(buffer, iChecksum);
 		util_SendMesg(func, buffer);
 	}
@@ -114,9 +102,9 @@ namespace Autil
 	template<typename... Args>
 	inline bool util_Receive(Args*... args)
 	{
-		int iChecksum = 0;  // 局部變量
-		int iChecksumrecv = 0;
-		int nextSlice = 2;
+		int64_t iChecksum = 0;  // 局部變量
+		int64_t iChecksumrecv = 0;
+		int64_t nextSlice = 2;
 
 		// 解碼參數並累加到 iChecksum
 		auto decode_and_accumulate = [&iChecksum, &nextSlice](auto* val)

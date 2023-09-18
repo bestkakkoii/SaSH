@@ -430,7 +430,11 @@ void CreateAndRunBat(const QString& path, const QString& data)
 	if (file.open(QIODevice::WriteOnly | QIODevice::Text | QIODevice::Truncate))
 	{
 		QTextStream out(&file);
+#ifdef _WIN64
+		out.setEncoding(QStringConverter::Utf8);
+#else
 		out.setCodec(util::DEFAULT_CODEPAGE);
+#endif
 		out.setGenerateByteOrderMark(true);
 		out << data;
 		file.flush();

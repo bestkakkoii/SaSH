@@ -99,7 +99,9 @@ public:\
 #include <QMetaType>
 #include <QtWidgets/QApplication>
 #include <QCoreApplication>
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
 #include <QDesktopWidget>
+#endif
 #include <QInputDialog>
 #include <QWidget>
 #include <QtWidgets/QMainWindow>
@@ -226,10 +228,6 @@ public:\
 #include <QThreadPool>
 
 #include <QCryptographicHash>
-
-//Qt Private
-#include <QtGui/private/qzipreader_p.h>
-#include <QtGui/private/qzipwriter_p.h>
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // 3rd parties

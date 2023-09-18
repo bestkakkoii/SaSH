@@ -98,7 +98,11 @@ MapWidget::MapWidget(QWidget* parent)
 	}
 
 	QTextStream in(&file);
+#ifdef _WIN64
+	in.setEncoding(QStringConverter::Utf8);
+#else
 	in.setCodec(util::DEFAULT_CODEPAGE);
+#endif
 	in.setGenerateByteOrderMark(true);
 	const QString rawData(in.readAll());
 	file.close();
@@ -1022,7 +1026,11 @@ void MapWidget::on_tableWidget_NPCList_cellDoubleClicked(int row, int)
 	interpreter_->doString(QString("findpath %1, %2, 1").arg(x).arg(y), nullptr, Interpreter::kNotShare);
 }
 
-bool MapWidget::nativeEvent(const QByteArray&, void* message, long* result)
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+bool MapWidget::nativeEvent(const QByteArray& eventType, void* message, long* result)
+#else
+bool MapWidget::nativeEvent(const QByteArray& eventType, void* message, qintptr* result)
+#endif
 {
 	MSG* msg = (MSG*)message;
 	switch (msg->message)

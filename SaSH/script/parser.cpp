@@ -259,7 +259,11 @@ bool Parser::loadFile(const QString& fileName, QString* pcontent)
 	if (suffix == util::SCRIPT_DEFAULT_SUFFIX)
 	{
 		QTextStream in(&f);
+#ifdef _WIN64
+		in.setEncoding(QStringConverter::Utf8);
+#else
 		in.setCodec(util::DEFAULT_CODEPAGE);
+#endif
 		in.setGenerateByteOrderMark(true);
 		c = in.readAll();
 		c.replace("\r\n", "\n");
@@ -1030,7 +1034,7 @@ qint64 Parser::checkJump(const TokenMap& TK, qint64 idx, bool expr, JumpBehavior
 		QString preCheck = TK.value(idx).data.toString().simplified();
 
 		if (preCheck == "return" || preCheck == "back" || preCheck == "continue" || preCheck == "break"
-			|| preCheck == QString("返回") || expr == QString("跳回") || preCheck == QString("繼續") || preCheck == QString("跳出")
+			|| preCheck == QString("返回") || preCheck == QString("跳回") || preCheck == QString("繼續") || preCheck == QString("跳出")
 			|| preCheck == QString("继续"))
 		{
 

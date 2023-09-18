@@ -54,7 +54,11 @@ protected:
 	void closeEvent(QCloseEvent* e) override;
 
 	//接收原生的窗口消息
-	bool nativeEvent(const QByteArray& eventType, void* message, long* result) override;
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+	virtual bool nativeEvent(const QByteArray& eventType, void* message, long* result) override;
+#else
+	virtual bool nativeEvent(const QByteArray& eventType, void* message, qintptr* result) override;
+#endif
 
 	//paint
 	//void paintEvent(QPaintEvent* e) override;

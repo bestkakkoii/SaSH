@@ -18,7 +18,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 #pragma once
 #include <QOpenGLWidget>
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
 #include <QtOpenGL/qgl.h>
+#endif
 #include <QWheelEvent>
 #include <GL/GLU.h>
 #include <QOpenGLContext>

@@ -88,13 +88,21 @@ ScriptSettingForm::ScriptSettingForm(QWidget* parent)
 
 	QGridLayout* gridLayout = new QGridLayout;
 	gridLayout->addWidget(ui.listView_log);
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
 	gridLayout->setMargin(0);
+#else
+	gridLayout->setContentsMargins(0, 0, 0, 0);
+#endif
 
 	ui.openGLWidget_2->setLayout(gridLayout);
 
 	QGridLayout* gridLayoutDebug = new QGridLayout;
 	gridLayoutDebug->addWidget(ui.treeWidget_debuger_custom);
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
 	gridLayoutDebug->setMargin(0);
+#else
+	gridLayoutDebug->setContentsMargins(0, 0, 0, 0);
+#endif
 
 	ui.openGLWidget_3->setLayout(gridLayoutDebug);
 
@@ -340,7 +348,12 @@ bool ScriptSettingForm::eventFilter(QObject* obj, QEvent* e)
 	return QObject::eventFilter(obj, e);
 }
 
-bool ScriptSettingForm::nativeEvent(const QByteArray&, void* message, long* result)
+
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+bool ScriptSettingForm::nativeEvent(const QByteArray& eventType, void* message, long* result)
+#else
+bool ScriptSettingForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* result)
+#endif
 {
 	MSG* msg = (MSG*)message;
 	switch (msg->message)
@@ -490,13 +503,17 @@ void ScriptSettingForm::fileSave(const QString& d, DWORD flag)
 	QString content(d);
 	content.replace("\r\n", "\n");
 
-	QTextStream ts(&file);
-	ts.setCodec(util::DEFAULT_CODEPAGE);
-	ts.setGenerateByteOrderMark(true);
-	ts.setLocale(QLocale::Chinese);
+	QTextStream out(&file);
+#ifdef _WIN64
+	out.setEncoding(QStringConverter::Utf8);
+#else
+	out.setCodec(util::DEFAULT_CODEPAGE);
+#endif
+	out.setGenerateByteOrderMark(true);
+	out.setLocale(QLocale::Chinese);
 
-	ts << formatCode(content);
-	ts.flush();
+	out << formatCode(content);
+	out.flush();
 	file.flush();
 
 	ui.statusBar->showMessage(QString(tr("Script %1 saved")).arg(fileName), 10000);
@@ -536,7 +553,12 @@ void ScriptSettingForm::loadFile(const QString& fileName)
 	int scollValue = ui.widget->verticalScrollBar()->value();
 
 	QTextStream in(&f);
+#ifdef _WIN64
+	in.setEncoding(QStringConverter::Utf8);
+#else
 	in.setCodec(util::DEFAULT_CODEPAGE);
+#endif
+	in.setGenerateByteOrderMark(true);
 	QString c = in.readAll();
 	c.replace("\r\n", "\n");
 
@@ -1728,10 +1750,14 @@ void ScriptSettingForm::onActionTriggered()
 			QFile file(f);
 			if (file.open(QIODevice::WriteOnly | QIODevice::Truncate))
 			{
-				QTextStream ts(&file);
-				ts.setCodec(util::DEFAULT_CODEPAGE);
-				ts.setGenerateByteOrderMark(true);
-				ts << ui.widget->text() << Qt::endl;
+				QTextStream out(&file);
+#ifdef _WIN64
+				out.setEncoding(QStringConverter::Utf8);
+#else
+				out.setCodec(util::DEFAULT_CODEPAGE);
+#endif
+				out.setGenerateByteOrderMark(true);
+				out << ui.widget->text() << Qt::endl;
 				file.flush();
 				file.close();
 				QDesktopServices::openUrl(QUrl::fromLocalFile(directoryName));
@@ -1773,10 +1799,14 @@ void ScriptSettingForm::onActionTriggered()
 				QFile file(strpath);
 				if (file.open(QIODevice::WriteOnly | QIODevice::Truncate))
 				{
-					QTextStream ts(&file);
-					ts.setCodec(util::DEFAULT_CODEPAGE);
-					ts.setGenerateByteOrderMark(true);
-					ts << "" << Qt::endl;
+					QTextStream out(&file);
+#ifdef _WIN64
+					out.setEncoding(QStringConverter::Utf8);
+#else
+					out.setCodec(util::DEFAULT_CODEPAGE);
+#endif
+					out.setGenerateByteOrderMark(true);
+					out << "" << Qt::endl;
 					file.flush();
 					file.close();
 				}

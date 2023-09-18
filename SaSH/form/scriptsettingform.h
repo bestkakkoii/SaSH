@@ -42,7 +42,11 @@ protected:
 
 	virtual bool eventFilter(QObject* obj, QEvent* e) override;
 
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
 	virtual bool nativeEvent(const QByteArray& eventType, void* message, long* result) override;
+#else
+	virtual bool nativeEvent(const QByteArray& eventType, void* message, qintptr* result) override;
+#endif
 
 	virtual void mousePressEvent(QMouseEvent* e)  override
 	{

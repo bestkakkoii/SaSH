@@ -121,8 +121,7 @@ void QThumbnailWidget::cleanup()
 {
 	m_timer.stop();
 	makeCurrent();
-	m_texture.reset();
-	m_program.reset();
+
 	if (textureId)
 		glDeleteTextures(1, &textureId);
 	doneCurrent();

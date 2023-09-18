@@ -99,22 +99,29 @@ namespace mem
 		ULONG64 ModBase = 0;//just for export table
 	} IAT_EAT_INFO, * PIAT_EAT_INFO;
 
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
 	inline __declspec(naked) DWORD* getKernel32()
 	{
 		__asm
 		{
-			mov eax, fs: [0x30] ;
-			mov eax, [eax + 0xC];
-			mov eax, [eax + 0x1C];
-			mov eax, [eax];
-			mov eax, [eax];
-			mov eax, [eax + 8];
-			ret;
+			mov eax, fs: [0x30]
+			mov eax, [eax + 0xC]
+			mov eax, [eax + 0x1C]
+			mov eax, [eax]
+			mov eax, [eax]
+			mov eax, [eax + 8]
+			ret
 		}
 	}
+#else
+	inline DWORD* getKernel32()
+	{
+		return (DWORD*)GetModuleHandleW(L"kernelbase.dll");
+	}
+#endif
 
 	DWORD getFunAddr(const DWORD* DllBase, const char* FunName);
-	HMODULE getRemoteModuleHandleByProcessHandleA(HANDLE hProcess, const QString& szModuleName);
+	HMODULE getRemoteModuleHandleByProcessHandleW(HANDLE hProcess, const QString& szModuleName);
 	long getProcessExportTable32(HANDLE hProcess, const QString& ModuleName, IAT_EAT_INFO tbinfo[], int tb_info_max);
 	ULONG64 getProcAddressIn32BitProcess(HANDLE hProcess, const QString& ModuleName, const QString& FuncName);
 	bool inject64(HANDLE hProcess, QString dllPath, HMODULE* phDllModule, quint64* phGameModule);//兼容64位注入32位
@@ -2131,7 +2138,11 @@ namespace util
 		if (fileName.endsWith(util::SCRIPT_LUA_SUFFIX_DEFAULT))
 		{
 			QTextStream in(&f);
+#ifdef _WIN64
+			in.setEncoding(QStringConverter::Utf8);
+#else
 			in.setCodec(util::DEFAULT_CODEPAGE);
+#endif
 			in.setGenerateByteOrderMark(true);
 			c = in.readAll();
 			c.replace("\r\n", "\n");
