@@ -646,7 +646,7 @@ private:
 #else
 		return QDateTime::currentMSecsSinceEpoch();
 #endif
-}
+	}
 
 	inline void setWarpMap(const QPoint& pos)
 	{
@@ -754,6 +754,8 @@ private:
 
 	int swapitemModeFlag = 0;
 	QHash<QString, bool>itemStackFlagHash = {};
+
+	QVector<bool> battlePetDisableList_ = {};
 
 	//client original 目前很多都是沒用處的
 #pragma region ClientOriginal
@@ -1107,4 +1109,4 @@ private://lssproto_recv
 	virtual void lssproto_CustomWN_recv(const QString& data) override;
 	virtual void lssproto_CustomTK_recv(const QString& data) override;
 #pragma endregion
-	};
+};

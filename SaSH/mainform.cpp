@@ -77,7 +77,7 @@ void createMenu(QMenuBar* pMenuBar)
 			)";
 #pragma endregion
 
-	pMenuBar->setStyleSheet(styleText);
+	//pMenuBar->setStyleSheet(styleText);
 	pMenuBar->setAttribute(Qt::WA_StyledBackground, true);
 	pMenuBar->clear();
 
@@ -152,19 +152,19 @@ void createMenu(QMenuBar* pMenuBar)
 	QMenu* pMenuSystem = new QMenu(QObject::tr("system"));
 	if (!pMenuSystem)
 		return;
-	pMenuSystem->setStyleSheet(styleText);
+	//pMenuSystem->setStyleSheet(styleText);
 	pMenuBar->addMenu(pMenuSystem);
 
 	QMenu* pMenuOther = new QMenu(QObject::tr("other"));
 	if (!pMenuOther)
 		return;
-	pMenuOther->setStyleSheet(styleText);
+	//pMenuOther->setStyleSheet(styleText);
 	pMenuBar->addMenu(pMenuOther);
 
 	QMenu* pMenuFile = new QMenu(QObject::tr("file"));
 	if (!pMenuFile)
 		return;
-	pMenuFile->setStyleSheet(styleText);
+	//pMenuFile->setStyleSheet(styleText);
 	pMenuBar->addMenu(pMenuFile);
 
 	create(systemTable, pMenuSystem);
@@ -653,22 +653,16 @@ MainForm::MainForm(QWidget* parent)
 	setWindowFlags(windowFlags() & ~Qt::WindowMaximizeButtonHint);
 	setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
 	setFixedSize(290, 481);
-	setStyleSheet(R"(
-QMainWindow{
-	border-radius: 10px;
-	background-color: rgb(245, 245, 245);
-} 
-
-QGroupBox { 
-	color:rgb(100,149,237)
-}
-)");
-
-	QGraphicsDropShadowEffect* shadowEffect = new QGraphicsDropShadowEffect;
-	shadowEffect->setBlurRadius(10); // 設置陰影的模糊半徑，根據需要調整
-	shadowEffect->setOffset(0, 1);   // 設置陰影的偏移量，根據需要調整
-	shadowEffect->setColor(Qt::black); // 設置陰影的顏色，根據需要調整
-	setGraphicsEffect(shadowEffect);
+	//	setStyleSheet(R"(
+	//QMainWindow{
+	//	border-radius: 10px;
+	//	background-color: rgb(245, 245, 245);
+	//} 
+	//
+	//QGroupBox { 
+	//	color:rgb(100,149,237)
+	//}
+	//)");
 
 	qRegisterMetaType<QVariant>("QVariant");
 	qRegisterMetaType<QVariant>("QVariant&");
@@ -751,10 +745,10 @@ QGroupBox {
 
 	resetControlTextLanguage();
 
-	ui.progressBar_pchp->onCurrentValueChanged(0, 0, 100);
-	ui.progressBar_pcmp->onCurrentValueChanged(0, 0, 100);
-	ui.progressBar_pethp->onCurrentValueChanged(0, 0, 100);
-	ui.progressBar_ridehp->onCurrentValueChanged(0, 0, 100);
+	ui.progressBar_pchp->onCurrentValueChanged(0, 0, 1000);
+	ui.progressBar_pcmp->onCurrentValueChanged(0, 0, 1000);
+	ui.progressBar_pethp->onCurrentValueChanged(0, 0, 1000);
+	ui.progressBar_ridehp->onCurrentValueChanged(0, 0, 1000);
 
 	util::FormSettingManager formManager(this);
 	formManager.loadSettings();

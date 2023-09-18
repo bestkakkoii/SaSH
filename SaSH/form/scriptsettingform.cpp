@@ -38,10 +38,10 @@ ScriptSettingForm::ScriptSettingForm(QWidget* parent)
 {
 	ui.setupUi(this);
 	setAttribute(Qt::WA_DeleteOnClose);
-	setWindowFlags(Qt::FramelessWindowHint);
+	//setWindowFlags(Qt::FramelessWindowHint);
 
-	CustomTitleBar* titleBar = new CustomTitleBar(this);
-	setMenuWidget(titleBar);
+	//CustomTitleBar* titleBar = new CustomTitleBar(this);
+	//setMenuWidget(titleBar);
 
 	//Qt::WindowFlags windowflag = this->windowFlags();
 	//windowflag |= Qt::WindowType::Tool;
@@ -108,9 +108,9 @@ ScriptSettingForm::ScriptSettingForm(QWidget* parent)
 	staticLabel_.setFrameStyle(QFrame::NoFrame);
 	staticLabel_.setText(QString(tr("row:%1 | size:%2 | index:%3 | %4").arg(1).arg(0).arg(1).arg("CRLF")));
 	staticLabel_.setOpenExternalLinks(true);
-	staticLabel_.setStyleSheet("color: rgb(250, 250, 250);background-color: rgb(31, 31, 31);border:none");
+	//staticLabel_.setStyleSheet("color: rgb(250, 250, 250);background-color: rgb(31, 31, 31);border:none");
 	ui.statusBar->addPermanentWidget(&staticLabel_);
-	ui.statusBar->setStyleSheet("color: rgb(250, 250, 250);background-color: rgb(31, 31, 31);border:none");
+	//ui.statusBar->setStyleSheet("color: rgb(250, 250, 250);background-color: rgb(31, 31, 31);border:none");
 
 
 	//ui.listView_log->setModel(thread->getScriptLogModel());
@@ -235,27 +235,27 @@ void ScriptSettingForm::createSpeedSpinBox()
 	Injector& injector = Injector::getInstance();
 	int value = injector.getValueHash(util::kScriptSpeedValue);
 	pSpeedSpinBox->setValue(value);
-	pSpeedSpinBox->setStyleSheet(R"(
-		QSpinBox {
-			padding-top: 2px;
-			padding-bottom: 2px;
-			padding-left: 4px;
-			padding-right: 15px;
-			border:1px solid rgb(66,66,66);
- 			color:rgb(250,250,250);
-  			background: rgb(56,56,56);
-			selection-color: rgb(208,208,208);
-			selection-background-color: rgb(80, 80, 83);
-			font-family: "Microsoft Yahei";
-			font-size: 10pt;
-		}
+	//pSpeedSpinBox->setStyleSheet(R"(
+	//	QSpinBox {
+	//		padding-top: 2px;
+	//		padding-bottom: 2px;
+	//		padding-left: 4px;
+	//		padding-right: 15px;
+	//		border:1px solid rgb(66,66,66);
+ //			color:rgb(250,250,250);
+ // 			background: rgb(56,56,56);
+	//		selection-color: rgb(208,208,208);
+	//		selection-background-color: rgb(80, 80, 83);
+	//		font-family: "Microsoft Yahei";
+	//		font-size: 10pt;
+	//	}
 
-		QSpinBox:hover {
-		  color:rgb(250,250,250);
-		  background: rgb(31,31,31);
-		   border:1px solid rgb(153,153,153);
-		}
-	)");
+	//	QSpinBox:hover {
+	//	  color:rgb(250,250,250);
+	//	  background: rgb(31,31,31);
+	//	   border:1px solid rgb(153,153,153);
+	//	}
+	//)");
 
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
 	connect(&signalDispatcher, &SignalDispatcher::scriptSpeedChanged, this, &ScriptSettingForm::onSpeedChanged);
@@ -2304,34 +2304,34 @@ void ScriptSettingForm::onDecryptSave()
 
 bool ScriptSettingForm::nativeEvent(const QByteArray& eventType, void* message, long* result)
 {
-	MSG* msg = (MSG*)message;
-	switch (msg->message)
-	{
-	case WM_NCHITTEST:
-		if (isMaximized())
-			return false;
+	//MSG* msg = (MSG*)message;
+	//switch (msg->message)
+	//{
+	//case WM_NCHITTEST:
+	//	if (isMaximized())
+	//		return false;
 
-		int xPos = GET_X_LPARAM(msg->lParam) - this->frameGeometry().x();
-		int yPos = GET_Y_LPARAM(msg->lParam) - this->frameGeometry().y();
-		if (xPos < boundaryWidth_ && yPos < boundaryWidth_)                    //左上角
-			*result = HTTOPLEFT;
-		else if (xPos >= width() - boundaryWidth_ && yPos < boundaryWidth_)          //右上角
-			*result = HTTOPRIGHT;
-		else if (xPos < boundaryWidth_ && yPos >= height() - boundaryWidth_)         //左下角
-			*result = HTBOTTOMLEFT;
-		else if (xPos >= width() - boundaryWidth_ && yPos >= height() - boundaryWidth_)//右下角
-			*result = HTBOTTOMRIGHT;
-		else if (xPos < boundaryWidth_)                                     //左边
-			*result = HTLEFT;
-		else if (xPos >= width() - boundaryWidth_)                              //右边
-			*result = HTRIGHT;
-		else if (yPos < boundaryWidth_)                                       //上边
-			*result = HTTOP;
-		else if (yPos >= height() - boundaryWidth_)                             //下边
-			*result = HTBOTTOM;
-		else              //其他部分不做处理，返回false，留给其他事件处理器处理
-			return false;
-		return true;
-	}
+	//	int xPos = GET_X_LPARAM(msg->lParam) - this->frameGeometry().x();
+	//	int yPos = GET_Y_LPARAM(msg->lParam) - this->frameGeometry().y();
+	//	if (xPos < boundaryWidth_ && yPos < boundaryWidth_)                    //左上角
+	//		*result = HTTOPLEFT;
+	//	else if (xPos >= width() - boundaryWidth_ && yPos < boundaryWidth_)          //右上角
+	//		*result = HTTOPRIGHT;
+	//	else if (xPos < boundaryWidth_ && yPos >= height() - boundaryWidth_)         //左下角
+	//		*result = HTBOTTOMLEFT;
+	//	else if (xPos >= width() - boundaryWidth_ && yPos >= height() - boundaryWidth_)//右下角
+	//		*result = HTBOTTOMRIGHT;
+	//	else if (xPos < boundaryWidth_)                                     //左边
+	//		*result = HTLEFT;
+	//	else if (xPos >= width() - boundaryWidth_)                              //右边
+	//		*result = HTRIGHT;
+	//	else if (yPos < boundaryWidth_)                                       //上边
+	//		*result = HTTOP;
+	//	else if (yPos >= height() - boundaryWidth_)                             //下边
+	//		*result = HTBOTTOM;
+	//	else              //其他部分不做处理，返回false，留给其他事件处理器处理
+	//		return false;
+	//	return true;
+	//}
 	return false;         //此处返回false，留给其他事件处理器处理
 }

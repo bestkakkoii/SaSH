@@ -43,10 +43,10 @@ ScriptForm::ScriptForm(QWidget* parent)
 		tableWidget->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
 		tableWidget->verticalHeader()->setSectionResizeMode(QHeaderView::Fixed);
 
-		tableWidget->setStyleSheet(R"(
-		QTableWidget { font-size:11px; } 
-			QTableView::item:selected { background-color: black; color: white;
-		})");
+		//tableWidget->setStyleSheet(R"(
+		//QTableWidget { font-size:11px; } 
+		//	QTableView::item:selected { background-color: black; color: white;
+		//})");
 		tableWidget->verticalHeader()->setDefaultSectionSize(11);
 		tableWidget->horizontalHeader()->setStretchLastSection(true);
 		tableWidget->horizontalHeader()->setHighlightSections(false);
@@ -72,10 +72,10 @@ ScriptForm::ScriptForm(QWidget* parent)
 		}
 	};
 
-	ui.treeWidget_script->setStyleSheet(R"(
-		QTreeWidget { font-size:11px; } 
-		QTreeView::item:selected { background-color: black; color: white; } 
-	)");
+	//ui.treeWidget_script->setStyleSheet(R"(
+	//	QTreeWidget { font-size:11px; } 
+	//	QTreeView::item:selected { background-color: black; color: white; } 
+	//)");
 	ui.treeWidget_script->header()->setSectionsClickable(true);
 	ui.treeWidget_script->header()->setSectionResizeMode(QHeaderView::ResizeToContents);
 	ui.treeWidget_script->resizeColumnToContents(1);

@@ -1061,20 +1061,7 @@
     </size>
    </property>
    <property name="styleSheet">
-    <string notr="true">#pushButton_afksetting {
-	background-color: #FFA49F;
-	border: 0px solid #313131;
-    border-radius: 5px;
-}
-
-QPushButton:hover#pushButton_afksetting {
-	background-color: #F9F9F9;
-}
-
-QPushButton:pressed#pushButton_afksetting, QPushButton:checked#pushButton_afksetting {
-	background-color: #F9F9F9;
-	border: 0px solid #ffffff;
-}</string>
+    <string notr="true"/>
    </property>
    <property name="text">
     <string>afk</string>

@@ -121,7 +121,6 @@ public:\
 #include <QPlainTextEdit>
 #include <QRadioButton>
 #include <QTextEdit>
-#include <QGraphicsDropShadowEffect>
 #include <QHBoxLayout>
 #include <QVBoxLayout>
 #include <QSplashScreen>

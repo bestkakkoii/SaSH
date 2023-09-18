@@ -31,7 +31,7 @@ AbilityForm::AbilityForm(QWidget* parent)
 
 
 	//boarder black put on the frameless window with style sheet
-	setStyleSheet("QDialog{border: 1px solid black;}");
+	//setStyleSheet("QDialog{border: 1px solid black;}");
 
 
 	QList<PushButton*> buttonList = util::findWidgets<PushButton>(this);

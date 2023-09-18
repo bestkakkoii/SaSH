@@ -36,27 +36,16 @@ MapWidget::MapWidget(QWidget* parent)
 {
 	ui.setupUi(this);
 	setAttribute(Qt::WA_DeleteOnClose);
-	setStyleSheet("background-color:rgb(0,0,1)");
+	//setStyleSheet("background-color:rgb(0,0,1)");
 
-	setAttribute(Qt::WA_OpaquePaintEvent, true);
-	setAttribute(Qt::WA_NoSystemBackground);
-	setAttribute(Qt::WA_WState_WindowOpacitySet);
+	//setAttribute(Qt::WA_OpaquePaintEvent, true);
+	//setAttribute(Qt::WA_NoSystemBackground);
+	//setAttribute(Qt::WA_WState_WindowOpacitySet);
 
-	Qt::WindowFlags windowflag = this->windowFlags();
-	windowflag |= Qt::WindowType::Tool;
-	setWindowFlag(Qt::WindowType::Tool);
+	//setWindowFlags(Qt::FramelessWindowHint);
 
-	setWindowFlags(Qt::FramelessWindowHint);
-
-	CustomTitleBar* titleBar = new CustomTitleBar(this);
-	setMenuWidget(titleBar);
-
-
-	QGraphicsDropShadowEffect* shadowEffect = new QGraphicsDropShadowEffect;
-	shadowEffect->setBlurRadius(10); // 設置陰影的模糊半徑，根據需要調整
-	shadowEffect->setOffset(0, 1);   // 設置陰影的偏移量，根據需要調整
-	shadowEffect->setColor(Qt::black); // 設置陰影的顏色，根據需要調整
-	setGraphicsEffect(shadowEffect);
+	//CustomTitleBar* titleBar = new CustomTitleBar(this);
+	//setMenuWidget(titleBar);
 
 	//set header text
 	ui.tableWidget_NPCList->setColumnCount(2);
@@ -142,7 +131,7 @@ MapWidget::MapWidget(QWidget* parent)
 	}
 
 	entrances_ = preEntrances;
-}
+	}
 
 MapWidget::~MapWidget()
 {
@@ -1024,34 +1013,34 @@ void MapWidget::on_tableWidget_NPCList_cellDoubleClicked(int row, int)
 
 bool MapWidget::nativeEvent(const QByteArray& eventType, void* message, long* result)
 {
-	MSG* msg = (MSG*)message;
-	switch (msg->message)
-	{
-	case WM_NCHITTEST:
-		if (isMaximized())
-			return false;
+	//MSG* msg = (MSG*)message;
+	//switch (msg->message)
+	//{
+	//case WM_NCHITTEST:
+	//	if (isMaximized())
+	//		return false;
 
-		int xPos = GET_X_LPARAM(msg->lParam) - this->frameGeometry().x();
-		int yPos = GET_Y_LPARAM(msg->lParam) - this->frameGeometry().y();
-		if (xPos < boundaryWidth_ && yPos < boundaryWidth_)                    //左上角
-			*result = HTTOPLEFT;
-		else if (xPos >= width() - boundaryWidth_ && yPos < boundaryWidth_)          //右上角
-			*result = HTTOPRIGHT;
-		else if (xPos < boundaryWidth_ && yPos >= height() - boundaryWidth_)         //左下角
-			*result = HTBOTTOMLEFT;
-		else if (xPos >= width() - boundaryWidth_ && yPos >= height() - boundaryWidth_)//右下角
-			*result = HTBOTTOMRIGHT;
-		else if (xPos < boundaryWidth_)                                     //左边
-			*result = HTLEFT;
-		else if (xPos >= width() - boundaryWidth_)                              //右边
-			*result = HTRIGHT;
-		else if (yPos < boundaryWidth_)                                       //上边
-			*result = HTTOP;
-		else if (yPos >= height() - boundaryWidth_)                             //下边
-			*result = HTBOTTOM;
-		else              //其他部分不做处理，返回false，留给其他事件处理器处理
-			return false;
-		return true;
-	}
+	//	int xPos = GET_X_LPARAM(msg->lParam) - this->frameGeometry().x();
+	//	int yPos = GET_Y_LPARAM(msg->lParam) - this->frameGeometry().y();
+	//	if (xPos < boundaryWidth_ && yPos < boundaryWidth_)                    //左上角
+	//		*result = HTTOPLEFT;
+	//	else if (xPos >= width() - boundaryWidth_ && yPos < boundaryWidth_)          //右上角
+	//		*result = HTTOPRIGHT;
+	//	else if (xPos < boundaryWidth_ && yPos >= height() - boundaryWidth_)         //左下角
+	//		*result = HTBOTTOMLEFT;
+	//	else if (xPos >= width() - boundaryWidth_ && yPos >= height() - boundaryWidth_)//右下角
+	//		*result = HTBOTTOMRIGHT;
+	//	else if (xPos < boundaryWidth_)                                     //左边
+	//		*result = HTLEFT;
+	//	else if (xPos >= width() - boundaryWidth_)                              //右边
+	//		*result = HTRIGHT;
+	//	else if (yPos < boundaryWidth_)                                       //上边
+	//		*result = HTTOP;
+	//	else if (yPos >= height() - boundaryWidth_)                             //下边
+	//		*result = HTBOTTOM;
+	//	else              //其他部分不做处理，返回false，留给其他事件处理器处理
+	//		return false;
+	//	return true;
+	//}
 	return false;         //此处返回false，留给其他事件处理器处理
 }

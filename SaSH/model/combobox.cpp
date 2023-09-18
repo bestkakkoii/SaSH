@@ -185,20 +185,13 @@ ComboBox::ComboBox(QWidget* parent) :QComboBox(parent)
 	setStyleSheet(R"(
 QComboBox QAbstractItemView { 
     min-width: 200px;
-    border-radius: 3px;
-    border: 0px solid #ccc;
+    /*border-radius: 3px;
+    border: 0px solid #ccc;*/
 }
 )");
 	setView(q_check_ptr(new QListView()));
 	view()->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
-	setFixedHeight(17);
-
-
-	QGraphicsDropShadowEffect* shadowEffect = new QGraphicsDropShadowEffect;
-	shadowEffect->setBlurRadius(5); // 設置陰影的模糊半徑，根據需要調整
-	shadowEffect->setOffset(0, 1);   // 設置陰影的偏移量，根據需要調整
-	shadowEffect->setColor(Qt::black); // 設置陰影的顏色，根據需要調整
-	setGraphicsEffect(shadowEffect);
+	//setFixedHeight(20);
 }
 
 ComboBox::~ComboBox()

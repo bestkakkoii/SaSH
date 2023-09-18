@@ -338,6 +338,7 @@ void fontInitialize(const QString& currentWorkPath, QApplication& a)
 	a.setFont(font);
 }
 
+#include <QStyleFactory>
 int main(int argc, char* argv[])
 {
 	QApplication::setAttribute(Qt::AA_Use96Dpi, true);// DPI support
@@ -354,7 +355,7 @@ int main(int argc, char* argv[])
 	QSurfaceFormat::setDefaultFormat(format);
 
 	QApplication a(argc, argv);
-
+	a.setStyle(QStyleFactory::create("windows"));
 #ifdef _DEBUG
 	qSetMessagePattern("[%{threadid}] [@%{line}] [%{function}] [%{type}] %{message}");//%{file} 
 #endif

@@ -955,8 +955,8 @@ namespace util
 				margin-right:0px;
 			}
 		)";
-		pTab->setStyleSheet(styleSheet);
-
+		//pTab->setStyleSheet(styleSheet);
+		pTab->setAttribute(Qt::WA_StyledBackground);
 		QTabBar* pTabBar = pTab->tabBar();
 
 		pTabBar->setDocumentMode(true);
@@ -2117,9 +2117,9 @@ namespace util
 			{
 				m_maps.insert(uc);
 				p = reinterpret_cast<T*>(uc);
-	}
+			}
 			return uc != nullptr;
-}
+		}
 
 		QFile& __fastcall  file() { return *this; }
 

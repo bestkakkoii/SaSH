@@ -5086,6 +5086,7 @@ void Server::setBattleEnd()
 
 	normalDurationTimer.restart();
 	ayncBattleCommandFlag.store(true, std::memory_order_release);
+	battlePetDisableList_.clear();
 
 	lssproto_EO_send(0);
 
@@ -5512,6 +5513,15 @@ void Server::handlePlayerBattleLogics(const battledata_t& bt)
 			if (obj.pos < min || obj.pos > max)
 				continue;
 
+			if (obj.hp == 0)
+				continue;
+
+			if (obj.maxHp == 0)
+				continue;
+
+			if (checkAND(obj.status, BC_FLG_HIDE) || checkAND(obj.status, BC_FLG_DEAD))
+				continue;
+
 			if (!useequal && (obj.hpPercent < cmpvalue))
 			{
 				*target = obj.pos;
@@ -5527,13 +5537,38 @@ void Server::handlePlayerBattleLogics(const battledata_t& bt)
 		return false;
 	};
 
+	auto checkDeadAllie = [this, &bt](int* target)->bool
+	{
+		if (!target)
+			return false;
+
+		int min = 0;
+		int max = 9;
+		if (BattleMyNo >= 10)
+		{
+			min = 10;
+			max = 19;
+		}
+
+		QVector<battleobject_t> battleObjects = bt.objects;
+		for (const battleobject_t& obj : battleObjects)
+		{
+			if (obj.pos < min || obj.pos > max)
+				continue;
+
+			if ((obj.maxHp > 0) && ((obj.hp == 0) || checkAND(obj.status, BC_FLG_DEAD)))
+			{
+				*target = obj.pos;
+				return true;
+			}
+		}
+
+		return false;
+	};
+
 	//自動換寵
 	do
 	{
-		bool autoSwitch = injector.getEnableHash(util::kBattleAutoSwitchEnable);
-		if (!autoSwitch)
-			break;
-
 		PC pc = getPC();
 
 		if (bt.objects[BattleMyNo + 5].modelid > 0
@@ -5545,21 +5580,37 @@ void Server::handlePlayerBattleLogics(const battledata_t& bt)
 		int petIndex = -1;
 		for (int i = 0; i < MAX_PET; ++i)
 		{
+			if (battlePetDisableList_[i])
+				continue;
+
+			if (pc.battlePetNo == i)
+			{
+				battlePetDisableList_[i] = true;
+				continue;
+			}
+
 			PET _pet = pet[i];
 			if (_pet.level <= 0 || _pet.maxHp <= 0 || _pet.hp < 1 || _pet.modelid == 0 || _pet.name.isEmpty())
+			{
+				battlePetDisableList_[i] = true;
 				continue;
+			}
 
-			if (i == pc.battlePetNo)
+			if (_pet.state == kRide || _pet.state != kStandby)
+			{
+				battlePetDisableList_[i] = true;
 				continue;
-
-			if (_pet.state == kRide)
-				continue;
+			}
 
 			petIndex = i;
 			break;
 		}
 
 		if (petIndex == -1)
+			break;
+
+		bool autoSwitch = injector.getEnableHash(util::kBattleAutoSwitchEnable);
+		if (!autoSwitch)
 			break;
 
 		sendBattlePlayerSwitchPetAct(petIndex);
@@ -5859,8 +5910,9 @@ void Server::handlePlayerBattleLogics(const battledata_t& bt)
 		unsigned int targetFlags = injector.getValueHash(util::kBattleItemReviveTargetValue);
 		if (checkAND(targetFlags, kSelectPet))
 		{
-			if (checkPetHp(NULL, &tempTarget, true))
+			if (bt.objects.at(BattleMyNo + 5).hp == 0 || checkAND(bt.objects.at(BattleMyNo + 5).status, BC_FLG_DEAD))
 			{
+				tempTarget = BattleMyNo + 5;
 				ok = true;
 			}
 		}
@@ -5869,13 +5921,12 @@ void Server::handlePlayerBattleLogics(const battledata_t& bt)
 		{
 			if (checkAND(targetFlags, kSelectAllieAny) || checkAND(targetFlags, kSelectAllieAll))
 			{
-				if (checkAllieHp(NULL, &tempTarget, true))
+				if (bt.objects.at(BattleMyNo + 5).maxHp > 0 && checkDeadAllie(&tempTarget))
 				{
 					ok = true;
 				}
 			}
 		}
-
 
 		if (!ok)
 			break;
@@ -5917,10 +5968,11 @@ void Server::handlePlayerBattleLogics(const battledata_t& bt)
 		int tempTarget = -1;
 		bool ok = false;
 		unsigned int targetFlags = injector.getValueHash(util::kBattleMagicReviveTargetValue);
-		if (checkAND(targetFlags, kSelectPet))
+		if (checkAND(targetFlags, kSelectPet) && bt.objects.at(BattleMyNo + 5).maxHp > 0)
 		{
-			if (checkPetHp(NULL, &tempTarget, true))
+			if (bt.objects.at(BattleMyNo + 5).hp == 0 || checkAND(bt.objects.at(BattleMyNo + 5).status, BC_FLG_DEAD))
 			{
+				tempTarget = BattleMyNo + 5;
 				ok = true;
 			}
 		}
@@ -5929,7 +5981,7 @@ void Server::handlePlayerBattleLogics(const battledata_t& bt)
 		{
 			if (checkAND(targetFlags, kSelectAllieAny) || checkAND(targetFlags, kSelectAllieAll))
 			{
-				if (checkAllieHp(NULL, &tempTarget, true))
+				if (checkDeadAllie(&tempTarget))
 				{
 					ok = true;
 				}
@@ -5974,18 +6026,17 @@ void Server::handlePlayerBattleLogics(const battledata_t& bt)
 		if (!skillMp)
 			break;
 
-		int tempTarget = -1;
-		int charMpPercent = injector.getValueHash(util::kBattleSkillMpValue);
-		if (!checkPlayerMp(charMpPercent, &tempTarget, true) && (BattleMyMp > 0))
+		int charMp = injector.getValueHash(util::kBattleSkillMpValue);
+		if ((BattleMyMp > charMp) && (BattleMyMp > 0))
 			break;
 
-		int skillIndex = getProfessionSkillIndexByName("血狂");
+		int skillIndex = getProfessionSkillIndexByName("?嗜血");
 		if (skillIndex < 0)
 			break;
 
 		if (isPlayerHpEnoughForSkill(skillIndex))
 		{
-			sendBattlePlayerJobSkillAct(skillIndex, 0);
+			sendBattlePlayerJobSkillAct(skillIndex, BattleMyNo);
 			return;
 		}
 
@@ -6414,12 +6465,14 @@ void Server::handlePlayerBattleLogics(const battledata_t& bt)
 			}
 		}
 
-		if (!ok)
+		if (!ok && bt.objects.at(BattleMyNo + 5).maxHp > 0)
 		{
 			if (checkAND(targetFlags, kSelectPet))
 			{
-				if (checkPetHp(petPercent, &tempTarget))
+				if (bt.objects.at(BattleMyNo + 5).hpPercent <= petPercent && bt.objects.at(BattleMyNo + 5).hp > 0 &&
+					!checkAND(bt.objects.at(BattleMyNo + 5).status, BC_FLG_DEAD) && !checkAND(bt.objects.at(BattleMyNo + 5).status, BC_FLG_HIDE))
 				{
+					tempTarget = BattleMyNo + 5;
 					ok = true;
 				}
 			}
@@ -6486,10 +6539,12 @@ void Server::handlePlayerBattleLogics(const battledata_t& bt)
 
 		if (!ok)
 		{
-			if (checkAND(targetFlags, kSelectPet))
+			if (checkAND(targetFlags, kSelectPet) && bt.objects.at(BattleMyNo + 5).maxHp > 0)
 			{
-				if (checkPetHp(petPercent, &tempTarget))
+				if (bt.objects.at(BattleMyNo + 5).hpPercent <= petPercent && bt.objects.at(BattleMyNo + 5).hp > 0 &&
+					!checkAND(bt.objects.at(BattleMyNo + 5).status, BC_FLG_DEAD) && !checkAND(bt.objects.at(BattleMyNo + 5).status, BC_FLG_HIDE))
 				{
+					tempTarget = BattleMyNo + 5;
 					ok = true;
 				}
 			}
@@ -6513,7 +6568,7 @@ void Server::handlePlayerBattleLogics(const battledata_t& bt)
 		bool meatProiory = injector.getEnableHash(util::kBattleItemHealMeatPriorityEnable);
 		if (meatProiory)
 		{
-			itemIndex = getItemIndexByName(u8"?肉", false, u8"耐久力", CHAR_EQUIPPLACENUM);
+			itemIndex = getItemIndexByName("?肉", false, "耐久力", CHAR_EQUIPPLACENUM);
 		}
 
 		if (itemIndex == -1)
@@ -9293,6 +9348,8 @@ void Server::lssproto_EN_recv(int result, int field)
 	if (result > 0)
 	{
 		setBattleFlag(true);
+		battlePetDisableList_.clear();
+		battlePetDisableList_.resize(MAX_PET);
 		IS_LOCKATTACK_ESCAPE_DISABLE = false;
 		battle_total.fetch_add(1, std::memory_order_release);
 		normalDurationTimer.restart();
@@ -9860,8 +9917,8 @@ void Server::lssproto_KS_recv(int petarray, int result)
 			pc.selectPetNo[petarray] = 0;
 			if (petarray == pc.battlePetNo)
 				pc.battlePetNo = -1;
-		}
 	}
+}
 #endif
 
 	setPC(pc);
@@ -10466,7 +10523,7 @@ void Server::lssproto_TK_recv(int index, char* cmessage, int color)
 			else
 			{
 				fontsize = 0;
-			}
+		}
 #endif
 			if (szToken.size() > 1)
 			{
@@ -10580,13 +10637,13 @@ void Server::lssproto_TK_recv(int index, char* cmessage, int color)
 #endif
 #endif
 #endif
-	}
+			}
 
 	setPC(pc);
 
 	chatQueue.enqueue(QPair{ color ,msg });
 	emit signalDispatcher.appendChatLog(msg, color);
-}
+	}
 
 //地圖數據更新，重新繪製地圖
 void Server::lssproto_MC_recv(int fl, int x1, int y1, int x2, int y2, int tileSum, int partsSum, int eventSum, char* cdata)
@@ -10836,7 +10893,7 @@ void Server::lssproto_C_recv(char* cdata)
 			{
 				extern char* FreeGetTitleStr(int id);
 				sprintf(titlestr, "%s", FreeGetTitleStr(titleindex));
-			}
+		}
 #endif
 #ifdef _CHAR_PROFESSION			// WON ADD 人物職業
 			getStringToken(bigtoken, "|", 18, smalltoken);
@@ -10906,7 +10963,7 @@ void Server::lssproto_C_recv(char* cdata)
 						break;
 					}
 				}
-			}
+				}
 			else
 			{
 #ifdef _CHAR_PROFESSION			// WON ADD 人物職業
@@ -10942,7 +10999,7 @@ void Server::lssproto_C_recv(char* cdata)
 				if (charType == 13 && noticeNo > 0)
 				{
 					setNpcNotice(ptAct, noticeNo);
-				}
+			}
 #endif
 				//if (ptAct != NULL)
 				//{
@@ -10963,7 +11020,7 @@ void Server::lssproto_C_recv(char* cdata)
 					//}
 					//setCharNameColor(ptAct, charNameColor);
 				//}
-			}
+		}
 
 			if (name == u8"を�そó")//排除亂碼
 				break;
@@ -10994,7 +11051,7 @@ void Server::lssproto_C_recv(char* cdata)
 			mapUnitHash.insert(id, unit);
 
 			break;
-		}
+	}
 		case 2://OBJTYPE_ITEM
 		{
 			getStringToken(bigtoken, "|", 2, smalltoken);
@@ -11293,8 +11350,8 @@ void Server::lssproto_C_recv(char* cdata)
 						}
 					}
 				}
-			}
-		}
+}
+}
 #endif
 #pragma endregion
 	}
@@ -11395,13 +11452,13 @@ void Server::lssproto_CA_recv(char* cdata)
 						setPcAction(5);
 #endif
 					}
-				}
+		}
 				else
 #endif
 					//changePcAct(x, y, dir, act, effectno, effectparam1, effectparam2);
-			}
+	}
 			continue;
-		}
+}
 
 		//ptAct = getCharObjAct(charindex);
 		//if (ptAct == NULL)
@@ -11434,7 +11491,7 @@ void Server::lssproto_CA_recv(char* cdata)
 		{
 			memset(ptAct->szStreetVendorTitle, 0, sizeof(ptAct->szStreetVendorTitle));
 			strncpy_s(ptAct->szStreetVendorTitle, szStreetVendorTitle, sizeof(szStreetVendorTitle));
-		}
+}
 #endif
 		//changeCharAct(ptAct, x, y, dir, act, effectno, effectparam1, effectparam2);
 	//}
@@ -12581,7 +12638,7 @@ void Server::lssproto_S_recv(char* cdata)
 #endif
 
 			refreshItemInfo(i);
-		}
+	}
 
 		QStringList itemList;
 		for (const ITEM& it : pc.item)
@@ -12599,7 +12656,7 @@ void Server::lssproto_S_recv(char* cdata)
 		}
 
 		emit signalDispatcher.updateComboBoxItemText(util::kComboBoxCharAction, magicNameList);
-	}
+}
 #pragma endregion
 #pragma region PetSkill
 	else if (first == "W")//接收到的寵物技能
@@ -12684,7 +12741,7 @@ void Server::lssproto_S_recv(char* cdata)
 #ifdef _SKILLSORT
 		SortSkill();
 #endif
-	}
+		}
 #endif
 #pragma endregion
 #pragma region PRO3_ADDSKILL
@@ -12797,7 +12854,7 @@ void Server::lssproto_S_recv(char* cdata)
 #ifdef _ITEM_COUNTDOWN
 			pet[nPetIndex].item[i].counttime = getIntegerToken(data, "|", no + 16);
 #endif
-		}
+	}
 	}
 #endif
 #pragma endregion
@@ -12917,7 +12974,7 @@ void Server::lssproto_CharList_recv(char* cresult, char* cdata)
 		PcLanded.登陸延時時間 = TimeGetTime() + 2000;
 #endif
 		return;
-	}
+}
 
 	//if (netproc_sending == NETPROC_SENDING)
 	//{
@@ -13049,7 +13106,7 @@ void Server::lssproto_CharLogin_recv(char* cresult, char* cdata)
 	angelFlag = FALSE;
 	angelMsg[0] = NULL;
 #endif
-}
+	}
 
 void Server::lssproto_TD_recv(char* cdata)//交易
 {

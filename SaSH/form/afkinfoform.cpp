@@ -39,10 +39,10 @@ AfkInfoForm::AfkInfoForm(QWidget* parent)
 
 
 
-		tableWidget->setStyleSheet(R"(
-		QTableWidget { font-size:11px; } 
-			QTableView::item:selected { background-color: black; color: white;
-		})");
+		//tableWidget->setStyleSheet(R"(
+		//QTableWidget { font-size:11px; } 
+		//	QTableView::item:selected { background-color: black; color: white;
+		//})");
 		tableWidget->verticalHeader()->setDefaultSectionSize(11);
 		tableWidget->horizontalHeader()->setStretchLastSection(true);
 		tableWidget->horizontalHeader()->setHighlightSections(false);

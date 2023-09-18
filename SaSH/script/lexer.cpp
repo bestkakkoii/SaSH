@@ -2831,71 +2831,134 @@ void Lexer::checkFunctionPairs(const QHash<qint64, TokenMap>& stokenmaps)
 //根據指定分割符號取得字串
 bool Lexer::getStringCommandToken(QString& src, const QString& delim, QString& out) const
 {
-	if (src.isEmpty())
+	//if (src.isEmpty())
+	//	return false;
+
+	//if (delim.isEmpty())
+	//	return false;
+
+	//QString openingQuote = "\"";
+	//QString closingQuote = "\"";
+
+	//if (src.startsWith(openingQuote))
+	//{
+	//	// Find the closing quote
+	//	qint64 closingQuoteIndex = src.indexOf(closingQuote, openingQuote.size());
+	//	if (closingQuoteIndex == -1)
+	//		return false;
+
+	//	// Extract the quoted token
+	//	out = src.mid(0, closingQuoteIndex + closingQuote.size()).trimmed();
+	//	src.remove(0, closingQuoteIndex + closingQuote.size());
+	//	src = src.trimmed();
+	//	if (src.startsWith(delim))
+	//		src.remove(0, delim.size());
+	//}
+	//else if (src.startsWith("'"))
+	//{
+	//	// Find the closing single quote
+	//	qint64 closingSingleQuoteIndex = src.indexOf("'", 1);
+	//	if (closingSingleQuoteIndex == -1)
+	//		return false;
+
+	//	// Extract the quoted token
+	//	out = src.mid(0, closingSingleQuoteIndex + 1);
+	//	src.remove(0, closingSingleQuoteIndex + 1);
+	//	src = src.trimmed();
+	//	if (src.startsWith(delim))
+	//		src.remove(0, delim.size());
+	//}
+	//else
+	//{
+	//	QStringList list = src.split(delim);
+	//	if (list.isEmpty())
+	//	{
+	//		// Empty token, treat it as an empty string
+	//		out = "";
+	//	}
+	//	else
+	//	{
+	//		out = list.first().trimmed();
+	//		qint64 size = out.size();
+
+	//		// Remove the first 'out' and 'delim' from src
+	//		src.remove(0, size + delim.size());
+	//		if (src.startsWith(delim))
+	//			src.remove(0, delim.size());
+	//		src = src.trimmed();
+	//	}
+	//}
+
+	//if (src.endsWith(";"))
+	//	src.remove(src.size() - 1, 1);
+
+	//if (out.endsWith(";"))
+	//	out.remove(out.size() - 1, 1);
+
+	//return true;
+	if (src.isEmpty() || delim.isEmpty())
 		return false;
 
-	if (delim.isEmpty())
-		return false;
+	enum class State { Normal, DoubleQuoted, SingleQuoted, InParentheses, InBraces };
+	State state = State::Normal;
 
-	QString openingQuote = "\"";
-	QString closingQuote = "\"";
+	qint64 i = 0;
+	qint64 start = 0;
+	qint64 srcSize = src.size();
 
-	if (src.startsWith(openingQuote))
+	while (i < srcSize)
 	{
-		// Find the closing quote
-		qint64 closingQuoteIndex = src.indexOf(closingQuote, openingQuote.size());
-		if (closingQuoteIndex == -1)
-			return false;
+		QChar c = src.at(i);
 
-		// Extract the quoted token
-		out = src.mid(0, closingQuoteIndex + closingQuote.size()).trimmed();
-		src.remove(0, closingQuoteIndex + closingQuote.size());
-		src = src.trimmed();
-		if (src.startsWith(delim))
-			src.remove(0, delim.size());
-	}
-	else if (src.startsWith("'"))
-	{
-		// Find the closing single quote
-		qint64 closingSingleQuoteIndex = src.indexOf("'", 1);
-		if (closingSingleQuoteIndex == -1)
-			return false;
-
-		// Extract the quoted token
-		out = src.mid(0, closingSingleQuoteIndex + 1);
-		src.remove(0, closingSingleQuoteIndex + 1);
-		src = src.trimmed();
-		if (src.startsWith(delim))
-			src.remove(0, delim.size());
-	}
-	else
-	{
-		QStringList list = src.split(delim);
-		if (list.isEmpty())
+		if (state == State::Normal)
 		{
-			// Empty token, treat it as an empty string
-			out = "";
+			if (c == '"')
+				state = State::DoubleQuoted;
+			else if (c == '\'')
+				state = State::SingleQuoted;
+			else if (c == '(')
+				state = State::InParentheses;
+			else if (c == '{')
+				state = State::InBraces;
+			else if (c == delim)
+				break;
 		}
-		else
+		else if (state == State::DoubleQuoted)
 		{
-			out = list.first().trimmed();
-			qint64 size = out.size();
+			if (c == '"' && (i == 0 || src.at(i - 1) != '\\'))
+				state = State::Normal;
+		}
+		else if (state == State::SingleQuoted)
+		{
+			if (c == '\'' && (i == 0 || src.at(i - 1) != '\\'))
+				state = State::Normal;
+		}
+		else if (state == State::InParentheses)
+		{
+			if (c == ')')
+				state = State::Normal;
+		}
+		else if (state == State::InBraces)
+		{
+			if (c == '}')
+				state = State::Normal;
+		}
 
-			// Remove the first 'out' and 'delim' from src
-			src.remove(0, size + delim.size());
-			if (src.startsWith(delim))
-				src.remove(0, delim.size());
-			src = src.trimmed();
+		++i;
+
+		if (state == State::Normal)
+		{
+			if (i == srcSize || src.at(i) == delim)
+			{
+				// 提取标记
+				out = src.mid(start, i - start).trimmed();
+				src.remove(0, i + delim.size());
+				return true;
+			}
 		}
 	}
 
-	if (src.endsWith(";"))
-		src.remove(src.size() - 1, 1);
-
-	if (out.endsWith(";"))
-		out.remove(out.size() - 1, 1);
-
-	return true;
+	return false;
 }
 
 qint64 Lexer::findClosingQuoteIndex(const QString& src, QChar quoteChar, int startIndex) const

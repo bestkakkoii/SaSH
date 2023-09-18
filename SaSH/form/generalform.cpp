@@ -56,6 +56,8 @@ GeneralForm::GeneralForm(QWidget* parent)
 		}
 	}
 
+	pAfkForm_ = new AfkForm;
+
 	emit ui.comboBox_paths->clicked();
 	emit signalDispatcher.applyHashSettingsToUI();
 
@@ -76,7 +78,7 @@ GeneralForm::GeneralForm(QWidget* parent)
 				else
 					MINT::NtTerminateProcess(GetCurrentProcess(), 0);
 			});
-	}
+}
 #endif
 #endif
 }
