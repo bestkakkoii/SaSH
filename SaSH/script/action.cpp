@@ -64,6 +64,8 @@ qint64 Interpreter::useitem(qint64, const TokenMap& TK)
 		hash.insert(u8"teammate" + QString::number(i), i + 1 + MAX_PET);
 	}
 
+	injector.server->IS_WAITOFR_ITEM_CHANGE_PACKET = 0;
+
 	QString itemName;
 	QString itemMemo;
 	QStringList itemNames;
@@ -277,6 +279,7 @@ qint64 Interpreter::useitem(qint64, const TokenMap& TK)
 			{
 				qint64 itemIndex = v.front();
 				injector.server->useItem(itemIndex, target);
+				++injector.server->IS_WAITOFR_ITEM_CHANGE_PACKET;
 				break;
 			}
 
@@ -291,10 +294,14 @@ qint64 Interpreter::useitem(qint64, const TokenMap& TK)
 
 				qint64 itemIndex = v.takeFirst();
 				injector.server->useItem(itemIndex, target);
+				++injector.server->IS_WAITOFR_ITEM_CHANGE_PACKET;
 				--n;
 			}
 		}
 	}
+
+	waitfor(2000, [&injector]()->bool { return injector.server->IS_WAITOFR_ITEM_CHANGE_PACKET <= 0; });
+	injector.server->IS_WAITOFR_ITEM_CHANGE_PACKET = 0;
 	return Parser::kNoChange;
 }
 
@@ -329,6 +336,8 @@ qint64 Interpreter::dropitem(qint64, const TokenMap& TK)
 		return Parser::kNoChange;
 	}
 
+	injector.server->IS_WAITOFR_ITEM_CHANGE_PACKET = 0;
+
 	//指定丟棄白名單，位於白名單的物品不丟棄
 	if (tempName == QString(u8"非"))
 	{
@@ -351,7 +360,9 @@ qint64 Interpreter::dropitem(qint64, const TokenMap& TK)
 		for (qint64 i = min; i <= max; ++i)
 		{
 			if (!indexs.contains(i))
+			{
 				injector.server->dropItem(i);
+			}
 		}
 	}
 	else
@@ -369,11 +380,17 @@ qint64 Interpreter::dropitem(qint64, const TokenMap& TK)
 			if (injector.server->getItemIndexsByName(name, memo, &indexs))
 			{
 				for (const qint64 it : indexs)
+				{
 					injector.server->dropItem(it);
+				}
+
 			}
 		}
 
 	}
+	qDebug() << injector.server->IS_WAITOFR_ITEM_CHANGE_PACKET;
+	waitfor(2000, [&injector]()->bool { return injector.server->IS_WAITOFR_ITEM_CHANGE_PACKET <= 0; });
+	injector.server->IS_WAITOFR_ITEM_CHANGE_PACKET = 0;
 	return Parser::kNoChange;
 }
 
@@ -411,8 +428,11 @@ qint64 Interpreter::swapitem(qint64 currentline, const TokenMap& TK)
 	if (b < 0 || b >= MAX_ITEM)
 		return Parser::kArgError + 2ll;
 
+	injector.server->IS_WAITOFR_ITEM_CHANGE_PACKET = 0;
 	injector.server->swapItem(a, b);
 
+	waitfor(2000, [&injector]()->bool { return injector.server->IS_WAITOFR_ITEM_CHANGE_PACKET <= 0; });
+	injector.server->IS_WAITOFR_ITEM_CHANGE_PACKET = 0;
 	return Parser::kNoChange;
 }
 
@@ -544,6 +564,8 @@ qint64 Interpreter::buy(qint64, const TokenMap& TK)
 	qint64 dlgid = -1;
 	checkInteger(TK, 4, &dlgid);
 
+	injector.server->IS_WAITOFR_ITEM_CHANGE_PACKET = 0;
+
 	if (npcName.isEmpty())
 		injector.server->buy(itemIndex, count, dlgid);
 	else
@@ -555,6 +577,8 @@ qint64 Interpreter::buy(qint64, const TokenMap& TK)
 		}
 	}
 
+	waitfor(2000, [&injector]()->bool { return injector.server->IS_WAITOFR_ITEM_CHANGE_PACKET <= 0; });
+	injector.server->IS_WAITOFR_ITEM_CHANGE_PACKET = 0;
 	return Parser::kNoChange;
 }
 
@@ -593,6 +617,8 @@ qint64 Interpreter::sell(qint64, const TokenMap& TK)
 	auto it = std::unique(itemIndexs.begin(), itemIndexs.end());
 	itemIndexs.erase(it, itemIndexs.end());
 
+	injector.server->IS_WAITOFR_ITEM_CHANGE_PACKET = 0;
+
 	if (npcName.isEmpty())
 		injector.server->sell(itemIndexs, dlgid);
 	else
@@ -604,6 +630,8 @@ qint64 Interpreter::sell(qint64, const TokenMap& TK)
 		}
 	}
 
+	waitfor(2000, [&injector]()->bool { return injector.server->IS_WAITOFR_ITEM_CHANGE_PACKET <= 0; });
+	injector.server->IS_WAITOFR_ITEM_CHANGE_PACKET = 0;
 	return Parser::kNoChange;
 }
 
@@ -720,8 +748,12 @@ qint64 Interpreter::make(qint64, const TokenMap& TK)
 	if (ingreNameList.isEmpty())
 		return Parser::kArgError + 1ll;
 
+	injector.server->IS_WAITOFR_ITEM_CHANGE_PACKET = 0;
+
 	injector.server->craft(util::kCraftItem, ingreNameList);
 
+	waitfor(2000, [&injector]()->bool { return injector.server->IS_WAITOFR_ITEM_CHANGE_PACKET <= 0; });
+	injector.server->IS_WAITOFR_ITEM_CHANGE_PACKET = 0;
 	return Parser::kNoChange;
 }
 
@@ -742,8 +774,12 @@ qint64 Interpreter::cook(qint64, const TokenMap& TK)
 	if (ingreNameList.isEmpty())
 		return Parser::kArgError + 1ll;
 
+	injector.server->IS_WAITOFR_ITEM_CHANGE_PACKET = 0;
+
 	injector.server->craft(util::kCraftFood, ingreNameList);
 
+	waitfor(2000, [&injector]()->bool { return injector.server->IS_WAITOFR_ITEM_CHANGE_PACKET <= 0; });
+	injector.server->IS_WAITOFR_ITEM_CHANGE_PACKET = 0;
 	return Parser::kNoChange;
 }
 
@@ -1098,6 +1134,8 @@ qint64 Interpreter::wearequip(qint64, const TokenMap& TK)
 	if (!injector.server->getOnlineFlag())
 		return Parser::kNoChange;
 
+	injector.server->IS_WAITOFR_ITEM_CHANGE_PACKET = 0;
+
 	for (qint64 i = 0; i < CHAR_EQUIPPLACENUM; ++i)
 	{
 		ITEM item = injector.server->getPC().item[i];
@@ -1115,6 +1153,8 @@ qint64 Interpreter::wearequip(qint64, const TokenMap& TK)
 		injector.server->useItem(itemIndex, 0);
 	}
 
+	waitfor(2000, [&injector]()->bool { return injector.server->IS_WAITOFR_ITEM_CHANGE_PACKET <= 0; });
+	injector.server->IS_WAITOFR_ITEM_CHANGE_PACKET = 0;
 	return Parser::kNoChange;
 }
 
@@ -1150,6 +1190,9 @@ qint64 Interpreter::unwearequip(qint64, const TokenMap& TK)
 	}
 	else
 		--part;
+
+	injector.server->IS_WAITOFR_ITEM_CHANGE_PACKET = 0;
+
 	if (part < 100)
 	{
 		qint64 spotIndex = injector.server->getItemEmptySpotIndex();
@@ -1175,6 +1218,8 @@ qint64 Interpreter::unwearequip(qint64, const TokenMap& TK)
 		}
 	}
 
+	waitfor(2000, [&injector]()->bool { return injector.server->IS_WAITOFR_ITEM_CHANGE_PACKET <= 0; });
+	injector.server->IS_WAITOFR_ITEM_CHANGE_PACKET = 0;
 	return Parser::kNoChange;
 }
 
@@ -1251,6 +1296,9 @@ qint64 Interpreter::petunequip(qint64, const TokenMap& TK)
 	}
 	else
 		--part;
+
+	injector.server->IS_WAITOFR_ITEM_CHANGE_PACKET = 0;
+
 	if (part < 100)
 	{
 		qint64 spotIndex = injector.server->getItemEmptySpotIndex();
@@ -1276,6 +1324,8 @@ qint64 Interpreter::petunequip(qint64, const TokenMap& TK)
 		}
 	}
 
+	waitfor(2000, [&injector]()->bool { return injector.server->IS_WAITOFR_ITEM_CHANGE_PACKET <= 0; });
+	injector.server->IS_WAITOFR_ITEM_CHANGE_PACKET = 0;
 	return Parser::kNoChange;
 }
 
@@ -1349,6 +1399,8 @@ qint64 Interpreter::deposititem(qint64, const TokenMap& TK)
 	QString itemName;
 	checkString(TK, 2, &itemName);
 
+	injector.server->IS_WAITOFR_ITEM_CHANGE_PACKET = 0;
+
 	if (!itemName.isEmpty() && TK.value(2).type != TK_FUZZY)
 	{
 		QStringList itemNames = itemName.split(util::rexOR, Qt::SkipEmptyParts);
@@ -1378,7 +1430,6 @@ qint64 Interpreter::deposititem(qint64, const TokenMap& TK)
 			//injector.server->IS_WAITFOR_DIALOG_FLAG = true;
 			injector.server->depositItem(it);
 			//waitfor(1000, [&injector]()->bool { return !injector.server->IS_WAITFOR_DIALOG_FLAG; });
-
 			//injector.server->IS_WAITFOR_DIALOG_FLAG = true;
 			//injector.server->press(1);
 			//waitfor(1000, [&injector]()->bool { return !injector.server->IS_WAITFOR_DIALOG_FLAG; });
@@ -1400,6 +1451,8 @@ qint64 Interpreter::deposititem(qint64, const TokenMap& TK)
 		}
 	}
 
+	waitfor(2000, [&injector]()->bool { return injector.server->IS_WAITOFR_ITEM_CHANGE_PACKET <= 0; });
+	injector.server->IS_WAITOFR_ITEM_CHANGE_PACKET = 0;
 	return Parser::kNoChange;
 }
 
@@ -1493,6 +1546,7 @@ qint64 Interpreter::withdrawpet(qint64, const TokenMap& TK)
 			break;
 	}
 
+
 	return Parser::kNoChange;
 }
 
@@ -1533,6 +1587,8 @@ qint64 Interpreter::withdrawitem(qint64, const TokenMap& TK)
 		max = memoListSize;
 
 	QVector<ITEM> bankItemList = injector.server->currentBankItemList.toVector();
+
+	injector.server->IS_WAITOFR_ITEM_CHANGE_PACKET = 0;
 
 	for (int i = 0; i < max; ++i)
 	{
@@ -1586,13 +1642,15 @@ qint64 Interpreter::withdrawitem(qint64, const TokenMap& TK)
 			//injector.server->IS_WAITFOR_DIALOG_FLAG = true;
 			injector.server->withdrawItem(itemIndex);
 			//waitfor(1000, [&injector]()->bool { return !injector.server->IS_WAITFOR_DIALOG_FLAG; });
-
 			//injector.server->IS_WAITFOR_DIALOG_FLAG = true;
 			//injector.server->press(1);
 			//waitfor(1000, [&injector]()->bool { return !injector.server->IS_WAITFOR_DIALOG_FLAG; });
 
 		}
 	}
+
+	waitfor(2000, [&injector]()->bool { return injector.server->IS_WAITOFR_ITEM_CHANGE_PACKET <= 0; });
+	injector.server->IS_WAITOFR_ITEM_CHANGE_PACKET = 0;
 	return Parser::kNoChange;
 }
 
@@ -1941,8 +1999,12 @@ qint64 Interpreter::mail(qint64, const TokenMap& TK)
 	if (petIndex != -1 && itemMemo.isEmpty() && !itemName.isEmpty())
 		return Parser::kArgError + 4ll;
 
+	injector.server->IS_WAITOFR_ITEM_CHANGE_PACKET = 0;
+
 	injector.server->mail(card, text, petIndex, itemName, itemMemo);
 
+	waitfor(2000, [&injector]()->bool { return injector.server->IS_WAITOFR_ITEM_CHANGE_PACKET <= 0; });
+	injector.server->IS_WAITOFR_ITEM_CHANGE_PACKET = 0;
 	return Parser::kNoChange;
 }
 

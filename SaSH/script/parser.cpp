@@ -63,6 +63,89 @@ void makeTable(sol::state& lua, const char* name, qint64 i)
 	}
 }
 
+std::vector<std::string> Unique(const std::vector<std::string>& v)
+{
+	std::vector<std::string> result = v;
+#if _MSVC_LANG > 201703L
+	std::ranges::stable_sort(result, std::less<std::string>());
+#else
+	std::sort(result.begin(), result.end(), std::less<std::string>());
+#endif
+	result.erase(std::unique(result.begin(), result.end()), result.end());
+	return result;
+}
+
+std::vector<qint64> Unique(const std::vector<qint64>& v)
+{
+	std::vector<qint64> result = v;
+#if _MSVC_LANG > 201703L
+	std::ranges::stable_sort(result, std::less<qint64>());
+#else
+	std::sort(result.begin(), result.end(), std::less<qint64>());
+#endif
+	result.erase(std::unique(result.begin(), result.end()), result.end());
+	return result;
+}
+
+template<typename T>
+std::vector<T> ShiftLeft(const std::vector<T>& v, int i)
+{
+	std::vector<T> result = v;
+#if _MSVC_LANG > 201703L
+	std::ranges::shift_left(result, i);
+#else
+	std::rotate(result.begin(), result.begin() + i, result.end());
+#endif
+	return result;
+
+}
+
+template<typename T>
+std::vector<T> ShiftRight(const std::vector<T>& v, int i)
+{
+	std::vector<T> result = v;
+#if _MSVC_LANG > 201703L
+	std::ranges::shift_right(result, i);
+#else
+	std::rotate(result.begin(), result.end() - i, result.end());
+#endif
+	return result;
+}
+
+template<typename T>
+std::vector<T> Shuffle(const std::vector<T>& v)
+{
+	std::vector<T> result = v;
+	std::random_device rd;
+	std::mt19937_64 gen(rd());
+	//std::default_random_engine eng(rd());
+#if _MSVC_LANG > 201703L
+	std::ranges::shuffle(result, gen);
+#else
+	std::shuffle(result.begin(), result.end(), gen);
+#endif
+	return result;
+}
+
+template<typename T>
+std::vector<T> Rotate(const std::vector<T>& v, int len)//true = right, false = left
+{
+	std::vector<T> result = v;
+	if (len >= 0)
+#if _MSVC_LANG > 201703L
+		std::ranges::rotate(result, result.begin() + len);
+#else
+		std::rotate(result.begin(), result.begin() + len, result.end());
+#endif
+	else
+#if _MSVC_LANG > 201703L
+		std::ranges::rotate(result, result.end() + len);
+#else
+		std::rotate(result.begin(), result.end() + len, result.end());
+#endif
+	return result;
+}
+
 Parser::Parser()
 	: ThreadPlugin(nullptr)
 {
@@ -125,23 +208,30 @@ Parser::Parser()
 			if (var.toLongLong() == 987654321ll)
 			{
 				requestInterruption();
+				insertGlobalVar("vret", "nil");
 				return sol::lua_nil;
 			}
 
 			if (type == QInputDialog::IntInput)
+			{
+				insertGlobalVar("vret", var.toLongLong());
 				return sol::make_object(s, var.toLongLong());
+			}
 			else if (type == QInputDialog::DoubleInput)
+			{
+				insertGlobalVar("vret", var.toDouble());
 				return sol::make_object(s, var.toDouble());
+			}
 			else
 			{
 				QString str = var.toString();
 				if (str.toLower() == "true" || str.toLower() == "false" || str.toLower() == "真" || str.toLower() == "假")
 					return sol::make_object(s, var.toBool());
 
+				insertGlobalVar("vret", var.toString());
 				return sol::make_object(s, var.toString().toUtf8().constData());
 			}
 		});
-
 
 	lua_.set_function("format", [this](std::string sformat, sol::this_state s)->sol::object
 		{
@@ -232,9 +322,867 @@ Parser::Parser()
 				}
 			}
 
+			insertGlobalVar("vret", formatStr);
 			return sol::make_object(s, formatStr.toUtf8().constData());
 
 		});
+
+	lua_.set_function("half", [this](std::string sstr, sol::this_state s)->std::string
+		{
+			const QString FullWidth = "０１２３４５６７８９"
+				"ａｂｃｄｅｆｇｈｉｊｋｌｍｎｏｐｑｒｓｔｕｖｗｘｙｚ"
+				"ＡＢＣＤＥＦＧＨＩＪＫＬＭＮＯＰＱＲＳＴＵＶＷＸＹＺ"
+				"、～！＠＃＄％︿＆＊（）＿－＝＋［］｛｝＼｜；：’＂，＜．＞／？【】《》　";
+			const QString HalfWidth = "0123456789"
+				"abcdefghijklmnopqrstuvwxyz"
+				"ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+				"'~!@#$%^&*()_-+=[]{}\\|;:'\",<.>/? []<>";
+
+			if (sstr.empty())
+				return sstr;
+
+			QString result = QString::fromUtf8(sstr.c_str());
+			qint64 size = FullWidth.size();
+			for (qint64 i = 0; i < size; ++i)
+			{
+				result.replace(FullWidth.at(i), HalfWidth.at(i));
+			}
+
+			insertGlobalVar("vret", result);
+			return result.toUtf8().constData();
+		});
+
+	lua_.set_function("full", [this](std::string sstr, sol::this_state s)->std::string
+		{
+			const QString FullWidth = "０１２３４５６７８９"
+				"ａｂｃｄｅｆｇｈｉｊｋｌｍｎｏｐｑｒｓｔｕｖｗｘｙｚ"
+				"ＡＢＣＤＥＦＧＨＩＪＫＬＭＮＯＰＱＲＳＴＵＶＷＸＹＺ"
+				"、～！＠＃＄％︿＆＊（）＿－＝＋［］｛｝＼｜；：’＂，＜．＞／？【】《》　";
+			const QString HalfWidth = "0123456789"
+				"abcdefghijklmnopqrstuvwxyz"
+				"ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+				"'~!@#$%^&*()_-+=[]{}\\|;:'\",<.>/?[]<> ";
+
+			if (sstr.empty())
+				return sstr;
+
+			QString result = QString::fromUtf8(sstr.c_str());
+			qint64 size = FullWidth.size();
+			for (qint64 i = 0; i < size; ++i)
+			{
+				result.replace(HalfWidth.at(i), FullWidth.at(i));
+			}
+
+			insertGlobalVar("vret", result);
+			return result.toUtf8().constData();
+		});
+
+	lua_.set_function("lower", [this](std::string sstr, sol::this_state s)->std::string
+		{
+			QString result = QString::fromUtf8(sstr.c_str()).toLower();
+			insertGlobalVar("vret", result);
+			return result.toUtf8().constData();
+		});
+
+	lua_.set_function("upper", [this](std::string sstr, sol::this_state s)->std::string
+		{
+			QString result = QString::fromUtf8(sstr.c_str()).toUpper();
+			insertGlobalVar("vret", result);
+			return result.toUtf8().constData();
+		});
+
+	lua_.set_function("trim", [this](std::string sstr, sol::object oisSimplified, sol::this_state s)->std::string
+		{
+			bool isSimplified = false;
+
+			if (oisSimplified.is<bool>())
+				isSimplified = oisSimplified.as<bool>();
+			else if (oisSimplified.is<qint64>())
+				isSimplified = oisSimplified.as<qint64>() > 0;
+			else if (oisSimplified.is<double>())
+				isSimplified = oisSimplified.as<double>() > 0.0;
+
+			QString result = QString::fromUtf8(sstr.c_str()).trimmed();
+
+			if (isSimplified)
+				result = result.simplified();
+
+			insertGlobalVar("vret", result);
+			return result.toUtf8().constData();
+		});
+
+	lua_.set_function("todb", [this](sol::object ovalue, sol::this_state s)->double
+		{
+			double result = 0.0;
+			if (ovalue.is<std::string>())
+				result = QString::fromUtf8(ovalue.as<std::string>().c_str()).toDouble();
+			else if (ovalue.is<qint64>())
+				result = ovalue.as<qint64>();
+			else if (ovalue.is<double>())
+				result = ovalue.as<double>();
+
+			insertGlobalVar("vret", result);
+			return result;
+		});
+
+	lua_.set_function("tostr", [this](sol::object ovalue, sol::this_state s)->std::string
+		{
+			QString result = "";
+			if (ovalue.is<std::string>())
+				result = QString::fromUtf8(ovalue.as<std::string>().c_str());
+			else if (ovalue.is<qint64>())
+				result = QString::number(ovalue.as<qint64>());
+			else if (ovalue.is<double>())
+				result = QString::number(ovalue.as<double>(), 'f', 5);
+
+			insertGlobalVar("vret", result);
+			return result.toUtf8().constData();
+		});
+
+	lua_.set_function("toint", [this](sol::object ovalue, sol::this_state s)->qint64
+		{
+			qint64 result = 0.0;
+			if (ovalue.is<std::string>())
+				result = QString::fromUtf8(ovalue.as<std::string>().c_str()).toLongLong();
+			else if (ovalue.is<qint64>())
+				result = ovalue.as<qint64>();
+			else if (ovalue.is<double>())
+				result = static_cast<qint64>(qFloor(ovalue.as<double>()));
+
+			insertGlobalVar("vret", result);
+			return result;
+		});
+
+
+	lua_.set_function("replace", [this](std::string ssrc, std::string sfrom, std::string sto, sol::object oisRex, sol::this_state s)->std::string
+		{
+			QString src = QString::fromUtf8(ssrc.c_str());
+			QString from = QString::fromUtf8(sfrom.c_str());
+			QString to = QString::fromUtf8(sto.c_str());
+
+			bool isRex = false;
+			if (oisRex.is<bool>())
+				isRex = oisRex.as<bool>();
+			else if (oisRex.is<qint64>())
+				isRex = oisRex.as<qint64>() > 0;
+			else if (oisRex.is<double>())
+				isRex = oisRex.as<double>() > 0.0;
+
+			QString result;
+			if (!isRex)
+				result = src.replace(from, to);
+			else
+			{
+				const QRegularExpression regex(from);
+				result = src.replace(regex, to);
+			}
+
+			insertGlobalVar("vret", result);
+
+			return result.toUtf8().constData();
+		});
+
+	lua_.set_function("find", [this](std::string ssrc, std::string sfrom, sol::object osto, sol::this_state s)->std::string
+		{
+			QString varValue = QString::fromUtf8(ssrc.c_str());
+			QString text1 = QString::fromUtf8(sfrom.c_str());
+			QString text2 = "";
+			if (osto.is<std::string>())
+				text2 = QString::fromUtf8(osto.as<std::string>().c_str());
+
+			QString result = varValue;
+
+			//查找 src 中 text1 到 text2 之间的文本 如果 text2 为空 则查找 text1 到行尾的文本
+
+			qint64 pos1 = varValue.indexOf(text1);
+			if (pos1 < 0)
+				pos1 = 0;
+
+			qint64 pos2 = -1;
+			if (text2.isEmpty())
+				pos2 = varValue.length();
+			else
+			{
+				pos2 = static_cast<qint64>(varValue.indexOf(text2, pos1 + text1.length()));
+				if (pos2 < 0)
+					pos2 = varValue.length();
+			}
+
+			result = varValue.mid(pos1 + text1.length(), pos2 - pos1 - text1.length());
+
+			insertGlobalVar("vret", result);
+			return result.toUtf8().constData();
+		});
+
+	//参数1:字符串内容, 参数2:正则表达式, 参数3(选填):第几个匹配项, 参数4(选填):是否为全局匹配, 参数5(选填):第几组
+	lua_.set_function("regex", [this](std::string ssrc, std::string rexstr, sol::object oidx, sol::object oisglobal, sol::object ogidx, sol::this_state s)->std::string
+		{
+			QString varValue = QString::fromUtf8(ssrc.c_str());
+
+			QString result = varValue;
+
+			QString text = QString::fromUtf8(rexstr.c_str());
+
+			qint64 capture = 1;
+			if (oidx.is<qint64>())
+				capture = oidx.as<qint64>();
+
+			bool isGlobal = false;
+			if (oisglobal.is<qint64>())
+				isGlobal = oisglobal.as<qint64>() > 0;
+			else if (oisglobal.is<bool>())
+				isGlobal = oisglobal.as<bool>();
+
+			qint64 maxCapture = 0;
+			if (ogidx.is<qint64>())
+				maxCapture = ogidx.as<qint64>();
+
+			const QRegularExpression regex(text);
+
+			if (!isGlobal)
+			{
+				QRegularExpressionMatch match = regex.match(varValue);
+				if (match.hasMatch())
+				{
+					if (capture < 0 || capture > match.lastCapturedIndex())
+					{
+						insertGlobalVar("vret", result);
+						return result.toUtf8().constData();
+					}
+
+					result = match.captured(capture);
+				}
+			}
+			else
+			{
+				QRegularExpressionMatchIterator matchs = regex.globalMatch(varValue);
+				qint64 n = 0;
+				while (matchs.hasNext())
+				{
+					QRegularExpressionMatch match = matchs.next();
+					if (++n != maxCapture)
+						continue;
+
+					if (capture < 0 || capture > match.lastCapturedIndex())
+						continue;
+
+					result = match.captured(capture);
+					break;
+				}
+			}
+
+			insertGlobalVar("vret", result);
+			return result.toUtf8().constData();
+		});
+
+	//rex 参数1:来源字符串, 参数2:正则表达式
+	lua_.set_function("rex", [this](std::string ssrc, std::string rexstr, sol::this_state s)->sol::table
+		{
+			QString src = QString::fromUtf8(ssrc.c_str());
+			sol::table result = lua_.create_table();
+
+			QString expr = QString::fromUtf8(rexstr.c_str());
+
+			const QRegularExpression regex(expr);
+
+			QRegularExpressionMatch match = regex.match(src);
+
+			qint64 n = 1;
+			if (match.hasMatch())
+			{
+				for (qint64 i = 0; i <= match.lastCapturedIndex(); ++i)
+				{
+					result[n] = match.captured(i).toUtf8().constData();
+				}
+			}
+
+			int maxdepth = 50;
+			insertGlobalVar("vret", getLuaTableString(result, maxdepth));
+			return result;
+		});
+
+	lua_.set_function("rexg", [this](std::string ssrc, std::string rexstr, sol::this_state s)->sol::table
+		{
+			QString src = QString::fromUtf8(ssrc.c_str());
+			sol::table result = lua_.create_table();
+
+			QString expr = QString::fromUtf8(rexstr.c_str());
+
+			const QRegularExpression regex(expr);
+
+			QRegularExpressionMatchIterator matchs = regex.globalMatch(src);
+
+			qint64 n = 1;
+			while (matchs.hasNext())
+			{
+				QRegularExpressionMatch match = matchs.next();
+
+				if (!match.hasMatch())
+					continue;
+
+				for (const auto& capture : match.capturedTexts())
+				{
+					result[n] = capture.toUtf8().constData();
+					++n;
+				}
+			}
+
+			int maxdepth = 50;
+			insertGlobalVar("vret", getLuaTableString(result, maxdepth));
+			return result;
+		});
+
+	lua_.set_function("rnd", [this](sol::object omin, sol::object omax, sol::this_state s)->qint64
+		{
+			std::random_device rd;
+			std::mt19937_64 gen(rd());
+			qint64 result = 0;
+			if (omin == sol::lua_nil && omax == sol::lua_nil)
+			{
+				result = gen();
+				insertGlobalVar("vret", result);
+				return result;
+			}
+
+			qint64 min = 0;
+			if (omin.is<qint64>())
+				min = omin.as<qint64>();
+
+
+			qint64 max = 0;
+			if (omax.is<qint64>())
+				max = omax.as<qint64>();
+
+			if ((min > 0 && max == 0) || (min == max))
+			{
+				std::uniform_int_distribution<qint64> distribution(0, min);
+				result = distribution(gen);
+			}
+			else if (min > max)
+			{
+				std::uniform_int_distribution<qint64> distribution(max, min);
+				result = distribution(gen);
+			}
+			else
+			{
+				std::uniform_int_distribution<qint64> distribution(min, max);
+				result = distribution(gen);
+			}
+
+			insertGlobalVar("vret", result);
+			return result;
+		});
+
+	lua_["mkpath"] = [](std::string filename, sol::object obj, sol::this_state s)->std::string
+	{
+		QString retstring = "\0";
+		if (obj == sol::lua_nil)
+		{
+			retstring = util::findFileFromName(QString::fromUtf8(filename.c_str()) + ".txt");
+		}
+		else if (obj.is<std::string>())
+		{
+			retstring = util::findFileFromName(QString::fromUtf8(filename.c_str()) + ".txt", QString::fromUtf8(obj.as<std::string>().c_str()));
+		}
+
+		return retstring.toUtf8().constData();
+	};
+
+	lua_["mktable"] = [](qint64 a, sol::object ob, sol::this_state s)->sol::object
+	{
+		sol::state_view lua(s);
+
+		sol::table t = lua.create_table();
+
+		if (ob.is<qint64>() && a > ob.as<qint64>())
+		{
+			for (qint64 i = ob.as<qint64>(); i < (a + 1); ++i)
+			{
+				t.add(i);
+			}
+		}
+		else if (ob.is<qint64>() && a < ob.as<qint64>())
+		{
+			for (qint64 i = a; i < (ob.as<qint64>() + 1); ++i)
+			{
+				t.add(i);
+			}
+		}
+		else if (ob.is<qint64>() && a == ob.as<qint64>())
+		{
+			t.add(a);
+		}
+		else if (ob == sol::lua_nil && a >= 0)
+		{
+			for (qint64 i = 1; i < a + 1; ++i)
+			{
+				t.add(i);
+			}
+		}
+		else if (ob == sol::lua_nil && a < 0)
+		{
+			for (qint64 i = a; i < 2; ++i)
+			{
+				t.add(i);
+			}
+		}
+		else
+			t.add(a);
+
+		return t;
+	};
+
+	static const auto Is_1DTable = [](sol::table t)->bool
+	{
+		for (const std::pair<sol::object, sol::object>& i : t)
+		{
+			if (i.second.is<sol::table>())
+			{
+				return false;
+			}
+		}
+		return true;
+	};
+
+	lua_["tshuffle"] = [](sol::object t, sol::this_state s)->sol::object
+	{
+		if (!t.is<sol::table>())
+			return sol::lua_nil;
+		//檢查是否為1維
+		sol::table test = t.as<sol::table>();
+		if (test.size() == 0)
+			return sol::lua_nil;
+		if (!Is_1DTable(test))
+			return sol::lua_nil;
+
+		sol::state_view lua(s);
+		std::vector<sol::object> v = t.as<std::vector<sol::object>>();
+		std::vector<sol::object> v2 = Shuffle(v);
+		sol::table t2 = lua.create_table();
+		for (const sol::object& i : v2) { t2.add(i); }
+		auto copy = [&t](sol::table src)
+		{
+			//清空原表
+			t.as<sol::table>().clear();
+			//將篩選後的表複製到原表
+			for (const std::pair<sol::object, sol::object>& i : src)
+			{
+				t.as<sol::table>().add(i.second);
+			}
+		};
+		copy(t2);
+		return t2;
+	};
+
+	lua_["trotate"] = [](sol::object t, sol::object oside, sol::this_state s)->sol::object
+	{
+		if (!t.is<sol::table>())
+			return sol::lua_nil;
+
+		int len = 1;
+		if (oside == sol::lua_nil)
+			len = 1;
+		else if (oside.is<int>())
+			len = oside.as<int>();
+		else
+			return sol::lua_nil;
+
+		sol::table test = t.as<sol::table>();
+		if (test.size() == 0)
+			return sol::lua_nil;
+		if (!Is_1DTable(test))
+			return sol::lua_nil;
+
+		sol::state_view lua(s);
+		std::vector<sol::object> v = t.as<std::vector<sol::object>>();
+		std::vector<sol::object> v2 = Rotate(v, len);
+		sol::table t2 = lua.create_table();
+		for (const sol::object& i : v2) { t2.add(i); }
+		auto copy = [&t](sol::table src)
+		{
+			//清空原表
+			t.as<sol::table>().clear();
+			//將篩選後的表複製到原表
+			for (const std::pair<sol::object, sol::object>& i : src)
+			{
+				t.as<sol::table>().add(i.second);
+			}
+		};
+		copy(t2);
+		return t2;
+	};
+
+	lua_["tsleft"] = [](sol::object t, int i, sol::this_state s)->sol::object
+	{
+		if (!t.is<sol::table>())
+			return sol::lua_nil;
+		if (i < 0)
+			return sol::lua_nil;
+
+		sol::table test = t.as<sol::table>();
+		if (test.size() == 0)
+			return sol::lua_nil;
+		if (!Is_1DTable(test))
+			return sol::lua_nil;
+
+		sol::state_view lua(s);
+		std::vector<sol::object> v = t.as<std::vector<sol::object>>();
+		std::vector<sol::object> v2 = ShiftLeft(v, i);
+		sol::table t2 = lua.create_table();
+		for (const sol::object& it : v2) { t2.add(it); }
+		auto copy = [&t](sol::table src)
+		{
+			//清空原表
+			t.as<sol::table>().clear();
+			//將篩選後的表複製到原表
+			for (const std::pair<sol::object, sol::object>& i : src)
+			{
+				t.as<sol::table>().add(i.second);
+			}
+		};
+		copy(t2);
+		return t2;
+	};
+
+	lua_["tsright"] = [](sol::object t, int i, sol::this_state s)->sol::object
+	{
+		if (!t.is<sol::table>())
+			return sol::lua_nil;
+		if (i < 0)
+			return sol::lua_nil;
+
+		sol::table test = t.as<sol::table>();
+		if (test.size() == 0)
+			return sol::lua_nil;
+		if (!Is_1DTable(test))
+			return sol::lua_nil;
+
+		sol::state_view lua(s);
+		std::vector<sol::object> v = t.as<std::vector<sol::object>>();
+		std::vector<sol::object> v2 = ShiftRight(v, i);
+		sol::table t2 = lua.create_table();
+		for (const sol::object& o : v2) { t2.add(o); }
+		auto copy = [&t](sol::table src)
+		{
+			//清空原表
+			t.as<sol::table>().clear();
+			//將篩選後的表複製到原表
+			for (const std::pair<sol::object, sol::object>& o : src)
+			{
+				t.as<sol::table>().add(o.second);
+			}
+		};
+		copy(t2);
+		return t2;
+	};
+
+	lua_["tunique"] = [](sol::object t, sol::this_state s)->sol::object
+	{
+		if (!t.is<sol::table>())
+			return sol::lua_nil;
+
+		sol::table test = t.as<sol::table>();
+		if (test.size() == 0)
+			return sol::lua_nil;
+
+		auto isIntTable = [&test]()->bool
+		{
+			for (const std::pair<sol::object, sol::object>& i : test)
+			{
+				if (!i.second.is<qint64>())
+					return false;
+			}
+			return true;
+		};
+
+		auto isStringTable = [&test]()->bool
+		{
+			for (const std::pair<sol::object, sol::object>& i : test)
+			{
+				if (!i.second.is<std::string>())
+					return false;
+			}
+			return true;
+		};
+
+		auto copy = [&t](sol::table src)
+		{
+			//清空原表
+			t.as<sol::table>().clear();
+			//將篩選後的表複製到原表
+			for (const std::pair<sol::object, sol::object>& i : src)
+			{
+				t.as<sol::table>().add(i.second);
+			}
+		};
+
+		sol::state_view lua(s);
+		sol::table t2 = lua.create_table();
+		if (isIntTable())
+		{
+			std::vector<qint64> v = t.as<std::vector<qint64>>();
+			std::vector<qint64> v2 = Unique(v);
+			for (const qint64& i : v2) { t2.add(i); }
+			copy(t2);
+			return t2;
+		}
+		else if (isStringTable())
+		{
+			std::vector<std::string> v = t.as<std::vector<std::string>>();
+			std::vector<std::string> v2 = Unique(v);
+			for (const std::string& i : v2) { t2.add(i); }
+			copy(t2);
+			return t2;
+		}
+		else
+			return sol::lua_nil;
+	};
+
+	lua_["tsort"] = [](sol::object t, sol::this_state s)->sol::object
+	{
+		sol::state_view lua(s);
+		if (!t.is<sol::table>())
+			return sol::lua_nil;
+
+		sol::protected_function sort = lua["table"]["sort"];
+		if (sort.valid())
+		{
+			sort(t, [](sol::object a, sol::object b)->bool
+				{
+					if (a.is<qint64>() && b.is<qint64>())
+					{
+						return a.as<qint64>() < b.as<qint64>();
+					}
+					else if (a.is<double>() && b.is<double>())
+					{
+						return a.as<double>() < b.as<double>();
+					}
+					else if (a.is<std::string>() && b.is<std::string>())
+					{
+						return a.as<std::string>() < b.as<std::string>();
+					}
+					else
+						return false;
+				});
+		}
+		return t;
+	};
+
+	lua_["trsort"] = [](sol::object t, sol::this_state s)->sol::object
+	{
+		sol::state_view lua(s);
+		if (!t.is<sol::table>())
+			return sol::lua_nil;
+
+		sol::protected_function sort = lua["table"]["sort"];
+		if (sort.valid())
+		{
+			sort(t, [](sol::object a, sol::object b)->bool
+				{
+					if (a.is<qint64>() && b.is<qint64>())
+					{
+						return a.as<qint64>() > b.as<qint64>();
+					}
+					else if (a.is<double>() && b.is<double>())
+					{
+						return a.as<double>() > b.as<double>();
+					}
+					else if (a.is<std::string>() && b.is<std::string>())
+					{
+						return a.as<std::string>() > b.as<std::string>();
+					}
+					else
+						return false;
+				});
+		}
+		return t;
+	};
+
+#pragma region _copyfunstr
+	std::string _copyfunstr = R"(
+		function copy(object)
+			local lookup_table = {};
+			local function _copy(object)
+				if (type(object) ~= ("table")) then
+					
+					return object;
+				elseif (lookup_table[object]) then
+					return lookup_table[object];
+				end
+				local newObject = {};
+				lookup_table[object] = newObject;
+				for key, value in pairs(object) do
+					newObject[_copy(key)] = _copy(value);
+				end
+				return setmetatable(newObject, getmetatable(object));
+			end
+
+			local ret = _copy(object);
+			return ret;
+		end
+	)";
+
+	sol::load_result lr = lua_.load(_copyfunstr);
+	if (lr.valid())
+	{
+		sol::protected_function target = lr.get<sol::protected_function>();
+		sol::bytecode target_bc = target.dump();
+		lua_.safe_script(target_bc.as_string_view(), sol::script_pass_on_error);
+		lua_.collect_garbage();
+	}
+#pragma endregion
+
+	//表合併
+	lua_["tmerge"] = [](sol::object t1, sol::object t2, sol::this_state s)->sol::object
+	{
+		if (!t1.is<sol::table>() || !t2.is<sol::table>())
+			return sol::lua_nil;
+
+		sol::state_view lua(s);
+		sol::table t3 = lua.create_table();
+		sol::table lookup_table_1 = lua.create_table();
+		sol::table lookup_table_2 = lua.create_table();
+		//sol::protected_function _copy = lua["copy"];
+		sol::table test1 = t1.as<sol::table>();//_copy(t1, lookup_table_1, lua);
+		sol::table test2 = t2.as<sol::table>();//_copy(t2, lookup_table_2, lua);
+		if (!test1.valid() || !test2.valid())
+			return sol::lua_nil;
+		for (const std::pair<sol::object, sol::object>& i : test1)
+		{
+			t3.add(i.second);
+		}
+		for (const std::pair<sol::object, sol::object>& i : test2)
+		{
+			t3.add(i.second);
+		}
+		auto copy = [&t1](sol::table src)
+		{
+			//清空原表
+			t1.as<sol::table>().clear();
+			//將篩選後的表複製到原表
+			for (const std::pair<sol::object, sol::object>& i : src)
+			{
+				t1.as<sol::table>().add(i.second);
+			}
+		};
+		copy(t3);
+		return t3;
+	};
+
+	lua_.set_function("split", [](std::string src, std::string del, sol::this_state s)->sol::object
+		{
+			sol::state_view lua(s);
+			sol::table t = lua.create_table();
+			QString qsrc = QString::fromUtf8(src.c_str());
+			QString qdel = QString::fromUtf8(del.c_str());
+			const QRegularExpression re(qdel);
+			QRegularExpression::NoMatchOption;
+			QStringList v = qsrc.split(re);
+			if (v.size() > 1)
+			{
+				for (const QString& i : v)
+				{
+					t.add(i.toUtf8().constData());
+				}
+				return t;
+			}
+			else
+				return sol::lua_nil;
+		});
+
+	lua_["tjoin"] = [this](sol::table t, std::string del, sol::this_state s)->std::string
+	{
+		QStringList l = {};
+		for (const std::pair<sol::object, sol::object>& i : t)
+		{
+			if (i.second.is<int>())
+			{
+				l.append(QString::number(i.second.as<int>()));
+			}
+			else if (i.second.is<double>())
+			{
+				l.append(QString::number(i.second.as<double>(), 'f', 5));
+			}
+			else if (i.second.is<bool>())
+			{
+				l.append(i.second.as<bool>() ? "true" : "false");
+			}
+			else if (i.second.is<std::string>())
+			{
+				l.append(QString::fromUtf8(i.second.as<std::string>().c_str()));
+			}
+		}
+		QString ret = l.join(QString::fromUtf8(del.c_str()));
+		insertGlobalVar("vret", ret);
+		return  ret.toUtf8().constData();
+	};
+
+	//根據key交換表中的兩個元素
+	lua_["tswap"] = [](sol::table t, sol::object key1, sol::object key2, sol::this_state s)->sol::object
+	{
+		if (!t.valid())
+			return sol::lua_nil;
+		if (!t[key1].valid() || !t[key2].valid())
+			return sol::lua_nil;
+		sol::object temp = t[key1];
+		t[key1] = t[key2];
+		t[key2] = temp;
+		return t;
+	};
+
+	lua_["tadd"] = [](sol::table t, sol::object value, sol::this_state s)->sol::object
+	{
+		if (!t.valid())
+			return sol::lua_nil;
+		t.add(value);
+		return t;
+	};
+
+	lua_["tpadd"] = [](sol::table t, sol::object value, sol::this_state s)->sol::object
+	{
+		sol::state_view lua(s);
+		if (!t.valid())
+			return sol::lua_nil;
+		sol::function insert = lua["table"]["insert"];
+		insert(t, 1, value);
+		return t;
+	};
+
+	lua_["tpopback"] = [](sol::table t, sol::this_state s)->sol::object
+	{
+		sol::state_view lua(s);
+		if (!t.valid())
+			return sol::lua_nil;
+		sol::function remove = lua["table"]["remove"];
+		sol::object temp = t[t.size()];
+		remove(t, t.size());
+		return t;
+	};
+
+	lua_["tpopfront"] = [](sol::table t, sol::this_state s)->sol::object
+	{
+		sol::state_view lua(s);
+		if (!t.valid())
+			return sol::lua_nil;
+		sol::function remove = lua["table"]["remove"];
+		sol::object temp = t[1];
+		remove(t, 1);
+		return t;
+	};
+
+	lua_["tfront"] = [](sol::table t, sol::this_state s)->sol::object
+	{
+		if (!t.valid())
+			return sol::lua_nil;
+		return t[1];
+	};
+
+	lua_["tback"] = [](sol::table t, sol::this_state s)->sol::object
+	{
+		if (!t.valid())
+			return sol::lua_nil;
+		return t[t.size()];
+	};
 }
 
 Parser::~Parser()
@@ -1474,8 +2422,6 @@ bool Parser::updateSysConstKeyword(const QString& expr)
 
 	bool bret = false;
 
-	PC _pc = injector.server->getPC();
-
 	//char\.(\w+)
 	if (expr.contains("char"))
 	{
@@ -1487,6 +2433,8 @@ bool Parser::updateSysConstKeyword(const QString& expr)
 			if (!lua_["char"].is<sol::table>())
 				lua_["char"] = lua_.create_table();
 		}
+
+		PC _pc = injector.server->getPC();
 
 		lua_["char"]["name"] = _pc.name.toUtf8().constData();
 
@@ -1643,6 +2591,9 @@ bool Parser::updateSysConstKeyword(const QString& expr)
 		bret = true;
 		makeTable(lua_, "item", MAX_ITEM);
 
+		injector.server->updateItemByMemory();
+		PC _pc = injector.server->getPC();
+
 		for (int i = 0; i < MAX_ITEM; ++i)
 		{
 			ITEM item = _pc.item[i];
@@ -1710,6 +2661,51 @@ bool Parser::updateSysConstKeyword(const QString& expr)
 			lua_["item"][index]["type"] = item.type;
 			lua_["item"][index]["modelid"] = item.modelid;
 			lua_["item"][index]["name2"] = item.name2.toUtf8().constData();
+		}
+
+		if (lua_["item"].is<sol::table>() && !lua_["item"]["sizeof"].valid())
+		{
+			sol::meta::unqualified_t<sol::table> item = lua_["item"];
+			item.set_function("count", [this](sol::object oitemnames, sol::object oitemmemos, sol::this_state s)->qint64
+				{
+					qint64 count = 0;
+					Injector& injector = Injector::getInstance();
+					if (injector.server.isNull())
+						return count;
+
+					QString itemnames;
+					if (oitemnames.is<std::string>())
+						itemnames = QString::fromUtf8(oitemnames.as<std::string>().c_str());
+					QString itemmemos;
+					if (oitemmemos.is<std::string>())
+						itemmemos = QString::fromUtf8(oitemmemos.as<std::string>().c_str());
+
+					if (itemnames.isEmpty() && itemmemos.isEmpty())
+					{
+						insertGlobalVar("vret", 0);
+						return count;
+					}
+
+					QVector<int> itemIndexs;
+					if (!injector.server->getItemIndexsByName(itemnames, itemmemos, &itemIndexs))
+					{
+						insertGlobalVar("vret", 0);
+						return count;
+					}
+
+					qint64 size = itemIndexs.size();
+					PC pc = injector.server->getPC();
+					for (qint64 i = 0; i < size; ++i)
+					{
+						qint64 itemIndex = itemIndexs.at(i);
+						ITEM item = pc.item[i];
+						if (item.valid)
+							count += item.stack;
+					}
+
+					insertGlobalVar("vret", count);
+					return count;
+				});
 		}
 	}
 
@@ -3406,6 +4402,7 @@ void Parser::processMultiVariable()
 	QVariant firstValue;
 
 	QString preExpr = getToken<QString>(1);
+	static const QRegularExpression rexCallFun(R"([\w\p{Han}]+\((.+)\))");
 	if (preExpr.contains("input("))
 	{
 		exprTo(preExpr, &firstValue);
@@ -3415,6 +4412,13 @@ void Parser::processMultiVariable()
 			return;
 		}
 
+		if (!firstValue.isValid())
+			firstValue = 0;
+	}
+	else if (preExpr.contains(rexCallFun))
+	{
+		QString expr = preExpr;
+		exprTo(expr, &firstValue);
 		if (!firstValue.isValid())
 			firstValue = 0;
 	}
@@ -3785,52 +4789,6 @@ bool Parser::processIfCompare()
 	insertGlobalVar("_IFRESULT", value.toString());
 
 	return checkJump(currentLineTokens_, 2, value.toBool(), SuccessJump) == kHasJump;
-}
-
-//處理隨機數
-void Parser::processRandom()
-{
-	do
-	{
-		QString varName = getToken<QString>(1);
-		if (varName.isEmpty())
-			break;
-
-		qint64 min = 0;
-		checkInteger(currentLineTokens_, 2, &min);
-		qint64 max = 0;
-		checkInteger(currentLineTokens_, 3, &max);
-
-		if (min == 0 && max == 0)
-			break;
-
-		std::random_device rd;
-		std::mt19937_64 gen(rd());
-		if (min > 0 && max == 0)
-		{
-			std::uniform_int_distribution<qint64> distribution(0, min);
-
-			if (varName.contains("[") && varName.contains("]"))
-				processTableSet(varName, distribution(gen));
-			else
-				insertVar(varName, distribution(gen));
-			break;
-		}
-		else if (min > max)
-		{
-			if (varName.contains("[") && varName.contains("]"))
-				processTableSet(varName, 0);
-			else
-				insertVar(varName, 0);
-			break;
-		}
-
-		std::uniform_int_distribution<qint64> distribution(min, max);
-		if (varName.contains("[") && varName.contains("]"))
-			processTableSet(varName, distribution(gen));
-		else
-			insertVar(varName, distribution(gen));
-	} while (false);
 }
 
 //處理"格式化"
@@ -4418,11 +5376,6 @@ void Parser::processTokens()
 		case TK_FORMAT:
 		{
 			processFormation();
-			break;
-		}
-		case TK_RND:
-		{
-			processRandom();
 			break;
 		}
 		case TK_GOTO:

@@ -32,8 +32,14 @@
 
 #include <detours.h>
 
+#include "util.h"
 
-
+#define USE_ASYNC_TCP
+#ifdef USE_ASYNC_TCP
+#include "asyncclient.h"
+#else
+#include "syncclient.h"
+#endif
 
 #endif
 

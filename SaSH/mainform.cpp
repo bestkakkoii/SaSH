@@ -86,17 +86,17 @@ void createMenu(QMenuBar* pMenuBar)
 		if (!parent)
 			return;
 
-		QString shortcutText = QKeySequence(key).toString(QKeySequence::NativeText);
+		//QString shortcutText = QKeySequence(key).toString(QKeySequence::NativeText);
 
-		QFontMetrics fontMetrics(QApplication::font());
-		int textWidth = fontMetrics.horizontalAdvance(text);
-		int shortcutWidth = fontMetrics.horizontalAdvance(shortcutText);
-		constexpr int totalWidth = 130;  // 文本和快捷键部分的总宽度
-		int spaceCount = (totalWidth - textWidth - shortcutWidth) / fontMetrics.horizontalAdvance(' ');
+		//QFontMetrics fontMetrics(QApplication::font());
+		//int textWidth = fontMetrics.horizontalAdvance(text);
+		//int shortcutWidth = fontMetrics.horizontalAdvance(shortcutText);
+		//constexpr int totalWidth = 130;  // 文本和快捷键部分的总宽度
+		//int spaceCount = (totalWidth - textWidth - shortcutWidth) / fontMetrics.horizontalAdvance(' ');
 
-		QString alignedText = text + QString(spaceCount, ' ') + shortcutText;
+		//QString alignedText = text + QString(spaceCount, ' ') + shortcutText;
 
-		QAction* pAction = new QAction(alignedText, parent);
+		QAction* pAction = new QAction(text, parent);
 		if (!pAction)
 			return;
 		if (!text.isEmpty() && !name.isEmpty())
@@ -207,12 +207,16 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, long* res
 	{
 		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
 		emit signalDispatcher.updateCursorLabelTextChanged(QString("%1,%2").arg(GET_X_LPARAM(msg->lParam)).arg(GET_Y_LPARAM(msg->lParam)));
+		*result = 1;
 		return true;
 	}
 	case WM_KEYUP + WM_USER + VK_DELETE:
 	{
 		if (!injector.server.isNull())
+		{
 			injector.server->cleanChatHistory();
+			*result = 1;
+		}
 		return true;
 	}
 	case Injector::kConnectionOK://TCP握手
@@ -220,6 +224,7 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, long* res
 		if (!injector.server.isNull())
 		{
 			injector.server->IS_TCP_CONNECTION_OK_TO_USE = true;
+			*result = 1;
 			qDebug() << "tcp ok";
 		}
 		return true;
@@ -745,10 +750,10 @@ MainForm::MainForm(QWidget* parent)
 
 	resetControlTextLanguage();
 
-	ui.progressBar_pchp->onCurrentValueChanged(0, 0, 1000);
-	ui.progressBar_pcmp->onCurrentValueChanged(0, 0, 1000);
-	ui.progressBar_pethp->onCurrentValueChanged(0, 0, 1000);
-	ui.progressBar_ridehp->onCurrentValueChanged(0, 0, 1000);
+	ui.progressBar_pchp->onCurrentValueChanged(255, 9999, 9999);
+	ui.progressBar_pcmp->onCurrentValueChanged(255, 9999, 9999);
+	ui.progressBar_pethp->onCurrentValueChanged(255, 9999, 9999);
+	ui.progressBar_ridehp->onCurrentValueChanged(255, 9999, 9999);
 
 	util::FormSettingManager formManager(this);
 	formManager.loadSettings();
@@ -826,34 +831,39 @@ void MainForm::onMenuActionTriggered()
 		hide();
 		trayIcon->showMessage(tr("Tip"), tr("The program has been minimized to the system tray"), QSystemTrayIcon::Information, 2000);
 		trayIcon->show();
+		return;
 	}
 
-	else if (actionName == "actionInfo")
+	if (actionName == "actionInfo")
 	{
 		QDesktopServices::openUrl(QUrl("https://gitee.com/Bestkakkoii/sash/wikis/pages"));
+		return;
 	}
 
-	else if (actionName == "actionWebsite")
+	if (actionName == "actionWebsite")
 	{
 		CopyRightDialog* pCopyRightDialog = new CopyRightDialog(this);
 		if (pCopyRightDialog)
 		{
 			pCopyRightDialog->exec();
 		}
+		return;
 	}
 
-	else if (actionName == "actionClose")
+	if (actionName == "actionClose")
 	{
 		close();
+		return;
 	}
 
-	else if (actionName == "actionCloseGame")
+	if (actionName == "actionCloseGame")
 	{
 		Injector::getInstance().close();
+		return;
 	}
 
 	//other
-	else if (actionName == "actionOtherInfo")
+	if (actionName == "actionOtherInfo")
 	{
 		if (pInfoForm_ == nullptr)
 		{
@@ -861,13 +871,14 @@ void MainForm::onMenuActionTriggered()
 			if (pInfoForm_)
 			{
 				connect(pInfoForm_, &InfoForm::destroyed, [this]() { pInfoForm_ = nullptr; });
-				pInfoForm_->setAttribute(Qt::WA_DeleteOnClose);
-				pInfoForm_->show();
 			}
 		}
+		pInfoForm_->hide();
+		pInfoForm_->show();
+		return;
 	}
 
-	else if (actionName == "actionMap")
+	if (actionName == "actionMap")
 	{
 		if (mapWidget_ == nullptr)
 		{
@@ -875,13 +886,15 @@ void MainForm::onMenuActionTriggered()
 			if (mapWidget_)
 			{
 				connect(mapWidget_, &InfoForm::destroyed, [this]() { mapWidget_ = nullptr; });
-				mapWidget_->setAttribute(Qt::WA_DeleteOnClose);
-				mapWidget_->show();
+
 			}
 		}
+		mapWidget_->hide();
+		mapWidget_->show();
+		return;
 	}
 
-	else if (actionName == "actionScriptSettings")
+	if (actionName == "actionScriptSettings")
 	{
 		if (pScriptSettingForm_ == nullptr)
 		{
@@ -889,13 +902,14 @@ void MainForm::onMenuActionTriggered()
 			if (pScriptSettingForm_)
 			{
 				connect(pScriptSettingForm_, &InfoForm::destroyed, [this]() { pScriptSettingForm_ = nullptr; });
-				pScriptSettingForm_->setAttribute(Qt::WA_DeleteOnClose);
-				pScriptSettingForm_->show();
 			}
 		}
+		pScriptSettingForm_->hide();
+		pScriptSettingForm_->show();
+		return;
 	}
 
-	else if (actionName == "actionSave")
+	if (actionName == "actionSave")
 	{
 		QString fileName;
 		Injector& injector = Injector::getInstance();
@@ -903,9 +917,10 @@ void MainForm::onMenuActionTriggered()
 			fileName = injector.server->getPC().name;
 		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
 		emit signalDispatcher.saveHashSettings(fileName);
+		return;
 	}
 
-	else if (actionName == "actionLoad")
+	if (actionName == "actionLoad")
 	{
 		QString fileName;
 		Injector& injector = Injector::getInstance();
@@ -913,9 +928,10 @@ void MainForm::onMenuActionTriggered()
 			fileName = injector.server->getPC().name;
 		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
 		emit signalDispatcher.loadHashSettings(fileName);
+		return;
 	}
 
-	else if (actionName == "actionUpdate")
+	if (actionName == "actionUpdate")
 	{
 		QString current;
 		QString result;
@@ -943,6 +959,7 @@ void MainForm::onMenuActionTriggered()
 			hide();
 			downloader->show();
 		}
+		return;
 	}
 }
 

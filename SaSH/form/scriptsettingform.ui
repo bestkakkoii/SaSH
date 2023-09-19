@@ -440,6 +440,66 @@ color: rgb(208, 208, 208);
            </item>
            <item>
             <property name="text">
+             <string>tunique</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>tswap</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>tsright</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>tsort</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>tsleft</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>tshuffle</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>trsort</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>trotate</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>trim</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>tpopfront</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>tpopback</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>tpadd</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
              <string>tostr</string>
             </property>
            </item>
@@ -450,7 +510,37 @@ color: rgb(208, 208, 208);
            </item>
            <item>
             <property name="text">
+             <string>tmerge</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>tjoin</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>tfront</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>tback</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>tadd</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
              <string>sysvar</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>split</string>
             </property>
            </item>
            <item>
@@ -481,6 +571,16 @@ color: rgb(208, 208, 208);
            <item>
             <property name="text">
              <string>regex</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>mktable</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>mkpath</string>
             </property>
            </item>
            <item>

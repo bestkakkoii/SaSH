@@ -360,7 +360,31 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 		parent = qgetenv("SASH_HWND").toULongLong();
 
 		//通知客戶端初始化，並提供port端口讓客戶端連進來、另外提供本窗口句柄讓子進程反向檢查外掛是否退出
-		sendMessage(kInitialize, port, parent);
+		struct InitialData
+		{
+			HWND parentHWnd = nullptr;
+			unsigned short port = 0;
+			unsigned short type = 0;
+		}injectdate;
+
+		QOperatingSystemVersion version = QOperatingSystemVersion::current();
+
+		injectdate.parentHWnd = reinterpret_cast<HWND>(parent);
+		injectdate.port = port;
+		if (version > QOperatingSystemVersion::Windows7)
+			injectdate.type = 1;
+		else
+			injectdate.type = 0;
+
+		const util::VirtualMemory lpStruct(processHandle_, sizeof(InitialData), true);
+		if (!lpStruct.isValid())
+		{
+			*pReason = util::REASON_INJECT_LIBRARY_FAIL;
+			break;
+		}
+
+		mem::write(processHandle_, lpStruct, &injectdate, sizeof(InitialData));
+		sendMessage(kInitialize, lpStruct, NULL);
 
 		//去除改變窗口大小的屬性
 		//::SetWindowLongW(pi.hWnd, GWL_STYLE, WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX | WS_VISIBLE);

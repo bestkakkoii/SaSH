@@ -45,7 +45,6 @@ static const QHash<QString, RESERVE> keywords = {
 	{ u8"變量移除", TK_VARFREE },
 	{ u8"變量清空", TK_VARCLR },
 	{ u8"格式化", TK_FORMAT },
-	{ u8"隨機數", TK_RND },
 	{ u8"如果", TK_IF },
 	{ u8"遍歷", TK_FOR },
 	{ u8"跳出", TK_BREAK },
@@ -84,12 +83,8 @@ static const QHash<QString, RESERVE> keywords = {
 	{ u8"看見", TK_CMD },
 	{ u8"聽見", TK_CMD },
 	{ u8"道具", TK_CMD },
-	{ u8"道具數量", TK_CMD },
 	{ u8"背包滿", TK_CMD },
-	{ u8"人物狀態", TK_CMD },
 	{ u8"寵物有", TK_CMD },
-	{ u8"寵物狀態", TK_CMD },
-	{ u8"寵物數量", TK_CMD },
 	{ u8"任務狀態", TK_CMD },
 
 	//actions
@@ -131,7 +126,6 @@ static const QHash<QString, RESERVE> keywords = {
 	{ u8"離隊", TK_CMD },
 	{ u8"踢走", TK_CMD },
 	{ u8"組隊有", TK_CMD },
-	{ u8"組隊人數", TK_CMD },
 
 	//move
 	{ u8"坐標", TK_CMD },
@@ -166,7 +160,6 @@ static const QHash<QString, RESERVE> keywords = {
 	{ u8"变量移除", TK_VARFREE },
 	{ u8"变量清空", TK_VARCLR },
 	{ u8"格式化", TK_FORMAT },
-	{ u8"随机数", TK_RND },
 	{ u8"如果", TK_IF },
 	{ u8"遍历", TK_FOR },
 	{ u8"跳出", TK_BREAK },
@@ -205,12 +198,8 @@ static const QHash<QString, RESERVE> keywords = {
 	{ u8"看见", TK_CMD },
 	{ u8"听见", TK_CMD },
 	{ u8"道具", TK_CMD },
-	{ u8"道具数量", TK_CMD },
 	{ u8"背包满", TK_CMD },
-	{ u8"人物状态", TK_CMD },
 	{ u8"宠物有", TK_CMD },
-	{ u8"宠物状态", TK_CMD },
-	{ u8"宠物数量", TK_CMD },
 	{ u8"任务状态", TK_CMD },
 
 	//actions
@@ -252,7 +241,6 @@ static const QHash<QString, RESERVE> keywords = {
 	{ u8"离队", TK_CMD },
 	{ u8"踢走", TK_CMD },
 	{ u8"组队有", TK_CMD },
-	{ u8"组队人数", TK_CMD },
 
 	//move
 	{ u8"坐标", TK_CMD },
@@ -290,7 +278,6 @@ static const QHash<QString, RESERVE> keywords = {
 	{ u8"delete", TK_VARFREE },
 	{ u8"releaseall", TK_VARCLR },
 	{ u8"format", TK_FORMAT },
-	{ u8"rnd", TK_RND },
 	{ u8"if", TK_IF },
 	{ u8"for", TK_FOR },
 	{ u8"break", TK_BREAK },
@@ -326,11 +313,7 @@ static const QHash<QString, RESERVE> keywords = {
 	{ u8"ifonline", TK_CMD },
 	{ u8"ifpos", TK_CMD },
 	{ u8"ifmap", TK_CMD },
-	{ u8"ifitem", TK_CMD },
 	{ u8"ifitemfull", TK_CMD },
-	{ u8"ifplayer", TK_CMD },
-	{ u8"ifpet", TK_CMD },
-	{ u8"ifpetex", TK_CMD },
 	{ u8"ifdaily", TK_CMD },
 
 	{ u8"waitmap", TK_CMD },
@@ -377,7 +360,6 @@ static const QHash<QString, RESERVE> keywords = {
 	{ u8"leave", TK_CMD },
 	{ u8"kick", TK_CMD },
 	{ u8"waitteam", TK_CMD },
-	{ u8"ifteam", TK_CMD },
 
 	//move
 	{ u8"walkpos", TK_CMD },
@@ -1800,7 +1782,7 @@ bool Lexer::tokenized(Lexer* pLexer, const QString& script)
 		TokenMap tk;
 		pLexer->tokenized(i, lines.at(i), &tk, &pLexer->labelList_);
 		pLexer->tokens_.insert(i, tk);
-	}
+}
 
 	pLexer->recordNode();
 

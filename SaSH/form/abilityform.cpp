@@ -29,10 +29,7 @@ AbilityForm::AbilityForm(QWidget* parent)
 	setFixedSize(this->width(), this->height());
 	setAttribute(Qt::WA_DeleteOnClose);
 
-
-	//boarder black put on the frameless window with style sheet
-	//setStyleSheet("QDialog{border: 1px solid black;}");
-
+	setStyleSheet("QDialog{border: 1px solid black;}");
 
 	QList<PushButton*> buttonList = util::findWidgets<PushButton>(this);
 	for (auto& button : buttonList)
@@ -40,6 +37,18 @@ AbilityForm::AbilityForm(QWidget* parent)
 		if (button)
 			connect(button, &PushButton::clicked, this, &AbilityForm::onButtonClicked, Qt::UniqueConnection);
 	}
+
+	Injector& injector = Injector::getInstance();
+	if (injector.server.isNull())
+		return;
+
+	PC pc = injector.server->getPC();
+
+	ui.label_vit->setText(QString::number(pc.vit));
+	ui.label_str->setText(QString::number(pc.str));
+	ui.label_tgh->setText(QString::number(pc.tgh));
+	ui.label_dex->setText(QString::number(pc.dex));
+	ui.label_left->setText(QString::number(pc.point));
 }
 
 AbilityForm::~AbilityForm()
@@ -65,4 +74,38 @@ void AbilityForm::onButtonClicked()
 		return;
 	}
 
+	Injector& injector = Injector::getInstance();
+	if (injector.server.isNull())
+		return;
+
+	if (injector.server->getPC().point <= 0)
+		return;
+
+	if (name == "pushButton_vit")
+	{
+		int amt = ui.label_vit->text().toInt();
+		injector.server->addPoint(0, amt > 0 ? amt : 1);
+		return;
+	}
+
+	if (name == "pushButton_str")
+	{
+		int amt = ui.label_str->text().toInt();
+		injector.server->addPoint(1, amt > 0 ? amt : 1);
+		return;
+	}
+
+	if (name == "pushButton_tgh")
+	{
+		int amt = ui.label_tgh->text().toInt();
+		injector.server->addPoint(2, amt > 0 ? amt : 1);
+		return;
+	}
+
+	if (name == "pushButton_dex")
+	{
+		int amt = ui.label_dex->text().toInt();
+		injector.server->addPoint(3, amt > 0 ? amt : 1);
+		return;
+	}
 }

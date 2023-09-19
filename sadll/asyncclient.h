@@ -1,215 +1,324 @@
-﻿#pragma once
+﻿/*
+				GNU GENERAL PUBLIC LICENSE
+				   Version 2, June 1991
+COPYRIGHT (C) Bestkakkoii 2023 All Rights Reserved.
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU General Public License for more details.
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+
+*/
+
+#ifndef ASYNCCLIENT_H
+#define ASYNCCLIENT_H
+
 #include <iostream>
 #include <vector>
 #include <string>
 #include <WinSock2.h>
 #include <WS2tcpip.h>
-#include <Windows.h>
+
+#if _MSVC_LANG >= 201703L
+#include <memory_resource>
+#endif
+#include <queue>
+#include <mutex>
+#include <condition_variable>
+
+#include <MINT/MINT.h>
+
+constexpr const wchar_t* IPV6_DEFAULT = L"::1";
+constexpr const wchar_t* IPV4_DEFAULT = L"127.0.0.1";
 
 class AsyncClient
 {
 private:
-	SOCKET clientSocket_ = INVALID_SOCKET;
-	HANDLE completionPort_ = nullptr;
-	DWORD lastError_ = 0;
-	std::vector<OVERLAPPED*> overlappedPool_;
-	std::vector<char*> bufferPool_;
-	HANDLE completionThread_ = nullptr;
+	struct SendBuffer {
+		char* data = nullptr;
+		size_t length = 0u;
+	};
 
 public:
-	AsyncClient()
+	AsyncClient(HWND parentHwnd)
+		: parendHwnd_(parentHwnd)
 	{
-		WSADATA data;
-		if (WSAStartup(MAKEWORD(2, 2), &data) != 0)
+		WSADATA data = {};
+		do
 		{
-#ifdef _DEBUG
-			std::cout << "WSAStartup failed with error: " << WSAGetLastError() << std::endl;
-#endif
+			if (WSAStartup(MAKEWORD(2ui16, 2ui16), &data) != 0)
+			{
+				std::ignore = recordWSALastError(__LINE__);
+				break;
+			}
+
+			std::wcout << L"WSAStartup OK" << std::endl;
+
+			// Create completion port
+			completionPort_ = CreateIoCompletionPort(INVALID_HANDLE_VALUE, nullptr, 0UL, 0UL);
+			if (nullptr == completionPort_)
+			{
+				std::ignore = recordWinLastError(__LINE__);
+				break;
+			}
+
+			std::wcout << L"CreateIoCompletionPort OK" << std::endl;
+			resource_.reset(new std::pmr::monotonic_buffer_resource(65536u));
+			allocator_.reset(new std::pmr::polymorphic_allocator<OVERLAPPED>(resource_.get()));
+			allocatorChar_.reset(new std::pmr::polymorphic_allocator<char>(resource_.get()));
 			return;
-		}
-
-		// Create completion port
-		completionPort_ = CreateIoCompletionPort(INVALID_HANDLE_VALUE, nullptr, 0, 0);
-		if (completionPort_ == nullptr)
-		{
-#ifdef _DEBUG
-			std::wcout << L"CreateIoCompletionPort failed with error: " << GetLastError() << std::endl;
-#endif
-			WSACleanup();
-			return;
-		}
-	}
-
-	virtual ~AsyncClient()
-	{
-		CloseHandle(completionPort_);
-
-		for (OVERLAPPED* overlapped : overlappedPool_)
-			delete overlapped;
-
-		for (char* buffer : bufferPool_)
-			delete[] buffer;
+		} while (false);
 
 		WSACleanup();
 	}
 
-	bool Connect(const std::string& serverIP, unsigned short serverPort)
+	virtual ~AsyncClient()
 	{
-		GameService& g_GameService = GameService::getInstance();
-		clientSocket_ = WSASocket(AF_INET6, SOCK_STREAM, 0, nullptr, 0, WSA_FLAG_OVERLAPPED);
-		if (clientSocket_ == INVALID_SOCKET)
+		if (sendThread_ != nullptr)
 		{
-#ifdef _DEBUG
-			std::cout << "WSASocket failed with error: " << WSAGetLastError() << std::endl;
-#endif
-			return false;
+			sendThread_->join();
+			delete sendThread_;
+			sendThread_ = nullptr;
 		}
-
-		sockaddr_in6 serverAddr{};
-		serverAddr.sin6_family = AF_INET6;
-		serverAddr.sin6_port = htons(serverPort);
-
-		if (inet_pton(AF_INET6, serverIP.c_str(), &(serverAddr.sin6_addr)) <= 0)
-		{
-#ifdef _DEBUG
-			std::cout << "inet_pton failed. Error Code : " << WSAGetLastError() << std::endl;
-#endif
-			g_GameService.pclosesocket(clientSocket_);
-			return false;
-		}
-
-		if (g_GameService.pconnect(clientSocket_, reinterpret_cast<sockaddr*>(&serverAddr), sizeof(serverAddr)) != 0)
-		{
-			if (WSAGetLastError() != WSAEWOULDBLOCK)
-			{
-#ifdef _DEBUG
-				std::cout << "connect failed. Error Code : " << WSAGetLastError() << std::endl;
-#endif
-				g_GameService.pclosesocket(clientSocket_);
-				return false;
-			}
-		}
-
-		// Associate the socket with the completion port
-		if (CreateIoCompletionPort(reinterpret_cast<HANDLE>(clientSocket_), completionPort_, 0, 0) == nullptr)
-		{
-#ifdef _DEBUG
-			std::wcout << L"CreateIoCompletionPort failed with error: " << GetLastError() << std::endl;
-#endif
-			g_GameService.pclosesocket(clientSocket_);
-			return false;
-		}
-
-#ifdef _DEBUG
-		std::cout << "Connect success." << std::endl;
-#endif
-		extern HWND g_ParenthWnd;//sadll.cpp
-		SendMessageW(g_ParenthWnd, util::kConnectionOK, NULL, NULL);
-
-		return true;
+		handleConnectError();
+		WSACleanup();
 	}
 
-	void Start()
+	inline void setCloseSocketFunction(int(__stdcall* p)(SOCKET s))
+	{
+		pclosesocket_ = p;
+	}
+
+	inline BOOL asyncConnect(unsigned short type, unsigned short serverPort)
+	{
+		ADDRESS_FAMILY family = AF_UNSPEC;
+		u_short port = htons(serverPort);
+		void* pAddrBuf = nullptr;
+		sockaddr* serverAddr = nullptr;
+		int namelen = 0;
+		wchar_t wcsServerIP[256] = {};
+		std::fill_n(wcsServerIP, 256, L'\0');
+
+		do
+		{
+			if (type > 0)
+			{
+				family = AF_INET6;
+
+				sockaddr_in6 serverAddr6 = {};
+				serverAddr6.sin6_family = family;
+				serverAddr6.sin6_port = port;
+				pAddrBuf = reinterpret_cast<void*>(&serverAddr6.sin6_addr);
+				serverAddr = reinterpret_cast<sockaddr*>(&serverAddr6);
+				namelen = sizeof(serverAddr6);
+
+				_snwprintf_s(wcsServerIP, _countof(wcsServerIP), _TRUNCATE, L"%s", IPV6_DEFAULT);
+
+				std::wcout << L"current type: IPV6: " << std::wstring(wcsServerIP) << std::endl;
+			}
+			else
+			{
+				family = AF_INET;
+
+				sockaddr_in serverAddr4 = {};
+				serverAddr4.sin_family = family;
+				serverAddr4.sin_port = port;
+				pAddrBuf = reinterpret_cast<void*>(&serverAddr4.sin_addr);
+				serverAddr = reinterpret_cast<sockaddr*>(&serverAddr4);
+				namelen = sizeof(serverAddr4);
+
+				_snwprintf_s(wcsServerIP, _countof(wcsServerIP), _TRUNCATE, L"%s", IPV4_DEFAULT);
+
+				std::wcout << L"current type: IPV4: " << std::wstring(wcsServerIP) << std::endl;
+			}
+
+			clientSocket_ = WSASocketW(family, SOCK_STREAM, 0, nullptr, 0u, WSA_FLAG_OVERLAPPED);
+			if (INVALID_SOCKET == clientSocket_)
+			{
+				recordWSALastError(__LINE__);
+				break;
+			}
+
+			std::wcout << "WSASocketW OK" << std::endl;
+
+			if (InetPtonW(family, wcsServerIP, pAddrBuf) != 1)
+			{
+				recordWSALastError(__LINE__);
+				break;
+			}
+
+			std::wcout << "InetNtopW OK" << std::endl;
+
+			if (WSAConnect(clientSocket_, serverAddr, namelen, nullptr, nullptr, nullptr, nullptr) != 0)
+			{
+				if (recordWSALastError(__LINE__) != WSAEWOULDBLOCK)
+					break;
+			}
+
+			std::wcout << "WSAConnect OK" << std::endl;
+
+			// Associate the socket with the completion port
+			if (CreateIoCompletionPort(reinterpret_cast<HANDLE>(clientSocket_), completionPort_, 0UL, 0UL) == nullptr)
+			{
+				std::ignore = recordWinLastError(__LINE__);
+				break;
+			}
+
+			std::wcout << "CreateIoCompletionPort OK" << std::endl;
+
+			if (nullptr == parendHwnd_)
+			{
+#ifdef _DEBUG
+				std::wcout << L"g_ParenthWnd is nullptr." << std::endl;
+#endif
+				break;
+			}
+
+			DWORD_PTR result = 0UL;
+			if ((SendMessageTimeoutW(parendHwnd_, util::kConnectionOK, NULL, NULL, SMTO_ABORTIFHUNG | SMTO_ERRORONEXIT | SMTO_BLOCK, 5000u, &result) == 0L)
+				|| (0UL == result))
+			{
+				std::ignore = recordWinLastError(__LINE__);
+				break;
+			}
+
+#ifdef _DEBUG
+			std::wcout << L"Notified parent window OK" << std::endl;
+#endif
+
+			startParallelProcessing();
+			return TRUE;
+		} while (false);
+
+		handleConnectError();
+		return FALSE;
+	}
+
+	inline void start()
 	{
 		DWORD threadId;
-		completionThread_ = CreateThread(nullptr, 0, CompletionThreadProc, this, 0, &threadId);
+		completionThread_ = CreateThread(nullptr, 0u, completionThreadProc, reinterpret_cast<LPVOID>(this), 0UL, &threadId);
 		if (completionThread_ == nullptr)
 		{
-#ifdef _DEBUG
-			std::wcout << L"CreateThread failed with error: " << GetLastError() << std::endl;
-#endif
+			std::ignore = recordWinLastError(__LINE__);
 			return;
 		}
 	}
 
-	void Send(const char* dataBuf, int dataLen)
+	inline BOOL asyncSend(const char* dataBuf, size_t dataLen)
 	{
 		if (clientSocket_ == INVALID_SOCKET)
-			return;
+			return FALSE;
 
-		if (dataBuf == nullptr || dataLen <= 0)
-			return;
+		if ((nullptr == dataBuf) || (dataLen <= 0))
+			return FALSE;
 
-		OVERLAPPED* overlapped = GetOverlapped();
-		char* buffer = GetBuffer(dataLen);
+		OVERLAPPED* overlapped = getOverlapped();
 
-		memset(overlapped, 0, sizeof(OVERLAPPED));
-		memset(buffer, 0, dataLen);
-		memcpy_s(buffer, dataLen, dataBuf, dataLen);
+		if (nullptr == overlapped)
+			return FALSE;
 
-		WSABUF wsabuf = { (DWORD)dataLen , buffer };
+		WSABUF wsabuf = { static_cast<DWORD>(dataLen), const_cast<char*>(dataBuf) };
 
-		if (WSASend(clientSocket_, &wsabuf, 1, nullptr, 0, overlapped, nullptr) == SOCKET_ERROR)
+		if (SOCKET_ERROR == WSASend(clientSocket_, &wsabuf, 1UL, nullptr, 0UL, overlapped, nullptr))
 		{
-			if (WSAGetLastError() != WSA_IO_PENDING)
+			if (recordWSALastError(__LINE__) != WSA_IO_PENDING)
 			{
-				lastError_ = WSAGetLastError();
-#ifdef _DEBUG
-				std::cout << "WSASend failed with error: " << lastError_ << std::endl;
-#endif
-				ReleaseOverlapped(overlapped);
-				ReleaseBuffer(buffer);
+				releaseOverlapped(overlapped);
 				MINT::NtTerminateProcess(GetCurrentProcess(), 0);
 			}
 		}
+
+		return TRUE;
 	}
 
-	void Receive(LPWSABUF wsabuf)
+	inline void asyncReceive(LPWSABUF wsabuf)
 	{
-		if (clientSocket_ == INVALID_SOCKET)
+		if (INVALID_SOCKET == clientSocket_)
 			return;
 
-		if (wsabuf == nullptr)
+		if (nullptr == wsabuf)
 			return;
 
-		OVERLAPPED* overlapped = GetOverlapped();
-		char* buffer = GetBuffer(wsabuf->len);
+		OVERLAPPED* overlapped = getOverlapped();
 
-		memset(overlapped, 0, sizeof(OVERLAPPED));
-		memset(buffer, 0, wsabuf->len);
+		if (nullptr == overlapped)
+			return;
+
+		char* buffer = getBuffer(wsabuf->len);
+
+		if (nullptr == buffer)
+			return;
 
 		wsabuf->buf = buffer;
 
 		DWORD flags = 0;
 
-		if (WSARecv(clientSocket_, wsabuf, 1, nullptr, &flags, overlapped, nullptr) == SOCKET_ERROR)
+		if (SOCKET_ERROR == WSARecv(clientSocket_, wsabuf, 1UL, nullptr, &flags, overlapped, nullptr))
 		{
-			if (WSAGetLastError() != WSA_IO_PENDING)
+			if (recordWSALastError(__LINE__) != WSA_IO_PENDING)
 			{
-				lastError_ = WSAGetLastError();
-#ifdef _DEBUG
-				std::cout << "WSARecv failed with error: " << lastError_ << std::endl;
-#endif
-				ReleaseOverlapped(overlapped);
-				ReleaseBuffer(buffer);
+				releaseOverlapped(overlapped);
+				releaseBuffer(buffer);
 			}
 
 			return;
 		}
 	}
 
-	std::wstring GetLastError()
+	void queueSendData(const char* data, size_t length)
 	{
-		if (lastError_ == 0)
+		SendBuffer buffer;
+		buffer.data = getBuffer(length);
+		buffer.length = length;
+		std::memcpy(buffer.data, data, length);
+
 		{
-			return L"";
+			std::lock_guard<std::mutex> lock(sendMutex_);
+			sendQueue_.push(std::move(buffer));
 		}
 
-		wchar_t* msg = nullptr;
-		FormatMessageW(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
-			nullptr, lastError_, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPWSTR)&msg, 0, nullptr);
-
-		std::wstring result(msg);
-		LocalFree(msg);
-		return result;
+		sendCondition_.notify_one();
 	}
 
+	inline void startParallelProcessing()
+	{
+		sendThread_ = new std::thread([this]()
+			{
+				for (;;)
+				{
+					SendBuffer buffer;
+					{
+						std::unique_lock<std::mutex> lock(sendMutex_);
+						sendCondition_.wait(lock, [this] { return !sendQueue_.empty(); });
+						buffer = std::move(sendQueue_.front());
+						sendQueue_.pop();
+					}
+
+					if (FALSE == asyncSend(buffer.data, buffer.length))
+					{
+						releaseBuffer(buffer.data);
+						break;
+					}
+
+					releaseBuffer(buffer.data);
+				}
+			});
+	}
+
+
 private:
-	static DWORD CALLBACK CompletionThreadProc(LPVOID lpParam)
+	static DWORD CALLBACK completionThreadProc(LPVOID lpParam)
 	{
 		AsyncClient* client = reinterpret_cast<AsyncClient*>(lpParam);
-		if (client == nullptr)
-			return 1;
+		if (nullptr == client)
+			return 1UL;
 
 		for (;;)
 		{
@@ -218,16 +327,12 @@ private:
 			OVERLAPPED* overlapped;
 
 			BOOL result = GetQueuedCompletionStatus(client->completionPort_, &numBytesTransferred, &completionKey, &overlapped, INFINITE);
-
-			if (!result || numBytesTransferred == 0)
+			std::ignore = client->recordWinLastError(__LINE__);
+			if ((FALSE == result) || (0UL == numBytesTransferred))
 			{
 				if (overlapped != nullptr)
 				{
-					client->lastError_ = WSAGetLastError();
-#ifdef _DEBUG
-					std::cout << "I/O operation failed with error: " << client->lastError_ << std::endl;
-#endif
-					client->ReleaseOverlapped(overlapped);
+					client->releaseOverlapped(overlapped);
 				}
 				break;
 			}
@@ -235,9 +340,9 @@ private:
 			if (overlapped != nullptr)
 			{
 				// Handle the completed I/O operation
-				if (overlapped->Internal == 0)
+				if (0UL == overlapped->Internal)
 				{
-					if (overlapped->Offset == 0)
+					if (0UL == overlapped->Offset)
 					{
 						// Sent data
 #ifdef _DEBUG
@@ -257,65 +362,115 @@ private:
 					// I/O operation failed
 					client->lastError_ = static_cast<DWORD>(overlapped->Internal);
 #ifdef _DEBUG
-					std::cout << "I/O operation failed with error: " << client->lastError_ << std::endl;
+					std::wcout << L"I/O operation failed with error" << std::endl;
 #endif
 				}
 
-				client->ReleaseOverlapped(overlapped);
+				client->releaseOverlapped(overlapped);
 			}
 		}
 
-		return 0;
+		return 0UL;
 	}
 
-	OVERLAPPED* GetOverlapped()
+	[[nodiscard]] inline OVERLAPPED* getOverlapped()
 	{
-		OVERLAPPED* overlapped;
-		if (overlappedPool_.empty())
-		{
-			overlapped = new OVERLAPPED();
-		}
-		else
-		{
-			overlapped = overlappedPool_.back();
-			overlappedPool_.pop_back();
-		}
-		return overlapped;
+		OVERLAPPED* ptr = allocator_->allocate(1);
+		std::allocator_traits<std::pmr::polymorphic_allocator<OVERLAPPED>>::construct(*allocator_, ptr, OVERLAPPED{});
+		return ptr;
 	}
 
-	inline void ReleaseOverlapped(OVERLAPPED* overlapped)
+	inline void releaseOverlapped(OVERLAPPED* overlapped)
 	{
-		overlappedPool_.push_back(overlapped);
+		allocator_->deallocate(overlapped, 1);
 	}
 
-	char* GetBuffer(size_t size)
+	[[nodiscard]] inline char* getBuffer(size_t size)
 	{
-		char* buffer;
-		if (bufferPool_.empty())
-		{
-			buffer = new char[size];
-		}
-		else
-		{
-			buffer = bufferPool_.back();
-			bufferPool_.pop_back();
-		}
-		return buffer;
+		char* ptr = allocatorChar_->allocate(size);
+		std::allocator_traits<std::pmr::polymorphic_allocator<char>>::construct(*allocatorChar_, ptr, '\0');
+		return ptr;
 	}
 
-	inline void ReleaseBuffer(char* buffer)
+	inline void releaseBuffer(char* buffer)
 	{
-		bufferPool_.push_back(buffer);
+		allocatorChar_->deallocate(buffer, 1);
 	}
+
+	inline DWORD recordWSALastError(int line)
+	{
+		lastError_ = static_cast<DWORD>(WSAGetLastError());
+		if (lastError_ != 0UL)
+		{
+			std::wcout << L"WSA error: " << std::to_wstring(lastError_) << L" at line " << std::to_wstring(line) << L" detail: " << getLastErrorStringW() << std::endl;
+		}
+
+		return lastError_;
+	}
+
+	inline DWORD recordWinLastError(int line)
+	{
+		lastError_ = GetLastError();
+		if (lastError_ != 0UL)
+		{
+			std::wcout << L"Winapi error: " << std::to_wstring(lastError_) << L" at line " << std::to_wstring(line) << L" detail: " << getLastErrorStringW() << std::endl;
+		}
+		return lastError_;
+	}
+
+	[[nodiscard]] inline std::wstring getLastErrorStringW()
+	{
+		if (0UL == lastError_)
+			return L"";
+
+		wchar_t* pwcstr = nullptr;
+		FormatMessageW(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+			nullptr, lastError_, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), reinterpret_cast<LPWSTR>(&pwcstr), 0UL, nullptr);
+
+		std::wstring result;
+		if (pwcstr != nullptr)
+		{
+			result = pwcstr;
+			LocalFree(pwcstr);
+		}
+		return result;
+	}
+
+	void handleConnectError()
+	{
+		if (clientSocket_ != INVALID_SOCKET)
+		{
+			if (pclosesocket_ != nullptr)
+				pclosesocket_(clientSocket_);
+			clientSocket_ = INVALID_SOCKET;
+		}
+
+		if (completionPort_ != nullptr)
+		{
+			MINT::NtClose(completionPort_);
+			completionPort_ = nullptr;
+		}
+	}
+
+private:
+	SOCKET clientSocket_ = INVALID_SOCKET;
+	HANDLE completionPort_ = nullptr;
+	HANDLE completionThread_ = nullptr;
+	DWORD lastError_ = 0;
+	HWND parendHwnd_ = nullptr;
+	int(__stdcall* pclosesocket_)(SOCKET s) = nullptr;
+
+	std::mutex sendMutex_;
+	std::condition_variable sendCondition_;
+	std::queue<SendBuffer> sendQueue_;
+	std::thread* sendThread_ = nullptr;
+
+#if _MSVC_LANG >= 201703L
+	std::unique_ptr<std::pmr::monotonic_buffer_resource> resource_;
+	std::unique_ptr<std::pmr::monotonic_buffer_resource> resourceChar_;
+	std::unique_ptr<std::pmr::polymorphic_allocator<OVERLAPPED>> allocator_;
+	std::unique_ptr<std::pmr::polymorphic_allocator<char>> allocatorChar_;
+#endif
 };
 
-//int main()
-//{
-//	AsyncClient client;
-//	if (client.Connect("127.0.0.1", 8080))
-//	{
-//		client.Start();
-//	}
-//
-//	return 0;
-//}
+#endif //ASYNCCLIENT_H

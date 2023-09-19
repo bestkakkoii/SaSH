@@ -81,7 +81,6 @@ MainObject::~MainObject()
 
 void MainObject::run()
 {
-
 	Injector& injector = Injector::getInstance();
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
 

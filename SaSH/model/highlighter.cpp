@@ -33,14 +33,14 @@ const char* Highlighter::keywords(int set) const
 	{
 		//lua key word
 		return "call pause exit label jmp return back continue "
-			"ifmap ifpet ifitem ifteam ifitemfull ifdaily ifbattle ifpos ifonline ifnormal "
+			"ifmap ifitemfull ifdaily ifbattle ifpos ifonline ifnormal "
 			"waitdlg waitsay waititem waitmap waitteam waitpet "
 			/*lua original*/
 			"function end goto break for while if repeat until do in then else elseif ";
 	}
 	case 2://QsciLexerLua::BasicFunctions//黃色
 	{
-		return "ocr dlg "
+		return "ocr dlg rnd "
 			"print sleep timer msg logout logback eo button say input menu "
 			"talk cls set saveset loadset "
 			"chpet chplayername chpetname chmap "
@@ -49,9 +49,15 @@ const char* Highlighter::keywords(int set) const
 			"wequip pequip puequip skup join leave kick move "
 			"walkpos w dir findpath movetonpc lclick rclick ldbclick dragto warp "
 			"learn trade run dostring sellpet mail reg "
-			"regex rex rexg upper lower half toint tostr todb replace find full "
+			"regex rex rexg trim upper lower half toint tostr todb replace find full "
 			"bh bj bp bs be bd bi bn bw bwf bwait bend "
 			"dofile createch delch doffstone send format "
+			"tsort trsort split mktable trotate tunique tshuffle tsleft tsright tmerge tjoin "
+			"tswap tadd tpadd tpopback tpopfront tfront tback mkpath "
+
+			/* . */
+			"item.count "
+
 			/*lua original*/
 			"assert collectgarbage "
 			"coroutine.close coroutine.create coroutine.isyieldable coroutine.resume coroutine.running coroutine.status coroutine.wrap coroutine.yield "
@@ -83,7 +89,7 @@ const char* Highlighter::keywords(int set) const
 	}
 	case 5://KeywordSet5//深藍色
 	{
-		return "local var delete releaseall rnd true false any "
+		return "local var delete releaseall true false any "
 			"int double bool not and or nil ";
 	}
 	case 6://KeywordSet6//淺藍色

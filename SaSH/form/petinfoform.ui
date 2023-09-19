@@ -52,7 +52,26 @@
         <item>
          <layout class="QVBoxLayout" name="verticalLayout_6">
           <item>
+           <spacer name="verticalSpacer_2">
+            <property name="orientation">
+             <enum>Qt::Vertical</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>20</width>
+              <height>40</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+          <item>
            <widget class="QLabel" name="label_7">
+            <property name="minimumSize">
+             <size>
+              <width>0</width>
+              <height>20</height>
+             </size>
+            </property>
             <property name="text">
              <string>base</string>
             </property>
@@ -60,6 +79,12 @@
           </item>
           <item>
            <widget class="QLabel" name="label_8">
+            <property name="minimumSize">
+             <size>
+              <width>0</width>
+              <height>20</height>
+             </size>
+            </property>
             <property name="text">
              <string>current</string>
             </property>
@@ -67,6 +92,12 @@
           </item>
           <item>
            <widget class="QLabel" name="label_9">
+            <property name="minimumSize">
+             <size>
+              <width>0</width>
+              <height>20</height>
+             </size>
+            </property>
             <property name="text">
              <string>rate</string>
             </property>
@@ -74,6 +105,12 @@
           </item>
           <item>
            <widget class="QLabel" name="label_10">
+            <property name="minimumSize">
+             <size>
+              <width>0</width>
+              <height>20</height>
+             </size>
+            </property>
             <property name="text">
              <string>expect</string>
             </property>
@@ -81,6 +118,12 @@
           </item>
           <item>
            <widget class="QLabel" name="label_11">
+            <property name="minimumSize">
+             <size>
+              <width>0</width>
+              <height>20</height>
+             </size>
+            </property>
             <property name="text">
              <string>total</string>
             </property>
@@ -90,6 +133,19 @@
         </item>
         <item>
          <layout class="QVBoxLayout" name="verticalLayout_5">
+          <item>
+           <spacer name="verticalSpacer_3">
+            <property name="orientation">
+             <enum>Qt::Vertical</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>20</width>
+              <height>40</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
           <item>
            <widget class="QLabel" name="label_2">
             <property name="minimumSize">
@@ -218,6 +274,19 @@
         <item>
          <layout class="QVBoxLayout" name="verticalLayout_4">
           <item>
+           <spacer name="verticalSpacer_4">
+            <property name="orientation">
+             <enum>Qt::Vertical</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>20</width>
+              <height>40</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+          <item>
            <widget class="QLabel" name="label_3">
             <property name="minimumSize">
              <size>
@@ -341,6 +410,19 @@
         </item>
         <item>
          <layout class="QVBoxLayout" name="verticalLayout_3">
+          <item>
+           <spacer name="verticalSpacer_5">
+            <property name="orientation">
+             <enum>Qt::Vertical</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>20</width>
+              <height>40</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
           <item>
            <widget class="QLabel" name="label_4">
             <property name="minimumSize">
@@ -469,6 +551,19 @@
         <item>
          <layout class="QVBoxLayout" name="verticalLayout_2">
           <item>
+           <spacer name="verticalSpacer_6">
+            <property name="orientation">
+             <enum>Qt::Vertical</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>20</width>
+              <height>40</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+          <item>
            <widget class="QLabel" name="label_5">
             <property name="minimumSize">
              <size>
@@ -592,6 +687,19 @@
         </item>
         <item>
          <layout class="QVBoxLayout" name="verticalLayout">
+          <item>
+           <spacer name="verticalSpacer_7">
+            <property name="orientation">
+             <enum>Qt::Vertical</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>20</width>
+              <height>40</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
           <item>
            <widget class="QLabel" name="label_6">
             <property name="minimumSize">
@@ -750,14 +858,14 @@
  <layoutdefault spacing="6" margin="11"/>
  <customwidgets>
   <customwidget>
-   <class>PushButton</class>
-   <extends>QPushButton</extends>
-   <header location="global">pushbutton.h</header>
-  </customwidget>
-  <customwidget>
    <class>ComboBox</class>
    <extends>QComboBox</extends>
    <header location="global">combobox.h</header>
+  </customwidget>
+  <customwidget>
+   <class>PushButton</class>
+   <extends>QPushButton</extends>
+   <header location="global">pushbutton.h</header>
   </customwidget>
  </customwidgets>
  <resources/>

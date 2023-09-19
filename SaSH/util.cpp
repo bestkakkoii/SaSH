@@ -1115,6 +1115,32 @@ bool util::enumAllFiles(const QString dir, const QString suffix, QVector<QPair<Q
 	return true; // 遍歷成功，返回成功
 }
 
+//自身進程目錄 遞歸遍查找指定文件
+QString util::findFileFromName(const QString& fileName, const QString& dirpath)
+{
+	QDir dir(dirpath);
+	if (!dir.exists())
+		return QString();
+
+	dir.setFilter(QDir::Files | QDir::Dirs | QDir::NoDotAndDotDot);
+	dir.setSorting(QDir::DirsFirst);
+	QFileInfoList list = dir.entryInfoList();
+	for (int i = 0; i < list.size(); ++i)
+	{
+		QFileInfo fileInfo = list.at(i);
+		if (fileInfo.fileName() == fileName)
+			return fileInfo.absoluteFilePath();
+		if (fileInfo.isDir())
+		{
+			QString ret = util::findFileFromName(fileName, fileInfo.absoluteFilePath());
+			if (!ret.isEmpty())
+				return ret;
+		}
+	}
+	return QString();
+}
+
+
 void util::sortWindows(const QVector<HWND>& windowList, bool alignLeft)
 {
 	if (windowList.isEmpty())

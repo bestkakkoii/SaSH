@@ -42,8 +42,6 @@ void PetInfoForm::on_comboBox_currentIndexChanged(int index)
 	if (cmpstr.isEmpty())
 		return;
 
-
-
 	QVector<int> v = ui.comboBox->currentData().value<QVector<int>>();
 	cur_level_ = v[0];
 	cur_maxHp_ = v[1];
@@ -57,44 +55,48 @@ void PetInfoForm::on_comboBox_currentIndexChanged(int index)
 	ui.spinBox_current_def->setValue(cur_def_);
 	ui.spinBox_current_agi->setValue(cur_agi_);
 
-	static const QRegularExpression re("([0-9]+)");
+	static const QRegularExpression re(R"((\d+)?[\||\.|,|\-]?(\d+)[\||\.|,|\-](\d+)[\||\.|,|\-](\d+)[\||\.|,|\-](\d+))");
 	//找能匹配 4 組 則默認level為1 5組則第一個為level
 
-	QRegularExpressionMatchIterator i = re.globalMatch(cmpstr);
+	QRegularExpressionMatch i = re.match(cmpstr);
 	//int count = 0;
-	QVector <int> basev;
-	while (i.hasNext())
+	QVector <int> basev(MAX_PET, 0);
+	if (i.hasMatch())
 	{
-		QRegularExpressionMatch match = i.next();
-		QString word = match.captured(1);
-		basev.append(word.toInt());
-	}
+		for (int j = 0; j < MAX_PET; ++j)
+			basev[j] = i.captured(j + 1).toInt();
 
-	int size = basev.size();
-	if (size >= 5)
-	{
 		base_level_ = basev[0];
+		if (base_level_ == 0)
+			base_level_ = 1;
 		base_maxHp_ = basev[1];
 		base_atk_ = basev[2];
 		base_def_ = basev[3];
 		base_agi_ = basev[4];
-
-	}
-	else if (size == 4)
-	{
-		base_level_ = 1;
-		base_maxHp_ = basev[0];
-		base_atk_ = basev[1];
-		base_def_ = basev[2];
-		base_agi_ = basev[3];
 	}
 	else
 	{
-		base_level_ = 1;
-		base_maxHp_ = 1;
-		base_atk_ = 1;
-		base_def_ = 1;
-		base_agi_ = 1;
+		int currentIndex = ui.comboBox->currentIndex();
+		Injector& injector = Injector::getInstance();
+		if (currentIndex >= 0 && currentIndex < MAX_PET)
+		{
+			PET pet = injector.server->getPet(currentIndex);
+			base_level_ = pet.oldlevel;
+			if (base_level_ == 0)
+				base_level_ = 1;
+			base_maxHp_ = pet.oldhp;
+			base_atk_ = pet.oldatk;
+			base_def_ = pet.olddef;
+			base_agi_ = pet.oldagi;
+		}
+		else
+		{
+			base_level_ = 1;
+			base_maxHp_ = 0;
+			base_atk_ = 0;
+			base_def_ = 0;
+			base_agi_ = 0;
+		}
 	}
 
 	emit ui.pushButton_calc->clicked();

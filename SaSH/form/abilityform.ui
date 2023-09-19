@@ -73,8 +73,14 @@
            <widget class="QLabel" name="label">
             <property name="minimumSize">
              <size>
-              <width>63</width>
+              <width>30</width>
               <height>0</height>
+             </size>
+            </property>
+            <property name="maximumSize">
+             <size>
+              <width>30</width>
+              <height>16777215</height>
              </size>
             </property>
             <property name="text">
@@ -83,7 +89,29 @@
            </widget>
           </item>
           <item>
-           <widget class="PushButton" name="pushButton">
+           <widget class="QLabel" name="label_vit">
+            <property name="minimumSize">
+             <size>
+              <width>60</width>
+              <height>0</height>
+             </size>
+            </property>
+            <property name="maximumSize">
+             <size>
+              <width>60</width>
+              <height>16777215</height>
+             </size>
+            </property>
+            <property name="text">
+             <string>0</string>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="PushButton" name="pushButton_vit">
             <property name="minimumSize">
              <size>
               <width>21</width>
@@ -105,8 +133,14 @@
            <widget class="QLabel" name="label_6">
             <property name="minimumSize">
              <size>
-              <width>41</width>
+              <width>30</width>
               <height>0</height>
+             </size>
+            </property>
+            <property name="maximumSize">
+             <size>
+              <width>30</width>
+              <height>16777215</height>
              </size>
             </property>
             <property name="text">
@@ -115,12 +149,24 @@
            </widget>
           </item>
           <item>
-           <widget class="QSpinBox" name="spinBox">
+           <widget class="QSpinBox" name="spinBox_vit">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
             <property name="minimumSize">
              <size>
               <width>39</width>
               <height>0</height>
              </size>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+            </property>
+            <property name="maximum">
+             <number>1000</number>
             </property>
            </widget>
           </item>
@@ -135,8 +181,14 @@
            <widget class="QLabel" name="label_2">
             <property name="minimumSize">
              <size>
-              <width>63</width>
+              <width>30</width>
               <height>0</height>
+             </size>
+            </property>
+            <property name="maximumSize">
+             <size>
+              <width>30</width>
+              <height>16777215</height>
              </size>
             </property>
             <property name="text">
@@ -145,7 +197,29 @@
            </widget>
           </item>
           <item>
-           <widget class="PushButton" name="pushButton_2">
+           <widget class="QLabel" name="label_str">
+            <property name="minimumSize">
+             <size>
+              <width>60</width>
+              <height>0</height>
+             </size>
+            </property>
+            <property name="maximumSize">
+             <size>
+              <width>60</width>
+              <height>16777215</height>
+             </size>
+            </property>
+            <property name="text">
+             <string>0</string>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="PushButton" name="pushButton_str">
             <property name="minimumSize">
              <size>
               <width>21</width>
@@ -167,8 +241,14 @@
            <widget class="QLabel" name="label_7">
             <property name="minimumSize">
              <size>
-              <width>41</width>
+              <width>30</width>
               <height>0</height>
+             </size>
+            </property>
+            <property name="maximumSize">
+             <size>
+              <width>30</width>
+              <height>16777215</height>
              </size>
             </property>
             <property name="text">
@@ -177,12 +257,24 @@
            </widget>
           </item>
           <item>
-           <widget class="QSpinBox" name="spinBox_2">
+           <widget class="QSpinBox" name="spinBox_str">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
             <property name="minimumSize">
              <size>
               <width>39</width>
               <height>0</height>
              </size>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+            </property>
+            <property name="maximum">
+             <number>1000</number>
             </property>
            </widget>
           </item>
@@ -197,8 +289,14 @@
            <widget class="QLabel" name="label_3">
             <property name="minimumSize">
              <size>
-              <width>63</width>
+              <width>30</width>
               <height>0</height>
+             </size>
+            </property>
+            <property name="maximumSize">
+             <size>
+              <width>30</width>
+              <height>16777215</height>
              </size>
             </property>
             <property name="text">
@@ -207,7 +305,29 @@
            </widget>
           </item>
           <item>
-           <widget class="PushButton" name="pushButton_3">
+           <widget class="QLabel" name="label_tgh">
+            <property name="minimumSize">
+             <size>
+              <width>60</width>
+              <height>0</height>
+             </size>
+            </property>
+            <property name="maximumSize">
+             <size>
+              <width>60</width>
+              <height>16777215</height>
+             </size>
+            </property>
+            <property name="text">
+             <string>0</string>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="PushButton" name="pushButton_tgh">
             <property name="minimumSize">
              <size>
               <width>21</width>
@@ -229,8 +349,14 @@
            <widget class="QLabel" name="label_8">
             <property name="minimumSize">
              <size>
-              <width>41</width>
+              <width>30</width>
               <height>0</height>
+             </size>
+            </property>
+            <property name="maximumSize">
+             <size>
+              <width>30</width>
+              <height>16777215</height>
              </size>
             </property>
             <property name="text">
@@ -239,12 +365,24 @@
            </widget>
           </item>
           <item>
-           <widget class="QSpinBox" name="spinBox_3">
+           <widget class="QSpinBox" name="spinBox_tgh">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
             <property name="minimumSize">
              <size>
               <width>39</width>
               <height>0</height>
              </size>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+            </property>
+            <property name="maximum">
+             <number>1000</number>
             </property>
            </widget>
           </item>
@@ -259,8 +397,14 @@
            <widget class="QLabel" name="label_4">
             <property name="minimumSize">
              <size>
-              <width>63</width>
+              <width>30</width>
               <height>0</height>
+             </size>
+            </property>
+            <property name="maximumSize">
+             <size>
+              <width>30</width>
+              <height>16777215</height>
              </size>
             </property>
             <property name="text">
@@ -269,7 +413,29 @@
            </widget>
           </item>
           <item>
-           <widget class="PushButton" name="pushButton_4">
+           <widget class="QLabel" name="label_dex">
+            <property name="minimumSize">
+             <size>
+              <width>60</width>
+              <height>0</height>
+             </size>
+            </property>
+            <property name="maximumSize">
+             <size>
+              <width>60</width>
+              <height>16777215</height>
+             </size>
+            </property>
+            <property name="text">
+             <string>0</string>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="PushButton" name="pushButton_dex">
             <property name="minimumSize">
              <size>
               <width>21</width>
@@ -291,8 +457,14 @@
            <widget class="QLabel" name="label_9">
             <property name="minimumSize">
              <size>
-              <width>41</width>
+              <width>30</width>
               <height>0</height>
+             </size>
+            </property>
+            <property name="maximumSize">
+             <size>
+              <width>30</width>
+              <height>16777215</height>
              </size>
             </property>
             <property name="text">
@@ -301,12 +473,24 @@
            </widget>
           </item>
           <item>
-           <widget class="QSpinBox" name="spinBox_4">
+           <widget class="QSpinBox" name="spinBox_dex">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
             <property name="minimumSize">
              <size>
               <width>39</width>
               <height>0</height>
              </size>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+            </property>
+            <property name="maximum">
+             <number>1000</number>
             </property>
            </widget>
           </item>
@@ -321,12 +505,40 @@
            <widget class="QLabel" name="label_5">
             <property name="minimumSize">
              <size>
-              <width>63</width>
+              <width>30</width>
               <height>0</height>
+             </size>
+            </property>
+            <property name="maximumSize">
+             <size>
+              <width>30</width>
+              <height>16777215</height>
              </size>
             </property>
             <property name="text">
              <string>left:</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QLabel" name="label_left">
+            <property name="minimumSize">
+             <size>
+              <width>60</width>
+              <height>0</height>
+             </size>
+            </property>
+            <property name="maximumSize">
+             <size>
+              <width>60</width>
+              <height>16777215</height>
+             </size>
+            </property>
+            <property name="text">
+             <string>0</string>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
             </property>
            </widget>
           </item>

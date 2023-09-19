@@ -802,18 +802,6 @@ void Interpreter::openLibs()
 void Interpreter::openLibsBIG5()
 {
 	/*註冊函數*/
-
-	//core
-	registerFunction(u8"正則匹配", &Interpreter::regex);
-	registerFunction(u8"查找", &Interpreter::find);
-	registerFunction(u8"半角", &Interpreter::half);
-	registerFunction(u8"全角", &Interpreter::full);
-	registerFunction(u8"轉大寫", &Interpreter::upper);
-	registerFunction(u8"轉小寫", &Interpreter::lower);
-	registerFunction(u8"替換", &Interpreter::replace);
-	registerFunction(u8"轉整", &Interpreter::toint);
-	registerFunction(u8"轉字", &Interpreter::tostr);
-
 	//system
 	registerFunction(u8"延時", &Interpreter::sleep);
 	registerFunction(u8"按鈕", &Interpreter::press);
@@ -852,11 +840,6 @@ void Interpreter::openLibsBIG5()
 	registerFunction(u8"看見", &Interpreter::checkunit);
 	registerFunction(u8"聽見", &Interpreter::waitsay);
 
-	registerFunction(u8"人物狀態", &Interpreter::ifplayer);
-	registerFunction(u8"寵物狀態", &Interpreter::ifpetex);
-	registerFunction(u8"道具數量", &Interpreter::ifitem);
-	registerFunction(u8"組隊人數", &Interpreter::ifteam);
-	registerFunction(u8"寵物數量", &Interpreter::ifpet);
 	registerFunction(u8"寵物有", &Interpreter::waitpet);
 	registerFunction(u8"道具", &Interpreter::waititem);
 	registerFunction(u8"背包滿", &Interpreter::ifitemfull);
@@ -925,18 +908,6 @@ void Interpreter::openLibsBIG5()
 void Interpreter::openLibsGB2312()
 {
 	/*註册函数*/
-
-	//core
-	registerFunction(u8"正则匹配", &Interpreter::regex);
-	registerFunction(u8"查找", &Interpreter::find);
-	registerFunction(u8"半角", &Interpreter::half);
-	registerFunction(u8"全角", &Interpreter::full);
-	registerFunction(u8"转大写", &Interpreter::upper);
-	registerFunction(u8"转小写", &Interpreter::lower);
-	registerFunction(u8"替换", &Interpreter::replace);
-	registerFunction(u8"转整", &Interpreter::toint);
-	registerFunction(u8"转字", &Interpreter::tostr);
-
 	//system
 	registerFunction(u8"延时", &Interpreter::sleep);
 	registerFunction(u8"按钮", &Interpreter::press);
@@ -975,11 +946,6 @@ void Interpreter::openLibsGB2312()
 	registerFunction(u8"看见", &Interpreter::checkunit);
 	registerFunction(u8"听见", &Interpreter::waitsay);
 
-	registerFunction(u8"人物状态", &Interpreter::ifplayer);
-	registerFunction(u8"宠物状态", &Interpreter::ifpetex);
-	registerFunction(u8"道具数量", &Interpreter::ifitem);
-	registerFunction(u8"组队人数", &Interpreter::ifteam);
-	registerFunction(u8"宠物数量", &Interpreter::ifpet);
 	registerFunction(u8"宠物有", &Interpreter::waitpet);
 	registerFunction(u8"道具", &Interpreter::waititem);
 	registerFunction(u8"背包满", &Interpreter::ifitemfull);
@@ -1049,19 +1015,6 @@ void Interpreter::openLibsUTF8()
 {
 	/*註册函数*/
 
-	//core
-	registerFunction(u8"regex", &Interpreter::regex);
-	registerFunction(u8"rex", &Interpreter::rex);
-	registerFunction(u8"rexg", &Interpreter::rexg);
-	registerFunction(u8"find", &Interpreter::find);
-	registerFunction(u8"half", &Interpreter::half);
-	registerFunction(u8"full", &Interpreter::full);
-	registerFunction(u8"upper", &Interpreter::upper);
-	registerFunction(u8"lower", &Interpreter::lower);
-	registerFunction(u8"replace", &Interpreter::replace);
-	registerFunction(u8"toint", &Interpreter::toint);
-	registerFunction(u8"tostr", &Interpreter::tostr);
-
 	//system
 	registerFunction(u8"sleep", &Interpreter::sleep);
 	registerFunction(u8"button", &Interpreter::press);
@@ -1095,11 +1048,6 @@ void Interpreter::openLibsUTF8()
 	registerFunction(u8"ifonline", &Interpreter::ifonline);
 	registerFunction(u8"ifpos", &Interpreter::ifpos);
 	registerFunction(u8"ifmap", &Interpreter::ifmap);
-	registerFunction(u8"ifplayer", &Interpreter::ifplayer);
-	registerFunction(u8"ifpetex", &Interpreter::ifpetex);
-	registerFunction(u8"ifitem", &Interpreter::ifitem);
-	registerFunction(u8"ifteam", &Interpreter::ifteam);
-	registerFunction(u8"ifpet", &Interpreter::ifpet);
 	registerFunction(u8"ifitemfull", &Interpreter::ifitemfull);
 
 	registerFunction(u8"waitmap", &Interpreter::waitmap);

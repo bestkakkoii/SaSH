@@ -50,6 +50,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #define _OBJSEND_C
 #define _NEWSHOP_
 #define _NEW_CLIENT_LOGIN
+#define _PETCOM_
 #pragma endregion
 
 #include "database.h"

@@ -1383,7 +1383,7 @@ typedef struct tagPET
 	ITEM item[MAX_PET_ITEM] = {};		// 寵物道具
 #endif
 #ifdef _PETCOM_
-	int oldlevel = 0, oldhp = 0, oldatk = 0, oldquick = 0, olddef = 0;
+	int oldlevel = 0, oldhp = 0, oldatk = 0, oldagi = 0, olddef = 0;
 #endif
 #ifdef _RIDEPET_
 	int rideflg;
@@ -1399,6 +1399,7 @@ typedef struct tagPET
 	//custom
 	PetState state = PetState::kNoneState;
 	qreal power = 0.0;
+	qreal growth = 0.0;
 } PET;
 
 

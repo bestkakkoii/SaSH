@@ -134,16 +134,11 @@ private: //註冊給Parser的函數
 	qint64 waitdlg(qint64 currentline, const TokenMap& TK);
 	qint64 waitsay(qint64 currentline, const TokenMap& TK);
 	qint64 checkunit(qint64 currentline, const TokenMap& TK);
-	qint64 ifplayer(qint64 currentline, const TokenMap& TK);
-	qint64 ifpetex(qint64 currentline, const TokenMap& TK);
-	qint64 ifitem(qint64 currentline, const TokenMap& TK);
-	qint64 ifpet(qint64 currentline, const TokenMap& TK);
 	qint64 ifitemfull(qint64 currentline, const TokenMap& TK);
 	qint64 waititem(qint64 currentline, const TokenMap& TK);
 	qint64 waitpet(qint64 currentline, const TokenMap& TK);
 	//check-group
 	qint64 waitteam(qint64 currentline, const TokenMap& TK);
-	qint64 ifteam(qint64 currentline, const TokenMap& TK);
 
 
 	//move
@@ -205,18 +200,6 @@ private: //註冊給Parser的函數
 	//hide
 	qint64 ocr(qint64 currentline, const TokenMap& TK);
 	qint64 dlg(qint64 currentline, const TokenMap& TK);
-	qint64 regex(qint64 currentline, const TokenMap& TK);
-	qint64 rex(qint64 currentline, const TokenMap& TK);
-	qint64 rexg(qint64 currentline, const TokenMap& TK);
-	qint64 find(qint64 currentline, const TokenMap& TK);
-	qint64 half(qint64 currentline, const TokenMap& TK);
-	qint64 full(qint64 currentline, const TokenMap& TK);
-	qint64 upper(qint64 currentline, const TokenMap& TK);
-	qint64 lower(qint64 currentline, const TokenMap& TK);
-	qint64 replace(qint64 currentline, const TokenMap& TK);
-	qint64 toint(qint64 currentline, const TokenMap& TK);
-	qint64 tostr(qint64 currentline, const TokenMap& TK);
-	//qint64 todb(qint64 currentline, const TokenMap& TK);
 
 	//battle
 	qint64 bh(qint64 currentline, const TokenMap& TK);//atk

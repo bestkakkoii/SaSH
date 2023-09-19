@@ -108,7 +108,7 @@ void PlayerInfoForm::onResetControlTextLanguage()
 		tr("name"), tr("freename"), "",
 		tr("level"), tr("exp"), tr("nextexp"), tr("leftexp"), "",
 		tr("hp"), tr("mp"), tr("chasma/loyal"),
-		tr("atk"), tr("def"), tr("agi"), tr("luck"), tr("power"),
+		tr("atk"), tr("def"), tr("agi"), tr("luck"), tr("growth"), tr("power"),
 	};
 
 	//put on first col
@@ -246,7 +246,41 @@ void PlayerInfoForm::onHeaderClicked(int logicalIndex)
 		break;
 	}
 	default:
+	{
+		int petIndex = logicalIndex - 2;
+		if (petIndex < 0 || petIndex >= MAX_PET)
+			break;
+		Injector& injector = Injector::getInstance();
+		if (injector.server.isNull())
+			break;
+
+		PET pet = injector.server->getPet(petIndex);
+		switch (pet.state)
+		{
+		case PetState::kBattle:
+			injector.server->setPetState(petIndex, PetState::kStandby);
+			break;
+		case PetState::kStandby:
+			injector.server->setPetState(petIndex, PetState::kMail);
+			break;
+		case PetState::kMail:
+			injector.server->setPetState(petIndex, PetState::kRest);
+			break;
+		case PetState::kRest:
+		{
+			if (injector.server->getPet(petIndex).loyal == 100)
+				injector.server->setPetState(petIndex, PetState::kRide);
+			else
+				injector.server->setPetState(petIndex, PetState::kBattle);
+			break;
+		}
+		case PetState::kRide:
+			injector.server->setPetState(petIndex, PetState::kRest);
+			injector.server->setPetState(petIndex, PetState::kBattle);
+			break;
+		}
 		break;
+	}
 	}
 }
 

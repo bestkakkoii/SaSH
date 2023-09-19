@@ -1032,6 +1032,8 @@ namespace util
 
 	bool enumAllFiles(const QString dir, const QString suffix, QVector<QPair<QString, QString>>* result);
 
+	QString findFileFromName(const QString& fileName, const QString& dirpath = QCoreApplication::applicationDirPath());
+
 	template<typename T>
 	QList<T*> findWidgets(QWidget* widget)
 	{

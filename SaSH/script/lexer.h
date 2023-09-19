@@ -111,7 +111,6 @@ enum RESERVE
 	TK_VARDECL,			// 變量聲明名稱或賦值 (任何使用 "變量 設置" 宣告過的變量 lexser只負責解析出那些是變量)
 	TK_MULTIVAR,		//多個變量
 	TK_FORMAT,			// 格式化後將新數值字符串賦值給變量
-	TK_RND,
 	TK_INCDEC,			// 自增自減
 	TK_CAOS,			// CAOS命令
 	TK_EXPR,			// 表達式

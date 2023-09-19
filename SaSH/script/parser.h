@@ -467,7 +467,6 @@ private:
 	void processTable();
 	void processTableSet(const QString& preVarName = "", const QVariant& value = QVariant());
 	void processFormation();
-	void processRandom();
 	bool processCall(RESERVE reserve);
 	bool processGoto();
 	bool processJump();

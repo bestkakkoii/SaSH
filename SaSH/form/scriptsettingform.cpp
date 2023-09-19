@@ -424,11 +424,11 @@ void ScriptSettingForm::replaceCommas(QString& input)
 		}
 	}
 
-	for (const QString& op : opList)
-	{
-		const QRegularExpression regex(QString(R"(\s*%1\s*)").arg(QRegularExpression::escape(op)));
-		input.replace(regex, QString(" %1 ").arg(op));
-	}
+	//for (const QString& op : opList)
+	//{
+	//	const QRegularExpression regex(QString(R"(\s*%1\s*)").arg(QRegularExpression::escape(op)));
+	//	input.replace(regex, QString(" %1 ").arg(op));
+	//}
 
 	input = input.simplified();
 	input.replace("= =", "==");

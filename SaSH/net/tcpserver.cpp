@@ -337,11 +337,24 @@ bool Server::start(QObject* parent)
 
 	connect(server_.data(), &QTcpServer::newConnection, this, &Server::onNewConnection);
 
-	if (!server_->listen(QHostAddress::AnyIPv6, 0))
+	QOperatingSystemVersion version = QOperatingSystemVersion::current();
+	if (version > QOperatingSystemVersion::Windows7)
 	{
-		qDebug() << "Failed to listen on socket";
-		return false;
+		if (!server_->listen(QHostAddress::AnyIPv6, 0))
+		{
+			qDebug() << "ipv6 Failed to listen on socket";
+			return false;
+		}
 	}
+	else
+	{
+		if (!server_->listen(QHostAddress::AnyIPv4, 0))
+		{
+			qDebug() << "ipv4 Failed to listen on socket";
+			return false;
+		}
+	}
+
 
 	port_ = server_->serverPort();
 	return true;
@@ -505,7 +518,7 @@ int Server::dispatchMessage(char* encoded)
 	if (Autil::util_GetFunctionFromSlice(&func, &fieldcount) != 1)
 		return 0;
 
-	//qDebug() << "fun" << func << "fieldcount" << fieldcount;
+	qDebug() << "fun" << func << "fieldcount" << fieldcount;
 
 	if (func == LSSPROTO_ERROR_RECV)
 		return -1;
@@ -583,7 +596,7 @@ int Server::dispatchMessage(char* encoded)
 		if (!Autil::util_Receive(data.data()))
 			return 0;
 
-		//qDebug() << "LSSPROTO_I_RECV" << util::toUnicode(data.data());
+		qDebug() << "LSSPROTO_I_RECV" << util::toUnicode(data.data());
 		lssproto_I_recv(data.data());
 		break;
 	}
@@ -1677,7 +1690,7 @@ QString Server::getFieldString(unsigned int field)
 	}
 }
 
-QPoint Server::getPoint()
+QPoint Server::getPoint() const
 {
 	Injector& injector = Injector::getInstance();
 	int hModule = injector.getProcessModule();
@@ -2022,6 +2035,7 @@ void Server::refreshItemInfo(int i)
 //刷新所有道具資訊
 void Server::refreshItemInfo()
 {
+	updateItemByMemory();
 	for (int i = 0; i < MAX_ITEM; ++i)
 	{
 		refreshItemInfo(i);
@@ -2030,9 +2044,8 @@ void Server::refreshItemInfo()
 
 void Server::updateItemByMemory()
 {
-	//本来应该一次性读取整个结构体的，但我们不需要这麽多讯息
+	//本來應該一次性讀取整個結構體的，但我們不需要這麼多訊息
 
-	QMutexLocker locker(&swapItemMutex_);
 	Injector& injector = Injector::getInstance();
 	int hModule = injector.getProcessModule();
 	HANDLE hProcess = injector.getProcess();
@@ -2041,7 +2054,7 @@ void Server::updateItemByMemory()
 	{
 		constexpr int item_offest = 0x184;
 		pc.item[i].valid = mem::read<short>(hProcess, hModule + 0x422C028 + i * item_offest) > 0;
-		if (pc.item[i].valid != 1)
+		if (!pc.item[i].valid)
 		{
 			pc.item[i] = {};
 			continue;
@@ -2085,8 +2098,7 @@ void Server::updateDatasFromMemory()
 	emit signalDispatcher.updateMapLabelTextChanged(QString("%1(%2)").arg(nowFloorName).arg(nowFloor));
 
 	//人物坐標 (因為伺服器端不會經常刷新這個數值大多是在遊戲客戶端修改的)
-	QPoint point(mem::read<int>(hProcess, hModule + kOffestNowX), mem::read<int>(hProcess, hModule + kOffestNowY));
-	nowPoint = point;
+	QPoint point = getPoint();
 	emit signalDispatcher.updateCoordsPosLabelTextChanged(QString("%1,%2").arg(point.x()).arg(point.y()));
 
 	updateItemByMemory();
@@ -3459,6 +3471,8 @@ void Server::depositItem(int itemIndex, int dialogid, int unitid)
 	QString qstr = QString::number(itemIndex + 1);
 	std::string srow = util::fromUnicode(qstr);
 	lssproto_WN_send(getPoint(), dialogid, unitid, BUTTON_NOTUSED, const_cast<char*>(srow.c_str()));
+
+	++IS_WAITOFR_ITEM_CHANGE_PACKET;
 }
 
 void Server::withdrawItem(int itemIndex, int dialogid, int unitid)
@@ -3479,6 +3493,8 @@ void Server::withdrawItem(int itemIndex, int dialogid, int unitid)
 	QString qstr = QString::number(itemIndex + 1);
 	std::string srow = util::fromUnicode(qstr);
 	lssproto_WN_send(getPoint(), dialogid, unitid, BUTTON_NOTUSED, const_cast<char*>(srow.c_str()));
+
+	++IS_WAITOFR_ITEM_CHANGE_PACKET;
 }
 
 void Server::depositPet(int petIndex, int dialogid, int unitid)
@@ -3704,8 +3720,6 @@ void Server::mail(const QVariant& card, const QString& text, int petIndex, const
 			return;
 
 		int itemIndex = getItemIndexByName(itemName, true, itemMemo, CHAR_EQUIPPLACENUM);
-		if (itemIndex < 0 || itemIndex >= MAX_ITEM)
-			return;
 
 		PET pet = getPet(petIndex);
 		if (!pet.valid)
@@ -3715,6 +3729,10 @@ void Server::mail(const QVariant& card, const QString& text, int petIndex, const
 			setPetState(petIndex, kMail);
 
 		lssproto_PMSG_send(index, petIndex, itemIndex, const_cast<char*>(sstr.c_str()), NULL);
+		if (itemIndex >= 0 && itemIndex < MAX_ITEM)
+		{
+			++IS_WAITOFR_ITEM_CHANGE_PACKET;
+		}
 	}
 }
 
@@ -4350,7 +4368,6 @@ void Server::sortItem(bool deepSort)
 
 	if (swapitemModeFlag == 0 || !deepSort)
 	{
-		QMutexLocker lock(&swapItemMutex_);
 		if (deepSort)
 			swapitemModeFlag = 1;
 
@@ -4414,7 +4431,6 @@ void Server::sortItem(bool deepSort)
 	}
 	else if (swapitemModeFlag == 1 && deepSort)
 	{
-		QMutexLocker lock(&swapItemMutex_);
 		swapitemModeFlag = 2;
 
 		//補齊  item[i].valid == false 的空格
@@ -4434,7 +4450,6 @@ void Server::sortItem(bool deepSort)
 	}
 	else if (deepSort)
 	{
-		QMutexLocker lock(&swapItemMutex_);
 		swapitemModeFlag = 0;
 
 		static const QLocale locale;
@@ -4508,6 +4523,7 @@ void Server::dropItem(int index)
 		return;
 
 	lssproto_DI_send(getPoint(), index);
+	++IS_WAITOFR_ITEM_CHANGE_PACKET;
 }
 
 void Server::dropItem(QVector<int> indexs)
@@ -4547,6 +4563,7 @@ void Server::useItem(int itemIndex, int target)
 		return;
 
 	lssproto_ID_send(getPoint(), itemIndex, target);
+	++IS_WAITOFR_ITEM_CHANGE_PACKET;
 }
 
 //交換道具
@@ -4565,6 +4582,8 @@ void Server::swapItem(int from, int to)
 		return;
 
 	lssproto_MI_send(from, to);
+
+	++IS_WAITOFR_ITEM_CHANGE_PACKET;
 }
 
 //撿道具
@@ -4598,6 +4617,7 @@ void Server::petitemswap(int petIndex, int from, int to)
 	}
 
 	lssproto_PetItemEquip_send(getPoint(), petIndex, from, to);
+	++IS_WAITOFR_ITEM_CHANGE_PACKET;
 }
 
 //料理/加工
@@ -4640,6 +4660,7 @@ void Server::craft(util::CraftType type, const QStringList& ingres)
 	QString qstr = itemIndexs.join("|");
 	std::string str = util::fromUnicode(qstr);
 	lssproto_PS_send(petIndex, skillIndex, NULL, const_cast<char*>(str.c_str()));
+	++IS_WAITOFR_ITEM_CHANGE_PACKET;
 }
 
 void Server::depositGold(int gold, bool isPublic)
@@ -8809,169 +8830,166 @@ void Server::lssproto_I_recv(char* cdata)
 {
 	PC pc = getPC();
 
+
+	QString data = util::toUnicode(cdata);
+	if (data.isEmpty())
+		return;
+
+	int i, j;
+	int no;
+	QString name;
+	QString name2;
+	QString memo;
+	//char *data = "9|烏力斯坦的肉||0|耐久力10前後回覆|24002|0|1|0|7|不會損壞|1|肉|20||10|烏力斯坦的肉||0|耐久力10前後回覆|24002|0|1|0|7|不會損壞|1|肉|20|";
+	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
+
+	for (j = 0; ; ++j)
 	{
-		QMutexLocker locker(&swapItemMutex_);
-		QString data = util::toUnicode(cdata);
-		if (data.isEmpty())
-			return;
-
-		int i, j;
-		int no;
-		QString name;
-		QString name2;
-		QString memo;
-		//char *data = "9|烏力斯坦的肉||0|耐久力10前後回覆|24002|0|1|0|7|不會損壞|1|肉|20||10|烏力斯坦的肉||0|耐久力10前後回覆|24002|0|1|0|7|不會損壞|1|肉|20|";
-		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
-
-		for (j = 0; ; ++j)
-		{
 #ifdef _ITEM_JIGSAW
 #ifdef _NPC_ITEMUP
 #ifdef _ITEM_COUNTDOWN
-			no = j * 17;
+		no = j * 17;
 #else
-			no = j * 16;
+		no = j * 16;
 #endif
 #else
-			no = j * 15;
+		no = j * 15;
 #endif
 #else
 #ifdef _PET_ITEM
-			no = j * 14;
+		no = j * 14;
 #else
 #ifdef _ITEM_PILENUMS
 #ifdef _ALCHEMIST
 #ifdef _MAGIC_ITEM_
-			no = j * 15;
+		no = j * 15;
 #else
-			no = j * 13;
+		no = j * 13;
 #endif
 #else
-			no = j * 12;
+		no = j * 12;
 #endif
 #else
 
-			no = j * 11;
+		no = j * 11;
 #endif
 #endif//_PET_ITEM
 #endif//_ITEM_JIGSAW
-			i = getIntegerToken(data, "|", no + 1);//道具位
-			if (getStringToken(data, "|", no + 2, name) == 1)//道具名
-				break;
+		i = getIntegerToken(data, "|", no + 1);//道具位
+		if (getStringToken(data, "|", no + 2, name) == 1)//道具名
+			break;
 
-			if (i < 0 || i >= MAX_ITEM)
-				break;
+		if (i < 0 || i >= MAX_ITEM)
+			break;
 
-			makeStringFromEscaped(name);
-			if (name.isEmpty())
+		makeStringFromEscaped(name);
+		if (name.isEmpty())
+		{
+			pc.item[i].valid = false;
+			pc.item[i].name.clear();
+			pc.item[i] = {};
+			continue;
+		}
+		pc.item[i].valid = true;
+		pc.item[i].name = name;
+		getStringToken(data, "|", no + 3, name2);//第二個道具名
+		makeStringFromEscaped(name2);
+
+		pc.item[i].name2 = name2;
+		pc.item[i].color = getIntegerToken(data, "|", no + 4);//顏色
+		if (pc.item[i].color < 0)
+			pc.item[i].color = 0;
+		getStringToken(data, "|", no + 5, memo);//道具介紹
+		makeStringFromEscaped(memo);
+
+		pc.item[i].memo = memo;
+		pc.item[i].modelid = getIntegerToken(data, "|", no + 6);//道具形像
+		pc.item[i].field = getIntegerToken(data, "|", no + 7);//
+		pc.item[i].target = getIntegerToken(data, "|", no + 8);
+		if (pc.item[i].target >= 100)
+		{
+			pc.item[i].target %= 100;
+			pc.item[i].deadTargetFlag = 1;
+		}
+		else
+		{
+			pc.item[i].deadTargetFlag = 0;
+		}
+		pc.item[i].level = getIntegerToken(data, "|", no + 9);//等級
+		pc.item[i].sendFlag = getIntegerToken(data, "|", no + 10);
+
+		{
+			// 顯示物品耐久度
+			QString damage;
+			getStringToken(data, "|", no + 11, damage);
+			makeStringFromEscaped(damage);
+
+			if (damage.size() <= 16)
 			{
-				pc.item[i].valid = false;
-				pc.item[i].name.clear();
-				pc.item[i] = {};
-				refreshItemInfo(i);
-				continue;
+				pc.item[i].damage = damage;
 			}
-			pc.item[i].valid = true;
-			pc.item[i].name = name;
-			getStringToken(data, "|", no + 3, name2);//第二個道具名
-			makeStringFromEscaped(name2);
-
-			pc.item[i].name2 = name2;
-			pc.item[i].color = getIntegerToken(data, "|", no + 4);//顏色
-			if (pc.item[i].color < 0)
-				pc.item[i].color = 0;
-			getStringToken(data, "|", no + 5, memo);//道具介紹
-			makeStringFromEscaped(memo);
-
-			pc.item[i].memo = memo;
-			pc.item[i].modelid = getIntegerToken(data, "|", no + 6);//道具形像
-			pc.item[i].field = getIntegerToken(data, "|", no + 7);//
-			pc.item[i].target = getIntegerToken(data, "|", no + 8);
-			if (pc.item[i].target >= 100)
-			{
-				pc.item[i].target %= 100;
-				pc.item[i].deadTargetFlag = 1;
-			}
-			else
-			{
-				pc.item[i].deadTargetFlag = 0;
-			}
-			pc.item[i].level = getIntegerToken(data, "|", no + 9);//等級
-			pc.item[i].sendFlag = getIntegerToken(data, "|", no + 10);
-
-			{
-				// 顯示物品耐久度
-				QString damage;
-				getStringToken(data, "|", no + 11, damage);
-				makeStringFromEscaped(damage);
-
-				if (damage.size() <= 16)
-				{
-					pc.item[i].damage = damage;
-				}
-			}
+		}
 #ifdef _ITEM_PILENUMS
-			{
-				QString pile;
-				getStringToken(data, "|", no + 12, pile);
-				makeStringFromEscaped(pile);
+		{
+			QString pile;
+			getStringToken(data, "|", no + 12, pile);
+			makeStringFromEscaped(pile);
 
-				pc.item[i].stack = pile.toInt();
-				if (pc.item[i].valid && pc.item[i].stack == 0)
-					pc.item[i].stack = 1;
-			}
+			pc.item[i].stack = pile.toInt();
+			if (pc.item[i].valid && pc.item[i].stack == 0)
+				pc.item[i].stack = 1;
+		}
 #endif
 
 #ifdef _ALCHEMIST //_ITEMSET7_TXT
-			{
-				QString alch;
-				getStringToken(data, "|", no + 13, alch);
-				makeStringFromEscaped(alch);
+		{
+			QString alch;
+			getStringToken(data, "|", no + 13, alch);
+			makeStringFromEscaped(alch);
 
-				pc.item[i].alch = alch;
-			}
+			pc.item[i].alch = alch;
+		}
 #endif
 #ifdef _PET_ITEM
-			{
-				QString type;
-				getStringToken(data, "|", no + 14, type);
-				makeStringFromEscaped(type);
+		{
+			QString type;
+			getStringToken(data, "|", no + 14, type);
+			makeStringFromEscaped(type);
 
-				pc.item[i].type = type.toUShort();
-			}
-
-			refreshItemInfo(i);
+			pc.item[i].type = type.toUShort();
+		}
 #else
 #ifdef _MAGIC_ITEM_
-			pc.item[i].道具類型 = getIntegerToken(data, "|", no + 14);
+		pc.item[i].道具類型 = getIntegerToken(data, "|", no + 14);
 #endif
 #endif
-			/*
-	#ifdef _ITEM_JIGSAW
-			{
-				char jigsaw[10];
-				getStringToken(data, "|", no + 15, sizeof(jigsaw) - 1, jigsaw);
-				makeStringFromEscaped(jigsaw);
-				strcpy( pc.item[i].jigsaw, jigsaw );
-				if( i == JigsawIdx ){
-					SetJigsaw( pc.item[i].modelid, pc.item[i].jigsaw );
-				}
+		/*
+#ifdef _ITEM_JIGSAW
+		{
+			char jigsaw[10];
+			getStringToken(data, "|", no + 15, sizeof(jigsaw) - 1, jigsaw);
+			makeStringFromEscaped(jigsaw);
+			strcpy( pc.item[i].jigsaw, jigsaw );
+			if( i == JigsawIdx ){
+				SetJigsaw( pc.item[i].modelid, pc.item[i].jigsaw );
 			}
-	#endif
-	#ifdef _NPC_ITEMUP
-				pc.item[i].itemup = getIntegerToken(data, "|", no + 16);
-	#endif
-	#ifdef _ITEM_COUNTDOWN
-				pc.item[i].counttime = getIntegerToken(data, "|", no + 17);
-	#endif
-				*/
-
 		}
+#endif
+#ifdef _NPC_ITEMUP
+			pc.item[i].itemup = getIntegerToken(data, "|", no + 16);
+#endif
+#ifdef _ITEM_COUNTDOWN
+			pc.item[i].counttime = getIntegerToken(data, "|", no + 17);
+#endif
+			*/
+
 	}
 
 	setPC(pc);
-
+	refreshItemInfo();
 	updateComboBoxList();
+	if (IS_WAITOFR_ITEM_CHANGE_PACKET > 0)
+		--IS_WAITOFR_ITEM_CHANGE_PACKET;
 }
 
 //對話框
@@ -9917,8 +9935,8 @@ void Server::lssproto_KS_recv(int petarray, int result)
 			pc.selectPetNo[petarray] = 0;
 			if (petarray == pc.battlePetNo)
 				pc.battlePetNo = -1;
+		}
 	}
-}
 #endif
 
 	setPC(pc);
@@ -10523,7 +10541,7 @@ void Server::lssproto_TK_recv(int index, char* cmessage, int color)
 			else
 			{
 				fontsize = 0;
-		}
+			}
 #endif
 			if (szToken.size() > 1)
 			{
@@ -10637,13 +10655,13 @@ void Server::lssproto_TK_recv(int index, char* cmessage, int color)
 #endif
 #endif
 #endif
-			}
+	}
 
 	setPC(pc);
 
 	chatQueue.enqueue(QPair{ color ,msg });
 	emit signalDispatcher.appendChatLog(msg, color);
-	}
+}
 
 //地圖數據更新，重新繪製地圖
 void Server::lssproto_MC_recv(int fl, int x1, int y1, int x2, int y2, int tileSum, int partsSum, int eventSum, char* cdata)
@@ -10893,7 +10911,7 @@ void Server::lssproto_C_recv(char* cdata)
 			{
 				extern char* FreeGetTitleStr(int id);
 				sprintf(titlestr, "%s", FreeGetTitleStr(titleindex));
-		}
+			}
 #endif
 #ifdef _CHAR_PROFESSION			// WON ADD 人物職業
 			getStringToken(bigtoken, "|", 18, smalltoken);
@@ -10963,7 +10981,7 @@ void Server::lssproto_C_recv(char* cdata)
 						break;
 					}
 				}
-				}
+			}
 			else
 			{
 #ifdef _CHAR_PROFESSION			// WON ADD 人物職業
@@ -10999,7 +11017,7 @@ void Server::lssproto_C_recv(char* cdata)
 				if (charType == 13 && noticeNo > 0)
 				{
 					setNpcNotice(ptAct, noticeNo);
-			}
+				}
 #endif
 				//if (ptAct != NULL)
 				//{
@@ -11020,7 +11038,7 @@ void Server::lssproto_C_recv(char* cdata)
 					//}
 					//setCharNameColor(ptAct, charNameColor);
 				//}
-		}
+			}
 
 			if (name == u8"を�そó")//排除亂碼
 				break;
@@ -11051,7 +11069,7 @@ void Server::lssproto_C_recv(char* cdata)
 			mapUnitHash.insert(id, unit);
 
 			break;
-	}
+		}
 		case 2://OBJTYPE_ITEM
 		{
 			getStringToken(bigtoken, "|", 2, smalltoken);
@@ -11350,8 +11368,8 @@ void Server::lssproto_C_recv(char* cdata)
 						}
 					}
 				}
-}
-}
+			}
+		}
 #endif
 #pragma endregion
 	}
@@ -11452,13 +11470,13 @@ void Server::lssproto_CA_recv(char* cdata)
 						setPcAction(5);
 #endif
 					}
-		}
+				}
 				else
 #endif
 					//changePcAct(x, y, dir, act, effectno, effectparam1, effectparam2);
-	}
+			}
 			continue;
-}
+		}
 
 		//ptAct = getCharObjAct(charindex);
 		//if (ptAct == NULL)
@@ -11491,7 +11509,7 @@ void Server::lssproto_CA_recv(char* cdata)
 		{
 			memset(ptAct->szStreetVendorTitle, 0, sizeof(ptAct->szStreetVendorTitle));
 			strncpy_s(ptAct->szStreetVendorTitle, szStreetVendorTitle, sizeof(szStreetVendorTitle));
-}
+		}
 #endif
 		//changeCharAct(ptAct, x, y, dir, act, effectno, effectparam1, effectparam2);
 	//}
@@ -11941,11 +11959,13 @@ void Server::lssproto_S_recv(char* cdata)
 		}
 
 		emit signalDispatcher.updatePlayerInfoStone(pc.gold);
+		qreal power = (((static_cast<double>(pc.atk + pc.def + pc.agi) + (static_cast<double>(pc.maxHp) / 4.0)) / static_cast<double>(pc.level)) * 100.0);
+		qreal growth = (static_cast<double>(pc.atk + pc.def + pc.agi - 20) / static_cast<double>(pc.level - 1));
 		const QVariantList varList = {
 			pc.name, pc.freeName, "",
 			QObject::tr("%1(%2tr)").arg(pc.level).arg(pc.transmigration), pc.exp, pc.maxExp, pc.exp > pc.maxExp ? 0 : pc.maxExp - pc.exp, "",
 			QString("%1/%2").arg(pc.hp).arg(pc.maxHp), QString("%1/%2").arg(pc.mp).arg(pc.maxMp),
-			pc.chasma, pc.atk, pc.def, pc.agi, pc.luck
+			pc.chasma, pc.atk, pc.def, pc.agi, pc.luck, QString::number(growth, 'f', 5), QString::number(power, 'f', 5)
 		};
 
 		QVariant var = QVariant::fromValue(varList);
@@ -12068,10 +12088,20 @@ void Server::lssproto_S_recv(char* cdata)
 #endif
 #ifdef _PETCOM_
 				pet[no].oldhp = getIntegerToken(data, "|", 24);
+				if (pet[no].oldhp == -1)
+					pet[no].oldhp = 0;
 				pet[no].oldatk = getIntegerToken(data, "|", 25);
+				if (pet[no].oldatk == -1)
+					pet[no].oldatk = 0;
 				pet[no].olddef = getIntegerToken(data, "|", 26);
-				pet[no].oldquick = getIntegerToken(data, "|", 27);
+				if (pet[no].olddef == -1)
+					pet[no].olddef = 0;
+				pet[no].oldagi = getIntegerToken(data, "|", 27);
+				if (pet[no].oldagi == -1)
+					pet[no].oldagi = 0;
 				pet[no].oldlevel = getIntegerToken(data, "|", 28);
+				if (pet[no].oldlevel == -1)
+					pet[no].oldlevel = 1;
 #endif
 #ifdef _RIDEPET_
 				pet[no].rideflg = getIntegerToken(data, "|", 29);
@@ -12220,7 +12250,7 @@ void Server::lssproto_S_recv(char* cdata)
 						}
 						else if (mask == 0x1000000)
 						{
-							pet[no].oldquick = getIntegerToken(data, "|", i);
+							pet[no].oldagi = getIntegerToken(data, "|", i);
 							i++;
 						}
 						else if (mask == 0x2000000)
@@ -12290,17 +12320,19 @@ void Server::lssproto_S_recv(char* cdata)
 			if (_pet.valid)
 			{
 				pet[i].power = (((static_cast<double>(_pet.atk + _pet.def + _pet.agi) + (static_cast<double>(_pet.maxHp) / 4.0)) / static_cast<double>(_pet.level)) * 100.0);
+				pet[i].growth = (static_cast<double>(_pet.atk + _pet.def + _pet.agi) - static_cast<double>(_pet.oldatk + _pet.olddef + _pet.oldagi))
+					/ static_cast<double>(_pet.level - _pet.oldlevel);
 				varList = QVariantList{
 					_pet.name, _pet.freeName, "",
 					QObject::tr("%1(%2tr)").arg(_pet.level).arg(_pet.transmigration), _pet.exp, _pet.maxExp, _pet.maxExp - _pet.exp, "",
 					QString("%1/%2").arg(_pet.hp).arg(_pet.maxHp), "",
-					_pet.loyal, _pet.atk, _pet.def, _pet.agi, "", pet[i].power
+					_pet.loyal, _pet.atk, _pet.def, _pet.agi, "", QString::number(pet[i].growth, 'f', 5), QString::number(pet[i].power, 'f', 5)
 
 				};
 			}
 			else
 			{
-				for (int i = 0; i < 16; ++i)
+				for (int i = 0; i < 17; ++i)
 					varList.append("");
 
 			}
@@ -12529,7 +12561,6 @@ void Server::lssproto_S_recv(char* cdata)
 	{
 		int i, no;
 		QString temp;
-		QMutexLocker lock(&swapItemMutex_);
 
 		for (i = 0; i < MAX_ITEM; ++i)
 		{
@@ -12572,7 +12603,6 @@ void Server::lssproto_S_recv(char* cdata)
 				pc.item[i].valid = false;
 				pc.item[i].name.clear();
 				pc.item[i] = {};
-				refreshItemInfo(i);
 				continue;
 			}
 			pc.item[i].valid = true;
@@ -12636,9 +12666,7 @@ void Server::lssproto_S_recv(char* cdata)
 #ifdef _ITEM_COUNTDOWN
 			pc.item[i].counttime = getIntegerToken(data, "|", no + 16);
 #endif
-
-			refreshItemInfo(i);
-	}
+		}
 
 		QStringList itemList;
 		for (const ITEM& it : pc.item)
@@ -12656,7 +12684,9 @@ void Server::lssproto_S_recv(char* cdata)
 		}
 
 		emit signalDispatcher.updateComboBoxItemText(util::kComboBoxCharAction, magicNameList);
-}
+		if (IS_WAITOFR_ITEM_CHANGE_PACKET > 0)
+			--IS_WAITOFR_ITEM_CHANGE_PACKET;
+	}
 #pragma endregion
 #pragma region PetSkill
 	else if (first == "W")//接收到的寵物技能
@@ -12741,7 +12771,7 @@ void Server::lssproto_S_recv(char* cdata)
 #ifdef _SKILLSORT
 		SortSkill();
 #endif
-		}
+	}
 #endif
 #pragma endregion
 #pragma region PRO3_ADDSKILL
@@ -12854,7 +12884,7 @@ void Server::lssproto_S_recv(char* cdata)
 #ifdef _ITEM_COUNTDOWN
 			pet[nPetIndex].item[i].counttime = getIntegerToken(data, "|", no + 16);
 #endif
-	}
+		}
 	}
 #endif
 #pragma endregion
@@ -12913,7 +12943,7 @@ void Server::lssproto_S_recv(char* cdata)
 	}
 
 	setPC(pc);
-
+	refreshItemInfo();
 	updateComboBoxList();
 }
 
@@ -12974,7 +13004,7 @@ void Server::lssproto_CharList_recv(char* cresult, char* cdata)
 		PcLanded.登陸延時時間 = TimeGetTime() + 2000;
 #endif
 		return;
-}
+	}
 
 	//if (netproc_sending == NETPROC_SENDING)
 	//{
@@ -13106,7 +13136,7 @@ void Server::lssproto_CharLogin_recv(char* cresult, char* cdata)
 	angelFlag = FALSE;
 	angelMsg[0] = NULL;
 #endif
-	}
+}
 
 void Server::lssproto_TD_recv(char* cdata)//交易
 {

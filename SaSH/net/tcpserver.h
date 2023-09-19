@@ -415,7 +415,7 @@ public://actions
 
 	void sortItem(bool deepSort = false);
 
-	QPoint getPoint();
+	QPoint getPoint() const;
 	void setPoint(const QPoint& pos);
 
 	//battle
@@ -587,7 +587,6 @@ private:
 		//nowGx = (int)(nowX / GRID_SIZE);
 		//nowGy = (int)(nowY / GRID_SIZE);
 		QPoint pos(nowX / GRID_SIZE, nowY / GRID_SIZE);
-		nowPoint = pos;
 		nextGx = pos.x();
 		nextGy = pos.y();
 		nowX = (float)pos.x() * GRID_SIZE;
@@ -652,7 +651,6 @@ private:
 	{
 		//nowGx = gx;
 		//nowGy = gy;
-		nowPoint = pos;
 		nowX = (float)pos.x() * GRID_SIZE;
 		nowY = (float)pos.y() * GRID_SIZE;
 		nextGx = pos.x();
@@ -732,8 +730,7 @@ private:
 
 	bool IS_LOCKATTACK_ESCAPE_DISABLE = false;
 
-	QReadWriteLock pointMutex_;//用於保護人物座標更新順序
-	QMutex swapItemMutex_;//用於保護物品數據更新順序
+	mutable QReadWriteLock pointMutex_;//用於保護人物座標更新順序
 	mutable QMutex pcMutex_;//用於保護人物數據更新順序
 	PC pc_ = {};
 	ITEM pcitem[MAX_ITEM] = {};
@@ -904,6 +901,7 @@ public:
 	bool IS_WAITFOR_DIALOG_FLAG = false;
 	bool IS_WAITFOR_EXTRA_DIALOG_INFO_FLAG = false;
 	bool IS_WAITFOR_CUSTOM_DIALOG_FLAG = false;
+	int IS_WAITOFR_ITEM_CHANGE_PACKET = false;
 
 	std::atomic_bool  isBattleDialogReady = false;
 	std::atomic_bool isEOTTLSend = false;
@@ -1109,4 +1107,4 @@ private://lssproto_recv
 	virtual void lssproto_CustomWN_recv(const QString& data) override;
 	virtual void lssproto_CustomTK_recv(const QString& data) override;
 #pragma endregion
-};
+	};
