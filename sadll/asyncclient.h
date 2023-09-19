@@ -467,7 +467,6 @@ private:
 
 #if _MSVC_LANG >= 201703L
 	std::unique_ptr<std::pmr::monotonic_buffer_resource> resource_;
-	std::unique_ptr<std::pmr::monotonic_buffer_resource> resourceChar_;
 	std::unique_ptr<std::pmr::polymorphic_allocator<OVERLAPPED>> allocator_;
 	std::unique_ptr<std::pmr::polymorphic_allocator<char>> allocatorChar_;
 #endif
