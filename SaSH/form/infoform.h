@@ -20,6 +20,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 #include <QWidget>
 #include "ui_infoform.h"
+#include <indexer.h>
 
 class BattleInfoForm;
 class PlayerInfoForm;
@@ -29,12 +30,12 @@ class MailInfoForm;
 class PetInfoForm;
 class AfkInfoForm;
 
-class InfoForm : public QWidget
+class InfoForm : public QWidget, public Indexer
 {
 	Q_OBJECT
 
 public:
-	InfoForm(int defaultPage = -1, QWidget* parent = nullptr);
+	InfoForm(qint64 index, qint64 defaultPage = -1, QWidget* parent = nullptr);
 	virtual ~InfoForm();
 
 signals:

@@ -20,13 +20,14 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 #include <QDialog>
 #include "ui_abilityform.h"
+#include <indexer.h>
 
-class AbilityForm : public QDialog
+class AbilityForm : public QDialog, public Indexer
 {
 	Q_OBJECT
 
 public:
-	explicit AbilityForm(QWidget* parent = nullptr);
+	explicit AbilityForm(qint64 index, QWidget* parent = nullptr);
 	virtual ~AbilityForm();
 
 protected:

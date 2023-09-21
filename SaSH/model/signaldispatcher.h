@@ -18,28 +18,57 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 #pragma once
 #include <QObject>
+#include <indexer.h>
+#include "util.h"
 
-class SignalDispatcher : public QObject
+class SignalDispatcher : public QObject, public Indexer
 {
 	Q_OBJECT;
-	Q_DISABLE_COPY_MOVE(SignalDispatcher);
-public:
-	static SignalDispatcher& getInstance()
-	{
-		static SignalDispatcher instance;
-		return instance;
-	}
-	virtual ~SignalDispatcher() = default;
-
-	void setParent(QObject* parent) { QObject::setParent(parent); }
 private:
-	SignalDispatcher() = default;
+	inline static util::SafeHash<qint64, SignalDispatcher*> instances;
+
+	explicit SignalDispatcher(qint64 index)
+	{
+		setIndex(index);
+	}
+
+public:
+	virtual ~SignalDispatcher()
+	{
+		emit setStartButtonEnabled(true);
+		qDebug() << "SignalDispatcher is distoryed!!";
+	}
+
+	static SignalDispatcher& getInstance(qint64 index)
+	{
+		if (!instances.contains(index))
+		{
+			SignalDispatcher* instance = new SignalDispatcher(index);
+			instances.insert(index, instance);
+		}
+		return *instances.value(index);
+	}
+
+public:
+	inline void setParent(QObject* parent) { QObject::setParent(parent); }
+
+	static inline void remove(qint64 index)
+	{
+		if (!instances.contains(index))
+			return;
+
+		SignalDispatcher* instance = instances.take(index);
+		if (instance != nullptr)
+		{
+			delete instance;
+		}
+	}
 
 signals:
 	//global
 	void nodifyAllStop();
-	void messageBoxShow(const QString& text, int type = 0, int* pnret = nullptr);
-	void inputBoxShow(const QString& text, int type, QVariant* retvalue);
+	void messageBoxShow(const QString& text, qint64 type = 0, qint64* pnret = nullptr);
+	void inputBoxShow(const QString& text, qint64 type, QVariant* retvalue);
 
 	void applyHashSettingsToUI();
 	void saveHashSettings(const QString& name = "default", bool isFullPath = false);
@@ -49,26 +78,26 @@ signals:
 
 	//mainform
 	void updateMainFormTitle(const QString& text);
-	void updateCharHpProgressValue(int level, int value, int maxvalue);
-	void updateCharMpProgressValue(int level, int value, int maxvalue);
-	void updatePetHpProgressValue(int level, int value, int maxvalue);
-	void updateRideHpProgressValue(int level, int value, int maxvalue);
+	void updateCharHpProgressValue(qint64 level, qint64 value, qint64 maxvalue);
+	void updateCharMpProgressValue(qint64 level, qint64 value, qint64 maxvalue);
+	void updatePetHpProgressValue(qint64 level, qint64 value, qint64 maxvalue);
+	void updateRideHpProgressValue(qint64 level, qint64 value, qint64 maxvalue);
 
-	void updateStatusLabelTextChanged(int status);
+	void updateStatusLabelTextChanged(qint64 status);
 	void updateMapLabelTextChanged(const QString& text);
 	void updateCursorLabelTextChanged(const QString& text);
 	void updateCoordsPosLabelTextChanged(const QString& text);
 
-	void appendScriptLog(const QString& text, int color = 0);
-	void appendChatLog(const QString& text, int color = 0);
+	void appendScriptLog(const QString& text, qint64 color = 0);
+	void appendChatLog(const QString& text, qint64 color = 0);
 
 	//infoform
-	void updatePlayerInfoColContents(int col, const QVariant& data);
-	void updatePlayerInfoStone(int stone);
-	void updatePlayerInfoPetState(int petIndex, int state);
+	void updatePlayerInfoColContents(qint64 col, const QVariant& data);
+	void updatePlayerInfoStone(qint64 stone);
+	void updatePlayerInfoPetState(qint64 petIndex, qint64 state);
 
-	void updateItemInfoRowContents(int row, const QVariant& data);
-	void updateEquipInfoRowContents(int row, const QVariant& data);
+	void updateItemInfoRowContents(qint64 row, const QVariant& data);
+	void updateEquipInfoRowContents(qint64 row, const QVariant& data);
 
 
 	//battleForm
@@ -81,20 +110,20 @@ signals:
 	void setStartButtonEnabled(bool enable);
 
 	//mapform
-	void updateNpcList(int floor);
+	void updateNpcList(qint64 floor);
 
 	//afkform
-	void updateComboBoxItemText(int type, const QStringList& textList);
+	void updateComboBoxItemText(qint64 type, const QStringList& textList);
 
 	//afkinfo
-	void updateAfkInfoTable(int row, const QString& text);
+	void updateAfkInfoTable(qint64 row, const QString& text);
 
 	//otherform->group
 	void updateTeamInfo(const QStringList& text);
 
 
 	//script
-	void scriptLabelRowTextChanged(int row, int max, bool noSelect);
+	void scriptLabelRowTextChanged(qint64 row, qint64 max, bool noSelect);
 	void scriptPaused();
 	void scriptResumed();
 	void scriptBreaked();
@@ -106,15 +135,15 @@ signals:
 	void reloadScriptList();
 	void varInfoImported(void* p, const QVariantHash& d);
 
-	void scriptSpeedChanged(int speed);
+	void scriptSpeedChanged(qint64 speed);
 
 	void callStackInfoChanged(const QVariant& var);
 	void jumpStackInfoChanged(const QVariant& var);
 
-	void addForwardMarker(int liner, bool b);
-	void addErrorMarker(int liner, bool b);
-	void addBreakMarker(int liner, bool b);
-	void addStepMarker(int liner, bool b);
+	void addForwardMarker(qint64 liner, bool b);
+	void addErrorMarker(qint64 liner, bool b);
+	void addBreakMarker(qint64 liner, bool b);
+	void addStepMarker(qint64 liner, bool b);
 	//void loadHashSettings(const QString& name = "default");
 };
 

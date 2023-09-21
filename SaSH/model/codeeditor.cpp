@@ -8,10 +8,18 @@
 #include <QKeyEvent>
 #include <qdialogbuttonbox.h>
 
+#ifdef _WIN64
+#ifdef _DEBUG
+#pragma comment(lib, "qscintilla2_qt6d.lib")
+#else
+#pragma comment(lib, "qscintilla2_qt6.lib")
+#endif
+#else
 #ifdef _DEBUG
 #pragma comment(lib, "qscintilla2_qt5d.lib")
 #else
 #pragma comment(lib, "qscintilla2_qt5.lib")
+#endif
 #endif
 
 CodeEditor::CodeEditor(QWidget* parent)
@@ -20,9 +28,10 @@ CodeEditor::CodeEditor(QWidget* parent)
 	, apis(&textLexer)
 
 {
+	setAttribute(Qt::WA_StyledBackground);
 	//install font
 	QFontDatabase::addApplicationFont("YaHei Consolas Hybrid 1.12.ttf");
-	QFont _font("YaHei Consolas Hybrid", 12, 570/*QFont::DemiBold*/, false);
+	QFont _font("YaHei Consolas Hybrid", 11, 570/*QFont::DemiBold*/, false);
 	setFont(_font);
 	font = _font;
 
@@ -42,12 +51,17 @@ CodeEditor::CodeEditor(QWidget* parent)
 
 	if (f.open(QIODevice::ReadOnly))
 	{
-		QTextStream ts(&f);
-		ts.setCodec("UTF-8");
+		QTextStream in(&f);
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+		in.setCodec(util::DEFAULT_CODEPAGE);
+#else
+		in.setEncoding(QStringConverter::Utf8);
+#endif
+		in.setGenerateByteOrderMark(true);
 
 		for (;;)
 		{
-			QString line(ts.readLine());
+			QString line(in.readLine());
 
 			if (line.isEmpty())
 				break;
@@ -144,7 +158,7 @@ CodeEditor::CodeEditor(QWidget* parent)
 	setMarginType(0, QsciScintilla::NumberMargin);//設置標號為0的頁邊顯示行號
 	setMarginLineNumbers(0, true);
 	QFontMetrics fontmetrics = QFontMetrics(font);
-	setMarginWidth(0, fontmetrics.horizontalAdvance("00000"));//
+	setMarginWidth(0, fontmetrics.horizontalAdvance("00000"));
 
 	setMarginsFont(font);//設置頁邊字體
 	setMarginOptions(QsciScintilla::MoSublineSelect);
@@ -189,8 +203,6 @@ CodeEditor::CodeEditor(QWidget* parent)
 	//indicatorClicked(int 	line,int 	index,Qt::KeyboardModifiers state)
 	//indicatorReleased
 
-
-
 #pragma region style
 	QString style = R"(
 		#widget{
@@ -199,7 +211,6 @@ CodeEditor::CodeEditor(QWidget* parent)
 		}
 
 		QToolTip{border-style:none; background-color: rgb(57, 58, 60);color: rgb(208, 208, 208);}
-
 
 		QScrollBar:vertical {
 			background: rgb(46,46,46);
@@ -292,6 +303,8 @@ void CodeEditor::keyPressEvent(QKeyEvent* e)
 			jumpToLineDialog();
 			return;
 		}
+		default:
+			break;
 		}
 	}
 

@@ -20,6 +20,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 #include <QtWidgets/QMainWindow>
 #include "ui_mainform.h"
+#include <indexer.h>
 
 class QTranslator;
 class QMenuBar;
@@ -41,20 +42,24 @@ class QThumbnailForm;
 
 class Interpreter;
 
-class MainForm : public QMainWindow
+class MainForm : public QMainWindow, public Indexer
 {
 	Q_OBJECT
 
 public:
-	MainForm(QWidget* parent = nullptr);
-	~MainForm();
+	explicit MainForm(qint64 index, QWidget* parent = nullptr);
+	virtual ~MainForm();
 
 protected:
 	void showEvent(QShowEvent* e) override;
 	void closeEvent(QCloseEvent* e) override;
 
 	//接收原生的窗口消息
-	bool nativeEvent(const QByteArray& eventType, void* message, long* result) override;
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+	virtual bool nativeEvent(const QByteArray& eventType, void* message, long* result) override;
+#else
+	virtual bool nativeEvent(const QByteArray& eventType, void* message, qintptr* result) override;
+#endif
 
 	//paint
 	//void paintEvent(QPaintEvent* e) override;
@@ -65,6 +70,7 @@ protected:
 private:
 	void resetControlTextLanguage();
 	void updateStatusText();
+	MainForm* createNewWindow(qint64 index);
 
 private slots:
 	void onMenuActionTriggered();
@@ -72,18 +78,18 @@ private slots:
 	void onSaveHashSettings(const QString& name = "default", bool isFullPath = false);
 	void onLoadHashSettings(const QString& name = "default", bool isFullPath = false);
 
-	void onUpdateStatusLabelTextChanged(int status);
+	void onUpdateStatusLabelTextChanged(qint64 status);
 	void onUpdateMapLabelTextChanged(const QString& text);
 	void onUpdateCursorLabelTextChanged(const QString& text);
 	void onUpdateCoordsPosLabelTextChanged(const QString& text);
-	void onUpdateStonePosLabelTextChanged(int ntext);
+	void onUpdateStonePosLabelTextChanged(qint64 ntext);
 	void onUpdateMainFormTitle(const QString& text);
 
-	void onMessageBoxShow(const QString& text, int type = 0, int* pnret = nullptr);
-	void onInputBoxShow(const QString& text, int type, QVariant* retvalue);
+	void onMessageBoxShow(const QString& text, qint64 type = 0, qint64* pnret = nullptr);
+	void onInputBoxShow(const QString& text, qint64 type, QVariant* retvalue);
 
-	void onAppendScriptLog(const QString& text, int color = 0);
-	void onAppendChatLog(const QString& text, int color = 0);
+	void onAppendScriptLog(const QString& text, qint64 color = 0);
+	void onAppendChatLog(const QString& text, qint64 color = 0);
 
 private:
 	Ui::MainFormClass ui;
@@ -98,7 +104,7 @@ private:
 	ScriptForm* pScriptForm_ = nullptr;
 	LuaScriptForm* pLuaScriptForm_ = nullptr;
 
-	int interfaceCount_ = 0;
+	qint64 interfaceCount_ = 0;
 
 	InfoForm* pInfoForm_ = nullptr;
 	MapWidget* mapWidget_ = nullptr;
@@ -108,5 +114,5 @@ private:
 
 	QSystemTrayIcon* trayIcon = nullptr;
 
-	QHash<int, QSharedPointer<Interpreter>> interpreter_hash_;
+	QHash<qint64, QSharedPointer<Interpreter>> interpreter_hash_;
 };

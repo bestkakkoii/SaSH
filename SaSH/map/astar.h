@@ -32,15 +32,15 @@ class CAStarParam
 {
 public:
 	bool corner;	   // 允許拐角
-	int height;		   // 地圖高度
-	int width;		   // 地圖寬度
+	qint64 height;		   // 地圖高度
+	qint64 width;		   // 地圖寬度
 	QPoint start;	   // 起點坐標
 	QPoint end;		   // 終點坐標
 	Callback can_pass; // 是否可通過
 
 	explicit CAStarParam() : height(0), width(0), corner(true) {}
 
-	explicit CAStarParam(int height, int width, bool corner, const Callback& callback, const QPoint& start, const QPoint& end) :
+	explicit CAStarParam(qint64 height, qint64 width, bool corner, const Callback& callback, const QPoint& start, const QPoint& end) :
 		height(height), width(width), start(start), end(end), corner(corner), can_pass(callback)
 	{
 	}
@@ -64,8 +64,8 @@ private:
 	 */
 	struct Node
 	{
-		int         g;          // 與起點距離
-		int         h;          // 與終點距離
+		qint64      g;          // 與起點距離
+		qint64      h;          // 與終點距離
 		QPoint      pos;        // 節點位置
 		NodeState   state;      // 節點狀態
 		Node* parent;     // 父節點
@@ -73,7 +73,7 @@ private:
 		/**
 		 * 計算f值
 		 */
-		inline int __fastcall f() const { return g + h; }
+		inline qint64 __fastcall f() const { return g + h; }
 
 		inline Node(const QPoint& pos)
 			: g(0), h(0), pos(pos), parent(nullptr), state(NodeState::NOTEXIST)
@@ -90,22 +90,22 @@ public:
 	/**
 	 * 獲取直行估值
 	 */
-	constexpr int __fastcall get_step_value() const;
+	constexpr qint64 __fastcall get_step_value() const;
 
 	/**
 	 * 獲取拐角估值
 	 */
-	constexpr int __fastcall get_oblique_value() const;
+	constexpr qint64 __fastcall get_oblique_value() const;
 
 	/**
 	 * 設置直行估值
 	 */
-	constexpr void __fastcall set_step_value(int value);
+	constexpr void __fastcall set_step_value(qint64 value);
 
 	/**
 	 * 獲取拐角估值
 	 */
-	constexpr void __fastcall set_oblique_value(int value);
+	constexpr void __fastcall set_oblique_value(qint64 value);
 
 	/**
 	 * 執行尋路操作
@@ -132,27 +132,27 @@ private:
 	/**
 	 * 二叉堆上濾
 	 */
-	void __fastcall percolate_up(int& hole);
+	void __fastcall percolate_up(qint64& hole);
 
 	/**
 	 * 獲取節點索引
 	 */
-	bool __fastcall get_node_index(Node*& node, int* index);
+	bool __fastcall get_node_index(Node*& node, qint64* index);
 
 	/**
 	 * 計算G值
 	 */
-	__forceinline int __fastcall calcul_g_value(Node*& parent, const QPoint& current);
+	__forceinline qint64 __fastcall calcul_g_value(Node*& parent, const QPoint& current);
 
 	/**
 	 * 計算F值
 	 */
-	__forceinline int __fastcall calcul_h_value(const QPoint& current, const QPoint& end);
+	__forceinline qint64 __fastcall calcul_h_value(const QPoint& current, const QPoint& end);
 
 	/**
 	 * B星計算F值
 	 */
-	__forceinline int __fastcall calcul_bstar_h_value(const QPoint& current, const QPoint& end, const QPoint& start);
+	__forceinline qint64 __fastcall calcul_bstar_h_value(const QPoint& current, const QPoint& end, const QPoint& start);
 
 	/**
 	 * 節點是否存在於開啟列表
@@ -190,11 +190,11 @@ private:
 	void __fastcall handle_not_found_node(Node*& current, Node*& destination, const QPoint& end);
 
 private:
-	int                     step_val_;
-	int                     oblique_val_;
-	std::vector<Node*>          mapping_;
-	int                     height_;
-	int                     width_;
+	qint64                  step_val_;
+	qint64                  oblique_val_;
+	std::vector<Node*>      mapping_;
+	qint64                  height_;
+	qint64                  width_;
 	Callback                can_pass_;
 	std::vector<Node*>      open_list_;
 #if _MSVC_LANG >= 201703L

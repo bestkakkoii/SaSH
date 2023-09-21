@@ -1,4 +1,4 @@
-#define SADLL_API __declspec(dllexport)
+﻿#define SADLL_API __declspec(dllexport)
 #define SADLL_API __declspec(dllimport)
 #define DISABLE_COPY_MOVE(Class) DISABLE_COPY(Class) DISABLE_MOVE(Class) public: static Class& getInstance() { static Class *instance = new Class(); return *instance; }
 #define DISABLE_COPY_MOVE(Class) DISABLE_COPY(Class) DISABLE_MOVE(Class) public: static Class& getInstance() { static Class instance; return instance; }

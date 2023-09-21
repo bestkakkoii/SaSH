@@ -33,26 +33,28 @@ class FastLabel : public QWidget
 	Q_DISABLE_COPY(FastLabel);
 public:
 	explicit FastLabel(QWidget* parent);
-	~FastLabel() override;
+	explicit FastLabel(const QString& text, QWidget* parent = nullptr);
+	virtual~FastLabel() override;
 	FastLabel();
 
 	void setTextColor(const QColor& color);
 	QColor getTextColor();
 	void setText(const QString& text);
-	QString getText();
-	void setFlag(int flag = Qt::AlignLeft | Qt::AlignVCenter);
+	QString getText() const;
+	void setFlag(int flag = Qt::AlignLeft | Qt::AlignVCenter | Qt::AlignHCenter);
 	int getFlag();
 protected:
 	void resizeEvent(QResizeEvent* event) override;
 	void paintEvent(QPaintEvent*) override;
 
 private:
-	int flag_ = Qt::AlignLeft | Qt::AlignVCenter;
+	int flag_ = Qt::AlignLeft | Qt::AlignVCenter | Qt::AlignHCenter;
 
 	QPixmap pixmap_;
 	QString content_msg_;
 	QString text_cache_;
 	QColor text_color_;
+	qint64 new_font_size_ = 10;
 };
 #endif // MYLABEL_H
 

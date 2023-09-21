@@ -219,7 +219,7 @@ margin-right:0px;
 
 </string>
   </property>
-  <widget class="QWidget" name="centralWidget">
+  <widget class="OpenGLWidget" name="centralWidget">
    <property name="styleSheet">
     <string notr="true"/>
    </property>
@@ -241,7 +241,7 @@ margin-right:0px;
       <property name="windowTitle">
        <string>function list</string>
       </property>
-      <widget class="QWidget" name="dockWidgetContents">
+      <widget class="OpenGLWidget" name="dockWidgetContents">
        <layout class="QGridLayout" name="gridLayout_2">
         <property name="leftMargin">
          <number>0</number>
@@ -1457,7 +1457,7 @@ QLineEdit::hover{
       <property name="windowTitle">
        <string>script list</string>
       </property>
-      <widget class="QWidget" name="dockWidgetContents_2">
+      <widget class="OpenGLWidget" name="dockWidgetContents_2">
        <layout class="QGridLayout" name="gridLayout_4">
         <property name="leftMargin">
          <number>0</number>
@@ -1661,7 +1661,7 @@ color: rgb(208, 208, 208);
       <property name="windowTitle">
        <string>editor</string>
       </property>
-      <widget class="QWidget" name="dockWidgetContents_11">
+      <widget class="OpenGLWidget" name="dockWidgetContents_11">
        <property name="sizePolicy">
         <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
          <horstretch>0</horstretch>
@@ -2062,10 +2062,7 @@ image: url(:/image/icon_down_arrow.png);
           <property name="spacing">
            <number>0</number>
           </property>
-          <item row="0" column="0" rowspan="2" colspan="2">
-           <widget class="QOpenGLWidget" name="openGLWidget"/>
-          </item>
-          <item row="1" column="1">
+          <item row="0" column="0">
            <widget class="CodeEditor" name="widget" native="true">
             <property name="sizePolicy">
              <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
@@ -2150,7 +2147,7 @@ QToolTip{border-style:none; background-color: rgb(57, 58, 60);color: rgb(208, 20
       <property name="windowTitle">
        <string>log</string>
       </property>
-      <widget class="QWidget" name="dockWidgetContents_5">
+      <widget class="OpenGLWidget" name="dockWidgetContents_5">
        <layout class="QGridLayout" name="gridLayout">
         <property name="leftMargin">
          <number>1</number>
@@ -2164,10 +2161,7 @@ QToolTip{border-style:none; background-color: rgb(57, 58, 60);color: rgb(208, 20
         <property name="bottomMargin">
          <number>1</number>
         </property>
-        <item row="0" column="0" rowspan="2" colspan="2">
-         <widget class="QOpenGLWidget" name="openGLWidget_2"/>
-        </item>
-        <item row="1" column="1">
+        <item row="0" column="0">
          <widget class="ListView" name="listView_log">
           <property name="font">
            <font>
@@ -2365,7 +2359,7 @@ color: rgb(208, 208, 208);
       <property name="windowTitle">
        <string>debuger</string>
       </property>
-      <widget class="QWidget" name="dockWidgetContents_4">
+      <widget class="OpenGLWidget" name="dockWidgetContents_4">
        <layout class="QGridLayout" name="gridLayout_3">
         <property name="leftMargin">
          <number>0</number>
@@ -2488,9 +2482,6 @@ margin-right:0px;
              <number>1</number>
             </property>
             <item row="0" column="0">
-             <widget class="QOpenGLWidget" name="openGLWidget_3"/>
-            </item>
-            <item row="0" column="1">
              <widget class="QTreeWidget" name="treeWidget_debuger_custom">
               <property name="styleSheet">
                <string notr="true">QTreeWidget {
@@ -3304,7 +3295,7 @@ color: rgb(208, 208, 208);
    <attribute name="dockWidgetArea">
     <number>8</number>
    </attribute>
-   <widget class="QWidget" name="dockWidgetContents_3">
+   <widget class="OpenGLWidget" name="dockWidgetContents_3">
     <layout class="QGridLayout" name="gridLayout_15">
      <property name="leftMargin">
       <number>0</number>
@@ -3340,7 +3331,7 @@ border: 1px solid rgb(61,61,61);</string>
    <attribute name="dockWidgetArea">
     <number>8</number>
    </attribute>
-   <widget class="QWidget" name="dockWidgetContents_6">
+   <widget class="OpenGLWidget" name="dockWidgetContents_6">
     <layout class="QGridLayout" name="gridLayout_9">
      <property name="leftMargin">
       <number>0</number>
@@ -3746,6 +3737,12 @@ color: rgb(208, 208, 208);
    <class>CodeEditor</class>
    <extends>QWidget</extends>
    <header location="global">codeeditor.h</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>OpenGLWidget</class>
+   <extends>QWidget</extends>
+   <header location="global">openglwidget.h</header>
    <container>1</container>
   </customwidget>
  </customwidgets>

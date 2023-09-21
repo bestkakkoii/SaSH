@@ -21,38 +21,13 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #pragma execution_character_set("utf-8") 
 #endif
 
-#include <Windows.h>
-#include <unordered_map>
-#include <string>
-#include <QPoint>
-#include <QString>
 #include <util.h>
-
-static const QHash<util::ObjectType, QColor> MAP_COLOR_HASH = {
-	{ util::OBJ_UNKNOWN,  QColor(0, 0, 1) },		 //黑
-	{ util::OBJ_ROAD,     QColor(64, 74, 41) },	     //墨綠
-	{ util::OBJ_UP,       QColor(255, 128, 128) },   //乳紅
-	{ util::OBJ_DOWN,     QColor(128, 128, 255) },   //乳紫
-	{ util::OBJ_JUMP,     QColor(200, 200, 65) },	 //乳黃
-	{ util::OBJ_WARP,     QColor(200, 137, 48) },    //乳橘
-	{ util::OBJ_WALL,     QColor(35, 35, 35) },	     //灰黑
-	{ util::OBJ_ROCK,     QColor(46, 55, 25) },		 //灰
-	{ util::OBJ_ROCKEX,   QColor(81, 53, 28) },		 //咖啡
-	{ util::OBJ_BOUNDARY, QColor(112, 146, 190) },   //湛藍
-	{ util::OBJ_WATER,    QColor(29, 73, 97) },		 //深湛藍
-	{ util::OBJ_EMPTY,    QColor(0, 0, 1) },		 //黑
-	{ util::OBJ_NPC,      QColor(198, 211, 255) },	 //淺紫
-	{ util::OBJ_ITEM,     QColor(32, 255, 141) },	 //青綠
-	{ util::OBJ_HUMAN,    QColor(255, 194, 194) },   //淺粉
-	{ util::OBJ_PET,      QColor(149, 153, 124) },   //亞麻
-	{ util::OBJ_GOLD,     QColor(247, 255, 0) },     //黃
-	{ util::OBJ_GM,       QColor(212, 25, 25) },     //紅
-};
+#include <indexer.h>
 
 //取靠近目標的最佳座標和方向
 typedef struct qdistance_s
 {
-	int dir;
+	qint64 dir;
 	qreal distance;//for euclidean distance
 	QPoint p;
 	QPointF pf;
@@ -75,53 +50,76 @@ typedef struct mapheader_s
 
 typedef struct map_s
 {
-	int floor = 0;
-	int width = 0;
-	int height = 0;
+	qint64 floor = 0;
+	qint64 width = 0;
+	qint64 height = 0;
 	QString name = "";
 	QVector<qmappoint_t> stair = {};
 	QSet<QPoint> workable = {};
 
 	QHash<QPoint, util::ObjectType> data;
 
-	int refCount = 0;
+	qint64 refCount = 0;
 	QElapsedTimer timer;
 }map_t;
 
-inline uint qHash(const QPoint& key, uint seed) Q_DECL_NOTHROW
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+static inline uint qHash(const QPoint& key, uint seed) Q_DECL_NOTHROW
 {
 	const uint val = (key.x() * 10000) + key.y();
 	return qHash<uint>(val, seed);
 }
 
-inline uint qHash(const map_t& key, uint seed) Q_DECL_NOTHROW
+static inline uint qHash(const map_t& key, uint seed) Q_DECL_NOTHROW
 {
 	const uint val = (key.width * 10000) + (key.height) + (key.floor * 1000) + (key.data.size());
 	return qHash<uint>(val, seed);
 }
+#endif
 
-class MapAnalyzer
+static const QHash<util::ObjectType, QColor> MAP_COLOR_HASH = {
+	{ util::OBJ_UNKNOWN,  QColor(0, 0, 1) },		 //黑
+	{ util::OBJ_ROAD,     QColor(64, 74, 41) },	     //墨綠
+	{ util::OBJ_UP,       QColor(255, 128, 128) },   //乳紅
+	{ util::OBJ_DOWN,     QColor(128, 128, 255) },   //乳紫
+	{ util::OBJ_JUMP,     QColor(200, 200, 65) },	 //乳黃
+	{ util::OBJ_WARP,     QColor(200, 137, 48) },    //乳橘
+	{ util::OBJ_WALL,     QColor(35, 35, 35) },	     //灰黑
+	{ util::OBJ_ROCK,     QColor(46, 55, 25) },		 //灰
+	{ util::OBJ_ROCKEX,   QColor(81, 53, 28) },		 //咖啡
+	{ util::OBJ_BOUNDARY, QColor(112, 146, 190) },   //湛藍
+	{ util::OBJ_WATER,    QColor(29, 73, 97) },		 //深湛藍
+	{ util::OBJ_EMPTY,    QColor(0, 0, 1) },		 //黑
+	{ util::OBJ_NPC,      QColor(198, 211, 255) },	 //淺紫
+	{ util::OBJ_ITEM,     QColor(32, 255, 141) },	 //青綠
+	{ util::OBJ_HUMAN,    QColor(255, 194, 194) },   //淺粉
+	{ util::OBJ_PET,      QColor(149, 153, 124) },   //亞麻
+	{ util::OBJ_GOLD,     QColor(247, 255, 0) },     //黃
+	{ util::OBJ_GM,       QColor(212, 25, 25) },     //紅
+};
+
+class MapAnalyzer : public Indexer
 {
 public:
-	MapAnalyzer();
+	explicit MapAnalyzer(qint64 index);
 	virtual ~MapAnalyzer();
-	bool __fastcall readFromBinary(int floor, const QString& name, bool enableDraw = false, bool enableRewrite = false);
-	bool __fastcall getMapDataByFloor(int floor, map_t* map);
+	bool __fastcall readFromBinary(qint64  floor, const QString& name, bool enableDraw = false, bool enableRewrite = false);
+	bool __fastcall getMapDataByFloor(qint64  floor, map_t* map);
 	bool __fastcall calcNewRoute(const map_t& map, const QPoint& src, const QPoint& dst, std::vector<QPoint>* pPaths);
-	void clear() { maps_.clear(); pixMap_.clear(); }
-	void clear(int floor) { maps_.remove(floor); pixMap_.remove(floor); }
+	inline void clear() { maps_.clear(); pixMap_.clear(); }
+	inline void clear(qint64 floor) { maps_.remove(floor); pixMap_.remove(floor); }
 	bool __fastcall saveAsBinary(map_t map, const QString& fileName);
-	Q_REQUIRED_RESULT QPixmap __fastcall getPixmapByIndex(int index) const { return pixMap_.value(index); }
-	int __fastcall calcBestFollowPointByDstPoint(int floor, const QPoint& src, const QPoint& dst, QPoint* ret, bool enableExt, int npcdir);
-	bool __fastcall isPassable(int floor, const QPoint& src, const QPoint& dst);
+	inline Q_REQUIRED_RESULT QPixmap __fastcall getPixmapByIndex(qint64 index) const { return pixMap_.value(index); }
+	qint64  __fastcall calcBestFollowPointByDstPoint(qint64  floor, const QPoint& src, const QPoint& dst, QPoint* ret, bool enableExt, qint64 npcdir);
+	bool __fastcall isPassable(qint64  floor, const QPoint& src, const QPoint& dst);
 
 private:
-	Q_REQUIRED_RESULT inline QString __fastcall getCurrentMapPath(int floor) const;
+	Q_REQUIRED_RESULT inline QString __fastcall getCurrentMapPath(qint64 floor) const;
 
-	inline void __fastcall setMapDataByFloor(int floor, const map_t& map);
-	void __fastcall setPixmapByIndex(int index, const QPixmap& pix);
+	inline void __fastcall setMapDataByFloor(qint64 floor, const map_t& map);
+	void __fastcall setPixmapByIndex(qint64 index, const QPixmap& pix);
 
-	bool __fastcall loadFromBinary(int floor, map_t* _map);
+	bool __fastcall loadFromBinary(qint64 floor, map_t* _map);
 
 	Q_REQUIRED_RESULT util::ObjectType __fastcall getGroundType(const uint16_t data) const;
 	Q_REQUIRED_RESULT util::ObjectType __fastcall getObjectType(const uint16_t data) const;
@@ -192,8 +190,8 @@ public:
 
 private:
 	QString directory = "";
-	util::SafeHash<int, QPixmap> pixMap_;
-	util::SafeHash<int, map_t> maps_;
+	util::SafeHash<qint64, QPixmap> pixMap_;
+	util::SafeHash<qint64, map_t> maps_;
 	QMutex mutex_;
 
 };

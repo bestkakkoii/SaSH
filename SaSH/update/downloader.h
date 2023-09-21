@@ -46,23 +46,23 @@ protected:
 	virtual void showEvent(QShowEvent* event) override;
 
 private:
-	QProgressBar* createProgressBar(int startY);
+	QProgressBar* createProgressBar(qint64 startY);
 	/////////////////////////////////////////////
 
-	void resetProgress(int value);
+	void resetProgress(qint64 value);
 
 	void overwriteCurrentExecutable();
 
 	bool asyncDownloadFile(const QString& szUrl, const QString& dir, const QString& szSaveFileName);
 
-	static void setProgressValue(int i, qreal totalToDownload, qreal nowDownloaded, qreal totalToUpLoad, qreal nowUpLoaded);
+	static void setProgressValue(qint64 i, qreal totalToDownload, qreal nowDownloaded, qreal totalToUpLoad, qreal nowUpLoaded);
 
-	template <int Index>
-	static int onProgress(void* clientp, qint64 totalToDownload, qint64 nowDownloaded, qint64 totalToUpLoad, qint64 nowUpLoaded);
+	template <qint64 Index>
+	static qint64 onProgress(void* clientp, qint64 totalToDownload, qint64 nowDownloaded, qint64 totalToUpLoad, qint64 nowUpLoaded);
 
 	QString Sha3_512(const QString& fileNamePath) const;
 
-	void Downloader::downloadAndExtractZip(const QString& url, const QString& targetDir);
+	void downloadAndExtractZip(const QString& url, const QString& targetDir);
 
 private:
 	Ui::DownloaderClass ui;
@@ -70,7 +70,7 @@ private:
 	QTimer labelTimer_;
 	QTimer timer_[MAX_DOWNLOAD_THREAD];
 
-	const int pid_ = QCoreApplication::applicationPid();
+	const qint64 pid_ = QCoreApplication::applicationPid();
 	const QString szCurrentDirectory_;
 	const QString szCurrentDotExe_;
 	const QString szCurrentDotExeAsDotTmp_;

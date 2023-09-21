@@ -23,7 +23,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 qint64 CLuaChar::rename(std::string sfname, sol::this_state s)
 {
-	Injector& injector = Injector::getInstance();
+	sol::state_view lua(s);
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
 	if (injector.server.isNull())
 		return FALSE;
 
@@ -38,7 +39,8 @@ qint64 CLuaChar::rename(std::string sfname, sol::this_state s)
 
 qint64 CLuaChar::useMagic(qint64 magicIndex, qint64 target, sol::this_state s)
 {
-	Injector& injector = Injector::getInstance();
+	sol::state_view lua(s);
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
 	if (injector.server.isNull())
 		return FALSE;
 
@@ -51,7 +53,8 @@ qint64 CLuaChar::useMagic(qint64 magicIndex, qint64 target, sol::this_state s)
 
 qint64 CLuaChar::depositGold(qint64 gold, sol::object oispublic, sol::this_state s)
 {
-	Injector& injector = Injector::getInstance();
+	sol::state_view lua(s);
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
 	if (injector.server.isNull())
 		return FALSE;
 
@@ -64,7 +67,8 @@ qint64 CLuaChar::depositGold(qint64 gold, sol::object oispublic, sol::this_state
 
 qint64 CLuaChar::withdrawGold(qint64 gold, sol::object oispublic, sol::this_state s)
 {
-	Injector& injector = Injector::getInstance();
+	sol::state_view lua(s);
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
 	if (injector.server.isNull())
 		return FALSE;
 
@@ -77,7 +81,8 @@ qint64 CLuaChar::withdrawGold(qint64 gold, sol::object oispublic, sol::this_stat
 
 qint64 CLuaChar::dropGold(qint64 gold, sol::this_state s)
 {
-	Injector& injector = Injector::getInstance();
+	sol::state_view lua(s);
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
 	if (injector.server.isNull())
 		return FALSE;
 
@@ -90,7 +95,8 @@ qint64 CLuaChar::dropGold(qint64 gold, sol::this_state s)
 
 qint64 CLuaChar::mail(qint64 cardIndex, std::string stext, qint64 petIndex, std::string sitemName, std::string sitemMemo, sol::this_state s)
 {
-	Injector& injector = Injector::getInstance();
+	sol::state_view lua(s);
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
 	if (injector.server.isNull())
 		return FALSE;
 
@@ -109,7 +115,8 @@ qint64 CLuaChar::mail(qint64 cardIndex, std::string stext, qint64 petIndex, std:
 
 qint64 CLuaChar::mail(qint64 cardIndex, std::string stext, sol::this_state s)
 {
-	Injector& injector = Injector::getInstance();
+	sol::state_view lua(s);
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
 	if (injector.server.isNull())
 		return FALSE;
 
@@ -124,7 +131,8 @@ qint64 CLuaChar::mail(qint64 cardIndex, std::string stext, sol::this_state s)
 
 qint64 CLuaChar::skillUp(qint64 abilityIndex, qint64 amount, sol::this_state s)
 {
-	Injector& injector = Injector::getInstance();
+	sol::state_view lua(s);
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
 	if (injector.server.isNull())
 		return FALSE;
 
@@ -138,7 +146,8 @@ qint64 CLuaChar::skillUp(qint64 abilityIndex, qint64 amount, sol::this_state s)
 //action-group
 qint64 CLuaChar::setTeamState(bool join, sol::this_state s)
 {
-	Injector& injector = Injector::getInstance();
+	sol::state_view lua(s);
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
 	if (injector.server.isNull())
 		return FALSE;
 
@@ -151,7 +160,8 @@ qint64 CLuaChar::setTeamState(bool join, sol::this_state s)
 
 qint64 CLuaChar::kick(qint64 teammateIndex, sol::this_state s)
 {
-	Injector& injector = Injector::getInstance();
+	sol::state_view lua(s);
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
 	if (injector.server.isNull())
 		return FALSE;
 

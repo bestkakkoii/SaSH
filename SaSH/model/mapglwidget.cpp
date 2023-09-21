@@ -33,27 +33,12 @@ MapGLWidget::~MapGLWidget()
 
 }
 
-void MapGLWidget::initTextures()
-{
-
-}
-
-void MapGLWidget::initShaders()
-{
-
-}
-
-void MapGLWidget::initCube()
-{
-
-}
-
 void MapGLWidget::initializeGL()
 {
 	initializeOpenGLFunctions(); //初始化OPenGL功能函數
 	glClearColor(0, 0, 0, 0);    //設置背景為黑色
 	glEnable(GL_TEXTURE_2D);     //設置紋理2D功能可用
-	glEnable(GL_DEPTH_TEST);
+	glDisable(GL_DEPTH_TEST);
 	glShadeModel(GL_FLAT);
 }
 
@@ -73,7 +58,6 @@ void MapGLWidget::paintGL()
 
 	QPainter paintImage;
 	paintImage.begin(this);
-
 	paintImage.drawPixmap(rectangle_dst_, image_, rectangle_src_);
 
 	//畫刷。填充幾何圖形的調色板，由顏色和填充風格組成
@@ -101,12 +85,6 @@ void MapGLWidget::paintGL()
 	paintImage.drawRect(rect_);//繪制橫向線
 
 	paintImage.end();
-}
-
-void MapGLWidget::setBackground(const QPixmap& image)
-{
-	image_ = image;
-	update();
 }
 
 void MapGLWidget::setCurLineH(const QPointF& start, const QPointF& end)
@@ -153,20 +131,23 @@ void MapGLWidget::setRect(const QRectF& rect)
 
 void MapGLWidget::setPix(const QPixmap& image, const QRectF& src, const QRectF& dst)
 {
+	if (image.isNull())
+		return;
+
 	rectangle_src_ = src;
 	rectangle_dst_ = dst;
 	image_ = image;
 }
 
-void MapGLWidget::mouseMoveEvent(QMouseEvent* event)
+void MapGLWidget::mouseMoveEvent(QMouseEvent* e)
 {
-	emit notifyMouseMove(event->button(), event->globalPos(), event->pos());
+	emit notifyMouseMove(e->button(), e->globalPos(), e->pos());
 	if (bClicked_)
 	{
-		offest_ = event->pos() - pLast_;
-		pLast_ = event->pos();
-		glFlush();
-		update();
+		offest_ = e->pos() - pLast_;
+		pLast_ = e->pos();
+		//glFlush();
+		//update();
 	}
 }
 
@@ -179,20 +160,20 @@ void MapGLWidget::mouseDoubleClickEvent(QMouseEvent* event)
 	}
 }
 
-void MapGLWidget::mousePressEvent(QMouseEvent* event)
+void MapGLWidget::mousePressEvent(QMouseEvent* e)
 {
-	if (event->button() == Qt::RightButton)
+	if (e->button() == Qt::RightButton)
 	{
 		//get QCursor
 		emit notifyRightClick();
 
 	}
-	else if (event->button() == Qt::LeftButton)
+	else if (e->button() == Qt::LeftButton)
 	{
 		if (!bClicked_)
 			bClicked_ = true;
-		pLast_ = event->globalPos();
-		emit notifyLeftClick(event->globalPos(), event->pos());
+		pLast_ = e->globalPos();
+		emit notifyLeftClick(e->globalPos(), e->pos());
 	}
 }
 
@@ -205,7 +186,7 @@ void MapGLWidget::mouseReleaseEvent(QMouseEvent*)
 }
 
 //滾動縮放圖片
-void MapGLWidget::wheelEvent(QWheelEvent* event)
+void MapGLWidget::wheelEvent(QWheelEvent* e)
 {
-	emit notifyWheelMove(event->angleDelta(), event->globalPosition());
+	emit notifyWheelMove(e->angleDelta(), e->globalPosition());
 }

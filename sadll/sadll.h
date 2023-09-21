@@ -39,7 +39,7 @@ private:
 
 public:
 	virtual ~GameService() = default;
-	void initialize(HWND parentHwnd, unsigned short type, unsigned short port);
+	void initialize(__int64 index, HWND parentHwnd, unsigned short type, unsigned short port);
 	void uninitialize();
 
 public:
@@ -180,6 +180,8 @@ private:
 
 	std::atomic_int isInitialized_ = FALSE;
 	std::atomic_int enableSleepAdjust = FALSE;
+
+	std::atomic_int64_t index_ = 0i64;
 
 	BYTE oldBattleCommandReadyByte[6u] = {}; //保存舊數據用於還原
 

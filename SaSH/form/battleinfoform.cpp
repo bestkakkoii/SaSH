@@ -22,10 +22,10 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "signaldispatcher.h"
 #include "injector.h"
 
-//constexpr int max_col = 2;
-constexpr int max_row = 10;
+//constexpr qint64 max_col = 2;
+constexpr qint64 max_row = 10;
 
-BattleInfoForm::BattleInfoForm(QWidget* parent)
+BattleInfoForm::BattleInfoForm(qint64 index, QWidget* parent)
 	: QWidget(parent)
 {
 	ui.setupUi(this);
@@ -37,35 +37,16 @@ BattleInfoForm::BattleInfoForm(QWidget* parent)
 
 	auto setTableWidget = [](QTableWidget* tableWidget)->void
 	{
-		//tablewidget set single selection
-		tableWidget->setSelectionMode(QAbstractItemView::SingleSelection);
-		//tablewidget set selection behavior
-		tableWidget->setSelectionBehavior(QAbstractItemView::SelectRows);
-		//set auto resize to form size
-		tableWidget->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
-		tableWidget->verticalHeader()->setSectionResizeMode(QHeaderView::Fixed);
-
-		//tableWidget->setStyleSheet(R"(
-		//QTableWidget { font-size:11px; } 
-		//	QTableView::item:selected { background-color: black; color: white;
-		//})");
-		tableWidget->verticalHeader()->setDefaultSectionSize(11);
-		tableWidget->horizontalHeader()->setStretchLastSection(true);
-		tableWidget->horizontalHeader()->setHighlightSections(false);
-		tableWidget->verticalHeader()->setHighlightSections(false);
-		tableWidget->horizontalHeader()->setDefaultAlignment(Qt::AlignLeft);
-		tableWidget->verticalHeader()->setDefaultAlignment(Qt::AlignLeft);
-
-		for (int row = 0; row < max_row; ++row)
+		for (qint64 row = 0; row < max_row; ++row)
 		{
 			tableWidget->insertRow(row);
 		}
 
-		int rowCount = tableWidget->rowCount();
-		int columnCount = tableWidget->columnCount();
-		for (int row = 0; row < rowCount; ++row)
+		qint64 rowCount = tableWidget->rowCount();
+		qint64 columnCount = tableWidget->columnCount();
+		for (qint64 row = 0; row < rowCount; ++row)
 		{
-			for (int column = 0; column < columnCount; ++column)
+			for (qint64 column = 0; column < columnCount; ++column)
 			{
 				QTableWidgetItem* item = new QTableWidgetItem("");
 				if (item)
@@ -78,7 +59,7 @@ BattleInfoForm::BattleInfoForm(QWidget* parent)
 	setTableWidget(ui.tableWidget_top);
 	setTableWidget(ui.tableWidget_bottom);
 
-	Injector& injector = Injector::getInstance();
+	Injector& injector = Injector::getInstance(index);
 	if (!injector.server.isNull())
 	{
 		QVariant topInfoContents = injector.server->topInfoContents;
@@ -94,7 +75,7 @@ BattleInfoForm::BattleInfoForm(QWidget* parent)
 		onUpdateLabelPetAction(labelPetAction);
 	}
 
-	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
+	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(index);
 	connect(&signalDispatcher, &SignalDispatcher::updateTopInfoContents, this, &BattleInfoForm::onUpdateTopInfoContents, Qt::UniqueConnection);
 	connect(&signalDispatcher, &SignalDispatcher::updateBottomInfoContents, this, &BattleInfoForm::onUpdateBottomInfoContents, Qt::UniqueConnection);
 	connect(&signalDispatcher, &SignalDispatcher::updateTimeLabelContents, this, &BattleInfoForm::onUpdateTimeLabelContents, Qt::UniqueConnection);
@@ -183,7 +164,7 @@ void BattleInfoForm::updateItemInfoRowContents(QTableWidget* tableWidget, const 
 
 	tableWidget->clearContents();
 
-	auto setText = [tableWidget](int row, int col, const QString& text)->void
+	auto setText = [tableWidget](qint64 row, qint64 col, const QString& text)->void
 	{
 		// 檢查指針
 		QTableWidgetItem* item = tableWidget->item(row, col);
@@ -203,28 +184,28 @@ void BattleInfoForm::updateItemInfoRowContents(QTableWidget* tableWidget, const 
 		}
 	};
 
-	static const QHash<int, QPair<int, int>> fill_hash = {
-		{ 4, QPair<int, int>{ 0, 0 } },
-		{ 9, QPair<int, int>{ 1, 0 } },
-		{ 2, QPair<int, int>{ 2, 0 } },
-		{ 7, QPair<int, int>{ 3, 0 } },
-		{ 0, QPair<int, int>{ 4, 0 } },
-		{ 5, QPair<int, int>{ 5, 0 } },
-		{ 1, QPair<int, int>{ 6, 0 } },
-		{ 6, QPair<int, int>{ 7, 0 } },
-		{ 3, QPair<int, int>{ 8, 0 } },
-		{ 8, QPair<int, int>{ 9, 0 } },
+	static const QHash<qint64, QPair<qint64, qint64>> fill_hash = {
+		{ 4, QPair<qint64, qint64>{ 0, 0 } },
+		{ 9, QPair<qint64, qint64>{ 1, 0 } },
+		{ 2, QPair<qint64, qint64>{ 2, 0 } },
+		{ 7, QPair<qint64, qint64>{ 3, 0 } },
+		{ 0, QPair<qint64, qint64>{ 4, 0 } },
+		{ 5, QPair<qint64, qint64>{ 5, 0 } },
+		{ 1, QPair<qint64, qint64>{ 6, 0 } },
+		{ 6, QPair<qint64, qint64>{ 7, 0 } },
+		{ 3, QPair<qint64, qint64>{ 8, 0 } },
+		{ 8, QPair<qint64, qint64>{ 9, 0 } },
 
-		{ 14, QPair<int, int>{ 0, 0 } },
-		{ 19, QPair<int, int>{ 1, 0 } },
-		{ 12, QPair<int, int>{ 2, 0 } },
-		{ 17, QPair<int, int>{ 3, 0 } },
-		{ 10, QPair<int, int>{ 4, 0 } },
-		{ 15, QPair<int, int>{ 5, 0 } },
-		{ 11, QPair<int, int>{ 6, 0 } },
-		{ 16, QPair<int, int>{ 7, 0 } },
-		{ 13, QPair<int, int>{ 8, 0 } },
-		{ 18, QPair<int, int>{ 9, 0 } },
+		{ 14, QPair<qint64, qint64>{ 0, 0 } },
+		{ 19, QPair<qint64, qint64>{ 1, 0 } },
+		{ 12, QPair<qint64, qint64>{ 2, 0 } },
+		{ 17, QPair<qint64, qint64>{ 3, 0 } },
+		{ 10, QPair<qint64, qint64>{ 4, 0 } },
+		{ 15, QPair<qint64, qint64>{ 5, 0 } },
+		{ 11, QPair<qint64, qint64>{ 6, 0 } },
+		{ 16, QPair<qint64, qint64>{ 7, 0 } },
+		{ 13, QPair<qint64, qint64>{ 8, 0 } },
+		{ 18, QPair<qint64, qint64>{ 9, 0 } },
 	};
 
 	const QString objectName = tableWidget->objectName();
@@ -238,7 +219,7 @@ void BattleInfoForm::updateItemInfoRowContents(QTableWidget* tableWidget, const 
 			continue;
 		}
 
-		int pos = l.at(0).toInt(&ok);
+		qint64 pos = l.at(0).toLongLong(&ok);
 		if (!ok)
 		{
 			continue;
@@ -247,7 +228,7 @@ void BattleInfoForm::updateItemInfoRowContents(QTableWidget* tableWidget, const 
 		QString text = l.at(1);
 		const QString ride = l.at(2);
 
-		const QPair<int, int> fill = fill_hash.value(pos, QPair<int, int>{ -1, -1 });
+		const QPair<qint64, qint64> fill = fill_hash.value(pos, qMakePair(-1, -1));
 		if (fill.first == -1)
 		{
 			continue;

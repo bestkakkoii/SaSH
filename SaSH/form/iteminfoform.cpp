@@ -22,10 +22,11 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "injector.h"
 #include "signaldispatcher.h"
 
-ItemInfoForm::ItemInfoForm(QWidget* parent)
+ItemInfoForm::ItemInfoForm(qint64 index, QWidget* parent)
 	: QWidget(parent)
 {
 	ui.setupUi(this);
+	setIndex(index);
 
 	//register meta type of QVariant
 	qRegisterMetaType<QVariant>("QVariant");
@@ -33,30 +34,11 @@ ItemInfoForm::ItemInfoForm(QWidget* parent)
 
 	auto setTableWidget = [](QTableWidget* tableWidget)->void
 	{
-		//tablewidget set single selection
-		tableWidget->setSelectionMode(QAbstractItemView::SingleSelection);
-		//tablewidget set selection behavior
-		tableWidget->setSelectionBehavior(QAbstractItemView::SelectRows);
-		//set auto resize to form size
-		tableWidget->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
-		tableWidget->verticalHeader()->setSectionResizeMode(QHeaderView::Fixed);
-
-		//tableWidget->setStyleSheet(R"(
-		//QTableWidget { font-size:11px; } 
-		//	QTableView::item:selected { background-color: black; color: white;
-		//})");
-		tableWidget->verticalHeader()->setDefaultSectionSize(11);
-		tableWidget->horizontalHeader()->setStretchLastSection(true);
-		tableWidget->horizontalHeader()->setHighlightSections(false);
-		tableWidget->verticalHeader()->setHighlightSections(false);
-		tableWidget->horizontalHeader()->setDefaultAlignment(Qt::AlignLeft);
-		tableWidget->verticalHeader()->setDefaultAlignment(Qt::AlignLeft);
-
-		int rowCount = tableWidget->rowCount();
-		int columnCount = tableWidget->columnCount();
-		for (int row = 0; row < rowCount; ++row)
+		qint64 rowCount = tableWidget->rowCount();
+		qint64 columnCount = tableWidget->columnCount();
+		for (qint64 row = 0; row < rowCount; ++row)
 		{
-			for (int column = 0; column < columnCount; ++column)
+			for (qint64 column = 0; column < columnCount; ++column)
 			{
 				QTableWidgetItem* item = new QTableWidgetItem("");
 				if (item)
@@ -70,33 +52,33 @@ ItemInfoForm::ItemInfoForm(QWidget* parent)
 
 	onResetControlTextLanguage();
 
-	Injector& injector = Injector::getInstance();
+	Injector& injector = Injector::getInstance(index);
 	if (!injector.server.isNull())
 	{
-		util::SafeHash<int, QVariant> hashItem = injector.server->itemInfoRowContents;
+		QHash<qint64, QVariant> hashItem = injector.server->itemInfoRowContents.toHash();
 		for (auto it = hashItem.begin(); it != hashItem.end(); ++it)
 		{
 			onUpdateItemInfoRowContents(it.key(), it.value());
 		}
 
-		util::SafeHash<int, QVariant> hashEquip = injector.server->equipInfoRowContents;
+		QHash<qint64, QVariant> hashEquip = injector.server->equipInfoRowContents.toHash();
 		for (auto it = hashEquip.begin(); it != hashEquip.end(); ++it)
 		{
 			onUpdateEquipInfoRowContents(it.key(), it.value());
 		}
 	}
 
-	connect(ui.pushButton_refresh, &PushButton::clicked, this, []()
+	connect(ui.pushButton_refresh, &PushButton::clicked, this, [index]()
 		{
-			Injector& injector = Injector::getInstance();
+			Injector& injector = Injector::getInstance(index);
 			if (!injector.server.isNull())
 			{
-				for (int i = 0; i < 4; ++i)
+				for (qint64 i = 0; i < 4; ++i)
 					injector.server->sortItem(true);
 			}
 		});
 
-	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
+	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(index);
 	connect(&signalDispatcher, &SignalDispatcher::updateEquipInfoRowContents, this, &ItemInfoForm::onUpdateEquipInfoRowContents, Qt::UniqueConnection);
 	connect(&signalDispatcher, &SignalDispatcher::updateItemInfoRowContents, this, &ItemInfoForm::onUpdateItemInfoRowContents, Qt::UniqueConnection);
 
@@ -115,14 +97,14 @@ void ItemInfoForm::onResetControlTextLanguage()
 	};
 
 	//put on first col
-	int rowCount = ui.tableWidget_equip->rowCount();
-	int size = equipVHeaderList.size();
+	qint64 rowCount = ui.tableWidget_equip->rowCount();
+	qint64 size = equipVHeaderList.size();
 	while (rowCount < size)
 	{
 		ui.tableWidget_equip->insertRow(rowCount);
 		++rowCount;
 	}
-	for (int row = 0; row < rowCount; ++row)
+	for (qint64 row = 0; row < rowCount; ++row)
 	{
 		if (row >= size)
 			break;
@@ -144,7 +126,7 @@ void ItemInfoForm::onResetControlTextLanguage()
 		ui.tableWidget_item->insertRow(rowCount);
 		++rowCount;
 	}
-	for (int row = 0; row < rowCount; ++row)
+	for (qint64 row = 0; row < rowCount; ++row)
 	{
 		QTableWidgetItem* item = ui.tableWidget_item->item(row, 0);
 		if (item)
@@ -158,7 +140,7 @@ void ItemInfoForm::onResetControlTextLanguage()
 	}
 }
 
-void ItemInfoForm::updateItemInfoRowContents(QTableWidget* tableWidget, int row, const QVariant& data)
+void ItemInfoForm::updateItemInfoRowContents(QTableWidget* tableWidget, qint64 row, const QVariant& data)
 {
 
 	// 檢查是否為 QVariantList
@@ -169,15 +151,15 @@ void ItemInfoForm::updateItemInfoRowContents(QTableWidget* tableWidget, int row,
 	QVariantList list = data.toList();
 
 	// 取得 QVariantList 的大小
-	const int size = list.size();
+	const qint64 size = list.size();
 
 	// 獲取當前表格的總行數
-	const int colCount = tableWidget->rowCount();
+	const qint64 colCount = tableWidget->rowCount();
 	if (row < 0 || row >= colCount)
 		return;
 
 	// 開始填入內容
-	for (int col = 0; col < colCount; ++col)
+	for (qint64 col = 0; col < colCount; ++col)
 	{
 		// 設置內容
 		if (col >= size)
@@ -208,19 +190,20 @@ void ItemInfoForm::updateItemInfoRowContents(QTableWidget* tableWidget, int row,
 	}
 }
 
-void ItemInfoForm::onUpdateEquipInfoRowContents(int row, const QVariant& data)
+void ItemInfoForm::onUpdateEquipInfoRowContents(qint64 row, const QVariant& data)
 {
 	updateItemInfoRowContents(ui.tableWidget_equip, row, data);
 }
 
-void ItemInfoForm::onUpdateItemInfoRowContents(int row, const QVariant& data)
+void ItemInfoForm::onUpdateItemInfoRowContents(qint64 row, const QVariant& data)
 {
 	updateItemInfoRowContents(ui.tableWidget_item, row - 9, data);
 }
 
 void ItemInfoForm::on_tableWidget_item_cellDoubleClicked(int row, int column)
 {
-	Injector& injector = Injector::getInstance();
+	qint64 currentIndex = getIndex();
+	Injector& injector = Injector::getInstance(currentIndex);
 	if (injector.server.isNull())
 		return;
 
@@ -229,11 +212,12 @@ void ItemInfoForm::on_tableWidget_item_cellDoubleClicked(int row, int column)
 
 void ItemInfoForm::on_tableWidget_equip_cellDoubleClicked(int row, int column)
 {
-	Injector& injector = Injector::getInstance();
+	qint64 currentIndex = getIndex();
+	Injector& injector = Injector::getInstance(currentIndex);
 	if (injector.server.isNull())
 		return;
 
-	int spotIndex = injector.server->getItemEmptySpotIndex();
+	qint64 spotIndex = injector.server->getItemEmptySpotIndex();
 	if (spotIndex == -1)
 		return;
 

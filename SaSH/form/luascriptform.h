@@ -20,14 +20,15 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 #include <QWidget>
 #include "ui_luascriptform.h"
+#include <indexer.h>
 
 class CLua;
-class LuaScriptForm : public QWidget
+class LuaScriptForm : public QWidget, public Indexer
 {
 	Q_OBJECT
 
 public:
-	explicit LuaScriptForm(QWidget* parent = nullptr);
+	explicit LuaScriptForm(qint64 index, QWidget* parent = nullptr);
 
 	virtual ~LuaScriptForm();
 
@@ -46,7 +47,7 @@ private slots:
 
 	void onScriptTableWidgetClicked(QTableWidgetItem* item);
 
-	void onScriptLabelRowTextChanged(int row, int max, bool noSelect);
+	void onScriptLabelRowTextChanged(qint64 row, qint64 max, bool noSelect);
 
 	void onCurrentTableWidgetItemChanged(QTableWidgetItem* current, QTableWidgetItem* previous);
 
@@ -72,9 +73,9 @@ protected:
 	}
 
 private:
-	void setTableWidgetItem(int row, int col, const QString& text);
+	void setTableWidgetItem(qint64 row, qint64 col, const QString& text);
 
-	void resizeTableWidgetRow(int max);
+	void resizeTableWidgetRow(qint64 max);
 
 private:
 	Ui::LuaScriptFormClass ui;

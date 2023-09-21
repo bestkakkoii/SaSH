@@ -25,14 +25,15 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include <QReadWriteLock>
 
 #include "signaldispatcher.h"
+#include <indexer.h>
 #include <shared_mutex>
-class ThreadPlugin : public QObject
+class ThreadPlugin : public QObject, public Indexer
 {
 	Q_OBJECT
 public:
-	explicit ThreadPlugin(QObject* parent) : QObject(parent)
+	explicit ThreadPlugin(qint64 index, QObject* parent) : QObject(parent)
 	{
-		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
+		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(index);
 		connect(&signalDispatcher, &SignalDispatcher::nodifyAllStop, this, &ThreadPlugin::requestInterruption);
 	}
 

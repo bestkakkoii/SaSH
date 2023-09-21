@@ -25,10 +25,10 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "util.h"
 #include "script_lua/clua.h"
 
-using CommandRegistry = std::function<qint64(qint64 currentLine, const TokenMap& token)>;
+using CommandRegistry = std::function<qint64(qint64 currentIndex, qint64 currentLine, const TokenMap& token)>;
 
 //callbak
-using ParserCallBack = std::function<qint64(qint64 currentLine, const TokenMap& token)>;
+using ParserCallBack = std::function<qint64(qint64 currentIndex, qint64 currentLine, const TokenMap& token)>;
 
 using VariantSafeHash = util::SafeHash<QString, QVariant>;
 
@@ -363,7 +363,7 @@ public:
 	};
 
 public:
-	Parser();
+	explicit Parser(qint64 index);
 	virtual ~Parser();
 
 	//解析腳本
@@ -376,6 +376,7 @@ public:
 	inline Q_REQUIRED_RESULT QHash<QString, qint64> getLabels() const { return labels_; }
 	inline Q_REQUIRED_RESULT QList<FunctionNode> getFunctionNodeList() const { return functionNodeList_; }
 	inline Q_REQUIRED_RESULT QList<ForNode> getForNodeList() const { return forNodeList_; }
+	inline Q_REQUIRED_RESULT QList<LuaNode> getLuaNodeList() const { return luaNodeList_; }
 	inline Q_REQUIRED_RESULT qint64 getCurrentLine() const { return lineNumber_; }
 
 	inline void setScriptFileName(const QString& scriptFileName) { scriptFileName_ = scriptFileName; }
@@ -386,6 +387,7 @@ public:
 	inline void setLabels(const QHash<QString, qint64>& labels) { labels_ = labels; }
 	inline void setFunctionNodeList(const QList<FunctionNode>& functionNodeList) { functionNodeList_ = functionNodeList; }
 	inline void setForNodeList(const QList<ForNode>& forNodeList) { forNodeList_ = forNodeList; }
+	inline void setLuaNodeList(const QList<LuaNode>& luaNodeList) { luaNodeList_ = luaNodeList; }
 	inline void setCallBack(ParserCallBack callBack) { callBack_ = callBack; }
 
 	bool loadFile(const QString& fileName, QString* pcontent);
@@ -419,7 +421,7 @@ public:
 	void jumpto(qint64 line, bool noStack);
 	bool jump(const QString& name, bool noStack);
 
-	void Parser::removeEscapeChar(QString* str) const;
+	void removeEscapeChar(QString* str) const;
 	bool checkString(const TokenMap& TK, qint64 idx, QString* ret);
 	bool checkInteger(const TokenMap& TK, qint64 idx, qint64* ret);
 	bool checkNumber(const TokenMap& TK, qint64 idx, double* ret);
@@ -453,7 +455,7 @@ public:
 
 	QHash<QString, qint64> getLabels() { return labels_; }
 
-	QString getLuaTableString(const sol::table& t, int& depth);
+	QString getLuaTableString(const sol::table& t, qint64& depth);
 
 private:
 	void processTokens();
@@ -481,6 +483,7 @@ private:
 	bool processEndFor();
 	bool processBreak();
 	bool processContinue();
+	bool processLuaCode();
 	bool processGetSystemVarValue(const QString& varName, QString& valueStr, QVariant& varValue);
 	bool processIfCompare();
 
@@ -556,6 +559,8 @@ private:
 
 	inline Q_REQUIRED_RESULT RESERVE getTokenType(qint64 index) const { return currentLineTokens_.value(index).type; }
 
+	inline Q_REQUIRED_RESULT qint64 size() const { return tokens_.size(); }
+
 	inline Q_REQUIRED_RESULT TokenMap getCurrentTokens() const { return currentLineTokens_; }
 
 	qint64 matchLineFromLabel(const QString& label) const;
@@ -571,7 +576,7 @@ private:
 	void generateStackInfo(qint64 type);
 
 public:
-	sol::state lua_;
+	CLua clua_;
 
 private:
 
@@ -584,6 +589,7 @@ private:
 	QHash<QString, qint64> labels_;							//所有標記/函數所在行記錄
 	QList<FunctionNode> functionNodeList_;
 	QList<ForNode> forNodeList_;
+	QList<LuaNode> luaNodeList_;
 
 	mutable QReadWriteLock* globalVarLock_ = nullptr;		//全局變量鎖指針
 	VariantSafeHash* variables_ = nullptr;					//全局變量容器指針

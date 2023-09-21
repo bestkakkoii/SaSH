@@ -37,7 +37,7 @@
      <property name="orientation">
       <enum>Qt::Vertical</enum>
      </property>
-     <widget class="QTreeWidget" name="treeWidget_script">
+     <widget class="TreeWidget" name="treeWidget_script">
       <property name="editTriggers">
        <set>QAbstractItemView::NoEditTriggers</set>
       </property>
@@ -105,7 +105,7 @@
         </layout>
        </item>
        <item>
-        <widget class="QTableWidget" name="tableWidget_script">
+        <widget class="TableWidget" name="tableWidget_script">
          <property name="editTriggers">
           <set>QAbstractItemView::NoEditTriggers</set>
          </property>
@@ -183,6 +183,16 @@
    <extends>QWidget</extends>
    <header location="global">fastlabel.h</header>
    <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>TreeWidget</class>
+   <extends>QTreeWidget</extends>
+   <header location="global">treewidget.h</header>
+  </customwidget>
+  <customwidget>
+   <class>TableWidget</class>
+   <extends>QTableWidget</extends>
+   <header location="global">tablewidget.h</header>
   </customwidget>
  </customwidgets>
  <resources/>

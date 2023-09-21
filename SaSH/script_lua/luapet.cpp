@@ -23,7 +23,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 qint64 CLuaPet::setState(qint64 petIndex, qint64 state, sol::this_state s)
 {
-	Injector& injector = Injector::getInstance();
+	sol::state_view lua(s);
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
 	if (injector.server.isNull())
 		return FALSE;
 
@@ -36,7 +37,8 @@ qint64 CLuaPet::setState(qint64 petIndex, qint64 state, sol::this_state s)
 
 qint64 CLuaPet::drop(qint64 petIndex, sol::this_state s)
 {
-	Injector& injector = Injector::getInstance();
+	sol::state_view lua(s);
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
 	if (injector.server.isNull())
 		return FALSE;
 
@@ -49,7 +51,8 @@ qint64 CLuaPet::drop(qint64 petIndex, sol::this_state s)
 
 qint64 CLuaPet::rename(qint64 petIndex, std::string name, sol::this_state s)
 {
-	Injector& injector = Injector::getInstance();
+	sol::state_view lua(s);
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
 	if (injector.server.isNull())
 		return FALSE;
 
@@ -64,7 +67,8 @@ qint64 CLuaPet::rename(qint64 petIndex, std::string name, sol::this_state s)
 
 qint64 CLuaPet::learn(qint64 fromSkillIndex, qint64 petIndex, qint64 toSkillIndex, qint64 unitid, qint64 dialogid, sol::this_state s)
 {
-	Injector& injector = Injector::getInstance();
+	sol::state_view lua(s);
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
 	if (injector.server.isNull())
 		return FALSE;
 
@@ -77,7 +81,8 @@ qint64 CLuaPet::learn(qint64 fromSkillIndex, qint64 petIndex, qint64 toSkillInde
 
 qint64 CLuaPet::swap(qint64 petIndex, qint64 from, qint64 to, sol::this_state s)
 {
-	Injector& injector = Injector::getInstance();
+	sol::state_view lua(s);
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
 	if (injector.server.isNull())
 		return FALSE;
 
@@ -90,7 +95,8 @@ qint64 CLuaPet::swap(qint64 petIndex, qint64 from, qint64 to, sol::this_state s)
 
 qint64 CLuaPet::deposit(qint64 petIndex, qint64 unitid, qint64 dialogid, sol::this_state s)
 {
-	Injector& injector = Injector::getInstance();
+	sol::state_view lua(s);
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
 	if (injector.server.isNull())
 		return FALSE;
 
@@ -103,7 +109,8 @@ qint64 CLuaPet::deposit(qint64 petIndex, qint64 unitid, qint64 dialogid, sol::th
 
 qint64 CLuaPet::withdraw(qint64 petIndex, qint64 unitid, qint64 dialogid, sol::this_state s)
 {
-	Injector& injector = Injector::getInstance();
+	sol::state_view lua(s);
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
 	if (injector.server.isNull())
 		return FALSE;
 

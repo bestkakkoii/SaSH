@@ -76,7 +76,7 @@
         </layout>
        </item>
        <item>
-        <widget class="QTableWidget" name="tableWidget_equip">
+        <widget class="TableWidget" name="tableWidget_equip">
          <property name="editTriggers">
           <set>QAbstractItemView::NoEditTriggers</set>
          </property>
@@ -155,7 +155,7 @@
         </layout>
        </item>
        <item>
-        <widget class="QTableWidget" name="tableWidget_item">
+        <widget class="TableWidget" name="tableWidget_item">
          <property name="editTriggers">
           <set>QAbstractItemView::NoEditTriggers</set>
          </property>
@@ -212,6 +212,11 @@
    <class>PushButton</class>
    <extends>QPushButton</extends>
    <header location="global">pushbutton.h</header>
+  </customwidget>
+  <customwidget>
+   <class>TableWidget</class>
+   <extends>QTableWidget</extends>
+   <header location="global">tablewidget.h</header>
   </customwidget>
  </customwidgets>
  <resources/>

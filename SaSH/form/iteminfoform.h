@@ -20,13 +20,13 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 #include <QWidget>
 #include "ui_iteminfoform.h"
-
-class ItemInfoForm : public QWidget
+#include <indexer.h>
+class ItemInfoForm : public QWidget, public Indexer
 {
 	Q_OBJECT
 
 public:
-	explicit ItemInfoForm(QWidget* parent = nullptr);
+	explicit ItemInfoForm(qint64 index, QWidget* parent = nullptr);
 
 	virtual ~ItemInfoForm();
 
@@ -34,9 +34,9 @@ public slots:
 	void onResetControlTextLanguage();
 
 private slots:
-	void onUpdateItemInfoRowContents(int row, const QVariant& data);
+	void onUpdateItemInfoRowContents(qint64 row, const QVariant& data);
 
-	void onUpdateEquipInfoRowContents(int row, const QVariant& data);
+	void onUpdateEquipInfoRowContents(qint64 row, const QVariant& data);
 
 	void on_tableWidget_item_cellDoubleClicked(int row, int column);
 
@@ -50,7 +50,7 @@ protected:
 	}
 
 private:
-	void updateItemInfoRowContents(QTableWidget* tableWidget, int row, const QVariant& data);
+	void updateItemInfoRowContents(QTableWidget* tableWidget, qint64 row, const QVariant& data);
 
 private:
 	Ui::ItemInfoFormClass ui;

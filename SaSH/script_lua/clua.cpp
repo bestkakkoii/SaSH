@@ -32,10 +32,10 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 #define OPEN_HOOK
 
-extern util::SafeHash<QString, util::SafeHash<qint64, break_marker_t>> break_markers;//interpreter.cpp//用於標記自訂義中斷點(紅點)
-extern util::SafeHash<QString, util::SafeHash<qint64, break_marker_t>> forward_markers;//interpreter.cpp//用於標示當前執行中斷處(黃箭頭)
-extern util::SafeHash<QString, util::SafeHash<qint64, break_marker_t>> error_markers;//interpreter.cpp//用於標示錯誤發生行(紅線)
-extern util::SafeHash<QString, util::SafeHash<qint64, break_marker_t>> step_markers;//interpreter.cpp//隱式標記中斷點用於單步執行(無)
+extern util::SafeHash<QString, util::SafeHash<qint64, break_marker_t>> break_markers[];//interpreter.cpp//用於標記自訂義中斷點(紅點)
+extern util::SafeHash<QString, util::SafeHash<qint64, break_marker_t>> forward_markers[];//interpreter.cpp//用於標示當前執行中斷處(黃箭頭)
+extern util::SafeHash<QString, util::SafeHash<qint64, break_marker_t>> error_markers[];//interpreter.cpp//用於標示錯誤發生行(紅線)
+extern util::SafeHash<QString, util::SafeHash<qint64, break_marker_t>> step_markers[];//interpreter.cpp//隱式標記中斷點用於單步執行(無)
 
 void luadebug::tryPopCustomErrorMsg(const sol::this_state& s, const LUA_ERROR_TYPE element, const QVariant& p1, const QVariant& p2, const QVariant& p3, const QVariant& p4)
 {
@@ -61,15 +61,15 @@ void luadebug::tryPopCustomErrorMsg(const sol::this_state& s, const LUA_ERROR_TY
 	}
 	case ERROR_PARAM_SIZE://固定參數數量錯誤
 	{
-		int topsize = lua_gettop(L);
-		const QString qmsgstr(QString(errormsg_str.value(element)).arg(p1.toInt()).arg(topsize));
+		qint64 topsize = lua_gettop(L);
+		const QString qmsgstr(QString(errormsg_str.value(element)).arg(p1.toLongLong()).arg(topsize));
 		const std::string str(qmsgstr.toUtf8().constData());
-		luaL_argcheck(L, topsize == p1.toInt(), topsize, str.c_str());
+		luaL_argcheck(L, topsize == p1.toLongLong(), topsize, str.c_str());
 		break;
 	}
 	case ERROR_PARAM_SIZE_NONE://無參數數量錯誤
 	{
-		int topsize = lua_gettop(L);
+		qint64 topsize = lua_gettop(L);
 		const QString qmsgstr(QString(errormsg_str.value(element)).arg(topsize));
 		const std::string str(qmsgstr.toUtf8().constData());
 		luaL_argcheck(L, topsize == 0, 1, str.c_str());
@@ -77,24 +77,24 @@ void luadebug::tryPopCustomErrorMsg(const sol::this_state& s, const LUA_ERROR_TY
 	}
 	case ERROR_PARAM_SIZE_RANGE://範圍參數數量錯誤
 	{
-		int topsize = lua_gettop(L);
-		const QString qmsgstr(QString(errormsg_str.value(element)).arg(p1.toInt()).arg(p2.toInt()).arg(topsize));
+		qint64 topsize = lua_gettop(L);
+		const QString qmsgstr(QString(errormsg_str.value(element)).arg(p1.toLongLong()).arg(p2.toLongLong()).arg(topsize));
 		const std::string str(qmsgstr.toUtf8().constData());
-		luaL_argcheck(L, topsize >= p1.toInt() && topsize <= p2.toInt(), 1, str.c_str());
+		luaL_argcheck(L, topsize >= p1.toLongLong() && topsize <= p2.toLongLong(), 1, str.c_str());
 		break;
 	}
 	case ERROR_PARAM_VALUE://數值錯誤 p1 第幾個參數 p2邏輯 str訊息
 	{
 		const QString qmsgstr(p3.toString());
 		const std::string str(qmsgstr.toUtf8().constData());
-		luaL_argcheck(L, p2.toBool(), p1.toInt(), str.c_str());
+		luaL_argcheck(L, p2.toBool(), p1.toLongLong(), str.c_str());
 		break;
 	}
 	case ERROR_PARAM_TYPE://參數預期錯誤 p1 第幾個參數 p2邏輯 str訊息
 	{
 		const QString qmsgstr(p3.toString());
 		const std::string str(qmsgstr.toUtf8().constData());
-		luaL_argexpected(L, p2.toBool(), p1.toInt(), str.c_str());
+		luaL_argexpected(L, p2.toBool(), p1.toLongLong(), str.c_str());
 		break;
 	}
 	default:
@@ -105,24 +105,24 @@ void luadebug::tryPopCustomErrorMsg(const sol::this_state& s, const LUA_ERROR_TY
 	}
 }
 
-QString luadebug::getErrorMsgLocatedLine(const QString& str, int* retline)
+QString luadebug::getErrorMsgLocatedLine(const QString& str, qint64* retline)
 {
 	const QString cmpstr(str.simplified());
 
 	QRegularExpressionMatch match = rexGetLine.match(cmpstr);
 	QRegularExpressionMatch match2 = reGetLineEx.match(cmpstr);
-	static const auto matchies = [](const QRegularExpressionMatch& m, int* retline)->void
+	static const auto matchies = [](const QRegularExpressionMatch& m, qint64* retline)->void
 	{
-		int size = m.capturedTexts().size();
+		qint64 size = m.capturedTexts().size();
 		if (size > 1)
 		{
-			for (int i = (size - 1); i >= 1; --i)
+			for (qint64 i = (size - 1); i >= 1; --i)
 			{
 				const QString s = m.captured(i).simplified();
 				if (!s.isEmpty())
 				{
 					bool ok = false;
-					int row = s.simplified().toInt(&ok);
+					qint64 row = s.simplified().toLongLong(&ok);
 					if (ok)
 					{
 						if (retline)
@@ -147,15 +147,15 @@ QString luadebug::getErrorMsgLocatedLine(const QString& str, int* retline)
 	return cmpstr;
 }
 
-QString luadebug::getTableVars(lua_State*& L, int si, int depth)
+QString luadebug::getTableVars(lua_State*& L, qint64 si, qint64 depth)
 {
 	if (!L) return "\0";
 	QPair<QString, QString> pa;
-	int pos_si = si > 0 ? si : (si - 1);
+	qint64 pos_si = si > 0 ? si : (si - 1);
 	QString ret("{");
-	int top = lua_gettop(L);
+	qint64 top = lua_gettop(L);
 	lua_pushnil(L);
-	int empty = 1;
+	qint64 empty = 1;
 	while (lua_next(L, pos_si) != 0)
 	{
 		if (empty)
@@ -164,8 +164,8 @@ QString luadebug::getTableVars(lua_State*& L, int si, int depth)
 			empty = 0;
 		}
 
-		int i;
-		for (i = 0; i < depth; i++)
+		qint64 i;
+		for (i = 0; i < depth; ++i)
 		{
 			ret += (" ");
 		}
@@ -193,8 +193,8 @@ QString luadebug::getTableVars(lua_State*& L, int si, int depth)
 	}
 	else
 	{
-		int i;
-		for (i = 0; i < depth - 1; i++)
+		qint64 i;
+		for (i = 0; i < depth - 1; ++i)
 		{
 			ret += (" ");
 		}
@@ -204,7 +204,7 @@ QString luadebug::getTableVars(lua_State*& L, int si, int depth)
 	return ret;
 }
 
-QPair<QString, QString> luadebug::getVars(lua_State*& L, int si, int depth)
+QPair<QString, QString> luadebug::getVars(lua_State*& L, qint64 si, qint64 depth)
 {
 	switch (lua_type(L, si))
 	{
@@ -250,7 +250,6 @@ QPair<QString, QString> luadebug::getVars(lua_State*& L, int si, int depth)
 
 	case LUA_TTABLE:
 	{
-		//print_table_var(state, si, depth);
 		return { "(table)" , getTableVars(L, si, depth) };
 	}
 
@@ -289,8 +288,8 @@ void luadebug::checkStopAndPause(const sol::this_state& s)
 bool luadebug::checkOnlineThenWait(const sol::this_state& s)
 {
 	checkStopAndPause(s);
-
-	Injector& injector = Injector::getInstance();
+	sol::state_view lua(s.lua_state());
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
 	bool bret = false;
 	if (!injector.server->getOnlineFlag())
 	{
@@ -323,7 +322,8 @@ bool luadebug::checkBattleThenWait(const sol::this_state& s)
 {
 	checkStopAndPause(s);
 
-	Injector& injector = Injector::getInstance();
+	sol::state_view lua(s.lua_state());
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
 	bool bret = false;
 	if (injector.server->getBattleFlag())
 	{
@@ -354,7 +354,8 @@ bool luadebug::checkBattleThenWait(const sol::this_state& s)
 
 void luadebug::processDelay(const sol::this_state& s)
 {
-	Injector& injector = Injector::getInstance();
+	sol::state_view lua(s.lua_state());
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
 	qint64 extraDelay = injector.getValueHash(util::kScriptSpeedValue);
 	if (extraDelay > 1000ll)
 	{
@@ -375,6 +376,86 @@ void luadebug::processDelay(const sol::this_state& s)
 		QThread::msleep(extraDelay);
 	}
 }
+
+//遞歸獲取每一層目錄
+void luadebug::getPackagePath(const QString base, QStringList* result)
+{
+	QDir dir(base);
+	if (!dir.exists())
+		return;
+	dir.setFilter(QDir::Dirs | QDir::NoDotAndDotDot);
+	dir.setSorting(QDir::DirsFirst);
+	QFileInfoList list = dir.entryInfoList();
+	for (qint64 i = 0; i < list.size(); ++i)
+	{
+		QFileInfo fileInfo = list.at(i);
+		result->append(fileInfo.filePath());
+		getPackagePath(fileInfo.filePath(), result);
+	}
+}
+
+void luadebug::logExport(const sol::this_state& s, const QStringList& datas, qint64 color)
+{
+	for (const QString& data : datas)
+	{
+		logExport(s, data, color);
+	}
+}
+
+void luadebug::logExport(const sol::this_state& s, const QString& data, qint64 color)
+{
+
+	//打印當前時間
+	const QDateTime time(QDateTime::currentDateTime());
+	const QString timeStr(time.toString("hh:mm:ss:zzz"));
+	QString msg = "\0";
+	QString src = "\0";
+
+	qint64 currentline = getCurrentLine(s);
+
+	msg = (QString("[%1 | @%2]: %3\0") \
+		.arg(timeStr)
+		.arg(currentline + 1, 3, 10, QLatin1Char(' ')).arg(data));
+
+	sol::state_view lua(s.lua_state());
+	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(lua["_INDEX"].get<qint64>());
+	emit signalDispatcher.appendScriptLog(msg, color);
+}
+
+//根據傳入function的循環執行結果等待超時或條件滿足提早結束
+bool luadebug::waitfor(const sol::this_state& s, qint64 timeout, std::function<bool()> exprfun)
+{
+	if (timeout < 0)
+		timeout = std::numeric_limits<qint64>::max();
+
+	sol::state_view lua(s.lua_state());
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
+	bool bret = false;
+	QElapsedTimer timer; timer.start();
+	for (;;)
+	{
+		checkStopAndPause(s);
+
+		if (isInterruptionRequested(s))
+			break;
+
+		if (timer.hasExpired(timeout))
+			break;
+
+		if (injector.server.isNull())
+			break;
+
+		if (exprfun())
+		{
+			bret = true;
+			break;
+		}
+
+		QThread::msleep(100);
+	}
+	return bret;
+}
+
 
 //lua函數鉤子 這裡主要用於控制 暫停、終止腳本、獲取棧數據、變量數據...或其他操作
 void luadebug::hookProc(lua_State* L, lua_Debug* ar)
@@ -409,14 +490,19 @@ void luadebug::hookProc(lua_State* L, lua_Debug* ar)
 	{
 		sol::state_view lua(s.lua_state());
 
+		if (lua["_HOOKFORSTOP"].is<bool>() && lua["_HOOKFORSTOP"].get<bool>())
+		{
+			luadebug::checkStopAndPause(s);
+			break;
+		}
+
 		qint64 currentLine = ar->currentline;
-		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
-		qint64 max = lua["_ROWCOUNT"];
+		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(lua["_INDEX"].get<qint64>());
+		qint64 max = lua["_ROWCOUNT_"];
 
-		Injector& injector = Injector::getInstance();
+		Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
 
-		if (injector.isScriptDebugModeEnable.load(std::memory_order_acquire))
-			emit signalDispatcher.scriptLabelRowTextChanged(currentLine, max, false);
+		emit signalDispatcher.scriptLabelRowTextChanged(currentLine, max, false);
 
 		processDelay(s);
 		if (!lua["_DEBUG"].is<bool>() || lua["_DEBUG"].get<bool>())
@@ -437,8 +523,8 @@ void luadebug::hookProc(lua_State* L, lua_Debug* ar)
 
 		QString scriptFileName = injector.currentScriptFileName;
 
-		util::SafeHash<qint64, break_marker_t> breakMarkers = break_markers.value(scriptFileName);
-		const util::SafeHash<qint64, break_marker_t> stepMarkers = step_markers.value(scriptFileName);
+		util::SafeHash<qint64, break_marker_t> breakMarkers = break_markers[currentLine].value(scriptFileName);
+		const util::SafeHash<qint64, break_marker_t> stepMarkers = step_markers[currentLine].value(scriptFileName);
 		if (!(breakMarkers.contains(currentLine) || stepMarkers.contains(currentLine)))
 		{
 			return;//檢查是否有中斷點
@@ -454,7 +540,7 @@ void luadebug::hookProc(lua_State* L, lua_Debug* ar)
 
 			//重新插入斷下的紀錄
 			breakMarkers.insert(currentLine, mark);
-			break_markers.insert(scriptFileName, breakMarkers);
+			break_markers[currentLine].insert(scriptFileName, breakMarkers);
 			//所有行插入隱式斷點(用於單步)
 			emit signalDispatcher.addStepMarker(currentLine, true);
 		}
@@ -462,10 +548,10 @@ void luadebug::hookProc(lua_State* L, lua_Debug* ar)
 		emit signalDispatcher.addForwardMarker(currentLine, true);
 
 		//獲取區域變量數值
-		int i;
+		qint64 i;
 		const char* name = nullptr;
 		QVariantHash varhash;
-		for (i = 1; (name = lua_getlocal(L, ar, i)) != NULL; i++)
+		for (i = 1; (name = lua_getlocal(L, ar, i)) != NULL; ++i)
 		{
 			QPair<QString, QString> vs = getVars(L, i, 5);
 
@@ -475,7 +561,7 @@ void luadebug::hookProc(lua_State* L, lua_Debug* ar)
 			lua_pop(L, 1);// no match, then pop out the var's value
 		}
 
-		Parser parser;
+		Parser parser(lua["_INDEX"].get<qint64>());
 		emit signalDispatcher.varInfoImported(&parser, varhash);
 
 		luadebug::checkStopAndPause(s);
@@ -487,95 +573,19 @@ void luadebug::hookProc(lua_State* L, lua_Debug* ar)
 	}
 }
 
-//遞歸獲取每一層目錄
-void luadebug::getPackagePath(const QString base, QStringList* result)
-{
-	QDir dir(base);
-	if (!dir.exists())
-		return;
-	dir.setFilter(QDir::Dirs | QDir::NoDotAndDotDot);
-	dir.setSorting(QDir::DirsFirst);
-	QFileInfoList list = dir.entryInfoList();
-	for (int i = 0; i < list.size(); ++i)
-	{
-		QFileInfo fileInfo = list.at(i);
-		result->append(fileInfo.filePath());
-		getPackagePath(fileInfo.filePath(), result);
-	}
-}
-
-void luadebug::logExport(const sol::this_state& s, const QStringList& datas, qint64 color)
-{
-	for (const QString& data : datas)
-	{
-		logExport(s, data, color);
-	}
-}
-
-void luadebug::logExport(const sol::this_state& s, const QString& data, qint64 color)
-{
-
-	//打印當前時間
-	const QDateTime time(QDateTime::currentDateTime());
-	const QString timeStr(time.toString("hh:mm:ss:zzz"));
-	QString msg = "\0";
-	QString src = "\0";
-
-	qint64 currentline = getCurrentLine(s);
-
-	msg = (QString("[%1 | @%2]: %3\0") \
-		.arg(timeStr)
-		.arg(currentline + 1, 3, 10, QLatin1Char(' ')).arg(data));
-
-	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
-	emit signalDispatcher.appendScriptLog(msg, color);
-}
-
-//根據傳入function的循環執行結果等待超時或條件滿足提早結束
-bool luadebug::waitfor(const sol::this_state& s, qint64 timeout, std::function<bool()> exprfun)
-{
-	if (timeout < 0)
-		timeout = std::numeric_limits<qint64>::max();
-
-	Injector& injector = Injector::getInstance();
-	bool bret = false;
-	QElapsedTimer timer; timer.start();
-	for (;;)
-	{
-		checkStopAndPause(s);
-
-		if (isInterruptionRequested(s))
-			break;
-
-		if (timer.hasExpired(timeout))
-			break;
-
-		if (injector.server.isNull())
-			break;
-
-		if (exprfun())
-		{
-			bret = true;
-			break;
-		}
-
-		QThread::msleep(100);
-	}
-	return bret;
-}
-
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-CLua::CLua(QObject* parent)
-	: ThreadPlugin(parent)
+CLua::CLua(qint64 index, QObject* parent)
+	: ThreadPlugin(index, parent)
 {
-
+	setIndex(index);
 }
 
-CLua::CLua(const QString& content, QObject* parent)
-	: ThreadPlugin(parent)
+CLua::CLua(qint64 index, const QString& content, QObject* parent)
+	: ThreadPlugin(index, parent)
 	, scriptContent_(content)
 {
+	setIndex(index);
 	qDebug() << "CLua";
 }
 
@@ -592,7 +602,8 @@ void CLua::start()
 
 	moveToThread(thread_);
 
-	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
+	qint64 currentIndex = getIndex();
+	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
 	connect(this, &CLua::finished, thread_, &QThread::quit);
 	connect(thread_, &QThread::finished, thread_, &QThread::deleteLater);
 	connect(thread_, &QThread::started, this, &CLua::proc);
@@ -668,9 +679,9 @@ void CLua::open_testlibs()
 	*/
 }
 
-void CLua::open_utillibs()
+void CLua::open_utillibs(sol::state& lua)
 {
-	lua_.new_usertype<CLuaUtil>("InfoClass",
+	lua.new_usertype<CLuaUtil>("InfoClass",
 		sol::call_constructor,
 		sol::constructors<CLuaUtil()>(),
 		"sys", &CLuaUtil::getSys,
@@ -690,31 +701,31 @@ void CLua::open_utillibs()
 	);
 
 
-	lua_.safe_script(R"(
+	lua.safe_script(R"(
 			info = InfoClass();
 		)");
 }
 
 //luasystem.cpp
-void CLua::open_syslibs()
+void CLua::open_syslibs(sol::state& lua)
 {
-	lua_.set_function("sleep", &CLuaSystem::sleep, &luaSystem_);
-	lua_.set_function("printf", &CLuaSystem::announce, &luaSystem_);
-	lua_.safe_script(R"(
+	lua.set_function("sleep", &CLuaSystem::sleep, &luaSystem_);
+	lua.set_function("printf", &CLuaSystem::announce, &luaSystem_);
+	lua.safe_script(R"(
 		_print = print;
 		print = printf;
 	)");
 
-	lua_.set_function("msg", &CLuaSystem::messagebox, &luaSystem_);
-	lua_.set_function("saveset", &CLuaSystem::savesetting, &luaSystem_);
-	lua_.set_function("loadset", &CLuaSystem::loadsetting, &luaSystem_);
-	lua_.set_function("set", &CLuaSystem::set, &luaSystem_);
-	lua_.set_function("lclick", &CLuaSystem::leftclick, &luaSystem_);
-	lua_.set_function("rclick", &CLuaSystem::rightclick, &luaSystem_);
-	lua_.set_function("dbclick", &CLuaSystem::leftdoubleclick, &luaSystem_);
-	lua_.set_function("dragto", &CLuaSystem::mousedragto, &luaSystem_);
+	lua.set_function("msg", &CLuaSystem::messagebox, &luaSystem_);
+	lua.set_function("saveset", &CLuaSystem::savesetting, &luaSystem_);
+	lua.set_function("loadset", &CLuaSystem::loadsetting, &luaSystem_);
+	lua.set_function("set", &CLuaSystem::set, &luaSystem_);
+	lua.set_function("lclick", &CLuaSystem::leftclick, &luaSystem_);
+	lua.set_function("rclick", &CLuaSystem::rightclick, &luaSystem_);
+	lua.set_function("dbclick", &CLuaSystem::leftdoubleclick, &luaSystem_);
+	lua.set_function("dragto", &CLuaSystem::mousedragto, &luaSystem_);
 
-	lua_.new_usertype<CLuaSystem>("SystemClass",
+	lua.new_usertype<CLuaSystem>("SystemClass",
 		sol::call_constructor,
 		sol::constructors<CLuaSystem()>(),
 
@@ -736,14 +747,14 @@ void CLua::open_syslibs()
 		"input", &CLuaSystem::input
 	);
 
-	lua_.safe_script(R"(
+	lua.safe_script(R"(
 			sys = SystemClass();
 		)");
 }
 
-void CLua::open_itemlibs()
+void CLua::open_itemlibs(sol::state& lua)
 {
-	lua_.new_usertype<CLuaItem>("ItemClass",
+	lua.new_usertype<CLuaItem>("ItemClass",
 		sol::call_constructor,
 		sol::constructors<CLuaItem()>(),
 		"use", &CLuaItem::use,
@@ -758,14 +769,14 @@ void CLua::open_itemlibs()
 		"withdraw", &CLuaItem::withdraw
 	);
 
-	lua_.safe_script(R"(
+	lua.safe_script(R"(
 			item = ItemClass();
 		)");
 }
 
-void CLua::open_charlibs()
+void CLua::open_charlibs(sol::state& lua)
 {
-	lua_.new_usertype<CLuaChar>("CharClass",
+	lua.new_usertype<CLuaChar>("CharClass",
 		sol::call_constructor,
 		sol::constructors<CLuaChar()>(),
 		"rename", &CLuaChar::rename,
@@ -783,14 +794,14 @@ void CLua::open_charlibs()
 		"kick", &CLuaChar::kick
 	);
 
-	lua_.safe_script(R"(
+	lua.safe_script(R"(
 			char = CharClass();
 		)");
 }
 
-void CLua::open_petlibs()
+void CLua::open_petlibs(sol::state& lua)
 {
-	lua_.new_usertype<CLuaPet>("PetClass",
+	lua.new_usertype<CLuaPet>("PetClass",
 		sol::call_constructor,
 		sol::constructors<CLuaPet()>(),
 		"setState", &CLuaPet::setState,
@@ -802,14 +813,14 @@ void CLua::open_petlibs()
 		"withdraw", &CLuaPet::withdraw
 	);
 
-	lua_.safe_script(R"(
+	lua.safe_script(R"(
 			pet = PetClass();
 		)");
 }
 
-void CLua::open_maplibs()
+void CLua::open_maplibs(sol::state& lua)
 {
-	lua_.new_usertype<CLuaMap>("MapClass",
+	lua.new_usertype<CLuaMap>("MapClass",
 		sol::call_constructor,
 		sol::constructors<CLuaMap()>(),
 		"setDir", sol::overload(
@@ -824,14 +835,14 @@ void CLua::open_maplibs()
 		"download", &CLuaMap::downLoad
 	);
 
-	lua_.safe_script(R"(
+	lua.safe_script(R"(
 			map = MapClass();
 		)");
 }
 
-void CLua::open_battlelibs()
+void CLua::open_battlelibs(sol::state& lua)
 {
-	lua_.new_usertype<CLuaBattle>("BattleClass",
+	lua.new_usertype<CLuaBattle>("BattleClass",
 		sol::call_constructor,
 		sol::constructors<CLuaBattle()>(),
 		"charUseAttack", &CLuaBattle::charUseAttack,
@@ -847,9 +858,80 @@ void CLua::open_battlelibs()
 		"petNothing", &CLuaBattle::petNothing
 	);
 
-	lua_.safe_script(R"(
+	lua.safe_script(R"(
 			battle = BattleClass();
 		)");
+}
+
+void CLua::openlibs()
+{
+	if (!isSubScript_)
+	{
+		Injector& injector = Injector::getInstance(getIndex());
+		injector.scriptThreadId = reinterpret_cast<quint64>(QThread::currentThreadId());
+	}
+
+
+	lua_.set("_THIS", this);// 將this指針傳給lua設置全局變量
+	lua_.set("_THIS_PARENT", parent_);// 將父類指針傳給lua設置全局變量
+	lua_.set("_INDEX", getIndex());
+	lua_.set("_INDEX_", getIndex());
+
+	lua_.set("_ROWCOUNT_", max_);
+
+	//打開lua原生庫
+	lua_.open_libraries(
+		sol::lib::base,
+		sol::lib::package,
+		sol::lib::os,
+		sol::lib::string,
+		sol::lib::math,
+		sol::lib::table,
+		sol::lib::debug,
+		sol::lib::utf8,
+		sol::lib::coroutine,
+		sol::lib::io
+	);
+
+	open_enumlibs();
+	//open_testlibs();
+	open_utillibs(lua_);
+	open_syslibs(lua_);
+	open_itemlibs(lua_);
+	open_charlibs(lua_);
+	open_petlibs(lua_);
+	open_maplibs(lua_);
+	open_battlelibs(lua_);
+
+	//執行短腳本
+	lua_.safe_script(R"(
+collectgarbage("setpause", 100)
+collectgarbage("setstepmul", 100);
+collectgarbage("step", 1024);
+	)");
+
+	//Add additional package path.
+	QStringList paths;
+	std::string package_path = lua_["package"]["path"];
+	paths.append(QString::fromUtf8(package_path.c_str()).replace("\\", "/"));
+
+	QStringList dirs;
+	luadebug::getPackagePath(util::applicationDirPath() + "/", &dirs);
+	for (const QString& it : dirs)
+	{
+		QString path = it + "/?.lua";
+		paths.append(path.replace("\\", "/"));
+	}
+
+	lua_["package"]["path"] = std::string(paths.join(";").toUtf8().constData());
+
+
+	lua_State* L = lua_.lua_state();
+
+#ifdef OPEN_HOOK
+	lua_sethook(L, &luadebug::hookProc, LUA_MASKLINE | LUA_MASKCALL | LUA_MASKRET, NULL);// | LUA_MASKCOUNT 
+#endif
+
 }
 
 void CLua::proc()
@@ -859,68 +941,17 @@ void CLua::proc()
 		if (scriptContent_.simplified().isEmpty())
 			break;
 
+		max_ = scriptContent_.split("\n").size();
+
 		isRunning_.store(true, std::memory_order_release);
 
 		lua_State* L = lua_.lua_state();
 		sol::this_state s = L;
 
-		lua_.set("_THIS", this);// 將this指針傳給lua設置全局變量
-		lua_.set("_THIS_PARENT", parent_);// 將父類指針傳給lua設置全局變量
-		lua_.set("_INDEX", index_);
-		lua_.set("_ROWCOUNT", scriptContent_.split("\n").size());
-
-		//打開lua原生庫
-		lua_.open_libraries(
-			sol::lib::base,
-			sol::lib::package,
-			sol::lib::os,
-			sol::lib::string,
-			sol::lib::math,
-			sol::lib::table,
-			sol::lib::debug,
-			sol::lib::utf8,
-			sol::lib::coroutine,
-			sol::lib::io
-		);
-
-		open_enumlibs();
-		//open_testlibs();
-		open_utillibs();
-		open_syslibs();
-		open_itemlibs();
-		open_charlibs();
-		open_petlibs();
-		open_maplibs();
-		open_battlelibs();
-
-		//執行短腳本
-		lua_.safe_script(R"(
-			collectgarbage("setpause", 100)
-			collectgarbage("setstepmul", 100);
-			collectgarbage("step", 1024);
-		)");
-
-		//Add additional package path.
-		QStringList paths;
-		std::string package_path = lua_["package"]["path"];
-		paths.append(QString::fromUtf8(package_path.c_str()).replace("\\", "/"));
-
-		QStringList dirs;
-		luadebug::getPackagePath(util::applicationDirPath() + "/", &dirs);
-		for (const QString& it : dirs)
-		{
-			QString path = it + "/?.lua";
-			paths.append(path.replace("\\", "/"));
-		}
-
-		lua_["package"]["path"] = std::string(paths.join(";").toUtf8().constData());
-
-#ifdef OPEN_HOOK
-		lua_sethook(L, &luadebug::hookProc, LUA_MASKLINE | LUA_MASKCALL | LUA_MASKRET, NULL);// | LUA_MASKCOUNT 
-#endif
+		openlibs();
 
 		QStringList tableStrs;
-		std::string luaCode = scriptContent_.toUtf8();
+		std::string luaCode = scriptContent_.toUtf8().constData();
 
 		//安全模式下執行lua腳本
 		sol::protected_function_result loaded_chunk = lua_.safe_script(luaCode.c_str(), sol::script_pass_on_error);
@@ -946,7 +977,7 @@ void CLua::proc()
 
 				if (errOk)
 				{
-					int retline = -1;
+					qint64 retline = -1;
 					QString msg(luadebug::getErrorMsgLocatedLine(qstrErr, &retline));
 
 					if (msg.contains("FLAG_DETECT_STOP")
@@ -1043,8 +1074,8 @@ void CLua::proc()
 						sol::object key = it.first;
 						sol::object val = it.second;
 						if (!key.valid() || !val.valid()) continue;
-						if (!key.is<std::string>() && !key.is<int>()) continue;
-						QString qkey = key.is<std::string>() ? QString::fromUtf8(key.as<std::string>().c_str()) : QString::number(key.as<int>());
+						if (!key.is<std::string>() && !key.is<qint64>()) continue;
+						QString qkey = key.is<std::string>() ? QString::fromUtf8(key.as<std::string>().c_str()) : QString::number(key.as<qint64>());
 
 						if (val.is<bool>())
 						{
@@ -1080,13 +1111,15 @@ void CLua::proc()
 				}
 				tableStrs << ">";
 			}
-	}
+		}
 
 		luadebug::logExport(s, tableStrs, 0);
-} while (false);
+	} while (false);
 
-isRunning_.store(false, std::memory_order_release);
-emit finished();
-SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
-emit signalDispatcher.scriptFinished();
+	isRunning_.store(false, std::memory_order_release);
+	emit finished();
+
+	qint64 currentIndex = getIndex();
+	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
+	emit signalDispatcher.scriptFinished();
 }

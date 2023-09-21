@@ -19,13 +19,14 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #pragma once
 #include <QWidget>
 #include "ui_afkform.h"
+#include <indexer.h>
 
-class AfkForm : public QWidget
+class AfkForm : public QWidget, public Indexer
 {
 	Q_OBJECT
 
 public:
-	explicit AfkForm(QWidget* parent = nullptr);
+	explicit AfkForm(qint64 index, QWidget* parent = nullptr);
 	virtual ~AfkForm();
 
 signals:
@@ -48,7 +49,7 @@ private slots:
 
 	void onResetControlTextLanguage();
 
-	void onUpdateComboBoxItemText(int type, const QStringList& textList);
+	void onUpdateComboBoxItemText(qint64 type, const QStringList& textList);
 
 protected:
 	virtual void showEvent(QShowEvent* e) override;

@@ -32,6 +32,18 @@ FastLabel::FastLabel(QWidget* parent)
 	//setAttribute(Qt::WA_OpaquePaintEvent, true);
 }
 
+FastLabel::FastLabel(const QString& text, QWidget* parent)
+	: QWidget(parent)
+{
+	content_msg_ = text;
+	text_cache_ = "";
+	text_color_ = Qt::black;
+	//setAttribute(Qt::WA_PaintOnScreen, true);
+	setAttribute(Qt::WA_NoSystemBackground, true);
+	setAttribute(Qt::WA_StaticContents, true);
+	//setAttribute(Qt::WA_OpaquePaintEvent, true);
+}
+
 FastLabel::FastLabel()
 {
 	content_msg_ = "";
@@ -57,6 +69,11 @@ QColor FastLabel::getTextColor()
 	return text_color_;
 }
 
+QString FastLabel::getText() const
+{
+	return content_msg_;
+}
+
 void FastLabel::resizeEvent(QResizeEvent*)
 {
 	update();
@@ -65,8 +82,12 @@ void FastLabel::resizeEvent(QResizeEvent*)
 void FastLabel::paintEvent(QPaintEvent* e)
 {
 	QPainter painter(this);
+	QFont font = painter.font();
+	font.setPointSize(new_font_size_);
+	painter.setFont(font);
+
 	painter.setPen(QPen(text_color_));
-	painter.drawText(this->rect(), flag_, content_msg_);
+	painter.drawText(rect().adjusted(-1, -1, -1, -1), flag_, content_msg_);
 }
 
 void FastLabel::setFlag(int flag)
@@ -80,7 +101,9 @@ int FastLabel::getFlag()
 
 void FastLabel::setText(const QString& text)
 {
+	setUpdatesEnabled(false);
 	content_msg_ = text;
+	setUpdatesEnabled(true);
 	update();
 }
 

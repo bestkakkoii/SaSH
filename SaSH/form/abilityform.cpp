@@ -21,13 +21,14 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include <util.h>
 #include <injector.h>
 
-AbilityForm::AbilityForm(QWidget* parent)
+AbilityForm::AbilityForm(qint64 index, QWidget* parent)
 	: QDialog(parent)
 {
 	ui.setupUi(this);
 	setWindowFlags(Qt::FramelessWindowHint | Qt::Dialog | Qt::Tool);
 	setFixedSize(this->width(), this->height());
 	setAttribute(Qt::WA_DeleteOnClose);
+	setIndex(index);
 
 	setStyleSheet("QDialog{border: 1px solid black;}");
 
@@ -38,7 +39,7 @@ AbilityForm::AbilityForm(QWidget* parent)
 			connect(button, &PushButton::clicked, this, &AbilityForm::onButtonClicked, Qt::UniqueConnection);
 	}
 
-	Injector& injector = Injector::getInstance();
+	Injector& injector = Injector::getInstance(index);
 	if (injector.server.isNull())
 		return;
 
@@ -66,15 +67,14 @@ void AbilityForm::onButtonClicked()
 	if (name.isEmpty())
 		return;
 
-	//Injector& injector = Injector::getInstance();
-
 	if (name == "pushButton_close")
 	{
 		accept();
 		return;
 	}
 
-	Injector& injector = Injector::getInstance();
+	qint64 currentIndex = getIndex();
+	Injector& injector = Injector::getInstance(currentIndex);
 	if (injector.server.isNull())
 		return;
 
@@ -83,28 +83,28 @@ void AbilityForm::onButtonClicked()
 
 	if (name == "pushButton_vit")
 	{
-		int amt = ui.label_vit->text().toInt();
+		qint64 amt = ui.label_vit->text().toLongLong();
 		injector.server->addPoint(0, amt > 0 ? amt : 1);
 		return;
 	}
 
 	if (name == "pushButton_str")
 	{
-		int amt = ui.label_str->text().toInt();
+		qint64 amt = ui.label_str->text().toLongLong();
 		injector.server->addPoint(1, amt > 0 ? amt : 1);
 		return;
 	}
 
 	if (name == "pushButton_tgh")
 	{
-		int amt = ui.label_tgh->text().toInt();
+		qint64 amt = ui.label_tgh->text().toLongLong();
 		injector.server->addPoint(2, amt > 0 ? amt : 1);
 		return;
 	}
 
 	if (name == "pushButton_dex")
 	{
-		int amt = ui.label_dex->text().toInt();
+		qint64 amt = ui.label_dex->text().toLongLong();
 		injector.server->addPoint(3, amt > 0 ? amt : 1);
 		return;
 	}

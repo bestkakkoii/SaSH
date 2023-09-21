@@ -51,7 +51,8 @@ qint64 CLuaSystem::sleep(qint64 t, sol::this_state s)
 
 qint64 CLuaSystem::logout(sol::this_state s)
 {
-	Injector& injector = Injector::getInstance();
+	sol::state_view lua(s);
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
 	if (!injector.server.isNull())
 	{
 		injector.server->logOut();
@@ -63,7 +64,8 @@ qint64 CLuaSystem::logout(sol::this_state s)
 
 qint64 CLuaSystem::logback(sol::this_state s)
 {
-	Injector& injector = Injector::getInstance();
+	sol::state_view lua(s);
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
 	if (!injector.server.isNull())
 	{
 		injector.server->logBack();
@@ -75,7 +77,9 @@ qint64 CLuaSystem::logback(sol::this_state s)
 
 qint64 CLuaSystem::eo(sol::this_state s)
 {
-	Injector& injector = Injector::getInstance();
+	sol::state_view lua(s);
+	qint64 currentIndex = lua["_INDEX"].get<qint64>();
+	Injector& injector = Injector::getInstance(currentIndex);
 	if (injector.server.isNull())
 		return 0;
 
@@ -84,7 +88,7 @@ qint64 CLuaSystem::eo(sol::this_state s)
 	QElapsedTimer timer; timer.start();
 	injector.server->EO();
 
-	bool bret = luadebug::waitfor(s, 5000, []() { return !Injector::getInstance().server->isEOTTLSend.load(std::memory_order_acquire); });
+	bool bret = luadebug::waitfor(s, 5000, [currentIndex]() { return !Injector::getInstance(currentIndex).server->isEOTTLSend.load(std::memory_order_acquire); });
 
 	qint64 result = bret ? injector.server->lastEOTime.load(std::memory_order_acquire) : 0;
 
@@ -170,7 +174,7 @@ qint64 CLuaSystem::announce(sol::object maybe_defaulted, sol::object ocolor, sol
 		color = QRandomGenerator64().bounded(0, 10);
 	}
 
-	Injector& injector = Injector::getInstance();
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
 	sol::safe_function print = lua["_print"];
 
 	bool split = false;
@@ -217,7 +221,9 @@ qint64 CLuaSystem::announce(sol::object maybe_defaulted, sol::object ocolor, sol
 
 qint64 CLuaSystem::messagebox(sol::object ostr, sol::object otype, sol::this_state s)
 {
-	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
+	sol::state_view lua(s);
+	qint64 currentIndex = lua["_INDEX"].get<qint64>();
+	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
 
 	QString text;
 	if (ostr.is<qint64>())
@@ -235,7 +241,7 @@ qint64 CLuaSystem::messagebox(sol::object ostr, sol::object otype, sol::this_sta
 	else if (ostr != sol::lua_nil)
 		luadebug::tryPopCustomErrorMsg(s, luadebug::ERROR_PARAM_TYPE, false, 2, QObject::tr("invalid value of 'type'"));
 
-	qint32 nret = QMessageBox::StandardButton::NoButton;
+	qint64 nret = QMessageBox::StandardButton::NoButton;
 	emit signalDispatcher.messageBoxShow(text, type, &nret);
 	if (nret != QMessageBox::StandardButton::NoButton)
 	{
@@ -246,7 +252,8 @@ qint64 CLuaSystem::messagebox(sol::object ostr, sol::object otype, sol::this_sta
 
 qint64 CLuaSystem::talk(sol::object ostr, sol::this_state s)
 {
-	Injector& injector = Injector::getInstance();
+	sol::state_view lua(s);
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
 	if (injector.server.isNull())
 		return FALSE;
 
@@ -272,7 +279,8 @@ qint64 CLuaSystem::talk(sol::object ostr, sol::this_state s)
 
 qint64 CLuaSystem::cleanchat(sol::this_state s)
 {
-	Injector& injector = Injector::getInstance();
+	sol::state_view lua(s);
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
 	if (injector.server.isNull())
 		return FALSE;
 
@@ -283,7 +291,8 @@ qint64 CLuaSystem::cleanchat(sol::this_state s)
 
 qint64 CLuaSystem::menu(qint64 index, sol::this_state s)
 {
-	Injector& injector = Injector::getInstance();
+	sol::state_view lua(s);
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
 	if (injector.server.isNull())
 		return FALSE;
 
@@ -296,7 +305,8 @@ qint64 CLuaSystem::menu(qint64 index, sol::this_state s)
 
 qint64 CLuaSystem::menu(qint64 type, qint64 index, sol::this_state s)
 {
-	Injector& injector = Injector::getInstance();
+	sol::state_view lua(s);
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
 	if (injector.server.isNull())
 		return FALSE;
 
@@ -328,7 +338,9 @@ qint64 CLuaSystem::savesetting(const std::string& sfileName, sol::this_state s)
 	if (!QFile::exists(fileName))
 		return FALSE;
 
-	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
+	sol::state_view lua(s);
+	qint64 currentIndex = lua["_INDEX"].get<qint64>();
+	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
 	emit signalDispatcher.saveHashSettings(fileName, true);
 
 	return TRUE;
@@ -352,7 +364,9 @@ qint64 CLuaSystem::loadsetting(const std::string& sfileName, sol::this_state s)
 	if (!QFile::exists(fileName))
 		return FALSE;
 
-	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
+	sol::state_view lua(s);
+	qint64 currentIndex = lua["_INDEX"].get<qint64>();
+	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
 	emit signalDispatcher.loadHashSettings(fileName, true);
 
 	return TRUE;
@@ -360,7 +374,8 @@ qint64 CLuaSystem::loadsetting(const std::string& sfileName, sol::this_state s)
 
 qint64 CLuaSystem::press(std::string sbuttonStr, qint64 unitid, qint64 dialogid, sol::this_state s)
 {
-	Injector& injector = Injector::getInstance();
+	sol::state_view lua(s);
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
 	if (injector.server.isNull())
 		return FALSE;
 
@@ -412,7 +427,8 @@ qint64 CLuaSystem::press(std::string sbuttonStr, qint64 unitid, qint64 dialogid,
 
 qint64 CLuaSystem::press(qint64 row, qint64 unitid, qint64 dialogid, sol::this_state s)
 {
-	Injector& injector = Injector::getInstance();
+	sol::state_view lua(s);
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
 	if (injector.server.isNull())
 		return FALSE;
 
@@ -425,7 +441,8 @@ qint64 CLuaSystem::press(qint64 row, qint64 unitid, qint64 dialogid, sol::this_s
 
 qint64 CLuaSystem::input(const std::string& str, qint64 unitid, qint64 dialogid, sol::this_state s)
 {
-	Injector& injector = Injector::getInstance();
+	sol::state_view lua(s);
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
 	if (injector.server.isNull())
 		return FALSE;
 
@@ -440,7 +457,8 @@ qint64 CLuaSystem::input(const std::string& str, qint64 unitid, qint64 dialogid,
 
 qint64 CLuaSystem::leftclick(qint64 x, qint64 y, sol::this_state s)
 {
-	Injector& injector = Injector::getInstance();
+	sol::state_view lua(s);
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
 	if (injector.server.isNull())
 		return FALSE;
 
@@ -450,7 +468,8 @@ qint64 CLuaSystem::leftclick(qint64 x, qint64 y, sol::this_state s)
 
 qint64 CLuaSystem::rightclick(qint64 x, qint64 y, sol::this_state s)
 {
-	Injector& injector = Injector::getInstance();
+	sol::state_view lua(s);
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
 	if (injector.server.isNull())
 		return FALSE;
 
@@ -460,7 +479,8 @@ qint64 CLuaSystem::rightclick(qint64 x, qint64 y, sol::this_state s)
 
 qint64 CLuaSystem::leftdoubleclick(qint64 x, qint64 y, sol::this_state s)
 {
-	Injector& injector = Injector::getInstance();
+	sol::state_view lua(s);
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
 	if (injector.server.isNull())
 		return FALSE;
 
@@ -470,7 +490,8 @@ qint64 CLuaSystem::leftdoubleclick(qint64 x, qint64 y, sol::this_state s)
 
 qint64 CLuaSystem::mousedragto(qint64 x1, qint64 y1, qint64 x2, qint64 y2, sol::this_state s)
 {
-	Injector& injector = Injector::getInstance();
+	sol::state_view lua(s);
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
 	if (injector.server.isNull())
 		return FALSE;
 
@@ -480,8 +501,9 @@ qint64 CLuaSystem::mousedragto(qint64 x1, qint64 y1, qint64 x2, qint64 y2, sol::
 
 qint64 CLuaSystem::set(std::string enumStr, sol::object p1, sol::object p2, sol::object p3, sol::object p4, sol::object p5, sol::object p6, sol::object p7, sol::this_state s)
 {
-	Injector& injector = Injector::getInstance();
-	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
+	sol::state_view lua(s);
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
+	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(lua["_INDEX"].get<qint64>());
 
 	QString typeStr = QString::fromUtf8(enumStr.c_str());
 	if (typeStr.isEmpty())

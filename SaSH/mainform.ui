@@ -28,7 +28,7 @@
   <property name="styleSheet">
    <string notr="true"/>
   </property>
-  <widget class="QWidget" name="centralWidget">
+  <widget class="OpenGLWidget" name="centralWidget">
    <property name="styleSheet">
     <string notr="true"/>
    </property>
@@ -49,7 +49,7 @@
      <number>0</number>
     </property>
     <item>
-     <widget class="QWidget" name="widget" native="true">
+     <widget class="OpenGLWidget" name="widget" native="true">
       <layout class="QVBoxLayout" name="verticalLayout_2">
        <property name="spacing">
         <number>0</number>
@@ -413,6 +413,12 @@
  </widget>
  <layoutdefault spacing="6" margin="11"/>
  <customwidgets>
+  <customwidget>
+   <class>OpenGLWidget</class>
+   <extends>QWidget</extends>
+   <header location="global">openglwidget.h</header>
+   <container>1</container>
+  </customwidget>
   <customwidget>
    <class>FastLabel</class>
    <extends>QWidget</extends>

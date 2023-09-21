@@ -23,7 +23,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 qint64 CLuaItem::use(qint64 itemIndex, qint64 target, sol::this_state s)
 {
-	Injector& injector = Injector::getInstance();
+	sol::state_view lua(s);
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
 	if (injector.server.isNull())
 		return FALSE;
 
@@ -36,7 +37,8 @@ qint64 CLuaItem::use(qint64 itemIndex, qint64 target, sol::this_state s)
 
 qint64 CLuaItem::drop(qint64 itemIndex, sol::this_state s)
 {
-	Injector& injector = Injector::getInstance();
+	sol::state_view lua(s);
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
 	if (injector.server.isNull())
 		return FALSE;
 
@@ -49,7 +51,8 @@ qint64 CLuaItem::drop(qint64 itemIndex, sol::this_state s)
 
 qint64 CLuaItem::pick(qint64 dir, sol::this_state s)
 {
-	Injector& injector = Injector::getInstance();
+	sol::state_view lua(s);
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
 	if (injector.server.isNull())
 		return FALSE;
 
@@ -62,7 +65,8 @@ qint64 CLuaItem::pick(qint64 dir, sol::this_state s)
 
 qint64 CLuaItem::swap(qint64 from, qint64 to, sol::this_state s)
 {
-	Injector& injector = Injector::getInstance();
+	sol::state_view lua(s);
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
 	if (injector.server.isNull())
 		return FALSE;
 
@@ -75,7 +79,8 @@ qint64 CLuaItem::swap(qint64 from, qint64 to, sol::this_state s)
 
 qint64 CLuaItem::craft(qint64 type, sol::table ingres, sol::this_state s)
 {
-	Injector& injector = Injector::getInstance();
+	sol::state_view lua(s);
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
 	if (injector.server.isNull())
 		return FALSE;
 
@@ -102,7 +107,8 @@ qint64 CLuaItem::craft(qint64 type, sol::table ingres, sol::this_state s)
 
 qint64 CLuaItem::buy(qint64 productIndex, qint64 amount, qint64 unitid, qint64 dialogid, sol::this_state s)
 {
-	Injector& injector = Injector::getInstance();
+	sol::state_view lua(s);
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
 	if (injector.server.isNull())
 		return FALSE;
 
@@ -115,7 +121,8 @@ qint64 CLuaItem::buy(qint64 productIndex, qint64 amount, qint64 unitid, qint64 d
 
 qint64 CLuaItem::sell(qint64 itemIndex, qint64 unitid, qint64 dialogid, sol::this_state s)
 {
-	Injector& injector = Injector::getInstance();
+	sol::state_view lua(s);
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
 	if (injector.server.isNull())
 		return FALSE;
 
@@ -134,7 +141,8 @@ qint64 CLuaItem::sell(qint64 itemIndex, qint64 unitid, qint64 dialogid, sol::thi
 
 qint64 CLuaItem::deposit(qint64 itemIndex, qint64 unitid, qint64 dialogid, sol::this_state s)
 {
-	Injector& injector = Injector::getInstance();
+	sol::state_view lua(s);
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
 	if (injector.server.isNull())
 		return FALSE;
 
@@ -147,7 +155,8 @@ qint64 CLuaItem::deposit(qint64 itemIndex, qint64 unitid, qint64 dialogid, sol::
 
 qint64 CLuaItem::withdraw(qint64 itemIndex, qint64 unitid, qint64 dialogid, sol::this_state s)
 {
-	Injector& injector = Injector::getInstance();
+	sol::state_view lua(s);
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
 	if (injector.server.isNull())
 		return FALSE;
 

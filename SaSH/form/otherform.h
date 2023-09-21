@@ -20,12 +20,13 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 #include <QWidget>
 #include "ui_otherform.h"
+#include <indexer.h>
 
-class OtherForm : public QWidget
+class OtherForm : public QWidget, public Indexer
 {
 	Q_OBJECT
 public:
-	explicit OtherForm(QWidget* parent = nullptr);
+	explicit OtherForm(qint64 index, QWidget* parent = nullptr);
 
 	virtual ~OtherForm();
 

@@ -23,9 +23,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "map/mapanalyzer.h"
 
 //move
-qint64 Interpreter::setdir(qint64 currentline, const TokenMap& TK)
+qint64 Interpreter::setdir(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
 {
-	Injector& injector = Injector::getInstance();
+	Injector& injector = Injector::getInstance(currentIndex);
 
 	if (injector.server.isNull())
 		return Parser::kServerNotReady;
@@ -55,9 +55,9 @@ qint64 Interpreter::setdir(qint64 currentline, const TokenMap& TK)
 	return Parser::kNoChange;
 }
 
-qint64 Interpreter::move(qint64 currentline, const TokenMap& TK)
+qint64 Interpreter::move(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
 {
-	Injector& injector = Injector::getInstance();
+	Injector& injector = Injector::getInstance(currentIndex);
 
 	if (injector.server.isNull())
 		return Parser::kServerNotReady;
@@ -97,9 +97,9 @@ qint64 Interpreter::move(qint64 currentline, const TokenMap& TK)
 	return Parser::kNoChange;
 }
 
-qint64 Interpreter::fastmove(qint64 currentline, const TokenMap& TK)
+qint64 Interpreter::fastmove(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
 {
-	Injector& injector = Injector::getInstance();
+	Injector& injector = Injector::getInstance(currentIndex);
 
 	if (injector.server.isNull())
 		return Parser::kServerNotReady;
@@ -148,9 +148,9 @@ qint64 Interpreter::fastmove(qint64 currentline, const TokenMap& TK)
 	return Parser::kNoChange;
 }
 
-qint64 Interpreter::packetmove(qint64 currentline, const TokenMap& TK)
+qint64 Interpreter::packetmove(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
 {
-	Injector& injector = Injector::getInstance();
+	Injector& injector = Injector::getInstance(currentIndex);
 
 	if (injector.server.isNull())
 		return Parser::kServerNotReady;
@@ -177,9 +177,9 @@ qint64 Interpreter::packetmove(qint64 currentline, const TokenMap& TK)
 	return Parser::kNoChange;
 }
 
-qint64 Interpreter::findpath(qint64 currentLine, const TokenMap& TK)
+qint64 Interpreter::findpath(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
 {
-	Injector& injector = Injector::getInstance();
+	Injector& injector = Injector::getInstance(currentIndex);
 
 	if (injector.server.isNull())
 		return Parser::kServerNotReady;
@@ -234,9 +234,9 @@ qint64 Interpreter::findpath(qint64 currentLine, const TokenMap& TK)
 		{
 			bool ok = false;
 
-			point.setX(strList.at(0).toInt(&ok));
+			point.setX(strList.at(0).toLongLong(&ok));
 			if (ok)
-				point.setY(strList.at(1).toInt(&ok));
+				point.setY(strList.at(1).toLongLong(&ok));
 			if (!ok)
 				return Parser::kArgError;
 		}
@@ -292,7 +292,7 @@ qint64 Interpreter::findpath(qint64 currentLine, const TokenMap& TK)
 	if (p.y() < 0 || p.y() >= 1500)
 		return Parser::kArgError + 2ll;
 
-	if (findPath(currentLine, p, steplen, step_cost, timeout))
+	if (findPath(currentIndex, currentLine, p, steplen, step_cost, timeout))
 	{
 		if (!name.isEmpty() && (findNpcCallBack(name, p, &dir)) && dir != -1)
 			injector.server->setPlayerFaceDirection(dir);
@@ -301,9 +301,9 @@ qint64 Interpreter::findpath(qint64 currentLine, const TokenMap& TK)
 	return Parser::kNoChange;
 }
 
-qint64 Interpreter::movetonpc(qint64 currentLine, const TokenMap& TK)
+qint64 Interpreter::movetonpc(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
 {
-	Injector& injector = Injector::getInstance();
+	Injector& injector = Injector::getInstance(currentIndex);
 
 	if (injector.server.isNull())
 		return Parser::kServerNotReady;
@@ -362,7 +362,7 @@ qint64 Interpreter::movetonpc(qint64 currentLine, const TokenMap& TK)
 	};
 
 	bool bret = false;
-	if (findPath(currentLine, p, 1, 0, timeout, findNpcCallBack, true) && dir != -1)
+	if (findPath(currentIndex, currentLine, p, 1, 0, timeout, findNpcCallBack, true) && dir != -1)
 	{
 		injector.server->setPlayerFaceDirection(dir);
 		bret = true;
@@ -371,9 +371,9 @@ qint64 Interpreter::movetonpc(qint64 currentLine, const TokenMap& TK)
 	return checkJump(TK, 6, bret, FailedJump);
 }
 
-qint64 Interpreter::teleport(qint64 currentline, const TokenMap& TK)
+qint64 Interpreter::teleport(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
 {
-	Injector& injector = Injector::getInstance();
+	Injector& injector = Injector::getInstance(currentIndex);
 
 	if (injector.server.isNull())
 		return Parser::kServerNotReady;
@@ -386,9 +386,9 @@ qint64 Interpreter::teleport(qint64 currentline, const TokenMap& TK)
 	return Parser::kNoChange;
 }
 
-qint64 Interpreter::warp(qint64 currentLine, const TokenMap& TK)
+qint64 Interpreter::warp(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
 {
-	Injector& injector = Injector::getInstance();
+	Injector& injector = Injector::getInstance(currentIndex);
 
 	if (injector.server.isNull())
 		return Parser::kServerNotReady;
@@ -436,7 +436,7 @@ qint64 Interpreter::warp(qint64 currentLine, const TokenMap& TK)
 
 	do
 	{
-		if (!findPath(currentLine, pfrom, 1, 0, timeout))
+		if (!findPath(currentIndex, currentLine, pfrom, 1, 0, timeout))
 			break;
 
 		bret = waitfor(timeout, [&injector, pto, floor, floorName]()->bool

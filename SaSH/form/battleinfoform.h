@@ -20,13 +20,14 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 #include <QWidget>
 #include "ui_battleinfoform.h"
+#include <indexer.h>
 
-class BattleInfoForm : public QWidget
+class BattleInfoForm : public QWidget, public Indexer
 {
 	Q_OBJECT
 
 public:
-	explicit BattleInfoForm(QWidget* parent = nullptr);
+	explicit BattleInfoForm(qint64 index, QWidget* parent = nullptr);
 
 	virtual ~BattleInfoForm();
 

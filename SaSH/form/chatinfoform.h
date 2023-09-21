@@ -20,14 +20,14 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 #include <QWidget>
 #include "ui_chatinfoform.h"
-
+#include <indexer.h>
 class ColorDelegate;
-class ChatInfoForm : public QWidget
+class ChatInfoForm : public QWidget, public Indexer
 {
 	Q_OBJECT
 
 public:
-	explicit ChatInfoForm(QWidget* parent = nullptr);
+	explicit ChatInfoForm(qint64 index, QWidget* parent = nullptr);
 
 	virtual ~ChatInfoForm();
 

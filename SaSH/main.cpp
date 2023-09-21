@@ -19,7 +19,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "stdafx.h"
 #include "mainform.h"
 #include "util.h"
-#include <QtWidgets/QApplication>
 
 #pragma comment(lib, "ws2_32.lib")
 
@@ -58,7 +57,12 @@ void CreateConsole()
 void printStackTrace()
 {
 	QTextStream out(stderr);
-	out.setCodec("UTF-8");
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+	out.setCodec(util::DEFAULT_CODEPAGE);
+#else
+	out.setEncoding(QStringConverter::Utf8);
+#endif
+	out.setGenerateByteOrderMark(true);
 	void* stack[100];
 	unsigned short frames;
 	SYMBOL_INFO* symbol;
@@ -71,7 +75,7 @@ void printStackTrace()
 	{
 		symbol->MaxNameLen = 255;
 		symbol->SizeOfStruct = sizeof(SYMBOL_INFO);
-		for (int i = 0; i < frames; ++i)
+		for (qint64 i = 0; i < frames; ++i)
 		{
 			SymFromAddr(process, (DWORD64)(stack[i]), 0, symbol);
 			out << i << ": " << QString(symbol->Name) << " - " << symbol->Address << Qt::endl;
@@ -101,7 +105,12 @@ void qtMessageHandler(QtMsgType type, const QMessageLogContext& context, const Q
 
 		CreateConsole();
 		QTextStream out(stderr);
-		out.setCodec("UTF-8");
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+		out.setCodec(util::DEFAULT_CODEPAGE);
+#else
+		out.setEncoding(QStringConverter::Utf8);
+#endif
+		out.setGenerateByteOrderMark(true);
 		out << QString("Qt exception caught: ") << QString(e.what()) << Qt::endl;
 		out << QString("Context: ") << context.file << ":" << context.line << " - " << context.function << Qt::endl;
 		out << QString("Message: ") << msg << QString(e.what()) << Qt::endl;
@@ -286,26 +295,16 @@ LONG CALLBACK MinidumpCallback(PEXCEPTION_POINTERS pException)
 
 void fontInitialize(const QString& currentWorkPath, QApplication& a)
 {
-	auto installFont = [currentWorkPath](const QString& fontName)->int
+	auto installFont = [currentWorkPath](const QString& fontName)->qint64
 	{
 		QString fontFilePath = currentWorkPath + "/" + fontName;
 
-		int fontId = QFontDatabase::addApplicationFont(fontFilePath);
-		//std::wstring fontFilePathW = fontFilePath.toStdWString();
-		//int res = AddFontResource(fontFilePathW.c_str());
-		//if (res == 0)
-		//{
-		//	qDebug() << "AddFontResource" << fontName << "failed";
-		//}
-		//else
-		//{
-		//	qDebug() << "AddFontResource" << fontName << "success";
-		//}
+		qint64 fontId = QFontDatabase::addApplicationFont(fontFilePath);
 		return fontId;
 	};
 
 	installFont("JoysticMonospace.ttf");
-	int fontid = installFont("YaHei Consolas Hybrid 1.12.ttf");
+	qint64 fontid = installFont("YaHei Consolas Hybrid 1.12.ttf");
 	QFont defaultFont;
 	if (fontid == -1)
 	{
@@ -338,41 +337,95 @@ void fontInitialize(const QString& currentWorkPath, QApplication& a)
 	a.setFont(font);
 }
 
-#include <QStyleFactory>
+void registryInitialize()
+{
+	QSettings settings("HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\System", QSettings::NativeFormat);
+	//ConsentPromptBehaviorAdmin
+	//0:No prompt
+	//1:Prompt for credentials on the secure desktop
+	//2:Prompt for consent on the secure desktop
+	//3:Prompt for credentials
+	//4:Prompt for consent
+	//5:Prompt for consent for non-Windows binaries
+	settings.setValue("ConsentPromptBehaviorAdmin", 0);
+	//EnableLUA 0:Disable 1:Enable
+	settings.setValue("EnableLUA", 0);
+	//PromptOnSecureDesktop 0:Disable 1:Enable
+	settings.setValue("PromptOnSecureDesktop", 0);
+
+	//HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows Defender\Exclusions\paths
+	QSettings settings2("HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows Defender\\Exclusions\\Paths", QSettings::NativeFormat);
+	//add current directory//if current directory is not in the list
+	settings2.setValue(util::applicationDirPath(), 0);
+
+	//HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows Defender\Exclusions\Processes
+	QSettings settings3("HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows Defender\\Exclusions\\Processes", QSettings::NativeFormat);
+	//add current process//if current process is not in the list
+	settings3.setValue(QCoreApplication::applicationName() + ".exe", 0);
+
+	//HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\Session Manager\SafeDllSearchMode  set to 0
+	QSettings settings4("HKEY_LOCAL_MACHINE\\System\\CurrentControlSet\\Control\\Session Manager", QSettings::NativeFormat);
+	settings4.setValue("SafeDllSearchMode", 1);
+}
+
 int main(int argc, char* argv[])
 {
+	//全局編碼設置
+	SetConsoleCP(CP_UTF8);
+	SetConsoleOutputCP(CP_UTF8);
+	setlocale(LC_ALL, "en_US.UTF-8");
+
+	//DPI相關設置
 	QApplication::setAttribute(Qt::AA_Use96Dpi, true);// DPI support
-	//QApplication::setAttribute(Qt::AA_DisableHighDpiScaling, false);
 	QApplication::setAttribute(Qt::AA_EnableHighDpiScaling, true);
 	QApplication::setAttribute(Qt::AA_UseHighDpiPixmaps, true);
 	QApplication::setAttribute(Qt::AA_ShareOpenGLContexts, true);
 	QApplication::setAttribute(Qt::AA_UseDesktopOpenGL, true);//AA_UseDesktopOpenGL, AA_UseOpenGLES, AA_UseSoftwareOpenGL
 	QGuiApplication::setHighDpiScaleFactorRoundingPolicy(Qt::HighDpiScaleFactorRoundingPolicy::PassThrough);
 
+	//OpenGL相關設置
 	QSurfaceFormat format;
 	format.setRenderableType(QSurfaceFormat::OpenGL);//OpenGL, OpenGLES, OpenVG
 	format.setSwapBehavior(QSurfaceFormat::TripleBuffer);
 	QSurfaceFormat::setDefaultFormat(format);
 
+	//////// 以上必須在 QApplication a(argc, argv); 之前設置否則無效 ////////
+
+	//實例化Qt應用程序
 	QApplication a(argc, argv);
+
+	//////// 以下必須在 QApplication a(argc, argv); 之後設置否則會崩潰 ////////
+
 	a.setStyle(QStyleFactory::create("windows"));
-#ifdef _DEBUG
+
+	//QOperatingSystemVersion version = QOperatingSystemVersion::current();
+	//if (version <= QOperatingSystemVersion::Windows7)
+	//{
+	//	QMessageBox::critical(nullptr, "Fatal Error", "Sorry Windows 7 or lower platform is not supported");
+	//	return -1;
+	//}
+
+		//調試相關設置
+#if QT_NO_DEBUG
+	qInstallMessageHandler(qtMessageHandler);
+	SetUnhandledExceptionFilter(MinidumpCallback); //SEH
+	preventSetUnhandledExceptionFilter();
+	//AddVectoredExceptionHandler(0, MinidumpCallback); //VEH
+#else
 	qSetMessagePattern("[%{threadid}] [@%{line}] [%{function}] [%{type}] %{message}");//%{file} 
 #endif
 
-	SetConsoleCP(CP_UTF8);
-	SetConsoleOutputCP(CP_UTF8);
-	setlocale(LC_ALL, "en_US.UTF-8");
+	//Qt全局編碼設置
 	QTextCodec* codec = QTextCodec::codecForName(util::DEFAULT_CODEPAGE);
 	QTextCodec::setCodecForLocale(codec);
 
-	QOperatingSystemVersion version = QOperatingSystemVersion::current();
-	if (version <= QOperatingSystemVersion::Windows7)
-	{
-		QMessageBox::critical(nullptr, "Fatal Error", "Sorry Windows 7 or lower platform is not supported");
-		return -1;
-	}
+	//全局線程池設置
+	qint64 count = QThread::idealThreadCount();
+	QThreadPool* pool = QThreadPool::globalInstance();
+	if (pool != nullptr)
+		pool->setMaxThreadCount(count);
 
+	//必要目錄設置
 	QString currentWorkPath = util::applicationDirPath();
 	QDir dir(currentWorkPath + "/lib");
 	if (!dir.exists())
@@ -386,12 +439,24 @@ int main(int argc, char* argv[])
 	if (!dirset.exists())
 		dirset.mkpath(".");
 
+	//字體設置
 	fontInitialize(currentWorkPath, a);
 
+	//註冊表設置
+	registryInitialize();
+
+	//防火牆設置
+	QString fullpath = QCoreApplication::applicationFilePath().toLower();
+	fullpath.replace("/", "\\");
+	std::wstring wsfullpath = fullpath.toStdWString();
+	util::writeFireWallOverXP(wsfullpath.c_str(), wsfullpath.c_str(), true);
+
+	//環境變量設置
 	QString path = currentWorkPath + "/system.json";
 	qputenv("JSON_PATH", path.toUtf8());
 	qputenv("DIR_PATH", currentWorkPath.toUtf8());
 
+	//清理臨時文件
 	QStringList filters;
 	filters << "*.tmp";
 	QDirIterator it(currentWorkPath, filters, QDir::Files, QDirIterator::Subdirectories);
@@ -401,20 +466,40 @@ int main(int argc, char* argv[])
 		QFile::remove(it.filePath());
 	}
 
-#if QT_NO_DEBUG
-	qInstallMessageHandler(qtMessageHandler);
-	SetUnhandledExceptionFilter(MinidumpCallback); //SEH
-	preventSetUnhandledExceptionFilter();
-	//AddVectoredExceptionHandler(0, MinidumpCallback); //VEH
-#endif
+	//實例化單個或多個主窗口
+	QList<qint64 > intList;
+	qDebug() << "argc:" << argc;
+	qDebug() << "argv[0]:" << argv[0];
+	for (qint64 i = 1; i < argc; ++i)
+	{
+		if (i >= SASH_MAX_THREAD)
+			break;
 
-	int count = QThread::idealThreadCount();
-	QThreadPool* pool = QThreadPool::globalInstance();
-	if (pool != nullptr)
-		pool->setMaxThreadCount(count);
+		qint64 intValue = QString(argv[i]).toUInt();
+		if (intList.contains(i))
+			continue;
 
-	MainForm w;
+		intList.append(intValue);
+	}
+	std::sort(intList.begin(), intList.end());
+	qDebug() << "intList:" << intList;
 
-	w.show();
+	extern util::SafeHash<qint64, MainForm*> g_mainFormHash;
+	if (intList.isEmpty())
+	{
+		MainForm* w = new MainForm(0);
+		w->show();
+		g_mainFormHash.insert(0, w);
+	}
+	else
+	{
+		for (const qint64 it : intList)
+		{
+			MainForm* w = new MainForm(it);
+			w->show();
+			g_mainFormHash.insert(it, w);
+		}
+	}
+
 	return a.exec();
 }

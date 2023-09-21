@@ -20,20 +20,22 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 #include <QWidget>
 #include "ui_mapform.h"
+#include <indexer.h>
+
 class Interpreter;
-class MapForm : public QWidget
+class MapForm : public QWidget, public Indexer
 {
 	Q_OBJECT
 
 public:
-	explicit MapForm(QWidget* parent = nullptr);
+	explicit MapForm(qint64 index, QWidget* parent = nullptr);
 
 	virtual ~MapForm();
 
 private slots:
 	void onButtonClicked();
 
-	void onUpdateNpcList(int floor);
+	void onUpdateNpcList(qint64 floor);
 
 	void onTableWidgetCellDoubleClicked(int row, int col);
 
@@ -47,9 +49,9 @@ protected:
 	}
 
 private:
-	void updateTableWidgetContent(int row, int col, const QString& text);
+	void updateTableWidgetContent(qint64 row, qint64 col, const QString& text);
 
-	void resizeTableWidgetRow(int max);
+	void resizeTableWidgetRow(qint64 max);
 
 private:
 	Ui::MapFormClass ui;
@@ -58,5 +60,5 @@ private:
 
 	QScopedPointer<Interpreter> interpreter_;
 
-	static QHash<int, QHash<QPoint, QString>> entrances_;
+	static QHash<qint64, QHash<QPoint, QString>> entrances_;
 };

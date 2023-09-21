@@ -112,7 +112,8 @@ void SelectObjectForm::onAccept()
 	if (pRecviveList_ != nullptr)
 	{
 		pRecviveList_->clear();
-		for (int i = 0; i < ui.listWidget->count(); ++i)
+		qint64 size = ui.listWidget->count();
+		for (qint64 i = 0; i < size; ++i)
 		{
 			pRecviveList_->append(ui.listWidget->item(i)->text());
 		}

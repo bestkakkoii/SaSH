@@ -282,9 +282,6 @@
     <ClCompile Include="model\customtitlebar.cpp">
       <Filter>Source Files\model</Filter>
     </ClCompile>
-    <ClCompile Include="script\parser2.cpp">
-      <Filter>Source Files\script</Filter>
-    </ClCompile>
     <ClCompile Include="model\pushbutton.cpp">
       <Filter>Source Files\model</Filter>
     </ClCompile>
@@ -410,6 +407,15 @@
     <QtMoc Include="model\pushButton.h">
       <Filter>Source Files\model</Filter>
     </QtMoc>
+    <QtMoc Include="model\openglwidget.h">
+      <Filter>Source Files\model</Filter>
+    </QtMoc>
+    <QtMoc Include="model\tablewidget.h">
+      <Filter>Source Files\model</Filter>
+    </QtMoc>
+    <QtMoc Include="model\treewidget.h">
+      <Filter>Source Files\model</Filter>
+    </QtMoc>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stdafx.h">
@@ -469,8 +475,8 @@
     <ClInclude Include="resource.h">
       <Filter>Resource Files</Filter>
     </ClInclude>
-    <ClInclude Include="script\parser2.h">
-      <Filter>Source Files\script</Filter>
+    <ClInclude Include="model\indexer.h">
+      <Filter>Source Files\model</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

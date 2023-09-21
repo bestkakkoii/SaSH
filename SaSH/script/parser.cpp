@@ -23,7 +23,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "injector.h"
 #include "interpreter.h"
 
-extern QString g_logger_name;
 
 //"調用" 傳參數最小佔位
 constexpr qint64 kCallPlaceHoldSize = 2;
@@ -32,18 +31,25 @@ constexpr qint64 kFormatPlaceHoldSize = 3;
 
 void makeTable(sol::state& lua, const char* name, qint64 i, qint64 j)
 {
-	if (!lua[name].valid() || !lua[name].is<sol::table>())
+	if (!lua[name].valid())
+		lua[name].get_or_create<sol::table>();
+	else if (!lua[name].is<sol::table>())
 		lua[name] = lua.create_table();
+
 	qint64 k, l;
 
-	for (k = i; k <= i; ++k)
+	for (k = 1; k <= i; ++k)
 	{
-		if (!lua[name][k].valid() || !lua[name][k].is<sol::table>())
+		if (!lua[name][k].valid())
+			lua[name][k].get_or_create<sol::table>();
+		else
 			lua[name][k] = lua.create_table();
 
-		for (l = i; l <= j; ++l)
+		for (l = 1; l <= j; ++l)
 		{
-			if (!lua[name][k][l].valid() || !lua[name][k][l].is<sol::table>())
+			if (!lua[name][k][l].valid())
+				lua[name][k][l].get_or_create<sol::table>();
+			else
 				lua[name][k][l] = lua.create_table();
 		}
 	}
@@ -51,15 +57,18 @@ void makeTable(sol::state& lua, const char* name, qint64 i, qint64 j)
 
 void makeTable(sol::state& lua, const char* name, qint64 i)
 {
-	if (!lua[name].valid() || !lua[name].is<sol::table>())
+	if (!lua[name].valid())
+		lua[name].get_or_create<sol::table>();
+	else
 		lua[name] = lua.create_table();
+
 	qint64 k;
 	for (k = 1; k <= i; ++k)
 	{
-		if (!lua[name][k].valid() || !lua[name][k].is<sol::table>())
+		if (!lua[name][k].valid())
+			lua[name][k].get_or_create<sol::table>();
+		else
 			lua[name][k] = lua.create_table();
-
-		lua[name][k] = lua.create_table();
 	}
 }
 
@@ -88,7 +97,7 @@ std::vector<qint64> Unique(const std::vector<qint64>& v)
 }
 
 template<typename T>
-std::vector<T> ShiftLeft(const std::vector<T>& v, int i)
+std::vector<T> ShiftLeft(const std::vector<T>& v, qint64 i)
 {
 	std::vector<T> result = v;
 #if _MSVC_LANG > 201703L
@@ -101,7 +110,7 @@ std::vector<T> ShiftLeft(const std::vector<T>& v, int i)
 }
 
 template<typename T>
-std::vector<T> ShiftRight(const std::vector<T>& v, int i)
+std::vector<T> ShiftRight(const std::vector<T>& v, qint64 i)
 {
 	std::vector<T> result = v;
 #if _MSVC_LANG > 201703L
@@ -128,7 +137,7 @@ std::vector<T> Shuffle(const std::vector<T>& v)
 }
 
 template<typename T>
-std::vector<T> Rotate(const std::vector<T>& v, int len)//true = right, false = left
+std::vector<T> Rotate(const std::vector<T>& v, qint64 len)//true = right, false = left
 {
 	std::vector<T> result = v;
 	if (len >= 0)
@@ -146,29 +155,25 @@ std::vector<T> Rotate(const std::vector<T>& v, int len)//true = right, false = l
 	return result;
 }
 
-Parser::Parser()
-	: ThreadPlugin(nullptr)
+Parser::Parser(qint64 index)
+	: ThreadPlugin(index, nullptr)
+	, lexer_(index)
+	, clua_(index)
 {
 	qDebug() << "Parser is created!!";
-	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
+	setIndex(index);
+	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(index);
 	connect(&signalDispatcher, &SignalDispatcher::nodifyAllStop, this, &Parser::requestInterruption, Qt::UniqueConnection);
 
-	lua_.open_libraries(
-		sol::lib::base,
-		sol::lib::package,
-		sol::lib::os,
-		sol::lib::string,
-		sol::lib::math,
-		sol::lib::table,
-		sol::lib::debug,
-		sol::lib::utf8,
-		sol::lib::coroutine,
-		sol::lib::io
-	);
+	clua_.openlibs();
 
-	lua_.set_function("input", [this](sol::object oargs, sol::this_state s)->sol::object
+	clua_.setHookForStop(true);
+
+	sol::state& lua_ = clua_.getLua();
+
+	lua_.set_function("input", [this, index](sol::object oargs, sol::this_state s)->sol::object
 		{
-			SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
+			SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(index);
 
 			std::string sargs = "";
 			if (oargs.is<std::string>())
@@ -579,7 +584,8 @@ Parser::Parser()
 	lua_.set_function("rex", [this](std::string ssrc, std::string rexstr, sol::this_state s)->sol::table
 		{
 			QString src = QString::fromUtf8(ssrc.c_str());
-			sol::table result = lua_.create_table();
+			sol::state_view lua(s);
+			sol::table result = lua.create_table();
 
 			QString expr = QString::fromUtf8(rexstr.c_str());
 
@@ -596,7 +602,7 @@ Parser::Parser()
 				}
 			}
 
-			int maxdepth = 50;
+			qint64 maxdepth = 50;
 			insertGlobalVar("vret", getLuaTableString(result, maxdepth));
 			return result;
 		});
@@ -604,7 +610,8 @@ Parser::Parser()
 	lua_.set_function("rexg", [this](std::string ssrc, std::string rexstr, sol::this_state s)->sol::table
 		{
 			QString src = QString::fromUtf8(ssrc.c_str());
-			sol::table result = lua_.create_table();
+			sol::state_view lua(s);
+			sol::table result = lua.create_table();
 
 			QString expr = QString::fromUtf8(rexstr.c_str());
 
@@ -627,7 +634,7 @@ Parser::Parser()
 				}
 			}
 
-			int maxdepth = 50;
+			qint64 maxdepth = 50;
 			insertGlobalVar("vret", getLuaTableString(result, maxdepth));
 			return result;
 		});
@@ -779,11 +786,11 @@ Parser::Parser()
 		if (!t.is<sol::table>())
 			return sol::lua_nil;
 
-		int len = 1;
+		qint64 len = 1;
 		if (oside == sol::lua_nil)
 			len = 1;
-		else if (oside.is<int>())
-			len = oside.as<int>();
+		else if (oside.is<qint64>())
+			len = oside.as<qint64>();
 		else
 			return sol::lua_nil;
 
@@ -812,7 +819,7 @@ Parser::Parser()
 		return t2;
 	};
 
-	lua_["tsleft"] = [](sol::object t, int i, sol::this_state s)->sol::object
+	lua_["tsleft"] = [](sol::object t, qint64 i, sol::this_state s)->sol::object
 	{
 		if (!t.is<sol::table>())
 			return sol::lua_nil;
@@ -844,7 +851,7 @@ Parser::Parser()
 		return t2;
 	};
 
-	lua_["tsright"] = [](sol::object t, int i, sol::this_state s)->sol::object
+	lua_["tsright"] = [](sol::object t, qint64 i, sol::this_state s)->sol::object
 	{
 		if (!t.is<sol::table>())
 			return sol::lua_nil;
@@ -1204,7 +1211,12 @@ bool Parser::loadFile(const QString& fileName, QString* pcontent)
 	if (suffix == util::SCRIPT_DEFAULT_SUFFIX)
 	{
 		QTextStream in(&f);
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
 		in.setCodec(util::DEFAULT_CODEPAGE);
+#else
+		in.setEncoding(QStringConverter::Utf8);
+#endif
+		in.setGenerateByteOrderMark(true);
 		c = in.readAll();
 		c.replace("\r\n", "\n");
 		isPrivate_ = false;
@@ -1246,6 +1258,7 @@ bool Parser::loadString(const QString& content)
 		labels_ = lexer_.getLabelList();
 		functionNodeList_ = lexer_.getFunctionNodeList();
 		forNodeList_ = lexer_.getForNodeList();
+		luaNodeList_ = lexer_.getLuaNodeList();
 	}
 
 	return bret;
@@ -1321,7 +1334,8 @@ void Parser::handleError(qint64 err, const QString& addition)
 	if (!addition.isEmpty())
 		extMsg = " " + addition;
 
-	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
+	qint64 currentIndex = getIndex();
+	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
 	if (err == kError)
 		emit signalDispatcher.addErrorMarker(getCurrentLine(), err);
 
@@ -1474,6 +1488,8 @@ QVariant Parser::luaDoString(QString expr)
 
 	QString exprStr = QString("%1\n%2").arg(luaLocalVarStringList.join("\n")).arg(expr);
 
+	sol::state& lua_ = clua_.getLua();
+
 	const std::string exprStrUTF8 = exprStr.toUtf8().constData();
 	sol::protected_function_result loaded_chunk = lua_.safe_script(exprStrUTF8.c_str(), sol::script_pass_on_error);
 	lua_.collect_garbage();
@@ -1519,7 +1535,7 @@ QVariant Parser::luaDoString(QString expr)
 		return retObject.as<double>();
 	else if (retObject.is<sol::table>())
 	{
-		int deep = kMaxLuaTableDepth;
+		qint64 deep = kMaxLuaTableDepth;
 		return getLuaTableString(retObject.as<sol::table>(), deep);
 	}
 
@@ -1973,7 +1989,7 @@ qint64 Parser::checkJump(const TokenMap& TK, qint64 idx, bool expr, JumpBehavior
 		QString preCheck = TK.value(idx).data.toString().simplified();
 
 		if (preCheck == "return" || preCheck == "back" || preCheck == "continue" || preCheck == "break"
-			|| preCheck == QString(u8"返回") || expr == QString(u8"跳回") || preCheck == QString(u8"繼續") || preCheck == QString(u8"跳出")
+			|| preCheck == QString(u8"返回") || preCheck == QString(u8"跳回") || preCheck == QString(u8"繼續") || preCheck == QString(u8"跳出")
 			|| preCheck == QString(u8"继续"))
 		{
 
@@ -2186,6 +2202,7 @@ void Parser::removeGlobalVar(const QString& name)
 	QWriteLocker locker(globalVarLock_);
 	if (variables_ != nullptr)
 	{
+		sol::state& lua_ = clua_.getLua();
 		variables_->remove(name);
 		lua_[name.toUtf8().constData()] = sol::lua_nil;
 	}
@@ -2342,6 +2359,7 @@ QVariantList& Parser::getArgsRef()
 //表達式替換內容
 bool Parser::importVariablesToLua(const QString& expr)
 {
+	sol::state& lua_ = clua_.getLua();
 	QVariantHash globalVars = getGlobalVars();
 	for (auto it = globalVars.cbegin(); it != globalVars.cend(); ++it)
 	{
@@ -2396,7 +2414,7 @@ bool Parser::importVariablesToLua(const QString& expr)
 		if (type == QVariant::String && !value.startsWith("{") && !value.endsWith("}"))
 		{
 			bool ok = false;
-			it.value().toInt(&ok);
+			it.value().toLongLong(&ok);
 
 			if (!ok || value.isEmpty())
 				value = QString("'%1'").arg(value);
@@ -2416,11 +2434,33 @@ bool Parser::importVariablesToLua(const QString& expr)
 //根據表達式更新lua內的變量值
 bool Parser::updateSysConstKeyword(const QString& expr)
 {
-	Injector& injector = Injector::getInstance();
+	bool bret = false;
+	sol::state& lua_ = clua_.getLua();
+	if (expr.contains("_LINE_"))
+	{
+		lua_.set("_LINE_", getCurrentLine() + 1);
+		return true;
+	}
+
+	if (expr.contains("_FILE_"))
+	{
+		lua_.set("_FILE_", getScriptFileName().toUtf8().constData());
+		return true;
+	}
+
+	if (expr.contains("_FUNCTION_"))
+	{
+		if (!callStack_.isEmpty())
+			lua_.set("_FUNCTION_", callStack_.top().name.toUtf8().constData());
+		else
+			lua_.set("_FUNCTION_", sol::lua_nil);
+		return true;
+	}
+
+	qint64 currentIndex = getIndex();
+	Injector& injector = Injector::getInstance(currentIndex);
 	if (injector.server.isNull())
 		return false;
-
-	bool bret = false;
 
 	//char\.(\w+)
 	if (expr.contains("char"))
@@ -2515,10 +2555,10 @@ bool Parser::updateSysConstKeyword(const QString& expr)
 			{ u8"ride", kRide },
 		};
 
-		for (int i = 0; i < MAX_PET; ++i)
+		for (qint64 i = 0; i < MAX_PET; ++i)
 		{
 			PET pet = injector.server->getPet(i);
-			int index = i + 1;
+			qint64 index = i + 1;
 
 			lua_["pet"][index]["valid"] = pet.valid;
 
@@ -2594,10 +2634,10 @@ bool Parser::updateSysConstKeyword(const QString& expr)
 		injector.server->updateItemByMemory();
 		PC _pc = injector.server->getPC();
 
-		for (int i = 0; i < MAX_ITEM; ++i)
+		for (qint64 i = 0; i < MAX_ITEM; ++i)
 		{
 			ITEM item = _pc.item[i];
-			int index = i + 1;
+			qint64 index = i + 1;
 			if (i < CHAR_EQUIPPLACENUM)
 				index += 100;
 			else
@@ -2666,10 +2706,10 @@ bool Parser::updateSysConstKeyword(const QString& expr)
 		if (lua_["item"].is<sol::table>() && !lua_["item"]["sizeof"].valid())
 		{
 			sol::meta::unqualified_t<sol::table> item = lua_["item"];
-			item.set_function("count", [this](sol::object oitemnames, sol::object oitemmemos, sol::this_state s)->qint64
+			item.set_function("count", [this, currentIndex](sol::object oitemnames, sol::object oitemmemos, sol::this_state s)->qint64
 				{
 					qint64 count = 0;
-					Injector& injector = Injector::getInstance();
+					Injector& injector = Injector::getInstance(currentIndex);
 					if (injector.server.isNull())
 						return count;
 
@@ -2686,7 +2726,7 @@ bool Parser::updateSysConstKeyword(const QString& expr)
 						return count;
 					}
 
-					QVector<int> itemIndexs;
+					QVector<qint64> itemIndexs;
 					if (!injector.server->getItemIndexsByName(itemnames, itemmemos, &itemIndexs))
 					{
 						insertGlobalVar("vret", 0);
@@ -2721,7 +2761,7 @@ bool Parser::updateSysConstKeyword(const QString& expr)
 				lua_["item"] = lua_.create_table();
 		}
 
-		QVector<int> itemIndexs;
+		QVector<qint64> itemIndexs;
 		injector.server->getItemEmptySpotIndexs(&itemIndexs);
 		lua_["item"]["space"] = itemIndexs.size();
 	}
@@ -2732,10 +2772,10 @@ bool Parser::updateSysConstKeyword(const QString& expr)
 		bret = true;
 		makeTable(lua_, "team", MAX_PARTY);
 
-		for (int i = 0; i < MAX_PARTY; ++i)
+		for (qint64 i = 0; i < MAX_PARTY; ++i)
 		{
 			PARTY party = injector.server->getParty(i);
-			int index = i + 1;
+			qint64 index = i + 1;
 
 			lua_["team"][index]["valid"] = party.valid;
 
@@ -2798,10 +2838,10 @@ bool Parser::updateSysConstKeyword(const QString& expr)
 	{
 		bret = true;
 		makeTable(lua_, "card", MAX_ADDRESS_BOOK);
-		for (int i = 0; i < MAX_ADDRESS_BOOK; ++i)
+		for (qint64 i = 0; i < MAX_ADDRESS_BOOK; ++i)
 		{
 			ADDRESS_BOOK addressBook = injector.server->getAddressBook(i);
-			int index = i + 1;
+			qint64 index = i + 1;
 
 			lua_["card"][index]["valid"] = addressBook.valid;
 
@@ -2825,10 +2865,10 @@ bool Parser::updateSysConstKeyword(const QString& expr)
 		bret = true;
 		makeTable(lua_, "chat", MAX_CHAT_HISTORY);
 
-		for (int i = 0; i < MAX_CHAT_HISTORY; ++i)
+		for (qint64 i = 0; i < MAX_CHAT_HISTORY; ++i)
 		{
 			QString text = injector.server->getChatHistory(i);
-			int index = i + 1;
+			qint64 index = i + 1;
 
 			if (!lua_["chat"][index].valid())
 				lua_["chat"][index] = lua_.create_table();
@@ -2850,15 +2890,15 @@ bool Parser::updateSysConstKeyword(const QString& expr)
 
 		QList<mapunit_t> units = injector.server->mapUnitHash.values();
 
-		int size = units.size();
+		qint64 size = units.size();
 		makeTable(lua_, "unit", size);
-		for (int i = 0; i < size; ++i)
+		for (qint64 i = 0; i < size; ++i)
 		{
 			mapunit_t unit = units.at(i);
 			if (!unit.isVisible)
 				continue;
 
-			int index = i + 1;
+			qint64 index = i + 1;
 
 			lua_["unit"][index]["valid"] = unit.isVisible;
 
@@ -2896,11 +2936,11 @@ bool Parser::updateSysConstKeyword(const QString& expr)
 
 		makeTable(lua_, "battle", MAX_ENEMY);
 
-		int size = battle.objects.size();
-		for (int i = 0; i < size; ++i)
+		qint64 size = battle.objects.size();
+		for (qint64 i = 0; i < size; ++i)
 		{
 			battleobject_t obj = battle.objects.at(i);
-			int index = i + 1;
+			qint64 index = i + 1;
 
 			lua_["battle"][index]["valid"] = obj.maxHp > 0 && obj.level > 0 && obj.modelid > 0;
 
@@ -2971,9 +3011,9 @@ bool Parser::updateSysConstKeyword(const QString& expr)
 		makeTable(lua_, "dialog", MAX_PET, MAX_PET_ITEM);
 
 		QStringList dialog = injector.server->currentDialog.get().linedatas;
-		int size = dialog.size();
+		qint64 size = dialog.size();
 		bool visible = injector.server->isDialogVisible();
-		for (int i = 0; i < MAX_DIALOG_LINE; ++i)
+		for (qint64 i = 0; i < MAX_DIALOG_LINE; ++i)
 		{
 			QString text;
 			if (i >= size || !visible)
@@ -2981,7 +3021,7 @@ bool Parser::updateSysConstKeyword(const QString& expr)
 			else
 				text = dialog.at(i);
 
-			int index = i + 1;
+			qint64 index = i + 1;
 
 			lua_["dialog"][index] = text.toUtf8().constData();
 		}
@@ -3016,9 +3056,9 @@ bool Parser::updateSysConstKeyword(const QString& expr)
 
 		makeTable(lua_, "magic", MAX_MAGIC);
 
-		for (int i = 0; i < MAX_MAGIC; ++i)
+		for (qint64 i = 0; i < MAX_MAGIC; ++i)
 		{
-			int index = i + 1;
+			qint64 index = i + 1;
 			MAGIC magic = injector.server->getMagic(i);
 
 			lua_["magic"][index]["valid"] = magic.valid;
@@ -3038,9 +3078,9 @@ bool Parser::updateSysConstKeyword(const QString& expr)
 
 		makeTable(lua_, "skill", MAX_PROFESSION_SKILL);
 
-		for (int i = 0; i < MAX_PROFESSION_SKILL; ++i)
+		for (qint64 i = 0; i < MAX_PROFESSION_SKILL; ++i)
 		{
-			int index = i + 1;
+			qint64 index = i + 1;
 			PROFESSION_SKILL skill = injector.server->getSkill(i);
 
 			lua_["skill"][index]["valid"] = skill.valid;
@@ -3063,9 +3103,9 @@ bool Parser::updateSysConstKeyword(const QString& expr)
 
 		makeTable(lua_, "petksill", MAX_PET, MAX_SKILL);
 
-		int petIndex = -1;
-		int index = -1;
-		int i, j;
+		qint64 petIndex = -1;
+		qint64 index = -1;
+		qint64 i, j;
 		for (i = 0; i < MAX_PET; ++i)
 		{
 			petIndex = i + 1;
@@ -3110,9 +3150,9 @@ bool Parser::updateSysConstKeyword(const QString& expr)
 
 		makeTable(lua_, "petequip", MAX_PET, MAX_PET_ITEM);
 
-		int petIndex = -1;
-		int index = -1;
-		int i, j;
+		qint64 petIndex = -1;
+		qint64 index = -1;
+		qint64 i, j;
 		for (i = 0; i < MAX_PET; ++i)
 		{
 			petIndex = i + 1;
@@ -3252,8 +3292,8 @@ void Parser::generateStackInfo(qint64 type)
 
 	if (type != 0)
 		return;
-
-	Injector& injector = Injector::getInstance();
+	qint64 currentIndex = getIndex();
+	Injector& injector = Injector::getInstance(currentIndex);
 
 	if (!injector.isScriptDebugModeEnable.load(std::memory_order_acquire))
 		return;
@@ -3272,14 +3312,14 @@ void Parser::generateStackInfo(qint64 type)
 		}
 	}
 
-	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
+	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
 	if (type == kModeCallStack)
 		emit signalDispatcher.callStackInfoChanged(QVariant::fromValue(hash));
 	else
 		emit signalDispatcher.jumpStackInfoChanged(QVariant::fromValue(hash));
 }
 
-QString Parser::getLuaTableString(const sol::table& t, int& depth)
+QString Parser::getLuaTableString(const sol::table& t, qint64& depth)
 {
 	if (depth <= 0)
 		return "";
@@ -3292,7 +3332,7 @@ QString Parser::getLuaTableString(const sol::table& t, int& depth)
 	QStringList strKeyResults;
 
 	QString nowIndent = "";
-	for (int i = 0; i <= 10 - depth + 1; ++i)
+	for (qint64 i = 0; i <= 10 - depth + 1; ++i)
 	{
 		nowIndent += "    ";
 	}
@@ -3355,7 +3395,8 @@ QString Parser::getLuaTableString(const sol::table& t, int& depth)
 //根據關鍵字取值保存到變量
 bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr, QVariant& varValue)
 {
-	Injector& injector = Injector::getInstance();
+	qint64 currentIndex = getIndex();
+	Injector& injector = Injector::getInstance(currentIndex);
 	if (injector.server.isNull())
 		return false;
 
@@ -3658,7 +3699,7 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 				typeStr = typeStr.simplified().toLower();
 				if (typeStr == "space")
 				{
-					QVector<int> itemIndexs;
+					QVector<qint64> itemIndexs;
 					qint64 size = 0;
 					if (injector.server->getItemEmptySpotIndexs(&itemIndexs))
 						size = itemIndexs.size();
@@ -3678,11 +3719,11 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 					if (itemName.isEmpty() && memo.isEmpty())
 						break;
 
-					QVector<int> v;
+					QVector<qint64> v;
 					qint64 count = 0;
 					if (injector.server->getItemIndexsByName(itemName, memo, &v))
 					{
-						for (const int it : v)
+						for (const qint64 it : v)
 							count += injector.server->getPC().item[it].stack;
 					}
 
@@ -3697,10 +3738,10 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 					QString memo;
 					checkString(currentLineTokens_, 4, &memo);
 
-					QVector<int> itemIndexs;
+					QVector<qint64> itemIndexs;
 					if (injector.server->getItemIndexsByName(cmpStr, memo, &itemIndexs))
 					{
-						int index = itemIndexs.front();
+						qint64 index = itemIndexs.front();
 						if (itemIndexs.front() >= CHAR_EQUIPPLACENUM)
 							varValue = index + 1 - CHAR_EQUIPPLACENUM;
 						else
@@ -3710,7 +3751,7 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 			}
 		}
 
-		int index = itemIndex + CHAR_EQUIPPLACENUM - 1;
+		qint64 index = itemIndex + CHAR_EQUIPPLACENUM - 1;
 		if (index < CHAR_EQUIPPLACENUM || index >= MAX_ITEM)
 			break;
 
@@ -3778,7 +3819,7 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 		if (!checkInteger(currentLineTokens_, 3, &itemIndex))
 			break;
 
-		int index = itemIndex - 1;
+		qint64 index = itemIndex - 1;
 		if (index < 0 || index >= CHAR_EQUIPPLACENUM)
 			break;
 
@@ -3799,7 +3840,7 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 			damage.replace("％", "");
 
 		bool ok = false;
-		int dura = damage.toLongLong(&ok);
+		qint64 dura = damage.toLongLong(&ok);
 		if (!ok && !damage.isEmpty())
 			damageValue = 100;
 		else
@@ -3858,7 +3899,7 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 			damage.replace("％", "");
 
 		bool ok = false;
-		int dura = damage.toLongLong(&ok);
+		qint64 dura = damage.toLongLong(&ok);
 		if (!ok && !damage.isEmpty())
 			damageValue = 100;
 		else
@@ -4010,7 +4051,7 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 		}
 		else
 		{
-			int index = dialogIndex - 1;
+			qint64 index = dialogIndex - 1;
 			if (index < 0 || index >= dialogStrList.size())
 				break;
 
@@ -4111,7 +4152,7 @@ bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr,
 		checkString(currentLineTokens_, 4, &typeStr);
 
 		injector.server->reloadHashVar("battle");
-		util::SafeHash<int, QVariantHash> hashbattle = injector.server->hashbattle;
+		QHash<qint64, QVariantHash> hashbattle = injector.server->hashbattle.toHash();
 		if (!hashbattle.contains(index))
 			break;
 
@@ -4237,7 +4278,6 @@ qint64 Parser::processCommand()
 	QVariant varValue = commandToken.data;
 	if (!varValue.isValid())
 	{
-		SPD_LOG(g_logger_name, QString("[parser] Invalid command: %1").arg(commandToken.data.toString()), SPD_WARN);
 		return kError;
 	}
 
@@ -4249,15 +4289,14 @@ qint64 Parser::processCommand()
 		CommandRegistry function = commandRegistry_.value(commandName, nullptr);
 		if (function == nullptr)
 		{
-			SPD_LOG(g_logger_name, QString("[parser] Command pointer is nullptr: %1").arg(commandName), SPD_WARN);
 			return kError;
 		}
 
-		status = function(getCurrentLine(), tokens);
+		qint64 currentIndex = getIndex();
+		status = function(currentIndex, getCurrentLine(), tokens);
 	}
 	else
 	{
-		SPD_LOG(g_logger_name, QString("[parser] Command not found: %1").arg(commandName), SPD_WARN);
 		return kError;
 	}
 
@@ -4501,6 +4540,7 @@ void Parser::processTableSet(const QString& preVarName, const QVariant& value)
 	static const QRegularExpression rexTableSet(R"(([\w\p{Han}]+)(?:\['*"*(\w+\p{Han}*)'*"*\])?)");
 	QString varName = preVarName;
 	QString expr;
+	sol::state& lua_ = clua_.getLua();
 
 	if (varName.isEmpty())
 		varName = getToken<QString>(0);
@@ -4563,7 +4603,7 @@ void Parser::processTableSet(const QString& preVarName, const QVariant& value)
 		if (!retObject.is<sol::table>())
 			return;
 
-		int depth = kMaxLuaTableDepth;
+		qint64 depth = kMaxLuaTableDepth;
 		QString resultStr = getLuaTableString(retObject.as<sol::table>(), depth);
 		if (resultStr.isEmpty())
 			return;
@@ -4604,7 +4644,7 @@ void Parser::processTableSet(const QString& preVarName, const QVariant& value)
 		if (!retObject.is<sol::table>())
 			return;
 
-		int depth = kMaxLuaTableDepth;
+		qint64 depth = kMaxLuaTableDepth;
 		QString resultStr = getLuaTableString(retObject.as<sol::table>(), depth);
 		if (resultStr.isEmpty())
 			return;
@@ -4655,6 +4695,8 @@ void Parser::processVariableCAOs()
 
 	QVariant varSecond = checkValue(currentLineTokens_, 2);
 	QVariant::Type typeSecond = varSecond.type();
+
+	sol::state& lua_ = clua_.getLua();
 
 	if (typeFirst == QVariant::String && varFirst.toString() != "nil" && varSecond.toString() != "nil")
 	{
@@ -4819,7 +4861,8 @@ void Parser::processFormation()
 					color = nColor;
 			}
 
-			Injector& injector = Injector::getInstance();
+			qint64 currentIndex = getIndex();
+			Injector& injector = Injector::getInstance(currentIndex);
 			if (!injector.server.isNull())
 				injector.server->announce(formatedStr, color);
 
@@ -4831,7 +4874,7 @@ void Parser::processFormation()
 				.arg(timeStr)
 				.arg(getCurrentLine() + 1, 3, 10, QLatin1Char(' ')).arg(formatedStr));
 
-			SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
+			SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
 			emit signalDispatcher.appendScriptLog(msg, color);
 		}
 		else if ((varName.startsWith("say", Qt::CaseInsensitive) && varName.contains(rexOut)) || varName.toLower() == "say")
@@ -4846,7 +4889,8 @@ void Parser::processFormation()
 					color = nColor;
 			}
 
-			Injector& injector = Injector::getInstance();
+			qint64 currentIndex = getIndex();
+			Injector& injector = Injector::getInstance(currentIndex);
 			if (!injector.server.isNull())
 				injector.server->talk(formatedStr, color);
 		}
@@ -5028,7 +5072,8 @@ void Parser::processBack()
 //這裡是防止人為設置過長的延時導致腳本無法停止
 void Parser::processDelay()
 {
-	Injector& injector = Injector::getInstance();
+	qint64 currentIndex = getIndex();
+	Injector& injector = Injector::getInstance(currentIndex);
 	qint64 extraDelay = injector.getValueHash(util::kScriptSpeedValue);
 	if (extraDelay > 1000ll)
 	{
@@ -5214,11 +5259,47 @@ bool Parser::processBreak()
 	return false;
 }
 
+bool Parser::processLuaCode()
+{
+	const qint64 currentLine = getCurrentLine();
+	QString luaCode;
+	for (const LuaNode& it : luaNodeList_)
+	{
+		if (currentLine != it.beginLine)
+			continue;
+
+		luaCode = it.content;
+		break;
+	}
+
+	if (luaCode.isEmpty())
+		return false;
+
+	const QString luaFunction = QString(R"(
+local chunk <const> = function()
+	%1
+end
+
+return chunk();
+	)").arg(luaCode);
+
+	QVariant result = luaDoString(luaFunction);
+	bool isValid = result.isValid();
+	if (isValid)
+		insertGlobalVar("vret", result);
+	else
+		insertGlobalVar("vret", "nil");
+	return isValid;
+}
+
 //處理所有的token
 void Parser::processTokens()
 {
-	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
-	Injector& injector = Injector::getInstance();
+	qint64 currentIndex = getIndex();
+	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
+	Injector& injector = Injector::getInstance(currentIndex);
+	sol::state& lua_ = clua_.getLua();
+	clua_.setMax(size());
 
 	//同步模式時清空所有marker並重置UI顯示的堆棧訊息
 	if (mode_ == kSync)
@@ -5278,7 +5359,7 @@ void Parser::processTokens()
 
 			if (callBack_ != nullptr)
 			{
-				qint64 status = callBack_(currentLine, currentLineTokens_);
+				qint64 status = callBack_(currentIndex, currentLine, currentLineTokens_);
 				if (status == kStop)
 					break;
 			}
@@ -5296,6 +5377,19 @@ void Parser::processTokens()
 			lastCriticalError_ = kNoError;
 			name.clear();
 			requestInterruption();
+			break;
+		}
+		case TK_LUABEGIN:
+		{
+			if (!processLuaCode())
+			{
+				name.clear();
+				requestInterruption();
+			}
+			break;
+		}
+		case TK_LUAEND:
+		{
 			break;
 		}
 		case TK_IF:
@@ -5320,7 +5414,6 @@ void Parser::processTokens()
 			case kUnknownCommand:
 			default:
 			{
-				SPD_LOG(g_logger_name, "[parser] Command has error", SPD_WARN);
 				handleError(ret);
 				name.clear();
 				break;
@@ -5461,7 +5554,6 @@ void Parser::processTokens()
 		default:
 		{
 			qDebug() << "Unexpected token type:" << currentType;
-			SPD_LOG(g_logger_name, "[parser] Unexpected token type", SPD_WARN);
 			break;
 		}
 		}
@@ -5479,14 +5571,16 @@ void Parser::processTokens()
 
 	/*==========全部重建 : 成功 2 個，失敗 0 個，略過 0 個==========
 	========== 重建 開始於 1:24 PM 並使用了 01:04.591 分鐘 ==========*/
-	emit signalDispatcher.appendScriptLog(QObject::tr(" ========== script result : %1，cost %2 ==========").arg("success").arg(util::formatMilliseconds(timer.elapsed())));
+	emit signalDispatcher.appendScriptLog(QObject::tr(" ========== script result : %1，cost %2 ==========")
+		.arg(isSubScript() ? QObject::tr("sub-ok") : QObject::tr("main-ok")).arg(util::formatMilliseconds(timer.elapsed())));
 
 }
 
 //導出變量訊息
 void Parser::exportVarInfo()
 {
-	Injector& injector = Injector::getInstance();
+	qint64 currentIndex = getIndex();
+	Injector& injector = Injector::getInstance(currentIndex);
 	if (!injector.isScriptDebugModeEnable.load(std::memory_order_acquire))
 		return;
 
@@ -5510,6 +5604,6 @@ void Parser::exportVarInfo()
 		varhash.insert(key, it.value());
 	}
 
-	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
+	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
 	emit signalDispatcher.varInfoImported(this, varhash);
 }

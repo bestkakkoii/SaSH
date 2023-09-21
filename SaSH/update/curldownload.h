@@ -26,18 +26,18 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include <QFuture>
 #include <QtConcurrent/QtConcurrent>
 
-using pfnProgressFunc = int(_cdecl*)(void* clientp, qint64 totalToDownload, qint64 nowDownloaded, qint64 totalToUpLoad, qint64 nowUpLoaded);
+using pfnProgressFunc = qint64(_cdecl*)(void* clientp, qint64 totalToDownload, qint64 nowDownloaded, qint64 totalToUpLoad, qint64 nowUpLoaded);
 
 struct tNode
 {
 	FILE* fp = nullptr;
-	long startPos = 0U;
-	long endPos = 0U;
-	long totalSize = 0U;
+	qint64 startPos = 0U;
+	qint64 endPos = 0U;
+	qint64 totalSize = 0U;
 	void* curl = nullptr;
 	void* header = nullptr;
-	int id = 0;
-	int index = 0;
+	qint64 id = 0;
+	qint64 index = 0;
 	QFuture<void> tid;
 	pfnProgressFunc progressFunc = nullptr;
 };
@@ -51,22 +51,22 @@ public:
 
 	inline void setProgressFunPtrs(const std::vector<pfnProgressFunc>& vpfnProgressFunc) { vpfnProgressFunc_ = vpfnProgressFunc; }
 
-	inline void setIndex(int index) { index_ = index; }
+	inline void setIndex(qint64 index) { index_ = index; }
 
-	bool downLoad(int threadNum, std::string Url, std::string Path, std::string fileName);
+	bool downLoad(qint64 threadNum, std::string Url, std::string Path, std::string fileName);
 
 	static QString oneShotDownload(const std::string szUrl);
 
 private:
-	long getDownloadFileLenth(const char* url);
+	qint64 getDownloadFileLenth(const char* url);
 
 	static size_t writeFunc(void* clientp, size_t size, size_t nmemb, void* userdata);
 
 	static void workThread(void* pData);
 
 private:
-	//static int threadCnt_;
-	int index_ = 0;
+	//static qint64 threadCnt_;
+	qint64 index_ = 0;
 	static std::atomic_int threadCnt_;
 	static QMutex mutex_;
 	std::vector<pfnProgressFunc> vpfnProgressFunc_;

@@ -20,18 +20,19 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 #include <QMainWindow>
 #include "ui_scriptsettingform.h"
+#include <indexer.h>
 #include "util.h"
 #include "script/interpreter.h"
 
 
 class QTextDocument;
 class QSpinBox;
-class ScriptSettingForm : public QMainWindow
+class ScriptSettingForm : public QMainWindow, public Indexer
 {
 	Q_OBJECT
 
 public:
-	explicit ScriptSettingForm(QWidget* parent = nullptr);
+	explicit ScriptSettingForm(qint64 index, QWidget* parent = nullptr);
 
 	virtual ~ScriptSettingForm();
 
@@ -40,42 +41,22 @@ protected:
 
 	virtual void closeEvent(QCloseEvent* e) override;
 
-	virtual bool eventFilter(QObject* obj, QEvent* e) override;
-
-#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
-	virtual bool nativeEvent(const QByteArray& eventType, void* message, long* result) override;
-#else
-	virtual bool nativeEvent(const QByteArray& eventType, void* message, qintptr* result) override;
-#endif
-
-	virtual void mousePressEvent(QMouseEvent* e)  override
-	{
-		if (e->button() == Qt::LeftButton)
-			clickPos_ = e->pos();
-	}
-
-	virtual void mouseMoveEvent(QMouseEvent* e) override
-	{
-		if (e->buttons() & Qt::LeftButton)
-			move(e->pos() + pos() - clickPos_);
-	}
-
 private:
 	void fileSave(const QString& d, DWORD flag);
 
 	void replaceCommas(QString& inputList);
 
-	QString formatCode(const QString& content);
+	QString formatCode(QString content);
 
 	void onReloadScriptList();
 
 	void setStepMarks();
 
-	void setMark(CodeEditor::SymbolHandler element, util::SafeHash<QString, util::SafeHash<qint64, break_marker_t>>& hash, int liner, bool b);
+	void setMark(CodeEditor::SymbolHandler element, util::SafeHash<QString, util::SafeHash<qint64, break_marker_t>>& hash, qint64 liner, bool b);
 
 	void varInfoImport(QTreeWidget* tree, const QHash<QString, QVariant>& d);
 
-	void stackInfoImport(QTreeWidget* tree, const QVector<QPair<int, QString>>& vec);
+	void stackInfoImport(QTreeWidget* tree, const QVector<QPair<qint64, QString>>& vec);
 
 	void reshowBreakMarker();
 
@@ -89,6 +70,8 @@ private:
 
 	void createTreeWidgetItems(Parser* pparser, QList<QTreeWidgetItem*>* pTrees, const QHash<QString, QVariant>& d);
 
+	void initStaticLabel();
+
 signals:
 	void editorCursorPositionChanged(int line, int index);
 
@@ -101,10 +84,10 @@ private slots:
 	void onActionTriggered();
 	void onWidgetModificationChanged(bool changed);
 	void onEditorCursorPositionChanged(int line, int index);
-	void onAddForwardMarker(int liner, bool b);
-	void onAddErrorMarker(int liner, bool b);
-	void onAddStepMarker(int liner, bool b);
-	void onAddBreakMarker(int liner, bool b);
+	void onAddForwardMarker(qint64 liner, bool b);
+	void onAddErrorMarker(qint64 liner, bool b);
+	void onAddStepMarker(qint64 liner, bool b);
+	void onAddBreakMarker(qint64 liner, bool b);
 	void onBreakMarkInfoImport();
 	void onScriptTreeWidgetItemChanged(QTreeWidgetItem* newitem, int column);
 
@@ -120,6 +103,7 @@ private slots:
 	void loadFile(const QString& fileName);
 	void onVarInfoImport(void* p, const QVariantHash&);
 
+	void onSetStaticLabelLineText(int line, int index);
 
 	void onCallStackInfoChanged(const QVariant& var);
 	void onJumpStackInfoChanged(const QVariant& var);
@@ -145,8 +129,14 @@ private slots:
 
 private:
 	Ui::ScriptSettingFormClass ui;
+	double lastCpuCost_ = 0.0;
+	FastLabel* usageLabel_ = nullptr;
+	FastLabel* lineLable_ = nullptr;
+	FastLabel* sizeLabel_ = nullptr;
+	FastLabel* indexLabel_ = nullptr;
+	FastLabel* eolLabel_ = nullptr;
 
-	QLabel staticLabel_;
+	QTimer* usageTimer_ = nullptr;
 	bool IS_LOADING = false;
 	bool isModified_ = false;
 	QStringList scriptList_;
@@ -159,7 +149,4 @@ private:
 
 	QString currentRenameText_ = "";
 	QString currentRenamePath_ = "";
-
-	const int boundaryWidth_ = 1;
-	QPoint clickPos_;
 };

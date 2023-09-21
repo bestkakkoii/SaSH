@@ -27,43 +27,25 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "signaldispatcher.h"
 
 
-LuaScriptForm::LuaScriptForm(QWidget* parent)
+LuaScriptForm::LuaScriptForm(qint64 index, QWidget* parent)
 	: QWidget(parent)
 {
 	ui.setupUi(this);
 	setAttribute(Qt::WA_StyledBackground);
-
-	auto setTableWidget = [](QTableWidget* tableWidget, int max_row)->void
+	setIndex(index);
+	auto setTableWidget = [](QTableWidget* tableWidget, qint64 max_row)->void
 	{
-		//tablewidget set single selection
-		tableWidget->setSelectionMode(QAbstractItemView::SingleSelection);
-		//tablewidget set selection behavior
-		tableWidget->setSelectionBehavior(QAbstractItemView::SelectRows);
-		//set auto resize to form size
-		tableWidget->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
-		tableWidget->verticalHeader()->setSectionResizeMode(QHeaderView::Fixed);
-
-		//tableWidget->setStyleSheet(R"(
-		//QTableWidget { font-size:11px; } 
-		//	QTableView::item:selected { background-color: black; color: white;
-		//})");
-		tableWidget->verticalHeader()->setDefaultSectionSize(11);
-		tableWidget->horizontalHeader()->setStretchLastSection(true);
-		tableWidget->horizontalHeader()->setHighlightSections(false);
-		tableWidget->verticalHeader()->setHighlightSections(false);
-		tableWidget->horizontalHeader()->setDefaultAlignment(Qt::AlignLeft);
-		tableWidget->verticalHeader()->setDefaultAlignment(Qt::AlignLeft);
-
-		for (int row = 0; row < max_row; ++row)
+		for (qint64 row = 0; row < max_row; ++row)
 		{
 			tableWidget->insertRow(row);
 		}
 
-		int rowCount = tableWidget->rowCount();
-		int columnCount = tableWidget->columnCount();
-		for (int row = 0; row < rowCount; ++row)
+		qint64 rowCount = tableWidget->rowCount();
+		qint64 columnCount = tableWidget->columnCount();
+		qint64 column = 0;
+		for (qint64 row = 0; row < rowCount; ++row)
 		{
-			for (int column = 0; column < columnCount; ++column)
+			for (column = 0; column < columnCount; ++column)
 			{
 				QTableWidgetItem* item = new QTableWidgetItem("");
 				if (item)
@@ -72,14 +54,6 @@ LuaScriptForm::LuaScriptForm(QWidget* parent)
 		}
 	};
 
-	//ui.treeWidget_script->setStyleSheet(R"(
-	//	QTreeWidget { font-size:11px; } 
-	//	QTreeView::item:selected { background-color: black; color: white; } 
-	//)");
-	ui.treeWidget_script->header()->setSectionsClickable(true);
-	ui.treeWidget_script->header()->setSectionResizeMode(QHeaderView::ResizeToContents);
-	ui.treeWidget_script->resizeColumnToContents(1);
-	ui.treeWidget_script->sortItems(0, Qt::AscendingOrder);
 
 	setTableWidget(ui.tableWidget_script, 8);
 
@@ -96,7 +70,7 @@ LuaScriptForm::LuaScriptForm(QWidget* parent)
 	connect(ui.tableWidget_script, &QTableWidget::itemClicked, this, &LuaScriptForm::onScriptTableWidgetClicked);
 	connect(ui.tableWidget_script, &QTableWidget::currentItemChanged, this, &LuaScriptForm::onCurrentTableWidgetItemChanged);
 
-	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
+	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(index);
 	connect(&signalDispatcher, &SignalDispatcher::scriptLabelRowTextChanged, this, &LuaScriptForm::onScriptLabelRowTextChanged, Qt::QueuedConnection);
 	connect(&signalDispatcher, &SignalDispatcher::scriptContentChanged, this, &LuaScriptForm::onScriptContentChanged, Qt::QueuedConnection);
 	connect(&signalDispatcher, &SignalDispatcher::loadFileToTable, this, &LuaScriptForm::loadFile, Qt::QueuedConnection);
@@ -118,7 +92,7 @@ LuaScriptForm::LuaScriptForm(QWidget* parent)
 		return;
 	util::Config config(fileName);
 
-	Injector& injector = Injector::getInstance();
+	Injector& injector = Injector::getInstance(index);
 	injector.currentScriptFileName = config.read<QString>(objectName(), "LastModifyFile");
 	if (!injector.currentScriptFileName.isEmpty() && QFile::exists(injector.currentScriptFileName))
 	{
@@ -135,7 +109,8 @@ LuaScriptForm::~LuaScriptForm()
 
 void LuaScriptForm::onScriptStarted()
 {
-	Injector& injector = Injector::getInstance();
+	qint64 currentIndex = getIndex();
+	Injector& injector = Injector::getInstance(currentIndex);
 	if (injector.currentScriptFileName.isEmpty())
 		return;
 
@@ -160,7 +135,7 @@ void LuaScriptForm::onScriptStarted()
 	if (!util::readFile(injector.currentScriptFileName, &content, &isPrivate))
 		return;
 
-	clua_.reset(new CLua(content));
+	clua_.reset(new CLua(currentIndex, content));
 	connect(clua_.data(), &CLua::finished, this, &LuaScriptForm::onScriptFinished);
 	clua_->start();
 
@@ -224,8 +199,8 @@ void LuaScriptForm::onButtonClicked()
 	if (name.isEmpty())
 		return;
 
-	//Injector& injector = Injector::getInstance();
-	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
+	qint64 currentIndex = getIndex();
+	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
 	if (name == "pushButton_script_start")
 	{
 		emit signalDispatcher.scriptStarted();
@@ -251,24 +226,24 @@ void LuaScriptForm::onButtonClicked()
 }
 
 //重設表格最大行數
-void LuaScriptForm::resizeTableWidgetRow(int max)
+void LuaScriptForm::resizeTableWidgetRow(qint64 max)
 {
 	ui.tableWidget_script->clear();
 	//set header
 	QStringList header;
 	header << tr("command") << tr("params");
 	ui.tableWidget_script->setHorizontalHeaderLabels(header);
-	int rowCount = ui.tableWidget_script->rowCount();
+	qint64 rowCount = ui.tableWidget_script->rowCount();
 	if (rowCount < max)
 	{
-		for (int row = rowCount; row < max; ++row)
+		for (qint64 row = rowCount; row < max; ++row)
 		{
 			ui.tableWidget_script->insertRow(row);
 		}
 	}
 	else if (rowCount > max)
 	{
-		for (int row = rowCount - 1; row >= max; --row)
+		for (qint64 row = rowCount - 1; row >= max; --row)
 		{
 			ui.tableWidget_script->removeRow(row);
 		}
@@ -276,7 +251,7 @@ void LuaScriptForm::resizeTableWidgetRow(int max)
 }
 
 //設置指定單元格內容
-void LuaScriptForm::setTableWidgetItem(int row, int col, const QString& text)
+void LuaScriptForm::setTableWidgetItem(qint64 row, qint64 col, const QString& text)
 {
 	QTableWidgetItem* item = ui.tableWidget_script->item(row, col);
 	if (item)
@@ -298,16 +273,15 @@ void LuaScriptForm::setTableWidgetItem(int row, int col, const QString& text)
 //樹型框header點擊信號槽
 void LuaScriptForm::onScriptTreeWidgetHeaderClicked(int)
 {
-	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
+	qint64 currentIndex = getIndex();
+	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
 	emit signalDispatcher.reloadScriptList();
 	//qDebug() << "onScriptTreeWidgetClicked" << logicalIndex;
 }
 
 //更新當前行號label
-void LuaScriptForm::onScriptLabelRowTextChanged(int row, int max, bool noSelect)
+void LuaScriptForm::onScriptLabelRowTextChanged(qint64 row, qint64 max, bool noSelect)
 {
-	//qDebug() << "onScriptLabelRowTextChanged" << row << max << noSelect;
-
 	ui.label_row->setText(QString("%1/%2").arg(row).arg(max));
 	if (!noSelect)
 	{
@@ -320,8 +294,8 @@ void LuaScriptForm::loadFile(const QString& fileName)
 {
 	if (fileName.isEmpty())
 		return;
-
-	Injector& injector = Injector::getInstance();
+	qint64 currentIndex = getIndex();
+	Injector& injector = Injector::getInstance(currentIndex);
 	QString content;
 	bool isPrivate = false;
 	if (!fileName.contains(util::SCRIPT_LUA_SUFFIX_DEFAULT))
@@ -335,10 +309,10 @@ void LuaScriptForm::loadFile(const QString& fileName)
 
 	if (clua_.isNull())
 	{
-		clua_.reset(new CLua(content));
+		clua_.reset(new CLua(currentIndex, content));
 	}
 
-	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
+	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
 	emit signalDispatcher.scriptContentChanged(fileName, QVariant::fromValue(content.split("\n")));
 }
 
@@ -346,11 +320,11 @@ void LuaScriptForm::onScriptContentChanged(const QString& fileName, const QVaria
 {
 	QStringList tokens = vtokens.value<QStringList>();
 
-	int rowCount = tokens.size();
+	qint64 rowCount = tokens.size();
 
 	resizeTableWidgetRow(rowCount);
 
-	for (int row = 0; row < rowCount; ++row)
+	for (qint64 row = 0; row < rowCount; ++row)
 	{
 		setTableWidgetItem(row, 0, tokens.at(row).trimmed());
 	}
@@ -358,7 +332,7 @@ void LuaScriptForm::onScriptContentChanged(const QString& fileName, const QVaria
 	QString newFileName = fileName;
 	newFileName.replace("\\", "/");
 
-	int index = newFileName.indexOf("script/");
+	qint64 index = newFileName.indexOf("script/");
 	if (index >= 0)
 	{
 		QString shortPath = fileName.mid(index + 7);
@@ -367,21 +341,9 @@ void LuaScriptForm::onScriptContentChanged(const QString& fileName, const QVaria
 	}
 }
 
-void LuaScriptForm::onCurrentTableWidgetItemChanged(QTableWidgetItem* current, QTableWidgetItem*)
+void LuaScriptForm::onCurrentTableWidgetItemChanged(QTableWidgetItem*, QTableWidgetItem*)
 {
-	//if (!current)
-	//	return;
-	//int row = current->row();
-	//selectedRow_ = row;
 
-	//Injector& injector = Injector::getInstance();
-	//if (injector.IS_SCRIPT_FLAG.load(std::memory_order_acquire))
-	//	return;
-
-	//ui.pushButton_script_start->setText(tr("start"));
-
-	//int rowCount = ui.tableWidget_script->rowCount();
-	//onScriptLabelRowTextChanged(row + 1, rowCount, true);
 }
 
 void LuaScriptForm::onScriptTableWidgetClicked(QTableWidgetItem*)
@@ -402,7 +364,8 @@ void LuaScriptForm::onScriptTreeWidgetDoubleClicked(QTreeWidgetItem* item, int c
 
 	do
 	{
-		Injector& injector = Injector::getInstance();
+		qint64 currentIndex = getIndex();
+		Injector& injector = Injector::getInstance(currentIndex);
 		if (injector.IS_SCRIPT_FLAG.load(std::memory_order_acquire))
 			break;
 
@@ -415,8 +378,8 @@ void LuaScriptForm::onScriptTreeWidgetDoubleClicked(QTreeWidgetItem* item, int c
 			itemfile = itemfile->parent(); //將itemfile指向父item
 		}
 		QString strpath;
-		int count = (filepath.size() - 1);
-		for (int i = count; i >= 0; i--) //QStringlist類filepath反向存著初始item的路徑
+		qint64 count = (filepath.size() - 1);
+		for (qint64 i = count; i >= 0; i--) //QStringlist類filepath反向存著初始item的路徑
 		{ //將filepath反向輸出，相應的加入’/‘
 			if (filepath.at(i).isEmpty())
 				continue;
@@ -428,7 +391,7 @@ void LuaScriptForm::onScriptTreeWidgetDoubleClicked(QTreeWidgetItem* item, int c
 		strpath = util::applicationDirPath() + "/script/" + strpath;
 		strpath.replace("*", "");
 
-		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
+		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
 		emit signalDispatcher.loadFileToTable(strpath);
 	} while (false);
 
@@ -456,7 +419,7 @@ void LuaScriptForm::onReloadScriptList()
 		ui.treeWidget_script->addTopLevelItem(item);
 		//展開全部第一層
 		ui.treeWidget_script->topLevelItem(0)->setExpanded(true);
-		for (int i = 0; i < item->childCount(); ++i)
+		for (qint64 i = 0; i < item->childCount(); ++i)
 		{
 			ui.treeWidget_script->expandItem(item->child(i));
 		}
@@ -469,17 +432,19 @@ void LuaScriptForm::onReloadScriptList()
 
 void LuaScriptForm::onSpeedChanged(int value)
 {
-	Injector& injector = Injector::getInstance();
+	qint64 currentIndex = getIndex();
+	Injector& injector = Injector::getInstance(currentIndex);
 	injector.setValueHash(util::kScriptSpeedValue, value);
 
-	emit SignalDispatcher::getInstance().scriptSpeedChanged(value);
+	emit SignalDispatcher::getInstance(currentIndex).scriptSpeedChanged(value);
 }
 
 void LuaScriptForm::onApplyHashSettingsToUI()
 {
-	Injector& injector = Injector::getInstance();
+	qint64 currentIndex = getIndex();
+	Injector& injector = Injector::getInstance(currentIndex);
 	QHash<util::UserSetting, bool> enableHash = injector.getEnablesHash();
-	QHash<util::UserSetting, int> valueHash = injector.getValuesHash();
+	QHash<util::UserSetting, qint64> valueHash = injector.getValuesHash();
 	QHash<util::UserSetting, QString> stringHash = injector.getStringsHash();
 
 	ui.spinBox_speed->setValue(valueHash.value(util::kScriptSpeedValue));

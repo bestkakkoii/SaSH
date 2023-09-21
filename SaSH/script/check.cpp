@@ -22,9 +22,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "injector.h"
 
 //check
-qint64 Interpreter::ifdaily(qint64, const TokenMap& TK)
+qint64 Interpreter::ifdaily(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
 {
-	Injector& injector = Injector::getInstance();
+	Injector& injector = Injector::getInstance(currentIndex);
 
 	if (injector.server.isNull())
 		return Parser::kServerNotReady;
@@ -43,9 +43,9 @@ qint64 Interpreter::ifdaily(qint64, const TokenMap& TK)
 		return checkJump(TK, 3, true, SuccessJump);//使用第3參數跳轉
 }
 
-qint64 Interpreter::ifbattle(qint64, const TokenMap& TK)
+qint64 Interpreter::ifbattle(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
 {
-	Injector& injector = Injector::getInstance();
+	Injector& injector = Injector::getInstance(currentIndex);
 
 	if (injector.server.isNull())
 		return Parser::kServerNotReady;
@@ -53,9 +53,9 @@ qint64 Interpreter::ifbattle(qint64, const TokenMap& TK)
 	return checkJump(TK, 1, injector.server->getBattleFlag(), SuccessJump);
 }
 
-qint64 Interpreter::ifonline(qint64, const TokenMap& TK)
+qint64 Interpreter::ifonline(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
 {
-	Injector& injector = Injector::getInstance();
+	Injector& injector = Injector::getInstance(currentIndex);
 
 	if (injector.server.isNull())
 		return Parser::kServerNotReady;
@@ -63,9 +63,9 @@ qint64 Interpreter::ifonline(qint64, const TokenMap& TK)
 	return checkJump(TK, 1, injector.server->getOnlineFlag(), SuccessJump);
 }
 
-qint64 Interpreter::ifnormal(qint64, const TokenMap& TK)
+qint64 Interpreter::ifnormal(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
 {
-	Injector& injector = Injector::getInstance();
+	Injector& injector = Injector::getInstance(currentIndex);
 
 	if (injector.server.isNull())
 		return Parser::kServerNotReady;
@@ -73,9 +73,9 @@ qint64 Interpreter::ifnormal(qint64, const TokenMap& TK)
 	return checkJump(TK, 1, !injector.server->getBattleFlag(), SuccessJump);
 }
 
-qint64 Interpreter::ifpos(qint64, const TokenMap& TK)
+qint64 Interpreter::ifpos(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
 {
-	Injector& injector = Injector::getInstance();
+	Injector& injector = Injector::getInstance(currentIndex);
 
 	if (injector.server.isNull())
 		return Parser::kServerNotReady;
@@ -92,9 +92,9 @@ qint64 Interpreter::ifpos(qint64, const TokenMap& TK)
 	return checkJump(TK, 3, injector.server->getPoint() == p, SuccessJump);
 }
 
-qint64 Interpreter::ifmap(qint64 currentline, const TokenMap& TK)
+qint64 Interpreter::ifmap(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
 {
-	Injector& injector = Injector::getInstance();
+	Injector& injector = Injector::getInstance(currentIndex);
 
 	if (injector.server.isNull())
 		return Parser::kServerNotReady;
@@ -142,9 +142,9 @@ qint64 Interpreter::ifmap(qint64 currentline, const TokenMap& TK)
 	return checkJump(TK, 2, check(), SuccessJump);
 }
 
-qint64 Interpreter::checkunit(qint64, const TokenMap&)
+qint64 Interpreter::checkunit(qint64 currentIndex, qint64 currentLine, const TokenMap&)
 {
-	Injector& injector = Injector::getInstance();
+	Injector& injector = Injector::getInstance(currentIndex);
 
 	if (injector.server.isNull())
 		return Parser::kServerNotReady;
@@ -155,9 +155,9 @@ qint64 Interpreter::checkunit(qint64, const TokenMap&)
 	return Parser::kNoChange;
 }
 
-qint64 Interpreter::ifitemfull(qint64 currentline, const TokenMap& TK)
+qint64 Interpreter::ifitemfull(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
 {
-	Injector& injector = Injector::getInstance();
+	Injector& injector = Injector::getInstance(currentIndex);
 
 	if (injector.server.isNull())
 		return Parser::kServerNotReady;
@@ -178,9 +178,9 @@ qint64 Interpreter::ifitemfull(qint64 currentline, const TokenMap& TK)
 	return checkJump(TK, 1, bret, SuccessJump);
 }
 
-qint64 Interpreter::waitpet(qint64 currentline, const TokenMap& TK)
+qint64 Interpreter::waitpet(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
 {
-	Injector& injector = Injector::getInstance();
+	Injector& injector = Injector::getInstance(currentIndex);
 
 	if (injector.server.isNull())
 		return Parser::kServerNotReady;
@@ -198,14 +198,14 @@ qint64 Interpreter::waitpet(qint64 currentline, const TokenMap& TK)
 	bool bret = false;
 	if (timeout == 0)
 	{
-		QVector<int> v;
+		QVector<qint64> v;
 		bret = injector.server->getPetIndexsByName(petName, &v);
 	}
 	else
 	{
 		bret = waitfor(timeout, [&injector, petName]()->bool
 			{
-				QVector<int> v;
+				QVector<qint64> v;
 				return injector.server->getPetIndexsByName(petName, &v);
 			});
 	}
@@ -213,9 +213,9 @@ qint64 Interpreter::waitpet(qint64 currentline, const TokenMap& TK)
 	return checkJump(TK, 3, bret, FailedJump);
 }
 
-qint64 Interpreter::waitmap(qint64 currentline, const TokenMap& TK)
+qint64 Interpreter::waitmap(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
 {
-	Injector& injector = Injector::getInstance();
+	Injector& injector = Injector::getInstance(currentIndex);
 
 	if (injector.server.isNull())
 		return Parser::kServerNotReady;
@@ -284,9 +284,9 @@ qint64 Interpreter::waitmap(qint64 currentline, const TokenMap& TK)
 	return checkJump(TK, 3, bret, FailedJump);
 }
 
-qint64 Interpreter::waitdlg(qint64 currentline, const TokenMap& TK)
+qint64 Interpreter::waitdlg(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
 {
-	Injector& injector = Injector::getInstance();
+	Injector& injector = Injector::getInstance(currentIndex);
 
 	if (injector.server.isNull())
 		return Parser::kServerNotReady;
@@ -388,9 +388,9 @@ qint64 Interpreter::waitdlg(qint64 currentline, const TokenMap& TK)
 	}
 }
 
-qint64 Interpreter::waitsay(qint64 currentline, const TokenMap& TK)
+qint64 Interpreter::waitsay(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
 {
-	Injector& injector = Injector::getInstance();
+	Injector& injector = Injector::getInstance(currentIndex);
 
 	if (injector.server.isNull())
 		return Parser::kServerNotReady;
@@ -454,9 +454,9 @@ qint64 Interpreter::waitsay(qint64 currentline, const TokenMap& TK)
 }
 
 //check->group
-qint64 Interpreter::waitteam(qint64 currentline, const TokenMap& TK)
+qint64 Interpreter::waitteam(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
 {
-	Injector& injector = Injector::getInstance();
+	Injector& injector = Injector::getInstance(currentIndex);
 
 	if (injector.server.isNull())
 		return Parser::kServerNotReady;
@@ -485,9 +485,9 @@ qint64 Interpreter::waitteam(qint64 currentline, const TokenMap& TK)
 	return checkJump(TK, 2, bret, FailedJump);
 }
 
-qint64 Interpreter::waititem(qint64 currentline, const TokenMap& TK)
+qint64 Interpreter::waititem(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
 {
-	Injector& injector = Injector::getInstance();
+	Injector& injector = Injector::getInstance(currentIndex);
 
 	if (injector.server.isNull())
 		return Parser::kServerNotReady;
@@ -547,14 +547,14 @@ qint64 Interpreter::waititem(qint64 currentline, const TokenMap& TK)
 	bool bret = false;
 	if (timeout == 0)
 	{
-		QVector<int> vec;
+		QVector<qint64> vec;
 		bret = injector.server->getItemIndexsByName(itemName, itemMemo, &vec, min, max);
 	}
 	else
 	{
 		bret = waitfor(timeout, [&injector, itemName, itemMemo, min, max]()->bool
 			{
-				QVector<int> vec;
+				QVector<qint64> vec;
 				return injector.server->getItemIndexsByName(itemName, itemMemo, &vec, min, max);
 			});
 	}

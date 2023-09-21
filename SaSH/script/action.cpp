@@ -23,9 +23,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "map/mapanalyzer.h"
 
 //action
-qint64 Interpreter::useitem(qint64, const TokenMap& TK)
+qint64 Interpreter::useitem(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
 {
-	Injector& injector = Injector::getInstance();
+	Injector& injector = Injector::getInstance(currentIndex);
 
 	if (injector.server.isNull())
 		return Parser::kServerNotReady;
@@ -154,7 +154,7 @@ qint64 Interpreter::useitem(qint64, const TokenMap& TK)
 				if (itemMemos.size() > 0)
 					memo = itemMemos.takeFirst();
 
-				QVector<int> v;
+				QVector<qint64> v;
 				if (!injector.server->getItemIndexsByName(name, memo, &v, CHAR_EQUIPPLACENUM))
 					continue;
 
@@ -193,7 +193,7 @@ qint64 Interpreter::useitem(qint64, const TokenMap& TK)
 				if (itemNames.size() > 0)
 					name = itemNames.takeFirst();
 
-				QVector<int> v;
+				QVector<qint64> v;
 				if (!injector.server->getItemIndexsByName(name, memo, &v, CHAR_EQUIPPLACENUM))
 					continue;
 
@@ -237,7 +237,7 @@ qint64 Interpreter::useitem(qint64, const TokenMap& TK)
 			if (itemMemos.size() > 0)
 				memo = itemMemos.takeFirst();
 
-			QVector<int> v;
+			QVector<qint64> v;
 			if (!injector.server->getItemIndexsByName(itemName, memo, &v, CHAR_EQUIPPLACENUM))
 				continue;
 
@@ -271,7 +271,7 @@ qint64 Interpreter::useitem(qint64, const TokenMap& TK)
 			if (itemNames.size() > 0)
 				name = itemNames.takeFirst();
 
-			QVector<int> v;
+			QVector<qint64> v;
 			if (!injector.server->getItemIndexsByName(itemName, memo, &v, CHAR_EQUIPPLACENUM))
 				continue;
 
@@ -300,14 +300,14 @@ qint64 Interpreter::useitem(qint64, const TokenMap& TK)
 		}
 	}
 
-	waitfor(2000, [&injector]()->bool { return injector.server->IS_WAITOFR_ITEM_CHANGE_PACKET <= 0; });
+	waitfor(500, [&injector]()->bool { return injector.server->IS_WAITOFR_ITEM_CHANGE_PACKET <= 0; });
 	injector.server->IS_WAITOFR_ITEM_CHANGE_PACKET = 0;
 	return Parser::kNoChange;
 }
 
-qint64 Interpreter::dropitem(qint64, const TokenMap& TK)
+qint64 Interpreter::dropitem(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
 {
-	Injector& injector = Injector::getInstance();
+	Injector& injector = Injector::getInstance(currentIndex);
 
 	if (injector.server.isNull())
 		return Parser::kServerNotReady;
@@ -353,7 +353,7 @@ qint64 Interpreter::dropitem(qint64, const TokenMap& TK)
 		if (itemNames.isEmpty())
 			return Parser::kArgError + 3ll;
 
-		QVector<int> indexs;
+		QVector<qint64> indexs;
 		injector.server->getItemIndexsByName(itemNames, "", &indexs, min, max);
 
 		//排除掉所有包含在indexs的
@@ -376,7 +376,7 @@ qint64 Interpreter::dropitem(qint64, const TokenMap& TK)
 		//qint64 size = itemNameList.size();
 		for (const QString& name : itemNameList)
 		{
-			QVector<int> indexs;
+			QVector<qint64> indexs;
 			if (injector.server->getItemIndexsByName(name, memo, &indexs))
 			{
 				for (const qint64 it : indexs)
@@ -389,14 +389,14 @@ qint64 Interpreter::dropitem(qint64, const TokenMap& TK)
 
 	}
 	qDebug() << injector.server->IS_WAITOFR_ITEM_CHANGE_PACKET;
-	waitfor(2000, [&injector]()->bool { return injector.server->IS_WAITOFR_ITEM_CHANGE_PACKET <= 0; });
+	waitfor(500, [&injector]()->bool { return injector.server->IS_WAITOFR_ITEM_CHANGE_PACKET <= 0; });
 	injector.server->IS_WAITOFR_ITEM_CHANGE_PACKET = 0;
 	return Parser::kNoChange;
 }
 
-qint64 Interpreter::swapitem(qint64 currentline, const TokenMap& TK)
+qint64 Interpreter::swapitem(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
 {
-	Injector& injector = Injector::getInstance();
+	Injector& injector = Injector::getInstance(currentIndex);
 
 	if (injector.server.isNull())
 		return Parser::kServerNotReady;
@@ -431,14 +431,14 @@ qint64 Interpreter::swapitem(qint64 currentline, const TokenMap& TK)
 	injector.server->IS_WAITOFR_ITEM_CHANGE_PACKET = 0;
 	injector.server->swapItem(a, b);
 
-	waitfor(2000, [&injector]()->bool { return injector.server->IS_WAITOFR_ITEM_CHANGE_PACKET <= 0; });
+	waitfor(500, [&injector]()->bool { return injector.server->IS_WAITOFR_ITEM_CHANGE_PACKET <= 0; });
 	injector.server->IS_WAITOFR_ITEM_CHANGE_PACKET = 0;
 	return Parser::kNoChange;
 }
 
-qint64 Interpreter::playerrename(qint64, const TokenMap& TK)
+qint64 Interpreter::playerrename(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
 {
-	Injector& injector = Injector::getInstance();
+	Injector& injector = Injector::getInstance(currentIndex);
 
 	if (injector.server.isNull())
 		return Parser::kServerNotReady;
@@ -453,9 +453,9 @@ qint64 Interpreter::playerrename(qint64, const TokenMap& TK)
 	return Parser::kNoChange;
 }
 
-qint64 Interpreter::petrename(qint64, const TokenMap& TK)
+qint64 Interpreter::petrename(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
 {
-	Injector& injector = Injector::getInstance();
+	Injector& injector = Injector::getInstance(currentIndex);
 
 	if (injector.server.isNull())
 		return Parser::kServerNotReady;
@@ -474,9 +474,9 @@ qint64 Interpreter::petrename(qint64, const TokenMap& TK)
 	return Parser::kNoChange;
 }
 
-qint64 Interpreter::setpetstate(qint64, const TokenMap& TK)
+qint64 Interpreter::setpetstate(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
 {
-	Injector& injector = Injector::getInstance();
+	Injector& injector = Injector::getInstance(currentIndex);
 
 	if (injector.server.isNull())
 		return Parser::kServerNotReady;
@@ -503,9 +503,9 @@ qint64 Interpreter::setpetstate(qint64, const TokenMap& TK)
 	return Parser::kNoChange;
 }
 
-qint64 Interpreter::droppet(qint64, const TokenMap& TK)
+qint64 Interpreter::droppet(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
 {
-	Injector& injector = Injector::getInstance();
+	Injector& injector = Injector::getInstance(currentIndex);
 
 	if (injector.server.isNull())
 		return Parser::kServerNotReady;
@@ -524,7 +524,7 @@ qint64 Interpreter::droppet(qint64, const TokenMap& TK)
 		injector.server->dropPet(petIndex);
 	else if (!petName.isEmpty())
 	{
-		QVector<int> v;
+		QVector<qint64> v;
 		if (injector.server->getPetIndexsByName(petName, &v))
 		{
 			for (const qint64 it : v)
@@ -535,9 +535,9 @@ qint64 Interpreter::droppet(qint64, const TokenMap& TK)
 	return Parser::kNoChange;
 }
 
-qint64 Interpreter::buy(qint64, const TokenMap& TK)
+qint64 Interpreter::buy(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
 {
-	Injector& injector = Injector::getInstance();
+	Injector& injector = Injector::getInstance(currentIndex);
 
 	if (injector.server.isNull())
 		return Parser::kServerNotReady;
@@ -577,14 +577,14 @@ qint64 Interpreter::buy(qint64, const TokenMap& TK)
 		}
 	}
 
-	waitfor(2000, [&injector]()->bool { return injector.server->IS_WAITOFR_ITEM_CHANGE_PACKET <= 0; });
+	waitfor(500, [&injector]()->bool { return injector.server->IS_WAITOFR_ITEM_CHANGE_PACKET <= 0; });
 	injector.server->IS_WAITOFR_ITEM_CHANGE_PACKET = 0;
 	return Parser::kNoChange;
 }
 
-qint64 Interpreter::sell(qint64, const TokenMap& TK)
+qint64 Interpreter::sell(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
 {
-	Injector& injector = Injector::getInstance();
+	Injector& injector = Injector::getInstance(currentIndex);
 
 	if (injector.server.isNull())
 		return Parser::kServerNotReady;
@@ -604,10 +604,10 @@ qint64 Interpreter::sell(qint64, const TokenMap& TK)
 	qint64 dlgid = -1;
 	checkInteger(TK, 3, &dlgid);
 
-	QVector<int> itemIndexs;
+	QVector<qint64> itemIndexs;
 	for (const QString& it : nameList)
 	{
-		QVector<int> indexs;
+		QVector<qint64> indexs;
 		if (!injector.server->getItemIndexsByName(it, "", &indexs, CHAR_EQUIPPLACENUM))
 			continue;
 		itemIndexs.append(indexs);
@@ -630,14 +630,14 @@ qint64 Interpreter::sell(qint64, const TokenMap& TK)
 		}
 	}
 
-	waitfor(2000, [&injector]()->bool { return injector.server->IS_WAITOFR_ITEM_CHANGE_PACKET <= 0; });
+	waitfor(500, [&injector]()->bool { return injector.server->IS_WAITOFR_ITEM_CHANGE_PACKET <= 0; });
 	injector.server->IS_WAITOFR_ITEM_CHANGE_PACKET = 0;
 	return Parser::kNoChange;
 }
 
-qint64 Interpreter::sellpet(qint64, const TokenMap& TK)
+qint64 Interpreter::sellpet(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
 {
-	Injector& injector = Injector::getInstance();
+	Injector& injector = Injector::getInstance(currentIndex);
 
 	if (injector.server.isNull())
 		return Parser::kServerNotReady;
@@ -731,9 +731,9 @@ qint64 Interpreter::sellpet(qint64, const TokenMap& TK)
 	return Parser::kNoChange;
 }
 
-qint64 Interpreter::make(qint64, const TokenMap& TK)
+qint64 Interpreter::make(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
 {
-	Injector& injector = Injector::getInstance();
+	Injector& injector = Injector::getInstance(currentIndex);
 
 	if (injector.server.isNull())
 		return Parser::kServerNotReady;
@@ -752,14 +752,14 @@ qint64 Interpreter::make(qint64, const TokenMap& TK)
 
 	injector.server->craft(util::kCraftItem, ingreNameList);
 
-	waitfor(2000, [&injector]()->bool { return injector.server->IS_WAITOFR_ITEM_CHANGE_PACKET <= 0; });
+	waitfor(500, [&injector]()->bool { return injector.server->IS_WAITOFR_ITEM_CHANGE_PACKET <= 0; });
 	injector.server->IS_WAITOFR_ITEM_CHANGE_PACKET = 0;
 	return Parser::kNoChange;
 }
 
-qint64 Interpreter::cook(qint64, const TokenMap& TK)
+qint64 Interpreter::cook(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
 {
-	Injector& injector = Injector::getInstance();
+	Injector& injector = Injector::getInstance(currentIndex);
 
 	if (injector.server.isNull())
 		return Parser::kServerNotReady;
@@ -778,14 +778,14 @@ qint64 Interpreter::cook(qint64, const TokenMap& TK)
 
 	injector.server->craft(util::kCraftFood, ingreNameList);
 
-	waitfor(2000, [&injector]()->bool { return injector.server->IS_WAITOFR_ITEM_CHANGE_PACKET <= 0; });
+	waitfor(500, [&injector]()->bool { return injector.server->IS_WAITOFR_ITEM_CHANGE_PACKET <= 0; });
 	injector.server->IS_WAITOFR_ITEM_CHANGE_PACKET = 0;
 	return Parser::kNoChange;
 }
 
-qint64 Interpreter::learn(qint64, const TokenMap& TK)
+qint64 Interpreter::learn(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
 {
-	Injector& injector = Injector::getInstance();
+	Injector& injector = Injector::getInstance(currentIndex);
 
 	if (injector.server.isNull())
 		return Parser::kServerNotReady;
@@ -834,9 +834,9 @@ qint64 Interpreter::learn(qint64, const TokenMap& TK)
 }
 
 //group
-qint64 Interpreter::join(qint64, const TokenMap& TK)
+qint64 Interpreter::join(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
 {
-	Injector& injector = Injector::getInstance();
+	Injector& injector = Injector::getInstance(currentIndex);
 
 	if (injector.server.isNull())
 		return Parser::kServerNotReady;
@@ -849,9 +849,9 @@ qint64 Interpreter::join(qint64, const TokenMap& TK)
 	return Parser::kNoChange;
 }
 
-qint64 Interpreter::leave(qint64, const TokenMap& TK)
+qint64 Interpreter::leave(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
 {
-	Injector& injector = Injector::getInstance();
+	Injector& injector = Injector::getInstance(currentIndex);
 
 	if (injector.server.isNull())
 		return Parser::kServerNotReady;
@@ -864,9 +864,9 @@ qint64 Interpreter::leave(qint64, const TokenMap& TK)
 	return Parser::kNoChange;
 }
 
-qint64 Interpreter::kick(qint64, const TokenMap& TK)
+qint64 Interpreter::kick(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
 {
-	Injector& injector = Injector::getInstance();
+	Injector& injector = Injector::getInstance(currentIndex);
 
 	if (injector.server.isNull())
 		return Parser::kServerNotReady;
@@ -938,9 +938,9 @@ qint64 Interpreter::kick(qint64, const TokenMap& TK)
 	return Parser::kNoChange;
 }
 
-qint64 Interpreter::usemagic(qint64, const TokenMap& TK)
+qint64 Interpreter::usemagic(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
 {
-	Injector& injector = Injector::getInstance();
+	Injector& injector = Injector::getInstance(currentIndex);
 
 	if (injector.server.isNull())
 		return Parser::kServerNotReady;
@@ -1015,9 +1015,9 @@ qint64 Interpreter::usemagic(qint64, const TokenMap& TK)
 	return Parser::kNoChange;
 }
 
-qint64 Interpreter::pickitem(qint64, const TokenMap& TK)
+qint64 Interpreter::pickitem(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
 {
-	Injector& injector = Injector::getInstance();
+	Injector& injector = Injector::getInstance(currentIndex);
 
 	if (injector.server.isNull())
 		return Parser::kServerNotReady;
@@ -1050,9 +1050,9 @@ qint64 Interpreter::pickitem(qint64, const TokenMap& TK)
 	return Parser::kNoChange;
 }
 
-qint64 Interpreter::depositgold(qint64, const TokenMap& TK)
+qint64 Interpreter::depositgold(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
 {
-	Injector& injector = Injector::getInstance();
+	Injector& injector = Injector::getInstance(currentIndex);
 
 	if (injector.server.isNull())
 		return Parser::kServerNotReady;
@@ -1080,9 +1080,9 @@ qint64 Interpreter::depositgold(qint64, const TokenMap& TK)
 	return Parser::kNoChange;
 }
 
-qint64 Interpreter::withdrawgold(qint64, const TokenMap& TK)
+qint64 Interpreter::withdrawgold(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
 {
-	Injector& injector = Injector::getInstance();
+	Injector& injector = Injector::getInstance(currentIndex);
 
 	if (injector.server.isNull())
 		return Parser::kServerNotReady;
@@ -1102,9 +1102,9 @@ qint64 Interpreter::withdrawgold(qint64, const TokenMap& TK)
 }
 
 util::SafeHash<qint64, ITEM> recordedEquip_;
-qint64 Interpreter::recordequip(qint64, const TokenMap& TK)
+qint64 Interpreter::recordequip(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
 {
-	Injector& injector = Injector::getInstance();
+	Injector& injector = Injector::getInstance(currentIndex);
 
 	if (injector.server.isNull())
 		return Parser::kServerNotReady;
@@ -1121,9 +1121,9 @@ qint64 Interpreter::recordequip(qint64, const TokenMap& TK)
 	return Parser::kNoChange;
 }
 
-qint64 Interpreter::wearequip(qint64, const TokenMap& TK)
+qint64 Interpreter::wearequip(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
 {
-	Injector& injector = Injector::getInstance();
+	Injector& injector = Injector::getInstance(currentIndex);
 
 	if (injector.server.isNull())
 		return Parser::kServerNotReady;
@@ -1153,14 +1153,14 @@ qint64 Interpreter::wearequip(qint64, const TokenMap& TK)
 		injector.server->useItem(itemIndex, 0);
 	}
 
-	waitfor(2000, [&injector]()->bool { return injector.server->IS_WAITOFR_ITEM_CHANGE_PACKET <= 0; });
+	waitfor(500, [&injector]()->bool { return injector.server->IS_WAITOFR_ITEM_CHANGE_PACKET <= 0; });
 	injector.server->IS_WAITOFR_ITEM_CHANGE_PACKET = 0;
 	return Parser::kNoChange;
 }
 
-qint64 Interpreter::unwearequip(qint64, const TokenMap& TK)
+qint64 Interpreter::unwearequip(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
 {
-	Injector& injector = Injector::getInstance();
+	Injector& injector = Injector::getInstance(currentIndex);
 
 	if (injector.server.isNull())
 		return Parser::kServerNotReady;
@@ -1203,7 +1203,7 @@ qint64 Interpreter::unwearequip(qint64, const TokenMap& TK)
 	}
 	else
 	{
-		QVector<int> v;
+		QVector<qint64> v;
 		if (!injector.server->getItemEmptySpotIndexs(&v))
 			return Parser::kNoChange;
 
@@ -1218,14 +1218,14 @@ qint64 Interpreter::unwearequip(qint64, const TokenMap& TK)
 		}
 	}
 
-	waitfor(2000, [&injector]()->bool { return injector.server->IS_WAITOFR_ITEM_CHANGE_PACKET <= 0; });
+	waitfor(500, [&injector]()->bool { return injector.server->IS_WAITOFR_ITEM_CHANGE_PACKET <= 0; });
 	injector.server->IS_WAITOFR_ITEM_CHANGE_PACKET = 0;
 	return Parser::kNoChange;
 }
 
-qint64 Interpreter::petequip(qint64, const TokenMap& TK)
+qint64 Interpreter::petequip(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
 {
-	Injector& injector = Injector::getInstance();
+	Injector& injector = Injector::getInstance(currentIndex);
 
 	if (injector.server.isNull())
 		return Parser::kServerNotReady;
@@ -1254,9 +1254,9 @@ qint64 Interpreter::petequip(qint64, const TokenMap& TK)
 	return Parser::kNoChange;
 }
 
-qint64 Interpreter::petunequip(qint64, const TokenMap& TK)
+qint64 Interpreter::petunequip(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
 {
-	Injector& injector = Injector::getInstance();
+	Injector& injector = Injector::getInstance(currentIndex);
 
 	if (injector.server.isNull())
 		return Parser::kServerNotReady;
@@ -1309,7 +1309,7 @@ qint64 Interpreter::petunequip(qint64, const TokenMap& TK)
 	}
 	else
 	{
-		QVector<int> v;
+		QVector<qint64> v;
 		if (!injector.server->getItemEmptySpotIndexs(&v))
 			return Parser::kNoChange;
 
@@ -1324,14 +1324,14 @@ qint64 Interpreter::petunequip(qint64, const TokenMap& TK)
 		}
 	}
 
-	waitfor(2000, [&injector]()->bool { return injector.server->IS_WAITOFR_ITEM_CHANGE_PACKET <= 0; });
+	waitfor(500, [&injector]()->bool { return injector.server->IS_WAITOFR_ITEM_CHANGE_PACKET <= 0; });
 	injector.server->IS_WAITOFR_ITEM_CHANGE_PACKET = 0;
 	return Parser::kNoChange;
 }
 
-qint64 Interpreter::depositpet(qint64, const TokenMap& TK)
+qint64 Interpreter::depositpet(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
 {
-	Injector& injector = Injector::getInstance();
+	Injector& injector = Injector::getInstance(currentIndex);
 
 	if (injector.server.isNull())
 		return Parser::kServerNotReady;
@@ -1355,7 +1355,7 @@ qint64 Interpreter::depositpet(qint64, const TokenMap& TK)
 		--petIndex;
 	else
 	{
-		QVector<int> v;
+		QVector<qint64> v;
 		if (!injector.server->getPetIndexsByName(petName, &v))
 			return Parser::kArgError + 1ll;
 		petIndex = v.first();
@@ -1379,9 +1379,9 @@ qint64 Interpreter::depositpet(qint64, const TokenMap& TK)
 	return Parser::kNoChange;
 }
 
-qint64 Interpreter::deposititem(qint64, const TokenMap& TK)
+qint64 Interpreter::deposititem(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
 {
-	Injector& injector = Injector::getInstance();
+	Injector& injector = Injector::getInstance(currentIndex);
 
 	if (injector.server.isNull())
 		return Parser::kServerNotReady;
@@ -1407,10 +1407,10 @@ qint64 Interpreter::deposititem(qint64, const TokenMap& TK)
 		if (itemNames.isEmpty())
 			return Parser::kArgError + 2ll;
 
-		QVector<int> allv;
+		QVector<qint64> allv;
 		for (const QString& name : itemNames)
 		{
-			QVector<int> v;
+			QVector<qint64> v;
 			if (!injector.server->getItemIndexsByName(name, "", &v, CHAR_EQUIPPLACENUM))
 				return Parser::kArgError;
 			else
@@ -1451,14 +1451,14 @@ qint64 Interpreter::deposititem(qint64, const TokenMap& TK)
 		}
 	}
 
-	waitfor(2000, [&injector]()->bool { return injector.server->IS_WAITOFR_ITEM_CHANGE_PACKET <= 0; });
+	waitfor(500, [&injector]()->bool { return injector.server->IS_WAITOFR_ITEM_CHANGE_PACKET <= 0; });
 	injector.server->IS_WAITOFR_ITEM_CHANGE_PACKET = 0;
 	return Parser::kNoChange;
 }
 
-qint64 Interpreter::withdrawpet(qint64, const TokenMap& TK)
+qint64 Interpreter::withdrawpet(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
 {
-	Injector& injector = Injector::getInstance();
+	Injector& injector = Injector::getInstance(currentIndex);
 
 	if (injector.server.isNull())
 		return Parser::kServerNotReady;
@@ -1550,9 +1550,9 @@ qint64 Interpreter::withdrawpet(qint64, const TokenMap& TK)
 	return Parser::kNoChange;
 }
 
-qint64 Interpreter::withdrawitem(qint64, const TokenMap& TK)
+qint64 Interpreter::withdrawitem(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
 {
-	Injector& injector = Injector::getInstance();
+	Injector& injector = Injector::getInstance(currentIndex);
 
 	if (injector.server.isNull())
 		return Parser::kServerNotReady;
@@ -1649,14 +1649,14 @@ qint64 Interpreter::withdrawitem(qint64, const TokenMap& TK)
 		}
 	}
 
-	waitfor(2000, [&injector]()->bool { return injector.server->IS_WAITOFR_ITEM_CHANGE_PACKET <= 0; });
+	waitfor(500, [&injector]()->bool { return injector.server->IS_WAITOFR_ITEM_CHANGE_PACKET <= 0; });
 	injector.server->IS_WAITOFR_ITEM_CHANGE_PACKET = 0;
 	return Parser::kNoChange;
 }
 
-qint64 Interpreter::addpoint(qint64, const TokenMap& TK)
+qint64 Interpreter::addpoint(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
 {
-	Injector& injector = Injector::getInstance();
+	Injector& injector = Injector::getInstance(currentIndex);
 
 	if (injector.server.isNull())
 		return Parser::kServerNotReady;
@@ -1700,9 +1700,9 @@ qint64 Interpreter::addpoint(qint64, const TokenMap& TK)
 	return Parser::kNoChange;
 }
 
-qint64 Interpreter::leftclick(qint64, const TokenMap& TK)
+qint64 Interpreter::leftclick(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
 {
-	Injector& injector = Injector::getInstance();
+	Injector& injector = Injector::getInstance(currentIndex);
 
 	if (injector.server.isNull())
 		return Parser::kServerNotReady;
@@ -1718,9 +1718,9 @@ qint64 Interpreter::leftclick(qint64, const TokenMap& TK)
 	return Parser::kNoChange;
 }
 
-qint64 Interpreter::rightclick(qint64, const TokenMap& TK)
+qint64 Interpreter::rightclick(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
 {
-	Injector& injector = Injector::getInstance();
+	Injector& injector = Injector::getInstance(currentIndex);
 
 	if (injector.server.isNull())
 		return Parser::kServerNotReady;
@@ -1736,9 +1736,9 @@ qint64 Interpreter::rightclick(qint64, const TokenMap& TK)
 	return Parser::kNoChange;
 }
 
-qint64 Interpreter::leftdoubleclick(qint64, const TokenMap& TK)
+qint64 Interpreter::leftdoubleclick(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
 {
-	Injector& injector = Injector::getInstance();
+	Injector& injector = Injector::getInstance(currentIndex);
 
 	if (injector.server.isNull())
 		return Parser::kServerNotReady;
@@ -1754,9 +1754,9 @@ qint64 Interpreter::leftdoubleclick(qint64, const TokenMap& TK)
 	return Parser::kNoChange;
 }
 
-qint64 Interpreter::mousedragto(qint64, const TokenMap& TK)
+qint64 Interpreter::mousedragto(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
 {
-	Injector& injector = Injector::getInstance();
+	Injector& injector = Injector::getInstance(currentIndex);
 
 	if (injector.server.isNull())
 		return Parser::kServerNotReady;
@@ -1780,9 +1780,9 @@ qint64 Interpreter::mousedragto(qint64, const TokenMap& TK)
 	return Parser::kNoChange;
 }
 
-qint64 Interpreter::trade(qint64 currentLine, const TokenMap& TK)
+qint64 Interpreter::trade(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
 {
-	Injector& injector = Injector::getInstance();
+	Injector& injector = Injector::getInstance(currentIndex);
 
 	if (injector.server.isNull())
 		return Parser::kServerNotReady;
@@ -1819,7 +1819,7 @@ qint64 Interpreter::trade(qint64 currentLine, const TokenMap& TK)
 
 	QPoint dst;
 	qint64 dir = injector.server->mapAnalyzer->calcBestFollowPointByDstPoint(injector.server->nowFloor, injector.server->getPoint(), unit.p, &dst, true, unit.dir);
-	if (dir == -1 || !findPath(currentLine, dst, 1, 0, timeout))
+	if (dir == -1 || !findPath(currentIndex, currentLine, dst, 1, 0, timeout))
 		return Parser::kNoChange;
 
 	injector.server->setPlayerFaceDirection(dir);
@@ -1847,7 +1847,7 @@ qint64 Interpreter::trade(qint64 currentLine, const TokenMap& TK)
 				itemIndexList.append(QString::number(i));
 		}
 
-		QVector<int> itemIndexVec;
+		QVector<qint64> itemIndexVec;
 		for (const QString& itemIndex : itemIndexList)
 		{
 			bool bret = false;
@@ -1896,7 +1896,7 @@ qint64 Interpreter::trade(qint64 currentLine, const TokenMap& TK)
 				petIndexList.append(QString::number(i));
 		}
 
-		QVector<int> petIndexVec;
+		QVector<qint64> petIndexVec;
 		for (const QString& petIndex : petIndexList)
 		{
 			bool bret = false;
@@ -1947,9 +1947,9 @@ qint64 Interpreter::trade(qint64 currentLine, const TokenMap& TK)
 	return Parser::kNoChange;
 }
 
-qint64 Interpreter::mail(qint64, const TokenMap& TK)
+qint64 Interpreter::mail(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
 {
-	Injector& injector = Injector::getInstance();
+	Injector& injector = Injector::getInstance(currentIndex);
 
 	if (injector.server.isNull())
 		return Parser::kServerNotReady;
@@ -2003,14 +2003,14 @@ qint64 Interpreter::mail(qint64, const TokenMap& TK)
 
 	injector.server->mail(card, text, petIndex, itemName, itemMemo);
 
-	waitfor(2000, [&injector]()->bool { return injector.server->IS_WAITOFR_ITEM_CHANGE_PACKET <= 0; });
+	waitfor(500, [&injector]()->bool { return injector.server->IS_WAITOFR_ITEM_CHANGE_PACKET <= 0; });
 	injector.server->IS_WAITOFR_ITEM_CHANGE_PACKET = 0;
 	return Parser::kNoChange;
 }
 
-qint64 Interpreter::doffstone(qint64 currentline, const TokenMap& TK)
+qint64 Interpreter::doffstone(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
 {
-	Injector& injector = Injector::getInstance();
+	Injector& injector = Injector::getInstance(currentIndex);
 
 	if (injector.server.isNull())
 		return Parser::kServerNotReady;
@@ -2039,9 +2039,9 @@ qint64 Interpreter::doffstone(qint64 currentline, const TokenMap& TK)
 }
 
 //battle
-qint64 Interpreter::bh(qint64, const TokenMap& TK)//atk
+qint64 Interpreter::bh(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)//atk
 {
-	Injector& injector = Injector::getInstance();
+	Injector& injector = Injector::getInstance(currentIndex);
 
 	if (injector.server.isNull())
 		return Parser::kServerNotReady;
@@ -2059,9 +2059,9 @@ qint64 Interpreter::bh(qint64, const TokenMap& TK)//atk
 
 	return Parser::kNoChange;
 }
-qint64 Interpreter::bj(qint64, const TokenMap& TK)//magic
+qint64 Interpreter::bj(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)//magic
 {
-	Injector& injector = Injector::getInstance();
+	Injector& injector = Injector::getInstance(currentIndex);
 
 	if (injector.server.isNull())
 		return Parser::kServerNotReady;
@@ -2085,9 +2085,9 @@ qint64 Interpreter::bj(qint64, const TokenMap& TK)//magic
 
 	return Parser::kNoChange;
 }
-qint64 Interpreter::bp(qint64, const TokenMap& TK)//skill
+qint64 Interpreter::bp(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)//skill
 {
-	Injector& injector = Injector::getInstance();
+	Injector& injector = Injector::getInstance(currentIndex);
 
 	if (injector.server.isNull())
 		return Parser::kServerNotReady;
@@ -2111,9 +2111,9 @@ qint64 Interpreter::bp(qint64, const TokenMap& TK)//skill
 
 	return Parser::kNoChange;
 }
-qint64 Interpreter::bs(qint64, const TokenMap& TK)//switch
+qint64 Interpreter::bs(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)//switch
 {
-	Injector& injector = Injector::getInstance();
+	Injector& injector = Injector::getInstance(currentIndex);
 
 	if (injector.server.isNull())
 		return Parser::kServerNotReady;
@@ -2130,9 +2130,9 @@ qint64 Interpreter::bs(qint64, const TokenMap& TK)//switch
 
 	return Parser::kNoChange;
 }
-qint64 Interpreter::be(qint64, const TokenMap& TK)//escape
+qint64 Interpreter::be(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)//escape
 {
-	Injector& injector = Injector::getInstance();
+	Injector& injector = Injector::getInstance(currentIndex);
 
 	if (injector.server.isNull())
 		return Parser::kServerNotReady;
@@ -2144,9 +2144,9 @@ qint64 Interpreter::be(qint64, const TokenMap& TK)//escape
 
 	return Parser::kNoChange;
 }
-qint64 Interpreter::bd(qint64, const TokenMap& TK)//defense
+qint64 Interpreter::bd(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)//defense
 {
-	Injector& injector = Injector::getInstance();
+	Injector& injector = Injector::getInstance(currentIndex);
 
 	if (injector.server.isNull())
 		return Parser::kServerNotReady;
@@ -2158,9 +2158,9 @@ qint64 Interpreter::bd(qint64, const TokenMap& TK)//defense
 
 	return Parser::kNoChange;
 }
-qint64 Interpreter::bi(qint64, const TokenMap& TK)//item
+qint64 Interpreter::bi(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)//item
 {
-	Injector& injector = Injector::getInstance();
+	Injector& injector = Injector::getInstance(currentIndex);
 
 	if (injector.server.isNull())
 		return Parser::kServerNotReady;
@@ -2185,9 +2185,9 @@ qint64 Interpreter::bi(qint64, const TokenMap& TK)//item
 
 	return Parser::kNoChange;
 }
-qint64 Interpreter::bt(qint64, const TokenMap& TK)//catch
+qint64 Interpreter::bt(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)//catch
 {
-	Injector& injector = Injector::getInstance();
+	Injector& injector = Injector::getInstance(currentIndex);
 
 	if (injector.server.isNull())
 		return Parser::kServerNotReady;
@@ -2205,9 +2205,9 @@ qint64 Interpreter::bt(qint64, const TokenMap& TK)//catch
 
 	return Parser::kNoChange;
 }
-qint64 Interpreter::bn(qint64, const TokenMap& TK)//nothing
+qint64 Interpreter::bn(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)//nothing
 {
-	Injector& injector = Injector::getInstance();
+	Injector& injector = Injector::getInstance(currentIndex);
 
 	if (injector.server.isNull())
 		return Parser::kServerNotReady;
@@ -2219,9 +2219,9 @@ qint64 Interpreter::bn(qint64, const TokenMap& TK)//nothing
 
 	return Parser::kNoChange;
 }
-qint64 Interpreter::bw(qint64, const TokenMap& TK)//petskill
+qint64 Interpreter::bw(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)//petskill
 {
-	Injector& injector = Injector::getInstance();
+	Injector& injector = Injector::getInstance(currentIndex);
 
 	if (injector.server.isNull())
 		return Parser::kServerNotReady;
@@ -2245,9 +2245,9 @@ qint64 Interpreter::bw(qint64, const TokenMap& TK)//petskill
 
 	return Parser::kNoChange;
 }
-qint64 Interpreter::bwf(qint64, const TokenMap& TK)//pet nothing
+qint64 Interpreter::bwf(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)//pet nothing
 {
-	Injector& injector = Injector::getInstance();
+	Injector& injector = Injector::getInstance(currentIndex);
 
 	if (injector.server.isNull())
 		return Parser::kServerNotReady;
@@ -2258,9 +2258,9 @@ qint64 Interpreter::bwf(qint64, const TokenMap& TK)//pet nothing
 	return Parser::kNoChange;
 }
 
-qint64 Interpreter::bwait(qint64, const TokenMap& TK)
+qint64 Interpreter::bwait(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
 {
-	Injector& injector = Injector::getInstance();
+	Injector& injector = Injector::getInstance(currentIndex);
 
 	if (injector.server.isNull())
 		return Parser::kServerNotReady;
@@ -2288,9 +2288,9 @@ qint64 Interpreter::bwait(qint64, const TokenMap& TK)
 	return checkJump(TK, 2, bret, FailedJump);
 }
 
-qint64 Interpreter::bend(qint64, const TokenMap& TK)
+qint64 Interpreter::bend(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
 {
-	Injector& injector = Injector::getInstance();
+	Injector& injector = Injector::getInstance(currentIndex);
 
 	if (injector.server.isNull())
 		return Parser::kServerNotReady;

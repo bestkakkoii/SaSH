@@ -22,9 +22,10 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include <QMap>
 #include <QVariant>
 #include "util.h"
+#include <indexer.h>
 
 constexpr const char* kFuzzyPrefix = "?";
-constexpr auto kMaxLuaTableDepth = 50ll;
+constexpr qint64 kMaxLuaTableDepth = 50ll;
 
 //必須使用此枚舉名稱 RESERVE 請不要刪除我的任何註釋
 enum RESERVE
@@ -119,6 +120,9 @@ enum RESERVE
 	TK_FUNCTIONNAME,
 	TK_FUNCTIONARG,
 	//其他
+	TK_LUABEGIN,
+	TK_LUACONTENT,
+	TK_LUAEND,
 
 };
 Q_DECLARE_METATYPE(RESERVE)
@@ -158,6 +162,25 @@ public:
 	quint64 callCount = 0ui64;
 };
 Q_DECLARE_METATYPE(Node)
+
+class LuaNode : public Node
+{
+public:
+	QString content = "";
+
+	void clear()
+	{
+		name.clear();
+		children.clear();
+		beginLine = 0ll;
+		endLine = 0ll;
+		field = kGlobal;
+		level = 0ll;
+		callCount = 0ui64;
+		content.clear();
+	}
+};
+Q_DECLARE_METATYPE(LuaNode)
 
 class FunctionNode : public Node
 {
@@ -213,13 +236,16 @@ public:
 };
 Q_DECLARE_METATYPE(ForNode)
 
-class Lexer
+class Lexer : public Indexer
 {
 public:
+	Lexer(qint64 index) { setIndex(index); }
+
 	static bool tokenized(Lexer* pLexer, const QString& script);
 
 	QList<FunctionNode> getFunctionNodeList() const { return functionNodeList_; }
 	QList<ForNode> getForNodeList() const { return forNodeList_; }
+	QList<LuaNode> getLuaNodeList() const { return luaNodeList_; }
 	QHash<QString, qint64> getLabelList() const { return labelList_; }
 	QHash<qint64, TokenMap> getTokenMaps() const { return tokens_; }
 
@@ -256,12 +282,6 @@ private:
 	RESERVE getTokenType(qint64& pos, RESERVE previous, QString& str, const QString raw) const;
 
 	bool getStringCommandToken(QString& src, const QString& delim, QString& out) const;
-
-	qint64 Lexer::findClosingQuoteIndex(const QString& src, QChar quoteChar, int startIndex) const;
-
-	void Lexer::extractAndRemoveToken(QString& src, const QString& delim, int startIndex, int endIndex, QString& out) const;
-
-	bool Lexer::isInsideQuotes(const QString& src, int index) const;
 
 	void checkPairs(const QString& beginstr, const QString& endstr, const QHash<qint64, TokenMap>& stokenmaps);
 
@@ -362,6 +382,10 @@ private:
 private:
 	qint64 currentLine_ = 0ll;
 
+	LuaNode luaNode_ = {};
+	bool beginLuaCode_ = false;
+
+	QList<LuaNode> luaNodeList_;
 	QList<FunctionNode> functionNodeList_;
 	QList<ForNode> forNodeList_;
 	QHash<QString, qint64> labelList_;

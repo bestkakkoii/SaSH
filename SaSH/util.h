@@ -35,9 +35,10 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "3rdparty/simplecrypt.h"
 #include "model/treewidgetitem.h"
 
-constexpr int SASH_VERSION_MAJOR = 1;
-constexpr int SASH_VERSION_MINOR = 0;
-constexpr int SASH_VERSION_PATCH = 0;
+constexpr qint64 SASH_VERSION_MAJOR = 1;
+constexpr qint64 SASH_VERSION_MINOR = 0;
+constexpr qint64 SASH_VERSION_PATCH = 0;
+constexpr qint64 SASH_MAX_THREAD = 65535;
 
 typedef struct break_marker_s
 {
@@ -49,41 +50,41 @@ typedef struct break_marker_s
 
 namespace mem
 {
-	bool read(HANDLE hProcess, DWORD desiredAccess, SIZE_T size, PVOID buffer);
+	bool read(HANDLE hProcess, quint64 desiredAccess, SIZE_T size, PVOID buffer);
 	template<typename T, typename = std::enable_if_t<std::is_arithmetic_v<T> && !std::is_pointer_v<T>>>
-	Q_REQUIRED_RESULT T read(HANDLE hProcess, DWORD desiredAccess);
+	Q_REQUIRED_RESULT T read(HANDLE hProcess, quint64 desiredAccess);
 
-	template char read<char>(HANDLE hProcess, DWORD desiredAccess);
-	template short read<short>(HANDLE hProcess, DWORD desiredAccess);
-	template int read<int>(HANDLE hProcess, DWORD desiredAccess);
-	template float read<float>(HANDLE hProcess, DWORD desiredAccess);
-	template long read<long>(HANDLE hProcess, DWORD desiredAccess);
-	template long long read<long long>(HANDLE hProcess, DWORD desiredAccess);
-	template unsigned char read<unsigned char>(HANDLE hProcess, DWORD desiredAccess);
-	template unsigned short read<unsigned short>(HANDLE hProcess, DWORD desiredAccess);
-	template unsigned int read<unsigned int>(HANDLE hProcess, DWORD desiredAccess);
-	template unsigned long read<unsigned long>(HANDLE hProcess, DWORD desiredAccess);
-	template unsigned long long read<unsigned long long>(HANDLE hProcess, DWORD desiredAccess);
+	template char read<char>(HANDLE hProcess, quint64 desiredAccess);
+	template short read<short>(HANDLE hProcess, quint64 desiredAccess);
+	template int read<int>(HANDLE hProcess, quint64 desiredAccess);
+	template float read<float>(HANDLE hProcess, quint64 desiredAccess);
+	template long read<long>(HANDLE hProcess, quint64 desiredAccess);
+	template long long read<long long>(HANDLE hProcess, quint64 desiredAccess);
+	template unsigned char read<unsigned char>(HANDLE hProcess, quint64 desiredAccess);
+	template unsigned short read<unsigned short>(HANDLE hProcess, quint64 desiredAccess);
+	template unsigned int read<unsigned int>(HANDLE hProcess, quint64 desiredAccess);
+	template unsigned long read<unsigned long>(HANDLE hProcess, quint64 desiredAccess);
+	template unsigned long long read<unsigned long long>(HANDLE hProcess, quint64 desiredAccess);
 
 	template<typename T, typename = std::enable_if_t<std::is_arithmetic_v<T> && !std::is_pointer_v<T>>>
-	bool write(HANDLE hProcess, DWORD baseAddress, T data);
-	template bool write<char>(HANDLE hProcess, DWORD baseAddress, char data);
-	template bool write<short>(HANDLE hProcess, DWORD baseAddress, short data);
-	template bool write<int>(HANDLE hProcess, DWORD baseAddress, int data);
-	template bool write<float>(HANDLE hProcess, DWORD baseAddress, float data);
-	template bool write<long>(HANDLE hProcess, DWORD baseAddress, long data);
-	template bool write<long long>(HANDLE hProcess, DWORD baseAddress, long long data);
-	template bool write<unsigned char>(HANDLE hProcess, DWORD baseAddress, unsigned char data);
-	template bool write<unsigned short>(HANDLE hProcess, DWORD baseAddress, unsigned short data);
-	template bool write<unsigned int>(HANDLE hProcess, DWORD baseAddress, unsigned int data);
-	template bool write<unsigned long>(HANDLE hProcess, DWORD baseAddress, unsigned long data);
-	template bool write<unsigned long long>(HANDLE hProcess, DWORD baseAddress, unsigned long long data);
+	bool write(HANDLE hProcess, quint64 baseAddress, T data);
+	template bool write<char>(HANDLE hProcess, quint64 baseAddress, char data);
+	template bool write<short>(HANDLE hProcess, quint64 baseAddress, short data);
+	template bool write<int>(HANDLE hProcess, quint64 baseAddress, int data);
+	template bool write<float>(HANDLE hProcess, quint64 baseAddress, float data);
+	template bool write<long>(HANDLE hProcess, quint64 baseAddress, long data);
+	template bool write<long long>(HANDLE hProcess, quint64 baseAddress, long long data);
+	template bool write<unsigned char>(HANDLE hProcess, quint64 baseAddress, unsigned char data);
+	template bool write<unsigned short>(HANDLE hProcess, quint64 baseAddress, unsigned short data);
+	template bool write<unsigned int>(HANDLE hProcess, quint64 baseAddress, unsigned int data);
+	template bool write<unsigned long>(HANDLE hProcess, quint64 baseAddress, unsigned long data);
+	template bool write<unsigned long long>(HANDLE hProcess, quint64 baseAddress, unsigned long long data);
 
-	Q_REQUIRED_RESULT float readFloat(HANDLE hProcess, DWORD desiredAccess);
-	Q_REQUIRED_RESULT qreal readDouble(HANDLE hProcess, DWORD desiredAccess);
-	Q_REQUIRED_RESULT QString readString(HANDLE hProcess, DWORD desiredAccess, int size, bool enableTrim = true, bool keepOriginal = false);
-	bool write(HANDLE hProcess, DWORD baseAddress, PVOID buffer, SIZE_T dwSize);
-	bool writeString(HANDLE hProcess, DWORD baseAddress, const QString& str);
+	Q_REQUIRED_RESULT float readFloat(HANDLE hProcess, quint64 desiredAccess);
+	Q_REQUIRED_RESULT qreal readDouble(HANDLE hProcess, quint64 desiredAccess);
+	Q_REQUIRED_RESULT QString readString(HANDLE hProcess, quint64 desiredAccess, int size, bool enableTrim = true, bool keepOriginal = false);
+	bool write(HANDLE hProcess, quint64 baseAddress, PVOID buffer, SIZE_T dwSize);
+	bool writeString(HANDLE hProcess, quint64 baseAddress, const QString& str);
 	bool virtualFree(HANDLE hProcess, int baseAddress);
 	Q_REQUIRED_RESULT int virtualAlloc(HANDLE hProcess, int size);
 	Q_REQUIRED_RESULT int virtualAllocW(HANDLE hProcess, const QString& str);
@@ -100,7 +101,7 @@ namespace mem
 		ULONG64 ModBase = 0;//just for export table
 	} IAT_EAT_INFO, * PIAT_EAT_INFO;
 
-#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0) && defined(_M_IX86)
 	inline __declspec(naked) DWORD* getKernel32()
 	{
 		__asm
@@ -125,8 +126,8 @@ namespace mem
 	HMODULE getRemoteModuleHandleByProcessHandleW(HANDLE hProcess, const QString& szModuleName);
 	long getProcessExportTable32(HANDLE hProcess, const QString& ModuleName, IAT_EAT_INFO tbinfo[], int tb_info_max);
 	ULONG64 getProcAddressIn32BitProcess(HANDLE hProcess, const QString& ModuleName, const QString& FuncName);
-	bool inject64(HANDLE hProcess, QString dllPath, HMODULE* phDllModule, quint64* phGameModule);//兼容64位注入32位
-	bool inject(HANDLE hProcess, QString dllPath, HMODULE* phDllModule, quint64* phGameModule);//32注入32
+	bool inject64(qint64 index, HANDLE hProcess, QString dllPath, HMODULE* phDllModule, quint64* phGameModule);//兼容64位注入32位
+	bool inject(qint64 index, HANDLE hProcess, QString dllPath, HMODULE* phDllModule, quint64* phGameModule);//32注入32
 }
 
 namespace util
@@ -800,24 +801,31 @@ namespace util
 
 	Q_REQUIRED_RESULT inline static QString applicationDirPath()
 	{
+		/*
+		Big5 -- Chinese
+		Big5-HKSCS -- Chinese
+		GB2312 -- Chinese
+		GBK -- Chinese
+		GB18030 -- Chinese
+		*/
 		QString path = QCoreApplication::applicationDirPath();
 		//QTextCodec* codec = nullptr;
 		//UINT acp = GetACP();
 		//if (acp == 936)
-		//	codec = QTextCodec::codecForName("gb2312");
+		//	codec = QTextCodec::codecForName("GBK");
 		//else if (acp == 950)
-		//	codec = QTextCodec::codecForName("big5");
+		//	codec = QTextCodec::codecForName("Big5");
 		//else
-		//	codec = QTextCodec::codecForName("utf-8");
+		//	codec = QTextCodec::codecForName("UTF-8");
 
-		//std::string str = path.toLocal8Bit().data();
+		//const char* pcs = path.toLocal8Bit().constData();
 
-		//QString ret = codec->toUnicode(str.c_str());
+		//path = codec->toUnicode(pcs);
 
-		return path; //ret;
+		return path;
 	}
 
-	Q_REQUIRED_RESULT inline static const int __vectorcall percent(int value, int total)
+	Q_REQUIRED_RESULT inline static const qint64 __vectorcall percent(qint64 value, qint64 total)
 	{
 		if (value == 1 && total > 0)
 			return value;
@@ -828,7 +836,7 @@ namespace util
 		if ((value > 0) && (d < 1.0))
 			return 1;
 		else
-			return static_cast<int>(d);
+			return static_cast<qint64>(d);
 	}
 
 	inline Q_REQUIRED_RESULT QString toUnicode(const char* str, bool ext = true)
@@ -840,7 +848,7 @@ namespace util
 		if (950 == ACP && ext)
 		{
 			// 繁體系統要轉繁體否則遊戲視窗標題會亂碼(一堆問號字)
-			int size = lstrlenW(wstr.c_str());
+			qint64 size = lstrlenW(wstr.c_str());
 			QScopedArrayPointer <wchar_t> wbuf(new wchar_t[size + 1]());
 			//繁體字碼表映射
 			LCMapStringEx(LOCALE_NAME_SYSTEM_DEFAULT, LCMAP_TRADITIONAL_CHINESE, wstr.c_str(), size, wbuf.data(), size, NULL, NULL, NULL);
@@ -858,7 +866,7 @@ namespace util
 		if (950 == ACP)
 		{
 			// 繁體系統要轉回簡體體否則遊戲視窗會亂碼
-			int size = lstrlenW(wstr.c_str());
+			qint64 size = lstrlenW(wstr.c_str());
 			QScopedArrayPointer <wchar_t> wbuf(new wchar_t[size + 1]());
 			LCMapStringEx(LOCALE_NAME_SYSTEM_DEFAULT, LCMAP_SIMPLIFIED_CHINESE, wstr.c_str(), size, wbuf.data(), size, NULL, NULL, NULL);
 			qstr = QString::fromWCharArray(wbuf.data());
@@ -871,7 +879,7 @@ namespace util
 		return s;
 	}
 
-	static void setTab(QTabWidget* pTab)
+	inline void setTab(QTabWidget* pTab)
 	{
 		QString styleSheet = R"(
 			QTabWidget{
@@ -963,7 +971,7 @@ namespace util
 		pTabBar->setExpanding(true);
 	}
 
-	static bool createFileDialog(const QString& name, QString* retstring, QWidget* parent)
+	inline bool createFileDialog(const QString& name, QString* retstring, QWidget* parent)
 	{
 		QFileDialog dialog(parent);
 		dialog.setModal(true);
@@ -1032,7 +1040,7 @@ namespace util
 
 	bool enumAllFiles(const QString dir, const QString suffix, QVector<QPair<QString, QString>>* result);
 
-	QString findFileFromName(const QString& fileName, const QString& dirpath = QCoreApplication::applicationDirPath());
+	QString findFileFromName(const QString& fileName, const QString& dirpath = applicationDirPath());
 
 	template<typename T>
 	QList<T*> findWidgets(QWidget* widget)
@@ -1061,7 +1069,7 @@ namespace util
 		return widgets;
 	}
 
-	static QString formatMilliseconds(qint64 milliseconds)
+	inline QString formatMilliseconds(qint64 milliseconds)
 	{
 		qint64 totalSeconds = milliseconds / 1000ll;
 		qint64 days = totalSeconds / (24ll * 60ll * 60ll);
@@ -1074,7 +1082,7 @@ namespace util
 			.arg(days).arg(hours).arg(minutes).arg(seconds).arg(remainingMilliseconds);
 	}
 
-	static QString formatSeconds(qint64 seconds)
+	inline QString formatSeconds(qint64 seconds)
 	{
 		qint64 day = seconds / 86400ll;
 		qint64 hours = (seconds % 86400ll) / 3600ll;
@@ -1083,6 +1091,10 @@ namespace util
 
 		return QString(QObject::tr("%1 day %2 hour %3 min %4 sec")).arg(day).arg(hours).arg(minutes).arg(remainingSeconds);
 	};
+
+	bool writeFireWallOverXP(const LPCTSTR& ruleName, const LPCTSTR& appPath, bool NoopIfExist);
+
+	bool monitorThreadResourceUsage(quint64 threadId, double& lastCpuCost, double* pCpuUsage, double* pMemUsage, double* pMaxMemUsage);
 
 	//基於Qt QHash 的線程安全Hash容器
 	template <typename K, typename V>
@@ -1174,7 +1186,7 @@ namespace util
 			return hash.value(key, defaultValue);
 		}
 
-		inline int size() const
+		inline qint64 size() const
 		{
 			QReadLocker locker(&lock);
 			return hash.size();
@@ -1290,7 +1302,7 @@ namespace util
 	class SafeQueue
 	{
 	public:
-		explicit SafeQueue(int maxSize)
+		explicit SafeQueue(qint64 maxSize)
 			: maxSize_(maxSize)
 		{
 		}
@@ -1309,7 +1321,7 @@ namespace util
 
 		}
 
-		int size() const
+		qint64 size() const
 		{
 			QReadLocker locker(&lock_);
 			return queue_.size();
@@ -1349,7 +1361,7 @@ namespace util
 			return queue_.head();
 		}
 
-		void setMaxSize(int maxSize)
+		void setMaxSize(qint64 maxSize)
 		{
 			QWriteLocker locker(&lock_);
 			queue_.setMaxSize(maxSize);
@@ -1368,7 +1380,7 @@ namespace util
 
 	private:
 		QQueue<V> queue_;
-		int maxSize_;
+		qint64 maxSize_;
 		mutable QReadWriteLock lock_;
 	};;
 
@@ -1430,7 +1442,7 @@ namespace util
 	{
 	public:
 		SafeVector() = default;
-		explicit SafeVector(int size) : data_(size)
+		explicit SafeVector(qint64 size) : data_(size)
 		{
 		}
 
@@ -1478,7 +1490,7 @@ namespace util
 		{
 		}
 
-		T& operator[](int i)
+		T& operator[](qint64 i)
 		{
 			QWriteLocker locker(&lock_);
 			if (i < 0 || i >= data_.size())
@@ -1488,7 +1500,7 @@ namespace util
 			return data_[i];
 		}
 
-		const T& operator[](int i) const
+		const T& operator[](qint64 i) const
 		{
 			QReadLocker locker(&lock_);
 			if (i < 0 || i >= data_.size())
@@ -1498,7 +1510,7 @@ namespace util
 			return data_[i];
 		}
 
-		const T at(int i) const
+		const T at(qint64 i) const
 		{
 			QReadLocker locker(&lock_);
 			if (i < 0 || i >= data_.size())
@@ -1586,13 +1598,13 @@ namespace util
 			return data_.cend();
 		}
 
-		void resize(int size)
+		void resize(qint64 size)
 		{
 			QWriteLocker locker(&lock_);
 			data_.resize(size);
 		}
 
-		int size() const
+		qint64 size() const
 		{
 			QReadLocker locker(&lock_);
 			return data_.size();
@@ -1656,10 +1668,10 @@ namespace util
 
 	struct MapData
 	{
-		int floor = 0;
+		qint64 floor = 0;
+		qint64 x = 0;
+		qint64 y = 0;
 		QString name = "";
-		int x = 0;
-		int y = 0;
 	};
 
 	//Json配置讀寫
@@ -1974,9 +1986,10 @@ namespace util
 			kAnsi,
 			kUnicode,
 		};
+
 		VirtualMemory() = default;
 
-		explicit VirtualMemory(HANDLE h, int size, bool autoclear)
+		VirtualMemory(HANDLE h, qint64 size, bool autoclear)
 			: autoclear(autoclear)
 			, hProcess(h)
 		{
@@ -1984,7 +1997,7 @@ namespace util
 			lpAddress = mem::virtualAlloc(h, size);
 		}
 
-		explicit VirtualMemory(HANDLE h, const QString& str, VirtualEncode use_unicode, bool autoclear)
+		VirtualMemory(HANDLE h, const QString& str, VirtualEncode use_unicode, bool autoclear)
 			: autoclear(autoclear)
 		{
 
@@ -1992,12 +2005,12 @@ namespace util
 			hProcess = h;
 		}
 
-		operator int() const
+		operator qint64() const
 		{
 			return this->lpAddress;
 		}
 
-		VirtualMemory& operator=(int other)
+		VirtualMemory& operator=(qint64 other)
 		{
 			this->lpAddress = other;
 			return *this;
@@ -2085,7 +2098,7 @@ namespace util
 
 	private:
 		bool autoclear = false;
-		int lpAddress = NULL;
+		qint64 lpAddress = NULL;
 		HANDLE hProcess = NULL;
 	};
 
@@ -2114,7 +2127,7 @@ namespace util
 		}
 
 		template <typename T>
-		bool __fastcall  mmap(T*& p, int offset, int size, QFile::MemoryMapFlags flags = QFileDevice::MapPrivateOption)//QFile::NoOptions
+		bool __fastcall  mmap(T*& p, qint64 offset, qint64 size, QFile::MemoryMapFlags flags = QFileDevice::MapPrivateOption)//QFile::NoOptions
 		{
 			uchar* uc = QFile::map(offset, size, flags);
 			if (uc)
@@ -2141,7 +2154,11 @@ namespace util
 		if (fileName.endsWith(util::SCRIPT_LUA_SUFFIX_DEFAULT))
 		{
 			QTextStream in(&f);
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
 			in.setCodec(util::DEFAULT_CODEPAGE);
+#else
+			in.setEncoding(QStringConverter::Utf8);
+#endif
 			c = in.readAll();
 			c.replace("\r\n", "\n");
 			if (isPrivate != nullptr)
@@ -2173,14 +2190,14 @@ namespace util
 	void sortWindows(const QVector<HWND>& windowList, bool alignLeft);
 
 #pragma region swap_row
-	inline void SwapRow(QTableWidget* p, QListWidget* p2, int selectRow, int targetRow)
+	inline void SwapRow(QTableWidget* p, QListWidget* p2, qint64 selectRow, qint64 targetRow)
 	{
 
 		if (p)
 		{
 			QStringList selectRowLine, targetRowLine;
-			int count = p->columnCount();
-			for (int i = 0; i < count; ++i)
+			qint64 count = p->columnCount();
+			for (qint64 i = 0; i < count; ++i)
 			{
 				selectRowLine.append(p->item(selectRow, i)->text());
 				targetRowLine.append(p->item(targetRow, i)->text());
@@ -2225,12 +2242,12 @@ namespace util
 		const QList<QTableWidgetItem*> list = p->selectedItems();
 		if (list.size() <= 0)
 			return; //有選中
-		int t = list.at(0)->row();
+		qint64 t = list.at(0)->row();
 		if (t - 1 < 0)
 			return; //不是第一行
 
-		int selectRow = t;	 //當前行
-		int targetRow = t - 1; //目標行
+		qint64 selectRow = t;	 //當前行
+		qint64 targetRow = t - 1; //目標行
 
 		SwapRow(p, nullptr, selectRow, targetRow);
 
@@ -2245,12 +2262,12 @@ namespace util
 		const QList<QTableWidgetItem*> list = p->selectedItems();
 		if (list.size() <= 0)
 			return; //有選中
-		int t = list.at(0)->row();
+		qint64 t = list.at(0)->row();
 		if (t + 1 > p->rowCount() - 1)
 			return; //不是最後一行
 
-		int selectRow = t;	 //當前行
-		int targetRow = t + 1; //目標行
+		qint64 selectRow = t;	 //當前行
+		qint64 targetRow = t + 1; //目標行
 
 		SwapRow(p, nullptr, selectRow, targetRow);
 
@@ -2262,14 +2279,14 @@ namespace util
 	{
 		if (p->count() <= 0)
 			return;
-		int t = p->currentIndex().row(); // ui->tableWidget->rowCount();
+		qint64 t = p->currentIndex().row(); // ui->tableWidget->rowCount();
 		if (t < 0)
 			return;
 		if (t - 1 < 0)
 			return;
 
-		int selectRow = t;
-		int targetRow = t - 1;
+		qint64 selectRow = t;
+		qint64 targetRow = t - 1;
 
 		SwapRow(nullptr, p, selectRow, targetRow);
 
@@ -2281,14 +2298,14 @@ namespace util
 	{
 		if (p->count() <= 0)
 			return;
-		int t = p->currentIndex().row();
+		qint64 t = p->currentIndex().row();
 		if (t < 0)
 			return;
 		if (t + 1 > p->count() - 1)
 			return;
 
-		int selectRow = t;
-		int targetRow = t + 1;
+		qint64 selectRow = t;
+		qint64 targetRow = t + 1;
 
 		SwapRow(nullptr, p, selectRow, targetRow);
 
@@ -2301,14 +2318,14 @@ namespace util
 	//用於掛機訊息紀錄
 	typedef struct tagAfkRecorder
 	{
-		int levelrecord = 0;
-		int leveldifference = 0;
-		int exprecord = 0;
-		int expdifference = 0;
-		int goldearn = 0;
-		int deadthcount = 0;
-		int reprecord = 0;
-		int repearn = 0;
+		qint64 levelrecord = 0;
+		qint64 leveldifference = 0;
+		qint64 exprecord = 0;
+		qint64 expdifference = 0;
+		qint64 goldearn = 0;
+		qint64 deadthcount = 0;
+		qint64 reprecord = 0;
+		qint64 repearn = 0;
 	}AfkRecorder;
 	//#pragma warning(push)
 	//#pragma warning(disable:304)

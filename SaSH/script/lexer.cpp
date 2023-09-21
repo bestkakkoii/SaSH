@@ -410,6 +410,8 @@ static const QHash<QString, RESERVE> keywords = {
 	#pragma endregion
 
 	//... 其他後續增加的關鍵字
+	{ u8"#lua", TK_LUABEGIN },
+	{ u8"#endlua", TK_LUAEND },
 };
 
 #ifdef TEST_LEXER
@@ -467,7 +469,8 @@ static const QHash<QString, RESERVE> keyHash = {
 #pragma region  Tool
 void Lexer::showError(const QString text, ErrorType type)
 {
-	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
+	qint64 currentIndex = getIndex();
+	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
 
 	if (type == kTypeError)
 		emit signalDispatcher.appendScriptLog(QObject::tr("[error]") + text, 0);
@@ -638,8 +641,8 @@ bool Lexer::tokenized(Lexer* pLexer, const QString& script)
 
 	pLexer->clear();
 	pLexer->reader_.clear();
-
-	Injector& injector = Injector::getInstance();
+	qint64 currentIndex = getIndex();
+	Injector& injector = Injector::getInstance(currentIndex);
 	if (!injector.scriptLogModel.isNull())
 		injector.scriptLogModel->clear();
 
@@ -1670,7 +1673,7 @@ QString Lexer::getLuaTableString(const sol::table& t, int& depth)
 	QStringList strKeyResults;
 
 	QString nowIndent = "";
-	for (int i = 0; i <= 10 - depth + 1; ++i)
+	for (qint64 i = 0; i <= 10 - depth + 1; ++i)
 	{
 		nowIndent += "    ";
 	}
@@ -1769,9 +1772,7 @@ sol::object Lexer::getLuaTableFromString(const QString& str)
 //解析整個腳本至多個TOKEN
 bool Lexer::tokenized(Lexer* pLexer, const QString& script)
 {
-	Injector& injector = Injector::getInstance();
-	if (!injector.scriptLogModel.isNull())
-		injector.scriptLogModel->clear();
+	Injector& injector = Injector::getInstance(pLexer->getIndex());
 
 	pLexer->clear();
 
@@ -1782,7 +1783,7 @@ bool Lexer::tokenized(Lexer* pLexer, const QString& script)
 		TokenMap tk;
 		pLexer->tokenized(i, lines.at(i), &tk, &pLexer->labelList_);
 		pLexer->tokens_.insert(i, tk);
-}
+	}
 
 	pLexer->recordNode();
 
@@ -1806,6 +1807,9 @@ void Lexer::tokenized(qint64 currentLine, const QString& line, TokenMap* ptoken,
 
 	ptoken->clear();
 
+
+
+
 	do
 	{
 		qint64 commentIndex = raw.indexOf("//");
@@ -1821,6 +1825,33 @@ void Lexer::tokenized(qint64 currentLine, const QString& line, TokenMap* ptoken,
 		//當前token移除註釋
 		else if (commentIndex > 0)
 			raw = raw.mid(0, commentIndex).trimmed();
+
+		if (raw.startsWith("#lua") && !beginLuaCode_)
+		{
+			beginLuaCode_ = true;
+			luaNode_.clear();
+			luaNode_.beginLine = currentLine;
+			luaNode_.field = kGlobal;
+			luaNode_.level = 0;
+			createToken(0, TK_LUABEGIN, line, line, ptoken);
+			continue;
+		}
+		else if (raw.startsWith("#endlua") && beginLuaCode_)
+		{
+			beginLuaCode_ = false;
+			luaNode_.endLine = currentLine;
+			luaNodeList_.append(luaNode_);
+			luaNode_.clear();
+			createToken(0, TK_LUAEND, line, line, ptoken);
+			continue;
+		}
+		else if (beginLuaCode_)
+		{
+			luaNode_.content.append(line + "\n");
+			createToken(0, TK_LUACONTENT, "[lua]", "[lua]", ptoken);
+			createToken(1, TK_LUACONTENT, line, line, ptoken);
+			continue;
+		}
 
 		bool doNotLowerCase = false;
 		//a,b,c = 1,2,3
@@ -1838,7 +1869,7 @@ void Lexer::tokenized(qint64 currentLine, const QString& line, TokenMap* ptoken,
 		//if expr op expr
 		static const QRegularExpression varIf(R"([iI][fF][\s*\(\s*|\s+]([\w\W\p{Han}]+\s*[<|>|\=|!][\=]*\s*[\w\W\p{Han}]+)\s*,\s*([\w\W\p{Han}]+))");
 		//if expr
-		static const QRegularExpression varIf2(R"([iI][fF][\s*\(\s*|\s+]\s*([\w\W\p{Han}]+)\s*,\s*([\w\W\p{Han}]+))");
+		static const QRegularExpression varIf2(R"([iI][fF][\s*\(\s*|\s+]\s*([\w\W\p{Han}]+)\s*,\s*([\w\W\p{Han}]+)\s*([\w\W\p{Han}]*)$)");
 		//function name()
 		static const QRegularExpression rexFunction(R"([fF][uU][nN][cC][tT][iI][oO][nN]\s+([\w\p{Han}]+)\s*\(([\w\W\p{Han}]*)\))");
 		//xxx()
@@ -1858,20 +1889,22 @@ void Lexer::tokenized(qint64 currentLine, const QString& line, TokenMap* ptoken,
 
 			if (match.hasMatch())
 			{
-				QString cmd = "if";
-				QString expr = match.captured(1).simplified();//表達式
-				QString jmpExpr = match.captured(2).simplified();//跳轉表達式
-				createToken(pos, TK_IF, cmd, cmd, ptoken);
-				createToken(pos + 1, TK_EXPR, expr, expr, ptoken);
-				if (isInteger(jmpExpr))
-					createToken(pos + 2, TK_INT, jmpExpr.toLongLong(), jmpExpr, ptoken);
-				else
-					createToken(pos + 2, TK_STRING, jmpExpr, jmpExpr, ptoken);
-				break;
+				//QString cmd = "if";
+				//QString expr = match.captured(1).simplified();//表達式
+				//QString jmpExpr = match.captured(2).simplified();//跳轉表達式
+				//createToken(pos, TK_IF, cmd, cmd, ptoken);
+				//createToken(pos + 1, TK_EXPR, expr, expr, ptoken);
+				//if (isInteger(jmpExpr))
+				//	createToken(pos + 2, TK_INT, jmpExpr.toLongLong(), jmpExpr, ptoken);
+				//else
+				//	createToken(pos + 2, TK_STRING, jmpExpr, jmpExpr, ptoken);
+				token = "if";
+				raw = raw.mid(2).trimmed();
+				type = TK_IF;
 			}
 		}
 		//處理for 3參
-		if (raw.contains(rexCallForWithStep))
+		else if (raw.contains(rexCallForWithStep))
 		{
 			QRegularExpressionMatch match = rexCallForWithStep.match(raw);
 			if (match.hasMatch())
@@ -2043,7 +2076,7 @@ void Lexer::tokenized(qint64 currentLine, const QString& line, TokenMap* ptoken,
 					break;
 				token = "function";
 				QStringList args;
-				for (int i = 1; i <= 3; ++i)
+				for (qint64 i = 1; i <= 3; ++i)
 				{
 					args.append(match.captured(i).simplified());
 				}
@@ -2230,6 +2263,19 @@ void Lexer::recordNode()
 		qint64 row = it.key();
 		TokenMap tk = it.value();
 
+		if (TK_LUABEGIN == tk.value(0).type)
+		{
+			beginLuaCode_ = true;
+			continue;
+		}
+		else if (TK_LUAEND == tk.value(0).type)
+		{
+			beginLuaCode_ = false;
+			continue;
+		}
+		else if (beginLuaCode_)
+			continue;
+
 		switch (tk.value(0).type)
 		{
 		case TK_FUNCTION:
@@ -2247,9 +2293,6 @@ void Lexer::recordNode()
 			functionNode.argList = {};
 
 			functionNodeStack.push(functionNode);
-
-
-
 			break;
 		}
 		case TK_FOR:
@@ -2342,10 +2385,26 @@ void Lexer::recordNode()
 
 	QList<ForNode> forNodes = forNodeList_;
 	QList<FunctionNode> functionNodes = functionNodeList_;
+
+	beginLuaCode_ = false;
+
 	for (auto it = map.cbegin(); it != map.cend(); ++it)
 	{
 		qint64 row = it.key();
 		TokenMap tk = it.value();
+
+		if (TK_LUABEGIN == tk.value(0).type)
+		{
+			beginLuaCode_ = true;
+			continue;
+		}
+		else if (TK_LUAEND == tk.value(0).type)
+		{
+			beginLuaCode_ = false;
+			continue;
+		}
+		else if (beginLuaCode_)
+			continue;
 
 		switch (tk.value(0).type)
 		{
@@ -2397,7 +2456,7 @@ void Lexer::recordNode()
 		default:
 		{
 			RESERVE reserve = TK_UNK;
-			for (int i = tk.size() - 1; i >= 0; --i)
+			for (qint64 i = tk.size() - 1; i >= 0; --i)
 			{
 				Token token = tk.value(i);
 				if (token.raw == "break")
@@ -2725,8 +2784,8 @@ void Lexer::checkPairs(const QString& beginstr, const QString& endstr, const QHa
 //檢查單行字符配對
 void Lexer::checkSingleRowPairs(const QString& beginstr, const QString& endstr, const QHash<qint64, TokenMap>& stokenmaps)
 {
-	QMap<qint64, QVector<int>> unpairedFunctions; // <Row, Vector of unpaired start indices>
-	QMap<qint64, QVector<int>> unpairedEnds;      // <Row, Vector of unpaired end indices>
+	QMap<qint64, QVector<qint64>> unpairedFunctions; // <Row, Vector of unpaired start indices>
+	QMap<qint64, QVector<qint64>> unpairedEnds;      // <Row, Vector of unpaired end indices>
 
 	QMap<qint64, TokenMap> tokenmaps;
 	for (auto it = stokenmaps.cbegin(); it != stokenmaps.cend(); ++it)
@@ -2743,10 +2802,10 @@ void Lexer::checkSingleRowPairs(const QString& beginstr, const QString& endstr, 
 
 
 
-		QVector<int> startIndices;
-		QVector<int> endIndices;
+		QVector<qint64> startIndices;
+		QVector<qint64> endIndices;
 
-		for (int index = 0; index < statement.length(); ++index)
+		for (qint64 index = 0; index < statement.length(); ++index)
 		{
 			QChar currentChar = statement.at(index);
 
@@ -2778,7 +2837,7 @@ void Lexer::checkSingleRowPairs(const QString& beginstr, const QString& endstr, 
 	for (auto it = unpairedFunctions.cbegin(); it != unpairedFunctions.cend(); ++it)
 	{
 		qint64 row = it.key();
-		QVector<int> unpairedIndices = it.value();
+		QVector<qint64> unpairedIndices = it.value();
 
 		for (int index : unpairedIndices)
 		{
@@ -2792,9 +2851,9 @@ void Lexer::checkSingleRowPairs(const QString& beginstr, const QString& endstr, 
 	for (auto it = unpairedEnds.cbegin(); it != unpairedEnds.cend(); ++it)
 	{
 		qint64 row = it.key();
-		QVector<int> unpairedIndices = it.value();
+		QVector<qint64> unpairedIndices = it.value();
 
-		for (int index : unpairedIndices)
+		for (qint64 index : unpairedIndices)
 		{
 			QString statement = tokenmaps[row].value(0).data.toString().simplified();
 			QString errorMessage = QString(QObject::tr("@ %1 | Unpaired '%2' index %3: '%4'")).arg(row + 1).arg(endstr).arg(index).arg(statement);
@@ -2806,7 +2865,7 @@ void Lexer::checkSingleRowPairs(const QString& beginstr, const QString& endstr, 
 void Lexer::checkFunctionPairs(const QHash<qint64, TokenMap>& stokenmaps)
 {
 	checkSingleRowPairs("(", ")", stokenmaps);
-	checkSingleRowPairs("[", "]", stokenmaps);
+	//checkSingleRowPairs("[", "]", stokenmaps);
 	checkSingleRowPairs("{", "}", stokenmaps);
 }
 
@@ -2942,69 +3001,4 @@ bool Lexer::getStringCommandToken(QString& src, const QString& delim, QString& o
 
 	return false;
 }
-
-qint64 Lexer::findClosingQuoteIndex(const QString& src, QChar quoteChar, int startIndex) const
-{
-	QChar escapeChar = '\\';
-	bool escaped = false;
-
-	for (int i = startIndex + 1; i < src.size(); ++i)
-	{
-		QChar currentChar = src.at(i);
-
-		if (escaped)
-		{
-			escaped = false;
-		}
-		else if (currentChar == escapeChar)
-		{
-			escaped = true;
-		}
-		else if (currentChar == quoteChar)
-		{
-			return i;
-		}
-	}
-
-	return -1;
-}
-
-void Lexer::extractAndRemoveToken(QString& src, const QString& delim, int startIndex, int endIndex, QString& out) const
-{
-	out = src.mid(startIndex, endIndex - startIndex + 1).trimmed();
-	src.remove(startIndex, endIndex - startIndex + 1);
-
-	src = src.trimmed();
-	if (src.startsWith(delim))
-		src.remove(0, delim.size());
-}
-
-bool Lexer::isInsideQuotes(const QString& src, int index) const
-{
-	QChar singleQuote = '\'';
-	QChar doubleQuote = '"';
-	bool insideSingleQuotes = false;
-	bool insideDoubleQuotes = false;
-
-	for (int i = 0; i < src.size(); ++i)
-	{
-		if (i == index)
-			break;
-
-		QChar currentChar = src.at(i);
-		QChar previousChar = i > 0 ? src.at(i - 1) : QChar();
-
-		if (currentChar == singleQuote && previousChar != '\\')
-		{
-			insideSingleQuotes = !insideSingleQuotes;
-		}
-		else if (currentChar == doubleQuote && previousChar != '\\')
-		{
-			insideDoubleQuotes = !insideDoubleQuotes;
-		}
-	}
-
-	return insideSingleQuotes || insideDoubleQuotes;
-}
-
 #pragma endregion

@@ -19,30 +19,43 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #pragma once
 #include <QObject>
 #include "net/tcpserver.h"
+#include <indexer.h>
 #include <model/scopedhandle.h>
 #include <util.h>
+#include "net/autil.h"
 
 class StringListModel;
-class Injector : public QObject
+class Injector : public QObject, public Indexer
 {
-	Q_DISABLE_COPY_MOVE(Injector)
 private:
-	Injector();
+	static util::SafeHash<qint64, Injector*> instances;
 
-	static Injector* instance;
+	explicit Injector(qint64 index);
+
 public:
 	virtual ~Injector();
 
-	static Injector& getInstance()
+	static Injector& getInstance(qint64 index)
 	{
-		if (nullptr == instance)
+		if (!instances.contains(index))
 		{
-			instance = new Injector();
+			Injector* instance = new Injector(index);
+			instances.insert(index, instance);
 		}
-		return *instance;
+		return *instances.value(index);
 	}
 
-	static void clear();
+public:
+	static void reset();
+	static void reset(qint64 index);
+
+	inline void setIndex(qint64 index) override
+	{
+		if (!server.isNull())
+			server->setIndex(index);
+
+		Indexer::setIndex(index);
+	}
 
 public:
 
@@ -96,7 +109,7 @@ public:
 
 	Q_REQUIRED_RESULT inline DWORD getProcessId() const { return pi_.dwProcessId; }
 
-	Q_REQUIRED_RESULT inline int getProcessModule() const { return hGameModule_; }
+	Q_REQUIRED_RESULT inline qint64 getProcessModule() const { return hGameModule_; }
 
 	Q_REQUIRED_RESULT inline bool isValid() const { return hGameModule_ != NULL && pi_.dwProcessId != NULL && pi_.hWnd != nullptr && processHandle_.isValid(); }
 
@@ -104,33 +117,31 @@ public:
 
 	bool injectLibrary(process_information_t& pi, unsigned short port, util::LPREMOVE_THREAD_REASON pReason);
 
-	void remoteFreeModule();
-
 	Q_REQUIRED_RESULT bool isWindowAlive() const;
 
-	int sendMessage(int msg, int wParam, int lParam) const;
+	qint64 sendMessage(qint64 msg, qint64 wParam, qint64 lParam) const;
 
-	bool postMessage(int msg, int wParam, int lParam) const;
+	bool postMessage(qint64 msg, qint64 wParam, qint64 lParam) const;
 
-	inline void setValueHash(util::UserSetting setting, int value) { userSetting_value_hash_.insert(setting, value); }
+	inline void setValueHash(util::UserSetting setting, qint64 value) { userSetting_value_hash_.insert(setting, value); }
 
 	inline void setEnableHash(util::UserSetting setting, bool enable) { userSetting_enable_hash_.insert(setting, enable); }
 
 	inline void setStringHash(util::UserSetting setting, const QString& string) { userSetting_string_hash_.insert(setting, string); }
 
-	Q_REQUIRED_RESULT inline int getValueHash(util::UserSetting setting) const { return userSetting_value_hash_.value(setting); }
+	Q_REQUIRED_RESULT inline qint64 getValueHash(util::UserSetting setting) const { return userSetting_value_hash_.value(setting); }
 
 	Q_REQUIRED_RESULT inline bool getEnableHash(util::UserSetting setting) const { return userSetting_enable_hash_.value(setting); }
 
 	Q_REQUIRED_RESULT inline QString getStringHash(util::UserSetting setting) const { return userSetting_string_hash_.value(setting); }
 
-	Q_REQUIRED_RESULT inline QHash<util::UserSetting, int> getValuesHash() const { return userSetting_value_hash_.toHash(); }
+	Q_REQUIRED_RESULT inline QHash<util::UserSetting, qint64> getValuesHash() const { return userSetting_value_hash_.toHash(); }
 
 	Q_REQUIRED_RESULT inline QHash<util::UserSetting, bool> getEnablesHash() const { return userSetting_enable_hash_.toHash(); }
 
 	Q_REQUIRED_RESULT inline QHash<util::UserSetting, QString> getStringsHash() const { return userSetting_string_hash_.toHash(); }
 
-	inline void setValuesHash(const QHash<util::UserSetting, int>& hash) { userSetting_value_hash_ = hash; }
+	inline void setValuesHash(const QHash<util::UserSetting, qint64>& hash) { userSetting_value_hash_ = hash; }
 
 	inline void setEnablesHash(const QHash<util::UserSetting, bool>& hash) { userSetting_enable_hash_ = hash; }
 
@@ -140,21 +151,25 @@ public:
 
 	inline void setUserData(util::UserData type, const QVariant& data) { userData_hash_.insert(type, QVariant::fromValue(data)); }
 
-	void mouseMove(int x, int y) const;
+	void mouseMove(qint64 x, qint64 y) const;
 
-	void leftClick(int x, int y) const;
+	void leftClick(qint64 x, qint64 y) const;
 
-	void leftDoubleClick(int x, int y) const;
+	void leftDoubleClick(qint64 x, qint64 y) const;
 
-	void rightClick(int x, int y) const;
+	void rightClick(qint64 x, qint64 y) const;
 
-	void dragto(int x1, int y1, int x2, int y2) const;
+	void dragto(qint64 x1, qint64 y1, qint64 x2, qint64 y2) const;
 
-	void hide(int mode = 0);
+	void hide(qint64 mode = 0);
 
 	void show();
 
 	QString getPointFileName();
+
+	inline void setParentWidget(HWND parentWidget) { parentWidget_ = parentWidget; }
+
+	Q_REQUIRED_RESULT inline HWND getParentWidget() const { return parentWidget_; }
 
 private:
 	static BOOL CALLBACK EnumWindowsCallback(HWND handle, LPARAM lParam)
@@ -197,24 +212,30 @@ public:
 
 	util::SafeData<QStringList> subServerNameList;
 
-	int currentServerListIndex = 0;
+	qint64 currentServerListIndex = 0;
 
 	std::atomic_bool isScriptDebugModeEnable = true;
 
+	quint64 scriptThreadId = 0;
+
+	Autil autil;
 private:
+	std::atomic_int64_t index_ = 0;
 	quint64 hGameModule_ = NULL;
 	HMODULE hookdllModule_ = NULL;
 	process_information_t pi_ = {};
 	ScopedHandle processHandle_;
+	HWND parentWidget_ = nullptr;//主窗口句柄
 
-	int nowChatRowCount_ = 0;
+
+	qint64 nowChatRowCount_ = 0;
 
 	util::SafeHash<util::UserData, QVariant> userData_hash_ = {
 		{ util::kUserItemNames, QStringList() },
 
 	};
 
-	util::SafeHash<util::UserSetting, int> userSetting_value_hash_ = {
+	util::SafeHash<util::UserSetting, qint64> userSetting_value_hash_ = {
 		{ util::kSettingNotUsed, util::kSettingNotUsed },
 		{ util::kSettingMinValue, util::kSettingMinValue },
 

@@ -156,7 +156,7 @@ protected:
 				if (m_lineNumber)
 				{
 					bool ok;
-					int line = lineEdit->text().toInt(&ok);
+					qint64 line = lineEdit->text().toLongLong(&ok);
 					if (ok)
 					{
 						*m_lineNumber = line;

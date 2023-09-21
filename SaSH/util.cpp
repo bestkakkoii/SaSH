@@ -21,7 +21,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 #pragma region mem
 
-bool mem::read(HANDLE hProcess, DWORD desiredAccess, SIZE_T size, PVOID buffer)
+bool mem::read(HANDLE hProcess, quint64 desiredAccess, SIZE_T size, PVOID buffer)
 {
 	if (!size)return FALSE;
 	if (!buffer) return FALSE;
@@ -35,7 +35,7 @@ bool mem::read(HANDLE hProcess, DWORD desiredAccess, SIZE_T size, PVOID buffer)
 }
 
 template<typename T, typename>
-T mem::read(HANDLE hProcess, DWORD desiredAccess)
+T mem::read(HANDLE hProcess, quint64 desiredAccess)
 {
 	if (!hProcess) return T();
 
@@ -46,7 +46,7 @@ T mem::read(HANDLE hProcess, DWORD desiredAccess)
 	return ret ? buffer : T();
 }
 
-float mem::readFloat(HANDLE hProcess, DWORD desiredAccess)
+float mem::readFloat(HANDLE hProcess, quint64 desiredAccess)
 {
 	if (!hProcess) return 0.0f;
 	if (!desiredAccess) return 0.0f;
@@ -56,7 +56,7 @@ float mem::readFloat(HANDLE hProcess, DWORD desiredAccess)
 	return (ret) ? (buffer) : 0.0f;
 }
 
-qreal mem::readDouble(HANDLE hProcess, DWORD desiredAccess)
+qreal mem::readDouble(HANDLE hProcess, quint64 desiredAccess)
 {
 	if (!hProcess) return 0.0;
 	if (!desiredAccess) return 0.0;
@@ -66,7 +66,7 @@ qreal mem::readDouble(HANDLE hProcess, DWORD desiredAccess)
 	return (ret == TRUE) ? (buffer) : 0.0;
 }
 
-QString mem::readString(HANDLE hProcess, DWORD desiredAccess, int size, bool enableTrim, bool keepOriginal)
+QString mem::readString(HANDLE hProcess, quint64 desiredAccess, int size, bool enableTrim, bool keepOriginal)
 {
 	if (!hProcess) return "\0";
 	if (!desiredAccess) return "\0";
@@ -89,7 +89,7 @@ QString mem::readString(HANDLE hProcess, DWORD desiredAccess, int size, bool ena
 
 }
 
-bool mem::write(HANDLE hProcess, DWORD baseAddress, PVOID buffer, SIZE_T dwSize)
+bool mem::write(HANDLE hProcess, quint64 baseAddress, PVOID buffer, SIZE_T dwSize)
 {
 	if (!hProcess) return FALSE;
 	ULONG oldProtect = NULL;
@@ -101,7 +101,7 @@ bool mem::write(HANDLE hProcess, DWORD baseAddress, PVOID buffer, SIZE_T dwSize)
 }
 
 template<typename T, typename>
-bool mem::write(HANDLE hProcess, DWORD baseAddress, T data)
+bool mem::write(HANDLE hProcess, quint64 baseAddress, T data)
 {
 	if (!hProcess) return false;
 	if (!baseAddress) return false;
@@ -110,7 +110,7 @@ bool mem::write(HANDLE hProcess, DWORD baseAddress, T data)
 	return ret == TRUE;
 }
 
-bool mem::writeString(HANDLE hProcess, DWORD baseAddress, const QString& str)
+bool mem::writeString(HANDLE hProcess, quint64 baseAddress, const QString& str)
 {
 	if (!hProcess) return FALSE;
 	QTextCodec* codec = QTextCodec::codecForName(util::DEFAULT_GAME_CODEPAGE);//QTextCodec::codecForMib(2025);//
@@ -362,7 +362,7 @@ ULONG64 mem::getProcAddressIn32BitProcess(HANDLE hProcess, const QString& Module
 	return RetAddr;
 }
 
-bool mem::inject64(HANDLE hProcess, QString dllPath, HMODULE* phDllModule, quint64* phGameModule)
+bool mem::inject64(qint64 index, HANDLE hProcess, QString dllPath, HMODULE* phDllModule, quint64* phGameModule)
 {
 	unsigned char data[128] = {
 		0x55,										//push ebp
@@ -440,7 +440,7 @@ bool mem::inject64(HANDLE hProcess, QString dllPath, HMODULE* phDllModule, quint
 			0,
 			NULL);
 
-		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
+		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(index);
 		emit signalDispatcher.messageBoxShow(QString::fromWCharArray(L"Inject fail, error code: %1, %2").arg(d.lastError).arg(reinterpret_cast<wchar_t*>(d.lastError)));
 		return false;
 	}
@@ -455,7 +455,7 @@ bool mem::inject64(HANDLE hProcess, QString dllPath, HMODULE* phDllModule, quint
 	return d.gameModule > 0 && d.remoteModule > 0;
 }
 
-bool mem::inject(HANDLE hProcess, QString dllPath, HMODULE* phDllModule, quint64* phGameModule)
+bool mem::inject(qint64 index, HANDLE hProcess, QString dllPath, HMODULE* phDllModule, quint64* phGameModule)
 {
 	struct InjectData
 	{
@@ -520,7 +520,7 @@ bool mem::inject(HANDLE hProcess, QString dllPath, HMODULE* phDllModule, quint64
 			0,
 			NULL);
 
-		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
+		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(index);
 		emit signalDispatcher.messageBoxShow(QString::fromWCharArray(L"Inject fail, error code: %1, %2").arg(d.lastError).arg(reinterpret_cast<wchar_t*>(d.lastError)));
 		return false;
 	}
@@ -576,9 +576,14 @@ bool util::Config::open()
 		enableReopen = true;
 	}
 
-	QTextStream stream(&file_);
-	stream.setCodec("UTF-8");
-	QString text = stream.readAll();
+	QTextStream in(&file_);
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+	in.setCodec(util::DEFAULT_CODEPAGE);
+#else
+	in.setEncoding(QStringConverter::Utf8);
+#endif
+	in.setGenerateByteOrderMark(true);
+	QString text = in.readAll();
 	QByteArray allData = text.toUtf8();
 
 	if (allData.simplified().isEmpty())
@@ -854,8 +859,8 @@ QList<util::MapData> util::Config::readMapData(const QString& key) const
 		if (posList.size() != 2)
 			continue;
 
-		data.x = posList[0].simplified().toInt();
-		data.y = posList[1].simplified().toInt();
+		data.x = posList[0].simplified().toLongLong();
+		data.y = posList[1].simplified().toLongLong();
 		if (data.x == 0 && data.y == 0)
 			continue;
 
@@ -896,8 +901,8 @@ void util::FormSettingManager::loadSettings()
 		QStringList list = strSize.split(util::rexComma, Qt::SkipEmptyParts);
 		if (list.size() == 2)
 		{
-			size.setWidth(list.at(0).toInt());
-			size.setHeight(list.at(1).toInt());
+			size.setWidth(list.at(0).toLongLong());
+			size.setHeight(list.at(1).toLongLong());
 		}
 	}
 
@@ -1052,10 +1057,10 @@ void util::searchFiles(const QString& dir, const QString& fileNamePart, const QS
 				if (file.open(QIODevice::ReadOnly | QIODevice::Text))
 				{
 					QTextStream in(&file);
-#ifdef _WIN64
-					in.setEncoding(QStringConverter::Utf8);
-#else
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
 					in.setCodec(util::DEFAULT_CODEPAGE);
+#else
+					in.setEncoding(QStringConverter::Utf8);
 #endif
 					in.setGenerateByteOrderMark(true);
 					//將文件名置於前方
@@ -1191,4 +1196,205 @@ void util::sortWindows(const QVector<HWND>& windowList, bool alignLeft)
 			y += windowHeight;
 		}
 	}
+}
+
+bool util::writeFireWallOverXP(const LPCTSTR& ruleName, const LPCTSTR& appPath, bool NoopIfExist)
+{
+	bool bret = true;
+	HRESULT hrComInit = S_OK;
+	HRESULT hr = S_OK;
+
+	INetFwPolicy2* pNetFwPolicy2 = NULL;
+	INetFwRules* pFwRules = NULL;
+	INetFwRule* pFwRule = NULL;
+
+	BSTR bstrRuleName = SysAllocString(ruleName);
+	BSTR bstrAppName = SysAllocString(appPath);
+	BSTR bstrDescription = SysAllocString(ruleName);
+
+	// Initialize COM.
+	hrComInit = CoInitializeEx(
+		0,
+		COINIT_APARTMENTTHREADED);
+
+	do
+	{
+		// Ignore RPC_E_CHANGED_MODE; this just means that COM has already been
+	// initialized with a different mode. Since we don't care what the mode is,
+	// we'll just use the existing mode.
+		if (hrComInit != RPC_E_CHANGED_MODE)
+		{
+			if (FAILED(hrComInit))
+			{
+				//print << "CoInitializeEx failed: " << hrComInit << Qt::endl;
+				bret = false;
+				break;
+			}
+		}
+
+		// Retrieve INetFwPolicy2
+		hr = CoCreateInstance(
+			__uuidof(NetFwPolicy2),
+			NULL,
+			CLSCTX_INPROC_SERVER,
+			__uuidof(INetFwPolicy2),
+			(void**)&pNetFwPolicy2);
+
+		if (FAILED(hr))
+		{
+			//print << "CoCreateInstance for INetFwPolicy2 failed : " << hr << Qt::endl;
+			bret = false;
+			break;
+		}
+
+		// Retrieve INetFwRules
+		hr = pNetFwPolicy2->get_Rules(&pFwRules);
+		if (FAILED(hr))
+		{
+			//print << "get_Rules failed: " << hr << Qt::endl;
+			bret = false;
+			break;
+		}
+
+		// see if existed
+		if (NoopIfExist)
+		{
+			hr = pFwRules->Item(bstrRuleName, &pFwRule);
+			if (hr == S_OK)
+			{
+				//print << "Firewall Item existed" << hr << Qt::endl;
+				bret = false;
+				break;
+			}
+		}
+
+		// Create a new Firewall Rule object.
+		hr = CoCreateInstance(
+			__uuidof(NetFwRule),
+			NULL,
+			CLSCTX_INPROC_SERVER,
+			__uuidof(INetFwRule),
+			(void**)&pFwRule);
+		if (FAILED(hr))
+		{
+			// printf("CoCreateInstance for Firewall Rule failed: 0x%08lx\n", hr << Qt::endl;
+			bret = false;
+			break;
+		}
+
+		// Populate the Firewall Rule object
+
+		pFwRule->put_Name(bstrRuleName);
+		pFwRule->put_ApplicationName(bstrAppName);
+		pFwRule->put_Description(bstrDescription);
+		pFwRule->put_Protocol(NET_FW_IP_PROTOCOL_ANY);
+		pFwRule->put_Action(NET_FW_ACTION_ALLOW);
+		pFwRule->put_Enabled(VARIANT_TRUE);
+		pFwRule->put_Profiles(NET_FW_PROFILE2_ALL);
+
+		// Add the Firewall Rule
+		hr = pFwRules->Add(pFwRule);
+		if (FAILED(hr))
+		{
+			// printf("Firewall Rule Add failed: 0x%08lx\n", hr << Qt::endl;
+			bret = false;
+			break;
+		}
+	} while (false);
+
+	// Free BSTR's
+	SysFreeString(bstrRuleName);
+	SysFreeString(bstrAppName);
+	SysFreeString(bstrDescription);
+
+	// Release the INetFwRule object
+	if (pFwRule != NULL)
+	{
+		pFwRule->Release();
+	}
+
+	// Release the INetFwRules object
+	if (pFwRules != NULL)
+	{
+		pFwRules->Release();
+	}
+
+	// Release the INetFwPolicy2 object
+	if (pNetFwPolicy2 != NULL)
+	{
+		pNetFwPolicy2->Release();
+	}
+
+	// Uninitialize COM.
+	if (SUCCEEDED(hrComInit))
+	{
+		CoUninitialize();
+	}
+	return bret;
+}
+
+bool util::monitorThreadResourceUsage(quint64 threadId, double& lastCpuCost, double* pCpuUsage, double* pMemUsage, double* pMaxMemUsage)
+{
+
+	// FILETIME 是一个用两个32位字节表示时间值的结构体
+	//  dwLowDateTime 低位32位时间值。
+	//  dwHighDateTime 高位32位时间值
+	static FILETIME preidleTime;
+	static FILETIME prekernelTime;
+	static FILETIME preuserTime;
+
+	FILETIME idleTime;
+	FILETIME kernelTime;
+	FILETIME userTime;
+
+	// 三个参数分别为 cpu空闲时间 内核进程占用时间 用户进程占用时间
+	// 函数执行成功返回true 执行失败返回false
+	bool k = GetSystemTimes(&idleTime, &kernelTime, &userTime);
+	if (k)
+	{
+		quint64 x, y;
+		double idle, kernel, user;
+
+		x = static_cast<quint64>(preidleTime.dwHighDateTime << 31) | preidleTime.dwLowDateTime;
+		y = static_cast<quint64>(idleTime.dwHighDateTime << 31) | idleTime.dwLowDateTime;
+		idle = y - x;
+
+		x = static_cast<quint64>(prekernelTime.dwHighDateTime << 31) | prekernelTime.dwLowDateTime;
+		y = static_cast<quint64>(kernelTime.dwHighDateTime << 31) | kernelTime.dwLowDateTime;
+		kernel = y - x;
+
+		x = static_cast<quint64>(preuserTime.dwHighDateTime << 31) | preuserTime.dwLowDateTime;
+		y = static_cast<quint64>(userTime.dwHighDateTime << 31) | userTime.dwLowDateTime;
+		user = y - x;
+
+		double cpuPercent = (kernel + user - idle) * 100 / (kernel + user);
+
+		preidleTime = idleTime;
+		prekernelTime = kernelTime;
+		preuserTime = userTime;
+
+		if (pCpuUsage != nullptr)
+		{
+			*pCpuUsage = cpuPercent;
+		}
+	}
+
+
+	PROCESS_MEMORY_COUNTERS_EX memCounters = { 0 };
+	if (!GetProcessMemoryInfo(GetCurrentProcess(), (PROCESS_MEMORY_COUNTERS*)&memCounters, sizeof(memCounters))) {
+		qDebug() << "Failed to get memory info: " << GetLastError();
+		return false;
+	}
+
+	if (pMemUsage != nullptr)
+	{
+		*pMemUsage = memCounters.WorkingSetSize / (1024.0 * 1024.0); // 內存使用量，以兆字節為單位
+	}
+
+	if (pMaxMemUsage != nullptr)
+	{
+		*pMaxMemUsage = memCounters.PrivateUsage / (1024.0 * 1024.0); // 內存使用量，以兆字節為單位
+	}
+
+	return true;
 }

@@ -18,7 +18,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 #pragma once
 #include <QOpenGLWidget>
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
 #include <QtOpenGL/qgl.h>
+#endif
 #include <QWheelEvent>
 #include <GL/GLU.h>
 #include <QOpenGLContext>
@@ -31,6 +33,19 @@ class MapGLWidget : public QOpenGLWidget, protected QOpenGLFunctions
 	Q_OBJECT
 
 public:
+	enum
+	{
+		Left_Bottom_X,
+		Left_Bottom_Y,
+		Right_Bottom_X,
+		Right_Bottom_Y,
+		Right_Top_X,
+		Right_Top_Y,
+		Left_Top_X,
+		Left_Top_Y,
+		Pos_Max
+	};
+
 	explicit MapGLWidget(QWidget* parent = nullptr);
 	virtual ~MapGLWidget();
 
@@ -50,24 +65,14 @@ protected:
 	void wheelEvent(QWheelEvent* event) override;
 
 private:
-	void updateImageTexture();
-	void drawImage();
 
+protected:
+	virtual void initializeGL() override;
 
-public slots:
-	void initializeGL() override;
+	virtual void resizeGL(int w, int h) override;
 
-	void resizeGL(int w, int h) override;
+	virtual void paintGL() override;
 
-	void paintGL() override;
-
-	void setBackground(const QPixmap& image);
-
-	void initTextures();
-
-	void initShaders();
-
-	void initCube();
 
 signals:
 	void notifyMousePosition(const QPointF& pos);
@@ -81,6 +86,10 @@ signals:
 	void notifyLeftClick(const QPointF& gpos, const QPointF& pos);
 
 	void notifyWheelMove(const QPointF& zoom, const QPointF& pos);
+
+
+private:
+
 
 private:
 	bool bClicked_ = false;

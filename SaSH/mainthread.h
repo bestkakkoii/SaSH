@@ -29,7 +29,7 @@ class MainObject : public ThreadPlugin
 {
 	Q_OBJECT
 public:
-	explicit MainObject(QObject* parent);
+	explicit MainObject(qint64 index, QObject* parent = nullptr);
 	virtual ~MainObject();
 
 signals:
@@ -45,7 +45,7 @@ private:
 
 	void setUserDatas();
 
-	int checkAndRunFunctions();
+	qint64 checkAndRunFunctions();
 
 	void checkControl();
 	void checkEtcFlag();
@@ -64,6 +64,7 @@ private:
 	void battleTimeThread();
 
 private:
+
 	util::REMOVE_THREAD_REASON remove_thread_reason = util::REASON_NO_ERROR;
 
 	QFuture<void> autowalk_future_;
@@ -101,8 +102,8 @@ private:
 	bool flagMuteEnable_ = false;
 	bool flagAutoJoinEnable_ = false;
 	bool flagLockTimeEnable_ = false;
-	int flagLockTimeValue_ = 0;
-	int flagSetBoostValue_ = 0;
+	qint64 flagLockTimeValue_ = 0;
+	qint64 flagSetBoostValue_ = 0;
 	bool flagAutoFreeMemoryEnable_ = false;
 	bool flagFastWalkEnable_ = false;
 	bool flagPassWallEnable_ = false;
@@ -145,10 +146,14 @@ public:
 		static ThreadManager instance;
 		return instance;
 	}
-	inline void close()
+
+	inline void close(qint64 index)
 	{
-		if (thread_ != nullptr)
+		QMutexLocker locker(&mutex_);
+		if (threads_.contains(index) && objects_.contains(index))
 		{
+			auto thread_ = threads_.take(index);
+			auto object_ = objects_.take(index);
 			object_->requestInterruption();
 			thread_->quit();
 			thread_->wait();
@@ -158,15 +163,34 @@ public:
 			object_ = nullptr;
 		}
 	}
+
+	inline void close()
+	{
+		QMutexLocker locker(&mutex_);
+		QList<qint64> keys = threads_.keys();
+		for (auto& key : keys)
+		{
+			close(key);
+		}
+	}
+
 	virtual ~ThreadManager() = default;
+
 private:
 	ThreadManager() = default;
 
 public:
-	bool createThread(QObject* parent);
+	bool createThread(qint64 index, MainObject** ppObj, QObject* parent);
+
+	Q_REQUIRED_RESULT inline qint64 size() const
+	{
+		QMutex mutex_;
+		return threads_.size();
+	}
 
 private:
-	QThread* thread_ = nullptr;
-	MainObject* object_ = nullptr;
+	mutable QMutex mutex_;
+	QHash<qint64, QThread*> threads_;
+	QHash<qint64, MainObject*> objects_;
 
 };

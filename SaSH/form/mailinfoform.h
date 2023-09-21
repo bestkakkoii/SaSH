@@ -20,13 +20,13 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 #include <QWidget>
 #include "ui_mailinfoform.h"
-
-class MailInfoForm : public QWidget
+#include <indexer.h>
+class MailInfoForm : public QWidget, public Indexer
 {
 	Q_OBJECT
 
 public:
-	explicit MailInfoForm(QWidget* parent = nullptr);
+	explicit MailInfoForm(qint64 index, QWidget* parent = nullptr);
 	virtual ~MailInfoForm();
 
 protected:

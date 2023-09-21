@@ -47,7 +47,7 @@ string MyMACAddr::GenRandMAC()
 	int number = 0;
 	string result;
 
-	for (int i = 0; i < 6; i++)
+	for (int i = 0; i < 6; ++i)
 	{
 		number = rand() % 254;
 		temp << setfill('0') << setw(2) << hex << number;
@@ -105,7 +105,7 @@ void MyMACAddr::showAdapterList()
 			std::wcout << L"\t網路介面卡名稱： \t" << QString(pAdapter->AdapterName).toStdWString().c_str() << endl;
 			std::wcout << L"\t網路介面卡描述： \t" << pAdapter->Description << endl;
 			std::wcout << L"\t網路介面卡地址： \t";
-			for (i = 0; i < pAdapter->AddressLength; i++)
+			for (i = 0; i < pAdapter->AddressLength; ++i)
 			{
 				if (i == (pAdapter->AddressLength - 1))
 					printf("%.2X\n", (int)pAdapter->Address[i]);
@@ -162,7 +162,7 @@ unordered_map<string, string> MyMACAddr::getAdapters()
 		pAdapter = pAdapterInfo;
 		while (pAdapter)
 		{
-			for (UINT i = 0; i < pAdapter->AddressLength; i++)
+			for (UINT i = 0; i < pAdapter->AddressLength; ++i)
 			{
 				temp << setfill('0') << setw(2) << hex << (int)pAdapter->Address[i];
 				if (i != pAdapter->AddressLength - 1)

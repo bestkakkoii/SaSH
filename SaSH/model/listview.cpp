@@ -28,7 +28,31 @@ ListView::ListView(QWidget* parent)
 {
 	setWordWrap(true);
 	setUniformItemSizes(false);
+	installEventFilter(this);
+	setTextElideMode(Qt::ElideNone);
+	setResizeMode(QListView::Adjust);
 }
+
+bool ListView::eventFilter(QObject* obj, QEvent* e)
+{
+	if (obj == this)
+	{
+		if (e->type() == QEvent::KeyPress)
+		{
+			QKeyEvent* keyEvent = reinterpret_cast<QKeyEvent*>(e);
+			if (keyEvent->key() == Qt::Key_Delete)
+			{
+				StringListModel* model = qobject_cast<StringListModel*>(this->model());
+				if (model != nullptr)
+					model->clear();
+				return true;
+			}
+		}
+	}
+
+	return QListView::eventFilter(obj, e);
+}
+
 
 void ListView::dataChanged(const QModelIndex& topLeft, const QModelIndex& bottomRight, const QVector<int>& roles)
 {
@@ -123,7 +147,7 @@ StringListModel::StringListModel(QObject* parent)
 void StringListModel::append(const QString& str, int color)
 {
 	QVector<QString> list;
-	QVector<int> colorlist;
+	QVector<qint64> colorlist;
 	getAllList(list, colorlist);
 	int size = list.size();
 
@@ -147,7 +171,7 @@ void StringListModel::append(const QString& str, int color)
 QString StringListModel::takeFirst()
 {
 	QVector<QString> list;
-	QVector<int> colorlist;
+	QVector<qint64> colorlist;
 	getAllList(list, colorlist);
 	int size = list.size();
 	QString str = "";
@@ -166,7 +190,7 @@ QString StringListModel::takeFirst()
 void StringListModel::remove(const QString& str)
 {
 	QVector<QString> list;
-	QVector<int> colorlist;
+	QVector<qint64> colorlist;
 	getAllList(list, colorlist);
 	int size = list.size();
 
@@ -185,7 +209,7 @@ void StringListModel::clear()
 {
 	beginResetModel();
 
-	setAllList(QVector<QString>(), QVector<int>());
+	setAllList(QVector<QString>(), QVector<qint64>());
 
 	endResetModel();
 }
@@ -208,7 +232,7 @@ void StringListModel::sort(int column, Qt::SortOrder order)
 	if (order == Qt::AscendingOrder)
 	{
 		QVector<QString> list;
-		QVector<int> colorlist;
+		QVector<qint64> colorlist;
 		getAllList(list, colorlist);
 		int size = list.size();
 		QVector<QPair<int, QString>> pairVector;
@@ -235,7 +259,7 @@ void StringListModel::sort(int column, Qt::SortOrder order)
 	else
 	{
 		QVector<QString> list;
-		QVector<int> colorlist;
+		QVector<qint64> colorlist;
 		getAllList(list, colorlist);
 		int size = list.size();
 		QVector<QPair<int, QString>> pairVector;
@@ -359,7 +383,7 @@ QVariant StringListModel::data(const QModelIndex& index, int role) const
 		static const QBrush colorInfo(QColor(181, 206, 168));
 		static const QBrush colorOther(QColor(212, 212, 212));
 
-		QVector<int> colorlist = getColorList();
+		QVector<qint64> colorlist = getColorList();
 		int i = index.row();
 		int size = colorlist.size();
 		if (i >= size || i < 0)
@@ -414,7 +438,7 @@ bool StringListModel::setData(const QModelIndex& index, const QVariant& value, i
 void StringListModel::swapRowUp(int source)
 {
 	QVector<QString> list;
-	QVector<int> colorlist;
+	QVector<qint64> colorlist;
 	getAllList(list, colorlist);
 	int size = list.size();
 
@@ -432,7 +456,7 @@ void StringListModel::swapRowUp(int source)
 void StringListModel::swapRowDown(int source)
 {
 	QVector<QString> list;
-	QVector<int> colorlist;
+	QVector<qint64> colorlist;
 	getAllList(list, colorlist);
 	int size = list.size();
 

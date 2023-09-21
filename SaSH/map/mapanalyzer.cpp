@@ -439,6 +439,9 @@ static const QSet<uint16_t> ROAD = {
 	14020, 14021, 14022, 14023, 14024, 14025, 14026, 14027, 14028, 14029,
 	14030, 14031,
 
+	//薩伊那斯
+	34,
+
 	//沙姆島
 	23, 27, 40, 41, 42, 43, 44, 45,
 
@@ -452,10 +455,10 @@ static const QSet<uint16_t> EMPTY = {
 };
 
 //超過 1 * 1 的大型障礙物件
-static const QHash<int, QSet<quint32>> ROCKEX = {
+static const QHash<qint64, QSet<uint16_t>> ROCKEX = {
 	{
 		2 * 1000 + 2,
-		QSet<quint32>{
+		QSet<uint16_t>{
 			10007, 10014, 10048, 10049, 10050, 10119, 10141, 10220, 10560, 10561, 10563,
 			10564, 10566, 10567, 10671, 10939, 10964, 10965, 10966, 10972, 10976, 10978,
 			10979, 11136, 11137, 11138, 11144, 11148, 11150, 11151, 11208, 11488, 11489,
@@ -479,7 +482,7 @@ static const QHash<int, QSet<quint32>> ROCKEX = {
 
 	{
 		3 * 1000 + 3,
-		QSet<quint32>{
+		QSet<uint16_t>{
 			10010, 10011, 10056, 10057, 10058, 10059, 10143, 10405, 10624, 10877, 10878,
 			10879, 10880, 10881, 10882, 10883, 10884, 10885, 10886, 10887, 10888, 10889,
 			10890, 10891, 10892, 10970, 10971, 10974, 10984, 10985, 10989, 11142, 11143,
@@ -510,7 +513,7 @@ static const QHash<int, QSet<quint32>> ROCKEX = {
 
 	{
 		4 * 1000 + 4,
-		QSet<quint32>{
+		QSet<uint16_t>{
 			10065, 10066, 10067, 10068, 10094, 10542, 10600, 10601, 10783, 10893, 10932,
 			11205, 11908, 13711, 15688, 15690, 15691, 15700, 15701, 15703, 15704, 15705,
 			15707, 15708, 15709, 15710, 15711, 15712, 15713, 15714, 15715, 15727, 24759,
@@ -520,7 +523,7 @@ static const QHash<int, QSet<quint32>> ROCKEX = {
 
 	{
 		5 * 1000 + 5,
-		QSet<quint32>{
+		QSet<uint16_t>{
 			10000, 10001, 10018, 10034, 10035, 10036, 10037, 10038, 10144, 10146, 10151,
 			10157, 10158, 10159, 10210, 10211, 10212, 10213, 10217, 10218, 10623, 10784,
 			10846, 10895, 10924, 12900, 12901, 12902, 12903, 15320,
@@ -529,7 +532,7 @@ static const QHash<int, QSet<quint32>> ROCKEX = {
 
 	{
 		6 * 1000 + 6,
-		QSet<quint32>{
+		QSet<uint16_t>{
 			10008, 10009, 10043, 10045, 10100, 10101, 10102, 10103, 10104, 10105, 10106,
 			10107, 10108, 10109, 10111, 10113, 10115, 10139, 10145, 10148, 10166, 10179,
 			10228, 10300, 10502, 10503, 10504, 10505, 10511, 10521, 10541, 10766, 10769,
@@ -539,56 +542,56 @@ static const QHash<int, QSet<quint32>> ROCKEX = {
 
 	{
 		7 * 1000 + 7,
-		QSet<quint32>{
+		QSet<uint16_t>{
 			10227, 10510, 10514, 10515, 10523, 10835, 10848,
 		}
 	},
 
 	{
 		8 * 1000 + 8,
-		QSet<quint32>{
+		QSet<uint16_t>{
 			10537,
 		}
 	},
 
 	{
 		9 * 1000 + 9,
-		QSet<quint32>{
+		QSet<uint16_t>{
 			10231, 10232,
 		}
 	},
 
 	{
 		10 * 1000 + 10,
-		QSet<quint32>{
+		QSet<uint16_t>{
 			10233, 10869, 15402, 15403,
 		}
 	},
 
 	{
 		13 * 1000 + 13,
-		QSet<quint32>{
+		QSet<uint16_t>{
 			10534,
 		}
 	},
 
 	{
 		15 * 1000 + 15,
-		QSet<quint32>{
+		QSet<uint16_t>{
 			10237,
 		}
 	},
 
 	{
 		16 * 1000 + 16,
-		QSet<quint32>{
+		QSet<uint16_t>{
 			10225,
 		}
 	},
 
 	{
 		1 * 1000 + 2,
-		QSet<quint32>{
+		QSet<uint16_t>{
 			10118, 10128, 10129, 10152, 10201, 10214, 10310, 10314, 10629, 10631, 10674,
 			10678, 10808, 10809, 10820, 10821, 10930, 10936, 10937, 11497, 11498, 11552,
 			11553, 11554, 11555, 11556, 11557, 11558, 11559, 11560, 11561, 11562, 11563,
@@ -607,7 +610,7 @@ static const QHash<int, QSet<quint32>> ROCKEX = {
 
 	{
 		1 * 1000 + 3,
-		QSet<quint32>{
+		QSet<uint16_t>{
 			10022, 10025, 10123, 10126, 10170, 10175, 10176, 10902, 11507, 11511, 11630,
 			11721, 11728, 11818, 11819, 11839, 11869, 12400, 12849, 12850, 13713, 13716,
 			14705, 14708, 15018, 15118, 15168, 15218, 15318, 15444, 15445, 15446, 15447,
@@ -617,35 +620,35 @@ static const QHash<int, QSet<quint32>> ROCKEX = {
 
 	{
 		1 * 1000 + 4,
-		QSet<quint32>{
+		QSet<uint16_t>{
 			10901, 10927, 12411, 12412, 12419, 12420,
 		}
 	},
 
 	{
 		1 * 1000 + 5,
-		QSet<quint32>{
+		QSet<uint16_t>{
 			15726,
 		}
 	},
 
 	{
 		1 * 1000 + 8,
-		QSet<quint32>{
+		QSet<uint16_t>{
 			10198,
 		}
 	},
 
 	{
 		1 * 1000 + 11,
-		QSet<quint32>{
+		QSet<uint16_t>{
 			11814, 11817,
 		}
 	},
 
 	{
 		2 * 1000 + 1,
-		QSet<quint32>{
+		QSet<uint16_t>{
 			10017, 10092, 10093, 10121, 10185, 10192, 10628, 10630, 10633, 10675, 10813,
 			10814, 10925, 10938, 10967, 10977, 11139, 11149, 11493, 11494, 11495, 11496,
 			11506, 11567, 11608, 11609, 11613, 11622, 11665, 11666, 11667, 11700, 11715,
@@ -659,7 +662,7 @@ static const QHash<int, QSet<quint32>> ROCKEX = {
 
 	{
 		2 * 1000 + 3,
-		QSet<quint32>{
+		QSet<uint16_t>{
 			10125, 10184, 10622, 10636, 10915, 11503, 11513, 11518, 11603, 11623, 11628,
 			11632, 11708, 11726, 11730, 11850, 11874, 12603, 12605, 12608, 12610, 12611,
 			12612, 12616, 12663, 12665, 12676, 12677, 12678, 12679, 12684, 12685, 12818,
@@ -672,7 +675,7 @@ static const QHash<int, QSet<quint32>> ROCKEX = {
 
 	{
 		2 * 1000 + 4,
-		QSet<quint32>{
+		QSet<uint16_t>{
 			10202, 10661, 10662, 10664, 10870, 11512, 11625, 11629, 11727, 11875, 12416,
 			13802, 13803, 15716, 15718, 15722,
 		}
@@ -680,42 +683,42 @@ static const QHash<int, QSet<quint32>> ROCKEX = {
 
 	{
 		2 * 1000 + 5,
-		QSet<quint32>{
+		QSet<uint16_t>{
 			10041, 10607, 15732,
 		}
 	},
 
 	{
 		2 * 1000 + 8,
-		QSet<quint32>{
+		QSet<uint16_t>{
 			10992,
 		}
 	},
 
 	{
 		2 * 1000 + 9,
-		QSet<quint32>{
+		QSet<uint16_t>{
 			10986, 10990, 10993,
 		}
 	},
 
 	{
 		2 * 1000 + 10,
-		QSet<quint32>{
+		QSet<uint16_t>{
 			14410,
 		}
 	},
 
 	{
 		2 * 1000 + 15,
-		QSet<quint32>{
+		QSet<uint16_t>{
 			10991,
 		}
 	},
 
 	{
 		3 * 1000 + 1,
-		QSet<quint32>{
+		QSet<uint16_t>{
 			10023, 10024, 10127, 10177, 10188, 11509, 11631, 11724, 11812, 11813, 11816, 12401,
 			12847, 12848, 13714, 13715, 14711, 14714, 15017, 15167, 15217, 15317, 15721,
 			24728, 24735,
@@ -724,7 +727,7 @@ static const QHash<int, QSet<quint32>> ROCKEX = {
 
 	{
 		3 * 1000 + 2,
-		QSet<quint32>{
+		QSet<uint16_t>{
 			10116, 10117, 10142, 10187, 10196, 10203, 10562, 10565, 10621, 10635, 10787,
 			10788, 10913, 10926, 10975, 11147, 11502, 11508, 11510, 11626, 11627, 11709,
 			11723, 11725, 12404, 12601, 12602, 12604, 12606, 12607, 12609, 12613, 12614,
@@ -737,7 +740,7 @@ static const QHash<int, QSet<quint32>> ROCKEX = {
 
 	{
 	3 * 1000 + 4,
-	QSet<quint32>{
+	QSet<uint16_t>{
 			10013, 10040, 10122, 10182, 10605, 10637, 10669, 10775, 10780, 10781, 10782,
 			10785, 10894, 10914, 10982, 10983, 10988, 12905, 12906, 12907, 12913, 12914,
 			12915, 12916, 15683, 15687, 15692, 15693, 15702, 24753,
@@ -746,49 +749,49 @@ static const QHash<int, QSet<quint32>> ROCKEX = {
 
 	{
 	3 * 1000 + 5,
-	QSet<quint32>{
+	QSet<uint16_t>{
 			10608, 10609, 10620, 10917, 10919, 10941,
 	}
 	},
 
 	{
 		3 * 1000 + 6,
-		QSet<quint32>{
+		QSet<uint16_t>{
 			10603, 10604, 10931,
 		}
 	},
 
 	{
 		3 * 1000 + 7,
-		QSet<quint32>{
+		QSet<uint16_t>{
 			10183,
 		}
 	},
 
 	{
 		3 * 1000 + 8,
-		QSet<quint32>{
+		QSet<uint16_t>{
 			10304, 10305, 10308,
 		}
 	},
 
 	{
 		3 * 1000 + 9,
-		QSet<quint32>{
+		QSet<uint16_t>{
 			10180,
 		}
 	},
 
 	{
 		4 * 1000 + 1,
-		QSet<quint32>{
+		QSet<uint16_t>{
 			10012, 10097, 10171, 10199, 10306, 10900, 10928, 12405, 12406, 12417, 12418,
 		}
 	},
 
 	{
 		4 * 1000 + 2,
-		QSet<quint32>{
+		QSet<uint16_t>{
 			10016, 10186, 10660, 10663, 10665, 11854, 12415, 13800, 13801, 15717, 15719,
 			15724,
 		}
@@ -796,7 +799,7 @@ static const QHash<int, QSet<quint32>> ROCKEX = {
 
 	{
 	4 * 1000 + 3,
-	QSet<quint32>{
+	QSet<uint16_t>{
 			10219, 10638, 10668, 10776, 10779, 10786, 10916, 11515, 11517, 11621, 11634,
 			11719, 11731, 11855, 11856, 15420, 15421, 15685, 15694, 15706, 24754, 24760,
 		}
@@ -804,105 +807,105 @@ static const QHash<int, QSet<quint32>> ROCKEX = {
 
 	{
 	4 * 1000 + 5,
-	QSet<quint32>{
+	QSet<uint16_t>{
 			10865, 15686, 15689,
 	}
 	},
 
 	{
 		4 * 1000 + 6,
-		QSet<quint32>{
+		QSet<uint16_t>{
 			10181, 10933,
 		}
 	},
 
 	{
 		4 * 1000 + 7,
-		QSet<quint32>{
+		QSet<uint16_t>{
 			10771,
 		}
 	},
 
 	{
 		4 * 1000 + 8,
-		QSet<quint32>{
+		QSet<uint16_t>{
 			10768,
 		}
 	},
 
 	{
 		5 * 1000 + 1,
-		QSet<quint32>{
+		QSet<uint16_t>{
 			10124, 15720,
 		}
 	},
 
 	{
 		5 * 1000 + 2,
-		QSet<quint32>{
+		QSet<uint16_t>{
 			10165, 10197, 10606, 15731,
 		}
 	},
 
 	{
 		5 * 1000 + 3,
-		QSet<quint32>{
+		QSet<uint16_t>{
 			10167, 10602, 10918, 11857, 15695,
 		}
 	},
 
 	{
 		5 * 1000 + 4,
-		QSet<quint32>{
+		QSet<uint16_t>{
 			10673, 10791, 15729, 15730, 24761,
 		}
 	},
 
 	{
 		5 * 1000 + 6,
-		QSet<quint32>{
+		QSet<uint16_t>{
 			10032, 10039, 10051, 10512, 10520, 10765, 15728,
 		}
 	},
 
 	{
 		5 * 1000 + 7,
-		QSet<quint32>{
+		QSet<uint16_t>{
 			 10138, 10764, 10773,
 		}
 	},
 
 	{
 		5 * 1000 + 8,
-		QSet<quint32>{
+		QSet<uint16_t>{
 			10500, 10867,
 		}
 	},
 
 	{
 		5 * 1000 + 9,
-		QSet<quint32>{
+		QSet<uint16_t>{
 			10164,
 		}
 	},
 
 	{
 		6 * 1000 + 1,
-		QSet<quint32>{
+		QSet<uint16_t>{
 			10015,
 		}
 	},
 
 	{
 		6 * 1000 + 5,
-		QSet<quint32>{
+		QSet<uint16_t>{
 			10033, 10147, 10149, 10174, 10522, 10767, 10772, 10843, 10845,
 		}
 	},
 
 	{
 		6 * 1000 + 7,
-		QSet<quint32>{
+		QSet<uint16_t>{
 			10042, 10046, 10110, 10112, 10114, 10150, 10216, 10229, 10513, 10524, 10839,
 			10841,
 		}
@@ -910,293 +913,293 @@ static const QHash<int, QSet<quint32>> ROCKEX = {
 
 	{
 		6 * 1000 + 9,
-		QSet<quint32>{
+		QSet<uint16_t>{
 			10160, 10163, 15400,
 		}
 	},
 
 	{
 		6 * 1000 + 16,
-		QSet<quint32>{
+		QSet<uint16_t>{
 			10234,
 		}
 	},
 
 	{
 		7 * 1000 + 4,
-		QSet<quint32>{
+		QSet<uint16_t>{
 			10777,
 		}
 	},
 
 	{
 		7 * 1000 + 5,
-		QSet<quint32>{
+		QSet<uint16_t>{
 			10763, 10833, 10868, 10929,
 		}
 	},
 
 	{
 		7 * 1000 + 6,
-		QSet<quint32>{
+		QSet<uint16_t>{
 			10226, 10525, 10842, 10861,
 		}
 	},
 
 	{
 		7 * 1000 + 8,
-		QSet<quint32>{
+		QSet<uint16_t>{
 			10239, 10536, 10539, 10834, 10837, 10840,
 		}
 	},
 
 	{
 		7 * 1000 + 10,
-		QSet<quint32>{
+		QSet<uint16_t>{
 			10230,
 		}
 	},
 
 	{
 		7 * 1000 + 17,
-		QSet<quint32>{
+		QSet<uint16_t>{
 			10236,
 		}
 	},
 
 	{
 		8 * 1000 + 2,
-		QSet<quint32>{
+		QSet<uint16_t>{
 			10862,
 		}
 	},
 
 	{
 		8 * 1000 + 3,
-		QSet<quint32>{
+		QSet<uint16_t>{
 			10064, 10307,
 		}
 	},
 
 	{
 		8 * 1000 + 4,
-		QSet<quint32>{
+		QSet<uint16_t>{
 			10863,
 		}
 	},
 
 	{
 		8 * 1000 + 5,
-		QSet<quint32>{
+		QSet<uint16_t>{
 			10140, 10501, 10871, 10876,
 		}
 	},
 
 	{
 		8 * 1000 + 6,
-		QSet<quint32>{
+		QSet<uint16_t>{
 			10866, 10872, 10873,
 		}
 	},
 
 	{
 		8 * 1000 + 7,
-		QSet<quint32>{
+		QSet<uint16_t>{
 			10044, 10532, 10533, 10538, 10874,
 		}
 	},
 
 	{
 		9 * 1000 + 3,
-		QSet<quint32>{
+		QSet<uint16_t>{
 			10301, 10302, 10303, 10987, 10994, 10995,
 		}
 	},
 
 	{
 		9 * 1000 + 5,
-		QSet<quint32>{
+		QSet<uint16_t>{
 			10864,
 		}
 	},
 
 	{
 		9 * 1000 + 6,
-		QSet<quint32>{
+		QSet<uint16_t>{
 			15401,
 		}
 	},
 
 	{
 		9 * 1000 + 7,
-		QSet<quint32>{
+		QSet<uint16_t>{
 			10762,
 		}
 	},
 
 	{
 		9 * 1000 + 8,
-		QSet<quint32>{
+		QSet<uint16_t>{
 			10235,
 		}
 	},
 
 	{
 		9 * 1000 + 11,
-		QSet<quint32>{
+		QSet<uint16_t>{
 			10238,
 		}
 	},
 
 	{
 		10 * 1000 + 8,
-		QSet<quint32>{
+		QSet<uint16_t>{
 			10530,
 		}
 	},
 
 	{
 		10 * 1000 + 9,
-		QSet<quint32>{
+		QSet<uint16_t>{
 			10778, 10875,
 		}
 	},
 
 	{
 		10 * 1000 + 11,
-		QSet<quint32>{
+		QSet<uint16_t>{
 			10531, 10535,
 		}
 	},
 
 	{
 		10 * 1000 + 13,
-		QSet<quint32>{
+		QSet<uint16_t>{
 			15404,
 		}
 	},
 
 	{
 		13 * 1000 + 6,
-		QSet<quint32>{
+		QSet<uint16_t>{
 			11815,
 		}
 	},
 
 	{
 		14 * 1000 + 10,
-		QSet<quint32>{
+		QSet<uint16_t>{
 			10528,
 		}
 	},
 
 	{
 		14 * 1000 + 11,
-		QSet<quint32>{
+		QSet<uint16_t>{
 			10529,
 		}
 	},
 };
 
 // 大石頭或大型障礙物編號
-static const QSet<QPair<QPair<int, int>, QSet<quint32>>> ROCKEX_SET = {
-	{ QPair<int, int>{ 2, 2 },   ROCKEX.value(2 * 1000 + 2) }, // 2 * 2
-	{ QPair<int, int>{ 3, 3 },   ROCKEX.value(3 * 1000 + 3) }, // 3 * 3
-	{ QPair<int, int>{ 4, 4 },   ROCKEX.value(4 * 1000 + 4) }, // 3 * 2
-	{ QPair<int, int>{ 5, 5 },   ROCKEX.value(5 * 1000 + 5) }, // 3 * 3
-	{ QPair<int, int>{ 6, 6 },   ROCKEX.value(6 * 1000 + 6) }, // 2 * 2
-	{ QPair<int, int>{ 7, 7 },   ROCKEX.value(7 * 1000 + 7) }, // 3 * 2
-	{ QPair<int, int>{ 8, 8 },   ROCKEX.value(8 * 1000 + 8) }, // 3 * 3
-	{ QPair<int, int>{ 9, 9 },   ROCKEX.value(9 * 1000 + 9) }, // 2 * 2
-	{ QPair<int, int>{ 10, 10 }, ROCKEX.value(10 * 1000 + 10) }, // 3 * 2
-	{ QPair<int, int>{ 13, 13 }, ROCKEX.value(13 * 1000 + 13) }, // 3 * 3
-	{ QPair<int, int>{ 15, 15 }, ROCKEX.value(15 * 1000 + 15) }, // 2 * 2
-	{ QPair<int, int>{ 16, 16 }, ROCKEX.value(16 * 1000 + 16) }, // 3 * 2
+static const QSet<QPair<QPair<qint64, qint64 >, QSet<uint16_t>>> ROCKEX_SET = {
+	{ QPair<qint64, qint64>{ 2, 2 },   ROCKEX.value(2 * 1000 + 2) }, // 2 * 2
+	{ QPair<qint64, qint64>{ 3, 3 },   ROCKEX.value(3 * 1000 + 3) }, // 3 * 3
+	{ QPair<qint64, qint64>{ 4, 4 },   ROCKEX.value(4 * 1000 + 4) }, // 3 * 2
+	{ QPair<qint64, qint64>{ 5, 5 },   ROCKEX.value(5 * 1000 + 5) }, // 3 * 3
+	{ QPair<qint64, qint64>{ 6, 6 },   ROCKEX.value(6 * 1000 + 6) }, // 2 * 2
+	{ QPair<qint64, qint64>{ 7, 7 },   ROCKEX.value(7 * 1000 + 7) }, // 3 * 2
+	{ QPair<qint64, qint64>{ 8, 8 },   ROCKEX.value(8 * 1000 + 8) }, // 3 * 3
+	{ QPair<qint64, qint64>{ 9, 9 },   ROCKEX.value(9 * 1000 + 9) }, // 2 * 2
+	{ QPair<qint64, qint64>{ 10, 10 }, ROCKEX.value(10 * 1000 + 10) }, // 3 * 2
+	{ QPair<qint64, qint64>{ 13, 13 }, ROCKEX.value(13 * 1000 + 13) }, // 3 * 3
+	{ QPair<qint64, qint64>{ 15, 15 }, ROCKEX.value(15 * 1000 + 15) }, // 2 * 2
+	{ QPair<qint64, qint64>{ 16, 16 }, ROCKEX.value(16 * 1000 + 16) }, // 3 * 2
 
-	{ QPair<int, int>{ 1, 2 },   ROCKEX.value(1 * 1000 + 2) }, // 3 * 3
-	{ QPair<int, int>{ 1, 3 },   ROCKEX.value(1 * 1000 + 3) }, // 2 * 2
-	{ QPair<int, int>{ 1, 4 },   ROCKEX.value(1 * 1000 + 4) }, // 3 * 2
-	{ QPair<int, int>{ 1, 5 },   ROCKEX.value(1 * 1000 + 5) }, // 3 * 3
-	{ QPair<int, int>{ 1, 8 },   ROCKEX.value(1 * 1000 + 8) }, // 2 * 2
-	{ QPair<int, int>{ 1, 11 },  ROCKEX.value(1 * 1000 + 11) }, // 3 * 2
+	{ QPair<qint64, qint64>{ 1, 2 },   ROCKEX.value(1 * 1000 + 2) }, // 3 * 3
+	{ QPair<qint64, qint64>{ 1, 3 },   ROCKEX.value(1 * 1000 + 3) }, // 2 * 2
+	{ QPair<qint64, qint64>{ 1, 4 },   ROCKEX.value(1 * 1000 + 4) }, // 3 * 2
+	{ QPair<qint64, qint64>{ 1, 5 },   ROCKEX.value(1 * 1000 + 5) }, // 3 * 3
+	{ QPair<qint64, qint64>{ 1, 8 },   ROCKEX.value(1 * 1000 + 8) }, // 2 * 2
+	{ QPair<qint64, qint64>{ 1, 11 },  ROCKEX.value(1 * 1000 + 11) }, // 3 * 2
 
-	{ QPair<int, int>{ 2, 1 },   ROCKEX.value(2 * 1000 + 1) }, // 3 * 3
-	{ QPair<int, int>{ 2, 3 },   ROCKEX.value(2 * 1000 + 3) }, // 2 * 2
-	{ QPair<int, int>{ 2, 4 },   ROCKEX.value(2 * 1000 + 4) }, // 3 * 2
-	{ QPair<int, int>{ 2, 5 },   ROCKEX.value(2 * 1000 + 5) }, // 3 * 3
-	{ QPair<int, int>{ 2, 8 },   ROCKEX.value(2 * 1000 + 8) }, // 2 * 2
-	{ QPair<int, int>{ 2, 9 },   ROCKEX.value(2 * 1000 + 9) }, // 3 * 2
-	{ QPair<int, int>{ 2, 10 },  ROCKEX.value(2 * 1000 + 10) }, // 3 * 3
-	{ QPair<int, int>{ 2, 15 },  ROCKEX.value(2 * 1000 + 15) }, // 2 * 2
+	{ QPair<qint64, qint64>{ 2, 1 },   ROCKEX.value(2 * 1000 + 1) }, // 3 * 3
+	{ QPair<qint64, qint64>{ 2, 3 },   ROCKEX.value(2 * 1000 + 3) }, // 2 * 2
+	{ QPair<qint64, qint64>{ 2, 4 },   ROCKEX.value(2 * 1000 + 4) }, // 3 * 2
+	{ QPair<qint64, qint64>{ 2, 5 },   ROCKEX.value(2 * 1000 + 5) }, // 3 * 3
+	{ QPair<qint64, qint64>{ 2, 8 },   ROCKEX.value(2 * 1000 + 8) }, // 2 * 2
+	{ QPair<qint64, qint64>{ 2, 9 },   ROCKEX.value(2 * 1000 + 9) }, // 3 * 2
+	{ QPair<qint64, qint64>{ 2, 10 },  ROCKEX.value(2 * 1000 + 10) }, // 3 * 3
+	{ QPair<qint64, qint64>{ 2, 15 },  ROCKEX.value(2 * 1000 + 15) }, // 2 * 2
 
-	{ QPair<int, int>{ 3, 1 },  ROCKEX.value(3 * 1000 + 1) }, // 3 * 2
-	{ QPair<int, int>{ 3, 2 },  ROCKEX.value(3 * 1000 + 2) }, // 3 * 3
-	{ QPair<int, int>{ 3, 4 },  ROCKEX.value(3 * 1000 + 4) }, // 2 * 2
-	{ QPair<int, int>{ 3, 5 },  ROCKEX.value(3 * 1000 + 5) }, // 3 * 2
-	{ QPair<int, int>{ 3, 6 },  ROCKEX.value(3 * 1000 + 6) }, // 3 * 3
-	{ QPair<int, int>{ 3, 7 },  ROCKEX.value(3 * 1000 + 7) }, // 3 * 3
-	{ QPair<int, int>{ 3, 8 },  ROCKEX.value(3 * 1000 + 8) }, // 2 * 2
-	{ QPair<int, int>{ 3, 9 },  ROCKEX.value(3 * 1000 + 9) }, // 3 * 2
+	{ QPair<qint64, qint64>{ 3, 1 },  ROCKEX.value(3 * 1000 + 1) }, // 3 * 2
+	{ QPair<qint64, qint64>{ 3, 2 },  ROCKEX.value(3 * 1000 + 2) }, // 3 * 3
+	{ QPair<qint64, qint64>{ 3, 4 },  ROCKEX.value(3 * 1000 + 4) }, // 2 * 2
+	{ QPair<qint64, qint64>{ 3, 5 },  ROCKEX.value(3 * 1000 + 5) }, // 3 * 2
+	{ QPair<qint64, qint64>{ 3, 6 },  ROCKEX.value(3 * 1000 + 6) }, // 3 * 3
+	{ QPair<qint64, qint64>{ 3, 7 },  ROCKEX.value(3 * 1000 + 7) }, // 3 * 3
+	{ QPair<qint64, qint64>{ 3, 8 },  ROCKEX.value(3 * 1000 + 8) }, // 2 * 2
+	{ QPair<qint64, qint64>{ 3, 9 },  ROCKEX.value(3 * 1000 + 9) }, // 3 * 2
 
-	{ QPair<int, int>{ 4, 1 },  ROCKEX.value(4 * 1000 + 1) }, // 3 * 3
-	{ QPair<int, int>{ 4, 2 },  ROCKEX.value(4 * 1000 + 2) }, // 2 * 2
-	{ QPair<int, int>{ 4, 3 },  ROCKEX.value(4 * 1000 + 3) }, // 3 * 2
-	{ QPair<int, int>{ 4, 5 },  ROCKEX.value(4 * 1000 + 5) }, // 3 * 3
-	{ QPair<int, int>{ 4, 6 },  ROCKEX.value(4 * 1000 + 6) }, // 2 * 2
-	{ QPair<int, int>{ 4, 7 },  ROCKEX.value(4 * 1000 + 7) }, // 3 * 2
-	{ QPair<int, int>{ 4, 8 },  ROCKEX.value(4 * 1000 + 8) }, // 3 * 3
+	{ QPair<qint64, qint64>{ 4, 1 },  ROCKEX.value(4 * 1000 + 1) }, // 3 * 3
+	{ QPair<qint64, qint64>{ 4, 2 },  ROCKEX.value(4 * 1000 + 2) }, // 2 * 2
+	{ QPair<qint64, qint64>{ 4, 3 },  ROCKEX.value(4 * 1000 + 3) }, // 3 * 2
+	{ QPair<qint64, qint64>{ 4, 5 },  ROCKEX.value(4 * 1000 + 5) }, // 3 * 3
+	{ QPair<qint64, qint64>{ 4, 6 },  ROCKEX.value(4 * 1000 + 6) }, // 2 * 2
+	{ QPair<qint64, qint64>{ 4, 7 },  ROCKEX.value(4 * 1000 + 7) }, // 3 * 2
+	{ QPair<qint64, qint64>{ 4, 8 },  ROCKEX.value(4 * 1000 + 8) }, // 3 * 3
 
-	{ QPair<int, int>{ 5, 1 },  ROCKEX.value(5 * 1000 + 1) }, // 2 * 2
-	{ QPair<int, int>{ 5, 2 },  ROCKEX.value(5 * 1000 + 2) }, // 3 * 2
-	{ QPair<int, int>{ 5, 3 },  ROCKEX.value(5 * 1000 + 3) }, // 3 * 3
-	{ QPair<int, int>{ 5, 4 },  ROCKEX.value(5 * 1000 + 4) }, // 3 * 3
-	{ QPair<int, int>{ 5, 6 },  ROCKEX.value(5 * 1000 + 6) }, // 2 * 2
-	{ QPair<int, int>{ 5, 7 },  ROCKEX.value(5 * 1000 + 7) }, // 3 * 2
-	{ QPair<int, int>{ 5, 8 },  ROCKEX.value(5 * 1000 + 8) }, // 3 * 3
-	{ QPair<int, int>{ 5, 9 },  ROCKEX.value(5 * 1000 + 9) }, // 2 * 2
+	{ QPair<qint64, qint64>{ 5, 1 },  ROCKEX.value(5 * 1000 + 1) }, // 2 * 2
+	{ QPair<qint64, qint64>{ 5, 2 },  ROCKEX.value(5 * 1000 + 2) }, // 3 * 2
+	{ QPair<qint64, qint64>{ 5, 3 },  ROCKEX.value(5 * 1000 + 3) }, // 3 * 3
+	{ QPair<qint64, qint64>{ 5, 4 },  ROCKEX.value(5 * 1000 + 4) }, // 3 * 3
+	{ QPair<qint64, qint64>{ 5, 6 },  ROCKEX.value(5 * 1000 + 6) }, // 2 * 2
+	{ QPair<qint64, qint64>{ 5, 7 },  ROCKEX.value(5 * 1000 + 7) }, // 3 * 2
+	{ QPair<qint64, qint64>{ 5, 8 },  ROCKEX.value(5 * 1000 + 8) }, // 3 * 3
+	{ QPair<qint64, qint64>{ 5, 9 },  ROCKEX.value(5 * 1000 + 9) }, // 2 * 2
 
-	{ QPair<int, int>{ 6, 1 },  ROCKEX.value(6 * 1000 + 1) }, // 3 * 3
-	{ QPair<int, int>{ 6, 5 },  ROCKEX.value(6 * 1000 + 5) }, // 2 * 2
-	{ QPair<int, int>{ 6, 7 },  ROCKEX.value(6 * 1000 + 7) }, // 3 * 2
-	{ QPair<int, int>{ 6, 9 },  ROCKEX.value(6 * 1000 + 9) }, // 3 * 3
-	{ QPair<int, int>{ 6, 16 }, ROCKEX.value(6 * 1000 + 16) }, // 3 * 3
+	{ QPair<qint64, qint64>{ 6, 1 },  ROCKEX.value(6 * 1000 + 1) }, // 3 * 3
+	{ QPair<qint64, qint64>{ 6, 5 },  ROCKEX.value(6 * 1000 + 5) }, // 2 * 2
+	{ QPair<qint64, qint64>{ 6, 7 },  ROCKEX.value(6 * 1000 + 7) }, // 3 * 2
+	{ QPair<qint64, qint64>{ 6, 9 },  ROCKEX.value(6 * 1000 + 9) }, // 3 * 3
+	{ QPair<qint64, qint64>{ 6, 16 }, ROCKEX.value(6 * 1000 + 16) }, // 3 * 3
 
-	{ QPair<int, int>{ 7, 4 },  ROCKEX.value(7 * 1000 + 4) }, // 2 * 2
-	{ QPair<int, int>{ 7, 5 },  ROCKEX.value(7 * 1000 + 5) }, // 3 * 2
-	{ QPair<int, int>{ 7, 6 },  ROCKEX.value(7 * 1000 + 6) }, // 3 * 3
-	{ QPair<int, int>{ 7, 8 },  ROCKEX.value(7 * 1000 + 8) }, // 2 * 2
-	{ QPair<int, int>{ 7, 10 }, ROCKEX.value(7 * 1000 + 10) }, // 3 * 2
-	{ QPair<int, int>{ 7, 17 }, ROCKEX.value(7 * 1000 + 17) }, // 3 * 3
+	{ QPair<qint64, qint64>{ 7, 4 },  ROCKEX.value(7 * 1000 + 4) }, // 2 * 2
+	{ QPair<qint64, qint64>{ 7, 5 },  ROCKEX.value(7 * 1000 + 5) }, // 3 * 2
+	{ QPair<qint64, qint64>{ 7, 6 },  ROCKEX.value(7 * 1000 + 6) }, // 3 * 3
+	{ QPair<qint64, qint64>{ 7, 8 },  ROCKEX.value(7 * 1000 + 8) }, // 2 * 2
+	{ QPair<qint64, qint64>{ 7, 10 }, ROCKEX.value(7 * 1000 + 10) }, // 3 * 2
+	{ QPair<qint64, qint64>{ 7, 17 }, ROCKEX.value(7 * 1000 + 17) }, // 3 * 3
 
-	{ QPair<int, int>{ 8, 2 },  ROCKEX.value(8 * 1000 + 2) }, // 3 * 3
-	{ QPair<int, int>{ 8, 3 },  ROCKEX.value(8 * 1000 + 3) }, // 2 * 2
-	{ QPair<int, int>{ 8, 4 },  ROCKEX.value(8 * 1000 + 4) }, // 3 * 2
-	{ QPair<int, int>{ 8, 5 },  ROCKEX.value(8 * 1000 + 5) }, // 3 * 3
-	{ QPair<int, int>{ 8, 6 },  ROCKEX.value(8 * 1000 + 6) }, // 2 * 2
-	{ QPair<int, int>{ 8, 7 },  ROCKEX.value(8 * 1000 + 7) }, // 3 * 2
+	{ QPair<qint64, qint64>{ 8, 2 },  ROCKEX.value(8 * 1000 + 2) }, // 3 * 3
+	{ QPair<qint64, qint64>{ 8, 3 },  ROCKEX.value(8 * 1000 + 3) }, // 2 * 2
+	{ QPair<qint64, qint64>{ 8, 4 },  ROCKEX.value(8 * 1000 + 4) }, // 3 * 2
+	{ QPair<qint64, qint64>{ 8, 5 },  ROCKEX.value(8 * 1000 + 5) }, // 3 * 3
+	{ QPair<qint64, qint64>{ 8, 6 },  ROCKEX.value(8 * 1000 + 6) }, // 2 * 2
+	{ QPair<qint64, qint64>{ 8, 7 },  ROCKEX.value(8 * 1000 + 7) }, // 3 * 2
 
-	{ QPair<int, int>{ 9, 3 },  ROCKEX.value(9 * 1000 + 3) }, // 3 * 3
-	{ QPair<int, int>{ 9, 5 },  ROCKEX.value(9 * 1000 + 5) }, // 2 * 2
-	{ QPair<int, int>{ 9, 6 },  ROCKEX.value(9 * 1000 + 6) }, // 3 * 2
-	{ QPair<int, int>{ 9, 7 },  ROCKEX.value(9 * 1000 + 7) }, // 3 * 3
-	{ QPair<int, int>{ 9, 8 },  ROCKEX.value(9 * 1000 + 8) }, // 3 * 3
-	{ QPair<int, int>{ 9, 11 }, ROCKEX.value(9 * 1000 + 11) }, // 2 * 2
+	{ QPair<qint64, qint64>{ 9, 3 },  ROCKEX.value(9 * 1000 + 3) }, // 3 * 3
+	{ QPair<qint64, qint64>{ 9, 5 },  ROCKEX.value(9 * 1000 + 5) }, // 2 * 2
+	{ QPair<qint64, qint64>{ 9, 6 },  ROCKEX.value(9 * 1000 + 6) }, // 3 * 2
+	{ QPair<qint64, qint64>{ 9, 7 },  ROCKEX.value(9 * 1000 + 7) }, // 3 * 3
+	{ QPair<qint64, qint64>{ 9, 8 },  ROCKEX.value(9 * 1000 + 8) }, // 3 * 3
+	{ QPair<qint64, qint64>{ 9, 11 }, ROCKEX.value(9 * 1000 + 11) }, // 2 * 2
 
-	{ QPair<int, int>{ 10, 8 },  ROCKEX.value(10 * 1000 + 8) }, // 3 * 2
-	{ QPair<int, int>{ 10, 9 },  ROCKEX.value(10 * 1000 + 9) }, // 3 * 3
-	{ QPair<int, int>{ 10, 11 }, ROCKEX.value(10 * 1000 + 11) }, // 3 * 2
-	{ QPair<int, int>{ 10, 13 }, ROCKEX.value(10 * 1000 + 13) }, // 3 * 3
+	{ QPair<qint64, qint64>{ 10, 8 },  ROCKEX.value(10 * 1000 + 8) }, // 3 * 2
+	{ QPair<qint64, qint64>{ 10, 9 },  ROCKEX.value(10 * 1000 + 9) }, // 3 * 3
+	{ QPair<qint64, qint64>{ 10, 11 }, ROCKEX.value(10 * 1000 + 11) }, // 3 * 2
+	{ QPair<qint64, qint64>{ 10, 13 }, ROCKEX.value(10 * 1000 + 13) }, // 3 * 3
 
-	{ QPair<int, int>{ 13, 6 },  ROCKEX.value(13 * 1000 + 6) }, // 3 * 2
+	{ QPair<qint64, qint64>{ 13, 6 },  ROCKEX.value(13 * 1000 + 6) }, // 3 * 2
 
-	{ QPair<int, int>{ 14, 10 }, ROCKEX.value(14 * 1000 + 10) }, // 3 * 3
-	{ QPair<int, int>{ 14, 11 }, ROCKEX.value(14 * 1000 + 11) }, // 3 * 2
+	{ QPair<qint64, qint64>{ 14, 10 }, ROCKEX.value(14 * 1000 + 10) }, // 3 * 3
+	{ QPair<qint64, qint64>{ 14, 11 }, ROCKEX.value(14 * 1000 + 11) }, // 3 * 2
 };
 
 #pragma endregion
 
 //檢查地圖大小是否合法
-inline constexpr bool __fastcall CHECKSIZE(int w, int h)
+inline constexpr bool __fastcall CHECKSIZE(qint64 w, qint64 h)
 {
 	if (w < 0 || h < 0 || w > 1500 || h > 1500)
 		return false;
@@ -1213,14 +1216,14 @@ void __fastcall checkAndSetRockEx(map_t& map, const QPoint& p, quint32 sObject)
 	//     * *       x,y-1  x+1,y-1
 	//     X *       x,y    x+1,y
 	//
-	int x = 0, y = 0;
-	for (const QPair<QPair<int, int>, QSet<quint32>>& it : ROCKEX_SET)
+	qint64 x = 0, y = 0;
+	for (const QPair<QPair<qint64, qint64>, QSet<uint16_t>>& it : ROCKEX_SET)
 	{
-		const QSet<quint32> set = it.second;
+		const QSet<uint16_t> set = it.second;
 		if (!set.size() || !set.contains(sObject))
 			continue;
-		int max_y = it.first.second;
-		int max_x = it.first.first;
+		qint64 max_y = it.first.second;
+		qint64 max_x = it.first.first;
 		for (y = 0; y < max_y; ++y)
 		{
 			for (x = 0; x < max_x; ++x)
@@ -1233,11 +1236,11 @@ void __fastcall checkAndSetRockEx(map_t& map, const QPoint& p, quint32 sObject)
 };
 
 //重複檢查大石頭
-void __fastcall reCheckAndRockEx(map_t& map, const QPoint& point, quint32 sObject)
+void __fastcall reCheckAndRockEx(map_t& map, const QPoint& point, uint16_t sObject)
 {
-	for (const QPair<QPair<int, int>, QSet<quint32>>& it : ROCKEX_SET)
+	for (const QPair<QPair<qint64, qint64>, QSet<uint16_t>>& it : ROCKEX_SET)
 	{
-		const QSet<quint32> set = it.second;
+		const QSet<uint16_t> set = it.second;
 		if (!set.size() || !set.contains(sObject))
 			continue;
 		map.data.insert(point, util::OBJ_ROCKEX);
@@ -1246,7 +1249,7 @@ void __fastcall reCheckAndRockEx(map_t& map, const QPoint& point, quint32 sObjec
 };
 
 //用於從映射到內存的數據中取出特定的數據塊
-std::vector<unsigned short> load(const UCHAR* pFileMap, int sectionOffset, int offest)
+std::vector<unsigned short> load(const UCHAR* pFileMap, qint64 sectionOffset, qint64 offest)
 {
 	std::vector<unsigned short> v = {};
 	do
@@ -1256,7 +1259,7 @@ std::vector<unsigned short> load(const UCHAR* pFileMap, int sectionOffset, int o
 			break;
 		}
 
-		int size = sizeof(mapheader_t) + (sectionOffset * offest);
+		qint64 size = sizeof(mapheader_t) + (sectionOffset * offest);
 		const UCHAR* p = pFileMap + size;
 		for (size_t i = 0u; i < static_cast<size_t>(sectionOffset); i += 2u)
 		{
@@ -1272,9 +1275,10 @@ bool compareDistance(qdistance_t& a, qdistance_t& b)
 	return (a.distance < b.distance);
 }
 
-MapAnalyzer::MapAnalyzer()
+MapAnalyzer::MapAnalyzer(qint64 index)
 	:directory(QString::fromUtf8(qgetenv("GAME_DIR_PATH")))
 {
+	setIndex(index);
 }
 
 MapAnalyzer::~MapAnalyzer()
@@ -1339,7 +1343,7 @@ util::ObjectType __fastcall MapAnalyzer::getObjectType(const uint16_t data) cons
 	return util::OBJ_UNKNOWN;
 }
 
-bool __fastcall MapAnalyzer::getMapDataByFloor(int floor, map_t* map)
+bool __fastcall MapAnalyzer::getMapDataByFloor(qint64 floor, map_t* map)
 {
 	if (maps_.contains(floor))
 	{
@@ -1356,12 +1360,12 @@ bool __fastcall MapAnalyzer::getMapDataByFloor(int floor, map_t* map)
 	return false;
 }
 
-void __fastcall MapAnalyzer::setMapDataByFloor(int floor, const map_t& map)
+void __fastcall MapAnalyzer::setMapDataByFloor(qint64 floor, const map_t& map)
 {
 	maps_.insert(floor, map);
 }
 
-void __fastcall MapAnalyzer::setPixmapByIndex(int index, const QPixmap& pix)
+void __fastcall MapAnalyzer::setPixmapByIndex(qint64 index, const QPixmap& pix)
 {
 	if (pixMap_.contains(index))
 	{
@@ -1373,13 +1377,13 @@ void __fastcall MapAnalyzer::setPixmapByIndex(int index, const QPixmap& pix)
 	}
 }
 
-QString __fastcall MapAnalyzer::getCurrentMapPath(int floor) const
+QString __fastcall MapAnalyzer::getCurrentMapPath(qint64 floor) const
 {
 	const QString path = directory + "/map/" + QString::number(floor) + kDefaultSuffix;
 	return path;
 }
 
-bool __fastcall MapAnalyzer::readFromBinary(int floor, const QString& name, bool enableDraw, bool enableRewrite)
+bool __fastcall MapAnalyzer::readFromBinary(qint64 floor, const QString& name, bool enableDraw, bool enableRewrite)
 {
 	if (floor < 0)
 		return false;
@@ -1413,8 +1417,8 @@ bool __fastcall MapAnalyzer::readFromBinary(int floor, const QString& name, bool
 	}
 
 	//獲取地圖寬高
-	int width = _header->width;
-	int height = _header->height;
+	qint64 width = _header->width;
+	qint64 height = _header->height;
 
 	if (!CHECKSIZE(width, height))
 	{
@@ -1429,7 +1433,7 @@ bool __fastcall MapAnalyzer::readFromBinary(int floor, const QString& name, bool
 	map.height = height;
 	map.name = name;
 
-	QHash<int, map_t>::iterator it = maps_.begin();
+	QHash<qint64, map_t>::iterator it = maps_.begin();
 	for (auto it = maps_.begin(); it != maps_.end(); ++it)
 	{
 		map_t& m = it.value();
@@ -1437,8 +1441,11 @@ bool __fastcall MapAnalyzer::readFromBinary(int floor, const QString& name, bool
 			continue;
 
 		qint64 time = m.timer.elapsed();
-		if (time >= (5 * 60ll * 60ll) && m.refCount < 30)
+		if (time >= (5 * 60ll * 60ll) && m.refCount < 50)
+		{
 			it.value().data.clear();
+			pixMap_.remove(it.key());
+		}
 	}
 
 	if (map.data.size() > 0
@@ -1486,16 +1493,23 @@ bool __fastcall MapAnalyzer::readFromBinary(int floor, const QString& name, bool
 	map.stair.clear();
 	map.workable.clear();
 
-	int x = 0, y = 0;
-	int sectionOffset = width * height * 2;
+	qint64 x = 0, y = 0;
+	qint64 sectionOffset = width * height * 2;
 
 	//隨後W* H * 2字節為地面數據，每2字節為1數據塊，表示地面的地圖編號，以製成基本地形。
 	//再隨後W * H * 2字節為地上物件 / 建築物數據，每2字節為1數據塊，表示該點上的物件 / 建築物地圖編號。
 	//再隨後 W * H * 2 字節為地圖標誌，每 2 字節為 1 數據塊，
 	QFutureSynchronizer<std::vector<unsigned short>> sync;
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
 	sync.addFuture(QtConcurrent::run(load, pFileMap, sectionOffset, 0));
 	sync.addFuture(QtConcurrent::run(load, pFileMap, sectionOffset, 1));
 	sync.addFuture(QtConcurrent::run(load, pFileMap, sectionOffset, 2));
+#else
+	sync.addFuture(QtConcurrent::run([this, pFileMap, sectionOffset]() {return load(pFileMap, sectionOffset, 0); }));
+	sync.addFuture(QtConcurrent::run([this, pFileMap, sectionOffset]() {return load(pFileMap, sectionOffset, 1); }));
+	sync.addFuture(QtConcurrent::run([this, pFileMap, sectionOffset]() {return load(pFileMap, sectionOffset, 2); }));
+#endif
+
 	sync.waitForFinished();
 	QList<QFuture<std::vector<unsigned short>>> futures = sync.futures();
 	const std::vector<unsigned short> bGround = futures[0].result();//load(pFileMap, sectionOffset, 0);
@@ -1525,7 +1539,8 @@ bool __fastcall MapAnalyzer::readFromBinary(int floor, const QString& name, bool
 	QPoint point(0, 0);
 
 #ifdef _DEBUG
-	Injector& injector = Injector::getInstance();
+	qint64 currentIndex = getIndex();
+	Injector& injector = Injector::getInstance(currentIndex);
 #endif
 
 	for (y = 0; y < height; ++y)
@@ -1687,13 +1702,14 @@ bool __fastcall MapAnalyzer::readFromBinary(int floor, const QString& name, bool
 	return bret;
 }
 
-bool __fastcall MapAnalyzer::loadFromBinary(int floor, map_t* _map)
+bool __fastcall MapAnalyzer::loadFromBinary(qint64 floor, map_t* _map)
 {
 	QMutexLocker locker(&mutex_);
 	if (!floor)
 		return false;
 
-	Injector& injector = Injector::getInstance();
+	qint64 currentIndex = getIndex();
+	Injector& injector = Injector::getInstance(currentIndex);
 	const QString dirPath(QString("%1/map/%2").arg(util::applicationDirPath()).arg(injector.currentServerListIndex));
 	QDir dir(dirPath);
 	if (!dir.exists())
@@ -1722,9 +1738,10 @@ bool __fastcall MapAnalyzer::loadFromBinary(int floor, map_t* _map)
 	ifs.read(name, 24);
 	map.name = QString(name);
 	BYTE type = 0ui8;
-	for (int x = 0; x < map.width; ++x)
+	qint64 y = 0;
+	for (qint64 x = 0; x < map.width; ++x)
 	{
-		for (int y = 0; y < map.height; ++y)
+		for (y = 0; y < map.height; ++y)
 		{
 			ifs.read(reinterpret_cast<char*>(&type), sizeof(BYTE));
 			if (util::OBJ_MAX >= 0 && type < util::OBJ_MAX)
@@ -1733,11 +1750,13 @@ bool __fastcall MapAnalyzer::loadFromBinary(int floor, map_t* _map)
 	}
 
 	//讀取
-	int stairSize = 0;
-	ifs.read(reinterpret_cast<char*>(&stairSize), sizeof(stairSize));
-	for (int i = 0; i < stairSize; ++i)
+	qint64 stairSize = 0;
+	qint64 i = 0;
+	ifs.read(reinterpret_cast<char*>(&stairSize), sizeof(int));
+	qmappoint_t qmappoint = {};
+	for (i = 0; i < stairSize; ++i)
 	{
-		qmappoint_t qmappoint = {};
+		qmappoint = {};
 		ifs.read(reinterpret_cast<char*>(&qmappoint.type), sizeof(BYTE));
 		ifs.read(reinterpret_cast<char*>(&qmappoint.p.rx()), sizeof(short));
 		ifs.read(reinterpret_cast<char*>(&qmappoint.p.ry()), sizeof(short));
@@ -1745,11 +1764,12 @@ bool __fastcall MapAnalyzer::loadFromBinary(int floor, map_t* _map)
 	}
 
 	// QSet<QPoint> workable = {};
-	int workableSize = 0;
-	ifs.read(reinterpret_cast<char*>(&workableSize), sizeof(workableSize));
-	for (int i = 0; i < workableSize; ++i)
+	qint64 workableSize = 0;
+	ifs.read(reinterpret_cast<char*>(&workableSize), sizeof(int));
+	QPoint point = {};
+	for (i = 0; i < workableSize; ++i)
 	{
-		QPoint point = {};
+		point = {};
 		ifs.read(reinterpret_cast<char*>(&point.rx()), sizeof(short));
 		ifs.read(reinterpret_cast<char*>(&point.ry()), sizeof(short));
 		map.workable.insert(point);
@@ -1774,7 +1794,8 @@ bool __fastcall MapAnalyzer::saveAsBinary(map_t map, const QString& fileName)
 	QString newFileName(fileName);
 	if (fileName.isEmpty())
 	{
-		Injector& injector = Injector::getInstance();
+		qint64 currentIndex = getIndex();
+		Injector& injector = Injector::getInstance(currentIndex);
 		const QString dirPath(QString("%1/map/%2").arg(util::applicationDirPath()).arg(injector.currentServerListIndex));
 		QDir dir(dirPath);
 		if (!dir.exists())
@@ -1813,9 +1834,10 @@ bool __fastcall MapAnalyzer::saveAsBinary(map_t map, const QString& fileName)
 	}
 
 	//寫入
-	int size = map.stair.size();
-	ofs.write(reinterpret_cast<const char*>(&size), sizeof(size));
-	for (int i = 0; i < size; ++i)
+	qint64 size = map.stair.size();
+	qint64 i = 0;
+	ofs.write(reinterpret_cast<const char*>(&size), sizeof(int));
+	for (i = 0; i < size; ++i)
 	{
 		ofs.write(reinterpret_cast<const char*>(&map.stair[i].type), sizeof(BYTE));
 		ofs.write(reinterpret_cast<const char*>(&map.stair[i].p.rx()), sizeof(short));
@@ -1824,9 +1846,9 @@ bool __fastcall MapAnalyzer::saveAsBinary(map_t map, const QString& fileName)
 
 	// QSet<QPoint> workable = {};
 	size = map.workable.size();
-	ofs.write(reinterpret_cast<const char*>(&size), sizeof(size));
+	ofs.write(reinterpret_cast<const char*>(&size), sizeof(int));
 	QList<QPoint> list = map.workable.values();
-	for (int i = 0; i < size; ++i)
+	for (i = 0; i < size; ++i)
 	{
 		x = list[i].x();
 		y = list[i].y();
@@ -1874,7 +1896,8 @@ bool __fastcall MapAnalyzer::calcNewRoute(const map_t& map, const QPoint& src, c
 	if (!isDstAsWarpPoint && dstobj != util::OBJ_ROAD)
 		return false;
 
-	Injector& injector = Injector::getInstance();
+	qint64 currentIndex = getIndex();
+	Injector& injector = Injector::getInstance(currentIndex);
 
 	Callback callback = [&map, &injector, isDstAsWarpPoint, &src](const QPoint& point)->bool
 	{
@@ -1912,7 +1935,7 @@ bool __fastcall MapAnalyzer::calcNewRoute(const map_t& map, const QPoint& src, c
 }
 
 //快速檢查是否能通行
-bool __fastcall MapAnalyzer::isPassable(int floor, const QPoint& src, const QPoint& dst)
+bool __fastcall MapAnalyzer::isPassable(qint64 floor, const QPoint& src, const QPoint& dst)
 {
 
 	bool bret = false;
@@ -1926,8 +1949,11 @@ bool __fastcall MapAnalyzer::isPassable(int floor, const QPoint& src, const QPoi
 		if (src == dst)
 			return true;
 
-		auto can_pass = [&map](const QPoint& p)->bool
+		auto can_pass = [&map, &src](const QPoint& p)->bool
 		{
+			if (src == p)
+				return true;
+
 			const util::ObjectType& obj = map.data.value(p, util::OBJ_UNKNOWN);
 			return obj == util::OBJ_ROAD;
 			//return ((obj != util::OBJ_EMPTY) && (obj != util::OBJ_WATER) && (obj != util::OBJ_UNKNOWN) && (obj != util::OBJ_WALL) && (obj != util::OBJ_ROCK) && (obj != util::OBJ_ROCKEX));
@@ -1942,17 +1968,17 @@ bool __fastcall MapAnalyzer::isPassable(int floor, const QPoint& src, const QPoi
 	} while (false);
 
 	return bret;
-	}
+}
 
 // 取靠近目標的最佳座標和方向
-int __fastcall MapAnalyzer::calcBestFollowPointByDstPoint(int floor, const QPoint& src, const QPoint& dst, QPoint* ret, bool enableExt, int npcdir)
+qint64 __fastcall MapAnalyzer::calcBestFollowPointByDstPoint(qint64 floor, const QPoint& src, const QPoint& dst, QPoint* ret, bool enableExt, qint64 npcdir)
 {
 
 	QVector<qdistance_t> disV;// <distance, point>
 	map_t map = {};
 	getMapDataByFloor(floor, &map);
-	int d = 0;
-	int invalidcount = 0;
+	qint64 d = 0;
+	qint64 invalidcount = 0;
 	for (const QPoint& it : util::fix_point)
 	{
 		qdistance_t c = {};
@@ -1963,7 +1989,7 @@ int __fastcall MapAnalyzer::calcBestFollowPointByDstPoint(int floor, const QPoin
 		{
 			if (ret)
 				*ret = c.p;
-			int n = c.dir + 4;
+			qint64 n = c.dir + 4;
 			return ((n) <= (7)) ? (n) : ((n)-(MAX_DIR));
 		}
 
@@ -1983,7 +2009,7 @@ int __fastcall MapAnalyzer::calcBestFollowPointByDstPoint(int floor, const QPoin
 
 	if (invalidcount >= MAX_DIR && enableExt && npcdir != -1)//如果周圍8格都不能走搜尋NPC面相方向兩格(中間隔著櫃檯)
 	{
-		for (int i = 0; i < 7; ++i)
+		for (qint64 i = 0; i < 7; ++i)
 		{
 			QPoint newP;
 			switch (i)//找出NPC面相方向的兩格
@@ -2008,7 +2034,7 @@ int __fastcall MapAnalyzer::calcBestFollowPointByDstPoint(int floor, const QPoin
 				//要面相npc的方向  (當前人物要面向newP的方向)
 				if (ret)
 					*ret = newP;
-				int n = npcdir + 4;
+				qint64 n = npcdir + 4;
 				return ((n) <= (7)) ? (n) : ((n)-(MAX_DIR));
 			}
 		}
@@ -2028,6 +2054,6 @@ int __fastcall MapAnalyzer::calcBestFollowPointByDstPoint(int floor, const QPoin
 	if (ret)
 		*ret = disV.at(0).p;
 	//計算方向
-	int n = disV.at(0).dir + 4;
+	qint64 n = disV.at(0).dir + 4;
 	return ((n) <= (7)) ? (n) : ((n)-(MAX_DIR));//返回方向
 }

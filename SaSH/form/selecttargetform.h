@@ -20,24 +20,25 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 #include <QDialog>
 #include "ui_selecttargetform.h"
+#include <indexer.h>
 
 class QShowEvent;
 
-class SelectTargetForm : public QDialog
+class SelectTargetForm : public QDialog, public Indexer
 {
 	Q_OBJECT
 public:
-	SelectTargetForm(int type, QString* dst, QWidget* parent = nullptr);
+	SelectTargetForm(qint64 index, qint64 type, QString* dst, QWidget* parent = nullptr);
 
 	virtual ~SelectTargetForm();
 
-	static Q_REQUIRED_RESULT QString generateShortName(unsigned int flg);
+	static Q_REQUIRED_RESULT QString generateShortName(quint64 flg);
 
 protected:
 	virtual void showEvent(QShowEvent* e) override;
 
 private slots:
-	void onCheckBoxStateChanged(int state);
+	void onCheckBoxStateChanged(qint64 state);
 
 	void onAccept();
 
@@ -48,14 +49,14 @@ private:
 
 private:
 	Ui::SelectTargetFormClass ui;
-	int type_ = 0;
-	unsigned int selectflag_ = 0u;
+	qint64 type_ = 0;
+	quint64 selectflag_ = 0u;
 	QString* dst_ = nullptr;
 };
 
-static bool createSelectTargetForm(int type, QString* dst, QWidget* perent)
+static bool createSelectTargetForm(qint64 index, qint64 type, QString* dst, QWidget* perent)
 {
-	SelectTargetForm* pObjForm = new SelectTargetForm(type, dst, perent);
+	SelectTargetForm* pObjForm = new SelectTargetForm(index, type, dst, perent);
 	if (pObjForm)
 	{
 		if (pObjForm->exec() == QDialog::Accepted)

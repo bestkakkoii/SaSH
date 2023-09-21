@@ -19,10 +19,11 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "stdafx.h"
 #include "mailinfoform.h"
 
-MailInfoForm::MailInfoForm(QWidget* parent)
+MailInfoForm::MailInfoForm(qint64 index, QWidget* parent)
 	: QWidget(parent)
 {
 	ui.setupUi(this);
+	setIndex(index);
 }
 
 MailInfoForm::~MailInfoForm()

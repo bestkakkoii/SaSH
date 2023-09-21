@@ -181,7 +181,7 @@ public:
 			}
 
 			DWORD_PTR result = 0UL;
-			if ((SendMessageTimeoutW(parendHwnd_, util::kConnectionOK, NULL, NULL, SMTO_ABORTIFHUNG | SMTO_ERRORONEXIT | SMTO_BLOCK, 5000u, &result) == 0L)
+			if ((SendMessageTimeoutW(parendHwnd_, util::kConnectionOK, NULL, NULL, SMTO_ABORTIFHUNG | SMTO_ERRORONEXIT, 10000u, &result) == 0L)
 				|| (0UL == result))
 			{
 				std::ignore = recordWinLastError(__LINE__);

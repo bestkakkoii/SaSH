@@ -20,27 +20,30 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 #pragma once
 #include <util.h>
-namespace Autil
+#include <indexer.h>
+
+constexpr size_t NETDATASIZE = 16384;
+constexpr size_t NETBUFSIZ = 1024 * 64;
+constexpr size_t SLICE_MAX = 20;
+constexpr size_t SLICE_SIZE = 65500;
+constexpr size_t LBUFSIZE = 65500;
+constexpr size_t SBUFSIZE = 4096;
+extern QByteArray MesgSlice[];//autil.cpp//[][Autil::SLICE_SIZE];	// store message slices
+extern util::SafeData<size_t> SliceCount;//autil.cpp		// count slices in MesgSlice
+constexpr size_t PERSONALKEYSIZE = 32;
+//extern QScopedArrayPointer<char> PersonalKey;
+extern util::SafeData<QString> PersonalKey;//autil.cpp
+
+constexpr const char* SEPARATOR = ";";
+
+constexpr const char* DEFAULTTABLE = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz{}";
+constexpr const char* DEFAULTFUNCBEGIN = "&";
+constexpr const char* DEFAULTFUNCEND = "#";
+
+class Autil : public Indexer
 {
-	constexpr size_t NETDATASIZE = 16384;
-	constexpr size_t NETBUFSIZ = 1024 * 64;
-	constexpr size_t SLICE_MAX = 20;
-	constexpr size_t SLICE_SIZE = 65500;
-	constexpr size_t LBUFSIZE = 65500;
-	constexpr size_t SBUFSIZE = 4096;
-	extern QByteArray MesgSlice[];//autil.cpp//[][Autil::SLICE_SIZE];	// store message slices
-	extern util::SafeData<size_t> SliceCount;//autil.cpp		// count slices in MesgSlice
-
-	constexpr size_t PERSONALKEYSIZE = 32;
-	//extern QScopedArrayPointer<char> PersonalKey;
-	extern util::SafeData<QString> PersonalKey;//autil.cpp
-
-	constexpr const char* SEPARATOR = ";";
-
-	constexpr const char* DEFAULTTABLE = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz{}";
-	constexpr const char* DEFAULTFUNCBEGIN = "&";
-	constexpr const char* DEFAULTFUNCEND = "#";
-
+public:
+	explicit Autil(qint64 index);
 
 	void __stdcall util_Init(void);
 	void __stdcall util_Release(void);
@@ -48,7 +51,7 @@ namespace Autil
 	bool __stdcall util_SplitMessage(char* source, size_t dstlen, char* separator);
 	void __stdcall util_EncodeMessage(char* dst, size_t dstlen, char* src);
 	void __stdcall util_DecodeMessage(char* dst, size_t dstlen, char* src);
-	int __stdcall util_GetFunctionFromSlice(int* func, int* fieldcount);
+	qint64 __stdcall util_GetFunctionFromSlice(qint64* func, qint64* fieldcount);
 	void __stdcall util_DiscardMessage(void);
 	void __stdcall util_SendMesg(int func, char* buffer);
 
@@ -112,7 +115,7 @@ namespace Autil
 		util_SendMesg(func, buffer.get());
 	}
 
-	static void util_SendArgs(int func, std::vector<std::variant<int, std::string>>& args)
+	void util_SendArgs(int func, std::vector<std::variant<int, std::string>>& args)
 	{
 		int iChecksum = 0;
 		std::unique_ptr <char[]> buffer(new char[NETDATASIZE]);
@@ -142,21 +145,30 @@ namespace Autil
 		int nextSlice = 2;
 
 		// 解碼參數並累加到 iChecksum
-		auto decode_and_accumulate = [&iChecksum, &nextSlice](auto* val)
+		auto decode_and_accumulate = [this, &iChecksum, &nextSlice](auto* val)
 		{
 			if constexpr (std::is_same_v<std::remove_pointer_t<decltype(val)>, int>)
 			{
-				iChecksum += Autil::util_deint(nextSlice++, val);
+				iChecksum += util_deint(nextSlice++, val);
 			}
 			else if constexpr (std::is_same_v<std::remove_pointer_t<decltype(val)>, char>)
 			{
-				iChecksum += Autil::util_destring(nextSlice++, val);
+				iChecksum += util_destring(nextSlice++, val);
 			}
 		};
 		(decode_and_accumulate(args), ...);
 
 		// 獲取並校驗 iChecksum
-		Autil::util_deint(nextSlice, &iChecksumrecv);
+		util_deint(nextSlice, &iChecksumrecv);
 		return (iChecksum == iChecksumrecv);
 	}
-}
+
+public:
+	util::SafeData<size_t> SliceCount;
+	util::SafeData<QString> PersonalKey;
+
+private:
+	QByteArray MesgSlice[sizeof(char*) * SLICE_SIZE];
+	QMutex MesgMutex;
+	QByteArray emptyByteArray;
+};

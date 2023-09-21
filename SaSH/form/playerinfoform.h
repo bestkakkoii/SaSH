@@ -20,13 +20,12 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 #include <QWidget>
 #include "ui_playerinfoform.h"
-
-class PlayerInfoForm : public QWidget
+#include <indexer.h>
+class PlayerInfoForm : public QWidget, public Indexer
 {
 	Q_OBJECT
-
 public:
-	explicit PlayerInfoForm(QWidget* parent = nullptr);
+	explicit PlayerInfoForm(qint64 index, QWidget* parent = nullptr);
 
 	virtual ~PlayerInfoForm();
 
@@ -34,10 +33,10 @@ public slots:
 	void onResetControlTextLanguage();
 
 private slots:
-	void onUpdatePlayerInfoColContents(int col, const QVariant& data);
-	void onUpdatePlayerInfoStone(int stone);
-	void onHeaderClicked(int logicalIndex);
-	void onUpdatePlayerInfoPetState(int petIndex, int state);
+	void onUpdatePlayerInfoColContents(qint64 col, const QVariant& data);
+	void onUpdatePlayerInfoStone(qint64 stone);
+	void onHeaderClicked(qint64 logicalIndex);
+	void onUpdatePlayerInfoPetState(qint64 petIndex, qint64 state);
 
 protected:
 	virtual void showEvent(QShowEvent* e) override

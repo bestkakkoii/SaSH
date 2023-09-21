@@ -55,10 +55,13 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 #include "database.h"
 
-
+class Autil;
 class Lssproto
 {
+private:
+	Autil* autil_ = nullptr;
 public:
+	explicit Lssproto(Autil* autil);
 	void lssproto_W_send(const QPoint& pos, char* direction);
 	void lssproto_W2_send(const QPoint& pos, char* direction);
 	void lssproto_EV_send(int event, int dialogid, const QPoint& pos, int dir);

@@ -22,44 +22,25 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "signaldispatcher.h"
 #include "injector.h"
 
-AfkInfoForm::AfkInfoForm(QWidget* parent)
+AfkInfoForm::AfkInfoForm(qint64 index, QWidget* parent)
 	: QWidget(parent)
 {
 	ui.setupUi(this);
+	setIndex(index);
 
 	auto setTableWidget = [](QTableWidget* tableWidget)->void
 	{
-		//tablewidget set single selection
-		tableWidget->setSelectionMode(QAbstractItemView::SingleSelection);
-		//tablewidget set selection behavior
-		tableWidget->setSelectionBehavior(QAbstractItemView::SelectRows);
-		//set auto resize to form size
-		tableWidget->horizontalHeader()->setSectionResizeMode(QHeaderView::Fixed);
-		tableWidget->verticalHeader()->setSectionResizeMode(QHeaderView::Fixed);
-
-
-
-		//tableWidget->setStyleSheet(R"(
-		//QTableWidget { font-size:11px; } 
-		//	QTableView::item:selected { background-color: black; color: white;
-		//})");
-		tableWidget->verticalHeader()->setDefaultSectionSize(11);
-		tableWidget->horizontalHeader()->setStretchLastSection(true);
-		tableWidget->horizontalHeader()->setHighlightSections(false);
-		tableWidget->verticalHeader()->setHighlightSections(false);
-		tableWidget->horizontalHeader()->setDefaultAlignment(Qt::AlignLeft);
-		tableWidget->verticalHeader()->setDefaultAlignment(Qt::AlignLeft);
-		constexpr int max_row = 31;
-		for (int row = 0; row < max_row; ++row)
+		constexpr qint64 max_row = 31;
+		for (qint64 row = 0; row < max_row; ++row)
 		{
 			tableWidget->insertRow(row);
 		}
 
-		int rowCount = tableWidget->rowCount();
-		int columnCount = tableWidget->columnCount();
-		for (int row = 0; row < rowCount; ++row)
+		qint64 rowCount = tableWidget->rowCount();
+		qint64 columnCount = tableWidget->columnCount();
+		for (qint64 row = 0; row < rowCount; ++row)
 		{
-			for (int column = 0; column < columnCount; ++column)
+			for (qint64 column = 0; column < columnCount; ++column)
 			{
 				QTableWidgetItem* item = new QTableWidgetItem("");
 				if (item)
@@ -74,7 +55,7 @@ AfkInfoForm::AfkInfoForm(QWidget* parent)
 
 	onResetControlTextLanguage();
 
-	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
+	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(index);
 	connect(&signalDispatcher, &SignalDispatcher::updateAfkInfoTable, this, &AfkInfoForm::onUpdateAfkInfoTable);
 }
 
@@ -84,7 +65,8 @@ AfkInfoForm::~AfkInfoForm()
 
 void AfkInfoForm::onButtonClicked()
 {
-	Injector& injector = Injector::getInstance();
+	qint64 currentIndex = getIndex();
+	Injector& injector = Injector::getInstance(currentIndex);
 	if (injector.server.isNull())
 		return;
 
@@ -97,7 +79,7 @@ void AfkInfoForm::onButtonClicked()
 	recorder.deadthcount = 0;
 	injector.server->recorder[0] = recorder;
 
-	for (int i = 0; i < MAX_PET; ++i)
+	for (qint64 i = 0; i < MAX_PET; ++i)
 	{
 		PET pet = injector.server->getPet(i);
 		recorder = {};
@@ -108,7 +90,7 @@ void AfkInfoForm::onButtonClicked()
 	}
 }
 
-void AfkInfoForm::updateTableText(int row, int col, const QString& text)
+void AfkInfoForm::updateTableText(qint64 row, qint64 col, const QString& text)
 {
 	QTableWidgetItem* item = ui.tableWidget->item(row, col);
 	if (item)
@@ -127,7 +109,7 @@ void AfkInfoForm::updateTableText(int row, int col, const QString& text)
 	}
 }
 
-void AfkInfoForm::onUpdateAfkInfoTable(int row, const QString& text)
+void AfkInfoForm::onUpdateAfkInfoTable(qint64 row, const QString& text)
 {
 	updateTableText(row, 1, text);
 }
@@ -144,7 +126,7 @@ void AfkInfoForm::onResetControlTextLanguage()
 		"",
 	};
 
-	for (int i = 0; i < MAX_PET; ++i)
+	for (qint64 i = 0; i < MAX_PET; ++i)
 	{
 		sectionList.append(tr("pet %1 level difference").arg(i + 1));
 		sectionList.append(tr("pet %1 exp difference").arg(i + 1));
@@ -154,8 +136,8 @@ void AfkInfoForm::onResetControlTextLanguage()
 	}
 
 
-	int rowCount = ui.tableWidget->rowCount();
-	for (int row = 0; row < rowCount; ++row)
+	qint64 rowCount = ui.tableWidget->rowCount();
+	for (qint64 row = 0; row < rowCount; ++row)
 	{
 		if (row >= sectionList.size())
 			break;

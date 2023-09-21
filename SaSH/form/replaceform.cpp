@@ -158,8 +158,8 @@ void FindDialog::onFindClicked()
 	QString selectText = pText_->selectedText();
 
 	// 確定起始行和起始索引
-	int startLine = fromLineIndex;
-	int startIndex = fromIndex;
+	qint64 startLine = fromLineIndex;
+	qint64 startIndex = fromIndex;
 
 	// 是否順向搜索
 	bool isForward = forwardBtn_.isChecked();
@@ -177,11 +177,11 @@ void FindDialog::onFindClicked()
 	// 是否區分大小寫
 	Qt::CaseSensitivity caseSensitivity = matchChkBx_.isChecked() ? Qt::CaseSensitive : Qt::CaseInsensitive;
 
-	int nowStartIndex = startIndex;
-	int nowEndIndex = -1;
+	qint64 nowStartIndex = startIndex;
+	qint64 nowEndIndex = -1;
 	if (isForward)
 	{
-		for (int i = startLine; i < strList.size(); ++i)
+		for (qint64 i = startLine; i < strList.size(); ++i)
 		{
 			QString lineText = strList.at(i);
 
@@ -205,11 +205,11 @@ void FindDialog::onFindClicked()
 	}
 	else
 	{
-		for (int i = startLine; i >= 0; --i)
+		for (qint64 i = startLine; i >= 0; --i)
 		{
 			QString lineText = strList.at(i);
 
-			int lineLength = lineText.length();
+			qint64 lineLength = lineText.length();
 			nowStartIndex = lineText.lastIndexOf(cmpText, nowStartIndex, caseSensitivity);
 			if (nowStartIndex == -1)
 			{

@@ -16,7 +16,7 @@
   <property name="styleSheet">
    <string notr="true"/>
   </property>
-  <widget class="QWidget" name="centralwidget">
+  <widget class="OpenGLWidget" name="centralwidget">
    <layout class="QGridLayout" name="gridLayout_2">
     <item row="0" column="0">
      <widget class="QSplitter" name="splitter">
@@ -29,7 +29,7 @@
       <widget class="QWidget" name="layoutWidget">
        <layout class="QVBoxLayout" name="verticalLayout">
         <item>
-         <widget class="QWidget" name="widget" native="true">
+         <widget class="OpenGLWidget" name="widget" native="true">
           <property name="styleSheet">
            <string notr="true">background:rgb(15,15,15);</string>
           </property>
@@ -271,6 +271,12 @@
   </widget>
  </widget>
  <customwidgets>
+  <customwidget>
+   <class>OpenGLWidget</class>
+   <extends>QWidget</extends>
+   <header location="global">openglwidget.h</header>
+   <container>1</container>
+  </customwidget>
   <customwidget>
    <class>MapGLWidget</class>
    <extends>QOpenGLWidget</extends>

@@ -31,7 +31,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "signaldispatcher.h"
 #include "injector.h"
 
-InfoForm::InfoForm(int defaultPage, QWidget* parent)
+InfoForm::InfoForm(qint64 index, qint64 defaultPage, QWidget* parent)
 	: QWidget(parent)
 {
 	ui.setupUi(this);
@@ -40,6 +40,8 @@ InfoForm::InfoForm(int defaultPage, QWidget* parent)
 	setAttribute(Qt::WA_StyledBackground, true);
 
 	setStyleSheet(R"(background-color: #F9F9F9)");
+
+	setIndex(index);
 
 	Qt::WindowFlags windowflag = this->windowFlags();
 	windowflag |= Qt::WindowType::Tool;
@@ -51,50 +53,54 @@ InfoForm::InfoForm(int defaultPage, QWidget* parent)
 	QOpenGLWidget* openGLWidget = new QOpenGLWidget;
 	openGLWidget->setLayout(gridLayout);
 	gridLayout->addWidget(ui.tabWidget);
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
 	gridLayout->setMargin(0);
+#else
+	gridLayout->setContentsMargins(0, 0, 0, 0);
+#endif
 
 	ui.gridLayout->addWidget(openGLWidget);
 
 	ui.tabWidget->clear();
 	util::setTab(ui.tabWidget);
 
-	pBattleInfoForm_ = new BattleInfoForm;
+	pBattleInfoForm_ = new BattleInfoForm(index);
 	if (pBattleInfoForm_)
 	{
 		ui.tabWidget->addTab(pBattleInfoForm_, tr("battleinfo"));
 	}
 
-	pPlayerInfoForm_ = new PlayerInfoForm;
+	pPlayerInfoForm_ = new PlayerInfoForm(index);
 	if (pPlayerInfoForm_)
 	{
 		ui.tabWidget->addTab(pPlayerInfoForm_, tr("playerinfo"));
 	}
 
-	pItemInfoForm_ = new ItemInfoForm;
+	pItemInfoForm_ = new ItemInfoForm(index);
 	if (pItemInfoForm_)
 	{
 		ui.tabWidget->addTab(pItemInfoForm_, tr("iteminfo"));
 	}
 
-	pChatInfoForm_ = new ChatInfoForm;
+	pChatInfoForm_ = new ChatInfoForm(index);
 	if (pChatInfoForm_)
 	{
 		ui.tabWidget->addTab(pChatInfoForm_, tr("chatinfo"));
 	}
 
-	pMailInfoForm_ = new MailInfoForm;
+	pMailInfoForm_ = new MailInfoForm(index);
 	if (pMailInfoForm_)
 	{
 		ui.tabWidget->addTab(pMailInfoForm_, tr("mailinfo"));
 	}
 
-	pPetInfoForm_ = new PetInfoForm;
+	pPetInfoForm_ = new PetInfoForm(index);
 	if (pPetInfoForm_)
 	{
 		ui.tabWidget->addTab(pPetInfoForm_, tr("petinfo"));
 	}
 
-	pAfkInfoForm_ = new AfkInfoForm;
+	pAfkInfoForm_ = new AfkInfoForm(index);
 	if (pAfkInfoForm_)
 	{
 		ui.tabWidget->addTab(pAfkInfoForm_, tr("afkinfo"));
@@ -103,7 +109,7 @@ InfoForm::InfoForm(int defaultPage, QWidget* parent)
 	onResetControlTextLanguage();
 	onApplyHashSettingsToUI();
 
-	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
+	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(index);
 
 	connect(&signalDispatcher, &SignalDispatcher::applyHashSettingsToUI, this, &InfoForm::onApplyHashSettingsToUI, Qt::UniqueConnection);
 
@@ -137,7 +143,10 @@ void InfoForm::closeEvent(QCloseEvent* e)
 void InfoForm::onResetControlTextLanguage()
 {
 	//reset title
-	setWindowTitle(tr("infoform"));
+	qint64 currentIndex = getIndex();
+	QString title = tr("InfoForm");
+	QString newTitle = QString("[%1] %2").arg(currentIndex).arg(title);
+	setWindowTitle(newTitle);
 
 	//reset tab text
 	ui.tabWidget->setTabText(0, tr("battleinfo"));
@@ -156,11 +165,12 @@ void InfoForm::onResetControlTextLanguage()
 
 void InfoForm::onApplyHashSettingsToUI()
 {
-	Injector& injector = Injector::getInstance();
+	qint64 currentIndex = getIndex();
+	Injector& injector = Injector::getInstance(currentIndex);
 	if (!injector.server.isNull() && injector.server->getOnlineFlag())
 	{
 		QString title = tr("InfoForm");
-		QString newTitle = QString("[%1] %2").arg(injector.server->getPC().name).arg(title);
+		QString newTitle = QString("[%1][%2] %3").arg(currentIndex).arg(injector.server->getPC().name).arg(title);
 		setWindowTitle(newTitle);
 	}
 }

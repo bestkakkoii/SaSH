@@ -20,13 +20,13 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 #include <QWidget>
 #include "ui_petinfoform.h"
-
-class PetInfoForm : public QWidget
+#include <indexer.h>
+class PetInfoForm : public QWidget, public Indexer
 {
 	Q_OBJECT
 
 public:
-	explicit PetInfoForm(QWidget* parent = nullptr);
+	explicit PetInfoForm(qint64 index, QWidget* parent = nullptr);
 
 	virtual ~PetInfoForm();
 
@@ -49,15 +49,15 @@ protected:
 private:
 	Ui::PetInfoFormClass ui;
 
-	int base_level_ = 0;
-	int base_maxHp_ = 0;
-	int base_atk_ = 0;
-	int base_def_ = 0;
-	int base_agi_ = 0;
+	qint64 base_level_ = 0;
+	qint64 base_maxHp_ = 0;
+	qint64 base_atk_ = 0;
+	qint64 base_def_ = 0;
+	qint64 base_agi_ = 0;
 
-	int cur_level_ = 0;
-	int cur_maxHp_ = 0;
-	int cur_atk_ = 0;
-	int cur_def_ = 0;
-	int cur_agi_ = 0;
+	qint64 cur_level_ = 0;
+	qint64 cur_maxHp_ = 0;
+	qint64 cur_atk_ = 0;
+	qint64 cur_def_ = 0;
+	qint64 cur_agi_ = 0;
 };

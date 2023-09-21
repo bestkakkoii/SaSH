@@ -20,6 +20,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #define MAPWIDGET_H
 #include <QWidget>
 #include "ui_mapwidget.h"
+#include <indexer.h>
 #include <QShowEvent>
 
 #define OPEN_GL_ON 1
@@ -28,16 +29,16 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 //#include "mapglwidget.h"
 #endif
 class Interpreter;
-class MapWidget : public QMainWindow
+class MapWidget : public QMainWindow, public Indexer
 {
 	Q_OBJECT;
 public:
-	explicit MapWidget(QWidget* parent);
+	explicit MapWidget(qint64 index, QWidget* parent);
 
 	virtual ~MapWidget();
 
 signals:
-	void on_close(int index);
+	void on_close(qint64 index);
 
 protected:
 	virtual void leaveEvent(QEvent*) override;
@@ -50,19 +51,17 @@ protected:
 		QWidget::showEvent(e);
 	}
 
-	virtual bool nativeEvent(const QByteArray& eventType, void* message, long* result) override;
+	//virtual void mousePressEvent(QMouseEvent* e)  override
+	//{
+	//	if (e->button() == Qt::LeftButton)
+	//		clickPos_ = e->pos();
+	//}
 
-	virtual void mousePressEvent(QMouseEvent* e)  override
-	{
-		if (e->button() == Qt::LeftButton)
-			clickPos_ = e->pos();
-	}
-
-	virtual void mouseMoveEvent(QMouseEvent* e) override
-	{
-		if (e->buttons() & Qt::LeftButton)
-			move(e->pos() + pos() - clickPos_);
-	}
+	//virtual void mouseMoveEvent(QMouseEvent* e) override
+	//{
+	//	if (e->buttons() & Qt::LeftButton)
+	//		move(e->pos() + pos() - clickPos_);
+	//}
 
 #if !OPEN_GL_ON
 	virtual void paintEvent(QPaintEvent* pevent) override;
@@ -110,11 +109,11 @@ private:
 	QRectF rectangle_dst_ = { 0.0, 0.0, 0.0, 0.0 };
 
 	bool isDownloadingMap_ = false;
-	int downloadMapX_ = 0;
-	int downloadMapY_ = 0;
-	int downloadMapXSize_ = 0;
-	int downloadMapYSize_ = 0;
-	int downloadCount_ = 0;
+	qint64 downloadMapX_ = 0;
+	qint64 downloadMapY_ = 0;
+	qint64 downloadMapXSize_ = 0;
+	qint64 downloadMapYSize_ = 0;
+	qint64 downloadCount_ = 0;
 	qreal totalMapBlocks_ = 0;
 	qreal downloadMapProgress_ = 0.0;
 
@@ -131,17 +130,17 @@ private:
 
 	QPointF curMousePos_ = { 0,0 };
 
-	static QHash<int, QHash<QPoint, QString>> entrances_;
+	static QHash<qint64, QHash<QPoint, QString>> entrances_;
 
-	int counter_ = 10;
+	qint64 counter_ = 10;
 
 #if OPEN_GL_ON
 
 	QTimer gltimer_;
 
-	const int boundaryWidth_ = 1;
+	const qint64 boundaryWidth_ = 1;
 
-	QPoint clickPos_;
+	//QPoint clickPos_;
 
 #else
 	QTimer timer_;

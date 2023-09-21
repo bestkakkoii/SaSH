@@ -50,7 +50,7 @@ namespace luadebug
 		{ ERROR_PARAM_SIZE_RANGE, QObject::tr("request param size is between %1 to %2, but import %3") },
 	};
 
-	inline Q_REQUIRED_RESULT int getCurrentLine(lua_State* L)
+	inline Q_REQUIRED_RESULT qint64 getCurrentLine(lua_State* L)
 	{
 		if (L)
 		{
@@ -64,7 +64,7 @@ namespace luadebug
 		return -1;
 	}
 
-	inline Q_REQUIRED_RESULT int getCurrentLine(const sol::this_state& s)
+	inline Q_REQUIRED_RESULT qint64 getCurrentLine(const sol::this_state& s)
 	{
 		lua_State* L = s.lua_state();
 		if (L)
@@ -113,10 +113,10 @@ namespace luadebug
 	//從錯誤訊息中擷取行號
 	static const QRegularExpression rexGetLine(R"(at[\s]*line[\s]*(\d+))");
 	static const QRegularExpression reGetLineEx(R"(\]:(\d+)(?=\s*:))");
-	Q_REQUIRED_RESULT QString getErrorMsgLocatedLine(const QString& str, int* retline);
+	Q_REQUIRED_RESULT QString getErrorMsgLocatedLine(const QString& str, qint64* retline);
 
-	QPair<QString, QString> getVars(lua_State*& L, int si, int depth);
-	QString getTableVars(lua_State*& L, int si, int depth);
+	QPair<QString, QString> getVars(lua_State*& L, qint64 si, qint64 depth);
+	QString getTableVars(lua_State*& L, qint64 si, qint64 depth);
 
 	void hookProc(lua_State* L, lua_Debug* ar);
 
@@ -309,9 +309,8 @@ class CLua : public ThreadPlugin
 {
 	Q_OBJECT
 public:
-	CLua() = default;
-	explicit CLua(QObject* parent = nullptr);
-	CLua(const QString& content, QObject* parent = nullptr);
+	explicit CLua(qint64 index, QObject* parent = nullptr);
+	CLua(qint64 index, const QString& content, QObject* parent = nullptr);
 	virtual ~CLua();
 
 	void start();
@@ -324,26 +323,32 @@ signals:
 private slots:
 	void proc();
 
+public:
+	void openlibs();
+	sol::state& getLua() { return lua_; }
+	void setMax(qint64 max) { max_ = max; }
+	void setSubScript(bool isSubScript) { isSubScript_ = isSubScript; }
+	void setHookForStop(bool isHookForStop) { lua_["_HOOKFORSTOP"] = isHookForStop; }
+
 private:
 	void open_enumlibs();
 	void open_testlibs();
-	void open_utillibs();
-	void open_syslibs();
-	void open_itemlibs();
-	void open_charlibs();
-	void open_petlibs();
-	void open_maplibs();
-	void open_battlelibs();
+	void open_utillibs(sol::state& lua);
+	void open_syslibs(sol::state& lua);
+	void open_itemlibs(sol::state& lua);
+	void open_charlibs(sol::state& lua);
+	void open_petlibs(sol::state& lua);
+	void open_maplibs(sol::state& lua);
+	void open_battlelibs(sol::state& lua);
 
 public:
 	sol::state lua_;
 
 private:
-
+	qint64 max_ = 0;
 	CLua* parent_ = nullptr;
 	QThread* thread_ = nullptr;
 	DWORD tid_ = 0UL;
-	int index_ = -1;
 	QElapsedTimer scriptTimer_;
 	QString scriptContent_;
 	bool isSubScript_ = false;

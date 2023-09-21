@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <!DOCTYPE TS>
 <TS version="2.1" language="zh_CN">
 <context>
@@ -46,6 +46,10 @@
     <message>
         <source>dex:</source>
         <translation>速度:</translation>
+    </message>
+    <message>
+        <source>0</source>
+        <translation></translation>
     </message>
 </context>
 <context>
@@ -485,7 +489,7 @@
     </message>
     <message>
         <source>Please note that the death statistics only account for deaths that occur on the battlefield, and do not include deaths from being knocked out</source>
-        <translation>请注意：死亡统计只会计算在战场上死亡的情况，被打飞的话不会计算在内</translation>
+        <translation type="vanished">请注意：死亡统计只会计算在战场上死亡的情况，被打飞的话不会计算在内</translation>
     </message>
     <message>
         <source>recalculate</source>
@@ -1189,7 +1193,7 @@
     </message>
     <message>
         <source>infoform</source>
-        <translation>人物资料</translation>
+        <translation type="vanished">人物资料</translation>
     </message>
     <message>
         <source>InfoForm</source>
@@ -1201,6 +1205,29 @@
     <message>
         <source>InfoForm</source>
         <translation></translation>
+    </message>
+</context>
+<context>
+    <name>Injector</name>
+    <message>
+        <source>dwProcessId is null!</source>
+        <translation>进程ID为空!</translation>
+    </message>
+    <message>
+        <source>pReason is null!</source>
+        <translation>错误讯息指针为空!</translation>
+    </message>
+    <message>
+        <source>Dll is not exist at %1</source>
+        <translation>欲注入的插件不存在于 %1</translation>
+    </message>
+    <message>
+        <source>EnumWindows timeout</source>
+        <translation>枚举窗口超时</translation>
+    </message>
+    <message>
+        <source>OpenProcess fail</source>
+        <translation>打开进程句炳失败</translation>
     </message>
 </context>
 <context>
@@ -1901,7 +1928,7 @@ No new version available. Do you still want to update?</source>
     </message>
     <message>
         <source>%1 map:%2 floor:%3 [%4,%5] mouse:%6,%7</source>
-        <translation>%1 地图:%2 编号:%3 [%4,%5] 滑鼠:%6,%7</translation>
+        <translation type="vanished">%1 地图:%2 编号:%3 [%4,%5] 滑鼠:%6,%7</translation>
     </message>
     <message>
         <source>[P]</source>
@@ -1922,6 +1949,10 @@ No new version available. Do you still want to update?</source>
     <message>
         <source>X[NPC][%1]%2</source>
         <translation></translation>
+    </message>
+    <message>
+        <source>[%1] %2 map:%3 floor:%4 [%5,%6] mouse:%7,%8</source>
+        <translation>[%1] %2 地图:%3 编号:%4 [%5,%6] 鼠标:%7,%8</translation>
     </message>
 </context>
 <context>
@@ -2325,6 +2356,10 @@ No new version available. Do you still want to update?</source>
     <message>
         <source>freename</source>
         <translation>别名</translation>
+    </message>
+    <message>
+        <source>growth</source>
+        <translation>成长率</translation>
     </message>
 </context>
 <context>
@@ -2898,7 +2933,7 @@ No new version available. Do you still want to update?</source>
     </message>
     <message>
         <source>FLAG_DETECT_STOP</source>
-        <translation type="unfinished"></translation>
+        <translation>脚本标誌检测为停止</translation>
     </message>
     <message>
         <source>REQUEST_STOP_FROM_USER</source>
@@ -3006,7 +3041,7 @@ No new version available. Do you still want to update?</source>
     </message>
     <message>
         <source>[error] @ %1 | Escape character is not allowed outside of string literal.</source>
-        <translation type="unfinished"></translation>
+        <translation>[错误] @ %1 | 转译字符不允许出现在引号之外.</translation>
     </message>
     <message>
         <source>@ %1 | Unknown command &apos;%2&apos; has been ignored</source>
@@ -3055,6 +3090,58 @@ No new version available. Do you still want to update?</source>
     <message>
         <source> ========== script result : %1，cost %2 ==========</source>
         <translation> ========== 脚本执行结果 : %1，耗时 %2 ==========</translation>
+    </message>
+    <message>
+        <source>Table</source>
+        <translation>表</translation>
+    </message>
+    <message>
+        <source>String</source>
+        <translation>字符串</translation>
+    </message>
+    <message>
+        <source>Int</source>
+        <translation>整数型</translation>
+    </message>
+    <message>
+        <source>Double</source>
+        <translation>双精度浮点型</translation>
+    </message>
+    <message>
+        <source>Bool</source>
+        <translation>布尔型</translation>
+    </message>
+    <message>
+        <source>Nil</source>
+        <translation>空</translation>
+    </message>
+    <message>
+        <source>GLOBAL</source>
+        <translation>全局变量</translation>
+    </message>
+    <message>
+        <source>LOCAL</source>
+        <translation>局变量</translation>
+    </message>
+    <message>
+        <source>UInt</source>
+        <translation>无符号整数型</translation>
+    </message>
+    <message>
+        <source>LongLong</source>
+        <translation>超长整数型</translation>
+    </message>
+    <message>
+        <source>ULongLong</source>
+        <translation>无符号超长整数型</translation>
+    </message>
+    <message>
+        <source>sub-ok</source>
+        <translation>子脚本-成功</translation>
+    </message>
+    <message>
+        <source>main-ok</source>
+        <translation>主脚本-成功</translation>
     </message>
 </context>
 <context>
@@ -3165,7 +3252,7 @@ No new version available. Do you still want to update?</source>
     <name>ScriptSettingForm</name>
     <message>
         <source>row:%1 | size:%2 | index:%3 | %4</source>
-        <translation>行号:%1 | 字元:%2 | 索引:%3 | %4</translation>
+        <translation type="vanished">行号:%1 | 字元:%2 | 索引:%3 | %4</translation>
     </message>
     <message>
         <source>Script %1 saved</source>
@@ -3317,11 +3404,35 @@ No new version available. Do you still want to update?</source>
     </message>
     <message>
         <source>List</source>
-        <translation>列表</translation>
+        <translation type="vanished">列表</translation>
     </message>
     <message>
         <source>Table</source>
         <translation>表</translation>
+    </message>
+    <message>
+        <source>Nil</source>
+        <translation>空</translation>
+    </message>
+    <message>
+        <source>Usage: cpu:%1% | memory:%2MB/%3MB</source>
+        <translation type="vanished">占用率: CPU:%1% | 内存:%2MB/%3MB</translation>
+    </message>
+    <message>
+        <source>row:%1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>size:%1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>index:%1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Usage: cpu: %1% | memory: %2MB / %3MB</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
@@ -4348,7 +4459,87 @@ No new version available. Do you still want to update?</source>
     </message>
     <message>
         <source>Debug</source>
-        <translation type="unfinished"></translation>
+        <translation>调试模式</translation>
+    </message>
+    <message>
+        <source>tunique</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>tswap</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>tsright</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>tsort</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>tsleft</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>tshuffle</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>trsort</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>trotate</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>trim</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>tpopfront</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>tpopback</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>tpadd</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>tmerge</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>tjoin</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>tfront</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>tback</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>tadd</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>split</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>mktable</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>mkpath</source>
+        <translation></translation>
     </message>
 </context>
 <context>

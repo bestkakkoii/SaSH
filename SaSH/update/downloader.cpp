@@ -22,12 +22,24 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 #include "util.h"
 
-#include <cpr/cpr.h>
-
 //Qt Private
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
 #include <QtGui/private/qzipreader_p.h>
 #include <QtGui/private/qzipwriter_p.h>
+#else
+#include <x64/QtCore/private/qzipreader_p.h>
+#include <x64/QtCore/private/qzipwriter_p.h>
+#endif
 
+#ifdef _WIN64
+#ifdef _DEBUG
+
+#pragma comment(lib, "libcurl_a_debug.lib")
+#else
+
+#pragma comment(lib, "libcurl_a.lib")
+#endif
+#else
 #ifdef _DEBUG
 #pragma comment(lib, "cpr-d.lib")
 #pragma comment(lib, "libcurl-d.lib")
@@ -39,13 +51,15 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #pragma comment(lib, "libcrypto32MD.lib")
 #pragma comment(lib, "libssl32MD.lib")
 #endif
+#endif
+
 
 
 static std::vector<QProgressBar*> g_vProgressBar;
 static QMutex g_mutex;
 
 static std::vector<pfnProgressFunc> g_vpfnProgressFunc;
-//constexpr int g_nProcessPrecision = 10;
+//constexpr qint64 g_nProcessPrecision = 10;
 qreal g_current[MAX_DOWNLOAD_THREAD] = {};
 constexpr const char* URL = "https://www.lovesa.cc/SaSH/update/SaSH.7z";
 constexpr const char* sz7zEXE_URL = "https://www.lovesa.cc/SaSH/update/7z.exe";
@@ -61,11 +75,11 @@ constexpr const char* kBackupExecuteFileTmp = "SaSH.tmp";
 constexpr const char* kDefaultClosingProcessName = "sa_8001.exe";
 static const QStringList preBackupFileNames = { kBackupExecuteFile, "sadll.dll", "settings" };
 std::atomic_int DO_NOT_SHOW = false;
-constexpr int SHADOW_WIDTH = 10;
-constexpr int MAX_BAR_HEIGHT = 20;
-constexpr int MAX_BAR_SEP_LEN = 10;
-constexpr int MAX_GIF_MOVE_WIDTH = 920;
-constexpr int PROGRESS_BAR_BEGIN_Y = 85;
+constexpr qint64 SHADOW_WIDTH = 10;
+constexpr qint64 MAX_BAR_HEIGHT = 20;
+constexpr qint64 MAX_BAR_SEP_LEN = 10;
+constexpr qint64 MAX_GIF_MOVE_WIDTH = 920;
+constexpr qint64 PROGRESS_BAR_BEGIN_Y = 85;
 
 QString Downloader::Sha3_512(const QString& fileNamePath) const
 {
@@ -80,9 +94,14 @@ QString Downloader::Sha3_512(const QString& fileNamePath) const
 }
 
 QString g_etag;
-constexpr int UPDATE_TIME_MIN = 5 * 60;
+constexpr qint64 UPDATE_TIME_MIN = 5 * 60;
 bool Downloader::checkUpdate(QString* current, QString* ptext)
 {
+#ifdef _WIN64
+	return false;
+#else
+
+
 	QString exeFileName = QCoreApplication::applicationFilePath();
 
 	{
@@ -167,7 +186,7 @@ bool Downloader::checkUpdate(QString* current, QString* ptext)
 		if (skipModifyTimeCheck)
 			break;
 
-		int timeDiffInSeconds = exeModified.secsTo(zipModified);
+		qint64 timeDiffInSeconds = exeModified.secsTo(zipModified);
 
 		// Check if the remote file is newer than the local file
 		if (timeDiffInSeconds > UPDATE_TIME_MIN)
@@ -194,6 +213,7 @@ bool Downloader::checkUpdate(QString* current, QString* ptext)
 	} while (false);
 
 	return bret;
+#endif
 }
 
 Downloader::Downloader(QWidget* parent)
@@ -236,8 +256,8 @@ Downloader::Downloader(QWidget* parent)
 	movie->start();
 
 
-	int n = PROGRESS_BAR_BEGIN_Y;
-	for (int i = 0; i < MAX_DOWNLOAD_THREAD; ++i)
+	qint64 n = PROGRESS_BAR_BEGIN_Y;
+	for (qint64 i = 0; i < MAX_DOWNLOAD_THREAD; ++i)
 	{
 		g_vProgressBar.push_back(createProgressBar(n));
 		n += MAX_BAR_HEIGHT + MAX_BAR_SEP_LEN;
@@ -287,7 +307,7 @@ void Downloader::showEvent(QShowEvent* event)
 		QWidget::showEvent(event);
 		QApplication::processEvents();
 
-		for (int i = 0; i < MAX_DOWNLOAD_THREAD; ++i)
+		for (qint64 i = 0; i < MAX_DOWNLOAD_THREAD; ++i)
 		{
 			connect(&timer_[i], &QTimer::timeout, this,
 				[i]()->void
@@ -298,7 +318,7 @@ void Downloader::showEvent(QShowEvent* event)
 						return;
 					}
 
-					int percent = qFloor(g_current[i]);
+					qint64 percent = qFloor(g_current[i]);
 					if (g_vProgressBar[i]->value() != percent)
 					{
 						g_vProgressBar[i]->setValue(percent);
@@ -359,7 +379,7 @@ void Downloader::start()
 	synchronizer_.addFuture(QtConcurrent::run([this]() { asyncDownloadFile(URL, rcPath_, szDownloadedFileName_); }));
 }
 
-QProgressBar* Downloader::createProgressBar(int startY)
+QProgressBar* Downloader::createProgressBar(qint64 startY)
 {
 	QProgressBar* pProgressBar = (new QProgressBar(ui.widget));
 	constexpr const char* cstyle = R"(
@@ -390,9 +410,9 @@ QProgressBar* Downloader::createProgressBar(int startY)
 	return pProgressBar;
 }
 
-void Downloader::resetProgress(int value)
+void Downloader::resetProgress(qint64 value)
 {
-	for (int j = 0; j < MAX_DOWNLOAD_THREAD; ++j)
+	for (qint64 j = 0; j < MAX_DOWNLOAD_THREAD; ++j)
 	{
 		g_current[j] = static_cast<qreal>(value);
 		g_vProgressBar[j]->setMinimum(0);
@@ -409,7 +429,12 @@ void CreateAndRunBat(const QString& path, const QString& data)
 	if (file.open(QIODevice::WriteOnly | QIODevice::Text | QIODevice::Truncate))
 	{
 		QTextStream out(&file);
-		out.setCodec("UTF-8");
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+		out.setCodec(util::DEFAULT_CODEPAGE);
+#else
+		out.setEncoding(QStringConverter::Utf8);
+#endif
+		out.setGenerateByteOrderMark(true);
 		out << data;
 		file.flush();
 		file.close();
@@ -567,7 +592,7 @@ void Downloader::overwriteCurrentExecutable()
 
 	//如果存在則刪除
 	QString szBackup7zNewFilePath = QString("%1%2").arg(szCurrentDirectory_).arg(szBackup7zFileName);
-	int n = 0;
+	qint64 n = 0;
 	while (QFile::exists(szBackup7zNewFilePath)) //_2 _3 _ 4
 	{
 		szBackup7zNewFilePath = QString("%1%2").arg(szCurrentDirectory_).arg(QString(kBackupfileName2).arg(buildDateTime()).arg(++n));
@@ -619,7 +644,7 @@ void Downloader::overwriteCurrentExecutable()
 
 	ui.label_3->setText("FINISHED! READY TO RESTART!");
 	QCoreApplication::processEvents();
-	constexpr int delay = 5;
+	constexpr qint64 delay = 5;
 	// rcpath/date.bat
 	QString bat;
 	bat += "@echo off\r\n";
@@ -660,7 +685,7 @@ bool Downloader::asyncDownloadFile(const QString& szUrl, const QString& dir, con
 	return false;
 }
 
-void Downloader::setProgressValue(int i, qreal totalToDownload, qreal nowDownloaded, qreal, qreal)
+void Downloader::setProgressValue(qint64 i, qreal totalToDownload, qreal nowDownloaded, qreal, qreal)
 {
 	if (totalToDownload > 0)
 	{
@@ -676,8 +701,8 @@ void Downloader::setProgressValue(int i, qreal totalToDownload, qreal nowDownloa
 	}
 }
 
-template <int Index>
-int Downloader::onProgress(void* clientp, qint64 totalToDownload, qint64 nowDownloaded, qint64 totalToUpLoad, qint64 nowUpLoaded)
+template <qint64 Index>
+qint64 Downloader::onProgress(void* clientp, qint64 totalToDownload, qint64 nowDownloaded, qint64 totalToUpLoad, qint64 nowUpLoaded)
 {
 	Downloader* downloader = static_cast<Downloader*>(clientp);
 	downloader->setProgressValue(Index, totalToDownload, nowDownloaded, totalToUpLoad, nowUpLoaded);
@@ -686,6 +711,9 @@ int Downloader::onProgress(void* clientp, qint64 totalToDownload, qint64 nowDown
 
 bool downloadFile(const std::string& url, const std::string& filename)
 {
+#ifdef _WIN64
+	return false;
+#else
 	static cpr::cpr_off_t s_totalSize = 0;
 	std::string tmp_filename = filename;
 	std::ofstream of(tmp_filename, std::ios::binary | std::ios::app);
@@ -713,6 +741,7 @@ bool downloadFile(const std::string& url, const std::string& filename)
 	of.flush();
 	of.close();
 	return false;
+#endif
 }
 
 void extractZip(const QString& savepath, const QString& filepath)
@@ -727,26 +756,24 @@ void extractZip(const QString& savepath, const QString& filepath)
 	QZipReader zipreader(filepath);
 	unzipok = zipreader.extractAll(savepath);
 
-	for (int i = 0; i < zipreader.fileInfoList().size(); ++i)
+	for (qint64 i = 0; i < zipreader.fileInfoList().size(); ++i)
 	{
 		QStringList paths = zipreader.fileInfoList().at(i).filePath.split("/");
 		paths.removeLast();
 		QString path = paths.join("/");
 		QDir subdir(savepath + "/" + path);
 		if (!subdir.exists())
-			dir.mkpath(QString::fromLocal8Bit("%1").arg(savepath + "/" + path));
+			dir.mkpath(QString::fromUtf8("%1").arg(savepath + "/" + path));
 
 		QFile file(savepath + "/" + zipreader.fileInfoList().at(i).filePath);
 		file.open(QIODevice::WriteOnly);
 
 		QByteArray dt = zipreader.fileInfoList().at(i).filePath.toUtf8();
-		QString strtemp = QString::fromLocal8Bit(dt);
+		QString strtemp = QString::fromUtf8(dt);
 
 		QByteArray array = zipreader.fileData(strtemp);
 		file.write(array);
 		file.close();
-
-
 	}
 }
 

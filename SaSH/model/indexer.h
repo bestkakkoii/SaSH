@@ -18,35 +18,19 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 #pragma once
 
-#include <QWidget>
-#include "ui_afkinfoform.h"
-#include <indexer.h>
-class AfkInfoForm : public QWidget, public Indexer
+#include <atomic>
+#include <QObject>
+
+class Indexer
 {
-	Q_OBJECT
-
 public:
-	explicit AfkInfoForm(qint64 index, QWidget* parent = nullptr);
-
-	virtual ~AfkInfoForm();
-
-protected:
-	virtual void showEvent(QShowEvent* e) override
+	virtual inline void setIndex(qint64 index)
 	{
-		setAttribute(Qt::WA_Mapped);
-		QWidget::showEvent(e);
+		index_.store(index, std::memory_order_release);
 	}
 
-private slots:
-	void onResetControlTextLanguage();
-
-	void onUpdateAfkInfoTable(qint64 row, const QString& text);
-
-	void onButtonClicked();
+	virtual inline qint64 getIndex() const { return index_.load(std::memory_order_acquire); }
 
 private:
-	void updateTableText(qint64 row, qint64 col, const QString& text);
-
-private:
-	Ui::AfkInfoFormClass ui;
+	std::atomic_int64_t index_ = 0;
 };

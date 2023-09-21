@@ -1,10 +1,9 @@
-﻿#pragma once
-#ifndef UTF8_EXECUTION
-#define UTF8_EXECUTION
-#if _MSC_VER >= 1600 
+﻿#if _MSC_VER >= 1600 
 #pragma execution_character_set("utf-8") 
 #endif
-#endif
+
+#pragma once
+
 #ifndef QT_USE_QSTRINGBUILDER
 #define QT_USE_QSTRINGBUILDER
 #endif
@@ -99,7 +98,9 @@ public:\
 #include <QMetaType>
 #include <QtWidgets/QApplication>
 #include <QCoreApplication>
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
 #include <QDesktopWidget>
+#endif
 #include <QInputDialog>
 #include <QWidget>
 #include <QtWidgets/QMainWindow>
@@ -217,6 +218,7 @@ public:\
 #include <QSharedPointer>
 #include <QScopedPointer>
 // concurrent
+#include <QtConcurrentRun>
 #include <QtConcurrent/QtConcurrent>
 #include <QFuture>
 #include <QFutureSynchronizer>
@@ -225,10 +227,7 @@ public:\
 #include <QThreadPool>
 
 #include <QCryptographicHash>
-
-//Qt Private
-#include <QtGui/private/qzipreader_p.h>
-#include <QtGui/private/qzipwriter_p.h>
+#include <QStyleFactory>
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // 3rd parties
@@ -244,13 +243,14 @@ public:\
 
 #include <curl/curl.h>
 
+#ifndef _WIN64
 #include <cpr/cpr.h>
-
-#include <spdlogger.hpp>
+#endif
 
 #include "3rdparty/simplecrypt.h"
 
 //custom
+#include <model/indexer.h>
 #include <model/scopedhandle.h>
 #include <model/combobox.h>
 #include <model/listview.h>

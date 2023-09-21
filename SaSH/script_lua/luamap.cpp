@@ -24,7 +24,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 qint64 CLuaMap::setDir(qint64 dir, sol::this_state s)
 {
-	Injector& injector = Injector::getInstance();
+	sol::state_view lua(s);
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
 	if (injector.server.isNull())
 		return FALSE;
 
@@ -37,7 +38,8 @@ qint64 CLuaMap::setDir(qint64 dir, sol::this_state s)
 
 qint64 CLuaMap::setDir(qint64 x, qint64 y, sol::this_state s)
 {
-	Injector& injector = Injector::getInstance();
+	sol::state_view lua(s);
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
 	if (injector.server.isNull())
 		return FALSE;
 
@@ -52,7 +54,8 @@ qint64 CLuaMap::setDir(qint64 x, qint64 y, sol::this_state s)
 
 qint64 CLuaMap::setDir(std::string sdir, sol::this_state s)
 {
-	Injector& injector = Injector::getInstance();
+	sol::state_view lua(s);
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
 	if (injector.server.isNull())
 		return FALSE;
 
@@ -67,7 +70,8 @@ qint64 CLuaMap::setDir(std::string sdir, sol::this_state s)
 
 qint64 CLuaMap::move(qint64 x, qint64 y, sol::this_state s)
 {
-	Injector& injector = Injector::getInstance();
+	sol::state_view lua(s);
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
 	if (injector.server.isNull())
 		return FALSE;
 
@@ -82,7 +86,8 @@ qint64 CLuaMap::move(qint64 x, qint64 y, sol::this_state s)
 
 qint64 CLuaMap::packetMove(qint64 x, qint64 y, std::string sdir, sol::this_state s)
 {
-	Injector& injector = Injector::getInstance();
+	sol::state_view lua(s);
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
 	if (injector.server.isNull())
 		return FALSE;
 
@@ -99,7 +104,8 @@ qint64 CLuaMap::packetMove(qint64 x, qint64 y, std::string sdir, sol::this_state
 
 qint64 CLuaMap::teleport(sol::this_state s)
 {
-	Injector& injector = Injector::getInstance();
+	sol::state_view lua(s);
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
 	if (injector.server.isNull())
 		return FALSE;
 
@@ -112,7 +118,8 @@ qint64 CLuaMap::teleport(sol::this_state s)
 
 qint64 CLuaMap::downLoad(sol::object ofloor, sol::this_state s)
 {
-	Injector& injector = Injector::getInstance();
+	sol::state_view lua(s);
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
 	if (injector.server.isNull())
 		return FALSE;
 
@@ -140,8 +147,8 @@ qint64 CLuaMap::downLoad(sol::object ofloor, sol::this_state s)
 		//遍歷.dat
 		struct map
 		{
-			int floor;
-			int size;
+			qint64 floor;
+			qint64 size;
 		};
 		QList<map> list;
 		QDir dir(exePath);
@@ -156,7 +163,7 @@ qint64 CLuaMap::downLoad(sol::object ofloor, sol::this_state s)
 			{
 				QString floor = match.captured(1);
 				int size = fileInfo.size();
-				list.append(map{ floor.toInt(), size });
+				list.append(map{ floor.toLongLong(), size });
 			}
 		}
 
@@ -180,7 +187,7 @@ qint64 CLuaMap::downLoad(sol::object ofloor, sol::this_state s)
 qint64 CLuaMap::findPath(qint64 x, qint64 y, qint64 steplen, qint64 timeout, sol::object ofunction, sol::object ocallbackSpeed, sol::this_state s)
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance();
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
 	qint64 hModule = injector.getProcessModule();
 	HANDLE hProcess = injector.getProcess();
 

@@ -23,7 +23,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "injector.h"
 #include "signaldispatcher.h"
 
-static const QHash<int, QColor> combo_colorhash = {
+static const QHash<qint64, QColor> combo_colorhash = {
 	{ 0, QColor(255, 255, 255) },
 	{ 1, QColor(0, 255, 255) },
 	{ 2, QColor(255, 0, 255) },
@@ -59,24 +59,24 @@ public:
 	}
 };
 
-ChatInfoForm::ChatInfoForm(QWidget* parent)
+ChatInfoForm::ChatInfoForm(qint64 index, QWidget* parent)
 	: QWidget(parent)
 {
 	ui.setupUi(this);
+	setIndex(index);
 
 	connect(this, &ChatInfoForm::resetControlTextLanguage, this, &ChatInfoForm::onResetControlTextLanguage, Qt::UniqueConnection);
 
-	ui.listView_log->setWordWrap(false);
 	ui.listView_log->setTextElideMode(Qt::ElideNone);
 	ui.listView_log->setResizeMode(QListView::Adjust);
-	ui.listView_log->installEventFilter(this);
+	//ui.listView_log->installEventFilter(this);
 
 	ui.comboBox_send->installEventFilter(this);
 
-	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
+	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(index);
 	connect(&signalDispatcher, &SignalDispatcher::applyHashSettingsToUI, this, &ChatInfoForm::onApplyHashSettingsToUI, Qt::UniqueConnection);
 
-	Injector& injector = Injector::getInstance();
+	Injector& injector = Injector::getInstance(index);
 
 	if (!injector.chatLogModel.isNull())
 		ui.listView_log->setModel(injector.chatLogModel.get());
@@ -103,14 +103,15 @@ bool ChatInfoForm::eventFilter(QObject* watched, QEvent* e)
 {
 	if (watched == ui.listView_log && e->type() == QEvent::KeyPress)
 	{
-		QKeyEvent* keyEvent = reinterpret_cast<QKeyEvent*>(e);
-		if (keyEvent->key() == Qt::Key_Delete)
-		{
-			Injector& injector = Injector::getInstance();
-			if (!injector.server.isNull())
-				injector.server->cleanChatHistory();
-			return true;
-		}
+		//QKeyEvent* keyEvent = reinterpret_cast<QKeyEvent*>(e);
+		//if (keyEvent->key() == Qt::Key_Delete)
+		//{
+		//	qint64 currentIndex = getIndex();
+		//	Injector& injector = Injector::getInstance(currentIndex);
+		//	if (!injector.server.isNull())
+		//		injector.server->cleanChatHistory();
+		//	return true;
+		//}
 	}
 	else if (watched == ui.comboBox_send && e->type() == QEvent::KeyPress)
 	{
@@ -120,11 +121,12 @@ bool ChatInfoForm::eventFilter(QObject* watched, QEvent* e)
 			QComboBox* comboBox = qobject_cast<QComboBox*>(watched);
 			if (comboBox)
 			{
+				qint64 currentIndex = getIndex();
 				QString text = comboBox->currentText();
-				Injector& injector = Injector::getInstance();
+				Injector& injector = Injector::getInstance(currentIndex);
 				if (!injector.server.isNull())
 				{
-					int nMode = ui.comboBox_channel->currentIndex();
+					qint64 nMode = ui.comboBox_channel->currentIndex();
 					TalkMode mode = static_cast<TalkMode>(nMode != -1 ? nMode : kTalkNormal);
 					if (nMode != (channelList_.size() - 1))
 						injector.server->talk(text, ui.comboBox_color->currentIndex(), mode);
@@ -144,7 +146,8 @@ bool ChatInfoForm::eventFilter(QObject* watched, QEvent* e)
 
 void ChatInfoForm::onApplyHashSettingsToUI()
 {
-	Injector& injector = Injector::getInstance();
+	qint64 currentIndex = getIndex();
+	Injector& injector = Injector::getInstance(currentIndex);
 	if (!injector.chatLogModel.isNull())
 		ui.listView_log->setModel(injector.chatLogModel.get());
 }
@@ -168,7 +171,7 @@ void ChatInfoForm::onResetControlTextLanguage()
 	channelList_ = QStringList{
 		tr("normal"), tr("team"), tr("family"), tr("world"), tr("global"), tr("dialog")
 	};
-	int index = ui.comboBox_channel->currentIndex();
+	qint64 index = ui.comboBox_channel->currentIndex();
 	ui.comboBox_channel->clear();
 	ui.comboBox_channel->addItems(channelList_);
 	ui.comboBox_channel->setCurrentIndex(index);

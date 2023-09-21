@@ -55,17 +55,17 @@ signals:
 
 private:
 	QVector<QString> m_list;
-	QVector<int> m_colorlist;
+	QVector<qint64> m_colorlist;
 	//int listCount = 0;
 	mutable QReadWriteLock m_stringlistLocker;
 
 	QVector<QString> getList() const { QReadLocker locker(&m_stringlistLocker); return m_list; }
 	void setList(const QVector<QString>& list) { QWriteLocker locker(&m_stringlistLocker); m_list = list; }
-	QVector<int> getColorList() const { QReadLocker locker(&m_stringlistLocker); return m_colorlist; }
-	void setColorList(const QVector<int>& list) { QWriteLocker locker(&m_stringlistLocker); m_colorlist = list; }
+	QVector<qint64>getColorList() const { QReadLocker locker(&m_stringlistLocker); return m_colorlist; }
+	void setColorList(const QVector<qint64>& list) { QWriteLocker locker(&m_stringlistLocker); m_colorlist = list; }
 
-	void getAllList(QVector<QString>& list, QVector<int>& colorlist) const { QReadLocker locker(&m_stringlistLocker); list = m_list; colorlist = m_colorlist; }
-	void setAllList(const QVector<QString>& list, const QVector<int>& colorlist) { QWriteLocker locker(&m_stringlistLocker); m_list = list; m_colorlist = colorlist; }
+	void getAllList(QVector<QString>& list, QVector<qint64>& colorlist) const { QReadLocker locker(&m_stringlistLocker); list = m_list; colorlist = m_colorlist; }
+	void setAllList(const QVector<QString>& list, const QVector<qint64>& colorlist) { QWriteLocker locker(&m_stringlistLocker); m_list = list; m_colorlist = colorlist; }
 
 	QModelIndex sibling(int row, int column, const QModelIndex& idx) const override { Q_UNUSED(idx); return createIndex(row, column); }
 
@@ -95,9 +95,9 @@ class ListView : public QListView
 {
 	Q_OBJECT
 public:
-	ListView(QWidget* parent = nullptr);
+	explicit ListView(QWidget* parent = nullptr);
 
-	~ListView() = default;
+	virtual ~ListView() = default;
 
 	//如果數據改變則滾動到底部
 	void dataChanged(const QModelIndex& topLeft, const QModelIndex& bottomRight, const QVector<int>& roles = QVector<int>()) override;
@@ -112,5 +112,6 @@ private slots:
 	void swapRowDown(int source);
 
 protected:
-	void wheelEvent(QWheelEvent* event) override;
+	virtual void wheelEvent(QWheelEvent* event) override;
+	virtual bool eventFilter(QObject* obj, QEvent* e) override;
 };

@@ -2,14 +2,15 @@
 
 #include <QWidget>
 #include "ui_generalform.h"
+#include <indexer.h>
 
 class AfkForm;
-class GeneralForm : public QWidget
+class GeneralForm : public QWidget, public Indexer
 {
 	Q_OBJECT
 
 public:
-	explicit GeneralForm(QWidget* parent = nullptr);
+	explicit GeneralForm(qint64 index, QWidget* parent = nullptr);
 	virtual ~GeneralForm();
 
 signals:
@@ -47,5 +48,5 @@ private:
 private:
 	Ui::GeneralFormClass ui;
 	AfkForm* pAfkForm_ = nullptr;
-	QHash<int, QHash<QString, QStringList>> serverList;
+	QHash<qint64, QHash<QString, QStringList>> serverList;
 };

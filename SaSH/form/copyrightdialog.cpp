@@ -19,7 +19,11 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "stdafx.h"
 #include "copyrightdialog.h"
 #include <QWhatsThis>
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
 #include <QGraphicsSvgItem>
+#else
+#include <QtSvgWidgets/QGraphicsSvgItem>
+#endif
 
 #include "util.h"
 
@@ -125,8 +129,8 @@ CopyRightDialog::CopyRightDialog(QWidget* parent)
 	const QString companyName(u8"Bestkakkoii llc.");
 	const QString AuthorName(u8"Philip飞");
 	const QString webUrl(u8"https://www.lovesa.cc");
-	constexpr int nowSysBit = QSysInfo::WordSize;
-	constexpr int yearStart = 2023;
+	constexpr qint64 nowSysBit = QSysInfo::WordSize;
+	constexpr qint64 yearStart = 2023;
 	const QString qqImage(u8R"(:/image/icon_group.png)");
 	const QString qqLink(u8"https://qm.qq.com/cgi-bin/qm/qr?"
 		"k=Mm_Asx4CFMhLWttW10ScuPngFPFgGNFP" \
@@ -236,8 +240,8 @@ void CopyRightDialog::pushButton_copyinfo_clicked()
 	infos.append(ui.label_copyrighttext->text());
 	infos.append(ui.label_txt->text());
 
-	int size = ui.listWidget->count();
-	for (int i = 0; i < size; ++i)
+	qint64 size = ui.listWidget->count();
+	for (qint64 i = 0; i < size; ++i)
 	{
 		QListWidgetItem* item = ui.listWidget->item(i);
 		if (item != nullptr && !item->text().isEmpty())

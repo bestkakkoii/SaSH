@@ -19,9 +19,11 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "stdafx.h"
 #include <highlighter.h>
 
+constexpr qint64 NewlineArrow = 32;
+
 Highlighter::Highlighter(QObject* parent)
 	: QsciLexerLua(parent)
-	, m_font("YaHei Consolas Hybrid", 12, 570/*QFont::DemiBold*/, false)
+	, font_("YaHei Consolas Hybrid", 11, 570/*QFont::DemiBold*/, false)
 {
 }
 
@@ -100,14 +102,15 @@ const char* Highlighter::keywords(int set) const
 	}
 	case 7://KeywordSet7//土橘色
 	{
-		return "";
+		return "ifdef els elif endif ifndef define undef pragma err lua endlua ";
 	}
 	case 8://KeywordSet8//紫色
 	{
-		return "_GAME_ _WORLD_ vret _IFEXPR _IFRESULT _LUARESULT _LUAEXPR "
+		return "_GAME_ _WORLD_ vret _IFEXPR _IFRESULT _LUARESULT _LUAEXPR _LINE_ _FILE_ _FUNCTION_ _ROWCOUNT_ "
 			/*lua original*/
 			"_G _VERSION "
-			"utf8.charpattern package.path package.preload package.searchers package.config package.cpath package.loaded math.huge math.maxinteger math.mininteger math.pi ";
+			"utf8.charpattern package.path package.preload package.searchers package.config package.cpath package.loaded math.huge math.maxinteger math.mininteger math.pi "
+			;
 	}
 	case 9:
 		return "";
@@ -196,7 +199,7 @@ QColor Highlighter::defaultColor(int style) const
 // Returns the font of the text for a style.
 QFont Highlighter::defaultFont(int n) const
 {
-	return m_font;
+	return font_;
 }
 
 // Return the set of character sequences that can separate auto-completion
@@ -209,8 +212,8 @@ QStringList Highlighter::autoCompletionWordSeparators() const
 // Returns the background colour of the text for a style.
 QColor Highlighter::defaultPaper(int style) const
 {
-	return QColor(30, 30, 30);
-	//return QsciLexerLua::defaultPaper(style);
+	static QColor color(30, 30, 30);
+	return color;
 }
 
 // Default implementation to return the set of fill up characters that can end
@@ -223,52 +226,28 @@ const char* Highlighter::autoCompletionFillups() const
 // Return the list of characters that can end a block.
 const char* Highlighter::blockEnd(int* style) const
 {
-	if (style)
-		*style = Operator;
-
 	return QsciLexerLua::blockEnd(style);
 }
 
 const char* Highlighter::blockStartKeyword(int* style) const
 {
-	if (style)
-		*style = Keyword;
-
 	return QsciLexerLua::blockStartKeyword(style);
 }
 
 // Return the list of characters that can start a block.
 const char* Highlighter::blockStart(int* style) const
 {
-	if (style)
-		*style = Operator;
-
 	return QsciLexerLua::blockStart(style);
 }
 
 // Return the string of characters that comprise a word.
 const char* Highlighter::wordCharacters() const
 {
-	//return "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_#";
 	return QsciLexerLua::wordCharacters();
 }
 
 // Returns the end-of-line fill for a style.
 bool Highlighter::defaultEolFill(int style) const
 {
-	//switch (style)
-	//{
-	//case InactiveUnclosedString:
-	//case InactiveVerbatimString:
-	//case InactiveRegex:
-	//case TripleQuotedVerbatimString:
-	//case InactiveTripleQuotedVerbatimString:
-	//case HashQuotedString:
-	//case InactiveHashQuotedString:
-	//case Comment:
-	//case UnclosedString:
-	//	return true;
-	//}
-
 	return QsciLexerLua::defaultEolFill(style);
 }

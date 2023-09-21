@@ -25,17 +25,20 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "script/interpreter.h"
 #include "model/customtitlebar.h"
 
-constexpr int MAP_REFRESH_TIME = 100;
-constexpr int MAX_BLOCK_SIZE = 24;
-constexpr int MAX_DOWNLOAD_DELAY = 0;
+constexpr qint64 MAP_REFRESH_TIME = 100;
+constexpr qint64 MAX_BLOCK_SIZE = 24;
+constexpr qint64 MAX_DOWNLOAD_DELAY = 0;
 
-QHash<int, QHash<QPoint, QString>> MapWidget::entrances_;
+QHash<qint64, QHash<QPoint, QString>> MapWidget::entrances_;
 
-MapWidget::MapWidget(QWidget* parent)
+MapWidget::MapWidget(qint64 index, QWidget* parent)
 	: QMainWindow(parent)
 {
 	ui.setupUi(this);
 	setAttribute(Qt::WA_DeleteOnClose);
+	setIndex(index);
+
+	setWindowTitle(QString("[%1]").arg(index));
 	//setStyleSheet("background-color:rgb(0,0,1)");
 
 	//setAttribute(Qt::WA_OpaquePaintEvent, true);
@@ -87,13 +90,18 @@ MapWidget::MapWidget(QWidget* parent)
 	}
 
 	QTextStream in(&file);
-	in.setCodec("UTF-8");
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+	in.setCodec(util::DEFAULT_CODEPAGE);
+#else
+	in.setEncoding(QStringConverter::Utf8);
+#endif
+	in.setGenerateByteOrderMark(true);
 
 	const QString rawData(in.readAll());
 	file.close();
 
 	QStringList entrances = rawData.simplified().split(" ");
-	QHash<int, QHash<QPoint, QString>> preEntrances;
+	QHash<qint64, QHash<QPoint, QString>> preEntrances;
 
 	for (const QString& entrance : entrances)
 	{
@@ -102,7 +110,7 @@ MapWidget::MapWidget(QWidget* parent)
 			continue;
 
 		bool ok = false;
-		const int floor = entranceData.at(0).toInt(&ok);
+		const qint64 floor = entranceData.at(0).toLongLong(&ok);
 		if (!ok)
 			continue;
 
@@ -111,11 +119,11 @@ MapWidget::MapWidget(QWidget* parent)
 		if (pointData.size() != 2)
 			continue;
 
-		int x = pointData.at(0).toInt(&ok);
+		qint64 x = pointData.at(0).toLongLong(&ok);
 		if (!ok)
 			continue;
 
-		int y = pointData.at(1).toInt(&ok);
+		qint64 y = pointData.at(1).toLongLong(&ok);
 		if (!ok)
 			continue;
 
@@ -131,7 +139,7 @@ MapWidget::MapWidget(QWidget* parent)
 	}
 
 	entrances_ = preEntrances;
-	}
+}
 
 MapWidget::~MapWidget()
 {
@@ -185,8 +193,8 @@ void CHECK_FOLDER(const QString& current_dir, const QString& map_dirPath)
 		dir.mkdir(map_dirPath);
 
 	//建立子資料夾
-	int j = 0;
-	for (int i = 0; i <= 1; ++i)
+	qint64 j = 0;
+	for (qint64 i = 0; i <= 1; ++i)
 	{
 		QString msubdir(QString("%1/map/%2").arg(current_dir).arg(i));
 		const QDir sub(msubdir);
@@ -219,7 +227,7 @@ void MapWidget::paintEvent(QPaintEvent* paint)
 	const QString map_dirPath(QString("%1/map").arg(current_dir));
 	CHECK_FOLDER(current_dir, map_dirPath);
 
-	int width = 0, height = 0;
+	qint64 width = 0, height = 0;
 
 
 	const QString map_current_fileName(qasm->GetCurrentMapPath());
@@ -244,12 +252,12 @@ void MapWidget::paintEvent(QPaintEvent* paint)
 	qreal m_scalHeight = height();
 
 	zoom(this, m_pix, &scaleWidth_, &m_scalHeight, &zoom_value);
-	//resize(static_cast<int>(scaleWidth_), static_cast<int>(m_scalHeight));
+	//resize(static_cast<qint64>(scaleWidth_), static_cast<qint64>(m_scalHeight));
 	//setUpdatesEnabled(false);
 
 	QPainter paintImage;
 	paintImage.begin(this);
-	paintImage.drawPixmap(0, 0, static_cast<int>(scaleWidth_), static_cast<int>(m_scalHeight), m_pix);
+	paintImage.drawPixmap(0, 0, static_cast<qint64>(scaleWidth_), static_cast<qint64>(m_scalHeight), m_pix);
 	paintImage.end();
 
 	//畫刷。填充幾何圖形的調色板，由顏色和填充風格組成
@@ -277,18 +285,19 @@ void MapWidget::paintEvent(QPaintEvent* paint)
 
 void MapWidget::onRefreshTimeOut()
 {
-
-	Injector& injector = Injector::getInstance();
+	qint64 currentIndex = getIndex();
+	Injector& injector = Injector::getInstance(currentIndex);
 	if (injector.server.isNull()) return;
 
 
 	if (!injector.server->getOnlineFlag()) return;
 
 	PC _ch = injector.server->getPC();
-	int floor = injector.server->nowFloor;
+	qint64 floor = injector.server->nowFloor;
 	const QPointF qp_current(injector.server->getPoint());
 
-	QString caption(tr("%1 map:%2 floor:%3 [%4,%5] mouse:%6,%7")
+	QString caption(tr("[%1] %2 map:%3 floor:%4 [%5,%6] mouse:%7,%8")
+		.arg(currentIndex)
 		.arg(_ch.name)
 		.arg(injector.server->nowFloorName)
 		.arg(floor)
@@ -299,8 +308,8 @@ void MapWidget::onRefreshTimeOut()
 		caption += " " + tr("downloading(%1%2)").arg(QString::number(downloadMapProgress_, 'f', 2)).arg("%");
 	setWindowTitle(caption);
 
-	int map_ret = injector.server->mapAnalyzer->readFromBinary(floor, injector.server->nowFloorName, true);
-	if (map_ret <= 0)
+	bool map_ret = injector.server->mapAnalyzer->readFromBinary(floor, injector.server->nowFloorName, true);
+	if (!map_ret)
 		return;
 
 	QPixmap ppix = injector.server->mapAnalyzer->getPixmapByIndex(floor);
@@ -309,7 +318,7 @@ void MapWidget::onRefreshTimeOut()
 	map_t m_map = {};
 	injector.server->mapAnalyzer->getMapDataByFloor(floor, &m_map);
 
-	util::SafeHash<int, mapunit_t> unitHash = injector.server->mapUnitHash;
+	QHash<qint64, mapunit_t> unitHash = injector.server->mapUnitHash.toHash();
 	auto findMapUnitByPoint = [&unitHash](const QPoint& p, mapunit_t* u)->bool
 	{
 		for (auto it = unitHash.begin(); it != unitHash.end(); ++it)
@@ -537,11 +546,11 @@ void MapWidget::onRefreshTimeOut()
 		else
 			brush = QBrush(MAP_COLOR_HASH.value(it.objType), Qt::SolidPattern);
 		QPen pen(brush, 1.0, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin);
+
 		QPainter painter(&ppix);
 		painter.setPen(pen);
 		painter.drawPoint(it.p);
 		painter.end();
-
 	}
 
 
@@ -560,7 +569,7 @@ void MapWidget::onRefreshTimeOut()
 
 	zoom(ui.widget, ppix, &scaleWidth_, &scaleHeight_, &zoom_value_, fix_zoom_value_);
 
-	if (ui.openGLWidget->width() != static_cast<int>(scaleWidth_) || ui.openGLWidget->height() != static_cast<int>(scaleHeight_))
+	if (ui.openGLWidget->width() != static_cast<qint64>(scaleWidth_) || ui.openGLWidget->height() != static_cast<qint64>(scaleHeight_))
 		ui.openGLWidget->resize(scaleWidth_, scaleHeight_);
 
 
@@ -606,7 +615,8 @@ void MapWidget::on_openGLWidget_notifyRightClick()
 
 void MapWidget::on_openGLWidget_notifyMousePosition(const QPointF& pos)
 {
-	Injector& injector = Injector::getInstance();
+	qint64 currentIndex = getIndex();
+	Injector& injector = Injector::getInstance(currentIndex);
 	if (injector.server.isNull())
 		return;
 
@@ -616,14 +626,14 @@ void MapWidget::on_openGLWidget_notifyMousePosition(const QPointF& pos)
 	if (!interpreter_.isNull() && interpreter_->isRunning())
 		return;
 
-	interpreter_.reset(new Interpreter());
+	interpreter_.reset(new Interpreter(currentIndex));
 
 
 	const QPointF predst(pos / zoom_value_);
 	const QPoint dst(predst.toPoint());
 
-	int x = dst.x();
-	int y = dst.y();
+	qint64 x = dst.x();
+	qint64 y = dst.y();
 
 	if (x < 0 || x > 1500 || y < 0 || y > 1500)
 		return;
@@ -696,8 +706,8 @@ bool MapWidget::findpath(QPoint dst)
 
 void MapWidget::downloadNextBlock()
 {
-	int blockWidth = qMin(MAX_BLOCK_SIZE, downloadMapXSize_ - downloadMapX_);
-	int blockHeight = qMin(MAX_BLOCK_SIZE, downloadMapYSize_ - downloadMapY_);
+	qint64 blockWidth = qMin(MAX_BLOCK_SIZE, downloadMapXSize_ - downloadMapX_);
+	qint64 blockHeight = qMin(MAX_BLOCK_SIZE, downloadMapYSize_ - downloadMapY_);
 
 	// 移除一個小區塊
 	downloadMapX_ += blockWidth;
@@ -720,8 +730,8 @@ void MapWidget::onDownloadMapTimeout()
 			ui.pushButton_download->setEnabled(true);
 		return;
 	}
-
-	Injector& injector = Injector::getInstance();
+	qint64 currentIndex = getIndex();
+	Injector& injector = Injector::getInstance(currentIndex);
 
 	if (injector.server.isNull())
 	{
@@ -730,7 +740,7 @@ void MapWidget::onDownloadMapTimeout()
 	}
 
 	injector.server->downloadMap(downloadMapX_, downloadMapY_);
-	int floor = injector.server->nowFloor;
+	qint64 floor = injector.server->nowFloor;
 	QString name = injector.server->nowFloorName;
 
 	downloadNextBlock();
@@ -739,7 +749,8 @@ void MapWidget::onDownloadMapTimeout()
 	{
 		downloadMapTimer_.stop();
 		const QPoint qp_current = injector.server->getPoint();
-		QString caption(tr("%1 map:%2 floor:%3 [%4,%5] mouse:%6,%7")
+		QString caption(tr("[%1] %2 map:%3 floor:%4 [%5,%6] mouse:%7,%8")
+			.arg(currentIndex)
 			.arg(injector.server->getPC().name)
 			.arg(injector.server->nowFloorName)
 			.arg(injector.server->nowFloor)
@@ -767,8 +778,8 @@ void MapWidget::on_pushButton_download_clicked()
 {
 	if (isDownloadingMap_)
 		return;
-
-	Injector& injector = Injector::getInstance();
+	qint64 currentIndex = getIndex();
+	Injector& injector = Injector::getInstance(currentIndex);
 
 	if (injector.server.isNull())
 	{
@@ -787,9 +798,9 @@ void MapWidget::on_pushButton_download_clicked()
 	downloadMapY_ = 0;
 	downloadMapProgress_ = 0.0;
 
-	const int numBlocksX = (downloadMapXSize_ + MAX_BLOCK_SIZE - 1) / MAX_BLOCK_SIZE;
-	const int numBlocksY = (downloadMapYSize_ + MAX_BLOCK_SIZE - 1) / MAX_BLOCK_SIZE;
-	const int totalBlocks = numBlocksX * numBlocksY;
+	const qint64 numBlocksX = (downloadMapXSize_ + MAX_BLOCK_SIZE - 1) / MAX_BLOCK_SIZE;
+	const qint64 numBlocksY = (downloadMapYSize_ + MAX_BLOCK_SIZE - 1) / MAX_BLOCK_SIZE;
+	const qint64 totalBlocks = numBlocksX * numBlocksY;
 	totalMapBlocks_ = static_cast<qreal>(totalBlocks);
 
 	isDownloadingMap_ = true;
@@ -798,7 +809,8 @@ void MapWidget::on_pushButton_download_clicked()
 
 void MapWidget::on_pushButton_returnBase_clicked()
 {
-	Injector& injector = Injector::getInstance();
+	qint64 currentIndex = getIndex();
+	Injector& injector = Injector::getInstance(currentIndex);
 
 	if (injector.server.isNull())
 	{
@@ -810,7 +822,8 @@ void MapWidget::on_pushButton_returnBase_clicked()
 
 void MapWidget::on_pushButton_findPath_clicked()
 {
-	Injector& injector = Injector::getInstance();
+	qint64 currentIndex = getIndex();
+	Injector& injector = Injector::getInstance(currentIndex);
 	if (injector.server.isNull())
 		return;
 
@@ -820,10 +833,10 @@ void MapWidget::on_pushButton_findPath_clicked()
 	if (!interpreter_.isNull() && interpreter_->isRunning())
 		return;
 
-	interpreter_.reset(new Interpreter());
+	interpreter_.reset(new Interpreter(currentIndex));
 
-	int x = ui.spinBox_findPathX->value();
-	int y = ui.spinBox_findPathY->value();
+	qint64 x = ui.spinBox_findPathX->value();
+	qint64 y = ui.spinBox_findPathY->value();
 	if (x < 0 || x > 1500 || y < 0 || y > 1500)
 		return;
 
@@ -841,9 +854,9 @@ void MapWidget::onClear()
 
 void MapWidget::updateNpcListAllContents(const QVariant& d)
 {
-	int col = 0;
-	int row = 0;
-	int size = 0;
+	qint64 col = 0;
+	qint64 row = 0;
+	qint64 size = 0;
 	QVariantList D = d.value<QVariantList>();
 
 	ui.tableWidget_NPCList->setUpdatesEnabled(false);
@@ -854,12 +867,12 @@ void MapWidget::updateNpcListAllContents(const QVariant& d)
 	size /= 2;
 	if (size > ui.tableWidget_NPCList->rowCount())
 	{
-		for (int i = 0; i < size - ui.tableWidget_NPCList->rowCount(); ++i)
+		for (qint64 i = 0; i < size - ui.tableWidget_NPCList->rowCount(); ++i)
 			ui.tableWidget_NPCList->insertRow(ui.tableWidget_NPCList->rowCount());
 	}
 	else if (size < ui.tableWidget_NPCList->rowCount())
 	{
-		for (int i = 0; i < (ui.tableWidget_NPCList->rowCount() - size); ++i)
+		for (qint64 i = 0; i < (ui.tableWidget_NPCList->rowCount() - size); ++i)
 			ui.tableWidget_NPCList->removeRow(ui.tableWidget_NPCList->rowCount() - 1);
 	}
 
@@ -900,8 +913,8 @@ void MapWidget::on_tableWidget_NPCList_cellDoubleClicked(int row, int)
 	{
 		return;
 	}
-
-	Injector& injector = Injector::getInstance();
+	qint64 currentIndex = getIndex();
+	Injector& injector = Injector::getInstance(currentIndex);
 	if (injector.server.isNull())
 		return;
 
@@ -911,7 +924,7 @@ void MapWidget::on_tableWidget_NPCList_cellDoubleClicked(int row, int)
 	if (!interpreter_.isNull() && interpreter_->isRunning())
 		return;
 
-	interpreter_.reset(new Interpreter());
+	interpreter_.reset(new Interpreter(currentIndex));
 
 	QString name(item_name->text());
 	QString text(item->text());
@@ -920,8 +933,8 @@ void MapWidget::on_tableWidget_NPCList_cellDoubleClicked(int row, int)
 		return;
 
 	bool okx, oky;
-	int x = list.at(0).toInt(&okx);
-	int y = list.at(1).toInt(&oky);
+	qint64 x = list.at(0).toLongLong(&okx);
+	qint64 y = list.at(1).toLongLong(&oky);
 	if (!okx || !oky)
 		return;
 
@@ -966,7 +979,7 @@ void MapWidget::on_tableWidget_NPCList_cellDoubleClicked(int row, int)
 		return;
 	}
 
-	int floor = injector.server->nowFloor;
+	qint64 floor = injector.server->nowFloor;
 	QPoint point = injector.server->getPoint();
 	//npc前方一格
 	QPoint newPoint = util::fix_point.at(unit.dir) + unit.p;
@@ -990,7 +1003,7 @@ void MapWidget::on_tableWidget_NPCList_cellDoubleClicked(int row, int)
 		{
 			//檢查NPC周圍8格
 			bool flag = false;
-			for (int i = 0; i < 8; ++i)
+			for (qint64 i = 0; i < 8; ++i)
 			{
 				newPoint = util::fix_point.at(i) + unit.p;
 				if (injector.server->mapAnalyzer->isPassable(floor, point, newPoint))
@@ -1009,38 +1022,4 @@ void MapWidget::on_tableWidget_NPCList_cellDoubleClicked(int row, int)
 	}
 
 	interpreter_->doString(QString(u8"findpath %1, %2, 1").arg(x).arg(y), nullptr, Interpreter::kNotShare);
-}
-
-bool MapWidget::nativeEvent(const QByteArray& eventType, void* message, long* result)
-{
-	//MSG* msg = (MSG*)message;
-	//switch (msg->message)
-	//{
-	//case WM_NCHITTEST:
-	//	if (isMaximized())
-	//		return false;
-
-	//	int xPos = GET_X_LPARAM(msg->lParam) - this->frameGeometry().x();
-	//	int yPos = GET_Y_LPARAM(msg->lParam) - this->frameGeometry().y();
-	//	if (xPos < boundaryWidth_ && yPos < boundaryWidth_)                    //左上角
-	//		*result = HTTOPLEFT;
-	//	else if (xPos >= width() - boundaryWidth_ && yPos < boundaryWidth_)          //右上角
-	//		*result = HTTOPRIGHT;
-	//	else if (xPos < boundaryWidth_ && yPos >= height() - boundaryWidth_)         //左下角
-	//		*result = HTBOTTOMLEFT;
-	//	else if (xPos >= width() - boundaryWidth_ && yPos >= height() - boundaryWidth_)//右下角
-	//		*result = HTBOTTOMRIGHT;
-	//	else if (xPos < boundaryWidth_)                                     //左边
-	//		*result = HTLEFT;
-	//	else if (xPos >= width() - boundaryWidth_)                              //右边
-	//		*result = HTRIGHT;
-	//	else if (yPos < boundaryWidth_)                                       //上边
-	//		*result = HTTOP;
-	//	else if (yPos >= height() - boundaryWidth_)                             //下边
-	//		*result = HTBOTTOM;
-	//	else              //其他部分不做处理，返回false，留给其他事件处理器处理
-	//		return false;
-	//	return true;
-	//}
-	return false;         //此处返回false，留给其他事件处理器处理
 }

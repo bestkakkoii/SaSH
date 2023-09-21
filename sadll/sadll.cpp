@@ -1189,9 +1189,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 #endif
 		struct InitialData
 		{
-			HWND parentHWnd = nullptr;
-			unsigned short port = 0ui16;
-			unsigned short type = 0ui16;
+			__int64 parentHWnd = 0i64;
+			__int64 index = 0i64;
+			__int64 port = 0i64;
+			__int64 type = 0i64;
 		};
 
 		InitialData* pData = reinterpret_cast<InitialData*>(wParam);
@@ -1202,7 +1203,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		std::cout << std::hex << "parentHWnd:0x" << pData->parentHWnd << " port:" << std::to_string(pData->port) << " type:" << std::to_string(pData->type) << std::endl;
 #endif
 
-		g_GameService.initialize(pData->parentHWnd, pData->type, pData->port);
+		g_GameService.initialize(pData->index, reinterpret_cast<HWND>(pData->parentHWnd), static_cast<unsigned short>(pData->type), static_cast<unsigned short>(pData->port));
 		return 1L;
 	}
 	case util::kUninitialize:
@@ -1249,6 +1250,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				<< " size:" << std::to_string(lParam)
 				<< " errorcode:" << WSAGetLastError() << std::endl;
 		}
+#else 
+		std::ignore = nRet;
 #endif
 		return numberOfBytesSent;
 	}
@@ -1415,12 +1418,14 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID)
 	return TRUE;
 }
 
-void GameService::initialize(HWND parentHwnd, unsigned short type, unsigned short port)
+void GameService::initialize(__int64 index, HWND parentHwnd, unsigned short type, unsigned short port)
 {
 	if (isInitialized_.load(std::memory_order_acquire) == TRUE)
 		return;
 
 	isInitialized_.store(TRUE, std::memory_order_release);
+
+	index_.store(index, std::memory_order_release);
 
 	g_ParenthWnd = parentHwnd;
 

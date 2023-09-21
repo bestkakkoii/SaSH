@@ -22,15 +22,16 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include <QTreeWidgetItem>
 #include <QTableWidgetItem>
 #include <QThread>
+#include <indexer.h>
 
 struct Token;
 class Interpreter;
-class ScriptForm : public QWidget
+class ScriptForm : public QWidget, public Indexer
 {
 	Q_OBJECT
 
 public:
-	explicit ScriptForm(QWidget* parent = nullptr);
+	explicit ScriptForm(qint64 index, QWidget* parent = nullptr);
 
 	virtual ~ScriptForm();
 
@@ -49,7 +50,7 @@ private slots:
 
 	void onScriptTableWidgetClicked(QTableWidgetItem* item);
 
-	void onScriptLabelRowTextChanged(int row, int max, bool noSelect);
+	void onScriptLabelRowTextChanged(qint64 row, qint64 max, bool noSelect);
 
 	void onCurrentTableWidgetItemChanged(QTableWidgetItem* current, QTableWidgetItem* previous);
 
@@ -75,9 +76,9 @@ protected:
 	}
 
 private:
-	void setTableWidgetItem(int row, int col, const QString& text);
+	void setTableWidgetItem(qint64 row, qint64 col, const QString& text);
 
-	void resizeTableWidgetRow(int max);
+	void resizeTableWidgetRow(qint64 max);
 
 private:
 	Ui::ScriptFormClass ui;

@@ -23,10 +23,11 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "signaldispatcher.h"
 #include "injector.h"
 
-PlayerInfoForm::PlayerInfoForm(QWidget* parent)
+PlayerInfoForm::PlayerInfoForm(qint64 index, QWidget* parent)
 	: QWidget(parent)
 {
 	ui.setupUi(this);
+	setIndex(index);
 
 
 	//register meta type of QVariant
@@ -35,30 +36,11 @@ PlayerInfoForm::PlayerInfoForm(QWidget* parent)
 
 	auto setTableWidget = [](QTableWidget* tableWidget)->void
 	{
-		//tablewidget set single selection
-		tableWidget->setSelectionMode(QAbstractItemView::SingleSelection);
-		//tablewidget set selection behavior
-		tableWidget->setSelectionBehavior(QAbstractItemView::SelectRows);
-		//set auto resize to form size
-		tableWidget->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
-		tableWidget->verticalHeader()->setSectionResizeMode(QHeaderView::Fixed);
-
-		//tableWidget->setStyleSheet(R"(
-		//QTableWidget { font-size:11px; } 
-		//	QTableView::item:selected { background-color: black; color: white;
-		//})");
-		tableWidget->verticalHeader()->setDefaultSectionSize(11);
-		tableWidget->horizontalHeader()->setStretchLastSection(true);
-		tableWidget->horizontalHeader()->setHighlightSections(false);
-		tableWidget->verticalHeader()->setHighlightSections(false);
-		tableWidget->horizontalHeader()->setDefaultAlignment(Qt::AlignLeft);
-		tableWidget->verticalHeader()->setDefaultAlignment(Qt::AlignLeft);
-
-		int rowCount = tableWidget->rowCount();
-		int columnCount = tableWidget->columnCount();
-		for (int row = 0; row < rowCount; ++row)
+		qint64 rowCount = tableWidget->rowCount();
+		qint64 columnCount = tableWidget->columnCount();
+		for (qint64 row = 0; row < rowCount; ++row)
 		{
-			for (int column = 0; column < columnCount; ++column)
+			for (qint64 column = 0; column < columnCount; ++column)
 			{
 				QTableWidgetItem* item = new QTableWidgetItem("");
 				if (item)
@@ -73,26 +55,26 @@ PlayerInfoForm::PlayerInfoForm(QWidget* parent)
 
 	connect(ui.tableWidget->horizontalHeader(), &QHeaderView::sectionClicked, this, &PlayerInfoForm::onHeaderClicked);
 
-	Injector& injector = Injector::getInstance();
+	Injector& injector = Injector::getInstance(index);
 	if (!injector.server.isNull())
 	{
-		util::SafeHash<int, QVariant> playerInfoColContents = injector.server->playerInfoColContents;
+		QHash<qint64, QVariant> playerInfoColContents = injector.server->playerInfoColContents.toHash();
 		for (auto it = playerInfoColContents.begin(); it != playerInfoColContents.end(); ++it)
 		{
 			onUpdatePlayerInfoColContents(it.key(), it.value());
 		}
 
-		int stone = injector.server->getPC().gold;
+		qint64 stone = injector.server->getPC().gold;
 		onUpdatePlayerInfoStone(stone);
 
-		for (int i = 0; i < MAX_PET; ++i)
+		for (qint64 i = 0; i < MAX_PET; ++i)
 		{
 			PET pet = injector.server->getPet(i);
 			onUpdatePlayerInfoPetState(i, pet.state);
 		}
 	}
 
-	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance();
+	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(index);
 	connect(&signalDispatcher, &SignalDispatcher::updatePlayerInfoColContents, this, &PlayerInfoForm::onUpdatePlayerInfoColContents);
 	connect(&signalDispatcher, &SignalDispatcher::updatePlayerInfoStone, this, &PlayerInfoForm::onUpdatePlayerInfoStone);
 	connect(&signalDispatcher, &SignalDispatcher::updatePlayerInfoPetState, this, &PlayerInfoForm::onUpdatePlayerInfoPetState);
@@ -112,14 +94,14 @@ void PlayerInfoForm::onResetControlTextLanguage()
 	};
 
 	//put on first col
-	int rowCount = ui.tableWidget->rowCount();
-	int size = equipVHeaderList.size();
+	qint64 rowCount = ui.tableWidget->rowCount();
+	qint64 size = equipVHeaderList.size();
 	while (rowCount < size)
 	{
 		ui.tableWidget->insertRow(rowCount);
 		++rowCount;
 	}
-	for (int row = 0; row < rowCount; ++row)
+	for (qint64 row = 0; row < rowCount; ++row)
 	{
 		if (row >= size)
 			break;
@@ -135,7 +117,7 @@ void PlayerInfoForm::onResetControlTextLanguage()
 	}
 }
 
-void PlayerInfoForm::onUpdatePlayerInfoColContents(int col, const QVariant& data)
+void PlayerInfoForm::onUpdatePlayerInfoColContents(qint64 col, const QVariant& data)
 {
 	// 檢查是否為 QVariantList
 	if (data.type() != QVariant::List)
@@ -147,15 +129,15 @@ void PlayerInfoForm::onUpdatePlayerInfoColContents(int col, const QVariant& data
 	QVariantList list = data.toList();
 
 	// 取得 QVariantList 的大小
-	const int size = list.size();
+	const qint64 size = list.size();
 
 	// 獲取當前表格的總行數
-	const int rowCount = ui.tableWidget->rowCount();
+	const qint64 rowCount = ui.tableWidget->rowCount();
 	if (col < 0 || col >= rowCount)
 		return;
 
 	// 開始填入內容
-	for (int row = 0; row < rowCount; ++row)
+	for (qint64 row = 0; row < rowCount; ++row)
 	{
 		// 設置內容
 		if (row >= size)
@@ -188,14 +170,14 @@ void PlayerInfoForm::onUpdatePlayerInfoColContents(int col, const QVariant& data
 }
 
 
-void PlayerInfoForm::onUpdatePlayerInfoStone(int stone)
+void PlayerInfoForm::onUpdatePlayerInfoStone(qint64 stone)
 {
 	ui.label->setText(tr("stone:%1").arg(stone));
 }
 
-void PlayerInfoForm::onUpdatePlayerInfoPetState(int petIndex, int state)
+void PlayerInfoForm::onUpdatePlayerInfoPetState(qint64 petIndex, qint64 state)
 {
-	int col = petIndex + 1;
+	qint64 col = petIndex + 1;
 	if (col < 0 || col >= ui.tableWidget->columnCount())
 		return;
 
@@ -226,18 +208,19 @@ void PlayerInfoForm::onUpdatePlayerInfoPetState(int petIndex, int state)
 	}
 }
 
-void PlayerInfoForm::onHeaderClicked(int logicalIndex)
+void PlayerInfoForm::onHeaderClicked(qint64 logicalIndex)
 {
 	qDebug() << "onHeaderClicked:" << logicalIndex;
+	qint64 currentIndex = getIndex();
 	switch (logicalIndex)
 	{
 	case 1:
 	{
-		AbilityForm* abilityForm = new AbilityForm(this);
+		AbilityForm* abilityForm = new AbilityForm(currentIndex, this);
 		abilityForm->setModal(true);
 		QPoint mousePos = QCursor::pos();
-		int x = mousePos.x() - 10;
-		int y = mousePos.y() + 50;
+		qint64 x = mousePos.x() - 10;
+		qint64 y = mousePos.y() + 50;
 		abilityForm->move(x, y);
 		if (abilityForm->exec() == QDialog::Accepted)
 		{
@@ -247,10 +230,10 @@ void PlayerInfoForm::onHeaderClicked(int logicalIndex)
 	}
 	default:
 	{
-		int petIndex = logicalIndex - 2;
+		qint64 petIndex = logicalIndex - 2;
 		if (petIndex < 0 || petIndex >= MAX_PET)
 			break;
-		Injector& injector = Injector::getInstance();
+		Injector& injector = Injector::getInstance(currentIndex);
 		if (injector.server.isNull())
 			break;
 
