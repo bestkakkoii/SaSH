@@ -61,7 +61,8 @@ const char* Highlighter::keywords(int set) const
 			"tswap tadd tpadd tpopback tpopfront tfront tback mkpath "
 
 			/* . */
-			"item.count "
+			"item.count timer.get timer.gets timer.new timer.del timer.getstr "
+			"map.isxy map.isrect map.ismap chat.contains "
 
 			/*lua original*/
 			"assert collectgarbage "
@@ -119,6 +120,12 @@ const char* Highlighter::keywords(int set) const
 			"_LINE_ _FILE_ _FUNCTION_ _ROWCOUNT_ "
 			"PID HWND GAMEPID GAMEHWND GAMEHANDLE THREADID GAME WORLD INDEX "
 			"INFINITE MAXPET MAXITEM MAXCHAR MAXSKILL MAXPETSKILL MAXEQUIP MAXCHAT MAXDLG MAXENEMY MAXCARD MAXDIR MAXMAGIC "
+			"isonline isbattle isnormal item.space item.isfull pet.count team.count "
+			"map.name map.floor map.ground map.x map.y unit.count dialog.buttontext dialog.id dialog.unitid dialog.type dialog.button "
+			"battle.field battle.round "
+			"char.name char.fname char.modelid char.faceid char.lv char.hp char.maxhp char.hpp char.mp char.maxmp char.mpp char.exp "
+			"char.maxexp char.stone char.point char.vit char.str char.tgh char.dex char.atk char.def char.agi char.chasma char.turn "
+			"char.earth char.water char.fire char.wind char.battlepet char.ridepet char.mailpet"
 			/*lua original*/
 			"_G _VERSION "
 			"utf8.charpattern package.path package.preload package.searchers package.config package.cpath package.loaded math.huge math.maxinteger math.mininteger math.pi "

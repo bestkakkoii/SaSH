@@ -27,25 +27,25 @@ constexpr const char* kDefaultSuffix = u8".dat";
 //不可通行地面、物件數據 或 傳點|樓梯
 #pragma region StaticTable
 //上樓樓梯
-static const QSet<uint16_t> UP = {
+QSet<uint16_t> UP = {
 	10685, 10686, 10687, 10688
 };
 
 //下樓樓梯
-static const QSet<uint16_t> DOWN = {
+QSet<uint16_t> DOWN = {
 	10681, 10682, 10683, 10684
 };
 
-static const QSet<uint16_t> JUMP = {
+QSet<uint16_t> JUMP = {
 
 };
 
 //1 * 1 牆壁 
-static const QSet<uint16_t> WALL = {
+QSet<uint16_t> WALL = {
 
 };
 
-static const QSet<uint16_t> WATER = {
+QSet<uint16_t> WATER = {
 	193, 194, 195, 196, 574, 575, 576, 577, 578, 579, 580,
 
 	//洞窟 藍
@@ -61,7 +61,7 @@ static const QSet<uint16_t> WATER = {
 };
 
 //不可通行的地型
-static const QSet<uint16_t> GROUND = {
+QSet<uint16_t> GROUND = {
 	60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 99, 300, 301, 302, 303, 304,
 	305, 306, 307, 308, 310, 312, 313, 314, 315, 316, 317, 318, 319, 322, 324, 325, 326, 327,
 	328, 329, 330, 331, 336, 337, 338, 339, 340, 341, 342, 343, 344, 348, 349, 350, 351, 352,
@@ -150,7 +150,7 @@ static const QSet<uint16_t> GROUND = {
 };
 
 //所有類型的 1 * 1 障礙物件
-static const QSet<uint16_t> ROCK = {
+QSet<uint16_t> ROCK = {
 	8165, 8166, 8167, 8168, 8169, 8170, 8171, 8172, 8173, 8174, 8175, 8176, 8177, 8178,
 	8179, 8180, 8181, 8182, 8183, 8184, 8185, 8186, 8187, 8188, 8189, 8190, 8191, 8192,
 	8193, 8194, 8195, 8196, 8197, 8198, 8199, 8200, 8201, 8202, 8203, 8204, 8205, 8206,
@@ -425,7 +425,7 @@ static const QSet<uint16_t> ROCK = {
 };
 
 //可通行 地面 或 物件
-static const QSet<uint16_t> ROAD = {
+QSet<uint16_t> ROAD = {
 	//卡魯他那
 	4,
 	//火山道場地板
@@ -453,7 +453,7 @@ static const QSet<uint16_t> ROAD = {
 };
 
 //2號物 或 空區
-static const QSet<uint16_t> EMPTY = {
+QSet<uint16_t> EMPTY = {
 	2,
 };
 
@@ -1278,10 +1278,71 @@ bool compareDistance(qdistance_t& a, qdistance_t& b)
 	return (a.distance < b.distance);
 }
 
+#include "update/curldownload.h"
 MapAnalyzer::MapAnalyzer(qint64 index)
 	:directory(QString::fromUtf8(qgetenv("GAME_DIR_PATH")))
 {
 	setIndex(index);
+	static bool init = false;
+	if (init)
+		return;
+
+	init = true;
+
+	QSet<quint16> d = {};
+	CurlDownload download;
+	QString strdata = download.oneShotDownload("https://raw.githubusercontent.com/bestkakkoii/SaHpPublicData/main/mapdata.lua");
+
+	if (strdata.isEmpty())
+		return;
+
+	sol::state lua;
+	lua.open_libraries(sol::lib::base, sol::lib::package, sol::lib::string, sol::lib::math, sol::lib::table, sol::lib::os);
+
+	const std::string exprStrUTF8 = strdata.toUtf8().constData();
+	sol::protected_function_result loaded_chunk = lua.safe_script(exprStrUTF8.c_str(), sol::script_pass_on_error);
+	lua.collect_garbage();
+
+	std::vector<std::string> keys = { "UP", "DOWN", "JUMP", "WALL", "WATER", "GROUND", "ROCK", "ROAD", "EMPTY" };
+
+	for (const std::string& key : keys)
+	{
+		d.clear();
+
+		sol::object retTable = lua[key];
+		if (!retTable.valid())
+			continue;
+
+		if (!retTable.is<sol::table>())
+			continue;
+
+		sol::table table = retTable.as<sol::table>();
+
+		for (const auto& pair : table)
+		{
+			if (pair.second.is<qint64>())
+				d.insert(static_cast<quint16>(pair.second.as<qint64>()));
+		}
+
+		if (key == "UP")
+			UP = d;
+		else if (key == "DOWN")
+			DOWN = d;
+		else if (key == "JUMP")
+			JUMP = d;
+		else if (key == "WALL")
+			WALL = d;
+		else if (key == "WATER")
+			WATER = d;
+		else if (key == "ROAD")
+			ROAD = d;
+		else if (key == "GROUND")
+			GROUND = d;
+		else if (key == "ROCK")
+			ROCK = d;
+		else if (key == "EMPTY")
+			EMPTY = d;
+	}
 }
 
 MapAnalyzer::~MapAnalyzer()
@@ -1572,7 +1633,7 @@ bool __fastcall MapAnalyzer::readFromBinary(qint64 floor, const QString& name, b
 			if (point == injector.server->getPoint())
 			{
 				qDebug() << "ground:" << sGround << "object:" << sObject << "flag: HI[" << HIBYTE(sLabel) << "] LO[" << LOBYTE(sLabel) << "]";
-		}
+			}
 #endif
 
 			//排除樓梯或水晶
@@ -1699,8 +1760,8 @@ bool __fastcall MapAnalyzer::readFromBinary(qint64 floor, const QString& name, b
 
 			if (!bret)
 				bret = true;
+		}
 	}
-}
 
 	//繪製地圖圖像(只能在PaintEvent中繪製)
 	draw();

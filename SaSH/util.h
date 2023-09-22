@@ -235,7 +235,17 @@ namespace util
 		kSelectTeammate3 = 0x4000,    // 隊3 (Teammate 3)
 		kSelectTeammate3Pet = 0x8000, // 隊3寵 (Teammate 3's pet)
 		kSelectTeammate4 = 0x10000,   // 隊4 (Teammate 4)
-		kSelectTeammate4Pet = 0x20000 // 隊4寵 (Teammate 4's pet)
+		kSelectTeammate4Pet = 0x20000,// 隊4寵 (Teammate 4's pet)
+		kSelectEnemy1 = 0x40000,      // 敵1 (Enemy 1)
+		kSelectEnemy2 = 0x80000,      // 敵1寵 (Enemy2)
+		kSelectEnemy3 = 0x100000,     // 敵3 (Enemy 3)
+		kSelectEnemy4 = 0x200000,     // 敵4 (Enemy 4)
+		kSelectEnemy5 = 0x400000,     // 敵5 (Enemy 5)
+		kSelectEnemy6 = 0x800000,     // 敵6 (Enemy 6)
+		kSelectEnemy7 = 0x1000000,    // 敵7 (Enemy 7)
+		kSelectEnemy8 = 0x2000000,    // 敵8 (Enemy 8)
+		kSelectEnemy9 = 0x4000000,    // 敵9 (Enemy 9)
+		kSelectEnemy10 = 0x8000000,   // 敵10 (Enemy 10)
 	};
 
 	enum UnLoginStatus
@@ -2180,7 +2190,7 @@ namespace util
 #else
 			return false;
 #endif
-		}
+	}
 
 		if (pcontent != nullptr)
 		{
@@ -2189,7 +2199,7 @@ namespace util
 		}
 
 		return false;
-	}
+}
 
 	void sortWindows(const QVector<HWND>& windowList, bool alignLeft);
 

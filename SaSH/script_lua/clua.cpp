@@ -766,6 +766,16 @@ void CLua::open_syslibs(sol::state& lua)
 	lua.set_function("dbclick", &CLuaSystem::leftdoubleclick, &luaSystem_);
 	lua.set_function("dragto", &CLuaSystem::mousedragto, &luaSystem_);
 
+	lua.new_usertype<QElapsedTimer>("Timer",
+		sol::call_constructor,
+		sol::constructors<QElapsedTimer()>(),
+
+		"start", &QElapsedTimer::start,
+		"restart", &QElapsedTimer::restart,
+		"expired", &QElapsedTimer::hasExpired,
+		"get", &QElapsedTimer::elapsed
+	);
+
 	lua.new_usertype<CLuaSystem>("SystemClass",
 		sol::call_constructor,
 		sol::constructors<CLuaSystem()>(),

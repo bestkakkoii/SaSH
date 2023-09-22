@@ -191,6 +191,8 @@ enum InterfaceMessage
 	kSortWindow,		// kInterfaceMessage + 10
 	kThumbnail,			// kInterfaceMessage + 11
 	kOpenNewWindow,		// kInterfaceMessage + 12
+	kGetGamePid,		// kInterfaceMessage + 13
+	kGetGameHwnd, 	    // kInterfaceMessage + 14
 };
 
 enum InterfaceWindowType
@@ -592,10 +594,31 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 	}
 	case InterfaceMessage::kOpenNewWindow:
 	{
+		*result = 0;
 		MainForm* pMainForm = createNewWindow(msg->wParam);
 		if (pMainForm != nullptr)
 			*result = static_cast<long>(pMainForm->winId());
 
+		return true;
+	}
+	case InterfaceMessage::kGetGamePid:
+	{
+		*result = 0;
+		Injector& injector = Injector::getInstance(currentIndex);
+		if (injector.server.isNull())
+			return true;
+
+		*result = injector.getProcessId();
+		return true;
+	}
+	case InterfaceMessage::kGetGameHwnd:
+	{
+		*result = 0;
+		Injector& injector = Injector::getInstance(currentIndex);
+		if (injector.server.isNull())
+			return true;
+
+		*result = reinterpret_cast<qint64>(injector.getProcessWindow());
 		return true;
 	}
 	default:

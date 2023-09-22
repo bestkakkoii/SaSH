@@ -580,6 +580,8 @@ private:
 
 	Lexer lexer_;
 
+	QHash<quint64, QSharedPointer<QElapsedTimer>> timerMap_;
+
 	QString scriptFileName_;
 	bool isPrivate_ = false;
 
