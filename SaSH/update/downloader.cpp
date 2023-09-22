@@ -67,7 +67,6 @@ constexpr const char* sz7zDLL_URL = "https://www.lovesa.cc/SaSH/update/7z.dll";
 constexpr const char* doc_URL = "https://gitee.com/Bestkakkoii/sash/wikis/pages/export?type=markdown&doc_id=4046472";
 constexpr const char* SHA512_7ZEXE = "b46137ff657348f40a74bb63b93c0662bab69ea05f3ef420ea76e6cebb1a3c865194516785c457faa8b819a52c570996fbcfd8a420db83aef7f6136b66412f32";
 constexpr const char* SHA512_7ZDLL = "908060f90cfe88aee09c89b37421bc8d755bfc3a9b9539573188d00066fb074c2ef5ca882b8eacc8e15c62efab10f21e0ee09d07e4990c831f8e79a1ff48ff9b";
-constexpr const char* kBackupfileNameFormat = "sash_yyyyMMdd";
 constexpr const char* kBackupfileName1 = "sash_backup_%1.7z";
 constexpr const char* kBackupfileName2 = "sash_backup_%1_%2.7z";
 constexpr const char* kBackupExecuteFile = "SaSH.exe";
@@ -236,7 +235,10 @@ Downloader::Downloader(QWidget* parent)
 
 	//install font
 	QFontDatabase::addApplicationFont(util::applicationDirPath() + "/JoysticMonospace.ttf");
-	QFont font("JoysticMonospace", 9);
+
+	QFont font = util::getFont();
+	font.setFamily("JoysticMonospace");
+	font.setPointSize(9);
 	setFont(font);
 
 	QGraphicsDropShadowEffect* shadowEffect = new QGraphicsDropShadowEffect(ui.widget);
@@ -419,26 +421,6 @@ void Downloader::resetProgress(qint64 value)
 		g_vProgressBar[j]->setMaximum(100);
 		g_vProgressBar[j]->setValue(value);
 		QCoreApplication::processEvents();
-	}
-}
-
-void CreateAndRunBat(const QString& path, const QString& data)
-{
-	const QString batfile = QString("%1/%2.bat").arg(path).arg(QDateTime::currentDateTime().toString(kBackupfileNameFormat));
-	QFile file(batfile);
-	if (file.open(QIODevice::WriteOnly | QIODevice::Text | QIODevice::Truncate))
-	{
-		QTextStream out(&file);
-#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
-		out.setCodec(util::DEFAULT_CODEPAGE);
-#else
-		out.setEncoding(QStringConverter::Utf8);
-#endif
-		out.setGenerateByteOrderMark(true);
-		out << data;
-		file.flush();
-		file.close();
-		ShellExecuteW(NULL, L"open", (LPCWSTR)batfile.utf16(), NULL, NULL, SW_HIDE);
 	}
 }
 
@@ -662,7 +644,7 @@ void Downloader::overwriteCurrentExecutable()
 	bat += QString("Rd /s /q \"%1\"\r\n").arg(rcPath_);
 	bat += "del %0";
 	bat += "exit\r\n";
-	CreateAndRunBat(szSysTmpDir_, bat);
+	util::asyncRunBat(szSysTmpDir_, bat);
 
 	{
 		util::Config config(qgetenv("JSON_PATH"));

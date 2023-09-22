@@ -834,21 +834,12 @@ void Interpreter::openLibsBIG5()
 	registerFunction(u8"發包", &Interpreter::send);
 
 	//check
-	registerFunction(u8"任務狀態", &Interpreter::ifdaily);
-	registerFunction(u8"戰鬥中", &Interpreter::ifbattle);
-	registerFunction(u8"平時中", &Interpreter::ifnormal);
-	registerFunction(u8"在線中", &Interpreter::ifonline);
-	registerFunction(u8"查坐標", &Interpreter::ifpos);
-	registerFunction(u8"查座標", &Interpreter::ifpos);
+	registerFunction(u8"任務狀態", &Interpreter::checkdaily);
 	registerFunction(u8"地圖", &Interpreter::waitmap);
-	registerFunction(u8"地圖快判", &Interpreter::ifmap);
 	registerFunction(u8"對話", &Interpreter::waitdlg);
-	registerFunction(u8"看見", &Interpreter::checkunit);
 	registerFunction(u8"聽見", &Interpreter::waitsay);
-
 	registerFunction(u8"寵物有", &Interpreter::waitpet);
 	registerFunction(u8"道具", &Interpreter::waititem);
-	registerFunction(u8"背包滿", &Interpreter::ifitemfull);
 	//check-group
 	registerFunction(u8"組隊有", &Interpreter::waitteam);
 
@@ -940,21 +931,13 @@ void Interpreter::openLibsGB2312()
 	registerFunction(u8"发包", &Interpreter::send);
 
 	//check
-	registerFunction(u8"任务状态", &Interpreter::ifdaily);
-	registerFunction(u8"战斗中", &Interpreter::ifbattle);
-	registerFunction(u8"平时中", &Interpreter::ifnormal);
-	registerFunction(u8"在线中", &Interpreter::ifonline);
-	registerFunction(u8"查坐标", &Interpreter::ifpos);
-	registerFunction(u8"查座标", &Interpreter::ifpos);
+	registerFunction(u8"任务状态", &Interpreter::checkdaily);
 	registerFunction(u8"地图", &Interpreter::waitmap);
-	registerFunction(u8"地图快判", &Interpreter::ifmap);
 	registerFunction(u8"对话", &Interpreter::waitdlg);
-	registerFunction(u8"看见", &Interpreter::checkunit);
 	registerFunction(u8"听见", &Interpreter::waitsay);
 
 	registerFunction(u8"宠物有", &Interpreter::waitpet);
 	registerFunction(u8"道具", &Interpreter::waititem);
-	registerFunction(u8"背包满", &Interpreter::ifitemfull);
 	//check-group
 	registerFunction(u8"组队有", &Interpreter::waitteam);
 
@@ -1048,13 +1031,7 @@ void Interpreter::openLibsUTF8()
 	registerFunction(u8"send", &Interpreter::send);
 
 	//check
-	registerFunction(u8"ifdaily", &Interpreter::ifdaily);
-	registerFunction(u8"ifbattle", &Interpreter::ifbattle);
-	registerFunction(u8"ifnormal", &Interpreter::ifnormal);
-	registerFunction(u8"ifonline", &Interpreter::ifonline);
-	registerFunction(u8"ifpos", &Interpreter::ifpos);
-	registerFunction(u8"ifmap", &Interpreter::ifmap);
-	registerFunction(u8"ifitemfull", &Interpreter::ifitemfull);
+	registerFunction(u8"checkdaily", &Interpreter::checkdaily);
 
 	registerFunction(u8"waitmap", &Interpreter::waitmap);
 	registerFunction(u8"waitdlg", &Interpreter::waitdlg);

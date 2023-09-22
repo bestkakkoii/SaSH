@@ -41,9 +41,6 @@ static const QHash<QString, RESERVE> keywords = {
 	{ u8"暫停", TK_PAUSE },
 	{ u8"功能", TK_FUNCTION, },
 	{ u8"標記", TK_LABEL, },
-	{ u8"變量", TK_VARDECL },
-	{ u8"變量移除", TK_VARFREE },
-	{ u8"變量清空", TK_VARCLR },
 	{ u8"格式化", TK_FORMAT },
 	{ u8"如果", TK_IF },
 	{ u8"遍歷", TK_FOR },
@@ -73,17 +70,11 @@ static const QHash<QString, RESERVE> keywords = {
 	{ u8"發包", TK_CMD },
 
 	//check info
-	{ u8"戰鬥中", TK_CMD },
-	{ u8"在線中", TK_CMD },
-	{ u8"查坐標", TK_CMD },
-	{ u8"查座標", TK_CMD },
 	{ u8"地圖", TK_CMD },
-	{ u8"地圖快判", TK_CMD },
 	{ u8"對話", TK_CMD },
 	{ u8"看見", TK_CMD },
 	{ u8"聽見", TK_CMD },
 	{ u8"道具", TK_CMD },
-	{ u8"背包滿", TK_CMD },
 	{ u8"寵物有", TK_CMD },
 	{ u8"任務狀態", TK_CMD },
 
@@ -156,9 +147,6 @@ static const QHash<QString, RESERVE> keywords = {
 	{ u8"暂停", TK_PAUSE },
 	{ u8"功能", TK_FUNCTION, },
 	{ u8"标记", TK_LABEL, },
-	{ u8"变量", TK_VARDECL },
-	{ u8"变量移除", TK_VARFREE },
-	{ u8"变量清空", TK_VARCLR },
 	{ u8"格式化", TK_FORMAT },
 	{ u8"如果", TK_IF },
 	{ u8"遍历", TK_FOR },
@@ -188,17 +176,11 @@ static const QHash<QString, RESERVE> keywords = {
 	{ u8"发包", TK_CMD },
 
 	//check info
-	{ u8"战斗中", TK_CMD },
-	{ u8"在线中", TK_CMD },
-	{ u8"查坐标", TK_CMD },
-	{ u8"查座标", TK_CMD },
 	{ u8"地图", TK_CMD },
-	{ u8"地图快判", TK_CMD },
 	{ u8"对话", TK_CMD },
 	{ u8"看见", TK_CMD },
 	{ u8"听见", TK_CMD },
 	{ u8"道具", TK_CMD },
-	{ u8"背包满", TK_CMD },
 	{ u8"宠物有", TK_CMD },
 	{ u8"任务状态", TK_CMD },
 
@@ -273,10 +255,7 @@ static const QHash<QString, RESERVE> keywords = {
 	{ u8"pause", TK_PAUSE },
 	{ u8"function", TK_FUNCTION, },
 	{ u8"label", TK_LABEL, },
-	{ u8"var", TK_VARDECL },
 	{ u8"local", TK_LOCAL },
-	{ u8"delete", TK_VARFREE },
-	{ u8"releaseall", TK_VARCLR },
 	{ u8"format", TK_FORMAT },
 	{ u8"if", TK_IF },
 	{ u8"for", TK_FOR },
@@ -308,13 +287,7 @@ static const QHash<QString, RESERVE> keywords = {
 	{ u8"send", TK_CMD },
 
 	//check info
-	{ u8"ifbattle", TK_CMD },
-	{ u8"ifnormal", TK_CMD },
-	{ u8"ifonline", TK_CMD },
-	{ u8"ifpos", TK_CMD },
-	{ u8"ifmap", TK_CMD },
-	{ u8"ifitemfull", TK_CMD },
-	{ u8"ifdaily", TK_CMD },
+	{ u8"checkdaily", TK_CMD },
 
 	{ u8"waitmap", TK_CMD },
 	{ u8"waitdlg", TK_CMD },
@@ -1889,15 +1862,6 @@ void Lexer::tokenized(qint64 currentLine, const QString& line, TokenMap* ptoken,
 
 			if (match.hasMatch())
 			{
-				//QString cmd = "if";
-				//QString expr = match.captured(1).simplified();//表達式
-				//QString jmpExpr = match.captured(2).simplified();//跳轉表達式
-				//createToken(pos, TK_IF, cmd, cmd, ptoken);
-				//createToken(pos + 1, TK_EXPR, expr, expr, ptoken);
-				//if (isInteger(jmpExpr))
-				//	createToken(pos + 2, TK_INT, jmpExpr.toLongLong(), jmpExpr, ptoken);
-				//else
-				//	createToken(pos + 2, TK_STRING, jmpExpr, jmpExpr, ptoken);
 				token = "if";
 				raw = raw.mid(2).trimmed();
 				type = TK_IF;

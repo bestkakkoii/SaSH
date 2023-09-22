@@ -13,7 +13,7 @@ public:
 		setAttribute(Qt::WA_StyledBackground);
 		setStyleSheet(R"(
 			QTableWidget {
-				font-size:11px;
+				font-size:12px;
 			} 
 
 			QTableView::item:selected {
@@ -29,7 +29,6 @@ public:
 		//set auto resize to form size
 		horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
 		verticalHeader()->setSectionResizeMode(QHeaderView::Fixed);
-
 
 		verticalHeader()->setDefaultSectionSize(12);
 		horizontalHeader()->setStretchLastSection(true);

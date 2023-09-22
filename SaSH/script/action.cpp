@@ -323,12 +323,25 @@ qint64 Interpreter::dropitem(qint64 currentIndex, qint64 currentLine, const Toke
 
 	checkString(TK, 2, &memo);
 	if (tempName.isEmpty() && memo.isEmpty() && itemIndex == -1)
-		return Parser::kArgError + 1ll;
-	else if (tempName.isEmpty() && memo.isEmpty()
-		&& ((itemIndex >= 1 && itemIndex <= (MAX_ITEM - CHAR_EQUIPPLACENUM)) || (itemIndex >= 101 && itemIndex <= (CHAR_EQUIPPLACENUM + 100))))
+	{
+		injector.server->dropItem(-1);
+		return Parser::kNoChange;
+	}
+
+	if (tempName == kFuzzyPrefix)
+	{
+		for (qint64 i = CHAR_EQUIPPLACENUM; i < MAX_ITEM; ++i)
+			injector.server->dropItem(i);
+	}
+
+	if (tempName.isEmpty() && memo.isEmpty()
+		&& ((itemIndex >= 1 && itemIndex <= (MAX_ITEM - CHAR_EQUIPPLACENUM)) || (itemIndex >= 101 && itemIndex <= static_cast<qint64>(CHAR_EQUIPPLACENUM + 100))))
 	{
 		if (itemIndex < 100)
+		{
 			--itemIndex;
+			itemIndex += CHAR_EQUIPPLACENUM;
+		}
 		else
 			itemIndex -= 100;
 

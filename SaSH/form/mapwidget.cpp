@@ -37,7 +37,7 @@ MapWidget::MapWidget(qint64 index, QWidget* parent)
 	ui.setupUi(this);
 	setAttribute(Qt::WA_DeleteOnClose);
 	setIndex(index);
-
+	setAttribute(Qt::WA_StyledBackground);
 	setWindowTitle(QString("[%1]").arg(index));
 	//setStyleSheet("background-color:rgb(0,0,1)");
 

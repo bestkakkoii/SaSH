@@ -293,48 +293,19 @@ LONG CALLBACK MinidumpCallback(PEXCEPTION_POINTERS pException)
 }
 #endif
 
-void fontInitialize(const QString& currentWorkPath, QApplication& a)
+void fontInitialize(const QString& currentWorkPath)
 {
 	auto installFont = [currentWorkPath](const QString& fontName)->qint64
 	{
-		QString fontFilePath = currentWorkPath + "/" + fontName;
-
-		qint64 fontId = QFontDatabase::addApplicationFont(fontFilePath);
-		return fontId;
+		const QString fontFilePath = currentWorkPath + "/" + fontName;
+		return QFontDatabase::addApplicationFont(fontFilePath);
 	};
 
 	installFont("JoysticMonospace.ttf");
-	qint64 fontid = installFont("YaHei Consolas Hybrid 1.12.ttf");
-	QFont defaultFont;
-	if (fontid == -1)
-	{
-		UINT acp = GetACP();
+	installFont("YaHei Consolas Hybrid 1.12.ttf");
 
-		if (acp == 950)
-		{
-			defaultFont = QFont(u8"PMingLiU", 12, QFont::Normal);
-		}
-		else if (acp == 936)
-		{
-			defaultFont = QFont("SimSun", 12, QFont::Normal);
-		}
-		else
-		{
-			defaultFont = QFont("Arial", 12, QFont::Normal);
-		}
-	}
-	else
-	{
-		defaultFont = QFont("PMingLiU", 12, QFont::Normal);
-	}
-
-	// Font size adjustment
-	constexpr qreal DEFAULT_DPI = 96.0;
-	qreal dpiX = QApplication::primaryScreen()->logicalDotsPerInch();
-	qreal fontSize = dpiX / DEFAULT_DPI;
-	QFont font(defaultFont);
-	font.setPointSize(font.pointSize() * fontSize - 3);
-	a.setFont(font);
+	QFont font = util::getFont();
+	qApp->setFont(font);
 }
 
 void registryInitialize()
@@ -387,6 +358,18 @@ int main(int argc, char* argv[])
 	QSurfaceFormat format;
 	format.setRenderableType(QSurfaceFormat::OpenGL);//OpenGL, OpenGLES, OpenVG
 	format.setSwapBehavior(QSurfaceFormat::TripleBuffer);
+	format.setSamples(8);
+	format.setRedBufferSize(32);
+	format.setGreenBufferSize(32);
+	format.setBlueBufferSize(32);
+	//format.setAlphaBufferSize(32);
+	format.setDepthBufferSize(24);
+	format.setStencilBufferSize(8);
+	format.setColorSpace(QSurfaceFormat::ColorSpace::sRGBColorSpace);
+	format.setOption(QSurfaceFormat::StereoBuffers);
+	format.setProfile(QSurfaceFormat::OpenGLContextProfile::CompatibilityProfile);
+	format.setStereo(true);
+	format.setSwapInterval(1);
 	QSurfaceFormat::setDefaultFormat(format);
 
 	//////// 以上必須在 QApplication a(argc, argv); 之前設置否則無效 ////////
@@ -397,6 +380,7 @@ int main(int argc, char* argv[])
 	//////// 以下必須在 QApplication a(argc, argv); 之後設置否則會崩潰 ////////
 
 	a.setStyle(QStyleFactory::create("windows"));
+	a.setDesktopSettingsAware(false);
 
 	//QOperatingSystemVersion version = QOperatingSystemVersion::current();
 	//if (version <= QOperatingSystemVersion::Windows7)
@@ -440,7 +424,7 @@ int main(int argc, char* argv[])
 		dirset.mkpath(".");
 
 	//字體設置
-	fontInitialize(currentWorkPath, a);
+	fontInitialize(currentWorkPath);
 
 	//註冊表設置
 	registryInitialize();

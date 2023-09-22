@@ -1909,6 +1909,11 @@ bool Server::findUnit(const QString& nameSrc, qint64 type, mapunit_t* punit, con
 	return false;
 }
 
+QString Server::getGround()
+{
+	return mapAnalyzer->getGround(nowFloor, nowFloorName, getPoint());
+}
+
 //查找非滿血自己寵物或隊友的索引 (主要用於自動吃肉)
 qint64 Server::findInjuriedAllie()
 {
@@ -4522,9 +4527,6 @@ void Server::sortItem(bool deepSort)
 //丟棄道具
 void Server::dropItem(qint64 index)
 {
-	if (index < CHAR_EQUIPPLACENUM || index >= MAX_ITEM)
-		return;
-
 	if (!getOnlineFlag())
 		return;
 
@@ -4532,10 +4534,28 @@ void Server::dropItem(qint64 index)
 		return;
 
 	PC pc = getPC();
+
+	if (index == -1)
+	{
+		for (qint64 i = CHAR_EQUIPPLACENUM; i < MAX_ITEM; ++i)
+		{
+			if (pc.item[i].name.isEmpty() || !pc.item[i].valid)
+				continue;
+
+			for (qint64 j = 0; j < pc.item[i].stack; ++j)
+				lssproto_DI_send(getPoint(), i);
+			++IS_WAITOFR_ITEM_CHANGE_PACKET;
+		}
+	}
+
+	if (index < 0 || index >= MAX_ITEM)
+		return;
+
 	if (pc.item[index].name.isEmpty() || !pc.item[index].valid)
 		return;
 
-	lssproto_DI_send(getPoint(), index);
+	for (qint64 j = 0; j < pc.item[index].stack; ++j)
+		lssproto_DI_send(getPoint(), index);
 	++IS_WAITOFR_ITEM_CHANGE_PACKET;
 }
 
@@ -6387,14 +6407,23 @@ void Server::handlePlayerBattleLogics(const battledata_t& bt)
 			}
 		}
 
-		if (!ok && bt.objects.at(battleCharCurrentPos + 5).maxHp > 0)
+		if (checkAND(targetFlags, kSelectPet))
 		{
-			if (checkAND(targetFlags, kSelectPet))
+			if (!ok && bt.objects.at(battleCharCurrentPos + 5).maxHp > 0)
 			{
 				if (bt.objects.at(battleCharCurrentPos + 5).hpPercent <= petPercent && bt.objects.at(battleCharCurrentPos + 5).hp > 0 &&
 					!checkAND(bt.objects.at(battleCharCurrentPos + 5).status, BC_FLG_DEAD) && !checkAND(bt.objects.at(battleCharCurrentPos + 5).status, BC_FLG_HIDE))
 				{
 					tempTarget = battleCharCurrentPos + 5;
+					ok = true;
+				}
+			}
+			else if (!ok && bt.objects.at(battleCharCurrentPos).maxHp > 0)
+			{
+				if (bt.objects.at(battleCharCurrentPos).rideHpPercent <= petPercent && bt.objects.at(battleCharCurrentPos).rideHp > 0 &&
+					!checkAND(bt.objects.at(battleCharCurrentPos).status, BC_FLG_DEAD) && !checkAND(bt.objects.at(battleCharCurrentPos).status, BC_FLG_HIDE))
+				{
+					tempTarget = battleCharCurrentPos;
 					ok = true;
 				}
 			}

@@ -2464,7 +2464,7 @@ margin-right:0px;
           <property name="currentIndex">
            <number>0</number>
           </property>
-          <widget class="QWidget" name="tab_6">
+          <widget class="OpenGLWidget" name="tab_6">
            <attribute name="title">
             <string>custom</string>
            </attribute>
@@ -2658,7 +2658,7 @@ color: rgb(208, 208, 208);
             </item>
            </layout>
           </widget>
-          <widget class="QWidget" name="tab_3">
+          <widget class="OpenGLWidget" name="tab_3">
            <property name="sizePolicy">
             <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
              <horstretch>0</horstretch>
@@ -2858,7 +2858,7 @@ color: rgb(208, 208, 208);
             </item>
            </layout>
           </widget>
-          <widget class="QWidget" name="tab_7">
+          <widget class="OpenGLWidget" name="tab_7">
            <attribute name="title">
             <string>callstack</string>
            </attribute>
@@ -3048,7 +3048,7 @@ color: rgb(208, 208, 208);
             </item>
            </layout>
           </widget>
-          <widget class="QWidget" name="tab_8">
+          <widget class="OpenGLWidget" name="tab_8">
            <attribute name="title">
             <string>jmpstack</string>
            </attribute>

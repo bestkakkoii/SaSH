@@ -135,6 +135,8 @@ void createMenu(QMenuBar* pMenuBar)
 		{ "", "", Qt::Key_unknown },
 		{ QObject::tr("close"), "actionClose", Qt::ALT | Qt::Key_F4 },
 		{ QObject::tr("close game"), "actionCloseGame", Qt::ALT | Qt::Key_F4 },
+		{ "", "", Qt::Key_unknown },
+		{ QObject::tr("closeAll"), "actionCloseAll", Qt::Key_unknown },
 	};
 
 	const QVector<std::tuple<QString, QString, qint64>> otherTable = {
@@ -808,7 +810,7 @@ MainForm::MainForm(qint64 index, QWidget* parent)
 
 	emit signalDispatcher.updateStatusLabelTextChanged(util::kLabelStatusNotOpen);
 
-	onLoadHashSettings(util::applicationDirPath() + "/default.json", true);
+	onLoadHashSettings(util::applicationDirPath() + "/settings/default.json", true);
 }
 
 MainForm::~MainForm()
@@ -829,7 +831,7 @@ void MainForm::showEvent(QShowEvent* e)
 
 void MainForm::closeEvent(QCloseEvent* e)
 {
-	onSaveHashSettings(util::applicationDirPath() + "/backup.json", true);
+	onSaveHashSettings(util::applicationDirPath() + "/settings/backup.json", true);
 
 	util::FormSettingManager formManager(this);
 	formManager.saveSettings();
@@ -922,6 +924,16 @@ void MainForm::onMenuActionTriggered()
 	if (actionName == "actionCloseGame")
 	{
 		Injector::getInstance(currentIndex).close();
+		return;
+	}
+
+	if (actionName == "actionCloseAll")
+	{
+		QProcess kill;
+		qDebug() << QCoreApplication::applicationName();
+		kill.start("taskkill", QStringList() << "/f" << "/im" << QCoreApplication::applicationName() + ".exe");
+		kill.waitForFinished();
+		MINT::NtTerminateProcess(GetCurrentProcess(), 0);
 		return;
 	}
 

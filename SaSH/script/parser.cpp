@@ -72,6 +72,14 @@ void makeTable(sol::state& lua, const char* name, qint64 i)
 	}
 }
 
+void makeTable(sol::state& lua, const char* name)
+{
+	if (!lua[name].valid())
+		lua[name].get_or_create<sol::table>();
+	else
+		lua[name] = lua.create_table();
+}
+
 std::vector<std::string> Unique(const std::vector<std::string>& v)
 {
 	std::vector<std::string> result = v;
@@ -457,7 +465,6 @@ Parser::Parser(qint64 index)
 			insertGlobalVar("vret", result);
 			return result;
 		});
-
 
 	lua_.set_function("replace", [this](std::string ssrc, std::string sfrom, std::string sto, sol::object oisRex, sol::this_state s)->std::string
 		{
@@ -2357,7 +2364,7 @@ QVariantList& Parser::getArgsRef()
 }
 
 //表達式替換內容
-bool Parser::importVariablesToLua(const QString& expr)
+void Parser::importVariablesToLua(const QString& expr)
 {
 	sol::state& lua_ = clua_.getLua();
 	QVariantHash globalVars = getGlobalVars();
@@ -2390,7 +2397,7 @@ bool Parser::importVariablesToLua(const QString& expr)
 					sol::error err = loaded_chunk;
 					QString errStr = QString::fromUtf8(err.what());
 					handleError(kLuaError, errStr);
-					return false;
+					continue;
 				}
 			}
 		}
@@ -2428,24 +2435,22 @@ bool Parser::importVariablesToLua(const QString& expr)
 		luaLocalVarStringList.append(local);
 	}
 
-	return updateSysConstKeyword(expr);
+	updateSysConstKeyword(expr);
 }
 
 //根據表達式更新lua內的變量值
-bool Parser::updateSysConstKeyword(const QString& expr)
+void Parser::updateSysConstKeyword(const QString& expr)
 {
 	bool bret = false;
 	sol::state& lua_ = clua_.getLua();
 	if (expr.contains("_LINE_"))
 	{
 		lua_.set("_LINE_", getCurrentLine() + 1);
-		return true;
 	}
 
 	if (expr.contains("_FILE_"))
 	{
 		lua_.set("_FILE_", getScriptFileName().toUtf8().constData());
-		return true;
 	}
 
 	if (expr.contains("_FUNCTION_"))
@@ -2454,25 +2459,147 @@ bool Parser::updateSysConstKeyword(const QString& expr)
 			lua_.set("_FUNCTION_", callStack_.top().name.toUtf8().constData());
 		else
 			lua_.set("_FUNCTION_", sol::lua_nil);
-		return true;
+	}
+
+	if (expr.contains("PID"))
+	{
+		lua_.set("PID", static_cast<qint64>(_getpid()));
+	}
+
+	if (expr.contains("THREADID"))
+	{
+		lua_.set("THREADID", reinterpret_cast<qint64>(QThread::currentThreadId()));
+	}
+
+	if (expr.contains("INFINITE"))
+	{
+		lua_.set("INFINITE", std::numeric_limits<qint64>::max());
+	}
+	if (expr.contains("MAXTHREAD"))
+	{
+		lua_.set("MAXTHREAD", SASH_MAX_THREAD);
+	}
+	if (expr.contains("MAXCHAR"))
+	{
+		lua_.set("MAXCHAR", MAX_CHARACTER);
+	}
+	if (expr.contains("MAXDIR"))
+	{
+		lua_.set("MAXDIR", MAX_DIR);
+	}
+	if (expr.contains("MAXITEM"))
+	{
+		lua_.set("MAXITEM", MAX_ITEM - CHAR_EQUIPPLACENUM);
+	}
+	if (expr.contains("MAXEQUIP"))
+	{
+		lua_.set("MAXEQUIP", CHAR_EQUIPPLACENUM);
+	}
+	if (expr.contains("MAXCARD"))
+	{
+		lua_.set("MAXCARD", MAX_ADDRESS_BOOK);
+	}
+	if (expr.contains("MAXMAGIC"))
+	{
+		lua_.set("MAXMAGIC", MAX_MAGIC);
+	}
+	if (expr.contains("MAXSKILL"))
+	{
+		lua_.set("MAXSKILL", MAX_PROFESSION_SKILL);
+	}
+	if (expr.contains("MAXPET"))
+	{
+		lua_.set("MAXPET", MAX_PET);
+	}
+	if (expr.contains("MAXPETSKILL"))
+	{
+		lua_.set("MAXPETSKILL", MAX_SKILL);
+	}
+	if (expr.contains("MAXCHAT"))
+	{
+		lua_.set("MAXCHAT", MAX_CHAT_HISTORY);
+	}
+	if (expr.contains("MAXDLG"))
+	{
+		lua_.set("MAXDLG", MAX_DIALOG_LINE);
+	}
+	if (expr.contains("MAXENEMY"))
+	{
+		lua_.set("MAXENEMY", MAX_ENEMY);
 	}
 
 	qint64 currentIndex = getIndex();
+	if (lua_["_INDEX"].valid() && lua_["_INDEX"].is<qint64>())
+	{
+		qint64 tempIndex = lua_["_INDEX"].get<qint64>();
+
+		if (tempIndex >= 0 && tempIndex < SASH_MAX_THREAD)
+			currentIndex = tempIndex;
+	}
+
 	Injector& injector = Injector::getInstance(currentIndex);
+
+	if (expr.contains("HWND"))
+	{
+		lua_.set("HWND", reinterpret_cast<qint64>(injector.getParentWidget()));
+	}
+
+	if (expr.contains("GAMEPID"))
+	{
+		lua_.set("GAMEPID", injector.getProcessId());
+	}
+
+	if (expr.contains("GAMEHWND"))
+	{
+		lua_.set("GAMEPID", reinterpret_cast<qint64>(injector.getProcessWindow()));
+	}
+
+	if (expr.contains("GAMEHANDLE"))
+	{
+		lua_.set("GAMEHANDLE", reinterpret_cast<qint64>(injector.getProcess()));
+	}
+
+	if (expr.contains("INDEX"))
+	{
+		lua_.set("INDEX", injector.getIndex());
+	}
+
+
+	/////////////////////////////////////////////////////////////////////////////////////
 	if (injector.server.isNull())
-		return false;
+		return;
+
+	if (expr.contains("GAME"))
+	{
+		bret = true;
+		lua_.set("GAME", injector.server->getGameStatus());
+	}
+
+	if (expr.contains("WORLD"))
+	{
+		bret = true;
+		lua_.set("WORLD", injector.server->getWorldStatus());
+	}
+
+	if (expr.contains("isonline"))
+	{
+		lua_.set("isonline", injector.server->getOnlineFlag());
+	}
+
+	if (expr.contains("isbattle"))
+	{
+		lua_.set("isbattle", injector.server->getBattleFlag());
+	}
+
+	if (expr.contains("isnormal"))
+	{
+		lua_.set("isnormal", !injector.server->getBattleFlag());
+	}
 
 	//char\.(\w+)
 	if (expr.contains("char"))
 	{
-		bret = true;
-		if (!lua_["char"].valid())
-			lua_["char"] = lua_.create_table();
-		else
-		{
-			if (!lua_["char"].is<sol::table>())
-				lua_["char"] = lua_.create_table();
-		}
+		makeTable(lua_, "char");
 
 		PC _pc = injector.server->getPC();
 
@@ -2544,7 +2671,6 @@ bool Parser::updateSysConstKeyword(const QString& expr)
 	//pet\[(?:'([^']*)'|"([^ "]*)"|(\d+))\]\.(\w+)
 	if (expr.contains("pet"))
 	{
-		bret = true;
 		makeTable(lua_, "pet", MAX_PET);
 
 		const QHash<QString, PetState> hash = {
@@ -2613,14 +2739,7 @@ bool Parser::updateSysConstKeyword(const QString& expr)
 	//pet\.(\w+)
 	if (expr.contains("pet"))
 	{
-		bret = true;
-		if (!lua_["pet"].valid())
-			lua_["pet"] = lua_.create_table();
-		else
-		{
-			if (!lua_["pet"].is<sol::table>())
-				lua_["pet"] = lua_.create_table();
-		}
+		makeTable(lua_, "pet");
 
 		lua_["pet"]["count"] = injector.server->getPetSize();
 	}
@@ -2628,7 +2747,6 @@ bool Parser::updateSysConstKeyword(const QString& expr)
 	//item\[(\d+)\]\.(\w+)
 	if (expr.contains("item"))
 	{
-		bret = true;
 		makeTable(lua_, "item", MAX_ITEM);
 
 		injector.server->updateItemByMemory();
@@ -2642,14 +2760,6 @@ bool Parser::updateSysConstKeyword(const QString& expr)
 				index += 100;
 			else
 				index = index - CHAR_EQUIPPLACENUM;
-
-			if (!lua_["item"][index].valid())
-				lua_["item"][index] = lua_.create_table();
-			else
-			{
-				if (!lua_["item"][index].is<sol::table>())
-					lua_["item"][index] = lua_.create_table();
-			}
 
 			lua_["item"][index]["valid"] = item.valid;
 
@@ -2703,73 +2813,76 @@ bool Parser::updateSysConstKeyword(const QString& expr)
 			lua_["item"][index]["name2"] = item.name2.toUtf8().constData();
 		}
 
-		if (lua_["item"].is<sol::table>() && !lua_["item"]["sizeof"].valid())
+		if (lua_["item"].is<sol::table>())
 		{
 			sol::meta::unqualified_t<sol::table> item = lua_["item"];
-			item.set_function("count", [this, currentIndex](sol::object oitemnames, sol::object oitemmemos, sol::this_state s)->qint64
-				{
-					qint64 count = 0;
-					Injector& injector = Injector::getInstance(currentIndex);
-					if (injector.server.isNull())
-						return count;
 
-					QString itemnames;
-					if (oitemnames.is<std::string>())
-						itemnames = QString::fromUtf8(oitemnames.as<std::string>().c_str());
-					QString itemmemos;
-					if (oitemmemos.is<std::string>())
-						itemmemos = QString::fromUtf8(oitemmemos.as<std::string>().c_str());
-
-					if (itemnames.isEmpty() && itemmemos.isEmpty())
+			if (!item["count"].valid())
+				item.set_function("count", [this, currentIndex](sol::object oitemnames, sol::object oitemmemos, sol::object oincludeEequip, sol::this_state s)->qint64
 					{
-						insertGlobalVar("vret", 0);
+						qint64 count = 0;
+						Injector& injector = Injector::getInstance(currentIndex);
+						if (injector.server.isNull())
+							return count;
+
+						QString itemnames;
+						if (oitemnames.is<std::string>())
+							itemnames = QString::fromUtf8(oitemnames.as<std::string>().c_str());
+						QString itemmemos;
+						if (oitemmemos.is<std::string>())
+							itemmemos = QString::fromUtf8(oitemmemos.as<std::string>().c_str());
+
+						if (itemnames.isEmpty() && itemmemos.isEmpty())
+						{
+							insertGlobalVar("vret", 0);
+							return count;
+						}
+
+						bool includeEequip = true;
+						if (oitemmemos.is<bool>())
+							includeEequip = oincludeEequip.as<bool>();
+
+						QVector<qint64> itemIndexs;
+						if (!injector.server->getItemIndexsByName(itemnames, itemmemos, &itemIndexs))
+						{
+							insertGlobalVar("vret", 0);
+							return count;
+						}
+
+						qint64 size = itemIndexs.size();
+						PC pc = injector.server->getPC();
+						for (qint64 i = 0; i < size; ++i)
+						{
+							qint64 itemIndex = itemIndexs.at(i);
+							if (!includeEequip && i < CHAR_EQUIPPLACENUM)
+								continue;
+
+							ITEM item = pc.item[i];
+							if (item.valid)
+								count += item.stack;
+						}
+
+						insertGlobalVar("vret", count);
 						return count;
-					}
-
-					QVector<qint64> itemIndexs;
-					if (!injector.server->getItemIndexsByName(itemnames, itemmemos, &itemIndexs))
-					{
-						insertGlobalVar("vret", 0);
-						return count;
-					}
-
-					qint64 size = itemIndexs.size();
-					PC pc = injector.server->getPC();
-					for (qint64 i = 0; i < size; ++i)
-					{
-						qint64 itemIndex = itemIndexs.at(i);
-						ITEM item = pc.item[i];
-						if (item.valid)
-							count += item.stack;
-					}
-
-					insertGlobalVar("vret", count);
-					return count;
-				});
+					});
 		}
 	}
 
 	//item\.(\w+)
 	if (expr.contains("item"))
 	{
-		bret = true;
-		if (!lua_["item"].valid())
-			lua_["item"] = lua_.create_table();
-		else
-		{
-			if (!lua_["item"].is<sol::table>())
-				lua_["item"] = lua_.create_table();
-		}
+		makeTable(lua_, "item");
 
 		QVector<qint64> itemIndexs;
 		injector.server->getItemEmptySpotIndexs(&itemIndexs);
 		lua_["item"]["space"] = itemIndexs.size();
+
+		lua_["item"]["isfull"] = itemIndexs.size() == 0;
 	}
 
 	//team\[(?:'([^']*)'|"([^ "]*)"|(\d+))\]\.(\w+)
 	if (expr.contains("team"))
 	{
-		bret = true;
 		makeTable(lua_, "team", MAX_PARTY);
 
 		for (qint64 i = 0; i < MAX_PARTY; ++i)
@@ -2800,14 +2913,7 @@ bool Parser::updateSysConstKeyword(const QString& expr)
 	//team\.(\w+)
 	if (expr.contains("team"))
 	{
-		bret = true;
-		if (!lua_["team"].valid())
-			lua_["team"] = lua_.create_table();
-		else
-		{
-			if (!lua_["team"].is<sol::table>())
-				lua_["team"] = lua_.create_table();
-		}
+		makeTable(lua_, "team");
 
 		lua_["team"]["count"] = static_cast<qint64>(injector.server->getPartySize());
 	}
@@ -2815,14 +2921,7 @@ bool Parser::updateSysConstKeyword(const QString& expr)
 	//map\.(\w+)
 	if (expr.contains("map"))
 	{
-		bret = true;
-		if (!lua_["map"].valid())
-			lua_["map"] = lua_.create_table();
-		else
-		{
-			if (!lua_["map"].is<sol::table>())
-				lua_["map"] = lua_.create_table();
-		}
+		makeTable(lua_, "map");
 
 		lua_["map"]["name"] = injector.server->nowFloorName.toUtf8().constData();
 
@@ -2831,13 +2930,82 @@ bool Parser::updateSysConstKeyword(const QString& expr)
 		lua_["map"]["x"] = injector.server->getPoint().x();
 
 		lua_["map"]["y"] = injector.server->getPoint().y();
+
+		if (expr.contains("ground"))
+			lua_["map"]["ground"] = injector.server->getGround().toUtf8().constData();
+
+		sol::meta::unqualified_t<sol::table> map = lua_["map"];
+
+		if (!map["isxy"].valid())
+			map.set_function("isxy", [this, currentIndex](qint64 x, qint64 y, sol::this_state s)->bool
+				{
+					Injector& injector = Injector::getInstance(currentIndex);
+					if (injector.server.isNull())
+						return false;
+					QPoint pos = injector.server->getPoint();
+					return pos == QPoint(x, y);
+				});
+
+		if (!map["isrect"].valid())
+			map.set_function("isrect", [this, currentIndex](qint64 x1, qint64 y1, qint64 x2, qint64 y2, sol::this_state s)->bool
+				{
+					Injector& injector = Injector::getInstance(currentIndex);
+					if (injector.server.isNull())
+						return false;
+					QPoint pos = injector.server->getPoint();
+					return pos.x() >= x1 && pos.x() <= x2 && pos.y() >= y1 && pos.y() <= y2;
+
+				});
+
+		if (!map["ismap"].valid())
+			map.set_function("ismap", [this, currentIndex](sol::object omap, sol::this_state s)->bool
+				{
+					Injector& injector = Injector::getInstance(currentIndex);
+					if (injector.server.isNull())
+						return false;
+
+					if (omap.is<qint64>())
+					{
+						return injector.server->nowFloor == omap.as<qint64>();
+					}
+
+					QString mapNames = QString::fromUtf8(omap.as<std::string>().c_str());
+					QStringList mapNameList = mapNames.split(util::rexOR, Qt::SkipEmptyParts);
+					bool ok = false;
+					bool isExact = true;
+					qint64 floor = 0;
+					QString newName;
+					for (const QString& it : mapNameList)
+					{
+						floor = it.toLongLong(&ok);
+						if (ok && injector.server->nowFloor == floor)
+							return true;
+
+						newName = it;
+						if (newName.startsWith(kFuzzyPrefix))
+						{
+							newName = newName.mid(1);
+							isExact = false;
+						}
+
+						if (newName.isEmpty())
+							continue;
+
+						if (isExact && injector.server->nowFloorName == newName)
+							return true;
+						else if (injector.server->nowFloorName.contains(newName))
+							return true;
+					}
+
+					return false;
+				});
 	}
 
 	//card\[(?:'([^']*)'|"([^ "]*)"|(\d+))\]\.(\w+)
 	if (expr.contains("card"))
 	{
-		bret = true;
 		makeTable(lua_, "card", MAX_ADDRESS_BOOK);
+
 		for (qint64 i = 0; i < MAX_ADDRESS_BOOK; ++i)
 		{
 			ADDRESS_BOOK addressBook = injector.server->getAddressBook(i);
@@ -2849,7 +3017,7 @@ bool Parser::updateSysConstKeyword(const QString& expr)
 
 			lua_["card"][index]["name"] = addressBook.name.toUtf8().constData();
 
-			lua_["card"][index]["online"] = addressBook.onlineFlag ? 1 : 0;
+			lua_["card"][index]["online"] = addressBook.onlineFlag;
 
 			lua_["card"][index]["turn"] = addressBook.transmigration;
 
@@ -2862,7 +3030,6 @@ bool Parser::updateSysConstKeyword(const QString& expr)
 	//chat\[(?:'([^']*)'|"([^ "]*)"|(\d+))\]
 	if (expr.contains("chat"))
 	{
-		bret = true;
 		makeTable(lua_, "chat", MAX_CHAT_HISTORY);
 
 		for (qint64 i = 0; i < MAX_CHAT_HISTORY; ++i)
@@ -2885,13 +3052,12 @@ bool Parser::updateSysConstKeyword(const QString& expr)
 	//unit\[(?:'([^']*)'|"([^ "]*)"|(\d+))\]\.(\w+)
 	if (expr.contains("unit"))
 	{
-		bret = true;
-
-
 		QList<mapunit_t> units = injector.server->mapUnitHash.values();
 
 		qint64 size = units.size();
+
 		makeTable(lua_, "unit", size);
+
 		for (qint64 i = 0; i < size; ++i)
 		{
 			mapunit_t unit = units.at(i);
@@ -2931,7 +3097,6 @@ bool Parser::updateSysConstKeyword(const QString& expr)
 	//battle\[(?:'([^']*)'|"([^ "]*)"|(\d+))\]\.(\w+)
 	if (expr.contains("battle"))
 	{
-		bret = true;
 		battledata_t battle = injector.server->getBattleData();
 
 		makeTable(lua_, "battle", MAX_ENEMY);
@@ -2962,7 +3127,7 @@ bool Parser::updateSysConstKeyword(const QString& expr)
 
 			lua_["battle"][index]["status"] = injector.server->getBadStatusString(obj.status).toUtf8().constData();
 
-			lua_["battle"][index]["ride"] = obj.rideFlag > 0 ? 1 : 0;
+			lua_["battle"][index]["ride"] = obj.rideFlag > 0;
 
 			lua_["battle"][index]["ridename"] = obj.rideName.toUtf8().constData();
 
@@ -2982,14 +3147,7 @@ bool Parser::updateSysConstKeyword(const QString& expr)
 	//battle\.(\w+)
 	if (expr.contains("battle"))
 	{
-		bret = true;
-		if (!lua_["battle"].valid())
-			lua_["battle"] = lua_.create_table();
-		else
-		{
-			if (!lua_["battle"].is<sol::table>())
-				lua_["battle"] = lua_.create_table();
-		}
+		makeTable(lua_, "battle");
 
 		battledata_t battle = injector.server->getBattleData();
 
@@ -3007,12 +3165,14 @@ bool Parser::updateSysConstKeyword(const QString& expr)
 	//dialog\[(?:'([^']*)'|"([^ "]*)"|(\d+))\]
 	if (expr.contains("dialog"))
 	{
-		bret = true;
 		makeTable(lua_, "dialog", MAX_PET, MAX_PET_ITEM);
 
 		QStringList dialog = injector.server->currentDialog.get().linedatas;
+
 		qint64 size = dialog.size();
+
 		bool visible = injector.server->isDialogVisible();
+
 		for (qint64 i = 0; i < MAX_DIALOG_LINE; ++i)
 		{
 			QString text;
@@ -3030,14 +3190,7 @@ bool Parser::updateSysConstKeyword(const QString& expr)
 	//dialog\.(\w+)
 	if (expr.contains("dialog"))
 	{
-		bret = true;
-		if (!lua_["dialog"].valid())
-			lua_["dialog"] = lua_.create_table();
-		else
-		{
-			if (!lua_["dialog"].is<sol::table>())
-				lua_["dialog"] = lua_.create_table();
-		}
+		makeTable(lua_, "dialog");
 
 		dialog_t dialog = injector.server->currentDialog.get();
 
@@ -3048,12 +3201,9 @@ bool Parser::updateSysConstKeyword(const QString& expr)
 		lua_["dialog"]["button"] = dialog.buttontype;
 	}
 
-
 	//magic\[(?:'([^']*)'|"([^ "]*)"|(\d+))\]\.(\w+)
 	if (expr.contains("magic"))
 	{
-		bret = true;
-
 		makeTable(lua_, "magic", MAX_MAGIC);
 
 		for (qint64 i = 0; i < MAX_MAGIC; ++i)
@@ -3074,8 +3224,6 @@ bool Parser::updateSysConstKeyword(const QString& expr)
 	//skill\[(?:'([^']*)'|"([^ "]*)"|(\d+))\]\.(\w+)
 	if (expr.contains("skill"))
 	{
-		bret = true;
-
 		makeTable(lua_, "skill", MAX_PROFESSION_SKILL);
 
 		for (qint64 i = 0; i < MAX_PROFESSION_SKILL; ++i)
@@ -3099,8 +3247,6 @@ bool Parser::updateSysConstKeyword(const QString& expr)
 	//petskill\[(?:'([^']*)'|"([^ "]*)"|(\d+))\]\[(?:'([^']*)'|"([^ "]*)"|(\d+))\]\.(\w+)
 	if (expr.contains("petksill"))
 	{
-		bret = true;
-
 		makeTable(lua_, "petksill", MAX_PET, MAX_SKILL);
 
 		qint64 petIndex = -1;
@@ -3146,8 +3292,6 @@ bool Parser::updateSysConstKeyword(const QString& expr)
 	//petequip\[(?:'([^']*)'|"([^ "]*)"|(\d+))\]\[(?:'([^']*)'|"([^ "]*)"|(\d+))\]\.(\w+)
 	if (expr.contains("petequip"))
 	{
-		bret = true;
-
 		makeTable(lua_, "petequip", MAX_PET, MAX_PET_ITEM);
 
 		qint64 petIndex = -1;
@@ -3189,19 +3333,20 @@ bool Parser::updateSysConstKeyword(const QString& expr)
 		}
 	}
 
-	if (expr.contains("_GAME_"))
+	if (expr.contains("point"))
 	{
-		bret = true;
-		lua_.set("_GAME_", injector.server->getGameStatus());
-	}
+		makeTable(lua_, "point");
 
-	if (expr.contains("_WORLD_"))
-	{
-		bret = true;
-		lua_.set("_WORLD_", injector.server->getWorldStatus());
-	}
+		currencydata_t point = injector.server->currencyData.get();
 
-	return bret;
+		lua_["point"]["exp"] = point.expbufftime;
+		lua_["point"]["rep"] = point.prestige;
+		lua_["point"]["ene"] = point.energy;
+		lua_["point"]["shl"] = point.shell;
+		lua_["point"]["vit"] = point.vitality;
+		lua_["point"]["pts"] = point.points;
+		lua_["point"]["vip"] = point.VIPPoints;
+	}
 }
 
 //行跳轉
@@ -3392,786 +3537,6 @@ QString Parser::getLuaTableString(const sol::table& t, qint64& depth)
 	return ret;
 }
 
-//根據關鍵字取值保存到變量
-bool Parser::processGetSystemVarValue(const QString& varName, QString& valueStr, QVariant& varValue)
-{
-	qint64 currentIndex = getIndex();
-	Injector& injector = Injector::getInstance(currentIndex);
-	if (injector.server.isNull())
-		return false;
-
-	QString trimmedStr = valueStr.simplified().toLower();
-
-	enum SystemVarName
-	{
-		kPlayerInfo,
-		kMagicInfo,
-		kSkillInfo,
-		kPetInfo,
-		kPetSkillInfo,
-		kMapInfo,
-		kItemInfo,
-		kEquipInfo,
-		kPetEquipInfo,
-		kTeamInfo,
-		kChatInfo,
-		kDialogInfo,
-		kPointInfo,
-		kBattleInfo,
-	};
-
-	const QHash<QString, SystemVarName> systemVarNameHash = {
-		{ "player", kPlayerInfo },
-		{ "magic", kMagicInfo },
-		{ "skill", kSkillInfo },
-		{ "pet", kPetInfo },
-		{ "petskill", kPetSkillInfo },
-		{ "map", kMapInfo },
-		{ "item", kItemInfo },
-		{ "equip", kEquipInfo },
-		{ "petequip", kPetEquipInfo },
-		{ "team", kTeamInfo },
-		{ "chat", kChatInfo },
-		{ "dialog", kDialogInfo },
-		{ "point", kPointInfo },
-		{ "battle", kBattleInfo },
-	};
-
-	if (!systemVarNameHash.contains(trimmedStr))
-		return false;
-
-	SystemVarName index = systemVarNameHash.value(trimmedStr);
-	bool bret = true;
-	varValue = "";
-	switch (index)
-	{
-	case kPlayerInfo:
-	{
-		QString typeStr;
-		checkString(currentLineTokens_, 3, &typeStr);
-		typeStr = typeStr.simplified().toLower();
-		if (typeStr.isEmpty())
-		{
-			break;
-		}
-
-		PC _pc = injector.server->getPC();
-		QHash<QString, QVariant> hash = {
-			{ "dir", _pc.dir },
-			{ "hp", _pc.hp }, { "maxhp", _pc.maxHp }, { "hpp", _pc.hpPercent },
-			{ "mp", _pc.mp }, { "maxmp", _pc.maxMp }, { "mpp", _pc.mpPercent },
-			{ "vit", _pc.vit },
-			{ "str", _pc.str }, { "tgh", _pc.tgh }, { "dex", _pc.dex },
-			{ "exp", _pc.exp }, { "maxexp", _pc.maxExp },
-			{ "lv", _pc.level },
-			{ "atk", _pc.atk }, { "def", _pc.def },
-			{ "agi", _pc.agi }, { "chasma", _pc.chasma }, { "luck", _pc.luck },
-			{ "earth", _pc.earth }, { "water", _pc.water }, { "fire", _pc.fire }, { "wind", _pc.wind },
-			{ "stone", _pc.gold },
-
-			{ "title", _pc.titleNo },
-			{ "dp", _pc.dp },
-			{ "name", _pc.name },
-			{ "fname", _pc.freeName },
-			{ "namecolor", _pc.nameColor },
-			{ "battlepet", _pc.battlePetNo + 1  },
-			{ "mailpet", _pc.mailPetNo + 1 },
-			//{ "", _pc.standbyPet },
-			//{ "", _pc.battleNo },
-			//{ "", _pc.sideNo },
-			//{ "", _pc.helpMode },
-			//{ "", _pc._pcNameColor },
-			{ "turn", _pc.transmigration },
-			//{ "", _pc.chusheng },
-			{ "family", _pc.family },
-			//{ "", _pc.familyleader },
-			{ "ridename", _pc.ridePetName },
-			{ "ridelv", _pc.ridePetLevel },
-			{ "earnstone", injector.server->recorder[0].goldearn },
-			{ "earnrep", injector.server->recorder[0].repearn > 0 ? (injector.server->recorder[0].repearn / (injector.server->repTimer.elapsed() / 1000)) * 3600 : 0 },
-			//{ "", _pc.familySprite },
-			//{ "", _pc.basemodelid },
-		};
-
-		if (!hash.contains(typeStr))
-			break;
-
-		varValue = hash.value(typeStr);
-		bret = varValue.isValid();
-		break;
-	}
-	case kMagicInfo:
-	{
-		qint64 magicIndex = -1;
-		if (!checkInteger(currentLineTokens_, 3, &magicIndex))
-			break;
-		--magicIndex;
-
-		if (magicIndex < 0 || magicIndex > MAX_MAGIC)
-			break;
-
-		QString typeStr;
-		checkString(currentLineTokens_, 4, &typeStr);
-		typeStr = typeStr.simplified().toLower();
-		if (typeStr.isEmpty())
-			break;
-
-		MAGIC m = injector.server->getMagic(magicIndex);
-
-		const QVariantHash hash = {
-			{ "valid", m.valid ? 1 : 0 },
-			{ "cost", m.costmp },
-			{ "field", m.field },
-			{ "target", m.target },
-			{ "deadTargetFlag", m.deadTargetFlag },
-			{ "name", m.name },
-			{ "memo", m.memo },
-		};
-
-		if (!hash.contains(typeStr))
-			break;
-
-		varValue = hash.value(typeStr);
-		break;
-	}
-	case kSkillInfo:
-	{
-		qint64 skillIndex = -1;
-		if (!checkInteger(currentLineTokens_, 3, &skillIndex))
-			break;
-		--skillIndex;
-		if (skillIndex < 0 || skillIndex > MAX_SKILL)
-			break;
-
-		QString typeStr;
-		checkString(currentLineTokens_, 4, &typeStr);
-		typeStr = typeStr.simplified().toLower();
-		if (typeStr.isEmpty())
-			break;
-
-		PROFESSION_SKILL s = injector.server->getSkill(skillIndex);
-
-		const QHash<QString, QVariant> hash = {
-			{ "valid", s.valid ? 1 : 0 },
-			{ "cost", s.costmp },
-			//{ "field", s. },
-			{ "target", s.target },
-			//{ "", s.deadTargetFlag },
-			{ "name", s.name },
-			{ "memo", s.memo },
-		};
-
-		if (!hash.contains(typeStr))
-			break;
-
-		varValue = hash.value(typeStr);
-		break;
-	}
-	case kPetInfo:
-	{
-		qint64 petIndex = -1;
-		if (!checkInteger(currentLineTokens_, 3, &petIndex))
-		{
-			QString typeStr;
-			if (!checkString(currentLineTokens_, 3, &typeStr))
-				break;
-
-			if (typeStr == "count")
-			{
-				varValue = injector.server->getPetSize();
-				bret = true;
-			}
-
-			break;
-		}
-		--petIndex;
-
-		if (petIndex < 0 || petIndex >= MAX_PET)
-			break;
-
-		QString typeStr;
-		checkString(currentLineTokens_, 4, &typeStr);
-		typeStr = typeStr.simplified().toLower();
-		if (typeStr.isEmpty())
-			break;
-
-		const QHash<PetState, QString> petStateHash = {
-			{ kBattle, u8"battle" },
-			{ kStandby , u8"standby" },
-			{ kMail, u8"mail" },
-			{ kRest, u8"rest" },
-			{ kRide, u8"ride" },
-		};
-
-		PET _pet = injector.server->getPet(petIndex);
-
-		QVariantHash hash = {
-			{ "index", _pet.index + 1 },						//位置
-			{ "modelid", _pet.modelid },						//圖號
-			{ "hp", _pet.hp }, { "maxhp", _pet.maxHp }, { "hpp", _pet.hpPercent },					//血量
-			{ "mp", _pet.mp }, { "maxmp", _pet.maxMp }, { "mpp", _pet.mpPercent },					//魔力
-			{ "exp", _pet.exp }, { "maxexp", _pet.maxExp },				//經驗值
-			{ "lv", _pet.level },						//等級
-			{ "atk", _pet.atk },						//攻擊力
-			{ "def", _pet.def },						//防禦力
-			{ "agi", _pet.agi },						//速度
-			{ "loyal", _pet.loyal },							//AI
-			{ "earth", _pet.earth }, { "water", _pet.water }, { "fire", _pet.fire }, { "wind", _pet.wind },
-			{ "maxskill", _pet.maxSkill },
-			{ "turn", _pet.transmigration },						// 寵物轉生數
-			{ "name", _pet.name },
-			{ "fname", _pet.freeName },
-			{ "valid", _pet.valid ? 1ll : 0ll },
-			{ "turn", _pet.transmigration },
-			{ "state", petStateHash.value(_pet.state) },
-			{ "power", static_cast<qint64>(qFloor(_pet.power)) }
-		};
-
-		if (!hash.contains(typeStr))
-			break;
-
-		varValue = hash.value(typeStr);
-		break;
-	}
-	case kPetSkillInfo:
-	{
-		qint64 petIndex = -1;
-		if (!checkInteger(currentLineTokens_, 3, &petIndex))
-			break;
-
-		if (petIndex < 0 || petIndex >= MAX_PET)
-			break;
-
-		qint64 skillIndex = -1;
-		if (!checkInteger(currentLineTokens_, 4, &skillIndex))
-			break;
-
-		if (skillIndex < 0 || skillIndex >= MAX_SKILL)
-			break;
-
-		QString typeStr;
-		checkString(currentLineTokens_, 5, &typeStr);
-		typeStr = typeStr.simplified().toLower();
-		if (typeStr.isEmpty())
-			break;
-
-		PET_SKILL _petskill = injector.server->getPetSkill(petIndex, skillIndex);
-
-		QHash<QString, QVariant> hash = {
-			{ "valid", _petskill.valid ? 1 : 0 },
-			//{ "", _petskill.field },
-			{ "target", _petskill.target },
-			//{ "", _petskill.deadTargetFlag },
-			{ "name", _petskill.name },
-			{ "memo", _petskill.memo },
-		};
-
-		if (!hash.contains(typeStr))
-			break;
-
-		varValue = hash.value(typeStr);
-		break;
-	}
-	case kMapInfo:
-	{
-		QString typeStr;
-		checkString(currentLineTokens_, 3, &typeStr);
-		typeStr = typeStr.simplified().toLower();
-		if (typeStr.isEmpty())
-			break;
-
-		injector.server->reloadHashVar("map");
-		VariantSafeHash hashmap = injector.server->hashmap;
-		if (!hashmap.contains(typeStr))
-			break;
-
-		varValue = hashmap.value(typeStr);
-		break;
-	}
-	case kItemInfo:
-	{
-		qint64 itemIndex = -1;
-		if (!checkInteger(currentLineTokens_, 3, &itemIndex))
-		{
-			QString typeStr;
-			if (checkString(currentLineTokens_, 3, &typeStr))
-			{
-				typeStr = typeStr.simplified().toLower();
-				if (typeStr == "space")
-				{
-					QVector<qint64> itemIndexs;
-					qint64 size = 0;
-					if (injector.server->getItemEmptySpotIndexs(&itemIndexs))
-						size = itemIndexs.size();
-
-					varValue = size;
-					break;
-				}
-				else if (typeStr == "count")
-				{
-					QString itemName;
-					checkString(currentLineTokens_, 4, &itemName);
-
-
-					QString memo;
-					checkString(currentLineTokens_, 5, &memo);
-
-					if (itemName.isEmpty() && memo.isEmpty())
-						break;
-
-					QVector<qint64> v;
-					qint64 count = 0;
-					if (injector.server->getItemIndexsByName(itemName, memo, &v))
-					{
-						for (const qint64 it : v)
-							count += injector.server->getPC().item[it].stack;
-					}
-
-					varValue = count;
-				}
-				else
-				{
-					QString cmpStr = typeStr;
-					if (cmpStr.isEmpty())
-						break;
-
-					QString memo;
-					checkString(currentLineTokens_, 4, &memo);
-
-					QVector<qint64> itemIndexs;
-					if (injector.server->getItemIndexsByName(cmpStr, memo, &itemIndexs))
-					{
-						qint64 index = itemIndexs.front();
-						if (itemIndexs.front() >= CHAR_EQUIPPLACENUM)
-							varValue = index + 1 - CHAR_EQUIPPLACENUM;
-						else
-							varValue = index + 1 + 100;
-					}
-				}
-			}
-		}
-
-		qint64 index = itemIndex + CHAR_EQUIPPLACENUM - 1;
-		if (index < CHAR_EQUIPPLACENUM || index >= MAX_ITEM)
-			break;
-
-		QString typeStr;
-		checkString(currentLineTokens_, 4, &typeStr);
-		typeStr = typeStr.simplified().toLower();
-		if (typeStr.isEmpty())
-			break;
-
-		PC pc = injector.server->getPC();
-		ITEM item = pc.item[index];
-
-		QString damage = item.damage.simplified();
-		qint64 damageValue = 0;
-		if (damage.contains("%"))
-			damage.replace("%", "");
-		if (damage.contains("％"))
-			damage.replace("％", "");
-
-		bool ok = false;
-		qint64 dura = damage.toLongLong(&ok);
-		if (!ok && !damage.isEmpty())
-			damageValue = 100;
-		else
-			damageValue = dura;
-
-		qint64 countdura = 0;
-		if (item.name == "惡魔寶石" || item.name == "恶魔宝石")
-		{
-			static QRegularExpression rex("(\\d+)");
-			QRegularExpressionMatch match = rex.match(item.memo);
-			if (match.hasMatch())
-			{
-				QString str = match.captured(1);
-				bool ok = false;
-				dura = str.toLongLong(&ok);
-				if (ok)
-					countdura = dura;
-			}
-		}
-
-		QHash<QString, QVariant> hash = {
-			//{ "", item.color },
-			{ "modelid", item.modelid },
-			{ "lv", item.level },
-			{ "stack", item.stack },
-			{ "valid", item.valid ? 1 : 0 },
-			{ "field", item.field },
-			{ "target", item.target },
-			//{ "", item.deadTargetFlag },
-			//{ "", item.sendFlag },
-			{ "name", item.name },
-			{ "name2", item.name2 },
-			{ "memo", item.memo },
-			{ "dura", damageValue },
-			{ "count", countdura }
-		};
-
-		varValue = hash.value(typeStr);
-		break;
-	}
-	case kEquipInfo:
-	{
-		qint64 itemIndex = -1;
-		if (!checkInteger(currentLineTokens_, 3, &itemIndex))
-			break;
-
-		qint64 index = itemIndex - 1;
-		if (index < 0 || index >= CHAR_EQUIPPLACENUM)
-			break;
-
-		QString typeStr;
-		checkString(currentLineTokens_, 4, &typeStr);
-		typeStr = typeStr.simplified().toLower();
-		if (typeStr.isEmpty())
-			break;
-
-		PC pc = injector.server->getPC();
-		ITEM item = pc.item[index];
-
-		QString damage = item.damage.simplified();
-		qint64 damageValue = 0;
-		if (damage.contains("%"))
-			damage.replace("%", "");
-		if (damage.contains("％"))
-			damage.replace("％", "");
-
-		bool ok = false;
-		qint64 dura = damage.toLongLong(&ok);
-		if (!ok && !damage.isEmpty())
-			damageValue = 100;
-		else
-			damageValue = dura;
-
-		QHash<QString, QVariant> hash = {
-			//{ "", item.color },
-			{ "modelid", item.modelid },
-			{ "lv", item.level },
-			{ "stack", item.stack },
-			{ "valid", item.valid ? 1 : 0 },
-			{ "field", item.field },
-			{ "target", item.target },
-			//{ "", item.deadTargetFlag },
-			//{ "", item.sendFlag },
-			{ "name", item.name },
-			{ "name2", item.name2 },
-			{ "memo", item.memo },
-			{ "dura", damageValue },
-		};
-
-		varValue = hash.value(typeStr);
-		break;
-	}
-	case kPetEquipInfo:
-	{
-		qint64 petIndex = -1;
-		if (!checkInteger(currentLineTokens_, 3, &petIndex))
-			break;
-		--petIndex;
-
-		if (petIndex < 0 || petIndex >= MAX_PET)
-			break;
-
-		qint64 itemIndex = -1;
-		if (!checkInteger(currentLineTokens_, 4, &itemIndex))
-			break;
-		--itemIndex;
-
-		if (itemIndex < 0 || itemIndex >= MAX_PET_ITEM)
-			break;
-
-		QString typeStr;
-		checkString(currentLineTokens_, 5, &typeStr);
-		typeStr = typeStr.simplified().toLower();
-		if (typeStr.isEmpty())
-			break;
-
-		ITEM item = injector.server->getPetEquip(petIndex, itemIndex);
-
-		QString damage = item.damage.simplified();
-		qint64 damageValue = 0;
-		if (damage.contains("%"))
-			damage.replace("%", "");
-		if (damage.contains("％"))
-			damage.replace("％", "");
-
-		bool ok = false;
-		qint64 dura = damage.toLongLong(&ok);
-		if (!ok && !damage.isEmpty())
-			damageValue = 100;
-		else
-			damageValue = dura;
-
-		QHash<QString, QVariant> hash = {
-			//{ "", item.color },
-			{ "modelid", item.modelid },
-			{ "lv", item.level },
-			{ "stack", item.stack },
-			{ "valid", item.valid ? 1 : 0 },
-			{ "field", item.field },
-			{ "target", item.target },
-			//{ "", item.deadTargetFlag },
-			//{ "", item.sendFlag },
-			{ "name", item.name },
-			{ "name2", item.name2 },
-			{ "memo", item.memo },
-			{ "dura", damageValue },
-		};
-
-		if (!hash.contains(typeStr))
-			break;
-
-		varValue = hash.value(typeStr);
-		break;
-	}
-	case kTeamInfo:
-	{
-		qint64 partyIndex = -1;
-		if (!checkInteger(currentLineTokens_, 3, &partyIndex))
-			break;
-		--partyIndex;
-
-		if (partyIndex < 0 || partyIndex >= MAX_PARTY)
-			break;
-
-		QString typeStr;
-		checkString(currentLineTokens_, 4, &typeStr);
-		typeStr = typeStr.simplified().toLower();
-		if (typeStr.isEmpty())
-			break;
-
-		PARTY _party = injector.server->getParty(partyIndex);
-		QHash<QString, QVariant> hash = {
-			{ "valid", _party.valid ? 1 : 0 },
-			{ "id", _party.id },
-			{ "lv", _party.level },
-			{ "maxhp", _party.maxHp },
-			{ "hp", _party.hp },
-			{ "hpp", _party.hpPercent },
-			{ "mp", _party.mp },
-			{ "name", _party.name },
-		};
-
-		varValue = hash.value(typeStr);
-		break;
-	}
-	case kChatInfo:
-	{
-		qint64 chatIndex = -1;
-		if (!checkInteger(currentLineTokens_, 3, &chatIndex))
-			break;
-
-		if (chatIndex < 1 || chatIndex > 20)
-			break;
-
-		varValue = injector.server->getChatHistory(chatIndex - 1);
-		break;
-	}
-	case kDialogInfo:
-	{
-		bool valid = injector.server->isDialogVisible();
-
-		qint64 dialogIndex = -1;
-		if (!checkInteger(currentLineTokens_, 3, &dialogIndex))
-		{
-			QString typeStr;
-			if (!checkString(currentLineTokens_, 3, &typeStr))
-				break;
-
-			if (typeStr == "id")
-			{
-				if (!valid)
-				{
-					varValue = 0;
-					break;
-				}
-
-				dialog_t dialog = injector.server->currentDialog;
-				varValue = dialog.dialogid;
-			}
-			else if (typeStr == "unitid")
-			{
-				if (!valid)
-				{
-					varValue = 0;
-					break;
-				}
-
-				qint64 unitid = injector.server->currentDialog.get().unitid;
-				varValue = unitid;
-			}
-			else if (typeStr == "type")
-			{
-				if (!valid)
-				{
-					varValue = 0;
-					break;
-				}
-
-				qint64 type = injector.server->currentDialog.get().windowtype;
-				varValue = type;
-			}
-			else if (typeStr == "button")
-			{
-				if (!valid)
-				{
-					varValue = "";
-					break;
-				}
-
-				QStringList list = injector.server->currentDialog.get().linebuttontext;
-				varValue = list.join("|");
-			}
-			break;
-		}
-
-		if (!valid)
-		{
-			varValue = "";
-			break;
-		}
-
-		QStringList dialogStrList = injector.server->currentDialog.get().linedatas;
-
-		if (dialogIndex == -1)
-		{
-			QStringList texts;
-			for (qint64 i = 0; i < MAX_DIALOG_LINE; ++i)
-			{
-				if (i >= dialogStrList.size())
-					break;
-
-				texts.append(dialogStrList.at(i).simplified());
-			}
-
-			varValue = texts.join("\n");
-		}
-		else
-		{
-			qint64 index = dialogIndex - 1;
-			if (index < 0 || index >= dialogStrList.size())
-				break;
-
-			varValue = dialogStrList.at(index);
-		}
-		break;
-	}
-	case kPointInfo:
-	{
-		QString typeStr;
-		checkString(currentLineTokens_, 3, &typeStr);
-		typeStr = typeStr.simplified().toLower();
-		if (typeStr.isEmpty())
-			break;
-
-		injector.server->IS_WAITFOR_EXTRA_DIALOG_INFO_FLAG = true;
-		injector.server->shopOk(2);
-
-		QElapsedTimer timer; timer.start();
-		for (;;)
-		{
-			if (isInterruptionRequested())
-				return false;
-
-			if (timer.hasExpired(5000))
-				break;
-
-			if (!injector.server->IS_WAITFOR_EXTRA_DIALOG_INFO_FLAG)
-				break;
-
-			QThread::msleep(100);
-		}
-
-		//qint64 rep = 0;   // 聲望
-		//qint64 ene = 0;   // 氣勢
-		//qint64 shl = 0;   // 貝殼
-		//qint64 vit = 0;   // 活力
-		//qint64 pts = 0;   // 積分
-		//qint64 vip = 0;   // 會員點
-		currencydata_t currency = injector.server->currencyData;
-		if (typeStr == "exp")
-		{
-			varValue = currency.expbufftime;
-		}
-		else if (typeStr == "rep")
-		{
-			varValue = currency.prestige;
-		}
-		else if (typeStr == "ene")
-		{
-			varValue = currency.energy;
-		}
-		else if (typeStr == "shl")
-		{
-			varValue = currency.shell;
-		}
-		else if (typeStr == "vit")
-		{
-			varValue = currency.vitality;
-		}
-		else if (typeStr == "pts")
-		{
-			varValue = currency.points;
-		}
-		else if (typeStr == "vip")
-		{
-			varValue = currency.VIPPoints;
-		}
-		else
-			break;
-
-		injector.server->press(BUTTON_CANCEL);
-
-		break;
-	}
-	case kBattleInfo:
-	{
-		qint64 index = -1;
-		if (!checkInteger(currentLineTokens_, 3, &index))
-		{
-			QString typeStr;
-			checkString(currentLineTokens_, 3, &typeStr);
-			if (typeStr.isEmpty())
-				break;
-
-			if (typeStr == "round")
-			{
-				varValue = injector.server->battleCurrentRound.load(std::memory_order_acquire);
-			}
-			else if (typeStr == "field")
-			{
-				varValue = injector.server->hashbattlefield.get();
-			}
-			break;
-		}
-
-		QString typeStr;
-		checkString(currentLineTokens_, 4, &typeStr);
-
-		injector.server->reloadHashVar("battle");
-		QHash<qint64, QVariantHash> hashbattle = injector.server->hashbattle.toHash();
-		if (!hashbattle.contains(index))
-			break;
-
-		QVariantHash hash = hashbattle.value(index);
-		if (!hash.contains(typeStr))
-			break;
-
-		varValue = hash.value(typeStr);
-		break;
-	}
-	default:
-	{
-		break;
-	}
-	}
-
-	return bret;
-}
-
 //處理"功能"，檢查是否有聲明局變量 這裡要注意只能執行一次否則會重複壓棧
 void Parser::processFunction()
 {
@@ -4303,59 +3668,6 @@ qint64 Parser::processCommand()
 	return status;
 }
 
-//處理"變量"
-void Parser::processVariable(RESERVE type)
-{
-	switch (type)
-	{
-	case TK_VARDECL:
-	{
-		//取第一個參數(變量名)
-		QString varName = getToken<QString>(1);
-		if (varName.isEmpty())
-			break;
-
-		//取第二個參數(類別字符串)
-		QString typeStr;
-		if (!checkString(currentLineTokens_, 2, &typeStr))
-			break;
-
-		if (typeStr.isEmpty())
-			break;
-
-		QVariant varValue;
-		if (!processGetSystemVarValue(varName, typeStr, varValue))
-			break;
-
-		//插入全局變量表
-		if (varName.contains("[") && varName.contains("]"))
-			processTableSet(varName, varValue);
-		else
-			insertVar(varName, varValue);
-		break;
-	}
-	case TK_VARFREE:
-	{
-		QString varName = getToken<QString>(1);
-		if (varName.isEmpty())
-			break;
-
-		if (isGlobalVarContains(varName))
-			removeGlobalVar(varName);
-		else
-			removeLocalVar(varName);
-		break;
-	}
-	case TK_VARCLR:
-	{
-		clearGlobalVar();
-		break;
-	}
-	default:
-		break;
-	}
-}
-
 //處理單個或多個局變量聲明
 void Parser::processLocalVariable()
 {
@@ -4431,7 +3743,7 @@ void Parser::processLocalVariable()
 }
 
 //處理單個或多個全局變量聲明，或單個局變量重新賦值
-void Parser::processMultiVariable()
+void Parser::processVariable()
 {
 	QString varNameStr = getToken<QString>(0);
 	QStringList varNames = varNameStr.split(util::rexComma, Qt::SkipEmptyParts);
@@ -4758,7 +4070,7 @@ void Parser::processVariableCAOs()
 	else if (typeFirst == QVariant::Double)
 		expr = QString("%1 %2").arg(opStr).arg(varSecond.toDouble());
 	else if (typeFirst == QVariant::Bool)
-		expr = QString("%1 %2").arg(opStr).arg(varSecond.toBool() ? 1 : 0);
+		expr = QString("%1 %2").arg(opStr).arg(varSecond.toBool());
 	else
 		return;
 
@@ -5349,13 +4661,10 @@ void Parser::processTokens()
 		if (!skip)
 		{
 			processDelay();
-			if (!lua_["_DEBUG"].is<bool>() || lua_["_DEBUG"].get<bool>() || injector.isScriptDebugModeEnable.load(std::memory_order_acquire))
+			if (injector.isScriptDebugModeEnable.load(std::memory_order_acquire))
 			{
-				lua_["_DEBUG"] = true;
 				QThread::msleep(1);
 			}
-			else
-				lua_["_DEBUG"] = false;
 
 			if (callBack_ != nullptr)
 			{
@@ -5428,13 +4737,6 @@ void Parser::processTokens()
 			processLocalVariable();
 			break;
 		}
-		case TK_VARDECL:
-		case TK_VARFREE:
-		case TK_VARCLR:
-		{
-			processVariable(currentType);
-			break;
-		}
 		case TK_TABLESET:
 		{
 			processTableSet();
@@ -5448,7 +4750,7 @@ void Parser::processTokens()
 		}
 		case TK_MULTIVAR:
 		{
-			processMultiVariable();
+			processVariable();
 			break;
 		}
 		case TK_INCDEC:
@@ -5571,9 +4873,9 @@ void Parser::processTokens()
 
 	/*==========全部重建 : 成功 2 個，失敗 0 個，略過 0 個==========
 	========== 重建 開始於 1:24 PM 並使用了 01:04.591 分鐘 ==========*/
-	emit signalDispatcher.appendScriptLog(QObject::tr(" ========== script result : %1，cost %2 ==========")
-		.arg(isSubScript() ? QObject::tr("sub-ok") : QObject::tr("main-ok")).arg(util::formatMilliseconds(timer.elapsed())));
-
+	if (&signalDispatcher != nullptr)
+		emit signalDispatcher.appendScriptLog(QObject::tr(" ========== script result : %1，cost %2 ==========")
+			.arg(isSubScript() ? QObject::tr("sub-ok") : QObject::tr("main-ok")).arg(util::formatMilliseconds(timer.elapsed())));
 }
 
 //導出變量訊息
@@ -5605,5 +4907,6 @@ void Parser::exportVarInfo()
 	}
 
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
-	emit signalDispatcher.varInfoImported(this, varhash);
+	if (&signalDispatcher != nullptr)
+		emit signalDispatcher.varInfoImported(this, varhash);
 }

@@ -97,7 +97,7 @@ public:
 	typedef struct process_information_s
 	{
 		qint64 dwProcessId = NULL;
-		DWORD dwThreadId = NULL;
+		qint64 dwThreadId = NULL;
 		HWND hWnd = nullptr;
 	} process_information_t, * pprocess_information_t, * lpprocess_information_t;
 
@@ -107,7 +107,7 @@ public:
 
 	Q_REQUIRED_RESULT inline HWND getProcessWindow() const { return pi_.hWnd; }
 
-	Q_REQUIRED_RESULT inline DWORD getProcessId() const { return pi_.dwProcessId; }
+	Q_REQUIRED_RESULT inline qint64 getProcessId() const { return pi_.dwProcessId; }
 
 	Q_REQUIRED_RESULT inline qint64 getProcessModule() const { return hGameModule_; }
 
@@ -181,7 +181,7 @@ private:
 			if (!handle || !lParam) break;
 
 			::GetWindowThreadProcessId(handle, &dwProcessId);
-			if (data->dwProcessId == dwProcessId && IsWindowVisible(handle))
+			if (data->dwProcessId == static_cast<qint64>(dwProcessId) && IsWindowVisible(handle))
 			{
 				data->hWnd = handle;
 				return FALSE;

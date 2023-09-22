@@ -3143,6 +3143,10 @@ No new version available. Do you still want to update?</source>
         <source>main-ok</source>
         <translation>主脚本-成功</translation>
     </message>
+    <message>
+        <source>closeAll</source>
+        <translation>关闭全部</translation>
+    </message>
 </context>
 <context>
     <name>QThumbnailFormClass</name>
@@ -3420,19 +3424,19 @@ No new version available. Do you still want to update?</source>
     </message>
     <message>
         <source>row:%1</source>
-        <translation type="unfinished"></translation>
+        <translation>行:%1</translation>
     </message>
     <message>
         <source>size:%1</source>
-        <translation type="unfinished"></translation>
+        <translation>字元:%1</translation>
     </message>
     <message>
         <source>index:%1</source>
-        <translation type="unfinished"></translation>
+        <translation>索引:%1</translation>
     </message>
     <message>
         <source>Usage: cpu: %1% | memory: %2MB / %3MB</source>
-        <translation type="unfinished"></translation>
+        <translation>占用率: CPU: %1% | 内存: %2MB / %3MB</translation>
     </message>
 </context>
 <context>

@@ -23,8 +23,10 @@ constexpr qint64 NewlineArrow = 32;
 
 Highlighter::Highlighter(QObject* parent)
 	: QsciLexerLua(parent)
-	, font_("YaHei Consolas Hybrid", 11, 570/*QFont::DemiBold*/, false)
 {
+	font_ = util::getFont();
+	font_.setFamily("YaHei Consolas Hybrid");
+	font_.setPointSize(11);
 }
 
 const char* Highlighter::keywords(int set) const
@@ -33,10 +35,11 @@ const char* Highlighter::keywords(int set) const
 	{
 	case 1://粉色
 	{
-		//lua key word
-		return "call pause exit label jmp return back continue "
-			"ifmap ifitemfull ifdaily ifbattle ifpos ifonline ifnormal "
+		return
+			"call pause exit label jmp return back continue "
+			"checkdaily "
 			"waitdlg waitsay waititem waitmap waitteam waitpet "
+
 			/*lua original*/
 			"function end goto break for while if repeat until do in then else elseif ";
 	}
@@ -83,20 +86,26 @@ const char* Highlighter::keywords(int set) const
 	}
 	case 3://QsciLexerLua::StringTableMathsFunction//草綠
 	{
-		return "string table ";
+		return "string table "
+			"TARGET ";
 	}
 	case 4://QsciLexerLua::CoroutinesIOSystemFacilities//青綠
 	{
-		return "";
+		return
+			"TARGET.SELF TARGET.PET TARGET.ALLIE_ANY TARGET.ALLIE_ALL TARGET.ENEMY_ANY "
+			"TARGET.ENEMY_ALL TARGET.ENEMY_FRONT TARGET.ENEMY_BACK TARGET.LEADER TARGET.LEADER_PET "
+			"TARGET.TEAM TARGET.TEAM1_PET TARGET.TEAM2 TARGET.TEAM2_PET TARGET.TEAM3 "
+			"TARGET.TEAM3_PET TARGET.TEAM4 TARGET.TEAM4_PET "
+			"";
 	}
 	case 5://KeywordSet5//深藍色
 	{
-		return "local var delete releaseall true false any "
+		return "local true false any "
 			"int double bool not and or nil ";
 	}
 	case 6://KeywordSet6//淺藍色
 	{
-		return "out player pet magic skill petskill equip petequip map dialog chat point battle char "
+		return "pet magic skill petskill equip petequip map dialog chat point battle char "
 			/*lua original*/
 			"math os file debug coroutine utf8 package io ";
 	}
@@ -106,7 +115,10 @@ const char* Highlighter::keywords(int set) const
 	}
 	case 8://KeywordSet8//紫色
 	{
-		return "_GAME_ _WORLD_ vret _IFEXPR _IFRESULT _LUARESULT _LUAEXPR _LINE_ _FILE_ _FUNCTION_ _ROWCOUNT_ "
+		return "out vret _IFEXPR _IFRESULT _LUARESULT _LUAEXPR _INDEX"
+			"_LINE_ _FILE_ _FUNCTION_ _ROWCOUNT_ "
+			"PID HWND GAMEPID GAMEHWND GAMEHANDLE THREADID GAME WORLD INDEX "
+			"INFINITE MAXPET MAXITEM MAXCHAR MAXSKILL MAXPETSKILL MAXEQUIP MAXCHAT MAXDLG MAXENEMY MAXCARD MAXDIR MAXMAGIC "
 			/*lua original*/
 			"_G _VERSION "
 			"utf8.charpattern package.path package.preload package.searchers package.config package.cpath package.loaded math.huge math.maxinteger math.mininteger math.pi "

@@ -363,6 +363,8 @@ public://actions
 
 	bool findUnit(const QString& name, qint64 type, mapunit_t* unit, const QString& freeName = "", qint64 modelid = -1);
 
+	QString getGround();
+
 	void setTeamState(bool join);
 	void kickteam(qint64 n);
 

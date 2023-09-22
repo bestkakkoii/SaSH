@@ -505,7 +505,7 @@ void luadebug::hookProc(lua_State* L, lua_Debug* ar)
 		emit signalDispatcher.scriptLabelRowTextChanged(currentLine, max, false);
 
 		processDelay(s);
-		if (!lua["_DEBUG"].is<bool>() || lua["_DEBUG"].get<bool>())
+		if (injector.isScriptDebugModeEnable.load(std::memory_order_acquire))
 		{
 			QThread::msleep(1);
 		}
@@ -629,6 +629,7 @@ void CLua::wait()
 
 void CLua::open_enumlibs()
 {
+	/*
 	//添加lua枚舉值示範
 	enum TemplateEnum
 	{
@@ -645,16 +646,61 @@ void CLua::open_enumlibs()
 		}
 	);
 
-	//在lua中的使用方法: TEST.EnumValue1
+	在lua中的使用方法: TEST.EnumValue1
+	*/
+
+	//kSelectSelf = 0x1,            // 己 (Self)
+	//kSelectPet = 0x2,             // 寵 (Pet)
+	//kSelectAllieAny = 0x4,        // 我任 (Any ally)
+	//kSelectAllieAll = 0x8,        // 我全 (All allies)
+	//kSelectEnemyAny = 0x10,       // 敵任 (Any enemy)
+	//kSelectEnemyAll = 0x20,       // 敵全 (All enemies)
+	//kSelectEnemyFront = 0x40,     // 敵前 (Front enemy)
+	//kSelectEnemyBack = 0x80,      // 敵後 (Back enemy)
+	//kSelectLeader = 0x100,        // 隊 (Leader)
+	//kSelectLeaderPet = 0x200,     // 隊寵 (Leader's pet)
+	//kSelectTeammate1 = 0x400,     // 隊1 (Teammate 1)
+	//kSelectTeammate1Pet = 0x800,  // 隊1寵 (Teammate 1's pet)
+	//kSelectTeammate2 = 0x1000,    // 隊2 (Teammate 2)
+	//kSelectTeammate2Pet = 0x2000, // 隊2寵 (Teammate 2's pet)
+	//kSelectTeammate3 = 0x4000,    // 隊3 (Teammate 3)
+	//kSelectTeammate3Pet = 0x8000, // 隊3寵 (Teammate 3's pet)
+	//kSelectTeammate4 = 0x10000,   // 隊4 (Teammate 4)
+	//kSelectTeammate4Pet = 0x20000 // 隊4寵 (Teammate 4's pet)
+
+	lua_.new_enum <util::SelectTarget>("TARGET",
+		{
+			{ "SELF", util::kSelectSelf },
+			{ "PET", util::kSelectPet },
+			{ "ALLIE_ANY", util::kSelectAllieAny },
+			{ "ALLIE_ALL", util::kSelectAllieAll },
+			{ "ENEMY_ANY", util::kSelectEnemyAny },
+			{ "ENEMY_ALL", util::kSelectEnemyAll },
+			{ "ENEMY_FRONT", util::kSelectEnemyFront },
+			{ "ENEMY_BACK", util::kSelectEnemyBack },
+			{ "LEADER", util::kSelectLeader },
+			{ "LEADER_PET", util::kSelectLeaderPet },
+			{ "TEAM", util::kSelectTeammate1 },
+			{ "TEAM1_PET", util::kSelectTeammate1Pet },
+			{ "TEAM2", util::kSelectTeammate2 },
+			{ "TEAM2_PET", util::kSelectTeammate2Pet },
+			{ "TEAM3", util::kSelectTeammate3 },
+			{ "TEAM3_PET", util::kSelectTeammate3Pet },
+			{ "TEAM4", util::kSelectTeammate4 },
+			{ "TEAM4_PET", util::kSelectTeammate4Pet }
+		}
+	);
+	//在腳本中的使用方法: Target.Self Target.Pet
 }
 
 //以Metatable方式註冊函數 支援函數多載、運算符重載，面向對象，常量
 void CLua::open_testlibs()
 {
+	/*
 	sol::usertype<CLuaTest> test = lua_.new_usertype<CLuaTest>("Test",
 		sol::call_constructor,
 		sol::constructors<
-		/*建構函數多載*/
+		//建構函數多載
 		CLuaTest(sol::this_state),
 		CLuaTest(qint64 a, sol::this_state)>(),
 
@@ -668,7 +714,7 @@ void CLua::open_testlibs()
 		"sub", &CLuaTest::sub
 	);
 
-	/*
+
 	在lua中的使用方法:
 
 	local test = Test(1)
@@ -699,11 +745,6 @@ void CLua::open_utillibs(sol::state& lua)
 		"skill", &CLuaUtil::getSkill,
 		"magic", &CLuaUtil::getMagic
 	);
-
-
-	lua.safe_script(R"(
-			info = InfoClass();
-		)");
 }
 
 //luasystem.cpp
@@ -746,10 +787,6 @@ void CLua::open_syslibs(sol::state& lua)
 
 		"input", &CLuaSystem::input
 	);
-
-	lua.safe_script(R"(
-			sys = SystemClass();
-		)");
 }
 
 void CLua::open_itemlibs(sol::state& lua)
@@ -768,10 +805,6 @@ void CLua::open_itemlibs(sol::state& lua)
 		"deposit", &CLuaItem::deposit,
 		"withdraw", &CLuaItem::withdraw
 	);
-
-	lua.safe_script(R"(
-			item = ItemClass();
-		)");
 }
 
 void CLua::open_charlibs(sol::state& lua)
@@ -793,10 +826,6 @@ void CLua::open_charlibs(sol::state& lua)
 		"setTeamState", &CLuaChar::setTeamState,
 		"kick", &CLuaChar::kick
 	);
-
-	lua.safe_script(R"(
-			char = CharClass();
-		)");
 }
 
 void CLua::open_petlibs(sol::state& lua)
@@ -812,10 +841,6 @@ void CLua::open_petlibs(sol::state& lua)
 		"deposit", &CLuaPet::deposit,
 		"withdraw", &CLuaPet::withdraw
 	);
-
-	lua.safe_script(R"(
-			pet = PetClass();
-		)");
 }
 
 void CLua::open_maplibs(sol::state& lua)
@@ -834,10 +859,6 @@ void CLua::open_maplibs(sol::state& lua)
 		"findPath", &CLuaMap::findPath,
 		"download", &CLuaMap::downLoad
 	);
-
-	lua.safe_script(R"(
-			map = MapClass();
-		)");
 }
 
 void CLua::open_battlelibs(sol::state& lua)
@@ -857,10 +878,6 @@ void CLua::open_battlelibs(sol::state& lua)
 		"petUseSkill", &CLuaBattle::petUseSkill,
 		"petNothing", &CLuaBattle::petNothing
 	);
-
-	lua.safe_script(R"(
-			battle = BattleClass();
-		)");
 }
 
 void CLua::openlibs()

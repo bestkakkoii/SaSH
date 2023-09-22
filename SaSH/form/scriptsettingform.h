@@ -129,7 +129,11 @@ private slots:
 
 private:
 	Ui::ScriptSettingFormClass ui;
-	double lastCpuCost_ = 0.0;
+
+	FILETIME idleTime_ = { 0, 0 };
+	FILETIME kernelTime_ = { 0, 0 };
+	FILETIME userTime_ = { 0, 0 };
+
 	FastLabel* usageLabel_ = nullptr;
 	FastLabel* lineLable_ = nullptr;
 	FastLabel* sizeLabel_ = nullptr;

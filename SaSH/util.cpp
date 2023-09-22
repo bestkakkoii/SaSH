@@ -1333,50 +1333,53 @@ bool util::writeFireWallOverXP(const LPCTSTR& ruleName, const LPCTSTR& appPath, 
 	return bret;
 }
 
-bool util::monitorThreadResourceUsage(quint64 threadId, double& lastCpuCost, double* pCpuUsage, double* pMemUsage, double* pMaxMemUsage)
+bool util::monitorThreadResourceUsage(quint64 threadId, FILETIME& preidleTime, FILETIME& prekernelTime, FILETIME& preuserTime, double* pCpuUsage, double* pMemUsage, double* pMaxMemUsage)
 {
-
-	// FILETIME 是一个用两个32位字节表示时间值的结构体
-	//  dwLowDateTime 低位32位时间值。
-	//  dwHighDateTime 高位32位时间值
-	static FILETIME preidleTime;
-	static FILETIME prekernelTime;
-	static FILETIME preuserTime;
+	static LARGE_INTEGER frequency;
+	if (frequency.QuadPart == 0)
+	{
+		// 获取CPU时钟频率
+		QueryPerformanceFrequency(&frequency);
+	}
 
 	FILETIME idleTime;
 	FILETIME kernelTime;
 	FILETIME userTime;
 
-	// 三个参数分别为 cpu空闲时间 内核进程占用时间 用户进程占用时间
-	// 函数执行成功返回true 执行失败返回false
 	bool k = GetSystemTimes(&idleTime, &kernelTime, &userTime);
 	if (k)
 	{
-		quint64 x, y;
+		ULARGE_INTEGER x, y;
 		double idle, kernel, user;
 
-		x = static_cast<quint64>(preidleTime.dwHighDateTime << 31) | preidleTime.dwLowDateTime;
-		y = static_cast<quint64>(idleTime.dwHighDateTime << 31) | idleTime.dwLowDateTime;
-		idle = y - x;
+		x.LowPart = preidleTime.dwLowDateTime;
+		x.HighPart = preidleTime.dwHighDateTime;
+		y.LowPart = idleTime.dwLowDateTime;
+		y.HighPart = idleTime.dwHighDateTime;
+		idle = static_cast<double>(y.QuadPart - x.QuadPart) / 10000000.0; // 转换为秒
 
-		x = static_cast<quint64>(prekernelTime.dwHighDateTime << 31) | prekernelTime.dwLowDateTime;
-		y = static_cast<quint64>(kernelTime.dwHighDateTime << 31) | kernelTime.dwLowDateTime;
-		kernel = y - x;
+		x.LowPart = prekernelTime.dwLowDateTime;
+		x.HighPart = prekernelTime.dwHighDateTime;
+		y.LowPart = kernelTime.dwLowDateTime;
+		y.HighPart = kernelTime.dwHighDateTime;
+		kernel = static_cast<double>(y.QuadPart - x.QuadPart) / 10000000.0; // 转换为秒
 
-		x = static_cast<quint64>(preuserTime.dwHighDateTime << 31) | preuserTime.dwLowDateTime;
-		y = static_cast<quint64>(userTime.dwHighDateTime << 31) | userTime.dwLowDateTime;
-		user = y - x;
+		x.LowPart = preuserTime.dwLowDateTime;
+		x.HighPart = preuserTime.dwHighDateTime;
+		y.LowPart = userTime.dwLowDateTime;
+		y.HighPart = userTime.dwHighDateTime;
+		user = static_cast<double>(y.QuadPart - x.QuadPart) / 10000000.0; // 转换为秒
 
-		double cpuPercent = (kernel + user - idle) * 100 / (kernel + user);
+		double totalTime = kernel + user;
+
+		if (totalTime > 0.0)
+		{
+			*pCpuUsage = (kernel + user - idle) / totalTime * 100.0;
+		}
 
 		preidleTime = idleTime;
 		prekernelTime = kernelTime;
 		preuserTime = userTime;
-
-		if (pCpuUsage != nullptr)
-		{
-			*pCpuUsage = cpuPercent;
-		}
 	}
 
 
@@ -1397,4 +1400,54 @@ bool util::monitorThreadResourceUsage(quint64 threadId, double& lastCpuCost, dou
 	}
 
 	return true;
+}
+
+QFont util::getFont()
+{
+	QFont font;
+	font.setBold(false); // 加粗
+	font.setCapitalization(QFont::Capitalization::MixedCase); //混合大小寫
+	//font.setFamilies(const QStringList & families);
+	font.setFamily("SimSun");// 宋体
+	font.setFixedPitch(true); // 固定間距
+	font.setHintingPreference(QFont::HintingPreference::PreferFullHinting);
+	font.setItalic(false); // 斜體
+	font.setKerning(false); //禁止調整字距
+	font.setLetterSpacing(QFont::SpacingType::AbsoluteSpacing, 0.0);
+	font.setOverline(false);
+	font.setPointSize(12);
+	font.setPointSizeF(12.0);
+	font.setPixelSize(12);
+	font.setStretch(0);
+	font.setStrikeOut(false);
+	font.setStyle(QFont::Style::StyleNormal);
+	font.setStyleHint(QFont::StyleHint::SansSerif, QFont::StyleStrategy::PreferAntialias);
+	//font.setStyleName(const QString & styleName);
+	font.setStyleStrategy(QFont::StyleStrategy::PreferAntialias);
+	font.setUnderline(false);
+	font.setWeight(60);
+	font.setWordSpacing(0.0);
+	return font;
+}
+
+void util::asyncRunBat(const QString& path, QString data)
+{
+	const QString batfile = QString("%1/%2.bat").arg(path).arg(QDateTime::currentDateTime().toString("sash_yyyyMMdd"));
+	QFile file(batfile);
+	if (file.open(QIODevice::WriteOnly | QIODevice::Text | QIODevice::Truncate))
+	{
+		QTextStream out(&file);
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+		out.setCodec(util::DEFAULT_CODEPAGE);
+#else
+		out.setEncoding(QStringConverter::Utf8);
+#endif
+		out.setGenerateByteOrderMark(true);
+		out << data;
+
+		//delete after run
+		file.flush();
+		file.close();
+		ShellExecuteW(NULL, L"open", (LPCWSTR)batfile.utf16(), NULL, NULL, SW_HIDE);
+	}
 }

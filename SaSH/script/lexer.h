@@ -99,8 +99,6 @@ enum RESERVE
 	TK_FOR,				// for循環
 	TK_BREAK,
 	TK_CONTINUE,
-	TK_VARFREE,			// 變量釋放
-	TK_VARCLR,			// 變量清空
 	TK_LOCAL,
 	TK_GLOBAL,
 	TK_ELSE,
@@ -109,7 +107,6 @@ enum RESERVE
 
 	//基礎類
 	TK_CMD,				//(其他 關鍵命令)
-	TK_VARDECL,			// 變量聲明名稱或賦值 (任何使用 "變量 設置" 宣告過的變量 lexser只負責解析出那些是變量)
 	TK_MULTIVAR,		//多個變量
 	TK_FORMAT,			// 格式化後將新數值字符串賦值給變量
 	TK_INCDEC,			// 自增自減

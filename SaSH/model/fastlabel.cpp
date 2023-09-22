@@ -21,38 +21,28 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include <QPainter>
 
 FastLabel::FastLabel(QWidget* parent)
-	: QWidget(parent)
+	: QOpenGLWidget(parent)
 {
+	font_ = util::getFont();
 	content_msg_ = "";
-	text_cache_ = "";
-	text_color_ = Qt::black;
-	//setAttribute(Qt::WA_PaintOnScreen, true);
-	setAttribute(Qt::WA_NoSystemBackground, true);
-	setAttribute(Qt::WA_StaticContents, true);
-	//setAttribute(Qt::WA_OpaquePaintEvent, true);
+	pen_.setCosmetic(true);
 }
 
-FastLabel::FastLabel(const QString& text, QWidget* parent)
-	: QWidget(parent)
+FastLabel::FastLabel(const QString& text, QColor textColor, QColor backgroundColor, QWidget* parent)
+	: QOpenGLWidget(parent)
+	, text_color_(textColor)
+	, background_color_(backgroundColor)
 {
+	font_ = util::getFont();
 	content_msg_ = text;
-	text_cache_ = "";
-	text_color_ = Qt::black;
-	//setAttribute(Qt::WA_PaintOnScreen, true);
-	setAttribute(Qt::WA_NoSystemBackground, true);
-	setAttribute(Qt::WA_StaticContents, true);
-	//setAttribute(Qt::WA_OpaquePaintEvent, true);
+	pen_.setColor(textColor);
+	pen_.setCosmetic(true);
 }
 
 FastLabel::FastLabel()
 {
 	content_msg_ = "";
-	text_cache_ = "";
-	text_color_ = Qt::black;
-	//setAttribute(Qt::WA_PaintOnScreen, true);
-	setAttribute(Qt::WA_NoSystemBackground, true);
-	setAttribute(Qt::WA_StaticContents, true);
-	//setAttribute(Qt::WA_OpaquePaintEvent, true);
+	pen_.setCosmetic(true);
 }
 
 FastLabel::~FastLabel()
@@ -62,6 +52,11 @@ FastLabel::~FastLabel()
 void FastLabel::setTextColor(const QColor& color)
 {
 	text_color_ = color;
+}
+
+void FastLabel::setBackgroundColor(const QColor& color)
+{
+	background_color_ = color;
 }
 
 QColor FastLabel::getTextColor()
@@ -74,21 +69,21 @@ QString FastLabel::getText() const
 	return content_msg_;
 }
 
-void FastLabel::resizeEvent(QResizeEvent*)
-{
-	update();
-}
-
-void FastLabel::paintEvent(QPaintEvent* e)
-{
-	QPainter painter(this);
-	QFont font = painter.font();
-	font.setPointSize(new_font_size_);
-	painter.setFont(font);
-
-	painter.setPen(QPen(text_color_));
-	painter.drawText(rect().adjusted(-1, -1, -1, -1), flag_, content_msg_);
-}
+//void FastLabel::resizeEvent(QResizeEvent*)
+//{
+//	update();
+//}
+//
+//void FastLabel::paintEvent(QPaintEvent* e)
+//{
+//	QPainter painter(this);
+//	QFont font = painter.font();
+//	font.setPointSize(new_font_size_);
+//	painter.setFont(font);
+//
+//	painter.setPen(QPen(text_color_));
+//	painter.drawText(rect().adjusted(-1, -1, -1, -1), flag_, content_msg_);
+//}
 
 void FastLabel::setFlag(int flag)
 {
@@ -107,3 +102,49 @@ void FastLabel::setText(const QString& text)
 	update();
 }
 
+void FastLabel::initializeGL()
+{
+	initializeOpenGLFunctions();
+
+	glClearColor(background_color_.redF(), background_color_.greenF(), background_color_.blueF(), 1.0f);
+
+	glEnable(GL_MULTISAMPLE);
+	glDisable(GL_DEPTH_TEST);
+	glEnable(GL_SMOOTH);
+}
+
+void FastLabel::resizeGL(int w, int h)
+{
+	glViewport(0, 0, w, h); //設置視口
+	glMatrixMode(GL_PROJECTION); //設置矩陣模式
+	glLoadIdentity(); //重置矩陣
+	glOrtho(0, w, h, 0, -1, 1); //設置正交投影
+	glMatrixMode(GL_MODELVIEW); //設置矩陣模式
+	glLoadIdentity(); //重置矩陣
+}
+
+void FastLabel::paintGL()
+{
+	glClearColor(background_color_.redF(), background_color_.greenF(), background_color_.blueF(), 1.0f);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	// 在指定位置绘制文本
+	QPainter painter(this);
+	pen_.setColor(text_color_);
+	painter.setFont(font_);
+	painter.setPen(pen_);
+	painter.setRenderHint(QPainter::Antialiasing);// 抗锯齿
+	painter.setRenderHint(QPainter::TextAntialiasing); // 文本抗锯齿
+	painter.setRenderHint(QPainter::SmoothPixmapTransform); // 平滑像素变换
+	painter.setRenderHint(QPainter::LosslessImageRendering);
+
+	painter.beginNativePainting();
+
+	// 使用存储的字体和文本内容进行绘制
+	painter.fillRect(rect(), background_color_);
+	painter.drawText(rect(), flag_, content_msg_);
+
+	painter.endNativePainting();
+
+	glFinish();
+
+}

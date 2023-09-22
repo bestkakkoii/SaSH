@@ -31,17 +31,17 @@ CodeEditor::CodeEditor(QWidget* parent)
 	setAttribute(Qt::WA_StyledBackground);
 	//install font
 	QFontDatabase::addApplicationFont("YaHei Consolas Hybrid 1.12.ttf");
-	QFont _font("YaHei Consolas Hybrid", 11, 570/*QFont::DemiBold*/, false);
-	setFont(_font);
-	font = _font;
+	font_ = util::getFont();
+	font_.setFamily("YaHei Consolas Hybrid");
+	font_.setPointSize(11);
+	setFont(font_);
 
-	textLexer.setDefaultFont(font);
+	textLexer.setDefaultFont(font_);
 	setLexer(&textLexer);
 	SendScintilla(QsciScintilla::SCI_SETCODEPAGE, QsciScintilla::SC_CP_UTF8);//設置編碼為UTF-8
 	setUtf8(true);//設置編碼為UTF-8
 	setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Maximum);
 
-	QsciScintilla::setFont(font);
 	//代碼提示autoCompletion
 #ifdef _DEBUG
 	QFile f(R"(..\Debug\lib\completion_api.txt)");
@@ -114,7 +114,7 @@ CodeEditor::CodeEditor(QWidget* parent)
 	setAnnotationDisplay(QsciScintilla::AnnotationBoxed);//註釋樣式
 
 	//行號提示
-	setFont(font);//設置文本字體
+	setFont(font_);//設置文本字體
 	setWrapMode(QsciScintilla::WrapWord); //文本自動換行模式
 	setWrapVisualFlags(QsciScintilla::WrapFlagByText);
 
@@ -157,10 +157,10 @@ CodeEditor::CodeEditor(QWidget* parent)
 	//行號顯示區域
 	setMarginType(0, QsciScintilla::NumberMargin);//設置標號為0的頁邊顯示行號
 	setMarginLineNumbers(0, true);
-	QFontMetrics fontmetrics = QFontMetrics(font);
+	QFontMetrics fontmetrics = QFontMetrics(font_);
 	setMarginWidth(0, fontmetrics.horizontalAdvance("00000"));
 
-	setMarginsFont(font);//設置頁邊字體
+	setMarginsFont(font_);//設置頁邊字體
 	setMarginOptions(QsciScintilla::MoSublineSelect);
 	setMarginsBackgroundColor(QColor(30, 30, 30));
 	setMarginsForegroundColor(QColor(43, 145, 175));

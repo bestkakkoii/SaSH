@@ -27,7 +27,7 @@ ListView::ListView(QWidget* parent)
 	: QListView(parent)
 {
 	setWordWrap(true);
-	setUniformItemSizes(false);
+	setUniformItemSizes(true);
 	installEventFilter(this);
 	setTextElideMode(Qt::ElideNone);
 	setResizeMode(QListView::Adjust);

@@ -439,6 +439,9 @@ static const QSet<uint16_t> ROAD = {
 	14020, 14021, 14022, 14023, 14024, 14025, 14026, 14027, 14028, 14029,
 	14030, 14031,
 
+	//花
+	13025,
+
 	//薩伊那斯
 	34,
 
@@ -1553,6 +1556,10 @@ bool __fastcall MapAnalyzer::readFromBinary(qint64 floor, const QString& name, b
 			sObject = read(bObject, point);
 			sLabel = read(bLabel, point);
 
+			map.ground.insert(point, sGround);
+			map.object.insert(point, sObject);
+			map.flag.insert(point, sLabel);
+
 			typeGround = getGroundType(sGround);
 			typeObject = getObjectType(sObject);
 
@@ -1565,7 +1572,7 @@ bool __fastcall MapAnalyzer::readFromBinary(qint64 floor, const QString& name, b
 			if (point == injector.server->getPoint())
 			{
 				qDebug() << "ground:" << sGround << "object:" << sObject << "flag: HI[" << HIBYTE(sLabel) << "] LO[" << LOBYTE(sLabel) << "]";
-			}
+		}
 #endif
 
 			//排除樓梯或水晶
@@ -1692,8 +1699,8 @@ bool __fastcall MapAnalyzer::readFromBinary(qint64 floor, const QString& name, b
 
 			if (!bret)
 				bret = true;
-		}
 	}
+}
 
 	//繪製地圖圖像(只能在PaintEvent中繪製)
 	draw();
@@ -1745,7 +1752,9 @@ bool __fastcall MapAnalyzer::loadFromBinary(qint64 floor, map_t* _map)
 		{
 			ifs.read(reinterpret_cast<char*>(&type), sizeof(BYTE));
 			if (util::OBJ_MAX >= 0 && type < util::OBJ_MAX)
+			{
 				map.data.insert(QPoint(x, y), static_cast<util::ObjectType>(type));
+			}
 		}
 	}
 
@@ -1968,6 +1977,23 @@ bool __fastcall MapAnalyzer::isPassable(qint64 floor, const QPoint& src, const Q
 	} while (false);
 
 	return bret;
+}
+
+QString __fastcall MapAnalyzer::getGround(qint64 floor, const QString& name, const QPoint& src)
+{
+	map_t map;
+	if (getMapDataByFloor(floor, &map) &&
+		(map.ground.isEmpty() || map.object.isEmpty() || map.flag.isEmpty()))
+	{
+		if (!readFromBinary(floor, name, false, true))
+			return 0;
+
+		if (!getMapDataByFloor(floor, &map))
+			return 0;
+	}
+
+	qint64 flag = map.flag.value(src, 0);
+	return QString("%1|%2|%3|%4").arg(map.ground.value(src, 0)).arg(map.object.value(src, 0)).arg(HIBYTE(flag)).arg(LOBYTE(flag));
 }
 
 // 取靠近目標的最佳座標和方向

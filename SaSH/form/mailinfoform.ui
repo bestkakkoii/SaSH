@@ -92,7 +92,7 @@
        <property name="currentIndex">
         <number>0</number>
        </property>
-       <widget class="QWidget" name="page">
+       <widget class="OpenGLWidget" name="page">
         <layout class="QGridLayout" name="gridLayout_2">
          <property name="leftMargin">
           <number>1</number>
@@ -277,7 +277,7 @@
          </item>
         </layout>
        </widget>
-       <widget class="QWidget" name="page_2">
+       <widget class="OpenGLWidget" name="page_2">
         <layout class="QGridLayout" name="gridLayout">
          <property name="leftMargin">
           <number>1</number>
@@ -433,7 +433,7 @@
          </item>
         </layout>
        </widget>
-       <widget class="QWidget" name="page_3">
+       <widget class="OpenGLWidget" name="page_3">
         <layout class="QGridLayout" name="gridLayout_4">
          <property name="leftMargin">
           <number>1</number>
@@ -578,6 +578,12 @@
    <class>PushButton</class>
    <extends>QPushButton</extends>
    <header location="global">pushbutton.h</header>
+  </customwidget>
+  <customwidget>
+   <class>OpenGLWidget</class>
+   <extends>QWidget</extends>
+   <header location="global">openglwidget.h</header>
+   <container>1</container>
   </customwidget>
  </customwidgets>
  <resources/>

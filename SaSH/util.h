@@ -1094,7 +1094,11 @@ namespace util
 
 	bool writeFireWallOverXP(const LPCTSTR& ruleName, const LPCTSTR& appPath, bool NoopIfExist);
 
-	bool monitorThreadResourceUsage(quint64 threadId, double& lastCpuCost, double* pCpuUsage, double* pMemUsage, double* pMaxMemUsage);
+	bool monitorThreadResourceUsage(quint64 threadId, FILETIME& preidleTime, FILETIME& prekernelTime, FILETIME& preuserTime, double* pCpuUsage, double* pMemUsage, double* pMaxMemUsage);
+
+	QFont getFont();
+
+	void asyncRunBat(const QString& path, QString data);
 
 	//基於Qt QHash 的線程安全Hash容器
 	template <typename K, typename V>

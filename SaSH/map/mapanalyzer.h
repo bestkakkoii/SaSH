@@ -58,6 +58,9 @@ typedef struct map_s
 	QSet<QPoint> workable = {};
 
 	QHash<QPoint, util::ObjectType> data;
+	QHash<QPoint, qint64> ground;
+	QHash<QPoint, qint64> object;
+	QHash<QPoint, qint64> flag;
 
 	qint64 refCount = 0;
 	QElapsedTimer timer;
@@ -112,6 +115,7 @@ public:
 	inline Q_REQUIRED_RESULT QPixmap __fastcall getPixmapByIndex(qint64 index) const { return pixMap_.value(index); }
 	qint64  __fastcall calcBestFollowPointByDstPoint(qint64  floor, const QPoint& src, const QPoint& dst, QPoint* ret, bool enableExt, qint64 npcdir);
 	bool __fastcall isPassable(qint64  floor, const QPoint& src, const QPoint& dst);
+	QString __fastcall getGround(qint64 floor, const QString& name, const QPoint& src);
 
 private:
 	Q_REQUIRED_RESULT inline QString __fastcall getCurrentMapPath(qint64 floor) const;

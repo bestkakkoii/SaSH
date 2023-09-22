@@ -38,17 +38,13 @@ ScriptSettingForm::ScriptSettingForm(qint64 index, QWidget* parent)
 	setIndex(index);
 
 	setAttribute(Qt::WA_DeleteOnClose);
+	setAttribute(Qt::WA_StyledBackground);
 
 	//setWindowFlags(Qt::FramelessWindowHint);
 	//CustomTitleBar* titleBar = new CustomTitleBar(CustomTitleBar::kAllButton, this);
 	//setMenuWidget(titleBar);
 
 	qRegisterMetaType<QVector<qint64>>();
-
-	//reset font size
-	QFont font = ui.listView_log->font();
-	font.setPointSize(12);
-	ui.listView_log->setFont(font);
 
 	takeCentralWidget();
 	setDockNestingEnabled(true);
@@ -127,6 +123,16 @@ ScriptSettingForm::ScriptSettingForm(qint64 index, QWidget* parent)
 	connect(&signalDispatcher, &SignalDispatcher::callStackInfoChanged, this, &ScriptSettingForm::onCallStackInfoChanged, Qt::QueuedConnection);
 	connect(&signalDispatcher, &SignalDispatcher::jumpStackInfoChanged, this, &ScriptSettingForm::onJumpStackInfoChanged, Qt::QueuedConnection);
 
+
+
+	QList <OpenGLWidget*> glWidgetList = util::findWidgets<OpenGLWidget>(this);
+	for (auto& glWidget : glWidgetList)
+	{
+		if (glWidget)
+			glWidget->setBackgroundColor(QColor(31, 31, 31));
+	}
+
+
 	Injector& injector = Injector::getInstance(index);
 	if (!injector.scriptLogModel.isNull())
 		ui.listView_log->setModel(injector.scriptLogModel.get());
@@ -159,7 +165,7 @@ ScriptSettingForm::ScriptSettingForm(qint64 index, QWidget* parent)
 	qint64 fontSize = config.read<qint64>(objectName(), ObjectName, "FontSize");
 	if (fontSize > 0)
 	{
-		font = ui.widget->getOldFont();
+		QFont font = ui.widget->getOldFont();
 		font.setPointSize(fontSize);
 		ui.widget->setNewFont(font);
 		ui.widget->zoomTo(3);
@@ -178,7 +184,7 @@ ScriptSettingForm::ScriptSettingForm(qint64 index, QWidget* parent)
 	fontSize = config.read<qint64>(objectName(), ObjectName, "FontSize");
 	if (fontSize > 0)
 	{
-		font = ui.textBrowser->font();
+		QFont font = ui.textBrowser->font();
 		font.setPointSize(fontSize);
 		ui.textBrowser->setFont(font);
 	}
@@ -186,23 +192,24 @@ ScriptSettingForm::ScriptSettingForm(qint64 index, QWidget* parent)
 
 void ScriptSettingForm::initStaticLabel()
 {
-	lineLable_ = new FastLabel(tr("row:%1").arg(1), this);
+	lineLable_ = new FastLabel(tr("row:%1").arg(1), QColor("#FFFFFF"), QColor(64, 53, 130), this);
 	lineLable_->setFixedWidth(60);
 	lineLable_->setTextColor(QColor(255, 255, 255));
-	sizeLabel_ = new FastLabel("| " + tr("size:%1").arg(0), this);
+	sizeLabel_ = new FastLabel("| " + tr("size:%1").arg(0), QColor("#FFFFFF"), QColor(64, 53, 130), this);
 	sizeLabel_->setFixedWidth(60);
 	sizeLabel_->setTextColor(QColor(255, 255, 255));
-	indexLabel_ = new FastLabel("| " + tr("index:%1").arg(1), this);
+	indexLabel_ = new FastLabel("| " + tr("index:%1").arg(1), QColor("#FFFFFF"), QColor(64, 53, 130), this);
 	indexLabel_->setFixedWidth(60);
 	indexLabel_->setTextColor(QColor(255, 255, 255));
 
 	const QsciScintilla::EolMode mode = ui.widget->eolMode();
 	const QString modeStr(mode == QsciScintilla::EolWindows ? "CRLF" : mode == QsciScintilla::EolUnix ? "  LF" : "  CR");
-	eolLabel_ = new FastLabel(QString("| %1").arg(modeStr), this);
+	eolLabel_ = new FastLabel(QString("| %1").arg(modeStr), QColor("#FFFFFF"), QColor(64, 53, 130), this);
 	eolLabel_->setFixedWidth(50);
 	eolLabel_->setTextColor(QColor(255, 255, 255));
 
-	usageLabel_ = new FastLabel(QString(tr("Usage: cpu: %1% | memory: %2MB / %3MB")).arg(0).arg(0).arg(0), this);
+	usageLabel_ = new FastLabel(QString(tr("Usage: cpu: %1% | memory: %2MB / %3MB"))
+		.arg(0).arg(0).arg(0), QColor("#FFFFFF"), QColor(64, 53, 130), this);
 	usageLabel_->setFixedWidth(350);
 	usageLabel_->setTextColor(QColor(255, 255, 255));
 
@@ -215,7 +222,7 @@ void ScriptSettingForm::initStaticLabel()
 	spaceLabelMiddle->setFixedWidth(100);
 
 	usageTimer_ = new QTimer(this);
-	usageTimer_->setInterval(1000);
+	usageTimer_->setInterval(1500);
 	connect(usageTimer_, &QTimer::timeout, this, [this]()
 		{
 			qint64 currentIndex = getIndex();
@@ -230,7 +237,7 @@ void ScriptSettingForm::initStaticLabel()
 			qreal memoryUsage = 0;
 			qreal memoryTotal = 0;
 
-			if (util::monitorThreadResourceUsage(threadId, lastCpuCost_, &cpuUsage, &memoryUsage, &memoryTotal))
+			if (util::monitorThreadResourceUsage(threadId, idleTime_, kernelTime_, userTime_, &cpuUsage, &memoryUsage, &memoryTotal))
 			{
 				usageLabel_->setText(QString(tr("Usage: cpu: %1% | memory: %2MB / %3MB"))
 					.arg(QString::number(cpuUsage, 'f', 2))
@@ -240,6 +247,8 @@ void ScriptSettingForm::initStaticLabel()
 		});
 
 	usageTimer_->start();
+
+	ui.statusBar->setAttribute(Qt::WA_StyledBackground);
 
 	ui.statusBar->setStyleSheet("color: rgb(255, 255, 255); background-color: rgb(64, 53, 130); border:none");
 
@@ -1953,6 +1962,11 @@ void ScriptSettingForm::onScriptStartMode()
 	ui.mainToolBar->setUpdatesEnabled(false);
 
 	ui.statusBar->setStyleSheet("color: rgb(255, 255, 255); background-color: rgb(134, 27, 45); border:none");
+	usageLabel_->setBackgroundColor(QColor(134, 27, 45));
+	lineLable_->setBackgroundColor(QColor(134, 27, 45));
+	sizeLabel_->setBackgroundColor(QColor(134, 27, 45));
+	indexLabel_->setBackgroundColor(QColor(134, 27, 45));
+	eolLabel_->setBackgroundColor(QColor(134, 27, 45));
 
 	ui.mainToolBar->clear();
 	ui.actionLogback->setEnabled(false);
@@ -2006,6 +2020,11 @@ void ScriptSettingForm::onScriptStopMode()
 	ui.mainToolBar->setUpdatesEnabled(false);
 
 	ui.statusBar->setStyleSheet("color: rgb(255, 255, 255); background-color: rgb(64, 53, 130); border:none");
+	usageLabel_->setBackgroundColor(QColor(64, 53, 130));
+	lineLable_->setBackgroundColor(QColor(64, 53, 130));
+	sizeLabel_->setBackgroundColor(QColor(64, 53, 130));
+	indexLabel_->setBackgroundColor(QColor(64, 53, 130));
+	eolLabel_->setBackgroundColor(QColor(64, 53, 130));
 
 	ui.mainToolBar->clear();
 	ui.actionLogback->setEnabled(true);
@@ -2073,6 +2092,11 @@ void ScriptSettingForm::onScriptBreakMode()
 	ui.mainToolBar->setUpdatesEnabled(false);
 
 	ui.statusBar->setStyleSheet("color: rgb(255, 255, 255); background-color: rgb(66, 66, 66); border:none");
+	usageLabel_->setBackgroundColor(QColor(66, 66, 66));
+	lineLable_->setBackgroundColor(QColor(66, 66, 66));
+	sizeLabel_->setBackgroundColor(QColor(66, 66, 66));
+	indexLabel_->setBackgroundColor(QColor(66, 66, 66));
+	eolLabel_->setBackgroundColor(QColor(66, 66, 66));
 
 	ui.mainToolBar->clear();
 	ui.actionLogback->setEnabled(false);
@@ -2127,6 +2151,11 @@ void ScriptSettingForm::onScriptPauseMode()
 	ui.mainToolBar->setUpdatesEnabled(false);
 
 	ui.statusBar->setStyleSheet("color: rgb(255, 255, 255); background-color: rgb(66, 66, 66); border:none");
+	usageLabel_->setBackgroundColor(QColor(66, 66, 66));
+	lineLable_->setBackgroundColor(QColor(66, 66, 66));
+	sizeLabel_->setBackgroundColor(QColor(66, 66, 66));
+	indexLabel_->setBackgroundColor(QColor(66, 66, 66));
+	eolLabel_->setBackgroundColor(QColor(66, 66, 66));
 
 	ui.mainToolBar->clear();
 	ui.actionLogback->setEnabled(false);

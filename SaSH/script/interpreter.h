@@ -124,17 +124,10 @@ private: //註冊給Parser的函數
 	qint64 send(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
 
 	//check
-	qint64 ifdaily(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
-	qint64 ifbattle(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
-	qint64 ifnormal(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
-	qint64 ifonline(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
-	qint64 ifpos(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
+	qint64 checkdaily(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
 	qint64 waitmap(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
-	qint64 ifmap(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
 	qint64 waitdlg(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
 	qint64 waitsay(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
-	qint64 checkunit(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
-	qint64 ifitemfull(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
 	qint64 waititem(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
 	qint64 waitpet(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
 	//check-group

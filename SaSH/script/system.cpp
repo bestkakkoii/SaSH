@@ -991,6 +991,18 @@ qint64 Interpreter::set(qint64 currentIndex, qint64 currentLine, const TokenMap&
 			{ u8"战斗宠一般", util::kBattlePetNormalActionTypeValue },
 
 			{ u8"攻击延时", util::kBattleActionDelayValue },
+
+
+			{ u8"战斗回合目标", util::kBattleCharRoundActionTargetValue },
+			{ u8"战斗间隔目标",  util::kBattleCharCrossActionTargetValue },
+			{ u8"战斗一般目标", util::kBattleCharNormalActionTargetValue },
+			{ u8"战斗宠回合目标", util::kBattlePetRoundActionTargetValue },
+			{ u8"战斗宠间隔目标", util::kBattlePetCrossActionTargetValue },
+			{ u8"战斗宠一般目标",  util::kBattlePetNormalActionTargetValue },
+			{ u8"战斗精灵补血目标", util::kBattleMagicHealTargetValue },
+			{ u8"战斗道具补血目标", util::kBattleItemHealTargetValue },
+			{ u8"战斗精灵復活目标", util::kBattleMagicReviveTargetValue },
+			{ u8"战斗道具復活目标", util::kBattleItemReviveTargetValue },
 	#pragma endregion
 	};
 
@@ -1098,6 +1110,17 @@ qint64 Interpreter::set(qint64 currentIndex, qint64 currentLine, const TokenMap&
 	case util::kSpeedBoostValue://加速
 	case util::kScriptSpeedValue://腳本速度
 	case util::kBattleActionDelayValue://攻擊延時
+
+	case util::kBattleCharRoundActionTargetValue:
+	case util::kBattleCharCrossActionTargetValue:
+	case util::kBattleCharNormalActionTargetValue:
+	case util::kBattlePetRoundActionTargetValue:
+	case util::kBattlePetCrossActionTargetValue:
+	case util::kBattlePetNormalActionTargetValue:
+	case util::kBattleMagicHealTargetValue:
+	case util::kBattleItemHealTargetValue:
+	case util::kBattleMagicReviveTargetValue:
+	case util::kBattleItemReviveTargetValue:
 	{
 		qint64 value = 0;
 		if (!checkInteger(TK, 2, &value))

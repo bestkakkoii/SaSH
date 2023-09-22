@@ -460,12 +460,11 @@ public:
 private:
 	void processTokens();
 	qint64 processCommand();
-	void processVariable(RESERVE type);
 	void processLocalVariable();
 	void processVariableIncDec();
 	void processVariableCAOs();
 	void processVariableExpr();
-	void processMultiVariable();
+	void processVariable();
 	void processTable();
 	void processTableSet(const QString& preVarName = "", const QVariant& value = QVariant());
 	void processFormation();
@@ -484,11 +483,10 @@ private:
 	bool processBreak();
 	bool processContinue();
 	bool processLuaCode();
-	bool processGetSystemVarValue(const QString& varName, QString& valueStr, QVariant& varValue);
 	bool processIfCompare();
 
-	bool updateSysConstKeyword(const QString& expr);
-	bool importVariablesToLua(const QString& expr);
+	void updateSysConstKeyword(const QString& expr);
+	void importVariablesToLua(const QString& expr);
 	bool checkCallStack();
 	void exportVarInfo();
 
@@ -604,7 +602,7 @@ private:
 	QStack<QVariantList> callArgsStack_;					//"調用"命令參數棧
 	QVariantList emptyArgs_;								//空參數(參數棧為空得情況下壓入一個空容器)
 	QStack<QVariantHash> localVarStack_;					//局變量棧
-	QStringList luaLocalVarStringList;								//lua局變量
+	QStringList luaLocalVarStringList;						//lua局變量
 	QVariantHash emptyLocalVars_;							//空局變量(局變量棧為空得情況下壓入一個空容器)
 	QVariantList lastReturnValue_;							//函數返回值
 

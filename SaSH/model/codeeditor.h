@@ -59,7 +59,7 @@ public:
 	inline bool isStep(int mode) const { return ((mode & S_STEPMARK) == S_STEPMARK); }
 
 	QFont getOldFont() { return QsciScintilla::font(); }
-	void setNewFont(const QFont& f) { font = f; setFont(f); textLexer.setDefaultFont(f); }
+	void setNewFont(const QFont& f) { font_ = f; setFont(f); textLexer.setDefaultFont(f); }
 public slots:
 	void commentSwitch();
 	void findReplace();
@@ -69,7 +69,7 @@ signals:
 private:
 	Highlighter textLexer;
 	QsciAPIs apis;
-	QFont font;
+	QFont font_;
 	QFont linefont;
 	bool isDialogOpened = false;
 protected:
