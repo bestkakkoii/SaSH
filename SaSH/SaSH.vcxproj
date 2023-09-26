@@ -65,7 +65,7 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="QtSettings">
     <QtInstall>5.15.2_msvc2019_64</QtInstall>
-    <QtModules>opengl;network;gui;svg;widgets;printsupport;concurrent</QtModules>
+    <QtModules>opengl;network;gui;svg;widgets;printsupport;concurrent;core</QtModules>
     <QtBuildConfig>debug</QtBuildConfig>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|Win32'" Label="QtSettings">
@@ -75,7 +75,7 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="QtSettings">
     <QtInstall>5.15.2_msvc2019_64</QtInstall>
-    <QtModules>opengl;network;gui;svg;widgets;printsupport;concurrent</QtModules>
+    <QtModules>opengl;network;gui;svg;widgets;printsupport;concurrent;core</QtModules>
     <QtBuildConfig>release</QtBuildConfig>
   </PropertyGroup>
   <Target Name="QtMsBuildNotFound" BeforeTargets="CustomBuild;ClCompile" Condition="!Exists('$(QtMsBuild)\qt.targets') or !Exists('$(QtMsBuild)\qt.props')">
@@ -297,10 +297,21 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="3rdparty\simplecrypt.cpp" />
+    <ClCompile Include="battle\battle.cpp" />
     <ClCompile Include="form\abilityform.cpp" />
     <ClCompile Include="form\afkform.cpp" />
     <ClCompile Include="form\afkinfoform.cpp" />
     <ClCompile Include="form\battleinfoform.cpp" />
+    <ClCompile Include="form\battlesettingfrom.cpp">
+      <DynamicSource Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">input</DynamicSource>
+      <QtMocFileName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">%(Filename).moc</QtMocFileName>
+      <DynamicSource Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">input</DynamicSource>
+      <QtMocFileName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">%(Filename).moc</QtMocFileName>
+      <DynamicSource Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">input</DynamicSource>
+      <QtMocFileName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">%(Filename).moc</QtMocFileName>
+      <DynamicSource Condition="'$(Configuration)|$(Platform)'=='Release|x64'">input</DynamicSource>
+      <QtMocFileName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">%(Filename).moc</QtMocFileName>
+    </ClCompile>
     <ClCompile Include="form\chatinfoform.cpp" />
     <ClCompile Include="form\copyrightdialog.cpp" />
     <ClCompile Include="form\generalform.cpp" />
@@ -405,6 +416,8 @@
     <QtMoc Include="form\replaceform.h" />
     <QtMoc Include="form\luascriptform.h" />
     <QtMoc Include="form\copyrightdialog.h" />
+    <ClInclude Include="battle\battle.h" />
+    <QtMoc Include="form\battlesettingfrom.h" />
     <ClInclude Include="injector.h" />
     <ClInclude Include="map\astar.h" />
     <ClInclude Include="map\mapanalyzer.h" />
@@ -445,6 +458,7 @@
     <QtUic Include="form\afkform.ui" />
     <QtUic Include="form\afkinfoform.ui" />
     <QtUic Include="form\battleinfoform.ui" />
+    <QtUic Include="form\battlesettingfrom.ui" />
     <QtUic Include="form\chatinfoform.ui" />
     <QtUic Include="form\copyrightdialog.ui" />
     <QtUic Include="form\generalform.ui" />

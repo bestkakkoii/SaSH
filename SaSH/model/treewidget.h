@@ -14,7 +14,7 @@ public:
 		setAttribute(Qt::WA_StyledBackground);
 		setStyleSheet(R"(
 			QTreeWidget {
-				font-size:11px;
+				font-size:12px;
 			} 
 			QTreeView::item:selected {
 				background-color: black; 

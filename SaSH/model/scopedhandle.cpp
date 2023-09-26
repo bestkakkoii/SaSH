@@ -18,12 +18,11 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 #include "stdafx.h"
 #include "scopedhandle.h"
-//#include "qlog.hpp"
 #include <TlHelp32.h>
 #include <qglobal.h>
 
-std::atomic_long ScopedHandle::m_handleCount = 0L;
-std::atomic_flag ScopedHandle::m_atlock = ATOMIC_FLAG_INIT;
+std::atomic_long ScopedHandle::handleCount_ = 0L;
+std::atomic_flag ScopedHandle::atlock_ = ATOMIC_FLAG_INIT;
 
 ScopedHandle::ScopedHandle(HANDLE_TYPE h)
 {
@@ -32,14 +31,14 @@ ScopedHandle::ScopedHandle(HANDLE_TYPE h)
 }
 
 ScopedHandle::ScopedHandle(HANDLE_TYPE h, DWORD dwFlags, DWORD th32ProcessID)
-	: enableAutoClose(true)
+	: enableAutoClose_(true)
 {
 	if (h == CREATE_TOOLHELP32_SNAPSHOT)
 		createToolhelp32Snapshot(dwFlags, th32ProcessID);
 }
 
 ScopedHandle::ScopedHandle(DWORD dwProcess, bool bAutoClose)
-	: enableAutoClose(bAutoClose)
+	: enableAutoClose_(bAutoClose)
 {
 	openProcess(dwProcess);
 }
@@ -56,7 +55,7 @@ void ScopedHandle::reset(DWORD dwProcessId)
 void ScopedHandle::reset()
 {
 	closeHandle();
-	this->m_handle = nullptr;
+	handle_ = nullptr;
 }
 
 void ScopedHandle::reset(HANDLE handle)
@@ -64,40 +63,43 @@ void ScopedHandle::reset(HANDLE handle)
 	if (NULL != handle)
 	{
 		closeHandle();
-		m_handle = handle;
+		handle_ = handle;
 	}
 }
 
 ScopedHandle::ScopedHandle(int dwProcess, bool bAutoClose)
-	: enableAutoClose(bAutoClose)
+	: enableAutoClose_(bAutoClose)
 {
 	openProcess(static_cast<DWORD>(dwProcess));
 }
 
 ScopedHandle::ScopedHandle(HANDLE_TYPE h, HANDLE ProcessHandle, PVOID StartRoutine, PVOID Argument)
-	: enableAutoClose(true)
+	: enableAutoClose_(true)
 {
+	enablePrivilege(::GetCurrentProcess());
 	if (h == CREATE_REMOTE_THREAD)
 		createThreadEx(ProcessHandle, StartRoutine, Argument);
 }
 
 ScopedHandle::ScopedHandle(HANDLE_TYPE h, HANDLE hSourceProcessHandle, HANDLE hSourceHandle, HANDLE hTargetProcessHandle, DWORD dwOptions)
-	: enableAutoClose(true)
+	: enableAutoClose_(true)
 {
+	enablePrivilege(::GetCurrentProcess());
 	if (h == DUPLICATE_HANDLE)
 		duplicateHandle(hSourceProcessHandle, hSourceHandle, hTargetProcessHandle, dwOptions);
 }
 
 ScopedHandle::~ScopedHandle()
 {
-	if (enableAutoClose)
+	if (enableAutoClose_)
 		this->closeHandle();
 }
 
 void ScopedHandle::closeHandle()
 {
-	QWriteLocker locker(&m_lock);
-	HANDLE h = this->m_handle;
+	QWriteLocker locker(&lock_);
+	enablePrivilege(::GetCurrentProcess());
+	HANDLE h = handle_;
 	if (!h
 		|| ((h) == INVALID_HANDLE_VALUE)
 		|| ((h) == ::GetCurrentProcess()))
@@ -107,8 +109,7 @@ void ScopedHandle::closeHandle()
 	if (ret)
 	{
 		subHandleCount();
-		//print << "CloseHandle: " << (h) << "Total Handle:" << getHandleCount() << Qt::endl;
-		this->m_handle = nullptr;
+		handle_ = nullptr;
 		h = nullptr;
 	}
 }
@@ -148,7 +149,8 @@ HANDLE ScopedHandle::ZwOpenProcess(DWORD dwProcess)
 
 void ScopedHandle::openProcess(DWORD dwProcess)
 {
-	QWriteLocker locker(&m_lock);
+	QWriteLocker locker(&lock_);
+	enablePrivilege(::GetCurrentProcess());
 	HANDLE hprocess = NtOpenProcess(dwProcess);
 	if (!hprocess || ((hprocess) == INVALID_HANDLE_VALUE))
 	{
@@ -166,120 +168,113 @@ void ScopedHandle::openProcess(DWORD dwProcess)
 	if (hprocess && ((hprocess) != INVALID_HANDLE_VALUE))
 	{
 		addHandleCount();
-		//print << "openProcess:" << (hprocess) << "Total Handle:" << getHandleCount() << Qt::endl;
-		this->m_handle = hprocess;
+		handle_ = hprocess;
 		hprocess = nullptr;
+		enablePrivilege(hprocess);
 	}
 	else
-		this->m_handle = nullptr;
+		handle_ = nullptr;
 }
 
 void ScopedHandle::createToolhelp32Snapshot(DWORD dwFlags, DWORD th32ProcessID)
 {
-
-	QWriteLocker locker(&m_lock);
+	QWriteLocker locker(&lock_);
+	enablePrivilege(::GetCurrentProcess());
 	HANDLE hSnapshot = ::CreateToolhelp32Snapshot(dwFlags, th32ProcessID);
 	if (hSnapshot && ((hSnapshot) != INVALID_HANDLE_VALUE))
 	{
 		addHandleCount();
-		//print << "createToolhelp32Snapshot:" << (hSnapshot) << "Total Handle:" << getHandleCount() << Qt::endl;
-		this->m_handle = hSnapshot;
+		handle_ = hSnapshot;
 		hSnapshot = nullptr;
 	}
 	else
-		this->m_handle = nullptr;
-}
-
-
-void ScopedHandle::openProcessToken(HANDLE ProcessHandle, ACCESS_MASK DesiredAccess)
-{
-	QWriteLocker locker(&m_lock);
-	HANDLE hToken = nullptr;
-	BOOL ret = NT_SUCCESS(MINT::NtOpenProcessToken(ProcessHandle, DesiredAccess, &hToken));
-
-	if (ret && hToken && ((hToken) != INVALID_HANDLE_VALUE))
-	{
-		addHandleCount();
-		//print << "openProcessToken:" << (hToken) << "Total Handle:" << getHandleCount() << Qt::endl;
-		this->m_handle = hToken;
-		hToken = nullptr;
-	}
-	else
-		this->m_handle = nullptr;
-}
-
-// 提權函數：提升為DEBUG權限
-BOOL ScopedHandle::EnableDebugPrivilege(HANDLE hProcess, const wchar_t* SE)
-{
-	if (!hProcess) return FALSE;
-	BOOL fOk = FALSE;
-	do
-	{
-		this->openProcessToken(hProcess, TOKEN_ALL_ACCESS);
-		if (!isValid()) break;
-
-		TOKEN_PRIVILEGES tp = {};
-
-		if (LookupPrivilegeValue(NULL, SE, &tp.Privileges[0].Luid) == FALSE)
-			break;
-
-		tp.PrivilegeCount = 1;
-		tp.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
-		MINT::NtAdjustPrivilegesToken(this->m_handle, FALSE, &tp, sizeof(tp), NULL, NULL);
-
-		fOk = (::GetLastError() == ERROR_SUCCESS);
-	} while (false);
-	return fOk;
+		handle_ = nullptr;
 }
 
 void ScopedHandle::createThreadEx(HANDLE ProcessHandle, PVOID StartRoutine, PVOID Argument)
 {
-	QWriteLocker locker(&m_lock);
+	QWriteLocker locker(&lock_);
+	enablePrivilege(::GetCurrentProcess());
 	HANDLE hThread = nullptr;
-	BOOL ret = NT_SUCCESS(MINT::NtCreateThreadEx(&hThread, THREAD_ALL_ACCESS, NULL, ProcessHandle, StartRoutine, Argument, FALSE, NULL, NULL, NULL, NULL));
+	BOOL ret = NT_SUCCESS(MINT::NtCreateThreadEx(&hThread, THREAD_ALL_ACCESS, nullptr, ProcessHandle, StartRoutine, Argument, FALSE, NULL, NULL, NULL, nullptr));
 	if (ret && hThread && ((hThread) != INVALID_HANDLE_VALUE))
 	{
 		LARGE_INTEGER pTimeout = {};
 		pTimeout.QuadPart = -1ll * 10000000ll;
-		pTimeout.QuadPart = -1ll * 10000000ll;
 		MINT::NtWaitForSingleObject(hThread, TRUE, &pTimeout);
 		addHandleCount();
-		//print << "createThreadEx:" << (hThread) << "Total Handle:" << getHandleCount() << Qt::endl;
-		this->m_handle = hThread;
+		handle_ = hThread;
 		hThread = nullptr;
 	}
 	else
-		this->m_handle = nullptr;
+		handle_ = nullptr;
 }
 
 void ScopedHandle::duplicateHandle(HANDLE hSourceProcessHandle, HANDLE hSourceHandle, HANDLE hTargetProcessHandle, DWORD dwOptions)
 {
-	QWriteLocker locker(&m_lock);
+	QWriteLocker locker(&lock_);
+	enablePrivilege(::GetCurrentProcess());
 	HANDLE hTargetHandle = nullptr;
 	//BOOL ret = ::DuplicateHandle(hSourceProcessHandle, hSourceHandle, hTargetProcessHandle, &hTargetHandle, 0, FALSE, dwOptions);
 	BOOL ret = NT_SUCCESS(MINT::NtDuplicateObject(hSourceProcessHandle, hSourceHandle, hTargetProcessHandle, &hTargetHandle, 0, FALSE, dwOptions));
 	if (ret && hTargetHandle && ((hTargetHandle) != INVALID_HANDLE_VALUE))
 	{
 		addHandleCount();
-		//print << "duplicateHandle:" << (hTargetHandle) << "Total Handle:" << getHandleCount() << Qt::endl;
-		this->m_handle = hTargetHandle;
+		handle_ = hTargetHandle;
 		hTargetHandle = nullptr;
 	}
 	else
-		this->m_handle = nullptr;
+		handle_ = nullptr;
 }
 
 void ScopedHandle::createEvent()
 {
-	QWriteLocker locker(&m_lock);
-	HANDLE hEvent = ::CreateEvent(NULL, FALSE, FALSE, NULL);
+	QWriteLocker locker(&lock_);
+	enablePrivilege(::GetCurrentProcess());
+	HANDLE hEvent = ::CreateEventW(nullptr, FALSE, FALSE, nullptr);
 	if (hEvent && ((hEvent) != INVALID_HANDLE_VALUE))
 	{
 		addHandleCount();
-		//print << "createEvent:" << (hEvent) << "Total Handle:" << getHandleCount() << Qt::endl;
-		this->m_handle = hEvent;
+		handle_ = hEvent;
 		hEvent = nullptr;
 	}
 	else
-		this->m_handle = nullptr;
+		handle_ = nullptr;
+}
+
+HANDLE ScopedHandle::openProcessToken(HANDLE ProcessHandle, ACCESS_MASK DesiredAccess)
+{
+	HANDLE hToken = nullptr;
+	BOOL ret = NT_SUCCESS(MINT::NtOpenProcessToken(ProcessHandle, DesiredAccess, &hToken));
+	if (ret && hToken && ((hToken) != INVALID_HANDLE_VALUE))
+	{
+		return hToken;
+	}
+	else
+		return nullptr;
+}
+
+// 提權函數：提升為DEBUG權限
+BOOL ScopedHandle::enablePrivilege(HANDLE hProcess, const wchar_t* SE)
+{
+	if (!hProcess) return FALSE;
+	BOOL fOk = FALSE;
+	do
+	{
+		HANDLE hToken = openProcessToken(hProcess, TOKEN_ALL_ACCESS);
+		if (hToken == NULL || hToken == INVALID_HANDLE_VALUE)
+			break;
+
+		TOKEN_PRIVILEGES tp = {};
+
+		if (LookupPrivilegeValueW(NULL, SE, &tp.Privileges[0].Luid) == FALSE)
+			break;
+
+		tp.PrivilegeCount = 1;
+		tp.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
+		MINT::NtAdjustPrivilegesToken(hToken, FALSE, &tp, sizeof(tp), nullptr, nullptr);
+
+		fOk = (::GetLastError() == ERROR_SUCCESS);
+	} while (false);
+	return fOk;
 }

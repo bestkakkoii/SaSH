@@ -255,7 +255,7 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 		qint64 id = msg->wParam;
 		interpreter_hash_.insert(id, interpreter);
 
-		QString script = QString::fromUtf8(utf8str);
+		QString script = util::toQString(utf8str);
 		connect(interpreter.data(), &Interpreter::finished, this, [this, id]()
 			{
 				interpreter_hash_.remove(id);
@@ -293,7 +293,7 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 		if (utf8str.isEmpty())
 			return true;
 
-		QString fileName = QString::fromUtf8(utf8str);
+		QString fileName = util::toQString(utf8str);
 		if (!QFile::exists(fileName))
 			return true;
 
@@ -474,7 +474,7 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 			if (hwndstrs.isEmpty())
 				break;
 
-			QString str = QString::fromUtf8(hwndstrs);
+			QString str = util::toQString(hwndstrs);
 			if (str.isEmpty())
 				break;
 
@@ -526,7 +526,7 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 			if (hwndstrs.isEmpty())
 				break;
 
-			QString str = QString::fromUtf8(hwndstrs);
+			QString str = util::toQString(hwndstrs);
 			if (str.isEmpty())
 				break;
 
@@ -781,7 +781,7 @@ MainForm::MainForm(qint64 index, QWidget* parent)
 		connect(&signalDispatcher, &SignalDispatcher::updateMapLabelTextChanged, this, &MainForm::onUpdateMapLabelTextChanged);
 		connect(&signalDispatcher, &SignalDispatcher::updateCursorLabelTextChanged, this, &MainForm::onUpdateCursorLabelTextChanged);
 		connect(&signalDispatcher, &SignalDispatcher::updateCoordsPosLabelTextChanged, this, &MainForm::onUpdateCoordsPosLabelTextChanged);
-		connect(&signalDispatcher, &SignalDispatcher::updatePlayerInfoStone, this, &MainForm::onUpdateStonePosLabelTextChanged);
+		connect(&signalDispatcher, &SignalDispatcher::updateCharInfoStone, this, &MainForm::onUpdateStonePosLabelTextChanged);
 	}
 
 	ui.tabWidget_main->clear();
@@ -835,13 +835,15 @@ MainForm::MainForm(qint64 index, QWidget* parent)
 
 	onLoadHashSettings(util::applicationDirPath() + "/settings/default.json", true);
 }
-
+#include "mainthread.h"
 MainForm::~MainForm()
 {
 	qDebug() << "MainForm::~MainForm()";
 	qint64 currentIndex = getIndex();
 	Injector::getInstance(currentIndex).close();
 	g_mainFormHash.remove(currentIndex);
+	ThreadManager& threadManager = ThreadManager::getInstance();
+	threadManager.wait(currentIndex);
 	SignalDispatcher::remove(currentIndex);
 	//MINT::NtTerminateProcess(GetCurrentProcess(), 0);
 }
@@ -1156,7 +1158,7 @@ void MainForm::onUpdateStatusLabelTextChanged(qint64 status)
 		{ util::kLabelStatusSignning, tr("signning") },
 		{ util::kLabelStatusSelectServer, tr("select server") },
 		{ util::kLabelStatusSelectSubServer, tr("select sub server") },
-		{ util::kLabelStatusGettingPlayerList, tr("getting player list") },
+		{ util::kLabelStatusGettingCharList, tr("getting player list") },
 		{ util::kLabelStatusSelectPosition, tr("select position") },
 		{ util::kLabelStatusLoginSuccess, tr("login success") },
 		{ util::kLabelStatusInNormal, tr("in normal") },
@@ -1188,7 +1190,7 @@ void MainForm::onUpdateCoordsPosLabelTextChanged(const QString& text)
 
 void MainForm::onUpdateStonePosLabelTextChanged(qint64 ntext)
 {
-	ui.label_stone->setText(QString::number(ntext));
+	ui.label_stone->setText(util::toQString(ntext));
 }
 
 void MainForm::onUpdateMainFormTitle(const QString& text)

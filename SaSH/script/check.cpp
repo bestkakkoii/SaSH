@@ -103,7 +103,7 @@ qint64 Interpreter::waitmap(qint64 currentIndex, qint64 currentLine, const Token
 	auto check = [&injector, floor, mapnames]()
 	{
 		if (floor != 0)
-			return floor == injector.server->nowFloor;
+			return floor == injector.server->getFloor();
 		else
 		{
 			for (const QString& mapname : mapnames)
@@ -112,7 +112,7 @@ qint64 Interpreter::waitmap(qint64 currentIndex, qint64 currentLine, const Token
 				qint64 fr = mapname.toLongLong(&ok);
 				if (ok)
 				{
-					if (fr == injector.server->nowFloor)
+					if (fr == injector.server->getFloor())
 						return true;
 				}
 				else
@@ -120,10 +120,10 @@ qint64 Interpreter::waitmap(qint64 currentIndex, qint64 currentLine, const Token
 					if (mapname.startsWith("?"))
 					{
 						QString newName = mapname.mid(1);
-						return injector.server->nowFloorName.contains(newName);
+						return injector.server->getFloorName().contains(newName);
 					}
 					else
-						return mapname == injector.server->nowFloorName;
+						return mapname == injector.server->getFloorName();
 				}
 			}
 		}
@@ -167,9 +167,6 @@ qint64 Interpreter::waitdlg(qint64 currentIndex, qint64 currentLine, const Token
 			return Parser::kArgError + 1ll;
 	}
 
-	if (dlgid == -1 && cmpStr.isEmpty())
-		return Parser::kArgError + 1ll;
-
 	bool bret = false;
 	if (dlgid != -1)
 	{
@@ -212,6 +209,9 @@ qint64 Interpreter::waitdlg(qint64 currentIndex, qint64 currentLine, const Token
 		{
 			if (!injector.server->isDialogVisible())
 				return false;
+
+			if (cmpStrs.isEmpty() || cmpStrs.front().isEmpty())
+				return true;
 
 			QStringList dialogStrList = injector.server->currentDialog.get().linedatas;
 			for (qint64 i = min; i <= max; ++i)

@@ -50,7 +50,7 @@ typedef struct break_marker_s
 
 namespace mem
 {
-	bool read(HANDLE hProcess, quint64 desiredAccess, SIZE_T size, PVOID buffer);
+	bool read(HANDLE hProcess, quint64 desiredAccess, quint64 size, PVOID buffer);
 	template<typename T, typename = std::enable_if_t<std::is_arithmetic_v<T> && !std::is_pointer_v<T>>>
 	Q_REQUIRED_RESULT T read(HANDLE hProcess, quint64 desiredAccess);
 
@@ -82,13 +82,13 @@ namespace mem
 
 	Q_REQUIRED_RESULT float readFloat(HANDLE hProcess, quint64 desiredAccess);
 	Q_REQUIRED_RESULT qreal readDouble(HANDLE hProcess, quint64 desiredAccess);
-	Q_REQUIRED_RESULT QString readString(HANDLE hProcess, quint64 desiredAccess, int size, bool enableTrim = true, bool keepOriginal = false);
-	bool write(HANDLE hProcess, quint64 baseAddress, PVOID buffer, SIZE_T dwSize);
+	Q_REQUIRED_RESULT QString readString(HANDLE hProcess, quint64 desiredAccess, quint64 size, bool enableTrim = true, bool keepOriginal = false);
+	bool write(HANDLE hProcess, quint64 baseAddress, PVOID buffer, quint64 dwSize);
 	bool writeString(HANDLE hProcess, quint64 baseAddress, const QString& str);
-	bool virtualFree(HANDLE hProcess, int baseAddress);
-	Q_REQUIRED_RESULT int virtualAlloc(HANDLE hProcess, int size);
-	Q_REQUIRED_RESULT int virtualAllocW(HANDLE hProcess, const QString& str);
-	Q_REQUIRED_RESULT int virtualAllocA(HANDLE hProcess, const QString& str);
+	bool virtualFree(HANDLE hProcess, quint64 baseAddress);
+	Q_REQUIRED_RESULT quint64 virtualAlloc(HANDLE hProcess, quint64 size);
+	Q_REQUIRED_RESULT quint64 virtualAllocW(HANDLE hProcess, const QString& str);
+	Q_REQUIRED_RESULT quint64 virtualAllocA(HANDLE hProcess, const QString& str);
 	Q_REQUIRED_RESULT DWORD getRemoteModuleHandle(DWORD dwProcessId, const QString& moduleName);
 	void freeUnuseMemory(HANDLE hProcess);
 
@@ -188,7 +188,7 @@ namespace util
 		kLabelStatusSignning,//簽入中
 		kLabelStatusSelectServer,//選擇伺服器
 		kLabelStatusSelectSubServer,//選擇分伺服器
-		kLabelStatusGettingPlayerList,//取得人物中
+		kLabelStatusGettingCharList,//取得人物中
 		kLabelStatusSelectPosition,//選擇人物中
 		kLabelStatusLoginSuccess,//登入成功
 		kLabelStatusInNormal,//平時
@@ -362,7 +362,7 @@ namespace util
 		kBattleCatchTargetMaxHpValue,
 		kBattleCatchTargetMagicHpValue,
 		kBattleCatchTargetItemHpValue,
-		kBattleCatchPlayerMagicValue,
+		kBattleCatchCharMagicValue,
 		kBattleCatchPetSkillValue,
 
 
@@ -445,8 +445,8 @@ namespace util
 		kSwitcherWorldEnable,
 
 		//afk->battle
-		kCrossActionCharEnable,
-		kCrossActionPetEnable,
+		kBattleCrossActionCharEnable,
+		kBattleCrossActionPetEnable,
 
 		//afk->heal
 		kBattleMagicHealEnable,
@@ -465,8 +465,8 @@ namespace util
 		//afk->catch
 		kBattleCatchTargetLevelEnable,
 		kBattleCatchTargetMaxHpEnable,
-		kBattleCatchPlayerMagicEnable,
-		kBattleCatchPlayerItemEnable,
+		kBattleCatchCharMagicEnable,
+		kBattleCatchCharItemEnable,
 		kBattleCatchPetSkillEnable,
 
 		kDropPetEnable,
@@ -506,7 +506,7 @@ namespace util
 
 		//afk->catch
 		kBattleCatchPetNameString,
-		kBattleCatchPlayerItemString,
+		kBattleCatchCharItemString,
 		kDropPetNameString,
 
 
@@ -524,6 +524,8 @@ namespace util
 		kMailWhiteListString,
 
 		kEOCommandString,
+
+		kBattleLogicsString,
 
 		kSettingMaxString,
 
@@ -644,7 +646,7 @@ namespace util
 		{ kBattleCatchTargetMaxHpValue, "BattleCatchTargetMaxHpValue" },
 		{ kBattleCatchTargetMagicHpValue, "BattleCatchTargetMagicHpValue" },
 		{ kBattleCatchTargetItemHpValue, "BattleCatchTargetItemHpValue" },
-		{ kBattleCatchPlayerMagicValue, "BattleCatchPlayerMagicValue" },
+		{ kBattleCatchCharMagicValue, "BattleCatchCharMagicValue" },
 		{ kBattleCatchPetSkillValue, "BattleCatchPetSkillValue" },
 
 		//afk->battle delay
@@ -721,8 +723,8 @@ namespace util
 		{ kSwitcherJobEnable, "SwitcherJobEnable" },
 		{ kSwitcherWorldEnable, "SwitcherWorldEnable" },
 		//afk->battle
-		{ kCrossActionCharEnable, "CrossActionCharEnable" },
-		{ kCrossActionPetEnable, "CrossActionPetEnable" },
+		{ kBattleCrossActionCharEnable, "CrossActionCharEnable" },
+		{ kBattleCrossActionPetEnable, "CrossActionPetEnable" },
 
 		//afk->heal
 		{ kBattleMagicHealEnable, "BattleMagicHealEnable" },
@@ -741,8 +743,8 @@ namespace util
 		//afk->catch
 		{ kBattleCatchTargetLevelEnable, "BattleCatchTargetLevelEnable" },
 		{ kBattleCatchTargetMaxHpEnable, "BattleCatchTargetMaxHpEnable" },
-		{ kBattleCatchPlayerMagicEnable, "BattleCatchPlayerMagicEnable" },
-		{ kBattleCatchPlayerItemEnable, "BattleCatchPlayerItemEnable" },
+		{ kBattleCatchCharMagicEnable, "BattleCatchCharMagicEnable" },
+		{ kBattleCatchCharItemEnable, "BattleCatchCharItemEnable" },
 		{ kBattleCatchPetSkillEnable, "BattleCatchPetSkillEnable" },
 
 		{ kDropPetEnable, "DropPetEnable" },
@@ -774,7 +776,7 @@ namespace util
 
 		//afk->catch
 		{ kBattleCatchPetNameString, "BattleCatchPetNameString" },
-		{ kBattleCatchPlayerItemString, "BattleCatchPlayerItemString" },
+		{ kBattleCatchCharItemString, "BattleCatchCharItemString" },
 		{ kDropPetNameString, "DropPetNameString" },
 
 
@@ -849,20 +851,90 @@ namespace util
 			return static_cast<qint64>(d);
 	}
 
+	template<typename T>
+	inline Q_REQUIRED_RESULT QString toQString(T d, qint64 base = 10)
+	{
+		if constexpr (std::is_same_v<T, double>)
+		{
+			return QString::number(d, 'f', 5);
+		}
+		else if constexpr (std::is_same_v<T, float>)
+		{
+			return QString::number(d, 'f', 5);
+		}
+		else if constexpr (std::is_same_v<T, bool>)
+		{
+			return (d) ? QString("true") : QString("false");
+		}
+		else if constexpr (std::is_same_v<T, wchar_t*>)
+		{
+			return QString::fromWCharArray(d);
+		}
+		else if constexpr (std::is_same_v<T, const wchar_t*>)
+		{
+			return QString::fromWCharArray(d);
+		}
+		else if constexpr (std::is_same_v<T, char*>)
+		{
+			return QString::fromUtf8(d);
+		}
+		else if constexpr (std::is_same_v<T, const char*>)
+		{
+			return QString::fromUtf8(d);
+		}
+		else if constexpr (std::is_same_v<T, std::string>)
+		{
+			return QString::fromUtf8(d.c_str());
+		}
+		else if constexpr (std::is_same_v<T, qint64>)
+		{
+			return QString::number(d, base);
+		}
+		else if constexpr (std::is_same_v<T, quint64>)
+		{
+			return QString::number(d, base);
+		}
+		else if constexpr (std::is_same_v<T, int>)
+		{
+			return QString::number(d, base);
+		}
+		else if constexpr (std::is_same_v < T, QByteArray>)
+		{
+			return QString::fromUtf8(d);
+		}
+		else if constexpr (std::is_same_v < T, sol::object>)
+		{
+			if (d.is<std::string>())
+				return QString::fromUtf8(d.as<std::string>().c_str());
+			else
+				return "";
+		}
+		else if constexpr (std::is_integral_v<T>)
+		{
+			return QString::number(d, base);
+		}
+		else
+		{
+			static_assert(false, "Unsupported type for toQString");
+			return QString();
+		}
+
+	}
+
 	inline Q_REQUIRED_RESULT QString toUnicode(const char* str, bool ext = true)
 	{
 		QTextCodec* codec = QTextCodec::codecForName(util::DEFAULT_GAME_CODEPAGE);//QTextCodec::codecForMib(2025);//取GB2312解碼器
 		QString qstr = codec->toUnicode(str);//先以GB2312解碼轉成UNICODE
-		std::wstring wstr = qstr.toStdWString();
 		UINT ACP = ::GetACP();
 		if (950 == ACP && ext)
 		{
 			// 繁體系統要轉繁體否則遊戲視窗標題會亂碼(一堆問號字)
+			std::wstring wstr = qstr.toStdWString();
 			qint64 size = lstrlenW(wstr.c_str());
 			QScopedArrayPointer <wchar_t> wbuf(new wchar_t[size + 1]());
 			//繁體字碼表映射
 			LCMapStringEx(LOCALE_NAME_SYSTEM_DEFAULT, LCMAP_TRADITIONAL_CHINESE, wstr.c_str(), size, wbuf.data(), size, NULL, NULL, NULL);
-			qstr = QString::fromWCharArray(wbuf.data());
+			qstr = util::toQString(wbuf.data());
 		}
 
 		return qstr;
@@ -879,7 +951,7 @@ namespace util
 			qint64 size = lstrlenW(wstr.c_str());
 			QScopedArrayPointer <wchar_t> wbuf(new wchar_t[size + 1]());
 			LCMapStringEx(LOCALE_NAME_SYSTEM_DEFAULT, LCMAP_SIMPLIFIED_CHINESE, wstr.c_str(), size, wbuf.data(), size, NULL, NULL, NULL);
-			qstr = QString::fromWCharArray(wbuf.data());
+			qstr = util::toQString(wbuf.data());
 		}
 		QTextCodec* codec = QTextCodec::codecForMib(2025);//QTextCodec::codecForName("gb2312");
 		QByteArray bytes = codec->fromUnicode(qstr);
@@ -1050,7 +1122,7 @@ namespace util
 
 	bool enumAllFiles(const QString dir, const QString suffix, QVector<QPair<QString, QString>>* result);
 
-	QString findFileFromName(const QString& fileName, const QString& dirpath = applicationDirPath());
+	QString findFileFromName(const QString& fileName, const QString& dirpath = util::applicationDirPath());
 
 	template<typename T>
 	QList<T*> findWidgets(QWidget* widget)
@@ -1115,9 +1187,7 @@ namespace util
 	class SafeHash
 	{
 	public:
-		SafeHash()
-		{
-		}
+		SafeHash() = default;
 
 		inline SafeHash(std::initializer_list<std::pair<K, V> > list)
 		{
@@ -1228,14 +1298,6 @@ namespace util
 			QWriteLocker locker(&lock);
 			hash.clear();
 		}
-
-		//=
-		//inline V operator[](const K& key)
-		//{
-		//	QWriteLocker locker(&lock);
-		//	return hash[key];
-		//}
-
 
 		inline K key(const V& value) const
 		{
@@ -1460,15 +1522,15 @@ namespace util
 		{
 		}
 
-		SafeVector(const QVector<T>& other) : data_(other)
+		explicit SafeVector(const QVector<T>& other) : data_(other)
 		{
 		}
 
-		SafeVector(QVector<T>&& other) : data_(other)
+		explicit SafeVector(QVector<T>&& other) : data_(other)
 		{
 		}
 
-		SafeVector(std::initializer_list<T> args) : data_(args)
+		explicit SafeVector(std::initializer_list<T> args) : data_(args)
 		{
 		}
 
@@ -1479,7 +1541,7 @@ namespace util
 			return *this;
 		}
 
-		SafeVector(const SafeVector<T>& other) : data_(other.data_)
+		explicit SafeVector(const SafeVector<T>& other) : data_(other.data_)
 		{
 		}
 
@@ -1692,8 +1754,8 @@ namespace util
 	class Config
 	{
 	public:
-		Config(const QString& fileName);
-		~Config();
+		explicit Config(const QString& fileName);
+		virtual ~Config();
 
 		bool open();
 		void sync();
@@ -1860,13 +1922,13 @@ namespace util
 	class ScopedFileLocker
 	{
 	public:
-		ScopedFileLocker(const QString& fileName)
+		explicit ScopedFileLocker(const QString& fileName)
 			:lock_(fileName)
 		{
 			isFileLocked = lock_.tryLock();
 		}
 
-		~ScopedFileLocker()
+		virtual ~ScopedFileLocker()
 		{
 			if (isFileLocked)
 			{
@@ -1887,13 +1949,13 @@ namespace util
 	class ScopedLocker
 	{
 	public:
-		ScopedLocker(QMutex* lock)
+		explicit ScopedLocker(QMutex* lock)
 			:lock_(*lock)
 		{
 			isLocked_ = lock_.tryLock();
 		}
 
-		~ScopedLocker()
+		virtual ~ScopedLocker()
 		{
 			if (isLocked_)
 			{
@@ -2019,7 +2081,7 @@ namespace util
 			hProcess = h;
 		}
 
-		operator qint64() const
+		inline operator quint64() const
 		{
 			return this->lpAddress;
 		}
@@ -2091,11 +2153,12 @@ namespace util
 			} while (false);
 		}
 
-		Q_REQUIRED_RESULT inline bool __vectorcall isNull() const
+		Q_REQUIRED_RESULT inline bool isNull() const
 		{
 			return !lpAddress;
 		}
-		inline void __vectorcall clear()
+
+		inline void clear()
 		{
 
 			if ((this->lpAddress))
@@ -2105,14 +2168,14 @@ namespace util
 			}
 		}
 
-		Q_REQUIRED_RESULT inline bool __vectorcall isValid()const
+		Q_REQUIRED_RESULT inline bool isValid()const
 		{
 			return (this->lpAddress) != NULL;
 		}
 
 	private:
 		bool autoclear = false;
-		qint64 lpAddress = NULL;
+		quint64 lpAddress = NULL;
 		HANDLE hProcess = NULL;
 	};
 
@@ -2190,7 +2253,7 @@ namespace util
 #else
 			return false;
 #endif
-	}
+		}
 
 		if (pcontent != nullptr)
 		{
@@ -2199,7 +2262,7 @@ namespace util
 		}
 
 		return false;
-}
+	}
 
 	void sortWindows(const QVector<HWND>& windowList, bool alignLeft);
 
@@ -2328,7 +2391,6 @@ namespace util
 	}
 #pragma endregion
 
-
 	//用於掛機訊息紀錄
 	typedef struct tagAfkRecorder
 	{
@@ -2340,6 +2402,7 @@ namespace util
 		qint64 deadthcount = 0;
 		qint64 reprecord = 0;
 		qint64 repearn = 0;
+		bool deadthcountflag = false;
 	}AfkRecorder;
 	//#pragma warning(push)
 	//#pragma warning(disable:304)

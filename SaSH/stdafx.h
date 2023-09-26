@@ -228,7 +228,9 @@ public:\
 
 #include <QCryptographicHash>
 #include <QStyleFactory>
-
+#include <QGraphicsView>
+#include <QGraphicsTextItem>
+#include <QGraphicsSceneEvent>
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // 3rd parties
 #ifndef SOL_ALL_SAFETIES_ON

@@ -172,7 +172,7 @@ void QThumbnailWidget::repaintGL()
 		pixmap_ = screen->grabWindow(wid);
 		if (pixmap_.isNull()) { m_timer.stop(); return; }
 
-		QPixmapCache::insert("image_key" + QString::number((int)wid), pixmap_);
+		QPixmapCache::insert("image_key" + util::toQString((int)wid), pixmap_);
 	}
 	catch (...)
 	{
@@ -190,14 +190,14 @@ void QThumbnailWidget::paintGL()
 	if (!wid) { m_timer.stop(); return; }
 
 	QPixmap cachedPixmap;
-	if (!QPixmapCache::find("image_key" + QString::number((int)wid), &cachedPixmap))
+	if (!QPixmapCache::find("image_key" + util::toQString((int)wid), &cachedPixmap))
 	{
 		try
 		{
 			QPixmap pixmap = screen->grabWindow(wid);
 			if (pixmap.isNull()) { m_timer.stop(); return; }
 
-			QPixmapCache::insert("image_key" + QString::number((int)wid), pixmap);
+			QPixmapCache::insert("image_key" + util::toQString((int)wid), pixmap);
 			cachedPixmap = pixmap;
 		}
 		catch (...)

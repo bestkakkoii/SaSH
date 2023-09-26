@@ -281,12 +281,12 @@ void AfkForm::onCheckBoxStateChanged(int state)
 	//battle
 	if (name == "checkBox_crossaction_char")
 	{
-		injector.setEnableHash(util::kCrossActionCharEnable, isChecked);
+		injector.setEnableHash(util::kBattleCrossActionCharEnable, isChecked);
 		return;
 	}
 	if (name == "checkBox_crossaction_pet")
 	{
-		injector.setEnableHash(util::kCrossActionPetEnable, isChecked);
+		injector.setEnableHash(util::kBattleCrossActionPetEnable, isChecked);
 		return;
 	}
 
@@ -373,13 +373,13 @@ void AfkForm::onCheckBoxStateChanged(int state)
 
 	if (name == "checkBox_autocatchpet_magic")
 	{
-		injector.setEnableHash(util::kBattleCatchPlayerMagicEnable, isChecked);
+		injector.setEnableHash(util::kBattleCatchCharMagicEnable, isChecked);
 		return;
 	}
 
 	if (name == "checkBox_autocatchpet_item")
 	{
-		injector.setEnableHash(util::kBattleCatchPlayerItemEnable, isChecked);
+		injector.setEnableHash(util::kBattleCatchCharItemEnable, isChecked);
 		return;
 	}
 
@@ -761,7 +761,7 @@ void AfkForm::onComboBoxCurrentIndexChanged(int value)
 	}
 	if (name == "comboBox_autocatchpet_magic")
 	{
-		injector.setValueHash(util::kBattleCatchPlayerMagicValue, value != -1 ? value : 0);
+		injector.setValueHash(util::kBattleCatchCharMagicValue, value != -1 ? value : 0);
 		return;
 	}
 	if (name == "comboBox_autocatchpet_petskill")
@@ -820,7 +820,7 @@ void AfkForm::onComboBoxClicked()
 		//catch
 		if (name == "comboBox_autocatchpet_item")
 		{
-			settingType = util::kBattleCatchPlayerItemString;
+			settingType = util::kBattleCatchCharItemString;
 			break;
 		}
 	} while (false);
@@ -1123,6 +1123,7 @@ void AfkForm::onApplyHashSettingsToUI()
 	ui.comboBox_itemrevive->setCurrentText(stringHash.value(util::kBattleItemReviveItemString));
 	ui.comboBox_itemheal_normal->setCurrentText(stringHash.value(util::kNormalItemHealItemString));
 	ui.comboBox_itemhealmp_normal->setCurrentText(stringHash.value(util::kNormalItemHealMpItemString));
+	ui.comboBox_magicheal_normal->setCurrentIndex(valueHash.value(util::kNormalMagicHealMagicValue));
 
 	ui.checkBox_noscapewhilelockpet->setChecked(enableHash.value(util::kBattleNoEscapeWhileLockPetEnable));
 
@@ -1147,22 +1148,22 @@ void AfkForm::onApplyHashSettingsToUI()
 	ui.comboBox_autowalkdir->setCurrentIndex(valueHash.value(util::kAutoWalkDirectionValue));
 	ui.spinBox_autowalkdelay->setValue(valueHash.value(util::kAutoWalkDelayValue));
 	ui.spinBox_autowalklen->setValue(valueHash.value(util::kAutoWalkDistanceValue));
-	ui.checkBox_crossaction_char->setChecked(enableHash.value(util::kCrossActionCharEnable));
-	ui.checkBox_crossaction_pet->setChecked(enableHash.value(util::kCrossActionPetEnable));
+	ui.checkBox_crossaction_char->setChecked(enableHash.value(util::kBattleCrossActionCharEnable));
+	ui.checkBox_crossaction_pet->setChecked(enableHash.value(util::kBattleCrossActionPetEnable));
 
 	//catch
 	ui.comboBox_autocatchpet_mode->setCurrentIndex(valueHash.value(util::kBattleCatchModeValue));
-	ui.comboBox_autocatchpet_magic->setCurrentIndex(valueHash.value(util::kBattleCatchPlayerMagicValue));
+	ui.comboBox_autocatchpet_magic->setCurrentIndex(valueHash.value(util::kBattleCatchCharMagicValue));
 	ui.comboBox_autocatchpet_petskill->setCurrentIndex(valueHash.value(util::kBattleCatchPetSkillValue));
 	ui.checkBox_autocatchpet_level->setChecked(enableHash.value(util::kBattleCatchTargetLevelEnable));
 	ui.checkBox_autocatchpet_hp->setChecked(enableHash.value(util::kBattleCatchTargetMaxHpEnable));
-	ui.checkBox_autocatchpet_magic->setChecked(enableHash.value(util::kBattleCatchPlayerMagicEnable));
-	ui.checkBox_autocatchpet_item->setChecked(enableHash.value(util::kBattleCatchPlayerItemEnable));
+	ui.checkBox_autocatchpet_magic->setChecked(enableHash.value(util::kBattleCatchCharMagicEnable));
+	ui.checkBox_autocatchpet_item->setChecked(enableHash.value(util::kBattleCatchCharItemEnable));
 	ui.checkBox_autocatchpet_petskill->setChecked(enableHash.value(util::kBattleCatchPetSkillEnable));
 	ui.spinBox_autocatchpet_level->setValue(valueHash.value(util::kBattleCatchTargetLevelValue));
 	ui.spinBox_autocatchpet_hp->setValue(valueHash.value(util::kBattleCatchTargetMaxHpValue));
 	ui.lineEdit_autocatchpet->setText(stringHash.value(util::kBattleCatchPetNameString));
-	ui.comboBox_autocatchpet_item->setCurrentText(stringHash.value(util::kBattleCatchPlayerItemString));
+	ui.comboBox_autocatchpet_item->setCurrentText(stringHash.value(util::kBattleCatchCharItemString));
 	ui.spinBox_autocatchpet_magic->setValue(valueHash.value(util::kBattleCatchTargetMagicHpValue));
 	ui.spinBox_autocatchpet_item->setValue(valueHash.value(util::kBattleCatchTargetItemHpValue));
 
@@ -1288,9 +1289,9 @@ void AfkForm::onUpdateComboBoxItemText(qint64 type, const QStringList& textList)
 				{
 					ITEM item = pc.item[i];
 					QString text = QString("%1:%2").arg(i - CHAR_EQUIPPLACENUM + 1).arg(item.name);
-					ui.comboBox_magicheal_normal->addItem(text);
-					qint64 index = ui.comboBox_magicheal_normal->count() - 1;
-					ui.comboBox_magicheal_normal->setItemData(index, text, Qt::ToolTipRole);
+					combo->addItem(text);
+					qint64 index = combo->count() - 1;
+					combo->setItemData(index, text, Qt::ToolTipRole);
 				}
 			}
 

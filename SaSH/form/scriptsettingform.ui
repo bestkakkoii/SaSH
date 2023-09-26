@@ -435,157 +435,187 @@ color: rgb(208, 208, 208);
            </item>
            <item>
             <property name="text">
-             <string>upper</string>
+             <string>transform</string>
             </property>
+            <item>
+             <property name="text">
+              <string>tostr()</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>toint()</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>todb(,)</string>
+             </property>
+            </item>
            </item>
            <item>
             <property name="text">
-             <string>tunique</string>
+             <string>table</string>
             </property>
+            <item>
+             <property name="text">
+              <string>tunique()</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>tswap()</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>tsright()</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>tsort()</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>tsleft()</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>tshuffle()</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>trsort()</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>trotate()</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>tpopfront()</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>tpopback()</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>tpadd()</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>tmerge()</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>tjoin()</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>tfront()</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>tback()</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>tadd()</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>split()</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>mktable()</string>
+             </property>
+            </item>
            </item>
            <item>
             <property name="text">
-             <string>tswap</string>
+             <string>string</string>
             </property>
+            <item>
+             <property name="text">
+              <string>upper()</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>trim()</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>rexg()</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>rex()</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>replace()</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>regex()</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>mkpath()</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>lower()</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>half()</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>full()</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>format()</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>find()</string>
+             </property>
+            </item>
            </item>
            <item>
             <property name="text">
-             <string>tsright</string>
-            </property>
-           </item>
-           <item>
-            <property name="text">
-             <string>tsort</string>
-            </property>
-           </item>
-           <item>
-            <property name="text">
-             <string>tsleft</string>
-            </property>
-           </item>
-           <item>
-            <property name="text">
-             <string>tshuffle</string>
-            </property>
-           </item>
-           <item>
-            <property name="text">
-             <string>trsort</string>
-            </property>
-           </item>
-           <item>
-            <property name="text">
-             <string>trotate</string>
-            </property>
-           </item>
-           <item>
-            <property name="text">
-             <string>trim</string>
-            </property>
-           </item>
-           <item>
-            <property name="text">
-             <string>tpopfront</string>
-            </property>
-           </item>
-           <item>
-            <property name="text">
-             <string>tpopback</string>
-            </property>
-           </item>
-           <item>
-            <property name="text">
-             <string>tpadd</string>
-            </property>
-           </item>
-           <item>
-            <property name="text">
-             <string>tostr</string>
-            </property>
-           </item>
-           <item>
-            <property name="text">
-             <string>toint</string>
-            </property>
-           </item>
-           <item>
-            <property name="text">
-             <string>tmerge</string>
-            </property>
-           </item>
-           <item>
-            <property name="text">
-             <string>tjoin</string>
-            </property>
-           </item>
-           <item>
-            <property name="text">
-             <string>tfront</string>
-            </property>
-           </item>
-           <item>
-            <property name="text">
-             <string>tback</string>
-            </property>
-           </item>
-           <item>
-            <property name="text">
-             <string>tadd</string>
-            </property>
-           </item>
-           <item>
-            <property name="text">
-             <string>sysvar</string>
-            </property>
-           </item>
-           <item>
-            <property name="text">
-             <string>split</string>
-            </property>
-           </item>
-           <item>
-            <property name="text">
-             <string>rnd</string>
-            </property>
-           </item>
-           <item>
-            <property name="text">
-             <string>rexg</string>
-            </property>
-           </item>
-           <item>
-            <property name="text">
-             <string>rex</string>
-            </property>
-           </item>
-           <item>
-            <property name="text">
-             <string>replace</string>
-            </property>
-           </item>
-           <item>
-            <property name="text">
-             <string>releaseall</string>
-            </property>
-           </item>
-           <item>
-            <property name="text">
-             <string>regex</string>
-            </property>
-           </item>
-           <item>
-            <property name="text">
-             <string>mktable</string>
-            </property>
-           </item>
-           <item>
-            <property name="text">
-             <string>mkpath</string>
-            </property>
-           </item>
-           <item>
-            <property name="text">
-             <string>lower</string>
+             <string>rnd()</string>
             </property>
            </item>
            <item>
@@ -595,27 +625,7 @@ color: rgb(208, 208, 208);
            </item>
            <item>
             <property name="text">
-             <string>half</string>
-            </property>
-           </item>
-           <item>
-            <property name="text">
-             <string>full</string>
-            </property>
-           </item>
-           <item>
-            <property name="text">
-             <string>format</string>
-            </property>
-           </item>
-           <item>
-            <property name="text">
-             <string>find</string>
-            </property>
-           </item>
-           <item>
-            <property name="text">
-             <string>delete</string>
+             <string>input()</string>
             </property>
            </item>
            <item>
@@ -635,12 +645,7 @@ color: rgb(208, 208, 208);
            </property>
            <item>
             <property name="text">
-             <string>timer</string>
-            </property>
-           </item>
-           <item>
-            <property name="text">
-             <string>test</string>
+             <string>timer()</string>
             </property>
            </item>
            <item>
@@ -655,7 +660,7 @@ color: rgb(208, 208, 208);
            </item>
            <item>
             <property name="text">
-             <string>set</string>
+             <string>set()</string>
             </property>
            </item>
            <item>
@@ -860,6 +865,11 @@ color: rgb(208, 208, 208);
            </item>
            <item>
             <property name="text">
+             <string>dofile</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
              <string>continue</string>
             </property>
            </item>
@@ -894,247 +904,12 @@ color: rgb(208, 208, 208);
             </property>
             <item>
              <property name="text">
-              <string>ifteam</string>
-             </property>
-            </item>
-            <item>
-             <property name="text">
-              <string>ifpos</string>
-             </property>
-            </item>
-            <item>
-             <property name="text">
-              <string>ifplayer</string>
-             </property>
-             <item>
-              <property name="text">
-               <string>wind</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>water</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>stone</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>name</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>mpp</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>mp</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>maxmp</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>maxhp</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>maxexp</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>lv</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>hpp</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>hp</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>fname</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>fire</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>exp</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>earth</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>def</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>chasma</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>atk</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>agi</string>
-              </property>
-             </item>
-            </item>
-            <item>
-             <property name="text">
-              <string>ifpetex</string>
-             </property>
-             <item>
-              <property name="text">
-               <string>wind</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>water</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>name</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>maxhp</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>maxexp</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>lv</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>loyal</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>hpp</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>hp</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>fname</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>fire</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>exp</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>earth</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>def</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>atk</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>agi</string>
-              </property>
-             </item>
-            </item>
-            <item>
-             <property name="text">
-              <string>ifpet</string>
-             </property>
-            </item>
-            <item>
-             <property name="text">
-              <string>ifonline</string>
-             </property>
-            </item>
-            <item>
-             <property name="text">
-              <string>ifnormal</string>
-             </property>
-            </item>
-            <item>
-             <property name="text">
-              <string>ifmap</string>
-             </property>
-            </item>
-            <item>
-             <property name="text">
-              <string>ifitemfull</string>
-             </property>
-            </item>
-            <item>
-             <property name="text">
-              <string>ifitem</string>
-             </property>
-            </item>
-            <item>
-             <property name="text">
-              <string>ifdaily</string>
-             </property>
-            </item>
-            <item>
-             <property name="text">
-              <string>ifbattle</string>
-             </property>
-            </item>
-            <item>
-             <property name="text">
               <string>if</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>checkdaily</string>
              </property>
             </item>
            </item>
@@ -1250,28 +1025,28 @@ color: rgb(208, 208, 208);
            </property>
            <item>
             <property name="text">
-             <string>wequip</string>
-            </property>
-           </item>
-           <item>
-            <property name="text">
              <string>usemagic</string>
             </property>
            </item>
            <item>
             <property name="text">
-             <string>useitem</string>
+             <string>team</string>
             </property>
-           </item>
-           <item>
-            <property name="text">
-             <string>uequip</string>
-            </property>
-           </item>
-           <item>
-            <property name="text">
-             <string>swapitem</string>
-            </property>
+            <item>
+             <property name="text">
+              <string>leave</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>kick</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>join</string>
+             </property>
+            </item>
            </item>
            <item>
             <property name="text">
@@ -1280,118 +1055,118 @@ color: rgb(208, 208, 208);
            </item>
            <item>
             <property name="text">
-             <string>sell</string>
+             <string>mouse</string>
             </property>
+            <item>
+             <property name="text">
+              <string>rclick</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>ldbclick</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>lclick</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>dragto</string>
+             </property>
+            </item>
            </item>
            <item>
             <property name="text">
-             <string>save</string>
+             <string>item</string>
             </property>
+            <item>
+             <property name="text">
+              <string>useitem</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>swapitem</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>sell</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>pickup</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>make</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>mail</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>doffstone</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>doffpet</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>doffitem</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>cook</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>buy</string>
+             </property>
+            </item>
            </item>
            <item>
             <property name="text">
-             <string>requip</string>
+             <string>equip</string>
             </property>
-           </item>
-           <item>
-            <property name="text">
-             <string>rclick</string>
-            </property>
-           </item>
-           <item>
-            <property name="text">
-             <string>putpet</string>
-            </property>
-           </item>
-           <item>
-            <property name="text">
-             <string>put</string>
-            </property>
-           </item>
-           <item>
-            <property name="text">
-             <string>puequip</string>
-            </property>
-           </item>
-           <item>
-            <property name="text">
-             <string>pickup</string>
-            </property>
-           </item>
-           <item>
-            <property name="text">
-             <string>pequip</string>
-            </property>
-           </item>
-           <item>
-            <property name="text">
-             <string>make</string>
-            </property>
-           </item>
-           <item>
-            <property name="text">
-             <string>mail</string>
-            </property>
-           </item>
-           <item>
-            <property name="text">
-             <string>load</string>
-            </property>
-           </item>
-           <item>
-            <property name="text">
-             <string>leave</string>
-            </property>
-           </item>
-           <item>
-            <property name="text">
-             <string>ldbclick</string>
-            </property>
-           </item>
-           <item>
-            <property name="text">
-             <string>lclick</string>
-            </property>
-           </item>
-           <item>
-            <property name="text">
-             <string>join</string>
-            </property>
-           </item>
-           <item>
-            <property name="text">
-             <string>getpet</string>
-            </property>
-           </item>
-           <item>
-            <property name="text">
-             <string>get</string>
-            </property>
-           </item>
-           <item>
-            <property name="text">
-             <string>doffstone</string>
-            </property>
-           </item>
-           <item>
-            <property name="text">
-             <string>doffpet</string>
-            </property>
-           </item>
-           <item>
-            <property name="text">
-             <string>doffitem</string>
-            </property>
-           </item>
-           <item>
-            <property name="text">
-             <string>cook</string>
-            </property>
-           </item>
-           <item>
-            <property name="text">
-             <string>chplayername</string>
-            </property>
+            <item>
+             <property name="text">
+              <string>wequip</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>uequip</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>requip</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>puequip</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>pequip</string>
+             </property>
+            </item>
            </item>
            <item>
             <property name="text">
@@ -1405,8 +1180,43 @@ color: rgb(208, 208, 208);
            </item>
            <item>
             <property name="text">
-             <string>buy</string>
+             <string>chname</string>
             </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>bank</string>
+            </property>
+            <item>
+             <property name="text">
+              <string>putstone</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>putitem</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>petput</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>petget</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>getstone</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>getitem</string>
+             </property>
+            </item>
            </item>
           </item>
          </widget>
@@ -2462,7 +2272,7 @@ margin-right:0px;
            <enum>QTabWidget::South</enum>
           </property>
           <property name="currentIndex">
-           <number>0</number>
+           <number>1</number>
           </property>
           <widget class="OpenGLWidget" name="tab_6">
            <attribute name="title">

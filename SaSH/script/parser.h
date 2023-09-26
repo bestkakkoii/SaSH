@@ -34,7 +34,7 @@ using VariantSafeHash = util::SafeHash<QString, QVariant>;
 
 enum CompareArea
 {
-	kAreaPlayer,
+	kAreaChar,
 	kAreaPet,
 	kAreaItem,
 	kAreaCount,
@@ -43,31 +43,31 @@ enum CompareArea
 enum CompareType
 {
 	kCompareTypeNone,
-	kPlayerName,
-	kPlayerFreeName,
-	kPlayerLevel,
-	kPlayerHp,
-	kPlayerMaxHp,
-	kPlayerHpPercent,
-	kPlayerMp,
-	kPlayerMaxMp,
-	kPlayerMpPercent,
-	kPlayerExp,
-	kPlayerMaxExp,
-	kPlayerStone,
-	kPlayerVit,
-	kPlayerStr,
-	kPlayerTgh,
-	kPlayerDex,
-	kPlayerAtk,
-	kPlayerDef,
-	kPlayerAgi,
-	kPlayerChasma,
-	kPlayerTurn,
-	kPlayerEarth,
-	kPlayerWater,
-	kPlayerFire,
-	kPlayerWind,
+	kCharName,
+	kCharFreeName,
+	kCharLevel,
+	kCharHp,
+	kCharMaxHp,
+	kCharHpPercent,
+	kCharMp,
+	kCharMaxMp,
+	kCharMpPercent,
+	kCharExp,
+	kCharMaxExp,
+	kCharStone,
+	kCharVit,
+	kCharStr,
+	kCharTgh,
+	kCharDex,
+	kCharAtk,
+	kCharDef,
+	kCharAgi,
+	kCharChasma,
+	kCharTurn,
+	kCharEarth,
+	kCharWater,
+	kCharFire,
+	kCharWind,
 
 	kPetName,
 	kPetFreeName,
@@ -224,31 +224,31 @@ inline static const QHash<QString, CompareType> compareMapTypeMap = {
 };
 
 inline static const QHash<QString, CompareType> comparePcTypeMap = {
-	{ u8"name", kPlayerName },
-	{ u8"fname", kPlayerFreeName },
-	{ u8"lv", kPlayerLevel },
-	{ u8"hp", kPlayerHp },
-	{ u8"maxhp", kPlayerMaxHp },
-	{ u8"hpp", kPlayerHpPercent },
-	{ u8"mp", kPlayerMp },
-	{ u8"maxmp", kPlayerMaxMp },
-	{ u8"mpp", kPlayerMpPercent },
-	{ u8"exp", kPlayerExp },
-	{ u8"maxexp", kPlayerMaxExp },
-	{ u8"stone", kPlayerStone },
-	{ u8"vit", kPlayerVit },
-	{ u8"str", kPlayerStr },
-	{ u8"tgh", kPlayerTgh },
-	{ u8"def", kPlayerDex },
-	{ u8"atk", kPlayerAtk },
-	{ u8"def", kPlayerDef },
-	{ u8"agi", kPlayerAgi },
-	{ u8"chasma", kPlayerChasma },
-	{ u8"turn", kPlayerTurn },
-	{ u8"earth", kPlayerEarth },
-	{ u8"water", kPlayerWater },
-	{ u8"fire", kPlayerFire },
-	{ u8"wind", kPlayerWind },
+	{ u8"name", kCharName },
+	{ u8"fname", kCharFreeName },
+	{ u8"lv", kCharLevel },
+	{ u8"hp", kCharHp },
+	{ u8"maxhp", kCharMaxHp },
+	{ u8"hpp", kCharHpPercent },
+	{ u8"mp", kCharMp },
+	{ u8"maxmp", kCharMaxMp },
+	{ u8"mpp", kCharMpPercent },
+	{ u8"exp", kCharExp },
+	{ u8"maxexp", kCharMaxExp },
+	{ u8"stone", kCharStone },
+	{ u8"vit", kCharVit },
+	{ u8"str", kCharStr },
+	{ u8"tgh", kCharTgh },
+	{ u8"def", kCharDex },
+	{ u8"atk", kCharAtk },
+	{ u8"def", kCharDef },
+	{ u8"agi", kCharAgi },
+	{ u8"chasma", kCharChasma },
+	{ u8"turn", kCharTurn },
+	{ u8"earth", kCharEarth },
+	{ u8"water", kCharWater },
+	{ u8"fire", kCharFire },
+	{ u8"wind", kCharWind },
 };
 
 inline static const QHash<QString, CompareType> comparePetTypeMap = {
@@ -331,13 +331,6 @@ public:
 		kResume,
 	};
 
-	enum ParserError
-	{
-		kNoError = 0,
-		kException,
-		kUndefinedVariable,
-	};
-
 	enum ParserCommandStatus
 	{
 		kHasJump = 0,
@@ -394,11 +387,6 @@ public:
 	bool loadString(const QString& content);
 
 public:
-	inline ParserError lastCriticalError() const { return lastCriticalError_; }
-
-	void setLastErrorMessage(const QString& msg) { lastErrorMesssage_ = msg; }
-	QString getLastErrorMessage() const { return lastErrorMesssage_; }
-
 	inline Q_REQUIRED_RESULT bool hasToken() const { return !tokens_.isEmpty(); }
 
 	inline Q_REQUIRED_RESULT const QHash<qint64, TokenMap> getToken() const { return tokens_; }
@@ -406,16 +394,6 @@ public:
 	void insertUserCallBack(const QString& name, const QString& type);
 
 	inline void registerFunction(const QString& commandName, const CommandRegistry& function) { commandRegistry_.insert(commandName, static_cast<CommandRegistry>(function)); }
-
-	template <typename T>
-	inline Q_REQUIRED_RESULT T getVar(const QString& name)
-	{
-		QString newName = name;
-		if (variables_->contains(newName))
-			return variables_->value(newName).value<T>();
-		else
-			return QVariant::fromValue(name).value<T>();
-	}
 
 	bool jump(qint64 line, bool noStack);
 	void jumpto(qint64 line, bool noStack);
@@ -428,7 +406,6 @@ public:
 	bool checkBoolean(const TokenMap& TK, qint64 idx, bool* ret);
 
 	bool toVariant(const TokenMap& TK, qint64 idx, QVariant* ret);
-	bool compare(const QVariant& a, const QVariant& b, RESERVE type) const;
 
 	QVariant checkValue(const TokenMap TK, qint64 idx, QVariant::Type = QVariant::Invalid);
 	qint64 checkJump(const TokenMap& TK, qint64 idx, bool expr, JumpBehavior behavior);
@@ -439,19 +416,16 @@ public:
 	QVariant luaDoString(QString expr);
 
 public:
-	Q_REQUIRED_RESULT VariantSafeHash* getGlobalVarPointer() const;
 
-	inline Q_REQUIRED_RESULT QReadWriteLock* getGlobalVarLockPointer() const { return globalVarLock_; }
+	Q_REQUIRED_RESULT bool isGlobalVarContains(const QString& name);
 
-	Q_REQUIRED_RESULT bool isGlobalVarContains(const QString& name) const;
-
-	QVariant getGlobalVarValue(const QString& name) const;
+	QVariant getGlobalVarValue(const QString& name);
 
 	void insertGlobalVar(const QString& name, const QVariant& value);
 
 	void insertVar(const QString& name, const QVariant& value);
 
-	void setVariablesPointer(VariantSafeHash* pvariables, QReadWriteLock* plock);
+	void setLuaMachinePointer(sol::state* pLua);
 
 	QHash<QString, qint64> getLabels() { return labels_; }
 
@@ -466,7 +440,7 @@ private:
 	void processVariableExpr();
 	void processVariable();
 	void processTable();
-	void processTableSet(const QString& preVarName = "", const QVariant& value = QVariant());
+	void processTableSet(const QString& preVarName = "", const QVariant& value = QVariant("nil"));
 	void processFormation();
 	bool processCall(RESERVE reserve);
 	bool processGoto();
@@ -522,10 +496,6 @@ private:
 
 	void removeGlobalVar(const QString& name);
 
-	Q_REQUIRED_RESULT QVariantHash getGlobalVars();
-
-	void clearGlobalVar();
-
 	Q_REQUIRED_RESULT QVariantHash getLocalVars() const;
 
 	Q_REQUIRED_RESULT QVariantHash& getLocalVarsRef();
@@ -574,7 +544,7 @@ private:
 	void generateStackInfo(qint64 type);
 
 public:
-	CLua clua_;
+	QSharedPointer<CLua> pLua_;
 
 private:
 
@@ -591,8 +561,7 @@ private:
 	QList<ForNode> forNodeList_;
 	QList<LuaNode> luaNodeList_;
 
-	mutable QReadWriteLock* globalVarLock_ = nullptr;		//全局變量鎖指針
-	VariantSafeHash* variables_ = nullptr;					//全局變量容器指針
+	QStringList globalNames_;								//全局變量名稱
 
 	QHash<QString, QString> userRegCallBack_;				//用戶註冊的回調函數
 	QHash<QString, CommandRegistry> commandRegistry_;		//所有已註冊的腳本命令函數指針
@@ -611,10 +580,6 @@ private:
 	TokenMap currentLineTokens_;							//當前行token
 	RESERVE currentType_ = TK_UNK;							//當前行第一個token類型
 	qint64 lineNumber_ = 0;									//當前行號
-
-	ParserError lastCriticalError_ = kNoError;				//最後一次錯誤
-
-	QString lastErrorMesssage_;								//最後一次錯誤信息
 
 	ParserCallBack callBack_ = nullptr;						//腳本回調函數
 

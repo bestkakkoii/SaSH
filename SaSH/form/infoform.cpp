@@ -70,10 +70,10 @@ InfoForm::InfoForm(qint64 index, qint64 defaultPage, QWidget* parent)
 		ui.tabWidget->addTab(pBattleInfoForm_, tr("battleinfo"));
 	}
 
-	pPlayerInfoForm_ = new PlayerInfoForm(index);
-	if (pPlayerInfoForm_)
+	pCharInfoForm_ = new CharInfoForm(index);
+	if (pCharInfoForm_)
 	{
-		ui.tabWidget->addTab(pPlayerInfoForm_, tr("playerinfo"));
+		ui.tabWidget->addTab(pCharInfoForm_, tr("playerinfo"));
 	}
 
 	pItemInfoForm_ = new ItemInfoForm(index);
@@ -157,7 +157,7 @@ void InfoForm::onResetControlTextLanguage()
 	ui.tabWidget->setTabText(5, tr("petinfo"));
 	ui.tabWidget->setTabText(6, tr("afkinfo"));
 
-	pPlayerInfoForm_->onResetControlTextLanguage();
+	pCharInfoForm_->onResetControlTextLanguage();
 	pItemInfoForm_->onResetControlTextLanguage();
 	pChatInfoForm_->onResetControlTextLanguage();
 

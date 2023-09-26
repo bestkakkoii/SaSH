@@ -118,23 +118,19 @@ void MainObject::run()
 			break;
 
 		emit signalDispatcher.updateStatusLabelTextChanged(util::kLabelStatusOpening);
-		//有些時候太快創建遊戲進程會閃退，原因不明，所以延遲一下
-		//QThread::msleep(1000);
+
 		//創建遊戲進程
 		if (!injector.createProcess(process_info))
-		{
 			break;
-		}
 
 		if (remove_thread_reason != util::REASON_NO_ERROR)
 			break;
 
-		//QThread::msleep(1000);
-
 		emit signalDispatcher.updateStatusLabelTextChanged(util::kLabelStatusOpened);
 
 		//注入dll 並通知客戶端要連入的port
-		if (!injector.injectLibrary(process_info, injector.server->getPort(), &remove_thread_reason))
+		if (!injector.injectLibrary(process_info, injector.server->getPort(), &remove_thread_reason)
+			|| (remove_thread_reason != util::REASON_NO_ERROR))
 		{
 			qDebug() << "injectLibrary failed. reason:" << remove_thread_reason;
 			break;
@@ -244,7 +240,7 @@ void MainObject::mainProc()
 			nodelay = false;
 		}
 		else
-			QThread::msleep(300);
+			QThread::msleep(100);
 
 		//檢查是否接收到停止執行的訊號
 		if (isInterruptionRequested())
@@ -264,7 +260,7 @@ void MainObject::mainProc()
 		//檢查TCP是否握手成功
 		if (!injector.server->IS_TCP_CONNECTION_OK_TO_USE)
 		{
-			QThread::msleep(500);
+			QThread::msleep(100);
 			nodelay = true;
 			continue;
 		}
@@ -384,7 +380,6 @@ qint64 MainObject::checkAndRunFunctions()
 			QThread::msleep(100);
 		}
 
-		injector.server->EO();
 		emit signalDispatcher.updateStatusLabelTextChanged(util::kLabelStatusLoginSuccess);
 		emit signalDispatcher.updateMainFormTitle(injector.server->getPC().name);
 
@@ -474,10 +469,11 @@ qint64 MainObject::checkAndRunFunctions()
 		injector.serverNameList = serverNameList;
 		injector.subServerNameList = subServerNameList;
 
-		emit signalDispatcher.updateNpcList(injector.server->nowFloor);
+		emit signalDispatcher.updateNpcList(injector.server->getFloor());
 		emit signalDispatcher.applyHashSettingsToUI();
 
 		injector.server->updateComboBoxList();
+		injector.server->EO();
 		return 2;
 	}
 
@@ -509,11 +505,8 @@ qint64 MainObject::checkAndRunFunctions()
 		//檢查開關 (隊伍、交易、名片...等等)
 		checkEtcFlag();
 
-		//自動鎖寵
-		checkAutoLockPet();
-
 		//鎖寵排程
-		checkAutoLockSchedule();
+		//checkAutoLockSchedule();
 
 		//自動組隊、跟隨
 		checkAutoJoin();
@@ -587,7 +580,7 @@ void MainObject::updateAfkInfos()
 
 	signalDispatcher.updateAfkInfoTable(3, tr("%1 (avg exp: %2)").arg(recorder.expdifference).arg(avgExpPerHour));
 
-	signalDispatcher.updateAfkInfoTable(4, QString::number(recorder.deadthcount));
+	signalDispatcher.updateAfkInfoTable(4, util::toQString(recorder.deadthcount));
 
 
 	qint64 avgGoldPerHour = 0;
@@ -613,7 +606,7 @@ void MainObject::updateAfkInfos()
 			avgExpPerHour = recorder.expdifference * 3600000.0 / duration;
 		signalDispatcher.updateAfkInfoTable(i + n + 1 + j, tr("%1 (avg exp: %2)").arg(recorder.expdifference).arg(avgExpPerHour));
 
-		signalDispatcher.updateAfkInfoTable(i + n + 2 + j, QString::number(recorder.deadthcount));
+		signalDispatcher.updateAfkInfoTable(i + n + 2 + j, util::toQString(recorder.deadthcount));
 
 
 		signalDispatcher.updateAfkInfoTable(i + n + 3 + j, "");
@@ -658,12 +651,14 @@ void MainObject::setUserDatas()
 		return;
 
 	QStringList itemNames;
-	for (const ITEM& item : injector.server->getPC().item)
+	qint64 index = 0;
+	auto items = injector.server->getPC().item;
+	for (qint64 index = CHAR_EQUIPPLACENUM; index < MAX_ITEM; ++index)
 	{
-		if (item.name.isEmpty())
+		if (items[index].name.isEmpty() || !items[index].valid)
 			continue;
 
-		itemNames.append(item.name);
+		itemNames.append(items[index].name);
 	}
 
 	injector.setUserData(util::kUserItemNames, itemNames);
@@ -680,7 +675,7 @@ void MainObject::setUserDatas()
 	}
 	injector.setUserData(util::kUserPetNames, petNames);
 
-	injector.setUserData(util::kUserEnemyNames, injector.server->enemyNameListCache);
+	injector.setUserData(util::kUserEnemyNames, injector.server->enemyNameListCache.get());
 
 }
 
@@ -696,7 +691,7 @@ void MainObject::checkControl()
 	if (flagHideCharacterEnable_ != bChecked)
 	{
 		flagHideCharacterEnable_ = bChecked;
-		injector.postMessage(Injector::kEnablePlayerShow, !bChecked, NULL);
+		injector.postMessage(Injector::kEnableCharShow, !bChecked, NULL);
 	}
 
 	if (!injector.server->getOnlineFlag())
@@ -1044,18 +1039,18 @@ void MainObject::checkAutoWalk()
 						QThread::msleep(100);
 
 						//如果已經退出戰鬥就等待1.5秒避免太快開始移動不夠時間吃肉補血丟東西...等
-						//if(!injector.server->getBattleFlag())
-						//{
-						//	for (qint64 i = 0; i < 2; ++i)
-						//	{
-						//		//如果主線程關閉則自動退出
-						//		if (isInterruptionRequested())
-						//			return;
-						//		QThread::msleep(100);
-						//	}
-						//}
-						//else
-						continue;
+						if (!injector.server->getBattleFlag())
+						{
+							for (qint64 i = 0; i < 5; ++i)
+							{
+								//如果主線程關閉則自動退出
+								if (isInterruptionRequested())
+									return;
+								QThread::msleep(100);
+							}
+						}
+						else
+							continue;
 					}
 
 					//取設置
@@ -1306,7 +1301,7 @@ void MainObject::checkAutoJoin()
 					QPoint newpoint;
 					mapunit_t unit = {};
 					qint64 dir = -1;
-					qint64 floor = injector.server->nowFloor;
+					qint64 floor = injector.server->getFloor();
 					qint64 len = MAX_SINGLE_STEP;
 					qint64 size = 0;
 
@@ -1345,7 +1340,7 @@ void MainObject::checkAutoJoin()
 						if (!floor)
 							return;
 
-						if (floor != injector.server->nowFloor)
+						if (floor != injector.server->getFloor())
 							return;
 
 						QString freeName = "";
@@ -1383,7 +1378,7 @@ void MainObject::checkAutoJoin()
 						{
 							if (!injector.server->mapAnalyzer->getMapDataByFloor(floor, &map))
 							{
-								injector.server->mapAnalyzer->readFromBinary(floor, injector.server->nowFloorName, false);
+								injector.server->mapAnalyzer->readFromBinary(floor, injector.server->getFloorName(), false);
 								continue;
 							}
 
@@ -1391,7 +1386,7 @@ void MainObject::checkAutoJoin()
 								return;
 
 							len = MAX_SINGLE_STEP;
-							size = path.size() - 1;
+							size = static_cast<qint64>(path.size()) - 1;
 
 							//步長 如果path大小 小於步長 就遞減步長
 							for (;;)
@@ -1420,7 +1415,7 @@ void MainObject::checkAutoJoin()
 					actionType = injector.getValueHash(util::kAutoFunTypeValue);
 					if (actionType == 0)
 					{
-						injector.server->setPlayerFaceDirection(dir);
+						injector.server->setCharFaceDirection(dir);
 						injector.server->setTeamState(true);
 						continue;
 					}
@@ -1496,7 +1491,7 @@ void MainObject::checkAutoHeal()
 						break;
 
 					qint64 cmpvalue = injector.getValueHash(util::kNormalItemHealMpValue);
-					if (!injector.server->checkPlayerMp(cmpvalue))
+					if (!injector.server->checkCharMp(cmpvalue))
 						break;
 
 					QString text = injector.getStringHash(util::kNormalItemHealMpItemString).simplified();
@@ -1541,7 +1536,7 @@ void MainObject::checkAutoHeal()
 
 					qint64 target = -1;
 					bool ok = false;
-					if ((charPercent > 0) && injector.server->checkPlayerHp(charPercent))
+					if ((charPercent > 0) && injector.server->checkCharHp(charPercent))
 					{
 						ok = true;
 						target = 0;
@@ -1619,7 +1614,7 @@ void MainObject::checkAutoHeal()
 
 					qint64 target = -1;
 					bool ok = false;
-					if ((charPercent > 0) && injector.server->checkPlayerHp(charPercent))
+					if ((charPercent > 0) && injector.server->checkCharHp(charPercent))
 					{
 						ok = true;
 						target = 0;
@@ -1812,50 +1807,6 @@ void MainObject::checkAutoDropPet()
 	}
 }
 
-//自動鎖寵
-void MainObject::checkAutoLockPet()
-{
-	Injector& injector = Injector::getInstance(getIndex());
-	if (injector.server.isNull())
-		return;
-
-	bool iswait = false;
-	bool enableLockRide = injector.getEnableHash(util::kLockRideEnable) && !injector.getEnableHash(util::kLockPetScheduleEnable);
-	if (enableLockRide)
-	{
-		qint64 lockRideIndex = injector.getValueHash(util::kLockRideValue);
-		if (lockRideIndex >= 0 && lockRideIndex < MAX_PET)
-		{
-			PET pet = injector.server->getPet(lockRideIndex);
-			if (pet.state != PetState::kRide)
-			{
-				injector.server->setPetState(lockRideIndex, kRide);
-				iswait = true;
-			}
-		}
-	}
-
-	bool enableLockPet = injector.getEnableHash(util::kLockPetEnable) && !injector.getEnableHash(util::kLockPetScheduleEnable);
-	if (enableLockPet)
-	{
-		qint64 lockPetIndex = injector.getValueHash(util::kLockPetValue);
-		if (lockPetIndex >= 0 && lockPetIndex < MAX_PET)
-		{
-			PET pet = injector.server->getPet(lockPetIndex);
-			if (pet.state != PetState::kBattle)
-			{
-				injector.server->setPetState(lockPetIndex, kBattle);
-				iswait = true;
-			}
-		}
-	}
-
-	if (iswait)
-	{
-		QThread::msleep(1000);
-	}
-}
-
 //自動鎖寵排程
 void MainObject::checkAutoLockSchedule()
 {
@@ -1980,7 +1931,7 @@ void MainObject::checkAutoLockSchedule()
 			if (pet.hp <= 1)
 			{
 				injector.server->setPetState(rindex, kRest);
-				QThread::msleep(500);
+				QThread::msleep(100);
 			}
 
 			if (pet.state != kRide)
@@ -1993,7 +1944,7 @@ void MainObject::checkAutoLockSchedule()
 			if (pet.hp <= 1)
 			{
 				injector.server->setPetState(bindex, kRest);
-				QThread::msleep(500);
+				QThread::msleep(100);
 			}
 
 			if (pet.state != kBattle)
@@ -2094,7 +2045,7 @@ void MainObject::checkRecordableNpcInfo()
 				injector.server->npcUnitPointHash.insert(QPoint(unit.x, unit.y), unit);
 
 				util::MapData d;
-				qint64 nowFloor = injector.server->nowFloor;
+				qint64 nowFloor = injector.server->getFloor();
 				QPoint nowPoint = injector.server->getPoint();
 				d.floor = nowFloor;
 				d.name = unit.name;

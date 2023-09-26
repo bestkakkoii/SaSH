@@ -45,8 +45,8 @@ bool CLuaUtil::getMap(sol::table dstTable, sol::this_state s)
 
 	dstTable.clear();
 
-	dstTable["floor"] = injector.server->nowFloor;
-	dstTable["name"] = injector.server->nowFloorName.toUtf8().constData();
+	dstTable["floor"] = injector.server->getFloor();
+	dstTable["name"] = injector.server->getFloorName().toUtf8().constData();
 
 	QPoint pos = injector.server->getPoint();
 	dstTable["x"] = pos.x();

@@ -260,9 +260,9 @@ LONG CALLBACK MinidumpCallback(PEXCEPTION_POINTERS pException)
 				"ExceptionFlags:%2\r\n"
 				"ExceptionCode:0x%3\r\n"
 				"NumberParameters:%4")
-				.arg(QString::number((DWORD)pException->ExceptionRecord->ExceptionAddress, 16))
+				.arg(util::toQString((DWORD)pException->ExceptionRecord->ExceptionAddress, 16))
 				.arg(pException->ExceptionRecord->ExceptionFlags == EXCEPTION_NONCONTINUABLE ? "NON CONTINUEABLE" : "CONTINUEABLE")
-				.arg(QString::number((DWORD)pException->ExceptionRecord->ExceptionCode, 16))
+				.arg(util::toQString((DWORD)pException->ExceptionRecord->ExceptionCode, 16))
 				.arg(pException->ExceptionRecord->NumberParameters);
 
 			//Open dump folder
@@ -281,9 +281,9 @@ LONG CALLBACK MinidumpCallback(PEXCEPTION_POINTERS pException)
 				"ExceptionFlags:%2\r\n"
 				"ExceptionCode:0x%3\r\n"
 				"NumberParameters:%4")
-				.arg(QString::number((DWORD)pException->ExceptionRecord->ExceptionAddress, 16))
+				.arg(util::toQString((DWORD)pException->ExceptionRecord->ExceptionAddress, 16))
 				.arg(pException->ExceptionRecord->ExceptionFlags == EXCEPTION_NONCONTINUABLE ? "NON CONTINUEABLE" : "CONTINUEABLE")
-				.arg(QString::number((DWORD)pException->ExceptionRecord->ExceptionCode, 16))
+				.arg(util::toQString((DWORD)pException->ExceptionRecord->ExceptionCode, 16))
 				.arg(pException->ExceptionRecord->NumberParameters);
 			QMessageBox::warning(nullptr, "Warning", msg);
 			ShellExecute(NULL, L"open", L"dump", NULL, NULL, SW_SHOWNORMAL);
@@ -358,18 +358,18 @@ int main(int argc, char* argv[])
 	QSurfaceFormat format;
 	format.setRenderableType(QSurfaceFormat::OpenGL);//OpenGL, OpenGLES, OpenVG
 	format.setSwapBehavior(QSurfaceFormat::TripleBuffer);
-	format.setSamples(8);
-	format.setRedBufferSize(32);
-	format.setGreenBufferSize(32);
-	format.setBlueBufferSize(32);
-	//format.setAlphaBufferSize(32);
-	format.setDepthBufferSize(24);
-	format.setStencilBufferSize(8);
-	format.setColorSpace(QSurfaceFormat::ColorSpace::sRGBColorSpace);
-	format.setOption(QSurfaceFormat::StereoBuffers);
+	//format.setSamples(8);
+	//format.setRedBufferSize(32);
+	//format.setGreenBufferSize(32);
+	//format.setBlueBufferSize(32);
+	////format.setAlphaBufferSize(32);
+	//format.setDepthBufferSize(24);
+	//format.setStencilBufferSize(8);
+	//format.setColorSpace(QSurfaceFormat::ColorSpace::sRGBColorSpace);
+	//format.setOption(QSurfaceFormat::StereoBuffers);
 	format.setProfile(QSurfaceFormat::OpenGLContextProfile::CompatibilityProfile);
-	format.setStereo(true);
-	format.setSwapInterval(1);
+	//format.setStereo(true);
+	//format.setSwapInterval(1);
 	QSurfaceFormat::setDefaultFormat(format);
 
 	//////// 以上必須在 QApplication a(argc, argv); 之前設置否則無效 ////////

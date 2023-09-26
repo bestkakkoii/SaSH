@@ -31,7 +31,7 @@ qint64 CLuaMap::setDir(qint64 dir, sol::this_state s)
 
 	luadebug::checkBattleThenWait(s);
 
-	injector.server->setPlayerFaceDirection(--dir);
+	injector.server->setCharFaceDirection(--dir);
 
 	return TRUE;
 }
@@ -47,7 +47,7 @@ qint64 CLuaMap::setDir(qint64 x, qint64 y, sol::this_state s)
 
 	QPoint pos(static_cast<int>(x), static_cast<int>(y));
 
-	injector.server->setPlayerFaceToPoint(pos);
+	injector.server->setCharFaceToPoint(pos);
 
 	return TRUE;
 }
@@ -61,9 +61,9 @@ qint64 CLuaMap::setDir(std::string sdir, sol::this_state s)
 
 	luadebug::checkBattleThenWait(s);
 
-	QString qdir = QString::fromUtf8(sdir.c_str());
+	QString qdir = util::toQString(sdir);
 
-	injector.server->setPlayerFaceDirection(qdir);
+	injector.server->setCharFaceDirection(qdir);
 
 	return TRUE;
 }
@@ -95,7 +95,7 @@ qint64 CLuaMap::packetMove(qint64 x, qint64 y, std::string sdir, sol::this_state
 
 	QPoint pos(static_cast<int>(x), static_cast<int>(y));
 
-	QString qdir = QString::fromUtf8(sdir.c_str());
+	QString qdir = util::toQString(sdir);
 
 	injector.server->move(pos, qdir);
 
@@ -216,14 +216,14 @@ qint64 CLuaMap::findPath(qint64 x, qint64 y, qint64 steplen, qint64 timeout, sol
 	if (injector.server.isNull())
 		return FALSE;
 
-	qint64 floor = injector.server->nowFloor;
+	qint64 floor = injector.server->getFloor();
 	QPoint src(getPos());
 	if (src == dst)
 		return true;//已經抵達
 
 	map_t _map;
 	QSharedPointer<MapAnalyzer> mapAnalyzer = injector.server->mapAnalyzer;
-	if (!mapAnalyzer.isNull() && mapAnalyzer->readFromBinary(floor, injector.server->nowFloorName))
+	if (!mapAnalyzer.isNull() && mapAnalyzer->readFromBinary(floor, injector.server->getFloorName()))
 	{
 		if (mapAnalyzer.isNull() || !mapAnalyzer->getMapDataByFloor(floor, &_map))
 			return FALSE;
@@ -376,7 +376,7 @@ qint64 CLuaMap::findPath(qint64 x, qint64 y, qint64 steplen, qint64 timeout, sol
 			break;
 		}
 
-		if (injector.server->nowFloor != current_floor)
+		if (injector.server->getFloor() != current_floor)
 		{
 			injector.server->announce(QObject::tr("<findpath>stop finding path due to map changed"));//"<尋路>地圖已變更，放棄尋路"
 			break;

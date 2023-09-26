@@ -52,16 +52,16 @@ qint64 Interpreter::useitem(qint64 currentIndex, qint64 currentLine, const Token
 
 	for (qint64 i = 0; i < MAX_PET; ++i)
 	{
-		hash.insert(u8"寵物" + QString::number(i + 1), i + 1);
-		hash.insert(u8"宠物" + QString::number(i + 1), i + 1);
-		hash.insert(u8"pet" + QString::number(i + 1), i + 1);
+		hash.insert(u8"寵物" + util::toQString(i + 1), i + 1);
+		hash.insert(u8"宠物" + util::toQString(i + 1), i + 1);
+		hash.insert(u8"pet" + util::toQString(i + 1), i + 1);
 	}
 
 	for (qint64 i = 1; i < MAX_PARTY; ++i)
 	{
-		hash.insert(u8"隊員" + QString::number(i), i + 1 + MAX_PET);
-		hash.insert(u8"队员" + QString::number(i), i + 1 + MAX_PET);
-		hash.insert(u8"teammate" + QString::number(i), i + 1 + MAX_PET);
+		hash.insert(u8"隊員" + util::toQString(i), i + 1 + MAX_PET);
+		hash.insert(u8"队员" + util::toQString(i), i + 1 + MAX_PET);
+		hash.insert(u8"teammate" + util::toQString(i), i + 1 + MAX_PET);
 	}
 
 	injector.server->IS_WAITOFR_ITEM_CHANGE_PACKET = 0;
@@ -461,7 +461,7 @@ qint64 Interpreter::playerrename(qint64 currentIndex, qint64 currentLine, const 
 	QString newName;
 	checkString(TK, 1, &newName);
 
-	injector.server->setPlayerFreeName(newName);
+	injector.server->setCharFreeName(newName);
 
 	return Parser::kNoChange;
 }
@@ -998,16 +998,16 @@ qint64 Interpreter::usemagic(qint64 currentIndex, qint64 currentLine, const Toke
 
 			for (qint64 i = 0; i < MAX_PET; ++i)
 			{
-				hash.insert(u8"寵物" + QString::number(i + 1), i + 1);
-				hash.insert(u8"宠物" + QString::number(i + 1), i + 1);
-				hash.insert(u8"pet" + QString::number(i + 1), i + 1);
+				hash.insert(u8"寵物" + util::toQString(i + 1), i + 1);
+				hash.insert(u8"宠物" + util::toQString(i + 1), i + 1);
+				hash.insert(u8"pet" + util::toQString(i + 1), i + 1);
 			}
 
 			for (qint64 i = 1; i < MAX_PARTY; ++i)
 			{
-				hash.insert(u8"隊員" + QString::number(i), i + 1 + MAX_PET);
-				hash.insert(u8"队员" + QString::number(i), i + 1 + MAX_PET);
-				hash.insert(u8"teammate" + QString::number(i), i + 1 + MAX_PET);
+				hash.insert(u8"隊員" + util::toQString(i), i + 1 + MAX_PET);
+				hash.insert(u8"队员" + util::toQString(i), i + 1 + MAX_PET);
+				hash.insert(u8"teammate" + util::toQString(i), i + 1 + MAX_PET);
 			}
 
 			if (!hash.contains(targetTypeName))
@@ -1047,7 +1047,7 @@ qint64 Interpreter::pickitem(qint64 currentIndex, qint64 currentLine, const Toke
 	{
 		for (qint64 i = 0; i < 7; ++i)
 		{
-			injector.server->setPlayerFaceDirection(i);
+			injector.server->setCharFaceDirection(i);
 			injector.server->pickItem(i);
 		}
 	}
@@ -1056,7 +1056,7 @@ qint64 Interpreter::pickitem(qint64 currentIndex, qint64 currentLine, const Toke
 		DirType type = dirMap.value(dirStr, kDirNone);
 		if (type == kDirNone)
 			return Parser::kArgError + 1ll;
-		injector.server->setPlayerFaceDirection(type);
+		injector.server->setCharFaceDirection(type);
 		injector.server->pickItem(type);
 	}
 
@@ -1831,11 +1831,11 @@ qint64 Interpreter::trade(qint64 currentIndex, qint64 currentLine, const TokenMa
 		return Parser::kNoChange;
 
 	QPoint dst;
-	qint64 dir = injector.server->mapAnalyzer->calcBestFollowPointByDstPoint(injector.server->nowFloor, injector.server->getPoint(), unit.p, &dst, true, unit.dir);
+	qint64 dir = injector.server->mapAnalyzer->calcBestFollowPointByDstPoint(injector.server->getFloor(), injector.server->getPoint(), unit.p, &dst, true, unit.dir);
 	if (dir == -1 || !findPath(currentIndex, currentLine, dst, 1, 0, timeout))
 		return Parser::kNoChange;
 
-	injector.server->setPlayerFaceDirection(dir);
+	injector.server->setCharFaceDirection(dir);
 
 	if (!injector.server->tradeStart(name, timeout))
 		return Parser::kNoChange;
@@ -1847,7 +1847,7 @@ qint64 Interpreter::trade(qint64 currentIndex, qint64 currentLine, const TokenMa
 		if (itemListStr.toLower() == "all")
 		{
 			for (qint64 i = 1; i <= 15; ++i)
-				itemIndexList.append(QString::number(i));
+				itemIndexList.append(util::toQString(i));
 		}
 		else if (itemListStr.count("-") == 1)
 		{
@@ -1857,7 +1857,7 @@ qint64 Interpreter::trade(qint64 currentIndex, qint64 currentLine, const TokenMa
 				return Parser::kArgError + 2ll;
 
 			for (qint64 i = min; i <= max; ++i)
-				itemIndexList.append(QString::number(i));
+				itemIndexList.append(util::toQString(i));
 		}
 
 		QVector<qint64> itemIndexVec;
@@ -1896,7 +1896,7 @@ qint64 Interpreter::trade(qint64 currentIndex, qint64 currentLine, const TokenMa
 		if (itemListStr.toLower() == "all")
 		{
 			for (qint64 i = 1; i <= MAX_PET; ++i)
-				petIndexList.append(QString::number(i));
+				petIndexList.append(util::toQString(i));
 		}
 		else if (itemListStr.count("-") == 1)
 		{
@@ -1906,7 +1906,7 @@ qint64 Interpreter::trade(qint64 currentIndex, qint64 currentLine, const TokenMa
 				return Parser::kArgError + 2ll;
 
 			for (qint64 i = min; i <= max; ++i)
-				petIndexList.append(QString::number(i));
+				petIndexList.append(util::toQString(i));
 		}
 
 		QVector<qint64> petIndexVec;
@@ -2068,7 +2068,7 @@ qint64 Interpreter::bh(qint64 currentIndex, qint64 currentLine, const TokenMap& 
 		return Parser::kArgError + 1ll;
 	--index;
 
-	injector.server->sendBattlePlayerAttackAct(index);
+	injector.server->sendBattleCharAttackAct(index);
 
 	return Parser::kNoChange;
 }
@@ -2094,7 +2094,7 @@ qint64 Interpreter::bj(qint64 currentIndex, qint64 currentLine, const TokenMap& 
 		return Parser::kArgError + 2ll;
 	--target;
 
-	injector.server->sendBattlePlayerMagicAct(magicIndex, target);
+	injector.server->sendBattleCharMagicAct(magicIndex, target);
 
 	return Parser::kNoChange;
 }
@@ -2120,7 +2120,7 @@ qint64 Interpreter::bp(qint64 currentIndex, qint64 currentLine, const TokenMap& 
 		return Parser::kArgError + 2ll;
 	--target;
 
-	injector.server->sendBattlePlayerJobSkillAct(skillIndex, target);
+	injector.server->sendBattleCharJobSkillAct(skillIndex, target);
 
 	return Parser::kNoChange;
 }
@@ -2139,7 +2139,7 @@ qint64 Interpreter::bs(qint64 currentIndex, qint64 currentLine, const TokenMap& 
 	if (index <= 0)
 		return Parser::kArgError + 1ll;
 	--index;
-	injector.server->sendBattlePlayerSwitchPetAct(index);
+	injector.server->sendBattleCharSwitchPetAct(index);
 
 	return Parser::kNoChange;
 }
@@ -2153,7 +2153,7 @@ qint64 Interpreter::be(qint64 currentIndex, qint64 currentLine, const TokenMap& 
 	if (!injector.server->getBattleFlag())
 		return Parser::kNoChange;
 
-	injector.server->sendBattlePlayerEscapeAct();
+	injector.server->sendBattleCharEscapeAct();
 
 	return Parser::kNoChange;
 }
@@ -2167,7 +2167,7 @@ qint64 Interpreter::bd(qint64 currentIndex, qint64 currentLine, const TokenMap& 
 	if (!injector.server->getBattleFlag())
 		return Parser::kNoChange;
 
-	injector.server->sendBattlePlayerDefenseAct();
+	injector.server->sendBattleCharDefenseAct();
 
 	return Parser::kNoChange;
 }
@@ -2194,7 +2194,7 @@ qint64 Interpreter::bi(qint64 currentIndex, qint64 currentLine, const TokenMap& 
 		return Parser::kArgError + 2ll;
 	--target;
 
-	injector.server->sendBattlePlayerItemAct(index, target);
+	injector.server->sendBattleCharItemAct(index, target);
 
 	return Parser::kNoChange;
 }
@@ -2214,7 +2214,7 @@ qint64 Interpreter::bt(qint64 currentIndex, qint64 currentLine, const TokenMap& 
 		return Parser::kArgError + 1ll;
 	--index;
 
-	injector.server->sendBattlePlayerCatchPetAct(index);
+	injector.server->sendBattleCharCatchPetAct(index);
 
 	return Parser::kNoChange;
 }
@@ -2228,7 +2228,7 @@ qint64 Interpreter::bn(qint64 currentIndex, qint64 currentLine, const TokenMap& 
 	if (!injector.server->getBattleFlag())
 		return Parser::kNoChange;
 
-	injector.server->sendBattlePlayerDoNothing();
+	injector.server->sendBattleCharDoNothing();
 
 	return Parser::kNoChange;
 }

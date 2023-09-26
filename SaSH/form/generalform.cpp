@@ -1,5 +1,6 @@
 ﻿#include "stdafx.h"
 #include "form/afkform.h"
+#include "form/battlesettingfrom.h"
 #include "generalform.h"
 #include "selectobjectform.h"
 
@@ -379,7 +380,7 @@ void GeneralForm::onButtonClicked()
 
 	if (name == "pushButton_afksetting")
 	{
-
+#if 1
 		if (pAfkForm_ == nullptr)
 		{
 			pAfkForm_ = new AfkForm(currentIndex);
@@ -396,7 +397,13 @@ void GeneralForm::onButtonClicked()
 			else
 				pAfkForm_->hide();
 		}
-
+#else
+		BattleSettingFrom* pBattleSettingFrom = new BattleSettingFrom(currentIndex);
+		if (pBattleSettingFrom != nullptr)
+		{
+			pBattleSettingFrom->show();
+		}
+#endif
 		return;
 	}
 

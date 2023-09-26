@@ -42,7 +42,7 @@ namespace util
 
 		//
 		kEnableEffect,
-		kEnablePlayerShow,
+		kEnableCharShow,
 		kSetTimeLock,
 		kEnableSound,
 		kEnableImageLock,

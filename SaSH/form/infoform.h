@@ -23,7 +23,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include <indexer.h>
 
 class BattleInfoForm;
-class PlayerInfoForm;
+class CharInfoForm;
 class ItemInfoForm;
 class ChatInfoForm;
 class MailInfoForm;
@@ -53,7 +53,7 @@ private:
 	Ui::InfoFormClass ui;
 
 	BattleInfoForm* pBattleInfoForm_ = nullptr;
-	PlayerInfoForm* pPlayerInfoForm_ = nullptr;
+	CharInfoForm* pCharInfoForm_ = nullptr;
 	ItemInfoForm* pItemInfoForm_ = nullptr;
 	ChatInfoForm* pChatInfoForm_ = nullptr;
 	MailInfoForm* pMailInfoForm_ = nullptr;

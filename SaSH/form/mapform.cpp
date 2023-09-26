@@ -204,7 +204,7 @@ void MapForm::onUpdateNpcList(qint64 floor)
 	QStringList header = { tr("location"), tr("cod") };
 	ui.tableWidget_map->setHorizontalHeaderLabels(header);
 
-	QString key = QString::number(floor);
+	QString key = util::toQString(floor);
 	QList<util::MapData> datas;
 	qint64 currentIndex = getIndex();
 	{

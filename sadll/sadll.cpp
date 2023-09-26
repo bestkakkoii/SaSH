@@ -720,7 +720,7 @@ void GameService::WM_EnableEffect(BOOL enable)
 }
 
 //顯示人物
-void GameService::WM_EnablePlayerShow(BOOL enable)
+void GameService::WM_EnableCharShow(BOOL enable)
 {
 	if (nullptr == g_hGameModule)
 		return;
@@ -1261,9 +1261,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		g_GameService.WM_EnableEffect(wParam > 0 ? TRUE : FALSE);
 		return 1L;
 	}
-	case util::kEnablePlayerShow://隱藏人物
+	case util::kEnableCharShow://隱藏人物
 	{
-		g_GameService.WM_EnablePlayerShow(wParam > 0 ? TRUE : FALSE);
+		g_GameService.WM_EnableCharShow(wParam > 0 ? TRUE : FALSE);
 		return 1L;
 	}
 	case util::kSetTimeLock://鎖定時間

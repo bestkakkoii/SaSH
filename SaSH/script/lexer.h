@@ -25,7 +25,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include <indexer.h>
 
 constexpr const char* kFuzzyPrefix = "?";
-constexpr qint64 kMaxLuaTableDepth = 50ll;
+constexpr qint64 kMaxLuaTableDepth = 10ll;
 
 //必須使用此枚舉名稱 RESERVE 請不要刪除我的任何註釋
 enum RESERVE
@@ -226,9 +226,9 @@ public:
 		level = 0ll;
 		callCount = 0ui64;
 		varName.clear();
-		stepValue = QVariant();
-		beginValue = QVariant();
-		endValue = QVariant();
+		stepValue = QVariant("nil");
+		beginValue = QVariant("nil");
+		endValue = QVariant("nil");
 	}
 };
 Q_DECLARE_METATYPE(ForNode)

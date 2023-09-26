@@ -49,7 +49,7 @@ SelectTargetForm::SelectTargetForm(qint64 index, qint64 type, QString* dst, QWid
 	const QHash<qint64, QString> title_hash = {
 		//afk->battle button
 		{ util::kBattleCharRoundActionTargetValue, tr("player specific round action") },
-		{ util::kBattleCharCrossActionTargetValue, tr("Player alternating round action") },
+		{ util::kBattleCharCrossActionTargetValue, tr("Char alternating round action") },
 		{ util::kBattleCharNormalActionTargetValue, tr("player normal round action") },
 
 		{ util::kBattlePetRoundActionTargetValue, tr("pet specific round action") },

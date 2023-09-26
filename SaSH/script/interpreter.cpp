@@ -37,7 +37,7 @@ Interpreter::Interpreter(qint64 index)
 	qDebug() << "Interpreter is created!";
 	futureSync_.setCancelOnWait(true);
 	setIndex(index);
-	connect(this, &Interpreter::stoped, &parser_.clua_, &CLua::requestInterruption, Qt::UniqueConnection);
+	connect(this, &Interpreter::stoped, parser_.pLua_.data(), &CLua::requestInterruption, Qt::UniqueConnection);
 }
 
 Interpreter::~Interpreter()
@@ -175,12 +175,10 @@ bool Interpreter::doFile(qint64 beginLine, const QString& fileName, Interpreter*
 		return 1;
 	};
 
-	if (shareMode == kShare)
+	if (shareMode == kShare && mode == Parser::kSync)
 	{
-		VariantSafeHash* pparentHash = parent->parser_.getGlobalVarPointer();
-		QReadWriteLock* pparentLock = parent->parser_.getGlobalVarLockPointer();
-		if (pparentHash != nullptr && pparentLock != nullptr)
-			parser_.setVariablesPointer(pparentHash, pparentLock);
+		if (!parent->parser_.pLua_.isNull())
+			parser_.pLua_ = parent->parser_.pLua_;
 	}
 
 	parser_.setCallBack(pCallback);
@@ -249,14 +247,6 @@ void Interpreter::doString(const QString& content, Interpreter* parent, VarShare
 		};
 
 		parser_.setCallBack(pCallback);
-
-		if (shareMode == kShare)
-		{
-			VariantSafeHash* pparentHash = parent->parser_.getGlobalVarPointer();
-			QReadWriteLock* pparentLock = parent->parser_.getGlobalVarLockPointer();
-			if (pparentHash != nullptr && pparentLock != nullptr)
-				parser_.setVariablesPointer(pparentHash, pparentLock);
-		}
 	}
 
 	qint64 currentIndex = getIndex();
@@ -432,336 +422,6 @@ bool Interpreter::checkRelationalOperator(const TokenMap& TK, qint64 idx, RESERV
 	return true;
 }
 
-//比較兩個QVariant以 a 的類型為主
-bool Interpreter::compare(const QVariant& a, const QVariant& b, RESERVE type) const
-{
-	return parser_.compare(a, b, type);
-}
-
-bool Interpreter::compare(CompareArea area, const TokenMap& TK)
-{
-	qint64 currentIndex = getIndex();
-	Injector& injector = Injector::getInstance(currentIndex);
-	if (injector.server.isNull())
-		return false;
-
-	RESERVE op;
-	QVariant b;
-	QVariant a;
-
-	if (area == kAreaPlayer)
-	{
-		QString cmpTypeStr;
-		checkString(TK, 1, &cmpTypeStr);
-		if (cmpTypeStr.isEmpty())
-			return false;
-
-		CompareType cmpType = comparePcTypeMap.value(cmpTypeStr.toLower(), kCompareTypeNone);
-		if (cmpType == kCompareTypeNone)
-			return false;
-
-		if (!checkRelationalOperator(TK, 2, &op))
-			return false;
-
-		if (!TK.contains(3))
-			return false;
-
-		b = parser_.checkValue(TK, 3);
-		PC _pc = injector.server->getPC();
-		switch (cmpType)
-		{
-		case kPlayerName:
-			a = _pc.name;
-			break;
-		case kPlayerFreeName:
-			a = _pc.freeName;
-			break;
-		case kPlayerLevel:
-			a = _pc.level;
-			break;
-		case kPlayerHp:
-			a = _pc.hp;
-			break;
-		case kPlayerMaxHp:
-			a = _pc.maxHp;
-			break;
-		case kPlayerHpPercent:
-			a = _pc.hpPercent;
-			break;
-		case kPlayerMp:
-			a = _pc.mp;
-			break;
-		case kPlayerMaxMp:
-			a = _pc.maxMp;
-			break;
-		case kPlayerMpPercent:
-			a = _pc.mpPercent;
-			break;
-		case kPlayerExp:
-			a = _pc.exp;
-			break;
-		case kPlayerMaxExp:
-			a = _pc.maxExp;
-			break;
-		case kPlayerStone:
-			a = _pc.gold;
-			break;
-		case kPlayerAtk:
-			a = _pc.atk;
-			break;
-		case kPlayerDef:
-			a = _pc.def;
-			break;
-		case kPlayerChasma:
-			a = _pc.chasma;
-			break;
-		case kPlayerTurn:
-			a = _pc.transmigration;
-			break;
-		case kPlayerEarth:
-			a = _pc.earth;
-			break;
-		case kPlayerWater:
-			a = _pc.water;
-			break;
-		case kPlayerFire:
-			a = _pc.fire;
-			break;
-		case kPlayerWind:
-			a = _pc.wind;
-			break;
-		default:
-			return false;
-		}
-	}
-	else if (area == kAreaPet)
-	{
-		qint64 petIndex = 0;
-
-		checkInteger(TK, 1, &petIndex);
-		--petIndex;
-		if (petIndex < 0)
-		{
-			QString petTypeName;
-			checkString(TK, 1, &petTypeName);
-			if (petTypeName.isEmpty())
-				return false;
-
-			PC _pc = injector.server->getPC();
-
-			QHash<QString, qint64> hash = {
-				{ u8"戰寵", _pc.battlePetNo },
-				{ u8"騎寵", _pc.ridePetNo },
-				{ u8"战宠", _pc.battlePetNo },
-				{ u8"骑宠", _pc.ridePetNo },
-				{ u8"battlepet", _pc.battlePetNo },
-				{ u8"ride", _pc.ridePetNo },
-			};
-
-			if (!hash.contains(petTypeName))
-				return false;
-
-			petIndex = hash.value(petTypeName, -1);
-			if (petIndex < 0)
-				return false;
-		}
-
-		QString cmpTypeStr;
-		checkString(TK, 2, &cmpTypeStr);
-		if (cmpTypeStr.isEmpty())
-			return false;
-
-		CompareType cmpType = comparePetTypeMap.value(cmpTypeStr.toLower(), kCompareTypeNone);
-		if (cmpType == kCompareTypeNone)
-			return false;
-
-
-		if (!checkRelationalOperator(TK, 3, &op))
-			return false;
-
-		if (!TK.contains(4))
-			return false;
-
-		b = parser_.checkValue(TK, 4);
-
-		PET pet = injector.server->getPet(petIndex);
-
-		switch (cmpType)
-		{
-		case kPetName:
-			a = pet.name;
-			break;
-		case kPetFreeName:
-			a = pet.freeName;
-			break;
-		case kPetLevel:
-			a = pet.level;
-			break;
-		case kPetHp:
-			a = pet.hp;
-			break;
-		case kPetMaxHp:
-			a = pet.maxHp;
-			break;
-		case kPetHpPercent:
-			a = pet.hpPercent;
-			break;
-		case kPetExp:
-			a = pet.exp;
-			break;
-		case kPetMaxExp:
-			a = pet.maxExp;
-			break;
-		case kPetAtk:
-			a = pet.atk;
-			break;
-		case kPetDef:
-			a = pet.def;
-			break;
-		case kPetLoyal:
-			a = pet.loyal;
-			break;
-		case kPetTurn:
-			a = pet.transmigration;
-			break;
-		case kPetEarth:
-			a = pet.earth;
-			break;
-		case kPetWater:
-			a = pet.water;
-			break;
-		case kPetFire:
-			a = pet.fire;
-			break;
-		case kPetWind:
-			a = pet.wind;
-			break;
-		case kPetState:
-		{
-			const QHash<QString, PetState> hash = {
-				{ u8"戰鬥", kBattle },
-				{ u8"等待", kStandby },
-				{ u8"郵件", kMail },
-				{ u8"休息", kRest },
-				{ u8"騎乘", kRide },
-
-				{ u8"战斗", kBattle },
-				{ u8"等待", kStandby },
-				{ u8"邮件", kMail },
-				{ u8"休息", kRest },
-				{ u8"骑乘", kRide },
-
-				{ u8"battle", kBattle },
-				{ u8"standby", kStandby },
-				{ u8"mail", kMail },
-				{ u8"rest", kRest },
-				{ u8"ride", kRide },
-			};
-			PetState state = pet.state;
-			PetState cmpstate = hash.value(b.toString().toLower(), kNoneState);
-			if (cmpstate == 0)
-				return false;
-
-			a = state;
-			b = cmpstate;
-			break;
-		}
-		default:
-			return false;
-		}
-	}
-	else if (area == kAreaItem)
-	{
-		QString cmpTypeStr;
-		checkString(TK, 0, &cmpTypeStr);
-		if (cmpTypeStr.isEmpty())
-			return false;
-
-		CompareType cmpType = compareAmountTypeMap.value(cmpTypeStr, kCompareTypeNone);
-		if (cmpType == kCompareTypeNone)
-			return false;
-
-		QString itemName;
-		checkString(TK, 1, &itemName);
-		QString itemMemo;
-		checkString(TK, 2, &itemMemo);
-		if (itemName.isEmpty() && itemMemo.isEmpty())
-			return false;
-
-		if (!checkRelationalOperator(TK, 3, &op))
-			return false;
-
-		if (!TK.contains(4))
-			return false;
-
-		b = parser_.checkValue(TK, 4);
-
-		switch (cmpType)
-		{
-		case kitemCount:
-		{
-			QVector<qint64> v;
-			qint64 count = 0;
-			PC _pc = injector.server->getPC();
-			if (injector.server->getItemIndexsByName(itemName, itemMemo, &v))
-			{
-				for (const qint64 it : v)
-					count += _pc.item[it].stack;
-			}
-
-			a = count;
-			break;
-		}
-		default:
-			return false;
-		}
-	}
-	else if (area == kAreaCount)
-	{
-		QString cmpTypeStr;
-		checkString(TK, 0, &cmpTypeStr);
-		if (cmpTypeStr.isEmpty())
-			return false;
-
-		CompareType cmpType = compareAmountTypeMap.value(cmpTypeStr, kCompareTypeNone);
-		if (cmpType == kCompareTypeNone)
-			return false;
-
-		if (!checkRelationalOperator(TK, 1, &op))
-			return false;
-
-		if (!TK.contains(2))
-			return false;
-
-		b = parser_.checkValue(TK, 2);
-
-		switch (cmpType)
-		{
-		case kTeamCount:
-		{
-			qint64 count = injector.server->getPartySize();
-			a = count;
-			break;
-		}
-		case kPetCount:
-		{
-			qint64 count = injector.server->getPetSize();
-			a = count;
-			break;
-		}
-		default:
-			return false;
-		}
-	}
-	else
-		return false;
-
-	if (!a.isValid() || !b.isValid())
-		return false;
-
-	return compare(a, b, op);
-}
-
 //根據傳入function的循環執行結果等待超時或條件滿足提早結束
 bool Interpreter::waitfor(qint64 timeout, std::function<bool()> exprfun)
 {
@@ -820,7 +480,6 @@ void Interpreter::openLibsBIG5()
 	registerFunction(u8"說話", &Interpreter::talk);
 	registerFunction(u8"說出", &Interpreter::talkandannounce);
 	registerFunction(u8"清屏", &Interpreter::cleanchat);
-	registerFunction(u8"設置", &Interpreter::set);
 	registerFunction(u8"儲存設置", &Interpreter::savesetting);
 	registerFunction(u8"讀取設置", &Interpreter::loadsetting);
 
@@ -917,7 +576,6 @@ void Interpreter::openLibsGB2312()
 	registerFunction(u8"说话", &Interpreter::talk);
 	registerFunction(u8"说出", &Interpreter::talkandannounce);
 	registerFunction(u8"清屏", &Interpreter::cleanchat);
-	registerFunction(u8"设置", &Interpreter::set);
 	registerFunction(u8"储存设置", &Interpreter::savesetting);
 	registerFunction(u8"读取设置", &Interpreter::loadsetting);
 
@@ -1016,7 +674,6 @@ void Interpreter::openLibsUTF8()
 	registerFunction(u8"say", &Interpreter::talk);
 	registerFunction(u8"talk", &Interpreter::talkandannounce);
 	registerFunction(u8"cls", &Interpreter::cleanchat);
-	registerFunction(u8"set", &Interpreter::set);
 	registerFunction(u8"saveset", &Interpreter::savesetting);
 	registerFunction(u8"loadset", &Interpreter::loadsetting);
 
@@ -1057,7 +714,7 @@ void Interpreter::openLibsUTF8()
 	registerFunction(u8"useitem", &Interpreter::useitem);
 	registerFunction(u8"doffitem", &Interpreter::dropitem);
 	registerFunction(u8"swapitem", &Interpreter::swapitem);
-	registerFunction(u8"chplayername", &Interpreter::playerrename);
+	registerFunction(u8"chname", &Interpreter::playerrename);
 	registerFunction(u8"chpetname", &Interpreter::petrename);
 	registerFunction(u8"chpet", &Interpreter::setpetstate);
 	registerFunction(u8"doffpet", &Interpreter::droppet);
@@ -1068,8 +725,8 @@ void Interpreter::openLibsUTF8()
 	registerFunction(u8"cook", &Interpreter::cook);
 	registerFunction(u8"usemagic", &Interpreter::usemagic);
 	registerFunction(u8"pickup", &Interpreter::pickitem);
-	registerFunction(u8"save", &Interpreter::depositgold);
-	registerFunction(u8"load", &Interpreter::withdrawgold);
+	registerFunction(u8"petstone", &Interpreter::depositgold);
+	registerFunction(u8"gettone", &Interpreter::withdrawgold);
 	registerFunction(u8"skup", &Interpreter::addpoint);
 	registerFunction(u8"learn", &Interpreter::learn);
 	registerFunction(u8"trade", &Interpreter::trade);
@@ -1083,9 +740,9 @@ void Interpreter::openLibsUTF8()
 	registerFunction(u8"pequip", &Interpreter::petequip);
 
 	registerFunction(u8"putpet", &Interpreter::depositpet);
-	registerFunction(u8"put", &Interpreter::deposititem);
+	registerFunction(u8"putitem", &Interpreter::deposititem);
 	registerFunction(u8"getpet", &Interpreter::withdrawpet);
-	registerFunction(u8"get", &Interpreter::withdrawitem);
+	registerFunction(u8"getitem", &Interpreter::withdrawitem);
 
 	//action->group
 	registerFunction(u8"join", &Interpreter::join);
@@ -1099,7 +756,7 @@ void Interpreter::openLibsUTF8()
 	registerFunction(u8"dlg", &Interpreter::dlg);
 
 	//hide
-	registerFunction(u8"ocr", &Interpreter::ocr);
+	//registerFunction(u8"ocr", &Interpreter::ocr);
 
 	//battle
 	registerFunction(u8"bh", &Interpreter::bh);//atk
@@ -1313,14 +970,14 @@ bool Interpreter::findPath(qint64 currentIndex, qint64 currentLine, QPoint dst, 
 	if (injector.server.isNull())
 		return false;
 
-	qint64 floor = injector.server->nowFloor;
+	qint64 floor = injector.server->getFloor();
 	QPoint src(getPos());
 	if (src == dst)
 		return true;//已經抵達
 
 	map_t _map;
 	QSharedPointer<MapAnalyzer> mapAnalyzer = injector.server->mapAnalyzer;
-	if (!mapAnalyzer.isNull() && mapAnalyzer->readFromBinary(floor, injector.server->nowFloorName))
+	if (!mapAnalyzer.isNull() && mapAnalyzer->readFromBinary(floor, injector.server->getFloorName()))
 	{
 		if (mapAnalyzer.isNull() || !mapAnalyzer->getMapDataByFloor(floor, &_map))
 			return false;
@@ -1471,15 +1128,18 @@ bool Interpreter::findPath(qint64 currentIndex, qint64 currentLine, QPoint dst, 
 			point = getPos();
 			lastPoint = point;
 			QPoint stockPoint = getPos();
-			for (qint64 i = 0; i < 10; ++i)
+			qint64 randNum = 0;
+			for (qint64 i = 0; i < 16; ++i)
 			{
-				point = point + (util::fix_point.at(QRandomGenerator::global()->bounded(0, 7)) * 5);
+				point = point + (util::fix_point.at(randNum) * 5);
 				injector.server->move(point);
 				QThread::msleep(200);
 				checkBattleThenWait();
 				src = getPos();
 				if (stockPoint != src)
 					break;
+
+				++randNum;
 			}
 
 			continue;
@@ -1502,7 +1162,7 @@ bool Interpreter::findPath(qint64 currentIndex, qint64 currentLine, QPoint dst, 
 			break;
 		}
 
-		if (injector.server->nowFloor != current_floor)
+		if (injector.server->getFloor() != current_floor)
 		{
 			if (!injector.server.isNull())
 			{
@@ -1552,16 +1212,19 @@ qint64 Interpreter::run(qint64 currentIndex, qint64 currentline, const TokenMap&
 		asyncMode = Parser::kAsync;
 
 	fileName.replace("\\", "/");
+	fileName.replace("//", "/");
 
-	QString currentFileName = parser_.getScriptFileName();
-	//take directory only
-	QFileInfo fileInfo(currentFileName);
-	QString currentDir = fileInfo.absolutePath();
-
-
-	fileInfo = QFileInfo(fileName);
+	QFileInfo fileInfo(fileName);
 	if (!fileInfo.isAbsolute())
 	{
+		//取主腳本路徑
+		QString currentFileName = parser_.getScriptFileName();
+		QFileInfo mainScriptFileInfo(currentFileName);
+
+		//take directory only
+		QString currentDir = mainScriptFileInfo.absolutePath();
+		currentDir.replace(util::applicationDirPath(), ".");
+
 		fileName = currentDir + "/" + fileName;
 		fileName.replace("\\", "/");
 		fileName.replace("//", "/");

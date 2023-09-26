@@ -74,6 +74,9 @@
     <Filter Include="Source Files\script_lua">
       <UniqueIdentifier>{583cb0c4-32dc-4b00-b31a-7ff9bbcff365}</UniqueIdentifier>
     </Filter>
+    <Filter Include="battle">
+      <UniqueIdentifier>{93b4403b-8e39-4fcf-9cd2-4f13fba881af}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <QtRcc Include="resource.qrc">
@@ -285,6 +288,12 @@
     <ClCompile Include="model\pushbutton.cpp">
       <Filter>Source Files\model</Filter>
     </ClCompile>
+    <ClCompile Include="battle\battle.cpp">
+      <Filter>battle</Filter>
+    </ClCompile>
+    <ClCompile Include="form\battlesettingfrom.cpp">
+      <Filter>Source Files\forms\afk</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="mainform.h">
@@ -416,6 +425,9 @@
     <QtMoc Include="model\treewidget.h">
       <Filter>Source Files\model</Filter>
     </QtMoc>
+    <QtMoc Include="form\battlesettingfrom.h">
+      <Filter>Source Files\forms\afk</Filter>
+    </QtMoc>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stdafx.h">
@@ -477,6 +489,9 @@
     </ClInclude>
     <ClInclude Include="model\indexer.h">
       <Filter>Source Files\model</Filter>
+    </ClInclude>
+    <ClInclude Include="battle\battle.h">
+      <Filter>battle</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -544,6 +559,12 @@
       <Filter>Source Files\forms</Filter>
     </QtUic>
     <QtUic Include="update\downloader.ui">
+      <Filter>Form Files</Filter>
+    </QtUic>
+    <QtUic Include="form\battlesettingfrom.ui">
+      <Filter>Source Files\forms</Filter>
+    </QtUic>
+    <QtUic Include="form\battlesettingfrom.ui">
       <Filter>Form Files</Filter>
     </QtUic>
   </ItemGroup>

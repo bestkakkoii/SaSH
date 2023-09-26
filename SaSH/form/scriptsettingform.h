@@ -54,8 +54,6 @@ private:
 
 	void setMark(CodeEditor::SymbolHandler element, util::SafeHash<QString, util::SafeHash<qint64, break_marker_t>>& hash, qint64 liner, bool b);
 
-	void varInfoImport(QTreeWidget* tree, const QHash<QString, QVariant>& d);
-
 	void stackInfoImport(QTreeWidget* tree, const QVector<QPair<qint64, QString>>& vec);
 
 	void reshowBreakMarker();
@@ -68,7 +66,7 @@ private:
 
 	void setContinue();
 
-	void createTreeWidgetItems(Parser* pparser, QList<QTreeWidgetItem*>* pTrees, const QHash<QString, QVariant>& d);
+	void createTreeWidgetItems(Parser* pparser, QList<QTreeWidgetItem*>* pTrees, const QHash<QString, QVariant>& d, const QStringList& globalNames);
 
 	void initStaticLabel();
 
@@ -101,7 +99,7 @@ private slots:
 	void onScriptLabelRowTextChanged(int row, int max, bool noSelect);
 
 	void loadFile(const QString& fileName);
-	void onVarInfoImport(void* p, const QVariantHash&);
+	void onVarInfoImport(void* p, const QVariantHash&, const QStringList& globalNames);
 
 	void onSetStaticLabelLineText(int line, int index);
 

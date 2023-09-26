@@ -45,11 +45,11 @@ AbilityForm::AbilityForm(qint64 index, QWidget* parent)
 
 	PC pc = injector.server->getPC();
 
-	ui.label_vit->setText(QString::number(pc.vit));
-	ui.label_str->setText(QString::number(pc.str));
-	ui.label_tgh->setText(QString::number(pc.tgh));
-	ui.label_dex->setText(QString::number(pc.dex));
-	ui.label_left->setText(QString::number(pc.point));
+	ui.label_vit->setText(util::toQString(pc.vit));
+	ui.label_str->setText(util::toQString(pc.str));
+	ui.label_tgh->setText(util::toQString(pc.tgh));
+	ui.label_dex->setText(util::toQString(pc.dex));
+	ui.label_left->setText(util::toQString(pc.point));
 }
 
 AbilityForm::~AbilityForm()

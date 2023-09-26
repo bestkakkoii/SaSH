@@ -44,7 +44,7 @@ public:
 
 public:
 	void WM_EnableEffect(BOOL enable);
-	void WM_EnablePlayerShow(BOOL enable);
+	void WM_EnableCharShow(BOOL enable);
 	void WM_SetTimeLock(BOOL enable, unsigned int time);
 	void WM_EnableSound(BOOL enable);
 	void WM_EnableImageLock(BOOL enable);

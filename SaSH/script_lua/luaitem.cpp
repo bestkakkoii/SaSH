@@ -96,7 +96,7 @@ qint64 CLuaItem::craft(qint64 type, sol::table ingres, sol::this_state s)
 		if (!ingre.second.is<std::string>())
 			continue;
 
-		QString str = QString::fromUtf8(ingre.second.as<std::string>().c_str());
+		QString str = util::toQString(ingre.second);
 		ingreList.append(str);
 	}
 

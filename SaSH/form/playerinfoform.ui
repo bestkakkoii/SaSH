@@ -1,7 +1,7 @@
-<?xml version="1.0" encoding="UTF-8"?>
+﻿<?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>PlayerInfoFormClass</class>
- <widget class="QWidget" name="PlayerInfoFormClass">
+ <class>CharInfoFormClass</class>
+ <widget class="QWidget" name="CharInfoFormClass">
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>PlayerInfoForm</string>
+   <string>CharInfoForm</string>
   </property>
   <layout class="QGridLayout" name="gridLayout">
    <property name="leftMargin">

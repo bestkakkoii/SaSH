@@ -102,7 +102,6 @@ ScriptSettingForm::ScriptSettingForm(qint64 index, QWidget* parent)
 	connect(this, &ScriptSettingForm::editorCursorPositionChanged, this, &ScriptSettingForm::onEditorCursorPositionChanged, Qt::QueuedConnection);
 	connect(this, &ScriptSettingForm::breakMarkInfoImport, this, &ScriptSettingForm::onBreakMarkInfoImport, Qt::QueuedConnection);
 
-
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(index);
 	connect(&signalDispatcher, &SignalDispatcher::applyHashSettingsToUI, this, &ScriptSettingForm::onApplyHashSettingsToUI, Qt::QueuedConnection);
 
@@ -123,15 +122,12 @@ ScriptSettingForm::ScriptSettingForm(qint64 index, QWidget* parent)
 	connect(&signalDispatcher, &SignalDispatcher::callStackInfoChanged, this, &ScriptSettingForm::onCallStackInfoChanged, Qt::QueuedConnection);
 	connect(&signalDispatcher, &SignalDispatcher::jumpStackInfoChanged, this, &ScriptSettingForm::onJumpStackInfoChanged, Qt::QueuedConnection);
 
-
-
 	QList <OpenGLWidget*> glWidgetList = util::findWidgets<OpenGLWidget>(this);
 	for (auto& glWidget : glWidgetList)
 	{
 		if (glWidget)
 			glWidget->setBackgroundColor(QColor(31, 31, 31));
 	}
-
 
 	Injector& injector = Injector::getInstance(index);
 	if (!injector.scriptLogModel.isNull())
@@ -240,9 +236,9 @@ void ScriptSettingForm::initStaticLabel()
 			if (util::monitorThreadResourceUsage(threadId, idleTime_, kernelTime_, userTime_, &cpuUsage, &memoryUsage, &memoryTotal))
 			{
 				usageLabel_->setText(QString(tr("Usage: cpu: %1% | memory: %2MB / %3MB"))
-					.arg(QString::number(cpuUsage, 'f', 2))
-					.arg(QString::number(memoryUsage, 'f', 2))
-					.arg(QString::number(memoryTotal, 'f', 2)));
+					.arg(util::toQString(cpuUsage))
+					.arg(util::toQString(memoryUsage))
+					.arg(util::toQString(memoryTotal)));
 			}
 		});
 
@@ -566,15 +562,15 @@ QString ScriptSettingForm::formatCode(QString content)
 		{
 			indentLevel++;
 		}
-		else if (trimmedLine.startsWith("for ") || trimmedLine.startsWith("for (") || trimmedLine.startsWith("for("))
+		else if (trimmedLine.startsWith("for ") || trimmedLine.startsWith("for (") || trimmedLine.startsWith("for(") || trimmedLine == "for")
 		{
 			indentLevel++;
 		}
-		else if (trimmedLine.startsWith("while "))
+		else if (trimmedLine.startsWith("while ") || trimmedLine.startsWith("while (") || trimmedLine.startsWith("while(") || trimmedLine == "while")
 		{
 			indentLevel++;
 		}
-		else if (trimmedLine.startsWith("repeat "))
+		else if (trimmedLine == "repeat")
 		{
 			indentLevel++;
 		}
@@ -763,119 +759,7 @@ void ScriptSettingForm::stackInfoImport(QTreeWidget* tree, const QVector<QPair<q
 
 		for (const QPair<qint64, QString> pair : vec)
 		{
-			trees.append(q_check_ptr(new QTreeWidgetItem({ QString::number(pair.first),  pair.second })));
-		}
-
-		tree->addTopLevelItems(trees);
-	}
-
-	tree->setUpdatesEnabled(true);
-}
-
-void ScriptSettingForm::varInfoImport(QTreeWidget* tree, const QHash<QString, QVariant>& d)
-{
-	if (tree == nullptr)
-		return;
-
-	tree->setUpdatesEnabled(false);
-
-	tree->clear();
-	tree->setColumnCount(3);
-	tree->setHeaderLabels(QStringList() << tr("field") << tr("name") << tr("value") << tr("type"));
-
-	if (!d.isEmpty())
-	{
-		QMap<QString, QVariant> map;
-		QList<QTreeWidgetItem*> trees;
-
-		for (auto it = d.cbegin(); it != d.cend(); ++it)
-		{
-			map.insert(it.key(), it.value());
-		}
-
-		QStringList l;
-		for (auto it = map.cbegin(); it != map.cend(); ++it)
-		{
-			l = it.key().split(util::rexOR);
-			if (l.size() != 2)
-				continue;
-
-			QString field = l.at(0) == "global" ? tr("GLOBAL") : tr("LOCAL");
-			QString varName = l.at(1);
-			QString varType;
-			QString varValueStr;
-			QVariant var = it.value();
-			switch (var.type())
-			{
-			case QVariant::Int:
-			{
-				varType = tr("Int");
-				varValueStr = QString::number(var.toLongLong());
-				break;
-			}
-			case QVariant::UInt:
-			{
-				varType = tr("UInt");
-				varValueStr = QString::number(var.toLongLong());
-				break;
-			}
-			case QVariant::Double:
-			{
-				varType = tr("Double");
-				varValueStr = QString::number(var.toDouble(), 'f', 5);
-				break;
-			}
-			case QVariant::String:
-			{
-				varValueStr = var.toString();
-				if (varValueStr == "nil")
-					varType = tr("Nil");
-				else if (varValueStr.startsWith("{") && varValueStr.endsWith("}"))
-					varType = tr("Table");
-				else
-					varType = tr("String");
-				break;
-			}
-			case QVariant::Bool:
-			{
-				varType = tr("Bool");
-				varValueStr = var.toBool() ? "true" : "false";
-				break;
-			}
-			case QVariant::LongLong:
-			{
-				varType = tr("LongLong");
-				varValueStr = QString::number(var.toLongLong());
-				break;
-			}
-			case QVariant::ULongLong:
-			{
-				varType = tr("ULongLong");
-				varValueStr = QString::number(var.toULongLong());
-				break;
-			}
-			case QVariant::List:
-			{
-				varValueStr = var.toString();
-				if (varValueStr.startsWith("{") && varValueStr.endsWith("}"))
-				{
-					varType = tr("Table");
-
-					continue;
-				}
-				else
-					varType = tr("String");
-				break;
-			}
-			default:
-			{
-				varType = tr("unknown");
-				varValueStr = var.toString();
-				break;
-			}
-			}
-
-			trees.append(q_check_ptr(new QTreeWidgetItem({ field, varName, varValueStr, QString("(%1)").arg(varType) })));
+			trees.append(q_check_ptr(new QTreeWidgetItem({ util::toQString(pair.first),  pair.second })));
 		}
 
 		tree->addTopLevelItems(trees);
@@ -894,7 +778,7 @@ QString ScriptSettingForm::getFullPath(QTreeWidgetItem* item)
 		itemfile = itemfile->parent(); //將itemfile指向父item
 	}
 	QString strpath;
-	qint64 count = (filepath.size() - 1);
+	qint64 count = (static_cast<qint64>(filepath.size()) - 1);
 	for (qint64 i = count; i >= 0; i--) //QStringlist類filepath反向存著初始item的路徑
 	{ //將filepath反向輸出，相應的加入’/‘
 		if (filepath.at(i).isEmpty())
@@ -1332,12 +1216,12 @@ void ScriptSettingForm::on_treeWidget_functionList_itemDoubleClicked(QTreeWidget
 	}
 	else if (str == "ifmap")
 	{
-		qint64 floor = injector.server->nowFloor;
+		qint64 floor = injector.server->getFloor();
 		str = QString("%1 %2, +2").arg(str).arg(floor);
 	}
 	else if (str == "waitmap")
 	{
-		qint64 floor = injector.server->nowFloor;
+		qint64 floor = injector.server->getFloor();
 		str = QString("%1 %2, 5000, +2").arg(str).arg(floor);
 	}
 	else if (str == "sleep")
@@ -1681,7 +1565,7 @@ void ScriptSettingForm::onScriptTreeWidgetDoubleClicked(QTreeWidgetItem* item, i
 			itemfile = itemfile->parent(); //將itemfile指向父item
 		}
 		QString strpath;
-		qint64 count = (filepath.size() - 1);
+		qint64 count = (static_cast<qint64>(filepath.size()) - 1);
 		for (qint64 i = count; i >= 0; i--) //QStringlist類filepath反向存著初始item的路徑
 		{ //將filepath反向輸出，相應的加入’/‘
 			if (filepath.at(i).isEmpty())
@@ -1822,6 +1706,8 @@ void ScriptSettingForm::onActionTriggered()
 
 	if (name == "actionSave")
 	{
+		if (!injector.scriptLogModel.isNull())
+			injector.scriptLogModel->clear();
 		fileSave(ui.widget->text(), QIODevice::WriteOnly | QIODevice::Truncate | QIODevice::Text);
 		emit signalDispatcher.loadFileToTable(injector.currentScriptFileName);
 		emit signalDispatcher.reloadScriptList();
@@ -2293,7 +2179,7 @@ void ScriptSettingForm::onBreakMarkInfoImport()
 		const util::SafeHash<qint64, break_marker_t> mk = mks.value(fileName);
 		for (const break_marker_t& bit : mk)
 		{
-			QTreeWidgetItem* item = q_check_ptr(new QTreeWidgetItem({ bit.content, QString::number(bit.count), QString::number(bit.line + 1), fileName }));
+			QTreeWidgetItem* item = q_check_ptr(new QTreeWidgetItem({ bit.content, util::toQString(bit.count), util::toQString(bit.line + 1), fileName }));
 			item->setIcon(0, QIcon("://image/icon_break.png"));
 			trees.append(item);
 		}
@@ -2336,48 +2222,14 @@ void ScriptSettingForm::onReloadScriptList()
 }
 
 //全局變量列表
-void ScriptSettingForm::onVarInfoImport(void* p, const QVariantHash& d)
+void ScriptSettingForm::onVarInfoImport(void* p, const QVariantHash& d, const QStringList& globalNames)
 {
 	ui.treeWidget_debuger_custom->setUpdatesEnabled(false);
 	ui.treeWidget_debuger_custom->clear();
 	QList<QTreeWidgetItem*> nodes = {};
-	createTreeWidgetItems(reinterpret_cast<Parser*>(p), &nodes, d);
+	createTreeWidgetItems(reinterpret_cast<Parser*>(p), &nodes, d, globalNames);
 	ui.treeWidget_debuger_custom->addTopLevelItems(nodes);
 	ui.treeWidget_debuger_custom->setUpdatesEnabled(true);
-
-	//if (currentGlobalVarInfo_ == d)
-	//	return;
-
-	//currentGlobalVarInfo_ = d;
-	//QStringList systemVarList = {
-
-	//};
-
-	//QHash<QString, QVariant> globalVarInfo;
-	//QHash<QString, QVariant> customVarInfo;
-	////如果key存在於系統變量列表中則添加到系統變量列表中
-
-	//QString key;
-	//QStringList l;
-	//for (auto it = d.cbegin(); it != d.cend(); ++it)
-	//{
-	//	l = it.key().split(util::rexOR);
-	//	if (l.size() != 2)
-	//		continue;
-
-	//	key = l.at(1);
-	//	if (systemVarList.contains(key.simplified()))
-	//	{
-	//		globalVarInfo.insert(it.key(), it.value());
-	//	}
-	//	else if (!systemVarList.contains(key.simplified()))
-	//	{
-	//		customVarInfo.insert(it.key(), it.value());
-	//	}
-	//}
-
-	//varInfoImport(ui.treeWidget_debuger_global, globalVarInfo);
-	//varInfoImport(ui.treeWidget_debuger_custom, customVarInfo);
 }
 
 void ScriptSettingForm::onCallStackInfoChanged(const QVariant& var)
@@ -2483,10 +2335,27 @@ void ScriptSettingForm::onDecryptSave()
 #endif
 }
 
-void luaTableToTreeWidgetItem(QString field, QTreeWidgetItem* pParentNode, const sol::table& t, qint64& depth)
+static const QHash<qint64, QString> hashSolLuaType = {
+	{ static_cast<qint64>(sol::type::none), QObject::tr("None") },
+	{ static_cast<qint64>(sol::type::lua_nil), QObject::tr("Nil") },
+	{ static_cast<qint64>(sol::type::string), QObject::tr("String") },
+	{ static_cast<qint64>(sol::type::number), QObject::tr("Number") },
+	{ static_cast<qint64>(sol::type::thread), QObject::tr("Thread") },
+	{ static_cast<qint64>(sol::type::boolean), QObject::tr("Boolean") },
+	{ static_cast<qint64>(sol::type::function), QObject::tr("Function") },
+	{ static_cast<qint64>(sol::type::userdata), QObject::tr("Userdata") },
+	{ static_cast<qint64>(sol::type::lightuserdata), QObject::tr("Lightuserdata") },
+	{ static_cast<qint64>(sol::type::table), QObject::tr("Table") },
+	{ static_cast<qint64>(sol::type::poly), QObject::tr("Poly") },
+};
+
+bool luaTableToTreeWidgetItem(QString field, QTreeWidgetItem* pParentNode, const sol::table& t, qint64& depth)
 {
 	if (depth <= 0)
-		return;
+		return false;
+
+	if (t.size() == 0)
+		return false;
 
 	--depth;
 
@@ -2499,60 +2368,75 @@ void luaTableToTreeWidgetItem(QString field, QTreeWidgetItem* pParentNode, const
 
 		if (pair.first.is<qint64>())
 		{
-			nKey = pair.first.as<qint64>() - 1;
+			key = QString("[%1]").arg(pair.first.as<qint64>());
 		}
 		else
-			key = QString::fromUtf8(pair.first.as<std::string>().c_str());
+			key = util::toQString(pair.first);
 
 		if (pair.second.is<sol::table>())
 		{
-			//field, varName, varValueStr, QString("(%1)").arg(varType)
 			varType = QObject::tr("Table");
 			QTreeWidgetItem* pNode = new QTreeWidgetItem({ field, key, "", QString("(%1)").arg(varType) });
-			luaTableToTreeWidgetItem(field, pNode, pair.second.as<sol::table>(), depth);
-			pParentNode->addChild(pNode);
+			if (luaTableToTreeWidgetItem(field, pNode, pair.second.as<sol::table>(), depth))
+				pParentNode->addChild(pNode);
+			else
+				delete pNode;
 			continue;
 		}
 		else if (pair.second.is<std::string>())
 		{
 			varType = QObject::tr("String");
-			value = QString("'%1'").arg(QString::fromUtf8(pair.second.as<std::string>().c_str()));
+			value = QString("'%1'").arg(util::toQString(pair.second));
 		}
 		else if (pair.second.is<qint64>())
 		{
 			varType = QObject::tr("Int");
-			value = QString::number(pair.second.as<qint64>());
+			value = util::toQString(pair.second.as<qint64>());
 		}
 		else if (pair.second.is<double>())
 		{
 			varType = QObject::tr("Double");
-			value = QString::number(pair.second.as<double>(), 'f', 5);
+			value = util::toQString(pair.second.as<double>());
 		}
 		else if (pair.second.is<bool>())
 		{
 			varType = QObject::tr("Bool");
-			value = pair.second.as<bool>() ? "true" : "false";
+			value = util::toQString(pair.second.as<bool>());
 		}
-		else
+		else if (pair.second.is<sol::function>())
+		{
+			varType = QObject::tr("Function");
+			value = QString("0x%1").arg(util::toQString(reinterpret_cast<qint64>(pair.second.as<sol::function>().pointer()), 16));
+		}
+		else if (pair.second == sol::lua_nil)
 		{
 			varType = QObject::tr("Nil");
 			value = "nil";
 		}
+		else
+		{
+			varType = hashSolLuaType.value(static_cast<qint64>(pair.second.get_type()), QObject::tr("Unknown"));
+			value = QString("0x%1").arg(util::toQString(reinterpret_cast<qint64>(pair.second.pointer()), 16));
+		}
 
-		QTreeWidgetItem* pNode = new QTreeWidgetItem({ field, key.isEmpty() ? QString::number(nKey + 1) : key, value, QString("(%1)").arg(varType) });
+		if (varType.isEmpty())
+			continue;
+
+		QTreeWidgetItem* pNode = new QTreeWidgetItem({ field, key.isEmpty() ? util::toQString(nKey + 1) : key, value, QString("(%1)").arg(varType) });
 		pParentNode->addChild(pNode);
 	}
+
+	return true;
 }
 
-void ScriptSettingForm::createTreeWidgetItems(Parser* pparser, QList<QTreeWidgetItem*>* pTrees, const QHash<QString, QVariant>& d)
+void ScriptSettingForm::createTreeWidgetItems(Parser* pparser, QList<QTreeWidgetItem*>* pTrees, const QHash<QString, QVariant>& d, const QStringList& globalNames)
 {
 	if (pTrees == nullptr)
 		return;
 
-	sol::state& lua_ = pparser->clua_.getLua();
+	sol::state& lua_ = pparser->pLua_->getLua();
 
 	QMap<QString, QVariant> map;
-	;
 
 	for (auto it = d.cbegin(); it != d.cend(); ++it)
 	{
@@ -2576,19 +2460,19 @@ void ScriptSettingForm::createTreeWidgetItems(Parser* pparser, QList<QTreeWidget
 		case QVariant::Int:
 		{
 			varType = QObject::tr("Int");
-			varValueStr = QString::number(var.toLongLong());
+			varValueStr = util::toQString(var.toLongLong());
 			break;
 		}
 		case QVariant::UInt:
 		{
 			varType = QObject::tr("UInt");
-			varValueStr = QString::number(var.toLongLong());
+			varValueStr = util::toQString(var.toLongLong());
 			break;
 		}
 		case QVariant::Double:
 		{
 			varType = QObject::tr("Double");
-			varValueStr = QString::number(var.toDouble(), 'f', 5);
+			varValueStr = util::toQString(var.toDouble());
 			break;
 		}
 		case QVariant::String:
@@ -2599,14 +2483,16 @@ void ScriptSettingForm::createTreeWidgetItems(Parser* pparser, QList<QTreeWidget
 			else if (varValueStr.startsWith("{") && varValueStr.endsWith("}") && !varValueStr.startsWith("{:"))
 			{
 				varType = QObject::tr("Table");
-				QTreeWidgetItem* pNode = new QTreeWidgetItem({ field, varName, "", QString("(%1)").arg(varType) });
-				qint64 depth = kMaxLuaTableDepth;
 
+				qint64 depth = kMaxLuaTableDepth;
 				pparser->luaDoString(QString("_TMP = %1").arg(var.toString()));
 				if (lua_["_TMP"].is<sol::table>())
 				{
-					luaTableToTreeWidgetItem(field, pNode, lua_["_TMP"].get<sol::table>(), depth);
-					pTrees->append(pNode);
+					QTreeWidgetItem* pNode = new QTreeWidgetItem(QStringList{ field, varName, "", QString("(%1)").arg(varType) });
+					if (luaTableToTreeWidgetItem(field, pNode, lua_["_TMP"].get<sol::table>(), depth))
+						pTrees->append(pNode);
+					else
+						delete pNode;
 				}
 				lua_["_TMP"] = sol::lua_nil;
 				continue;
@@ -2618,19 +2504,19 @@ void ScriptSettingForm::createTreeWidgetItems(Parser* pparser, QList<QTreeWidget
 		case QVariant::Bool:
 		{
 			varType = QObject::tr("Bool");
-			varValueStr = var.toBool() ? "true" : "false";
+			varValueStr = util::toQString(var.toBool());
 			break;
 		}
 		case QVariant::LongLong:
 		{
 			varType = QObject::tr("LongLong");
-			varValueStr = QString::number(var.toLongLong());
+			varValueStr = util::toQString(var.toLongLong());
 			break;
 		}
 		case QVariant::ULongLong:
 		{
 			varType = QObject::tr("ULongLong");
-			varValueStr = QString::number(var.toULongLong());
+			varValueStr = util::toQString(var.toULongLong());
 			break;
 		}
 		default:
@@ -2640,6 +2526,72 @@ void ScriptSettingForm::createTreeWidgetItems(Parser* pparser, QList<QTreeWidget
 			break;
 		}
 		}
+
+		pTrees->append(new QTreeWidgetItem({ field, varName, varValueStr, QString("(%1)").arg(varType) }));
+	}
+
+	for (const QString& it : globalNames)
+	{
+		const std::string name = it.toUtf8().constData();
+		sol::object o = lua_[name.c_str()];
+
+		QString field = QObject::tr("GLOBAL");
+
+		QString varName = it;
+
+		QString varType;
+
+		QString varValueStr;
+
+		if (o.is<sol::table>())
+		{
+			varType = QObject::tr("Table");
+			QTreeWidgetItem* pNode = new QTreeWidgetItem(QStringList{ field, varName, "", QString("(%1)").arg(varType) });
+			qint64 depth = kMaxLuaTableDepth;
+			if (luaTableToTreeWidgetItem(field, pNode, o.as<sol::table>(), depth))
+				pTrees->append(pNode);
+			else
+				delete pNode;
+			continue;
+		}
+		else if (o.is<std::string>())
+		{
+			varType = QObject::tr("String");
+			varValueStr = QString("'%1'").arg(util::toQString(o.as<std::string>()));
+		}
+		else if (o.is<qint64>())
+		{
+			varType = QObject::tr("Int");
+			varValueStr = util::toQString(o.as<qint64>());
+		}
+		else if (o.is<double>())
+		{
+			varType = QObject::tr("Double");
+			varValueStr = util::toQString(o.as<double>());
+		}
+		else if (o.is<bool>())
+		{
+			varType = QObject::tr("Bool");
+			varValueStr = util::toQString(o.as<bool>());
+		}
+		else if (o.is<sol::function>())
+		{
+			varType = QObject::tr("Function");
+			varValueStr = QString("0x%1").arg(util::toQString(reinterpret_cast<qint64>(o.as<sol::function>().pointer()), 16));
+		}
+		else if (o == sol::lua_nil)
+		{
+			varType = QObject::tr("Nil");
+			varValueStr = "nil";
+		}
+		else
+		{
+			varType = hashSolLuaType.value(static_cast<qint64>(o.get_type()), QObject::tr("Unknown"));
+			varValueStr = QString("0x%1").arg(util::toQString(reinterpret_cast<qint64>(o.pointer()), 16));
+		}
+
+		if (varType.isEmpty())
+			continue;
 
 		pTrees->append(new QTreeWidgetItem({ field, varName, varValueStr, QString("(%1)").arg(varType) }));
 	}

@@ -21,136 +21,179 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 #pragma region mem
 
-bool mem::read(HANDLE hProcess, quint64 desiredAccess, SIZE_T size, PVOID buffer)
+bool mem::read(HANDLE hProcess, quint64 desiredAccess, quint64 size, PVOID buffer)
 {
-	if (!size)return FALSE;
-	if (!buffer) return FALSE;
-	if (!hProcess) return FALSE;
-	if (!desiredAccess) return FALSE;
+	if (!size)
+		return false;
+
+	if (!buffer)
+		return false;
+
+	if (hProcess == nullptr)
+		return false;
+
+	if (!desiredAccess)
+		return false;
+
+	ScopedHandle::enablePrivilege(::GetCurrentProcess());
+
 	//ULONG oldProtect = NULL;
 	//VirtualProtectEx(m_pi.hProcess, buffer, size, PAGE_EXECUTE_READWRITE, &oldProtect);
 	BOOL ret = NT_SUCCESS(MINT::NtReadVirtualMemory(hProcess, reinterpret_cast<PVOID>(desiredAccess), buffer, size, NULL));
 	//VirtualProtectEx(m_pi.hProcess, buffer, size, oldProtect, &oldProtect);
+
 	return ret == TRUE;
 }
 
 template<typename T, typename>
 T mem::read(HANDLE hProcess, quint64 desiredAccess)
 {
-	if (!hProcess) return T();
+	if (hProcess == nullptr)
+		return T();
 
 	T buffer{};
 	SIZE_T size = sizeof(T);
-	if (!size) return T();
+
+	if (!size)
+		return T();
+
 	BOOL ret = mem::read(hProcess, desiredAccess, size, &buffer);
+
 	return ret ? buffer : T();
 }
 
 float mem::readFloat(HANDLE hProcess, quint64 desiredAccess)
 {
-	if (!hProcess) return 0.0f;
-	if (!desiredAccess) return 0.0f;
+	if (hProcess == nullptr)
+		return 0.0f;
+
+	if (!desiredAccess)
+		return 0.0f;
+
 	float buffer = 0;
 	SIZE_T size = sizeof(float);
 	BOOL ret = read(hProcess, desiredAccess, size, &buffer);
+
 	return (ret) ? (buffer) : 0.0f;
 }
 
 qreal mem::readDouble(HANDLE hProcess, quint64 desiredAccess)
 {
-	if (!hProcess) return 0.0;
-	if (!desiredAccess) return 0.0;
+	if (hProcess == nullptr)
+		return 0.0;
+
+	if (!desiredAccess)
+		return 0.0;
+
 	qreal buffer = 0;
 	SIZE_T size = sizeof(qreal);
 	BOOL ret = read(hProcess, desiredAccess, size, &buffer);
+
 	return (ret == TRUE) ? (buffer) : 0.0;
 }
 
-QString mem::readString(HANDLE hProcess, quint64 desiredAccess, int size, bool enableTrim, bool keepOriginal)
+QString mem::readString(HANDLE hProcess, quint64 desiredAccess, quint64 size, bool enableTrim, bool keepOriginal)
 {
-	if (!hProcess) return "\0";
-	if (!desiredAccess) return "\0";
+	if (hProcess == nullptr)
+		return "\0";
 
-	QScopedArrayPointer <char> p(q_check_ptr(new char[size + 1]));
+	if (!desiredAccess)
+		return "\0";
+
+	QScopedArrayPointer <char> p(q_check_ptr(new char[size + 1]()));
 	memset(p.get(), 0, size + 1);
-	SIZE_T sizet = size;
-	BOOL ret = read(hProcess, desiredAccess, sizet, p.get());
+
+	BOOL ret = read(hProcess, desiredAccess, size, p.get());
 	if (!keepOriginal)
 	{
 		std::string s = p.get();
 		QString retstring = (ret == TRUE) ? (util::toUnicode(s.c_str(), enableTrim)) : "";
 		return retstring;
 	}
-	else
-	{
-		QString retstring = (ret == TRUE) ? QString(p.get()) : "";
-		return retstring;
-	}
 
+	QString retstring = (ret == TRUE) ? QString(p.get()) : "";
+	return retstring;
 }
 
-bool mem::write(HANDLE hProcess, quint64 baseAddress, PVOID buffer, SIZE_T dwSize)
+bool mem::write(HANDLE hProcess, quint64 baseAddress, PVOID buffer, quint64 dwSize)
 {
-	if (!hProcess) return FALSE;
+	if (hProcess == nullptr)
+		return false;
+
 	ULONG oldProtect = NULL;
+
+	ScopedHandle::enablePrivilege(::GetCurrentProcess());
 
 	VirtualProtectEx(hProcess, (LPVOID)baseAddress, dwSize, PAGE_EXECUTE_READWRITE, &oldProtect);
 	BOOL ret = WriteProcessMemory(hProcess, reinterpret_cast<PVOID>(baseAddress), buffer, dwSize, NULL);
 	VirtualProtectEx(hProcess, (LPVOID)baseAddress, dwSize, oldProtect, &oldProtect);
+
 	return ret == TRUE;
 }
 
 template<typename T, typename>
 bool mem::write(HANDLE hProcess, quint64 baseAddress, T data)
 {
-	if (!hProcess) return false;
-	if (!baseAddress) return false;
+	if (hProcess == nullptr)
+		return false;
+
+	if (!baseAddress)
+		return false;
+
 	PVOID pBuffer = &data;
 	BOOL ret = write(hProcess, baseAddress, pBuffer, sizeof(T));
+
 	return ret == TRUE;
 }
 
 bool mem::writeString(HANDLE hProcess, quint64 baseAddress, const QString& str)
 {
-	if (!hProcess) return FALSE;
+	if (hProcess == nullptr)
+		return false;
+
 	QTextCodec* codec = QTextCodec::codecForName(util::DEFAULT_GAME_CODEPAGE);//QTextCodec::codecForMib(2025);//
+
 	QByteArray ba = codec->fromUnicode(str);
 	ba.append('\0');
+
 	char* pBuffer = ba.data();
-	SIZE_T len = ba.size();
+	quint64 len = ba.size();
+
 	QScopedArrayPointer <char> p(q_check_ptr(new char[len + 1]()));
 	memset(p.get(), 0, len + 1);
+
 	_snprintf_s(p.get(), len + 1, _TRUNCATE, "%s\0", pBuffer);
+
 	BOOL ret = write(hProcess, baseAddress, p.get(), len + 1);
 	p.reset(nullptr);
+
 	return ret == TRUE;
 }
 
-int mem::virtualAlloc(HANDLE hProcess, int size)
+quint64 mem::virtualAlloc(HANDLE hProcess, quint64 size)
 {
-	if (!hProcess) return 0;
-	DWORD ptr = NULL;
+	if (hProcess == nullptr)
+		return 0;
+
+	quint64 ptr = NULL;
 	SIZE_T sizet = static_cast<SIZE_T>(size);
 
-	BOOL ret = NT_SUCCESS(MINT::NtAllocateVirtualMemory(hProcess, (PVOID*)&ptr, NULL, &sizet, MEM_COMMIT, PAGE_EXECUTE_READWRITE));
+	BOOL ret = NT_SUCCESS(MINT::NtAllocateVirtualMemory(hProcess, reinterpret_cast<PVOID*>(&ptr), NULL, &sizet, MEM_COMMIT, PAGE_EXECUTE_READWRITE));
 	if (ret == TRUE)
-	{
 		return static_cast<int>(ptr);
-	}
-	else
-		return NULL;
-	//return static_cast<int>(this->VirtualAllocEx(m_pi.nWnd, NULL, size, 0));
+
+	return 0;
 }
 
-int mem::virtualAllocA(HANDLE hProcess, const QString& str)
+quint64 mem::virtualAllocA(HANDLE hProcess, const QString& str)
 {
-	int ret = NULL;
+	quint64 ret = NULL;
 	do
 	{
-		if (!hProcess)
+		if (hProcess == nullptr)
 			break;
 
-		ret = virtualAlloc(hProcess, str.toLocal8Bit().size() * 2 * sizeof(char) + 1);
+		ret = virtualAlloc(hProcess, static_cast<quint64>(str.toLocal8Bit().size()) * 2 * sizeof(char) + 1);
 		if (ret == FALSE)
 			break;
 		if (!writeString(hProcess, ret, str))
@@ -163,20 +206,22 @@ int mem::virtualAllocA(HANDLE hProcess, const QString& str)
 	return ret;
 }
 
-int mem::virtualAllocW(HANDLE hProcess, const QString& str)
+quint64 mem::virtualAllocW(HANDLE hProcess, const QString& str)
 {
-	int ret = NULL;
+	quint64 ret = NULL;
 	do
 	{
-		if (!hProcess)
+		if (hProcess == nullptr)
 			break;
 
 		std::wstring wstr(str.toStdWString());
 		wstr += L'\0';
-		ret = virtualAlloc(hProcess, wstr.length() * sizeof(wchar_t) + 1);
+
+		ret = virtualAlloc(hProcess, static_cast<quint64>(wstr.length()) * sizeof(wchar_t) + 1);
 		if (!ret)
 			break;
-		if (!write(hProcess, ret, (PVOID)wstr.c_str(), wstr.length() * sizeof(wchar_t) + 1))
+
+		if (!write(hProcess, ret, const_cast<wchar_t*>(wstr.c_str()), static_cast<quint64>(wstr.length()) * sizeof(wchar_t) + 1))
 		{
 			virtualFree(hProcess, ret);
 			ret = NULL;
@@ -186,40 +231,46 @@ int mem::virtualAllocW(HANDLE hProcess, const QString& str)
 	return ret;
 }
 
-bool mem::virtualFree(HANDLE hProcess, int baseAddress)
+bool mem::virtualFree(HANDLE hProcess, quint64 baseAddress)
 {
-	if (!hProcess) return FALSE;
-	if (baseAddress == NULL) return FALSE;
+	if (hProcess == nullptr)
+		return false;
+
+	if (baseAddress == NULL)
+		return false;
+
 	SIZE_T size = 0;
-	BOOL ret = NT_SUCCESS(MINT::NtFreeVirtualMemory(hProcess, (PVOID*)&baseAddress, &size, MEM_RELEASE));
+	BOOL ret = NT_SUCCESS(MINT::NtFreeVirtualMemory(hProcess, reinterpret_cast<PVOID*>(&baseAddress), &size, MEM_RELEASE));
+
 	return ret == TRUE;
-	//return static_cast<int>(this->VirtualFreeEx(m_pi.nWnd, static_cast<qlonglong>(baseAddress)));
 }
 
 DWORD mem::getRemoteModuleHandle(DWORD dwProcessId, const QString& moduleName)
 {
-	MODULEENTRY32 moduleEntry;
-	//  获取进程快照中包含在th32ProcessID中指定的进程的所有的模块。
+	//获取进程快照中包含在th32ProcessID中指定的进程的所有的模块。
 	ScopedHandle hSnapshot(ScopedHandle::CREATE_TOOLHELP32_SNAPSHOT, TH32CS_SNAPMODULE, dwProcessId);
-	if (!hSnapshot.isValid()) return NULL;
+	if (!hSnapshot.isValid())
+		return NULL;
 
+	MODULEENTRY32W moduleEntry = {};
 	memset(&moduleEntry, 0, sizeof(MODULEENTRY32W));
 	moduleEntry.dwSize = sizeof(MODULEENTRY32W);
 	if (!Module32FirstW(hSnapshot, &moduleEntry))
 		return NULL;
 	else
 	{
-		const QString str(QString::fromWCharArray(moduleEntry.szModule));
+		const QString str(util::toQString(moduleEntry.szModule));
 		if (str == moduleName)
 			return reinterpret_cast<DWORD>(moduleEntry.hModule);
 	}
 
 	do
 	{
-		const QString str(QString::fromWCharArray(moduleEntry.szModule));
+		const QString str(util::toQString(moduleEntry.szModule));
 		if (str == moduleName)
 			return reinterpret_cast<DWORD>(moduleEntry.hModule);
 	} while (Module32NextW(hSnapshot, &moduleEntry));
+
 	return NULL;
 }
 
@@ -254,15 +305,16 @@ HMODULE mem::getRemoteModuleHandleByProcessHandleW(HANDLE hProcess, const QStrin
 {
 	HMODULE hMods[1024] = {};
 	DWORD cbNeeded = 0, i = 0;
-	wchar_t szModName[MAX_PATH];
-	RtlZeroMemory(szModName, sizeof(szModName));
-	if (EnumProcessModulesEx(hProcess, hMods, sizeof(hMods), &cbNeeded, 3)) //http://msdn.microsoft.com/en-us/library/ms682633(v=vs.85).aspx
+	wchar_t szModName[MAX_PATH] = {};
+	memset(szModName, 0, sizeof(szModName));
+
+	if (K32EnumProcessModulesEx(hProcess, hMods, sizeof(hMods), &cbNeeded, 3)) //http://msdn.microsoft.com/en-us/library/ms682633(v=vs.85).aspx
 	{
 		for (i = 0; i <= cbNeeded / sizeof(HMODULE); i++)
 		{
-			if (GetModuleFileNameExW(hProcess, hMods[i], szModName, sizeof(szModName)))
+			if (K32GetModuleFileNameExW(hProcess, hMods[i], szModName, _countof(szModName)))
 			{
-				QString qfileName = QString::fromWCharArray(szModName);
+				QString qfileName = util::toQString(szModName);
 				qfileName.replace("/", "\\");
 				QFileInfo file(qfileName);
 				//get file name only
@@ -274,6 +326,7 @@ HMODULE mem::getRemoteModuleHandleByProcessHandleW(HANDLE hProcess, const QStrin
 			}
 		}
 	}
+
 	return NULL;
 }
 
@@ -283,8 +336,10 @@ long mem::getProcessExportTable32(HANDLE hProcess, const QString& ModuleName, IA
 	PIMAGE_DOS_HEADER pDosHeader = (PIMAGE_DOS_HEADER)new BYTE[sizeof(IMAGE_DOS_HEADER)];
 	PIMAGE_NT_HEADERS32 pNtHeaders = (PIMAGE_NT_HEADERS32)new BYTE[sizeof(IMAGE_NT_HEADERS32)];
 	PIMAGE_EXPORT_DIRECTORY pExport = (PIMAGE_EXPORT_DIRECTORY)new BYTE[sizeof(IMAGE_EXPORT_DIRECTORY)];
+
 	char strName[130] = {};
-	RtlZeroMemory(strName, sizeof(strName));
+	memset(strName, 0, sizeof(strName));
+
 	//拿到目標模塊的BASE
 	muBase = (ULONG)getRemoteModuleHandleByProcessHandleW(hProcess, ModuleName);
 	if (!muBase)
@@ -317,7 +372,7 @@ long mem::getProcessExportTable32(HANDLE hProcess, const QString& ModuleName, IA
 		USHORT usFuncId;
 		ULONG64 ulFuncAddr;
 		ulPointer = static_cast<ULONG64>(mem::read<int>(hProcess, (muBase + pExport->AddressOfNames + i * static_cast<ULONG64>(sizeof(DWORD)))));
-		RtlZeroMemory(bFuncName, sizeof(bFuncName));
+		memset(bFuncName, 0, sizeof(bFuncName));
 		mem::read(hProcess, (muBase + ulPointer), sizeof(bFuncName), bFuncName);
 		usFuncId = mem::read<short>(hProcess, (muBase + pExport->AddressOfNameOrdinals + i * sizeof(short)));
 		ulPointer = static_cast<ULONG64>(mem::read<int>(hProcess, (muBase + pExport->AddressOfFunctions + static_cast<ULONG64>(sizeof(DWORD)) * usFuncId)));
@@ -349,6 +404,7 @@ ULONG64 mem::getProcAddressIn32BitProcess(HANDLE hProcess, const QString& Module
 	long count = getProcessExportTable32(hProcess, ModuleName, pInfo, 2048);
 	if (!count)
 		return NULL;
+
 	for (long i = 0; i < count; i++)
 	{
 		if (QString(pInfo[i].FuncName).toLower() == FuncName.toLower())
@@ -364,7 +420,7 @@ ULONG64 mem::getProcAddressIn32BitProcess(HANDLE hProcess, const QString& Module
 
 bool mem::inject64(qint64 index, HANDLE hProcess, QString dllPath, HMODULE* phDllModule, quint64* phGameModule)
 {
-	unsigned char data[128] = {
+	static unsigned char data[128] = {
 		0x55,										//push ebp
 		0x8B, 0xEC,									//mov ebp,esp
 		0x56,										//push esi
@@ -404,9 +460,8 @@ bool mem::inject64(qint64 index, HANDLE hProcess, QString dllPath, HMODULE* phDl
 		DWORD remoteModule = 0;
 		DWORD lastError = 0;
 		DWORD gameModule = 0;
-	};
+	}d;
 
-	InjectData d;
 	util::VirtualMemory dllFullPathAddr(hProcess, dllPath, util::VirtualMemory::kUnicode, true);
 	d.dllFullPathAddr = dllFullPathAddr;
 
@@ -414,34 +469,50 @@ bool mem::inject64(qint64 index, HANDLE hProcess, QString dllPath, HMODULE* phDl
 	d.getLastErrorPtr = getProcAddressIn32BitProcess(hProcess, "kernel32.dll", "GetLastError");
 	d.getModuleHandleWPtr = getProcAddressIn32BitProcess(hProcess, "kernel32.dll", "GetModuleHandleW");
 
+	//寫入待傳遞給CallBack的數據
 	util::VirtualMemory injectdata(hProcess, sizeof(InjectData), true);
 	mem::write(hProcess, injectdata, &d, sizeof(InjectData));
 
+	//寫入匯編版的CallBack函數
 	util::VirtualMemory remoteFunc(hProcess, sizeof(data), true);
 	mem::write(hProcess, remoteFunc, data, sizeof(data));
 
+	//遠程執行線程
 	{
 		ScopedHandle hThreadHandle(
 			ScopedHandle::CREATE_REMOTE_THREAD,
 			hProcess,
 			reinterpret_cast<PVOID>(static_cast<quint64>(remoteFunc)),
 			reinterpret_cast<LPVOID>(static_cast<quint64>(injectdata)));
+
+		if (!hThreadHandle.isValid())
+		{
+			SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(index);
+			emit signalDispatcher.messageBoxShow(QObject::tr("Create remote thread failed"), QMessageBox::Icon::Critical);
+			return false;
+		}
 	}
 
 	mem::read(hProcess, injectdata, sizeof(InjectData), &d);
 	if (d.lastError != 0)
 	{
-		FormatMessageW( //取得錯誤訊息
+		//取得錯誤訊息
+		wchar_t* p = nullptr;
+		FormatMessageW(
 			FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
-			NULL,
+			nullptr,
 			d.lastError,
 			MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-			(LPWSTR)&d.lastError,
+			p,
 			0,
-			NULL);
+			nullptr);
 
-		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(index);
-		emit signalDispatcher.messageBoxShow(QString::fromWCharArray(L"Inject fail, error code: %1, %2").arg(d.lastError).arg(reinterpret_cast<wchar_t*>(d.lastError)));
+		if (p != nullptr)
+		{
+			SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(index);
+			emit signalDispatcher.messageBoxShow(QObject::tr("Inject fail, error code from client: %1, %2").arg(d.lastError).arg(util::toQString(p)), QMessageBox::Icon::Critical);
+			LocalFree(p);
+		}
 		return false;
 	}
 
@@ -451,7 +522,7 @@ bool mem::inject64(qint64 index, HANDLE hProcess, QString dllPath, HMODULE* phDl
 	if (phGameModule != nullptr)
 		*phGameModule = d.gameModule;
 
-	qDebug() << "inject OK" << "0x" + QString::number(d.remoteModule, 16);
+	qDebug() << "inject OK" << "0x" + util::toQString(d.remoteModule, 16);
 	return d.gameModule > 0 && d.remoteModule > 0;
 }
 
@@ -511,17 +582,22 @@ bool mem::inject(qint64 index, HANDLE hProcess, QString dllPath, HMODULE* phDllM
 	mem::read(hProcess, injectdata, sizeof(InjectData), &d);
 	if (d.lastError != 0)
 	{
+		wchar_t* p = nullptr;
 		FormatMessageW( //取得錯誤訊息
 			FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
-			NULL,
+			nullptr,
 			d.lastError,
 			MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-			(LPWSTR)&d.lastError,
+			p,
 			0,
-			NULL);
+			nullptr);
 
-		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(index);
-		emit signalDispatcher.messageBoxShow(QString::fromWCharArray(L"Inject fail, error code: %1, %2").arg(d.lastError).arg(reinterpret_cast<wchar_t*>(d.lastError)));
+		if (p != nullptr)
+		{
+			SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(index);
+			emit signalDispatcher.messageBoxShow(QObject::tr("Inject fail, error code: %1, %2").arg(d.lastError).arg(util::toQString(p)), QMessageBox::Icon::Critical);
+			LocalFree(p);
+		}
 		return false;
 	}
 
@@ -531,7 +607,7 @@ bool mem::inject(qint64 index, HANDLE hProcess, QString dllPath, HMODULE* phDllM
 	if (phGameModule != nullptr)
 		*phGameModule = d.gameModule;
 
-	qDebug() << "inject OK" << "0x" + QString::number(d.remoteModule, 16);
+	qDebug() << "inject OK" << "0x" + util::toQString(d.remoteModule, 16);
 	return d.gameModule > 0 && d.remoteModule > 0;
 }
 #pragma endregion
@@ -805,7 +881,7 @@ QMap<QString, QPair<bool, QString>> util::Config::EnumString(const QString& sec,
 
 void util::Config::writeMapData(const QString&, const util::MapData& data)
 {
-	QString key = QString::number(data.floor);
+	QString key = util::toQString(data.floor);
 	QJsonArray jarray;
 	if (cache_.contains(key))
 	{
@@ -976,10 +1052,26 @@ QFileInfoList util::loadAllFileLists(TreeWidgetItem* root, const QString& path, 
 	{ //將當前目錄中所有文件添加到treewidget中
 		if (list)
 			list->append(item.fileName());
-		TreeWidgetItem* child = q_check_ptr(new TreeWidgetItem(QStringList{ item.fileName() }, 1));
-		child->setIcon(0, QIcon(QPixmap(icon)));
 
-		root->addChild(child);
+		QFile f(item.absoluteFilePath());
+		if (f.open(QIODevice::ReadOnly | QIODevice::Text))
+		{
+			QTextStream in(&f);
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+			in.setCodec(util::DEFAULT_CODEPAGE);
+#else
+			in.setEncoding(QStringConverter::Utf8);
+#endif
+			in.setGenerateByteOrderMark(true);
+
+			TreeWidgetItem* child = q_check_ptr(new TreeWidgetItem(QStringList{ item.fileName() }, 1));
+			child->setToolTip(0, QString("===== %1 =====\n\n%2").arg(item.absoluteFilePath()).arg(in.readAll().left(256)));
+			child->setIcon(0, QIcon(QPixmap(icon)));
+
+			root->addChild(child);
+
+			f.close();
+		}
 	}
 
 	QFileInfoList file_list = dir.entryInfoList(QDir::Files | QDir::Hidden | QDir::NoSymLinks);
@@ -1016,9 +1108,22 @@ QFileInfoList util::loadAllFileLists(TreeWidgetItem* root, const QString& path, 
 		if (list)
 			list->append(item.fileName());
 		TreeWidgetItem* child = q_check_ptr(new TreeWidgetItem(QStringList{ item.fileName() }, 1));
-		child->setIcon(0, QIcon(QPixmap(":/image/icon_txt.png")));
+		QFile f(item.absoluteFilePath());
+		if (f.open(QIODevice::ReadOnly | QIODevice::Text))
+		{
+			QTextStream in(&f);
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+			in.setCodec(util::DEFAULT_CODEPAGE);
+#else
+			in.setEncoding(QStringConverter::Utf8);
+#endif
+			in.setGenerateByteOrderMark(true);
+			child->setToolTip(0, QString("===== %1 =====\n\n%2").arg(item.absoluteFilePath()).arg(in.readAll().left(256)));
+			child->setIcon(0, QIcon(QPixmap(":/image/icon_txt.png")));
 
-		root->addChild(child);
+			root->addChild(child);
+			f.close();
+		}
 	}
 
 	QFileInfoList file_list = dir.entryInfoList(QDir::Files | QDir::Hidden | QDir::NoSymLinks);

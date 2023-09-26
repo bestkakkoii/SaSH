@@ -43,11 +43,11 @@ qint64 Interpreter::setdir(qint64 currentIndex, qint64 currentLine, const TokenM
 	if (dir != -1 && dirStr.isEmpty() && dir >= 1 && dir <= 8)
 	{
 		--dir;
-		injector.server->setPlayerFaceDirection(dir);
+		injector.server->setCharFaceDirection(dir);
 	}
 	else if (dir == -1 && !dirStr.isEmpty())
 	{
-		injector.server->setPlayerFaceDirection(dirStr);
+		injector.server->setCharFaceDirection(dirStr);
 	}
 	else
 		return Parser::kArgError + 1ll;
@@ -191,7 +191,7 @@ qint64 Interpreter::findpath(qint64 currentIndex, qint64 currentLine, const Toke
 	qint64 y = 0;
 	QPoint p;
 	qint64 steplen = 3;
-	qint64 step_cost = 10;
+	qint64 step_cost = 0;
 	qint64 timeout = 180000;
 	QString name;
 	if (!checkInteger(TK, 1, &x))
@@ -213,7 +213,7 @@ qint64 Interpreter::findpath(qint64 currentIndex, qint64 currentLine, const Toke
 				return 0;//沒找到
 		}
 
-		qint64 dir = injector.server->mapAnalyzer->calcBestFollowPointByDstPoint(injector.server->nowFloor, injector.server->getPoint(), unit.p, &dst, true, unit.dir);
+		qint64 dir = injector.server->mapAnalyzer->calcBestFollowPointByDstPoint(injector.server->getFloor(), injector.server->getPoint(), unit.p, &dst, true, unit.dir);
 		if (pdir)
 			*pdir = dir;
 		return dir != -1;//找到了
@@ -222,7 +222,7 @@ qint64 Interpreter::findpath(qint64 currentIndex, qint64 currentLine, const Toke
 	qint64 dir = -1;
 	if (p.isNull() && !name.isEmpty())
 	{
-		QString key = QString::number(injector.server->nowFloor);
+		QString key = util::toQString(injector.server->getFloor());
 		util::Config config(injector.getPointFileName());
 		QList<util::MapData> datas = config.readMapData(key);
 		if (datas.isEmpty())
@@ -295,7 +295,7 @@ qint64 Interpreter::findpath(qint64 currentIndex, qint64 currentLine, const Toke
 	if (findPath(currentIndex, currentLine, p, steplen, step_cost, timeout))
 	{
 		if (!name.isEmpty() && (findNpcCallBack(name, p, &dir)) && dir != -1)
-			injector.server->setPlayerFaceDirection(dir);
+			injector.server->setCharFaceDirection(dir);
 	}
 
 	return Parser::kNoChange;
@@ -357,14 +357,14 @@ qint64 Interpreter::movetonpc(qint64 currentIndex, qint64 currentLine, const Tok
 				return 0;//沒找到
 		}
 
-		dir = injector.server->mapAnalyzer->calcBestFollowPointByDstPoint(injector.server->nowFloor, injector.server->getPoint(), unit.p, &dst, true, unit.dir);
+		dir = injector.server->mapAnalyzer->calcBestFollowPointByDstPoint(injector.server->getFloor(), injector.server->getPoint(), unit.p, &dst, true, unit.dir);
 		return dir != -1 ? 1 : 0;//找到了
 	};
 
 	bool bret = false;
 	if (findPath(currentIndex, currentLine, p, 1, 0, timeout, findNpcCallBack, true) && dir != -1)
 	{
-		injector.server->setPlayerFaceDirection(dir);
+		injector.server->setCharFaceDirection(dir);
 		bret = true;
 	}
 
@@ -445,7 +445,7 @@ qint64 Interpreter::warp(qint64 currentIndex, qint64 currentLine, const TokenMap
 				{
 					if (floorName.isEmpty())
 					{
-						if (injector.server->nowFloor == floor)
+						if (injector.server->getFloor() == floor)
 							return true;
 					}
 					else
@@ -453,10 +453,10 @@ qint64 Interpreter::warp(qint64 currentIndex, qint64 currentLine, const TokenMap
 						if (floorName.startsWith(kFuzzyPrefix))
 						{
 							QString newFloorName = floorName.mid(1);
-							if (injector.server->nowFloorName.contains(newFloorName))
+							if (injector.server->getFloorName().contains(newFloorName))
 								return true;
 						}
-						else if (injector.server->nowFloorName == floorName)
+						else if (injector.server->getFloorName() == floorName)
 							return true;
 					}
 				}

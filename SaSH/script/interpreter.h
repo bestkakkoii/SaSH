@@ -90,13 +90,8 @@ private:
 	bool checkRange(const TokenMap& TK, qint64 idx, qint64* min, qint64* max);
 	bool checkRelationalOperator(const TokenMap& TK, qint64 idx, RESERVE* ret) const;
 
-	bool compare(const QVariant& a, const QVariant& b, RESERVE type) const;
-
-	bool compare(CompareArea area, const TokenMap& TK);
-
 	void logExport(qint64 currentIndex, qint64 currentLine, const QString& text, qint64 color = 0);
 
-	void setError(const QString& error) { parser_.setLastErrorMessage(error); }
 private: //註冊給Parser的函數
 	//system
 	qint64 sleep(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
@@ -110,7 +105,6 @@ private: //註冊給Parser的函數
 	qint64 logout(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
 	qint64 logback(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
 	qint64 cleanchat(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
-	qint64 set(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
 	qint64 savesetting(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
 	qint64 loadsetting(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
 	qint64 run(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);

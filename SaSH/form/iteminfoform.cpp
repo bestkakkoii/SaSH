@@ -130,10 +130,10 @@ void ItemInfoForm::onResetControlTextLanguage()
 	{
 		QTableWidgetItem* item = ui.tableWidget_item->item(row, 0);
 		if (item)
-			item->setText(QString::number(row + 1));
+			item->setText(util::toQString(row + 1));
 		else
 		{
-			item = new QTableWidgetItem(QString::number(row + 1));
+			item = new QTableWidgetItem(util::toQString(row + 1));
 			if (item)
 				ui.tableWidget_item->setItem(row, 0, item);
 		}

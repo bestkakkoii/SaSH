@@ -23,119 +23,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 constexpr int MAX_LIST_COUNT = 2048;
 
-ListView::ListView(QWidget* parent)
-	: QListView(parent)
-{
-	setWordWrap(true);
-	setUniformItemSizes(true);
-	installEventFilter(this);
-	setTextElideMode(Qt::ElideNone);
-	setResizeMode(QListView::Adjust);
-}
-
-bool ListView::eventFilter(QObject* obj, QEvent* e)
-{
-	if (obj == this)
-	{
-		if (e->type() == QEvent::KeyPress)
-		{
-			QKeyEvent* keyEvent = reinterpret_cast<QKeyEvent*>(e);
-			if (keyEvent->key() == Qt::Key_Delete)
-			{
-				StringListModel* model = qobject_cast<StringListModel*>(this->model());
-				if (model != nullptr)
-					model->clear();
-				return true;
-			}
-		}
-	}
-
-	return QListView::eventFilter(obj, e);
-}
-
-
-void ListView::dataChanged(const QModelIndex& topLeft, const QModelIndex& bottomRight, const QVector<int>& roles)
-{
-	QListView::dataChanged(topLeft, bottomRight, roles);
-	//如果數據改變則滾動到底部
-	//scrollToBottom();
-}
-
-void ListView::wheelEvent(QWheelEvent* event)
-{
-	if (event->modifiers() & Qt::ControlModifier)
-	{
-		// 获取当前字体
-		QFont font = this->font();
-
-		// 根据滚轮滚动的角度调整字体大小
-		int delta = event->angleDelta().y();
-		int fontSize = font.pointSize();
-		int newFontSize = fontSize + delta / 120;  // 根据需要调整滚动速度
-
-		// 限制字体大小的范围
-		const int minFontSize = 8;
-		const int maxFontSize = 48;
-		newFontSize = qBound(minFontSize, newFontSize, maxFontSize);
-
-		// 设置新的字体大小
-		font.setPointSize(newFontSize);
-		this->setFont(font);
-		event->accept();
-	}
-	else
-	{
-		QListView::wheelEvent(event);
-	}
-}
-
-void ListView::setModel(StringListModel* model)
-{
-	if (model)
-	{
-		StringListModel* old_mod = (StringListModel*)this->model();
-		if (old_mod)
-			disconnect(old_mod, &StringListModel::dataAppended, this, &QListView::scrollToBottom);
-		QListView::setModel(model);
-		connect(model, &StringListModel::dataAppended, this, &QListView::scrollToBottom, Qt::QueuedConnection);
-	}
-}
-
-void ListView::append(const QString& str, int color)
-{
-	StringListModel* old_mod = (StringListModel*)this->model();
-	if (old_mod)
-		old_mod->append(str, color);
-}
-
-void ListView::remove(const QString& str)
-{
-	StringListModel* old_mod = (StringListModel*)this->model();
-	if (old_mod)
-		old_mod->remove(str);
-}
-
-void ListView::clear()
-{
-	StringListModel* old_mod = (StringListModel*)this->model();
-	if (old_mod)
-		old_mod->clear();
-}
-
-void ListView::swapRowUp(int source)
-{
-	StringListModel* old_mod = (StringListModel*)this->model();
-	if (old_mod)
-		old_mod->swapRowUp(source);
-}
-
-void ListView::swapRowDown(int source)
-{
-	StringListModel* old_mod = (StringListModel*)this->model();
-	if (old_mod)
-		old_mod->swapRowDown(source);
-}
-
+#pragma region StringListModel
 ///////////////////////////////////////////////////////////////////////////////////////////////
 StringListModel::StringListModel(QObject* parent)
 	: QAbstractListModel(parent)
@@ -470,4 +358,143 @@ void StringListModel::swapRowDown(int source)
 
 		endMoveRows();
 	}
+}
+#pragma endregion
+
+class ItemDelegate : public QStyledItemDelegate
+{
+public:
+	ItemDelegate(QObject* parent = nullptr) : QStyledItemDelegate(parent) {}
+
+	virtual QSize sizeHint(const QStyleOptionViewItem& option, const QModelIndex& index) const override
+	{
+		int height = QStyledItemDelegate::sizeHint(option, index).height();
+		QString text = index.data(Qt::DisplayRole).toString();
+		QFontMetrics fm(option.font);
+		int width = fm.horizontalAdvance(text) * 10;
+		return QSize(width, height);
+	}
+
+};
+
+ListView::ListView(QWidget* parent)
+	: QListView(parent)
+{
+	installEventFilter(this);
+	setTextElideMode(Qt::ElideNone);
+	setResizeMode(QListView::Adjust);
+	setFont(util::getFont());
+	setWordWrap(false);
+	setUniformItemSizes(false);
+	setSelectionMode(QAbstractItemView::SingleSelection);
+	setSelectionBehavior(QAbstractItemView::SelectRows);
+	setEditTriggers(QAbstractItemView::NoEditTriggers);
+	setVerticalScrollMode(QAbstractItemView::ScrollPerItem);
+	setHorizontalScrollMode(QAbstractItemView::ScrollPerItem);
+	setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
+	setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
+	ItemDelegate* delegate = new ItemDelegate(this);
+	setItemDelegate(delegate);
+}
+
+bool ListView::eventFilter(QObject* obj, QEvent* e)
+{
+	if (obj == this)
+	{
+		if (e->type() == QEvent::KeyPress)
+		{
+			QKeyEvent* keyEvent = reinterpret_cast<QKeyEvent*>(e);
+			if (keyEvent->key() == Qt::Key_Delete)
+			{
+				StringListModel* model = qobject_cast<StringListModel*>(this->model());
+				if (model != nullptr)
+					model->clear();
+				return true;
+			}
+		}
+	}
+
+	return QListView::eventFilter(obj, e);
+}
+
+void ListView::dataChanged(const QModelIndex& topLeft, const QModelIndex& bottomRight, const QVector<int>& roles)
+{
+	QListView::dataChanged(topLeft, bottomRight, roles);
+	//如果數據改變則滾動到底部
+	//scrollToBottom();
+}
+
+void ListView::wheelEvent(QWheelEvent* e)
+{
+	if (e->modifiers() & Qt::ControlModifier)
+	{
+		// 获取当前字体
+		QFont font = this->font();
+
+		// 根据滚轮滚动的角度调整字体大小
+		qint64 delta = e->angleDelta().y();
+		qint64 fontSize = font.pointSize();
+		qint64 newFontSize = fontSize + delta / 120;  // 根据需要调整滚动速度
+
+		// 限制字体大小的范围
+		constexpr qint64 minFontSize = 8;
+		constexpr qint64 maxFontSize = 48;
+		newFontSize = qBound(minFontSize, newFontSize, maxFontSize);
+
+		// 设置新的字体大小
+		font.setPointSize(newFontSize);
+		setFont(font);
+		e->accept();
+	}
+	else
+	{
+		QListView::wheelEvent(e);
+	}
+}
+
+void ListView::setModel(StringListModel* model)
+{
+	if (model)
+	{
+		StringListModel* old_mod = (StringListModel*)this->model();
+		if (old_mod)
+			disconnect(old_mod, &StringListModel::dataAppended, this, &QListView::scrollToBottom);
+		QListView::setModel(model);
+		connect(model, &StringListModel::dataAppended, this, &QListView::scrollToBottom, Qt::QueuedConnection);
+	}
+}
+
+void ListView::append(const QString& str, int color)
+{
+	StringListModel* old_mod = (StringListModel*)this->model();
+	if (old_mod)
+		old_mod->append(str, color);
+}
+
+void ListView::remove(const QString& str)
+{
+	StringListModel* old_mod = (StringListModel*)this->model();
+	if (old_mod)
+		old_mod->remove(str);
+}
+
+void ListView::clear()
+{
+	StringListModel* old_mod = (StringListModel*)this->model();
+	if (old_mod)
+		old_mod->clear();
+}
+
+void ListView::swapRowUp(int source)
+{
+	StringListModel* old_mod = (StringListModel*)this->model();
+	if (old_mod)
+		old_mod->swapRowUp(source);
+}
+
+void ListView::swapRowDown(int source)
+{
+	StringListModel* old_mod = (StringListModel*)this->model();
+	if (old_mod)
+		old_mod->swapRowDown(source);
 }

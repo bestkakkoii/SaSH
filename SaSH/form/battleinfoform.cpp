@@ -62,16 +62,16 @@ BattleInfoForm::BattleInfoForm(qint64 index, QWidget* parent)
 	Injector& injector = Injector::getInstance(index);
 	if (!injector.server.isNull())
 	{
-		QVariant topInfoContents = injector.server->topInfoContents;
-		QVariant bottomInfoContents = injector.server->bottomInfoContents;
-		QString timeLabelContents = injector.server->timeLabelContents;
-		QString labelPlayerAction = injector.server->labelPlayerAction;
-		QString labelPetAction = injector.server->labelPetAction;
+		QVariant topInfoContents = injector.server->topInfoContents.get();
+		QVariant bottomInfoContents = injector.server->bottomInfoContents.get();
+		QString timeLabelContents = injector.server->timeLabelContents.get();
+		QString labelCharAction = injector.server->labelCharAction.get();
+		QString labelPetAction = injector.server->labelPetAction.get();
 
 		onUpdateTopInfoContents(topInfoContents);
 		onUpdateBottomInfoContents(bottomInfoContents);
 		onUpdateTimeLabelContents(timeLabelContents);
-		onUpdateLabelPlayerAction(labelPlayerAction);
+		onUpdateLabelCharAction(labelCharAction);
 		onUpdateLabelPetAction(labelPetAction);
 	}
 
@@ -79,8 +79,9 @@ BattleInfoForm::BattleInfoForm(qint64 index, QWidget* parent)
 	connect(&signalDispatcher, &SignalDispatcher::updateTopInfoContents, this, &BattleInfoForm::onUpdateTopInfoContents, Qt::UniqueConnection);
 	connect(&signalDispatcher, &SignalDispatcher::updateBottomInfoContents, this, &BattleInfoForm::onUpdateBottomInfoContents, Qt::UniqueConnection);
 	connect(&signalDispatcher, &SignalDispatcher::updateTimeLabelContents, this, &BattleInfoForm::onUpdateTimeLabelContents, Qt::UniqueConnection);
-	connect(&signalDispatcher, &SignalDispatcher::updateLabelPlayerAction, this, &BattleInfoForm::onUpdateLabelPlayerAction, Qt::UniqueConnection);
+	connect(&signalDispatcher, &SignalDispatcher::updateLabelCharAction, this, &BattleInfoForm::onUpdateLabelCharAction, Qt::UniqueConnection);
 	connect(&signalDispatcher, &SignalDispatcher::updateLabelPetAction, this, &BattleInfoForm::onUpdateLabelPetAction, Qt::UniqueConnection);
+	connect(&signalDispatcher, &SignalDispatcher::notifyBattleActionState, this, &BattleInfoForm::onNotifyBattleActionState, Qt::UniqueConnection);
 }
 
 BattleInfoForm::~BattleInfoForm()
@@ -102,7 +103,7 @@ void BattleInfoForm::onUpdateTimeLabelContents(const QString& text)
 	ui.label_time->setText(text);
 }
 
-void BattleInfoForm::onUpdateLabelPlayerAction(const QString& text)
+void BattleInfoForm::onUpdateLabelCharAction(const QString& text)
 {
 	ui.label_charaction->setText(text);
 }
@@ -112,46 +113,107 @@ void BattleInfoForm::onUpdateLabelPetAction(const QString& text)
 	ui.label_petaction->setText(text);
 }
 
+//13 11 10 12 14 back
+//18 16 15 17 19 front     
+//8 6 5 7 9      front
+//3 1 0 2 4      back
+
+//top form 1357行 為人物+騎寵(back) 2468為戰寵(front)
+//固定2列10行，戰寵的字符串前方需要補上4格空格
+/*
+col 列1                    列2
+	14(人物)           14(騎寵)
+	   19(戰寵)
+	12(人物)           12(騎寵)
+	   17(戰寵)
+	10(人物)           10(騎寵)
+	   15(戰寵)
+	11(人物)           11(騎寵)
+	   16(戰寵)
+	13(人物)           13(騎寵)
+	   18(戰寵)
+row
+*/
+
+//bottom form 1357行 為人物+騎寵(back) 2468為戰寵(front)
+//固定2列10行，戰寵的字符串前方需要補上4格空格
+/*
+col 列1                     列2
+	4(人物)              4(騎寵)
+	   9(戰寵)
+	2(人物)              2(騎寵)
+	   7(戰寵)
+	0(人物)              0(騎寵)
+	   5(戰寵)
+	1(人物)              1(騎寵)
+	   6(戰寵)
+	3(人物)              3(騎寵)
+	   8(戰寵)
+row
+*/
+
+static const QHash<qint64, QPair<qint64, qint64>> fill_hash = {
+	{ 4, QPair<qint64, qint64>{ 0, 0 } },
+	{ 9, QPair<qint64, qint64>{ 1, 0 } },
+	{ 2, QPair<qint64, qint64>{ 2, 0 } },
+	{ 7, QPair<qint64, qint64>{ 3, 0 } },
+	{ 0, QPair<qint64, qint64>{ 4, 0 } },
+	{ 5, QPair<qint64, qint64>{ 5, 0 } },
+	{ 1, QPair<qint64, qint64>{ 6, 0 } },
+	{ 6, QPair<qint64, qint64>{ 7, 0 } },
+	{ 3, QPair<qint64, qint64>{ 8, 0 } },
+	{ 8, QPair<qint64, qint64>{ 9, 0 } },
+
+	{ 14, QPair<qint64, qint64>{ 0, 0 } },
+	{ 19, QPair<qint64, qint64>{ 1, 0 } },
+	{ 12, QPair<qint64, qint64>{ 2, 0 } },
+	{ 17, QPair<qint64, qint64>{ 3, 0 } },
+	{ 10, QPair<qint64, qint64>{ 4, 0 } },
+	{ 15, QPair<qint64, qint64>{ 5, 0 } },
+	{ 11, QPair<qint64, qint64>{ 6, 0 } },
+	{ 16, QPair<qint64, qint64>{ 7, 0 } },
+	{ 13, QPair<qint64, qint64>{ 8, 0 } },
+	{ 18, QPair<qint64, qint64>{ 9, 0 } },
+};
+
+void BattleInfoForm::onNotifyBattleActionState(qint64 index, bool left)
+{
+	if (!fill_hash.contains(index))
+		return;
+
+	const QPair<qint64, qint64> pair = fill_hash.value(index);
+
+	QTableWidgetItem* item = nullptr;
+	if (left)
+	{
+		item = ui.tableWidget_top->item(pair.first, pair.second);
+	}
+	else
+	{
+		item = ui.tableWidget_bottom->item(pair.first, pair.second);
+	}
+
+	if (item == nullptr)
+		return;
+
+	QString text = item->text().mid(1);
+
+	//找到非空格的的第一個字符 前方插入 "*"
+	for (qint64 i = 0; i < text.size(); ++i)
+	{
+		if (text.at(i) != ' ')
+		{
+			text.insert(i, "*");
+			break;
+		}
+	}
+
+	item->setText(text);
+	item->setToolTip(text);
+}
+
 void BattleInfoForm::updateItemInfoRowContents(QTableWidget* tableWidget, const QVariant& dat)
 {
-	//13 11 10 12 14 back
-	//18 16 15 17 19 front     
-	//8 6 5 7 9      front
-	//3 1 0 2 4      back
-
-	//top form 1357行 為人物+騎寵(back) 2468為戰寵(front)
-	//固定2列10行，戰寵的字符串前方需要補上4格空格
-	/*
-	col 列1                    列2
-		14(人物)           14(騎寵)
-		   19(戰寵)
-		12(人物)           12(騎寵)
-		   17(戰寵)
-		10(人物)           10(騎寵)
-		   15(戰寵)
-		11(人物)           11(騎寵)
-		   16(戰寵)
-		13(人物)           13(騎寵)
-		   18(戰寵)
-	row
-	*/
-
-	//bottom form 1357行 為人物+騎寵(back) 2468為戰寵(front)
-	//固定2列10行，戰寵的字符串前方需要補上4格空格
-	/*
-	col 列1                     列2
-		4(人物)              4(騎寵)
-		   9(戰寵)
-		2(人物)              2(騎寵)
-		   7(戰寵)
-		0(人物)              0(騎寵)
-		   5(戰寵)
-		1(人物)              1(騎寵)
-		   6(戰寵)
-		3(人物)              3(騎寵)
-		   8(戰寵)
-	row
-	*/
 
 	// 檢查是否為 QVector<QStringList>
 	if (dat.type() != QVariant::Type::UserType)
@@ -184,29 +246,7 @@ void BattleInfoForm::updateItemInfoRowContents(QTableWidget* tableWidget, const 
 		}
 	};
 
-	static const QHash<qint64, QPair<qint64, qint64>> fill_hash = {
-		{ 4, QPair<qint64, qint64>{ 0, 0 } },
-		{ 9, QPair<qint64, qint64>{ 1, 0 } },
-		{ 2, QPair<qint64, qint64>{ 2, 0 } },
-		{ 7, QPair<qint64, qint64>{ 3, 0 } },
-		{ 0, QPair<qint64, qint64>{ 4, 0 } },
-		{ 5, QPair<qint64, qint64>{ 5, 0 } },
-		{ 1, QPair<qint64, qint64>{ 6, 0 } },
-		{ 6, QPair<qint64, qint64>{ 7, 0 } },
-		{ 3, QPair<qint64, qint64>{ 8, 0 } },
-		{ 8, QPair<qint64, qint64>{ 9, 0 } },
 
-		{ 14, QPair<qint64, qint64>{ 0, 0 } },
-		{ 19, QPair<qint64, qint64>{ 1, 0 } },
-		{ 12, QPair<qint64, qint64>{ 2, 0 } },
-		{ 17, QPair<qint64, qint64>{ 3, 0 } },
-		{ 10, QPair<qint64, qint64>{ 4, 0 } },
-		{ 15, QPair<qint64, qint64>{ 5, 0 } },
-		{ 11, QPair<qint64, qint64>{ 6, 0 } },
-		{ 16, QPair<qint64, qint64>{ 7, 0 } },
-		{ 13, QPair<qint64, qint64>{ 8, 0 } },
-		{ 18, QPair<qint64, qint64>{ 9, 0 } },
-	};
 
 	const QString objectName = tableWidget->objectName();
 	//const bool isTop = objectName.contains("top", Qt::CaseInsensitive);

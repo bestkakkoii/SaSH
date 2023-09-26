@@ -539,6 +539,48 @@
     </message>
 </context>
 <context>
+    <name>BattleSettingFrom</name>
+    <message>
+        <source>Test Result</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Test Result: %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>BattleSettingFromClass</name>
+    <message>
+        <source>BattleSettingFrom</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Condition Expr</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>TestResult</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>+</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>↑</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>↓</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>save</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>CLua</name>
     <message>
         <source>========== lua error result with an EXCEPTION ==========</source>
@@ -591,6 +633,136 @@
     <message>
         <source>&gt; (unknown type of data)</source>
         <translation>&gt; (未知的類型)</translation>
+    </message>
+</context>
+<context>
+    <name>CharInfoForm</name>
+    <message>
+        <source>name</source>
+        <translation>名稱</translation>
+    </message>
+    <message>
+        <source>freeName</source>
+        <translation type="vanished">別名</translation>
+    </message>
+    <message>
+        <source>level</source>
+        <translation>等級</translation>
+    </message>
+    <message>
+        <source>exp</source>
+        <translation>經驗</translation>
+    </message>
+    <message>
+        <source>nextexp</source>
+        <translation>升級經驗</translation>
+    </message>
+    <message>
+        <source>hp</source>
+        <translation>耐力</translation>
+    </message>
+    <message>
+        <source>mp</source>
+        <translation>氣力</translation>
+    </message>
+    <message>
+        <source>chasma/loyal</source>
+        <translation>魅力/忠誠</translation>
+    </message>
+    <message>
+        <source>atk</source>
+        <translation>攻擊</translation>
+    </message>
+    <message>
+        <source>def</source>
+        <translation>防禦</translation>
+    </message>
+    <message>
+        <source>agi</source>
+        <translation>敏捷</translation>
+    </message>
+    <message>
+        <source>luck</source>
+        <translation>運氣</translation>
+    </message>
+    <message>
+        <source>stone:%1</source>
+        <translation>身上石幣:%1</translation>
+    </message>
+    <message>
+        <source>leftexp</source>
+        <translation>剩餘</translation>
+    </message>
+    <message>
+        <source>battle</source>
+        <translation>戰鬥</translation>
+    </message>
+    <message>
+        <source>standby</source>
+        <translation>等待</translation>
+    </message>
+    <message>
+        <source>mail</source>
+        <translation>郵件</translation>
+    </message>
+    <message>
+        <source>rest</source>
+        <translation>休息</translation>
+    </message>
+    <message>
+        <source>ride</source>
+        <translation>騎乘</translation>
+    </message>
+    <message>
+        <source>pet%1 (%2)</source>
+        <translation>寵物%1 (%2)</translation>
+    </message>
+    <message>
+        <source>power</source>
+        <translation>野生戰力</translation>
+    </message>
+    <message>
+        <source>freename</source>
+        <translation>別名</translation>
+    </message>
+    <message>
+        <source>growth</source>
+        <translation>成長率</translation>
+    </message>
+</context>
+<context>
+    <name>CharInfoFormClass</name>
+    <message>
+        <source>CharInfoForm</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>stone:</source>
+        <translation>身上石幣:</translation>
+    </message>
+    <message>
+        <source>char(add)</source>
+        <translation>人物(加點)</translation>
+    </message>
+    <message>
+        <source>pet1</source>
+        <translation>寵物1</translation>
+    </message>
+    <message>
+        <source>pet2</source>
+        <translation>寵物2</translation>
+    </message>
+    <message>
+        <source>pet3</source>
+        <translation>寵物3</translation>
+    </message>
+    <message>
+        <source>pet4</source>
+        <translation>寵物4</translation>
+    </message>
+    <message>
+        <source>pet5</source>
+        <translation>寵物5</translation>
     </message>
 </context>
 <context>
@@ -1227,7 +1399,7 @@
     </message>
     <message>
         <source>OpenProcess fail</source>
-        <translation>打開進程句炳失敗</translation>
+        <translation type="vanished">打開進程句炳失敗</translation>
     </message>
 </context>
 <context>
@@ -2268,136 +2440,6 @@ No new version available. Do you still want to update?</source>
     </message>
 </context>
 <context>
-    <name>PlayerInfoForm</name>
-    <message>
-        <source>name</source>
-        <translation>名稱</translation>
-    </message>
-    <message>
-        <source>freeName</source>
-        <translation type="vanished">別名</translation>
-    </message>
-    <message>
-        <source>level</source>
-        <translation>等級</translation>
-    </message>
-    <message>
-        <source>exp</source>
-        <translation>經驗</translation>
-    </message>
-    <message>
-        <source>nextexp</source>
-        <translation>升級經驗</translation>
-    </message>
-    <message>
-        <source>hp</source>
-        <translation>耐力</translation>
-    </message>
-    <message>
-        <source>mp</source>
-        <translation>氣力</translation>
-    </message>
-    <message>
-        <source>chasma/loyal</source>
-        <translation>魅力/忠誠</translation>
-    </message>
-    <message>
-        <source>atk</source>
-        <translation>攻擊</translation>
-    </message>
-    <message>
-        <source>def</source>
-        <translation>防禦</translation>
-    </message>
-    <message>
-        <source>agi</source>
-        <translation>敏捷</translation>
-    </message>
-    <message>
-        <source>luck</source>
-        <translation>運氣</translation>
-    </message>
-    <message>
-        <source>stone:%1</source>
-        <translation>身上石幣:%1</translation>
-    </message>
-    <message>
-        <source>leftexp</source>
-        <translation>剩餘</translation>
-    </message>
-    <message>
-        <source>battle</source>
-        <translation>戰鬥</translation>
-    </message>
-    <message>
-        <source>standby</source>
-        <translation>等待</translation>
-    </message>
-    <message>
-        <source>mail</source>
-        <translation>郵件</translation>
-    </message>
-    <message>
-        <source>rest</source>
-        <translation>休息</translation>
-    </message>
-    <message>
-        <source>ride</source>
-        <translation>騎乘</translation>
-    </message>
-    <message>
-        <source>pet%1 (%2)</source>
-        <translation>寵物%1 (%2)</translation>
-    </message>
-    <message>
-        <source>power</source>
-        <translation>野生戰力</translation>
-    </message>
-    <message>
-        <source>freename</source>
-        <translation>別名</translation>
-    </message>
-    <message>
-        <source>growth</source>
-        <translation>成長率</translation>
-    </message>
-</context>
-<context>
-    <name>PlayerInfoFormClass</name>
-    <message>
-        <source>PlayerInfoForm</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>stone:</source>
-        <translation>身上石幣:</translation>
-    </message>
-    <message>
-        <source>char(add)</source>
-        <translation>人物(加點)</translation>
-    </message>
-    <message>
-        <source>pet1</source>
-        <translation>寵物1</translation>
-    </message>
-    <message>
-        <source>pet2</source>
-        <translation>寵物2</translation>
-    </message>
-    <message>
-        <source>pet3</source>
-        <translation>寵物3</translation>
-    </message>
-    <message>
-        <source>pet4</source>
-        <translation>寵物4</translation>
-    </message>
-    <message>
-        <source>pet5</source>
-        <translation>寵物5</translation>
-    </message>
-</context>
-<context>
     <name>QObject</name>
     <message>
         <source>system</source>
@@ -3147,6 +3189,78 @@ No new version available. Do you still want to update?</source>
         <source>closeAll</source>
         <translation>關閉全部</translation>
     </message>
+    <message>
+        <source>None</source>
+        <translation>無類型</translation>
+    </message>
+    <message>
+        <source>Number</source>
+        <translation>數字型</translation>
+    </message>
+    <message>
+        <source>Thread</source>
+        <translation>線程型</translation>
+    </message>
+    <message>
+        <source>Boolean</source>
+        <translation>布爾型</translation>
+    </message>
+    <message>
+        <source>Function</source>
+        <translation>函數型</translation>
+    </message>
+    <message>
+        <source>Userdata</source>
+        <translation>自訂數據型</translation>
+    </message>
+    <message>
+        <source>Lightuserdata</source>
+        <translation>輕量數據型</translation>
+    </message>
+    <message>
+        <source>Poly</source>
+        <translation>多態型</translation>
+    </message>
+    <message>
+        <source>Unknown</source>
+        <translation>未知類型</translation>
+    </message>
+    <message>
+        <source>EnumWindows failed</source>
+        <translation>枚舉窗口失敗</translation>
+    </message>
+    <message>
+        <source>OpenProcess failed</source>
+        <translation>打開進程句柄失敗</translation>
+    </message>
+    <message>
+        <source>Injected dll module is null</source>
+        <translation>注入的插件模塊基址為空</translation>
+    </message>
+    <message>
+        <source>Game module is null</source>
+        <translation>遊戲模塊基址為空</translation>
+    </message>
+    <message>
+        <source>Remote virtualmemory alloc failed</source>
+        <translation>遠程虛擬內存分配失敗</translation>
+    </message>
+    <message>
+        <source>Create remote thread failed</source>
+        <translation>創建遠程線程失敗</translation>
+    </message>
+    <message>
+        <source>Inject fail, error code from client: %1, %2</source>
+        <translation>注入失敗，來自客戶端回傳的錯誤訊息: %1, %2</translation>
+    </message>
+    <message>
+        <source>Inject fail, error code: %1, %2</source>
+        <translation>注入失敗，客戶端錯誤訊息: %1, %2</translation>
+    </message>
+    <message>
+        <source>Map data download failed, please check your network connection!</source>
+        <translation>地圖熱更新數據下載失敗，請檢查您的網路連線狀態!</translation>
+    </message>
 </context>
 <context>
     <name>QThumbnailFormClass</name>
@@ -3268,47 +3382,47 @@ No new version available. Do you still want to update?</source>
     </message>
     <message>
         <source>name</source>
-        <translation>名稱</translation>
+        <translation type="vanished">名稱</translation>
     </message>
     <message>
         <source>value</source>
-        <translation>數值</translation>
+        <translation type="vanished">數值</translation>
     </message>
     <message>
         <source>type</source>
-        <translation>類型</translation>
+        <translation type="vanished">類型</translation>
     </message>
     <message>
         <source>Int</source>
-        <translation>整數型</translation>
+        <translation type="vanished">整數型</translation>
     </message>
     <message>
         <source>Double</source>
-        <translation>雙精度浮點型</translation>
+        <translation type="vanished">雙精度浮點型</translation>
     </message>
     <message>
         <source>String</source>
-        <translation>字符串</translation>
+        <translation type="vanished">字符串</translation>
     </message>
     <message>
         <source>unknown</source>
-        <translation>未知</translation>
+        <translation type="vanished">未知</translation>
     </message>
     <message>
         <source>UInt</source>
-        <translation>無符號整數型</translation>
+        <translation type="vanished">無符號整數型</translation>
     </message>
     <message>
         <source>Bool</source>
-        <translation>布爾型</translation>
+        <translation type="vanished">布爾型</translation>
     </message>
     <message>
         <source>LongLong</source>
-        <translation>超長整數型</translation>
+        <translation type="vanished">超長整數型</translation>
     </message>
     <message>
         <source>ULongLong</source>
-        <translation>無符號超長整數型</translation>
+        <translation type="vanished">無符號超長整數型</translation>
     </message>
     <message>
         <source>CONTENT</source>
@@ -3396,15 +3510,15 @@ No new version available. Do you still want to update?</source>
     </message>
     <message>
         <source>field</source>
-        <translation>作用域</translation>
+        <translation type="vanished">作用域</translation>
     </message>
     <message>
         <source>GLOBAL</source>
-        <translation>全局變量</translation>
+        <translation type="vanished">全局變量</translation>
     </message>
     <message>
         <source>LOCAL</source>
-        <translation>局變量</translation>
+        <translation type="vanished">局變量</translation>
     </message>
     <message>
         <source>List</source>
@@ -3412,11 +3526,11 @@ No new version available. Do you still want to update?</source>
     </message>
     <message>
         <source>Table</source>
-        <translation>表</translation>
+        <translation type="vanished">表</translation>
     </message>
     <message>
         <source>Nil</source>
-        <translation>空</translation>
+        <translation type="vanished">空</translation>
     </message>
     <message>
         <source>Usage: cpu:%1% | memory:%2MB/%3MB</source>
@@ -3468,10 +3582,6 @@ No new version available. Do you still want to update?</source>
     <message>
         <source>global</source>
         <translation>全局</translation>
-    </message>
-    <message>
-        <source>name</source>
-        <translation></translation>
     </message>
     <message>
         <source>value</source>
@@ -3554,16 +3664,8 @@ No new version available. Do you still want to update?</source>
         <translation type="vanished">全局變量</translation>
     </message>
     <message>
-        <source>format</source>
-        <translation></translation>
-    </message>
-    <message>
         <source>sys</source>
         <translation type="vanished">系統類</translation>
-    </message>
-    <message>
-        <source>test</source>
-        <translation></translation>
     </message>
     <message>
         <source>talkandprint</source>
@@ -3575,10 +3677,6 @@ No new version available. Do you still want to update?</source>
     </message>
     <message>
         <source>sleep</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>set</source>
         <translation></translation>
     </message>
     <message>
@@ -3842,54 +3940,6 @@ No new version available. Do you still want to update?</source>
         <translation>停止</translation>
     </message>
     <message>
-        <source>stone</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>mp</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>maxmp</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>maxhp</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>maxexp</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>hp</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>exp</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>def</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>chasma</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>atk</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>agi</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>loyal</source>
-        <translation></translation>
-    </message>
-    <message>
         <source>des</source>
         <translation>說明</translation>
     </message>
@@ -3948,18 +3998,6 @@ No new version available. Do you still want to update?</source>
     <message>
         <source>DecryptSave(Ctrl+Alt+D)</source>
         <translation>解密腳本(Ctrl+Alt+D)</translation>
-    </message>
-    <message>
-        <source>rnd</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>releaseall</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>delete</source>
-        <translation></translation>
     </message>
     <message>
         <source>say</source>
@@ -4042,47 +4080,7 @@ No new version available. Do you still want to update?</source>
         <translation></translation>
     </message>
     <message>
-        <source>ifteam</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>ifpos</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>ifpet</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>ifmap</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>ifitem</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>ifdaily</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>ifbattle</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>save</source>
-        <translation></translation>
-    </message>
-    <message>
         <source>rclick</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>putpet</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>put</source>
         <translation></translation>
     </message>
     <message>
@@ -4094,23 +4092,11 @@ No new version available. Do you still want to update?</source>
         <translation></translation>
     </message>
     <message>
-        <source>load</source>
-        <translation></translation>
-    </message>
-    <message>
         <source>ldbclick</source>
         <translation></translation>
     </message>
     <message>
         <source>lclick</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>getpet</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>get</source>
         <translation></translation>
     </message>
     <message>
@@ -4123,10 +4109,6 @@ No new version available. Do you still want to update?</source>
     </message>
     <message>
         <source>cook</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>chplayername</source>
         <translation></translation>
     </message>
     <message>
@@ -4162,23 +4144,11 @@ No new version available. Do you still want to update?</source>
         <translation></translation>
     </message>
     <message>
-        <source>ifpetex</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>ifitemfull</source>
-        <translation></translation>
-    </message>
-    <message>
         <source>action fun</source>
         <translation>動作類</translation>
     </message>
     <message>
         <source>waitpet</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>ifplayer</source>
         <translation></translation>
     </message>
     <message>
@@ -4202,10 +4172,6 @@ No new version available. Do you still want to update?</source>
         <translation></translation>
     </message>
     <message>
-        <source>sysvar</source>
-        <translation></translation>
-    </message>
-    <message>
         <source>preview</source>
         <translation></translation>
     </message>
@@ -4222,30 +4188,6 @@ No new version available. Do you still want to update?</source>
         <translation></translation>
     </message>
     <message>
-        <source>lv</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>fname</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>wind</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>water</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>fire</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>earth</source>
-        <translation></translation>
-    </message>
-    <message>
         <source>mail</source>
         <translation></translation>
     </message>
@@ -4254,47 +4196,7 @@ No new version available. Do you still want to update?</source>
         <translation></translation>
     </message>
     <message>
-        <source>ifonline</source>
-        <translation></translation>
-    </message>
-    <message>
         <source>dlg</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>upper</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>tostr</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>toint</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>replace</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>regex</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>lower</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>half</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>full</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>find</source>
         <translation></translation>
     </message>
     <message>
@@ -4358,14 +4260,6 @@ No new version available. Do you still want to update?</source>
         <translation></translation>
     </message>
     <message>
-        <source>mpp</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>hpp</source>
-        <translation></translation>
-    </message>
-    <message>
         <source>wequip</source>
         <translation></translation>
     </message>
@@ -4394,16 +4288,8 @@ No new version available. Do you still want to update?</source>
         <translation>錯誤跳轉</translation>
     </message>
     <message>
-        <source>ifnormal</source>
-        <translation></translation>
-    </message>
-    <message>
         <source>field</source>
         <translation>作用域</translation>
-    </message>
-    <message>
-        <source>timer</source>
-        <translation></translation>
     </message>
     <message>
         <source>menu</source>
@@ -4454,95 +4340,227 @@ No new version available. Do you still want to update?</source>
         <translation></translation>
     </message>
     <message>
-        <source>rexg</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>rex</source>
-        <translation></translation>
-    </message>
-    <message>
         <source>Debug</source>
-        <translation>調試模式</translation>
+        <translation>調試開關</translation>
     </message>
     <message>
-        <source>tunique</source>
+        <source>transform</source>
+        <translation>轉換相關</translation>
+    </message>
+    <message>
+        <source>tostr()</source>
         <translation></translation>
     </message>
     <message>
-        <source>tswap</source>
+        <source>toint()</source>
         <translation></translation>
     </message>
     <message>
-        <source>tsright</source>
+        <source>todb(,)</source>
         <translation></translation>
     </message>
     <message>
-        <source>tsort</source>
+        <source>table</source>
         <translation></translation>
     </message>
     <message>
-        <source>tsleft</source>
+        <source>tunique()</source>
         <translation></translation>
     </message>
     <message>
-        <source>tshuffle</source>
+        <source>tswap()</source>
         <translation></translation>
     </message>
     <message>
-        <source>trsort</source>
+        <source>tsright()</source>
         <translation></translation>
     </message>
     <message>
-        <source>trotate</source>
+        <source>tsort()</source>
         <translation></translation>
     </message>
     <message>
-        <source>trim</source>
+        <source>tsleft()</source>
         <translation></translation>
     </message>
     <message>
-        <source>tpopfront</source>
+        <source>tshuffle()</source>
         <translation></translation>
     </message>
     <message>
-        <source>tpopback</source>
+        <source>trsort()</source>
         <translation></translation>
     </message>
     <message>
-        <source>tpadd</source>
+        <source>trotate()</source>
         <translation></translation>
     </message>
     <message>
-        <source>tmerge</source>
+        <source>tpopfront()</source>
         <translation></translation>
     </message>
     <message>
-        <source>tjoin</source>
+        <source>tpopback()</source>
         <translation></translation>
     </message>
     <message>
-        <source>tfront</source>
+        <source>tpadd()</source>
         <translation></translation>
     </message>
     <message>
-        <source>tback</source>
+        <source>tmerge()</source>
         <translation></translation>
     </message>
     <message>
-        <source>tadd</source>
+        <source>tjoin()</source>
         <translation></translation>
     </message>
     <message>
-        <source>split</source>
+        <source>tfront()</source>
         <translation></translation>
     </message>
     <message>
-        <source>mktable</source>
+        <source>tback()</source>
         <translation></translation>
     </message>
     <message>
-        <source>mkpath</source>
+        <source>tadd()</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>split()</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>mktable()</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>string</source>
+        <translation>字符串相關</translation>
+    </message>
+    <message>
+        <source>upper()</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>trim()</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>rexg()</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>rex()</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>replace()</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>regex()</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>mkpath()</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>lower()</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>half()</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>full()</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>format()</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>find()</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>rnd()</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>input()</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>timer()</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>set()</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>checkdaily</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>team</source>
+        <translation>隊伍相關</translation>
+    </message>
+    <message>
+        <source>kick</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>mouse</source>
+        <translation>鼠標相關</translation>
+    </message>
+    <message>
+        <source>dragto</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>item</source>
+        <translation>道具</translation>
+    </message>
+    <message>
+        <source>equip</source>
+        <translation>裝備</translation>
+    </message>
+    <message>
+        <source>chname</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>bank</source>
+        <translation>倉庫相關</translation>
+    </message>
+    <message>
+        <source>putstone</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>putitem</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>petput</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>petget</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>getstone</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>getitem</source>
         <translation></translation>
     </message>
 </context>
@@ -4615,7 +4633,7 @@ No new version available. Do you still want to update?</source>
         <translation>人物特定回合動作</translation>
     </message>
     <message>
-        <source>Player alternating round action</source>
+        <source>Char alternating round action</source>
         <translation>人物間隔回合動作</translation>
     </message>
     <message>
@@ -4899,6 +4917,14 @@ No new version available. Do you still want to update?</source>
     <message>
         <source>Backup</source>
         <translation type="vanished">備份</translation>
+    </message>
+    <message>
+        <source>Failed to listen on IPV6 socket</source>
+        <translation>監聽IPV6的連接失敗</translation>
+    </message>
+    <message>
+        <source>Failed to listen on IPV4 socket</source>
+        <translation>監聽IPV4的連接失敗</translation>
     </message>
 </context>
 </TS>

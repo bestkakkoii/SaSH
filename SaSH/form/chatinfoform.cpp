@@ -65,11 +65,15 @@ ChatInfoForm::ChatInfoForm(qint64 index, QWidget* parent)
 	ui.setupUi(this);
 	setIndex(index);
 
+	QFont font = util::getFont();
+	setFont(font);
+
 	connect(this, &ChatInfoForm::resetControlTextLanguage, this, &ChatInfoForm::onResetControlTextLanguage, Qt::UniqueConnection);
 
 	ui.listView_log->setTextElideMode(Qt::ElideNone);
 	ui.listView_log->setResizeMode(QListView::Adjust);
-	//ui.listView_log->installEventFilter(this);
+	font.setPointSize(12);
+	ui.listView_log->setFont(font);
 
 	ui.comboBox_send->installEventFilter(this);
 
@@ -89,7 +93,7 @@ ChatInfoForm::ChatInfoForm(qint64 index, QWidget* parent)
 
 	for (auto it = combo_colorhash.begin(); it != combo_colorhash.end(); ++it)
 	{
-		ui.comboBox_color->addItem(QString::number(it.key()), QVariant(it.value()));
+		ui.comboBox_color->addItem(util::toQString(it.key()), QVariant(it.value()));
 	}
 
 	onResetControlTextLanguage();
@@ -128,7 +132,7 @@ bool ChatInfoForm::eventFilter(QObject* watched, QEvent* e)
 				{
 					qint64 nMode = ui.comboBox_channel->currentIndex();
 					TalkMode mode = static_cast<TalkMode>(nMode != -1 ? nMode : kTalkNormal);
-					if (nMode != (channelList_.size() - 1))
+					if (nMode != (static_cast<qint64>(channelList_.size()) - 1))
 						injector.server->talk(text, ui.comboBox_color->currentIndex(), mode);
 					else
 						injector.server->inputtext(text);

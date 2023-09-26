@@ -215,12 +215,12 @@ QPair<QString, QString> luadebug::getVars(lua_State*& L, qint64 si, qint64 depth
 
 	case LUA_TNUMBER:
 	{
-		return { "(integer)", QString::number(luaL_checkinteger(L, si)) };
+		return { "(integer)", util::toQString(luaL_checkinteger(L, si)) };
 	}
 
 	case LUA_TBOOLEAN:
 	{
-		return { "(boolean)", lua_toboolean(L, si) ? "true" : "false" };
+		return { "(boolean)", util::toQString(lua_toboolean(L, si)) };
 	}
 
 	case LUA_TFUNCTION:
@@ -228,11 +228,11 @@ QPair<QString, QString> luadebug::getVars(lua_State*& L, qint64 si, qint64 depth
 		lua_CFunction func = lua_tocfunction(L, si);
 		if (func != NULL)
 		{
-			return { "(C function)", QString("0x%1").arg(QString::number(reinterpret_cast<qint64>(func)),16) };
+			return { "(C function)", QString("0x%1").arg(util::toQString(reinterpret_cast<qint64>(func), 16)) };
 		}
 		else
 		{
-			return { "(function)", QString("0x%1").arg(QString::number(reinterpret_cast<qint64>(func)),16) };
+			return { "(function)", QString("0x%1").arg(util::toQString(reinterpret_cast<qint64>(func), 16)) };
 		}
 		break;
 	}
@@ -240,7 +240,7 @@ QPair<QString, QString> luadebug::getVars(lua_State*& L, qint64 si, qint64 depth
 
 	case LUA_TUSERDATA:
 	{
-		return { "(user data)", QString("0x%1").arg(QString::number(reinterpret_cast<qint64>(lua_touserdata(L, si)),16)) };
+		return { "(user data)", QString("0x%1").arg(util::toQString(reinterpret_cast<qint64>(lua_touserdata(L, si)),16)) };
 	}
 
 	case LUA_TSTRING:
@@ -555,14 +555,14 @@ void luadebug::hookProc(lua_State* L, lua_Debug* ar)
 		{
 			QPair<QString, QString> vs = getVars(L, i, 5);
 
-			QString key = QString("local|%1").arg(QString::fromUtf8(name));
+			QString key = QString("local|%1").arg(util::toQString(name));
 			varhash.insert(key, vs.second);
 			//var.type = vs.first.replace("(", "").replace(")", "");
 			lua_pop(L, 1);// no match, then pop out the var's value
 		}
 
 		Parser parser(lua["_INDEX"].get<qint64>());
-		emit signalDispatcher.varInfoImported(&parser, varhash);
+		emit signalDispatcher.varInfoImported(&parser, varhash, QStringList{});
 
 		luadebug::checkStopAndPause(s);
 
@@ -940,7 +940,7 @@ collectgarbage("step", 1024);
 	//Add additional package path.
 	QStringList paths;
 	std::string package_path = lua_["package"]["path"];
-	paths.append(QString::fromUtf8(package_path.c_str()).replace("\\", "/"));
+	paths.append(util::toQString(package_path).replace("\\", "/"));
 
 	QStringList dirs;
 	luadebug::getPackagePath(util::applicationDirPath() + "/", &dirs);
@@ -992,7 +992,7 @@ void CLua::proc()
 			try
 			{
 				err = loaded_chunk;
-				qstrErr = QString::fromUtf8(err.what());
+				qstrErr = util::toQString(err.what());
 				errOk = true;
 			}
 			catch (...)
@@ -1072,20 +1072,20 @@ void CLua::proc()
 				}
 				if (retObject.is<bool>())
 				{
-					tableStrs << QString("> (boolean)%1").arg(retObject.as<bool>() ? "true" : "false");
+					tableStrs << QString("> (boolean)%1").arg(util::toQString(retObject.as<bool>()));
 				}
 				else if (retObject.is<qint64>())
 				{
-					tableStrs << "> (integer)" + QString::number(retObject.as<qint64>());
+					tableStrs << "> (integer)" + util::toQString(retObject.as<qint64>());
 
 				}
 				else if (retObject.is<double>())
 				{
-					tableStrs << "> (number)" + QString::number(retObject.as<double>(), 'f', 16);
+					tableStrs << "> (number)" + util::toQString(retObject.as<double>());
 				}
 				else if (retObject.is<std::string>())
 				{
-					tableStrs << "> (string)" + QString::fromUtf8(retObject.as<std::string>().c_str());
+					tableStrs << "> (string)" + util::toQString(retObject);
 				}
 				else if (retObject == sol::lua_nil)
 				{
@@ -1102,11 +1102,11 @@ void CLua::proc()
 						sol::object val = it.second;
 						if (!key.valid() || !val.valid()) continue;
 						if (!key.is<std::string>() && !key.is<qint64>()) continue;
-						QString qkey = key.is<std::string>() ? QString::fromUtf8(key.as<std::string>().c_str()) : QString::number(key.as<qint64>());
+						QString qkey = key.is<std::string>() ? util::toQString(key) : util::toQString(key.as<qint64>());
 
 						if (val.is<bool>())
 						{
-							tableStrs << QString(R"(>     ["%1"] = (boolean)%2,)").arg(qkey).arg(val.as<bool>() ? "true" : "false");
+							tableStrs << QString(R"(>     ["%1"] = (boolean)%2,)").arg(qkey).arg(util::toQString(val.as<bool>()));
 						}
 						else if (val.is<qint64>())
 						{
@@ -1118,7 +1118,7 @@ void CLua::proc()
 						}
 						else if (val.is<std::string>())
 						{
-							tableStrs << QString(R"(>     ["%1"] = (string)%2,)").arg(qkey).arg(QString::fromUtf8(val.as<std::string>().c_str()));
+							tableStrs << QString(R"(>     ["%1"] = (string)%2,)").arg(qkey).arg(util::toQString(val));
 						}
 						else if (val.is<sol::table>())
 						{

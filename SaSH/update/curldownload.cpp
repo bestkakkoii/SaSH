@@ -263,5 +263,5 @@ QString CurlDownload::oneShotDownload(const std::string szUrl)
 	curl_slist_free_all(header_list);
 	curl_easy_cleanup(curl);
 
-	return QString::fromUtf8(str.c_str());
+	return util::toQString(str);
 }

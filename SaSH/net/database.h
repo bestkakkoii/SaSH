@@ -109,17 +109,17 @@ constexpr qint64 MAP_Y_SIZE = (MAP_TILE_GRID_Y2 - MAP_TILE_GRID_Y1);
 constexpr qint64 MAP_READ_FLAG = 0x8000;
 constexpr qint64  MAP_SEE_FLAG = 0x4000;
 
-constexpr qint64 BC_FLG_NEW = (1 << 0);
-constexpr qint64 BC_FLG_DEAD = (1 << 1);	  //死亡
-constexpr qint64 BC_FLG_PLAYER = (1 << 2);	  //玩家,玩家有异常状态时要有此值
-constexpr qint64 BC_FLG_POISON = (1 << 3);	  //中毒
-constexpr qint64 BC_FLG_PARALYSIS = (1 << 4); //麻痹
-constexpr qint64 BC_FLG_SLEEP = (1 << 5);  //昏睡
-constexpr qint64 BC_FLG_STONE = (1 << 6);	  //石化
-constexpr qint64 BC_FLG_DRUNK = (1 << 7);  //酒醉
-constexpr qint64 BC_FLG_CONFUSION = (1 << 8); //混乱
-constexpr qint64 BC_FLG_HIDE = (1 << 9);	  //是否隐藏，地球一周
-constexpr qint64 BC_FLG_REVERSE = (1 << 10);  //反转
+constexpr qint64 BC_FLG_NEW = (1LL << 0);
+constexpr qint64 BC_FLG_DEAD = (1LL << 1);	  //死亡
+constexpr qint64 BC_FLG_PLAYER = (1LL << 2);	  //玩家,玩家有异常状态时要有此值
+constexpr qint64 BC_FLG_POISON = (1LL << 3);	  //中毒
+constexpr qint64 BC_FLG_PARALYSIS = (1LL << 4); //麻痹
+constexpr qint64 BC_FLG_SLEEP = (1LL << 5);  //昏睡
+constexpr qint64 BC_FLG_STONE = (1LL << 6);	  //石化
+constexpr qint64 BC_FLG_DRUNK = (1LL << 7);  //酒醉
+constexpr qint64 BC_FLG_CONFUSION = (1LL << 8); //混乱
+constexpr qint64 BC_FLG_HIDE = (1LL << 9);	  //是否隐藏，地球一周
+constexpr qint64 BC_FLG_REVERSE = (1LL << 10);  //反转
 
 inline constexpr bool hasBadStatus(quint64 status)
 {
@@ -156,47 +156,47 @@ inline constexpr bool hasUnMoveableStatue(quint64 status)
 	return false;
 }
 
-constexpr qint64 ITEM_FLAG_PET_MAIL = (1 << 0);
-constexpr qint64 ITEM_FLAG_MIX = (1 << 1);
-constexpr qint64 ITEM_FLAG_COOKING_MIX = (1 << 2);
-constexpr qint64 ITEM_FLAG_METAL_MIX = (1 << 3);	//金屬
-constexpr qint64 ITEM_FLAG_JEWEL_MIX = (1 << 4);	//寶石
-constexpr qint64 ITEM_FLAG_FIX_MIX = (1 << 5);	//修理
+constexpr qint64 ITEM_FLAG_PET_MAIL = (1LL << 0);
+constexpr qint64 ITEM_FLAG_MIX = (1LL << 1);
+constexpr qint64 ITEM_FLAG_COOKING_MIX = (1LL << 2);
+constexpr qint64 ITEM_FLAG_METAL_MIX = (1LL << 3);	//金屬
+constexpr qint64 ITEM_FLAG_JEWEL_MIX = (1LL << 4);	//寶石
+constexpr qint64 ITEM_FLAG_FIX_MIX = (1LL << 5);	//修理
 #ifdef _ITEM_INTENSIFY
-constexpr qint64 ITEM_FLAG_INTENSIFY_MIX = (1 << 6);	//強化
+constexpr qint64 ITEM_FLAG_INTENSIFY_MIX = (1LL << 6);	//強化
 #endif
 #ifdef _ITEM_UPINSLAY
-constexpr qint64 ITEM_FLAG_UPINSLAY_MIX = (1 << 7);	//鑿孔
+constexpr qint64 ITEM_FLAG_UPINSLAY_MIX = (1LL << 7);	//鑿孔
 #endif
 
-constexpr qint64 JOY_RIGHT = (1 << 15);/* Right Key				*/
-constexpr qint64 JOY_LEFT = (1 << 14);/*  Left Key				*/
-constexpr qint64 JOY_DOWN = (1 << 13);/*  Down Key				*/
-constexpr qint64 JOY_UP = (1 << 12);	/*    Up Key				*/
-constexpr qint64 JOY_START = (1 << 11);	/* Start					*/
-constexpr qint64 JOY_A = (1 << 10);	/* A Trigger				*/
-constexpr qint64 JOY_C = (1 << 9);/* C Trigger				*/
-constexpr qint64 JOY_B = (1 << 8);	/* B Trigger				*/
-constexpr qint64 JOY_R = (1 << 7);	/* R Trigger				*/
-constexpr qint64 JOY_X = (1 << 6);	/* X Trigger				*/
-constexpr qint64 JOY_DEL = (1 << 5);	/* DELETE					*/
-constexpr qint64 JOY_INS = (1 << 4);	/* INSERT					*/
-constexpr qint64 JOY_END = (1 << 3);/* END						*/
-constexpr qint64 JOY_HOME = (1 << 2);	/* HOME						*/
-constexpr qint64 JOY_P_DOWN = (1 << 1);	/* PAGE_UP					*/
-constexpr qint64 JOY_P_UP = (1 << 0);	/* PAGE_DOWN				*/
+constexpr qint64 JOY_RIGHT = (1LL << 15);/* Right Key				*/
+constexpr qint64 JOY_LEFT = (1LL << 14);/*  Left Key				*/
+constexpr qint64 JOY_DOWN = (1LL << 13);/*  Down Key				*/
+constexpr qint64 JOY_UP = (1LL << 12);	/*    Up Key				*/
+constexpr qint64 JOY_START = (1LL << 11);	/* Start					*/
+constexpr qint64 JOY_A = (1LL << 10);	/* A Trigger				*/
+constexpr qint64 JOY_C = (1LL << 9);/* C Trigger				*/
+constexpr qint64 JOY_B = (1LL << 8);	/* B Trigger				*/
+constexpr qint64 JOY_R = (1LL << 7);	/* R Trigger				*/
+constexpr qint64 JOY_X = (1LL << 6);	/* X Trigger				*/
+constexpr qint64 JOY_DEL = (1LL << 5);	/* DELETE					*/
+constexpr qint64 JOY_INS = (1LL << 4);	/* INSERT					*/
+constexpr qint64 JOY_END = (1LL << 3);/* END						*/
+constexpr qint64 JOY_HOME = (1LL << 2);	/* HOME						*/
+constexpr qint64 JOY_P_DOWN = (1LL << 1);	/* PAGE_UP					*/
+constexpr qint64 JOY_P_UP = (1LL << 0);	/* PAGE_DOWN				*/
 
-constexpr qint64 JOY_ESC = (1 << 31);/* ESC Key					*/
-constexpr qint64 JOY_CTRL_M = (1 << 30);	/* Ctrl + M					*/
-constexpr qint64 JOY_CTRL_S = (1 << 29);	/* Ctrl + S					*/
-constexpr qint64 JOY_CTRL_P = (1 << 28);	/* Ctrl + P					*/
-constexpr qint64 JOY_CTRL_I = (1 << 27);	/* Ctrl + I					*/
-constexpr qint64 JOY_CTRL_E = (1 << 26);	/* Ctrl + E					*/
-constexpr qint64 JOY_CTRL_A = (1 << 25);	/* Ctrl + A					*/
+constexpr qint64 JOY_ESC = (1LL << 31);/* ESC Key					*/
+constexpr qint64 JOY_CTRL_M = (1LL << 30);	/* Ctrl + M					*/
+constexpr qint64 JOY_CTRL_S = (1LL << 29);	/* Ctrl + S					*/
+constexpr qint64 JOY_CTRL_P = (1LL << 28);	/* Ctrl + P					*/
+constexpr qint64 JOY_CTRL_I = (1LL << 27);	/* Ctrl + I					*/
+constexpr qint64 JOY_CTRL_E = (1LL << 26);	/* Ctrl + E					*/
+constexpr qint64 JOY_CTRL_A = (1LL << 25);	/* Ctrl + A					*/
 
-constexpr qint64 JOY_CTRL_C = (1 << 24);	/* Ctrl + C					*/
-constexpr qint64 JOY_CTRL_V = (1 << 23);	/* Ctrl + V					*/
-constexpr qint64 JOY_CTRL_T = (1 << 22);	/* Ctrl + T					*/
+constexpr qint64 JOY_CTRL_C = (1LL << 24);	/* Ctrl + C					*/
+constexpr qint64 JOY_CTRL_V = (1LL << 23);	/* Ctrl + V					*/
+constexpr qint64 JOY_CTRL_T = (1LL << 22);	/* Ctrl + T					*/
 
 constexpr qint64 MAIL_STR_LEN = 140;
 constexpr qint64 MAIL_DATE_STR_LEN = 20;
@@ -205,7 +205,7 @@ constexpr qint64 MAX_CHAT_REGISTY_STR = 8;
 
 constexpr qint64 MAX_ENEMY = 20;
 constexpr qint64 MAX_CHAT_HISTORY = 20;
-constexpr qint64 MAX_DIALOG_LINE = 100;
+constexpr qint64 MAX_DIALOG_LINE = 200;
 
 constexpr qint64 MAX_DIR = 8;
 
@@ -515,31 +515,33 @@ enum FUNCTIONTYPE
 
 enum GameDataOffest
 {
-	kOffestPersonalKey = 0x4AC0898,
-	kOffestAccount = 0x414F278,
-	kOffestAccountECB = 0x415703C,
-	kOffestPassword = 0x415AA58,
-	kOffestPasswordECB = 0x4156280,
-	kOffestServerIndex = 0x415EF28,
-	kOffestSubServerIndex = 0xC4288,
-	kOffestPositionIndex = 0x4ABE270,
-	kOffestMousePointedIndex = 0x41F1B90,
-	kOffestWorldStatus = 0x4230DD8,
-	kOffestGameStatus = 0x4230DF0,
-	kOffestBattleStatus = 0x41829AC,
-	kOffestPlayerStatus = 0x422BF2C,
-	kOffestNowX = 0x4181D3C,
-	kOffestNowY = 0x4181D40,
-	kOffestDir = 0x422BE94,
-	kOffestNowFloor = 0x4181190,
-	kOffestNowFloorName = 0x4160228,
-	kOffestMailPetIndex = 0x422BF3E,
-	kOffestRidePetIndex = 0x422E3D8,
-	kOffestSelectPetArray = 0x422BF34,
-	kOffestTeamState = 0x4230B24,
-	kOffestEV = 0x41602BC,
-	kOffestChatBuffer = 0x144D88,
-	kOffestChatBufferMaxCount = 0x14A4F8,
+	kOffsetPersonalKey = 0x4AC0898,
+	kOffsetAccount = 0x414F278,
+	kOffsetAccountECB = 0x415703C,
+	kOffsetPassword = 0x415AA58,
+	kOffsetPasswordECB = 0x4156280,
+	kOffsetServerIndex = 0x415EF28,
+	kOffsetSubServerIndex = 0xC4288,
+	kOffsetPositionIndex = 0x4ABE270,
+	kOffsetMousePointedIndex = 0x41F1B90,
+	kOffsetWorldStatus = 0x4230DD8,
+	kOffsetGameStatus = 0x4230DF0,
+	kOffsetBattleStatus = 0x41829AC,
+	kOffsetCharStatus = 0x422BF2C,
+	kOffsetNowX = 0x4181D3C,
+	kOffsetNowY = 0x4181D40,
+	kOffsetDir = 0x422BE94,
+	kOffsetNowFloor = 0x4181190,
+	kOffsetNowFloorName = 0x4160228,
+	kOffsetStandbyPetCount = 0xE1074,
+	kOffsetBattlePetIndex = 0x422BF32,
+	kOffsetSelectPetArray = 0x422BF34,
+	kOffsetMailPetIndex = 0x422BF3E,
+	kOffsetRidePetIndex = 0x422E3D8,
+	kOffsetTeamState = 0x4230B24,
+	kOffsetEV = 0x41602BC,
+	kOffsetChatBuffer = 0x144D88,
+	kOffsetChatBufferMaxCount = 0x14A4F8,
 };
 
 #ifdef _ITEM_EQUITSPACE
@@ -609,42 +611,42 @@ constexpr qint64 MAX_ITEM = 20;
 
 enum
 {
-	PC_ETCFLAG_GROUP = (1 << 0),	//組隊開關
-	PC_ETCFLAG_UNK = (1 << 1),	//未知開關
-	PC_ETCFLAG_PK = (1 << 2),	//決鬥開關
-	PC_ETCFLAG_PARTY_CHAT = (1 << 3),//隊伍聊天開關
-	PC_ETCFLAG_CARD = (1 << 4),	//名片開關
-	PC_ETCFLAG_TRADE = (1 << 5),	//交易開關
-	PC_ETCFLAG_WORLD = (1 << 6),	//世界頻道開關
-	PC_ETCFLAG_FM = (1 << 7),	//家族頻道開關
-	PC_ETCFLAG_JOB = (1 << 8),	//職業頻道開關
+	PC_ETCFLAG_GROUP = (1LL << 0),	//組隊開關
+	PC_ETCFLAG_UNK = (1LL << 1),	//未知開關
+	PC_ETCFLAG_PK = (1LL << 2),	//決鬥開關
+	PC_ETCFLAG_PARTY_CHAT = (1LL << 3),//隊伍聊天開關
+	PC_ETCFLAG_CARD = (1LL << 4),	//名片開關
+	PC_ETCFLAG_TRADE = (1LL << 5),	//交易開關
+	PC_ETCFLAG_WORLD = (1LL << 6),	//世界頻道開關
+	PC_ETCFLAG_FM = (1LL << 7),	//家族頻道開關
+	PC_ETCFLAG_JOB = (1LL << 8),	//職業頻道開關
 };
 
 //enum
 //{
-//	PC_ETCFLAG_PARTY = (1 << 0),
-//	PC_ETCFLAG_DUEL = (1 << 1),
-//	PC_ETCFLAG_CHAT_MODE = (1 << 2),//隊伍頻道開關
-//	PC_ETCFLAG_MAIL = (1 << 3),//名片頻道
-//	PC_ETCFLAG_TRADE = (1 << 4)
+//	PC_ETCFLAG_PARTY = (1LL << 0),
+//	PC_ETCFLAG_DUEL = (1LL << 1),
+//	PC_ETCFLAG_CHAT_MODE = (1LL << 2),//隊伍頻道開關
+//	PC_ETCFLAG_MAIL = (1LL << 3),//名片頻道
+//	PC_ETCFLAG_TRADE = (1LL << 4)
 //#ifdef _CHANNEL_MODIFY
-//	, PC_ETCFLAG_CHAT_TELL = (1 << 5)//密語頻道開關
-//	, PC_ETCFLAG_CHAT_FM = (1 << 6)//家族頻道開關
+//	, PC_ETCFLAG_CHAT_TELL = (1LL << 5)//密語頻道開關
+//	, PC_ETCFLAG_CHAT_FM = (1LL << 6)//家族頻道開關
 //#ifdef _CHAR_PROFESSION
-//	, PC_ETCFLAG_CHAT_OCC = (1 << 7)//職業頻道開關
+//	, PC_ETCFLAG_CHAT_OCC = (1LL << 7)//職業頻道開關
 //#endif
-//	, PC_ETCFLAG_CHAT_SAVE = (1 << 8)//對話儲存開關
+//	, PC_ETCFLAG_CHAT_SAVE = (1LL << 8)//對話儲存開關
 //#ifdef _CHATROOMPROTOCOL
-//	, PC_ETCFLAG_CHAT_CHAT = (1 << 9)//聊天室開關
+//	, PC_ETCFLAG_CHAT_CHAT = (1LL << 9)//聊天室開關
 //#endif
 //#endif
 //#ifdef _CHANNEL_WORLD
-//	, PC_ETCFLAG_CHAT_WORLD = (1 << 10)//世界頻道開關
+//	, PC_ETCFLAG_CHAT_WORLD = (1LL << 10)//世界頻道開關
 //#endif
 //#ifdef _CHANNEL_ALL_SERV
-//	, PC_ETCFLAG_ALL_SERV = (1 << 11)//星球頻道開關
+//	, PC_ETCFLAG_ALL_SERV = (1LL << 11)//星球頻道開關
 //#endif
-//	, PC_AI_MOD = (1 << 12)
+//	, PC_AI_MOD = (1LL << 12)
 //};
 
 enum
@@ -889,18 +891,19 @@ enum PetState
 	kStandby,
 	kMail,
 	kRest,
-	kRide
+	kRide,
+	kDouble,
 };
 
 enum BUTTON_TYPE
 {
 	BUTTON_NOTUSED = 0,
-	BUTTON_OK = 1 << 0,	   //確定
-	BUTTON_CANCEL = 1 << 1, //取消
-	BUTTON_YES = 1 << 2,	   //
-	BUTTON_NO = 1 << 3,
-	BUTTON_PREVIOUS = 1 << 4,  //上一頁
-	BUTTON_NEXT = 1 << 5,
+	BUTTON_OK = 1LL << 0,	   //確定
+	BUTTON_CANCEL = 1LL << 1, //取消
+	BUTTON_YES = 1LL << 2,	   //
+	BUTTON_NO = 1LL << 3,
+	BUTTON_PREVIOUS = 1LL << 4,  //上一頁
+	BUTTON_NEXT = 1LL << 5,
 	BUTTON_BUY,
 	BUTTON_SELL,
 	BUTTON_OUT,
@@ -1179,7 +1182,15 @@ typedef struct tagITEM
 
 typedef struct tagPC
 {
-	bool selectPetNo[MAX_PET] = { false, false, false, false, false };
+	bool petFight[MAX_PET] = { 0, 0, 0, 0, 0 };;
+	bool petWait[MAX_PET] = { 0, 0, 0, 0, 0 };
+	bool petRide[MAX_PET] = { 0, 0, 0, 0, 0 };
+	qint64 selectPetNo[MAX_PET] = { 0, 0, 0, 0, 0 };
+	qint64 battlePetNo = -1;
+	qint64 mailPetNo = -1;
+	qint64 standbyPet = -1;
+	qint64 ridePetNo = -1;
+
 	qint64 modelid = 0;
 	qint64 faceid = 0;
 	qint64 id = 0;
@@ -1200,9 +1211,6 @@ typedef struct tagPC
 	qint64 nameColor = 0;
 	qint64 status = 0;
 	qint64 etcFlag = 0;
-	qint64 battlePetNo = -1;
-	qint64 mailPetNo = -1;
-	qint64 standbyPet = -1;
 	qint64 battleNo = 0;
 	qint64 sideNo = 0i16;
 	qint64 helpMode = 0i16;
@@ -1214,7 +1222,6 @@ typedef struct tagPC
 	qint64 channel = 0;
 	qint64 quickChannel = 0;
 	qint64 personal_bankgold = 0;
-	qint64 ridePetNo = -1;//寵物形像
 	qint64 learnride = 0;//學習騎乘
 	qint64 lowsride = 0u;
 	qint64 ridePetLevel = 0;

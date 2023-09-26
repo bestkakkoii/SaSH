@@ -281,8 +281,9 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 
 	constexpr qint64 MAX_TIMEOUT = 30000;
 	bool bret = 0;
-	QElapsedTimer timer;
+	QElapsedTimer timer; timer.start();
 	QString dllPath = "\0";
+	pi.hWnd = nullptr;
 
 	do
 	{
@@ -298,10 +299,7 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 
 		qDebug() << "file OK";
 
-		pi.hWnd = nullptr;
-
-		timer.start();
-
+		timer.restart();
 		if (nullptr == pi.hWnd)
 		{
 			//查找窗口句炳
@@ -318,7 +316,7 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 
 				if (timer.hasExpired(MAX_TIMEOUT))
 				{
-					emit signalDispatcher.messageBoxShow(tr("EnumWindows timeout"));
+					emit signalDispatcher.messageBoxShow(tr("EnumWindows timeout"), QMessageBox::Icon::Critical);
 					break;
 				}
 
@@ -328,8 +326,9 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 
 		if (nullptr == pi.hWnd)
 		{
+			emit signalDispatcher.messageBoxShow(QObject::tr("EnumWindows failed"), QMessageBox::Icon::Critical);
 			*pReason = util::REASON_ENUM_WINDOWS_FAIL;
-			continue;
+			break;
 		}
 
 		qDebug() << "HWND OK";
@@ -337,30 +336,32 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 		//紀錄線程ID(目前沒有使用到只是先記錄著)
 		pi.dwThreadId = ::GetWindowThreadProcessId(pi.hWnd, nullptr);
 
-
 		//嘗試打開進程句柄並檢查是否成功
 		if (!isHandleValid(pi.dwProcessId))
 		{
+			emit signalDispatcher.messageBoxShow(QObject::tr("OpenProcess failed"), QMessageBox::Icon::Critical);
 			*pReason = util::REASON_OPEN_PROCESS_FAIL;
-			emit signalDispatcher.messageBoxShow(tr("OpenProcess fail"));
-			continue;
+			break;
 		}
 
 		if (!processHandle_.isValid())
 			processHandle_.reset(pi.dwProcessId);
 
+		//兼容32 注入 32 或 64 注入 32
 		mem::inject64(currentIndex, processHandle_, dllPath, &hookdllModule_, &hGameModule_);
 
 		if (hookdllModule_ == 0)
 		{
+			emit signalDispatcher.messageBoxShow(QObject::tr("Injected dll module is null"), QMessageBox::Icon::Critical);
 			*pReason = util::REASON_INJECT_LIBRARY_FAIL;
-			continue;
+			break;
 		}
 
 		if (NULL == hGameModule_)
 		{
+			emit signalDispatcher.messageBoxShow(QObject::tr("Game module is null"), QMessageBox::Icon::Critical);
 			*pReason = util::REASON_INJECT_LIBRARY_FAIL;
-			continue;
+			break;
 		}
 
 		pi_ = pi;
@@ -374,18 +375,25 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 			__int64 type = 0i64;
 		}injectdate;
 
+		enum
+		{
+			kIPv4,
+			kIPv6,
+		};
+
 		QOperatingSystemVersion version = QOperatingSystemVersion::current();
 		injectdate.index = currentIndex;
 		injectdate.parentHWnd = reinterpret_cast<__int64>(getParentWidget());
 		injectdate.port = port;
 		if (version > QOperatingSystemVersion::Windows7)
-			injectdate.type = 1;
+			injectdate.type = kIPv6;
 		else
-			injectdate.type = 0;
+			injectdate.type = kIPv4;
 
 		const util::VirtualMemory lpStruct(processHandle_, sizeof(InitialData), true);
 		if (!lpStruct.isValid())
 		{
+			emit signalDispatcher.messageBoxShow(QObject::tr("Remote virtualmemory alloc failed"), QMessageBox::Icon::Critical);
 			*pReason = util::REASON_INJECT_LIBRARY_FAIL;
 			break;
 		}
@@ -394,9 +402,6 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 		sendMessage(kInitialize, lpStruct, NULL);
 
 		//去除改變窗口大小的屬性
-		//::SetWindowLongW(pi.hWnd, GWL_STYLE, WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX | WS_VISIBLE);
-		//::SetWindowLongW(pi.hWnd, GWL_EXSTYLE, WS_EX_OVERLAPPEDWINDOW);
-			//去除改變窗口大小的屬性
 		LONG dwStyle = ::GetWindowLongW(pi.hWnd, GWL_STYLE);
 		LONG tempStyle = dwStyle;
 

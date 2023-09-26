@@ -36,21 +36,23 @@ const char* Highlighter::keywords(int set) const
 	case 1://粉色
 	{
 		return
-			"call pause exit label jmp return back continue "
+			"call pause exit label jmp back continue "
 			"checkdaily "
 			"waitdlg waitsay waititem waitmap waitteam waitpet "
 
 			/*lua original*/
-			"function end goto break for while if repeat until do in then else elseif ";
+			"function end goto break for while if repeat until do in then else elseif return "
+			;
 	}
 	case 2://QsciLexerLua::BasicFunctions//黃色
 	{
-		return "ocr dlg rnd "
+		return
+			"ocr dlg rnd "
 			"print sleep timer msg logout logback eo button say input menu "
 			"talk cls set saveset loadset "
-			"chpet chplayername chpetname chmap "
-			"usemagic doffpet buy sell useitem doffitem swapitem pickup put "
-			"get putpet getpet make cook uequip requip "
+			"chpet chname chpetname chmap "
+			"usemagic doffpet buy sell useitem doffitem swapitem pickup putitem "
+			"getitem putpet getpet make cook uequip requip "
 			"wequip pequip puequip skup join leave kick move "
 			"walkpos w dir findpath movetonpc lclick rclick ldbclick dragto warp "
 			"learn trade run dostring sellpet mail reg "
@@ -58,10 +60,12 @@ const char* Highlighter::keywords(int set) const
 			"bh bj bp bs be bd bi bn bw bwf bwait bend "
 			"dofile createch delch doffstone send format "
 			"tsort trsort split mktable trotate tunique tshuffle tsleft tsright tmerge tjoin "
-			"tswap tadd tpadd tpopback tpopfront tfront tback mkpath "
+			"tswap tadd tpadd tpopback tpopfront tfront tback mkpath contains "
 
 			/* . */
-			"item.count timer.get timer.gets timer.new timer.del timer.getstr "
+			"item.count item.indexof item.find "
+			"unit.find dialog.contains petskill.find skill.find magic.find "
+			"timer.get timer.gets timer.new timer.del timer.getstr "
 			"map.isxy map.isrect map.ismap chat.contains "
 
 			/*lua original*/
@@ -83,12 +87,15 @@ const char* Highlighter::keywords(int set) const
 			"string.match string.pack string.packsize string.rep string.reverse string.sub string.unpack string.upper "
 			"table.concat table.insert table.move table.pack table.remove table.sort table.unpack "
 			"tonumber tostring type "
-			"utf8.char utf8.codepoint utf8.codes utf8.len utf8.offset warn xpcall ";
+			"utf8.char utf8.codepoint utf8.codes utf8.len utf8.offset warn xpcall "
+			;
 	}
 	case 3://QsciLexerLua::StringTableMathsFunction//草綠
 	{
-		return "string table "
-			"TARGET ";
+		return
+			"string table "
+			"TARGET "
+			;
 	}
 	case 4://QsciLexerLua::CoroutinesIOSystemFacilities//青綠
 	{
@@ -97,22 +104,27 @@ const char* Highlighter::keywords(int set) const
 			"TARGET.ENEMY_ALL TARGET.ENEMY_FRONT TARGET.ENEMY_BACK TARGET.LEADER TARGET.LEADER_PET "
 			"TARGET.TEAM TARGET.TEAM1_PET TARGET.TEAM2 TARGET.TEAM2_PET TARGET.TEAM3 "
 			"TARGET.TEAM3_PET TARGET.TEAM4 TARGET.TEAM4_PET "
-			"";
+			;
 	}
 	case 5://KeywordSet5//深藍色
 	{
 		return "local true false any "
-			"int double bool not and or nil ";
+			"int double bool not and or nil "
+			;
 	}
 	case 6://KeywordSet6//淺藍色
 	{
-		return "pet magic skill petskill equip petequip map dialog chat point battle char "
+		return
+			"pet magic skill petskill equip petequip map dialog chat point battle char "
 			/*lua original*/
-			"math os file debug coroutine utf8 package io ";
+			"math os file debug coroutine utf8 package io "
+			;
 	}
 	case 7://KeywordSet7//土橘色
 	{
-		return "ifdef els elif endif ifndef define undef pragma err lua endlua ";
+		return
+			"ifdef els elif endif ifndef define undef pragma err lua endlua "
+			;
 	}
 	case 8://KeywordSet8//紫色
 	{
@@ -120,7 +132,7 @@ const char* Highlighter::keywords(int set) const
 			"_LINE_ _FILE_ _FUNCTION_ _ROWCOUNT_ "
 			"PID HWND GAMEPID GAMEHWND GAMEHANDLE THREADID GAME WORLD INDEX "
 			"INFINITE MAXPET MAXITEM MAXCHAR MAXSKILL MAXPETSKILL MAXEQUIP MAXCHAT MAXDLG MAXENEMY MAXCARD MAXDIR MAXMAGIC "
-			"isonline isbattle isnormal item.space item.isfull pet.count team.count "
+			"isonline isbattle isnormal isdialog item.space item.isfull pet.count team.count "
 			"map.name map.floor map.ground map.x map.y unit.count dialog.buttontext dialog.id dialog.unitid dialog.type dialog.button "
 			"battle.field battle.round "
 			"char.name char.fname char.modelid char.faceid char.lv char.hp char.maxhp char.hpp char.mp char.maxmp char.mpp char.exp "

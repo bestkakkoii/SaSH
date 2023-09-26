@@ -132,7 +132,7 @@ bool Downloader::checkUpdate(QString* current, QString* ptext)
 		bool skipModifyTimeCheck = false;
 		if (response.header.count("ETag"))
 		{
-			QString newEtag = QString::fromUtf8(response.header["ETag"].c_str());
+			QString newEtag = util::toQString(response.header["ETag"]);
 			newEtag.replace("\"", "");
 			if ((!newEtag.isEmpty() && !g_etag.isEmpty() && newEtag != g_etag) || g_etag.isEmpty())
 			{
@@ -149,7 +149,7 @@ bool Downloader::checkUpdate(QString* current, QString* ptext)
 
 		if (response.header.count("Last-Modified"))
 		{
-			QString lastModifiedStr = QString::fromUtf8(response.header["Last-Modified"].c_str());
+			QString lastModifiedStr = util::toQString(response.header["Last-Modified"]);
 			//Tue, 18 Apr 2023 01:01:06 GMT
 			qDebug() << "SaSH 7z file last modified time:" << lastModifiedStr;
 
@@ -745,13 +745,13 @@ void extractZip(const QString& savepath, const QString& filepath)
 		QString path = paths.join("/");
 		QDir subdir(savepath + "/" + path);
 		if (!subdir.exists())
-			dir.mkpath(QString::fromUtf8("%1").arg(savepath + "/" + path));
+			dir.mkpath(QString("%1").arg(savepath + "/" + path));
 
 		QFile file(savepath + "/" + zipreader.fileInfoList().at(i).filePath);
 		file.open(QIODevice::WriteOnly);
 
 		QByteArray dt = zipreader.fileInfoList().at(i).filePath.toUtf8();
-		QString strtemp = QString::fromUtf8(dt);
+		QString strtemp = util::toQString(dt);
 
 		QByteArray array = zipreader.fileData(strtemp);
 		file.write(array);

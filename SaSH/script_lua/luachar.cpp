@@ -30,9 +30,9 @@ qint64 CLuaChar::rename(std::string sfname, sol::this_state s)
 
 	luadebug::checkBattleThenWait(s);
 
-	QString name = QString::fromUtf8(sfname.c_str());
+	QString name = util::toQString(sfname);
 
-	injector.server->setPlayerFreeName(name);
+	injector.server->setCharFreeName(name);
 
 	return TRUE;
 }
@@ -102,11 +102,11 @@ qint64 CLuaChar::mail(qint64 cardIndex, std::string stext, qint64 petIndex, std:
 
 	luadebug::checkBattleThenWait(s);
 
-	QString text = QString::fromUtf8(stext.c_str());
+	QString text = util::toQString(stext);
 
-	QString itemName = QString::fromUtf8(sitemName.c_str());
+	QString itemName = util::toQString(sitemName);
 
-	QString itemMemo = QString::fromUtf8(sitemMemo.c_str());
+	QString itemMemo = util::toQString(sitemMemo);
 
 	injector.server->mail(--cardIndex, text, petIndex, itemName, itemMemo);
 
@@ -122,7 +122,7 @@ qint64 CLuaChar::mail(qint64 cardIndex, std::string stext, sol::this_state s)
 
 	luadebug::checkBattleThenWait(s);
 
-	QString text = QString::fromUtf8(stext.c_str());
+	QString text = util::toQString(stext);
 
 	injector.server->mail(--cardIndex, text, -1, "", "");
 

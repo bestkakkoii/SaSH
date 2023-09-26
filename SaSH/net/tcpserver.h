@@ -337,14 +337,13 @@ public://actions
 	void setPetState(qint64 petIndex, PetState state);
 	void setFightPet(qint64 petIndex);
 	void setRidePet(qint64 petIndex);
-	void setStandbyPet(qint64 standbypets);
-	void setPetState(qint64 petIndex, qint64 state);
+	void setPetStateSub(qint64 petIndex, qint64 state);
+	void setPetStandby(qint64 petIndex, qint64 state);
 
 	void updateItemByMemory();
 	void updateDatasFromMemory();
 
 	void doBattleWork(bool async);
-	void syncBattleAction();
 	void asyncBattleAction();
 
 	void downloadMap(qint64 floor = -1);
@@ -368,23 +367,24 @@ public://actions
 	void setTeamState(bool join);
 	void kickteam(qint64 n);
 
-	void setPlayerFaceToPoint(const QPoint& pos);
-	void setPlayerFaceDirection(qint64 dir);
-	void setPlayerFaceDirection(const QString& dirStr);
+	void setCharFaceToPoint(const QPoint& pos);
+	void setCharFaceDirection(qint64 dir);
+	void setCharFaceDirection(const QString& dirStr);
 
 	qint64 getPartySize() const;
 	QStringList getJoinableUnitList() const;
 	bool getItemIndexsByName(const QString& name, const QString& memo, QVector<qint64>* pv, qint64 from = 0, qint64 to = MAX_ITEM);
-	qint64 getItemIndexByName(const QString& name, bool isExact = true, const QString& memo = "", qint64 from = 0, qint64 to = MAX_ITEM) const;
+	qint64 getItemIndexByName(const QString& name, bool isExact = true, const QString& memo = "", qint64 from = 0, qint64 to = MAX_ITEM);
 	qint64 getPetSkillIndexByName(qint64& petIndex, const QString& name) const;
+	qint64 getSkillIndexByName(const QString& name) const;
 	bool getPetIndexsByName(const QString& name, QVector<qint64>* pv) const;
 	qint64 getMagicIndexByName(const QString& name, bool isExact = true) const;
-	qint64 getItemEmptySpotIndex() const;
-	bool getItemEmptySpotIndexs(QVector<qint64>* pv) const;
+	qint64 getItemEmptySpotIndex();
+	bool getItemEmptySpotIndexs(QVector<qint64>* pv);
 	void clear();
 
-	bool checkPlayerMp(qint64 cmpvalue, qint64* target = nullptr, bool useequal = false);
-	bool checkPlayerHp(qint64 cmpvalue, qint64* target = nullptr, bool useequal = false);
+	bool checkCharMp(qint64 cmpvalue, qint64* target = nullptr, bool useequal = false);
+	bool checkCharHp(qint64 cmpvalue, qint64* target = nullptr, bool useequal = false);
 	bool checkRideHp(qint64 cmpvalue, qint64* target = nullptr, bool useequal = false);
 	bool checkPetHp(qint64 cmpvalue, qint64* target = nullptr, bool useequal = false);
 	bool checkPartyHp(qint64 cmpvalue, qint64* target);
@@ -394,47 +394,42 @@ public://actions
 
 	bool isDialogVisible();
 
-	void setPlayerFreeName(const QString& name);
+	void setCharFreeName(const QString& name);
 	void setPetFreeName(qint64 petIndex, const QString& name);
 
-	Q_REQUIRED_RESULT inline bool getBattleFlag() const
-	{
-		QReadLocker lock(&battleStateLocker);
-		if (isInterruptionRequested())
-			return false;
-		return IS_BATTLE_FLAG.load(std::memory_order_acquire);
-	}
-	Q_REQUIRED_RESULT inline bool getOnlineFlag() const
-	{
-		QReadLocker lock(&onlineStateLocker);
-		if (isInterruptionRequested())
-			return false;
-		return IS_ONLINE_FLAG.load(std::memory_order_acquire);
-	}
+	Q_REQUIRED_RESULT inline bool getBattleFlag();
+	Q_REQUIRED_RESULT inline bool getOnlineFlag() const;
 
-	PC getPC() const { QMutexLocker lock(&pcMutex_); return pc_; }
-	void setPC(PC pc) { QMutexLocker lock(&pcMutex_); pc_ = pc; }
+	PC getPC() const { QReadLocker lock(&pcMutex_); return pc_; }
+	void setPC(PC pc) { QWriteLocker lock(&pcMutex_); pc_ = pc; }
+
+
 
 	void sortItem(bool deepSort = false);
 
-	QPoint getPoint() const;
+	QPoint getPoint();
 	void setPoint(const QPoint& pos);
 
+	qint64 getFloor();
+	void setFloor(qint64 floor);
+
+	QString getFloorName();
+	void setFloorName(const QString& floorName);
+
 	//battle
-	void sendBattlePlayerAttackAct(qint64 target);
-	void sendBattlePlayerMagicAct(qint64 magicIndex, qint64 target);
-	void sendBattlePlayerJobSkillAct(qint64 skillIndex, qint64 target);
-	void sendBattlePlayerItemAct(qint64 itemIndex, qint64 target);
-	void sendBattlePlayerDefenseAct();
-	void sendBattlePlayerEscapeAct();
-	void sendBattlePlayerCatchPetAct(qint64 petIndex);
-	void sendBattlePlayerSwitchPetAct(qint64 petIndex);
-	void sendBattlePlayerDoNothing();
+	void sendBattleCharAttackAct(qint64 target);
+	void sendBattleCharMagicAct(qint64 magicIndex, qint64 target);
+	void sendBattleCharJobSkillAct(qint64 skillIndex, qint64 target);
+	void sendBattleCharItemAct(qint64 itemIndex, qint64 target);
+	void sendBattleCharDefenseAct();
+	void sendBattleCharEscapeAct();
+	void sendBattleCharCatchPetAct(qint64 petIndex);
+	void sendBattleCharSwitchPetAct(qint64 petIndex);
+	void sendBattleCharDoNothing();
 	void sendBattlePetSkillAct(qint64 skillIndex, qint64 target);
 	void sendBattlePetDoNothing();
 	void setBattleEnd();
 
-	void reloadHashVar(const QString& typeStr);
 	void updateBattleTimeInfo();
 
 	MAGIC getMagic(qint64 magicIndex) const { return magic[magicIndex]; }
@@ -462,6 +457,7 @@ public://actions
 	JOBDAILY getJobDaily(qint64 index) const { return jobdaily[index]; }
 
 	Q_REQUIRED_RESULT qint64 findInjuriedAllie();
+
 	void refreshItemInfo();
 
 	void updateComboBoxList();
@@ -486,7 +482,7 @@ private:
 		}
 	}
 
-	void getPlayerMaxCarryingCapacity();
+	void getCharMaxCarryingCapacity();
 	inline Q_REQUIRED_RESULT constexpr bool isItemStackable(qint64 flg) { return ((flg >> 2) & 1); }
 	QString getAreaString(qint64 target);
 	Q_REQUIRED_RESULT bool matchPetNameByIndex(qint64 index, const QString& name);
@@ -523,14 +519,13 @@ private:
 
 #pragma region BattleFunctions
 	qint64 playerDoBattleWork(const battledata_t& bt);
-	void handlePlayerBattleLogics(const battledata_t& bt);
+	void handleCharBattleLogics(const battledata_t& bt);
 	qint64 petDoBattleWork(const battledata_t& bt);
 	void handlePetBattleLogics(const battledata_t& bt);
 
-
-	bool isPlayerMpEnoughForMagic(qint64 magicIndex) const;
-	bool isPlayerMpEnoughForSkill(qint64 magicIndex) const;
-	bool isPlayerHpEnoughForSkill(qint64 magicIndex) const;
+	bool isCharMpEnoughForMagic(qint64 magicIndex) const;
+	bool isCharMpEnoughForSkill(qint64 magicIndex) const;
+	bool isCharHpEnoughForSkill(qint64 magicIndex) const;
 
 	void sortBattleUnit(QVector<battleobject_t>& v) const;
 
@@ -546,9 +541,9 @@ private:
 
 	Q_REQUIRED_RESULT qint64 getGetPetSkillIndexByName(qint64 etIndex, const QString& name) const;
 
-	bool fixPlayerTargetByMagicIndex(qint64 magicIndex, qint64 oldtarget, qint64* target) const;
-	bool fixPlayerTargetBySkillIndex(qint64 magicIndex, qint64 oldtarget, qint64* target) const;
-	bool fixPlayerTargetByItemIndex(qint64 itemIndex, qint64 oldtarget, qint64* target) const;
+	bool fixCharTargetByMagicIndex(qint64 magicIndex, qint64 oldtarget, qint64* target) const;
+	bool fixCharTargetBySkillIndex(qint64 magicIndex, qint64 oldtarget, qint64* target) const;
+	bool fixCharTargetByItemIndex(qint64 itemIndex, qint64 oldtarget, qint64* target) const;
 	bool fixPetTargetBySkillIndex(qint64 skillIndex, qint64 oldtarget, qint64* target) const;
 	void updateCurrentSideRange(battledata_t& bt);
 	inline bool checkFlagState(qint64 pos);
@@ -559,6 +554,9 @@ private:
 		battleData = data;
 	}
 
+
+	//自動鎖寵
+	void checkAutoLockPet();
 #pragma endregion
 
 #pragma region SAClientOriginal
@@ -576,8 +574,6 @@ private:
 
 	std::atomic_bool IS_BATTLE_FLAG = false;
 	std::atomic_bool IS_ONLINE_FLAG = false;
-
-	std::atomic_bool isEnemyAllReady = false;
 
 	QElapsedTimer eottlTimer;//伺服器響應時間(MS)
 	QElapsedTimer connectingTimer;
@@ -597,8 +593,9 @@ private:
 
 	bool IS_LOCKATTACK_ESCAPE_DISABLE = false;//鎖定攻擊不逃跑 (轉指定攻擊)
 
+	mutable QReadWriteLock petStateMutex_;
 	mutable QReadWriteLock pointMutex_;//用於保護人物座標更新順序
-	mutable QMutex pcMutex_;//用於保護人物數據更新順序
+	mutable QReadWriteLock pcMutex_;//用於保護人物數據更新順序
 	PC pc_ = {};
 
 	PET pet[MAX_PET] = {};
@@ -619,6 +616,10 @@ private:
 	QHash<QString, bool>itemStackFlagHash = {};
 
 	QVector<bool> battlePetDisableList_ = {};
+
+	util::SafeData<qint64> nowFloor_;
+	util::SafeData<QString> nowFloorName_;
+	util::SafeData<QPoint> nowPoint_;
 
 	//client original 目前很多都是沒用處的
 #pragma region ClientOriginal
@@ -695,7 +696,7 @@ public:
 	bool IS_WAITFOR_CUSTOM_DIALOG_FLAG = false;
 	qint64 IS_WAITOFR_ITEM_CHANGE_PACKET = false;
 
-	std::atomic_bool  isBattleDialogReady = false;
+	std::atomic_bool isBattleDialogReady = false;
 	std::atomic_bool isEOTTLSend = false;
 	std::atomic_llong lastEOTime = 0;
 
@@ -708,17 +709,6 @@ public:
 	std::atomic_llong battle_total_time = 0;
 	std::atomic_llong battle_total = 0;
 	std::atomic_llong battle_one_round_time = 0;
-
-	qint64 nowFloor = 0;
-	util::SafeData<QPoint> nowPoint;
-	QString nowFloorName = "";
-
-	QString protoBattleLogName = "";
-
-	//main datas shared with script thread
-	util::SafeHash<QString, QVariant> hashmap;
-	util::SafeHash<qint64, QHash<QString, QVariant>> hashbattle;
-	util::SafeData<QString> hashbattlefield;
 
 	QSharedPointer<MapAnalyzer> mapAnalyzer;
 
@@ -741,12 +731,12 @@ public:
 	util::SafeHash<qint64, QVariant> playerInfoColContents;
 	util::SafeHash<qint64, QVariant> itemInfoRowContents;
 	util::SafeHash<qint64, QVariant> equipInfoRowContents;
-	QStringList enemyNameListCache;
-	QVariant topInfoContents;
-	QVariant bottomInfoContents;
-	QString timeLabelContents;
-	QString labelPlayerAction;
-	QString labelPetAction;
+	util::SafeData<QStringList> enemyNameListCache;
+	util::SafeData<QVariant> topInfoContents;
+	util::SafeData<QVariant> bottomInfoContents;
+	util::SafeData<QString> timeLabelContents;
+	util::SafeData<QString> labelCharAction;
+	util::SafeData<QString> labelPetAction;
 
 private:
 	unsigned short port_ = 0;
@@ -810,7 +800,7 @@ private://lssproto_recv
 	virtual void lssproto_CharList_recv(char* result, char* data) override;
 	virtual void lssproto_CharLogout_recv(char* result, char* data) override;
 	virtual void lssproto_ProcGet_recv(char* data) override;
-	virtual void lssproto_PlayerNumGet_recv(int logincount, int player) override;
+	virtual void lssproto_CharNumGet_recv(int logincount, int player) override;
 	virtual void lssproto_Echo_recv(char* test) override;
 	virtual void lssproto_NU_recv(int AddCount) override;
 	virtual void lssproto_WO_recv(int effect) override;//取得轉生的特效

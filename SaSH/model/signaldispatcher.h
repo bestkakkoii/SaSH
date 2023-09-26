@@ -92,9 +92,9 @@ signals:
 	void appendChatLog(const QString& text, qint64 color = 0);
 
 	//infoform
-	void updatePlayerInfoColContents(qint64 col, const QVariant& data);
-	void updatePlayerInfoStone(qint64 stone);
-	void updatePlayerInfoPetState(qint64 petIndex, qint64 state);
+	void updateCharInfoColContents(qint64 col, const QVariant& data);
+	void updateCharInfoStone(qint64 stone);
+	void updateCharInfoPetState(qint64 petIndex, qint64 state);
 
 	void updateItemInfoRowContents(qint64 row, const QVariant& data);
 	void updateEquipInfoRowContents(qint64 row, const QVariant& data);
@@ -104,8 +104,9 @@ signals:
 	void updateTopInfoContents(const QVariant& data);
 	void updateBottomInfoContents(const QVariant& data);
 	void updateTimeLabelContents(const QString& text);
-	void updateLabelPlayerAction(const QString& text);
+	void updateLabelCharAction(const QString& text);
 	void updateLabelPetAction(const QString& text);
+	void notifyBattleActionState(qint64 index, bool left);
 
 	void setStartButtonEnabled(bool enable);
 
@@ -133,7 +134,7 @@ signals:
 	void scriptContentChanged(const QString& fileName, const QVariant& tokens);
 	void loadFileToTable(const QString& fileName);
 	void reloadScriptList();
-	void varInfoImported(void* p, const QVariantHash& d);
+	void varInfoImported(void* p, const QVariantHash& d, const QStringList& globalNames);
 
 	void scriptSpeedChanged(qint64 speed);
 

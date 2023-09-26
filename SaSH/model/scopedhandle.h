@@ -29,50 +29,6 @@
 
 class ScopedHandle
 {
-private:
-	void closeHandle();
-	void openProcess(DWORD dwProcess);
-	void createToolhelp32Snapshot(DWORD dwFlags, DWORD th32ProcessID);
-	void createThreadEx(HANDLE ProcessHandle, PVOID StartRoutine, PVOID Argument);
-	void duplicateHandle(HANDLE hSourceProcessHandle, HANDLE hSourceHandle, HANDLE hTargetProcessHandle, DWORD dwOptions);
-	void openProcessToken(HANDLE ProcessHandle, ACCESS_MASK DesiredAccess);
-	void createEvent();
-
-	HANDLE NtOpenProcess(DWORD dwProcess);
-	HANDLE ZwOpenProcess(DWORD dwProcess);
-
-	mutable QReadWriteLock m_lock;
-
-	bool enableAutoClose = true;
-
-	HANDLE m_handle = nullptr;
-
-	static std::atomic_long m_handleCount;
-
-	static std::atomic_flag m_atlock;
-
-	inline static void addHandleCount()
-	{
-		while (m_atlock.test_and_set(std::memory_order_acquire));
-		++m_handleCount;
-		m_atlock.clear(std::memory_order_release);
-	}
-
-	inline static void subHandleCount()
-	{
-		while (m_atlock.test_and_set(std::memory_order_acquire));
-		--m_handleCount;
-		m_atlock.clear(std::memory_order_release);
-	}
-
-	inline static LONG getHandleCount()
-	{
-		while (m_atlock.test_and_set(std::memory_order_acquire));
-		long val = m_handleCount.load();
-		m_atlock.clear(std::memory_order_release);
-		return val;
-	}
-
 public:
 	typedef enum
 	{
@@ -84,12 +40,12 @@ public:
 
 	ScopedHandle() = default;
 	explicit ScopedHandle(HANDLE_TYPE h);
-	explicit ScopedHandle(HANDLE_TYPE h, DWORD dwFlags, DWORD th32ProcessID);
-	explicit ScopedHandle(DWORD dwProcess, bool bAutoClose = true);
-	explicit ScopedHandle(int dwProcess, bool bAutoClose = true);
-	explicit ScopedHandle(HANDLE_TYPE h, HANDLE ProcessHandle, PVOID StartRoutine, PVOID Argument);
-	explicit ScopedHandle(HANDLE_TYPE h, HANDLE hSourceProcessHandle, HANDLE hSourceHandle, HANDLE hTargetProcessHandle, DWORD dwOptions);
-	explicit ScopedHandle(HANDLE handle) : m_handle(handle) {}
+	explicit ScopedHandle(HANDLE handle) : handle_(handle) {}
+	ScopedHandle(HANDLE_TYPE h, DWORD dwFlags, DWORD th32ProcessID);
+	ScopedHandle(DWORD dwProcess, bool bAutoClose = true);
+	ScopedHandle(int dwProcess, bool bAutoClose = true);
+	ScopedHandle(HANDLE_TYPE h, HANDLE ProcessHandle, PVOID StartRoutine, PVOID Argument);
+	ScopedHandle(HANDLE_TYPE h, HANDLE hSourceProcessHandle, HANDLE hSourceHandle, HANDLE hTargetProcessHandle, DWORD dwOptions);
 	virtual ~ScopedHandle();
 
 	void reset(DWORD dwProcessId);
@@ -98,45 +54,45 @@ public:
 
 	inline bool isValid() const
 	{
-		return ((this->m_handle) != INVALID_HANDLE_VALUE) && (this->m_handle);
+		return ((handle_) != INVALID_HANDLE_VALUE) && (handle_);
 	}
 
 	inline operator HANDLE() const
 	{
-		return m_handle;
+		return handle_;
 	}
 
 	//==
 	inline bool operator==(const ScopedHandle& other) const
 	{
-		return this->m_handle == other.m_handle;
+		return handle_ == other.handle_;
 	}
 
 	//== HANDLE
 	inline bool operator==(const HANDLE& other) const
 	{
-		return this->m_handle == other;
+		return handle_ == other;
 	}
 
 	//!= HANDLE
 	inline bool operator!=(const HANDLE& other) const
 	{
-		return this->m_handle != other;
+		return handle_ != other;
 	}
 
 	//!=
 	inline bool operator!=(const ScopedHandle& other) const
 	{
-		return this->m_handle != other.m_handle;
+		return handle_ != other.handle_;
 	}
 
 	// copy constructor
 	ScopedHandle(const ScopedHandle& other)
 	{
-		m_lock.lockForWrite();
-		this->m_handle = other.m_handle;
-		this->enableAutoClose = other.enableAutoClose;
-		m_lock.unlock();
+		lock_.lockForWrite();
+		handle_ = other.handle_;
+		this->enableAutoClose_ = other.enableAutoClose_;
+		lock_.unlock();
 	}
 
 	// copy assignment
@@ -144,10 +100,10 @@ public:
 	{
 		if (this != &other)
 		{
-			m_lock.lockForWrite();
-			this->m_handle = other.m_handle;
-			this->enableAutoClose = other.enableAutoClose;
-			m_lock.unlock();
+			lock_.lockForWrite();
+			handle_ = other.handle_;
+			this->enableAutoClose_ = other.enableAutoClose_;
+			lock_.unlock();
 		}
 		return *this;
 	}
@@ -155,21 +111,21 @@ public:
 	//copy assignment from HANDLE
 	ScopedHandle& operator=(const HANDLE& other)
 	{
-		m_lock.lockForWrite();
-		this->m_handle = other;
-		m_lock.unlock();
+		lock_.lockForWrite();
+		handle_ = other;
+		lock_.unlock();
 		return *this;
 	}
 
 	// move constructor
 	ScopedHandle(ScopedHandle&& other) noexcept
 	{
-		m_lock.lockForWrite();
-		this->m_handle = other.m_handle;
-		this->enableAutoClose = other.enableAutoClose;
-		other.m_handle = nullptr;
-		other.enableAutoClose = false;
-		m_lock.unlock();
+		lock_.lockForWrite();
+		handle_ = other.handle_;
+		this->enableAutoClose_ = other.enableAutoClose_;
+		other.handle_ = nullptr;
+		other.enableAutoClose_ = false;
+		lock_.unlock();
 	}
 
 	// move assignment
@@ -177,19 +133,66 @@ public:
 	{
 		if (this != &other)
 		{
-			m_lock.lockForWrite();
-			this->m_handle = other.m_handle;
-			this->enableAutoClose = other.enableAutoClose;
-			other.m_handle = nullptr;
-			other.enableAutoClose = false;
-			m_lock.unlock();
+			lock_.lockForWrite();
+			handle_ = other.handle_;
+			this->enableAutoClose_ = other.enableAutoClose_;
+			other.handle_ = nullptr;
+			other.enableAutoClose_ = false;
+			lock_.unlock();
 		}
 		return *this;
 	}
 
-	inline void setAutoClose(bool bAutoClose) { this->enableAutoClose = bAutoClose; }
+	inline void setAutoClose(bool bAutoClose) { this->enableAutoClose_ = bAutoClose; }
 
-	BOOL EnableDebugPrivilege(HANDLE hProcess, const wchar_t* SE = SE_DEBUG_NAME);
+public:
+	static BOOL 	enablePrivilege(HANDLE hProcess, const wchar_t* SE = SE_DEBUG_NAME);
+
+private:
+	void closeHandle();
+	void openProcess(DWORD dwProcess);
+	void createToolhelp32Snapshot(DWORD dwFlags, DWORD th32ProcessID);
+	void createThreadEx(HANDLE ProcessHandle, PVOID StartRoutine, PVOID Argument);
+	void duplicateHandle(HANDLE hSourceProcessHandle, HANDLE hSourceHandle, HANDLE hTargetProcessHandle, DWORD dwOptions);
+	static HANDLE openProcessToken(HANDLE ProcessHandle, ACCESS_MASK DesiredAccess);
+	void createEvent();
+
+	HANDLE NtOpenProcess(DWORD dwProcess);
+	HANDLE ZwOpenProcess(DWORD dwProcess);
+
+	inline static void addHandleCount()
+	{
+		while (atlock_.test_and_set(std::memory_order_acquire));
+		++handleCount_;
+		atlock_.clear(std::memory_order_release);
+	}
+
+	inline static void subHandleCount()
+	{
+		while (atlock_.test_and_set(std::memory_order_acquire));
+		--handleCount_;
+		atlock_.clear(std::memory_order_release);
+	}
+
+	inline static LONG getHandleCount()
+	{
+		while (atlock_.test_and_set(std::memory_order_acquire));
+		long val = handleCount_.load();
+		atlock_.clear(std::memory_order_release);
+		return val;
+	}
+
+private:
+	mutable QReadWriteLock lock_;
+
+	bool enableAutoClose_ = true;
+
+	HANDLE handle_ = nullptr;
+
+private:
+	static std::atomic_long handleCount_;
+
+	static std::atomic_flag atlock_;
 };
 
 #endif // QSCOPEDHANDLE_H

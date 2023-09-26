@@ -31,7 +31,7 @@ qint64 CLuaBattle::charUseAttack(qint64 objIndex, sol::this_state s)//atk
 	if (!injector.server->getBattleFlag())
 		return FALSE;
 
-	injector.server->sendBattlePlayerAttackAct(--objIndex);
+	injector.server->sendBattleCharAttackAct(--objIndex);
 
 	return TRUE;
 }
@@ -46,7 +46,7 @@ qint64 CLuaBattle::charUseMagic(qint64 magicIndex, qint64 objIndex, sol::this_st
 	if (!injector.server->getBattleFlag())
 		return FALSE;
 
-	injector.server->sendBattlePlayerMagicAct(--magicIndex, --objIndex);
+	injector.server->sendBattleCharMagicAct(--magicIndex, --objIndex);
 
 	return TRUE;
 }
@@ -61,7 +61,7 @@ qint64 CLuaBattle::charUseSkill(qint64 skillIndex, qint64 objIndex, sol::this_st
 	if (!injector.server->getBattleFlag())
 		return FALSE;
 
-	injector.server->sendBattlePlayerJobSkillAct(--skillIndex, --objIndex);
+	injector.server->sendBattleCharJobSkillAct(--skillIndex, --objIndex);
 
 	return TRUE;
 }
@@ -76,7 +76,7 @@ qint64 CLuaBattle::switchPet(qint64 petIndex, sol::this_state s)//switch
 	if (!injector.server->getBattleFlag())
 		return FALSE;
 
-	injector.server->sendBattlePlayerSwitchPetAct(--petIndex);
+	injector.server->sendBattleCharSwitchPetAct(--petIndex);
 
 	return TRUE;
 }
@@ -91,7 +91,7 @@ qint64 CLuaBattle::escape(sol::this_state s)//escape
 	if (!injector.server->getBattleFlag())
 		return FALSE;
 
-	injector.server->sendBattlePlayerEscapeAct();
+	injector.server->sendBattleCharEscapeAct();
 
 	return TRUE;
 }
@@ -106,7 +106,7 @@ qint64 CLuaBattle::defense(sol::this_state s)//defense
 	if (!injector.server->getBattleFlag())
 		return FALSE;
 
-	injector.server->sendBattlePlayerDefenseAct();
+	injector.server->sendBattleCharDefenseAct();
 
 	return TRUE;
 }
@@ -121,7 +121,7 @@ qint64 CLuaBattle::useItem(qint64 itemIndex, qint64 objIndex, sol::this_state s)
 	if (!injector.server->getBattleFlag())
 		return FALSE;
 
-	injector.server->sendBattlePlayerItemAct(--itemIndex, --objIndex);
+	injector.server->sendBattleCharItemAct(--itemIndex, --objIndex);
 
 	return TRUE;
 }
@@ -136,7 +136,7 @@ qint64 CLuaBattle::catchPet(qint64 objIndex, sol::this_state s)//catch
 	if (!injector.server->getBattleFlag())
 		return FALSE;
 
-	injector.server->sendBattlePlayerCatchPetAct(--objIndex);
+	injector.server->sendBattleCharCatchPetAct(--objIndex);
 
 	return TRUE;
 }
@@ -151,7 +151,7 @@ qint64 CLuaBattle::nothing(sol::this_state s)//nothing
 	if (!injector.server->getBattleFlag())
 		return FALSE;
 
-	injector.server->sendBattlePlayerDoNothing();
+	injector.server->sendBattleCharDoNothing();
 
 	return TRUE;
 }

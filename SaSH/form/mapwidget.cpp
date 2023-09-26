@@ -293,22 +293,22 @@ void MapWidget::onRefreshTimeOut()
 	if (!injector.server->getOnlineFlag()) return;
 
 	PC _ch = injector.server->getPC();
-	qint64 floor = injector.server->nowFloor;
+	qint64 floor = injector.server->getFloor();
 	const QPointF qp_current(injector.server->getPoint());
 
 	QString caption(tr("[%1] %2 map:%3 floor:%4 [%5,%6] mouse:%7,%8")
 		.arg(currentIndex)
 		.arg(_ch.name)
-		.arg(injector.server->nowFloorName)
+		.arg(injector.server->getFloorName())
 		.arg(floor)
 		.arg(qp_current.x()).arg(qp_current.y())
 		.arg(qFloor(curMousePos_.x())).arg(qFloor(curMousePos_.y())));
 
 	if (isDownloadingMap_)
-		caption += " " + tr("downloading(%1%2)").arg(QString::number(downloadMapProgress_, 'f', 2)).arg("%");
+		caption += " " + tr("downloading(%1%2)").arg(util::toQString(downloadMapProgress_)).arg("%");
 	setWindowTitle(caption);
 
-	bool map_ret = injector.server->mapAnalyzer->readFromBinary(floor, injector.server->nowFloorName, true);
+	bool map_ret = injector.server->mapAnalyzer->readFromBinary(floor, injector.server->getFloorName(), true);
 	if (!map_ret)
 		return;
 
@@ -740,8 +740,8 @@ void MapWidget::onDownloadMapTimeout()
 	}
 
 	injector.server->downloadMap(downloadMapX_, downloadMapY_);
-	qint64 floor = injector.server->nowFloor;
-	QString name = injector.server->nowFloorName;
+	qint64 floor = injector.server->getFloor();
+	QString name = injector.server->getFloorName();
 
 	downloadNextBlock();
 
@@ -752,15 +752,15 @@ void MapWidget::onDownloadMapTimeout()
 		QString caption(tr("[%1] %2 map:%3 floor:%4 [%5,%6] mouse:%7,%8")
 			.arg(currentIndex)
 			.arg(injector.server->getPC().name)
-			.arg(injector.server->nowFloorName)
-			.arg(injector.server->nowFloor)
+			.arg(injector.server->getFloorName())
+			.arg(injector.server->getFloor())
 			.arg(qp_current.x()).arg(qp_current.y())
 			.arg(qFloor(curMousePos_.x())).arg(qFloor(curMousePos_.y())));
-		caption += " " + tr("downloading(%1%2)").arg(QString::number(100.00, 'f', 2)).arg("%");
+		caption += " " + tr("downloading(%1%2)").arg(util::toQString(100.00)).arg("%");
 		setWindowTitle(caption);
 
 		injector.server->mapAnalyzer->clear(floor);
-		const QString fileName(util::applicationDirPath() + "/map/" + QString::number(floor) + ".dat");
+		const QString fileName(util::applicationDirPath() + "/map/" + util::toQString(floor) + ".dat");
 		QFile file(fileName);
 		if (file.exists())
 		{
@@ -789,7 +789,7 @@ void MapWidget::on_pushButton_download_clicked()
 	ui.pushButton_download->setEnabled(false);
 
 	map_t map = {};
-	injector.server->mapAnalyzer->getMapDataByFloor(injector.server->nowFloor, &map);
+	injector.server->mapAnalyzer->getMapDataByFloor(injector.server->getFloor(), &map);
 
 	downloadCount_ = 0;
 	downloadMapXSize_ = map.width;
@@ -979,7 +979,7 @@ void MapWidget::on_tableWidget_NPCList_cellDoubleClicked(int row, int)
 		return;
 	}
 
-	qint64 floor = injector.server->nowFloor;
+	qint64 floor = injector.server->getFloor();
 	QPoint point = injector.server->getPoint();
 	//npc前方一格
 	QPoint newPoint = util::fix_point.at(unit.dir) + unit.p;

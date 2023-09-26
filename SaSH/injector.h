@@ -70,7 +70,7 @@ public:
 
 		//
 		kEnableEffect,
-		kEnablePlayerShow,
+		kEnableCharShow,
 		kSetTimeLock,
 		kEnableSound,
 		kEnableImageLock,
@@ -320,7 +320,7 @@ private:
 		{ util::kBattleCatchTargetMaxHpValue, 10 },
 		{ util::kBattleCatchTargetMagicHpValue, 10 },
 		{ util::kBattleCatchTargetItemHpValue, 10 },
-		{ util::kBattleCatchPlayerMagicValue, 0 },
+		{ util::kBattleCatchCharMagicValue, 0 },
 		{ util::kBattleCatchPetSkillValue, 0 },
 
 		{ util::kBattleActionDelayValue, 0 },
@@ -400,8 +400,8 @@ private:
 		{ util::kSwitcherWorldEnable, false },
 
 		//afk->battle
-		{ util::kCrossActionCharEnable, false },
-		{ util::kCrossActionPetEnable, false },
+		{ util::kBattleCrossActionCharEnable, false },
+		{ util::kBattleCrossActionPetEnable, false },
 
 		//afk->heal
 		{ util::kBattleMagicHealEnable, false },
@@ -420,8 +420,8 @@ private:
 		//afk->catch
 		{ util::kBattleCatchTargetLevelEnable, false },
 		{ util::kBattleCatchTargetMaxHpEnable, false },
-		{ util::kBattleCatchPlayerMagicEnable, false },
-		{ util::kBattleCatchPlayerItemEnable, false },
+		{ util::kBattleCatchCharMagicEnable, false },
+		{ util::kBattleCatchCharItemEnable, false },
 		{ util::kBattleCatchPetSkillEnable, false },
 
 		{ util::kDropPetEnable, false },
@@ -456,7 +456,7 @@ private:
 
 		//afk->catch
 		{ util::kBattleCatchPetNameString, "" },
-		{ util::kBattleCatchPlayerItemString, "" },
+		{ util::kBattleCatchCharItemString, "" },
 		{ util::kDropPetNameString, "" },
 
 		{ util::kAutoFunNameString, "" },

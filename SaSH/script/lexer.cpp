@@ -60,7 +60,6 @@ static const QHash<QString, RESERVE> keywords = {
 	{ u8"輸入", TK_CMD },
 	{ u8"說出", TK_CMD },
 	{ u8"清屏", TK_CMD },
-	{ u8"設置", TK_CMD },
 	{ u8"讀取設置", TK_CMD },
 	{ u8"儲存設置", TK_CMD },
 	{ u8"計時", TK_CMD },
@@ -166,7 +165,6 @@ static const QHash<QString, RESERVE> keywords = {
 	{ u8"输入", TK_CMD },
 	{ u8"说出", TK_CMD },
 	{ u8"清屏", TK_CMD },
-	{ u8"设置", TK_CMD },
 	{ u8"读取设置", TK_CMD },
 	{ u8"储存设置", TK_CMD },
 	{ u8"计时", TK_CMD },
@@ -275,7 +273,6 @@ static const QHash<QString, RESERVE> keywords = {
 	{ u8"input", TK_CMD },
 	{ u8"talk", TK_CMD },
 	{ u8"cls", TK_CMD },
-	{ u8"set", TK_CMD },
 	{ u8"saveset", TK_CMD },
 	{ u8"loadset", TK_CMD },
 	{ u8"reg", TK_CMD },
@@ -294,9 +291,10 @@ static const QHash<QString, RESERVE> keywords = {
 	{ u8"waitsay", TK_CMD },
 	{ u8"waititem", TK_CMD },
 	{ u8"waitpet", TK_CMD },
+	{ u8"waitteam", TK_CMD },
 
 	//actions
-	{ u8"chplayername", TK_CMD },
+	{ u8"chname", TK_CMD },
 	{ u8"usemagic", TK_CMD },
 	{ u8"chpetname", TK_CMD },
 	{ u8"chpet", TK_CMD },
@@ -308,12 +306,12 @@ static const QHash<QString, RESERVE> keywords = {
 	{ u8"doffitem", TK_CMD },
 	{ u8"swapitem", TK_CMD },
 	{ u8"pickup", TK_CMD },
-	{ u8"put", TK_CMD },
-	{ u8"get", TK_CMD },
+	{ u8"putitem", TK_CMD },
+	{ u8"getitem", TK_CMD },
 	{ u8"putpet", TK_CMD },
 	{ u8"getpet", TK_CMD },
-	{ u8"save", TK_CMD },
-	{ u8"load", TK_CMD },
+	{ u8"putstone", TK_CMD },
+	{ u8"getstone", TK_CMD },
 	{ u8"make", TK_CMD },
 	{ u8"cook", TK_CMD },
 	{ u8"uequip", TK_CMD },
@@ -332,7 +330,6 @@ static const QHash<QString, RESERVE> keywords = {
 	{ u8"join", TK_CMD },
 	{ u8"leave", TK_CMD },
 	{ u8"kick", TK_CMD },
-	{ u8"waitteam", TK_CMD },
 
 	//move
 	{ u8"walkpos", TK_CMD },
@@ -351,20 +348,8 @@ static const QHash<QString, RESERVE> keywords = {
 	{ u8"dragto", TK_CMD },
 
 	//hide
-	{ u8"ocr", TK_CMD },
+	//{ u8"ocr", TK_CMD },
 	{ u8"dlg", TK_CMD },
-	{ u8"regex", TK_CMD },
-	{ u8"rex", TK_CMD },
-	{ u8"rexg", TK_CMD },
-	{ u8"find", TK_CMD },
-	{ u8"half", TK_CMD },
-	{ u8"full", TK_CMD },
-	{ u8"upper", TK_CMD },
-	{ u8"lower", TK_CMD },
-	{ u8"replace", TK_CMD },
-	{ u8"toint", TK_CMD },
-	{ u8"tostr", TK_CMD },
-	{ u8"todb", TK_CMD },
 
 	//battle
 	{ u8"bh", TK_CMD },//atk
@@ -1620,7 +1605,7 @@ Token Lexer::getNextToken(RESERVE previous, QStringList& refTokenStringList)
 
 	if (front == "nil")
 	{
-		return Token{ TK_NIL, QVariant(), front };
+		return Token{ TK_NIL, QVariant("nil"), front };
 	}
 
 	if (front == "\n")
@@ -1662,18 +1647,18 @@ QString Lexer::getLuaTableString(const sol::table& t, int& depth)
 			nKey = pair.first.as<qint64>() - 1;
 		}
 		else
-			key = QString::fromUtf8(pair.first.as<std::string>().c_str());
+			key = util::toQString(pair.first);
 
 		if (pair.second.is<sol::table>())
 			value = getLuaTableString(pair.second.as<sol::table>(), depth);
 		else if (pair.second.is<std::string>())
-			value = QString("'%1'").arg(QString::fromUtf8(pair.second.as<std::string>().c_str()));
+			value = QString("'%1'").arg(util::toQString(pair.second));
 		else if (pair.second.is<qint64>())
-			value = QString::number(pair.second.as<qint64>());
+			value = util::toQString(pair.second.as<qint64>());
 		else if (pair.second.is<double>())
-			value = QString::number(pair.second.as<double>(), 'f', 16);
+			value = util::toQString(pair.second.as<double>());
 		else if (pair.second.is<bool>())
-			value = pair.second.as<bool>() ? "true" : "false";
+			value = util::toQString(pair.second.as<bool>());
 		else
 			value = "nil";
 
@@ -1763,7 +1748,7 @@ bool Lexer::tokenized(Lexer* pLexer, const QString& script)
 	pLexer->checkFunctionPairs(pLexer->tokens_);
 
 	return true;
-}
+	}
 
 //解析單行內容至多個TOKEN
 void Lexer::tokenized(qint64 currentLine, const QString& line, TokenMap* ptoken, QHash<QString, qint64>* plabel)
@@ -1798,6 +1783,14 @@ void Lexer::tokenized(qint64 currentLine, const QString& line, TokenMap* ptoken,
 		//當前token移除註釋
 		else if (commentIndex > 0)
 			raw = raw.mid(0, commentIndex).trimmed();
+
+		if (raw.startsWith("set "))
+		{
+			//將set 改為set(
+			raw.replace("set ", "set(");
+			raw.append(")");
+			originalRaw = raw;
+		}
 
 		if (raw.startsWith("#lua") && !beginLuaCode_)
 		{
@@ -2061,6 +2054,7 @@ void Lexer::tokenized(qint64 currentLine, const QString& line, TokenMap* ptoken,
 				{
 					raw = QString("%1,%2").arg(token, raw);
 					token = "callwithname";
+					createToken(100, TK_STRING, originalRaw.trimmed(), originalRaw.trimmed(), ptoken);
 				}
 			}
 			else
@@ -2297,6 +2291,24 @@ void Lexer::recordNode()
 				functionNode.returnTypes.insert(row, returnTypes);
 				functionNodeStack.push(functionNode);
 			}
+			break;
+		}
+		case TK_WHILE:
+		{
+			reserveStack.push(TK_WHILE);
+			++currentIndentLevel;
+			break;
+		}
+		case TK_REPEAT:
+		{
+			reserveStack.push(TK_REPEAT);
+			++currentIndentLevel;
+			break;
+		}
+		case TK_UNTIL:
+		{
+			reserveStack.pop();
+			--currentIndentLevel;
 			break;
 		}
 		case TK_END:

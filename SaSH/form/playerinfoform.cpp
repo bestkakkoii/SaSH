@@ -23,7 +23,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "signaldispatcher.h"
 #include "injector.h"
 
-PlayerInfoForm::PlayerInfoForm(qint64 index, QWidget* parent)
+CharInfoForm::CharInfoForm(qint64 index, QWidget* parent)
 	: QWidget(parent)
 {
 	ui.setupUi(this);
@@ -53,7 +53,7 @@ PlayerInfoForm::PlayerInfoForm(qint64 index, QWidget* parent)
 
 	onResetControlTextLanguage();
 
-	connect(ui.tableWidget->horizontalHeader(), &QHeaderView::sectionClicked, this, &PlayerInfoForm::onHeaderClicked);
+	connect(ui.tableWidget->horizontalHeader(), &QHeaderView::sectionClicked, this, &CharInfoForm::onHeaderClicked);
 
 	Injector& injector = Injector::getInstance(index);
 	if (!injector.server.isNull())
@@ -61,30 +61,30 @@ PlayerInfoForm::PlayerInfoForm(qint64 index, QWidget* parent)
 		QHash<qint64, QVariant> playerInfoColContents = injector.server->playerInfoColContents.toHash();
 		for (auto it = playerInfoColContents.begin(); it != playerInfoColContents.end(); ++it)
 		{
-			onUpdatePlayerInfoColContents(it.key(), it.value());
+			onUpdateCharInfoColContents(it.key(), it.value());
 		}
 
 		qint64 stone = injector.server->getPC().gold;
-		onUpdatePlayerInfoStone(stone);
+		onUpdateCharInfoStone(stone);
 
 		for (qint64 i = 0; i < MAX_PET; ++i)
 		{
 			PET pet = injector.server->getPet(i);
-			onUpdatePlayerInfoPetState(i, pet.state);
+			onUpdateCharInfoPetState(i, pet.state);
 		}
 	}
 
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(index);
-	connect(&signalDispatcher, &SignalDispatcher::updatePlayerInfoColContents, this, &PlayerInfoForm::onUpdatePlayerInfoColContents);
-	connect(&signalDispatcher, &SignalDispatcher::updatePlayerInfoStone, this, &PlayerInfoForm::onUpdatePlayerInfoStone);
-	connect(&signalDispatcher, &SignalDispatcher::updatePlayerInfoPetState, this, &PlayerInfoForm::onUpdatePlayerInfoPetState);
+	connect(&signalDispatcher, &SignalDispatcher::updateCharInfoColContents, this, &CharInfoForm::onUpdateCharInfoColContents);
+	connect(&signalDispatcher, &SignalDispatcher::updateCharInfoStone, this, &CharInfoForm::onUpdateCharInfoStone);
+	connect(&signalDispatcher, &SignalDispatcher::updateCharInfoPetState, this, &CharInfoForm::onUpdateCharInfoPetState);
 }
 
-PlayerInfoForm::~PlayerInfoForm()
+CharInfoForm::~CharInfoForm()
 {
 }
 
-void PlayerInfoForm::onResetControlTextLanguage()
+void CharInfoForm::onResetControlTextLanguage()
 {
 	QStringList equipVHeaderList = {
 		tr("name"), tr("freename"), "",
@@ -117,7 +117,7 @@ void PlayerInfoForm::onResetControlTextLanguage()
 	}
 }
 
-void PlayerInfoForm::onUpdatePlayerInfoColContents(qint64 col, const QVariant& data)
+void CharInfoForm::onUpdateCharInfoColContents(qint64 col, const QVariant& data)
 {
 	// 檢查是否為 QVariantList
 	if (data.type() != QVariant::List)
@@ -170,12 +170,12 @@ void PlayerInfoForm::onUpdatePlayerInfoColContents(qint64 col, const QVariant& d
 }
 
 
-void PlayerInfoForm::onUpdatePlayerInfoStone(qint64 stone)
+void CharInfoForm::onUpdateCharInfoStone(qint64 stone)
 {
 	ui.label->setText(tr("stone:%1").arg(stone));
 }
 
-void PlayerInfoForm::onUpdatePlayerInfoPetState(qint64 petIndex, qint64 state)
+void CharInfoForm::onUpdateCharInfoPetState(qint64 petIndex, qint64 state)
 {
 	qint64 col = petIndex + 1;
 	if (col < 0 || col >= ui.tableWidget->columnCount())
@@ -208,7 +208,7 @@ void PlayerInfoForm::onUpdatePlayerInfoPetState(qint64 petIndex, qint64 state)
 	}
 }
 
-void PlayerInfoForm::onHeaderClicked(qint64 logicalIndex)
+void CharInfoForm::onHeaderClicked(qint64 logicalIndex)
 {
 	qDebug() << "onHeaderClicked:" << logicalIndex;
 	qint64 currentIndex = getIndex();
@@ -240,29 +240,37 @@ void PlayerInfoForm::onHeaderClicked(qint64 logicalIndex)
 		PET pet = injector.server->getPet(petIndex);
 		switch (pet.state)
 		{
-		case PetState::kBattle:
-			injector.server->setPetState(petIndex, PetState::kStandby);
-			break;
-		case PetState::kStandby:
-			injector.server->setPetState(petIndex, PetState::kMail);
-			break;
-		case PetState::kMail:
-			injector.server->setPetState(petIndex, PetState::kRest);
-			break;
 		case PetState::kRest:
 		{
-			if (injector.server->getPet(petIndex).loyal == 100)
-				injector.server->setPetState(petIndex, PetState::kRide);
-			else
-				injector.server->setPetState(petIndex, PetState::kBattle);
+
+			injector.server->setPetState(petIndex, PetState::kStandby);
 			break;
 		}
-		case PetState::kRide:
-			injector.server->setPetState(petIndex, PetState::kRest);
+		case PetState::kStandby:
+		{
 			injector.server->setPetState(petIndex, PetState::kBattle);
 			break;
 		}
-		break;
+		case PetState::kBattle:
+		{
+			injector.server->setPetState(petIndex, PetState::kMail);
+			break;
+		}
+		case PetState::kMail:
+		{
+
+			if (injector.server->getPet(petIndex).loyal == 100)
+				injector.server->setPetState(petIndex, PetState::kRide);
+			else
+				injector.server->setPetState(petIndex, PetState::kRest);
+			break;
+		}
+		case PetState::kRide:
+		{
+			injector.server->setPetState(petIndex, PetState::kRest);
+			break;
+		}
+		}
 	}
 	}
 }

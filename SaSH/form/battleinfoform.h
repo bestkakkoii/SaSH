@@ -38,9 +38,11 @@ private slots:
 
 	void onUpdateTimeLabelContents(const QString& text);
 
-	void onUpdateLabelPlayerAction(const QString& text);
+	void onUpdateLabelCharAction(const QString& text);
 
 	void onUpdateLabelPetAction(const QString& text);
+
+	void onNotifyBattleActionState(qint64 index, bool left);
 
 protected:
 	virtual void showEvent(QShowEvent* e) override
@@ -51,6 +53,7 @@ protected:
 
 private:
 	void updateItemInfoRowContents(QTableWidget* tableWidget, const QVariant& data);
+
 
 private:
 	Ui::BattleInfoFormClass ui;

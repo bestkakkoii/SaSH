@@ -56,7 +56,7 @@ private:
 	void checkAutoJoin();
 	void checkAutoHeal();
 	void checkAutoDropPet();
-	void checkAutoLockPet();
+	//void checkAutoLockPet();
 	void checkAutoLockSchedule();
 	void checkAutoEatBoostExpItem();
 	void checkRecordableNpcInfo();
@@ -171,6 +171,16 @@ public:
 		for (auto& key : keys)
 		{
 			close(key);
+		}
+	}
+
+	inline void wait(qint64 index)
+	{
+		QMutexLocker locker(&mutex_);
+		if (threads_.contains(index))
+		{
+			auto thread_ = threads_.value(index);
+			thread_->wait();
 		}
 	}
 

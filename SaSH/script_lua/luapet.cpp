@@ -58,7 +58,7 @@ qint64 CLuaPet::rename(qint64 petIndex, std::string name, sol::this_state s)
 
 	luadebug::checkBattleThenWait(s);
 
-	QString qname = QString::fromUtf8(name.c_str());
+	QString qname = util::toQString(name);
 
 	injector.server->setPetFreeName(--petIndex, qname);
 

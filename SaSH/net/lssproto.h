@@ -114,7 +114,7 @@ public:
 	void lssproto_CharList_send(int fd);
 	void lssproto_CharLogout_send(int Flg);
 	void lssproto_ProcGet_send(int fd);
-	void lssproto_PlayerNumGet_send(int fd);
+	void lssproto_CharNumGet_send(int fd);
 	void lssproto_Echo_send(char* test);
 	void lssproto_Shutdown_send(char* passwd, int min);
 	void lssproto_TD_send(char* data);
@@ -229,7 +229,7 @@ public:
 	virtual void lssproto_CharList_recv(char* result, char* data) = 0;
 	virtual void lssproto_CharLogout_recv(char* result, char* data) = 0;
 	virtual void lssproto_ProcGet_recv(char* data) = 0;
-	virtual void lssproto_PlayerNumGet_recv(int logincount, int player) = 0;
+	virtual void lssproto_CharNumGet_recv(int logincount, int player) = 0;
 	virtual void lssproto_Echo_recv(char* test) = 0;
 	virtual void lssproto_NU_recv(int AddCount) = 0;
 	virtual void lssproto_WO_recv(int effect) = 0;//取得轉生的特效
