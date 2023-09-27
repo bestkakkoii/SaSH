@@ -225,9 +225,13 @@ void MainObject::mainProc()
 {
 	Injector& injector = Injector::getInstance(getIndex());
 	QElapsedTimer freeMemTimer; freeMemTimer.start();
+	QElapsedTimer freeSelfMemTimer; freeSelfMemTimer.start();
 	//首次先釋放一次記憶體，並且開始計時
 	if (injector.getEnableHash(util::kAutoFreeMemoryEnable))
+	{
 		freeMemTimer.restart();
+		freeSelfMemTimer.restart();
+	}
 
 	mem::freeUnuseMemory(injector.getProcess());
 	mem::freeUnuseMemory(GetCurrentProcess());
@@ -273,6 +277,14 @@ void MainObject::mainProc()
 		}
 		else
 			freeMemTimer.restart();
+
+		if (injector.getEnableHash(util::kAutoFreeMemoryEnable) && freeSelfMemTimer.hasExpired(30ll * 60ll * 1000ll))
+		{
+			freeSelfMemTimer.restart();
+			mem::freeUnuseMemory(GetCurrentProcess());
+		}
+		else
+			freeSelfMemTimer.restart();
 
 		//有些數據需要和客戶端內存同步
 		injector.server->updateDatasFromMemory();
@@ -1254,6 +1266,7 @@ void MainObject::checkAutoJoin()
 
 		autojoin_future_ = QtConcurrent::run([this]()
 			{
+				QSet<QPoint> blockList;
 				for (;;)
 				{
 					Injector& injector = Injector::getInstance(getIndex());
@@ -1382,7 +1395,7 @@ void MainObject::checkAutoJoin()
 								continue;
 							}
 
-							if (!injector.server->mapAnalyzer->calcNewRoute(map, current_point, newpoint, &path))
+							if (!injector.server->mapAnalyzer->calcNewRoute(map, current_point, newpoint, blockList, &path))
 								return;
 
 							len = MAX_SINGLE_STEP;

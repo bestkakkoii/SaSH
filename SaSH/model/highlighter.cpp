@@ -38,7 +38,7 @@ const char* Highlighter::keywords(int set) const
 		return
 			"call pause exit label jmp back continue "
 			"checkdaily "
-			"waitdlg waitsay waititem waitmap waitteam waitpet "
+			"waitdlg waitsay waititem waitmap waitteam waitpet waitpos "
 
 			/*lua original*/
 			"function end goto break for while if repeat until do in then else elseif return "

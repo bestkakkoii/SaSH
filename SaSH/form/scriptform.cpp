@@ -477,10 +477,10 @@ void ScriptForm::onReloadScriptList()
 		ui.treeWidget_script->addTopLevelItem(item);
 		//展開全部第一層
 		ui.treeWidget_script->topLevelItem(0)->setExpanded(true);
-		for (qint64 i = 0; i < item->childCount(); ++i)
-		{
-			ui.treeWidget_script->expandItem(item->child(i));
-		}
+		//for (qint64 i = 0; i < item->childCount(); ++i)
+		//{
+		//	ui.treeWidget_script->expandItem(item->child(i));
+		//}
 
 		ui.treeWidget_script->sortItems(0, Qt::AscendingOrder);
 

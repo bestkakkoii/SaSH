@@ -50,6 +50,8 @@ public:
 	explicit MainForm(qint64 index, QWidget* parent = nullptr);
 	virtual ~MainForm();
 
+	static MainForm* createNewWindow(qint64 idToAllocate, qint64* pId = nullptr);
+
 protected:
 	void showEvent(QShowEvent* e) override;
 	void closeEvent(QCloseEvent* e) override;
@@ -70,7 +72,8 @@ protected:
 private:
 	void resetControlTextLanguage();
 	void updateStatusText();
-	MainForm* createNewWindow(qint64 index);
+
+	void createMenu(QMenuBar* pMenuBar);
 
 private slots:
 	void onMenuActionTriggered();
@@ -85,7 +88,7 @@ private slots:
 	void onUpdateStonePosLabelTextChanged(qint64 ntext);
 	void onUpdateMainFormTitle(const QString& text);
 
-	void onMessageBoxShow(const QString& text, qint64 type = 0, qint64* pnret = nullptr);
+	void onMessageBoxShow(const QString& text, qint64 type = 0, QString title = "", qint64* pnret = nullptr);
 	void onInputBoxShow(const QString& text, qint64 type, QVariant* retvalue);
 
 	void onAppendScriptLog(const QString& text, qint64 color = 0);
@@ -115,4 +118,6 @@ private:
 	QSystemTrayIcon* trayIcon = nullptr;
 
 	QHash<qint64, QSharedPointer<Interpreter>> interpreter_hash_;
+
+	QAction* hideTrayAction_ = nullptr;
 };

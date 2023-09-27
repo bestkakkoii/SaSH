@@ -367,14 +367,15 @@ qint64 Interpreter::dropitem(qint64 currentIndex, qint64 currentLine, const Toke
 			return Parser::kArgError + 3ll;
 
 		QVector<qint64> indexs;
-		injector.server->getItemIndexsByName(itemNames, "", &indexs, min, max);
-
-		//排除掉所有包含在indexs的
-		for (qint64 i = min; i <= max; ++i)
+		if (injector.server->getItemIndexsByName(itemNames, "", &indexs, min, max))
 		{
-			if (!indexs.contains(i))
+			//排除掉所有包含在indexs的
+			for (qint64 i = min; i <= max; ++i)
 			{
-				injector.server->dropItem(i);
+				if (!indexs.contains(i))
+				{
+					injector.server->dropItem(i);
+				}
 			}
 		}
 	}

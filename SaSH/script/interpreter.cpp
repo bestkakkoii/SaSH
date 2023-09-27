@@ -474,7 +474,6 @@ void Interpreter::openLibsBIG5()
 	registerFunction(u8"元神歸位", &Interpreter::eo);
 	registerFunction(u8"提示", &Interpreter::announce);
 	registerFunction(u8"輸入", &Interpreter::input);
-	registerFunction(u8"消息", &Interpreter::messagebox);
 	registerFunction(u8"回點", &Interpreter::logback);
 	registerFunction(u8"登出", &Interpreter::logout);
 	registerFunction(u8"說話", &Interpreter::talk);
@@ -499,6 +498,8 @@ void Interpreter::openLibsBIG5()
 	registerFunction(u8"聽見", &Interpreter::waitsay);
 	registerFunction(u8"寵物有", &Interpreter::waitpet);
 	registerFunction(u8"道具", &Interpreter::waititem);
+	registerFunction(u8"坐標有", &Interpreter::waitpos);
+	registerFunction(u8"座標有", &Interpreter::waitpos);
 	//check-group
 	registerFunction(u8"組隊有", &Interpreter::waitteam);
 
@@ -570,7 +571,6 @@ void Interpreter::openLibsGB2312()
 	registerFunction(u8"元神归位", &Interpreter::eo);
 	registerFunction(u8"提示", &Interpreter::announce);
 	registerFunction(u8"输入", &Interpreter::input);
-	registerFunction(u8"消息", &Interpreter::messagebox);
 	registerFunction(u8"回点", &Interpreter::logback);
 	registerFunction(u8"登出", &Interpreter::logout);
 	registerFunction(u8"说话", &Interpreter::talk);
@@ -596,6 +596,8 @@ void Interpreter::openLibsGB2312()
 
 	registerFunction(u8"宠物有", &Interpreter::waitpet);
 	registerFunction(u8"道具", &Interpreter::waititem);
+	registerFunction(u8"坐标有", &Interpreter::waitpos);
+	registerFunction(u8"座标有", &Interpreter::waitpos);
 	//check-group
 	registerFunction(u8"组队有", &Interpreter::waitteam);
 
@@ -668,7 +670,6 @@ void Interpreter::openLibsUTF8()
 	registerFunction(u8"eo", &Interpreter::eo);
 	registerFunction(u8"print", &Interpreter::announce);
 	registerFunction(u8"input", &Interpreter::input);
-	registerFunction(u8"msg", &Interpreter::messagebox);
 	registerFunction(u8"logback", &Interpreter::logback);
 	registerFunction(u8"logout", &Interpreter::logout);
 	registerFunction(u8"say", &Interpreter::talk);
@@ -695,6 +696,7 @@ void Interpreter::openLibsUTF8()
 	registerFunction(u8"waitsay", &Interpreter::waitsay);
 	registerFunction(u8"waitpet", &Interpreter::waitpet);
 	registerFunction(u8"waititem", &Interpreter::waititem);
+	registerFunction(u8"waitpos", &Interpreter::waitpos);
 
 	//check-group
 	registerFunction(u8"waitteam", &Interpreter::waitteam);
@@ -753,7 +755,6 @@ void Interpreter::openLibsUTF8()
 	registerFunction(u8"rclick", &Interpreter::rightclick);
 	registerFunction(u8"ldbclick", &Interpreter::leftdoubleclick);
 	registerFunction(u8"dragto", &Interpreter::mousedragto);
-	registerFunction(u8"dlg", &Interpreter::dlg);
 
 	//hide
 	//registerFunction(u8"ocr", &Interpreter::ocr);
@@ -994,7 +995,8 @@ bool Interpreter::findPath(qint64 currentIndex, qint64 currentLine, QPoint dst, 
 
 	std::vector<QPoint> path;
 	QElapsedTimer timer; timer.start();
-	if (mapAnalyzer.isNull() || !mapAnalyzer->calcNewRoute(_map, src, dst, &path))
+	QSet<QPoint> blockList;
+	if (mapAnalyzer.isNull() || !mapAnalyzer->calcNewRoute(_map, src, dst, blockList, &path))
 	{
 		output = QObject::tr("[error] <findpath>unable to findpath from %1, %2 to %3, %4").arg(src.x()).arg(src.y()).arg(dst.x()).arg(dst.y());
 		injector.server->announce(output);
@@ -1022,6 +1024,8 @@ bool Interpreter::findPath(qint64 currentIndex, qint64 currentLine, QPoint dst, 
 	//用於檢測卡點
 	QElapsedTimer blockDetectTimer; blockDetectTimer.start();
 	QPoint lastPoint = src;
+	QPoint lastTryPoint;
+	qint64 recordedStep = -1;
 
 	for (;;)
 	{
@@ -1044,6 +1048,9 @@ bool Interpreter::findPath(qint64 currentIndex, qint64 currentLine, QPoint dst, 
 			--steplen_cache;
 		}
 
+		if (recordedStep >= 0)
+			steplen_cache = recordedStep;
+
 		if (steplen_cache >= 0 && (steplen_cache < pathsize))
 		{
 			if (lastPoint != src)
@@ -1054,6 +1061,7 @@ bool Interpreter::findPath(qint64 currentIndex, qint64 currentLine, QPoint dst, 
 
 			point = path.at(steplen_cache);
 			injector.server->move(point);
+			lastTryPoint = point;
 			if (step_cost > 0)
 				QThread::msleep(step_cost);
 		}
@@ -1103,7 +1111,7 @@ bool Interpreter::findPath(qint64 currentIndex, qint64 currentLine, QPoint dst, 
 				return true;//已抵達true
 			}
 
-			if (mapAnalyzer.isNull() || !mapAnalyzer->calcNewRoute(_map, src, dst, &path))
+			if (mapAnalyzer.isNull() || !mapAnalyzer->calcNewRoute(_map, src, dst, blockList, &path))
 				break;
 
 			pathsize = path.size();
@@ -1124,24 +1132,17 @@ bool Interpreter::findPath(qint64 currentIndex, qint64 currentLine, QPoint dst, 
 			if (injector.server.isNull())
 				break;
 
-			//往隨機8個方向移動
-			point = getPos();
-			lastPoint = point;
-			QPoint stockPoint = getPos();
-			qint64 randNum = 0;
-			for (qint64 i = 0; i < 16; ++i)
+			//將正前方的坐標加入黑名單
+			src = getPos();
+			QPoint point = src + util::fix_point.at(injector.server->getPC().dir);
+			blockList.insert(point);
+			blockList.insert(lastTryPoint);
+			if (recordedStep == -1)
 			{
-				point = point + (util::fix_point.at(randNum) * 5);
-				injector.server->move(point);
-				QThread::msleep(200);
-				checkBattleThenWait();
-				src = getPos();
-				if (stockPoint != src)
-					break;
-
-				++randNum;
+				recordedStep = steplen_cache;
 			}
-
+			else
+				--recordedStep;
 			continue;
 		}
 

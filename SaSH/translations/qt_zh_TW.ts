@@ -1883,10 +1883,6 @@ No new version available. Do you still want to update?</source>
 沒有找到新版本，您還要繼續更新嗎?</translation>
     </message>
     <message>
-        <source>lua</source>
-        <translation></translation>
-    </message>
-    <message>
         <source>login failed</source>
         <translation>登入失敗</translation>
     </message>
@@ -3087,7 +3083,7 @@ No new version available. Do you still want to update?</source>
     </message>
     <message>
         <source>@ %1 | Unknown command &apos;%2&apos; has been ignored</source>
-        <translation>@ %1 | 已忽略未知的命令 &apos;%2&apos;</translation>
+        <translation type="vanished">@ %1 | 已忽略未知的命令 &apos;%2&apos;</translation>
     </message>
     <message>
         <source>@ %1 | Missing &apos;%2&apos; for statement &apos;%3&apos;</source>
@@ -4562,6 +4558,10 @@ No new version available. Do you still want to update?</source>
     <message>
         <source>getitem</source>
         <translation></translation>
+    </message>
+    <message>
+        <source>waitpos</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>

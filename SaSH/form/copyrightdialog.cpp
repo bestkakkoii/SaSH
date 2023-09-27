@@ -123,7 +123,7 @@ CopyRightDialog::CopyRightDialog(QWidget* parent)
 
 	ui.label->setPixmap(QPixmap(":/image/hantapay.png").scaled(150, 150));
 
-	ui.label_logo->setStyleSheet("color: rgb(111, 147, 198); font-family: 'Consolas';");
+	ui.label_logo->setStyleSheet("color: rgb(111, 147, 198); font-family: 'Consolas'; font-size:40px;");
 
 	const QString programName(u8"StoneAge Supreme Helper");
 	const QString companyName(u8"Bestkakkoii llc.");

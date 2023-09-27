@@ -150,113 +150,103 @@ QString luadebug::getErrorMsgLocatedLine(const QString& str, qint64* retline)
 QString luadebug::getTableVars(lua_State*& L, qint64 si, qint64 depth)
 {
 	if (!L) return "\0";
-	QPair<QString, QString> pa;
+	QPair<QString, QVariant> pair;
 	qint64 pos_si = si > 0 ? si : (si - 1);
-	QString ret("{");
+	QString ret;
 	qint64 top = lua_gettop(L);
 	lua_pushnil(L);
 	qint64 empty = 1;
+	QStringList varList;
 	while (lua_next(L, pos_si) != 0)
 	{
 		if (empty)
-		{
-			ret += ("\r\n");
 			empty = 0;
-		}
 
-		qint64 i;
-		for (i = 0; i < depth; ++i)
+		QString key;
+		pair = getVars(L, -2, -1);
+		if (pair.first == "(string)")
+			ret += pair.second.toString();
+		else if (pair.first == "(integer)")
 		{
-			ret += (" ");
+			pair.second = pair.second.toString();
+			ret += QString("[%1]=").arg(pair.second.toString());
 		}
+		else
+			continue;
 
-		ret += ("[");
-		pa = getVars(L, -2, -1);
-		ret += (R"(")" + pa.second + R"(")");
-		ret += ("] = ");
-		if (depth > 20)
+		if (depth > 50)
 		{
-			ret += ("{...}");
+			ret += ("{}");
 		}
 		else
 		{
-			pa = getVars(L, -1, depth + 1);
-			ret += (pa.first + " " + pa.second);
+			pair = getVars(L, -1, depth + 1);
+			if (pair.first == "(string)")
+				ret += QString("'%1'").arg(pair.second.toString());
+			else
+				ret += pair.second.toString();
 		}
 		lua_pop(L, 1);
-		ret += (",\r\n");
+		varList.append(ret);
+		ret.clear();
 	}
 
-	if (empty)
-	{
-		ret += (" }");
-	}
-	else
-	{
-		qint64 i;
-		for (i = 0; i < depth - 1; ++i)
-		{
-			ret += (" ");
-		}
-		ret += ("}");
-	}
 	lua_settop(L, top);
-	return ret;
+	ret = QString("{%1}").arg(varList.join(","));
+	return ret.simplified();
 }
 
-QPair<QString, QString> luadebug::getVars(lua_State*& L, qint64 si, qint64 depth)
+QPair<QString, QVariant> luadebug::getVars(lua_State*& L, qint64 si, qint64 depth)
 {
 	switch (lua_type(L, si))
 	{
 	case LUA_TNIL:
 	{
-		return { "(nil)" , "nil" };
+		return qMakePair(QString("(nil)"), QString("nil"));
 	}
-
-	case LUA_TNUMBER:
-	{
-		return { "(integer)", util::toQString(luaL_checkinteger(L, si)) };
-	}
-
 	case LUA_TBOOLEAN:
 	{
-		return { "(boolean)", util::toQString(lua_toboolean(L, si)) };
+		return qMakePair(QString("(boolean)"), util::toQString(lua_toboolean(L, si) > 0));
 	}
+	case LUA_TSTRING:
+	{
+		return qMakePair(QString("(string)"), util::toQString(luaL_checklstring(L, si, nullptr)));
+	}
+	case LUA_TNUMBER:
+	{
+		double d = static_cast<double>(luaL_checknumber(L, si));
+		if (d == static_cast<qint64>(d))
+			return qMakePair(QString("(integer)"), util::toQString(static_cast<qint64>(luaL_checkinteger(L, si))));
+		else
+			return qMakePair(QString("(number)"), util::toQString(d));
 
+	}
 	case LUA_TFUNCTION:
 	{
 		lua_CFunction func = lua_tocfunction(L, si);
-		if (func != NULL)
+		if (func != nullptr)
 		{
-			return { "(C function)", QString("0x%1").arg(util::toQString(reinterpret_cast<qint64>(func), 16)) };
+			return qMakePair(QString("(C function)"), QString("0x%1").arg(util::toQString(reinterpret_cast<qint64>(func), 16)));
 		}
 		else
 		{
-			return { "(function)", QString("0x%1").arg(util::toQString(reinterpret_cast<qint64>(func), 16)) };
+			return qMakePair(QString("(function)"), QString("0x%1").arg(util::toQString(reinterpret_cast<qint64>(func), 16)));
 		}
 		break;
 	}
-
-
 	case LUA_TUSERDATA:
 	{
-		return { "(user data)", QString("0x%1").arg(util::toQString(reinterpret_cast<qint64>(lua_touserdata(L, si)),16)) };
+		return qMakePair(QString("(user data)"), QString("0x%1").arg(util::toQString(reinterpret_cast<qint64>(lua_touserdata(L, si)), 16)));
 	}
-
-	case LUA_TSTRING:
-	{
-		return { "(string)", luaL_checkstring(L, si) };
-	}
-
 	case LUA_TTABLE:
 	{
-		return { "(table)" , getTableVars(L, si, depth) };
+		return qMakePair(QString("(table)"), getTableVars(L, si, depth));
 	}
-
 	default:
 		break;
 	}
-	return { "", "" };
+
+	return qMakePair(QString("(nil)"), QString("nil"));
 }
 
 bool luadebug::isInterruptionRequested(const sol::this_state& s)
@@ -553,10 +543,10 @@ void luadebug::hookProc(lua_State* L, lua_Debug* ar)
 		QVariantHash varhash;
 		for (i = 1; (name = lua_getlocal(L, ar, i)) != NULL; ++i)
 		{
-			QPair<QString, QString> vs = getVars(L, i, 5);
+			QPair<QString, QVariant> vs = getVars(L, i, 5);
 
 			QString key = QString("local|%1").arg(util::toQString(name));
-			varhash.insert(key, vs.second);
+			varhash.insert(key, vs.second.toString());
 			//var.type = vs.first.replace("(", "").replace(")", "");
 			lua_pop(L, 1);// no match, then pop out the var's value
 		}
@@ -952,13 +942,11 @@ collectgarbage("step", 1024);
 
 	lua_["package"]["path"] = std::string(paths.join(";").toUtf8().constData());
 
-
-	lua_State* L = lua_.lua_state();
-
-#ifdef OPEN_HOOK
-	lua_sethook(L, &luadebug::hookProc, LUA_MASKLINE | LUA_MASKCALL | LUA_MASKRET, NULL);// | LUA_MASKCOUNT 
-#endif
-
+	if (isHookEnabled_)
+	{
+		lua_State* L = lua_.lua_state();
+		lua_sethook(L, &luadebug::hookProc, LUA_MASKLINE | LUA_MASKCALL | LUA_MASKRET, NULL);// | LUA_MASKCOUNT
+	}
 }
 
 void CLua::proc()

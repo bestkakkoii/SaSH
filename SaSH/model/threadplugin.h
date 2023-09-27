@@ -27,6 +27,67 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "signaldispatcher.h"
 #include <indexer.h>
 #include <shared_mutex>
+
+#include <exception>
+#include <stdexcept>
+
+class ExceptionHandler
+{
+public:
+	ExceptionHandler()
+	{
+		std::set_terminate(ExceptionHandler::handleTerminate);
+		std::set_new_handler(ExceptionHandler::handleOutOfMemory);
+		qDebug() << "ExceptionHandler";
+	}
+
+	virtual ~ExceptionHandler()
+	{
+		std::set_terminate(nullptr);
+		std::set_new_handler(nullptr);
+		qDebug() << "~ExceptionHandler";
+	}
+
+	static void handleTerminate()
+	{
+		try
+		{
+			std::rethrow_exception(std::current_exception());
+		}
+		catch (const std::exception& e)
+		{
+			QString errorMessage = QString("Terminating due to unhandled std::exception: %1").arg(e.what());
+			showErrorMessageBox(errorMessage);
+		}
+		catch (...)
+		{
+			QString errorMessage = "Terminating due to unknown exception.";
+			showErrorMessageBox(errorMessage);
+		}
+		std::terminate();
+	}
+
+	static void handleUnexpected()
+	{
+		QString errorMessage = "Unexpected exception.";
+		showErrorMessageBox(errorMessage);
+		std::terminate();
+	}
+
+	static void handleOutOfMemory()
+	{
+		QString errorMessage = "Out of memory.";
+		showErrorMessageBox(errorMessage);
+		std::exit(EXIT_FAILURE);
+	}
+
+private:
+	static void showErrorMessageBox(const QString& message)
+	{
+		QMessageBox::critical(nullptr, "Error", message);
+	}
+};
+
 class ThreadPlugin : public QObject, public Indexer
 {
 	Q_OBJECT
@@ -81,6 +142,8 @@ public slots:
 	}
 
 private:
+	QSharedPointer<ExceptionHandler> exceptionHandler_ = QSharedPointer<ExceptionHandler>::create();
+
 	std::atomic_bool isInterruptionRequested_ = false;
 	mutable std::shared_mutex rwLock_;
 

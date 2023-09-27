@@ -30,6 +30,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "form/mapwidget.h"
 #include "form/copyrightdialog.h"
 
+#include "mainthread.h"
+
 //menu action forms
 #include "form/scriptsettingform.h"
 #include "model/qthumbnailform.h"
@@ -43,7 +45,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 util::SafeHash<qint64, MainForm*> g_mainFormHash;
 
-void createMenu(QMenuBar* pMenuBar)
+void MainForm::createMenu(QMenuBar* pMenuBar)
 {
 	if (!pMenuBar)
 		return;
@@ -83,7 +85,7 @@ void createMenu(QMenuBar* pMenuBar)
 	pMenuBar->setAttribute(Qt::WA_StyledBackground, true);
 	pMenuBar->clear();
 
-	auto createAction = [](QMenu* parent, const QString& text, const QString& name, qint64 key)
+	auto createAction = [this](QMenu* parent, const QString& text, const QString& name, qint64 key)
 	{
 		if (!parent)
 			return;
@@ -103,6 +105,10 @@ void createMenu(QMenuBar* pMenuBar)
 			return;
 		if (!text.isEmpty() && !name.isEmpty())
 		{
+			if (name == "actionHide")
+			{
+				hideTrayAction_ = pAction;
+			}
 			pAction->setObjectName(name);
 			pAction->setShortcut(QKeySequence(key));
 			parent->addAction(pAction);
@@ -187,21 +193,37 @@ enum InterfaceMessage
 	kCloseGame,			// kInterfaceMessage + 6
 	kGetGameState,		// kInterfaceMessage + 7
 	kScriptState,		// kInterfaceMessage + 8
-	kOpenWindow,		// kInterfaceMessage + 9
+	kMultiFucntion,		// kInterfaceMessage + 9
 	kSortWindow,		// kInterfaceMessage + 10
 	kThumbnail,			// kInterfaceMessage + 11
 	kOpenNewWindow,		// kInterfaceMessage + 12
 	kGetGamePid,		// kInterfaceMessage + 13
 	kGetGameHwnd, 	    // kInterfaceMessage + 14
+	kGetCurrentId, 	    // kInterfaceMessage + 15
+	kSetAutoLogin, 	    // kInterfaceMessage + 16
+	kLoadSettings, 	    // kInterfaceMessage + 17
 };
 
-enum InterfaceWindowType
+enum InterfaceFunctionType
 {
 	WindowNone = 0,		//無
 	WindowInfo,			//信息窗口
 	WindowMap,			//地圖窗口
 	WindowScript,		//腳本窗口
+	SelectServerList,   //選服列表
+	SelectProcessList,  //選進程列表
+	ToolTrayShow,		//系統托盤顯示
+	HideGame,			//隱藏遊戲
 };
+
+typedef struct tagLoginInfo
+{
+	int server = 0;
+	int subserver = 0;
+	int position = 0;
+	char* username = nullptr;
+	char* password = nullptr;
+}LoginInfo;
 
 //接收原生的窗口消息
 #if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
@@ -231,6 +253,13 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 		}
 		return true;
 	}
+	case Injector::kSetMove:
+	{
+		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
+		emit signalDispatcher.updateCoordsPosLabelTextChanged(QString("%1,%2").arg(GET_X_LPARAM(msg->lParam)).arg(GET_Y_LPARAM(msg->lParam)));
+		*result = 1;
+		return true;
+	}
 	case Injector::kConnectionOK://TCP握手
 	{
 		if (!injector.server.isNull())
@@ -241,9 +270,15 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 		}
 		return true;
 	}
+	case InterfaceMessage::kGetCurrentId:
+	{
+		*result = currentIndex;
+		return true;
+	}
 	case InterfaceMessage::kRunScript:
 	{
-		QSharedPointer<Interpreter> interpreter(new Interpreter(currentIndex));
+		qint64 id = msg->wParam;
+		QSharedPointer<Interpreter> interpreter(new Interpreter(id));
 		if (interpreter.isNull())
 			return true;
 
@@ -252,7 +287,6 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 		if (utf8str.isEmpty())
 			return true;
 
-		qint64 id = msg->wParam;
 		interpreter_hash_.insert(id, interpreter);
 
 		QString script = util::toQString(utf8str);
@@ -270,12 +304,13 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 	}
 	case InterfaceMessage::kStopScript:
 	{
-		QSharedPointer<Interpreter> interpreter = interpreter_hash_.value(msg->wParam, nullptr);
+		qint64 id = msg->wParam;
+		QSharedPointer<Interpreter> interpreter = interpreter_hash_.value(id, nullptr);
 		if (interpreter.isNull())
 			return true;
 
 		interpreter->requestInterruption();
-		interpreter_hash_.remove(msg->wParam);
+		interpreter_hash_.remove(id);
 
 		++interfaceCount_;
 		updateStatusText();
@@ -284,7 +319,8 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 	}
 	case InterfaceMessage::kRunFile:
 	{
-		Injector& injector = Injector::getInstance(currentIndex);
+		qint64 id = msg->wParam;
+		Injector& injector = Injector::getInstance(id);
 		if (injector.IS_SCRIPT_FLAG.load(std::memory_order_acquire))
 			return true;
 
@@ -298,7 +334,7 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 			return true;
 
 		pScriptForm_->loadFile(fileName);
-		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
+		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(id);
 		emit signalDispatcher.loadFileToTable(fileName);
 		emit signalDispatcher.scriptStarted();
 
@@ -309,11 +345,12 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 	}
 	case InterfaceMessage::kStopFile:
 	{
-		Injector& injector = Injector::getInstance(currentIndex);
+		qint64 id = msg->wParam;
+		Injector& injector = Injector::getInstance(id);
 		if (!injector.IS_SCRIPT_FLAG.load(std::memory_order_acquire))
 			return true;
 
-		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
+		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(id);
 		emit signalDispatcher.scriptStoped();
 
 		++interfaceCount_;
@@ -323,11 +360,12 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 	}
 	case InterfaceMessage::kRunGame:
 	{
-		Injector& injector = Injector::getInstance(currentIndex);
+		qint64 id = msg->wParam;
+		Injector& injector = Injector::getInstance(id);
 		if (!injector.server.isNull())
 			return true;
 
-		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
+		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(id);
 		emit signalDispatcher.gameStarted();
 
 		++interfaceCount_;
@@ -337,7 +375,8 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 	}
 	case InterfaceMessage::kCloseGame:
 	{
-		Injector& injector = Injector::getInstance(currentIndex);
+		qint64 id = msg->wParam;
+		Injector& injector = Injector::getInstance(id);
 		if (injector.server.isNull())
 			return true;
 
@@ -352,7 +391,8 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 		if (result == nullptr)
 			return true;
 
-		Injector& injector = Injector::getInstance(currentIndex);
+		qint64 id = msg->wParam;
+		Injector& injector = Injector::getInstance(id);
 		qint64 value = 0;
 		if (injector.server.isNull())
 			return true;
@@ -382,8 +422,8 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 	{
 		if (result == nullptr)
 			return true;
-
-		Injector& injector = Injector::getInstance(currentIndex);
+		qint64 id = msg->wParam;
+		Injector& injector = Injector::getInstance(id);
 		qint64 value = 0;
 		if (injector.IS_SCRIPT_FLAG.load(std::memory_order_acquire))
 			value = 1;
@@ -393,10 +433,11 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 		*result = value;
 		return true;
 	}
-	case InterfaceMessage::kOpenWindow:
+	case InterfaceMessage::kMultiFucntion:
 	{
-		qint64 type = msg->wParam;
-		qint64 arg = msg->lParam;
+		qint64 id = msg->wParam;
+		qint64 type = HIWORD(msg->lParam);
+		qint64 arg = LOWORD(msg->lParam);
 		*result = 0;
 
 		switch (type)
@@ -405,7 +446,7 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 		{
 			if (pInfoForm_ == nullptr)
 			{
-				pInfoForm_ = new InfoForm(arg);
+				pInfoForm_ = new InfoForm(id, arg);
 				if (pInfoForm_)
 				{
 					connect(pInfoForm_, &InfoForm::destroyed, [this]() { pInfoForm_ = nullptr; });
@@ -417,13 +458,17 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 					*result = static_cast<long>(pInfoForm_->winId());
 				}
 			}
+			else
+			{
+				pInfoForm_->close();
+			}
 			break;
 		}
 		case WindowMap:
 		{
 			if (mapWidget_ == nullptr)
 			{
-				mapWidget_ = new MapWidget(currentIndex, nullptr);
+				mapWidget_ = new MapWidget(id, nullptr);
 				if (mapWidget_)
 				{
 					connect(mapWidget_, &InfoForm::destroyed, [this]() { mapWidget_ = nullptr; });
@@ -435,13 +480,17 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 					*result = static_cast<long>(mapWidget_->winId());
 				}
 			}
+			else
+			{
+				mapWidget_->close();
+			}
 			break;
 		}
 		case WindowScript:
 		{
 			if (pScriptSettingForm_ == nullptr)
 			{
-				pScriptSettingForm_ = new ScriptSettingForm(currentIndex);
+				pScriptSettingForm_ = new ScriptSettingForm(id);
 				if (pScriptSettingForm_)
 				{
 					connect(pScriptSettingForm_, &InfoForm::destroyed, [this]() { pScriptSettingForm_ = nullptr; });
@@ -453,6 +502,50 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 					*result = static_cast<long>(pScriptSettingForm_->winId());
 				}
 			}
+			else
+			{
+				pScriptSettingForm_->close();
+			}
+			break;
+		}
+		case SelectServerList:
+		{
+			const QString fileName(qgetenv("JSON_PATH"));
+			if (!fileName.isEmpty())
+			{
+				util::Config config(fileName);
+				config.write("System", "Server", "LastServerListSelection", arg);
+				*result = 1;
+			}
+			break;
+		}
+		case SelectProcessList:
+		{
+			const QString fileName(qgetenv("JSON_PATH"));
+			if (!fileName.isEmpty())
+			{
+				util::Config config(fileName);
+				config.write("System", "Command", "LastSelection", arg);
+				*result = 1;
+			}
+			break;
+		}
+		case ToolTrayShow:
+		{
+			if (hideTrayAction_ != nullptr)
+			{
+				emit hideTrayAction_->triggered();
+				*result = 1;
+			}
+			break;
+		}
+		case HideGame:
+		{
+			Injector& injector = Injector::getInstance(id);
+			SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(id);
+			injector.setEnableHash(util::kHideWindowEnable, arg > 0);
+			emit signalDispatcher.applyHashSettingsToUI();
+			*result = 1;
 			break;
 		}
 		default:
@@ -595,7 +688,8 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 	case InterfaceMessage::kOpenNewWindow:
 	{
 		*result = 0;
-		MainForm* pMainForm = createNewWindow(msg->wParam);
+		qint64 id = msg->wParam;
+		MainForm* pMainForm = createNewWindow(id);
 		if (pMainForm != nullptr)
 			*result = static_cast<long>(pMainForm->winId());
 
@@ -604,7 +698,8 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 	case InterfaceMessage::kGetGamePid:
 	{
 		*result = 0;
-		Injector& injector = Injector::getInstance(currentIndex);
+		qint64 id = msg->wParam;
+		Injector& injector = Injector::getInstance(id);
 		if (injector.server.isNull())
 			return true;
 
@@ -614,11 +709,87 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 	case InterfaceMessage::kGetGameHwnd:
 	{
 		*result = 0;
-		Injector& injector = Injector::getInstance(currentIndex);
+		qint64 id = msg->wParam;
+		Injector& injector = Injector::getInstance(id);
 		if (injector.server.isNull())
 			return true;
 
 		*result = reinterpret_cast<qint64>(injector.getProcessWindow());
+		return true;
+	}
+	case InterfaceMessage::kLoadSettings:
+	{
+		*result = 0;
+		qint64 id = msg->wParam;
+		qint64 pathptr = msg->lParam;
+		if (pathptr == 0)
+			return true;
+
+		const char* chwndstrs = reinterpret_cast<char*>(pathptr);
+		QString utf8str = util::toQString(chwndstrs);
+		if (utf8str.isEmpty())
+			return true;
+
+		QFileInfo fileInfo(utf8str);
+		if (!fileInfo.exists())
+			return true;
+
+		if (fileInfo.suffix() != "json")
+			return true;
+
+		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(id);
+		emit signalDispatcher.loadHashSettings(utf8str, true);
+		*result = 1;
+		return true;
+	}
+	case InterfaceMessage::kSetAutoLogin:
+	{
+		*result = 0;
+		qint64 id = msg->wParam;
+		Injector& injector = Injector::getInstance(id);
+		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(id);
+		do
+		{
+			LoginInfo* pLoginInfo = reinterpret_cast<LoginInfo*>(msg->lParam);
+			if (pLoginInfo == nullptr)
+				break;
+
+			if (pLoginInfo->username == nullptr || pLoginInfo->password == nullptr)
+				break;
+
+			qint64 server = pLoginInfo->server;
+			qint64 subserver = pLoginInfo->subserver;
+			qint64 position = pLoginInfo->position;
+			QString username = util::toQString(pLoginInfo->username);
+			QString password = util::toQString(pLoginInfo->password);
+
+			if (server < 0 || server > 15)
+				break;
+
+			if (subserver < 0 || subserver > 15)
+				break;
+
+			if (position < 0 || position > 1)
+				break;
+
+			injector.setEnableHash(util::kAutoLoginEnable, true);
+			injector.setStringHash(util::kGameAccountString, username);
+			injector.setStringHash(util::kGamePasswordString, password);
+			injector.setValueHash(util::kServerValue, server);
+			injector.setValueHash(util::kSubServerValue, subserver);
+			injector.setValueHash(util::kPositionValue, position);
+			emit signalDispatcher.applyHashSettingsToUI();
+			*result = 1;
+			return true;
+		} while (false);
+
+		injector.setEnableHash(util::kAutoLoginEnable, true);
+		injector.setStringHash(util::kGameAccountString, "");
+		injector.setStringHash(util::kGamePasswordString, "");
+		injector.setValueHash(util::kServerValue, 0);
+		injector.setValueHash(util::kSubServerValue, 0);
+		injector.setValueHash(util::kPositionValue, 0);
+		emit signalDispatcher.applyHashSettingsToUI();
 		return true;
 	}
 	default:
@@ -689,24 +860,30 @@ void MainForm::updateStatusText()
 	ui.groupBox_basicinfo->setTitle(tr("basic info - count:%1, subscript:%2").arg(interfaceCount_).arg(interpreter_hash_.size()));
 }
 
-MainForm* MainForm::createNewWindow(qint64 index)
+MainForm* MainForm::createNewWindow(qint64 idToAllocate, qint64* pId)
 {
 	do
 	{
-		if (index < 0)
+		qint64 uniqueId = UniqueIdManager::getInstance().allocateUniqueId(idToAllocate);
+		if (uniqueId < 0)
 			break;
 
-		if (index >= SASH_MAX_THREAD)
+		if (uniqueId >= SASH_MAX_THREAD)
 			break;
 
-		if (g_mainFormHash.contains(index))
+		if (g_mainFormHash.contains(uniqueId))
 			break;
 
-		MainForm* pMainForm = new MainForm(index);
+		MainForm* pMainForm = new MainForm(uniqueId);
 		if (pMainForm == nullptr)
 			break;
 
-		g_mainFormHash.insert(index, pMainForm);
+		pMainForm->show();
+
+		g_mainFormHash.insert(uniqueId, pMainForm);
+
+		if (pId != nullptr)
+			*pId = uniqueId;
 		return pMainForm;
 	} while (false);
 
@@ -814,11 +991,11 @@ MainForm::MainForm(qint64 index, QWidget* parent)
 			ui.tabWidget_main->addTab(pScriptForm_, tr("script"));
 		}
 
-		pLuaScriptForm_ = new LuaScriptForm(index);
-		if (pLuaScriptForm_)
-		{
-			ui.tabWidget_main->addTab(pLuaScriptForm_, tr("lua"));
-		}
+		//pLuaScriptForm_ = new LuaScriptForm(index);
+		//if (pLuaScriptForm_)
+		//{
+		//	ui.tabWidget_main->addTab(pLuaScriptForm_, tr("lua"));
+		//}
 	}
 
 	resetControlTextLanguage();
@@ -842,10 +1019,9 @@ MainForm::~MainForm()
 	qint64 currentIndex = getIndex();
 	Injector::getInstance(currentIndex).close();
 	g_mainFormHash.remove(currentIndex);
-	ThreadManager& threadManager = ThreadManager::getInstance();
-	threadManager.wait(currentIndex);
 	SignalDispatcher::remove(currentIndex);
-	//MINT::NtTerminateProcess(GetCurrentProcess(), 0);
+	if (g_mainFormHash.isEmpty())
+		MINT::NtTerminateProcess(GetCurrentProcess(), 0);
 }
 
 void MainForm::showEvent(QShowEvent* e)
@@ -912,10 +1088,15 @@ void MainForm::onMenuActionTriggered()
 					}
 				});
 			trayIcon->setToolTip(windowTitle());
+			hide();
+			trayIcon->showMessage(tr("Tip"), tr("The program has been minimized to the system tray"), QSystemTrayIcon::Information, 5000);
+			trayIcon->show();
 		}
-		hide();
-		trayIcon->showMessage(tr("Tip"), tr("The program has been minimized to the system tray"), QSystemTrayIcon::Information, 2000);
-		trayIcon->show();
+		else
+		{
+			trayIcon->activated(QSystemTrayIcon::DoubleClick);
+		}
+
 		return;
 	}
 
@@ -1379,7 +1560,7 @@ void MainForm::onLoadHashSettings(const QString& name, bool isFullPath)
 }
 
 //消息框
-void MainForm::onMessageBoxShow(const QString& text, qint64 type, qint64* pnret)
+void MainForm::onMessageBoxShow(const QString& text, qint64 type, QString title, qint64* pnret)
 {
 	QMessageBox::StandardButton button = QMessageBox::StandardButton::NoButton;
 
@@ -1392,25 +1573,36 @@ void MainForm::onMessageBoxShow(const QString& text, qint64 type, qint64* pnret)
 	newText.replace("\\f", "\f");
 	newText.replace("\\a", "\a");
 
+	if (title.isEmpty())
+	{
+		if (type == 2)
+			title = tr("warning");
+		else if (type == 3)
+			title = tr("critical");
+		else
+			title = tr("info");
+	}
+
+
 	if (pnret)
 	{
 		if (type == 2)
-			button = QMessageBox::warning(this, tr("warning"), newText, QMessageBox::StandardButton::Yes | QMessageBox::StandardButton::No, QMessageBox::No);
+			button = QMessageBox::warning(this, title, newText, QMessageBox::StandardButton::Yes | QMessageBox::StandardButton::No, QMessageBox::No);
 		else if (type == 3)
-			button = QMessageBox::critical(this, tr("critical"), newText, QMessageBox::StandardButton::Yes | QMessageBox::StandardButton::No, QMessageBox::No);
+			button = QMessageBox::critical(this, title, newText, QMessageBox::StandardButton::Yes | QMessageBox::StandardButton::No, QMessageBox::No);
 		else
-			button = QMessageBox::information(this, tr("info"), newText, QMessageBox::StandardButton::Yes | QMessageBox::StandardButton::No, QMessageBox::No);
+			button = QMessageBox::information(this, title, newText, QMessageBox::StandardButton::Yes | QMessageBox::StandardButton::No, QMessageBox::No);
 
 		*pnret = button;
 	}
 	else
 	{
 		if (type == 2)
-			button = QMessageBox::warning(this, tr("warning"), newText);
+			button = QMessageBox::warning(this, title, newText);
 		else if (type == 3)
-			button = QMessageBox::critical(this, tr("critical"), newText);
+			button = QMessageBox::critical(this, title, newText);
 		else
-			button = QMessageBox::information(this, tr("info"), newText);
+			button = QMessageBox::information(this, title, newText);
 	}
 
 }

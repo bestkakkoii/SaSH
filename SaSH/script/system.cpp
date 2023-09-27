@@ -236,13 +236,13 @@ qint64 Interpreter::announce(qint64 currentIndex, qint64 currentLine, const Toke
 	qint64 nnumber = 0;
 	bool boolean = false;
 
-	if (checkNumber(TK, 1, &number))
-	{
-		text = util::toQString(number);
-	}
-	else if (checkBoolean(TK, 1, &boolean))
+	if (checkBoolean(TK, 1, &boolean))
 	{
 		text = util::toQString(boolean);
+	}
+	else if (checkNumber(TK, 1, &number))
+	{
+		text = util::toQString(number);
 	}
 	else if (!checkString(TK, 1, &text))
 	{
@@ -314,53 +314,6 @@ qint64 Interpreter::input(qint64 currentIndex, qint64 currentLine, const TokenMa
 	checkInteger(TK, 3, &dialogid);
 
 	injector.server->inputtext(text, dialogid, npcId);
-
-	return Parser::kNoChange;
-}
-
-qint64 Interpreter::messagebox(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
-{
-	QString text;
-	qreal number = 0.0;
-	qint64 nnumber = 0;
-	bool boolean = false;
-
-	if (checkNumber(TK, 1, &number))
-	{
-		text = util::toQString(number);
-	}
-	else if (checkBoolean(TK, 1, &boolean))
-	{
-		text = util::toQString(boolean);
-	}
-	else if (!checkString(TK, 1, &text))
-	{
-		if (checkInteger(TK, 1, &nnumber))
-			text = util::toQString(nnumber);
-		else
-			text = TK.value(1).data.toString();
-	}
-
-	qint64 type = 0;
-	checkInteger(TK, 2, &type);
-
-	QString varName;
-	checkString(TK, 3, &varName);
-
-
-	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
-
-	if (varName.isEmpty())
-		emit signalDispatcher.messageBoxShow(text, type, nullptr);
-	else
-	{
-		qint64 nret = QMessageBox::StandardButton::NoButton;
-		emit signalDispatcher.messageBoxShow(text, type, &nret);
-		if (nret != QMessageBox::StandardButton::NoButton)
-		{
-			parser_.insertVar(varName, nret == QMessageBox::StandardButton::Yes ? "yes" : "no");
-		}
-	}
 
 	return Parser::kNoChange;
 }
@@ -742,88 +695,6 @@ qint64 Interpreter::loadsetting(qint64 currentIndex, qint64 currentLine, const T
 
 ///////////////////////////////////////////////////////////////
 
-qint64 Interpreter::dlg(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
-{
-	Injector& injector = Injector::getInstance(currentIndex);
-
-	if (injector.server.isNull())
-		return Parser::kServerNotReady;
-
-	QString varName = TK.value(1).data.toString();
-	if (varName.isEmpty())
-		return Parser::kArgError + 1ll;
-
-	QString buttonStrs;
-	checkString(TK, 2, &buttonStrs);
-	if (buttonStrs.isEmpty())
-		return Parser::kArgError + 2ll;
-
-	QString text;
-	if (!checkString(TK, 3, &text))
-		return Parser::kArgError + 3ll;
-
-	qint64 timeout = DEFAULT_FUNCTION_TIMEOUT;
-	checkInteger(TK, 4, &timeout);
-
-	checkOnlineThenWait();
-	checkBattleThenWait();
-
-	text.replace("\\n", "\n");
-
-	buttonStrs = buttonStrs.toUpper();
-	QStringList buttonStrList = buttonStrs.split(util::rexOR, Qt::SkipEmptyParts);
-	util::SafeVector<qint64> buttonVec;
-	quint32 buttonFlag = 0;
-	for (const QString& str : buttonStrList)
-	{
-		if (!buttonMap.contains(str))
-			return Parser::kArgError + 2ll;
-		quint32 value = buttonMap.value(str);
-		buttonFlag |= value;
-	}
-
-	injector.server->IS_WAITFOR_CUSTOM_DIALOG_FLAG = true;
-	injector.server->createRemoteDialog(buttonFlag, text);
-	bool bret = waitfor(timeout, [&injector]() { return !injector.server->IS_WAITFOR_CUSTOM_DIALOG_FLAG; });
-	QHash<QString, BUTTON_TYPE> big5 = {
-		{ "OK", BUTTON_OK},
-		{ "CANCEL", BUTTON_CANCEL },
-		//big5
-		{ u8"確定", BUTTON_YES },
-		{ u8"取消", BUTTON_NO },
-		{ u8"上一頁", BUTTON_PREVIOUS },
-		{ u8"下一頁", BUTTON_NEXT },
-	};
-
-	QHash<QString, BUTTON_TYPE> gb2312 = {
-		{ "OK", BUTTON_OK},
-		{ "CANCEL", BUTTON_CANCEL },
-		//gb2312
-		{ u8"确定", BUTTON_YES },
-		{ u8"取消", BUTTON_NO },
-		{ u8"上一页", BUTTON_PREVIOUS },
-		{ u8"下一页", BUTTON_NEXT },
-	};
-	UINT acp = GetACP();
-
-	customdialog_t dialog = injector.server->customDialog;
-	QString type;
-	if (acp == 950)
-		type = big5.key(dialog.button, "");
-	else
-		type = gb2312.key(dialog.button, "");
-
-	QVariant result;
-	if (type.isEmpty() && dialog.row > 0)
-		result = dialog.row;
-	else
-		result = type;
-
-	parser_.insertVar(varName, result);
-	injector.server->IS_WAITFOR_CUSTOM_DIALOG_FLAG = false;
-	return checkJump(TK, 6, bret, FailedJump);
-}
-
 qint64 Interpreter::ocr(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance(currentIndex);
@@ -852,7 +723,7 @@ qint64 Interpreter::ocr(qint64 currentIndex, qint64 currentLine, const TokenMap&
 			if (debugmode == 0)
 				injector.server->inputtext(ret);
 		}
-}
+	}
 #endif
 
 	return Parser::kNoChange;

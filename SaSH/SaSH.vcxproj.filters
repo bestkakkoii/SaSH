@@ -305,9 +305,6 @@
     <QtMoc Include="model\signaldispatcher.h">
       <Filter>Source Files\model</Filter>
     </QtMoc>
-    <QtMoc Include="mainthread.h">
-      <Filter>Source Files\main</Filter>
-    </QtMoc>
     <QtMoc Include="net\tcpserver.h">
       <Filter>Source Files\net</Filter>
     </QtMoc>
@@ -427,6 +424,9 @@
     </QtMoc>
     <QtMoc Include="form\battlesettingfrom.h">
       <Filter>Source Files\forms\afk</Filter>
+    </QtMoc>
+    <QtMoc Include="mainthread.h">
+      <Filter>Source Files\main</Filter>
     </QtMoc>
   </ItemGroup>
   <ItemGroup>

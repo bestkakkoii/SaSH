@@ -19,6 +19,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "stdafx.h"
 #include "mainform.h"
 #include "util.h"
+#include <QCommandLineParser>
 
 #pragma comment(lib, "ws2_32.lib")
 
@@ -301,8 +302,8 @@ void fontInitialize(const QString& currentWorkPath)
 		return QFontDatabase::addApplicationFont(fontFilePath);
 	};
 
-	installFont("JoysticMonospace.ttf");
 	installFont("YaHei Consolas Hybrid 1.12.ttf");
+	QFontDatabase::addApplicationFont(":/font/JoysticMonospace.ttf");
 
 	QFont font = util::getFont();
 	qApp->setFont(font);
@@ -379,17 +380,7 @@ int main(int argc, char* argv[])
 
 	//////// 以下必須在 QApplication a(argc, argv); 之後設置否則會崩潰 ////////
 
-	a.setStyle(QStyleFactory::create("windows"));
-	a.setDesktopSettingsAware(false);
-
-	//QOperatingSystemVersion version = QOperatingSystemVersion::current();
-	//if (version <= QOperatingSystemVersion::Windows7)
-	//{
-	//	QMessageBox::critical(nullptr, "Fatal Error", "Sorry Windows 7 or lower platform is not supported");
-	//	return -1;
-	//}
-
-		//調試相關設置
+	//調試相關設置
 #if QT_NO_DEBUG
 	qInstallMessageHandler(qtMessageHandler);
 	SetUnhandledExceptionFilter(MinidumpCallback); //SEH
@@ -398,6 +389,10 @@ int main(int argc, char* argv[])
 #else
 	qSetMessagePattern("[%{threadid}] [@%{line}] [%{function}] [%{type}] %{message}");//%{file} 
 #endif
+
+
+	a.setStyle(QStyleFactory::create("windows"));
+	a.setDesktopSettingsAware(false);
 
 	//Qt全局編碼設置
 	QTextCodec* codec = QTextCodec::codecForName(util::DEFAULT_CODEPAGE);
@@ -451,37 +446,48 @@ int main(int argc, char* argv[])
 	}
 
 	//實例化單個或多個主窗口
-	QList<qint64 > intList;
-	qDebug() << "argc:" << argc;
-	qDebug() << "argv[0]:" << argv[0];
-	for (qint64 i = 1; i < argc; ++i)
+
+	 // 解析啟動參數
+	QCommandLineParser parser;
+	parser.addHelpOption();
+	parser.addPositionalArgument("ids", "Unique IDs to allocate.", "[id1] [id2] ...");
+
+	parser.process(a);
+
+	QStringList args = parser.positionalArguments();
+	QList<qint64> uniqueIdsToAllocate;
+	// 解析啟動參數中的ID
+	for (const QString& arg : args)
 	{
-		if (i >= SASH_MAX_THREAD)
-			break;
-
-		qint64 intValue = QString(argv[i]).toUInt();
-		if (intList.contains(i))
-			continue;
-
-		intList.append(intValue);
+		bool ok;
+		qint64 id = arg.toLongLong(&ok);
+		if (ok && !uniqueIdsToAllocate.contains(id) && id >= 0 && id < SASH_MAX_THREAD)
+		{
+			uniqueIdsToAllocate.append(id);
+		}
 	}
-	std::sort(intList.begin(), intList.end());
-	qDebug() << "intList:" << intList;
+	std::sort(uniqueIdsToAllocate.begin(), uniqueIdsToAllocate.end());
+	qDebug() << "Unique IDs to allocate:" << uniqueIdsToAllocate;
+
+	if (uniqueIdsToAllocate.isEmpty())
+		uniqueIdsToAllocate.append(-1);
 
 	extern util::SafeHash<qint64, MainForm*> g_mainFormHash;
-	if (intList.isEmpty())
+
+	// 分配並輸出唯一ID
+	for (qint64 idToAllocate : uniqueIdsToAllocate)
 	{
-		MainForm* w = new MainForm(0);
-		w->show();
-		g_mainFormHash.insert(0, w);
-	}
-	else
-	{
-		for (const qint64 it : intList)
+		qint64 uniqueId = -1;
+		MainForm* w = MainForm::createNewWindow(idToAllocate, &uniqueId);
+		if (w != nullptr)
 		{
-			MainForm* w = new MainForm(it);
-			w->show();
-			g_mainFormHash.insert(it, w);
+			qDebug() << "Allocated unique ID:" << uniqueId;
+		}
+		else
+		{
+			qDebug() << "Failed to allocate unique ID for input ID:" << idToAllocate;
+			a.quit();
+			return -1;
 		}
 	}
 

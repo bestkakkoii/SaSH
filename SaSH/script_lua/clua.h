@@ -115,7 +115,7 @@ namespace luadebug
 	static const QRegularExpression reGetLineEx(R"(\]:(\d+)(?=\s*:))");
 	Q_REQUIRED_RESULT QString getErrorMsgLocatedLine(const QString& str, qint64* retline);
 
-	QPair<QString, QString> getVars(lua_State*& L, qint64 si, qint64 depth);
+	QPair<QString, QVariant> getVars(lua_State*& L, qint64 si, qint64 depth);
 	QString getTableVars(lua_State*& L, qint64 si, qint64 depth);
 
 	void hookProc(lua_State* L, lua_Debug* ar);
@@ -329,7 +329,7 @@ public:
 	void setMax(qint64 max) { max_ = max; }
 	void setSubScript(bool isSubScript) { isSubScript_ = isSubScript; }
 	void setHookForStop(bool isHookForStop) { lua_["_HOOKFORSTOP"] = isHookForStop; }
-
+	void setHookEnabled(bool isHookEnabled) { isHookEnabled_ = isHookEnabled; }
 private:
 	void open_enumlibs();
 	void open_testlibs();
@@ -353,6 +353,7 @@ private:
 	QString scriptContent_;
 	bool isSubScript_ = false;
 	bool isDebug_ = false;
+	bool isHookEnabled_ = true;
 	std::atomic_bool isRunning_ = false;
 
 private:

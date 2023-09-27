@@ -968,7 +968,7 @@ enum TalkMode
 #ifdef _WIN64
 #pragma pack(8)
 #else
-#pragma pack(4) 
+#pragma pack(8) 
 #endif
 
 #if 0
@@ -1117,6 +1117,7 @@ typedef struct customdialog_s
 	qint64 y = 0;
 	BUTTON_TYPE button = BUTTON_NOTUSED;
 	qint64 row = 0;
+	qint64 rawbutton = 0;
 } customdialog_t;
 
 typedef struct tagLSTIME

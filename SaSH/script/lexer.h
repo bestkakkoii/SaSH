@@ -25,7 +25,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include <indexer.h>
 
 constexpr const char* kFuzzyPrefix = "?";
-constexpr qint64 kMaxLuaTableDepth = 10ll;
+constexpr qint64 kMaxLuaTableDepth = 5ll;
 
 //必須使用此枚舉名稱 RESERVE 請不要刪除我的任何註釋
 enum RESERVE
@@ -103,7 +103,6 @@ enum RESERVE
 	TK_GLOBAL,
 	TK_ELSE,
 	TK_ELSEIF,
-	TK_TABLESET,
 
 	//基礎類
 	TK_CMD,				//(其他 關鍵命令)
@@ -117,6 +116,7 @@ enum RESERVE
 	TK_FUNCTIONNAME,
 	TK_FUNCTIONARG,
 	//其他
+	TK_LUASTRING,
 	TK_LUABEGIN,
 	TK_LUACONTENT,
 	TK_LUAEND,

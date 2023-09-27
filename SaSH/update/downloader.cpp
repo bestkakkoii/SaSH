@@ -233,9 +233,6 @@ Downloader::Downloader(QWidget* parent)
 		, GWL_EXSTYLE, GetWindowLong((HWND)winId(), GWL_EXSTYLE) ^ WS_EX_LAYERED);
 	::SetLayeredWindowAttributes((HWND)winId(), NULL, 0, LWA_ALPHA);
 
-	//install font
-	QFontDatabase::addApplicationFont(util::applicationDirPath() + "/JoysticMonospace.ttf");
-
 	QFont font = util::getFont();
 	font.setFamily("JoysticMonospace");
 	font.setPointSize(9);

@@ -236,7 +236,8 @@ qint64 CLuaMap::findPath(qint64 x, qint64 y, qint64 steplen, qint64 timeout, sol
 
 	std::vector<QPoint> path;
 	QElapsedTimer timer; timer.start();
-	if (mapAnalyzer.isNull() || !mapAnalyzer->calcNewRoute(_map, src, dst, &path))
+	QSet<QPoint> blockList;
+	if (mapAnalyzer.isNull() || !mapAnalyzer->calcNewRoute(_map, src, dst, blockList, &path))
 	{
 		if (!noAnnounce && !injector.server.isNull())
 			injector.server->announce(QObject::tr("<findpath>unable to findpath"));//"<尋路>找不到路徑"
@@ -335,7 +336,7 @@ qint64 CLuaMap::findPath(qint64 x, qint64 y, qint64 steplen, qint64 timeout, sol
 				return TRUE;//已抵達true
 			}
 
-			if (mapAnalyzer.isNull() || !mapAnalyzer->calcNewRoute(_map, src, dst, &path))
+			if (mapAnalyzer.isNull() || !mapAnalyzer->calcNewRoute(_map, src, dst, blockList, &path))
 				break;
 
 			pathsize = path.size();

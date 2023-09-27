@@ -929,6 +929,11 @@ color: rgb(208, 208, 208);
             </item>
             <item>
              <property name="text">
+              <string>waitpos</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
               <string>waitpet</string>
              </property>
             </item>
@@ -2272,7 +2277,7 @@ margin-right:0px;
            <enum>QTabWidget::South</enum>
           </property>
           <property name="currentIndex">
-           <number>1</number>
+           <number>0</number>
           </property>
           <widget class="OpenGLWidget" name="tab_6">
            <attribute name="title">

@@ -108,7 +108,7 @@ public:
 	virtual ~MapAnalyzer();
 	bool __fastcall readFromBinary(qint64  floor, const QString& name, bool enableDraw = false, bool enableRewrite = false);
 	bool __fastcall getMapDataByFloor(qint64  floor, map_t* map);
-	bool __fastcall calcNewRoute(const map_t& map, const QPoint& src, const QPoint& dst, std::vector<QPoint>* pPaths);
+	bool __fastcall calcNewRoute(const map_t& map, const QPoint& src, const QPoint& dst, const QSet<QPoint>& blockList, std::vector<QPoint>* pPaths);
 	inline void clear() { maps_.clear(); pixMap_.clear(); }
 	inline void clear(qint64 floor) { maps_.remove(floor); pixMap_.remove(floor); }
 	bool __fastcall saveAsBinary(map_t map, const QString& fileName);
@@ -194,8 +194,8 @@ public:
 
 private:
 	QString directory = "";
-	util::SafeHash<qint64, QPixmap> pixMap_;
-	util::SafeHash<qint64, map_t> maps_;
+	static util::SafeHash<qint64, QPixmap> pixMap_;
+	static util::SafeHash<qint64, map_t> maps_;
 	QMutex mutex_;
 
 };

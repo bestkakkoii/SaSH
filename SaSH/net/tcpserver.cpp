@@ -420,14 +420,18 @@ void Server::onWrite(QTcpSocket* clientSocket, QByteArray ba, qint64 size)
 bool Server::handleCustomMessage(QTcpSocket* clientSocket, const QByteArray& badata)
 {
 	QString preStr = util::toQString(badata);
-	if (preStr.startsWith("dc"))
+	qint64 indexEof = preStr.indexOf("\n");
+	//\n之後的移除
+	preStr = preStr.left(indexEof);
+
+	if (preStr.startsWith("dc|"))
 	{
 		setBattleFlag(false);
 		setOnlineFlag(false);
 		return true;
 	}
 
-	if (preStr.startsWith("bPK"))
+	if (preStr.startsWith("bpk|"))
 	{
 		qint64 currentIndex = getIndex();
 		Injector& injector = Injector::getInstance(currentIndex);
@@ -1780,11 +1784,6 @@ qint64 Server::getFloor()
 	return floor;
 }
 
-void Server::setFloor(qint64 floor)
-{
-	nowFloor_ = floor;
-}
-
 QString Server::getFloorName()
 {
 	QReadLocker locker(&pointMutex_);
@@ -1799,6 +1798,7 @@ QString Server::getFloorName()
 		return "";
 
 	QString mapname = mem::readString(hProcess, hModule + kOffsetNowFloorName, FLOOR_NAME_LEN, true);
+	makeStringFromEscaped(mapname);
 	if (mapname != nowFloorName_)
 	{
 		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(getIndex());
@@ -2061,6 +2061,37 @@ bool Server::matchPetNameByIndex(qint64 index, const QString& cmpname)
 		return true;
 
 	return false;
+}
+
+qint64 Server::getProfessionSkillIndexByName(const QString& names) const
+{
+	qint64 i = 0;
+	bool isExact = true;
+	QStringList list = names.split(util::rexOR, Qt::SkipEmptyParts);
+	for (QString name : list)
+	{
+		if (name.isEmpty())
+			continue;
+
+		if (name.startsWith("?"))
+		{
+			name = name.mid(1);
+			isExact = false;
+		}
+
+		for (i = 0; i < MAX_PROFESSION_SKILL; ++i)
+		{
+			if (!profession_skill[i].valid)
+				continue;
+
+			if (isExact && profession_skill[i].name == name)
+				return i;
+			else if (!isExact && profession_skill[i].name.contains(name))
+				return i;
+
+		}
+	}
+	return -1;
 }
 #pragma endregion
 
@@ -2369,6 +2400,19 @@ void Server::setBattleFlag(bool enable)
 	mem::write<int>(hProcess, hModule + 0x415F4EC, 30);
 }
 
+void Server::setOnlineFlag(bool enable)
+{
+	{
+		QWriteLocker lock(&onlineStateLocker);
+		IS_ONLINE_FLAG.store(enable, std::memory_order_release);
+	}
+
+	if (!enable)
+	{
+		setBattleEnd();
+	}
+}
+
 void Server::setWindowTitle()
 {
 	qint64 currentIndex = getIndex();
@@ -2409,6 +2453,11 @@ void Server::setPoint(const QPoint& pos)
 	HANDLE hProcess = injector.getProcess();
 	if (hProcess == 0 || hProcess == INVALID_HANDLE_VALUE)
 		return;
+
+	if (nowPoint_ != pos)
+	{
+		nowPoint_ = pos;
+	}
 
 	mem::write<int>(hProcess, hModule + kOffsetNowX, pos.x());
 	mem::write<int>(hProcess, hModule + kOffsetNowY, pos.y());
@@ -3278,7 +3327,7 @@ bool Server::login(qint64 s)
 
 #pragma region WindowPacket
 //創建對話框
-void Server::createRemoteDialog(qint64 button, const QString& text)
+void Server::createRemoteDialog(quint64 type, quint64 button, const QString& text)
 {
 	if (!getOnlineFlag())
 		return;
@@ -3290,7 +3339,7 @@ void Server::createRemoteDialog(qint64 button, const QString& text)
 
 	util::VirtualMemory ptr(injector.getProcess(), text, util::VirtualMemory::kAnsi, true);
 
-	injector.sendMessage(Injector::kCreateDialog, button, ptr);
+	injector.sendMessage(Injector::kCreateDialog, MAKEWPARAM(type, button), ptr);
 }
 
 void Server::press(BUTTON_TYPE select, qint64 dialogid, qint64 unitid)
@@ -4203,7 +4252,7 @@ void Server::checkAutoLockPet()
 //下載指定坐標 24 * 24 大小的地圖塊
 void Server::downloadMap(qint64 x, qint64 y, qint64 floor)
 {
-	QWriteLocker locker(&pointMutex_);
+	QMutexLocker locker(&net_mutex);
 	lssproto_M_send(floor == -1 ? getFloor() : floor, x, y, x + 24, y + 24);
 }
 
@@ -4438,10 +4487,10 @@ void Server::setCharFaceDirection(const QString& dirStr)
 	qint64 dir = -1;
 	QString qdirStr;
 	const QString dirchr = "ABCDEFGH";
-	if (!dirhash.contains(dirStr))
+	if (!dirhash.contains(dirStr.toUpper()))
 	{
 		QRegularExpression re(u8"[A-H]");
-		QRegularExpressionMatch match = re.match(dirStr);
+		QRegularExpressionMatch match = re.match(dirStr.toUpper());
 		if (!match.hasMatch())
 			return;
 		qdirStr = match.captured(0);
@@ -4449,7 +4498,6 @@ void Server::setCharFaceDirection(const QString& dirStr)
 	}
 	else
 	{
-
 		dir = dirchr.indexOf(dirhash.value(dirStr), 0, Qt::CaseInsensitive);
 		qdirStr = dirhash.value(dirStr);
 	}
@@ -10633,13 +10681,9 @@ void Server::lssproto_MC_recv(int fl, int x1, int y1, int x2, int y2, int tileSu
 	getStringToken(showString, "|", 1, floorName);
 	makeStringFromEscaped(floorName);
 
-	//static const QRegularExpression re(R"(\\z(\d*))");
-	//if (floorName.contains(re))
-	//	floorName.remove(re);
-
 	getStringToken(showString, "|", 2, strPal);
 
-	getFloorName();
+	Q_UNUSED(getFloorName());
 }
 
 //地圖數據更新，重新寫入地圖
@@ -10659,11 +10703,7 @@ void Server::lssproto_M_recv(int fl, int x1, int y1, int x2, int y2, char* cdata
 	getStringToken(showString, "|", 1, floorName);
 	makeStringFromEscaped(floorName);
 
-	//static const QRegularExpression re(R"(\\z(\d*))");
-	//if (floorName.contains(re))
-	//	floorName.remove(re);
-
-	getFloorName();
+	Q_UNUSED(getFloorName());
 }
 
 //周圍人、NPC..等等數據
@@ -11334,7 +11374,7 @@ void Server::lssproto_S_recv(char* cdata)
 		maxy = getIntegerToken(data, "|", 3);
 		gx = getIntegerToken(data, "|", 4);
 		gy = getIntegerToken(data, "|", 5);
-		getFloor();
+		Q_UNUSED(getFloor());
 #ifdef __SKYISLAND
 		extern void SkyIslandSetNo(qint64 fl);
 		SkyIslandSetNo(fl);
@@ -13072,13 +13112,15 @@ void Server::lssproto_CHAREFFECT_recv(char* cdata)
 void Server::lssproto_CustomWN_recv(const QString& data)
 {
 	QStringList dataList = data.split(util::rexOR, Qt::SkipEmptyParts);
-	if (dataList.size() != 4)
+	if (dataList.size() != 4 && dataList.size() != 3)
 		return;
 
 	qint64 x = dataList.at(0).toLongLong();
 	qint64 y = dataList.at(1).toLongLong();
-	BUTTON_TYPE button = static_cast<BUTTON_TYPE>(dataList[2].toLongLong());
-	QString dataStr = dataList.at(3);
+	BUTTON_TYPE button = static_cast<BUTTON_TYPE>(dataList.at(2).toLongLong());
+	QString dataStr = "";
+	if (dataList.size() == 4)
+		dataStr = dataList.at(3);
 	qint64 row = -1;
 	bool ok = false;
 	qint64 tmp = dataStr.toLongLong(&ok);
@@ -13092,6 +13134,7 @@ void Server::lssproto_CustomWN_recv(const QString& data)
 	_customDialog.y = y;
 	_customDialog.button = button;
 	_customDialog.row = row;
+	_customDialog.rawbutton = dataList.at(2).toLongLong();
 	customDialog = _customDialog;
 	IS_WAITFOR_CUSTOM_DIALOG_FLAG = false;
 }

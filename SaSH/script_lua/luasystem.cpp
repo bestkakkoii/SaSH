@@ -111,49 +111,50 @@ qint64 CLuaSystem::announce(sol::object maybe_defaulted, sol::object ocolor, sol
 	{
 		bool value = maybe_defaulted.as<bool>();
 		raw = util::toQString(value);
-		msg = "(boolean)" + raw;
+		msg = raw;
 	}
 	else if (maybe_defaulted.is<qlonglong>())
 	{
 		const qlonglong value = maybe_defaulted.as<qlonglong>();
 		raw = util::toQString(value);
-		msg = "(integer)" + raw;
+		msg = raw;
 	}
 	else if (maybe_defaulted.is<qreal>())
 	{
 		const qreal value = maybe_defaulted.as<qreal>();
 		raw = util::toQString(value);
-		msg = "(number)" + raw;
+		msg = raw;
 	}
 	else if (maybe_defaulted.is<std::string>())
 	{
 		raw = util::toQString(maybe_defaulted);
-		msg = "(string)" + raw;
+		msg = raw;
 	}
 	else if (maybe_defaulted.is<const char*>())
 	{
 		raw = (maybe_defaulted.as<const char*>());
-		msg = "(string)" + raw;
+		msg = raw;
 	}
 	else if (maybe_defaulted.is<sol::table>())
 	{
 		//print table
-		raw = luadebug::getTableVars(s.L, 1, 10);
-		msg = "(table)\r\n" + raw;
+		raw = luadebug::getTableVars(s.L, 1, 50);
+		msg = raw;
 
 	}
 	else
 	{
+		QString pointerStr = util::toQString(reinterpret_cast<qint64>(maybe_defaulted.pointer()), 16);
 		//print type name
 		switch (maybe_defaulted.get_type())
 		{
-		case sol::type::function: msg = "(function)"; break;
-		case sol::type::userdata: msg = "(userdata)"; break;
-		case sol::type::thread: msg = "(thread)"; break;
-		case sol::type::lightuserdata: msg = "(lightuserdata)"; break;
-		case sol::type::none: msg = "(none)"; break;
-		case sol::type::poly: msg = "(poly)"; break;
-		default: msg = "print error: other type, unable to show"; break;
+		case sol::type::function: msg = "(function) 0x" + pointerStr; break;
+		case sol::type::userdata: msg = "(userdata) 0x" + pointerStr; break;
+		case sol::type::thread: msg = "(thread) 0x" + pointerStr; break;
+		case sol::type::lightuserdata: msg = "(lightuserdata) 0x" + pointerStr; break;
+		case sol::type::none: msg = "(none) 0x" + pointerStr; break;
+		case sol::type::poly: msg = "(poly) 0x" + pointerStr; break;
+		default: msg = "print error: unknown type that is unable to show"; break;
 		}
 	}
 
@@ -170,8 +171,6 @@ qint64 CLuaSystem::announce(sol::object maybe_defaulted, sol::object ocolor, sol
 	}
 
 	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
-	sol::safe_function print = lua["_print"];
-
 	bool split = false;
 	QStringList l;
 	if (msg.contains("\r\n"))
@@ -197,16 +196,12 @@ qint64 CLuaSystem::announce(sol::object maybe_defaulted, sol::object ocolor, sol
 	{
 		for (const QString& it : l)
 		{
-			if (print.valid())
-				print(it.toUtf8().constData());
 			if (announceOk)
 				injector.server->announce(it, color);
 		}
 	}
 	else
 	{
-		if (print.valid())
-			print(msg.toUtf8().constData());
 		if (announceOk)
 			injector.server->announce(msg, color);
 	}
@@ -237,7 +232,7 @@ qint64 CLuaSystem::messagebox(sol::object ostr, sol::object otype, sol::this_sta
 		luadebug::tryPopCustomErrorMsg(s, luadebug::ERROR_PARAM_TYPE, false, 2, QObject::tr("invalid value of 'type'"));
 
 	qint64 nret = QMessageBox::StandardButton::NoButton;
-	emit signalDispatcher.messageBoxShow(text, type, &nret);
+	emit signalDispatcher.messageBoxShow(text, type, "", &nret);
 	if (nret != QMessageBox::StandardButton::NoButton)
 	{
 		return nret;

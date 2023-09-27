@@ -423,6 +423,8 @@ public:
 
 	void insertGlobalVar(const QString& name, const QVariant& value);
 
+	void insertLocalVar(const QString& name, const QVariant& value);
+
 	void insertVar(const QString& name, const QVariant& value);
 
 	void setLuaMachinePointer(sol::state* pLua);
@@ -440,7 +442,7 @@ private:
 	void processVariableExpr();
 	void processVariable();
 	void processTable();
-	void processTableSet(const QString& preVarName = "", const QVariant& value = QVariant("nil"));
+	void processLuaString();
 	void processFormation();
 	bool processCall(RESERVE reserve);
 	bool processGoto();
@@ -491,8 +493,6 @@ private:
 	Q_REQUIRED_RESULT QVariant getLocalVarValue(const QString& name);
 
 	void removeLocalVar(const QString& name);
-
-	void insertLocalVar(const QString& name, const QVariant& value);
 
 	void removeGlobalVar(const QString& name);
 

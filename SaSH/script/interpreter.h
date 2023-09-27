@@ -77,7 +77,15 @@ private:
 private:
 	bool checkBattleThenWait();
 	bool checkOnlineThenWait();
-	bool findPath(qint64 currentIndex, qint64 currentLine, QPoint dst, qint64 steplen, qint64 step_cost = 0, qint64 timeout = DEFAULT_FUNCTION_TIMEOUT * 36, std::function<qint64(QPoint& dst)> callback = nullptr, bool noAnnounce = false);
+	bool __fastcall findPath(
+		qint64 currentIndex,
+		qint64 currentLine,
+		QPoint dst,
+		qint64 steplen,
+		qint64 step_cost = 0,
+		qint64 timeout = DEFAULT_FUNCTION_TIMEOUT * 36,
+		std::function<qint64(QPoint& dst)> callback = nullptr,
+		bool noAnnounce = false);
 
 	bool waitfor(qint64 timeout, std::function<bool()> exprfun);
 	bool checkString(const TokenMap& TK, qint64 idx, QString* ret);
@@ -99,7 +107,6 @@ private: //註冊給Parser的函數
 	qint64 eo(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
 	qint64 announce(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
 	qint64 input(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
-	qint64 messagebox(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
 	qint64 talk(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
 	qint64 talkandannounce(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
 	qint64 logout(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
@@ -124,6 +131,7 @@ private: //註冊給Parser的函數
 	qint64 waitsay(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
 	qint64 waititem(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
 	qint64 waitpet(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
+	qint64 waitpos(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
 	//check-group
 	qint64 waitteam(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
 
@@ -186,7 +194,6 @@ private: //註冊給Parser的函數
 
 	//hide
 	qint64 ocr(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
-	qint64 dlg(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
 
 	//battle
 	qint64 bh(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);//atk

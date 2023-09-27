@@ -25,6 +25,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 constexpr const char* kDefaultSuffix = u8".dat";
 
+util::SafeHash<qint64, QPixmap> MapAnalyzer::pixMap_;
+util::SafeHash<qint64, map_t> MapAnalyzer::maps_;
+
 //不可通行地面、物件數據 或 傳點|樓梯
 #pragma region StaticTable
 //上樓樓梯
@@ -1114,20 +1117,19 @@ bool __fastcall MapAnalyzer::readFromBinary(qint64 floor, const QString& name, b
 	map.height = height;
 	map.name = name;
 
-	QHash<qint64, map_t>::iterator it = maps_.begin();
-	for (auto it = maps_.begin(); it != maps_.end(); ++it)
-	{
-		map_t& m = it.value();
-		if (m.floor == floor)
-			continue;
+	//QHash<qint64, map_t>::iterator it = maps_.begin();
+	//for (auto it = maps_.begin(); it != maps_.end(); ++it)
+	//{
+	//	map_t& m = it.value();
+	//	if (m.floor == floor)
+	//		continue;
 
-		qint64 time = m.timer.elapsed();
-		if (time >= (5 * 60ll * 60ll) && m.refCount < 50)
-		{
-			it.value().data.clear();
-			pixMap_.remove(it.key());
-		}
-	}
+	//	qint64 time = m.timer.elapsed();
+	//	if (time >= (5 * 60ll * 60ll) && m.refCount < 20)
+	//	{
+	//		pixMap_.remove(it.key());
+	//	}
+	//}
 
 	if (map.data.size() > 0
 		&& map.data.size() == (height * width)
@@ -1566,7 +1568,7 @@ bool __fastcall MapAnalyzer::saveAsBinary(map_t map, const QString& fileName)
 	return true;
 }
 
-bool __fastcall MapAnalyzer::calcNewRoute(const map_t& map, const QPoint& src, const QPoint& dst, std::vector<QPoint>* pPaths)
+bool __fastcall MapAnalyzer::calcNewRoute(const map_t& map, const QPoint& src, const QPoint& dst, const QSet<QPoint>& blockList, std::vector<QPoint>* pPaths)
 {
 	if (pPaths == nullptr)
 		return false;
@@ -1586,10 +1588,13 @@ bool __fastcall MapAnalyzer::calcNewRoute(const map_t& map, const QPoint& src, c
 	qint64 currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
 
-	Callback callback = [&map, &injector, isDstAsWarpPoint, &src](const QPoint& point)->bool
+	Callback callback = [&map, &blockList, &injector, isDstAsWarpPoint, &src](const QPoint& point)->bool
 	{
 		if (point == src)
 			return true;
+
+		if (blockList.contains(point))
+			return false;
 
 		//村內避免踩NPC
 		if (map.floor == 2000)
@@ -1616,7 +1621,7 @@ bool __fastcall MapAnalyzer::calcNewRoute(const map_t& map, const QPoint& src, c
 	};
 
 	CAStar astar;
-	CAStarParam param(map.height, map.width, false, callback, src, dst);
+	CAStarParam param(map.height, map.width, true, callback, src, dst);
 
 	return  astar.find(param, pPaths);
 }
@@ -1650,12 +1655,12 @@ bool __fastcall MapAnalyzer::isPassable(qint64 floor, const QPoint& src, const Q
 		BlockAllocator allocator;
 #endif
 		CAStar a;
-		const CAStarParam p(map.height, map.width, false, can_pass, src, dst);
+		const CAStarParam p(map.height, map.width, true, can_pass, src, dst);
 		return a.find(p, nullptr);
-	} while (false);
+		} while (false);
 
-	return bret;
-}
+		return bret;
+	}
 
 QString __fastcall MapAnalyzer::getGround(qint64 floor, const QString& name, const QPoint& src)
 {
@@ -1783,4 +1788,4 @@ qint64 __fastcall MapAnalyzer::calcBestFollowPointByDstPoint(qint64 floor, const
 	//計算方向
 	qint64 n = disV.at(0).dir + 4;
 	return ((n) <= (7)) ? (n) : ((n)-(MAX_DIR));//返回方向
-}
+	}

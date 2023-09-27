@@ -318,6 +318,92 @@ qint64 Interpreter::waitsay(qint64 currentIndex, qint64 currentLine, const Token
 	return checkJump(TK, 4, bret, FailedJump);
 }
 
+qint64 Interpreter::waitpos(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
+{
+	Injector& injector = Injector::getInstance(currentIndex);
+
+	if (injector.server.isNull())
+		return Parser::kServerNotReady;
+
+	checkOnlineThenWait();
+	checkBattleThenWait();
+
+	QString posStrs;
+	QStringList posStrList;
+	QList<QPoint> posList;
+	qint64 x = 0, y = 0;
+
+	qint64 timeoutIndex = 3;
+	qint64 jumpIndex = 4;
+
+	if (checkInteger(TK, 1, &x))
+	{
+		if (!checkInteger(TK, 2, &y))
+			return Parser::kArgError + 2ll;
+
+		posList.push_back(QPoint(x, y));
+	}
+	else if (checkString(TK, 1, &posStrs))
+	{
+		if (posStrs.isEmpty())
+			return Parser::kArgError + 1ll;
+
+		posStrList = posStrs.split(util::rexOR, Qt::SkipEmptyParts);
+		if (posStrList.isEmpty())
+			return Parser::kArgError + 1ll;
+
+		for (const QString& posStr : posStrList)
+		{
+			QStringList pos = posStr.split(util::rexComma, Qt::SkipEmptyParts);
+			if (pos.size() != 2)
+				continue;
+
+			bool ok1, ok2;
+			qint64 x = pos.at(0).toLongLong(&ok1);
+			qint64 y = pos.at(1).toLongLong(&ok2);
+			if (ok1 && ok2)
+				posList.push_back(QPoint(x, y));
+		}
+
+		if (posList.isEmpty())
+			return Parser::kArgError + 1ll;
+
+		timeoutIndex = 2;
+		jumpIndex = 3;
+	}
+	else
+		return Parser::kArgError + 1ll;
+
+	auto check = [&injector, posList]()
+	{
+		QPoint pos = injector.server->getPoint();
+		for (const QPoint& p : posList)
+		{
+			if (p == pos)
+				return true;
+		}
+		return false;
+	};
+
+	bool bret = false;
+	qint64 timeout = DEFAULT_FUNCTION_TIMEOUT;
+	checkInteger(TK, 3, &timeout);
+
+	if (timeout == 0)
+	{
+		bret = check();
+	}
+	else
+	{
+		bret = waitfor(timeout, [&check]()->bool
+			{
+				return check();
+			});
+	}
+
+	return checkJump(TK, 4, bret, FailedJump);
+}
+
 //check->group
 qint64 Interpreter::waitteam(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
 {

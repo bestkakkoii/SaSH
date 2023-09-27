@@ -262,6 +262,12 @@ extern "C"
 		GameService& g_GameService = GameService::getInstance();
 		return g_GameService.New_lssproto_TK_send(fd, x, y, message, color, area);
 	}
+
+	void __cdecl New_lssproto_W2_send(int fd, int x, int y, const char* dir)
+	{
+		GameService& g_GameService = GameService::getInstance();
+		return g_GameService.New_lssproto_W2_send(fd, x, y, dir);
+	}
 }
 
 //hooks
@@ -330,7 +336,7 @@ int WSAAPI GameService::New_closesocket(SOCKET s)
 			&& (cmps != INVALID_SOCKET) && (cmps > 0u)
 			&& (s == cmps))
 		{
-			sendToServer("dc 1");
+			sendToServer("dc|1\n");
 		}
 	}
 
@@ -410,7 +416,7 @@ void GameService::New_BattleProc()
 //每回合開始顯示戰鬥面板 (這裡只是切換面板時會順便調用到的函數)
 void GameService::New_BattleCommandReady()
 {
-	sendToServer("bPK 1");
+	sendToServer("bpk|1\n");
 
 	int* p = CONVERT_GAMEVAR<int*>(0x4230DF0ul);
 	++(*p);
@@ -452,7 +458,7 @@ void GameService::New_lssproto_WN_send(int fd, int x, int y, int dialogid, int u
 
 		std::cout << "send: " << str << std::endl;
 
-		sendToServer(str);
+		sendToServer(str + "\n");
 
 		return;
 	}
@@ -476,12 +482,19 @@ void GameService::New_lssproto_TK_send(int fd, int x, int y, const char* message
 
 		str += msg.substr(2u);
 
-		sendToServer(str);
+		sendToServer(str + "\n");
 
 		return;
 	}
 
 	pLssproto_TK_send(fd, x, y, message, color, area);
+}
+
+//W2移動收包攔截
+void GameService::New_lssproto_W2_send(int fd, int x, int y, const char* message)
+{
+	PostMessageW(g_ParenthWnd, util::kSetMove, NULL, MAKELPARAM(x, y));
+	pLssproto_W2_send(fd, x, y, message);
 }
 #pragma endregion
 
@@ -1066,7 +1079,7 @@ void GameService::WM_CleanChatHistory()
 }
 
 //創建對話框
-void GameService::WM_CreateDialog(int button, const char* data)
+void GameService::WM_CreateDialog(int type, int button, const char* data)
 {
 	if (nullptr == g_hGameModule)
 		return;
@@ -1083,14 +1096,14 @@ void GameService::WM_CreateDialog(int button, const char* data)
 	//call 00464AC0
 	//add esp, 18
 
-	using CreateDialog_t = void(_cdecl*)(int, int, int, int, int, const char*);
+	using CreateDialog_t = void(_cdecl*)(int, int type, int button, int unitid, int dialogid, const char* data);
 
 	CreateDialog_t createDialog = CONVERT_GAMEVAR<CreateDialog_t>(0x64AC0ul);
 
 	if (nullptr == createDialog)
 		return;
-
-	createDialog(0, 2, button, 0x10E1, 0x4D2, data);
+	std::cout << std::to_string(type) << " " << std::to_string(button) << std::endl;
+	createDialog(0, type, button, 0x10E1, 0x4D2, data);
 }
 
 void GameService::WM_SetBLockPacket(BOOL enable)
@@ -1359,7 +1372,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	}
 	case util::kCreateDialog:
 	{
-		g_GameService.WM_CreateDialog(static_cast<int>(wParam), reinterpret_cast<const char*>(lParam));
+		int type = LOWORD(wParam);
+		int button = HIWORD(wParam);
+		g_GameService.WM_CreateDialog(type, button, reinterpret_cast<const char*>(lParam));
 		return 1L;
 	}
 	default:
@@ -1457,6 +1472,7 @@ void GameService::initialize(__int64 index, HWND parentHwnd, unsigned short type
 	pLssproto_B_recv = CONVERT_GAMEVAR<pfnLssproto_B_recv>(0x64EF0ul);//戰鬥封包
 	pLssproto_WN_send = CONVERT_GAMEVAR<pfnLssproto_WN_send>(0x8FDC0ul);//對話框發送封包
 	pLssproto_TK_send = CONVERT_GAMEVAR<pfnLssproto_TK_send>(0x8F7C0ul);//喊話發送封包
+	pLssproto_W2_send = CONVERT_GAMEVAR<pfnLssproto_W2_send>(0x8EEA0ul);//喊話發送封包
 
 	/*
 		sa_8001.exe+91710 - FF 25 08C04900        - jmp dword ptr [sa_8001.exe+9C008] { ->DINPUT.DirectInputCreateA }
@@ -1560,6 +1576,7 @@ void GameService::initialize(__int64 index, HWND parentHwnd, unsigned short type
 	DetourAttach(&(PVOID&)pLssproto_B_recv, ::New_lssproto_B_recv);
 	DetourAttach(&(PVOID&)pLssproto_WN_send, ::New_lssproto_WN_send);
 	DetourAttach(&(PVOID&)pLssproto_TK_send, ::New_lssproto_TK_send);
+	DetourAttach(&(PVOID&)pLssproto_W2_send, ::New_lssproto_W2_send);
 
 	DetourTransactionCommit();
 
@@ -1638,6 +1655,7 @@ void GameService::uninitialize()
 	DetourDetach(&(PVOID&)pLssproto_B_recv, ::New_lssproto_B_recv);
 	DetourDetach(&(PVOID&)pLssproto_WN_send, ::New_lssproto_WN_send);
 	DetourDetach(&(PVOID&)pLssproto_TK_send, ::New_lssproto_TK_send);
+	DetourDetach(&(PVOID&)pLssproto_W2_send, ::New_lssproto_W2_send);
 
 	DetourTransactionCommit();
 

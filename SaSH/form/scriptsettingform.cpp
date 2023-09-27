@@ -368,7 +368,7 @@ void ScriptSettingForm::replaceCommas(QString& input)
 	input.replace(regexComma, ", ");
 
 	static const QRegularExpression regexLeft(R"(\s*(\{)\s*(?=(?:[^'"]*(['"])(?:[^'"]*\\.)*[^'"]*\2)*[^'"]*$))");
-	input.replace(regexLeft, "{ ");
+	input.replace(regexLeft, " { ");
 
 	static const QRegularExpression regexRight(R"((?=(?:[^'"]*(['"])(?:[^'"]*\\.)*[^'"]*\2)*[^'"]*)\s*(\})\s*$)");
 	input.replace(regexRight, " }");
@@ -459,6 +459,10 @@ void ScriptSettingForm::replaceCommas(QString& input)
 
 	if (!input.contains("for"))
 		input.replace(", ,", ", '',");
+
+	input.replace("< <=", "<<=");
+	input.replace("> >=", ">>=");
+	input.replace("{ }", "{}");
 }
 
 QString ScriptSettingForm::formatCode(QString content)
@@ -1357,9 +1361,9 @@ void ScriptSettingForm::on_treeWidget_functionList_itemSelectionChanged()
 		ui.textBrowser->setUpdatesEnabled(true);
 
 		return;
-	} while (false);
+		} while (false);
 
-}
+	}
 
 void ScriptSettingForm::on_treeWidget_scriptList_itemClicked(QTreeWidgetItem* item, int column)
 {
@@ -1710,7 +1714,6 @@ void ScriptSettingForm::onActionTriggered()
 			injector.scriptLogModel->clear();
 		fileSave(ui.widget->text(), QIODevice::WriteOnly | QIODevice::Truncate | QIODevice::Text);
 		emit signalDispatcher.loadFileToTable(injector.currentScriptFileName);
-		emit signalDispatcher.reloadScriptList();
 	}
 	else if (name == "actionStart")
 	{
@@ -1771,10 +1774,10 @@ void ScriptSettingForm::onActionTriggered()
 				file.flush();
 				file.close();
 				QDesktopServices::openUrl(QUrl::fromLocalFile(directoryName));
-			}
 		}
-		emit signalDispatcher.reloadScriptList();
 	}
+		emit signalDispatcher.reloadScriptList();
+}
 	else if (name == "actionDirectory")
 	{
 		QDesktopServices::openUrl(QUrl::fromLocalFile(util::applicationDirPath() + "/script"));
@@ -1818,17 +1821,17 @@ void ScriptSettingForm::onActionTriggered()
 					out << "" << Qt::endl;
 					file.flush();
 					file.close();
-				}
+			}
 
 				loadFile(strpath);
 
 				emit signalDispatcher.reloadScriptList();
 				break;
-			}
-			++num;
 		}
-
+			++num;
 	}
+
+}
 	else if (name == "actionSaveEncode")
 	{
 		onEncryptSave();
@@ -2210,10 +2213,10 @@ void ScriptSettingForm::onReloadScriptList()
 		ui.treeWidget_scriptList->addTopLevelItem(item);
 		//展開全部第一層
 		ui.treeWidget_scriptList->topLevelItem(0)->setExpanded(true);
-		for (qint64 i = 0; i < item->childCount(); ++i)
-		{
-			ui.treeWidget_scriptList->expandItem(item->child(i));
-		}
+		//for (qint64 i = 0; i < item->childCount(); ++i)
+		//{
+		//	ui.treeWidget_scriptList->expandItem(item->child(i));
+		//}
 
 		ui.treeWidget_scriptList->sortItems(0, Qt::AscendingOrder);
 
@@ -2438,106 +2441,111 @@ void ScriptSettingForm::createTreeWidgetItems(Parser* pparser, QList<QTreeWidget
 
 	QMap<QString, QVariant> map;
 
-	for (auto it = d.cbegin(); it != d.cend(); ++it)
+	if (!d.isEmpty())
 	{
-		map.insert(it.key(), it.value());
-	}
-
-	QStringList l;
-	for (auto it = map.cbegin(); it != map.cend(); ++it)
-	{
-		l = it.key().split(util::rexOR);
-		if (l.size() != 2)
-			continue;
-
-		QString field = l.at(0) == "global" ? QObject::tr("GLOBAL") : QObject::tr("LOCAL");
-		QString varName = l.at(1);
-		QString varType;
-		QString varValueStr;
-		QVariant var = it.value();
-		switch (var.type())
+		for (auto it = d.cbegin(); it != d.cend(); ++it)
 		{
-		case QVariant::Int:
-		{
-			varType = QObject::tr("Int");
-			varValueStr = util::toQString(var.toLongLong());
-			break;
+			map.insert(it.key(), it.value());
 		}
-		case QVariant::UInt:
-		{
-			varType = QObject::tr("UInt");
-			varValueStr = util::toQString(var.toLongLong());
-			break;
-		}
-		case QVariant::Double:
-		{
-			varType = QObject::tr("Double");
-			varValueStr = util::toQString(var.toDouble());
-			break;
-		}
-		case QVariant::String:
-		{
-			varValueStr = var.toString();
-			if (varValueStr == "nil")
-				varType = QObject::tr("Nil");
-			else if (varValueStr.startsWith("{") && varValueStr.endsWith("}") && !varValueStr.startsWith("{:"))
-			{
-				varType = QObject::tr("Table");
 
-				qint64 depth = kMaxLuaTableDepth;
-				pparser->luaDoString(QString("_TMP = %1").arg(var.toString()));
-				if (lua_["_TMP"].is<sol::table>())
-				{
-					QTreeWidgetItem* pNode = new QTreeWidgetItem(QStringList{ field, varName, "", QString("(%1)").arg(varType) });
-					if (luaTableToTreeWidgetItem(field, pNode, lua_["_TMP"].get<sol::table>(), depth))
-						pTrees->append(pNode);
-					else
-						delete pNode;
-				}
-				lua_["_TMP"] = sol::lua_nil;
+		QStringList l;
+		for (auto it = map.cbegin(); it != map.cend(); ++it)
+		{
+			l = it.key().split(util::rexOR);
+			if (l.size() != 2)
 				continue;
-			}
-			else
-				varType = QObject::tr("String");
-			break;
-		}
-		case QVariant::Bool:
-		{
-			varType = QObject::tr("Bool");
-			varValueStr = util::toQString(var.toBool());
-			break;
-		}
-		case QVariant::LongLong:
-		{
-			varType = QObject::tr("LongLong");
-			varValueStr = util::toQString(var.toLongLong());
-			break;
-		}
-		case QVariant::ULongLong:
-		{
-			varType = QObject::tr("ULongLong");
-			varValueStr = util::toQString(var.toULongLong());
-			break;
-		}
-		default:
-		{
-			varType = QObject::tr("unknown");
-			varValueStr = var.toString();
-			break;
-		}
-		}
 
-		pTrees->append(new QTreeWidgetItem({ field, varName, varValueStr, QString("(%1)").arg(varType) }));
+			QString field = l.at(0) == "global" ? QObject::tr("GLOBAL") : QObject::tr("LOCAL");
+			QString varName = l.at(1);
+			QString varType;
+			QString varValueStr;
+			QVariant var = it.value();
+			switch (var.type())
+			{
+			case QVariant::Int:
+			{
+				varType = QObject::tr("Int");
+				varValueStr = util::toQString(var.toLongLong());
+				break;
+			}
+			case QVariant::UInt:
+			{
+				varType = QObject::tr("UInt");
+				varValueStr = util::toQString(var.toLongLong());
+				break;
+			}
+			case QVariant::Double:
+			{
+				varType = QObject::tr("Double");
+				varValueStr = util::toQString(var.toDouble());
+				break;
+			}
+			case QVariant::String:
+			{
+				varValueStr = var.toString();
+				if (varValueStr == "nil")
+					varType = QObject::tr("Nil");
+				else if (varValueStr.startsWith("{") && varValueStr.endsWith("}") && !varValueStr.startsWith("{:"))
+				{
+					varType = QObject::tr("Table");
+
+					qint64 depth = kMaxLuaTableDepth;
+					pparser->luaDoString(QString("_TMP = %1").arg(var.toString()));
+					if (lua_["_TMP"].is<sol::table>())
+					{
+						QTreeWidgetItem* pNode = new QTreeWidgetItem(QStringList{ field, varName, "", QString("(%1)").arg(varType) });
+						if (luaTableToTreeWidgetItem(field, pNode, lua_["_TMP"].get<sol::table>(), depth))
+							pTrees->append(pNode);
+						else
+							delete pNode;
+					}
+					lua_["_TMP"] = sol::lua_nil;
+					continue;
+				}
+				else
+					varType = QObject::tr("String");
+				break;
+			}
+			case QVariant::Bool:
+			{
+				varType = QObject::tr("Bool");
+				varValueStr = util::toQString(var.toBool());
+				break;
+			}
+			case QVariant::LongLong:
+			{
+				varType = QObject::tr("LongLong");
+				varValueStr = util::toQString(var.toLongLong());
+				break;
+			}
+			case QVariant::ULongLong:
+			{
+				varType = QObject::tr("ULongLong");
+				varValueStr = util::toQString(var.toULongLong());
+				break;
+			}
+			default:
+			{
+				varType = QObject::tr("unknown");
+				varValueStr = var.toString();
+				break;
+			}
+			}
+
+			pTrees->append(new QTreeWidgetItem({ field, varName, varValueStr, QString("(%1)").arg(varType) }));
+		}
 	}
 
 	for (const QString& it : globalNames)
 	{
 		const std::string name = it.toUtf8().constData();
-		sol::object o = lua_[name.c_str()];
+		const sol::object o = lua_[name.c_str()];
+		if (!o.valid())
+			continue;
 
-		QString field = QObject::tr("GLOBAL");
+		const QString field = QObject::tr("GLOBAL");
 
-		QString varName = it;
+		const QString varName = it;
 
 		QString varType;
 

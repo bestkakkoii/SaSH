@@ -50,7 +50,7 @@ static const QHash<QString, RESERVE> keywords = {
 	//system
 	{ u8"執行", TK_CMD },
 	{ u8"延時", TK_CMD },
-	{ u8"提示", TK_CMD },
+	//{ u8"提示", TK_CMD },
 	{ u8"消息", TK_CMD },
 	{ u8"登出", TK_CMD },
 	{ u8"元神歸位", TK_CMD },
@@ -116,6 +116,8 @@ static const QHash<QString, RESERVE> keywords = {
 	{ u8"離隊", TK_CMD },
 	{ u8"踢走", TK_CMD },
 	{ u8"組隊有", TK_CMD },
+	{ u8"座標有", TK_CMD },
+	{ u8"坐標有", TK_CMD },
 
 	//move
 	{ u8"坐標", TK_CMD },
@@ -155,7 +157,7 @@ static const QHash<QString, RESERVE> keywords = {
 	//system
 	{ u8"执行", TK_CMD },
 	{ u8"延时", TK_CMD },
-	{ u8"提示", TK_CMD },
+	//{ u8"提示", TK_CMD },
 	{ u8"消息", TK_CMD },
 	{ u8"登出", TK_CMD },
 	{ u8"元神归位", TK_CMD },
@@ -221,6 +223,8 @@ static const QHash<QString, RESERVE> keywords = {
 	{ u8"离队", TK_CMD },
 	{ u8"踢走", TK_CMD },
 	{ u8"组队有", TK_CMD },
+	{ u8"座标有", TK_CMD },
+	{ u8"坐标有", TK_CMD },
 
 	//move
 	{ u8"坐标", TK_CMD },
@@ -240,7 +244,7 @@ static const QHash<QString, RESERVE> keywords = {
 	{ u8"拖至", TK_CMD },
 
 #pragma endregion
-	{ u8"callwithname", TK_CALLWITHNAME },
+	{ u8"[call]", TK_CALLWITHNAME },
 #pragma region en_US
 	//keyword
 	{ u8"call", TK_CALL },
@@ -253,7 +257,7 @@ static const QHash<QString, RESERVE> keywords = {
 	{ u8"pause", TK_PAUSE },
 	{ u8"function", TK_FUNCTION, },
 	{ u8"label", TK_LABEL, },
-	{ u8"local", TK_LOCAL },
+	//{ u8"local", TK_LOCAL },
 	{ u8"format", TK_FORMAT },
 	{ u8"if", TK_IF },
 	{ u8"for", TK_FOR },
@@ -263,8 +267,8 @@ static const QHash<QString, RESERVE> keywords = {
 	//system
 	{ u8"run", TK_CMD },
 	{ u8"sleep", TK_CMD },
-	{ u8"print", TK_CMD },
-	{ u8"msg", TK_CMD },
+	//{ u8"print", TK_CMD },
+
 	{ u8"logout", TK_CMD },
 	{ u8"eo", TK_CMD },
 	{ u8"logback", TK_CMD },
@@ -290,6 +294,7 @@ static const QHash<QString, RESERVE> keywords = {
 	{ u8"waitdlg", TK_CMD },
 	{ u8"waitsay", TK_CMD },
 	{ u8"waititem", TK_CMD },
+	{ u8"waitpos", TK_CMD },
 	{ u8"waitpet", TK_CMD },
 	{ u8"waitteam", TK_CMD },
 
@@ -349,7 +354,6 @@ static const QHash<QString, RESERVE> keywords = {
 
 	//hide
 	//{ u8"ocr", TK_CMD },
-	{ u8"dlg", TK_CMD },
 
 	//battle
 	{ u8"bh", TK_CMD },//atk
@@ -1748,7 +1752,7 @@ bool Lexer::tokenized(Lexer* pLexer, const QString& script)
 	pLexer->checkFunctionPairs(pLexer->tokens_);
 
 	return true;
-	}
+}
 
 //解析單行內容至多個TOKEN
 void Lexer::tokenized(qint64 currentLine, const QString& line, TokenMap* ptoken, QHash<QString, qint64>* plabel)
@@ -1784,12 +1788,20 @@ void Lexer::tokenized(qint64 currentLine, const QString& line, TokenMap* ptoken,
 		else if (commentIndex > 0)
 			raw = raw.mid(0, commentIndex).trimmed();
 
-		if (raw.startsWith("set "))
+		const QStringList tempReplacementList = {
+			"set", "print", "msg", "dlg"
+		};
+
+		for (const QString& it : tempReplacementList)
 		{
-			//將set 改為set(
-			raw.replace("set ", "set(");
-			raw.append(")");
-			originalRaw = raw;
+			if (raw.startsWith(it + " "))
+			{
+				//將xxx 改為set(
+				raw.replace(it + " ", it + "(");
+				raw.append(")");
+				originalRaw = raw;
+				break;
+			}
 		}
 
 		if (raw.startsWith("#lua") && !beginLuaCode_)
@@ -1950,74 +1962,74 @@ void Lexer::tokenized(qint64 currentLine, const QString& line, TokenMap* ptoken,
 			break;
 		}
 		//處理單一局表
-		else if (raw.count("=") == 1 && raw.contains(rexLocalTable) && !raw.front().isDigit() && raw.contains("{") && raw.contains("}"))
-		{
-			QRegularExpressionMatch match = rexLocalTable.match(raw);
-			if (match.hasMatch())
-			{
-				QString varName = match.captured(1).simplified();
-				QString expr = match.captured(2).simplified();
-				createToken(pos, TK_LOCALTABLE, varName, varName, ptoken);
-				createToken(pos + 1, TK_LOCALTABLE, expr, expr, ptoken);
-			}
-			break;
-		}
+		//else if (raw.count("=") == 1 && raw.contains(rexLocalTable) && !raw.front().isDigit() && raw.contains("{") && raw.contains("}"))
+		//{
+		//	QRegularExpressionMatch match = rexLocalTable.match(raw);
+		//	if (match.hasMatch())
+		//	{
+		//		QString varName = match.captured(1).simplified();
+		//		QString expr = match.captured(2).simplified();
+		//		createToken(pos, TK_LOCALTABLE, varName, varName, ptoken);
+		//		createToken(pos + 1, TK_LOCALTABLE, expr, expr, ptoken);
+		//	}
+		//	break;
+		//}
 		//處理單一全局表
-		else if (raw.count("=") == 1 && raw.contains(rexTable) && !raw.front().isDigit() && raw.contains("{") && raw.contains("}"))
-		{
-			QRegularExpressionMatch match = rexTable.match(raw);
-			if (match.hasMatch())
-			{
-				QString varName = match.captured(1).simplified();
-				QString expr = match.captured(2).simplified();
-				createToken(pos, TK_TABLE, varName, varName, ptoken);
-				createToken(pos + 1, TK_TABLE, expr, expr, ptoken);
-			}
-			break;
-		}
+		//else if (raw.count("=") == 1 && raw.contains(rexTable) && !raw.front().isDigit() && raw.contains("{") && raw.contains("}"))
+		//{
+		//	QRegularExpressionMatch match = rexTable.match(raw);
+		//	if (match.hasMatch())
+		//	{
+		//		QString varName = match.captured(1).simplified();
+		//		QString expr = match.captured(2).simplified();
+		//		createToken(pos, TK_TABLE, varName, varName, ptoken);
+		//		createToken(pos + 1, TK_TABLE, expr, expr, ptoken);
+		//	}
+		//	break;
+		//}
 		//處理單一或多個局變量聲明+初始化
-		else if (raw.count("=") == 1 && raw.contains(rexMultiLocalVar)
-			&& (!raw.contains(varAnyOp) || raw.indexOf(varAnyOp) > raw.indexOf("\'") || raw.indexOf(varAnyOp) > raw.indexOf("\""))
-			&& !raw.front().isDigit())
-		{
-			QRegularExpressionMatch match = rexMultiLocalVar.match(raw);
-			if (match.hasMatch())
-			{
-				token = match.captured(1).simplified();
-				raw = match.captured(2).simplified();
-				type = TK_LOCAL;
-				doNotLowerCase = true;
-			}
-		}
-		//處理單一或多個全局變量聲明+初始化 或 已存在的局變量重新賦值
-		else if (raw.count("=") == 1 && raw.contains(rexMultiVar)
-			&& (!raw.contains(varAnyOp) || raw.indexOf(varAnyOp) > raw.indexOf("\'") || raw.indexOf(varAnyOp) > raw.indexOf("\""))
-			&& !raw.front().isDigit())
-		{
-			QRegularExpressionMatch match = rexMultiVar.match(raw);
-			if (match.hasMatch())
-			{
-				token = match.captured(1).simplified();
-				raw = match.captured(2).simplified();
-				type = TK_MULTIVAR;
-				doNotLowerCase = true;
-			}
-		}
+		//else if (raw.count("=") == 1 && raw.contains(rexMultiLocalVar)
+		//	&& (!raw.contains(varAnyOp) || raw.indexOf(varAnyOp) > raw.indexOf("\'") || raw.indexOf(varAnyOp) > raw.indexOf("\""))
+		//	&& !raw.front().isDigit())
+		//{
+		//	QRegularExpressionMatch match = rexMultiLocalVar.match(raw);
+		//	if (match.hasMatch())
+		//	{
+		//		token = match.captured(1).simplified();
+		//		raw = match.captured(2).simplified();
+		//		type = TK_LOCAL;
+		//		doNotLowerCase = true;
+		//	}
+		//}
+		////處理單一或多個全局變量聲明+初始化 或 已存在的局變量重新賦值
+		//else if (raw.count("=") == 1 && raw.contains(rexMultiVar)
+		//	&& (!raw.contains(varAnyOp) || raw.indexOf(varAnyOp) > raw.indexOf("\'") || raw.indexOf(varAnyOp) > raw.indexOf("\""))
+		//	&& !raw.front().isDigit())
+		//{
+		//	QRegularExpressionMatch match = rexMultiVar.match(raw);
+		//	if (match.hasMatch())
+		//	{
+		//		token = match.captured(1).simplified();
+		//		raw = match.captured(2).simplified();
+		//		type = TK_MULTIVAR;
+		//		doNotLowerCase = true;
+		//	}
+		//}
 
 		//處理變量賦值數學表達式
-		else if (raw.contains(varExpr) && raw.contains(varAnyOp) && !raw.front().isDigit())
-		{
-			QRegularExpressionMatch match = varExpr.match(raw);
-			if (match.hasMatch())
-			{
-				QString varName = match.captured(1).simplified();
-				QString expr = match.captured(2).simplified();
+		//else if (raw.contains(varExpr) && raw.contains(varAnyOp) && !raw.front().isDigit())
+		//{
+		//	QRegularExpressionMatch match = varExpr.match(raw);
+		//	if (match.hasMatch())
+		//	{
+		//		QString varName = match.captured(1).simplified();
+		//		QString expr = match.captured(2).simplified();
 
-				createToken(pos, TK_EXPR, varName, varName, ptoken);
-				createToken(pos + 1, TK_STRING, expr, expr, ptoken);
-			}
-			break;
-		}
+		//		createToken(pos, TK_EXPR, varName, varName, ptoken);
+		//		createToken(pos + 1, TK_STRING, expr, expr, ptoken);
+		//	}
+		//	break;
+		//}
 		else
 		{
 			//處理整行註釋
@@ -2053,7 +2065,7 @@ void Lexer::tokenized(qint64 currentLine, const QString& line, TokenMap* ptoken,
 				if (type == TK_UNK)
 				{
 					raw = QString("%1,%2").arg(token, raw);
-					token = "callwithname";
+					token = "[call]";
 					createToken(100, TK_STRING, originalRaw.trimmed(), originalRaw.trimmed(), ptoken);
 				}
 			}
@@ -2084,21 +2096,10 @@ void Lexer::tokenized(qint64 currentLine, const QString& line, TokenMap* ptoken,
 			type = keywords.value(token, TK_UNK);
 			if (type == TK_UNK)
 			{
-				static const QRegularExpression rexTableSet(R"(([\w\p{Han}]+)(?:\['*"*(\w+\p{Han}*)'*"*\])?)");
-				if (token.contains(rexTableSet))
-				{
-					QRegularExpressionMatch match = rexTableSet.match(token);
-					if (match.hasMatch())
-					{
-						QString varName = match.captured(1).simplified();
-						createToken(pos, TK_TABLESET, varName, varName, ptoken);
-						createToken(pos + 1, TK_STRING, originalRaw, originalRaw, ptoken);
-						break;
-					}
-				}
-
-				showError(QObject::tr("@ %1 | Unknown command '%2' has been ignored").arg(currentLine + 1).arg(token), kTypeWarning);
-				createEmptyToken(pos, ptoken);
+				createToken(pos, TK_LUASTRING, "[lua]", "[lua]", ptoken);
+				createToken(pos + 1, TK_STRING, originalRaw, originalRaw, ptoken);
+				//showError(QObject::tr("@ %1 | Unknown command '%2' has been ignored").arg(currentLine + 1).arg(token), kTypeWarning);
+				//createEmptyToken(pos, ptoken);
 				break;
 			}
 		}
@@ -2767,16 +2768,26 @@ void Lexer::checkSingleRowPairs(const QString& beginstr, const QString& endstr, 
 	for (auto it = stokenmaps.cbegin(); it != stokenmaps.cend(); ++it)
 		tokenmaps.insert(it.key(), it.value());
 
+	bool beginLuaCode = false;
 	for (auto it = tokenmaps.cbegin(); it != tokenmaps.cend(); ++it)
 	{
+		if (it.value().value(0).data.toString() == "#lua" && !beginLuaCode)
+		{
+			beginLuaCode = true;
+			continue;
+		}
+		else if (it.value().value(0).data.toString() == "#endlua" && beginLuaCode)
+		{
+			beginLuaCode = false;
+			continue;
+		}
+
 		qint64 row = it.key();
 		QStringList tmp;
 		for (auto it2 = it.value().cbegin(); it2 != it.value().cend(); ++it2)
 			tmp.append(it2.value().data.toString().simplified());
 
 		QString statement = tmp.join(" ");
-
-
 
 		QVector<qint64> startIndices;
 		QVector<qint64> endIndices;

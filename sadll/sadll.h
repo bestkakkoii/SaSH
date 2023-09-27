@@ -62,7 +62,7 @@ public:
 	void WM_Move(int x, int y);
 	void WM_DistoryDialog();
 	void WM_CleanChatHistory();
-	void WM_CreateDialog(int button, const char* data);
+	void WM_CreateDialog(int type, int button, const char* data);
 
 	void WM_SetBLockPacket(BOOL enable);
 
@@ -89,6 +89,7 @@ public://hook
 	void __cdecl New_lssproto_B_recv(int fd, char* command);
 	void __cdecl New_lssproto_WN_send(int fd, int x, int y, int dialogid, int unitid, int select, const char* data);
 	void __cdecl New_lssproto_TK_send(int fd, int x, int y, const char* message, int color, int area);
+	void __cdecl New_lssproto_W2_send(int fd, int x, int y, const char* dir);
 
 public:
 	//setwindowtexta
@@ -151,6 +152,9 @@ public:
 
 	using pfnLssproto_TK_send = void(__cdecl*)(int, int, int, const char*, int, int);
 	pfnLssproto_TK_send pLssproto_TK_send = nullptr;
+
+	using pfnLssproto_W2_send = void(__cdecl*)(int, int, int, const char*);
+	pfnLssproto_W2_send pLssproto_W2_send = nullptr;
 
 public://g-var
 	int* g_sockfd = nullptr;

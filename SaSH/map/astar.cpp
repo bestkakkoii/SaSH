@@ -31,7 +31,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #pragma region ASTAR
 
 constexpr qint64 kStepValue = 24;
-constexpr qint64 kObliqueValue = 32;
+constexpr qint64 kObliqueValue = 50;
 
 CAStar::CAStar()
 	: step_val_(kStepValue)
@@ -249,11 +249,11 @@ bool CAStar::can_pass(const QPoint& current, const QPoint& destination, const bo
 		if (in_closed_list(destination))
 			return false;
 #if defined(Chebyshev_distance)
-		if (qFloor(Chebyshev_Distance(destination, current)) == 1)
+		if (Chebyshev_Distance(destination, current) == 1)
 #elif defined(Euclidean_distance)
-		if (qFloor(Euclidean_Distance(destination, current)) == 1)
+		if (Euclidean_Distance(destination, current) == 1)
 #elif defined(Octile_distance)
-		if (qFloor(Octile_Distance(destination, current)) == 1)
+		if (Octile_Distance(destination, current) == 1)
 #else
 		if ((destination - current).manhattanLength() == 1)
 #endif
