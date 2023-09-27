@@ -516,10 +516,13 @@ enum FUNCTIONTYPE
 enum GameDataOffest
 {
 	kOffsetPersonalKey = 0x4AC0898,
+
 	kOffsetAccount = 0x414F278,
 	kOffsetAccountECB = 0x415703C,
+
 	kOffsetPassword = 0x415AA58,
 	kOffsetPasswordECB = 0x4156280,
+
 	kOffsetServerIndex = 0x415EF28,
 	kOffsetSubServerIndex = 0xC4288,
 	kOffsetPositionIndex = 0x4ABE270,

@@ -480,10 +480,6 @@ private:
 		, bool>::type
 		exprTo(QString expr, T* ret);
 
-	template <typename T>
-	typename std::enable_if<std::is_same<T, qint64>::value || std::is_same<T, double>::value || std::is_same<T, bool>::value, bool>::type
-		exprCAOSTo(const QString& varName, QString expr, T* ret);
-
 	void handleError(qint64 err, const QString& addition = "");
 
 	void checkCallArgs(qint64 line);

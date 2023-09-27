@@ -120,7 +120,8 @@ void MainObject::run()
 		emit signalDispatcher.updateStatusLabelTextChanged(util::kLabelStatusOpening);
 
 		//創建遊戲進程
-		if (!injector.createProcess(process_info))
+		Injector::CreateProcessResult createResult = injector.createProcess(process_info);
+		if (createResult == Injector::CreateAboveWindow8Failed || createResult == Injector::CreateBelowWindow8Failed)
 			break;
 
 		if (remove_thread_reason != util::REASON_NO_ERROR)
@@ -128,12 +129,15 @@ void MainObject::run()
 
 		emit signalDispatcher.updateStatusLabelTextChanged(util::kLabelStatusOpened);
 
-		//注入dll 並通知客戶端要連入的port
-		if (!injector.injectLibrary(process_info, injector.server->getPort(), &remove_thread_reason)
-			|| (remove_thread_reason != util::REASON_NO_ERROR))
+		if (createResult == Injector::CreateAboveWindow8Success)
 		{
-			qDebug() << "injectLibrary failed. reason:" << remove_thread_reason;
-			break;
+			//注入dll 並通知客戶端要連入的port
+			if (!injector.injectLibrary(process_info, injector.server->getPort(), &remove_thread_reason)
+				|| (remove_thread_reason != util::REASON_NO_ERROR))
+			{
+				qDebug() << "injectLibrary failed. reason:" << remove_thread_reason;
+				break;
+			}
 		}
 
 		//等待客戶端連入
@@ -703,7 +707,7 @@ void MainObject::checkControl()
 	if (flagHideCharacterEnable_ != bChecked)
 	{
 		flagHideCharacterEnable_ = bChecked;
-		injector.postMessage(Injector::kEnableCharShow, !bChecked, NULL);
+		injector.postMessage(kEnableCharShow, !bChecked, NULL);
 	}
 
 	if (!injector.server->getOnlineFlag())
@@ -737,7 +741,7 @@ void MainObject::checkControl()
 	if (flagCloseEffectEnable_ != bChecked)
 	{
 		flagCloseEffectEnable_ = bChecked;
-		injector.postMessage(Injector::kEnableEffect, !bChecked, NULL);
+		injector.postMessage(kEnableEffect, !bChecked, NULL);
 	}
 
 	//異步關閉聲音
@@ -745,7 +749,7 @@ void MainObject::checkControl()
 	if (flagMuteEnable_ != bChecked)
 	{
 		flagMuteEnable_ = bChecked;
-		injector.postMessage(Injector::kEnableSound, !bChecked, NULL);
+		injector.postMessage(kEnableSound, !bChecked, NULL);
 	}
 
 	//異步鎖定時間
@@ -755,7 +759,7 @@ void MainObject::checkControl()
 	{
 		flagLockTimeEnable_ = bChecked;
 		flagLockTimeValue_ = value;
-		injector.postMessage(Injector::kSetTimeLock, bChecked, flagLockTimeValue_);
+		injector.postMessage(kSetTimeLock, bChecked, flagLockTimeValue_);
 	}
 
 	//異步加速
@@ -763,7 +767,7 @@ void MainObject::checkControl()
 	if (flagSetBoostValue_ != value)
 	{
 		flagSetBoostValue_ = value;
-		injector.postMessage(Injector::kSetBoostSpeed, true, flagSetBoostValue_);
+		injector.postMessage(kSetBoostSpeed, true, flagSetBoostValue_);
 	}
 
 	//異步快速走路
@@ -771,7 +775,7 @@ void MainObject::checkControl()
 	if (flagFastWalkEnable_ != bChecked)
 	{
 		flagFastWalkEnable_ = bChecked;
-		injector.postMessage(Injector::kEnableFastWalk, bChecked, NULL);
+		injector.postMessage(kEnableFastWalk, bChecked, NULL);
 	}
 
 	//異步橫衝直撞 (穿牆)
@@ -779,7 +783,7 @@ void MainObject::checkControl()
 	if (flagPassWallEnable_ != bChecked)
 	{
 		flagPassWallEnable_ = bChecked;
-		injector.postMessage(Injector::kEnablePassWall, bChecked, NULL);
+		injector.postMessage(kEnablePassWall, bChecked, NULL);
 	}
 
 	//異步鎖定畫面
@@ -787,7 +791,7 @@ void MainObject::checkControl()
 	if (flagLockImageEnable_ != bChecked)
 	{
 		flagLockImageEnable_ = bChecked;
-		injector.postMessage(Injector::kEnableImageLock, bChecked, NULL);
+		injector.postMessage(kEnableImageLock, bChecked, NULL);
 	}
 
 	//異步戰鬥99秒
@@ -795,7 +799,7 @@ void MainObject::checkControl()
 	if (flagBattleTimeExtendEnable_ != bChecked)
 	{
 		flagBattleTimeExtendEnable_ = bChecked;
-		injector.postMessage(Injector::kBattleTimeExtend, bChecked, NULL);
+		injector.postMessage(kBattleTimeExtend, bChecked, NULL);
 	}
 
 	//異步資源優化
@@ -803,7 +807,7 @@ void MainObject::checkControl()
 	if (flagOptimizeEnable_ != bChecked)
 	{
 		flagOptimizeEnable_ = bChecked;
-		injector.postMessage(Injector::kEnableOptimize, bChecked, NULL);
+		injector.postMessage(kEnableOptimize, bChecked, NULL);
 	}
 
 	////同步鎖定移動
@@ -813,17 +817,17 @@ void MainObject::checkControl()
 	//if (!bChecked && isFastBattle && injector.server->getBattleFlag())//如果有開啟快速戰鬥，那必須在戰鬥時鎖定移動
 	//{
 	//	flagLockMoveEnable_ = true;
-	//	injector.sendMessage(Injector::kEnableMoveLock, true, NULL);
+	//	injector.sendMessage(kEnableMoveLock, true, NULL);
 	//}
 	//else if (!bChecked && isFastBattle && !injector.server->getBattleFlag()) //如果有開啟快速戰鬥，但是不在戰鬥時，那就不鎖定移動
 	//{
 	//	flagLockMoveEnable_ = false;
-	//	injector.sendMessage(Injector::kEnableMoveLock, false, NULL);
+	//	injector.sendMessage(kEnableMoveLock, false, NULL);
 	//}
 	//else if (flagLockMoveEnable_ != bChecked) //如果沒有開啟快速戰鬥，那就照常
 	//{
 	//	flagLockMoveEnable_ = bChecked;
-	//	injector.sendMessage(Injector::kEnableMoveLock, bChecked, NULL);
+	//	injector.sendMessage(kEnableMoveLock, bChecked, NULL);
 	//}
 
 	//自動戰鬥，異步戰鬥面板開關
@@ -832,23 +836,23 @@ void MainObject::checkControl()
 	if (bChecked)
 	{
 		flagBattleDialogEnable_ = false;
-		injector.postMessage(Injector::kEnableBattleDialog, false, NULL);
+		injector.postMessage(kEnableBattleDialog, false, NULL);
 	}
 	else if (!bChecked && !flagBattleDialogEnable_)
 	{
 		flagBattleDialogEnable_ = true;
-		injector.postMessage(Injector::kEnableBattleDialog, true, NULL);
+		injector.postMessage(kEnableBattleDialog, true, NULL);
 	}
 
 	//快速戰鬥，異步阻止戰鬥封包
 	qint64 W = injector.server->getWorldStatus();
 	if (bCheckedFastBattle && W == 9) //如果有開啟快速戰鬥，且畫面不在戰鬥中
 	{
-		injector.postMessage(Injector::kSetBlockPacket, true, NULL);
+		injector.postMessage(kSetBlockPacket, true, NULL);
 	}
 	else
 	{
-		injector.postMessage(Injector::kSetBlockPacket, false, NULL);
+		injector.postMessage(kSetBlockPacket, false, NULL);
 	}
 }
 

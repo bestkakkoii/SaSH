@@ -58,40 +58,13 @@ public:
 	}
 
 public:
-
-	enum UserMessage
+	enum CreateProcessResult
 	{
-		kUserMessage = WM_USER + 0x1024,
-		kConnectionOK,
-		kInitialize,
-		kUninitialize,
-		kGetModule,
-		kSendPacket,
-
-		//
-		kEnableEffect,
-		kEnableCharShow,
-		kSetTimeLock,
-		kEnableSound,
-		kEnableImageLock,
-		kEnablePassWall,
-		kEnableFastWalk,
-		kSetBoostSpeed,
-		kEnableMoveLock,
-		kMuteSound,
-		kEnableBattleDialog,
-		kSetGameStatus,
-		kSetBlockPacket,
-		kBattleTimeExtend,
-		kEnableOptimize,
-		kEnableWindowHide,
-
-		//Action
-		kSendAnnounce,
-		kSetMove,
-		kDistoryDialog,
-		kCleanChatHistory,
-		kCreateDialog,
+		CreateAboveWindow8Failed = -2,
+		CreateBelowWindow8Failed = -1,
+		CreateFail = 0,
+		CreateAboveWindow8Success,
+		CreateBelowWindow8Success,
 	};
 
 	typedef struct process_information_s
@@ -113,7 +86,7 @@ public:
 
 	Q_REQUIRED_RESULT inline bool isValid() const { return hGameModule_ != NULL && pi_.dwProcessId != NULL && pi_.hWnd != nullptr && processHandle_.isValid(); }
 
-	bool createProcess(process_information_t& pi);
+	CreateProcessResult createProcess(process_information_t& pi);
 
 	bool injectLibrary(process_information_t& pi, unsigned short port, util::LPREMOVE_THREAD_REASON pReason);
 

@@ -312,18 +312,16 @@ HMODULE mem::getRemoteModuleHandleByProcessHandleW(HANDLE hProcess, const QStrin
 	{
 		for (i = 0; i <= cbNeeded / sizeof(HMODULE); i++)
 		{
-			if (K32GetModuleFileNameExW(hProcess, hMods[i], szModName, _countof(szModName)))
-			{
-				QString qfileName = util::toQString(szModName);
-				qfileName.replace("/", "\\");
-				QFileInfo file(qfileName);
-				//get file name only
-				qDebug() << file.fileName();
-				if (file.fileName().toLower() == szModuleName.toLower())
-				{
-					return hMods[i];
-				}
-			}
+			if (K32GetModuleFileNameExW(hProcess, hMods[i], szModName, _countof(szModName)) == NULL)
+				continue;
+
+			QString qfileName = util::toQString(szModName);
+			qfileName.replace("/", "\\");
+			QFileInfo file(qfileName);
+			if (file.fileName().toLower() != szModuleName.toLower())
+				continue;
+
+			return hMods[i];
 		}
 	}
 
@@ -418,8 +416,57 @@ ULONG64 mem::getProcAddressIn32BitProcess(HANDLE hProcess, const QString& Module
 	return RetAddr;
 }
 
-bool mem::inject64(qint64 index, HANDLE hProcess, QString dllPath, HMODULE* phDllModule, quint64* phGameModule)
+bool mem::injectByWin7(qint64 index, HANDLE hProcess, QString dllPath, HMODULE* phDllModule, quint64* phGameModule)
 {
+	QElapsedTimer timer; timer.start();
+	util::VirtualMemory dllFullPathAddr(hProcess, dllPath, util::VirtualMemory::kUnicode, true);
+	HMODULE kernel32Module = GetModuleHandleW(L"kernel32.dll");
+	if (nullptr == kernel32Module)
+	{
+		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(index);
+		emit signalDispatcher.messageBoxShow(QObject::tr("GetModuleHandleW failed"), QMessageBox::Icon::Critical);
+		return false;
+	}
+
+	FARPROC loadLibraryProc = GetProcAddress(kernel32Module, "LoadLibraryW");
+	if (nullptr == loadLibraryProc)
+	{
+		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(index);
+		emit signalDispatcher.messageBoxShow(QObject::tr("GetProcAddress failed"), QMessageBox::Icon::Critical);
+		return false;
+	}
+
+	//遠程執行線程
+	{
+		ScopedHandle hThreadHandle(
+			ScopedHandle::CREATE_REMOTE_THREAD,
+			hProcess,
+			reinterpret_cast<PVOID>(loadLibraryProc),
+			reinterpret_cast<LPVOID>(static_cast<quint64>(dllFullPathAddr)));
+
+		if (!hThreadHandle.isValid())
+		{
+			SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(index);
+			emit signalDispatcher.messageBoxShow(QObject::tr("Create remote thread failed"), QMessageBox::Icon::Critical);
+			return false;
+		}
+	}
+
+	HMODULE hModule = mem::getRemoteModuleHandleByProcessHandleW(hProcess, "sadll.dll");
+	if (phDllModule != nullptr)
+		*phDllModule = hModule;
+
+	HMODULE hGameModule = mem::getRemoteModuleHandleByProcessHandleW(hProcess, "sa_8001.exe");
+	if (phGameModule != nullptr)
+		*phGameModule = reinterpret_cast<quint64>(hGameModule);
+
+	qDebug() << "inject OK" << "0x" + util::toQString(reinterpret_cast<qint64>(hModule), 16) << "time:" << timer.elapsed() << "ms";
+	return true;
+}
+
+bool mem::injectBy64(qint64 index, HANDLE hProcess, QString dllPath, HMODULE* phDllModule, quint64* phGameModule)
+{
+	QElapsedTimer timer; timer.start();
 	static unsigned char data[128] = {
 		0x55,										//push ebp
 		0x8B, 0xEC,									//mov ebp,esp
@@ -477,6 +524,9 @@ bool mem::inject64(qint64 index, HANDLE hProcess, QString dllPath, HMODULE* phDl
 	util::VirtualMemory remoteFunc(hProcess, sizeof(data), true);
 	mem::write(hProcess, remoteFunc, data, sizeof(data));
 
+	qDebug() << "time:" << timer.elapsed() << "ms";
+	timer.restart();
+
 	//遠程執行線程
 	{
 		ScopedHandle hThreadHandle(
@@ -522,7 +572,7 @@ bool mem::inject64(qint64 index, HANDLE hProcess, QString dllPath, HMODULE* phDl
 	if (phGameModule != nullptr)
 		*phGameModule = d.gameModule;
 
-	qDebug() << "inject OK" << "0x" + util::toQString(d.remoteModule, 16);
+	qDebug() << "inject OK" << "0x" + util::toQString(d.remoteModule, 16) << "time:" << timer.elapsed() << "ms";
 	return d.gameModule > 0 && d.remoteModule > 0;
 }
 

@@ -6,6 +6,9 @@
 #include "stdafx.h"
 #include "descrypt.h"
 
+#define SMALL 1	/* 1: use small tables, 0: use middle tables */
+#define MSC 1	/* 1: use MSC, 0: use others */
+
 namespace sacrypt
 {
 	ulong Keys[16][2];
@@ -1528,6 +1531,8 @@ namespace sacrypt
 		des_setkey(key);
 		for (len = (len + 7) & ~7; len != 0; buf += 8, len -= 8)
 			des_crypt(buf, mode & DES_DIRMASK);
+
+		buf[len - 1] = '\0';
 		return ((mode & DES_DEVMASK) == DES_SW ? DESERR_NONE
 			: DESERR_NOHWDEVICE);
 	}

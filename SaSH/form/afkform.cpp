@@ -80,6 +80,7 @@ AfkForm::AfkForm(qint64 index, QWidget* parent)
 			connect(comboBox, &ComboBox::currentTextChanged, this, &AfkForm::onComboBoxTextChanged, Qt::UniqueConnection);
 		}
 	}
+
 	onResetControlTextLanguage();
 
 	Injector& injector = Injector::getInstance(index);
@@ -1027,9 +1028,6 @@ void AfkForm::onResetControlTextLanguage()
 	appendCharAction(ui.comboBox_magicheal_normal, true);
 	for (qint64 i = CHAR_EQUIPPLACENUM; i < MAX_ITEM; ++i)
 	{
-		if (ui.comboBox_magicheal_normal->hasFocus())
-			break;
-
 		QString text = QString("%1:").arg(i + 1 - CHAR_EQUIPPLACENUM);
 		ui.comboBox_magicheal_normal->addItem(text);
 		qint64 index = ui.comboBox_magicheal_normal->count() - 1;
@@ -1047,17 +1045,12 @@ void AfkForm::onResetControlTextLanguage()
 
 	appendNumbers(ui.comboBox_autocatchpet_petskill, MAX_SKILL);
 
-	if (!ui.comboBox_autocatchpet_mode->hasFocus())
-	{
-		ui.comboBox_autocatchpet_mode->clear();
-		ui.comboBox_autocatchpet_mode->addItems(QStringList{ tr("escape from encounter") , tr("engage in encounter") });
-	}
 
-	if (!ui.comboBox_autowalkdir->hasFocus())
-	{
-		ui.comboBox_autowalkdir->clear();
-		ui.comboBox_autowalkdir->addItems(QStringList{ tr("↖↘"), tr("↗↙"), tr("random") });
-	}
+	ui.comboBox_autocatchpet_mode->clear();
+	ui.comboBox_autocatchpet_mode->addItems(QStringList{ tr("escape from encounter") , tr("engage in encounter") });
+
+	ui.comboBox_autowalkdir->clear();
+	ui.comboBox_autowalkdir->addItems(QStringList{ tr("↖↘"), tr("↗↙"), tr("random") });
 
 	updateTargetButtonText();
 }

@@ -24,6 +24,7 @@ util::SafeHash<qint64, Injector*> Injector::instances;
 
 constexpr const char* InjectDllName = u8"sadll.dll";
 constexpr qint64 MessageTimeout = 3000;
+constexpr qint64 MAX_TIMEOUT = 30000;
 
 Injector::Injector(qint64 index)
 	: index_(index)
@@ -99,18 +100,18 @@ void Injector::reset(qint64 index)//static
 
 }
 
-bool Injector::createProcess(Injector::process_information_t& pi)
+Injector::CreateProcessResult Injector::createProcess(Injector::process_information_t& pi)
 {
 	const QString fileName(qgetenv("JSON_PATH"));
 	if (fileName.isEmpty())
-		return false;
+		return CreateProcessResult::CreateFail;
 
 	util::Config config(fileName);
 
 	QString path = currentGameExePath;
 	if (path.isEmpty() || !QFile::exists(path))
 	{
-		return false;
+		return CreateProcessResult::CreateFail;
 	}
 
 	qint64 nRealBin = 138;
@@ -168,8 +169,8 @@ bool Injector::createProcess(Injector::process_information_t& pi)
 
 	QStringList commandList;
 	//啟動參數
-
 	//updated realbin:138 adrnbin:138 sprbin:116 spradrnbin:116 adrntrue:5 realtrue:13 encode:0 windowmode
+	commandList.append(path);
 	commandList.append("updated");
 	commandList.append(mkcmd("realbin", nRealBin));
 	commandList.append(mkcmd("adrnbin", nAdrnBin));
@@ -180,6 +181,19 @@ bool Injector::createProcess(Injector::process_information_t& pi)
 	commandList.append(mkcmd("encode", nEncode));
 	commandList.append("windowmode");
 
+	auto save = [&config, nRealBin, nAdrnBin, nSprBin, nSprAdrnBin, nRealTrue, nAdrnTrue, nEncode]()
+	{
+		//保存啟動參數
+		config.write("System", "Command", "realbin", nRealBin);
+		config.write("System", "Command", "adrnbin", nAdrnBin);
+		config.write("System", "Command", "sprbin", nSprBin);
+		config.write("System", "Command", "spradrnbin", nSprAdrnBin);
+		config.write("System", "Command", "realtrue", nRealTrue);
+		config.write("System", "Command", "adrntrue", nAdrnTrue);
+		config.write("System", "Command", "encode", nEncode);
+	};
+
+#if 1
 	QProcess process;
 	qint64 pid = 0;
 	process.setArguments(commandList);
@@ -191,21 +205,165 @@ bool Injector::createProcess(Injector::process_information_t& pi)
 
 		pi.dwProcessId = pid;
 		if (canSave)
-		{
-			//保存啟動參數
-			config.write("System", "Command", "realbin", nRealBin);
-			config.write("System", "Command", "adrnbin", nAdrnBin);
-			config.write("System", "Command", "sprbin", nSprBin);
-			config.write("System", "Command", "spradrnbin", nSprAdrnBin);
-			config.write("System", "Command", "realtrue", nRealTrue);
-			config.write("System", "Command", "adrntrue", nAdrnTrue);
-			config.write("System", "Command", "encode", nEncode);
-		}
+			save();
 
 		processHandle_.reset(pi.dwProcessId);
-		return true;
+		return CreateProcessResult::CreateAboveWindow8Success;
 	}
-	return false;
+	return CreateProcessResult::CreateAboveWindow8Failed;
+#endif
+
+#if 0
+	do
+	{
+		qint64 currentIndex = getIndex();
+		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
+
+		QString command = commandList.join(" ");
+		QString currentDir = QFileInfo(path).absolutePath();
+		QString applicationDirPath = util::applicationDirPath();
+		QString dllPath = applicationDirPath + "/" + InjectDllName;
+
+		QFileInfo fi(dllPath);
+		if (!fi.exists())
+		{
+			emit signalDispatcher.messageBoxShow(tr("Dll is not exist at %1").arg(dllPath));
+			break;
+		}
+
+		STARTUPINFOW si = {};
+		PROCESS_INFORMATION pi2 = {};
+		si.cb = sizeof(si);
+
+		QElapsedTimer timer; timer.start();
+
+		if (DetourCreateProcessWithDllExW(
+			path.toStdWString().c_str(),
+			const_cast<LPWSTR>(command.toStdWString().c_str()),
+			NULL,
+			NULL,
+			FALSE,
+			NULL,
+			NULL,
+			currentDir.toStdWString().c_str(),
+			&si,
+			&pi2,
+			dllPath.toStdString().c_str(),
+			::CreateProcessW) == FALSE)
+		{
+			break;
+		}
+
+		pi.dwProcessId = pi2.dwProcessId;
+		if (!processHandle_.isValid())
+			processHandle_.reset(pi2.hProcess);
+
+		if (canSave)
+			save();
+
+		if (nullptr == pi.hWnd)
+		{
+			//查找窗口句炳
+			for (;;)
+			{
+				::EnumWindows(EnumWindowsCallback, reinterpret_cast<LPARAM>(&pi));
+				if (pi.hWnd)
+				{
+					DWORD dwProcessId = 0;
+					::GetWindowThreadProcessId(pi.hWnd, &dwProcessId);
+					if (dwProcessId == pi.dwProcessId)
+						break;
+				}
+
+				if (timer.hasExpired(MAX_TIMEOUT))
+				{
+					emit signalDispatcher.messageBoxShow(tr("EnumWindows timeout"), QMessageBox::Icon::Critical);
+					break;
+				}
+
+				QThread::msleep(100);
+			}
+		}
+
+		if (nullptr == pi.hWnd)
+		{
+			emit signalDispatcher.messageBoxShow(QObject::tr("EnumWindows failed"), QMessageBox::Icon::Critical);
+			break;
+		}
+
+		qDebug() << "HWND OK";
+
+		//紀錄線程ID(目前沒有使用到只是先記錄著)
+		pi.dwThreadId = ::GetWindowThreadProcessId(pi.hWnd, nullptr);
+
+		hookdllModule_ = mem::getRemoteModuleHandleByProcessHandleW(processHandle_, InjectDllName);
+		if (nullptr == hookdllModule_)
+		{
+			emit signalDispatcher.messageBoxShow(QObject::tr("Game module is null"), QMessageBox::Icon::Critical);
+			break;
+		}
+
+		hGameModule_ = reinterpret_cast<quint64>(mem::getRemoteModuleHandleByProcessHandleW(processHandle_, "sa_8001.exe"));
+		if (NULL == hGameModule_)
+		{
+			hGameModule_ = 0x400000ULL;
+		}
+
+		pi_ = pi;
+
+		//通知客戶端初始化，並提供port端口讓客戶端連進來、另外提供本窗口句柄讓子進程反向檢查外掛是否退出
+		struct InitialData
+		{
+			__int64 parentHWnd = 0i64;
+			__int64 index = 0i64;
+			__int64 port = 0i64;
+			__int64 type = 0i64;
+		}injectdate;
+
+		enum
+		{
+			kIPv4,
+			kIPv6,
+		};
+
+		QOperatingSystemVersion version = QOperatingSystemVersion::current();
+		injectdate.index = currentIndex;
+		injectdate.parentHWnd = reinterpret_cast<__int64>(getParentWidget());
+		injectdate.port = server->getPort();
+		if (version > QOperatingSystemVersion::Windows7)
+			injectdate.type = kIPv6;
+		else
+			injectdate.type = kIPv4;
+
+		const util::VirtualMemory lpStruct(processHandle_, sizeof(InitialData), true);
+		if (!lpStruct.isValid())
+		{
+			emit signalDispatcher.messageBoxShow(QObject::tr("Remote virtualmemory alloc failed"), QMessageBox::Icon::Critical);
+			break;
+		}
+
+		mem::write(processHandle_, lpStruct, &injectdate, sizeof(InitialData));
+		sendMessage(kInitialize, lpStruct, NULL);
+
+		//去除改變窗口大小的屬性
+		LONG dwStyle = ::GetWindowLongW(pi.hWnd, GWL_STYLE);
+		LONG tempStyle = dwStyle;
+
+		if (dwStyle & WS_SIZEBOX)
+			dwStyle &= ~WS_SIZEBOX;
+
+		if (dwStyle & WS_MAXIMIZEBOX)
+			dwStyle &= ~WS_MAXIMIZEBOX;
+
+		if (tempStyle != dwStyle)
+			::SetWindowLongW(pi.hWnd, GWL_STYLE, dwStyle);
+
+		return CreateBelowWindow8Success;
+	} while (false);
+
+
+	return CreateBelowWindow8Failed;
+#endif
 }
 
 qint64 Injector::sendMessage(qint64 msg, qint64 wParam, qint64 lParam) const
@@ -279,7 +437,6 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 		return false;
 	}
 
-	constexpr qint64 MAX_TIMEOUT = 30000;
 	bool bret = 0;
 	QElapsedTimer timer; timer.start();
 	QString dllPath = "\0";
@@ -331,7 +488,7 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 			break;
 		}
 
-		qDebug() << "HWND OK";
+		qDebug() << "HWND OK, cost:" << timer.elapsed() << "ms";
 
 		//紀錄線程ID(目前沒有使用到只是先記錄著)
 		pi.dwThreadId = ::GetWindowThreadProcessId(pi.hWnd, nullptr);
@@ -347,8 +504,19 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 		if (!processHandle_.isValid())
 			processHandle_.reset(pi.dwProcessId);
 
-		//兼容32 注入 32 或 64 注入 32
-		mem::inject64(currentIndex, processHandle_, dllPath, &hookdllModule_, &hGameModule_);
+		timer.restart();
+		QOperatingSystemVersion version = QOperatingSystemVersion::current();
+		if (version > QOperatingSystemVersion::Windows7)
+		{
+			mem::inject(currentIndex, processHandle_, dllPath, &hookdllModule_, &hGameModule_);
+		}
+		else
+		{
+			//Win7
+			mem::injectByWin7(currentIndex, processHandle_, dllPath, &hookdllModule_, &hGameModule_);
+		}
+
+		qDebug() << "inject cost:" << timer.elapsed() << "ms";
 
 		if (hookdllModule_ == 0)
 		{
@@ -381,7 +549,6 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 			kIPv6,
 		};
 
-		QOperatingSystemVersion version = QOperatingSystemVersion::current();
 		injectdate.index = currentIndex;
 		injectdate.parentHWnd = reinterpret_cast<__int64>(getParentWidget());
 		injectdate.port = port;
@@ -399,7 +566,7 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 		}
 
 		mem::write(processHandle_, lpStruct, &injectdate, sizeof(InitialData));
-		sendMessage(kInitialize, lpStruct, NULL);
+		SendMessageTimeoutW(pi_.hWnd, kInitialize, lpStruct, NULL, SMTO_ABORTIFHUNG | SMTO_ERRORONEXIT | SMTO_BLOCK, MessageTimeout, nullptr);
 
 		//去除改變窗口大小的屬性
 		LONG dwStyle = ::GetWindowLongW(pi.hWnd, GWL_STYLE);

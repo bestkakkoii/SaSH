@@ -493,7 +493,7 @@ void GameService::New_lssproto_TK_send(int fd, int x, int y, const char* message
 //W2移動收包攔截
 void GameService::New_lssproto_W2_send(int fd, int x, int y, const char* message)
 {
-	PostMessageW(g_ParenthWnd, util::kSetMove, NULL, MAKELPARAM(x, y));
+	PostMessageW(g_ParenthWnd, kSetMove, NULL, MAKELPARAM(x, y));
 	pLssproto_W2_send(fd, x, y, message);
 }
 #pragma endregion
@@ -1195,7 +1195,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 		break;
 	}
-	case util::kInitialize:
+	case kInitialize:
 	{
 #ifdef _DEBUG
 		std::cout << "kInitialize" << std::endl;
@@ -1219,7 +1219,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		g_GameService.initialize(pData->index, reinterpret_cast<HWND>(pData->parentHWnd), static_cast<unsigned short>(pData->type), static_cast<unsigned short>(pData->port));
 		return 1L;
 	}
-	case util::kUninitialize:
+	case kUninitialize:
 	{
 #ifdef _DEBUG
 		std::cout << "kUninitialize" << std::endl;
@@ -1228,11 +1228,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		SetWindowLongW(g_MainHwnd, GWL_WNDPROC, reinterpret_cast<LONG_PTR>(g_OldWndProc));
 		FreeLibraryAndExitThread(g_hDllModule, 0UL);
 	}
-	case util::kGetModule:
+	case kGetModule:
 	{
 		return reinterpret_cast<int>(GetModuleHandleW(nullptr));
 	}
-	case util::kSendPacket:
+	case kSendPacket:
 	{
 		//從外掛送來的封包
 		if (INVALID_SOCKET == *g_GameService.g_sockfd)
@@ -1269,108 +1269,108 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		return numberOfBytesSent;
 	}
 	///////////////////////////////////////////////////////////
-	case util::kEnableEffect://關閉特效
+	case kEnableEffect://關閉特效
 	{
 		g_GameService.WM_EnableEffect(wParam > 0 ? TRUE : FALSE);
 		return 1L;
 	}
-	case util::kEnableCharShow://隱藏人物
+	case kEnableCharShow://隱藏人物
 	{
 		g_GameService.WM_EnableCharShow(wParam > 0 ? TRUE : FALSE);
 		return 1L;
 	}
-	case util::kSetTimeLock://鎖定時間
+	case kSetTimeLock://鎖定時間
 	{
 		g_GameService.WM_SetTimeLock(wParam > 0 ? TRUE : FALSE, static_cast<unsigned int>(lParam));
 		return 1L;
 	}
-	case util::kEnableSound://關閉音效
+	case kEnableSound://關閉音效
 	{
 		g_GameService.WM_EnableSound(wParam > 0 ? TRUE : FALSE);
 		return 1L;
 	}
-	case util::kEnableImageLock://鎖定畫面
+	case kEnableImageLock://鎖定畫面
 	{
 		g_GameService.WM_EnableImageLock(wParam > 0 ? TRUE : FALSE);
 		return 1L;
 	}
-	case util::kEnablePassWall://橫衝直撞
+	case kEnablePassWall://橫衝直撞
 	{
 		g_GameService.WM_EnablePassWall(wParam > 0 ? TRUE : FALSE);
 		return 1L;
 	}
-	case util::kEnableFastWalk://快速走路
+	case kEnableFastWalk://快速走路
 	{
 		g_GameService.WM_EnableFastWalk(wParam > 0 ? TRUE : FALSE);
 		return 1L;
 	}
-	case util::kSetBoostSpeed://加速
+	case kSetBoostSpeed://加速
 	{
 		g_GameService.WM_SetBoostSpeed(wParam > 0 ? TRUE : FALSE, static_cast<int>(lParam));
 		return 1L;
 	}
-	case util::kEnableMoveLock://鎖定原地
+	case kEnableMoveLock://鎖定原地
 	{
 		g_GameService.WM_EnableMoveLock(wParam > 0 ? TRUE : FALSE);
 		return 1L;
 	}
-	case util::kMuteSound://靜音
+	case kMuteSound://靜音
 	{
 		g_GameService.WM_MuteSound(wParam > 0 ? TRUE : FALSE);
 		return 1;
 	}
-	case util::kEnableBattleDialog://關閉戰鬥對話框
+	case kEnableBattleDialog://關閉戰鬥對話框
 	{
 		g_GameService.WM_EnableBattleDialog(wParam > 0 ? TRUE : FALSE);
 		return 1L;
 	}
-	case util::kSetGameStatus://設置遊戲動畫狀態
+	case kSetGameStatus://設置遊戲動畫狀態
 	{
 		g_GameService.WM_SetGameStatus(wParam > 0 ? TRUE : FALSE);
 		return 1L;
 	}
-	case util::kSetBlockPacket://戰鬥封包阻擋
+	case kSetBlockPacket://戰鬥封包阻擋
 	{
 		g_GameService.WM_SetBLockPacket(wParam > 0 ? TRUE : FALSE);
 		return 1L;
 	}
-	case util::kBattleTimeExtend://戰鬥時間延長
+	case kBattleTimeExtend://戰鬥時間延長
 	{
 		g_GameService.WM_BattleTimeExtend(wParam > 0 ? TRUE : FALSE);
 		return 1L;
 	}
-	case util::kEnableOptimize:
+	case kEnableOptimize:
 	{
 		g_GameService.WM_SetOptimize(wParam > 0 ? TRUE : FALSE);
 		return 1L;
 	}
-	case util::kEnableWindowHide:
+	case kEnableWindowHide:
 	{
 		g_GameService.WM_SetWindowHide(wParam > 0 ? TRUE : FALSE);
 		return 1L;
 	}
 	//action
-	case util::kSendAnnounce://公告
+	case kSendAnnounce://公告
 	{
 		g_GameService.WM_Announce(reinterpret_cast<char*>(wParam), static_cast<int>(lParam));
 		return 1L;
 	}
-	case util::kSetMove://移動
+	case kSetMove://移動
 	{
 		g_GameService.WM_Move(static_cast<int>(wParam), static_cast<int>(lParam));
 		return 1L;
 	}
-	case util::kDistoryDialog://銷毀對話框
+	case kDistoryDialog://銷毀對話框
 	{
 		g_GameService.WM_DistoryDialog();
 		return 1L;
 	}
-	case util::kCleanChatHistory://清空聊天緩存
+	case kCleanChatHistory://清空聊天緩存
 	{
 		g_GameService.WM_CleanChatHistory();
 		return 1L;
 	}
-	case util::kCreateDialog:
+	case kCreateDialog:
 	{
 		int type = LOWORD(wParam);
 		int button = HIWORD(wParam);
@@ -1419,7 +1419,7 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID)
 #endif
 
 #ifdef _DEBUG
-		CreateConsole();
+		//CreateConsole();
 #endif
 		DisableThreadLibraryCalls(hModule);
 	}

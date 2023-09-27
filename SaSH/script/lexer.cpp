@@ -375,57 +375,6 @@ static const QHash<QString, RESERVE> keywords = {
 	{ u8"#lua", TK_LUABEGIN },
 	{ u8"#endlua", TK_LUAEND },
 };
-
-#ifdef TEST_LEXER
-static const QHash<QString, RESERVE> keyHash = {
-	{ u8"local", TK_LOCAL }, { u8"局", TK_LOCAL },
-
-	{ u8"or", TK_OROR }, { u8"或", TK_OROR },
-	{ u8"and", TK_ANDAND }, { u8"與", TK_ANDAND },
-
-	{ u8"not", TK_NOT }, { u8"否", TK_ANDAND },
-
-	{ u8"any", TK_ANY }, { u8"任意", TK_ANY },
-	{ u8"double", TK_DOUBLE }, { u8"浮點數", TK_DOUBLE }, { u8"浮点数", TK_DOUBLE },
-	{ u8"bool", TK_BOOL }, { u8"布爾值", TK_BOOL }, { u8"布尔值", TK_BOOL },
-	{ u8"int", TK_INT }, { u8"整數", TK_INT }, { u8"整数", TK_INT },
-	{ u8"string", TK_STRING }, { u8"字符串", TK_STRING },
-	{ u8"table", TK_TABLE }, { u8"表", TK_TABLE },
-	{ u8"nil", TK_NIL }, { u8"空", TK_NIL },
-
-	{ u8"in", TK_IN },
-	{ u8"do", TK_DO },
-	{ u8"then", TK_THEN },
-
-	{ u8"while", TK_THEN }, { u8"循環", TK_THEN }, { u8"循环", TK_THEN },
-
-	{ u8"function", TK_FUNCTION }, { u8"功能", TK_FUNCTION },
-	{ u8"end", TK_END }, { u8"結束", TK_END }, { u8"结束", TK_END },
-
-	{ u8"repeat", TK_REPEAT }, { u8"重複", TK_REPEAT },
-	{ u8"until", TK_UNTIL }, { u8"直到", TK_UNTIL },
-
-	{ u8"if", TK_IF }, { u8"如果", TK_IF },
-	{ u8"else", TK_ELSE }, { u8"否則", TK_ELSE }, { u8"否则", TK_ELSE },
-	{ u8"elseif", TK_ELSEIF }, { u8"否則如果", TK_ELSEIF }, { u8"否则如果", TK_ELSEIF },
-
-	{ u8"for", TK_FOR }, { u8"遍歷", TK_FOR }, { u8"遍历", TK_FOR },
-	{ u8"function", TK_FUNCTION },
-
-	{ u8"return", TK_RETURN }, { u8"返回", TK_RETURN },
-	{ u8"break", TK_BREAK }, { u8"跳出", TK_BREAK },
-	{ u8"continue", TK_CONTINUE }, { u8"繼續", TK_CONTINUE }, { u8"继续", TK_CONTINUE },
-
-	{ u8"true", TK_TRUE }, { u8"真", TK_TRUE },
-	{ u8"false", TK_FALSE }, { u8"假", TK_FALSE },
-
-	{ u8"goto", TK_GOTO }, { u8"跳轉", TK_GOTO }, { u8"跳转", TK_GOTO },
-
-	{ u8"jmp", TK_JMP }, { u8"跳至", TK_JMP },
-
-	{ u8"label", TK_LABEL }, { u8"標記", TK_LABEL }, { u8"标记", TK_LABEL },
-};
-#endif
 #pragma endregion
 
 #pragma region  Tool
@@ -530,1205 +479,6 @@ bool Lexer::isOperator(const QChar& ch) const
 
 //////////////////////////////////////////////////////////////////////////
 
-#pragma region TEST
-#ifdef TEST_LEXER
-#ifdef _DEBUG
-void debugOutput(TokenMap* ptoken)
-{
-	for (auto it = ptoken->constBegin(); it != ptoken->constEnd(); ++it)
-	{
-		qint64 key = it.key();
-		Token value = it.value();
-
-		qDebug() << "No:" << key << "type:" << value.type << "value:" << value.data;
-	}
-}
-#endif
-
-//根據index取得當前字元
-QChar Lexer::Reader::peek()
-{
-	qint64 index = nowIndex_;
-	if (index < 0 || index >= nowTokenLength_)
-	{
-		return QChar();
-	}
-
-	return nowToken_.at(index);
-}
-
-//根據index取得下一個字元
-QChar Lexer::Reader::next()
-{
-	qint64 index = nowIndex_;
-	++index;
-	if (index <= 0ll || index >= nowTokenLength_)
-	{
-		return QChar();
-	}
-
-	return nowToken_.at(index);
-}
-
-//根據index取得上一個字元
-QChar Lexer::Reader::prev()
-{
-	qint64 index = nowIndex_;
-	--index;
-	if (index <= 0ll || index >= nowTokenLength_)
-	{
-		return QChar();
-	}
-
-	return nowToken_.at(index);
-}
-
-bool Lexer::Reader::checkNext(QChar ch)
-{
-	return next() == ch;
-}
-
-bool Lexer::Reader::checkPrev(QChar ch)
-{
-	return prev() == ch;
-}
-
-bool Lexer::tokenized(Lexer* pLexer, const QString& script)
-{
-	if (script.isEmpty())
-		return false;
-
-	if (pLexer == nullptr)
-		return false;
-
-	pLexer->clear();
-	pLexer->reader_.clear();
-	qint64 currentIndex = getIndex();
-	Injector& injector = Injector::getInstance(currentIndex);
-	if (!injector.scriptLogModel.isNull())
-		injector.scriptLogModel->clear();
-
-
-	RESERVE controlReserve = TK_NONE;
-	qint64 currentIndentLevel = 0;
-
-	QStringList tokenStringList;
-	pLexer->splitToStringToken(script, &tokenStringList);
-	qDebug() << tokenStringList;
-	RESERVE previous = TK_NONE;
-	qint64 size = tokenStringList.size();
-	qint64 i, j, n = 0ll;
-	qint64 line = 0ll;
-	QList<Token> tokenList;
-	for (;;)
-	{
-		Token tk = pLexer->getNextToken(previous, tokenStringList);
-		previous = tk.type;
-
-		tokenList.append(tk);
-		if (tokenStringList.isEmpty())
-			break;
-	}
-
-	size = tokenList.size();
-
-	for (i = 0; i < size; ++i)
-	{
-		Token prevTk;
-		Token& nowTk = tokenList[i];
-		Token nextTk;
-		if (i > 0)
-			prevTk = tokenList.at(i - 1);
-		if (i < size - 1)
-			nextTk = tokenList.at(i + 1);
-
-		if (prevTk.type != TK_NEWLINE && prevTk.type != TK_COLON)
-		{
-			continue;
-		}
-
-		if (nowTk.type == TK_UNK && nextTk.type == TK_LPAREN)
-			nowTk.type = TK_CALLNAME;
-
-	}
-
-	for (i = 0; i < size; ++i)
-	{
-		const Token nowTk = tokenList.at(i);
-		if (nowTk.type == TK_NEWLINE)
-		{
-			++line;
-			qDebug() << "[type]:" << nowTk.type << "[data]:" << nowTk.data;
-			continue;
-		}
-
-		switch (nowTk.type)
-		{
-		case TK_LABEL:
-		{
-			pLexer->labelList_.insert(nowTk.data.toString(), line);
-			break;
-		}
-		case TK_FUNCTIONNAME:
-		{
-			controlReserve = TK_FUNCTION;
-			++currentIndentLevel;
-
-			FunctionNode functionNode;
-			functionNode.name = nowTk.data.toString();
-			functionNode.beginLine = line;
-			functionNode.endLine = -1; // 初始结束行号设为 -1
-			functionNode.level = currentIndentLevel;
-			functionNode.field = currentIndentLevel == 1 ? kGlobal : kLocal;
-
-			functionNode.argList = {};
-
-			bool isRef = false;
-			RESERVE typeReserve = TK_ANY;
-			n = 1;
-			for (;;)
-			{
-				j = i + n;
-				if (j >= size)
-					break;
-
-				Token& tmpTk = tokenList[j];
-				if (tmpTk.type == TK_RPAREN)//新行或右括號結束
-					break;
-
-				do
-				{
-					if (tmpTk.type == TK_COMMA)
-						break;
-
-					if (tmpTk.type == TK_LPAREN)
-						break;
-
-					if (tmpTk.data.toString() == "&")
-					{
-						isRef = true;
-						typeReserve = TK_REF;
-						break;
-					}
-
-
-					if (keyHash.contains(tmpTk.data.toString()))
-					{
-						typeReserve = keyHash.value(tmpTk.data.toString());
-						break;
-					}
-
-					if (isRef)
-					{
-						tmpTk.type = typeReserve;
-						functionNode.argList.append(qMakePair(typeReserve, QString("&" + tmpTk.data.toString())));
-						typeReserve = TK_ANY;
-						isRef = false;
-						break;
-					}
-
-					tmpTk.type = typeReserve;
-					functionNode.argList.append(qMakePair(typeReserve, tmpTk.data));
-					typeReserve = TK_ANY;
-				} while (false);
-
-				++n;
-			}
-
-			pLexer->functionNodeList_.append(functionNode);
-
-			break;
-		}
-		case TK_FOR:
-		{
-			controlReserve = TK_FOR;
-			++currentIndentLevel;
-
-			ForNode forNode;
-			forNode.beginLine = line;
-			forNode.endLine = -1; // 初始结束行号设为 -1
-			forNode.level = currentIndentLevel;
-			forNode.field = currentIndentLevel == 1 ? kGlobal : kLocal;
-
-			n = 1;
-			for (;;)
-			{
-				j = i + n;
-				if (j >= size)
-					break;
-
-				Token tmpTk = tokenList.at(j);
-				if (tmpTk.data.toString() == "do")//取到 do 為止
-					break;
-
-				do
-				{
-					if (tmpTk.type == TK_COMMA)
-						break;
-
-					if (tmpTk.type == TK_LPAREN)
-						break;
-
-					if (forNode.varName.isEmpty() && tmpTk.data.type() == QVariant::String && tmpTk.data.toString() != "do")
-					{
-						forNode.varName = tmpTk.data.toString();
-						break;
-					}
-
-					if (tmpTk.type == TK_ASSIGN)
-						break;
-
-					if (!forNode.beginValue.isValid() && tmpTk.data.toString() != "do")
-					{
-						forNode.beginValue = tmpTk.data;
-						break;
-					}
-
-					if ((!forNode.endValue.isValid() || forNode.endValue == forNode.beginValue) && tmpTk.data.toString() != "do")
-					{
-						forNode.endValue = tmpTk.data;
-						break;
-					}
-
-					if ((!forNode.stepValue.isValid() || forNode.stepValue.toLongLong() == 0) && tmpTk.data.toString() != "do")
-					{
-						forNode.stepValue = tmpTk.data;
-						break;
-					}
-
-				} while (false);
-
-				++n;
-			}
-
-			pLexer->forNodeList_.append(forNode);
-
-			break;
-		}
-		case TK_RETURN:
-		{
-			//QStringList returnTypes;
-
-			//for (qint64 i = 1; i < tk.size(); ++i)
-			//{
-			//	Token token = tk.value(i);
-			//	if (token.type == TK_COMMENT)
-			//		continue;
-			//	returnTypes.append(token.data.toString());
-			//}
-
-			//if (!pLexer->functionNodeList_.isEmpty())
-			//{
-			//	pLexer->functionNodeList_.last().returnTypes.insert(i, returnTypes);
-			//}
-			break;
-		}
-		case TK_END:
-		{
-			if (controlReserve == TK_FUNCTION)
-			{
-				if (!pLexer->functionNodeList_.isEmpty())
-				{
-					pLexer->functionNodeList_.last().endLine = line;
-					qDebug() << "function:" << pLexer->functionNodeList_.last().name << pLexer->functionNodeList_.last().argList;
-				}
-			}
-			else if (controlReserve == TK_FOR)
-			{
-				if (!pLexer->forNodeList_.isEmpty())
-				{
-					pLexer->forNodeList_.last().endLine = line;
-					qDebug() << "for:" << pLexer->forNodeList_.last().varName << pLexer->forNodeList_.last().beginValue << pLexer->forNodeList_.last().endValue << pLexer->forNodeList_.last().stepValue;
-				}
-			}
-			else if (controlReserve == TK_WHILE)
-			{
-
-			}
-			else if (controlReserve == TK_REPEAT)
-			{
-
-			}
-
-			controlReserve = TK_END;
-			--currentIndentLevel;
-			break;
-		}
-		default:
-			break;
-		}
-
-		qDebug() << "[type]:" << nowTk.type << "[data]:" << nowTk.data;
-	}
-
-	QStringList content;
-	for (const Token& it : tokenList)
-	{
-		content.append(it.raw);
-	}
-
-	QString c = content.join(" ");
-
-	qDebug() << c;
-
-#if 0
-	for (qint64 i = 0; i < size; ++i)
-	{
-		TokenMap tk;
-		//單獨處理每一行的TOKEN
-		if (pLexer->useNewLexer)
-			pLexer->tokenizedNew(lines.at(i), &tk);
-		else
-			pLexer->tokenized(i, lines.at(i), &tk, &pLexer->labelList_);
-		tokens.insert(i, tk);
-
-		if (!pLexer->useNewLexer)
-			continue;
-
-		RESERVE reserve = tk.value(0).type;
-
-		switch (reserve)
-		{
-		case TK_LABEL:
-		{
-			pLexer->labelList_.insert(tk.value(0).data.toString(), i);
-			break;
-		}
-		case TK_FUNCTION:
-		{
-			controlReserve = TK_FUNCTION;
-			++currentIndentLevel;
-
-			FunctionNode functionNode;
-			functionNode.name = tk.value(1).data.toString();
-			functionNode.beginLine = i;
-			functionNode.endLine = -1; // 初始结束行号设为 -1
-			functionNode.level = currentIndentLevel;
-			functionNode.field = currentIndentLevel == 1 ? kGlobal : kLocal;
-
-			functionNode.argList = tk.value(2).data.value<VarPairList>();
-
-			pLexer->functionNodeList_.append(functionNode);
-
-			break;
-		}
-		case TK_FOR:
-		{
-			controlReserve = TK_FOR;
-			++currentIndentLevel;
-
-			ForNode forNode;
-			forNode.beginLine = i;
-			forNode.endLine = -1; // 初始结束行号设为 -1
-			forNode.level = currentIndentLevel;
-			forNode.field = currentIndentLevel == 1 ? kGlobal : kLocal;
-
-			forNode.varName = tk.value(1).data.toString();
-			//----------------------------2 是 = 符號
-			forNode.beginValue = tk.value(3).data.toLongLong();
-			forNode.endValue = tk.value(4).data.toLongLong();
-
-			pLexer->forNodeList_.append(forNode);
-
-			break;
-		}
-		case TK_WHILE:
-		{
-			controlReserve = TK_WHILE;
-			++currentIndentLevel;
-			break;
-		}
-		case TK_REPEAT:
-		{
-			controlReserve = TK_REPEAT;
-			++currentIndentLevel;
-			break;
-		}
-		case TK_RETURN:
-		{
-			QStringList returnTypes;
-
-			for (qint64 i = 1; i < tk.size(); ++i)
-			{
-				Token token = tk.value(i);
-				if (token.type == TK_COMMENT)
-					continue;
-				returnTypes.append(token.data.toString());
-			}
-
-			if (!pLexer->functionNodeList_.isEmpty())
-			{
-				pLexer->functionNodeList_.last().returnTypes.insert(i, returnTypes);
-			}
-			break;
-		}
-		case TK_END:
-		{
-			if (controlReserve == TK_FUNCTION)
-			{
-				if (!pLexer->functionNodeList_.isEmpty())
-				{
-					pLexer->functionNodeList_.last().endLine = i;
-				}
-			}
-			else if (controlReserve == TK_FOR)
-			{
-				if (!pLexer->forNodeList_.isEmpty())
-				{
-					pLexer->forNodeList_.last().endLine = i;
-				}
-			}
-			else if (controlReserve == TK_WHILE)
-			{
-
-			}
-			else if (controlReserve == TK_REPEAT)
-			{
-
-			}
-
-			controlReserve = TK_END;
-			--currentIndentLevel;
-			break;
-		}
-		default:
-			break;
-		}
-	}
-
-	pLexer->tokens_ = tokens;
-#endif
-	return true;
-}
-
-bool Lexer::splitToStringToken(QString src, QStringList* pTokenStringList)
-{
-	//markers
-	qint64 sQuote = 0i64; // 是否在單引號內
-	qint64 dQuote = 0i64; // 是否在雙引號內
-	qint64 waitforCommantEnd = 0i64; // 是否在註解內
-	qint64 waitforBlockCommantEnd = 0i64; // 是否在區塊註解內
-
-	QStringList tokenStringList;
-
-	reader_.resetIndex();
-	reader_.resetToken(src);
-
-	QChar u = 0ui16;
-	QChar ch = 0ui16;
-
-	qint64 line = 0;
-
-	for (;;)
-	{
-		u = reader_.peek();
-
-		switch (u.unicode())
-		{
-		case L'\r':
-		{
-			if (!waitforBlockCommantEnd)
-				reader_.takeStored();
-			else
-				reader_.store(u);
-			break;
-		}
-		case L'\n':
-		{
-			if (sQuote > 0 || dQuote > 0)
-				break;
-
-			if (waitforCommantEnd)
-			{
-				waitforCommantEnd = false;
-				reader_.takeStored();
-			}
-
-			if (!waitforBlockCommantEnd)
-			{
-				reader_.takeStored();
-				reader_.store(u);
-				reader_.takeStored();
-				++line;
-			}
-			else
-				reader_.store(u);
-
-			break;
-		}
-		case L'\\':
-		{
-			if (sQuote == 0 && dQuote == 0)
-			{
-				showError(QObject::tr("[error] @ %1 | Escape character is not allowed outside of string literal.").arg(line));
-				return RTK_EOF;
-			}
-
-			reader_.store(u);
-			break;
-		}
-		case L'\'':
-		case L'"':
-		{
-			if (waitforCommantEnd || waitforBlockCommantEnd)
-			{
-				reader_.store(u);
-				break;
-			}
-
-			if (sQuote > 0 || dQuote > 0)
-			{
-				sQuote = 0;
-				dQuote = 0;
-
-				reader_.store(u);
-				reader_.takeStored();
-				break;
-			}
-
-			reader_.takeStored();
-			++dQuote;
-			++sQuote;
-			reader_.store(u);
-
-			break;
-		}
-		case L'*': // *, *=
-		{
-			if (waitforCommantEnd)
-			{
-				reader_.store(u);
-				break;
-			}
-
-			if (sQuote > 0 || dQuote > 0)
-			{
-				reader_.store(u);
-				break;
-			}
-
-			ch = reader_.next();
-			if (ch == L'/')
-			{
-				if (waitforBlockCommantEnd)
-				{
-					waitforBlockCommantEnd = false;
-					reader_.store(u);
-					reader_.movenext();
-					reader_.store(reader_.peek());
-					reader_.takeStored();
-				}
-			}
-
-			if (waitforBlockCommantEnd)
-			{
-				reader_.store(u);
-				break;
-			}
-
-			reader_.takeStored();
-			reader_.store(u);
-			reader_.takeStored();
-			break;
-		}
-		case L'/': // /, /=
-		{
-			if (sQuote > 0 || dQuote > 0)
-			{
-				reader_.store(u);
-				break;
-			}
-
-			ch = reader_.next();
-			if (ch == L'/' && !waitforCommantEnd) // //, /*
-			{
-				waitforCommantEnd = true;
-				reader_.takeStored();
-				reader_.store(u);
-				reader_.movenext();
-				reader_.store(reader_.peek());
-				break;
-			}
-			else if (ch == L'*' && !waitforBlockCommantEnd) // //, /*
-			{
-				waitforBlockCommantEnd = true;
-				reader_.takeStored();
-				reader_.store(u);
-				reader_.movenext();
-				reader_.store(reader_.peek());
-				break;
-			}
-
-			if (waitforCommantEnd || waitforBlockCommantEnd)
-			{
-				reader_.store(u);
-				break;
-			}
-
-			reader_.takeStored();
-			reader_.store(u);
-			reader_.takeStored();
-			break;
-		}
-		case L' ':
-		{
-			if (waitforCommantEnd || waitforBlockCommantEnd)
-			{
-				reader_.store(u);
-				break;
-			}
-
-			if (sQuote > 0 || dQuote > 0)
-			{
-				reader_.store(u);
-				break;
-			}
-
-			reader_.takeStored();
-			break;
-		}
-		case L'(':
-		case L')':
-		case L'}':
-		case L'{':
-		case L'[':
-		case L']':
-		case L',':
-		case L'#': // #
-		case L'?': // ?:
-		case L':': // :
-		case L';':
-		case L'+':
-		case L'-':
-		case L'%':
-		case L'&':
-		case L'^':
-		case L'<':
-		case L'>':
-		case L'=':
-		case L'~':
-		case L'_':
-		case L'.':
-		{
-			if (waitforCommantEnd || waitforBlockCommantEnd)
-			{
-				reader_.store(u);
-				break;
-			}
-
-			if (sQuote > 0 || dQuote > 0)
-			{
-				reader_.store(u);
-				break;
-			}
-
-			reader_.takeStored();
-			reader_.store(u);
-			reader_.takeStored();
-			break;
-		}
-		case L'\0':
-		{
-			if (pTokenStringList != nullptr)
-				*pTokenStringList = reader_.getList();
-			return true;
-		}
-		default:
-			reader_.store(u);
-			break;
-		}
-
-		reader_.movenext();
-	}
-
-	return false;
-}
-
-bool Lexer::checkOperator(RESERVE previous, QString& tokenStr, RESERVE* pReserve)
-{
-	if (tokenStr.isEmpty())
-		return false;
-
-	if (pReserve == nullptr)
-		return false;
-
-	QChar u = tokenStr.front();
-	QChar ch = L'\0';
-	bool bret = true;
-
-	reader_.resetIndex();
-	reader_.resetToken(tokenStr);
-
-	switch (u.unicode())
-	{
-	case L'+': // +, ++, +=
-	{
-		ch = reader_.next();
-		if (ch == L'+') // ++
-			*pReserve = TK_INC;
-		else if (ch == L'=') // +=
-			*pReserve = TK_ADD_ASSIGN;
-		else // +
-		{
-			if (previous == TK_CSTRING)
-				*pReserve = TK_DOTDOT;
-			else
-				*pReserve = TK_ADD;
-		}
-
-		break;
-	}
-	case L'-': //  -, --, -=
-	{
-		ch = reader_.next();
-		if (ch == L'-') // --
-			*pReserve = TK_DEC;
-		else if (ch == L'=') // -=
-			*pReserve = TK_SUB_ASSIGN;
-		else // -
-			*pReserve = TK_SUB;
-
-		break;
-	}
-	case L'*': // *, *=
-	{
-		ch = reader_.next();
-		if (ch == L'=') // *=
-			*pReserve = TK_MUL_ASSIGN;
-		else if (ch == L'/') // */
-			*pReserve = TK_COMMENT;
-		else // *
-			*pReserve = TK_MUL;
-
-		break;
-	}
-	case L'/': // /, /=
-	{
-		ch = reader_.next();
-		if (ch == L'=') // /=
-			*pReserve = TK_DIV_ASSIGN;
-		else if (ch == L'/' || ch == '*') // //, /*
-			*pReserve = TK_COMMENT;
-		else // /
-			*pReserve = TK_DIV;
-
-		break;
-	}
-	case L'%': // %, %=
-	{
-		ch = reader_.next();
-		if (ch == L'=') // %=
-			*pReserve = TK_MOD_ASSIGN;
-		else // %
-			*pReserve = TK_MOD;
-
-		break;
-	}
-	case L'!': // !, !=
-	{
-		ch = reader_.next();
-		if (ch == L'=')
-			*pReserve = TK_NEQ;
-		else
-			*pReserve = TK_NOT;
-
-		break;
-	}
-	case L'=': // =, ==
-	{
-		ch = reader_.next();
-		if (ch == L'=') // ==
-			*pReserve = TK_EQ;
-		else // =
-			*pReserve = TK_ASSIGN;
-
-		break;
-	}
-	case L'>': // >, >=, >>, >>=
-	{
-		ch = reader_.next();
-		if (ch == L'=') // >=
-			*pReserve = TK_GEQ;
-		else if (ch == L'>') // >>
-		{
-			ch = reader_.next();
-			if (ch == L'=') // >>=
-				*pReserve = TK_SHR_ASSIGN;
-			else
-				*pReserve = TK_SHR;
-		}
-		else
-			*pReserve = TK_GT;
-
-		break;
-	}
-	case L'<': // <, <=, <<, <<=
-	{
-		ch = reader_.next();
-		if (ch == L'=') // <=
-			*pReserve = TK_LEQ;
-		else if (ch == L'<') // <<
-		{
-			ch = reader_.next();
-			if (ch == L'=') // <<=
-				*pReserve = TK_SHL_ASSIGN;
-			else
-				*pReserve = TK_SHL;
-		}
-		else
-			*pReserve = TK_LT;
-
-		break;
-	}
-	case L'&': // &, &&, &=
-	{
-		ch = reader_.next();
-		if (ch == L'=') // &=
-			*pReserve = TK_AND_ASSIGN;
-		else if (ch == L'&') // &&
-			*pReserve = TK_ANDAND;
-		else if (ch != L'\0' && ch != L',') // &xxxx
-			*pReserve = TK_REF;
-		else // &
-			*pReserve = TK_AND;
-
-		break;
-	}
-	case L'|': // |, |=
-	{
-		ch = reader_.next();
-		if (ch == L'=') // |=
-			*pReserve = TK_OR_ASSIGN;
-		else if (ch == L'|') // ||
-			*pReserve = TK_OROR;
-		else // |
-			*pReserve = TK_OR;
-
-		break;
-	}
-	case L'^': // ^, ^=
-	{
-		ch = reader_.next();
-		if (ch == L'=')
-			*pReserve = TK_XOR_ASSIGN;
-		else
-			*pReserve = TK_XOR;
-
-		break;
-	}
-	case L'~': // ~, ~=
-	{
-		ch = reader_.next();
-		if (ch == L'=') // ~=
-			*pReserve = TK_NEQ;
-		else // ~
-			*pReserve = TK_NOT;
-
-		break;
-	}
-	case L'?': // ?:
-	{
-		*pReserve = TK_FUZZY;
-		break;
-	}
-	case L':': // :
-	{
-		*pReserve = TK_COLON;
-		break;
-	}
-	case L'.': // ., ..
-	{
-		ch = reader_.next();
-		if (ch == L'.')
-			*pReserve = TK_DOTDOT;
-		else
-			*pReserve = TK_DOT;
-		break;
-	}
-	case L'#': // #
-	{
-		*pReserve = TK_SHARP;
-		break;
-	}
-	case L',':
-	{
-		*pReserve = TK_COMMA;
-		break;
-	}
-	case L'(':
-	{
-		if (previous == TK_FUNCTIONNAME)
-			beginFunctionArgsDeclaration_ = true;
-
-		if (previous == TK_FOR)
-			beginForArgs_ = true;
-
-		*pReserve = TK_LPAREN;
-		break;
-	}
-	case L')':
-	{
-		if (beginFunctionArgsDeclaration_)
-		{
-			beginFunctionArgsDeclaration_ = false;
-			functionArgList_.clear();
-		}
-
-		if (beginForArgs_)
-			beginForArgs_ = false;
-
-		*pReserve = TK_RPAREN;
-		break;
-	}
-	case L'[':
-	{
-		*pReserve = TK_LBRACKET;
-		break;
-	}
-	case L']':
-	{
-		*pReserve = TK_RBRACKET;
-		break;
-	}
-	case L'{':
-	{
-		*pReserve = TK_LBRACE;
-		break;
-	}
-	case L'}':
-	{
-		*pReserve = TK_RBRACE;
-		break;
-	}
-	default:
-		bret = false;
-		break;
-	}
-
-	reader_.resetIndex();
-	return  bret;
-}
-
-Token Lexer::getNextToken(RESERVE previous, QStringList& refTokenStringList)
-{
-	if (refTokenStringList.isEmpty())
-		return Token();
-
-	Token token;
-	QString front = refTokenStringList.front();
-	refTokenStringList.pop_front();
-
-	if (keyHash.contains(front))
-	{
-		return Token{ keyHash.value(front), front, front };
-	}
-
-	//標記名稱
-	if (previous == TK_LABEL)
-	{
-		return Token{ TK_LABELNAME, front, front };
-	}
-
-	//跳轉目標標記
-	if (previous == TK_GOTO)
-	{
-		return  Token{ TK_LABELNAME, front, front };
-	}
-
-	RESERVE opReserve = TK_UNK;
-	if (checkOperator(previous, front, &opReserve))
-	{
-		return Token{ opReserve, front, front };
-	}
-
-	//函數名稱
-	if (previous == TK_FUNCTION)
-	{
-		beginFunctionDeclaration_ = false;
-		beginFunctionNameDeclaration_ = true;
-		return Token{ TK_FUNCTIONNAME, front, front };
-	}
-
-	//函數傳參
-	if (beginFunctionNameDeclaration_ || beginFunctionArgsDeclaration_)
-	{
-		beginFunctionNameDeclaration_ = false;
-		beginFunctionArgsDeclaration_ = true;
-
-		token = Token{ TK_FUNCTIONARG, front, front };
-		functionArgList_.append(token);
-		return token;
-	}
-
-	//返回值
-	if (previous == TK_RETURN)
-	{
-		return Token{ TK_RETURNVALUE, front, front };
-	}
-
-	//更多返回值
-	if (previous == TK_RETURNVALUE)
-	{
-		return Token{ TK_RETURNVALUE, front, front };
-	}
-
-	if (beginForArgs_)
-	{
-		bool ok = false;
-		qint64 value = front.toLongLong(&ok);
-		if (ok && !front.startsWith("'") && !front.startsWith("\""))
-			token = Token{ TK_FORARG, value, front };
-		else
-			token = Token{ TK_FORARG, front, front };
-		forArgList_.append(token);
-		return token;
-	}
-
-	if (isConstString(front))
-	{
-		return Token{ TK_STRINGVALUE, front, front };
-	}
-
-	if (isBool(front))
-	{
-		QVariant value = front == "true" || front == "真" ? true : false;
-		return Token{ TK_BOOLVALUE, value, front };
-	}
-
-	if (isDouble(front))
-	{
-		QVariant value = front.toDouble();
-		return Token{ TK_DOUBLEVALUE, value, front };
-	}
-
-	if (isInteger(front))
-	{
-		QVariant value = front.toLongLong();
-		return Token{ TK_INTVALUE, value, front };
-	}
-
-	if (front == "nil")
-	{
-		return Token{ TK_NIL, QVariant("nil"), front };
-	}
-
-	if (front == "\n")
-	{
-		return Token{ TK_NEWLINE, front, front };
-	}
-
-	return Token{ TK_UNK, front, front };
-}
-
-
-//將lua table轉換成字串
-QString Lexer::getLuaTableString(const sol::table& t, int& depth)
-{
-	if (depth <= 0)
-		return "";
-
-	--depth;
-
-	QString ret = "{\n";
-
-	QStringList results;
-	QStringList strKeyResults;
-
-	QString nowIndent = "";
-	for (qint64 i = 0; i <= 10 - depth + 1; ++i)
-	{
-		nowIndent += "    ";
-	}
-
-	for (const auto& pair : t)
-	{
-		qint64 nKey = 0;
-		QString key = "";
-		QString value = "";
-
-		if (pair.first.is<qint64>())
-		{
-			nKey = pair.first.as<qint64>() - 1;
-		}
-		else
-			key = util::toQString(pair.first);
-
-		if (pair.second.is<sol::table>())
-			value = getLuaTableString(pair.second.as<sol::table>(), depth);
-		else if (pair.second.is<std::string>())
-			value = QString("'%1'").arg(util::toQString(pair.second));
-		else if (pair.second.is<qint64>())
-			value = util::toQString(pair.second.as<qint64>());
-		else if (pair.second.is<double>())
-			value = util::toQString(pair.second.as<double>());
-		else if (pair.second.is<bool>())
-			value = util::toQString(pair.second.as<bool>());
-		else
-			value = "nil";
-
-		if (key.isEmpty())
-		{
-			if (nKey >= results.size())
-			{
-				for (qint64 i = results.size(); i <= nKey; ++i)
-					results.append("nil");
-			}
-
-			results[nKey] = nowIndent + value;
-		}
-		else
-			strKeyResults.append(nowIndent + QString("%1 = %2").arg(key).arg(value));
-	}
-
-	std::sort(strKeyResults.begin(), strKeyResults.end(), [](const QString& a, const QString& b)
-		{
-			static const QLocale locale;
-			static const QCollator collator(locale);
-			return collator.compare(a, b) < 0;
-		});
-
-	results.append(strKeyResults);
-
-	ret += results.join(",\n");
-	ret += "\n}";
-
-	return ret;
-}
-
-//將字符串解析成lua table
-sol::object Lexer::getLuaTableFromString(const QString& str)
-{
-	const QString expr(QString("return %1;").arg(str));
-	const std::string exprStrUTF8 = expr.toUtf8().constData();
-	sol::protected_function_result loaded_chunk = lua_.safe_script(exprStrUTF8.c_str(), sol::script_pass_on_error);
-	lua_.collect_garbage();
-
-	if (!loaded_chunk.valid())
-	{
-		sol::error err = loaded_chunk;
-		qDebug() << err.what();
-		return sol::lua_nil;
-	}
-
-	sol::object retObject;
-	try
-	{
-		retObject = loaded_chunk;
-	}
-	catch (...)
-	{
-		return sol::lua_nil;
-	}
-
-	if (retObject.is<sol::table>())
-		return retObject;
-
-	return sol::lua_nil;
-}
-
-#endif
-#pragma endregion
-
 #pragma region OLD
 
 //解析整個腳本至多個TOKEN
@@ -1768,9 +518,6 @@ void Lexer::tokenized(qint64 currentLine, const QString& line, TokenMap* ptoken,
 	RESERVE type = TK_UNK;
 
 	ptoken->clear();
-
-
-
 
 	do
 	{
@@ -1833,17 +580,19 @@ void Lexer::tokenized(qint64 currentLine, const QString& line, TokenMap* ptoken,
 
 		bool doNotLowerCase = false;
 		//a,b,c = 1,2,3
-		static const QRegularExpression rexMultiVar(R"(^\s*([_a-zA-Z\p{Han}][\w\p{Han}]*(?:\s*,\s*[_a-zA-Z\p{Han}][\w\p{Han}]*)*)\s*=\s*([^,]+(?:\s*,\s*[^,]+)*)$\;*)");
+		//static const QRegularExpression rexMultiVar(R"(^\s*([_a-zA-Z\p{Han}][\w\p{Han}]*(?:\s*,\s*[_a-zA-Z\p{Han}][\w\p{Han}]*)*)\s*=\s*([^,]+(?:\s*,\s*[^,]+)*)$\;*)");
 		//local a,b,c = 1,2,3
-		static const QRegularExpression rexMultiLocalVar(R"([lL][oO][cC][aA][lL]\s+([_a-zA-Z\p{Han}][\w\p{Han}]*(?:\s*,\s*[_a-zA-Z\p{Han}][\w\p{Han}]*)*)\s*=\s*([^,]+(?:\s*,\s*[^,]+)*)$\;*)");
+		//static const QRegularExpression rexMultiLocalVar(R"([lL][oO][cC][aA][lL]\s+([_a-zA-Z\p{Han}][\w\p{Han}]*(?:\s*,\s*[_a-zA-Z\p{Han}][\w\p{Han}]*)*)\s*=\s*([^,]+(?:\s*,\s*[^,]+)*)$\;*)");
 		//var++, var--
-		static const QRegularExpression varIncDec(R"(([\p{Han}\w]+)(\+\+|--)\;*)");
+		static const QRegularExpression varIncDec(R"((?!\d)([\p{Han}\W\w]+)(\+\+|--)\;*)");
 		//+= -= *= /= &= |= ^= %=
-		static const QRegularExpression varCAOs(R"((?!\d)([\p{Han}\w]+)\s*([+\-*\/&|^%]\=)\s*([\W\w\s\p{Han}]+)\;*)");
+		static const QRegularExpression varCAOs(R"((?!\d)([\p{Han}\W\w]+)\s*([+\-*\/&\|\^%]\=)\s*([\W\w\s\p{Han}]+)\;*)");
+		//>>= <<=
+		static const QRegularExpression varCAOs2(R"((?!\d)([\p{Han}\W\w]+)\s*(>>\=|<<=)\s*([\W\w\s\p{Han}]+)\;*)");
 		//x = expr
-		static const QRegularExpression varExpr(R"(([\w\p{Han}]+)\s*\=\s*([\W\w\s\p{Han}]+)\;*)");
+		//static const QRegularExpression varExpr(R"(([\w\p{Han}]+)\s*\=\s*([\W\w\s\p{Han}]+)\;*)");
 		//+ - * / % & | ^ ( )
-		static const QRegularExpression varAnyOp(R"([+\-*\/%&|^\(\)])");
+		//static const QRegularExpression varAnyOp(R"([+\-*\/%&|^\(\)])");
 		//if expr op expr
 		static const QRegularExpression varIf(R"([iI][fF][\s*\(\s*|\s+]([\w\W\p{Han}]+\s*[<|>|\=|!][\=]*\s*[\w\W\p{Han}]+)\s*,\s*([\w\W\p{Han}]+))");
 		//if expr
@@ -1856,8 +605,8 @@ void Lexer::tokenized(qint64 currentLine, const QString& line, TokenMap* ptoken,
 		static const QRegularExpression rexCallFor(R"([fF][oO][rR]\s*\(*([\w\p{Han}]+)\s*=\s*([^,]+)\s*,\s*([^,]+)\s*[\)]*)");
 		static const QRegularExpression rexCallForForever(R"([fF][oO][rR]\s*\(*\s*,\s*,\s*\)*\s*[do]*)");
 		static const QRegularExpression rexCallForWithStep(R"([fF][oO][rR]\s*\(*([\w\p{Han}]+)\s*=\s*([^,]+)\s*,\s*([^,]+)\s*,\s*([^,\)]+)\s*[\)]*)");
-		static const QRegularExpression rexTable(R"(([\w\p{Han}]+)\s*=\s*(\{[\s\S]*\})\;*)");
-		static const QRegularExpression rexLocalTable(R"([lL][oO][cC][aA][lL]\s+([\w\p{Han}]+)\s*=\s*(\{[\s\S]*\})\;*)");
+		//static const QRegularExpression rexTable(R"(([\w\p{Han}]+)\s*=\s*(\{[\s\S]*\})\;*)");
+		//static const QRegularExpression rexLocalTable(R"([lL][oO][cC][aA][lL]\s+([\w\p{Han}]+)\s*=\s*(\{[\s\S]*\})\;*)");
 		//處理if
 		if (raw.startsWith("if"))
 		{
@@ -1941,9 +690,12 @@ void Lexer::tokenized(qint64 currentLine, const QString& line, TokenMap* ptoken,
 			break;
 		}
 		//處理+= -+ *= /= %= |= &= 
-		else if (raw.contains(varCAOs) && !raw.front().isDigit())
+		else if ((raw.contains(varCAOs) || raw.contains(varCAOs2)) && !raw.front().isDigit())
 		{
 			QRegularExpressionMatch match = varCAOs.match(raw);
+			if (!match.hasMatch())
+				match = varCAOs2.match(raw);
+
 			if (match.hasMatch())
 			{
 				QString notuse;
@@ -1955,81 +707,82 @@ void Lexer::tokenized(qint64 currentLine, const QString& line, TokenMap* ptoken,
 				++p;
 				RESERVE valuetype = getTokenType(p, optype, value, value);
 
-				createToken(pos, TK_CAOS, varName, varName, ptoken);
-				createToken(pos + 1, optype, op, op, ptoken);
-				createToken(pos + 2, valuetype, value, value, ptoken);
+				createToken(pos, TK_CAOS, varName, varName, ptoken);  //變量
+				createToken(pos + 1, optype, op, op, ptoken);         //運算符
+				createToken(pos + 2, valuetype, value, value, ptoken);//值
 			}
 			break;
 		}
+#if 0
 		//處理單一局表
-		//else if (raw.count("=") == 1 && raw.contains(rexLocalTable) && !raw.front().isDigit() && raw.contains("{") && raw.contains("}"))
-		//{
-		//	QRegularExpressionMatch match = rexLocalTable.match(raw);
-		//	if (match.hasMatch())
-		//	{
-		//		QString varName = match.captured(1).simplified();
-		//		QString expr = match.captured(2).simplified();
-		//		createToken(pos, TK_LOCALTABLE, varName, varName, ptoken);
-		//		createToken(pos + 1, TK_LOCALTABLE, expr, expr, ptoken);
-		//	}
-		//	break;
-		//}
+		else if (raw.count("=") == 1 && raw.contains(rexLocalTable) && !raw.front().isDigit() && raw.contains("{") && raw.contains("}"))
+		{
+			QRegularExpressionMatch match = rexLocalTable.match(raw);
+			if (match.hasMatch())
+			{
+				QString varName = match.captured(1).simplified();
+				QString expr = match.captured(2).simplified();
+				createToken(pos, TK_LOCALTABLE, varName, varName, ptoken);
+				createToken(pos + 1, TK_LOCALTABLE, expr, expr, ptoken);
+			}
+			break;
+		}
 		//處理單一全局表
-		//else if (raw.count("=") == 1 && raw.contains(rexTable) && !raw.front().isDigit() && raw.contains("{") && raw.contains("}"))
-		//{
-		//	QRegularExpressionMatch match = rexTable.match(raw);
-		//	if (match.hasMatch())
-		//	{
-		//		QString varName = match.captured(1).simplified();
-		//		QString expr = match.captured(2).simplified();
-		//		createToken(pos, TK_TABLE, varName, varName, ptoken);
-		//		createToken(pos + 1, TK_TABLE, expr, expr, ptoken);
-		//	}
-		//	break;
-		//}
+		else if (raw.count("=") == 1 && raw.contains(rexTable) && !raw.front().isDigit() && raw.contains("{") && raw.contains("}"))
+		{
+			QRegularExpressionMatch match = rexTable.match(raw);
+			if (match.hasMatch())
+			{
+				QString varName = match.captured(1).simplified();
+				QString expr = match.captured(2).simplified();
+				createToken(pos, TK_TABLE, varName, varName, ptoken);
+				createToken(pos + 1, TK_TABLE, expr, expr, ptoken);
+			}
+			break;
+		}
 		//處理單一或多個局變量聲明+初始化
-		//else if (raw.count("=") == 1 && raw.contains(rexMultiLocalVar)
-		//	&& (!raw.contains(varAnyOp) || raw.indexOf(varAnyOp) > raw.indexOf("\'") || raw.indexOf(varAnyOp) > raw.indexOf("\""))
-		//	&& !raw.front().isDigit())
-		//{
-		//	QRegularExpressionMatch match = rexMultiLocalVar.match(raw);
-		//	if (match.hasMatch())
-		//	{
-		//		token = match.captured(1).simplified();
-		//		raw = match.captured(2).simplified();
-		//		type = TK_LOCAL;
-		//		doNotLowerCase = true;
-		//	}
-		//}
-		////處理單一或多個全局變量聲明+初始化 或 已存在的局變量重新賦值
-		//else if (raw.count("=") == 1 && raw.contains(rexMultiVar)
-		//	&& (!raw.contains(varAnyOp) || raw.indexOf(varAnyOp) > raw.indexOf("\'") || raw.indexOf(varAnyOp) > raw.indexOf("\""))
-		//	&& !raw.front().isDigit())
-		//{
-		//	QRegularExpressionMatch match = rexMultiVar.match(raw);
-		//	if (match.hasMatch())
-		//	{
-		//		token = match.captured(1).simplified();
-		//		raw = match.captured(2).simplified();
-		//		type = TK_MULTIVAR;
-		//		doNotLowerCase = true;
-		//	}
-		//}
-
+		else if (raw.count("=") == 1 && raw.contains(rexMultiLocalVar)
+			&& (!raw.contains(varAnyOp) || raw.indexOf(varAnyOp) > raw.indexOf("\'") || raw.indexOf(varAnyOp) > raw.indexOf("\""))
+			&& !raw.front().isDigit())
+		{
+			QRegularExpressionMatch match = rexMultiLocalVar.match(raw);
+			if (match.hasMatch())
+			{
+				token = match.captured(1).simplified();
+				raw = match.captured(2).simplified();
+				type = TK_LOCAL;
+				doNotLowerCase = true;
+			}
+		}
+		//處理單一或多個全局變量聲明+初始化 或 已存在的局變量重新賦值
+		else if (raw.count("=") == 1 && raw.contains(rexMultiVar)
+			&& (!raw.contains(varAnyOp) || raw.indexOf(varAnyOp) > raw.indexOf("\'") || raw.indexOf(varAnyOp) > raw.indexOf("\""))
+			&& !raw.front().isDigit())
+		{
+			QRegularExpressionMatch match = rexMultiVar.match(raw);
+			if (match.hasMatch())
+			{
+				token = match.captured(1).simplified();
+				raw = match.captured(2).simplified();
+				type = TK_MULTIVAR;
+				doNotLowerCase = true;
+			}
+		}
 		//處理變量賦值數學表達式
-		//else if (raw.contains(varExpr) && raw.contains(varAnyOp) && !raw.front().isDigit())
-		//{
-		//	QRegularExpressionMatch match = varExpr.match(raw);
-		//	if (match.hasMatch())
-		//	{
-		//		QString varName = match.captured(1).simplified();
-		//		QString expr = match.captured(2).simplified();
+		else if (raw.contains(varExpr) && raw.contains(varAnyOp) && !raw.front().isDigit())
+		{
+			QRegularExpressionMatch match = varExpr.match(raw);
+			if (match.hasMatch())
+			{
+				QString varName = match.captured(1).simplified();
+				QString expr = match.captured(2).simplified();
 
-		//		createToken(pos, TK_EXPR, varName, varName, ptoken);
-		//		createToken(pos + 1, TK_STRING, expr, expr, ptoken);
-		//	}
-		//	break;
-		//}
+				createToken(pos, TK_EXPR, varName, varName, ptoken);
+				createToken(pos + 1, TK_STRING, expr, expr, ptoken);
+			}
+			break;
+		}
+#endif
 		else
 		{
 			//處理整行註釋
@@ -2771,21 +1524,30 @@ void Lexer::checkSingleRowPairs(const QString& beginstr, const QString& endstr, 
 	bool beginLuaCode = false;
 	for (auto it = tokenmaps.cbegin(); it != tokenmaps.cend(); ++it)
 	{
-		if (it.value().value(0).data.toString() == "#lua" && !beginLuaCode)
-		{
-			beginLuaCode = true;
-			continue;
-		}
-		else if (it.value().value(0).data.toString() == "#endlua" && beginLuaCode)
-		{
-			beginLuaCode = false;
-			continue;
-		}
+
 
 		qint64 row = it.key();
 		QStringList tmp;
+		bool skip = false;
 		for (auto it2 = it.value().cbegin(); it2 != it.value().cend(); ++it2)
+		{
+			if (it2.value().raw.simplified() == "#lua" && !beginLuaCode)
+			{
+				beginLuaCode = true;
+				skip = true;
+				break;
+			}
+			else if (it2.value().raw.simplified() == "#endlua" && beginLuaCode)
+			{
+				beginLuaCode = false;
+				skip = true;
+				break;
+			}
 			tmp.append(it2.value().data.toString().simplified());
+		}
+
+		if (skip)
+			continue;
 
 		QString statement = tmp.join(" ");
 
@@ -2853,7 +1615,7 @@ void Lexer::checkFunctionPairs(const QHash<qint64, TokenMap>& stokenmaps)
 {
 	checkSingleRowPairs("(", ")", stokenmaps);
 	//checkSingleRowPairs("[", "]", stokenmaps);
-	checkSingleRowPairs("{", "}", stokenmaps);
+	//checkSingleRowPairs("{", "}", stokenmaps);
 }
 
 //根據指定分割符號取得字串

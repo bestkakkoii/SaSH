@@ -1836,7 +1836,7 @@ Update process will cause all the games to be closed, are you sure to continue?<
     </message>
     <message>
         <source>basic info - count:%1, subscript:%2</source>
-        <translation>基本資料 - 接口:%1, 子腳本:%2</translation>
+        <translation type="vanished">基本資料 - 接口:%1, 子腳本:%2</translation>
     </message>
     <message>
         <source>open</source>
@@ -1894,6 +1894,14 @@ No new version available. Do you still want to update?</source>
 新版本:%2
 
 沒有找到新版本，您還要繼續更新嗎?</translation>
+    </message>
+    <message>
+        <source>count:%1</source>
+        <translation>計次:%1</translation>
+    </message>
+    <message>
+        <source>msg:%1</source>
+        <translation>訊息:%1</translation>
     </message>
 </context>
 <context>
@@ -3079,7 +3087,7 @@ No new version available. Do you still want to update?</source>
     </message>
     <message>
         <source>[error] @ %1 | Escape character is not allowed outside of string literal.</source>
-        <translation>[錯誤] @ %1 | 轉譯字符不允許出現在引號之外.</translation>
+        <translation type="vanished">[錯誤] @ %1 | 轉譯字符不允許出現在引號之外.</translation>
     </message>
     <message>
         <source>@ %1 | Unknown command &apos;%2&apos; has been ignored</source>
@@ -3256,6 +3264,14 @@ No new version available. Do you still want to update?</source>
     <message>
         <source>Map data download failed, please check your network connection!</source>
         <translation>地圖熱更新數據下載失敗，請檢查您的網路連線狀態!</translation>
+    </message>
+    <message>
+        <source>GetModuleHandleW failed</source>
+        <translation>取模塊基址失敗</translation>
+    </message>
+    <message>
+        <source>GetProcAddress failed</source>
+        <translation>取函數入口地址失敗</translation>
     </message>
 </context>
 <context>
@@ -4561,7 +4577,7 @@ No new version available. Do you still want to update?</source>
     </message>
     <message>
         <source>waitpos</source>
-        <translation type="unfinished"></translation>
+        <translation></translation>
     </message>
 </context>
 <context>

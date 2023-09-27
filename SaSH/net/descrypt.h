@@ -21,7 +21,7 @@ namespace sacrypt
 	constexpr auto DESERR_HWERROR = 2;
 	constexpr auto DESERR_BADPARAM = 3;
 
-	inline constexpr auto DES_FAILED(long err) { return ((err) > DESERR_NOHWDEVICE); }
+	inline auto DES_FAILED(long err) { return ((err) > DESERR_NOHWDEVICE); }
 
 	int ecb_crypt(const char* key, char* buf, unsigned len, unsigned mode);
 	int cbc_crypt(const char* key, char* buf, unsigned len, unsigned mode, char* ivec);

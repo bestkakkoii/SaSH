@@ -274,7 +274,7 @@ public:\
 #include "update/curldownload.h"
 
 #include "map/astar.h"
-
+#include <usermessage.h>
 #include "model/builddatetime.h"
 
 #endif // __cplusplus

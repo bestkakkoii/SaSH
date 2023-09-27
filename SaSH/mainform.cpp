@@ -225,6 +225,27 @@ typedef struct tagLoginInfo
 	char* password = nullptr;
 }LoginInfo;
 
+inline bool isValidChar(const char* charPtr)
+{
+	try {
+		if (charPtr != nullptr)
+		{
+			std::string str(charPtr);
+			return true;
+		}
+		else
+		{
+			// charPtr 为 nullptr，不合法的指针
+			return false;
+		}
+	}
+	catch (...)
+	{
+		// 捕获异常，处理不合法指针的情况
+		return false;
+	}
+}
+
 //接收原生的窗口消息
 #if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
 bool MainForm::nativeEvent(const QByteArray& eventType, void* message, long* result)
@@ -253,14 +274,14 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 		}
 		return true;
 	}
-	case Injector::kSetMove:
+	case kSetMove:
 	{
 		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
 		emit signalDispatcher.updateCoordsPosLabelTextChanged(QString("%1,%2").arg(GET_X_LPARAM(msg->lParam)).arg(GET_Y_LPARAM(msg->lParam)));
 		*result = 1;
 		return true;
 	}
-	case Injector::kConnectionOK://TCP握手
+	case kConnectionOK://TCP握手
 	{
 		if (!injector.server.isNull())
 		{
@@ -280,12 +301,25 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 		qint64 id = msg->wParam;
 		QSharedPointer<Interpreter> interpreter(new Interpreter(id));
 		if (interpreter.isNull())
+		{
+			updateStatusText("server is off");
 			return true;
+		}
+
+		const char* cstr = reinterpret_cast<char*>(msg->lParam);
+		if (!isValidChar(cstr))
+		{
+			updateStatusText("invalid lparam");
+			return true;
+		}
 
 		//檢查是否為合法字符串指針
-		QByteArray utf8str = reinterpret_cast<char*>(msg->lParam);
+		QByteArray utf8str(cstr);
 		if (utf8str.isEmpty())
+		{
+			updateStatusText("content is empty");
 			return true;
+		}
 
 		interpreter_hash_.insert(id, interpreter);
 
@@ -307,7 +341,10 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 		qint64 id = msg->wParam;
 		QSharedPointer<Interpreter> interpreter = interpreter_hash_.value(id, nullptr);
 		if (interpreter.isNull())
+		{
+			updateStatusText("server is off");
 			return true;
+		}
 
 		interpreter->requestInterruption();
 		interpreter_hash_.remove(id);
@@ -322,16 +359,31 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 		qint64 id = msg->wParam;
 		Injector& injector = Injector::getInstance(id);
 		if (injector.IS_SCRIPT_FLAG.load(std::memory_order_acquire))
+		{
+			updateStatusText("already run");
 			return true;
+		}
 
-		//檢查是否為合法字符串指針
-		QByteArray utf8str = reinterpret_cast<char*>(msg->lParam);
-		if (utf8str.isEmpty())
+		const char* cstr = reinterpret_cast<char*>(msg->lParam);
+		if (!isValidChar(cstr))
+		{
+			updateStatusText("invalid lparam");
 			return true;
+		}
+
+		QByteArray utf8str(cstr);
+		if (utf8str.isEmpty())
+		{
+			updateStatusText("path is empty");
+			return true;
+		}
 
 		QString fileName = util::toQString(utf8str);
 		if (!QFile::exists(fileName))
+		{
+			updateStatusText("file not exist");
 			return true;
+		}
 
 		pScriptForm_->loadFile(fileName);
 		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(id);
@@ -348,7 +400,10 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 		qint64 id = msg->wParam;
 		Injector& injector = Injector::getInstance(id);
 		if (!injector.IS_SCRIPT_FLAG.load(std::memory_order_acquire))
+		{
+			updateStatusText("not run yet");
 			return true;
+		}
 
 		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(id);
 		emit signalDispatcher.scriptStoped();
@@ -363,7 +418,10 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 		qint64 id = msg->wParam;
 		Injector& injector = Injector::getInstance(id);
 		if (!injector.server.isNull())
+		{
+			updateStatusText("server already on");
 			return true;
+		}
 
 		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(id);
 		emit signalDispatcher.gameStarted();
@@ -378,7 +436,10 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 		qint64 id = msg->wParam;
 		Injector& injector = Injector::getInstance(id);
 		if (injector.server.isNull())
+		{
+			updateStatusText("server is off");
 			return true;
+		}
 
 		injector.close();
 		++interfaceCount_;
@@ -396,6 +457,7 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 		qint64 value = 0;
 		if (injector.server.isNull())
 			return true;
+
 
 		bool ok = injector.server->IS_TCP_CONNECTION_OK_TO_USE;
 		if (!ok)
@@ -422,6 +484,7 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 	{
 		if (result == nullptr)
 			return true;
+
 		qint64 id = msg->wParam;
 		Injector& injector = Injector::getInstance(id);
 		qint64 value = 0;
@@ -515,6 +578,10 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 			{
 				util::Config config(fileName);
 				config.write("System", "Server", "LastServerListSelection", arg);
+				SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(id);
+				emit signalDispatcher.applyHashSettingsToUI();
+				++interfaceCount_;
+				updateStatusText();
 				*result = 1;
 			}
 			break;
@@ -526,6 +593,10 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 			{
 				util::Config config(fileName);
 				config.write("System", "Command", "LastSelection", arg);
+				SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(id);
+				emit signalDispatcher.applyHashSettingsToUI();
+				++interfaceCount_;
+				updateStatusText();
 				*result = 1;
 			}
 			break;
@@ -535,6 +606,8 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 			if (hideTrayAction_ != nullptr)
 			{
 				emit hideTrayAction_->triggered();
+				++interfaceCount_;
+				updateStatusText();
 				*result = 1;
 			}
 			break;
@@ -545,6 +618,8 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 			SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(id);
 			injector.setEnableHash(util::kHideWindowEnable, arg > 0);
 			emit signalDispatcher.applyHashSettingsToUI();
+			++interfaceCount_;
+			updateStatusText();
 			*result = 1;
 			break;
 		}
@@ -559,21 +634,32 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 		do
 		{
 			const char* chwndstrs = reinterpret_cast<char*>(msg->lParam);
-			if (chwndstrs == nullptr)
-				break;
+			if (!isValidChar(chwndstrs))
+			{
+				updateStatusText("invalid lparam");
+				return true;
+			}
 
-			//檢查是否為合法字符串指針
-			QByteArray hwndstrs = reinterpret_cast<char*>(msg->lParam);
+			QByteArray hwndstrs(chwndstrs);
 			if (hwndstrs.isEmpty())
-				break;
+			{
+				updateStatusText("hwndstr is empty");
+				return true;
+			}
 
 			QString str = util::toQString(hwndstrs);
 			if (str.isEmpty())
-				break;
+			{
+				updateStatusText("hwndstr is empty");
+				return true;
+			}
 
 			QStringList strlist = str.split(util::rexOR);
 			if (strlist.isEmpty())
-				break;
+			{
+				updateStatusText("invalid hwndstr str");
+				return true;
+			}
 
 			QVector<HWND> hwnds;
 			for (const QString& str : strlist)
@@ -591,7 +677,10 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 			}
 
 			if (hwnds.isEmpty())
-				break;
+			{
+				updateStatusText("no valid hwnd");
+				return true;
+			}
 
 			bool ok = msg->wParam > 0;
 
@@ -612,20 +701,32 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 		{
 			const char* chwndstrs = reinterpret_cast<char*>(msg->lParam);
 			if (chwndstrs == nullptr)
+			{
+				updateStatusText("invalid lparam");
 				break;
+			}
 
 			//檢查是否為合法字符串指針
-			QByteArray hwndstrs = reinterpret_cast<char*>(msg->lParam);
+			QByteArray hwndstrs(chwndstrs);
 			if (hwndstrs.isEmpty())
+			{
+				updateStatusText("hwndstr str is empty");
 				break;
+			}
 
 			QString str = util::toQString(hwndstrs);
 			if (str.isEmpty())
+			{
+				updateStatusText("invalid hwndstr str");
 				break;
+			}
 
 			QStringList strlist = str.split(util::rexOR);
 			if (strlist.isEmpty())
+			{
+				updateStatusText("invalid hwndstr str");
 				break;
+			}
 
 			QList<HWND> hwnds;
 			for (const QString& str : strlist)
@@ -691,8 +792,16 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 		qint64 id = msg->wParam;
 		MainForm* pMainForm = createNewWindow(id);
 		if (pMainForm != nullptr)
+		{
 			*result = static_cast<long>(pMainForm->winId());
-
+			++interfaceCount_;
+			updateStatusText();
+		}
+		else
+		{
+			updateStatusText("failed");
+			return true;
+		}
 		return true;
 	}
 	case InterfaceMessage::kGetGamePid:
@@ -701,9 +810,15 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 		qint64 id = msg->wParam;
 		Injector& injector = Injector::getInstance(id);
 		if (injector.server.isNull())
+		{
+			updateStatusText("server is off");
 			return true;
+		}
 
+		++interfaceCount_;
+		updateStatusText();
 		*result = injector.getProcessId();
+
 		return true;
 	}
 	case InterfaceMessage::kGetGameHwnd:
@@ -712,8 +827,13 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 		qint64 id = msg->wParam;
 		Injector& injector = Injector::getInstance(id);
 		if (injector.server.isNull())
+		{
+			updateStatusText("server is off");
 			return true;
+		}
 
+		++interfaceCount_;
+		updateStatusText();
 		*result = reinterpret_cast<qint64>(injector.getProcessWindow());
 		return true;
 	}
@@ -723,22 +843,43 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 		qint64 id = msg->wParam;
 		qint64 pathptr = msg->lParam;
 		if (pathptr == 0)
+		{
+			updateStatusText("invalid lparam");
 			return true;
+		}
 
 		const char* chwndstrs = reinterpret_cast<char*>(pathptr);
+		if (!isValidChar(chwndstrs))
+		{
+			updateStatusText("invalid lparam");
+			return true;
+		}
+
 		QString utf8str = util::toQString(chwndstrs);
 		if (utf8str.isEmpty())
+		{
+			updateStatusText("path is empty");
 			return true;
+		}
 
 		QFileInfo fileInfo(utf8str);
 		if (!fileInfo.exists())
+		{
+			updateStatusText("file not exist");
 			return true;
+		}
 
 		if (fileInfo.suffix() != "json")
+		{
+			updateStatusText("not json");
 			return true;
+		}
 
 		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(id);
 		emit signalDispatcher.loadHashSettings(utf8str, true);
+		emit signalDispatcher.applyHashSettingsToUI();
+		++interfaceCount_;
+		updateStatusText();
 		*result = 1;
 		return true;
 	}
@@ -752,10 +893,18 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 		{
 			LoginInfo* pLoginInfo = reinterpret_cast<LoginInfo*>(msg->lParam);
 			if (pLoginInfo == nullptr)
+			{
+				*result = 0;
+				updateStatusText("invalid lparam");
 				break;
+			}
 
-			if (pLoginInfo->username == nullptr || pLoginInfo->password == nullptr)
+			if (!isValidChar(pLoginInfo->username) || !isValidChar(pLoginInfo->password))
+			{
+				*result = 2;
+				updateStatusText("invalid user/psw");
 				break;
+			}
 
 			qint64 server = pLoginInfo->server;
 			qint64 subserver = pLoginInfo->subserver;
@@ -764,13 +913,25 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 			QString password = util::toQString(pLoginInfo->password);
 
 			if (server < 0 || server > 15)
+			{
+				*result = 3;
+				updateStatusText("server out of range");
 				break;
+			}
 
 			if (subserver < 0 || subserver > 15)
+			{
+				*result = 4;
+				updateStatusText("subser out of range");
 				break;
+			}
 
 			if (position < 0 || position > 1)
+			{
+				*result = 5;
+				updateStatusText("pos out of range");
 				break;
+			}
 
 			injector.setEnableHash(util::kAutoLoginEnable, true);
 			injector.setStringHash(util::kGameAccountString, username);
@@ -779,6 +940,8 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 			injector.setValueHash(util::kSubServerValue, subserver);
 			injector.setValueHash(util::kPositionValue, position);
 			emit signalDispatcher.applyHashSettingsToUI();
+			++interfaceCount_;
+			updateStatusText();
 			*result = 1;
 			return true;
 		} while (false);
@@ -855,9 +1018,14 @@ void MainForm::moveEvent(QMoveEvent* e)
 }
 
 //更新接口調用次數顯示
-void MainForm::updateStatusText()
+void MainForm::updateStatusText(const QString text)
 {
-	ui.groupBox_basicinfo->setTitle(tr("basic info - count:%1, subscript:%2").arg(interfaceCount_).arg(interpreter_hash_.size()));
+	QString msg = tr("count:%1").arg(interfaceCount_);
+	if (!text.isEmpty())
+	{
+		msg += " " + QString(tr("msg:%1").arg(text));
+	}
+	ui.groupBox_basicinfo->setTitle(msg);
 }
 
 MainForm* MainForm::createNewWindow(qint64 idToAllocate, qint64* pId)

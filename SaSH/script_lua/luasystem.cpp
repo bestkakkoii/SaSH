@@ -772,7 +772,7 @@ qint64 CLuaSystem::set(std::string enumStr, sol::object p1, sol::object p2, sol:
 		qint64 value1 = 0;
 		if (p1.is<qint64>())
 			value1 = p1.as<qint64>();
-		else
+		else if (p1.is<bool>())
 			value1 = p1.as<bool>() ? 1 : 0;
 
 		injector.setEnableHash(util::kScriptDebugModeEnable, value1 > 0);
@@ -785,7 +785,7 @@ qint64 CLuaSystem::set(std::string enumStr, sol::object p1, sol::object p2, sol:
 		qint64 value1 = 0;
 		if (p1.is<qint64>())
 			value1 = p1.as<qint64>();
-		else
+		else if (p1.is<bool>())
 			value1 = p1.as<bool>() ? 1 : 0;
 
 		--value1;
@@ -795,7 +795,7 @@ qint64 CLuaSystem::set(std::string enumStr, sol::object p1, sol::object p2, sol:
 		qint64 value2 = 0;
 		if (p2.is<qint64>())
 			value2 = p2.as<qint64>();
-		else
+		else if (p2.is<bool>())
 			value2 = p2.as<bool>() ? 1 : 0;
 		--value2;
 		if (value2 < 0)
@@ -804,7 +804,7 @@ qint64 CLuaSystem::set(std::string enumStr, sol::object p1, sol::object p2, sol:
 		qint64 value3 = 0;
 		if (p3.is<qint64>())
 			value3 = p3.as<qint64>();
-		else
+		else if (p2.is<bool>())
 			value3 = p3.as<bool>() ? 1 : 0;
 		--value3;
 		if (value3 < 0)
@@ -823,7 +823,7 @@ qint64 CLuaSystem::set(std::string enumStr, sol::object p1, sol::object p2, sol:
 		qint64 value1 = 0;
 		if (p1.is<qint64>())
 			value1 = p1.as<qint64>();
-		else
+		else if (p1.is<bool>())
 			value1 = p1.as<bool>() ? 1 : 0;
 
 		--value1;
@@ -833,7 +833,7 @@ qint64 CLuaSystem::set(std::string enumStr, sol::object p1, sol::object p2, sol:
 		qint64 value2 = 0;
 		if (p2.is<qint64>())
 			value2 = p2.as<qint64>();
-		else
+		else if (p2.is<bool>())
 			value2 = p2.as<bool>() ? 1 : 0;
 		--value2;
 		if (value2 < 0)
@@ -842,7 +842,7 @@ qint64 CLuaSystem::set(std::string enumStr, sol::object p1, sol::object p2, sol:
 		qint64 value3 = 0;
 		if (p3.is<qint64>())
 			value3 = p3.as<qint64>();
-		else
+		else if (p3.is<bool>())
 			value3 = p3.as<bool>() ? 1 : 0;
 		--value3;
 		if (value3 < 0)
@@ -872,7 +872,7 @@ qint64 CLuaSystem::set(std::string enumStr, sol::object p1, sol::object p2, sol:
 		qint64 value1 = 0;
 		if (p1.is<qint64>())
 			value1 = p1.as<qint64>();
-		else
+		else if (p1.is<bool>())
 			value1 = p1.as<bool>() ? 1 : 0;
 
 		--value1;
@@ -913,7 +913,7 @@ qint64 CLuaSystem::set(std::string enumStr, sol::object p1, sol::object p2, sol:
 		qint64 value1 = 0;
 		if (p1.is<qint64>())
 			value1 = p1.as<qint64>();
-		else
+		else if (p1.is<bool>())
 			value1 = p1.as<bool>() ? 1 : 0;
 
 		if (value1 < 0)
@@ -981,7 +981,7 @@ qint64 CLuaSystem::set(std::string enumStr, sol::object p1, sol::object p2, sol:
 		qint64 value1 = 0;
 		if (p1.is<qint64>())
 			value1 = p1.as<qint64>();
-		else
+		else if (p1.is<bool>())
 			value1 = p1.as<bool>() ? 1 : 0;
 
 		bool ok = value1 > 0;
@@ -1031,7 +1031,7 @@ qint64 CLuaSystem::set(std::string enumStr, sol::object p1, sol::object p2, sol:
 		qint64 value1 = 0;
 		if (p1.is<qint64>())
 			value1 = p1.as<qint64>();
-		else
+		else if (p1.is<bool>())
 			value1 = p1.as<bool>() ? 1 : 0;
 
 		bool ok = value1 > 0;
@@ -1098,7 +1098,7 @@ qint64 CLuaSystem::set(std::string enumStr, sol::object p1, sol::object p2, sol:
 		qint64 value1 = 0;
 		if (p1.is<qint64>())
 			value1 = p1.as<qint64>();
-		else
+		else if (p1.is<bool>())
 			value1 = p1.as<bool>() ? 1 : 0;
 
 		bool ok = value1 > 0;
@@ -1146,7 +1146,7 @@ qint64 CLuaSystem::set(std::string enumStr, sol::object p1, sol::object p2, sol:
 		qint64 value1 = 0;
 		if (p1.is<qint64>())
 			value1 = p1.as<qint64>();
-		else
+		else if (p1.is<bool>())
 			value1 = p1.as<bool>() ? 1 : 0;
 
 		bool ok = value1 > 0;
@@ -1190,7 +1190,7 @@ qint64 CLuaSystem::set(std::string enumStr, sol::object p1, sol::object p2, sol:
 		qint64 value2 = 0;
 		if (p2.is<qint64>())
 			value2 = p2.as<qint64>();
-		else
+		else if (p2.is<bool>())
 			value2 = p2.as<bool>() ? 1 : 0;
 
 		--value2;
@@ -1200,7 +1200,7 @@ qint64 CLuaSystem::set(std::string enumStr, sol::object p1, sol::object p2, sol:
 		qint64 value3 = 0;
 		if (p3.is<qint64>())
 			value3 = p3.as<qint64>();
-		else
+		else if (p2.is<bool>())
 			value3 = p3.as<bool>() ? 1 : 0;
 		--value3;
 		if (value3 < 0)
@@ -1209,7 +1209,7 @@ qint64 CLuaSystem::set(std::string enumStr, sol::object p1, sol::object p2, sol:
 		qint64 value4 = 0;
 		if (p4.is<qint64>())
 			value4 = p4.as<qint64>();
-		else
+		else if (p4.is<bool>())
 			value4 = p4.as<bool>() ? 1 : 0;
 		--value4;
 		if (value4 < 0)
@@ -1218,7 +1218,7 @@ qint64 CLuaSystem::set(std::string enumStr, sol::object p1, sol::object p2, sol:
 		qint64 value5 = 0;
 		if (p5.is<qint64>())
 			value5 = p5.as<qint64>();
-		else
+		else if (p5.is<bool>())
 			value5 = p5.as<bool>() ? 1 : 0;
 		if (value5 < 0)
 			value5 = util::kSelectEnemyAny;
@@ -1260,7 +1260,7 @@ qint64 CLuaSystem::set(std::string enumStr, sol::object p1, sol::object p2, sol:
 		qint64 value1 = 0;
 		if (p1.is<qint64>())
 			value1 = p1.as<qint64>();
-		else
+		else if (p1.is<bool>())
 			value1 = p1.as<bool>() ? 1 : 0;
 
 		bool ok = value1 > 0;
@@ -1273,7 +1273,7 @@ qint64 CLuaSystem::set(std::string enumStr, sol::object p1, sol::object p2, sol:
 		qint64 value2 = 0;
 		if (p2.is<qint64>())
 			value2 = p2.as<qint64>();
-		else
+		else if (p2.is<bool>())
 			value2 = p2.as<bool>() ? 1 : 0;
 		--value2;
 		if (value2 < 0)
@@ -1282,7 +1282,7 @@ qint64 CLuaSystem::set(std::string enumStr, sol::object p1, sol::object p2, sol:
 		qint64 value3 = 0;
 		if (p3.is<qint64>())
 			value3 = p3.as<qint64>();
-		else
+		else if (p3.is<bool>())
 			value3 = p3.as<bool>() ? 1 : 0;
 		--value3;
 		if (value3 < 0)
@@ -1291,7 +1291,7 @@ qint64 CLuaSystem::set(std::string enumStr, sol::object p1, sol::object p2, sol:
 		qint64 value4 = 0;
 		if (p4.is<qint64>())
 			value4 = p4.as<qint64>();
-		else
+		else if (p4.is<bool>())
 			value4 = p4.as<bool>() ? 1 : 0;
 		--value4;
 		if (value4 < 0)

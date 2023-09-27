@@ -31,7 +31,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #pragma region ASTAR
 
 constexpr qint64 kStepValue = 24;
-constexpr qint64 kObliqueValue = 50;
+constexpr qint64 kObliqueValue = 32;
 
 CAStar::CAStar()
 	: step_val_(kStepValue)

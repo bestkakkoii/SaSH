@@ -32,18 +32,15 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 #define OPEN_HOOK
 
-extern util::SafeHash<QString, util::SafeHash<qint64, break_marker_t>> break_markers[];//interpreter.cpp//用於標記自訂義中斷點(紅點)
+extern util::SafeHash<QString, util::SafeHash<qint64, break_marker_t>> break_markers[];  //interpreter.cpp//用於標記自訂義中斷點(紅點)
 extern util::SafeHash<QString, util::SafeHash<qint64, break_marker_t>> forward_markers[];//interpreter.cpp//用於標示當前執行中斷處(黃箭頭)
-extern util::SafeHash<QString, util::SafeHash<qint64, break_marker_t>> error_markers[];//interpreter.cpp//用於標示錯誤發生行(紅線)
-extern util::SafeHash<QString, util::SafeHash<qint64, break_marker_t>> step_markers[];//interpreter.cpp//隱式標記中斷點用於單步執行(無)
+extern util::SafeHash<QString, util::SafeHash<qint64, break_marker_t>> error_markers[];  //interpreter.cpp//用於標示錯誤發生行(紅線)
+extern util::SafeHash<QString, util::SafeHash<qint64, break_marker_t>> step_markers[];   //interpreter.cpp//隱式標記中斷點用於單步執行(無)
 
 void luadebug::tryPopCustomErrorMsg(const sol::this_state& s, const LUA_ERROR_TYPE element, const QVariant& p1, const QVariant& p2, const QVariant& p3, const QVariant& p4)
 {
-	Q_UNUSED(p4);
+	Q_UNUSED(p4);//reserved
 	lua_State* L = s;
-	////檢查當前行是否包含在#param中
-	//if (QLuaDebuger::CHECK_PROGMA(L, "argument"))
-		//return;
 
 	switch (element)
 	{

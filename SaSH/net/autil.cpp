@@ -267,7 +267,7 @@ void __stdcall Autil::util_SendMesg(int func, char* buffer)
 	util::VirtualMemory ptr(hProcess, size, true);
 
 	mem::write(hProcess, ptr, t2.data(), size);
-	injector.sendMessage(Injector::kSendPacket, ptr, size);
+	injector.sendMessage(kSendPacket, ptr, size);
 }
 
 // -------------------------------------------------------------------

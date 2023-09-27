@@ -2468,7 +2468,7 @@ void Server::cleanChatHistory()
 {
 	qint64 currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
-	injector.sendMessage(Injector::kCleanChatHistory, NULL, NULL);
+	injector.sendMessage(kCleanChatHistory, NULL, NULL);
 	chatQueue.clear();
 	if (!injector.chatLogModel.isNull())
 		injector.chatLogModel->clear();
@@ -2569,12 +2569,12 @@ void Server::announce(const QString& msg, qint64 color)
 		std::string str = util::fromUnicode(msg);
 		util::VirtualMemory ptr(hProcess, str.size(), true);
 		mem::write(hProcess, ptr, const_cast<char*>(str.c_str()), str.size());
-		injector.sendMessage(Injector::kSendAnnounce, ptr, color);
+		injector.sendMessage(kSendAnnounce, ptr, color);
 	}
 	else
 	{
 		util::VirtualMemory ptr(hProcess, "", util::VirtualMemory::kAnsi, true);
-		injector.sendMessage(Injector::kSendAnnounce, ptr, color);
+		injector.sendMessage(kSendAnnounce, ptr, color);
 	}
 	chatQueue.enqueue(qMakePair(color, msg));
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
@@ -2867,6 +2867,57 @@ bool Server::login(qint64 s)
 	util::Config config(fileName);
 	QElapsedTimer timer; timer.start();
 
+
+	auto input = [this, &injector, hProcess, hModule, &account, &password]()->void
+	{
+		injector.mouseMove(0, 0);
+
+		if (account.isEmpty())
+		{
+			QString acct = mem::readString(hProcess, hModule + kOffsetAccount, 32);
+			if (!acct.isEmpty())
+			{
+				account = acct;
+				injector.setStringHash(util::kGameAccountString, account);
+			}
+			else
+				return;
+		}
+		else
+			mem::writeString(hProcess, hModule + kOffsetAccount, account);
+
+		if (password.isEmpty())
+		{
+			QString pwd = mem::readString(hProcess, hModule + kOffsetPassword, 32);
+			if (!pwd.isEmpty())
+			{
+				password = pwd;
+				injector.setStringHash(util::kGamePasswordString, password);
+			}
+			else
+				return;
+		}
+		else
+			mem::writeString(hProcess, hModule + kOffsetPassword, password);
+
+#ifndef USE_MOUSE
+		std::string saccount = util::fromUnicode(account);
+		std::string spassword = util::fromUnicode(password);
+
+		//sa_8001.exe+2086A - 09 09                 - or [ecx],ecx
+		char userAccount[32] = {};
+		char userPassword[32] = {};
+		_snprintf_s(userAccount, sizeof(userAccount), _TRUNCATE, "%s", saccount.c_str());
+		sacrypt::ecb_crypt("f;encor1c", userAccount, sizeof(userAccount), sacrypt::DES_ENCRYPT);
+		mem::write(hProcess, hModule + kOffsetAccountECB, userAccount, sizeof(userAccount));
+		qDebug() << "before encode" << account << "after encode" << QString(userAccount);
+
+		_snprintf_s(userPassword, sizeof(userPassword), _TRUNCATE, "%s", spassword.c_str());
+		sacrypt::ecb_crypt("f;encor1c", userPassword, sizeof(userPassword), sacrypt::DES_ENCRYPT);
+		mem::write(hProcess, hModule + kOffsetPasswordECB, userPassword, sizeof(userPassword));
+		qDebug() << "before encode" << password << "after encode" << QString(userPassword);
+	};
+
 	switch (status)
 	{
 	case util::kStatusDisconnect:
@@ -2932,49 +2983,7 @@ bool Server::login(qint64 s)
 	}
 	case util::kStatusInputUser:
 	{
-		injector.mouseMove(0, 0);
-
-		if (account.isEmpty())
-		{
-			QString acct = mem::readString(hProcess, hModule + kOffsetAccount, 32);
-			if (!acct.isEmpty())
-			{
-				account = acct;
-				injector.setStringHash(util::kGameAccountString, account);
-			}
-			else
-				break;
-		}
-		else
-			mem::writeString(hProcess, hModule + kOffsetAccount, account);
-
-		if (password.isEmpty())
-		{
-			QString pwd = mem::readString(hProcess, hModule + kOffsetPassword, 32);
-			if (!pwd.isEmpty())
-			{
-				password = pwd;
-				injector.setStringHash(util::kGamePasswordString, password);
-			}
-			else
-				break;
-		}
-		else
-			mem::writeString(hProcess, hModule + kOffsetPassword, password);
-
-#ifndef USE_MOUSE
-		std::string saccount = util::fromUnicode(account);
-		std::string spassword = util::fromUnicode(password);
-
-		//sa_8001.exe+2086A - 09 09                 - or [ecx],ecx
-		char userAccount[32] = {};
-		char userPassword[32] = {};
-		_snprintf_s(userAccount, sizeof(userAccount), _TRUNCATE, "%s", saccount.c_str());
-		sacrypt::ecb_crypt("f;encor1c", userAccount, sizeof(userAccount), sacrypt::DES_DECRYPT);
-		_snprintf_s(userPassword, sizeof(userPassword), _TRUNCATE, "%s", spassword.c_str());
-		sacrypt::ecb_crypt("f;encor1c", userPassword, sizeof(userPassword), sacrypt::DES_DECRYPT);
-		mem::write(hProcess, hModule + kOffsetAccountECB, userAccount, sizeof(userAccount));
-		mem::write(hProcess, hModule + kOffsetPasswordECB, userPassword, sizeof(userPassword));
+		input();
 
 		/*
 		sa_8001.exe+206F1 - EB 04                 - jmp sa_8001.exe+206F7
@@ -3028,7 +3037,8 @@ bool Server::login(qint64 s)
 		if (server < 0 && server >= 15)
 			break;
 
-		injector.mouseMove(0, 0);
+		qDebug() << "cmp account:" << mem::readString(hProcess, hModule + kOffsetAccountECB, 32, false, true);
+		qDebug() << "cmp password:" << mem::readString(hProcess, hModule + kOffsetPasswordECB, 32, false, true);
 
 #ifndef USE_MOUSE
 		/*
@@ -3123,8 +3133,6 @@ bool Server::login(qint64 s)
 	{
 		if (subserver < 0 || subserver >= 15)
 			break;
-
-		injector.mouseMove(0, 0);
 
 		qint64 serverIndex = static_cast<qint64>(mem::read<int>(hProcess, hModule + kOffsetServerIndex));
 
@@ -3320,7 +3328,7 @@ bool Server::login(qint64 s)
 	default:
 		break;
 	}
-	return false;
+return false;
 }
 
 #pragma endregion
@@ -3339,7 +3347,7 @@ void Server::createRemoteDialog(quint64 type, quint64 button, const QString& tex
 
 	util::VirtualMemory ptr(injector.getProcess(), text, util::VirtualMemory::kAnsi, true);
 
-	injector.sendMessage(Injector::kCreateDialog, MAKEWPARAM(type, button), ptr);
+	injector.sendMessage(kCreateDialog, MAKEWPARAM(type, button), ptr);
 }
 
 void Server::press(BUTTON_TYPE select, qint64 dialogid, qint64 unitid)
@@ -3396,7 +3404,7 @@ void Server::press(BUTTON_TYPE select, qint64 dialogid, qint64 unitid)
 	lssproto_WN_send(getPoint(), dialogid, unitid, select, const_cast<char*>(data));
 	qint64 currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
-	injector.sendMessage(Injector::kDistoryDialog, NULL, NULL);
+	injector.sendMessage(kDistoryDialog, NULL, NULL);
 }
 
 void Server::press(qint64 row, qint64 dialogid, qint64 unitid)
@@ -3418,7 +3426,7 @@ void Server::press(qint64 row, qint64 dialogid, qint64 unitid)
 	lssproto_WN_send(getPoint(), dialogid, unitid, BUTTON_NOTUSED, const_cast<char*>(srow.c_str()));
 	qint64 currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
-	injector.sendMessage(Injector::kDistoryDialog, NULL, NULL);
+	injector.sendMessage(kDistoryDialog, NULL, NULL);
 }
 
 //買東西
@@ -3448,7 +3456,7 @@ void Server::buy(qint64 index, qint64 amt, qint64 dialogid, qint64 unitid)
 	lssproto_WN_send(getPoint(), dialogid, unitid, BUTTON_NOTUSED, const_cast<char*>(srow.c_str()));
 	qint64 currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
-	injector.sendMessage(Injector::kDistoryDialog, NULL, NULL);
+	injector.sendMessage(kDistoryDialog, NULL, NULL);
 }
 
 //賣東西
@@ -3506,7 +3514,7 @@ void Server::sell(qint64 index, qint64 dialogid, qint64 unitid)
 	lssproto_WN_send(getPoint(), dialogid, unitid, BUTTON_NOTUSED, const_cast<char*>(srow.c_str()));
 	qint64 currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
-	injector.sendMessage(Injector::kDistoryDialog, NULL, NULL);
+	injector.sendMessage(kDistoryDialog, NULL, NULL);
 }
 
 //賣東西
@@ -3568,7 +3576,7 @@ void Server::learn(qint64 skillIndex, qint64 petIndex, qint64 spot, qint64 dialo
 	lssproto_WN_send(getPoint(), dialogid, unitid, BUTTON_NOTUSED, const_cast<char*>(srow.c_str()));
 	qint64 currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
-	injector.sendMessage(Injector::kDistoryDialog, NULL, NULL);
+	injector.sendMessage(kDistoryDialog, NULL, NULL);
 }
 
 void Server::depositItem(qint64 itemIndex, qint64 dialogid, qint64 unitid)
@@ -3617,7 +3625,7 @@ void Server::withdrawItem(qint64 itemIndex, qint64 dialogid, qint64 unitid)
 
 	qint64 currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
-	injector.sendMessage(Injector::kDistoryDialog, NULL, NULL);
+	injector.sendMessage(kDistoryDialog, NULL, NULL);
 
 	++IS_WAITOFR_ITEM_CHANGE_PACKET;
 }
@@ -3681,7 +3689,7 @@ void Server::inputtext(const QString& text, qint64 dialogid, qint64 unitid)
 	lssproto_WN_send(getPoint(), dialogid, unitid, BUTTON_OK, const_cast<char*>(s.c_str()));
 	qint64 currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
-	injector.sendMessage(Injector::kDistoryDialog, NULL, NULL);
+	injector.sendMessage(kDistoryDialog, NULL, NULL);
 }
 
 //解除安全瑪
@@ -3769,10 +3777,10 @@ void Server::kickteam(qint64 n)
 	if (getBattleFlag())
 		return;
 
-	if (n < 0 || n >= MAX_PARTY)
+	if (n >= MAX_PARTY)
 		return;
 
-	if (n == 0)
+	if (n <= 0)
 	{
 		setTeamState(false);
 		return;
@@ -4418,7 +4426,7 @@ void Server::move(const QPoint& p)
 
 	qint64 currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
-	injector.sendMessage(Injector::kSetMove, p.x(), p.y());
+	injector.sendMessage(kSetMove, p.x(), p.y());
 }
 
 //轉向指定坐標

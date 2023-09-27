@@ -71,7 +71,7 @@ protected:
 
 private:
 	void resetControlTextLanguage();
-	void updateStatusText();
+	void updateStatusText(const QString text = "");
 
 	void createMenu(QMenuBar* pMenuBar);
 

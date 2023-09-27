@@ -381,6 +381,12 @@ qint64 Interpreter::dropitem(qint64 currentIndex, qint64 currentLine, const Toke
 	}
 	else
 	{
+		qint64 onlyOne = 0;
+		bool bOnlyOne = false;
+		checkInteger(TK, 1, &onlyOne);
+		if (onlyOne == 1)
+			bOnlyOne = true;
+
 		QString itemNames = tempName;
 
 		QStringList itemNameList = itemNames.split(util::rexOR, Qt::SkipEmptyParts);
@@ -391,14 +397,22 @@ qint64 Interpreter::dropitem(qint64 currentIndex, qint64 currentLine, const Toke
 		for (const QString& name : itemNameList)
 		{
 			QVector<qint64> indexs;
+			bool ok = false;
 			if (injector.server->getItemIndexsByName(name, memo, &indexs))
 			{
 				for (const qint64 it : indexs)
 				{
 					injector.server->dropItem(it);
+					if (bOnlyOne)
+					{
+						ok = true;
+						break;
+					}
 				}
-
 			}
+
+			if (ok)
+				break;
 		}
 
 	}
@@ -477,7 +491,8 @@ qint64 Interpreter::petrename(qint64 currentIndex, qint64 currentLine, const Tok
 	checkOnlineThenWait();
 
 	qint64 petIndex = -1;
-	checkInteger(TK, 1, &petIndex);
+	if (!checkInteger(TK, 1, &petIndex))
+		return Parser::kArgError + 1ll;
 	petIndex -= 1;
 
 	QString newName;
@@ -2284,7 +2299,7 @@ qint64 Interpreter::bwait(qint64 currentIndex, qint64 currentLine, const TokenMa
 
 	qint64 timeout = DEFAULT_FUNCTION_TIMEOUT;
 	checkInteger(TK, 1, &timeout);
-	injector.sendMessage(Injector::kEnableBattleDialog, false, NULL);
+	injector.sendMessage(kEnableBattleDialog, false, NULL);
 	bool bret = waitfor(timeout, [&injector]()
 		{
 			if (!injector.server->getBattleFlag())
@@ -2295,7 +2310,7 @@ qint64 Interpreter::bwait(qint64 currentIndex, qint64 currentLine, const TokenMa
 			return W == 10 && G == 4;
 		});
 	if (injector.server->getBattleFlag())
-		injector.sendMessage(Injector::kEnableBattleDialog, true, NULL);
+		injector.sendMessage(kEnableBattleDialog, true, NULL);
 	else
 		bret = false;
 

@@ -302,7 +302,10 @@ void fontInitialize(const QString& currentWorkPath)
 		return QFontDatabase::addApplicationFont(fontFilePath);
 	};
 
-	installFont("YaHei Consolas Hybrid 1.12.ttf");
+	QFontDatabase::addApplicationFont(currentWorkPath + "/lib/YaHei Consolas Hybrid 1.12.ttf");
+	QFontDatabase::addApplicationFont(currentWorkPath + "/YaHei Consolas Hybrid 1.12.ttf");
+	QFontDatabase::addApplicationFont(currentWorkPath + "/lib/JoysticMonospace.ttf");
+	QFontDatabase::addApplicationFont(currentWorkPath + "/JoysticMonospace.ttf");
 	QFontDatabase::addApplicationFont(":/font/JoysticMonospace.ttf");
 
 	QFont font = util::getFont();
