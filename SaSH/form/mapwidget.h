@@ -92,6 +92,8 @@ private slots:
 
 	void on_pushButton_download_clicked();
 
+	void on_pushButton_clear_clicked();
+
 	void on_pushButton_findPath_clicked();
 
 	void on_pushButton_returnBase_clicked();

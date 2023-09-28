@@ -106,15 +106,25 @@ class MapAnalyzer : public Indexer
 public:
 	explicit MapAnalyzer(qint64 index);
 	virtual ~MapAnalyzer();
+
 	bool __fastcall readFromBinary(qint64  floor, const QString& name, bool enableDraw = false, bool enableRewrite = false);
+
 	bool __fastcall getMapDataByFloor(qint64  floor, map_t* map);
-	bool __fastcall calcNewRoute(const map_t& map, const QPoint& src, const QPoint& dst, const QSet<QPoint>& blockList, std::vector<QPoint>* pPaths);
+
+	bool __fastcall calcNewRoute(CAStar* pastar, qint64 floor, const QPoint& src, const QPoint& dst, const QSet<QPoint>& blockList, std::vector<QPoint>* pPaths);
+
 	inline void clear() { maps_.clear(); pixMap_.clear(); }
+
 	inline void clear(qint64 floor) { maps_.remove(floor); pixMap_.remove(floor); }
+
 	bool __fastcall saveAsBinary(map_t map, const QString& fileName);
+
 	inline Q_REQUIRED_RESULT QPixmap __fastcall getPixmapByIndex(qint64 index) const { return pixMap_.value(index); }
+
 	qint64  __fastcall calcBestFollowPointByDstPoint(qint64  floor, const QPoint& src, const QPoint& dst, QPoint* ret, bool enableExt, qint64 npcdir);
-	bool __fastcall isPassable(qint64  floor, const QPoint& src, const QPoint& dst);
+
+	bool __fastcall isPassable(CAStar* pastar, qint64  floor, const QPoint& src, const QPoint& dst);
+
 	QString __fastcall getGround(qint64 floor, const QString& name, const QPoint& src);
 
 private:
@@ -129,6 +139,7 @@ private:
 	Q_REQUIRED_RESULT util::ObjectType __fastcall getObjectType(const uint16_t data) const;
 
 public:
+#if 0
 	struct CRGB
 	{
 		uint8_t r;
@@ -191,15 +202,16 @@ public:
 			return (((h()) - (y)) > 0) && (((h()) - (y)) < h());
 		};
 	};
+#endif
 
 private:
 	QString directory = "";
 	static util::SafeHash<qint64, QPixmap> pixMap_;
 	static util::SafeHash<qint64, map_t> maps_;
 	QMutex mutex_;
-
 };
 
+#if 0
 template <class Stream>
 Stream& operator<<(Stream& out, MapAnalyzer::cimage const& img)
 {
@@ -218,3 +230,4 @@ Stream& operator<<(Stream& out, MapAnalyzer::cimage const& img)
 	}
 	return out;
 }
+#endif

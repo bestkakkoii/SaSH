@@ -62,6 +62,8 @@ const char* Highlighter::keywords(int set) const
 			"tsort trsort split mktable trotate tunique tshuffle tsleft tsright tmerge tjoin "
 			"tswap tadd tpadd tpopback tpopfront tfront tback mkpath contains "
 
+			"rungame openwindow setlogin "
+
 			/* . */
 			"item.count item.indexof item.find "
 			"unit.find dialog.contains petskill.find skill.find magic.find "

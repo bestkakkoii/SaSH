@@ -26,7 +26,7 @@ class MailInfoForm : public QWidget, public Indexer
 	Q_OBJECT
 
 public:
-	explicit MailInfoForm(qint64 index, QWidget* parent = nullptr);
+	explicit MailInfoForm(qint64 index, QWidget* parent);
 	virtual ~MailInfoForm();
 
 protected:

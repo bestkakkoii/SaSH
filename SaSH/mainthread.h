@@ -29,7 +29,7 @@ class MainObject : public ThreadPlugin
 {
 	Q_OBJECT
 public:
-	explicit MainObject(qint64 index, QObject* parent = nullptr);
+	MainObject(qint64 index, QObject* parent);
 	virtual ~MainObject();
 
 signals:

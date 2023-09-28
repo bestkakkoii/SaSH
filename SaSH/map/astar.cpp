@@ -36,8 +36,7 @@ constexpr qint64 kObliqueValue = 32;
 CAStar::CAStar()
 	: step_val_(kStepValue)
 	, oblique_val_(kObliqueValue)
-	, height_(0)
-	, width_(0)
+
 {
 
 }
@@ -45,6 +44,30 @@ CAStar::CAStar()
 CAStar::~CAStar()
 {
 	clear();
+}
+
+void CAStar::init(qint64 width, qint64 height)
+{
+	if (width != width_ || height != height_)
+	{
+		height_ = height;
+		width_ = width;
+		resource_.reset(new std::pmr::monotonic_buffer_resource(width_ * height_ * sizeof(Node)));
+		allocator_.reset(new std::pmr::polymorphic_allocator<Node>(resource_.get()));
+		mapping_.clear();
+		mapping_.resize(width_ * height_);
+		memset(&mapping_[0], 0, sizeof(Node*) * mapping_.size());
+	}
+}
+
+void CAStar::set_canpass(const AStarCallback& callback)
+{
+	can_pass_ = callback;
+}
+
+void CAStar::set_corner(bool corner)
+{
+	corner_ = corner;
 }
 
 // 獲取直行估值
@@ -74,43 +97,29 @@ constexpr void CAStar::set_oblique_value(qint64 value)
 // 清理參數
 void CAStar::clear()
 {
-	//size_t index = 0;
-	//const size_t max_size = width_ * height_;
-	//while (index < max_size)
-	//{
-	//	allocator_->free(mapping_[index++], sizeof(Node));
-	//}
+	// 释放 mapping_ 中的节点内存
+	for (Node*& node : mapping_)
+	{
+		if (node)
+		{
+			std::allocator_traits<std::pmr::polymorphic_allocator<Node>>::destroy(*allocator_, node);
+			allocator_->deallocate(node, 1);
+		}
+	}
 
-	open_list_.clear();
-	can_pass_ = nullptr;
-	width_ = height_ = 0;
-}
-
-// 初始化操作
-void CAStar::init(const CAStarParam& param)
-{
-	width_ = param.width;
-	height_ = param.height;
-	can_pass_ = param.can_pass;
-	mapping_.clear();
-	mapping_.resize(width_ * height_);
-	//mapping_.fill(0);
+	// 清空 mapping_
 	memset(&mapping_[0], 0, sizeof(Node*) * mapping_.size());
 
-	resource_.reset(new std::pmr::monotonic_buffer_resource(width_ * height_ * sizeof(Node)));
-	allocator_.reset(new std::pmr::polymorphic_allocator<Node>(resource_.get()));
+	// 清空开放列表
+	open_list_.clear();
 }
 
 // 參數是否有效
-bool CAStar::is_vlid_params(const CAStarParam& param) const
+bool CAStar::is_vlid_params(const QPoint& start, const QPoint& end) const
 {
-	return ((param.can_pass != nullptr)
-		&& ((param.width > 0) && (param.height > 0))
-		&& ((param.width < 1500) && (param.height < 1500))
-		&& ((param.end.x() >= 0) && (param.end.x() < param.width))
-		&& ((param.end.y() >= 0) && (param.end.y() < param.height))
-		&& ((param.start.x() >= 0) && (param.start.x() < param.width))
-		&& ((param.start.y() >= 0) && (param.start.y() < param.height))
+	return ((can_pass_ != nullptr)
+		&& ((start.x() >= 0) && (start.x() < width_))
+		&& ((start.y() >= 0) && (start.y() < height_))
 		);
 }
 
@@ -173,22 +182,27 @@ __forceinline qint64 __fastcall Octile_Distance(const QPoint& current, const QPo
 		return kStepValue * dx + (kObliqueValue - kStepValue) * dy;
 	return kStepValue * dy + (kObliqueValue - kStepValue) * dx;
 }
+#else 
+__forceinline qint64 __fastcall Manhattan_Distance(const QPoint& current, const QPoint& end)
+{
+	return (current - end).manhattanLength();
+}
 #endif
 // 計算G值
 
 __forceinline qint64 CAStar::calcul_g_value(Node*& parent, const QPoint& current)
 {
 #if defined(Chebyshev_distance)
-	qint64 g_value = qFloor(Chebyshev_Distance(current, parent->pos)) == 2 ? kObliqueValue : kStepValue;
+	qint64 g_value = Chebyshev_Distance(current, parent->pos) == 2 ? kObliqueValue : kStepValue;
 	return g_value += parent->g;
 #elif defined(Euclidean_distance)
-	qint64 g_value = qFloor(Euclidean_Distance(current, parent->pos)) == 2 ? kObliqueValue : kStepValue;
+	qint64 g_value = Euclidean_Distance(current, parent->pos) == 2 ? kObliqueValue : kStepValue;
 	return g_value += parent->g;
 #elif defined(Octile_distance)
-	qint64 g_value = qFloor(Octile_Distance(current, parent->pos)) == 2 ? kObliqueValue : kStepValue;
+	qint64 g_value = Octile_Distance(current, parent->pos) == 2 ? kObliqueValue : kStepValue;
 	return g_value += parent->g;
 #else
-	qint64 g_value = (current - parent->pos).manhattanLength() == 2 ? kObliqueValue : kStepValue;
+	qint64 g_value = Manhattan_Distance(current, parent->pos) == 2 ? kObliqueValue : kStepValue;
 	g_value += parent->g;
 	return g_value;
 #endif
@@ -204,21 +218,9 @@ __forceinline qint64 CAStar::calcul_h_value(const QPoint& current, const QPoint&
 #elif defined(Octile_distance)
 	qint64 h_value = Octile_Distance(current, end);
 #else
-	qint64 h_value = (end - current).manhattanLength();
-
+	qint64 h_value = Manhattan_Distance(end, current);
 #endif
 	return h_value * kStepValue;
-}
-
-//B*算法的啟發式函數計算
-__forceinline qint64 CAStar::calcul_bstar_h_value(const QPoint& current, const QPoint& end, const QPoint& start)
-{
-	qint64 dx1 = current.x() - end.x();
-	qint64 dy1 = current.y() - end.y();
-	qint64 dx2 = start.x() - end.x();
-	qint64 dy2 = start.y() - end.y();
-	qint64 cross = abs(dx1 * dy2 - dx2 * dy1);
-	return cross * kStepValue;
 }
 
 // 節點是否存在於開啟列表
@@ -255,7 +257,7 @@ bool CAStar::can_pass(const QPoint& current, const QPoint& destination, const bo
 #elif defined(Octile_distance)
 		if (Octile_Distance(destination, current) == 1)
 #else
-		if ((destination - current).manhattanLength() == 1)
+		if (Manhattan_Distance(destination, current) == 1)
 #endif
 		{
 			return can_pass_(destination);
@@ -274,9 +276,9 @@ bool CAStar::can_pass(const QPoint& current, const QPoint& destination, const bo
 void CAStar::find_can_pass_nodes(const QPoint& current, const bool& corner, QVector<QPoint>* out_lists)
 {
 	QPoint destination;
-	qint64 row_index = current.y() - 1;
-	qint64 max_row = current.y() + 1;
-	qint64 max_col = current.x() + 1;
+	qint64 row_index = static_cast<qint64>(current.y()) - 1;
+	const qint64 max_row = static_cast<qint64>(current.y()) + 1;
+	const qint64 max_col = static_cast<qint64>(current.x()) + 1;
 
 	if (row_index < 0)
 	{
@@ -285,7 +287,7 @@ void CAStar::find_can_pass_nodes(const QPoint& current, const bool& corner, QVec
 
 	while (row_index <= max_row)
 	{
-		qint64 col_index = current.x() - 1;
+		qint64 col_index = static_cast<qint64>(current.x()) - 1;
 
 		if (col_index < 0)
 		{
@@ -350,23 +352,32 @@ void CAStar::handle_not_found_node(Node*& current, Node*& destination, const QPo
 }
 
 // 執行尋路操作
-bool __fastcall CAStar::find(const CAStarParam& param, std::vector<QPoint>* pPaths)
+bool CAStar::find(const QPoint& start, const QPoint& end, std::vector<QPoint>* pPaths)
 {
-	if (!is_vlid_params(param))
-		return false;
-
 	if (pPaths)
 		pPaths->clear();
 
-	// 初始化
-	init(param);
+	if (!is_vlid_params(start, end))
+	{
+		clear();
+		return false;
+	}
+
+	start_ = start;
+	end_ = end;
+
 	QVector<QPoint> nearby_nodes;
-	nearby_nodes.reserve(param.corner ? 8 : 4);
+	nearby_nodes.reserve(corner_ ? 8 : 4);
 	constexpr size_t alloc_size(1u);
 	// 將起點放入開啟列表
-	//Node* start_node = new(allocator_->allocate(sizeof(Node))) Node(param.start);
 	Node* start_node = allocator_->allocate(alloc_size);  // 分配內存
-	std::allocator_traits<std::pmr::polymorphic_allocator<Node>>::construct(*allocator_, start_node, param.start);// 構造對象
+	if (start_node == nullptr)
+	{
+		clear();
+		return false;
+	}
+
+	std::allocator_traits<std::pmr::polymorphic_allocator<Node>>::construct(*allocator_, start_node, start_);// 構造對象
 	open_list_.push_back(start_node);
 	Node*& reference_node = mapping_[start_node->pos.y() * width_ + start_node->pos.x()];
 	reference_node = start_node;
@@ -389,7 +400,7 @@ bool __fastcall CAStar::find(const CAStarParam& param, std::vector<QPoint>* pPat
 		mapping_[current->pos.y() * width_ + current->pos.x()]->state = NodeState::IN_CLOSEDLIST;
 
 		// 是否找到終點
-		if (current->pos == param.end)
+		if (current->pos == end_)
 		{
 			if (pPaths == nullptr)
 			{
@@ -412,7 +423,7 @@ bool __fastcall CAStar::find(const CAStarParam& param, std::vector<QPoint>* pPat
 
 		// 查找周圍可通過節點
 		nearby_nodes.clear();
-		find_can_pass_nodes(current->pos, param.corner, &nearby_nodes);
+		find_can_pass_nodes(current->pos, corner_, &nearby_nodes);
 
 		// 計算周圍節點的估值
 		size_t index = 0;
@@ -426,34 +437,43 @@ bool __fastcall CAStar::find(const CAStarParam& param, std::vector<QPoint>* pPat
 			}
 			else
 			{
-#ifdef USE_BSTAR
 				next_node = allocator_->allocate(alloc_size);  // 分配內存
+				if (next_node == nullptr)
+				{
+					clear();
+					return false;
+				}
 				std::allocator_traits<std::pmr::polymorphic_allocator<Node>>::construct(*allocator_, next_node, nearby_nodes[index]);// 構造對象
-				next_node->parent = current;
-				next_node->g = calcul_g_value(current, next_node->pos);
-				next_node->h = calcul_bstar_h_value(next_node->pos, param.end, param.start); // 使用B*啟發式函數
-
-				Node*& reference_node = mapping_[next_node->pos.y() * width_ + next_node->pos.x()];
-				reference_node = next_node;
-				reference_node->state = NodeState::IN_OPENLIST;
-
-				open_list_.push_back(next_node);
-#if _MSVC_LANG > 201703L
-				std::ranges::push_heap(open_list_, [](const Node* a, const Node* b)->bool
-#else
-				std::push_heap(open_list_.begin(), open_list_.end(), [](const Node* a, const Node* b)->bool
-#endif
-					{
-						return a->f() > b->f();
-					});
-#else
-				next_node = allocator_->allocate(alloc_size);  // 分配內存
-				std::allocator_traits<std::pmr::polymorphic_allocator<Node>>::construct(*allocator_, next_node, nearby_nodes[index]);// 構造對象
-				handle_not_found_node(current, next_node, param.end);
-#endif
+				handle_not_found_node(current, next_node, end_);
 			}
 			++index;
 		}
+	}
+
+	// 釋放 start_node 內存
+	if (start_node)
+	{
+		Node*& start_mapping_node = mapping_[start_node->pos.y() * width_ + start_node->pos.x()];
+		if (start_mapping_node == start_node)
+		{
+			start_mapping_node = nullptr;
+		}
+
+		std::allocator_traits<std::pmr::polymorphic_allocator<Node>>::destroy(*allocator_, start_node);
+		allocator_->deallocate(start_node, 1);
+	}
+
+	// 釋放 open_list_ 中的節點內存
+	for (Node* node : open_list_)
+	{
+		Node*& mapping_node = mapping_[node->pos.y() * width_ + node->pos.x()];
+		if (mapping_node == node)
+		{
+			mapping_node = nullptr;
+		}
+
+		std::allocator_traits<std::pmr::polymorphic_allocator<Node>>::destroy(*allocator_, node);
+		allocator_->deallocate(node, 1);
 	}
 
 	clear();

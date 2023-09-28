@@ -27,7 +27,7 @@ constexpr qint64 MessageTimeout = 3000;
 constexpr qint64 MAX_TIMEOUT = 30000;
 
 Injector::Injector(qint64 index)
-	: index_(index)
+	: Indexer(index)
 	, autil(index)
 {
 	scriptLogModel.reset(new StringListModel);

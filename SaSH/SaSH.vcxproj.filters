@@ -428,6 +428,9 @@
     <QtMoc Include="mainthread.h">
       <Filter>Source Files\main</Filter>
     </QtMoc>
+    <QtMoc Include="interfacer.h">
+      <Filter>Source Files\util</Filter>
+    </QtMoc>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stdafx.h">

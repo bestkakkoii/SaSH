@@ -96,6 +96,7 @@ void BattleConditionTextItem::paint(QPainter* painter, const QStyleOptionGraphic
 
 BattleSettingFrom::BattleSettingFrom(qint64 index, QWidget* parent)
 	: QWidget(parent)
+	, Indexer(index)
 {
 	ui.setupUi(this);
 	setIndex(index);

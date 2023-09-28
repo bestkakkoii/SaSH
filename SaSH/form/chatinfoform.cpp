@@ -61,9 +61,9 @@ public:
 
 ChatInfoForm::ChatInfoForm(qint64 index, QWidget* parent)
 	: QWidget(parent)
+	, Indexer(index)
 {
 	ui.setupUi(this);
-	setIndex(index);
 
 	QFont font = util::getFont();
 	setFont(font);

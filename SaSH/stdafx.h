@@ -276,5 +276,6 @@ public:\
 #include "map/astar.h"
 #include <usermessage.h>
 #include "model/builddatetime.h"
+#include "interfacer.h"
 
 #endif // __cplusplus

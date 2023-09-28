@@ -448,9 +448,11 @@ int main(int argc, char* argv[])
 		QFile::remove(it.filePath());
 	}
 
+	QFile file(currentWorkPath + "/setting.txt");
+
 	//實例化單個或多個主窗口
 
-	 // 解析啟動參數
+	// 解析啟動參數
 	QCommandLineParser parser;
 	parser.addHelpOption();
 	parser.addPositionalArgument("ids", "Unique IDs to allocate.", "[id1] [id2] ...");

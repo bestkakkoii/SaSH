@@ -2161,6 +2161,10 @@ No new version available. Do you still want to update?</source>
         <source>MainWindow</source>
         <translation></translation>
     </message>
+    <message>
+        <source>CLEAR</source>
+        <translation>重置</translation>
+    </message>
 </context>
 <context>
     <name>OtherForm</name>

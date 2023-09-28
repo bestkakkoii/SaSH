@@ -29,10 +29,11 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 LuaScriptForm::LuaScriptForm(qint64 index, QWidget* parent)
 	: QWidget(parent)
+	, Indexer(index)
 {
 	ui.setupUi(this);
 	setAttribute(Qt::WA_StyledBackground);
-	setIndex(index);
+
 	auto setTableWidget = [](QTableWidget* tableWidget, qint64 max_row)->void
 	{
 		for (qint64 row = 0; row < max_row; ++row)

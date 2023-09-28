@@ -236,7 +236,7 @@ Q_DECLARE_METATYPE(ForNode)
 class Lexer : public Indexer
 {
 public:
-	Lexer(qint64 index) { setIndex(index); }
+	explicit Lexer(qint64 index) : Indexer(index) {}
 
 	static bool tokenized(Lexer* pLexer, const QString& script);
 

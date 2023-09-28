@@ -28,7 +28,7 @@ class SelectTargetForm : public QDialog, public Indexer
 {
 	Q_OBJECT
 public:
-	SelectTargetForm(qint64 index, qint64 type, QString* dst, QWidget* parent = nullptr);
+	SelectTargetForm(qint64 index, qint64 type, QString* dst, QWidget* parent);
 
 	virtual ~SelectTargetForm();
 

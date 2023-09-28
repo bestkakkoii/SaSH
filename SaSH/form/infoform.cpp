@@ -33,6 +33,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 InfoForm::InfoForm(qint64 index, qint64 defaultPage, QWidget* parent)
 	: QWidget(parent)
+	, Indexer(index)
 {
 	ui.setupUi(this);
 
@@ -64,43 +65,43 @@ InfoForm::InfoForm(qint64 index, qint64 defaultPage, QWidget* parent)
 	ui.tabWidget->clear();
 	util::setTab(ui.tabWidget);
 
-	pBattleInfoForm_ = new BattleInfoForm(index);
+	pBattleInfoForm_ = new BattleInfoForm(index, nullptr);
 	if (pBattleInfoForm_)
 	{
 		ui.tabWidget->addTab(pBattleInfoForm_, tr("battleinfo"));
 	}
 
-	pCharInfoForm_ = new CharInfoForm(index);
+	pCharInfoForm_ = new CharInfoForm(index, nullptr);
 	if (pCharInfoForm_)
 	{
 		ui.tabWidget->addTab(pCharInfoForm_, tr("playerinfo"));
 	}
 
-	pItemInfoForm_ = new ItemInfoForm(index);
+	pItemInfoForm_ = new ItemInfoForm(index, nullptr);
 	if (pItemInfoForm_)
 	{
 		ui.tabWidget->addTab(pItemInfoForm_, tr("iteminfo"));
 	}
 
-	pChatInfoForm_ = new ChatInfoForm(index);
+	pChatInfoForm_ = new ChatInfoForm(index, nullptr);
 	if (pChatInfoForm_)
 	{
 		ui.tabWidget->addTab(pChatInfoForm_, tr("chatinfo"));
 	}
 
-	pMailInfoForm_ = new MailInfoForm(index);
+	pMailInfoForm_ = new MailInfoForm(index, nullptr);
 	if (pMailInfoForm_)
 	{
 		ui.tabWidget->addTab(pMailInfoForm_, tr("mailinfo"));
 	}
 
-	pPetInfoForm_ = new PetInfoForm(index);
+	pPetInfoForm_ = new PetInfoForm(index, nullptr);
 	if (pPetInfoForm_)
 	{
 		ui.tabWidget->addTab(pPetInfoForm_, tr("petinfo"));
 	}
 
-	pAfkInfoForm_ = new AfkInfoForm(index);
+	pAfkInfoForm_ = new AfkInfoForm(index, nullptr);
 	if (pAfkInfoForm_)
 	{
 		ui.tabWidget->addTab(pAfkInfoForm_, tr("afkinfo"));

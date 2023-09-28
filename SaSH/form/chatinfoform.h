@@ -27,7 +27,7 @@ class ChatInfoForm : public QWidget, public Indexer
 	Q_OBJECT
 
 public:
-	explicit ChatInfoForm(qint64 index, QWidget* parent = nullptr);
+	ChatInfoForm(qint64 index, QWidget* parent);
 
 	virtual ~ChatInfoForm();
 

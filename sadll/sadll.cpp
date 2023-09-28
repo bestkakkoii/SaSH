@@ -565,7 +565,8 @@ void GameService::WM_SetWindowHide(BOOL enable)
 		util::MemoryMove(CONVERT_GAMEVAR<DWORD>(0x1DFFDul), "\x74\x31", 2u);
 
 		//sa_8001sf.exe+1DEE4 - 83 F9 0E              - cmp ecx,0E { 14 } 加速相關
-		util::MemoryMove(CONVERT_GAMEVAR<DWORD>(0x1DEE4ul), "\x83\xF9\x0E", 3u);
+		//util::MemoryMove(CONVERT_GAMEVAR<DWORD>(0x1DEE4ul), "\x83\xF9\x0E", 3u);
+		*reinterpret_cast<BYTE*>(CONVERT_GAMEVAR<DWORD>(0x1DEE4ul) + 2) = 14;
 	}
 	else
 	{
@@ -578,7 +579,8 @@ void GameService::WM_SetWindowHide(BOOL enable)
 		util::MemoryMove(CONVERT_GAMEVAR<DWORD>(0x1DFFDul), "\xEB\x31", 2u);
 
 		//sa_8001sf.exe+1DEE4 - 83 F9 0E              - cmp ecx,05 { 14 } 加速相關
-		util::MemoryMove(CONVERT_GAMEVAR<DWORD>(0x1DEE4ul), "\x83\xF9\x7F", 3u);
+		//util::MemoryMove(CONVERT_GAMEVAR<DWORD>(0x1DEE4ul), "\x83\xF9\x7F", 3u);
+		*reinterpret_cast<BYTE*>(CONVERT_GAMEVAR<DWORD>(0x1DEE4ul) + 2) = 127;
 	}
 
 	enableSleepAdjust.store(enable, std::memory_order_release);
@@ -910,7 +912,8 @@ void GameService::WM_SetBoostSpeed(BOOL enable, int speed)
 		//sa_8001sf.exe+1DEE4 - 83 F9 02              - cmp ecx,02 { 2 }
 		*pSpeed = 14;
 
-		util::MemoryMove(pBoostSpeed, "\x83\xF9\x02", 3u);
+		//util::MemoryMove(pBoostSpeed, "\x83\xF9\x02", 3u);
+		*reinterpret_cast<BYTE*>(pBoostSpeed + 2) = 2;
 
 		speedBoostValue = 1UL;
 	}
@@ -921,7 +924,8 @@ void GameService::WM_SetBoostSpeed(BOOL enable, int speed)
 			*pSpeed = 14 - speed + 1;
 
 			//sa_8001sf.exe+1DEE4 - 83 F9 0E              - cmp ecx,0E { 14 }
-			util::MemoryMove(pBoostSpeed, "\x83\xF9\x0E", 3u);
+			//util::MemoryMove(pBoostSpeed, "\x83\xF9\x0E", 3u);
+			*reinterpret_cast<BYTE*>(pBoostSpeed + 2) = 14;
 
 			speedBoostValue = 1UL;
 		}

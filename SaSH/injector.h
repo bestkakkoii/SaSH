@@ -193,7 +193,6 @@ public:
 
 	Autil autil;
 private:
-	std::atomic_int64_t index_ = 0;
 	quint64 hGameModule_ = NULL;
 	HMODULE hookdllModule_ = NULL;
 	process_information_t pi_ = {};

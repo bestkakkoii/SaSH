@@ -26,7 +26,7 @@ class PetInfoForm : public QWidget, public Indexer
 	Q_OBJECT
 
 public:
-	explicit PetInfoForm(qint64 index, QWidget* parent = nullptr);
+	explicit PetInfoForm(qint64 index, QWidget* parent);
 
 	virtual ~PetInfoForm();
 

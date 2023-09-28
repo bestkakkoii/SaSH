@@ -26,25 +26,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include <functional>
 #include <QPoint>
 
-using Callback = std::function<bool(const QPoint&)>;
-
-class CAStarParam
-{
-public:
-	bool corner;	   // 允許拐角
-	qint64 height;		   // 地圖高度
-	qint64 width;		   // 地圖寬度
-	QPoint start;	   // 起點坐標
-	QPoint end;		   // 終點坐標
-	Callback can_pass; // 是否可通過
-
-	explicit CAStarParam() : height(0), width(0), corner(true) {}
-
-	explicit CAStarParam(qint64 height, qint64 width, bool corner, const Callback& callback, const QPoint& start, const QPoint& end) :
-		height(height), width(width), start(start), end(end), corner(corner), can_pass(callback)
-	{
-	}
-};
+using AStarCallback = std::function<bool(const QPoint&)>;
 
 class CAStar
 {
@@ -107,10 +89,20 @@ public:
 	 */
 	constexpr void __fastcall set_oblique_value(qint64 value);
 
+	void __fastcall set_canpass(const AStarCallback& callback);
+
+	void __fastcall set_corner(bool corner);
+
+	/**
+	 * 初始化參數
+	 */
+	void __fastcall init(qint64 width, qint64 height);
+
+
 	/**
 	 * 執行尋路操作
 	 */
-	bool __fastcall find(const CAStarParam& param, std::vector<QPoint>* pPath);
+	bool __fastcall find(const QPoint& start, const QPoint& end, std::vector<QPoint>* pPath);
 
 private:
 	/**
@@ -119,14 +111,9 @@ private:
 	void clear();
 
 	/**
-	 * 初始化參數
-	 */
-	void __fastcall init(const CAStarParam& param);
-
-	/**
 	 * 參數是否有效
 	 */
-	bool __fastcall is_vlid_params(const CAStarParam& param) const;
+	bool __fastcall is_vlid_params(const QPoint& start, const QPoint& end) const;
 
 private:
 	/**
@@ -148,11 +135,6 @@ private:
 	 * 計算F值
 	 */
 	__forceinline qint64 __fastcall calcul_h_value(const QPoint& current, const QPoint& end);
-
-	/**
-	 * B星計算F值
-	 */
-	__forceinline qint64 __fastcall calcul_bstar_h_value(const QPoint& current, const QPoint& end, const QPoint& start);
 
 	/**
 	 * 節點是否存在於開啟列表
@@ -190,13 +172,17 @@ private:
 	void __fastcall handle_not_found_node(Node*& current, Node*& destination, const QPoint& end);
 
 private:
+	bool					corner_ = true;
 	qint64                  step_val_;
 	qint64                  oblique_val_;
+	qint64                  height_ = 0;
+	qint64                  width_ = 0;
+	AStarCallback           can_pass_ = nullptr;
+	QPoint					start_;
+	QPoint					end_;
 	std::vector<Node*>      mapping_;
-	qint64                  height_;
-	qint64                  width_;
-	Callback                can_pass_;
 	std::vector<Node*>      open_list_;
+
 #if _MSVC_LANG >= 201703L
 	std::unique_ptr<std::pmr::monotonic_buffer_resource> resource_;
 	std::unique_ptr<std::pmr::polymorphic_allocator<Node>> allocator_;

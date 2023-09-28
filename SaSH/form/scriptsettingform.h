@@ -32,7 +32,7 @@ class ScriptSettingForm : public QMainWindow, public Indexer
 	Q_OBJECT
 
 public:
-	explicit ScriptSettingForm(qint64 index, QWidget* parent = nullptr);
+	ScriptSettingForm(qint64 index, QWidget* parent);
 
 	virtual ~ScriptSettingForm();
 

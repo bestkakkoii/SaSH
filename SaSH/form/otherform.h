@@ -26,7 +26,7 @@ class OtherForm : public QWidget, public Indexer
 {
 	Q_OBJECT
 public:
-	explicit OtherForm(qint64 index, QWidget* parent = nullptr);
+	explicit OtherForm(qint64 index, QWidget* parent);
 
 	virtual ~OtherForm();
 
