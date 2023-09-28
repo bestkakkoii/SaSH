@@ -321,6 +321,7 @@ namespace util
 
 		kBattlePetHealActionTypeValue,
 		kBattlePetPurgActionTypeValue,
+		kBattleCharPurgActionTypeValue,
 
 		//afk->heal button
 		kBattleMagicHealTargetValue,
@@ -329,6 +330,7 @@ namespace util
 		kBattleItemReviveTargetValue,
 		kBattlePetHealTargetValue,
 		kBattlePetPurgTargetValue,
+		kBattleCharPurgTargetValue,
 
 		//afk->heal combobox
 		kBattleMagicHealMagicValue,
@@ -467,6 +469,7 @@ namespace util
 		kBattleSkillMpEnable,
 		kBattlePetHealEnable,
 		kBattlePetPurgEnable,
+		kBattleCharPurgEnable,
 
 		kNormalMagicHealEnable,
 		kNormalItemHealEnable,

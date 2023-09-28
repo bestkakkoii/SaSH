@@ -122,6 +122,27 @@ constexpr qint64 BC_FLG_DRUNK = (1LL << 7);  //酒醉
 constexpr qint64 BC_FLG_CONFUSION = (1LL << 8); //混乱
 constexpr qint64 BC_FLG_HIDE = (1LL << 9);	  //是否隐藏，地球一周
 constexpr qint64 BC_FLG_REVERSE = (1LL << 10);  //反转
+constexpr qint64 BC_FLG_WEAKEN = (1LL << 11);  //虚弱
+constexpr qint64 BC_FLG_DEEPPOISON = (1LL << 12);  //劇毒
+constexpr qint64 BC_FLG_BARRIER = (1LL << 13);  //魔障
+constexpr qint64 BC_FLG_NOCAST = (1LL << 14);  //沉默
+constexpr qint64 BC_FLG_SARS = (1LL << 15);  //毒煞
+constexpr qint64 BC_FLG_DIZZY = (1LL << 16);  //眩暈
+constexpr qint64 BC_FLG_ENTWINE = (1LL << 17);  //树根缠绕
+constexpr qint64 BC_FLG_DRAGNET = (1LL << 18);  //天罗地网
+constexpr qint64 BC_FLG_ICECRACK = (1LL << 19);  //冰爆术
+constexpr qint64 BC_FLG_OBLIVION = (1LL << 20);  //遗忘
+constexpr qint64 BC_FLG_ICEARROW = (1LL << 21);  //冰箭
+constexpr qint64 BC_FLG_BLOODWORMS = (1LL << 22);  //嗜血蛊
+constexpr qint64 BC_FLG_SIGN = (1LL << 23);  //一针见血
+constexpr qint64 BC_FLG_CARY = (1LL << 24);  //挑拨
+constexpr qint64 BC_FLG_F_ENCLOSE = (1LL << 25);  //火附体
+constexpr qint64 BC_FLG_I_ENCLOSE = (1LL << 26);  //冰附体
+constexpr qint64 BC_FLG_T_ENCLOSE = (1LL << 27);  //雷附体
+constexpr qint64 BC_FLG_WATER = (1LL << 28);  //水附体
+constexpr qint64 BC_FLG_FEAR = (1LL << 29);  //恐惧
+constexpr qint64 BC_FLG_CHANGE = (1LL << 30);  //雷尔变身
+
 
 inline constexpr bool hasBadStatus(quint64 status)
 {
@@ -139,6 +160,47 @@ inline constexpr bool hasBadStatus(quint64 status)
 	if (status & BC_FLG_CONFUSION)
 		return true;
 
+	if (status & BC_FLG_WEAKEN)
+		return true;
+	if (status & BC_FLG_DEEPPOISON)
+		return true;
+	if (status & BC_FLG_BARRIER)
+		return true;
+	if (status & BC_FLG_NOCAST)
+		return true;
+	if (status & BC_FLG_SARS)
+		return true;
+	if (status & BC_FLG_DIZZY)
+		return true;
+	if (status & BC_FLG_ENTWINE)
+		return true;
+	if (status & BC_FLG_DRAGNET)
+		return true;
+	if (status & BC_FLG_ICECRACK)
+		return true;
+	if (status & BC_FLG_OBLIVION)
+		return true;
+	if (status & BC_FLG_ICEARROW)
+		return true;
+	if (status & BC_FLG_BLOODWORMS)
+		return true;
+	if (status & BC_FLG_SIGN)
+		return true;
+	if (status & BC_FLG_CARY)
+		return true;
+	if (status & BC_FLG_F_ENCLOSE)
+		return true;
+	if (status & BC_FLG_I_ENCLOSE)
+		return true;
+	if (status & BC_FLG_T_ENCLOSE)
+		return true;
+	if (status & BC_FLG_WATER)
+		return true;
+	if (status & BC_FLG_FEAR)
+		return true;
+	if (status & BC_FLG_CHANGE)
+		return true;
+
 	return false;
 }
 
@@ -153,6 +215,8 @@ inline constexpr bool hasUnMoveableStatue(quint64 status)
 	if (status & BC_FLG_PARALYSIS)
 		return true;
 	if (status & BC_FLG_HIDE)
+		return true;
+	if (status & BC_FLG_DIZZY)
 		return true;
 
 	return false;

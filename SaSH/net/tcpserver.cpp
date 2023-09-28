@@ -1704,13 +1704,53 @@ QString Server::getBadStatusString(qint64 status)
 	if (checkAND(status, BC_FLG_STONE))
 		temp.append(QObject::tr("petrified")); // 石化
 	if (checkAND(status, BC_FLG_DRUNK))
-		temp.append(QObject::tr("dizzy")); // 眩晕
+		temp.append(QObject::tr("drunk")); // 酒醉
 	if (checkAND(status, BC_FLG_CONFUSION))
 		temp.append(QObject::tr("confused")); // 混乱
 	if (checkAND(status, BC_FLG_HIDE))
 		temp.append(QObject::tr("hidden")); // 是否隐藏，地球一周
 	if (checkAND(status, BC_FLG_REVERSE))
 		temp.append(QObject::tr("reverse")); // 反轉
+	if (checkAND(status, BC_FLG_WEAKEN))
+		temp.append(QObject::tr("weaken")); // 虛弱
+	if (checkAND(status, BC_FLG_DEEPPOISON))
+		temp.append(QObject::tr("deeppoison")); // 劇毒
+	if (checkAND(status, BC_FLG_BARRIER))
+		temp.append(QObject::tr("barrier")); // 魔障
+	if (checkAND(status, BC_FLG_NOCAST))
+		temp.append(QObject::tr("nocast")); //沉默
+	if (checkAND(status, BC_FLG_SARS))
+		temp.append(QObject::tr("sars")); // 毒煞
+	if (checkAND(status, BC_FLG_DIZZY))
+		temp.append(QObject::tr("dizzy")); // 眩暈
+	if (checkAND(status, BC_FLG_ENTWINE))
+		temp.append(QObject::tr("entwine")); // 树根缠绕
+	if (checkAND(status, BC_FLG_DRAGNET))
+		temp.append(QObject::tr("dragnet")); // 天罗地网
+	if (checkAND(status, BC_FLG_ICECRACK))
+		temp.append(QObject::tr("icecrack")); // 冰爆术
+	if (checkAND(status, BC_FLG_OBLIVION))
+		temp.append(QObject::tr("oblivion")); // 遗忘
+	if (checkAND(status, BC_FLG_ICEARROW))
+		temp.append(QObject::tr("icearrow")); // 冰箭
+	if (checkAND(status, BC_FLG_BLOODWORMS))
+		temp.append(QObject::tr("bloodworms")); // 嗜血蛊
+	if (checkAND(status, BC_FLG_SIGN))
+		temp.append(QObject::tr("sign")); // 一针见血
+	if (checkAND(status, BC_FLG_CARY))
+		temp.append(QObject::tr("cary")); // 挑撥
+	if (checkAND(status, BC_FLG_F_ENCLOSE))
+		temp.append(QObject::tr("f_enclose")); // 火附体
+	if (checkAND(status, BC_FLG_I_ENCLOSE))
+		temp.append(QObject::tr("i_enclose")); // 冰附体
+	if (checkAND(status, BC_FLG_T_ENCLOSE))
+		temp.append(QObject::tr("t_enclose")); // 雷附体
+	if (checkAND(status, BC_FLG_WATER))
+		temp.append(QObject::tr("water")); // 水附体
+	if (checkAND(status, BC_FLG_FEAR))
+		temp.append(QObject::tr("fear")); // 恐懼
+	if (checkAND(status, BC_FLG_CHANGE))
+		temp.append(QObject::tr("lechange")); // 雷爾變身
 	return temp.join(" ");
 }
 
@@ -5473,6 +5513,13 @@ bool Server::checkCharMp(qint64 cmpvalue, qint64* target, bool useequal)
 	return  false;
 };
 
+//檢測人物狀態
+//bool Server::checkCharStatus(qint64 cmpvalue, qint64* target, bool useequal)
+
+//檢測戰寵狀態
+
+//檢測隊友狀態
+
 //檢測戰寵血量
 bool Server::checkPetHp(qint64 cmpvalue, qint64* target, bool useequal)
 {
@@ -5580,6 +5627,7 @@ void Server::handleCharBattleLogics(const battledata_t& bt)
 
 	qint64 target = -1;
 
+	//檢測隊友血量
 	auto checkAllieHp = [this, &bt](qint64 cmpvalue, qint64* target, bool useequal)->bool
 		{
 			if (!target)
@@ -5652,6 +5700,48 @@ void Server::handleCharBattleLogics(const battledata_t& bt)
 			return false;
 		};
 
+	//檢測隊友狀態
+	auto checkAllieStatus = [this, &bt](qint64* target, bool useequal)->bool
+		{
+			if (!target)
+				return false;
+
+			qint64 min = 0;
+			qint64 max = (MAX_ENEMY / 2) - 1;
+			if (battleCharCurrentPos >= (MAX_ENEMY / 2))
+			{
+				min = MAX_ENEMY / 2;
+				max = MAX_ENEMY - 1;
+			}
+
+			QVector<battleobject_t> battleObjects = bt.objects;
+			for (const battleobject_t& obj : battleObjects)
+			{
+				if (obj.pos < min || obj.pos > max)
+					continue;
+
+				if (obj.hp == 0)
+					continue;
+
+				if (obj.maxHp == 0)
+					continue;
+
+				if (checkAND(obj.status, BC_FLG_HIDE) || checkAND(obj.status, BC_FLG_DEAD))
+					continue;
+				if (!useequal && hasBadStatus(obj.status))
+				{
+					*target = obj.pos;
+					return true;
+				}
+				else if (useequal && hasBadStatus(obj.status))
+				{
+					*target = obj.pos;
+					return true;
+				}
+			}
+
+			return false;
+		};
 	//自動換寵
 	do
 	{
@@ -6531,6 +6621,83 @@ void Server::handleCharBattleLogics(const battledata_t& bt)
 		}
 	} while (false);
 
+	//精靈淨化
+	do
+	{
+		bool charPurg = injector.getEnableHash(util::kBattleCharPurgEnable);
+		if (!charPurg)
+			break;
+
+		qint64 tempTarget = -1;
+		bool ok = false;
+		quint64 targetFlags = injector.getValueHash(util::kBattleCharPurgTargetValue);
+
+		if (checkAND(targetFlags, kSelectSelf))
+		{
+			if (hasBadStatus(bt.objects.at(battleCharCurrentPos).status))
+			{
+				ok = true;
+			}
+		}
+
+		if (checkAND(targetFlags, kSelectPet))
+		{
+			if (!ok && bt.objects.at(battleCharCurrentPos + 5).maxHp > 0)
+			{
+				if (hasBadStatus(bt.objects.at(battleCharCurrentPos + 5).status) && bt.objects.at(battleCharCurrentPos + 5).hp > 0 &&
+					!checkAND(bt.objects.at(battleCharCurrentPos + 5).status, BC_FLG_DEAD) && !checkAND(bt.objects.at(battleCharCurrentPos + 5).status, BC_FLG_HIDE))
+				{
+					tempTarget = battleCharCurrentPos + 5;
+					ok = true;
+				}
+			}
+			else if (!ok && bt.objects.at(battleCharCurrentPos).maxHp > 0)
+			{
+				if (hasBadStatus(bt.objects.at(battleCharCurrentPos).status) && bt.objects.at(battleCharCurrentPos).rideHp > 0 &&
+					!checkAND(bt.objects.at(battleCharCurrentPos).status, BC_FLG_DEAD) && !checkAND(bt.objects.at(battleCharCurrentPos).status, BC_FLG_HIDE))
+				{
+					tempTarget = battleCharCurrentPos;
+					ok = true;
+				}
+			}
+		}
+
+		if (!ok)
+		{
+			if (checkAND(targetFlags, kSelectAllieAny) || checkAND(targetFlags, kSelectAllieAll))
+			{
+				if (checkAllieStatus(&tempTarget, false))
+				{
+					ok = true;
+				}
+			}
+		}
+
+		if (!ok)
+			break;
+
+		qint64 magicIndex = injector.getValueHash(util::kBattleCharPurgActionTypeValue);
+		if (magicIndex < 0 || magicIndex > MAX_MAGIC)
+			break;
+
+		bool isProfession = magicIndex > (MAX_MAGIC - 1);
+		if (!isProfession) // ifMagic
+		{
+			target = -1;
+			if (fixCharTargetByMagicIndex(magicIndex, tempTarget, &target) && (target >= 0 && target <= (MAX_ENEMY + 1)))
+			{
+				if (isCharMpEnoughForMagic(magicIndex))
+				{
+					sendBattleCharMagicAct(magicIndex, target);
+					return;
+				}
+				else
+				{
+					break;
+				}
+			}
+		}
+	} while (false);
 	//精靈補血
 	do
 	{
@@ -6896,6 +7063,7 @@ void Server::handlePetBattleLogics(const battledata_t& bt)
 	sortBattleUnit(battleObjects);
 	qint64 target = -1;
 
+	//檢測隊友血量
 	auto checkAllieHp = [this, &bt](qint64 cmpvalue, qint64* target, bool useequal)->bool
 		{
 			if (!target)
@@ -6930,6 +7098,49 @@ void Server::handlePetBattleLogics(const battledata_t& bt)
 					return true;
 				}
 				else if (useequal && (obj.hpPercent <= cmpvalue))
+				{
+					*target = obj.pos;
+					return true;
+				}
+			}
+
+			return false;
+		};
+
+	//檢測隊友狀態
+	auto checkAllieStatus = [this, &bt](qint64* target, bool useequal)->bool
+		{
+			if (!target)
+				return false;
+
+			qint64 min = 0;
+			qint64 max = (MAX_ENEMY / 2) - 1;
+			if (battleCharCurrentPos >= (MAX_ENEMY / 2))
+			{
+				min = MAX_ENEMY / 2;
+				max = MAX_ENEMY - 1;
+			}
+
+			QVector<battleobject_t> battleObjects = bt.objects;
+			for (const battleobject_t& obj : battleObjects)
+			{
+				if (obj.pos < min || obj.pos > max)
+					continue;
+
+				if (obj.hp == 0)
+					continue;
+
+				if (obj.maxHp == 0)
+					continue;
+
+				if (checkAND(obj.status, BC_FLG_HIDE) || checkAND(obj.status, BC_FLG_DEAD))
+					continue;
+				if (!useequal && hasBadStatus(obj.status))
+				{
+					*target = obj.pos;
+					return true;
+				}
+				else if (useequal && hasBadStatus(obj.status))
 				{
 					*target = obj.pos;
 					return true;
@@ -7251,7 +7462,77 @@ void Server::handlePetBattleLogics(const battledata_t& bt)
 	} while (false);
 
 	//寵物淨化
-	
+	do
+	{
+		bool petPurg = injector.getEnableHash(util::kBattlePetPurgEnable);
+		if (!petPurg)
+			break;
+
+		qint64 tempTarget = -1;
+		bool ok = false;
+		quint64 targetFlags = injector.getValueHash(util::kBattlePetPurgTargetValue);
+
+		if (checkAND(targetFlags, kSelectSelf))
+		{
+			if (hasBadStatus(bt.objects.at(battleCharCurrentPos).status))
+			{
+				ok = true;
+			}
+		}
+
+		if (checkAND(targetFlags, kSelectPet))
+		{
+			if (!ok && bt.objects.at(battleCharCurrentPos + 5).maxHp > 0)
+			{
+				if (hasBadStatus(bt.objects.at(battleCharCurrentPos + 5).status) && bt.objects.at(battleCharCurrentPos + 5).hp > 0 &&
+					!checkAND(bt.objects.at(battleCharCurrentPos + 5).status, BC_FLG_DEAD) && !checkAND(bt.objects.at(battleCharCurrentPos + 5).status, BC_FLG_HIDE))
+				{
+					tempTarget = battleCharCurrentPos + 5;
+					ok = true;
+				}
+			}
+			else if (!ok && bt.objects.at(battleCharCurrentPos).maxHp > 0)
+			{
+				if (hasBadStatus(bt.objects.at(battleCharCurrentPos).status) && bt.objects.at(battleCharCurrentPos).rideHp > 0 &&
+					!checkAND(bt.objects.at(battleCharCurrentPos).status, BC_FLG_DEAD) && !checkAND(bt.objects.at(battleCharCurrentPos).status, BC_FLG_HIDE))
+				{
+					tempTarget = battleCharCurrentPos;
+					ok = true;
+				}
+			}
+		}
+
+		if (!ok)
+		{
+			if (checkAND(targetFlags, kSelectAllieAny) || checkAND(targetFlags, kSelectAllieAll))
+			{
+				if (checkAllieStatus(&tempTarget, false))
+				{
+					ok = true;
+				}
+			}
+		}
+
+		if (!ok)
+			break;
+
+		qint64 petActionIndex = injector.getValueHash(util::kBattlePetPurgActionTypeValue);
+		if (petActionIndex < 0 || petActionIndex > MAX_PETSKILL)
+			break;
+
+		bool isProfession = petActionIndex > (MAX_PETSKILL - 1);
+		if (!isProfession) // ifpetAction
+		{
+			target = -1;
+			if (fixPetTargetBySkillIndex(petActionIndex, tempTarget, &target) && (target >= 0 && target <= (MAX_ENEMY + 1)))
+			{
+				sendBattlePetSkillAct(petActionIndex, target);
+				return;
+
+			}
+		}
+	} while (false);
+
 	//寵物補血
 	do
 	{
@@ -7326,7 +7607,7 @@ void Server::handlePetBattleLogics(const battledata_t& bt)
 			}
 		}
 	} while (false);
-	
+
 
 	//一般動作
 	do

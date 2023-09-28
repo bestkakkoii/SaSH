@@ -67,6 +67,7 @@ SelectTargetForm::SelectTargetForm(qint64 index, qint64 type, QString* dst, QWid
 
 		{ util::kBattlePetHealTargetValue, tr("pet healing target") },
 		{ util::kBattlePetPurgTargetValue, tr("pet purging target") },
+		{ util::kBattleCharPurgTargetValue, tr("char purging target") },
 	};
 
 	setWindowTitle(title_hash.value(type_, tr("unknown")));

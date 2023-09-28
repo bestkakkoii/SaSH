@@ -439,11 +439,15 @@
     </message>
     <message>
         <source>pet heal</source>
-        <translation type="unfinished"></translation>
+        <translation>宠物补血</translation>
     </message>
     <message>
         <source>pet purg</source>
-        <translation type="unfinished"></translation>
+        <translation>宠物净化</translation>
+    </message>
+    <message>
+        <source>char purg</source>
+        <translation>精灵净化</translation>
     </message>
 </context>
 <context>
@@ -2683,7 +2687,7 @@ No new version available. Do you still want to update?</source>
     </message>
     <message>
         <source>dizzy</source>
-        <translation>酒醉</translation>
+        <translation>眩晕</translation>
     </message>
     <message>
         <source>confused</source>
@@ -3284,6 +3288,82 @@ No new version available. Do you still want to update?</source>
     <message>
         <source>GetProcAddress failed</source>
         <translation>取函数入口地址失败</translation>
+    </message>
+    <message>
+        <source>drunk</source>
+        <translation>酒醉</translation>
+    </message>
+    <message>
+        <source>weaken</source>
+        <translation>虚弱</translation>
+    </message>
+    <message>
+        <source>deeppoison</source>
+        <translation>剧毒</translation>
+    </message>
+    <message>
+        <source>barrier</source>
+        <translation>魔障</translation>
+    </message>
+    <message>
+        <source>nocast</source>
+        <translation>沉默</translation>
+    </message>
+    <message>
+        <source>sars</source>
+        <translation>毒煞</translation>
+    </message>
+    <message>
+        <source>entwine</source>
+        <translation>树根缠绕</translation>
+    </message>
+    <message>
+        <source>dragnet</source>
+        <translation>天罗地网</translation>
+    </message>
+    <message>
+        <source>icecrack</source>
+        <translation>冰爆术</translation>
+    </message>
+    <message>
+        <source>oblivion</source>
+        <translation>遗忘</translation>
+    </message>
+    <message>
+        <source>icearrow</source>
+        <translation>冰箭</translation>
+    </message>
+    <message>
+        <source>bloodworms</source>
+        <translation>嗜血蛊</translation>
+    </message>
+    <message>
+        <source>sign</source>
+        <translation>一针见血</translation>
+    </message>
+    <message>
+        <source>cary</source>
+        <translation>挑拨</translation>
+    </message>
+    <message>
+        <source>f_enclose</source>
+        <translation>火附体</translation>
+    </message>
+    <message>
+        <source>i_enclose</source>
+        <translation>冰附体</translation>
+    </message>
+    <message>
+        <source>t_enclose</source>
+        <translation>雷附体</translation>
+    </message>
+    <message>
+        <source>fear</source>
+        <translation>恐惧</translation>
+    </message>
+    <message>
+        <source>lechange</source>
+        <translation>雷尔变身</translation>
     </message>
 </context>
 <context>
@@ -4787,6 +4867,10 @@ No new version available. Do you still want to update?</source>
     <message>
         <source>cancel</source>
         <translation>取消</translation>
+    </message>
+    <message>
+        <source>char purging target</source>
+        <translation>精灵净化对象</translation>
     </message>
 </context>
 <context>

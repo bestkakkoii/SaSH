@@ -211,6 +211,12 @@ void AfkForm::onButtonClicked()
 			pPushButton->setText(temp);
 		return;
 	}
+	if (name == "pushButton_charpurg")
+	{
+		if (createSelectTargetForm(currentIndex, util::kBattleCharPurgTargetValue, &temp, this))
+			pPushButton->setText(temp);
+		return;
+	}
 	//catch
 	if (name == "pushButton_autocatchpet")
 	{
@@ -357,6 +363,13 @@ void AfkForm::onCheckBoxStateChanged(int state)
 		injector.setEnableHash(util::kBattlePetPurgEnable, isChecked);
 		return;
 	}
+
+	if (name == "checkBox_charpurg")
+	{
+		injector.setEnableHash(util::kBattleCharPurgEnable, isChecked);
+		return;
+	}
+
 	//normal heal
 	if (name == "checkBox_magicheal_normal")
 	{
@@ -776,6 +789,12 @@ void AfkForm::onComboBoxCurrentIndexChanged(int value)
 		injector.setValueHash(util::kBattlePetPurgActionTypeValue, value != -1 ? value : 0);
 		return;
 	}
+	//magic purg
+	if (name == "comboBox_purgaction_char_action")
+	{
+		injector.setValueHash(util::kBattleCharPurgActionTypeValue, value != -1 ? value : 0);
+		return;
+	}
 	//magic heal
 	if (name == "comboBox_magicheal")
 	{
@@ -1073,6 +1092,7 @@ void AfkForm::onResetControlTextLanguage()
 	appendCharAction(ui.comboBox_normalaction_char_action);
 	appendCharAction(ui.comboBox_magicheal, false);
 	appendCharAction(ui.comboBox_magicrevive, false);
+	appendCharAction(ui.comboBox_purgaction_char_action, false);
 
 	appendCharAction(ui.comboBox_magicheal_normal, true);
 	for (qint64 i = CHAR_EQUIPPLACENUM; i < MAX_ITEM; ++i)
@@ -1175,6 +1195,8 @@ void AfkForm::onApplyHashSettingsToUI()
 	ui.comboBox_healaction_pet_action->setCurrentIndex(valueHash.value(util::kBattlePetHealActionTypeValue));
 	ui.checkBox_petpurg->setChecked(enableHash.value(util::kBattlePetPurgEnable));
 	ui.comboBox_purgaction_pet_action->setCurrentIndex(valueHash.value(util::kBattlePetPurgActionTypeValue));
+	ui.checkBox_charpurg->setChecked(enableHash.value(util::kBattleCharPurgEnable));
+	ui.comboBox_purgaction_char_action->setCurrentIndex(valueHash.value(util::kBattleCharPurgActionTypeValue));
 	//heal
 	ui.spinBox_magicheal_char->setValue(valueHash.value(util::kBattleMagicHealCharValue));
 	ui.spinBox_magicheal_pet->setValue(valueHash.value(util::kBattleMagicHealPetValue));
@@ -1375,7 +1397,7 @@ void AfkForm::onUpdateComboBoxItemText(qint64 type, const QStringList& textList)
 		appendMagicText(ui.comboBox_magicrevive, true);
 		appendMagicText(ui.comboBox_magicheal_normal, true);
 		//appendProfText(ui.comboBox_skillMp);
-
+		appendMagicText(ui.comboBox_purgaction_char_action, true);
 
 		//catch
 		appendMagicText(ui.comboBox_autocatchpet_magic);
@@ -1428,4 +1450,5 @@ void AfkForm::updateTargetButtonText()
 
 	ui.pushButton_petheal->setText(get(valueHash.value(util::kBattlePetHealTargetValue)));
 	ui.pushButton_petpurg->setText(get(valueHash.value(util::kBattlePetPurgTargetValue)));
+	ui.pushButton_charpurg->setText(get(valueHash.value(util::kBattleCharPurgTargetValue)));
 }
