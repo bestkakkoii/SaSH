@@ -28,8 +28,8 @@ private:
 	inline static util::SafeHash<qint64, SignalDispatcher*> instances;
 
 	explicit SignalDispatcher(qint64 index)
+		: Indexer(index)
 	{
-		setIndex(index);
 	}
 
 public:

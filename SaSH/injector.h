@@ -193,7 +193,6 @@ public:
 
 	Autil autil;
 private:
-	std::atomic_int64_t index_ = 0;
 	quint64 hGameModule_ = NULL;
 	HMODULE hookdllModule_ = NULL;
 	process_information_t pi_ = {};
@@ -257,6 +256,9 @@ private:
 		{ util::kBattleItemHealTargetValue, util::kSelectSelf | util::kSelectPet },
 		{ util::kBattleMagicReviveTargetValue, util::kSelectSelf | util::kSelectPet },
 		{ util::kBattleItemReviveTargetValue, util::kSelectSelf | util::kSelectPet },
+
+		{ util::kBattlePetHealTargetValue, util::kSelectSelf | util::kSelectPet },
+		{ util::kBattlePetPurgTargetValue, util::kSelectSelf | util::kSelectPet },
 
 		//afk->heal combobox
 		{ util::kBattleMagicHealMagicValue, 0 },

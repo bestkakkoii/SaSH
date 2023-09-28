@@ -10,7 +10,7 @@ class GeneralForm : public QWidget, public Indexer
 	Q_OBJECT
 
 public:
-	explicit GeneralForm(qint64 index, QWidget* parent = nullptr);
+	GeneralForm(qint64 index, QWidget* parent);
 	virtual ~GeneralForm();
 
 signals:

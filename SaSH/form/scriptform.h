@@ -31,7 +31,7 @@ class ScriptForm : public QWidget, public Indexer
 	Q_OBJECT
 
 public:
-	explicit ScriptForm(qint64 index, QWidget* parent = nullptr);
+	ScriptForm(qint64 index, QWidget* parent);
 
 	virtual ~ScriptForm();
 

@@ -437,6 +437,14 @@
         <source>ms</source>
         <translation>毫秒</translation>
     </message>
+    <message>
+        <source>pet heal</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>pet purg</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>AfkInfoForm</name>
@@ -2160,6 +2168,10 @@ No new version available. Do you still want to update?</source>
     <message>
         <source>MainWindow</source>
         <translation></translation>
+    </message>
+    <message>
+        <source>CLEAR</source>
+        <translation>重置</translation>
     </message>
 </context>
 <context>
@@ -4683,6 +4695,14 @@ No new version available. Do you still want to update?</source>
     <message>
         <source>item revival target</source>
         <translation>道具復活对象</translation>
+    </message>
+    <message>
+        <source>pet healing target</source>
+        <translation>宠物补血对象</translation>
+    </message>
+    <message>
+        <source>pet purging target</source>
+        <translation>宠物净化对象</translation>
     </message>
     <message>
         <source>unknown</source>

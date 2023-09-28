@@ -47,7 +47,7 @@ class MainForm : public QMainWindow, public Indexer
 	Q_OBJECT
 
 public:
-	explicit MainForm(qint64 index, QWidget* parent = nullptr);
+	explicit MainForm(qint64 index, QWidget* parent);
 	virtual ~MainForm();
 
 	static MainForm* createNewWindow(qint64 idToAllocate, qint64* pId = nullptr);

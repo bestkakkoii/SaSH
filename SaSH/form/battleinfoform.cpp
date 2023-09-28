@@ -27,6 +27,7 @@ constexpr qint64 max_row = 10;
 
 BattleInfoForm::BattleInfoForm(qint64 index, QWidget* parent)
 	: QWidget(parent)
+	, Indexer(index)
 {
 	ui.setupUi(this);
 

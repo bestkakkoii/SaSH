@@ -26,7 +26,7 @@ class AfkForm : public QWidget, public Indexer
 	Q_OBJECT
 
 public:
-	explicit AfkForm(qint64 index, QWidget* parent = nullptr);
+	AfkForm(qint64 index, QWidget* parent);
 	virtual ~AfkForm();
 
 signals:

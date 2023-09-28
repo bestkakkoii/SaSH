@@ -33,8 +33,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 //char MesgSlice[sizeof(char*) * SLICE_MAX][SLICE_SIZE];
 
 Autil::Autil(qint64 index)
+	: Indexer(index)
 {
-	setIndex(index);
 }
 
 // -------------------------------------------------------------------

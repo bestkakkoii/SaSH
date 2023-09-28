@@ -14,6 +14,7 @@
 
 GeneralForm::GeneralForm(qint64 index, QWidget* parent)
 	: QWidget(parent)
+	, Indexer(index)
 {
 	ui.setupUi(this);
 
@@ -57,7 +58,7 @@ GeneralForm::GeneralForm(qint64 index, QWidget* parent)
 		}
 	}
 
-	pAfkForm_ = new AfkForm(index);
+	pAfkForm_ = new AfkForm(index, nullptr);
 	pAfkForm_->hide();
 
 	emit ui.comboBox_paths->clicked();
@@ -381,7 +382,7 @@ void GeneralForm::onButtonClicked()
 	{
 		if (pAfkForm_ == nullptr)
 		{
-			pAfkForm_ = new AfkForm(currentIndex);
+			pAfkForm_ = new AfkForm(currentIndex, nullptr);
 			if (pAfkForm_ != nullptr)
 			{
 				emit pAfkForm_->resetControlTextLanguage();

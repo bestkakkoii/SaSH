@@ -25,7 +25,7 @@ class CharInfoForm : public QWidget, public Indexer
 {
 	Q_OBJECT
 public:
-	explicit CharInfoForm(qint64 index, QWidget* parent = nullptr);
+	explicit CharInfoForm(qint64 index, QWidget* parent);
 
 	virtual ~CharInfoForm();
 

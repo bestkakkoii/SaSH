@@ -895,9 +895,10 @@ bool compareDistance(qdistance_t& a, qdistance_t& b)
 }
 
 MapAnalyzer::MapAnalyzer(qint64 index)
-	:directory(util::toQString(qgetenv("GAME_DIR_PATH")))
+	: Indexer(index)
+	, directory(util::toQString(qgetenv("GAME_DIR_PATH")))
 {
-	setIndex(index);
+
 	static bool init = false;
 	if (init)
 		return;
@@ -1032,6 +1033,9 @@ bool __fastcall MapAnalyzer::getMapDataByFloor(qint64 floor, map_t* map)
 	if (maps_.contains(floor))
 	{
 		map_t m = maps_.value(floor);
+		if (m.data.isEmpty())
+			return false;
+
 		if (m.refCount == 0)
 			m.timer.start();
 
@@ -1568,80 +1572,101 @@ bool __fastcall MapAnalyzer::saveAsBinary(map_t map, const QString& fileName)
 	return true;
 }
 
-bool __fastcall MapAnalyzer::calcNewRoute(const map_t& map, const QPoint& src, const QPoint& dst, const QSet<QPoint>& blockList, std::vector<QPoint>* pPaths)
+bool __fastcall MapAnalyzer::calcNewRoute(CAStar* pastar, qint64 floor, const QPoint& src, const QPoint& dst, const QSet<QPoint>& blockList, std::vector<QPoint>* pPaths)
 {
-	if (pPaths == nullptr)
-		return false;
-
-	if (src == dst)
+	do
 	{
-		pPaths->push_back(src);
-		return true;
-	}
+		if (pPaths == nullptr)
+			break;
 
-	util::ObjectType dstobj = map.data.value(dst, util::OBJ_UNKNOWN);
-	bool isDstAsWarpPoint = (dstobj == util::OBJ_WARP) || (dstobj == util::OBJ_JUMP) || (dstobj == util::OBJ_UP) || (dstobj == util::OBJ_DOWN);
+		if (pastar == nullptr)
+			break;
 
-	if (!isDstAsWarpPoint && dstobj != util::OBJ_ROAD)
-		return false;
-
-	qint64 currentIndex = getIndex();
-	Injector& injector = Injector::getInstance(currentIndex);
-
-	Callback callback = [&map, &blockList, &injector, isDstAsWarpPoint, &src](const QPoint& point)->bool
-	{
-		if (point == src)
-			return true;
-
-		if (blockList.contains(point))
-			return false;
-
-		//村內避免踩NPC
-		if (map.floor == 2000)
+		if (src == dst)
 		{
-			if (injector.server->npcUnitPointHash.contains(point))
+			pPaths->push_back(src);
+			return true;
+		}
+
+		map_t map;
+		if (!getMapDataByFloor(floor, &map))
+		{
+			if (!readFromBinary(floor, map.name))
+				break;
+			if (!getMapDataByFloor(floor, &map))
+				break;
+		}
+
+		util::ObjectType dstobj = map.data.value(dst, util::OBJ_UNKNOWN);
+		bool isDstAsWarpPoint = (dstobj == util::OBJ_WARP) || (dstobj == util::OBJ_JUMP) || (dstobj == util::OBJ_UP) || (dstobj == util::OBJ_DOWN);
+
+		if (!isDstAsWarpPoint && dstobj != util::OBJ_ROAD)
+			break;
+
+		qint64 currentIndex = getIndex();
+		Injector& injector = Injector::getInstance(currentIndex);
+
+		AStarCallback canPassCallback = [&map, &blockList, &injector, isDstAsWarpPoint, &src](const QPoint& point)->bool
+		{
+			if (point == src)
+				return true;
+
+			if (blockList.contains(point))
+				return false;
+
+			//村內避免踩NPC
+			if (map.floor == 2000)
 			{
-				mapunit_t unit = injector.server->npcUnitPointHash.value(point);
-				if (unit.type == util::OBJ_NPC && unit.modelid > 0)
+				if (injector.server->npcUnitPointHash.contains(point))
+				{
+					mapunit_t unit = injector.server->npcUnitPointHash.value(point);
+					if (unit.type == util::OBJ_NPC && unit.modelid > 0)
+						return false;
+				}
+
+				//送貨門口傳點容易誤踩
+				if (point == QPoint(102, 80) || point == QPoint(103, 80))
 					return false;
 			}
 
-			//送貨門口傳點容易誤踩
-			if (point == QPoint(102, 80) || point == QPoint(103, 80))
-				return false;
-		}
+			const util::ObjectType obj = map.data.value(point, util::OBJ_UNKNOWN);
 
-		const util::ObjectType obj = map.data.value(point, util::OBJ_UNKNOWN);
+			//If the destination coordinates are a teleportation point, treat it as a non-obstacle
+			if (isDstAsWarpPoint)
+				return (obj == util::OBJ_ROAD) || (obj == util::OBJ_WARP) || (obj == util::OBJ_JUMP) || (obj == util::OBJ_UP) || (obj == util::OBJ_DOWN);
+			else
+				return  (obj == util::OBJ_ROAD);
+		};
 
-		//If the destination coordinates are a teleportation point, treat it as a non-obstacle
-		if (isDstAsWarpPoint)
-			return (obj == util::OBJ_ROAD) || (obj == util::OBJ_WARP) || (obj == util::OBJ_JUMP) || (obj == util::OBJ_UP) || (obj == util::OBJ_DOWN);
-		else
-			return  (obj == util::OBJ_ROAD);
-	};
+		pastar->set_canpass(canPassCallback);
+		pastar->init(map.height, map.width);
 
-	CAStar astar;
-	CAStarParam param(map.height, map.width, true, callback, src, dst);
+		return  pastar->find(src, dst, pPaths);
+	} while (false);
 
-	return  astar.find(param, pPaths);
+	return false;
 }
 
 //快速檢查是否能通行
-bool __fastcall MapAnalyzer::isPassable(qint64 floor, const QPoint& src, const QPoint& dst)
+bool __fastcall MapAnalyzer::isPassable(CAStar* pastar, qint64 floor, const QPoint& src, const QPoint& dst)
 {
 
 	bool bret = false;
 	do
 	{
 		map_t map;
-		getMapDataByFloor(floor, &map);
-		if (!readFromBinary(floor, map.name)) break;
-		if (!getMapDataByFloor(floor, &map)) break;
+		if (!getMapDataByFloor(floor, &map))
+		{
+			if (!readFromBinary(floor, map.name))
+				break;
+			if (!getMapDataByFloor(floor, &map))
+				break;
+		}
 
 		if (src == dst)
 			return true;
 
-		auto can_pass = [&map, &src](const QPoint& p)->bool
+		AStarCallback canPassCallback = [&map, &src](const QPoint& p)->bool
 		{
 			if (src == p)
 				return true;
@@ -1651,16 +1676,15 @@ bool __fastcall MapAnalyzer::isPassable(qint64 floor, const QPoint& src, const Q
 			//return ((obj != util::OBJ_EMPTY) && (obj != util::OBJ_WATER) && (obj != util::OBJ_UNKNOWN) && (obj != util::OBJ_WALL) && (obj != util::OBJ_ROCK) && (obj != util::OBJ_ROCKEX));
 		};
 
-#ifdef USE_BLOCK_ALLOCATOR
-		BlockAllocator allocator;
-#endif
-		CAStar a;
-		const CAStarParam p(map.height, map.width, true, can_pass, src, dst);
-		return a.find(p, nullptr);
-		} while (false);
+		pastar->set_canpass(canPassCallback);
+		pastar->set_corner(true);
+		pastar->init(map.height, map.width);
 
-		return bret;
-	}
+		return pastar->find(src, dst, nullptr);
+	} while (false);
+
+	return bret;
+}
 
 QString __fastcall MapAnalyzer::getGround(qint64 floor, const QString& name, const QPoint& src)
 {
@@ -1707,10 +1731,18 @@ qint64 __fastcall MapAnalyzer::calcBestFollowPointByDstPoint(qint64 floor, const
 {
 
 	QVector<qdistance_t> disV;// <distance, point>
-	map_t map = {};
-	getMapDataByFloor(floor, &map);
+	map_t map;
+	if (!getMapDataByFloor(floor, &map))
+	{
+		if (!readFromBinary(floor, map.name))
+			return -1;
+		if (!getMapDataByFloor(floor, &map))
+			return -1;
+	}
+
 	qint64 d = 0;
 	qint64 invalidcount = 0;
+	CAStar astar;
 	for (const QPoint& it : util::fix_point)
 	{
 		qdistance_t c = {};
@@ -1725,7 +1757,7 @@ qint64 __fastcall MapAnalyzer::calcBestFollowPointByDstPoint(qint64 floor, const
 			return ((n) <= (7)) ? (n) : ((n)-(MAX_DIR));
 		}
 
-		if (isPassable(floor, src, dst + it))//確定是否可走
+		if (isPassable(&astar, floor, src, dst + it))//確定是否可走
 		{
 			//計算src 到 c.p直線距離
 			c.distance = std::sqrt(std::pow((qreal)src.x() - c.pf.x(), 2) + std::pow((qreal)src.y() - c.pf.y(), 2));
@@ -1760,7 +1792,7 @@ qint64 __fastcall MapAnalyzer::calcBestFollowPointByDstPoint(qint64 floor, const
 				break;
 			}
 
-			if (isPassable(floor, src, newP) || src == newP)//確定是否可走
+			if (isPassable(&astar, floor, src, newP) || src == newP)//確定是否可走
 			{
 				//qdistance_t c = {};
 				//要面相npc的方向  (當前人物要面向newP的方向)
@@ -1788,4 +1820,4 @@ qint64 __fastcall MapAnalyzer::calcBestFollowPointByDstPoint(qint64 floor, const
 	//計算方向
 	qint64 n = disV.at(0).dir + 4;
 	return ((n) <= (7)) ? (n) : ((n)-(MAX_DIR));//返回方向
-	}
+}

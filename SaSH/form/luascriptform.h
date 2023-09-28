@@ -28,7 +28,7 @@ class LuaScriptForm : public QWidget, public Indexer
 	Q_OBJECT
 
 public:
-	explicit LuaScriptForm(qint64 index, QWidget* parent = nullptr);
+	explicit LuaScriptForm(qint64 index, QWidget* parent);
 
 	virtual ~LuaScriptForm();
 

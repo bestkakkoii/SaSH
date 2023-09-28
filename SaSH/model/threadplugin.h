@@ -92,7 +92,9 @@ class ThreadPlugin : public QObject, public Indexer
 {
 	Q_OBJECT
 public:
-	explicit ThreadPlugin(qint64 index, QObject* parent) : QObject(parent)
+	ThreadPlugin(qint64 index, QObject* parent)
+		: QObject(parent)
+		, Indexer(index)
 	{
 		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(index);
 		connect(&signalDispatcher, &SignalDispatcher::nodifyAllStop, this, &ThreadPlugin::requestInterruption);

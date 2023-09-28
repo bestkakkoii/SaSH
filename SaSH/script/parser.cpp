@@ -269,12 +269,41 @@ Parser::Parser(qint64 index)
 	makeTable(lua_, "petequip", MAX_PET, MAX_PET_ITEM);
 	makeTable(lua_, "point");
 
+	insertGlobalVar("INDEX", index);
+
 	if (globalNames_.isEmpty())
 	{
-		globalNames_ = QStringList{ "char", "pet", "item", "map", "magic", "skill", "petskill", "petequip", "dialog", "chat", "battle", "point", "team", "card", "unit" };
+		globalNames_ = QStringList{ "char", "pet", "item", "map", "magic", "skill", "petskill", "petequip", "dialog", "chat", "battle", "point", "team", "card", "unit", "INDEX" };
 	}
 
 #pragma region init
+
+	lua_.set_function("rungame", [this](qint64 id)->qint64
+		{
+			Injector& injector = Injector::getInstance(getIndex());
+			InterfaceSender sender(injector.getParentWidget());
+
+			return sender.RunGame(id);
+		});
+
+	lua_.set_function("openwindow", [this](qint64 id)->qint64
+		{
+			Injector& injector = Injector::getInstance(getIndex());
+			InterfaceSender sender(injector.getParentWidget());
+
+			return sender.OpenNewWindow(id);
+		});
+
+	lua_.set_function("setlogin", [this](qint64 id, qint64 server, qint64 subserver, qint64 position, std::string account, std::string password)->qint64
+		{
+			Injector& injector = Injector::getInstance(getIndex());
+			InterfaceSender sender(injector.getParentWidget());
+
+			QString acc = util::toQString(account);
+			QString pwd = util::toQString(password);
+
+			return sender.SetAutoLogin(id, server, subserver, position, acc, pwd);
+		});
 
 	lua_.set_function("msg", [this](sol::object otext, sol::object otitle, sol::object otype, sol::this_state s)->std::string
 		{

@@ -33,6 +33,7 @@ QHash<qint64, QHash<QPoint, QString>> MapWidget::entrances_;
 
 MapWidget::MapWidget(qint64 index, QWidget* parent)
 	: QMainWindow(parent)
+	, Indexer(index)
 {
 	ui.setupUi(this);
 	setAttribute(Qt::WA_DeleteOnClose);
@@ -807,6 +808,31 @@ void MapWidget::on_pushButton_download_clicked()
 	downloadMapTimer_.start(MAX_DOWNLOAD_DELAY);
 }
 
+void MapWidget::on_pushButton_clear_clicked()
+{
+	qint64 currentIndex = getIndex();
+	Injector& injector = Injector::getInstance(currentIndex);
+	if (injector.server.isNull())
+		return;
+
+	qint64 floor = injector.server->getFloor();
+	injector.server->mapAnalyzer->clear(floor);
+
+	const QString dirPath(QString("%1/map/%2").arg(util::applicationDirPath()).arg(injector.currentServerListIndex));
+	QDir dir(dirPath);
+	if (!dir.exists())
+		dir.mkdir(dirPath);
+
+	const QString fileName(QString("%1/%2.dat").arg(dirPath).arg(floor));
+	QFile file(fileName);
+	if (!file.exists())
+		return;
+
+	file.remove();
+
+	injector.server->mapAnalyzer->readFromBinary(floor, injector.server->getFloorName(), true, true);
+}
+
 void MapWidget::on_pushButton_returnBase_clicked()
 {
 	qint64 currentIndex = getIndex();
@@ -983,8 +1009,10 @@ void MapWidget::on_tableWidget_NPCList_cellDoubleClicked(int row, int)
 	QPoint point = injector.server->getPoint();
 	//npc前方一格
 	QPoint newPoint = util::fix_point.at(unit.dir) + unit.p;
+	CAStar astar;
+
 	//檢查是否可走
-	if (injector.server->mapAnalyzer->isPassable(floor, point, newPoint))
+	if (injector.server->mapAnalyzer->isPassable(&astar, floor, point, newPoint))
 	{
 		x = newPoint.x();
 		y = newPoint.y();
@@ -994,7 +1022,7 @@ void MapWidget::on_tableWidget_NPCList_cellDoubleClicked(int row, int)
 		//再往前一格
 		QPoint additionPoint = util::fix_point.at(unit.dir) + newPoint;
 		//檢查是否可走
-		if (injector.server->mapAnalyzer->isPassable(floor, point, additionPoint))
+		if (injector.server->mapAnalyzer->isPassable(&astar, floor, point, additionPoint))
 		{
 			x = additionPoint.x();
 			y = additionPoint.y();
@@ -1006,7 +1034,7 @@ void MapWidget::on_tableWidget_NPCList_cellDoubleClicked(int row, int)
 			for (qint64 i = 0; i < 8; ++i)
 			{
 				newPoint = util::fix_point.at(i) + unit.p;
-				if (injector.server->mapAnalyzer->isPassable(floor, point, newPoint))
+				if (injector.server->mapAnalyzer->isPassable(&astar, floor, point, newPoint))
 				{
 					x = newPoint.x();
 					y = newPoint.y();

@@ -438,6 +438,7 @@ xcopy /y /d "$(SolutionDir)$(ProjectName)\translations\*.qm" "$(SolutionDir)$(Co
     <ClInclude Include="battle\battle.h" />
     <QtMoc Include="form\battlesettingfrom.h" />
     <ClInclude Include="injector.h" />
+    <QtMoc Include="interfacer.h" />
     <ClInclude Include="map\astar.h" />
     <ClInclude Include="map\mapanalyzer.h" />
     <QtMoc Include="model\mapglwidget.h" />

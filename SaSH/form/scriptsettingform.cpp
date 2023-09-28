@@ -33,9 +33,9 @@ extern util::SafeHash<QString, util::SafeHash<qint64, break_marker_t>> step_mark
 
 ScriptSettingForm::ScriptSettingForm(qint64 index, QWidget* parent)
 	: QMainWindow(parent)
+	, Indexer(index)
 {
 	ui.setupUi(this);
-	setIndex(index);
 
 	setAttribute(Qt::WA_DeleteOnClose);
 	setAttribute(Qt::WA_StyledBackground);
@@ -1361,9 +1361,9 @@ void ScriptSettingForm::on_treeWidget_functionList_itemSelectionChanged()
 		ui.textBrowser->setUpdatesEnabled(true);
 
 		return;
-		} while (false);
+	} while (false);
 
-	}
+}
 
 void ScriptSettingForm::on_treeWidget_scriptList_itemClicked(QTreeWidgetItem* item, int column)
 {
@@ -1774,10 +1774,10 @@ void ScriptSettingForm::onActionTriggered()
 				file.flush();
 				file.close();
 				QDesktopServices::openUrl(QUrl::fromLocalFile(directoryName));
+			}
 		}
-	}
 		emit signalDispatcher.reloadScriptList();
-}
+	}
 	else if (name == "actionDirectory")
 	{
 		QDesktopServices::openUrl(QUrl::fromLocalFile(util::applicationDirPath() + "/script"));
@@ -1821,17 +1821,17 @@ void ScriptSettingForm::onActionTriggered()
 					out << "" << Qt::endl;
 					file.flush();
 					file.close();
-			}
+				}
 
 				loadFile(strpath);
 
 				emit signalDispatcher.reloadScriptList();
 				break;
-		}
+			}
 			++num;
-	}
+		}
 
-}
+	}
 	else if (name == "actionSaveEncode")
 	{
 		onEncryptSave();

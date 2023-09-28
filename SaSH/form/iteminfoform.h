@@ -26,7 +26,7 @@ class ItemInfoForm : public QWidget, public Indexer
 	Q_OBJECT
 
 public:
-	explicit ItemInfoForm(qint64 index, QWidget* parent = nullptr);
+	explicit ItemInfoForm(qint64 index, QWidget* parent);
 
 	virtual ~ItemInfoForm();
 

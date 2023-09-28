@@ -35,7 +35,7 @@ class InfoForm : public QWidget, public Indexer
 	Q_OBJECT
 
 public:
-	InfoForm(qint64 index, qint64 defaultPage = -1, QWidget* parent = nullptr);
+	InfoForm(qint64 index, qint64 defaultPage, QWidget* parent);
 	virtual ~InfoForm();
 
 signals:

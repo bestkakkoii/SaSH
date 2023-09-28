@@ -182,49 +182,6 @@ void MainForm::createMenu(QMenuBar* pMenuBar)
 	create(fileTable, pMenuFile);
 }
 
-enum InterfaceMessage
-{
-	kInterfaceMessage = WM_USER + 2048,
-	kRunScript,			// kInterfaceMessage + 1
-	kStopScript,		// kInterfaceMessage + 2
-	kRunFile,			// kInterfaceMessage + 3
-	kStopFile,			// kInterfaceMessage + 4
-	kRunGame,			// kInterfaceMessage + 5
-	kCloseGame,			// kInterfaceMessage + 6
-	kGetGameState,		// kInterfaceMessage + 7
-	kScriptState,		// kInterfaceMessage + 8
-	kMultiFucntion,		// kInterfaceMessage + 9
-	kSortWindow,		// kInterfaceMessage + 10
-	kThumbnail,			// kInterfaceMessage + 11
-	kOpenNewWindow,		// kInterfaceMessage + 12
-	kGetGamePid,		// kInterfaceMessage + 13
-	kGetGameHwnd, 	    // kInterfaceMessage + 14
-	kGetCurrentId, 	    // kInterfaceMessage + 15
-	kSetAutoLogin, 	    // kInterfaceMessage + 16
-	kLoadSettings, 	    // kInterfaceMessage + 17
-};
-
-enum InterfaceFunctionType
-{
-	WindowNone = 0,		//無
-	WindowInfo,			//信息窗口
-	WindowMap,			//地圖窗口
-	WindowScript,		//腳本窗口
-	SelectServerList,   //選服列表
-	SelectProcessList,  //選進程列表
-	ToolTrayShow,		//系統托盤顯示
-	HideGame,			//隱藏遊戲
-};
-
-typedef struct tagLoginInfo
-{
-	int server = 0;
-	int subserver = 0;
-	int position = 0;
-	char* username = nullptr;
-	char* password = nullptr;
-}LoginInfo;
-
 inline bool isValidChar(const char* charPtr)
 {
 	try {
@@ -496,7 +453,7 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 		*result = value;
 		return true;
 	}
-	case InterfaceMessage::kMultiFucntion:
+	case InterfaceMessage::kMultiFunction:
 	{
 		qint64 id = msg->wParam;
 		qint64 type = HIWORD(msg->lParam);
@@ -509,7 +466,7 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 		{
 			if (pInfoForm_ == nullptr)
 			{
-				pInfoForm_ = new InfoForm(id, arg);
+				pInfoForm_ = new InfoForm(id, arg, nullptr);
 				if (pInfoForm_)
 				{
 					connect(pInfoForm_, &InfoForm::destroyed, [this]() { pInfoForm_ = nullptr; });
@@ -553,7 +510,7 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 		{
 			if (pScriptSettingForm_ == nullptr)
 			{
-				pScriptSettingForm_ = new ScriptSettingForm(id);
+				pScriptSettingForm_ = new ScriptSettingForm(id, nullptr);
 				if (pScriptSettingForm_)
 				{
 					connect(pScriptSettingForm_, &InfoForm::destroyed, [this]() { pScriptSettingForm_ = nullptr; });
@@ -912,14 +869,14 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 			QString username = util::toQString(pLoginInfo->username);
 			QString password = util::toQString(pLoginInfo->password);
 
-			if (server < 0 || server > 15)
+			if (server < 0 || server > 25)
 			{
 				*result = 3;
 				updateStatusText("server out of range");
 				break;
 			}
 
-			if (subserver < 0 || subserver > 15)
+			if (subserver < 0 || subserver > 25)
 			{
 				*result = 4;
 				updateStatusText("subser out of range");
@@ -1042,7 +999,7 @@ MainForm* MainForm::createNewWindow(qint64 idToAllocate, qint64* pId)
 		if (g_mainFormHash.contains(uniqueId))
 			break;
 
-		MainForm* pMainForm = new MainForm(uniqueId);
+		MainForm* pMainForm = new MainForm(uniqueId, nullptr);
 		if (pMainForm == nullptr)
 			break;
 
@@ -1060,6 +1017,7 @@ MainForm* MainForm::createNewWindow(qint64 idToAllocate, qint64* pId)
 
 MainForm::MainForm(qint64 index, QWidget* parent)
 	: QMainWindow(parent)
+	, Indexer(index)
 {
 	ui.setupUi(this);
 	setIndex(index);
@@ -1134,26 +1092,26 @@ MainForm::MainForm(qint64 index, QWidget* parent)
 
 	resetControlTextLanguage();
 
-	pGeneralForm_ = new GeneralForm(index);
+	pGeneralForm_ = new GeneralForm(index, nullptr);
 	if (pGeneralForm_)
 	{
 		ui.tabWidget_main->addTab(pGeneralForm_, tr("general"));
 	}
 
 	{
-		pMapForm_ = new MapForm(index);
+		pMapForm_ = new MapForm(index, nullptr);
 		if (pMapForm_)
 		{
 			ui.tabWidget_main->addTab(pMapForm_, tr("map"));
 		}
 
-		pOtherForm_ = new OtherForm(index);
+		pOtherForm_ = new OtherForm(index, nullptr);
 		if (pOtherForm_)
 		{
 			ui.tabWidget_main->addTab(pOtherForm_, tr("other"));
 		}
 
-		pScriptForm_ = new ScriptForm(index);
+		pScriptForm_ = new ScriptForm(index, nullptr);
 		if (pScriptForm_)
 		{
 			ui.tabWidget_main->addTab(pScriptForm_, tr("script"));
@@ -1347,7 +1305,7 @@ void MainForm::onMenuActionTriggered()
 	{
 		if (pScriptSettingForm_ == nullptr)
 		{
-			pScriptSettingForm_ = new ScriptSettingForm(currentIndex);
+			pScriptSettingForm_ = new ScriptSettingForm(currentIndex, nullptr);
 			if (pScriptSettingForm_)
 			{
 				connect(pScriptSettingForm_, &InfoForm::destroyed, [this]() { pScriptSettingForm_ = nullptr; });

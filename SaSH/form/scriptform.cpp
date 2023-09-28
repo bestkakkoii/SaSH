@@ -29,9 +29,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 ScriptForm::ScriptForm(qint64 index, QWidget* parent)
 	: QWidget(parent)
+	, Indexer(index)
 {
 	ui.setupUi(this);
-	setIndex(index);
 	setAttribute(Qt::WA_StyledBackground);
 
 	auto setTableWidget = [](QTableWidget* tableWidget, int max_row)->void

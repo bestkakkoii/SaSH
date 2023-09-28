@@ -221,15 +221,16 @@ qint64 CLuaMap::findPath(qint64 x, qint64 y, qint64 steplen, qint64 timeout, sol
 	if (src == dst)
 		return true;//已經抵達
 
-	map_t _map;
 	QSharedPointer<MapAnalyzer> mapAnalyzer = injector.server->mapAnalyzer;
-	if (!mapAnalyzer.isNull() && mapAnalyzer->readFromBinary(floor, injector.server->getFloorName()))
+	if (!mapAnalyzer.isNull())
 	{
-		if (mapAnalyzer.isNull() || !mapAnalyzer->getMapDataByFloor(floor, &_map))
+		if (mapAnalyzer.isNull())
 			return FALSE;
 	}
 	else
 		return FALSE;
+
+	CAStar astar;
 
 	if (!noAnnounce && !injector.server.isNull())
 		injector.server->announce(QObject::tr("<findpath>start searching the path"));//"<尋路>開始搜尋路徑"
@@ -237,7 +238,7 @@ qint64 CLuaMap::findPath(qint64 x, qint64 y, qint64 steplen, qint64 timeout, sol
 	std::vector<QPoint> path;
 	QElapsedTimer timer; timer.start();
 	QSet<QPoint> blockList;
-	if (mapAnalyzer.isNull() || !mapAnalyzer->calcNewRoute(_map, src, dst, blockList, &path))
+	if (mapAnalyzer.isNull() || !mapAnalyzer->calcNewRoute(&astar, floor, src, dst, blockList, &path))
 	{
 		if (!noAnnounce && !injector.server.isNull())
 			injector.server->announce(QObject::tr("<findpath>unable to findpath"));//"<尋路>找不到路徑"
@@ -336,7 +337,7 @@ qint64 CLuaMap::findPath(qint64 x, qint64 y, qint64 steplen, qint64 timeout, sol
 				return TRUE;//已抵達true
 			}
 
-			if (mapAnalyzer.isNull() || !mapAnalyzer->calcNewRoute(_map, src, dst, blockList, &path))
+			if (mapAnalyzer.isNull() || !mapAnalyzer->calcNewRoute(&astar, floor, src, dst, blockList, &path))
 				break;
 
 			pathsize = path.size();

@@ -22,10 +22,13 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include <injector.h>
 
 SelectTargetForm::SelectTargetForm(qint64 index, qint64 type, QString* dst, QWidget* parent)
-	: QDialog(parent), type_(type), dst_(dst)
+	: QDialog(parent)
+	, Indexer(index)
+	, type_(type)
+	, dst_(dst)
 {
 	ui.setupUi(this);
-	setIndex(index);
+
 	setAttribute(Qt::WA_DeleteOnClose);
 	setWindowFlags(Qt::Tool | Qt::Dialog | Qt::WindowCloseButtonHint);
 	setModal(true);
@@ -61,6 +64,9 @@ SelectTargetForm::SelectTargetForm(qint64 index, qint64 type, QString* dst, QWid
 		{ util::kBattleItemHealTargetValue, tr("item healing target") },
 		{ util::kBattleMagicReviveTargetValue, tr("magic revival target") },
 		{ util::kBattleItemReviveTargetValue, tr("item revival target") },
+
+		{ util::kBattlePetHealTargetValue, tr("pet healing target") },
+		{ util::kBattlePetPurgTargetValue, tr("pet purging target") },
 	};
 
 	setWindowTitle(title_hash.value(type_, tr("unknown")));

@@ -884,6 +884,10 @@ bool Interpreter::checkBattleThenWait()
 
 	qint64 currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
+
+	if (!injector.server.isNull())
+		return false;
+
 	bool bret = false;
 	if (injector.server->getBattleFlag())
 	{
@@ -901,13 +905,14 @@ bool Interpreter::checkBattleThenWait()
 
 			if (!injector.server->getBattleFlag())
 				break;
+
 			if (timer.hasExpired(60000))
 				break;
+
 			QThread::msleep(100);
-			QThread::yieldCurrentThread();
 		}
 
-		QThread::msleep(500UL);
+		QThread::msleep(1000UL);
 	}
 	return bret;
 }
@@ -938,6 +943,9 @@ bool Interpreter::checkOnlineThenWait()
 			checkPause();
 
 			if (injector.server->getOnlineFlag())
+				break;
+
+			if (timer.hasExpired(60000))
 				break;
 
 			QThread::msleep(100);
@@ -976,11 +984,10 @@ bool Interpreter::findPath(qint64 currentIndex, qint64 currentLine, QPoint dst, 
 	if (src == dst)
 		return true;//已經抵達
 
-	map_t _map;
 	QSharedPointer<MapAnalyzer> mapAnalyzer = injector.server->mapAnalyzer;
-	if (!mapAnalyzer.isNull() && mapAnalyzer->readFromBinary(floor, injector.server->getFloorName()))
+	if (!mapAnalyzer.isNull())
 	{
-		if (mapAnalyzer.isNull() || !mapAnalyzer->getMapDataByFloor(floor, &_map))
+		if (mapAnalyzer.isNull())
 			return false;
 	}
 	else
@@ -993,10 +1000,11 @@ bool Interpreter::findPath(qint64 currentIndex, qint64 currentLine, QPoint dst, 
 		logExport(currentIndex, currentLine, output, 4);
 	}
 
+	CAStar astar;
 	std::vector<QPoint> path;
 	QElapsedTimer timer; timer.start();
 	QSet<QPoint> blockList;
-	if (mapAnalyzer.isNull() || !mapAnalyzer->calcNewRoute(_map, src, dst, blockList, &path))
+	if (mapAnalyzer.isNull() || !mapAnalyzer->calcNewRoute(&astar, floor, src, dst, blockList, &path))
 	{
 		output = QObject::tr("[error] <findpath>unable to findpath from %1, %2 to %3, %4").arg(src.x()).arg(src.y()).arg(dst.x()).arg(dst.y());
 		injector.server->announce(output);
@@ -1031,10 +1039,7 @@ bool Interpreter::findPath(qint64 currentIndex, qint64 currentLine, QPoint dst, 
 	{
 		checkOnlineThenWait();
 
-		if (injector.server.isNull())
-			break;
-
-		if (isInterruptionRequested())
+		if (injector.server.isNull() || isInterruptionRequested())
 			break;
 
 		src = getPos();
@@ -1069,37 +1074,43 @@ bool Interpreter::findPath(qint64 currentIndex, qint64 currentLine, QPoint dst, 
 		if (!checkBattleThenWait())
 		{
 			src = getPos();
-			if (src == dst)
+			if (!src.isNull() && src == dst)
 			{
 				cost = timer.elapsed();
 				if (cost > 5000)
 				{
 					QThread::msleep(500);
 
-					if (injector.server.isNull())
+					if (injector.server.isNull() || isInterruptionRequested())
 						break;
 
-					if (getPos() != dst)
+					src = getPos();
+					if (src.isNull() || src != dst)
 						continue;
 
 					injector.server->EO();
 
-					if (getPos() != dst)
+					src = getPos();
+					if (src.isNull() || src != dst)
 						continue;
 
 					QThread::msleep(500);
 
-					if (injector.server.isNull())
+					if (injector.server.isNull() || isInterruptionRequested())
 						break;
 
-					if (getPos() != dst)
+					injector.server->EO();
+
+					src = getPos();
+					if (src.isNull() || src != dst)
 						continue;
 				}
 
 				injector.server->move(dst);
 
-				QThread::msleep(100);
-				if (getPos() != dst)
+				QThread::msleep(200);
+				src = getPos();
+				if (src.isNull() || src != dst)
 					continue;
 
 				if (!noAnnounce && !injector.server.isNull())
@@ -1111,16 +1122,20 @@ bool Interpreter::findPath(qint64 currentIndex, qint64 currentLine, QPoint dst, 
 				return true;//已抵達true
 			}
 
-			if (mapAnalyzer.isNull() || !mapAnalyzer->calcNewRoute(_map, src, dst, blockList, &path))
+			if (mapAnalyzer.isNull() || !mapAnalyzer->calcNewRoute(&astar, floor, src, dst, blockList, &path))
 				break;
 
 			pathsize = path.size();
+		}
+		else
+		{
+			src = getPos();
 		}
 
 		if (blockDetectTimer.hasExpired(5000))
 		{
 			blockDetectTimer.restart();
-			if (injector.server.isNull())
+			if (injector.server.isNull() || isInterruptionRequested())
 				break;
 
 			output = QObject::tr("[warn] <findpath>detedted player ware blocked");
@@ -1129,7 +1144,7 @@ bool Interpreter::findPath(qint64 currentIndex, qint64 currentLine, QPoint dst, 
 			injector.server->EO();
 			QThread::msleep(500);
 
-			if (injector.server.isNull())
+			if (injector.server.isNull() || isInterruptionRequested())
 				break;
 
 			//將正前方的坐標加入黑名單
@@ -1146,10 +1161,7 @@ bool Interpreter::findPath(qint64 currentIndex, qint64 currentLine, QPoint dst, 
 			continue;
 		}
 
-		if (injector.server.isNull())
-			break;
-
-		if (isInterruptionRequested())
+		if (injector.server.isNull() || isInterruptionRequested())
 			break;
 
 		if (timer.hasExpired(timeout))

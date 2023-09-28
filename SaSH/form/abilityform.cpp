@@ -23,6 +23,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 AbilityForm::AbilityForm(qint64 index, QWidget* parent)
 	: QDialog(parent)
+	, Indexer(index)
 {
 	ui.setupUi(this);
 	setWindowFlags(Qt::FramelessWindowHint | Qt::Dialog | Qt::Tool);

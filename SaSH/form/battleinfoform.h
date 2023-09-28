@@ -27,7 +27,7 @@ class BattleInfoForm : public QWidget, public Indexer
 	Q_OBJECT
 
 public:
-	explicit BattleInfoForm(qint64 index, QWidget* parent = nullptr);
+	explicit BattleInfoForm(qint64 index, QWidget* parent);
 
 	virtual ~BattleInfoForm();
 

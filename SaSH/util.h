@@ -319,11 +319,16 @@ namespace util
 		kBattlePetNormalActionEnemyValue,
 		kBattlePetNormalActionLevelValue,
 
+		kBattlePetHealActionTypeValue,
+		kBattlePetPurgActionTypeValue,
+
 		//afk->heal button
 		kBattleMagicHealTargetValue,
 		kBattleItemHealTargetValue,
 		kBattleMagicReviveTargetValue,
 		kBattleItemReviveTargetValue,
+		kBattlePetHealTargetValue,
+		kBattlePetPurgTargetValue,
 
 		//afk->heal combobox
 		kBattleMagicHealMagicValue,
@@ -352,6 +357,9 @@ namespace util
 
 		kNormalItemHealMpValue,
 
+		kBattlePetHealCharValue,
+		kBattlePetHealPetValue,
+		kBattlePetHealAllieValue,
 		//afk->walk
 		kAutoWalkDelayValue,
 		kAutoWalkDistanceValue,
@@ -457,6 +465,8 @@ namespace util
 		kBattleMagicReviveEnable,
 		kBattleItemReviveEnable,
 		kBattleSkillMpEnable,
+		kBattlePetHealEnable,
+		kBattlePetPurgEnable,
 
 		kNormalMagicHealEnable,
 		kNormalItemHealEnable,
@@ -2254,7 +2264,7 @@ namespace util
 #else
 			return false;
 #endif
-		}
+	}
 
 		if (pcontent != nullptr)
 		{
@@ -2263,7 +2273,7 @@ namespace util
 		}
 
 		return false;
-	}
+}
 
 	void sortWindows(const QVector<HWND>& windowList, bool alignLeft);
 

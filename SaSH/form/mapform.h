@@ -28,7 +28,7 @@ class MapForm : public QWidget, public Indexer
 	Q_OBJECT
 
 public:
-	explicit MapForm(qint64 index, QWidget* parent = nullptr);
+	explicit MapForm(qint64 index, QWidget* parent);
 
 	virtual ~MapForm();
 

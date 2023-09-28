@@ -1924,70 +1924,70 @@ bool Server::findUnit(const QString& nameSrc, qint64 type, mapunit_t* punit, con
 	else
 	{
 		auto check = [&punit, &units, type](QString name, QString freeName)
-		{
-			name = name.simplified();
-			freeName = freeName.simplified();
-
-			for (const mapunit_t& it : units)
 			{
-				if (it.modelid == 0)
-					continue;
+				name = name.simplified();
+				freeName = freeName.simplified();
 
-				if (it.objType != type)
-					continue;
-
-				QString newUnitName = it.name.simplified();
-				QString newUnitFreeName = it.freeName.simplified();
-
-				if (freeName.isEmpty())
+				for (const mapunit_t& it : units)
 				{
-					if (newUnitName == name)
-					{
-						*punit = it;
-						return true;
-					}
-					else if (name.startsWith("?"))
-					{
-						QString newName = name.mid(1).simplified();
-						if (newUnitName.contains(newName))
-						{
-							*punit = it;
-							return true;
-						}
-					}
-				}
-				else if (name.isEmpty())
-				{
-					if (newUnitFreeName.contains(freeName))
-					{
-						*punit = it;
-						return true;
-					}
-				}
-				else
-				{
-					if (newUnitFreeName.isEmpty())
+					if (it.modelid == 0)
 						continue;
 
-					if ((newUnitName == name) && (newUnitFreeName.contains(freeName)))
+					if (it.objType != type)
+						continue;
+
+					QString newUnitName = it.name.simplified();
+					QString newUnitFreeName = it.freeName.simplified();
+
+					if (freeName.isEmpty())
 					{
-						*punit = it;
-						return true;
+						if (newUnitName == name)
+						{
+							*punit = it;
+							return true;
+						}
+						else if (name.startsWith("?"))
+						{
+							QString newName = name.mid(1).simplified();
+							if (newUnitName.contains(newName))
+							{
+								*punit = it;
+								return true;
+							}
+						}
 					}
-					else if (name.startsWith("?"))
+					else if (name.isEmpty())
 					{
-						QString newName = name.mid(1).simplified();
-						if (newUnitName.contains(newName) && (newUnitFreeName.contains(freeName)))
+						if (newUnitFreeName.contains(freeName))
 						{
 							*punit = it;
 							return true;
 						}
 					}
-				}
-			}
+					else
+					{
+						if (newUnitFreeName.isEmpty())
+							continue;
 
-			return false;
-		};
+						if ((newUnitName == name) && (newUnitFreeName.contains(freeName)))
+						{
+							*punit = it;
+							return true;
+						}
+						else if (name.startsWith("?"))
+						{
+							QString newName = name.mid(1).simplified();
+							if (newUnitName.contains(newName) && (newUnitFreeName.contains(freeName)))
+							{
+								*punit = it;
+								return true;
+							}
+						}
+					}
+				}
+
+				return false;
+			};
 
 		for (const auto& tmpName : nameSrcList)
 		{
@@ -2869,54 +2869,54 @@ bool Server::login(qint64 s)
 
 
 	auto input = [this, &injector, hProcess, hModule, &account, &password]()->void
-	{
-		injector.mouseMove(0, 0);
-
-		if (account.isEmpty())
 		{
-			QString acct = mem::readString(hProcess, hModule + kOffsetAccount, 32);
-			if (!acct.isEmpty())
+			injector.mouseMove(0, 0);
+
+			if (account.isEmpty())
 			{
-				account = acct;
-				injector.setStringHash(util::kGameAccountString, account);
+				QString acct = mem::readString(hProcess, hModule + kOffsetAccount, 32);
+				if (!acct.isEmpty())
+				{
+					account = acct;
+					injector.setStringHash(util::kGameAccountString, account);
+				}
+				else
+					return;
 			}
 			else
-				return;
-		}
-		else
-			mem::writeString(hProcess, hModule + kOffsetAccount, account);
+				mem::writeString(hProcess, hModule + kOffsetAccount, account);
 
-		if (password.isEmpty())
-		{
-			QString pwd = mem::readString(hProcess, hModule + kOffsetPassword, 32);
-			if (!pwd.isEmpty())
+			if (password.isEmpty())
 			{
-				password = pwd;
-				injector.setStringHash(util::kGamePasswordString, password);
+				QString pwd = mem::readString(hProcess, hModule + kOffsetPassword, 32);
+				if (!pwd.isEmpty())
+				{
+					password = pwd;
+					injector.setStringHash(util::kGamePasswordString, password);
+				}
+				else
+					return;
 			}
 			else
-				return;
-		}
-		else
-			mem::writeString(hProcess, hModule + kOffsetPassword, password);
+				mem::writeString(hProcess, hModule + kOffsetPassword, password);
 
 #ifndef USE_MOUSE
-		std::string saccount = util::fromUnicode(account);
-		std::string spassword = util::fromUnicode(password);
+			std::string saccount = util::fromUnicode(account);
+			std::string spassword = util::fromUnicode(password);
 
-		//sa_8001.exe+2086A - 09 09                 - or [ecx],ecx
-		char userAccount[32] = {};
-		char userPassword[32] = {};
-		_snprintf_s(userAccount, sizeof(userAccount), _TRUNCATE, "%s", saccount.c_str());
-		sacrypt::ecb_crypt("f;encor1c", userAccount, sizeof(userAccount), sacrypt::DES_ENCRYPT);
-		mem::write(hProcess, hModule + kOffsetAccountECB, userAccount, sizeof(userAccount));
-		qDebug() << "before encode" << account << "after encode" << QString(userAccount);
+			//sa_8001.exe+2086A - 09 09                 - or [ecx],ecx
+			char userAccount[32] = {};
+			char userPassword[32] = {};
+			_snprintf_s(userAccount, sizeof(userAccount), _TRUNCATE, "%s", saccount.c_str());
+			sacrypt::ecb_crypt("f;encor1c", userAccount, sizeof(userAccount), sacrypt::DES_ENCRYPT);
+			mem::write(hProcess, hModule + kOffsetAccountECB, userAccount, sizeof(userAccount));
+			qDebug() << "before encode" << account << "after encode" << QString(userAccount);
 
-		_snprintf_s(userPassword, sizeof(userPassword), _TRUNCATE, "%s", spassword.c_str());
-		sacrypt::ecb_crypt("f;encor1c", userPassword, sizeof(userPassword), sacrypt::DES_ENCRYPT);
-		mem::write(hProcess, hModule + kOffsetPasswordECB, userPassword, sizeof(userPassword));
-		qDebug() << "before encode" << password << "after encode" << QString(userPassword);
-	};
+			_snprintf_s(userPassword, sizeof(userPassword), _TRUNCATE, "%s", spassword.c_str());
+			sacrypt::ecb_crypt("f;encor1c", userPassword, sizeof(userPassword), sacrypt::DES_ENCRYPT);
+			mem::write(hProcess, hModule + kOffsetPasswordECB, userPassword, sizeof(userPassword));
+			qDebug() << "before encode" << password << "after encode" << QString(userPassword);
+		};
 
 	switch (status)
 	{
@@ -3017,20 +3017,20 @@ bool Server::login(qint64 s)
 		mem::write(hProcess, hModule + 0x206F1, const_cast<char*>("\x0F\x85\x1A\x02\x00\x00"), 6);//還原OK點擊事件
 
 #else
-		if (!ok)
-		{
-			QList<int> list = config.readArray<int>("System", "Login", "OK");
-			if (list.size() == 2)
-				injector.leftDoubleClick(list.at(0), list.at(1));
-			else
+			if (!ok)
 			{
-				injector.leftDoubleClick(380, 310);
-				config.writeArray<int>("System", "Login", "OK", { 380, 310 });
+				QList<int> list = config.readArray<int>("System", "Login", "OK");
+				if (list.size() == 2)
+					injector.leftDoubleClick(list.at(0), list.at(1));
+				else
+				{
+					injector.leftDoubleClick(380, 310);
+					config.writeArray<int>("System", "Login", "OK", { 380, 310 });
+				}
 			}
-		}
 #endif
 
-		break;
+			break;
 	}
 	case util::kStatusSelectServer:
 	{
@@ -5259,29 +5259,29 @@ void Server::asyncBattleAction()
 	Injector& injector = Injector::getInstance(currentIndex);
 
 	auto checkAllFlags = [this, &injector]()->bool
-	{
-		if (ayncBattleCommandFlag.load(std::memory_order_acquire))
 		{
-			return false;
-		}
+			if (ayncBattleCommandFlag.load(std::memory_order_acquire))
+			{
+				return false;
+			}
 
-		if (!getOnlineFlag())
-		{
-			return false;
-		}
+			if (!getOnlineFlag())
+			{
+				return false;
+			}
 
-		if (!getBattleFlag())
-		{
-			return false;
-		}
+			if (!getBattleFlag())
+			{
+				return false;
+			}
 
-		if (!injector.getEnableHash(util::kAutoBattleEnable) && !injector.getEnableHash(util::kFastBattleEnable))
-		{
-			return false;
-		}
+			if (!injector.getEnableHash(util::kAutoBattleEnable) && !injector.getEnableHash(util::kFastBattleEnable))
+			{
+				return false;
+			}
 
-		return true;
-	};
+			return true;
+		};
 
 	if (!checkAllFlags())
 		return;
@@ -5297,49 +5297,49 @@ void Server::asyncBattleAction()
 	}
 
 	auto delay = [&checkAllFlags, &injector]()
-	{
-		//戰鬥延時
-		qint64 delay = injector.getValueHash(util::kBattleActionDelayValue);
-		if (delay <= 0)
-			return;
-
-		if (delay > 1000)
 		{
-			qint64 maxDelaySize = delay / 1000;
-			for (qint64 i = 0; i < maxDelaySize; ++i)
-			{
-				QThread::msleep(1000);
-				if (!checkAllFlags())
-					return;
-			}
+			//戰鬥延時
+			qint64 delay = injector.getValueHash(util::kBattleActionDelayValue);
+			if (delay <= 0)
+				return;
 
-			if (delay % 1000 > 0)
-				QThread::msleep(delay % 1000);
-		}
-		else
-			QThread::msleep(delay);
-	};
+			if (delay > 1000)
+			{
+				qint64 maxDelaySize = delay / 1000;
+				for (qint64 i = 0; i < maxDelaySize; ++i)
+				{
+					QThread::msleep(1000);
+					if (!checkAllFlags())
+						return;
+				}
+
+				if (delay % 1000 > 0)
+					QThread::msleep(delay % 1000);
+			}
+			else
+				QThread::msleep(delay);
+		};
 
 	auto setCurrentRoundEnd = [this, &injector, normalChecked]()
-	{
-		//通知结束这一回合
-		if (normalChecked)
 		{
-			//if (Checked)
-			//mem::write<short>(injector.getProcess(), injector.getProcessModule() + 0xE21E8, 1);
-			qint64 G = getGameStatus();
-			if (G == 4)
+			//通知结束这一回合
+			if (normalChecked)
 			{
-				setGameStatus(5);
-				isBattleDialogReady.store(false, std::memory_order_release);
+				//if (Checked)
+				//mem::write<short>(injector.getProcess(), injector.getProcessModule() + 0xE21E8, 1);
+				qint64 G = getGameStatus();
+				if (G == 4)
+				{
+					setGameStatus(5);
+					isBattleDialogReady.store(false, std::memory_order_release);
+				}
 			}
-		}
 
-		//這里不發的話一般戰鬥、和快戰都不會再收到後續的封包 (應該?)
-		if (injector.getEnableHash(util::kBattleAutoEOEnable))
-			lssproto_EO_send(0);
-		//lssproto_Echo_send(const_cast<char*>("hoge"));
-	};
+			//這里不發的話一般戰鬥、和快戰都不會再收到後續的封包 (應該?)
+			if (injector.getEnableHash(util::kBattleAutoEOEnable))
+				lssproto_EO_send(0);
+			//lssproto_Echo_send(const_cast<char*>("hoge"));
+		};
 
 	battledata_t bt = getBattleData();
 	//人物和宠物分开发 TODO 修正多个BA人物多次发出战斗指令的问题
@@ -5581,76 +5581,76 @@ void Server::handleCharBattleLogics(const battledata_t& bt)
 	qint64 target = -1;
 
 	auto checkAllieHp = [this, &bt](qint64 cmpvalue, qint64* target, bool useequal)->bool
-	{
-		if (!target)
+		{
+			if (!target)
+				return false;
+
+			qint64 min = 0;
+			qint64 max = (MAX_ENEMY / 2) - 1;
+			if (battleCharCurrentPos >= (MAX_ENEMY / 2))
+			{
+				min = MAX_ENEMY / 2;
+				max = MAX_ENEMY - 1;
+			}
+
+			QVector<battleobject_t> battleObjects = bt.objects;
+			for (const battleobject_t& obj : battleObjects)
+			{
+				if (obj.pos < min || obj.pos > max)
+					continue;
+
+				if (obj.hp == 0)
+					continue;
+
+				if (obj.maxHp == 0)
+					continue;
+
+				if (checkAND(obj.status, BC_FLG_HIDE) || checkAND(obj.status, BC_FLG_DEAD))
+					continue;
+
+				if (!useequal && (obj.hpPercent < cmpvalue))
+				{
+					*target = obj.pos;
+					return true;
+				}
+				else if (useequal && (obj.hpPercent <= cmpvalue))
+				{
+					*target = obj.pos;
+					return true;
+				}
+			}
+
 			return false;
-
-		qint64 min = 0;
-		qint64 max = (MAX_ENEMY / 2) - 1;
-		if (battleCharCurrentPos >= (MAX_ENEMY / 2))
-		{
-			min = MAX_ENEMY / 2;
-			max = MAX_ENEMY - 1;
-		}
-
-		QVector<battleobject_t> battleObjects = bt.objects;
-		for (const battleobject_t& obj : battleObjects)
-		{
-			if (obj.pos < min || obj.pos > max)
-				continue;
-
-			if (obj.hp == 0)
-				continue;
-
-			if (obj.maxHp == 0)
-				continue;
-
-			if (checkAND(obj.status, BC_FLG_HIDE) || checkAND(obj.status, BC_FLG_DEAD))
-				continue;
-
-			if (!useequal && (obj.hpPercent < cmpvalue))
-			{
-				*target = obj.pos;
-				return true;
-			}
-			else if (useequal && (obj.hpPercent <= cmpvalue))
-			{
-				*target = obj.pos;
-				return true;
-			}
-		}
-
-		return false;
-	};
+		};
 
 	auto checkDeadAllie = [this, &bt](qint64* target)->bool
-	{
-		if (!target)
-			return false;
-
-		qint64 min = 0;
-		qint64 max = (MAX_ENEMY / 2) - 1;
-		if (battleCharCurrentPos >= (MAX_ENEMY / 2))
 		{
-			min = MAX_ENEMY / 2;
-			max = MAX_ENEMY - 1;
-		}
+			if (!target)
+				return false;
 
-		QVector<battleobject_t> battleObjects = bt.objects;
-		for (const battleobject_t& obj : battleObjects)
-		{
-			if (obj.pos < min || obj.pos > max)
-				continue;
-
-			if ((obj.maxHp > 0) && ((obj.hp == 0) || checkAND(obj.status, BC_FLG_DEAD)))
+			qint64 min = 0;
+			qint64 max = (MAX_ENEMY / 2) - 1;
+			if (battleCharCurrentPos >= (MAX_ENEMY / 2))
 			{
-				*target = obj.pos;
-				return true;
+				min = MAX_ENEMY / 2;
+				max = MAX_ENEMY - 1;
 			}
-		}
 
-		return false;
-	};
+			QVector<battleobject_t> battleObjects = bt.objects;
+			for (const battleobject_t& obj : battleObjects)
+			{
+				if (obj.pos < min || obj.pos > max)
+					continue;
+
+				if ((obj.maxHp > 0) && ((obj.hp == 0) || checkAND(obj.status, BC_FLG_DEAD)))
+				{
+					*target = obj.pos;
+					return true;
+				}
+			}
+
+			return false;
+		};
 
 	//自動換寵
 	do
@@ -6896,6 +6896,48 @@ void Server::handlePetBattleLogics(const battledata_t& bt)
 	sortBattleUnit(battleObjects);
 	qint64 target = -1;
 
+	auto checkAllieHp = [this, &bt](qint64 cmpvalue, qint64* target, bool useequal)->bool
+		{
+			if (!target)
+				return false;
+
+			qint64 min = 0;
+			qint64 max = (MAX_ENEMY / 2) - 1;
+			if (battleCharCurrentPos >= (MAX_ENEMY / 2))
+			{
+				min = MAX_ENEMY / 2;
+				max = MAX_ENEMY - 1;
+			}
+
+			QVector<battleobject_t> battleObjects = bt.objects;
+			for (const battleobject_t& obj : battleObjects)
+			{
+				if (obj.pos < min || obj.pos > max)
+					continue;
+
+				if (obj.hp == 0)
+					continue;
+
+				if (obj.maxHp == 0)
+					continue;
+
+				if (checkAND(obj.status, BC_FLG_HIDE) || checkAND(obj.status, BC_FLG_DEAD))
+					continue;
+
+				if (!useequal && (obj.hpPercent < cmpvalue))
+				{
+					*target = obj.pos;
+					return true;
+				}
+				else if (useequal && (obj.hpPercent <= cmpvalue))
+				{
+					*target = obj.pos;
+					return true;
+				}
+			}
+
+			return false;
+		};
 	//自動捉寵
 	do
 	{
@@ -7343,6 +7385,82 @@ void Server::handlePetBattleLogics(const battledata_t& bt)
 			}
 		}
 	} while (false);
+
+	//寵物補血
+	do
+	{
+		bool petHeal = injector.getEnableHash(util::kBattlePetHealEnable);
+		if (!petHeal)
+			break;
+
+		qint64 tempTarget = -1;
+		bool ok = false;
+		quint64 targetFlags = injector.getValueHash(util::kBattlePetHealTargetValue);
+		qint64 charPercent = injector.getValueHash(util::kBattlePetHealCharValue);
+		qint64 petPercent = injector.getValueHash(util::kBattlePetHealPetValue);
+		qint64 alliePercent = injector.getValueHash(util::kBattlePetHealAllieValue);
+
+		if (checkAND(targetFlags, kSelectSelf))
+		{
+			if (checkCharHp(charPercent, &tempTarget))
+			{
+				ok = true;
+			}
+		}
+
+		if (checkAND(targetFlags, kSelectPet))
+		{
+			if (!ok && bt.objects.at(battleCharCurrentPos + 5).maxHp > 0)
+			{
+				if (bt.objects.at(battleCharCurrentPos + 5).hpPercent <= petPercent && bt.objects.at(battleCharCurrentPos + 5).hp > 0 &&
+					!checkAND(bt.objects.at(battleCharCurrentPos + 5).status, BC_FLG_DEAD) && !checkAND(bt.objects.at(battleCharCurrentPos + 5).status, BC_FLG_HIDE))
+				{
+					tempTarget = battleCharCurrentPos + 5;
+					ok = true;
+				}
+			}
+			else if (!ok && bt.objects.at(battleCharCurrentPos).maxHp > 0)
+			{
+				if (bt.objects.at(battleCharCurrentPos).rideHpPercent <= petPercent && bt.objects.at(battleCharCurrentPos).rideHp > 0 &&
+					!checkAND(bt.objects.at(battleCharCurrentPos).status, BC_FLG_DEAD) && !checkAND(bt.objects.at(battleCharCurrentPos).status, BC_FLG_HIDE))
+				{
+					tempTarget = battleCharCurrentPos;
+					ok = true;
+				}
+			}
+		}
+
+		if (!ok)
+		{
+			if (checkAND(targetFlags, kSelectAllieAny) || checkAND(targetFlags, kSelectAllieAll))
+			{
+				if (checkAllieHp(alliePercent, &tempTarget, false))
+				{
+					ok = true;
+				}
+			}
+		}
+
+		if (!ok)
+			break;
+
+		qint64 petActionIndex = injector.getValueHash(util::kBattlePetHealActionTypeValue);
+		if (petActionIndex < 0 || petActionIndex > MAX_PETSKILL)
+			break;
+
+		bool isProfession = petActionIndex > (MAX_PETSKILL - 1);
+		if (!isProfession) // ifpetAction
+		{
+			target = -1;
+			if (fixPetTargetBySkillIndex(petActionIndex, tempTarget, &target) && (target >= 0 && target <= (MAX_ENEMY + 1)))
+			{
+				sendBattlePetSkillAct(petActionIndex, target);
+				return;
+
+			}
+		}
+	} while (false);
+	//寵物淨化
 
 	sendBattlePetDoNothing();
 }
@@ -8886,12 +9004,12 @@ void Server::lssproto_RS_recv(char* cdata)
 
 	QStringList itemsList;
 	auto appendList = [&itemsList](const QString& str)->void
-	{
-		if (!str.isEmpty())
 		{
-			itemsList.append(str);
-		}
-	};
+			if (!str.isEmpty())
+			{
+				itemsList.append(str);
+			}
+		};
 
 	getStringToken(data, ",", i + 1, token);
 	getStringToken(token, "|", 1, item);
@@ -12156,22 +12274,22 @@ void Server::lssproto_S_recv(char* cdata)
 		QWriteLocker locker(&pcMutex_);
 
 		auto updateTeamInfo = [this, &signalDispatcher]()
-		{
-			QStringList teamInfoList;
-			for (qint64 i = 0; i < MAX_PARTY; ++i)
 			{
-				if (party[i].name.isEmpty() || (!party[i].valid) || (party[i].maxHp <= 0))
+				QStringList teamInfoList;
+				for (qint64 i = 0; i < MAX_PARTY; ++i)
 				{
-					party[i] = {};
-					teamInfoList.append("");
-					continue;
+					if (party[i].name.isEmpty() || (!party[i].valid) || (party[i].maxHp <= 0))
+					{
+						party[i] = {};
+						teamInfoList.append("");
+						continue;
+					}
+					QString text = QString("%1 LV:%2 HP:%3/%4 MP:%5").arg(party[i].name).arg(party[i].level)
+						.arg(party[i].hp).arg(party[i].maxHp).arg(party[i].hpPercent);
+					teamInfoList.append(text);
 				}
-				QString text = QString("%1 LV:%2 HP:%3/%4 MP:%5").arg(party[i].name).arg(party[i].level)
-					.arg(party[i].hp).arg(party[i].maxHp).arg(party[i].hpPercent);
-				teamInfoList.append(text);
-			}
-			emit signalDispatcher.updateTeamInfo(teamInfoList);
-		};
+				emit signalDispatcher.updateTeamInfo(teamInfoList);
+			};
 
 		QString name;
 		qint64 no, kubun, i, checkPartyCount, no2;

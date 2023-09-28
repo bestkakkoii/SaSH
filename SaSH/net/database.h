@@ -54,6 +54,8 @@ constexpr qint64 MAX_PET = 5;
 
 constexpr qint64 MAX_MAGIC = 9;
 
+constexpr qint64 MAX_PETSKILL = 7;
+
 constexpr qint64 MAX_PARTY = 5;
 
 constexpr qint64 MAX_ADR_BOOK_COUNT = 4;

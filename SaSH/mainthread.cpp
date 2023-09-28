@@ -1321,6 +1321,7 @@ void MainObject::checkAutoJoin()
 					qint64 floor = injector.server->getFloor();
 					qint64 len = MAX_SINGLE_STEP;
 					qint64 size = 0;
+					CAStar astar;
 
 					for (;;)
 					{
@@ -1399,7 +1400,7 @@ void MainObject::checkAutoJoin()
 								continue;
 							}
 
-							if (!injector.server->mapAnalyzer->calcNewRoute(map, current_point, newpoint, blockList, &path))
+							if (!injector.server->mapAnalyzer->calcNewRoute(&astar, floor, current_point, newpoint, blockList, &path))
 								return;
 
 							len = MAX_SINGLE_STEP;
@@ -2064,13 +2065,14 @@ void MainObject::checkRecordableNpcInfo()
 				util::MapData d;
 				qint64 nowFloor = injector.server->getFloor();
 				QPoint nowPoint = injector.server->getPoint();
+				CAStar astar;
 				d.floor = nowFloor;
 				d.name = unit.name;
 
 				//npc前方一格
 				QPoint newPoint = util::fix_point.at(unit.dir) + unit.p;
 				//檢查是否可走
-				if (injector.server->mapAnalyzer->isPassable(nowFloor, nowPoint, newPoint))
+				if (injector.server->mapAnalyzer->isPassable(&astar, nowFloor, nowPoint, newPoint))
 				{
 					d.x = newPoint.x();
 					d.y = newPoint.y();
@@ -2080,7 +2082,7 @@ void MainObject::checkRecordableNpcInfo()
 					//再往前一格
 					QPoint additionPoint = util::fix_point.at(unit.dir) + newPoint;
 					//檢查是否可走
-					if (injector.server->mapAnalyzer->isPassable(nowFloor, nowPoint, additionPoint))
+					if (injector.server->mapAnalyzer->isPassable(&astar, nowFloor, nowPoint, additionPoint))
 					{
 						d.x = additionPoint.x();
 						d.y = additionPoint.y();
@@ -2092,7 +2094,7 @@ void MainObject::checkRecordableNpcInfo()
 						for (qint64 i = 0; i < 8; ++i)
 						{
 							newPoint = util::fix_point.at(i) + unit.p;
-							if (injector.server->mapAnalyzer->isPassable(nowFloor, nowPoint, newPoint))
+							if (injector.server->mapAnalyzer->isPassable(&astar, nowFloor, nowPoint, newPoint))
 							{
 								d.x = newPoint.x();
 								d.y = newPoint.y();
