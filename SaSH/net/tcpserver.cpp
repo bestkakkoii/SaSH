@@ -7250,6 +7250,84 @@ void Server::handlePetBattleLogics(const battledata_t& bt)
 		}
 	} while (false);
 
+	//寵物淨化
+	
+	//寵物補血
+	do
+	{
+		bool petHeal = injector.getEnableHash(util::kBattlePetHealEnable);
+		if (!petHeal)
+			break;
+
+		qint64 tempTarget = -1;
+		bool ok = false;
+		quint64 targetFlags = injector.getValueHash(util::kBattlePetHealTargetValue);
+		qint64 charPercent = injector.getValueHash(util::kBattlePetHealCharValue);
+		qint64 petPercent = injector.getValueHash(util::kBattlePetHealPetValue);
+		qint64 alliePercent = injector.getValueHash(util::kBattlePetHealAllieValue);
+
+		if (checkAND(targetFlags, kSelectSelf))
+		{
+			if (checkCharHp(charPercent, &tempTarget))
+			{
+				ok = true;
+			}
+		}
+
+		if (checkAND(targetFlags, kSelectPet))
+		{
+			if (!ok && bt.objects.at(battleCharCurrentPos + 5).maxHp > 0)
+			{
+				if (bt.objects.at(battleCharCurrentPos + 5).hpPercent <= petPercent && bt.objects.at(battleCharCurrentPos + 5).hp > 0 &&
+					!checkAND(bt.objects.at(battleCharCurrentPos + 5).status, BC_FLG_DEAD) && !checkAND(bt.objects.at(battleCharCurrentPos + 5).status, BC_FLG_HIDE))
+				{
+					tempTarget = battleCharCurrentPos + 5;
+					ok = true;
+				}
+			}
+			else if (!ok && bt.objects.at(battleCharCurrentPos).maxHp > 0)
+			{
+				if (bt.objects.at(battleCharCurrentPos).rideHpPercent <= petPercent && bt.objects.at(battleCharCurrentPos).rideHp > 0 &&
+					!checkAND(bt.objects.at(battleCharCurrentPos).status, BC_FLG_DEAD) && !checkAND(bt.objects.at(battleCharCurrentPos).status, BC_FLG_HIDE))
+				{
+					tempTarget = battleCharCurrentPos;
+					ok = true;
+				}
+			}
+		}
+
+		if (!ok)
+		{
+			if (checkAND(targetFlags, kSelectAllieAny) || checkAND(targetFlags, kSelectAllieAll))
+			{
+				if (checkAllieHp(alliePercent, &tempTarget, false))
+				{
+					ok = true;
+				}
+			}
+		}
+
+		if (!ok)
+			break;
+
+		qint64 petActionIndex = injector.getValueHash(util::kBattlePetHealActionTypeValue);
+		if (petActionIndex < 0 || petActionIndex > MAX_PETSKILL)
+			break;
+
+		bool isProfession = petActionIndex > (MAX_PETSKILL - 1);
+		if (!isProfession) // ifpetAction
+		{
+			target = -1;
+			if (fixPetTargetBySkillIndex(petActionIndex, tempTarget, &target) && (target >= 0 && target <= (MAX_ENEMY + 1)))
+			{
+				sendBattlePetSkillAct(petActionIndex, target);
+				return;
+
+			}
+		}
+	} while (false);
+	
+
 	//一般動作
 	do
 	{
@@ -7386,81 +7464,6 @@ void Server::handlePetBattleLogics(const battledata_t& bt)
 		}
 	} while (false);
 
-	//寵物補血
-	do
-	{
-		bool petHeal = injector.getEnableHash(util::kBattlePetHealEnable);
-		if (!petHeal)
-			break;
-
-		qint64 tempTarget = -1;
-		bool ok = false;
-		quint64 targetFlags = injector.getValueHash(util::kBattlePetHealTargetValue);
-		qint64 charPercent = injector.getValueHash(util::kBattlePetHealCharValue);
-		qint64 petPercent = injector.getValueHash(util::kBattlePetHealPetValue);
-		qint64 alliePercent = injector.getValueHash(util::kBattlePetHealAllieValue);
-
-		if (checkAND(targetFlags, kSelectSelf))
-		{
-			if (checkCharHp(charPercent, &tempTarget))
-			{
-				ok = true;
-			}
-		}
-
-		if (checkAND(targetFlags, kSelectPet))
-		{
-			if (!ok && bt.objects.at(battleCharCurrentPos + 5).maxHp > 0)
-			{
-				if (bt.objects.at(battleCharCurrentPos + 5).hpPercent <= petPercent && bt.objects.at(battleCharCurrentPos + 5).hp > 0 &&
-					!checkAND(bt.objects.at(battleCharCurrentPos + 5).status, BC_FLG_DEAD) && !checkAND(bt.objects.at(battleCharCurrentPos + 5).status, BC_FLG_HIDE))
-				{
-					tempTarget = battleCharCurrentPos + 5;
-					ok = true;
-				}
-			}
-			else if (!ok && bt.objects.at(battleCharCurrentPos).maxHp > 0)
-			{
-				if (bt.objects.at(battleCharCurrentPos).rideHpPercent <= petPercent && bt.objects.at(battleCharCurrentPos).rideHp > 0 &&
-					!checkAND(bt.objects.at(battleCharCurrentPos).status, BC_FLG_DEAD) && !checkAND(bt.objects.at(battleCharCurrentPos).status, BC_FLG_HIDE))
-				{
-					tempTarget = battleCharCurrentPos;
-					ok = true;
-				}
-			}
-		}
-
-		if (!ok)
-		{
-			if (checkAND(targetFlags, kSelectAllieAny) || checkAND(targetFlags, kSelectAllieAll))
-			{
-				if (checkAllieHp(alliePercent, &tempTarget, false))
-				{
-					ok = true;
-				}
-			}
-		}
-
-		if (!ok)
-			break;
-
-		qint64 petActionIndex = injector.getValueHash(util::kBattlePetHealActionTypeValue);
-		if (petActionIndex < 0 || petActionIndex > MAX_PETSKILL)
-			break;
-
-		bool isProfession = petActionIndex > (MAX_PETSKILL - 1);
-		if (!isProfession) // ifpetAction
-		{
-			target = -1;
-			if (fixPetTargetBySkillIndex(petActionIndex, tempTarget, &target) && (target >= 0 && target <= (MAX_ENEMY + 1)))
-			{
-				sendBattlePetSkillAct(petActionIndex, target);
-				return;
-
-			}
-		}
-	} while (false);
-	//寵物淨化
 
 	sendBattlePetDoNothing();
 }
