@@ -187,7 +187,7 @@ public:
 
 	qint64 currentServerListIndex = 0;
 
-	std::atomic_bool isScriptDebugModeEnable = true;
+	std::atomic_bool isScriptDebugModeEnable = false;
 
 	quint64 scriptThreadId = 0;
 

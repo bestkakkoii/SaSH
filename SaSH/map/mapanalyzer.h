@@ -111,7 +111,7 @@ public:
 
 	bool __fastcall getMapDataByFloor(qint64  floor, map_t* map);
 
-	bool __fastcall calcNewRoute(CAStar* pastar, qint64 floor, const QPoint& src, const QPoint& dst, const QSet<QPoint>& blockList, std::vector<QPoint>* pPaths);
+	bool __fastcall calcNewRoute(CAStar& astar, qint64 floor, const QPoint& src, const QPoint& dst, const QSet<QPoint>& blockList, std::vector<QPoint>* pPaths);
 
 	inline void clear() { maps_.clear(); pixMap_.clear(); }
 
@@ -121,9 +121,9 @@ public:
 
 	inline Q_REQUIRED_RESULT QPixmap __fastcall getPixmapByIndex(qint64 index) const { return pixMap_.value(index); }
 
-	qint64  __fastcall calcBestFollowPointByDstPoint(qint64  floor, const QPoint& src, const QPoint& dst, QPoint* ret, bool enableExt, qint64 npcdir);
+	qint64  __fastcall calcBestFollowPointByDstPoint(qint64 floor, const QPoint& src, const QPoint& dst, QPoint* ret, bool enableExt, qint64 npcdir);
 
-	bool __fastcall isPassable(CAStar* pastar, qint64  floor, const QPoint& src, const QPoint& dst);
+	bool __fastcall isPassable(CAStar& astar, qint64 floor, const QPoint& src, const QPoint& dst);
 
 	QString __fastcall getGround(qint64 floor, const QString& name, const QPoint& src);
 

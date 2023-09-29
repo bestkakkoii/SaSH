@@ -53,7 +53,7 @@ void Injector::reset(qint64 index)//static
 	if (!instances.contains(index))
 		return;
 
-	Injector* instance = instances.take(index);
+	Injector* instance = instances.value(index);
 
 	instance->server.reset(nullptr);
 	instance->hGameModule_ = 0ULL;
@@ -61,6 +61,15 @@ void Injector::reset(qint64 index)//static
 	instance->pi_ = {};
 	instance->processHandle_.reset();
 
+	instance->autil.util_Clear();
+	instance->currentGameExePath = "";//當前使用的遊戲進程完整路徑
+	instance->IS_SCRIPT_FLAG = false;//主腳本是否運行
+	instance->currentScriptFileName;//當前運行的主腳本完整路徑
+	instance->scriptLogModel->clear(); //腳本日誌模型
+	instance->chatLogModel->clear(); //聊天日誌模型
+	instance->currentServerListIndex = 0;
+	instance->scriptThreadId = 0;
+#if 0
 	//紀錄當前設置
 	QHash<util::UserSetting, bool> enableHash = instance->getEnablesHash();
 	QHash<util::UserSetting, qint64> valueHash = instance->getValuesHash();
@@ -76,7 +85,7 @@ void Injector::reset(qint64 index)//static
 
 	HWND _hWnd = instance->getParentWidget();
 
-	delete instance;
+	instance->deleteLater();
 	instance = new Injector(index);
 	if (instance != nullptr)
 	{
@@ -97,7 +106,7 @@ void Injector::reset(qint64 index)//static
 
 		instances.insert(index, instance);
 	}
-
+#endif
 }
 
 Injector::CreateProcessResult Injector::createProcess(Injector::process_information_t& pi)
@@ -374,7 +383,7 @@ qint64 Injector::sendMessage(qint64 msg, qint64 wParam, qint64 lParam) const
 	DWORD_PTR dwResult = 0L;
 	SendMessageTimeoutW(pi_.hWnd, msg, wParam, lParam, SMTO_ABORTIFHUNG | SMTO_ERRORONEXIT, MessageTimeout, &dwResult);
 	return static_cast<qint64>(dwResult);
-}
+	}
 
 bool Injector::postMessage(qint64 msg, qint64 wParam, qint64 lParam) const
 {

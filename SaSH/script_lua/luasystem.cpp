@@ -96,46 +96,46 @@ qint64 CLuaSystem::eo(sol::this_state s)
 }
 
 //這裡還沒想好format格式怎麼設計，暫時先放著
-qint64 CLuaSystem::announce(sol::object maybe_defaulted, sol::object ocolor, sol::this_state s)
+qint64 CLuaSystem::print(sol::object ocontent, sol::object ocolor, sol::this_state s)
 {
 	sol::state_view lua(s);
 	luadebug::tryPopCustomErrorMsg(s, luadebug::ERROR_PARAM_SIZE_RANGE, 1, 3);
 	QString msg("\0");
 	QString raw("\0");
-	if (maybe_defaulted == sol::lua_nil)
+	if (ocontent == sol::lua_nil)
 	{
 		raw = "nil";
-		msg = "(nil)";
+		msg = "nil";
 	}
-	else if (maybe_defaulted.is<bool>())
+	else if (ocontent.is<bool>())
 	{
-		bool value = maybe_defaulted.as<bool>();
+		bool value = ocontent.as<bool>();
 		raw = util::toQString(value);
 		msg = raw;
 	}
-	else if (maybe_defaulted.is<qlonglong>())
+	else if (ocontent.is<qlonglong>())
 	{
-		const qlonglong value = maybe_defaulted.as<qlonglong>();
+		const qlonglong value = ocontent.as<qlonglong>();
 		raw = util::toQString(value);
 		msg = raw;
 	}
-	else if (maybe_defaulted.is<qreal>())
+	else if (ocontent.is<qreal>())
 	{
-		const qreal value = maybe_defaulted.as<qreal>();
+		const qreal value = ocontent.as<qreal>();
 		raw = util::toQString(value);
 		msg = raw;
 	}
-	else if (maybe_defaulted.is<std::string>())
+	else if (ocontent.is<std::string>())
 	{
-		raw = util::toQString(maybe_defaulted);
+		raw = util::toQString(ocontent);
 		msg = raw;
 	}
-	else if (maybe_defaulted.is<const char*>())
+	else if (ocontent.is<const char*>())
 	{
-		raw = (maybe_defaulted.as<const char*>());
+		raw = (ocontent.as<const char*>());
 		msg = raw;
 	}
-	else if (maybe_defaulted.is<sol::table>())
+	else if (ocontent.is<sol::table>())
 	{
 		//print table
 		raw = luadebug::getTableVars(s.L, 1, 50);
@@ -144,9 +144,9 @@ qint64 CLuaSystem::announce(sol::object maybe_defaulted, sol::object ocolor, sol
 	}
 	else
 	{
-		QString pointerStr = util::toQString(reinterpret_cast<qint64>(maybe_defaulted.pointer()), 16);
+		QString pointerStr = util::toQString(reinterpret_cast<qint64>(ocontent.pointer()), 16);
 		//print type name
-		switch (maybe_defaulted.get_type())
+		switch (ocontent.get_type())
 		{
 		case sol::type::function: msg = "(function) 0x" + pointerStr; break;
 		case sol::type::userdata: msg = "(userdata) 0x" + pointerStr; break;
@@ -172,38 +172,23 @@ qint64 CLuaSystem::announce(sol::object maybe_defaulted, sol::object ocolor, sol
 
 	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
 	bool split = false;
+	bool doNotAnnounce = color == -2 || injector.server.isNull();
 	QStringList l;
 	if (msg.contains("\r\n"))
 	{
 		l = msg.split("\r\n");
-		luadebug::logExport(s, l, color);
+		luadebug::logExport(s, l, color, doNotAnnounce);
 		split = true;
 	}
 	else if (msg.contains("\n"))
 	{
 		l = msg.split("\n");
-		luadebug::logExport(s, l, color);
+		luadebug::logExport(s, l, color, doNotAnnounce);
 		split = true;
 	}
 	else
 	{
-		luadebug::logExport(s, msg, color);
-	}
-
-	bool announceOk = color != -2 && !injector.server.isNull();
-
-	if (split)
-	{
-		for (const QString& it : l)
-		{
-			if (announceOk)
-				injector.server->announce(it, color);
-		}
-	}
-	else
-	{
-		if (announceOk)
-			injector.server->announce(msg, color);
+		luadebug::logExport(s, msg, color, doNotAnnounce);
 	}
 
 	return FALSE;

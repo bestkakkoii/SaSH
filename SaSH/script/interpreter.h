@@ -77,15 +77,6 @@ private:
 private:
 	bool checkBattleThenWait();
 	bool checkOnlineThenWait();
-	bool __fastcall findPath(
-		qint64 currentIndex,
-		qint64 currentLine,
-		QPoint dst,
-		qint64 steplen,
-		qint64 step_cost = 0,
-		qint64 timeout = DEFAULT_FUNCTION_TIMEOUT * 36,
-		std::function<qint64(QPoint& dst)> callback = nullptr,
-		bool noAnnounce = false);
 
 	bool waitfor(qint64 timeout, std::function<bool()> exprfun);
 	bool checkString(const TokenMap& TK, qint64 idx, QString* ret);
@@ -105,10 +96,8 @@ private: //註冊給Parser的函數
 	qint64 sleep(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
 	qint64 press(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
 	qint64 eo(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
-	qint64 announce(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
 	qint64 input(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
 	qint64 talk(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
-	qint64 talkandannounce(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
 	qint64 logout(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
 	qint64 logback(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
 	qint64 cleanchat(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
@@ -141,10 +130,6 @@ private: //註冊給Parser的函數
 	qint64 move(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
 	qint64 fastmove(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
 	qint64 packetmove(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
-	qint64 findpath(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
-	qint64 movetonpc(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
-	qint64 warp(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
-
 
 	//action
 	qint64 useitem(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);

@@ -614,7 +614,7 @@ void MapWidget::on_openGLWidget_notifyRightClick()
 	onClear();
 }
 
-void MapWidget::on_openGLWidget_notifyMousePosition(const QPointF& pos)
+void MapWidget::on_openGLWidget_notifyLeftDoubleClick(const QPointF& pos)
 {
 	qint64 currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
@@ -625,7 +625,9 @@ void MapWidget::on_openGLWidget_notifyMousePosition(const QPointF& pos)
 		return;
 
 	if (!interpreter_.isNull() && interpreter_->isRunning())
-		return;
+	{
+		interpreter_->stop();
+	}
 
 	interpreter_.reset(new Interpreter(currentIndex));
 
@@ -639,7 +641,7 @@ void MapWidget::on_openGLWidget_notifyMousePosition(const QPointF& pos)
 	if (x < 0 || x > 1500 || y < 0 || y > 1500)
 		return;
 
-	interpreter_->doString(QString(u8"findpath %1, %2, 1").arg(x).arg(y), nullptr, Interpreter::kNotShare);
+	interpreter_->doString(QString(u8"findpath(%1, %2, 3)").arg(x).arg(y), nullptr, Interpreter::kNotShare);
 }
 
 void MapWidget::on_openGLWidget_notifyLeftClick(const QPointF& gpos, const QPointF& pos)
@@ -866,7 +868,7 @@ void MapWidget::on_pushButton_findPath_clicked()
 	if (x < 0 || x > 1500 || y < 0 || y > 1500)
 		return;
 
-	interpreter_->doString(QString(u8"findpath %1, %2, 1").arg(x).arg(y), nullptr, Interpreter::kNotShare);
+	interpreter_->doString(QString(u8"findpath(%1, %2, 3)").arg(x).arg(y), nullptr, Interpreter::kNotShare);
 }
 
 void MapWidget::onClear()
@@ -964,9 +966,6 @@ void MapWidget::on_tableWidget_NPCList_cellDoubleClicked(int row, int)
 	if (!okx || !oky)
 		return;
 
-	if (x < 0 || x > 1500 || y < 0 || y > 1500)
-		return;
-
 	mapunit_t unit;
 	if (name.contains("NPC"))
 	{
@@ -1001,18 +1000,18 @@ void MapWidget::on_tableWidget_NPCList_cellDoubleClicked(int row, int)
 	}
 	else
 	{
-		interpreter_->doString(QString(u8"findpath %1, %2, 1").arg(x).arg(y), nullptr, Interpreter::kNotShare);
+		interpreter_->doString(QString(u8"findpath(%1, %2, 3)").arg(x).arg(y), nullptr, Interpreter::kNotShare);
 		return;
 	}
 
+	CAStar astar;
 	qint64 floor = injector.server->getFloor();
 	QPoint point = injector.server->getPoint();
 	//npc前方一格
 	QPoint newPoint = util::fix_point.at(unit.dir) + unit.p;
-	CAStar astar;
 
 	//檢查是否可走
-	if (injector.server->mapAnalyzer->isPassable(&astar, floor, point, newPoint))
+	if (injector.server->mapAnalyzer->isPassable(astar, floor, point, newPoint))
 	{
 		x = newPoint.x();
 		y = newPoint.y();
@@ -1022,7 +1021,7 @@ void MapWidget::on_tableWidget_NPCList_cellDoubleClicked(int row, int)
 		//再往前一格
 		QPoint additionPoint = util::fix_point.at(unit.dir) + newPoint;
 		//檢查是否可走
-		if (injector.server->mapAnalyzer->isPassable(&astar, floor, point, additionPoint))
+		if (injector.server->mapAnalyzer->isPassable(astar, floor, point, additionPoint))
 		{
 			x = additionPoint.x();
 			y = additionPoint.y();
@@ -1034,7 +1033,7 @@ void MapWidget::on_tableWidget_NPCList_cellDoubleClicked(int row, int)
 			for (qint64 i = 0; i < 8; ++i)
 			{
 				newPoint = util::fix_point.at(i) + unit.p;
-				if (injector.server->mapAnalyzer->isPassable(&astar, floor, point, newPoint))
+				if (injector.server->mapAnalyzer->isPassable(astar, floor, point, newPoint))
 				{
 					x = newPoint.x();
 					y = newPoint.y();
@@ -1049,5 +1048,5 @@ void MapWidget::on_tableWidget_NPCList_cellDoubleClicked(int row, int)
 		}
 	}
 
-	interpreter_->doString(QString(u8"findpath %1, %2, 1").arg(x).arg(y), nullptr, Interpreter::kNotShare);
+	interpreter_->doString(QString(u8"findpath(%1, %2, 3)").arg(x).arg(y), nullptr, Interpreter::kNotShare);
 }

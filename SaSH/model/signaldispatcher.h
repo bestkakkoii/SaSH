@@ -49,6 +49,11 @@ public:
 		return *instances.value(index);
 	}
 
+	static bool contains(qint64 index)
+	{
+		return instances.contains(index);
+	}
+
 public:
 	inline void setParent(QObject* parent) { QObject::setParent(parent); }
 
@@ -60,7 +65,7 @@ public:
 		SignalDispatcher* instance = instances.take(index);
 		if (instance != nullptr)
 		{
-			delete instance;
+			instance->deleteLater();
 		}
 	}
 

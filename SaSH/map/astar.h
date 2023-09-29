@@ -159,7 +159,7 @@ private:
 	/**
 	 * 查找附近可通過的節點
 	 */
-	void __fastcall find_can_pass_nodes(const QPoint& current, const bool& allow_corner, QVector<QPoint>* out_lists);
+	void __fastcall find_can_pass_nodes(const QPoint& current, const bool& allow_corner, std::vector<QPoint>* out_lists);
 
 	/**
 	 * 處理找到節點的情況
@@ -180,8 +180,10 @@ private:
 	AStarCallback           can_pass_ = nullptr;
 	QPoint					start_;
 	QPoint					end_;
+	std::mutex			    mutex_;
 	std::vector<Node*>      mapping_;
 	std::vector<Node*>      open_list_;
+	std::vector<Node*>      record_;
 
 #if _MSVC_LANG >= 201703L
 	std::unique_ptr<std::pmr::monotonic_buffer_resource> resource_;

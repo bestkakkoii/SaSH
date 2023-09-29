@@ -147,22 +147,7 @@ public:
 		return instance;
 	}
 
-	inline void close(qint64 index)
-	{
-		QMutexLocker locker(&mutex_);
-		if (threads_.contains(index) && objects_.contains(index))
-		{
-			auto thread_ = threads_.take(index);
-			auto object_ = objects_.take(index);
-			object_->requestInterruption();
-			thread_->quit();
-			thread_->wait();
-			delete thread_;
-			thread_ = nullptr;
-			delete object_;
-			object_ = nullptr;
-		}
-	}
+	void close(qint64 index);
 
 	inline void close()
 	{
@@ -259,7 +244,7 @@ public:
 		{
 			qint64 ret = readSharedMemory(&allocatedIds);
 			if (ret == -1)
-				break;
+				id = -1;
 
 			if (id != -1)
 			{

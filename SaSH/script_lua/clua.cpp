@@ -381,7 +381,7 @@ void luadebug::getPackagePath(const QString base, QStringList* result)
 	}
 }
 
-void luadebug::logExport(const sol::this_state& s, const QStringList& datas, qint64 color)
+void luadebug::logExport(const sol::this_state& s, const QStringList& datas, qint64 color, bool doNotAnnounce)
 {
 	for (const QString& data : datas)
 	{
@@ -389,7 +389,7 @@ void luadebug::logExport(const sol::this_state& s, const QStringList& datas, qin
 	}
 }
 
-void luadebug::logExport(const sol::this_state& s, const QString& data, qint64 color)
+void luadebug::logExport(const sol::this_state& s, const QString& data, qint64 color, bool doNotAnnounce)
 {
 
 	//打印當前時間
@@ -405,8 +405,14 @@ void luadebug::logExport(const sol::this_state& s, const QString& data, qint64 c
 		.arg(currentline + 1, 3, 10, QLatin1Char(' ')).arg(data));
 
 	sol::state_view lua(s.lua_state());
-	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(lua["_INDEX"].get<qint64>());
+	qint64 currentIndex = lua["_INDEX"].get<qint64>();
+	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
 	emit signalDispatcher.appendScriptLog(msg, color);
+	Injector& injector = Injector::getInstance(currentIndex);
+	if (!injector.server.isNull())
+	{
+		injector.server->announce(data, color);
+	}
 }
 
 //根據傳入function的循環執行結果等待超時或條件滿足提早結束
@@ -738,7 +744,7 @@ void CLua::open_utillibs(sol::state& lua)
 void CLua::open_syslibs(sol::state& lua)
 {
 	lua.set_function("sleep", &CLuaSystem::sleep, &luaSystem_);
-	lua.set_function("printf", &CLuaSystem::announce, &luaSystem_);
+	lua.set_function("printf", &CLuaSystem::print, &luaSystem_);
 	lua.safe_script(R"(
 		_print = print;
 		print = printf;
@@ -842,6 +848,13 @@ void CLua::open_petlibs(sol::state& lua)
 
 void CLua::open_maplibs(sol::state& lua)
 {
+	lua.set_function("findpath", &CLuaMap::findPath, &luaMap_);
+	lua.set_function("move", &CLuaMap::move, &luaMap_);
+	lua.set_function("w", &CLuaMap::packetMove, &luaMap_);
+	lua.set_function("chmap", &CLuaMap::teleport, &luaMap_);
+	lua.set_function("download", &CLuaMap::downLoad, &luaMap_);
+	lua.set_function("movetonpc", &CLuaMap::moveToNPC, &luaMap_);
+
 	lua.new_usertype<CLuaMap>("MapClass",
 		sol::call_constructor,
 		sol::constructors<CLuaMap()>(),

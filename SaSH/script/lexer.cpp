@@ -126,9 +126,6 @@ static const QHash<QString, RESERVE> keywords = {
 	{ u8"封包移動", TK_CMD },
 	{ u8"方向", TK_CMD },
 	{ u8"最近坐標", TK_CMD },
-	{ u8"尋路", TK_CMD },
-	{ u8"移動至NPC", TK_CMD },
-	{ u8"過點", TK_CMD },
 
 	//mouse
 	{ u8"左擊", TK_CMD },
@@ -233,9 +230,6 @@ static const QHash<QString, RESERVE> keywords = {
 	{ u8"封包移动", TK_CMD },
 	{ u8"方向", TK_CMD },
 	{ u8"最近坐标", TK_CMD },
-	{ u8"寻路", TK_CMD },
-	{ u8"移动至NPC", TK_CMD },
-	{ u8"过点", TK_CMD },
 
 	//mouse
 	{ u8"左击", TK_CMD },
@@ -341,10 +335,7 @@ static const QHash<QString, RESERVE> keywords = {
 	{ u8"move", TK_CMD },
 	{ u8"w", TK_CMD },
 	{ u8"dir", TK_CMD },
-	{ u8"findpath", TK_CMD },
-	{ u8"movetonpc", TK_CMD },
 	{ u8"chmap", TK_CMD },
-	{ u8"warp", TK_CMD },
 
 	//mouse
 	{ u8"lclick", TK_CMD },
@@ -535,8 +526,8 @@ void Lexer::tokenized(qint64 currentLine, const QString& line, TokenMap* ptoken,
 		else if (commentIndex > 0)
 			raw = raw.mid(0, commentIndex).trimmed();
 
-		const QStringList tempReplacementList = {
-			"set", "print", "msg", "dlg"
+		static const QStringList tempReplacementList = {
+			"set", "print", "msg", "dlg", "findpath", "movetonpc", "rex", "regex", "rexg", "format", "run"
 		};
 
 		for (const QString& it : tempReplacementList)

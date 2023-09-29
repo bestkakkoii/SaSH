@@ -93,7 +93,7 @@ GeneralForm::~GeneralForm()
 	if (pAfkForm_ != nullptr)
 	{
 		pAfkForm_->close();
-		delete pAfkForm_;
+		pAfkForm_->deleteLater();
 		pAfkForm_ = nullptr;
 	}
 

@@ -286,6 +286,14 @@ Parser::Parser(qint64 index)
 			return sender.RunGame(id);
 		});
 
+	lua_.set_function("closegame", [this](qint64 id)->qint64
+		{
+			Injector& injector = Injector::getInstance(getIndex());
+			InterfaceSender sender(injector.getParentWidget());
+
+			return sender.CloseGame(id);
+		});
+
 	lua_.set_function("openwindow", [this](qint64 id)->qint64
 		{
 			Injector& injector = Injector::getInstance(getIndex());
@@ -302,7 +310,39 @@ Parser::Parser(qint64 index)
 			QString acc = util::toQString(account);
 			QString pwd = util::toQString(password);
 
-			return sender.SetAutoLogin(id, server, subserver, position, acc, pwd);
+			return sender.SetAutoLogin(id, server - 1, subserver - 1, position - 1, acc, pwd);
+		});
+
+	lua_.set_function("runex", [this](qint64 id, std::string path)->qint64
+		{
+			Injector& injector = Injector::getInstance(getIndex());
+			InterfaceSender sender(injector.getParentWidget());
+
+			return sender.RunFile(id, util::toQString(path));
+		});
+
+	lua_.set_function("stoprunex", [this](qint64 id)->qint64
+		{
+			Injector& injector = Injector::getInstance(getIndex());
+			InterfaceSender sender(injector.getParentWidget());
+
+			return sender.StopFile(id);
+		});
+
+	lua_.set_function("dostrex", [this](qint64 id, std::string content)->qint64
+		{
+			Injector& injector = Injector::getInstance(getIndex());
+			InterfaceSender sender(injector.getParentWidget());
+
+			return sender.RunScript(id, util::toQString(content));
+		});
+
+	lua_.set_function("loadsetex", [this](qint64 id, std::string content)->qint64
+		{
+			Injector& injector = Injector::getInstance(getIndex());
+			InterfaceSender sender(injector.getParentWidget());
+
+			return sender.LoadSettings(id, util::toQString(content));
 		});
 
 	lua_.set_function("msg", [this](sol::object otext, sol::object otitle, sol::object otype, sol::this_state s)->std::string
@@ -679,7 +719,7 @@ Parser::Parser(qint64 index)
 			if (formatStr.isEmpty())
 				return sol::lua_nil;
 
-			static const QRegularExpression rexFormat(R"(\{([T|C])?\s*\:([\w\p{Han}]+(\['*"*[\w\p{Han}]+'*"*\])*)\})");
+			static const QRegularExpression rexFormat(R"(\{([T|C])?\s*\:([\w\W]+)\})");
 			if (!formatStr.contains(rexFormat))
 				return sol::make_object(s, sformat);
 
@@ -1120,16 +1160,24 @@ Parser::Parser(qint64 index)
 			return result;
 		});
 
-	lua_["mkpath"] = [](std::string filename, sol::object obj, sol::this_state s)->std::string
+	lua_["mkpath"] = [](std::string sfilename, sol::object obj, sol::this_state s)->std::string
 	{
 		QString retstring = "\0";
+		QString fileName = util::toQString(sfilename);
+		QFileInfo fileinfo(fileName);
+		QString suffix = fileinfo.suffix();
+		if (suffix.isEmpty())
+			fileName += ".txt";
+		else if (suffix != "txt")
+			fileName.replace(suffix, "txt");
+
 		if (obj == sol::lua_nil)
 		{
-			retstring = util::findFileFromName(util::toQString(filename) + ".txt");
+			retstring = util::findFileFromName(fileName);
 		}
 		else if (obj.is<std::string>())
 		{
-			retstring = util::findFileFromName(util::toQString(filename) + ".txt", util::toQString(obj));
+			retstring = util::findFileFromName(fileName, util::toQString(obj));
 		}
 
 		return retstring.toUtf8().constData();
@@ -1666,7 +1714,7 @@ bool Parser::loadFile(const QString& fileName, QString* pcontent)
 	if (bret)
 		scriptFileName_ = fileName;
 	return bret;
-}
+	}
 
 //將腳本內容轉換成Tokens
 bool Parser::loadString(const QString& content)
@@ -1733,24 +1781,38 @@ void Parser::handleError(qint64 err, const QString& addition)
 	case kNoChange:
 		return;
 	case kError:
+	{
+		--validCommandCount_;
+		++errorCount_;
 		msg = QObject::tr("unknown error") + extMsg;
 		break;
+	}
 	case kServerNotReady:
 	{
+		--validCommandCount_;
+		++errorCount_;
 		msg = QObject::tr("server not ready") + extMsg;
 		break;
 	}
 	case kLabelError:
+	{
+		--validCommandCount_;
+		++errorCount_;
 		msg = QObject::tr("label incorrect or not exist") + extMsg;
 		break;
+	}
 	case kUnknownCommand:
 	{
+		--validCommandCount_;
+		++errorCount_;
 		QString cmd = currentLineTokens_.value(0).data.toString();
 		msg = QObject::tr("unknown command: %1").arg(cmd) + extMsg;
 		break;
 	}
 	case kLuaError:
 	{
+		--validCommandCount_;
+		++errorCount_;
 		QString cmd = currentLineTokens_.value(0).data.toString();
 		msg = QObject::tr("[lua]:%1").arg(cmd) + extMsg;
 		break;
@@ -1759,6 +1821,8 @@ void Parser::handleError(qint64 err, const QString& addition)
 	{
 		if (err >= kArgError && err <= kArgError + 20ll)
 		{
+			--validCommandCount_;
+			++errorCount_;
 			if (err == kArgError)
 				msg = QObject::tr("argument error") + extMsg;
 			else
@@ -1844,8 +1908,8 @@ QVariant Parser::luaDoString(QString expr)
 		return retObject.as<double>();
 	else if (retObject.is<sol::table>())
 	{
-		qint64 deep = kMaxLuaTableDepth;
-		return getLuaTableString(retObject.as<sol::table>(), deep);
+		qint64 depth = kMaxLuaTableDepth;
+		return getLuaTableString(retObject.as<sol::table>(), depth);
 	}
 
 	return "nil";
@@ -2207,19 +2271,19 @@ QVariant Parser::checkValue(const TokenMap TK, qint64 idx, QVariant::Type type)
 	bool bvalue;
 	double dvalue;
 
-	if (checkBoolean(currentLineTokens_, idx, &bvalue))
+	if (checkBoolean(TK, idx, &bvalue))
 	{
 		varValue = bvalue;
 	}
-	else if (checkNumber(currentLineTokens_, idx, &dvalue))
+	else if (checkNumber(TK, idx, &dvalue))
 	{
 		varValue = dvalue;
 	}
-	else if (checkInteger(currentLineTokens_, idx, &ivalue))
+	else if (checkInteger(TK, idx, &ivalue))
 	{
 		varValue = ivalue;
 	}
-	else if (checkString(currentLineTokens_, idx, &text))
+	else if (checkString(TK, idx, &text))
 	{
 		varValue = text;
 	}
@@ -2415,8 +2479,8 @@ QVariant Parser::getGlobalVarValue(const QString& name)
 		var = obj.as<double>();
 	else if (obj.is<sol::table>())
 	{
-		qint64 deep = kMaxLuaTableDepth;
-		var = getLuaTableString(obj.as<sol::table>(), deep);
+		qint64 depth = kMaxLuaTableDepth;
+		var = getLuaTableString(obj.as<sol::table>(), depth);
 	}
 	else
 		var = "nil";
@@ -2875,6 +2939,40 @@ QString Parser::getLuaTableString(const sol::table& t, qint64& depth)
 	return ret.simplified();
 }
 
+void Parser::loadGlobalVariablesFromSol(sol::state& srclua, const QStringList& globalNames)
+{
+	sol::state& dstlua = pLua_->getLua();
+	QByteArray keyBytes;
+	for (const QString& name : globalNames)
+	{
+		if (exceptionList.contains(name))
+			continue;
+
+		keyBytes = name.toUtf8();
+
+		if (!srclua[keyBytes.constData()].valid())
+			continue;
+
+		sol::object objfrom = srclua[keyBytes.constData()];
+		if (objfrom.is<bool>())
+			dstlua[keyBytes.constData()] = objfrom.as<bool>();
+		else if (objfrom.is<std::string>())
+			dstlua[keyBytes.constData()] = util::toQString(objfrom);
+		else if (objfrom.is<qint64>())
+			dstlua[keyBytes.constData()] = objfrom.as<qint64>();
+		else if (objfrom.is<double>())
+			dstlua[keyBytes.constData()] = objfrom.as<double>();
+		else if (objfrom.is<sol::table>())
+		{
+			sol::table t = objfrom.as<sol::table>();
+			dstlua[keyBytes.constData()] = t;
+		}
+		else
+			dstlua[keyBytes.constData()] = sol::lua_nil;
+
+	}
+}
+
 //處理"功能"，檢查是否有聲明局變量 這裡要注意只能執行一次否則會重複壓棧
 void Parser::processFunction()
 {
@@ -3184,48 +3282,6 @@ void Parser::processTable()
 		insertGlobalVar(varName, expr);
 }
 
-//處理純Lua語句(所有無法辨識的命令都會直接當作lua執行)
-void Parser::processLuaString()
-{
-	QString exprStr = getToken<QString>(1);
-	luaDoString(exprStr);
-
-	sol::state& lua_ = pLua_->getLua();
-	sol::meta::unqualified_t<sol::table> table = lua_["_G"];
-	if (!table.valid())
-		return;
-
-	if (table.empty())
-		return;
-
-	for (const std::pair<sol::object, sol::object>& pairMain : table)
-	{
-		QString key;
-		if (pairMain.first.is<std::string>())
-			key = util::toQString(pairMain.first).simplified();
-		else if (pairMain.first.is<qint64>())
-			key = util::toQString(pairMain.first.as<qint64>()).simplified();
-		else
-			continue;
-
-		if (key.isEmpty())
-			continue;
-
-		if (key.startsWith("sol."))
-			continue;
-
-		if (exceptionList.contains(key))
-			continue;
-
-		if (!globalNames_.contains(key))
-		{
-			globalNames_.append(key);
-			globalNames_.removeDuplicates();
-		}
-	}
-	std::sort(globalNames_.begin(), globalNames_.end());
-}
-
 //處理變量自增自減
 void Parser::processVariableIncDec()
 {
@@ -3443,6 +3499,26 @@ bool Parser::processCall(RESERVE reserve)
 			{
 				QVariant var = luaDoString("return " + expr);
 				insertGlobalVar("vret", var);
+				sol::state& lua_ = pLua_->getLua();
+				if (lua_["_JUMP"].valid() && lua_["_JUMP"] != sol::lua_nil)
+				{
+					if (lua_["_JUMP"].is<qint64>())
+					{
+						qint64 nvalue = lua_["_JUMP"].get<qint64>();
+						TokenMap TK;
+						TK.insert(1, Token{ TK_INT, nvalue, util::toQString(nvalue) });
+						if (checkJump(TK, 1, false, JumpBehavior::FailedJump) == kHasJump)
+							return true;
+					}
+					else if (lua_["_JUMP"].is<std::string>())
+					{
+						QString str = util::toQString(lua_["_JUMP"].get<std::string>());
+						TokenMap TK;
+						TK.insert(1, Token{ TK_STRING, str, str });
+						if (checkJump(TK, 1, false, JumpBehavior::FailedJump) == kHasJump)
+							return true;
+					}
+				}
 			}
 			break;
 		}
@@ -3831,6 +3907,52 @@ bool Parser::processBreak()
 	return false;
 }
 
+//處理純Lua語句(所有無法辨識的命令都會直接當作lua執行)
+bool Parser::processLuaString()
+{
+	bool bret = false;
+	QString exprStr = getToken<QString>(1);
+	luaDoString(exprStr);
+
+
+	sol::state& lua_ = pLua_->getLua();
+	sol::meta::unqualified_t<sol::table> table = lua_["_G"];
+	if (!table.valid())
+		return bret;
+
+	if (table.empty())
+		return bret;
+
+	for (const std::pair<sol::object, sol::object>& pairMain : table)
+	{
+		QString key;
+		if (pairMain.first.is<std::string>())
+			key = util::toQString(pairMain.first).simplified();
+		else if (pairMain.first.is<qint64>())
+			key = util::toQString(pairMain.first.as<qint64>()).simplified();
+		else
+			continue;
+
+		if (key.isEmpty())
+			continue;
+
+		if (key.startsWith("sol."))
+			continue;
+
+		if (exceptionList.contains(key))
+			continue;
+
+		if (!globalNames_.contains(key))
+		{
+			globalNames_.append(key);
+			globalNames_.removeDuplicates();
+		}
+	}
+	std::sort(globalNames_.begin(), globalNames_.end());
+	return bret;
+}
+
+//處理整塊的lua代碼
 bool Parser::processLuaCode()
 {
 	const qint64 currentLine = getCurrentLine();
@@ -3934,11 +4056,20 @@ void Parser::processTokens()
 			}
 		}
 
+		++validCommandCount_;
+
 		switch (currentType)
 		{
 		case TK_COMMENT:
+		{
+			--validCommandCount_;
+			++commandCount_;
+			break;
+		}
 		case TK_WHITESPACE:
 		{
+			--validCommandCount_;
+			++whiteSpace_;
 			break;
 		}
 		case TK_EXIT:
@@ -3998,7 +4129,8 @@ void Parser::processTokens()
 		}
 		case TK_LUASTRING:
 		{
-			processLuaString();
+			if (processLuaString())
+				continue;
 			break;
 		}
 #if 0
@@ -4137,10 +4269,18 @@ void Parser::processTokens()
 	lua_.collect_garbage();
 
 	/*==========全部重建 : 成功 2 個，失敗 0 個，略過 0 個==========
-	========== 重建 開始於 1:24 PM 並使用了 01:04.591 分鐘 ==========*/
+	  ========== 重建 開始於 1:24 PM 並使用了 01:04.591 分鐘 ==========*/
 	if (&signalDispatcher != nullptr)
+	{
+		if (injector.isScriptDebugModeEnable.load(std::memory_order_acquire))
+		{
+			emit signalDispatcher.appendScriptLog(QObject::tr(" ========== script report : valid %1，error %2，comment %3，space %4 ==========")
+				.arg(validCommandCount_).arg(errorCount_).arg(commandCount_).arg(whiteSpace_));
+		}
 		emit signalDispatcher.appendScriptLog(QObject::tr(" ========== script result : %1，cost %2 ==========")
 			.arg(isSubScript() ? QObject::tr("sub-ok") : QObject::tr("main-ok")).arg(util::formatMilliseconds(timer.elapsed())));
+	}
+
 }
 
 //導出變量訊息
@@ -4576,7 +4716,12 @@ void Parser::updateSysConstKeyword(const QString& expr)
 				return itemIndexs;
 			}
 
-			if (!injector.server->getItemIndexsByName(itemnames, itemmemos, &itemIndexs))
+			qint64 min = CHAR_EQUIPPLACENUM;
+			qint64 max = MAX_ITEM;
+			if (includeEequip)
+				min = 0;
+
+			if (!injector.server->getItemIndexsByName(itemnames, itemmemos, &itemIndexs, min, max))
 			{
 				return itemIndexs;
 			}
@@ -4602,12 +4747,8 @@ void Parser::updateSysConstKeyword(const QString& expr)
 
 				qint64 size = itemIndexs.size();
 				PC pc = injector.server->getPC();
-				for (qint64 i = 0; i < size; ++i)
+				for (const qint64 itemIndex : itemIndexs)
 				{
-					qint64 itemIndex = itemIndexs.at(i);
-					if (!includeEequip && i < CHAR_EQUIPPLACENUM)
-						continue;
-
 					ITEM item = pc.item[itemIndex];
 					if (item.valid)
 						count += item.stack;

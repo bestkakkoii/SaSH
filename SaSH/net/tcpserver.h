@@ -367,7 +367,7 @@ public://actions
 	void setTeamState(bool join);
 	void kickteam(qint64 n);
 
-	void setCharFaceToPoint(const QPoint& pos);
+	qint64 setCharFaceToPoint(const QPoint& pos);
 	void setCharFaceDirection(qint64 dir);
 	void setCharFaceDirection(const QString& dirStr);
 
@@ -448,7 +448,7 @@ public://actions
 	inline Q_REQUIRED_RESULT PARTY getParty(qint64 partyIndex) const { return party[partyIndex]; }
 	inline Q_REQUIRED_RESULT ITEM getPetEquip(qint64 petIndex, qint64 equipIndex) const { return pet[petIndex].item[equipIndex]; }
 	inline Q_REQUIRED_RESULT ADDRESS_BOOK getAddressBook(qint64 index) const { return addressBook[index]; }
-	inline Q_REQUIRED_RESULT battledata_t getBattleData() const { QReadLocker locker(&battleDataLocker); return battleData; }
+	inline Q_REQUIRED_RESULT battledata_t getBattleData() const { return battleData.get(); }
 	inline Q_REQUIRED_RESULT JOBDAILY getJobDaily(qint64 index) const { return jobdaily[index]; }
 
 	Q_REQUIRED_RESULT qint64 findInjuriedAllie();
@@ -503,7 +503,6 @@ private:
 
 	inline void setBattleData(const battledata_t& data)
 	{
-		QWriteLocker locker(&battleDataLocker);
 		battleData = data;
 	}
 
@@ -532,22 +531,18 @@ private:
 	bool petEscapeEnableTempFlag = false;
 	qint64 tempCatchPetTargetIndex = -1;
 	qint64 JobdailyGetMax = 0;  //是否有接收到資料
-	mutable QReadWriteLock battleStateLocker;
-	mutable QReadWriteLock onlineStateLocker;
-	mutable QReadWriteLock worldStateLocker;
-	mutable QReadWriteLock gameStateLocker;
 
-	battledata_t battleData;
-	mutable QReadWriteLock battleDataLocker;
+	util::SafeData<battledata_t> battleData;
 
 	bool IS_WAITFOT_SKUP_RECV = false;
 	QFuture<void> skupFuture;
 
 	bool IS_LOCKATTACK_ESCAPE_DISABLE = false;//鎖定攻擊不逃跑 (轉指定攻擊)
 
-	mutable QReadWriteLock petStateMutex_;
-	mutable QReadWriteLock pointMutex_;//用於保護人物座標更新順序
 	mutable QReadWriteLock pcMutex_;//用於保護人物數據更新順序
+	mutable QReadWriteLock pointMutex_;//用於保護人物座標更新順序
+	mutable QReadWriteLock petStateMutex_;
+
 	PC pc_ = {};
 
 	PET pet[MAX_PET] = {};
@@ -567,7 +562,7 @@ private:
 	qint64 swapitemModeFlag = 0; //當前自動整理功能的階段
 	QHash<QString, bool>itemStackFlagHash = {};
 
-	QVector<bool> battlePetDisableList_ = {};
+	util::SafeVector<bool> battlePetDisableList_ = {};
 
 	util::SafeData<qint64> nowFloor_;
 	util::SafeData<QString> nowFloorName_;
@@ -646,7 +641,7 @@ public:
 	bool IS_WAITFOR_DIALOG_FLAG = false;
 	bool IS_WAITFOR_EXTRA_DIALOG_INFO_FLAG = false;
 	bool IS_WAITFOR_CUSTOM_DIALOG_FLAG = false;
-	qint64 IS_WAITOFR_ITEM_CHANGE_PACKET = false;
+	std::atomic_llong IS_WAITOFR_ITEM_CHANGE_PACKET = false;
 
 	std::atomic_bool isBattleDialogReady = false;
 	std::atomic_bool isEOTTLSend = false;

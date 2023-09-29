@@ -227,52 +227,6 @@ qint64 Interpreter::eo(qint64 currentIndex, qint64 currentLine, const TokenMap& 
 	return Parser::kNoChange;
 }
 
-qint64 Interpreter::announce(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
-{
-	Injector& injector = Injector::getInstance(currentIndex);
-
-	QString text;
-	qreal number = 0.0;
-	qint64 nnumber = 0;
-	bool boolean = false;
-
-	if (checkBoolean(TK, 1, &boolean))
-	{
-		text = util::toQString(boolean);
-	}
-	else if (checkNumber(TK, 1, &number))
-	{
-		text = util::toQString(number);
-	}
-	else if (!checkString(TK, 1, &text))
-	{
-		if (checkInteger(TK, 1, &nnumber))
-			text = util::toQString(nnumber);
-		else
-			text = TK.value(1).data.toString();
-	}
-
-	qint64 color = 4;
-	checkInteger(TK, 2, &color);
-	if (color == -1)
-		color = QRandomGenerator::global()->bounded(0, 10);
-	else if (color < -1)
-	{
-		logExport(currentIndex, currentLine, text, 0);
-		return Parser::kNoChange;
-	}
-
-	if (!injector.server.isNull())
-	{
-		injector.server->announce(text, color);
-		logExport(currentIndex, currentLine, text, color);
-	}
-	else if (color != -2)
-		logExport(currentIndex, currentLine, text, 0);
-
-	return Parser::kNoChange;
-}
-
 qint64 Interpreter::input(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance(currentIndex);
@@ -366,15 +320,6 @@ qint64 Interpreter::talk(qint64 currentIndex, qint64 currentLine, const TokenMap
 	injector.server->talk(text, color, talkmode);
 
 	return Parser::kNoChange;
-}
-
-qint64 Interpreter::talkandannounce(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
-{
-	checkOnlineThenWait();
-	checkBattleThenWait();
-
-	announce(currentIndex, currentLine, TK);
-	return talk(currentIndex, currentLine, TK);
 }
 
 qint64 Interpreter::menu(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
@@ -768,4 +713,4 @@ qint64 Interpreter::send(qint64 currentIndex, qint64 currentLine, const TokenMap
 	injector.autil.util_SendArgs(static_cast<int>(funId), args);
 
 	return Parser::kNoChange;
-}
+	}

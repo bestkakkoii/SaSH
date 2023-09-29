@@ -2691,7 +2691,7 @@ No new version available. Do you still want to update?</source>
     </message>
     <message>
         <source>&lt;findpath&gt;unable to findpath</source>
-        <translation>&lt;尋路&gt;找不到路徑</translation>
+        <translation type="vanished">&lt;尋路&gt;找不到路徑</translation>
     </message>
     <message>
         <source>&lt;findpath&gt;path found, cost:%1</source>
@@ -2703,11 +2703,11 @@ No new version available. Do you still want to update?</source>
     </message>
     <message>
         <source>&lt;findpath&gt;stop finding path due to timeout</source>
-        <translation>&lt;尋路&gt;超時，放棄尋路</translation>
+        <translation type="vanished">&lt;尋路&gt;超時，放棄尋路</translation>
     </message>
     <message>
         <source>&lt;findpath&gt;stop finding path due to map changed</source>
-        <translation>&lt;尋路&gt;地圖已變更，放棄尋路</translation>
+        <translation type="vanished">&lt;尋路&gt;地圖已變更，放棄尋路</translation>
     </message>
     <message>
         <source>self</source>
@@ -2871,7 +2871,7 @@ No new version available. Do you still want to update?</source>
     </message>
     <message>
         <source>&lt;findpath&gt;detedted player ware blocked</source>
-        <translation>&lt;尋路&gt;檢測到人物卡點</translation>
+        <translation type="vanished">&lt;尋路&gt;檢測到人物卡點</translation>
     </message>
     <message>
         <source>&lt;Error&gt;Unknown command &apos;%1&apos; has been ignored at line: %2</source>
@@ -2955,7 +2955,7 @@ No new version available. Do you still want to update?</source>
     </message>
     <message>
         <source>&lt;findpath&gt;path found, cost:%1 step:%2</source>
-        <translation>&lt;尋路&gt;成功找到路徑，耗時：%1 步數:%2</translation>
+        <translation type="vanished">&lt;尋路&gt;成功找到路徑，耗時：%1 步數:%2</translation>
     </message>
     <message>
         <source>unknown command: %1</source>
@@ -3276,6 +3276,18 @@ No new version available. Do you still want to update?</source>
     <message>
         <source>GetProcAddress failed</source>
         <translation>取函數入口地址失敗</translation>
+    </message>
+    <message>
+        <source>[warn] &lt;findpath&gt;stop finding path due to interruption</source>
+        <translation>[警告] &lt;尋路&gt;收到中止請求，停止尋路</translation>
+    </message>
+    <message>
+        <source> ========== report : error %1 times，others %2 times ==========</source>
+        <translation type="vanished"> ========== 報告 : 錯誤 %1 個，其他 %2 個 ==========</translation>
+    </message>
+    <message>
+        <source> ========== script report : valid %1，error %2，comment %3，space %4 ==========</source>
+        <translation> ========== 腳本報告 : 有效命令 %1 個，錯誤 %2 個，註釋 %3 個，空行 %4 個 ==========</translation>
     </message>
 </context>
 <context>

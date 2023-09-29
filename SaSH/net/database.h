@@ -971,7 +971,7 @@ enum TalkMode
 #ifdef _WIN64
 #pragma pack(8)
 #else
-#pragma pack(8) 
+#pragma pack(4) 
 #endif
 
 #if 0

@@ -120,8 +120,8 @@ namespace luadebug
 
 	void hookProc(lua_State* L, lua_Debug* ar);
 
-	void logExport(const sol::this_state& s, const QStringList& datas, qint64 color);
-	void logExport(const sol::this_state& s, const QString& data, qint64 color);
+	void logExport(const sol::this_state& s, const QStringList& datas, qint64 color, bool doNotAnnounce = false);
+	void logExport(const sol::this_state& s, const QString& data, qint64 color, bool doNotAnnounce = false);
 }
 
 class CLuaTest
@@ -179,7 +179,7 @@ public:
 
 	//global
 	qint64 sleep(qint64 value, sol::this_state s);//ok
-	qint64 announce(sol::object ostr, sol::object ocolor, sol::this_state s);//ok
+	qint64 print(sol::object ostr, sol::object ocolor, sol::this_state s);//ok
 	qint64 messagebox(sol::object ostr, sol::object otype, sol::this_state s);//ok
 	qint64 savesetting(const std::string& fileName, sol::this_state s);//ok
 	qint64 loadsetting(const std::string& fileName, sol::this_state s);//ok
@@ -282,8 +282,9 @@ public:
 	qint64 move(qint64 x, qint64 y, sol::this_state s);
 	qint64 packetMove(qint64 x, qint64 y, std::string sdir, sol::this_state s);
 	qint64 teleport(sol::this_state s);
-	qint64 findPath(qint64 x, qint64 y, qint64 len, qint64 timeout, sol::object ofunction, sol::object ocallbackSpeed, sol::this_state s);
+	qint64 findPath(sol::object p1, sol::object p2, sol::object p3, sol::object p4, sol::object p5, sol::object ofunction, sol::object jump, sol::this_state s);
 	qint64 downLoad(sol::object floor, sol::this_state s);
+	qint64 moveToNPC(sol::object, sol::object, qint64 x, qint64 y, qint64 otimeout, sol::object jump, sol::this_state s);
 };
 
 class CLuaBattle

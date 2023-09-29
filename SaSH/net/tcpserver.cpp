@@ -210,6 +210,9 @@ Server::Server(qint64 index, QObject* parent)
 	: ThreadPlugin(index, parent)
 	, Lssproto(&Injector::getInstance(index).autil)
 	, chatQueue(MAX_CHAT_HISTORY)
+	, pcMutex_(QReadWriteLock::RecursionMode::Recursive)
+	, pointMutex_(QReadWriteLock::RecursionMode::Recursive)
+	, petStateMutex_(QReadWriteLock::RecursionMode::Recursive)
 {
 	setIndex(index);
 	loginTimer.start();
@@ -246,7 +249,7 @@ Server::~Server()
 
 		if (clientSocket->state() == QAbstractSocket::ConnectedState)
 			clientSocket->waitForDisconnected();
-		delete clientSocket;
+		clientSocket->deleteLater();
 	}
 
 	clientSockets_.clear();
@@ -268,7 +271,7 @@ void Server::clear()
 	qint64 i = 0, j = 0;
 	for (i = 0; i < MAX_PET + 1; ++i)
 		recorder[i] = {};
-	battleData = {};
+	battleData = battledata_t{};
 	currentDialog = dialog_t{};
 
 	// 清理 MAIL_HISTORY 数组中的每个元素
@@ -1153,7 +1156,6 @@ qint64 Server::dispatchMessage(char* encoded)
 #pragma region GET
 bool Server::getBattleFlag()
 {
-	QReadLocker lock(&battleStateLocker);
 	if (isInterruptionRequested())
 		return false;
 
@@ -1162,7 +1164,6 @@ bool Server::getBattleFlag()
 
 bool Server::getOnlineFlag() const
 {
-	QReadLocker lock(&onlineStateLocker);
 	if (isInterruptionRequested())
 		return false;
 	return IS_ONLINE_FLAG.load(std::memory_order_acquire);
@@ -1171,7 +1172,6 @@ bool Server::getOnlineFlag() const
 //用於判斷畫面的狀態的數值 (9平時 10戰鬥 <8非登入)
 qint64 Server::getWorldStatus()
 {
-	QReadLocker lock(&worldStateLocker);
 	qint64 currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
 	return static_cast<qint64>(mem::read<int>(injector.getProcess(), injector.getProcessModule() + kOffsetWorldStatus));
@@ -1180,7 +1180,6 @@ qint64 Server::getWorldStatus()
 //用於判斷畫面或動畫狀態的數值 (平時一般是3 戰鬥中選擇面板是4 戰鬥動作中是5或6，平時還有很多其他狀態值)
 qint64 Server::getGameStatus()
 {
-	QReadLocker lock(&gameStateLocker);
 	qint64 currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
 	return static_cast<qint64>(mem::read<int>(injector.getProcess(), injector.getProcessModule() + kOffsetGameStatus));
@@ -1392,10 +1391,10 @@ void Server::getCharMaxCarryingCapacity()
 
 qint64 Server::getPartySize() const
 {
-	QReadLocker locker(&pcMutex_);
+	PC pc = getPC();
 	qint64 count = 0;
 
-	if (checkAND(pc_.status, CHR_STATUS_LEADER) || checkAND(pc_.status, CHR_STATUS_PARTY))
+	if (checkAND(pc.status, CHR_STATUS_LEADER) || checkAND(pc.status, CHR_STATUS_PARTY))
 	{
 		for (qint64 i = 0; i < MAX_PARTY; ++i)
 		{
@@ -2346,7 +2345,6 @@ void Server::swapItemLocal(qint64 from, qint64 to)
 
 void Server::setWorldStatus(qint64 w)
 {
-	QWriteLocker lock(&worldStateLocker);
 	qint64 currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
 	mem::write<int>(injector.getProcess(), injector.getProcessModule() + kOffsetWorldStatus, w);
@@ -2354,7 +2352,6 @@ void Server::setWorldStatus(qint64 w)
 
 void Server::setGameStatus(qint64 g)
 {
-	QWriteLocker lock(&gameStateLocker);
 	qint64 currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
 	mem::write<int>(injector.getProcess(), injector.getProcessModule() + kOffsetGameStatus, g);
@@ -2363,8 +2360,6 @@ void Server::setGameStatus(qint64 g)
 //切換是否在戰鬥中的標誌
 void Server::setBattleFlag(bool enable)
 {
-	QWriteLocker lock(&battleStateLocker);
-
 	IS_BATTLE_FLAG.store(enable, std::memory_order_release);
 	isBattleDialogReady.store(false, std::memory_order_release);
 	qint64 currentIndex = getIndex();
@@ -2402,10 +2397,8 @@ void Server::setBattleFlag(bool enable)
 
 void Server::setOnlineFlag(bool enable)
 {
-	{
-		QWriteLocker lock(&onlineStateLocker);
-		IS_ONLINE_FLAG.store(enable, std::memory_order_release);
-	}
+	IS_ONLINE_FLAG.store(enable, std::memory_order_release);
+
 
 	if (!enable)
 	{
@@ -2593,12 +2586,11 @@ void Server::talk(const QString& text, qint64 color, TalkMode mode)
 		return;
 	}
 
-	QReadLocker locker(&pcMutex_);
 
 	if (color < 0 || color > 10)
 		color = 0;
 
-	qint64 flg = pc_.etcFlag;
+	qint64 flg = getPC().etcFlag;
 	QString msg = "P|";
 	if (mode == kTalkGlobal)
 		msg += ("/XJ ");
@@ -2728,13 +2720,13 @@ void Server::saMenu(qint64 n)
 //切換單一開關
 void Server::setSwitcher(qint64 flg, bool enable)
 {
-	QWriteLocker locker(&pcMutex_);
+	PC pc = getPC();
 	if (enable)
-		pc_.etcFlag |= flg;
+		pc.etcFlag |= flg;
 	else
-		pc_.etcFlag &= ~flg;
+		pc.etcFlag &= ~flg;
 
-	setSwitcher(pc_.etcFlag);
+	setSwitcher(pc.etcFlag);
 }
 
 //切換全部開關
@@ -3601,7 +3593,7 @@ void Server::depositItem(qint64 itemIndex, qint64 dialogid, qint64 unitid)
 	std::string srow = util::fromUnicode(qstr);
 	lssproto_WN_send(getPoint(), dialogid, unitid, BUTTON_NOTUSED, const_cast<char*>(srow.c_str()));
 
-	++IS_WAITOFR_ITEM_CHANGE_PACKET;
+	IS_WAITOFR_ITEM_CHANGE_PACKET.fetch_add(1, std::memory_order_release);
 }
 
 void Server::withdrawItem(qint64 itemIndex, qint64 dialogid, qint64 unitid)
@@ -3627,7 +3619,7 @@ void Server::withdrawItem(qint64 itemIndex, qint64 dialogid, qint64 unitid)
 	Injector& injector = Injector::getInstance(currentIndex);
 	injector.sendMessage(kDistoryDialog, NULL, NULL);
 
-	++IS_WAITOFR_ITEM_CHANGE_PACKET;
+	IS_WAITOFR_ITEM_CHANGE_PACKET.fetch_add(1, std::memory_order_release);
 }
 
 void Server::depositPet(qint64 petIndex, qint64 dialogid, qint64 unitid)
@@ -3863,7 +3855,7 @@ void Server::mail(const QVariant& card, const QString& text, qint64 petIndex, co
 		lssproto_PMSG_send(index, petIndex, itemIndex, const_cast<char*>(sstr.c_str()), NULL);
 		if (itemIndex >= 0 && itemIndex < MAX_ITEM)
 		{
-			++IS_WAITOFR_ITEM_CHANGE_PACKET;
+			IS_WAITOFR_ITEM_CHANGE_PACKET.fetch_add(1, std::memory_order_release);
 		}
 	}
 }
@@ -3871,8 +3863,6 @@ void Server::mail(const QVariant& card, const QString& text, qint64 petIndex, co
 //加點
 bool Server::addPoint(qint64 skillid, qint64 amt)
 {
-	QWriteLocker locker(&pcMutex_);
-
 	if (!getOnlineFlag())
 		return false;
 
@@ -3885,8 +3875,10 @@ bool Server::addPoint(qint64 skillid, qint64 amt)
 	if (amt < 1)
 		return false;
 
-	if (amt > pc_.point)
-		amt = pc_.point;
+	PC pc = getPC();
+
+	if (amt > pc.point)
+		amt = pc.point;
 
 	QElapsedTimer timer; timer.start();
 	for (qint64 i = 0; i < amt; ++i)
@@ -4430,7 +4422,7 @@ void Server::move(const QPoint& p)
 }
 
 //轉向指定坐標
-void Server::setCharFaceToPoint(const QPoint& pos)
+qint64 Server::setCharFaceToPoint(const QPoint& pos)
 {
 	qint64 dir = -1;
 	QPoint current = getPoint();
@@ -4440,9 +4432,10 @@ void Server::setCharFaceToPoint(const QPoint& pos)
 		{
 			dir = util::fix_point.indexOf(it);
 			setCharFaceDirection(dir);
-			break;
+			return dir;
 		}
 	}
+	return -1;
 }
 
 //轉向 (根據方向索引自動轉換成A-H)
@@ -4699,7 +4692,7 @@ void Server::dropItem(qint64 index)
 
 			for (qint64 j = 0; j < pc_.item[i].stack; ++j)
 				lssproto_DI_send(getPoint(), i);
-			++IS_WAITOFR_ITEM_CHANGE_PACKET;
+			IS_WAITOFR_ITEM_CHANGE_PACKET.fetch_add(1, std::memory_order_release);
 		}
 	}
 
@@ -4711,7 +4704,7 @@ void Server::dropItem(qint64 index)
 
 	for (qint64 j = 0; j < pc_.item[index].stack; ++j)
 		lssproto_DI_send(getPoint(), index);
-	++IS_WAITOFR_ITEM_CHANGE_PACKET;
+	IS_WAITOFR_ITEM_CHANGE_PACKET.fetch_add(1, std::memory_order_release);
 }
 
 void Server::dropItem(QVector<qint64> indexs)
@@ -4754,7 +4747,7 @@ void Server::useItem(qint64 itemIndex, qint64 target)
 		return;
 
 	lssproto_ID_send(getPoint(), itemIndex, target);
-	++IS_WAITOFR_ITEM_CHANGE_PACKET;
+	IS_WAITOFR_ITEM_CHANGE_PACKET.fetch_add(1, std::memory_order_release);
 }
 
 //交換道具
@@ -4776,7 +4769,7 @@ void Server::swapItem(qint64 from, qint64 to)
 
 	lssproto_MI_send(from, to);
 
-	++IS_WAITOFR_ITEM_CHANGE_PACKET;
+	IS_WAITOFR_ITEM_CHANGE_PACKET.fetch_add(1, std::memory_order_release);
 }
 
 //撿道具
@@ -4814,7 +4807,7 @@ void Server::petitemswap(qint64 petIndex, qint64 from, qint64 to)
 	}
 
 	lssproto_PetItemEquip_send(getPoint(), petIndex, from, to);
-	++IS_WAITOFR_ITEM_CHANGE_PACKET;
+	IS_WAITOFR_ITEM_CHANGE_PACKET.fetch_add(1, std::memory_order_release);
 }
 
 //料理/加工
@@ -4856,7 +4849,7 @@ void Server::craft(util::CraftType type, const QStringList& ingres)
 	QString qstr = itemIndexs.join("|");
 	std::string str = util::fromUnicode(qstr);
 	lssproto_PS_send(petIndex, skillIndex, NULL, const_cast<char*>(str.c_str()));
-	++IS_WAITOFR_ITEM_CHANGE_PACKET;
+	IS_WAITOFR_ITEM_CHANGE_PACKET.fetch_add(1, std::memory_order_release);
 }
 
 void Server::depositGold(qint64 gold, bool isPublic)
@@ -9081,8 +9074,8 @@ void Server::lssproto_I_recv(char* cdata)
 
 	refreshItemInfo();
 	updateComboBoxList();
-	if (IS_WAITOFR_ITEM_CHANGE_PACKET > 0)
-		--IS_WAITOFR_ITEM_CHANGE_PACKET;
+	if (IS_WAITOFR_ITEM_CHANGE_PACKET.load(std::memory_order_acquire) > 0)
+		IS_WAITOFR_ITEM_CHANGE_PACKET.fetch_sub(1, std::memory_order_release);
 }
 
 //對話框
@@ -12423,8 +12416,8 @@ void Server::lssproto_S_recv(char* cdata)
 		}
 
 		emit signalDispatcher.updateComboBoxItemText(util::kComboBoxCharAction, magicNameList);
-		if (IS_WAITOFR_ITEM_CHANGE_PACKET > 0)
-			--IS_WAITOFR_ITEM_CHANGE_PACKET;
+		if (IS_WAITOFR_ITEM_CHANGE_PACKET.load(std::memory_order_acquire) > 0)
+			IS_WAITOFR_ITEM_CHANGE_PACKET.fetch_sub(1, std::memory_order_release);
 	}
 #pragma endregion
 #pragma region PetSkill

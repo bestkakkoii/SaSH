@@ -134,7 +134,7 @@ void MapForm::onButtonClicked()
 		qint64 x = ui.spinBox_findpath_x->value();
 		qint64 y = ui.spinBox_findpath_y->value();
 
-		interpreter_->doString(QString(u8"findpath %1, %2, 1").arg(x).arg(y), nullptr, Interpreter::kNotShare);
+		interpreter_->doString(QString(u8"findpath(%1, %2, 3)").arg(x).arg(y), nullptr, Interpreter::kNotShare);
 		ui.pushButton_findpath_stop->setEnabled(true);
 		ui.pushButton_findpath_start->setEnabled(false);
 	}
@@ -252,7 +252,7 @@ void MapForm::onTableWidgetCellDoubleClicked(int row, int col)
 	connect(interpreter_.data(), &Interpreter::finished, this, &MapForm::onScriptFinished);
 
 	QPoint point = npc_hash_.value(row);
-	interpreter_->doString(QString(u8"findpath %1, %2, 1").arg(point.x()).arg(point.y()), nullptr, Interpreter::kNotShare);
+	interpreter_->doString(QString(u8"findpath(%1, %2, 3)").arg(point.x()).arg(point.y()), nullptr, Interpreter::kNotShare);
 	ui.pushButton_findpath_stop->setEnabled(true);
 	ui.pushButton_findpath_start->setEnabled(false);
 }

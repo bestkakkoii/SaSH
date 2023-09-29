@@ -747,18 +747,17 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 	{
 		*result = 0;
 		qint64 id = msg->wParam;
-		MainForm* pMainForm = createNewWindow(id);
-		if (pMainForm != nullptr)
+		MainForm* p = createNewWindow(id);
+		if (p == nullptr)
 		{
-			*result = static_cast<long>(pMainForm->winId());
-			++interfaceCount_;
-			updateStatusText();
-		}
-		else
-		{
-			updateStatusText("failed");
+			updateStatusText("create window failed");
 			return true;
 		}
+
+		++interfaceCount_;
+		updateStatusText();
+		result = reinterpret_cast<long*>(p->winId());
+
 		return true;
 	}
 	case InterfaceMessage::kGetGamePid:
@@ -903,7 +902,7 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 			return true;
 		} while (false);
 
-		injector.setEnableHash(util::kAutoLoginEnable, true);
+		injector.setEnableHash(util::kAutoLoginEnable, false);
 		injector.setStringHash(util::kGameAccountString, "");
 		injector.setStringHash(util::kGamePasswordString, "");
 		injector.setValueHash(util::kServerValue, 0);
@@ -997,7 +996,17 @@ MainForm* MainForm::createNewWindow(qint64 idToAllocate, qint64* pId)
 			break;
 
 		if (g_mainFormHash.contains(uniqueId))
-			break;
+		{
+			MainForm* pMainForm = g_mainFormHash.value(uniqueId, nullptr);
+			if (pMainForm != nullptr)
+			{
+				pMainForm->show();
+				pMainForm->markAsClose_ = false;
+				if (pId != nullptr)
+					*pId = uniqueId;
+				return pMainForm;
+			}
+		}
 
 		MainForm* pMainForm = new MainForm(uniqueId, nullptr);
 		if (pMainForm == nullptr)
@@ -1022,7 +1031,7 @@ MainForm::MainForm(qint64 index, QWidget* parent)
 	ui.setupUi(this);
 	setIndex(index);
 
-	setAttribute(Qt::WA_DeleteOnClose);
+	setAttribute(Qt::WA_QuitOnClose);
 	setAttribute(Qt::WA_StyledBackground, true);
 	setAttribute(Qt::WA_StaticContents, true);
 	setWindowFlags(windowFlags() & ~Qt::WindowMaximizeButtonHint);
@@ -1042,7 +1051,6 @@ MainForm::MainForm(qint64 index, QWidget* parent)
 	setStyleSheet("background-color: #F1F1F1;");
 	qRegisterMetaType<QVariant>("QVariant");
 	qRegisterMetaType<QVariant>("QVariant&");
-
 
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(index);
 	signalDispatcher.setParent(this);
@@ -1142,12 +1150,11 @@ MainForm::MainForm(qint64 index, QWidget* parent)
 MainForm::~MainForm()
 {
 	qDebug() << "MainForm::~MainForm()";
-	qint64 currentIndex = getIndex();
-	Injector::getInstance(currentIndex).close();
-	g_mainFormHash.remove(currentIndex);
-	SignalDispatcher::remove(currentIndex);
-	if (g_mainFormHash.isEmpty())
-		MINT::NtTerminateProcess(GetCurrentProcess(), 0);
+	//qint64 currentIndex = getIndex();
+	//g_mainFormHash.remove(currentIndex);
+	//SignalDispatcher::remove(currentIndex);
+	//if (g_mainFormHash.isEmpty())
+	MINT::NtTerminateProcess(GetCurrentProcess(), 0);
 }
 
 void MainForm::showEvent(QShowEvent* e)
@@ -1169,6 +1176,20 @@ void MainForm::closeEvent(QCloseEvent* e)
 		mapWidget_->close();
 	if (pScriptSettingForm_ != nullptr)
 		pScriptSettingForm_->close();
+
+	markAsClose_ = true;
+
+	Injector::getInstance(getIndex()).close();
+
+	for (const auto& it : g_mainFormHash)
+	{
+		if (!it->markAsClose_)
+		{
+			mem::freeUnuseMemory(GetCurrentProcess());
+			return;
+		}
+	}
+	MINT::NtTerminateProcess(GetCurrentProcess(), 0);
 }
 
 //菜單點擊事件

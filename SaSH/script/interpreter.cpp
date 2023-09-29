@@ -472,12 +472,10 @@ void Interpreter::openLibsBIG5()
 	registerFunction(u8"延時", &Interpreter::sleep);
 	registerFunction(u8"按鈕", &Interpreter::press);
 	registerFunction(u8"元神歸位", &Interpreter::eo);
-	registerFunction(u8"提示", &Interpreter::announce);
 	registerFunction(u8"輸入", &Interpreter::input);
 	registerFunction(u8"回點", &Interpreter::logback);
 	registerFunction(u8"登出", &Interpreter::logout);
 	registerFunction(u8"說話", &Interpreter::talk);
-	registerFunction(u8"說出", &Interpreter::talkandannounce);
 	registerFunction(u8"清屏", &Interpreter::cleanchat);
 	registerFunction(u8"儲存設置", &Interpreter::savesetting);
 	registerFunction(u8"讀取設置", &Interpreter::loadsetting);
@@ -509,11 +507,8 @@ void Interpreter::openLibsBIG5()
 	registerFunction(u8"坐標", &Interpreter::move);
 	registerFunction(u8"座標", &Interpreter::move);
 	registerFunction(u8"移動", &Interpreter::fastmove);
-	registerFunction(u8"尋路", &Interpreter::findpath);
 	registerFunction(u8"封包移動", &Interpreter::packetmove);
-	registerFunction(u8"移動至NPC", &Interpreter::movetonpc);
 	registerFunction(u8"轉移", &Interpreter::teleport);
-	registerFunction(u8"過點", &Interpreter::warp);
 
 	//action
 	registerFunction(u8"使用道具", &Interpreter::useitem);
@@ -569,12 +564,10 @@ void Interpreter::openLibsGB2312()
 	registerFunction(u8"延时", &Interpreter::sleep);
 	registerFunction(u8"按钮", &Interpreter::press);
 	registerFunction(u8"元神归位", &Interpreter::eo);
-	registerFunction(u8"提示", &Interpreter::announce);
 	registerFunction(u8"输入", &Interpreter::input);
 	registerFunction(u8"回点", &Interpreter::logback);
 	registerFunction(u8"登出", &Interpreter::logout);
 	registerFunction(u8"说话", &Interpreter::talk);
-	registerFunction(u8"说出", &Interpreter::talkandannounce);
 	registerFunction(u8"清屏", &Interpreter::cleanchat);
 	registerFunction(u8"储存设置", &Interpreter::savesetting);
 	registerFunction(u8"读取设置", &Interpreter::loadsetting);
@@ -607,11 +600,8 @@ void Interpreter::openLibsGB2312()
 	registerFunction(u8"坐标", &Interpreter::move);
 	registerFunction(u8"座标", &Interpreter::move);
 	registerFunction(u8"移动", &Interpreter::fastmove);
-	registerFunction(u8"寻路", &Interpreter::findpath);
 	registerFunction(u8"封包移动", &Interpreter::packetmove);
-	registerFunction(u8"移动至NPC", &Interpreter::movetonpc);
 	registerFunction(u8"转移", &Interpreter::teleport);
-	registerFunction(u8"过点", &Interpreter::warp);
 
 	//action
 	registerFunction(u8"使用道具", &Interpreter::useitem);
@@ -668,12 +658,10 @@ void Interpreter::openLibsUTF8()
 	registerFunction(u8"sleep", &Interpreter::sleep);
 	registerFunction(u8"button", &Interpreter::press);
 	registerFunction(u8"eo", &Interpreter::eo);
-	registerFunction(u8"print", &Interpreter::announce);
 	registerFunction(u8"input", &Interpreter::input);
 	registerFunction(u8"logback", &Interpreter::logback);
 	registerFunction(u8"logout", &Interpreter::logout);
 	registerFunction(u8"say", &Interpreter::talk);
-	registerFunction(u8"talk", &Interpreter::talkandannounce);
 	registerFunction(u8"cls", &Interpreter::cleanchat);
 	registerFunction(u8"saveset", &Interpreter::savesetting);
 	registerFunction(u8"loadset", &Interpreter::loadsetting);
@@ -706,11 +694,8 @@ void Interpreter::openLibsUTF8()
 	registerFunction(u8"dir", &Interpreter::setdir);
 	registerFunction(u8"walkpos", &Interpreter::move);
 	registerFunction(u8"move", &Interpreter::fastmove);
-	registerFunction(u8"findpath", &Interpreter::findpath);
 	registerFunction(u8"w", &Interpreter::packetmove);
-	registerFunction(u8"movetonpc", &Interpreter::movetonpc);
 	registerFunction(u8"chmap", &Interpreter::teleport);
-	registerFunction(u8"warp", &Interpreter::warp);
 
 	//action
 	registerFunction(u8"useitem", &Interpreter::useitem);
@@ -885,7 +870,7 @@ bool Interpreter::checkBattleThenWait()
 	qint64 currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
 
-	if (!injector.server.isNull())
+	if (injector.server.isNull())
 		return false;
 
 	bool bret = false;
@@ -898,7 +883,7 @@ bool Interpreter::checkBattleThenWait()
 			if (isInterruptionRequested())
 				break;
 
-			if (!injector.server.isNull())
+			if (injector.server.isNull())
 				break;
 
 			checkPause();
@@ -923,7 +908,7 @@ bool Interpreter::checkOnlineThenWait()
 	qint64 currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
 
-	if (!injector.server.isNull())
+	if (injector.server.isNull())
 		return false;
 
 	bool bret = false;
@@ -937,7 +922,7 @@ bool Interpreter::checkOnlineThenWait()
 			if (isInterruptionRequested())
 				break;
 
-			if (!injector.server.isNull())
+			if (injector.server.isNull())
 				break;
 
 			checkPause();
@@ -954,246 +939,6 @@ bool Interpreter::checkOnlineThenWait()
 		QThread::msleep(2000UL);
 	}
 	return bret;
-}
-
-bool Interpreter::findPath(qint64 currentIndex, qint64 currentLine, QPoint dst, qint64 steplen, qint64 step_cost, qint64 timeout, std::function<qint64(QPoint& dst)> callback, bool noAnnounce)
-{
-	Injector& injector = Injector::getInstance(currentIndex);
-	qint64 hModule = injector.getProcessModule();
-	HANDLE hProcess = injector.getProcess();
-
-	QString output = "";
-
-	bool isDebug = injector.getEnableHash(util::kScriptDebugModeEnable);
-	if (!isDebug)
-		noAnnounce = true;
-
-	auto getPos = [hProcess, hModule, &injector]()->QPoint
-	{
-		if (!injector.server.isNull())
-			return injector.server->getPoint();
-		else
-			return QPoint();
-	};
-
-	if (injector.server.isNull())
-		return false;
-
-	qint64 floor = injector.server->getFloor();
-	QPoint src(getPos());
-	if (src == dst)
-		return true;//已經抵達
-
-	QSharedPointer<MapAnalyzer> mapAnalyzer = injector.server->mapAnalyzer;
-	if (!mapAnalyzer.isNull())
-	{
-		if (mapAnalyzer.isNull())
-			return false;
-	}
-	else
-		return false;
-
-	if (!noAnnounce && !injector.server.isNull())
-	{
-		output = QObject::tr("<findpath>start searching the path");
-		injector.server->announce(output);//"<尋路>開始搜尋路徑"
-		logExport(currentIndex, currentLine, output, 4);
-	}
-
-	CAStar astar;
-	std::vector<QPoint> path;
-	QElapsedTimer timer; timer.start();
-	QSet<QPoint> blockList;
-	if (mapAnalyzer.isNull() || !mapAnalyzer->calcNewRoute(&astar, floor, src, dst, blockList, &path))
-	{
-		output = QObject::tr("[error] <findpath>unable to findpath from %1, %2 to %3, %4").arg(src.x()).arg(src.y()).arg(dst.x()).arg(dst.y());
-		injector.server->announce(output);
-		logExport(currentIndex, currentLine, output, 4);
-
-		return false;
-	}
-
-	qint64 cost = static_cast<qint64>(timer.elapsed());
-	if (!noAnnounce && !injector.server.isNull())
-	{
-		output = QObject::tr("<findpath>path found, from %1, %2 to %3, %4 cost:%5 step:%6")
-			.arg(src.x()).arg(src.y()).arg(dst.x()).arg(dst.y()).arg(cost).arg(path.size());
-		injector.server->announce(output);
-		logExport(currentIndex, currentLine, output, 4);
-	}
-
-	QPoint point;
-	qint64 steplen_cache = -1;
-	qint64 pathsize = path.size();
-	qint64 current_floor = floor;
-
-	timer.restart();
-
-	//用於檢測卡點
-	QElapsedTimer blockDetectTimer; blockDetectTimer.start();
-	QPoint lastPoint = src;
-	QPoint lastTryPoint;
-	qint64 recordedStep = -1;
-
-	for (;;)
-	{
-		checkOnlineThenWait();
-
-		if (injector.server.isNull() || isInterruptionRequested())
-			break;
-
-		src = getPos();
-
-		steplen_cache = steplen;
-
-		for (;;)
-		{
-			if (!((steplen_cache) >= (pathsize)))
-				break;
-			--steplen_cache;
-		}
-
-		if (recordedStep >= 0)
-			steplen_cache = recordedStep;
-
-		if (steplen_cache >= 0 && (steplen_cache < pathsize))
-		{
-			if (lastPoint != src)
-			{
-				blockDetectTimer.restart();
-				lastPoint = src;
-			}
-
-			point = path.at(steplen_cache);
-			injector.server->move(point);
-			lastTryPoint = point;
-			if (step_cost > 0)
-				QThread::msleep(step_cost);
-		}
-
-		if (!checkBattleThenWait())
-		{
-			src = getPos();
-			if (!src.isNull() && src == dst)
-			{
-				cost = timer.elapsed();
-				if (cost > 5000)
-				{
-					QThread::msleep(500);
-
-					if (injector.server.isNull() || isInterruptionRequested())
-						break;
-
-					src = getPos();
-					if (src.isNull() || src != dst)
-						continue;
-
-					injector.server->EO();
-
-					src = getPos();
-					if (src.isNull() || src != dst)
-						continue;
-
-					QThread::msleep(500);
-
-					if (injector.server.isNull() || isInterruptionRequested())
-						break;
-
-					injector.server->EO();
-
-					src = getPos();
-					if (src.isNull() || src != dst)
-						continue;
-				}
-
-				injector.server->move(dst);
-
-				QThread::msleep(200);
-				src = getPos();
-				if (src.isNull() || src != dst)
-					continue;
-
-				if (!noAnnounce && !injector.server.isNull())
-				{
-					output = QObject::tr("<findpath>arrived destination, cost:%1").arg(cost);
-					injector.server->announce(output);
-					logExport(currentIndex, currentLine, output, 4);
-				}
-				return true;//已抵達true
-			}
-
-			if (mapAnalyzer.isNull() || !mapAnalyzer->calcNewRoute(&astar, floor, src, dst, blockList, &path))
-				break;
-
-			pathsize = path.size();
-		}
-		else
-		{
-			src = getPos();
-		}
-
-		if (blockDetectTimer.hasExpired(5000))
-		{
-			blockDetectTimer.restart();
-			if (injector.server.isNull() || isInterruptionRequested())
-				break;
-
-			output = QObject::tr("[warn] <findpath>detedted player ware blocked");
-			injector.server->announce(output);
-			logExport(currentIndex, currentLine, output, 4);
-			injector.server->EO();
-			QThread::msleep(500);
-
-			if (injector.server.isNull() || isInterruptionRequested())
-				break;
-
-			//將正前方的坐標加入黑名單
-			src = getPos();
-			QPoint point = src + util::fix_point.at(injector.server->getPC().dir);
-			blockList.insert(point);
-			blockList.insert(lastTryPoint);
-			if (recordedStep == -1)
-			{
-				recordedStep = steplen_cache;
-			}
-			else
-				--recordedStep;
-			continue;
-		}
-
-		if (injector.server.isNull() || isInterruptionRequested())
-			break;
-
-		if (timer.hasExpired(timeout))
-		{
-			if (!injector.server.isNull())
-			{
-				output = QObject::tr("[warn] <findpath>stop finding path due to timeout");
-				injector.server->announce(output);
-				logExport(currentIndex, currentLine, output, 4);
-			}
-			break;
-		}
-
-		if (injector.server->getFloor() != current_floor)
-		{
-			if (!injector.server.isNull())
-			{
-				output = QObject::tr("[warn] <findpath>stop finding path due to floor changed");
-				injector.server->announce(output);
-				logExport(currentIndex, currentLine, output, 4);
-			}
-			break;
-		}
-
-		if (callback != nullptr)
-		{
-			QThread::msleep(50);
-			if (callback(dst) == 1)
-				callback = nullptr;
-		}
-	}
-	return false;
 }
 
 //執行子腳本
@@ -1236,7 +981,6 @@ qint64 Interpreter::run(qint64 currentIndex, qint64 currentline, const TokenMap&
 
 		//take directory only
 		QString currentDir = mainScriptFileInfo.absolutePath();
-		currentDir.replace(util::applicationDirPath(), ".");
 
 		fileName = currentDir + "/" + fileName;
 		fileName.replace("\\", "/");
@@ -1260,6 +1004,7 @@ qint64 Interpreter::run(qint64 currentIndex, qint64 currentline, const TokenMap&
 
 	if (Parser::kSync == asyncMode)
 	{
+		//紀錄當前數據
 		QHash<qint64, TokenMap> tokens = parser_.getTokens();
 		QHash<QString, qint64> labels = parser_.getLabels();
 		QList<FunctionNode> functionNodeList = parser_.getFunctionNodeList();
@@ -1272,6 +1017,8 @@ qint64 Interpreter::run(qint64 currentIndex, qint64 currentline, const TokenMap&
 
 		interpreter.setSubScript(true);
 		interpreter.parser_.setMode(asyncMode);
+		sol::state& lua = parser_.pLua_->getLua();
+		interpreter.parser_.loadGlobalVariablesFromSol(lua, parser_.getGlobalNameList());
 
 		injector.currentScriptFileName = fileName;
 
@@ -1280,12 +1027,15 @@ qint64 Interpreter::run(qint64 currentIndex, qint64 currentline, const TokenMap&
 			return Parser::kError;
 		}
 
+		//還原數據
 		parser_.setTokens(tokens);
 		parser_.setLabels(labels);
 		parser_.setFunctionNodeList(functionNodeList);
 		parser_.setForNodeList(forNodeList);
 		parser_.setLuaNodeList(luaNodeList_);
 		parser_.setCurrentLine(currentLine);
+		sol::state& newlua = interpreter.parser_.pLua_->getLua();
+		parser_.loadGlobalVariablesFromSol(newlua, parser_.getGlobalNameList());
 		injector.currentScriptFileName = currentFileName;
 
 		//還原顯示

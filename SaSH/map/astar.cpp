@@ -48,16 +48,17 @@ CAStar::~CAStar()
 
 void CAStar::init(qint64 width, qint64 height)
 {
-	if (width != width_ || height != height_)
-	{
-		height_ = height;
-		width_ = width;
-		resource_.reset(new std::pmr::monotonic_buffer_resource(width_ * height_ * sizeof(Node)));
-		allocator_.reset(new std::pmr::polymorphic_allocator<Node>(resource_.get()));
-		mapping_.clear();
-		mapping_.resize(width_ * height_);
-		memset(&mapping_[0], 0, sizeof(Node*) * mapping_.size());
-	}
+	std::lock_guard<std::mutex> lock(mutex_);
+	if (height_ == height && width_ == width)
+		return;
+
+	height_ = height;
+	width_ = width;
+	resource_.reset(new std::pmr::monotonic_buffer_resource(width_ * height_ * sizeof(Node)));
+	allocator_.reset(new std::pmr::polymorphic_allocator<Node>(resource_.get()));
+	open_list_.clear();
+	mapping_.clear();
+	mapping_.resize(width_ * height_);
 }
 
 void CAStar::set_canpass(const AStarCallback& callback)
@@ -98,7 +99,7 @@ constexpr void CAStar::set_oblique_value(qint64 value)
 void CAStar::clear()
 {
 	// 释放 mapping_ 中的节点内存
-	for (Node*& node : mapping_)
+	for (Node*& node : record_)
 	{
 		if (node)
 		{
@@ -106,12 +107,9 @@ void CAStar::clear()
 			allocator_->deallocate(node, 1);
 		}
 	}
-
-	// 清空 mapping_
-	memset(&mapping_[0], 0, sizeof(Node*) * mapping_.size());
-
-	// 清空开放列表
 	open_list_.clear();
+	record_.clear();
+	std::fill(mapping_.begin(), mapping_.end(), nullptr);
 }
 
 // 參數是否有效
@@ -273,7 +271,7 @@ bool CAStar::can_pass(const QPoint& current, const QPoint& destination, const bo
 }
 
 // 查找附近可通過的節點
-void CAStar::find_can_pass_nodes(const QPoint& current, const bool& corner, QVector<QPoint>* out_lists)
+void CAStar::find_can_pass_nodes(const QPoint& current, const bool& corner, std::vector<QPoint>* out_lists)
 {
 	QPoint destination;
 	qint64 row_index = static_cast<qint64>(current.y()) - 1;
@@ -300,7 +298,7 @@ void CAStar::find_can_pass_nodes(const QPoint& current, const bool& corner, QVec
 			destination.setY(row_index);
 			if (can_pass(current, destination, corner))
 			{
-				out_lists->push_back(destination);
+				out_lists->emplace_back(destination);
 			}
 			++col_index;
 		}
@@ -336,24 +334,23 @@ void CAStar::handle_not_found_node(Node*& current, Node*& destination, const QPo
 	destination->h = calcul_h_value(destination->pos, end);
 	destination->g = calcul_g_value(current, destination->pos);
 
-	Node*& reference_node = mapping_[destination->pos.y() * width_ + destination->pos.x()];
-	reference_node = destination;
-	reference_node->state = NodeState::IN_OPENLIST;
+	destination->state = NodeState::IN_OPENLIST;
+	mapping_[destination->pos.y() * width_ + destination->pos.x()] = destination;
 
-	open_list_.push_back(destination);
-#if _MSVC_LANG > 201703L
-	std::ranges::push_heap(open_list_, [](const Node* a, const Node* b)->bool
-#else
+	open_list_.emplace_back(destination);
+	while (open_list_.empty())
+	{
+		open_list_.emplace_back(destination);
+	}
+
 	std::push_heap(open_list_.begin(), open_list_.end(), [](const Node* a, const Node* b)->bool
-#endif
-		{
-			return a->f() > b->f();
-		});
+		{ return a->f() > b->f(); });
 }
 
 // 執行尋路操作
 bool CAStar::find(const QPoint& start, const QPoint& end, std::vector<QPoint>* pPaths)
 {
+	std::lock_guard<std::mutex> lock(mutex_);
 	if (pPaths)
 		pPaths->clear();
 
@@ -366,37 +363,29 @@ bool CAStar::find(const QPoint& start, const QPoint& end, std::vector<QPoint>* p
 	start_ = start;
 	end_ = end;
 
-	QVector<QPoint> nearby_nodes;
+	std::vector<QPoint> nearby_nodes;
 	nearby_nodes.reserve(corner_ ? 8 : 4);
 	constexpr size_t alloc_size(1u);
 	// 將起點放入開啟列表
 	Node* start_node = allocator_->allocate(alloc_size);  // 分配內存
-	if (start_node == nullptr)
-	{
-		clear();
-		return false;
-	}
-
+	record_.emplace_back(start_node);
 	std::allocator_traits<std::pmr::polymorphic_allocator<Node>>::construct(*allocator_, start_node, start_);// 構造對象
-	open_list_.push_back(start_node);
-	Node*& reference_node = mapping_[start_node->pos.y() * width_ + start_node->pos.x()];
-	reference_node = start_node;
-	reference_node->state = NodeState::IN_OPENLIST;
+	open_list_.emplace_back(start_node);
+	start_node->state = NodeState::IN_OPENLIST;
+	mapping_[start_node->pos.y() * width_ + start_node->pos.x()] = start_node;
 
 	// 尋路操作
 	while (!open_list_.empty())
 	{
 		// 找出f值最小節點
 		Node* current = open_list_.front();
-#if _MSVC_LANG > 201703L
-		std::ranges::pop_heap(open_list_, [](const Node* a, const Node* b)->bool
-#else
 		std::pop_heap(open_list_.begin(), open_list_.end(), [](const Node* a, const Node* b)->bool
-#endif
 			{
 				return a->f() > b->f();
 			});
+
 		open_list_.pop_back();
+
 		mapping_[current->pos.y() * width_ + current->pos.x()]->state = NodeState::IN_CLOSEDLIST;
 
 		// 是否找到終點
@@ -405,19 +394,16 @@ bool CAStar::find(const QPoint& start, const QPoint& end, std::vector<QPoint>* p
 			if (pPaths == nullptr)
 			{
 				clear();
-				return true;
+				return 0;
 			}
 
 			while (current->parent)
 			{
-				pPaths->push_back(current->pos);
+				pPaths->emplace_back(current->pos);
 				current = current->parent;
 			}
-#if _MSVC_LANG > 201703L
-			std::ranges::reverse(*pPaths);
-#else
+
 			std::reverse(pPaths->begin(), pPaths->end());
-#endif
 			break;
 		}
 
@@ -438,11 +424,7 @@ bool CAStar::find(const QPoint& start, const QPoint& end, std::vector<QPoint>* p
 			else
 			{
 				next_node = allocator_->allocate(alloc_size);  // 分配內存
-				if (next_node == nullptr)
-				{
-					clear();
-					return false;
-				}
+				record_.push_back(next_node);
 				std::allocator_traits<std::pmr::polymorphic_allocator<Node>>::construct(*allocator_, next_node, nearby_nodes[index]);// 構造對象
 				handle_not_found_node(current, next_node, end_);
 			}
@@ -450,37 +432,10 @@ bool CAStar::find(const QPoint& start, const QPoint& end, std::vector<QPoint>* p
 		}
 	}
 
-	// 釋放 start_node 內存
-	if (start_node)
-	{
-		Node*& start_mapping_node = mapping_[start_node->pos.y() * width_ + start_node->pos.x()];
-		if (start_mapping_node == start_node)
-		{
-			start_mapping_node = nullptr;
-		}
-
-		std::allocator_traits<std::pmr::polymorphic_allocator<Node>>::destroy(*allocator_, start_node);
-		allocator_->deallocate(start_node, 1);
-	}
-
-	// 釋放 open_list_ 中的節點內存
-	for (Node* node : open_list_)
-	{
-		Node*& mapping_node = mapping_[node->pos.y() * width_ + node->pos.x()];
-		if (mapping_node == node)
-		{
-			mapping_node = nullptr;
-		}
-
-		std::allocator_traits<std::pmr::polymorphic_allocator<Node>>::destroy(*allocator_, node);
-		allocator_->deallocate(node, 1);
-	}
-
 	clear();
 
 	if (pPaths != nullptr)
 		return !pPaths->empty();
-	else
-		return false;
+	return false;
 }
 #pragma endregion

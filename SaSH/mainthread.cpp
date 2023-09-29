@@ -70,9 +70,9 @@ bool ThreadManager::createThread(qint64 index, MainObject** ppObj, QObject* pare
 				qDebug() << "recv MainObject::finished, start cleanning";
 				thread_->quit();
 				thread_->wait();
-				delete thread_;
+				thread_->deleteLater();
 				thread_ = nullptr;
-				delete object;
+				object->deleteLater();
 				object = nullptr;
 				Injector::reset(index);
 
@@ -87,6 +87,24 @@ bool ThreadManager::createThread(qint64 index, MainObject** ppObj, QObject* pare
 	return false;
 }
 
+void ThreadManager::close(qint64 index)
+{
+	QMutexLocker locker(&mutex_);
+	if (threads_.contains(index) && objects_.contains(index))
+	{
+		auto thread_ = threads_.take(index);
+		auto object_ = objects_.take(index);
+		object_->requestInterruption();
+		thread_->quit();
+		thread_->wait();
+		thread_->deleteLater();
+		thread_ = nullptr;
+		object_->deleteLater();
+		object_ = nullptr;
+		Injector::reset(index);
+	}
+}
+
 MainObject::MainObject(qint64 index, QObject* parent)
 	: ThreadPlugin(index, parent)
 {
@@ -97,6 +115,7 @@ MainObject::MainObject(qint64 index, QObject* parent)
 MainObject::~MainObject()
 {
 	qDebug() << "MainObject is destroyed!!";
+	mem::freeUnuseMemory(GetCurrentProcess());
 }
 
 void MainObject::run()
@@ -165,8 +184,15 @@ void MainObject::run()
 	} while (false);
 
 	//開始逐步停止所有功能
-	emit signalDispatcher.scriptStoped();
-	emit signalDispatcher.nodifyAllStop();
+	requestInterruption();
+	//強制關閉遊戲進程
+	injector.close();
+	if (SignalDispatcher::contains(getIndex()))
+	{
+		emit signalDispatcher.scriptStoped();
+		emit signalDispatcher.nodifyAllStop();
+		emit signalDispatcher.updateStatusLabelTextChanged(util::kLabelStatusNotOpen);
+	}
 
 	//關閉走路遇敵線程
 	if (autowalk_future_.isRunning())
@@ -210,15 +236,10 @@ void MainObject::run()
 
 	pointerWriterSync_.waitForFinished();
 
-	//強制關閉遊戲進程
-	injector.close();
-
 	while (injector.IS_SCRIPT_FLAG.load(std::memory_order_acquire))
 	{
 		QThread::msleep(100);
 	}
-
-	emit signalDispatcher.updateStatusLabelTextChanged(util::kLabelStatusNotOpen);
 
 	//通知線程結束
 	emit finished();
@@ -1400,7 +1421,7 @@ void MainObject::checkAutoJoin()
 								continue;
 							}
 
-							if (!injector.server->mapAnalyzer->calcNewRoute(&astar, floor, current_point, newpoint, blockList, &path))
+							if (!injector.server->mapAnalyzer->calcNewRoute(astar, floor, current_point, newpoint, blockList, &path))
 								return;
 
 							len = MAX_SINGLE_STEP;
@@ -2037,6 +2058,8 @@ void MainObject::checkRecordableNpcInfo()
 			if (injector.server.isNull())
 				return;
 
+			CAStar astar;
+
 			QHash<qint64, mapunit_t> units = injector.server->mapUnitHash.toHash();
 			util::Config config(injector.getPointFileName());
 
@@ -2072,7 +2095,7 @@ void MainObject::checkRecordableNpcInfo()
 				//npc前方一格
 				QPoint newPoint = util::fix_point.at(unit.dir) + unit.p;
 				//檢查是否可走
-				if (injector.server->mapAnalyzer->isPassable(&astar, nowFloor, nowPoint, newPoint))
+				if (injector.server->mapAnalyzer->isPassable(astar, nowFloor, nowPoint, newPoint))
 				{
 					d.x = newPoint.x();
 					d.y = newPoint.y();
@@ -2082,7 +2105,7 @@ void MainObject::checkRecordableNpcInfo()
 					//再往前一格
 					QPoint additionPoint = util::fix_point.at(unit.dir) + newPoint;
 					//檢查是否可走
-					if (injector.server->mapAnalyzer->isPassable(&astar, nowFloor, nowPoint, additionPoint))
+					if (injector.server->mapAnalyzer->isPassable(astar, nowFloor, nowPoint, additionPoint))
 					{
 						d.x = additionPoint.x();
 						d.y = additionPoint.y();
@@ -2094,7 +2117,7 @@ void MainObject::checkRecordableNpcInfo()
 						for (qint64 i = 0; i < 8; ++i)
 						{
 							newPoint = util::fix_point.at(i) + unit.p;
-							if (injector.server->mapAnalyzer->isPassable(&astar, nowFloor, nowPoint, newPoint))
+							if (injector.server->mapAnalyzer->isPassable(astar, nowFloor, nowPoint, newPoint))
 							{
 								d.x = newPoint.x();
 								d.y = newPoint.y();

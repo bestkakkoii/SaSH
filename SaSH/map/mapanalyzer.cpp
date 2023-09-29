@@ -1572,14 +1572,11 @@ bool __fastcall MapAnalyzer::saveAsBinary(map_t map, const QString& fileName)
 	return true;
 }
 
-bool __fastcall MapAnalyzer::calcNewRoute(CAStar* pastar, qint64 floor, const QPoint& src, const QPoint& dst, const QSet<QPoint>& blockList, std::vector<QPoint>* pPaths)
+bool __fastcall MapAnalyzer::calcNewRoute(CAStar& astar, qint64 floor, const QPoint& src, const QPoint& dst, const QSet<QPoint>& blockList, std::vector<QPoint>* pPaths)
 {
 	do
 	{
 		if (pPaths == nullptr)
-			break;
-
-		if (pastar == nullptr)
 			break;
 
 		if (src == dst)
@@ -1638,17 +1635,25 @@ bool __fastcall MapAnalyzer::calcNewRoute(CAStar* pastar, qint64 floor, const QP
 				return  (obj == util::OBJ_ROAD);
 		};
 
-		pastar->set_canpass(canPassCallback);
-		pastar->init(map.height, map.width);
+		astar.set_canpass(canPassCallback);
+		astar.set_corner(true);
+		astar.init(map.width, map.height);
 
-		return  pastar->find(src, dst, pPaths);
+		try
+		{
+			return astar.find(src, dst, pPaths);
+		}
+		catch (const std::exception& e)
+		{
+			qDebug() << __FUNCTION__ << " @" << __LINE__ << " " << e.what();
+		}
 	} while (false);
 
 	return false;
 }
 
 //快速檢查是否能通行
-bool __fastcall MapAnalyzer::isPassable(CAStar* pastar, qint64 floor, const QPoint& src, const QPoint& dst)
+bool __fastcall MapAnalyzer::isPassable(CAStar& astar, qint64 floor, const QPoint& src, const QPoint& dst)
 {
 
 	bool bret = false;
@@ -1676,11 +1681,18 @@ bool __fastcall MapAnalyzer::isPassable(CAStar* pastar, qint64 floor, const QPoi
 			//return ((obj != util::OBJ_EMPTY) && (obj != util::OBJ_WATER) && (obj != util::OBJ_UNKNOWN) && (obj != util::OBJ_WALL) && (obj != util::OBJ_ROCK) && (obj != util::OBJ_ROCKEX));
 		};
 
-		pastar->set_canpass(canPassCallback);
-		pastar->set_corner(true);
-		pastar->init(map.height, map.width);
+		astar.set_canpass(canPassCallback);
+		astar.set_corner(true);
+		astar.init(map.width, map.height);
 
-		return pastar->find(src, dst, nullptr);
+		try
+		{
+			return astar.find(src, dst, nullptr);
+		}
+		catch (const std::exception& e)
+		{
+			qDebug() << __FUNCTION__ << " @" << __LINE__ << " " << e.what();
+		}
 	} while (false);
 
 	return bret;
@@ -1742,7 +1754,9 @@ qint64 __fastcall MapAnalyzer::calcBestFollowPointByDstPoint(qint64 floor, const
 
 	qint64 d = 0;
 	qint64 invalidcount = 0;
+
 	CAStar astar;
+
 	for (const QPoint& it : util::fix_point)
 	{
 		qdistance_t c = {};
@@ -1757,7 +1771,7 @@ qint64 __fastcall MapAnalyzer::calcBestFollowPointByDstPoint(qint64 floor, const
 			return ((n) <= (7)) ? (n) : ((n)-(MAX_DIR));
 		}
 
-		if (isPassable(&astar, floor, src, dst + it))//確定是否可走
+		if (isPassable(astar, floor, src, dst + it))//確定是否可走
 		{
 			//計算src 到 c.p直線距離
 			c.distance = std::sqrt(std::pow((qreal)src.x() - c.pf.x(), 2) + std::pow((qreal)src.y() - c.pf.y(), 2));
@@ -1792,7 +1806,7 @@ qint64 __fastcall MapAnalyzer::calcBestFollowPointByDstPoint(qint64 floor, const
 				break;
 			}
 
-			if (isPassable(&astar, floor, src, newP) || src == newP)//確定是否可走
+			if (isPassable(astar, floor, src, newP) || src == newP)//確定是否可走
 			{
 				//qdistance_t c = {};
 				//要面相npc的方向  (當前人物要面向newP的方向)
@@ -1809,11 +1823,8 @@ qint64 __fastcall MapAnalyzer::calcBestFollowPointByDstPoint(qint64 floor, const
 		return -1;
 	}
 
-#if _MSVC_LANG > 201703L
-	std::ranges::sort(disV, compareDistance);
-#else
 	std::sort(disV.begin(), disV.end(), compareDistance);
-#endif
+
 	if (!disV.size()) return -1;
 	if (ret)
 		*ret = disV.at(0).p;

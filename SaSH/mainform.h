@@ -95,6 +95,7 @@ private slots:
 	void onAppendChatLog(const QString& text, qint64 color = 0);
 
 private:
+	bool markAsClose_ = false;
 	Ui::MainFormClass ui;
 	QMenuBar* pMenuBar_ = nullptr;
 	QTranslator translator_;

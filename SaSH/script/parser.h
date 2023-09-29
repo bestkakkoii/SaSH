@@ -371,6 +371,7 @@ public:
 	inline Q_REQUIRED_RESULT QList<ForNode> getForNodeList() const { return forNodeList_; }
 	inline Q_REQUIRED_RESULT QList<LuaNode> getLuaNodeList() const { return luaNodeList_; }
 	inline Q_REQUIRED_RESULT qint64 getCurrentLine() const { return lineNumber_; }
+	inline Q_REQUIRED_RESULT QStringList getGlobalNameList() const { return globalNames_; }
 
 	inline void setScriptFileName(const QString& scriptFileName) { scriptFileName_ = scriptFileName; }
 	inline void setCurrentLine(const qint64 line) { lineNumber_ = line; }
@@ -413,6 +414,8 @@ public:
 	bool isSubScript() const { return isSubScript_; }
 	void setSubScript(bool isSubScript) { isSubScript_ = isSubScript; }
 
+	void loadGlobalVariablesFromSol(sol::state& newlua, const QStringList& globalNames);
+
 	QVariant luaDoString(QString expr);
 
 public:
@@ -442,7 +445,7 @@ private:
 	void processVariableExpr();
 	void processVariable();
 	void processTable();
-	void processLuaString();
+	bool processLuaString();
 	void processFormation();
 	bool processCall(RESERVE reserve);
 	bool processGoto();
@@ -585,4 +588,8 @@ private:
 
 	bool isSubScript_ = false;								//是否是子腳本		
 
+	qint64 errorCount_ = 0;									//錯誤計數器
+	qint64 whiteSpace_ = 0;									//當前行開頭空格數
+	qint64 commandCount_ = 0;								//命令計數器
+	qint64 validCommandCount_ = 0;							//有效命令計數器
 };
