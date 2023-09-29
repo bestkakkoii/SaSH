@@ -23,102 +23,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 #include "signaldispatcher.h"
 
-qint64 Interpreter::reg(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
-{
-	QString text;
-	if (!checkString(TK, 1, &text))
-		return Parser::kArgError + 1ll;
-
-	QString typeStr;
-	if (!checkString(TK, 2, &typeStr))
-		return Parser::kArgError + 2ll;
-
-	QHash<QString, qint64> hash = parser_.getLabels();
-	if (!hash.contains(text))
-		return Parser::kArgError + 1ll;
-
-	parser_.insertUserCallBack(text, typeStr);
-	return Parser::kNoChange;
-}
-
-qint64 Interpreter::timer(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
-{
-	QString varName = TK.value(2).data.toString();
-	qint64 pointer = 0;
-	if (!checkInteger(TK, 1, &pointer))
-	{
-		return Parser::kArgError + 1ll;
-	}
-	else if (pointer == 0)
-	{
-		varName = TK.value(1).data.toString();
-		if (!varName.isEmpty())
-		{
-			QSharedPointer<QElapsedTimer> timer(new QElapsedTimer());
-			if (!timer.isNull())
-			{
-				customTimer_.insert(util::toQString(reinterpret_cast<qint64>(timer.data())), timer);
-				timer->start();
-				parser_.insertVar(varName, reinterpret_cast<qint64>(timer.data()));
-			}
-		}
-	}
-	else if (!varName.isEmpty() && pointer > 0)
-	{
-		if (customTimer_.contains(util::toQString(pointer)))
-		{
-			QElapsedTimer* timer = reinterpret_cast<QElapsedTimer*>(pointer);
-			qint64 time = 0;
-
-			time = timer->elapsed();
-
-			if (time >= 1000ll)
-			{
-				parser_.insertVar(varName, time / 1000ll);
-				return Parser::kNoChange;
-			}
-		}
-		parser_.insertVar(varName, 0ll);
-	}
-	else if (pointer > 0)
-	{
-		if (customTimer_.contains(util::toQString(pointer)))
-		{
-			customTimer_.remove(util::toQString(pointer));
-		}
-	}
-	else
-		return Parser::kArgError;
-
-	return Parser::kNoChange;
-}
-
-qint64 Interpreter::sleep(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
-{
-	qint64 t;
-	if (!checkInteger(TK, 1, &t))
-		return Parser::kArgError + 1ll;
-
-	if (t >= 1000)
-	{
-		qint64 i = 0;
-		qint64 size = t / 1000;
-		for (; i < size; ++i)
-		{
-			QThread::msleep(1000UL);
-			if (isInterruptionRequested())
-				break;
-		}
-
-		if (i % 1000 > 0)
-			QThread::msleep(static_cast<DWORD>(i) % 1000UL);
-	}
-	else if (t > 0)
-		QThread::msleep(static_cast<DWORD>(t));
-
-	return Parser::kNoChange;
-}
-
 qint64 Interpreter::press(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance(currentIndex);
@@ -202,126 +106,6 @@ qint64 Interpreter::press(qint64 currentIndex, qint64 currentLine, const TokenMa
 	return Parser::kNoChange;
 }
 
-qint64 Interpreter::eo(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
-{
-	Injector& injector = Injector::getInstance(currentIndex);
-	if (injector.server.isNull())
-		return Parser::kServerNotReady;
-
-	checkBattleThenWait();
-
-	QString varName = TK.value(1).data.toString();
-
-	QElapsedTimer timer; timer.start();
-	injector.server->EO();
-	if (!varName.isEmpty())
-	{
-		bool bret = waitfor(5000, [currentIndex]() { return !Injector::getInstance(currentIndex).server->isEOTTLSend.load(std::memory_order_acquire); });
-
-		qint64 result = bret ? injector.server->lastEOTime.load(std::memory_order_acquire) : -1;
-
-		parser_.insertVar(varName, result);
-	}
-
-
-	return Parser::kNoChange;
-}
-
-qint64 Interpreter::input(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
-{
-	Injector& injector = Injector::getInstance(currentIndex);
-
-	if (injector.server.isNull())
-		return Parser::kServerNotReady;
-
-	QString text;
-	qreal number = 0.0;
-	qint64 nnumber = 0;
-	bool boolean = false;
-
-	if (checkNumber(TK, 1, &number))
-	{
-		text = util::toQString(number);
-	}
-	else if (checkBoolean(TK, 1, &boolean))
-	{
-		text = util::toQString(boolean);
-	}
-	else if (!checkString(TK, 1, &text))
-	{
-		if (checkInteger(TK, 1, &nnumber))
-			text = util::toQString(nnumber);
-		else
-			text = TK.value(1).data.toString();
-	}
-
-	QString npcName;
-	qint64 npcId = -1;
-	checkString(TK, 2, &npcName);
-	mapunit_t unit;
-	if (!npcName.isEmpty() && injector.server->findUnit(npcName, util::OBJ_NPC, &unit))
-	{
-		npcId = unit.id;
-	}
-
-	qint64 dialogid = -1;
-	checkInteger(TK, 3, &dialogid);
-
-	injector.server->inputtext(text, dialogid, npcId);
-
-	return Parser::kNoChange;
-}
-
-qint64 Interpreter::talk(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
-{
-	Injector& injector = Injector::getInstance(currentIndex);
-
-	if (injector.server.isNull())
-		return Parser::kServerNotReady;
-
-	QString text;
-	qreal number = 0.0;
-	qint64 nnumber = 0;
-	bool boolean = false;
-
-	if (checkNumber(TK, 1, &number))
-	{
-		text = util::toQString(number);
-	}
-	else if (checkBoolean(TK, 1, &boolean))
-	{
-		text = util::toQString(boolean);
-	}
-	else if (!checkString(TK, 1, &text))
-	{
-		if (checkInteger(TK, 1, &nnumber))
-			text = util::toQString(nnumber);
-		else
-			text = TK.value(1).data.toString();
-	}
-
-	qint64 color = 4;
-	checkInteger(TK, 2, &color);
-	if (color < 0)
-		color = QRandomGenerator::global()->bounded(0, 10);
-
-	TalkMode talkmode = kTalkNormal;
-	qint64 nTalkMode = 0;
-	checkInteger(TK, 3, &nTalkMode);
-	if (nTalkMode > 0 && nTalkMode < kTalkModeMax)
-	{
-		--nTalkMode;
-		talkmode = static_cast<TalkMode>(nTalkMode);
-	}
-
-	checkOnlineThenWait();
-	checkBattleThenWait();
-
-	injector.server->talk(text, color, talkmode);
-
-	return Parser::kNoChange;
-}
-
 qint64 Interpreter::menu(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance(currentIndex);
@@ -353,33 +137,6 @@ qint64 Interpreter::menu(qint64 currentIndex, qint64 currentLine, const TokenMap
 	{
 		injector.server->shopOk(index);
 	}
-
-	return Parser::kNoChange;
-}
-
-qint64 Interpreter::logout(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
-{
-	Injector& injector = Injector::getInstance(currentIndex);
-	if (injector.server.isNull())
-		return Parser::kServerNotReady;
-
-	checkOnlineThenWait();
-
-	injector.server->logOut();
-
-	return Parser::kNoChange;
-}
-
-qint64 Interpreter::logback(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
-{
-	Injector& injector = Injector::getInstance(currentIndex);
-	if (injector.server.isNull())
-		return Parser::kServerNotReady;
-
-	checkOnlineThenWait();
-	checkBattleThenWait();
-
-	injector.server->logBack();
 
 	return Parser::kNoChange;
 }
@@ -554,90 +311,6 @@ qint64 Interpreter::delch(qint64 currentIndex, qint64 currentLine, const TokenMa
 	return Parser::kNoChange;
 }
 
-qint64 Interpreter::cleanchat(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
-{
-	Injector& injector = Injector::getInstance(currentIndex);
-	if (!injector.server.isNull())
-		injector.server->cleanChatHistory();
-
-	return Parser::kNoChange;
-}
-
-qint64 Interpreter::savesetting(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
-{
-	QString fileName;
-	if (!checkString(TK, 1, &fileName))
-	{
-		if (TK.value(1).type == TK_FUZZY)
-		{
-			Injector& injector = Injector::getInstance(currentIndex);
-			if (injector.server.isNull())
-				return Parser::kServerNotReady;
-
-			fileName = injector.server->getPC().name;
-		}
-	}
-
-	fileName.replace("\\", "/");
-
-	fileName = util::applicationDirPath() + "/settings/" + fileName;
-	fileName.replace("\\", "/");
-	fileName.replace("//", "/");
-
-	QFileInfo fileInfo(fileName);
-	QString suffix = fileInfo.suffix();
-	if (suffix.isEmpty())
-		fileName += ".json";
-	else if (suffix != "json")
-	{
-		fileName.replace(suffix, "json");
-	}
-
-	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
-	emit signalDispatcher.saveHashSettings(fileName, true);
-
-	return Parser::kNoChange;
-}
-
-qint64 Interpreter::loadsetting(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
-{
-	QString fileName;
-	if (!checkString(TK, 1, &fileName))
-	{
-		if (TK.value(1).type == TK_FUZZY)
-		{
-			Injector& injector = Injector::getInstance(currentIndex);
-			if (injector.server.isNull())
-				return Parser::kServerNotReady;
-
-			fileName = injector.server->getPC().name;
-		}
-	}
-
-	fileName.replace("\\", "/");
-
-	fileName = util::applicationDirPath() + "/settings/" + fileName;
-	fileName.replace("\\", "/");
-	fileName.replace("//", "/");
-
-	QFileInfo fileInfo(fileName);
-	QString suffix = fileInfo.suffix();
-	if (suffix.isEmpty())
-		fileName += ".json";
-	else if (suffix != "json")
-	{
-		fileName.replace(suffix, "json");
-	}
-
-	if (!QFile::exists(fileName))
-		return Parser::kArgError + 1ll;
-
-	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
-	emit signalDispatcher.loadHashSettings(fileName, true);
-
-	return Parser::kNoChange;
-}
-
 ///////////////////////////////////////////////////////////////
 
 qint64 Interpreter::ocr(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
@@ -708,9 +381,9 @@ qint64 Interpreter::send(qint64 currentIndex, qint64 currentLine, const TokenMap
 		{
 			args.emplace_back(static_cast<int>(varIntValue));
 		}
-	}
+}
 
 	injector.autil.util_SendArgs(static_cast<int>(funId), args);
 
 	return Parser::kNoChange;
-	}
+}

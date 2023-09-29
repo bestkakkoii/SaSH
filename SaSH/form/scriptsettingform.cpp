@@ -331,7 +331,8 @@ void ScriptSettingForm::closeEvent(QCloseEvent* e)
 
 		util::Config config(fileName);
 		Injector& injector = Injector::getInstance(getIndex());
-		config.write(objectName(), "LastModifyFile", injector.currentScriptFileName);
+		if (!injector.currentScriptFileName.isEmpty())
+			config.write("Script", "LastModifyFile", injector.currentScriptFileName);
 
 
 		QString ObjectName = ui.widget->objectName();
@@ -678,8 +679,6 @@ void ScriptSettingForm::loadFile(const QString& fileName)
 
 	qint64 currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
-	if (!injector.IS_SCRIPT_FLAG)
-		injector.currentScriptFileName = fileName;
 
 	if (!injector.server.isNull() && injector.server->getOnlineFlag())
 		setWindowTitle(QString("[%1][%2] %3").arg(currentIndex).arg(injector.server->getPC().name).arg(injector.currentScriptFileName));
@@ -799,7 +798,7 @@ QString ScriptSettingForm::getFullPath(QTreeWidgetItem* item)
 	QString suffix = "." + info.suffix();
 	if (suffix.isEmpty())
 		strpath += util::SCRIPT_DEFAULT_SUFFIX;
-	if (suffix != util::SCRIPT_PRIVATE_SUFFIX_DEFAULT && suffix != util::SCRIPT_DEFAULT_SUFFIX)
+	if (suffix != util::SCRIPT_PRIVATE_SUFFIX_DEFAULT && suffix != util::SCRIPT_DEFAULT_SUFFIX && suffix != util::SCRIPT_LUA_SUFFIX_DEFAULT)
 		strpath.replace(suffix, util::SCRIPT_DEFAULT_SUFFIX);
 
 	return strpath;

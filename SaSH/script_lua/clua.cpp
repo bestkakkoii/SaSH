@@ -769,15 +769,15 @@ void CLua::open_syslibs(sol::state& lua)
 		"get", &QElapsedTimer::elapsed
 	);
 
+	lua.set_function("say", &CLuaSystem::talk, &luaSystem_);
+	lua.set_function("cls", &CLuaSystem::cleanchat, &luaSystem_);
+	lua.set_function("logout", &CLuaSystem::logout, &luaSystem_);
+	lua.set_function("logback", &CLuaSystem::logback, &luaSystem_);
+	lua.set_function("eo", &CLuaSystem::eo, &luaSystem_);
+
 	lua.new_usertype<CLuaSystem>("SystemClass",
 		sol::call_constructor,
 		sol::constructors<CLuaSystem()>(),
-
-		"out", &CLuaSystem::logout,
-		"back", &CLuaSystem::logback,
-		"eo", &CLuaSystem::eo,
-		"say", &CLuaSystem::talk,
-		"clearChat", &CLuaSystem::cleanchat,
 		"menu", sol::overload(
 			sol::resolve<qint64(qint64, sol::this_state)>(&CLuaSystem::menu),
 			sol::resolve<qint64(qint64, qint64, sol::this_state)>(&CLuaSystem::menu)
@@ -786,9 +786,7 @@ void CLua::open_syslibs(sol::state& lua)
 		"press", sol::overload(
 			sol::resolve<qint64(std::string, qint64, qint64, sol::this_state)>(&CLuaSystem::press),
 			sol::resolve<qint64(qint64, qint64, qint64, sol::this_state)>(&CLuaSystem::press)
-		),
-
-		"input", &CLuaSystem::input
+		)
 	);
 }
 
@@ -862,12 +860,7 @@ void CLua::open_maplibs(sol::state& lua)
 			sol::resolve<qint64(qint64, sol::this_state)>(&CLuaMap::setDir),
 			sol::resolve<qint64(qint64, qint64, sol::this_state) >(&CLuaMap::setDir),
 			sol::resolve<qint64(std::string, sol::this_state) >(&CLuaMap::setDir)
-		),
-		"move", &CLuaMap::move,
-		"packetMove", &CLuaMap::packetMove,
-		"teleport", &CLuaMap::teleport,
-		"findPath", &CLuaMap::findPath,
-		"download", &CLuaMap::downLoad
+		)
 	);
 }
 

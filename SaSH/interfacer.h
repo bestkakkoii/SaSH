@@ -199,7 +199,6 @@ public:
 		}
 		return -1;
 	}
-
 private:
 	HWND targetWindow_;
 };

@@ -305,24 +305,6 @@ bool Interpreter::checkInteger(const TokenMap& TK, qint64 idx, qint64* ret)
 	return parser_.checkInteger(TK, idx, ret);
 }
 
-//嘗試取指定位置的token轉為 double
-bool Interpreter::checkNumber(const TokenMap& TK, qint64 idx, double* ret)
-{
-	return parser_.checkNumber(TK, idx, ret);
-}
-
-//嘗試取指定位置的token轉為 bool
-bool Interpreter::checkBoolean(const TokenMap& TK, qint64 idx, bool* ret)
-{
-	return parser_.checkBoolean(TK, idx, ret);
-}
-
-//嘗試取指定位置的token轉為QVariant
-bool Interpreter::toVariant(const TokenMap& TK, qint64 idx, QVariant* ret)
-{
-	return parser_.toVariant(TK, idx, ret);
-}
-
 //檢查跳轉是否滿足，和跳轉的方式
 qint64 Interpreter::checkJump(const TokenMap& TK, qint64 idx, bool expr, JumpBehavior behavior)
 {
@@ -459,194 +441,7 @@ bool Interpreter::waitfor(qint64 timeout, std::function<bool()> exprfun)
 
 void Interpreter::openLibs()
 {
-	openLibsBIG5();
-	openLibsGB2312();
 	openLibsUTF8();
-}
-
-//新的繁體中文函數註冊
-void Interpreter::openLibsBIG5()
-{
-	/*註冊函數*/
-	//system
-	registerFunction(u8"延時", &Interpreter::sleep);
-	registerFunction(u8"按鈕", &Interpreter::press);
-	registerFunction(u8"元神歸位", &Interpreter::eo);
-	registerFunction(u8"輸入", &Interpreter::input);
-	registerFunction(u8"回點", &Interpreter::logback);
-	registerFunction(u8"登出", &Interpreter::logout);
-	registerFunction(u8"說話", &Interpreter::talk);
-	registerFunction(u8"清屏", &Interpreter::cleanchat);
-	registerFunction(u8"儲存設置", &Interpreter::savesetting);
-	registerFunction(u8"讀取設置", &Interpreter::loadsetting);
-
-	registerFunction(u8"執行", &Interpreter::run);
-	registerFunction(u8"執行代碼", &Interpreter::dostring);
-	registerFunction(u8"註冊", &Interpreter::reg);
-	registerFunction(u8"計時", &Interpreter::timer);
-	registerFunction(u8"菜單", &Interpreter::menu);
-	registerFunction(u8"創建人物", &Interpreter::createch);
-	registerFunction(u8"刪除人物", &Interpreter::delch);
-	registerFunction(u8"發包", &Interpreter::send);
-
-	//check
-	registerFunction(u8"任務狀態", &Interpreter::checkdaily);
-	registerFunction(u8"地圖", &Interpreter::waitmap);
-	registerFunction(u8"對話", &Interpreter::waitdlg);
-	registerFunction(u8"聽見", &Interpreter::waitsay);
-	registerFunction(u8"寵物有", &Interpreter::waitpet);
-	registerFunction(u8"道具", &Interpreter::waititem);
-	registerFunction(u8"坐標有", &Interpreter::waitpos);
-	registerFunction(u8"座標有", &Interpreter::waitpos);
-	//check-group
-	registerFunction(u8"組隊有", &Interpreter::waitteam);
-
-
-	//move
-	registerFunction(u8"方向", &Interpreter::setdir);
-	registerFunction(u8"坐標", &Interpreter::move);
-	registerFunction(u8"座標", &Interpreter::move);
-	registerFunction(u8"移動", &Interpreter::fastmove);
-	registerFunction(u8"封包移動", &Interpreter::packetmove);
-	registerFunction(u8"轉移", &Interpreter::teleport);
-
-	//action
-	registerFunction(u8"使用道具", &Interpreter::useitem);
-	registerFunction(u8"丟棄道具", &Interpreter::dropitem);
-	registerFunction(u8"交換道具", &Interpreter::swapitem);
-	registerFunction(u8"人物改名", &Interpreter::playerrename);
-	registerFunction(u8"寵物改名", &Interpreter::petrename);
-	registerFunction(u8"更換寵物", &Interpreter::setpetstate);
-	registerFunction(u8"丟棄寵物", &Interpreter::droppet);
-	registerFunction(u8"購買", &Interpreter::buy);
-	registerFunction(u8"售賣", &Interpreter::sell);
-	registerFunction(u8"賣寵", &Interpreter::sellpet);
-	registerFunction(u8"加工", &Interpreter::make);
-	registerFunction(u8"料理", &Interpreter::cook);
-	registerFunction(u8"使用精靈", &Interpreter::usemagic);
-	registerFunction(u8"撿物", &Interpreter::pickitem);
-	registerFunction(u8"存錢", &Interpreter::depositgold);
-	registerFunction(u8"提錢", &Interpreter::withdrawgold);
-	registerFunction(u8"加點", &Interpreter::addpoint);
-	registerFunction(u8"學習", &Interpreter::learn);
-	registerFunction(u8"交易", &Interpreter::trade);
-	registerFunction(u8"寄信", &Interpreter::mail);
-	registerFunction(u8"丟棄石幣", &Interpreter::doffstone);
-
-	registerFunction(u8"記錄身上裝備", &Interpreter::recordequip);
-	registerFunction(u8"裝上記錄裝備", &Interpreter::wearequip);
-	registerFunction(u8"卸下裝備", &Interpreter::unwearequip);
-	registerFunction(u8"卸下寵裝備", &Interpreter::petunequip);
-	registerFunction(u8"裝上寵裝備", &Interpreter::petequip);
-
-	registerFunction(u8"存入寵物", &Interpreter::depositpet);
-	registerFunction(u8"存入道具", &Interpreter::deposititem);
-	registerFunction(u8"提出寵物", &Interpreter::withdrawpet);
-	registerFunction(u8"提出道具", &Interpreter::withdrawitem);
-
-	//action->group
-	registerFunction(u8"組隊", &Interpreter::join);
-	registerFunction(u8"離隊", &Interpreter::leave);
-	registerFunction(u8"踢走", &Interpreter::kick);
-
-	registerFunction(u8"左擊", &Interpreter::leftclick);
-	registerFunction(u8"右擊", &Interpreter::rightclick);
-	registerFunction(u8"左雙擊", &Interpreter::leftdoubleclick);
-	registerFunction(u8"拖至", &Interpreter::mousedragto);
-
-}
-
-//新的簡體中文函數註冊
-void Interpreter::openLibsGB2312()
-{
-	/*註册函数*/
-	//system
-	registerFunction(u8"延时", &Interpreter::sleep);
-	registerFunction(u8"按钮", &Interpreter::press);
-	registerFunction(u8"元神归位", &Interpreter::eo);
-	registerFunction(u8"输入", &Interpreter::input);
-	registerFunction(u8"回点", &Interpreter::logback);
-	registerFunction(u8"登出", &Interpreter::logout);
-	registerFunction(u8"说话", &Interpreter::talk);
-	registerFunction(u8"清屏", &Interpreter::cleanchat);
-	registerFunction(u8"储存设置", &Interpreter::savesetting);
-	registerFunction(u8"读取设置", &Interpreter::loadsetting);
-
-	registerFunction(u8"执行", &Interpreter::run);
-	registerFunction(u8"执行代码", &Interpreter::dostring);
-	registerFunction(u8"註册", &Interpreter::reg);
-	registerFunction(u8"计时", &Interpreter::timer);
-	registerFunction(u8"菜单", &Interpreter::menu);
-	registerFunction(u8"创建人物", &Interpreter::createch);
-	registerFunction(u8"删除人物", &Interpreter::delch);
-	registerFunction(u8"发包", &Interpreter::send);
-
-	//check
-	registerFunction(u8"任务状态", &Interpreter::checkdaily);
-	registerFunction(u8"地图", &Interpreter::waitmap);
-	registerFunction(u8"对话", &Interpreter::waitdlg);
-	registerFunction(u8"听见", &Interpreter::waitsay);
-
-	registerFunction(u8"宠物有", &Interpreter::waitpet);
-	registerFunction(u8"道具", &Interpreter::waititem);
-	registerFunction(u8"坐标有", &Interpreter::waitpos);
-	registerFunction(u8"座标有", &Interpreter::waitpos);
-	//check-group
-	registerFunction(u8"组队有", &Interpreter::waitteam);
-
-
-	//move
-	registerFunction(u8"方向", &Interpreter::setdir);
-	registerFunction(u8"坐标", &Interpreter::move);
-	registerFunction(u8"座标", &Interpreter::move);
-	registerFunction(u8"移动", &Interpreter::fastmove);
-	registerFunction(u8"封包移动", &Interpreter::packetmove);
-	registerFunction(u8"转移", &Interpreter::teleport);
-
-	//action
-	registerFunction(u8"使用道具", &Interpreter::useitem);
-	registerFunction(u8"丢弃道具", &Interpreter::dropitem);
-	registerFunction(u8"交换道具", &Interpreter::swapitem);
-	registerFunction(u8"人物改名", &Interpreter::playerrename);
-	registerFunction(u8"宠物改名", &Interpreter::petrename);
-	registerFunction(u8"更换宠物", &Interpreter::setpetstate);
-	registerFunction(u8"丢弃宠物", &Interpreter::droppet);
-	registerFunction(u8"购买", &Interpreter::buy);
-	registerFunction(u8"售卖", &Interpreter::sell);
-	registerFunction(u8"卖宠", &Interpreter::sellpet);
-	registerFunction(u8"加工", &Interpreter::make);
-	registerFunction(u8"料理", &Interpreter::cook);
-	registerFunction(u8"使用精灵", &Interpreter::usemagic);
-	registerFunction(u8"捡物", &Interpreter::pickitem);
-	registerFunction(u8"存钱", &Interpreter::depositgold);
-	registerFunction(u8"提钱", &Interpreter::withdrawgold);
-	registerFunction(u8"加点", &Interpreter::addpoint);
-	registerFunction(u8"学习", &Interpreter::learn);
-	registerFunction(u8"交易", &Interpreter::trade);
-	registerFunction(u8"寄信", &Interpreter::mail);
-	registerFunction(u8"丢弃石币", &Interpreter::doffstone);
-
-	registerFunction(u8"记录身上装备", &Interpreter::recordequip);
-	registerFunction(u8"装上记录装备", &Interpreter::wearequip);
-	registerFunction(u8"卸下装备", &Interpreter::unwearequip);
-	registerFunction(u8"卸下宠装备", &Interpreter::petunequip);
-	registerFunction(u8"装上宠装备", &Interpreter::petequip);
-
-	registerFunction(u8"存入宠物", &Interpreter::depositpet);
-	registerFunction(u8"存入道具", &Interpreter::deposititem);
-	registerFunction(u8"提出宠物", &Interpreter::withdrawpet);
-	registerFunction(u8"提出道具", &Interpreter::withdrawitem);
-
-	//action->group
-	registerFunction(u8"组队", &Interpreter::join);
-	registerFunction(u8"离队", &Interpreter::leave);
-	registerFunction(u8"踢走", &Interpreter::kick);
-
-	registerFunction(u8"左击", &Interpreter::leftclick);
-	registerFunction(u8"右击", &Interpreter::rightclick);
-	registerFunction(u8"左双击", &Interpreter::leftdoubleclick);
-	registerFunction(u8"拖至", &Interpreter::mousedragto);
-
 }
 
 //新的英文函數註冊
@@ -655,21 +450,10 @@ void Interpreter::openLibsUTF8()
 	/*註册函数*/
 
 	//system
-	registerFunction(u8"sleep", &Interpreter::sleep);
 	registerFunction(u8"button", &Interpreter::press);
-	registerFunction(u8"eo", &Interpreter::eo);
-	registerFunction(u8"input", &Interpreter::input);
-	registerFunction(u8"logback", &Interpreter::logback);
-	registerFunction(u8"logout", &Interpreter::logout);
-	registerFunction(u8"say", &Interpreter::talk);
-	registerFunction(u8"cls", &Interpreter::cleanchat);
-	registerFunction(u8"saveset", &Interpreter::savesetting);
-	registerFunction(u8"loadset", &Interpreter::loadsetting);
 
 	registerFunction(u8"run", &Interpreter::run);
-	registerFunction(u8"dostring", &Interpreter::dostring);
-	registerFunction(u8"reg", &Interpreter::reg);
-	registerFunction(u8"timer", &Interpreter::timer);
+	registerFunction(u8"dostr", &Interpreter::dostr);
 	registerFunction(u8"menu", &Interpreter::menu);
 	registerFunction(u8"dofile", &Interpreter::dofile);
 	registerFunction(u8"createch", &Interpreter::createch);
@@ -735,11 +519,6 @@ void Interpreter::openLibsUTF8()
 	registerFunction(u8"join", &Interpreter::join);
 	registerFunction(u8"leave", &Interpreter::leave);
 	registerFunction(u8"kick", &Interpreter::kick);
-
-	registerFunction(u8"lclick", &Interpreter::leftclick);
-	registerFunction(u8"rclick", &Interpreter::rightclick);
-	registerFunction(u8"ldbclick", &Interpreter::leftdoubleclick);
-	registerFunction(u8"dragto", &Interpreter::mousedragto);
 
 	//hide
 	//registerFunction(u8"ocr", &Interpreter::ocr);
@@ -1067,7 +846,7 @@ qint64 Interpreter::run(qint64 currentIndex, qint64 currentline, const TokenMap&
 }
 
 //執行代碼塊
-qint64 Interpreter::dostring(qint64 currentIndex, qint64 currentline, const TokenMap& TK)
+qint64 Interpreter::dostr(qint64 currentIndex, qint64 currentline, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance(currentIndex);
 

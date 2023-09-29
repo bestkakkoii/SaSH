@@ -35,7 +35,7 @@ public:
 
 	virtual ~ScriptForm();
 
-	void loadFile(const QString& fileName);
+	void loadFile(const QString& fileName, bool start = false);
 
 private slots:
 	void onButtonClicked();

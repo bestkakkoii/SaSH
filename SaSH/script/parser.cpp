@@ -29,6 +29,7 @@ constexpr qint64 kCallPlaceHoldSize = 2;
 //"格式化" 最小佔位
 constexpr qint64 kFormatPlaceHoldSize = 3;
 
+//不輸出到列表也不做更動的全局變量名稱
 static const QStringList exceptionList = {
 	"TARGET", "_THIS_PARSER", "_INDEX_", "_THIS", "_G", "_HOOKFORSTOP",
 	"BattleClass", "CharClass", "InfoClass", "ItemClass", "MapClass", "PetClass", "SystemClass", "TARGET", "Timer", "_G", "_HOOKFORSTOP", "_INDEX", "_INDEX_", "_ROWCOUNT_",
@@ -277,6 +278,13 @@ Parser::Parser(qint64 index)
 	}
 
 #pragma region init
+	lua_.set_function("getgamestate", [this](qint64 id)->qint64
+		{
+			Injector& injector = Injector::getInstance(getIndex());
+			InterfaceSender sender(injector.getParentWidget());
+
+			return sender.GetGameState(id);
+		});
 
 	lua_.set_function("rungame", [this](qint64 id)->qint64
 		{
@@ -1714,7 +1722,7 @@ bool Parser::loadFile(const QString& fileName, QString* pcontent)
 	if (bret)
 		scriptFileName_ = fileName;
 	return bret;
-	}
+}
 
 //將腳本內容轉換成Tokens
 bool Parser::loadString(const QString& content)
@@ -1837,7 +1845,7 @@ void Parser::handleError(qint64 err, const QString& addition)
 }
 
 //三目運算表達式替換
-void Parser::checkConditionalOp(QString& expr)
+void Parser::checkConditionalOperator(QString& expr)
 {
 	static const QRegularExpression rexConditional(R"(([^\,]+)\s+\?\s+([^\,]+)\s+\:\s+([^\,]+))");
 	if (expr.contains(rexConditional))
@@ -1862,12 +1870,12 @@ void Parser::checkConditionalOp(QString& expr)
 QVariant Parser::luaDoString(QString expr)
 {
 	if (expr.isEmpty())
-	{
 		return "nil";
-	}
 
-	importVariablesToLua(expr);
-	checkConditionalOp(expr);
+	importLocalVariablesToPreLuaList();
+	try { updateSysConstKeyword(expr); }
+	catch (...) {}
+	checkConditionalOperator(expr);
 
 	QStringList localVars = luaLocalVarStringList;
 	localVars.append(expr);
@@ -1977,83 +1985,6 @@ typename std::enable_if<
 	return false;
 }
 
-void Parser::removeEscapeChar(QString* str) const
-{
-	if (nullptr == str)
-		return;
-
-	str->replace("\\\"", "@@@@@@@@@@");
-	str->replace("\"", "");
-	str->replace("@@@@@@@@@@", "\"");
-
-	str->replace("'", "@@@@@@@@@@");
-	str->replace("\\'", "");
-	str->replace("@@@@@@@@@@", "'");
-
-	str->replace("\\\"", "\"");
-	str->replace("\\\'", "\'");
-	str->replace("\\\\", "\\");
-	str->replace("\\n", "\n");
-	str->replace("\\r", "\r");
-	str->replace("\\t", "\t");
-	str->replace("\\b", "\b");
-	str->replace("\\f", "\f");
-	str->replace("\\v", "\v");
-	str->replace("\\a", "\a");
-	str->replace("\\?", "\?");
-	str->replace("\\0", "\0");
-}
-
-//嘗試取指定位置的token轉為QVariant
-bool Parser::toVariant(const TokenMap& TK, qint64 idx, QVariant* ret)
-{
-	if (!TK.contains(idx))
-		return false;
-	if (ret == nullptr)
-		return false;
-
-	RESERVE type = TK.value(idx).type;
-	QVariant var = TK.value(idx).data;
-	if (!var.isValid())
-		return false;
-
-	if (type == TK_STRING || type == TK_CAOS)
-	{
-		QString s = var.toString();
-
-		QString exprStrUTF8;
-		qint64 value = 0;
-		if (exprTo(s, &value))
-			*ret = value;
-		else if (exprTo(s, &exprStrUTF8))
-			*ret = exprStrUTF8;
-		else
-			*ret = var;
-	}
-	else if (type == TK_BOOL)
-	{
-		bool ok = false;
-		qint64 value = var.toLongLong(&ok);
-		if (!ok)
-			return false;
-		*ret = value;
-	}
-	else if (type == TK_DOUBLE)
-	{
-		bool ok = false;
-		double value = var.toDouble(&ok);
-		if (!ok)
-			return false;
-		*ret = value;
-	}
-	else
-	{
-		*ret = var;
-	}
-
-	return true;
-}
-
 //嘗試取指定位置的token轉為字符串
 bool Parser::checkString(const TokenMap& TK, qint64 idx, QString* ret)
 {
@@ -2071,18 +2002,16 @@ bool Parser::checkString(const TokenMap& TK, qint64 idx, QString* ret)
 	if (type == TK_CSTRING)
 	{
 		*ret = var.toString();
-		removeEscapeChar(ret);
 	}
 	else if (type == TK_STRING || type == TK_CAOS)
 	{
-		*ret = var.toString();
-		removeEscapeChar(ret);
+		QString expr = var.toString();
 
-		QString exprStrUTF8;
-		if (!exprTo(*ret, &exprStrUTF8))
+		QString resultStr;
+		if (!exprTo(expr, &resultStr))
 			return false;
 
-		*ret = exprStrUTF8;
+		*ret = resultStr;
 
 	}
 	else
@@ -2488,12 +2417,12 @@ QVariant Parser::getGlobalVarValue(const QString& name)
 	return var;
 }
 
-//表達式替換內容
-void Parser::importVariablesToLua(const QString& expr)
+//局變量保存到預備列表
+void Parser::importLocalVariablesToPreLuaList()
 {
 	sol::state& lua_ = pLua_->getLua();
 
-	//將局變量保存倒預備列表、每次執行表達式時都會將局變量列表轉換lua語句插入表達式前
+	//將局變量保存到預備列表、每次執行表達式時都會將局變量列表轉換lua語句插入表達式前
 	QVariantHash localVars = getLocalVars();
 	luaLocalVarStringList.clear();
 	QString key, strvalue;
@@ -2522,15 +2451,6 @@ void Parser::importVariablesToLua(const QString& expr)
 
 		strvalue = QString("local %1 = %2;").arg(key).arg(strvalue);
 		luaLocalVarStringList.append(strvalue);
-	}
-
-	try
-	{
-		updateSysConstKeyword(expr);
-	}
-	catch (...)
-	{
-
 	}
 }
 
@@ -2791,7 +2711,7 @@ bool Parser::jump(const QString& name, bool noStack)
 	else if (newName == "exit")
 	{
 		requestInterruption();
-		return false;
+		return true;
 	}
 
 	//從跳轉位調用函數
@@ -3104,184 +3024,6 @@ qint64 Parser::processCommand()
 	return status;
 }
 
-//處理單個或多個局變量聲明
-void Parser::processLocalVariable()
-{
-	QString varNameStr = getToken<QString>(0);
-	if (varNameStr.isEmpty())
-		return;
-
-	QStringList varNames = varNameStr.split(util::rexComma, Qt::SkipEmptyParts);
-	if (varNames.isEmpty())
-		return;
-
-	qint64 varCount = varNames.count();
-	if (varCount == 0)
-		return;
-
-	//取區域變量表
-	QVariantHash args = getLocalVars();
-
-	QVariant firstValue;
-	QString preExpr = getToken<QString>(1);
-	if (preExpr.contains("input("))
-	{
-		exprTo(preExpr, &firstValue);
-		if (firstValue.toLongLong() == 987654321ll)
-		{
-			requestInterruption();
-			return;
-		}
-
-		if (!firstValue.isValid())
-			firstValue = 0;
-	}
-	else
-		firstValue = checkValue(currentLineTokens_, 1);
-
-	if (varCount == 1)
-	{
-		insertLocalVar(varNames.front(), firstValue);
-		return;
-	}
-
-	for (qint64 i = 0; i < varCount; ++i)
-	{
-		QString varName = varNames.at(i);
-		if (varName.isEmpty())
-		{
-			continue;
-		}
-
-		if (i + 1 >= currentLineTokens_.size())
-		{
-			insertLocalVar(varName, firstValue);
-			continue;
-		}
-
-		QVariant varValue = checkValue(currentLineTokens_, i + 1);
-		if (i > 0 && !varValue.isValid())
-		{
-			varValue = firstValue;
-		}
-
-		if (varValue.type() == QVariant::String && currentLineTokens_.value(i + 1).type != TK_CSTRING)
-		{
-			QVariant varValue2 = varValue;
-			QString expr = varValue.toString();
-			if (exprTo(expr, &varValue2) && varValue2.isValid())
-				varValue = varValue2.toString();
-		}
-
-		insertLocalVar(varName, varValue);
-		firstValue = varValue;
-	}
-}
-
-//處理單個或多個全局變量聲明，或單個局變量重新賦值
-void Parser::processVariable()
-{
-	QString varNameStr = getToken<QString>(0);
-	QStringList varNames = varNameStr.split(util::rexComma, Qt::SkipEmptyParts);
-	qint64 varCount = varNames.count();
-	qint64 value = 0;
-
-	QVariant firstValue;
-
-	QString preExpr = getToken<QString>(1);
-	static const QRegularExpression rexCallFun(R"([\w\p{Han}]+\((.+)\))");
-	if (preExpr.contains("input("))
-	{
-		exprTo(preExpr, &firstValue);
-		if (firstValue.toLongLong() == 987654321ll)
-		{
-			requestInterruption();
-			return;
-		}
-
-		if (!firstValue.isValid())
-			firstValue = 0;
-	}
-	else if (preExpr.contains(rexCallFun))
-	{
-		QString expr = preExpr;
-		exprTo(expr, &firstValue);
-		if (!firstValue.isValid())
-			firstValue = 0;
-	}
-	else
-		firstValue = checkValue(currentLineTokens_, 1);
-
-	if (varCount == 1)
-	{
-		//只有一個有可能是局變量改值。使用綜合的insert
-		insertVar(varNames.front(), firstValue);
-		return;
-	}
-
-	//下面是多個變量聲明和初始化必定是全局
-	for (qint64 i = 0; i < varCount; ++i)
-	{
-		QString varName = varNames.at(i);
-		if (varName.isEmpty())
-		{
-			continue;
-		}
-
-		if (i + 1 >= currentLineTokens_.size())
-		{
-			insertGlobalVar(varName, firstValue);
-			continue;
-		}
-
-		QVariant varValue;
-		preExpr = getToken<QString>(i + 1);
-		if (preExpr.contains("input("))
-		{
-			exprTo(preExpr, &varValue);
-			if (firstValue.toLongLong() == 987654321ll)
-			{
-				requestInterruption();
-				return;
-			}
-
-			if (!varValue.isValid())
-				varValue = 0;
-		}
-		else
-			varValue = checkValue(currentLineTokens_, i + 1);
-
-		if (i > 0 && !varValue.isValid())
-		{
-			varValue = firstValue;
-		}
-
-		if (varValue.type() == QVariant::String && currentLineTokens_.value(i + 1).type != TK_CSTRING)
-		{
-			QVariant varValue2 = varValue;
-			QString expr = varValue.toString();
-
-			if (exprTo(expr, &varValue2) && varValue2.isValid())
-				varValue = varValue2.toLongLong();
-		}
-
-		insertGlobalVar(varName, varValue);
-		firstValue = varValue;
-	}
-}
-
-//處理數組(表)
-void Parser::processTable()
-{
-	QString varName = getToken<QString>(0);
-	QString expr = getToken<QString>(1);
-	RESERVE type = getTokenType(1);
-	if (type == TK_LOCALTABLE)
-		insertLocalVar(varName, expr);
-	else
-		insertGlobalVar(varName, expr);
-}
-
 //處理變量自增自減
 void Parser::processVariableIncDec()
 {
@@ -3338,51 +3080,6 @@ void Parser::processVariableCAOs()
 	QVariant result = luaDoString(expr);
 	if (!result.isValid())
 		return;
-
-	insertVar(varName, result);
-}
-
-//處理變量表達式
-void Parser::processVariableExpr()
-{
-	QString varName = getToken<QString>(0);
-	if (varName.isEmpty())
-		return;
-
-	QVariant varValue = checkValue(currentLineTokens_, 0);
-
-	QString expr;
-	if (!checkString(currentLineTokens_, 1, &expr))
-		return;
-
-	QVariant::Type type = varValue.type();
-
-	QVariant result;
-	if ((type == QVariant::Int || type == QVariant::LongLong) && !expr.contains("/"))
-	{
-		qint64 value = 0;
-		if (!exprTo(expr, &value))
-			return;
-		result = value;
-	}
-	else if (type == QVariant::Double || expr.contains("/"))
-	{
-		double value = 0;
-		if (!exprTo(expr, &value))
-			return;
-		result = value;
-	}
-	else if (type == QVariant::Bool)
-	{
-		bool value = false;
-		if (!exprTo(expr, &value))
-			return;
-		result = value;
-	}
-	else
-	{
-		result = expr;
-	}
 
 	insertVar(varName, result);
 }
@@ -3611,7 +3308,7 @@ bool Parser::processReturn(qint64 takeReturnFrom)
 			v.append(s);
 		}
 
-		str += v.join(", ");
+		str += v.join(",");
 		str += "}";
 
 		insertGlobalVar("vret", str);
@@ -4091,6 +3788,12 @@ void Parser::processTokens()
 		{
 			break;
 		}
+		case TK_LUASTRING:
+		{
+			if (processLuaString())
+				continue;
+			break;
+		}
 		case TK_IF:
 		{
 			if (processIfCompare())
@@ -4122,30 +3825,6 @@ void Parser::processTokens()
 
 			break;
 		}
-		case TK_LOCAL:
-		{
-			processLocalVariable();
-			break;
-		}
-		case TK_LUASTRING:
-		{
-			if (processLuaString())
-				continue;
-			break;
-		}
-#if 0
-		case TK_TABLE:
-		case TK_LOCALTABLE:
-		{
-			processTable();
-			break;
-		}
-#endif
-		case TK_MULTIVAR:
-		{
-			processVariable();
-			break;
-		}
 		case TK_INCDEC:
 		{
 			processVariableIncDec();
@@ -4154,11 +3833,6 @@ void Parser::processTokens()
 		case TK_CAOS:
 		{
 			processVariableCAOs();
-			break;
-		}
-		case TK_EXPR:
-		{
-			processVariableExpr();
 			break;
 		}
 		case TK_FORMAT:
@@ -4246,6 +3920,35 @@ void Parser::processTokens()
 			generateStackInfo(kModeJumpStack);
 			continue;
 		}
+#if 0
+		case TK_EXPR:
+		{
+			processVariableExpr();
+			break;
+		}
+#endif
+#if 0
+		case TK_LOCAL:
+		{
+			processLocalVariable();
+			break;
+		}
+#endif
+#if 0
+		case TK_TABLE:
+		case TK_LOCALTABLE:
+		{
+			processTable();
+			break;
+		}
+#endif
+#if 0
+		case TK_MULTIVAR:
+		{
+			processVariable();
+			break;
+		}
+#endif
 		default:
 		{
 			qDebug() << "Unexpected token type:" << currentType;
@@ -5472,4 +5175,231 @@ void Parser::updateSysConstKeyword(const QString& expr)
 		pt["vip"] = point.VIPPoints;
 	}
 }
+#pragma endregion
+
+#pragma region deprecated
+#if 0
+//處理單個或多個局變量聲明
+void Parser::processLocalVariable()
+{
+	QString varNameStr = getToken<QString>(0);
+	if (varNameStr.isEmpty())
+		return;
+
+	QStringList varNames = varNameStr.split(util::rexComma, Qt::SkipEmptyParts);
+	if (varNames.isEmpty())
+		return;
+
+	qint64 varCount = varNames.count();
+	if (varCount == 0)
+		return;
+
+	//取區域變量表
+	QVariantHash args = getLocalVars();
+
+	QVariant firstValue;
+	QString preExpr = getToken<QString>(1);
+	if (preExpr.contains("input("))
+	{
+		exprTo(preExpr, &firstValue);
+		if (firstValue.toLongLong() == 987654321ll)
+		{
+			requestInterruption();
+			return;
+		}
+
+		if (!firstValue.isValid())
+			firstValue = 0;
+	}
+	else
+		firstValue = checkValue(currentLineTokens_, 1);
+
+	if (varCount == 1)
+	{
+		insertLocalVar(varNames.front(), firstValue);
+		return;
+	}
+
+	for (qint64 i = 0; i < varCount; ++i)
+	{
+		QString varName = varNames.at(i);
+		if (varName.isEmpty())
+		{
+			continue;
+		}
+
+		if (i + 1 >= currentLineTokens_.size())
+		{
+			insertLocalVar(varName, firstValue);
+			continue;
+		}
+
+		QVariant varValue = checkValue(currentLineTokens_, i + 1);
+		if (i > 0 && !varValue.isValid())
+		{
+			varValue = firstValue;
+		}
+
+		if (varValue.type() == QVariant::String && currentLineTokens_.value(i + 1).type != TK_CSTRING)
+		{
+			QVariant varValue2 = varValue;
+			QString expr = varValue.toString();
+			if (exprTo(expr, &varValue2) && varValue2.isValid())
+				varValue = varValue2.toString();
+		}
+
+		insertLocalVar(varName, varValue);
+		firstValue = varValue;
+	}
+}
+
+//處理單個或多個全局變量聲明，或單個局變量重新賦值
+void Parser::processVariable()
+{
+	QString varNameStr = getToken<QString>(0);
+	QStringList varNames = varNameStr.split(util::rexComma, Qt::SkipEmptyParts);
+	qint64 varCount = varNames.count();
+	qint64 value = 0;
+
+	QVariant firstValue;
+
+	QString preExpr = getToken<QString>(1);
+	static const QRegularExpression rexCallFun(R"([\w\p{Han}]+\((.+)\))");
+	if (preExpr.contains("input("))
+	{
+		exprTo(preExpr, &firstValue);
+		if (firstValue.toLongLong() == 987654321ll)
+		{
+			requestInterruption();
+			return;
+		}
+
+		if (!firstValue.isValid())
+			firstValue = 0;
+	}
+	else if (preExpr.contains(rexCallFun))
+	{
+		QString expr = preExpr;
+		exprTo(expr, &firstValue);
+		if (!firstValue.isValid())
+			firstValue = 0;
+	}
+	else
+		firstValue = checkValue(currentLineTokens_, 1);
+
+	if (varCount == 1)
+	{
+		//只有一個有可能是局變量改值。使用綜合的insert
+		insertVar(varNames.front(), firstValue);
+		return;
+	}
+
+	//下面是多個變量聲明和初始化必定是全局
+	for (qint64 i = 0; i < varCount; ++i)
+	{
+		QString varName = varNames.at(i);
+		if (varName.isEmpty())
+		{
+			continue;
+		}
+
+		if (i + 1 >= currentLineTokens_.size())
+		{
+			insertGlobalVar(varName, firstValue);
+			continue;
+		}
+
+		QVariant varValue;
+		preExpr = getToken<QString>(i + 1);
+		if (preExpr.contains("input("))
+		{
+			exprTo(preExpr, &varValue);
+			if (firstValue.toLongLong() == 987654321ll)
+			{
+				requestInterruption();
+				return;
+			}
+
+			if (!varValue.isValid())
+				varValue = 0;
+		}
+		else
+			varValue = checkValue(currentLineTokens_, i + 1);
+
+		if (i > 0 && !varValue.isValid())
+		{
+			varValue = firstValue;
+		}
+
+		if (varValue.type() == QVariant::String && currentLineTokens_.value(i + 1).type != TK_CSTRING)
+		{
+			QVariant varValue2 = varValue;
+			QString expr = varValue.toString();
+
+			if (exprTo(expr, &varValue2) && varValue2.isValid())
+				varValue = varValue2.toLongLong();
+		}
+
+		insertGlobalVar(varName, varValue);
+		firstValue = varValue;
+	}
+}
+
+//處理數組(表)
+void Parser::processTable()
+{
+	QString varName = getToken<QString>(0);
+	QString expr = getToken<QString>(1);
+	RESERVE type = getTokenType(1);
+	if (type == TK_LOCALTABLE)
+		insertLocalVar(varName, expr);
+	else
+		insertGlobalVar(varName, expr);
+}
+
+//處理變量表達式
+void Parser::processVariableExpr()
+{
+	QString varName = getToken<QString>(0);
+	if (varName.isEmpty())
+		return;
+
+	QVariant varValue = checkValue(currentLineTokens_, 0);
+
+	QString expr;
+	if (!checkString(currentLineTokens_, 1, &expr))
+		return;
+
+	QVariant::Type type = varValue.type();
+
+	QVariant result;
+	if ((type == QVariant::Int || type == QVariant::LongLong) && !expr.contains("/"))
+	{
+		qint64 value = 0;
+		if (!exprTo(expr, &value))
+			return;
+		result = value;
+	}
+	else if (type == QVariant::Double || expr.contains("/"))
+	{
+		double value = 0;
+		if (!exprTo(expr, &value))
+			return;
+		result = value;
+	}
+	else if (type == QVariant::Bool)
+	{
+		bool value = false;
+		if (!exprTo(expr, &value))
+			return;
+		result = value;
+	}
+	else
+	{
+		result = expr;
+	}
+
+	insertVar(varName, result);
+}
+#endif
 #pragma endregion

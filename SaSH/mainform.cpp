@@ -342,10 +342,8 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 			return true;
 		}
 
-		pScriptForm_->loadFile(fileName);
 		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(id);
-		emit signalDispatcher.loadFileToTable(fileName);
-		emit signalDispatcher.scriptStarted();
+		emit signalDispatcher.loadFileToTable(fileName, true);
 
 		++interfaceCount_;
 		updateStatusText();
@@ -419,17 +417,20 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 		bool ok = injector.server->IS_TCP_CONNECTION_OK_TO_USE;
 		if (!ok)
 			return true;
-		else
+
+		if (injector.IS_INJECT_OK)
+		{
 			value = 1;
 
-		if (!injector.server->getOnlineFlag())
-			value = 2;
-		else
-		{
-			if (!injector.server->getBattleFlag())
-				value = 3;
+			if (!injector.server->getOnlineFlag())
+				value = 2;
 			else
-				value = 4;
+			{
+				if (!injector.server->getBattleFlag())
+					value = 3;
+				else
+					value = 4;
+			}
 		}
 
 		++interfaceCount_;
@@ -1030,8 +1031,6 @@ MainForm::MainForm(qint64 index, QWidget* parent)
 {
 	ui.setupUi(this);
 	setIndex(index);
-
-	setAttribute(Qt::WA_QuitOnClose);
 	setAttribute(Qt::WA_StyledBackground, true);
 	setAttribute(Qt::WA_StaticContents, true);
 	setWindowFlags(windowFlags() & ~Qt::WindowMaximizeButtonHint);
@@ -1165,6 +1164,7 @@ void MainForm::showEvent(QShowEvent* e)
 
 void MainForm::closeEvent(QCloseEvent* e)
 {
+	e->ignore();
 	onSaveHashSettings(util::applicationDirPath() + "/settings/backup.json", true);
 
 	util::FormSettingManager formManager(this);
@@ -1178,6 +1178,8 @@ void MainForm::closeEvent(QCloseEvent* e)
 		pScriptSettingForm_->close();
 
 	markAsClose_ = true;
+	hide();
+	mem::freeUnuseMemory(GetCurrentProcess());
 
 	Injector::getInstance(getIndex()).close();
 
@@ -1185,7 +1187,6 @@ void MainForm::closeEvent(QCloseEvent* e)
 	{
 		if (!it->markAsClose_)
 		{
-			mem::freeUnuseMemory(GetCurrentProcess());
 			return;
 		}
 	}

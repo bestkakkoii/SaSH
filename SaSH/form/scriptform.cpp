@@ -83,6 +83,8 @@ ScriptForm::ScriptForm(qint64 index, QWidget* parent)
 	connect(&signalDispatcher, &SignalDispatcher::applyHashSettingsToUI, this, &ScriptForm::onApplyHashSettingsToUI, Qt::UniqueConnection);
 	emit signalDispatcher.reloadScriptList();
 
+	connect(ui.spinBox_speed, static_cast<void (QSpinBox::*)(int)>(&QSpinBox::valueChanged), this, &ScriptForm::onSpeedChanged);
+
 	const QString fileName(qgetenv("JSON_PATH"));
 	if (fileName.isEmpty())
 		return;
@@ -92,13 +94,23 @@ ScriptForm::ScriptForm(qint64 index, QWidget* parent)
 	util::Config config(fileName);
 
 	Injector& injector = Injector::getInstance(index);
-	injector.currentScriptFileName = config.read<QString>(objectName(), "LastModifyFile");
-	if (!injector.currentScriptFileName.isEmpty() && QFile::exists(injector.currentScriptFileName))
+	QString currentScriptFileName = config.read<QString>("Script", "LastModifyFile");
+
+	if (currentScriptFileName.isEmpty() || !QFile::exists(currentScriptFileName))
 	{
-		emit signalDispatcher.loadFileToTable(injector.currentScriptFileName);
+		QString defaultScriptPath = util::applicationDirPath() + "/script/default.txt";
+		QFile fileDefault(defaultScriptPath);
+		if (!fileDefault.exists())
+		{
+			if (!fileDefault.open(QIODevice::WriteOnly | QIODevice::Text | QIODevice::Truncate))
+				return;
+			fileDefault.close();
+		}
+
+		currentScriptFileName = defaultScriptPath;
 	}
 
-	connect(ui.spinBox_speed, static_cast<void (QSpinBox::*)(int)>(&QSpinBox::valueChanged), this, &ScriptForm::onSpeedChanged);
+	emit signalDispatcher.loadFileToTable(currentScriptFileName);
 }
 
 ScriptForm::~ScriptForm()
@@ -113,7 +125,8 @@ void ScriptForm::onScriptStarted()
 		return;
 
 	if (!injector.currentScriptFileName.contains(util::SCRIPT_DEFAULT_SUFFIX)
-		&& !injector.currentScriptFileName.contains(util::SCRIPT_PRIVATE_SUFFIX_DEFAULT))
+		&& !injector.currentScriptFileName.contains(util::SCRIPT_PRIVATE_SUFFIX_DEFAULT)
+		&& !injector.currentScriptFileName.contains(util::SCRIPT_LUA_SUFFIX_DEFAULT))
 		return;
 
 
@@ -199,7 +212,9 @@ void ScriptForm::onButtonClicked()
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
 	if (name == "pushButton_script_start")
 	{
-		emit signalDispatcher.scriptStarted();
+		Injector& injector = Injector::getInstance(currentIndex);
+		if (!injector.IS_SCRIPT_FLAG.load(std::memory_order_acquire) && QFile::exists(injector.currentScriptFileName))
+			emit signalDispatcher.scriptStarted();
 	}
 	else if (name == "pushButton_script_pause")
 	{
@@ -286,12 +301,14 @@ void ScriptForm::onScriptLabelRowTextChanged(qint64 row, qint64 max, bool noSele
 }
 
 //加載並預覽腳本
-void ScriptForm::loadFile(const QString& fileName)
+void ScriptForm::loadFile(const QString& fileName, bool start)
 {
 	if (fileName.isEmpty())
 		return;
 
-	if (!fileName.contains(util::SCRIPT_DEFAULT_SUFFIX) && !fileName.contains(util::SCRIPT_PRIVATE_SUFFIX_DEFAULT))
+	if (!fileName.contains(util::SCRIPT_DEFAULT_SUFFIX)
+		&& !fileName.contains(util::SCRIPT_PRIVATE_SUFFIX_DEFAULT)
+		&& !fileName.contains(util::SCRIPT_LUA_SUFFIX_DEFAULT))
 		return;
 
 	qint64 currentIndex = getIndex();
@@ -301,8 +318,15 @@ void ScriptForm::loadFile(const QString& fileName)
 	}
 
 	Injector& injector = Injector::getInstance(currentIndex);
-	injector.currentScriptFileName = fileName;
+	if (!injector.IS_SCRIPT_FLAG)
+		injector.currentScriptFileName = fileName;
+
 	interpreter_->preview(fileName);
+	if (start)
+	{
+		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
+		emit signalDispatcher.scriptStarted();
+	}
 }
 
 void ScriptForm::onScriptContentChanged(const QString& fileName, const QVariant& vtokens)

@@ -137,7 +137,7 @@ signals:
 	void scriptStoped();
 	void scriptFinished();
 	void scriptContentChanged(const QString& fileName, const QVariant& tokens);
-	void loadFileToTable(const QString& fileName);
+	void loadFileToTable(const QString& fileName, bool start = false);
 	void reloadScriptList();
 	void varInfoImported(void* p, const QVariantHash& d, const QStringList& globalNames);
 

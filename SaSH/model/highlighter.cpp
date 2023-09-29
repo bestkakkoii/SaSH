@@ -62,7 +62,7 @@ const char* Highlighter::keywords(int set) const
 			"tsort trsort split mktable trotate tunique tshuffle tsleft tsright tmerge tjoin "
 			"tswap tadd tpadd tpopback tpopfront tfront tback mkpath contains "
 
-			"rungame closegame openwindow setlogin runex stoprunex dostrex loadsetex "
+			"rungame closegame openwindow setlogin runex stoprunex dostrex loadsetex getgamestate "
 
 			/* . */
 			"item.count item.indexof item.find "

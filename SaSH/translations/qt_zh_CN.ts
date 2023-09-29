@@ -3289,6 +3289,86 @@ No new version available. Do you still want to update?</source>
         <source> ========== script report : valid %1，error %2，comment %3，space %4 ==========</source>
         <translation> ========== 脚本报告 : 有效命令 %1 个，错误 %2 个，註释 %3 个，空行 %4 个 ==========</translation>
     </message>
+    <message>
+        <source>drunk</source>
+        <translation>酒醉</translation>
+    </message>
+    <message>
+        <source>weaken</source>
+        <translation>虚弱</translation>
+    </message>
+    <message>
+        <source>deep poison</source>
+        <translation>剧毒</translation>
+    </message>
+    <message>
+        <source>barrier</source>
+        <translation>魔障</translation>
+    </message>
+    <message>
+        <source>no cast</source>
+        <translation>沉默</translation>
+    </message>
+    <message>
+        <source>sars</source>
+        <translation>毒煞</translation>
+    </message>
+    <message>
+        <source>entwine</source>
+        <translation>树缠</translation>
+    </message>
+    <message>
+        <source>dragnet</source>
+        <translation>天网</translation>
+    </message>
+    <message>
+        <source>ice crack</source>
+        <translation>冰爆</translation>
+    </message>
+    <message>
+        <source>oblivion</source>
+        <translation>遗忘</translation>
+    </message>
+    <message>
+        <source>ice arrow</source>
+        <translation>冰箭</translation>
+    </message>
+    <message>
+        <source>blood worms</source>
+        <translation>血蛊</translation>
+    </message>
+    <message>
+        <source>sign</source>
+        <translation>一针</translation>
+    </message>
+    <message>
+        <source>cary</source>
+        <translation>挑拨</translation>
+    </message>
+    <message>
+        <source>fire enclose</source>
+        <translation>火附</translation>
+    </message>
+    <message>
+        <source>ice enclose</source>
+        <translation>冰附</translation>
+    </message>
+    <message>
+        <source>thunder enclose</source>
+        <translation>雷附</translation>
+    </message>
+    <message>
+        <source>water enclose</source>
+        <translation>水附</translation>
+    </message>
+    <message>
+        <source>fear</source>
+        <translation>恐惧</translation>
+    </message>
+    <message>
+        <source>change</source>
+        <translation>变身</translation>
+    </message>
 </context>
 <context>
     <name>QThumbnailFormClass</name>

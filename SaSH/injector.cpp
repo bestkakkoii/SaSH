@@ -69,6 +69,7 @@ void Injector::reset(qint64 index)//static
 	instance->chatLogModel->clear(); //聊天日誌模型
 	instance->currentServerListIndex = 0;
 	instance->scriptThreadId = 0;
+	instance->IS_INJECT_OK = false;
 #if 0
 	//紀錄當前設置
 	QHash<util::UserSetting, bool> enableHash = instance->getEnablesHash();
@@ -105,7 +106,7 @@ void Injector::reset(qint64 index)//static
 		instance->setParentWidget(_hWnd);
 
 		instances.insert(index, instance);
-	}
+}
 #endif
 }
 
@@ -383,7 +384,7 @@ qint64 Injector::sendMessage(qint64 msg, qint64 wParam, qint64 lParam) const
 	DWORD_PTR dwResult = 0L;
 	SendMessageTimeoutW(pi_.hWnd, msg, wParam, lParam, SMTO_ABORTIFHUNG | SMTO_ERRORONEXIT, MessageTimeout, &dwResult);
 	return static_cast<qint64>(dwResult);
-	}
+}
 
 bool Injector::postMessage(qint64 msg, qint64 wParam, qint64 lParam) const
 {
@@ -591,6 +592,7 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 			::SetWindowLongW(pi.hWnd, GWL_STYLE, dwStyle);
 
 		bret = true;
+		IS_INJECT_OK = true;
 	} while (false);
 
 	if (!bret)

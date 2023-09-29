@@ -192,6 +192,8 @@ public:
 	quint64 scriptThreadId = 0;
 
 	Autil autil;
+
+	bool IS_INJECT_OK = false;//是否注入成功
 private:
 	quint64 hGameModule_ = NULL;
 	HMODULE hookdllModule_ = NULL;

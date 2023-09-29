@@ -30,214 +30,6 @@ enum RTK
 #pragma region KeyWord
 //全局關鍵字映射表 這裡是新增新的命令的第一步，其他需要在interpreter.cpp中新增註冊新函數，這裡不添加的話，腳本分析後會忽略未知的命令
 static const QHash<QString, RESERVE> keywords = {
-#pragma region zh_TW
-	//keyword
-	{ u8"調用", TK_CALL },
-	{ u8"行數", TK_GOTO },
-	{ u8"跳轉", TK_GOTO },
-	{ u8"返回", TK_RETURN },
-	{ u8"返回跳轉", TK_BAK },
-	{ u8"結束", TK_END },
-	{ u8"暫停", TK_PAUSE },
-	{ u8"功能", TK_FUNCTION, },
-	{ u8"標記", TK_LABEL, },
-	{ u8"格式化", TK_FORMAT },
-	{ u8"如果", TK_IF },
-	{ u8"遍歷", TK_FOR },
-	{ u8"跳出", TK_BREAK },
-	{ u8"繼續", TK_CONTINUE },
-
-	//system
-	{ u8"執行", TK_CMD },
-	{ u8"延時", TK_CMD },
-	//{ u8"提示", TK_CMD },
-	{ u8"消息", TK_CMD },
-	{ u8"登出", TK_CMD },
-	{ u8"元神歸位", TK_CMD },
-	{ u8"回點", TK_CMD },
-	{ u8"按鈕", TK_CMD },
-	{ u8"說話", TK_CMD },
-	{ u8"輸入", TK_CMD },
-	{ u8"說出", TK_CMD },
-	{ u8"清屏", TK_CMD },
-	{ u8"讀取設置", TK_CMD },
-	{ u8"儲存設置", TK_CMD },
-	{ u8"計時", TK_CMD },
-	{ u8"菜單", TK_CMD },
-	{ u8"創建人物", TK_CMD },
-	{ u8"刪除人物", TK_CMD },
-	{ u8"發包", TK_CMD },
-
-	//check info
-	{ u8"地圖", TK_CMD },
-	{ u8"對話", TK_CMD },
-	{ u8"看見", TK_CMD },
-	{ u8"聽見", TK_CMD },
-	{ u8"道具", TK_CMD },
-	{ u8"寵物有", TK_CMD },
-	{ u8"任務狀態", TK_CMD },
-
-	//actions
-	{ u8"人物改名", TK_CMD },
-	{ u8"使用精靈", TK_CMD },
-	{ u8"寵物改名", TK_CMD },
-	{ u8"寵物郵件", TK_CMD },
-	{ u8"更換寵物", TK_CMD },
-	{ u8"丟棄寵物", TK_CMD },
-	{ u8"購買", TK_CMD },
-	{ u8"售賣", TK_CMD },
-	{ u8"賣寵", TK_CMD },
-	{ u8"使用道具", TK_CMD },
-	{ u8"丟棄道具", TK_CMD },
-	{ u8"交換道具", TK_CMD },
-	{ u8"撿物", TK_CMD },
-	{ u8"存入道具", TK_CMD },
-	{ u8"提出道具", TK_CMD },
-	{ u8"存入寵物", TK_CMD },
-	{ u8"提出寵物", TK_CMD },
-	{ u8"存錢", TK_CMD },
-	{ u8"提錢", TK_CMD },
-	{ u8"加工", TK_CMD },
-	{ u8"料理", TK_CMD },
-	{ u8"轉移", TK_CMD },
-	{ u8"卸下裝備", TK_CMD },
-	{ u8"記錄身上裝備", TK_CMD },
-	{ u8"裝上記錄裝備", TK_CMD },
-	{ u8"卸下寵裝備", TK_CMD },
-	{ u8"裝上寵裝備", TK_CMD },
-	{ u8"加點", TK_CMD },
-	{ u8"學習", TK_CMD },
-	{ u8"交易", TK_CMD },
-	{ u8"寄信", TK_CMD },
-	{ u8"丟棄石幣", TK_CMD },
-
-	//action with sub cmd
-	{ u8"組隊", TK_CMD },
-	{ u8"離隊", TK_CMD },
-	{ u8"踢走", TK_CMD },
-	{ u8"組隊有", TK_CMD },
-	{ u8"座標有", TK_CMD },
-	{ u8"坐標有", TK_CMD },
-
-	//move
-	{ u8"坐標", TK_CMD },
-	{ u8"座標", TK_CMD },
-	{ u8"移動", TK_CMD },
-	{ u8"封包移動", TK_CMD },
-	{ u8"方向", TK_CMD },
-	{ u8"最近坐標", TK_CMD },
-
-	//mouse
-	{ u8"左擊", TK_CMD },
-	{ u8"右擊", TK_CMD },
-	{ u8"左雙擊", TK_CMD },
-	{ u8"拖至", TK_CMD },
-#pragma endregion
-
-#pragma region zh_CN
-	//keyword
-	{ u8"调用", TK_CALL },
-	{ u8"行数", TK_GOTO },
-	{ u8"跳转", TK_GOTO },
-	{ u8"返回", TK_RETURN },
-	{ u8"返回跳转", TK_BAK },
-	{ u8"结束", TK_END },
-	{ u8"暂停", TK_PAUSE },
-	{ u8"功能", TK_FUNCTION, },
-	{ u8"标记", TK_LABEL, },
-	{ u8"格式化", TK_FORMAT },
-	{ u8"如果", TK_IF },
-	{ u8"遍历", TK_FOR },
-	{ u8"跳出", TK_BREAK },
-	{ u8"继续", TK_CONTINUE },
-
-	//system
-	{ u8"执行", TK_CMD },
-	{ u8"延时", TK_CMD },
-	//{ u8"提示", TK_CMD },
-	{ u8"消息", TK_CMD },
-	{ u8"登出", TK_CMD },
-	{ u8"元神归位", TK_CMD },
-	{ u8"回点", TK_CMD },
-	{ u8"按钮", TK_CMD },
-	{ u8"说话", TK_CMD },
-	{ u8"输入", TK_CMD },
-	{ u8"说出", TK_CMD },
-	{ u8"清屏", TK_CMD },
-	{ u8"读取设置", TK_CMD },
-	{ u8"储存设置", TK_CMD },
-	{ u8"计时", TK_CMD },
-	{ u8"菜单", TK_CMD },
-	{ u8"创建人物", TK_CMD },
-	{ u8"删除人物", TK_CMD },
-	{ u8"发包", TK_CMD },
-
-	//check info
-	{ u8"地图", TK_CMD },
-	{ u8"对话", TK_CMD },
-	{ u8"看见", TK_CMD },
-	{ u8"听见", TK_CMD },
-	{ u8"道具", TK_CMD },
-	{ u8"宠物有", TK_CMD },
-	{ u8"任务状态", TK_CMD },
-
-	//actions
-	{ u8"人物改名", TK_CMD },
-	{ u8"使用精灵", TK_CMD },
-	{ u8"宠物改名", TK_CMD },
-	{ u8"宠物邮件", TK_CMD },
-	{ u8"更换宠物", TK_CMD },
-	{ u8"丢弃宠物", TK_CMD },
-	{ u8"购买", TK_CMD },
-	{ u8"售卖", TK_CMD },
-	{ u8"卖宠", TK_CMD },
-	{ u8"使用道具", TK_CMD },
-	{ u8"丢弃道具", TK_CMD },
-	{ u8"交换道具", TK_CMD },
-	{ u8"捡物", TK_CMD },
-	{ u8"存入道具", TK_CMD },
-	{ u8"提出道具", TK_CMD },
-	{ u8"存入宠物", TK_CMD },
-	{ u8"提出宠物", TK_CMD },
-	{ u8"存钱", TK_CMD },
-	{ u8"提钱", TK_CMD },
-	{ u8"加工", TK_CMD },
-	{ u8"料理", TK_CMD },
-	{ u8"转移", TK_CMD },
-	{ u8"卸下装备", TK_CMD },
-	{ u8"记录身上装备", TK_CMD },
-	{ u8"装上记录装备", TK_CMD },
-	{ u8"卸下宠装备", TK_CMD },
-	{ u8"装上宠装备", TK_CMD },
-	{ u8"加点", TK_CMD },
-	{ u8"学习", TK_CMD },
-	{ u8"交易", TK_CMD },
-	{ u8"寄信", TK_CMD },
-	{ u8"丢弃石币", TK_CMD },
-
-	//action with sub cmd
-	{ u8"组队", TK_CMD },
-	{ u8"离队", TK_CMD },
-	{ u8"踢走", TK_CMD },
-	{ u8"组队有", TK_CMD },
-	{ u8"座标有", TK_CMD },
-	{ u8"坐标有", TK_CMD },
-
-	//move
-	{ u8"坐标", TK_CMD },
-	{ u8"座标", TK_CMD },
-	{ u8"移动", TK_CMD },
-	{ u8"封包移动", TK_CMD },
-	{ u8"方向", TK_CMD },
-	{ u8"最近坐标", TK_CMD },
-
-	//mouse
-	{ u8"左击", TK_CMD },
-	{ u8"右击", TK_CMD },
-	{ u8"左双击", TK_CMD },
-	{ u8"拖至", TK_CMD },
-
-#pragma endregion
 	{ u8"[call]", TK_CALLWITHNAME },
 #pragma region en_US
 	//keyword
@@ -251,7 +43,6 @@ static const QHash<QString, RESERVE> keywords = {
 	{ u8"pause", TK_PAUSE },
 	{ u8"function", TK_FUNCTION, },
 	{ u8"label", TK_LABEL, },
-	//{ u8"local", TK_LOCAL },
 	{ u8"format", TK_FORMAT },
 	{ u8"if", TK_IF },
 	{ u8"for", TK_FOR },
@@ -260,26 +51,13 @@ static const QHash<QString, RESERVE> keywords = {
 
 	//system
 	{ u8"run", TK_CMD },
-	{ u8"sleep", TK_CMD },
-	//{ u8"print", TK_CMD },
-
-	{ u8"logout", TK_CMD },
-	{ u8"eo", TK_CMD },
-	{ u8"logback", TK_CMD },
 	{ u8"button", TK_CMD },
-	{ u8"say", TK_CMD },
-	{ u8"input", TK_CMD },
-	{ u8"talk", TK_CMD },
-	{ u8"cls", TK_CMD },
-	{ u8"saveset", TK_CMD },
-	{ u8"loadset", TK_CMD },
-	{ u8"reg", TK_CMD },
-	{ u8"timer", TK_CMD },
 	{ u8"menu", TK_CMD },
 	{ u8"dofile", TK_CMD },
 	{ u8"createch", TK_CMD },
 	{ u8"delch", TK_CMD },
 	{ u8"send", TK_CMD },
+	{ u8"dostr", TK_CMD },
 
 	//check info
 	{ u8"checkdaily", TK_CMD },
@@ -321,7 +99,6 @@ static const QHash<QString, RESERVE> keywords = {
 	{ u8"skup", TK_CMD },
 	{ u8"learn", TK_CMD },
 	{ u8"trade", TK_CMD },
-	{ u8"dostring", TK_CMD },
 	{ u8"mail", TK_CMD },
 	{ u8"doffstone", TK_CMD },
 
@@ -332,16 +109,7 @@ static const QHash<QString, RESERVE> keywords = {
 
 	//move
 	{ u8"walkpos", TK_CMD },
-	{ u8"move", TK_CMD },
-	{ u8"w", TK_CMD },
 	{ u8"dir", TK_CMD },
-	{ u8"chmap", TK_CMD },
-
-	//mouse
-	{ u8"lclick", TK_CMD },
-	{ u8"rclick", TK_CMD },
-	{ u8"ldbclick", TK_CMD },
-	{ u8"dragto", TK_CMD },
 
 	//hide
 	//{ u8"ocr", TK_CMD },
@@ -527,7 +295,10 @@ void Lexer::tokenized(qint64 currentLine, const QString& line, TokenMap* ptoken,
 			raw = raw.mid(0, commentIndex).trimmed();
 
 		static const QStringList tempReplacementList = {
-			"set", "print", "msg", "dlg", "findpath", "movetonpc", "rex", "regex", "rexg", "format", "run"
+			"set", "print", "msg", "dlg", "findpath", "movetonpc", "rex", "regex", "rexg", "format", "run",
+			"say", "sleep", "saveset", "loadset", "lclick", "rclick", "dbclick", "dragto", "chmap", "w", "download",
+			"move", "cls", "eo", "logout", "logback", "runex", "openwindow", "rungame", "closegame", "setlogin", "dostrex",
+			"getgamestate", "loadsetex",
 		};
 
 		for (const QString& it : tempReplacementList)
@@ -537,6 +308,12 @@ void Lexer::tokenized(qint64 currentLine, const QString& line, TokenMap* ptoken,
 				//將xxx 改為set(
 				raw.replace(it + " ", it + "(");
 				raw.append(")");
+				originalRaw = raw;
+				break;
+			}
+			else if (raw == it)
+			{
+				raw.append("()");
 				originalRaw = raw;
 				break;
 			}

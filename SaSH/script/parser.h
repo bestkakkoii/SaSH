@@ -400,13 +400,10 @@ public:
 	void jumpto(qint64 line, bool noStack);
 	bool jump(const QString& name, bool noStack);
 
-	void removeEscapeChar(QString* str) const;
 	bool checkString(const TokenMap& TK, qint64 idx, QString* ret);
 	bool checkInteger(const TokenMap& TK, qint64 idx, qint64* ret);
 	bool checkNumber(const TokenMap& TK, qint64 idx, double* ret);
 	bool checkBoolean(const TokenMap& TK, qint64 idx, bool* ret);
-
-	bool toVariant(const TokenMap& TK, qint64 idx, QVariant* ret);
 
 	QVariant checkValue(const TokenMap TK, qint64 idx, QVariant::Type = QVariant::Invalid);
 	qint64 checkJump(const TokenMap& TK, qint64 idx, bool expr, JumpBehavior behavior);
@@ -439,12 +436,9 @@ public:
 private:
 	void processTokens();
 	qint64 processCommand();
-	void processLocalVariable();
 	void processVariableIncDec();
 	void processVariableCAOs();
-	void processVariableExpr();
 	void processVariable();
-	void processTable();
 	bool processLuaString();
 	void processFormation();
 	bool processCall(RESERVE reserve);
@@ -463,13 +457,18 @@ private:
 	bool processContinue();
 	bool processLuaCode();
 	bool processIfCompare();
+#if 0
+	void processLocalVariable();
+	void processVariableExpr();
+	void processTable();
+#endif
 
 	void updateSysConstKeyword(const QString& expr);
-	void importVariablesToLua(const QString& expr);
+	void importLocalVariablesToPreLuaList();
 	bool checkCallStack();
 	void exportVarInfo();
 
-	void checkConditionalOp(QString& expr);
+	void checkConditionalOperator(QString& expr);
 
 
 

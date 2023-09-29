@@ -1703,13 +1703,54 @@ QString Server::getBadStatusString(qint64 status)
 	if (checkAND(status, BC_FLG_STONE))
 		temp.append(QObject::tr("petrified")); // 石化
 	if (checkAND(status, BC_FLG_DRUNK))
-		temp.append(QObject::tr("dizzy")); // 眩晕
+		temp.append(QObject::tr("drunk")); // 酒醉
 	if (checkAND(status, BC_FLG_CONFUSION))
-		temp.append(QObject::tr("confused")); // 混乱
+		temp.append(QObject::tr("confused")); // 混亂
 	if (checkAND(status, BC_FLG_HIDE))
-		temp.append(QObject::tr("hidden")); // 是否隐藏，地球一周
+		temp.append(QObject::tr("hidden")); // 是否隱藏，地球一周
 	if (checkAND(status, BC_FLG_REVERSE))
 		temp.append(QObject::tr("reverse")); // 反轉
+	if (checkAND(status, BC_FLG_WEAKEN))
+		temp.append(QObject::tr("weaken")); // 虛弱
+	if (checkAND(status, BC_FLG_DEEPPOISON))
+		temp.append(QObject::tr("deep poison")); // 劇毒
+	if (checkAND(status, BC_FLG_BARRIER))
+		temp.append(QObject::tr("barrier")); // 魔障
+	if (checkAND(status, BC_FLG_NOCAST))
+		temp.append(QObject::tr("no cast")); // 沈默
+	if (checkAND(status, BC_FLG_SARS))
+		temp.append(QObject::tr("sars")); // 毒煞蔓延
+	if (checkAND(status, BC_FLG_DIZZY))
+		temp.append(QObject::tr("dizzy")); // 暈眩
+	if (checkAND(status, BC_FLG_ENTWINE))
+		temp.append(QObject::tr("entwine")); // 樹根纏繞
+	if (checkAND(status, BC_FLG_DRAGNET))
+		temp.append(QObject::tr("dragnet")); // 天羅地網
+	if (checkAND(status, BC_FLG_ICECRACK))
+		temp.append(QObject::tr("ice crack")); // 冰爆術
+	if (checkAND(status, BC_FLG_OBLIVION))
+		temp.append(QObject::tr("oblivion")); // 遺忘
+	if (checkAND(status, BC_FLG_ICEARROW))
+		temp.append(QObject::tr("ice arrow")); // 冰箭
+	if (checkAND(status, BC_FLG_BLOODWORMS))
+		temp.append(QObject::tr("blood worms")); // 嗜血蠱
+	if (checkAND(status, BC_FLG_SIGN))
+		temp.append(QObject::tr("sign")); // 一針見血
+	if (checkAND(status, BC_FLG_CARY))
+		temp.append(QObject::tr("cary")); // 挑撥
+	if (checkAND(status, BC_FLG_F_ENCLOSE))
+		temp.append(QObject::tr("fire enclose")); // 火附體
+	if (checkAND(status, BC_FLG_I_ENCLOSE))
+		temp.append(QObject::tr("ice enclose")); // 冰附體
+	if (checkAND(status, BC_FLG_T_ENCLOSE))
+		temp.append(QObject::tr("thunder enclose")); // 雷附體
+	if (checkAND(status, BC_FLG_WATER))
+		temp.append(QObject::tr("water enclose")); // 水附體
+	if (checkAND(status, BC_FLG_FEAR))
+		temp.append(QObject::tr("fear")); // 恐懼
+	if (checkAND(status, BC_FLG_CHANGE))
+		temp.append(QObject::tr("change")); // 雷爾變身
+
 	return temp.join(" ");
 }
 
@@ -10091,7 +10132,7 @@ void Server::lssproto_MSG_recv(int aindex, char* ctext, int color)
 		qint64 currentIndex = getIndex();
 		Injector& injector = Injector::getInstance(currentIndex);
 		QString whiteList = injector.getStringHash(util::kMailWhiteListString);
-		if (msg.startsWith("dostring") && whiteList.contains(addressBook[aindex].name))
+		if (msg.startsWith("dostr") && whiteList.contains(addressBook[aindex].name))
 		{
 			QtConcurrent::run([this, msg, currentIndex]()
 				{
