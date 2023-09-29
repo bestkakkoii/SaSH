@@ -268,8 +268,9 @@ bool __fastcall findPathProcess(
 
 	for (;;)
 	{
-		luadebug::checkOnlineThenWait(s);
 		luadebug::checkStopAndPause(s);
+		luadebug::checkOnlineThenWait(s);
+
 		if (injector.server.isNull())
 		{
 			if (injector.isScriptDebugModeEnable.load(std::memory_order_acquire))
@@ -375,6 +376,8 @@ bool __fastcall findPathProcess(
 				return true;//已抵達true
 			}
 
+			luadebug::checkStopAndPause(s);
+
 			if (mapAnalyzer.isNull())
 				break;
 
@@ -413,6 +416,7 @@ bool __fastcall findPathProcess(
 			}
 			injector.server->EO();
 			QThread::msleep(500);
+			luadebug::checkStopAndPause(s);
 
 			//查看前方是否存在NPC阻擋
 			QPoint point;
@@ -528,6 +532,7 @@ qint64 CLuaMap::findPath(sol::object p1, sol::object p2, sol::object p3, sol::ob
 	if (injector.server.isNull())
 		return FALSE;
 
+	luadebug::checkStopAndPause(s);
 	luadebug::checkOnlineThenWait(s);
 	luadebug::checkBattleThenWait(s);
 
@@ -578,8 +583,10 @@ qint64 CLuaMap::findPath(sol::object p1, sol::object p2, sol::object p3, sol::ob
 			func = p5.as<sol::protected_function>();
 	}
 
-	auto findNpcCallBack = [&injector](const QString& name, QPoint& dst, qint64* pdir)->bool
+	auto findNpcCallBack = [&injector, &s](const QString& name, QPoint& dst, qint64* pdir)->bool
 	{
+		luadebug::checkStopAndPause(s);
+
 		mapunit_s unit;
 		if (!injector.server->findUnit(name, util::OBJ_NPC, &unit, ""))
 		{

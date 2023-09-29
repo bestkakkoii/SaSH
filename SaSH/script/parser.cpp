@@ -33,7 +33,7 @@ constexpr qint64 kFormatPlaceHoldSize = 3;
 static const QStringList exceptionList = {
 	"TARGET", "_THIS_PARSER", "_INDEX_", "_THIS", "_G", "_HOOKFORSTOP",
 	"BattleClass", "CharClass", "InfoClass", "ItemClass", "MapClass", "PetClass", "SystemClass", "TARGET", "Timer", "_G", "_HOOKFORSTOP", "_INDEX", "_INDEX_", "_ROWCOUNT_",
-	"_THIS", "_THIS_PARSER", "_print", "assert", "base",  "collectgarbage",
+	"_THIS", "_print", "assert", "base",  "collectgarbage",
 	"contains", "copy", "coroutine", "dbclick", "debug", "dofile", "dragto", "error", "find", "format", "full", "getmetatable",
 	"half", "input", "io", "ipairs", "lclick", "load", "loadfile", "loadset", "lower", "math", "mkpath", "mktable", "dlg", "ocr",
 	"msg", "next", "os", "package", "pairs", "pcall",  "print", "printf", "rawequal",
@@ -231,6 +231,8 @@ void hookProc(lua_State* L, lua_Debug* ar)
 
 		if (pparser->isInterruptionRequested())
 			luadebug::tryPopCustomErrorMsg(s, luadebug::ERROR_FLAG_DETECT_STOP);
+		else
+			luadebug::checkStopAndPause(s);
 	}
 }
 
@@ -239,9 +241,9 @@ Parser::Parser(qint64 index)
 	, lexer_(index)
 {
 	qDebug() << "Parser is created!!";
-	setIndex(index);
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(index);
 	connect(&signalDispatcher, &SignalDispatcher::nodifyAllStop, this, &Parser::requestInterruption, Qt::UniqueConnection);
+	connect(&signalDispatcher, &SignalDispatcher::nodifyAllScriptStop, this, &Parser::requestInterruption, Qt::UniqueConnection);
 
 	pLua_.reset(new CLua(index));
 
@@ -727,7 +729,7 @@ Parser::Parser(qint64 index)
 			if (formatStr.isEmpty())
 				return sol::lua_nil;
 
-			static const QRegularExpression rexFormat(R"(\{([T|C])?\s*\:([\w\W]+)\})");
+			static const QRegularExpression rexFormat(R"(\{\s*(?:([CT]?))\s*:\s*([^}]+)\s*\})");
 			if (!formatStr.contains(rexFormat))
 				return sol::make_object(s, sformat);
 
@@ -1666,7 +1668,7 @@ Parser::Parser(qint64 index)
 
 	lua_State* L = lua_.lua_state();
 	lua_["_THIS_PARSER"] = this;
-	lua_sethook(L, &hookProc, LUA_MASKRET, NULL);
+	lua_sethook(L, &hookProc, LUA_MASKRET | LUA_MASKCALL | LUA_MASKLINE, NULL);
 }
 
 Parser::~Parser()
@@ -1719,8 +1721,7 @@ bool Parser::loadFile(const QString& fileName, QString* pcontent)
 	}
 
 	bool bret = loadString(c);
-	if (bret)
-		scriptFileName_ = fileName;
+
 	return bret;
 }
 
@@ -2865,9 +2866,6 @@ void Parser::loadGlobalVariablesFromSol(sol::state& srclua, const QStringList& g
 	QByteArray keyBytes;
 	for (const QString& name : globalNames)
 	{
-		if (exceptionList.contains(name))
-			continue;
-
 		keyBytes = name.toUtf8();
 
 		if (!srclua[keyBytes.constData()].valid())
@@ -2887,9 +2885,6 @@ void Parser::loadGlobalVariablesFromSol(sol::state& srclua, const QStringList& g
 			sol::table t = objfrom.as<sol::table>();
 			dstlua[keyBytes.constData()] = t;
 		}
-		else
-			dstlua[keyBytes.constData()] = sol::lua_nil;
-
 	}
 }
 
@@ -3115,8 +3110,12 @@ void Parser::processFormation()
 			break;
 
 		QString formatStr = checkValue(currentLineTokens_, 2).toString();
+		if (!formatStr.startsWith("'") || !formatStr.startsWith("\""))
+			formatStr = QString("'%1").arg(formatStr);
+		if (!formatStr.endsWith("'") || !formatStr.endsWith("\""))
+			formatStr = QString("%1'").arg(formatStr);
 
-		QVariant var = luaDoString(QString("return format(tostring('%1'));").arg(formatStr));
+		QVariant var = luaDoString(QString("return format(%1);").arg(formatStr));
 
 		QString formatedStr = var.toString();
 

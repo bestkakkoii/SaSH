@@ -110,6 +110,7 @@ ScriptForm::ScriptForm(qint64 index, QWidget* parent)
 		currentScriptFileName = defaultScriptPath;
 	}
 
+	injector.currentScriptFileName = currentScriptFileName;
 	emit signalDispatcher.loadFileToTable(currentScriptFileName);
 }
 
@@ -121,15 +122,8 @@ void ScriptForm::onScriptStarted()
 {
 	qint64 currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
-	if (injector.currentScriptFileName.isEmpty())
+	if (injector.IS_SCRIPT_FLAG.load(std::memory_order_acquire))
 		return;
-
-	if (!injector.currentScriptFileName.contains(util::SCRIPT_DEFAULT_SUFFIX)
-		&& !injector.currentScriptFileName.contains(util::SCRIPT_PRIVATE_SUFFIX_DEFAULT)
-		&& !injector.currentScriptFileName.contains(util::SCRIPT_LUA_SUFFIX_DEFAULT))
-		return;
-
-
 
 	if (!interpreter_.isNull())
 	{
@@ -306,11 +300,6 @@ void ScriptForm::loadFile(const QString& fileName, bool start)
 	if (fileName.isEmpty())
 		return;
 
-	if (!fileName.contains(util::SCRIPT_DEFAULT_SUFFIX)
-		&& !fileName.contains(util::SCRIPT_PRIVATE_SUFFIX_DEFAULT)
-		&& !fileName.contains(util::SCRIPT_LUA_SUFFIX_DEFAULT))
-		return;
-
 	qint64 currentIndex = getIndex();
 	if (interpreter_.isNull())
 	{
@@ -318,8 +307,6 @@ void ScriptForm::loadFile(const QString& fileName, bool start)
 	}
 
 	Injector& injector = Injector::getInstance(currentIndex);
-	if (!injector.IS_SCRIPT_FLAG)
-		injector.currentScriptFileName = fileName;
 
 	interpreter_->preview(fileName);
 	if (start)
@@ -343,15 +330,23 @@ void ScriptForm::onScriptContentChanged(const QString& fileName, const QVariant&
 
 		QStringList params;
 		qint64 size = lineTokens.size();
-		for (i = 1; i < size; ++i)
+		if (lineTokens.contains(100))
 		{
-			QString str = lineTokens.value(i).raw.simplified();
-			RESERVE reserve = lineTokens.value(i).type;
-			if (reserve != TK_CSTRING && !str.isEmpty())
-				params.append(str);
-			else
-				params.append(QString("\'%1\'").arg(str));
+			params.append(lineTokens.value(100).raw.simplified());
 		}
+		else
+		{
+			for (i = 1; i < size; ++i)
+			{
+				QString str = lineTokens.value(i).raw.simplified();
+				RESERVE reserve = lineTokens.value(i).type;
+				if (reserve != TK_CSTRING && !str.isEmpty())
+					params.append(str);
+				else
+					params.append(QString("\'%1\'").arg(str));
+			}
+		}
+
 
 		RESERVE reserve = lineTokens.value(0).type;
 		QString cmd = lineTokens.value(0).raw.simplified();
@@ -466,6 +461,9 @@ void ScriptForm::onScriptTreeWidgetDoubleClicked(QTreeWidgetItem* item, int colu
 
 		strpath = util::applicationDirPath() + "/script/" + strpath;
 		strpath.replace("*", "");
+
+		if (!injector.IS_SCRIPT_FLAG.load(std::memory_order_acquire))
+			injector.currentScriptFileName = strpath;
 
 		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
 		emit signalDispatcher.loadFileToTable(strpath);

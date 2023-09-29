@@ -260,11 +260,12 @@ void luadebug::checkStopAndPause(const sol::this_state& s)
 {
 	sol::state_view lua(s.lua_state());
 	lua_State* L = s.lua_state();
-	CLua* pLua = lua["_THIS"].get<CLua*>();
+	CLua* pLua = lua["_THIS_CLUA"].get<CLua*>();
 	if (pLua == nullptr)
 		return;
 
-	if (pLua->isInterruptionRequested())
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
+	if (pLua->isInterruptionRequested() || injector.IS_SCRIPT_INTERRUPT.load(std::memory_order_acquire))
 	{
 		luadebug::tryPopCustomErrorMsg(s, luadebug::ERROR_FLAG_DETECT_STOP);
 		return;
@@ -510,7 +511,7 @@ void luadebug::hookProc(lua_State* L, lua_Debug* ar)
 
 		luadebug::checkStopAndPause(s);
 
-		CLua* pLua = lua["_THIS"].get<CLua*>();
+		CLua* pLua = lua["_THIS_CLUA"].get<CLua*>();
 		if (pLua == nullptr)
 			return;
 
@@ -571,15 +572,20 @@ void luadebug::hookProc(lua_State* L, lua_Debug* ar)
 CLua::CLua(qint64 index, QObject* parent)
 	: ThreadPlugin(index, parent)
 {
-	setIndex(index);
+	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(index);
+	connect(&signalDispatcher, &SignalDispatcher::nodifyAllStop, this, &CLua::requestInterruption, Qt::UniqueConnection);
+	connect(&signalDispatcher, &SignalDispatcher::nodifyAllScriptStop, this, &CLua::requestInterruption, Qt::UniqueConnection);
+	qDebug() << "CLua 1";
 }
 
 CLua::CLua(qint64 index, const QString& content, QObject* parent)
 	: ThreadPlugin(index, parent)
 	, scriptContent_(content)
 {
-	setIndex(index);
-	qDebug() << "CLua";
+	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(index);
+	connect(&signalDispatcher, &SignalDispatcher::nodifyAllStop, this, &CLua::requestInterruption, Qt::UniqueConnection);
+	connect(&signalDispatcher, &SignalDispatcher::nodifyAllScriptStop, this, &CLua::requestInterruption, Qt::UniqueConnection);
+	qDebug() << "CLua 2";
 }
 
 CLua::~CLua()
@@ -892,7 +898,7 @@ void CLua::openlibs()
 	}
 
 
-	lua_.set("_THIS", this);// 將this指針傳給lua設置全局變量
+	lua_.set("_THIS_CLUA", this);// 將this指針傳給lua設置全局變量
 	lua_.set("_THIS_PARENT", parent_);// 將父類指針傳給lua設置全局變量
 	lua_.set("_INDEX", getIndex());
 	lua_.set("_INDEX_", getIndex());

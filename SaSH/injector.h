@@ -173,7 +173,11 @@ public:
 	QSharedPointer<Server> server;//與遊戲TCP通信專用
 
 	std::atomic_bool IS_SCRIPT_FLAG = false;//主腳本是否運行
+	std::atomic_bool IS_SCRIPT_INTERRUPT = false;//主腳本是否中斷
+
 	QString currentScriptFileName;//當前運行的主腳本完整路徑
+
+	QStack<QString> scriptFileNameStack;//腳本堆疊
 
 	QSharedPointer<StringListModel> scriptLogModel; //腳本日誌模型
 

@@ -681,9 +681,9 @@ void ScriptSettingForm::loadFile(const QString& fileName)
 	Injector& injector = Injector::getInstance(currentIndex);
 
 	if (!injector.server.isNull() && injector.server->getOnlineFlag())
-		setWindowTitle(QString("[%1][%2] %3").arg(currentIndex).arg(injector.server->getPC().name).arg(injector.currentScriptFileName));
+		setWindowTitle(QString("[%1][%2] %3").arg(currentIndex).arg(injector.server->getPC().name).arg(fileName));
 	else
-		setWindowTitle(QString("[%1] %2").arg(currentIndex).arg(injector.currentScriptFileName));
+		setWindowTitle(QString("[%1] %2").arg(currentIndex).arg(fileName));
 
 	ui.widget->setUpdatesEnabled(false);
 
@@ -723,7 +723,7 @@ void ScriptSettingForm::loadFile(const QString& fileName)
 	if (isReadOnly)
 		ui.widget->setReadOnly(true);
 
-	if (injector.IS_SCRIPT_FLAG)
+	if (injector.IS_SCRIPT_FLAG.load(std::memory_order_acquire))
 	{
 		onScriptStartMode();
 	}
@@ -901,7 +901,13 @@ void ScriptSettingForm::setMark(CodeEditor::SymbolHandler element, util::SafeHas
 		}
 
 		Injector& injector = Injector::getInstance(getIndex());
-		util::SafeHash<qint64, break_marker_t> markers = hash.value(injector.currentScriptFileName);
+
+		QString currentScriptFileName = injector.currentScriptFileName;
+		if (currentScriptFileName.isEmpty())
+			break;
+
+
+		util::SafeHash<qint64, break_marker_t> markers = hash.value(currentScriptFileName);
 
 		if (b)
 		{
@@ -910,7 +916,7 @@ void ScriptSettingForm::setMark(CodeEditor::SymbolHandler element, util::SafeHas
 			bk.content = ui.widget->text(liner);
 			bk.maker = static_cast<qint64>(element);
 			markers.insert(liner, bk);
-			hash.insert(injector.currentScriptFileName, markers);
+			hash.insert(currentScriptFileName, markers);
 			ui.widget->markerAdd(liner, element);
 			emit editorCursorPositionChanged(liner, 0);
 		}
@@ -919,7 +925,7 @@ void ScriptSettingForm::setMark(CodeEditor::SymbolHandler element, util::SafeHas
 			if (markers.contains(liner))
 			{
 				markers.remove(liner);
-				hash.insert(injector.currentScriptFileName, markers);
+				hash.insert(currentScriptFileName, markers);
 				ui.widget->markerDelete(liner, element);
 			}
 		}
@@ -938,7 +944,13 @@ void ScriptSettingForm::setStepMarks()
 
 	qint64 currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
-	util::SafeHash<qint64, break_marker_t> markers = step_markers[currentIndex].value(injector.currentScriptFileName);
+
+
+	QString currentScriptFileName = injector.currentScriptFileName;
+	if (currentScriptFileName.isEmpty())
+		return;
+
+	util::SafeHash<qint64, break_marker_t> markers = step_markers[currentIndex].value(currentScriptFileName);
 	break_marker_t bk = {};
 
 	for (qint64 i = 0; i < maxliner; ++i)
@@ -951,7 +963,7 @@ void ScriptSettingForm::setStepMarks()
 		markers.insert(index, bk);
 	}
 
-	step_markers[currentIndex].insert(injector.currentScriptFileName, markers);
+	step_markers[currentIndex].insert(currentScriptFileName, markers);
 }
 
 void ScriptSettingForm::reshowBreakMarker()
@@ -959,10 +971,15 @@ void ScriptSettingForm::reshowBreakMarker()
 	qint64 currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
 	const util::SafeHash<QString, util::SafeHash<qint64, break_marker_t>> mks = break_markers[currentIndex];
+
+	QString currentScriptFileName = injector.currentScriptFileName;
+	if (currentScriptFileName.isEmpty())
+		return;
+
 	for (auto it = mks.cbegin(); it != mks.cend(); ++it)
 	{
 		QString fileName = it.key();
-		if (fileName != injector.currentScriptFileName)
+		if (fileName != currentScriptFileName)
 			continue;
 
 		const util::SafeHash<qint64, break_marker_t> mk = mks.value(fileName);
@@ -1011,7 +1028,7 @@ void ScriptSettingForm::onSetStaticLabelLineText(int line, int index)
 void ScriptSettingForm::on_widget_cursorPositionChanged(int line, int index)
 {
 	Injector& injector = Injector::getInstance(getIndex());
-	if (!injector.IS_SCRIPT_FLAG)
+	if (!injector.IS_SCRIPT_FLAG.load(std::memory_order_acquire))
 		onSetStaticLabelLineText(line, index);
 }
 
@@ -1409,22 +1426,27 @@ void ScriptSettingForm::on_treeWidget_scriptList_itemClicked(QTreeWidgetItem* it
 	ui.treeWidget_scriptList->editItem(item, 0);
 }
 
-void ScriptSettingForm::on_treeWidget_breakList_itemDoubleClicked(QTreeWidgetItem* item, int column)
+void ScriptSettingForm::on_treeWidget_breakList_itemDoubleClicked(QTreeWidgetItem* item, int)
 {
-	Q_UNUSED(column);
 	if (item == nullptr)
 		return;
 	Injector& injector = Injector::getInstance(getIndex());
-	if (item->text(2).isEmpty()) return;
+	if (item->text(2).isEmpty())
+		return;
 
-	if (!item->text(3).isEmpty() && item->text(3) == injector.currentScriptFileName)
-	{
-		qint64 line = item->text(2).toLongLong();
-		//ui.widget->setCursorPosition(line, 0);
-		QString text = ui.widget->text(line - 1);
-		ui.widget->setSelection(line - 1, 0, line - 1, text.length());
-		ui.widget->ensureLineVisible(line - 1);
-	}
+	if (injector.IS_SCRIPT_FLAG)
+		return;
+
+	if (item->text(3).isEmpty())
+		return;
+
+	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(getIndex());
+	injector.currentScriptFileName = item->text(3);
+	emit signalDispatcher.loadFileToTable(item->text(3));
+	qint64 line = item->text(2).toLongLong();
+	QString text = ui.widget->text(line - 1);
+	ui.widget->setSelection(line - 1, 0, line - 1, text.length());
+	ui.widget->ensureLineVisible(line - 1);
 }
 
 //查找命令
@@ -1590,6 +1612,9 @@ void ScriptSettingForm::onScriptTreeWidgetDoubleClicked(QTreeWidgetItem* item, i
 		error_markers[currnetIndex].clear();
 		step_markers[currnetIndex].clear();
 
+		if (!injector.IS_SCRIPT_FLAG.load(std::memory_order_acquire))
+			injector.currentScriptFileName = strpath;
+
 		emit signalDispatcher.loadFileToTable(strpath);
 
 	} while (false);
@@ -1716,7 +1741,7 @@ void ScriptSettingForm::onActionTriggered()
 	}
 	else if (name == "actionStart")
 	{
-		if (step_markers[currnetIndex].size() == 0 && !injector.IS_SCRIPT_FLAG.load(std::memory_order_acquire) && QFile::exists(injector.currentScriptFileName))
+		if (step_markers[currnetIndex].size() == 0 && !injector.IS_SCRIPT_FLAG.load(std::memory_order_acquire))
 		{
 			emit signalDispatcher.scriptStarted();
 		}
@@ -2135,9 +2160,13 @@ void ScriptSettingForm::onAddBreakMarker(qint64 liner, bool b)
 			break;
 		}
 
+		QString currentScriptFileName = injector.currentScriptFileName;
+		if (currentScriptFileName.isEmpty())
+			break;
+
 		if (b)
 		{
-			util::SafeHash<qint64, break_marker_t> markers = break_markers[currnetIndex].value(injector.currentScriptFileName);
+			util::SafeHash<qint64, break_marker_t> markers = break_markers[currnetIndex].value(currentScriptFileName);
 			break_marker_t bk = markers.value(liner);
 			bk.line = liner;
 			bk.content = ui.widget->text(liner);
@@ -2147,16 +2176,16 @@ void ScriptSettingForm::onAddBreakMarker(qint64 liner, bool b)
 			bk.maker = static_cast<qint64>(CodeEditor::SymbolHandler::SYM_POINT);
 
 			markers.insert(liner, bk);
-			break_markers[currnetIndex].insert(injector.currentScriptFileName, markers);
+			break_markers[currnetIndex].insert(currentScriptFileName, markers);
 			ui.widget->markerAdd(liner, CodeEditor::SymbolHandler::SYM_POINT);
 		}
 		else if (!b)
 		{
-			util::SafeHash<qint64, break_marker_t> markers = break_markers[currnetIndex].value(injector.currentScriptFileName);
+			util::SafeHash<qint64, break_marker_t> markers = break_markers[currnetIndex].value(currentScriptFileName);
 			if (markers.contains(liner))
 			{
 				markers.remove(liner);
-				break_markers[currnetIndex].insert(injector.currentScriptFileName, markers);
+				break_markers[currnetIndex].insert(currentScriptFileName, markers);
 			}
 
 			ui.widget->markerDelete(liner, CodeEditor::SymbolHandler::SYM_POINT);
@@ -2353,10 +2382,16 @@ static const QHash<qint64, QString> hashSolLuaType = {
 
 bool luaTableToTreeWidgetItem(QString field, QTreeWidgetItem* pParentNode, const sol::table& t, qint64& depth)
 {
+	if (pParentNode == nullptr)
+		return false;
+
 	if (depth <= 0)
 		return false;
 
-	if (t.size() == 0)
+	if (t.valid())
+		return false;
+
+	if (t.empty())
 		return false;
 
 	--depth;
@@ -2379,10 +2414,14 @@ bool luaTableToTreeWidgetItem(QString field, QTreeWidgetItem* pParentNode, const
 		{
 			varType = QObject::tr("Table");
 			QTreeWidgetItem* pNode = new QTreeWidgetItem({ field, key, "", QString("(%1)").arg(varType) });
-			if (luaTableToTreeWidgetItem(field, pNode, pair.second.as<sol::table>(), depth))
-				pParentNode->addChild(pNode);
-			else
-				delete pNode;
+			if (pNode != nullptr)
+			{
+				if (luaTableToTreeWidgetItem(field, pNode, pair.second.as<sol::table>(), depth))
+					pParentNode->addChild(pNode);
+				else
+					delete pNode;
+			}
+
 			continue;
 		}
 		else if (pair.second.is<std::string>())
@@ -2493,10 +2532,13 @@ void ScriptSettingForm::createTreeWidgetItems(Parser* pparser, QList<QTreeWidget
 					if (lua_["_TMP"].is<sol::table>())
 					{
 						QTreeWidgetItem* pNode = new QTreeWidgetItem(QStringList{ field, varName, "", QString("(%1)").arg(varType) });
-						if (luaTableToTreeWidgetItem(field, pNode, lua_["_TMP"].get<sol::table>(), depth))
-							pTrees->append(pNode);
-						else
-							delete pNode;
+						if (pNode != nullptr)
+						{
+							if (luaTableToTreeWidgetItem(field, pNode, lua_["_TMP"].get<sol::table>(), depth))
+								pTrees->append(pNode);
+							else
+								delete pNode;
+						}
 					}
 					lua_["_TMP"] = sol::lua_nil;
 					continue;

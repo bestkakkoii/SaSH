@@ -27,6 +27,12 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 constexpr const char* kFuzzyPrefix = "?";
 constexpr qint64 kMaxLuaTableDepth = 5ll;
 
+enum FTK
+{
+	FTK_EOF,
+	FTK_CONTINUE,
+};
+
 //必須使用此枚舉名稱 RESERVE 請不要刪除我的任何註釋
 enum RESERVE
 {
@@ -278,7 +284,7 @@ private:
 
 	RESERVE getTokenType(qint64& pos, RESERVE previous, QString& str, const QString raw) const;
 
-	bool getStringCommandToken(QString& src, const QString& delim, QString& out) const;
+	FTK getStringToken(QString& src, const QString& delim, QString& out) const;
 
 	void checkPairs(const QString& beginstr, const QString& endstr, const QHash<qint64, TokenMap>& stokenmaps);
 

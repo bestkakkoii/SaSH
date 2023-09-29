@@ -21,16 +21,13 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "injector.h"
 #include "signaldispatcher.h"
 
-enum RTK
-{
-	RTK_EOF,
-	RTK_CONTINUE,
-};
-
 #pragma region KeyWord
 //全局關鍵字映射表 這裡是新增新的命令的第一步，其他需要在interpreter.cpp中新增註冊新函數，這裡不添加的話，腳本分析後會忽略未知的命令
 static const QHash<QString, RESERVE> keywords = {
 	{ u8"[call]", TK_CALLWITHNAME },
+	//... 其他後續增加的關鍵字
+	{ u8"#lua", TK_LUABEGIN },
+	{ u8"#endlua", TK_LUAEND },
 #pragma region en_US
 	//keyword
 	{ u8"call", TK_CALL },
@@ -129,10 +126,6 @@ static const QHash<QString, RESERVE> keywords = {
 	{ u8"bwait", TK_CMD },
 	{ u8"bend", TK_CMD },
 	#pragma endregion
-
-	//... 其他後續增加的關鍵字
-	{ u8"#lua", TK_LUABEGIN },
-	{ u8"#endlua", TK_LUAEND },
 };
 #pragma endregion
 
@@ -593,7 +586,7 @@ void Lexer::tokenized(qint64 currentLine, const QString& line, TokenMap* ptoken,
 			else
 			{
 				//以空格為分界分離出第一個TOKEN(命令)
-				if (!getStringCommandToken(raw, " ", token))
+				if (getStringToken(raw, " ", token) == FTK_EOF)
 				{
 					createEmptyToken(pos, ptoken);
 					break;
@@ -638,7 +631,7 @@ void Lexer::tokenized(qint64 currentLine, const QString& line, TokenMap* ptoken,
 
 			if (raw.contains(","))
 			{
-				if (getStringCommandToken(raw, ",", token) == RTK_EOF)
+				if (getStringToken(raw, ",", token) == FTK_EOF)
 					break;
 			}
 			else if (raw.isEmpty())
@@ -1387,75 +1380,10 @@ void Lexer::checkFunctionPairs(const QHash<qint64, TokenMap>& stokenmaps)
 }
 
 //根據指定分割符號取得字串
-bool Lexer::getStringCommandToken(QString& src, const QString& delim, QString& out) const
+FTK Lexer::getStringToken(QString& src, const QString& delim, QString& out) const
 {
-	//if (src.isEmpty())
-	//	return false;
-
-	//if (delim.isEmpty())
-	//	return false;
-
-	//QString openingQuote = "\"";
-	//QString closingQuote = "\"";
-
-	//if (src.startsWith(openingQuote))
-	//{
-	//	// Find the closing quote
-	//	qint64 closingQuoteIndex = src.indexOf(closingQuote, openingQuote.size());
-	//	if (closingQuoteIndex == -1)
-	//		return false;
-
-	//	// Extract the quoted token
-	//	out = src.mid(0, closingQuoteIndex + closingQuote.size()).trimmed();
-	//	src.remove(0, closingQuoteIndex + closingQuote.size());
-	//	src = src.trimmed();
-	//	if (src.startsWith(delim))
-	//		src.remove(0, delim.size());
-	//}
-	//else if (src.startsWith("'"))
-	//{
-	//	// Find the closing single quote
-	//	qint64 closingSingleQuoteIndex = src.indexOf("'", 1);
-	//	if (closingSingleQuoteIndex == -1)
-	//		return false;
-
-	//	// Extract the quoted token
-	//	out = src.mid(0, closingSingleQuoteIndex + 1);
-	//	src.remove(0, closingSingleQuoteIndex + 1);
-	//	src = src.trimmed();
-	//	if (src.startsWith(delim))
-	//		src.remove(0, delim.size());
-	//}
-	//else
-	//{
-	//	QStringList list = src.split(delim);
-	//	if (list.isEmpty())
-	//	{
-	//		// Empty token, treat it as an empty string
-	//		out = "";
-	//	}
-	//	else
-	//	{
-	//		out = list.first().trimmed();
-	//		qint64 size = out.size();
-
-	//		// Remove the first 'out' and 'delim' from src
-	//		src.remove(0, size + delim.size());
-	//		if (src.startsWith(delim))
-	//			src.remove(0, delim.size());
-	//		src = src.trimmed();
-	//	}
-	//}
-
-	//if (src.endsWith(";"))
-	//	src.remove(src.size() - 1, 1);
-
-	//if (out.endsWith(";"))
-	//	out.remove(out.size() - 1, 1);
-
-	//return true;
 	if (src.isEmpty() || delim.isEmpty())
-		return false;
+		return FTK_EOF;
 
 	enum class State { Normal, DoubleQuoted, SingleQuoted, InParentheses, InBraces };
 	State state = State::Normal;
@@ -1511,11 +1439,11 @@ bool Lexer::getStringCommandToken(QString& src, const QString& delim, QString& o
 				// 提取标记
 				out = src.mid(start, i - start).trimmed();
 				src.remove(0, i + delim.size());
-				return true;
+				return FTK_CONTINUE;
 			}
 		}
 	}
 
-	return false;
+	return FTK_EOF;
 }
 #pragma endregion

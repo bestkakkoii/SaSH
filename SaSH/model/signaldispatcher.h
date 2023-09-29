@@ -72,6 +72,7 @@ public:
 signals:
 	//global
 	void nodifyAllStop();
+	void nodifyAllScriptStop();
 	void messageBoxShow(const QString& text, qint64 type = 0, QString title = "", qint64* pnret = nullptr);
 	void inputBoxShow(const QString& text, qint64 type, QVariant* retvalue);
 

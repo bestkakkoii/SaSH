@@ -305,9 +305,6 @@ void LuaScriptForm::loadFile(const QString& fileName)
 	if (!util::readFile(fileName, &content, &isPrivate))
 		return;
 
-	injector.currentScriptFileName = fileName;
-
-
 	if (clua_.isNull())
 	{
 		clua_.reset(new CLua(currentIndex, content));

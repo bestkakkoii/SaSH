@@ -57,7 +57,6 @@ public:
 
 signals:
 	void finished();
-	void stoped();
 
 public slots:
 	void proc();

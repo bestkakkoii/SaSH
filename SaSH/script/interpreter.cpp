@@ -36,8 +36,10 @@ Interpreter::Interpreter(qint64 index)
 {
 	qDebug() << "Interpreter is created!";
 	futureSync_.setCancelOnWait(true);
-	setIndex(index);
-	connect(this, &Interpreter::stoped, parser_.pLua_.data(), &CLua::requestInterruption, Qt::UniqueConnection);
+
+	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(index);
+	connect(&signalDispatcher, &SignalDispatcher::nodifyAllStop, this, &Interpreter::requestInterruption, Qt::UniqueConnection);
+	connect(&signalDispatcher, &SignalDispatcher::nodifyAllScriptStop, this, &Interpreter::requestInterruption, Qt::UniqueConnection);
 }
 
 Interpreter::~Interpreter()
@@ -66,6 +68,11 @@ void Interpreter::doFileWithThread(qint64 beginLine, const QString& fileName)
 		return;
 
 	parser_.setCurrentLine(beginLine);
+	parser_.setScriptFileName(fileName);
+
+	Injector& injector = Injector::getInstance(getIndex());
+	if (!isSubScript())
+		injector.scriptFileNameStack.push(fileName);
 
 	moveToThread(thread_);
 	qint64 currentIndex = getIndex();
@@ -282,8 +289,10 @@ void Interpreter::preview(const QString& fileName)
 
 void Interpreter::stop()
 {
-	emit stoped();
-	requestInterruption();
+	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(getIndex());
+	emit signalDispatcher.nodifyAllScriptStop();
+	Injector& injector = Injector::getInstance(getIndex());
+	injector.IS_SCRIPT_INTERRUPT.store(true, std::memory_order_release);
 }
 
 //註冊interpreter的成員函數
@@ -566,6 +575,9 @@ qint64 Interpreter::mainScriptCallBack(qint64 currentIndex, qint64 currentLine, 
 
 	checkPause();
 
+	if (!injector.isScriptDebugModeEnable.load(std::memory_order_acquire))
+		return 1;
+
 	QString scriptFileName = parser_.getScriptFileName();
 	util::SafeHash<qint64, break_marker_t> breakMarkers = break_markers[currentIndex].value(scriptFileName);
 	const util::SafeHash<qint64, break_marker_t> stepMarkers = step_markers[currentIndex].value(scriptFileName);
@@ -614,14 +626,13 @@ void Interpreter::proc()
 		if (!isSubScript())
 		{
 			injector.IS_SCRIPT_FLAG.store(true, std::memory_order_release);
+			injector.IS_SCRIPT_INTERRUPT.store(false, std::memory_order_release);
 		}
 
 		parser_.setCallBack(pCallback);
 
 		openLibs();
-
 		parser_.parse();
-
 	} while (false);
 
 	for (auto& it : subInterpreterList_)
@@ -634,11 +645,16 @@ void Interpreter::proc()
 	futureSync_.waitForFinished();
 
 	if (!isSubScript())
+	{
 		injector.IS_SCRIPT_FLAG.store(false, std::memory_order_release);
+		injector.IS_SCRIPT_INTERRUPT.store(true, std::memory_order_release);
+	}
 	isRunning_.store(false, std::memory_order_release);
 
 	emit finished();
 	emit signalDispatcher.scriptFinished();
+	if (!injector.scriptFileNameStack.isEmpty() && !isSubScript())
+		injector.scriptFileNameStack.pop();
 }
 
 //檢查是否戰鬥，如果是則等待，並在戰鬥結束後停滯一段時間
@@ -783,6 +799,8 @@ qint64 Interpreter::run(qint64 currentIndex, qint64 currentline, const TokenMap&
 
 	if (Parser::kSync == asyncMode)
 	{
+		qint64 nret = Parser::kNoChange;
+
 		//紀錄當前數據
 		QHash<qint64, TokenMap> tokens = parser_.getTokens();
 		QHash<QString, qint64> labels = parser_.getLabels();
@@ -798,13 +816,16 @@ qint64 Interpreter::run(qint64 currentIndex, qint64 currentline, const TokenMap&
 		interpreter.parser_.setMode(asyncMode);
 		sol::state& lua = parser_.pLua_->getLua();
 		interpreter.parser_.loadGlobalVariablesFromSol(lua, parser_.getGlobalNameList());
-
 		injector.currentScriptFileName = fileName;
+		injector.scriptFileNameStack.push(fileName);
 
 		if (!interpreter.doFile(beginLine, fileName, this, varShareMode))
 		{
-			return Parser::kError;
+			nret = Parser::kError;
 		}
+
+		injector.scriptFileNameStack.pop();
+		injector.currentScriptFileName = currentFileName;
 
 		//還原數據
 		parser_.setTokens(tokens);
@@ -815,14 +836,12 @@ qint64 Interpreter::run(qint64 currentIndex, qint64 currentline, const TokenMap&
 		parser_.setCurrentLine(currentLine);
 		sol::state& newlua = interpreter.parser_.pLua_->getLua();
 		parser_.loadGlobalVariablesFromSol(newlua, parser_.getGlobalNameList());
-		injector.currentScriptFileName = currentFileName;
 
 		//還原顯示
 		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
 
 		emit signalDispatcher.loadFileToTable(currentFileName);
-
-		emit signalDispatcher.scriptContentChanged(currentFileName, QVariant::fromValue(tokens));
+		return nret;
 	}
 	else
 	{
@@ -934,7 +953,6 @@ qint64 Interpreter::dofile(qint64 currentIndex, qint64 currentline, const TokenM
 		return Parser::kArgError + 1ll;
 
 	QSharedPointer<CLua> lua(new CLua(currentIndex, content));
-	connect(this, &Interpreter::stoped, lua.get(), &CLua::requestInterruption, Qt::UniqueConnection);
 
 	lua->start();
 	lua->wait();

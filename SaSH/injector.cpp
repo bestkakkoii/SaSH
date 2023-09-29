@@ -63,8 +63,8 @@ void Injector::reset(qint64 index)//static
 
 	instance->autil.util_Clear();
 	instance->currentGameExePath = "";//當前使用的遊戲進程完整路徑
-	instance->IS_SCRIPT_FLAG = false;//主腳本是否運行
-	instance->currentScriptFileName;//當前運行的主腳本完整路徑
+	instance->IS_SCRIPT_FLAG.store(false, std::memory_order_release);//主腳本是否運行
+	instance->IS_SCRIPT_INTERRUPT.store(false, std::memory_order_release);
 	instance->scriptLogModel->clear(); //腳本日誌模型
 	instance->chatLogModel->clear(); //聊天日誌模型
 	instance->currentServerListIndex = 0;
