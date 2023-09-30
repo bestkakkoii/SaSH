@@ -118,6 +118,11 @@ InfoForm::InfoForm(qint64 index, qint64 defaultPage, QWidget* parent)
 	util::FormSettingManager formManager(this);
 	formManager.loadSettings();
 
+	setCurrentPage(defaultPage);
+}
+
+void InfoForm::setCurrentPage(qint64 defaultPage)
+{
 	if (defaultPage > 0 && defaultPage <= ui.tabWidget->count())
 	{
 		ui.tabWidget->setCurrentIndex(defaultPage - 1);

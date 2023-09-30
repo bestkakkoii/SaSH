@@ -221,6 +221,7 @@ void Interpreter::doString(const QString& content, Interpreter* parent, VarShare
 	isRunning_.store(true, std::memory_order_release);
 
 	parser_.setCurrentLine(0);
+	parser_.initialize(&parser_);
 
 	if (parent)
 	{
@@ -464,7 +465,6 @@ void Interpreter::openLibsUTF8()
 	registerFunction(u8"run", &Interpreter::run);
 	registerFunction(u8"dostr", &Interpreter::dostr);
 	registerFunction(u8"menu", &Interpreter::menu);
-	registerFunction(u8"dofile", &Interpreter::dofile);
 	registerFunction(u8"createch", &Interpreter::createch);
 	registerFunction(u8"delch", &Interpreter::delch);
 	registerFunction(u8"send", &Interpreter::send);
@@ -629,6 +629,7 @@ void Interpreter::proc()
 			injector.IS_SCRIPT_INTERRUPT.store(false, std::memory_order_release);
 		}
 
+		parser_.initialize(&parser_);
 		parser_.setCallBack(pCallback);
 
 		openLibs();
@@ -815,9 +816,18 @@ qint64 Interpreter::run(qint64 currentIndex, qint64 currentline, const TokenMap&
 		interpreter.setSubScript(true);
 		interpreter.parser_.setMode(asyncMode);
 		sol::state& lua = parser_.pLua_->getLua();
-		interpreter.parser_.loadGlobalVariablesFromSol(lua, parser_.getGlobalNameList());
 		injector.currentScriptFileName = fileName;
 		injector.scriptFileNameStack.push(fileName);
+		if (varShareMode == kShare)
+		{
+			interpreter.parser_.setLuaMachinePointer(parser_.pLua_);
+			interpreter.parser_.setGlobalNameListPointer(parser_.getGlobalNameListPointer());
+			interpreter.parser_.setCounterPointer(parser_.getCounterPointer());
+		}
+		else
+		{
+			interpreter.parser_.initialize(&parser_);
+		}
 
 		if (!interpreter.doFile(beginLine, fileName, this, varShareMode))
 		{
@@ -835,7 +845,6 @@ qint64 Interpreter::run(qint64 currentIndex, qint64 currentline, const TokenMap&
 		parser_.setLuaNodeList(luaNodeList_);
 		parser_.setCurrentLine(currentLine);
 		sol::state& newlua = interpreter.parser_.pLua_->getLua();
-		parser_.loadGlobalVariablesFromSol(newlua, parser_.getGlobalNameList());
 
 		//還原顯示
 		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
@@ -852,6 +861,7 @@ qint64 Interpreter::run(qint64 currentIndex, qint64 currentline, const TokenMap&
 				{
 					subInterpreterList_.append(interpreter);
 					interpreter->setSubScript(true);
+					interpreter->parser_.initialize(nullptr);
 					interpreter->parser_.setMode(asyncMode);
 					if (interpreter->doFile(beginLine, fileName, this, varShareMode, asyncMode))
 						return true;
@@ -904,6 +914,24 @@ qint64 Interpreter::dostr(qint64 currentIndex, qint64 currentline, const TokenMa
 		subInterpreterList_.append(interpreter);
 		interpreter->setSubScript(true);
 		interpreter->parser_.setMode(asyncMode);
+
+		if (asyncMode == Parser::kSync)
+		{
+			if (varShareMode == kShare)
+			{
+				interpreter->parser_.setLuaMachinePointer(parser_.pLua_);
+				interpreter->parser_.setGlobalNameListPointer(parser_.getGlobalNameListPointer());
+				interpreter->parser_.setCounterPointer(parser_.getCounterPointer());
+			}
+			else
+			{
+				interpreter->parser_.initialize(&parser_);
+			}
+		}
+		else
+			interpreter->parser_.initialize(nullptr);
+
+
 		interpreter->doString(script, this, varShareMode);
 	}
 
@@ -920,42 +948,6 @@ qint64 Interpreter::dostr(qint64 currentIndex, qint64 currentline, const TokenMa
 			QThread::msleep(100);
 		}
 	}
-
-	return Parser::kNoChange;
-}
-
-#include "script_lua/clua.h"
-qint64 Interpreter::dofile(qint64 currentIndex, qint64 currentline, const TokenMap& TK)
-{
-	QString fileName = "";
-	checkString(TK, 1, &fileName);
-	if (fileName.isEmpty())
-		return Parser::kArgError + 1ll;
-
-	fileName.replace("\\", "/");
-
-	fileName = util::applicationDirPath() + "/script/" + fileName;
-	fileName.replace("\\", "/");
-	fileName.replace("//", "/");
-
-	QFileInfo fileInfo(fileName);
-	QString suffix = fileInfo.suffix();
-	if (suffix.isEmpty())
-		fileName += ".lua";
-	else if (suffix != "lua")
-	{
-		fileName.replace(suffix, "lua");
-	}
-
-	QString content;
-	bool isPrivate = false;
-	if (!util::readFile(fileName, &content, &isPrivate))
-		return Parser::kArgError + 1ll;
-
-	QSharedPointer<CLua> lua(new CLua(currentIndex, content));
-
-	lua->start();
-	lua->wait();
 
 	return Parser::kNoChange;
 }

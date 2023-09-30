@@ -50,7 +50,6 @@ static const QHash<QString, RESERVE> keywords = {
 	{ u8"run", TK_CMD },
 	{ u8"button", TK_CMD },
 	{ u8"menu", TK_CMD },
-	{ u8"dofile", TK_CMD },
 	{ u8"createch", TK_CMD },
 	{ u8"delch", TK_CMD },
 	{ u8"send", TK_CMD },
@@ -344,6 +343,7 @@ void Lexer::tokenized(qint64 currentLine, const QString& line, TokenMap* ptoken,
 		//static const QRegularExpression rexMultiVar(R"(^\s*([_a-zA-Z\p{Han}][\w\p{Han}]*(?:\s*,\s*[_a-zA-Z\p{Han}][\w\p{Han}]*)*)\s*=\s*([^,]+(?:\s*,\s*[^,]+)*)$\;*)");
 		//local a,b,c = 1,2,3
 		//static const QRegularExpression rexMultiLocalVar(R"([lL][oO][cC][aA][lL]\s+([_a-zA-Z\p{Han}][\w\p{Han}]*(?:\s*,\s*[_a-zA-Z\p{Han}][\w\p{Han}]*)*)\s*=\s*([^,]+(?:\s*,\s*[^,]+)*)$\;*)");
+		static const QRegularExpression rexMultiLocalVar(R"(^(.*\,.+?)\s*=\s*(.*?)$)");
 		//var++, var--
 		static const QRegularExpression varIncDec(R"((?!\d)([\p{Han}\W\w]+)(\+\+|--)\;*)");
 		//+= -= *= /= &= |= ^= %=
@@ -471,6 +471,24 @@ void Lexer::tokenized(qint64 currentLine, const QString& line, TokenMap* ptoken,
 				createToken(pos, TK_CAOS, varName, varName, ptoken);  //變量
 				createToken(pos + 1, optype, op, op, ptoken);         //運算符
 				createToken(pos + 2, valuetype, value, value, ptoken);//值
+			}
+			break;
+		}
+		else if (raw.contains(rexMultiLocalVar) && !raw.front().isDigit())
+		{
+			QRegularExpressionMatch match = rexMultiLocalVar.match(raw);
+			if (match.hasMatch())
+			{
+				QString varNames = match.captured(1).simplified();
+				QString markField = "[global]";
+				if (varNames.startsWith("local"))
+				{
+					varNames = varNames.mid(5).trimmed();
+					markField = "[local]";
+				}
+				createToken(pos, TK_MULTIVAR, markField, markField, ptoken);
+				createToken(pos + 1, TK_STRING, varNames, varNames, ptoken);
+				createToken(pos + 2, TK_STRING, match.captured(2).simplified(), match.captured(2).simplified(), ptoken);
 			}
 			break;
 		}

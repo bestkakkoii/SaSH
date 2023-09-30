@@ -434,7 +434,9 @@ bool __fastcall findPathProcess(
 				break;
 			}
 
-			if (hasNPCBlock && (unit.name.contains("願藏") || unit.name.contains("近藏") || unit.name.contains("愿藏") || unit.name.contains("近藏")))
+			if (hasNPCBlock && (unit.name.contains("願藏") || unit.name.contains("近藏")
+				|| unit.name.contains("愿藏") || unit.name.contains("近藏")
+				|| unit.name.startsWith("宮本")))
 			{
 				injector.setEnableHash(util::kAutoEscapeEnable, false);
 				injector.setEnableHash(util::kKNPCEnable, true);

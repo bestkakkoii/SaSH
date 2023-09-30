@@ -32,6 +32,14 @@ using ParserCallBack = std::function<qint64(qint64 currentIndex, qint64 currentL
 
 using VariantSafeHash = util::SafeHash<QString, QVariant>;
 
+struct Counter
+{
+	qint64 error = 0;									//錯誤計數器
+	qint64 space = 0;									//當前行開頭空格數
+	qint64 comment = 0;								//命令計數器
+	qint64 validCommand = 0;							//有效命令計數器
+};
+
 enum CompareArea
 {
 	kAreaChar,
@@ -359,6 +367,8 @@ public:
 	explicit Parser(qint64 index);
 	virtual ~Parser();
 
+	void initialize(Parser* parent);
+
 	//解析腳本
 	void parse(qint64 line = 0);
 
@@ -371,7 +381,10 @@ public:
 	inline Q_REQUIRED_RESULT QList<ForNode> getForNodeList() const { return forNodeList_; }
 	inline Q_REQUIRED_RESULT QList<LuaNode> getLuaNodeList() const { return luaNodeList_; }
 	inline Q_REQUIRED_RESULT qint64 getCurrentLine() const { return lineNumber_; }
-	inline Q_REQUIRED_RESULT QStringList getGlobalNameList() const { return globalNames_; }
+	inline Q_REQUIRED_RESULT QSharedPointer<QStringList> getGlobalNameListPointer() const { return globalNames_; }
+	inline Q_REQUIRED_RESULT bool isSubScript() const { return isSubScript_; }
+	inline Q_REQUIRED_RESULT QHash<QString, qint64> getLabels() { return labels_; }
+	inline Q_REQUIRED_RESULT QSharedPointer<Counter> getCounterPointer() const { return counter_; }
 
 	inline void setScriptFileName(const QString& scriptFileName) { scriptFileName_ = scriptFileName; }
 	inline void setCurrentLine(const qint64 line) { lineNumber_ = line; }
@@ -383,6 +396,10 @@ public:
 	inline void setForNodeList(const QList<ForNode>& forNodeList) { forNodeList_ = forNodeList; }
 	inline void setLuaNodeList(const QList<LuaNode>& luaNodeList) { luaNodeList_ = luaNodeList; }
 	inline void setCallBack(ParserCallBack callBack) { callBack_ = callBack; }
+	inline void setGlobalNameListPointer(const QSharedPointer<QStringList>& globalNames) { globalNames_ = globalNames; }
+	inline void setSubScript(bool isSubScript) { isSubScript_ = isSubScript; }
+	inline void setLuaMachinePointer(QSharedPointer<CLua> pLua) { pLua_ = pLua; }
+	inline void setCounterPointer(QSharedPointer<Counter> counter) { counter_ = counter; }
 
 	bool loadFile(const QString& fileName, QString* pcontent);
 	bool loadString(const QString& content);
@@ -408,11 +425,6 @@ public:
 	QVariant checkValue(const TokenMap TK, qint64 idx, QVariant::Type = QVariant::Invalid);
 	qint64 checkJump(const TokenMap& TK, qint64 idx, bool expr, JumpBehavior behavior);
 
-	bool isSubScript() const { return isSubScript_; }
-	void setSubScript(bool isSubScript) { isSubScript_ = isSubScript; }
-
-	void loadGlobalVariablesFromSol(sol::state& newlua, const QStringList& globalNames);
-
 	QVariant luaDoString(QString expr);
 
 public:
@@ -426,10 +438,6 @@ public:
 	void insertLocalVar(const QString& name, const QVariant& value);
 
 	void insertVar(const QString& name, const QVariant& value);
-
-	void setLuaMachinePointer(sol::state* pLua);
-
-	QHash<QString, qint64> getLabels() { return labels_; }
 
 	QString getLuaTableString(const sol::table& t, qint64& depth);
 
@@ -457,6 +465,7 @@ private:
 	bool processContinue();
 	bool processLuaCode();
 	bool processIfCompare();
+	void processMultiVariable();
 #if 0
 	void processLocalVariable();
 	void processVariableExpr();
@@ -559,7 +568,7 @@ private:
 	QList<ForNode> forNodeList_;
 	QList<LuaNode> luaNodeList_;
 
-	QStringList globalNames_;								//全局變量名稱
+	QSharedPointer<QStringList> globalNames_;				//全局變量名稱
 
 	QHash<QString, QString> userRegCallBack_;				//用戶註冊的回調函數
 	QHash<QString, CommandRegistry> commandRegistry_;		//所有已註冊的腳本命令函數指針
@@ -587,8 +596,7 @@ private:
 
 	bool isSubScript_ = false;								//是否是子腳本		
 
-	qint64 errorCount_ = 0;									//錯誤計數器
-	qint64 whiteSpace_ = 0;									//當前行開頭空格數
-	qint64 commandCount_ = 0;								//命令計數器
-	qint64 validCommandCount_ = 0;							//有效命令計數器
+	bool luaBegin_ = false;									//lua代碼塊開始標記
+
+	QSharedPointer<Counter> counter_;
 };

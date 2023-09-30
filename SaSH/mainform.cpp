@@ -242,7 +242,7 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 	{
 		if (!injector.server.isNull())
 		{
-			injector.server->IS_TCP_CONNECTION_OK_TO_USE = true;
+			injector.server->IS_TCP_CONNECTION_OK_TO_USE.store(true, std::memory_order_release);
 			*result = 1;
 			qDebug() << "tcp ok";
 		}
@@ -414,7 +414,7 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 			return true;
 
 
-		bool ok = injector.server->IS_TCP_CONNECTION_OK_TO_USE;
+		bool ok = injector.server->IS_TCP_CONNECTION_OK_TO_USE.load(std::memory_order_acquire);
 		if (!ok)
 			return true;
 
@@ -457,23 +457,39 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 	case InterfaceMessage::kMultiFunction:
 	{
 		qint64 id = msg->wParam;
-		qint64 type = HIWORD(msg->lParam);
-		qint64 arg = LOWORD(msg->lParam);
+		qint64 type = LOWORD(msg->lParam);
+		qint64 arg = HIWORD(msg->lParam);
 		*result = 0;
 
 		switch (type)
 		{
 		case WindowInfo:
 		{
-			if (pInfoForm_ == nullptr)
+			if (arg > 0)
 			{
-				pInfoForm_ = new InfoForm(id, arg, nullptr);
-				if (pInfoForm_)
+				if (pInfoForm_ == nullptr)
 				{
-					connect(pInfoForm_, &InfoForm::destroyed, [this]() { pInfoForm_ = nullptr; });
-					pInfoForm_->setAttribute(Qt::WA_DeleteOnClose);
-					pInfoForm_->show();
+					pInfoForm_ = new InfoForm(id, arg, nullptr);
+					if (pInfoForm_ != nullptr)
+					{
+						connect(pInfoForm_, &InfoForm::destroyed, [this]() { pInfoForm_ = nullptr; });
+						pInfoForm_->setAttribute(Qt::WA_DeleteOnClose);
+						pInfoForm_->show();
 
+						++interfaceCount_;
+						updateStatusText();
+						*result = static_cast<long>(pInfoForm_->winId());
+					}
+					else
+					{
+						updateStatusText("create info form failed");
+					}
+				}
+				else
+				{
+					pInfoForm_->setCurrentPage(arg);
+					pInfoForm_->hide();
+					pInfoForm_->show();
 					++interfaceCount_;
 					updateStatusText();
 					*result = static_cast<long>(pInfoForm_->winId());
@@ -481,21 +497,39 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 			}
 			else
 			{
-				pInfoForm_->close();
+				if (pInfoForm_ != nullptr)
+					pInfoForm_->close();
+				++interfaceCount_;
+				updateStatusText();
 			}
 			break;
 		}
 		case WindowMap:
 		{
-			if (mapWidget_ == nullptr)
+			if (arg > 0)
 			{
-				mapWidget_ = new MapWidget(id, nullptr);
-				if (mapWidget_)
+				if (mapWidget_ == nullptr)
 				{
-					connect(mapWidget_, &InfoForm::destroyed, [this]() { mapWidget_ = nullptr; });
-					mapWidget_->setAttribute(Qt::WA_DeleteOnClose);
-					mapWidget_->show();
+					mapWidget_ = new MapWidget(id, nullptr);
+					if (mapWidget_)
+					{
+						connect(mapWidget_, &InfoForm::destroyed, [this]() { mapWidget_ = nullptr; });
+						mapWidget_->setAttribute(Qt::WA_DeleteOnClose);
+						mapWidget_->show();
 
+						++interfaceCount_;
+						updateStatusText();
+						*result = static_cast<long>(mapWidget_->winId());
+					}
+					else
+					{
+						updateStatusText("create map widget failed");
+					}
+				}
+				else
+				{
+					mapWidget_->hide();
+					mapWidget_->show();
 					++interfaceCount_;
 					updateStatusText();
 					*result = static_cast<long>(mapWidget_->winId());
@@ -503,21 +537,39 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 			}
 			else
 			{
-				mapWidget_->close();
+				if (mapWidget_ != nullptr)
+					mapWidget_->close();
+				++interfaceCount_;
+				updateStatusText();
 			}
 			break;
 		}
 		case WindowScript:
 		{
-			if (pScriptSettingForm_ == nullptr)
+			if (arg > 0)
 			{
-				pScriptSettingForm_ = new ScriptSettingForm(id, nullptr);
-				if (pScriptSettingForm_)
+				if (pScriptSettingForm_ == nullptr)
 				{
-					connect(pScriptSettingForm_, &InfoForm::destroyed, [this]() { pScriptSettingForm_ = nullptr; });
-					pScriptSettingForm_->setAttribute(Qt::WA_DeleteOnClose);
-					pScriptSettingForm_->show();
+					pScriptSettingForm_ = new ScriptSettingForm(id, nullptr);
+					if (pScriptSettingForm_)
+					{
+						connect(pScriptSettingForm_, &InfoForm::destroyed, [this]() { pScriptSettingForm_ = nullptr; });
+						pScriptSettingForm_->setAttribute(Qt::WA_DeleteOnClose);
+						pScriptSettingForm_->show();
 
+						++interfaceCount_;
+						updateStatusText();
+						*result = static_cast<long>(pScriptSettingForm_->winId());
+					}
+					else
+					{
+						updateStatusText("create script setting form failed");
+					}
+				}
+				else
+				{
+					pScriptSettingForm_->hide();
+					pScriptSettingForm_->show();
 					++interfaceCount_;
 					updateStatusText();
 					*result = static_cast<long>(pScriptSettingForm_->winId());
@@ -525,49 +577,66 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 			}
 			else
 			{
-				pScriptSettingForm_->close();
+				if (pScriptSettingForm_ != nullptr)
+					pScriptSettingForm_->close();
+				++interfaceCount_;
+				updateStatusText();
 			}
 			break;
 		}
 		case SelectServerList:
 		{
 			const QString fileName(qgetenv("JSON_PATH"));
-			if (!fileName.isEmpty())
+			if (fileName.isEmpty())
+				break;
+
+			if (arg < 0)
 			{
-				util::Config config(fileName);
-				config.write("System", "Server", "LastServerListSelection", arg);
-				SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(id);
-				emit signalDispatcher.applyHashSettingsToUI();
-				++interfaceCount_;
-				updateStatusText();
-				*result = 1;
+				updateStatusText("invalid arg");
+				break;
 			}
+
+			util::Config config(fileName);
+			config.write("System", "Server", "LastServerListSelection", arg);
+			SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(id);
+			emit signalDispatcher.applyHashSettingsToUI();
+			++interfaceCount_;
+			updateStatusText();
+			*result = 1;
+
 			break;
 		}
 		case SelectProcessList:
 		{
 			const QString fileName(qgetenv("JSON_PATH"));
-			if (!fileName.isEmpty())
+			if (fileName.isEmpty())
+				break;
+
+			if (arg < 0)
 			{
-				util::Config config(fileName);
-				config.write("System", "Command", "LastSelection", arg);
-				SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(id);
-				emit signalDispatcher.applyHashSettingsToUI();
-				++interfaceCount_;
-				updateStatusText();
-				*result = 1;
+				updateStatusText("invalid arg");
+				break;
 			}
+
+			util::Config config(fileName);
+			config.write("System", "Command", "LastSelection", arg);
+			SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(id);
+			emit signalDispatcher.applyHashSettingsToUI();
+			++interfaceCount_;
+			updateStatusText();
+			*result = 1;
+
 			break;
 		}
 		case ToolTrayShow:
 		{
-			if (hideTrayAction_ != nullptr)
-			{
-				emit hideTrayAction_->triggered();
-				++interfaceCount_;
-				updateStatusText();
-				*result = 1;
-			}
+			if (hideTrayAction_ == nullptr)
+				break;
+
+			emit hideTrayAction_->triggered();
+			++interfaceCount_;
+			updateStatusText();
+			*result = 1;
 			break;
 		}
 		case HideGame:
@@ -702,13 +771,19 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 			}
 
 			if (hwnds.isEmpty())
+			{
+				updateStatusText("no valid hwnd");
 				break;
+			}
 
 			if (pThumbnailForm_ == nullptr)
 			{
 				QThumbnailForm* pThumbnailForm = q_check_ptr(new QThumbnailForm(hwnds));
 				if (pThumbnailForm == nullptr)
+				{
+					updateStatusText("create thumbnail form failed");
 					break;
+				}
 
 				pThumbnailForm_ = pThumbnailForm;
 
@@ -737,7 +812,6 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 		{
 			pThumbnailForm_->close();
 			pThumbnailForm_ = nullptr;
-
 			++interfaceCount_;
 			updateStatusText();
 			*result = 1;
@@ -981,6 +1055,10 @@ void MainForm::updateStatusText(const QString text)
 	if (!text.isEmpty())
 	{
 		msg += " " + QString(tr("msg:%1").arg(text));
+	}
+	else
+	{
+		msg += " " + QString(tr("msg:%1").arg("no error"));
 	}
 	ui.groupBox_basicinfo->setTitle(msg);
 }

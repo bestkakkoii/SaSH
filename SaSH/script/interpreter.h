@@ -91,7 +91,6 @@ private: //註冊給Parser的函數
 	qint64 run(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
 	qint64 dostr(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
 	qint64 menu(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
-	qint64 dofile(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
 	qint64 createch(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
 	qint64 delch(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
 	qint64 send(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);

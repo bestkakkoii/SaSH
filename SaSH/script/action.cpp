@@ -722,29 +722,29 @@ qint64 Interpreter::sellpet(qint64 currentIndex, qint64 currentLine, const Token
 			{
 			case 263:
 			{
-				//injector.server->IS_WAITFOR_DIALOG_FLAG = true;
+				//injector.server->IS_WAITFOR_DIALOG_FLAG.store(true, std::memory_order_release);
 				injector.server->press(BUTTON_YES, 263, unit.id);
-				//waitfor(1000, [&injector]()->bool { return !injector.server->IS_WAITFOR_DIALOG_FLAG; });
+				//waitfor(1000, [&injector]()->bool { return !injector.server->IS_WAITFOR_DIALOG_FLAG.load(std::memory_order_acquire) });
 				bret = true;
 				break;
 			}
 			case 262:
 			{
-				//injector.server->IS_WAITFOR_DIALOG_FLAG = true;
+				//injector.server->IS_WAITFOR_DIALOG_FLAG.store(true, std::memory_order_release);
 				injector.server->press(petIndex, 262, unit.id);
 				injector.server->press(BUTTON_YES, 263, unit.id);
 				bret = true;
-				//waitfor(1000, [&injector]()->bool { return !injector.server->IS_WAITFOR_DIALOG_FLAG; });
+				//waitfor(1000, [&injector]()->bool { return !injector.server->IS_WAITFOR_DIALOG_FLAG.load(std::memory_order_acquire) });
 				break;
 			}
 			default:
 			{
-				//injector.server->IS_WAITFOR_DIALOG_FLAG = true;
+				//injector.server->IS_WAITFOR_DIALOG_FLAG.store(true, std::memory_order_release);
 				injector.server->press(3, 261, unit.id);
 				injector.server->press(petIndex, 262, unit.id);
 				injector.server->press(BUTTON_YES, 263, unit.id);
 				bret = true;
-				//waitfor(1000, [&injector]()->bool { return !injector.server->IS_WAITFOR_DIALOG_FLAG; });
+				//waitfor(1000, [&injector]()->bool { return !injector.server->IS_WAITFOR_DIALOG_FLAG.load(std::memory_order_acquire) });
 				break;
 			}
 			}
@@ -1393,18 +1393,19 @@ qint64 Interpreter::depositpet(qint64 currentIndex, qint64 currentLine, const To
 	if (petIndex == -1)
 		return Parser::kArgError + 1ll;
 
-	injector.server->IS_WAITFOR_DIALOG_FLAG = true;
+	injector.server->IS_WAITFOR_DIALOG_FLAG.store(true, std::memory_order_release);
 	injector.server->depositPet(petIndex);
-	waitfor(1000, [&injector]()->bool { return !injector.server->IS_WAITFOR_DIALOG_FLAG; });
+	waitfor(1000, [&injector]()->bool { return !injector.server->IS_WAITFOR_DIALOG_FLAG.load(std::memory_order_acquire); });
 
-	injector.server->IS_WAITFOR_DIALOG_FLAG = true;
+	injector.server->IS_WAITFOR_DIALOG_FLAG.store(true, std::memory_order_release);
 	injector.server->press(BUTTON_YES);
-	waitfor(1000, [&injector]()->bool { return !injector.server->IS_WAITFOR_DIALOG_FLAG; });
+	waitfor(1000, [&injector]()->bool { return !injector.server->IS_WAITFOR_DIALOG_FLAG.load(std::memory_order_acquire); });
 
-	injector.server->IS_WAITFOR_DIALOG_FLAG = true;
+	injector.server->IS_WAITFOR_DIALOG_FLAG.store(true, std::memory_order_release);
 	injector.server->press(BUTTON_OK);
-	waitfor(1000, [&injector]()->bool { return !injector.server->IS_WAITFOR_DIALOG_FLAG; });
+	waitfor(1000, [&injector]()->bool { return !injector.server->IS_WAITFOR_DIALOG_FLAG.load(std::memory_order_acquire); });
 
+	injector.server->IS_WAITFOR_DIALOG_FLAG.store(false, std::memory_order_release);
 	return Parser::kNoChange;
 }
 
@@ -1456,12 +1457,12 @@ qint64 Interpreter::deposititem(qint64 currentIndex, qint64 currentLine, const T
 			if (it < min || it > max)
 				continue;
 
-			//injector.server->IS_WAITFOR_DIALOG_FLAG = true;
+			//injector.server->IS_WAITFOR_DIALOG_FLAG.store(true, std::memory_order_release);
 			injector.server->depositItem(it);
-			//waitfor(1000, [&injector]()->bool { return !injector.server->IS_WAITFOR_DIALOG_FLAG; });
-			//injector.server->IS_WAITFOR_DIALOG_FLAG = true;
+			//waitfor(1000, [&injector]()->bool { return !injector.server->IS_WAITFOR_DIALOG_FLAG.load(std::memory_order_acquire) });
+			//injector.server->IS_WAITFOR_DIALOG_FLAG.store(true, std::memory_order_release);
 			//injector.server->press(1);
-			//waitfor(1000, [&injector]()->bool { return !injector.server->IS_WAITFOR_DIALOG_FLAG; });
+			//waitfor(1000, [&injector]()->bool { return !injector.server->IS_WAITFOR_DIALOG_FLAG.load(std::memory_order_acquire) });
 		}
 	}
 	else
@@ -1550,26 +1551,32 @@ qint64 Interpreter::withdrawpet(qint64 currentIndex, qint64 currentLine, const T
 
 		if (bret)
 		{
-			injector.server->IS_WAITFOR_DIALOG_FLAG = true;
+			injector.server->IS_WAITFOR_DIALOG_FLAG.store(true, std::memory_order_release);
 			injector.server->withdrawPet(petIndex);
-			waitfor(1000, [&injector]()->bool { return !injector.server->IS_WAITFOR_DIALOG_FLAG; });
+			waitfor(1000, [&injector]()->bool { return !injector.server->IS_WAITFOR_DIALOG_FLAG.load(std::memory_order_acquire); });
 
-			injector.server->IS_WAITFOR_DIALOG_FLAG = true;
+			injector.server->IS_WAITFOR_DIALOG_FLAG.store(true, std::memory_order_release);
 			injector.server->press(BUTTON_YES);
-			waitfor(1000, [&injector]()->bool { return !injector.server->IS_WAITFOR_DIALOG_FLAG; });
+			waitfor(1000, [&injector]()->bool { return !injector.server->IS_WAITFOR_DIALOG_FLAG.load(std::memory_order_acquire); });
 
-			injector.server->IS_WAITFOR_DIALOG_FLAG = true;
+			injector.server->IS_WAITFOR_DIALOG_FLAG.store(true, std::memory_order_release);
 			injector.server->press(BUTTON_OK);
-			waitfor(1000, [&injector]()->bool { return !injector.server->IS_WAITFOR_DIALOG_FLAG; });
+			waitfor(1000, [&injector]()->bool { return !injector.server->IS_WAITFOR_DIALOG_FLAG.load(std::memory_order_acquire); });
+
+			injector.server->IS_WAITFOR_DIALOG_FLAG.store(false, std::memory_order_release);
 			break;
 		}
 
 		if ((button & BUTTON_NEXT) == BUTTON_NEXT)
 		{
-			injector.server->IS_WAITFOR_BANK_FLAG = true;
+			injector.server->IS_WAITFOR_BANK_FLAG.store(true, std::memory_order_release);
 			injector.server->press(BUTTON_NEXT);
-			if (!waitfor(1000, [&injector]()->bool { return !injector.server->IS_WAITFOR_BANK_FLAG; }))
+			if (!waitfor(1000, [&injector]()->bool { return !injector.server->IS_WAITFOR_BANK_FLAG.load(std::memory_order_acquire); }))
+			{
+				injector.server->IS_WAITFOR_BANK_FLAG.store(false, std::memory_order_release);
 				break;
+			}
+			injector.server->IS_WAITFOR_BANK_FLAG.store(false, std::memory_order_release);
 		}
 		else
 			break;
@@ -1668,12 +1675,12 @@ qint64 Interpreter::withdrawitem(qint64 currentIndex, qint64 currentLine, const 
 
 		if (bret)
 		{
-			//injector.server->IS_WAITFOR_DIALOG_FLAG = true;
+			//injector.server->IS_WAITFOR_DIALOG_FLAG.store(true, std::memory_order_release);
 			injector.server->withdrawItem(itemIndex);
-			//waitfor(1000, [&injector]()->bool { return !injector.server->IS_WAITFOR_DIALOG_FLAG; });
-			//injector.server->IS_WAITFOR_DIALOG_FLAG = true;
+			//waitfor(1000, [&injector]()->bool { return !injector.server->IS_WAITFOR_DIALOG_FLAG.load(std::memory_order_acquire) });
+			//injector.server->IS_WAITFOR_DIALOG_FLAG.store(true, std::memory_order_release);
 			//injector.server->press(1);
-			//waitfor(1000, [&injector]()->bool { return !injector.server->IS_WAITFOR_DIALOG_FLAG; });
+			//waitfor(1000, [&injector]()->bool { return !injector.server->IS_WAITFOR_DIALOG_FLAG.load(std::memory_order_acquire) });
 		}
 	}
 
@@ -1889,7 +1896,7 @@ qint64 Interpreter::trade(qint64 currentIndex, qint64 currentLine, const TokenMa
 
 	waitfor(timeout, [&injector]()
 		{
-			return !injector.server->IS_TRADING;
+			return !injector.server->IS_TRADING.load(std::memory_order_acquire);
 		});
 
 	return Parser::kNoChange;

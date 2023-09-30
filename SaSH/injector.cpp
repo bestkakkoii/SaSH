@@ -65,8 +65,6 @@ void Injector::reset(qint64 index)//static
 	instance->currentGameExePath = "";//當前使用的遊戲進程完整路徑
 	instance->IS_SCRIPT_FLAG.store(false, std::memory_order_release);//主腳本是否運行
 	instance->IS_SCRIPT_INTERRUPT.store(false, std::memory_order_release);
-	instance->scriptLogModel->clear(); //腳本日誌模型
-	instance->chatLogModel->clear(); //聊天日誌模型
 	instance->currentServerListIndex = 0;
 	instance->scriptThreadId = 0;
 	instance->IS_INJECT_OK = false;
@@ -106,7 +104,7 @@ void Injector::reset(qint64 index)//static
 		instance->setParentWidget(_hWnd);
 
 		instances.insert(index, instance);
-}
+	}
 #endif
 }
 

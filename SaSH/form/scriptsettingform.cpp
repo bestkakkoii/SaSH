@@ -2448,6 +2448,7 @@ bool luaTableToTreeWidgetItem(QString field, QTreeWidgetItem* pParentNode, const
 		{
 			varType = QObject::tr("Function");
 			value = QString("0x%1").arg(util::toQString(reinterpret_cast<qint64>(pair.second.as<sol::function>().pointer()), 16));
+			continue;
 		}
 		else if (pair.second == sol::lua_nil)
 		{
@@ -2458,6 +2459,7 @@ bool luaTableToTreeWidgetItem(QString field, QTreeWidgetItem* pParentNode, const
 		{
 			varType = hashSolLuaType.value(static_cast<qint64>(pair.second.get_type()), QObject::tr("Unknown"));
 			value = QString("0x%1").arg(util::toQString(reinterpret_cast<qint64>(pair.second.pointer()), 16));
+			continue;
 		}
 
 		if (varType.isEmpty())
@@ -2627,6 +2629,7 @@ void ScriptSettingForm::createTreeWidgetItems(Parser* pparser, QList<QTreeWidget
 		{
 			varType = QObject::tr("Function");
 			varValueStr = QString("0x%1").arg(util::toQString(reinterpret_cast<qint64>(o.as<sol::function>().pointer()), 16));
+			continue;
 		}
 		else if (o == sol::lua_nil)
 		{

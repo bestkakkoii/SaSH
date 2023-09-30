@@ -251,12 +251,6 @@ void MainObject::mainProc()
 	Injector& injector = Injector::getInstance(getIndex());
 	QElapsedTimer freeMemTimer; freeMemTimer.start();
 	QElapsedTimer freeSelfMemTimer; freeSelfMemTimer.start();
-	//首次先釋放一次記憶體，並且開始計時
-	if (injector.getEnableHash(util::kAutoFreeMemoryEnable))
-	{
-		freeMemTimer.restart();
-		freeSelfMemTimer.restart();
-	}
 
 	mem::freeUnuseMemory(injector.getProcess());
 	mem::freeUnuseMemory(GetCurrentProcess());
@@ -287,7 +281,7 @@ void MainObject::mainProc()
 		}
 
 		//檢查TCP是否握手成功
-		if (!injector.server->IS_TCP_CONNECTION_OK_TO_USE)
+		if (!injector.server->IS_TCP_CONNECTION_OK_TO_USE.load(std::memory_order_acquire))
 		{
 			QThread::msleep(100);
 			nodelay = true;
@@ -295,7 +289,7 @@ void MainObject::mainProc()
 		}
 
 		//自動釋放記憶體
-		if (injector.getEnableHash(util::kAutoFreeMemoryEnable) && freeMemTimer.hasExpired(15ll * 60ll * 1000ll))
+		if (injector.getEnableHash(util::kAutoFreeMemoryEnable) && freeMemTimer.hasExpired(5ll * 60ll * 1000ll))
 		{
 			freeMemTimer.restart();
 			mem::freeUnuseMemory(injector.getProcess());
@@ -303,10 +297,11 @@ void MainObject::mainProc()
 		else
 			freeMemTimer.restart();
 
-		if (injector.getEnableHash(util::kAutoFreeMemoryEnable) && freeSelfMemTimer.hasExpired(30ll * 60ll * 1000ll))
+		if (injector.getEnableHash(util::kAutoFreeMemoryEnable) && freeSelfMemTimer.hasExpired(10ll * 60ll * 1000ll))
 		{
 			freeSelfMemTimer.restart();
 			mem::freeUnuseMemory(GetCurrentProcess());
+			injector.server->mapAnalyzer->clear();
 		}
 		else
 			freeSelfMemTimer.restart();
@@ -386,7 +381,7 @@ qint64 MainObject::checkAndRunFunctions()
 
 			injector.server->loginTimer.restart();
 			//自動登入 或 斷線重連
-			if (injector.getEnableHash(util::kAutoLoginEnable) || injector.server->IS_DISCONNECTED)
+			if (injector.getEnableHash(util::kAutoLoginEnable) || injector.server->IS_DISCONNECTED.load(std::memory_order_acquire))
 				injector.server->login(status);
 			return 1;
 		}
@@ -511,6 +506,8 @@ qint64 MainObject::checkAndRunFunctions()
 
 		injector.server->updateComboBoxList();
 		injector.server->EO();
+		mem::freeUnuseMemory(injector.getProcess());
+		mem::freeUnuseMemory(GetCurrentProcess());
 		return 2;
 	}
 

@@ -929,6 +929,7 @@ namespace util
 		UINT ACP = ::GetACP();
 		if (950 == ACP && ext)
 		{
+#ifndef _DEBUG
 			// 繁體系統要轉繁體否則遊戲視窗標題會亂碼(一堆問號字)
 			std::wstring wstr = qstr.toStdWString();
 			qint64 size = lstrlenW(wstr.c_str());
@@ -936,6 +937,7 @@ namespace util
 			//繁體字碼表映射
 			LCMapStringEx(LOCALE_NAME_SYSTEM_DEFAULT, LCMAP_TRADITIONAL_CHINESE, wstr.c_str(), size, wbuf.data(), size, NULL, NULL, NULL);
 			qstr = util::toQString(wbuf.data());
+#endif
 		}
 
 		return qstr;
@@ -954,7 +956,7 @@ namespace util
 			LCMapStringEx(LOCALE_NAME_SYSTEM_DEFAULT, LCMAP_SIMPLIFIED_CHINESE, wstr.c_str(), size, wbuf.data(), size, NULL, NULL, NULL);
 			qstr = util::toQString(wbuf.data());
 		}
-		QTextCodec* codec = QTextCodec::codecForMib(2025);//QTextCodec::codecForName("gb2312");
+		QTextCodec* codec = QTextCodec::codecForName(util::DEFAULT_GAME_CODEPAGE);//QTextCodec::codecForMib(2025);//QTextCodec::codecForName("gb2312");
 		QByteArray bytes = codec->fromUnicode(qstr);
 
 		std::string s = bytes.data();

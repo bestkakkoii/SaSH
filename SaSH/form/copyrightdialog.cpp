@@ -192,7 +192,7 @@ CopyRightDialog::CopyRightDialog(QWidget* parent)
 
 	ui.label_programname->setText(programName);
 
-	ui.label_thanks->setText(u8"特别感谢: eric、辉、match_stick、手柄、老花、小雅、大头鱼、Jin、瑤瑤、大树、gjw000 热心帮忙测试、查找Bug和给予大量优质的建议");
+	ui.label_thanks->setText(u8"特别感谢: eric、辉、match_stick、手柄、老花、小雅、大头鱼、Jin、瑤瑤、大树、gjw000、无思走肉、SeasonV龙 热心帮忙测试、查找Bug和给予大量优质的建议");
 
 	ui.label_warnings->setText(
 		QObject::tr("Warning: This project is only for academic purposes," \

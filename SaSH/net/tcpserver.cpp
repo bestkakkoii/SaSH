@@ -362,7 +362,7 @@ bool Server::start(QObject* parent)
 		}
 	}
 
-	port_ = server_->serverPort();
+	port_.store(server_->serverPort(), std::memory_order_release);
 	return true;
 }
 
@@ -1813,13 +1813,13 @@ qint64 Server::getFloor()
 		return 0;
 
 	qint64 floor = static_cast<qint64>(mem::read<int>(hProcess, hModule + kOffsetNowFloor));
-	if (floor != nowFloor_)
+	if (floor != nowFloor_.load(std::memory_order_acquire))
 	{
 		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(getIndex());
 		QString mapname = nowFloorName_.get();
 		emit signalDispatcher.updateNpcList(floor);
 		emit signalDispatcher.updateMapLabelTextChanged(QString("%1(%2)").arg(mapname).arg(floor));
-		nowFloor_ = floor;
+		nowFloor_.store(floor, std::memory_order_release);
 	}
 	return floor;
 }
@@ -1842,7 +1842,7 @@ QString Server::getFloorName()
 	if (mapname != nowFloorName_)
 	{
 		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(getIndex());
-		qint64 floor = nowFloor_.get();
+		qint64 floor = nowFloor_.load(std::memory_order_acquire);
 		emit signalDispatcher.updateNpcList(floor);
 		emit signalDispatcher.updateMapLabelTextChanged(QString("%1(%2)").arg(mapname).arg(floor));
 		nowFloorName_ = mapname;
@@ -1869,7 +1869,7 @@ qint64 Server::checkJobDailyState(const QString& missionName)
 	if (newMissionName.isEmpty())
 		return false;
 
-	IS_WAITFOR_JOBDAILY_FLAG = true;
+	IS_WAITFOR_JOBDAILY_FLAG.store(true, std::memory_order_release);
 	lssproto_JOBDAILY_send(const_cast<char*>("dyedye"));
 	QElapsedTimer timer; timer.start();
 
@@ -1878,11 +1878,13 @@ qint64 Server::checkJobDailyState(const QString& missionName)
 		if (timer.hasExpired(5000))
 			break;
 
-		if (!IS_WAITFOR_JOBDAILY_FLAG)
+		if (!IS_WAITFOR_JOBDAILY_FLAG.load(std::memory_order_acquire))
 			break;
 
 		QThread::msleep(100);
 	}
+
+	IS_WAITFOR_JOBDAILY_FLAG.store(false, std::memory_order_release);
 
 	bool isExact = true;
 
@@ -2955,7 +2957,7 @@ bool Server::login(qint64 s)
 	{
 	case util::kStatusDisconnect:
 	{
-		IS_DISCONNECTED = true;
+		IS_DISCONNECTED.store(true, std::memory_order_release);
 		QList<int> list = config.readArray<int>("System", "Login", "Disconnect");
 		if (list.size() == 2)
 			injector.leftDoubleClick(list.at(0), list.at(1));
@@ -3355,7 +3357,7 @@ bool Server::login(qint64 s)
 	}
 	case util::kStatusLogined:
 	{
-		IS_DISCONNECTED = false;
+		IS_DISCONNECTED.store(false, std::memory_order_release);
 		return true;
 	}
 	default:
@@ -3924,7 +3926,7 @@ bool Server::addPoint(qint64 skillid, qint64 amt)
 	QElapsedTimer timer; timer.start();
 	for (qint64 i = 0; i < amt; ++i)
 	{
-		IS_WAITFOT_SKUP_RECV = true;
+		IS_WAITFOT_SKUP_RECV.store(true, std::memory_order_release);
 		lssproto_SKUP_send(skillid);
 		for (;;)
 		{
@@ -3937,7 +3939,7 @@ bool Server::addPoint(qint64 skillid, qint64 amt)
 			if (!getOnlineFlag())
 				return false;
 
-			if (!IS_WAITFOT_SKUP_RECV)
+			if (!IS_WAITFOT_SKUP_RECV.load(std::memory_order_acquire))
 				break;
 		}
 		timer.restart();
@@ -4939,7 +4941,7 @@ void Server::tradeComfirm(const QString& name)
 	if (getBattleFlag())
 		return;
 
-	if (!IS_TRADING)
+	if (!IS_TRADING.load(std::memory_order_acquire))
 		return;
 
 	if (name != opp_name)
@@ -4961,7 +4963,7 @@ void Server::tradeCancel()
 	if (getBattleFlag())
 		return;
 
-	if (!IS_TRADING)
+	if (!IS_TRADING.load(std::memory_order_acquire))
 		return;
 
 	QString cmd = QString("W|%1|%2").arg(opp_sockfd).arg(opp_name);
@@ -5016,7 +5018,7 @@ void Server::tradeAppendItems(const QString& name, const QVector<qint64>& itemIn
 	if (getBattleFlag())
 		return;
 
-	if (!IS_TRADING)
+	if (!IS_TRADING.load(std::memory_order_acquire))
 		return;
 
 	if (itemIndexs.isEmpty())
@@ -5061,7 +5063,7 @@ void Server::tradeAppendGold(const QString& name, qint64 gold)
 	if (getBattleFlag())
 		return;
 
-	if (!IS_TRADING)
+	if (!IS_TRADING.load(std::memory_order_acquire))
 		return;
 
 	if (gold < 0 || gold > pc_.gold)
@@ -5092,7 +5094,7 @@ void Server::tradeAppendPets(const QString& name, const QVector<qint64>& petInde
 	if (getBattleFlag())
 		return;
 
-	if (!IS_TRADING)
+	if (!IS_TRADING.load(std::memory_order_acquire))
 		return;
 
 	if (petIndexs.isEmpty())
@@ -5143,7 +5145,7 @@ void Server::tradeComplete(const QString& name)
 	if (getBattleFlag())
 		return;
 
-	if (!IS_TRADING)
+	if (!IS_TRADING.load(std::memory_order_acquire))
 		return;
 
 	if (name != opp_name)
@@ -5261,7 +5263,7 @@ inline bool Server::checkFlagState(qint64 pos)
 {
 	if (pos < 0 || pos >= MAX_ENEMY)
 		return false;
-	return checkAND(battleCurrentAnimeFlag, 1ll << pos);
+	return checkAND(battleCurrentAnimeFlag.load(std::memory_order_acquire), 1ll << pos);
 }
 
 //異步處理自動/快速戰鬥邏輯和發送封包
@@ -5451,7 +5453,9 @@ qint64 Server::petDoBattleWork(const battledata_t& bt)
 	do
 	{
 		//自動逃跑
-		if (hasUnMoveableStatue(bt.pet.status) || injector.getEnableHash(util::kAutoEscapeEnable) || petEscapeEnableTempFlag)
+		if (hasUnMoveableStatue(bt.pet.status)
+			|| injector.getEnableHash(util::kAutoEscapeEnable)
+			|| petEscapeEnableTempFlag.load(std::memory_order_acquire))
 		{
 			sendBattlePetDoNothing();
 			break;
@@ -5473,13 +5477,13 @@ bool Server::checkCharHp(qint64 cmpvalue, qint64* target, bool useequal)
 	if (useequal && (pc_.hpPercent <= cmpvalue))
 	{
 		if (target)
-			*target = battleCharCurrentPos;
+			*target = battleCharCurrentPos.load(std::memory_order_acquire);
 		return true;
 	}
 	else if (!useequal && (pc_.hpPercent < cmpvalue))
 	{
 		if (target)
-			*target = battleCharCurrentPos;
+			*target = battleCharCurrentPos.load(std::memory_order_acquire);
 		return true;
 	}
 
@@ -5494,13 +5498,13 @@ bool Server::checkCharMp(qint64 cmpvalue, qint64* target, bool useequal)
 	if (useequal && (pc_.mpPercent <= cmpvalue))
 	{
 		if (target)
-			*target = battleCharCurrentPos;
+			*target = battleCharCurrentPos.load(std::memory_order_acquire);
 		return true;
 	}
 	else if (!useequal && (pc_.mpPercent < cmpvalue))
 	{
 		if (target)
-			*target = battleCharCurrentPos;
+			*target = battleCharCurrentPos.load(std::memory_order_acquire);
 		return true;
 	}
 
@@ -5520,13 +5524,13 @@ bool Server::checkPetHp(qint64 cmpvalue, qint64* target, bool useequal)
 	if (useequal && (pet[i].hpPercent <= cmpvalue) && (pet[i].level > 0) && (pet[i].maxHp > 0))
 	{
 		if (target)
-			*target = battleCharCurrentPos + 5;
+			*target = battleCharCurrentPos.load(std::memory_order_acquire) + 5;
 		return true;
 	}
 	else if (!useequal && (pet[i].hpPercent < cmpvalue) && (pet[i].level > 0) && (pet[i].maxHp > 0))
 	{
 		if (target)
-			*target = battleCharCurrentPos + 5;
+			*target = battleCharCurrentPos.load(std::memory_order_acquire) + 5;
 		return true;
 	}
 
@@ -5546,13 +5550,13 @@ bool Server::checkRideHp(qint64 cmpvalue, qint64* target, bool useequal)
 	if (useequal && (pet[i].hpPercent <= cmpvalue) && (pet[i].level > 0) && (pet[i].maxHp > 0))
 	{
 		if (target)
-			*target = battleCharCurrentPos + 5;
+			*target = battleCharCurrentPos.load(std::memory_order_acquire) + 5;
 		return true;
 	}
 	else if (!useequal && (pet[i].hpPercent < cmpvalue) && (pet[i].level > 0) && (pet[i].maxHp > 0))
 	{
 		if (target)
-			*target = battleCharCurrentPos + 5;
+			*target = battleCharCurrentPos.load(std::memory_order_acquire) + 5;
 		return true;
 	}
 
@@ -5604,7 +5608,7 @@ void Server::handleCharBattleLogics(const battledata_t& bt)
 	Injector& injector = Injector::getInstance(currentIndex);
 
 	tempCatchPetTargetIndex = -1;
-	petEscapeEnableTempFlag = false; //用於在必要的時候切換戰寵動作為逃跑模式
+	petEscapeEnableTempFlag.store(false, std::memory_order_release); //用於在必要的時候切換戰寵動作為逃跑模式
 
 	QStringList items;
 
@@ -5614,6 +5618,7 @@ void Server::handleCharBattleLogics(const battledata_t& bt)
 
 	qint64 target = -1;
 
+#pragma region CharBattleTools
 	auto checkAllieHp = [this, &bt](qint64 cmpvalue, qint64* target, bool useequal)->bool
 	{
 		if (!target)
@@ -5621,7 +5626,7 @@ void Server::handleCharBattleLogics(const battledata_t& bt)
 
 		qint64 min = 0;
 		qint64 max = (MAX_ENEMY / 2) - 1;
-		if (battleCharCurrentPos >= (MAX_ENEMY / 2))
+		if (battleCharCurrentPos.load(std::memory_order_acquire) >= (MAX_ENEMY / 2))
 		{
 			min = MAX_ENEMY / 2;
 			max = MAX_ENEMY - 1;
@@ -5664,7 +5669,7 @@ void Server::handleCharBattleLogics(const battledata_t& bt)
 
 		qint64 min = 0;
 		qint64 max = (MAX_ENEMY / 2) - 1;
-		if (battleCharCurrentPos >= (MAX_ENEMY / 2))
+		if (battleCharCurrentPos.load(std::memory_order_acquire) >= (MAX_ENEMY / 2))
 		{
 			min = MAX_ENEMY / 2;
 			max = MAX_ENEMY - 1;
@@ -5685,19 +5690,21 @@ void Server::handleCharBattleLogics(const battledata_t& bt)
 
 		return false;
 	};
+#pragma endregion
 
 	//自動換寵
+#pragma region AutoSwitchPet
 	do
 	{
 		PC pc = getPC();
 
-		if (bt.objects.at(battleCharCurrentPos + 5).modelid > 0
-			|| !bt.objects.at(battleCharCurrentPos + 5).name.isEmpty()
-			|| bt.objects.at(battleCharCurrentPos + 5).level > 0
-			|| bt.objects.at(battleCharCurrentPos + 5).maxHp > 0)
+		if (bt.objects.at(battleCharCurrentPos.load(std::memory_order_acquire) + 5).modelid > 0
+			|| !bt.objects.at(battleCharCurrentPos.load(std::memory_order_acquire) + 5).name.isEmpty()
+			|| bt.objects.at(battleCharCurrentPos.load(std::memory_order_acquire) + 5).level > 0
+			|| bt.objects.at(battleCharCurrentPos.load(std::memory_order_acquire) + 5).maxHp > 0)
 			break;
 
-		battleobject_t obj = bt.objects.at(battleCharCurrentPos + 5);
+		battleobject_t obj = bt.objects.at(battleCharCurrentPos.load(std::memory_order_acquire) + 5);
 
 		qint64 petIndex = -1;
 		for (qint64 i = 0; i < MAX_PET; ++i)
@@ -5739,8 +5746,10 @@ void Server::handleCharBattleLogics(const battledata_t& bt)
 		return;
 
 	} while (false);
+#pragma endregion
 
 	//自動捉寵
+#pragma region CatchPet
 	do
 	{
 		bool autoCatch = injector.getEnableHash(util::kAutoCatchEnable);
@@ -5749,7 +5758,7 @@ void Server::handleCharBattleLogics(const battledata_t& bt)
 
 		if (isPetSpotEmpty())
 		{
-			petEscapeEnableTempFlag = true;
+			petEscapeEnableTempFlag.store(true, std::memory_order_release);
 			sendBattleCharEscapeAct();
 			return;
 		}
@@ -5811,7 +5820,7 @@ void Server::handleCharBattleLogics(const battledata_t& bt)
 			if (0 == catchMode)
 			{
 				//遇敵逃跑
-				petEscapeEnableTempFlag = true;
+				petEscapeEnableTempFlag.store(true, std::memory_order_release);
 				sendBattleCharEscapeAct();
 				return;
 			}
@@ -5940,8 +5949,10 @@ void Server::handleCharBattleLogics(const battledata_t& bt)
 		sendBattleCharCatchPetAct(tempTarget);
 		return;
 	} while (false);
+#pragma endregion
 
 	//鎖定逃跑
+#pragma region LockEscape
 	do
 	{
 		bool lockEscapeEnable = injector.getEnableHash(util::kLockEscapeEnable);
@@ -5958,13 +5969,15 @@ void Server::handleCharBattleLogics(const battledata_t& bt)
 			if (matchBattleEnemyByName(it, true, battleObjects, &tempbattleObjects))
 			{
 				sendBattleCharEscapeAct();
-				petEscapeEnableTempFlag = true;
+				petEscapeEnableTempFlag.store(true, std::memory_order_release);
 				return;
 			}
 		}
 	} while (false);
+#pragma endregion
 
 	//鎖定攻擊
+#pragma region LockAttack
 	do
 	{
 		bool lockAttackEnable = injector.getEnableHash(util::kLockAttackEnable);
@@ -5990,22 +6003,24 @@ void Server::handleCharBattleLogics(const battledata_t& bt)
 
 		if (bret)
 		{
-			IS_LOCKATTACK_ESCAPE_DISABLE = true;
+			IS_LOCKATTACK_ESCAPE_DISABLE.store(true, std::memory_order_release);
 			break;
 		}
 
-		if (IS_LOCKATTACK_ESCAPE_DISABLE)
+		if (IS_LOCKATTACK_ESCAPE_DISABLE.load(std::memory_order_acquire))
 			break;
 
 		if (injector.getEnableHash(util::kBattleNoEscapeWhileLockPetEnable))
 			break;
 
 		sendBattleCharEscapeAct();
-		petEscapeEnableTempFlag = true;
+		petEscapeEnableTempFlag.store(true, std::memory_order_release);
 		return;
 	} while (false);
+#pragma endregion
 
 	//落馬逃跑
+#pragma region FallDownEscape
 	do
 	{
 		bool fallEscapeEnable = injector.getEnableHash(util::kFallDownEscapeEnable);
@@ -6016,11 +6031,13 @@ void Server::handleCharBattleLogics(const battledata_t& bt)
 			break;
 
 		sendBattleCharEscapeAct();
-		petEscapeEnableTempFlag = true;
+		petEscapeEnableTempFlag.store(true, std::memory_order_release);
 		return;
 	} while (false);
+#pragma endregion
 
 	//道具復活
+#pragma region ItemRevive
 	do
 	{
 		bool itemRevive = injector.getEnableHash(util::kBattleItemReviveEnable);
@@ -6032,9 +6049,10 @@ void Server::handleCharBattleLogics(const battledata_t& bt)
 		quint64 targetFlags = injector.getValueHash(util::kBattleItemReviveTargetValue);
 		if (checkAND(targetFlags, kSelectPet))
 		{
-			if (bt.objects.at(battleCharCurrentPos + 5).hp == 0 || checkAND(bt.objects.at(battleCharCurrentPos + 5).status, BC_FLG_DEAD))
+			if (bt.objects.at(battleCharCurrentPos.load(std::memory_order_acquire) + 5).hp == 0
+				|| checkAND(bt.objects.at(battleCharCurrentPos.load(std::memory_order_acquire) + 5).status, BC_FLG_DEAD))
 			{
-				tempTarget = battleCharCurrentPos + 5;
+				tempTarget = battleCharCurrentPos.load(std::memory_order_acquire) + 5;
 				ok = true;
 			}
 		}
@@ -6043,7 +6061,7 @@ void Server::handleCharBattleLogics(const battledata_t& bt)
 		{
 			if (checkAND(targetFlags, kSelectAllieAny) || checkAND(targetFlags, kSelectAllieAll))
 			{
-				if (bt.objects.at(battleCharCurrentPos + 5).maxHp > 0 && checkDeadAllie(&tempTarget))
+				if (bt.objects.at(battleCharCurrentPos.load(std::memory_order_acquire) + 5).maxHp > 0 && checkDeadAllie(&tempTarget))
 				{
 					ok = true;
 				}
@@ -6079,8 +6097,10 @@ void Server::handleCharBattleLogics(const battledata_t& bt)
 			return;
 		}
 	} while (false);
+#pragma endregion
 
 	//精靈復活
+#pragma region MagicRevive
 	do
 	{
 		bool magicRevive = injector.getEnableHash(util::kBattleMagicReviveEnable);
@@ -6090,11 +6110,12 @@ void Server::handleCharBattleLogics(const battledata_t& bt)
 		qint64 tempTarget = -1;
 		bool ok = false;
 		quint64 targetFlags = injector.getValueHash(util::kBattleMagicReviveTargetValue);
-		if (checkAND(targetFlags, kSelectPet) && bt.objects.at(battleCharCurrentPos + 5).maxHp > 0)
+		if (checkAND(targetFlags, kSelectPet) && bt.objects.at(battleCharCurrentPos.load(std::memory_order_acquire) + 5).maxHp > 0)
 		{
-			if (bt.objects.at(battleCharCurrentPos + 5).hp == 0 || checkAND(bt.objects.at(battleCharCurrentPos + 5).status, BC_FLG_DEAD))
+			if (bt.objects.at(battleCharCurrentPos.load(std::memory_order_acquire) + 5).hp == 0
+				|| checkAND(bt.objects.at(battleCharCurrentPos.load(std::memory_order_acquire) + 5).status, BC_FLG_DEAD))
 			{
-				tempTarget = battleCharCurrentPos + 5;
+				tempTarget = battleCharCurrentPos.load(std::memory_order_acquire) + 5;
 				ok = true;
 			}
 		}
@@ -6140,8 +6161,10 @@ void Server::handleCharBattleLogics(const battledata_t& bt)
 			}
 		}
 	} while (false);
+#pragma endregion
 
 	//嗜血补气
+#pragma region SkillMp
 	do
 	{
 		bool skillMp = injector.getEnableHash(util::kBattleSkillMpEnable);
@@ -6149,7 +6172,8 @@ void Server::handleCharBattleLogics(const battledata_t& bt)
 			break;
 
 		qint64 charMp = injector.getValueHash(util::kBattleSkillMpValue);
-		if ((battleCharCurrentMp > charMp) && (battleCharCurrentMp > 0))
+		if ((battleCharCurrentMp.load(std::memory_order_acquire) > charMp)
+			&& (battleCharCurrentMp.load(std::memory_order_acquire) > 0))
 			break;
 
 		qint64 skillIndex = getProfessionSkillIndexByName("?嗜血");
@@ -6158,13 +6182,15 @@ void Server::handleCharBattleLogics(const battledata_t& bt)
 
 		if (isCharHpEnoughForSkill(skillIndex))
 		{
-			sendBattleCharJobSkillAct(skillIndex, battleCharCurrentPos);
+			sendBattleCharJobSkillAct(skillIndex, battleCharCurrentPos.load(std::memory_order_acquire));
 			return;
 		}
 
 	} while (false);
+#pragma endregion
 
 	//道具補氣
+#pragma region ItemMp
 	do
 	{
 		bool itemHealMp = injector.getEnableHash(util::kBattleItemHealMpEnable);
@@ -6174,7 +6200,7 @@ void Server::handleCharBattleLogics(const battledata_t& bt)
 		qint64 tempTarget = -1;
 		//bool ok = false;
 		qint64 charMpPercent = injector.getValueHash(util::kBattleItemHealMpValue);
-		if (!checkCharMp(charMpPercent, &tempTarget, true) && (battleCharCurrentMp > 0))
+		if (!checkCharMp(charMpPercent, &tempTarget, true) && (battleCharCurrentMp.load(std::memory_order_acquire) > 0))
 		{
 			break;
 		}
@@ -6199,14 +6225,17 @@ void Server::handleCharBattleLogics(const battledata_t& bt)
 			break;
 
 		target = 0;
-		if (fixCharTargetByItemIndex(itemIndex, tempTarget, &target) && (target == battleCharCurrentPos))
+		if (fixCharTargetByItemIndex(itemIndex, tempTarget, &target)
+			&& (target == battleCharCurrentPos.load(std::memory_order_acquire)))
 		{
 			sendBattleCharItemAct(itemIndex, target);
 			return;
 		}
 	} while (false);
+#pragma endregion
 
 	//指定回合
+#pragma region SelectedRound
 	do
 	{
 		qint64 atRoundIndex = injector.getValueHash(util::kBattleCharRoundActionRoundValue);
@@ -6284,11 +6313,11 @@ void Server::handleCharBattleLogics(const battledata_t& bt)
 		}
 		else if (checkAND(targetFlags, kSelectSelf))
 		{
-			tempTarget = battleCharCurrentPos;
+			tempTarget = battleCharCurrentPos.load(std::memory_order_acquire);
 		}
 		else if (checkAND(targetFlags, kSelectPet))
 		{
-			tempTarget = battleCharCurrentPos + 5;
+			tempTarget = battleCharCurrentPos.load(std::memory_order_acquire) + 5;
 		}
 		else if (checkAND(targetFlags, kSelectAllieAny))
 		{
@@ -6396,8 +6425,10 @@ void Server::handleCharBattleLogics(const battledata_t& bt)
 			}
 		}
 	} while (false);
+#pragma endregion
 
 	//間隔回合
+#pragma region IntervalRound
 	do
 	{
 		bool crossActionEnable = injector.getEnableHash(util::kBattleCrossActionCharEnable);
@@ -6452,11 +6483,11 @@ void Server::handleCharBattleLogics(const battledata_t& bt)
 		}
 		else if (checkAND(targetFlags, kSelectSelf))
 		{
-			tempTarget = battleCharCurrentPos;
+			tempTarget = battleCharCurrentPos.load(std::memory_order_acquire);
 		}
 		else if (checkAND(targetFlags, kSelectPet))
 		{
-			tempTarget = battleCharCurrentPos + 5;
+			tempTarget = battleCharCurrentPos.load(std::memory_order_acquire) + 5;
 		}
 		else if (checkAND(targetFlags, kSelectAllieAny))
 		{
@@ -6564,8 +6595,10 @@ void Server::handleCharBattleLogics(const battledata_t& bt)
 			}
 		}
 	} while (false);
+#pragma endregion
 
 	//精靈補血
+#pragma region MagicHeal
 	do
 	{
 		bool magicHeal = injector.getEnableHash(util::kBattleMagicHealEnable);
@@ -6589,21 +6622,25 @@ void Server::handleCharBattleLogics(const battledata_t& bt)
 
 		if (checkAND(targetFlags, kSelectPet))
 		{
-			if (!ok && bt.objects.at(battleCharCurrentPos + 5).maxHp > 0)
+			if (!ok && bt.objects.at(battleCharCurrentPos.load(std::memory_order_acquire) + 5).maxHp > 0)
 			{
-				if (bt.objects.at(battleCharCurrentPos + 5).hpPercent <= petPercent && bt.objects.at(battleCharCurrentPos + 5).hp > 0 &&
-					!checkAND(bt.objects.at(battleCharCurrentPos + 5).status, BC_FLG_DEAD) && !checkAND(bt.objects.at(battleCharCurrentPos + 5).status, BC_FLG_HIDE))
+				if (bt.objects.at(battleCharCurrentPos.load(std::memory_order_acquire) + 5).hpPercent <= petPercent
+					&& bt.objects.at(battleCharCurrentPos.load(std::memory_order_acquire) + 5).hp > 0
+					&& !checkAND(bt.objects.at(battleCharCurrentPos.load(std::memory_order_acquire) + 5).status, BC_FLG_DEAD)
+					&& !checkAND(bt.objects.at(battleCharCurrentPos.load(std::memory_order_acquire) + 5).status, BC_FLG_HIDE))
 				{
-					tempTarget = battleCharCurrentPos + 5;
+					tempTarget = battleCharCurrentPos.load(std::memory_order_acquire) + 5;
 					ok = true;
 				}
 			}
-			else if (!ok && bt.objects.at(battleCharCurrentPos).maxHp > 0)
+			else if (!ok && bt.objects.at(battleCharCurrentPos.load(std::memory_order_acquire)).maxHp > 0)
 			{
-				if (bt.objects.at(battleCharCurrentPos).rideHpPercent <= petPercent && bt.objects.at(battleCharCurrentPos).rideHp > 0 &&
-					!checkAND(bt.objects.at(battleCharCurrentPos).status, BC_FLG_DEAD) && !checkAND(bt.objects.at(battleCharCurrentPos).status, BC_FLG_HIDE))
+				if (bt.objects.at(battleCharCurrentPos.load(std::memory_order_acquire)).rideHpPercent <= petPercent
+					&& bt.objects.at(battleCharCurrentPos.load(std::memory_order_acquire)).rideHp > 0
+					&& !checkAND(bt.objects.at(battleCharCurrentPos.load(std::memory_order_acquire)).status, BC_FLG_DEAD)
+					&& !checkAND(bt.objects.at(battleCharCurrentPos.load(std::memory_order_acquire)).status, BC_FLG_HIDE))
 				{
-					tempTarget = battleCharCurrentPos;
+					tempTarget = battleCharCurrentPos.load(std::memory_order_acquire);
 					ok = true;
 				}
 			}
@@ -6645,8 +6682,10 @@ void Server::handleCharBattleLogics(const battledata_t& bt)
 			}
 		}
 	} while (false);
+#pragma endregion
 
 	//道具補血
+#pragma region ItemHeal
 	do
 	{
 		bool itemHeal = injector.getEnableHash(util::kBattleItemHealEnable);
@@ -6670,12 +6709,14 @@ void Server::handleCharBattleLogics(const battledata_t& bt)
 
 		if (!ok)
 		{
-			if (checkAND(targetFlags, kSelectPet) && bt.objects.at(battleCharCurrentPos + 5).maxHp > 0)
+			if (checkAND(targetFlags, kSelectPet) && bt.objects.at(battleCharCurrentPos.load(std::memory_order_acquire) + 5).maxHp > 0)
 			{
-				if (bt.objects.at(battleCharCurrentPos + 5).hpPercent <= petPercent && bt.objects.at(battleCharCurrentPos + 5).hp > 0 &&
-					!checkAND(bt.objects.at(battleCharCurrentPos + 5).status, BC_FLG_DEAD) && !checkAND(bt.objects.at(battleCharCurrentPos + 5).status, BC_FLG_HIDE))
+				if (bt.objects.at(battleCharCurrentPos.load(std::memory_order_acquire) + 5).hpPercent <= petPercent
+					&& bt.objects.at(battleCharCurrentPos.load(std::memory_order_acquire) + 5).hp > 0
+					&& !checkAND(bt.objects.at(battleCharCurrentPos.load(std::memory_order_acquire) + 5).status, BC_FLG_DEAD)
+					&& !checkAND(bt.objects.at(battleCharCurrentPos.load(std::memory_order_acquire) + 5).status, BC_FLG_HIDE))
 				{
-					tempTarget = battleCharCurrentPos + 5;
+					tempTarget = battleCharCurrentPos.load(std::memory_order_acquire) + 5;
 					ok = true;
 				}
 			}
@@ -6730,8 +6771,10 @@ void Server::handleCharBattleLogics(const battledata_t& bt)
 			return;
 		}
 	} while (false);
+#pragma endregion
 
 	//一般動作
+#pragma region NormalAction
 	do
 	{
 		qint64 tempTarget = -1;
@@ -6801,11 +6844,11 @@ void Server::handleCharBattleLogics(const battledata_t& bt)
 		}
 		else if (checkAND(targetFlags, kSelectSelf))
 		{
-			tempTarget = battleCharCurrentPos;
+			tempTarget = battleCharCurrentPos.load(std::memory_order_acquire);
 		}
 		else if (checkAND(targetFlags, kSelectPet))
 		{
-			tempTarget = battleCharCurrentPos + 5;
+			tempTarget = battleCharCurrentPos.load(std::memory_order_acquire) + 5;
 		}
 		else if (checkAND(targetFlags, kSelectAllieAny))
 		{
@@ -6914,6 +6957,7 @@ void Server::handleCharBattleLogics(const battledata_t& bt)
 			}
 		}
 	} while (false);
+#pragma endregion
 
 	sendBattleCharDoNothing();
 }
@@ -7054,11 +7098,11 @@ void Server::handlePetBattleLogics(const battledata_t& bt)
 		}
 		else if (checkAND(targetFlags, kSelectSelf))
 		{
-			tempTarget = battleCharCurrentPos;
+			tempTarget = battleCharCurrentPos.load(std::memory_order_acquire);
 		}
 		else if (checkAND(targetFlags, kSelectPet))
 		{
-			tempTarget = battleCharCurrentPos + 5;
+			tempTarget = battleCharCurrentPos.load(std::memory_order_acquire) + 5;
 		}
 		else if (checkAND(targetFlags, kSelectAllieAny))
 		{
@@ -7165,11 +7209,11 @@ void Server::handlePetBattleLogics(const battledata_t& bt)
 		}
 		else if (checkAND(targetFlags, kSelectSelf))
 		{
-			tempTarget = battleCharCurrentPos;
+			tempTarget = battleCharCurrentPos.load(std::memory_order_acquire);
 		}
 		else if (checkAND(targetFlags, kSelectPet))
 		{
-			tempTarget = battleCharCurrentPos + 5;
+			tempTarget = battleCharCurrentPos.load(std::memory_order_acquire) + 5;
 		}
 		else if (checkAND(targetFlags, kSelectAllieAny))
 		{
@@ -7300,11 +7344,11 @@ void Server::handlePetBattleLogics(const battledata_t& bt)
 		}
 		else if (checkAND(targetFlags, kSelectSelf))
 		{
-			tempTarget = battleCharCurrentPos;
+			tempTarget = battleCharCurrentPos.load(std::memory_order_acquire);
 		}
 		else if (checkAND(targetFlags, kSelectPet))
 		{
-			tempTarget = battleCharCurrentPos + 5;
+			tempTarget = battleCharCurrentPos.load(std::memory_order_acquire) + 5;
 		}
 		else if (checkAND(targetFlags, kSelectAllieAny))
 		{
@@ -7550,7 +7594,7 @@ void Server::sortBattleUnit(QVector<battleobject_t>& v) const
 qint64 Server::getBattleSelectableEnemyTarget(const battledata_t& bt) const
 {
 	qint64 defaultTarget = MAX_ENEMY - 1;
-	if (battleCharCurrentPos >= (MAX_ENEMY / 2))
+	if (battleCharCurrentPos.load(std::memory_order_acquire) >= (MAX_ENEMY / 2))
 		defaultTarget = MAX_ENEMY / 4;
 
 	QVector<battleobject_t> enemies(bt.enemies);
@@ -7568,7 +7612,7 @@ qint64 Server::getBattleSelectableEnemyTarget(const battledata_t& bt) const
 qint64 Server::getBattleSelectableEnemyOneRowTarget(const battledata_t& bt, bool front) const
 {
 	qint64 defaultTarget = MAX_ENEMY - 5;
-	if (battleCharCurrentPos >= (MAX_ENEMY / 2))
+	if (battleCharCurrentPos.load(std::memory_order_acquire) >= (MAX_ENEMY / 2))
 		defaultTarget = MAX_ENEMY / 4;
 
 	QVector<battleobject_t> enemies(bt.enemies);
@@ -7583,7 +7627,7 @@ qint64 Server::getBattleSelectableEnemyOneRowTarget(const battledata_t& bt, bool
 
 	if (front)
 	{
-		if (battleCharCurrentPos < (MAX_ENEMY / 2))
+		if (battleCharCurrentPos.load(std::memory_order_acquire) < (MAX_ENEMY / 2))
 		{
 			// 只取 pos 在 15~19 之间的，取最前面的
 			for (qint64 i = 0; i < enemies.size(); ++i)
@@ -7610,7 +7654,7 @@ qint64 Server::getBattleSelectableEnemyOneRowTarget(const battledata_t& bt, bool
 	}
 	else
 	{
-		if (battleCharCurrentPos < (MAX_ENEMY / 2))
+		if (battleCharCurrentPos.load(std::memory_order_acquire) < (MAX_ENEMY / 2))
 		{
 			// 只取 pos 在 10~14 之间的，取最前面的
 			for (qint64 i = 0; i < enemies.size(); ++i)
@@ -7648,7 +7692,7 @@ qint64 Server::getBattleSelectableEnemyOneRowTarget(const battledata_t& bt, bool
 qint64 Server::getBattleSelectableAllieTarget(const battledata_t& bt) const
 {
 	qint64 defaultTarget = 5;
-	if (battleCharCurrentPos >= 10)
+	if (battleCharCurrentPos.load(std::memory_order_acquire) >= 10)
 		defaultTarget = 15;
 
 	QVector<battleobject_t> allies(bt.allies);
@@ -7783,7 +7827,7 @@ bool Server::fixCharTargetByMagicIndex(qint64 magicIndex, qint64 oldtarget, qint
 	{
 		if (oldtarget < 0 || oldtarget >= 20)
 		{
-			if (battleCharCurrentPos < 10)
+			if (battleCharCurrentPos.load(std::memory_order_acquire) < 10)
 				oldtarget = 15;
 			else
 				oldtarget = 5;
@@ -7792,7 +7836,7 @@ bool Server::fixCharTargetByMagicIndex(qint64 magicIndex, qint64 oldtarget, qint
 	}
 	case MAGIC_TARGET_ALLMYSIDE://我方全體
 	{
-		if (battleCharCurrentPos < 10)
+		if (battleCharCurrentPos.load(std::memory_order_acquire) < 10)
 			oldtarget = 20;
 		else
 			oldtarget = 21;
@@ -7800,7 +7844,7 @@ bool Server::fixCharTargetByMagicIndex(qint64 magicIndex, qint64 oldtarget, qint
 	}
 	case MAGIC_TARGET_ALLOTHERSIDE://敵方全體
 	{
-		if (battleCharCurrentPos < 10)
+		if (battleCharCurrentPos.load(std::memory_order_acquire) < 10)
 			oldtarget = 21;
 		else
 			oldtarget = 20;
@@ -7818,7 +7862,7 @@ bool Server::fixCharTargetByMagicIndex(qint64 magicIndex, qint64 oldtarget, qint
 	}
 	case MAGIC_TARGET_OTHERWITHOUTMYSELF://我方任意除了自己
 	{
-		if (oldtarget == battleCharCurrentPos)
+		if (oldtarget == battleCharCurrentPos.load(std::memory_order_acquire))
 		{
 			oldtarget = -1;
 		}
@@ -7827,11 +7871,11 @@ bool Server::fixCharTargetByMagicIndex(qint64 magicIndex, qint64 oldtarget, qint
 	case MAGIC_TARGET_WITHOUTMYSELFANDPET://我方任意除了自己和寵物
 	{
 
-		if (oldtarget == battleCharCurrentPos)
+		if (oldtarget == battleCharCurrentPos.load(std::memory_order_acquire))
 		{
 			oldtarget = -1;
 		}
-		else if (oldtarget == (battleCharCurrentPos + 5))
+		else if (oldtarget == (battleCharCurrentPos.load(std::memory_order_acquire) + 5))
 		{
 			oldtarget = -1;
 		}
@@ -7843,14 +7887,14 @@ bool Server::fixCharTargetByMagicIndex(qint64 magicIndex, qint64 oldtarget, qint
 		{
 			if (oldtarget >= 0 && oldtarget <= 9)
 			{
-				if (battleCharCurrentPos < 10)
+				if (battleCharCurrentPos.load(std::memory_order_acquire) < 10)
 					oldtarget = 20;
 				else
 					oldtarget = 21;
 			}
 			else
 			{
-				if (battleCharCurrentPos < 10)
+				if (battleCharCurrentPos.load(std::memory_order_acquire) < 10)
 					oldtarget = 21;
 				else
 					oldtarget = 20;
@@ -7863,7 +7907,7 @@ bool Server::fixCharTargetByMagicIndex(qint64 magicIndex, qint64 oldtarget, qint
 	{
 		if (oldtarget < 10 || oldtarget >= MAX_ENEMY)
 		{
-			if (battleCharCurrentPos < 10)
+			if (battleCharCurrentPos.load(std::memory_order_acquire) < 10)
 				oldtarget = 15;
 			else
 				oldtarget = 5;
@@ -7872,7 +7916,7 @@ bool Server::fixCharTargetByMagicIndex(qint64 magicIndex, qint64 oldtarget, qint
 	}
 	case MAGIC_TARGET_ONE_ROW:				// 針對敵方某一列
 	{
-		if (battleCharCurrentPos < 10)
+		if (battleCharCurrentPos.load(std::memory_order_acquire) < 10)
 		{
 			if (oldtarget < 5)
 				oldtarget = MAX_ENEMY + 5;
@@ -7898,7 +7942,7 @@ bool Server::fixCharTargetByMagicIndex(qint64 magicIndex, qint64 oldtarget, qint
 	}
 	case MAGIC_TARGET_ALL_ROWS:				// 針對敵方所有人
 	{
-		if (battleCharCurrentPos < 10)
+		if (battleCharCurrentPos.load(std::memory_order_acquire) < 10)
 			oldtarget = 21;
 		else
 			oldtarget = 20;
@@ -7937,7 +7981,7 @@ bool Server::fixCharTargetBySkillIndex(qint64 magicIndex, qint64 oldtarget, qint
 	{
 		if (oldtarget < 0 || oldtarget >= 20)
 		{
-			if (battleCharCurrentPos < 10)
+			if (battleCharCurrentPos.load(std::memory_order_acquire) < 10)
 				oldtarget = 15;
 			else
 				oldtarget = 5;
@@ -7946,7 +7990,7 @@ bool Server::fixCharTargetBySkillIndex(qint64 magicIndex, qint64 oldtarget, qint
 	}
 	case MAGIC_TARGET_ALLMYSIDE://我方全體
 	{
-		if (battleCharCurrentPos < 10)
+		if (battleCharCurrentPos.load(std::memory_order_acquire) < 10)
 			oldtarget = 20;
 		else
 			oldtarget = 21;
@@ -7954,7 +7998,7 @@ bool Server::fixCharTargetBySkillIndex(qint64 magicIndex, qint64 oldtarget, qint
 	}
 	case MAGIC_TARGET_ALLOTHERSIDE://敵方全體
 	{
-		if (battleCharCurrentPos < 10)
+		if (battleCharCurrentPos.load(std::memory_order_acquire) < 10)
 			oldtarget = 21;
 		else
 			oldtarget = 20;
@@ -7975,7 +8019,7 @@ bool Server::fixCharTargetBySkillIndex(qint64 magicIndex, qint64 oldtarget, qint
 	}
 	case MAGIC_TARGET_OTHERWITHOUTMYSELF://我方任意除了自己
 	{
-		if (oldtarget == battleCharCurrentPos)
+		if (oldtarget == battleCharCurrentPos.load(std::memory_order_acquire))
 		{
 			oldtarget = -1;
 		}
@@ -7983,11 +8027,11 @@ bool Server::fixCharTargetBySkillIndex(qint64 magicIndex, qint64 oldtarget, qint
 	}
 	case MAGIC_TARGET_WITHOUTMYSELFANDPET://我方任意除了自己和寵物
 	{
-		if (oldtarget == battleCharCurrentPos)
+		if (oldtarget == battleCharCurrentPos.load(std::memory_order_acquire))
 		{
 			oldtarget = -1;
 		}
-		else if (oldtarget == (battleCharCurrentPos + 5))
+		else if (oldtarget == (battleCharCurrentPos.load(std::memory_order_acquire) + 5))
 		{
 			oldtarget = -1;
 		}
@@ -7999,14 +8043,14 @@ bool Server::fixCharTargetBySkillIndex(qint64 magicIndex, qint64 oldtarget, qint
 		{
 			if (oldtarget >= 0 && oldtarget <= 9)
 			{
-				if (battleCharCurrentPos < 10)
+				if (battleCharCurrentPos.load(std::memory_order_acquire) < 10)
 					oldtarget = 20;
 				else
 					oldtarget = 21;
 			}
 			else
 			{
-				if (battleCharCurrentPos < 10)
+				if (battleCharCurrentPos.load(std::memory_order_acquire) < 10)
 					oldtarget = 21;
 				else
 					oldtarget = 20;
@@ -8019,7 +8063,7 @@ bool Server::fixCharTargetBySkillIndex(qint64 magicIndex, qint64 oldtarget, qint
 	{
 		if (oldtarget < 10 || oldtarget >= MAX_ENEMY)
 		{
-			if (battleCharCurrentPos < 10)
+			if (battleCharCurrentPos.load(std::memory_order_acquire) < 10)
 				oldtarget = 15;
 			else
 				oldtarget = 5;
@@ -8028,7 +8072,7 @@ bool Server::fixCharTargetBySkillIndex(qint64 magicIndex, qint64 oldtarget, qint
 	}
 	case MAGIC_TARGET_ONE_ROW:				// 針對敵方某一列
 	{
-		if (battleCharCurrentPos < 10)
+		if (battleCharCurrentPos.load(std::memory_order_acquire) < 10)
 		{
 			if (oldtarget < 5)
 				oldtarget = MAX_ENEMY + 5;
@@ -8054,7 +8098,7 @@ bool Server::fixCharTargetBySkillIndex(qint64 magicIndex, qint64 oldtarget, qint
 	}
 	case MAGIC_TARGET_ALL_ROWS:				// 針對敵方所有人
 	{
-		if (battleCharCurrentPos < 10)
+		if (battleCharCurrentPos.load(std::memory_order_acquire) < 10)
 			oldtarget = 21;
 		else
 			oldtarget = 20;
@@ -8093,7 +8137,7 @@ bool Server::fixCharTargetByItemIndex(qint64 itemIndex, qint64 oldtarget, qint64
 	{
 		if (oldtarget < 0 || oldtarget >= 20)
 		{
-			if (battleCharCurrentPos < 10)
+			if (battleCharCurrentPos.load(std::memory_order_acquire) < 10)
 				oldtarget = 15;
 			else
 				oldtarget = 5;
@@ -8102,7 +8146,7 @@ bool Server::fixCharTargetByItemIndex(qint64 itemIndex, qint64 oldtarget, qint64
 	}
 	case ITEM_TARGET_ALLMYSIDE://我方全體
 	{
-		if (battleCharCurrentPos < 10)
+		if (battleCharCurrentPos.load(std::memory_order_acquire) < 10)
 			oldtarget = 20;
 		else
 			oldtarget = 21;
@@ -8110,7 +8154,7 @@ bool Server::fixCharTargetByItemIndex(qint64 itemIndex, qint64 oldtarget, qint64
 	}
 	case ITEM_TARGET_ALLOTHERSIDE://敵方全體
 	{
-		if (battleCharCurrentPos < 10)
+		if (battleCharCurrentPos.load(std::memory_order_acquire) < 10)
 			oldtarget = 21;
 		else
 			oldtarget = 20;
@@ -8128,7 +8172,7 @@ bool Server::fixCharTargetByItemIndex(qint64 itemIndex, qint64 oldtarget, qint64
 	}
 	case ITEM_TARGET_OTHERWITHOUTMYSELF://我方任意除了自己
 	{
-		if (oldtarget == battleCharCurrentPos)
+		if (oldtarget == battleCharCurrentPos.load(std::memory_order_acquire))
 		{
 			oldtarget = -1;
 		}
@@ -8136,11 +8180,11 @@ bool Server::fixCharTargetByItemIndex(qint64 itemIndex, qint64 oldtarget, qint64
 	}
 	case ITEM_TARGET_WITHOUTMYSELFANDPET://我方任意除了自己和寵物
 	{
-		if (oldtarget == battleCharCurrentPos)
+		if (oldtarget == battleCharCurrentPos.load(std::memory_order_acquire))
 		{
 			oldtarget = -1;
 		}
-		else if (oldtarget == (battleCharCurrentPos + 5))
+		else if (oldtarget == (battleCharCurrentPos.load(std::memory_order_acquire) + 5))
 		{
 			oldtarget = -1;
 		}
@@ -8148,7 +8192,7 @@ bool Server::fixCharTargetByItemIndex(qint64 itemIndex, qint64 oldtarget, qint64
 	}
 	case ITEM_TARGET_PET://戰寵
 	{
-		oldtarget = battleCharCurrentPos + 5;
+		oldtarget = battleCharCurrentPos.load(std::memory_order_acquire) + 5;
 		break;
 	}
 
@@ -8181,8 +8225,8 @@ bool Server::fixPetTargetBySkillIndex(qint64 skillIndex, qint64 oldtarget, qint6
 	{
 	case PETSKILL_TARGET_MYSELF:
 	{
-		if (oldtarget != (battleCharCurrentPos + 5))
-			oldtarget = battleCharCurrentPos + 5;
+		if (oldtarget != (battleCharCurrentPos.load(std::memory_order_acquire) + 5))
+			oldtarget = battleCharCurrentPos.load(std::memory_order_acquire) + 5;
 		break;
 	}
 	case PETSKILL_TARGET_OTHER:
@@ -8191,7 +8235,7 @@ bool Server::fixPetTargetBySkillIndex(qint64 skillIndex, qint64 oldtarget, qint6
 	}
 	case PETSKILL_TARGET_ALLMYSIDE:
 	{
-		if (battleCharCurrentPos < 10)
+		if (battleCharCurrentPos.load(std::memory_order_acquire) < 10)
 			oldtarget = 20;
 		else
 			oldtarget = 21;
@@ -8199,7 +8243,7 @@ bool Server::fixPetTargetBySkillIndex(qint64 skillIndex, qint64 oldtarget, qint6
 	}
 	case PETSKILL_TARGET_ALLOTHERSIDE:
 	{
-		if (battleCharCurrentPos < 10)
+		if (battleCharCurrentPos.load(std::memory_order_acquire) < 10)
 			oldtarget = 21;
 		else
 			oldtarget = 20;
@@ -8217,7 +8261,7 @@ bool Server::fixPetTargetBySkillIndex(qint64 skillIndex, qint64 oldtarget, qint6
 	}
 	case PETSKILL_TARGET_OTHERWITHOUTMYSELF:
 	{
-		if (oldtarget == (battleCharCurrentPos + 5))
+		if (oldtarget == (battleCharCurrentPos.load(std::memory_order_acquire) + 5))
 		{
 			oldtarget = -1;
 		}
@@ -8227,7 +8271,7 @@ bool Server::fixPetTargetBySkillIndex(qint64 skillIndex, qint64 oldtarget, qint6
 	{
 		qint64 max = MAX_ENEMY;
 		qint64 min = 0;
-		if (battleCharCurrentPos >= 10)
+		if (battleCharCurrentPos.load(std::memory_order_acquire) >= 10)
 		{
 			max = 19;
 			min = 10;
@@ -8237,7 +8281,7 @@ bool Server::fixPetTargetBySkillIndex(qint64 skillIndex, qint64 oldtarget, qint6
 		{
 			oldtarget = -1;
 		}
-		else if (oldtarget == (battleCharCurrentPos + 5))
+		else if (oldtarget == (battleCharCurrentPos.load(std::memory_order_acquire) + 5))
 		{
 			oldtarget = -1;
 		}
@@ -8659,8 +8703,6 @@ void Server::lssproto_PR_recv(int request, int result)
 	{
 		if (request == 0 && result == 1)
 		{
-			hasTeam = false;
-
 			qint64 i;
 #ifdef	MAX_AIRPLANENUM
 			for (i = 0; i < MAX_AIRPLANENUM; ++i)
@@ -9126,7 +9168,7 @@ void Server::lssproto_WN_recv(int windowtype, int buttontype, int dialogid, int 
 	if (data.isEmpty() && buttontype == 0)
 		return;
 
-	IS_WAITFOR_DIALOG_FLAG = false;
+	IS_WAITFOR_DIALOG_FLAG.store(false, std::memory_order_release);
 
 	//第一部分是把按鈕都拆出來
 	QString newText = data.trimmed();
@@ -9245,7 +9287,7 @@ void Server::lssproto_WN_recv(int windowtype, int buttontype, int dialogid, int 
 				currentBankPetList.second.append(bankPet);
 			}
 		}
-		IS_WAITFOR_BANK_FLAG = false;
+		IS_WAITFOR_BANK_FLAG.store(false, std::memory_order_release);
 		return;
 	}
 
@@ -9273,7 +9315,7 @@ void Server::lssproto_WN_recv(int windowtype, int buttontype, int dialogid, int 
 			currentBankItemList.append(item);
 			++index;
 		}
-		IS_WAITFOR_BANK_FLAG = false;
+		IS_WAITFOR_BANK_FLAG.store(false, std::memory_order_release);
 		return;
 
 	}
@@ -9313,7 +9355,6 @@ void Server::lssproto_WN_recv(int windowtype, int buttontype, int dialogid, int 
 		}
 
 		currencyData = currency;
-		IS_WAITFOR_EXTRA_DIALOG_INFO_FLAG = false;
 	}
 	else
 	{
@@ -9350,7 +9391,6 @@ void Server::lssproto_WN_recv(int windowtype, int buttontype, int dialogid, int 
 			}
 
 			currencyData = currency;
-			IS_WAITFOR_EXTRA_DIALOG_INFO_FLAG = false;
 		}
 	}
 
@@ -9495,12 +9535,13 @@ void Server::lssproto_EN_recv(int result, int field)
 		setBattleFlag(true);
 		battlePetDisableList_.clear();
 		battlePetDisableList_.resize(MAX_PET);
-		IS_LOCKATTACK_ESCAPE_DISABLE = false;
+		IS_LOCKATTACK_ESCAPE_DISABLE.store(false, std::memory_order_release);
 		battle_total.fetch_add(1, std::memory_order_release);
 		normalDurationTimer.restart();
 		battleDurationTimer.restart();
 		oneRoundDurationTimer.restart();
 		ayncBattleCommandFlag.store(false, std::memory_order_release);
+		battleCharEscapeFlag.store(false, std::memory_order_release);
 	}
 }
 
@@ -9659,7 +9700,7 @@ void Server::lssproto_B_recv(char* ccommand)
 				}
 			}
 
-			if (battleCharCurrentPos == pos)
+			if (battleCharCurrentPos.load(std::memory_order_acquire) == pos)
 			{
 				bt.player.pos = pos;
 				bt.player.name = obj.name;
@@ -9777,10 +9818,12 @@ void Server::lssproto_B_recv(char* ccommand)
 			if (!statusStr.isEmpty())
 				statusStr = QString(" (%1)").arg(statusStr);
 
-			if (obj.pos == battleCharCurrentPos)
+			if (obj.pos == battleCharCurrentPos.load(std::memory_order_acquire))
 			{
 				temp = QString(" [%1]%2 Lv:%3 HP:%4/%5 (%6) MP:%7%8").arg(obj.pos + 1).arg(obj.name).arg(obj.level)
-					.arg(obj.hp).arg(obj.maxHp).arg(util::toQString(obj.hpPercent) + "%").arg(battleCharCurrentMp).arg(statusStr);
+					.arg(obj.hp).arg(obj.maxHp).arg(util::toQString(obj.hpPercent) + "%")
+					.arg(battleCharCurrentMp.load(std::memory_order_acquire))
+					.arg(statusStr);
 			}
 			else
 			{
@@ -9829,9 +9872,9 @@ void Server::lssproto_B_recv(char* ccommand)
 		}
 
 		//更新戰寵數據
-		if (battleCharCurrentPos >= 0 && battleCharCurrentPos < bt.objects.size())
+		if (battleCharCurrentPos.load(std::memory_order_acquire) >= 0 && battleCharCurrentPos.load(std::memory_order_acquire) < bt.objects.size())
 		{
-			obj = bt.objects.value(battleCharCurrentPos + 5, battleobject_t{});
+			obj = bt.objects.value(battleCharCurrentPos.load(std::memory_order_acquire) + 5, battleobject_t{});
 
 			//戰寵不存在
 			if (!checkAND(obj.status, BC_FLG_HIDE/*排除地球一周*/))
@@ -9935,12 +9978,12 @@ void Server::lssproto_B_recv(char* ccommand)
 		battle_one_round_time.store(oneRoundDurationTimer.elapsed(), std::memory_order_release);
 		oneRoundDurationTimer.restart();
 
-		battleCharCurrentPos = list.at(0).toLongLong(nullptr, 16);
-		battleBpFlag = list.at(1).toLongLong(nullptr, 16);
-		battleCharCurrentMp = list.at(2).toLongLong(nullptr, 16);
+		battleCharCurrentPos.store(list.at(0).toLongLong(nullptr, 16), std::memory_order_release);
+		battleBpFlag.store(list.at(1).toLongLong(nullptr, 16), std::memory_order_release);
+		battleCharCurrentMp.store(list.at(2).toLongLong(nullptr, 16), std::memory_order_release);
 
 		bt.player.pos = battleCharCurrentPos;
-		pc.mp = battleCharCurrentMp;
+		pc.mp = battleCharCurrentMp.load(std::memory_order_acquire);
 		pc.mpPercent = util::percent(pc.mp, pc.maxMp);
 		bt.charAlreadyAction = false;
 		bt.charAlreadyAction = false;
@@ -9955,10 +9998,10 @@ void Server::lssproto_B_recv(char* ccommand)
 		if (list.size() < 2)
 			return;
 
-		battleCurrentAnimeFlag = list.at(0).toLongLong(nullptr, 16);
+		battleCurrentAnimeFlag.store(list.at(0).toLongLong(nullptr, 16), std::memory_order_release);
 		battleCurrentRound.store(list.at(1).toLongLong(nullptr, 16), std::memory_order_release);
 
-		if (battleCurrentAnimeFlag <= 0)
+		if (battleCurrentAnimeFlag.load(std::memory_order_acquire) <= 0)
 			return;
 
 		battleobject_t empty = {};
@@ -9971,11 +10014,11 @@ void Server::lssproto_B_recv(char* ccommand)
 					break;
 				if (checkFlagState(i) && !bt.objects.value(i, empty).ready)
 				{
-					if (i == battleCharCurrentPos)
+					if (i == battleCharCurrentPos.load(std::memory_order_acquire))
 					{
 						qDebug() << QString("自己 [%1]%2(%3) 已出手").arg(i + 1).arg(bt.objects.value(i, empty).name).arg(bt.objects.value(i, empty).freeName);
 					}
-					if (i == battleCharCurrentPos + 5)
+					if (i == battleCharCurrentPos.load(std::memory_order_acquire) + 5)
 					{
 						qDebug() << QString("戰寵 [%1]%2(%3) 已出手").arg(i + 1).arg(bt.objects.value(i, empty).name).arg(bt.objects.value(i, empty).freeName);
 					}
@@ -9983,7 +10026,7 @@ void Server::lssproto_B_recv(char* ccommand)
 					{
 						qDebug() << QString("隊友 [%1]%2(%3) 已出手").arg(i + 1).arg(bt.objects.value(i, empty).name).arg(bt.objects.value(i, empty).freeName);
 					}
-					emit signalDispatcher.notifyBattleActionState(i, battleCharCurrentPos >= (MAX_ENEMY / 2));
+					emit signalDispatcher.notifyBattleActionState(i, battleCharCurrentPos.load(std::memory_order_acquire) >= (MAX_ENEMY / 2));
 					objs[i].ready = true;
 				}
 			}
@@ -9994,7 +10037,7 @@ void Server::lssproto_B_recv(char* ccommand)
 					break;
 				if (checkFlagState(i) && !bt.objects.value(i, empty).ready)
 				{
-					emit signalDispatcher.notifyBattleActionState(i, battleCharCurrentPos < (MAX_ENEMY / 2));
+					emit signalDispatcher.notifyBattleActionState(i, battleCharCurrentPos.load(std::memory_order_acquire) < (MAX_ENEMY / 2));
 					objs[i].ready = true;
 				}
 			}
@@ -10006,7 +10049,7 @@ void Server::lssproto_B_recv(char* ccommand)
 	}
 	else if (first == "U")
 	{
-		battleCharEscapeFlag = TRUE;
+		battleCharEscapeFlag.store(true, std::memory_order_release);
 	}
 	else if (first == "D")
 	{
@@ -10061,7 +10104,7 @@ void Server::lssproto_SKUP_recv(int point)
 {
 	QWriteLocker locker(&pcMutex_);
 	pc_.point = point;
-	IS_WAITFOT_SKUP_RECV = false;
+	IS_WAITFOT_SKUP_RECV.store(false, std::memory_order_release);
 }
 
 //收到郵件
@@ -10381,8 +10424,8 @@ void Server::lssproto_JOBDAILY_recv(char* cdata)
 		JobdailyGetMax = i - 2;
 	else JobdailyGetMax = -1;
 
-	if (IS_WAITFOR_JOBDAILY_FLAG)
-		IS_WAITFOR_JOBDAILY_FLAG = false;
+	if (IS_WAITFOR_JOBDAILY_FLAG.load(std::memory_order_acquire))
+		IS_WAITFOR_JOBDAILY_FLAG.store(false, std::memory_order_release);
 }
 
 //導師系統
@@ -12248,7 +12291,7 @@ void Server::lssproto_S_recv(char* cdata)
 			}
 			if (checkPartyCount <= 1)
 			{
-				hasTeam = false;
+
 			}
 			else
 			{
@@ -12259,7 +12302,6 @@ void Server::lssproto_S_recv(char* cdata)
 			return;
 		}
 
-		hasTeam = true;
 		party[no].valid = true;
 
 		if (kubun == 1)
@@ -12952,7 +12994,7 @@ void Server::lssproto_TD_recv(char* cdata)//交易
 			mypet_tradeList = QStringList{ "P|-1", "P|-1", "P|-1" , "P|-1", "P|-1" };
 			mygoldtrade = 0;
 
-			IS_TRADING = true;
+			IS_TRADING.store(true, std::memory_order_release);
 			pc_.trade_confirm = 1;
 		}
 #ifdef _COMFIRM_TRADE_REQUEST
@@ -12969,7 +13011,7 @@ void Server::lssproto_TD_recv(char* cdata)//交易
 	//处理物品交易资讯传递
 	else if (Head.startsWith("T"))
 	{
-		if (!IS_TRADING)
+		if (!IS_TRADING.load(std::memory_order_acquire))
 			return;
 
 		QString buf_showindex;
@@ -13128,7 +13170,7 @@ void Server::lssproto_TD_recv(char* cdata)//交易
 	if (trade_kind.startsWith("A"))
 	{
 		tradeStatus = 2;
-		IS_TRADING = false;
+		IS_TRADING.store(false, std::memory_order_release);
 		myitem_tradeList.clear();
 		mypet_tradeList = QStringList{ "P|-1", "P|-1", "P|-1" , "P|-1", "P|-1" };
 		mygoldtrade = 0;
@@ -13136,7 +13178,7 @@ void Server::lssproto_TD_recv(char* cdata)//交易
 
 	else if (Head.startsWith("W"))
 	{//取消交易
-		IS_TRADING = false;
+		IS_TRADING.store(false, std::memory_order_release);
 		myitem_tradeList.clear();
 		mypet_tradeList = QStringList{ "P|-1", "P|-1", "P|-1" , "P|-1", "P|-1" };
 		mygoldtrade = 0;
@@ -13178,7 +13220,7 @@ void Server::lssproto_CustomWN_recv(const QString& data)
 	_customDialog.row = row;
 	_customDialog.rawbutton = dataList.at(2).toLongLong();
 	customDialog = _customDialog;
-	IS_WAITFOR_CUSTOM_DIALOG_FLAG = false;
+	IS_WAITFOR_CUSTOM_DIALOG_FLAG.store(false, std::memory_order_release);
 }
 
 //自訂對話

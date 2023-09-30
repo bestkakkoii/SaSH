@@ -204,7 +204,7 @@ public:
 
 	bool start(QObject* parent);
 
-	Q_REQUIRED_RESULT inline unsigned short getPort() const { return port_; }
+	Q_REQUIRED_RESULT inline unsigned short getPort() const { return port_.load(std::memory_order_acquire); }
 
 signals:
 	void write(QTcpSocket* clientSocket, QByteArray ba, qint64 size);
@@ -528,16 +528,16 @@ private:
 
 	QElapsedTimer eottlTimer;//伺服器響應時間(MS)
 	QElapsedTimer connectingTimer;
-	bool petEscapeEnableTempFlag = false;
+	std::atomic_bool petEscapeEnableTempFlag = false;
 	qint64 tempCatchPetTargetIndex = -1;
 	qint64 JobdailyGetMax = 0;  //是否有接收到資料
 
 	util::SafeData<battledata_t> battleData;
 
-	bool IS_WAITFOT_SKUP_RECV = false;
+	std::atomic_bool IS_WAITFOT_SKUP_RECV = false;
 	QFuture<void> skupFuture;
 
-	bool IS_LOCKATTACK_ESCAPE_DISABLE = false;//鎖定攻擊不逃跑 (轉指定攻擊)
+	std::atomic_bool IS_LOCKATTACK_ESCAPE_DISABLE = false;//鎖定攻擊不逃跑 (轉指定攻擊)
 
 	mutable QReadWriteLock pcMutex_;//用於保護人物數據更新順序
 	mutable QReadWriteLock pointMutex_;//用於保護人物座標更新順序
@@ -547,15 +547,7 @@ private:
 
 	PET pet[MAX_PET] = {};
 
-#ifdef MAX_AIRPLANENUM
-	PARTY party[MAX_AIRPLANENUM];
-#else
-	PARTY party[MAX_PARTY] = {};
-#endif
-
-#ifdef _CHAR_PROFESSION			// WON ADD 人物職業
 	PROFESSION_SKILL profession_skill[MAX_PROFESSION_SKILL];
-#endif
 
 	PET_SKILL petSkill[MAX_PET][MAX_SKILL] = {};
 
@@ -564,9 +556,15 @@ private:
 
 	util::SafeVector<bool> battlePetDisableList_ = {};
 
-	util::SafeData<qint64> nowFloor_;
+	std::atomic_llong nowFloor_;
 	util::SafeData<QString> nowFloorName_;
 	util::SafeData<QPoint> nowPoint_;
+
+#ifdef MAX_AIRPLANENUM
+	PARTY party[MAX_AIRPLANENUM];
+#else
+	PARTY party[MAX_PARTY] = {};
+#endif
 
 	//client original 目前很多都是沒用處的
 #pragma region ClientOriginal
@@ -580,14 +578,12 @@ private:
 
 	MAIL_HISTORY mailHistory[MAX_ADDRESS_BOOK] = {};
 
-	bool hasTeam = false;//是否組隊
-
 	//戰鬥相關
-	qint64 battleCharCurrentPos = 0;
-	qint64 battleBpFlag = 0;
-	qint64 battleCharEscapeFlag = 0;
-	qint64 battleCharCurrentMp = 0;
-	qint64 battleCurrentAnimeFlag = 0;
+	std::atomic_llong battleCharCurrentPos = 0;
+	std::atomic_llong battleBpFlag = 0;
+	std::atomic_bool battleCharEscapeFlag = 0;
+	std::atomic_llong battleCharCurrentMp = 0;
+	std::atomic_llong battleCurrentAnimeFlag = 0;
 
 	QString lastSecretChatName = "";//最後一次收到密語的發送方名稱
 
@@ -632,15 +628,14 @@ private:
 
 public:
 	//custom
-	bool IS_TRADING = false;
-	bool IS_DISCONNECTED = false;
-	bool IS_TCP_CONNECTION_OK_TO_USE = false;
+	std::atomic_bool IS_TRADING = false;
+	std::atomic_bool IS_DISCONNECTED = false;
+	std::atomic_bool IS_TCP_CONNECTION_OK_TO_USE = false;
 
-	bool IS_WAITFOR_JOBDAILY_FLAG = false;
-	bool IS_WAITFOR_BANK_FLAG = false;
-	bool IS_WAITFOR_DIALOG_FLAG = false;
-	bool IS_WAITFOR_EXTRA_DIALOG_INFO_FLAG = false;
-	bool IS_WAITFOR_CUSTOM_DIALOG_FLAG = false;
+	std::atomic_bool IS_WAITFOR_JOBDAILY_FLAG = false;
+	std::atomic_bool IS_WAITFOR_BANK_FLAG = false;
+	std::atomic_bool IS_WAITFOR_DIALOG_FLAG = false;
+	std::atomic_bool IS_WAITFOR_CUSTOM_DIALOG_FLAG = false;
 	std::atomic_llong IS_WAITOFR_ITEM_CHANGE_PACKET = false;
 
 	std::atomic_bool isBattleDialogReady = false;
@@ -686,7 +681,7 @@ public:
 	util::SafeData<QString> labelPetAction;
 
 private:
-	unsigned short port_ = 0;
+	std::atomic_uint16_t port_ = 0;
 
 	QSharedPointer<QTcpServer> server_;
 
