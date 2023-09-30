@@ -1897,9 +1897,9 @@ qint64 Server::checkJobDailyState(const QString& missionName)
 	for (const JOBDAILY& it : jobdaily)
 	{
 		if (!isExact && (it.explain == newMissionName))
-			return it.state == QString(u8"已完成") ? 1 : 2;
+			return it.state == QString("已完成") ? 1 : 2;
 		else if (!isExact && it.explain.contains(newMissionName))
-			return it.state == QString(u8"已完成") ? 1 : 2;
+			return it.state == QString("已完成") ? 1 : 2;
 	}
 
 	return 0;
@@ -4522,10 +4522,10 @@ void Server::setCharFaceDirection(const QString& dirStr)
 		return;
 
 	static const QHash<QString, QString> dirhash = {
-		{ u8"北", "A" }, { u8"東北", "B" }, { u8"東", "C" }, { u8"東南", "D" },
-		{ u8"南", "E" }, { u8"西南", "F" }, { u8"西", "G" }, { u8"西北", "H" },
-		{ u8"北", "A" }, { u8"东北", "B" }, { u8"东", "C" }, { u8"东南", "D" },
-		{ u8"南", "E" }, { u8"西南", "F" }, { u8"西", "G" }, { u8"西北", "H" }
+		{ "北", "A" }, { "東北", "B" }, { "東", "C" }, { "東南", "D" },
+		{ "南", "E" }, { "西南", "F" }, { "西", "G" }, { "西北", "H" },
+		{ "北", "A" }, { "东北", "B" }, { "东", "C" }, { "东南", "D" },
+		{ "南", "E" }, { "西南", "F" }, { "西", "G" }, { "西北", "H" }
 	};
 
 	qint64 dir = -1;
@@ -4533,7 +4533,7 @@ void Server::setCharFaceDirection(const QString& dirStr)
 	const QString dirchr = "ABCDEFGH";
 	if (!dirhash.contains(dirStr.toUpper()))
 	{
-		QRegularExpression re(u8"[A-H]");
+		QRegularExpression re("[A-H]");
 		QRegularExpressionMatch match = re.match(dirStr.toUpper());
 		if (!match.hasMatch())
 			return;
@@ -4872,9 +4872,9 @@ void Server::craft(util::CraftType type, const QStringList& ingres)
 
 	QString skillName;
 	if (type == util::CraftType::kCraftFood)
-		skillName = QString(u8"料理");
+		skillName = QString("料理");
 	else
-		skillName = QString(u8"加工");
+		skillName = QString("加工");
 
 	qint64 skillIndex = getPetSkillIndexByName(petIndex, skillName);
 	if (petIndex == -1 || skillIndex == -1)
@@ -8606,7 +8606,7 @@ void Server::sendBattlePetSkillAct(qint64 skillIndex, qint64 target)
 	if (target < MAX_ENEMY)
 	{
 		QString name;
-		if (petSkill[pc.battlePetNo][skillIndex].name != u8"防禦" && petSkill[pc.battlePetNo][skillIndex].name != u8"防御")
+		if (petSkill[pc.battlePetNo][skillIndex].name != "防禦" && petSkill[pc.battlePetNo][skillIndex].name != "防御")
 		{
 			battledata_t bt = getBattleData();
 			battleobject_t obj = bt.objects.value(target, battleobject_t{});
@@ -9181,8 +9181,8 @@ void Server::lssproto_WN_recv(int windowtype, int buttontype, int dialogid, int 
 			strList.removeFirst();
 
 		QStringList removeList = {
-			u8"：", u8"？", u8"『", u8"～", u8"☆", u8"、", u8"，", u8"。", u8"歡迎",
-			u8"欢迎",  u8"選", u8"选", u8"請問", u8"请问"
+			"：", "？", "『", "～", "☆", "、", "，", "。", "歡迎",
+			"欢迎",  "選", "选", "請問", "请问"
 		};
 
 		for (qint64 i = 0; i < strList.size(); ++i)
@@ -9201,15 +9201,15 @@ void Server::lssproto_WN_recv(int windowtype, int buttontype, int dialogid, int 
 		for (qint64 i = 0; i < strList.size(); ++i)
 		{
 			strList[i] = strList[i].simplified();
-			strList[i].remove(u8"　");
-			strList[i].remove(u8"》");
-			strList[i].remove(u8"《");
-			strList[i].remove(u8"【");
-			strList[i].remove(u8"】");
-			strList[i].remove(u8"『");
-			strList[i].remove(u8"』");
-			strList[i].remove(u8"〖");
-			strList[i].remove(u8"〗");
+			strList[i].remove("　");
+			strList[i].remove("》");
+			strList[i].remove("《");
+			strList[i].remove("【");
+			strList[i].remove("】");
+			strList[i].remove("『");
+			strList[i].remove("』");
+			strList[i].remove("〖");
+			strList[i].remove("〗");
 		}
 	}
 
@@ -9219,32 +9219,32 @@ void Server::lssproto_WN_recv(int windowtype, int buttontype, int dialogid, int 
 	data = data.trimmed();
 
 	static const QStringList BankPetList = {
-		u8"2\n　　　　請選擇寵物　　　　\n\n", u8"2\n　　　　请选择宠物　　　　\n\n"
+		"2\n　　　　請選擇寵物　　　　\n\n", "2\n　　　　请选择宠物　　　　\n\n"
 	};
 	static const QStringList BankItemList = {
-		 u8"1|寄放店|要領取什么呢？|項目有很多|這樣子就可以了嗎？|", u8"1|寄放店|要领取什么呢？|项目有很多|这样子就可以了吗？|",
-		 u8"1|寄放店|要賣什么呢？|項目有很多|這樣子就可以了嗎？|", u8"1|寄放店|要卖什么呢？|项目有很多|这样子就可以了吗？|"
+		 "1|寄放店|要領取什么呢？|項目有很多|這樣子就可以了嗎？|", "1|寄放店|要领取什么呢？|项目有很多|这样子就可以了吗？|",
+		 "1|寄放店|要賣什么呢？|項目有很多|這樣子就可以了嗎？|", "1|寄放店|要卖什么呢？|项目有很多|这样子就可以了吗？|"
 	};
 	static const QStringList FirstWarningList = {
-		u8"上一次離線時間", u8"上一次离线时间"
+		"上一次離線時間", "上一次离线时间"
 	};
 	static const QStringList SecurityCodeList = {
-		 u8"安全密碼進行解鎖", u8"安全密码进行解锁"
+		 "安全密碼進行解鎖", "安全密码进行解锁"
 	};
 	static const QStringList KNPCList = {
 		//zh_TW
-		u8"如果能贏過我的"/*院藏*/, u8"如果想通過"/*近藏*/, u8"吼"/*紅暴*/, u8"你想找麻煩"/*七兄弟*/, u8"多謝～。",
-		u8"轉以上確定要出售？", u8"再度光臨", u8"已經太多",
+		"如果能贏過我的"/*院藏*/, "如果想通過"/*近藏*/, "吼"/*紅暴*/, "你想找麻煩"/*七兄弟*/, "多謝～。",
+		"轉以上確定要出售？", "再度光臨", "已經太多",
 
 		//zh_CN
-		u8"如果能赢过我的"/*院藏*/, u8"如果想通过"/*近藏*/, u8"吼"/*红暴*/, u8"你想找麻烦"/*七兄弟*/, u8"多謝～。",
-		u8"转以上确定要出售？", u8"再度光临", u8"已经太多",
+		"如果能赢过我的"/*院藏*/, "如果想通过"/*近藏*/, "吼"/*红暴*/, "你想找麻烦"/*七兄弟*/, "多謝～。",
+		"转以上确定要出售？", "再度光临", "已经太多",
 	};
-	static const QRegularExpression rexBankPet(u8R"(LV\.\s*(\d+)\s*MaxHP\s*(\d+)\s*(\S+))");
+	static const QRegularExpression rexBankPet(R"(LV\.\s*(\d+)\s*MaxHP\s*(\d+)\s*(\S+))");
 
 	//這個是特殊訊息
-	static const QRegularExpression rexExtraInfoBig5(u8R"((?:.*?豆子倍率：\d*(?:\.\d+)?剩余(\d+(?:\.\d+)?)分鐘)?\s+\S+\s+聲望：(\d+)\s+氣勢：(\d+)\s+貝殼：(\d+)\s+活力：(\d+)\s+積分：(\d+)\s+會員點：(\d+))");
-	static const QRegularExpression rexExtraInfoGb2312(u8R"((?:.*?豆子倍率：\d*(?:\.\d+)?剩余(\d+(?:\.\d+)?)分钟)?\s+\S+\s+声望：(\d+)\s+气势：(\d+)\s+贝壳：(\d+)\s+活力：(\d+)\s+积分：(\d+)\s+会员点：(\d+))");
+	static const QRegularExpression rexExtraInfoBig5(R"((?:.*?豆子倍率：\d*(?:\.\d+)?剩余(\d+(?:\.\d+)?)分鐘)?\s+\S+\s+聲望：(\d+)\s+氣勢：(\d+)\s+貝殼：(\d+)\s+活力：(\d+)\s+積分：(\d+)\s+會員點：(\d+))");
+	static const QRegularExpression rexExtraInfoGb2312(R"((?:.*?豆子倍率：\d*(?:\.\d+)?剩余(\d+(?:\.\d+)?)分钟)?\s+\S+\s+声望：(\d+)\s+气势：(\d+)\s+贝壳：(\d+)\s+活力：(\d+)\s+积分：(\d+)\s+会员点：(\d+))");
 
 	QStringList linedatas;
 	if (data.count("|") > 1)
@@ -10518,11 +10518,11 @@ void Server::lssproto_TK_recv(int index, char* cmessage, int color)
 	if (message.isEmpty())
 		return;
 
-	static const QRegularExpression rexGetGold(u8R"(到\s*(\d+)\s*石)");
-	static const QRegularExpression rexPickGold(u8R"([獲|获]\s*(\d+)\s*Stone)");
-	static const QRegularExpression rexRep(u8R"(声望点数：\s*(\d+))");
-	static const QRegularExpression rexVit(u8R"(气势点数：\s*(\d+))");
-	static const QRegularExpression rexVip(u8R"(金币点数：\s*(\d+))");
+	static const QRegularExpression rexGetGold(R"(到\s*(\d+)\s*石)");
+	static const QRegularExpression rexPickGold(R"([獲|获]\s*(\d+)\s*Stone)");
+	static const QRegularExpression rexRep(R"(声望点数：\s*(\d+))");
+	static const QRegularExpression rexVit(R"(气势点数：\s*(\d+))");
+	static const QRegularExpression rexVip(R"(金币点数：\s*(\d+))");
 
 	getStringToken(message, "|", 1, id);
 
@@ -11006,7 +11006,7 @@ void Server::lssproto_C_recv(char* cdata)
 #endif
 			}
 
-			if (name == u8"を�そó")//排除亂碼
+			if (name == "を�そó")//排除亂碼
 				break;
 
 			mapunit_t unit = mapUnitHash.value(id);

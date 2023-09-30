@@ -34,34 +34,34 @@ qint64 Interpreter::useitem(qint64 currentIndex, qint64 currentLine, const Token
 	checkBattleThenWait();
 
 	QHash<QString, qint64> hash = {
-		{ u8"自己", 0},
-		{ u8"戰寵", injector.server->getPC().battlePetNo},
-		{ u8"騎寵", injector.server->getPC().ridePetNo},
-		{ u8"隊長", 6},
+		{ "自己", 0},
+		{ "戰寵", injector.server->getPC().battlePetNo},
+		{ "騎寵", injector.server->getPC().ridePetNo},
+		{ "隊長", 6},
 
-		{ u8"自己", 0},
-		{ u8"战宠", injector.server->getPC().battlePetNo},
-		{ u8"骑宠", injector.server->getPC().ridePetNo},
-		{ u8"队长", 6},
+		{ "自己", 0},
+		{ "战宠", injector.server->getPC().battlePetNo},
+		{ "骑宠", injector.server->getPC().ridePetNo},
+		{ "队长", 6},
 
-		{ u8"self", 0},
-		{ u8"battlepet", injector.server->getPC().battlePetNo},
-		{ u8"ride", injector.server->getPC().ridePetNo},
-		{ u8"leader", 6},
+		{ "self", 0},
+		{ "battlepet", injector.server->getPC().battlePetNo},
+		{ "ride", injector.server->getPC().ridePetNo},
+		{ "leader", 6},
 	};
 
 	for (qint64 i = 0; i < MAX_PET; ++i)
 	{
-		hash.insert(u8"寵物" + util::toQString(i + 1), i + 1);
-		hash.insert(u8"宠物" + util::toQString(i + 1), i + 1);
-		hash.insert(u8"pet" + util::toQString(i + 1), i + 1);
+		hash.insert("寵物" + util::toQString(i + 1), i + 1);
+		hash.insert("宠物" + util::toQString(i + 1), i + 1);
+		hash.insert("pet" + util::toQString(i + 1), i + 1);
 	}
 
 	for (qint64 i = 1; i < MAX_PARTY; ++i)
 	{
-		hash.insert(u8"隊員" + util::toQString(i), i + 1 + MAX_PET);
-		hash.insert(u8"队员" + util::toQString(i), i + 1 + MAX_PET);
-		hash.insert(u8"teammate" + util::toQString(i), i + 1 + MAX_PET);
+		hash.insert("隊員" + util::toQString(i), i + 1 + MAX_PET);
+		hash.insert("队员" + util::toQString(i), i + 1 + MAX_PET);
+		hash.insert("teammate" + util::toQString(i), i + 1 + MAX_PET);
 	}
 
 	injector.server->IS_WAITOFR_ITEM_CHANGE_PACKET.store(0, std::memory_order_release);
@@ -352,7 +352,7 @@ qint64 Interpreter::dropitem(qint64 currentIndex, qint64 currentLine, const Toke
 	injector.server->IS_WAITOFR_ITEM_CHANGE_PACKET.store(0, std::memory_order_release);
 
 	//指定丟棄白名單，位於白名單的物品不丟棄
-	if (tempName == QString(u8"非"))
+	if (tempName == QString("非"))
 	{
 		qint64 min = 0, max = static_cast<qint64>(MAX_ITEM - CHAR_EQUIPPLACENUM - 1);
 		if (!checkRange(TK, 2, &min, &max))
@@ -522,7 +522,7 @@ qint64 Interpreter::setpetstate(qint64 currentIndex, qint64 currentLine, const T
 	QString stateStr;
 	checkString(TK, 2, &stateStr);
 	if (stateStr.isEmpty())
-		stateStr = QString(u8"rest");
+		stateStr = QString("rest");
 
 	PetState state = petStateMap.value(stateStr.toLower(), PetState::kRest);
 
@@ -996,34 +996,34 @@ qint64 Interpreter::usemagic(qint64 currentIndex, qint64 currentLine, const Toke
 		else
 		{
 			QHash<QString, qint64> hash = {
-				{ u8"自己", 0},
-				{ u8"戰寵", injector.server->getPC().battlePetNo},
-				{ u8"騎寵", injector.server->getPC().ridePetNo},
-				{ u8"隊長", 6},
+				{ "自己", 0},
+				{ "戰寵", injector.server->getPC().battlePetNo},
+				{ "騎寵", injector.server->getPC().ridePetNo},
+				{ "隊長", 6},
 
-				{ u8"自己", 0},
-				{ u8"战宠", injector.server->getPC().battlePetNo},
-				{ u8"骑宠", injector.server->getPC().ridePetNo},
-				{ u8"队长", 6},
+				{ "自己", 0},
+				{ "战宠", injector.server->getPC().battlePetNo},
+				{ "骑宠", injector.server->getPC().ridePetNo},
+				{ "队长", 6},
 
-				{ u8"self", 0},
-				{ u8"battlepet", injector.server->getPC().battlePetNo},
-				{ u8"ride", injector.server->getPC().ridePetNo},
-				{ u8"leader", 6},
+				{ "self", 0},
+				{ "battlepet", injector.server->getPC().battlePetNo},
+				{ "ride", injector.server->getPC().ridePetNo},
+				{ "leader", 6},
 			};
 
 			for (qint64 i = 0; i < MAX_PET; ++i)
 			{
-				hash.insert(u8"寵物" + util::toQString(i + 1), i + 1);
-				hash.insert(u8"宠物" + util::toQString(i + 1), i + 1);
-				hash.insert(u8"pet" + util::toQString(i + 1), i + 1);
+				hash.insert("寵物" + util::toQString(i + 1), i + 1);
+				hash.insert("宠物" + util::toQString(i + 1), i + 1);
+				hash.insert("pet" + util::toQString(i + 1), i + 1);
 			}
 
 			for (qint64 i = 1; i < MAX_PARTY; ++i)
 			{
-				hash.insert(u8"隊員" + util::toQString(i), i + 1 + MAX_PET);
-				hash.insert(u8"队员" + util::toQString(i), i + 1 + MAX_PET);
-				hash.insert(u8"teammate" + util::toQString(i), i + 1 + MAX_PET);
+				hash.insert("隊員" + util::toQString(i), i + 1 + MAX_PET);
+				hash.insert("队员" + util::toQString(i), i + 1 + MAX_PET);
+				hash.insert("teammate" + util::toQString(i), i + 1 + MAX_PET);
 			}
 
 			if (!hash.contains(targetTypeName))
@@ -1059,7 +1059,7 @@ qint64 Interpreter::pickitem(qint64 currentIndex, qint64 currentLine, const Toke
 	if (dirStr.isEmpty())
 		return Parser::kArgError + 1ll;
 
-	if (dirStr.startsWith(u8"全"))
+	if (dirStr.startsWith("全"))
 	{
 		for (qint64 i = 0; i < 7; ++i)
 		{
@@ -1705,20 +1705,20 @@ qint64 Interpreter::addpoint(qint64 currentIndex, qint64 currentLine, const Toke
 		return Parser::kArgError + 1ll;
 
 	static const QHash<QString, qint64> hash = {
-		{ u8"體力", 0},
-		{ u8"腕力", 1},
-		{ u8"耐力", 2},
-		{ u8"速度", 3},
+		{ "體力", 0},
+		{ "腕力", 1},
+		{ "耐力", 2},
+		{ "速度", 3},
 
-		{ u8"体力", 0},
-		{ u8"腕力", 1},
-		{ u8"耐力", 2},
-		{ u8"速度", 3},
+		{ "体力", 0},
+		{ "腕力", 1},
+		{ "耐力", 2},
+		{ "速度", 3},
 
-		{ u8"vit", 0},
-		{ u8"str", 1},
-		{ u8"tgh", 2},
-		{ u8"dex", 3},
+		{ "vit", 0},
+		{ "str", 1},
+		{ "tgh", 2},
+		{ "dex", 3},
 	};
 
 	qint64 point = hash.value(pointName.toLower(), -1);

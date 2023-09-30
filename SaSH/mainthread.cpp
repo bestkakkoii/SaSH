@@ -1219,8 +1219,8 @@ void MainObject::checkAutoDropMeat(const QStringList& item)
 		return;
 
 	bool bret = false;
-	constexpr const char* meat = u8"肉";
-	constexpr const char* memo = u8"耐久力";
+	constexpr const char* meat = "肉";
+	constexpr const char* memo = "耐久力";
 
 	if (!item.isEmpty())
 	{
@@ -1259,7 +1259,7 @@ void MainObject::checkAutoDropMeat(const QStringList& item)
 		QString newItemMemo = item.memo.simplified();
 		if (newItemNmae.contains(meat))
 		{
-			if (!newItemMemo.contains(memo) && (newItemNmae != QString(u8"味道爽口的肉湯")) && (newItemNmae != QString(u8"味道爽口的肉汤")))
+			if (!newItemMemo.contains(memo) && (newItemNmae != QString("味道爽口的肉湯")) && (newItemNmae != QString("味道爽口的肉汤")))
 				injector.server->dropItem(index);
 			else
 				injector.server->useItem(index, injector.server->findInjuriedAllie());
@@ -1600,7 +1600,7 @@ void MainObject::checkAutoHeal()
 					bool meatProiory = injector.getEnableHash(util::kNormalItemHealMeatPriorityEnable);
 					if (meatProiory)
 					{
-						itemIndex = injector.server->getItemIndexByName(u8"?肉", false, u8"耐久力");
+						itemIndex = injector.server->getItemIndexByName("?肉", false, "耐久力");
 					}
 
 					if (itemIndex == -1)
@@ -2032,7 +2032,7 @@ void MainObject::checkAutoEatBoostExpItem()
 		if (item.name.isEmpty() || item.memo.isEmpty() || !item.valid)
 			continue;
 
-		if (item.memo.contains(u8"經驗值上升") || item.memo.contains(u8"经验值上升"))
+		if (item.memo.contains("經驗值上升") || item.memo.contains("经验值上升"))
 		{
 			if (injector.server.isNull())
 				return;

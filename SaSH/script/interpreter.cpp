@@ -460,92 +460,92 @@ void Interpreter::openLibsUTF8()
 	/*註册函数*/
 
 	//system
-	registerFunction(u8"button", &Interpreter::press);
+	registerFunction("button", &Interpreter::press);
 
-	registerFunction(u8"run", &Interpreter::run);
-	registerFunction(u8"dostr", &Interpreter::dostr);
-	registerFunction(u8"menu", &Interpreter::menu);
-	registerFunction(u8"createch", &Interpreter::createch);
-	registerFunction(u8"delch", &Interpreter::delch);
-	registerFunction(u8"send", &Interpreter::send);
+	registerFunction("run", &Interpreter::run);
+	registerFunction("dostr", &Interpreter::dostr);
+	registerFunction("menu", &Interpreter::menu);
+	registerFunction("createch", &Interpreter::createch);
+	registerFunction("delch", &Interpreter::delch);
+	registerFunction("send", &Interpreter::send);
 
 	//check
-	registerFunction(u8"checkdaily", &Interpreter::checkdaily);
+	registerFunction("checkdaily", &Interpreter::checkdaily);
 
-	registerFunction(u8"waitmap", &Interpreter::waitmap);
-	registerFunction(u8"waitdlg", &Interpreter::waitdlg);
-	registerFunction(u8"waitsay", &Interpreter::waitsay);
-	registerFunction(u8"waitpet", &Interpreter::waitpet);
-	registerFunction(u8"waititem", &Interpreter::waititem);
-	registerFunction(u8"waitpos", &Interpreter::waitpos);
+	registerFunction("waitmap", &Interpreter::waitmap);
+	registerFunction("waitdlg", &Interpreter::waitdlg);
+	registerFunction("waitsay", &Interpreter::waitsay);
+	registerFunction("waitpet", &Interpreter::waitpet);
+	registerFunction("waititem", &Interpreter::waititem);
+	registerFunction("waitpos", &Interpreter::waitpos);
 
 	//check-group
-	registerFunction(u8"waitteam", &Interpreter::waitteam);
+	registerFunction("waitteam", &Interpreter::waitteam);
 
 
 	//move
-	registerFunction(u8"dir", &Interpreter::setdir);
-	registerFunction(u8"walkpos", &Interpreter::move);
-	registerFunction(u8"move", &Interpreter::fastmove);
-	registerFunction(u8"w", &Interpreter::packetmove);
-	registerFunction(u8"chmap", &Interpreter::teleport);
+	registerFunction("dir", &Interpreter::setdir);
+	registerFunction("walkpos", &Interpreter::move);
+	registerFunction("move", &Interpreter::fastmove);
+	registerFunction("w", &Interpreter::packetmove);
+	registerFunction("chmap", &Interpreter::teleport);
 
 	//action
-	registerFunction(u8"useitem", &Interpreter::useitem);
-	registerFunction(u8"doffitem", &Interpreter::dropitem);
-	registerFunction(u8"swapitem", &Interpreter::swapitem);
-	registerFunction(u8"chname", &Interpreter::playerrename);
-	registerFunction(u8"chpetname", &Interpreter::petrename);
-	registerFunction(u8"chpet", &Interpreter::setpetstate);
-	registerFunction(u8"doffpet", &Interpreter::droppet);
-	registerFunction(u8"buy", &Interpreter::buy);
-	registerFunction(u8"sell", &Interpreter::sell);
-	registerFunction(u8"sellpet", &Interpreter::sellpet);
-	registerFunction(u8"make", &Interpreter::make);
-	registerFunction(u8"cook", &Interpreter::cook);
-	registerFunction(u8"usemagic", &Interpreter::usemagic);
-	registerFunction(u8"pickup", &Interpreter::pickitem);
-	registerFunction(u8"petstone", &Interpreter::depositgold);
-	registerFunction(u8"gettone", &Interpreter::withdrawgold);
-	registerFunction(u8"skup", &Interpreter::addpoint);
-	registerFunction(u8"learn", &Interpreter::learn);
-	registerFunction(u8"trade", &Interpreter::trade);
-	registerFunction(u8"mail", &Interpreter::mail);
-	registerFunction(u8"doffstone", &Interpreter::doffstone);
+	registerFunction("useitem", &Interpreter::useitem);
+	registerFunction("doffitem", &Interpreter::dropitem);
+	registerFunction("swapitem", &Interpreter::swapitem);
+	registerFunction("chname", &Interpreter::playerrename);
+	registerFunction("chpetname", &Interpreter::petrename);
+	registerFunction("chpet", &Interpreter::setpetstate);
+	registerFunction("doffpet", &Interpreter::droppet);
+	registerFunction("buy", &Interpreter::buy);
+	registerFunction("sell", &Interpreter::sell);
+	registerFunction("sellpet", &Interpreter::sellpet);
+	registerFunction("make", &Interpreter::make);
+	registerFunction("cook", &Interpreter::cook);
+	registerFunction("usemagic", &Interpreter::usemagic);
+	registerFunction("pickup", &Interpreter::pickitem);
+	registerFunction("petstone", &Interpreter::depositgold);
+	registerFunction("gettone", &Interpreter::withdrawgold);
+	registerFunction("skup", &Interpreter::addpoint);
+	registerFunction("learn", &Interpreter::learn);
+	registerFunction("trade", &Interpreter::trade);
+	registerFunction("mail", &Interpreter::mail);
+	registerFunction("doffstone", &Interpreter::doffstone);
 
-	registerFunction(u8"requip", &Interpreter::recordequip);
-	registerFunction(u8"wequip", &Interpreter::wearequip);
-	registerFunction(u8"uequip", &Interpreter::unwearequip);
-	registerFunction(u8"puequip", &Interpreter::petunequip);
-	registerFunction(u8"pequip", &Interpreter::petequip);
+	registerFunction("requip", &Interpreter::recordequip);
+	registerFunction("wequip", &Interpreter::wearequip);
+	registerFunction("uequip", &Interpreter::unwearequip);
+	registerFunction("puequip", &Interpreter::petunequip);
+	registerFunction("pequip", &Interpreter::petequip);
 
-	registerFunction(u8"putpet", &Interpreter::depositpet);
-	registerFunction(u8"putitem", &Interpreter::deposititem);
-	registerFunction(u8"getpet", &Interpreter::withdrawpet);
-	registerFunction(u8"getitem", &Interpreter::withdrawitem);
+	registerFunction("putpet", &Interpreter::depositpet);
+	registerFunction("putitem", &Interpreter::deposititem);
+	registerFunction("getpet", &Interpreter::withdrawpet);
+	registerFunction("getitem", &Interpreter::withdrawitem);
 
 	//action->group
-	registerFunction(u8"join", &Interpreter::join);
-	registerFunction(u8"leave", &Interpreter::leave);
-	registerFunction(u8"kick", &Interpreter::kick);
+	registerFunction("join", &Interpreter::join);
+	registerFunction("leave", &Interpreter::leave);
+	registerFunction("kick", &Interpreter::kick);
 
 	//hide
-	//registerFunction(u8"ocr", &Interpreter::ocr);
+	//registerFunction("ocr", &Interpreter::ocr);
 
 	//battle
-	registerFunction(u8"bh", &Interpreter::bh);//atk
-	registerFunction(u8"bj", &Interpreter::bj);//magic
-	registerFunction(u8"bp", &Interpreter::bp);//skill
-	registerFunction(u8"bs", &Interpreter::bs);//switch
-	registerFunction(u8"be", &Interpreter::be);//escape
-	registerFunction(u8"bd", &Interpreter::bd);//defense
-	registerFunction(u8"bi", &Interpreter::bi);//item
-	registerFunction(u8"bt", &Interpreter::bt);//catch
-	registerFunction(u8"bn", &Interpreter::bn);//nothing
-	registerFunction(u8"bw", &Interpreter::bw);//petskill
-	registerFunction(u8"bwf", &Interpreter::bwf);//pet nothing
-	registerFunction(u8"bwait", &Interpreter::bwait);
-	registerFunction(u8"bend", &Interpreter::bend);
+	registerFunction("bh", &Interpreter::bh);//atk
+	registerFunction("bj", &Interpreter::bj);//magic
+	registerFunction("bp", &Interpreter::bp);//skill
+	registerFunction("bs", &Interpreter::bs);//switch
+	registerFunction("be", &Interpreter::be);//escape
+	registerFunction("bd", &Interpreter::bd);//defense
+	registerFunction("bi", &Interpreter::bi);//item
+	registerFunction("bt", &Interpreter::bt);//catch
+	registerFunction("bn", &Interpreter::bn);//nothing
+	registerFunction("bw", &Interpreter::bw);//petskill
+	registerFunction("bwf", &Interpreter::bwf);//pet nothing
+	registerFunction("bwait", &Interpreter::bwait);
+	registerFunction("bend", &Interpreter::bend);
 }
 
 qint64 Interpreter::mainScriptCallBack(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)

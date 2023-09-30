@@ -24,106 +24,106 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #pragma region KeyWord
 //全局關鍵字映射表 這裡是新增新的命令的第一步，其他需要在interpreter.cpp中新增註冊新函數，這裡不添加的話，腳本分析後會忽略未知的命令
 static const QHash<QString, RESERVE> keywords = {
-	{ u8"[call]", TK_CALLWITHNAME },
+	{ "[call]", TK_CALLWITHNAME },
 	//... 其他後續增加的關鍵字
-	{ u8"#lua", TK_LUABEGIN },
-	{ u8"#endlua", TK_LUAEND },
+	{ "#lua", TK_LUABEGIN },
+	{ "#endlua", TK_LUAEND },
 #pragma region en_US
 	//keyword
-	{ u8"call", TK_CALL },
-	{ u8"goto", TK_GOTO },
-	{ u8"jmp", TK_JMP },
-	{ u8"end", TK_END },
-	{ u8"return", TK_RETURN },
-	{ u8"back", TK_BAK },
-	{ u8"exit", TK_EXIT },
-	{ u8"pause", TK_PAUSE },
-	{ u8"function", TK_FUNCTION, },
-	{ u8"label", TK_LABEL, },
-	{ u8"format", TK_FORMAT },
-	{ u8"if", TK_IF },
-	{ u8"for", TK_FOR },
-	{ u8"break", TK_BREAK },
-	{ u8"continue", TK_CONTINUE },
+	{ "call", TK_CALL },
+	{ "goto", TK_GOTO },
+	{ "jmp", TK_JMP },
+	{ "end", TK_END },
+	{ "return", TK_RETURN },
+	{ "back", TK_BAK },
+	{ "exit", TK_EXIT },
+	{ "pause", TK_PAUSE },
+	{ "function", TK_FUNCTION, },
+	{ "label", TK_LABEL, },
+	{ "format", TK_FORMAT },
+	{ "if", TK_IF },
+	{ "for", TK_FOR },
+	{ "break", TK_BREAK },
+	{ "continue", TK_CONTINUE },
 
 	//system
-	{ u8"run", TK_CMD },
-	{ u8"button", TK_CMD },
-	{ u8"menu", TK_CMD },
-	{ u8"createch", TK_CMD },
-	{ u8"delch", TK_CMD },
-	{ u8"send", TK_CMD },
-	{ u8"dostr", TK_CMD },
+	{ "run", TK_CMD },
+	{ "button", TK_CMD },
+	{ "menu", TK_CMD },
+	{ "createch", TK_CMD },
+	{ "delch", TK_CMD },
+	{ "send", TK_CMD },
+	{ "dostr", TK_CMD },
 
 	//check info
-	{ u8"checkdaily", TK_CMD },
+	{ "checkdaily", TK_CMD },
 
-	{ u8"waitmap", TK_CMD },
-	{ u8"waitdlg", TK_CMD },
-	{ u8"waitsay", TK_CMD },
-	{ u8"waititem", TK_CMD },
-	{ u8"waitpos", TK_CMD },
-	{ u8"waitpet", TK_CMD },
-	{ u8"waitteam", TK_CMD },
+	{ "waitmap", TK_CMD },
+	{ "waitdlg", TK_CMD },
+	{ "waitsay", TK_CMD },
+	{ "waititem", TK_CMD },
+	{ "waitpos", TK_CMD },
+	{ "waitpet", TK_CMD },
+	{ "waitteam", TK_CMD },
 
 	//actions
-	{ u8"chname", TK_CMD },
-	{ u8"usemagic", TK_CMD },
-	{ u8"chpetname", TK_CMD },
-	{ u8"chpet", TK_CMD },
-	{ u8"doffpet", TK_CMD },
-	{ u8"buy", TK_CMD },
-	{ u8"sell", TK_CMD },
-	{ u8"sellpet", TK_CMD },
-	{ u8"useitem", TK_CMD },
-	{ u8"doffitem", TK_CMD },
-	{ u8"swapitem", TK_CMD },
-	{ u8"pickup", TK_CMD },
-	{ u8"putitem", TK_CMD },
-	{ u8"getitem", TK_CMD },
-	{ u8"putpet", TK_CMD },
-	{ u8"getpet", TK_CMD },
-	{ u8"putstone", TK_CMD },
-	{ u8"getstone", TK_CMD },
-	{ u8"make", TK_CMD },
-	{ u8"cook", TK_CMD },
-	{ u8"uequip", TK_CMD },
-	{ u8"requip", TK_CMD },
-	{ u8"wequip", TK_CMD },
-	{ u8"puequip", TK_CMD },
-	{ u8"pequip", TK_CMD },
-	{ u8"skup", TK_CMD },
-	{ u8"learn", TK_CMD },
-	{ u8"trade", TK_CMD },
-	{ u8"mail", TK_CMD },
-	{ u8"doffstone", TK_CMD },
+	{ "chname", TK_CMD },
+	{ "usemagic", TK_CMD },
+	{ "chpetname", TK_CMD },
+	{ "chpet", TK_CMD },
+	{ "doffpet", TK_CMD },
+	{ "buy", TK_CMD },
+	{ "sell", TK_CMD },
+	{ "sellpet", TK_CMD },
+	{ "useitem", TK_CMD },
+	{ "doffitem", TK_CMD },
+	{ "swapitem", TK_CMD },
+	{ "pickup", TK_CMD },
+	{ "putitem", TK_CMD },
+	{ "getitem", TK_CMD },
+	{ "putpet", TK_CMD },
+	{ "getpet", TK_CMD },
+	{ "putstone", TK_CMD },
+	{ "getstone", TK_CMD },
+	{ "make", TK_CMD },
+	{ "cook", TK_CMD },
+	{ "uequip", TK_CMD },
+	{ "requip", TK_CMD },
+	{ "wequip", TK_CMD },
+	{ "puequip", TK_CMD },
+	{ "pequip", TK_CMD },
+	{ "skup", TK_CMD },
+	{ "learn", TK_CMD },
+	{ "trade", TK_CMD },
+	{ "mail", TK_CMD },
+	{ "doffstone", TK_CMD },
 
 	//action with sub cmd
-	{ u8"join", TK_CMD },
-	{ u8"leave", TK_CMD },
-	{ u8"kick", TK_CMD },
+	{ "join", TK_CMD },
+	{ "leave", TK_CMD },
+	{ "kick", TK_CMD },
 
 	//move
-	{ u8"walkpos", TK_CMD },
-	{ u8"dir", TK_CMD },
+	{ "walkpos", TK_CMD },
+	{ "dir", TK_CMD },
 
 	//hide
-	//{ u8"ocr", TK_CMD },
+	//{ "ocr", TK_CMD },
 
 	//battle
-	{ u8"bh", TK_CMD },//atk
-	{ u8"bj", TK_CMD },//magic
-	{ u8"bp", TK_CMD },//skill
-	{ u8"bs", TK_CMD },//switch
-	{ u8"be", TK_CMD },//escape
-	{ u8"bd", TK_CMD },//defense
-	{ u8"bi", TK_CMD },//item
-	{ u8"bt", TK_CMD },//catch
-	{ u8"bn", TK_CMD },//nothing
-	{ u8"bw", TK_CMD },//petskill
-	{ u8"bwf", TK_CMD },//pet nothing
-	{ u8"bwait", TK_CMD },
-	{ u8"bend", TK_CMD },
+	{ "bh", TK_CMD },//atk
+	{ "bj", TK_CMD },//magic
+	{ "bp", TK_CMD },//skill
+	{ "bs", TK_CMD },//switch
+	{ "be", TK_CMD },//escape
+	{ "bd", TK_CMD },//defense
+	{ "bi", TK_CMD },//item
+	{ "bt", TK_CMD },//catch
+	{ "bn", TK_CMD },//nothing
+	{ "bw", TK_CMD },//petskill
+	{ "bwf", TK_CMD },//pet nothing
+	{ "bwait", TK_CMD },
+	{ "bend", TK_CMD },
 	#pragma endregion
 };
 #pragma endregion
@@ -182,7 +182,7 @@ bool Lexer::isInteger(const QString& str) const
 
 bool Lexer::isBool(const QString& str) const
 {
-	return (str == QString(u8"真") || str == QString(u8"假") || str.toLower() == "true" || str.toLower() == "false");
+	return (str == QString("真") || str == QString("假") || str.toLower() == "true" || str.toLower() == "false");
 }
 
 bool Lexer::isLabelName(const QString& str, RESERVE previousType) const

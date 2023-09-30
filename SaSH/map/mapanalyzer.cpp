@@ -23,7 +23,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "injector.h"
 #include "update/curldownload.h"
 
-constexpr const char* kDefaultSuffix = u8".dat";
+constexpr const char* kDefaultSuffix = ".dat";
 
 util::SafeHash<qint64, QPixmap> MapAnalyzer::pixMap_;
 util::SafeHash<qint64, map_t> MapAnalyzer::maps_;

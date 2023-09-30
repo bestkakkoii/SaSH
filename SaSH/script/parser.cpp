@@ -484,20 +484,20 @@ void Parser::initialize(Parser* parent)
 				{ "OK", BUTTON_OK},
 				{ "CANCEL", BUTTON_CANCEL },
 				//big5
-				{ u8"確定", BUTTON_YES },
-				{ u8"取消", BUTTON_NO },
-				{ u8"上一頁", BUTTON_PREVIOUS },
-				{ u8"下一頁", BUTTON_NEXT },
+				{ "確定", BUTTON_YES },
+				{ "取消", BUTTON_NO },
+				{ "上一頁", BUTTON_PREVIOUS },
+				{ "下一頁", BUTTON_NEXT },
 			};
 
 			QHash<QString, BUTTON_TYPE> gb2312 = {
 				{ "OK", BUTTON_OK},
 				{ "CANCEL", BUTTON_CANCEL },
 				//gb2312
-				{ u8"确定", BUTTON_YES },
-				{ u8"取消", BUTTON_NO },
-				{ u8"上一页", BUTTON_PREVIOUS },
-				{ u8"下一页", BUTTON_NEXT },
+				{ "确定", BUTTON_YES },
+				{ "取消", BUTTON_NO },
+				{ "上一页", BUTTON_PREVIOUS },
+				{ "下一页", BUTTON_NEXT },
 			};
 
 			customdialog_t dialog = injector.server->customDialog;
@@ -1959,8 +1959,8 @@ typename std::enable_if<
 	}
 
 	if (expr == "return" || expr == "back" || expr == "continue" || expr == "break"
-		|| expr == QString(u8"返回") || expr == QString(u8"跳回") || expr == QString(u8"繼續") || expr == QString(u8"跳出")
-		|| expr == QString(u8"继续") || expr == "exit")
+		|| expr == QString("返回") || expr == QString("跳回") || expr == QString("繼續") || expr == QString("跳出")
+		|| expr == QString("继续") || expr == "exit")
 	{
 		if constexpr (std::is_same<T, QVariant>::value || std::is_same<T, QString>::value)
 			*ret = expr;
@@ -2265,8 +2265,8 @@ qint64 Parser::checkJump(const TokenMap& TK, qint64 idx, bool expr, JumpBehavior
 		QString preCheck = TK.value(idx).data.toString().simplified();
 
 		if (preCheck == "return" || preCheck == "back" || preCheck == "continue" || preCheck == "break"
-			|| preCheck == QString(u8"返回") || preCheck == QString(u8"跳回") || preCheck == QString(u8"繼續") || preCheck == QString(u8"跳出")
-			|| preCheck == QString(u8"继续") || preCheck == "exit")
+			|| preCheck == QString("返回") || preCheck == QString("跳回") || preCheck == QString("繼續") || preCheck == QString("跳出")
+			|| preCheck == QString("继续") || preCheck == "exit")
 		{
 
 			label = preCheck;
@@ -2698,7 +2698,7 @@ void Parser::jumpto(qint64 line, bool noStack)
 bool Parser::jump(const QString& name, bool noStack)
 {
 	QString newName = name.toLower();
-	if (newName == "back" || newName == QString(u8"跳回"))
+	if (newName == "back" || newName == QString("跳回"))
 	{
 		if (!jmpStack_.isEmpty())
 		{
@@ -2709,15 +2709,15 @@ bool Parser::jump(const QString& name, bool noStack)
 		}
 		return false;
 	}
-	else if (newName == "return" || newName == QString(u8"返回"))
+	else if (newName == "return" || newName == QString("返回"))
 	{
 		return processReturn(3);//從第三個參數開始取返回值
 	}
-	else if (newName == "continue" || newName == QString(u8"繼續") || newName == QString(u8"继续"))
+	else if (newName == "continue" || newName == QString("繼續") || newName == QString("继续"))
 	{
 		return processContinue();
 	}
-	else if (newName == "break" || newName == QString(u8"跳出"))
+	else if (newName == "break" || newName == QString("跳出"))
 	{
 		return processBreak();
 	}
@@ -4270,11 +4270,11 @@ void Parser::updateSysConstKeyword(const QString& expr)
 		injector.server->updateDatasFromMemory();
 
 		const QHash<QString, PetState> hash = {
-			{ u8"battle", kBattle },
-			{ u8"standby", kStandby },
-			{ u8"mail", kMail },
-			{ u8"rest", kRest },
-			{ u8"ride", kRide },
+			{ "battle", kBattle },
+			{ "standby", kStandby },
+			{ "mail", kMail },
+			{ "rest", kRest },
+			{ "ride", kRide },
 		};
 
 		sol::meta::unqualified_t<sol::table> pet = lua_["pet"];

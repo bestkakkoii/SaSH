@@ -51,7 +51,7 @@ void MainForm::createMenu(QMenuBar* pMenuBar)
 		return;
 
 #pragma region StyleSheet
-	constexpr const char* styleText = u8R"(
+	constexpr const char* styleText = R"(
 				QMenu {
 					background-color: rgb(249, 249, 249); /*整個背景*/
 					border: 0px;

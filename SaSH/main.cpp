@@ -142,7 +142,7 @@ BOOL preventSetUnhandledExceptionFilter()
 	if (hKernel32 == nullptr)
 		return FALSE;
 
-	void* pOrgEntry = GetProcAddress(hKernel32, u8"SetUnhandledExceptionFilter");
+	void* pOrgEntry = GetProcAddress(hKernel32, "SetUnhandledExceptionFilter");
 	if (pOrgEntry == nullptr)
 		return FALSE;
 

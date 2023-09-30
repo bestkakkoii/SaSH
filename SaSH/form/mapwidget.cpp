@@ -540,7 +540,7 @@ void MapWidget::onRefreshTimeOut()
 		}
 
 		QBrush brush;
-		if (it.name.contains(u8"傳送石"))
+		if (it.name.contains("傳送石"))
 		{
 			brush = QBrush(MAP_COLOR_HASH.value(util::OBJ_JUMP), Qt::SolidPattern);
 		}
@@ -641,7 +641,7 @@ void MapWidget::on_openGLWidget_notifyLeftDoubleClick(const QPointF& pos)
 	if (x < 0 || x > 1500 || y < 0 || y > 1500)
 		return;
 
-	interpreter_->doString(QString(u8"findpath(%1, %2, 3)").arg(x).arg(y), nullptr, Interpreter::kNotShare);
+	interpreter_->doString(QString("findpath(%1, %2, 3)").arg(x).arg(y), nullptr, Interpreter::kNotShare);
 }
 
 void MapWidget::on_openGLWidget_notifyLeftClick(const QPointF& gpos, const QPointF& pos)
@@ -868,7 +868,7 @@ void MapWidget::on_pushButton_findPath_clicked()
 	if (x < 0 || x > 1500 || y < 0 || y > 1500)
 		return;
 
-	interpreter_->doString(QString(u8"findpath(%1, %2, 3)").arg(x).arg(y), nullptr, Interpreter::kNotShare);
+	interpreter_->doString(QString("findpath(%1, %2, 3)").arg(x).arg(y), nullptr, Interpreter::kNotShare);
 }
 
 void MapWidget::onClear()
@@ -1000,7 +1000,7 @@ void MapWidget::on_tableWidget_NPCList_cellDoubleClicked(int row, int)
 	}
 	else
 	{
-		interpreter_->doString(QString(u8"findpath(%1, %2, 3)").arg(x).arg(y), nullptr, Interpreter::kNotShare);
+		interpreter_->doString(QString("findpath(%1, %2, 3)").arg(x).arg(y), nullptr, Interpreter::kNotShare);
 		return;
 	}
 
@@ -1048,5 +1048,5 @@ void MapWidget::on_tableWidget_NPCList_cellDoubleClicked(int row, int)
 		}
 	}
 
-	interpreter_->doString(QString(u8"findpath(%1, %2, 3)").arg(x).arg(y), nullptr, Interpreter::kNotShare);
+	interpreter_->doString(QString("findpath(%1, %2, 3)").arg(x).arg(y), nullptr, Interpreter::kNotShare);
 }

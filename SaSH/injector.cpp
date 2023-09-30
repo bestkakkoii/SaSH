@@ -22,7 +22,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 util::SafeHash<qint64, Injector*> Injector::instances;
 
-constexpr const char* InjectDllName = u8"sadll.dll";
+constexpr const char* InjectDllName = "sadll.dll";
 constexpr qint64 MessageTimeout = 3000;
 constexpr qint64 MAX_TIMEOUT = 30000;
 
