@@ -388,6 +388,8 @@ private:
 	LuaNode luaNode_ = {};
 	bool beginLuaCode_ = false;
 
+	bool beginCommentChunk_ = false;
+
 	QList<LuaNode> luaNodeList_;
 	QList<FunctionNode> functionNodeList_;
 	QList<ForNode> forNodeList_;

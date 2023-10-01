@@ -506,6 +506,7 @@ qint64 MainObject::checkAndRunFunctions()
 
 		injector.server->updateComboBoxList();
 		injector.server->EO();
+		mem::write<int>(injector.getProcess(), injector.getProcessModule() + 0x4200000, 0);
 		mem::freeUnuseMemory(injector.getProcess());
 		mem::freeUnuseMemory(GetCurrentProcess());
 		return 2;
@@ -538,9 +539,6 @@ qint64 MainObject::checkAndRunFunctions()
 
 		//檢查開關 (隊伍、交易、名片...等等)
 		checkEtcFlag();
-
-		//鎖寵排程
-		//checkAutoLockSchedule();
 
 		//自動組隊、跟隨
 		checkAutoJoin();
@@ -1403,7 +1401,7 @@ void MainObject::checkAutoJoin()
 						}
 
 						//計算最短離靠近目標人物的坐標和面相的方向
-						dir = injector.server->mapAnalyzer->calcBestFollowPointByDstPoint(floor, current_point, unit.p, &newpoint, false, -1);
+						dir = injector.server->mapAnalyzer->calcBestFollowPointByDstPoint(astar, floor, current_point, unit.p, &newpoint, false, -1);
 						if (-1 == dir)
 							break;
 

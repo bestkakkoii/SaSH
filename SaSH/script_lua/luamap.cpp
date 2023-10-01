@@ -585,7 +585,8 @@ qint64 CLuaMap::findPath(sol::object p1, sol::object p2, sol::object p3, sol::ob
 			func = p5.as<sol::protected_function>();
 	}
 
-	auto findNpcCallBack = [&injector, &s](const QString& name, QPoint& dst, qint64* pdir)->bool
+	CAStar astar;
+	auto findNpcCallBack = [&injector, &astar, &s](const QString& name, QPoint& dst, qint64* pdir)->bool
 	{
 		luadebug::checkStopAndPause(s);
 
@@ -596,7 +597,7 @@ qint64 CLuaMap::findPath(sol::object p1, sol::object p2, sol::object p3, sol::ob
 				return 0;//沒找到
 		}
 
-		qint64 dir = injector.server->mapAnalyzer->calcBestFollowPointByDstPoint(injector.server->getFloor(), injector.server->getPoint(), unit.p, &dst, true, unit.dir);
+		qint64 dir = injector.server->mapAnalyzer->calcBestFollowPointByDstPoint(astar, injector.server->getFloor(), injector.server->getPoint(), unit.p, &dst, true, unit.dir);
 		if (pdir)
 			*pdir = dir;
 		return dir != -1;//找到了
@@ -719,7 +720,8 @@ qint64 CLuaMap::moveToNPC(sol::object p1, sol::object nicknames, qint64 x, qint6
 
 	mapunit_s unit;
 	qint64 dir = -1;
-	auto findNpcCallBack = [&injector, &unit, cmpNpcName, cmpFreeName, modelid, &dir](QPoint& dst)->bool
+	CAStar astar;
+	auto findNpcCallBack = [&injector, &unit, cmpNpcName, cmpFreeName, modelid, &dir, &astar](QPoint& dst)->bool
 	{
 		if (modelid > 0)
 		{
@@ -734,7 +736,7 @@ qint64 CLuaMap::moveToNPC(sol::object p1, sol::object nicknames, qint64 x, qint6
 				return 0;//沒找到
 		}
 
-		dir = injector.server->mapAnalyzer->calcBestFollowPointByDstPoint(injector.server->getFloor(), injector.server->getPoint(), unit.p, &dst, true, unit.dir);
+		dir = injector.server->mapAnalyzer->calcBestFollowPointByDstPoint(astar, injector.server->getFloor(), injector.server->getPoint(), unit.p, &dst, true, unit.dir);
 		return dir != -1 ? 1 : 0;//找到了
 	};
 

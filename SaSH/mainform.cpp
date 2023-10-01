@@ -33,7 +33,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "mainthread.h"
 
 //menu action forms
-#include "form/scriptsettingform.h"
+#include "form/scripteditor.h"
 #include "model/qthumbnailform.h"
 #include "update/downloader.h"
 
@@ -147,7 +147,7 @@ void MainForm::createMenu(QMenuBar* pMenuBar)
 
 	const QVector<std::tuple<QString, QString, qint64>> otherTable = {
 		{ QObject::tr("otherinfo"), "actionOtherInfo", Qt::Key_F5 },
-		{ QObject::tr("script settings"), "actionScriptSettings", Qt::Key_F7 },
+		{ QObject::tr("scripteditor"), "actionScriptEditor", Qt::Key_F7 },
 		{ "","", Qt::Key_unknown },
 		{ QObject::tr("map"), "actionMap", Qt::Key_F8 },
 	};
@@ -548,18 +548,18 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 		{
 			if (arg > 0)
 			{
-				if (pScriptSettingForm_ == nullptr)
+				if (pScriptEditor_ == nullptr)
 				{
-					pScriptSettingForm_ = new ScriptSettingForm(id, nullptr);
-					if (pScriptSettingForm_)
+					pScriptEditor_ = new ScriptEditor(id, nullptr);
+					if (pScriptEditor_)
 					{
-						connect(pScriptSettingForm_, &InfoForm::destroyed, [this]() { pScriptSettingForm_ = nullptr; });
-						pScriptSettingForm_->setAttribute(Qt::WA_DeleteOnClose);
-						pScriptSettingForm_->show();
+						connect(pScriptEditor_, &InfoForm::destroyed, [this]() { pScriptEditor_ = nullptr; });
+						pScriptEditor_->setAttribute(Qt::WA_DeleteOnClose);
+						pScriptEditor_->show();
 
 						++interfaceCount_;
 						updateStatusText();
-						*result = static_cast<long>(pScriptSettingForm_->winId());
+						*result = static_cast<long>(pScriptEditor_->winId());
 					}
 					else
 					{
@@ -568,17 +568,17 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 				}
 				else
 				{
-					pScriptSettingForm_->hide();
-					pScriptSettingForm_->show();
+					pScriptEditor_->hide();
+					pScriptEditor_->show();
 					++interfaceCount_;
 					updateStatusText();
-					*result = static_cast<long>(pScriptSettingForm_->winId());
+					*result = static_cast<long>(pScriptEditor_->winId());
 				}
 			}
 			else
 			{
-				if (pScriptSettingForm_ != nullptr)
-					pScriptSettingForm_->close();
+				if (pScriptEditor_ != nullptr)
+					pScriptEditor_->close();
 				++interfaceCount_;
 				updateStatusText();
 			}
@@ -1252,8 +1252,8 @@ void MainForm::closeEvent(QCloseEvent* e)
 		pInfoForm_->close();
 	if (mapWidget_ != nullptr)
 		mapWidget_->close();
-	if (pScriptSettingForm_ != nullptr)
-		pScriptSettingForm_->close();
+	if (pScriptEditor_ != nullptr)
+		pScriptEditor_->close();
 
 	markAsClose_ = true;
 	hide();
@@ -1401,18 +1401,18 @@ void MainForm::onMenuActionTriggered()
 		return;
 	}
 
-	if (actionName == "actionScriptSettings")
+	if (actionName == "actionScriptEditor")
 	{
-		if (pScriptSettingForm_ == nullptr)
+		if (pScriptEditor_ == nullptr)
 		{
-			pScriptSettingForm_ = new ScriptSettingForm(currentIndex, nullptr);
-			if (pScriptSettingForm_)
+			pScriptEditor_ = new ScriptEditor(currentIndex, nullptr);
+			if (pScriptEditor_)
 			{
-				connect(pScriptSettingForm_, &InfoForm::destroyed, [this]() { pScriptSettingForm_ = nullptr; });
+				connect(pScriptEditor_, &InfoForm::destroyed, [this]() { pScriptEditor_ = nullptr; });
 			}
 		}
-		pScriptSettingForm_->hide();
-		pScriptSettingForm_->show();
+		pScriptEditor_->hide();
+		pScriptEditor_->show();
 		return;
 	}
 

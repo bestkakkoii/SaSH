@@ -268,6 +268,12 @@ extern "C"
 		GameService& g_GameService = GameService::getInstance();
 		return g_GameService.New_lssproto_W2_send(fd, x, y, dir);
 	}
+
+	void __cdecl New_CreateDialog(int unk, int type, int button, int unitid, int dialogid, const char* data)
+	{
+		GameService& g_GameService = GameService::getInstance();
+		return g_GameService.New_CreateDialog(unk, type, button, unitid, dialogid, data);
+	}
 }
 
 //hooks
@@ -446,6 +452,7 @@ void GameService::New_lssproto_B_recv(int fd, char* command)
 //WN對話框發包攔截
 void GameService::New_lssproto_WN_send(int fd, int x, int y, int dialogid, int unitid, int select, const char* data)
 {
+	*CONVERT_GAMEVAR<int*>(0x4200000ul) = 0;
 	if ((1234 == unitid) && (4321 == dialogid))
 	{
 		std::string str = "dk|";
@@ -495,6 +502,13 @@ void GameService::New_lssproto_W2_send(int fd, int x, int y, const char* message
 {
 	PostMessageW(g_ParenthWnd, kSetMove, NULL, MAKELPARAM(x, y));
 	pLssproto_W2_send(fd, x, y, message);
+}
+
+void GameService::New_CreateDialog(int unk, int type, int button, int unitid, int dialogid, const char* data)
+{
+	pCreateDialog(unk, type, button, unitid, dialogid, data);
+	*CONVERT_GAMEVAR<int*>(0x4200000ul) = 1;
+
 }
 #pragma endregion
 
@@ -1100,14 +1114,8 @@ void GameService::WM_CreateDialog(int type, int button, const char* data)
 	//call 00464AC0
 	//add esp, 18
 
-	using CreateDialog_t = void(_cdecl*)(int, int type, int button, int unitid, int dialogid, const char* data);
-
-	CreateDialog_t createDialog = CONVERT_GAMEVAR<CreateDialog_t>(0x64AC0ul);
-
-	if (nullptr == createDialog)
-		return;
 	std::cout << std::to_string(type) << " " << std::to_string(button) << std::endl;
-	createDialog(0, type, button, 0x10E1, 0x4D2, data);
+	pCreateDialog(0, type, button, 0x10E1, 0x4D2, data);
 }
 
 void GameService::WM_SetBLockPacket(BOOL enable)
@@ -1231,7 +1239,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		g_GameService.uninitialize();
 		SetWindowLongW(g_MainHwnd, GWL_WNDPROC, reinterpret_cast<LONG_PTR>(g_OldWndProc));
 		FreeLibraryAndExitThread(g_hDllModule, 0UL);
-	}
+}
 	case kGetModule:
 	{
 		return reinterpret_cast<int>(GetModuleHandleW(nullptr));
@@ -1266,7 +1274,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			std::cout << "SendPacket to GameServer:::"
 				<< " size:" << std::to_string(lParam)
 				<< " errorcode:" << WSAGetLastError() << std::endl;
-		}
+	}
 #else 
 		std::ignore = nRet;
 #endif
@@ -1423,7 +1431,7 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID)
 #endif
 
 #ifdef _DEBUG
-		//CreateConsole();
+		CreateConsole();
 #endif
 		DisableThreadLibraryCalls(hModule);
 	}
@@ -1477,6 +1485,7 @@ void GameService::initialize(__int64 index, HWND parentHwnd, unsigned short type
 	pLssproto_WN_send = CONVERT_GAMEVAR<pfnLssproto_WN_send>(0x8FDC0ul);//對話框發送封包
 	pLssproto_TK_send = CONVERT_GAMEVAR<pfnLssproto_TK_send>(0x8F7C0ul);//喊話發送封包
 	pLssproto_W2_send = CONVERT_GAMEVAR<pfnLssproto_W2_send>(0x8EEA0ul);//喊話發送封包
+	pCreateDialog = CONVERT_GAMEVAR<pfnCreateDialog>(0x64AC0ul);//創建對話框
 
 	/*
 		sa_8001.exe+91710 - FF 25 08C04900        - jmp dword ptr [sa_8001.exe+9C008] { ->DINPUT.DirectInputCreateA }
@@ -1581,6 +1590,7 @@ void GameService::initialize(__int64 index, HWND parentHwnd, unsigned short type
 	DetourAttach(&(PVOID&)pLssproto_WN_send, ::New_lssproto_WN_send);
 	DetourAttach(&(PVOID&)pLssproto_TK_send, ::New_lssproto_TK_send);
 	DetourAttach(&(PVOID&)pLssproto_W2_send, ::New_lssproto_W2_send);
+	DetourAttach(&(PVOID&)pCreateDialog, ::New_CreateDialog);
 
 	DetourTransactionCommit();
 
@@ -1660,6 +1670,7 @@ void GameService::uninitialize()
 	DetourDetach(&(PVOID&)pLssproto_WN_send, ::New_lssproto_WN_send);
 	DetourDetach(&(PVOID&)pLssproto_TK_send, ::New_lssproto_TK_send);
 	DetourDetach(&(PVOID&)pLssproto_W2_send, ::New_lssproto_W2_send);
+	DetourDetach(&(PVOID&)pCreateDialog, ::New_CreateDialog);
 
 	DetourTransactionCommit();
 

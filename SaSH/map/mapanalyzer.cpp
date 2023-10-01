@@ -1739,7 +1739,7 @@ QString __fastcall MapAnalyzer::getGround(qint64 floor, const QString& name, con
 }
 
 // 取靠近目標的最佳座標和方向
-qint64 __fastcall MapAnalyzer::calcBestFollowPointByDstPoint(qint64 floor, const QPoint& src, const QPoint& dst, QPoint* ret, bool enableExt, qint64 npcdir)
+qint64 __fastcall MapAnalyzer::calcBestFollowPointByDstPoint(CAStar& astar, qint64 floor, const QPoint& src, const QPoint& dst, QPoint* ret, bool enableExt, qint64 npcdir)
 {
 
 	QVector<qdistance_t> disV;// <distance, point>
@@ -1754,8 +1754,6 @@ qint64 __fastcall MapAnalyzer::calcBestFollowPointByDstPoint(qint64 floor, const
 
 	qint64 d = 0;
 	qint64 invalidcount = 0;
-
-	CAStar astar;
 
 	for (const QPoint& it : util::fix_point)
 	{

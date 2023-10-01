@@ -36,7 +36,7 @@ class LuaScriptForm;
 
 class InfoForm;
 class MapWidget;
-class ScriptSettingForm;
+class ScriptEditor;
 
 class QThumbnailForm;
 
@@ -112,7 +112,7 @@ private:
 
 	InfoForm* pInfoForm_ = nullptr;
 	MapWidget* mapWidget_ = nullptr;
-	ScriptSettingForm* pScriptSettingForm_ = nullptr;
+	ScriptEditor* pScriptEditor_ = nullptr;
 
 	QThumbnailForm* pThumbnailForm_ = nullptr;
 

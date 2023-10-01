@@ -233,6 +233,26 @@ QVariant StringListModel::data(const QModelIndex& index, int role) const
 		static const QBrush brushAlternate = qApp->palette().alternateBase();
 		return ((index.row() & 99) == 0) ? brushBase : brushAlternate;
 	}
+	case Qt::DecorationRole:
+	{
+		QVector<QString> list = getList();
+		int i = index.row();
+		QString data = list.at(i);
+		if (data.contains("[錯誤]") || data.contains("[error]") || data.contains("错误"))
+		{
+			return QIcon(":/image/icon_statuserror.svg");
+		}
+		else if (data.contains("[警告]") || data.contains("[warn]") || data.contains("警告"))
+		{
+			return QIcon(":/image/icon_statuswarning.svg");
+		}
+		else if (data.contains("[資訊]") || data.contains("[info]") || data.contains("资讯"))
+		{
+			return QIcon(":/image/icon_statusinfo.svg");
+		}
+
+		return QVariant();
+	}
 	case Qt::ForegroundRole:
 	{
 

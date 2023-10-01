@@ -34,9 +34,10 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include <highlighter.h>
 #include "form/replaceform.h"
 #include <QDialog>
+#include <indexer.h>
 
 
-class CodeEditor : public QsciScintilla
+class CodeEditor : public QsciScintilla, public Indexer
 {
 	Q_OBJECT
 public:
@@ -73,15 +74,18 @@ private:
 	QFont linefont;
 	bool isDialogOpened = false;
 protected:
-	void keyPressEvent(QKeyEvent* e);
+	virtual void keyPressEvent(QKeyEvent* e) override;
 
-	void showEvent(QShowEvent* e) override
+	//drop
+	virtual void dropEvent(QDropEvent* e) override;
+
+	virtual void showEvent(QShowEvent* e) override
 	{
 		setAttribute(Qt::WA_Mapped);
 		QsciScintilla::showEvent(e);
 	}
 
-	void mousePressEvent(QMouseEvent* e) override
+	virtual void mousePressEvent(QMouseEvent* e) override
 	{
 		if (isDialogOpened)
 			emit closeJumpToLineDialog();

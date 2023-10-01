@@ -1,57 +1,15 @@
 <RCC>
     <qresource prefix="/">
-        <file>image/icon_decode.png</file>
-        <file>image/icon_encode.png</file>
-        <file>image/icon_saveasfile.png</file>
         <file>image/ico.png</file>
-        <file>image/icon_allclose.png</file>
-        <file>image/icon_arrange.png</file>
         <file>image/icon_arrow_down.png</file>
         <file>image/icon_arrow_up.png</file>
-        <file>image/icon_battle.png</file>
-        <file>image/icon_break.png</file>
         <file>image/icon_close.png</file>
-        <file>image/icon_comment.png</file>
-        <file>image/icon_comment_remove.png</file>
-        <file>image/icon_deletebreak.png</file>
         <file>image/icon_directory.png</file>
         <file>image/icon_down_arrow.png</file>
-        <file>image/icon_down_arrow2.png</file>
-        <file>image/icon_down_arrowright.png</file>
-        <file>image/icon_download.png</file>
-        <file>image/icon_func.png</file>
-        <file>image/icon_hide.png</file>
-        <file>image/icon_info.png</file>
-        <file>image/icon_join.png</file>
-        <file>image/icon_label.png</file>
-        <file>image/icon_loading.png</file>
-        <file>image/icon_login.png</file>
-        <file>image/icon_logout.png</file>
         <file>image/icon_lua.png</file>
         <file>image/icon_max.png</file>
         <file>image/icon_min.png</file>
-        <file>image/icon_minimise.png</file>
-        <file>image/icon_mute.png</file>
-        <file>image/icon_newfile.png</file>
-        <file>image/icon_pause.png</file>
-        <file>image/icon_pause_disable.png</file>
-        <file>image/icon_recycle.png</file>
-        <file>image/icon_reformat.png</file>
-        <file>image/icon_removetext.png</file>
-        <file>image/icon_restart.png</file>
-        <file>image/icon_returnbase.png</file>
-        <file>image/icon_savefile.png</file>
-        <file>image/icon_sort.png</file>
-        <file>image/icon_speedup.png</file>
-        <file>image/icon_start.png</file>
-        <file>image/icon_start_disable.png</file>
-        <file>image/icon_start_nodebug.png</file>
-        <file>image/icon_stop.png</file>
-        <file>image/icon_stop_disable.png</file>
-        <file>image/icon_thumbnail.png</file>
         <file>image/icon_up_arrow.png</file>
-        <file>image/icon_up_arrow2.png</file>
-        <file>image/logo.png</file>
         <file>image/icon_txt.png</file>
         <file>image/jimmy.gif</file>
         <file>image/meat.bmp</file>
@@ -67,5 +25,45 @@
         <file>image/hantapay.png</file>
         <file>image/icon_debug.png</file>
         <file>font/JoysticMonospace.ttf</file>
+        <file>image/icon_newfile.svg</file>
+        <file>image/icon_textfile.svg</file>
+        <file>image/icon_saveasfile.svg</file>
+        <file>image/icon_statuserror.svg</file>
+        <file>image/icon_savefile.svg</file>
+        <file>image/icon_statusinfo.svg</file>
+        <file>image/icon_statuswarning.svg</file>
+        <file>image/icon_class.svg</file>
+        <file>image/icon_method.svg</file>
+        <file>image/icon_field.svg</file>
+        <file>image/icon_folder.svg</file>
+        <file>image/icon_return.svg</file>
+        <file>image/icon_stepover.svg</file>
+        <file>image/icon_stop.svg</file>
+        <file>image/icon_run.svg</file>
+        <file>image/icon_runnocolor.svg</file>
+        <file>image/icon_breakpointenabled.svg</file>
+        <file>image/icon_breakpointdisabled.svg</file>
+        <file>image/icon_debugenabled.png</file>
+        <file>image/icon_runoutline.svg</file>
+        <file>image/icon_pause.svg</file>
+        <file>image/icon_pausedisable.svg</file>
+        <file>image/icon_stopdisable.svg</file>
+        <file>image/icon_smarttag.svg</file>
+        <file>image/icon_expanddown.svg</file>
+        <file>image/icon_search.svg</file>
+        <file>image/icon_sortdescending.svg</file>
+        <file>image/icon_sortascending.svg</file>
+        <file>image/icon_glyphdown.svg</file>
+        <file>image/icon_glyphright.svg</file>
+        <file>image/icon_scrollbararrowcollapsed.svg</file>
+        <file>image/icon_scrollbararrowdownright.svg</file>
+        <file>image/icon_expandright.svg</file>
+        <file>image/icon_pin.svg</file>
+        <file>image/icon_unpin.svg</file>
+        <file>image/icon_close.svg</file>
+        <file>image/icon_glyphleft.svg</file>
+        <file>image/icon_glyphup.svg</file>
+        <file>image/icon_lock.svg</file>
+        <file>image/icon_unlock.svg</file>
     </qresource>
 </RCC>

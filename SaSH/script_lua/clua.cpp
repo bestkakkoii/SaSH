@@ -398,14 +398,14 @@ void luadebug::logExport(const sol::this_state& s, const QString& data, qint64 c
 	const QString timeStr(time.toString("hh:mm:ss:zzz"));
 	QString msg = "\0";
 	QString src = "\0";
-
-	qint64 currentline = getCurrentLine(s);
+	sol::state_view lua(s);
+	qint64 currentline = lua["_LINE_"].get<qint64>();//getCurrentLine(s);
 
 	msg = (QString("[%1 | @%2]: %3\0") \
 		.arg(timeStr)
-		.arg(currentline + 1, 3, 10, QLatin1Char(' ')).arg(data));
+		.arg(currentline, 3, 10, QLatin1Char(' ')).arg(data));
 
-	sol::state_view lua(s.lua_state());
+
 	qint64 currentIndex = lua["_INDEX"].get<qint64>();
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
 	emit signalDispatcher.appendScriptLog(msg, color);

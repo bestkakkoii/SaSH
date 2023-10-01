@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
+  <defs>
+    <style>.canvas{fill: none; opacity: 0;}.light-defaultgrey{fill: #d0d0d0; opacity: 1;}</style>
+  </defs>
+  <title>IconLightExpandDown</title>
+  <g id="canvas">
+    <path class="canvas" d="M16,0V16H0V0Z" />
+  </g>
+  <g id="level-1">
+    <path class="light-defaultgrey" d="M14,4.293,14.707,5,8.354,11.354H7.646L1.293,5,2,4.293l6,6Z" />
+  </g>
+</svg>

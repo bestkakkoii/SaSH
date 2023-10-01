@@ -26,6 +26,7 @@ public:
 		header()->setSectionResizeMode(QHeaderView::ResizeToContents);
 		resizeColumnToContents(1);
 		sortItems(0, Qt::AscendingOrder);
+		setIconSize(QSize(20, 20));
 
 	}
 	virtual ~TreeWidget() = default;

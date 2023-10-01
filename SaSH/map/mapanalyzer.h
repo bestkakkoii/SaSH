@@ -121,7 +121,7 @@ public:
 
 	inline Q_REQUIRED_RESULT QPixmap __fastcall getPixmapByIndex(qint64 index) const { return pixMap_.value(index); }
 
-	qint64  __fastcall calcBestFollowPointByDstPoint(qint64 floor, const QPoint& src, const QPoint& dst, QPoint* ret, bool enableExt, qint64 npcdir);
+	qint64  __fastcall calcBestFollowPointByDstPoint(CAStar& astar, qint64 floor, const QPoint& src, const QPoint& dst, QPoint* ret, bool enableExt, qint64 npcdir);
 
 	bool __fastcall isPassable(CAStar& astar, qint64 floor, const QPoint& src, const QPoint& dst);
 

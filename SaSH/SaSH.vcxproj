@@ -251,7 +251,7 @@ xcopy /y /d "$(SolutionDir)$(ProjectName)\translations\*.qm" "$(SolutionDir)$(Co
       <TreatWChar_tAsBuiltInType>true</TreatWChar_tAsBuiltInType>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <Optimization>MaxSpeed</Optimization>
+      <Optimization>Disabled</Optimization>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>stdafx.h</PrecompiledHeaderFile>
     </ClCompile>
@@ -345,7 +345,7 @@ xcopy /y /d "$(SolutionDir)$(ProjectName)\translations\*.qm" "$(SolutionDir)$(Co
     <ClCompile Include="form\playerinfoform.cpp" />
     <ClCompile Include="form\replaceform.cpp" />
     <ClCompile Include="form\scriptform.cpp" />
-    <ClCompile Include="form\scriptsettingform.cpp">
+    <ClCompile Include="form\scripteditor.cpp">
       <DynamicSource Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">input</DynamicSource>
       <DynamicSource Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">input</DynamicSource>
       <QtMocFileName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">%(Filename).moc</QtMocFileName>
@@ -418,7 +418,7 @@ xcopy /y /d "$(SolutionDir)$(ProjectName)\translations\*.qm" "$(SolutionDir)$(Co
     <QtMoc Include="form\afkform.h" />
     <QtMoc Include="form\otherform.h" />
     <QtMoc Include="form\scriptform.h" />
-    <QtMoc Include="form\scriptsettingform.h" />
+    <QtMoc Include="form\scripteditor.h" />
     <QtMoc Include="model\signaldispatcher.h" />
     <QtMoc Include="mainthread.h" />
     <QtMoc Include="net\tcpserver.h" />
@@ -492,7 +492,7 @@ xcopy /y /d "$(SolutionDir)$(ProjectName)\translations\*.qm" "$(SolutionDir)$(Co
     <QtUic Include="form\petinfoform.ui" />
     <QtUic Include="form\playerinfoform.ui" />
     <QtUic Include="form\scriptform.ui" />
-    <QtUic Include="form\scriptsettingform.ui" />
+    <QtUic Include="form\scripteditor.ui" />
     <QtUic Include="form\selectobjectform.ui" />
     <QtUic Include="form\selecttargetform.ui" />
     <QtUic Include="mainform.ui" />

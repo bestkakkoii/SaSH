@@ -823,6 +823,8 @@ qint64 Interpreter::run(qint64 currentIndex, qint64 currentline, const TokenMap&
 			interpreter.parser_.setLuaMachinePointer(parser_.pLua_);
 			interpreter.parser_.setGlobalNameListPointer(parser_.getGlobalNameListPointer());
 			interpreter.parser_.setCounterPointer(parser_.getCounterPointer());
+			interpreter.parser_.setLuaLocalVarStringListPointer(parser_.getLuaLocalVarStringListPointer());
+			interpreter.parser_.setLocalVarStackPointer(parser_.getLocalVarStackPointer());
 		}
 		else
 		{
@@ -922,6 +924,8 @@ qint64 Interpreter::dostr(qint64 currentIndex, qint64 currentline, const TokenMa
 				interpreter->parser_.setLuaMachinePointer(parser_.pLua_);
 				interpreter->parser_.setGlobalNameListPointer(parser_.getGlobalNameListPointer());
 				interpreter->parser_.setCounterPointer(parser_.getCounterPointer());
+				interpreter->parser_.setLuaLocalVarStringListPointer(parser_.getLuaLocalVarStringListPointer());
+				interpreter->parser_.setLocalVarStackPointer(parser_.getLocalVarStackPointer());
 			}
 			else
 			{

@@ -2797,7 +2797,8 @@ bool Server::isDialogVisible()
 	qint64 hModule = injector.getProcessModule();
 
 	bool bret = mem::read<int>(hProcess, hModule + 0xB83EC) != -1;
-	return bret;
+	bool custombret = mem::read<int>(hProcess, hModule + 0x4200000) > 0;
+	return bret && custombret;
 }
 #pragma endregion
 
@@ -9168,8 +9169,6 @@ void Server::lssproto_WN_recv(int windowtype, int buttontype, int dialogid, int 
 	if (data.isEmpty() && buttontype == 0)
 		return;
 
-	IS_WAITFOR_DIALOG_FLAG.store(false, std::memory_order_release);
-
 	//第一部分是把按鈕都拆出來
 	QString newText = data.trimmed();
 	newText.replace("\\n", "\n");
@@ -13304,7 +13303,7 @@ bool Server::captchaOCR(QString* pmsg)
 
 #if 0
 	QString randomHash = generateRandomHash();
-	image.save(QString("D:/py/dddd_trainer/projects/antocode/image_set/%1_%2.png").arg(image_count++).arg(randomHash), "PNG");
+	image.save(QString("D:/py/dddd_trainer/projects/antocode/image_set/%1_%2icon_pausedisable.svg").arg(image_count++).arg(randomHash), "PNG");
 	QString tempPath = QString("%1/%2.png").arg(QDir::tempPath()).arg(randomHash);
 	QFile file(tempPath);
 	if (file.exists())

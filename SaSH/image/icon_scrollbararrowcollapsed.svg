@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 18 18">
+  <defs>
+    <style>.canvas{fill: none; opacity: 0;}.light-defaultgrey-10{fill: #d3d3d3; opacity: 0.1;}.light-defaultgrey{fill: #d3d3d3; opacity: 1;}</style>
+  </defs>
+  <title>ScrollbarArrowCollapsed</title>
+  <g id="canvas">
+    <path class="canvas" d="M16,16H0V0H16Z" />
+  </g>
+  <g id="level-1">
+    <path class="light-defaultgrey-10" d="M9.5,8l-3,3V5Z" />
+    <path class="light-defaultgrey" d="M6.854,11.354,6,11V5l.854-.354,3,3v.708ZM7,6.207V9.793L8.793,8Z" />
+  </g>
+</svg>

@@ -394,7 +394,7 @@ bool CAStar::find(const QPoint& start, const QPoint& end, std::vector<QPoint>* p
 			if (pPaths == nullptr)
 			{
 				clear();
-				return 0;
+				return true;
 			}
 
 			while (current->parent)

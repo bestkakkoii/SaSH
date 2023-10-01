@@ -59,9 +59,6 @@
     <Filter Include="Source Files\forms\script">
       <UniqueIdentifier>{f84308ce-4652-41a6-ae75-572e7c91be06}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source Files\forms\script_setting">
-      <UniqueIdentifier>{75b5d882-887f-4bd5-bbbd-bbe9d4ad517e}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Source Files\map">
       <UniqueIdentifier>{be3ca5ac-95d1-4c20-9fbe-b10be8033cbe}</UniqueIdentifier>
     </Filter>
@@ -76,6 +73,9 @@
     </Filter>
     <Filter Include="battle">
       <UniqueIdentifier>{93b4403b-8e39-4fcf-9cd2-4f13fba881af}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\forms\script_editor">
+      <UniqueIdentifier>{75b5d882-887f-4bd5-bbbd-bbe9d4ad517e}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -279,8 +279,8 @@
     <ClCompile Include="form\copyrightdialog.cpp">
       <Filter>Source Files\forms</Filter>
     </ClCompile>
-    <ClCompile Include="form\scriptsettingform.cpp">
-      <Filter>Source Files\forms\script_setting</Filter>
+    <ClCompile Include="form\scripteditor.cpp">
+      <Filter>Source Files\forms\script_editor</Filter>
     </ClCompile>
     <ClCompile Include="model\customtitlebar.cpp">
       <Filter>Source Files\model</Filter>
@@ -347,8 +347,8 @@
     <QtMoc Include="form\scriptform.h">
       <Filter>Source Files\forms\script</Filter>
     </QtMoc>
-    <QtMoc Include="form\scriptsettingform.h">
-      <Filter>Source Files\forms\script_setting</Filter>
+    <QtMoc Include="form\scripteditor.h">
+      <Filter>Source Files\forms\script_editor</Filter>
     </QtMoc>
     <QtMoc Include="form\afkinfoform.h">
       <Filter>Source Files\forms\Info\sub</Filter>
@@ -516,7 +516,7 @@
     <QtUic Include="form\scriptform.ui">
       <Filter>Form Files</Filter>
     </QtUic>
-    <QtUic Include="form\scriptsettingform.ui">
+    <QtUic Include="form\scripteditor.ui">
       <Filter>Form Files</Filter>
     </QtUic>
     <QtUic Include="form\battleinfoform.ui">

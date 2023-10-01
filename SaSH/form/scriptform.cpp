@@ -330,6 +330,14 @@ void ScriptForm::onScriptContentChanged(const QString& fileName, const QVariant&
 
 		QStringList params;
 		qint64 size = lineTokens.size();
+
+		if (lineTokens.value(0).type == TK_COMMENT)
+		{
+			setTableWidgetItem(row, 0, "[comment]");
+			setTableWidgetItem(row, 1, lineTokens.value(1).raw.simplified());
+			continue;
+		}
+
 		if (lineTokens.contains(100))
 		{
 			params.append(lineTokens.value(100).raw.simplified());
@@ -442,11 +450,11 @@ void ScriptForm::onScriptTreeWidgetDoubleClicked(QTreeWidgetItem* item, int colu
 
 		/*得到文件路徑*/
 		QStringList filepath;
-		QTreeWidgetItem* itemfile = item; //獲取被點擊的item
+		TreeWidgetItem* itemfile = reinterpret_cast<TreeWidgetItem*>(item); //獲取被點擊的item
 		while (itemfile != NULL)
 		{
 			filepath << itemfile->text(0); //獲取itemfile名稱
-			itemfile = itemfile->parent(); //將itemfile指向父item
+			itemfile = reinterpret_cast<TreeWidgetItem*>(itemfile->parent()); //將itemfile指向父item
 		}
 		QString strpath;
 		qint64 count = (filepath.size() - 1);

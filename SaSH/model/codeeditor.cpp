@@ -8,6 +8,8 @@
 #include <QKeyEvent>
 #include <qdialogbuttonbox.h>
 
+#include "../injector.h"
+
 #ifdef _WIN64
 #ifdef _DEBUG
 #pragma comment(lib, "qscintilla2_qt6d.lib")
@@ -24,6 +26,7 @@
 
 CodeEditor::CodeEditor(QWidget* parent)
 	: QsciScintilla(parent)
+	, Indexer(-1)
 	, textLexer(this)
 	, apis(&textLexer)
 
@@ -123,8 +126,8 @@ CodeEditor::CodeEditor(QWidget* parent)
 	setIndentationWidth(0);//如果在行首部空格位置tab，縮進的寬度字符數，並且不會轉換為空格
 
 	// 折疊標簽樣式
-	setFolding(QsciScintilla::BoxedTreeFoldStyle);//折疊樣式
-	setFoldMarginColors(QColor(165, 165, 165), QColor(61, 61, 61));//折疊欄顏色
+	setFolding(QsciScintilla::BoxedTreeFoldStyle, 2);//折疊樣式
+	setFoldMarginColors(QColor(61, 61, 61), QColor(31, 31, 31));//折疊欄顏色
 
 	setTabIndents(true);//True如果行前空格數少於tabWidth，補齊空格數,False如果在文字前tab同true，如果在行首tab，則直接增加tabwidth個空格
 	setTabWidth(4);//\t寬度設為四個空格
@@ -157,13 +160,15 @@ CodeEditor::CodeEditor(QWidget* parent)
 	//行號顯示區域
 	setMarginType(0, QsciScintilla::NumberMargin);//設置標號為0的頁邊顯示行號
 	setMarginLineNumbers(0, true);
-	QFontMetrics fontmetrics = QFontMetrics(font_);
-	setMarginWidth(0, fontmetrics.horizontalAdvance("00000"));
+	QFont font = font_;
+	font.setPointSize(7);
+	QFontMetrics fontmetrics = QFontMetrics(font);
+	setMarginWidth(0, fontmetrics.horizontalAdvance("000000"));
 
-	setMarginsFont(font_);//設置頁邊字體
+	setMarginsFont(font);//設置頁邊字體
 	setMarginOptions(QsciScintilla::MoSublineSelect);
 	setMarginsBackgroundColor(QColor(30, 30, 30));
-	setMarginsForegroundColor(QColor(43, 145, 175));
+	setMarginsForegroundColor(QColor(43, 145, 175)/**/);
 
 	//斷點設置區域
 	setMarginType(1, QsciScintilla::SymbolMargin); //設置1號頁邊顯示符號
@@ -188,7 +193,7 @@ CodeEditor::CodeEditor(QWidget* parent)
 	markerDefine(QsciScintilla::Underline, SYM_TRIANGLE);
 	markerDefine(QsciScintilla::Invisible, SYM_STEP);
 	setMarginMarkerMask(1, S_BREAK | S_ARROW | S_ERRORMARK | S_STEPMARK);
-	setMarginWidth(1, 20);
+	setMarginWidth(1, 16);
 
 
 	//
@@ -204,70 +209,70 @@ CodeEditor::CodeEditor(QWidget* parent)
 	//indicatorReleased
 
 #pragma region style
-	QString style = R"(
-		#widget{
-			color: rgb(250, 250, 250);
-			background-color: rgb(30, 30, 30);
-		}
+	//QString style = R"(
+	//	#widget{
+	//		color: rgb(250, 250, 250);
+	//		background-color: rgb(30, 30, 30);
+	//	}
 
-		QToolTip{border-style:none; background-color: rgb(57, 58, 60);color: rgb(208, 208, 208);}
+	//	QToolTip{border-style:none; background-color: rgb(57, 58, 60);color: rgb(208, 208, 208);}
 
-		QScrollBar:vertical {
-			background: rgb(46,46,46);
-			max-width: 18px;
-		}
+	//	QScrollBar:vertical {
+	//		background: rgb(46,46,46);
+	//		max-width: 18px;
+	//	}
 
-		QScrollBar::handle:vertical {
-			border: 5px solid rgb(46,46,46);
-			background: rgb(71,71,71);
-		}
+	//	QScrollBar::handle:vertical {
+	//		border: 5px solid rgb(46,46,46);
+	//		background: rgb(71,71,71);
+	//	}
 
-		QScrollBar::handle:hover:vertical,
-		QScrollBar::handle:pressed:vertical {
-			background: rgb(153,153,153);
-		}
+	//	QScrollBar::handle:hover:vertical,
+	//	QScrollBar::handle:pressed:vertical {
+	//		background: rgb(153,153,153);
+	//	}
 
-		QScrollBar::sub-page:vertical {background: 444444;}
-		QScrollBar::add-page:vertical {background: 5B5B5B;}
-		QScrollBar::add-line:vertical {background: none;}
-		QScrollBar::sub-line:vertical {background: none;}
+	//	QScrollBar::sub-page:vertical {background: 444444;}
+	//	QScrollBar::add-page:vertical {background: 5B5B5B;}
+	//	QScrollBar::add-line:vertical {background: none;}
+	//	QScrollBar::sub-line:vertical {background: none;}
 
-		QScrollBar:horizontal {
-			background: rgb(71,71,71);
-			border: 5px solid rgb(46,46,46);
-			max-height: 18px;
-		}
+	//	QScrollBar:horizontal {
+	//		background: rgb(71,71,71);
+	//		border: 5px solid rgb(46,46,46);
+	//		max-height: 18px;
+	//	}
 
-		QScrollBar::handle:horizontal {
-			border: 5px solid rgb(46,46,46);
-			background: rgb(71,71,71);
-		}
+	//	QScrollBar::handle:horizontal {
+	//		border: 5px solid rgb(46,46,46);
+	//		background: rgb(71,71,71);
+	//	}
 
-		QScrollBar::handle:hover:horizontal,
-		QScrollBar::handle:pressed:horizontal { background: rgb(153,153,153);}
+	//	QScrollBar::handle:hover:horizontal,
+	//	QScrollBar::handle:pressed:horizontal { background: rgb(153,153,153);}
 
-		QScrollBar::sub-page:horizontal {background: 444444;}
-		QScrollBar::add-page:horizontal {background: 5B5B5B;}
-		QScrollBar::add-line:horizontal {background: none;}
-		QScrollBar::sub-line:horizontal {background: none;}
+	//	QScrollBar::sub-page:horizontal {background: 444444;}
+	//	QScrollBar::add-page:horizontal {background: 5B5B5B;}
+	//	QScrollBar::add-line:horizontal {background: none;}
+	//	QScrollBar::sub-line:horizontal {background: none;}
 
-		QListWidget{
-			color: rgb(0, 0, 0);
-			background-color: rgb(250, 250, 250);
-		}
+	//	QListWidget{
+	//		color: rgb(0, 0, 0);
+	//		background-color: rgb(250, 250, 250);
+	//	}
 
-        QListWidget::item{
-			color: rgb(0, 0, 0);
-			background-color: rgb(250, 250, 250);
-		}
+ //       QListWidget::item{
+	//		color: rgb(0, 0, 0);
+	//		background-color: rgb(250, 250, 250);
+	//	}
 
-		QListWidget::item:selected{ 
-			color: rgb(0, 0, 0);
-			background-color: rgb(0, 120, 215);
-		}
-	)";
+	//	QListWidget::item:selected{ 
+	//		color: rgb(0, 0, 0);
+	//		background-color: rgb(0, 120, 215);
+	//	}
+	//)";
 	setAttribute(Qt::WA_StyledBackground);
-	setStyleSheet(style);
+	//setStyleSheet(style);
 #pragma endregion
 }
 
@@ -285,7 +290,7 @@ void CodeEditor::keyPressEvent(QKeyEvent* e)
 		}
 		case Qt::Key_F:
 		{
-			findReplace();
+			//findReplace();
 			return;
 		}
 		case Qt::Key_O:
@@ -309,6 +314,34 @@ void CodeEditor::keyPressEvent(QKeyEvent* e)
 	}
 
 	return QsciScintilla::keyPressEvent(e);
+}
+
+void CodeEditor::dropEvent(QDropEvent* e)
+{
+	QsciScintilla::dropEvent(e);
+
+	if (!e->mimeData()->hasUrls())
+		return;
+
+	//只取締一個
+	QString path = e->mimeData()->urls().at(0).toLocalFile();
+
+	if (path.isEmpty())
+		return;
+
+	QFileInfo info(path);
+	QString suffix = info.suffix();
+	if (suffix != "txt")
+		return;
+
+	Injector& injector = Injector::getInstance(getIndex());
+	if (injector.IS_SCRIPT_FLAG.load(std::memory_order_acquire))
+		return;
+
+	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(getIndex());
+	emit signalDispatcher.loadFileToTable(path);
+
+	injector.currentScriptFileName = path;
 }
 
 void CodeEditor::findReplace()

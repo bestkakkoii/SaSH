@@ -514,15 +514,8 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 
 		timer.restart();
 		QOperatingSystemVersion version = QOperatingSystemVersion::current();
-		if (version > QOperatingSystemVersion::Windows7)
-		{
-			mem::inject(currentIndex, processHandle_, dllPath, &hookdllModule_, &hGameModule_);
-		}
-		else
-		{
-			//Win7
-			mem::injectByWin7(currentIndex, processHandle_, dllPath, &hookdllModule_, &hGameModule_);
-		}
+		//Win7
+		mem::injectByWin7(currentIndex, processHandle_, dllPath, &hookdllModule_, &hGameModule_);
 
 		qDebug() << "inject cost:" << timer.elapsed() << "ms";
 

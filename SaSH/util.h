@@ -943,12 +943,12 @@ namespace util
 		return qstr;
 	}
 
-	inline Q_REQUIRED_RESULT std::string fromUnicode(const QString& str)
+	inline Q_REQUIRED_RESULT std::string fromUnicode(const QString& str, bool keppOrigin = false)
 	{
 		QString qstr = str;
 		std::wstring wstr = qstr.toStdWString();
 		UINT ACP = ::GetACP();
-		if (950 == ACP)
+		if (950 == ACP && !keppOrigin)
 		{
 			// 繁體系統要轉回簡體體否則遊戲視窗會亂碼
 			qint64 size = lstrlenW(wstr.c_str());
@@ -1118,8 +1118,10 @@ namespace util
 		return collator.compare(str1, str2) < 0;
 	}
 
-	QFileInfoList loadAllFileLists(TreeWidgetItem* root, const QString& path, QStringList* list = nullptr);
-	QFileInfoList loadAllFileLists(TreeWidgetItem* root, const QString& path, const QString& suffix, const QString& icon, QStringList* list = nullptr);
+	QFileInfoList loadAllFileLists(TreeWidgetItem* root, const QString& path, QStringList* list = nullptr,
+		const QString& fileIcon = ":/image/icon_txt.png", const QString& folderIcon = ":/image/icon_directory.png");
+	QFileInfoList loadAllFileLists(TreeWidgetItem* root, const QString& path, const QString& suffix, const QString& icon, QStringList* list = nullptr
+		, const QString& folderIcon = ":/image/icon_directory.png");
 
 	void searchFiles(const QString& dir, const QString& fileNamePart, const QString& suffixWithDot, QList<QString>* result);
 

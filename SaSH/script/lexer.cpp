@@ -272,14 +272,61 @@ void Lexer::tokenized(qint64 currentLine, const QString& line, TokenMap* ptoken,
 
 	do
 	{
+		if (!beginCommentChunk_ && raw.startsWith("#lua") && !beginLuaCode_)
+		{
+			beginLuaCode_ = true;
+			luaNode_.clear();
+			luaNode_.beginLine = currentLine;
+			luaNode_.field = kGlobal;
+			luaNode_.level = 0;
+			createToken(pos, TK_LUABEGIN, line, line, ptoken);
+			break;
+		}
+		else if (!beginCommentChunk_ && raw.startsWith("#endlua") && beginLuaCode_)
+		{
+			beginLuaCode_ = false;
+			luaNode_.endLine = currentLine;
+			luaNodeList_.append(luaNode_);
+			luaNode_.clear();
+			createToken(pos, TK_LUAEND, line, line, ptoken);
+			break;
+		}
+		else if (!beginCommentChunk_ && beginLuaCode_)
+		{
+			luaNode_.content.append(line + "\n");
+			createToken(pos, TK_LUACONTENT, "[lua]", "[lua]", ptoken);
+			createToken(pos + 1, TK_LUACONTENT, line, line, ptoken);
+			break;
+		}
+		else if (raw.startsWith("--[[") && !beginCommentChunk_ && !beginLuaCode_)
+		{
+			beginCommentChunk_ = true;
+			createToken(0, TK_COMMENT, "", "", ptoken);
+			createToken(pos + 1, TK_COMMENT, originalRaw, originalRaw, ptoken);
+			break;
+		}
+		else if ((raw.startsWith("]]") || raw.endsWith("]]")) && beginCommentChunk_ && !beginLuaCode_)
+		{
+			beginCommentChunk_ = false;
+			createToken(0, TK_COMMENT, "", "", ptoken);
+			createToken(pos + 1, TK_COMMENT, originalRaw, originalRaw, ptoken);
+			break;
+		}
+		else if (beginCommentChunk_ && !beginLuaCode_)
+		{
+			createToken(pos, TK_COMMENT, "", "", ptoken);
+			createToken(pos + 1, TK_COMMENT, originalRaw, originalRaw, ptoken);
+			break;
+		}
+
 		qint64 commentIndex = raw.indexOf("//");
-		if (commentIndex == -1)
-			commentIndex = raw.indexOf("/*");
+
 
 		//處理整行註釋
-		if (commentIndex == 0 && (raw.trimmed().indexOf("//") == 0 || raw.trimmed().indexOf("/*") == 0))
+		if (commentIndex == 0 && (raw.trimmed().indexOf("//") == 0))
 		{
-			createToken(pos, TK_COMMENT, raw, raw, ptoken);
+			createToken(pos, TK_COMMENT, "", "", ptoken);
+			createToken(pos + 1, TK_COMMENT, originalRaw, originalRaw, ptoken);
 			break;
 		}
 		//當前token移除註釋
@@ -311,49 +358,22 @@ void Lexer::tokenized(qint64 currentLine, const QString& line, TokenMap* ptoken,
 			}
 		}
 
-		if (raw.startsWith("#lua") && !beginLuaCode_)
-		{
-			beginLuaCode_ = true;
-			luaNode_.clear();
-			luaNode_.beginLine = currentLine;
-			luaNode_.field = kGlobal;
-			luaNode_.level = 0;
-			createToken(0, TK_LUABEGIN, line, line, ptoken);
-			continue;
-		}
-		else if (raw.startsWith("#endlua") && beginLuaCode_)
-		{
-			beginLuaCode_ = false;
-			luaNode_.endLine = currentLine;
-			luaNodeList_.append(luaNode_);
-			luaNode_.clear();
-			createToken(0, TK_LUAEND, line, line, ptoken);
-			continue;
-		}
-		else if (beginLuaCode_)
-		{
-			luaNode_.content.append(line + "\n");
-			createToken(0, TK_LUACONTENT, "[lua]", "[lua]", ptoken);
-			createToken(1, TK_LUACONTENT, line, line, ptoken);
-			continue;
-		}
-
 		bool doNotLowerCase = false;
 		//a,b,c = 1,2,3
-		//static const QRegularExpression rexMultiVar(R"(^\s*([_a-zA-Z\p{Han}][\w\p{Han}]*(?:\s*,\s*[_a-zA-Z\p{Han}][\w\p{Han}]*)*)\s*=\s*([^,]+(?:\s*,\s*[^,]+)*)$\;*)");
+		static const QRegularExpression rexMultiVar(R"(([local]*\s*[_a-zA-Z\p{Han}][\w\p{Han}]*(?:\s*,\s*[_a-zA-Z\p{Han}][\w\p{Han}]*)*)\s*=\s*([^,]+(?:\s*,\s*[^,]+)*)\;*$)");
 		//local a,b,c = 1,2,3
 		//static const QRegularExpression rexMultiLocalVar(R"([lL][oO][cC][aA][lL]\s+([_a-zA-Z\p{Han}][\w\p{Han}]*(?:\s*,\s*[_a-zA-Z\p{Han}][\w\p{Han}]*)*)\s*=\s*([^,]+(?:\s*,\s*[^,]+)*)$\;*)");
-		static const QRegularExpression rexMultiLocalVar(R"(^(.*\,.+?)\s*=\s*(.*?)$)");
+		//static const QRegularExpression rexMultiLocalVar(R"(^(.*\,.+?)\s*=\s*(.*?)$)");
 		//var++, var--
-		static const QRegularExpression varIncDec(R"((?!\d)([\p{Han}\W\w]+)(\+\+|--)\;*)");
+		static const QRegularExpression varIncDec(R"((?!\d)([\p{Han}\W\w]+)(\+\+|--)\;*$)");
 		//+= -= *= /= &= |= ^= %=
-		static const QRegularExpression varCAOs(R"((?!\d)([\p{Han}\W\w]+)\s*([+\-*\/&\|\^%]\=)\s*([\W\w\s\p{Han}]+)\;*)");
+		static const QRegularExpression varCAOs(R"((?!\d)([\p{Han}\W\w]+)\s*([+\-*\/&\|\^%]\=)\s*([\W\w\s\p{Han}]+)\;*$)");
 		//>>= <<=
-		static const QRegularExpression varCAOs2(R"((?!\d)([\p{Han}\W\w]+)\s*(>>\=|<<=)\s*([\W\w\s\p{Han}]+)\;*)");
+		static const QRegularExpression varCAOs2(R"((?!\d)([\p{Han}\W\w]+)\s*(>>\=|<<=)\s*([\W\w\s\p{Han}]+)\;*$)");
 		//x = expr
 		//static const QRegularExpression varExpr(R"(([\w\p{Han}]+)\s*\=\s*([\W\w\s\p{Han}]+)\;*)");
 		//+ - * / % & | ^ ( )
-		//static const QRegularExpression varAnyOp(R"([+\-*\/%&|^\(\)])");
+		static const QRegularExpression varAnyOp(R"([+\-*\/%&|^\(\)])");
 		//if expr op expr
 		static const QRegularExpression varIf(R"([iI][fF][\s*\(\s*|\s+]([\w\W\p{Han}]+\s*[<|>|\=|!][\=]*\s*[\w\W\p{Han}]+)\s*,\s*([\w\W\p{Han}]+))");
 		//if expr
@@ -474,24 +494,19 @@ void Lexer::tokenized(qint64 currentLine, const QString& line, TokenMap* ptoken,
 			}
 			break;
 		}
-		else if (raw.contains(rexMultiLocalVar) && !raw.front().isDigit())
-		{
-			QRegularExpressionMatch match = rexMultiLocalVar.match(raw);
-			if (match.hasMatch())
-			{
-				QString varNames = match.captured(1).simplified();
-				QString markField = "[global]";
-				if (varNames.startsWith("local"))
-				{
-					varNames = varNames.mid(5).trimmed();
-					markField = "[local]";
-				}
-				createToken(pos, TK_MULTIVAR, markField, markField, ptoken);
-				createToken(pos + 1, TK_STRING, varNames, varNames, ptoken);
-				createToken(pos + 2, TK_STRING, match.captured(2).simplified(), match.captured(2).simplified(), ptoken);
-			}
-			break;
-		}
+		////處理單一或多個全局變量聲明+初始化 或 已存在的局變量重新賦值
+		//else if (raw.count("=") == 1 && raw.contains(rexMultiVar)
+		//	&& !raw.front().isDigit())
+		//{
+		//	QRegularExpressionMatch match = rexMultiVar.match(raw);
+		//	if (match.hasMatch())
+		//	{
+		//		token = match.captured(1).simplified();
+		//		raw = match.captured(2).simplified();
+		//		type = TK_MULTIVAR;
+		//		doNotLowerCase = true;
+		//	}
+		//}
 #if 0
 		//處理單一局表
 		else if (raw.count("=") == 1 && raw.contains(rexLocalTable) && !raw.front().isDigit() && raw.contains("{") && raw.contains("}"))

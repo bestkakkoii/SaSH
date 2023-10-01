@@ -385,6 +385,8 @@ public:
 	inline Q_REQUIRED_RESULT bool isSubScript() const { return isSubScript_; }
 	inline Q_REQUIRED_RESULT QHash<QString, qint64> getLabels() { return labels_; }
 	inline Q_REQUIRED_RESULT QSharedPointer<Counter> getCounterPointer() const { return counter_; }
+	inline Q_REQUIRED_RESULT QSharedPointer<QStack<QVariantHash>> getLocalVarStackPointer() const { return localVarStack_; }
+	inline Q_REQUIRED_RESULT QSharedPointer<QStringList> getLuaLocalVarStringListPointer() const { return luaLocalVarStringList_; }
 
 	inline void setScriptFileName(const QString& scriptFileName) { scriptFileName_ = scriptFileName; }
 	inline void setCurrentLine(const qint64 line) { lineNumber_ = line; }
@@ -400,6 +402,8 @@ public:
 	inline void setSubScript(bool isSubScript) { isSubScript_ = isSubScript; }
 	inline void setLuaMachinePointer(QSharedPointer<CLua> pLua) { pLua_ = pLua; }
 	inline void setCounterPointer(QSharedPointer<Counter> counter) { counter_ = counter; }
+	inline void setLocalVarStackPointer(const QSharedPointer<QStack<QVariantHash>>& localVarStack) { localVarStack_ = localVarStack; }
+	inline void setLuaLocalVarStringListPointer(const QSharedPointer<QStringList>& luaLocalVarStringList) { luaLocalVarStringList_ = luaLocalVarStringList; }
 
 	bool loadFile(const QString& fileName, QString* pcontent);
 	bool loadString(const QString& content);
@@ -569,6 +573,8 @@ private:
 	QList<LuaNode> luaNodeList_;
 
 	QSharedPointer<QStringList> globalNames_;				//全局變量名稱
+	QSharedPointer<QStack<QVariantHash>> localVarStack_;	//局變量棧
+	QSharedPointer<QStringList> luaLocalVarStringList_;		//lua局變量
 
 	QHash<QString, QString> userRegCallBack_;				//用戶註冊的回調函數
 	QHash<QString, CommandRegistry> commandRegistry_;		//所有已註冊的腳本命令函數指針
@@ -579,8 +585,6 @@ private:
 	QStack<ForNode> forStack_;			                 	//"遍歷"命令所在行棧
 	QStack<QVariantList> callArgsStack_;					//"調用"命令參數棧
 	QVariantList emptyArgs_;								//空參數(參數棧為空得情況下壓入一個空容器)
-	QStack<QVariantHash> localVarStack_;					//局變量棧
-	QStringList luaLocalVarStringList;						//lua局變量
 	QVariantHash emptyLocalVars_;							//空局變量(局變量棧為空得情況下壓入一個空容器)
 	QVariantList lastReturnValue_;							//函數返回值
 
