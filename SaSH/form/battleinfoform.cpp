@@ -59,7 +59,6 @@ BattleInfoForm::BattleInfoForm(qint64 index, QWidget* parent)
 		}
 	};
 
-
 	setTableWidget(ui.tableWidget_top);
 	setTableWidget(ui.tableWidget_bottom);
 

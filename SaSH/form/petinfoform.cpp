@@ -27,7 +27,6 @@ PetInfoForm::PetInfoForm(qint64 index, QWidget* parent)
 	, Indexer(index)
 {
 	ui.setupUi(this);
-
 }
 
 PetInfoForm::~PetInfoForm()

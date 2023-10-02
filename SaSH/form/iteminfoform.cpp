@@ -83,13 +83,10 @@ ItemInfoForm::ItemInfoForm(qint64 index, QWidget* parent)
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(index);
 	connect(&signalDispatcher, &SignalDispatcher::updateEquipInfoRowContents, this, &ItemInfoForm::onUpdateEquipInfoRowContents, Qt::UniqueConnection);
 	connect(&signalDispatcher, &SignalDispatcher::updateItemInfoRowContents, this, &ItemInfoForm::onUpdateItemInfoRowContents, Qt::UniqueConnection);
-
-
 }
 
 ItemInfoForm::~ItemInfoForm()
 {
-
 }
 
 void ItemInfoForm::onResetControlTextLanguage()

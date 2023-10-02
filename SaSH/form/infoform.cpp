@@ -42,8 +42,6 @@ InfoForm::InfoForm(qint64 index, qint64 defaultPage, QWidget* parent)
 
 	setStyleSheet(R"(background-color: #F9F9F9)");
 
-	setIndex(index);
-
 	Qt::WindowFlags windowflag = this->windowFlags();
 	windowflag |= Qt::WindowType::Tool;
 	setWindowFlag(Qt::WindowType::Tool);
@@ -120,16 +118,16 @@ InfoForm::InfoForm(qint64 index, qint64 defaultPage, QWidget* parent)
 		ui.tabWidget->addTab(pAfkInfoForm_, tr("afkinfo"));
 	}
 
-	onResetControlTextLanguage();
-	onApplyHashSettingsToUI();
-
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(index);
 
 	connect(&signalDispatcher, &SignalDispatcher::applyHashSettingsToUI, this, &InfoForm::onApplyHashSettingsToUI, Qt::UniqueConnection);
 
+	onResetControlTextLanguage();
 
 	util::FormSettingManager formManager(this);
 	formManager.loadSettings();
+
+	onApplyHashSettingsToUI();
 
 	setCurrentPage(defaultPage);
 }
@@ -193,5 +191,3 @@ void InfoForm::onApplyHashSettingsToUI()
 		setWindowTitle(newTitle);
 	}
 }
-
-

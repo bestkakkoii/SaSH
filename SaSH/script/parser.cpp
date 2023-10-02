@@ -3572,7 +3572,6 @@ bool Parser::processFor()
 			else
 				break;
 
-			qDebug() << varValue.type();
 			if (varValue.type() != QVariant::LongLong)
 				break;
 

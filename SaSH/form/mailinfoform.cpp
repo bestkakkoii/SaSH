@@ -24,7 +24,6 @@ MailInfoForm::MailInfoForm(qint64 index, QWidget* parent)
 	, Indexer(index)
 {
 	ui.setupUi(this);
-	setIndex(index);
 }
 
 MailInfoForm::~MailInfoForm()

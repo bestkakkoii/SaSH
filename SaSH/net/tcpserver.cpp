@@ -494,14 +494,14 @@ void Server::handleData(QTcpSocket*, QByteArray badata)
 
 			if (ret < 0)
 			{
-				//qDebug() << "************************ LSSPROTO_END ************************";
+				qDebug() << "************************ LSSPROTO_END ************************";
 				//代表此段數據已到結尾
 				injector.autil.util_Clear();
 				break;
 			}
 			else if (ret == BC_NEED_TO_CLEAN || ret == BC_INVALID)
 			{
-				//qDebug() << "************************ CLEAR_BUFFER ************************";
+				qDebug() << "************************ CLEAR_BUFFER ************************";
 				//錯誤的數據 或 需要清除緩存
 				clearNetBuffer();
 				break;
@@ -509,7 +509,7 @@ void Server::handleData(QTcpSocket*, QByteArray badata)
 		}
 		else
 		{
-			//qDebug() << "************************ DONE_BUFFER ************************";
+			qDebug() << "************************ DONE_BUFFER ************************";
 			//數據讀完了
 			injector.autil.util_Clear();
 		}
@@ -5275,6 +5275,12 @@ inline bool Server::checkFlagState(qint64 pos)
 //異步處理自動/快速戰鬥邏輯和發送封包
 void Server::doBattleWork(bool async)
 {
+	if (!getOnlineFlag())
+		return;
+
+	if (!getBattleFlag())
+		return;
+
 	qint64 currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
 	bool fastChecked = injector.getEnableHash(util::kFastBattleEnable);
@@ -10343,15 +10349,12 @@ void Server::lssproto_B_recv(char* ccommand)
 		setWindowTitle();
 
 		//我方全部陣亡或敵方全部陣亡至戰鬥標誌為false
-		if (!isAllieAllDead && !isEnemyAllDead)
-			doBattleWork(false);//sync
+		doBattleWork(false);//sync
 
 		qDebug() << "-------------------- cost:" << timer.elapsed() << "ms --------------------";
-		qDebug() << "";
 	}
 	else if (first == "P")
 	{
-		qDebug() << data;
 		QStringList list = data.split(util::rexOR);
 		if (list.size() < 3)
 			return;
@@ -10374,7 +10377,6 @@ void Server::lssproto_B_recv(char* ccommand)
 	}
 	else if (first == "A")
 	{
-		qDebug() << data;
 		QStringList list = data.split(util::rexOR);
 		if (list.size() < 2)
 			return;
@@ -10395,6 +10397,7 @@ void Server::lssproto_B_recv(char* ccommand)
 					break;
 				if (checkFlagState(i) && !bt.objects.value(i, empty).ready)
 				{
+#if 0
 					if (i == battleCharCurrentPos.load(std::memory_order_acquire))
 					{
 						qDebug() << QString("自己 [%1]%2(%3) 已出手").arg(i + 1).arg(bt.objects.value(i, empty).name).arg(bt.objects.value(i, empty).freeName);
@@ -10407,6 +10410,7 @@ void Server::lssproto_B_recv(char* ccommand)
 					{
 						qDebug() << QString("隊友 [%1]%2(%3) 已出手").arg(i + 1).arg(bt.objects.value(i, empty).name).arg(bt.objects.value(i, empty).freeName);
 					}
+#endif
 					emit signalDispatcher.notifyBattleActionState(i, battleCharCurrentPos.load(std::memory_order_acquire) >= (MAX_ENEMY / 2));
 					objs[i].ready = true;
 				}
@@ -10642,7 +10646,6 @@ void Server::lssproto_Echo_recv(char* test)
 
 void Server::lssproto_NU_recv(int)
 {
-	//qDebug() << "-- NU --";
 }
 
 void Server::lssproto_CharNumGet_recv(int, int)
@@ -13138,7 +13141,7 @@ void Server::lssproto_S_recv(char* cdata)
 #pragma endregion
 	else
 	{
-		qDebug() << "[" << first << "]:" << data;
+		qDebug() << "unknown _S_recv type [" << first << "]:" << data;
 	}
 
 	updateItemByMemory();
@@ -13593,7 +13596,7 @@ void Server::lssproto_CustomWN_recv(const QString& data)
 	{
 		row = dataStr.toLongLong();
 	}
-	//qDebug() << x << y << button << (row != -1 ? util::toQString(row) : dataStr);
+
 	customdialog_t _customDialog;
 	_customDialog.x = x;
 	_customDialog.y = y;
@@ -13654,8 +13657,6 @@ void Server::lssproto_CustomTK_recv(const QString& data)
 				}
 			});
 	}
-
-	qDebug() << dataList;
 }
 #pragma endregion
 
