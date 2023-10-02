@@ -54,6 +54,8 @@ constexpr qint64 MAX_PET = 5;
 
 constexpr qint64 MAX_MAGIC = 9;
 
+constexpr qint64 MAX_PETSKILL = 7;
+
 constexpr qint64 MAX_PARTY = 5;
 
 constexpr qint64 MAX_ADR_BOOK_COUNT = 4;
@@ -225,6 +227,8 @@ inline constexpr bool hasUnMoveableStatue(quint64 status)
 	if (status & BC_FLG_HIDE) // 是否隱藏，地球一周
 		return true;
 	if (status & BC_FLG_DIZZY) // 暈眩
+		return true;
+	if (status & BC_FLG_DIZZY)
 		return true;
 
 	return false;

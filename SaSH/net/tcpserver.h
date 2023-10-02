@@ -389,6 +389,10 @@ public://actions
 	Q_REQUIRED_RESULT bool checkPetHp(qint64 cmpvalue, qint64* target = nullptr, bool useequal = false);
 	Q_REQUIRED_RESULT bool checkPartyHp(qint64 cmpvalue, qint64* target);
 
+	Q_REQUIRED_RESULT bool checkCharStatus(qint64 cmpvalue, qint64* target = nullptr, bool useequal = false);
+	Q_REQUIRED_RESULT bool checkPetStatus(qint64 cmpvalue, qint64* target = nullptr, bool useequal = false);
+	Q_REQUIRED_RESULT bool checkPartyStatus(qint64 cmpvalue, qint64* target);
+
 	Q_REQUIRED_RESULT bool isPetSpotEmpty() const;
 	Q_REQUIRED_RESULT qint64 checkJobDailyState(const QString& missionName);
 

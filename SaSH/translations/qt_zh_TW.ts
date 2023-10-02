@@ -437,6 +437,18 @@
         <source>ms</source>
         <translation>毫秒</translation>
     </message>
+    <message>
+        <source>pet heal</source>
+        <translation>寵物補血</translation>
+    </message>
+    <message>
+        <source>pet purg</source>
+        <translation>寵物淨化</translation>
+    </message>
+    <message>
+        <source>char purg</source>
+        <translation>精靈淨化</translation>
+    </message>
 </context>
 <context>
     <name>AfkInfoForm</name>
@@ -2675,7 +2687,7 @@ No new version available. Do you still want to update?</source>
     </message>
     <message>
         <source>dizzy</source>
-        <translation>酒醉</translation>
+        <translation>眩暈</translation>
     </message>
     <message>
         <source>confused</source>
@@ -4793,6 +4805,14 @@ No new version available. Do you still want to update?</source>
         <translation>道具復活對象</translation>
     </message>
     <message>
+        <source>pet healing target</source>
+        <translation>寵物補血對象</translation>
+    </message>
+    <message>
+        <source>pet purging target</source>
+        <translation>寵物淨化對象</translation>
+    </message>
+    <message>
         <source>unknown</source>
         <translation>未知</translation>
     </message>
@@ -4875,6 +4895,10 @@ No new version available. Do you still want to update?</source>
     <message>
         <source>cancel</source>
         <translation>取消</translation>
+    </message>
+    <message>
+        <source>char purging target</source>
+        <translation>精靈淨化對象</translation>
     </message>
 </context>
 <context>

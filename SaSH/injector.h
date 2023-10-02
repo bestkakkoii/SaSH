@@ -269,6 +269,10 @@ private:
 		{ util::kBattleMagicReviveTargetValue, util::kSelectSelf | util::kSelectPet },
 		{ util::kBattleItemReviveTargetValue, util::kSelectSelf | util::kSelectPet },
 
+		{ util::kBattlePetHealTargetValue, util::kSelectSelf | util::kSelectPet },
+		{ util::kBattlePetPurgTargetValue, util::kSelectSelf | util::kSelectPet },
+		{ util::kBattleCharPurgTargetValue, util::kSelectSelf | util::kSelectPet },
+
 		//afk->heal combobox
 		{ util::kBattleMagicHealMagicValue, 0 },
 		{ util::kBattleMagicReviveMagicValue, 0 },
