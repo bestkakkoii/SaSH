@@ -80,11 +80,6 @@ ScriptEditor::ScriptEditor(qint64 index, QWidget* parent)
 
 	ui.mainToolBar->show();
 
-	//QAction* searchIcon = new QAction(ui.lineEdit_searchFunction);
-	//searchIcon->setIcon(QIcon(":/image/icon_search.svg"));
-	//ui.lineEdit_searchFunction->addAction(searchIcon, QLineEdit::LeadingPosition);
-
-
 	connect(ui.actionSave, &QAction::triggered, this, &ScriptEditor::onActionTriggered, Qt::QueuedConnection);
 	connect(ui.actionSaveAs, &QAction::triggered, this, &ScriptEditor::onActionTriggered, Qt::QueuedConnection);
 	connect(ui.actionDirectory, &QAction::triggered, this, &ScriptEditor::onActionTriggered, Qt::QueuedConnection);
@@ -150,6 +145,8 @@ ScriptEditor::ScriptEditor(qint64 index, QWidget* parent)
 		emit signalDispatcher.loadFileToTable(injector.currentScriptFileName);
 	}
 
+	injector.isScriptEditorOpened.store(true, std::memory_order_release);
+
 	const QString fileName(qgetenv("JSON_PATH"));
 	if (fileName.isEmpty())
 		return;
@@ -190,35 +187,43 @@ ScriptEditor::ScriptEditor(qint64 index, QWidget* parent)
 void ScriptEditor::initStaticLabel()
 {
 	lineLable_ = new FastLabel(tr("row:%1").arg(1), QColor("#FFFFFF"), QColor(64, 53, 130), this);
+	Q_ASSERT(lineLable_ != nullptr);
 	lineLable_->setFixedWidth(60);
 	lineLable_->setTextColor(QColor(255, 255, 255));
 	sizeLabel_ = new FastLabel("| " + tr("size:%1").arg(0), QColor("#FFFFFF"), QColor(64, 53, 130), this);
+	Q_ASSERT(sizeLabel_ != nullptr);
 	sizeLabel_->setFixedWidth(60);
 	sizeLabel_->setTextColor(QColor(255, 255, 255));
 	indexLabel_ = new FastLabel("| " + tr("index:%1").arg(1), QColor("#FFFFFF"), QColor(64, 53, 130), this);
+	Q_ASSERT(indexLabel_ != nullptr);
 	indexLabel_->setFixedWidth(60);
 	indexLabel_->setTextColor(QColor(255, 255, 255));
 
 	const QsciScintilla::EolMode mode = ui.widget->eolMode();
 	const QString modeStr(mode == QsciScintilla::EolWindows ? "CRLF" : mode == QsciScintilla::EolUnix ? "  LF" : "  CR");
 	eolLabel_ = new FastLabel(QString("| %1").arg(modeStr), QColor("#FFFFFF"), QColor(64, 53, 130), this);
+	Q_ASSERT(eolLabel_ != nullptr);
 	eolLabel_->setFixedWidth(50);
 	eolLabel_->setTextColor(QColor(255, 255, 255));
 
 	usageLabel_ = new FastLabel(QString(tr("Usage: cpu: %1% | memory: %2MB / %3MB"))
 		.arg(0).arg(0).arg(0), QColor("#FFFFFF"), QColor(64, 53, 130), this);
+	Q_ASSERT(usageLabel_ != nullptr);
 	usageLabel_->setFixedWidth(350);
 	usageLabel_->setTextColor(QColor(255, 255, 255));
 
 	QLabel* spaceLabeRight = new QLabel("", this);
+	Q_ASSERT(spaceLabeRight != nullptr);
 	spaceLabeRight->setFrameStyle(QFrame::NoFrame);
 	spaceLabeRight->setFixedWidth(10);
 
 	QLabel* spaceLabelMiddle = new QLabel("", this);
+	Q_ASSERT(spaceLabelMiddle != nullptr);
 	spaceLabelMiddle->setFrameStyle(QFrame::NoFrame);
 	spaceLabelMiddle->setFixedWidth(100);
 
 	usageTimer_ = new QTimer(this);
+	Q_ASSERT(usageTimer_ != nullptr);
 	usageTimer_->setInterval(1500);
 	connect(usageTimer_, &QTimer::timeout, this, [this]()
 		{
@@ -266,8 +271,15 @@ void ScriptEditor::initStaticLabel()
 
 void ScriptEditor::createSpeedSpinBox()
 {
-	qint64 currentIndex = getIndex();
+	pSpeedDescLabel_ = new QLabel(tr("Script speed:"), this);
+	Q_ASSERT(pSpeedDescLabel_ != nullptr);
+	pSpeedDescLabel_->setAttribute(Qt::WA_StyledBackground);
+	pSpeedSpinBox->setStyleSheet("QLabel {color: #FAFAFA; font-size: 12pt;}");
+
 	pSpeedSpinBox = new QSpinBox(this);
+	Q_ASSERT(pSpeedSpinBox != nullptr);
+
+	qint64 currentIndex = getIndex();
 	pSpeedSpinBox->setRange(0, 10000);
 	Injector& injector = Injector::getInstance(currentIndex);
 	qint64 value = injector.getValueHash(util::kScriptSpeedValue);
@@ -323,6 +335,7 @@ void ScriptEditor::createSpeedSpinBox()
 
 	connect(pSpeedSpinBox, static_cast<void (QSpinBox::*)(int)>(&QSpinBox::valueChanged), this, &ScriptEditor::onSpeedChanged);
 
+	ui.mainToolBar->addWidget(pSpeedDescLabel_);
 	ui.mainToolBar->addWidget(pSpeedSpinBox);
 }
 
@@ -341,6 +354,9 @@ void ScriptEditor::closeEvent(QCloseEvent* e)
 {
 	do
 	{
+		Injector& injector = Injector::getInstance(getIndex());
+		injector.isScriptEditorOpened.store(false, std::memory_order_release);
+
 		if (usageTimer_ != nullptr)
 			usageTimer_->stop();
 
@@ -355,7 +371,7 @@ void ScriptEditor::closeEvent(QCloseEvent* e)
 			break;
 
 		util::Config config(fileName);
-		Injector& injector = Injector::getInstance(getIndex());
+
 		if (!injector.currentScriptFileName.isEmpty())
 			config.write("Script", "LastModifyFile", injector.currentScriptFileName);
 
@@ -784,10 +800,14 @@ void ScriptEditor::stackInfoImport(QTreeWidget* tree, const QVector<QPair<qint64
 	if (!vec.isEmpty())
 	{
 		QList<QTreeWidgetItem*> trees;
-
+		TreeWidgetItem* item = nullptr;
 		for (const QPair<qint64, QString> pair : vec)
 		{
-			trees.append(q_check_ptr(new TreeWidgetItem({ util::toQString(pair.first),  pair.second })));
+			item = new TreeWidgetItem({ util::toQString(pair.first),  pair.second });
+			if (item == nullptr)
+				continue;
+
+			trees.append(item);
 		}
 
 		tree->addTopLevelItems(trees);
@@ -833,6 +853,10 @@ void ScriptEditor::createScriptListContextMenu()
 {
 	// Create the custom context menu
 	QMenu* menu = new QMenu(this);
+	Q_ASSERT(menu != nullptr);
+	if (menu == nullptr)
+		return;
+
 	QAction* openAcrion = menu->addAction(tr("open"));
 	QAction* deleteAction = menu->addAction(tr("delete"));
 	QAction* renameAction = menu->addAction(tr("rename"));
@@ -1391,8 +1415,9 @@ void ScriptEditor::on_treeWidget_functionList_itemSelectionChanged()
 
 		QString markdownText = result.join("\n---\n");
 
-
 		QSharedPointer<QTextDocument> doc = QSharedPointer<QTextDocument>(new QTextDocument());
+		if (doc.isNull())
+			break;
 
 		doc->setMarkdown(markdownText);
 		document_.insert(str, doc);
@@ -1400,10 +1425,7 @@ void ScriptEditor::on_treeWidget_functionList_itemSelectionChanged()
 		ui.textBrowser->setUpdatesEnabled(false);
 		ui.textBrowser->setDocument(doc.data());
 		ui.textBrowser->setUpdatesEnabled(true);
-
-		return;
 	} while (false);
-
 }
 
 void ScriptEditor::on_treeWidget_scriptList_itemClicked(QTreeWidgetItem* item, int column)
@@ -2229,13 +2251,17 @@ void ScriptEditor::onBreakMarkInfoImport()
 	ui.treeWidget_breakList->setColumnCount(4);
 	ui.treeWidget_breakList->setHeaderLabels(QStringList{ tr("CONTENT"),tr("COUNT"), tr("ROW"), tr("FILE") });
 	const util::SafeHash<QString, util::SafeHash<qint64, break_marker_t>> mks = break_markers[currnetIndex];
+	TreeWidgetItem* item = nullptr;
 	for (auto it = mks.cbegin(); it != mks.cend(); ++it)
 	{
 		QString fileName = it.key();
 		const util::SafeHash<qint64, break_marker_t> mk = mks.value(fileName);
 		for (const break_marker_t& bit : mk)
 		{
-			TreeWidgetItem* item = q_check_ptr(new TreeWidgetItem({ bit.content, util::toQString(bit.count), util::toQString(bit.line + 1), fileName }));
+			item = new TreeWidgetItem({ bit.content, util::toQString(bit.count), util::toQString(bit.line + 1), fileName });
+			if (item == nullptr)
+				continue;
+
 			item->setIcon(0, QIcon(":/image/icon_breakpointenabled.svg"));
 			trees.append(item);
 		}
@@ -2249,12 +2275,12 @@ void ScriptEditor::onReloadScriptList()
 {
 	if (IS_LOADING) return;
 
-	TreeWidgetItem* item = nullptr;
 	QStringList newScriptList = {};
 	do
 	{
-		item = q_check_ptr(new TreeWidgetItem);
-		if (!item) break;
+		TreeWidgetItem* item = new TreeWidgetItem;
+		if (item == nullptr)
+			break;
 
 		util::loadAllFileLists(item, util::applicationDirPath() + "/script/", &newScriptList, ":/image/icon_textfile.svg", ":/image/icon_folder.svg");
 
@@ -2266,6 +2292,8 @@ void ScriptEditor::onReloadScriptList()
 		ui.treeWidget_scriptList->addTopLevelItem(item);
 		//展開全部第一層
 		ui.treeWidget_scriptList->topLevelItem(0)->setExpanded(true);
+
+		//展開全部子層
 		//for (qint64 i = 0; i < item->childCount(); ++i)
 		//{
 		//	ui.treeWidget_scriptList->expandItem(item->child(i));
@@ -2421,6 +2449,7 @@ bool luaTableToTreeWidgetItem(QString field, TreeWidgetItem* pParentNode, const 
 
 	--depth;
 
+	TreeWidgetItem* pNode = nullptr;
 	for (const auto& pair : t)
 	{
 		qint64 nKey = 0;
@@ -2438,7 +2467,7 @@ bool luaTableToTreeWidgetItem(QString field, TreeWidgetItem* pParentNode, const 
 		if (pair.second.is<sol::table>())
 		{
 			varType = QObject::tr("Table");
-			TreeWidgetItem* pNode = new TreeWidgetItem({ field, key, "", QString("(%1)").arg(varType) });
+			pNode = new TreeWidgetItem({ field, key, "", QString("(%1)").arg(varType) });
 			if (pNode == nullptr)
 				continue;
 
@@ -2492,9 +2521,10 @@ bool luaTableToTreeWidgetItem(QString field, TreeWidgetItem* pParentNode, const 
 		if (varType.isEmpty())
 			continue;
 
-		TreeWidgetItem* pNode = new TreeWidgetItem({ field, key.isEmpty() ? util::toQString(nKey + 1) : key, value, QString("(%1)").arg(varType) });
+		pNode = new TreeWidgetItem({ field, key.isEmpty() ? util::toQString(nKey + 1) : key, value, QString("(%1)").arg(varType) });
 		if (pNode == nullptr)
 			continue;
+
 		pNode->setIcon(0, QIcon(":/image/icon_field.svg"));
 		pParentNode->addChild(pNode);
 	}
@@ -2510,6 +2540,8 @@ void ScriptEditor::createTreeWidgetItems(Parser* pparser, QList<QTreeWidgetItem*
 	sol::state& lua_ = pparser->pLua_->getLua();
 
 	QMap<QString, QVariant> map;
+	TreeWidgetItem* pNode = nullptr;
+	qint64 depth = kMaxLuaTableDepth;
 
 	if (!d.isEmpty())
 	{
@@ -2559,11 +2591,11 @@ void ScriptEditor::createTreeWidgetItems(Parser* pparser, QList<QTreeWidgetItem*
 				{
 					varType = QObject::tr("Table");
 
-					qint64 depth = kMaxLuaTableDepth;
+					depth = kMaxLuaTableDepth;
 					pparser->luaDoString(QString("_TMP = %1").arg(var.toString()));
 					if (lua_["_TMP"].is<sol::table>())
 					{
-						TreeWidgetItem* pNode = new TreeWidgetItem(QStringList{ field, varName, "", QString("(%1)").arg(varType) });
+						pNode = new TreeWidgetItem(QStringList{ field, varName, "", QString("(%1)").arg(varType) });
 						if (pNode == nullptr)
 							continue;
 
@@ -2608,7 +2640,7 @@ void ScriptEditor::createTreeWidgetItems(Parser* pparser, QList<QTreeWidgetItem*
 			}
 			}
 
-			TreeWidgetItem* pNode = new TreeWidgetItem({ field, varName, varValueStr, QString("(%1)").arg(varType) });
+			pNode = new TreeWidgetItem({ field, varName, varValueStr, QString("(%1)").arg(varType) });
 			if (pNode == nullptr)
 				continue;
 			pNode->setIcon(0, QIcon(":/image/icon_field.svg"));
@@ -2634,11 +2666,11 @@ void ScriptEditor::createTreeWidgetItems(Parser* pparser, QList<QTreeWidgetItem*
 		if (o.is<sol::table>())
 		{
 			varType = QObject::tr("Table");
-			TreeWidgetItem* pNode = new TreeWidgetItem(QStringList{ field, varName, "", QString("(%1)").arg(varType) });
+			pNode = new TreeWidgetItem(QStringList{ field, varName, "", QString("(%1)").arg(varType) });
 			if (pNode == nullptr)
 				continue;
 
-			qint64 depth = kMaxLuaTableDepth;
+			depth = kMaxLuaTableDepth;
 			if (luaTableToTreeWidgetItem(field, pNode, o.as<sol::table>(), depth))
 			{
 				pNode->setIcon(0, QIcon(":/image/icon_class.svg"));
@@ -2688,9 +2720,10 @@ void ScriptEditor::createTreeWidgetItems(Parser* pparser, QList<QTreeWidgetItem*
 		if (varType.isEmpty())
 			continue;
 
-		TreeWidgetItem* pNode = new TreeWidgetItem({ field, varName, varValueStr, QString("(%1)").arg(varType) });
+		pNode = new TreeWidgetItem({ field, varName, varValueStr, QString("(%1)").arg(varType) });
 		if (pNode == nullptr)
 			continue;
+
 		pNode->setIcon(0, QIcon(":/image/icon_field.svg"));
 		pTrees->append(pNode);
 	}

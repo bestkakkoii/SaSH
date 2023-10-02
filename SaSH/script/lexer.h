@@ -292,94 +292,12 @@ private:
 
 	void checkFunctionPairs(const QHash<qint64, TokenMap>& tokenmaps);
 
-#ifdef TEST_LEXER
-	// new lexer build by 09052023
-public:
-
-
-private:
-
-	class Reader
-	{
-	public:
-		Reader() = default;
-		Reader(const QString& str) : nowToken_(str), nowTokenLength_(str.length()) {}
-		inline void resetIndex(qint64 index = 0ll) { nowIndex_ = index; }
-		inline void resetToken(const QString& str) { nowToken_ = str; nowTokenLength_ = str.length(); }
-		inline void movenext(qint64 step = 1) { nowIndex_ += step; }
-		inline void moveprev(qint64 step = 1) { nowIndex_ -= step; }
-		QChar next();
-		QChar peek();
-		QChar prev();
-		bool checkNext(QChar ch);
-		bool checkPrev(QChar ch);
-
-		void store(QChar ch) { storedString_.append(ch); }
-		qint64 storedLength() const { return storedString_.length(); }
-		bool isStoredEmpty() const { return storedString_.simplified().isEmpty(); }
-		void takeStored()
-		{
-			const QString ret = storedString_;
-
-			if (!ret.isEmpty())
-				list_.append(ret);
-
-			storedString_.clear();
-		}
-
-		void moveToNextLine() { ++currentLine_; }
-
-		QStringList getList() const { return list_; }
-
-		void clear()
-		{
-			nowIndex_ = 0;
-			nowToken_ = "";
-			nowTokenLength_ = 0;
-			storedString_ = "";
-			list_.clear();
-			currentLine_ = 0ll;
-		}
-	private:
-		qint64 nowIndex_ = 0;
-
-		QString nowToken_ = "";
-
-		qint64 nowTokenLength_ = 0;
-
-		QString storedString_ = "";
-
-		QStringList list_;
-
-		qint64 currentLine_ = 0ll;
-	};
-
-	RESERVE getTokenType(qint64 currentPos, RESERVE previous, const QString& token);
-
-	QString getLuaTableString(const sol::table& t, int& depth);
-	sol::object getLuaTableFromString(const QString& str);
-
-	bool splitToStringToken(QString src, QStringList* pTokenStringList);
-	bool checkOperator(RESERVE previous, QString& tokenStr, RESERVE* pReserve);
-	Token getNextToken(RESERVE previous, QStringList& refTokenStringList);
-#endif
-
 	inline void clear()
 	{
 		functionNodeList_.clear();
 		forNodeList_.clear();
 		labelList_.clear();
 		tokens_.clear();
-
-#ifdef TEST_LEXER
-		beginFunctionDeclaration_ = false;
-		beginFunctionNameDeclaration_ = false;
-		beginFunctionArgsDeclaration_ = false;
-		functionArgList_.clear();
-
-		beginForArgs_ = false;
-		forArgList_.clear();
-#endif
 	}
 
 private:

@@ -59,7 +59,9 @@ GeneralForm::GeneralForm(qint64 index, QWidget* parent)
 	}
 
 	pAfkForm_ = new AfkForm(index, nullptr);
-	pAfkForm_->hide();
+	Q_ASSERT(pAfkForm_ != nullptr);
+	if (pAfkForm_ != nullptr)
+		pAfkForm_->hide();
 
 	emit ui.comboBox_paths->clicked();
 	emit signalDispatcher.applyHashSettingsToUI();
@@ -383,6 +385,7 @@ void GeneralForm::onButtonClicked()
 		if (pAfkForm_ == nullptr)
 		{
 			pAfkForm_ = new AfkForm(currentIndex, nullptr);
+			Q_ASSERT(pAfkForm_ != nullptr);
 			if (pAfkForm_ != nullptr)
 			{
 				emit pAfkForm_->resetControlTextLanguage();
@@ -1084,6 +1087,7 @@ void GeneralForm::onGameStart()
 	injector.currentGameExePath = path;
 
 	injector.server.reset(new Server(currentIndex, this));
+	Q_ASSERT(!injector.server.isNull());
 	if (injector.server.isNull())
 		return;
 

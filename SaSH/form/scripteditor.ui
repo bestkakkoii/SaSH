@@ -101,7 +101,7 @@ QDockWidget {
 	background: rgb(31,31,31);
     /*titlebar-close-icon: url(:/image/icon_close.svg);
     titlebar-normal-icon: url(:/image/icon_pin.svg);*/
-	border-buttom: 1px solid rgb(61,61,61);
+	border-bottom: 1px solid rgb(61,61,61);
 	border-left: 1px solid rgb(61,61,61);
 	border-right: 1px solid rgb(61,61,61);
 }

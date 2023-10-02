@@ -111,7 +111,8 @@ public:
 	{
 		int iChecksum = 0;
 		std::unique_ptr <char[]> buffer(new char[NETDATASIZE]);
-		memset(buffer.get(), 0, NETDATASIZE);
+		std::fill(buffer.get(), buffer.get() + NETDATASIZE, 0);
+
 		util_SendProcessArgs(iChecksum, buffer.get(), args...);
 		util_mkint(buffer.get(), iChecksum);
 		util_SendMesg(func, buffer.get());
@@ -120,8 +121,8 @@ public:
 	void util_SendArgs(int func, std::vector<std::variant<int, std::string>>& args)
 	{
 		int iChecksum = 0;
-		std::unique_ptr <char[]> buffer(new char[NETDATASIZE]);
-		memset(buffer.get(), 0, NETDATASIZE);
+		std::unique_ptr <char[]> buffer(new char[NETDATASIZE]());
+		std::fill(buffer.get(), buffer.get() + NETDATASIZE, 0);
 
 		for (const std::variant<int, std::string>& arg : args)
 		{

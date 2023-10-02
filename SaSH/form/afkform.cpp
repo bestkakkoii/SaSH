@@ -904,7 +904,7 @@ void AfkForm::onResetControlTextLanguage()
 		{
 			QString text = tr("at round %1").arg(i);
 			combo->addItem(text);
-			qint64 index = combo->count() - 1;
+			qint64 index = static_cast<qint64>(combo->count()) - 1;
 			combo->setItemData(index, text, Qt::ToolTipRole);
 		}
 	};
@@ -920,7 +920,7 @@ void AfkForm::onResetControlTextLanguage()
 		{
 			QString text = tr("enemy amount > %1").arg(i);
 			combo->addItem(text);
-			qint64 index = combo->count() - 1;
+			qint64 index = static_cast<qint64>(combo->count()) - 1;
 			combo->setItemData(index, text, Qt::ToolTipRole);
 		}
 	};
@@ -935,7 +935,7 @@ void AfkForm::onResetControlTextLanguage()
 		{
 			QString text = tr("every %1 round").arg(i);
 			combo->addItem(text);
-			qint64 index = combo->count() - 1;
+			qint64 index = static_cast<qint64>(combo->count()) - 1;
 			combo->setItemData(index, text, Qt::ToolTipRole);
 		}
 	};
@@ -951,7 +951,7 @@ void AfkForm::onResetControlTextLanguage()
 		{
 			QString text = tr("enemy level > %1").arg(i);
 			combo->addItem(text);
-			qint64 index = combo->count() - 1;
+			qint64 index = static_cast<qint64>(combo->count()) - 1;
 			combo->setItemData(index, text, Qt::ToolTipRole);
 		}
 	};
@@ -975,7 +975,7 @@ void AfkForm::onResetControlTextLanguage()
 				continue;
 
 			combo->addItem(actionList[i] + (i >= 3 ? ":" : ""));
-			qint64 index = combo->count() - 1;
+			qint64 index = static_cast<qint64>(combo->count()) - 1;
 			combo->setItemData(index, QString("%1").arg(actionList[i]), Qt::ToolTipRole);
 		}
 
@@ -986,7 +986,7 @@ void AfkForm::onResetControlTextLanguage()
 		{
 			QString text = QString("%1:").arg(i + 1);
 			combo->addItem(text);
-			qint64 index = combo->count() - 1;
+			qint64 index = static_cast<qint64>(combo->count()) - 1;
 			combo->setItemData(index, text, Qt::ToolTipRole);
 		}
 
@@ -998,7 +998,7 @@ void AfkForm::onResetControlTextLanguage()
 		for (qint64 i = 1; i <= max; ++i)
 		{
 			combo->addItem(QString("%1:").arg(i));
-			qint64 index = combo->count() - 1;
+			qint64 index = static_cast<qint64>(combo->count()) - 1;
 			combo->setItemData(index, QString("%1").arg(i), Qt::ToolTipRole);
 		}
 	};
@@ -1031,7 +1031,7 @@ void AfkForm::onResetControlTextLanguage()
 	{
 		QString text = QString("%1:").arg(i + 1 - CHAR_EQUIPPLACENUM);
 		ui.comboBox_magicheal_normal->addItem(text);
-		qint64 index = ui.comboBox_magicheal_normal->count() - 1;
+		qint64 index = static_cast<qint64>(ui.comboBox_magicheal_normal->count()) - 1;
 		ui.comboBox_magicheal_normal->setItemData(index, text, Qt::ToolTipRole);
 	}
 
@@ -1182,15 +1182,21 @@ void AfkForm::onApplyHashSettingsToUI()
 
 void AfkForm::onUpdateComboBoxItemText(qint64 type, const QStringList& textList)
 {
+	if (isHidden())
+		return;
+
 	qint64 currentIndex = getIndex();
 
 	auto appendText = [&textList](QComboBox* combo, qint64 max, bool noIndex)->void
 	{
+		if (combo->hasFocus())
+			return;
+
 		combo->blockSignals(true);
 		combo->setUpdatesEnabled(false);
 		qint64 nOriginalIndex = combo->currentIndex();
 		combo->clear();
-		qint64 size = textList.size();
+		qint64 size = static_cast<qint64>(textList.size());
 		qint64 n = 0;
 		for (qint64 i = 0; i < max; ++i)
 		{
@@ -1201,22 +1207,22 @@ void AfkForm::onUpdateComboBoxItemText(qint64 type, const QStringList& textList)
 				if (i >= size)
 				{
 					combo->addItem(QString("%1:").arg(i + 1));
-					index = combo->count() - 1;
+					index = static_cast<qint64>(combo->count()) - 1;
 					combo->setItemData(index, QString("%1:").arg(i + 1), Qt::ToolTipRole);
 					continue;
 				}
-				text = QString("%1:%2").arg(i + 1).arg(textList[i]);
+				text = QString("%1:%2").arg(i + 1).arg(textList.at(i));
 			}
 			else
 			{
 				if (i >= size)
 					break;
-				text = textList[n];
+				text = textList.at(n);
 				++n;
 			}
 
 			combo->addItem(text);
-			index = combo->count() - 1;
+			index = static_cast<qint64>(combo->count()) - 1;
 			combo->setItemData(index, text, Qt::ToolTipRole);
 		}
 
@@ -1238,9 +1244,12 @@ void AfkForm::onUpdateComboBoxItemText(qint64 type, const QStringList& textList)
 
 		auto appendMagicText = [this, &actionList, &textList, currentIndex](QComboBox* combo, bool notBattle = false)->void
 		{
+			if (combo->hasFocus())
+				return;
+
 			combo->blockSignals(true);
 			combo->setUpdatesEnabled(false);
-			qint64 nOriginalIndex = combo->currentIndex();
+			qint64 nOriginalIndex = static_cast<qint64>(combo->currentIndex());
 			combo->clear();
 			qint64 size = actionList.size();
 			qint64 n = 0;
@@ -1256,11 +1265,11 @@ void AfkForm::onUpdateComboBoxItemText(qint64 type, const QStringList& textList)
 				}
 				else
 				{
-					text = QString("%1:%2").arg(actionList[i]).arg(textList[i - 3]);
+					text = QString("%1:%2").arg(actionList[i]).arg(textList.at(i - 3));
 					combo->addItem(text);
 				}
 
-				qint64 index = combo->count() - 1;
+				qint64 index = static_cast<qint64>(combo->count()) - 1;
 				combo->setItemData(index, text, Qt::ToolTipRole);
 				++n;
 			}
@@ -1271,7 +1280,7 @@ void AfkForm::onUpdateComboBoxItemText(qint64 type, const QStringList& textList)
 				if (notBattle)
 					continue;
 
-				combo->addItem(QString("%1:%2").arg(i - size + 4).arg(textList[i]));
+				combo->addItem(QString("%1:%2").arg(i - size + 4).arg(textList.at(i)));
 				++n;
 			}
 
@@ -1284,7 +1293,7 @@ void AfkForm::onUpdateComboBoxItemText(qint64 type, const QStringList& textList)
 					ITEM item = pc.item[i];
 					QString text = QString("%1:%2").arg(i - CHAR_EQUIPPLACENUM + 1).arg(item.name);
 					combo->addItem(text);
-					qint64 index = combo->count() - 1;
+					qint64 index = static_cast<qint64>(combo->count()) - 1;
 					combo->setItemData(index, text, Qt::ToolTipRole);
 				}
 			}
@@ -1294,22 +1303,6 @@ void AfkForm::onUpdateComboBoxItemText(qint64 type, const QStringList& textList)
 			combo->blockSignals(false);
 		};
 
-		//auto appendProfText = [&actionList, &textList](QComboBox* combo, bool notBattle = false)->void
-		//{
-		//	combo->blockSignals(true);
-		//	combo->setUpdatesEnabled(false);
-		//	qint64 nOriginalIndex = combo->currentIndex();
-		//	combo->clear();
-		//	qint64 textListSize = textList.size();
-		//	for (qint64 i = CHAR_EQUIPPLACENUM; i < textListSize; ++i)
-		//	{
-		//		combo->addItem(QString("%1:%2").arg(i - CHAR_EQUIPPLACENUM + 1).arg(textList[i]));
-		//	}
-		//	combo->setCurrentIndex(nOriginalIndex);
-		//	combo->setUpdatesEnabled(true);
-		//	combo->blockSignals(false);
-		//};
-
 		//battle
 		appendMagicText(ui.comboBox_normalaction_char_action);
 		appendMagicText(ui.comboBox_crossaction_char_action);
@@ -1317,8 +1310,6 @@ void AfkForm::onUpdateComboBoxItemText(qint64 type, const QStringList& textList)
 		appendMagicText(ui.comboBox_magicheal, true);
 		appendMagicText(ui.comboBox_magicrevive, true);
 		appendMagicText(ui.comboBox_magicheal_normal, true);
-		//appendProfText(ui.comboBox_skillMp);
-
 
 		//catch
 		appendMagicText(ui.comboBox_autocatchpet_magic);

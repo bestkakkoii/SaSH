@@ -347,6 +347,9 @@ void CodeEditor::dropEvent(QDropEvent* e)
 void CodeEditor::findReplace()
 {
 	ReplaceDialog* replaceDialog = new ReplaceDialog(this);
+	if (replaceDialog == nullptr)
+		return;
+
 	replaceDialog->setModal(false);
 	replaceDialog->show();
 }
@@ -446,6 +449,9 @@ void CodeEditor::commentSwitch()
 void CodeEditor::jumpToLineDialog()
 {
 	QSharedPointer<int> pline(new int(1));
+	if (pline.isNull())
+		return;
+
 	JumpToLineDialog* dialog = new JumpToLineDialog(this, pline.get());
 	if (dialog == nullptr)
 		return;

@@ -135,6 +135,10 @@ private slots:
 				pSpeedSpinBox->show();
 				pSpeedSpinBox->setFixedWidth(spinRecordedWidth_);
 			}
+			if (pSpeedDescLabel_ != nullptr)
+			{
+				pSpeedDescLabel_->show();
+			}
 		}
 		else
 		{
@@ -144,6 +148,10 @@ private slots:
 				pSpeedSpinBox->hide();
 				spinRecordedWidth_ = pSpeedSpinBox->width();
 				pSpeedSpinBox->setFixedWidth(18);
+			}
+			if (pSpeedDescLabel_ != nullptr)
+			{
+				pSpeedDescLabel_->hide();
 			}
 		}
 	}
@@ -171,6 +179,7 @@ private:
 	QHash<QString, QVariant> currentGlobalVarInfo_;
 	QHash<QString, QVariant> currentLocalVarInfo_;
 	QHash<QString, QSharedPointer<QTextDocument>> document_;
+	QLabel* pSpeedDescLabel_ = nullptr;
 	QSpinBox* pSpeedSpinBox = nullptr;
 
 	QString currentRenameText_ = "";

@@ -859,15 +859,16 @@ qint64 Interpreter::run(qint64 currentIndex, qint64 currentline, const TokenMap&
 		futureSync_.addFuture(QtConcurrent::run([this, beginLine, fileName, varShareMode, asyncMode, currentIndex]()->bool
 			{
 				QSharedPointer<Interpreter> interpreter(new Interpreter(currentIndex));
-				if (!interpreter.isNull())
-				{
-					subInterpreterList_.append(interpreter);
-					interpreter->setSubScript(true);
-					interpreter->parser_.initialize(nullptr);
-					interpreter->parser_.setMode(asyncMode);
-					if (interpreter->doFile(beginLine, fileName, this, varShareMode, asyncMode))
-						return true;
-				}
+				if (interpreter.isNull())
+					return false;
+
+				subInterpreterList_.append(interpreter);
+				interpreter->setSubScript(true);
+				interpreter->parser_.initialize(nullptr);
+				interpreter->parser_.setMode(asyncMode);
+				if (interpreter->doFile(beginLine, fileName, this, varShareMode, asyncMode))
+					return true;
+
 				return false;
 			}));
 	}
@@ -911,33 +912,32 @@ qint64 Interpreter::dostr(qint64 currentIndex, qint64 currentline, const TokenMa
 		asyncMode = Parser::kAsync;
 
 	QSharedPointer<Interpreter> interpreter(new Interpreter(currentIndex));
-	if (!interpreter.isNull())
-	{
-		subInterpreterList_.append(interpreter);
-		interpreter->setSubScript(true);
-		interpreter->parser_.setMode(asyncMode);
+	if (interpreter.isNull())
+		return Parser::kError;
 
-		if (asyncMode == Parser::kSync)
+	subInterpreterList_.append(interpreter);
+	interpreter->setSubScript(true);
+	interpreter->parser_.setMode(asyncMode);
+
+	if (asyncMode == Parser::kSync)
+	{
+		if (varShareMode == kShare)
 		{
-			if (varShareMode == kShare)
-			{
-				interpreter->parser_.setLuaMachinePointer(parser_.pLua_);
-				interpreter->parser_.setGlobalNameListPointer(parser_.getGlobalNameListPointer());
-				interpreter->parser_.setCounterPointer(parser_.getCounterPointer());
-				interpreter->parser_.setLuaLocalVarStringListPointer(parser_.getLuaLocalVarStringListPointer());
-				interpreter->parser_.setLocalVarStackPointer(parser_.getLocalVarStackPointer());
-			}
-			else
-			{
-				interpreter->parser_.initialize(&parser_);
-			}
+			interpreter->parser_.setLuaMachinePointer(parser_.pLua_);
+			interpreter->parser_.setGlobalNameListPointer(parser_.getGlobalNameListPointer());
+			interpreter->parser_.setCounterPointer(parser_.getCounterPointer());
+			interpreter->parser_.setLuaLocalVarStringListPointer(parser_.getLuaLocalVarStringListPointer());
+			interpreter->parser_.setLocalVarStackPointer(parser_.getLocalVarStackPointer());
 		}
 		else
-			interpreter->parser_.initialize(nullptr);
-
-
-		interpreter->doString(script, this, varShareMode);
+		{
+			interpreter->parser_.initialize(&parser_);
+		}
 	}
+	else
+		interpreter->parser_.initialize(nullptr);
+
+	interpreter->doString(script, this, varShareMode);
 
 	if (asyncMode == Parser::kSync)
 	{

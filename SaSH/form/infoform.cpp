@@ -51,14 +51,20 @@ InfoForm::InfoForm(qint64 index, qint64 defaultPage, QWidget* parent)
 	connect(this, &InfoForm::resetControlTextLanguage, this, &InfoForm::onResetControlTextLanguage, Qt::UniqueConnection);
 
 	QGridLayout* gridLayout = new QGridLayout;
+	Q_ASSERT(gridLayout != nullptr);
 	QOpenGLWidget* openGLWidget = new QOpenGLWidget;
-	openGLWidget->setLayout(gridLayout);
-	gridLayout->addWidget(ui.tabWidget);
+	Q_ASSERT(openGLWidget != nullptr);
+
+	if (gridLayout != nullptr && openGLWidget != nullptr)
+	{
+		openGLWidget->setLayout(gridLayout);
+		gridLayout->addWidget(ui.tabWidget);
 #if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
-	gridLayout->setMargin(0);
+		gridLayout->setMargin(0);
 #else
-	gridLayout->setContentsMargins(0, 0, 0, 0);
+		gridLayout->setContentsMargins(0, 0, 0, 0);
 #endif
+	}
 
 	ui.gridLayout->addWidget(openGLWidget);
 
@@ -66,43 +72,50 @@ InfoForm::InfoForm(qint64 index, qint64 defaultPage, QWidget* parent)
 	util::setTab(ui.tabWidget);
 
 	pBattleInfoForm_ = new BattleInfoForm(index, nullptr);
-	if (pBattleInfoForm_)
+	Q_ASSERT(pBattleInfoForm_ != nullptr);
+	if (pBattleInfoForm_ != nullptr)
 	{
 		ui.tabWidget->addTab(pBattleInfoForm_, tr("battleinfo"));
 	}
 
 	pCharInfoForm_ = new CharInfoForm(index, nullptr);
-	if (pCharInfoForm_)
+	Q_ASSERT(pCharInfoForm_ != nullptr);
+	if (pCharInfoForm_ != nullptr)
 	{
 		ui.tabWidget->addTab(pCharInfoForm_, tr("playerinfo"));
 	}
 
 	pItemInfoForm_ = new ItemInfoForm(index, nullptr);
-	if (pItemInfoForm_)
+	Q_ASSERT(pItemInfoForm_ != nullptr);
+	if (pItemInfoForm_ != nullptr)
 	{
 		ui.tabWidget->addTab(pItemInfoForm_, tr("iteminfo"));
 	}
 
 	pChatInfoForm_ = new ChatInfoForm(index, nullptr);
-	if (pChatInfoForm_)
+	Q_ASSERT(pChatInfoForm_ != nullptr);
+	if (pChatInfoForm_ != nullptr)
 	{
 		ui.tabWidget->addTab(pChatInfoForm_, tr("chatinfo"));
 	}
 
 	pMailInfoForm_ = new MailInfoForm(index, nullptr);
-	if (pMailInfoForm_)
+	Q_ASSERT(pMailInfoForm_ != nullptr);
+	if (pMailInfoForm_ != nullptr)
 	{
 		ui.tabWidget->addTab(pMailInfoForm_, tr("mailinfo"));
 	}
 
 	pPetInfoForm_ = new PetInfoForm(index, nullptr);
-	if (pPetInfoForm_)
+	Q_ASSERT(pPetInfoForm_ != nullptr);
+	if (pPetInfoForm_ != nullptr)
 	{
 		ui.tabWidget->addTab(pPetInfoForm_, tr("petinfo"));
 	}
 
 	pAfkInfoForm_ = new AfkInfoForm(index, nullptr);
-	if (pAfkInfoForm_)
+	Q_ASSERT(pAfkInfoForm_ != nullptr);
+	if (pAfkInfoForm_ != nullptr)
 	{
 		ui.tabWidget->addTab(pAfkInfoForm_, tr("afkinfo"));
 	}

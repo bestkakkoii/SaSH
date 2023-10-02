@@ -47,7 +47,7 @@ util::SafeHash<qint64, MainForm*> g_mainFormHash;
 
 void MainForm::createMenu(QMenuBar* pMenuBar)
 {
-	if (!pMenuBar)
+	if (pMenuBar == nullptr)
 		return;
 
 #pragma region StyleSheet
@@ -101,8 +101,9 @@ void MainForm::createMenu(QMenuBar* pMenuBar)
 		//QString alignedText = text + QString(spaceCount, ' ') + shortcutText;
 
 		QAction* pAction = new QAction(text, parent);
-		if (!pAction)
+		if (pAction == nullptr)
 			return;
+
 		if (!text.isEmpty() && !name.isEmpty())
 		{
 			if (name == "actionHide")
@@ -160,21 +161,28 @@ void MainForm::createMenu(QMenuBar* pMenuBar)
 	};
 
 	QMenu* pMenuSystem = new QMenu(QObject::tr("system"));
-	if (!pMenuSystem)
+	if (pMenuSystem == nullptr)
 		return;
-	//pMenuSystem->setStyleSheet(styleText);
+
 	pMenuBar->addMenu(pMenuSystem);
 
 	QMenu* pMenuOther = new QMenu(QObject::tr("other"));
-	if (!pMenuOther)
+	if (pMenuOther == nullptr)
+	{
+		delete pMenuSystem;
 		return;
-	//pMenuOther->setStyleSheet(styleText);
+	}
+
 	pMenuBar->addMenu(pMenuOther);
 
 	QMenu* pMenuFile = new QMenu(QObject::tr("file"));
-	if (!pMenuFile)
+	if (pMenuFile == nullptr)
+	{
+		delete pMenuSystem;
+		delete pMenuOther;
 		return;
-	//pMenuFile->setStyleSheet(styleText);
+	}
+
 	pMenuBar->addMenu(pMenuFile);
 
 	create(systemTable, pMenuSystem);
@@ -1145,32 +1153,29 @@ MainForm::MainForm(qint64 index, QWidget* parent)
 	connect(&signalDispatcher, &SignalDispatcher::appendChatLog, this, &MainForm::onAppendChatLog, Qt::UniqueConnection);
 
 	QMenuBar* pMenuBar = new QMenuBar(this);
-	if (pMenuBar)
+	if (pMenuBar != nullptr)
 	{
 		pMenuBar_ = pMenuBar;
 		pMenuBar->setObjectName("menuBar");
 		setMenuBar(pMenuBar);
 	}
 
-	{
-		ui.progressBar_pchp->setType(ProgressBar::kHP);
-		ui.progressBar_pcmp->setType(ProgressBar::kMP);
-		ui.progressBar_pethp->setType(ProgressBar::kHP);
-		ui.progressBar_ridehp->setType(ProgressBar::kHP);
 
-		connect(&signalDispatcher, &SignalDispatcher::updateCharHpProgressValue, ui.progressBar_pchp, &ProgressBar::onCurrentValueChanged);
-		connect(&signalDispatcher, &SignalDispatcher::updateCharMpProgressValue, ui.progressBar_pcmp, &ProgressBar::onCurrentValueChanged);
-		connect(&signalDispatcher, &SignalDispatcher::updatePetHpProgressValue, ui.progressBar_pethp, &ProgressBar::onCurrentValueChanged);
-		connect(&signalDispatcher, &SignalDispatcher::updateRideHpProgressValue, ui.progressBar_ridehp, &ProgressBar::onCurrentValueChanged);
-	}
+	ui.progressBar_pchp->setType(ProgressBar::kHP);
+	ui.progressBar_pcmp->setType(ProgressBar::kMP);
+	ui.progressBar_pethp->setType(ProgressBar::kHP);
+	ui.progressBar_ridehp->setType(ProgressBar::kHP);
 
-	{
-		connect(&signalDispatcher, &SignalDispatcher::updateStatusLabelTextChanged, this, &MainForm::onUpdateStatusLabelTextChanged);
-		connect(&signalDispatcher, &SignalDispatcher::updateMapLabelTextChanged, this, &MainForm::onUpdateMapLabelTextChanged);
-		connect(&signalDispatcher, &SignalDispatcher::updateCursorLabelTextChanged, this, &MainForm::onUpdateCursorLabelTextChanged);
-		connect(&signalDispatcher, &SignalDispatcher::updateCoordsPosLabelTextChanged, this, &MainForm::onUpdateCoordsPosLabelTextChanged);
-		connect(&signalDispatcher, &SignalDispatcher::updateCharInfoStone, this, &MainForm::onUpdateStonePosLabelTextChanged);
-	}
+	connect(&signalDispatcher, &SignalDispatcher::updateCharHpProgressValue, ui.progressBar_pchp, &ProgressBar::onCurrentValueChanged);
+	connect(&signalDispatcher, &SignalDispatcher::updateCharMpProgressValue, ui.progressBar_pcmp, &ProgressBar::onCurrentValueChanged);
+	connect(&signalDispatcher, &SignalDispatcher::updatePetHpProgressValue, ui.progressBar_pethp, &ProgressBar::onCurrentValueChanged);
+	connect(&signalDispatcher, &SignalDispatcher::updateRideHpProgressValue, ui.progressBar_ridehp, &ProgressBar::onCurrentValueChanged);
+
+	connect(&signalDispatcher, &SignalDispatcher::updateStatusLabelTextChanged, this, &MainForm::onUpdateStatusLabelTextChanged);
+	connect(&signalDispatcher, &SignalDispatcher::updateMapLabelTextChanged, this, &MainForm::onUpdateMapLabelTextChanged);
+	connect(&signalDispatcher, &SignalDispatcher::updateCursorLabelTextChanged, this, &MainForm::onUpdateCursorLabelTextChanged);
+	connect(&signalDispatcher, &SignalDispatcher::updateCoordsPosLabelTextChanged, this, &MainForm::onUpdateCoordsPosLabelTextChanged);
+	connect(&signalDispatcher, &SignalDispatcher::updateCharInfoStone, this, &MainForm::onUpdateStonePosLabelTextChanged);
 
 	ui.tabWidget_main->clear();
 	util::setTab(ui.tabWidget_main);
@@ -1178,35 +1183,27 @@ MainForm::MainForm(qint64 index, QWidget* parent)
 	resetControlTextLanguage();
 
 	pGeneralForm_ = new GeneralForm(index, nullptr);
-	if (pGeneralForm_)
+	if (pGeneralForm_ != nullptr)
 	{
 		ui.tabWidget_main->addTab(pGeneralForm_, tr("general"));
 	}
 
+	pMapForm_ = new MapForm(index, nullptr);
+	if (pMapForm_ != nullptr)
 	{
-		pMapForm_ = new MapForm(index, nullptr);
-		if (pMapForm_)
-		{
-			ui.tabWidget_main->addTab(pMapForm_, tr("map"));
-		}
+		ui.tabWidget_main->addTab(pMapForm_, tr("map"));
+	}
 
-		pOtherForm_ = new OtherForm(index, nullptr);
-		if (pOtherForm_)
-		{
-			ui.tabWidget_main->addTab(pOtherForm_, tr("other"));
-		}
+	pOtherForm_ = new OtherForm(index, nullptr);
+	if (pOtherForm_ != nullptr)
+	{
+		ui.tabWidget_main->addTab(pOtherForm_, tr("other"));
+	}
 
-		pScriptForm_ = new ScriptForm(index, nullptr);
-		if (pScriptForm_)
-		{
-			ui.tabWidget_main->addTab(pScriptForm_, tr("script"));
-		}
-
-		//pLuaScriptForm_ = new LuaScriptForm(index);
-		//if (pLuaScriptForm_)
-		//{
-		//	ui.tabWidget_main->addTab(pLuaScriptForm_, tr("lua"));
-		//}
+	pScriptForm_ = new ScriptForm(index, nullptr);
+	if (pScriptForm_ != nullptr)
+	{
+		ui.tabWidget_main->addTab(pScriptForm_, tr("script"));
 	}
 
 	resetControlTextLanguage();
@@ -1250,8 +1247,10 @@ void MainForm::closeEvent(QCloseEvent* e)
 
 	if (pInfoForm_ != nullptr)
 		pInfoForm_->close();
+
 	if (mapWidget_ != nullptr)
 		mapWidget_->close();
+
 	if (pScriptEditor_ != nullptr)
 		pScriptEditor_->close();
 
@@ -1289,34 +1288,77 @@ void MainForm::onMenuActionTriggered()
 	{
 		if (trayIcon == nullptr)
 		{
-			trayIcon = new QSystemTrayIcon(this);
-			QIcon icon = QIcon(":/image/ico.png");
-			trayIcon->setIcon(icon);
-			QMenu* trayMenu = new QMenu(this);
-			QAction* openAction = new QAction(tr("open"), this);
-			QAction* closeAction = new QAction(tr("close"), this);
-			trayMenu->addAction(openAction);
-			trayMenu->addAction(closeAction);
-			connect(openAction, &QAction::triggered, this, &QMainWindow::show);
-			connect(openAction, &QAction::triggered, [this]()
-				{
-					trayIcon->hide();
-				});
-			connect(closeAction, &QAction::triggered, this, &QMainWindow::close);
+			QMenu* trayMenu = nullptr;
+			QAction* openAction = nullptr;
+			QAction* closeAction = nullptr;
+			do
+			{
+				trayIcon = new QSystemTrayIcon(this);
+				if (trayIcon == nullptr)
+					break;
 
-			trayIcon->setContextMenu(trayMenu);
-			connect(trayIcon, &QSystemTrayIcon::activated, this, [this](QSystemTrayIcon::ActivationReason reason)
-				{
-					if (reason == QSystemTrayIcon::DoubleClick)
+				QIcon icon = QIcon(":/image/ico.png");
+				trayIcon->setIcon(icon);
+				trayMenu = new QMenu(this);
+				if (trayMenu == nullptr)
+					break;
+
+				openAction = new QAction(tr("open"), this);
+				if (openAction == nullptr)
+					break;
+
+				closeAction = new QAction(tr("close"), this);
+				if (closeAction == nullptr)
+					break;
+
+				trayMenu->addAction(openAction);
+				trayMenu->addAction(closeAction);
+				connect(openAction, &QAction::triggered, this, &QMainWindow::show);
+				connect(openAction, &QAction::triggered, [this]()
 					{
-						this->show();
 						trayIcon->hide();
-					}
-				});
-			trayIcon->setToolTip(windowTitle());
-			hide();
-			trayIcon->showMessage(tr("Tip"), tr("The program has been minimized to the system tray"), QSystemTrayIcon::Information, 5000);
-			trayIcon->show();
+					});
+				connect(closeAction, &QAction::triggered, this, &QMainWindow::close);
+
+				trayIcon->setContextMenu(trayMenu);
+				connect(trayIcon, &QSystemTrayIcon::activated, this, [this](QSystemTrayIcon::ActivationReason reason)
+					{
+						if (reason == QSystemTrayIcon::DoubleClick)
+						{
+							this->show();
+							trayIcon->hide();
+						}
+					});
+				trayIcon->setToolTip(windowTitle());
+				hide();
+				trayIcon->showMessage(tr("Tip"), tr("The program has been minimized to the system tray"), QSystemTrayIcon::Information, 5000);
+				trayIcon->show();
+				return;
+			} while (false);
+
+			if (trayIcon != nullptr)
+			{
+				delete trayIcon;
+				trayIcon = nullptr;
+			}
+
+			if (trayMenu != nullptr)
+			{
+				delete trayMenu;
+				trayMenu = nullptr;
+			}
+
+			if (openAction != nullptr)
+			{
+				delete openAction;
+				openAction = nullptr;
+			}
+
+			if (closeAction != nullptr)
+			{
+				delete closeAction;
+				closeAction = nullptr;
+			}
 		}
 		else
 		{
@@ -1335,7 +1377,7 @@ void MainForm::onMenuActionTriggered()
 	if (actionName == "actionWebsite")
 	{
 		CopyRightDialog* pCopyRightDialog = new CopyRightDialog(this);
-		if (pCopyRightDialog)
+		if (pCopyRightDialog != nullptr)
 		{
 			pCopyRightDialog->exec();
 		}
@@ -1375,10 +1417,12 @@ void MainForm::onMenuActionTriggered()
 		if (pInfoForm_ == nullptr)
 		{
 			pInfoForm_ = new InfoForm(currentIndex, -1, nullptr);
-			if (pInfoForm_)
+			if (pInfoForm_ != nullptr)
 			{
 				connect(pInfoForm_, &InfoForm::destroyed, [this]() { pInfoForm_ = nullptr; });
 			}
+			else
+				return;
 		}
 		pInfoForm_->hide();
 		pInfoForm_->show();
@@ -1390,11 +1434,12 @@ void MainForm::onMenuActionTriggered()
 		if (mapWidget_ == nullptr)
 		{
 			mapWidget_ = new MapWidget(currentIndex, nullptr);
-			if (mapWidget_)
+			if (mapWidget_ != nullptr)
 			{
 				connect(mapWidget_, &InfoForm::destroyed, [this]() { mapWidget_ = nullptr; });
-
 			}
+			else
+				return;
 		}
 		mapWidget_->hide();
 		mapWidget_->show();
@@ -1406,10 +1451,12 @@ void MainForm::onMenuActionTriggered()
 		if (pScriptEditor_ == nullptr)
 		{
 			pScriptEditor_ = new ScriptEditor(currentIndex, nullptr);
-			if (pScriptEditor_)
+			if (pScriptEditor_ != nullptr)
 			{
 				connect(pScriptEditor_, &InfoForm::destroyed, [this]() { pScriptEditor_ = nullptr; });
 			}
+			else
+				return;
 		}
 		pScriptEditor_->hide();
 		pScriptEditor_->show();
@@ -1461,7 +1508,7 @@ void MainForm::onMenuActionTriggered()
 			return;
 
 		Downloader* downloader = q_check_ptr(new Downloader());
-		if (downloader)
+		if (downloader != nullptr)
 		{
 			hide();
 			downloader->show();

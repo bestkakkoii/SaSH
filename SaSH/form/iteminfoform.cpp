@@ -41,8 +41,10 @@ ItemInfoForm::ItemInfoForm(qint64 index, QWidget* parent)
 			for (qint64 column = 0; column < columnCount; ++column)
 			{
 				QTableWidgetItem* item = new QTableWidgetItem("");
-				if (item)
-					tableWidget->setItem(row, column, item);
+				if (item == nullptr)
+					continue;
+
+				tableWidget->setItem(row, column, item);
 			}
 		}
 	};
@@ -109,13 +111,15 @@ void ItemInfoForm::onResetControlTextLanguage()
 		if (row >= size)
 			break;
 		QTableWidgetItem* item = ui.tableWidget_equip->item(row, 0);
-		if (item)
+		if (item != nullptr)
 			item->setText(equipVHeaderList.at(row));
 		else
 		{
 			item = new QTableWidgetItem(equipVHeaderList.at(row));
-			if (item)
-				ui.tableWidget_equip->setItem(row, 0, item);
+			if (item == nullptr)
+				continue;
+
+			ui.tableWidget_equip->setItem(row, 0, item);
 		}
 	}
 
@@ -129,13 +133,15 @@ void ItemInfoForm::onResetControlTextLanguage()
 	for (qint64 row = 0; row < rowCount; ++row)
 	{
 		QTableWidgetItem* item = ui.tableWidget_item->item(row, 0);
-		if (item)
+		if (item != nullptr)
 			item->setText(util::toQString(row + 1));
 		else
 		{
 			item = new QTableWidgetItem(util::toQString(row + 1));
-			if (item)
-				ui.tableWidget_item->setItem(row, 0, item);
+			if (item == nullptr)
+				continue;
+
+			ui.tableWidget_item->setItem(row, 0, item);
 		}
 	}
 }
@@ -174,18 +180,21 @@ void ItemInfoForm::updateItemInfoRowContents(QTableWidget* tableWidget, qint64 r
 		// 檢查指針
 		QTableWidgetItem* item = tableWidget->item(row, col);
 
-		if (!item)
-		{
-			// 如果指針為空，創建新的 QTableWidgetItem
-			item = new QTableWidgetItem(fillText);
-			item->setToolTip(fillText);
-			tableWidget->setItem(row, col, item);
-		}
-		else
+		if (item != nullptr)
 		{
 			// 如果指針不為空，則使用原有的 QTableWidgetItem
 			item->setText(fillText);
 			item->setToolTip(fillText);
+		}
+		else
+		{
+			// 如果指針為空，創建新的 QTableWidgetItem
+			item = new QTableWidgetItem(fillText);
+			if (item == nullptr)
+				continue;
+
+			item->setToolTip(fillText);
+			tableWidget->setItem(row, col, item);
 		}
 	}
 }

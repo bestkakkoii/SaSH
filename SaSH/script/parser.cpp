@@ -246,6 +246,21 @@ Parser::Parser(qint64 index)
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(index);
 	connect(&signalDispatcher, &SignalDispatcher::nodifyAllStop, this, &Parser::requestInterruption, Qt::UniqueConnection);
 	connect(&signalDispatcher, &SignalDispatcher::nodifyAllScriptStop, this, &Parser::requestInterruption, Qt::UniqueConnection);
+
+	if (counter_.isNull())
+		counter_.reset(new Counter());
+
+	if (globalNames_.isNull())
+		globalNames_.reset(new QStringList());
+
+	if (localVarStack_.isNull())
+		localVarStack_.reset(new QStack<QHash<QString, QVariant>>());
+
+	if (luaLocalVarStringList_.isNull())
+		luaLocalVarStringList_.reset(new QStringList());
+
+	if (pLua_.isNull())
+		pLua_.reset(new CLua(index));
 }
 
 Parser::~Parser()
@@ -257,11 +272,11 @@ void Parser::initialize(Parser* parent)
 {
 	qint64 index = getIndex();
 
-	if (globalNames_.isNull())
-		globalNames_.reset(new QStringList());
-
 	if (counter_.isNull())
 		counter_.reset(new Counter());
+
+	if (globalNames_.isNull())
+		globalNames_.reset(new QStringList());
 
 	if (localVarStack_.isNull())
 		localVarStack_.reset(new QStack<QHash<QString, QVariant>>());
@@ -612,7 +627,7 @@ void Parser::initialize(Parser* parent)
 	timer["new"] = [this](sol::this_state s)->qint64
 	{
 		QSharedPointer<QElapsedTimer> timer(new QElapsedTimer());
-		if (timer == nullptr)
+		if (timer.isNull())
 			return 0;
 
 		timer->start();
@@ -1701,7 +1716,10 @@ bool Parser::loadFile(const QString& fileName, QString* pcontent)
 {
 	util::ScopedFile f(fileName, QIODevice::ReadOnly | QIODevice::Text);
 	if (!f.isOpen())
+	{
+		handleError(kError, QString("unable to open file:'%1'").arg(fileName));
 		return false;
+	}
 
 	const QFileInfo fi(fileName);
 	const QString suffix = "." + fi.suffix();
@@ -1732,6 +1750,7 @@ bool Parser::loadFile(const QString& fileName, QString* pcontent)
 #endif
 	else
 	{
+		handleError(kError, QString("unable to support with suffix:'%1'").arg(suffix));
 		return false;
 	}
 
@@ -4088,6 +4107,9 @@ void Parser::exportVarInfo()
 	qint64 currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
 	if (!injector.isScriptDebugModeEnable.load(std::memory_order_acquire))
+		return;
+
+	if (!injector.isScriptEditorOpened.load(std::memory_order_acquire))
 		return;
 
 	QVariantHash varhash;

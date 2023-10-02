@@ -227,9 +227,10 @@ Server::Server(qint64 index, QObject* parent)
 	injector.autil.util_Init();
 	clearNetBuffer();
 
-	mapAnalyzer.reset(new MapAnalyzer(index));
-
 	injector.autil.PersonalKey.set("upupupupp");
+
+	mapAnalyzer.reset(new MapAnalyzer(index));
+	Q_ASSERT(!mapAnalyzer.isNull());
 }
 
 Server::~Server()
@@ -532,10 +533,11 @@ qint64 Server::dispatchMessage(char* encoded)
 	if (injector.autil.util_GetFunctionFromSlice(&func, &fieldcount) != 1)
 		return 0;
 
-	qDebug() << "fun" << func << "fieldcount" << fieldcount;
-
 	if (func == LSSPROTO_ERROR_RECV)
 		return -1;
+
+	if (func != LSSPROTO_B_RECV)
+		qDebug() << "fun" << func << "fieldcount" << fieldcount;
 
 	switch (func)
 	{
@@ -1412,7 +1414,7 @@ qint64 Server::getPartySize() const
 
 QString Server::getChatHistory(qint64 index)
 {
-	if (index < 0 || index > 19)
+	if (index < 0 || index >= MAX_CHAT_HISTORY)
 		return "\0";
 
 	qint64 currentIndex = getIndex();
@@ -1429,7 +1431,7 @@ QString Server::getChatHistory(qint64 index)
 	constexpr qint64 MAX_CHAT_BUFFER = 0x10C;
 	qint64 ptr = hModule + kOffsetChatBuffer + ((total - index) * MAX_CHAT_BUFFER);
 
-	return mem::readString(hProcess, ptr, MAX_CHAT_BUFFER, false);
+	return mem::readString(hProcess, ptr, MAX_CHAT_BUFFER, true);
 }
 
 //獲取周圍玩家名稱列表
@@ -3063,7 +3065,7 @@ bool Server::login(qint64 s)
 				injector.leftDoubleClick(380, 310);
 				config.writeArray<int>("System", "Login", "OK", { 380, 310 });
 			}
-		}
+	}
 #endif
 
 		break;
@@ -3161,10 +3163,10 @@ bool Server::login(qint64 s)
 			if (timer.hasExpired(1000))
 				break;
 
-		}
+	}
 #endif
 		break;
-	}
+}
 	case util::kStatusSelectSubServer:
 	{
 		if (subserver < 0 || subserver >= 15)
@@ -3310,7 +3312,7 @@ bool Server::login(qint64 s)
 					break;
 
 			}
-		}
+	}
 #endif
 		break;
 	}
@@ -8827,9 +8829,9 @@ void Server::lssproto_AB_recv(char* cdata)
 					break;
 				}
 			}
-		}
-#endif
 	}
+#endif
+}
 }
 
 //名片數據
@@ -8889,7 +8891,7 @@ void Server::lssproto_ABI_recv(int num, char* cdata)
 				break;
 			}
 		}
-	}
+}
 #endif
 }
 
@@ -10632,7 +10634,7 @@ void Server::lssproto_TK_recv(int index, char* cmessage, int color)
 			else
 			{
 				fontsize = 0;
-			}
+		}
 #endif
 			if (szToken.size() > 1)
 			{
@@ -10682,7 +10684,7 @@ void Server::lssproto_TK_recv(int index, char* cmessage, int color)
 
 				//SaveChatData(msg, szToken[0], false);
 			}
-		}
+	}
 		else
 			getStringToken(message, "|", 2, msg);
 #ifdef _TALK_WINDOW
@@ -10742,7 +10744,7 @@ void Server::lssproto_TK_recv(int index, char* cmessage, int color)
 #endif
 #endif
 #endif
-	}
+			}
 
 	chatQueue.enqueue(qMakePair(color, msg));
 	emit signalDispatcher.appendChatLog(msg, color);
@@ -10969,7 +10971,7 @@ void Server::lssproto_C_recv(char* cdata)
 						break;
 					}
 				}
-			}
+				}
 			else
 			{
 #ifdef _CHAR_PROFESSION			// 人物職業
@@ -11001,7 +11003,7 @@ void Server::lssproto_C_recv(char* cdata)
 				if (charType == 13 && noticeNo > 0)
 				{
 					setNpcNotice(ptAct, noticeNo);
-				}
+			}
 #endif
 			}
 
@@ -11300,10 +11302,10 @@ void Server::lssproto_C_recv(char* cdata)
 					}
 				}
 			}
-		}
+	}
 #endif
 #pragma endregion
-	}
+}
 }
 
 //周圍人、NPC..等等狀態改變必定是 _C_recv已經新增過的單位
@@ -11380,16 +11382,16 @@ void Server::lssproto_CA_recv(char* cdata)
 					}
 					else
 #endif
-				}
-				continue;
 			}
+				continue;
+	}
 
 #ifdef _STREET_VENDOR
 		if (act == 41)
 		{
 			memset(ptAct->szStreetVendorTitle, 0, sizeof(ptAct->szStreetVendorTitle));
 			strncpy_s(ptAct->szStreetVendorTitle, szStreetVendorTitle, sizeof(szStreetVendorTitle));
-		}
+}
 #endif
 	}
 }
@@ -12606,7 +12608,7 @@ void Server::lssproto_S_recv(char* cdata)
 			profession_skill[i].cooltime = getIntegerToken(data, "|", 1 + count);
 		}
 		break;
-	}
+}
 #endif
 #pragma endregion
 #pragma region PetEquip

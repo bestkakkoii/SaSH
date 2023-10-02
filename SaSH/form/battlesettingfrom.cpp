@@ -106,10 +106,13 @@ BattleSettingFrom::BattleSettingFrom(qint64 index, QWidget* parent)
 
 	// 創建 QGraphicsScene 和 QGraphicsView
 	QGraphicsScene* scene = new QGraphicsScene(this);
-	ui.graphicsView_condition->setScene(scene);
-	ui.graphicsView_condition->setRenderHint(QPainter::Antialiasing);
-	ui.graphicsView_condition->setAlignment(Qt::AlignLeft | Qt::AlignTop);
-	ui.graphicsView_condition->setCacheMode(QGraphicsView::CacheBackground);
+	if (scene != nullptr)
+	{
+		ui.graphicsView_condition->setScene(scene);
+		ui.graphicsView_condition->setRenderHint(QPainter::Antialiasing);
+		ui.graphicsView_condition->setAlignment(Qt::AlignLeft | Qt::AlignTop);
+		ui.graphicsView_condition->setCacheMode(QGraphicsView::CacheBackground);
+	}
 
 	ui.widget_preview->setReadOnly(false);
 
@@ -179,6 +182,9 @@ BattleSettingFrom::BattleSettingFrom(qint64 index, QWidget* parent)
 		}
 
 		BattleConditionTextItem* item = new  BattleConditionTextItem(textPair.first);
+		if (item == nullptr)
+			continue;
+
 		scene->addItem(item);
 
 		// 计算每个项的位置，靠左对齐
@@ -322,6 +328,9 @@ void BattleSettingFrom::onButtonClicked()
 			return;
 
 		QListWidgetItem* item = new QListWidgetItem(text);
+		if (item == nullptr)
+			return;
+
 		item->setSizeHint(QSize(0, 18));
 		item->setData(Qt::UserRole, QVariant::fromValue(ui.widget_preview->text()));
 		ui.listWidget->addItem(item);

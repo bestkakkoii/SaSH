@@ -1239,7 +1239,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		g_GameService.uninitialize();
 		SetWindowLongW(g_MainHwnd, GWL_WNDPROC, reinterpret_cast<LONG_PTR>(g_OldWndProc));
 		FreeLibraryAndExitThread(g_hDllModule, 0UL);
-}
+	}
 	case kGetModule:
 	{
 		return reinterpret_cast<int>(GetModuleHandleW(nullptr));
@@ -1274,7 +1274,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			std::cout << "SendPacket to GameServer:::"
 				<< " size:" << std::to_string(lParam)
 				<< " errorcode:" << WSAGetLastError() << std::endl;
-	}
+		}
 #else 
 		std::ignore = nRet;
 #endif
@@ -1431,7 +1431,7 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID)
 #endif
 
 #ifdef _DEBUG
-		CreateConsole();
+		//CreateConsole();
 #endif
 		DisableThreadLibraryCalls(hModule);
 	}

@@ -38,12 +38,13 @@ AfkInfoForm::AfkInfoForm(qint64 index, QWidget* parent)
 
 		qint64 rowCount = tableWidget->rowCount();
 		qint64 columnCount = tableWidget->columnCount();
+		QTableWidgetItem* item = nullptr;
 		for (qint64 row = 0; row < rowCount; ++row)
 		{
 			for (qint64 column = 0; column < columnCount; ++column)
 			{
-				QTableWidgetItem* item = new QTableWidgetItem("");
-				if (item)
+				item = new QTableWidgetItem("");
+				if (item != nullptr)
 					tableWidget->setItem(row, column, item);
 			}
 		}
@@ -101,7 +102,7 @@ void AfkInfoForm::updateTableText(qint64 row, qint64 col, const QString& text)
 	else
 	{
 		item = new QTableWidgetItem(text);
-		if (item)
+		if (item != nullptr)
 		{
 			item->setToolTip(text);
 			ui.tableWidget->setItem(row, col, item);

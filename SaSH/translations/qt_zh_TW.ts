@@ -3586,6 +3586,10 @@ No new version available. Do you still want to update?</source>
         <source>Usage: cpu: %1% | memory: %2MB / %3MB</source>
         <translation>占用率: CPU: %1% | 內存: %2MB / %3MB</translation>
     </message>
+    <message>
+        <source>Script speed:</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>ScriptEditorClass</name>
@@ -3659,11 +3663,11 @@ No new version available. Do you still want to update?</source>
     </message>
     <message>
         <source>AutoCleanLog</source>
-        <translation>自動清理日誌</translation>
+        <translation type="vanished">自動清理日誌</translation>
     </message>
     <message>
         <source>AutoFollow</source>
-        <translation>自動跟隨行數</translation>
+        <translation type="vanished">自動跟隨行數</translation>
     </message>
     <message>
         <source>New</source>

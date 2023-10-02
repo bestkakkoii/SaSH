@@ -71,6 +71,9 @@ public:
 		setFlags(QGraphicsItem::ItemIsSelectable | QGraphicsItem::ItemIsFocusable);
 
 		QGraphicsDropShadowEffect* shadowEffect = new QGraphicsDropShadowEffect;
+		if (shadowEffect == nullptr)
+			return;
+
 		shadowEffect->setBlurRadius(10); // 設置陰影的模糊半徑，根據需要調整
 		shadowEffect->setOffset(0, 1);   // 設置陰影的偏移量，根據需要調整
 		shadowEffect->setColor(Qt::black); // 設置陰影的顏色，根據需要調整

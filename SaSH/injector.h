@@ -40,7 +40,11 @@ public:
 		if (!instances.contains(index))
 		{
 			Injector* instance = new Injector(index);
-			instances.insert(index, instance);
+			Q_ASSERT(instance != nullptr);
+
+			if (instance != nullptr)
+				instances.insert(index, instance);
+
 		}
 		return *instances.value(index);
 	}
@@ -192,6 +196,8 @@ public:
 	qint64 currentServerListIndex = 0;
 
 	std::atomic_bool isScriptDebugModeEnable = false;
+
+	std::atomic_bool isScriptEditorOpened = false;
 
 	quint64 scriptThreadId = 0;
 

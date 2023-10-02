@@ -413,8 +413,9 @@ ListView::ListView(QWidget* parent)
 	setHorizontalScrollMode(QAbstractItemView::ScrollPerItem);
 	setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
 	setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
-	ItemDelegate* delegate = new ItemDelegate(this);
-	setItemDelegate(delegate);
+	ItemDelegate* pdelegate = new ItemDelegate(this);
+	if (pdelegate != nullptr)
+		setItemDelegate(pdelegate);
 }
 
 bool ListView::eventFilter(QObject* obj, QEvent* e)
