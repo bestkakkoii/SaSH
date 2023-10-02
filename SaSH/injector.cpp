@@ -22,7 +22,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 util::SafeHash<qint64, Injector*> Injector::instances;
 
-constexpr const char* InjectDllName = u8"sadll.dll";
+constexpr const char* InjectDllName = "sadll.dll";
 constexpr qint64 MessageTimeout = 3000;
 constexpr qint64 MAX_TIMEOUT = 30000;
 
@@ -53,7 +53,7 @@ void Injector::reset(qint64 index)//static
 	if (!instances.contains(index))
 		return;
 
-	Injector* instance = instances.take(index);
+	Injector* instance = instances.value(index);
 
 	instance->server.reset(nullptr);
 	instance->hGameModule_ = 0ULL;
@@ -61,6 +61,14 @@ void Injector::reset(qint64 index)//static
 	instance->pi_ = {};
 	instance->processHandle_.reset();
 
+	instance->autil.util_Clear();
+	instance->currentGameExePath = "";//當前使用的遊戲進程完整路徑
+	instance->IS_SCRIPT_FLAG.store(false, std::memory_order_release);//主腳本是否運行
+	instance->IS_SCRIPT_INTERRUPT.store(false, std::memory_order_release);
+	instance->currentServerListIndex = 0;
+	instance->scriptThreadId = 0;
+	instance->IS_INJECT_OK = false;
+#if 0
 	//紀錄當前設置
 	QHash<util::UserSetting, bool> enableHash = instance->getEnablesHash();
 	QHash<util::UserSetting, qint64> valueHash = instance->getValuesHash();
@@ -76,7 +84,7 @@ void Injector::reset(qint64 index)//static
 
 	HWND _hWnd = instance->getParentWidget();
 
-	delete instance;
+	instance->deleteLater();
 	instance = new Injector(index);
 	if (instance != nullptr)
 	{
@@ -97,7 +105,7 @@ void Injector::reset(qint64 index)//static
 
 		instances.insert(index, instance);
 	}
-
+#endif
 }
 
 Injector::CreateProcessResult Injector::createProcess(Injector::process_information_t& pi)
@@ -506,15 +514,8 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 
 		timer.restart();
 		QOperatingSystemVersion version = QOperatingSystemVersion::current();
-		if (version > QOperatingSystemVersion::Windows7)
-		{
-			mem::inject(currentIndex, processHandle_, dllPath, &hookdllModule_, &hGameModule_);
-		}
-		else
-		{
-			//Win7
-			mem::injectByWin7(currentIndex, processHandle_, dllPath, &hookdllModule_, &hGameModule_);
-		}
+		//Win7
+		mem::injectByWin7(currentIndex, processHandle_, dllPath, &hookdllModule_, &hGameModule_);
 
 		qDebug() << "inject cost:" << timer.elapsed() << "ms";
 
@@ -582,6 +583,7 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 			::SetWindowLongW(pi.hWnd, GWL_STYLE, dwStyle);
 
 		bret = true;
+		IS_INJECT_OK = true;
 	} while (false);
 
 	if (!bret)

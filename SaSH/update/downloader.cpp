@@ -239,21 +239,26 @@ Downloader::Downloader(QWidget* parent)
 	setFont(font);
 
 	QGraphicsDropShadowEffect* shadowEffect = new QGraphicsDropShadowEffect(ui.widget);
-	// 陰影偏移
-	shadowEffect->setOffset(0, 1);
-	// 陰影顏色;
-	shadowEffect->setColor(Qt::black);
-	// 陰影半徑;
-	shadowEffect->setBlurRadius(SHADOW_WIDTH);
-	// 給窗口設置上當前的陰影效果;
-	this->setGraphicsEffect(shadowEffect);
+	if (shadowEffect != nullptr)
+	{
+		// 陰影偏移
+		shadowEffect->setOffset(0, 1);
+		// 陰影顏色;
+		shadowEffect->setColor(Qt::black);
+		// 陰影半徑;
+		shadowEffect->setBlurRadius(SHADOW_WIDTH);
+		// 給窗口設置上當前的陰影效果;
+		setGraphicsEffect(shadowEffect);
+	}
 
 	QMovie* movie = new QMovie("://image/jimmy.gif");
-	movie->setObjectName("movieLoading");
-	movie->setScaledSize(QSize(44, 72));
-	ui.label->setMovie(movie);
-	movie->start();
-
+	if (movie != nullptr)
+	{
+		movie->setObjectName("movieLoading");
+		movie->setScaledSize(QSize(44, 72));
+		ui.label->setMovie(movie);
+		movie->start();
+	}
 
 	qint64 n = PROGRESS_BAR_BEGIN_Y;
 	for (qint64 i = 0; i < MAX_DOWNLOAD_THREAD; ++i)
@@ -381,6 +386,9 @@ void Downloader::start()
 QProgressBar* Downloader::createProgressBar(qint64 startY)
 {
 	QProgressBar* pProgressBar = (new QProgressBar(ui.widget));
+	if (pProgressBar == nullptr)
+		return nullptr;
+
 	constexpr const char* cstyle = R"(
 		QProgressBar{
 			font:8pt "Joystix Monospace";
@@ -405,7 +413,7 @@ QProgressBar* Downloader::createProgressBar(qint64 startY)
 	pProgressBar->setMaximum(100);
 	pProgressBar->setValue(0);
 	ui.label_3->move(10, startY + MAX_BAR_HEIGHT + MAX_BAR_SEP_LEN);
-	this->resize(1038, startY + ((MAX_BAR_HEIGHT + MAX_BAR_SEP_LEN) + 30) + 18);
+	resize(1038, startY + ((MAX_BAR_HEIGHT + MAX_BAR_SEP_LEN) + 30) + 18);
 	return pProgressBar;
 }
 
@@ -657,6 +665,9 @@ bool Downloader::asyncDownloadFile(const QString& szUrl, const QString& dir, con
 	if (strUrl.length())
 	{
 		QSharedPointer<CurlDownload> cur(q_check_ptr(new CurlDownload()));
+		if (cur.isNull())
+			return false;
+
 		cur->setProgressFunPtrs(g_vpfnProgressFunc);
 		cur->downLoad(MAX_DOWNLOAD_THREAD, strUrl.toUtf8().constData(), dir.toUtf8().constData(), szSaveFileName.toUtf8().constData());
 		return true;

@@ -156,7 +156,7 @@ void MapGLWidget::mouseDoubleClickEvent(QMouseEvent* event)
 	if (event->button() == Qt::LeftButton)
 	{
 		//get QCursor
-		emit notifyMousePosition(event->pos());
+		emit notifyLeftDoubleClick(event->pos());
 	}
 }
 

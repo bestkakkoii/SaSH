@@ -29,10 +29,11 @@ constexpr qint64 kCallPlaceHoldSize = 2;
 //"格式化" 最小佔位
 constexpr qint64 kFormatPlaceHoldSize = 3;
 
+//不輸出到列表也不做更動的全局變量名稱
 static const QStringList exceptionList = {
 	"TARGET", "_THIS_PARSER", "_INDEX_", "_THIS", "_G", "_HOOKFORSTOP",
 	"BattleClass", "CharClass", "InfoClass", "ItemClass", "MapClass", "PetClass", "SystemClass", "TARGET", "Timer", "_G", "_HOOKFORSTOP", "_INDEX", "_INDEX_", "_ROWCOUNT_",
-	"_THIS", "_THIS_PARSER", "_print", "assert", "base",  "collectgarbage",
+	"_THIS", "_print", "assert", "base",  "collectgarbage",
 	"contains", "copy", "coroutine", "dbclick", "debug", "dofile", "dragto", "error", "find", "format", "full", "getmetatable",
 	"half", "input", "io", "ipairs", "lclick", "load", "loadfile", "loadset", "lower", "math", "mkpath", "mktable", "dlg", "ocr",
 	"msg", "next", "os", "package", "pairs", "pcall",  "print", "printf", "rawequal",
@@ -189,7 +190,7 @@ void hookProc(lua_State* L, lua_Debug* ar)
 	sol::this_state s = L;
 	sol::state_view lua(L);
 
-	if (ar->event == LUA_MASKLINE || ar->event == LUA_MASKCALL || ar->event == LUA_MASKRET)
+	if (ar->event == LUA_MASKRET || ar->event == LUA_MASKLINE || ar->event == LUA_MASKCALL)
 	{
 		if (!lua["_THIS_PARSER"].valid())
 			return;
@@ -197,6 +198,8 @@ void hookProc(lua_State* L, lua_Debug* ar)
 		Parser* pparser = lua["_THIS_PARSER"].get<Parser*>();
 		if (pparser == nullptr)
 			return;
+
+		lua.set("_LINE_", pparser->getCurrentLine() + 1);
 
 		//獲取區域變量數值
 		qint64 i;
@@ -230,6 +233,8 @@ void hookProc(lua_State* L, lua_Debug* ar)
 
 		if (pparser->isInterruptionRequested())
 			luadebug::tryPopCustomErrorMsg(s, luadebug::ERROR_FLAG_DETECT_STOP);
+		else
+			luadebug::checkStopAndPause(s);
 	}
 }
 
@@ -238,11 +243,49 @@ Parser::Parser(qint64 index)
 	, lexer_(index)
 {
 	qDebug() << "Parser is created!!";
-	setIndex(index);
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(index);
 	connect(&signalDispatcher, &SignalDispatcher::nodifyAllStop, this, &Parser::requestInterruption, Qt::UniqueConnection);
+	connect(&signalDispatcher, &SignalDispatcher::nodifyAllScriptStop, this, &Parser::requestInterruption, Qt::UniqueConnection);
 
-	pLua_.reset(new CLua(index));
+	if (counter_.isNull())
+		counter_.reset(new Counter());
+
+	if (globalNames_.isNull())
+		globalNames_.reset(new QStringList());
+
+	if (localVarStack_.isNull())
+		localVarStack_.reset(new QStack<QHash<QString, QVariant>>());
+
+	if (luaLocalVarStringList_.isNull())
+		luaLocalVarStringList_.reset(new QStringList());
+
+	if (pLua_.isNull())
+		pLua_.reset(new CLua(index));
+}
+
+Parser::~Parser()
+{
+	qDebug() << "Parser is distory!!";
+}
+
+void Parser::initialize(Parser* parent)
+{
+	qint64 index = getIndex();
+
+	if (counter_.isNull())
+		counter_.reset(new Counter());
+
+	if (globalNames_.isNull())
+		globalNames_.reset(new QStringList());
+
+	if (localVarStack_.isNull())
+		localVarStack_.reset(new QStack<QHash<QString, QVariant>>());
+
+	if (luaLocalVarStringList_.isNull())
+		luaLocalVarStringList_.reset(new QStringList());
+
+	if (pLua_.isNull())
+		pLua_.reset(new CLua(index));
 
 	pLua_->setHookEnabled(false);
 
@@ -271,12 +314,19 @@ Parser::Parser(qint64 index)
 
 	insertGlobalVar("INDEX", index);
 
-	if (globalNames_.isEmpty())
+	if (globalNames_->isEmpty())
 	{
-		globalNames_ = QStringList{ "char", "pet", "item", "map", "magic", "skill", "petskill", "petequip", "dialog", "chat", "battle", "point", "team", "card", "unit", "INDEX" };
+		*globalNames_ = QStringList{ "char", "pet", "item", "map", "magic", "skill", "petskill", "petequip", "dialog", "chat", "battle", "point", "team", "card", "unit", "INDEX" };
 	}
 
 #pragma region init
+	lua_.set_function("getgamestate", [this](qint64 id)->qint64
+		{
+			Injector& injector = Injector::getInstance(getIndex());
+			InterfaceSender sender(injector.getParentWidget());
+
+			return sender.GetGameState(id);
+		});
 
 	lua_.set_function("rungame", [this](qint64 id)->qint64
 		{
@@ -284,6 +334,14 @@ Parser::Parser(qint64 index)
 			InterfaceSender sender(injector.getParentWidget());
 
 			return sender.RunGame(id);
+		});
+
+	lua_.set_function("closegame", [this](qint64 id)->qint64
+		{
+			Injector& injector = Injector::getInstance(getIndex());
+			InterfaceSender sender(injector.getParentWidget());
+
+			return sender.CloseGame(id);
 		});
 
 	lua_.set_function("openwindow", [this](qint64 id)->qint64
@@ -302,7 +360,39 @@ Parser::Parser(qint64 index)
 			QString acc = util::toQString(account);
 			QString pwd = util::toQString(password);
 
-			return sender.SetAutoLogin(id, server, subserver, position, acc, pwd);
+			return sender.SetAutoLogin(id, server - 1, subserver - 1, position - 1, acc, pwd);
+		});
+
+	lua_.set_function("runex", [this](qint64 id, std::string path)->qint64
+		{
+			Injector& injector = Injector::getInstance(getIndex());
+			InterfaceSender sender(injector.getParentWidget());
+
+			return sender.RunFile(id, util::toQString(path));
+		});
+
+	lua_.set_function("stoprunex", [this](qint64 id)->qint64
+		{
+			Injector& injector = Injector::getInstance(getIndex());
+			InterfaceSender sender(injector.getParentWidget());
+
+			return sender.StopFile(id);
+		});
+
+	lua_.set_function("dostrex", [this](qint64 id, std::string content)->qint64
+		{
+			Injector& injector = Injector::getInstance(getIndex());
+			InterfaceSender sender(injector.getParentWidget());
+
+			return sender.RunScript(id, util::toQString(content));
+		});
+
+	lua_.set_function("loadsetex", [this](qint64 id, std::string content)->qint64
+		{
+			Injector& injector = Injector::getInstance(getIndex());
+			InterfaceSender sender(injector.getParentWidget());
+
+			return sender.LoadSettings(id, util::toQString(content));
 		});
 
 	lua_.set_function("msg", [this](sol::object otext, sol::object otitle, sol::object otype, sol::this_state s)->std::string
@@ -387,7 +477,7 @@ Parser::Parser(qint64 index)
 				buttonFlag |= value;
 			}
 
-			injector.server->IS_WAITFOR_CUSTOM_DIALOG_FLAG = true;
+			injector.server->IS_WAITFOR_CUSTOM_DIALOG_FLAG.store(true, std::memory_order_release);
 			injector.server->createRemoteDialog(type, buttonFlag, text);
 			bool bret = false;
 			QElapsedTimer timer; timer.start();
@@ -398,14 +488,14 @@ Parser::Parser(qint64 index)
 				if (timer.hasExpired(timeout))
 					break;
 
-				if (!injector.server->IS_WAITFOR_CUSTOM_DIALOG_FLAG)
+				if (!injector.server->IS_WAITFOR_CUSTOM_DIALOG_FLAG.load(std::memory_order_acquire))
 				{
 					bret = true;
 					break;
 				}
 				QThread::msleep(100);
 			}
-			injector.server->IS_WAITFOR_CUSTOM_DIALOG_FLAG = false;
+			injector.server->IS_WAITFOR_CUSTOM_DIALOG_FLAG.store(false, std::memory_order_release);
 
 			if (!bret)
 			{
@@ -417,20 +507,20 @@ Parser::Parser(qint64 index)
 				{ "OK", BUTTON_OK},
 				{ "CANCEL", BUTTON_CANCEL },
 				//big5
-				{ u8"確定", BUTTON_YES },
-				{ u8"取消", BUTTON_NO },
-				{ u8"上一頁", BUTTON_PREVIOUS },
-				{ u8"下一頁", BUTTON_NEXT },
+				{ "確定", BUTTON_YES },
+				{ "取消", BUTTON_NO },
+				{ "上一頁", BUTTON_PREVIOUS },
+				{ "下一頁", BUTTON_NEXT },
 			};
 
 			QHash<QString, BUTTON_TYPE> gb2312 = {
 				{ "OK", BUTTON_OK},
 				{ "CANCEL", BUTTON_CANCEL },
 				//gb2312
-				{ u8"确定", BUTTON_YES },
-				{ u8"取消", BUTTON_NO },
-				{ u8"上一页", BUTTON_PREVIOUS },
-				{ u8"下一页", BUTTON_NEXT },
+				{ "确定", BUTTON_YES },
+				{ "取消", BUTTON_NO },
+				{ "上一页", BUTTON_PREVIOUS },
+				{ "下一页", BUTTON_NEXT },
 			};
 
 			customdialog_t dialog = injector.server->customDialog;
@@ -537,7 +627,7 @@ Parser::Parser(qint64 index)
 	timer["new"] = [this](sol::this_state s)->qint64
 	{
 		QSharedPointer<QElapsedTimer> timer(new QElapsedTimer());
-		if (timer == nullptr)
+		if (timer.isNull())
 			return 0;
 
 		timer->start();
@@ -679,7 +769,7 @@ Parser::Parser(qint64 index)
 			if (formatStr.isEmpty())
 				return sol::lua_nil;
 
-			static const QRegularExpression rexFormat(R"(\{([T|C])?\s*\:([\w\p{Han}]+(\['*"*[\w\p{Han}]+'*"*\])*)\})");
+			static const QRegularExpression rexFormat(R"(\{\s*(?:([CT]?))\s*:\s*([^}]+)\s*\})");
 			if (!formatStr.contains(rexFormat))
 				return sol::make_object(s, sformat);
 
@@ -1120,16 +1210,24 @@ Parser::Parser(qint64 index)
 			return result;
 		});
 
-	lua_["mkpath"] = [](std::string filename, sol::object obj, sol::this_state s)->std::string
+	lua_["mkpath"] = [](std::string sfilename, sol::object obj, sol::this_state s)->std::string
 	{
 		QString retstring = "\0";
+		QString fileName = util::toQString(sfilename);
+		QFileInfo fileinfo(fileName);
+		QString suffix = fileinfo.suffix();
+		if (suffix.isEmpty())
+			fileName += ".txt";
+		else if (suffix != "txt")
+			fileName.replace(suffix, "txt");
+
 		if (obj == sol::lua_nil)
 		{
-			retstring = util::findFileFromName(util::toQString(filename) + ".txt");
+			retstring = util::findFileFromName(fileName);
 		}
 		else if (obj.is<std::string>())
 		{
-			retstring = util::findFileFromName(util::toQString(filename) + ".txt", util::toQString(obj));
+			retstring = util::findFileFromName(fileName, util::toQString(obj));
 		}
 
 		return retstring.toUtf8().constData();
@@ -1609,13 +1707,8 @@ Parser::Parser(qint64 index)
 #pragma endregion
 
 	lua_State* L = lua_.lua_state();
-	lua_["_THIS_PARSER"] = this;
-	lua_sethook(L, &hookProc, LUA_MASKRET, NULL);
-}
-
-Parser::~Parser()
-{
-	qDebug() << "Parser is distory!!";
+	lua_["_THIS_PARSER"] = parent;
+	lua_sethook(L, &hookProc, LUA_MASKRET | LUA_MASKCALL | LUA_MASKLINE, NULL);//
 }
 
 //讀取腳本文件並轉換成Tokens
@@ -1623,7 +1716,10 @@ bool Parser::loadFile(const QString& fileName, QString* pcontent)
 {
 	util::ScopedFile f(fileName, QIODevice::ReadOnly | QIODevice::Text);
 	if (!f.isOpen())
+	{
+		handleError(kError, QString("unable to open file:'%1'").arg(fileName));
 		return false;
+	}
 
 	const QFileInfo fi(fileName);
 	const QString suffix = "." + fi.suffix();
@@ -1654,6 +1750,7 @@ bool Parser::loadFile(const QString& fileName, QString* pcontent)
 #endif
 	else
 	{
+		handleError(kError, QString("unable to support with suffix:'%1'").arg(suffix));
 		return false;
 	}
 
@@ -1663,8 +1760,7 @@ bool Parser::loadFile(const QString& fileName, QString* pcontent)
 	}
 
 	bool bret = loadString(c);
-	if (bret)
-		scriptFileName_ = fileName;
+
 	return bret;
 }
 
@@ -1724,8 +1820,6 @@ void Parser::handleError(qint64 err, const QString& addition)
 
 	qint64 currentIndex = getIndex();
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
-	if (err == kError)
-		emit signalDispatcher.addErrorMarker(getCurrentLine(), err);
 
 	QString msg;
 	switch (err)
@@ -1733,24 +1827,43 @@ void Parser::handleError(qint64 err, const QString& addition)
 	case kNoChange:
 		return;
 	case kError:
+	{
+		--counter_->validCommand;
+		++counter_->error;
 		msg = QObject::tr("unknown error") + extMsg;
 		break;
+	}
 	case kServerNotReady:
 	{
+		--counter_->validCommand;
+		++counter_->error;
 		msg = QObject::tr("server not ready") + extMsg;
 		break;
 	}
 	case kLabelError:
+	{
+		--counter_->validCommand;
+		++counter_->error;
 		msg = QObject::tr("label incorrect or not exist") + extMsg;
 		break;
+	}
 	case kUnknownCommand:
 	{
+		--counter_->validCommand;
+		++counter_->error;
 		QString cmd = currentLineTokens_.value(0).data.toString();
 		msg = QObject::tr("unknown command: %1").arg(cmd) + extMsg;
 		break;
 	}
 	case kLuaError:
 	{
+		if (extMsg.contains("FLAG_DETECT_STOP"))
+		{
+			emit signalDispatcher.appendScriptLog(QObject::tr("[info]") + QObject::tr("@ %1 | detail:%2").arg(getCurrentLine() + 1).arg("stop by user"), 6);
+			return;
+		}
+		--counter_->validCommand;
+		++counter_->error;
 		QString cmd = currentLineTokens_.value(0).data.toString();
 		msg = QObject::tr("[lua]:%1").arg(cmd) + extMsg;
 		break;
@@ -1759,6 +1872,8 @@ void Parser::handleError(qint64 err, const QString& addition)
 	{
 		if (err >= kArgError && err <= kArgError + 20ll)
 		{
+			--counter_->validCommand;
+			++counter_->error;
 			if (err == kArgError)
 				msg = QObject::tr("argument error") + extMsg;
 			else
@@ -1773,7 +1888,7 @@ void Parser::handleError(qint64 err, const QString& addition)
 }
 
 //三目運算表達式替換
-void Parser::checkConditionalOp(QString& expr)
+void Parser::checkConditionalOperator(QString& expr)
 {
 	static const QRegularExpression rexConditional(R"(([^\,]+)\s+\?\s+([^\,]+)\s+\:\s+([^\,]+))");
 	if (expr.contains(rexConditional))
@@ -1798,14 +1913,14 @@ void Parser::checkConditionalOp(QString& expr)
 QVariant Parser::luaDoString(QString expr)
 {
 	if (expr.isEmpty())
-	{
 		return "nil";
-	}
 
-	importVariablesToLua(expr);
-	checkConditionalOp(expr);
+	importLocalVariablesToPreLuaList();
+	try { updateSysConstKeyword(expr); }
+	catch (...) {}
+	checkConditionalOperator(expr);
 
-	QStringList localVars = luaLocalVarStringList;
+	QStringList localVars = *luaLocalVarStringList_;
 	localVars.append(expr);
 	QString exprStr = localVars.join("\n");
 
@@ -1844,8 +1959,8 @@ QVariant Parser::luaDoString(QString expr)
 		return retObject.as<double>();
 	else if (retObject.is<sol::table>())
 	{
-		qint64 deep = kMaxLuaTableDepth;
-		return getLuaTableString(retObject.as<sol::table>(), deep);
+		qint64 depth = kMaxLuaTableDepth;
+		return getLuaTableString(retObject.as<sol::table>(), depth);
 	}
 
 	return "nil";
@@ -1874,8 +1989,8 @@ typename std::enable_if<
 	}
 
 	if (expr == "return" || expr == "back" || expr == "continue" || expr == "break"
-		|| expr == QString(u8"返回") || expr == QString(u8"跳回") || expr == QString(u8"繼續") || expr == QString(u8"跳出")
-		|| expr == QString(u8"继续") || expr == "exit")
+		|| expr == QString("返回") || expr == QString("跳回") || expr == QString("繼續") || expr == QString("跳出")
+		|| expr == QString("继续") || expr == "exit")
 	{
 		if constexpr (std::is_same<T, QVariant>::value || std::is_same<T, QString>::value)
 			*ret = expr;
@@ -1913,83 +2028,6 @@ typename std::enable_if<
 	return false;
 }
 
-void Parser::removeEscapeChar(QString* str) const
-{
-	if (nullptr == str)
-		return;
-
-	str->replace("\\\"", "@@@@@@@@@@");
-	str->replace("\"", "");
-	str->replace("@@@@@@@@@@", "\"");
-
-	str->replace("'", "@@@@@@@@@@");
-	str->replace("\\'", "");
-	str->replace("@@@@@@@@@@", "'");
-
-	str->replace("\\\"", "\"");
-	str->replace("\\\'", "\'");
-	str->replace("\\\\", "\\");
-	str->replace("\\n", "\n");
-	str->replace("\\r", "\r");
-	str->replace("\\t", "\t");
-	str->replace("\\b", "\b");
-	str->replace("\\f", "\f");
-	str->replace("\\v", "\v");
-	str->replace("\\a", "\a");
-	str->replace("\\?", "\?");
-	str->replace("\\0", "\0");
-}
-
-//嘗試取指定位置的token轉為QVariant
-bool Parser::toVariant(const TokenMap& TK, qint64 idx, QVariant* ret)
-{
-	if (!TK.contains(idx))
-		return false;
-	if (ret == nullptr)
-		return false;
-
-	RESERVE type = TK.value(idx).type;
-	QVariant var = TK.value(idx).data;
-	if (!var.isValid())
-		return false;
-
-	if (type == TK_STRING || type == TK_CAOS)
-	{
-		QString s = var.toString();
-
-		QString exprStrUTF8;
-		qint64 value = 0;
-		if (exprTo(s, &value))
-			*ret = value;
-		else if (exprTo(s, &exprStrUTF8))
-			*ret = exprStrUTF8;
-		else
-			*ret = var;
-	}
-	else if (type == TK_BOOL)
-	{
-		bool ok = false;
-		qint64 value = var.toLongLong(&ok);
-		if (!ok)
-			return false;
-		*ret = value;
-	}
-	else if (type == TK_DOUBLE)
-	{
-		bool ok = false;
-		double value = var.toDouble(&ok);
-		if (!ok)
-			return false;
-		*ret = value;
-	}
-	else
-	{
-		*ret = var;
-	}
-
-	return true;
-}
-
 //嘗試取指定位置的token轉為字符串
 bool Parser::checkString(const TokenMap& TK, qint64 idx, QString* ret)
 {
@@ -2007,18 +2045,16 @@ bool Parser::checkString(const TokenMap& TK, qint64 idx, QString* ret)
 	if (type == TK_CSTRING)
 	{
 		*ret = var.toString();
-		removeEscapeChar(ret);
 	}
 	else if (type == TK_STRING || type == TK_CAOS)
 	{
-		*ret = var.toString();
-		removeEscapeChar(ret);
+		QString expr = var.toString();
 
-		QString exprStrUTF8;
-		if (!exprTo(*ret, &exprStrUTF8))
+		QString resultStr;
+		if (!exprTo(expr, &resultStr))
 			return false;
 
-		*ret = exprStrUTF8;
+		*ret = resultStr;
 
 	}
 	else
@@ -2207,19 +2243,19 @@ QVariant Parser::checkValue(const TokenMap TK, qint64 idx, QVariant::Type type)
 	bool bvalue;
 	double dvalue;
 
-	if (checkBoolean(currentLineTokens_, idx, &bvalue))
+	if (checkBoolean(TK, idx, &bvalue))
 	{
 		varValue = bvalue;
 	}
-	else if (checkNumber(currentLineTokens_, idx, &dvalue))
+	else if (checkNumber(TK, idx, &dvalue))
 	{
 		varValue = dvalue;
 	}
-	else if (checkInteger(currentLineTokens_, idx, &ivalue))
+	else if (checkInteger(TK, idx, &ivalue))
 	{
 		varValue = ivalue;
 	}
-	else if (checkString(currentLineTokens_, idx, &text))
+	else if (checkString(TK, idx, &text))
 	{
 		varValue = text;
 	}
@@ -2259,8 +2295,8 @@ qint64 Parser::checkJump(const TokenMap& TK, qint64 idx, bool expr, JumpBehavior
 		QString preCheck = TK.value(idx).data.toString().simplified();
 
 		if (preCheck == "return" || preCheck == "back" || preCheck == "continue" || preCheck == "break"
-			|| preCheck == QString(u8"返回") || preCheck == QString(u8"跳回") || preCheck == QString(u8"繼續") || preCheck == QString(u8"跳出")
-			|| preCheck == QString(u8"继续") || preCheck == "exit")
+			|| preCheck == QString("返回") || preCheck == QString("跳回") || preCheck == QString("繼續") || preCheck == QString("跳出")
+			|| preCheck == QString("继续") || preCheck == "exit")
 		{
 
 			label = preCheck;
@@ -2415,8 +2451,8 @@ QVariant Parser::getGlobalVarValue(const QString& name)
 		var = obj.as<double>();
 	else if (obj.is<sol::table>())
 	{
-		qint64 deep = kMaxLuaTableDepth;
-		var = getLuaTableString(obj.as<sol::table>(), deep);
+		qint64 depth = kMaxLuaTableDepth;
+		var = getLuaTableString(obj.as<sol::table>(), depth);
 	}
 	else
 		var = "nil";
@@ -2424,14 +2460,14 @@ QVariant Parser::getGlobalVarValue(const QString& name)
 	return var;
 }
 
-//表達式替換內容
-void Parser::importVariablesToLua(const QString& expr)
+//局變量保存到預備列表
+void Parser::importLocalVariablesToPreLuaList()
 {
 	sol::state& lua_ = pLua_->getLua();
 
-	//將局變量保存倒預備列表、每次執行表達式時都會將局變量列表轉換lua語句插入表達式前
+	//將局變量保存到預備列表、每次執行表達式時都會將局變量列表轉換lua語句插入表達式前
 	QVariantHash localVars = getLocalVars();
-	luaLocalVarStringList.clear();
+	luaLocalVarStringList_->clear();
 	QString key, strvalue;
 	QVariant::Type type = QVariant::Invalid;
 	bool ok = false;
@@ -2457,16 +2493,7 @@ void Parser::importVariablesToLua(const QString& expr)
 			strvalue = "nil";
 
 		strvalue = QString("local %1 = %2;").arg(key).arg(strvalue);
-		luaLocalVarStringList.append(strvalue);
-	}
-
-	try
-	{
-		updateSysConstKeyword(expr);
-	}
-	catch (...)
-	{
-
+		luaLocalVarStringList_->append(strvalue);
 	}
 }
 
@@ -2484,11 +2511,11 @@ void Parser::insertGlobalVar(const QString& name, const QVariant& value)
 		return;
 	}
 
-	if (!globalNames_.contains(name))
+	if (!globalNames_->contains(name))
 	{
-		globalNames_.append(name);
-		globalNames_.removeDuplicates();
-		std::sort(globalNames_.begin(), globalNames_.end());
+		globalNames_->append(name);
+		globalNames_->removeDuplicates();
+		std::sort(globalNames_->begin(), globalNames_->end());
 	}
 
 	sol::state& lua_ = pLua_->getLua();
@@ -2549,10 +2576,10 @@ void Parser::removeGlobalVar(const QString& name)
 {
 	sol::state& lua_ = pLua_->getLua();
 	lua_[name.toUtf8().constData()] = sol::lua_nil;
-	if (!globalNames_.contains(name))
+	if (!globalNames_->contains(name))
 		return;
 
-	globalNames_.removeOne(name);
+	globalNames_->removeOne(name);
 }
 #pragma endregion
 
@@ -2609,19 +2636,19 @@ void Parser::removeLocalVar(const QString& name)
 
 QVariantHash Parser::getLocalVars() const
 {
-	if (!localVarStack_.isEmpty())
-		return localVarStack_.top();
+	if (!localVarStack_->isEmpty())
+		return localVarStack_->top();
 
 	return emptyLocalVars_;
 }
 
 QVariantHash& Parser::getLocalVarsRef()
 {
-	if (!localVarStack_.isEmpty())
-		return localVarStack_.top();
+	if (!localVarStack_->isEmpty())
+		return localVarStack_->top();
 
-	localVarStack_.push(emptyLocalVars_);
-	return localVarStack_.top();
+	localVarStack_->push(emptyLocalVars_);
+	return localVarStack_->top();
 }
 #pragma endregion
 
@@ -2701,7 +2728,7 @@ void Parser::jumpto(qint64 line, bool noStack)
 bool Parser::jump(const QString& name, bool noStack)
 {
 	QString newName = name.toLower();
-	if (newName == "back" || newName == QString(u8"跳回"))
+	if (newName == "back" || newName == QString("跳回"))
 	{
 		if (!jmpStack_.isEmpty())
 		{
@@ -2712,22 +2739,22 @@ bool Parser::jump(const QString& name, bool noStack)
 		}
 		return false;
 	}
-	else if (newName == "return" || newName == QString(u8"返回"))
+	else if (newName == "return" || newName == QString("返回"))
 	{
 		return processReturn(3);//從第三個參數開始取返回值
 	}
-	else if (newName == "continue" || newName == QString(u8"繼續") || newName == QString(u8"继续"))
+	else if (newName == "continue" || newName == QString("繼續") || newName == QString("继续"))
 	{
 		return processContinue();
 	}
-	else if (newName == "break" || newName == QString(u8"跳出"))
+	else if (newName == "break" || newName == QString("跳出"))
 	{
 		return processBreak();
 	}
 	else if (newName == "exit")
 	{
 		requestInterruption();
-		return false;
+		return true;
 	}
 
 	//從跳轉位調用函數
@@ -2943,7 +2970,8 @@ void Parser::processFunction()
 
 						expectedType = typeStr;
 						labelVars.insert(labelName, "nil");
-						handleError(kArgError + i - kCallPlaceHoldSize + 1, QString(QObject::tr("@ %1 | Invalid local variable type expacted '%2' but got '%3'")).arg(getCurrentLine()).arg(expectedType).arg(currnetVar.typeName()));
+						handleError(kArgError + i - kCallPlaceHoldSize + 1, QString(QObject::tr("@ %1 | Invalid local variable type expacted '%2' but got '%3'"))
+							.arg(getCurrentLine()).arg(expectedType).arg(currnetVar.typeName()));
 						break;
 					}
 
@@ -2955,7 +2983,7 @@ void Parser::processFunction()
 	}
 
 	currentField.push(TK_FUNCTION);//作用域標誌入棧
-	localVarStack_.push(labelVars);//聲明局變量入棧
+	localVarStack_->push(labelVars);//聲明局變量入棧
 }
 
 //處理"標記"
@@ -3004,226 +3032,6 @@ qint64 Parser::processCommand()
 	}
 
 	return status;
-}
-
-//處理單個或多個局變量聲明
-void Parser::processLocalVariable()
-{
-	QString varNameStr = getToken<QString>(0);
-	if (varNameStr.isEmpty())
-		return;
-
-	QStringList varNames = varNameStr.split(util::rexComma, Qt::SkipEmptyParts);
-	if (varNames.isEmpty())
-		return;
-
-	qint64 varCount = varNames.count();
-	if (varCount == 0)
-		return;
-
-	//取區域變量表
-	QVariantHash args = getLocalVars();
-
-	QVariant firstValue;
-	QString preExpr = getToken<QString>(1);
-	if (preExpr.contains("input("))
-	{
-		exprTo(preExpr, &firstValue);
-		if (firstValue.toLongLong() == 987654321ll)
-		{
-			requestInterruption();
-			return;
-		}
-
-		if (!firstValue.isValid())
-			firstValue = 0;
-	}
-	else
-		firstValue = checkValue(currentLineTokens_, 1);
-
-	if (varCount == 1)
-	{
-		insertLocalVar(varNames.front(), firstValue);
-		return;
-	}
-
-	for (qint64 i = 0; i < varCount; ++i)
-	{
-		QString varName = varNames.at(i);
-		if (varName.isEmpty())
-		{
-			continue;
-		}
-
-		if (i + 1 >= currentLineTokens_.size())
-		{
-			insertLocalVar(varName, firstValue);
-			continue;
-		}
-
-		QVariant varValue = checkValue(currentLineTokens_, i + 1);
-		if (i > 0 && !varValue.isValid())
-		{
-			varValue = firstValue;
-		}
-
-		if (varValue.type() == QVariant::String && currentLineTokens_.value(i + 1).type != TK_CSTRING)
-		{
-			QVariant varValue2 = varValue;
-			QString expr = varValue.toString();
-			if (exprTo(expr, &varValue2) && varValue2.isValid())
-				varValue = varValue2.toString();
-		}
-
-		insertLocalVar(varName, varValue);
-		firstValue = varValue;
-	}
-}
-
-//處理單個或多個全局變量聲明，或單個局變量重新賦值
-void Parser::processVariable()
-{
-	QString varNameStr = getToken<QString>(0);
-	QStringList varNames = varNameStr.split(util::rexComma, Qt::SkipEmptyParts);
-	qint64 varCount = varNames.count();
-	qint64 value = 0;
-
-	QVariant firstValue;
-
-	QString preExpr = getToken<QString>(1);
-	static const QRegularExpression rexCallFun(R"([\w\p{Han}]+\((.+)\))");
-	if (preExpr.contains("input("))
-	{
-		exprTo(preExpr, &firstValue);
-		if (firstValue.toLongLong() == 987654321ll)
-		{
-			requestInterruption();
-			return;
-		}
-
-		if (!firstValue.isValid())
-			firstValue = 0;
-	}
-	else if (preExpr.contains(rexCallFun))
-	{
-		QString expr = preExpr;
-		exprTo(expr, &firstValue);
-		if (!firstValue.isValid())
-			firstValue = 0;
-	}
-	else
-		firstValue = checkValue(currentLineTokens_, 1);
-
-	if (varCount == 1)
-	{
-		//只有一個有可能是局變量改值。使用綜合的insert
-		insertVar(varNames.front(), firstValue);
-		return;
-	}
-
-	//下面是多個變量聲明和初始化必定是全局
-	for (qint64 i = 0; i < varCount; ++i)
-	{
-		QString varName = varNames.at(i);
-		if (varName.isEmpty())
-		{
-			continue;
-		}
-
-		if (i + 1 >= currentLineTokens_.size())
-		{
-			insertGlobalVar(varName, firstValue);
-			continue;
-		}
-
-		QVariant varValue;
-		preExpr = getToken<QString>(i + 1);
-		if (preExpr.contains("input("))
-		{
-			exprTo(preExpr, &varValue);
-			if (firstValue.toLongLong() == 987654321ll)
-			{
-				requestInterruption();
-				return;
-			}
-
-			if (!varValue.isValid())
-				varValue = 0;
-		}
-		else
-			varValue = checkValue(currentLineTokens_, i + 1);
-
-		if (i > 0 && !varValue.isValid())
-		{
-			varValue = firstValue;
-		}
-
-		if (varValue.type() == QVariant::String && currentLineTokens_.value(i + 1).type != TK_CSTRING)
-		{
-			QVariant varValue2 = varValue;
-			QString expr = varValue.toString();
-
-			if (exprTo(expr, &varValue2) && varValue2.isValid())
-				varValue = varValue2.toLongLong();
-		}
-
-		insertGlobalVar(varName, varValue);
-		firstValue = varValue;
-	}
-}
-
-//處理數組(表)
-void Parser::processTable()
-{
-	QString varName = getToken<QString>(0);
-	QString expr = getToken<QString>(1);
-	RESERVE type = getTokenType(1);
-	if (type == TK_LOCALTABLE)
-		insertLocalVar(varName, expr);
-	else
-		insertGlobalVar(varName, expr);
-}
-
-//處理純Lua語句(所有無法辨識的命令都會直接當作lua執行)
-void Parser::processLuaString()
-{
-	QString exprStr = getToken<QString>(1);
-	luaDoString(exprStr);
-
-	sol::state& lua_ = pLua_->getLua();
-	sol::meta::unqualified_t<sol::table> table = lua_["_G"];
-	if (!table.valid())
-		return;
-
-	if (table.empty())
-		return;
-
-	for (const std::pair<sol::object, sol::object>& pairMain : table)
-	{
-		QString key;
-		if (pairMain.first.is<std::string>())
-			key = util::toQString(pairMain.first).simplified();
-		else if (pairMain.first.is<qint64>())
-			key = util::toQString(pairMain.first.as<qint64>()).simplified();
-		else
-			continue;
-
-		if (key.isEmpty())
-			continue;
-
-		if (key.startsWith("sol."))
-			continue;
-
-		if (exceptionList.contains(key))
-			continue;
-
-		if (!globalNames_.contains(key))
-		{
-			globalNames_.append(key);
-			globalNames_.removeDuplicates();
-		}
-	}
-	std::sort(globalNames_.begin(), globalNames_.end());
 }
 
 //處理變量自增自減
@@ -3286,51 +3094,6 @@ void Parser::processVariableCAOs()
 	insertVar(varName, result);
 }
 
-//處理變量表達式
-void Parser::processVariableExpr()
-{
-	QString varName = getToken<QString>(0);
-	if (varName.isEmpty())
-		return;
-
-	QVariant varValue = checkValue(currentLineTokens_, 0);
-
-	QString expr;
-	if (!checkString(currentLineTokens_, 1, &expr))
-		return;
-
-	QVariant::Type type = varValue.type();
-
-	QVariant result;
-	if ((type == QVariant::Int || type == QVariant::LongLong) && !expr.contains("/"))
-	{
-		qint64 value = 0;
-		if (!exprTo(expr, &value))
-			return;
-		result = value;
-	}
-	else if (type == QVariant::Double || expr.contains("/"))
-	{
-		double value = 0;
-		if (!exprTo(expr, &value))
-			return;
-		result = value;
-	}
-	else if (type == QVariant::Bool)
-	{
-		bool value = false;
-		if (!exprTo(expr, &value))
-			return;
-		result = value;
-	}
-	else
-	{
-		result = expr;
-	}
-
-	insertVar(varName, result);
-}
-
 //處理if
 bool Parser::processIfCompare()
 {
@@ -3352,6 +3115,99 @@ bool Parser::processIfCompare()
 	return checkJump(currentLineTokens_, 2, value.toBool(), SuccessJump) == kHasJump;
 }
 
+//處理多變量賦予單值
+void Parser::processMultiVariable()
+{
+	//QString fieldStr = getToken<QString>(0);
+
+	//QString names = getToken<QString>(1);
+	//QStringList nameList = names.split(util::rexComma, Qt::SkipEmptyParts);
+	//for (QString& name : nameList)
+	//	name = name.simplified();
+
+	//QVariant varValue = checkValue(currentLineTokens_, 2);
+
+	//if (fieldStr == "[global]")
+	//{
+	//	for (const QString& name : nameList)
+	//		insertGlobalVar(name, varValue);
+	//}
+	//else
+	//{
+	//	for (const QString& name : nameList)
+	//		insertLocalVar(name, varValue);
+	//}
+
+	QString varNameStr = getToken<QString>(0);
+	QString field = "global";
+	if (varNameStr.contains("local"))
+	{
+		field = "local";
+		varNameStr.replace("local", "");
+		varNameStr = varNameStr.simplified();
+	}
+
+	QStringList varNames = varNameStr.split(util::rexComma, Qt::SkipEmptyParts);
+	qint64 varCount = varNames.count();
+	qint64 value = 0;
+
+	QVariant firstValue;
+
+	QString preExpr = getToken<QString>(1);
+
+	firstValue = checkValue(currentLineTokens_, 1);
+
+	if (varCount == 1)
+	{
+		//只有一個有可能是局變量改值。使用綜合的insert
+		if (field == "local")
+			insertLocalVar(varNames.front(), firstValue);
+		else
+			insertGlobalVar(varNames.front(), firstValue);
+		return;
+	}
+
+	//下面是多個變量聲明和初始化必定是全局
+	for (qint64 i = 0; i < varCount; ++i)
+	{
+		QString varName = varNames.at(i);
+		if (varName.isEmpty())
+		{
+			continue;
+		}
+
+		if (i + 1 >= currentLineTokens_.size())
+		{
+			insertGlobalVar(varName, firstValue);
+			continue;
+		}
+
+		QVariant varValue;
+		preExpr = getToken<QString>(i + 1);
+		varValue = checkValue(currentLineTokens_, i + 1);
+
+		if (i > 0 && !varValue.isValid())
+		{
+			varValue = firstValue;
+		}
+
+		if (varValue.type() == QVariant::String && currentLineTokens_.value(i + 1).type != TK_CSTRING)
+		{
+			QVariant varValue2 = varValue;
+			QString expr = varValue.toString();
+
+			if (exprTo(expr, &varValue2) && varValue2.isValid())
+				varValue = varValue2.toLongLong();
+		}
+
+		if (field == "local")
+			insertLocalVar(varName, varValue);
+		else
+			insertGlobalVar(varName, varValue);
+		firstValue = varValue;
+	}
+}
+
 //處理"格式化"
 void Parser::processFormation()
 {
@@ -3362,8 +3218,12 @@ void Parser::processFormation()
 			break;
 
 		QString formatStr = checkValue(currentLineTokens_, 2).toString();
+		if (!formatStr.startsWith("'") || !formatStr.startsWith("\""))
+			formatStr = QString("'%1").arg(formatStr);
+		if (!formatStr.endsWith("'") || !formatStr.endsWith("\""))
+			formatStr = QString("%1'").arg(formatStr);
 
-		QVariant var = luaDoString(QString("return format(tostring('%1'));").arg(formatStr));
+		QVariant var = luaDoString(QString("return format(%1);").arg(formatStr));
 
 		QString formatedStr = var.toString();
 
@@ -3443,6 +3303,26 @@ bool Parser::processCall(RESERVE reserve)
 			{
 				QVariant var = luaDoString("return " + expr);
 				insertGlobalVar("vret", var);
+				sol::state& lua_ = pLua_->getLua();
+				if (lua_["_JUMP"].valid() && lua_["_JUMP"] != sol::lua_nil)
+				{
+					if (lua_["_JUMP"].is<qint64>())
+					{
+						qint64 nvalue = lua_["_JUMP"].get<qint64>();
+						TokenMap TK;
+						TK.insert(1, Token{ TK_INT, nvalue, util::toQString(nvalue) });
+						if (checkJump(TK, 1, false, JumpBehavior::FailedJump) == kHasJump)
+							return true;
+					}
+					else if (lua_["_JUMP"].is<std::string>())
+					{
+						QString str = util::toQString(lua_["_JUMP"].get<std::string>());
+						TokenMap TK;
+						TK.insert(1, Token{ TK_STRING, str, str });
+						if (checkJump(TK, 1, false, JumpBehavior::FailedJump) == kHasJump)
+							return true;
+					}
+				}
 			}
 			break;
 		}
@@ -3535,7 +3415,7 @@ bool Parser::processReturn(qint64 takeReturnFrom)
 			v.append(s);
 		}
 
-		str += v.join(", ");
+		str += v.join(",");
 		str += "}";
 
 		insertGlobalVar("vret", str);
@@ -3546,8 +3426,8 @@ bool Parser::processReturn(qint64 takeReturnFrom)
 	if (!callArgsStack_.isEmpty())
 		callArgsStack_.pop();//callArgNames出棧
 
-	if (!localVarStack_.isEmpty())
-		localVarStack_.pop();//callALocalArgs出棧
+	if (!localVarStack_->isEmpty())
+		localVarStack_->pop();//callALocalArgs出棧
 
 	if (!currentField.isEmpty())
 	{
@@ -3831,6 +3711,52 @@ bool Parser::processBreak()
 	return false;
 }
 
+//處理純Lua語句(所有無法辨識的命令都會直接當作lua執行)
+bool Parser::processLuaString()
+{
+	bool bret = false;
+	QString exprStr = getToken<QString>(1);
+	luaDoString(exprStr);
+
+
+	sol::state& lua_ = pLua_->getLua();
+	sol::meta::unqualified_t<sol::table> table = lua_["_G"];
+	if (!table.valid())
+		return bret;
+
+	if (table.empty())
+		return bret;
+
+	for (const std::pair<sol::object, sol::object>& pairMain : table)
+	{
+		QString key;
+		if (pairMain.first.is<std::string>())
+			key = util::toQString(pairMain.first).simplified();
+		else if (pairMain.first.is<qint64>())
+			key = util::toQString(pairMain.first.as<qint64>()).simplified();
+		else
+			continue;
+
+		if (key.isEmpty())
+			continue;
+
+		if (key.startsWith("sol."))
+			continue;
+
+		if (exceptionList.contains(key))
+			continue;
+
+		if (!globalNames_->contains(key))
+		{
+			globalNames_->append(key);
+			globalNames_->removeDuplicates();
+		}
+	}
+	std::sort(globalNames_->begin(), globalNames_->end());
+	return bret;
+}
+
+//處理整塊的lua代碼
 bool Parser::processLuaCode()
 {
 	const qint64 currentLine = getCurrentLine();
@@ -3846,6 +3772,8 @@ bool Parser::processLuaCode()
 
 	if (luaCode.isEmpty())
 		return false;
+
+	luaBegin_ = true;
 
 	const QString luaFunction = QString(R"(
 local chunk <const> = function()
@@ -3910,7 +3838,7 @@ void Parser::processTokens()
 
 		currentType = getCurrentFirstTokenType();
 
-		skip = currentType == RESERVE::TK_WHITESPACE || currentType == RESERVE::TK_COMMENT || currentType == RESERVE::TK_UNK;
+		skip = currentType == RESERVE::TK_WHITESPACE || currentType == RESERVE::TK_COMMENT || currentType == RESERVE::TK_UNK || (luaBegin_ && currentType != RESERVE::TK_LUAEND);
 
 		if (currentType == TK_FUNCTION)
 		{
@@ -3934,17 +3862,31 @@ void Parser::processTokens()
 			}
 		}
 
+		++counter_->validCommand;
+
 		switch (currentType)
 		{
 		case TK_COMMENT:
+		{
+			--counter_->validCommand;
+			++counter_->comment;
+			break;
+		}
 		case TK_WHITESPACE:
 		{
+			--counter_->validCommand;
+			++counter_->space;
 			break;
 		}
 		case TK_EXIT:
 		{
 			name.clear();
 			requestInterruption();
+			break;
+		}
+		case TK_MULTIVAR:
+		{
+			processMultiVariable();
 			break;
 		}
 		case TK_LUABEGIN:
@@ -3958,6 +3900,13 @@ void Parser::processTokens()
 		}
 		case TK_LUAEND:
 		{
+			luaBegin_ = false;
+			break;
+		}
+		case TK_LUASTRING:
+		{
+			if (processLuaString())
+				continue;
 			break;
 		}
 		case TK_IF:
@@ -3991,29 +3940,6 @@ void Parser::processTokens()
 
 			break;
 		}
-		case TK_LOCAL:
-		{
-			processLocalVariable();
-			break;
-		}
-		case TK_LUASTRING:
-		{
-			processLuaString();
-			break;
-		}
-#if 0
-		case TK_TABLE:
-		case TK_LOCALTABLE:
-		{
-			processTable();
-			break;
-		}
-#endif
-		case TK_MULTIVAR:
-		{
-			processVariable();
-			break;
-		}
 		case TK_INCDEC:
 		{
 			processVariableIncDec();
@@ -4022,11 +3948,6 @@ void Parser::processTokens()
 		case TK_CAOS:
 		{
 			processVariableCAOs();
-			break;
-		}
-		case TK_EXPR:
-		{
-			processVariableExpr();
 			break;
 		}
 		case TK_FORMAT:
@@ -4114,6 +4035,35 @@ void Parser::processTokens()
 			generateStackInfo(kModeJumpStack);
 			continue;
 		}
+#if 0
+		case TK_EXPR:
+		{
+			processVariableExpr();
+			break;
+		}
+#endif
+#if 0
+		case TK_LOCAL:
+		{
+			processLocalVariable();
+			break;
+		}
+#endif
+#if 0
+		case TK_TABLE:
+		case TK_LOCALTABLE:
+		{
+			processTable();
+			break;
+		}
+#endif
+#if 0
+		case TK_MULTIVAR:
+		{
+			processVariable();
+			break;
+		}
+#endif
 		default:
 		{
 			qDebug() << "Unexpected token type:" << currentType;
@@ -4137,10 +4087,18 @@ void Parser::processTokens()
 	lua_.collect_garbage();
 
 	/*==========全部重建 : 成功 2 個，失敗 0 個，略過 0 個==========
-	========== 重建 開始於 1:24 PM 並使用了 01:04.591 分鐘 ==========*/
+	  ========== 重建 開始於 1:24 PM 並使用了 01:04.591 分鐘 ==========*/
 	if (&signalDispatcher != nullptr)
+	{
+		if (injector.isScriptDebugModeEnable.load(std::memory_order_acquire) && !isSubScript())
+		{
+			emit signalDispatcher.appendScriptLog(QObject::tr(" ========== script report : valid %1，error %2，comment %3，space %4 ==========")
+				.arg(counter_->validCommand).arg(counter_->error).arg(counter_->comment).arg(counter_->space));
+		}
 		emit signalDispatcher.appendScriptLog(QObject::tr(" ========== script result : %1，cost %2 ==========")
 			.arg(isSubScript() ? QObject::tr("sub-ok") : QObject::tr("main-ok")).arg(util::formatMilliseconds(timer.elapsed())));
+	}
+
 }
 
 //導出變量訊息
@@ -4151,10 +4109,11 @@ void Parser::exportVarInfo()
 	if (!injector.isScriptDebugModeEnable.load(std::memory_order_acquire))
 		return;
 
+	if (!injector.isScriptEditorOpened.load(std::memory_order_acquire))
+		return;
+
 	QVariantHash varhash;
-	QVariantHash localHash;
-	if (!localVarStack_.isEmpty())
-		localHash = localVarStack_.top();
+	QVariantHash localHash = getLocalVars();
 
 	QString key;
 	for (auto it = localHash.cbegin(); it != localHash.cend(); ++it)
@@ -4165,7 +4124,7 @@ void Parser::exportVarInfo()
 
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
 	if (&signalDispatcher != nullptr)
-		emit signalDispatcher.varInfoImported(this, varhash, globalNames_);
+		emit signalDispatcher.varInfoImported(this, varhash, *globalNames_);
 }
 
 #pragma region SystemVariable
@@ -4174,10 +4133,6 @@ void Parser::updateSysConstKeyword(const QString& expr)
 {
 	bool bret = false;
 	sol::state& lua_ = pLua_->getLua();
-	if (expr.contains("_LINE_"))
-	{
-		lua_.set("_LINE_", getCurrentLine() + 1);
-	}
 
 	if (expr.contains("_FILE_"))
 	{
@@ -4412,11 +4367,11 @@ void Parser::updateSysConstKeyword(const QString& expr)
 		injector.server->updateDatasFromMemory();
 
 		const QHash<QString, PetState> hash = {
-			{ u8"battle", kBattle },
-			{ u8"standby", kStandby },
-			{ u8"mail", kMail },
-			{ u8"rest", kRest },
-			{ u8"ride", kRide },
+			{ "battle", kBattle },
+			{ "standby", kStandby },
+			{ "mail", kMail },
+			{ "rest", kRest },
+			{ "ride", kRide },
 		};
 
 		sol::meta::unqualified_t<sol::table> pet = lua_["pet"];
@@ -4576,7 +4531,12 @@ void Parser::updateSysConstKeyword(const QString& expr)
 				return itemIndexs;
 			}
 
-			if (!injector.server->getItemIndexsByName(itemnames, itemmemos, &itemIndexs))
+			qint64 min = CHAR_EQUIPPLACENUM;
+			qint64 max = MAX_ITEM;
+			if (includeEequip)
+				min = 0;
+
+			if (!injector.server->getItemIndexsByName(itemnames, itemmemos, &itemIndexs, min, max))
 			{
 				return itemIndexs;
 			}
@@ -4602,12 +4562,8 @@ void Parser::updateSysConstKeyword(const QString& expr)
 
 				qint64 size = itemIndexs.size();
 				PC pc = injector.server->getPC();
-				for (qint64 i = 0; i < size; ++i)
+				for (const qint64 itemIndex : itemIndexs)
 				{
-					qint64 itemIndex = itemIndexs.at(i);
-					if (!includeEequip && i < CHAR_EQUIPPLACENUM)
-						continue;
-
 					ITEM item = pc.item[itemIndex];
 					if (item.valid)
 						count += item.stack;
@@ -5331,4 +5287,231 @@ void Parser::updateSysConstKeyword(const QString& expr)
 		pt["vip"] = point.VIPPoints;
 	}
 }
+#pragma endregion
+
+#pragma region deprecated
+#if 0
+//處理單個或多個局變量聲明
+void Parser::processLocalVariable()
+{
+	QString varNameStr = getToken<QString>(0);
+	if (varNameStr.isEmpty())
+		return;
+
+	QStringList varNames = varNameStr.split(util::rexComma, Qt::SkipEmptyParts);
+	if (varNames.isEmpty())
+		return;
+
+	qint64 varCount = varNames.count();
+	if (varCount == 0)
+		return;
+
+	//取區域變量表
+	QVariantHash args = getLocalVars();
+
+	QVariant firstValue;
+	QString preExpr = getToken<QString>(1);
+	if (preExpr.contains("input("))
+	{
+		exprTo(preExpr, &firstValue);
+		if (firstValue.toLongLong() == 987654321ll)
+		{
+			requestInterruption();
+			return;
+		}
+
+		if (!firstValue.isValid())
+			firstValue = 0;
+	}
+	else
+		firstValue = checkValue(currentLineTokens_, 1);
+
+	if (varCount == 1)
+	{
+		insertLocalVar(varNames.front(), firstValue);
+		return;
+	}
+
+	for (qint64 i = 0; i < varCount; ++i)
+	{
+		QString varName = varNames.at(i);
+		if (varName.isEmpty())
+		{
+			continue;
+		}
+
+		if (i + 1 >= currentLineTokens_.size())
+		{
+			insertLocalVar(varName, firstValue);
+			continue;
+		}
+
+		QVariant varValue = checkValue(currentLineTokens_, i + 1);
+		if (i > 0 && !varValue.isValid())
+		{
+			varValue = firstValue;
+		}
+
+		if (varValue.type() == QVariant::String && currentLineTokens_.value(i + 1).type != TK_CSTRING)
+		{
+			QVariant varValue2 = varValue;
+			QString expr = varValue.toString();
+			if (exprTo(expr, &varValue2) && varValue2.isValid())
+				varValue = varValue2.toString();
+		}
+
+		insertLocalVar(varName, varValue);
+		firstValue = varValue;
+	}
+}
+
+//處理單個或多個全局變量聲明，或單個局變量重新賦值
+void Parser::processVariable()
+{
+	QString varNameStr = getToken<QString>(0);
+	QStringList varNames = varNameStr.split(util::rexComma, Qt::SkipEmptyParts);
+	qint64 varCount = varNames.count();
+	qint64 value = 0;
+
+	QVariant firstValue;
+
+	QString preExpr = getToken<QString>(1);
+	static const QRegularExpression rexCallFun(R"([\w\p{Han}]+\((.+)\))");
+	if (preExpr.contains("input("))
+	{
+		exprTo(preExpr, &firstValue);
+		if (firstValue.toLongLong() == 987654321ll)
+		{
+			requestInterruption();
+			return;
+		}
+
+		if (!firstValue.isValid())
+			firstValue = 0;
+	}
+	else if (preExpr.contains(rexCallFun))
+	{
+		QString expr = preExpr;
+		exprTo(expr, &firstValue);
+		if (!firstValue.isValid())
+			firstValue = 0;
+	}
+	else
+		firstValue = checkValue(currentLineTokens_, 1);
+
+	if (varCount == 1)
+	{
+		//只有一個有可能是局變量改值。使用綜合的insert
+		insertVar(varNames.front(), firstValue);
+		return;
+	}
+
+	//下面是多個變量聲明和初始化必定是全局
+	for (qint64 i = 0; i < varCount; ++i)
+	{
+		QString varName = varNames.at(i);
+		if (varName.isEmpty())
+		{
+			continue;
+		}
+
+		if (i + 1 >= currentLineTokens_.size())
+		{
+			insertGlobalVar(varName, firstValue);
+			continue;
+		}
+
+		QVariant varValue;
+		preExpr = getToken<QString>(i + 1);
+		if (preExpr.contains("input("))
+		{
+			exprTo(preExpr, &varValue);
+			if (firstValue.toLongLong() == 987654321ll)
+			{
+				requestInterruption();
+				return;
+			}
+
+			if (!varValue.isValid())
+				varValue = 0;
+		}
+		else
+			varValue = checkValue(currentLineTokens_, i + 1);
+
+		if (i > 0 && !varValue.isValid())
+		{
+			varValue = firstValue;
+		}
+
+		if (varValue.type() == QVariant::String && currentLineTokens_.value(i + 1).type != TK_CSTRING)
+		{
+			QVariant varValue2 = varValue;
+			QString expr = varValue.toString();
+
+			if (exprTo(expr, &varValue2) && varValue2.isValid())
+				varValue = varValue2.toLongLong();
+		}
+
+		insertGlobalVar(varName, varValue);
+		firstValue = varValue;
+	}
+}
+
+//處理數組(表)
+void Parser::processTable()
+{
+	QString varName = getToken<QString>(0);
+	QString expr = getToken<QString>(1);
+	RESERVE type = getTokenType(1);
+	if (type == TK_LOCALTABLE)
+		insertLocalVar(varName, expr);
+	else
+		insertGlobalVar(varName, expr);
+}
+
+//處理變量表達式
+void Parser::processVariableExpr()
+{
+	QString varName = getToken<QString>(0);
+	if (varName.isEmpty())
+		return;
+
+	QVariant varValue = checkValue(currentLineTokens_, 0);
+
+	QString expr;
+	if (!checkString(currentLineTokens_, 1, &expr))
+		return;
+
+	QVariant::Type type = varValue.type();
+
+	QVariant result;
+	if ((type == QVariant::Int || type == QVariant::LongLong) && !expr.contains("/"))
+	{
+		qint64 value = 0;
+		if (!exprTo(expr, &value))
+			return;
+		result = value;
+	}
+	else if (type == QVariant::Double || expr.contains("/"))
+	{
+		double value = 0;
+		if (!exprTo(expr, &value))
+			return;
+		result = value;
+	}
+	else if (type == QVariant::Bool)
+	{
+		bool value = false;
+		if (!exprTo(expr, &value))
+			return;
+		result = value;
+	}
+	else
+	{
+		result = expr;
+	}
+
+	insertVar(varName, result);
+}
+#endif
 #pragma endregion

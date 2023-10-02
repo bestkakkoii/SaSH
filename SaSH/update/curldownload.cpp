@@ -58,6 +58,11 @@ bool CurlDownload::downLoad(qint64 threadNum, std::string Url, std::string Path,
 	for (size_t i = 0; i <= static_cast<size_t>(threadNum); ++i)
 	{
 		tNode* pNode = q_check_ptr(new tNode());
+		if (pNode == nullptr)
+		{
+			fclose(fp);
+			return false;
+		}
 
 		if (i < static_cast<size_t>(threadNum))
 		{

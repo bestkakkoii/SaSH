@@ -942,6 +942,7 @@ namespace util
 		UINT ACP = ::GetACP();
 		if (950 == ACP && ext)
 		{
+#ifndef _DEBUG
 			// 繁體系統要轉繁體否則遊戲視窗標題會亂碼(一堆問號字)
 			std::wstring wstr = qstr.toStdWString();
 			qint64 size = lstrlenW(wstr.c_str());
@@ -949,17 +950,18 @@ namespace util
 			//繁體字碼表映射
 			LCMapStringEx(LOCALE_NAME_SYSTEM_DEFAULT, LCMAP_TRADITIONAL_CHINESE, wstr.c_str(), size, wbuf.data(), size, NULL, NULL, NULL);
 			qstr = util::toQString(wbuf.data());
+#endif
 		}
 
 		return qstr;
 	}
 
-	inline Q_REQUIRED_RESULT std::string fromUnicode(const QString& str)
+	inline Q_REQUIRED_RESULT std::string fromUnicode(const QString& str, bool keppOrigin = false)
 	{
 		QString qstr = str;
 		std::wstring wstr = qstr.toStdWString();
 		UINT ACP = ::GetACP();
-		if (950 == ACP)
+		if (950 == ACP && !keppOrigin)
 		{
 			// 繁體系統要轉回簡體體否則遊戲視窗會亂碼
 			qint64 size = lstrlenW(wstr.c_str());
@@ -967,7 +969,7 @@ namespace util
 			LCMapStringEx(LOCALE_NAME_SYSTEM_DEFAULT, LCMAP_SIMPLIFIED_CHINESE, wstr.c_str(), size, wbuf.data(), size, NULL, NULL, NULL);
 			qstr = util::toQString(wbuf.data());
 		}
-		QTextCodec* codec = QTextCodec::codecForMib(2025);//QTextCodec::codecForName("gb2312");
+		QTextCodec* codec = QTextCodec::codecForName(util::DEFAULT_GAME_CODEPAGE);//QTextCodec::codecForMib(2025);//QTextCodec::codecForName("gb2312");
 		QByteArray bytes = codec->fromUnicode(qstr);
 
 		std::string s = bytes.data();
@@ -1129,8 +1131,10 @@ namespace util
 		return collator.compare(str1, str2) < 0;
 	}
 
-	QFileInfoList loadAllFileLists(TreeWidgetItem* root, const QString& path, QStringList* list = nullptr);
-	QFileInfoList loadAllFileLists(TreeWidgetItem* root, const QString& path, const QString& suffix, const QString& icon, QStringList* list = nullptr);
+	QFileInfoList loadAllFileLists(TreeWidgetItem* root, const QString& path, QStringList* list = nullptr,
+		const QString& fileIcon = ":/image/icon_txt.png", const QString& folderIcon = ":/image/icon_directory.png");
+	QFileInfoList loadAllFileLists(TreeWidgetItem* root, const QString& path, const QString& suffix, const QString& icon, QStringList* list = nullptr
+		, const QString& folderIcon = ":/image/icon_directory.png");
 
 	void searchFiles(const QString& dir, const QString& fileNamePart, const QString& suffixWithDot, QList<QString>* result);
 

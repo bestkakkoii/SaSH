@@ -260,11 +260,12 @@ void luadebug::checkStopAndPause(const sol::this_state& s)
 {
 	sol::state_view lua(s.lua_state());
 	lua_State* L = s.lua_state();
-	CLua* pLua = lua["_THIS"].get<CLua*>();
+	CLua* pLua = lua["_THIS_CLUA"].get<CLua*>();
 	if (pLua == nullptr)
 		return;
 
-	if (pLua->isInterruptionRequested())
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
+	if (pLua->isInterruptionRequested() || injector.IS_SCRIPT_INTERRUPT.load(std::memory_order_acquire))
 	{
 		luadebug::tryPopCustomErrorMsg(s, luadebug::ERROR_FLAG_DETECT_STOP);
 		return;
@@ -381,7 +382,7 @@ void luadebug::getPackagePath(const QString base, QStringList* result)
 	}
 }
 
-void luadebug::logExport(const sol::this_state& s, const QStringList& datas, qint64 color)
+void luadebug::logExport(const sol::this_state& s, const QStringList& datas, qint64 color, bool doNotAnnounce)
 {
 	for (const QString& data : datas)
 	{
@@ -389,7 +390,7 @@ void luadebug::logExport(const sol::this_state& s, const QStringList& datas, qin
 	}
 }
 
-void luadebug::logExport(const sol::this_state& s, const QString& data, qint64 color)
+void luadebug::logExport(const sol::this_state& s, const QString& data, qint64 color, bool doNotAnnounce)
 {
 
 	//打印當前時間
@@ -397,16 +398,22 @@ void luadebug::logExport(const sol::this_state& s, const QString& data, qint64 c
 	const QString timeStr(time.toString("hh:mm:ss:zzz"));
 	QString msg = "\0";
 	QString src = "\0";
-
-	qint64 currentline = getCurrentLine(s);
+	sol::state_view lua(s);
+	qint64 currentline = lua["_LINE_"].get<qint64>();//getCurrentLine(s);
 
 	msg = (QString("[%1 | @%2]: %3\0") \
 		.arg(timeStr)
-		.arg(currentline + 1, 3, 10, QLatin1Char(' ')).arg(data));
+		.arg(currentline, 3, 10, QLatin1Char(' ')).arg(data));
 
-	sol::state_view lua(s.lua_state());
-	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(lua["_INDEX"].get<qint64>());
+
+	qint64 currentIndex = lua["_INDEX"].get<qint64>();
+	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
 	emit signalDispatcher.appendScriptLog(msg, color);
+	Injector& injector = Injector::getInstance(currentIndex);
+	if (!injector.server.isNull())
+	{
+		injector.server->announce(data, color);
+	}
 }
 
 //根據傳入function的循環執行結果等待超時或條件滿足提早結束
@@ -504,7 +511,7 @@ void luadebug::hookProc(lua_State* L, lua_Debug* ar)
 
 		luadebug::checkStopAndPause(s);
 
-		CLua* pLua = lua["_THIS"].get<CLua*>();
+		CLua* pLua = lua["_THIS_CLUA"].get<CLua*>();
 		if (pLua == nullptr)
 			return;
 
@@ -565,15 +572,20 @@ void luadebug::hookProc(lua_State* L, lua_Debug* ar)
 CLua::CLua(qint64 index, QObject* parent)
 	: ThreadPlugin(index, parent)
 {
-	setIndex(index);
+	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(index);
+	connect(&signalDispatcher, &SignalDispatcher::nodifyAllStop, this, &CLua::requestInterruption, Qt::UniqueConnection);
+	connect(&signalDispatcher, &SignalDispatcher::nodifyAllScriptStop, this, &CLua::requestInterruption, Qt::UniqueConnection);
+	qDebug() << "CLua 1";
 }
 
 CLua::CLua(qint64 index, const QString& content, QObject* parent)
 	: ThreadPlugin(index, parent)
 	, scriptContent_(content)
 {
-	setIndex(index);
-	qDebug() << "CLua";
+	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(index);
+	connect(&signalDispatcher, &SignalDispatcher::nodifyAllStop, this, &CLua::requestInterruption, Qt::UniqueConnection);
+	connect(&signalDispatcher, &SignalDispatcher::nodifyAllScriptStop, this, &CLua::requestInterruption, Qt::UniqueConnection);
+	qDebug() << "CLua 2";
 }
 
 CLua::~CLua()
@@ -738,7 +750,7 @@ void CLua::open_utillibs(sol::state& lua)
 void CLua::open_syslibs(sol::state& lua)
 {
 	lua.set_function("sleep", &CLuaSystem::sleep, &luaSystem_);
-	lua.set_function("printf", &CLuaSystem::announce, &luaSystem_);
+	lua.set_function("printf", &CLuaSystem::print, &luaSystem_);
 	lua.safe_script(R"(
 		_print = print;
 		print = printf;
@@ -763,15 +775,15 @@ void CLua::open_syslibs(sol::state& lua)
 		"get", &QElapsedTimer::elapsed
 	);
 
+	lua.set_function("say", &CLuaSystem::talk, &luaSystem_);
+	lua.set_function("cls", &CLuaSystem::cleanchat, &luaSystem_);
+	lua.set_function("logout", &CLuaSystem::logout, &luaSystem_);
+	lua.set_function("logback", &CLuaSystem::logback, &luaSystem_);
+	lua.set_function("eo", &CLuaSystem::eo, &luaSystem_);
+
 	lua.new_usertype<CLuaSystem>("SystemClass",
 		sol::call_constructor,
 		sol::constructors<CLuaSystem()>(),
-
-		"out", &CLuaSystem::logout,
-		"back", &CLuaSystem::logback,
-		"eo", &CLuaSystem::eo,
-		"say", &CLuaSystem::talk,
-		"clearChat", &CLuaSystem::cleanchat,
 		"menu", sol::overload(
 			sol::resolve<qint64(qint64, sol::this_state)>(&CLuaSystem::menu),
 			sol::resolve<qint64(qint64, qint64, sol::this_state)>(&CLuaSystem::menu)
@@ -780,9 +792,7 @@ void CLua::open_syslibs(sol::state& lua)
 		"press", sol::overload(
 			sol::resolve<qint64(std::string, qint64, qint64, sol::this_state)>(&CLuaSystem::press),
 			sol::resolve<qint64(qint64, qint64, qint64, sol::this_state)>(&CLuaSystem::press)
-		),
-
-		"input", &CLuaSystem::input
+		)
 	);
 }
 
@@ -842,6 +852,13 @@ void CLua::open_petlibs(sol::state& lua)
 
 void CLua::open_maplibs(sol::state& lua)
 {
+	lua.set_function("findpath", &CLuaMap::findPath, &luaMap_);
+	lua.set_function("move", &CLuaMap::move, &luaMap_);
+	lua.set_function("w", &CLuaMap::packetMove, &luaMap_);
+	lua.set_function("chmap", &CLuaMap::teleport, &luaMap_);
+	lua.set_function("download", &CLuaMap::downLoad, &luaMap_);
+	lua.set_function("movetonpc", &CLuaMap::moveToNPC, &luaMap_);
+
 	lua.new_usertype<CLuaMap>("MapClass",
 		sol::call_constructor,
 		sol::constructors<CLuaMap()>(),
@@ -849,12 +866,7 @@ void CLua::open_maplibs(sol::state& lua)
 			sol::resolve<qint64(qint64, sol::this_state)>(&CLuaMap::setDir),
 			sol::resolve<qint64(qint64, qint64, sol::this_state) >(&CLuaMap::setDir),
 			sol::resolve<qint64(std::string, sol::this_state) >(&CLuaMap::setDir)
-		),
-		"move", &CLuaMap::move,
-		"packetMove", &CLuaMap::packetMove,
-		"teleport", &CLuaMap::teleport,
-		"findPath", &CLuaMap::findPath,
-		"download", &CLuaMap::downLoad
+		)
 	);
 }
 
@@ -886,7 +898,7 @@ void CLua::openlibs()
 	}
 
 
-	lua_.set("_THIS", this);// 將this指針傳給lua設置全局變量
+	lua_.set("_THIS_CLUA", this);// 將this指針傳給lua設置全局變量
 	lua_.set("_THIS_PARENT", parent_);// 將父類指針傳給lua設置全局變量
 	lua_.set("_INDEX", getIndex());
 	lua_.set("_INDEX_", getIndex());

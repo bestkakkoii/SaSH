@@ -147,22 +147,7 @@ public:
 		return instance;
 	}
 
-	inline void close(qint64 index)
-	{
-		QMutexLocker locker(&mutex_);
-		if (threads_.contains(index) && objects_.contains(index))
-		{
-			auto thread_ = threads_.take(index);
-			auto object_ = objects_.take(index);
-			object_->requestInterruption();
-			thread_->quit();
-			thread_->wait();
-			delete thread_;
-			thread_ = nullptr;
-			delete object_;
-			object_ = nullptr;
-		}
-	}
+	void close(qint64 index);
 
 	inline void close()
 	{
@@ -211,6 +196,13 @@ class UniqueIdManager
 private:
 	UniqueIdManager()
 	{
+		QStringList list;
+		for (int i = 0; i < SASH_MAX_THREAD; ++i)
+			list << QString::number(i);
+
+		QString combined = QString(R"({"ids":[%1]})").arg(list.join(","));
+		QByteArray byteArray = combined.toUtf8();
+		totalBytes_ = byteArray.size();
 	}
 
 public:
@@ -239,6 +231,7 @@ public:
 		sharedMemory_.setKey("UniqueIdManagerSharedMemory");
 		if (!sharedMemory_.attach())
 		{
+
 			sharedMemory_.create(totalBytes_);
 			reset();
 		}
@@ -259,7 +252,7 @@ public:
 		{
 			qint64 ret = readSharedMemory(&allocatedIds);
 			if (ret == -1)
-				break;
+				id = -1;
 
 			if (id != -1)
 			{
@@ -352,7 +345,7 @@ private:
 			}
 
 			QJsonObject obj = doc.object();
-			QJsonValue value = obj["allocatedIds"];
+			QJsonValue value = obj[jsonKey_];
 			if (!value.isArray())
 			{
 				qDebug() << "!value.isArray()";
@@ -387,6 +380,9 @@ private:
 
 		// 將 JSON 文檔轉換為 UTF-8 編碼的 QByteArray
 		QByteArray data = doc.toJson(QJsonDocument::Compact);
+		QString str = QString::fromUtf8(data).simplified();
+		data = str.toUtf8();
+		data.replace(" ", "");
 
 		if (sharedMemory_.lock())
 		{
@@ -398,7 +394,7 @@ private:
 
 private:
 
-	const QString jsonKey_ = "allocatedIds";
-	const qint64 totalBytes_ = 65536LL * 10LL;
+	const QString jsonKey_ = "ids";
+	qint64 totalBytes_ = 0;
 	QSharedMemory sharedMemory_;
 };

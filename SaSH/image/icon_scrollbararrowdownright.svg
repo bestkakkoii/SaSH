@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 18 18">
+  <defs>
+    <style>.canvas{fill: none; opacity: 0;}.light-defaultgrey{fill: #d3d3d3; opacity: 1;}</style>
+  </defs>
+  <title>ScrollbarArrowDownRight</title>
+  <g id="canvas">
+    <path class="canvas" d="M16,16H0V0H16Z" />
+  </g>
+  <g id="level-1">
+    <path class="light-defaultgrey" d="M10.5,10H6l-.354-.854,4.5-4.5L11,5V9.5Z" />
+  </g>
+</svg>

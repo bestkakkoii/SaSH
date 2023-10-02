@@ -31,6 +31,8 @@ qint64 Interpreter::checkdaily(qint64 currentIndex, qint64 currentLine, const To
 
 	QString text;
 	checkString(TK, 1, &text);
+	text = text.simplified();
+
 	if (text.isEmpty())
 		return Parser::kArgError + 1ll;
 
@@ -52,6 +54,8 @@ qint64 Interpreter::waitpet(qint64 currentIndex, qint64 currentLine, const Token
 
 	QString petName;
 	checkString(TK, 1, &petName);
+	petName = petName.simplified();
+
 	if (petName.isEmpty())
 		return Parser::kArgError + 1ll;
 
@@ -91,6 +95,8 @@ qint64 Interpreter::waitmap(qint64 currentIndex, qint64 currentLine, const Token
 	QString mapname = "";
 	qint64 floor = 0;
 	checkString(TK, 1, &mapname);
+	mapname = mapname.simplified();
+
 	QStringList mapnames = mapname.split(util::rexOR, Qt::SkipEmptyParts);
 	checkInteger(TK, 1, &floor);
 
@@ -166,6 +172,8 @@ qint64 Interpreter::waitdlg(qint64 currentIndex, qint64 currentLine, const Token
 		if (!checkInteger(TK, 1, &dlgid))
 			return Parser::kArgError + 1ll;
 	}
+	else
+		cmpStr = cmpStr.simplified();
 
 	bool bret = false;
 	if (dlgid != -1)
@@ -261,7 +269,6 @@ qint64 Interpreter::waitsay(qint64 currentIndex, qint64 currentLine, const Token
 		return Parser::kServerNotReady;
 
 	checkOnlineThenWait();
-	checkBattleThenWait();
 
 	qint64 min = 1;
 	qint64 max = MAX_CHAT_HISTORY;
@@ -275,8 +282,10 @@ qint64 Interpreter::waitsay(qint64 currentIndex, qint64 currentLine, const Token
 
 	QString cmpStr;
 	checkString(TK, 2, &cmpStr);
+	cmpStr = cmpStr.simplified();
 	if (cmpStr.isEmpty())
 		return Parser::kArgError + 2ll;
+
 	QStringList cmpStrs = cmpStr.split(util::rexOR, Qt::SkipEmptyParts);
 
 	bool bret = false;
@@ -288,6 +297,27 @@ qint64 Interpreter::waitsay(qint64 currentIndex, qint64 currentLine, const Token
 		for (qint64 i = min; i <= max; ++i)
 		{
 			QString text = injector.server->getChatHistory(i - 1).simplified();
+			if (text.isEmpty())
+				continue;
+
+			for (const QString& cmpStr : cmpStrs)
+			{
+				if (text.contains(cmpStr.simplified(), Qt::CaseInsensitive))
+				{
+					return true;
+				}
+			}
+		}
+
+		QVector<QPair<qint64, QString>> list = injector.server->chatQueue.values();
+
+		for (qint64 i = min; i <= max; ++i)
+		{
+			if (i < 0)
+				continue;
+			if (i > list.size())
+				break;
+			QString text = list.at(i - 1).second.simplified();
 			if (text.isEmpty())
 				continue;
 
@@ -345,6 +375,8 @@ qint64 Interpreter::waitpos(qint64 currentIndex, qint64 currentLine, const Token
 	}
 	else if (checkString(TK, 1, &posStrs))
 	{
+		posStrs = posStrs.simplified();
+
 		if (posStrs.isEmpty())
 			return Parser::kArgError + 1ll;
 
@@ -452,6 +484,8 @@ qint64 Interpreter::waititem(qint64 currentIndex, qint64 currentLine, const Toke
 	{
 		QString partStr;
 		checkString(TK, 1, &partStr);
+		partStr = partStr.simplified();
+
 		if (partStr.isEmpty())
 			return Parser::kArgError + 1ll;
 
@@ -483,9 +517,11 @@ qint64 Interpreter::waititem(qint64 currentIndex, qint64 currentLine, const Toke
 
 	QString itemName;
 	checkString(TK, 2, &itemName);
+	itemName = itemName.simplified();
 
 	QString itemMemo;
 	checkString(TK, 3, &itemMemo);
+	itemMemo = itemMemo.simplified();
 
 	if (itemName.isEmpty() && itemMemo.isEmpty())
 		return Parser::kArgError + 1ll;

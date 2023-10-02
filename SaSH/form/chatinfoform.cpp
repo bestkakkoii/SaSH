@@ -86,6 +86,9 @@ ChatInfoForm::ChatInfoForm(qint64 index, QWidget* parent)
 		ui.listView_log->setModel(injector.chatLogModel.get());
 
 	delegate_ = new ColorDelegate(this);
+	Q_ASSERT(delegate_ != nullptr);
+	if (delegate_ == nullptr)
+		return;
 
 	QComboBox comboBox;
 	ui.comboBox_channel->clear();

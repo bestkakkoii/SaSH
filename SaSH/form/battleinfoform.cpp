@@ -45,13 +45,16 @@ BattleInfoForm::BattleInfoForm(qint64 index, QWidget* parent)
 
 		qint64 rowCount = tableWidget->rowCount();
 		qint64 columnCount = tableWidget->columnCount();
+		QTableWidgetItem* item = nullptr;
 		for (qint64 row = 0; row < rowCount; ++row)
 		{
 			for (qint64 column = 0; column < columnCount; ++column)
 			{
-				QTableWidgetItem* item = new QTableWidgetItem("");
-				if (item)
-					tableWidget->setItem(row, column, item);
+				item = new QTableWidgetItem("");
+				if (item == nullptr)
+					continue;
+
+				tableWidget->setItem(row, column, item);
 			}
 		}
 	};
@@ -215,6 +218,8 @@ void BattleInfoForm::onNotifyBattleActionState(qint64 index, bool left)
 
 void BattleInfoForm::updateItemInfoRowContents(QTableWidget* tableWidget, const QVariant& dat)
 {
+	if (tableWidget == nullptr)
+		return;
 
 	// 檢查是否為 QVector<QStringList>
 	if (dat.type() != QVariant::Type::UserType)
@@ -232,22 +237,23 @@ void BattleInfoForm::updateItemInfoRowContents(QTableWidget* tableWidget, const 
 		// 檢查指針
 		QTableWidgetItem* item = tableWidget->item(row, col);
 
-		if (!item)
-		{
-			// 如果指針為空，創建新的 QTableWidgetItem
-			item = new QTableWidgetItem(text);
-			item->setToolTip(text);
-			tableWidget->setItem(row, col, item);
-		}
-		else
+		if (item != nullptr)
 		{
 			// 如果指針不為空，則使用原有的 QTableWidgetItem
 			item->setText(text);
 			item->setToolTip(text);
 		}
+		else
+		{
+			// 如果指針為空，創建新的 QTableWidgetItem
+			item = new QTableWidgetItem(text);
+			if (item == nullptr)
+				return;
+
+			item->setToolTip(text);
+			tableWidget->setItem(row, col, item);
+		}
 	};
-
-
 
 	const QString objectName = tableWidget->objectName();
 	//const bool isTop = objectName.contains("top", Qt::CaseInsensitive);

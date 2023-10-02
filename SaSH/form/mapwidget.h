@@ -80,7 +80,7 @@ private slots:
 
 	void on_openGLWidget_notifyMouseMove(Qt::MouseButton button, const QPointF& gpos, const QPointF& pos);
 
-	void on_openGLWidget_notifyMousePosition(const QPointF& pos);
+	void on_openGLWidget_notifyLeftDoubleClick(const QPointF& pos);
 
 	void on_openGLWidget_notifyRightClick();
 

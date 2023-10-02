@@ -591,10 +591,10 @@ bool mem::inject(qint64 index, HANDLE hProcess, QString dllPath, HMODULE* phDllM
 	};
 
 	InjectData d;
-	DWORD* kernel32Module = getKernel32();
-	d.loadLibraryWPtr = getFunAddr(kernel32Module, "LoadLibraryW");
-	d.getLastErrorPtr = getFunAddr(kernel32Module, "GetLastError");
-	d.getModuleHandleWPtr = getFunAddr(kernel32Module, "GetModuleHandleW");
+	HMODULE kernel32Module = GetModuleHandleW(L"kernel32.dll");
+	d.loadLibraryWPtr = reinterpret_cast<DWORD>(GetProcAddress(kernel32Module, "LoadLibraryW"));
+	d.getLastErrorPtr = reinterpret_cast<DWORD>(GetProcAddress(kernel32Module, "GetLastError"));
+	d.getModuleHandleWPtr = reinterpret_cast<DWORD>(GetProcAddress(kernel32Module, "GetModuleHandleW"));
 	util::VirtualMemory dllfullpathaddr(hProcess, dllPath, util::VirtualMemory::kUnicode, true);
 	d.dllFullPathAddr = dllfullpathaddr;
 
@@ -1088,7 +1088,8 @@ void util::FormSettingManager::saveSettings()
 	config.write("Form", ObjectName, "Size", QString("%1,%2").arg(size.width()).arg(size.height()));
 }
 
-QFileInfoList util::loadAllFileLists(TreeWidgetItem* root, const QString& path, const QString& suffix, const QString& icon, QStringList* list)
+QFileInfoList util::loadAllFileLists(TreeWidgetItem* root, const QString& path, const QString& suffix, const QString& icon, QStringList* list
+	, const QString& folderIcon)
 {
 	/*添加path路徑文件*/
 	QDir dir(path); //遍歷各級子目錄
@@ -1135,15 +1136,15 @@ QFileInfoList util::loadAllFileLists(TreeWidgetItem* root, const QString& path, 
 		if (list)
 			list->append(name);
 		TreeWidgetItem* childroot = q_check_ptr(new TreeWidgetItem(QStringList{ name }, 0));
-		childroot->setIcon(0, QIcon(QPixmap(":/image/icon_directory.png")));
+		childroot->setIcon(0, QIcon(QPixmap(folderIcon)));
 		root->addChild(childroot); //將當前目錄添加成path的子項
-		const QFileInfoList child_file_list = loadAllFileLists(childroot, namepath, suffix, icon, list); //遞歸添加子目錄
+		const QFileInfoList child_file_list = loadAllFileLists(childroot, namepath, suffix, icon, list, folderIcon); //遞歸添加子目錄
 		file_list.append(child_file_list);
 	}
 	return file_list;
 }
 
-QFileInfoList util::loadAllFileLists(TreeWidgetItem* root, const QString& path, QStringList* list)
+QFileInfoList util::loadAllFileLists(TreeWidgetItem* root, const QString& path, QStringList* list, const QString& fileIcon, const QString& folderIcon)
 {
 	/*添加path路徑文件*/
 	QDir dir(path); //遍歷各級子目錄
@@ -1169,7 +1170,7 @@ QFileInfoList util::loadAllFileLists(TreeWidgetItem* root, const QString& path, 
 #endif
 			in.setGenerateByteOrderMark(true);
 			child->setToolTip(0, QString("===== %1 =====\n\n%2").arg(item.absoluteFilePath()).arg(in.readAll().left(256)));
-			child->setIcon(0, QIcon(QPixmap(":/image/icon_txt.png")));
+			child->setIcon(0, QIcon(QPixmap(fileIcon)));
 
 			root->addChild(child);
 			f.close();
@@ -1187,9 +1188,9 @@ QFileInfoList util::loadAllFileLists(TreeWidgetItem* root, const QString& path, 
 		if (list)
 			list->append(name);
 		TreeWidgetItem* childroot = q_check_ptr(new TreeWidgetItem(QStringList{ name }, 0));
-		childroot->setIcon(0, QIcon(QPixmap(":/image/icon_directory.png")));
+		childroot->setIcon(0, QIcon(QPixmap(folderIcon)));
 		root->addChild(childroot); //將當前目錄添加成path的子項
-		const QFileInfoList child_file_list = loadAllFileLists(childroot, namepath); //進行遞歸
+		const QFileInfoList child_file_list = loadAllFileLists(childroot, namepath, list, fileIcon, folderIcon); //遞歸添加子目錄
 		file_list.append(child_file_list);
 	}
 	return file_list;

@@ -142,7 +142,7 @@ BOOL preventSetUnhandledExceptionFilter()
 	if (hKernel32 == nullptr)
 		return FALSE;
 
-	void* pOrgEntry = GetProcAddress(hKernel32, u8"SetUnhandledExceptionFilter");
+	void* pOrgEntry = GetProcAddress(hKernel32, "SetUnhandledExceptionFilter");
 	if (pOrgEntry == nullptr)
 		return FALSE;
 
@@ -371,7 +371,7 @@ int main(int argc, char* argv[])
 	//format.setStencilBufferSize(8);
 	//format.setColorSpace(QSurfaceFormat::ColorSpace::sRGBColorSpace);
 	//format.setOption(QSurfaceFormat::StereoBuffers);
-	format.setProfile(QSurfaceFormat::OpenGLContextProfile::CompatibilityProfile);
+	//format.setProfile(QSurfaceFormat::OpenGLContextProfile::CompatibilityProfile);
 	//format.setStereo(true);
 	//format.setSwapInterval(1);
 	QSurfaceFormat::setDefaultFormat(format);

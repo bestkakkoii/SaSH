@@ -2495,7 +2495,7 @@ No new version available. Do you still want to update?</source>
     </message>
     <message>
         <source>script settings</source>
-        <translation>脚本编辑</translation>
+        <translation type="vanished">脚本编辑</translation>
     </message>
     <message>
         <source>use %1 to %2</source>
@@ -2703,7 +2703,7 @@ No new version available. Do you still want to update?</source>
     </message>
     <message>
         <source>&lt;findpath&gt;unable to findpath</source>
-        <translation>&lt;寻路&gt;找不到路径</translation>
+        <translation type="vanished">&lt;寻路&gt;找不到路径</translation>
     </message>
     <message>
         <source>&lt;findpath&gt;path found, cost:%1</source>
@@ -2715,11 +2715,11 @@ No new version available. Do you still want to update?</source>
     </message>
     <message>
         <source>&lt;findpath&gt;stop finding path due to timeout</source>
-        <translation>&lt;寻路&gt;超时，放弃寻路</translation>
+        <translation type="vanished">&lt;寻路&gt;超时，放弃寻路</translation>
     </message>
     <message>
         <source>&lt;findpath&gt;stop finding path due to map changed</source>
-        <translation>&lt;寻路&gt;地图已变更，放弃寻路</translation>
+        <translation type="vanished">&lt;寻路&gt;地图已变更，放弃寻路</translation>
     </message>
     <message>
         <source>self</source>
@@ -2883,7 +2883,7 @@ No new version available. Do you still want to update?</source>
     </message>
     <message>
         <source>&lt;findpath&gt;detedted player ware blocked</source>
-        <translation>&lt;寻路&gt;检测到人物卡点</translation>
+        <translation type="vanished">&lt;寻路&gt;检测到人物卡点</translation>
     </message>
     <message>
         <source>&lt;Error&gt;Unknown command &apos;%1&apos; has been ignored at line: %2</source>
@@ -2967,7 +2967,7 @@ No new version available. Do you still want to update?</source>
     </message>
     <message>
         <source>&lt;findpath&gt;path found, cost:%1 step:%2</source>
-        <translation>&lt;寻路&gt;成功找到路径，耗时：%1 步数:%2</translation>
+        <translation type="vanished">&lt;寻路&gt;成功找到路径，耗时：%1 步数:%2</translation>
     </message>
     <message>
         <source>unknown command: %1</source>
@@ -3179,11 +3179,11 @@ No new version available. Do you still want to update?</source>
     </message>
     <message>
         <source>GLOBAL</source>
-        <translation>全局变量</translation>
+        <translation>全局</translation>
     </message>
     <message>
         <source>LOCAL</source>
-        <translation>局变量</translation>
+        <translation>局</translation>
     </message>
     <message>
         <source>UInt</source>
@@ -3290,6 +3290,18 @@ No new version available. Do you still want to update?</source>
         <translation>取函数入口地址失败</translation>
     </message>
     <message>
+        <source>[warn] &lt;findpath&gt;stop finding path due to interruption</source>
+        <translation>[警告] &lt;寻路&gt;收到中止请求，停止寻路</translation>
+    </message>
+    <message>
+        <source> ========== report : error %1 times，others %2 times ==========</source>
+        <translation type="vanished"> ========== 报告 : 错误 %1 个，其他 %2 个 ==========</translation>
+    </message>
+    <message>
+        <source> ========== script report : valid %1，error %2，comment %3，space %4 ==========</source>
+        <translation> ========== 脚本报告 : 有效命令 %1 个，错误 %2 个，註释 %3 个，空行 %4 个 ==========</translation>
+    </message>
+    <message>
         <source>drunk</source>
         <translation>酒醉</translation>
     </message>
@@ -3298,7 +3310,7 @@ No new version available. Do you still want to update?</source>
         <translation>虚弱</translation>
     </message>
     <message>
-        <source>deeppoison</source>
+        <source>deep poison</source>
         <translation>剧毒</translation>
     </message>
     <message>
@@ -3306,7 +3318,7 @@ No new version available. Do you still want to update?</source>
         <translation>魔障</translation>
     </message>
     <message>
-        <source>nocast</source>
+        <source>no cast</source>
         <translation>沉默</translation>
     </message>
     <message>
@@ -3315,55 +3327,67 @@ No new version available. Do you still want to update?</source>
     </message>
     <message>
         <source>entwine</source>
-        <translation>树根缠绕</translation>
+        <translation>树缠</translation>
     </message>
     <message>
         <source>dragnet</source>
-        <translation>天罗地网</translation>
+        <translation>天网</translation>
     </message>
     <message>
-        <source>icecrack</source>
-        <translation>冰爆术</translation>
+        <source>ice crack</source>
+        <translation>冰爆</translation>
     </message>
     <message>
         <source>oblivion</source>
         <translation>遗忘</translation>
     </message>
     <message>
-        <source>icearrow</source>
+        <source>ice arrow</source>
         <translation>冰箭</translation>
     </message>
     <message>
-        <source>bloodworms</source>
-        <translation>嗜血蛊</translation>
+        <source>blood worms</source>
+        <translation>血蛊</translation>
     </message>
     <message>
         <source>sign</source>
-        <translation>一针见血</translation>
+        <translation>一针</translation>
     </message>
     <message>
         <source>cary</source>
         <translation>挑拨</translation>
     </message>
     <message>
-        <source>f_enclose</source>
-        <translation>火附体</translation>
+        <source>fire enclose</source>
+        <translation>火附</translation>
     </message>
     <message>
-        <source>i_enclose</source>
-        <translation>冰附体</translation>
+        <source>ice enclose</source>
+        <translation>冰附</translation>
     </message>
     <message>
-        <source>t_enclose</source>
-        <translation>雷附体</translation>
+        <source>thunder enclose</source>
+        <translation>雷附</translation>
+    </message>
+    <message>
+        <source>water enclose</source>
+        <translation>水附</translation>
     </message>
     <message>
         <source>fear</source>
         <translation>恐惧</translation>
     </message>
     <message>
-        <source>lechange</source>
-        <translation>雷尔变身</translation>
+        <source>change</source>
+        <translation>变身</translation>
+    </message>
+    <message>
+        <source>[info]</source>
+        <translation>[资讯]</translation>
+    </message>
+    <message>
+        <source>scripteditor</source>
+        <translation>脚本编辑器</translation>
     </message>
 </context>
 <context>
@@ -3389,89 +3413,7 @@ No new version available. Do you still want to update?</source>
     </message>
 </context>
 <context>
-    <name>ScriptForm</name>
-    <message>
-        <source>command</source>
-        <translation>指令</translation>
-    </message>
-    <message>
-        <source>params</source>
-        <translation>内容</translation>
-    </message>
-    <message>
-        <source>script:</source>
-        <translation type="vanished">脚本:</translation>
-    </message>
-    <message>
-        <source>start</source>
-        <translation>开始</translation>
-    </message>
-    <message>
-        <source>mid-start</source>
-        <translation>中间开始</translation>
-    </message>
-    <message>
-        <source>pause</source>
-        <translation>暂停</translation>
-    </message>
-    <message>
-        <source>resume</source>
-        <translation>恢復</translation>
-    </message>
-</context>
-<context>
-    <name>ScriptFormClass</name>
-    <message>
-        <source>ScriptForm</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>script:</source>
-        <translation type="vanished">脚本:</translation>
-    </message>
-    <message>
-        <source>current row: 0/0</source>
-        <translation type="vanished">正在运行行数:0/0</translation>
-    </message>
-    <message>
-        <source>start</source>
-        <translation>开始</translation>
-    </message>
-    <message>
-        <source>pause</source>
-        <translation>暂停</translation>
-    </message>
-    <message>
-        <source>stop</source>
-        <translation>停止</translation>
-    </message>
-    <message>
-        <source>scripts</source>
-        <translation type="vanished">脚本</translation>
-    </message>
-    <message>
-        <source>current row:</source>
-        <translation type="vanished">正在运行行数:</translation>
-    </message>
-    <message>
-        <source>command</source>
-        <translation>指令</translation>
-    </message>
-    <message>
-        <source>params</source>
-        <translation>内容</translation>
-    </message>
-    <message>
-        <source>refresh</source>
-        <translation>刷新脚本列表</translation>
-    </message>
-    <message>
-        <source>row:</source>
-        <translation>行:</translation>
-    </message>
-</context>
-<context>
-    <name>ScriptSettingForm</name>
+    <name>ScriptEditor</name>
     <message>
         <source>row:%1 | size:%2 | index:%3 | %4</source>
         <translation type="vanished">行号:%1 | 字元:%2 | 索引:%3 | %4</translation>
@@ -3656,11 +3598,15 @@ No new version available. Do you still want to update?</source>
         <source>Usage: cpu: %1% | memory: %2MB / %3MB</source>
         <translation>占用率: CPU: %1% | 内存: %2MB / %3MB</translation>
     </message>
+    <message>
+        <source>Script speed:</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
-    <name>ScriptSettingFormClass</name>
+    <name>ScriptEditorClass</name>
     <message>
-        <source>ScriptSettingForm</source>
+        <source>ScriptEditor</source>
         <translation>脚本编辑</translation>
     </message>
     <message>
@@ -3696,10 +3642,6 @@ No new version available. Do you still want to update?</source>
         <translation>类型</translation>
     </message>
     <message>
-        <source>local</source>
-        <translation>区域</translation>
-    </message>
-    <message>
         <source>log</source>
         <translation>日誌</translation>
     </message>
@@ -3733,11 +3675,11 @@ No new version available. Do you still want to update?</source>
     </message>
     <message>
         <source>AutoCleanLog</source>
-        <translation>自动清理日誌</translation>
+        <translation type="vanished">自动清理日誌</translation>
     </message>
     <message>
         <source>AutoFollow</source>
-        <translation>自动跟随行数</translation>
+        <translation type="vanished">自动跟随行数</translation>
     </message>
     <message>
         <source>New</source>
@@ -3746,10 +3688,6 @@ No new version available. Do you still want to update?</source>
     <message>
         <source>functions</source>
         <translation>命令</translation>
-    </message>
-    <message>
-        <source>var</source>
-        <translation></translation>
     </message>
     <message>
         <source>varremove</source>
@@ -3776,14 +3714,6 @@ No new version available. Do you still want to update?</source>
         <translation type="obsolete">说出</translation>
     </message>
     <message>
-        <source>talk</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>sleep</source>
-        <translation></translation>
-    </message>
-    <message>
         <source>savesettings</source>
         <translation type="obsolete">保存设置</translation>
     </message>
@@ -3796,24 +3726,8 @@ No new version available. Do you still want to update?</source>
         <translation type="obsolete">消息</translation>
     </message>
     <message>
-        <source>logout</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>logback</source>
-        <translation></translation>
-    </message>
-    <message>
         <source>loadsettings</source>
         <translation type="obsolete">读取设置</translation>
-    </message>
-    <message>
-        <source>input</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>eo</source>
-        <translation></translation>
     </message>
     <message>
         <source>clear</source>
@@ -3826,14 +3740,6 @@ No new version available. Do you still want to update?</source>
     <message>
         <source>relational operator</source>
         <translation type="vanished">逻辑比较运算符</translation>
-    </message>
-    <message>
-        <source>move</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>movetonpc</source>
-        <translation></translation>
     </message>
     <message>
         <source>movedir</source>
@@ -3850,34 +3756,6 @@ No new version available. Do you still want to update?</source>
     <message>
         <source>core</source>
         <translation type="vanished">核心类</translation>
-    </message>
-    <message>
-        <source>run</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>return</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>pause</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>label</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>goto</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>end</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>comment</source>
-        <translation></translation>
     </message>
     <message>
         <source>cmp</source>
@@ -3960,20 +3838,8 @@ No new version available. Do you still want to update?</source>
         <translation type="obsolete">提出道具</translation>
     </message>
     <message>
-        <source>usemagic</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>useitem</source>
-        <translation></translation>
-    </message>
-    <message>
         <source>setpetstate</source>
         <translation type="obsolete">更换宠物</translation>
-    </message>
-    <message>
-        <source>sell</source>
-        <translation></translation>
     </message>
     <message>
         <source>renameplayer</source>
@@ -3992,24 +3858,12 @@ No new version available. Do you still want to update?</source>
         <translation type="obsolete">左击</translation>
     </message>
     <message>
-        <source>leave</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>join</source>
-        <translation></translation>
-    </message>
-    <message>
         <source>droppet</source>
         <translation type="obsolete">丢弃宠物</translation>
     </message>
     <message>
         <source>dropitem</source>
         <translation type="obsolete">丢弃道具</translation>
-    </message>
-    <message>
-        <source>buy</source>
-        <translation></translation>
     </message>
     <message>
         <source>withdrawgold</source>
@@ -4020,20 +3874,12 @@ No new version available. Do you still want to update?</source>
         <translation>查找命令</translation>
     </message>
     <message>
-        <source>Ctrl+S</source>
-        <translation></translation>
-    </message>
-    <message>
         <source>SaveAs</source>
         <translation>另存新档</translation>
     </message>
     <message>
         <source>Start</source>
         <translation>开始</translation>
-    </message>
-    <message>
-        <source>F5</source>
-        <translation></translation>
     </message>
     <message>
         <source>Pause/Resume</source>
@@ -4068,16 +3914,8 @@ No new version available. Do you still want to update?</source>
         <translation>加密脚本</translation>
     </message>
     <message>
-        <source>Ctrl+Alt+E</source>
-        <translation></translation>
-    </message>
-    <message>
         <source>DecryptSave</source>
         <translation>解密脚本</translation>
-    </message>
-    <message>
-        <source>Ctrl+Alt+D</source>
-        <translation></translation>
     </message>
     <message>
         <source>Save(Ctrl+S)</source>
@@ -4086,10 +3924,6 @@ No new version available. Do you still want to update?</source>
     <message>
         <source>Step(F8)</source>
         <translation>单步(F8)</translation>
-    </message>
-    <message>
-        <source>F8</source>
-        <translation></translation>
     </message>
     <message>
         <source>Start(F5)</source>
@@ -4102,126 +3936,6 @@ No new version available. Do you still want to update?</source>
     <message>
         <source>DecryptSave(Ctrl+Alt+D)</source>
         <translation>解密脚本(Ctrl+Alt+D)</translation>
-    </message>
-    <message>
-        <source>say</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>saveset</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>print</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>msg</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>loadset</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>cls</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>button</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>walkpos</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>w</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>findpath</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>dir</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>chmap</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>jmp</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>function</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>exit</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>dostring</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>back</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>waitsay</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>waitmap</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>waitdlg</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>rclick</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>pickup</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>make</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>ldbclick</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>lclick</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>doffpet</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>doffitem</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>cook</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>chpetname</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>chpet</source>
-        <translation></translation>
     </message>
     <message>
         <source>var fun</source>
@@ -4244,16 +3958,8 @@ No new version available. Do you still want to update?</source>
         <translation>检查类</translation>
     </message>
     <message>
-        <source>waititem</source>
-        <translation></translation>
-    </message>
-    <message>
         <source>action fun</source>
         <translation>动作类</translation>
-    </message>
-    <message>
-        <source>waitpet</source>
-        <translation></translation>
     </message>
     <message>
         <source>NAME</source>
@@ -4272,116 +3978,8 @@ No new version available. Do you still want to update?</source>
         <translation>跳转栈</translation>
     </message>
     <message>
-        <source>varop</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>preview</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>op</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>typedef</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>waitteam</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>mail</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>reg</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>dlg</source>
-        <translation></translation>
-    </message>
-    <message>
         <source>battle</source>
         <translation>战斗类</translation>
-    </message>
-    <message>
-        <source>bwf</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>bw</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>bt</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>bs</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>bp</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>bn</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>bj</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>bi</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>bh</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>be</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>bd</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>bwait</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>bend</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>skup</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>wequip</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>uequip</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>requip</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>puequip</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>pequip</source>
-        <translation></translation>
     </message>
     <message>
         <source>successjump</source>
@@ -4396,52 +3994,8 @@ No new version available. Do you still want to update?</source>
         <translation>作用域</translation>
     </message>
     <message>
-        <source>menu</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>movetonpc with mod</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>for</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>break</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>swapitem</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>dofile</source>
-        <translation></translation>
-    </message>
-    <message>
         <source>continue</source>
         <translation>继续</translation>
-    </message>
-    <message>
-        <source>if</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>delch</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>createch</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>const</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>doffstone</source>
-        <translation></translation>
     </message>
     <message>
         <source>Debug</source>
@@ -4450,6 +4004,38 @@ No new version available. Do you still want to update?</source>
     <message>
         <source>transform</source>
         <translation>转换相关</translation>
+    </message>
+    <message>
+        <source>string</source>
+        <translation>字符串相关</translation>
+    </message>
+    <message>
+        <source>team</source>
+        <translation>队伍相关</translation>
+    </message>
+    <message>
+        <source>mouse</source>
+        <translation>鼠标相关</translation>
+    </message>
+    <message>
+        <source>item</source>
+        <translation>道具</translation>
+    </message>
+    <message>
+        <source>equip</source>
+        <translation>装备</translation>
+    </message>
+    <message>
+        <source>bank</source>
+        <translation>仓库相关</translation>
+    </message>
+    <message>
+        <source>varop</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>var</source>
+        <translation></translation>
     </message>
     <message>
         <source>tostr()</source>
@@ -4465,7 +4051,7 @@ No new version available. Do you still want to update?</source>
     </message>
     <message>
         <source>table</source>
-        <translation></translation>
+        <translation>表相关</translation>
     </message>
     <message>
         <source>tunique()</source>
@@ -4540,10 +4126,6 @@ No new version available. Do you still want to update?</source>
         <translation></translation>
     </message>
     <message>
-        <source>string</source>
-        <translation>字符串相关</translation>
-    </message>
-    <message>
         <source>upper()</source>
         <translation></translation>
     </message>
@@ -4596,7 +4178,19 @@ No new version available. Do you still want to update?</source>
         <translation></translation>
     </message>
     <message>
+        <source>local</source>
+        <translation></translation>
+    </message>
+    <message>
         <source>input()</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>const</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>typedef</source>
         <translation></translation>
     </message>
     <message>
@@ -4604,7 +4198,183 @@ No new version available. Do you still want to update?</source>
         <translation></translation>
     </message>
     <message>
+        <source>talk</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>sleep</source>
+        <translation></translation>
+    </message>
+    <message>
         <source>set()</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>say</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>saveset</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>print</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>msg</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>menu</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>logout</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>logback</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>loadset</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>input</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>eo</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>dofile</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>dlg</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>delch</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>createch</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>cls</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>button</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>preview</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>op</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>walkpos</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>w</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>movetonpc with mod</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>movetonpc</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>move</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>findpath</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>dir</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>chmap</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>run</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>return</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>reg</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>pause</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>label</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>jmp</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>goto</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>function</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>for</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>exit</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>end</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>dostring</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>comment</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>break</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>back</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>if</source>
         <translation></translation>
     </message>
     <message>
@@ -4612,36 +4382,196 @@ No new version available. Do you still want to update?</source>
         <translation></translation>
     </message>
     <message>
-        <source>team</source>
-        <translation>队伍相关</translation>
+        <source>waitteam</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>waitsay</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>waitpos</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>waitpet</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>waitmap</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>waititem</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>waitdlg</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>bwf</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>bwait</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>bw</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>bt</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>bs</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>bp</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>bn</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>bj</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>bi</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>bh</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>bend</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>be</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>bd</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>usemagic</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>leave</source>
+        <translation></translation>
     </message>
     <message>
         <source>kick</source>
         <translation></translation>
     </message>
     <message>
-        <source>mouse</source>
-        <translation>鼠标相关</translation>
+        <source>join</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>skup</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>rclick</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>ldbclick</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>lclick</source>
+        <translation></translation>
     </message>
     <message>
         <source>dragto</source>
         <translation></translation>
     </message>
     <message>
-        <source>item</source>
-        <translation>道具</translation>
+        <source>useitem</source>
+        <translation></translation>
     </message>
     <message>
-        <source>equip</source>
-        <translation>装备</translation>
+        <source>swapitem</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>sell</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>pickup</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>make</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>mail</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>doffstone</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>doffpet</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>doffitem</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>cook</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>buy</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>wequip</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>uequip</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>requip</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>puequip</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>pequip</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>chpetname</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>chpet</source>
+        <translation></translation>
     </message>
     <message>
         <source>chname</source>
         <translation></translation>
-    </message>
-    <message>
-        <source>bank</source>
-        <translation>仓库相关</translation>
     </message>
     <message>
         <source>putstone</source>
@@ -4668,8 +4598,106 @@ No new version available. Do you still want to update?</source>
         <translation></translation>
     </message>
     <message>
-        <source>waitpos</source>
+        <source>Ctrl+S</source>
         <translation></translation>
+    </message>
+    <message>
+        <source>F8</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>F5</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>Ctrl+Alt+E</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>Ctrl+Alt+D</source>
+        <translation></translation>
+    </message>
+</context>
+<context>
+    <name>ScriptForm</name>
+    <message>
+        <source>command</source>
+        <translation>指令</translation>
+    </message>
+    <message>
+        <source>params</source>
+        <translation>内容</translation>
+    </message>
+    <message>
+        <source>script:</source>
+        <translation type="vanished">脚本:</translation>
+    </message>
+    <message>
+        <source>start</source>
+        <translation>开始</translation>
+    </message>
+    <message>
+        <source>mid-start</source>
+        <translation>中间开始</translation>
+    </message>
+    <message>
+        <source>pause</source>
+        <translation>暂停</translation>
+    </message>
+    <message>
+        <source>resume</source>
+        <translation>恢復</translation>
+    </message>
+</context>
+<context>
+    <name>ScriptFormClass</name>
+    <message>
+        <source>ScriptForm</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>script:</source>
+        <translation type="vanished">脚本:</translation>
+    </message>
+    <message>
+        <source>current row: 0/0</source>
+        <translation type="vanished">正在运行行数:0/0</translation>
+    </message>
+    <message>
+        <source>start</source>
+        <translation>开始</translation>
+    </message>
+    <message>
+        <source>pause</source>
+        <translation>暂停</translation>
+    </message>
+    <message>
+        <source>stop</source>
+        <translation>停止</translation>
+    </message>
+    <message>
+        <source>scripts</source>
+        <translation type="vanished">脚本</translation>
+    </message>
+    <message>
+        <source>current row:</source>
+        <translation type="vanished">正在运行行数:</translation>
+    </message>
+    <message>
+        <source>command</source>
+        <translation>指令</translation>
+    </message>
+    <message>
+        <source>params</source>
+        <translation>内容</translation>
+    </message>
+    <message>
+        <source>refresh</source>
+        <translation>刷新脚本列表</translation>
+    </message>
+    <message>
+        <source>row:</source>
+        <translation>行:</translation>
     </message>
 </context>
 <context>

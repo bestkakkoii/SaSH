@@ -57,7 +57,6 @@ public:
 
 signals:
 	void finished();
-	void stoped();
 
 public slots:
 	void proc();
@@ -69,30 +68,16 @@ private:
 
 	template<typename Func>
 	void registerFunction(const QString functionName, Func fun);
-	void openLibsBIG5();
-	void openLibsGB2312();
 	void openLibsUTF8();
 	void openLibs();
 
 private:
 	bool checkBattleThenWait();
 	bool checkOnlineThenWait();
-	bool __fastcall findPath(
-		qint64 currentIndex,
-		qint64 currentLine,
-		QPoint dst,
-		qint64 steplen,
-		qint64 step_cost = 0,
-		qint64 timeout = DEFAULT_FUNCTION_TIMEOUT * 36,
-		std::function<qint64(QPoint& dst)> callback = nullptr,
-		bool noAnnounce = false);
 
 	bool waitfor(qint64 timeout, std::function<bool()> exprfun);
 	bool checkString(const TokenMap& TK, qint64 idx, QString* ret);
 	bool checkInteger(const TokenMap& TK, qint64 idx, qint64* ret);
-	bool checkNumber(const TokenMap& TK, qint64 idx, double* ret);
-	bool checkBoolean(const TokenMap& TK, qint64 idx, bool* ret);
-	bool toVariant(const TokenMap& TK, qint64 idx, QVariant* ret);
 
 	qint64 checkJump(const TokenMap& TK, qint64 idx, bool expr, JumpBehavior behavior);
 	bool checkRange(const TokenMap& TK, qint64 idx, qint64* min, qint64* max);
@@ -102,24 +87,10 @@ private:
 
 private: //註冊給Parser的函數
 	//system
-	qint64 sleep(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
 	qint64 press(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
-	qint64 eo(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
-	qint64 announce(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
-	qint64 input(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
-	qint64 talk(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
-	qint64 talkandannounce(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
-	qint64 logout(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
-	qint64 logback(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
-	qint64 cleanchat(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
-	qint64 savesetting(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
-	qint64 loadsetting(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
 	qint64 run(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
-	qint64 dostring(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
-	qint64 reg(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
-	qint64 timer(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
+	qint64 dostr(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
 	qint64 menu(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
-	qint64 dofile(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
 	qint64 createch(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
 	qint64 delch(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
 	qint64 send(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
@@ -141,10 +112,6 @@ private: //註冊給Parser的函數
 	qint64 move(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
 	qint64 fastmove(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
 	qint64 packetmove(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
-	qint64 findpath(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
-	qint64 movetonpc(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
-	qint64 warp(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
-
 
 	//action
 	qint64 useitem(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
@@ -186,11 +153,6 @@ private: //註冊給Parser的函數
 	qint64 join(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
 	qint64 leave(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
 	qint64 kick(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
-
-	qint64 leftclick(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
-	qint64 rightclick(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
-	qint64 leftdoubleclick(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
-	qint64 mousedragto(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
 
 	//hide
 	qint64 ocr(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);

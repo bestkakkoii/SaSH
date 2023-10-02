@@ -49,6 +49,11 @@ public:
 		return *instances.value(index);
 	}
 
+	static bool contains(qint64 index)
+	{
+		return instances.contains(index);
+	}
+
 public:
 	inline void setParent(QObject* parent) { QObject::setParent(parent); }
 
@@ -60,13 +65,14 @@ public:
 		SignalDispatcher* instance = instances.take(index);
 		if (instance != nullptr)
 		{
-			delete instance;
+			instance->deleteLater();
 		}
 	}
 
 signals:
 	//global
 	void nodifyAllStop();
+	void nodifyAllScriptStop();
 	void messageBoxShow(const QString& text, qint64 type = 0, QString title = "", qint64* pnret = nullptr);
 	void inputBoxShow(const QString& text, qint64 type, QVariant* retvalue);
 
@@ -132,7 +138,7 @@ signals:
 	void scriptStoped();
 	void scriptFinished();
 	void scriptContentChanged(const QString& fileName, const QVariant& tokens);
-	void loadFileToTable(const QString& fileName);
+	void loadFileToTable(const QString& fileName, bool start = false);
 	void reloadScriptList();
 	void varInfoImported(void* p, const QVariantHash& d, const QStringList& globalNames);
 

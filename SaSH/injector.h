@@ -40,7 +40,11 @@ public:
 		if (!instances.contains(index))
 		{
 			Injector* instance = new Injector(index);
-			instances.insert(index, instance);
+			Q_ASSERT(instance != nullptr);
+
+			if (instance != nullptr)
+				instances.insert(index, instance);
+
 		}
 		return *instances.value(index);
 	}
@@ -173,7 +177,11 @@ public:
 	QSharedPointer<Server> server;//與遊戲TCP通信專用
 
 	std::atomic_bool IS_SCRIPT_FLAG = false;//主腳本是否運行
+	std::atomic_bool IS_SCRIPT_INTERRUPT = false;//主腳本是否中斷
+
 	QString currentScriptFileName;//當前運行的主腳本完整路徑
+
+	QStack<QString> scriptFileNameStack;//腳本堆疊
 
 	QSharedPointer<StringListModel> scriptLogModel; //腳本日誌模型
 
@@ -187,11 +195,15 @@ public:
 
 	qint64 currentServerListIndex = 0;
 
-	std::atomic_bool isScriptDebugModeEnable = true;
+	std::atomic_bool isScriptDebugModeEnable = false;
+
+	std::atomic_bool isScriptEditorOpened = false;
 
 	quint64 scriptThreadId = 0;
 
 	Autil autil;
+
+	bool IS_INJECT_OK = false;//是否注入成功
 private:
 	quint64 hGameModule_ = NULL;
 	HMODULE hookdllModule_ = NULL;

@@ -33,7 +33,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "mainthread.h"
 
 //menu action forms
-#include "form/scriptsettingform.h"
+#include "form/scripteditor.h"
 #include "model/qthumbnailform.h"
 #include "update/downloader.h"
 
@@ -47,11 +47,11 @@ util::SafeHash<qint64, MainForm*> g_mainFormHash;
 
 void MainForm::createMenu(QMenuBar* pMenuBar)
 {
-	if (!pMenuBar)
+	if (pMenuBar == nullptr)
 		return;
 
 #pragma region StyleSheet
-	constexpr const char* styleText = u8R"(
+	constexpr const char* styleText = R"(
 				QMenu {
 					background-color: rgb(249, 249, 249); /*整個背景*/
 					border: 0px;
@@ -101,8 +101,9 @@ void MainForm::createMenu(QMenuBar* pMenuBar)
 		//QString alignedText = text + QString(spaceCount, ' ') + shortcutText;
 
 		QAction* pAction = new QAction(text, parent);
-		if (!pAction)
+		if (pAction == nullptr)
 			return;
+
 		if (!text.isEmpty() && !name.isEmpty())
 		{
 			if (name == "actionHide")
@@ -147,7 +148,7 @@ void MainForm::createMenu(QMenuBar* pMenuBar)
 
 	const QVector<std::tuple<QString, QString, qint64>> otherTable = {
 		{ QObject::tr("otherinfo"), "actionOtherInfo", Qt::Key_F5 },
-		{ QObject::tr("script settings"), "actionScriptSettings", Qt::Key_F7 },
+		{ QObject::tr("scripteditor"), "actionScriptEditor", Qt::Key_F7 },
 		{ "","", Qt::Key_unknown },
 		{ QObject::tr("map"), "actionMap", Qt::Key_F8 },
 	};
@@ -160,21 +161,28 @@ void MainForm::createMenu(QMenuBar* pMenuBar)
 	};
 
 	QMenu* pMenuSystem = new QMenu(QObject::tr("system"));
-	if (!pMenuSystem)
+	if (pMenuSystem == nullptr)
 		return;
-	//pMenuSystem->setStyleSheet(styleText);
+
 	pMenuBar->addMenu(pMenuSystem);
 
 	QMenu* pMenuOther = new QMenu(QObject::tr("other"));
-	if (!pMenuOther)
+	if (pMenuOther == nullptr)
+	{
+		delete pMenuSystem;
 		return;
-	//pMenuOther->setStyleSheet(styleText);
+	}
+
 	pMenuBar->addMenu(pMenuOther);
 
 	QMenu* pMenuFile = new QMenu(QObject::tr("file"));
-	if (!pMenuFile)
+	if (pMenuFile == nullptr)
+	{
+		delete pMenuSystem;
+		delete pMenuOther;
 		return;
-	//pMenuFile->setStyleSheet(styleText);
+	}
+
 	pMenuBar->addMenu(pMenuFile);
 
 	create(systemTable, pMenuSystem);
@@ -242,7 +250,7 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 	{
 		if (!injector.server.isNull())
 		{
-			injector.server->IS_TCP_CONNECTION_OK_TO_USE = true;
+			injector.server->IS_TCP_CONNECTION_OK_TO_USE.store(true, std::memory_order_release);
 			*result = 1;
 			qDebug() << "tcp ok";
 		}
@@ -342,10 +350,8 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 			return true;
 		}
 
-		pScriptForm_->loadFile(fileName);
 		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(id);
-		emit signalDispatcher.loadFileToTable(fileName);
-		emit signalDispatcher.scriptStarted();
+		emit signalDispatcher.loadFileToTable(fileName, true);
 
 		++interfaceCount_;
 		updateStatusText();
@@ -416,20 +422,23 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 			return true;
 
 
-		bool ok = injector.server->IS_TCP_CONNECTION_OK_TO_USE;
+		bool ok = injector.server->IS_TCP_CONNECTION_OK_TO_USE.load(std::memory_order_acquire);
 		if (!ok)
 			return true;
-		else
+
+		if (injector.IS_INJECT_OK)
+		{
 			value = 1;
 
-		if (!injector.server->getOnlineFlag())
-			value = 2;
-		else
-		{
-			if (!injector.server->getBattleFlag())
-				value = 3;
+			if (!injector.server->getOnlineFlag())
+				value = 2;
 			else
-				value = 4;
+			{
+				if (!injector.server->getBattleFlag())
+					value = 3;
+				else
+					value = 4;
+			}
 		}
 
 		++interfaceCount_;
@@ -456,23 +465,39 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 	case InterfaceMessage::kMultiFunction:
 	{
 		qint64 id = msg->wParam;
-		qint64 type = HIWORD(msg->lParam);
-		qint64 arg = LOWORD(msg->lParam);
+		qint64 type = LOWORD(msg->lParam);
+		qint64 arg = HIWORD(msg->lParam);
 		*result = 0;
 
 		switch (type)
 		{
 		case WindowInfo:
 		{
-			if (pInfoForm_ == nullptr)
+			if (arg > 0)
 			{
-				pInfoForm_ = new InfoForm(id, arg, nullptr);
-				if (pInfoForm_)
+				if (pInfoForm_ == nullptr)
 				{
-					connect(pInfoForm_, &InfoForm::destroyed, [this]() { pInfoForm_ = nullptr; });
-					pInfoForm_->setAttribute(Qt::WA_DeleteOnClose);
-					pInfoForm_->show();
+					pInfoForm_ = new InfoForm(id, arg, nullptr);
+					if (pInfoForm_ != nullptr)
+					{
+						connect(pInfoForm_, &InfoForm::destroyed, [this]() { pInfoForm_ = nullptr; });
+						pInfoForm_->setAttribute(Qt::WA_DeleteOnClose);
+						pInfoForm_->show();
 
+						++interfaceCount_;
+						updateStatusText();
+						*result = static_cast<long>(pInfoForm_->winId());
+					}
+					else
+					{
+						updateStatusText("create info form failed");
+					}
+				}
+				else
+				{
+					pInfoForm_->setCurrentPage(arg);
+					pInfoForm_->hide();
+					pInfoForm_->show();
 					++interfaceCount_;
 					updateStatusText();
 					*result = static_cast<long>(pInfoForm_->winId());
@@ -480,21 +505,39 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 			}
 			else
 			{
-				pInfoForm_->close();
+				if (pInfoForm_ != nullptr)
+					pInfoForm_->close();
+				++interfaceCount_;
+				updateStatusText();
 			}
 			break;
 		}
 		case WindowMap:
 		{
-			if (mapWidget_ == nullptr)
+			if (arg > 0)
 			{
-				mapWidget_ = new MapWidget(id, nullptr);
-				if (mapWidget_)
+				if (mapWidget_ == nullptr)
 				{
-					connect(mapWidget_, &InfoForm::destroyed, [this]() { mapWidget_ = nullptr; });
-					mapWidget_->setAttribute(Qt::WA_DeleteOnClose);
-					mapWidget_->show();
+					mapWidget_ = new MapWidget(id, nullptr);
+					if (mapWidget_)
+					{
+						connect(mapWidget_, &InfoForm::destroyed, [this]() { mapWidget_ = nullptr; });
+						mapWidget_->setAttribute(Qt::WA_DeleteOnClose);
+						mapWidget_->show();
 
+						++interfaceCount_;
+						updateStatusText();
+						*result = static_cast<long>(mapWidget_->winId());
+					}
+					else
+					{
+						updateStatusText("create map widget failed");
+					}
+				}
+				else
+				{
+					mapWidget_->hide();
+					mapWidget_->show();
 					++interfaceCount_;
 					updateStatusText();
 					*result = static_cast<long>(mapWidget_->winId());
@@ -502,71 +545,106 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 			}
 			else
 			{
-				mapWidget_->close();
+				if (mapWidget_ != nullptr)
+					mapWidget_->close();
+				++interfaceCount_;
+				updateStatusText();
 			}
 			break;
 		}
 		case WindowScript:
 		{
-			if (pScriptSettingForm_ == nullptr)
+			if (arg > 0)
 			{
-				pScriptSettingForm_ = new ScriptSettingForm(id, nullptr);
-				if (pScriptSettingForm_)
+				if (pScriptEditor_ == nullptr)
 				{
-					connect(pScriptSettingForm_, &InfoForm::destroyed, [this]() { pScriptSettingForm_ = nullptr; });
-					pScriptSettingForm_->setAttribute(Qt::WA_DeleteOnClose);
-					pScriptSettingForm_->show();
+					pScriptEditor_ = new ScriptEditor(id, nullptr);
+					if (pScriptEditor_)
+					{
+						connect(pScriptEditor_, &InfoForm::destroyed, [this]() { pScriptEditor_ = nullptr; });
+						pScriptEditor_->setAttribute(Qt::WA_DeleteOnClose);
+						pScriptEditor_->show();
 
+						++interfaceCount_;
+						updateStatusText();
+						*result = static_cast<long>(pScriptEditor_->winId());
+					}
+					else
+					{
+						updateStatusText("create script setting form failed");
+					}
+				}
+				else
+				{
+					pScriptEditor_->hide();
+					pScriptEditor_->show();
 					++interfaceCount_;
 					updateStatusText();
-					*result = static_cast<long>(pScriptSettingForm_->winId());
+					*result = static_cast<long>(pScriptEditor_->winId());
 				}
 			}
 			else
 			{
-				pScriptSettingForm_->close();
+				if (pScriptEditor_ != nullptr)
+					pScriptEditor_->close();
+				++interfaceCount_;
+				updateStatusText();
 			}
 			break;
 		}
 		case SelectServerList:
 		{
 			const QString fileName(qgetenv("JSON_PATH"));
-			if (!fileName.isEmpty())
+			if (fileName.isEmpty())
+				break;
+
+			if (arg < 0)
 			{
-				util::Config config(fileName);
-				config.write("System", "Server", "LastServerListSelection", arg);
-				SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(id);
-				emit signalDispatcher.applyHashSettingsToUI();
-				++interfaceCount_;
-				updateStatusText();
-				*result = 1;
+				updateStatusText("invalid arg");
+				break;
 			}
+
+			util::Config config(fileName);
+			config.write("System", "Server", "LastServerListSelection", arg);
+			SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(id);
+			emit signalDispatcher.applyHashSettingsToUI();
+			++interfaceCount_;
+			updateStatusText();
+			*result = 1;
+
 			break;
 		}
 		case SelectProcessList:
 		{
 			const QString fileName(qgetenv("JSON_PATH"));
-			if (!fileName.isEmpty())
+			if (fileName.isEmpty())
+				break;
+
+			if (arg < 0)
 			{
-				util::Config config(fileName);
-				config.write("System", "Command", "LastSelection", arg);
-				SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(id);
-				emit signalDispatcher.applyHashSettingsToUI();
-				++interfaceCount_;
-				updateStatusText();
-				*result = 1;
+				updateStatusText("invalid arg");
+				break;
 			}
+
+			util::Config config(fileName);
+			config.write("System", "Command", "LastSelection", arg);
+			SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(id);
+			emit signalDispatcher.applyHashSettingsToUI();
+			++interfaceCount_;
+			updateStatusText();
+			*result = 1;
+
 			break;
 		}
 		case ToolTrayShow:
 		{
-			if (hideTrayAction_ != nullptr)
-			{
-				emit hideTrayAction_->triggered();
-				++interfaceCount_;
-				updateStatusText();
-				*result = 1;
-			}
+			if (hideTrayAction_ == nullptr)
+				break;
+
+			emit hideTrayAction_->triggered();
+			++interfaceCount_;
+			updateStatusText();
+			*result = 1;
 			break;
 		}
 		case HideGame:
@@ -701,13 +779,19 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 			}
 
 			if (hwnds.isEmpty())
+			{
+				updateStatusText("no valid hwnd");
 				break;
+			}
 
 			if (pThumbnailForm_ == nullptr)
 			{
 				QThumbnailForm* pThumbnailForm = q_check_ptr(new QThumbnailForm(hwnds));
 				if (pThumbnailForm == nullptr)
+				{
+					updateStatusText("create thumbnail form failed");
 					break;
+				}
 
 				pThumbnailForm_ = pThumbnailForm;
 
@@ -736,7 +820,6 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 		{
 			pThumbnailForm_->close();
 			pThumbnailForm_ = nullptr;
-
 			++interfaceCount_;
 			updateStatusText();
 			*result = 1;
@@ -747,18 +830,17 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 	{
 		*result = 0;
 		qint64 id = msg->wParam;
-		MainForm* pMainForm = createNewWindow(id);
-		if (pMainForm != nullptr)
+		MainForm* p = createNewWindow(id);
+		if (p == nullptr)
 		{
-			*result = static_cast<long>(pMainForm->winId());
-			++interfaceCount_;
-			updateStatusText();
-		}
-		else
-		{
-			updateStatusText("failed");
+			updateStatusText("create window failed");
 			return true;
 		}
+
+		++interfaceCount_;
+		updateStatusText();
+		result = reinterpret_cast<long*>(p->winId());
+
 		return true;
 	}
 	case InterfaceMessage::kGetGamePid:
@@ -903,7 +985,7 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 			return true;
 		} while (false);
 
-		injector.setEnableHash(util::kAutoLoginEnable, true);
+		injector.setEnableHash(util::kAutoLoginEnable, false);
 		injector.setStringHash(util::kGameAccountString, "");
 		injector.setStringHash(util::kGamePasswordString, "");
 		injector.setValueHash(util::kServerValue, 0);
@@ -982,6 +1064,10 @@ void MainForm::updateStatusText(const QString text)
 	{
 		msg += " " + QString(tr("msg:%1").arg(text));
 	}
+	else
+	{
+		msg += " " + QString(tr("msg:%1").arg("no error"));
+	}
 	ui.groupBox_basicinfo->setTitle(msg);
 }
 
@@ -997,7 +1083,17 @@ MainForm* MainForm::createNewWindow(qint64 idToAllocate, qint64* pId)
 			break;
 
 		if (g_mainFormHash.contains(uniqueId))
-			break;
+		{
+			MainForm* pMainForm = g_mainFormHash.value(uniqueId, nullptr);
+			if (pMainForm != nullptr)
+			{
+				pMainForm->show();
+				pMainForm->markAsClose_ = false;
+				if (pId != nullptr)
+					*pId = uniqueId;
+				return pMainForm;
+			}
+		}
 
 		MainForm* pMainForm = new MainForm(uniqueId, nullptr);
 		if (pMainForm == nullptr)
@@ -1021,8 +1117,6 @@ MainForm::MainForm(qint64 index, QWidget* parent)
 {
 	ui.setupUi(this);
 	setIndex(index);
-
-	setAttribute(Qt::WA_DeleteOnClose);
 	setAttribute(Qt::WA_StyledBackground, true);
 	setAttribute(Qt::WA_StaticContents, true);
 	setWindowFlags(windowFlags() & ~Qt::WindowMaximizeButtonHint);
@@ -1043,7 +1137,6 @@ MainForm::MainForm(qint64 index, QWidget* parent)
 	qRegisterMetaType<QVariant>("QVariant");
 	qRegisterMetaType<QVariant>("QVariant&");
 
-
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(index);
 	signalDispatcher.setParent(this);
 
@@ -1060,32 +1153,29 @@ MainForm::MainForm(qint64 index, QWidget* parent)
 	connect(&signalDispatcher, &SignalDispatcher::appendChatLog, this, &MainForm::onAppendChatLog, Qt::UniqueConnection);
 
 	QMenuBar* pMenuBar = new QMenuBar(this);
-	if (pMenuBar)
+	if (pMenuBar != nullptr)
 	{
 		pMenuBar_ = pMenuBar;
 		pMenuBar->setObjectName("menuBar");
 		setMenuBar(pMenuBar);
 	}
 
-	{
-		ui.progressBar_pchp->setType(ProgressBar::kHP);
-		ui.progressBar_pcmp->setType(ProgressBar::kMP);
-		ui.progressBar_pethp->setType(ProgressBar::kHP);
-		ui.progressBar_ridehp->setType(ProgressBar::kHP);
 
-		connect(&signalDispatcher, &SignalDispatcher::updateCharHpProgressValue, ui.progressBar_pchp, &ProgressBar::onCurrentValueChanged);
-		connect(&signalDispatcher, &SignalDispatcher::updateCharMpProgressValue, ui.progressBar_pcmp, &ProgressBar::onCurrentValueChanged);
-		connect(&signalDispatcher, &SignalDispatcher::updatePetHpProgressValue, ui.progressBar_pethp, &ProgressBar::onCurrentValueChanged);
-		connect(&signalDispatcher, &SignalDispatcher::updateRideHpProgressValue, ui.progressBar_ridehp, &ProgressBar::onCurrentValueChanged);
-	}
+	ui.progressBar_pchp->setType(ProgressBar::kHP);
+	ui.progressBar_pcmp->setType(ProgressBar::kMP);
+	ui.progressBar_pethp->setType(ProgressBar::kHP);
+	ui.progressBar_ridehp->setType(ProgressBar::kHP);
 
-	{
-		connect(&signalDispatcher, &SignalDispatcher::updateStatusLabelTextChanged, this, &MainForm::onUpdateStatusLabelTextChanged);
-		connect(&signalDispatcher, &SignalDispatcher::updateMapLabelTextChanged, this, &MainForm::onUpdateMapLabelTextChanged);
-		connect(&signalDispatcher, &SignalDispatcher::updateCursorLabelTextChanged, this, &MainForm::onUpdateCursorLabelTextChanged);
-		connect(&signalDispatcher, &SignalDispatcher::updateCoordsPosLabelTextChanged, this, &MainForm::onUpdateCoordsPosLabelTextChanged);
-		connect(&signalDispatcher, &SignalDispatcher::updateCharInfoStone, this, &MainForm::onUpdateStonePosLabelTextChanged);
-	}
+	connect(&signalDispatcher, &SignalDispatcher::updateCharHpProgressValue, ui.progressBar_pchp, &ProgressBar::onCurrentValueChanged);
+	connect(&signalDispatcher, &SignalDispatcher::updateCharMpProgressValue, ui.progressBar_pcmp, &ProgressBar::onCurrentValueChanged);
+	connect(&signalDispatcher, &SignalDispatcher::updatePetHpProgressValue, ui.progressBar_pethp, &ProgressBar::onCurrentValueChanged);
+	connect(&signalDispatcher, &SignalDispatcher::updateRideHpProgressValue, ui.progressBar_ridehp, &ProgressBar::onCurrentValueChanged);
+
+	connect(&signalDispatcher, &SignalDispatcher::updateStatusLabelTextChanged, this, &MainForm::onUpdateStatusLabelTextChanged);
+	connect(&signalDispatcher, &SignalDispatcher::updateMapLabelTextChanged, this, &MainForm::onUpdateMapLabelTextChanged);
+	connect(&signalDispatcher, &SignalDispatcher::updateCursorLabelTextChanged, this, &MainForm::onUpdateCursorLabelTextChanged);
+	connect(&signalDispatcher, &SignalDispatcher::updateCoordsPosLabelTextChanged, this, &MainForm::onUpdateCoordsPosLabelTextChanged);
+	connect(&signalDispatcher, &SignalDispatcher::updateCharInfoStone, this, &MainForm::onUpdateStonePosLabelTextChanged);
 
 	ui.tabWidget_main->clear();
 	util::setTab(ui.tabWidget_main);
@@ -1093,35 +1183,27 @@ MainForm::MainForm(qint64 index, QWidget* parent)
 	resetControlTextLanguage();
 
 	pGeneralForm_ = new GeneralForm(index, nullptr);
-	if (pGeneralForm_)
+	if (pGeneralForm_ != nullptr)
 	{
 		ui.tabWidget_main->addTab(pGeneralForm_, tr("general"));
 	}
 
+	pMapForm_ = new MapForm(index, nullptr);
+	if (pMapForm_ != nullptr)
 	{
-		pMapForm_ = new MapForm(index, nullptr);
-		if (pMapForm_)
-		{
-			ui.tabWidget_main->addTab(pMapForm_, tr("map"));
-		}
+		ui.tabWidget_main->addTab(pMapForm_, tr("map"));
+	}
 
-		pOtherForm_ = new OtherForm(index, nullptr);
-		if (pOtherForm_)
-		{
-			ui.tabWidget_main->addTab(pOtherForm_, tr("other"));
-		}
+	pOtherForm_ = new OtherForm(index, nullptr);
+	if (pOtherForm_ != nullptr)
+	{
+		ui.tabWidget_main->addTab(pOtherForm_, tr("other"));
+	}
 
-		pScriptForm_ = new ScriptForm(index, nullptr);
-		if (pScriptForm_)
-		{
-			ui.tabWidget_main->addTab(pScriptForm_, tr("script"));
-		}
-
-		//pLuaScriptForm_ = new LuaScriptForm(index);
-		//if (pLuaScriptForm_)
-		//{
-		//	ui.tabWidget_main->addTab(pLuaScriptForm_, tr("lua"));
-		//}
+	pScriptForm_ = new ScriptForm(index, nullptr);
+	if (pScriptForm_ != nullptr)
+	{
+		ui.tabWidget_main->addTab(pScriptForm_, tr("script"));
 	}
 
 	resetControlTextLanguage();
@@ -1142,12 +1224,11 @@ MainForm::MainForm(qint64 index, QWidget* parent)
 MainForm::~MainForm()
 {
 	qDebug() << "MainForm::~MainForm()";
-	qint64 currentIndex = getIndex();
-	Injector::getInstance(currentIndex).close();
-	g_mainFormHash.remove(currentIndex);
-	SignalDispatcher::remove(currentIndex);
-	if (g_mainFormHash.isEmpty())
-		MINT::NtTerminateProcess(GetCurrentProcess(), 0);
+	//qint64 currentIndex = getIndex();
+	//g_mainFormHash.remove(currentIndex);
+	//SignalDispatcher::remove(currentIndex);
+	//if (g_mainFormHash.isEmpty())
+	MINT::NtTerminateProcess(GetCurrentProcess(), 0);
 }
 
 void MainForm::showEvent(QShowEvent* e)
@@ -1158,6 +1239,7 @@ void MainForm::showEvent(QShowEvent* e)
 
 void MainForm::closeEvent(QCloseEvent* e)
 {
+	e->ignore();
 	onSaveHashSettings(util::applicationDirPath() + "/settings/backup.json", true);
 
 	util::FormSettingManager formManager(this);
@@ -1165,10 +1247,27 @@ void MainForm::closeEvent(QCloseEvent* e)
 
 	if (pInfoForm_ != nullptr)
 		pInfoForm_->close();
+
 	if (mapWidget_ != nullptr)
 		mapWidget_->close();
-	if (pScriptSettingForm_ != nullptr)
-		pScriptSettingForm_->close();
+
+	if (pScriptEditor_ != nullptr)
+		pScriptEditor_->close();
+
+	markAsClose_ = true;
+	hide();
+	mem::freeUnuseMemory(GetCurrentProcess());
+
+	Injector::getInstance(getIndex()).close();
+
+	for (const auto& it : g_mainFormHash)
+	{
+		if (!it->markAsClose_)
+		{
+			return;
+		}
+	}
+	MINT::NtTerminateProcess(GetCurrentProcess(), 0);
 }
 
 //菜單點擊事件
@@ -1189,34 +1288,77 @@ void MainForm::onMenuActionTriggered()
 	{
 		if (trayIcon == nullptr)
 		{
-			trayIcon = new QSystemTrayIcon(this);
-			QIcon icon = QIcon(":/image/ico.png");
-			trayIcon->setIcon(icon);
-			QMenu* trayMenu = new QMenu(this);
-			QAction* openAction = new QAction(tr("open"), this);
-			QAction* closeAction = new QAction(tr("close"), this);
-			trayMenu->addAction(openAction);
-			trayMenu->addAction(closeAction);
-			connect(openAction, &QAction::triggered, this, &QMainWindow::show);
-			connect(openAction, &QAction::triggered, [this]()
-				{
-					trayIcon->hide();
-				});
-			connect(closeAction, &QAction::triggered, this, &QMainWindow::close);
+			QMenu* trayMenu = nullptr;
+			QAction* openAction = nullptr;
+			QAction* closeAction = nullptr;
+			do
+			{
+				trayIcon = new QSystemTrayIcon(this);
+				if (trayIcon == nullptr)
+					break;
 
-			trayIcon->setContextMenu(trayMenu);
-			connect(trayIcon, &QSystemTrayIcon::activated, this, [this](QSystemTrayIcon::ActivationReason reason)
-				{
-					if (reason == QSystemTrayIcon::DoubleClick)
+				QIcon icon = QIcon(":/image/ico.png");
+				trayIcon->setIcon(icon);
+				trayMenu = new QMenu(this);
+				if (trayMenu == nullptr)
+					break;
+
+				openAction = new QAction(tr("open"), this);
+				if (openAction == nullptr)
+					break;
+
+				closeAction = new QAction(tr("close"), this);
+				if (closeAction == nullptr)
+					break;
+
+				trayMenu->addAction(openAction);
+				trayMenu->addAction(closeAction);
+				connect(openAction, &QAction::triggered, this, &QMainWindow::show);
+				connect(openAction, &QAction::triggered, [this]()
 					{
-						this->show();
 						trayIcon->hide();
-					}
-				});
-			trayIcon->setToolTip(windowTitle());
-			hide();
-			trayIcon->showMessage(tr("Tip"), tr("The program has been minimized to the system tray"), QSystemTrayIcon::Information, 5000);
-			trayIcon->show();
+					});
+				connect(closeAction, &QAction::triggered, this, &QMainWindow::close);
+
+				trayIcon->setContextMenu(trayMenu);
+				connect(trayIcon, &QSystemTrayIcon::activated, this, [this](QSystemTrayIcon::ActivationReason reason)
+					{
+						if (reason == QSystemTrayIcon::DoubleClick)
+						{
+							this->show();
+							trayIcon->hide();
+						}
+					});
+				trayIcon->setToolTip(windowTitle());
+				hide();
+				trayIcon->showMessage(tr("Tip"), tr("The program has been minimized to the system tray"), QSystemTrayIcon::Information, 5000);
+				trayIcon->show();
+				return;
+			} while (false);
+
+			if (trayIcon != nullptr)
+			{
+				delete trayIcon;
+				trayIcon = nullptr;
+			}
+
+			if (trayMenu != nullptr)
+			{
+				delete trayMenu;
+				trayMenu = nullptr;
+			}
+
+			if (openAction != nullptr)
+			{
+				delete openAction;
+				openAction = nullptr;
+			}
+
+			if (closeAction != nullptr)
+			{
+				delete closeAction;
+				closeAction = nullptr;
+			}
 		}
 		else
 		{
@@ -1235,7 +1377,7 @@ void MainForm::onMenuActionTriggered()
 	if (actionName == "actionWebsite")
 	{
 		CopyRightDialog* pCopyRightDialog = new CopyRightDialog(this);
-		if (pCopyRightDialog)
+		if (pCopyRightDialog != nullptr)
 		{
 			pCopyRightDialog->exec();
 		}
@@ -1275,10 +1417,12 @@ void MainForm::onMenuActionTriggered()
 		if (pInfoForm_ == nullptr)
 		{
 			pInfoForm_ = new InfoForm(currentIndex, -1, nullptr);
-			if (pInfoForm_)
+			if (pInfoForm_ != nullptr)
 			{
 				connect(pInfoForm_, &InfoForm::destroyed, [this]() { pInfoForm_ = nullptr; });
 			}
+			else
+				return;
 		}
 		pInfoForm_->hide();
 		pInfoForm_->show();
@@ -1290,29 +1434,32 @@ void MainForm::onMenuActionTriggered()
 		if (mapWidget_ == nullptr)
 		{
 			mapWidget_ = new MapWidget(currentIndex, nullptr);
-			if (mapWidget_)
+			if (mapWidget_ != nullptr)
 			{
 				connect(mapWidget_, &InfoForm::destroyed, [this]() { mapWidget_ = nullptr; });
-
 			}
+			else
+				return;
 		}
 		mapWidget_->hide();
 		mapWidget_->show();
 		return;
 	}
 
-	if (actionName == "actionScriptSettings")
+	if (actionName == "actionScriptEditor")
 	{
-		if (pScriptSettingForm_ == nullptr)
+		if (pScriptEditor_ == nullptr)
 		{
-			pScriptSettingForm_ = new ScriptSettingForm(currentIndex, nullptr);
-			if (pScriptSettingForm_)
+			pScriptEditor_ = new ScriptEditor(currentIndex, nullptr);
+			if (pScriptEditor_ != nullptr)
 			{
-				connect(pScriptSettingForm_, &InfoForm::destroyed, [this]() { pScriptSettingForm_ = nullptr; });
+				connect(pScriptEditor_, &InfoForm::destroyed, [this]() { pScriptEditor_ = nullptr; });
 			}
+			else
+				return;
 		}
-		pScriptSettingForm_->hide();
-		pScriptSettingForm_->show();
+		pScriptEditor_->hide();
+		pScriptEditor_->show();
 		return;
 	}
 
@@ -1361,7 +1508,7 @@ void MainForm::onMenuActionTriggered()
 			return;
 
 		Downloader* downloader = q_check_ptr(new Downloader());
-		if (downloader)
+		if (downloader != nullptr)
 		{
 			hide();
 			downloader->show();

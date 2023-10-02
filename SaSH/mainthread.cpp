@@ -70,9 +70,9 @@ bool ThreadManager::createThread(qint64 index, MainObject** ppObj, QObject* pare
 				qDebug() << "recv MainObject::finished, start cleanning";
 				thread_->quit();
 				thread_->wait();
-				delete thread_;
+				thread_->deleteLater();
 				thread_ = nullptr;
-				delete object;
+				object->deleteLater();
 				object = nullptr;
 				Injector::reset(index);
 
@@ -87,6 +87,24 @@ bool ThreadManager::createThread(qint64 index, MainObject** ppObj, QObject* pare
 	return false;
 }
 
+void ThreadManager::close(qint64 index)
+{
+	QMutexLocker locker(&mutex_);
+	if (threads_.contains(index) && objects_.contains(index))
+	{
+		auto thread_ = threads_.take(index);
+		auto object_ = objects_.take(index);
+		object_->requestInterruption();
+		thread_->quit();
+		thread_->wait();
+		thread_->deleteLater();
+		thread_ = nullptr;
+		object_->deleteLater();
+		object_ = nullptr;
+		Injector::reset(index);
+	}
+}
+
 MainObject::MainObject(qint64 index, QObject* parent)
 	: ThreadPlugin(index, parent)
 {
@@ -97,6 +115,7 @@ MainObject::MainObject(qint64 index, QObject* parent)
 MainObject::~MainObject()
 {
 	qDebug() << "MainObject is destroyed!!";
+	mem::freeUnuseMemory(GetCurrentProcess());
 }
 
 void MainObject::run()
@@ -165,8 +184,15 @@ void MainObject::run()
 	} while (false);
 
 	//開始逐步停止所有功能
-	emit signalDispatcher.scriptStoped();
-	emit signalDispatcher.nodifyAllStop();
+	requestInterruption();
+	//強制關閉遊戲進程
+	injector.close();
+	if (SignalDispatcher::contains(getIndex()))
+	{
+		emit signalDispatcher.scriptStoped();
+		emit signalDispatcher.nodifyAllStop();
+		emit signalDispatcher.updateStatusLabelTextChanged(util::kLabelStatusNotOpen);
+	}
 
 	//關閉走路遇敵線程
 	if (autowalk_future_.isRunning())
@@ -210,15 +236,10 @@ void MainObject::run()
 
 	pointerWriterSync_.waitForFinished();
 
-	//強制關閉遊戲進程
-	injector.close();
-
 	while (injector.IS_SCRIPT_FLAG.load(std::memory_order_acquire))
 	{
 		QThread::msleep(100);
 	}
-
-	emit signalDispatcher.updateStatusLabelTextChanged(util::kLabelStatusNotOpen);
 
 	//通知線程結束
 	emit finished();
@@ -230,12 +251,6 @@ void MainObject::mainProc()
 	Injector& injector = Injector::getInstance(getIndex());
 	QElapsedTimer freeMemTimer; freeMemTimer.start();
 	QElapsedTimer freeSelfMemTimer; freeSelfMemTimer.start();
-	//首次先釋放一次記憶體，並且開始計時
-	if (injector.getEnableHash(util::kAutoFreeMemoryEnable))
-	{
-		freeMemTimer.restart();
-		freeSelfMemTimer.restart();
-	}
 
 	mem::freeUnuseMemory(injector.getProcess());
 	mem::freeUnuseMemory(GetCurrentProcess());
@@ -266,7 +281,7 @@ void MainObject::mainProc()
 		}
 
 		//檢查TCP是否握手成功
-		if (!injector.server->IS_TCP_CONNECTION_OK_TO_USE)
+		if (!injector.server->IS_TCP_CONNECTION_OK_TO_USE.load(std::memory_order_acquire))
 		{
 			QThread::msleep(100);
 			nodelay = true;
@@ -274,7 +289,7 @@ void MainObject::mainProc()
 		}
 
 		//自動釋放記憶體
-		if (injector.getEnableHash(util::kAutoFreeMemoryEnable) && freeMemTimer.hasExpired(15ll * 60ll * 1000ll))
+		if (injector.getEnableHash(util::kAutoFreeMemoryEnable) && freeMemTimer.hasExpired(5ll * 60ll * 1000ll))
 		{
 			freeMemTimer.restart();
 			mem::freeUnuseMemory(injector.getProcess());
@@ -282,10 +297,11 @@ void MainObject::mainProc()
 		else
 			freeMemTimer.restart();
 
-		if (injector.getEnableHash(util::kAutoFreeMemoryEnable) && freeSelfMemTimer.hasExpired(30ll * 60ll * 1000ll))
+		if (injector.getEnableHash(util::kAutoFreeMemoryEnable) && freeSelfMemTimer.hasExpired(10ll * 60ll * 1000ll))
 		{
 			freeSelfMemTimer.restart();
 			mem::freeUnuseMemory(GetCurrentProcess());
+			injector.server->mapAnalyzer->clear();
 		}
 		else
 			freeSelfMemTimer.restart();
@@ -365,7 +381,7 @@ qint64 MainObject::checkAndRunFunctions()
 
 			injector.server->loginTimer.restart();
 			//自動登入 或 斷線重連
-			if (injector.getEnableHash(util::kAutoLoginEnable) || injector.server->IS_DISCONNECTED)
+			if (injector.getEnableHash(util::kAutoLoginEnable) || injector.server->IS_DISCONNECTED.load(std::memory_order_acquire))
 				injector.server->login(status);
 			return 1;
 		}
@@ -490,6 +506,9 @@ qint64 MainObject::checkAndRunFunctions()
 
 		injector.server->updateComboBoxList();
 		injector.server->EO();
+		mem::write<int>(injector.getProcess(), injector.getProcessModule() + 0x4200000, 0);
+		mem::freeUnuseMemory(injector.getProcess());
+		mem::freeUnuseMemory(GetCurrentProcess());
 		return 2;
 	}
 
@@ -520,9 +539,6 @@ qint64 MainObject::checkAndRunFunctions()
 
 		//檢查開關 (隊伍、交易、名片...等等)
 		checkEtcFlag();
-
-		//鎖寵排程
-		//checkAutoLockSchedule();
 
 		//自動組隊、跟隨
 		checkAutoJoin();
@@ -1201,8 +1217,8 @@ void MainObject::checkAutoDropMeat(const QStringList& item)
 		return;
 
 	bool bret = false;
-	constexpr const char* meat = u8"肉";
-	constexpr const char* memo = u8"耐久力";
+	constexpr const char* meat = "肉";
+	constexpr const char* memo = "耐久力";
 
 	if (!item.isEmpty())
 	{
@@ -1241,7 +1257,7 @@ void MainObject::checkAutoDropMeat(const QStringList& item)
 		QString newItemMemo = item.memo.simplified();
 		if (newItemNmae.contains(meat))
 		{
-			if (!newItemMemo.contains(memo) && (newItemNmae != QString(u8"味道爽口的肉湯")) && (newItemNmae != QString(u8"味道爽口的肉汤")))
+			if (!newItemMemo.contains(memo) && (newItemNmae != QString("味道爽口的肉湯")) && (newItemNmae != QString("味道爽口的肉汤")))
 				injector.server->dropItem(index);
 			else
 				injector.server->useItem(index, injector.server->findInjuriedAllie());
@@ -1385,7 +1401,7 @@ void MainObject::checkAutoJoin()
 						}
 
 						//計算最短離靠近目標人物的坐標和面相的方向
-						dir = injector.server->mapAnalyzer->calcBestFollowPointByDstPoint(floor, current_point, unit.p, &newpoint, false, -1);
+						dir = injector.server->mapAnalyzer->calcBestFollowPointByDstPoint(astar, floor, current_point, unit.p, &newpoint, false, -1);
 						if (-1 == dir)
 							break;
 
@@ -1400,7 +1416,7 @@ void MainObject::checkAutoJoin()
 								continue;
 							}
 
-							if (!injector.server->mapAnalyzer->calcNewRoute(&astar, floor, current_point, newpoint, blockList, &path))
+							if (!injector.server->mapAnalyzer->calcNewRoute(astar, floor, current_point, newpoint, blockList, &path))
 								return;
 
 							len = MAX_SINGLE_STEP;
@@ -1582,7 +1598,7 @@ void MainObject::checkAutoHeal()
 					bool meatProiory = injector.getEnableHash(util::kNormalItemHealMeatPriorityEnable);
 					if (meatProiory)
 					{
-						itemIndex = injector.server->getItemIndexByName(u8"?肉", false, u8"耐久力");
+						itemIndex = injector.server->getItemIndexByName("?肉", false, "耐久力");
 					}
 
 					if (itemIndex == -1)
@@ -2014,7 +2030,7 @@ void MainObject::checkAutoEatBoostExpItem()
 		if (item.name.isEmpty() || item.memo.isEmpty() || !item.valid)
 			continue;
 
-		if (item.memo.contains(u8"經驗值上升") || item.memo.contains(u8"经验值上升"))
+		if (item.memo.contains("經驗值上升") || item.memo.contains("经验值上升"))
 		{
 			if (injector.server.isNull())
 				return;
@@ -2036,6 +2052,8 @@ void MainObject::checkRecordableNpcInfo()
 			Injector& injector = Injector::getInstance(getIndex());
 			if (injector.server.isNull())
 				return;
+
+			CAStar astar;
 
 			QHash<qint64, mapunit_t> units = injector.server->mapUnitHash.toHash();
 			util::Config config(injector.getPointFileName());
@@ -2072,7 +2090,7 @@ void MainObject::checkRecordableNpcInfo()
 				//npc前方一格
 				QPoint newPoint = util::fix_point.at(unit.dir) + unit.p;
 				//檢查是否可走
-				if (injector.server->mapAnalyzer->isPassable(&astar, nowFloor, nowPoint, newPoint))
+				if (injector.server->mapAnalyzer->isPassable(astar, nowFloor, nowPoint, newPoint))
 				{
 					d.x = newPoint.x();
 					d.y = newPoint.y();
@@ -2082,7 +2100,7 @@ void MainObject::checkRecordableNpcInfo()
 					//再往前一格
 					QPoint additionPoint = util::fix_point.at(unit.dir) + newPoint;
 					//檢查是否可走
-					if (injector.server->mapAnalyzer->isPassable(&astar, nowFloor, nowPoint, additionPoint))
+					if (injector.server->mapAnalyzer->isPassable(astar, nowFloor, nowPoint, additionPoint))
 					{
 						d.x = additionPoint.x();
 						d.y = additionPoint.y();
@@ -2094,7 +2112,7 @@ void MainObject::checkRecordableNpcInfo()
 						for (qint64 i = 0; i < 8; ++i)
 						{
 							newPoint = util::fix_point.at(i) + unit.p;
-							if (injector.server->mapAnalyzer->isPassable(&astar, nowFloor, nowPoint, newPoint))
+							if (injector.server->mapAnalyzer->isPassable(astar, nowFloor, nowPoint, newPoint))
 							{
 								d.x = newPoint.x();
 								d.y = newPoint.y();

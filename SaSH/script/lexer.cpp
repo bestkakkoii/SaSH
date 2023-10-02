@@ -21,359 +21,110 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "injector.h"
 #include "signaldispatcher.h"
 
-enum RTK
-{
-	RTK_EOF,
-	RTK_CONTINUE,
-};
-
 #pragma region KeyWord
 //全局關鍵字映射表 這裡是新增新的命令的第一步，其他需要在interpreter.cpp中新增註冊新函數，這裡不添加的話，腳本分析後會忽略未知的命令
 static const QHash<QString, RESERVE> keywords = {
-#pragma region zh_TW
-	//keyword
-	{ u8"調用", TK_CALL },
-	{ u8"行數", TK_GOTO },
-	{ u8"跳轉", TK_GOTO },
-	{ u8"返回", TK_RETURN },
-	{ u8"返回跳轉", TK_BAK },
-	{ u8"結束", TK_END },
-	{ u8"暫停", TK_PAUSE },
-	{ u8"功能", TK_FUNCTION, },
-	{ u8"標記", TK_LABEL, },
-	{ u8"格式化", TK_FORMAT },
-	{ u8"如果", TK_IF },
-	{ u8"遍歷", TK_FOR },
-	{ u8"跳出", TK_BREAK },
-	{ u8"繼續", TK_CONTINUE },
-
-	//system
-	{ u8"執行", TK_CMD },
-	{ u8"延時", TK_CMD },
-	//{ u8"提示", TK_CMD },
-	{ u8"消息", TK_CMD },
-	{ u8"登出", TK_CMD },
-	{ u8"元神歸位", TK_CMD },
-	{ u8"回點", TK_CMD },
-	{ u8"按鈕", TK_CMD },
-	{ u8"說話", TK_CMD },
-	{ u8"輸入", TK_CMD },
-	{ u8"說出", TK_CMD },
-	{ u8"清屏", TK_CMD },
-	{ u8"讀取設置", TK_CMD },
-	{ u8"儲存設置", TK_CMD },
-	{ u8"計時", TK_CMD },
-	{ u8"菜單", TK_CMD },
-	{ u8"創建人物", TK_CMD },
-	{ u8"刪除人物", TK_CMD },
-	{ u8"發包", TK_CMD },
-
-	//check info
-	{ u8"地圖", TK_CMD },
-	{ u8"對話", TK_CMD },
-	{ u8"看見", TK_CMD },
-	{ u8"聽見", TK_CMD },
-	{ u8"道具", TK_CMD },
-	{ u8"寵物有", TK_CMD },
-	{ u8"任務狀態", TK_CMD },
-
-	//actions
-	{ u8"人物改名", TK_CMD },
-	{ u8"使用精靈", TK_CMD },
-	{ u8"寵物改名", TK_CMD },
-	{ u8"寵物郵件", TK_CMD },
-	{ u8"更換寵物", TK_CMD },
-	{ u8"丟棄寵物", TK_CMD },
-	{ u8"購買", TK_CMD },
-	{ u8"售賣", TK_CMD },
-	{ u8"賣寵", TK_CMD },
-	{ u8"使用道具", TK_CMD },
-	{ u8"丟棄道具", TK_CMD },
-	{ u8"交換道具", TK_CMD },
-	{ u8"撿物", TK_CMD },
-	{ u8"存入道具", TK_CMD },
-	{ u8"提出道具", TK_CMD },
-	{ u8"存入寵物", TK_CMD },
-	{ u8"提出寵物", TK_CMD },
-	{ u8"存錢", TK_CMD },
-	{ u8"提錢", TK_CMD },
-	{ u8"加工", TK_CMD },
-	{ u8"料理", TK_CMD },
-	{ u8"轉移", TK_CMD },
-	{ u8"卸下裝備", TK_CMD },
-	{ u8"記錄身上裝備", TK_CMD },
-	{ u8"裝上記錄裝備", TK_CMD },
-	{ u8"卸下寵裝備", TK_CMD },
-	{ u8"裝上寵裝備", TK_CMD },
-	{ u8"加點", TK_CMD },
-	{ u8"學習", TK_CMD },
-	{ u8"交易", TK_CMD },
-	{ u8"寄信", TK_CMD },
-	{ u8"丟棄石幣", TK_CMD },
-
-	//action with sub cmd
-	{ u8"組隊", TK_CMD },
-	{ u8"離隊", TK_CMD },
-	{ u8"踢走", TK_CMD },
-	{ u8"組隊有", TK_CMD },
-	{ u8"座標有", TK_CMD },
-	{ u8"坐標有", TK_CMD },
-
-	//move
-	{ u8"坐標", TK_CMD },
-	{ u8"座標", TK_CMD },
-	{ u8"移動", TK_CMD },
-	{ u8"封包移動", TK_CMD },
-	{ u8"方向", TK_CMD },
-	{ u8"最近坐標", TK_CMD },
-	{ u8"尋路", TK_CMD },
-	{ u8"移動至NPC", TK_CMD },
-	{ u8"過點", TK_CMD },
-
-	//mouse
-	{ u8"左擊", TK_CMD },
-	{ u8"右擊", TK_CMD },
-	{ u8"左雙擊", TK_CMD },
-	{ u8"拖至", TK_CMD },
-#pragma endregion
-
-#pragma region zh_CN
-	//keyword
-	{ u8"调用", TK_CALL },
-	{ u8"行数", TK_GOTO },
-	{ u8"跳转", TK_GOTO },
-	{ u8"返回", TK_RETURN },
-	{ u8"返回跳转", TK_BAK },
-	{ u8"结束", TK_END },
-	{ u8"暂停", TK_PAUSE },
-	{ u8"功能", TK_FUNCTION, },
-	{ u8"标记", TK_LABEL, },
-	{ u8"格式化", TK_FORMAT },
-	{ u8"如果", TK_IF },
-	{ u8"遍历", TK_FOR },
-	{ u8"跳出", TK_BREAK },
-	{ u8"继续", TK_CONTINUE },
-
-	//system
-	{ u8"执行", TK_CMD },
-	{ u8"延时", TK_CMD },
-	//{ u8"提示", TK_CMD },
-	{ u8"消息", TK_CMD },
-	{ u8"登出", TK_CMD },
-	{ u8"元神归位", TK_CMD },
-	{ u8"回点", TK_CMD },
-	{ u8"按钮", TK_CMD },
-	{ u8"说话", TK_CMD },
-	{ u8"输入", TK_CMD },
-	{ u8"说出", TK_CMD },
-	{ u8"清屏", TK_CMD },
-	{ u8"读取设置", TK_CMD },
-	{ u8"储存设置", TK_CMD },
-	{ u8"计时", TK_CMD },
-	{ u8"菜单", TK_CMD },
-	{ u8"创建人物", TK_CMD },
-	{ u8"删除人物", TK_CMD },
-	{ u8"发包", TK_CMD },
-
-	//check info
-	{ u8"地图", TK_CMD },
-	{ u8"对话", TK_CMD },
-	{ u8"看见", TK_CMD },
-	{ u8"听见", TK_CMD },
-	{ u8"道具", TK_CMD },
-	{ u8"宠物有", TK_CMD },
-	{ u8"任务状态", TK_CMD },
-
-	//actions
-	{ u8"人物改名", TK_CMD },
-	{ u8"使用精灵", TK_CMD },
-	{ u8"宠物改名", TK_CMD },
-	{ u8"宠物邮件", TK_CMD },
-	{ u8"更换宠物", TK_CMD },
-	{ u8"丢弃宠物", TK_CMD },
-	{ u8"购买", TK_CMD },
-	{ u8"售卖", TK_CMD },
-	{ u8"卖宠", TK_CMD },
-	{ u8"使用道具", TK_CMD },
-	{ u8"丢弃道具", TK_CMD },
-	{ u8"交换道具", TK_CMD },
-	{ u8"捡物", TK_CMD },
-	{ u8"存入道具", TK_CMD },
-	{ u8"提出道具", TK_CMD },
-	{ u8"存入宠物", TK_CMD },
-	{ u8"提出宠物", TK_CMD },
-	{ u8"存钱", TK_CMD },
-	{ u8"提钱", TK_CMD },
-	{ u8"加工", TK_CMD },
-	{ u8"料理", TK_CMD },
-	{ u8"转移", TK_CMD },
-	{ u8"卸下装备", TK_CMD },
-	{ u8"记录身上装备", TK_CMD },
-	{ u8"装上记录装备", TK_CMD },
-	{ u8"卸下宠装备", TK_CMD },
-	{ u8"装上宠装备", TK_CMD },
-	{ u8"加点", TK_CMD },
-	{ u8"学习", TK_CMD },
-	{ u8"交易", TK_CMD },
-	{ u8"寄信", TK_CMD },
-	{ u8"丢弃石币", TK_CMD },
-
-	//action with sub cmd
-	{ u8"组队", TK_CMD },
-	{ u8"离队", TK_CMD },
-	{ u8"踢走", TK_CMD },
-	{ u8"组队有", TK_CMD },
-	{ u8"座标有", TK_CMD },
-	{ u8"坐标有", TK_CMD },
-
-	//move
-	{ u8"坐标", TK_CMD },
-	{ u8"座标", TK_CMD },
-	{ u8"移动", TK_CMD },
-	{ u8"封包移动", TK_CMD },
-	{ u8"方向", TK_CMD },
-	{ u8"最近坐标", TK_CMD },
-	{ u8"寻路", TK_CMD },
-	{ u8"移动至NPC", TK_CMD },
-	{ u8"过点", TK_CMD },
-
-	//mouse
-	{ u8"左击", TK_CMD },
-	{ u8"右击", TK_CMD },
-	{ u8"左双击", TK_CMD },
-	{ u8"拖至", TK_CMD },
-
-#pragma endregion
-	{ u8"[call]", TK_CALLWITHNAME },
+	{ "[call]", TK_CALLWITHNAME },
+	//... 其他後續增加的關鍵字
+	{ "#lua", TK_LUABEGIN },
+	{ "#endlua", TK_LUAEND },
 #pragma region en_US
 	//keyword
-	{ u8"call", TK_CALL },
-	{ u8"goto", TK_GOTO },
-	{ u8"jmp", TK_JMP },
-	{ u8"end", TK_END },
-	{ u8"return", TK_RETURN },
-	{ u8"back", TK_BAK },
-	{ u8"exit", TK_EXIT },
-	{ u8"pause", TK_PAUSE },
-	{ u8"function", TK_FUNCTION, },
-	{ u8"label", TK_LABEL, },
-	//{ u8"local", TK_LOCAL },
-	{ u8"format", TK_FORMAT },
-	{ u8"if", TK_IF },
-	{ u8"for", TK_FOR },
-	{ u8"break", TK_BREAK },
-	{ u8"continue", TK_CONTINUE },
+	{ "call", TK_CALL },
+	{ "goto", TK_GOTO },
+	{ "jmp", TK_JMP },
+	{ "end", TK_END },
+	{ "return", TK_RETURN },
+	{ "back", TK_BAK },
+	{ "exit", TK_EXIT },
+	{ "pause", TK_PAUSE },
+	{ "function", TK_FUNCTION, },
+	{ "label", TK_LABEL, },
+	{ "format", TK_FORMAT },
+	{ "if", TK_IF },
+	{ "for", TK_FOR },
+	{ "break", TK_BREAK },
+	{ "continue", TK_CONTINUE },
 
 	//system
-	{ u8"run", TK_CMD },
-	{ u8"sleep", TK_CMD },
-	//{ u8"print", TK_CMD },
-
-	{ u8"logout", TK_CMD },
-	{ u8"eo", TK_CMD },
-	{ u8"logback", TK_CMD },
-	{ u8"button", TK_CMD },
-	{ u8"say", TK_CMD },
-	{ u8"input", TK_CMD },
-	{ u8"talk", TK_CMD },
-	{ u8"cls", TK_CMD },
-	{ u8"saveset", TK_CMD },
-	{ u8"loadset", TK_CMD },
-	{ u8"reg", TK_CMD },
-	{ u8"timer", TK_CMD },
-	{ u8"menu", TK_CMD },
-	{ u8"dofile", TK_CMD },
-	{ u8"createch", TK_CMD },
-	{ u8"delch", TK_CMD },
-	{ u8"send", TK_CMD },
+	{ "run", TK_CMD },
+	{ "button", TK_CMD },
+	{ "menu", TK_CMD },
+	{ "createch", TK_CMD },
+	{ "delch", TK_CMD },
+	{ "send", TK_CMD },
+	{ "dostr", TK_CMD },
 
 	//check info
-	{ u8"checkdaily", TK_CMD },
+	{ "checkdaily", TK_CMD },
 
-	{ u8"waitmap", TK_CMD },
-	{ u8"waitdlg", TK_CMD },
-	{ u8"waitsay", TK_CMD },
-	{ u8"waititem", TK_CMD },
-	{ u8"waitpos", TK_CMD },
-	{ u8"waitpet", TK_CMD },
-	{ u8"waitteam", TK_CMD },
+	{ "waitmap", TK_CMD },
+	{ "waitdlg", TK_CMD },
+	{ "waitsay", TK_CMD },
+	{ "waititem", TK_CMD },
+	{ "waitpos", TK_CMD },
+	{ "waitpet", TK_CMD },
+	{ "waitteam", TK_CMD },
 
 	//actions
-	{ u8"chname", TK_CMD },
-	{ u8"usemagic", TK_CMD },
-	{ u8"chpetname", TK_CMD },
-	{ u8"chpet", TK_CMD },
-	{ u8"doffpet", TK_CMD },
-	{ u8"buy", TK_CMD },
-	{ u8"sell", TK_CMD },
-	{ u8"sellpet", TK_CMD },
-	{ u8"useitem", TK_CMD },
-	{ u8"doffitem", TK_CMD },
-	{ u8"swapitem", TK_CMD },
-	{ u8"pickup", TK_CMD },
-	{ u8"putitem", TK_CMD },
-	{ u8"getitem", TK_CMD },
-	{ u8"putpet", TK_CMD },
-	{ u8"getpet", TK_CMD },
-	{ u8"putstone", TK_CMD },
-	{ u8"getstone", TK_CMD },
-	{ u8"make", TK_CMD },
-	{ u8"cook", TK_CMD },
-	{ u8"uequip", TK_CMD },
-	{ u8"requip", TK_CMD },
-	{ u8"wequip", TK_CMD },
-	{ u8"puequip", TK_CMD },
-	{ u8"pequip", TK_CMD },
-	{ u8"skup", TK_CMD },
-	{ u8"learn", TK_CMD },
-	{ u8"trade", TK_CMD },
-	{ u8"dostring", TK_CMD },
-	{ u8"mail", TK_CMD },
-	{ u8"doffstone", TK_CMD },
+	{ "chname", TK_CMD },
+	{ "usemagic", TK_CMD },
+	{ "chpetname", TK_CMD },
+	{ "chpet", TK_CMD },
+	{ "doffpet", TK_CMD },
+	{ "buy", TK_CMD },
+	{ "sell", TK_CMD },
+	{ "sellpet", TK_CMD },
+	{ "useitem", TK_CMD },
+	{ "doffitem", TK_CMD },
+	{ "swapitem", TK_CMD },
+	{ "pickup", TK_CMD },
+	{ "putitem", TK_CMD },
+	{ "getitem", TK_CMD },
+	{ "putpet", TK_CMD },
+	{ "getpet", TK_CMD },
+	{ "putstone", TK_CMD },
+	{ "getstone", TK_CMD },
+	{ "make", TK_CMD },
+	{ "cook", TK_CMD },
+	{ "uequip", TK_CMD },
+	{ "requip", TK_CMD },
+	{ "wequip", TK_CMD },
+	{ "puequip", TK_CMD },
+	{ "pequip", TK_CMD },
+	{ "skup", TK_CMD },
+	{ "learn", TK_CMD },
+	{ "trade", TK_CMD },
+	{ "mail", TK_CMD },
+	{ "doffstone", TK_CMD },
 
 	//action with sub cmd
-	{ u8"join", TK_CMD },
-	{ u8"leave", TK_CMD },
-	{ u8"kick", TK_CMD },
+	{ "join", TK_CMD },
+	{ "leave", TK_CMD },
+	{ "kick", TK_CMD },
 
 	//move
-	{ u8"walkpos", TK_CMD },
-	{ u8"move", TK_CMD },
-	{ u8"w", TK_CMD },
-	{ u8"dir", TK_CMD },
-	{ u8"findpath", TK_CMD },
-	{ u8"movetonpc", TK_CMD },
-	{ u8"chmap", TK_CMD },
-	{ u8"warp", TK_CMD },
-
-	//mouse
-	{ u8"lclick", TK_CMD },
-	{ u8"rclick", TK_CMD },
-	{ u8"ldbclick", TK_CMD },
-	{ u8"dragto", TK_CMD },
+	{ "walkpos", TK_CMD },
+	{ "dir", TK_CMD },
 
 	//hide
-	//{ u8"ocr", TK_CMD },
+	//{ "ocr", TK_CMD },
 
 	//battle
-	{ u8"bh", TK_CMD },//atk
-	{ u8"bj", TK_CMD },//magic
-	{ u8"bp", TK_CMD },//skill
-	{ u8"bs", TK_CMD },//switch
-	{ u8"be", TK_CMD },//escape
-	{ u8"bd", TK_CMD },//defense
-	{ u8"bi", TK_CMD },//item
-	{ u8"bt", TK_CMD },//catch
-	{ u8"bn", TK_CMD },//nothing
-	{ u8"bw", TK_CMD },//petskill
-	{ u8"bwf", TK_CMD },//pet nothing
-	{ u8"bwait", TK_CMD },
-	{ u8"bend", TK_CMD },
+	{ "bh", TK_CMD },//atk
+	{ "bj", TK_CMD },//magic
+	{ "bp", TK_CMD },//skill
+	{ "bs", TK_CMD },//switch
+	{ "be", TK_CMD },//escape
+	{ "bd", TK_CMD },//defense
+	{ "bi", TK_CMD },//item
+	{ "bt", TK_CMD },//catch
+	{ "bn", TK_CMD },//nothing
+	{ "bw", TK_CMD },//petskill
+	{ "bwf", TK_CMD },//pet nothing
+	{ "bwait", TK_CMD },
+	{ "bend", TK_CMD },
 	#pragma endregion
-
-	//... 其他後續增加的關鍵字
-	{ u8"#lua", TK_LUABEGIN },
-	{ u8"#endlua", TK_LUAEND },
 };
 #pragma endregion
 
@@ -431,7 +182,7 @@ bool Lexer::isInteger(const QString& str) const
 
 bool Lexer::isBool(const QString& str) const
 {
-	return (str == QString(u8"真") || str == QString(u8"假") || str.toLower() == "true" || str.toLower() == "false");
+	return (str == QString("真") || str == QString("假") || str.toLower() == "true" || str.toLower() == "false");
 }
 
 bool Lexer::isLabelName(const QString& str, RESERVE previousType) const
@@ -521,22 +272,72 @@ void Lexer::tokenized(qint64 currentLine, const QString& line, TokenMap* ptoken,
 
 	do
 	{
+		if (!beginCommentChunk_ && raw.startsWith("#lua") && !beginLuaCode_)
+		{
+			beginLuaCode_ = true;
+			luaNode_.clear();
+			luaNode_.beginLine = currentLine;
+			luaNode_.field = kGlobal;
+			luaNode_.level = 0;
+			createToken(pos, TK_LUABEGIN, line, line, ptoken);
+			break;
+		}
+		else if (!beginCommentChunk_ && raw.startsWith("#endlua") && beginLuaCode_)
+		{
+			beginLuaCode_ = false;
+			luaNode_.endLine = currentLine;
+			luaNodeList_.append(luaNode_);
+			luaNode_.clear();
+			createToken(pos, TK_LUAEND, line, line, ptoken);
+			break;
+		}
+		else if (!beginCommentChunk_ && beginLuaCode_)
+		{
+			luaNode_.content.append(line + "\n");
+			createToken(pos, TK_LUACONTENT, "[lua]", "[lua]", ptoken);
+			createToken(pos + 1, TK_LUACONTENT, line, line, ptoken);
+			break;
+		}
+		else if (raw.startsWith("--[[") && !beginCommentChunk_ && !beginLuaCode_)
+		{
+			beginCommentChunk_ = true;
+			createToken(0, TK_COMMENT, "", "", ptoken);
+			createToken(pos + 1, TK_COMMENT, originalRaw, originalRaw, ptoken);
+			break;
+		}
+		else if ((raw.startsWith("]]") || raw.endsWith("]]")) && beginCommentChunk_ && !beginLuaCode_)
+		{
+			beginCommentChunk_ = false;
+			createToken(0, TK_COMMENT, "", "", ptoken);
+			createToken(pos + 1, TK_COMMENT, originalRaw, originalRaw, ptoken);
+			break;
+		}
+		else if (beginCommentChunk_ && !beginLuaCode_)
+		{
+			createToken(pos, TK_COMMENT, "", "", ptoken);
+			createToken(pos + 1, TK_COMMENT, originalRaw, originalRaw, ptoken);
+			break;
+		}
+
 		qint64 commentIndex = raw.indexOf("//");
-		if (commentIndex == -1)
-			commentIndex = raw.indexOf("/*");
+
 
 		//處理整行註釋
-		if (commentIndex == 0 && (raw.trimmed().indexOf("//") == 0 || raw.trimmed().indexOf("/*") == 0))
+		if (commentIndex == 0 && (raw.trimmed().indexOf("//") == 0))
 		{
-			createToken(pos, TK_COMMENT, raw, raw, ptoken);
+			createToken(pos, TK_COMMENT, "", "", ptoken);
+			createToken(pos + 1, TK_COMMENT, originalRaw, originalRaw, ptoken);
 			break;
 		}
 		//當前token移除註釋
 		else if (commentIndex > 0)
 			raw = raw.mid(0, commentIndex).trimmed();
 
-		const QStringList tempReplacementList = {
-			"set", "print", "msg", "dlg"
+		static const QStringList tempReplacementList = {
+			"set", "print", "msg", "dlg", "findpath", "movetonpc", "rex", "regex", "rexg", "format", "run",
+			"say", "sleep", "saveset", "loadset", "lclick", "rclick", "dbclick", "dragto", "chmap", "w", "download",
+			"move", "cls", "eo", "logout", "logback", "runex", "openwindow", "rungame", "closegame", "setlogin", "dostrex",
+			"getgamestate", "loadsetex",
 		};
 
 		for (const QString& it : tempReplacementList)
@@ -549,50 +350,30 @@ void Lexer::tokenized(qint64 currentLine, const QString& line, TokenMap* ptoken,
 				originalRaw = raw;
 				break;
 			}
-		}
-
-		if (raw.startsWith("#lua") && !beginLuaCode_)
-		{
-			beginLuaCode_ = true;
-			luaNode_.clear();
-			luaNode_.beginLine = currentLine;
-			luaNode_.field = kGlobal;
-			luaNode_.level = 0;
-			createToken(0, TK_LUABEGIN, line, line, ptoken);
-			continue;
-		}
-		else if (raw.startsWith("#endlua") && beginLuaCode_)
-		{
-			beginLuaCode_ = false;
-			luaNode_.endLine = currentLine;
-			luaNodeList_.append(luaNode_);
-			luaNode_.clear();
-			createToken(0, TK_LUAEND, line, line, ptoken);
-			continue;
-		}
-		else if (beginLuaCode_)
-		{
-			luaNode_.content.append(line + "\n");
-			createToken(0, TK_LUACONTENT, "[lua]", "[lua]", ptoken);
-			createToken(1, TK_LUACONTENT, line, line, ptoken);
-			continue;
+			else if (raw == it)
+			{
+				raw.append("()");
+				originalRaw = raw;
+				break;
+			}
 		}
 
 		bool doNotLowerCase = false;
 		//a,b,c = 1,2,3
-		//static const QRegularExpression rexMultiVar(R"(^\s*([_a-zA-Z\p{Han}][\w\p{Han}]*(?:\s*,\s*[_a-zA-Z\p{Han}][\w\p{Han}]*)*)\s*=\s*([^,]+(?:\s*,\s*[^,]+)*)$\;*)");
+		static const QRegularExpression rexMultiVar(R"(([local]*\s*[_a-zA-Z\p{Han}][\w\p{Han}]*(?:\s*,\s*[_a-zA-Z\p{Han}][\w\p{Han}]*)*)\s*=\s*([^,]+(?:\s*,\s*[^,]+)*)\;*$)");
 		//local a,b,c = 1,2,3
 		//static const QRegularExpression rexMultiLocalVar(R"([lL][oO][cC][aA][lL]\s+([_a-zA-Z\p{Han}][\w\p{Han}]*(?:\s*,\s*[_a-zA-Z\p{Han}][\w\p{Han}]*)*)\s*=\s*([^,]+(?:\s*,\s*[^,]+)*)$\;*)");
+		//static const QRegularExpression rexMultiLocalVar(R"(^(.*\,.+?)\s*=\s*(.*?)$)");
 		//var++, var--
-		static const QRegularExpression varIncDec(R"((?!\d)([\p{Han}\W\w]+)(\+\+|--)\;*)");
+		static const QRegularExpression varIncDec(R"((?!\d)([\p{Han}\W\w]+)(\+\+|--)\;*$)");
 		//+= -= *= /= &= |= ^= %=
-		static const QRegularExpression varCAOs(R"((?!\d)([\p{Han}\W\w]+)\s*([+\-*\/&\|\^%]\=)\s*([\W\w\s\p{Han}]+)\;*)");
+		static const QRegularExpression varCAOs(R"((?!\d)([\p{Han}\W\w]+)\s*([+\-*\/&\|\^%]\=)\s*([\W\w\s\p{Han}]+)\;*$)");
 		//>>= <<=
-		static const QRegularExpression varCAOs2(R"((?!\d)([\p{Han}\W\w]+)\s*(>>\=|<<=)\s*([\W\w\s\p{Han}]+)\;*)");
+		static const QRegularExpression varCAOs2(R"((?!\d)([\p{Han}\W\w]+)\s*(>>\=|<<=)\s*([\W\w\s\p{Han}]+)\;*$)");
 		//x = expr
 		//static const QRegularExpression varExpr(R"(([\w\p{Han}]+)\s*\=\s*([\W\w\s\p{Han}]+)\;*)");
 		//+ - * / % & | ^ ( )
-		//static const QRegularExpression varAnyOp(R"([+\-*\/%&|^\(\)])");
+		static const QRegularExpression varAnyOp(R"([+\-*\/%&|^\(\)])");
 		//if expr op expr
 		static const QRegularExpression varIf(R"([iI][fF][\s*\(\s*|\s+]([\w\W\p{Han}]+\s*[<|>|\=|!][\=]*\s*[\w\W\p{Han}]+)\s*,\s*([\w\W\p{Han}]+))");
 		//if expr
@@ -713,6 +494,19 @@ void Lexer::tokenized(qint64 currentLine, const QString& line, TokenMap* ptoken,
 			}
 			break;
 		}
+		////處理單一或多個全局變量聲明+初始化 或 已存在的局變量重新賦值
+		//else if (raw.count("=") == 1 && raw.contains(rexMultiVar)
+		//	&& !raw.front().isDigit())
+		//{
+		//	QRegularExpressionMatch match = rexMultiVar.match(raw);
+		//	if (match.hasMatch())
+		//	{
+		//		token = match.captured(1).simplified();
+		//		raw = match.captured(2).simplified();
+		//		type = TK_MULTIVAR;
+		//		doNotLowerCase = true;
+		//	}
+		//}
 #if 0
 		//處理單一局表
 		else if (raw.count("=") == 1 && raw.contains(rexLocalTable) && !raw.front().isDigit() && raw.contains("{") && raw.contains("}"))
@@ -825,7 +619,7 @@ void Lexer::tokenized(qint64 currentLine, const QString& line, TokenMap* ptoken,
 			else
 			{
 				//以空格為分界分離出第一個TOKEN(命令)
-				if (!getStringCommandToken(raw, " ", token))
+				if (getStringToken(raw, " ", token) == FTK_EOF)
 				{
 					createEmptyToken(pos, ptoken);
 					break;
@@ -870,7 +664,7 @@ void Lexer::tokenized(qint64 currentLine, const QString& line, TokenMap* ptoken,
 
 			if (raw.contains(","))
 			{
-				if (getStringCommandToken(raw, ",", token) == RTK_EOF)
+				if (getStringToken(raw, ",", token) == FTK_EOF)
 					break;
 			}
 			else if (raw.isEmpty())
@@ -1619,75 +1413,10 @@ void Lexer::checkFunctionPairs(const QHash<qint64, TokenMap>& stokenmaps)
 }
 
 //根據指定分割符號取得字串
-bool Lexer::getStringCommandToken(QString& src, const QString& delim, QString& out) const
+FTK Lexer::getStringToken(QString& src, const QString& delim, QString& out) const
 {
-	//if (src.isEmpty())
-	//	return false;
-
-	//if (delim.isEmpty())
-	//	return false;
-
-	//QString openingQuote = "\"";
-	//QString closingQuote = "\"";
-
-	//if (src.startsWith(openingQuote))
-	//{
-	//	// Find the closing quote
-	//	qint64 closingQuoteIndex = src.indexOf(closingQuote, openingQuote.size());
-	//	if (closingQuoteIndex == -1)
-	//		return false;
-
-	//	// Extract the quoted token
-	//	out = src.mid(0, closingQuoteIndex + closingQuote.size()).trimmed();
-	//	src.remove(0, closingQuoteIndex + closingQuote.size());
-	//	src = src.trimmed();
-	//	if (src.startsWith(delim))
-	//		src.remove(0, delim.size());
-	//}
-	//else if (src.startsWith("'"))
-	//{
-	//	// Find the closing single quote
-	//	qint64 closingSingleQuoteIndex = src.indexOf("'", 1);
-	//	if (closingSingleQuoteIndex == -1)
-	//		return false;
-
-	//	// Extract the quoted token
-	//	out = src.mid(0, closingSingleQuoteIndex + 1);
-	//	src.remove(0, closingSingleQuoteIndex + 1);
-	//	src = src.trimmed();
-	//	if (src.startsWith(delim))
-	//		src.remove(0, delim.size());
-	//}
-	//else
-	//{
-	//	QStringList list = src.split(delim);
-	//	if (list.isEmpty())
-	//	{
-	//		// Empty token, treat it as an empty string
-	//		out = "";
-	//	}
-	//	else
-	//	{
-	//		out = list.first().trimmed();
-	//		qint64 size = out.size();
-
-	//		// Remove the first 'out' and 'delim' from src
-	//		src.remove(0, size + delim.size());
-	//		if (src.startsWith(delim))
-	//			src.remove(0, delim.size());
-	//		src = src.trimmed();
-	//	}
-	//}
-
-	//if (src.endsWith(";"))
-	//	src.remove(src.size() - 1, 1);
-
-	//if (out.endsWith(";"))
-	//	out.remove(out.size() - 1, 1);
-
-	//return true;
 	if (src.isEmpty() || delim.isEmpty())
-		return false;
+		return FTK_EOF;
 
 	enum class State { Normal, DoubleQuoted, SingleQuoted, InParentheses, InBraces };
 	State state = State::Normal;
@@ -1743,11 +1472,11 @@ bool Lexer::getStringCommandToken(QString& src, const QString& delim, QString& o
 				// 提取标记
 				out = src.mid(start, i - start).trimmed();
 				src.remove(0, i + delim.size());
-				return true;
+				return FTK_CONTINUE;
 			}
 		}
 	}
 
-	return false;
+	return FTK_EOF;
 }
 #pragma endregion

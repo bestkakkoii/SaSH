@@ -48,33 +48,45 @@ QPushButton:pressed, QPushButton:checked {
 	if (button & kMinimizeButton)
 	{
 		minimizeButton = new QPushButton("");
-		minimizeButton->setFixedSize(35, 35);
-		minimizeButton->setIcon(QIcon(":/image/icon_min"));
-		connect(minimizeButton, &QPushButton::clicked, parent, &QMainWindow::showMinimized);
+		if (minimizeButton != nullptr)
+		{
+			minimizeButton->setFixedSize(35, 35);
+			minimizeButton->setIcon(QIcon(":/image/icon_min"));
+			connect(minimizeButton, &QPushButton::clicked, parent, &QMainWindow::showMinimized);
+		}
 	}
 
 	if (button & kMaximizeButton)
 	{
 		maximizeButton_ = new QPushButton("");
-		maximizeButton_->setFixedSize(35, 35);
+		if (maximizeButton_ != nullptr)
+		{
+			maximizeButton_->setFixedSize(35, 35);
 
-		if (!parent_->isMaximized())
-			maximizeButton_->setIcon(QIcon(":/image/icon_max.png"));
-		else
-			maximizeButton_->setIcon(QIcon(":/image/icon_restoredown.png"));
-		connect(maximizeButton_, &QPushButton::clicked, this, &CustomTitleBar::toggleMaximize);
+			if (!parent_->isMaximized())
+				maximizeButton_->setIcon(QIcon(":/image/icon_max.png"));
+			else
+				maximizeButton_->setIcon(QIcon(":/image/icon_restoredown.png"));
+			connect(maximizeButton_, &QPushButton::clicked, this, &CustomTitleBar::toggleMaximize);
+		}
 	}
 
 	QPushButton* closeButton = nullptr;
 	if (button & kCloseButton)
 	{
 		closeButton = new QPushButton("");
-		closeButton->setFixedSize(35, 35);
-		closeButton->setIcon(QIcon(":/image/icon_close"));
-		connect(closeButton, &QPushButton::clicked, parent, &QMainWindow::close);
+		if (closeButton != nullptr)
+		{
+			closeButton->setFixedSize(35, 35);
+			closeButton->setIcon(QIcon(":/image/icon_close"));
+			connect(closeButton, &QPushButton::clicked, parent, &QMainWindow::close);
+		}
 	}
 
 	QHBoxLayout* layout = new QHBoxLayout(this);
+	if (layout == nullptr)
+		return;
+
 	layout->setContentsMargins(5, 0, 0, 0);
 	layout->setSpacing(0);
 	layout->addWidget(icon);

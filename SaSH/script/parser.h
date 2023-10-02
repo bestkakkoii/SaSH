@@ -32,6 +32,14 @@ using ParserCallBack = std::function<qint64(qint64 currentIndex, qint64 currentL
 
 using VariantSafeHash = util::SafeHash<QString, QVariant>;
 
+struct Counter
+{
+	qint64 error = 0;									//錯誤計數器
+	qint64 space = 0;									//當前行開頭空格數
+	qint64 comment = 0;								//命令計數器
+	qint64 validCommand = 0;							//有效命令計數器
+};
+
 enum CompareArea
 {
 	kAreaChar,
@@ -152,139 +160,139 @@ enum CompareType
 };
 
 inline static const QHash<QString, CompareType> compareBattleUnitTypeMap = {
-	{ u8"pos", kBattleUnitPos },
-	{ u8"name", kBattleUnitName },
-	{ u8"fname", kBattleUnitFreeName },
-	{ u8"modelid", kBattleUnitModelId },
-	{ u8"lv", kBattleUnitLevel },
-	{ u8"hp", kBattleUnitHp },
-	{ u8"maxhp", kBattleUnitMaxHp },
-	{ u8"hpp", kBattleUnitHpPercent },
-	{ u8"status", kBattleUnitStatus },
-	{ u8"ride", kBattleUnitRideFlag },
-	{ u8"ridename", kBattleUnitRideName },
-	{ u8"ridelevel", kBattleUnitRideLevel },
-	{ u8"ridehp", kBattleUnitRideHp },
-	{ u8"ridemaxhp", kBattleUnitRideMaxHp },
-	{ u8"ridehpp", kBattleUnitRideHpPercent },
+	{ "pos", kBattleUnitPos },
+	{ "name", kBattleUnitName },
+	{ "fname", kBattleUnitFreeName },
+	{ "modelid", kBattleUnitModelId },
+	{ "lv", kBattleUnitLevel },
+	{ "hp", kBattleUnitHp },
+	{ "maxhp", kBattleUnitMaxHp },
+	{ "hpp", kBattleUnitHpPercent },
+	{ "status", kBattleUnitStatus },
+	{ "ride", kBattleUnitRideFlag },
+	{ "ridename", kBattleUnitRideName },
+	{ "ridelevel", kBattleUnitRideLevel },
+	{ "ridehp", kBattleUnitRideHp },
+	{ "ridemaxhp", kBattleUnitRideMaxHp },
+	{ "ridehpp", kBattleUnitRideHpPercent },
 };
 
 inline static const QHash<QString, CompareType> compareBattleTypeMap = {
-	{ u8"round", kBattleRound },
-	{ u8"field", kBattleField },
-	{ u8"duration", kBattleDuration },
-	{ u8"totalduration", kBattleTotalDuration },
-	{ u8"totalcombat", kBattleTotalCombat },
+	{ "round", kBattleRound },
+	{ "field", kBattleField },
+	{ "duration", kBattleDuration },
+	{ "totalduration", kBattleTotalDuration },
+	{ "totalcombat", kBattleTotalCombat },
 
 };
 
 inline static const QHash<QString, CompareType> compareUnitTypeMap = {
-	{ u8"name", kUnitName },
-	{ u8"fname", kUnitFreeName },
-	{ u8"family", kUnitFamilyName },
-	{ u8"lv", kUnitLevel },
-	{ u8"dir", kUnitDir },
-	{ u8"x", kUnitX },
-	{ u8"y", kUnitY },
-	{ u8"gold", kUnitGold },
-	{ u8"modelid", kUnitModelId },
+	{ "name", kUnitName },
+	{ "fname", kUnitFreeName },
+	{ "family", kUnitFamilyName },
+	{ "lv", kUnitLevel },
+	{ "dir", kUnitDir },
+	{ "x", kUnitX },
+	{ "y", kUnitY },
+	{ "gold", kUnitGold },
+	{ "modelid", kUnitModelId },
 };
 
 inline static const QHash<QString, CompareType> compareCardTypeMap = {
-	{ u8"name", kCardName },
-	{ u8"online", kCardOnlineState },
-	{ u8"turn", kCardTurn },
-	{ u8"dp", kCardDp },
-	{ u8"lv", kCardLevel },
+	{ "name", kCardName },
+	{ "online", kCardOnlineState },
+	{ "turn", kCardTurn },
+	{ "dp", kCardDp },
+	{ "lv", kCardLevel },
 };
 
 inline static const QHash<QString, CompareType> compareItemTypeMap = {
-	{ u8"count", kitemCount },
-	{ u8"name", kItemName },
-	{ u8"memo", kItemMemo },
-	{ u8"dura", kItemDura },
-	{ u8"lv", kItemLevel },
-	{ u8"stack", kItemStack },
+	{ "count", kitemCount },
+	{ "name", kItemName },
+	{ "memo", kItemMemo },
+	{ "dura", kItemDura },
+	{ "lv", kItemLevel },
+	{ "stack", kItemStack },
 };
 
 inline static const QHash<QString, CompareType> compareTeamTypeMap = {
-	{ u8"name", kTeamName },
-	{ u8"lv", kTeamLevel },
-	{ u8"hp", kTeamHp },
-	{ u8"maxhp", kTeamMaxHp },
-	{ u8"hpp", kTeamHpPercent },
-	{ u8"mp", kTeamMp },
+	{ "name", kTeamName },
+	{ "lv", kTeamLevel },
+	{ "hp", kTeamHp },
+	{ "maxhp", kTeamMaxHp },
+	{ "hpp", kTeamHpPercent },
+	{ "mp", kTeamMp },
 };
 
 inline static const QHash<QString, CompareType> compareMapTypeMap = {
-	{ u8"name", kMapName },
-	{ u8"floor", kMapFloor },
-	{ u8"x", kMapX },
-	{ u8"y", kMapY },
+	{ "name", kMapName },
+	{ "floor", kMapFloor },
+	{ "x", kMapX },
+	{ "y", kMapY },
 };
 
 inline static const QHash<QString, CompareType> comparePcTypeMap = {
-	{ u8"name", kCharName },
-	{ u8"fname", kCharFreeName },
-	{ u8"lv", kCharLevel },
-	{ u8"hp", kCharHp },
-	{ u8"maxhp", kCharMaxHp },
-	{ u8"hpp", kCharHpPercent },
-	{ u8"mp", kCharMp },
-	{ u8"maxmp", kCharMaxMp },
-	{ u8"mpp", kCharMpPercent },
-	{ u8"exp", kCharExp },
-	{ u8"maxexp", kCharMaxExp },
-	{ u8"stone", kCharStone },
-	{ u8"vit", kCharVit },
-	{ u8"str", kCharStr },
-	{ u8"tgh", kCharTgh },
-	{ u8"def", kCharDex },
-	{ u8"atk", kCharAtk },
-	{ u8"def", kCharDef },
-	{ u8"agi", kCharAgi },
-	{ u8"chasma", kCharChasma },
-	{ u8"turn", kCharTurn },
-	{ u8"earth", kCharEarth },
-	{ u8"water", kCharWater },
-	{ u8"fire", kCharFire },
-	{ u8"wind", kCharWind },
+	{ "name", kCharName },
+	{ "fname", kCharFreeName },
+	{ "lv", kCharLevel },
+	{ "hp", kCharHp },
+	{ "maxhp", kCharMaxHp },
+	{ "hpp", kCharHpPercent },
+	{ "mp", kCharMp },
+	{ "maxmp", kCharMaxMp },
+	{ "mpp", kCharMpPercent },
+	{ "exp", kCharExp },
+	{ "maxexp", kCharMaxExp },
+	{ "stone", kCharStone },
+	{ "vit", kCharVit },
+	{ "str", kCharStr },
+	{ "tgh", kCharTgh },
+	{ "def", kCharDex },
+	{ "atk", kCharAtk },
+	{ "def", kCharDef },
+	{ "agi", kCharAgi },
+	{ "chasma", kCharChasma },
+	{ "turn", kCharTurn },
+	{ "earth", kCharEarth },
+	{ "water", kCharWater },
+	{ "fire", kCharFire },
+	{ "wind", kCharWind },
 };
 
 inline static const QHash<QString, CompareType> comparePetTypeMap = {
-	{ u8"name", kPetName },
-	{ u8"fname", kPetFreeName },
-	{ u8"lv", kPetLevel },
-	{ u8"hp", kPetHp },
-	{ u8"maxhp", kPetMaxHp },
-	{ u8"hpp", kPetHpPercent },
-	{ u8"exp", kPetExp },
-	{ u8"maxexp", kPetMaxExp },
-	{ u8"atk", kPetAtk },
-	{ u8"def", kPetDef },
-	{ u8"agi", kPetAgi },
-	{ u8"loyal", kPetLoyal },
-	{ u8"turn", kPetTurn },
-	{ u8"state", kPetState },
-	{ u8"earth", kPetEarth },
-	{ u8"water", kPetWater },
-	{ u8"fire", kPetFire },
-	{ u8"wind", kPetWind },
-	{ u8"power", kPetPower },
+	{ "name", kPetName },
+	{ "fname", kPetFreeName },
+	{ "lv", kPetLevel },
+	{ "hp", kPetHp },
+	{ "maxhp", kPetMaxHp },
+	{ "hpp", kPetHpPercent },
+	{ "exp", kPetExp },
+	{ "maxexp", kPetMaxExp },
+	{ "atk", kPetAtk },
+	{ "def", kPetDef },
+	{ "agi", kPetAgi },
+	{ "loyal", kPetLoyal },
+	{ "turn", kPetTurn },
+	{ "state", kPetState },
+	{ "earth", kPetEarth },
+	{ "water", kPetWater },
+	{ "fire", kPetFire },
+	{ "wind", kPetWind },
+	{ "power", kPetPower },
 };
 
 inline static const QHash<QString, CompareType> compareAmountTypeMap = {
-	{ u8"道具數量", kitemCount },
-	{ u8"組隊人數", kTeamCount },
-	{ u8"寵物數量", kPetCount },
+	{ "道具數量", kitemCount },
+	{ "組隊人數", kTeamCount },
+	{ "寵物數量", kPetCount },
 
-	{ u8"道具数量", kitemCount },
-	{ u8"组队人数", kTeamCount },
-	{ u8"宠物数量", kPetCount },
+	{ "道具数量", kitemCount },
+	{ "组队人数", kTeamCount },
+	{ "宠物数量", kPetCount },
 
-	{ u8"ifitem", kitemCount },
-	{ u8"ifteam", kTeamCount },
-	{ u8"ifpet", kPetCount },
+	{ "ifitem", kitemCount },
+	{ "ifteam", kTeamCount },
+	{ "ifpet", kPetCount },
 };
 
 static const QSet<RESERVE> operatorTypes = {
@@ -359,6 +367,8 @@ public:
 	explicit Parser(qint64 index);
 	virtual ~Parser();
 
+	void initialize(Parser* parent);
+
 	//解析腳本
 	void parse(qint64 line = 0);
 
@@ -371,6 +381,12 @@ public:
 	inline Q_REQUIRED_RESULT QList<ForNode> getForNodeList() const { return forNodeList_; }
 	inline Q_REQUIRED_RESULT QList<LuaNode> getLuaNodeList() const { return luaNodeList_; }
 	inline Q_REQUIRED_RESULT qint64 getCurrentLine() const { return lineNumber_; }
+	inline Q_REQUIRED_RESULT QSharedPointer<QStringList> getGlobalNameListPointer() const { return globalNames_; }
+	inline Q_REQUIRED_RESULT bool isSubScript() const { return isSubScript_; }
+	inline Q_REQUIRED_RESULT QHash<QString, qint64> getLabels() { return labels_; }
+	inline Q_REQUIRED_RESULT QSharedPointer<Counter> getCounterPointer() const { return counter_; }
+	inline Q_REQUIRED_RESULT QSharedPointer<QStack<QVariantHash>> getLocalVarStackPointer() const { return localVarStack_; }
+	inline Q_REQUIRED_RESULT QSharedPointer<QStringList> getLuaLocalVarStringListPointer() const { return luaLocalVarStringList_; }
 
 	inline void setScriptFileName(const QString& scriptFileName) { scriptFileName_ = scriptFileName; }
 	inline void setCurrentLine(const qint64 line) { lineNumber_ = line; }
@@ -382,6 +398,12 @@ public:
 	inline void setForNodeList(const QList<ForNode>& forNodeList) { forNodeList_ = forNodeList; }
 	inline void setLuaNodeList(const QList<LuaNode>& luaNodeList) { luaNodeList_ = luaNodeList; }
 	inline void setCallBack(ParserCallBack callBack) { callBack_ = callBack; }
+	inline void setGlobalNameListPointer(const QSharedPointer<QStringList>& globalNames) { globalNames_ = globalNames; }
+	inline void setSubScript(bool isSubScript) { isSubScript_ = isSubScript; }
+	inline void setLuaMachinePointer(QSharedPointer<CLua> pLua) { pLua_ = pLua; }
+	inline void setCounterPointer(QSharedPointer<Counter> counter) { counter_ = counter; }
+	inline void setLocalVarStackPointer(const QSharedPointer<QStack<QVariantHash>>& localVarStack) { localVarStack_ = localVarStack; }
+	inline void setLuaLocalVarStringListPointer(const QSharedPointer<QStringList>& luaLocalVarStringList) { luaLocalVarStringList_ = luaLocalVarStringList; }
 
 	bool loadFile(const QString& fileName, QString* pcontent);
 	bool loadString(const QString& content);
@@ -399,19 +421,13 @@ public:
 	void jumpto(qint64 line, bool noStack);
 	bool jump(const QString& name, bool noStack);
 
-	void removeEscapeChar(QString* str) const;
 	bool checkString(const TokenMap& TK, qint64 idx, QString* ret);
 	bool checkInteger(const TokenMap& TK, qint64 idx, qint64* ret);
 	bool checkNumber(const TokenMap& TK, qint64 idx, double* ret);
 	bool checkBoolean(const TokenMap& TK, qint64 idx, bool* ret);
 
-	bool toVariant(const TokenMap& TK, qint64 idx, QVariant* ret);
-
 	QVariant checkValue(const TokenMap TK, qint64 idx, QVariant::Type = QVariant::Invalid);
 	qint64 checkJump(const TokenMap& TK, qint64 idx, bool expr, JumpBehavior behavior);
-
-	bool isSubScript() const { return isSubScript_; }
-	void setSubScript(bool isSubScript) { isSubScript_ = isSubScript; }
 
 	QVariant luaDoString(QString expr);
 
@@ -427,22 +443,15 @@ public:
 
 	void insertVar(const QString& name, const QVariant& value);
 
-	void setLuaMachinePointer(sol::state* pLua);
-
-	QHash<QString, qint64> getLabels() { return labels_; }
-
 	QString getLuaTableString(const sol::table& t, qint64& depth);
 
 private:
 	void processTokens();
 	qint64 processCommand();
-	void processLocalVariable();
 	void processVariableIncDec();
 	void processVariableCAOs();
-	void processVariableExpr();
 	void processVariable();
-	void processTable();
-	void processLuaString();
+	bool processLuaString();
 	void processFormation();
 	bool processCall(RESERVE reserve);
 	bool processGoto();
@@ -460,13 +469,19 @@ private:
 	bool processContinue();
 	bool processLuaCode();
 	bool processIfCompare();
+	void processMultiVariable();
+#if 0
+	void processLocalVariable();
+	void processVariableExpr();
+	void processTable();
+#endif
 
 	void updateSysConstKeyword(const QString& expr);
-	void importVariablesToLua(const QString& expr);
+	void importLocalVariablesToPreLuaList();
 	bool checkCallStack();
 	void exportVarInfo();
 
-	void checkConditionalOp(QString& expr);
+	void checkConditionalOperator(QString& expr);
 
 
 
@@ -557,7 +572,9 @@ private:
 	QList<ForNode> forNodeList_;
 	QList<LuaNode> luaNodeList_;
 
-	QStringList globalNames_;								//全局變量名稱
+	QSharedPointer<QStringList> globalNames_;				//全局變量名稱
+	QSharedPointer<QStack<QVariantHash>> localVarStack_;	//局變量棧
+	QSharedPointer<QStringList> luaLocalVarStringList_;		//lua局變量
 
 	QHash<QString, QString> userRegCallBack_;				//用戶註冊的回調函數
 	QHash<QString, CommandRegistry> commandRegistry_;		//所有已註冊的腳本命令函數指針
@@ -568,8 +585,6 @@ private:
 	QStack<ForNode> forStack_;			                 	//"遍歷"命令所在行棧
 	QStack<QVariantList> callArgsStack_;					//"調用"命令參數棧
 	QVariantList emptyArgs_;								//空參數(參數棧為空得情況下壓入一個空容器)
-	QStack<QVariantHash> localVarStack_;					//局變量棧
-	QStringList luaLocalVarStringList;						//lua局變量
 	QVariantHash emptyLocalVars_;							//空局變量(局變量棧為空得情況下壓入一個空容器)
 	QVariantList lastReturnValue_;							//函數返回值
 
@@ -585,4 +600,7 @@ private:
 
 	bool isSubScript_ = false;								//是否是子腳本		
 
+	bool luaBegin_ = false;									//lua代碼塊開始標記
+
+	QSharedPointer<Counter> counter_;
 };

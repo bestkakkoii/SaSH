@@ -36,7 +36,7 @@ class LuaScriptForm;
 
 class InfoForm;
 class MapWidget;
-class ScriptSettingForm;
+class ScriptEditor;
 
 class QThumbnailForm;
 
@@ -95,6 +95,7 @@ private slots:
 	void onAppendChatLog(const QString& text, qint64 color = 0);
 
 private:
+	bool markAsClose_ = false;
 	Ui::MainFormClass ui;
 	QMenuBar* pMenuBar_ = nullptr;
 	QTranslator translator_;
@@ -111,7 +112,7 @@ private:
 
 	InfoForm* pInfoForm_ = nullptr;
 	MapWidget* mapWidget_ = nullptr;
-	ScriptSettingForm* pScriptSettingForm_ = nullptr;
+	ScriptEditor* pScriptEditor_ = nullptr;
 
 	QThumbnailForm* pThumbnailForm_ = nullptr;
 

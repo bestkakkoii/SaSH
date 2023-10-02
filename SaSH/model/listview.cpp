@@ -233,6 +233,26 @@ QVariant StringListModel::data(const QModelIndex& index, int role) const
 		static const QBrush brushAlternate = qApp->palette().alternateBase();
 		return ((index.row() & 99) == 0) ? brushBase : brushAlternate;
 	}
+	case Qt::DecorationRole:
+	{
+		QVector<QString> list = getList();
+		int i = index.row();
+		QString data = list.at(i);
+		if (data.contains("[錯誤]") || data.contains("[error]") || data.contains("错误"))
+		{
+			return QIcon(":/image/icon_statuserror.svg");
+		}
+		else if (data.contains("[警告]") || data.contains("[warn]") || data.contains("警告"))
+		{
+			return QIcon(":/image/icon_statuswarning.svg");
+		}
+		else if (data.contains("[資訊]") || data.contains("[info]") || data.contains("资讯"))
+		{
+			return QIcon(":/image/icon_statusinfo.svg");
+		}
+
+		return QVariant();
+	}
 	case Qt::ForegroundRole:
 	{
 
@@ -261,10 +281,10 @@ QVariant StringListModel::data(const QModelIndex& index, int role) const
 			{ 10, QColor(218,175,66) },
 		};
 
-		static const QRegularExpression rexError(u8R"(((?i)\[error\]|\[錯誤\]|\[错误\]))");
-		static const QRegularExpression rexFatal(u8R"(((?i)\[fatal\]|\[異常\]|\[异常\]))");
-		static const QRegularExpression rexWarn(u8R"(((?i)\[warn\]|\[警告\]|\[警告\]))");
-		static const QRegularExpression rexInfo(u8R"(((?i)\[info\]|\[資訊\]|\[资讯\]))");
+		static const QRegularExpression rexError(R"(((?i)\[error\]|\[錯誤\]|\[错误\]))");
+		static const QRegularExpression rexFatal(R"(((?i)\[fatal\]|\[異常\]|\[异常\]))");
+		static const QRegularExpression rexWarn(R"(((?i)\[warn\]|\[警告\]|\[警告\]))");
+		static const QRegularExpression rexInfo(R"(((?i)\[info\]|\[資訊\]|\[资讯\]))");
 		static const QBrush colorError(QColor(255, 128, 128));
 		static const QBrush colorFatal(QColor(168, 46, 46));
 		static const QBrush colorWarn(QColor(206, 145, 120));
@@ -393,8 +413,9 @@ ListView::ListView(QWidget* parent)
 	setHorizontalScrollMode(QAbstractItemView::ScrollPerItem);
 	setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
 	setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
-	ItemDelegate* delegate = new ItemDelegate(this);
-	setItemDelegate(delegate);
+	ItemDelegate* pdelegate = new ItemDelegate(this);
+	if (pdelegate != nullptr)
+		setItemDelegate(pdelegate);
 }
 
 bool ListView::eventFilter(QObject* obj, QEvent* e)

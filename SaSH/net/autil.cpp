@@ -199,7 +199,7 @@ void __stdcall Autil::util_DecodeMessage(char* dst, size_t dstlen, char* src)
 //
 // arg: func=return function ID    fieldcount=return fields of the function
 // ret: 1=success  0=failed (function not complete)
-qint64 __stdcall Autil::util_GetFunctionFromSlice(qint64* func, qint64* fieldcount)
+qint64 __stdcall Autil::util_GetFunctionFromSlice(qint64* func, qint64* fieldcount, qint64 offest)
 {
 	QMutexLocker locker(&MesgMutex);
 	//char t1[NETDATASIZE];
@@ -214,7 +214,7 @@ qint64 __stdcall Autil::util_GetFunctionFromSlice(qint64* func, qint64* fieldcou
 
 	// Robin adjust
 	//*func=atoi(t1);
-	*func = std::atoi(t1.data()) - 23;
+	*func = std::atoi(t1.data()) - offest;
 	for (i = 0; i < SLICE_MAX; ++i)
 	{
 		if (strcmp(MesgSlice[i], DEFAULTFUNCEND) == 0)
@@ -693,6 +693,26 @@ int __stdcall Autil::util_deint(int sliceno, int* value)
 	return *value;
 }
 
+int __stdcall Autil::util_deint(char* d, int* value)
+{
+	QMutexLocker locker(&MesgMutex);
+	int* t1 = nullptr;
+	int t2 = 0;
+	//char t3[4096];	// This buffer is enough for an integer.
+	//memset(t3, 0, sizeof(t3));
+	QByteArray t3(SBUFSIZE, '\0');
+
+	Autil::util_shl_64to256(t3.data(), d, const_cast<char*>(DEFAULTTABLE), PersonalKey.data().toUtf8().data());
+	t1 = reinterpret_cast<int*>(t3.data());
+	t2 = *t1 ^ 0xffffffff;
+#ifdef _BACK_VERSION
+	util_swapint(value, &t2, "3421");
+#else
+	Autil::util_swapint(value, &t2, const_cast<char*>("2413"));
+#endif
+	return *value;
+}
+
 // -------------------------------------------------------------------
 // Pack a integer into buffer (a string).  Return a checksum.
 //
@@ -727,6 +747,14 @@ int __stdcall Autil::util_destring(int sliceno, char* value)
 {
 	QMutexLocker locker(&MesgMutex);
 	Autil::util_shr_64to256(value, MesgSlice[sliceno].data(), const_cast<char*>(DEFAULTTABLE), PersonalKey.data().toUtf8().data());
+
+	return strlen(value);
+}
+
+int __stdcall Autil::util_destring(char* d, char* value)
+{
+	QMutexLocker locker(&MesgMutex);
+	Autil::util_shr_64to256(value, d, const_cast<char*>(DEFAULTTABLE), PersonalKey.data().toUtf8().data());
 
 	return strlen(value);
 }

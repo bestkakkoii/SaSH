@@ -51,7 +51,7 @@ public:
 	bool __stdcall util_SplitMessage(char* source, size_t dstlen, char* separator);
 	void __stdcall util_EncodeMessage(char* dst, size_t dstlen, char* src);
 	void __stdcall util_DecodeMessage(char* dst, size_t dstlen, char* src);
-	qint64 __stdcall util_GetFunctionFromSlice(qint64* func, qint64* fieldcount);
+	qint64 __stdcall util_GetFunctionFromSlice(qint64* func, qint64* fieldcount, qint64 offest = 23);
 	void __stdcall util_DiscardMessage(void);
 	void __stdcall util_SendMesg(int func, char* buffer);
 
@@ -71,8 +71,10 @@ public:
 	// -------------------------------------------------------------------
 	// Encrypting functions
 	int __stdcall util_deint(int sliceno, int* value);
+	int __stdcall util_deint(char* d, int* value);
 	int __stdcall util_mkint(char* buffer, int value);
 	int __stdcall util_destring(int sliceno, char* value);
+	int __stdcall util_destring(char* d, char* value);
 	int __stdcall util_mkstring(char* buffer, char* value);
 
 	// 輔助函數，處理整數參數
@@ -109,7 +111,8 @@ public:
 	{
 		int iChecksum = 0;
 		std::unique_ptr <char[]> buffer(new char[NETDATASIZE]);
-		memset(buffer.get(), 0, NETDATASIZE);
+		std::fill(buffer.get(), buffer.get() + NETDATASIZE, 0);
+
 		util_SendProcessArgs(iChecksum, buffer.get(), args...);
 		util_mkint(buffer.get(), iChecksum);
 		util_SendMesg(func, buffer.get());
@@ -118,8 +121,8 @@ public:
 	void util_SendArgs(int func, std::vector<std::variant<int, std::string>>& args)
 	{
 		int iChecksum = 0;
-		std::unique_ptr <char[]> buffer(new char[NETDATASIZE]);
-		memset(buffer.get(), 0, NETDATASIZE);
+		std::unique_ptr <char[]> buffer(new char[NETDATASIZE]());
+		std::fill(buffer.get(), buffer.get() + NETDATASIZE, 0);
 
 		for (const std::variant<int, std::string>& arg : args)
 		{

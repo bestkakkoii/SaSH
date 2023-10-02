@@ -75,7 +75,7 @@ protected:
 
 
 signals:
-	void notifyMousePosition(const QPointF& pos);
+	void notifyLeftDoubleClick(const QPointF& pos);
 
 	void notifyMouseMove(Qt::MouseButton button, const QPointF& gpos, const QPointF& pos);
 

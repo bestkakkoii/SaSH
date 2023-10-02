@@ -109,112 +109,124 @@ constexpr qint64 MAP_X_SIZE = (MAP_TILE_GRID_X2 - MAP_TILE_GRID_X1);
 constexpr qint64 MAP_Y_SIZE = (MAP_TILE_GRID_Y2 - MAP_TILE_GRID_Y1);
 
 constexpr qint64 MAP_READ_FLAG = 0x8000;
-constexpr qint64  MAP_SEE_FLAG = 0x4000;
+constexpr qint64 MAP_SEE_FLAG = 0x4000;
+
+constexpr qint64 TARGET_SIDE_0 = 20;	// 右下
+constexpr qint64 TARGET_SIDE_1 = 21;	// 左上
+constexpr qint64 TARGET_ALL = 22;// 全體
+constexpr qint64 TARGET_SIDE_0_B_ROW = 26;  // 右下後一列
+constexpr qint64 TARGET_SIDE_0_F_ROW = 25;  // 右下前一列
+constexpr qint64 TARGET_SIDE_1_F_ROW = 24;  // 左上前一列
+constexpr qint64 TARGET_SIDE_1_B_ROW = 23;  // 左上後一列
+constexpr qint64 TARGER_THROUGH = 27;
 
 constexpr qint64 BC_FLG_NEW = (1LL << 0);
 constexpr qint64 BC_FLG_DEAD = (1LL << 1);	  //死亡
-constexpr qint64 BC_FLG_PLAYER = (1LL << 2);	  //玩家,玩家有异常状态时要有此值
+constexpr qint64 BC_FLG_PLAYER = (1LL << 2);	  //玩家,玩家有異常狀態時要有此值
 constexpr qint64 BC_FLG_POISON = (1LL << 3);	  //中毒
 constexpr qint64 BC_FLG_PARALYSIS = (1LL << 4); //麻痹
 constexpr qint64 BC_FLG_SLEEP = (1LL << 5);  //昏睡
 constexpr qint64 BC_FLG_STONE = (1LL << 6);	  //石化
 constexpr qint64 BC_FLG_DRUNK = (1LL << 7);  //酒醉
-constexpr qint64 BC_FLG_CONFUSION = (1LL << 8); //混乱
-constexpr qint64 BC_FLG_HIDE = (1LL << 9);	  //是否隐藏，地球一周
-constexpr qint64 BC_FLG_REVERSE = (1LL << 10);  //反转
-constexpr qint64 BC_FLG_WEAKEN = (1LL << 11);  //虚弱
-constexpr qint64 BC_FLG_DEEPPOISON = (1LL << 12);  //劇毒
-constexpr qint64 BC_FLG_BARRIER = (1LL << 13);  //魔障
-constexpr qint64 BC_FLG_NOCAST = (1LL << 14);  //沉默
-constexpr qint64 BC_FLG_SARS = (1LL << 15);  //毒煞
-constexpr qint64 BC_FLG_DIZZY = (1LL << 16);  //眩暈
-constexpr qint64 BC_FLG_ENTWINE = (1LL << 17);  //树根缠绕
-constexpr qint64 BC_FLG_DRAGNET = (1LL << 18);  //天罗地网
-constexpr qint64 BC_FLG_ICECRACK = (1LL << 19);  //冰爆术
-constexpr qint64 BC_FLG_OBLIVION = (1LL << 20);  //遗忘
-constexpr qint64 BC_FLG_ICEARROW = (1LL << 21);  //冰箭
-constexpr qint64 BC_FLG_BLOODWORMS = (1LL << 22);  //嗜血蛊
-constexpr qint64 BC_FLG_SIGN = (1LL << 23);  //一针见血
-constexpr qint64 BC_FLG_CARY = (1LL << 24);  //挑拨
-constexpr qint64 BC_FLG_F_ENCLOSE = (1LL << 25);  //火附体
-constexpr qint64 BC_FLG_I_ENCLOSE = (1LL << 26);  //冰附体
-constexpr qint64 BC_FLG_T_ENCLOSE = (1LL << 27);  //雷附体
-constexpr qint64 BC_FLG_WATER = (1LL << 28);  //水附体
-constexpr qint64 BC_FLG_FEAR = (1LL << 29);  //恐惧
-constexpr qint64 BC_FLG_CHANGE = (1LL << 30);  //雷尔变身
+constexpr qint64 BC_FLG_CONFUSION = (1LL << 8); //混亂
+constexpr qint64 BC_FLG_HIDE = (1LL << 9);	  //是否隱藏，地球一周
+constexpr qint64 BC_FLG_REVERSE = (1LL << 10);  //反轉
+constexpr qint64 BC_FLG_WEAKEN = (1 << 11); // 虛弱
+constexpr qint64 BC_FLG_DEEPPOISON = (1LL << 12); // 劇毒
+constexpr qint64 BC_FLG_BARRIER = (1LL << 13); // 魔障
+constexpr qint64 BC_FLG_NOCAST = (1LL << 14); // 沈默
+constexpr qint64 BC_FLG_SARS = (1LL << 15); // 毒煞蔓延
+constexpr qint64 BC_FLG_DIZZY = (1LL << 16);	// 暈眩
+constexpr qint64 BC_FLG_ENTWINE = (1LL << 17);	// 樹根纏繞
+constexpr qint64 BC_FLG_DRAGNET = (1LL << 18);	// 天羅地網
+constexpr qint64 BC_FLG_ICECRACK = (1LL << 19);	// 冰爆術
+constexpr qint64 BC_FLG_OBLIVION = (1LL << 20);	// 遺忘
+constexpr qint64 BC_FLG_ICEARROW = (1LL << 21);	// 冰箭
+constexpr qint64 BC_FLG_BLOODWORMS = (1LL << 22);	// 嗜血蠱
+constexpr qint64 BC_FLG_SIGN = (1LL << 23);	// 一針見血
+constexpr qint64 BC_FLG_CARY = (1LL << 24); // 挑撥
+constexpr qint64 BC_FLG_F_ENCLOSE = (1LL << 25); // 火附體
+constexpr qint64 BC_FLG_I_ENCLOSE = (1LL << 26); // 冰附體
+constexpr qint64 BC_FLG_T_ENCLOSE = (1LL << 27); // 雷附體
+constexpr qint64 BC_FLG_WATER = (1LL << 28); // 水附體
+constexpr qint64 BC_FLG_FEAR = (1LL << 29); // 恐懼
+constexpr qint64 BC_FLG_CHANGE = (1LL << 30); // 雷爾變身
 
 
 inline constexpr bool hasBadStatus(quint64 status)
 {
-	//BC_FLG_POISON | BC_FLG_PARALYSIS | BC_FLG_SLEEP | BC_FLG_STONE | BC_FLG_DRUNK | BC_FLG_CONFUSION;
-	if (status & BC_FLG_POISON)
+	if (status & BC_FLG_DEAD) //死亡
 		return true;
-	if (status & BC_FLG_PARALYSIS)
+	if (status & BC_FLG_HIDE) // 是否隱藏，地球一周
 		return true;
-	if (status & BC_FLG_SLEEP)
+	if (status & BC_FLG_POISON) // 中毒
 		return true;
-	if (status & BC_FLG_STONE)
+	if (status & BC_FLG_PARALYSIS) // 麻痹
 		return true;
-	if (status & BC_FLG_DRUNK)
+	if (status & BC_FLG_SLEEP) // 昏睡
 		return true;
-	if (status & BC_FLG_CONFUSION)
+	if (status & BC_FLG_STONE) // 石化
 		return true;
-
-	if (status & BC_FLG_WEAKEN)
+	if (status & BC_FLG_DRUNK) // 酒醉
 		return true;
-	if (status & BC_FLG_DEEPPOISON)
+	if (status & BC_FLG_CONFUSION) // 混亂
 		return true;
-	if (status & BC_FLG_BARRIER)
+	if (status & BC_FLG_WEAKEN) // 虛弱
 		return true;
-	if (status & BC_FLG_NOCAST)
+	if (status & BC_FLG_DEEPPOISON) // 劇毒
 		return true;
-	if (status & BC_FLG_SARS)
+	if (status & BC_FLG_BARRIER) // 魔障
 		return true;
-	if (status & BC_FLG_DIZZY)
+	if (status & BC_FLG_NOCAST) // 沈默
 		return true;
-	if (status & BC_FLG_ENTWINE)
+	if (status & BC_FLG_SARS) // 毒煞蔓延
 		return true;
-	if (status & BC_FLG_DRAGNET)
+	if (status & BC_FLG_DIZZY)	// 暈眩
 		return true;
-	if (status & BC_FLG_ICECRACK)
+	if (status & BC_FLG_ENTWINE)	// 樹根纏繞
 		return true;
-	if (status & BC_FLG_OBLIVION)
+	if (status & BC_FLG_DRAGNET)	// 天羅地網
 		return true;
-	if (status & BC_FLG_ICEARROW)
+	if (status & BC_FLG_ICECRACK)	// 冰爆術
 		return true;
-	if (status & BC_FLG_BLOODWORMS)
+	if (status & BC_FLG_OBLIVION)	// 遺忘
 		return true;
-	if (status & BC_FLG_SIGN)
+	if (status & BC_FLG_ICEARROW)	// 冰箭
 		return true;
-	if (status & BC_FLG_CARY)
+	if (status & BC_FLG_BLOODWORMS)	// 嗜血蠱
 		return true;
-	if (status & BC_FLG_F_ENCLOSE)
+	if (status & BC_FLG_SIGN)	// 一針見血
 		return true;
-	if (status & BC_FLG_I_ENCLOSE)
+	if (status & BC_FLG_CARY) // 挑撥
 		return true;
-	if (status & BC_FLG_T_ENCLOSE)
+	//if (status & BC_FLG_F_ENCLOSE) // 火附體
+	//	return true;
+	//if (status & BC_FLG_I_ENCLOSE) // 冰附體
+	//	return true;
+	//if (status & BC_FLG_T_ENCLOSE) // 雷附體
+	//	return true;
+	//if (status & BC_FLG_WATER) // 水附體
+	//	return true;
+	if (status & BC_FLG_FEAR) // 恐懼
 		return true;
-	if (status & BC_FLG_WATER)
-		return true;
-	if (status & BC_FLG_FEAR)
-		return true;
-	if (status & BC_FLG_CHANGE)
-		return true;
-
+	//if (status & BC_FLG_CHANGE) // 雷爾變身
+	//	return true;
 	return false;
 }
 
 inline constexpr bool hasUnMoveableStatue(quint64 status)
 {
-	if (status & BC_FLG_DEAD)
+	if (status & BC_FLG_DEAD) //死亡
 		return true;
-	if (status & BC_FLG_STONE)
+	if (status & BC_FLG_STONE) // 石化
 		return true;
-	if (status & BC_FLG_SLEEP)
+	if (status & BC_FLG_SLEEP) // 昏睡
 		return true;
-	if (status & BC_FLG_PARALYSIS)
+	if (status & BC_FLG_PARALYSIS) // 麻痹
 		return true;
-	if (status & BC_FLG_HIDE)
+	if (status & BC_FLG_HIDE) // 是否隱藏，地球一周
+		return true;
+	if (status & BC_FLG_DIZZY) // 暈眩
 		return true;
 	if (status & BC_FLG_DIZZY)
 		return true;
@@ -1037,7 +1049,7 @@ enum TalkMode
 #ifdef _WIN64
 #pragma pack(8)
 #else
-#pragma pack(8) 
+#pragma pack(4) 
 #endif
 
 #if 0

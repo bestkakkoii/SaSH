@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
+  <defs>
+    <style>.canvas{fill: none; opacity: 0;}.light-red-10{fill: #c50b17; opacity: 0.1;}.light-red{fill: #c50b17; opacity: 1;}.cls-1{opacity:0.75;}</style>
+  </defs>
+  <title>IconLightBreakpointDisabled</title>
+  <g id="canvas" class="canvas">
+    <path class="canvas" d="M16,16H0V0H16Z" />
+  </g>
+  <g id="level-1">
+    <g class="cls-1">
+      <path class="light-red-10" d="M1.5,8A6.5,6.5,0,1,1,8,14.5,6.5,6.5,0,0,1,1.5,8Z" />
+      <path class="light-red" d="M8,15a7,7,0,1,1,7-7A7.008,7.008,0,0,1,8,15ZM8,2a6,6,0,1,0,6,6A6.006,6.006,0,0,0,8,2Z" />
+    </g>
+  </g>
+</svg>

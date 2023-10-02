@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
+  <defs>
+    <style>.canvas{fill: none; opacity: 0;}.light-defaultgrey-10{fill: #212121; opacity: 0.1;}.light-defaultgrey{fill: #996f00; opacity: 1;}</style>
+  </defs>
+  <title>IconLightSmartTag</title>
+  <g id="canvas" class="canvas">
+    <path class="canvas" d="M0,16V0H16V16Z" />
+  </g>
+  <g id="level-1">
+    <path class="light-defaultgrey-10" d="M1.479,8.864,7.843,2.5H13.5V8.157L7.136,14.521Z" />
+    <path class="light-defaultgrey" d="M14,8.157V2.5L13.5,2H7.843l-.353.146L1.126,8.51v.707l5.657,5.657H7.49L13.854,8.51ZM7.136,13.814l-2.25-2.251-.449-.449L2.186,8.864l2.3-2.3L8.05,3H13V7.95L9.432,11.518Z" />
+    <path class="light-defaultgrey" d="M10.848,5.152a.75.75,0,1,1,1.061,0A.752.752,0,0,1,10.848,5.152Z" />
+  </g>
+</svg>

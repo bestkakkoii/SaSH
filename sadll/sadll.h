@@ -90,6 +90,7 @@ public://hook
 	void __cdecl New_lssproto_WN_send(int fd, int x, int y, int dialogid, int unitid, int select, const char* data);
 	void __cdecl New_lssproto_TK_send(int fd, int x, int y, const char* message, int color, int area);
 	void __cdecl New_lssproto_W2_send(int fd, int x, int y, const char* dir);
+	void __cdecl New_CreateDialog(int unk, int type, int button, int unitid, int dialogid, const char* data);
 
 public:
 	//setwindowtexta
@@ -155,6 +156,9 @@ public:
 
 	using pfnLssproto_W2_send = void(__cdecl*)(int, int, int, const char*);
 	pfnLssproto_W2_send pLssproto_W2_send = nullptr;
+
+	using pfnCreateDialog = void(_cdecl*)(int, int type, int button, int unitid, int dialogid, const char* data);
+	pfnCreateDialog pCreateDialog = nullptr;
 
 public://g-var
 	int* g_sockfd = nullptr;

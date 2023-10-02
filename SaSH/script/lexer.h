@@ -27,6 +27,12 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 constexpr const char* kFuzzyPrefix = "?";
 constexpr qint64 kMaxLuaTableDepth = 5ll;
 
+enum FTK
+{
+	FTK_EOF,
+	FTK_CONTINUE,
+};
+
 //必須使用此枚舉名稱 RESERVE 請不要刪除我的任何註釋
 enum RESERVE
 {
@@ -278,7 +284,7 @@ private:
 
 	RESERVE getTokenType(qint64& pos, RESERVE previous, QString& str, const QString raw) const;
 
-	bool getStringCommandToken(QString& src, const QString& delim, QString& out) const;
+	FTK getStringToken(QString& src, const QString& delim, QString& out) const;
 
 	void checkPairs(const QString& beginstr, const QString& endstr, const QHash<qint64, TokenMap>& stokenmaps);
 
@@ -286,94 +292,12 @@ private:
 
 	void checkFunctionPairs(const QHash<qint64, TokenMap>& tokenmaps);
 
-#ifdef TEST_LEXER
-	// new lexer build by 09052023
-public:
-
-
-private:
-
-	class Reader
-	{
-	public:
-		Reader() = default;
-		Reader(const QString& str) : nowToken_(str), nowTokenLength_(str.length()) {}
-		inline void resetIndex(qint64 index = 0ll) { nowIndex_ = index; }
-		inline void resetToken(const QString& str) { nowToken_ = str; nowTokenLength_ = str.length(); }
-		inline void movenext(qint64 step = 1) { nowIndex_ += step; }
-		inline void moveprev(qint64 step = 1) { nowIndex_ -= step; }
-		QChar next();
-		QChar peek();
-		QChar prev();
-		bool checkNext(QChar ch);
-		bool checkPrev(QChar ch);
-
-		void store(QChar ch) { storedString_.append(ch); }
-		qint64 storedLength() const { return storedString_.length(); }
-		bool isStoredEmpty() const { return storedString_.simplified().isEmpty(); }
-		void takeStored()
-		{
-			const QString ret = storedString_;
-
-			if (!ret.isEmpty())
-				list_.append(ret);
-
-			storedString_.clear();
-		}
-
-		void moveToNextLine() { ++currentLine_; }
-
-		QStringList getList() const { return list_; }
-
-		void clear()
-		{
-			nowIndex_ = 0;
-			nowToken_ = "";
-			nowTokenLength_ = 0;
-			storedString_ = "";
-			list_.clear();
-			currentLine_ = 0ll;
-		}
-	private:
-		qint64 nowIndex_ = 0;
-
-		QString nowToken_ = "";
-
-		qint64 nowTokenLength_ = 0;
-
-		QString storedString_ = "";
-
-		QStringList list_;
-
-		qint64 currentLine_ = 0ll;
-	};
-
-	RESERVE getTokenType(qint64 currentPos, RESERVE previous, const QString& token);
-
-	QString getLuaTableString(const sol::table& t, int& depth);
-	sol::object getLuaTableFromString(const QString& str);
-
-	bool splitToStringToken(QString src, QStringList* pTokenStringList);
-	bool checkOperator(RESERVE previous, QString& tokenStr, RESERVE* pReserve);
-	Token getNextToken(RESERVE previous, QStringList& refTokenStringList);
-#endif
-
 	inline void clear()
 	{
 		functionNodeList_.clear();
 		forNodeList_.clear();
 		labelList_.clear();
 		tokens_.clear();
-
-#ifdef TEST_LEXER
-		beginFunctionDeclaration_ = false;
-		beginFunctionNameDeclaration_ = false;
-		beginFunctionArgsDeclaration_ = false;
-		functionArgList_.clear();
-
-		beginForArgs_ = false;
-		forArgList_.clear();
-#endif
 	}
 
 private:
@@ -381,6 +305,8 @@ private:
 
 	LuaNode luaNode_ = {};
 	bool beginLuaCode_ = false;
+
+	bool beginCommentChunk_ = false;
 
 	QList<LuaNode> luaNodeList_;
 	QList<FunctionNode> functionNodeList_;
