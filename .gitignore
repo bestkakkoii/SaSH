@@ -73,3 +73,5 @@ compile_commands.json
 /.vscode
 /build
 /SaSH/image/desktop.ini
+/SaSH/SaSH.vcxproj.user
+/SaSH/SaSH.vcxproj.user
