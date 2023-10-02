@@ -186,38 +186,44 @@ ScriptEditor::ScriptEditor(qint64 index, QWidget* parent)
 
 void ScriptEditor::initStaticLabel()
 {
-	lineLable_ = new FastLabel(tr("row:%1").arg(1), QColor("#FFFFFF"), QColor(64, 53, 130), this);
+	static bool init = false;
+	if (init)
+		return;
+
+	init = true;
+
+	lineLable_ = new FastLabel(tr("row:%1").arg(1), QColor("#FFFFFF"), QColor(64, 53, 130), ui.statusBar);
 	Q_ASSERT(lineLable_ != nullptr);
 	lineLable_->setFixedWidth(60);
 	lineLable_->setTextColor(QColor(255, 255, 255));
-	sizeLabel_ = new FastLabel("| " + tr("size:%1").arg(0), QColor("#FFFFFF"), QColor(64, 53, 130), this);
+	sizeLabel_ = new FastLabel("| " + tr("size:%1").arg(0), QColor("#FFFFFF"), QColor(64, 53, 130), ui.statusBar);
 	Q_ASSERT(sizeLabel_ != nullptr);
 	sizeLabel_->setFixedWidth(60);
 	sizeLabel_->setTextColor(QColor(255, 255, 255));
-	indexLabel_ = new FastLabel("| " + tr("index:%1").arg(1), QColor("#FFFFFF"), QColor(64, 53, 130), this);
+	indexLabel_ = new FastLabel("| " + tr("index:%1").arg(1), QColor("#FFFFFF"), QColor(64, 53, 130), ui.statusBar);
 	Q_ASSERT(indexLabel_ != nullptr);
 	indexLabel_->setFixedWidth(60);
 	indexLabel_->setTextColor(QColor(255, 255, 255));
 
 	const QsciScintilla::EolMode mode = ui.widget->eolMode();
 	const QString modeStr(mode == QsciScintilla::EolWindows ? "CRLF" : mode == QsciScintilla::EolUnix ? "  LF" : "  CR");
-	eolLabel_ = new FastLabel(QString("| %1").arg(modeStr), QColor("#FFFFFF"), QColor(64, 53, 130), this);
+	eolLabel_ = new FastLabel(QString("| %1").arg(modeStr), QColor("#FFFFFF"), QColor(64, 53, 130), ui.statusBar);
 	Q_ASSERT(eolLabel_ != nullptr);
 	eolLabel_->setFixedWidth(50);
 	eolLabel_->setTextColor(QColor(255, 255, 255));
 
 	usageLabel_ = new FastLabel(QString(tr("Usage: cpu: %1% | memory: %2MB / %3MB"))
-		.arg(0).arg(0).arg(0), QColor("#FFFFFF"), QColor(64, 53, 130), this);
+		.arg(0).arg(0).arg(0), QColor("#FFFFFF"), QColor(64, 53, 130), ui.statusBar);
 	Q_ASSERT(usageLabel_ != nullptr);
 	usageLabel_->setFixedWidth(350);
 	usageLabel_->setTextColor(QColor(255, 255, 255));
 
-	QLabel* spaceLabeRight = new QLabel("", this);
+	QLabel* spaceLabeRight = new QLabel("", ui.statusBar);
 	Q_ASSERT(spaceLabeRight != nullptr);
 	spaceLabeRight->setFrameStyle(QFrame::NoFrame);
 	spaceLabeRight->setFixedWidth(10);
 
-	QLabel* spaceLabelMiddle = new QLabel("", this);
+	QLabel* spaceLabelMiddle = new QLabel("", ui.statusBar);
 	Q_ASSERT(spaceLabelMiddle != nullptr);
 	spaceLabelMiddle->setFrameStyle(QFrame::NoFrame);
 	spaceLabelMiddle->setFixedWidth(100);
@@ -271,13 +277,13 @@ void ScriptEditor::initStaticLabel()
 
 void ScriptEditor::createSpeedSpinBox()
 {
-	pSpeedDescLabel_ = new QLabel(tr("Script speed:"), this);
+	pSpeedDescLabel_ = new QLabel(tr("Script speed:"), ui.mainToolBar);
 	Q_ASSERT(pSpeedDescLabel_ != nullptr);
 	pSpeedDescLabel_->setAttribute(Qt::WA_StyledBackground);
-	pSpeedSpinBox->setStyleSheet("QLabel {color: #FAFAFA; font-size: 12pt;}");
 
-	pSpeedSpinBox = new QSpinBox(this);
+	pSpeedSpinBox = new QSpinBox(ui.mainToolBar);
 	Q_ASSERT(pSpeedSpinBox != nullptr);
+	pSpeedSpinBox->setStyleSheet("QLabel {color: #FAFAFA; font-size: 12pt;}");
 
 	qint64 currentIndex = getIndex();
 	pSpeedSpinBox->setRange(0, 10000);
@@ -1965,8 +1971,6 @@ void ScriptEditor::onScriptStartMode()
 
 	ui.mainToolBar->addAction(ui.actionDebug);
 
-	ui.mainToolBar->addSeparator();
-
 	createSpeedSpinBox();
 
 	//禁止編輯
@@ -2031,8 +2035,6 @@ void ScriptEditor::onScriptStopMode()
 
 	ui.mainToolBar->addAction(ui.actionDebug);
 
-	ui.mainToolBar->addSeparator();
-
 	createSpeedSpinBox();
 
 	ui.widget->setReadOnly(false);
@@ -2096,8 +2098,6 @@ void ScriptEditor::onScriptBreakMode()
 
 	ui.mainToolBar->addAction(ui.actionDebug);
 
-	ui.mainToolBar->addSeparator();
-
 	createSpeedSpinBox();
 
 	//禁止編輯
@@ -2154,8 +2154,6 @@ void ScriptEditor::onScriptPauseMode()
 	ui.mainToolBar->addSeparator();
 
 	ui.mainToolBar->addAction(ui.actionDebug);
-
-	ui.mainToolBar->addSeparator();
 
 	createSpeedSpinBox();
 
