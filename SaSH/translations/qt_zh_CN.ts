@@ -443,11 +443,11 @@
     </message>
     <message>
         <source>pet purg</source>
-        <translation>宠物净化</translation>
+        <translation>宠物淨化</translation>
     </message>
     <message>
         <source>char purg</source>
-        <translation>精灵净化</translation>
+        <translation>精灵淨化</translation>
     </message>
 </context>
 <context>
@@ -3600,7 +3600,7 @@ No new version available. Do you still want to update?</source>
     </message>
     <message>
         <source>Script speed:</source>
-        <translation type="unfinished"></translation>
+        <translation>脚本速度:</translation>
     </message>
 </context>
 <context>
@@ -4810,7 +4810,7 @@ No new version available. Do you still want to update?</source>
     </message>
     <message>
         <source>pet purging target</source>
-        <translation>宠物净化对象</translation>
+        <translation>宠物淨化对象</translation>
     </message>
     <message>
         <source>unknown</source>
@@ -4898,7 +4898,7 @@ No new version available. Do you still want to update?</source>
     </message>
     <message>
         <source>char purging target</source>
-        <translation>精灵净化对象</translation>
+        <translation>精灵淨化对象</translation>
     </message>
 </context>
 <context>

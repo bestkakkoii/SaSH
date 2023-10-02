@@ -3600,7 +3600,7 @@ No new version available. Do you still want to update?</source>
     </message>
     <message>
         <source>Script speed:</source>
-        <translation type="unfinished"></translation>
+        <translation>腳本速度:</translation>
     </message>
 </context>
 <context>
