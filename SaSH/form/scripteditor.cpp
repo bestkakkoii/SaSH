@@ -342,6 +342,8 @@ void ScriptEditor::createSpeedSpinBox()
 ScriptEditor::~ScriptEditor()
 {
 	qDebug() << "~ScriptEditor";
+	Injector& injector = Injector::getInstance(getIndex());
+	injector.isScriptEditorOpened.store(false, std::memory_order_release);
 }
 
 void ScriptEditor::showEvent(QShowEvent* e)
@@ -1898,11 +1900,11 @@ void ScriptEditor::onActionTriggered()
 
 				emit signalDispatcher.reloadScriptList();
 				break;
-				}
-			++num;
 			}
-
+			++num;
 		}
+
+	}
 	else if (name == "actionSaveEncode")
 	{
 		onEncryptSave();
@@ -1915,7 +1917,7 @@ void ScriptEditor::onActionTriggered()
 	{
 		injector.isScriptDebugModeEnable.store(pAction->isChecked(), std::memory_order_release);
 	}
-	}
+}
 
 void ScriptEditor::onScriptStartMode()
 {
