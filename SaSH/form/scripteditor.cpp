@@ -186,12 +186,6 @@ ScriptEditor::ScriptEditor(qint64 index, QWidget* parent)
 
 void ScriptEditor::initStaticLabel()
 {
-	static bool init = false;
-	if (init)
-		return;
-
-	init = true;
-
 	lineLable_ = new FastLabel(tr("row:%1").arg(1), QColor("#FFFFFF"), QColor(64, 53, 130), ui.statusBar);
 	Q_ASSERT(lineLable_ != nullptr);
 	lineLable_->setFixedWidth(60);
@@ -1904,11 +1898,11 @@ void ScriptEditor::onActionTriggered()
 
 				emit signalDispatcher.reloadScriptList();
 				break;
-			}
+				}
 			++num;
-		}
+			}
 
-	}
+		}
 	else if (name == "actionSaveEncode")
 	{
 		onEncryptSave();
@@ -1921,7 +1915,7 @@ void ScriptEditor::onActionTriggered()
 	{
 		injector.isScriptDebugModeEnable.store(pAction->isChecked(), std::memory_order_release);
 	}
-}
+	}
 
 void ScriptEditor::onScriptStartMode()
 {
