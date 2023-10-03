@@ -125,7 +125,7 @@ void Lssproto::lssproto_PS_send(int havepetindex, int havepetskill, int toindex,
 }
 
 //存取家族個人銀行封包 家族個人"B|G|%d" 正數存 負數取  家族共同 "B|T|%d"
-//設置騎乘 "R|P|寵物編號0-4"，"R|P|-1"取消騎乘
+//設置騎乘 "R|P|寵物編號0-4"，"R|P|-1"取消騎乘, S|P取聲望資訊
 void Lssproto::lssproto_FM_send(char* data)
 {
 	autil_->util_Send(LSSPROTO_FM_SEND, data);
@@ -257,6 +257,16 @@ void Lssproto::lssproto_B_send(const QString& command)
 {
 	std::string cmd = util::fromUnicode(command.toUpper());
 	autil_->util_Send(LSSPROTO_B_SEND, const_cast<char*>(cmd.c_str()));
+}
+
+void Lssproto::lssproto_MA_send(const QPoint& pos, int nMind)
+{
+	autil_->util_Send(LSSPROTO_MA_SEND, pos.x(), pos.y(), nMind);
+}
+
+void Lssproto::lssproto_S2_send(char* data)
+{
+	autil_->util_Send(LSSPROTO_S2_SEND, data);
 }
 
 //創建人物

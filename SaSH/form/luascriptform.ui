@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>285</width>
-    <height>229</height>
+    <height>270</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -177,14 +177,14 @@
    <container>1</container>
   </customwidget>
   <customwidget>
-   <class>TreeWidget</class>
-   <extends>QTreeWidget</extends>
-   <header location="global">treewidget.h</header>
-  </customwidget>
-  <customwidget>
    <class>TableWidget</class>
    <extends>QTableWidget</extends>
    <header location="global">tablewidget.h</header>
+  </customwidget>
+  <customwidget>
+   <class>TreeWidget</class>
+   <extends>QTreeWidget</extends>
+   <header location="global">treewidget.h</header>
   </customwidget>
  </customwidgets>
  <resources/>

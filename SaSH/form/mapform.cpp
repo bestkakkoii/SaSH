@@ -35,47 +35,6 @@ MapForm::MapForm(qint64 index, QWidget* parent)
 	qRegisterMetaType<QVariant>("QVariant");
 	qRegisterMetaType<QVariant>("QVariant&");
 
-	auto setTableWidget = [](QTableWidget* tableWidget)->void
-	{
-		//tablewidget set single selection
-		tableWidget->setSelectionMode(QAbstractItemView::SingleSelection);
-		//tablewidget set selection behavior
-		tableWidget->setSelectionBehavior(QAbstractItemView::SelectRows);
-		//set auto resize to form size
-		tableWidget->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
-		tableWidget->verticalHeader()->setSectionResizeMode(QHeaderView::Fixed);
-
-		//tableWidget->setStyleSheet(R"(
-		//QTableWidget { font-size:11px; } 
-		//	QTableView::item:selected { background-color: black; color: white;
-		//})");
-		tableWidget->verticalHeader()->setDefaultSectionSize(11);
-		tableWidget->horizontalHeader()->setStretchLastSection(true);
-		tableWidget->horizontalHeader()->setHighlightSections(false);
-		tableWidget->verticalHeader()->setHighlightSections(false);
-		tableWidget->horizontalHeader()->setDefaultAlignment(Qt::AlignLeft);
-		tableWidget->verticalHeader()->setDefaultAlignment(Qt::AlignLeft);
-		constexpr qint64 max_row = 10;
-		for (qint64 row = 0; row < max_row; ++row)
-		{
-			tableWidget->insertRow(row);
-		}
-
-		qint64 rowCount = tableWidget->rowCount();
-		qint64 columnCount = tableWidget->columnCount();
-		for (qint64 row = 0; row < rowCount; ++row)
-		{
-			for (qint64 column = 0; column < columnCount; ++column)
-			{
-				QTableWidgetItem* item = new QTableWidgetItem("");
-				if (item)
-					tableWidget->setItem(row, column, item);
-			}
-		}
-	};
-
-	setTableWidget(ui.tableWidget_map);
-
 	QList<PushButton*> buttonList = util::findWidgets<PushButton>(this);
 	for (auto& button : buttonList)
 	{
@@ -126,7 +85,10 @@ void MapForm::onButtonClicked()
 			return;
 
 		if (!interpreter_.isNull() && interpreter_->isRunning())
+		{
+			interpreter_->stop();
 			return;
+		}
 
 		interpreter_.reset(new Interpreter(currentIndex));
 		connect(interpreter_.data(), &Interpreter::finished, this, &MapForm::onScriptFinished);
@@ -220,7 +182,7 @@ void MapForm::onUpdateNpcList(qint64 floor)
 	resizeTableWidgetRow(size);
 	for (qint64 i = 0; i < size; ++i)
 	{
-		util::MapData d = datas.at(i);
+		util::MapData d = datas.value(i);
 		QPoint point(d.x, d.y);
 		npc_hash_.insert(i, point);
 
@@ -233,7 +195,6 @@ void MapForm::onUpdateNpcList(qint64 floor)
 
 void MapForm::onTableWidgetCellDoubleClicked(int row, int col)
 {
-
 	if (!npc_hash_.contains(row))
 		return;
 
@@ -246,7 +207,10 @@ void MapForm::onTableWidgetCellDoubleClicked(int row, int col)
 		return;
 
 	if (!interpreter_.isNull() && interpreter_->isRunning())
+	{
+		interpreter_->stop();
 		return;
+	}
 
 	interpreter_.reset(new Interpreter(currentIndex));
 	connect(interpreter_.data(), &Interpreter::finished, this, &MapForm::onScriptFinished);

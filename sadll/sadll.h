@@ -39,7 +39,7 @@ private:
 
 public:
 	virtual ~GameService() = default;
-	void initialize(__int64 index, HWND parentHwnd, unsigned short type, unsigned short port);
+	BOOL initialize(__int64 index, HWND parentHwnd, unsigned short type, unsigned short port);
 	void uninitialize();
 
 public:

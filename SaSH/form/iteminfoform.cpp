@@ -32,25 +32,14 @@ ItemInfoForm::ItemInfoForm(qint64 index, QWidget* parent)
 	qRegisterMetaType<QVariant>("QVariant");
 	qRegisterMetaType<QVariant>("QVariant&");
 
-	auto setTableWidget = [](QTableWidget* tableWidget)->void
-	{
-		qint64 rowCount = tableWidget->rowCount();
-		qint64 columnCount = tableWidget->columnCount();
-		for (qint64 row = 0; row < rowCount; ++row)
-		{
-			for (qint64 column = 0; column < columnCount; ++column)
-			{
-				QTableWidgetItem* item = new QTableWidgetItem("");
-				if (item == nullptr)
-					continue;
-
-				tableWidget->setItem(row, column, item);
-			}
-		}
-	};
-
-	setTableWidget(ui.tableWidget_equip);
-	setTableWidget(ui.tableWidget_item);
+	ui.tableWidget_equip->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
+	ui.tableWidget_item->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
+	ui.tableWidget_equip->verticalHeader()->setSectionResizeMode(QHeaderView::Stretch);
+	ui.tableWidget_item->verticalHeader()->setSectionResizeMode(QHeaderView::Stretch);
+	ui.tableWidget_equip->horizontalHeader()->setStretchLastSection(true);
+	ui.tableWidget_item->horizontalHeader()->setStretchLastSection(true);
+	ui.tableWidget_equip->verticalHeader()->setStretchLastSection(true);
+	ui.tableWidget_item->verticalHeader()->setStretchLastSection(true);
 
 	onResetControlTextLanguage();
 
@@ -109,10 +98,10 @@ void ItemInfoForm::onResetControlTextLanguage()
 			break;
 		QTableWidgetItem* item = ui.tableWidget_equip->item(row, 0);
 		if (item != nullptr)
-			item->setText(equipVHeaderList.at(row));
+			item->setText(equipVHeaderList.value(row));
 		else
 		{
-			item = new QTableWidgetItem(equipVHeaderList.at(row));
+			item = new QTableWidgetItem(equipVHeaderList.value(row));
 			if (item == nullptr)
 				continue;
 
@@ -171,7 +160,7 @@ void ItemInfoForm::updateItemInfoRowContents(QTableWidget* tableWidget, qint64 r
 		}
 
 		// 使用 QVariantList 中的數據
-		const QVariant rowData = list.at(col);
+		const QVariant rowData = list.value(col);
 		QString fillText = rowData.toString();
 
 		// 檢查指針

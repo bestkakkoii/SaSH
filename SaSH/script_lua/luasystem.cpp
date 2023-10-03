@@ -376,12 +376,12 @@ qint64 CLuaSystem::press(std::string sbuttonStr, qint64 unitid, qint64 dialogid,
 
 			for (qint64 i = 0; i < textList.size(); ++i)
 			{
-				if (!isExact && textList.at(i).toUpper().contains(newText))
+				if (!isExact && textList.value(i).toUpper().contains(newText))
 				{
 					row = i;
 					break;
 				}
-				else if (isExact && textList.at(i).toUpper() == newText)
+				else if (isExact && textList.value(i).toUpper() == newText)
 				{
 					row = i;
 					break;
@@ -607,6 +607,7 @@ qint64 CLuaSystem::set(std::string enumStr, sol::object p1, sol::object p2, sol:
 			{ "戰鬥寵一般", util::kBattlePetNormalActionTypeValue },
 
 			{ "攻擊延時", util::kBattleActionDelayValue },
+			{ "動作重發", util::kBattleResendDelayValue },
 #pragma endregion
 
 #pragma region zh_CN
@@ -732,6 +733,7 @@ qint64 CLuaSystem::set(std::string enumStr, sol::object p1, sol::object p2, sol:
 			{ "战斗宠一般", util::kBattlePetNormalActionTypeValue },
 
 			{ "攻击延时", util::kBattleActionDelayValue },
+			{ "动作重发", util::kBattleResendDelayValue },
 
 
 			{ "战斗回合目标", util::kBattleCharRoundActionTargetValue },
@@ -880,6 +882,7 @@ qint64 CLuaSystem::set(std::string enumStr, sol::object p1, sol::object p2, sol:
 	case util::kSpeedBoostValue://加速
 	case util::kScriptSpeedValue://腳本速度
 	case util::kBattleActionDelayValue://攻擊延時
+	case util::kBattleResendDelayValue://動作重發
 
 	case util::kBattleCharRoundActionTargetValue:
 	case util::kBattleCharCrossActionTargetValue:
@@ -978,13 +981,13 @@ qint64 CLuaSystem::set(std::string enumStr, sol::object p1, sol::object p2, sol:
 		{
 			injector.setEnableHash(util::kAutoBattleEnable, !ok);
 			if (ok && !injector.server.isNull())
-				injector.server->doBattleWork(true);//async
+				injector.server->doBattleWork(false);//async
 		}
 		else if (type == util::kAutoBattleEnable && ok)
 		{
 			injector.setEnableHash(util::kFastBattleEnable, !ok);
 			if (ok && !injector.server.isNull())
-				injector.server->doBattleWork(true);//async
+				injector.server->doBattleWork(false);//async
 		}
 		else if (type == util::kAutoWalkEnable && ok)
 			injector.setEnableHash(util::kFastAutoWalkEnable, !ok);

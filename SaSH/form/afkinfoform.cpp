@@ -28,30 +28,6 @@ AfkInfoForm::AfkInfoForm(qint64 index, QWidget* parent)
 {
 	ui.setupUi(this);
 
-	auto setTableWidget = [](QTableWidget* tableWidget)->void
-	{
-		constexpr qint64 max_row = 31;
-		for (qint64 row = 0; row < max_row; ++row)
-		{
-			tableWidget->insertRow(row);
-		}
-
-		qint64 rowCount = tableWidget->rowCount();
-		qint64 columnCount = tableWidget->columnCount();
-		QTableWidgetItem* item = nullptr;
-		for (qint64 row = 0; row < rowCount; ++row)
-		{
-			for (qint64 column = 0; column < columnCount; ++column)
-			{
-				item = new QTableWidgetItem("");
-				if (item != nullptr)
-					tableWidget->setItem(row, column, item);
-			}
-		}
-	};
-
-	setTableWidget(ui.tableWidget);
-
 	connect(ui.pushButton, &PushButton::clicked, this, &AfkInfoForm::onButtonClicked);
 
 	onResetControlTextLanguage();
@@ -94,6 +70,12 @@ void AfkInfoForm::onButtonClicked()
 void AfkInfoForm::updateTableText(qint64 row, qint64 col, const QString& text)
 {
 	QTableWidgetItem* item = ui.tableWidget->item(row, col);
+	if (row >= ui.tableWidget->rowCount())
+	{
+		for (qint64 i = ui.tableWidget->rowCount(); i <= row; ++i)
+			ui.tableWidget->insertRow(i);
+	}
+
 	if (item)
 	{
 		item->setText(text);
@@ -142,7 +124,7 @@ void AfkInfoForm::onResetControlTextLanguage()
 	{
 		if (row >= sectionList.size())
 			break;
-		updateTableText(row, 0, sectionList.at(row));
+		updateTableText(row, 0, sectionList.value(row));
 		ui.tableWidget->horizontalHeader()->resizeSection(row, 100);
 	}
 }

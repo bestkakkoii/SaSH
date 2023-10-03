@@ -181,8 +181,6 @@ public:
 
 	QString currentScriptFileName;//當前運行的主腳本完整路徑
 
-	QStack<QString> scriptFileNameStack;//腳本堆疊
-
 	QSharedPointer<StringListModel> scriptLogModel; //腳本日誌模型
 
 	QSharedPointer<StringListModel> chatLogModel; //聊天日誌模型
@@ -312,6 +310,7 @@ private:
 		{ util::kBattleCatchPetSkillValue, 0 },
 
 		{ util::kBattleActionDelayValue, 0 },
+		{ util::kBattleResendDelayValue, 3000},
 
 		{ util::kDropPetStrValue, 10 },
 		{ util::kDropPetDefValue, 10 },

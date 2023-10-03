@@ -215,7 +215,7 @@
     </message>
     <message>
         <source>heal</source>
-        <translation type="vanished">氣血設定</translation>
+        <translation>氣血設定</translation>
     </message>
     <message>
         <source>battle heal setting</source>
@@ -449,6 +449,10 @@
         <source>char purg</source>
         <translation>精靈淨化</translation>
     </message>
+    <message>
+        <source>resend command after no action more than</source>
+        <translation>動作重發 - 當未動作時間超過</translation>
+    </message>
 </context>
 <context>
     <name>AfkInfoForm</name>
@@ -527,11 +531,11 @@
     </message>
     <message>
         <source>top info</source>
-        <translation>上方資料</translation>
+        <translation type="vanished">上方資料</translation>
     </message>
     <message>
         <source>char/pet</source>
-        <translation>人物/戰寵</translation>
+        <translation type="vanished">人物/戰寵</translation>
     </message>
     <message>
         <source>ride</source>
@@ -543,11 +547,19 @@
     </message>
     <message>
         <source>bottom info</source>
-        <translation>下方資料</translation>
+        <translation type="vanished">下方資料</translation>
     </message>
     <message>
         <source>pet action:</source>
         <translation>戰鬥寵物動作:</translation>
+    </message>
+    <message>
+        <source>[top]char/pet</source>
+        <translation>[上方]人物/戰寵</translation>
+    </message>
+    <message>
+        <source>[bottom]char/pet</source>
+        <translation>[下方]人物/戰寵</translation>
     </message>
 </context>
 <context>
@@ -695,7 +707,7 @@
     </message>
     <message>
         <source>luck</source>
-        <translation>運氣</translation>
+        <translation type="vanished">運氣</translation>
     </message>
     <message>
         <source>stone:%1</source>
@@ -1027,19 +1039,19 @@
     </message>
     <message>
         <source>logout</source>
-        <translation>快速原登</translation>
+        <translation type="vanished">快速原登</translation>
     </message>
     <message>
         <source>Are you sure you want to logout now?</source>
-        <translation>您確定要登出嗎？</translation>
+        <translation type="vanished">您確定要登出嗎？</translation>
     </message>
     <message>
         <source>logback</source>
-        <translation>快速回點</translation>
+        <translation type="vanished">快速回點</translation>
     </message>
     <message>
         <source>Are you sure you want to logback now?</source>
-        <translation>您確定要回點嗎？</translation>
+        <translation type="vanished">您確定要回點嗎？</translation>
     </message>
     <message>
         <source>ServerList%1</source>
@@ -1914,6 +1926,10 @@ No new version available. Do you still want to update?</source>
     <message>
         <source>msg:%1</source>
         <translation>訊息:%1</translation>
+    </message>
+    <message>
+        <source>script running</source>
+        <translation>腳本運行中</translation>
     </message>
 </context>
 <context>
@@ -3389,6 +3405,38 @@ No new version available. Do you still want to update?</source>
         <source>scripteditor</source>
         <translation>腳本編輯器</translation>
     </message>
+    <message>
+        <source>unable to open file:&apos;%1&apos;</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Remote virtualmemory write failed</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>SendMessageTimeoutW failed</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Remote dll initialize failed</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>VirtualAllocEx failed</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>L:%1</source>
+        <translation>運:%1</translation>
+    </message>
+    <message>
+        <source>hidebar</source>
+        <translation>隱藏進度條</translation>
+    </message>
+    <message>
+        <source>hidecontrol</source>
+        <translation>隱藏控制台</translation>
+    </message>
 </context>
 <context>
     <name>QThumbnailFormClass</name>
@@ -3631,7 +3679,7 @@ No new version available. Do you still want to update?</source>
     </message>
     <message>
         <source>global</source>
-        <translation>全局</translation>
+        <translation type="vanished">全局</translation>
     </message>
     <message>
         <source>value</source>
@@ -3907,7 +3955,7 @@ No new version available. Do you still want to update?</source>
     </message>
     <message>
         <source>custom</source>
-        <translation>自訂</translation>
+        <translation type="vanished">自訂</translation>
     </message>
     <message>
         <source>EncryptSave</source>
@@ -3971,11 +4019,11 @@ No new version available. Do you still want to update?</source>
     </message>
     <message>
         <source>callstack</source>
-        <translation>調用棧</translation>
+        <translation type="vanished">調用棧</translation>
     </message>
     <message>
         <source>jmpstack</source>
-        <translation>跳轉棧</translation>
+        <translation type="vanished">跳轉棧</translation>
     </message>
     <message>
         <source>battle</source>

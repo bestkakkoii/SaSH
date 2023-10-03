@@ -200,15 +200,17 @@ public:
 		return FALSE;
 	}
 
-	inline void start()
+	inline BOOL start()
 	{
 		DWORD threadId;
 		completionThread_ = CreateThread(nullptr, 0u, completionThreadProc, reinterpret_cast<LPVOID>(this), 0UL, &threadId);
 		if (completionThread_ == nullptr)
 		{
 			std::ignore = recordWinLastError(__LINE__);
-			return;
+			return FALSE;
 		}
+
+		return TRUE;
 	}
 
 	inline BOOL asyncSend(const char* dataBuf, size_t dataLen)
@@ -348,15 +350,15 @@ private:
 #ifdef _DEBUG
 						std::cout << "Sent: " << std::to_string(numBytesTransferred) << " bytes" << std::endl;
 #endif
-					}
+				}
 					else
 					{
 						// Received data
 #ifdef _DEBUG
 						std::cout << "Received: " << std::to_string(numBytesTransferred) << " bytes" << std::endl;
 #endif
-					}
-				}
+			}
+		}
 				else
 				{
 					// I/O operation failed
@@ -367,8 +369,8 @@ private:
 				}
 
 				client->releaseOverlapped(overlapped);
-			}
-		}
+	}
+}
 
 		return 0UL;
 	}

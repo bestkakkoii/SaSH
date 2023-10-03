@@ -10,6 +10,7 @@ public:
 	explicit TableWidget(QWidget* parent = nullptr)
 		: QTableWidget(parent)
 	{
+		setFont(util::getFont());
 		setAttribute(Qt::WA_StyledBackground);
 		setStyleSheet(R"(
 			QTableWidget {
@@ -22,6 +23,20 @@ public:
 			}
 		)");
 
+		qint64 rowCount = this->rowCount();
+		qint64 columnCount = this->columnCount();
+		for (qint64 row = 0; row < rowCount; ++row)
+		{
+			for (qint64 column = 0; column < columnCount; ++column)
+			{
+				QTableWidgetItem* item = new QTableWidgetItem("");
+				if (item == nullptr)
+					continue;
+
+				setItem(row, column, item);
+			}
+		}
+
 		//tablewidget set single selection
 		setSelectionMode(QAbstractItemView::SingleSelection);
 		//tablewidget set selection behavior
@@ -30,12 +45,32 @@ public:
 		horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
 		verticalHeader()->setSectionResizeMode(QHeaderView::Fixed);
 
+		//scroll bar ok
+		setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
+		setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
+
 		verticalHeader()->setDefaultSectionSize(12);
-		horizontalHeader()->setStretchLastSection(true);
-		horizontalHeader()->setHighlightSections(false);
+		verticalHeader()->setMaximumSectionSize(12);
+		verticalHeader()->setStretchLastSection(false);
 		verticalHeader()->setHighlightSections(false);
-		horizontalHeader()->setDefaultAlignment(Qt::AlignLeft);
 		verticalHeader()->setDefaultAlignment(Qt::AlignLeft);
+
+		horizontalHeader()->setStretchLastSection(false);
+		horizontalHeader()->setHighlightSections(false);
+		horizontalHeader()->setDefaultAlignment(Qt::AlignLeft);
 	}
 	virtual ~TableWidget() = default;
+
+	void setItem(qint64 row, qint64 column, QTableWidgetItem* item)
+	{
+		if (item == nullptr)
+			return;
+
+		//height
+		QSize size = item->sizeHint();
+		size.setHeight(10);
+		item->setSizeHint(size);
+
+		QTableWidget::setItem(row, column, item);
+	}
 };

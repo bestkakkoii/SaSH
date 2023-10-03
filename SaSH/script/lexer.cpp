@@ -244,7 +244,7 @@ bool Lexer::tokenized(Lexer* pLexer, const QString& script)
 	for (qint64 i = 0; i < size; ++i)
 	{
 		TokenMap tk;
-		pLexer->tokenized(i, lines.at(i), &tk, &pLexer->labelList_);
+		pLexer->tokenized(i, lines.value(i), &tk, &pLexer->labelList_);
 		pLexer->tokens_.insert(i, tk);
 	}
 

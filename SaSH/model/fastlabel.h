@@ -25,8 +25,13 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include <QPixmap>
 #include <QResizeEvent>
 #include <QWidget>
-
-class FastLabel : public QOpenGLWidget, protected QOpenGLFunctions
+//#define OPENGL_LABEL
+class FastLabel
+#ifdef OPENGL_LABEL
+	: public QOpenGLWidget, protected QOpenGLFunctions
+#else
+	: public QWidget
+#endif
 {
 	Q_OBJECT;
 	Q_PROPERTY(QColor text_color WRITE setTextColor READ getTextColor);
@@ -45,12 +50,14 @@ public:
 	void setFlag(int flag = Qt::AlignLeft | Qt::AlignVCenter);
 	int getFlag();
 protected:
-	//void resizeEvent(QResizeEvent* event) override;
-	//void paintEvent(QPaintEvent*) override;
-
+#ifdef OPENGL_LABEL
 	virtual void initializeGL() override;
 	virtual void resizeGL(int w, int h) override;
 	virtual void paintGL() override;
+#else
+	virtual void resizeEvent(QResizeEvent* event) override;
+	virtual void paintEvent(QPaintEvent*) override;
+#endif
 
 private:
 	int flag_ = Qt::AlignLeft | Qt::AlignVCenter;

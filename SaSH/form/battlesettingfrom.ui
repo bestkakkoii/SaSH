@@ -73,7 +73,7 @@
     </widget>
    </item>
    <item>
-    <widget class="OpenGLWidget" name="widget" native="true">
+    <widget class="QWidget" name="widget" native="true">
      <property name="sizePolicy">
       <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
        <horstretch>0</horstretch>
@@ -314,12 +314,6 @@
    <class>CodeEditor</class>
    <extends>QWidget</extends>
    <header location="global">codeeditor.h</header>
-   <container>1</container>
-  </customwidget>
-  <customwidget>
-   <class>OpenGLWidget</class>
-   <extends>QWidget</extends>
-   <header location="global">openglwidget.h</header>
    <container>1</container>
   </customwidget>
   <customwidget>

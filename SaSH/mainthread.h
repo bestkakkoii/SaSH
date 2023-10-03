@@ -220,8 +220,11 @@ public:
 	}
 
 public:
-	qint64 allocateUniqueId(qint64 id = -1)
+	qint64 allocateUniqueId(qint64 id)
 	{
+		if (id < 0 || id >= SASH_MAX_THREAD)
+			id = -1;
+
 		QSystemSemaphore semaphore("UniqueIdManagerSystemSemaphore", 1, QSystemSemaphore::Open);
 		semaphore.acquire();
 
@@ -250,11 +253,11 @@ public:
 
 		do
 		{
-			qint64 ret = readSharedMemory(&allocatedIds);
-			if (ret == -1)
+			bool bret = readSharedMemory(&allocatedIds);
+			if (!bret)
 				id = -1;
 
-			if (id != -1)
+			if (id >= 0 && id < SASH_MAX_THREAD)
 			{
 				// 分配指定的ID
 				if (!allocatedIds.contains(id))
@@ -301,9 +304,8 @@ private:
 		_snprintf_s(reinterpret_cast<char*>(sharedMemory_.data()), sharedMemory_.size(), _TRUNCATE, "%s", from);
 	}
 
-	qint64 readSharedMemory(QSet<qint64>* pAllocatedIds)
+	bool readSharedMemory(QSet<qint64>* pAllocatedIds)
 	{
-		qint64 ret = -1;
 		do
 		{
 			if (!sharedMemory_.lock())
@@ -317,10 +319,7 @@ private:
 			if (data.isEmpty())
 				break;
 			else if (data.front() == '\0')
-			{
-				ret = 0;
 				break;
-			}
 
 			qint64 indexEof = data.indexOf('\0');
 			if (indexEof != -1)
@@ -358,10 +357,10 @@ private:
 				pAllocatedIds->insert(idValue.toInt());
 			}
 
-			ret = 1;
+			return true;
 		} while (false);
 
-		return ret;
+		return false;
 	}
 
 	void updateSharedMemory(const QSet<qint64>& allocatedIds)

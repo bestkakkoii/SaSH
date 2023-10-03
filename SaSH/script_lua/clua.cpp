@@ -376,7 +376,7 @@ void luadebug::getPackagePath(const QString base, QStringList* result)
 	QFileInfoList list = dir.entryInfoList();
 	for (qint64 i = 0; i < list.size(); ++i)
 	{
-		QFileInfo fileInfo = list.at(i);
+		QFileInfo fileInfo = list.value(i);
 		result->append(fileInfo.filePath());
 		getPackagePath(fileInfo.filePath(), result);
 	}

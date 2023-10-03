@@ -317,9 +317,9 @@ color: rgb(208, 208, 208);
          <item>
           <widget class="QTabWidget" name="tabWidget">
            <property name="currentIndex">
-            <number>1</number>
+            <number>0</number>
            </property>
-           <widget class="OpenGLWidget" name="tab">
+           <widget class="QWidget" name="tab">
             <attribute name="title">
              <string>frq talk</string>
             </attribute>
@@ -329,7 +329,7 @@ color: rgb(208, 208, 208);
              </item>
             </layout>
            </widget>
-           <widget class="OpenGLWidget" name="tab_2">
+           <widget class="QWidget" name="tab_2">
             <attribute name="title">
              <string>auto talk</string>
             </attribute>
@@ -390,11 +390,6 @@ color: rgb(208, 208, 208);
  <layoutdefault spacing="6" margin="11"/>
  <customwidgets>
   <customwidget>
-   <class>PushButton</class>
-   <extends>QPushButton</extends>
-   <header location="global">pushbutton.h</header>
-  </customwidget>
-  <customwidget>
    <class>ComboBox</class>
    <extends>QComboBox</extends>
    <header location="global">combobox.h</header>
@@ -405,10 +400,9 @@ color: rgb(208, 208, 208);
    <header location="global">listview.h</header>
   </customwidget>
   <customwidget>
-   <class>OpenGLWidget</class>
-   <extends>QWidget</extends>
-   <header location="global">openglwidget.h</header>
-   <container>1</container>
+   <class>PushButton</class>
+   <extends>QPushButton</extends>
+   <header location="global">pushbutton.h</header>
   </customwidget>
  </customwidgets>
  <resources/>

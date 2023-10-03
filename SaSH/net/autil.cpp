@@ -30,7 +30,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include <injector.h>
 
 
-//char MesgSlice[sizeof(char*) * SLICE_MAX][SLICE_SIZE];
+//char msgSlice_[sizeof(char*) * SLICE_MAX][SLICE_SIZE];
 
 Autil::Autil(qint64 index)
 	: Indexer(index)
@@ -40,72 +40,74 @@ Autil::Autil(qint64 index)
 // -------------------------------------------------------------------
 // Initialize utilities
 //
-void __stdcall Autil::util_Init(void)
+void Autil::util_Init(void)
 {
-	QMutexLocker locker(&MesgMutex);
-	constexpr auto size = sizeof(char*) * SLICE_MAX;
-	for (int i = 0; i < size; ++i)
-	{
-		MesgSlice[i] = emptyByteArray;
-	}
+	QMutexLocker locker(&msgMutex_);
+	//constexpr auto size = sizeof(char*) * SLICE_MAX * SLICE_SIZE;
+	msgSlice_.clear();
 	SliceCount = 0;
 }
 
-void __stdcall Autil::util_Release(void)
+void Autil::util_Release(void)
 {
-	QMutexLocker locker(&MesgMutex);
-	constexpr auto size = sizeof(char*) * SLICE_MAX;
-	for (int i = 0; i < size; ++i)
-	{
-		MesgSlice[i] = emptyByteArray;
-	}
+	QMutexLocker locker(&msgMutex_);
+	//constexpr auto size = sizeof(char*) * SLICE_MAX * SLICE_SIZE;
+	msgSlice_.clear();
 	SliceCount = 0;
 }
 
-void __stdcall Autil::util_Clear(void)
+void Autil::util_Clear(void)
 {
-	QMutexLocker locker(&MesgMutex);
-	constexpr auto size = sizeof(char*) * SLICE_MAX;
-	for (int i = 0; i < size; ++i)
-	{
-		MesgSlice[i] = emptyByteArray;
-	}
+	QMutexLocker locker(&msgMutex_);
+	//constexpr auto size = sizeof(char*) * SLICE_MAX * SLICE_SIZE;
+	msgSlice_.clear();
 	SliceCount = 0;
 }
 
 // -------------------------------------------------------------------
 // Split up a message into slices by spearator.  Store those slices
-// into a global buffer "char **MesgSlice"
+// into a global buffer "char **msgSlice_"
 //
 // arg: source=message string;  separator=message separator (1 byte)
 // ret: (none)
-bool __stdcall Autil::util_SplitMessage(char* source, size_t dstlen, char* separator)
+bool Autil::util_SplitMessage(const QByteArray& source, char separator)
 {
-	QMutexLocker locker(&MesgMutex);
-	if (source && separator)
-	{	// NULL input is invalid.
-		char* ptr = nullptr;
-		char* head = source;
+	QMutexLocker locker(&msgMutex_);
 
-		while ((ptr = reinterpret_cast<char*>(strstr(head, separator))) && (SliceCount <= SLICE_MAX))
-		{
-			ptr[0] = '\0';
-			if (strlen(head) < SLICE_SIZE)
-			{	// discard slices too large
-				//strcpy_s(MesgSlice[SliceCount], SLICE_SIZE - 1, head);
-				//_snprintf_s(MesgSlice[SliceCount].data(), SLICE_SIZE, _TRUNCATE, "%s", head);
-				MesgSlice[SliceCount] = head;
-				int count = SliceCount;
-				++count;
-				SliceCount = count;
-			}
+	QByteArrayList list = source.split(separator);
 
-			head = ptr + 1;
-		}
-
-		strcpy_s(source, dstlen, head);	// remove splited slices
+	qint64 count = 0;
+	for (const QByteArray& slice : list)
+	{
+		msgSlice_.insert(count, slice);
+		++count;
 	}
-	return true;
+	SliceCount = count;
+	return count > 0;
+
+	//if (separator)
+	//{	// NULL input is invalid.
+	//	char* ptr = nullptr;
+	//	char* head = source;
+
+	//	while ((ptr = reinterpret_cast<char*>(strstr(head, separator))) && (SliceCount <= SLICE_MAX))
+	//	{
+	//		ptr[0] = '\0';
+	//		if (strlen(head) < SLICE_SIZE)
+	//		{
+	//			// discard slices too large
+	//			_snprintf_s(msgSlice_[SliceCount], SLICE_SIZE, _TRUNCATE, "%s", head);
+	//			int count = SliceCount;
+	//			++count;
+	//			SliceCount = count;
+	//		}
+
+	//		head = ptr + 1;
+	//	}
+
+	//	strcpy_s(source, dstlen, head);	// remove splited slices
+	//}
+	//return true;
 }
 
 // -------------------------------------------------------------------
@@ -113,7 +115,7 @@ bool __stdcall Autil::util_SplitMessage(char* source, size_t dstlen, char* separ
 //
 // arg: dst=output  src=input
 // ret: (none)
-void __stdcall Autil::util_EncodeMessage(char* dst, size_t dstlen, char* src)
+void Autil::util_EncodeMessage(char* dst, size_t dstlen, char* src)
 {
 	std::mt19937 generator(std::random_device{}());
 	std::uniform_int_distribution<int> distribution(0, 99);
@@ -147,7 +149,7 @@ void __stdcall Autil::util_EncodeMessage(char* dst, size_t dstlen, char* src)
 //
 // arg: dst=output  src=input
 // ret: (none)
-void __stdcall Autil::util_DecodeMessage(char* dst, size_t dstlen, char* src)
+void Autil::util_DecodeMessage(QByteArray& dst, char* src)
 {
 	//  strcpy(dst, src);
 	//  util_xorstring(dst, src);
@@ -187,50 +189,73 @@ void __stdcall Autil::util_DecodeMessage(char* dst, size_t dstlen, char* src)
 	Autil::util_swapint(&rn, &t2, const_cast<char*>("3142"));
 #endif
 	//  printf("random number=%d\n", rn);
-	Autil::util_shrstring(dst, dstlen, tz.data() + INTCODESIZE, rn);
+	Autil::util_shrstring(dst, tz.data() + INTCODESIZE, rn);
 
 }
 
 // -------------------------------------------------------------------
-// Get a function information from MesgSlice.  A function is a complete
+// Get a function information from msgSlice_.  A function is a complete
 // and identifiable message received, beginned at DEFAULTFUNCBEGIN and
 // ended at DEFAULTFUNCEND.  This routine will return the function ID
 // (Action ID) and how many fields this function have.
 //
 // arg: func=return function ID    fieldcount=return fields of the function
 // ret: 1=success  0=failed (function not complete)
-qint64 __stdcall Autil::util_GetFunctionFromSlice(qint64* func, qint64* fieldcount, qint64 offest)
+qint64 Autil::util_GetFunctionFromSlice(qint64* func, qint64* fieldcount, qint64 offest)
 {
-	QMutexLocker locker(&MesgMutex);
-	//char t1[NETDATASIZE];
+	QMutexLocker locker(&msgMutex_);
 	QByteArray t1(NETDATASIZE, '\0');
-	//memset(t1, 0, sizeof(t1));
-	qint64 i = 0;
 
-	if (strcmp(MesgSlice[0], DEFAULTFUNCBEGIN) != 0)
+	// 从QMap中获取第一个元素来替代msgSlice_[0]
+	auto firstItem = msgSlice_.value(0);
+
+	if (firstItem != DEFAULTFUNCBEGIN)
 		util_DiscardMessage();
 
-	strcpy_s(t1.data(), NETDATASIZE, MesgSlice[1]);
+	// 将第二个元素复制到t1中
+	auto secondItem = msgSlice_.value(1);
 
-	// Robin adjust
-	//*func=atoi(t1);
-	*func = std::atoi(t1.data()) - offest;
-	for (i = 0; i < SLICE_MAX; ++i)
+	*func = secondItem.toLongLong() - offest;
+
+	// 在QMap中寻找DEFAULTFUNCEND
+	for (auto it = msgSlice_.begin(); it != msgSlice_.end(); ++it)
 	{
-		if (strcmp(MesgSlice[i], DEFAULTFUNCEND) == 0)
+		if (it.value() == DEFAULTFUNCEND)
 		{
-			*fieldcount = i - 2;	// - "&" - "#" - "func" 3 fields
+			*fieldcount = it.key() - 2;	// - "&" - "#" - "func" 3 fields
 			return 1;
 		}
 	}
 
 	return 0;	// failed: message not complete
+
+	//QByteArray t1(NETDATASIZE, '\0');
+	//qint64 i = 0;
+
+	//if (strcmp(msgSlice_[0], DEFAULTFUNCBEGIN) != 0)
+	//	util_DiscardMessage();
+
+	//strcpy_s(t1.data(), NETDATASIZE, msgSlice_[1]);
+
+	//// Robin adjust
+	////*func=atoi(t1);
+	//*func = std::atoi(t1.data()) - offest;
+	//for (i = 0; i < SLICE_MAX; ++i)
+	//{
+	//	if (strcmp(msgSlice_[i], DEFAULTFUNCEND) == 0)
+	//	{
+	//		*fieldcount = i - 2;	// - "&" - "#" - "func" 3 fields
+	//		return 1;
+	//	}
+	//}
+
+	//return 0;	// failed: message not complete
 }
 
 // -------------------------------------------------------------------
-// Discard a message from MesgSlice.
+// Discard a message from msgSlice_.
 //
-void __stdcall Autil::util_DiscardMessage(void)
+void Autil::util_DiscardMessage(void)
 {
 	SliceCount = 0;
 }
@@ -239,7 +264,7 @@ void __stdcall Autil::util_DiscardMessage(void)
 // Send a message
 //
 // arg: fd=socket fd   func=function ID   buffer=data to send
-void __stdcall Autil::util_SendMesg(int func, char* buffer)
+void Autil::util_SendMesg(int func, char* buffer)
 {
 	//char t1[NETDATASIZE], t2[NETDATASIZE];
 	//memset(t1, 0, sizeof(t1));
@@ -277,7 +302,7 @@ void __stdcall Autil::util_SendMesg(int func, char* buffer)
 // arg: dst=8-bit string;  src=6-bit string;  len=src strlen;
 //      table=mapping table
 // ret: 0=failed  >0=bytes converted
-int __stdcall Autil::util_256to64(char* dst, char* src, int len, char* table)
+int Autil::util_256to64(char* dst, char* src, int len, char* table)
 {
 	unsigned int dw = 0u, dwcounter = 0u;
 	int i = 0;
@@ -316,7 +341,7 @@ int __stdcall Autil::util_256to64(char* dst, char* src, int len, char* table)
 //
 // arg: dst=6-bit string;  src=8-bit string;  table=mapping table
 // ret: 0=failed  >0=bytes converted
-int __stdcall Autil::util_64to256(char* dst, char* src, char* table)
+int Autil::util_64to256(char* dst, char* src, char* table)
 {
 	unsigned int i = 0u, j = 0u;
 	char* ptr = nullptr;
@@ -368,7 +393,7 @@ int __stdcall Autil::util_64to256(char* dst, char* src, char* table)
 // arg: dst=6-bit string;  src=8-bit string;  len=src strlen;
 //      table=mapping table;  key=rotate key;
 // ret: 0=failed  >0=bytes converted
-int __stdcall Autil::util_256to64_shr(char* dst, char* src, int len, char* table, char* key)
+int Autil::util_256to64_shr(char* dst, char* src, int len, char* table, char* key)
 {
 	unsigned int j = 0u;
 	int i = 0u;
@@ -421,7 +446,7 @@ int __stdcall Autil::util_256to64_shr(char* dst, char* src, int len, char* table
 // arg: dst=8-bit string;  src=6-bit string;  table=mapping table;
 //      key=rotate key;
 // ret: 0=failed  >0=bytes converted
-int __stdcall Autil::util_shl_64to256(char* dst, char* src, char* table, char* key)
+int Autil::util_shl_64to256(char* dst, char* src, char* table, char* key)
 {
 	unsigned int i = 0u, j = 0u, k = 0u;
 	char* ptr = nullptr;
@@ -492,7 +517,7 @@ int __stdcall Autil::util_shl_64to256(char* dst, char* src, char* table, char* k
 // arg: dst=6-bit string;  src=8-bit string;  len=src strlen;
 //      table=mapping table;  key=rotate key;
 // ret: 0=failed  >0=bytes converted
-int __stdcall Autil::util_256to64_shl(char* dst, char* src, int len, char* table, char* key)
+int Autil::util_256to64_shl(char* dst, char* src, int len, char* table, char* key)
 {
 	int i = 0, j = 0;
 
@@ -544,7 +569,7 @@ int __stdcall Autil::util_256to64_shl(char* dst, char* src, int len, char* table
 // arg: dst=8-bit string;  src=6-bit string;  table=mapping table;
 //      key=rotate key;
 // ret: 0=failed  >0=bytes converted
-int __stdcall Autil::util_shr_64to256(char* dst, char* src, char* table, char* key)
+int Autil::util_shr_64to256(char* dst, char* src, char* table, char* key)
 {
 	unsigned int i, k;
 	char* ptr = nullptr;
@@ -611,7 +636,7 @@ int __stdcall Autil::util_shr_64to256(char* dst, char* src, char* table, char* k
 // The value "rule" indicates the swaping rule.  It's a 4 byte string
 // such as "1324" or "2431".
 //
-void __stdcall Autil::util_swapint(int* dst, int* src, char* rule)
+void Autil::util_swapint(int* dst, int* src, char* rule)
 {
 	int i = 0;
 	char* ptr = reinterpret_cast<char*>(src);
@@ -624,7 +649,7 @@ void __stdcall Autil::util_swapint(int* dst, int* src, char* rule)
 // Xor a string.  Be careful that your string contains '0xff'.  Your
 // data may lose.
 //
-void __stdcall Autil::util_xorstring(char* dst, char* src)
+void Autil::util_xorstring(char* dst, char* src)
 {
 	unsigned int i = 0;
 
@@ -637,25 +662,27 @@ void __stdcall Autil::util_xorstring(char* dst, char* src)
 // -------------------------------------------------------------------
 // Shift the string right.
 //
-void __stdcall Autil::util_shrstring(char* dst, size_t dstlen, char* src, int offs)
+void Autil::util_shrstring(QByteArray& dst, char* src, int offs)
 {
 	char* ptr = nullptr;
 	//int len = strlen(src);
 
-	if (!dst || !src || (strlen(src) < 1))
+	if (!src || (strlen(src) < 1))
 		return;
 
 	offs = strlen(src) - (offs % strlen(src));
 	ptr = src + offs;
-	strcpy_s(dst, dstlen, ptr);
-	strncat_s(dst, dstlen, src, offs);
-	dst[strlen(src)] = '\0';
+	//strcpy_s(dst, dstlen, ptr);
+	dst = ptr;
+	//strncat_s(dst, dstlen, src, offs);
+	dst.append(src);
+	//dst[strlen(src)] = '\0';
 }
 
 // -------------------------------------------------------------------
 // Shift the string left.
 //
-void __stdcall Autil::util_shlstring(char* dst, size_t dstlen, char* src, int offs)
+void Autil::util_shlstring(char* dst, size_t dstlen, char* src, int offs)
 {
 	char* ptr = nullptr;
 	if (!dst || !src || (strlen(src) < 1))
@@ -671,38 +698,22 @@ void __stdcall Autil::util_shlstring(char* dst, size_t dstlen, char* src, int of
 // -------------------------------------------------------------------
 // Convert a message slice into integer.  Return a checksum.
 //
-// arg: sliceno=slice index in MesgSlice    value=result
+// arg: sliceno=slice index in msgSlice_    value=result
 // ret: checksum, this value must match the one generated by util_mkint
-int __stdcall Autil::util_deint(int sliceno, int* value)
+int Autil::util_deint(int sliceno, int* value)
 {
-	QMutexLocker locker(&MesgMutex);
+	QMutexLocker locker(&msgMutex_);
+	if (!msgSlice_.contains(sliceno))
+		return 0;
+
+	QByteArray slice = msgSlice_.value(sliceno);
 	int* t1 = nullptr;
 	int t2 = 0;
 	//char t3[4096];	// This buffer is enough for an integer.
 	//memset(t3, 0, sizeof(t3));
 	QByteArray t3(SBUFSIZE, '\0');
 
-	Autil::util_shl_64to256(t3.data(), MesgSlice[sliceno].data(), const_cast<char*>(DEFAULTTABLE), PersonalKey.data().toUtf8().data());
-	t1 = reinterpret_cast<int*>(t3.data());
-	t2 = *t1 ^ 0xffffffff;
-#ifdef _BACK_VERSION
-	util_swapint(value, &t2, "3421");
-#else
-	Autil::util_swapint(value, &t2, const_cast<char*>("2413"));
-#endif
-	return *value;
-}
-
-int __stdcall Autil::util_deint(char* d, int* value)
-{
-	QMutexLocker locker(&MesgMutex);
-	int* t1 = nullptr;
-	int t2 = 0;
-	//char t3[4096];	// This buffer is enough for an integer.
-	//memset(t3, 0, sizeof(t3));
-	QByteArray t3(SBUFSIZE, '\0');
-
-	Autil::util_shl_64to256(t3.data(), d, const_cast<char*>(DEFAULTTABLE), PersonalKey.data().toUtf8().data());
+	Autil::util_shl_64to256(t3.data(), slice.data(), const_cast<char*>(DEFAULTTABLE), PersonalKey.get().toUtf8().data());
 	t1 = reinterpret_cast<int*>(t3.data());
 	t2 = *t1 ^ 0xffffffff;
 #ifdef _BACK_VERSION
@@ -718,7 +729,7 @@ int __stdcall Autil::util_deint(char* d, int* value)
 //
 // arg: buffer=output   value=data to pack
 // ret: checksum, this value must match the one generated by util_deint
-int __stdcall Autil::util_mkint(char* buffer, int value)
+int Autil::util_mkint(char* buffer, int value)
 {
 	int t1 = 0, t2 = 0;
 	//char t3[4096];	// This buffer is enough for an integer.
@@ -732,7 +743,7 @@ int __stdcall Autil::util_mkint(char* buffer, int value)
 #endif
 	t2 = t1 ^ 0xffffffff;
 	Autil::util_256to64_shr(t3.data(), (char*)&t2, sizeof(int), const_cast<char*>(DEFAULTTABLE), PersonalKey.data().toUtf8().data());
-	strcat_s(buffer, NETDATASIZE, SEPARATOR);	// It's important to append a SEPARATOR between fields
+	strcat_s(buffer, NETDATASIZE, ";");	// It's important to append a SEPARATOR between fields
 	strcat_s(buffer, NETDATASIZE, t3.data());
 
 	return value;
@@ -741,20 +752,17 @@ int __stdcall Autil::util_mkint(char* buffer, int value)
 // -------------------------------------------------------------------
 // Convert a message slice into string.  Return a checksum.
 //
-// arg: sliceno=slice index in MesgSlice    value=result
+// arg: sliceno=slice index in msgSlice_    value=result
 // ret: checksum, this value must match the one generated by util_mkstring
-int __stdcall Autil::util_destring(int sliceno, char* value)
+int Autil::util_destring(int sliceno, char* value)
 {
-	QMutexLocker locker(&MesgMutex);
-	Autil::util_shr_64to256(value, MesgSlice[sliceno].data(), const_cast<char*>(DEFAULTTABLE), PersonalKey.data().toUtf8().data());
+	QMutexLocker locker(&msgMutex_);
+	if (!msgSlice_.contains(sliceno))
+		return 0;
 
-	return strlen(value);
-}
+	QByteArray slice = msgSlice_.value(sliceno);
 
-int __stdcall Autil::util_destring(char* d, char* value)
-{
-	QMutexLocker locker(&MesgMutex);
-	Autil::util_shr_64to256(value, d, const_cast<char*>(DEFAULTTABLE), PersonalKey.data().toUtf8().data());
+	Autil::util_shr_64to256(value, slice.data(), const_cast<char*>(DEFAULTTABLE), PersonalKey.data().toUtf8().data());
 
 	return strlen(value);
 }
@@ -764,14 +772,14 @@ int __stdcall Autil::util_destring(char* d, char* value)
 //
 // arg: buffer=output   value=data to pack
 // ret: checksum, this value must match the one generated by util_destring
-int __stdcall Autil::util_mkstring(char* buffer, char* value)
+int Autil::util_mkstring(char* buffer, char* value)
 {
 	//char t1[SLICE_SIZE];
 	QByteArray t1(LBUFSIZE, '\0');
 	//memset(t1, 0, sizeof(t1));
 
 	Autil::util_256to64_shl(t1.data(), value, strlen(value), const_cast<char*>(DEFAULTTABLE), PersonalKey.data().toUtf8().data());
-	strcat_s(buffer, NETDATASIZE, SEPARATOR);	// It's important to append a SEPARATOR between fields
+	strcat_s(buffer, NETDATASIZE, ";");	// It's important to append a SEPARATOR between fields
 	strcat_s(buffer, NETDATASIZE, t1.data());
 
 	return strlen(value);

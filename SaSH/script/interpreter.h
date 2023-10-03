@@ -47,13 +47,9 @@ public:
 
 	void doFileWithThread(qint64 beginLine, const QString& fileName);
 
-	bool doFile(qint64 beginLine, const QString& fileName, Interpreter* parent, VarShareMode shareMode, Parser::Mode noShow = Parser::kSync);
+	bool doFile(qint64 beginLine, const QString& fileName, Interpreter* pinterpretter, Parser* pparser, bool issub, Parser::Mode noShow);
 
 	void stop();
-
-	inline void setSubScript(bool is) { parser_.setSubScript(is); }
-
-	Q_REQUIRED_RESULT inline bool isSubScript() const { return parser_.isSubScript(); }
 
 signals:
 	void finished();
@@ -68,7 +64,6 @@ private:
 
 	template<typename Func>
 	void registerFunction(const QString functionName, Func fun);
-	void openLibsUTF8();
 	void openLibs();
 
 private:
@@ -175,12 +170,10 @@ private: //註冊給Parser的函數
 private:
 	QThread* thread_ = nullptr;
 	Parser parser_;
+	qint64 beginLine_ = 0;
 
 	std::atomic_bool isRunning_ = false;
 	ParserCallBack pCallback = nullptr;
 	QList<QSharedPointer<Interpreter>> subInterpreterList_;
 	QFutureSynchronizer<bool> futureSync_;
-	QHash<QString, QSharedPointer<QElapsedTimer>> customTimer_;
-
-
 };

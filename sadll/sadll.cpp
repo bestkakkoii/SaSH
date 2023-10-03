@@ -1445,10 +1445,10 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID)
 	return TRUE;
 }
 
-void GameService::initialize(__int64 index, HWND parentHwnd, unsigned short type, unsigned short port)
+BOOL GameService::initialize(__int64 index, HWND parentHwnd, unsigned short type, unsigned short port)
 {
 	if (isInitialized_.load(std::memory_order_acquire) == TRUE)
-		return;
+		return FALSE;
 
 	isInitialized_.store(TRUE, std::memory_order_release);
 
@@ -1602,15 +1602,19 @@ void GameService::initialize(__int64 index, HWND parentHwnd, unsigned short type
 		//與外掛連線
 		asyncClient_.reset(new AsyncClient(parentHwnd));
 		if (nullptr == asyncClient_)
-			return;
+			return FALSE;
 
 		asyncClient_->setCloseSocketFunction(pclosesocket);
 
 		if (FALSE == asyncClient_->asyncConnect(type, port))
-			return;
+			return FALSE;
 
-		asyncClient_->start();
+		return asyncClient_->start();
 	}
+
+	asyncClient_.reset();
+
+	return FALSE;
 #else
 	if (nullptr == syncClient_)
 	{
@@ -1623,7 +1627,7 @@ void GameService::initialize(__int64 index, HWND parentHwnd, unsigned short type
 			return;
 
 		syncClient_->start();
-	}
+}
 #endif
 }
 

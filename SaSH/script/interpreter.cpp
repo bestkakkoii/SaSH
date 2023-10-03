@@ -64,15 +64,9 @@ void Interpreter::doFileWithThread(qint64 beginLine, const QString& fileName)
 	if (nullptr == thread_)
 		return;
 
-	if (!parser_.loadFile(fileName, nullptr))
-		return;
-
-	parser_.setCurrentLine(beginLine);
-	parser_.setScriptFileName(fileName);
+	beginLine_ = beginLine;
 
 	Injector& injector = Injector::getInstance(getIndex());
-	if (!isSubScript())
-		injector.scriptFileNameStack.push(fileName);
 
 	moveToThread(thread_);
 	qint64 currentIndex = getIndex();
@@ -90,15 +84,19 @@ void Interpreter::doFileWithThread(qint64 beginLine, const QString& fileName)
 }
 
 //同線程下執行腳本文件(實例新的interpreter)
-bool Interpreter::doFile(qint64 beginLine, const QString& fileName, Interpreter* parent, VarShareMode shareMode, Parser::Mode mode)
+bool Interpreter::doFile(qint64 beginLine, const QString& fileName, Interpreter* pinterpretter, Parser* pparser, bool issub, Parser::Mode mode)
 {
-	if (mode == Parser::kAsync)
-		parser_.setMode(Parser::kAsync);
+	parser_.setMode(mode);
+	parser_.setScriptFileName(fileName);
+	parser_.setSubScript(issub);
+	parser_.setInterpreter(pinterpretter);
+	parser_.setParent(pparser);
 
 	if (!parser_.loadFile(fileName, nullptr))
+	{
 		return false;
+	}
 
-	isRunning_.store(true, std::memory_order_release);
 	qint64 currentIndex = getIndex();
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
 
@@ -106,114 +104,36 @@ bool Interpreter::doFile(qint64 beginLine, const QString& fileName, Interpreter*
 	if (!isPrivate && mode == Parser::kSync)
 	{
 		emit signalDispatcher.loadFileToTable(fileName);
-		emit signalDispatcher.scriptContentChanged(fileName, QVariant::fromValue(parser_.getTokens()));
 	}
 	else if (isPrivate && mode == Parser::kSync)
 	{
 		emit signalDispatcher.scriptContentChanged(fileName, QVariant::fromValue(QHash<qint64, TokenMap>{}));
 	}
 
-	parser_.setScriptFileName(fileName);
-
-	pCallback = [parent, &signalDispatcher, mode, this](qint64 currentIndex, qint64 currentLine, const TokenMap& TK)->qint64
-	{
-		if (parent == nullptr)
-			return 0;
-
-		if (parent->isInterruptionRequested())
-			return 0;
-
-		if (isInterruptionRequested())
-			return 0;
-
-		RESERVE currentType = TK.value(0).type;
-
-		bool skip = currentType == RESERVE::TK_WHITESPACE
-			|| currentType == RESERVE::TK_COMMENT
-			|| currentType == RESERVE::TK_UNK;
-
-		if (skip)
-			return 1;
-
-		Injector& injector = Injector::getInstance(currentIndex);
-
-		if (mode == Parser::kSync)
-			emit signalDispatcher.scriptLabelRowTextChanged(currentLine + 1, this->parser_.getToken().size(), false);
-
-		if (TK.contains(0) && TK.value(0).type == TK_PAUSE)
-		{
-			parent->paused();
-			emit signalDispatcher.scriptPaused();
-		}
-
-		parent->checkPause();
-
-		if (mode == Parser::kSync)
-		{
-			QString scriptFileName = parser_.getScriptFileName();
-			qint64 currentIndex = getIndex();
-			util::SafeHash<qint64, break_marker_t> breakMarkers = break_markers[currentIndex].value(scriptFileName);
-			const util::SafeHash<qint64, break_marker_t> stepMarkers = step_markers[currentIndex].value(scriptFileName);
-			if (!(breakMarkers.contains(currentLine) || stepMarkers.contains(currentLine)))
-			{
-				return 1;//檢查是否有中斷點
-			}
-
-			parent->paused();
-
-			if (breakMarkers.contains(currentLine))
-			{
-				//叫用次數+1
-				break_marker_t mark = breakMarkers.value(currentLine);
-				++mark.count;
-
-				//重新插入斷下的紀錄
-				breakMarkers.insert(currentLine, mark);
-				break_markers[currentIndex].insert(scriptFileName, breakMarkers);
-				//所有行插入隱式斷點(用於單步)
-				emit signalDispatcher.addStepMarker(currentLine, true);
-			}
-
-			emit signalDispatcher.addForwardMarker(currentLine, true);
-
-			parent->checkPause();
-		}
-
-		return 1;
-	};
-
-	if (shareMode == kShare && mode == Parser::kSync)
-	{
-		if (!parent->parser_.pLua_.isNull())
-			parser_.pLua_ = parent->parser_.pLua_;
-	}
-
+	pCallback = std::bind(&Interpreter::mainScriptCallBack, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
 	parser_.setCallBack(pCallback);
 	openLibs();
 
 	parser_.parse(beginLine);
-
-	isRunning_.store(false, std::memory_order_release);
 	return true;
 }
 
 //新線程下執行一段腳本內容
 void Interpreter::doString(const QString& content, Interpreter* parent, VarShareMode shareMode)
 {
-	parser_.setMode(Parser::kAsync);
-
 	thread_ = new QThread();
 	if (nullptr == thread_)
 		return;
+
+	parser_.setMode(Parser::kAsync);
+	parser_.setSubScript(true);
+	parser_.setInterpreter(this);
 
 	QString newString = content;
 	newString.replace("\\r", "\r");
 	newString.replace("\\n", "\n");
 	newString.replace("\r\n", "\n");
 	newString.replace("\r", "\n");
-
-	setSubScript(true);
-
 
 	if (!parser_.loadString(content))
 		return;
@@ -377,11 +297,11 @@ bool Interpreter::checkRange(const TokenMap& TK, qint64 idx, qint64* min, qint64
 		return false;
 
 	bool ok = false;
-	qint64 valueMin = list.at(0).toLongLong(&ok);
+	qint64 valueMin = list.value(0).toLongLong(&ok);
 	if (!ok)
 		return false;
 
-	qint64 valueMax = list.at(1).toLongLong(&ok);
+	qint64 valueMax = list.value(1).toLongLong(&ok);
 	if (!ok)
 		return false;
 
@@ -451,15 +371,9 @@ bool Interpreter::waitfor(qint64 timeout, std::function<bool()> exprfun)
 
 void Interpreter::openLibs()
 {
-	openLibsUTF8();
-}
-
-//新的英文函數註冊
-void Interpreter::openLibsUTF8()
-{
 	/*註册函数*/
 
-	//system
+		//system
 	registerFunction("button", &Interpreter::press);
 
 	registerFunction("run", &Interpreter::run);
@@ -554,6 +468,26 @@ qint64 Interpreter::mainScriptCallBack(qint64 currentIndex, qint64 currentLine, 
 	if (isInterruptionRequested())
 		return 0;
 
+	Parser* pparent = parser_.getParent();
+	if (pparent != &parser_)
+	{
+		if (pparent != nullptr)
+		{
+			if (pparent->isInterruptionRequested())
+				return 0;
+
+			if (pparent->getInterpreter() != nullptr && pparent->getInterpreter()->isInterruptionRequested())
+				return 0;
+		}
+	}
+
+	Interpreter* interpreter = parser_.getInterpreter();
+	if (interpreter != this)
+	{
+		if (interpreter != nullptr && interpreter->isInterruptionRequested())
+			return 0;
+	}
+
 	RESERVE currentType = TK.value(0).type;
 
 	bool skip = currentType == RESERVE::TK_WHITESPACE
@@ -565,7 +499,8 @@ qint64 Interpreter::mainScriptCallBack(qint64 currentIndex, qint64 currentLine, 
 
 	Injector& injector = Injector::getInstance(currentIndex);
 
-	emit signalDispatcher.scriptLabelRowTextChanged(currentLine + 1, parser_.getToken().size(), false);
+	if (parser_.getMode() == Parser::kSync)
+		emit signalDispatcher.scriptLabelRowTextChanged(currentLine + 1, parser_.getToken().size(), false);
 
 	if (TK.contains(0) && TK.value(0).type == TK_PAUSE)
 	{
@@ -581,7 +516,7 @@ qint64 Interpreter::mainScriptCallBack(qint64 currentIndex, qint64 currentLine, 
 	QString scriptFileName = parser_.getScriptFileName();
 	util::SafeHash<qint64, break_marker_t> breakMarkers = break_markers[currentIndex].value(scriptFileName);
 	const util::SafeHash<qint64, break_marker_t> stepMarkers = step_markers[currentIndex].value(scriptFileName);
-	if (!(breakMarkers.contains(currentLine) || stepMarkers.contains(currentLine)))
+	if (!breakMarkers.contains(currentLine) && !stepMarkers.contains(currentLine))
 	{
 		return 1;//檢查是否有中斷點
 	}
@@ -610,31 +545,20 @@ qint64 Interpreter::mainScriptCallBack(qint64 currentIndex, qint64 currentLine, 
 
 void Interpreter::proc()
 {
-	isRunning_.store(true, std::memory_order_release);
 	qDebug() << "Interpreter::run()";
+	isRunning_.store(true, std::memory_order_release);
+
 	qint64 currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
 
-	pCallback = std::bind(&Interpreter::mainScriptCallBack, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
 
-	do
-	{
-		if (pCallback == nullptr)
-			break;
+	injector.IS_SCRIPT_FLAG.store(true, std::memory_order_release);
+	injector.IS_SCRIPT_INTERRUPT.store(false, std::memory_order_release);
 
-		if (!isSubScript())
-		{
-			injector.IS_SCRIPT_FLAG.store(true, std::memory_order_release);
-			injector.IS_SCRIPT_INTERRUPT.store(false, std::memory_order_release);
-		}
+	parser_.initialize(&parser_);
 
-		parser_.initialize(&parser_);
-		parser_.setCallBack(pCallback);
-
-		openLibs();
-		parser_.parse();
-	} while (false);
+	doFile(beginLine_, injector.currentScriptFileName, this, nullptr, false, Parser::kSync);
 
 	for (auto& it : subInterpreterList_)
 	{
@@ -645,17 +569,14 @@ void Interpreter::proc()
 	}
 	futureSync_.waitForFinished();
 
-	if (!isSubScript())
-	{
-		injector.IS_SCRIPT_FLAG.store(false, std::memory_order_release);
-		injector.IS_SCRIPT_INTERRUPT.store(true, std::memory_order_release);
-	}
+
+	injector.IS_SCRIPT_FLAG.store(false, std::memory_order_release);
+	injector.IS_SCRIPT_INTERRUPT.store(false, std::memory_order_release);
+
 	isRunning_.store(false, std::memory_order_release);
 
 	emit finished();
 	emit signalDispatcher.scriptFinished();
-	if (!injector.scriptFileNameStack.isEmpty() && !isSubScript())
-		injector.scriptFileNameStack.pop();
 }
 
 //檢查是否戰鬥，如果是則等待，並在戰鬥結束後停滯一段時間
@@ -811,47 +732,41 @@ qint64 Interpreter::run(qint64 currentIndex, qint64 currentline, const TokenMap&
 		QString currentFileName = parser_.getScriptFileName();
 		qint64 currentLine = parser_.getCurrentLine();
 
-		Interpreter interpreter(currentIndex);
+		QScopedPointer<Interpreter> interpreter(new Interpreter(currentIndex));
+		if (interpreter.isNull())
+			return Parser::kError;
 
-		interpreter.setSubScript(true);
-		interpreter.parser_.setMode(asyncMode);
-		sol::state& lua = parser_.pLua_->getLua();
 		injector.currentScriptFileName = fileName;
-		injector.scriptFileNameStack.push(fileName);
+
 		if (varShareMode == kShare)
 		{
-			interpreter.parser_.setLuaMachinePointer(parser_.pLua_);
-			interpreter.parser_.setGlobalNameListPointer(parser_.getGlobalNameListPointer());
-			interpreter.parser_.setCounterPointer(parser_.getCounterPointer());
-			interpreter.parser_.setLuaLocalVarStringListPointer(parser_.getLuaLocalVarStringListPointer());
-			interpreter.parser_.setLocalVarStackPointer(parser_.getLocalVarStackPointer());
+			interpreter->parser_.initialize(&parser_);
+			interpreter->parser_.setLuaMachinePointer(parser_.pLua_);
+			interpreter->parser_.setGlobalNameListPointer(parser_.getGlobalNameListPointer());
+			interpreter->parser_.setCounterPointer(parser_.getCounterPointer());
+			interpreter->parser_.setLuaLocalVarStringListPointer(parser_.getLuaLocalVarStringListPointer());
+			interpreter->parser_.setLocalVarStackPointer(parser_.getLocalVarStackPointer());
 		}
 		else
-		{
-			interpreter.parser_.initialize(&parser_);
-		}
+			interpreter->parser_.initialize(&parser_);
 
-		if (!interpreter.doFile(beginLine, fileName, this, varShareMode))
+		if (!interpreter->doFile(beginLine, fileName, this, &parser_, true, asyncMode))
 		{
 			nret = Parser::kError;
 		}
 
-		injector.scriptFileNameStack.pop();
-		injector.currentScriptFileName = currentFileName;
+		//還原顯示
+		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
+		emit signalDispatcher.loadFileToTable(currentFileName);
 
 		//還原數據
+		injector.currentScriptFileName = currentFileName;
 		parser_.setTokens(tokens);
 		parser_.setLabels(labels);
 		parser_.setFunctionNodeList(functionNodeList);
 		parser_.setForNodeList(forNodeList);
 		parser_.setLuaNodeList(luaNodeList_);
 		parser_.setCurrentLine(currentLine);
-		sol::state& newlua = interpreter.parser_.pLua_->getLua();
-
-		//還原顯示
-		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
-
-		emit signalDispatcher.loadFileToTable(currentFileName);
 		return nret;
 	}
 	else
@@ -863,18 +778,15 @@ qint64 Interpreter::run(qint64 currentIndex, qint64 currentline, const TokenMap&
 					return false;
 
 				subInterpreterList_.append(interpreter);
-				interpreter->setSubScript(true);
-				interpreter->parser_.initialize(nullptr);
-				interpreter->parser_.setMode(asyncMode);
-				if (interpreter->doFile(beginLine, fileName, this, varShareMode, asyncMode))
+				interpreter->parser_.initialize(&parser_);
+				if (interpreter->doFile(beginLine, fileName, this, &parser_, true, asyncMode))
 					return true;
 
 				return false;
 			}));
+
+		return Parser::kNoChange;
 	}
-
-
-	return Parser::kNoChange;
 }
 
 //執行代碼塊
@@ -915,10 +827,6 @@ qint64 Interpreter::dostr(qint64 currentIndex, qint64 currentline, const TokenMa
 	if (interpreter.isNull())
 		return Parser::kError;
 
-	subInterpreterList_.append(interpreter);
-	interpreter->setSubScript(true);
-	interpreter->parser_.setMode(asyncMode);
-
 	if (asyncMode == Parser::kSync)
 	{
 		if (varShareMode == kShare)
@@ -935,7 +843,10 @@ qint64 Interpreter::dostr(qint64 currentIndex, qint64 currentline, const TokenMa
 		}
 	}
 	else
+	{
+		subInterpreterList_.append(interpreter);
 		interpreter->parser_.initialize(nullptr);
+	}
 
 	interpreter->doString(script, this, varShareMode);
 

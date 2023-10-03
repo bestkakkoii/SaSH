@@ -21,7 +21,11 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include <QPainter>
 
 FastLabel::FastLabel(QWidget* parent)
+#ifdef OPENGL_LABEL
 	: QOpenGLWidget(parent)
+#else
+	: QWidget(parent)
+#endif
 {
 	font_ = util::getFont();
 	content_msg_ = "";
@@ -29,7 +33,11 @@ FastLabel::FastLabel(QWidget* parent)
 }
 
 FastLabel::FastLabel(const QString& text, QColor textColor, QColor backgroundColor, QWidget* parent)
+#ifdef OPENGL_LABEL
 	: QOpenGLWidget(parent)
+#else
+	: QWidget(parent)
+#endif
 	, text_color_(textColor)
 	, background_color_(backgroundColor)
 {
@@ -69,22 +77,6 @@ QString FastLabel::getText() const
 	return content_msg_;
 }
 
-//void FastLabel::resizeEvent(QResizeEvent*)
-//{
-//	update();
-//}
-//
-//void FastLabel::paintEvent(QPaintEvent* e)
-//{
-//	QPainter painter(this);
-//	QFont font = painter.font();
-//	font.setPointSize(new_font_size_);
-//	painter.setFont(font);
-//
-//	painter.setPen(QPen(text_color_));
-//	painter.drawText(rect().adjusted(-1, -1, -1, -1), flag_, content_msg_);
-//}
-
 void FastLabel::setFlag(int flag)
 {
 	flag_ = flag;
@@ -102,6 +94,8 @@ void FastLabel::setText(const QString& text)
 	update();
 }
 
+
+#ifdef OPENGL_LABEL
 void FastLabel::initializeGL()
 {
 	initializeOpenGLFunctions();
@@ -146,5 +140,25 @@ void FastLabel::paintGL()
 	painter.endNativePainting();
 
 	glFinish();
-
 }
+#else
+void FastLabel::resizeEvent(QResizeEvent*)
+{
+	update();
+}
+
+void FastLabel::paintEvent(QPaintEvent* e)
+{
+	QPainter painter(this);
+	painter.setFont(font_);
+	painter.setPen(QPen(text_color_));
+	painter.setRenderHint(QPainter::Antialiasing);// 抗锯齿
+	painter.setRenderHint(QPainter::TextAntialiasing); // 文本抗锯齿
+	painter.setRenderHint(QPainter::SmoothPixmapTransform); // 平滑像素变换
+	painter.setRenderHint(QPainter::LosslessImageRendering);
+	painter.beginNativePainting();
+	painter.fillRect(rect(), background_color_);
+	painter.drawText(rect(), flag_, content_msg_);
+	painter.endNativePainting();
+}
+#endif

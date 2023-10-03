@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>679</width>
-    <height>303</height>
+    <width>506</width>
+    <height>189</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -15,16 +15,19 @@
   </property>
   <layout class="QGridLayout" name="gridLayout">
    <property name="leftMargin">
-    <number>1</number>
+    <number>0</number>
    </property>
    <property name="topMargin">
-    <number>1</number>
+    <number>0</number>
    </property>
    <property name="rightMargin">
-    <number>1</number>
+    <number>0</number>
    </property>
    <property name="bottomMargin">
-    <number>1</number>
+    <number>0</number>
+   </property>
+   <property name="spacing">
+    <number>0</number>
    </property>
    <item row="0" column="0">
     <widget class="FastLabel" name="label_time" native="true">
@@ -56,21 +59,8 @@
      <widget class="QWidget" name="layoutWidget_2">
       <layout class="QVBoxLayout" name="verticalLayout_3">
        <property name="spacing">
-        <number>1</number>
+        <number>0</number>
        </property>
-       <item>
-        <widget class="QLabel" name="label_topinfo">
-         <property name="minimumSize">
-          <size>
-           <width>0</width>
-           <height>20</height>
-          </size>
-         </property>
-         <property name="text">
-          <string>top info</string>
-         </property>
-        </widget>
-       </item>
        <item>
         <widget class="TableWidget" name="tableWidget_top">
          <property name="minimumSize">
@@ -87,7 +77,7 @@
          </attribute>
          <column>
           <property name="text">
-           <string>char/pet</string>
+           <string>[top]char/pet</string>
           </property>
          </column>
          <column>
@@ -99,6 +89,9 @@
        </item>
        <item>
         <layout class="QHBoxLayout" name="horizontalLayout_3">
+         <property name="spacing">
+          <number>0</number>
+         </property>
          <item>
           <widget class="QLabel" name="label_c">
            <property name="minimumSize">
@@ -141,21 +134,8 @@
      <widget class="QWidget" name="layoutWidget1_2">
       <layout class="QVBoxLayout" name="verticalLayout_4">
        <property name="spacing">
-        <number>1</number>
+        <number>0</number>
        </property>
-       <item>
-        <widget class="QLabel" name="label_bottominfo">
-         <property name="minimumSize">
-          <size>
-           <width>0</width>
-           <height>20</height>
-          </size>
-         </property>
-         <property name="text">
-          <string>bottom info</string>
-         </property>
-        </widget>
-       </item>
        <item>
         <widget class="TableWidget" name="tableWidget_bottom">
          <property name="minimumSize">
@@ -172,7 +152,7 @@
          </attribute>
          <column>
           <property name="text">
-           <string>char/pet</string>
+           <string>[bottom]char/pet</string>
           </property>
          </column>
          <column>
@@ -184,6 +164,9 @@
        </item>
        <item>
         <layout class="QHBoxLayout" name="horizontalLayout_4">
+         <property name="spacing">
+          <number>0</number>
+         </property>
          <item>
           <widget class="QLabel" name="label_p">
            <property name="minimumSize">

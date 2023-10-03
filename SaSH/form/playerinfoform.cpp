@@ -33,22 +33,8 @@ CharInfoForm::CharInfoForm(qint64 index, QWidget* parent)
 	qRegisterMetaType<QVariant>("QVariant");
 	qRegisterMetaType<QVariant>("QVariant&");
 
-	auto setTableWidget = [](QTableWidget* tableWidget)->void
-	{
-		qint64 rowCount = tableWidget->rowCount();
-		qint64 columnCount = tableWidget->columnCount();
-		for (qint64 row = 0; row < rowCount; ++row)
-		{
-			for (qint64 column = 0; column < columnCount; ++column)
-			{
-				QTableWidgetItem* item = new QTableWidgetItem("");
-				if (item)
-					tableWidget->setItem(row, column, item);
-			}
-		}
-	};
-
-	setTableWidget(ui.tableWidget);
+	ui.tableWidget->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
+	ui.tableWidget->verticalHeader()->setSectionResizeMode(QHeaderView::Stretch);
 
 	onResetControlTextLanguage();
 
@@ -86,10 +72,10 @@ CharInfoForm::~CharInfoForm()
 void CharInfoForm::onResetControlTextLanguage()
 {
 	QStringList equipVHeaderList = {
-		tr("name"), tr("freename"), "",
-		tr("level"), tr("exp"), tr("nextexp"), tr("leftexp"), "",
-		tr("hp"), tr("mp"), tr("chasma/loyal"),
-		tr("atk"), tr("def"), tr("agi"), tr("luck"), tr("growth"), tr("power"),
+		tr("name"), tr("freename"),
+		tr("level"), tr("exp"), tr("nextexp"), tr("leftexp"),
+		tr("hp") , tr("mp"), tr("chasma/loyal"),
+		tr("atk") + "/" + tr("def") + "/" + tr("agi"), tr("growth"), tr("power"),
 	};
 
 	//put on first col
@@ -106,10 +92,10 @@ void CharInfoForm::onResetControlTextLanguage()
 			break;
 		QTableWidgetItem* item = ui.tableWidget->item(row, 0);
 		if (item)
-			item->setText(equipVHeaderList.at(row));
+			item->setText(equipVHeaderList.value(row));
 		else
 		{
-			item = new QTableWidgetItem(equipVHeaderList.at(row));
+			item = new QTableWidgetItem(equipVHeaderList.value(row));
 			if (item)
 				ui.tableWidget->setItem(row, 0, item);
 		}
@@ -145,7 +131,7 @@ void CharInfoForm::onUpdateCharInfoColContents(qint64 col, const QVariant& data)
 		}
 
 		// 使用 QVariantList 中的數據
-		const QVariant rowData = list.at(row);
+		const QVariant rowData = list.value(row);
 		QString fillText = rowData.toString();
 
 
@@ -189,7 +175,7 @@ void CharInfoForm::onUpdateCharInfoPetState(qint64 petIndex, qint64 state)
 		return;
 
 	//設置指定 col = petIndex + 1的 header
-	QString petName = QString(tr("pet%1 (%2)")).arg(petIndex + 1).arg(stateStrList.at(state));
+	QString petName = QString(tr("pet%1 (%2)")).arg(petIndex + 1).arg(stateStrList.value(state));
 
 	//get item 
 	QTableWidgetItem* item = ui.tableWidget->horizontalHeaderItem(col + 1);

@@ -126,7 +126,7 @@ namespace mem
 	HMODULE getRemoteModuleHandleByProcessHandleW(HANDLE hProcess, const QString& szModuleName);
 	long getProcessExportTable32(HANDLE hProcess, const QString& ModuleName, IAT_EAT_INFO tbinfo[], int tb_info_max);
 	ULONG64 getProcAddressIn32BitProcess(HANDLE hProcess, const QString& ModuleName, const QString& FuncName);
-	bool injectByWin7(qint64 index, HANDLE hProcess, QString dllPath, HMODULE* phDllModule, quint64* phGameModule);
+	bool injectByWin7(qint64 index, DWORD dwProcessId, HANDLE hProcess, QString dllPath, HMODULE* phDllModule, quint64* phGameModule);
 	bool injectBy64(qint64 index, HANDLE hProcess, QString dllPath, HMODULE* phDllModule, quint64* phGameModule);//兼容64位注入32位
 	bool inject(qint64 index, HANDLE hProcess, QString dllPath, HMODULE* phDllModule, quint64* phGameModule);//32注入32
 }
@@ -379,6 +379,7 @@ namespace util
 
 		//afk->battle delay
 		kBattleActionDelayValue,
+		kBattleResendDelayValue,
 
 
 		kDropPetStrValue,
@@ -665,6 +666,7 @@ namespace util
 
 		//afk->battle delay
 		{ kBattleActionDelayValue, "BattleActionDelayValue" },
+		{ kBattleResendDelayValue, "BattleResendDelayValue" },
 
 		{ kDropPetStrValue, "DropPetStrValue" },
 		{ kDropPetDefValue, "DropPetDefValue" },
@@ -1099,7 +1101,7 @@ namespace util
 			QStringList fileNames = dialog.selectedFiles();
 			if (fileNames.size() > 0)
 			{
-				QString fileName = fileNames.at(0);
+				QString fileName = fileNames.value(0);
 
 				QTextCodec* codec = nullptr;
 				UINT acp = GetACP();
@@ -1752,6 +1754,12 @@ namespace util
 			data_.erase(first, last);
 		}
 
+		T value(qint64 i) const
+		{
+			QReadLocker locker(&lock_);
+			return data_.value(i);
+		}
+
 		virtual ~SafeVector() = default;
 
 	private:
@@ -2176,6 +2184,13 @@ namespace util
 			return !lpAddress;
 		}
 
+		Q_REQUIRED_RESULT inline bool isData(BYTE* data, qint64 size) const
+		{
+			QScopedArrayPointer <BYTE> _data(data);
+			mem::read(hProcess, lpAddress, size, _data.data());
+			return memcmp(data, _data.data(), size) == 0;
+		}
+
 		inline void clear()
 		{
 
@@ -2271,7 +2286,7 @@ namespace util
 #else
 			return false;
 #endif
-	}
+		}
 
 		if (pcontent != nullptr)
 		{
@@ -2280,7 +2295,7 @@ namespace util
 		}
 
 		return false;
-}
+	}
 
 	void sortWindows(const QVector<HWND>& windowList, bool alignLeft);
 
@@ -2297,14 +2312,14 @@ namespace util
 				selectRowLine.append(p->item(selectRow, i)->text());
 				targetRowLine.append(p->item(targetRow, i)->text());
 				if (!p->item(selectRow, i))
-					p->setItem(selectRow, i, q_check_ptr(new QTableWidgetItem(targetRowLine.at(i))));
+					p->setItem(selectRow, i, q_check_ptr(new QTableWidgetItem(targetRowLine.value(i))));
 				else
-					p->item(selectRow, i)->setText(targetRowLine.at(i));
+					p->item(selectRow, i)->setText(targetRowLine.value(i));
 
 				if (!p->item(targetRow, i))
-					p->setItem(targetRow, i, q_check_ptr(new QTableWidgetItem(selectRowLine.at(i))));
+					p->setItem(targetRow, i, q_check_ptr(new QTableWidgetItem(selectRowLine.value(i))));
 				else
-					p->item(targetRow, i)->setText(selectRowLine.at(i));
+					p->item(targetRow, i)->setText(selectRowLine.value(i));
 			}
 		}
 		else if (p2)
@@ -2337,7 +2352,7 @@ namespace util
 		const QList<QTableWidgetItem*> list = p->selectedItems();
 		if (list.size() <= 0)
 			return; //有選中
-		qint64 t = list.at(0)->row();
+		qint64 t = list.value(0)->row();
 		if (t - 1 < 0)
 			return; //不是第一行
 
@@ -2357,8 +2372,8 @@ namespace util
 		const QList<QTableWidgetItem*> list = p->selectedItems();
 		if (list.size() <= 0)
 			return; //有選中
-		qint64 t = list.at(0)->row();
-		if (t + 1 > p->rowCount() - 1)
+		qint64 t = list.value(0)->row();
+		if (t + 1 > static_cast<qint64>(p->rowCount()) - 1)
 			return; //不是最後一行
 
 		qint64 selectRow = t;	 //當前行

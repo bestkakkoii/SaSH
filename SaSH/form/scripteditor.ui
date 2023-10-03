@@ -374,7 +374,7 @@ QToolTip{
     color: rgb(208, 208, 208);
 }</string>
   </property>
-  <widget class="OpenGLWidget" name="centralWidget">
+  <widget class="QWidget" name="centralWidget">
    <property name="styleSheet">
     <string notr="true"/>
    </property>
@@ -389,7 +389,7 @@ QToolTip{
       </property>
       <property name="font">
        <font>
-        <stylestrategy>PreferAntialias</stylestrategy>
+        <stylestrategy>NoAntialias</stylestrategy>
        </font>
       </property>
       <property name="styleSheet">
@@ -401,7 +401,7 @@ QToolTip{
       <property name="windowTitle">
        <string>function list</string>
       </property>
-      <widget class="OpenGLWidget" name="dockWidgetContents">
+      <widget class="QWidget" name="dockWidgetContents">
        <layout class="QGridLayout" name="gridLayout_2">
         <property name="leftMargin">
          <number>0</number>
@@ -420,7 +420,7 @@ QToolTip{
           <property name="font">
            <font>
             <pointsize>-1</pointsize>
-            <stylestrategy>PreferAntialias</stylestrategy>
+            <stylestrategy>NoAntialias</stylestrategy>
            </font>
           </property>
           <property name="styleSheet">
@@ -1258,7 +1258,7 @@ QToolTip{
           <property name="font">
            <font>
             <pointsize>-1</pointsize>
-            <stylestrategy>PreferAntialias</stylestrategy>
+            <stylestrategy>NoAntialias</stylestrategy>
            </font>
           </property>
           <property name="styleSheet">
@@ -1301,7 +1301,7 @@ QLineEdit::hover{
       </property>
       <property name="font">
        <font>
-        <stylestrategy>PreferAntialias</stylestrategy>
+        <stylestrategy>NoAntialias</stylestrategy>
        </font>
       </property>
       <property name="styleSheet">
@@ -1313,7 +1313,7 @@ QLineEdit::hover{
       <property name="windowTitle">
        <string>script list</string>
       </property>
-      <widget class="OpenGLWidget" name="dockWidgetContents_2">
+      <widget class="QWidget" name="dockWidgetContents_2">
        <layout class="QGridLayout" name="gridLayout_4">
         <property name="leftMargin">
          <number>0</number>
@@ -1332,7 +1332,7 @@ QLineEdit::hover{
           <property name="font">
            <font>
             <pointsize>-1</pointsize>
-            <stylestrategy>PreferAntialias</stylestrategy>
+            <stylestrategy>NoAntialias</stylestrategy>
            </font>
           </property>
           <property name="styleSheet">
@@ -1374,7 +1374,7 @@ QLineEdit::hover{
       </property>
       <property name="font">
        <font>
-        <stylestrategy>PreferAntialias</stylestrategy>
+        <stylestrategy>NoAntialias</stylestrategy>
        </font>
       </property>
       <property name="styleSheet">
@@ -1389,7 +1389,7 @@ QLineEdit::hover{
       <property name="windowTitle">
        <string>editor</string>
       </property>
-      <widget class="OpenGLWidget" name="dockWidgetContents_11">
+      <widget class="QWidget" name="dockWidgetContents_11">
        <property name="sizePolicy">
         <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
          <horstretch>0</horstretch>
@@ -1433,7 +1433,7 @@ QLineEdit::hover{
             </property>
             <property name="font">
              <font>
-              <stylestrategy>PreferAntialias</stylestrategy>
+              <stylestrategy>NoAntialias</stylestrategy>
              </font>
             </property>
             <property name="styleSheet">
@@ -1624,7 +1624,7 @@ image: url(:/image/icon_down_arrow.png);
             </property>
             <property name="font">
              <font>
-              <stylestrategy>PreferAntialias</stylestrategy>
+              <stylestrategy>NoAntialias</stylestrategy>
              </font>
             </property>
             <property name="styleSheet">
@@ -1810,7 +1810,7 @@ image: url(:/image/icon_down_arrow.png);
             </property>
             <property name="font">
              <font>
-              <stylestrategy>PreferAntialias</stylestrategy>
+              <stylestrategy>NoAntialias</stylestrategy>
              </font>
             </property>
             <property name="acceptDrops">
@@ -2020,7 +2020,7 @@ QScrollBar::sub-line:horizontal {
       </property>
       <property name="font">
        <font>
-        <stylestrategy>PreferAntialias</stylestrategy>
+        <stylestrategy>NoAntialias</stylestrategy>
        </font>
       </property>
       <property name="styleSheet">
@@ -2032,7 +2032,7 @@ QScrollBar::sub-line:horizontal {
       <property name="windowTitle">
        <string>log</string>
       </property>
-      <widget class="OpenGLWidget" name="dockWidgetContents_5">
+      <widget class="QWidget" name="dockWidgetContents_5">
        <layout class="QGridLayout" name="gridLayout">
         <property name="leftMargin">
          <number>1</number>
@@ -2052,7 +2052,7 @@ QScrollBar::sub-line:horizontal {
            <font>
             <family>微軟正黑體</family>
             <pointsize>8</pointsize>
-            <stylestrategy>PreferAntialias</stylestrategy>
+            <stylestrategy>NoAntialias</stylestrategy>
            </font>
           </property>
           <property name="contextMenuPolicy">
@@ -2061,7 +2061,7 @@ QScrollBar::sub-line:horizontal {
           <property name="styleSheet">
            <string notr="true">QListView {
     /*color: rgb(214,214,214);*/
-    background: rgb(37,37,38);
+    background: rgb(31,31,31);
     border: 1px solid rgb(61,61,61);
     alternate-background-color: #525252;
     gridline-color: transparent;
@@ -2070,7 +2070,7 @@ QScrollBar::sub-line:horizontal {
 
 QListView QTableCornerButton::section {
     /*color: rgb(214,214,214);*/
-    background: rgb(37,37,38);
+    background: rgb(31,31,31);
     border: 0px solid #418bc9;/*边框*/
     border-radius:0px;/*边框圆角*/
     border-color: rgb(41, 139, 201);/*边框颜色*/
@@ -2080,12 +2080,12 @@ QListView QTableCornerButton::section {
 
 QListView::item {
     /*color: rgb(214,214,214);*/
-    background: rgb(37,37,38);
+    background: rgb(31,31,31);
 }
 
 QListView::item:selected {
     /*color: rgb(214,214,214);*/
-    background:rgb(43,83,125); /* qlineargradient(spread:pad, x1:0, y1:0, x2:0, y2:1, stop:0 #484848, stop:1 #383838);*/
+    background:rgb(61,61,61); /* qlineargradient(spread:pad, x1:0, y1:0, x2:0, y2:1, stop:0 #484848, stop:1 #383838);*/
 }
 
 QListView::item:hover {
@@ -2094,7 +2094,7 @@ QListView::item:hover {
 
 QHeaderView {
     text-align: center;
-    background: rgb(37,37,38);
+    background: rgb(31,31,31);
     padding: 0px;
     margin: 0px;
     color: rgb(250,250,250);
@@ -2104,7 +2104,7 @@ QHeaderView {
 
 QHeaderView::section::vertical {
     text-align: center;
-    background: rgb(37,37,38);
+    background: rgb(31,31,31);
     padding: 3px;
     margin: 0px;
     color: rgb(250,250,250);
@@ -2116,7 +2116,7 @@ QHeaderView::section::vertical {
 
 QHeaderView::section::horizontal{
     text-align: center;
-    background: rgb(37,37,38);
+    background: rgb(31,31,31);
     padding: 3px;
     margin: 0px;
     color: rgb(250,250,250);
@@ -2235,7 +2235,7 @@ color: rgb(208, 208, 208);
       </property>
       <property name="font">
        <font>
-        <stylestrategy>PreferAntialias</stylestrategy>
+        <stylestrategy>NoAntialias</stylestrategy>
        </font>
       </property>
       <property name="styleSheet">
@@ -2250,7 +2250,7 @@ color: rgb(208, 208, 208);
       <property name="windowTitle">
        <string>debuger</string>
       </property>
-      <widget class="OpenGLWidget" name="dockWidgetContents_4">
+      <widget class="QWidget" name="dockWidgetContents_4">
        <layout class="QGridLayout" name="gridLayout_3">
         <property name="leftMargin">
          <number>0</number>
@@ -2265,325 +2265,45 @@ color: rgb(208, 208, 208);
          <number>0</number>
         </property>
         <item row="0" column="0">
-         <widget class="QTabWidget" name="tabWidget">
+         <widget class="QTreeWidget" name="treeWidget_debuger_custom">
           <property name="font">
            <font>
-            <stylestrategy>PreferAntialias</stylestrategy>
+            <pointsize>-1</pointsize>
+            <stylestrategy>NoAntialias</stylestrategy>
            </font>
           </property>
           <property name="styleSheet">
-           <string notr="true">QTabWidget::pane{
-top:0px;
-border-top:2px solid #7160E8;
-border-bottom:1px solid rgb(61,61,61);
-border-right:1px solid rgb(61,61,61);
-border-left:1px solid rgb(61,61,61);
-}
-
-QTabWidget::tab-bar
-{
-alignment: left;
-top:0px;
-left:5px;
-border:none;
-}
-
-#detailWgt, #appealReasonWgt{
-border:none;
-}
-
-QTabBar::tab:first{
-color:rgb(178,178,178);
-background:rgb(46,46,46);
-
-padding-left:0px;
-padding-right:0px;
-width:100px;
-height:24px;
-margin-left:0px;
-margin-right:0px;
-
-border-top:2px solid rgb(31, 31, 31);
-}
-
-QTabBar::tab:middle{
-color:rgb(178,178,178);
-background:rgb(46,46,46);
-padding-left:0px;
-padding-right:0px;
-width:100px;
-height:24px;
-margin-left:0px;
-margin-right:0px;
-
-border-top:2px solid rgb(31, 31, 31);
-
-}
-
-QTabBar::tab:last{
-color:rgb(178,178,178);
-background:rgb(46,46,46);
-
-padding-left:0px;
-padding-right:0px;
-width:100px;
-height:24px;
-margin-left:0px;
-margin-right:0px;
-
-border-top:2px solid rgb(31, 31, 31);
-}
-
-QTabBar::tab:selected{
-color:rgb(250,250,250);
-background:rgb(61,61,61);
-border-top:2px solid #7160E8;
-
-}
-
-QTabBar::tab:hover{
-color:rgb(250,250,250);
-background:rgb(61,61,61);
-padding-left:0px;
-padding-right:0px;
-width:100px;
-height:24px;
-margin-left:0px;
-margin-right:0px;
-}
-
-</string>
+           <string notr="true"/>
           </property>
-          <property name="tabPosition">
-           <enum>QTabWidget::South</enum>
+          <property name="iconSize">
+           <size>
+            <width>20</width>
+            <height>20</height>
+           </size>
           </property>
-          <property name="currentIndex">
-           <number>0</number>
+          <property name="sortingEnabled">
+           <bool>true</bool>
           </property>
-          <widget class="OpenGLWidget" name="tab_6">
-           <attribute name="title">
-            <string>custom</string>
-           </attribute>
-           <layout class="QGridLayout" name="gridLayout_6">
-            <property name="leftMargin">
-             <number>1</number>
-            </property>
-            <property name="topMargin">
-             <number>1</number>
-            </property>
-            <property name="rightMargin">
-             <number>1</number>
-            </property>
-            <property name="bottomMargin">
-             <number>1</number>
-            </property>
-            <item row="0" column="0">
-             <widget class="QTreeWidget" name="treeWidget_debuger_custom">
-              <property name="font">
-               <font>
-                <pointsize>-1</pointsize>
-                <stylestrategy>PreferAntialias</stylestrategy>
-               </font>
-              </property>
-              <property name="styleSheet">
-               <string notr="true"/>
-              </property>
-              <property name="iconSize">
-               <size>
-                <width>20</width>
-                <height>20</height>
-               </size>
-              </property>
-              <property name="sortingEnabled">
-               <bool>true</bool>
-              </property>
-              <column>
-               <property name="text">
-                <string>field</string>
-               </property>
-              </column>
-              <column>
-               <property name="text">
-                <string>NAME</string>
-               </property>
-              </column>
-              <column>
-               <property name="text">
-                <string>value</string>
-               </property>
-              </column>
-              <column>
-               <property name="text">
-                <string>type</string>
-               </property>
-              </column>
-             </widget>
-            </item>
-           </layout>
-          </widget>
-          <widget class="OpenGLWidget" name="tab_3">
-           <property name="sizePolicy">
-            <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-             <horstretch>0</horstretch>
-             <verstretch>0</verstretch>
-            </sizepolicy>
+          <column>
+           <property name="text">
+            <string>field</string>
            </property>
-           <attribute name="title">
-            <string>global</string>
-           </attribute>
-           <layout class="QGridLayout" name="gridLayout_10">
-            <property name="leftMargin">
-             <number>0</number>
-            </property>
-            <property name="topMargin">
-             <number>0</number>
-            </property>
-            <property name="rightMargin">
-             <number>0</number>
-            </property>
-            <property name="bottomMargin">
-             <number>0</number>
-            </property>
-            <item row="0" column="0">
-             <widget class="QTreeWidget" name="treeWidget_debuger_global">
-              <property name="styleSheet">
-               <string notr="true"/>
-              </property>
-              <property name="iconSize">
-               <size>
-                <width>20</width>
-                <height>20</height>
-               </size>
-              </property>
-              <property name="sortingEnabled">
-               <bool>true</bool>
-              </property>
-              <column>
-               <property name="text">
-                <string>field</string>
-               </property>
-              </column>
-              <column>
-               <property name="text">
-                <string>NAME</string>
-               </property>
-              </column>
-              <column>
-               <property name="text">
-                <string>value</string>
-               </property>
-              </column>
-              <column>
-               <property name="text">
-                <string>type</string>
-               </property>
-              </column>
-             </widget>
-            </item>
-           </layout>
-          </widget>
-          <widget class="OpenGLWidget" name="tab_7">
-           <attribute name="title">
-            <string>callstack</string>
-           </attribute>
-           <layout class="QGridLayout" name="gridLayout_13">
-            <property name="leftMargin">
-             <number>0</number>
-            </property>
-            <property name="topMargin">
-             <number>0</number>
-            </property>
-            <property name="rightMargin">
-             <number>0</number>
-            </property>
-            <property name="bottomMargin">
-             <number>0</number>
-            </property>
-            <item row="0" column="0">
-             <widget class="QTreeWidget" name="treeWidget_debuger_callstack">
-              <property name="styleSheet">
-               <string notr="true"/>
-              </property>
-              <property name="editTriggers">
-               <set>QAbstractItemView::NoEditTriggers</set>
-              </property>
-              <property name="iconSize">
-               <size>
-                <width>20</width>
-                <height>20</height>
-               </size>
-              </property>
-              <property name="verticalScrollMode">
-               <enum>QAbstractItemView::ScrollPerPixel</enum>
-              </property>
-              <property name="sortingEnabled">
-               <bool>false</bool>
-              </property>
-              <column>
-               <property name="text">
-                <string>row</string>
-               </property>
-              </column>
-              <column>
-               <property name="text">
-                <string>content</string>
-               </property>
-              </column>
-             </widget>
-            </item>
-           </layout>
-          </widget>
-          <widget class="OpenGLWidget" name="tab_8">
-           <attribute name="title">
-            <string>jmpstack</string>
-           </attribute>
-           <layout class="QGridLayout" name="gridLayout_14">
-            <property name="leftMargin">
-             <number>0</number>
-            </property>
-            <property name="topMargin">
-             <number>0</number>
-            </property>
-            <property name="rightMargin">
-             <number>0</number>
-            </property>
-            <property name="bottomMargin">
-             <number>0</number>
-            </property>
-            <item row="0" column="0">
-             <widget class="QTreeWidget" name="treeWidget_debuger_jmpstack">
-              <property name="styleSheet">
-               <string notr="true"/>
-              </property>
-              <property name="editTriggers">
-               <set>QAbstractItemView::NoEditTriggers</set>
-              </property>
-              <property name="iconSize">
-               <size>
-                <width>20</width>
-                <height>20</height>
-               </size>
-              </property>
-              <property name="verticalScrollMode">
-               <enum>QAbstractItemView::ScrollPerPixel</enum>
-              </property>
-              <property name="sortingEnabled">
-               <bool>false</bool>
-              </property>
-              <column>
-               <property name="text">
-                <string>row</string>
-               </property>
-              </column>
-              <column>
-               <property name="text">
-                <string>content</string>
-               </property>
-              </column>
-             </widget>
-            </item>
-           </layout>
-          </widget>
+          </column>
+          <column>
+           <property name="text">
+            <string>NAME</string>
+           </property>
+          </column>
+          <column>
+           <property name="text">
+            <string>value</string>
+           </property>
+          </column>
+          <column>
+           <property name="text">
+            <string>type</string>
+           </property>
+          </column>
          </widget>
         </item>
        </layout>
@@ -2655,7 +2375,7 @@ margin-right:0px;
   <widget class="QDockWidget" name="dockWidget_des">
    <property name="font">
     <font>
-     <stylestrategy>PreferAntialias</stylestrategy>
+     <stylestrategy>NoAntialias</stylestrategy>
     </font>
    </property>
    <property name="styleSheet">
@@ -2670,7 +2390,7 @@ margin-right:0px;
    <attribute name="dockWidgetArea">
     <number>8</number>
    </attribute>
-   <widget class="OpenGLWidget" name="dockWidgetContents_3">
+   <widget class="QWidget" name="dockWidgetContents_3">
     <layout class="QGridLayout" name="gridLayout_15">
      <property name="leftMargin">
       <number>0</number>
@@ -2688,7 +2408,7 @@ margin-right:0px;
       <widget class="QTextBrowser" name="textBrowser">
        <property name="font">
         <font>
-         <stylestrategy>PreferAntialias</stylestrategy>
+         <stylestrategy>NoAntialias</stylestrategy>
         </font>
        </property>
        <property name="styleSheet">
@@ -2704,7 +2424,7 @@ border: 1px solid rgb(61,61,61);</string>
   <widget class="QDockWidget" name="dockWidget_mark">
    <property name="font">
     <font>
-     <stylestrategy>PreferAntialias</stylestrategy>
+     <stylestrategy>NoAntialias</stylestrategy>
     </font>
    </property>
    <property name="styleSheet">
@@ -2719,7 +2439,7 @@ border: 1px solid rgb(61,61,61);</string>
    <attribute name="dockWidgetArea">
     <number>8</number>
    </attribute>
-   <widget class="OpenGLWidget" name="dockWidgetContents_6">
+   <widget class="QWidget" name="dockWidgetContents_6">
     <layout class="QGridLayout" name="gridLayout_9">
      <property name="leftMargin">
       <number>0</number>
@@ -2738,7 +2458,7 @@ border: 1px solid rgb(61,61,61);</string>
        <property name="font">
         <font>
          <pointsize>-1</pointsize>
-         <stylestrategy>PreferAntialias</stylestrategy>
+         <stylestrategy>NoAntialias</stylestrategy>
         </font>
        </property>
        <property name="styleSheet">
@@ -2971,12 +2691,6 @@ border: 1px solid rgb(61,61,61);</string>
    <class>CodeEditor</class>
    <extends>QWidget</extends>
    <header location="global">codeeditor.h</header>
-   <container>1</container>
-  </customwidget>
-  <customwidget>
-   <class>OpenGLWidget</class>
-   <extends>QWidget</extends>
-   <header location="global">openglwidget.h</header>
    <container>1</container>
   </customwidget>
  </customwidgets>

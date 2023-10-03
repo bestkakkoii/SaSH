@@ -124,9 +124,9 @@ public:
 #ifdef _FIX_DEL_MAP
 	void lssproto_DM_send(int fd);                         // WON ADD 玩家抽地圖送監獄
 #endif
-#ifdef _MIND_ICON
+
 	void lssproto_MA_send(const QPoint& pos, int nMind);
-#endif
+
 #ifdef _CHECK_GAMESPEED
 	void lssproto_CS_send(int fd);
 	int lssproto_getdelaytimes();
@@ -159,9 +159,9 @@ public:
 #ifdef _TEACHER_SYSTEM
 	void lssproto_TEACHER_SYSTEM_send(char* data);	// 導師功能
 #endif
-#ifdef _ADD_STATUS_2
+
 	void lssproto_S2_send(char* data);
-#endif
+
 #ifdef _PET_ITEM
 	void lssproto_PetItemEquip_send(const QPoint& pos, int nPetNo, int nItemNo, int nDestNO);	// 寵物裝備功能
 #endif
@@ -278,9 +278,8 @@ public:
 	virtual void lssproto_TEACHER_SYSTEM_recv(char* data) = 0;
 #endif
 
-#ifdef _ADD_STATUS_2
 	virtual void lssproto_S2_recv(char* data) = 0;
-#endif
+
 #ifdef _ITEM_FIREWORK
 	virtual void lssproto_Firework_recv(int nCharaindex, int nType, int nActionNum) = 0;	// 煙火功能
 #endif

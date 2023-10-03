@@ -34,28 +34,6 @@ ScriptForm::ScriptForm(qint64 index, QWidget* parent)
 	ui.setupUi(this);
 	setAttribute(Qt::WA_StyledBackground);
 
-	auto setTableWidget = [](QTableWidget* tableWidget, int max_row)->void
-	{
-		for (int row = 0; row < max_row; ++row)
-		{
-			tableWidget->insertRow(row);
-		}
-
-		int rowCount = tableWidget->rowCount();
-		int columnCount = tableWidget->columnCount();
-		for (int row = 0; row < rowCount; ++row)
-		{
-			for (int column = 0; column < columnCount; ++column)
-			{
-				QTableWidgetItem* item = new QTableWidgetItem("");
-				if (item)
-					tableWidget->setItem(row, column, item);
-			}
-		}
-	};
-
-	setTableWidget(ui.tableWidget_script, 8);
-
 	QList<PushButton*> buttonList = util::findWidgets<PushButton>(this);
 	for (auto& button : buttonList)
 	{
@@ -457,18 +435,22 @@ void ScriptForm::onScriptTreeWidgetDoubleClicked(QTreeWidgetItem* item, int colu
 			itemfile = reinterpret_cast<TreeWidgetItem*>(itemfile->parent()); //將itemfile指向父item
 		}
 		QString strpath;
-		qint64 count = (filepath.size() - 1);
+		qint64 count = static_cast<qint64>(filepath.size()) - 1;
 		for (qint64 i = count; i >= 0; i--) //QStringlist類filepath反向存著初始item的路徑
 		{ //將filepath反向輸出，相應的加入’/‘
-			if (filepath.at(i).isEmpty())
+			if (filepath.value(i).isEmpty())
 				continue;
-			strpath += filepath.at(i);
+			strpath += filepath.value(i);
 			if (i != 0)
 				strpath += "/";
 		}
 
 		strpath = util::applicationDirPath() + "/script/" + strpath;
 		strpath.replace("*", "");
+
+		QFileInfo fileinfo(strpath);
+		if (!fileinfo.isFile())
+			break;
 
 		if (!injector.IS_SCRIPT_FLAG.load(std::memory_order_acquire))
 			injector.currentScriptFileName = strpath;

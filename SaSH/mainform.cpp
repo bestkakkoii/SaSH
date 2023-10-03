@@ -100,11 +100,19 @@ void MainForm::createMenu(QMenuBar* pMenuBar)
 
 		//QString alignedText = text + QString(spaceCount, ' ') + shortcutText;
 
-		QAction* pAction = new QAction(text, parent);
+		QString newText = text;
+		bool isCheck = false;
+		if (newText.startsWith("^"))
+		{
+			newText.remove(0, 1);
+			isCheck = true;
+		}
+
+		QAction* pAction = new QAction(newText, parent);
 		if (pAction == nullptr)
 			return;
 
-		if (!text.isEmpty() && !name.isEmpty())
+		if (!newText.isEmpty() && !name.isEmpty())
 		{
 			if (name == "actionHide")
 			{
@@ -112,6 +120,8 @@ void MainForm::createMenu(QMenuBar* pMenuBar)
 			}
 			pAction->setObjectName(name);
 			pAction->setShortcut(QKeySequence(key));
+			if (isCheck)
+				pAction->setCheckable(true);
 			parent->addAction(pAction);
 		}
 		else
@@ -136,6 +146,8 @@ void MainForm::createMenu(QMenuBar* pMenuBar)
 
 	const QVector<std::tuple<QString, QString, qint64>> systemTable = {
 		{ QObject::tr("hide"), "actionHide", Qt::Key_F9},
+		{ "^" + QObject::tr("hidebar"), "actionHideBar", Qt::Key_unknown},
+		{ "^" + QObject::tr("hidecontrol"), "actionHideControl", Qt::Key_unknown},
 		{ "","" , Qt::Key_unknown},
 		{ QObject::tr("website"), "actionWebsite", Qt::Key_unknown },
 		{ QObject::tr("scriptdoc"), "actionInfo", Qt::Key_unknown },
@@ -259,6 +271,8 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 	case InterfaceMessage::kGetCurrentId:
 	{
 		*result = currentIndex;
+		++interfaceCount_;
+		updateStatusText();
 		return true;
 	}
 	case InterfaceMessage::kRunScript:
@@ -829,8 +843,15 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 	case InterfaceMessage::kOpenNewWindow:
 	{
 		*result = 0;
-		qint64 id = msg->wParam;
-		MainForm* p = createNewWindow(id);
+		quint64 preid = msg->wParam;
+		qint64 id = -1;
+		if (preid < SASH_MAX_THREAD)
+		{
+			id = preid;
+		}
+
+		qint64* pId = reinterpret_cast<qint64*>(msg->lParam);
+		MainForm* p = createNewWindow(id, pId);
 		if (p == nullptr)
 		{
 			updateStatusText("create window failed");
@@ -839,7 +860,7 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 
 		++interfaceCount_;
 		updateStatusText();
-		result = reinterpret_cast<long*>(p->winId());
+		*result = static_cast<long>(p->winId());
 
 		return true;
 	}
@@ -1121,18 +1142,7 @@ MainForm::MainForm(qint64 index, QWidget* parent)
 	setAttribute(Qt::WA_StaticContents, true);
 	setWindowFlags(windowFlags() & ~Qt::WindowMaximizeButtonHint);
 	setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
-	//setFixedSize(290, 481);
 	setFixedWidth(290);
-	//	setStyleSheet(R"(
-	//QMainWindow{
-	//	border-radius: 10px;
-	//	background-color: rgb(245, 245, 245);
-	//} 
-	//
-	//QGroupBox { 
-	//	color:rgb(100,149,237)
-	//}
-	//)");
 	setStyleSheet("background-color: #F1F1F1;");
 	qRegisterMetaType<QVariant>("QVariant");
 	qRegisterMetaType<QVariant>("QVariant&");
@@ -1365,6 +1375,38 @@ void MainForm::onMenuActionTriggered()
 			trayIcon->activated(QSystemTrayIcon::DoubleClick);
 		}
 
+		return;
+	}
+
+	if (actionName == "actionHideBar")
+	{
+		if (pAction->isChecked())
+		{
+			ui.progressBar_pchp->hide();
+			ui.progressBar_pcmp->hide();
+			ui.progressBar_pethp->hide();
+			ui.progressBar_ridehp->hide();
+		}
+		else
+		{
+			ui.progressBar_pchp->show();
+			ui.progressBar_pcmp->show();
+			ui.progressBar_pethp->show();
+			ui.progressBar_ridehp->show();
+		}
+		return;
+	}
+
+	if (actionName == "actionHideControl")
+	{
+		if (pAction->isChecked())
+		{
+			ui.tabWidget_main->hide();
+		}
+		else
+		{
+			ui.tabWidget_main->show();
+		}
 		return;
 	}
 
@@ -1624,7 +1666,9 @@ void MainForm::onUpdateStatusLabelTextChanged(qint64 status)
 		{ util::kLabelStatusDisconnected, tr("disconnected")},
 		{ util::kLabelStatusConnecting, tr("connecting")},
 	};
-	ui.label_status->setText(hash.value(static_cast<util::UserStatus>(status), tr("unknown")));
+
+	Injector& injector = Injector::getInstance(getIndex());
+	ui.label_status->setText((injector.IS_SCRIPT_FLAG ? QString("[" + tr("script running") + "]") : "") + hash.value(static_cast<util::UserStatus>(status), tr("unknown")));
 }
 
 void MainForm::onUpdateMapLabelTextChanged(const QString& text)

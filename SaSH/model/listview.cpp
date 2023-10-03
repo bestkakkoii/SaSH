@@ -127,7 +127,7 @@ void StringListModel::sort(int column, Qt::SortOrder order)
 
 		for (int i = 0; i < size; ++i)
 		{
-			pairVector.append(qMakePair(colorlist.at(i), list.at(i)));
+			pairVector.append(qMakePair(colorlist.value(i), list.value(i)));
 		}
 
 		std::sort(pairVector.begin(), pairVector.end(), pairCompare);
@@ -138,8 +138,8 @@ void StringListModel::sort(int column, Qt::SortOrder order)
 		size = pairVector.size();
 		for (int i = 0; i < size; ++i)
 		{
-			colorlist.append(pairVector.at(i).first);
-			list.append(pairVector.at(i).second);
+			colorlist.append(pairVector.value(i).first);
+			list.append(pairVector.value(i).second);
 		}
 
 		setAllList(list, colorlist);
@@ -154,7 +154,7 @@ void StringListModel::sort(int column, Qt::SortOrder order)
 
 		for (int i = 0; i < size; ++i)
 		{
-			pairVector.append(qMakePair(colorlist.at(i), list.at(i)));
+			pairVector.append(qMakePair(colorlist.value(i), list.value(i)));
 		}
 
 		std::sort(pairVector.begin(), pairVector.end(), pairCompareGreaerString);
@@ -164,8 +164,8 @@ void StringListModel::sort(int column, Qt::SortOrder order)
 		size = pairVector.size();
 		for (int i = size - 1; i >= 0; --i)
 		{
-			colorlist.append(pairVector.at(i).first);
-			list.append(pairVector.at(i).second);
+			colorlist.append(pairVector.value(i).first);
+			list.append(pairVector.value(i).second);
 		}
 
 		setAllList(list, colorlist);
@@ -206,7 +206,7 @@ QMap<int, QVariant> StringListModel::itemData(const QModelIndex& index) const
 	QVector<QString> list = getList();
 	int size = list.size();
 	if (i >= 0 && i < size)
-		map.insert(Qt::DisplayRole, list.at(i));
+		map.insert(Qt::DisplayRole, list.value(i));
 
 	return map;
 }
@@ -225,7 +225,7 @@ QVariant StringListModel::data(const QModelIndex& index, int role) const
 		int i = index.row();
 		if (i < 0 || i >= list.size())
 			return QVariant();
-		return list.at(i);
+		return list.value(i);
 	}
 	case Qt::BackgroundRole:
 	{
@@ -237,7 +237,7 @@ QVariant StringListModel::data(const QModelIndex& index, int role) const
 	{
 		QVector<QString> list = getList();
 		int i = index.row();
-		QString data = list.at(i);
+		QString data = list.value(i);
 		if (data.contains("[錯誤]") || data.contains("[error]") || data.contains("错误"))
 		{
 			return QIcon(":/image/icon_statuserror.svg");
@@ -298,7 +298,7 @@ QVariant StringListModel::data(const QModelIndex& index, int role) const
 			return QColor(241, 241, 241);
 
 		QVector<QString> list = getList();
-		QString data = list.at(i);
+		QString data = list.value(i);
 		if (data.contains(rexError))
 		{
 			return colorError;
@@ -316,7 +316,7 @@ QVariant StringListModel::data(const QModelIndex& index, int role) const
 			return colorInfo;
 		}
 
-		int color = colorlist.at(i);
+		int color = colorlist.value(i);
 		return hash.value(color, QColor(241, 241, 241));
 	}
 	default:
@@ -411,8 +411,8 @@ ListView::ListView(QWidget* parent)
 	setEditTriggers(QAbstractItemView::NoEditTriggers);
 	setVerticalScrollMode(QAbstractItemView::ScrollPerItem);
 	setHorizontalScrollMode(QAbstractItemView::ScrollPerItem);
-	setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
-	setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
+	setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
+	setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
 	ItemDelegate* pdelegate = new ItemDelegate(this);
 	if (pdelegate != nullptr)
 		setItemDelegate(pdelegate);

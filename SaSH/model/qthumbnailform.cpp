@@ -44,7 +44,7 @@ QThumbnailForm::QThumbnailForm(const QList<HWND>& v, QWidget* parent)
 	for (int i = 0; i < size; ++i)
 	{
 		if (i < v.size())
-			m_glWidgets[i] = q_check_ptr(new QThumbnailWidget(col, row, v.at(i), this));
+			m_glWidgets[i] = q_check_ptr(new QThumbnailWidget(col, row, v.value(i), this));
 		else
 			m_glWidgets[i] = q_check_ptr(new QThumbnailWidget(col, row, nullptr, this));
 
@@ -117,15 +117,15 @@ void QThumbnailForm::refresh()
 		//從後面
 		for (int i = widget_size - 1; i >= thread_size; i--)
 		{
-			list.at(i)->setHWND(NULL);
-			list.at(i)->hide();
+			list.value(i)->setHWND(NULL);
+			list.value(i)->hide();
 		}
 	}
 
 	int n = 0;
 	for (const auto& it : v)
 	{
-		QThumbnailWidget* nail = list.at(n++);
+		QThumbnailWidget* nail = list.value(n++);
 		nail->setHWND(it);
 		nail->show();
 	}
@@ -184,11 +184,11 @@ int findbyName(QList<HWND> v, const QString& name, HWND* phWnd)
 	//int size = v.size();
 	//for (int i = 0; i < size; ++i)
 	//{
-	//	if (!v.at(i)) continue;
-	//	if (v.at(i)->GetCharData().name == name)
+	//	if (!v.value(i)) continue;
+	//	if (v.value(i)->GetCharData().name == name)
 	//	{
 	//		if (phWnd)
-	//			*phWnd = v.at(i);
+	//			*phWnd = v.value(i);
 	//		return i;
 	//	}
 	//}
@@ -200,11 +200,11 @@ int QThumbnailForm::findbyIndex(QList<HWND> v, int index, HWND* phWnd)
 	//int size = v.size();
 	//for (int i = 0; i < size; ++i)
 	//{
-	//	if (v.at(i)) continue;
-	//	if (v.at(i)->GetIndex() == index)
+	//	if (v.value(i)) continue;
+	//	if (v.value(i)->GetIndex() == index)
 	//	{
 	//		if (phWnd)
-	//			*phWnd = v.at(i);
+	//			*phWnd = v.valuet(i);
 	//		return i;
 	//	}
 	//}
@@ -213,7 +213,7 @@ int QThumbnailForm::findbyIndex(QList<HWND> v, int index, HWND* phWnd)
 		return -1;
 
 	if (phWnd)
-		*phWnd = m_hWnds.at(index);
+		*phWnd = m_hWnds.value(index);
 
 	return index;
 };

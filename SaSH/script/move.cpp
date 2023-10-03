@@ -126,7 +126,7 @@ qint64 Interpreter::fastmove(qint64 currentIndex, qint64 currentLine, const Toke
 		else if (x >= 1 && x <= 8)
 		{
 			qint64 dir = x - 1;
-			p = injector.server->getPoint() + util::fix_point.at(dir) * 10;
+			p = injector.server->getPoint() + util::fix_point.value(dir) * 10;
 		}
 		else
 			return Parser::kArgError;
@@ -138,7 +138,7 @@ qint64 Interpreter::fastmove(qint64 currentIndex, qint64 currentLine, const Toke
 
 		DirType dir = dirMap.value(dirStr.toUpper().simplified());
 		//計算出往該方向10格的坐標
-		p = injector.server->getPoint() + util::fix_point.at(dir) * 10;
+		p = injector.server->getPoint() + util::fix_point.value(dir) * 10;
 
 	}
 

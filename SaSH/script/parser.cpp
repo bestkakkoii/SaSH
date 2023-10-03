@@ -18,11 +18,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 #include "stdafx.h"
 #include "parser.h"
-
 #include "signaldispatcher.h"
 #include "injector.h"
 #include "interpreter.h"
-
 
 //"調用" 傳參數最小佔位
 constexpr qint64 kCallPlaceHoldSize = 2;
@@ -247,20 +245,20 @@ Parser::Parser(qint64 index)
 	connect(&signalDispatcher, &SignalDispatcher::nodifyAllStop, this, &Parser::requestInterruption, Qt::UniqueConnection);
 	connect(&signalDispatcher, &SignalDispatcher::nodifyAllScriptStop, this, &Parser::requestInterruption, Qt::UniqueConnection);
 
-	if (counter_.isNull())
-		counter_.reset(new Counter());
+	if (counter_ == nullptr)
+		counter_ = new Counter();
 
-	if (globalNames_.isNull())
-		globalNames_.reset(new QStringList());
+	if (globalNames_ == nullptr)
+		globalNames_ = new QStringList();
 
-	if (localVarStack_.isNull())
-		localVarStack_.reset(new QStack<QHash<QString, QVariant>>());
+	if (localVarStack_ == nullptr)
+		localVarStack_ = new QStack<QHash<QString, QVariant>>();
 
-	if (luaLocalVarStringList_.isNull())
-		luaLocalVarStringList_.reset(new QStringList());
+	if (luaLocalVarStringList_ == nullptr)
+		luaLocalVarStringList_ = new QStringList();
 
-	if (pLua_.isNull())
-		pLua_.reset(new CLua(index));
+	if (pLua_ == nullptr)
+		pLua_ = new CLua(index);
 }
 
 Parser::~Parser()
@@ -272,20 +270,20 @@ void Parser::initialize(Parser* parent)
 {
 	qint64 index = getIndex();
 
-	if (counter_.isNull())
-		counter_.reset(new Counter());
+	if (counter_ == nullptr)
+		counter_ = new Counter();
 
-	if (globalNames_.isNull())
-		globalNames_.reset(new QStringList());
+	if (globalNames_ == nullptr)
+		globalNames_ = new QStringList();
 
-	if (localVarStack_.isNull())
-		localVarStack_.reset(new QStack<QHash<QString, QVariant>>());
+	if (localVarStack_ == nullptr)
+		localVarStack_ = new QStack<QHash<QString, QVariant>>();
 
-	if (luaLocalVarStringList_.isNull())
-		luaLocalVarStringList_.reset(new QStringList());
+	if (luaLocalVarStringList_ == nullptr)
+		luaLocalVarStringList_ = new QStringList();
 
-	if (pLua_.isNull())
-		pLua_.reset(new CLua(index));
+	if (pLua_ == nullptr)
+		pLua_ = new CLua(index);
 
 	pLua_->setHookEnabled(false);
 
@@ -311,12 +309,13 @@ void Parser::initialize(Parser* parent)
 	makeTable(lua_, "petksill", MAX_PET, MAX_SKILL);
 	makeTable(lua_, "petequip", MAX_PET, MAX_PET_ITEM);
 	makeTable(lua_, "point");
+	makeTable(lua_, "mails", MAX_ADDRESS_BOOK, MAIL_MAX_HISTORY);
 
 	insertGlobalVar("INDEX", index);
 
 	if (globalNames_->isEmpty())
 	{
-		*globalNames_ = QStringList{ "char", "pet", "item", "map", "magic", "skill", "petskill", "petequip", "dialog", "chat", "battle", "point", "team", "card", "unit", "INDEX" };
+		*globalNames_ = QStringList{ "char", "pet", "item", "map", "magic", "skill", "petskill", "petequip", "dialog", "chat", "battle", "point", "team", "card", "unit", "mails", "INDEX" };
 	}
 
 #pragma region init
@@ -720,17 +719,17 @@ void Parser::initialize(Parser* parent)
 
 			if (argList.size() > 1)
 			{
-				msg = argList.at(1);
+				msg = argList.value(1);
 			}
 
 			if (argList.size() > 2)
 			{
 				if (type == QInputDialog::IntInput)
-					var = QVariant(argList.at(2).toLongLong(&ok));
+					var = QVariant(argList.value(2).toLongLong(&ok));
 				else if (type == QInputDialog::DoubleInput)
-					var = QVariant(argList.at(2).toDouble(&ok));
+					var = QVariant(argList.value(2).toDouble(&ok));
 				else
-					var = QVariant(argList.at(2));
+					var = QVariant(argList.value(2));
 			}
 
 			emit signalDispatcher.inputBoxShow(msg, type, &var);
@@ -1714,14 +1713,17 @@ void Parser::initialize(Parser* parent)
 //讀取腳本文件並轉換成Tokens
 bool Parser::loadFile(const QString& fileName, QString* pcontent)
 {
+	const QFileInfo fi(fileName);
+	if (fi.isDir())
+		return false;
+
 	util::ScopedFile f(fileName, QIODevice::ReadOnly | QIODevice::Text);
 	if (!f.isOpen())
 	{
-		handleError(kError, QString("unable to open file:'%1'").arg(fileName));
+		handleError(kError, QObject::tr("unable to open file:'%1'").arg(fileName));
 		return false;
 	}
 
-	const QFileInfo fi(fileName);
 	const QString suffix = "." + fi.suffix();
 
 	QString c;
@@ -2930,7 +2932,7 @@ void Parser::processFunction()
 			if (i - kCallPlaceHoldSize >= args.size())
 				break;
 
-			QVariant currnetVar = args.at(i - kCallPlaceHoldSize);
+			QVariant currnetVar = args.value(i - kCallPlaceHoldSize);
 			QVariant::Type type = currnetVar.type();
 
 			if (!args.isEmpty() && (args.size() > (i - kCallPlaceHoldSize)) && (currnetVar.isValid()))
@@ -2998,7 +3000,24 @@ void Parser::processClean()
 	callStack_.clear();
 	jmpStack_.clear();
 	callArgsStack_.clear();
-	localVarStack_.clear();
+
+	if (isSubScript())
+		return;
+
+	if (counter_ != nullptr)
+		delete counter_;
+
+	if (globalNames_ != nullptr)
+		delete globalNames_;
+
+	if (localVarStack_ != nullptr)
+		delete localVarStack_;
+
+	if (luaLocalVarStringList_ != nullptr)
+		delete luaLocalVarStringList_;
+
+	if (pLua_ != nullptr)
+		delete pLua_;
 }
 
 //處理所有核心命令之外的所有命令
@@ -3170,7 +3189,7 @@ void Parser::processMultiVariable()
 	//下面是多個變量聲明和初始化必定是全局
 	for (qint64 i = 0; i < varCount; ++i)
 	{
-		QString varName = varNames.at(i);
+		QString varName = varNames.value(i);
 		if (varName.isEmpty())
 		{
 			continue;
@@ -3397,7 +3416,7 @@ bool Parser::processReturn(qint64 takeReturnFrom)
 
 	lastReturnValue_ = list;
 	if (size == 1)
-		insertGlobalVar("vret", list.at(0));
+		insertGlobalVar("vret", list.value(0));
 	else if (size > 1)
 	{
 		QString str = "{";
@@ -4082,11 +4101,9 @@ void Parser::processTokens()
 	if (mode_ == kSync && !skip)
 		exportVarInfo();
 
-	processClean();
 	lua_.collect_garbage();
+	processClean();
 
-	/*==========全部重建 : 成功 2 個，失敗 0 個，略過 0 個==========
-	  ========== 重建 開始於 1:24 PM 並使用了 01:04.591 分鐘 ==========*/
 	if (&signalDispatcher != nullptr)
 	{
 		if (injector.isScriptDebugModeEnable.load(std::memory_order_acquire) && !isSubScript())
@@ -4095,9 +4112,8 @@ void Parser::processTokens()
 				.arg(counter_->validCommand).arg(counter_->error).arg(counter_->comment).arg(counter_->space));
 		}
 		emit signalDispatcher.appendScriptLog(QObject::tr(" ========== script result : %1，cost %2 ==========")
-			.arg(isSubScript() ? QObject::tr("sub-ok") : QObject::tr("main-ok")).arg(util::formatMilliseconds(timer.elapsed())));
+			.arg("'" + getScriptFileName() + "' " + (isSubScript() ? QObject::tr("sub-ok") : QObject::tr("main-ok"))).arg(util::formatMilliseconds(timer.elapsed())));
 	}
-
 }
 
 //導出變量訊息
@@ -4437,13 +4453,12 @@ void Parser::updateSysConstKeyword(const QString& expr)
 	{
 		injector.server->updateItemByMemory();
 
-		PC _pc = injector.server->getPC();
-
 		sol::meta::unqualified_t<sol::table> item = lua_["item"];
 
+		QHash<qint64, ITEM> items = injector.server->getItems();
 		for (qint64 i = 0; i < MAX_ITEM; ++i)
 		{
-			ITEM it = _pc.item[i];
+			ITEM it = items.value(i);
 			qint64 index = i + 1;
 			if (i < CHAR_EQUIPPLACENUM)
 				index += 100;
@@ -4560,10 +4575,11 @@ void Parser::updateSysConstKeyword(const QString& expr)
 					return count;
 
 				qint64 size = itemIndexs.size();
-				PC pc = injector.server->getPC();
+
+				QHash<qint64, ITEM> items = injector.server->getItems();
 				for (const qint64 itemIndex : itemIndexs)
 				{
-					ITEM item = pc.item[itemIndex];
+					ITEM item = items.value(itemIndex);
 					if (item.valid)
 						count += item.stack;
 				}
@@ -4626,7 +4642,7 @@ void Parser::updateSysConstKeyword(const QString& expr)
 				if (index < 0 || index >= MAX_ITEM)
 					return sol::lua_nil;
 
-				ITEM item = injector.server->getPC().item[index];
+				ITEM item = injector.server->getItem(index);
 
 				sol::table t = lua.create_table();
 				t["valid"] = item.valid;
@@ -4833,7 +4849,7 @@ void Parser::updateSysConstKeyword(const QString& expr)
 
 		for (qint64 i = 0; i < size; ++i)
 		{
-			mapunit_t u = units.at(i);
+			mapunit_t u = units.value(i);
 			if (!u.isVisible)
 				continue;
 
@@ -4947,7 +4963,7 @@ void Parser::updateSysConstKeyword(const QString& expr)
 
 		for (qint64 i = 0; i < size; ++i)
 		{
-			battleobject_t obj = bt.objects.at(i);
+			battleobject_t obj = bt.objects.value(i);
 			qint64 index = i + 1;
 
 			battle[index]["valid"] = obj.maxHp > 0 && obj.level > 0 && obj.modelid > 0;
@@ -5001,7 +5017,7 @@ void Parser::updateSysConstKeyword(const QString& expr)
 			if (i >= size || !visible)
 				text = "";
 			else
-				text = dialogstrs.at(i);
+				text = dialogstrs.value(i);
 
 			qint64 index = i + 1;
 
@@ -5044,7 +5060,7 @@ void Parser::updateSysConstKeyword(const QString& expr)
 			qint64 size = dialogstrs.size();
 			for (qint64 i = 0; i < size; ++i)
 			{
-				QString cmptext = dialogstrs.at(i);
+				QString cmptext = dialogstrs.value(i);
 				for (const QString& it : list)
 				{
 					if (cmptext.contains(it))
@@ -5285,6 +5301,22 @@ void Parser::updateSysConstKeyword(const QString& expr)
 		pt["pts"] = point.points;
 		pt["vip"] = point.VIPPoints;
 	}
+
+	if (expr.contains("mails["))
+	{
+		sol::meta::unqualified_t<sol::table> mails = lua_["mails"];
+		qint64 j = 0;
+		for (qint64 i = 0; i < MAX_ADDRESS_BOOK; ++i)
+		{
+			qint64 card = i + 1;
+			MAIL_HISTORY mail = injector.server->getMailHistory(i);
+			for (qint64 j = 0; j < MAIL_MAX_HISTORY; ++j)
+			{
+				qint64 index = j + 1;
+				mails[card][index] = mail.dateStr[j].toUtf8().constData();
+			}
+		}
+	}
 }
 #pragma endregion
 
@@ -5333,7 +5365,7 @@ void Parser::processLocalVariable()
 
 	for (qint64 i = 0; i < varCount; ++i)
 	{
-		QString varName = varNames.at(i);
+		QString varName = varNames.value(i);
 		if (varName.isEmpty())
 		{
 			continue;
@@ -5408,7 +5440,7 @@ void Parser::processVariable()
 	//下面是多個變量聲明和初始化必定是全局
 	for (qint64 i = 0; i < varCount; ++i)
 	{
-		QString varName = varNames.at(i);
+		QString varName = varNames.value(i);
 		if (varName.isEmpty())
 		{
 			continue;

@@ -99,7 +99,6 @@ BattleSettingFrom::BattleSettingFrom(qint64 index, QWidget* parent)
 	, Indexer(index)
 {
 	ui.setupUi(this);
-	setIndex(index);
 	setAttribute(Qt::WA_DeleteOnClose);
 	QFont font = util::getFont();
 	setFont(font);

@@ -86,12 +86,12 @@ qint64 Interpreter::press(qint64 currentIndex, qint64 currentLine, const TokenMa
 
 				for (qint64 i = 0; i < textList.size(); ++i)
 				{
-					if (!isExact && textList.at(i).toLower().contains(newText))
+					if (!isExact && textList.value(i).toLower().contains(newText))
 					{
 						injector.server->press(i + 1, dialogid, npcId + ext);
 						break;
 					}
-					else if (isExact && textList.at(i).toLower() == newText)
+					else if (isExact && textList.value(i).toLower() == newText)
 					{
 						injector.server->press(i + 1, dialogid, npcId + ext);
 						break;
@@ -381,7 +381,7 @@ qint64 Interpreter::send(qint64 currentIndex, qint64 currentLine, const TokenMap
 		{
 			args.emplace_back(static_cast<int>(varIntValue));
 		}
-}
+	}
 
 	injector.autil.util_SendArgs(static_cast<int>(funId), args);
 

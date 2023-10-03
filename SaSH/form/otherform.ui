@@ -47,7 +47,7 @@
       <enum>QTabWidget::Rounded</enum>
      </property>
      <property name="currentIndex">
-      <number>1</number>
+      <number>4</number>
      </property>
      <property name="documentMode">
       <bool>false</bool>
@@ -58,7 +58,7 @@
      <property name="tabBarAutoHide">
       <bool>false</bool>
      </property>
-     <widget class="OpenGLWidget" name="tab_other_group">
+     <widget class="QWidget" name="tab_other_group">
       <attribute name="title">
        <string>group</string>
       </attribute>
@@ -578,7 +578,7 @@
        </item>
       </layout>
      </widget>
-     <widget class="OpenGLWidget" name="tab_other_lockpet">
+     <widget class="QWidget" name="tab_other_lockpet">
       <attribute name="title">
        <string>lockpet</string>
       </attribute>
@@ -916,17 +916,17 @@
        </item>
       </layout>
      </widget>
-     <widget class="OpenGLWidget" name="tab_other_exception">
+     <widget class="QWidget" name="tab_other_exception">
       <attribute name="title">
        <string>exception</string>
       </attribute>
      </widget>
-     <widget class="OpenGLWidget" name="tab_other_other">
+     <widget class="QWidget" name="tab_other_other">
       <attribute name="title">
        <string>other</string>
       </attribute>
      </widget>
-     <widget class="OpenGLWidget" name="tab_other_other2">
+     <widget class="QWidget" name="tab_other_other2">
       <attribute name="title">
        <string>other2</string>
       </attribute>
@@ -1116,20 +1116,14 @@
  <layoutdefault spacing="6" margin="11"/>
  <customwidgets>
   <customwidget>
-   <class>PushButton</class>
-   <extends>QPushButton</extends>
-   <header location="global">pushbutton.h</header>
-  </customwidget>
-  <customwidget>
    <class>ComboBox</class>
    <extends>QComboBox</extends>
    <header location="global">combobox.h</header>
   </customwidget>
   <customwidget>
-   <class>OpenGLWidget</class>
-   <extends>QWidget</extends>
-   <header location="global">openglwidget.h</header>
-   <container>1</container>
+   <class>PushButton</class>
+   <extends>QPushButton</extends>
+   <header location="global">pushbutton.h</header>
   </customwidget>
  </customwidgets>
  <resources/>

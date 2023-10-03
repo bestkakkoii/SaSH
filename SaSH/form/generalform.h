@@ -45,6 +45,8 @@ private:
 	void createServerList();
 	void serverListReLoad();
 
+	Q_INVOKABLE void startGameAsync();
+
 private:
 	Ui::GeneralFormClass ui;
 	AfkForm* pAfkForm_ = nullptr;

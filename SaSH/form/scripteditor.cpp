@@ -36,7 +36,6 @@ ScriptEditor::ScriptEditor(qint64 index, QWidget* parent)
 	, Indexer(index)
 {
 	ui.setupUi(this);
-
 	setAttribute(Qt::WA_DeleteOnClose);
 	setAttribute(Qt::WA_StyledBackground);
 
@@ -70,13 +69,14 @@ ScriptEditor::ScriptEditor(qint64 index, QWidget* parent)
 	//排序
 	ui.treeWidget_functionList->sortItems(0, Qt::AscendingOrder);
 
+	ui.listView_log->setTextElideMode(Qt::ElideNone);
+	ui.listView_log->setResizeMode(QListView::Adjust);
+
 	ui.widget->setIndex(index);
 
 	ui.menuBar->setMinimumWidth(100);
 
 	initStaticLabel();
-
-	ui.listView_log->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
 
 	ui.mainToolBar->show();
 
@@ -118,12 +118,12 @@ ScriptEditor::ScriptEditor(qint64 index, QWidget* parent)
 	connect(&signalDispatcher, &SignalDispatcher::callStackInfoChanged, this, &ScriptEditor::onCallStackInfoChanged, Qt::QueuedConnection);
 	connect(&signalDispatcher, &SignalDispatcher::jumpStackInfoChanged, this, &ScriptEditor::onJumpStackInfoChanged, Qt::QueuedConnection);
 
-	QList <OpenGLWidget*> glWidgetList = util::findWidgets<OpenGLWidget>(this);
-	for (auto& glWidget : glWidgetList)
-	{
-		if (glWidget)
-			glWidget->setBackgroundColor(QColor(31, 31, 31));
-	}
+	//QList <OpenGLWidget*> glWidgetList = util::findWidgets<OpenGLWidget>(this);
+	//for (auto& glWidget : glWidgetList)
+	//{
+	//	if (glWidget)
+	//		glWidget->setBackgroundColor(QColor(31, 31, 31));
+	//}
 
 	Injector& injector = Injector::getInstance(index);
 	if (!injector.scriptLogModel.isNull())
@@ -831,9 +831,9 @@ QString ScriptEditor::getFullPath(TreeWidgetItem* item)
 	qint64 count = (static_cast<qint64>(filepath.size()) - 1);
 	for (qint64 i = count; i >= 0; i--) //QStringlist類filepath反向存著初始item的路徑
 	{ //將filepath反向輸出，相應的加入’/‘
-		if (filepath.at(i).isEmpty())
+		if (filepath.value(i).isEmpty())
 			continue;
-		strpath += filepath.at(i);
+		strpath += filepath.value(i);
 		if (i != 0)
 			strpath += "/";
 	}
@@ -1009,7 +1009,7 @@ void ScriptEditor::setStepMarks()
 		index = i + 1;
 		bk = markers.value(index);
 		bk.line = index;
-		bk.content = list.at(i);
+		bk.content = list.value(i);
 		bk.maker = static_cast<qint64>(CodeEditor::SymbolHandler::SYM_STEP);
 		markers.insert(index, bk);
 	}
@@ -1118,7 +1118,7 @@ void ScriptEditor::on_comboBox_labels_clicked()
 	qint64 count = conlist.size();
 	for (qint64 i = 0; i < count; ++i)
 	{
-		const QString linestr = conlist.at(i).simplified();
+		const QString linestr = conlist.value(i).simplified();
 		if (linestr.isEmpty())
 			continue;
 		QRegularExpressionMatchIterator it = rex_divLabel.globalMatch(linestr);
@@ -1168,7 +1168,7 @@ void ScriptEditor::on_comboBox_functions_clicked()
 	qint64 count = conlist.size();
 	for (qint64 i = 0; i < count; ++i)
 	{
-		const QString linestr = conlist.at(i).simplified();
+		const QString linestr = conlist.value(i).simplified();
 		if (linestr.isEmpty())
 			continue;
 		QRegularExpressionMatchIterator it = rex_divLabel.globalMatch(linestr);
@@ -1642,15 +1642,19 @@ void ScriptEditor::onScriptTreeWidgetDoubleClicked(QTreeWidgetItem* item, int co
 		qint64 count = (static_cast<qint64>(filepath.size()) - 1);
 		for (qint64 i = count; i >= 0; i--) //QStringlist類filepath反向存著初始item的路徑
 		{ //將filepath反向輸出，相應的加入’/‘
-			if (filepath.at(i).isEmpty())
+			if (filepath.value(i).isEmpty())
 				continue;
-			strpath += filepath.at(i);
+			strpath += filepath.value(i);
 			if (i != 0)
 				strpath += "/";
 		}
 
 		strpath = util::applicationDirPath() + "/script/" + strpath;
 		strpath.replace("*", "");
+
+		QFileInfo fileinfo(strpath);
+		if (!fileinfo.isFile())
+			break;
 
 		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currnetIndex);
 		emit signalDispatcher.addForwardMarker(-1, false);
@@ -1830,7 +1834,7 @@ void ScriptEditor::onActionTriggered()
 		fd.setWindowModality(Qt::WindowModal);
 		if (fd.exec() == QDialog::Accepted)
 		{
-			const QString f(fd.selectedFiles().at(0));
+			const QString f(fd.selectedFiles().value(0));
 			if (f.isEmpty()) return;
 
 			QFile file(f);
@@ -2312,14 +2316,14 @@ void ScriptEditor::onVarInfoImport(void* p, const QVariantHash& d, const QString
 
 void ScriptEditor::onCallStackInfoChanged(const QVariant& var)
 {
-	QVector<QPair<qint64, QString>> vec = var.value<QVector<QPair<qint64, QString>>>();
-	stackInfoImport(ui.treeWidget_debuger_callstack, vec);
+	//QVector<QPair<qint64, QString>> vec = var.value<QVector<QPair<qint64, QString>>>();
+	//stackInfoImport(ui.treeWidget_debuger_callstack, vec);
 }
 
 void ScriptEditor::onJumpStackInfoChanged(const QVariant& var)
 {
-	QVector<QPair<qint64, QString>> vec = var.value<QVector<QPair<qint64, QString>>>();
-	stackInfoImport(ui.treeWidget_debuger_jmpstack, vec);
+	//QVector<QPair<qint64, QString>> vec = var.value<QVector<QPair<qint64, QString>>>();
+	//stackInfoImport(ui.treeWidget_debuger_jmpstack, vec);
 }
 
 void ScriptEditor::onEncryptSave()
@@ -2551,8 +2555,8 @@ void ScriptEditor::createTreeWidgetItems(Parser* pparser, QList<QTreeWidgetItem*
 			if (l.size() != 2)
 				continue;
 
-			QString field = l.at(0) == "global" ? QObject::tr("GLOBAL") : QObject::tr("LOCAL");
-			QString varName = l.at(1);
+			QString field = l.value(0) == "global" ? QObject::tr("GLOBAL") : QObject::tr("LOCAL");
+			QString varName = l.value(1);
 			QString varType;
 			QString varValueStr;
 			QVariant var = it.value();

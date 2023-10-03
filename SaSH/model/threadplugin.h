@@ -38,14 +38,12 @@ public:
 	{
 		std::set_terminate(ExceptionHandler::handleTerminate);
 		std::set_new_handler(ExceptionHandler::handleOutOfMemory);
-		qDebug() << "ExceptionHandler";
 	}
 
 	virtual ~ExceptionHandler()
 	{
 		std::set_terminate(nullptr);
 		std::set_new_handler(nullptr);
-		qDebug() << "~ExceptionHandler";
 	}
 
 	static void handleTerminate()

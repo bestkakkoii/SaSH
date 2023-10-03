@@ -424,11 +424,10 @@ bool CLuaUtil::getItem(sol::table dstTable, sol::this_state s)
 	//clear table
 	dstTable.clear();
 
-	PC pc = injector.server->getPC();
-
+	QHash<qint64, ITEM> items = injector.server->getItems();
 	for (int i = 0; i < MAX_ITEM; ++i)
 	{
-		ITEM item = pc.item[i];
+		ITEM item = items.value(i);
 
 		if (!dstTable[i + 1].is<sol::table>())
 			dstTable[i + 1] = lua.create_table();

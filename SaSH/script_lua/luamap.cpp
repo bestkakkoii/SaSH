@@ -467,7 +467,7 @@ bool __fastcall findPathProcess(
 			qint64 dir = injector.server->setCharFaceToPoint(lastTryPoint);
 			if (dir == -1)
 				dir = injector.server->getPC().dir;
-			point = src + util::fix_point.at(dir);
+			point = src + util::fix_point.value(dir);
 			blockList.insert(point);
 			blockList.insert(lastTryPoint);
 			if (recordedStep == -1)
@@ -618,9 +618,9 @@ qint64 CLuaMap::findPath(sol::object p1, sol::object p2, sol::object p3, sol::ob
 		{
 			bool ok = false;
 
-			point.setX(strList.at(0).toLongLong(&ok));
+			point.setX(strList.value(0).toLongLong(&ok));
 			if (ok)
-				point.setY(strList.at(1).toLongLong(&ok));
+				point.setY(strList.value(1).toLongLong(&ok));
 			if (!ok)
 				return FALSE;
 		}

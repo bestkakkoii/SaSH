@@ -115,7 +115,8 @@ MainObject::MainObject(qint64 index, QObject* parent)
 MainObject::~MainObject()
 {
 	qDebug() << "MainObject is destroyed!!";
-	mem::freeUnuseMemory(GetCurrentProcess());
+	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(getIndex());
+	emit signalDispatcher.setStartButtonEnabled(true);
 }
 
 void MainObject::run()
@@ -253,7 +254,6 @@ void MainObject::mainProc()
 	QElapsedTimer freeSelfMemTimer; freeSelfMemTimer.start();
 
 	mem::freeUnuseMemory(injector.getProcess());
-	mem::freeUnuseMemory(GetCurrentProcess());
 
 	bool nodelay = false;
 	for (;;)
@@ -263,7 +263,7 @@ void MainObject::mainProc()
 			nodelay = false;
 		}
 		else
-			QThread::msleep(100);
+			QThread::msleep(200);
 
 		//檢查是否接收到停止執行的訊號
 		if (isInterruptionRequested())
@@ -297,10 +297,9 @@ void MainObject::mainProc()
 		else
 			freeMemTimer.restart();
 
-		if (injector.getEnableHash(util::kAutoFreeMemoryEnable) && freeSelfMemTimer.hasExpired(10ll * 60ll * 1000ll))
+		if (injector.getEnableHash(util::kAutoFreeMemoryEnable) && freeSelfMemTimer.hasExpired(60ll * 60ll * 1000ll))
 		{
 			freeSelfMemTimer.restart();
-			mem::freeUnuseMemory(GetCurrentProcess());
 			injector.server->mapAnalyzer->clear();
 		}
 		else
@@ -508,7 +507,6 @@ qint64 MainObject::checkAndRunFunctions()
 		injector.server->EO();
 		mem::write<int>(injector.getProcess(), injector.getProcessModule() + 0x4200000, 0);
 		mem::freeUnuseMemory(injector.getProcess());
-		mem::freeUnuseMemory(GetCurrentProcess());
 		return 2;
 	}
 
@@ -684,13 +682,14 @@ void MainObject::setUserDatas()
 
 	QStringList itemNames;
 	qint64 index = 0;
-	auto items = injector.server->getPC().item;
+
+	QHash<qint64, ITEM> items = injector.server->getItems();
 	for (qint64 index = CHAR_EQUIPPLACENUM; index < MAX_ITEM; ++index)
 	{
-		if (items[index].name.isEmpty() || !items[index].valid)
+		if (items.value(index).name.isEmpty() || !items.value(index).valid)
 			continue;
 
-		itemNames.append(items[index].name);
+		itemNames.append(items.value(index).name);
 	}
 
 	injector.setUserData(util::kUserItemNames, itemNames);
@@ -732,22 +731,25 @@ void MainObject::checkControl()
 	//登出按下，異步登出
 	if (injector.getEnableHash(util::kLogOutEnable))
 	{
-		injector.server->logOut();
 		injector.setEnableHash(util::kLogOutEnable, false);
+		if (!injector.server.isNull())
+			injector.server->logOut();
 	}
 
 	//回點按下，異步回點
 	if (injector.getEnableHash(util::kLogBackEnable))
 	{
-		injector.server->logBack();
 		injector.setEnableHash(util::kLogBackEnable, false);
+		if (!injector.server.isNull())
+			injector.server->logBack();
 	}
 
 	//EO按下，異步發送EO
 	if (injector.getEnableHash(util::kEchoEnable))
 	{
-		injector.server->EO();
 		injector.setEnableHash(util::kEchoEnable, false);
+		if (!injector.server.isNull())
+			injector.server->EO();
 	}
 
 	//////////////////////////////
@@ -1174,9 +1176,10 @@ void MainObject::checkAutoDropItems()
 	if (dropItems.isEmpty())
 		return;
 
+	QHash<qint64, ITEM> items = injector.server->getItems();
 	for (qint64 i = 0; i < MAX_ITEM; ++i)
 	{
-		ITEM item = injector.server->getPC().item[i];
+		ITEM item = items.value(i);
 		if (item.name.isEmpty())
 			continue;
 
@@ -1220,6 +1223,7 @@ void MainObject::checkAutoDropMeat(const QStringList& item)
 	constexpr const char* meat = "肉";
 	constexpr const char* memo = "耐久力";
 
+	QHash<qint64, ITEM> items = injector.server->getItems();
 	if (!item.isEmpty())
 	{
 		for (const QString& it : item)
@@ -1234,9 +1238,11 @@ void MainObject::checkAutoDropMeat(const QStringList& item)
 	}
 	else
 	{
-		PC pc = injector.server->getPC();
-		for (const ITEM& it : pc.item)
+		for (const ITEM& it : items)
 		{
+			if (!it.valid)
+				continue;
+
 			QString newItemNmae = it.name.simplified();
 			if (!newItemNmae.isEmpty() && newItemNmae.contains(meat))
 			{
@@ -1250,9 +1256,12 @@ void MainObject::checkAutoDropMeat(const QStringList& item)
 		return;
 
 	qint64 index = 0;
-	PC pc = injector.server->getPC();
-	for (const ITEM& item : pc.item)
+
+	for (const ITEM& item : items)
 	{
+		if (!item.valid)
+			continue;
+
 		QString newItemNmae = item.name.simplified();
 		QString newItemMemo = item.memo.simplified();
 		if (newItemNmae.contains(meat))
@@ -1383,8 +1392,8 @@ void MainObject::checkAutoJoin()
 							QStringList list = leader.split(util::rexOR);
 							if (list.size() == 2)
 							{
-								leader = list.at(0);
-								freeName = list.at(1);
+								leader = list.value(0);
+								freeName = list.value(1);
 							}
 						}
 
@@ -1396,7 +1405,7 @@ void MainObject::checkAutoJoin()
 						current_point = injector.server->getPoint();
 						if (current_point == unit.p)
 						{
-							injector.server->move(current_point + util::fix_point.at(QRandomGenerator::global()->bounded(0, 7)));
+							injector.server->move(current_point + util::fix_point.value(QRandomGenerator::global()->bounded(0, 7)));
 							continue;
 						}
 
@@ -1617,7 +1626,7 @@ void MainObject::checkAutoHeal()
 					if (itemIndex == -1)
 						break;
 
-					qint64 targetType = injector.server->getPC().item[itemIndex].target;
+					qint64 targetType = injector.server->getItem(itemIndex).target;
 					if ((targetType != ITEM_TARGET_MYSELF) && (targetType != ITEM_TARGET_OTHER))
 						break;
 
@@ -1889,7 +1898,7 @@ void MainObject::checkAutoLockSchedule()
 					if (args.isEmpty() || args.size() != 3)
 						continue;
 
-					QString name = args.at(0).simplified();
+					QString name = args.value(0).simplified();
 					if (name.isEmpty())
 						continue;
 
@@ -1904,7 +1913,7 @@ void MainObject::checkAutoLockSchedule()
 					if (petIndex < 0 || petIndex >= MAX_PET)
 						continue;
 
-					QString levelStr = args.at(1).simplified();
+					QString levelStr = args.value(1).simplified();
 					if (levelStr.isEmpty())
 						continue;
 
@@ -1916,7 +1925,7 @@ void MainObject::checkAutoLockSchedule()
 					if (level < 0 || level > 255)
 						continue;
 
-					QString typeStr = args.at(2).simplified();
+					QString typeStr = args.value(2).simplified();
 					if (typeStr.isEmpty())
 						continue;
 
@@ -2024,9 +2033,10 @@ void MainObject::checkAutoEatBoostExpItem()
 	if (injector.server->getBattleFlag())
 		return;
 
+	QHash<qint64, ITEM> items = injector.server->getItems();
 	for (qint64 i = 0; i < MAX_ITEM; ++i)
 	{
-		ITEM item = injector.server->getPC().item[i];
+		ITEM item = items.value(i);
 		if (item.name.isEmpty() || item.memo.isEmpty() || !item.valid)
 			continue;
 
@@ -2088,7 +2098,7 @@ void MainObject::checkRecordableNpcInfo()
 				d.name = unit.name;
 
 				//npc前方一格
-				QPoint newPoint = util::fix_point.at(unit.dir) + unit.p;
+				QPoint newPoint = util::fix_point.value(unit.dir) + unit.p;
 				//檢查是否可走
 				if (injector.server->mapAnalyzer->isPassable(astar, nowFloor, nowPoint, newPoint))
 				{
@@ -2098,7 +2108,7 @@ void MainObject::checkRecordableNpcInfo()
 				else
 				{
 					//再往前一格
-					QPoint additionPoint = util::fix_point.at(unit.dir) + newPoint;
+					QPoint additionPoint = util::fix_point.value(unit.dir) + newPoint;
 					//檢查是否可走
 					if (injector.server->mapAnalyzer->isPassable(astar, nowFloor, nowPoint, additionPoint))
 					{
@@ -2111,7 +2121,7 @@ void MainObject::checkRecordableNpcInfo()
 						bool flag = false;
 						for (qint64 i = 0; i < 8; ++i)
 						{
-							newPoint = util::fix_point.at(i) + unit.p;
+							newPoint = util::fix_point.value(i) + unit.p;
 							if (injector.server->mapAnalyzer->isPassable(astar, nowFloor, nowPoint, newPoint))
 							{
 								d.x = newPoint.x();
@@ -2165,26 +2175,26 @@ void MainObject::checkRecordableNpcInfo()
 					continue;
 
 				bool ok = false;
-				const qint64 floor = entranceData.at(0).toLongLong(&ok);
+				const qint64 floor = entranceData.value(0).toLongLong(&ok);
 				if (!ok)
 					continue;
 
-				const QString pointStr(entranceData.at(1));
+				const QString pointStr(entranceData.value(1));
 				const QStringList pointData(pointStr.split(util::rexComma));
 				if (pointData.size() != 2)
 					continue;
 
-				qint64 x = pointData.at(0).toLongLong(&ok);
+				qint64 x = pointData.value(0).toLongLong(&ok);
 				if (!ok)
 					continue;
 
-				qint64 y = pointData.at(1).toLongLong(&ok);
+				qint64 y = pointData.value(1).toLongLong(&ok);
 				if (!ok)
 					continue;
 
 				const QPoint pos(x, y);
 
-				const QString name(entranceData.at(2));
+				const QString name(entranceData.value(2));
 
 				util::MapData d;
 				d.floor = floor;

@@ -666,6 +666,12 @@ void AfkForm::onSpinBoxValueChanged(int value)
 		injector.setValueHash(util::kBattleActionDelayValue, value);
 		return;
 	}
+
+	if (name == "spinBox_resend_delay")
+	{
+		injector.setValueHash(util::kBattleResendDelayValue, value);
+		return;
+	}
 }
 
 void AfkForm::onComboBoxCurrentIndexChanged(int value)
@@ -967,6 +973,9 @@ void AfkForm::onResetControlTextLanguage()
 		if (combo->hasFocus())
 			return;
 
+		if (combo->view()->hasFocus())
+			return;
+
 		combo->clear();
 		combo->addItem(tr("not use"));
 		for (qint64 i = 1; i <= 100; ++i)
@@ -984,6 +993,9 @@ void AfkForm::onResetControlTextLanguage()
 			return;
 
 		if (combo->hasFocus())
+			return;
+
+		if (combo->view()->hasFocus())
 			return;
 
 		combo->clear();
@@ -1005,6 +1017,9 @@ void AfkForm::onResetControlTextLanguage()
 		if (combo->hasFocus())
 			return;
 
+		if (combo->view()->hasFocus())
+			return;
+
 		combo->clear();
 		for (qint64 i = 1; i <= 100; ++i)
 		{
@@ -1021,6 +1036,9 @@ void AfkForm::onResetControlTextLanguage()
 			return;
 
 		if (combo->hasFocus())
+			return;
+
+		if (combo->view()->hasFocus())
 			return;
 
 		combo->clear();
@@ -1040,6 +1058,9 @@ void AfkForm::onResetControlTextLanguage()
 			return;
 
 		if (combo->hasFocus())
+			return;
+
+		if (combo->view()->hasFocus())
 			return;
 
 		combo->clear();
@@ -1075,6 +1096,12 @@ void AfkForm::onResetControlTextLanguage()
 	auto appendNumbers = [](QComboBox* combo, qint64 max)->void
 	{
 		if (combo == nullptr)
+			return;
+
+		if (combo->hasFocus())
+			return;
+
+		if (combo->view()->hasFocus())
 			return;
 
 		combo->clear();
@@ -1270,6 +1297,9 @@ void AfkForm::onApplyHashSettingsToUI()
 	ui.spinBox_autodroppet_aggregate->setValue(valueHash.value(util::kDropPetAggregateValue));
 	ui.lineEdit_autodroppet_name->setText(stringHash.value(util::kDropPetNameString));
 
+
+	ui.spinBox_resend_delay->setValue(valueHash.value(util::kBattleResendDelayValue));
+
 	updateTargetButtonText();
 }
 
@@ -1286,6 +1316,9 @@ void AfkForm::onUpdateComboBoxItemText(qint64 type, const QStringList& textList)
 			return;
 
 		if (combo->hasFocus())
+			return;
+
+		if (combo->view()->hasFocus())
 			return;
 
 		combo->blockSignals(true);
@@ -1347,6 +1380,9 @@ void AfkForm::onUpdateComboBoxItemText(qint64 type, const QStringList& textList)
 			if (combo->hasFocus())
 				return;
 
+			if (combo->view()->hasFocus())
+				return;
+
 			combo->blockSignals(true);
 			combo->setUpdatesEnabled(false);
 			qint64 nOriginalIndex = combo->currentIndex();
@@ -1390,10 +1426,10 @@ void AfkForm::onUpdateComboBoxItemText(qint64 type, const QStringList& textList)
 			if (!injector.server.isNull() && injector.server->getOnlineFlag() && combo == ui.comboBox_magicheal_normal)
 			{
 
-				PC pc = injector.server->getPC();
+				QHash<qint64, ITEM> items = injector.server->getItems();
 				for (qint64 i = CHAR_EQUIPPLACENUM; i < MAX_ITEM; ++i)
 				{
-					ITEM item = pc.item[i];
+					ITEM item = items.value(i);
 					QString text = QString("%1:%2").arg(i - CHAR_EQUIPPLACENUM + 1).arg(item.name);
 					combo->addItem(text);
 					qint64 index = combo->count() - 1;

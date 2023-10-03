@@ -6,3 +6,5 @@
 #define Q_REQUIRED_RESULT [[nodiscard]]
 #define Q_DECLARE_METATYPE(TYPE) Q_DECLARE_METATYPE_IMPL(TYPE)
 #define slots
+#define Q_INVOKABLE QT_ANNOTATE_FUNCTION(qt_invokable)
+#define Q_INVOKABLE

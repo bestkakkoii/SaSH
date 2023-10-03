@@ -183,7 +183,7 @@ void FindDialog::onFindClicked()
 	{
 		for (qint64 i = startLine; i < strList.size(); ++i)
 		{
-			QString lineText = strList.at(i);
+			QString lineText = strList.value(i);
 
 			nowStartIndex = lineText.indexOf(cmpText, nowStartIndex, caseSensitivity);
 			if (nowStartIndex == -1)
@@ -207,7 +207,7 @@ void FindDialog::onFindClicked()
 	{
 		for (qint64 i = startLine; i >= 0; --i)
 		{
-			QString lineText = strList.at(i);
+			QString lineText = strList.value(i);
 
 			qint64 lineLength = lineText.length();
 			nowStartIndex = lineText.lastIndexOf(cmpText, nowStartIndex, caseSensitivity);

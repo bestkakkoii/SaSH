@@ -111,26 +111,26 @@ MapWidget::MapWidget(qint64 index, QWidget* parent)
 			continue;
 
 		bool ok = false;
-		const qint64 floor = entranceData.at(0).toLongLong(&ok);
+		const qint64 floor = entranceData.value(0).toLongLong(&ok);
 		if (!ok)
 			continue;
 
-		const QString pointStr(entranceData.at(1));
+		const QString pointStr(entranceData.value(1));
 		const QStringList pointData(pointStr.split(util::rexComma));
 		if (pointData.size() != 2)
 			continue;
 
-		qint64 x = pointData.at(0).toLongLong(&ok);
+		qint64 x = pointData.value(0).toLongLong(&ok);
 		if (!ok)
 			continue;
 
-		qint64 y = pointData.at(1).toLongLong(&ok);
+		qint64 y = pointData.value(1).toLongLong(&ok);
 		if (!ok)
 			continue;
 
 		const QPoint pos(x, y);
 
-		const QString name(entranceData.at(2));
+		const QString name(entranceData.value(2));
 
 
 		if (!preEntrances.contains(floor))
@@ -961,8 +961,8 @@ void MapWidget::on_tableWidget_NPCList_cellDoubleClicked(int row, int)
 		return;
 
 	bool okx, oky;
-	qint64 x = list.at(0).toLongLong(&okx);
-	qint64 y = list.at(1).toLongLong(&oky);
+	qint64 x = list.value(0).toLongLong(&okx);
+	qint64 y = list.value(1).toLongLong(&oky);
 	if (!okx || !oky)
 		return;
 
@@ -1008,7 +1008,7 @@ void MapWidget::on_tableWidget_NPCList_cellDoubleClicked(int row, int)
 	qint64 floor = injector.server->getFloor();
 	QPoint point = injector.server->getPoint();
 	//npc前方一格
-	QPoint newPoint = util::fix_point.at(unit.dir) + unit.p;
+	QPoint newPoint = util::fix_point.value(unit.dir) + unit.p;
 
 	//檢查是否可走
 	if (injector.server->mapAnalyzer->isPassable(astar, floor, point, newPoint))
@@ -1019,7 +1019,7 @@ void MapWidget::on_tableWidget_NPCList_cellDoubleClicked(int row, int)
 	else
 	{
 		//再往前一格
-		QPoint additionPoint = util::fix_point.at(unit.dir) + newPoint;
+		QPoint additionPoint = util::fix_point.value(unit.dir) + newPoint;
 		//檢查是否可走
 		if (injector.server->mapAnalyzer->isPassable(astar, floor, point, additionPoint))
 		{
@@ -1032,7 +1032,7 @@ void MapWidget::on_tableWidget_NPCList_cellDoubleClicked(int row, int)
 			bool flag = false;
 			for (qint64 i = 0; i < 8; ++i)
 			{
-				newPoint = util::fix_point.at(i) + unit.p;
+				newPoint = util::fix_point.value(i) + unit.p;
 				if (injector.server->mapAnalyzer->isPassable(astar, floor, point, newPoint))
 				{
 					x = newPoint.x();

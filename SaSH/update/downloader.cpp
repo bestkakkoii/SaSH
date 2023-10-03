@@ -748,17 +748,17 @@ void extractZip(const QString& savepath, const QString& filepath)
 
 	for (qint64 i = 0; i < zipreader.fileInfoList().size(); ++i)
 	{
-		QStringList paths = zipreader.fileInfoList().at(i).filePath.split("/");
+		QStringList paths = zipreader.fileInfoList().value(i).filePath.split("/");
 		paths.removeLast();
 		QString path = paths.join("/");
 		QDir subdir(savepath + "/" + path);
 		if (!subdir.exists())
 			dir.mkpath(QString("%1").arg(savepath + "/" + path));
 
-		QFile file(savepath + "/" + zipreader.fileInfoList().at(i).filePath);
+		QFile file(savepath + "/" + zipreader.fileInfoList().value(i).filePath);
 		file.open(QIODevice::WriteOnly);
 
-		QByteArray dt = zipreader.fileInfoList().at(i).filePath.toUtf8();
+		QByteArray dt = zipreader.fileInfoList().value(i).filePath.toUtf8();
 		QString strtemp = util::toQString(dt);
 
 		QByteArray array = zipreader.fileData(strtemp);

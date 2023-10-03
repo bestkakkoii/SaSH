@@ -327,6 +327,7 @@ enum JumpBehavior
 	FailedJump,
 };
 
+class Interpreter;
 class Parser : public ThreadPlugin
 {
 	Q_OBJECT
@@ -381,29 +382,60 @@ public:
 	inline Q_REQUIRED_RESULT QList<ForNode> getForNodeList() const { return forNodeList_; }
 	inline Q_REQUIRED_RESULT QList<LuaNode> getLuaNodeList() const { return luaNodeList_; }
 	inline Q_REQUIRED_RESULT qint64 getCurrentLine() const { return lineNumber_; }
-	inline Q_REQUIRED_RESULT QSharedPointer<QStringList> getGlobalNameListPointer() const { return globalNames_; }
+	inline Q_REQUIRED_RESULT QStringList* getGlobalNameListPointer() const { return globalNames_; }
 	inline Q_REQUIRED_RESULT bool isSubScript() const { return isSubScript_; }
 	inline Q_REQUIRED_RESULT QHash<QString, qint64> getLabels() { return labels_; }
-	inline Q_REQUIRED_RESULT QSharedPointer<Counter> getCounterPointer() const { return counter_; }
-	inline Q_REQUIRED_RESULT QSharedPointer<QStack<QVariantHash>> getLocalVarStackPointer() const { return localVarStack_; }
-	inline Q_REQUIRED_RESULT QSharedPointer<QStringList> getLuaLocalVarStringListPointer() const { return luaLocalVarStringList_; }
+	inline Q_REQUIRED_RESULT Counter* getCounterPointer() const { return counter_; }
+	inline Q_REQUIRED_RESULT QStack<QVariantHash>* getLocalVarStackPointer() const { return localVarStack_; }
+	inline Q_REQUIRED_RESULT QStringList* getLuaLocalVarStringListPointer() const { return luaLocalVarStringList_; }
+	inline Q_REQUIRED_RESULT Parser::Mode getMode() const { return mode_; }
+	inline Q_REQUIRED_RESULT Parser* getParent() const { return parent_; }
+	inline Q_REQUIRED_RESULT Interpreter* getInterpreter() const { return interpreter_; }
 
 	inline void setScriptFileName(const QString& scriptFileName) { scriptFileName_ = scriptFileName; }
 	inline void setCurrentLine(const qint64 line) { lineNumber_ = line; }
 	inline void setPrivate(bool isPrivate) { isPrivate_ = isPrivate; }
 	inline void setMode(Mode mode) { mode_ = mode; }
+	inline void setInterpreter(Interpreter* interpreter) { interpreter_ = interpreter; }
+	inline void setParent(Parser* parent) { parent_ = parent; }
 	inline void setTokens(const QHash<qint64, TokenMap>& tokens) { tokens_ = tokens; }
 	inline void setLabels(const QHash<QString, qint64>& labels) { labels_ = labels; }
 	inline void setFunctionNodeList(const QList<FunctionNode>& functionNodeList) { functionNodeList_ = functionNodeList; }
 	inline void setForNodeList(const QList<ForNode>& forNodeList) { forNodeList_ = forNodeList; }
 	inline void setLuaNodeList(const QList<LuaNode>& luaNodeList) { luaNodeList_ = luaNodeList; }
 	inline void setCallBack(ParserCallBack callBack) { callBack_ = callBack; }
-	inline void setGlobalNameListPointer(const QSharedPointer<QStringList>& globalNames) { globalNames_ = globalNames; }
 	inline void setSubScript(bool isSubScript) { isSubScript_ = isSubScript; }
-	inline void setLuaMachinePointer(QSharedPointer<CLua> pLua) { pLua_ = pLua; }
-	inline void setCounterPointer(QSharedPointer<Counter> counter) { counter_ = counter; }
-	inline void setLocalVarStackPointer(const QSharedPointer<QStack<QVariantHash>>& localVarStack) { localVarStack_ = localVarStack; }
-	inline void setLuaLocalVarStringListPointer(const QSharedPointer<QStringList>& luaLocalVarStringList) { luaLocalVarStringList_ = luaLocalVarStringList; }
+
+	inline void setGlobalNameListPointer(QStringList* globalNames)
+	{
+		if (globalNames_ != nullptr)
+			delete globalNames_;
+		globalNames_ = globalNames;
+	}
+	inline void setLuaMachinePointer(CLua* pLua)
+	{
+		if (pLua_ != nullptr)
+			delete pLua_;
+		pLua_ = pLua;
+	}
+	inline void setCounterPointer(Counter* counter)
+	{
+		if (counter_ != nullptr)
+			delete counter_;
+		counter_ = counter;
+	}
+	inline void setLocalVarStackPointer(QStack<QVariantHash>* localVarStack)
+	{
+		if (localVarStack_ != nullptr)
+			delete localVarStack_;
+		localVarStack_ = localVarStack;
+	}
+	inline void setLuaLocalVarStringListPointer(QStringList* luaLocalVarStringList)
+	{
+		if (luaLocalVarStringList_ != nullptr)
+			delete luaLocalVarStringList_;
+		luaLocalVarStringList_ = luaLocalVarStringList;
+	}
 
 	bool loadFile(const QString& fileName, QString* pcontent);
 	bool loadString(const QString& content);
@@ -555,10 +587,11 @@ private:
 	void generateStackInfo(qint64 type);
 
 public:
-	QSharedPointer<CLua> pLua_;
+	CLua* pLua_ = nullptr;
 
 private:
-
+	Parser* parent_ = nullptr;
+	Interpreter* interpreter_ = nullptr;
 	Lexer lexer_;
 
 	QHash<quint64, QSharedPointer<QElapsedTimer>> timerMap_;
@@ -572,9 +605,10 @@ private:
 	QList<ForNode> forNodeList_;
 	QList<LuaNode> luaNodeList_;
 
-	QSharedPointer<QStringList> globalNames_;				//全局變量名稱
-	QSharedPointer<QStack<QVariantHash>> localVarStack_;	//局變量棧
-	QSharedPointer<QStringList> luaLocalVarStringList_;		//lua局變量
+	QStringList* globalNames_ = nullptr;				//全局變量名稱
+	QStack<QVariantHash>* localVarStack_ = nullptr;	//局變量棧
+	QStringList* luaLocalVarStringList_ = nullptr;		//lua局變量
+	Counter* counter_ = nullptr;
 
 	QHash<QString, QString> userRegCallBack_;				//用戶註冊的回調函數
 	QHash<QString, CommandRegistry> commandRegistry_;		//所有已註冊的腳本命令函數指針
@@ -601,6 +635,4 @@ private:
 	bool isSubScript_ = false;								//是否是子腳本		
 
 	bool luaBegin_ = false;									//lua代碼塊開始標記
-
-	QSharedPointer<Counter> counter_;
 };

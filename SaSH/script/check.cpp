@@ -228,7 +228,7 @@ qint64 Interpreter::waitdlg(qint64 currentIndex, qint64 currentLine, const Token
 				if (index < 0 || index >= dialogStrList.size())
 					break;
 
-				QString text = dialogStrList.at(index).simplified();
+				QString text = dialogStrList.value(index).simplified();
 				if (text.isEmpty())
 					continue;
 
@@ -317,7 +317,7 @@ qint64 Interpreter::waitsay(qint64 currentIndex, qint64 currentLine, const Token
 				continue;
 			if (i > list.size())
 				break;
-			QString text = list.at(i - 1).second.simplified();
+			QString text = list.value(i - 1).second.simplified();
 			if (text.isEmpty())
 				continue;
 
@@ -391,8 +391,8 @@ qint64 Interpreter::waitpos(qint64 currentIndex, qint64 currentLine, const Token
 				continue;
 
 			bool ok1, ok2;
-			qint64 x = pos.at(0).toLongLong(&ok1);
-			qint64 y = pos.at(1).toLongLong(&ok2);
+			qint64 x = pos.value(0).toLongLong(&ok1);
+			qint64 y = pos.value(1).toLongLong(&ok2);
 			if (ok1 && ok2)
 				posList.push_back(QPoint(x, y));
 		}

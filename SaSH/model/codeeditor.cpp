@@ -324,7 +324,7 @@ void CodeEditor::dropEvent(QDropEvent* e)
 		return;
 
 	//只取締一個
-	QString path = e->mimeData()->urls().at(0).toLocalFile();
+	QString path = e->mimeData()->urls().value(0).toLocalFile();
 
 	if (path.isEmpty())
 		return;
@@ -408,7 +408,7 @@ void CodeEditor::commentSwitch()
 		//and finally add back to widget by useing setText(str);
 		bool allcomment = false;
 		QString retstring("");
-		if (v.at(0).simplified().indexOf("//") == -1 && v.at(0).simplified().indexOf("/*") == -1)
+		if (v.value(0).simplified().indexOf("//") == -1 && v.value(0).simplified().indexOf("/*") == -1)
 		{
 			allcomment = true;
 		}
@@ -418,17 +418,17 @@ void CodeEditor::commentSwitch()
 			//else if allcomment is false remove first command mark for each line if it has
 			if (allcomment)
 			{
-				const QString tmp("//" + v.at(i));
+				const QString tmp("//" + v.value(i));
 				v[i] = tmp;
 			}
 			else
 			{
-				if (v.at(i).simplified().indexOf("//") == 0 || v.at(i).simplified().indexOf("/*") == 0)
+				if (v.value(i).simplified().indexOf("//") == 0 || v.value(i).simplified().indexOf("/*") == 0)
 				{
-					int index = v.at(i).indexOf("//");
+					int index = v.value(i).indexOf("//");
 					if (index == -1)
 					{
-						index = v.at(i).indexOf("/*");
+						index = v.value(i).indexOf("/*");
 					}
 					//remove first "--"
 					Q_UNUSED(v[i].remove(index, 2));

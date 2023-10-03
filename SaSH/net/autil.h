@@ -34,7 +34,7 @@ constexpr size_t PERSONALKEYSIZE = 32;
 //extern QScopedArrayPointer<char> PersonalKey;
 extern util::SafeData<QString> PersonalKey;//autil.cpp
 
-constexpr const char* SEPARATOR = ";";
+constexpr char SEPARATOR = ';';
 
 constexpr const char* DEFAULTTABLE = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz{}";
 constexpr const char* DEFAULTFUNCBEGIN = "&";
@@ -45,54 +45,52 @@ class Autil : public Indexer
 public:
 	explicit Autil(qint64 index);
 
-	void __stdcall util_Init(void);
-	void __stdcall util_Release(void);
-	void __stdcall util_Clear(void);
-	bool __stdcall util_SplitMessage(char* source, size_t dstlen, char* separator);
-	void __stdcall util_EncodeMessage(char* dst, size_t dstlen, char* src);
-	void __stdcall util_DecodeMessage(char* dst, size_t dstlen, char* src);
-	qint64 __stdcall util_GetFunctionFromSlice(qint64* func, qint64* fieldcount, qint64 offest = 23);
-	void __stdcall util_DiscardMessage(void);
-	void __stdcall util_SendMesg(int func, char* buffer);
+	void __fastcall util_Init(void);
+	void __fastcall util_Release(void);
+	void __fastcall util_Clear(void);
+	bool __fastcall util_SplitMessage(const QByteArray& source, char separator);
+	void __fastcall util_EncodeMessage(char* dst, size_t dstlen, char* src);
+	void __fastcall util_DecodeMessage(QByteArray& dst, char* src);
+	qint64 __fastcall util_GetFunctionFromSlice(qint64* func, qint64* fieldcount, qint64 offest = 23);
+	void __fastcall util_DiscardMessage(void);
+	void __fastcall util_SendMesg(int func, char* buffer);
 
 	// -------------------------------------------------------------------
 	// Encoding function units.  Use in Encrypting functions.
-	int __stdcall util_256to64(char* dst, char* src, int len, char* table);
-	int __stdcall util_64to256(char* dst, char* src, char* table);
-	int __stdcall util_256to64_shr(char* dst, char* src, int len, char* table, char* key);
-	int __stdcall util_shl_64to256(char* dst, char* src, char* table, char* key);
-	int __stdcall util_256to64_shl(char* dst, char* src, int len, char* table, char* key);
-	int __stdcall util_shr_64to256(char* dst, char* src, char* table, char* key);
+	int __fastcall util_256to64(char* dst, char* src, int len, char* table);
+	int __fastcall util_64to256(char* dst, char* src, char* table);
+	int __fastcall util_256to64_shr(char* dst, char* src, int len, char* table, char* key);
+	int __fastcall util_shl_64to256(char* dst, char* src, char* table, char* key);
+	int __fastcall util_256to64_shl(char* dst, char* src, int len, char* table, char* key);
+	int __fastcall util_shr_64to256(char* dst, char* src, char* table, char* key);
 
-	void __stdcall util_swapint(int* dst, int* src, char* rule);
-	void __stdcall util_xorstring(char* dst, char* src);
-	void __stdcall util_shrstring(char* dst, size_t dstlen, char* src, int offs);
-	void __stdcall util_shlstring(char* dst, size_t dstlen, char* src, int offs);
+	void __fastcall util_swapint(int* dst, int* src, char* rule);
+	void __fastcall util_xorstring(char* dst, char* src);
+	void __fastcall util_shrstring(QByteArray& dst, char* src, int offs);
+	void __fastcall util_shlstring(char* dst, size_t dstlen, char* src, int offs);
 	// -------------------------------------------------------------------
 	// Encrypting functions
-	int __stdcall util_deint(int sliceno, int* value);
-	int __stdcall util_deint(char* d, int* value);
-	int __stdcall util_mkint(char* buffer, int value);
-	int __stdcall util_destring(int sliceno, char* value);
-	int __stdcall util_destring(char* d, char* value);
-	int __stdcall util_mkstring(char* buffer, char* value);
+	int __fastcall util_deint(int sliceno, int* value);
+	int __fastcall util_mkint(char* buffer, int value);
+	int __fastcall util_destring(int sliceno, char* value);
+	int __fastcall util_mkstring(char* buffer, char* value);
 
 	// 輔助函數，處理整數參數
 	template<typename Arg>
-	inline void util_SendProcessArg(int& sum, char* buffer, Arg arg)
+	inline void __fastcall util_SendProcessArg(int& sum, char* buffer, Arg arg)
 	{
 		sum += util_mkint(buffer, arg);
 	}
 
 	// 輔助函數，處理字符串參數（重載版本）
-	inline void util_SendProcessArg(int& sum, char* buffer, char* arg)
+	inline void __fastcall util_SendProcessArg(int& sum, char* buffer, char* arg)
 	{
 		sum += util_mkstring(buffer, arg);
 	}
 
 	// 輔助函數，遞歸處理參數
 	template<typename Arg, typename... Args>
-	void util_SendProcessArgs(int& sum, char* buffer, Arg arg, Args... args)
+	inline void __fastcall util_SendProcessArgs(int& sum, char* buffer, Arg arg, Args... args)
 	{
 		util_SendProcessArg(sum, buffer, arg);
 		util_SendProcessArgs(sum, buffer, args...);
@@ -100,14 +98,14 @@ public:
 
 	// 輔助函數，處理最後一個參數
 	template<typename Arg>
-	void util_SendProcessArgs(int& sum, char* buffer, Arg arg)
+	inline void __fastcall util_SendProcessArgs(int& sum, char* buffer, Arg arg)
 	{
 		util_SendProcessArg(sum, buffer, arg);
 	}
 
 	// 主發送函數
 	template<typename... Args>
-	void util_Send(int func, Args... args)
+	inline void __fastcall util_Send(int func, Args... args)
 	{
 		int iChecksum = 0;
 		std::unique_ptr <char[]> buffer(new char[NETDATASIZE]);
@@ -118,7 +116,7 @@ public:
 		util_SendMesg(func, buffer.get());
 	}
 
-	void util_SendArgs(int func, std::vector<std::variant<int, std::string>>& args)
+	inline void __fastcall util_SendArgs(int func, std::vector<std::variant<int, std::string>>& args)
 	{
 		int iChecksum = 0;
 		std::unique_ptr <char[]> buffer(new char[NETDATASIZE]());
@@ -141,7 +139,7 @@ public:
 	}
 
 	template<typename... Args>
-	bool util_Receive(Args*... args)
+	inline bool __fastcall util_Receive(Args*... args)
 	{
 		int iChecksum = 0;  // 局部變量
 		int iChecksumrecv = 0;
@@ -170,8 +168,8 @@ public:
 	util::SafeData<size_t> SliceCount;
 	util::SafeData<QString> PersonalKey;
 
+
 private:
-	QByteArray MesgSlice[sizeof(char*) * SLICE_SIZE];
-	QMutex MesgMutex;
-	QByteArray emptyByteArray;
+	QHash<qint64, QByteArray> msgSlice_ = {};
+	QMutex msgMutex_;
 };

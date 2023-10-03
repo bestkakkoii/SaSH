@@ -72,7 +72,7 @@ ChatInfoForm::ChatInfoForm(qint64 index, QWidget* parent)
 
 	ui.listView_log->setTextElideMode(Qt::ElideNone);
 	ui.listView_log->setResizeMode(QListView::Adjust);
-	font.setPointSize(12);
+	font.setPointSize(11);
 	ui.listView_log->setFont(font);
 
 	ui.comboBox_send->installEventFilter(this);

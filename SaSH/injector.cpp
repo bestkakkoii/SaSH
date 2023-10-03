@@ -433,7 +433,7 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 	qint64 currentIndex = getIndex();
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
 
-	if (!pi.dwProcessId)
+	if (pi.dwProcessId == 0)
 	{
 		emit signalDispatcher.messageBoxShow(tr("dwProcessId is null!"));
 		return false;
@@ -471,7 +471,7 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 			for (;;)
 			{
 				::EnumWindows(EnumWindowsCallback, reinterpret_cast<LPARAM>(&pi));
-				if (pi.hWnd)
+				if (pi.hWnd != nullptr)
 				{
 					DWORD dwProcessId = 0;
 					::GetWindowThreadProcessId(pi.hWnd, &dwProcessId);
@@ -515,18 +515,18 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 		timer.restart();
 		QOperatingSystemVersion version = QOperatingSystemVersion::current();
 		//Win7
-		mem::injectByWin7(currentIndex, processHandle_, dllPath, &hookdllModule_, &hGameModule_);
+		mem::injectByWin7(currentIndex, pi.dwProcessId, processHandle_, dllPath, &hookdllModule_, &hGameModule_);
 
 		qDebug() << "inject cost:" << timer.elapsed() << "ms";
 
-		if (hookdllModule_ == 0)
+		if (nullptr == hookdllModule_)
 		{
 			emit signalDispatcher.messageBoxShow(QObject::tr("Injected dll module is null"), QMessageBox::Icon::Critical);
 			*pReason = util::REASON_INJECT_LIBRARY_FAIL;
 			break;
 		}
 
-		if (NULL == hGameModule_)
+		if (0 == hGameModule_)
 		{
 			emit signalDispatcher.messageBoxShow(QObject::tr("Game module is null"), QMessageBox::Icon::Critical);
 			*pReason = util::REASON_INJECT_LIBRARY_FAIL;
@@ -566,8 +566,43 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 			break;
 		}
 
-		mem::write(processHandle_, lpStruct, &injectdate, sizeof(InitialData));
-		SendMessageTimeoutW(pi_.hWnd, kInitialize, lpStruct, NULL, SMTO_ABORTIFHUNG | SMTO_ERRORONEXIT | SMTO_BLOCK, MessageTimeout, nullptr);
+		if (!mem::write(processHandle_, lpStruct, &injectdate, sizeof(InitialData)))
+		{
+			emit signalDispatcher.messageBoxShow(QObject::tr("Remote virtualmemory write failed"), QMessageBox::Icon::Critical);
+			*pReason = util::REASON_INJECT_LIBRARY_FAIL;
+			break;
+		}
+
+		timer.restart();
+		DWORD_PTR dwResult = 0L;
+		for (;;)
+		{
+			if (IsWindowVisible(pi_.hWnd))
+			{
+				if (SendMessageTimeoutW(pi_.hWnd, kInitialize, lpStruct, NULL, SMTO_ABORTIFHUNG | SMTO_ERRORONEXIT | SMTO_BLOCK, MessageTimeout, &dwResult) != 0)
+				{
+					if (dwResult == 0)
+					{
+						emit signalDispatcher.messageBoxShow(QObject::tr("Remote dll initialize failed"), QMessageBox::Icon::Critical);
+						*pReason = util::REASON_INJECT_LIBRARY_FAIL;
+						break;
+					}
+					break;
+				}
+			}
+
+			if (timer.hasExpired(5000))
+			{
+				emit signalDispatcher.messageBoxShow(QObject::tr("SendMessageTimeoutW failed"), QMessageBox::Icon::Critical);
+				*pReason = util::REASON_INJECT_LIBRARY_FAIL;
+				break;
+			}
+
+			QThread::msleep(100);
+		}
+
+		if (dwResult == 0)
+			break;
 
 		//去除改變窗口大小的屬性
 		LONG dwStyle = ::GetWindowLongW(pi.hWnd, GWL_STYLE);

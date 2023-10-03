@@ -161,11 +161,11 @@ qint64 Interpreter::useitem(qint64 currentIndex, qint64 currentLine, const Token
 				totalUse = target - 100;
 
 				bool ok = false;
-				PC pc = injector.server->getPC();
+				QHash<qint64, ITEM> items = injector.server->getItems();
 				for (const qint64& it : v)
 				{
-					ITEM item = pc.item[it];
-					qint64 size = pc.item[it].stack;
+					ITEM item = items.value(it);
+					qint64 size = item.stack;
 					for (qint64 i = 0; i < size; ++i)
 					{
 						injector.server->useItem(it, 0);
@@ -200,11 +200,11 @@ qint64 Interpreter::useitem(qint64 currentIndex, qint64 currentLine, const Token
 				qint64 totalUse = target - 100;
 
 				bool ok = false;
-				PC pc = injector.server->getPC();
+				QHash<qint64, ITEM> items = injector.server->getItems();
 				for (const qint64& it : v)
 				{
-					ITEM item = pc.item[it];
-					qint64 size = pc.item[it].stack;
+					ITEM item = items.value(it);
+					qint64 size = item.stack;
 					for (qint64 i = 0; i < size; ++i)
 					{
 						injector.server->useItem(it, 0);
@@ -1130,7 +1130,7 @@ qint64 Interpreter::withdrawgold(qint64 currentIndex, qint64 currentLine, const 
 	return Parser::kNoChange;
 }
 
-util::SafeHash<qint64, ITEM> recordedEquip_;
+util::SafeHash<qint64, QHash<qint64, ITEM>> recordedEquip_;
 qint64 Interpreter::recordequip(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance(currentIndex);
@@ -1140,13 +1140,15 @@ qint64 Interpreter::recordequip(qint64 currentIndex, qint64 currentLine, const T
 
 	checkOnlineThenWait();
 
-	recordedEquip_.clear();
+
+	QHash<qint64, ITEM> items = injector.server->getItems();
+	QHash<qint64, ITEM> recordedItems = recordedEquip_.value(currentIndex);
 	for (qint64 i = 0; i < CHAR_EQUIPPLACENUM; ++i)
 	{
-		injector.server->announce(QObject::tr("record equip:[%1]%2").arg(i + 1).arg(injector.server->getPC().item[i].name));
-		recordedEquip_.insert(i, injector.server->getPC().item[i]);
+		injector.server->announce(QObject::tr("record equip:[%1]%2").arg(i + 1).arg(items.value(i).name));
+		recordedItems.insert(i, items.value(i));
 	}
-
+	recordedEquip_.insert(currentIndex, recordedItems);
 	return Parser::kNoChange;
 }
 
@@ -1165,10 +1167,11 @@ qint64 Interpreter::wearequip(qint64 currentIndex, qint64 currentLine, const Tok
 
 	injector.server->IS_WAITOFR_ITEM_CHANGE_PACKET.store(0, std::memory_order_release);
 
+	QHash<qint64, ITEM> items = injector.server->getItems();
 	for (qint64 i = 0; i < CHAR_EQUIPPLACENUM; ++i)
 	{
-		ITEM item = injector.server->getPC().item[i];
-		ITEM recordedItem = recordedEquip_.value(i);
+		ITEM item = items.value(i);
+		ITEM recordedItem = recordedEquip_.value(currentIndex).value(i);
 		if (!recordedItem.valid || recordedItem.name.isEmpty())
 			continue;
 
@@ -1297,7 +1300,7 @@ qint64 Interpreter::petunequip(qint64 currentIndex, qint64 currentLine, const To
 
 	qint64 petIndex = -1;
 	if (!checkInteger(TK, 1, &petIndex))
-		return Parser::kArgError + 1l;
+		return Parser::kArgError + 1ll;
 
 	--petIndex;
 
@@ -1467,9 +1470,10 @@ qint64 Interpreter::deposititem(qint64 currentIndex, qint64 currentLine, const T
 	}
 	else
 	{
+		QHash<qint64, ITEM> items = injector.server->getItems();
 		for (qint64 i = CHAR_EQUIPPLACENUM; i < MAX_ITEM; ++i)
 		{
-			ITEM item = injector.server->getPC().item[i];
+			ITEM item = items.value(i);
 			if (item.name.isEmpty() || !item.valid)
 				continue;
 
@@ -1631,9 +1635,9 @@ qint64 Interpreter::withdrawitem(qint64 currentIndex, qint64 currentLine, const 
 		QString name = "";
 		QString memo = "";
 		if (!itemList.isEmpty())
-			name = itemList.at(i);
+			name = itemList.value(i);
 		if (!memoList.isEmpty())
-			memo = memoList.at(i);
+			memo = memoList.value(i);
 
 		qint64 itemIndex = 0;
 		bool bret = false;
@@ -1810,9 +1814,10 @@ qint64 Interpreter::trade(qint64 currentIndex, qint64 currentLine, const TokenMa
 			qint64 index = itemIndex.toLongLong(&bret);
 			--index;
 			index += CHAR_EQUIPPLACENUM;
+			QHash<qint64, ITEM> items = injector.server->getItems();
 			if (bret && index >= CHAR_EQUIPPLACENUM && index < MAX_ITEM)
 			{
-				if (injector.server->getPC().item[index].valid)
+				if (items.value(index).valid)
 					itemIndexVec.append(index);
 			}
 		}

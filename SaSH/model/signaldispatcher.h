@@ -35,7 +35,6 @@ private:
 public:
 	virtual ~SignalDispatcher()
 	{
-		emit setStartButtonEnabled(true);
 		qDebug() << "SignalDispatcher is distoryed!!";
 	}
 

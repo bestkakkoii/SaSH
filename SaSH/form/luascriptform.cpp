@@ -324,7 +324,7 @@ void LuaScriptForm::onScriptContentChanged(const QString& fileName, const QVaria
 
 	for (qint64 row = 0; row < rowCount; ++row)
 	{
-		setTableWidgetItem(row, 0, tokens.at(row).trimmed());
+		setTableWidgetItem(row, 0, tokens.value(row).trimmed());
 	}
 
 	QString newFileName = fileName;
@@ -379,9 +379,9 @@ void LuaScriptForm::onScriptTreeWidgetDoubleClicked(QTreeWidgetItem* item, int c
 		qint64 count = (filepath.size() - 1);
 		for (qint64 i = count; i >= 0; i--) //QStringlist類filepath反向存著初始item的路徑
 		{ //將filepath反向輸出，相應的加入’/‘
-			if (filepath.at(i).isEmpty())
+			if (filepath.value(i).isEmpty())
 				continue;
-			strpath += filepath.at(i);
+			strpath += filepath.value(i);
 			if (i != 0)
 				strpath += "/";
 		}

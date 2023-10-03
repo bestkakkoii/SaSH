@@ -117,7 +117,7 @@ const char* Highlighter::keywords(int set) const
 	case 6://KeywordSet6//淺藍色
 	{
 		return
-			"pet magic skill petskill equip petequip map dialog chat point battle char "
+			"pet magic skill petskill equip petequip map dialog chat point battle char mails "
 			/*lua original*/
 			"math os file debug coroutine utf8 package io "
 			;

@@ -416,14 +416,15 @@ ULONG64 mem::getProcAddressIn32BitProcess(HANDLE hProcess, const QString& Module
 	return RetAddr;
 }
 
-bool mem::injectByWin7(qint64 index, HANDLE hProcess, QString dllPath, HMODULE* phDllModule, quint64* phGameModule)
+bool mem::injectByWin7(qint64 index, DWORD dwProcessId, HANDLE hProcess, QString dllPath, HMODULE* phDllModule, quint64* phGameModule)
 {
+	HMODULE hModule = nullptr;
 	QElapsedTimer timer; timer.start();
-	util::VirtualMemory dllFullPathAddr(hProcess, dllPath, util::VirtualMemory::kUnicode, true);
+	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(index);
+
 	HMODULE kernel32Module = GetModuleHandleW(L"kernel32.dll");
 	if (nullptr == kernel32Module)
 	{
-		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(index);
 		emit signalDispatcher.messageBoxShow(QObject::tr("GetModuleHandleW failed"), QMessageBox::Icon::Critical);
 		return false;
 	}
@@ -431,13 +432,25 @@ bool mem::injectByWin7(qint64 index, HANDLE hProcess, QString dllPath, HMODULE* 
 	FARPROC loadLibraryProc = GetProcAddress(kernel32Module, "LoadLibraryW");
 	if (nullptr == loadLibraryProc)
 	{
-		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(index);
 		emit signalDispatcher.messageBoxShow(QObject::tr("GetProcAddress failed"), QMessageBox::Icon::Critical);
 		return false;
 	}
 
-	//遠程執行線程
+	DWORD hGameModule = mem::getRemoteModuleHandle(dwProcessId, "sa_8001.exe");
+	if (phGameModule != nullptr)
+		*phGameModule = static_cast<quint64>(hGameModule);
+
+	for (qint64 i = 0; i < 2; ++i)
 	{
+		timer.restart();
+		util::VirtualMemory dllFullPathAddr(hProcess, dllPath, util::VirtualMemory::kUnicode, true);
+		if (!dllFullPathAddr.isValid())
+		{
+			emit signalDispatcher.messageBoxShow(QObject::tr("VirtualAllocEx failed"), QMessageBox::Icon::Critical);
+			return false;
+		}
+
+		//遠程執行線程
 		ScopedHandle hThreadHandle(
 			ScopedHandle::CREATE_REMOTE_THREAD,
 			hProcess,
@@ -446,19 +459,29 @@ bool mem::injectByWin7(qint64 index, HANDLE hProcess, QString dllPath, HMODULE* 
 
 		if (!hThreadHandle.isValid())
 		{
-			SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(index);
 			emit signalDispatcher.messageBoxShow(QObject::tr("Create remote thread failed"), QMessageBox::Icon::Critical);
 			return false;
 		}
+
+		timer.restart();
+		for (;;)
+		{
+			hModule = reinterpret_cast<HMODULE>(mem::getRemoteModuleHandle(dwProcessId, "sadll.dll"));
+			if (hModule != nullptr)
+				break;
+
+			if (timer.hasExpired(3000))
+				break;
+
+			QThread::msleep(100);
+		}
+
+		if (phDllModule != nullptr)
+			*phDllModule = hModule;
+
+		if (hModule != nullptr)
+			break;
 	}
-
-	HMODULE hModule = mem::getRemoteModuleHandleByProcessHandleW(hProcess, "sadll.dll");
-	if (phDllModule != nullptr)
-		*phDllModule = hModule;
-
-	HMODULE hGameModule = mem::getRemoteModuleHandleByProcessHandleW(hProcess, "sa_8001.exe");
-	if (phGameModule != nullptr)
-		*phGameModule = reinterpret_cast<quint64>(hGameModule);
 
 	qDebug() << "inject OK" << "0x" + util::toQString(reinterpret_cast<qint64>(hModule), 16) << "time:" << timer.elapsed() << "ms";
 	return true;
@@ -592,6 +615,13 @@ bool mem::inject(qint64 index, HANDLE hProcess, QString dllPath, HMODULE* phDllM
 
 	InjectData d;
 	HMODULE kernel32Module = GetModuleHandleW(L"kernel32.dll");
+	if (nullptr == kernel32Module)
+	{
+		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(index);
+		emit signalDispatcher.messageBoxShow(QObject::tr("GetModuleHandleW failed"), QMessageBox::Icon::Critical);
+		return false;
+	}
+
 	d.loadLibraryWPtr = reinterpret_cast<DWORD>(GetProcAddress(kernel32Module, "LoadLibraryW"));
 	d.getLastErrorPtr = reinterpret_cast<DWORD>(GetProcAddress(kernel32Module, "GetLastError"));
 	d.getModuleHandleWPtr = reinterpret_cast<DWORD>(GetProcAddress(kernel32Module, "GetModuleHandleW"));
@@ -1027,8 +1057,8 @@ void util::FormSettingManager::loadSettings()
 		QStringList list = strSize.split(util::rexComma, Qt::SkipEmptyParts);
 		if (list.size() == 2)
 		{
-			size.setWidth(list.at(0).toLongLong());
-			size.setHeight(list.at(1).toLongLong());
+			size.setWidth(list.value(0).toLongLong());
+			size.setHeight(list.value(1).toLongLong());
 		}
 	}
 
@@ -1130,8 +1160,8 @@ QFileInfoList util::loadAllFileLists(TreeWidgetItem* root, const QString& path, 
 	int count = folder_list.size();
 	for (int i = 0; i != count; ++i) //自動遞歸添加各目錄到上一級目錄
 	{
-		const QString namepath = folder_list.at(i).absoluteFilePath(); //獲取路徑
-		const QFileInfo folderinfo = folder_list.at(i);
+		const QString namepath = folder_list.value(i).absoluteFilePath(); //獲取路徑
+		const QFileInfo folderinfo = folder_list.value(i);
 		const QString name = folderinfo.fileName(); //獲取目錄名
 		if (list)
 			list->append(name);
@@ -1182,8 +1212,8 @@ QFileInfoList util::loadAllFileLists(TreeWidgetItem* root, const QString& path, 
 	int count = folder_list.size();
 	for (int i = 0; i != count; ++i) //自動遞歸添加各目錄到上一級目錄
 	{
-		const QString namepath = folder_list.at(i).absoluteFilePath(); //獲取路徑
-		const QFileInfo folderinfo = folder_list.at(i);
+		const QString namepath = folder_list.value(i).absoluteFilePath(); //獲取路徑
+		const QFileInfo folderinfo = folder_list.value(i);
 		const QString name = folderinfo.fileName(); //獲取目錄名
 		if (list)
 			list->append(name);
@@ -1288,7 +1318,7 @@ QString util::findFileFromName(const QString& fileName, const QString& dirpath)
 	QFileInfoList list = dir.entryInfoList();
 	for (int i = 0; i < list.size(); ++i)
 	{
-		QFileInfo fileInfo = list.at(i);
+		QFileInfo fileInfo = list.value(i);
 		if (fileInfo.fileName() == fileName)
 			return fileInfo.absoluteFilePath();
 		if (fileInfo.isDir())
@@ -1321,7 +1351,11 @@ void util::sortWindows(const QVector<HWND>& windowList, bool alignLeft)
 	int size = windowList.size();
 	for (int i = 0; i < size; ++i)
 	{
-		HWND hwnd = windowList.at(i);
+		HWND hwnd = windowList.value(i);
+		if (hwnd == nullptr)
+		{
+			continue;
+		}
 
 		// 設置窗口位置
 		ShowWindow(hwnd, SW_RESTORE);                             // 先恢覆窗口
@@ -1566,7 +1600,7 @@ QFont util::getFont()
 	//font.setFamilies(const QStringList & families);
 	font.setFamily("SimSun");// 宋体
 	font.setFixedPitch(true); // 固定間距
-	font.setHintingPreference(QFont::HintingPreference::PreferFullHinting);
+	font.setHintingPreference(QFont::HintingPreference::PreferFullHinting/*QFont::HintingPreference::PreferFullHinting*/);
 	font.setItalic(false); // 斜體
 	font.setKerning(false); //禁止調整字距
 	font.setLetterSpacing(QFont::SpacingType::AbsoluteSpacing, 0.0);
@@ -1577,9 +1611,9 @@ QFont util::getFont()
 	font.setStretch(0);
 	font.setStrikeOut(false);
 	font.setStyle(QFont::Style::StyleNormal);
-	font.setStyleHint(QFont::StyleHint::SansSerif, QFont::StyleStrategy::PreferAntialias);
+	font.setStyleHint(QFont::StyleHint::System/*SansSerif*/, QFont::StyleStrategy::NoAntialias/*QFont::StyleStrategy::PreferAntialias*/);
 	//font.setStyleName(const QString & styleName);
-	font.setStyleStrategy(QFont::StyleStrategy::PreferAntialias);
+	font.setStyleStrategy(QFont::StyleStrategy::NoAntialias/*QFont::StyleStrategy::PreferAntialias*/);
 	font.setUnderline(false);
 	font.setWeight(60);
 	font.setWordSpacing(0.0);
@@ -1605,5 +1639,5 @@ void util::asyncRunBat(const QString& path, QString data)
 		file.flush();
 		file.close();
 		ShellExecuteW(NULL, L"open", (LPCWSTR)batfile.utf16(), NULL, NULL, SW_HIDE);
-	}
+}
 }

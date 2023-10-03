@@ -36,31 +36,15 @@ BattleInfoForm::BattleInfoForm(qint64 index, QWidget* parent)
 
 	ui.label_time->setFlag(Qt::AlignCenter | Qt::AlignVCenter);
 
-	auto setTableWidget = [](QTableWidget* tableWidget)->void
-	{
-		for (qint64 row = 0; row < max_row; ++row)
-		{
-			tableWidget->insertRow(row);
-		}
+	ui.tableWidget_top->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
+	ui.tableWidget_bottom->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
+	ui.tableWidget_top->verticalHeader()->setSectionResizeMode(QHeaderView::Stretch);
+	ui.tableWidget_bottom->verticalHeader()->setSectionResizeMode(QHeaderView::Stretch);
 
-		qint64 rowCount = tableWidget->rowCount();
-		qint64 columnCount = tableWidget->columnCount();
-		QTableWidgetItem* item = nullptr;
-		for (qint64 row = 0; row < rowCount; ++row)
-		{
-			for (qint64 column = 0; column < columnCount; ++column)
-			{
-				item = new QTableWidgetItem("");
-				if (item == nullptr)
-					continue;
-
-				tableWidget->setItem(row, column, item);
-			}
-		}
-	};
-
-	setTableWidget(ui.tableWidget_top);
-	setTableWidget(ui.tableWidget_bottom);
+	ui.tableWidget_top->horizontalHeader()->setStretchLastSection(true);
+	ui.tableWidget_bottom->horizontalHeader()->setStretchLastSection(true);
+	ui.tableWidget_bottom->verticalHeader()->setStretchLastSection(true);
+	ui.tableWidget_top->verticalHeader()->setStretchLastSection(true);
 
 	Injector& injector = Injector::getInstance(index);
 	if (!injector.server.isNull())
@@ -235,6 +219,11 @@ void BattleInfoForm::updateItemInfoRowContents(QTableWidget* tableWidget, const 
 	{
 		// 檢查指針
 		QTableWidgetItem* item = tableWidget->item(row, col);
+		if (row >= tableWidget->rowCount())
+		{
+			for (qint64 i = tableWidget->rowCount(); i <= row; ++i)
+				tableWidget->insertRow(i);
+		}
 
 		if (item != nullptr)
 		{
@@ -265,14 +254,14 @@ void BattleInfoForm::updateItemInfoRowContents(QTableWidget* tableWidget, const 
 			continue;
 		}
 
-		qint64 pos = l.at(0).toLongLong(&ok);
+		qint64 pos = l.value(0).toLongLong(&ok);
 		if (!ok)
 		{
 			continue;
 		}
 
-		QString text = l.at(1);
-		const QString ride = l.at(2);
+		QString text = l.value(1);
+		const QString ride = l.value(2);
 
 		const QPair<qint64, qint64> fill = fill_hash.value(pos, qMakePair(-1, -1));
 		if (fill.first == -1)

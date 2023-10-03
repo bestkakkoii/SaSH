@@ -343,8 +343,8 @@ public://actions
 	void updateItemByMemory();
 	void updateDatasFromMemory();
 
-	void doBattleWork(bool async);
-	void asyncBattleAction();
+	void doBattleWork(bool waitforBA);
+	void asyncBattleAction(bool waitforBA);
 
 	void downloadMap(qint64 floor = -1);
 	void downloadMap(qint64 x, qint64 y, qint64 floor = -1);
@@ -404,9 +404,6 @@ public://actions
 	Q_REQUIRED_RESULT bool getBattleFlag();
 	Q_REQUIRED_RESULT bool getOnlineFlag() const;
 
-	inline Q_REQUIRED_RESULT PC getPC() const { QReadLocker lock(&pcMutex_); return pc_; }
-	inline void setPC(PC pc) { QWriteLocker lock(&pcMutex_); pc_ = pc; }
-
 	void sortItem(bool deepSort = false);
 
 	Q_REQUIRED_RESULT QPoint getPoint();
@@ -434,13 +431,23 @@ public://actions
 
 	void updateBattleTimeInfo();
 
-	inline Q_REQUIRED_RESULT MAGIC getMagic(qint64 magicIndex) const { return magic[magicIndex]; }
-	inline Q_REQUIRED_RESULT PROFESSION_SKILL getSkill(qint64 skillIndex) const { return profession_skill[skillIndex]; }
-	inline Q_REQUIRED_RESULT PET getPet(qint64 petIndex) const { return pet[petIndex]; }
+	inline Q_REQUIRED_RESULT PC getPC() const { return pc_.get(); }
+	inline void setPC(PC pc) { pc_ = pc; }
+	inline Q_REQUIRED_RESULT MAGIC getMagic(qint64 magicIndex) const { return magic_.value(magicIndex); }
+	inline Q_REQUIRED_RESULT PROFESSION_SKILL getSkill(qint64 skillIndex) const { return profession_skill_.value(skillIndex); }
+	inline Q_REQUIRED_RESULT QHash<qint64, PROFESSION_SKILL> getSkills() const { return profession_skill_.toHash(); }
+	inline void setSkills(const QHash<qint64, PROFESSION_SKILL>& skills) { profession_skill_ = skills; }
+	inline void setSkill(qint64 skillIndex, const PROFESSION_SKILL& skill) { profession_skill_.insert(skillIndex, skill); }
+	inline Q_REQUIRED_RESULT PET getPet(qint64 petIndex) const { return pet_.value(petIndex); }
+	inline Q_REQUIRED_RESULT QHash<qint64, PET> getPets() const { return pet_.toHash(); }
+	inline void setPets(const QHash<qint64, PET>& pets) { pet_ = pets; }
+	inline void setPet(qint64 petIndex, const PET& pet) { pet_.insert(petIndex, pet); }
+	inline void removePet(qint64 petIndex) { pet_.remove(petIndex); }
 	inline Q_REQUIRED_RESULT qint64 getPetSize() const
 	{
 		qint64 n = 0;
-		for (const PET& it : pet)
+		QHash<qint64, PET> pets = pet_.toHash();
+		for (const PET& it : pets)
 		{
 			if (it.level > 0 && it.valid && it.maxHp > 0)
 				++n;
@@ -448,12 +455,41 @@ public://actions
 		return n;
 	}
 
-	inline Q_REQUIRED_RESULT PET_SKILL getPetSkill(qint64 petIndex, qint64 skillIndex) const { return petSkill[petIndex][skillIndex]; }
-	inline Q_REQUIRED_RESULT PARTY getParty(qint64 partyIndex) const { return party[partyIndex]; }
-	inline Q_REQUIRED_RESULT ITEM getPetEquip(qint64 petIndex, qint64 equipIndex) const { return pet[petIndex].item[equipIndex]; }
-	inline Q_REQUIRED_RESULT ADDRESS_BOOK getAddressBook(qint64 index) const { return addressBook[index]; }
+	inline Q_REQUIRED_RESULT ITEM getItem(qint64 index) const { return item_.value(index); }
+	inline Q_REQUIRED_RESULT QHash<qint64, ITEM> getItems() const { return item_.toHash(); }
+	inline void setItems(const QHash<qint64, ITEM>& items) { item_ = items; }
+	inline void setItem(qint64 index, const ITEM& item) { item_.insert(index, item); }
+	inline void removeItem(qint64 index) { item_.remove(index); }
+	inline Q_REQUIRED_RESULT PET_SKILL getPetSkill(qint64 petIndex, qint64 skillIndex) const { return petSkill_.value(petIndex).value(skillIndex); }
+	inline Q_REQUIRED_RESULT QHash<qint64, PET_SKILL> getPetSkills(qint64 petIndex) const { return petSkill_.value(petIndex); }
+	inline void setPetSkills(qint64 petIndex, const QHash<qint64, PET_SKILL>& skills) { petSkill_.insert(petIndex, skills); }
+	inline void setPetSkill(qint64 petIndex, qint64 skillIndex, const PET_SKILL& skill)
+	{
+		QHash<qint64, PET_SKILL> skills = petSkill_.value(petIndex);
+		skills.insert(skillIndex, skill);
+		petSkill_.insert(petIndex, skills);
+	}
+	inline Q_REQUIRED_RESULT PARTY getParty(qint64 partyIndex) const { return party_.value(partyIndex); }
+	inline void setParties(const QHash<qint64, PARTY>& parties) { party_ = parties; }
+	inline void setParty(qint64 partyIndex, const PARTY& party) { party_.insert(partyIndex, party); }
+	inline void removeParty(qint64 partyIndex) { party_.remove(partyIndex); }
+	inline Q_REQUIRED_RESULT QHash<qint64, PARTY> getParties() const { return party_.toHash(); }
+	inline Q_REQUIRED_RESULT ITEM getPetEquip(qint64 petIndex, qint64 equipIndex) const { return petItem_.value(petIndex).value(equipIndex); }
+	inline Q_REQUIRED_RESULT QHash<qint64, ITEM> getPetEquips(qint64 petIndex) const { return petItem_.value(petIndex); }
+	inline void setPetEquips(qint64 petIndex, const QHash<qint64, ITEM>& items) { petItem_.insert(petIndex, items); }
+	inline void setPetEquip(qint64 petIndex, qint64 index, const ITEM& item)
+	{
+		QHash<qint64, ITEM> items = petItem_.value(petIndex);
+		items.insert(index, item);
+		petItem_.insert(petIndex, items);
+	}
+	inline Q_REQUIRED_RESULT ADDRESS_BOOK getAddressBook(qint64 index) const { return addressBook_.value(index); }
+	inline Q_REQUIRED_RESULT QHash<qint64, ADDRESS_BOOK> getAddressBooks() const { return addressBook_.toHash(); }
 	inline Q_REQUIRED_RESULT battledata_t getBattleData() const { return battleData.get(); }
-	inline Q_REQUIRED_RESULT JOBDAILY getJobDaily(qint64 index) const { return jobdaily[index]; }
+	inline Q_REQUIRED_RESULT JOBDAILY getJobDaily(qint64 index) const { return jobdaily_.value(index); }
+	inline Q_REQUIRED_RESULT QHash<qint64, JOBDAILY> getJobDailys() const { return jobdaily_.toHash(); }
+	inline Q_REQUIRED_RESULT CHARLISTTABLE getCharListTable(qint64 index) const { return chartable_.value(index); }
+	inline Q_REQUIRED_RESULT MAIL_HISTORY getMailHistory(qint64 index) const { return mailHistory_.value(index); }
 
 	Q_REQUIRED_RESULT qint64 findInjuriedAllie();
 
@@ -505,10 +541,7 @@ private:
 	void updateCurrentSideRange(battledata_t& bt);
 	bool checkFlagState(qint64 pos);
 
-	inline void setBattleData(const battledata_t& data)
-	{
-		battleData = data;
-	}
+	inline void setBattleData(const battledata_t& data) { battleData = data; }
 
 	//自動鎖寵
 	void checkAutoLockPet();
@@ -524,9 +557,6 @@ private:
 #pragma endregion
 
 private:
-	QMutex ayncBattleCommandMutex;
-	std::atomic_bool ayncBattleCommandFlag = false;
-
 	std::atomic_bool IS_BATTLE_FLAG = false;
 	std::atomic_bool IS_ONLINE_FLAG = false;
 
@@ -534,53 +564,40 @@ private:
 	QElapsedTimer connectingTimer;
 	std::atomic_bool petEscapeEnableTempFlag = false;
 	qint64 tempCatchPetTargetIndex = -1;
-	qint64 JobdailyGetMax = 0;  //是否有接收到資料
 
 	util::SafeData<battledata_t> battleData;
+
+	std::atomic_bool battleReadyAct = false;
 
 	std::atomic_bool IS_WAITFOT_SKUP_RECV = false;
 	QFuture<void> skupFuture;
 
 	std::atomic_bool IS_LOCKATTACK_ESCAPE_DISABLE = false;//鎖定攻擊不逃跑 (轉指定攻擊)
 
-	mutable QReadWriteLock pcMutex_;//用於保護人物數據更新順序
 	mutable QReadWriteLock pointMutex_;//用於保護人物座標更新順序
-	mutable QReadWriteLock petStateMutex_;
-
-	PC pc_ = {};
-
-	PET pet[MAX_PET] = {};
-
-	PROFESSION_SKILL profession_skill[MAX_PROFESSION_SKILL];
-
-	PET_SKILL petSkill[MAX_PET][MAX_SKILL] = {};
-
-	qint64 swapitemModeFlag = 0; //當前自動整理功能的階段
-	QHash<QString, bool>itemStackFlagHash = {};
-
-	util::SafeVector<bool> battlePetDisableList_ = {};
 
 	std::atomic_llong nowFloor_;
 	util::SafeData<QString> nowFloorName_;
 	util::SafeData<QPoint> nowPoint_;
 
-#ifdef MAX_AIRPLANENUM
-	PARTY party[MAX_AIRPLANENUM];
-#else
-	PARTY party[MAX_PARTY] = {};
-#endif
+	util::SafeData<PC> pc_ = {};
 
-	//client original 目前很多都是沒用處的
-#pragma region ClientOriginal
-	MAGIC magic[MAX_MAGIC] = {};
+	util::SafeHash<qint64, PARTY> party_ = {};
+	util::SafeHash<qint64, ITEM> item_ = {};
+	util::SafeHash<qint64, QHash<qint64, ITEM>> petItem_ = {};
+	util::SafeHash<qint64, PET> pet_ = {};
+	util::SafeHash<qint64, MAGIC> magic_ = {};
+	util::SafeHash<qint64, ADDRESS_BOOK> addressBook_ = {};
+	util::SafeHash<qint64, JOBDAILY> jobdaily_ = {};
+	util::SafeHash<qint64, CHARLISTTABLE> chartable_ = {};
+	util::SafeHash<qint64, MAIL_HISTORY> mailHistory_ = {};
+	util::SafeHash<qint64, PROFESSION_SKILL> profession_skill_ = {};
+	util::SafeHash<qint64, QHash<qint64, PET_SKILL>> petSkill_ = {};
 
-	ADDRESS_BOOK addressBook[MAX_ADDRESS_BOOK] = {};
+	qint64 swapitemModeFlag = 0; //當前自動整理功能的階段
+	QHash<QString, bool>itemStackFlagHash = {};
 
-	JOBDAILY jobdaily[MAX_MISSION] = {};
-
-	CHARLISTTABLE chartable[MAX_CHARACTER] = {};
-
-	MAIL_HISTORY mailHistory[MAX_ADDRESS_BOOK] = {};
+	util::SafeVector<bool> battlePetDisableList_ = {};
 
 	//戰鬥相關
 	std::atomic_llong battleCharCurrentPos = 0;
@@ -589,6 +606,8 @@ private:
 	std::atomic_llong battleCharCurrentMp = 0;
 	std::atomic_llong battleCurrentAnimeFlag = 0;
 
+	//client original 目前很多都是沒用處的
+#pragma region ClientOriginal
 	QString lastSecretChatName = "";//最後一次收到密語的發送方名稱
 
 	//遊戲內當前時間相關
@@ -623,11 +642,6 @@ private:
 	//郵件相關
 	qint64 mailHistoryWndSelectNo = 0;
 	qint64 mailHistoryWndPageNo = 0;
-
-	//選人畫面起算的時間計數
-	time_t serverAliveLongTime = 0;
-	struct tm serverAliveTime = { 0 };
-
 #pragma endregion
 
 public:
@@ -691,7 +705,8 @@ private:
 
 	QList<QTcpSocket*> clientSockets_;
 
-	QByteArray net_readbuf;
+	QByteArray net_readbuf_;
+	QByteArray net_raw_;
 
 	QMutex net_mutex;
 
@@ -702,7 +717,7 @@ private://lssproto
 	qint64 getStringToken(const QString& src, const QString& delim, qint64 count, QString& out) const;
 	qint64 getIntegerToken(const QString& src, const QString& delim, qint64 count) const;
 	qint64 getInteger62Token(const QString& src, const QString& delim, qint64 count) const;
-	QString makeStringFromEscaped(QString& src) const;
+	void makeStringFromEscaped(QString& src) const;
 
 private://lssproto_recv
 #pragma region Lssproto_Recv
@@ -795,9 +810,8 @@ private://lssproto_recv
 	virtual void lssproto_TEACHER_SYSTEM_recv(char* data) override;
 #endif
 
-#ifdef _ADD_STATUS_2
 	virtual void lssproto_S2_recv(char* data) override;
-#endif
+
 #ifdef _ITEM_FIREWORK
 	virtual void lssproto_Firework_recv(int nCharaindex, int nType, int nActionNum) override;	// 煙火功能
 #endif

@@ -431,9 +431,9 @@ enum FUNCTIONTYPE
 	LSSPROTO_WO_RECV = 95,
 	LSSPROTO_PETST_SEND = 96,
 	LSSPROTO_BM_SEND = 97,   // _BLACK_MARKET,
-#ifdef _MIND_ICON
+
 	LSSPROTO_MA_SEND = 98,
-#endif
+
 #ifdef _FIX_DEL_MAP
 	LSSPROTO_DM_SEND = 99   // 玩家抽地圖送監獄,
 #endif
@@ -482,10 +482,8 @@ enum FUNCTIONTYPE
 	LSSPROTO_TEACHER_SYSTEM_RECV = 123,
 #endif
 
-#ifdef _ADD_STATUS_2
 	LSSPROTO_S2_SEND = 124,
 	LSSPROTO_S2_RECV = 125,
-#endif
 
 #ifdef _ITEM_FIREWORK
 	LSSPROTO_FIREWORK_RECV = 126,
@@ -1336,8 +1334,8 @@ typedef struct tagPC
 	QString profession_class_name = "";
 	QString gm_name = "";	// Rog ADD GM識別
 	QString chatRoomNum = "";// ROG ADD 好友頻道
-	ITEM item[MAX_ITEM] = { 0 };
-	ITEM itempool[MAX_ITEM] = {};
+	//ITEM item[MAX_ITEM] = { 0 };
+	//ITEM itempool[MAX_ITEM] = {};
 	// 2 -> 慬我方按下確定鍵
 	// 3 -> 僅對方按下確定鍵
 	// 4 -> 雙方皆按下確定鍵
@@ -1359,6 +1357,7 @@ typedef struct tagPC
 typedef struct tagPET
 {
 	bool valid = false;
+	PetState state = PetState::kNoneState;
 	qint64 index = 0;						//位置
 	qint64 modelid = 0;						//圖號
 	qint64 hp = 0, maxHp = 0, hpPercent = 0;					//血量
@@ -1375,7 +1374,7 @@ typedef struct tagPET
 	qint64 fusion = 0;						// low word: 寵蛋旗標, hi word: 物種編碼
 	qint64 status = 0;
 	qint64 oldlevel = 0, oldhp = 0, oldatk = 0, oldagi = 0, olddef = 0;
-	qint64 rideflg;
+	qint64 rideflg = 0;
 	qint64 blessflg = 0;
 	qint64 blesshp = 0;
 	qint64 blessatk = 0;
@@ -1384,13 +1383,12 @@ typedef struct tagPET
 	qint64 changeNameFlag = 0;
 	QString name = "";
 	QString freeName = "";
-	PetState state = PetState::kNoneState;
 
 	//custom
 	qreal power = 0.0;
 	qreal growth = 0.0;
 
-	ITEM item[MAX_PET_ITEM] = {};		// 寵物道具
+	//ITEM item[MAX_PET_ITEM] = {};		// 寵物道具
 } PET;
 
 
@@ -1464,7 +1462,7 @@ typedef struct tagPROFESSION_SKILL
 typedef struct tagCHARLISTTABLE
 {
 	bool valid = false;
-	int attr[4] = { 0,0,0,0 };
+	qint64 attr[4] = { 0, 0, 0, 0 };
 	qint64 level = 0;
 	qint64 login = 0;
 	qint64 faceid = 0;

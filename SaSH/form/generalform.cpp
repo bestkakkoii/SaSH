@@ -66,6 +66,29 @@ GeneralForm::GeneralForm(qint64 index, QWidget* parent)
 	emit ui.comboBox_paths->clicked();
 	emit signalDispatcher.applyHashSettingsToUI();
 
+	QVector<QPair<QString, QString>> fileList;
+	if (!util::enumAllFiles(util::applicationDirPath() + "/settings", ".json", &fileList))
+	{
+		return;
+	}
+
+	qint64 idx = 0;
+	qint64 defaultIndex = -1;
+	ui.comboBox_setting->blockSignals(true);
+	ui.comboBox_setting->clear();
+	for (const QPair<QString, QString>& pair : fileList)
+	{
+		ui.comboBox_setting->addItem(pair.first, pair.second);
+		if (pair.first.contains("default.json"))
+			defaultIndex = idx;
+		++idx;
+	}
+
+	if (defaultIndex >= 0)
+		ui.comboBox_setting->setCurrentIndex(defaultIndex);
+
+	ui.comboBox_setting->blockSignals(false);
+
 	//驗證
 #ifdef WEBAUTHENTICATOR_H
 #ifndef _DEBUG
@@ -309,12 +332,12 @@ void GeneralForm::onButtonClicked()
 		//bool flag = injector.getEnableHash(util::kLogOutEnable);
 		if (injector.isValid())
 		{
-			QMessageBox::StandardButton button = QMessageBox::warning(this, tr("logout"), tr("Are you sure you want to logout now?"),
-				QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
-			if (button == QMessageBox::Yes)
-			{
-				injector.setEnableHash(util::kLogOutEnable, true);
-			}
+			//QMessageBox::StandardButton button = QMessageBox::warning(this, tr("logout"), tr("Are you sure you want to logout now?"),
+			//	QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
+			//if (button == QMessageBox::Yes)
+			//{
+			injector.setEnableHash(util::kLogOutEnable, true);
+			//}
 		}
 		return;
 	}
@@ -323,12 +346,12 @@ void GeneralForm::onButtonClicked()
 	{
 		if (injector.isValid())
 		{
-			QMessageBox::StandardButton button = QMessageBox::warning(this, tr("logback"), tr("Are you sure you want to logback now?"),
-				QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
-			if (button == QMessageBox::Yes)
-			{
-				injector.setEnableHash(util::kLogBackEnable, true);
-			}
+			//QMessageBox::StandardButton button = QMessageBox::warning(this, tr("logback"), tr("Are you sure you want to logback now?"),
+			//	QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
+			//if (button == QMessageBox::Yes)
+			//{
+			injector.setEnableHash(util::kLogBackEnable, true);
+			//}
 		}
 
 		return;
@@ -655,7 +678,7 @@ void GeneralForm::onCheckBoxStateChanged(int state)
 		injector.setEnableHash(util::kFastBattleEnable, isChecked);
 		if (!bOriginal && isChecked && !injector.server.isNull())
 		{
-			injector.server->doBattleWork(true);//async
+			injector.server->doBattleWork(false);
 		}
 		return;
 	}
@@ -671,7 +694,7 @@ void GeneralForm::onCheckBoxStateChanged(int state)
 		injector.setEnableHash(util::kAutoBattleEnable, isChecked);
 		if (!bOriginal && isChecked && !injector.server.isNull())
 		{
-			injector.server->doBattleWork(true);//async
+			injector.server->doBattleWork(false);
 		}
 
 		return;
@@ -1061,51 +1084,55 @@ void GeneralForm::onApplyHashSettingsToUI()
 
 void GeneralForm::onGameStart()
 {
-	QString path = ui.comboBox_paths->currentData().toString();
-	if (path.isEmpty())
-		return;
-
-	QFile file(path);
-	if (!file.exists())
-		return;
-
 	ui.pushButton_start->setEnabled(false);
-	setFocus();
-	update();
-	QCoreApplication::processEvents();
+	QMetaObject::invokeMethod(this, "startGameAsync", Qt::QueuedConnection);
+}
 
-	QFileInfo fileInfo(path);
-	QString dirPath = fileInfo.absolutePath();
-	QByteArray dirPathUtf8 = dirPath.toUtf8();
-	qputenv("GAME_DIR_PATH", dirPathUtf8);
-
-	ThreadManager& thread_manager = ThreadManager::getInstance();
-
-	qint64 currentIndex = getIndex();
-
-	Injector& injector = Injector::getInstance(currentIndex);
-	injector.currentGameExePath = path;
-
-	injector.server.reset(new Server(currentIndex, this));
-	Q_ASSERT(!injector.server.isNull());
-	if (injector.server.isNull())
-		return;
-
-	if (!injector.server->start(this))
-		return;
-
-
-	MainObject* pMainObject = nullptr;
-	if (!thread_manager.createThread(currentIndex, &pMainObject, nullptr) || (nullptr == pMainObject))
+void GeneralForm::startGameAsync()
+{
+	do
 	{
-		ui.pushButton_start->setEnabled(true);
-		return;
-	}
+		QString path = ui.comboBox_paths->currentData().toString();
+		if (path.isEmpty())
+			break;
 
-	connect(pMainObject, &MainObject::finished, this, [this]()
-		{
-			ui.pushButton_start->setEnabled(true);
-		}, Qt::UniqueConnection);
+		QFileInfo fileInfo(path);
+		if (!fileInfo.exists() || fileInfo.isDir() || fileInfo.suffix() != "exe")
+			break;
+
+		QString dirPath = fileInfo.absolutePath();
+		QByteArray dirPathUtf8 = dirPath.toUtf8();
+		qputenv("GAME_DIR_PATH", dirPathUtf8);
+
+		ThreadManager& thread_manager = ThreadManager::getInstance();
+
+		qint64 currentIndex = getIndex();
+
+		Injector& injector = Injector::getInstance(currentIndex);
+		injector.currentGameExePath = path;
+
+		injector.server.reset(new Server(currentIndex, this));
+		Q_ASSERT(!injector.server.isNull());
+		if (injector.server.isNull())
+			break;
+
+		if (!injector.server->start(this))
+			break;
+
+
+		MainObject* pMainObject = nullptr;
+		if (!thread_manager.createThread(currentIndex, &pMainObject, nullptr) || (nullptr == pMainObject))
+			break;
+
+		connect(pMainObject, &MainObject::finished, this, [this]()
+			{
+				ui.pushButton_start->setEnabled(true);
+			}, Qt::QueuedConnection);
+
+		return;
+	} while (false);
+
+	ui.pushButton_start->setEnabled(true);
 }
 
 void GeneralForm::createServerList()
@@ -1177,10 +1204,10 @@ void GeneralForm::createServerList()
 			};
 
 			for (qint64 i = 0; i < defaultList.size(); ++i)
-				config.writeArray<QString>("System", "Server", QString("List_%1").arg(i), defaultList.at(i));
+				config.writeArray<QString>("System", "Server", QString("List_%1").arg(i), defaultList.value(i));
 
 			if (currentListIndex >= 0 && currentListIndex < defaultList.size())
-				list = defaultList.at(currentListIndex);
+				list = defaultList.value(currentListIndex);
 		}
 	}
 

@@ -1825,8 +1825,8 @@ qint64 __fastcall MapAnalyzer::calcBestFollowPointByDstPoint(CAStar& astar, qint
 
 	if (!disV.size()) return -1;
 	if (ret)
-		*ret = disV.at(0).p;
+		*ret = disV.value(0).p;
 	//計算方向
-	qint64 n = disV.at(0).dir + 4;
+	qint64 n = disV.value(0).dir + 4;
 	return ((n) <= (7)) ? (n) : ((n)-(MAX_DIR));//返回方向
 }
