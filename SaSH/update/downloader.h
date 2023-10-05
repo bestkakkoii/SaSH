@@ -70,7 +70,7 @@ private:
 	QTimer labelTimer_;
 	QTimer timer_[MAX_DOWNLOAD_THREAD];
 
-	const qint64 pid_ = QCoreApplication::applicationPid();
+	const qint64 pid_ = _getpid();
 	const QString szCurrentDirectory_;
 	const QString szCurrentDotExe_;
 	const QString szCurrentDotExeAsDotTmp_;

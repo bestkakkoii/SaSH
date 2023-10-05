@@ -199,7 +199,7 @@ void BattleInfoForm::onNotifyBattleActionState(qint64 index, bool left)
 	item->setToolTip(text);
 }
 
-void BattleInfoForm::updateItemInfoRowContents(QTableWidget* tableWidget, const QVariant& dat)
+void BattleInfoForm::updateItemInfoRowContents(TableWidget* tableWidget, const QVariant& dat)
 {
 	if (tableWidget == nullptr)
 		return;
@@ -214,34 +214,6 @@ void BattleInfoForm::updateItemInfoRowContents(QTableWidget* tableWidget, const 
 		return;
 
 	tableWidget->clearContents();
-
-	auto setText = [tableWidget](qint64 row, qint64 col, const QString& text)->void
-	{
-		// 檢查指針
-		QTableWidgetItem* item = tableWidget->item(row, col);
-		if (row >= tableWidget->rowCount())
-		{
-			for (qint64 i = tableWidget->rowCount(); i <= row; ++i)
-				tableWidget->insertRow(i);
-		}
-
-		if (item != nullptr)
-		{
-			// 如果指針不為空，則使用原有的 QTableWidgetItem
-			item->setText(text);
-			item->setToolTip(text);
-		}
-		else
-		{
-			// 如果指針為空，創建新的 QTableWidgetItem
-			item = new QTableWidgetItem(text);
-			if (item == nullptr)
-				return;
-
-			item->setToolTip(text);
-			tableWidget->setItem(row, col, item);
-		}
-	};
 
 	const QString objectName = tableWidget->objectName();
 	//const bool isTop = objectName.contains("top", Qt::CaseInsensitive);
@@ -269,14 +241,15 @@ void BattleInfoForm::updateItemInfoRowContents(QTableWidget* tableWidget, const 
 			continue;
 		}
 
-
+		QString content;
 		if (fill.first % 2)
-		{
-			setText(fill.first, fill.second, "    " + text);
-		}
+			content = "    " + text;
 		else
-			setText(fill.first, fill.second, text);
+			content = text;
 
-		setText(fill.first, fill.second + 1, ride);
+		if (ride.simplified().isEmpty())
+			tableWidget->setText(fill.first, 0, content);
+		else
+			tableWidget->setText(fill.first, 0, content + "|" + ride.simplified());
 	}
 }

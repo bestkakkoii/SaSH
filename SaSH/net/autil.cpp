@@ -149,7 +149,7 @@ void Autil::util_EncodeMessage(char* dst, size_t dstlen, char* src)
 //
 // arg: dst=output  src=input
 // ret: (none)
-void Autil::util_DecodeMessage(QByteArray& dst, char* src)
+void Autil::util_DecodeMessage(QByteArray& dst, QByteArray src)
 {
 	//  strcpy(dst, src);
 	//  util_xorstring(dst, src);
@@ -169,9 +169,10 @@ void Autil::util_DecodeMessage(QByteArray& dst, char* src)
 	//memset(t3, 0, sizeof(t3));
 	//memset(t4, 0, sizeof(t4));
 
-	if (src[strlen(src) - 1] == '\n')
-		src[strlen(src) - 1] = 0;
-	Autil::util_xorstring(tz.data(), src);
+	//if (src[strlen(src) - 1] == '\n')
+	//	src[strlen(src) - 1] = 0;
+	src.replace('\n', '\0');
+	Autil::util_xorstring(tz.data(), src.data());
 
 	rn = INTCODESIZE;
 	//  printf("INTCODESIZE=%d\n", rn);

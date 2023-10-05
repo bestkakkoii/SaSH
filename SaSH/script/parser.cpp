@@ -239,51 +239,42 @@ void hookProc(lua_State* L, lua_Debug* ar)
 Parser::Parser(qint64 index)
 	: ThreadPlugin(index, nullptr)
 	, lexer_(index)
+	, counter_(new Counter())
+	, globalNames_(new QStringList())
+	, localVarStack_(new QStack<QHash<QString, QVariant>>())
+	, luaLocalVarStringList_(new QStringList())
+	, pLua_(new CLua(index))
 {
 	qDebug() << "Parser is created!!";
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(index);
 	connect(&signalDispatcher, &SignalDispatcher::nodifyAllStop, this, &Parser::requestInterruption, Qt::UniqueConnection);
 	connect(&signalDispatcher, &SignalDispatcher::nodifyAllScriptStop, this, &Parser::requestInterruption, Qt::UniqueConnection);
-
-	if (counter_ == nullptr)
-		counter_ = new Counter();
-
-	if (globalNames_ == nullptr)
-		globalNames_ = new QStringList();
-
-	if (localVarStack_ == nullptr)
-		localVarStack_ = new QStack<QHash<QString, QVariant>>();
-
-	if (luaLocalVarStringList_ == nullptr)
-		luaLocalVarStringList_ = new QStringList();
-
-	if (pLua_ == nullptr)
-		pLua_ = new CLua(index);
 }
 
 Parser::~Parser()
 {
+	processClean();
 	qDebug() << "Parser is distory!!";
 }
 
-void Parser::initialize(Parser* parent)
+void Parser::initialize(Parser* pparent)
 {
 	qint64 index = getIndex();
 
-	if (counter_ == nullptr)
-		counter_ = new Counter();
+	if (counter_.isNull())
+		counter_.reset(new Counter());
 
-	if (globalNames_ == nullptr)
-		globalNames_ = new QStringList();
+	if (globalNames_.isNull())
+		globalNames_.reset(new QStringList());
 
-	if (localVarStack_ == nullptr)
-		localVarStack_ = new QStack<QHash<QString, QVariant>>();
+	if (localVarStack_.isNull())
+		localVarStack_.reset(new QStack<QHash<QString, QVariant>>());
 
-	if (luaLocalVarStringList_ == nullptr)
-		luaLocalVarStringList_ = new QStringList();
+	if (luaLocalVarStringList_.isNull())
+		luaLocalVarStringList_.reset(new QStringList());
 
-	if (pLua_ == nullptr)
-		pLua_ = new CLua(index);
+	if (pLua_.isNull())
+		pLua_.reset(new CLua(index));
 
 	pLua_->setHookEnabled(false);
 
@@ -968,7 +959,11 @@ void Parser::initialize(Parser* parent)
 			else if (ovalue.is<qint64>())
 				result = util::toQString(ovalue.as<qint64>());
 			else if (ovalue.is<double>())
+			{
 				result = util::toQString(ovalue.as<double>());
+				while (!result.isEmpty() && result.back() == "0")
+					result.chop(1);
+			}
 
 			insertGlobalVar("vret", result);
 			return result.toUtf8().constData();
@@ -1706,64 +1701,8 @@ void Parser::initialize(Parser* parent)
 #pragma endregion
 
 	lua_State* L = lua_.lua_state();
-	lua_["_THIS_PARSER"] = parent;
+	lua_["_THIS_PARSER"] = pparent;
 	lua_sethook(L, &hookProc, LUA_MASKRET | LUA_MASKCALL | LUA_MASKLINE, NULL);//
-}
-
-//讀取腳本文件並轉換成Tokens
-bool Parser::loadFile(const QString& fileName, QString* pcontent)
-{
-	const QFileInfo fi(fileName);
-	if (fi.isDir())
-		return false;
-
-	util::ScopedFile f(fileName, QIODevice::ReadOnly | QIODevice::Text);
-	if (!f.isOpen())
-	{
-		handleError(kError, QObject::tr("unable to open file:'%1'").arg(fileName));
-		return false;
-	}
-
-	const QString suffix = "." + fi.suffix();
-
-	QString c;
-	if (suffix == util::SCRIPT_DEFAULT_SUFFIX)
-	{
-		QTextStream in(&f);
-#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
-		in.setCodec(util::DEFAULT_CODEPAGE);
-#else
-		in.setEncoding(QStringConverter::Utf8);
-#endif
-		in.setGenerateByteOrderMark(true);
-		c = in.readAll();
-		c.replace("\r\n", "\n");
-		isPrivate_ = false;
-	}
-#ifdef CRYPTO_H
-	else if (suffix == util::SCRIPT_PRIVATE_SUFFIX_DEFAULT)
-	{
-		Crypto crypto;
-		if (!crypto.decodeScript(fileName, c))
-			return false;
-
-		isPrivate_ = true;
-	}
-#endif
-	else
-	{
-		handleError(kError, QString("unable to support with suffix:'%1'").arg(suffix));
-		return false;
-	}
-
-	if (pcontent != nullptr)
-	{
-		*pcontent = c;
-	}
-
-	bool bret = loadString(c);
-
-	return bret;
 }
 
 //將腳本內容轉換成Tokens
@@ -2789,41 +2728,6 @@ bool Parser::jump(const QString& name, bool noStack)
 	return jump(jumpLineCount, true);
 }
 
-//解析跳轉棧或調用棧相關訊息並發送信號
-void Parser::generateStackInfo(qint64 type)
-{
-	if (mode_ != kSync)
-		return;
-
-	if (type != 0)
-		return;
-	qint64 currentIndex = getIndex();
-	Injector& injector = Injector::getInstance(currentIndex);
-
-	if (!injector.isScriptDebugModeEnable.load(std::memory_order_acquire))
-		return;
-
-	QList<FunctionNode> list = callStack_.toList();
-	QVector<QPair<int, QString>> hash;
-	if (!list.isEmpty())
-	{
-		for (const FunctionNode it : list)
-		{
-
-			QStringList l;
-			QString cmd = QString("name: %1, form: %2, level:%3").arg(it.name).arg(it.callFromLine).arg(it.level);
-
-			hash.append(qMakePair(it.beginLine, cmd));
-		}
-	}
-
-	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
-	if (type == kModeCallStack)
-		emit signalDispatcher.callStackInfoChanged(QVariant::fromValue(hash));
-	else
-		emit signalDispatcher.jumpStackInfoChanged(QVariant::fromValue(hash));
-}
-
 QString Parser::getLuaTableString(const sol::table& t, qint64& depth)
 {
 	if (depth <= 0)
@@ -2997,27 +2901,35 @@ void Parser::processLabel()
 //處理"結束"
 void Parser::processClean()
 {
+	if (!pLua_.isNull())
+	{
+		sol::state& lua = pLua_->getLua();
+		lua.collect_garbage();
+	}
+
+	currentField.clear();
 	callStack_.clear();
 	jmpStack_.clear();
+	forStack_.clear();
 	callArgsStack_.clear();
 
-	if (isSubScript())
+	if (isSubScript() && getMode() == Parser::kSync)
 		return;
 
-	if (counter_ != nullptr)
-		delete counter_;
+	if (!counter_.isNull())
+		counter_.reset();
 
-	if (globalNames_ != nullptr)
-		delete globalNames_;
+	if (!globalNames_.isNull())
+		globalNames_.reset();
 
-	if (localVarStack_ != nullptr)
-		delete localVarStack_;
+	if (!localVarStack_.isNull())
+		localVarStack_.reset();
 
-	if (luaLocalVarStringList_ != nullptr)
-		delete luaLocalVarStringList_;
+	if (!luaLocalVarStringList_.isNull())
+		luaLocalVarStringList_.reset();
 
-	if (pLua_ != nullptr)
-		delete pLua_;
+	if (!pLua_.isNull())
+		pLua_.reset();
 }
 
 //處理所有核心命令之外的所有命令
@@ -3414,7 +3326,6 @@ bool Parser::processReturn(qint64 takeReturnFrom)
 
 	qint64 size = list.size();
 
-	lastReturnValue_ = list;
 	if (size == 1)
 		insertGlobalVar("vret", list.value(0));
 	else if (size > 1)
@@ -3825,8 +3736,6 @@ void Parser::processTokens()
 		emit signalDispatcher.addErrorMarker(-1, false);
 		emit signalDispatcher.addForwardMarker(-1, false);
 		emit signalDispatcher.addStepMarker(-1, false);
-		generateStackInfo(kModeCallStack);
-		generateStackInfo(kModeJumpStack);
 	}
 
 	bool skip = false;
@@ -3941,7 +3850,6 @@ void Parser::processTokens()
 			{
 			case kHasJump:
 			{
-				generateStackInfo(kModeJumpStack);
 				continue;
 			}
 			case kError:
@@ -3991,13 +3899,7 @@ void Parser::processTokens()
 		case TK_CALL:
 		{
 			if (processCall(currentType))
-			{
-				generateStackInfo(kModeCallStack);
 				continue;
-			}
-
-			generateStackInfo(kModeCallStack);
-
 			break;
 		}
 		case TK_FUNCTION:
@@ -4040,9 +3942,7 @@ void Parser::processTokens()
 		}
 		case TK_RETURN:
 		{
-			bool bret = processReturn();
-			generateStackInfo(kModeCallStack);
-			if (bret)
+			if (processReturn())
 				continue;
 
 			break;
@@ -4050,38 +3950,8 @@ void Parser::processTokens()
 		case TK_BAK:
 		{
 			processBack();
-			generateStackInfo(kModeJumpStack);
 			continue;
 		}
-#if 0
-		case TK_EXPR:
-		{
-			processVariableExpr();
-			break;
-		}
-#endif
-#if 0
-		case TK_LOCAL:
-		{
-			processLocalVariable();
-			break;
-		}
-#endif
-#if 0
-		case TK_TABLE:
-		case TK_LOCALTABLE:
-		{
-			processTable();
-			break;
-		}
-#endif
-#if 0
-		case TK_MULTIVAR:
-		{
-			processVariable();
-			break;
-		}
-#endif
 		default:
 		{
 			qDebug() << "Unexpected token type:" << currentType;
@@ -4101,8 +3971,7 @@ void Parser::processTokens()
 	if (mode_ == kSync && !skip)
 		exportVarInfo();
 
-	lua_.collect_garbage();
-	processClean();
+	requestInterruption();
 
 	if (&signalDispatcher != nullptr)
 	{
@@ -4114,6 +3983,8 @@ void Parser::processTokens()
 		emit signalDispatcher.appendScriptLog(QObject::tr(" ========== script result : %1，cost %2 ==========")
 			.arg("'" + getScriptFileName() + "' " + (isSubScript() ? QObject::tr("sub-ok") : QObject::tr("main-ok"))).arg(util::formatMilliseconds(timer.elapsed())));
 	}
+
+	processClean();
 }
 
 //導出變量訊息
@@ -4393,9 +4264,10 @@ void Parser::updateSysConstKeyword(const QString& expr)
 
 		pet["count"] = injector.server->getPetSize();
 
+		QHash<qint64, PET> pets = injector.server->getPets();
 		for (qint64 i = 0; i < MAX_PET; ++i)
 		{
-			PET p = injector.server->getPet(i);
+			PET p = pets.value(i);
 			qint64 index = i + 1;
 
 			pet[index]["valid"] = p.valid;

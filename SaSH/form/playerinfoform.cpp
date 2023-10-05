@@ -78,27 +78,10 @@ void CharInfoForm::onResetControlTextLanguage()
 		tr("atk") + "/" + tr("def") + "/" + tr("agi"), tr("growth"), tr("power"),
 	};
 
-	//put on first col
-	qint64 rowCount = ui.tableWidget->rowCount();
 	qint64 size = equipVHeaderList.size();
-	while (rowCount < size)
+	for (qint64 row = 0; row < size; ++row)
 	{
-		ui.tableWidget->insertRow(rowCount);
-		++rowCount;
-	}
-	for (qint64 row = 0; row < rowCount; ++row)
-	{
-		if (row >= size)
-			break;
-		QTableWidgetItem* item = ui.tableWidget->item(row, 0);
-		if (item)
-			item->setText(equipVHeaderList.value(row));
-		else
-		{
-			item = new QTableWidgetItem(equipVHeaderList.value(row));
-			if (item)
-				ui.tableWidget->setItem(row, 0, item);
-		}
+		ui.tableWidget->setText(row, 0, equipVHeaderList.value(row));
 	}
 }
 
@@ -134,23 +117,7 @@ void CharInfoForm::onUpdateCharInfoColContents(qint64 col, const QVariant& data)
 		const QVariant rowData = list.value(row);
 		QString fillText = rowData.toString();
 
-
-		// 檢查指針
-		QTableWidgetItem* item = ui.tableWidget->item(row, col);
-
-		if (!item)
-		{
-			// 如果指針為空，創建新的 QTableWidgetItem
-			item = new QTableWidgetItem(fillText);
-			item->setToolTip(fillText);
-			ui.tableWidget->setItem(row, col, item);
-		}
-		else
-		{
-			// 如果指針不為空，則使用原有的 QTableWidgetItem
-			item->setText(fillText);
-			item->setToolTip(fillText);
-		}
+		ui.tableWidget->setText(row, col, fillText);
 	}
 }
 
@@ -178,24 +145,11 @@ void CharInfoForm::onUpdateCharInfoPetState(qint64 petIndex, qint64 state)
 	QString petName = QString(tr("pet%1 (%2)")).arg(petIndex + 1).arg(stateStrList.value(state));
 
 	//get item 
-	QTableWidgetItem* item = ui.tableWidget->horizontalHeaderItem(col + 1);
-	if (item)
-	{
-		item->setText(petName);
-	}
-	else
-	{
-		item = new QTableWidgetItem(petName);
-		if (item)
-		{
-			ui.tableWidget->setHorizontalHeaderItem(col, item);
-		}
-	}
+	ui.tableWidget->setHorizontalHeaderText(col + 1, petName);
 }
 
 void CharInfoForm::onHeaderClicked(qint64 logicalIndex)
 {
-	qDebug() << "onHeaderClicked:" << logicalIndex;
 	qint64 currentIndex = getIndex();
 	switch (logicalIndex)
 	{
@@ -204,8 +158,8 @@ void CharInfoForm::onHeaderClicked(qint64 logicalIndex)
 		AbilityForm* abilityForm = new AbilityForm(currentIndex, this);
 		abilityForm->setModal(true);
 		QPoint mousePos = QCursor::pos();
-		qint64 x = mousePos.x() - 10;
-		qint64 y = mousePos.y() + 50;
+		qint64 x = static_cast<qint64>(mousePos.x()) - 10;
+		qint64 y = static_cast<qint64>(mousePos.y()) + 50;
 		abilityForm->move(x, y);
 		if (abilityForm->exec() == QDialog::Accepted)
 		{

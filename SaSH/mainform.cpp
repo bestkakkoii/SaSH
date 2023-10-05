@@ -25,7 +25,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "form/mapform.h"
 #include "form/otherform.h"
 #include "form/scriptform.h"
-#include "form/luascriptform.h"
 #include "form/infoform.h"
 #include "form/mapwidget.h"
 #include "form/copyrightdialog.h"
@@ -114,14 +113,40 @@ void MainForm::createMenu(QMenuBar* pMenuBar)
 
 		if (!newText.isEmpty() && !name.isEmpty())
 		{
-			if (name == "actionHide")
-			{
-				hideTrayAction_ = pAction;
-			}
 			pAction->setObjectName(name);
 			pAction->setShortcut(QKeySequence(key));
 			if (isCheck)
 				pAction->setCheckable(true);
+
+			connect(pAction, &QAction::triggered, this, &MainForm::onMenuActionTriggered);
+
+			if (name == "actionHide")
+			{
+				hideTrayAction_ = pAction;
+			}
+
+			if (name == "actionHideBar")
+			{
+				bool bret = false;
+				{
+					util::Config config(QString::fromUtf8(qgetenv("JSON_PATH")));
+					bret = config.read<bool>("MainFormClass", "Menu", "HideBar");
+				}
+				pAction->setChecked(bret);
+				emit pAction->triggered();
+			}
+
+			if (name == "actionHideControl")
+			{
+				bool bret = false;
+				{
+					util::Config config(QString::fromUtf8(qgetenv("JSON_PATH")));
+					bret = config.read<bool>("MainFormClass", "Menu", "HideControl");
+				}
+				pAction->setChecked(bret);
+				emit pAction->triggered();
+			}
+
 			parent->addAction(pAction);
 		}
 		else
@@ -1230,7 +1255,7 @@ MainForm::MainForm(qint64 index, QWidget* parent)
 
 	onLoadHashSettings(util::applicationDirPath() + "/settings/default.json", true);
 }
-#include "mainthread.h"
+
 MainForm::~MainForm()
 {
 	qDebug() << "MainForm::~MainForm()";
@@ -1372,7 +1397,14 @@ void MainForm::onMenuActionTriggered()
 		}
 		else
 		{
-			trayIcon->activated(QSystemTrayIcon::DoubleClick);
+			if (trayIcon->isVisible())
+				trayIcon->activated(QSystemTrayIcon::DoubleClick);
+			else
+			{
+				trayIcon->showMessage(tr("Tip"), tr("The program has been minimized to the system tray"), QSystemTrayIcon::Information, 5000);
+				hide();
+				trayIcon->show();
+			}
 		}
 
 		return;
@@ -1380,6 +1412,8 @@ void MainForm::onMenuActionTriggered()
 
 	if (actionName == "actionHideBar")
 	{
+		util::Config config(QString::fromUtf8(qgetenv("JSON_PATH")));
+		config.write("MainFormClass", "Menu", "HideBar", pAction->isChecked());
 		if (pAction->isChecked())
 		{
 			ui.progressBar_pchp->hide();
@@ -1399,6 +1433,8 @@ void MainForm::onMenuActionTriggered()
 
 	if (actionName == "actionHideControl")
 	{
+		util::Config config(QString::fromUtf8(qgetenv("JSON_PATH")));
+		config.write("MainFormClass", "Menu", "HideControl", pAction->isChecked());
 		if (pAction->isChecked())
 		{
 			ui.tabWidget_main->hide();
@@ -1446,8 +1482,8 @@ void MainForm::onMenuActionTriggered()
 	if (actionName == "actionCloseAll")
 	{
 		QProcess kill;
-		qDebug() << QCoreApplication::applicationName();
-		kill.start("taskkill", QStringList() << "/f" << "/im" << QCoreApplication::applicationName() + ".exe");
+		qDebug() << util::applicationName();
+		kill.start("taskkill", QStringList() << "/f" << "/im" << util::applicationName() + ".exe");
 		kill.waitForFinished();
 		MINT::NtTerminateProcess(GetCurrentProcess(), 0);
 		return;
@@ -1603,22 +1639,22 @@ void MainForm::resetControlTextLanguage()
 	if (pMenuBar_)
 	{
 		createMenu(pMenuBar_);
-		QList<QAction*> actions = pMenuBar_->actions();
-		for (auto action : actions)
-		{
-			if (action->menu())
-			{
-				QList<QAction*> sub_actions = action->menu()->actions();
-				for (auto sub_action : sub_actions)
-				{
-					connect(sub_action, &QAction::triggered, this, &MainForm::onMenuActionTriggered);
-				}
-			}
-			else
-			{
-				connect(action, &QAction::triggered, this, &MainForm::onMenuActionTriggered);
-			}
-		}
+		//QList<QAction*> actions = pMenuBar_->actions();
+		//for (auto action : actions)
+		//{
+		//	if (action->menu())
+		//	{
+		//		QList<QAction*> sub_actions = action->menu()->actions();
+		//		for (auto sub_action : sub_actions)
+		//		{
+		//			connect(sub_action, &QAction::triggered, this, &MainForm::onMenuActionTriggered);
+		//		}
+		//	}
+		//	else
+		//	{
+		//		connect(action, &QAction::triggered, this, &MainForm::onMenuActionTriggered);
+		//	}
+		//}
 	}
 
 	ui.progressBar_pchp->setName(tr("char"));

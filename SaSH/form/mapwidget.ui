@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>800</width>
-    <height>600</height>
+    <width>627</width>
+    <height>248</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -20,14 +20,26 @@
    <layout class="QGridLayout" name="gridLayout_2">
     <item row="0" column="0">
      <widget class="QSplitter" name="splitter">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
       <property name="orientation">
        <enum>Qt::Horizontal</enum>
+      </property>
+      <property name="opaqueResize">
+       <bool>true</bool>
       </property>
       <property name="childrenCollapsible">
        <bool>true</bool>
       </property>
       <widget class="QWidget" name="layoutWidget">
        <layout class="QVBoxLayout" name="verticalLayout">
+        <property name="sizeConstraint">
+         <enum>QLayout::SetMaximumSize</enum>
+        </property>
         <item>
          <widget class="QWidget" name="widget" native="true">
           <property name="styleSheet">
@@ -53,6 +65,12 @@
                <horstretch>0</horstretch>
                <verstretch>0</verstretch>
               </sizepolicy>
+             </property>
+             <property name="minimumSize">
+              <size>
+               <width>400</width>
+               <height>0</height>
+              </size>
              </property>
              <property name="mouseTracking">
               <bool>true</bool>
@@ -181,7 +199,7 @@
           </property>
           <property name="maximumSize">
            <size>
-            <width>250</width>
+            <width>200</width>
             <height>16777215</height>
            </size>
           </property>
@@ -194,7 +212,7 @@
          </widget>
         </item>
         <item>
-         <widget class="QTableWidget" name="tableWidget_NPCList">
+         <widget class="TableWidget" name="tableWidget_NPCList">
           <property name="sizePolicy">
            <sizepolicy hsizetype="Minimum" vsizetype="Minimum">
             <horstretch>0</horstretch>
@@ -203,7 +221,7 @@
           </property>
           <property name="maximumSize">
            <size>
-            <width>250</width>
+            <width>200</width>
             <height>16777215</height>
            </size>
           </property>
@@ -284,6 +302,11 @@
   </widget>
  </widget>
  <customwidgets>
+  <customwidget>
+   <class>TableWidget</class>
+   <extends>QTableWidget</extends>
+   <header location="global">tablewidget.h</header>
+  </customwidget>
   <customwidget>
    <class>MapGLWidget</class>
    <extends>QOpenGLWidget</extends>

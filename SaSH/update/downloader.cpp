@@ -101,7 +101,7 @@ bool Downloader::checkUpdate(QString* current, QString* ptext)
 #else
 
 
-	QString exeFileName = QCoreApplication::applicationFilePath();
+	QString exeFileName = util::applicationFilePath();
 
 	{
 		util::Config config(qgetenv("JSON_PATH"));

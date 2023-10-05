@@ -59,8 +59,62 @@ public:
 		horizontalHeader()->setHighlightSections(false);
 		horizontalHeader()->setDefaultAlignment(Qt::AlignLeft);
 	}
+
 	virtual ~TableWidget() = default;
 
+	void setText(qint64 row, qint64 column, const QString& text, const QString& toolTip = "")
+	{
+		qint64 max = QTableWidget::rowCount();
+		if (row >= max)
+		{
+			for (qint64 i = max; i <= row; ++i)
+				QTableWidget::insertRow(i);
+		}
+
+		QTableWidgetItem* item = QTableWidget::item(row, column);
+		if (item != nullptr)
+		{
+			item->setText(text);
+			if (!toolTip.isEmpty())
+				item->setToolTip(toolTip);
+			else
+				item->setToolTip(text);
+		}
+		else
+		{
+			item = new QTableWidgetItem(text);
+			if (item == nullptr)
+				return;
+
+			if (!toolTip.isEmpty())
+				item->setToolTip(toolTip);
+			else
+				item->setToolTip(text);
+
+			setItem(row, column, item);
+		}
+	}
+
+	void setHorizontalHeaderText(qint64 col, const QString& text)
+	{
+		QTableWidgetItem* item = QTableWidget::horizontalHeaderItem(col);
+		if (item == nullptr)
+		{
+			item = new QTableWidgetItem(text);
+			if (item == nullptr)
+				return;
+
+			item->setToolTip(text);
+			QTableWidget::setHorizontalHeaderItem(col, item);
+		}
+		else
+		{
+			item->setText(text);
+			item->setToolTip(text);
+		}
+	}
+
+private:
 	void setItem(qint64 row, qint64 column, QTableWidgetItem* item)
 	{
 		if (item == nullptr)

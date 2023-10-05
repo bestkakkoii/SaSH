@@ -52,7 +52,7 @@ private:
 	void checkAutoSortItem();
 	void checkAutoWalk();
 	void checkAutoDropItems();
-	void checkAutoDropMeat(const QStringList& items);
+	void checkAutoDropMeat();
 	void checkAutoJoin();
 	void checkAutoHeal();
 	void checkAutoDropPet();

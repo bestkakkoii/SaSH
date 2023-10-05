@@ -48,24 +48,6 @@ InfoForm::InfoForm(qint64 index, qint64 defaultPage, QWidget* parent)
 
 	connect(this, &InfoForm::resetControlTextLanguage, this, &InfoForm::onResetControlTextLanguage, Qt::UniqueConnection);
 
-	QGridLayout* gridLayout = new QGridLayout;
-	Q_ASSERT(gridLayout != nullptr);
-	QOpenGLWidget* openGLWidget = new QOpenGLWidget;
-	Q_ASSERT(openGLWidget != nullptr);
-
-	if (gridLayout != nullptr && openGLWidget != nullptr)
-	{
-		openGLWidget->setLayout(gridLayout);
-		gridLayout->addWidget(ui.tabWidget);
-#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
-		gridLayout->setMargin(0);
-#else
-		gridLayout->setContentsMargins(0, 0, 0, 0);
-#endif
-	}
-
-	ui.gridLayout->addWidget(openGLWidget);
-
 	ui.tabWidget->clear();
 	util::setTab(ui.tabWidget);
 
@@ -177,7 +159,6 @@ void InfoForm::onResetControlTextLanguage()
 	pCharInfoForm_->onResetControlTextLanguage();
 	pItemInfoForm_->onResetControlTextLanguage();
 	pChatInfoForm_->onResetControlTextLanguage();
-
 }
 
 void InfoForm::onApplyHashSettingsToUI()

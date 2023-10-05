@@ -267,9 +267,6 @@
     <ClCompile Include="script_lua\luautil.cpp">
       <Filter>Source Files\script_lua</Filter>
     </ClCompile>
-    <ClCompile Include="form\luascriptform.cpp">
-      <Filter>Source Files\forms\script</Filter>
-    </ClCompile>
     <ClCompile Include="net\macchanger.cpp">
       <Filter>Source Files\net</Filter>
     </ClCompile>
@@ -400,9 +397,6 @@
     </QtMoc>
     <QtMoc Include="script_lua\clua.h">
       <Filter>Source Files\script_lua</Filter>
-    </QtMoc>
-    <QtMoc Include="form\luascriptform.h">
-      <Filter>Source Files\forms\script</Filter>
     </QtMoc>
     <QtMoc Include="form\copyrightdialog.h">
       <Filter>Source Files\forms</Filter>

@@ -115,8 +115,6 @@ ScriptEditor::ScriptEditor(qint64 index, QWidget* parent)
 	connect(&signalDispatcher, &SignalDispatcher::reloadScriptList, this, &ScriptEditor::onReloadScriptList, Qt::QueuedConnection);
 	connect(&signalDispatcher, &SignalDispatcher::scriptLabelRowTextChanged, this, &ScriptEditor::onScriptLabelRowTextChanged, Qt::QueuedConnection);
 	connect(&signalDispatcher, &SignalDispatcher::varInfoImported, this, &ScriptEditor::onVarInfoImport, Qt::BlockingQueuedConnection);
-	connect(&signalDispatcher, &SignalDispatcher::callStackInfoChanged, this, &ScriptEditor::onCallStackInfoChanged, Qt::QueuedConnection);
-	connect(&signalDispatcher, &SignalDispatcher::jumpStackInfoChanged, this, &ScriptEditor::onJumpStackInfoChanged, Qt::QueuedConnection);
 
 	//QList <OpenGLWidget*> glWidgetList = util::findWidgets<OpenGLWidget>(this);
 	//for (auto& glWidget : glWidgetList)
@@ -627,7 +625,7 @@ QString ScriptEditor::formatCode(QString content)
 	return newContents.join("\n");
 }
 
-void ScriptEditor::fileSave(const QString& d, DWORD flag)
+void ScriptEditor::fileSave(QString content)
 {
 	qint64 currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
@@ -635,6 +633,7 @@ void ScriptEditor::fileSave(const QString& d, DWORD flag)
 		return;
 
 	const QString directoryName(util::applicationDirPath() + "/script");
+
 	const QDir dir(directoryName);
 	if (!dir.exists())
 		dir.mkdir(directoryName);
@@ -646,32 +645,20 @@ void ScriptEditor::fileSave(const QString& d, DWORD flag)
 
 	//backup
 	QString applicationDirPath = util::applicationDirPath();
+
 	QDir bakDir(applicationDirPath + "/script/bak");
 	if (!bakDir.exists())
 		bakDir.mkdir(applicationDirPath + "/script/bak");
+
 	QFileInfo fi(fileName);
 	QString backupName(QString("%1/script/bak/%2.bak").arg(applicationDirPath).arg(fi.fileName()));
 	QFile::remove(backupName);
 	QFile::copy(fileName, backupName);
 
-	util::ScopedFile file(fileName, static_cast<QIODevice::OpenModeFlag>(flag));
-	if (!file.isOpen())
+	content = formatCode(content);
+
+	if (!util::writeFile(fileName, content))
 		return;
-
-	QString content(d);
-
-	QTextStream out(&file);
-#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
-	out.setCodec(util::DEFAULT_CODEPAGE);
-#else
-	out.setEncoding(QStringConverter::Utf8);
-#endif
-	out.setGenerateByteOrderMark(true);
-	out.setLocale(QLocale::Chinese);
-
-	out << formatCode(content);
-	out.flush();
-	file.flush();
 
 	ui.statusBar->showMessage(QString(tr("Script %1 saved")).arg(fileName), 10000);
 
@@ -692,8 +679,8 @@ void ScriptEditor::fileSave(const QString& d, DWORD flag)
 
 void ScriptEditor::loadFile(const QString& fileName)
 {
-	util::ScopedFile f(fileName, QIODevice::ReadOnly | QIODevice::Text);
-	if (!f.isOpen())
+	QString content;
+	if (!util::readFile(fileName, &content))
 		return;
 
 	bool isReadOnly = ui.widget->isReadOnly();
@@ -710,16 +697,6 @@ void ScriptEditor::loadFile(const QString& fileName)
 	//紀錄滾動條位置
 	qint64 scollValue = ui.widget->verticalScrollBar()->value();
 
-	QTextStream in(&f);
-#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
-	in.setCodec(util::DEFAULT_CODEPAGE);
-#else
-	in.setEncoding(QStringConverter::Utf8);
-#endif
-	in.setGenerateByteOrderMark(true);
-	QString c = in.readAll();
-	c.replace("\r\n", "\n");
-
 	qint64 currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
 
@@ -730,11 +707,9 @@ void ScriptEditor::loadFile(const QString& fileName)
 
 	ui.widget->setUpdatesEnabled(false);
 
-	ui.widget->convertEols(QsciScintilla::EolWindows);
-	ui.widget->setUtf8(true);
 	ui.widget->setModified(false);
 	ui.widget->selectAll();
-	ui.widget->replaceSelectedText(c);
+	ui.widget->replaceSelectedText(content);
 
 	ui.widget->setUpdatesEnabled(true);
 
@@ -786,36 +761,6 @@ void ScriptEditor::setContinue()
 	step_markers[currentIndex].clear();
 
 	emit signalDispatcher.scriptResumed();
-}
-
-void ScriptEditor::stackInfoImport(QTreeWidget* tree, const QVector<QPair<qint64, QString>>& vec)
-{
-	if (tree == nullptr)
-		return;
-
-	tree->setUpdatesEnabled(false);
-
-	tree->clear();
-	tree->setColumnCount(2);
-	tree->setHeaderLabels(QStringList() << tr("row") << tr("content"));
-
-	if (!vec.isEmpty())
-	{
-		QList<QTreeWidgetItem*> trees;
-		TreeWidgetItem* item = nullptr;
-		for (const QPair<qint64, QString> pair : vec)
-		{
-			item = new TreeWidgetItem({ util::toQString(pair.first),  pair.second });
-			if (item == nullptr)
-				continue;
-
-			trees.append(item);
-		}
-
-		tree->addTopLevelItems(trees);
-	}
-
-	tree->setUpdatesEnabled(true);
 }
 
 QString ScriptEditor::getFullPath(TreeWidgetItem* item)
@@ -1501,7 +1446,7 @@ void ScriptEditor::on_treeWidget_breakList_itemDoubleClicked(QTreeWidgetItem* it
 //查找命令
 void ScriptEditor::on_lineEdit_searchFunction_textChanged(const QString& text)
 {
-	static const auto OnFindItem = [](QTreeWidget* tree, const QString& qsFilter)->void
+	auto OnFindItem = [](QTreeWidget* tree, const QString& qsFilter)->void
 	{
 		if (!tree) return;
 		QTreeWidgetItemIterator it(tree);
@@ -1771,6 +1716,27 @@ void ScriptEditor::onSpeedChanged(int value)
 	emit signalDispatcher.applyHashSettingsToUI();
 }
 
+void ScriptEditor::onNewFile()
+{
+	qint64 currnetIndex = getIndex();
+	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currnetIndex);
+	qint64 num = 1;
+	for (;;)
+	{
+		QString strpath = (util::applicationDirPath() + QString("/script/Untitled-%1.txt").arg(num));
+		if (!QFile::exists(strpath))
+		{
+			if (util::writeFile(strpath, ""))
+				loadFile(strpath);
+
+			emit signalDispatcher.reloadScriptList();
+			break;
+		}
+
+		++num;
+	}
+}
+
 void ScriptEditor::onActionTriggered()
 {
 	QAction* pAction = qobject_cast<QAction*>(sender());
@@ -1782,42 +1748,54 @@ void ScriptEditor::onActionTriggered()
 	if (name.isEmpty())
 		return;
 
-
 	Injector& injector = Injector::getInstance(currnetIndex);
 
 	if (name == "actionSave")
 	{
 		if (!injector.scriptLogModel.isNull())
 			injector.scriptLogModel->clear();
-		fileSave(ui.widget->text(), QIODevice::WriteOnly | QIODevice::Truncate | QIODevice::Text);
+
+		fileSave(ui.widget->text());
 		emit signalDispatcher.loadFileToTable(injector.currentScriptFileName);
+		return;
 	}
-	else if (name == "actionStart")
+
+	if (name == "actionStart")
 	{
 		if (step_markers[currnetIndex].size() == 0 && !injector.IS_SCRIPT_FLAG.load(std::memory_order_acquire))
 		{
 			emit signalDispatcher.scriptStarted();
 		}
+		return;
 	}
-	else if (name == "actionPause")
+
+	if (name == "actionPause")
 	{
 		emit signalDispatcher.scriptPaused();
+		return;
 	}
-	else if (name == "actionStop")
+
+	if (name == "actionStop")
 	{
 		emit signalDispatcher.scriptStoped();
+		return;
 	}
-	else if (name == "actionContinue")
+
+	if (name == "actionContinue")
 	{
 		setContinue();
+		return;
 	}
-	else if (name == "actionStep")
+
+	if (name == "actionStep")
 	{
 		emit signalDispatcher.addForwardMarker(-1, false);
 		emit signalDispatcher.addErrorMarker(-1, false);
 		emit signalDispatcher.scriptBreaked();
+		return;
 	}
-	else if (name == "actionSaveAs")
+
+	if (name == "actionSaveAs")
 	{
 		const QString directoryName(util::applicationDirPath() + "/script");
 		const QDir dir(directoryName);
@@ -1835,91 +1813,63 @@ void ScriptEditor::onActionTriggered()
 		if (fd.exec() == QDialog::Accepted)
 		{
 			const QString f(fd.selectedFiles().value(0));
-			if (f.isEmpty()) return;
+			if (f.isEmpty())
+				return;
 
-			QFile file(f);
-			if (file.open(QIODevice::WriteOnly | QIODevice::Truncate))
+			if (util::writeFile(f, ui.widget->text()))
 			{
-				QTextStream out(&file);
-#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
-				out.setCodec(util::DEFAULT_CODEPAGE);
-#else
-				out.setEncoding(QStringConverter::Utf8);
-#endif
-				out.setGenerateByteOrderMark(true);
-				out << ui.widget->text() << Qt::endl;
-				file.flush();
-				file.close();
 				QDesktopServices::openUrl(QUrl::fromLocalFile(directoryName));
 			}
 		}
 		emit signalDispatcher.reloadScriptList();
+		return;
 	}
-	else if (name == "actionDirectory")
+
+	if (name == "actionDirectory")
 	{
 		QDesktopServices::openUrl(QUrl::fromLocalFile(util::applicationDirPath() + "/script"));
 	}
-	else if (name == "actionMark")
+
+	if (name == "actionMark")
 	{
 		int line = -1;
 		int index = -1;
 		ui.widget->getCursorPosition(&line, &index);
 		emit ui.widget->marginClicked(NULL, line, Qt::NoModifier);
+		return;
 	}
-	else if (name == "actionLogback")
+
+	if (name == "actionLogback")
 	{
 		if (injector.server.isNull())
 			return;
 
-		injector.server->logBack();
+		if (injector.isValid())
+			injector.setEnableHash(util::kLogBackEnable, true);
+		return;
 	}
-	else if (name == "actionAutoFollow")
+
+	if (name == "actionNew")
 	{
-
+		QMetaObject::invokeMethod(this, "onNewFile", Qt::QueuedConnection);
+		return;
 	}
-	else if (name == "actionNew")
-	{
-		int num = 1;
-		for (;;)
-		{
-			QString strpath = (util::applicationDirPath() + QString("/script/Untitled-%1.txt").arg(num));
-			if (!QFile::exists(strpath))
-			{
-				QFile file(strpath);
-				if (file.open(QIODevice::WriteOnly | QIODevice::Truncate))
-				{
-					QTextStream out(&file);
-#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
-					out.setCodec(util::DEFAULT_CODEPAGE);
-#else
-					out.setEncoding(QStringConverter::Utf8);
-#endif
-					out.setGenerateByteOrderMark(true);
-					out << "" << Qt::endl;
-					file.flush();
-					file.close();
-				}
 
-				loadFile(strpath);
-
-				emit signalDispatcher.reloadScriptList();
-				break;
-			}
-			++num;
-		}
-
-	}
-	else if (name == "actionSaveEncode")
+	if (name == "actionSaveEncode")
 	{
 		onEncryptSave();
+		return;
 	}
-	else if (name == "actionSaveDecode")
+	if (name == "actionSaveDecode")
 	{
 		onDecryptSave();
+		return;
 	}
-	else if (name == "actionDebug")
+
+	if (name == "actionDebug")
 	{
 		injector.isScriptDebugModeEnable.store(pAction->isChecked(), std::memory_order_release);
+		return;
 	}
 }
 
@@ -2312,18 +2262,6 @@ void ScriptEditor::onVarInfoImport(void* p, const QVariantHash& d, const QString
 	createTreeWidgetItems(reinterpret_cast<Parser*>(p), &nodes, d, globalNames);
 	ui.treeWidget_debuger_custom->addTopLevelItems(nodes);
 	ui.treeWidget_debuger_custom->setUpdatesEnabled(true);
-}
-
-void ScriptEditor::onCallStackInfoChanged(const QVariant& var)
-{
-	//QVector<QPair<qint64, QString>> vec = var.value<QVector<QPair<qint64, QString>>>();
-	//stackInfoImport(ui.treeWidget_debuger_callstack, vec);
-}
-
-void ScriptEditor::onJumpStackInfoChanged(const QVariant& var)
-{
-	//QVector<QPair<qint64, QString>> vec = var.value<QVector<QPair<qint64, QString>>>();
-	//stackInfoImport(ui.treeWidget_debuger_jmpstack, vec);
 }
 
 void ScriptEditor::onEncryptSave()

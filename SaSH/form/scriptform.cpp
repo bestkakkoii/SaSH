@@ -233,26 +233,6 @@ void ScriptForm::resizeTableWidgetRow(qint64 max)
 	}
 }
 
-//設置指定單元格內容
-void ScriptForm::setTableWidgetItem(qint64 row, qint64 col, const QString& text)
-{
-	QTableWidgetItem* item = ui.tableWidget_script->item(row, col);
-	if (item)
-	{
-		item->setText(text);
-		item->setToolTip(text);
-	}
-	else
-	{
-		item = new QTableWidgetItem(text);
-		if (item)
-		{
-			item->setToolTip(text);
-			ui.tableWidget_script->setItem(row, col, item);
-		}
-	}
-}
-
 //樹型框header點擊信號槽
 void ScriptForm::onScriptTreeWidgetHeaderClicked(int)
 {
@@ -311,8 +291,8 @@ void ScriptForm::onScriptContentChanged(const QString& fileName, const QVariant&
 
 		if (lineTokens.value(0).type == TK_COMMENT)
 		{
-			setTableWidgetItem(row, 0, "[comment]");
-			setTableWidgetItem(row, 1, lineTokens.value(1).raw.simplified());
+			ui.tableWidget_script->setText(row, 0, "[comment]");
+			ui.tableWidget_script->setText(row, 1, lineTokens.value(1).raw.simplified());
 			continue;
 		}
 
@@ -339,32 +319,32 @@ void ScriptForm::onScriptContentChanged(const QString& fileName, const QVariant&
 		QString argStr = params.join(", ");
 		if (TK_LOCAL == reserve || TK_LOCALTABLE == reserve)
 		{
-			setTableWidgetItem(row, 0, "[local]");
+			ui.tableWidget_script->setText(row, 0, "[local]");
 			if (!argStr.isEmpty())
-				setTableWidgetItem(row, 1, QString("%1 = %2").arg(cmd, argStr));
+				ui.tableWidget_script->setText(row, 1, QString("%1 = %2").arg(cmd, argStr));
 			else
-				setTableWidgetItem(row, 1, QString("%1 = \'\'").arg(cmd));
+				ui.tableWidget_script->setText(row, 1, QString("%1 = \'\'").arg(cmd));
 			continue;
 		}
 		else if (TK_MULTIVAR == reserve || TK_TABLE == reserve || TK_GLOBAL == reserve)
 		{
-			setTableWidgetItem(row, 0, "[global]");
+			ui.tableWidget_script->setText(row, 0, "[global]");
 			if (!argStr.isEmpty())
-				setTableWidgetItem(row, 1, QString("%1 = %2").arg(cmd, argStr));
+				ui.tableWidget_script->setText(row, 1, QString("%1 = %2").arg(cmd, argStr));
 			else
-				setTableWidgetItem(row, 1, QString("%1 = \'\'").arg(cmd));
+				ui.tableWidget_script->setText(row, 1, QString("%1 = \'\'").arg(cmd));
 			continue;
 		}
 		else if (cmd.size() <= 12)
-			setTableWidgetItem(row, 0, cmd);
+			ui.tableWidget_script->setText(row, 0, cmd);
 		else
 		{
-			setTableWidgetItem(row, 0, "[long command]");
-			setTableWidgetItem(row, 1, QString("%1 %2").arg(cmd, argStr));
+			ui.tableWidget_script->setText(row, 0, "[long command]");
+			ui.tableWidget_script->setText(row, 1, QString("%1 %2").arg(cmd, argStr));
 			continue;
 		}
 
-		setTableWidgetItem(row, 1, argStr);
+		ui.tableWidget_script->setText(row, 1, argStr);
 	}
 
 	QString newFileName = fileName;

@@ -52,7 +52,7 @@ protected:
 	}
 
 private:
-	void updateItemInfoRowContents(QTableWidget* tableWidget, const QVariant& data);
+	void updateItemInfoRowContents(TableWidget* tableWidget, const QVariant& data);
 
 
 private:

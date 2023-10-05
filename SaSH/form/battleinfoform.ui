@@ -80,11 +80,6 @@
            <string>[top]char/pet</string>
           </property>
          </column>
-         <column>
-          <property name="text">
-           <string>ride</string>
-          </property>
-         </column>
         </widget>
        </item>
        <item>
@@ -153,11 +148,6 @@
          <column>
           <property name="text">
            <string>[bottom]char/pet</string>
-          </property>
-         </column>
-         <column>
-          <property name="text">
-           <string>ride</string>
           </property>
          </column>
         </widget>

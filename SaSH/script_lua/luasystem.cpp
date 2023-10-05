@@ -981,13 +981,13 @@ qint64 CLuaSystem::set(std::string enumStr, sol::object p1, sol::object p2, sol:
 		{
 			injector.setEnableHash(util::kAutoBattleEnable, !ok);
 			if (ok && !injector.server.isNull())
-				injector.server->doBattleWork(false);//async
+				injector.server->doBattleWork(false);
 		}
 		else if (type == util::kAutoBattleEnable && ok)
 		{
 			injector.setEnableHash(util::kFastBattleEnable, !ok);
 			if (ok && !injector.server.isNull())
-				injector.server->doBattleWork(false);//async
+				injector.server->doBattleWork(false);
 		}
 		else if (type == util::kAutoWalkEnable && ok)
 			injector.setEnableHash(util::kFastAutoWalkEnable, !ok);

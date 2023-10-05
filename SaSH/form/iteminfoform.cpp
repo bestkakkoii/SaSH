@@ -85,54 +85,23 @@ void ItemInfoForm::onResetControlTextLanguage()
 	};
 
 	//put on first col
-	qint64 rowCount = ui.tableWidget_equip->rowCount();
 	qint64 size = equipVHeaderList.size();
-	while (rowCount < size)
-	{
-		ui.tableWidget_equip->insertRow(rowCount);
-		++rowCount;
-	}
-	for (qint64 row = 0; row < rowCount; ++row)
+
+	for (qint64 row = 0; row < size; ++row)
 	{
 		if (row >= size)
 			break;
-		QTableWidgetItem* item = ui.tableWidget_equip->item(row, 0);
-		if (item != nullptr)
-			item->setText(equipVHeaderList.value(row));
-		else
-		{
-			item = new QTableWidgetItem(equipVHeaderList.value(row));
-			if (item == nullptr)
-				continue;
-
-			ui.tableWidget_equip->setItem(row, 0, item);
-		}
+		ui.tableWidget_equip->setText(row, 0, equipVHeaderList.value(row), equipVHeaderList.value(row));
 	}
 
-	rowCount = ui.tableWidget_item->rowCount();
-	size = 15;
-	while (rowCount < size)
+	size = MAX_ITEM - CHAR_EQUIPPLACENUM;
+	for (qint64 row = 0; row < size; ++row)
 	{
-		ui.tableWidget_item->insertRow(rowCount);
-		++rowCount;
-	}
-	for (qint64 row = 0; row < rowCount; ++row)
-	{
-		QTableWidgetItem* item = ui.tableWidget_item->item(row, 0);
-		if (item != nullptr)
-			item->setText(util::toQString(row + 1));
-		else
-		{
-			item = new QTableWidgetItem(util::toQString(row + 1));
-			if (item == nullptr)
-				continue;
-
-			ui.tableWidget_item->setItem(row, 0, item);
-		}
+		ui.tableWidget_item->setText(row, 0, util::toQString(row + 1), util::toQString(row + 1));
 	}
 }
 
-void ItemInfoForm::updateItemInfoRowContents(QTableWidget* tableWidget, qint64 row, const QVariant& data)
+void ItemInfoForm::updateItemInfoRowContents(TableWidget* tableWidget, qint64 row, const QVariant& data)
 {
 
 	// 檢查是否為 QVariantList
@@ -163,25 +132,7 @@ void ItemInfoForm::updateItemInfoRowContents(QTableWidget* tableWidget, qint64 r
 		const QVariant rowData = list.value(col);
 		QString fillText = rowData.toString();
 
-		// 檢查指針
-		QTableWidgetItem* item = tableWidget->item(row, col);
-
-		if (item != nullptr)
-		{
-			// 如果指針不為空，則使用原有的 QTableWidgetItem
-			item->setText(fillText);
-			item->setToolTip(fillText);
-		}
-		else
-		{
-			// 如果指針為空，創建新的 QTableWidgetItem
-			item = new QTableWidgetItem(fillText);
-			if (item == nullptr)
-				continue;
-
-			item->setToolTip(fillText);
-			tableWidget->setItem(row, col, item);
-		}
+		tableWidget->setText(row, col, fillText, fillText);
 	}
 }
 
@@ -202,7 +153,7 @@ void ItemInfoForm::on_tableWidget_item_cellDoubleClicked(int row, int column)
 	if (injector.server.isNull())
 		return;
 
-	injector.server->useItem(row + CHAR_EQUIPPLACENUM, 0);
+	injector.server->useItem(static_cast<qint64>(row) + CHAR_EQUIPPLACENUM, 0);
 }
 
 void ItemInfoForm::on_tableWidget_equip_cellDoubleClicked(int row, int column)

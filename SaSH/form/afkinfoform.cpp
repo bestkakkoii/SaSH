@@ -69,27 +69,7 @@ void AfkInfoForm::onButtonClicked()
 
 void AfkInfoForm::updateTableText(qint64 row, qint64 col, const QString& text)
 {
-	QTableWidgetItem* item = ui.tableWidget->item(row, col);
-	if (row >= ui.tableWidget->rowCount())
-	{
-		for (qint64 i = ui.tableWidget->rowCount(); i <= row; ++i)
-			ui.tableWidget->insertRow(i);
-	}
-
-	if (item)
-	{
-		item->setText(text);
-		item->setToolTip(text);
-	}
-	else
-	{
-		item = new QTableWidgetItem(text);
-		if (item != nullptr)
-		{
-			item->setToolTip(text);
-			ui.tableWidget->setItem(row, col, item);
-		}
-	}
+	ui.tableWidget->setText(row, col, text);
 }
 
 void AfkInfoForm::onUpdateAfkInfoTable(qint64 row, const QString& text)

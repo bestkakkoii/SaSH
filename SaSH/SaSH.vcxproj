@@ -336,7 +336,6 @@ xcopy /y /d "$(SolutionDir)$(ProjectName)\translations\*.qm" "$(SolutionDir)$(Co
     <ClCompile Include="form\generalform.cpp" />
     <ClCompile Include="form\infoform.cpp" />
     <ClCompile Include="form\iteminfoform.cpp" />
-    <ClCompile Include="form\luascriptform.cpp" />
     <ClCompile Include="form\mailinfoform.cpp" />
     <ClCompile Include="form\mapform.cpp" />
     <ClCompile Include="form\mapwidget.cpp" />
@@ -433,7 +432,6 @@ xcopy /y /d "$(SolutionDir)$(ProjectName)\translations\*.qm" "$(SolutionDir)$(Co
     <QtMoc Include="form\mapwidget.h" />
     <QtMoc Include="form\mapform.h" />
     <QtMoc Include="form\replaceform.h" />
-    <QtMoc Include="form\luascriptform.h" />
     <QtMoc Include="form\copyrightdialog.h" />
     <ClInclude Include="battle\battle.h" />
     <QtMoc Include="form\battlesettingfrom.h" />

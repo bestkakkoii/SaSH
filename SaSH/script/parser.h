@@ -368,7 +368,7 @@ public:
 	explicit Parser(qint64 index);
 	virtual ~Parser();
 
-	void initialize(Parser* parent);
+	void initialize(Parser* pparent);
 
 	//解析腳本
 	void parse(qint64 line = 0);
@@ -382,22 +382,20 @@ public:
 	inline Q_REQUIRED_RESULT QList<ForNode> getForNodeList() const { return forNodeList_; }
 	inline Q_REQUIRED_RESULT QList<LuaNode> getLuaNodeList() const { return luaNodeList_; }
 	inline Q_REQUIRED_RESULT qint64 getCurrentLine() const { return lineNumber_; }
-	inline Q_REQUIRED_RESULT QStringList* getGlobalNameListPointer() const { return globalNames_; }
 	inline Q_REQUIRED_RESULT bool isSubScript() const { return isSubScript_; }
 	inline Q_REQUIRED_RESULT QHash<QString, qint64> getLabels() { return labels_; }
-	inline Q_REQUIRED_RESULT Counter* getCounterPointer() const { return counter_; }
-	inline Q_REQUIRED_RESULT QStack<QVariantHash>* getLocalVarStackPointer() const { return localVarStack_; }
-	inline Q_REQUIRED_RESULT QStringList* getLuaLocalVarStringListPointer() const { return luaLocalVarStringList_; }
 	inline Q_REQUIRED_RESULT Parser::Mode getMode() const { return mode_; }
-	inline Q_REQUIRED_RESULT Parser* getParent() const { return parent_; }
-	inline Q_REQUIRED_RESULT Interpreter* getInterpreter() const { return interpreter_; }
+	inline Q_REQUIRED_RESULT QSharedPointer<QStringList> getGlobalNameListPointer() const { return globalNames_; }
+	inline Q_REQUIRED_RESULT QSharedPointer<Counter> getCounterPointer() const { return counter_; }
+	inline Q_REQUIRED_RESULT QSharedPointer<QStack<QVariantHash>> getLocalVarStackPointer() const { return localVarStack_; }
+	inline Q_REQUIRED_RESULT QSharedPointer<QStringList> getLuaLocalVarStringListPointer() const { return luaLocalVarStringList_; }
+	inline Q_REQUIRED_RESULT Parser* getParent() const { return pparent_; }
+	inline Q_REQUIRED_RESULT Interpreter* getInterpreter() const { return pinterpreter_; }
 
 	inline void setScriptFileName(const QString& scriptFileName) { scriptFileName_ = scriptFileName; }
 	inline void setCurrentLine(const qint64 line) { lineNumber_ = line; }
 	inline void setPrivate(bool isPrivate) { isPrivate_ = isPrivate; }
 	inline void setMode(Mode mode) { mode_ = mode; }
-	inline void setInterpreter(Interpreter* interpreter) { interpreter_ = interpreter; }
-	inline void setParent(Parser* parent) { parent_ = parent; }
 	inline void setTokens(const QHash<qint64, TokenMap>& tokens) { tokens_ = tokens; }
 	inline void setLabels(const QHash<QString, qint64>& labels) { labels_ = labels; }
 	inline void setFunctionNodeList(const QList<FunctionNode>& functionNodeList) { functionNodeList_ = functionNodeList; }
@@ -406,38 +404,39 @@ public:
 	inline void setCallBack(ParserCallBack callBack) { callBack_ = callBack; }
 	inline void setSubScript(bool isSubScript) { isSubScript_ = isSubScript; }
 
-	inline void setGlobalNameListPointer(QStringList* globalNames)
+	inline void setInterpreter(Interpreter* interpreter) { pinterpreter_ = interpreter; }
+	inline void setParent(Parser* pparent) { pparent_ = pparent; }
+	inline void setGlobalNameListPointer(const QSharedPointer<QStringList>& globalNames)
 	{
-		if (globalNames_ != nullptr)
-			delete globalNames_;
+		if (!globalNames_.isNull())
+			globalNames_.reset();
 		globalNames_ = globalNames;
 	}
-	inline void setLuaMachinePointer(CLua* pLua)
+	inline void setLuaMachinePointer(const QSharedPointer<CLua>& pLua)
 	{
-		if (pLua_ != nullptr)
-			delete pLua_;
+		if (!pLua_.isNull())
+			pLua_.reset();
 		pLua_ = pLua;
 	}
-	inline void setCounterPointer(Counter* counter)
+	inline void setCounterPointer(const QSharedPointer<Counter>& counter)
 	{
-		if (counter_ != nullptr)
-			delete counter_;
+		if (!counter_.isNull())
+			counter_.reset();
 		counter_ = counter;
 	}
-	inline void setLocalVarStackPointer(QStack<QVariantHash>* localVarStack)
+	inline void setLocalVarStackPointer(const QSharedPointer<QStack<QVariantHash>>& localVarStack)
 	{
-		if (localVarStack_ != nullptr)
-			delete localVarStack_;
+		if (!localVarStack_.isNull())
+			localVarStack_.reset();
 		localVarStack_ = localVarStack;
 	}
-	inline void setLuaLocalVarStringListPointer(QStringList* luaLocalVarStringList)
+	inline void setLuaLocalVarStringListPointer(const QSharedPointer<QStringList>& luaLocalVarStringList)
 	{
-		if (luaLocalVarStringList_ != nullptr)
-			delete luaLocalVarStringList_;
+		if (!luaLocalVarStringList_.isNull())
+			luaLocalVarStringList_.reset();
 		luaLocalVarStringList_ = luaLocalVarStringList;
 	}
 
-	bool loadFile(const QString& fileName, QString* pcontent);
 	bool loadString(const QString& content);
 
 public:
@@ -584,14 +583,12 @@ private:
 
 	Q_REQUIRED_RESULT QVariantList& getArgsRef();
 
-	void generateStackInfo(qint64 type);
-
 public:
-	CLua* pLua_ = nullptr;
+	QSharedPointer<CLua> pLua_ = nullptr;
 
 private:
-	Parser* parent_ = nullptr;
-	Interpreter* interpreter_ = nullptr;
+	Parser* pparent_ = nullptr;
+	Interpreter* pinterpreter_ = nullptr;
 	Lexer lexer_;
 
 	QHash<quint64, QSharedPointer<QElapsedTimer>> timerMap_;
@@ -605,10 +602,10 @@ private:
 	QList<ForNode> forNodeList_;
 	QList<LuaNode> luaNodeList_;
 
-	QStringList* globalNames_ = nullptr;				//全局變量名稱
-	QStack<QVariantHash>* localVarStack_ = nullptr;	//局變量棧
-	QStringList* luaLocalVarStringList_ = nullptr;		//lua局變量
-	Counter* counter_ = nullptr;
+	QSharedPointer<QStringList> globalNames_ = nullptr;				//全局變量名稱
+	QSharedPointer<QStack<QVariantHash>> localVarStack_ = nullptr;	//局變量棧
+	QSharedPointer<QStringList> luaLocalVarStringList_ = nullptr;		//lua局變量
+	QSharedPointer<Counter> counter_ = nullptr;
 
 	QHash<QString, QString> userRegCallBack_;				//用戶註冊的回調函數
 	QHash<QString, CommandRegistry> commandRegistry_;		//所有已註冊的腳本命令函數指針
@@ -620,7 +617,6 @@ private:
 	QStack<QVariantList> callArgsStack_;					//"調用"命令參數棧
 	QVariantList emptyArgs_;								//空參數(參數棧為空得情況下壓入一個空容器)
 	QVariantHash emptyLocalVars_;							//空局變量(局變量棧為空得情況下壓入一個空容器)
-	QVariantList lastReturnValue_;							//函數返回值
 
 	TokenMap currentLineTokens_;							//當前行token
 	RESERVE currentType_ = TK_UNK;							//當前行第一個token類型

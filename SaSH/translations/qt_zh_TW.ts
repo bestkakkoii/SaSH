@@ -539,7 +539,7 @@
     </message>
     <message>
         <source>ride</source>
-        <translation>騎寵</translation>
+        <translation type="vanished">騎寵</translation>
     </message>
     <message>
         <source>char action:</source>
@@ -1531,23 +1531,23 @@
     <name>LuaScriptForm</name>
     <message>
         <source>resume</source>
-        <translation>恢復</translation>
+        <translation type="vanished">恢復</translation>
     </message>
     <message>
         <source>pause</source>
-        <translation>暫停</translation>
+        <translation type="vanished">暫停</translation>
     </message>
     <message>
         <source>start</source>
-        <translation>開始</translation>
+        <translation type="vanished">開始</translation>
     </message>
     <message>
         <source>command</source>
-        <translation>指令</translation>
+        <translation type="vanished">指令</translation>
     </message>
     <message>
         <source>params</source>
-        <translation>內容</translation>
+        <translation type="vanished">內容</translation>
     </message>
 </context>
 <context>
@@ -3406,24 +3406,20 @@ No new version available. Do you still want to update?</source>
         <translation>腳本編輯器</translation>
     </message>
     <message>
-        <source>unable to open file:&apos;%1&apos;</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Remote virtualmemory write failed</source>
-        <translation type="unfinished"></translation>
+        <translation>遠程內存寫入失敗</translation>
     </message>
     <message>
         <source>SendMessageTimeoutW failed</source>
-        <translation type="unfinished"></translation>
+        <translation>消息發送失敗</translation>
     </message>
     <message>
         <source>Remote dll initialize failed</source>
-        <translation type="unfinished"></translation>
+        <translation>遠成初始化失敗</translation>
     </message>
     <message>
         <source>VirtualAllocEx failed</source>
-        <translation type="unfinished"></translation>
+        <translation>遠程內存空間分配失敗</translation>
     </message>
     <message>
         <source>L:%1</source>
@@ -3436,6 +3432,10 @@ No new version available. Do you still want to update?</source>
     <message>
         <source>hidecontrol</source>
         <translation>隱藏控制台</translation>
+    </message>
+    <message>
+        <source>[warn]Battle command transmission timeout, initiating backup instructions.</source>
+        <translation>[警告]戰鬥指令超時，啟動備用指令.</translation>
     </message>
 </context>
 <context>
@@ -3580,11 +3580,11 @@ No new version available. Do you still want to update?</source>
     </message>
     <message>
         <source>row</source>
-        <translation>行</translation>
+        <translation type="vanished">行</translation>
     </message>
     <message>
         <source>content</source>
-        <translation>內容</translation>
+        <translation type="vanished">內容</translation>
     </message>
     <message>
         <source>Decrypt script %1 saved</source>

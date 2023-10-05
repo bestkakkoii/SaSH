@@ -50,7 +50,7 @@ public:
 	void __fastcall util_Clear(void);
 	bool __fastcall util_SplitMessage(const QByteArray& source, char separator);
 	void __fastcall util_EncodeMessage(char* dst, size_t dstlen, char* src);
-	void __fastcall util_DecodeMessage(QByteArray& dst, char* src);
+	void __fastcall util_DecodeMessage(QByteArray& dst, QByteArray src);
 	qint64 __fastcall util_GetFunctionFromSlice(qint64* func, qint64* fieldcount, qint64 offest = 23);
 	void __fastcall util_DiscardMessage(void);
 	void __fastcall util_SendMesg(int func, char* buffer);

@@ -215,11 +215,11 @@ private slots:
 	void onClientReadyRead();
 
 private:
-	qint64 dispatchMessage(char* encoded);
+	qint64 dispatchMessage(const QByteArray& encoded);
 
-	bool handleCustomMessage(QTcpSocket* clientSocket, const QByteArray& data);
+	bool handleCustomMessage(const QByteArray& data);
 
-	void handleData(QTcpSocket* clientSocket, QByteArray data);
+	Q_INVOKABLE void handleData(QByteArray data);
 
 public://actions
 	Q_REQUIRED_RESULT qint64 getWorldStatus();
@@ -431,20 +431,19 @@ public://actions
 
 	void updateBattleTimeInfo();
 
-	inline Q_REQUIRED_RESULT PC getPC() const { return pc_.get(); }
+	inline Q_REQUIRED_RESULT PC getPC() const { QReadLocker locker(&charInfoLock_); return pc_; }
 	inline void setPC(PC pc) { pc_ = pc; }
+
 	inline Q_REQUIRED_RESULT MAGIC getMagic(qint64 magicIndex) const { return magic_.value(magicIndex); }
-	inline Q_REQUIRED_RESULT PROFESSION_SKILL getSkill(qint64 skillIndex) const { return profession_skill_.value(skillIndex); }
-	inline Q_REQUIRED_RESULT QHash<qint64, PROFESSION_SKILL> getSkills() const { return profession_skill_.toHash(); }
-	inline void setSkills(const QHash<qint64, PROFESSION_SKILL>& skills) { profession_skill_ = skills; }
-	inline void setSkill(qint64 skillIndex, const PROFESSION_SKILL& skill) { profession_skill_.insert(skillIndex, skill); }
-	inline Q_REQUIRED_RESULT PET getPet(qint64 petIndex) const { return pet_.value(petIndex); }
-	inline Q_REQUIRED_RESULT QHash<qint64, PET> getPets() const { return pet_.toHash(); }
-	inline void setPets(const QHash<qint64, PET>& pets) { pet_ = pets; }
-	inline void setPet(qint64 petIndex, const PET& pet) { pet_.insert(petIndex, pet); }
-	inline void removePet(qint64 petIndex) { pet_.remove(petIndex); }
+
+	inline Q_REQUIRED_RESULT PROFESSION_SKILL getSkill(qint64 skillIndex) const { QReadLocker locker(&charSkillInfoLock_); return profession_skill_.value(skillIndex); }
+	inline Q_REQUIRED_RESULT QHash<qint64, PROFESSION_SKILL> getSkills() const { QReadLocker locker(&charSkillInfoLock_); return profession_skill_.toHash(); }
+
+	inline Q_REQUIRED_RESULT PET getPet(qint64 petIndex) const { QReadLocker locker(&petInfoLock_); return pet_.value(petIndex); }
+	inline Q_REQUIRED_RESULT QHash<qint64, PET> getPets() const { QReadLocker locker(&petInfoLock_); return pet_.toHash(); }
 	inline Q_REQUIRED_RESULT qint64 getPetSize() const
 	{
+		QReadLocker locker(&petInfoLock_);
 		qint64 n = 0;
 		QHash<qint64, PET> pets = pet_.toHash();
 		for (const PET& it : pets)
@@ -455,13 +454,11 @@ public://actions
 		return n;
 	}
 
-	inline Q_REQUIRED_RESULT ITEM getItem(qint64 index) const { return item_.value(index); }
-	inline Q_REQUIRED_RESULT QHash<qint64, ITEM> getItems() const { return item_.toHash(); }
-	inline void setItems(const QHash<qint64, ITEM>& items) { item_ = items; }
-	inline void setItem(qint64 index, const ITEM& item) { item_.insert(index, item); }
-	inline void removeItem(qint64 index) { item_.remove(index); }
-	inline Q_REQUIRED_RESULT PET_SKILL getPetSkill(qint64 petIndex, qint64 skillIndex) const { return petSkill_.value(petIndex).value(skillIndex); }
-	inline Q_REQUIRED_RESULT QHash<qint64, PET_SKILL> getPetSkills(qint64 petIndex) const { return petSkill_.value(petIndex); }
+	inline Q_REQUIRED_RESULT ITEM getItem(qint64 index) const { QReadLocker locker(&itemInfoLock_); return item_.value(index); }
+	inline Q_REQUIRED_RESULT QHash<qint64, ITEM> getItems() const { QReadLocker locker(&itemInfoLock_); return item_.toHash(); }
+
+	inline Q_REQUIRED_RESULT PET_SKILL getPetSkill(qint64 petIndex, qint64 skillIndex) const { QReadLocker locker(&petSkillInfoLock_); return petSkill_.value(petIndex).value(skillIndex); }
+	inline Q_REQUIRED_RESULT QHash<qint64, PET_SKILL> getPetSkills(qint64 petIndex) const { QReadLocker locker(&petSkillInfoLock_); return petSkill_.value(petIndex); }
 	inline void setPetSkills(qint64 petIndex, const QHash<qint64, PET_SKILL>& skills) { petSkill_.insert(petIndex, skills); }
 	inline void setPetSkill(qint64 petIndex, qint64 skillIndex, const PET_SKILL& skill)
 	{
@@ -469,22 +466,16 @@ public://actions
 		skills.insert(skillIndex, skill);
 		petSkill_.insert(petIndex, skills);
 	}
-	inline Q_REQUIRED_RESULT PARTY getParty(qint64 partyIndex) const { return party_.value(partyIndex); }
-	inline void setParties(const QHash<qint64, PARTY>& parties) { party_ = parties; }
-	inline void setParty(qint64 partyIndex, const PARTY& party) { party_.insert(partyIndex, party); }
-	inline void removeParty(qint64 partyIndex) { party_.remove(partyIndex); }
-	inline Q_REQUIRED_RESULT QHash<qint64, PARTY> getParties() const { return party_.toHash(); }
-	inline Q_REQUIRED_RESULT ITEM getPetEquip(qint64 petIndex, qint64 equipIndex) const { return petItem_.value(petIndex).value(equipIndex); }
-	inline Q_REQUIRED_RESULT QHash<qint64, ITEM> getPetEquips(qint64 petIndex) const { return petItem_.value(petIndex); }
-	inline void setPetEquips(qint64 petIndex, const QHash<qint64, ITEM>& items) { petItem_.insert(petIndex, items); }
-	inline void setPetEquip(qint64 petIndex, qint64 index, const ITEM& item)
-	{
-		QHash<qint64, ITEM> items = petItem_.value(petIndex);
-		items.insert(index, item);
-		petItem_.insert(petIndex, items);
-	}
+
+	inline Q_REQUIRED_RESULT PARTY getParty(qint64 partyIndex) const { QReadLocker locker(&teamInfoLock_); return party_.value(partyIndex); }
+	inline Q_REQUIRED_RESULT QHash<qint64, PARTY> getParties() const { QReadLocker locker(&teamInfoLock_);  return party_.toHash(); }
+
+	inline Q_REQUIRED_RESULT ITEM getPetEquip(qint64 petIndex, qint64 equipIndex) const { QReadLocker locker(&petEquipInfoLock_); return petItem_.value(petIndex).value(equipIndex); }
+	inline Q_REQUIRED_RESULT QHash<qint64, ITEM> getPetEquips(qint64 petIndex) const { QReadLocker locker(&petEquipInfoLock_); return petItem_.value(petIndex); }
+
 	inline Q_REQUIRED_RESULT ADDRESS_BOOK getAddressBook(qint64 index) const { return addressBook_.value(index); }
 	inline Q_REQUIRED_RESULT QHash<qint64, ADDRESS_BOOK> getAddressBooks() const { return addressBook_.toHash(); }
+
 	inline Q_REQUIRED_RESULT battledata_t getBattleData() const { return battleData.get(); }
 	inline Q_REQUIRED_RESULT JOBDAILY getJobDaily(qint64 index) const { return jobdaily_.value(index); }
 	inline Q_REQUIRED_RESULT QHash<qint64, JOBDAILY> getJobDailys() const { return jobdaily_.toHash(); }
@@ -556,6 +547,16 @@ private:
 
 #pragma endregion
 
+private: //lockers
+	mutable QReadWriteLock petInfoLock_;
+	mutable QReadWriteLock petSkillInfoLock_;
+	mutable QReadWriteLock charInfoLock_;
+	mutable QReadWriteLock charSkillInfoLock_;
+	mutable QReadWriteLock charMagicInfoLock_;
+	mutable QReadWriteLock itemInfoLock_;
+	mutable QReadWriteLock petEquipInfoLock_;
+	mutable QReadWriteLock teamInfoLock_;
+
 private:
 	std::atomic_bool IS_BATTLE_FLAG = false;
 	std::atomic_bool IS_ONLINE_FLAG = false;
@@ -566,8 +567,6 @@ private:
 	qint64 tempCatchPetTargetIndex = -1;
 
 	util::SafeData<battledata_t> battleData;
-
-	std::atomic_bool battleReadyAct = false;
 
 	std::atomic_bool IS_WAITFOT_SKUP_RECV = false;
 	QFuture<void> skupFuture;
@@ -580,7 +579,7 @@ private:
 	util::SafeData<QString> nowFloorName_;
 	util::SafeData<QPoint> nowPoint_;
 
-	util::SafeData<PC> pc_ = {};
+	PC pc_ = {};
 
 	util::SafeHash<qint64, PARTY> party_ = {};
 	util::SafeHash<qint64, ITEM> item_ = {};

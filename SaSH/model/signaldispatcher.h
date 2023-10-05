@@ -143,9 +143,6 @@ signals:
 
 	void scriptSpeedChanged(qint64 speed);
 
-	void callStackInfoChanged(const QVariant& var);
-	void jumpStackInfoChanged(const QVariant& var);
-
 	void addForwardMarker(qint64 liner, bool b);
 	void addErrorMarker(qint64 liner, bool b);
 	void addBreakMarker(qint64 liner, bool b);

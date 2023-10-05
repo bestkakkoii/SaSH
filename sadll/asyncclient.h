@@ -69,7 +69,7 @@ public:
 			}
 
 			std::wcout << L"CreateIoCompletionPort OK" << std::endl;
-			resource_.reset(new std::pmr::monotonic_buffer_resource(65536u));
+			resource_.reset(new std::pmr::monotonic_buffer_resource(655360u));
 			allocator_.reset(new std::pmr::polymorphic_allocator<OVERLAPPED>(resource_.get()));
 			allocatorChar_.reset(new std::pmr::polymorphic_allocator<char>(resource_.get()));
 			return;
@@ -350,15 +350,15 @@ private:
 #ifdef _DEBUG
 						std::cout << "Sent: " << std::to_string(numBytesTransferred) << " bytes" << std::endl;
 #endif
-				}
+					}
 					else
 					{
 						// Received data
 #ifdef _DEBUG
 						std::cout << "Received: " << std::to_string(numBytesTransferred) << " bytes" << std::endl;
 #endif
-			}
-		}
+					}
+				}
 				else
 				{
 					// I/O operation failed
@@ -369,8 +369,8 @@ private:
 				}
 
 				client->releaseOverlapped(overlapped);
-	}
-}
+			}
+		}
 
 		return 0UL;
 	}

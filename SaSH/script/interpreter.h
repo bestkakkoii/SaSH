@@ -43,11 +43,11 @@ public:
 
 	void preview(const QString& fileName);
 
-	void doString(const QString& script, Interpreter* parent, VarShareMode shareMode);
+	void doString(const QString& script, Interpreter* pinterpretter, VarShareMode shareMode);
 
 	void doFileWithThread(qint64 beginLine, const QString& fileName);
 
-	bool doFile(qint64 beginLine, const QString& fileName, Interpreter* pinterpretter, Parser* pparser, bool issub, Parser::Mode noShow);
+	bool doFile(qint64 beginLine, const QString& fileName, Interpreter* pinterpretter, Parser* pparser, bool issub, Parser::Mode mode);
 
 	void stop();
 

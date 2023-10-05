@@ -92,10 +92,12 @@ bool Interpreter::doFile(qint64 beginLine, const QString& fileName, Interpreter*
 	parser_.setInterpreter(pinterpretter);
 	parser_.setParent(pparser);
 
-	if (!parser_.loadFile(fileName, nullptr))
-	{
+	QString content;
+	if (!util::readFile(fileName, &content))
 		return false;
-	}
+
+	if (!parser_.loadString(content))
+		return false;
 
 	qint64 currentIndex = getIndex();
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
@@ -119,7 +121,7 @@ bool Interpreter::doFile(qint64 beginLine, const QString& fileName, Interpreter*
 }
 
 //新線程下執行一段腳本內容
-void Interpreter::doString(const QString& content, Interpreter* parent, VarShareMode shareMode)
+void Interpreter::doString(const QString& content, Interpreter* pinterpretter, VarShareMode shareMode)
 {
 	thread_ = new QThread();
 	if (nullptr == thread_)
@@ -143,11 +145,11 @@ void Interpreter::doString(const QString& content, Interpreter* parent, VarShare
 	parser_.setCurrentLine(0);
 	parser_.initialize(&parser_);
 
-	if (parent)
+	if (pinterpretter != nullptr)
 	{
-		pCallback = [parent, this](qint64 currentIndex, qint64 currentLine, const TokenMap& TK)->qint64
+		pCallback = [pinterpretter, this](qint64 currentIndex, qint64 currentLine, const TokenMap& TK)->qint64
 		{
-			if (parent->isInterruptionRequested())
+			if (pinterpretter->isInterruptionRequested())
 				return 0;
 
 			if (isInterruptionRequested())
@@ -164,12 +166,12 @@ void Interpreter::doString(const QString& content, Interpreter* parent, VarShare
 
 			if (TK.contains(0) && TK.value(0).type == TK_PAUSE)
 			{
-				parent->paused();
+				pinterpretter->paused();
 				SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
 				emit signalDispatcher.scriptPaused();
 			}
 
-			parent->checkPause();
+			pinterpretter->checkPause();
 
 			return 1;
 		};
@@ -194,7 +196,11 @@ void Interpreter::doString(const QString& content, Interpreter* parent, VarShare
 //先行解析token並發送給UI顯示
 void Interpreter::preview(const QString& fileName)
 {
-	if (!parser_.loadFile(fileName, nullptr))
+	QString content;
+	if (!util::readFile(fileName, &content))
+		return;
+
+	if (!parser_.loadString(content))
 		return;
 
 	qint64 currentIndex = getIndex();

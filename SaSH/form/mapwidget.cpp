@@ -82,26 +82,14 @@ MapWidget::MapWidget(qint64 index, QWidget* parent)
 	if (!entrances_.isEmpty())
 		return;
 
-	QFile file(util::applicationDirPath() + "/map/point.txt");
-
-	if (!file.open(QIODevice::ReadOnly))
+	QString content;
+	if (!util::readFile(util::applicationDirPath() + "/map/point.txt", &content))
 	{
 		qDebug() << "Failed to open point.dat";
 		return;
 	}
 
-	QTextStream in(&file);
-#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
-	in.setCodec(util::DEFAULT_CODEPAGE);
-#else
-	in.setEncoding(QStringConverter::Utf8);
-#endif
-	in.setGenerateByteOrderMark(true);
-
-	const QString rawData(in.readAll());
-	file.close();
-
-	QStringList entrances = rawData.simplified().split(" ");
+	QStringList entrances = content.simplified().split(" ");
 	QHash<qint64, QHash<QPoint, QString>> preEntrances;
 
 	for (const QString& entrance : entrances)
@@ -845,13 +833,20 @@ void MapWidget::on_pushButton_returnBase_clicked()
 		return;
 	}
 
-	injector.server->logBack();
+	if (injector.isValid())
+		injector.setEnableHash(util::kLogBackEnable, true);
 }
 
 void MapWidget::on_pushButton_findPath_clicked()
 {
 	qint64 currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
+	if (!injector.isValid())
+		return;
+
+	if (injector.IS_SCRIPT_FLAG.load(std::memory_order_acquire))
+		return;
+
 	if (injector.server.isNull())
 		return;
 
@@ -910,17 +905,7 @@ void MapWidget::updateNpcListAllContents(const QVariant& d)
 
 		for (const QString& i : list)
 		{
-			QTableWidgetItem* item = ui.tableWidget_NPCList->item(row, col);
-			if (item)
-			{
-				if (item->text() != i)
-					item->setText(i);
-			}
-			else
-			{
-				item = q_check_ptr(new QTableWidgetItem(i));
-				ui.tableWidget_NPCList->setItem(row, col, item);
-			}
+			ui.tableWidget_NPCList->setText(row, col, i);
 			++col;
 			if (col >= 2)
 			{
@@ -937,12 +922,20 @@ void MapWidget::on_tableWidget_NPCList_cellDoubleClicked(int row, int)
 {
 	QTableWidgetItem* item = ui.tableWidget_NPCList->item(row, 1);
 	QTableWidgetItem* item_name = ui.tableWidget_NPCList->item(row, 0);
-	if (!item || !item_name)
+
+	if (nullptr == item || nullptr == item_name)
 	{
 		return;
 	}
+
 	qint64 currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
+	if (!injector.isValid())
+		return;
+
+	if (injector.IS_SCRIPT_FLAG.load(std::memory_order_acquire))
+		return;
+
 	if (injector.server.isNull())
 		return;
 

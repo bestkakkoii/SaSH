@@ -551,7 +551,7 @@ qint64 MainObject::checkAndRunFunctions()
 		checkAutoDropItems();
 
 		//自動丟/吃肉
-		checkAutoDropMeat(QStringList());
+		checkAutoDropMeat();
 
 		//檢查自動吃道具
 		checkAutoEatBoostExpItem();
@@ -1210,7 +1210,7 @@ void MainObject::checkAutoDropItems()
 }
 
 //檢查並自動吃肉、或丟肉
-void MainObject::checkAutoDropMeat(const QStringList& item)
+void MainObject::checkAutoDropMeat()
 {
 	Injector& injector = Injector::getInstance(getIndex());
 	if (injector.server.isNull())
@@ -1224,54 +1224,24 @@ void MainObject::checkAutoDropMeat(const QStringList& item)
 	constexpr const char* memo = "耐久力";
 
 	QHash<qint64, ITEM> items = injector.server->getItems();
-	if (!item.isEmpty())
+
+	for (auto it = items.constBegin(); it != items.constEnd(); ++it)
 	{
-		for (const QString& it : item)
-		{
-			QString newItemNmae = it.simplified();
-			if (newItemNmae.contains(meat))
-			{
-				bret = true;
-				break;
-			}
-		}
-	}
-	else
-	{
-		for (const ITEM& it : items)
-		{
-			if (!it.valid)
-				continue;
+		qint64 key = it.key();
+		ITEM item = it.value();
 
-			QString newItemNmae = it.name.simplified();
-			if (!newItemNmae.isEmpty() && newItemNmae.contains(meat))
-			{
-				bret = true;
-				break;
-			}
-		}
-	}
-
-	if (!bret)
-		return;
-
-	qint64 index = 0;
-
-	for (const ITEM& item : items)
-	{
 		if (!item.valid)
 			continue;
 
 		QString newItemNmae = item.name.simplified();
 		QString newItemMemo = item.memo.simplified();
-		if (newItemNmae.contains(meat))
+		if (newItemNmae.contains(meat) && (newItemNmae != QString("味道爽口的肉湯")) && (newItemNmae != QString("味道爽口的肉汤")))
 		{
-			if (!newItemMemo.contains(memo) && (newItemNmae != QString("味道爽口的肉湯")) && (newItemNmae != QString("味道爽口的肉汤")))
-				injector.server->dropItem(index);
+			if (!newItemMemo.contains(memo))
+				injector.server->dropItem(key);//不可補且非肉湯肉丟棄
 			else
-				injector.server->useItem(index, injector.server->findInjuriedAllie());
+				injector.server->useItem(key, injector.server->findInjuriedAllie());//優先餵給非滿血
 		}
-		++index;
 	}
 
 	injector.server->refreshItemInfo();
@@ -2147,26 +2117,14 @@ void MainObject::checkRecordableNpcInfo()
 
 			constDataInit = true;
 
-			QFile file(util::applicationDirPath() + "/map/point.txt");
-
-			if (!file.open(QIODevice::ReadOnly))
+			QString content;
+			if (!util::readFile(util::applicationDirPath() + "/map/point.txt", &content))
 			{
 				qDebug() << "Failed to open point.dat";
 				return;
 			}
 
-			QTextStream in(&file);
-#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
-			in.setCodec(util::DEFAULT_CODEPAGE);
-#else
-			in.setEncoding(QStringConverter::Utf8);
-#endif
-			in.setGenerateByteOrderMark(true);
-
-			const QString rawData(in.readAll());
-			file.close();
-
-			QStringList entrances = rawData.simplified().split(" ");
+			QStringList entrances = content.simplified().split(" ");
 
 			for (const QString& entrance : entrances)
 			{

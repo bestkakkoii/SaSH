@@ -49,8 +49,6 @@ protected:
 	}
 
 private:
-	void updateTableWidgetContent(qint64 row, qint64 col, const QString& text);
-
 	void resizeTableWidgetRow(qint64 max);
 
 private:

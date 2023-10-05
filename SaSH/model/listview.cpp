@@ -21,7 +21,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include <listview.h>
 #include <qmath.h>
 
-constexpr int MAX_LIST_COUNT = 2048;
+constexpr int MAX_LIST_COUNT = 1024;
 
 #pragma region StringListModel
 ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -112,6 +112,7 @@ bool pairCompareGreaerString(const QPair<int, QString>& pair1, const QPair<int, 
 {
 	return pair1.second > pair2.second;
 }
+
 void StringListModel::sort(int column, Qt::SortOrder order)
 {
 	Q_UNUSED(column);
@@ -181,6 +182,7 @@ bool StringListModel::insertRows(int row, int count, const QModelIndex& parent)
 	endInsertRows();
 	return true;
 }
+
 bool StringListModel::removeRows(int row, int count, const QModelIndex& parent)
 {
 	Q_UNUSED(parent);
@@ -188,6 +190,7 @@ bool StringListModel::removeRows(int row, int count, const QModelIndex& parent)
 	endRemoveRows();
 	return true;
 }
+
 bool StringListModel::moveRows(const QModelIndex& sourceParent, int sourceRow, int count, const QModelIndex& destinationParent, int destinationChild)
 {
 	Q_UNUSED(destinationParent);

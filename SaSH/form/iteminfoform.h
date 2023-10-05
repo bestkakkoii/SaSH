@@ -50,7 +50,7 @@ protected:
 	}
 
 private:
-	void updateItemInfoRowContents(QTableWidget* tableWidget, qint64 row, const QVariant& data);
+	void updateItemInfoRowContents(TableWidget* tableWidget, qint64 row, const QVariant& data);
 
 private:
 	Ui::ItemInfoFormClass ui;

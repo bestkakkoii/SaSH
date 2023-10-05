@@ -2,7 +2,6 @@
 #include <codeeditor.h>
 #include <QApplication>
 #include <QTextCursor>
-#include <QTextStream>
 #include <QTextEdit>
 #include <QFile>
 #include <QKeyEvent>
@@ -47,32 +46,21 @@ CodeEditor::CodeEditor(QWidget* parent)
 
 	//代碼提示autoCompletion
 #ifdef _DEBUG
-	QFile f(R"(..\Debug\lib\completion_api.txt)");
+	QString apiFileName(R"(..\Debug\lib\completion_api.txt)");
 #else
-	QFile f(R"(.\lib\completion_api.txt)");
+	QString apiFileName(R"(.\lib\completion_api.txt)");
 #endif
 
-	if (f.open(QIODevice::ReadOnly))
+	QString content;
+	if (util::readFile(apiFileName, &content) && !content.isEmpty())
 	{
-		QTextStream in(&f);
-#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
-		in.setCodec(util::DEFAULT_CODEPAGE);
-#else
-		in.setEncoding(QStringConverter::Utf8);
-#endif
-		in.setGenerateByteOrderMark(true);
-
-		for (;;)
+		QStringList list = content.split("\n");
+		for (const auto& it : list)
 		{
-			QString line(in.readLine());
-
-			if (line.isEmpty())
-				break;
-			apis.add(line.simplified());
+			apis.add(it.simplified());
 		}
-		f.close();
 		apis.prepare();
-	}
+		}
 
 	////Acs[None|All|Document|APIs]禁用自動補全提示功能|所有可用的資源|當前文檔中出現的名稱都自動補全提示|使用QsciAPIs類加入的名稱都自動補全提示
 	setAutoCompletionCaseSensitivity(true);//大小寫敏感度，設置lexer可能會更改，不過貌似沒啥效果
@@ -274,7 +262,7 @@ CodeEditor::CodeEditor(QWidget* parent)
 	setAttribute(Qt::WA_StyledBackground);
 	//setStyleSheet(style);
 #pragma endregion
-}
+	}
 
 void CodeEditor::keyPressEvent(QKeyEvent* e)
 {

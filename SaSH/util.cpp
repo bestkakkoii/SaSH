@@ -1118,41 +1118,42 @@ void util::FormSettingManager::saveSettings()
 	config.write("Form", ObjectName, "Size", QString("%1,%2").arg(size.width()).arg(size.height()));
 }
 
-QFileInfoList util::loadAllFileLists(TreeWidgetItem* root, const QString& path, const QString& suffix, const QString& icon, QStringList* list
+QFileInfoList util::loadAllFileLists(TreeWidgetItem* root, const QString& path, const QString& suffix
+	, const QString& icon
+	, QStringList* list
 	, const QString& folderIcon)
 {
 	/*添加path路徑文件*/
 	QDir dir(path); //遍歷各級子目錄
 	QDir dir_file(path); //遍歷子目錄中所有文件
+
 	dir_file.setFilter(QDir::Files | QDir::Hidden | QDir::NoSymLinks); //獲取當前所有文件
 	dir_file.setSorting(QDir::Size | QDir::Reversed);
+
 	const QStringList filters = { QString("*%1").arg(suffix) };
+
 	dir_file.setNameFilters(filters);
+
 	QFileInfoList list_file = dir_file.entryInfoList();
+
 	for (const QFileInfo& item : list_file)
-	{ //將當前目錄中所有文件添加到treewidget中
-		if (list)
+	{
+		//將當前目錄中所有文件添加到treewidget中
+		if (list != nullptr)
 			list->append(item.fileName());
 
-		QFile f(item.absoluteFilePath());
-		if (f.open(QIODevice::ReadOnly | QIODevice::Text))
-		{
-			QTextStream in(&f);
-#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
-			in.setCodec(util::DEFAULT_CODEPAGE);
-#else
-			in.setEncoding(QStringConverter::Utf8);
-#endif
-			in.setGenerateByteOrderMark(true);
+		QString content;
+		if (!readFile(item.absoluteFilePath(), &content))
+			continue;
 
-			TreeWidgetItem* child = q_check_ptr(new TreeWidgetItem(QStringList{ item.fileName() }, 1));
-			child->setToolTip(0, QString("===== %1 =====\n\n%2").arg(item.absoluteFilePath()).arg(in.readAll().left(256)));
-			child->setIcon(0, QIcon(QPixmap(icon)));
+		TreeWidgetItem* child = q_check_ptr(new TreeWidgetItem(QStringList{ item.fileName() }, 1));
+		if (child == nullptr)
+			continue;
 
-			root->addChild(child);
+		child->setToolTip(0, QString("===== %1 =====\n\n%2").arg(item.absoluteFilePath()).arg(content.left(256)));
+		child->setIcon(0, QIcon(QPixmap(icon)));
 
-			f.close();
-		}
+		root->addChild(child);
 	}
 
 	QFileInfoList file_list = dir.entryInfoList(QDir::Files | QDir::Hidden | QDir::NoSymLinks);
@@ -1163,9 +1164,13 @@ QFileInfoList util::loadAllFileLists(TreeWidgetItem* root, const QString& path, 
 		const QString namepath = folder_list.value(i).absoluteFilePath(); //獲取路徑
 		const QFileInfo folderinfo = folder_list.value(i);
 		const QString name = folderinfo.fileName(); //獲取目錄名
-		if (list)
+		if (list != nullptr)
 			list->append(name);
-		TreeWidgetItem* childroot = q_check_ptr(new TreeWidgetItem(QStringList{ name }, 0));
+
+		TreeWidgetItem* childroot = new TreeWidgetItem(QStringList{ name }, 0);
+		if (childroot == nullptr)
+			continue;
+
 		childroot->setIcon(0, QIcon(QPixmap(folderIcon)));
 		root->addChild(childroot); //將當前目錄添加成path的子項
 		const QFileInfoList child_file_list = loadAllFileLists(childroot, namepath, suffix, icon, list, folderIcon); //遞歸添加子目錄
@@ -1181,48 +1186,62 @@ QFileInfoList util::loadAllFileLists(TreeWidgetItem* root, const QString& path, 
 	QDir dir_file(path); //遍歷子目錄中所有文件
 	dir_file.setFilter(QDir::Files | QDir::Hidden | QDir::NoSymLinks); //獲取當前所有文件
 	dir_file.setSorting(QDir::Size | QDir::Reversed);
-	const QStringList filters = { QString("*%1").arg(util::SCRIPT_DEFAULT_SUFFIX), QString("*%1").arg(util::SCRIPT_PRIVATE_SUFFIX_DEFAULT), QString("*%1").arg(util::SCRIPT_LUA_SUFFIX_DEFAULT) };
+
+	const QStringList filters = {
+		QString("*%1").arg(util::SCRIPT_DEFAULT_SUFFIX),
+		QString("*%1").arg(util::SCRIPT_PRIVATE_SUFFIX_DEFAULT),
+		QString("*%1").arg(util::SCRIPT_LUA_SUFFIX_DEFAULT)
+	};
+
 	dir_file.setNameFilters(filters);
 	QFileInfoList list_file = dir_file.entryInfoList();
-	for (const QFileInfo& item : list_file)
-	{ //將當前目錄中所有文件添加到treewidget中
-		if (list)
-			list->append(item.fileName());
-		TreeWidgetItem* child = q_check_ptr(new TreeWidgetItem(QStringList{ item.fileName() }, 1));
-		QFile f(item.absoluteFilePath());
-		if (f.open(QIODevice::ReadOnly | QIODevice::Text))
-		{
-			QTextStream in(&f);
-#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
-			in.setCodec(util::DEFAULT_CODEPAGE);
-#else
-			in.setEncoding(QStringConverter::Utf8);
-#endif
-			in.setGenerateByteOrderMark(true);
-			child->setToolTip(0, QString("===== %1 =====\n\n%2").arg(item.absoluteFilePath()).arg(in.readAll().left(256)));
-			child->setIcon(0, QIcon(QPixmap(fileIcon)));
 
-			root->addChild(child);
-			f.close();
-		}
+	for (const QFileInfo& item : list_file)
+	{
+		//將當前目錄中所有文件添加到treewidget中
+		if (list != nullptr)
+			list->append(item.fileName());
+
+		TreeWidgetItem* child = new TreeWidgetItem(QStringList{ item.fileName() }, 1);
+		if (child == nullptr)
+			continue;
+
+		QString content;
+		if (!readFile(item.absoluteFilePath(), &content))
+			continue;
+
+		child->setToolTip(0, QString("===== %1 =====\n\n%2").arg(item.absoluteFilePath()).arg(content.left(256)));
+		child->setIcon(0, QIcon(QPixmap(fileIcon)));
+		root->addChild(child);
 	}
 
 	QFileInfoList file_list = dir.entryInfoList(QDir::Files | QDir::Hidden | QDir::NoSymLinks);
 	const QFileInfoList folder_list = dir.entryInfoList(QDir::Dirs | QDir::NoDotAndDotDot); //獲取當前所有目錄
 	int count = folder_list.size();
-	for (int i = 0; i != count; ++i) //自動遞歸添加各目錄到上一級目錄
+
+	//自動遞歸添加各目錄到上一級目錄
+	for (int i = 0; i != count; ++i)
 	{
 		const QString namepath = folder_list.value(i).absoluteFilePath(); //獲取路徑
 		const QFileInfo folderinfo = folder_list.value(i);
 		const QString name = folderinfo.fileName(); //獲取目錄名
-		if (list)
+
+		if (list != nullptr)
 			list->append(name);
-		TreeWidgetItem* childroot = q_check_ptr(new TreeWidgetItem(QStringList{ name }, 0));
+
+		TreeWidgetItem* childroot = new TreeWidgetItem(QStringList{ name }, 0);
+		if (childroot == nullptr)
+			continue;
+
 		childroot->setIcon(0, QIcon(QPixmap(folderIcon)));
-		root->addChild(childroot); //將當前目錄添加成path的子項
-		const QFileInfoList child_file_list = loadAllFileLists(childroot, namepath, list, fileIcon, folderIcon); //遞歸添加子目錄
+
+		//將當前目錄添加成path的子項
+		root->addChild(childroot);
+
+		const QFileInfoList child_file_list(loadAllFileLists(childroot, namepath, list, fileIcon, folderIcon)); //遞歸添加子目錄
 		file_list.append(child_file_list);
 	}
+
 	return file_list;
 }
 
@@ -1237,25 +1256,17 @@ void util::searchFiles(const QString& dir, const QString& fileNamePart, const QS
 	{
 		if (fileInfo.isFile())
 		{
-			if (fileInfo.fileName().contains(fileNamePart, Qt::CaseInsensitive) && fileInfo.suffix() == suffixWithDot.mid(1))
-			{
-				QFile file(fileInfo.absoluteFilePath());
-				if (file.open(QIODevice::ReadOnly | QIODevice::Text))
-				{
-					QTextStream in(&file);
-#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
-					in.setCodec(util::DEFAULT_CODEPAGE);
-#else
-					in.setEncoding(QStringConverter::Utf8);
-#endif
-					in.setGenerateByteOrderMark(true);
-					//將文件名置於前方
-					QString fileContent = QString("# %1\n---\n%2").arg(fileInfo.fileName()).arg(in.readAll());
-					file.close();
+			if (!fileInfo.fileName().contains(fileNamePart, Qt::CaseInsensitive) || fileInfo.suffix() != suffixWithDot.mid(1))
+				continue;
 
-					result->append(fileContent);
-				}
-			}
+			QString content;
+			if (!readFile(fileInfo.absoluteFilePath(), &content))
+				continue;
+
+			//將文件名置於前方
+			QString fileContent = QString("# %1\n---\n%2").arg(fileInfo.fileName()).arg(content);
+
+			result->append(fileContent);
 		}
 		else if (fileInfo.isDir())
 		{
@@ -1525,21 +1536,14 @@ bool util::writeFireWallOverXP(const LPCTSTR& ruleName, const LPCTSTR& appPath, 
 
 bool util::monitorThreadResourceUsage(quint64 threadId, FILETIME& preidleTime, FILETIME& prekernelTime, FILETIME& preuserTime, double* pCpuUsage, double* pMemUsage, double* pMaxMemUsage)
 {
-	static LARGE_INTEGER frequency;
-	if (frequency.QuadPart == 0)
-	{
-		// 获取CPU时钟频率
-		QueryPerformanceFrequency(&frequency);
-	}
+	FILETIME idleTime = { 0 };
+	FILETIME kernelTime = { 0 };
+	FILETIME userTime = { 0 };
 
-	FILETIME idleTime;
-	FILETIME kernelTime;
-	FILETIME userTime;
-
-	bool k = GetSystemTimes(&idleTime, &kernelTime, &userTime);
-	if (k)
+	if (GetSystemTimes(&idleTime, &kernelTime, &userTime) == TRUE)
 	{
-		ULARGE_INTEGER x, y;
+		ULARGE_INTEGER x = { 0 }, y = { 0 };
+
 		double idle, kernel, user;
 
 		x.LowPart = preidleTime.dwLowDateTime;
@@ -1572,9 +1576,9 @@ bool util::monitorThreadResourceUsage(quint64 threadId, FILETIME& preidleTime, F
 		preuserTime = userTime;
 	}
 
-
 	PROCESS_MEMORY_COUNTERS_EX memCounters = { 0 };
-	if (!GetProcessMemoryInfo(GetCurrentProcess(), (PROCESS_MEMORY_COUNTERS*)&memCounters, sizeof(memCounters))) {
+	if (!K32GetProcessMemoryInfo(GetCurrentProcess(), reinterpret_cast<PROCESS_MEMORY_COUNTERS*>(&memCounters), sizeof(memCounters)))
+	{
 		qDebug() << "Failed to get memory info: " << GetLastError();
 		return false;
 	}
@@ -1623,21 +1627,220 @@ QFont util::getFont()
 void util::asyncRunBat(const QString& path, QString data)
 {
 	const QString batfile = QString("%1/%2.bat").arg(path).arg(QDateTime::currentDateTime().toString("sash_yyyyMMdd"));
-	QFile file(batfile);
-	if (file.open(QIODevice::WriteOnly | QIODevice::Text | QIODevice::Truncate))
-	{
-		QTextStream out(&file);
-#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
-		out.setCodec(util::DEFAULT_CODEPAGE);
-#else
-		out.setEncoding(QStringConverter::Utf8);
-#endif
-		out.setGenerateByteOrderMark(true);
-		out << data;
-
-		//delete after run
-		file.flush();
-		file.close();
+	if (util::writeFile(batfile, data))
 		ShellExecuteW(NULL, L"open", (LPCWSTR)batfile.utf16(), NULL, NULL, SW_HIDE);
 }
+
+QString util::applicationFilePath()
+{
+	static bool init = false;
+	if (!init)
+	{
+		WCHAR buffer[MAX_PATH] = {};
+		DWORD length = GetModuleFileNameW(nullptr, buffer, MAX_PATH);
+		if (length == 0)
+			return "";
+
+		QString path(QString::fromWCharArray(buffer, length));
+		if (path.isEmpty())
+			return "";
+
+		qputenv("CURRENT_PATH", path.toUtf8());
+		init = true;
+	}
+	return QString::fromUtf8(qgetenv("CURRENT_PATH"));
+}
+
+QString util::applicationDirPath()
+{
+	static bool init = false;
+	if (!init)
+	{
+		QString path(applicationFilePath());
+		if (path.isEmpty())
+			return "";
+
+		QFileInfo fileInfo(path);
+		path = fileInfo.absolutePath();
+		qputenv("CURRENT_DIR", path.toUtf8());
+		init = true;
+	}
+	return QString::fromUtf8(qgetenv("CURRENT_DIR"));
+}
+
+QString util::applicationName()
+{
+	static bool init = false;
+	if (!init)
+	{
+		QString path(applicationFilePath());
+		if (path.isEmpty())
+			return "";
+
+		QFileInfo fileInfo(path);
+		path = fileInfo.fileName();
+		qputenv("CURRENT_NAME", path.toUtf8());
+		init = true;
+	}
+	return QString::fromUtf8(qgetenv("CURRENT_NAME"));
+}
+
+qint64 __vectorcall util::percent(qint64 value, qint64 total)
+{
+	if (value == 1 && total > 0)
+		return value;
+	if (value == 0)
+		return 0;
+
+	double d = std::floor(static_cast<double>(value) * 100.0 / static_cast<double>(total));
+	if ((value > 0) && (d < 1.0))
+		return 1;
+	else
+		return static_cast<qint64>(d);
+}
+
+bool util::createFileDialog(const QString& name, QString* retstring, QWidget* parent)
+{
+	QFileDialog dialog(parent);
+	dialog.setModal(true);
+	dialog.setFileMode(QFileDialog::ExistingFile);
+	dialog.setViewMode(QFileDialog::Detail);
+	dialog.setOption(QFileDialog::ReadOnly, true);
+	dialog.setAcceptMode(QFileDialog::AcceptOpen);
+
+
+	//check suffix
+	if (!name.isEmpty())
+	{
+		QStringList filters;
+		filters << name;
+		dialog.setNameFilters(filters);
+	}
+
+	//directory
+	//自身目錄往上一層
+	QString directory = util::applicationDirPath();
+	directory = QDir::toNativeSeparators(directory);
+	directory = QDir::cleanPath(directory + QDir::separator() + "..");
+	dialog.setDirectory(directory);
+
+	if (dialog.exec() == QDialog::Accepted)
+	{
+		QStringList fileNames = dialog.selectedFiles();
+		if (fileNames.size() > 0)
+		{
+			QString fileName = fileNames.value(0);
+
+			QTextCodec* codec = nullptr;
+			UINT acp = GetACP();
+			if (acp == 936)
+				codec = QTextCodec::codecForName(util::DEFAULT_GAME_CODEPAGE);
+			else if (acp == 950)
+				codec = QTextCodec::codecForName("big5");
+			else
+				codec = QTextCodec::codecForName(util::DEFAULT_CODEPAGE);
+
+			std::string str = codec->fromUnicode(fileName).data();
+			fileName = codec->toUnicode(str.c_str());
+
+			if (retstring)
+				*retstring = fileName;
+
+			return true;
+		}
+	}
+	return false;
+}
+
+bool util::customStringCompare(const QString& str1, const QString& str2)
+{
+	//中文locale
+	static const QLocale locale;
+	static const QCollator collator(locale);
+
+	return collator.compare(str1, str2) < 0;
+}
+
+QString util::formatMilliseconds(qint64 milliseconds)
+{
+	qint64 totalSeconds = milliseconds / 1000ll;
+	qint64 days = totalSeconds / (24ll * 60ll * 60ll);
+	qint64 hours = (totalSeconds % (24ll * 60ll * 60ll)) / (60ll * 60ll);
+	qint64 minutes = (totalSeconds % (60ll * 60ll)) / 60ll;
+	qint64 seconds = totalSeconds % 60ll;
+	qint64 remainingMilliseconds = milliseconds % 1000ll;
+
+	return QString(QObject::tr("%1 day %2 hour %3 min %4 sec %5 msec"))
+		.arg(days).arg(hours).arg(minutes).arg(seconds).arg(remainingMilliseconds);
+}
+
+QString util::formatSeconds(qint64 seconds)
+{
+	qint64 day = seconds / 86400ll;
+	qint64 hours = (seconds % 86400ll) / 3600ll;
+	qint64 minutes = (seconds % 3600ll) / 60ll;
+	qint64 remainingSeconds = seconds % 60ll;
+
+	return QString(QObject::tr("%1 day %2 hour %3 min %4 sec")).arg(day).arg(hours).arg(minutes).arg(remainingSeconds);
+};
+
+bool util::readFileFilter(const QString& fileName, QString& content, bool* pisPrivate)
+{
+	if (pisPrivate != nullptr)
+		*pisPrivate = false;
+
+	if (fileName.endsWith(util::SCRIPT_PRIVATE_SUFFIX_DEFAULT))
+	{
+#ifdef CRYPTO_H
+		Crypto crypto;
+		if (!crypto.decodeScript(fileName, c))
+			return false;
+
+		if (pisPrivate != nullptr)
+			*pisPrivate = true;
+#else
+		return false;
+#endif
+	}
+	content.replace("\r\n", "\n");
+	return true;
+}
+
+bool util::readFile(const QString& fileName, QString* pcontent, bool* pisPrivate)
+{
+	QFileInfo fi(fileName);
+	if (!fi.exists())
+		return false;
+
+	if (fi.isDir())
+		return false;
+
+	util::ScopedFile f(fileName, QIODevice::ReadOnly | QIODevice::Text);
+	if (!f.isOpen())
+		return false;
+
+	TextStream in(&f);
+	QString content = in.readAll();
+
+	if (readFileFilter(fileName, content, pisPrivate))
+	{
+		if (pcontent)
+			*pcontent = content;
+		return true;
+	}
+
+	return false;
+}
+
+bool util::writeFile(const QString& fileName, const QString& content)
+{
+	util::ScopedFile f(fileName, QIODevice::WriteOnly | QIODevice::Text | QIODevice::Truncate);
+	if (!f.isOpen())
+		return false;
+
+	TextStream out(&f);
+	out << content;
+	out.flush();
+	f.flush();
+	return true;
 }

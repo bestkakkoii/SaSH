@@ -42,7 +42,7 @@ protected:
 	virtual void closeEvent(QCloseEvent* e) override;
 
 private:
-	void fileSave(const QString& d, DWORD flag);
+	void fileSave(QString content);
 
 	void replaceCommas(QString& inputList);
 
@@ -53,8 +53,6 @@ private:
 	void setStepMarks();
 
 	void setMark(CodeEditor::SymbolHandler element, util::SafeHash<QString, util::SafeHash<qint64, break_marker_t>>& hash, qint64 liner, bool b);
-
-	void stackInfoImport(QTreeWidget* tree, const QVector<QPair<qint64, QString>>& vec);
 
 	void reshowBreakMarker();
 
@@ -69,6 +67,8 @@ private:
 	void createTreeWidgetItems(Parser* pparser, QList<QTreeWidgetItem*>* pTrees, const QHash<QString, QVariant>& d, const QStringList& globalNames);
 
 	void initStaticLabel();
+
+	Q_INVOKABLE void onNewFile();
 
 signals:
 	void editorCursorPositionChanged(int line, int index);
@@ -102,9 +102,6 @@ private slots:
 	void onVarInfoImport(void* p, const QVariantHash&, const QStringList& globalNames);
 
 	void onSetStaticLabelLineText(int line, int index);
-
-	void onCallStackInfoChanged(const QVariant& var);
-	void onJumpStackInfoChanged(const QVariant& var);
 
 	void onEncryptSave();
 	void onDecryptSave();

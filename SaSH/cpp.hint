@@ -8,3 +8,4 @@
 #define slots
 #define Q_INVOKABLE QT_ANNOTATE_FUNCTION(qt_invokable)
 #define Q_INVOKABLE
+#define Q_D(Class) Class##Private * const d = d_func()

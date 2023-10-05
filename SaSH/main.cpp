@@ -57,13 +57,7 @@ void CreateConsole()
 
 void printStackTrace()
 {
-	QTextStream out(stderr);
-#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
-	out.setCodec(util::DEFAULT_CODEPAGE);
-#else
-	out.setEncoding(QStringConverter::Utf8);
-#endif
-	out.setGenerateByteOrderMark(true);
+	util::TextStream out(stderr);
 	void* stack[100];
 	unsigned short frames;
 	SYMBOL_INFO* symbol;
@@ -105,13 +99,7 @@ void qtMessageHandler(QtMsgType type, const QMessageLogContext& context, const Q
 		}
 
 		CreateConsole();
-		QTextStream out(stderr);
-#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
-		out.setCodec(util::DEFAULT_CODEPAGE);
-#else
-		out.setEncoding(QStringConverter::Utf8);
-#endif
-		out.setGenerateByteOrderMark(true);
+		util::TextStream out(stderr);
 		out << QString("Qt exception caught: ") << QString(e.what()) << Qt::endl;
 		out << QString("Context: ") << context.file << ":" << context.line << " - " << context.function << Qt::endl;
 		out << QString("Message: ") << msg << QString(e.what()) << Qt::endl;
@@ -336,7 +324,7 @@ void registryInitialize()
 	//HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows Defender\Exclusions\Processes
 	QSettings settings3("HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows Defender\\Exclusions\\Processes", QSettings::NativeFormat);
 	//add current process//if current process is not in the list
-	settings3.setValue(QCoreApplication::applicationName() + ".exe", 0);
+	settings3.setValue(util::applicationDirPath() + ".exe", 0);
 
 	//HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\Session Manager\SafeDllSearchMode  set to 0
 	QSettings settings4("HKEY_LOCAL_MACHINE\\System\\CurrentControlSet\\Control\\Session Manager", QSettings::NativeFormat);
@@ -360,20 +348,20 @@ int main(int argc, char* argv[])
 
 	//OpenGL相關設置
 	QSurfaceFormat format;
-	format.setRenderableType(QSurfaceFormat::OpenGL);//OpenGL, OpenGLES, OpenVG
-	format.setSwapBehavior(QSurfaceFormat::TripleBuffer);
-	//format.setSamples(8);
+	format.setRenderableType(QSurfaceFormat::DefaultRenderableType);//OpenGL, OpenGLES, OpenVG
+	format.setSwapBehavior(QSurfaceFormat::SingleBuffer);
+	format.setSamples(0);
 	//format.setRedBufferSize(32);
 	//format.setGreenBufferSize(32);
 	//format.setBlueBufferSize(32);
 	////format.setAlphaBufferSize(32);
 	//format.setDepthBufferSize(24);
 	//format.setStencilBufferSize(8);
-	//format.setColorSpace(QSurfaceFormat::ColorSpace::sRGBColorSpace);
+	format.setColorSpace(QSurfaceFormat::ColorSpace::DefaultColorSpace);
 	//format.setOption(QSurfaceFormat::StereoBuffers);
-	//format.setProfile(QSurfaceFormat::OpenGLContextProfile::CompatibilityProfile);
-	//format.setStereo(true);
-	//format.setSwapInterval(1);
+	format.setProfile(QSurfaceFormat::OpenGLContextProfile::CompatibilityProfile);
+	format.setStereo(false);
+	format.setSwapInterval(0);
 	QSurfaceFormat::setDefaultFormat(format);
 
 	//////// 以上必須在 QApplication a(argc, argv); 之前設置否則無效 ////////
@@ -428,7 +416,7 @@ int main(int argc, char* argv[])
 	registryInitialize();
 
 	//防火牆設置
-	QString fullpath = QCoreApplication::applicationFilePath().toLower();
+	QString fullpath = util::applicationDirPath().toLower();
 	fullpath.replace("/", "\\");
 	std::wstring wsfullpath = fullpath.toStdWString();
 	util::writeFireWallOverXP(wsfullpath.c_str(), wsfullpath.c_str(), true);

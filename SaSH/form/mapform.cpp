@@ -78,6 +78,13 @@ void MapForm::onButtonClicked()
 	if (name == "pushButton_findpath_start")
 	{
 		Injector& injector = Injector::getInstance(currentIndex);
+		if (!injector.isValid())
+			return;
+
+		if (injector.IS_SCRIPT_FLAG.load(std::memory_order_acquire))
+			return;
+
+
 		if (injector.server.isNull())
 			return;
 
@@ -113,26 +120,6 @@ void MapForm::onButtonClicked()
 		interpreter_->stop();
 		ui.pushButton_findpath_stop->setEnabled(false);
 		ui.pushButton_findpath_start->setEnabled(true);
-	}
-}
-
-void MapForm::updateTableWidgetContent(qint64 row, qint64 col, const QString& text)
-{
-	QTableWidgetItem* item = ui.tableWidget_map->item(row, col);
-	if (item)
-	{
-		item->setText(text);
-		item->setToolTip(text);
-	}
-	else
-	{
-		item = new QTableWidgetItem(text);
-		if (item)
-		{
-			item->setText(text);
-			item->setToolTip(text);
-			ui.tableWidget_map->setItem(row, col, item);
-		}
 	}
 }
 
@@ -188,8 +175,8 @@ void MapForm::onUpdateNpcList(qint64 floor)
 
 		QString location = d.name;
 		QString position = QString("%1,%2").arg(d.x).arg(d.y);
-		updateTableWidgetContent(i, 0, location);
-		updateTableWidgetContent(i, 1, position);
+		ui.tableWidget_map->setText(i, 0, location);
+		ui.tableWidget_map->setText(i, 1, position);
 	}
 }
 
@@ -200,6 +187,12 @@ void MapForm::onTableWidgetCellDoubleClicked(int row, int col)
 
 	qint64 currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
+	if (!injector.isValid())
+		return;
+
+	if (injector.IS_SCRIPT_FLAG.load(std::memory_order_acquire))
+		return;
+
 	if (injector.server.isNull())
 		return;
 

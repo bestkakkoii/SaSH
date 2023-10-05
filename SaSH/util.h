@@ -827,45 +827,13 @@ namespace util
 		{-1, -1}, //西北2
 	};
 
-	Q_REQUIRED_RESULT inline static QString applicationDirPath()
-	{
-		/*
-		Big5 -- Chinese
-		Big5-HKSCS -- Chinese
-		GB2312 -- Chinese
-		GBK -- Chinese
-		GB18030 -- Chinese
-		*/
-		QString path = QCoreApplication::applicationDirPath();
-		//QTextCodec* codec = nullptr;
-		//UINT acp = GetACP();
-		//if (acp == 936)
-		//	codec = QTextCodec::codecForName("GBK");
-		//else if (acp == 950)
-		//	codec = QTextCodec::codecForName("Big5");
-		//else
-		//	codec = QTextCodec::codecForName("UTF-8");
+	Q_REQUIRED_RESULT QString applicationFilePath();
 
-		//const char* pcs = path.toLocal8Bit().constData();
+	Q_REQUIRED_RESULT QString applicationDirPath();
 
-		//path = codec->toUnicode(pcs);
+	Q_REQUIRED_RESULT QString applicationName();
 
-		return path;
-	}
-
-	Q_REQUIRED_RESULT inline static const qint64 __vectorcall percent(qint64 value, qint64 total)
-	{
-		if (value == 1 && total > 0)
-			return value;
-		if (value == 0)
-			return 0;
-
-		double d = std::floor(static_cast<double>(value) * 100.0 / static_cast<double>(total));
-		if ((value > 0) && (d < 1.0))
-			return 1;
-		else
-			return static_cast<qint64>(d);
-	}
+	Q_REQUIRED_RESULT qint64 __vectorcall percent(qint64 value, qint64 total);
 
 	template<typename T>
 	inline Q_REQUIRED_RESULT QString toQString(T d, qint64 base = 10)
@@ -1071,67 +1039,9 @@ namespace util
 		pTabBar->setExpanding(true);
 	}
 
-	inline bool createFileDialog(const QString& name, QString* retstring, QWidget* parent)
-	{
-		QFileDialog dialog(parent);
-		dialog.setModal(true);
-		dialog.setFileMode(QFileDialog::ExistingFile);
-		dialog.setViewMode(QFileDialog::Detail);
-		dialog.setOption(QFileDialog::ReadOnly, true);
-		dialog.setAcceptMode(QFileDialog::AcceptOpen);
+	bool createFileDialog(const QString& name, QString* retstring, QWidget* parent);
 
-
-		//check suffix
-		if (!name.isEmpty())
-		{
-			QStringList filters;
-			filters << name;
-			dialog.setNameFilters(filters);
-		}
-
-		//directory
-		//自身目錄往上一層
-		QString directory = util::applicationDirPath();
-		directory = QDir::toNativeSeparators(directory);
-		directory = QDir::cleanPath(directory + QDir::separator() + "..");
-		dialog.setDirectory(directory);
-
-		if (dialog.exec() == QDialog::Accepted)
-		{
-			QStringList fileNames = dialog.selectedFiles();
-			if (fileNames.size() > 0)
-			{
-				QString fileName = fileNames.value(0);
-
-				QTextCodec* codec = nullptr;
-				UINT acp = GetACP();
-				if (acp == 936)
-					codec = QTextCodec::codecForName(util::DEFAULT_GAME_CODEPAGE);
-				else if (acp == 950)
-					codec = QTextCodec::codecForName("big5");
-				else
-					codec = QTextCodec::codecForName(util::DEFAULT_CODEPAGE);
-
-				std::string str = codec->fromUnicode(fileName).data();
-				fileName = codec->toUnicode(str.c_str());
-
-				if (retstring)
-					*retstring = fileName;
-
-				return true;
-			}
-		}
-		return false;
-	}
-
-	inline bool customStringCompare(const QString& str1, const QString& str2)
-	{
-		//中文locale
-		static const QLocale locale;
-		static const QCollator collator(locale);
-
-		return collator.compare(str1, str2) < 0;
-	}
+	bool customStringCompare(const QString& str1, const QString& str2);
 
 	QFileInfoList loadAllFileLists(TreeWidgetItem* root, const QString& path, QStringList* list = nullptr,
 		const QString& fileIcon = ":/image/icon_txt.png", const QString& folderIcon = ":/image/icon_directory.png");
@@ -1171,28 +1081,9 @@ namespace util
 		return widgets;
 	}
 
-	inline QString formatMilliseconds(qint64 milliseconds)
-	{
-		qint64 totalSeconds = milliseconds / 1000ll;
-		qint64 days = totalSeconds / (24ll * 60ll * 60ll);
-		qint64 hours = (totalSeconds % (24ll * 60ll * 60ll)) / (60ll * 60ll);
-		qint64 minutes = (totalSeconds % (60ll * 60ll)) / 60ll;
-		qint64 seconds = totalSeconds % 60ll;
-		qint64 remainingMilliseconds = milliseconds % 1000ll;
+	QString formatMilliseconds(qint64 milliseconds);
 
-		return QString(QObject::tr("%1 day %2 hour %3 min %4 sec %5 msec"))
-			.arg(days).arg(hours).arg(minutes).arg(seconds).arg(remainingMilliseconds);
-	}
-
-	inline QString formatSeconds(qint64 seconds)
-	{
-		qint64 day = seconds / 86400ll;
-		qint64 hours = (seconds % 86400ll) / 3600ll;
-		qint64 minutes = (seconds % 3600ll) / 60ll;
-		qint64 remainingSeconds = seconds % 60ll;
-
-		return QString(QObject::tr("%1 day %2 hour %3 min %4 sec")).arg(day).arg(hours).arg(minutes).arg(remainingSeconds);
-	};
+	QString formatSeconds(qint64 seconds);
 
 	bool writeFireWallOverXP(const LPCTSTR& ruleName, const LPCTSTR& appPath, bool NoopIfExist);
 
@@ -1201,6 +1092,139 @@ namespace util
 	QFont getFont();
 
 	void asyncRunBat(const QString& path, QString data);
+
+	bool readFileFilter(const QString& fileName, QString& content, bool* pisPrivate);
+
+	bool readFile(const QString& fileName, QString* pcontent, bool* isPrivate = nullptr);
+
+	bool writeFile(const QString& fileName, const QString& content);
+
+	void sortWindows(const QVector<HWND>& windowList, bool alignLeft);
+
+#pragma region swap_row
+	inline void SwapRow(QTableWidget* p, QListWidget* p2, qint64 selectRow, qint64 targetRow)
+	{
+
+		if (p)
+		{
+			QStringList selectRowLine, targetRowLine;
+			qint64 count = p->columnCount();
+			for (qint64 i = 0; i < count; ++i)
+			{
+				selectRowLine.append(p->item(selectRow, i)->text());
+				targetRowLine.append(p->item(targetRow, i)->text());
+				if (!p->item(selectRow, i))
+					p->setItem(selectRow, i, q_check_ptr(new QTableWidgetItem(targetRowLine.value(i))));
+				else
+					p->item(selectRow, i)->setText(targetRowLine.value(i));
+
+				if (!p->item(targetRow, i))
+					p->setItem(targetRow, i, q_check_ptr(new QTableWidgetItem(selectRowLine.value(i))));
+				else
+					p->item(targetRow, i)->setText(selectRowLine.value(i));
+			}
+		}
+		else if (p2)
+		{
+			if (p2->count() == 0) return;
+			if (selectRow == targetRow || targetRow < 0 || selectRow < 0) return;
+			QString selectRowStr = p2->item(selectRow)->text();
+			QString targetRowStr = p2->item(targetRow)->text();
+			if (selectRow > targetRow)
+			{
+				p2->takeItem(selectRow);
+				p2->takeItem(targetRow);
+				p2->insertItem(targetRow, selectRowStr);
+				p2->insertItem(selectRow, targetRowStr);
+			}
+			else
+			{
+				p2->takeItem(targetRow);
+				p2->takeItem(selectRow);
+				p2->insertItem(selectRow, targetRowStr);
+				p2->insertItem(targetRow, selectRowStr);
+			}
+		}
+	}
+
+	inline void SwapRowUp(QTableWidget* p)
+	{
+		if (p->rowCount() <= 0)
+			return; //至少有一行
+		const QList<QTableWidgetItem*> list = p->selectedItems();
+		if (list.size() <= 0)
+			return; //有選中
+		qint64 t = list.value(0)->row();
+		if (t - 1 < 0)
+			return; //不是第一行
+
+		qint64 selectRow = t;	 //當前行
+		qint64 targetRow = t - 1; //目標行
+
+		SwapRow(p, nullptr, selectRow, targetRow);
+
+		QModelIndex cur = p->model()->index(targetRow, 0);
+		p->setCurrentIndex(cur);
+	}
+
+	inline void SwapRowDown(QTableWidget* p)
+	{
+		if (p->rowCount() <= 0)
+			return; //至少有一行
+		const QList<QTableWidgetItem*> list = p->selectedItems();
+		if (list.size() <= 0)
+			return; //有選中
+		qint64 t = list.value(0)->row();
+		if (t + 1 > static_cast<qint64>(p->rowCount()) - 1)
+			return; //不是最後一行
+
+		qint64 selectRow = t;	 //當前行
+		qint64 targetRow = t + 1; //目標行
+
+		SwapRow(p, nullptr, selectRow, targetRow);
+
+		QModelIndex cur = p->model()->index(targetRow, 0);
+		p->setCurrentIndex(cur);
+	}
+
+	inline void SwapRowUp(QListWidget* p)
+	{
+		if (p->count() <= 0)
+			return;
+		qint64 t = p->currentIndex().row(); // ui->tableWidget->rowCount();
+		if (t < 0)
+			return;
+		if (t - 1 < 0)
+			return;
+
+		qint64 selectRow = t;
+		qint64 targetRow = t - 1;
+
+		SwapRow(nullptr, p, selectRow, targetRow);
+
+		QModelIndex cur = p->model()->index(targetRow, 0);
+		p->setCurrentIndex(cur);
+	}
+
+	inline void SwapRowDown(QListWidget* p)
+	{
+		if (p->count() <= 0)
+			return;
+		qint64 t = p->currentIndex().row();
+		if (t < 0)
+			return;
+		if (t + 1 > p->count() - 1)
+			return;
+
+		qint64 selectRow = t;
+		qint64 targetRow = t + 1;
+
+		SwapRow(nullptr, p, selectRow, targetRow);
+
+		QModelIndex cur = p->model()->index(targetRow, 0);
+		p->setCurrentIndex(cur);
+	}
+#pragma endregion
 
 	//基於Qt QHash 的線程安全Hash容器
 	template <typename K, typename V>
@@ -1387,6 +1411,21 @@ namespace util
 		{
 			QReadLocker locker(&lock);
 			return hash;
+		}
+
+		void lockForRead() const
+		{
+			lock.lockForRead();
+		}
+
+		void lockForWrite() const
+		{
+			lock.lockForWrite();
+		}
+
+		void unlock() const
+		{
+			lock.unlock();
 		}
 
 	private:
@@ -2254,175 +2293,32 @@ namespace util
 		QSet<uchar*> m_maps;
 	};
 
-	static bool readFile(const QString& fileName, QString* pcontent, bool* isPrivate)
+	class TextStream : public QTextStream
 	{
-		util::ScopedFile f(fileName, QIODevice::ReadOnly | QIODevice::Text);
-		if (!f.isOpen())
-			return false;
-
-		QString c;
-		if (fileName.endsWith(util::SCRIPT_LUA_SUFFIX_DEFAULT))
+	public:
+		explicit TextStream(FILE* file)
+			: QTextStream(file)
 		{
-			QTextStream in(&f);
+			init();
+		}
+
+		explicit TextStream(QIODevice* device)
+			: QTextStream(device)
+		{
+			init();
+	}
+
+	private:
+		void init()
+		{
 #if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
-			in.setCodec(util::DEFAULT_CODEPAGE);
+			setCodec(util::DEFAULT_CODEPAGE);
 #else
-			in.setEncoding(QStringConverter::Utf8);
+			setEncoding(QStringConverter::Utf8);
 #endif
-			c = in.readAll();
-			c.replace("\r\n", "\n");
-			if (isPrivate != nullptr)
-				*isPrivate = false;
+			setGenerateByteOrderMark(true);
 		}
-		else if (fileName.endsWith(util::SCRIPT_PRIVATE_SUFFIX_DEFAULT))
-		{
-#ifdef CRYPTO_H
-			Crypto crypto;
-			if (!crypto.decodeScript(fileName, c))
-				return false;
-
-			if (isPrivate != nullptr)
-				*isPrivate = true;
-#else
-			return false;
-#endif
-		}
-
-		if (pcontent != nullptr)
-		{
-			*pcontent = c;
-			return true;
-		}
-
-		return false;
-	}
-
-	void sortWindows(const QVector<HWND>& windowList, bool alignLeft);
-
-#pragma region swap_row
-	inline void SwapRow(QTableWidget* p, QListWidget* p2, qint64 selectRow, qint64 targetRow)
-	{
-
-		if (p)
-		{
-			QStringList selectRowLine, targetRowLine;
-			qint64 count = p->columnCount();
-			for (qint64 i = 0; i < count; ++i)
-			{
-				selectRowLine.append(p->item(selectRow, i)->text());
-				targetRowLine.append(p->item(targetRow, i)->text());
-				if (!p->item(selectRow, i))
-					p->setItem(selectRow, i, q_check_ptr(new QTableWidgetItem(targetRowLine.value(i))));
-				else
-					p->item(selectRow, i)->setText(targetRowLine.value(i));
-
-				if (!p->item(targetRow, i))
-					p->setItem(targetRow, i, q_check_ptr(new QTableWidgetItem(selectRowLine.value(i))));
-				else
-					p->item(targetRow, i)->setText(selectRowLine.value(i));
-			}
-		}
-		else if (p2)
-		{
-			if (p2->count() == 0) return;
-			if (selectRow == targetRow || targetRow < 0 || selectRow < 0) return;
-			QString selectRowStr = p2->item(selectRow)->text();
-			QString targetRowStr = p2->item(targetRow)->text();
-			if (selectRow > targetRow)
-			{
-				p2->takeItem(selectRow);
-				p2->takeItem(targetRow);
-				p2->insertItem(targetRow, selectRowStr);
-				p2->insertItem(selectRow, targetRowStr);
-			}
-			else
-			{
-				p2->takeItem(targetRow);
-				p2->takeItem(selectRow);
-				p2->insertItem(selectRow, targetRowStr);
-				p2->insertItem(targetRow, selectRowStr);
-			}
-		}
-	}
-
-	inline void SwapRowUp(QTableWidget* p)
-	{
-		if (p->rowCount() <= 0)
-			return; //至少有一行
-		const QList<QTableWidgetItem*> list = p->selectedItems();
-		if (list.size() <= 0)
-			return; //有選中
-		qint64 t = list.value(0)->row();
-		if (t - 1 < 0)
-			return; //不是第一行
-
-		qint64 selectRow = t;	 //當前行
-		qint64 targetRow = t - 1; //目標行
-
-		SwapRow(p, nullptr, selectRow, targetRow);
-
-		QModelIndex cur = p->model()->index(targetRow, 0);
-		p->setCurrentIndex(cur);
-	}
-
-	inline void SwapRowDown(QTableWidget* p)
-	{
-		if (p->rowCount() <= 0)
-			return; //至少有一行
-		const QList<QTableWidgetItem*> list = p->selectedItems();
-		if (list.size() <= 0)
-			return; //有選中
-		qint64 t = list.value(0)->row();
-		if (t + 1 > static_cast<qint64>(p->rowCount()) - 1)
-			return; //不是最後一行
-
-		qint64 selectRow = t;	 //當前行
-		qint64 targetRow = t + 1; //目標行
-
-		SwapRow(p, nullptr, selectRow, targetRow);
-
-		QModelIndex cur = p->model()->index(targetRow, 0);
-		p->setCurrentIndex(cur);
-	}
-
-	inline void SwapRowUp(QListWidget* p)
-	{
-		if (p->count() <= 0)
-			return;
-		qint64 t = p->currentIndex().row(); // ui->tableWidget->rowCount();
-		if (t < 0)
-			return;
-		if (t - 1 < 0)
-			return;
-
-		qint64 selectRow = t;
-		qint64 targetRow = t - 1;
-
-		SwapRow(nullptr, p, selectRow, targetRow);
-
-		QModelIndex cur = p->model()->index(targetRow, 0);
-		p->setCurrentIndex(cur);
-	}
-
-	inline void SwapRowDown(QListWidget* p)
-	{
-		if (p->count() <= 0)
-			return;
-		qint64 t = p->currentIndex().row();
-		if (t < 0)
-			return;
-		if (t + 1 > p->count() - 1)
-			return;
-
-		qint64 selectRow = t;
-		qint64 targetRow = t + 1;
-
-		SwapRow(nullptr, p, selectRow, targetRow);
-
-		QModelIndex cur = p->model()->index(targetRow, 0);
-		p->setCurrentIndex(cur);
-	}
-#pragma endregion
+};
 
 	//用於掛機訊息紀錄
 	typedef struct tagAfkRecorder
