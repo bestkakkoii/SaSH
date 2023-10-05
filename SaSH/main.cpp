@@ -391,6 +391,9 @@ int main(int argc, char* argv[])
 
 	//全局線程池設置
 	qint64 count = QThread::idealThreadCount();
+	if (count > 8)
+		count = 8;
+
 	QThreadPool* pool = QThreadPool::globalInstance();
 	if (pool != nullptr)
 		pool->setMaxThreadCount(count);

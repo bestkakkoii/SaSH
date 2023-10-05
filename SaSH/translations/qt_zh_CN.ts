@@ -543,7 +543,7 @@
     </message>
     <message>
         <source>char action:</source>
-        <translation>战斗人物动作:</translation>
+        <translation type="vanished">战斗人物动作:</translation>
     </message>
     <message>
         <source>bottom info</source>
@@ -551,7 +551,7 @@
     </message>
     <message>
         <source>pet action:</source>
-        <translation>战斗宠物动作:</translation>
+        <translation type="vanished">战斗宠物动作:</translation>
     </message>
     <message>
         <source>[top]char/pet</source>
@@ -560,6 +560,14 @@
     <message>
         <source>[bottom]char/pet</source>
         <translation>[下方]人物/战宠</translation>
+    </message>
+    <message>
+        <source>char</source>
+        <translation>人物</translation>
+    </message>
+    <message>
+        <source>pet</source>
+        <translation>宠物</translation>
     </message>
 </context>
 <context>
@@ -739,7 +747,7 @@
     </message>
     <message>
         <source>pet%1 (%2)</source>
-        <translation>宠物%1 (%2)</translation>
+        <translation type="vanished">宠物%1 (%2)</translation>
     </message>
     <message>
         <source>power</source>
@@ -752,6 +760,10 @@
     <message>
         <source>growth</source>
         <translation>成长率</translation>
+    </message>
+    <message>
+        <source>pet%1(%2)</source>
+        <translation>宠%1(%2)</translation>
     </message>
 </context>
 <context>
@@ -1377,15 +1389,15 @@
     </message>
     <message>
         <source>mailinfo</source>
-        <translation>邮件相关</translation>
+        <translation type="vanished">邮件相关</translation>
     </message>
     <message>
         <source>petinfo</source>
-        <translation>宠物计算</translation>
+        <translation type="vanished">宠物计算</translation>
     </message>
     <message>
         <source>afkinfo</source>
-        <translation>挂机统计</translation>
+        <translation type="vanished">挂机统计</translation>
     </message>
     <message>
         <source>infoform</source>
@@ -1820,7 +1832,7 @@
     </message>
     <message>
         <source>no username or password</source>
-        <translation>缺少帐号或密码</translation>
+        <translation>缺少账号或密码</translation>
     </message>
     <message>
         <source>Json Files (*.json)</source>
@@ -1931,6 +1943,98 @@ No new version available. Do you still want to update?</source>
         <source>script running</source>
         <translation>脚本运行中</translation>
     </message>
+    <message>
+        <source>server is off</source>
+        <translation>[远]服务端未启动</translation>
+    </message>
+    <message>
+        <source>invalid lparam</source>
+        <translation>[远]不合法的LPARAM</translation>
+    </message>
+    <message>
+        <source>content is empty</source>
+        <translation>[远]内容为空</translation>
+    </message>
+    <message>
+        <source>already run</source>
+        <translation>[远]已在执行了</translation>
+    </message>
+    <message>
+        <source>path is empty</source>
+        <translation>[远]路径为空</translation>
+    </message>
+    <message>
+        <source>file not exist</source>
+        <translation>[远]文件不存在</translation>
+    </message>
+    <message>
+        <source>not run yet</source>
+        <translation>[远]尚未运行</translation>
+    </message>
+    <message>
+        <source>server already on</source>
+        <translation>[远]服务端已经开启了</translation>
+    </message>
+    <message>
+        <source>create info form failed</source>
+        <translation>[远]资讯窗口创建失败</translation>
+    </message>
+    <message>
+        <source>create map widget failed</source>
+        <translation>[远]大地图窗口创建失败</translation>
+    </message>
+    <message>
+        <source>create script setting form failed</source>
+        <translation>[远]脚本窗口创建失败</translation>
+    </message>
+    <message>
+        <source>hwndstr is empty</source>
+        <translation>[远]窗口句柄字符串为空</translation>
+    </message>
+    <message>
+        <source>invalid hwndstr str</source>
+        <translation>[远]不合法的窗口句柄字符串</translation>
+    </message>
+    <message>
+        <source>no valid hwnd</source>
+        <translation>[远]无合法的窗口句柄</translation>
+    </message>
+    <message>
+        <source>hwndstr str is empty</source>
+        <translation type="vanished">[远]窗口句柄字符串为空</translation>
+    </message>
+    <message>
+        <source>create thumbnail form failed</source>
+        <translation>[远]缩略图窗口创建失败</translation>
+    </message>
+    <message>
+        <source>create window failed</source>
+        <translation>[远]创建主窗口失败</translation>
+    </message>
+    <message>
+        <source>not json</source>
+        <translation>[远]非JSON</translation>
+    </message>
+    <message>
+        <source>invalid user/psw</source>
+        <translation>[远]不合法的账号或密码</translation>
+    </message>
+    <message>
+        <source>server out of range</source>
+        <translation>[远]伺服器索引越界</translation>
+    </message>
+    <message>
+        <source>subser out of range</source>
+        <translation>[远]分流索引越界</translation>
+    </message>
+    <message>
+        <source>pos out of range</source>
+        <translation>[远]位置索引越界</translation>
+    </message>
+    <message>
+        <source>no error</source>
+        <translation>[远]无错误</translation>
+    </message>
 </context>
 <context>
     <name>MainFormClass</name>
@@ -1987,7 +2091,7 @@ No new version available. Do you still want to update?</source>
     </message>
     <message>
         <source>You are using %1 account, due date is:%2</source>
-        <translation>你的帐号为%1帐号，到期日为：%2</translation>
+        <translation>你的账号为%1帐号，到期日为：%2</translation>
     </message>
     <message>
         <source>trial</source>
@@ -2353,7 +2457,7 @@ No new version available. Do you still want to update?</source>
     </message>
     <message>
         <source>account</source>
-        <translation>帐号</translation>
+        <translation>账号</translation>
     </message>
     <message>
         <source>password</source>
@@ -3063,7 +3167,7 @@ No new version available. Do you still want to update?</source>
     </message>
     <message>
         <source>%1 count    no %2 round    duration: %3 sec    cost: %4 sec    total time: %5 minues</source>
-        <translation>第 %1 局&#x3000;&#x3000;第 %2 回合&#x3000;&#x3000;局时间: %3 秒&#x3000;&#x3000;回合时间: %4 秒&#x3000;&#x3000;累积时间: %5 分钟</translation>
+        <translation type="vanished">第 %1 局&#x3000;&#x3000;第 %2 回合&#x3000;&#x3000;局时间: %3 秒&#x3000;&#x3000;回合时间: %4 秒&#x3000;&#x3000;累积时间: %5 分钟</translation>
     </message>
     <message>
         <source>About %1</source>
@@ -3437,6 +3541,10 @@ No new version available. Do you still want to update?</source>
         <source>[warn]Battle command transmission timeout, initiating backup instructions.</source>
         <translation>[警告]战斗指令超时，启动备用指令.</translation>
     </message>
+    <message>
+        <source>%1 count no %2 round duration: %3 sec cost: %4 sec total time: %5 minues</source>
+        <translation>%1 局 %2 回合 局时: %3 秒 回合时: %4 秒 累积时: %5 分</translation>
+    </message>
 </context>
 <context>
     <name>QThumbnailFormClass</name>
@@ -3675,7 +3783,7 @@ No new version available. Do you still want to update?</source>
     </message>
     <message>
         <source>debuger</source>
-        <translation>调试器</translation>
+        <translation type="vanished">调试器</translation>
     </message>
     <message>
         <source>global</source>
@@ -4664,6 +4772,14 @@ No new version available. Do you still want to update?</source>
     <message>
         <source>Ctrl+Alt+D</source>
         <translation></translation>
+    </message>
+    <message>
+        <source>autovar</source>
+        <translation>自动变量</translation>
+    </message>
+    <message>
+        <source>sysvar</source>
+        <translation>系统变量</translation>
     </message>
 </context>
 <context>

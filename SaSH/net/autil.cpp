@@ -267,6 +267,11 @@ void Autil::util_DiscardMessage(void)
 // arg: fd=socket fd   func=function ID   buffer=data to send
 void Autil::util_SendMesg(int func, char* buffer)
 {
+	qint64 currentIndex = getIndex();
+	Injector& injector = Injector::getInstance(currentIndex);
+	if (!injector.isValid())
+		return;
+
 	//char t1[NETDATASIZE], t2[NETDATASIZE];
 	//memset(t1, 0, sizeof(t1));
 	//memset(t2, 0, sizeof(t2));
@@ -287,8 +292,6 @@ void Autil::util_SendMesg(int func, char* buffer)
 	t2.data()[size] = '\n';
 	size += 1;
 
-	qint64 currentIndex = getIndex();
-	Injector& injector = Injector::getInstance(currentIndex);
 	HANDLE hProcess = injector.getProcess();
 	util::VirtualMemory ptr(hProcess, size, true);
 

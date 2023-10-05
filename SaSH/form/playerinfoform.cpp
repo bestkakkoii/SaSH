@@ -142,7 +142,7 @@ void CharInfoForm::onUpdateCharInfoPetState(qint64 petIndex, qint64 state)
 		return;
 
 	//設置指定 col = petIndex + 1的 header
-	QString petName = QString(tr("pet%1 (%2)")).arg(petIndex + 1).arg(stateStrList.value(state));
+	QString petName = QString(tr("pet%1(%2)")).arg(petIndex + 1).arg(stateStrList.value(state));
 
 	//get item 
 	ui.tableWidget->setHorizontalHeaderText(col + 1, petName);

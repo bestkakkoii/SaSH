@@ -637,7 +637,7 @@ border: 1px solid rgb(61,61,61);
          <number>0</number>
         </property>
         <item row="1" column="0">
-         <widget class="QTreeWidget" name="treeWidget_functionList">
+         <widget class="TreeWidget" name="treeWidget_functionList">
           <property name="font">
            <font>
             <pointsize>-1</pointsize>
@@ -1787,7 +1787,7 @@ border: 1px solid rgb(61,61,61);
      </widget>
     </item>
     <item row="2" column="0" rowspan="2">
-     <widget class="QDockWidget" name="dockWidget_debuger">
+     <widget class="QDockWidget" name="dockWidget_autovar">
       <property name="sizePolicy">
        <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
         <horstretch>0</horstretch>
@@ -1809,7 +1809,7 @@ border: 1px solid rgb(61,61,61);
        <set>QDockWidget::DockWidgetClosable|QDockWidget::DockWidgetFloatable</set>
       </property>
       <property name="windowTitle">
-       <string>debuger</string>
+       <string>autovar</string>
       </property>
       <widget class="QWidget" name="dockWidgetContents_4">
        <layout class="QGridLayout" name="gridLayout_3">
@@ -1826,7 +1826,7 @@ border: 1px solid rgb(61,61,61);
          <number>0</number>
         </property>
         <item row="0" column="0">
-         <widget class="QTreeWidget" name="treeWidget_debuger_custom">
+         <widget class="TreeWidget" name="treeWidget_debuger_custom">
           <property name="font">
            <font>
             <pointsize>-1</pointsize>
@@ -2013,7 +2013,7 @@ border: 1px solid rgb(61,61,61);
       <number>0</number>
      </property>
      <item row="0" column="0">
-      <widget class="QTreeWidget" name="treeWidget_breakList">
+      <widget class="TreeWidget" name="treeWidget_breakList">
        <property name="font">
         <font>
          <pointsize>-1</pointsize>
@@ -2042,6 +2042,75 @@ border: 1px solid rgb(61,61,61);
        <column>
         <property name="text">
          <string>row</string>
+        </property>
+       </column>
+      </widget>
+     </item>
+    </layout>
+   </widget>
+  </widget>
+  <widget class="QDockWidget" name="dockWidget_sysvar">
+   <property name="windowTitle">
+    <string>sysvar</string>
+   </property>
+   <attribute name="dockWidgetArea">
+    <number>2</number>
+   </attribute>
+   <widget class="QWidget" name="dockWidgetContents_9">
+    <layout class="QGridLayout" name="gridLayout_6">
+     <property name="leftMargin">
+      <number>0</number>
+     </property>
+     <property name="topMargin">
+      <number>0</number>
+     </property>
+     <property name="rightMargin">
+      <number>0</number>
+     </property>
+     <property name="bottomMargin">
+      <number>0</number>
+     </property>
+     <property name="spacing">
+      <number>0</number>
+     </property>
+     <item row="0" column="0">
+      <widget class="TreeWidget" name="treeWidget_debuger_sys">
+       <property name="font">
+        <font>
+         <pointsize>-1</pointsize>
+         <stylestrategy>NoAntialias</stylestrategy>
+        </font>
+       </property>
+       <property name="styleSheet">
+        <string notr="true"/>
+       </property>
+       <property name="iconSize">
+        <size>
+         <width>20</width>
+         <height>20</height>
+        </size>
+       </property>
+       <property name="sortingEnabled">
+        <bool>true</bool>
+       </property>
+       <column>
+        <property name="text">
+         <string>field</string>
+        </property>
+       </column>
+       <column>
+        <property name="text">
+         <string>NAME</string>
+        </property>
+       </column>
+       <column>
+        <property name="text">
+         <string>value</string>
+        </property>
+       </column>
+       <column>
+        <property name="text">
+         <string>type</string>
         </property>
        </column>
       </widget>
@@ -2251,6 +2320,11 @@ border: 1px solid rgb(61,61,61);
    <extends>QWidget</extends>
    <header location="global">codeeditor.h</header>
    <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>TreeWidget</class>
+   <extends>QTreeWidget</extends>
+   <header location="global">treewidget.h</header>
   </customwidget>
  </customwidgets>
  <resources>

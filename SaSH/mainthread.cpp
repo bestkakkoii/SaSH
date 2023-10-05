@@ -314,7 +314,7 @@ void MainObject::mainProc()
 		//這裡是預留的暫時沒作用
 		if (status == 1)//非登入狀態
 		{
-			QThread::msleep(100);
+			QThread::msleep(800);
 			nodelay = true;
 			continue;
 		}
@@ -827,26 +827,6 @@ void MainObject::checkControl()
 		flagOptimizeEnable_ = bChecked;
 		injector.postMessage(kEnableOptimize, bChecked, NULL);
 	}
-
-	////同步鎖定移動
-	//bChecked = injector.getEnableHash(util::kLockMoveEnable);
-
-	//bool isFastBattle = injector.getEnableHash(util::kFastBattleEnable);
-	//if (!bChecked && isFastBattle && injector.server->getBattleFlag())//如果有開啟快速戰鬥，那必須在戰鬥時鎖定移動
-	//{
-	//	flagLockMoveEnable_ = true;
-	//	injector.sendMessage(kEnableMoveLock, true, NULL);
-	//}
-	//else if (!bChecked && isFastBattle && !injector.server->getBattleFlag()) //如果有開啟快速戰鬥，但是不在戰鬥時，那就不鎖定移動
-	//{
-	//	flagLockMoveEnable_ = false;
-	//	injector.sendMessage(kEnableMoveLock, false, NULL);
-	//}
-	//else if (flagLockMoveEnable_ != bChecked) //如果沒有開啟快速戰鬥，那就照常
-	//{
-	//	flagLockMoveEnable_ = bChecked;
-	//	injector.sendMessage(kEnableMoveLock, bChecked, NULL);
-	//}
 
 	//自動戰鬥，異步戰鬥面板開關
 	bool bCheckedFastBattle = injector.getEnableHash(util::kFastBattleEnable);

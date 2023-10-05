@@ -25,6 +25,11 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "util.h"
 #include "script_lua/clua.h"
 
+static const QStringList g_sysConstVarName = {
+	"char", "pet", "item", "map", "magic", "skill", "petskill", "petequip", "dialog", "chat", "battle", "point", "team", "card", "unit", "mails",
+	"INDEX", "_VERSION", "_LINE_", "isbattle", "isonline", "isnormal"
+};
+
 using CommandRegistry = std::function<qint64(qint64 currentIndex, qint64 currentLine, const TokenMap& token)>;
 
 //callbak

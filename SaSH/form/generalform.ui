@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>290</width>
-    <height>349</height>
+    <width>295</width>
+    <height>486</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -502,7 +502,7 @@
     <rect>
      <x>150</x>
      <y>0</y>
-     <width>66</width>
+     <width>31</width>
      <height>16</height>
     </rect>
    </property>
@@ -513,9 +513,9 @@
   <widget class="QSpinBox" name="spinBox_speedboost">
    <property name="geometry">
     <rect>
-     <x>220</x>
+     <x>180</x>
      <y>0</y>
-     <width>66</width>
+     <width>41</width>
      <height>20</height>
     </rect>
    </property>
@@ -595,7 +595,7 @@
     <rect>
      <x>110</x>
      <y>0</y>
-     <width>32</width>
+     <width>31</width>
      <height>23</height>
     </rect>
    </property>
@@ -1130,14 +1130,14 @@
  <layoutdefault spacing="6" margin="11"/>
  <customwidgets>
   <customwidget>
-   <class>PushButton</class>
-   <extends>QPushButton</extends>
-   <header location="global">pushbutton.h</header>
-  </customwidget>
-  <customwidget>
    <class>ComboBox</class>
    <extends>QComboBox</extends>
    <header location="global">combobox.h</header>
+  </customwidget>
+  <customwidget>
+   <class>PushButton</class>
+   <extends>QPushButton</extends>
+   <header location="global">pushbutton.h</header>
   </customwidget>
  </customwidgets>
  <resources/>

@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>697</width>
-    <height>270</height>
+    <width>448</width>
+    <height>227</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -209,14 +209,14 @@
  <layoutdefault spacing="6" margin="11"/>
  <customwidgets>
   <customwidget>
-   <class>PushButton</class>
-   <extends>QPushButton</extends>
-   <header location="global">pushbutton.h</header>
-  </customwidget>
-  <customwidget>
    <class>TableWidget</class>
    <extends>QTableWidget</extends>
    <header location="global">tablewidget.h</header>
+  </customwidget>
+  <customwidget>
+   <class>PushButton</class>
+   <extends>QPushButton</extends>
+   <header location="global">pushbutton.h</header>
   </customwidget>
  </customwidgets>
  <resources/>

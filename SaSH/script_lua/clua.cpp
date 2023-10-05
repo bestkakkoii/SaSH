@@ -301,7 +301,7 @@ bool luadebug::checkOnlineThenWait(const sol::this_state& s)
 			QThread::msleep(100);
 		}
 
-		QThread::msleep(500);
+		QThread::msleep(2000UL);
 	}
 	return bret;
 }
@@ -335,7 +335,7 @@ bool luadebug::checkBattleThenWait(const sol::this_state& s)
 			QThread::msleep(100);
 		}
 
-		QThread::msleep(500);
+		QThread::msleep(2000UL);
 	}
 	return bret;
 }

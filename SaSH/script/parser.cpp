@@ -51,14 +51,14 @@ void makeTable(sol::state& lua, const char* name, qint64 i, qint64 j)
 
 	qint64 k, l;
 
-	for (k = 1; k <= i; ++k)
+	for (k = 1; k <= i + 1; ++k)
 	{
 		if (!lua[name][k].valid())
 			lua[name][k] = lua.create_table();
 		else if (!lua[name][k].is<sol::table>())
 			lua[name][k] = lua.create_table();
 
-		for (l = 1; l <= j; ++l)
+		for (l = 1; l <= j + 1; ++l)
 		{
 			if (!lua[name][k][l].valid())
 				lua[name][k][l] = lua.create_table();
@@ -76,7 +76,7 @@ void makeTable(sol::state& lua, const char* name, qint64 i)
 		lua[name] = lua.create_table();
 
 	qint64 k;
-	for (k = 1; k <= i; ++k)
+	for (k = 1; k <= i + 1; ++k)
 	{
 		if (!lua[name][k].valid())
 			lua[name][k] = lua.create_table();
@@ -297,7 +297,7 @@ void Parser::initialize(Parser* pparent)
 	makeTable(lua_, "dialog", MAX_DIALOG_LINE);
 	makeTable(lua_, "magic", MAX_MAGIC);
 	makeTable(lua_, "skill", MAX_PROFESSION_SKILL);
-	makeTable(lua_, "petksill", MAX_PET, MAX_SKILL);
+	makeTable(lua_, "petskill", MAX_PET, MAX_SKILL);
 	makeTable(lua_, "petequip", MAX_PET, MAX_PET_ITEM);
 	makeTable(lua_, "point");
 	makeTable(lua_, "mails", MAX_ADDRESS_BOOK, MAIL_MAX_HISTORY);
@@ -306,7 +306,7 @@ void Parser::initialize(Parser* pparent)
 
 	if (globalNames_->isEmpty())
 	{
-		*globalNames_ = QStringList{ "char", "pet", "item", "map", "magic", "skill", "petskill", "petequip", "dialog", "chat", "battle", "point", "team", "card", "unit", "mails", "INDEX" };
+		*globalNames_ = g_sysConstVarName;
 	}
 
 #pragma region init
@@ -5058,7 +5058,7 @@ void Parser::updateSysConstKeyword(const QString& expr)
 	}
 
 	//petskill\[(?:'([^']*)'|"([^ "]*)"|(\d+))\]\[(?:'([^']*)'|"([^ "]*)"|(\d+))\]\.(\w+)
-	if (expr.contains("petksill.") || expr.contains("petksill["))
+	if (expr.contains("petskill.") || expr.contains("petskill["))
 	{
 		sol::meta::unqualified_t<sol::table> psk = lua_["petskill"];
 

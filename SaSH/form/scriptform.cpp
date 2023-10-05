@@ -41,6 +41,9 @@ ScriptForm::ScriptForm(qint64 index, QWidget* parent)
 			connect(button, &PushButton::clicked, this, &ScriptForm::onButtonClicked, Qt::UniqueConnection);
 	}
 
+	ui.tableWidget_script->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeMode::ResizeToContents);
+	ui.tableWidget_script->horizontalHeader()->setStretchLastSection(true);
+
 	connect(ui.treeWidget_script->header(), &QHeaderView::sectionClicked, this, &ScriptForm::onScriptTreeWidgetHeaderClicked);
 	connect(ui.treeWidget_script, &QTreeWidget::itemDoubleClicked, this, &ScriptForm::onScriptTreeWidgetDoubleClicked);
 

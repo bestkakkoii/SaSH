@@ -208,7 +208,14 @@ Server::Server(qint64 index, QObject* parent)
 	: ThreadPlugin(index, parent)
 	, Lssproto(&Injector::getInstance(index).autil)
 	, chatQueue(MAX_CHAT_HISTORY)
-	, pointMutex_(QReadWriteLock::RecursionMode::Recursive)
+	, petInfoLock_(QReadWriteLock::Recursive)
+	, petSkillInfoLock_(QReadWriteLock::Recursive)
+	, charInfoLock_(QReadWriteLock::Recursive)
+	, charSkillInfoLock_(QReadWriteLock::Recursive)
+	, charMagicInfoLock_(QReadWriteLock::Recursive)
+	, itemInfoLock_(QReadWriteLock::Recursive)
+	, petEquipInfoLock_(QReadWriteLock::Recursive)
+	, teamInfoLock_(QReadWriteLock::Recursive)
 {
 	setIndex(index);
 	loginTimer.start();
@@ -400,8 +407,9 @@ void Server::onClientReadyRead()
 	if (badata.isEmpty())
 		return;
 
-	QtConcurrent::run(this, &Server::handleData, badata);
+	//QtConcurrent::run(this, &Server::handleData, badata);
 	//QMetaObject::invokeMethod(this, "handleData", Qt::QueuedConnection, Q_ARG(QByteArray, badata));
+	handleData(badata);
 }
 
 //異步發送數據
@@ -570,7 +578,7 @@ qint64 Server::dispatchMessage(const QByteArray& encoded)
 		if (!injector.autil.util_Receive(&dialogid, &result))
 			return BC_INVALID;
 
-		//qDebug() << "LSSPROTO_EV_RECV" << "dialogid" << dialogid << "result" << result;
+		qDebug() << "LSSPROTO_EV_RECV WARP" << "dialogid" << dialogid << "result" << result;
 		lssproto_EV_recv(dialogid, result);
 		break;
 	}
@@ -891,7 +899,7 @@ qint64 Server::dispatchMessage(const QByteArray& encoded)
 		if (!injector.autil.util_Receive(&effect, &level, net_data.data()))
 			return BC_INVALID;
 
-		//qDebug() << "LSSPROTO_EF_RECV" << "effect" << effect << "level" << level << "option" << util::toUnicode(data.data());
+		qDebug() << "LSSPROTO_EF_RECV WEATHER" << "effect" << effect << "level" << level << "option" << util::toUnicode(net_data.data());
 		lssproto_EF_recv(effect, level, net_data.data());
 		break;
 	}
@@ -1279,13 +1287,13 @@ qint64 Server::getUnloginStatus()
 	{
 		setOnlineFlag(false);
 		emit signalDispatcher.updateStatusLabelTextChanged(util::kLabelNoUserNameOrPassword);
-		return util::kNoUserNameOrPassword;//無帳號密碼
+		return util::kNoUserNameOrPassword;//無賬號密碼
 	}
 	else if ((1 == W && 2 == G) || (1 == W && 3 == G))
 	{
 		setOnlineFlag(false);
 		emit signalDispatcher.updateStatusLabelTextChanged(util::kLabelStatusLogining);
-		return util::kStatusInputUser;//輸入帳號密碼
+		return util::kStatusInputUser;//輸入賬號密碼
 	}
 	else if (2 == W && 2 == G)
 	{
@@ -1440,9 +1448,10 @@ qint64 Server::getPartySize() const
 
 	if (checkAND(pc.status, CHR_STATUS_LEADER) || checkAND(pc.status, CHR_STATUS_PARTY))
 	{
+		QReadLocker locker(&teamInfoLock_);
 		for (qint64 i = 0; i < MAX_PARTY; ++i)
 		{
-			PARTY party = getParty(i);
+			PARTY party = party_.value(i);
 			if (!party.valid)
 				continue;
 			if (party.level <= 0)
@@ -1906,9 +1915,6 @@ qint64 Server::checkJobDailyState(const QString& missionName)
 	if (!getOnlineFlag())
 		return false;
 
-	if (getBattleFlag())
-		return false;
-
 	QString newMissionName = missionName.simplified();
 	if (newMissionName.isEmpty())
 		return false;
@@ -1919,7 +1925,7 @@ qint64 Server::checkJobDailyState(const QString& missionName)
 
 	for (;;)
 	{
-		if (timer.hasExpired(5000))
+		if (timer.hasExpired(2000))
 			break;
 
 		if (!IS_WAITFOR_JOBDAILY_FLAG.load(std::memory_order_acquire))
@@ -2422,7 +2428,7 @@ void Server::updateBattleTimeInfo()
 	double cost = battle_one_round_time.load(std::memory_order_acquire) / 1000.0;
 	double total_time = battle_total_time.load(std::memory_order_acquire) / 1000.0 / 60.0;
 
-	QString battle_time_text = QString(QObject::tr("%1 count    no %2 round    duration: %3 sec    cost: %4 sec    total time: %5 minues"))
+	QString battle_time_text = QString(QObject::tr("%1 count no %2 round duration: %3 sec cost: %4 sec total time: %5 minues"))
 		.arg(battle_total.load(std::memory_order_acquire))
 		.arg(battleCurrentRound.load(std::memory_order_acquire) + 1)
 		.arg(util::toQString(time))
@@ -2534,7 +2540,7 @@ void Server::setWindowTitle()
 	else
 		positionName = util::toQString(position);
 
-	PC pc = getPC();
+	PC pc = pc_;
 	QString title = QString("[%1] SaSH [%2:%3] - %4 Lv:%5 HP:%6/%7 MP:%8/%9 $:%10") \
 		.arg(currentIndex).arg(subServerName).arg(positionName).arg(pc.name).arg(pc.level).arg(pc.hp).arg(pc.maxHp).arg(pc.mp).arg(pc.maxMp).arg(pc.gold);
 	std::wstring wtitle = title.toStdWString();
@@ -2803,9 +2809,6 @@ void Server::shopOk(qint64 n)
 	if (!getOnlineFlag())
 		return;
 
-	if (getBattleFlag())
-		return;
-
 	//SE 1隨身倉庫 2查看聲望氣勢
 	lssproto_ShopOk_send(n);
 }
@@ -2814,9 +2817,6 @@ void Server::shopOk(qint64 n)
 void Server::saMenu(qint64 n)
 {
 	if (!getOnlineFlag())
-		return;
-
-	if (getBattleFlag())
 		return;
 
 	lssproto_SaMenu_send(n);
@@ -2840,9 +2840,6 @@ void Server::setSwitcher(qint64 flg)
 	if (!getOnlineFlag())
 		return;
 
-	if (getBattleFlag())
-		return;
-
 	lssproto_FS_send(flg);
 }
 
@@ -2851,8 +2848,6 @@ bool Server::isDialogVisible()
 	if (!getOnlineFlag())
 		return false;
 
-	if (getBattleFlag())
-		return false;
 	qint64 currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
 	HANDLE hProcess = injector.getProcess();
@@ -2869,9 +2864,6 @@ bool Server::isDialogVisible()
 void Server::EO()
 {
 	if (!getOnlineFlag())
-		return;
-
-	if (getBattleFlag())
 		return;
 
 	lssproto_EO_send(0);
@@ -3438,8 +3430,6 @@ void Server::createRemoteDialog(quint64 type, quint64 button, const QString& tex
 	if (!getOnlineFlag())
 		return;
 
-	if (getBattleFlag())
-		return;
 	qint64 currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
 
@@ -3451,9 +3441,6 @@ void Server::createRemoteDialog(quint64 type, quint64 button, const QString& tex
 void Server::press(BUTTON_TYPE select, qint64 dialogid, qint64 unitid)
 {
 	if (!getOnlineFlag())
-		return;
-
-	if (getBattleFlag())
 		return;
 
 	dialog_t dialog = currentDialog;
@@ -3510,9 +3497,6 @@ void Server::press(qint64 row, qint64 dialogid, qint64 unitid)
 	if (!getOnlineFlag())
 		return;
 
-	if (getBattleFlag())
-		return;
-
 	dialog_t dialog = currentDialog;
 	if (dialogid == -1)
 		dialogid = dialog.dialogid;
@@ -3531,9 +3515,6 @@ void Server::press(qint64 row, qint64 dialogid, qint64 unitid)
 void Server::buy(qint64 index, qint64 amt, qint64 dialogid, qint64 unitid)
 {
 	if (!getOnlineFlag())
-		return;
-
-	if (getBattleFlag())
 		return;
 
 	if (index < 0)
@@ -3563,9 +3544,6 @@ void Server::sell(const QString& name, const QString& memo, qint64 dialogid, qin
 	if (!getOnlineFlag())
 		return;
 
-	if (getBattleFlag())
-		return;
-
 	if (name.isEmpty())
 		return;
 
@@ -3587,9 +3565,6 @@ void Server::sell(const QString& name, const QString& memo, qint64 dialogid, qin
 void Server::sell(qint64 index, qint64 dialogid, qint64 unitid)
 {
 	if (!getOnlineFlag())
-		return;
-
-	if (getBattleFlag())
 		return;
 
 	if (index < 0 || index >= MAX_ITEM)
@@ -3620,9 +3595,6 @@ void Server::sell(const QVector<qint64>& indexs, qint64 dialogid, qint64 unitid)
 	if (!getOnlineFlag())
 		return;
 
-	if (getBattleFlag())
-		return;
-
 	if (indexs.isEmpty())
 		return;
 
@@ -3647,9 +3619,6 @@ void Server::sell(const QVector<qint64>& indexs, qint64 dialogid, qint64 unitid)
 void Server::learn(qint64 skillIndex, qint64 petIndex, qint64 spot, qint64 dialogid, qint64 unitid)
 {
 	if (!getOnlineFlag())
-		return;
-
-	if (getBattleFlag())
 		return;
 
 	if (skillIndex < 0 || skillIndex >= MAX_SKILL)
@@ -3681,9 +3650,6 @@ void Server::depositItem(qint64 itemIndex, qint64 dialogid, qint64 unitid)
 	if (!getOnlineFlag())
 		return;
 
-	if (getBattleFlag())
-		return;
-
 	if (itemIndex < 0 || itemIndex >= MAX_ITEM)
 		return;
 
@@ -3704,9 +3670,6 @@ void Server::depositItem(qint64 itemIndex, qint64 dialogid, qint64 unitid)
 void Server::withdrawItem(qint64 itemIndex, qint64 dialogid, qint64 unitid)
 {
 	if (!getOnlineFlag())
-		return;
-
-	if (getBattleFlag())
 		return;
 
 	dialog_t dialog = currentDialog;
@@ -3732,9 +3695,6 @@ void Server::depositPet(qint64 petIndex, qint64 dialogid, qint64 unitid)
 	if (!getOnlineFlag())
 		return;
 
-	if (getBattleFlag())
-		return;
-
 	dialog_t dialog = currentDialog;
 	if (dialogid == -1)
 		dialogid = dialog.dialogid;
@@ -3750,9 +3710,6 @@ void Server::depositPet(qint64 petIndex, qint64 dialogid, qint64 unitid)
 void Server::withdrawPet(qint64 petIndex, qint64 dialogid, qint64 unitid)
 {
 	if (!getOnlineFlag())
-		return;
-
-	if (getBattleFlag())
 		return;
 
 	dialog_t dialog = currentDialog;
@@ -3771,9 +3728,6 @@ void Server::withdrawPet(qint64 petIndex, qint64 dialogid, qint64 unitid)
 void Server::inputtext(const QString& text, qint64 dialogid, qint64 unitid)
 {
 	if (!getOnlineFlag())
-		return;
-
-	if (getBattleFlag())
 		return;
 
 	dialog_t dialog = currentDialog;
@@ -3795,9 +3749,6 @@ void Server::unlockSecurityCode(const QString& code)
 	if (!getOnlineFlag())
 		return;
 
-	if (getBattleFlag())
-		return;
-
 	if (code.isEmpty())
 		return;
 
@@ -3816,9 +3767,6 @@ void Server::windowPacket(const QString& command, qint64 dialogid, qint64 unitid
 	if (!getOnlineFlag())
 		return;
 
-	if (getBattleFlag())
-		return;
-
 	std::string s = util::fromUnicode(command);
 	lssproto_WN_send(getPoint(), dialogid, unitid, NULL, const_cast<char*>(s.c_str()));
 }
@@ -3829,9 +3777,6 @@ void Server::windowPacket(const QString& command, qint64 dialogid, qint64 unitid
 void Server::useMagic(qint64 magicIndex, qint64 target)
 {
 	if (!getOnlineFlag())
-		return;
-
-	if (getBattleFlag())
 		return;
 
 	if (target < 0 || target >= (MAX_PET + MAX_PARTY))
@@ -3855,18 +3800,12 @@ void Server::setTeamState(bool join)
 	if (!getOnlineFlag())
 		return;
 
-	if (getBattleFlag())
-		return;
-
 	lssproto_PR_send(getPoint(), join ? 1 : 0);
 }
 
 void Server::kickteam(qint64 n)
 {
 	if (!getOnlineFlag())
-		return;
-
-	if (getBattleFlag())
 		return;
 
 	if (n >= MAX_PARTY)
@@ -3885,9 +3824,6 @@ void Server::kickteam(qint64 n)
 void Server::mail(const QVariant& card, const QString& text, qint64 petIndex, const QString& itemName, const QString& itemMemo)
 {
 	if (!getOnlineFlag())
-		return;
-
-	if (getBattleFlag())
 		return;
 
 	qint64 index = -1;
@@ -3966,9 +3902,6 @@ void Server::mail(const QVariant& card, const QString& text, qint64 petIndex, co
 bool Server::addPoint(qint64 skillid, qint64 amt)
 {
 	if (!getOnlineFlag())
-		return false;
-
-	if (getBattleFlag())
 		return false;
 
 	if (skillid < 0 || skillid > 4)
@@ -4295,9 +4228,6 @@ void Server::dropPet(qint64 petIndex)
 	if (!getOnlineFlag())
 		return;
 
-	if (getBattleFlag())
-		return;
-
 	PET pet = getPet(petIndex);
 	if (!pet.valid)
 		return;
@@ -4310,9 +4240,6 @@ void Server::dropPet(qint64 petIndex)
 //自動鎖寵
 void Server::checkAutoLockPet()
 {
-	if (getBattleFlag())
-		return;
-
 	Injector& injector = Injector::getInstance(getIndex());
 
 	qint64 lockedIndex = -1;
@@ -4452,13 +4379,9 @@ void Server::downloadMap(qint64 floor)
 //轉移
 void Server::warp()
 {
-	QWriteLocker locker(&pointMutex_);
-
 	if (!getOnlineFlag())
 		return;
 
-	if (getBattleFlag())
-		return;
 	qint64 currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
 	struct
@@ -4495,9 +4418,6 @@ void Server::move(const QPoint& p, const QString& dir)
 	if (!getOnlineFlag())
 		return;
 
-	if (getBattleFlag())
-		return;
-
 	if (p.x() < 0 || p.x() > 1500 || p.y() < 0 || p.y() > 1500)
 		return;
 
@@ -4510,9 +4430,6 @@ void Server::move(const QPoint& p)
 {
 	QWriteLocker locker(&pointMutex_);
 	if (!getOnlineFlag())
-		return;
-
-	if (getBattleFlag())
 		return;
 
 	if (p.x() < 0 || p.x() > 1500 || p.y() < 0 || p.y() > 1500)
@@ -4784,9 +4701,6 @@ void Server::dropItem(qint64 index)
 	if (!getOnlineFlag())
 		return;
 
-	if (getBattleFlag())
-		return;
-
 	QPoint pos = getPoint();
 	QHash<qint64, ITEM> items = getItems();
 	if (index == -1)
@@ -4825,9 +4739,6 @@ void Server::dropGold(qint64 gold)
 	if (!getOnlineFlag())
 		return;
 
-	if (getBattleFlag())
-		return;
-
 	PC pc = getPC();
 	if (gold > pc.gold)
 		gold = pc.gold;
@@ -4845,9 +4756,6 @@ void Server::useItem(qint64 itemIndex, qint64 target)
 		return;
 
 	if (!getOnlineFlag())
-		return;
-
-	if (getBattleFlag())
 		return;
 
 	if (!getItem(itemIndex).valid)
@@ -4869,9 +4777,6 @@ void Server::swapItem(qint64 from, qint64 to)
 	if (!getOnlineFlag())
 		return;
 
-	if (getBattleFlag())
-		return;
-
 	lssproto_MI_send(from, to);
 
 	IS_WAITOFR_ITEM_CHANGE_PACKET.fetch_add(1, std::memory_order_release);
@@ -4883,9 +4788,6 @@ void Server::pickItem(qint64 dir)
 	if (!getOnlineFlag())
 		return;
 
-	if (getBattleFlag())
-		return;
-
 	lssproto_PI_send(getPoint(), (dir + 3) % 8);
 }
 
@@ -4893,9 +4795,6 @@ void Server::pickItem(qint64 dir)
 void Server::petitemswap(qint64 petIndex, qint64 from, qint64 to)
 {
 	if (!getOnlineFlag())
-		return;
-
-	if (getBattleFlag())
 		return;
 
 	if (petIndex < 0 || petIndex >= MAX_PET)
@@ -4915,9 +4814,6 @@ void Server::petitemswap(qint64 petIndex, qint64 from, qint64 to)
 void Server::craft(util::CraftType type, const QStringList& ingres)
 {
 	if (!getOnlineFlag())
-		return;
-
-	if (getBattleFlag())
 		return;
 
 	if (ingres.size() < 2 || ingres.size() > 5)
@@ -4956,9 +4852,6 @@ void Server::depositGold(qint64 gold, bool isPublic)
 	if (!getOnlineFlag())
 		return;
 
-	if (getBattleFlag())
-		return;
-
 	if (gold <= 0)
 		return;
 
@@ -4972,9 +4865,6 @@ void Server::withdrawGold(qint64 gold, bool isPublic)
 	if (!getOnlineFlag())
 		return;
 
-	if (getBattleFlag())
-		return;
-
 	if (gold <= 0)
 		return;
 
@@ -4986,9 +4876,6 @@ void Server::withdrawGold(qint64 gold, bool isPublic)
 void Server::tradeComfirm(const QString& name)
 {
 	if (!getOnlineFlag())
-		return;
-
-	if (getBattleFlag())
 		return;
 
 	if (!IS_TRADING.load(std::memory_order_acquire))
@@ -5010,9 +4897,6 @@ void Server::tradeCancel()
 	if (!getOnlineFlag())
 		return;
 
-	if (getBattleFlag())
-		return;
-
 	if (!IS_TRADING.load(std::memory_order_acquire))
 		return;
 
@@ -5029,9 +4913,6 @@ void Server::tradeCancel()
 bool Server::tradeStart(const QString& name, qint64 timeout)
 {
 	if (!getOnlineFlag())
-		return false;
-
-	if (getBattleFlag())
 		return false;
 
 	if (IS_TRADING)
@@ -5063,9 +4944,6 @@ bool Server::tradeStart(const QString& name, qint64 timeout)
 void Server::tradeAppendItems(const QString& name, const QVector<qint64>& itemIndexs)
 {
 	if (!getOnlineFlag())
-		return;
-
-	if (getBattleFlag())
 		return;
 
 	if (!IS_TRADING.load(std::memory_order_acquire))
@@ -5109,9 +4987,6 @@ void Server::tradeAppendGold(const QString& name, qint64 gold)
 	if (!getOnlineFlag())
 		return;
 
-	if (getBattleFlag())
-		return;
-
 	if (!IS_TRADING.load(std::memory_order_acquire))
 		return;
 
@@ -5137,9 +5012,6 @@ void Server::tradeAppendGold(const QString& name, qint64 gold)
 void Server::tradeAppendPets(const QString& name, const QVector<qint64>& petIndexs)
 {
 	if (!getOnlineFlag())
-		return;
-
-	if (getBattleFlag())
 		return;
 
 	if (!IS_TRADING.load(std::memory_order_acquire))
@@ -5189,9 +5061,6 @@ void Server::tradeAppendPets(const QString& name, const QVector<qint64>& petInde
 void Server::tradeComplete(const QString& name)
 {
 	if (!getOnlineFlag())
-		return;
-
-	if (getBattleFlag())
 		return;
 
 	if (!IS_TRADING.load(std::memory_order_acquire))
@@ -5319,19 +5188,23 @@ void Server::setBattleEnd()
 		tempSet.insert(obj.pos);
 		QString statusStr = getBadStatusString(obj.status);
 		if (!statusStr.isEmpty())
-			statusStr = QString(" (%1)").arg(statusStr);
+			statusStr = QString("(%1)").arg(statusStr);
 
 		if (obj.pos == battleCharCurrentPos.load(std::memory_order_acquire))
 		{
-			temp = QString("*[%1]%2 Lv:%3 HP:%4/%5 (%6) MP:%7%8").arg(obj.pos + 1).arg(obj.name).arg(obj.level)
-				.arg(obj.hp).arg(obj.maxHp).arg(util::toQString(obj.hpPercent) + "%")
+			temp = QString(" [%1]%2:%3:%4:%5%6").arg(obj.pos + 1).arg(obj.name).arg(obj.level)
+				.arg(obj.hp)
 				.arg(battleCharCurrentMp.load(std::memory_order_acquire))
 				.arg(statusStr);
 		}
 		else
 		{
-			temp = QString("*[%1]%2 Lv:%3 HP:%4/%5 (%6)%7").arg(obj.pos + 1).arg(obj.name).arg(obj.level)
-				.arg(obj.hp).arg(obj.maxHp).arg(util::toQString(obj.hpPercent) + "%").arg(statusStr);
+			if (obj.pos >= bt.enemymin && obj.pos <= bt.enemymax)
+				temp = QString("*[%1]%2:%3:%4:%5%6").arg(obj.pos + 1).arg(obj.modelid).arg(obj.name).arg(obj.level)
+				.arg(obj.hp).arg(statusStr);
+			else
+				temp = QString("*[%1]%2:%3:%4%5").arg(obj.pos + 1).arg(obj.name).arg(obj.level)
+				.arg(obj.hp).arg(statusStr);
 		}
 
 		tempList.append(temp);
@@ -5339,8 +5212,8 @@ void Server::setBattleEnd()
 
 		if (obj.rideFlag == 1)
 		{
-			temp = QString(" [%1]%2 Lv:%3 HP:%4/%5 (%6)%7").arg(obj.pos + 1).arg(obj.rideName).arg(obj.rideLevel)
-				.arg(obj.rideHp).arg(obj.rideMaxHp).arg(util::toQString(obj.rideHpPercent) + "%").arg(statusStr);
+			temp = QString(" [%1]%2:%3:%4").arg(obj.pos + 1).arg(obj.rideName).arg(obj.rideLevel)
+				.arg(obj.rideHp);
 		}
 
 		tempList.append(temp);
@@ -9063,9 +8936,6 @@ void Server::sendBattleCharDoNothing()
 	if (!getOnlineFlag())
 		return;
 
-	if (!getBattleFlag())
-		return;
-
 	const QString qcmd("N");
 	lssproto_B_send(qcmd);
 
@@ -9084,9 +8954,6 @@ void Server::sendBattleCharDoNothing()
 void Server::sendBattlePetSkillAct(qint64 skillIndex, qint64 target)
 {
 	if (!getOnlineFlag())
-		return;
-
-	if (!getBattleFlag())
 		return;
 
 	PC pc = getPC();
@@ -9138,9 +9005,6 @@ void Server::sendBattlePetDoNothing()
 	if (!getOnlineFlag())
 		return;
 
-	if (!getBattleFlag())
-		return;
-
 	PC pc = getPC();
 	if (pc.battlePetNo < 0 || pc.battlePetNo >= MAX_PET)
 		return;
@@ -9184,7 +9048,8 @@ void Server::lssproto_PR_recv(int request, int result)
 	if (request == 1 && result == 1)
 	{
 		//pc.status |= CHR_STATUS_PARTY;
-		QHash<qint64, PARTY> party = getParties();
+		QReadLocker locker(&teamInfoLock_);
+		QHash<qint64, PARTY> party = party_.toHash();
 		for (qint64 i = 0; i < MAX_PARTY; ++i)
 		{
 			if (party.value(i).name.isEmpty() || (!party.value(i).valid) || (party.value(i).maxHp <= 0))
@@ -9223,9 +9088,10 @@ void Server::lssproto_PR_recv(int request, int result)
 //地圖轉移
 void Server::lssproto_EV_recv(int dialogid, int result)
 {
+	getFloorName();
 	qint64 currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
-	qint64 floor = static_cast<qint64>(mem::read<int>(injector.getProcess(), injector.getProcessModule() + kOffsetNowFloor));
+	qint64 floor = getFloor();
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
 	emit signalDispatcher.updateNpcList(floor);
 }
@@ -9936,9 +9802,6 @@ void Server::lssproto_WN_recv(int windowtype, int buttontype, int dialogid, int 
 
 void Server::lssproto_PME_recv(int unitid, int graphicsno, const QPoint& pos, int dir, int flg, int no, char* cdata)
 {
-	if (getBattleFlag())
-		return;
-
 	if (flg == 0)
 	{
 		switch (no)
@@ -9999,17 +9862,17 @@ void Server::lssproto_PME_recv(int unitid, int graphicsno, const QPoint& pos, in
 	}
 }
 
-//環境轉移
+//天氣
 void Server::lssproto_EF_recv(int effect, int level, char* coption)
 {
-	qint64 currentIndex = getIndex();
-	Injector& injector = Injector::getInstance(currentIndex);
-	if (!getOnlineFlag())
-		return;
+	//qint64 currentIndex = getIndex();
+	//Injector& injector = Injector::getInstance(currentIndex);
+	//if (!getOnlineFlag())
+	//	return;
 
-	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
-	qint64 floor = static_cast<qint64>(mem::read<int>(injector.getProcess(), injector.getProcessModule() + kOffsetNowFloor));
-	emit signalDispatcher.updateNpcList(floor);
+	//SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
+	//qint64 floor = getFloor();
+	//emit signalDispatcher.updateNpcList(floor);
 }
 
 //求救
@@ -10078,7 +9941,6 @@ void Server::lssproto_B_recv(char* ccommand)
 		bt.charAlreadyAction = false;
 
 		{
-			QWriteLocker locker(&charInfoLock_);
 			pc_.mp = battleCharCurrentMp.load(std::memory_order_acquire);
 			pc_.mpPercent = util::percent(pc_.mp, pc_.maxMp);
 		}
@@ -10195,8 +10057,6 @@ void Server::lssproto_B_recv(char* ccommand)
 		QElapsedTimer timer; timer.start();
 
 		{
-			QWriteLocker lockerChar(&charInfoLock_);
-			QWriteLocker lockerPet(&petInfoLock_);
 			QHash<qint64, PET> pets = pet_.toHash();
 
 			for (;;)
@@ -10398,19 +10258,23 @@ void Server::lssproto_B_recv(char* ccommand)
 
 				QString statusStr = getBadStatusString(obj.status);
 				if (!statusStr.isEmpty())
-					statusStr = QString(" (%1)").arg(statusStr);
+					statusStr = QString("(%1)").arg(statusStr);
 
 				if (obj.pos == battleCharCurrentPos.load(std::memory_order_acquire))
 				{
-					temp = QString(" [%1]%2 Lv:%3 HP:%4/%5 (%6) MP:%7%8").arg(obj.pos + 1).arg(obj.name).arg(obj.level)
-						.arg(obj.hp).arg(obj.maxHp).arg(util::toQString(obj.hpPercent) + "%")
+					temp = QString(" [%1]%2:%3:%4:%5%6").arg(obj.pos + 1).arg(obj.name).arg(obj.level)
+						.arg(obj.hp)
 						.arg(battleCharCurrentMp.load(std::memory_order_acquire))
 						.arg(statusStr);
 				}
 				else
 				{
-					temp = QString(" [%1]%2 Lv:%3 HP:%4/%5 (%6)%7").arg(obj.pos + 1).arg(obj.name).arg(obj.level)
-						.arg(obj.hp).arg(obj.maxHp).arg(util::toQString(obj.hpPercent) + "%").arg(statusStr);
+					if (obj.pos >= bt.enemymin && obj.pos <= bt.enemymax)
+						temp = QString(" [%1]%2:%3:%4:%5%6").arg(obj.pos + 1).arg(obj.modelid).arg(obj.name).arg(obj.level)
+						.arg(obj.hp).arg(statusStr);
+					else
+						temp = QString(" [%1]%2:%3:%4%5").arg(obj.pos + 1).arg(obj.name).arg(obj.level)
+						.arg(obj.hp).arg(statusStr);
 				}
 
 				tempList.append(temp);
@@ -10418,8 +10282,8 @@ void Server::lssproto_B_recv(char* ccommand)
 
 				if (obj.rideFlag == 1)
 				{
-					temp = QString(" [%1]%2 Lv:%3 HP:%4/%5 (%6)%7").arg(obj.pos + 1).arg(obj.rideName).arg(obj.rideLevel)
-						.arg(obj.rideHp).arg(obj.rideMaxHp).arg(util::toQString(obj.rideHpPercent) + "%").arg(statusStr);
+					temp = QString(" [%1]%2:%3:%4").arg(obj.pos + 1).arg(obj.rideName).arg(obj.rideLevel)
+						.arg(obj.rideHp);
 				}
 
 				tempList.append(temp);
@@ -10747,7 +10611,6 @@ void Server::lssproto_Echo_recv(char* test)
 		isEOTTLSend.store(false, std::memory_order_release);
 		announce(QObject::tr("server response time:%1ms").arg(time));//伺服器響應時間:xxxms
 	}
-	setOnlineFlag(true);
 }
 
 void Server::lssproto_NU_recv(int)
@@ -11292,7 +11155,7 @@ void Server::lssproto_MC_recv(int fl, int x1, int y1, int x2, int y2, int tileSu
 	//makeStringFromEscaped(floorName);
 
 	//getStringToken(showString, "|", 2, strPal);
-	Q_UNUSED(getFloorName());
+	QWriteLocker locker(&pointMutex_);
 }
 
 //地圖數據更新，重新寫入地圖
@@ -11311,7 +11174,7 @@ void Server::lssproto_M_recv(int fl, int x1, int y1, int x2, int y2, char* cdata
 
 	//getStringToken(showString, "|", 1, floorName);
 	//makeStringFromEscaped(floorName);
-	Q_UNUSED(getFloorName());
+	QWriteLocker locker(&pointMutex_);
 }
 
 //周圍人、NPC..等等數據
@@ -11877,7 +11740,6 @@ void Server::lssproto_CD_recv(char* cdata)
 	}
 }
 
-
 //更新所有基礎資訊
 /*================================
 C warp 用
@@ -11911,8 +11773,10 @@ void Server::lssproto_S_recv(char* cdata)
 	setOnlineFlag(true);
 
 #pragma region Warp
-	if (first == "C")//C warp 用
+	if (first == "C")//人物轉移
 	{
+		getFloorName();
+		getFloor();
 		mapUnitHash.clear();
 		qint64 fl, maxx, maxy, gx, gy;
 
@@ -11921,7 +11785,6 @@ void Server::lssproto_S_recv(char* cdata)
 		maxy = getIntegerToken(data, "|", 3);
 		gx = getIntegerToken(data, "|", 4);
 		gy = getIntegerToken(data, "|", 5);
-		Q_UNUSED(getFloor());
 	}
 #pragma endregion
 #pragma region TimeModify
@@ -12238,7 +12101,7 @@ void Server::lssproto_S_recv(char* cdata)
 
 			emit signalDispatcher.updateCharHpProgressValue(pc_.level, pc_.hp, pc_.maxHp);
 			emit signalDispatcher.updateCharMpProgressValue(pc_.level, pc_.mp, pc_.maxMp);
-			QHash<qint64, PET> pets = getPets();
+			QHash<qint64, PET> pets = pet_.toHash();
 			if (pc_.ridePetNo != -1)
 				emit signalDispatcher.updateRideHpProgressValue(pets.value(pc_.ridePetNo).level, pets.value(pc_.ridePetNo).hp, pets.value(pc_.ridePetNo).maxHp);
 			if (pc_.battlePetNo != -1)
@@ -12619,7 +12482,7 @@ void Server::lssproto_S_recv(char* cdata)
 			}
 			else
 			{
-				for (qint64 i = 0; i < 10; ++i)
+				for (qint64 i = 0; i < 12; ++i)
 					varList.append("");
 			}
 
@@ -12693,7 +12556,8 @@ void Server::lssproto_S_recv(char* cdata)
 				PARTY party = party_.value(i);
 				if (party.name.isEmpty() || (!party.valid) || (party.maxHp <= 0))
 				{
-					party_.remove(i);
+					if (party_.contains(i))
+						party_.remove(i);
 					teamInfoList.append("");
 					continue;
 				}
@@ -12701,6 +12565,7 @@ void Server::lssproto_S_recv(char* cdata)
 					.arg(party.hp).arg(party.maxHp).arg(party.hpPercent);
 				teamInfoList.append(text);
 			}
+
 			emit signalDispatcher.updateTeamInfo(teamInfoList);
 		};
 
@@ -12722,6 +12587,10 @@ void Server::lssproto_S_recv(char* cdata)
 		if (kubun == 0)
 		{
 			party_.remove(no);
+
+			if (party_.size() == 1)
+				party_.clear();
+			updateTeamInfo();
 			return;
 		}
 
@@ -13317,7 +13186,7 @@ void Server::lssproto_CharList_recv(char* cresult, char* cdata)
 	}
 }
 
-//人物登出(不是每個私服都有，有些是直接切斷後跳回帳號密碼頁)
+//人物登出(不是每個私服都有，有些是直接切斷後跳回賬號密碼頁)
 void Server::lssproto_CharLogout_recv(char* cresult, char* cdata)
 {
 	QString data = util::toUnicode(cdata);

@@ -515,6 +515,7 @@ qint64 CLuaSystem::set(std::string enumStr, sol::object p1, sol::object p2, sol:
 
 			{ "加速", util::kSpeedBoostValue },
 			{ "帳號", util::kGameAccountString },
+			{ "賬號", util::kGameAccountString },
 			{ "密碼", util::kGamePasswordString },
 			{ "安全碼", util::kGameSecurityCodeString },
 			{ "遠程白名單", util::kMailWhiteListString },
@@ -641,6 +642,7 @@ qint64 CLuaSystem::set(std::string enumStr, sol::object p1, sol::object p2, sol:
 
 			{ "加速", util::kSpeedBoostValue },
 			{ "帐号", util::kGameAccountString },
+			{ "账号", util::kGameAccountString },
 			{ "密码", util::kGamePasswordString },
 			{ "安全码", util::kGameSecurityCodeString },
 			{ "远程白名单", util::kMailWhiteListString },

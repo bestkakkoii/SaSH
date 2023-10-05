@@ -197,7 +197,7 @@ namespace util
 		kLabelStatusBusy,//忙碌中
 		kLabelStatusTimeout,//連線逾時
 		kLabelStatusLoginFailed,//登入失敗
-		kLabelNoUserNameOrPassword,//無帳號密碼
+		kLabelNoUserNameOrPassword,//無賬號密碼
 		kLabelStatusDisconnected,//斷線
 		kLabelStatusConnecting,//連線中
 	};
@@ -833,7 +833,7 @@ namespace util
 
 	Q_REQUIRED_RESULT QString applicationName();
 
-	Q_REQUIRED_RESULT qint64 __vectorcall percent(qint64 value, qint64 total);
+	Q_REQUIRED_RESULT qint64 percent(qint64 value, qint64 total);
 
 	template<typename T>
 	inline Q_REQUIRED_RESULT QString toQString(T d, qint64 base = 10)
@@ -2276,7 +2276,7 @@ namespace util
 		}
 
 		template <typename T>
-		bool __fastcall  mmap(T*& p, qint64 offset, qint64 size, QFile::MemoryMapFlags flags = QFileDevice::MapPrivateOption)//QFile::NoOptions
+		bool mmap(T*& p, qint64 offset, qint64 size, QFile::MemoryMapFlags flags = QFileDevice::MapPrivateOption)//QFile::NoOptions
 		{
 			uchar* uc = QFile::map(offset, size, flags);
 			if (uc)
@@ -2287,7 +2287,7 @@ namespace util
 			return uc != nullptr;
 		}
 
-		QFile& __fastcall  file() { return *this; }
+		QFile& file() { return *this; }
 
 	private:
 		QSet<uchar*> m_maps;
@@ -2306,7 +2306,7 @@ namespace util
 			: QTextStream(device)
 		{
 			init();
-	}
+		}
 
 	private:
 		void init()
@@ -2318,7 +2318,7 @@ namespace util
 #endif
 			setGenerateByteOrderMark(true);
 		}
-};
+	};
 
 	//用於掛機訊息紀錄
 	typedef struct tagAfkRecorder

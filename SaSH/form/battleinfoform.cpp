@@ -243,13 +243,13 @@ void BattleInfoForm::updateItemInfoRowContents(TableWidget* tableWidget, const Q
 
 		QString content;
 		if (fill.first % 2)
-			content = "    " + text;
+			content = " " + text;
 		else
 			content = text;
 
-		if (ride.simplified().isEmpty())
-			tableWidget->setText(fill.first, 0, content);
-		else
-			tableWidget->setText(fill.first, 0, content + "|" + ride.simplified());
+		//if (ride.simplified().isEmpty())
+		tableWidget->setText(fill.first, 0, content);
+		//else
+			//tableWidget->setText(fill.first, 0, content + "|" + ride.simplified());
 	}
 }

@@ -45,52 +45,52 @@ class Autil : public Indexer
 public:
 	explicit Autil(qint64 index);
 
-	void __fastcall util_Init(void);
-	void __fastcall util_Release(void);
-	void __fastcall util_Clear(void);
-	bool __fastcall util_SplitMessage(const QByteArray& source, char separator);
-	void __fastcall util_EncodeMessage(char* dst, size_t dstlen, char* src);
-	void __fastcall util_DecodeMessage(QByteArray& dst, QByteArray src);
-	qint64 __fastcall util_GetFunctionFromSlice(qint64* func, qint64* fieldcount, qint64 offest = 23);
-	void __fastcall util_DiscardMessage(void);
-	void __fastcall util_SendMesg(int func, char* buffer);
+	void util_Init(void);
+	void util_Release(void);
+	void util_Clear(void);
+	bool util_SplitMessage(const QByteArray& source, char separator);
+	void util_EncodeMessage(char* dst, size_t dstlen, char* src);
+	void util_DecodeMessage(QByteArray& dst, QByteArray src);
+	qint64 util_GetFunctionFromSlice(qint64* func, qint64* fieldcount, qint64 offest = 23);
+	void util_DiscardMessage(void);
+	void util_SendMesg(int func, char* buffer);
 
 	// -------------------------------------------------------------------
 	// Encoding function units.  Use in Encrypting functions.
-	int __fastcall util_256to64(char* dst, char* src, int len, char* table);
-	int __fastcall util_64to256(char* dst, char* src, char* table);
-	int __fastcall util_256to64_shr(char* dst, char* src, int len, char* table, char* key);
-	int __fastcall util_shl_64to256(char* dst, char* src, char* table, char* key);
-	int __fastcall util_256to64_shl(char* dst, char* src, int len, char* table, char* key);
-	int __fastcall util_shr_64to256(char* dst, char* src, char* table, char* key);
+	int util_256to64(char* dst, char* src, int len, char* table);
+	int util_64to256(char* dst, char* src, char* table);
+	int util_256to64_shr(char* dst, char* src, int len, char* table, char* key);
+	int util_shl_64to256(char* dst, char* src, char* table, char* key);
+	int util_256to64_shl(char* dst, char* src, int len, char* table, char* key);
+	int util_shr_64to256(char* dst, char* src, char* table, char* key);
 
-	void __fastcall util_swapint(int* dst, int* src, char* rule);
-	void __fastcall util_xorstring(char* dst, char* src);
-	void __fastcall util_shrstring(QByteArray& dst, char* src, int offs);
-	void __fastcall util_shlstring(char* dst, size_t dstlen, char* src, int offs);
+	void util_swapint(int* dst, int* src, char* rule);
+	void util_xorstring(char* dst, char* src);
+	void util_shrstring(QByteArray& dst, char* src, int offs);
+	void util_shlstring(char* dst, size_t dstlen, char* src, int offs);
 	// -------------------------------------------------------------------
 	// Encrypting functions
-	int __fastcall util_deint(int sliceno, int* value);
-	int __fastcall util_mkint(char* buffer, int value);
-	int __fastcall util_destring(int sliceno, char* value);
-	int __fastcall util_mkstring(char* buffer, char* value);
+	int util_deint(int sliceno, int* value);
+	int util_mkint(char* buffer, int value);
+	int util_destring(int sliceno, char* value);
+	int util_mkstring(char* buffer, char* value);
 
 	// 輔助函數，處理整數參數
 	template<typename Arg>
-	inline void __fastcall util_SendProcessArg(int& sum, char* buffer, Arg arg)
+	inline void util_SendProcessArg(int& sum, char* buffer, Arg arg)
 	{
 		sum += util_mkint(buffer, arg);
 	}
 
 	// 輔助函數，處理字符串參數（重載版本）
-	inline void __fastcall util_SendProcessArg(int& sum, char* buffer, char* arg)
+	inline void util_SendProcessArg(int& sum, char* buffer, char* arg)
 	{
 		sum += util_mkstring(buffer, arg);
 	}
 
 	// 輔助函數，遞歸處理參數
 	template<typename Arg, typename... Args>
-	inline void __fastcall util_SendProcessArgs(int& sum, char* buffer, Arg arg, Args... args)
+	inline void util_SendProcessArgs(int& sum, char* buffer, Arg arg, Args... args)
 	{
 		util_SendProcessArg(sum, buffer, arg);
 		util_SendProcessArgs(sum, buffer, args...);
@@ -98,14 +98,14 @@ public:
 
 	// 輔助函數，處理最後一個參數
 	template<typename Arg>
-	inline void __fastcall util_SendProcessArgs(int& sum, char* buffer, Arg arg)
+	inline void util_SendProcessArgs(int& sum, char* buffer, Arg arg)
 	{
 		util_SendProcessArg(sum, buffer, arg);
 	}
 
 	// 主發送函數
 	template<typename... Args>
-	inline void __fastcall util_Send(int func, Args... args)
+	inline void util_Send(int func, Args... args)
 	{
 		int iChecksum = 0;
 		std::unique_ptr <char[]> buffer(new char[NETDATASIZE]);
@@ -116,7 +116,7 @@ public:
 		util_SendMesg(func, buffer.get());
 	}
 
-	inline void __fastcall util_SendArgs(int func, std::vector<std::variant<int, std::string>>& args)
+	inline void util_SendArgs(int func, std::vector<std::variant<int, std::string>>& args)
 	{
 		int iChecksum = 0;
 		std::unique_ptr <char[]> buffer(new char[NETDATASIZE]());
@@ -139,7 +139,7 @@ public:
 	}
 
 	template<typename... Args>
-	inline bool __fastcall util_Receive(Args*... args)
+	inline bool util_Receive(Args*... args)
 	{
 		int iChecksum = 0;  // 局部變量
 		int iChecksumrecv = 0;

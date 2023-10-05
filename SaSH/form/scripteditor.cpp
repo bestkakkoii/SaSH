@@ -42,6 +42,7 @@ ScriptEditor::ScriptEditor(qint64 index, QWidget* parent)
 	qRegisterMetaType<QVector<qint64>>();
 
 	takeCentralWidget();
+
 	setDockNestingEnabled(true);
 	addDockWidget(Qt::LeftDockWidgetArea, ui.dockWidget_functionList);
 	addDockWidget(Qt::RightDockWidgetArea, ui.dockWidget_scriptList);
@@ -49,16 +50,19 @@ ScriptEditor::ScriptEditor(qint64 index, QWidget* parent)
 
 	splitDockWidget(ui.dockWidget_functionList, ui.dockWidget_main, Qt::Horizontal);
 	splitDockWidget(ui.dockWidget_main, ui.dockWidget_scriptList, Qt::Horizontal);
-	splitDockWidget(ui.dockWidget_functionList, ui.dockWidget_debuger, Qt::Vertical);
+	splitDockWidget(ui.dockWidget_functionList, ui.dockWidget_autovar, Qt::Vertical);
 	splitDockWidget(ui.dockWidget_main, ui.dockWidget_scriptFun, Qt::Vertical);
 	ui.dockWidget_functionList->setFeatures(QDockWidget::DockWidgetClosable | QDockWidget::DockWidgetMovable | QDockWidget::DockWidgetFloatable);
 	ui.dockWidget_main->setFeatures(QDockWidget::DockWidgetClosable | QDockWidget::DockWidgetMovable | QDockWidget::DockWidgetFloatable);
 	ui.dockWidget_scriptList->setFeatures(QDockWidget::DockWidgetClosable | QDockWidget::DockWidgetMovable | QDockWidget::DockWidgetFloatable);
-	ui.dockWidget_debuger->setFeatures(QDockWidget::DockWidgetClosable | QDockWidget::DockWidgetMovable | QDockWidget::DockWidgetFloatable);
+	ui.dockWidget_autovar->setFeatures(QDockWidget::DockWidgetClosable | QDockWidget::DockWidgetMovable | QDockWidget::DockWidgetFloatable);
+	ui.dockWidget_sysvar->setFeatures(QDockWidget::DockWidgetClosable | QDockWidget::DockWidgetMovable | QDockWidget::DockWidgetFloatable);
 	ui.dockWidget_scriptFun->setFeatures(QDockWidget::DockWidgetClosable | QDockWidget::DockWidgetMovable | QDockWidget::DockWidgetFloatable);
 
 	tabifyDockWidget(ui.dockWidget_scriptFun, ui.dockWidget_des);
 	tabifyDockWidget(ui.dockWidget_scriptFun, ui.dockWidget_mark);
+
+	tabifyDockWidget(ui.dockWidget_autovar, ui.dockWidget_sysvar);
 
 	ui.treeWidget_scriptList->header()->setSectionResizeMode(QHeaderView::ResizeToContents);
 	ui.treeWidget_scriptList->resizeColumnToContents(1);
@@ -66,7 +70,7 @@ ScriptEditor::ScriptEditor(qint64 index, QWidget* parent)
 	connect(ui.treeWidget_scriptList->header(), &QHeaderView::sectionClicked, this, &ScriptEditor::onScriptTreeWidgetHeaderClicked, Qt::QueuedConnection);
 	connect(ui.treeWidget_scriptList, &QTreeWidget::itemDoubleClicked, this, &ScriptEditor::onScriptTreeWidgetDoubleClicked, Qt::QueuedConnection);
 	connect(ui.treeWidget_scriptList, &QTreeWidget::itemChanged, this, &ScriptEditor::onScriptTreeWidgetItemChanged, Qt::QueuedConnection);
-	//排序
+
 	ui.treeWidget_functionList->sortItems(0, Qt::AscendingOrder);
 
 	ui.listView_log->setTextElideMode(Qt::ElideNone);
@@ -75,8 +79,6 @@ ScriptEditor::ScriptEditor(qint64 index, QWidget* parent)
 	ui.widget->setIndex(index);
 
 	ui.menuBar->setMinimumWidth(100);
-
-	initStaticLabel();
 
 	ui.mainToolBar->show();
 
@@ -116,26 +118,27 @@ ScriptEditor::ScriptEditor(qint64 index, QWidget* parent)
 	connect(&signalDispatcher, &SignalDispatcher::scriptLabelRowTextChanged, this, &ScriptEditor::onScriptLabelRowTextChanged, Qt::QueuedConnection);
 	connect(&signalDispatcher, &SignalDispatcher::varInfoImported, this, &ScriptEditor::onVarInfoImport, Qt::BlockingQueuedConnection);
 
-	//QList <OpenGLWidget*> glWidgetList = util::findWidgets<OpenGLWidget>(this);
-	//for (auto& glWidget : glWidgetList)
-	//{
-	//	if (glWidget)
-	//		glWidget->setBackgroundColor(QColor(31, 31, 31));
-	//}
+	util::FormSettingManager formSettingManager(this);
+	formSettingManager.loadSettings();
 
+	initStaticLabel();
+	createScriptListContextMenu();
+
+	init();
+}
+
+void ScriptEditor::init()
+{
+	qint64 index = getIndex();
+	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(index);
 	Injector& injector = Injector::getInstance(index);
 	if (!injector.scriptLogModel.isNull())
 		ui.listView_log->setModel(injector.scriptLogModel.get());
 
-	createScriptListContextMenu();
-
+	emit signalDispatcher.scriptFinished();
 	emit signalDispatcher.reloadScriptList();
+	emit signalDispatcher.applyHashSettingsToUI();
 
-	util::FormSettingManager formSettingManager(this);
-	formSettingManager.loadSettings();
-
-	onScriptStopMode();
-	onApplyHashSettingsToUI();
 	//ui.webEngineView->setUrl(QUrl("https://gitee.com/Bestkakkoii/sash/wikis/pages"));
 
 	if (!injector.currentScriptFileName.isEmpty() && QFile::exists(injector.currentScriptFileName))
@@ -1545,7 +1548,8 @@ void ScriptEditor::onApplyHashSettingsToUI()
 	if (!injector.scriptLogModel.isNull())
 		ui.listView_log->setModel(injector.scriptLogModel.get());
 
-	pSpeedSpinBox->setValue(injector.getValueHash(util::kScriptSpeedValue));
+	if (pSpeedSpinBox != nullptr)
+		pSpeedSpinBox->setValue(injector.getValueHash(util::kScriptSpeedValue));
 
 	ui.actionDebug->setChecked(injector.isScriptDebugModeEnable.load(std::memory_order_acquire));
 }
@@ -2256,12 +2260,7 @@ void ScriptEditor::onReloadScriptList()
 //全局變量列表
 void ScriptEditor::onVarInfoImport(void* p, const QVariantHash& d, const QStringList& globalNames)
 {
-	ui.treeWidget_debuger_custom->setUpdatesEnabled(false);
-	ui.treeWidget_debuger_custom->clear();
-	QList<QTreeWidgetItem*> nodes = {};
-	createTreeWidgetItems(reinterpret_cast<Parser*>(p), &nodes, d, globalNames);
-	ui.treeWidget_debuger_custom->addTopLevelItems(nodes);
-	ui.treeWidget_debuger_custom->setUpdatesEnabled(true);
+	createTreeWidgetItems(ui.treeWidget_debuger_sys, ui.treeWidget_debuger_custom, reinterpret_cast<Parser*>(p), d, globalNames);
 }
 
 void ScriptEditor::onEncryptSave()
@@ -2468,10 +2467,15 @@ bool luaTableToTreeWidgetItem(QString field, TreeWidgetItem* pParentNode, const 
 	return true;
 }
 
-void ScriptEditor::createTreeWidgetItems(Parser* pparser, QList<QTreeWidgetItem*>* pTrees, const QHash<QString, QVariant>& d, const QStringList& globalNames)
+void ScriptEditor::createTreeWidgetItems(TreeWidget* widgetA, TreeWidget* widgetB, Parser* pparser, const QHash<QString, QVariant>& d, const QStringList& globalNames)
 {
-	if (pTrees == nullptr)
-		return;
+	QList<QTreeWidgetItem*> nodesA = {};
+	QList<QTreeWidgetItem*> nodesB = {};
+
+	widgetA->setUpdatesEnabled(false);
+	widgetA->clear();
+	widgetB->setUpdatesEnabled(false);
+	widgetB->clear();
 
 	sol::state& lua_ = pparser->pLua_->getLua();
 
@@ -2537,8 +2541,9 @@ void ScriptEditor::createTreeWidgetItems(Parser* pparser, QList<QTreeWidgetItem*
 
 						if (luaTableToTreeWidgetItem(field, pNode, lua_["_TMP"].get<sol::table>(), depth))
 						{
+							pNode->setText(2, QString("(%1)").arg(pNode->childCount()));
 							pNode->setIcon(0, QIcon(":/image/icon_class.svg"));
-							pTrees->append(pNode);
+							nodesB.append(pNode);
 						}
 						else
 							delete pNode;
@@ -2580,7 +2585,7 @@ void ScriptEditor::createTreeWidgetItems(Parser* pparser, QList<QTreeWidgetItem*
 			if (pNode == nullptr)
 				continue;
 			pNode->setIcon(0, QIcon(":/image/icon_field.svg"));
-			pTrees->append(pNode);
+			nodesB.append(pNode);
 		}
 	}
 
@@ -2609,8 +2614,12 @@ void ScriptEditor::createTreeWidgetItems(Parser* pparser, QList<QTreeWidgetItem*
 			depth = kMaxLuaTableDepth;
 			if (luaTableToTreeWidgetItem(field, pNode, o.as<sol::table>(), depth))
 			{
+				pNode->setText(2, QString("(%1)").arg(pNode->childCount()));
 				pNode->setIcon(0, QIcon(":/image/icon_class.svg"));
-				pTrees->append(pNode);
+				if (g_sysConstVarName.contains(it))
+					nodesA.append(pNode);
+				else
+					nodesB.append(pNode);
 			}
 			else
 				delete pNode;
@@ -2661,6 +2670,16 @@ void ScriptEditor::createTreeWidgetItems(Parser* pparser, QList<QTreeWidgetItem*
 			continue;
 
 		pNode->setIcon(0, QIcon(":/image/icon_field.svg"));
-		pTrees->append(pNode);
+		if (g_sysConstVarName.contains(it))
+			nodesA.append(pNode);
+		else
+			nodesB.append(pNode);
 	}
+
+
+	widgetA->addTopLevelItems(nodesA);
+	widgetB->addTopLevelItems(nodesB);
+
+	widgetA->setUpdatesEnabled(true);
+	widgetB->setUpdatesEnabled(true);
 }

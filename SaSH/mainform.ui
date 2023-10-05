@@ -224,7 +224,7 @@
                <widget class="FastLabel" name="label_status" native="true">
                 <property name="minimumSize">
                  <size>
-                  <width>0</width>
+                  <width>140</width>
                   <height>14</height>
                  </size>
                 </property>
@@ -312,7 +312,14 @@
                </widget>
               </item>
               <item>
-               <widget class="FastLabel" name="label_cursor" native="true"/>
+               <widget class="FastLabel" name="label_cursor" native="true">
+                <property name="minimumSize">
+                 <size>
+                  <width>120</width>
+                  <height>0</height>
+                 </size>
+                </property>
+               </widget>
               </item>
              </layout>
             </item>

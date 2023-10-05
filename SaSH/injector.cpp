@@ -170,6 +170,8 @@ Injector::CreateProcessResult Injector::createProcess(Injector::process_informat
 	else
 		canSave = true;
 
+	QString customCommand = config.read<QString>("System", "Command", "custom");
+
 	auto mkcmd = [](const QString& sec, qint64 value)->QString
 	{
 		return QString("%1:%2").arg(sec).arg(value);
@@ -178,16 +180,23 @@ Injector::CreateProcessResult Injector::createProcess(Injector::process_informat
 	QStringList commandList;
 	//啟動參數
 	//updated realbin:138 adrnbin:138 sprbin:116 spradrnbin:116 adrntrue:5 realtrue:13 encode:0 windowmode
-	commandList.append(path);
-	commandList.append("updated");
-	commandList.append(mkcmd("realbin", nRealBin));
-	commandList.append(mkcmd("adrnbin", nAdrnBin));
-	commandList.append(mkcmd("sprbin", nSprBin));
-	commandList.append(mkcmd("spradrnbin", nSprAdrnBin));
-	commandList.append(mkcmd("realtrue", nRealTrue));
-	commandList.append(mkcmd("adrntrue", nAdrnTrue));
-	commandList.append(mkcmd("encode", nEncode));
-	commandList.append("windowmode");
+	if (customCommand.isEmpty())
+	{
+		commandList.append(path);
+		commandList.append("updated");
+		commandList.append(mkcmd("realbin", nRealBin));
+		commandList.append(mkcmd("adrnbin", nAdrnBin));
+		commandList.append(mkcmd("sprbin", nSprBin));
+		commandList.append(mkcmd("spradrnbin", nSprAdrnBin));
+		commandList.append(mkcmd("realtrue", nRealTrue));
+		commandList.append(mkcmd("adrntrue", nAdrnTrue));
+		commandList.append(mkcmd("encode", nEncode));
+		commandList.append("windowmode");
+	}
+	else
+	{
+		commandList.append(customCommand);
+	}
 
 	auto save = [&config, nRealBin, nAdrnBin, nSprBin, nSprAdrnBin, nRealTrue, nAdrnTrue, nEncode]()
 	{

@@ -91,18 +91,18 @@
           <widget class="QLabel" name="label_c">
            <property name="minimumSize">
             <size>
-             <width>70</width>
+             <width>0</width>
              <height>20</height>
             </size>
            </property>
            <property name="maximumSize">
             <size>
-             <width>70</width>
+             <width>30</width>
              <height>16777215</height>
             </size>
            </property>
            <property name="text">
-            <string>char action:</string>
+            <string>char</string>
            </property>
           </widget>
          </item>
@@ -161,18 +161,18 @@
           <widget class="QLabel" name="label_p">
            <property name="minimumSize">
             <size>
-             <width>70</width>
+             <width>0</width>
              <height>20</height>
             </size>
            </property>
            <property name="maximumSize">
             <size>
-             <width>70</width>
+             <width>30</width>
              <height>16777215</height>
             </size>
            </property>
            <property name="text">
-            <string>pet action:</string>
+            <string>pet</string>
            </property>
           </widget>
          </item>

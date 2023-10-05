@@ -64,9 +64,11 @@ private:
 
 	void setContinue();
 
-	void createTreeWidgetItems(Parser* pparser, QList<QTreeWidgetItem*>* pTrees, const QHash<QString, QVariant>& d, const QStringList& globalNames);
+	void createTreeWidgetItems(TreeWidget* widgetA, TreeWidget* widgetB, Parser* pparser, const QHash<QString, QVariant>& d, const QStringList& globalNames);
 
 	void initStaticLabel();
+
+	Q_INVOKABLE void init();
 
 	Q_INVOKABLE void onNewFile();
 
@@ -135,6 +137,7 @@ private slots:
 			if (pSpeedDescLabel_ != nullptr)
 			{
 				pSpeedDescLabel_->show();
+				pSpeedDescLabel_->setFixedWidth(spinRecordedWidth_);
 			}
 		}
 		else
@@ -146,9 +149,11 @@ private slots:
 				spinRecordedWidth_ = pSpeedSpinBox->width();
 				pSpeedSpinBox->setFixedWidth(18);
 			}
+
 			if (pSpeedDescLabel_ != nullptr)
 			{
 				pSpeedDescLabel_->hide();
+				pSpeedDescLabel_->setFixedWidth(0);
 			}
 		}
 	}

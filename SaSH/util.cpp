@@ -1685,7 +1685,7 @@ QString util::applicationName()
 	return QString::fromUtf8(qgetenv("CURRENT_NAME"));
 }
 
-qint64 __vectorcall util::percent(qint64 value, qint64 total)
+qint64 util::percent(qint64 value, qint64 total)
 {
 	if (value == 1 && total > 0)
 		return value;

@@ -149,17 +149,17 @@ void PetInfoForm::on_comboBox_clicked()
 		ui.comboBox->setCurrentIndex(0);
 }
 
-constexpr inline double __vectorcall calcRate(qint64 diff, qint64 diff_level)
+constexpr inline double calcRate(qint64 diff, qint64 diff_level)
 {
 	return diff / static_cast<double>(diff_level);
 }
 
-constexpr inline double __vectorcall calcExpectValue(double base, double growthRate, qint64 targetLevel)
+constexpr inline double calcExpectValue(double base, double growthRate, qint64 targetLevel)
 {
 	return (base + (growthRate * static_cast<double>(targetLevel - 1)));
 }
 
-constexpr inline double __vectorcall calcPower(double hp, double atk, double def, double agi)
+constexpr inline double calcPower(double hp, double atk, double def, double agi)
 {
 	return (hp / 4.0) + atk + def + agi;
 }

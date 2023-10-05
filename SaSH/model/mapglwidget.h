@@ -49,12 +49,12 @@ public:
 	explicit MapGLWidget(QWidget* parent = nullptr);
 	virtual ~MapGLWidget();
 
-	void __vectorcall setCurLineH(const QPointF& start, const QPointF& end);
-	void __vectorcall setCurLineV(const QPointF& start, const QPointF& end);
-	void __vectorcall setLineH(const QPointF& start, const QPointF& end);
-	void __vectorcall setLineV(const QPointF& start, const QPointF& end);
-	void __vectorcall setRect(const QRectF& rect);
-	void __vectorcall setPix(const QPixmap& image, const QRectF& src, const QRectF& dst);
+	void setCurLineH(const QPointF& start, const QPointF& end);
+	void setCurLineV(const QPointF& start, const QPointF& end);
+	void setLineH(const QPointF& start, const QPointF& end);
+	void setLineV(const QPointF& start, const QPointF& end);
+	void setRect(const QRectF& rect);
+	void setPix(const QPixmap& image, const QRectF& src, const QRectF& dst);
 
 protected:
 

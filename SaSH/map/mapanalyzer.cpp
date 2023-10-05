@@ -818,7 +818,7 @@ static const QSet<QPair<QPair<qint64, qint64 >, QSet<uint16_t>>> ROCKEX_SET = {
 #pragma endregion
 
 //檢查地圖大小是否合法
-inline constexpr bool __fastcall CHECKSIZE(qint64 w, qint64 h)
+inline constexpr bool CHECKSIZE(qint64 w, qint64 h)
 {
 	if (w < 0 || h < 0 || w > 1500 || h > 1500)
 		return false;
@@ -827,7 +827,7 @@ inline constexpr bool __fastcall CHECKSIZE(qint64 w, qint64 h)
 }
 
 //找大石頭(占用坐標超過1格)並設置標記
-void __fastcall checkAndSetRockEx(map_t& map, const QPoint& p, quint32 sObject)
+void checkAndSetRockEx(map_t& map, const QPoint& p, quint32 sObject)
 {
 	//    X = 12220 || 12222 為起點往右上畫6格長方形
 	// 
@@ -855,7 +855,7 @@ void __fastcall checkAndSetRockEx(map_t& map, const QPoint& p, quint32 sObject)
 };
 
 //重複檢查大石頭
-void __fastcall reCheckAndRockEx(map_t& map, const QPoint& point, uint16_t sObject)
+void reCheckAndRockEx(map_t& map, const QPoint& point, uint16_t sObject)
 {
 	for (const QPair<QPair<qint64, qint64>, QSet<uint16_t>>& it : ROCKEX_SET)
 	{
@@ -972,7 +972,7 @@ MapAnalyzer::~MapAnalyzer()
 }
 
 //查找地形
-util::ObjectType __fastcall MapAnalyzer::getGroundType(const uint16_t data) const
+util::ObjectType MapAnalyzer::getGroundType(const uint16_t data) const
 {
 	if (UP.contains(data))
 		return util::OBJ_UP;
@@ -999,7 +999,7 @@ util::ObjectType __fastcall MapAnalyzer::getGroundType(const uint16_t data) cons
 }
 
 //查找物件
-util::ObjectType __fastcall MapAnalyzer::getObjectType(const uint16_t data) const
+util::ObjectType MapAnalyzer::getObjectType(const uint16_t data) const
 {
 	if (UP.contains(data))
 		return util::OBJ_UP;
@@ -1028,7 +1028,7 @@ util::ObjectType __fastcall MapAnalyzer::getObjectType(const uint16_t data) cons
 	return util::OBJ_UNKNOWN;
 }
 
-bool __fastcall MapAnalyzer::getMapDataByFloor(qint64 floor, map_t* map)
+bool MapAnalyzer::getMapDataByFloor(qint64 floor, map_t* map)
 {
 	if (maps_.contains(floor))
 	{
@@ -1048,12 +1048,12 @@ bool __fastcall MapAnalyzer::getMapDataByFloor(qint64 floor, map_t* map)
 	return false;
 }
 
-void __fastcall MapAnalyzer::setMapDataByFloor(qint64 floor, const map_t& map)
+void MapAnalyzer::setMapDataByFloor(qint64 floor, const map_t& map)
 {
 	maps_.insert(floor, map);
 }
 
-void __fastcall MapAnalyzer::setPixmapByIndex(qint64 index, const QPixmap& pix)
+void MapAnalyzer::setPixmapByIndex(qint64 index, const QPixmap& pix)
 {
 	if (pixMap_.contains(index))
 	{
@@ -1065,13 +1065,13 @@ void __fastcall MapAnalyzer::setPixmapByIndex(qint64 index, const QPixmap& pix)
 	}
 }
 
-QString __fastcall MapAnalyzer::getCurrentMapPath(qint64 floor) const
+QString MapAnalyzer::getCurrentMapPath(qint64 floor) const
 {
 	const QString path = directory + "/map/" + util::toQString(floor) + kDefaultSuffix;
 	return path;
 }
 
-bool __fastcall MapAnalyzer::readFromBinary(qint64 floor, const QString& name, bool enableDraw, bool enableRewrite)
+bool MapAnalyzer::readFromBinary(qint64 floor, const QString& name, bool enableDraw, bool enableRewrite)
 {
 	if (floor < 0)
 		return false;
@@ -1393,7 +1393,7 @@ bool __fastcall MapAnalyzer::readFromBinary(qint64 floor, const QString& name, b
 	return bret;
 }
 
-bool __fastcall MapAnalyzer::loadFromBinary(qint64 floor, map_t* _map)
+bool MapAnalyzer::loadFromBinary(qint64 floor, map_t* _map)
 {
 	QMutexLocker locker(&mutex_);
 	if (!floor)
@@ -1478,7 +1478,7 @@ bool __fastcall MapAnalyzer::loadFromBinary(qint64 floor, map_t* _map)
 	return true;
 }
 
-bool __fastcall MapAnalyzer::saveAsBinary(map_t map, const QString& fileName)
+bool MapAnalyzer::saveAsBinary(map_t map, const QString& fileName)
 {
 	QMutexLocker locker(&mutex_);
 	if (!map.floor)
@@ -1572,7 +1572,7 @@ bool __fastcall MapAnalyzer::saveAsBinary(map_t map, const QString& fileName)
 	return true;
 }
 
-bool __fastcall MapAnalyzer::calcNewRoute(CAStar& astar, qint64 floor, const QPoint& src, const QPoint& dst, const QSet<QPoint>& blockList, std::vector<QPoint>* pPaths)
+bool MapAnalyzer::calcNewRoute(CAStar& astar, qint64 floor, const QPoint& src, const QPoint& dst, const QSet<QPoint>& blockList, std::vector<QPoint>* pPaths)
 {
 	do
 	{
@@ -1653,7 +1653,7 @@ bool __fastcall MapAnalyzer::calcNewRoute(CAStar& astar, qint64 floor, const QPo
 }
 
 //快速檢查是否能通行
-bool __fastcall MapAnalyzer::isPassable(CAStar& astar, qint64 floor, const QPoint& src, const QPoint& dst)
+bool MapAnalyzer::isPassable(CAStar& astar, qint64 floor, const QPoint& src, const QPoint& dst)
 {
 
 	bool bret = false;
@@ -1698,7 +1698,7 @@ bool __fastcall MapAnalyzer::isPassable(CAStar& astar, qint64 floor, const QPoin
 	return bret;
 }
 
-QString __fastcall MapAnalyzer::getGround(qint64 floor, const QString& name, const QPoint& src)
+QString MapAnalyzer::getGround(qint64 floor, const QString& name, const QPoint& src)
 {
 	map_t map;
 	if (getMapDataByFloor(floor, &map) &&
@@ -1739,7 +1739,7 @@ QString __fastcall MapAnalyzer::getGround(qint64 floor, const QString& name, con
 }
 
 // 取靠近目標的最佳座標和方向
-qint64 __fastcall MapAnalyzer::calcBestFollowPointByDstPoint(CAStar& astar, qint64 floor, const QPoint& src, const QPoint& dst, QPoint* ret, bool enableExt, qint64 npcdir)
+qint64 MapAnalyzer::calcBestFollowPointByDstPoint(CAStar& astar, qint64 floor, const QPoint& src, const QPoint& dst, QPoint* ret, bool enableExt, qint64 npcdir)
 {
 
 	QVector<qdistance_t> disV;// <distance, point>

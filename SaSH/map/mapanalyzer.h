@@ -107,36 +107,36 @@ public:
 	explicit MapAnalyzer(qint64 index);
 	virtual ~MapAnalyzer();
 
-	bool __fastcall readFromBinary(qint64  floor, const QString& name, bool enableDraw = false, bool enableRewrite = false);
+	bool readFromBinary(qint64  floor, const QString& name, bool enableDraw = false, bool enableRewrite = false);
 
-	bool __fastcall getMapDataByFloor(qint64  floor, map_t* map);
+	bool getMapDataByFloor(qint64  floor, map_t* map);
 
-	bool __fastcall calcNewRoute(CAStar& astar, qint64 floor, const QPoint& src, const QPoint& dst, const QSet<QPoint>& blockList, std::vector<QPoint>* pPaths);
+	bool calcNewRoute(CAStar& astar, qint64 floor, const QPoint& src, const QPoint& dst, const QSet<QPoint>& blockList, std::vector<QPoint>* pPaths);
 
 	inline void clear() { maps_.clear(); pixMap_.clear(); }
 
 	inline void clear(qint64 floor) { maps_.remove(floor); pixMap_.remove(floor); }
 
-	bool __fastcall saveAsBinary(map_t map, const QString& fileName);
+	bool saveAsBinary(map_t map, const QString& fileName);
 
-	inline Q_REQUIRED_RESULT QPixmap __fastcall getPixmapByIndex(qint64 index) const { return pixMap_.value(index); }
+	inline Q_REQUIRED_RESULT QPixmap getPixmapByIndex(qint64 index) const { return pixMap_.value(index); }
 
-	qint64  __fastcall calcBestFollowPointByDstPoint(CAStar& astar, qint64 floor, const QPoint& src, const QPoint& dst, QPoint* ret, bool enableExt, qint64 npcdir);
+	qint64  calcBestFollowPointByDstPoint(CAStar& astar, qint64 floor, const QPoint& src, const QPoint& dst, QPoint* ret, bool enableExt, qint64 npcdir);
 
-	bool __fastcall isPassable(CAStar& astar, qint64 floor, const QPoint& src, const QPoint& dst);
+	bool isPassable(CAStar& astar, qint64 floor, const QPoint& src, const QPoint& dst);
 
-	QString __fastcall getGround(qint64 floor, const QString& name, const QPoint& src);
+	QString getGround(qint64 floor, const QString& name, const QPoint& src);
 
 private:
-	Q_REQUIRED_RESULT inline QString __fastcall getCurrentMapPath(qint64 floor) const;
+	Q_REQUIRED_RESULT inline QString getCurrentMapPath(qint64 floor) const;
 
-	inline void __fastcall setMapDataByFloor(qint64 floor, const map_t& map);
-	void __fastcall setPixmapByIndex(qint64 index, const QPixmap& pix);
+	inline void setMapDataByFloor(qint64 floor, const map_t& map);
+	void setPixmapByIndex(qint64 index, const QPixmap& pix);
 
-	bool __fastcall loadFromBinary(qint64 floor, map_t* _map);
+	bool loadFromBinary(qint64 floor, map_t* _map);
 
-	Q_REQUIRED_RESULT util::ObjectType __fastcall getGroundType(const uint16_t data) const;
-	Q_REQUIRED_RESULT util::ObjectType __fastcall getObjectType(const uint16_t data) const;
+	Q_REQUIRED_RESULT util::ObjectType getGroundType(const uint16_t data) const;
+	Q_REQUIRED_RESULT util::ObjectType getObjectType(const uint16_t data) const;
 
 public:
 #if 0

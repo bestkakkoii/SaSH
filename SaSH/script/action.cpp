@@ -2007,9 +2007,6 @@ qint64 Interpreter::bh(qint64 currentIndex, qint64 currentLine, const TokenMap& 
 	if (injector.server.isNull())
 		return Parser::kServerNotReady;
 
-	if (!injector.server->getBattleFlag())
-		return Parser::kNoChange;
-
 	qint64 index = 0;
 	checkInteger(TK, 1, &index);
 	if (index <= 0)
@@ -2026,9 +2023,6 @@ qint64 Interpreter::bj(qint64 currentIndex, qint64 currentLine, const TokenMap& 
 
 	if (injector.server.isNull())
 		return Parser::kServerNotReady;
-
-	if (!injector.server->getBattleFlag())
-		return Parser::kNoChange;
 
 	qint64 magicIndex = 0;
 	checkInteger(TK, 1, &magicIndex);
@@ -2053,9 +2047,6 @@ qint64 Interpreter::bp(qint64 currentIndex, qint64 currentLine, const TokenMap& 
 	if (injector.server.isNull())
 		return Parser::kServerNotReady;
 
-	if (!injector.server->getBattleFlag())
-		return Parser::kNoChange;
-
 	qint64 skillIndex = 0;
 	checkInteger(TK, 1, &skillIndex);
 	if (skillIndex <= 0)
@@ -2079,9 +2070,6 @@ qint64 Interpreter::bs(qint64 currentIndex, qint64 currentLine, const TokenMap& 
 	if (injector.server.isNull())
 		return Parser::kServerNotReady;
 
-	if (!injector.server->getBattleFlag())
-		return Parser::kNoChange;
-
 	qint64 index = 0;
 	checkInteger(TK, 1, &index);
 	if (index <= 0)
@@ -2098,9 +2086,6 @@ qint64 Interpreter::be(qint64 currentIndex, qint64 currentLine, const TokenMap& 
 	if (injector.server.isNull())
 		return Parser::kServerNotReady;
 
-	if (!injector.server->getBattleFlag())
-		return Parser::kNoChange;
-
 	injector.server->sendBattleCharEscapeAct();
 
 	return Parser::kNoChange;
@@ -2112,9 +2097,6 @@ qint64 Interpreter::bd(qint64 currentIndex, qint64 currentLine, const TokenMap& 
 	if (injector.server.isNull())
 		return Parser::kServerNotReady;
 
-	if (!injector.server->getBattleFlag())
-		return Parser::kNoChange;
-
 	injector.server->sendBattleCharDefenseAct();
 
 	return Parser::kNoChange;
@@ -2125,9 +2107,6 @@ qint64 Interpreter::bi(qint64 currentIndex, qint64 currentLine, const TokenMap& 
 
 	if (injector.server.isNull())
 		return Parser::kServerNotReady;
-
-	if (!injector.server->getBattleFlag())
-		return Parser::kNoChange;
 
 	qint64 index = 0;
 	checkInteger(TK, 1, &index);
@@ -2153,9 +2132,6 @@ qint64 Interpreter::bt(qint64 currentIndex, qint64 currentLine, const TokenMap& 
 	if (injector.server.isNull())
 		return Parser::kServerNotReady;
 
-	if (!injector.server->getBattleFlag())
-		return Parser::kNoChange;
-
 	qint64 index = 0;
 	checkInteger(TK, 1, &index);
 	if (index <= 0)
@@ -2173,9 +2149,6 @@ qint64 Interpreter::bn(qint64 currentIndex, qint64 currentLine, const TokenMap& 
 	if (injector.server.isNull())
 		return Parser::kServerNotReady;
 
-	if (!injector.server->getBattleFlag())
-		return Parser::kNoChange;
-
 	injector.server->sendBattleCharDoNothing();
 
 	return Parser::kNoChange;
@@ -2186,9 +2159,6 @@ qint64 Interpreter::bw(qint64 currentIndex, qint64 currentLine, const TokenMap& 
 
 	if (injector.server.isNull())
 		return Parser::kServerNotReady;
-
-	if (!injector.server->getBattleFlag())
-		return Parser::kNoChange;
 
 	qint64 skillIndex = 0;
 	checkInteger(TK, 1, &skillIndex);
@@ -2213,8 +2183,6 @@ qint64 Interpreter::bwf(qint64 currentIndex, qint64 currentLine, const TokenMap&
 	if (injector.server.isNull())
 		return Parser::kServerNotReady;
 
-	if (!injector.server->getBattleFlag())
-		return Parser::kNoChange;
 	injector.server->sendBattlePetDoNothing();
 	return Parser::kNoChange;
 }
@@ -2226,8 +2194,6 @@ qint64 Interpreter::bwait(qint64 currentIndex, qint64 currentLine, const TokenMa
 	if (injector.server.isNull())
 		return Parser::kServerNotReady;
 
-	if (!injector.server->getBattleFlag())
-		return Parser::kNoChange;
 
 	qint64 timeout = DEFAULT_FUNCTION_TIMEOUT;
 	checkInteger(TK, 1, &timeout);
@@ -2255,10 +2221,6 @@ qint64 Interpreter::bend(qint64 currentIndex, qint64 currentLine, const TokenMap
 
 	if (injector.server.isNull())
 		return Parser::kServerNotReady;
-
-	if (!injector.server->getBattleFlag())
-		return Parser::kNoChange;
-
 
 	qint64 G = injector.server->getGameStatus();
 	if (G == 4)

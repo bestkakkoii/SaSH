@@ -620,7 +620,7 @@ bool Interpreter::checkBattleThenWait()
 			QThread::msleep(100);
 		}
 
-		QThread::msleep(1000UL);
+		QThread::msleep(2000UL);
 	}
 	return bret;
 }

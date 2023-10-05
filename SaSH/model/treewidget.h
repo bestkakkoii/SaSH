@@ -12,18 +12,18 @@ public:
 		: QTreeWidget(parent)
 	{
 		setAttribute(Qt::WA_StyledBackground);
-		setStyleSheet(R"(
-			QTreeWidget {
-				font-size:12px;
-			} 
-			QTreeView::item:selected {
-				background-color: black; 
-				color: white; 
-			} 
-		)");
+		//setStyleSheet(R"(
+		//	QTreeWidget {
+		//		font-size:12px;
+		//	} 
+		//	QTreeView::item:selected {
+		//		background-color: black; 
+		//		color: white; 
+		//	} 
+		//)");
 
 		header()->setSectionsClickable(true);
-		header()->setSectionResizeMode(QHeaderView::ResizeToContents);
+		header()->setSectionResizeMode(QHeaderView::Interactive);
 		setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
 		setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
 		resizeColumnToContents(1);

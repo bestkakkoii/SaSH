@@ -306,14 +306,14 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 		QSharedPointer<Interpreter> interpreter(new Interpreter(id));
 		if (interpreter.isNull())
 		{
-			updateStatusText("server is off");
+			updateStatusText(tr("server is off"));
 			return true;
 		}
 
 		const char* cstr = reinterpret_cast<char*>(msg->lParam);
 		if (!isValidChar(cstr))
 		{
-			updateStatusText("invalid lparam");
+			updateStatusText(tr("invalid lparam"));
 			return true;
 		}
 
@@ -321,7 +321,7 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 		QByteArray utf8str(cstr);
 		if (utf8str.isEmpty())
 		{
-			updateStatusText("content is empty");
+			updateStatusText(tr("content is empty"));
 			return true;
 		}
 
@@ -346,7 +346,7 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 		QSharedPointer<Interpreter> interpreter = interpreter_hash_.value(id, nullptr);
 		if (interpreter.isNull())
 		{
-			updateStatusText("server is off");
+			updateStatusText(tr("server is off"));
 			return true;
 		}
 
@@ -364,28 +364,28 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 		Injector& injector = Injector::getInstance(id);
 		if (injector.IS_SCRIPT_FLAG.load(std::memory_order_acquire))
 		{
-			updateStatusText("already run");
+			updateStatusText(tr("already run"));
 			return true;
 		}
 
 		const char* cstr = reinterpret_cast<char*>(msg->lParam);
 		if (!isValidChar(cstr))
 		{
-			updateStatusText("invalid lparam");
+			updateStatusText(tr("invalid lparam"));
 			return true;
 		}
 
 		QByteArray utf8str(cstr);
 		if (utf8str.isEmpty())
 		{
-			updateStatusText("path is empty");
+			updateStatusText(tr("path is empty"));
 			return true;
 		}
 
 		QString fileName = util::toQString(utf8str);
 		if (!QFile::exists(fileName))
 		{
-			updateStatusText("file not exist");
+			updateStatusText(tr("file not exist"));
 			return true;
 		}
 
@@ -403,7 +403,7 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 		Injector& injector = Injector::getInstance(id);
 		if (!injector.IS_SCRIPT_FLAG.load(std::memory_order_acquire))
 		{
-			updateStatusText("not run yet");
+			updateStatusText(tr("not run yet"));
 			return true;
 		}
 
@@ -421,7 +421,7 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 		Injector& injector = Injector::getInstance(id);
 		if (!injector.server.isNull())
 		{
-			updateStatusText("server already on");
+			updateStatusText(tr("server already on"));
 			return true;
 		}
 
@@ -439,7 +439,7 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 		Injector& injector = Injector::getInstance(id);
 		if (injector.server.isNull())
 		{
-			updateStatusText("server is off");
+			updateStatusText(tr("server is off"));
 			return true;
 		}
 
@@ -529,7 +529,7 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 					}
 					else
 					{
-						updateStatusText("create info form failed");
+						updateStatusText(tr("create info form failed"));
 					}
 				}
 				else
@@ -570,7 +570,7 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 					}
 					else
 					{
-						updateStatusText("create map widget failed");
+						updateStatusText(tr("create map widget failed"));
 					}
 				}
 				else
@@ -610,7 +610,7 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 					}
 					else
 					{
-						updateStatusText("create script setting form failed");
+						updateStatusText(tr("create script setting form failed"));
 					}
 				}
 				else
@@ -710,28 +710,28 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 			const char* chwndstrs = reinterpret_cast<char*>(msg->lParam);
 			if (!isValidChar(chwndstrs))
 			{
-				updateStatusText("invalid lparam");
+				updateStatusText(tr("invalid lparam"));
 				return true;
 			}
 
 			QByteArray hwndstrs(chwndstrs);
 			if (hwndstrs.isEmpty())
 			{
-				updateStatusText("hwndstr is empty");
+				updateStatusText(tr("hwndstr is empty"));
 				return true;
 			}
 
 			QString str = util::toQString(hwndstrs);
 			if (str.isEmpty())
 			{
-				updateStatusText("hwndstr is empty");
+				updateStatusText(tr("hwndstr is empty"));
 				return true;
 			}
 
 			QStringList strlist = str.split(util::rexOR);
 			if (strlist.isEmpty())
 			{
-				updateStatusText("invalid hwndstr str");
+				updateStatusText(tr("invalid hwndstr str"));
 				return true;
 			}
 
@@ -752,7 +752,7 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 
 			if (hwnds.isEmpty())
 			{
-				updateStatusText("no valid hwnd");
+				updateStatusText(tr("no valid hwnd"));
 				return true;
 			}
 
@@ -776,7 +776,7 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 			const char* chwndstrs = reinterpret_cast<char*>(msg->lParam);
 			if (chwndstrs == nullptr)
 			{
-				updateStatusText("invalid lparam");
+				updateStatusText(tr("invalid lparam"));
 				break;
 			}
 
@@ -784,21 +784,21 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 			QByteArray hwndstrs(chwndstrs);
 			if (hwndstrs.isEmpty())
 			{
-				updateStatusText("hwndstr str is empty");
+				updateStatusText(tr("hwndstr is empty"));
 				break;
 			}
 
 			QString str = util::toQString(hwndstrs);
 			if (str.isEmpty())
 			{
-				updateStatusText("invalid hwndstr str");
+				updateStatusText(tr("invalid hwndstr str"));
 				break;
 			}
 
 			QStringList strlist = str.split(util::rexOR);
 			if (strlist.isEmpty())
 			{
-				updateStatusText("invalid hwndstr str");
+				updateStatusText(tr("invalid hwndstr str"));
 				break;
 			}
 
@@ -819,7 +819,7 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 
 			if (hwnds.isEmpty())
 			{
-				updateStatusText("no valid hwnd");
+				updateStatusText(tr("no valid hwnd"));
 				break;
 			}
 
@@ -828,7 +828,7 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 				QThumbnailForm* pThumbnailForm = q_check_ptr(new QThumbnailForm(hwnds));
 				if (pThumbnailForm == nullptr)
 				{
-					updateStatusText("create thumbnail form failed");
+					updateStatusText(tr("create thumbnail form failed"));
 					break;
 				}
 
@@ -879,7 +879,7 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 		MainForm* p = createNewWindow(id, pId);
 		if (p == nullptr)
 		{
-			updateStatusText("create window failed");
+			updateStatusText(tr("create window failed"));
 			return true;
 		}
 
@@ -896,7 +896,7 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 		Injector& injector = Injector::getInstance(id);
 		if (injector.server.isNull())
 		{
-			updateStatusText("server is off");
+			updateStatusText(tr("server is off"));
 			return true;
 		}
 
@@ -913,7 +913,7 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 		Injector& injector = Injector::getInstance(id);
 		if (injector.server.isNull())
 		{
-			updateStatusText("server is off");
+			updateStatusText(tr("server is off"));
 			return true;
 		}
 
@@ -929,34 +929,34 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 		qint64 pathptr = msg->lParam;
 		if (pathptr == 0)
 		{
-			updateStatusText("invalid lparam");
+			updateStatusText(tr("invalid lparam"));
 			return true;
 		}
 
 		const char* chwndstrs = reinterpret_cast<char*>(pathptr);
 		if (!isValidChar(chwndstrs))
 		{
-			updateStatusText("invalid lparam");
+			updateStatusText(tr("invalid lparam"));
 			return true;
 		}
 
 		QString utf8str = util::toQString(chwndstrs);
 		if (utf8str.isEmpty())
 		{
-			updateStatusText("path is empty");
+			updateStatusText(tr("path is empty"));
 			return true;
 		}
 
 		QFileInfo fileInfo(utf8str);
 		if (!fileInfo.exists())
 		{
-			updateStatusText("file not exist");
+			updateStatusText(tr("file not exist"));
 			return true;
 		}
 
 		if (fileInfo.suffix() != "json")
 		{
-			updateStatusText("not json");
+			updateStatusText(tr("not json"));
 			return true;
 		}
 
@@ -980,14 +980,14 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 			if (pLoginInfo == nullptr)
 			{
 				*result = 0;
-				updateStatusText("invalid lparam");
+				updateStatusText(tr("invalid lparam"));
 				break;
 			}
 
 			if (!isValidChar(pLoginInfo->username) || !isValidChar(pLoginInfo->password))
 			{
 				*result = 2;
-				updateStatusText("invalid user/psw");
+				updateStatusText(tr("invalid user/psw"));
 				break;
 			}
 
@@ -1000,21 +1000,21 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 			if (server < 0 || server > 25)
 			{
 				*result = 3;
-				updateStatusText("server out of range");
+				updateStatusText(tr("server out of range"));
 				break;
 			}
 
 			if (subserver < 0 || subserver > 25)
 			{
 				*result = 4;
-				updateStatusText("subser out of range");
+				updateStatusText(tr("subser out of range"));
 				break;
 			}
 
 			if (position < 0 || position > 1)
 			{
 				*result = 5;
-				updateStatusText("pos out of range");
+				updateStatusText(tr("pos out of range"));
 				break;
 			}
 
@@ -1112,7 +1112,7 @@ void MainForm::updateStatusText(const QString text)
 	}
 	else
 	{
-		msg += " " + QString(tr("msg:%1").arg("no error"));
+		msg += " " + QString(tr("msg:%1").arg(tr("no error")));
 	}
 	ui.groupBox_basicinfo->setTitle(msg);
 }

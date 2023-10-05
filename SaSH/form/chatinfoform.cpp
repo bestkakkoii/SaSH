@@ -67,7 +67,7 @@ ChatInfoForm::ChatInfoForm(qint64 index, QWidget* parent)
 
 	QFont font = util::getFont();
 	setFont(font);
-
+	ui.groupBox_2->hide();
 	connect(this, &ChatInfoForm::resetControlTextLanguage, this, &ChatInfoForm::onResetControlTextLanguage, Qt::UniqueConnection);
 
 	ui.listView_log->setTextElideMode(Qt::ElideNone);

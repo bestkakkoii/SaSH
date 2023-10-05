@@ -79,26 +79,26 @@ InfoForm::InfoForm(qint64 index, qint64 defaultPage, QWidget* parent)
 		ui.tabWidget->addTab(pChatInfoForm_, tr("chatinfo"));
 	}
 
-	pMailInfoForm_ = new MailInfoForm(index, nullptr);
-	Q_ASSERT(pMailInfoForm_ != nullptr);
-	if (pMailInfoForm_ != nullptr)
-	{
-		ui.tabWidget->addTab(pMailInfoForm_, tr("mailinfo"));
-	}
+	//pMailInfoForm_ = new MailInfoForm(index, nullptr);
+	//Q_ASSERT(pMailInfoForm_ != nullptr);
+	//if (pMailInfoForm_ != nullptr)
+	//{
+	//	ui.tabWidget->addTab(pMailInfoForm_, tr("mailinfo"));
+	//}
 
-	pPetInfoForm_ = new PetInfoForm(index, nullptr);
-	Q_ASSERT(pPetInfoForm_ != nullptr);
-	if (pPetInfoForm_ != nullptr)
-	{
-		ui.tabWidget->addTab(pPetInfoForm_, tr("petinfo"));
-	}
+	//pPetInfoForm_ = new PetInfoForm(index, nullptr);
+	//Q_ASSERT(pPetInfoForm_ != nullptr);
+	//if (pPetInfoForm_ != nullptr)
+	//{
+	//	ui.tabWidget->addTab(pPetInfoForm_, tr("petinfo"));
+	//}
 
-	pAfkInfoForm_ = new AfkInfoForm(index, nullptr);
-	Q_ASSERT(pAfkInfoForm_ != nullptr);
-	if (pAfkInfoForm_ != nullptr)
-	{
-		ui.tabWidget->addTab(pAfkInfoForm_, tr("afkinfo"));
-	}
+	//pAfkInfoForm_ = new AfkInfoForm(index, nullptr);
+	//Q_ASSERT(pAfkInfoForm_ != nullptr);
+	//if (pAfkInfoForm_ != nullptr)
+	//{
+	//	ui.tabWidget->addTab(pAfkInfoForm_, tr("afkinfo"));
+	//}
 
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(index);
 
@@ -148,13 +148,14 @@ void InfoForm::onResetControlTextLanguage()
 	setWindowTitle(newTitle);
 
 	//reset tab text
-	ui.tabWidget->setTabText(0, tr("battleinfo"));
-	ui.tabWidget->setTabText(1, tr("playerinfo"));
-	ui.tabWidget->setTabText(2, tr("iteminfo"));
-	ui.tabWidget->setTabText(3, tr("chatinfo"));
-	ui.tabWidget->setTabText(4, tr("mailinfo"));
-	ui.tabWidget->setTabText(5, tr("petinfo"));
-	ui.tabWidget->setTabText(6, tr("afkinfo"));
+	qint64 n = 0;
+	ui.tabWidget->setTabText(n++, tr("battleinfo"));
+	ui.tabWidget->setTabText(n++, tr("playerinfo"));
+	ui.tabWidget->setTabText(n++, tr("iteminfo"));
+	ui.tabWidget->setTabText(n++, tr("chatinfo"));
+	//ui.tabWidget->setTabText(n++, tr("mailinfo"));
+	//ui.tabWidget->setTabText(n++, tr("petinfo"));
+	//ui.tabWidget->setTabText(n++, tr("afkinfo"));
 
 	pCharInfoForm_->onResetControlTextLanguage();
 	pItemInfoForm_->onResetControlTextLanguage();

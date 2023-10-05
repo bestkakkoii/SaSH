@@ -28,9 +28,6 @@ qint64 CLuaBattle::charUseAttack(qint64 objIndex, sol::this_state s)//atk
 	if (injector.server.isNull())
 		return FALSE;
 
-	if (!injector.server->getBattleFlag())
-		return FALSE;
-
 	injector.server->sendBattleCharAttackAct(--objIndex);
 
 	return TRUE;
@@ -41,9 +38,6 @@ qint64 CLuaBattle::charUseMagic(qint64 magicIndex, qint64 objIndex, sol::this_st
 	sol::state_view lua(s);
 	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
 	if (injector.server.isNull())
-		return FALSE;
-
-	if (!injector.server->getBattleFlag())
 		return FALSE;
 
 	injector.server->sendBattleCharMagicAct(--magicIndex, --objIndex);
@@ -58,9 +52,6 @@ qint64 CLuaBattle::charUseSkill(qint64 skillIndex, qint64 objIndex, sol::this_st
 	if (injector.server.isNull())
 		return FALSE;
 
-	if (!injector.server->getBattleFlag())
-		return FALSE;
-
 	injector.server->sendBattleCharJobSkillAct(--skillIndex, --objIndex);
 
 	return TRUE;
@@ -71,9 +62,6 @@ qint64 CLuaBattle::switchPet(qint64 petIndex, sol::this_state s)//switch
 	sol::state_view lua(s);
 	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
 	if (injector.server.isNull())
-		return FALSE;
-
-	if (!injector.server->getBattleFlag())
 		return FALSE;
 
 	injector.server->sendBattleCharSwitchPetAct(--petIndex);
@@ -88,9 +76,6 @@ qint64 CLuaBattle::escape(sol::this_state s)//escape
 	if (injector.server.isNull())
 		return FALSE;
 
-	if (!injector.server->getBattleFlag())
-		return FALSE;
-
 	injector.server->sendBattleCharEscapeAct();
 
 	return TRUE;
@@ -101,9 +86,6 @@ qint64 CLuaBattle::defense(sol::this_state s)//defense
 	sol::state_view lua(s);
 	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
 	if (injector.server.isNull())
-		return FALSE;
-
-	if (!injector.server->getBattleFlag())
 		return FALSE;
 
 	injector.server->sendBattleCharDefenseAct();
@@ -118,9 +100,6 @@ qint64 CLuaBattle::useItem(qint64 itemIndex, qint64 objIndex, sol::this_state s)
 	if (injector.server.isNull())
 		return FALSE;
 
-	if (!injector.server->getBattleFlag())
-		return FALSE;
-
 	injector.server->sendBattleCharItemAct(--itemIndex, --objIndex);
 
 	return TRUE;
@@ -131,9 +110,6 @@ qint64 CLuaBattle::catchPet(qint64 objIndex, sol::this_state s)//catch
 	sol::state_view lua(s);
 	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
 	if (injector.server.isNull())
-		return FALSE;
-
-	if (!injector.server->getBattleFlag())
 		return FALSE;
 
 	injector.server->sendBattleCharCatchPetAct(--objIndex);
@@ -148,9 +124,6 @@ qint64 CLuaBattle::nothing(sol::this_state s)//nothing
 	if (injector.server.isNull())
 		return FALSE;
 
-	if (!injector.server->getBattleFlag())
-		return FALSE;
-
 	injector.server->sendBattleCharDoNothing();
 
 	return TRUE;
@@ -163,9 +136,6 @@ qint64 CLuaBattle::petUseSkill(qint64 petSkillIndex, qint64 objIndex, sol::this_
 	if (injector.server.isNull())
 		return FALSE;
 
-	if (!injector.server->getBattleFlag())
-		return FALSE;
-
 	injector.server->sendBattlePetSkillAct(--petSkillIndex, --objIndex);
 
 	return TRUE;
@@ -176,9 +146,6 @@ qint64 CLuaBattle::petNothing(sol::this_state s)//pet nothing
 	sol::state_view lua(s);
 	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
 	if (injector.server.isNull())
-		return FALSE;
-
-	if (!injector.server->getBattleFlag())
 		return FALSE;
 
 	injector.server->sendBattlePetDoNothing();

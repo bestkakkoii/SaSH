@@ -43,13 +43,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #ifdef _DEBUG
 #pragma comment(lib, "cpr-d.lib")
 #pragma comment(lib, "libcurl-d.lib")
-#pragma comment(lib, "libcrypto32MDd.lib")
-#pragma comment(lib, "libssl32MDd.lib")
 #else
 #pragma comment(lib, "cpr.lib")
 #pragma comment(lib, "libcurl.lib")
-#pragma comment(lib, "libcrypto32MD.lib")
-#pragma comment(lib, "libssl32MD.lib")
 #endif
 #endif
 
