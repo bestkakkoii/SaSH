@@ -62,7 +62,7 @@ public:
 
 	virtual ~TableWidget() = default;
 
-	void setText(qint64 row, qint64 column, const QString& text, const QString& toolTip = "")
+	void setText(qint64 row, qint64 column, const QString& text, const QString& toolTip = "", QVariant data = QVariant())
 	{
 		qint64 max = QTableWidget::rowCount();
 		if (row >= max)
@@ -79,6 +79,8 @@ public:
 				item->setToolTip(toolTip);
 			else
 				item->setToolTip(text);
+
+			item->setData(Qt::UserRole, data);
 		}
 		else
 		{
@@ -90,6 +92,8 @@ public:
 				item->setToolTip(toolTip);
 			else
 				item->setToolTip(text);
+
+			item->setData(Qt::UserRole, data);
 
 			setItem(row, column, item);
 		}

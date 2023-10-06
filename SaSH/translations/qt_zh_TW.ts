@@ -5,15 +5,15 @@
     <name>AbilityFormClass</name>
     <message>
         <source>AbilityForm</source>
-        <translation></translation>
+        <translation>自動加點</translation>
     </message>
     <message>
         <source>add point</source>
-        <translation>加點</translation>
+        <translation type="vanished">加點</translation>
     </message>
     <message>
         <source>vit:</source>
-        <translation>體力:</translation>
+        <translation type="vanished">體力:</translation>
     </message>
     <message>
         <source>+</source>
@@ -21,15 +21,15 @@
     </message>
     <message>
         <source>goal:</source>
-        <translation>目標:</translation>
+        <translation type="vanished">目標:</translation>
     </message>
     <message>
         <source>str:</source>
-        <translation>腕力:</translation>
+        <translation type="vanished">腕力:</translation>
     </message>
     <message>
         <source>tgh:</source>
-        <translation>體力:</translation>
+        <translation type="vanished">體力:</translation>
     </message>
     <message>
         <source>def:</source>
@@ -37,19 +37,55 @@
     </message>
     <message>
         <source>left:</source>
-        <translation>剩餘:</translation>
+        <translation type="vanished">剩餘:</translation>
     </message>
     <message>
         <source>close</source>
-        <translation>關閉</translation>
+        <translation type="vanished">關閉</translation>
     </message>
     <message>
         <source>dex:</source>
-        <translation>速度:</translation>
+        <translation type="vanished">速度:</translation>
     </message>
     <message>
-        <source>0</source>
-        <translation></translation>
+        <source>autopoint</source>
+        <translation type="vanished">自動加點</translation>
+    </message>
+    <message>
+        <source>vit</source>
+        <translation>體</translation>
+    </message>
+    <message>
+        <source>str</source>
+        <translation>腕</translation>
+    </message>
+    <message>
+        <source>tgh</source>
+        <translation>耐</translation>
+    </message>
+    <message>
+        <source>dex</source>
+        <translation>速</translation>
+    </message>
+    <message>
+        <source>goal</source>
+        <translation>目標</translation>
+    </message>
+    <message>
+        <source>type</source>
+        <translation>類型</translation>
+    </message>
+    <message>
+        <source>C</source>
+        <translation>清</translation>
+    </message>
+    <message>
+        <source>↑</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>↓</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
@@ -2056,7 +2092,7 @@ No new version available. Do you still want to update?</source>
     </message>
     <message>
         <source>Coords:</source>
-        <translation>人物坐標:</translation>
+        <translation>坐標:</translation>
     </message>
     <message>
         <source>Status:</source>
@@ -3544,6 +3580,46 @@ No new version available. Do you still want to update?</source>
     <message>
         <source>%1 count no %2 round duration: %3 sec cost: %4 sec total time: %5 minues</source>
         <translation>%1 局 %2 回合 局時: %3 秒 回合時: %4 秒 累積時: %5 分</translation>
+    </message>
+    <message>
+        <source>E</source>
+        <translation type="obsolete">敵</translation>
+    </message>
+    <message>
+        <source>S</source>
+        <translation type="obsolete">己</translation>
+    </message>
+    <message>
+        <source>North</source>
+        <translation>北</translation>
+    </message>
+    <message>
+        <source>ENorth</source>
+        <translation>東北</translation>
+    </message>
+    <message>
+        <source>East</source>
+        <translation>東</translation>
+    </message>
+    <message>
+        <source>ESouth</source>
+        <translation>東南</translation>
+    </message>
+    <message>
+        <source>South</source>
+        <translation>南</translation>
+    </message>
+    <message>
+        <source>WSouth</source>
+        <translation>西南</translation>
+    </message>
+    <message>
+        <source>West</source>
+        <translation>西</translation>
+    </message>
+    <message>
+        <source>WNorth</source>
+        <translation>西北</translation>
     </message>
 </context>
 <context>

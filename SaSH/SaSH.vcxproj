@@ -459,6 +459,7 @@ xcopy /y /d "$(SolutionDir)$(ProjectName)\translations\*.qm" "$(SolutionDir)$(Co
     <QtMoc Include="model\pushButton.h" />
     <ClInclude Include="model\indexer.h" />
     <QtMoc Include="model\openglwidget.h" />
+    <QtMoc Include="model\logger.h" />
     <ClInclude Include="model\scopedhandle.h" />
     <QtMoc Include="model\tablewidget.h" />
     <QtMoc Include="model\treewidget.h" />

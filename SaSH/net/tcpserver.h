@@ -194,6 +194,17 @@ class Server : public ThreadPlugin, public Lssproto
 {
 	Q_OBJECT
 public:
+	QHash<qint64, QString> g_dirStrHash = {
+		{ 0, QObject::tr("North") },
+		{ 1, QObject::tr("ENorth") },
+		{ 2, QObject::tr("East") },
+		{ 3, QObject::tr("ESouth") },
+		{ 4, QObject::tr("South") },
+		{ 5, QObject::tr("WSouth") },
+		{ 6, QObject::tr("West") },
+		{ 7, QObject::tr("WNorth") },
+	};
+
 	explicit Server(qint64 index, QObject* parent);
 
 	virtual ~Server();
@@ -389,10 +400,6 @@ public://actions
 	Q_REQUIRED_RESULT bool checkPetHp(qint64 cmpvalue, qint64* target = nullptr, bool useequal = false);
 	Q_REQUIRED_RESULT bool checkPartyHp(qint64 cmpvalue, qint64* target);
 
-	Q_REQUIRED_RESULT bool checkCharStatus(qint64 cmpvalue, qint64* target = nullptr, bool useequal = false);
-	Q_REQUIRED_RESULT bool checkPetStatus(qint64 cmpvalue, qint64* target = nullptr, bool useequal = false);
-	Q_REQUIRED_RESULT bool checkPartyStatus(qint64 cmpvalue, qint64* target);
-
 	Q_REQUIRED_RESULT bool isPetSpotEmpty() const;
 	Q_REQUIRED_RESULT qint64 checkJobDailyState(const QString& missionName);
 
@@ -406,6 +413,7 @@ public://actions
 
 	void sortItem(bool deepSort = false);
 
+	Q_REQUIRED_RESULT qint64 getDir();
 	Q_REQUIRED_RESULT QPoint getPoint();
 	void setPoint(const QPoint& pos);
 

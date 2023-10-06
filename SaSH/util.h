@@ -500,6 +500,8 @@ namespace util
 
 		kBattleNoEscapeWhileLockPetEnable,
 
+		kAutoAbilityEnable,
+
 		kSettingMaxEnable,
 
 		//////////////////
@@ -541,6 +543,8 @@ namespace util
 		kEOCommandString,
 
 		kBattleLogicsString,
+
+		kAutoAbilityString,
 
 		kSettingMaxString,
 
@@ -775,6 +779,7 @@ namespace util
 		{ kLockRideEnable, "LockRideEnable" },
 		{ kBattleNoEscapeWhileLockPetEnable , "BattleNoEscapeWhileLockPetEnable" },
 
+		{ kAutoAbilityEnable, "AutoAbilityEnable" },
 
 		//string
 		{ kSettingMinString, "SettingMinString" },
@@ -809,6 +814,10 @@ namespace util
 		{ kMailWhiteListString , "MailWhiteListString" },
 
 		{ kEOCommandString , "EOCommandString" },
+
+		{ kBattleLogicsString , "BattleLogicsString" },
+
+		{ kAutoAbilityString , "AutoAbilityString" },
 
 		{ kSettingMaxString, "SettingMaxString" },
 
@@ -905,7 +914,7 @@ namespace util
 
 	}
 
-	inline Q_REQUIRED_RESULT QString toUnicode(const char* str, bool ext = true)
+	inline Q_REQUIRED_RESULT QString toUnicode(const char* str, bool trim = true, bool ext = true)
 	{
 		QTextCodec* codec = QTextCodec::codecForName(util::DEFAULT_GAME_CODEPAGE);//QTextCodec::codecForMib(2025);//取GB2312解碼器
 		QString qstr = codec->toUnicode(str);//先以GB2312解碼轉成UNICODE
@@ -922,8 +931,10 @@ namespace util
 			qstr = util::toQString(wbuf.data());
 #endif
 		}
-
-		return qstr;
+		if (!trim)
+			return qstr;
+		else
+			return qstr.simplified();
 	}
 
 	inline Q_REQUIRED_RESULT std::string fromUnicode(const QString& str, bool keppOrigin = false)
@@ -2317,6 +2328,8 @@ namespace util
 			setEncoding(QStringConverter::Utf8);
 #endif
 			setGenerateByteOrderMark(true);
+
+			setAutoDetectUnicode(true);
 		}
 	};
 

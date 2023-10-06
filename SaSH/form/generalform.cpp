@@ -18,7 +18,6 @@ GeneralForm::GeneralForm(qint64 index, QWidget* parent)
 {
 	ui.setupUi(this);
 
-	setIndex(index);
 	connect(this, &GeneralForm::resetControlTextLanguage, this, &GeneralForm::onResetControlTextLanguage, Qt::UniqueConnection);
 
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(index);

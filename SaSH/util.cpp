@@ -1150,6 +1150,7 @@ QFileInfoList util::loadAllFileLists(TreeWidgetItem* root, const QString& path, 
 		if (child == nullptr)
 			continue;
 
+		child->setData(0, Qt::UserRole, "file");
 		child->setToolTip(0, QString("===== %1 =====\n\n%2").arg(item.absoluteFilePath()).arg(content.left(256)));
 		child->setIcon(0, QIcon(QPixmap(icon)));
 
@@ -1171,6 +1172,7 @@ QFileInfoList util::loadAllFileLists(TreeWidgetItem* root, const QString& path, 
 		if (childroot == nullptr)
 			continue;
 
+		childroot->setData(0, Qt::UserRole, "folder");
 		childroot->setIcon(0, QIcon(QPixmap(folderIcon)));
 		root->addChild(childroot); //將當前目錄添加成path的子項
 		const QFileInfoList child_file_list = loadAllFileLists(childroot, namepath, suffix, icon, list, folderIcon); //遞歸添加子目錄
@@ -1210,6 +1212,7 @@ QFileInfoList util::loadAllFileLists(TreeWidgetItem* root, const QString& path, 
 		if (!readFile(item.absoluteFilePath(), &content))
 			continue;
 
+		child->setData(0, Qt::UserRole, "file");
 		child->setToolTip(0, QString("===== %1 =====\n\n%2").arg(item.absoluteFilePath()).arg(content.left(256)));
 		child->setIcon(0, QIcon(QPixmap(fileIcon)));
 		root->addChild(child);
@@ -1233,7 +1236,9 @@ QFileInfoList util::loadAllFileLists(TreeWidgetItem* root, const QString& path, 
 		if (childroot == nullptr)
 			continue;
 
+		childroot->setData(0, Qt::UserRole, "folder");
 		childroot->setIcon(0, QIcon(QPixmap(folderIcon)));
+
 
 		//將當前目錄添加成path的子項
 		root->addChild(childroot);
@@ -1801,7 +1806,7 @@ bool util::readFileFilter(const QString& fileName, QString& content, bool* pisPr
 #else
 		return false;
 #endif
-	}
+}
 	content.replace("\r\n", "\n");
 	return true;
 }

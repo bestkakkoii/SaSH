@@ -23,6 +23,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include <model/scopedhandle.h>
 #include <util.h>
 #include "net/autil.h"
+#include "model/logger.h"
 
 class StringListModel;
 class Injector : public QObject, public Indexer
@@ -53,7 +54,7 @@ public:
 	static void reset();
 	static void reset(qint64 index);
 
-	inline void setIndex(qint64 index) override
+	virtual inline void setIndex(qint64 index) override
 	{
 		if (!server.isNull())
 			server->setIndex(index);
@@ -185,8 +186,6 @@ public:
 
 	QSharedPointer<StringListModel> chatLogModel; //聊天日誌模型
 
-	QMutex globalMutex; //用於保證 主線程 | 收包線程 | 腳本線程 數據同步的主要鎖
-
 	util::SafeData<QStringList> serverNameList;
 
 	util::SafeData<QStringList> subServerNameList;
@@ -200,6 +199,13 @@ public:
 	quint64 scriptThreadId = 0;
 
 	Autil autil;
+
+	Logger log;
+
+	util::SafeHash<QString, util::SafeHash<qint64, break_marker_t>> break_markers;//interpreter.cpp//用於標記自訂義中斷點(紅點)
+	util::SafeHash<QString, util::SafeHash<qint64, break_marker_t>> forward_markers;//interpreter.cpp//用於標示當前執行中斷處(黃箭頭)
+	util::SafeHash<QString, util::SafeHash<qint64, break_marker_t>> error_markers;//interpreter.cpp//用於標示錯誤發生行(紅線)
+	util::SafeHash<QString, util::SafeHash<qint64, break_marker_t>> step_markers;//interpreter.cpp//隱式標記中斷點用於單步執行(無)
 
 	bool IS_INJECT_OK = false;//是否注入成功
 private:

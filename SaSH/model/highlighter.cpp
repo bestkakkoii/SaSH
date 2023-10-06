@@ -60,7 +60,7 @@ const char* Highlighter::keywords(int set) const
 			"bh bj bp bs be bd bi bn bw bwf bwait bend "
 			"dofile createch delch doffstone send format "
 			"tsort trsort split mktable trotate tunique tshuffle tsleft tsright tmerge tjoin "
-			"tswap tadd tpadd tpopback tpopfront tfront tback mkpath contains "
+			"tswap tadd tpadd tpopback tpopfront tfront tback mkpath contains openlog "
 
 			"rungame closegame openwindow setlogin runex stoprunex dostrex loadsetex getgamestate "
 

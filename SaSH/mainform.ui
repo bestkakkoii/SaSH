@@ -332,13 +332,13 @@
                <widget class="QLabel" name="label_coords_">
                 <property name="minimumSize">
                  <size>
-                  <width>50</width>
+                  <width>30</width>
                   <height>14</height>
                  </size>
                 </property>
                 <property name="maximumSize">
                  <size>
-                  <width>50</width>
+                  <width>30</width>
                   <height>14</height>
                  </size>
                 </property>

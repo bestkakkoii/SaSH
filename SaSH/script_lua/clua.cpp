@@ -32,11 +32,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 #define OPEN_HOOK
 
-extern util::SafeHash<QString, util::SafeHash<qint64, break_marker_t>> break_markers[];  //interpreter.cpp//用於標記自訂義中斷點(紅點)
-extern util::SafeHash<QString, util::SafeHash<qint64, break_marker_t>> forward_markers[];//interpreter.cpp//用於標示當前執行中斷處(黃箭頭)
-extern util::SafeHash<QString, util::SafeHash<qint64, break_marker_t>> error_markers[];  //interpreter.cpp//用於標示錯誤發生行(紅線)
-extern util::SafeHash<QString, util::SafeHash<qint64, break_marker_t>> step_markers[];   //interpreter.cpp//隱式標記中斷點用於單步執行(無)
-
 void luadebug::tryPopCustomErrorMsg(const sol::this_state& s, const LUA_ERROR_TYPE element, const QVariant& p1, const QVariant& p2, const QVariant& p3, const QVariant& p4)
 {
 	Q_UNUSED(p4);//reserved
@@ -414,6 +409,9 @@ void luadebug::logExport(const sol::this_state& s, const QString& data, qint64 c
 	{
 		injector.server->announce(data, color);
 	}
+
+	if (injector.log.isOpen())
+		injector.log.write(data, currentline);
 }
 
 //根據傳入function的循環執行結果等待超時或條件滿足提早結束
@@ -517,8 +515,8 @@ void luadebug::hookProc(lua_State* L, lua_Debug* ar)
 
 		QString scriptFileName = injector.currentScriptFileName;
 
-		util::SafeHash<qint64, break_marker_t> breakMarkers = break_markers[currentLine].value(scriptFileName);
-		const util::SafeHash<qint64, break_marker_t> stepMarkers = step_markers[currentLine].value(scriptFileName);
+		util::SafeHash<qint64, break_marker_t> breakMarkers = injector.break_markers.value(scriptFileName);
+		const util::SafeHash<qint64, break_marker_t> stepMarkers = injector.step_markers.value(scriptFileName);
 		if (!(breakMarkers.contains(currentLine) || stepMarkers.contains(currentLine)))
 		{
 			return;//檢查是否有中斷點
@@ -534,7 +532,7 @@ void luadebug::hookProc(lua_State* L, lua_Debug* ar)
 
 			//重新插入斷下的紀錄
 			breakMarkers.insert(currentLine, mark);
-			break_markers[currentLine].insert(scriptFileName, breakMarkers);
+			injector.break_markers.insert(scriptFileName, breakMarkers);
 			//所有行插入隱式斷點(用於單步)
 			emit signalDispatcher.addStepMarker(currentLine, true);
 		}
@@ -750,6 +748,7 @@ void CLua::open_utillibs(sol::state& lua)
 void CLua::open_syslibs(sol::state& lua)
 {
 	lua.set_function("sleep", &CLuaSystem::sleep, &luaSystem_);
+	lua.set_function("openlog", &CLuaSystem::openlog, &luaSystem_);
 	lua.set_function("printf", &CLuaSystem::print, &luaSystem_);
 	lua.safe_script(R"(
 		_print = print;

@@ -60,7 +60,7 @@ CodeEditor::CodeEditor(QWidget* parent)
 			apis.add(it.simplified());
 		}
 		apis.prepare();
-		}
+	}
 
 	////Acs[None|All|Document|APIs]禁用自動補全提示功能|所有可用的資源|當前文檔中出現的名稱都自動補全提示|使用QsciAPIs類加入的名稱都自動補全提示
 	setAutoCompletionCaseSensitivity(true);//大小寫敏感度，設置lexer可能會更改，不過貌似沒啥效果
@@ -262,7 +262,7 @@ CodeEditor::CodeEditor(QWidget* parent)
 	setAttribute(Qt::WA_StyledBackground);
 	//setStyleSheet(style);
 #pragma endregion
-	}
+}
 
 void CodeEditor::keyPressEvent(QKeyEvent* e)
 {
@@ -436,7 +436,7 @@ void CodeEditor::commentSwitch()
 
 void CodeEditor::jumpToLineDialog()
 {
-	QSharedPointer<int> pline(new int(1));
+	QSharedPointer<int> pline(QSharedPointer<int>::create(1));
 	if (pline.isNull())
 		return;
 

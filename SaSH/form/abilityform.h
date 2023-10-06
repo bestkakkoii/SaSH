@@ -39,6 +39,10 @@ protected:
 
 private slots:
 	void onButtonClicked();
+	void on_tableWidget_cellDoubleClicked(int row, int column);
+	void on_checkBox_stateChanged(int state);
+
+	void onApplyHashSettingsToUI();
 
 private:
 	Ui::AbilityFormClass ui;

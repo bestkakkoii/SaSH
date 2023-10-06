@@ -67,7 +67,7 @@ bool CurlDownload::downLoad(qint64 threadNum, std::string Url, std::string Path,
 		if (i < static_cast<size_t>(threadNum))
 		{
 			pNode->startPos = i * partSize;
-			pNode->endPos = (i + 1) * partSize - 1;
+			pNode->endPos = (static_cast<qint64>(i) + 1) * partSize - 1;
 		}
 		else
 		{
@@ -164,7 +164,7 @@ size_t CurlDownload::writeFunc(void* ptr, size_t size, size_t nmemb, void* userd
 	{
 		fseek(node->fp, node->startPos, SEEK_SET);
 		written = fwrite(ptr, size, nmemb, node->fp);
-		node->startPos += size * nmemb;
+		node->startPos += static_cast<qint64>(size) * nmemb;
 	}
 	else
 	{

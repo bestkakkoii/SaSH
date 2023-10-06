@@ -108,7 +108,6 @@ void ThreadManager::close(qint64 index)
 MainObject::MainObject(qint64 index, QObject* parent)
 	: ThreadPlugin(index, parent)
 {
-	setIndex(index);
 	pointerWriterSync_.setCancelOnWait(true);
 }
 
@@ -314,7 +313,8 @@ void MainObject::mainProc()
 		//這裡是預留的暫時沒作用
 		if (status == 1)//非登入狀態
 		{
-			QThread::msleep(800);
+			if (!isFirstLogin_)
+				QThread::msleep(800);
 			nodelay = true;
 			continue;
 		}
@@ -507,6 +507,8 @@ qint64 MainObject::checkAndRunFunctions()
 		injector.server->EO();
 		mem::write<int>(injector.getProcess(), injector.getProcessModule() + 0x4200000, 0);
 		mem::freeUnuseMemory(injector.getProcess());
+		if (isFirstLogin_)
+			isFirstLogin_ = false;
 		return 2;
 	}
 
@@ -558,6 +560,9 @@ qint64 MainObject::checkAndRunFunctions()
 
 		//自動疊加
 		checkAutoSortItem();
+
+		//自動加點
+		checkAutoAbility();
 		return 2;
 	}
 	else //戰鬥中
@@ -1138,14 +1143,136 @@ void MainObject::checkAutoWalk()
 	}
 }
 
+//自動加點
+void MainObject::checkAutoAbility()
+{
+	Injector& injector = Injector::getInstance(getIndex());
+	auto checkEnable = [this, &injector]()->bool
+	{
+		if (isInterruptionRequested())
+			return false;
+
+		if (!injector.getEnableHash(util::kAutoAbilityEnable))
+			return false;
+
+		if (injector.server.isNull())
+			return false;
+
+		if (!injector.server->getOnlineFlag())
+			return false;
+
+		if (injector.server->getBattleFlag())
+			return false;
+
+		return true;
+	};
+
+	if (!checkEnable())
+		return;
+
+	QString strAbility = injector.getStringHash(util::kAutoAbilityString);
+	if (strAbility.isEmpty())
+		return;
+
+	QStringList abilityList = strAbility.split(util::rexOR, Qt::SkipEmptyParts);
+	if (abilityList.isEmpty())
+		return;
+
+	static const QHash<QString, qint64> abilityNameHash = {
+		{ "vit", 0 },
+		{ "str", 1 },
+		{ "tgh", 2 },
+		{ "dex", 3 },
+
+		{ "體", 0 },
+		{ "腕", 1 },
+		{ "耐", 2 },
+		{ "速", 3 },
+
+		{ "体", 0 },
+		{ "腕", 1 },
+		{ "耐", 2 },
+		{ "速", 3 },
+	};
+
+	for (const QString& ability : abilityList)
+	{
+		if (!checkEnable())
+			return;
+
+		if (ability.isEmpty())
+			continue;
+
+		QStringList abilityInfo = ability.split(util::rexComma, Qt::SkipEmptyParts);
+		if (abilityInfo.isEmpty())
+			continue;
+
+		if (abilityInfo.size() != 2)
+			continue;
+
+		QString abilityName = abilityInfo.at(0);
+		QString abilityValue = abilityInfo.at(1);
+
+		if (abilityName.isEmpty() || abilityValue.isEmpty())
+			continue;
+
+		if (!abilityNameHash.contains(abilityName))
+			continue;
+
+		qint64 value = abilityValue.toInt();
+		if (value <= 0)
+			continue;
+
+		qint64 abilityIndex = abilityNameHash.value(abilityName, -1);
+		if (abilityIndex == -1)
+			continue;
+
+		PC pc = injector.server->getPC();
+		QVector<qint64> ability = { pc.vit, pc.str, pc.tgh, pc.dex };
+		qint64 abilityPoint = ability.value(abilityIndex, -1);
+		if (abilityPoint == -1)
+			continue;
+
+		if (abilityPoint >= value)
+			continue;
+
+		qint64 abilityPointLeft = pc.point;
+		if (abilityPointLeft <= 0)
+			continue;
+
+		qint64 abilityPointNeed = value - abilityPoint;
+		if (abilityPointNeed > abilityPointLeft)
+			abilityPointNeed = abilityPointLeft;
+
+		injector.server->addPoint(abilityIndex, abilityPointNeed);
+	}
+}
+
 //自動丟棄道具
 void MainObject::checkAutoDropItems()
 {
 	Injector& injector = Injector::getInstance(getIndex());
-	if (injector.server.isNull())
-		return;
+	auto checkEnable = [this, &injector]()->bool
+	{
+		if (isInterruptionRequested())
+			return false;
 
-	if (!injector.getEnableHash(util::kAutoDropEnable))
+		if (!injector.getEnableHash(util::kAutoDropEnable))
+			return false;
+
+		if (injector.server.isNull())
+			return false;
+
+		if (!injector.server->getOnlineFlag())
+			return false;
+
+		if (injector.server->getBattleFlag())
+			return false;
+
+		return true;
+	};
+
+	if (!checkEnable())
 		return;
 
 	QString strDropItems = injector.getStringHash(util::kAutoDropItemString);
@@ -1165,8 +1292,8 @@ void MainObject::checkAutoDropItems()
 
 		for (const QString& cmpItem : dropItems)
 		{
-			if (isInterruptionRequested())
-				break;
+			if (!checkEnable())
+				return;
 
 			if (cmpItem.isEmpty())
 				continue;
@@ -1193,10 +1320,27 @@ void MainObject::checkAutoDropItems()
 void MainObject::checkAutoDropMeat()
 {
 	Injector& injector = Injector::getInstance(getIndex());
-	if (injector.server.isNull())
-		return;
+	auto checkEnable = [this, &injector]()->bool
+	{
+		if (isInterruptionRequested())
+			return false;
 
-	if (!injector.getEnableHash(util::kAutoDropMeatEnable))
+		if (!injector.getEnableHash(util::kAutoDropMeatEnable))
+			return false;
+
+		if (injector.server.isNull())
+			return false;
+
+		if (!injector.server->getOnlineFlag())
+			return false;
+
+		if (injector.server->getBattleFlag())
+			return false;
+
+		return true;
+	};
+
+	if (!checkEnable())
 		return;
 
 	bool bret = false;
@@ -1207,6 +1351,9 @@ void MainObject::checkAutoDropMeat()
 
 	for (auto it = items.constBegin(); it != items.constEnd(); ++it)
 	{
+		if (!checkEnable())
+			return;
+
 		qint64 key = it.key();
 		ITEM item = it.value();
 
@@ -1965,27 +2112,36 @@ void MainObject::checkAutoLockSchedule()
 void MainObject::checkAutoEatBoostExpItem()
 {
 	Injector& injector = Injector::getInstance(getIndex());
-	if (isInterruptionRequested())
+	auto checkEnable = [this, &injector]()->bool
+	{
+		if (isInterruptionRequested())
+			return false;
+
+		if (!injector.getEnableHash(util::kAutoEatBeanEnable))
+			return false;
+
+		if (injector.server.isNull())
+			return false;
+
+		if (!injector.server->getOnlineFlag())
+			return false;
+
+		if (injector.server->getBattleFlag())
+			return false;
+
+		return true;
+	};
+
+	if (!checkEnable())
 		return;
 
-	if (injector.server.isNull())
-		return;
-
-	if (!injector.getEnableHash(util::kAutoEatBeanEnable))
-		return;
-
-	if (injector.server.isNull())
-		return;
-
-	if (!injector.server->getOnlineFlag())
-		return;
-
-	if (injector.server->getBattleFlag())
-		return;
 
 	QHash<qint64, ITEM> items = injector.server->getItems();
 	for (qint64 i = 0; i < MAX_ITEM; ++i)
 	{
+		if (!checkEnable())
+			return;
+
 		ITEM item = items.value(i);
 		if (item.name.isEmpty() || item.memo.isEmpty() || !item.valid)
 			continue;
@@ -1997,7 +2153,6 @@ void MainObject::checkAutoEatBoostExpItem()
 			injector.server->useItem(i, 0);
 		}
 	}
-
 }
 
 //檢查可記錄的NPC坐標訊息

@@ -26,10 +26,12 @@ AbilityForm::AbilityForm(qint64 index, QWidget* parent)
 	, Indexer(index)
 {
 	ui.setupUi(this);
-	setWindowFlags(Qt::FramelessWindowHint | Qt::Dialog | Qt::Tool);
+	setWindowFlags(Qt::Dialog | Qt::Tool);
 	setFixedSize(this->width(), this->height());
 	setAttribute(Qt::WA_DeleteOnClose);
-	setIndex(index);
+
+	ui.tableWidget->horizontalHeader()->setStretchLastSection(true);
+	ui.tableWidget->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
 
 	setStyleSheet("QDialog{border: 1px solid black;}");
 
@@ -40,23 +42,84 @@ AbilityForm::AbilityForm(qint64 index, QWidget* parent)
 			connect(button, &PushButton::clicked, this, &AbilityForm::onButtonClicked, Qt::UniqueConnection);
 	}
 
-	Injector& injector = Injector::getInstance(index);
-	if (injector.server.isNull())
-		return;
+	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(index);
 
-	PC pc = injector.server->getPC();
+	connect(&signalDispatcher, &SignalDispatcher::applyHashSettingsToUI, this, &AbilityForm::onApplyHashSettingsToUI, Qt::UniqueConnection);
 
-	ui.label_vit->setText(util::toQString(pc.vit));
-	ui.label_str->setText(util::toQString(pc.str));
-	ui.label_tgh->setText(util::toQString(pc.tgh));
-	ui.label_dex->setText(util::toQString(pc.dex));
-	ui.label_left->setText(util::toQString(pc.point));
+	emit signalDispatcher.applyHashSettingsToUI();
+
 }
 
 AbilityForm::~AbilityForm()
 {
 }
 
+void AbilityForm::onApplyHashSettingsToUI()
+{
+	qint64 currentIndex = getIndex();
+	Injector& injector = Injector::getInstance(currentIndex);
+	QHash<util::UserSetting, bool> enableHash = injector.getEnablesHash();
+	QHash<util::UserSetting, qint64> valueHash = injector.getValuesHash();
+	QHash<util::UserSetting, QString> stringHash = injector.getStringsHash();
+
+	ui.checkBox->setChecked(enableHash.value(util::kAutoAbilityEnable));
+
+	QString str = stringHash.value(util::kAutoAbilityString);
+	if (str.isEmpty())
+		return;
+
+	QStringList list = str.split(util::rexOR);
+	if (list.isEmpty())
+		return;
+
+	ui.tableWidget->clearContents();
+	//resize row
+	ui.tableWidget->setRowCount(list.size());
+
+	qint64 size = list.size();
+	qint64 count = 0;
+	for (qint64 i = 0; i < size; ++i)
+	{
+		QString str = list.at(i);
+		QStringList strList = str.split(util::rexComma);
+		if (strList.size() != 2)
+			continue;
+
+		QString type = strList.at(0);
+		QString value = strList.at(1);
+		if (type.isEmpty() || value.isEmpty())
+			continue;
+
+		bool ok = false;
+		if (value.toLongLong(&ok) <= 0 && !ok)
+			continue;
+
+		ui.tableWidget->setText(i, 0, type);
+		ui.tableWidget->setText(i, 1, value);
+		++count;
+	}
+
+	if (size > count)
+	{
+		for (qint64 i = count; i < size; ++i)
+			ui.tableWidget->removeRow(i);
+	}
+}
+
+void AbilityForm::on_tableWidget_cellDoubleClicked(int row, int column)
+{
+	TableWidget* pTableWidget = qobject_cast<TableWidget*>(sender());
+	if (nullptr == pTableWidget)
+		return;
+
+	pTableWidget->removeRow(row);
+}
+
+void AbilityForm::on_checkBox_stateChanged(int state)
+{
+	Injector& injector = Injector::getInstance(getIndex());
+	injector.setEnableHash(util::kAutoAbilityEnable, state == Qt::Checked);
+}
 
 void AbilityForm::onButtonClicked()
 {
@@ -68,45 +131,71 @@ void AbilityForm::onButtonClicked()
 	if (name.isEmpty())
 		return;
 
-	if (name == "pushButton_close")
+	if (name == "pushButton_add")
 	{
-		accept();
+		qint64 point = ui.spinBox->value();
+		if (point <= 0 || point > 1000)
+			return;
+
+		QString text = ui.comboBox->currentText();
+
+		qint64 size = ui.tableWidget->rowCount();
+		ui.tableWidget->setText(size, 0, text);
+		ui.tableWidget->setText(size, 1, QString::number(point));
+
+		size = ui.tableWidget->rowCount();
+		QStringList list;
+		for (qint64 i = 0; i < size; ++i)
+		{
+			QTableWidgetItem* itemType = ui.tableWidget->item(i, 0);
+			if (nullptr == itemType)
+				continue;
+			QTableWidgetItem* itemValue = ui.tableWidget->item(i, 1);
+			if (nullptr == itemValue)
+				continue;
+
+			QString type = itemType->text();
+			if (type.isEmpty())
+				continue;
+
+			QString value = itemValue->text();
+			bool ok = false;
+			if (value.isEmpty() || (value.toLongLong(&ok) <= 0 && !ok))
+				continue;
+
+			QString str = QString("%1,%2").arg(type).arg(value);
+			list.append(str);
+		}
+
+		if (list.isEmpty())
+			return;
+
+		QString str = list.join("|");
+
+		Injector& injector = Injector::getInstance(getIndex());
+
+		injector.setStringHash(util::kAutoAbilityString, str);
 		return;
 	}
 
-	qint64 currentIndex = getIndex();
-	Injector& injector = Injector::getInstance(currentIndex);
-	if (injector.server.isNull())
-		return;
-
-	if (injector.server->getPC().point <= 0)
-		return;
-
-	if (name == "pushButton_vit")
+	if (name == "pushButton_clear")
 	{
-		qint64 amt = ui.label_vit->text().toLongLong();
-		injector.server->addPoint(0, amt > 0 ? amt : 1);
+		ui.tableWidget->clearContents();
+		Injector& injector = Injector::getInstance(getIndex());
+		injector.setStringHash(util::kAutoAbilityString, "");
 		return;
 	}
 
-	if (name == "pushButton_str")
+	if (name == "pushButton_up")
 	{
-		qint64 amt = ui.label_str->text().toLongLong();
-		injector.server->addPoint(1, amt > 0 ? amt : 1);
+		util::SwapRowUp(ui.tableWidget);
 		return;
 	}
 
-	if (name == "pushButton_tgh")
+	if (name == "pushButton_down")
 	{
-		qint64 amt = ui.label_tgh->text().toLongLong();
-		injector.server->addPoint(2, amt > 0 ? amt : 1);
+		util::SwapRowDown(ui.tableWidget);
 		return;
 	}
 
-	if (name == "pushButton_dex")
-	{
-		qint64 amt = ui.label_dex->text().toLongLong();
-		injector.server->addPoint(3, amt > 0 ? amt : 1);
-		return;
-	}
 }

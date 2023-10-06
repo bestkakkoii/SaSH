@@ -425,6 +425,9 @@
     <QtMoc Include="interfacer.h">
       <Filter>Source Files\util</Filter>
     </QtMoc>
+    <QtMoc Include="model\logger.h">
+      <Filter>Source Files\util</Filter>
+    </QtMoc>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stdafx.h">

@@ -95,6 +95,28 @@ qint64 CLuaSystem::eo(sol::this_state s)
 	return result;
 }
 
+qint64 CLuaSystem::openlog(std::string sfilename, sol::object oformat, sol::object obuffersize, sol::this_state s)
+{
+	sol::state_view lua(s);
+	qint64 currentIndex = lua["_INDEX"].get<qint64>();
+	Injector& injector = Injector::getInstance(currentIndex);
+
+	QString filename = util::toQString(sfilename);
+	if (filename.isEmpty())
+		return false;
+
+	QString format = "%(time) %(message)";
+	if (oformat.is<std::string>())
+		format = util::toQString(oformat);
+
+	qint64 buffersize = 1024;
+	if (obuffersize.is<qint64>())
+		buffersize = obuffersize.as<qint64>();
+
+	bool bret = injector.log.initialize(filename, buffersize, format);
+	return bret;
+}
+
 //這裡還沒想好format格式怎麼設計，暫時先放著
 qint64 CLuaSystem::print(sol::object ocontent, sol::object ocolor, sol::this_state s)
 {
@@ -474,7 +496,8 @@ qint64 CLuaSystem::mousedragto(qint64 x1, qint64 y1, qint64 x2, qint64 y2, sol::
 	return TRUE;
 }
 
-qint64 CLuaSystem::set(std::string enumStr, sol::object p1, sol::object p2, sol::object p3, sol::object p4, sol::object p5, sol::object p6, sol::object p7, sol::this_state s)
+qint64 CLuaSystem::set(std::string enumStr,
+	sol::object p1, sol::object p2, sol::object p3, sol::object p4, sol::object p5, sol::object p6, sol::object p7, sol::this_state s)
 {
 	sol::state_view lua(s);
 	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
@@ -507,6 +530,7 @@ qint64 CLuaSystem::set(std::string enumStr, sol::object p1, sol::object p2, sol:
 			{ "自動丟棄寵物血", util::kDropPetHpEnable },//{ "自動丟棄寵物血數值", util::kDropPetHpValue },
 			{ "自動丟棄寵物攻防敏", util::kDropPetAggregateEnable },//{ "自動丟棄寵物攻防敏數值", util::kDropPetAggregateValue },
 
+			{ "自動加點", util::kAutoAbilityEnable },
 
 			//ok
 			{ "主機", util::kServerValue },
@@ -632,6 +656,8 @@ qint64 CLuaSystem::set(std::string enumStr, sol::object p1, sol::object p2, sol:
 			{ "自动丢弃宠物敏", util::kDropPetAgiEnable },//{ "自动丢弃宠物敏数值", util::kDropPetAgiValue },
 			{ "自动丢弃宠物血", util::kDropPetHpEnable },//{ "自动丢弃宠物血数值", util::kDropPetHpValue },
 			{ "自动丢弃宠物攻防敏", util::kDropPetAggregateEnable },//{ "自动丢弃宠物攻防敏数值", util::kDropPetAggregateValue },
+
+			{ "自动加点", util::kAutoAbilityEnable },
 
 
 			//ok
@@ -1006,6 +1032,7 @@ qint64 CLuaSystem::set(std::string enumStr, sol::object p1, sol::object p2, sol:
 	//0:close >1:open string value
 	switch (type)
 	{
+	case util::kAutoAbilityEnable:
 	case util::kBattleItemHealMpEnable:
 	case util::kNormalItemHealMpEnable:
 	case util::kBattleCatchCharItemEnable:
@@ -1062,6 +1089,10 @@ qint64 CLuaSystem::set(std::string enumStr, sol::object p1, sol::object p2, sol:
 		{
 			injector.setStringHash(util::kBattleItemHealMpItemString, text);
 			injector.setValueHash(util::kBattleItemHealMpValue, value1 + 1);
+		}
+		else if (type == util::kAutoAbilityEnable)
+		{
+			injector.setStringHash(util::kAutoAbilityString, text);
 		}
 
 		emit signalDispatcher.applyHashSettingsToUI();

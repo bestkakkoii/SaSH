@@ -179,6 +179,7 @@ public:
 
 	//global
 	qint64 sleep(qint64 value, sol::this_state s);//ok
+	qint64 openlog(std::string sfilename, sol::object oformat, sol::object obuffersize, sol::this_state s);
 	qint64 print(sol::object ostr, sol::object ocolor, sol::this_state s);//ok
 	qint64 messagebox(sol::object ostr, sol::object otype, sol::this_state s);//ok
 	qint64 savesetting(const std::string& fileName, sol::this_state s);//ok

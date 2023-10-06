@@ -25,11 +25,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 //#include "crypto.h"
 
-util::SafeHash<QString, util::SafeHash<qint64, break_marker_t>> break_markers[SASH_MAX_THREAD];//用於標記自訂義中斷點(紅點)
-util::SafeHash<QString, util::SafeHash<qint64, break_marker_t>> forward_markers[SASH_MAX_THREAD];//用於標示當前執行中斷處(黃箭頭)
-util::SafeHash<QString, util::SafeHash<qint64, break_marker_t>> error_markers[SASH_MAX_THREAD];//用於標示錯誤發生行(紅線)
-util::SafeHash<QString, util::SafeHash<qint64, break_marker_t>> step_markers[SASH_MAX_THREAD];//隱式標記中斷點用於單步執行(無)
-
 Interpreter::Interpreter(qint64 index)
 	: ThreadPlugin(index, nullptr)
 	, parser_(index)
@@ -353,7 +348,6 @@ bool Interpreter::waitfor(qint64 timeout, std::function<bool()> exprfun)
 	for (;;)
 	{
 		checkPause();
-		checkOnlineThenWait();
 
 		if (isInterruptionRequested())
 			break;
@@ -520,8 +514,8 @@ qint64 Interpreter::mainScriptCallBack(qint64 currentIndex, qint64 currentLine, 
 		return 1;
 
 	QString scriptFileName = parser_.getScriptFileName();
-	util::SafeHash<qint64, break_marker_t> breakMarkers = break_markers[currentIndex].value(scriptFileName);
-	const util::SafeHash<qint64, break_marker_t> stepMarkers = step_markers[currentIndex].value(scriptFileName);
+	util::SafeHash<qint64, break_marker_t> breakMarkers = injector.break_markers.value(scriptFileName);
+	const util::SafeHash<qint64, break_marker_t> stepMarkers = injector.step_markers.value(scriptFileName);
 	if (!breakMarkers.contains(currentLine) && !stepMarkers.contains(currentLine))
 	{
 		return 1;//檢查是否有中斷點
@@ -537,7 +531,7 @@ qint64 Interpreter::mainScriptCallBack(qint64 currentIndex, qint64 currentLine, 
 
 		//重新插入斷下的紀錄
 		breakMarkers.insert(currentLine, mark);
-		break_markers[currentIndex].insert(scriptFileName, breakMarkers);
+		injector.break_markers.insert(scriptFileName, breakMarkers);
 		//所有行插入隱式斷點(用於單步)
 		emit signalDispatcher.addStepMarker(currentLine, true);
 	}
@@ -779,7 +773,7 @@ qint64 Interpreter::run(qint64 currentIndex, qint64 currentline, const TokenMap&
 	{
 		futureSync_.addFuture(QtConcurrent::run([this, beginLine, fileName, varShareMode, asyncMode, currentIndex]()->bool
 			{
-				QSharedPointer<Interpreter> interpreter(new Interpreter(currentIndex));
+				QSharedPointer<Interpreter> interpreter(QSharedPointer<Interpreter>::create(currentIndex));
 				if (interpreter.isNull())
 					return false;
 
@@ -829,7 +823,7 @@ qint64 Interpreter::dostr(qint64 currentIndex, qint64 currentline, const TokenMa
 	if (nAsync > 0)
 		asyncMode = Parser::kAsync;
 
-	QSharedPointer<Interpreter> interpreter(new Interpreter(currentIndex));
+	QSharedPointer<Interpreter> interpreter(QSharedPointer<Interpreter>::create(currentIndex));
 	if (interpreter.isNull())
 		return Parser::kError;
 

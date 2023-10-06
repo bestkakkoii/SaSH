@@ -32,7 +32,6 @@ AfkForm::AfkForm(qint64 index, QWidget* parent)
 {
 	ui.setupUi(this);
 	//util::setTab(ui.tabWidget_afk);
-	setIndex(index);
 
 	Qt::WindowFlags windowflag = this->windowFlags();
 	windowflag |= Qt::WindowType::Tool;

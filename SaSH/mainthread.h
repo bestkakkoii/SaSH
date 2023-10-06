@@ -60,6 +60,7 @@ private:
 	void checkAutoLockSchedule();
 	void checkAutoEatBoostExpItem();
 	void checkRecordableNpcInfo();
+	void checkAutoAbility();
 private:
 	void battleTimeThread();
 
@@ -86,6 +87,8 @@ private:
 	std::atomic_bool autosortitem_future_cancel_flag_ = false;
 
 	QFutureSynchronizer <void> pointerWriterSync_;
+
+	bool isFirstLogin_ = true;
 
 	bool login_run_once_flag_ = false;
 	bool battle_run_once_flag_ = false;

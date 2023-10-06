@@ -660,7 +660,7 @@ bool Downloader::asyncDownloadFile(const QString& szUrl, const QString& dir, con
 
 	if (strUrl.length())
 	{
-		QSharedPointer<CurlDownload> cur(q_check_ptr(new CurlDownload()));
+		QSharedPointer<CurlDownload> cur(QSharedPointer<CurlDownload>::create());
 		if (cur.isNull())
 			return false;
 

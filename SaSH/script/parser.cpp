@@ -616,7 +616,7 @@ void Parser::initialize(Parser* pparent)
 
 	timer["new"] = [this](sol::this_state s)->qint64
 	{
-		QSharedPointer<QElapsedTimer> timer(new QElapsedTimer());
+		QSharedPointer<QElapsedTimer> timer(QSharedPointer<QElapsedTimer>::create());
 		if (timer.isNull())
 			return 0;
 
@@ -3173,6 +3173,9 @@ void Parser::processFormation()
 
 			qint64 currentIndex = getIndex();
 			Injector& injector = Injector::getInstance(currentIndex);
+			if (injector.log.isOpen())
+				injector.log.write(formatedStr, getCurrentLine());
+
 			if (!injector.server.isNull())
 				injector.server->announce(formatedStr, color);
 
@@ -3186,6 +3189,7 @@ void Parser::processFormation()
 
 			SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
 			emit signalDispatcher.appendScriptLog(msg, color);
+
 		}
 		else if ((varName.startsWith("say", Qt::CaseInsensitive) && varName.contains(rexOut)) || varName.toLower() == "say")
 		{
@@ -3980,8 +3984,10 @@ void Parser::processTokens()
 			emit signalDispatcher.appendScriptLog(QObject::tr(" ========== script report : valid %1，error %2，comment %3，space %4 ==========")
 				.arg(counter_->validCommand).arg(counter_->error).arg(counter_->comment).arg(counter_->space));
 		}
-		emit signalDispatcher.appendScriptLog(QObject::tr(" ========== script result : %1，cost %2 ==========")
-			.arg("'" + getScriptFileName() + "' " + (isSubScript() ? QObject::tr("sub-ok") : QObject::tr("main-ok"))).arg(util::formatMilliseconds(timer.elapsed())));
+
+		if (!isSubScript())
+			emit signalDispatcher.appendScriptLog(QObject::tr(" ========== script result : %1，cost %2 ==========")
+				.arg("'" + getScriptFileName() + "' " + (isSubScript() ? QObject::tr("sub-ok") : QObject::tr("main-ok"))).arg(util::formatMilliseconds(timer.elapsed())));
 	}
 
 	processClean();

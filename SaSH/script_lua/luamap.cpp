@@ -466,7 +466,7 @@ bool __fastcall findPathProcess(
 			src = getPos();
 			qint64 dir = injector.server->setCharFaceToPoint(lastTryPoint);
 			if (dir == -1)
-				dir = injector.server->getPC().dir;
+				dir = injector.server->getDir();
 			point = src + util::fix_point.value(dir);
 			blockList.insert(point);
 			blockList.insert(lastTryPoint);

@@ -51,7 +51,6 @@ public:
 
 	inline void setProgressFunPtrs(const std::vector<pfnProgressFunc>& vpfnProgressFunc) { vpfnProgressFunc_ = vpfnProgressFunc; }
 
-	inline void setIndex(qint64 index) { index_ = index; }
 
 	bool downLoad(qint64 threadNum, std::string Url, std::string Path, std::string fileName);
 

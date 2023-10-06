@@ -278,8 +278,10 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 	}
 	case kSetMove:
 	{
-		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
-		emit signalDispatcher.updateCoordsPosLabelTextChanged(QString("%1,%2").arg(GET_X_LPARAM(msg->lParam)).arg(GET_Y_LPARAM(msg->lParam)));
+		if (injector.isValid() && !injector.server.isNull())
+		{
+			Q_UNUSED(injector.server->getPoint());
+		}
 		*result = 1;
 		return true;
 	}
@@ -303,7 +305,7 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 	case InterfaceMessage::kRunScript:
 	{
 		qint64 id = msg->wParam;
-		QSharedPointer<Interpreter> interpreter(new Interpreter(id));
+		QSharedPointer<Interpreter> interpreter(QSharedPointer<Interpreter>::create(id));
 		if (interpreter.isNull())
 		{
 			updateStatusText(tr("server is off"));
@@ -1162,7 +1164,6 @@ MainForm::MainForm(qint64 index, QWidget* parent)
 	, Indexer(index)
 {
 	ui.setupUi(this);
-	setIndex(index);
 	setAttribute(Qt::WA_StyledBackground, true);
 	setAttribute(Qt::WA_StaticContents, true);
 	setWindowFlags(windowFlags() & ~Qt::WindowMaximizeButtonHint);

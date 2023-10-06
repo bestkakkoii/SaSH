@@ -26,11 +26,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 //#include "crypto.h"
 #include <QSpinBox>
 
-extern util::SafeHash<QString, util::SafeHash<qint64, break_marker_t>> break_markers[];//interpreter.cpp//用於標記自訂義中斷點(紅點)
-extern util::SafeHash<QString, util::SafeHash<qint64, break_marker_t>> forward_markers[];//interpreter.cpp//用於標示當前執行中斷處(黃箭頭)
-extern util::SafeHash<QString, util::SafeHash<qint64, break_marker_t>> error_markers[];//interpreter.cpp//用於標示錯誤發生行(紅線)
-extern util::SafeHash<QString, util::SafeHash<qint64, break_marker_t>> step_markers[];//interpreter.cpp//隱式標記中斷點用於單步執行(無)
-
 ScriptEditor::ScriptEditor(qint64 index, QWidget* parent)
 	: QMainWindow(parent)
 	, Indexer(index)
@@ -670,9 +665,9 @@ void ScriptEditor::fileSave(QString content)
 	emit signalDispatcher.addErrorMarker(-1, false);
 	emit signalDispatcher.addStepMarker(-1, false);
 
-	forward_markers[currentIndex].clear();
-	error_markers[currentIndex].clear();
-	step_markers[currentIndex].clear();
+	injector.forward_markers.clear();
+	injector.error_markers.clear();
+	injector.step_markers.clear();
 	reshowBreakMarker();
 
 	emit ui.comboBox_labels->clicked();
@@ -721,9 +716,9 @@ void ScriptEditor::loadFile(const QString& fileName)
 	emit signalDispatcher.addErrorMarker(-1, false);
 	emit signalDispatcher.addStepMarker(-1, false);
 
-	forward_markers[currentIndex].clear();
-	error_markers[currentIndex].clear();
-	step_markers[currentIndex].clear();
+	injector.forward_markers.clear();
+	injector.error_markers.clear();
+	injector.step_markers.clear();
 
 	reshowBreakMarker();
 	emit ui.comboBox_labels->clicked();
@@ -754,14 +749,15 @@ void ScriptEditor::setContinue()
 {
 	qint64 currentIndex = getIndex();
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
+	Injector& injector = Injector::getInstance(currentIndex);
 
 	emit signalDispatcher.addForwardMarker(-1, false);
 	emit signalDispatcher.addErrorMarker(-1, false);
 	emit signalDispatcher.addStepMarker(-1, false);
 
-	forward_markers[currentIndex].clear();
-	error_markers[currentIndex].clear();
-	step_markers[currentIndex].clear();
+	injector.forward_markers.clear();
+	injector.error_markers.clear();
+	injector.step_markers.clear();
 
 	emit signalDispatcher.scriptResumed();
 }
@@ -949,7 +945,7 @@ void ScriptEditor::setStepMarks()
 	if (currentScriptFileName.isEmpty())
 		return;
 
-	util::SafeHash<qint64, break_marker_t> markers = step_markers[currentIndex].value(currentScriptFileName);
+	util::SafeHash<qint64, break_marker_t> markers = injector.step_markers.value(currentScriptFileName);
 	break_marker_t bk = {};
 
 	for (qint64 i = 0; i < maxliner; ++i)
@@ -962,14 +958,14 @@ void ScriptEditor::setStepMarks()
 		markers.insert(index, bk);
 	}
 
-	step_markers[currentIndex].insert(currentScriptFileName, markers);
+	injector.step_markers.insert(currentScriptFileName, markers);
 }
 
 void ScriptEditor::reshowBreakMarker()
 {
 	qint64 currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
-	const util::SafeHash<QString, util::SafeHash<qint64, break_marker_t>> mks = break_markers[currentIndex];
+	const util::SafeHash<QString, util::SafeHash<qint64, break_marker_t>> mks = injector.break_markers;
 
 	QString currentScriptFileName = injector.currentScriptFileName;
 	if (currentScriptFileName.isEmpty())
@@ -1211,7 +1207,7 @@ void ScriptEditor::on_treeWidget_functionList_itemDoubleClicked(QTreeWidgetItem*
 	}
 	else if (str == "dir")
 	{
-		qint64 dir = (injector.server->getPC().dir + 3) % 8;
+		qint64 dir = injector.server->getDir();
 		str = QString("%1 %2").arg(str).arg(dir);
 	}
 	else if (str == "walkpos")
@@ -1222,7 +1218,7 @@ void ScriptEditor::on_treeWidget_functionList_itemDoubleClicked(QTreeWidgetItem*
 	else if (str == "w")
 	{
 		QPoint pos = injector.server->getPoint();
-		qint64 dir = (injector.server->getPC().dir + 3) % 8;
+		qint64 dir = injector.server->getDir();
 		const QString dirStr = "ABCDEFGH";
 		if (dir < 0 || dir >= dirStr.size())
 			return;
@@ -1365,7 +1361,7 @@ void ScriptEditor::on_treeWidget_functionList_itemSelectionChanged()
 
 		QString markdownText = result.join("\n---\n");
 
-		QSharedPointer<QTextDocument> doc = QSharedPointer<QTextDocument>(new QTextDocument());
+		QSharedPointer<QTextDocument> doc(QSharedPointer<QTextDocument>::create());
 		if (doc.isNull())
 			break;
 
@@ -1610,9 +1606,9 @@ void ScriptEditor::onScriptTreeWidgetDoubleClicked(QTreeWidgetItem* item, int co
 		emit signalDispatcher.addErrorMarker(-1, false);
 		emit signalDispatcher.addStepMarker(-1, false);
 
-		forward_markers[currnetIndex].clear();
-		error_markers[currnetIndex].clear();
-		step_markers[currnetIndex].clear();
+		injector.forward_markers.clear();
+		injector.error_markers.clear();
+		injector.step_markers.clear();
 
 		if (!injector.IS_SCRIPT_FLAG.load(std::memory_order_acquire))
 			injector.currentScriptFileName = strpath;
@@ -1766,7 +1762,7 @@ void ScriptEditor::onActionTriggered()
 
 	if (name == "actionStart")
 	{
-		if (step_markers[currnetIndex].size() == 0 && !injector.IS_SCRIPT_FLAG.load(std::memory_order_acquire))
+		if (injector.step_markers.size() == 0 && !injector.IS_SCRIPT_FLAG.load(std::memory_order_acquire))
 		{
 			emit signalDispatcher.scriptStarted();
 		}
@@ -1999,8 +1995,10 @@ void ScriptEditor::onScriptStopMode()
 	onAddStepMarker(-1, false);
 
 	qint64 currnetIndex = getIndex();
-	forward_markers[currnetIndex].clear();
-	step_markers[currnetIndex].clear();
+	Injector& injector = Injector::getInstance(currnetIndex);
+
+	injector.forward_markers.clear();
+	injector.step_markers.clear();
 }
 
 void ScriptEditor::onScriptBreakMode()
@@ -2120,13 +2118,15 @@ void ScriptEditor::onScriptPauseMode()
 void ScriptEditor::onAddForwardMarker(qint64 liner, bool b)
 {
 	qint64 currnetIndex = getIndex();
-	setMark(CodeEditor::SymbolHandler::SYM_ARROW, forward_markers[currnetIndex], liner, b);
+	Injector& injector = Injector::getInstance(currnetIndex);
+	setMark(CodeEditor::SymbolHandler::SYM_ARROW, injector.forward_markers, liner, b);
 }
 
 void ScriptEditor::onAddErrorMarker(qint64 liner, bool b)
 {
 	qint64 currnetIndex = getIndex();
-	setMark(CodeEditor::SymbolHandler::SYM_TRIANGLE, error_markers[currnetIndex], liner, b);
+	Injector& injector = Injector::getInstance(currnetIndex);
+	setMark(CodeEditor::SymbolHandler::SYM_TRIANGLE, injector.error_markers, liner, b);
 }
 
 void ScriptEditor::onAddStepMarker(qint64, bool b)
@@ -2135,7 +2135,8 @@ void ScriptEditor::onAddStepMarker(qint64, bool b)
 	if (!b)
 	{
 		ui.widget->setUpdatesEnabled(false);
-		setMark(CodeEditor::SymbolHandler::SYM_STEP, step_markers[currnetIndex], -1, false);
+		Injector& injector = Injector::getInstance(currnetIndex);
+		setMark(CodeEditor::SymbolHandler::SYM_STEP, injector.step_markers, -1, false);
 		ui.widget->setUpdatesEnabled(true);
 	}
 	else
@@ -2165,7 +2166,7 @@ void ScriptEditor::onAddBreakMarker(qint64 liner, bool b)
 
 		if (b)
 		{
-			util::SafeHash<qint64, break_marker_t> markers = break_markers[currnetIndex].value(currentScriptFileName);
+			util::SafeHash<qint64, break_marker_t> markers = injector.break_markers.value(currentScriptFileName);
 			break_marker_t bk = markers.value(liner);
 			bk.line = liner;
 			bk.content = ui.widget->text(liner);
@@ -2175,16 +2176,16 @@ void ScriptEditor::onAddBreakMarker(qint64 liner, bool b)
 			bk.maker = static_cast<qint64>(CodeEditor::SymbolHandler::SYM_POINT);
 
 			markers.insert(liner, bk);
-			break_markers[currnetIndex].insert(currentScriptFileName, markers);
+			injector.break_markers.insert(currentScriptFileName, markers);
 			ui.widget->markerAdd(liner, CodeEditor::SymbolHandler::SYM_POINT);
 		}
 		else if (!b)
 		{
-			util::SafeHash<qint64, break_marker_t> markers = break_markers[currnetIndex].value(currentScriptFileName);
+			util::SafeHash<qint64, break_marker_t> markers = injector.break_markers.value(currentScriptFileName);
 			if (markers.contains(liner))
 			{
 				markers.remove(liner);
-				break_markers[currnetIndex].insert(currentScriptFileName, markers);
+				injector.break_markers.insert(currentScriptFileName, markers);
 			}
 
 			ui.widget->markerDelete(liner, CodeEditor::SymbolHandler::SYM_POINT);
@@ -2198,11 +2199,12 @@ void ScriptEditor::onBreakMarkInfoImport()
 {
 	ui.treeWidget_breakList->setUpdatesEnabled(false);
 	qint64 currnetIndex = getIndex();
+	Injector& injector = Injector::getInstance(currnetIndex);
 	QList<QTreeWidgetItem*> trees = {};
 	ui.treeWidget_breakList->clear();
 	ui.treeWidget_breakList->setColumnCount(4);
 	ui.treeWidget_breakList->setHeaderLabels(QStringList{ tr("CONTENT"),tr("COUNT"), tr("ROW"), tr("FILE") });
-	const util::SafeHash<QString, util::SafeHash<qint64, break_marker_t>> mks = break_markers[currnetIndex];
+	const util::SafeHash<QString, util::SafeHash<qint64, break_marker_t>> mks = injector.break_markers;
 	TreeWidgetItem* item = nullptr;
 	for (auto it = mks.cbegin(); it != mks.cend(); ++it)
 	{
@@ -2368,7 +2370,7 @@ static const QHash<qint64, QString> hashSolLuaType = {
 	{ static_cast<qint64>(sol::type::poly), QObject::tr("Poly") },
 };
 
-bool luaTableToTreeWidgetItem(QString field, TreeWidgetItem* pParentNode, const sol::table& t, qint64& depth)
+bool luaTableToTreeWidgetItem(QString field, TreeWidgetItem* pParentNode, const sol::table& t, qint64& depth, const QString& fieldStr)
 {
 	if (pParentNode == nullptr)
 		return false;
@@ -2406,8 +2408,9 @@ bool luaTableToTreeWidgetItem(QString field, TreeWidgetItem* pParentNode, const 
 			if (pNode == nullptr)
 				continue;
 
-			if (luaTableToTreeWidgetItem(field, pNode, pair.second.as<sol::table>(), depth))
+			if (luaTableToTreeWidgetItem(field, pNode, pair.second.as<sol::table>(), depth, fieldStr))
 			{
+				pNode->setData(0, Qt::UserRole, fieldStr);
 				pNode->setIcon(0, QIcon(":/image/icon_class.svg"));
 				pParentNode->addChild(pNode);
 			}
@@ -2460,6 +2463,7 @@ bool luaTableToTreeWidgetItem(QString field, TreeWidgetItem* pParentNode, const 
 		if (pNode == nullptr)
 			continue;
 
+		pNode->setData(0, Qt::UserRole, fieldStr);
 		pNode->setIcon(0, QIcon(":/image/icon_field.svg"));
 		pParentNode->addChild(pNode);
 	}
@@ -2539,8 +2543,9 @@ void ScriptEditor::createTreeWidgetItems(TreeWidget* widgetA, TreeWidget* widget
 						if (pNode == nullptr)
 							continue;
 
-						if (luaTableToTreeWidgetItem(field, pNode, lua_["_TMP"].get<sol::table>(), depth))
+						if (luaTableToTreeWidgetItem(field, pNode, lua_["_TMP"].get<sol::table>(), depth, "local"))
 						{
+							pNode->setData(0, Qt::UserRole, QString("local"));
 							pNode->setText(2, QString("(%1)").arg(pNode->childCount()));
 							pNode->setIcon(0, QIcon(":/image/icon_class.svg"));
 							nodesB.append(pNode);
@@ -2584,6 +2589,8 @@ void ScriptEditor::createTreeWidgetItems(TreeWidget* widgetA, TreeWidget* widget
 			pNode = new TreeWidgetItem({ field, varName, varValueStr, QString("(%1)").arg(varType) });
 			if (pNode == nullptr)
 				continue;
+
+			pNode->setData(0, Qt::UserRole, QString("local"));
 			pNode->setIcon(0, QIcon(":/image/icon_field.svg"));
 			nodesB.append(pNode);
 		}
@@ -2612,8 +2619,9 @@ void ScriptEditor::createTreeWidgetItems(TreeWidget* widgetA, TreeWidget* widget
 				continue;
 
 			depth = kMaxLuaTableDepth;
-			if (luaTableToTreeWidgetItem(field, pNode, o.as<sol::table>(), depth))
+			if (luaTableToTreeWidgetItem(field, pNode, o.as<sol::table>(), depth, "global"))
 			{
+				pNode->setData(0, Qt::UserRole, QString("global"));
 				pNode->setText(2, QString("(%1)").arg(pNode->childCount()));
 				pNode->setIcon(0, QIcon(":/image/icon_class.svg"));
 				if (g_sysConstVarName.contains(it))
@@ -2669,6 +2677,7 @@ void ScriptEditor::createTreeWidgetItems(TreeWidget* widgetA, TreeWidget* widget
 		if (pNode == nullptr)
 			continue;
 
+		pNode->setData(0, Qt::UserRole, QString("global"));
 		pNode->setIcon(0, QIcon(":/image/icon_field.svg"));
 		if (g_sysConstVarName.contains(it))
 			nodesA.append(pNode);

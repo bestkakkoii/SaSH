@@ -468,7 +468,7 @@ int main(int argc, char* argv[])
 	if (uniqueIdsToAllocate.isEmpty())
 		uniqueIdsToAllocate.append(-1);
 
-	extern util::SafeHash<qint64, MainForm*> g_mainFormHash;
+	extern util::SafeHash<qint64, MainForm*> g_mainFormHash; //mainForm.cpp
 
 	// 分配並輸出唯一ID
 	for (qint64 idToAllocate : uniqueIdsToAllocate)
