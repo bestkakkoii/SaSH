@@ -189,6 +189,22 @@ public:
 	qint64 rightclick(qint64 x, qint64 y, sol::this_state s);//ok
 	qint64 leftdoubleclick(qint64 x, qint64 y, sol::this_state s);//ok
 	qint64 mousedragto(qint64 x1, qint64 y1, qint64 x2, qint64 y2, sol::this_state s);//ok
+	qint64 createch(sol::object odataplacenum
+		, std::string scharname
+		, qint64 imgno
+		, qint64 faceimgno
+		, qint64 vit
+		, qint64 str
+		, qint64 tgh
+		, qint64 dex
+		, qint64 earth
+		, qint64 water
+		, qint64 fire
+		, qint64 wind
+		, sol::object ohometown, sol::object oforcecover, sol::this_state s);
+	qint64 delch(qint64 index, std::string spsw, sol::object option, sol::this_state s);
+
+	qint64 menu(qint64 index, sol::object otype, sol::this_state s);
 
 	//meta
 	qint64 logout(sol::this_state s);//ok
@@ -196,8 +212,6 @@ public:
 	qint64 eo(sol::this_state s);//ok
 	qint64 cleanchat(sol::this_state s);//ok
 	qint64 talk(sol::object ostr, sol::this_state s);
-	qint64 menu(qint64 index, sol::this_state s);//ok
-	qint64 menu(qint64 type, qint64 index, sol::this_state s);//ok
 	qint64 press(std::string buttonStr, qint64 unitid, qint64 dialogid, sol::this_state s);//ok
 	qint64 press(qint64 row, qint64 unitid, qint64 dialogid, sol::this_state s);//ok
 	qint64 input(const std::string& str, qint64 unitid, qint64 dialogid, sol::this_state s);//ok
@@ -280,7 +294,7 @@ public:
 	qint64 setDir(qint64 x, qint64 y, sol::this_state s);
 	qint64 setDir(std::string sdir, sol::this_state s);
 
-	qint64 move(qint64 x, qint64 y, sol::this_state s);
+	qint64 move(sol::object obj, qint64 y, sol::this_state s);
 	qint64 packetMove(qint64 x, qint64 y, std::string sdir, sol::this_state s);
 	qint64 teleport(sol::this_state s);
 	qint64 findPath(sol::object p1, sol::object p2, sol::object p3, sol::object p4, sol::object p5, sol::object ofunction, sol::object jump, sol::this_state s);

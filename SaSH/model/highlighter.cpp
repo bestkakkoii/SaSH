@@ -55,7 +55,7 @@ const char* Highlighter::keywords(int set) const
 			"getitem putpet getpet make cook uequip requip "
 			"wequip pequip puequip skup join leave kick move "
 			"walkpos w dir findpath movetonpc lclick rclick ldbclick dragto warp "
-			"learn trade run dostring sellpet mail reg "
+			"learn trade run dostr sellpet mail reg "
 			"regex rex rexg trim upper lower half toint tostr todb replace find full "
 			"bh bj bp bs be bd bi bn bw bwf bwait bend "
 			"dofile createch delch doffstone send format "
@@ -71,7 +71,7 @@ const char* Highlighter::keywords(int set) const
 			"map.isxy map.isrect map.ismap chat.contains "
 
 			/*lua original*/
-			"assert collectgarbage "
+			"assert collectgarbage dostring "
 			"coroutine.close coroutine.create coroutine.isyieldable coroutine.resume coroutine.running coroutine.status coroutine.wrap coroutine.yield "
 			"debug.debug debug.gethook debug.getinfo debug.getlocal debug.getmetatable debug.getregistry debug.getupvalue debug.getuservalue debug.setcstacklimit debug.sethook "
 			"debug.setlocal debug.setmetatable debug.setupvalue debug.setuservalue debug.traceback debug.upvalueid debug.upvaluejoin "

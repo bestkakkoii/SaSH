@@ -112,6 +112,7 @@ ScriptEditor::ScriptEditor(qint64 index, QWidget* parent)
 	connect(&signalDispatcher, &SignalDispatcher::reloadScriptList, this, &ScriptEditor::onReloadScriptList, Qt::QueuedConnection);
 	connect(&signalDispatcher, &SignalDispatcher::scriptLabelRowTextChanged, this, &ScriptEditor::onScriptLabelRowTextChanged, Qt::QueuedConnection);
 	connect(&signalDispatcher, &SignalDispatcher::varInfoImported, this, &ScriptEditor::onVarInfoImport, Qt::BlockingQueuedConnection);
+	connect(&signalDispatcher, &SignalDispatcher::breakMarkInfoImport, this, &ScriptEditor::onBreakMarkInfoImport, Qt::QueuedConnection);
 
 	util::FormSettingManager formSettingManager(this);
 	formSettingManager.loadSettings();
@@ -1349,7 +1350,7 @@ void ScriptEditor::on_treeWidget_functionList_itemSelectionChanged()
 
 		QStringList result;
 		//以此目錄為起點遍歷查找所有文件名包含 \'str\' 的 .MD 文件
-		util::searchFiles(mdFullPath, QString(R"('%1')").arg(str), ".md", &result);
+		util::searchFiles(mdFullPath, QString(R"('%1')").arg(str), ".md", &result, true);
 		if (result.isEmpty())
 			return;
 
@@ -1435,7 +1436,8 @@ void ScriptEditor::on_treeWidget_breakList_itemDoubleClicked(QTreeWidgetItem* it
 
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(getIndex());
 	injector.currentScriptFileName = item->text(3);
-	emit signalDispatcher.loadFileToTable(item->text(3));
+	//emit signalDispatcher.loadFileToTable();
+	loadFile(item->text(3));
 	qint64 line = item->text(2).toLongLong();
 	QString text = ui.widget->text(line - 1);
 	ui.widget->setSelection(line - 1, 0, line - 1, text.length());
@@ -1566,8 +1568,6 @@ void ScriptEditor::onScriptTreeWidgetDoubleClicked(QTreeWidgetItem* item, int co
 	if (item->text(0).isEmpty())
 		return;
 
-	IS_LOADING = true;
-
 	do
 	{
 		qint64 currnetIndex = getIndex();
@@ -1616,8 +1616,6 @@ void ScriptEditor::onScriptTreeWidgetDoubleClicked(QTreeWidgetItem* item, int co
 		emit signalDispatcher.loadFileToTable(strpath);
 
 	} while (false);
-
-	IS_LOADING = false;
 }
 
 void ScriptEditor::onScriptTreeWidgetHeaderClicked(int logicalIndex)
@@ -1797,30 +1795,27 @@ void ScriptEditor::onActionTriggered()
 
 	if (name == "actionSaveAs")
 	{
-		const QString directoryName(util::applicationDirPath() + "/script");
+		QString directoryName(util::applicationDirPath() + "/script");
 		const QDir dir(directoryName);
 		if (!dir.exists())
 			dir.mkdir(directoryName);
 
-		QFileDialog fd(this, tr("saveas"), directoryName, "Text File(*.txt)");
-		fd.setAttribute(Qt::WA_QuitOnClose);
-		fd.setAcceptMode(QFileDialog::AcceptSave);
-		fd.setViewMode(QFileDialog::Detail); //詳細
-		fd.setFileMode(QFileDialog::AnyFile);
-		fd.setDefaultSuffix("txt");
-		fd.setOption(QFileDialog::DontUseNativeDialog, false);
-		fd.setWindowModality(Qt::WindowModal);
-		if (fd.exec() == QDialog::Accepted)
-		{
-			const QString f(fd.selectedFiles().value(0));
-			if (f.isEmpty())
-				return;
+		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(getIndex());
 
-			if (util::writeFile(f, ui.widget->text()))
-			{
-				QDesktopServices::openUrl(QUrl::fromLocalFile(directoryName));
-			}
+		QEventLoop loop;
+		QString path;
+		emit signalDispatcher.fileDialogShow("*.txt", QFileDialog::AcceptSave, &path, &loop);
+		loop.exec();
+
+		if (path.isEmpty() || !util::writeFile(path, ui.widget->text()))
+		{
+			return;
 		}
+
+		QFileInfo fileInfo(path);
+		directoryName = fileInfo.absolutePath();
+
+		QDesktopServices::openUrl(QUrl::fromLocalFile(directoryName));
 		emit signalDispatcher.reloadScriptList();
 		return;
 	}
@@ -2170,7 +2165,7 @@ void ScriptEditor::onAddBreakMarker(qint64 liner, bool b)
 			break_marker_t bk = markers.value(liner);
 			bk.line = liner;
 			bk.content = ui.widget->text(liner);
-			if (bk.content.simplified().isEmpty() || bk.content.simplified().indexOf("//") == 0 || bk.content.simplified().indexOf("/*") == 0)
+			if (bk.content.simplified().isEmpty() || bk.content.simplified().indexOf("//") == 0 || bk.content.simplified().indexOf("--[[") == 0)
 				return;
 
 			bk.maker = static_cast<qint64>(CodeEditor::SymbolHandler::SYM_POINT);
@@ -2225,41 +2220,29 @@ void ScriptEditor::onBreakMarkInfoImport()
 	ui.treeWidget_breakList->setUpdatesEnabled(true);
 }
 
+//重新加載腳本列表
 void ScriptEditor::onReloadScriptList()
 {
-	if (IS_LOADING) return;
-
 	QStringList newScriptList = {};
-	do
-	{
-		TreeWidgetItem* item = new TreeWidgetItem;
-		if (item == nullptr)
-			break;
+	TreeWidgetItem* item = new TreeWidgetItem();
+	if (nullptr == item)
+		return;
 
-		util::loadAllFileLists(item, util::applicationDirPath() + "/script/", &newScriptList, ":/image/icon_textfile.svg", ":/image/icon_folder.svg");
+	util::loadAllFileLists(
+		item,
+		util::applicationDirPath() + "/script/", &newScriptList,
+		":/image/icon_textfile.svg", ":/image/icon_folder.svg");
 
-		scriptList_ = newScriptList;
+	scriptList_ = newScriptList;
+	ui.treeWidget_scriptList->clear();
+	ui.treeWidget_scriptList->addTopLevelItem(item);
 
-		ui.treeWidget_scriptList->setUpdatesEnabled(false);
+	item->setExpanded(true);
 
-		ui.treeWidget_scriptList->clear();
-		ui.treeWidget_scriptList->addTopLevelItem(item);
-		//展開全部第一層
-		ui.treeWidget_scriptList->topLevelItem(0)->setExpanded(true);
-
-		//展開全部子層
-		//for (qint64 i = 0; i < item->childCount(); ++i)
-		//{
-		//	ui.treeWidget_scriptList->expandItem(item->child(i));
-		//}
-
-		ui.treeWidget_scriptList->sortItems(0, Qt::AscendingOrder);
-
-		ui.treeWidget_scriptList->setUpdatesEnabled(true);
-	} while (false);
+	ui.treeWidget_scriptList->sortItems(0, Qt::AscendingOrder);
 }
 
-//全局變量列表
+//變量列表
 void ScriptEditor::onVarInfoImport(void* p, const QVariantHash& d, const QStringList& globalNames)
 {
 	createTreeWidgetItems(ui.treeWidget_debuger_sys, ui.treeWidget_debuger_custom, reinterpret_cast<Parser*>(p), d, globalNames);

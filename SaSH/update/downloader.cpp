@@ -18,411 +18,51 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 #include "stdafx.h"
 #include "downloader.h"
-#include "curldownload.h"
-
 #include "util.h"
 
-//Qt Private
-#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
-#include <QtGui/private/qzipreader_p.h>
-#include <QtGui/private/qzipwriter_p.h>
-#else
-#include <x64/QtCore/private/qzipreader_p.h>
-#include <x64/QtCore/private/qzipwriter_p.h>
-#endif
-
-#ifdef _WIN64
-#ifdef _DEBUG
-
-#pragma comment(lib, "libcurl_a_debug.lib")
-#else
-
-#pragma comment(lib, "libcurl_a.lib")
-#endif
-#else
-#ifdef _DEBUG
-#pragma comment(lib, "cpr-d.lib")
-#pragma comment(lib, "libcurl-d.lib")
-#else
-#pragma comment(lib, "cpr.lib")
-#pragma comment(lib, "libcurl.lib")
-#endif
-#endif
-
-
-
-static std::vector<QProgressBar*> g_vProgressBar;
-static QMutex g_mutex;
-
-static std::vector<pfnProgressFunc> g_vpfnProgressFunc;
-//constexpr qint64 g_nProcessPrecision = 10;
-qreal g_current[MAX_DOWNLOAD_THREAD] = {};
-constexpr const char* URL = "https://www.lovesa.cc/SaSH/update/SaSH.7z";
-constexpr const char* sz7zEXE_URL = "https://www.lovesa.cc/SaSH/update/7z.exe";
-constexpr const char* sz7zDLL_URL = "https://www.lovesa.cc/SaSH/update/7z.dll";
+constexpr const char* URL = "https://www.lovesa.cc/SaSH/update/sash.zip";
 constexpr const char* doc_URL = "https://gitee.com/Bestkakkoii/sash/wikis/pages/export?type=markdown&doc_id=4046472";
-constexpr const char* SHA512_7ZEXE = "b46137ff657348f40a74bb63b93c0662bab69ea05f3ef420ea76e6cebb1a3c865194516785c457faa8b819a52c570996fbcfd8a420db83aef7f6136b66412f32";
-constexpr const char* SHA512_7ZDLL = "908060f90cfe88aee09c89b37421bc8d755bfc3a9b9539573188d00066fb074c2ef5ca882b8eacc8e15c62efab10f21e0ee09d07e4990c831f8e79a1ff48ff9b";
-constexpr const char* kBackupfileName1 = "sash_backup_%1.7z";
-constexpr const char* kBackupfileName2 = "sash_backup_%1_%2.7z";
-constexpr const char* kBackupExecuteFile = "SaSH.exe";
+constexpr const char* kBackupfileName1 = "sash_backup_%1.zip";
+constexpr const char* kBackupfileName2 = "sash_backup_%1_%2.zip";
 constexpr const char* kBackupExecuteFileTmp = "SaSH.tmp";
-constexpr const char* kDefaultClosingProcessName = "sa_8001.exe";
-static const QStringList preBackupFileNames = { kBackupExecuteFile, "sadll.dll", "settings" };
-std::atomic_int DO_NOT_SHOW = false;
+static const QStringList preBackupFileNames = { util::applicationName(), QString(SASH_INJECT_DLLNAME) + ".dll", "settings", "script", "system.json" };
 constexpr qint64 SHADOW_WIDTH = 10;
 constexpr qint64 MAX_BAR_HEIGHT = 20;
 constexpr qint64 MAX_BAR_SEP_LEN = 10;
 constexpr qint64 MAX_GIF_MOVE_WIDTH = 920;
 constexpr qint64 PROGRESS_BAR_BEGIN_Y = 85;
 
-QString Downloader::Sha3_512(const QString& fileNamePath) const
-{
-	QFile theFile(fileNamePath);
-	if (!theFile.exists())
-		return "\0";
-	theFile.open(QIODevice::ReadOnly);
-	const QByteArray ba = QCryptographicHash::hash(theFile.readAll(), QCryptographicHash::Sha3_512);
-	theFile.close();
-	const QString result = ba.toHex().constData();
-	return result;
-}
-
 QString g_etag;
 constexpr qint64 UPDATE_TIME_MIN = 5 * 60;
-bool Downloader::checkUpdate(QString* current, QString* ptext)
+
+void setHeader(QNetworkRequest* prequest)
 {
-#ifdef _WIN64
-	return false;
-#else
+	if (prequest == nullptr)
+		return;
 
+	QSslConfiguration sslConf = prequest->sslConfiguration();
+	sslConf.setPeerVerifyMode(QSslSocket::VerifyNone);
+	sslConf.setProtocol(QSsl::TlsV1SslV3);
+	prequest->setSslConfiguration(sslConf);
 
-	QString exeFileName = util::applicationFilePath();
-
-	{
-		util::Config config(qgetenv("JSON_PATH"));
-		g_etag = config.read<QString>("System", "Update", "ETag");
-		g_etag.replace("\"", "");
-	}
-
-	QUrl zipUrl(URL);
-
-	cpr::Header header;
-	header.insert({ "If-None-Match", g_etag.toUtf8().constData() });
-	std::string zipUrlUtf8 = zipUrl.toString().toUtf8().constData();
-	cpr::Response response = cpr::Head(cpr::Url(zipUrlUtf8), header);
-
-	bool bret = false;
-	do
-	{
-		if (response.error.code != cpr::ErrorCode::OK)
-		{
-			qDebug() << "HTTP request failed: " << response.error.message.c_str();
-			break;
-		}
-
-		// Get modify time from server
-		QDateTime zipModified;
-		QDateTime exeModified;
-		QLocale locale(QLocale::English);
-		bool skipModifyTimeCheck = false;
-		if (response.header.count("ETag"))
-		{
-			QString newEtag = util::toQString(response.header["ETag"]);
-			newEtag.replace("\"", "");
-			if ((!newEtag.isEmpty() && !g_etag.isEmpty() && newEtag != g_etag) || g_etag.isEmpty())
-			{
-				qDebug() << "New version available!" << newEtag;
-				g_etag = newEtag;
-				bret = true;
-				skipModifyTimeCheck = true;
-			}
-			else
-			{
-				qDebug() << "No new version available." << newEtag;
-			}
-		}
-
-		if (response.header.count("Last-Modified"))
-		{
-			QString lastModifiedStr = util::toQString(response.header["Last-Modified"]);
-			//Tue, 18 Apr 2023 01:01:06 GMT
-			qDebug() << "SaSH 7z file last modified time:" << lastModifiedStr;
-
-
-			QDateTime gmtTime = locale.toDateTime(lastModifiedStr, "ddd, dd MMM yyyy hh:mm:ss 'GMT'");
-			//補-8小時
-			zipModified = gmtTime.addSecs(8ll * 60ll * 60ll);
-
-			qDebug() << "SaSH 7z file modified time:" << zipModified.toString("yyyy-MM-dd hh:mm:ss");
-			if (!zipModified.isValid())
-			{
-				qDebug() << "Failed to convert date string to QDateTime object.";
-				break;
-			}
-			else
-			{
-				if (ptext)
-					*ptext = zipModified.toString("yyyy-MM-dd hh:mm:ss");
-			}
-		}
-		else
-		{
-			qWarning() << "No Last-Modified header available.";
-			break;
-		}
-
-		compile::buildDateTime(&exeModified);
-		qDebug() << "SaSH.exe file modified time:" << exeModified.toString("yyyy-MM-dd hh:mm:ss");
-
-		if (current != nullptr)
-			*current = exeModified.toString("yyyy-MM-dd hh:mm:ss");
-
-		if (skipModifyTimeCheck)
-			break;
-
-		qint64 timeDiffInSeconds = exeModified.secsTo(zipModified);
-
-		// Check if the remote file is newer than the local file
-		if (timeDiffInSeconds > UPDATE_TIME_MIN)
-		{
-			if (zipModified > exeModified)
-			{
-				qDebug() << "SaSH.7z newer than SaSH.exe";
-				bret = true;
-			}
-			else
-			{
-				qDebug() << "SaSH.exe newer than SaSH.7z, time diff:" << timeDiffInSeconds;
-			}
-		}
-		else if (timeDiffInSeconds >= 0)
-		{
-			qDebug() << "SaSH.exe and SaSH.7z are the same, time diff:" << timeDiffInSeconds;
-		}
-		else
-		{
-			qDebug() << "SaSH.exe newer than SaSH.7z, time diff:" << timeDiffInSeconds;
-		}
-
-	} while (false);
-
-	return bret;
-#endif
-}
-
-Downloader::Downloader(QWidget* parent)
-	: QWidget(parent)
-	, szCurrentDirectory_(util::applicationDirPath() + "/")
-	, szCurrentDotExe_(szCurrentDirectory_ + kBackupExecuteFile)
-	, szCurrentDotExeAsDotTmp_(szCurrentDirectory_ + kBackupExecuteFileTmp)
-	, sz7zDotExe_(szCurrentDirectory_ + "7z.exe")
-	, sz7zDotDll_(szCurrentDirectory_ + "7z.dll")
-	, szSysTmpDir_(QDir::tempPath())
-{
-	ui.setupUi(this);
-
-	setAttribute(Qt::WA_DeleteOnClose);
-	setAttribute(Qt::WA_TranslucentBackground);
-	setWindowFlags(this->windowFlags() | Qt::FramelessWindowHint);
-	::SetWindowLongW((HWND)winId() \
-		, GWL_EXSTYLE, GetWindowLong((HWND)winId(), GWL_EXSTYLE) ^ WS_EX_LAYERED);
-	::SetLayeredWindowAttributes((HWND)winId(), NULL, 0, LWA_ALPHA);
-
-	QFont font = util::getFont();
-	font.setFamily("JoysticMonospace");
-	font.setPointSize(9);
-	setFont(font);
-
-	QGraphicsDropShadowEffect* shadowEffect = new QGraphicsDropShadowEffect(ui.widget);
-	if (shadowEffect != nullptr)
-	{
-		// 陰影偏移
-		shadowEffect->setOffset(0, 1);
-		// 陰影顏色;
-		shadowEffect->setColor(Qt::black);
-		// 陰影半徑;
-		shadowEffect->setBlurRadius(SHADOW_WIDTH);
-		// 給窗口設置上當前的陰影效果;
-		setGraphicsEffect(shadowEffect);
-	}
-
-	QMovie* movie = new QMovie("://image/jimmy.gif");
-	if (movie != nullptr)
-	{
-		movie->setObjectName("movieLoading");
-		movie->setScaledSize(QSize(44, 72));
-		ui.label->setMovie(movie);
-		movie->start();
-	}
-
-	qint64 n = PROGRESS_BAR_BEGIN_Y;
-	for (qint64 i = 0; i < MAX_DOWNLOAD_THREAD; ++i)
-	{
-		g_vProgressBar.push_back(createProgressBar(n));
-		n += MAX_BAR_HEIGHT + MAX_BAR_SEP_LEN;
-	}
-
-
-	resetProgress(0);
-
-	g_vpfnProgressFunc.push_back(&onProgress<0>);
-	g_vpfnProgressFunc.push_back(&onProgress<1>);
-	g_vpfnProgressFunc.push_back(&onProgress<2>);
-	g_vpfnProgressFunc.push_back(&onProgress<3>);
-
-	rcPath_ = QString("%1/%2/").arg(szSysTmpDir_).arg(pid_);
-	QDir dir(rcPath_);
-	if (!dir.exists())
-		dir.mkpath(rcPath_);
-
-	//從網址中擷取檔案名稱
-	QString szFileName = URL;
-	szDownloadedFileName_ = szFileName.mid(szFileName.lastIndexOf('/') + 1);
-	szTmpDot7zFile_ = rcPath_ + szDownloadedFileName_;// %Temp%/pid/SaSH.7z
-
-	synchronizer_.setCancelOnWait(false);
-	resetProgress(0);
-}
-
-Downloader::~Downloader()
-{
-	for (QTimer& it : timer_)
-	{
-		it.stop();
-	}
-	resetProgress(0);
-	g_vProgressBar.clear();
-	g_vpfnProgressFunc.clear();
-}
-
-void Downloader::showEvent(QShowEvent* event)
-{
-	//首次show
-	static bool bFirstShow = true;
-	if (bFirstShow)
-	{
-		bFirstShow = false;
-		//原本的show
-		QWidget::showEvent(event);
-		QApplication::processEvents();
-
-		for (qint64 i = 0; i < MAX_DOWNLOAD_THREAD; ++i)
-		{
-			connect(&timer_[i], &QTimer::timeout, this,
-				[i]()->void
-				{
-					if (DO_NOT_SHOW.load(std::memory_order_acquire))
-					{
-						QCoreApplication::processEvents();
-						return;
-					}
-
-					qint64 percent = qFloor(g_current[i]);
-					if (g_vProgressBar[i]->value() != percent)
-					{
-						g_vProgressBar[i]->setValue(percent);
-						g_vProgressBar[i]->repaint();
-					}
-					QCoreApplication::processEvents();
-				}
-			);
-			timer_[i].start(100);
-		}
-
-		connect(&labelTimer_, &QTimer::timeout, this,
-			[this]()->void
-			{
-				//是否全部100%
-				qreal sum = 0.0;
-				for (const qreal& it : g_current)
-				{
-					sum += it;
-				}
-				//計算總和百分比 label按照比例向右移動 總距離為 900 當前進度為 100% x = 900
-				qreal percent = sum / static_cast<qreal>(MAX_DOWNLOAD_THREAD);
-				ui.label->move(MAX_GIF_MOVE_WIDTH * (percent + 1.0) / 100, 10);
-				QCoreApplication::processEvents();
-
-				if (sum < 100.0 * static_cast<qreal>(MAX_DOWNLOAD_THREAD))
-				{
-					return;
-				}
-
-				for (QTimer& it : timer_)
-				{
-					it.stop();
-				}
-
-				overwriteCurrentExecutable();
-			}
-		);
-		labelTimer_.start(100);
-
-		this->start();
-	}
-}
-
-void Downloader::start()
-{
-
-	QFuture<void>future = QtConcurrent::run([this]()->void
-		{
-			QString mdFullPath = QString("%1/lib/doc").arg(util::applicationDirPath());
-			downloadAndExtractZip(doc_URL, mdFullPath);
-		});
-
-	future.waitForFinished();
-
-
-
-	synchronizer_.addFuture(QtConcurrent::run([this]() { asyncDownloadFile(URL, rcPath_, szDownloadedFileName_); }));
-}
-
-QProgressBar* Downloader::createProgressBar(qint64 startY)
-{
-	QProgressBar* pProgressBar = (new QProgressBar(ui.widget));
-	if (pProgressBar == nullptr)
-		return nullptr;
-
-	constexpr const char* cstyle = R"(
-		QProgressBar{
-			font:8pt "Joystix Monospace";
-			text-align:center;
-	
-			color: #A6B8E0;
-			border-radius:5px;
-			border:0px solid #E8EDF2;
-			background-color: #5E73A8;
-			border-color: rgb(180, 180, 180);
-		}
-		QProgressBar:chunk{
-			border-radius:5px;
-			background-color: qlineargradient(spread:pad, x1:0, y1:0, x2:1, y2:0, stop:0 rgba(252, 136, 201, 220), stop:1 rgba(171, 86, 254, 255));
-		}
-	)";
-
-	pProgressBar->setStyleSheet(cstyle);
-	//width 1000 height 18
-	pProgressBar->setGeometry(10, startY, 1000, MAX_BAR_HEIGHT);
-	pProgressBar->setMinimum(0);
-	pProgressBar->setMaximum(100);
-	pProgressBar->setValue(0);
-	ui.label_3->move(10, startY + MAX_BAR_HEIGHT + MAX_BAR_SEP_LEN);
-	resize(1038, startY + ((MAX_BAR_HEIGHT + MAX_BAR_SEP_LEN) + 30) + 18);
-	return pProgressBar;
-}
-
-void Downloader::resetProgress(qint64 value)
-{
-	for (qint64 j = 0; j < MAX_DOWNLOAD_THREAD; ++j)
-	{
-		g_current[j] = static_cast<qreal>(value);
-		g_vProgressBar[j]->setMinimum(0);
-		g_vProgressBar[j]->setMaximum(100);
-		g_vProgressBar[j]->setValue(value);
-		QCoreApplication::processEvents();
-	}
+	prequest->setRawHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Safari/537.36 Edg/107.0.1418.35");
+	//prequest->setRawHeader("authority", "www.lovesa.cc");
+	prequest->setRawHeader("Method", "GET");
+	prequest->setRawHeader("Scheme", "https");
+	//prequest->setRawHeader("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9");
+	prequest->setRawHeader("Accept", "*/*");
+	prequest->setRawHeader("Accept-Encoding", "*");
+	prequest->setRawHeader("accept-language", "zh-TW,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6,zh-CN;q=0.5");
+	prequest->setRawHeader("Cache-Control", "max-age=0");
+	prequest->setRawHeader("DNT", "1");
+	prequest->setRawHeader("Sec-CH-UA", "\"Microsoft Edge\";v=\"107\", \"Chromium\";v=\"107\", \"Not=A?Brand\";v=\"24\"");
+	prequest->setRawHeader("Sec-CH-UA-Mobile", "?0");
+	prequest->setRawHeader("Sec-CH-UA-Platform", "\"Windows\"");
+	prequest->setRawHeader("Sec-Fetch-Dest", "document");
+	prequest->setRawHeader("Sec-Fetch-Mode", "navigate");
+	prequest->setRawHeader("Sec-Fetch-Site", "none");
+	prequest->setRawHeader("Sec-Fetch-User", "?1");
+	prequest->setRawHeader("Upgrade-Insecure-Requests", "1");
 }
 
 //(源文件目錄路徑，目的文件目錄，文件存在是否覆蓋)
@@ -494,72 +134,918 @@ bool copyFile(const QString& qsrcPath, const QString& qdstPath, bool coverFileIf
 	return true;
 }
 
+void deleteFile(const QString& targetDir, const QString& file)
+{
+	QDir target(targetDir);
+	QStringList targetFiles = target.entryList(QDir::Files | QDir::Dirs | QDir::NoDotAndDotDot);
+	for (const QString& targetFile : targetFiles)
+	{
+		QString targetFilePath = targetDir + "/" + targetFile;
+		if (targetFile != file)
+		{
+			if (QFileInfo(targetFilePath).isDir())
+			{
+				QDir(targetFilePath).removeRecursively();
+			}
+			else
+			{
+				QFile::remove(targetFilePath);
+			}
+		}
+	}
+}
+
+bool enumAllFile(QStringList* pfilePaths, const QString& directory)
+{
+	QDir dir(directory);
+	if (!dir.exists())
+	{
+		return false;
+	}
+
+	dir.setFilter(QDir::Dirs | QDir::Files | QDir::NoDotAndDotDot);
+	dir.setSorting(QDir::DirsFirst);
+
+	QFileInfoList list = dir.entryInfoList();
+	int i = 0;
+	bool bIsDir;
+	do
+	{
+		QFileInfo fileInfo = list.at(i);
+		QString strFileName = fileInfo.fileName();
+		if (strFileName == "." || strFileName == "..")
+		{
+			continue;
+		}
+
+		bIsDir = fileInfo.isDir();
+		if (bIsDir)
+		{
+			enumAllFile(pfilePaths, fileInfo.filePath());
+		}
+		else
+		{
+			pfilePaths->append(fileInfo.filePath());
+		}
+
+		i++;
+	} while (i < list.size());
+
+	return true;
+}
+
+#if 0
+bool compress(const QString& source, const QString& destination)
+{
+	QString preCompressFolder = source;
+
+	QStringList list;
+	if (!enumAllFile(&list, preCompressFolder))
+	{
+		qDebug() << "enumAllFile failed";
+		return  false;
+	}
+
+	QZipWriter writer(destination);
+	writer.setCompressionPolicy(QZipWriter::AlwaysCompress);
+
+	//add files
+	for (const QString& filePath : list)
+	{
+		QFileInfo fileInfo(filePath);
+		QString relativePath = fileInfo.filePath().replace(preCompressFolder, "");
+
+		if (fileInfo.isDir())
+		{
+			writer.addDirectory(relativePath);
+			continue;
+		}
+
+		util::ScopedFile file(filePath, QIODevice::ReadOnly);
+		if (!file.isOpen())
+		{
+			qDebug() << "open file failed" << filePath;
+			continue;
+		}
+
+		writer.addFile(relativePath, &file);
+	}
+
+	//finish
+	writer.close();
+
+	return true;
+}
+
+void uncompress(const QString& savepath, const QString& filepath, bool one)
+{
+	QDir dir(savepath);
+	if (!dir.exists())
+	{
+		dir.mkpath(savepath);
+	}
+
+	QZipReader zipreader(filepath);
+	QVector<QZipReader::FileInfo> filelist = zipreader.fileInfoList();
+	qint64 size = filelist.size();
+
+	for (qint64 i = 0; i < size; ++i)
+	{
+		QZipReader::FileInfo info = filelist.value(i);
+
+		QStringList paths = info.filePath.split("/");
+		paths.removeLast();
+
+		QString path = paths.join("/");
+		path.replace("\\", "/");
+		path.replace("//", "/");
+
+		QString directory = savepath + "/" + path;
+		directory.replace("\\", "/");
+		directory.replace("//", "/");
+
+		QDir subdir(directory);
+		if (!subdir.exists())
+			dir.mkpath(directory);
+
+		QString realSavePath = savepath + "/" + info.filePath;
+		realSavePath.replace("\\", "/");
+		realSavePath.replace("//", "/");
+		if (realSavePath.contains("繁體"))
+			continue;
+
+		QFileInfo fileinfo(realSavePath);
+		if (fileinfo.suffix().isEmpty() || fileinfo.isDir())
+		{
+			QDir dir(realSavePath);
+			if (!dir.exists())
+				dir.mkpath(realSavePath);
+			continue;
+		}
+
+		QFile testfile(realSavePath);
+		if (testfile.exists())
+			testfile.remove();
+
+		if (one)
+			continue;
+
+		util::ScopedFile file(realSavePath, QIODevice::WriteOnly | QIODevice::Unbuffered | QIODevice::Truncate);
+		if (!file.isOpen())
+		{
+			qDebug() << "Failed to open file for writing: " << realSavePath;
+			continue;
+		}
+
+		QByteArray arr = zipreader.fileData(info.filePath);
+		if (!arr.isEmpty())
+			file.write(arr);
+	}
+
+	if (one)
+	{
+		zipreader.extractAll(savepath);
+	}
+}
+#endif
+
+
+bool Downloader::compress(const QString& source, const QString& destination)
+{
+	QVector<QPair<QString, QString>> list;
+	if (!util::enumAllFiles(source, "", &list))
+	{
+		qDebug() << "enumAllFile failed";
+		emit labelTextChanged("enumAllFile failed");
+		return  false;
+	}
+
+	QString newDestination = destination;
+	newDestination.replace("/", "\\");
+
+	std::wstring wdestination = newDestination.toStdWString();
+
+	HZIP hz = CreateZip(wdestination.c_str(), 0);
+	if (hz == nullptr)
+		return false;
+
+	for (const QPair<QString, QString>& pair : list)
+	{
+		QString szFileName = pair.first;
+		QString szFullPath = pair.second;
+		szFullPath.replace("/", "\\");
+
+		QFileInfo fileInfo(szFullPath);
+		QString relativePath = fileInfo.filePath().replace(source, "");
+		relativePath.replace("/", "\\");
+
+		std::wstring wfilename = relativePath.toStdWString();
+		std::wstring wfullpath = szFullPath.toStdWString();
+
+		ZRESULT ret = ZipAdd(hz, wfilename.c_str(), wfullpath.c_str());
+		if (ret != ZR_OK)
+		{
+			qDebug() << "ZipAdd failed" << szFullPath;
+			emit labelTextChanged("ZipAdd failed: " + szFullPath);
+		}
+	}
+
+	CloseZip(hz);
+
+	return true;
+}
+
+bool Downloader::uncompress(const QString& source, const QString& destination)
+{
+	QString newSource = source;
+	newSource.replace("/", "\\");
+	std::wstring wsource = newSource.toStdWString();
+
+	HZIP hz = OpenZip(wsource.c_str(), 0);
+	if (hz == nullptr)
+		return false;
+
+	QString newDestination = destination;
+	newDestination.replace("/", "\\");
+
+	std::wstring wdestination = newDestination.toStdWString();
+
+	ZRESULT ret = SetUnzipBaseDir(hz, wdestination.c_str());
+	if (ret != ZR_OK)
+	{
+		qDebug() << "SetUnzipBaseDir failed" << newDestination;
+		emit labelTextChanged("SetUnzipBaseDir failed: " + newDestination);
+		CloseZip(hz);
+		return false;
+	}
+
+	ZIPENTRY ze = { 0 };
+	ret = GetZipItem(hz, -1, &ze);
+	if (ret != ZR_OK)
+	{
+		qDebug() << "GetZipItem failed" << ze.index;
+		emit labelTextChanged("GetZipItem failed with index: " + QString::number(ze.index));
+		CloseZip(hz);
+		return false;
+	}
+
+	int numitems = ze.index;
+	for (int zi = 0; zi < numitems; zi++)
+	{
+		ret = GetZipItem(hz, zi, &ze);
+		if (ret != ZR_OK)
+		{
+			qDebug() << "GetZipItem failed" << zi;
+			emit labelTextChanged("GetZipItem failed with index: " + QString::number(zi));
+			continue;
+		}
+
+		ret = UnzipItem(hz, zi, ze.name);
+		if (ret != ZR_OK)
+		{
+			qDebug() << "UnzipItem failed" << zi;
+			emit labelTextChanged("UnzipItem failed with index: " + QString::number(zi));
+			continue;
+		}
+	}
+
+	CloseZip(hz);
+
+	return true;
+}
+
+QString Sha3_512(const QString& fileNamePath)
+{
+	QFile theFile(fileNamePath);
+	if (!theFile.exists())
+		return "\0";
+	theFile.open(QIODevice::ReadOnly);
+	const QByteArray ba = QCryptographicHash::hash(theFile.readAll(), QCryptographicHash::Sha3_512);
+	theFile.close();
+	const QString result = ba.toHex().constData();
+	return result;
+}
+
+bool Downloader::checkUpdate(QString* current, QString* ptext, QString* pformated)
+{
+	{
+		util::Config config(qgetenv("JSON_PATH"));
+		g_etag = config.read<QString>("System", "Update", "ETag");
+	}
+
+	QString exeFileName = QCoreApplication::applicationFilePath();
+
+	QNetworkAccessManager manager;
+	QUrl zipUrl(URL); // 将 "URL" 替换为实际的下载地址
+	QNetworkRequest request(zipUrl);
+
+	setHeader(&request);
+	if (!g_etag.isEmpty())
+	{
+		request.setRawHeader("If-None-Match", g_etag.toUtf8());
+	}
+
+	QNetworkReply* reply = manager.head(request);
+	if (reply == nullptr)
+		return false;
+
+	QEventLoop loop;
+	QTimer timer;
+	connect(&timer, &QTimer::timeout, &loop, &QEventLoop::quit);
+	connect(reply, &QNetworkReply::finished, &loop, &QEventLoop::quit);
+	timer.singleShot(30000, &loop, &QEventLoop::quit);
+	loop.exec();
+
+	bool bret = false;
+
+	if (reply->error() != QNetworkReply::NoError)
+	{
+		qDebug() << "HTTP request failed: " << reply->errorString();
+	}
+	else
+	{
+		// 获取修改时间
+		QDateTime zipModified;
+		QDateTime exeModified;
+
+		if (reply->hasRawHeader("etag"))
+		{
+			QByteArray etagHeader = reply->rawHeader("etag");
+			QString newEtag = QString::fromUtf8(etagHeader);
+			newEtag.remove("\"");
+
+			if (!newEtag.isEmpty() && (g_etag.isEmpty() || newEtag != g_etag))
+			{
+				qDebug() << "New version available!" << newEtag;
+				g_etag = newEtag;
+				bret = true;
+			}
+			else
+			{
+				qDebug() << "No new version available." << newEtag;
+			}
+		}
+
+		//print all 
+		QByteArrayList headers = reply->rawHeaderList();
+		qDebug() << headers.size();
+		for (const QByteArray& header : headers)
+		{
+			qDebug() << QString::fromUtf8(header) << ":" << QString::fromUtf8(reply->rawHeader(header));
+		}
+
+		if (reply->hasRawHeader("last-modified"))
+		{
+			QByteArray lastModifiedHeader = reply->rawHeader("last-modified");
+			QString lastModifiedStr = QString::fromUtf8(lastModifiedHeader);
+			//if (lastModifiedStr.contains("GMT"))
+			//{
+			//	//lastModifiedStr.replace("GMT", "");
+			//}
+
+			//const QHash<QString, qint64> hash = {
+			//	{ "Jan", 1 },
+			//	{ "Feb", 2 },
+			//	{ "Mar", 3 },
+			//	{ "Apr", 4 },
+			//	{ "May", 5 },
+			//	{ "Jun", 6 },
+			//	{ "Jul", 7 },
+			//	{ "Aug", 8 },
+			//	{ "Sep", 9 },
+			//	{ "Oct", 10 },
+			//	{ "Nov", 11 },
+			//	{ "Dec", 12 },
+			//	{ "Mon", 100 },
+			//	{ "Tue", 200 },
+			//	{ "Wed", 300 },
+			//	{ "Thu", 400 },
+			//	{ "Fri", 500 },
+			//	{ "Sat", 600 },
+			//	{ "Sun", 700 },
+			//};
+
+			//for (const QString& key : hash.keys())
+			//{
+			//	if (lastModifiedStr.contains(key))
+			//	{
+			//		qint64 index = hash.value(key);
+			//		if (index < 100)
+			//			lastModifiedStr.replace(key, QString::number(hash.value(key)));
+			//		else
+			//			lastModifiedStr.replace(key, "");
+			//	}
+			//}
+
+			//lastModifiedStr.replace(",", "");
+			//lastModifiedStr = lastModifiedStr.simplified();
+
+
+			// 解析GMT时间格式
+			const QLocale l(QLocale::English);
+			QDateTime gmtTime(l.toDateTime(lastModifiedStr, "ddd, dd MMM yyyy hh:mm:ss 'GMT'"));
+			//QDateTime gmtTime = QDateTime::fromString(lastModifiedStr, "dd MM yyyy hh:mm:ss 'GMT'");//Fri, 06 Oct 2023 15:25:57 GMT
+			if (!gmtTime.isValid())
+			{
+				qDebug() << "Failed to parse date string.";
+			}
+
+			//gmtTime = gmtTime.addSecs(8LL * 60LL * 60LL); // 补充时区差
+			gmtTime.setTimeSpec(Qt::UTC);
+			QTimeZone beijingTimeZone("Asia/Shanghai");
+			zipModified = gmtTime.toTimeZone(beijingTimeZone);
+
+			qDebug() << "SaSH 7z file last modified time:" << lastModifiedStr;
+			qDebug() << "SaSH 7z file modified time:" << zipModified.toString("yyyy-MM-dd hh:mm:ss");
+
+			if (!zipModified.isValid())
+			{
+				qDebug() << "Failed to convert date string to QDateTime object.";
+			}
+			else
+			{
+				if (ptext)
+					*ptext = zipModified.toString("yyyy-MM-dd hh:mm:ss");
+			}
+		}
+		else
+		{
+			qWarning() << "No Last-Modified header available.";
+		}
+
+		compile::buildDateTime(&exeModified);
+		qDebug() << "SaSH.exe file modified time:" << exeModified.toString("yyyy-MM-dd hh:mm:ss");
+
+		if (current)
+			*current = exeModified.toString("yyyy-MM-dd hh:mm:ss");
+
+		if (!bret)
+		{
+			qint64 timeDiffInSeconds = exeModified.secsTo(zipModified);
+			QString szTimeDiff = util::formatSeconds(std::abs(timeDiffInSeconds));
+			if (pformated != nullptr)
+			{
+				*pformated = szTimeDiff;
+			}
+
+			if (timeDiffInSeconds > UPDATE_TIME_MIN)
+			{
+				if (zipModified > exeModified)
+				{
+					qDebug() << "SaSH.7z newer than SaSH.exe" << szTimeDiff;
+					bret = true;
+				}
+				else
+				{
+					qDebug() << "SaSH.exe newer than SaSH.7z, time diff:" << szTimeDiff;
+				}
+			}
+			else if (timeDiffInSeconds >= 0)
+			{
+				qDebug() << "SaSH.exe and SaSH.7z are almost the same, time diff:" << szTimeDiff;
+			}
+			else
+			{
+				qDebug() << "SaSH.exe newer than SaSH.7z, time diff:" << szTimeDiff;
+			}
+		}
+	}
+
+	reply->deleteLater();
+
+	return bret;
+
+
+}
+
+Downloader::Downloader(QWidget* parent)
+	: QWidget(parent)
+	, szCurrentDirectory_(util::applicationDirPath() + "/")
+	, szCurrentDotExe_(szCurrentDirectory_ + util::applicationName())
+	, szCurrentDotExeAsDotTmp_(szCurrentDirectory_ + kBackupExecuteFileTmp)
+	, szSysTmpDir_(QDir::tempPath())
+{
+	ui.setupUi(this);
+
+	setAttribute(Qt::WA_DeleteOnClose);
+	setAttribute(Qt::WA_TranslucentBackground);
+	setWindowFlags(this->windowFlags() | Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint);
+	::SetWindowLongW((HWND)winId() \
+		, GWL_EXSTYLE, GetWindowLong((HWND)winId(), GWL_EXSTYLE) ^ WS_EX_LAYERED);
+	::SetLayeredWindowAttributes((HWND)winId(), NULL, 0, LWA_ALPHA);
+
+	QFont font = util::getFont();
+	font.setFamily("JoysticMonospace");
+	font.setPointSize(9);
+	setFont(font);
+
+	QGraphicsDropShadowEffect* shadowEffect = new QGraphicsDropShadowEffect(ui.widget);
+	if (shadowEffect != nullptr)
+	{
+		// 陰影偏移
+		shadowEffect->setOffset(0, 1);
+		// 陰影顏色;
+		shadowEffect->setColor(Qt::black);
+		// 陰影半徑;
+		shadowEffect->setBlurRadius(SHADOW_WIDTH);
+		// 給窗口設置上當前的陰影效果;
+		setGraphicsEffect(shadowEffect);
+	}
+
+	QMovie* movie = new QMovie("://image/jimmy.gif");
+	if (movie != nullptr)
+	{
+		movie->setObjectName("movieLoading");
+		movie->setScaledSize(QSize(44, 72));
+		ui.label->setMovie(movie);
+		movie->start();
+	}
+
+	connect(this, &Downloader::labelTextChanged, this, &Downloader::onLabelTextChanged, Qt::QueuedConnection);
+	connect(this, &Downloader::progressReset, this, &Downloader::onProgressBarReset, Qt::QueuedConnection);
+
+	qint64 n = PROGRESS_BAR_BEGIN_Y;
+	progressBar = createProgressBar(n);
+	//n += MAX_BAR_HEIGHT + MAX_BAR_SEP_LEN;
+
+	rcPath_ = QString("%1/%2/").arg(szSysTmpDir_).arg(pid_);
+	QDir dir(rcPath_);
+	if (!dir.exists())
+		dir.mkpath(rcPath_);
+
+	//從網址中擷取檔案名稱
+	QString szFileName = URL;
+	szDownloadedFileName_ = szFileName.mid(szFileName.lastIndexOf('/') + 1);
+	szTmpDot7zFile_ = rcPath_ + szDownloadedFileName_;// %Temp%/pid/SaSH.7z
+
+	networkManager_.reset(new QNetworkAccessManager(this));
+
+	emit progressReset(0);
+}
+
+Downloader::~Downloader()
+{
+	if (!networkManager_.isNull())
+		networkManager_->deleteLater();
+
+	if (reply_ != nullptr)
+		reply_->deleteLater();
+}
+
+void Downloader::showEvent(QShowEvent* e)
+{
+	//首次show
+	static bool bFirstShow = true;
+	if (bFirstShow)
+	{
+		bFirstShow = false;
+		QMetaObject::invokeMethod(this, "start", Qt::QueuedConnection);
+	}
+	setAttribute(Qt::WA_Mapped);
+	QWidget::showEvent(e);
+}
+
+QProgressBar* Downloader::createProgressBar(qint64 startY)
+{
+	QProgressBar* pProgressBar = (new QProgressBar(ui.widget));
+	if (pProgressBar == nullptr)
+		return nullptr;
+
+	constexpr const char* cstyle = R"(
+		QProgressBar{
+			font:8pt "Joystix Monospace";
+			text-align:center;
+	
+			color: #A6B8E0;
+			border-radius:5px;
+			border:0px solid #E8EDF2;
+			background-color: #5E73A8;
+			border-color: rgb(180, 180, 180);
+		}
+		QProgressBar:chunk{
+			border-radius:5px;
+			background-color: qlineargradient(spread:pad, x1:0, y1:0, x2:1, y2:0, stop:0 rgba(252, 136, 201, 220), stop:1 rgba(171, 86, 254, 255));
+		}
+	)";
+
+	pProgressBar->setStyleSheet(cstyle);
+	//width 1000 height 18
+	pProgressBar->setGeometry(10, startY, 1000, MAX_BAR_HEIGHT);
+	pProgressBar->setMinimum(0);
+	pProgressBar->setMaximum(100);
+	pProgressBar->setValue(0);
+	ui.label_3->move(10, startY + MAX_BAR_HEIGHT + MAX_BAR_SEP_LEN);
+	resize(1038, startY + ((MAX_BAR_HEIGHT + MAX_BAR_SEP_LEN) + 30) + ui.label_3->height() + 10);
+	return pProgressBar;
+}
+
+void Downloader::onLabelTextChanged(const QString& text)
+{
+	ui.label_3->setUpdatesEnabled(false);
+	ui.label_3->setText(text);
+	ui.label_3->setUpdatesEnabled(true);
+	ui.label_3->update();
+	ui.label_3->repaint();
+	QApplication::processEvents();
+}
+
+void Downloader::onProgressBarReset(qint64 value)
+{
+	currentProgress_ = static_cast<qreal>(value);
+	if (progressBar != nullptr)
+		return;
+	progressBar->setMinimum(0);
+	progressBar->setMaximum(100);
+	progressBar->setValue(value);
+	progressBar->update();
+	progressBar->repaint();
+	QApplication::processEvents();
+}
+
+bool Downloader::download(const QString& url, QByteArray* pbyteArray)
+{
+	if (networkManager_.isNull())
+		return false;
+
+	networkManager_->clearAccessCache();
+
+	QUrl qurl(url);
+	QNetworkRequest request(qurl);
+	setHeader(&request);
+
+	try
+	{
+		reply_ = networkManager_->get(request);
+	}
+	catch (...)
+	{
+		qDebug() << "Failed to create request.";
+		emit labelTextChanged("Failed to create request.");
+		if (reply_ != nullptr)
+			reply_->deleteLater();
+		return false;
+	}
+
+	if (reply_ == nullptr)
+	{
+		qDebug() << "Failed to create request.";
+		emit labelTextChanged("Failed to create request.");
+		return false;
+	}
+
+	connect(reply_, &QNetworkReply::downloadProgress, this, &Downloader::onDownloadProgress, Qt::QueuedConnection);
+	connect(reply_, &QNetworkReply::errorOccurred, this, &Downloader::onErrorOccurred);
+
+	QEventLoop loop;
+	QTimer timer;
+	connect(&timer, &QTimer::timeout, &loop, &QEventLoop::quit);
+	connect(reply_, &QNetworkReply::finished, &loop, &QEventLoop::quit);
+	timer.singleShot(30000, &loop, &QEventLoop::quit);
+	loop.exec();
+
+	bool bret = false;
+	if (reply_->error() != QNetworkReply::NoError)
+	{
+		qDebug() << "Failed to download file: " << reply_->errorString();
+		emit labelTextChanged("Failed to download file: " + reply_->errorString());
+	}
+	else
+	{
+		if (pbyteArray != nullptr)
+			*pbyteArray = reply_->readAll();
+
+		bret = true;
+	}
+
+	reply_->deleteLater();
+	reply_ = nullptr;
+
+	return true;
+}
+
+bool Downloader::downloadFile(const QString& url, const QString& filename)
+{
+	if (QFile::exists(filename))
+	{
+		QFile::remove(filename);
+	}
+
+	QByteArray data;
+	if (!download(url, &data))
+	{
+		return false;
+	}
+
+	bool bret = false;
+	util::ScopedFile file(filename, QIODevice::WriteOnly);
+	if (file.isOpen())
+	{
+		file.write(data);
+		bret = true;
+	}
+	else
+	{
+		qDebug() << "Failed to open file for writing: " << filename;
+		emit labelTextChanged("Failed to open file for writing: " + filename);
+	}
+
+	return bret;
+}
+
+void Downloader::downloadAndUncompress(const QString& url, const QString& targetDir)
+{
+	constexpr const char* zipFile = "sash_doc.zip";
+
+	// 建立下載檔案的暫存目錄
+	QString tempDir = targetDir;
+	QDir dir(tempDir);
+	if (!dir.exists())
+		dir.mkpath(tempDir);
+
+	QString filePath = tempDir + "/" + zipFile;
+	QFile file(filePath);
+	if (file.exists())
+		file.remove();
+
+	bool success = false;
+	while (!success)
+	{
+		success = downloadFile(url, filePath);
+	}
+
+	// 刪除目標目錄下的所有文件夾和文件，除了壓縮檔
+	deleteFile(targetDir, zipFile);
+
+	//解壓縮
+	uncompress(filePath, targetDir);
+}
+
+void Downloader::onErrorOccurred(QNetworkReply::NetworkError code)
+{
+	qDebug() << "Network error:" << code;
+	emit labelTextChanged("Network error:" + QString::number(code));
+
+	if (!isMain)
+	{
+		qint64 per = progressBar->value() / 10;
+		QtConcurrent::run([this, per]()
+			{
+				for (qint64 i = 10; i >= 0; --i)
+				{
+					emit labelTextChanged(QString("DOWNLOAD FAIL! %1").arg(i));
+					emit progressReset(per * i);
+					QThread::msleep(1000);
+				}
+
+				MINT::NtTerminateProcess(GetCurrentProcess(), 0);
+			});
+	}
+	else
+		emit progressReset(0);
+
+	if (reply_ != nullptr)
+	{
+		reply_->deleteLater();
+		reply_ = nullptr;
+	}
+}
+
+QString Downloader::oneShotDownload(const QString& url)
+{
+	QByteArray data;
+	if (!download(url, &data))
+	{
+		return "";
+	}
+
+	QString result = util::toQString(data);
+
+	return result;
+}
+
+void Downloader::start()
+{
+	if (networkManager_.isNull())
+		return;
+
+	networkManager_->clearAccessCache();
+
+	QUrl qurl(URL);
+	QNetworkRequest request(qurl);
+	setHeader(&request);
+
+	isMain = true;
+
+	try
+	{
+		reply_ = networkManager_->get(request);
+	}
+	catch (...)
+	{
+		qDebug() << "Failed to create request.";
+		emit labelTextChanged("Failed to create request.");
+		if (reply_ != nullptr)
+			reply_->deleteLater();
+		return;
+	}
+
+	if (reply_ == nullptr)
+	{
+		qDebug() << "Failed to create request.";
+		emit labelTextChanged("Failed to create request.");
+		return;
+	}
+
+	connect(reply_, &QNetworkReply::downloadProgress, this, &Downloader::onDownloadProgress);
+	connect(reply_, &QNetworkReply::finished, this, &Downloader::onDownloadFinished);
+	connect(reply_, &QNetworkReply::errorOccurred, this, &Downloader::onErrorOccurred);
+}
+
+void Downloader::onDownloadProgress(qint64 bytesReceived, qint64 bytesTotal)
+{
+	if (bytesTotal <= 0)
+		return;
+
+	double percent = static_cast<double>((bytesReceived * 100.0) / bytesTotal);
+	currentProgress_ = static_cast<qreal>(percent);
+	if (progressBar != nullptr)
+		progressBar->setValue(percent);
+	ui.label->move(MAX_GIF_MOVE_WIDTH * (percent + 1.0) / 100, 10);
+}
+
+void Downloader::onDownloadFinished()
+{
+	if (reply_ == nullptr)
+		return;
+
+	if (reply_->error() == QNetworkReply::NoError)
+	{
+		util::ScopedFile file(rcPath_ + szDownloadedFileName_, QIODevice::WriteOnly);
+		if (file.isOpen())
+		{
+			file.write(reply_->readAll());
+			qDebug() << "Downloaded file saved to" << file.fileName();
+			emit labelTextChanged("Downloaded file saved to" + file.fileName());
+			emit progressReset(100);
+			isMain = false;
+			//QMetaObject::invokeMethod(this, "overwriteCurrentExecutable", Qt::QueuedConnection);
+			QtConcurrent::run([this]()
+				{
+					overwriteCurrentExecutable();
+				});
+		}
+	}
+
+	reply_->deleteLater();
+	reply_ = nullptr;
+}
+
 void Downloader::overwriteCurrentExecutable()
 {
 	static bool ALREADY_RUN = false;
-	if (ALREADY_RUN) return;
+	if (ALREADY_RUN)
+		return;
+
 	ALREADY_RUN = true;
-	synchronizer_.waitForFinished();
 
-	resetProgress(100);
+	emit progressReset(0);
 
-	QFile tmpFile(szCurrentDotExeAsDotTmp_);
-	if (tmpFile.exists())
-		tmpFile.remove();
-
-	QFile Dot7zEXE(sz7zDotExe_);
-	QFile Dot7zDLL(sz7zDotDll_);
-	DO_NOT_SHOW.store(true, std::memory_order_release);
-
-	QString shaexe = "\0";
-	if (!Dot7zEXE.exists() || (Dot7zEXE.exists() && ((shaexe = Sha3_512(sz7zDotExe_)) != SHA512_7ZEXE)))
 	{
-		if (shaexe != SHA512_7ZEXE)
-			Dot7zEXE.remove();
-
-		//下載 7z.exe
-		QCoreApplication::processEvents();
-
-		QFuture<void> f = QtConcurrent::run([this]() { asyncDownloadFile(sz7zEXE_URL, szCurrentDirectory_, "7z.exe"); });
-		f.waitForFinished();
-		QCoreApplication::processEvents();
+		emit labelTextChanged("DOWNLOAD DOCUMENT...");
+		QString mdFullPath = QString("%1/lib/doc").arg(util::applicationDirPath());
+		downloadAndUncompress(doc_URL, mdFullPath);
 	}
 
-	QString shadll = "\0";
-	if (!Dot7zDLL.exists() || (Dot7zDLL.exists() && ((shadll = Sha3_512(sz7zDotDll_)) != SHA512_7ZDLL)))
+	emit progressReset(0);
+
 	{
-		if (shadll != SHA512_7ZDLL)
-			Dot7zDLL.remove();
-
-		//下載 7z.dll
-		QCoreApplication::processEvents();
-		QFuture<void> f = QtConcurrent::run([this]() { asyncDownloadFile(sz7zDLL_URL, szCurrentDirectory_, "7z.dll"); });
-		f.waitForFinished();
-		QCoreApplication::processEvents();
+		QFile tmpFile(szCurrentDotExeAsDotTmp_);
+		if (tmpFile.exists())
+			tmpFile.remove();
 	}
-	DO_NOT_SHOW.store(false, std::memory_order_release);
 
-	resetProgress(100);
+	emit progressReset(100);
 
-	ui.label_3->setText("BACKUPING...");
-	QCoreApplication::processEvents();
-	//將當前目錄下所有文件壓縮(7z)成備份，檔案名稱為  SaSH_backup_當前日期時間 
+	emit labelTextChanged("BACKUPING...");
+
+	//make a name for backup file
 	constexpr auto buildDateTime = []()
 	{
 		QString d = compile::buildDateTime(nullptr);
 		return QString("v1.0.%1").arg(d).replace(":", "");
 	};
-	QString szBackup7zFileName = QString(kBackupfileName1).arg(buildDateTime());
-	QString szBackup7zFilePath = QString("%1%2").arg(rcPath_).arg(szBackup7zFileName);
-	QProcess    m_7zip; QStringList zipargs;
 
-	//在rcpath 創建一個 backup
+	//create backup dir in rcpath
 	QDir dir(rcPath_);
-	if (!dir.exists("backup"))
-		dir.mkdir("backup");
+	if (!dir.exists())
+		dir.mkpath(rcPath_);
+	dir = QDir(rcPath_ + "backup");
+	if (!dir.exists())
+		dir.mkdir(rcPath_ + "backup");
 
 	const QString szBackupDir = QString("%1backup/").arg(rcPath_);
-	//列表中的文件/目錄 從szCurrentDirectory_ 複製(覆蓋) 到 rc的 backup
+
+	//copy file and directory from szCurrentDirectory_ to rcpath/backup
 	for (const auto& fileName : preBackupFileNames)
 	{
 		QFileInfo fileInfo(szCurrentDirectory_ + fileName);
@@ -573,314 +1059,82 @@ void Downloader::overwriteCurrentExecutable()
 		}
 	}
 
-	//如果存在則刪除
+	QString szBackup7zFileName = QString(kBackupfileName1).arg(buildDateTime());
+	QString szBackup7zFilePath = QString("%1%2").arg(rcPath_).arg(szBackup7zFileName);
 	QString szBackup7zNewFilePath = QString("%1%2").arg(szCurrentDirectory_).arg(szBackup7zFileName);
 	qint64 n = 0;
-	while (QFile::exists(szBackup7zNewFilePath)) //_2 _3 _ 4
+	while (QFile::exists(szBackup7zNewFilePath)) //_2 _3 _4..increase until name is not duplicate
 	{
 		szBackup7zNewFilePath = QString("%1%2").arg(szCurrentDirectory_).arg(QString(kBackupfileName2).arg(buildDateTime()).arg(++n));
 	}
 
+	compress(szBackupDir, szBackup7zFilePath);
 
-	//zip all files under szCurrentDirectory_ lzma2
-	zipargs << "a" << szBackup7zFilePath << szBackupDir
-		<< "-mx=9" << "-m0=lzma2" << "-ms" << "-mmt";
-	m_7zip.start(sz7zDotExe_, zipargs);
-	m_7zip.waitForFinished();
 	//move to current
-	QElapsedTimer timer; timer.start();
-	if (QFile::exists(szBackup7zFilePath))
 	{
-		while (!QFile::rename(szBackup7zFilePath, szBackup7zNewFilePath))
+		QElapsedTimer timer; timer.start();
+		if (QFile::exists(szBackup7zFilePath))
 		{
-			QCoreApplication::processEvents();
-			QThread::msleep(100);
-			if (timer.hasExpired(30000ll))
+			while (!QFile::rename(szBackup7zFilePath, szBackup7zNewFilePath))
 			{
-				break;
+				QThread::msleep(100);
+				if (timer.hasExpired(30000ll))
+				{
+					break;
+				}
 			}
 		}
 	}
 
 	QFile::rename(szCurrentDotExe_, szCurrentDotExeAsDotTmp_);// ./SaSH.exe to ./SaSH.tmp
 
-	//close all .exe
-	QProcess kill;
-	kill.start("taskkill", QStringList() << "/f" << "/im" << kDefaultClosingProcessName);
-	kill.waitForFinished();
-
-	//x:eXtract with full paths用文件的完整路徑解壓至當前目錄或指定目錄
-	//-o (Set Output Directory)
-	//-aoa 直接覆蓋現有文件，而沒有任何提示
-	ui.label_3->setText("REPLACING...");
-	QCoreApplication::processEvents();
-	QProcess    m_7z; QStringList args;
-	args << "x" << rcPath_ + szDownloadedFileName_ << "-o" + szCurrentDirectory_ << "-aoa";
-	m_7z.setWorkingDirectory(szCurrentDirectory_);
-	m_7z.start(sz7zDotExe_, args, QIODevice::ReadWrite);
-	if (!m_7z.waitForFinished())
+	//close all .exe that has sadll.dll as module
 	{
-		qDebug() << "7z.exe finish failed";
-		close();
-		return;
+		QVector<qint64> processes;
+		if (mem::enumProcess(&processes, QString(SASH_INJECT_DLLNAME) + ".dll"))
+		{
+			for (qint64 pid : processes)
+			{
+				ScopedHandle hProcess(pid);
+				if (hProcess.isValid())
+					MINT::NtTerminateProcess(hProcess, 0);
+			}
+		}
 	}
 
-	ui.label_3->setText("FINISHED! READY TO RESTART!");
-	QCoreApplication::processEvents();
-	constexpr qint64 delay = 5;
-	// rcpath/date.bat
-	QString bat;
-	bat += "@echo off\r\n";
-	bat = QString("SET pid=%1\r\n:loop\r\n").arg(pid_);
-	bat += "tasklist /nh /fi \"pid eq %pid%\"|find /i \"%pid%\" > nul\r\n";
-	bat += "if %errorlevel%==0 (\r\n";
-	bat += "ping -n 2 127.0.0.1 > nul\r\n";
-	bat += "goto loop )\r\n";
-	bat += QString("ping -n %1 127.0.0.1 > nul\r\n").arg(delay + 1);
-	bat += "taskkill -f -im SaSH.exe\r\n";
-	bat += "taskkill -f -im sa_8001.exe\r\n";
-	bat += "cd /d " + szCurrentDirectory_ + "\r\n";  // cd to directory
-	bat += "del /f /q ./*.tmp\r\n"; //刪除.tmp
-	bat += "start " + szCurrentDotExe_ + "\r\n";
-	bat += QString("Rd /s /q \"%1\"\r\n").arg(rcPath_);
-	bat += "del %0";
-	bat += "exit\r\n";
-	util::asyncRunBat(szSysTmpDir_, bat);
+	emit labelTextChanged("REPLACING...");
+
+	//uncompress sash.7z to current directory
+	uncompress(rcPath_ + szDownloadedFileName_, szCurrentDirectory_.chopped(1));
+
+	emit labelTextChanged("FINISHED! READY TO RESTART!");
+
+	{
+		// write and async run bat file
+		constexpr qint64 delay = 5;
+		// rcpath/date.bat
+		QString bat;
+		bat += "@echo off\r\n";
+		bat = QString("SET pid=%1\r\n:loop\r\n").arg(pid_);
+		bat += "tasklist /nh /fi \"pid eq %pid%\"|find /i \"%pid%\" > nul\r\n";
+		bat += "if %errorlevel%==0 (\r\n";
+		bat += "ping -n 2 127.0.0.1 > nul\r\n";
+		bat += "goto loop )\r\n";
+		bat += QString("ping -n %1 127.0.0.1 > nul\r\n").arg(delay + 1);
+		bat += "taskkill -f -im " + util::applicationName() + "\r\n";
+		bat += "cd /d " + szCurrentDirectory_ + "\r\n";  // cd to directory
+		bat += "del /f /q ./*.tmp\r\n"; //刪除.tmp
+		bat += "start " + szCurrentDotExe_ + "\r\n";
+		bat += QString("Rd /s /q \"%1\"\r\n").arg(rcPath_);
+		bat += "del %0";
+		bat += "exit\r\n";
+		util::asyncRunBat(szSysTmpDir_, bat);
+	}
 
 	{
 		util::Config config(qgetenv("JSON_PATH"));
 		config.write("System", "Update", "ETag", g_etag);
 	}
-	QCoreApplication::quit();
+
+	MINT::NtTerminateProcess(GetCurrentProcess(), 0);
 }
-
-bool Downloader::asyncDownloadFile(const QString& szUrl, const QString& dir, const QString& szSaveFileName)
-{
-	QString strUrl = szUrl;
-
-	if (strUrl.length())
-	{
-		QSharedPointer<CurlDownload> cur(QSharedPointer<CurlDownload>::create());
-		if (cur.isNull())
-			return false;
-
-		cur->setProgressFunPtrs(g_vpfnProgressFunc);
-		cur->downLoad(MAX_DOWNLOAD_THREAD, strUrl.toUtf8().constData(), dir.toUtf8().constData(), szSaveFileName.toUtf8().constData());
-		return true;
-	}
-	return false;
-}
-
-void Downloader::setProgressValue(qint64 i, qreal totalToDownload, qreal nowDownloaded, qreal, qreal)
-{
-	if (totalToDownload > 0)
-	{
-		qreal percentage = (nowDownloaded / totalToDownload * 100.0);
-		//if (percentage % g_nProcessPrecision == 0)
-		{
-			if (g_current[i] != percentage)
-			{
-				qDebug() << "g_percent[" << i << "] = " << percentage;
-				g_current[i] = percentage;
-			}
-		}
-	}
-}
-
-template <qint64 Index>
-qint64 Downloader::onProgress(void* clientp, qint64 totalToDownload, qint64 nowDownloaded, qint64 totalToUpLoad, qint64 nowUpLoaded)
-{
-	Downloader* downloader = static_cast<Downloader*>(clientp);
-	downloader->setProgressValue(Index, totalToDownload, nowDownloaded, totalToUpLoad, nowUpLoaded);
-	return 0;
-}
-
-bool downloadFile(const std::string& url, const std::string& filename)
-{
-#ifdef _WIN64
-	return false;
-#else
-	static cpr::cpr_off_t s_totalSize = 0;
-	std::string tmp_filename = filename;
-	std::ofstream of(tmp_filename, std::ios::binary | std::ios::app);
-	auto pos = of.tellp();
-
-	cpr::Url cpr_url{url};
-	cpr::Session s;
-	s.SetUrl(cpr_url);
-	s.SetHeader(cpr::Header{{"Accept-Encoding", "gzip"}});
-
-	auto fileLength = s.GetDownloadFileLength();
-	s.SetRange(cpr::Range{pos, fileLength - 1});
-
-	cpr::Response response = s.Download(of);
-	s_totalSize += response.downloaded_bytes;
-
-	if (s_totalSize >= fileLength)
-	{
-		s_totalSize = 0;
-		of.flush();
-		of.close();
-		return true;
-	}
-
-	of.flush();
-	of.close();
-	return false;
-#endif
-}
-
-void extractZip(const QString& savepath, const QString& filepath)
-{
-	QDir dir(savepath);
-	if (!dir.exists())
-	{
-		dir.mkpath(savepath);
-	}
-
-	bool unzipok = false;
-	QZipReader zipreader(filepath);
-	unzipok = zipreader.extractAll(savepath);
-
-	for (qint64 i = 0; i < zipreader.fileInfoList().size(); ++i)
-	{
-		QStringList paths = zipreader.fileInfoList().value(i).filePath.split("/");
-		paths.removeLast();
-		QString path = paths.join("/");
-		QDir subdir(savepath + "/" + path);
-		if (!subdir.exists())
-			dir.mkpath(QString("%1").arg(savepath + "/" + path));
-
-		QFile file(savepath + "/" + zipreader.fileInfoList().value(i).filePath);
-		file.open(QIODevice::WriteOnly);
-
-		QByteArray dt = zipreader.fileInfoList().value(i).filePath.toUtf8();
-		QString strtemp = util::toQString(dt);
-
-		QByteArray array = zipreader.fileData(strtemp);
-		file.write(array);
-		file.close();
-	}
-}
-
-void Downloader::downloadAndExtractZip(const QString& url, const QString& targetDir)
-{
-	constexpr const char* zipFile = "sash.zip";
-
-	// 建立下載檔案的暫存目錄
-	QString tempDir = targetDir;
-	QDir dir(tempDir);
-	if (!dir.exists())
-		dir.mkpath(tempDir);
-	QString filePath = tempDir + "/" + zipFile;
-	QFile file(filePath);
-	if (file.exists())
-		file.remove();
-
-	std::string surl = url.toUtf8().constData();
-
-	std::string filename = filePath.toUtf8().constData();
-	bool success = false;
-	while (!success)
-	{
-		success = downloadFile(surl, filename);
-	}
-
-	// 刪除目標目錄下的所有文件夾和文件，除了壓縮檔
-	QDir target(targetDir);
-	QStringList targetFiles = target.entryList(QDir::Files | QDir::Dirs | QDir::NoDotAndDotDot);
-	for (const QString& targetFile : targetFiles)
-	{
-		QString targetFilePath = targetDir + "/" + targetFile;
-		if (targetFile != zipFile)
-		{
-			if (QFileInfo(targetFilePath).isDir())
-			{
-				QDir(targetFilePath).removeRecursively();
-			}
-			else
-			{
-				QFile::remove(targetFilePath);
-			}
-		}
-	}
-
-
-	extractZip(targetDir, filePath);
-	//QZipReader reader(filePath);
-	//reader.extractAll(targetDir);
-}
-
-//void Downloader::downloadAndExtractZip(const QString& url, const QString& targetDir) const
-//{
-//	constexpr const char* zipFile = "sash.zip";
-//
-//	// 建立下載檔案的暫存目錄
-//	QString tempDir = targetDir;
-//	QDir dir(tempDir);
-//	if (!dir.exists())
-//		dir.mkpath(tempDir);
-//
-//	QNetworkAccessManager manager;
-//	QNetworkRequest request(url);
-//	QNetworkReply* reply = manager.get(request);
-//
-//	QEventLoop eventLoop;
-//	QObject::connect(reply, &QNetworkReply::finished, [&]()
-//		{
-//			QString filePath = tempDir + "/" + zipFile;
-//			QFile file(filePath);
-//			if (file.exists())
-//				file.remove();
-//
-//			do
-//			{
-//				// 下載完成
-//				if (reply->error() == QNetworkReply::NoError)
-//				{
-//					// 儲存下載的檔案
-//					if (!file.open(QIODevice::WriteOnly))
-//						break;
-//
-//					file.write(reply->readAll());
-//					file.flush();
-//					file.close();
-//					qDebug() << "檔案下載完成：" << filePath;
-//
-//					// 刪除目標目錄下的所有文件夾和文件，除了壓縮檔
-//					QDir target(targetDir);
-//					QStringList targetFiles = target.entryList(QDir::Files | QDir::Dirs | QDir::NoDotAndDotDot);
-//					for (const QString& targetFile : targetFiles)
-//					{
-//						QString targetFilePath = targetDir + "/" + targetFile;
-//						if (targetFile != zipFile)
-//						{
-//							if (QFileInfo(targetFilePath).isDir())
-//							{
-//								QDir(targetFilePath).removeRecursively();
-//							}
-//							else
-//							{
-//								QFile::remove(targetFilePath);
-//							}
-//						}
-//					}
-//					QZipReader reader(filePath);
-//					reader.extractAll(targetDir);
-//
-//				}
-//				else
-//				{
-//					qDebug() << "下載時發生錯誤:" << reply->errorString();
-//				}
-//			} while (false);
-//			// 清理下載的回應物件
-//
-//			// 刪除下載的壓縮檔案
-//			file.remove();
-//			reply->deleteLater();
-//			eventLoop.quit();
-//		});
-//
-//	eventLoop.exec(); // 等待下載和解壓縮完成
-//}

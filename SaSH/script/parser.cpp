@@ -1746,6 +1746,7 @@ void Parser::parse(qint64 line)
 	if (tokens_.isEmpty())
 		return;
 
+	//解析腳本
 	processTokens();
 }
 
@@ -1767,28 +1768,28 @@ void Parser::handleError(qint64 err, const QString& addition)
 	{
 	case kNoChange:
 		return;
-	case kError:
+	case kError://程序級別的錯誤
 	{
 		--counter_->validCommand;
 		++counter_->error;
 		msg = QObject::tr("unknown error") + extMsg;
 		break;
 	}
-	case kServerNotReady:
+	case kServerNotReady://遊戲未開的錯誤
 	{
 		--counter_->validCommand;
 		++counter_->error;
 		msg = QObject::tr("server not ready") + extMsg;
 		break;
 	}
-	case kLabelError:
+	case kLabelError://標記不存在的錯誤
 	{
 		--counter_->validCommand;
 		++counter_->error;
 		msg = QObject::tr("label incorrect or not exist") + extMsg;
 		break;
 	}
-	case kUnknownCommand:
+	case kUnknownCommand://無法識別的指令錯誤
 	{
 		--counter_->validCommand;
 		++counter_->error;
@@ -1796,7 +1797,7 @@ void Parser::handleError(qint64 err, const QString& addition)
 		msg = QObject::tr("unknown command: %1").arg(cmd) + extMsg;
 		break;
 	}
-	case kLuaError:
+	case kLuaError://lua錯誤
 	{
 		if (extMsg.contains("FLAG_DETECT_STOP"))
 		{
@@ -1811,6 +1812,7 @@ void Parser::handleError(qint64 err, const QString& addition)
 	}
 	default:
 	{
+		//參數錯誤
 		if (err >= kArgError && err <= kArgError + 20ll)
 		{
 			--counter_->validCommand;
@@ -1856,10 +1858,10 @@ QVariant Parser::luaDoString(QString expr)
 	if (expr.isEmpty())
 		return "nil";
 
-	importLocalVariablesToPreLuaList();
-	try { updateSysConstKeyword(expr); }
-	catch (...) {}
-	checkConditionalOperator(expr);
+	importLocalVariablesToPreLuaList();//將局變量倒出成lua格式列表
+	try { updateSysConstKeyword(expr); } //更新系統變量
+	catch (...) { return "nil"; }
+	checkConditionalOperator(expr); //替換三目語法
 
 	QStringList localVars = *luaLocalVarStringList_;
 	localVars.append(expr);
@@ -1868,6 +1870,7 @@ QVariant Parser::luaDoString(QString expr)
 	sol::state& lua_ = pLua_->getLua();
 
 	const std::string exprStrUTF8 = exprStr.toUtf8().constData();
+	//執行lua
 	sol::protected_function_result loaded_chunk = lua_.safe_script(exprStrUTF8, sol::script_pass_on_error);
 	lua_.collect_garbage();
 	if (!loaded_chunk.valid())
@@ -2955,7 +2958,14 @@ qint64 Parser::processCommand()
 		}
 
 		qint64 currentIndex = getIndex();
-		status = function(currentIndex, getCurrentLine(), tokens);
+		try
+		{
+			status = function(currentIndex, getCurrentLine(), tokens);
+		}
+		catch (...)
+		{
+			return kError;
+		}
 	}
 	else
 	{
@@ -3986,8 +3996,17 @@ void Parser::processTokens()
 		}
 
 		if (!isSubScript())
+		{
+			QString path = getScriptFileName();
+			QString dirName = "script/";
+			qint64 indexScript = path.indexOf(dirName);
+			if (indexScript != -1)
+				path = path.mid(indexScript + dirName.size());
+
 			emit signalDispatcher.appendScriptLog(QObject::tr(" ========== script result : %1，cost %2 ==========")
-				.arg("'" + getScriptFileName() + "' " + (isSubScript() ? QObject::tr("sub-ok") : QObject::tr("main-ok"))).arg(util::formatMilliseconds(timer.elapsed())));
+				.arg("'" + path + "' " + (isSubScript() ? QObject::tr("sub-ok") : QObject::tr("main-ok"))).arg(util::formatMilliseconds(timer.elapsed())));
+			injector.log.close();
+		}
 	}
 
 	processClean();
@@ -4177,6 +4196,20 @@ void Parser::updateSysConstKeyword(const QString& expr)
 	if (expr.contains("isdialog"))
 	{
 		lua_.set("isdialog", injector.server->isDialogVisible());
+	}
+
+	if (expr.contains("gtime"))
+	{
+		static const QHash<qint64, QString> hash = {
+			{ LS_NOON, QObject::tr("noon") },
+			{ LS_EVENING, QObject::tr("evening") },
+			{ LS_NIGHT , QObject::tr("night") },
+			{ LS_MORNING, QObject::tr("morning") },
+		};
+
+		qint64 satime = injector.server->saCurrentGameTime.load(std::memory_order_release);
+		QString timeStr = hash.value(satime, QObject::tr("unknown"));
+		lua_.set("gtime", timeStr.toUtf8().constData());
 	}
 
 	//char\.(\w+)
@@ -4547,10 +4580,14 @@ void Parser::updateSysConstKeyword(const QString& expr)
 
 		team["count"] = static_cast<qint64>(injector.server->getPartySize());
 
+		mapunit_s unit = {};
+		PARTY party = {};
+		qint64 index = -1;
+
 		for (qint64 i = 0; i < MAX_PARTY; ++i)
 		{
-			PARTY party = injector.server->getParty(i);
-			qint64 index = i + 1;
+			party = injector.server->getParty(i);
+			index = i + 1;
 
 			team[index]["valid"] = party.valid;
 
@@ -4559,6 +4596,9 @@ void Parser::updateSysConstKeyword(const QString& expr)
 			team[index]["id"] = party.id;
 
 			team[index]["name"] = party.name.toUtf8().constData();
+
+			if (injector.server->findUnit("", util::OBJ_HUMAN, &unit, "", party.id))
+				team[index]["fname"] = unit.freeName.toUtf8().constData();
 
 			team[index]["lv"] = party.level;
 
@@ -4569,6 +4609,7 @@ void Parser::updateSysConstKeyword(const QString& expr)
 			team[index]["hpp"] = party.hpPercent;
 
 			team[index]["mp"] = party.mp;
+
 		}
 	}
 

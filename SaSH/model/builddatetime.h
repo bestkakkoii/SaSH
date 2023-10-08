@@ -24,24 +24,16 @@ namespace compile
 		const QLocale l(QLocale::English);
 		const QDateTime d(l.toDateTime(dateTimeStr, "MMM dd yyyy"));
 
-		// 獲取日期對應的時區
-		const QTimeZone timeZone = QTimeZone::systemTimeZone();
-
-		// 判斷是否在夏令時期間
-		const bool isDST = timeZone.isDaylightTime(d);
-
 		// 構建日期時間字符串
 		const QString str(QString("%1 %2").arg(d.toString("yyyy-MM-dd")).arg(global_time));
 
 		QDateTime dt(QDateTime::fromString(str, "yyyy-MM-dd hh:mm:ss"));
 
-		constexpr qint64 baseTime = 60ll * 60ll;
+		QTimeZone pacificTimeZone("America/Los_Angeles");
+		dt.setTimeZone(pacificTimeZone);
 
-		// 根據夏令時調整時間
-		if (isDST)
-			dt = dt.addSecs(15ll * baseTime); // 考慮夏令時變化和 -15 小時
-		else
-			dt = dt.addSecs(15ll * baseTime); // 考慮 -16 小時
+		QTimeZone beijingTimeZone("Asia/Shanghai");
+		dt = dt.toTimeZone(beijingTimeZone);
 
 		g_buildDate = dt;
 

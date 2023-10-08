@@ -127,10 +127,13 @@ public:
 
 	QString getGround(qint64 floor, const QString& name, const QPoint& src);
 
-private:
-	Q_REQUIRED_RESULT inline QString getCurrentMapPath(qint64 floor) const;
+	Q_REQUIRED_RESULT QString getCurrentPreHandleMapPath(qint64 floor) const;
 
-	inline void setMapDataByFloor(qint64 floor, const map_t& map);
+private:
+	Q_REQUIRED_RESULT QString getCurrentMapPath(qint64 floor) const;
+
+
+	void setMapDataByFloor(qint64 floor, const map_t& map);
 	void setPixmapByIndex(qint64 index, const QPixmap& pix);
 
 	bool loadFromBinary(qint64 floor, map_t* _map);
@@ -200,7 +203,7 @@ public:
 		bool CHECKRANGE(int y) const
 		{
 			return (((h()) - (y)) > 0) && (((h()) - (y)) < h());
-		};
+};
 	};
 #endif
 

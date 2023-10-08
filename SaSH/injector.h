@@ -50,6 +50,16 @@ public:
 		return *instances.value(index);
 	}
 
+	static bool get(qint64 index, Injector** ppinstance)
+	{
+		if (!instances.contains(index))
+			return false;
+
+		if (ppinstance != nullptr)
+			*ppinstance = instances.value(index);
+		return true;
+	}
+
 public:
 	static void reset();
 	static void reset(qint64 index);

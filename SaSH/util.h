@@ -33,12 +33,15 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include <QHash>
 #include <type_traits>
 #include "3rdparty/simplecrypt.h"
+#include "model/treewidget.h"
 #include "model/treewidgetitem.h"
 
 constexpr qint64 SASH_VERSION_MAJOR = 1;
 constexpr qint64 SASH_VERSION_MINOR = 0;
 constexpr qint64 SASH_VERSION_PATCH = 0;
 constexpr qint64 SASH_MAX_THREAD = 65535;
+constexpr const char* SASH_INJECT_DLLNAME = "sadll";
+constexpr const char* SASH_SUPPORT_GAMENAME = "sa_8001.exe";
 
 typedef struct break_marker_s
 {
@@ -118,7 +121,7 @@ namespace mem
 #else
 	inline DWORD* getKernel32()
 	{
-		return (DWORD*)GetModuleHandleW(L"kernelbase.dll");
+		return (DWORD*)GetModuleHandleW(L"kernel32.dll");
 	}
 #endif
 
@@ -129,11 +132,11 @@ namespace mem
 	bool injectByWin7(qint64 index, DWORD dwProcessId, HANDLE hProcess, QString dllPath, HMODULE* phDllModule, quint64* phGameModule);
 	bool injectBy64(qint64 index, HANDLE hProcess, QString dllPath, HMODULE* phDllModule, quint64* phGameModule);//兼容64位注入32位
 	bool inject(qint64 index, HANDLE hProcess, QString dllPath, HMODULE* phDllModule, quint64* phGameModule);//32注入32
+	bool enumProcess(QVector<qint64>* pprocesses, const QString& moduleName);
 }
 
 namespace util
 {
-	constexpr const char* SA_NAME = "sa_8001.exe";
 	constexpr const char* DEFAULT_CODEPAGE = "UTF-8";
 	constexpr const char* DEFAULT_GAME_CODEPAGE = "GBK";//gb18030/gb2312
 	constexpr const char* SCRIPT_DEFAULT_SUFFIX = ".txt";
@@ -1050,16 +1053,23 @@ namespace util
 		pTabBar->setExpanding(true);
 	}
 
-	bool createFileDialog(const QString& name, QString* retstring, QWidget* parent);
-
 	bool customStringCompare(const QString& str1, const QString& str2);
 
-	QFileInfoList loadAllFileLists(TreeWidgetItem* root, const QString& path, QStringList* list = nullptr,
-		const QString& fileIcon = ":/image/icon_txt.png", const QString& folderIcon = ":/image/icon_directory.png");
-	QFileInfoList loadAllFileLists(TreeWidgetItem* root, const QString& path, const QString& suffix, const QString& icon, QStringList* list = nullptr
-		, const QString& folderIcon = ":/image/icon_directory.png");
+	QFileInfoList loadAllFileLists(
+		TreeWidgetItem* root,
+		const QString& path,
+		QStringList* list = nullptr,
+		const QString& fileIcon = ":/image/icon_txt.png",
+		const QString& folderIcon = ":/image/icon_directory.png");
 
-	void searchFiles(const QString& dir, const QString& fileNamePart, const QString& suffixWithDot, QList<QString>* result);
+	QFileInfoList loadAllFileLists(
+		TreeWidgetItem* root,
+		const QString& path,
+		const QString& suffix,
+		const QString& icon, QStringList* list = nullptr,
+		const QString& folderIcon = ":/image/icon_directory.png");
+
+	void searchFiles(const QString& dir, const QString& fileNamePart, const QString& suffixWithDot, QStringList* result, bool withcontent);
 
 	bool enumAllFiles(const QString dir, const QString suffix, QVector<QPair<QString, QString>>* result);
 
@@ -2282,8 +2292,12 @@ namespace util
 				}
 				m_maps.clear();
 			}
+
 			if (QFile::isOpen())
+			{
+				QFile::flush();
 				QFile::close();
+			}
 		}
 
 		template <typename T>

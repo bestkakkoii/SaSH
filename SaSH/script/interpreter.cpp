@@ -107,7 +107,7 @@ bool Interpreter::doFile(qint64 beginLine, const QString& fileName, Interpreter*
 		emit signalDispatcher.scriptContentChanged(fileName, QVariant::fromValue(QHash<qint64, TokenMap>{}));
 	}
 
-	pCallback = std::bind(&Interpreter::mainScriptCallBack, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
+	pCallback = std::bind(&Interpreter::scriptCallBack, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
 	parser_.setCallBack(pCallback);
 	openLibs();
 
@@ -345,6 +345,10 @@ bool Interpreter::waitfor(qint64 timeout, std::function<bool()> exprfun)
 	Injector& injector = Injector::getInstance(currentIndex);
 	bool bret = false;
 	QElapsedTimer timer; timer.start();
+	qint64 delay = timeout / 10;
+	if (delay > 100)
+		delay = 100;
+
 	for (;;)
 	{
 		checkPause();
@@ -364,7 +368,7 @@ bool Interpreter::waitfor(qint64 timeout, std::function<bool()> exprfun)
 		if (timer.hasExpired(timeout))
 			break;
 
-		QThread::msleep(100);
+		QThread::msleep(delay);
 	}
 	return bret;
 }
@@ -378,9 +382,6 @@ void Interpreter::openLibs()
 
 	registerFunction("run", &Interpreter::run);
 	registerFunction("dostr", &Interpreter::dostr);
-	registerFunction("menu", &Interpreter::menu);
-	registerFunction("createch", &Interpreter::createch);
-	registerFunction("delch", &Interpreter::delch);
 	registerFunction("send", &Interpreter::send);
 
 	//check
@@ -399,10 +400,7 @@ void Interpreter::openLibs()
 
 	//move
 	registerFunction("dir", &Interpreter::setdir);
-	registerFunction("walkpos", &Interpreter::move);
-	registerFunction("move", &Interpreter::fastmove);
-	registerFunction("w", &Interpreter::packetmove);
-	registerFunction("chmap", &Interpreter::teleport);
+	registerFunction("walkpos", &Interpreter::walkpos);
 
 	//action
 	registerFunction("useitem", &Interpreter::useitem);
@@ -419,8 +417,8 @@ void Interpreter::openLibs()
 	registerFunction("cook", &Interpreter::cook);
 	registerFunction("usemagic", &Interpreter::usemagic);
 	registerFunction("pickup", &Interpreter::pickitem);
-	registerFunction("petstone", &Interpreter::depositgold);
-	registerFunction("gettone", &Interpreter::withdrawgold);
+	registerFunction("putstone", &Interpreter::depositgold);
+	registerFunction("getstone", &Interpreter::withdrawgold);
 	registerFunction("skup", &Interpreter::addpoint);
 	registerFunction("learn", &Interpreter::learn);
 	registerFunction("trade", &Interpreter::trade);
@@ -462,7 +460,7 @@ void Interpreter::openLibs()
 	registerFunction("bend", &Interpreter::bend);
 }
 
-qint64 Interpreter::mainScriptCallBack(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
+qint64 Interpreter::scriptCallBack(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
 {
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
 	if (isInterruptionRequested())
@@ -534,6 +532,7 @@ qint64 Interpreter::mainScriptCallBack(qint64 currentIndex, qint64 currentLine, 
 		injector.break_markers.insert(scriptFileName, breakMarkers);
 		//所有行插入隱式斷點(用於單步)
 		emit signalDispatcher.addStepMarker(currentLine, true);
+		emit signalDispatcher.breakMarkInfoImport();
 	}
 
 	emit signalDispatcher.addForwardMarker(currentLine, true);
@@ -614,14 +613,16 @@ bool Interpreter::checkBattleThenWait()
 			QThread::msleep(100);
 		}
 
-		QThread::msleep(2000UL);
+		QThread::msleep(1000UL);
 	}
+
 	return bret;
 }
 
 bool Interpreter::checkOnlineThenWait()
 {
 	checkPause();
+
 	qint64 currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
 
@@ -653,8 +654,9 @@ bool Interpreter::checkOnlineThenWait()
 			QThread::msleep(100);
 		}
 
-		QThread::msleep(2000UL);
+		QThread::msleep(1000UL);
 	}
+
 	return bret;
 }
 

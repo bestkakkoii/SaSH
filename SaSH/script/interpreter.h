@@ -58,7 +58,7 @@ public slots:
 	void proc();
 
 private:
-	qint64 mainScriptCallBack(qint64 currentIndex, qint64 currentLine, const TokenMap& token);
+	qint64 scriptCallBack(qint64 currentIndex, qint64 currentLine, const TokenMap& token);
 
 private:
 
@@ -85,9 +85,6 @@ private: //註冊給Parser的函數
 	qint64 press(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
 	qint64 run(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
 	qint64 dostr(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
-	qint64 menu(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
-	qint64 createch(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
-	qint64 delch(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
 	qint64 send(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
 
 	//check
@@ -104,9 +101,7 @@ private: //註冊給Parser的函數
 
 	//move
 	qint64 setdir(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
-	qint64 move(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
-	qint64 fastmove(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
-	qint64 packetmove(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
+	qint64 walkpos(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
 
 	//action
 	qint64 useitem(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
@@ -125,7 +120,6 @@ private: //註冊給Parser的函數
 	qint64 pickitem(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
 	qint64 depositgold(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
 	qint64 withdrawgold(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
-	qint64 teleport(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
 	qint64 addpoint(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
 	qint64 learn(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
 	qint64 trade(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);

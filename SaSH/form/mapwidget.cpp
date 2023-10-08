@@ -39,16 +39,19 @@ MapWidget::MapWidget(qint64 index, QWidget* parent)
 	setAttribute(Qt::WA_DeleteOnClose);
 	setAttribute(Qt::WA_StyledBackground);
 	setWindowTitle(QString("[%1]").arg(index));
-	//setStyleSheet("background-color:rgb(0,0,1)");
 
-	//setAttribute(Qt::WA_OpaquePaintEvent, true);
-	//setAttribute(Qt::WA_NoSystemBackground);
-	//setAttribute(Qt::WA_WState_WindowOpacitySet);
+	takeCentralWidget();
+	setDockNestingEnabled(true);
+	addDockWidget(Qt::LeftDockWidgetArea, ui.dockWidget_gl);
+	addDockWidget(Qt::RightDockWidgetArea, ui.dockWidget_list);
+	addDockWidget(Qt::BottomDockWidgetArea, ui.dockWidget_view);
 
-	//setWindowFlags(Qt::FramelessWindowHint);
+	splitDockWidget(ui.dockWidget_gl, ui.dockWidget_view, Qt::Vertical);
+	splitDockWidget(ui.dockWidget_gl, ui.dockWidget_list, Qt::Horizontal);
 
-	//CustomTitleBar* titleBar = new CustomTitleBar(this);
-	//setMenuWidget(titleBar);
+	ui.dockWidget_gl->setFeatures(QDockWidget::DockWidgetClosable | QDockWidget::DockWidgetMovable | QDockWidget::DockWidgetFloatable);
+	ui.dockWidget_view->setFeatures(QDockWidget::DockWidgetClosable | QDockWidget::DockWidgetMovable | QDockWidget::DockWidgetFloatable);
+	ui.dockWidget_list->setFeatures(QDockWidget::DockWidgetClosable | QDockWidget::DockWidgetMovable | QDockWidget::DockWidgetFloatable);
 
 	//set header text
 	ui.tableWidget_NPCList->setColumnCount(2);
@@ -58,20 +61,13 @@ MapWidget::MapWidget(qint64 index, QWidget* parent)
 	ui.tableWidget_NPCList->verticalHeader()->setVisible(false);
 	ui.tableWidget_NPCList->verticalHeader()->setDefaultSectionSize(11);
 	ui.tableWidget_NPCList->verticalHeader()->setSectionResizeMode(QHeaderView::Fixed);
-	ui.tableWidget_NPCList->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);//隐藏滚动条
+	//ui.tableWidget_NPCList->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);//隐藏滚动条
 
-#if !OPEN_GL_ON
-	ui.openGLWidget->close();
-	connect(&timer_, &QTimer::timeout, [this]()
-		{
-			update();
-		}
-	);
-	timer_.start(1000);
-#else
+	connect(this, &MapWidget::updateMap, ui.graphicsView, &GraphicView::onUpdateMap);
+
+
 	connect(&gltimer_, &QTimer::timeout, this, &MapWidget::onRefreshTimeOut);
 	gltimer_.start(MAP_REFRESH_TIME);
-#endif
 
 	connect(&downloadMapTimer_, &QTimer::timeout, this, &MapWidget::onDownloadMapTimeout);
 
@@ -82,7 +78,7 @@ MapWidget::MapWidget(qint64 index, QWidget* parent)
 		return;
 
 	QString content;
-	if (!util::readFile(util::applicationDirPath() + "/map/point.txt", &content))
+	if (!util::readFile(util::applicationDirPath() + "/lib/map/point.txt", &content))
 	{
 		qDebug() << "Failed to open point.dat";
 		return;
@@ -163,7 +159,7 @@ static inline void zoom(QWidget* p, const QPixmap& pix, qreal* scaleWidth, qreal
 	}
 	else
 	{
-		tmp_zoom = ((p->height()) / (imageHeight));
+		tmp_zoom = ((p->height() - 50) / (imageHeight));
 		*scaleWidth = ((imageWidth) * (tmp_zoom + fix));
 		*scaleHeight = ((imageHeight) * (tmp_zoom + fix));
 	}
@@ -172,104 +168,6 @@ static inline void zoom(QWidget* p, const QPixmap& pix, qreal* scaleWidth, qreal
 
 	*zoom_value = tmp_zoom + fix;
 }
-
-#if !OPEN_GL_ON
-void CHECK_FOLDER(const QString& current_dir, const QString& map_dirPath)
-{
-	const QDir dir(map_dirPath);
-	if (!dir.exists(map_dirPath))
-		dir.mkdir(map_dirPath);
-
-	//建立子資料夾
-	qint64 j = 0;
-	for (qint64 i = 0; i <= 1; ++i)
-	{
-		QString msubdir(QString("%1/map/%2").arg(current_dir).arg(i));
-		const QDir sub(msubdir);
-		if (!sub.exists(msubdir))
-			sub.mkdir(msubdir);
-		if (i == 1)
-		{
-			for (j = 1; j <= MAX_THREAD; ++j)
-			{
-				QString msubsubdir(QString("%1/map/%2/%3").arg(current_dir).arg(i).arg(j));
-				const QDir subsub(msubsubdir);
-				if (!subsub.exists(msubsubdir))
-					subsub.mkdir(msubsubdir);
-			}
-		}
-	}
-}
-
-void MapWidget::paintEvent(QPaintEvent* paint)
-{
-	if (!qasm)
-	{
-		close();
-		return;
-	}
-
-	if (paint->type() == QEvent::Quit || paint->type() == QEvent::None) return;
-
-	const QString current_dir(qgetenv("DIR_PATH_UTF8"));
-	const QString map_dirPath(QString("%1/map").arg(current_dir));
-	CHECK_FOLDER(current_dir, map_dirPath);
-
-	qint64 width = 0, height = 0;
-
-
-	const QString map_current_fileName(qasm->GetCurrentMapPath());
-	if (map_current_fileName.isEmpty())return;
-
-	const QString bitmap_fileName(QString("%1/%2.bmp").arg(current_dir).arg(map_current_fileName.mid(0, map_current_fileName.lastIndexOf('.'))));
-	bool bret = false;
-
-	Char* _ch = _CHAR_getChar(qasm);
-	QPoint qp_current = _ch->p;
-
-	setWindowTitle(QString("map:%1 floor:%2 [%3,%4] file:%5").arg(_ch->map).arg(_ch->floor).arg(qp_current.x()).arg(qp_current.y()).arg(map_current_fileName));
-
-	if (!qasm._MAP_ReadFromBinary(qasm, true))
-		return;
-
-	QPixmap m_pix(bitmap_fileName, "BMP", Qt::ImageConversionFlag::NoOpaqueDetection);
-
-	qreal zoom_value = 0.0;
-
-	qreal scaleWidth_ = width();
-	qreal m_scalHeight = height();
-
-	zoom(this, m_pix, &scaleWidth_, &m_scalHeight, &zoom_value);
-	//resize(static_cast<qint64>(scaleWidth_), static_cast<qint64>(m_scalHeight));
-	//setUpdatesEnabled(false);
-
-	QPainter paintImage;
-	paintImage.begin(this);
-	paintImage.drawPixmap(0, 0, static_cast<qint64>(scaleWidth_), static_cast<qint64>(m_scalHeight), m_pix);
-	paintImage.end();
-
-	//畫刷。填充幾何圖形的調色板，由顏色和填充風格組成
-	QPen m_penBlue(QColor(65, 105, 225));
-	QBrush m_brushBlue(QColor(65, 105, 225), Qt::SolidPattern);
-	QPainter lineChar;
-	lineChar.begin(this);
-	lineChar.setBrush(m_brushBlue);
-	lineChar.setPen(m_penBlue);
-	lineChar.drawLine(0, (qp_current.y() * zoom_value), width(), qp_current.y() * zoom_value);//繪制橫向線
-	lineChar.drawLine(qp_current.x() * zoom_value, 0, (qp_current.x() * zoom_value), height());	//繪制縱向線
-	lineChar.end();
-
-	QPainter rectChar;
-	QPen m_penRed(Qt::red);
-	QBrush m_brushRed(Qt::red, Qt::SolidPattern);
-	rectChar.begin(this);
-	rectChar.setBrush(m_brushRed);
-	rectChar.setPen(m_penRed);
-	rectChar.drawRect((qp_current.x() * zoom_value) + 1, ((qp_current.y() - 1) * zoom_value), zoom_value, zoom_value);//繪制橫向線
-	rectChar.end();
-	//setUpdatesEnabled(true);
-}
-#else
 
 void MapWidget::onRefreshTimeOut()
 {
@@ -555,7 +453,9 @@ void MapWidget::onRefreshTimeOut()
 	updateNpcListAllContents(dataVar);
 #endif
 
-	zoom(ui.widget, ppix, &scaleWidth_, &scaleHeight_, &zoom_value_, fix_zoom_value_);
+	emit updateMap(ppix, qp_current.toPoint());
+
+	zoom(ui.dockWidget_gl, ppix, &scaleWidth_, &scaleHeight_, &zoom_value_, fix_zoom_value_);
 
 	if (ui.openGLWidget->width() != static_cast<qint64>(scaleWidth_) || ui.openGLWidget->height() != static_cast<qint64>(scaleHeight_))
 		ui.openGLWidget->resize(scaleWidth_, scaleHeight_);
@@ -648,52 +548,6 @@ void MapWidget::on_openGLWidget_notifyWheelMove(const QPointF& zoom, const QPoin
 	onRefreshTimeOut();
 }
 
-#if 0
-bool MapWidget::CHECK_BATTLE_THEN_WAITFOR(QAsm& qa)
-{
-	bool bret = false;
-	if (qa.IS_BATTLE_FLAG)
-	{
-		bret = true;
-		do
-		{
-			if (!qa.IsWindowAlive())
-				break;
-			if (!isVisible())
-				break;
-			QThread::msleep(100UL);
-		} while (qa.IS_BATTLE_FLAG);
-		QThread::msleep((DWORD)qa.GetWorkInt(QAsm::SET_WAITFOR_BATTLE_DELAY_VALUE));
-	}
-	return bret;
-}
-
-bool MapWidget::findpath(QPoint dst)
-{
-	if (!ThreadManager::isValid(index_)) return false;
-	QSharedPointer<MainThread> thread = ThreadManager::value(index_);
-	if (thread.isNull()) return false;
-
-
-	ui.openGLWidget->blockSignals(true);
-	if (!m_thread.isNull())
-	{
-		m_thread->on_pause(false);
-		m_thread->on_stop(QLuaBase::WORKINT_FROM_USER_STOP_REQUEST_STATE);
-		while (!m_thread.isNull()) { QApplication::processEvents(); }
-	}
-	ui.openGLWidget->blockSignals(false);
-
-	const QString str(QString("map.findpath(%1, %2); sys.EO();").arg(dst.x()).arg(dst.y()));
-	m_thread.reset(q_check_ptr(new QLuaThread(thread, QLuaDebuger::WORKINT_DEBUG_DISABLE, str, this, this)));
-	connect(m_thread.get(), &QLuaThread::clear, this, &MapWidget::on_clear);
-	if (m_thread.isNull()) return false;
-	m_thread->setThreadTypeAsSubThread();
-	m_thread->start(QThread::Priority::TimeCriticalPriority);
-	return true;
-}
-#endif
-
 void MapWidget::downloadNextBlock()
 {
 	qint64 blockWidth = qMin(MAX_BLOCK_SIZE, downloadMapXSize_ - downloadMapX_);
@@ -750,7 +604,7 @@ void MapWidget::onDownloadMapTimeout()
 		setWindowTitle(caption);
 
 		injector.server->mapAnalyzer->clear(floor);
-		const QString fileName(util::applicationDirPath() + "/map/" + util::toQString(floor) + ".dat");
+		const QString fileName(injector.server->mapAnalyzer->getCurrentPreHandleMapPath(floor));
 		QFile file(fileName);
 		if (file.exists())
 		{
@@ -807,12 +661,7 @@ void MapWidget::on_pushButton_clear_clicked()
 	qint64 floor = injector.server->getFloor();
 	injector.server->mapAnalyzer->clear(floor);
 
-	const QString dirPath(QString("%1/map/%2").arg(util::applicationDirPath()).arg(injector.currentServerListIndex));
-	QDir dir(dirPath);
-	if (!dir.exists())
-		dir.mkdir(dirPath);
-
-	const QString fileName(QString("%1/%2.dat").arg(dirPath).arg(floor));
+	const QString fileName(injector.server->mapAnalyzer->getCurrentPreHandleMapPath(floor));
 	QFile file(fileName);
 	if (!file.exists())
 		return;
@@ -872,7 +721,6 @@ void MapWidget::onClear()
 		interpreter_->stop();
 	}
 }
-#endif
 
 void MapWidget::updateNpcListAllContents(const QVariant& d)
 {

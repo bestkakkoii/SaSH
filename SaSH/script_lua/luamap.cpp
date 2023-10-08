@@ -68,7 +68,7 @@ qint64 CLuaMap::setDir(std::string sdir, sol::this_state s)
 	return TRUE;
 }
 
-qint64 CLuaMap::move(qint64 x, qint64 y, sol::this_state s)
+qint64 CLuaMap::move(sol::object obj, qint64 y, sol::this_state s)
 {
 	sol::state_view lua(s);
 	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
@@ -77,10 +77,26 @@ qint64 CLuaMap::move(qint64 x, qint64 y, sol::this_state s)
 
 	luadebug::checkBattleThenWait(s);
 
-	QPoint pos(static_cast<int>(x), static_cast<int>(y));
+	qint64 x = 0;
+	QPoint p;
+	QString dirStr;
+	if (obj.is<qint64>() || obj.is<double>())
+	{
+		x = obj.as<qint64>();
+		p = QPoint(static_cast<int>(x), static_cast<int>(y));
+	}
+	else if (obj.is<std::string>())
+	{
+		if (!dirMap.contains(dirStr.toUpper().simplified()))
+			return FALSE;
 
-	injector.server->move(pos);
+		DirType dir = dirMap.value(dirStr.toUpper().simplified());
+		//計算出往該方向10格的坐標
+		p = injector.server->getPoint() + util::fix_point.value(dir) * 10;
+	}
 
+	injector.server->move(p);
+	QThread::msleep(100);
 	return TRUE;
 }
 
@@ -141,7 +157,7 @@ qint64 CLuaMap::downLoad(sol::object ofloor, sol::this_state s)
 		exePath = exePath.replace(QChar('\\'), QChar('/'));
 		//去掉sa_8001.exe
 		exePath = exePath.left(exePath.lastIndexOf(QChar('/')));
-		//補上map
+		//補上map 這裡是遊戲的地圖目錄
 		exePath += "/map";
 
 		//遍歷.dat
@@ -150,6 +166,7 @@ qint64 CLuaMap::downLoad(sol::object ofloor, sol::this_state s)
 			qint64 floor;
 			qint64 size;
 		};
+
 		QList<map> list;
 		QDir dir(exePath);
 		dir.setFilter(QDir::Files | QDir::NoSymLinks);

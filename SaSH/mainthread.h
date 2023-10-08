@@ -199,13 +199,7 @@ class UniqueIdManager
 private:
 	UniqueIdManager()
 	{
-		QStringList list;
-		for (int i = 0; i < SASH_MAX_THREAD; ++i)
-			list << QString::number(i);
 
-		QString combined = QString(R"({"ids":[%1]})").arg(list.join(","));
-		QByteArray byteArray = combined.toUtf8();
-		totalBytes_ = byteArray.size();
 	}
 
 public:
@@ -235,21 +229,11 @@ public:
 
 		// 嘗試連接到共享內存，如果不存在則創建
 		sharedMemory_.setKey("UniqueIdManagerSharedMemory");
-		if (!sharedMemory_.attach())
+		if (!sharedMemory_.isAttached() && !sharedMemory_.attach())
 		{
-
+			qDebug() << "sharedMemory not exist, create new one now.";
 			sharedMemory_.create(totalBytes_);
 			reset();
-		}
-		else
-		{
-			// 如果共享內存已經存在，則檢查大小是否足夠
-			if (sharedMemory_.size() < totalBytes_)
-			{
-				sharedMemory_.detach();
-				sharedMemory_.create(totalBytes_);
-				reset();
-			}
 		}
 
 		QSet<qint64> allocatedIds;
@@ -286,7 +270,6 @@ public:
 		} while (false);
 
 		semaphore.release();
-
 		return  allocatedId;
 	}
 
@@ -312,7 +295,10 @@ private:
 		do
 		{
 			if (!sharedMemory_.lock())
+			{
+				qDebug() << "sharedMemory_.lock() == false";
 				break;
+			}
 
 			qDebug() << "sharedMemory_.size():" << sharedMemory_.size();
 
@@ -320,9 +306,15 @@ private:
 			sharedMemory_.unlock();
 
 			if (data.isEmpty())
+			{
+				qDebug() << "data.isEmpty() == true";
 				break;
+			}
 			else if (data.front() == '\0')
+			{
+				qDebug() << "data.front() == '\\0'";
 				break;
+			}
 
 			qint64 indexEof = data.indexOf('\0');
 			if (indexEof != -1)
@@ -397,6 +389,6 @@ private:
 private:
 
 	const QString jsonKey_ = "ids";
-	qint64 totalBytes_ = 0;
-	QSharedMemory sharedMemory_;
+	const qint64 totalBytes_ = 655360;
+	inline static QSharedMemory sharedMemory_;
 };

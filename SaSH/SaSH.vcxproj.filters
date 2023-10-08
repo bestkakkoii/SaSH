@@ -213,9 +213,6 @@
     <ClCompile Include="model\listview.cpp">
       <Filter>Source Files\model</Filter>
     </ClCompile>
-    <ClCompile Include="update\curldownload.cpp">
-      <Filter>Source Files\update</Filter>
-    </ClCompile>
     <ClCompile Include="update\downloader.cpp">
       <Filter>Source Files\update</Filter>
     </ClCompile>
@@ -290,6 +287,15 @@
     </ClCompile>
     <ClCompile Include="form\battlesettingfrom.cpp">
       <Filter>Source Files\forms\afk</Filter>
+    </ClCompile>
+    <ClCompile Include="form\settingfiledialog.cpp">
+      <Filter>Source Files\forms\dialog</Filter>
+    </ClCompile>
+    <ClCompile Include="3rdparty\unzip.cpp">
+      <Filter>Source Files\3rdparty</Filter>
+    </ClCompile>
+    <ClCompile Include="3rdparty\zip.cpp">
+      <Filter>Source Files\3rdparty</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -428,6 +434,12 @@
     <QtMoc Include="model\logger.h">
       <Filter>Source Files\util</Filter>
     </QtMoc>
+    <QtMoc Include="form\settingfiledialog.h">
+      <Filter>Source Files\forms\dialog</Filter>
+    </QtMoc>
+    <QtMoc Include="model\graphicview.h">
+      <Filter>Source Files\model</Filter>
+    </QtMoc>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stdafx.h">
@@ -460,9 +472,6 @@
     <ClInclude Include="model\highlighter.h">
       <Filter>Source Files\model</Filter>
     </ClInclude>
-    <ClInclude Include="update\curldownload.h">
-      <Filter>Source Files\update</Filter>
-    </ClInclude>
     <ClInclude Include="model\scopedhandle.h">
       <Filter>Source Files\model</Filter>
     </ClInclude>
@@ -492,6 +501,12 @@
     </ClInclude>
     <ClInclude Include="battle\battle.h">
       <Filter>battle</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\unzip.h">
+      <Filter>Source Files\3rdparty</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\zip.h">
+      <Filter>Source Files\3rdparty</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -565,6 +580,12 @@
       <Filter>Source Files\forms</Filter>
     </QtUic>
     <QtUic Include="form\battlesettingfrom.ui">
+      <Filter>Form Files</Filter>
+    </QtUic>
+    <QtUic Include="form\settingfiledialog.ui">
+      <Filter>Source Files\forms\dialog</Filter>
+    </QtUic>
+    <QtUic Include="form\settingfiledialog.ui">
       <Filter>Form Files</Filter>
     </QtUic>
   </ItemGroup>

@@ -24,10 +24,18 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "../script/parser.h"
 
 
-#if QT_NO_DEBUG
-#pragma comment(lib, "lua-5.4.4.lib")
+#ifdef _WIN64
+#ifdef _DEBUG
+#pragma comment(lib, "lua-5.4.4_x64d.lib")
 #else
+#pragma comment(lib, "lua-5.4.4_x64.lib")
+#endif
+#else
+#ifdef _DEBUG
 #pragma comment(lib, "lua-5.4.4d.lib")
+#else
+#pragma comment(lib, "lua-5.4.4.lib")
+#endif
 #endif
 
 #define OPEN_HOOK
@@ -296,7 +304,7 @@ bool luadebug::checkOnlineThenWait(const sol::this_state& s)
 			QThread::msleep(100);
 		}
 
-		QThread::msleep(2000UL);
+		QThread::msleep(1000UL);
 	}
 	return bret;
 }
@@ -330,7 +338,7 @@ bool luadebug::checkBattleThenWait(const sol::this_state& s)
 			QThread::msleep(100);
 		}
 
-		QThread::msleep(2000UL);
+		QThread::msleep(1000UL);
 	}
 	return bret;
 }
@@ -764,6 +772,10 @@ void CLua::open_syslibs(sol::state& lua)
 	lua.set_function("dbclick", &CLuaSystem::leftdoubleclick, &luaSystem_);
 	lua.set_function("dragto", &CLuaSystem::mousedragto, &luaSystem_);
 
+	lua.set_function("createch", &CLuaSystem::createch, &luaSystem_);
+	lua.set_function("delch", &CLuaSystem::delch, &luaSystem_);
+	lua.set_function("menu", &CLuaSystem::menu, &luaSystem_);
+
 	lua.new_usertype<QElapsedTimer>("Timer",
 		sol::call_constructor,
 		sol::constructors<QElapsedTimer()>(),
@@ -783,11 +795,6 @@ void CLua::open_syslibs(sol::state& lua)
 	lua.new_usertype<CLuaSystem>("SystemClass",
 		sol::call_constructor,
 		sol::constructors<CLuaSystem()>(),
-		"menu", sol::overload(
-			sol::resolve<qint64(qint64, sol::this_state)>(&CLuaSystem::menu),
-			sol::resolve<qint64(qint64, qint64, sol::this_state)>(&CLuaSystem::menu)
-		),
-
 		"press", sol::overload(
 			sol::resolve<qint64(std::string, qint64, qint64, sol::this_state)>(&CLuaSystem::press),
 			sol::resolve<qint64(qint64, qint64, qint64, sol::this_state)>(&CLuaSystem::press)

@@ -39,6 +39,7 @@ public:
 
 signals:
 	void on_close(qint64 index);
+	void updateMap(const QPixmap& map, const QPoint& characterPos);
 
 protected:
 	virtual void leaveEvent(QEvent*) override;
@@ -50,24 +51,6 @@ protected:
 		setAttribute(Qt::WA_Mapped);
 		QWidget::showEvent(e);
 	}
-
-	//virtual void mousePressEvent(QMouseEvent* e)  override
-	//{
-	//	if (e->button() == Qt::LeftButton)
-	//		clickPos_ = e->pos();
-	//}
-
-	//virtual void mouseMoveEvent(QMouseEvent* e) override
-	//{
-	//	if (e->buttons() & Qt::LeftButton)
-	//		move(e->pos() + pos() - clickPos_);
-	//}
-
-#if !OPEN_GL_ON
-	virtual void paintEvent(QPaintEvent* pevent) override;
-
-	int paintEngine() { return 0; }
-#endif
 
 private slots:
 	void onRefreshTimeOut();

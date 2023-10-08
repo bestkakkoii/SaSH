@@ -72,8 +72,9 @@ signals:
 	//global
 	void nodifyAllStop();
 	void nodifyAllScriptStop();
-	void messageBoxShow(const QString& text, qint64 type = 0, QString title = "", qint64* pnret = nullptr);
+	void messageBoxShow(const QString& text, qint64 type = 0, QString title = "", qint64* pnret = nullptr, QString topText = "", QString detail = "");
 	void inputBoxShow(const QString& text, qint64 type, QVariant* retvalue);
+	void fileDialogShow(const QString& name, qint64 acceptType, QString* retstring, void* p);
 
 	void applyHashSettingsToUI();
 	void saveHashSettings(const QString& name = "default", bool isFullPath = false);
@@ -112,6 +113,8 @@ signals:
 	void updateLabelCharAction(const QString& text);
 	void updateLabelPetAction(const QString& text);
 	void notifyBattleActionState(qint64 index, bool left);
+	void battleTableItemForegroundColorChanged(qint64 index, const QColor& color);
+	void battleTableAllItemResetColor();
 
 	void setStartButtonEnabled(bool enable);
 
@@ -140,6 +143,7 @@ signals:
 	void loadFileToTable(const QString& fileName, bool start = false);
 	void reloadScriptList();
 	void varInfoImported(void* p, const QVariantHash& d, const QStringList& globalNames);
+	void breakMarkInfoImport();
 
 	void scriptSpeedChanged(qint64 speed);
 

@@ -500,7 +500,7 @@ void GameService::New_lssproto_TK_send(int fd, int x, int y, const char* message
 //W2移動收包攔截
 void GameService::New_lssproto_W2_send(int fd, int x, int y, const char* message)
 {
-	SendMessageW(g_ParenthWnd, kSetMove, NULL, MAKELPARAM(x, y));
+	PostMessageW(g_ParenthWnd, kSetMove, NULL, MAKELPARAM(x, y));
 	pLssproto_W2_send(fd, x, y, message);
 }
 

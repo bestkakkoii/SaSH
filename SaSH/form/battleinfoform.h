@@ -44,6 +44,10 @@ private slots:
 
 	void onNotifyBattleActionState(qint64 index, bool left);
 
+	void onBattleTableItemForegroundColorChanged(qint64 index, const QColor& color);
+
+	void onBattleTableAllItemResetColor();
+
 protected:
 	virtual void showEvent(QShowEvent* e) override
 	{

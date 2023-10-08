@@ -23,8 +23,15 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 class TreeWidgetItem : public QTreeWidgetItem
 {
 public:
-	TreeWidgetItem(int type = Type) : QTreeWidgetItem(type) {}
-	TreeWidgetItem(QStringList l, int type = Type) :QTreeWidgetItem(l, type) {}
+	explicit TreeWidgetItem(int type = Type) : QTreeWidgetItem(type) {}
+	explicit TreeWidgetItem(const QStringList& strings, int type = Type) : QTreeWidgetItem(strings, type) {}
+	explicit TreeWidgetItem(QTreeWidget* treeview, int type = Type) : QTreeWidgetItem(treeview, type) {}
+	TreeWidgetItem(QTreeWidget* treeview, const QStringList& strings, int type = Type) : QTreeWidgetItem(treeview, strings, type) {}
+	TreeWidgetItem(QTreeWidget* treeview, QTreeWidgetItem* after, int type = Type) : QTreeWidgetItem(treeview, after, type) {}
+	explicit TreeWidgetItem(QTreeWidgetItem* parent, int type = Type) : QTreeWidgetItem(parent, type) {}
+	TreeWidgetItem(QTreeWidgetItem* parent, const QStringList& strings, int type = Type) : QTreeWidgetItem(parent, strings, type) {}
+	TreeWidgetItem(QTreeWidgetItem* parent, QTreeWidgetItem* after, int type = Type) : QTreeWidgetItem(parent, after, type) {}
+	TreeWidgetItem(const QTreeWidgetItem& other) : QTreeWidgetItem(other) {}
 
 	// 獲取字符類型
 	int getCharType(const QChar& ch) const

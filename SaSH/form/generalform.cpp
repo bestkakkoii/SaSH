@@ -128,7 +128,7 @@ GeneralForm::~GeneralForm()
 
 void GeneralForm::onResetControlTextLanguage()
 {
-	const QStringList positionList = { tr("Left"), tr("Right") };
+	const QStringList positionList = { tr("Left"), tr("Right"), tr("None") };
 
 	//下午 黃昏 午夜 早晨 中午
 	const QStringList timeList = { tr("Afternoon"), tr("Dusk"), tr("Midnight"), tr("Morning"), tr("Noon") };
@@ -208,18 +208,22 @@ void GeneralForm::onComboBoxClicked()
 		if (paths.isEmpty())
 		{
 			QString path;
-			if (!util::createFileDialog(util::SA_NAME, &path, this))
-			{
+			SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(getIndex());
+			QEventLoop loop;
+			emit signalDispatcher.fileDialogShow(SASH_SUPPORT_GAMENAME, QFileDialog::AcceptOpen, &path, &loop);
+			loop.exec();
 
+			if (path.isEmpty())
+			{
 				return;
 			}
-			else
-				paths.append(path);
+
+			paths.append(path);
 		}
 
 		for (const QString& path : paths)
 		{
-			if (path.contains(util::SA_NAME) && QFile::exists(path) && !newPaths.contains(path))
+			if (path.contains(SASH_SUPPORT_GAMENAME) && QFile::exists(path) && !newPaths.contains(path))
 			{
 				newPaths.append(path);
 			}
@@ -272,11 +276,16 @@ void GeneralForm::onButtonClicked()
 		if (fileName.isEmpty())
 			return;
 
+		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
 		QString newPath;
-		if (!util::createFileDialog(util::SA_NAME, &newPath, this))
+		QEventLoop loop;
+		emit signalDispatcher.fileDialogShow(SASH_SUPPORT_GAMENAME, QFileDialog::AcceptOpen, &newPath, &loop);
+		loop.exec();
+
+		if (newPath.isEmpty())
 			return;
 
-		if (!newPath.contains(util::SA_NAME) || !QFile::exists(newPath))
+		if (!newPath.contains(SASH_SUPPORT_GAMENAME) || !QFile::exists(newPath))
 			return;
 
 		util::Config config(fileName);
@@ -285,7 +294,7 @@ void GeneralForm::onButtonClicked()
 
 		for (const QString& path : paths)
 		{
-			if (path.contains(util::SA_NAME) && QFile::exists(path) && !newPaths.contains(path))
+			if (path.contains(SASH_SUPPORT_GAMENAME) && QFile::exists(path) && !newPaths.contains(path))
 			{
 				newPaths.append(path);
 			}
@@ -1009,13 +1018,13 @@ void GeneralForm::onApplyHashSettingsToUI()
 	serverListReLoad();
 
 	value = valueHash.value(util::kSubServerValue);
-	if (value >= 0 && value < ui.comboBox_server->count())
+	if (value >= 0 && value < ui.comboBox_subserver->count())
 		ui.comboBox_subserver->setCurrentIndex(value);
 	else
 		ui.comboBox_subserver->setCurrentIndex(0);
 
 	value = valueHash.value(util::kPositionValue);
-	if (value >= 0 && value < ui.comboBox_server->count())
+	if (value >= 0 && value < ui.comboBox_position->count())
 		ui.comboBox_position->setCurrentIndex(value);
 	else
 		ui.comboBox_position->setCurrentIndex(0);

@@ -19,13 +19,13 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #ifndef CODEEDITOR_H
 #define CODEEDITOR_H
 
-#ifndef QSCINTILLA_DLL
-#define QSCINTILLA_DLL
-#endif
-
-#ifndef QSCINTILLA_MAKE_DLL
-#define QSCINTILLA_MAKE_DLL
-#endif
+//#ifndef QSCINTILLA_DLL
+//#define QSCINTILLA_DLL
+//#endif
+//
+//#ifndef QSCINTILLA_MAKE_DLL
+//#define QSCINTILLA_MAKE_DLL
+//#endif
 
 #include <Qsci/qsciscintilla.h>
 #include "QSci/qsciapis.h"

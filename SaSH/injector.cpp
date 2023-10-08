@@ -22,12 +22,12 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 util::SafeHash<qint64, Injector*> Injector::instances;
 
-constexpr const char* InjectDllName = "sadll.dll";
 constexpr qint64 MessageTimeout = 3000;
 constexpr qint64 MAX_TIMEOUT = 30000;
 
 Injector::Injector(qint64 index)
 	: Indexer(index)
+	, log(index, nullptr)
 	, autil(index)
 {
 	scriptLogModel.reset(new StringListModel);
@@ -210,7 +210,6 @@ Injector::CreateProcessResult Injector::createProcess(Injector::process_informat
 		config.write("System", "Command", "encode", nEncode);
 	};
 
-#if 1
 	QProcess process;
 	qint64 pid = 0;
 	process.setArguments(commandList);
@@ -228,159 +227,6 @@ Injector::CreateProcessResult Injector::createProcess(Injector::process_informat
 		return CreateProcessResult::CreateAboveWindow8Success;
 	}
 	return CreateProcessResult::CreateAboveWindow8Failed;
-#endif
-
-#if 0
-	do
-	{
-		qint64 currentIndex = getIndex();
-		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
-
-		QString command = commandList.join(" ");
-		QString currentDir = QFileInfo(path).absolutePath();
-		QString applicationDirPath = util::applicationDirPath();
-		QString dllPath = applicationDirPath + "/" + InjectDllName;
-
-		QFileInfo fi(dllPath);
-		if (!fi.exists())
-		{
-			emit signalDispatcher.messageBoxShow(tr("Dll is not exist at %1").arg(dllPath));
-			break;
-		}
-
-		STARTUPINFOW si = {};
-		PROCESS_INFORMATION pi2 = {};
-		si.cb = sizeof(si);
-
-		QElapsedTimer timer; timer.start();
-
-		if (DetourCreateProcessWithDllExW(
-			path.toStdWString().c_str(),
-			const_cast<LPWSTR>(command.toStdWString().c_str()),
-			NULL,
-			NULL,
-			FALSE,
-			NULL,
-			NULL,
-			currentDir.toStdWString().c_str(),
-			&si,
-			&pi2,
-			dllPath.toStdString().c_str(),
-			::CreateProcessW) == FALSE)
-		{
-			break;
-		}
-
-		pi.dwProcessId = pi2.dwProcessId;
-		if (!processHandle_.isValid())
-			processHandle_.reset(pi2.hProcess);
-
-		if (canSave)
-			save();
-
-		if (nullptr == pi.hWnd)
-		{
-			//查找窗口句炳
-			for (;;)
-			{
-				::EnumWindows(EnumWindowsCallback, reinterpret_cast<LPARAM>(&pi));
-				if (pi.hWnd)
-				{
-					DWORD dwProcessId = 0;
-					::GetWindowThreadProcessId(pi.hWnd, &dwProcessId);
-					if (dwProcessId == pi.dwProcessId)
-						break;
-				}
-
-				if (timer.hasExpired(MAX_TIMEOUT))
-				{
-					emit signalDispatcher.messageBoxShow(tr("EnumWindows timeout"), QMessageBox::Icon::Critical);
-					break;
-				}
-
-				QThread::msleep(100);
-			}
-		}
-
-		if (nullptr == pi.hWnd)
-		{
-			emit signalDispatcher.messageBoxShow(QObject::tr("EnumWindows failed"), QMessageBox::Icon::Critical);
-			break;
-		}
-
-		qDebug() << "HWND OK";
-
-		//紀錄線程ID(目前沒有使用到只是先記錄著)
-		pi.dwThreadId = ::GetWindowThreadProcessId(pi.hWnd, nullptr);
-
-		hookdllModule_ = mem::getRemoteModuleHandleByProcessHandleW(processHandle_, InjectDllName);
-		if (nullptr == hookdllModule_)
-		{
-			emit signalDispatcher.messageBoxShow(QObject::tr("Game module is null"), QMessageBox::Icon::Critical);
-			break;
-		}
-
-		hGameModule_ = reinterpret_cast<quint64>(mem::getRemoteModuleHandleByProcessHandleW(processHandle_, "sa_8001.exe"));
-		if (NULL == hGameModule_)
-		{
-			hGameModule_ = 0x400000ULL;
-		}
-
-		pi_ = pi;
-
-		//通知客戶端初始化，並提供port端口讓客戶端連進來、另外提供本窗口句柄讓子進程反向檢查外掛是否退出
-		struct InitialData
-		{
-			__int64 parentHWnd = 0i64;
-			__int64 index = 0i64;
-			__int64 port = 0i64;
-			__int64 type = 0i64;
-		}injectdate;
-
-		enum
-		{
-			kIPv4,
-			kIPv6,
-		};
-
-		QOperatingSystemVersion version = QOperatingSystemVersion::current();
-		injectdate.index = currentIndex;
-		injectdate.parentHWnd = reinterpret_cast<__int64>(getParentWidget());
-		injectdate.port = server->getPort();
-		if (version > QOperatingSystemVersion::Windows7)
-			injectdate.type = kIPv6;
-		else
-			injectdate.type = kIPv4;
-
-		const util::VirtualMemory lpStruct(processHandle_, sizeof(InitialData), true);
-		if (!lpStruct.isValid())
-		{
-			emit signalDispatcher.messageBoxShow(QObject::tr("Remote virtualmemory alloc failed"), QMessageBox::Icon::Critical);
-			break;
-		}
-
-		mem::write(processHandle_, lpStruct, &injectdate, sizeof(InitialData));
-		sendMessage(kInitialize, lpStruct, NULL);
-
-		//去除改變窗口大小的屬性
-		LONG dwStyle = ::GetWindowLongW(pi.hWnd, GWL_STYLE);
-		LONG tempStyle = dwStyle;
-
-		if (dwStyle & WS_SIZEBOX)
-			dwStyle &= ~WS_SIZEBOX;
-
-		if (dwStyle & WS_MAXIMIZEBOX)
-			dwStyle &= ~WS_MAXIMIZEBOX;
-
-		if (tempStyle != dwStyle)
-			::SetWindowLongW(pi.hWnd, GWL_STYLE, dwStyle);
-
-		return CreateBelowWindow8Success;
-	} while (false);
-
-
-	return CreateBelowWindow8Failed;
-#endif
 }
 
 qint64 Injector::sendMessage(qint64 msg, qint64 wParam, qint64 lParam) const
@@ -444,13 +290,13 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 
 	if (pi.dwProcessId == 0)
 	{
-		emit signalDispatcher.messageBoxShow(tr("dwProcessId is null!"));
+		emit signalDispatcher.messageBoxShow(QObject::tr("dwProcessId is null!"));
 		return false;
 	}
 
 	if (nullptr == pReason)
 	{
-		emit signalDispatcher.messageBoxShow(tr("pReason is null!"));
+		emit signalDispatcher.messageBoxShow(QObject::tr("pReason is null!"));
 		return false;
 	}
 
@@ -462,12 +308,25 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 	do
 	{
 		QString applicationDirPath = util::applicationDirPath();
-		dllPath = applicationDirPath + "/" + InjectDllName;
+		QStringList files;
+		util::searchFiles(applicationDirPath, SASH_INJECT_DLLNAME, ".dll", &files, false);
+		if (files.isEmpty())
+		{
+			emit signalDispatcher.messageBoxShow(QObject::tr("Dll is not exist at %1").arg(applicationDirPath));
+			break;
+		}
+
+		dllPath = files.first();
+		if (dllPath.isEmpty())
+		{
+			emit signalDispatcher.messageBoxShow(QObject::tr("Dll is not exist at %1").arg(applicationDirPath));
+			break;
+		}
 
 		QFileInfo fi(dllPath);
 		if (!fi.exists())
 		{
-			emit signalDispatcher.messageBoxShow(tr("Dll is not exist at %1").arg(dllPath));
+			emit signalDispatcher.messageBoxShow(QObject::tr("Dll is not exist at %1").arg(dllPath));
 			break;
 		}
 
@@ -490,7 +349,7 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 
 				if (timer.hasExpired(MAX_TIMEOUT))
 				{
-					emit signalDispatcher.messageBoxShow(tr("EnumWindows timeout"), QMessageBox::Icon::Critical);
+					emit signalDispatcher.messageBoxShow(QObject::tr("EnumWindows timeout"), QMessageBox::Icon::Critical);
 					break;
 				}
 
@@ -524,9 +383,9 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 		timer.restart();
 		QOperatingSystemVersion version = QOperatingSystemVersion::current();
 		//Win7
-		mem::injectByWin7(currentIndex, pi.dwProcessId, processHandle_, dllPath, &hookdllModule_, &hGameModule_);
 
-		qDebug() << "inject cost:" << timer.elapsed() << "ms";
+		if (mem::injectByWin7(currentIndex, pi.dwProcessId, processHandle_, dllPath, &hookdllModule_, &hGameModule_))
+			qDebug() << "inject cost:" << timer.elapsed() << "ms";
 
 		if (nullptr == hookdllModule_)
 		{
@@ -830,7 +689,7 @@ void Injector::show()
 QString Injector::getPointFileName()
 {
 
-	const QString dirPath(QString("%1/map/%2").arg(util::applicationDirPath()).arg(currentServerListIndex));
+	const QString dirPath(QString("%1/lib/map/%2").arg(util::applicationDirPath()).arg(currentServerListIndex));
 	QDir dir(dirPath);
 	if (!dir.exists())
 		dir.mkdir(dirPath);

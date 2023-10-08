@@ -73,6 +73,12 @@ ScopedHandle::ScopedHandle(int dwProcess, bool bAutoClose)
 	openProcess(static_cast<DWORD>(dwProcess));
 }
 
+ScopedHandle::ScopedHandle(qint64 dwProcess, bool bAutoClose)
+	: enableAutoClose_(bAutoClose)
+{
+	openProcess(static_cast<DWORD>(dwProcess));
+}
+
 ScopedHandle::ScopedHandle(HANDLE_TYPE h, HANDLE ProcessHandle, PVOID StartRoutine, PVOID Argument)
 	: enableAutoClose_(true)
 {

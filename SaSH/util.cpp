@@ -436,7 +436,7 @@ bool mem::injectByWin7(qint64 index, DWORD dwProcessId, HANDLE hProcess, QString
 		return false;
 	}
 
-	DWORD hGameModule = mem::getRemoteModuleHandle(dwProcessId, "sa_8001.exe");
+	DWORD hGameModule = mem::getRemoteModuleHandle(dwProcessId, QString(SASH_SUPPORT_GAMENAME));
 	if (phGameModule != nullptr)
 		*phGameModule = static_cast<quint64>(hGameModule);
 
@@ -466,7 +466,7 @@ bool mem::injectByWin7(qint64 index, DWORD dwProcessId, HANDLE hProcess, QString
 		timer.restart();
 		for (;;)
 		{
-			hModule = reinterpret_cast<HMODULE>(mem::getRemoteModuleHandle(dwProcessId, "sadll.dll"));
+			hModule = reinterpret_cast<HMODULE>(mem::getRemoteModuleHandle(dwProcessId, QString(SASH_INJECT_DLLNAME) + ".dll"));
 			if (hModule != nullptr)
 				break;
 
@@ -483,7 +483,8 @@ bool mem::injectByWin7(qint64 index, DWORD dwProcessId, HANDLE hProcess, QString
 			break;
 	}
 
-	qDebug() << "inject OK" << "0x" + util::toQString(reinterpret_cast<qint64>(hModule), 16) << "time:" << timer.elapsed() << "ms";
+	if (hModule != nullptr)
+		qDebug() << "inject OK" << "0x" + util::toQString(reinterpret_cast<qint64>(hModule), 16) << "time:" << timer.elapsed() << "ms";
 	return true;
 }
 
@@ -689,6 +690,52 @@ bool mem::inject(qint64 index, HANDLE hProcess, QString dllPath, HMODULE* phDllM
 
 	qDebug() << "inject OK" << "0x" + util::toQString(d.remoteModule, 16);
 	return d.gameModule > 0 && d.remoteModule > 0;
+}
+
+bool mem::enumProcess(QVector<qint64>* pprocesses, const QString& moduleName)
+{
+	// 创建一个进程快照
+	ScopedHandle hSnapshot(ScopedHandle::CREATE_TOOLHELP32_SNAPSHOT, TH32CS_SNAPPROCESS, 0);
+	if (!hSnapshot.isValid())
+		return false;
+
+	PROCESSENTRY32W pe32 = { 0 };
+	pe32.dwSize = sizeof(PROCESSENTRY32W);
+
+	// 遍历进程快照
+	if (Process32First(hSnapshot, &pe32))
+	{
+		do
+		{
+			// 打开进程以获取模块信息
+			ScopedHandle hProcess(pe32.th32ProcessID);
+			if (!hProcess.isValid())
+				continue;
+
+			// 获取进程模块信息
+			HMODULE hModules[1024];
+			DWORD cbNeeded;
+			if (K32EnumProcessModules(hProcess, hModules, sizeof(hModules), &cbNeeded) == FALSE)
+				continue;
+
+			for (unsigned int i = 0; i < (cbNeeded / sizeof(HMODULE)); i++)
+			{
+				TCHAR szModule[MAX_PATH];
+				if (K32GetModuleBaseNameW(hProcess, hModules[i], szModule, sizeof(szModule) / sizeof(TCHAR)) == 0)
+					continue;
+
+				QString moduleNameStr = QString::fromWCharArray(szModule);
+				if (!moduleNameStr.contains(moduleName, Qt::CaseInsensitive))
+					continue;
+
+				// 模块名称包含指定名称，将进程PID添加到QVector中
+				if (pprocesses != nullptr)
+					pprocesses->append(static_cast<qint64>(pe32.th32ProcessID));
+			}
+		} while (Process32Next(hSnapshot, &pe32));
+	}
+
+	return true;
 }
 #pragma endregion
 
@@ -1118,10 +1165,13 @@ void util::FormSettingManager::saveSettings()
 	config.write("Form", ObjectName, "Size", QString("%1,%2").arg(size.width()).arg(size.height()));
 }
 
-QFileInfoList util::loadAllFileLists(TreeWidgetItem* root, const QString& path, const QString& suffix
-	, const QString& icon
-	, QStringList* list
-	, const QString& folderIcon)
+QFileInfoList util::loadAllFileLists(
+	TreeWidgetItem* root,
+	const QString& path,
+	const QString& suffix,
+	const QString& icon,
+	QStringList* list,
+	const QString& folderIcon)
 {
 	/*添加path路徑文件*/
 	QDir dir(path); //遍歷各級子目錄
@@ -1138,23 +1188,24 @@ QFileInfoList util::loadAllFileLists(TreeWidgetItem* root, const QString& path, 
 
 	for (const QFileInfo& item : list_file)
 	{
-		//將當前目錄中所有文件添加到treewidget中
-		if (list != nullptr)
-			list->append(item.fileName());
-
 		QString content;
 		if (!readFile(item.absoluteFilePath(), &content))
 			continue;
 
-		TreeWidgetItem* child = q_check_ptr(new TreeWidgetItem(QStringList{ item.fileName() }, 1));
-		if (child == nullptr)
+		TreeWidgetItem* child = new TreeWidgetItem(QStringList() << item.fileName(), 1);
+		if (nullptr == child)
 			continue;
 
+		child->setText(0, item.fileName());
 		child->setData(0, Qt::UserRole, "file");
 		child->setToolTip(0, QString("===== %1 =====\n\n%2").arg(item.absoluteFilePath()).arg(content.left(256)));
 		child->setIcon(0, QIcon(QPixmap(icon)));
 
-		root->addChild(child);
+		if (root != nullptr)
+			root->addChild(child);
+
+		if (list != nullptr)
+			list->append(item.fileName());
 	}
 
 	QFileInfoList file_list = dir.entryInfoList(QDir::Files | QDir::Hidden | QDir::NoSymLinks);
@@ -1168,20 +1219,30 @@ QFileInfoList util::loadAllFileLists(TreeWidgetItem* root, const QString& path, 
 		if (list != nullptr)
 			list->append(name);
 
-		TreeWidgetItem* childroot = new TreeWidgetItem(QStringList{ name }, 0);
+		TreeWidgetItem* childroot = new TreeWidgetItem();
 		if (childroot == nullptr)
 			continue;
 
+		childroot->setText(0, name);
+		childroot->setToolTip(0, namepath);
 		childroot->setData(0, Qt::UserRole, "folder");
 		childroot->setIcon(0, QIcon(QPixmap(folderIcon)));
-		root->addChild(childroot); //將當前目錄添加成path的子項
+
+		if (root != nullptr)
+			root->addChild(childroot); //將當前目錄添加成path的子項
+
 		const QFileInfoList child_file_list = loadAllFileLists(childroot, namepath, suffix, icon, list, folderIcon); //遞歸添加子目錄
 		file_list.append(child_file_list);
 	}
 	return file_list;
 }
 
-QFileInfoList util::loadAllFileLists(TreeWidgetItem* root, const QString& path, QStringList* list, const QString& fileIcon, const QString& folderIcon)
+QFileInfoList util::loadAllFileLists(
+	TreeWidgetItem* root,
+	const QString& path,
+	QStringList* list,
+	const QString& fileIcon,
+	const QString& folderIcon)
 {
 	/*添加path路徑文件*/
 	QDir dir(path); //遍歷各級子目錄
@@ -1200,22 +1261,36 @@ QFileInfoList util::loadAllFileLists(TreeWidgetItem* root, const QString& path, 
 
 	for (const QFileInfo& item : list_file)
 	{
-		//將當前目錄中所有文件添加到treewidget中
-		if (list != nullptr)
-			list->append(item.fileName());
+		TreeWidgetItem* child = new TreeWidgetItem(QStringList() << item.fileName(), 1);
+		bool bret = false;
+		do
+		{
+			if (child == nullptr)
+				break;
 
-		TreeWidgetItem* child = new TreeWidgetItem(QStringList{ item.fileName() }, 1);
-		if (child == nullptr)
-			continue;
+			QString content;
+			if (!readFile(item.absoluteFilePath(), &content))
+				break;
 
-		QString content;
-		if (!readFile(item.absoluteFilePath(), &content))
-			continue;
+			child->setText(0, item.fileName());
+			child->setData(0, Qt::UserRole, "file");
+			child->setToolTip(0, QString("===== %1 =====\n\n%2").arg(item.absoluteFilePath()).arg(content.left(256)));
+			child->setIcon(0, QIcon(QPixmap(fileIcon)));
 
-		child->setData(0, Qt::UserRole, "file");
-		child->setToolTip(0, QString("===== %1 =====\n\n%2").arg(item.absoluteFilePath()).arg(content.left(256)));
-		child->setIcon(0, QIcon(QPixmap(fileIcon)));
-		root->addChild(child);
+			if (root != nullptr)
+				root->addChild(child);
+
+			if (list != nullptr)
+				list->append(item.fileName());
+
+			bret = true;
+		} while (false);
+
+		if (!bret)
+		{
+			delete child;
+			child = nullptr;
+		}
 	}
 
 	QFileInfoList file_list = dir.entryInfoList(QDir::Files | QDir::Hidden | QDir::NoSymLinks);
@@ -1229,19 +1304,21 @@ QFileInfoList util::loadAllFileLists(TreeWidgetItem* root, const QString& path, 
 		const QFileInfo folderinfo = folder_list.value(i);
 		const QString name = folderinfo.fileName(); //獲取目錄名
 
-		if (list != nullptr)
-			list->append(name);
-
-		TreeWidgetItem* childroot = new TreeWidgetItem(QStringList{ name }, 0);
+		TreeWidgetItem* childroot = new TreeWidgetItem();
 		if (childroot == nullptr)
 			continue;
 
+		childroot->setText(0, name);
+		childroot->setToolTip(0, namepath);
 		childroot->setData(0, Qt::UserRole, "folder");
 		childroot->setIcon(0, QIcon(QPixmap(folderIcon)));
 
-
 		//將當前目錄添加成path的子項
-		root->addChild(childroot);
+		if (root != nullptr)
+			root->addChild(childroot);
+
+		if (list != nullptr)
+			list->append(name);
 
 		const QFileInfoList child_file_list(loadAllFileLists(childroot, namepath, list, fileIcon, folderIcon)); //遞歸添加子目錄
 		file_list.append(child_file_list);
@@ -1250,7 +1327,7 @@ QFileInfoList util::loadAllFileLists(TreeWidgetItem* root, const QString& path, 
 	return file_list;
 }
 
-void util::searchFiles(const QString& dir, const QString& fileNamePart, const QString& suffixWithDot, QList<QString>* result)
+void util::searchFiles(const QString& dir, const QString& fileNamePart, const QString& suffixWithDot, QStringList* result, bool withcontent)
 {
 	QDir d(dir);
 	if (!d.exists())
@@ -1264,18 +1341,28 @@ void util::searchFiles(const QString& dir, const QString& fileNamePart, const QS
 			if (!fileInfo.fileName().contains(fileNamePart, Qt::CaseInsensitive) || fileInfo.suffix() != suffixWithDot.mid(1))
 				continue;
 
-			QString content;
-			if (!readFile(fileInfo.absoluteFilePath(), &content))
-				continue;
+			if (withcontent)
+			{
+				QString content;
+				if (!readFile(fileInfo.absoluteFilePath(), &content))
+					continue;
 
-			//將文件名置於前方
-			QString fileContent = QString("# %1\n---\n%2").arg(fileInfo.fileName()).arg(content);
+				//將文件名置於前方
+				QString fileContent = QString("# %1\n---\n%2").arg(fileInfo.fileName()).arg(content);
 
-			result->append(fileContent);
+				if (result != nullptr)
+					result->append(fileContent);
+			}
+			else
+			{
+				if (result != nullptr)
+					result->append(fileInfo.absoluteFilePath());
+			}
+
 		}
 		else if (fileInfo.isDir())
 		{
-			searchFiles(fileInfo.absoluteFilePath(), fileNamePart, suffixWithDot, result);
+			searchFiles(fileInfo.absoluteFilePath(), fileNamePart, suffixWithDot, result, withcontent);
 		}
 	}
 }
@@ -1305,7 +1392,8 @@ bool util::enumAllFiles(const QString dir, const QString suffix, QVector<QPair<Q
 		}
 
 		// 將匹配的文件信息添加到結果中
-		result->append(QPair<QString, QString>(fileName, filePath));
+		if (result != nullptr)
+			result->append(QPair<QString, QString>(fileName, filePath));
 	}
 
 	// 遞歸遍歷子目錄
@@ -1704,59 +1792,6 @@ qint64 util::percent(qint64 value, qint64 total)
 		return static_cast<qint64>(d);
 }
 
-bool util::createFileDialog(const QString& name, QString* retstring, QWidget* parent)
-{
-	QFileDialog dialog(parent);
-	dialog.setModal(true);
-	dialog.setFileMode(QFileDialog::ExistingFile);
-	dialog.setViewMode(QFileDialog::Detail);
-	dialog.setOption(QFileDialog::ReadOnly, true);
-	dialog.setAcceptMode(QFileDialog::AcceptOpen);
-
-
-	//check suffix
-	if (!name.isEmpty())
-	{
-		QStringList filters;
-		filters << name;
-		dialog.setNameFilters(filters);
-	}
-
-	//directory
-	//自身目錄往上一層
-	QString directory = util::applicationDirPath();
-	directory = QDir::toNativeSeparators(directory);
-	directory = QDir::cleanPath(directory + QDir::separator() + "..");
-	dialog.setDirectory(directory);
-
-	if (dialog.exec() == QDialog::Accepted)
-	{
-		QStringList fileNames = dialog.selectedFiles();
-		if (fileNames.size() > 0)
-		{
-			QString fileName = fileNames.value(0);
-
-			QTextCodec* codec = nullptr;
-			UINT acp = GetACP();
-			if (acp == 936)
-				codec = QTextCodec::codecForName(util::DEFAULT_GAME_CODEPAGE);
-			else if (acp == 950)
-				codec = QTextCodec::codecForName("big5");
-			else
-				codec = QTextCodec::codecForName(util::DEFAULT_CODEPAGE);
-
-			std::string str = codec->fromUnicode(fileName).data();
-			fileName = codec->toUnicode(str.c_str());
-
-			if (retstring)
-				*retstring = fileName;
-
-			return true;
-		}
-	}
-	return false;
-}
-
 bool util::customStringCompare(const QString& str1, const QString& str2)
 {
 	//中文locale
@@ -1806,7 +1841,7 @@ bool util::readFileFilter(const QString& fileName, QString& content, bool* pisPr
 #else
 		return false;
 #endif
-}
+	}
 	content.replace("\r\n", "\n");
 	return true;
 }

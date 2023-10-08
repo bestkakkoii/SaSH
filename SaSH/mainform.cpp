@@ -27,7 +27,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "form/scriptform.h"
 #include "form/infoform.h"
 #include "form/mapwidget.h"
+
 #include "form/copyrightdialog.h"
+#include "form/settingfiledialog.h"
 
 #include "mainthread.h"
 
@@ -227,12 +229,17 @@ void MainForm::createMenu(QMenuBar* pMenuBar)
 	create(fileTable, pMenuFile);
 }
 
-inline bool isValidChar(const char* charPtr)
+bool isValidChar(const char* charPtr)
 {
-	try {
+	__try
+	{
 		if (charPtr != nullptr)
 		{
-			std::string str(charPtr);
+			//test ptr
+			char c = *charPtr;
+			if (c == '\0')
+				return false;
+
 			return true;
 		}
 		else
@@ -241,7 +248,7 @@ inline bool isValidChar(const char* charPtr)
 			return false;
 		}
 	}
-	catch (...)
+	__except (EXCEPTION_EXECUTE_HANDLER)
 	{
 		// 捕获异常，处理不合法指针的情况
 		return false;
@@ -280,7 +287,12 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 	{
 		if (injector.isValid() && !injector.server.isNull())
 		{
-			Q_UNUSED(injector.server->getPoint());
+			qint64 index = getIndex();
+			QtConcurrent::run([index]() {
+				Injector& injector = Injector::getInstance(index);
+				Q_UNUSED(injector.server->getPoint());
+				});
+
 		}
 		*result = 1;
 		return true;
@@ -878,7 +890,7 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 		}
 
 		qint64* pId = reinterpret_cast<qint64*>(msg->lParam);
-		MainForm* p = createNewWindow(id, pId);
+		MainForm* p = MainForm::createNewWindow(id, pId);
 		if (p == nullptr)
 		{
 			updateStatusText(tr("create window failed"));
@@ -1013,7 +1025,7 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 				break;
 			}
 
-			if (position < 0 || position > 1)
+			if (position < 0 || position >= MAX_CHARACTER + 1)
 			{
 				*result = 5;
 				updateStatusText(tr("pos out of range"));
@@ -1138,7 +1150,7 @@ MainForm* MainForm::createNewWindow(qint64 idToAllocate, qint64* pId)
 				pMainForm->show();
 				pMainForm->markAsClose_ = false;
 				if (pId != nullptr)
-					*pId = uniqueId;
+					*pId = pMainForm->getIndex();
 				return pMainForm;
 			}
 		}
@@ -1152,7 +1164,7 @@ MainForm* MainForm::createNewWindow(qint64 idToAllocate, qint64* pId)
 		g_mainFormHash.insert(uniqueId, pMainForm);
 
 		if (pId != nullptr)
-			*pId = uniqueId;
+			*pId = pMainForm->getIndex();
 		return pMainForm;
 	} while (false);
 
@@ -1184,6 +1196,7 @@ MainForm::MainForm(qint64 index, QWidget* parent)
 	connect(&signalDispatcher, &SignalDispatcher::loadHashSettings, this, &MainForm::onLoadHashSettings, Qt::UniqueConnection);
 	connect(&signalDispatcher, &SignalDispatcher::messageBoxShow, this, &MainForm::onMessageBoxShow, Qt::BlockingQueuedConnection);
 	connect(&signalDispatcher, &SignalDispatcher::inputBoxShow, this, &MainForm::onInputBoxShow, Qt::BlockingQueuedConnection);
+	connect(&signalDispatcher, &SignalDispatcher::fileDialogShow, this, &MainForm::onFileDialogShow, Qt::QueuedConnection);
 	connect(&signalDispatcher, &SignalDispatcher::updateMainFormTitle, this, &MainForm::onUpdateMainFormTitle, Qt::UniqueConnection);
 	connect(&signalDispatcher, &SignalDispatcher::appendScriptLog, this, &MainForm::onAppendScriptLog, Qt::UniqueConnection);
 	connect(&signalDispatcher, &SignalDispatcher::appendChatLog, this, &MainForm::onAppendChatLog, Qt::UniqueConnection);
@@ -1568,19 +1581,30 @@ void MainForm::onMenuActionTriggered()
 	{
 		QString current;
 		QString result;
-		QMessageBox::StandardButton ret;
-		if (Downloader::checkUpdate(&current, &result))
+		QString formatedDiff;
+		qint64 ret;
+
+		bool bret = Downloader::checkUpdate(&current, &result, &formatedDiff);
+		QString detail = tr("Current version:%1\nNew version:%2").arg(current).arg(result);
+		if (bret)
 		{
-			ret = QMessageBox::warning(this, tr("Update"), \
-				tr("Current version:%1\nNew version:%2 were found!\n\nUpdate process will cause all the games to be closed, are you sure to continue?") \
-				.arg(current).arg(result), \
-				QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
+			onMessageBoxShow(\
+				tr("Update process will cause all the games to be closed, are you sure to continue?"), \
+				2,
+				formatedDiff, \
+				& ret, \
+				tr("New version were found"),
+				detail);
 		}
 		else
 		{
-			ret = QMessageBox::information(this, tr("Update"), tr("Current version:%1\nNew version:%2\nNo new version available. Do you still want to update?") \
-				.arg(current).arg(result), \
-				QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
+			onMessageBoxShow(\
+				tr("Do you still want to update?"), \
+				1,
+				formatedDiff, \
+				& ret, \
+				tr("No new version available"),
+				detail);
 		}
 
 		if (QMessageBox::No == ret)
@@ -1601,30 +1625,37 @@ void MainForm::resetControlTextLanguage()
 	const UINT acp = ::GetACP();
 
 #ifdef _DEBUG
-	const QString defaultBaseDir = "../SaSH";
+	QString defaultBaseDir = "../SaSH";
+	QFileInfo fileInfo(defaultBaseDir);
+	defaultBaseDir = fileInfo.absoluteFilePath();
 #else
 	const QString defaultBaseDir = util::applicationDirPath();
 #endif
-
+	QStringList files;
 	switch (acp)
 	{
+		//Simplified Chinese
 	case 936:
 	{
-		if (!translator_.load(QString("%1/translations/qt_zh_CN.qm").arg(defaultBaseDir)))
+		util::searchFiles(defaultBaseDir, "qt_zh_CN", ".qm", &files, false);
+		if (!files.isEmpty() && !translator_.load(files.first()))
+			return;
+		break;
+	}
+
+	//Traditional Chinese
+	case 950:
+	{
+		util::searchFiles(defaultBaseDir, "qt_zh_TW", ".qm", &files, false);
+		if (!files.isEmpty() && !translator_.load(files.first()))
 			return;
 		break;
 	}
 	//English
-	case 950:
-	{
-		if (!translator_.load(QString("%1/translations/qt_zh_TW.qm").arg(defaultBaseDir)))
-			return;
-		break;
-	}
-	//Chinese
 	default:
 	{
-		if (!translator_.load(QString("%1/translations/qt_en_US.qm").arg(defaultBaseDir)))
+		util::searchFiles(defaultBaseDir, "qt_en_US", ".qm", &files, false);
+		if (!files.isEmpty() && !translator_.load(files.first()))
 			return;
 		break;
 	}
@@ -1758,20 +1789,13 @@ void MainForm::onSaveHashSettings(const QString& name, bool isFullPath)
 			dir.mkpath(directory);
 		}
 
-		QFileDialog dialog(this);
-		dialog.setFileMode(QFileDialog::AnyFile);
-		dialog.setAcceptMode(QFileDialog::AcceptSave);
-		dialog.setDirectory(directory);
-		dialog.setNameFilter(tr("Json Files (*.json)"));
-		dialog.selectFile(newFileName);
+		settingfiledialog dialog(fileName, this);
 
 		if (dialog.exec() == QDialog::Accepted)
 		{
-			QStringList fileNames = dialog.selectedFiles();
-			if (fileNames.size() > 0)
-			{
-				fileName = fileNames[0];
-			}
+			fileName = dialog.returnValue;
+			if (fileName.isEmpty())
+				return;
 		}
 		else
 			return;
@@ -1840,20 +1864,12 @@ void MainForm::onLoadHashSettings(const QString& name, bool isFullPath)
 			dir.mkpath(directory);
 		}
 
-		QFileDialog dialog(this);
-		dialog.setFileMode(QFileDialog::ExistingFile);
-		dialog.setAcceptMode(QFileDialog::AcceptOpen);
-		dialog.setDirectory(directory);
-		dialog.setNameFilter(tr("Json Files (*.json)"));
-		dialog.selectFile(newFileName);
-
+		settingfiledialog dialog(fileName, this);
 		if (dialog.exec() == QDialog::Accepted)
 		{
-			QStringList fileNames = dialog.selectedFiles();
-			if (fileNames.size() > 0)
-			{
-				fileName = fileNames[0];
-			}
+			fileName = dialog.returnValue;
+			if (fileName.isEmpty())
+				return;
 		}
 		else
 			return;
@@ -1914,7 +1930,7 @@ void MainForm::onLoadHashSettings(const QString& name, bool isFullPath)
 }
 
 //消息框
-void MainForm::onMessageBoxShow(const QString& text, qint64 type, QString title, qint64* pnret)
+void MainForm::onMessageBoxShow(const QString& text, qint64 type, QString title, qint64* pnret, QString topText, QString detail)
 {
 	QMessageBox::StandardButton button = QMessageBox::StandardButton::NoButton;
 
@@ -1937,28 +1953,61 @@ void MainForm::onMessageBoxShow(const QString& text, qint64 type, QString title,
 			title = tr("info");
 	}
 
+	QMessageBox::Icon icon = QMessageBox::Icon::NoIcon;
 
-	if (pnret)
-	{
-		if (type == 2)
-			button = QMessageBox::warning(this, title, newText, QMessageBox::StandardButton::Yes | QMessageBox::StandardButton::No, QMessageBox::No);
-		else if (type == 3)
-			button = QMessageBox::critical(this, title, newText, QMessageBox::StandardButton::Yes | QMessageBox::StandardButton::No, QMessageBox::No);
-		else
-			button = QMessageBox::information(this, title, newText, QMessageBox::StandardButton::Yes | QMessageBox::StandardButton::No, QMessageBox::No);
+	if (type == 2)
+		icon = QMessageBox::Icon::Warning;
+	else if (type == 3)
+		icon = QMessageBox::Icon::Critical;
+	else
+		icon = QMessageBox::Icon::Information;
 
-		*pnret = button;
-	}
+	QScopedPointer<QMessageBox> msgBox(new QMessageBox());
+	if (msgBox == nullptr)
+		return;
+
+	msgBox->setAttribute(Qt::WA_QuitOnClose);
+	msgBox->setWindowFlags(Qt::Dialog | Qt::WindowCloseButtonHint);
+
+	//msgBox->setCheckBox(QCheckBox * cb)
+	//msgBox->setDefaultButton(QPushButton * button)
+	msgBox->setDefaultButton(QMessageBox::StandardButton::Yes);
+
+	//msgBox->setEscapeButton(QAbstractButton * button)
+	msgBox->setEscapeButton(QMessageBox::StandardButton::No);
+	msgBox->setIcon(icon);
+	//msgBox->setIconPixmap(const QPixmap & pixmap)
+	msgBox->setStandardButtons(QMessageBox::StandardButton::Yes | QMessageBox::StandardButton::No);
+	msgBox->setTextFormat(Qt::TextFormat::RichText);
+	msgBox->setTextInteractionFlags(Qt::TextSelectableByMouse | Qt::TextSelectableByKeyboard | Qt::LinksAccessibleByMouse | Qt::LinksAccessibleByKeyboard);
+	msgBox->setWindowModality(Qt::ApplicationModal);
+
+	msgBox->setWindowTitle(title);
+	if (!detail.isEmpty())
+		msgBox->setDetailedText(detail);
+
+	if (topText.isEmpty())
+		msgBox->setText(text);
 	else
 	{
-		if (type == 2)
-			button = QMessageBox::warning(this, title, newText);
-		else if (type == 3)
-			button = QMessageBox::critical(this, title, newText);
-		else
-			button = QMessageBox::information(this, title, newText);
+		msgBox->setInformativeText(text);
+		msgBox->setText(topText);
 	}
 
+	msgBox->setButtonText(QMessageBox::Ok, tr("ok"));
+	msgBox->setButtonText(QMessageBox::Cancel, tr("cancel"));
+	msgBox->setButtonText(QMessageBox::Yes, tr("yes"));
+	msgBox->setButtonText(QMessageBox::No, tr("no"));
+
+	Q_UNUSED(tr("Show Details..."));
+	Q_UNUSED(tr("Hide Details..."));
+
+	qint64 ret = msgBox->exec();
+	if (ret == QDialog::Rejected)
+		return;
+
+	if (pnret != nullptr)
+		*pnret = ret;
 }
 
 //输入框
@@ -2043,3 +2092,160 @@ void MainForm::onAppendChatLog(const QString& text, qint64 color)
 		emit injector.chatLogModel->dataAppended();
 	}
 }
+
+void MainForm::onFileDialogShow(const QString& name, qint64 acceptType, QString* retstring, void* p)
+{
+	if (retstring != nullptr)
+		retstring->clear();
+
+	QEventLoop* pEventLoop = nullptr;
+	if (p != nullptr)
+	{
+		pEventLoop = static_cast<QEventLoop*>(p);
+	}
+
+	QScopedPointer<QFileDialog> dialog(new QFileDialog());
+	if (dialog == nullptr)
+		return;
+
+	if (pEventLoop != nullptr)
+	{
+		connect(dialog.data(), &QFileDialog::finished, pEventLoop, &QEventLoop::quit);
+	}
+
+	dialog->setAttribute(Qt::WA_QuitOnClose);
+	dialog->setModal(false);
+	dialog->setAcceptMode(static_cast<QFileDialog::AcceptMode>(acceptType));
+
+	QFileInfo fileInfo(name);
+	dialog->setDefaultSuffix(fileInfo.suffix());
+
+	dialog->setFileMode(QFileDialog::AnyFile);
+	//dialog->setFilter(QDir::Filters::
+	//dialog->setHistory(const QStringList & paths)
+	//dialog->setIconProvider(QFileIconProvider * provider)
+	//dialog->setItemDelegate(QAbstractItemDelegate * delegate)
+	dialog->setLabelText(QFileDialog::LookIn, tr("Look in:"));
+	dialog->setLabelText(QFileDialog::FileName, tr("File name:"));
+	dialog->setLabelText(QFileDialog::FileType, tr("File type:"));
+	dialog->setLabelText(QFileDialog::Accept, tr("Open"));
+	dialog->setLabelText(QFileDialog::Reject, tr("Cancel"));
+
+	dialog->setNameFilter("*.txt *.lua *.json *.exe");
+
+	if (!name.isEmpty())
+	{
+		QStringList filters;
+		filters << name;
+		dialog->setNameFilters(filters);
+	}
+
+	dialog->setOption(QFileDialog::ShowDirsOnly, true);
+	dialog->setOption(QFileDialog::DontResolveSymlinks, true);
+	dialog->setOption(QFileDialog::DontConfirmOverwrite, true);
+	dialog->setOption(QFileDialog::DontUseNativeDialog, true);
+	dialog->setOption(QFileDialog::ReadOnly, true);
+	dialog->setOption(QFileDialog::HideNameFilterDetails, false);
+	dialog->setOption(QFileDialog::DontUseCustomDirectoryIcons, true);
+
+	//dialog->setProxyModel(QAbstractProxyModel * proxyModel)
+	QList<QUrl> urls;
+	urls << QUrl::fromLocalFile(util::applicationDirPath())
+		<< QUrl::fromLocalFile(QStandardPaths::standardLocations(QStandardPaths::MusicLocation).first());
+
+	dialog->setSidebarUrls(urls);
+	dialog->setSupportedSchemes(QStringList());
+	dialog->setViewMode(QFileDialog::ViewMode::List);
+
+	//directory
+	//自身目錄往上一層
+	QString directory = util::applicationDirPath();
+	directory = QDir::toNativeSeparators(directory);
+	directory = QDir::cleanPath(directory + QDir::separator() + "..");
+	dialog->setDirectory(directory);
+
+	do
+	{
+		if (dialog->exec() != QDialog::Accepted)
+			break;
+
+		QStringList fileNames = dialog->selectedFiles();
+		if (fileNames.isEmpty())
+			break;
+
+		QString fileName = fileNames.value(0);
+		if (fileName.isEmpty())
+			break;
+
+		if (retstring != nullptr)
+			*retstring = fileName;
+	} while (false);
+}
+
+#if 0
+bool MainForm::createWinapiFileDialog(const QString& startDir, QStringList filters, QString* selectedFilePath)
+{
+	// 創建文件打開對話框結構體
+	OPENFILENAME ofn;
+	ZeroMemory(&ofn, sizeof(ofn));
+	ofn.lStructSize = sizeof(ofn);
+	ofn.hwndOwner = nullptr;
+	ofn.lpstrFile = nullptr;
+	ofn.lpstrFileTitle = nullptr;
+	ofn.lpstrInitialDir = reinterpret_cast<const wchar_t*>(startDir.utf16());
+	WCHAR wfilter[1024] = {};
+	memset(wfilter, 0, sizeof(wfilter));
+	ofn.nMaxFile = MAX_PATH;
+	ofn.Flags = OFN_FILEMUSTEXIST | OFN_PATHMUSTEXIST | OFN_NOCHANGEDIR;
+
+	// 構建過濾器字符串
+	QString filterStr = "All Files\0*.*\0\0";
+	if (!filters.isEmpty())
+	{
+		for (QString& it : filters)
+		{
+			QFileInfo fi(it);
+			if (fi.suffix().isEmpty())
+			{
+				//"doc\0*.doc\0xls\0*.xls\0ppt\0*.ppt\0all\0*.*\0\0"
+				it = QString("*.%1|*.%1").arg(fi.suffix());
+			}
+			else
+			{
+				//"doc\0*.doc\0xls\0*.xls\0ppt\0*.ppt\0all\0*.*\0\0"
+				it = QString("%1|%1").arg(it);
+			}
+		}
+
+		filterStr = filters.join("|");
+		filterStr.append("||");
+	}
+
+	std::wstring wstr = filterStr.toStdWString();
+
+	_snwprintf_s(wfilter, _countof(wfilter), _TRUNCATE, L"%s", wstr.c_str());
+	//replace all | to \0
+	for (size_t i = 0; i < _countof(wfilter); ++i)
+	{
+		if (wfilter[i] == L'|')
+			wfilter[i] = L'\0';
+	}
+
+	ofn.lpstrFilter = wfilter;
+
+	// 分配緩沖區來保存選定的文件路徑
+	wchar_t filePath[MAX_PATH] = L"\0";
+	ofn.lpstrFile = filePath;
+
+	// 打開文件對話框
+	if (GetOpenFileName(&ofn))
+	{
+		*selectedFilePath = QString::fromWCharArray(filePath);
+		return true; // 用戶選擇了文件
+	}
+	else
+	{
+		return false; // 用戶取消了操作或發生錯誤
+	}
+}
+#endif

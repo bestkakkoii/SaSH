@@ -81,8 +81,6 @@ private:
 private:
 	Ui::ScriptFormClass ui;
 
-	bool IS_LOADING = false;
-
 	QStringList scriptList_;
 
 	int selectedRow_ = 0;

@@ -12,16 +12,6 @@ public:
 		: QTreeWidget(parent)
 	{
 		setAttribute(Qt::WA_StyledBackground);
-		//setStyleSheet(R"(
-		//	QTreeWidget {
-		//		font-size:12px;
-		//	} 
-		//	QTreeView::item:selected {
-		//		background-color: black; 
-		//		color: white; 
-		//	} 
-		//)");
-
 		header()->setSectionsClickable(true);
 		header()->setSectionResizeMode(QHeaderView::Interactive);
 		setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
@@ -29,7 +19,6 @@ public:
 		resizeColumnToContents(1);
 		sortItems(0, Qt::AscendingOrder);
 		setIconSize(QSize(20, 20));
-
 	}
 	virtual ~TreeWidget() = default;
 };

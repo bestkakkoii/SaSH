@@ -278,7 +278,8 @@ public://actions
 		, qint64 water
 		, qint64 fire
 		, qint64 wind
-		, qint64 hometown);
+		, qint64 hometown
+		, bool forcecover);
 
 	void deleteCharacter(qint64 index, const QString securityCode, bool backtofirst = false);
 
@@ -621,7 +622,6 @@ private:
 	LSTIME saTimeStruct = { 0 };
 	qint64 serverTime = 0LL;
 	qint64 FirstTime = 0LL;
-	qint64 saCurrentGameTime = 0;
 
 	//交易相關
 	qint64 opp_showindex = 0;
@@ -676,6 +676,8 @@ public:
 	std::atomic_llong battle_total_time = 0;
 	std::atomic_llong battle_total = 0;
 	std::atomic_llong battle_one_round_time = 0;
+
+	std::atomic_llong saCurrentGameTime = 0;//遊戲時間 LSTIME_SECTION
 
 	QSharedPointer<MapAnalyzer> mapAnalyzer;
 

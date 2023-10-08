@@ -9,13 +9,15 @@
 #include <QObject>
 #include <QThread>
 #include <QRegularExpression>
+#include "indexer.h"
 
-class Logger : public QObject
+class Logger : public QObject, public Indexer
 {
 	Q_OBJECT
 public:
-	explicit Logger(QObject* parent = nullptr)
+	explicit Logger(qint64 index, QObject* parent = nullptr)
 		: QObject(parent)
+		, Indexer(index)
 		, stream_(&file_)
 	{
 		qRegisterMetaType <QContiguousCache<QString>>("QContiguousCache<QString>");
@@ -37,7 +39,7 @@ public:
 		}
 	}
 
-	bool initialize(const QString& logFileName, int bufferSize = 1024, const QString& logFormat = "[%(date) %(time)] %(message)")
+	bool initialize(const QString& logFileName, int bufferSize = 1024, const QString& logFormat = "[%(date) %(time)] | [@%(line)] | %(message)")
 	{
 		QMutexLocker locker(&mutex_);
 		bufferSize_ = bufferSize;
@@ -107,6 +109,18 @@ public:
 		return isInitialized_.load(std::memory_order_acquire);
 	}
 
+	void close()
+	{
+		QMutexLocker locker(&mutex_);
+		if (file_.isOpen())
+		{
+			swapBuffersAndWrite();
+			file_.flush();
+			file_.close();
+			isInitialized_.store(false, std::memory_order_release);
+		}
+	}
+
 signals:
 	void logWritten(QString logText);
 
@@ -137,7 +151,7 @@ private:
 		if (!fileName.endsWith(".log"))
 			fileName.append(".log");
 
-		QDir logDir(util::applicationDirPath() + "/log"); // Change to your desired log directory
+		QDir logDir(util::applicationDirPath() + "/lib/log"); // Change to your desired log directory
 		if (!logDir.exists())
 			logDir.mkpath(util::applicationDirPath());
 
@@ -152,7 +166,7 @@ private:
 
 		if (file_.open(QFile::WriteOnly | QFile::Text | QFile::Append))
 		{
-			stream_ << "[info] " << QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss") << "\n";
+			stream_ << QString("========== [info] [index:%1] [datetime:%2] ==========\n").arg(getIndex()).arg(QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss"));
 			stream_.flush();
 			isInitialized_.store(true, std::memory_order_release);
 			return true;

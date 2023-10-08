@@ -180,7 +180,9 @@ void AbilityForm::onButtonClicked()
 
 	if (name == "pushButton_clear")
 	{
-		ui.tableWidget->clearContents();
+		qint64 size = ui.tableWidget->rowCount();
+		for (qint64 i = size - 1, j = 0; i >= j; --i)
+			ui.tableWidget->removeRow(i);
 		Injector& injector = Injector::getInstance(getIndex());
 		injector.setStringHash(util::kAutoAbilityString, "");
 		return;

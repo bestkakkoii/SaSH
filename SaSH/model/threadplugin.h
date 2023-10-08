@@ -54,35 +54,33 @@ public:
 		}
 		catch (const std::exception& e)
 		{
-			QString errorMessage = QString("Terminating due to unhandled std::exception: %1").arg(e.what());
-			showErrorMessageBox(errorMessage);
+			QString errorMessage = QString("Terminating due to unhandled std::exception: %1").arg(QString::fromUtf8(e.what()));
+			std::wstring errorMessageW = errorMessage.toStdWString();
+			showErrorMessageBox(errorMessageW);
 		}
 		catch (...)
 		{
-			QString errorMessage = "Terminating due to unknown exception.";
-			showErrorMessageBox(errorMessage);
+			showErrorMessageBox(L"Terminating due to unknown exception.");
 		}
 		std::terminate();
 	}
 
 	static void handleUnexpected()
 	{
-		QString errorMessage = "Unexpected exception.";
-		showErrorMessageBox(errorMessage);
+		showErrorMessageBox(L"Unexpected exception.");
 		std::terminate();
 	}
 
 	static void handleOutOfMemory()
 	{
-		QString errorMessage = "Out of memory.";
-		showErrorMessageBox(errorMessage);
+		showErrorMessageBox(L"Out of memory.");
 		std::exit(EXIT_FAILURE);
 	}
 
 private:
-	static void showErrorMessageBox(const QString& message)
+	static void showErrorMessageBox(const std::wstring& message)
 	{
-		QMessageBox::critical(nullptr, "Error", message);
+		MessageBoxW(nullptr, message.c_str(), L"Fatal Error", MB_OK | MB_ICONERROR);
 	}
 };
 

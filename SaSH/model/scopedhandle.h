@@ -42,8 +42,9 @@ public:
 	explicit ScopedHandle(HANDLE_TYPE h);
 	explicit ScopedHandle(HANDLE handle) : handle_(handle) {}
 	ScopedHandle(HANDLE_TYPE h, DWORD dwFlags, DWORD th32ProcessID);
-	ScopedHandle(DWORD dwProcess, bool bAutoClose = true);
-	ScopedHandle(int dwProcess, bool bAutoClose = true);
+	explicit ScopedHandle(DWORD dwProcess, bool bAutoClose = true);
+	explicit ScopedHandle(int dwProcess, bool bAutoClose = true);
+	explicit ScopedHandle(qint64 dwProcess, bool bAutoClose = true);
 	ScopedHandle(HANDLE_TYPE h, HANDLE ProcessHandle, PVOID StartRoutine, PVOID Argument);
 	ScopedHandle(HANDLE_TYPE h, HANDLE hSourceProcessHandle, HANDLE hSourceHandle, HANDLE hTargetProcessHandle, DWORD dwOptions);
 	virtual ~ScopedHandle();

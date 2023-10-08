@@ -81,11 +81,11 @@
     </message>
     <message>
         <source>↑</source>
-        <translation type="unfinished"></translation>
+        <translation></translation>
     </message>
     <message>
         <source>↓</source>
-        <translation type="unfinished"></translation>
+        <translation></translation>
     </message>
 </context>
 <context>
@@ -656,23 +656,23 @@
     </message>
     <message>
         <source>&gt; lua script stop by flag change to false</source>
-        <translation type="unfinished"></translation>
+        <translation>&gt; lua 脚本因标誌位变为false而停止</translation>
     </message>
     <message>
         <source>&gt; lua script stop with user request</source>
-        <translation type="unfinished"></translation>
+        <translation>&gt; lua 脚本因用户请求而停止</translation>
     </message>
     <message>
         <source>&gt; lua script stop from script request</source>
-        <translation type="unfinished"></translation>
+        <translation>&gt; lua 脚本因脚本内的请求而停止</translation>
     </message>
     <message>
         <source>&gt; lua script stop from parent script request</source>
-        <translation type="unfinished"></translation>
+        <translation>&gt; lua 脚本因父脚本的请求而停止</translation>
     </message>
     <message>
         <source>&gt; lua script stop from it&apos;s distructor</source>
-        <translation type="unfinished"></translation>
+        <translation>&gt; lua 脚本因析构而停止</translation>
     </message>
     <message>
         <source>&gt; message: </source>
@@ -1113,6 +1113,10 @@
         <source>undock</source>
         <translation>解除</translation>
     </message>
+    <message>
+        <source>None</source>
+        <translation>无</translation>
+    </message>
 </context>
 <context>
     <name>GeneralFormClass</name>
@@ -1455,19 +1459,19 @@
     <name>Injector</name>
     <message>
         <source>dwProcessId is null!</source>
-        <translation>进程ID为空!</translation>
+        <translation type="vanished">进程ID为空!</translation>
     </message>
     <message>
         <source>pReason is null!</source>
-        <translation>错误讯息指针为空!</translation>
+        <translation type="vanished">错误讯息指针为空!</translation>
     </message>
     <message>
         <source>Dll is not exist at %1</source>
-        <translation>欲注入的插件不存在于 %1</translation>
+        <translation type="vanished">欲注入的插件不存在于 %1</translation>
     </message>
     <message>
         <source>EnumWindows timeout</source>
-        <translation>枚举窗口超时</translation>
+        <translation type="vanished">枚举窗口超时</translation>
     </message>
     <message>
         <source>OpenProcess fail</source>
@@ -1872,7 +1876,7 @@
     </message>
     <message>
         <source>Json Files (*.json)</source>
-        <translation>Json 文件 (*.json)</translation>
+        <translation type="vanished">Json 文件 (*.json)</translation>
     </message>
     <message>
         <source>info</source>
@@ -1888,7 +1892,7 @@
     </message>
     <message>
         <source>Update</source>
-        <translation>更新</translation>
+        <translation type="vanished">更新</translation>
     </message>
     <message>
         <source>New version:%s were found!
@@ -1943,7 +1947,7 @@ Update process will cause all the games to be closed, are you sure to continue?<
 New version:%2 were found!
 
 Update process will cause all the games to be closed, are you sure to continue?</source>
-        <translation>当前版本:%1
+        <translation type="vanished">当前版本:%1
 新版本:%2
 
 更新会导致所有游戏和外挂都被关闭, 您确定要更新吗?</translation>
@@ -1962,7 +1966,7 @@ No new version available. Do you still want to update?</source>
         <source>Current version:%1
 New version:%2
 No new version available. Do you still want to update?</source>
-        <translation>当前版本:%1
+        <translation type="vanished">当前版本:%1
 新版本:%2
 
 没有找到新版本，您还要继续更新吗?</translation>
@@ -2070,6 +2074,72 @@ No new version available. Do you still want to update?</source>
     <message>
         <source>no error</source>
         <translation>[远]无错误</translation>
+    </message>
+    <message>
+        <source>Look in:</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>File name:</source>
+        <translation>文件名称:</translation>
+    </message>
+    <message>
+        <source>File type:</source>
+        <translation>文件类型:</translation>
+    </message>
+    <message>
+        <source>Open</source>
+        <translation>打开</translation>
+    </message>
+    <message>
+        <source>Cancel</source>
+        <translation>取消</translation>
+    </message>
+    <message>
+        <source>Do you still want to update?</source>
+        <translation>您确定还要继续更新吗？</translation>
+    </message>
+    <message>
+        <source>Current version:%1
+New version:%2</source>
+        <translation>当前版本:%1
+最后上传版本:%2</translation>
+    </message>
+    <message>
+        <source>Update process will cause all the games to be closed, are you sure to continue?</source>
+        <translation>更新程序会导致所有外挂和游戏都被关闭，您确定要继续吗？</translation>
+    </message>
+    <message>
+        <source>New version were found</source>
+        <translation>找到新版本</translation>
+    </message>
+    <message>
+        <source>No new version available</source>
+        <translation>没有可用的新版本</translation>
+    </message>
+    <message>
+        <source>ok</source>
+        <translation>确定</translation>
+    </message>
+    <message>
+        <source>cancel</source>
+        <translation>取消</translation>
+    </message>
+    <message>
+        <source>yes</source>
+        <translation>是</translation>
+    </message>
+    <message>
+        <source>no</source>
+        <translation>否</translation>
+    </message>
+    <message>
+        <source>Show Details...</source>
+        <translation>显示详细资讯...</translation>
+    </message>
+    <message>
+        <source>Hide Details...</source>
+        <translation>隐藏详细资讯...</translation>
     </message>
 </context>
 <context>
@@ -2333,6 +2403,18 @@ No new version available. Do you still want to update?</source>
         <source>CLEAR</source>
         <translation>重置</translation>
     </message>
+    <message>
+        <source>gl</source>
+        <translation>寻路地图</translation>
+    </message>
+    <message>
+        <source>view</source>
+        <translation>地图视图</translation>
+    </message>
+    <message>
+        <source>warp list</source>
+        <translation>地图数据列表</translation>
+    </message>
 </context>
 <context>
     <name>OtherForm</name>
@@ -2546,6 +2628,13 @@ No new version available. Do you still want to update?</source>
     <message>
         <source>EO cmd</source>
         <translation>EO命令</translation>
+    </message>
+</context>
+<context>
+    <name>Parser</name>
+    <message>
+        <source>unknown</source>
+        <translation type="obsolete">未知</translation>
     </message>
 </context>
 <context>
@@ -3155,31 +3244,31 @@ No new version available. Do you still want to update?</source>
     </message>
     <message>
         <source>REQUEST_STOP_FROM_USER</source>
-        <translation type="unfinished"></translation>
+        <translation>收到用户的停止请求</translation>
     </message>
     <message>
         <source>REQUEST_STOP_FROM_SCRIP</source>
-        <translation type="unfinished"></translation>
+        <translation>收到脚本内的停止请求</translation>
     </message>
     <message>
         <source>REQUEST_STOP_FROM_PARENT_SCRIP</source>
-        <translation type="unfinished"></translation>
+        <translation>收到父脚本的停止请求</translation>
     </message>
     <message>
         <source>REQUEST_STOP_FROM_DISTRUCTOR</source>
-        <translation type="unfinished"></translation>
+        <translation>收到解构的停止请求</translation>
     </message>
     <message>
         <source>request param size is %1, but import %2</source>
-        <translation type="unfinished"></translation>
+        <translation>要求的参数数量为 %1 但实际只输入了 %2</translation>
     </message>
     <message>
         <source>no param request, but import %1</source>
-        <translation type="unfinished"></translation>
+        <translation>没有要求参数但却输入了 %1</translation>
     </message>
     <message>
         <source>request param size is between %1 to %2, but import %3</source>
-        <translation type="unfinished"></translation>
+        <translation>要求的参数数量为 %1 到 %2 但实际输入了 %3</translation>
     </message>
     <message>
         <source>Unpaired &apos;%1&apos; at row %2, index %3: &apos;%4&apos;</source>
@@ -3621,6 +3710,38 @@ No new version available. Do you still want to update?</source>
         <source>WNorth</source>
         <translation>西北</translation>
     </message>
+    <message>
+        <source>noon</source>
+        <translation>中午</translation>
+    </message>
+    <message>
+        <source>evening</source>
+        <translation>下午</translation>
+    </message>
+    <message>
+        <source>night</source>
+        <translation>晚上</translation>
+    </message>
+    <message>
+        <source>morning</source>
+        <translation>早上</translation>
+    </message>
+    <message>
+        <source>dwProcessId is null!</source>
+        <translation>进程ID为空!</translation>
+    </message>
+    <message>
+        <source>pReason is null!</source>
+        <translation>错误讯息指针为空!</translation>
+    </message>
+    <message>
+        <source>Dll is not exist at %1</source>
+        <translation>欲注入的插件不存在于 %1</translation>
+    </message>
+    <message>
+        <source>EnumWindows timeout</source>
+        <translation>枚举窗口超时</translation>
+    </message>
 </context>
 <context>
     <name>QThumbnailFormClass</name>
@@ -3656,7 +3777,7 @@ No new version available. Do you still want to update?</source>
     </message>
     <message>
         <source>saveas</source>
-        <translation>另存新档</translation>
+        <translation type="vanished">另存新档</translation>
     </message>
     <message>
         <source>name</source>
@@ -4857,6 +4978,10 @@ No new version available. Do you still want to update?</source>
         <source>sysvar</source>
         <translation>系统变量</translation>
     </message>
+    <message>
+        <source>tool</source>
+        <translation>工具列</translation>
+    </message>
 </context>
 <context>
     <name>ScriptForm</name>
@@ -5313,6 +5438,13 @@ No new version available. Do you still want to update?</source>
     <message>
         <source>Failed to listen on IPV4 socket</source>
         <translation>监听IPV4的连接失败</translation>
+    </message>
+</context>
+<context>
+    <name>settingfiledialogClass</name>
+    <message>
+        <source>settingfiledialog</source>
+        <translation></translation>
     </message>
 </context>
 </TS>

@@ -88,8 +88,9 @@ private slots:
 	void onUpdateStonePosLabelTextChanged(qint64 ntext);
 	void onUpdateMainFormTitle(const QString& text);
 
-	void onMessageBoxShow(const QString& text, qint64 type = 0, QString title = "", qint64* pnret = nullptr);
+	void onMessageBoxShow(const QString& text, qint64 type = 0, QString title = "", qint64* pnret = nullptr, QString topText = "", QString detail = "");
 	void onInputBoxShow(const QString& text, qint64 type, QVariant* retvalue);
+	void onFileDialogShow(const QString& name, qint64 acceptType, QString* retstring, void* p);
 
 	void onAppendScriptLog(const QString& text, qint64 color = 0);
 	void onAppendChatLog(const QString& text, qint64 color = 0);

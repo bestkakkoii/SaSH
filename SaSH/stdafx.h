@@ -57,6 +57,7 @@ public:\
 #include <psapi.h>
 #include <chrono>
 #include <thread>
+#include <commdlg.h>
 #if _MSVC_LANG > 201703L
 #include <ranges>
 #endif
@@ -85,10 +86,12 @@ public:\
 #include <QTcpSocket>
 #include <QHostInfo>
 #include <QHostAddress>
-//#include <QNetworkReply>
-//#include <QNetworkRequest>
-//#include <QNetworkAccessManager>
-//#include <QHttpMultiPart>
+
+#include <QNetworkReply>
+#include <QNetworkRequest>
+#include <QNetworkAccessManager>
+#include <QHttpMultiPart>
+
 #include <QDockWidget>
 #include <QSystemTrayIcon>
 #include <QSysInfo>
@@ -243,11 +246,8 @@ public:\
 #include <MINT/MINT.h>
 #endif
 
-#include <curl/curl.h>
-
-#ifndef _WIN64
-#include <cpr/cpr.h>
-#endif
+#include <3rdparty/zip.h>
+#include <3rdparty/unzip.h>
 
 #include "3rdparty/simplecrypt.h"
 
@@ -267,11 +267,14 @@ public:\
 #include <model/qthumbnailform.h>
 #include <model/qthumbnailwidget.h>
 #include <model/codeeditor.h>
+#include <model/treewidget.h>
+#include <model/treewidgetitem.h>
+#include <model/tablewidget.h>
 
 #include <net/descrypt.h>
 #include <net/macchanger.h>
 
-#include "update/curldownload.h"
+//#include "update/curldownload.h"
 
 #include "map/astar.h"
 #include <usermessage.h>

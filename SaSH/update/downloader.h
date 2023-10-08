@@ -28,8 +28,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include <QString>
 #include <QCoreApplication>
 
-constexpr size_t MAX_DOWNLOAD_THREAD = 4u;
-
 class Downloader : public QWidget
 {
 	Q_OBJECT
@@ -38,9 +36,9 @@ public:
 
 	virtual ~Downloader();
 
-	void start();
+	static bool checkUpdate(QString* current, QString* ptext, QString* pformated);
 
-	static bool checkUpdate(QString* current, QString* ptext);
+	QString oneShotDownload(const QString& url);
 
 protected:
 	virtual void showEvent(QShowEvent* event) override;
@@ -48,39 +46,47 @@ protected:
 private:
 	QProgressBar* createProgressBar(qint64 startY);
 	/////////////////////////////////////////////
+	Q_INVOKABLE void start();
 
-	void resetProgress(qint64 value);
+	Q_INVOKABLE void overwriteCurrentExecutable();
 
-	void overwriteCurrentExecutable();
+	void downloadAndUncompress(const QString& url, const QString& targetDir);
 
-	bool asyncDownloadFile(const QString& szUrl, const QString& dir, const QString& szSaveFileName);
+	bool download(const QString& url, QByteArray* pbyteArray);
 
-	static void setProgressValue(qint64 i, qreal totalToDownload, qreal nowDownloaded, qreal totalToUpLoad, qreal nowUpLoaded);
+	bool downloadFile(const QString& url, const QString& filename);
 
-	template <qint64 Index>
-	static qint64 onProgress(void* clientp, qint64 totalToDownload, qint64 nowDownloaded, qint64 totalToUpLoad, qint64 nowUpLoaded);
+	bool compress(const QString& source, const QString& destination);
+	bool uncompress(const QString& source, const QString& destination);
 
-	QString Sha3_512(const QString& fileNamePath) const;
+signals:
+	void labelTextChanged(const QString& text);
+	void progressReset(qint64 value);
 
-	void downloadAndExtractZip(const QString& url, const QString& targetDir);
+private slots:
+	void onDownloadProgress(qint64 bytesReceived, qint64 bytesTotal);
+	void onDownloadFinished();
+	void onLabelTextChanged(const QString& text);
+	void onProgressBarReset(qint64 value);
+	void onErrorOccurred(QNetworkReply::NetworkError code);
 
 private:
 	Ui::DownloaderClass ui;
-
-	QTimer labelTimer_;
-	QTimer timer_[MAX_DOWNLOAD_THREAD];
 
 	const qint64 pid_ = _getpid();
 	const QString szCurrentDirectory_;
 	const QString szCurrentDotExe_;
 	const QString szCurrentDotExeAsDotTmp_;
-	const QString sz7zDotExe_;
-	const QString sz7zDotDll_;
 	const QString szSysTmpDir_;
 
 	QString szDownloadedFileName_ = "\0";
 	QString rcPath_ = "\0";
 	QString szTmpDot7zFile_ = "\0";
 
-	QFutureSynchronizer<void> synchronizer_;
+private:
+	bool isMain = false;
+	qreal currentProgress_ = 0.0;
+	QProgressBar* progressBar = nullptr;
+	QScopedPointer<QNetworkAccessManager> networkManager_;
+	QNetworkReply* reply_ = nullptr;
 };

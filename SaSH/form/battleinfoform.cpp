@@ -69,6 +69,9 @@ BattleInfoForm::BattleInfoForm(qint64 index, QWidget* parent)
 	connect(&signalDispatcher, &SignalDispatcher::updateLabelCharAction, this, &BattleInfoForm::onUpdateLabelCharAction, Qt::UniqueConnection);
 	connect(&signalDispatcher, &SignalDispatcher::updateLabelPetAction, this, &BattleInfoForm::onUpdateLabelPetAction, Qt::UniqueConnection);
 	connect(&signalDispatcher, &SignalDispatcher::notifyBattleActionState, this, &BattleInfoForm::onNotifyBattleActionState, Qt::UniqueConnection);
+
+	connect(&signalDispatcher, &SignalDispatcher::battleTableItemForegroundColorChanged, this, &BattleInfoForm::onBattleTableItemForegroundColorChanged, Qt::UniqueConnection);
+	connect(&signalDispatcher, &SignalDispatcher::battleTableAllItemResetColor, this, &BattleInfoForm::onBattleTableAllItemResetColor, Qt::UniqueConnection);
 }
 
 BattleInfoForm::~BattleInfoForm()
@@ -163,6 +166,58 @@ static const QHash<qint64, QPair<qint64, qint64>> fill_hash = {
 	{ 18, QPair<qint64, qint64>{ 9, 0 } },
 };
 
+void BattleInfoForm::onBattleTableItemForegroundColorChanged(qint64 index, const QColor& color)
+{
+	if (index < 0 || index > MAX_ENEMY + 2)
+		return;
+
+	if (index == 20)
+	{
+		for (qint64 i = 0; i < max_row; ++i)
+			ui.tableWidget_bottom->setItemForeground(i, 0, color);
+	}
+	else if (index == 21)
+	{
+		for (qint64 i = 0; i < max_row; ++i)
+			ui.tableWidget_top->setItemForeground(i, 0, color);
+
+	}
+	else if (index == 22)
+	{
+		for (qint64 i = 0; i < max_row; ++i)
+		{
+			ui.tableWidget_top->setItemForeground(i, 0, color);
+			ui.tableWidget_bottom->setItemForeground(i, 0, color);
+		}
+	}
+
+	QPair<qint64, qint64> pair = fill_hash.value(index, qMakePair(-1, -1));
+	if (pair.first == -1)
+		return;
+	if (pair.first >= max_row)
+		return;
+
+	qint64 row = pair.first;
+
+	if (index >= 10)
+	{
+		ui.tableWidget_top->setItemForeground(row, 0, color);
+	}
+	else if (index < 10)
+	{
+		ui.tableWidget_bottom->setItemForeground(row, 0, color);
+	}
+}
+
+void BattleInfoForm::onBattleTableAllItemResetColor()
+{
+	for (qint64 i = 0; i < max_row; ++i)
+	{
+		ui.tableWidget_top->setItemForeground(i, 0, Qt::black);
+		ui.tableWidget_bottom->setItemForeground(i, 0, Qt::black);
+	}
+}
+
 void BattleInfoForm::onNotifyBattleActionState(qint64 index, bool left)
 {
 	if (!fill_hash.contains(index))
@@ -184,6 +239,8 @@ void BattleInfoForm::onNotifyBattleActionState(qint64 index, bool left)
 		return;
 
 	QString text = item->text().mid(1);
+	if (text.simplified().startsWith("*"))
+		return;
 
 	//找到非空格的的第一個字符 前方插入 "*"
 	for (qint64 i = 0; i < text.size(); ++i)
@@ -247,9 +304,9 @@ void BattleInfoForm::updateItemInfoRowContents(TableWidget* tableWidget, const Q
 		else
 			content = text;
 
-		//if (ride.simplified().isEmpty())
-		tableWidget->setText(fill.first, 0, content);
-		//else
-			//tableWidget->setText(fill.first, 0, content + "|" + ride.simplified());
+
+		tableWidget->setText(fill.first, 0, content + ride.simplified());
+		tableWidget->setItemForeground(fill.first, 0, Qt::black);
+		//tableWidget->setText(fill.first, 0, content + "|" + ride.simplified());
 	}
 }

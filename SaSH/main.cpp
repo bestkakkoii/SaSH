@@ -19,11 +19,11 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "stdafx.h"
 #include "mainform.h"
 #include "util.h"
+#include "injector.h"
 #include <QCommandLineParser>
 
 #pragma comment(lib, "ws2_32.lib")
 
-#if QT_NO_DEBUG
 void CreateConsole()
 {
 	if (!AllocConsole())
@@ -96,6 +96,13 @@ void qtMessageHandler(QtMsgType type, const QMessageLogContext& context, const Q
 		if (QString(e.what()).contains("Unknown exception"))
 		{
 			return;
+		}
+
+		for (qint64 i = 0; i < SASH_MAX_THREAD; ++i)
+		{
+			Injector* pinstance = nullptr;
+			if (Injector::get(i, &pinstance) && pinstance != nullptr)
+				pinstance->log.close();
 		}
 
 		CreateConsole();
@@ -185,6 +192,7 @@ LONG CALLBACK MinidumpCallback(PEXCEPTION_POINTERS pException)
 		if (!pException)
 			break;
 
+		//忽略可繼續執行的
 		if (pException->ExceptionRecord->ExceptionFlags != EXCEPTION_NONCONTINUABLE)
 		{
 			return EXCEPTION_CONTINUE_EXECUTION;
@@ -196,17 +204,16 @@ LONG CALLBACK MinidumpCallback(PEXCEPTION_POINTERS pException)
 			return (dwAttrib != INVALID_FILE_ATTRIBUTES && !(dwAttrib & FILE_ATTRIBUTE_DIRECTORY));
 		};
 
-
 		// Check if dump directory exists
-		if (!PathFileExists(L"dump"))
+		if (!PathFileExists(L".\\lib\\dump"))
 		{
-			CreateDirectory(L"dump", NULL);
+			CreateDirectory(L".\\lib\\dump", NULL);
 		}
 
 		wchar_t pszFileName[MAX_PATH] = {};
 		SYSTEMTIME stLocalTime = {};
 		GetLocalTime(&stLocalTime);
-		swprintf_s(pszFileName, L"dump\\%04d%02d%02d_%02d%02d%02d.dmp",
+		swprintf_s(pszFileName, L"lib\\dump\\%04d%02d%02d_%02d%02d%02d.dmp",
 			stLocalTime.wYear, stLocalTime.wMonth, stLocalTime.wDay,
 			stLocalTime.wHour, stLocalTime.wMinute, stLocalTime.wSecond);
 
@@ -255,11 +262,19 @@ LONG CALLBACK MinidumpCallback(PEXCEPTION_POINTERS pException)
 				.arg(pException->ExceptionRecord->NumberParameters);
 
 			//Open dump folder
-			QMessageBox::critical(nullptr, "Fatal Error", msg);
-			ShellExecute(NULL, L"open", L"dump", NULL, NULL, SW_SHOWNORMAL);
+			//QMessageBox::critical(nullptr, "Fatal Error", msg);
+			//ShellExecute(NULL, L"open", L"dump", NULL, NULL, SW_SHOWNORMAL);
 
+			for (qint64 i = 0; i < SASH_MAX_THREAD; ++i)
+			{
+				Injector* pinstance = nullptr;
+				if (Injector::get(i, &pinstance) && pinstance != nullptr)
+					pinstance->log.close();
+			}
 
-			return EXCEPTION_EXECUTE_HANDLER;
+			throw EXCEPTION_EXECUTE_HANDLER;
+
+			return EXCEPTION_CONTINUE_SEARCH;
 		}
 		else
 		{
@@ -274,27 +289,23 @@ LONG CALLBACK MinidumpCallback(PEXCEPTION_POINTERS pException)
 				.arg(pException->ExceptionRecord->ExceptionFlags == EXCEPTION_NONCONTINUABLE ? "NON CONTINUEABLE" : "CONTINUEABLE")
 				.arg(util::toQString((DWORD)pException->ExceptionRecord->ExceptionCode, 16))
 				.arg(pException->ExceptionRecord->NumberParameters);
-			QMessageBox::warning(nullptr, "Warning", msg);
-			ShellExecute(NULL, L"open", L"dump", NULL, NULL, SW_SHOWNORMAL);
+			//QMessageBox::warning(nullptr, "Warning", msg);
+			//ShellExecute(NULL, L"open", L"dump", NULL, NULL, SW_SHOWNORMAL);
 		}
 	} while (false);
+
 	return EXCEPTION_CONTINUE_SEARCH;
 }
-#endif
+
 
 void fontInitialize(const QString& currentWorkPath)
 {
-	auto installFont = [currentWorkPath](const QString& fontName)->qint64
+	QStringList fontPaths;
+	util::searchFiles(currentWorkPath, "", ".ttf", &fontPaths, false);
+	for (const QString& fontPath : fontPaths)
 	{
-		const QString fontFilePath = currentWorkPath + "/" + fontName;
-		return QFontDatabase::addApplicationFont(fontFilePath);
-	};
-
-	QFontDatabase::addApplicationFont(currentWorkPath + "/lib/YaHei Consolas Hybrid 1.12.ttf");
-	QFontDatabase::addApplicationFont(currentWorkPath + "/YaHei Consolas Hybrid 1.12.ttf");
-	QFontDatabase::addApplicationFont(currentWorkPath + "/lib/JoysticMonospace.ttf");
-	QFontDatabase::addApplicationFont(currentWorkPath + "/JoysticMonospace.ttf");
-	QFontDatabase::addApplicationFont(":/font/JoysticMonospace.ttf");
+		QFontDatabase::addApplicationFont(fontPath);
+	}
 
 	QFont font = util::getFont();
 	qApp->setFont(font);
@@ -349,16 +360,9 @@ int main(int argc, char* argv[])
 	//OpenGL相關設置
 	QSurfaceFormat format;
 	format.setRenderableType(QSurfaceFormat::DefaultRenderableType);//OpenGL, OpenGLES, OpenVG
-	format.setSwapBehavior(QSurfaceFormat::SingleBuffer);
+	format.setSwapBehavior(QSurfaceFormat::TripleBuffer);
 	format.setSamples(0);
-	//format.setRedBufferSize(32);
-	//format.setGreenBufferSize(32);
-	//format.setBlueBufferSize(32);
-	////format.setAlphaBufferSize(32);
-	//format.setDepthBufferSize(24);
-	//format.setStencilBufferSize(8);
 	format.setColorSpace(QSurfaceFormat::ColorSpace::DefaultColorSpace);
-	//format.setOption(QSurfaceFormat::StereoBuffers);
 	format.setProfile(QSurfaceFormat::OpenGLContextProfile::CompatibilityProfile);
 	format.setStereo(false);
 	format.setSwapInterval(0);
@@ -374,13 +378,13 @@ int main(int argc, char* argv[])
 	//調試相關設置
 #if QT_NO_DEBUG
 	qInstallMessageHandler(qtMessageHandler);
-	SetUnhandledExceptionFilter(MinidumpCallback); //SEH
+	//SetUnhandledExceptionFilter(MinidumpCallback); //SEH
+	AddVectoredExceptionHandler(1, MinidumpCallback); //VEH
 	preventSetUnhandledExceptionFilter();
-	//AddVectoredExceptionHandler(0, MinidumpCallback); //VEH
+
 #else
 	qSetMessagePattern("[%{threadid}] [@%{line}] [%{function}] [%{type}] %{message}");//%{file} 
 #endif
-
 
 	a.setStyle(QStyleFactory::create("windows"));
 	a.setDesktopSettingsAware(false);
@@ -400,17 +404,21 @@ int main(int argc, char* argv[])
 
 	//必要目錄設置
 	QString currentWorkPath = util::applicationDirPath();
-	QDir dir(currentWorkPath + "/lib");
-	if (!dir.exists())
-		dir.mkpath(".");
+	QStringList dirUnderCurrent = { "settings", "script", "lib" };
+	for (const QString& dir : dirUnderCurrent)
+	{
+		QDir dirUnder(currentWorkPath + "/" + dir);
+		if (!dirUnder.exists())
+			dirUnder.mkpath(".");
+	}
 
-	QDir dirset(currentWorkPath + "/settings");
-	if (!dirset.exists())
-		dirset.mkpath(".");
-
-	QDir dirscript(currentWorkPath + "/script");
-	if (!dirset.exists())
-		dirset.mkpath(".");
+	QStringList dirUnderLib = { "map", "dump", "doc", "log" };
+	for (const QString& dir : dirUnderLib)
+	{
+		QDir dirUnder(currentWorkPath + "/lib/" + dir);
+		if (!dirUnder.exists())
+			dirUnder.mkpath(".");
+	}
 
 	//字體設置
 	fontInitialize(currentWorkPath);
@@ -425,9 +433,8 @@ int main(int argc, char* argv[])
 	util::writeFireWallOverXP(wsfullpath.c_str(), wsfullpath.c_str(), true);
 
 	//環境變量設置
-	QString path = currentWorkPath + "/system.json";
+	QString path = currentWorkPath + "/settings/system.json";
 	qputenv("JSON_PATH", path.toUtf8());
-	qputenv("DIR_PATH", currentWorkPath.toUtf8());
 
 	//清理臨時文件
 	QStringList filters;
@@ -439,9 +446,7 @@ int main(int argc, char* argv[])
 		QFile::remove(it.filePath());
 	}
 
-	QFile file(currentWorkPath + "/setting.txt");
-
-	//實例化單個或多個主窗口
+	/* 實例化單個或多個主窗口 */
 
 	// 解析啟動參數
 	QCommandLineParser parser;
@@ -466,7 +471,9 @@ int main(int argc, char* argv[])
 	qDebug() << "Unique IDs to allocate:" << uniqueIdsToAllocate;
 
 	if (uniqueIdsToAllocate.isEmpty())
+	{
 		uniqueIdsToAllocate.append(-1);
+	}
 
 	extern util::SafeHash<qint64, MainForm*> g_mainFormHash; //mainForm.cpp
 

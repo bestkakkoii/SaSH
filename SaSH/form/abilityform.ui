@@ -25,6 +25,9 @@
   <property name="windowTitle">
    <string>AbilityForm</string>
   </property>
+  <property name="styleSheet">
+   <string notr="true">border:none</string>
+  </property>
   <layout class="QVBoxLayout" name="verticalLayout_2">
    <property name="spacing">
     <number>0</number>
@@ -143,7 +146,7 @@
       </widget>
      </item>
      <item>
-      <widget class="QPushButton" name="pushButton_clear">
+      <widget class="PushButton" name="pushButton_clear">
        <property name="sizePolicy">
         <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
          <horstretch>0</horstretch>

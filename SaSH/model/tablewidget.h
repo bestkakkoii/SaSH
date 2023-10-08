@@ -62,6 +62,15 @@ public:
 
 	virtual ~TableWidget() = default;
 
+	void setItemForeground(qint64 row, qint64 column, const QColor& color)
+	{
+		QTableWidgetItem* item = QTableWidget::item(row, column);
+		if (item == nullptr)
+			return;
+
+		item->setForeground(color);
+	}
+
 	void setText(qint64 row, qint64 column, const QString& text, const QString& toolTip = "", QVariant data = QVariant())
 	{
 		qint64 max = QTableWidget::rowCount();

@@ -425,9 +425,9 @@ qint64 MainObject::checkAndRunFunctions()
 		QString currentVerStr;
 		QString newestVerStr;
 
-		if (!Downloader::checkUpdate(&currentVerStr, &newestVerStr))
+		if (!Downloader::checkUpdate(&currentVerStr, &newestVerStr, nullptr))
 		{
-			newestVerStr = compile::buildDateTime(nullptr);
+			newestVerStr = "nil";
 		}
 
 		const QString version = QString("%1.%2.%3")
@@ -2253,7 +2253,8 @@ void MainObject::checkRecordableNpcInfo()
 			constDataInit = true;
 
 			QString content;
-			if (!util::readFile(util::applicationDirPath() + "/map/point.txt", &content))
+			//這裡是讀取預製傳點坐標
+			if (!util::readFile(util::applicationDirPath() + "/lib/map/point.txt", &content))
 			{
 				qDebug() << "Failed to open point.dat";
 				return;

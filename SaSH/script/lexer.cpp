@@ -49,9 +49,6 @@ static const QHash<QString, RESERVE> keywords = {
 	//system
 	{ "run", TK_CMD },
 	{ "button", TK_CMD },
-	{ "menu", TK_CMD },
-	{ "createch", TK_CMD },
-	{ "delch", TK_CMD },
 	{ "send", TK_CMD },
 	{ "dostr", TK_CMD },
 
@@ -337,7 +334,7 @@ void Lexer::tokenized(qint64 currentLine, const QString& line, TokenMap* ptoken,
 			"set", "print", "msg", "dlg", "findpath", "movetonpc", "rex", "regex", "rexg", "format", "run",
 			"say", "sleep", "saveset", "loadset", "lclick", "rclick", "dbclick", "dragto", "chmap", "w", "download",
 			"move", "cls", "eo", "logout", "logback", "runex", "openwindow", "rungame", "closegame", "setlogin", "dostrex",
-			"getgamestate", "loadsetex",
+			"getgamestate", "loadsetex", "createch", "delch", "menu"
 		};
 
 		for (const QString& it : tempReplacementList)

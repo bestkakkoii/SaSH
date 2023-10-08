@@ -400,8 +400,6 @@ void ScriptForm::onScriptTreeWidgetDoubleClicked(QTreeWidgetItem* item, int colu
 	if (item->text(0).isEmpty())
 		return;
 
-	IS_LOADING = true;
-
 	do
 	{
 		qint64 currentIndex = getIndex();
@@ -440,47 +438,26 @@ void ScriptForm::onScriptTreeWidgetDoubleClicked(QTreeWidgetItem* item, int colu
 
 		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
 		emit signalDispatcher.loadFileToTable(strpath);
-		//ui.widget->clear();
-		//this->setWindowTitle(QString("[%1] %2").arg(index_).arg(injector.currentScriptFileName));
-		//ui.widget->convertEols(QsciScintilla::EolWindows);
-		//ui.widget->setUtf8(true);
-		//ui.widget->setModified(false);
-		//ui.widget->setText(content);
 	} while (false);
-
-	IS_LOADING = false;
 }
 
 //重新加載腳本列表
 void ScriptForm::onReloadScriptList()
 {
-	if (IS_LOADING)
+	QStringList newScriptList = {};
+	TreeWidgetItem* item = new TreeWidgetItem();
+	if (nullptr == item)
 		return;
 
-	TreeWidgetItem* item = nullptr;
-	QStringList newScriptList = {};
-	do
-	{
-		item = q_check_ptr(new TreeWidgetItem);
-		if (!item) break;
+	util::loadAllFileLists(item, util::applicationDirPath() + "/script/", &newScriptList);
 
-		util::loadAllFileLists(item, util::applicationDirPath() + "/script/", &newScriptList);
+	scriptList_ = newScriptList;
+	ui.treeWidget_script->clear();
+	ui.treeWidget_script->addTopLevelItem(item);
 
-		scriptList_ = newScriptList;
-		ui.treeWidget_script->setUpdatesEnabled(false);
-		ui.treeWidget_script->clear();
-		ui.treeWidget_script->addTopLevelItem(item);
-		//展開全部第一層
-		ui.treeWidget_script->topLevelItem(0)->setExpanded(true);
-		//for (qint64 i = 0; i < item->childCount(); ++i)
-		//{
-		//	ui.treeWidget_script->expandItem(item->child(i));
-		//}
+	item->setExpanded(true);
 
-		ui.treeWidget_script->sortItems(0, Qt::AscendingOrder);
-
-		ui.treeWidget_script->setUpdatesEnabled(true);
-	} while (false);
+	ui.treeWidget_script->sortItems(0, Qt::AscendingOrder);
 }
 
 void ScriptForm::onSpeedChanged(int value)

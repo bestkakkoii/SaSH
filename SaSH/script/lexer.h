@@ -25,7 +25,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include <indexer.h>
 
 constexpr const char* kFuzzyPrefix = "?";
-constexpr qint64 kMaxLuaTableDepth = 5ll;
+constexpr qint64 kMaxLuaTableDepth = 1024ll;
 
 enum FTK
 {

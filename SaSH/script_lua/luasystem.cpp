@@ -105,8 +105,8 @@ qint64 CLuaSystem::openlog(std::string sfilename, sol::object oformat, sol::obje
 	if (filename.isEmpty())
 		return false;
 
-	QString format = "%(time) %(message)";
-	if (oformat.is<std::string>())
+	QString format = "[%(date) %(time)] | [@%(line)] | %(message)";
+	if (oformat.is<std::string>() && !oformat.as<std::string>().empty())
 		format = util::toQString(oformat);
 
 	qint64 buffersize = 1024;
@@ -282,37 +282,6 @@ qint64 CLuaSystem::cleanchat(sol::this_state s)
 		return FALSE;
 
 	injector.server->cleanChatHistory();
-
-	return TRUE;
-}
-
-qint64 CLuaSystem::menu(qint64 index, sol::this_state s)
-{
-	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
-	if (injector.server.isNull())
-		return FALSE;
-
-	luadebug::checkBattleThenWait(s);
-
-	injector.server->saMenu(index);
-
-	return TRUE;
-}
-
-qint64 CLuaSystem::menu(qint64 type, qint64 index, sol::this_state s)
-{
-	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
-	if (injector.server.isNull())
-		return FALSE;
-
-	luadebug::checkBattleThenWait(s);
-
-	if (type == 0)
-		injector.server->saMenu(index);
-	else
-		injector.server->shopOk(index);
 
 	return TRUE;
 }
@@ -495,6 +464,201 @@ qint64 CLuaSystem::mousedragto(qint64 x1, qint64 y1, qint64 x2, qint64 y2, sol::
 	injector.dragto(x1, y1, x2, y2);
 	return TRUE;
 }
+
+qint64 CLuaSystem::menu(qint64 index, sol::object otype, sol::this_state s)
+{
+	sol::state_view lua(s);
+	qint64 currentIndex = lua["_INDEX"].get<qint64>();
+	Injector& injector = Injector::getInstance(currentIndex);
+
+	if (injector.server.isNull())
+		return FALSE;
+
+	luadebug::checkOnlineThenWait(s);
+	luadebug::checkBattleThenWait(s);
+
+	--index;
+	if (index < 0)
+		return FALSE;
+
+	qint64 type = 1;
+	if (otype.is<qint64>())
+		type = otype.as<qint64>();
+
+	--type;
+	if (type < 0 || type > 1)
+		return FALSE;
+
+	if (type == 0)
+	{
+		injector.server->saMenu(index);
+	}
+	else
+	{
+		injector.server->shopOk(index);
+	}
+
+	return TRUE;
+}
+
+qint64 CLuaSystem::createch(sol::object odataplacenum
+	, std::string scharname
+	, qint64 imgno
+	, qint64 faceimgno
+	, qint64 vit
+	, qint64 str
+	, qint64 tgh
+	, qint64 dex
+	, qint64 earth
+	, qint64 water
+	, qint64 fire
+	, qint64 wind
+	, sol::object ohometown, sol::object oforcecover, sol::this_state s)
+{
+	sol::state_view lua(s);
+	qint64 currentIndex = lua["_INDEX"].get<qint64>();
+	Injector& injector = Injector::getInstance(currentIndex);
+	if (injector.server.isNull())
+		return FALSE;
+
+	qint64 dataplacenum = 0;
+	if (odataplacenum.is<std::string>())
+	{
+		QString dataplace = util::toQString(odataplacenum.as<std::string>());
+		if (dataplace == "左")
+			dataplacenum = 0;
+		else if (dataplace == "右")
+			dataplacenum = 1;
+		else
+			return FALSE;
+	}
+	else if (odataplacenum.is<qint64>())
+	{
+		dataplacenum = odataplacenum.as<qint64>();
+		if (dataplacenum != 1 && dataplacenum != 2)
+			return FALSE;
+		--dataplacenum;
+	}
+
+	QString charname = util::toQString(scharname);
+	if (charname.isEmpty())
+		return FALSE;
+
+	if (imgno <= 0)
+		imgno = 100050;
+
+	if (faceimgno <= 0)
+		faceimgno = 30250;
+
+	if (vit < 0)
+		return FALSE;
+
+	if (str < 0)
+		return FALSE;
+
+	if (tgh < 0)
+		return FALSE;
+
+	if (dex < 0)
+		return FALSE;
+
+	if (vit + str + tgh + dex != 20)
+		return FALSE;
+
+	if (earth < 0)
+		return FALSE;
+
+	if (water < 0)
+		return FALSE;
+
+	if (fire < 0)
+		return FALSE;
+
+	if (wind < 0)
+		return FALSE;
+
+	if (earth + water + fire + wind != 10)
+		return FALSE;
+
+	qint64 hometown = 1;
+	if (ohometown.is<std::string>())
+	{
+		static const QHash<QString, qint64> hash = {
+			{ "薩姆吉爾",0 }, { "瑪麗娜絲", 1 }, { "加加", 2 }, { "卡魯它那", 3 },
+			{ "萨姆吉尔",0 }, { "玛丽娜丝", 1 }, { "加加", 2 }, { "卡鲁它那", 3 },
+
+			{ "薩姆吉爾村",0 }, { "瑪麗娜絲村", 1 }, { "加加村", 2 }, { "卡魯它那村", 3 },
+			{ "萨姆吉尔村",0 }, { "玛丽娜丝村", 1 }, { "加加村", 2 }, { "卡鲁它那村", 3 },
+		};
+
+		QString hometownstr = util::toQString(ohometown.as<std::string>());
+		if (hometownstr.isEmpty())
+			return FALSE;
+
+		hometown = hash.value(hometownstr, -1);
+		if (hometown == -1)
+			hometown = 1;
+	}
+	else if (ohometown.is<qint64>())
+	{
+		hometown = ohometown.as<qint64>();
+		if (hometown <= 0 || hometown > 4)
+			hometown = 1;
+		else
+			--hometown;
+	}
+
+	bool forcecover = false;
+	if (oforcecover.is<bool>())
+		forcecover = oforcecover.as<bool>();
+	else if (oforcecover.is<qint64>())
+		forcecover = oforcecover.as<qint64>() > 0;
+
+	injector.server->createCharacter(static_cast<qint64>(dataplacenum)
+		, charname
+		, static_cast<qint64>(imgno)
+		, static_cast<qint64>(faceimgno)
+		, static_cast<qint64>(vit)
+		, static_cast<qint64>(str)
+		, static_cast<qint64>(tgh)
+		, static_cast<qint64>(dex)
+		, static_cast<qint64>(earth)
+		, static_cast<qint64>(water)
+		, static_cast<qint64>(fire)
+		, static_cast<qint64>(wind)
+		, static_cast<qint64>(hometown)
+		, forcecover);
+
+	return TRUE;
+}
+
+qint64 CLuaSystem::delch(qint64 index, std::string spsw, sol::object option, sol::this_state s)
+{
+	sol::state_view lua(s);
+	qint64 currentIndex = lua["_INDEX"].get<qint64>();
+	Injector& injector = Injector::getInstance(currentIndex);
+	if (injector.server.isNull())
+		return FALSE;
+
+	--index;
+	if (index < 0 || index > MAX_CHARACTER)
+		return FALSE;
+
+	QString password = util::toQString(spsw);
+	if (password.isEmpty())
+		return FALSE;
+
+	bool backtofirst = false;
+	if (option.is<bool>())
+		backtofirst = option.as<bool>();
+	else if (option.is<qint64>())
+		backtofirst = option.as<qint64>() > 0;
+
+	injector.server->deleteCharacter(index, password, backtofirst);
+
+	return TRUE;
+}
+
 
 qint64 CLuaSystem::set(std::string enumStr,
 	sol::object p1, sol::object p2, sol::object p3, sol::object p4, sol::object p5, sol::object p6, sol::object p7, sol::this_state s)

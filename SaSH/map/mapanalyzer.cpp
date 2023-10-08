@@ -21,9 +21,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "astar.h"
 #include <net/tcpserver.h>
 #include "injector.h"
-#include "update/curldownload.h"
+#include "update/downloader.h"
 
-constexpr const char* kDefaultSuffix = ".dat";
+constexpr const char* kDefaultMapSuffix = ".dat";
 
 util::SafeHash<qint64, QPixmap> MapAnalyzer::pixMap_;
 util::SafeHash<qint64, map_t> MapAnalyzer::maps_;
@@ -906,7 +906,7 @@ MapAnalyzer::MapAnalyzer(qint64 index)
 	init = true;
 
 	QSet<quint16> d = {};
-	CurlDownload download;
+	Downloader download;
 	QString strdata = download.oneShotDownload("https://gitee.com/Bestkakkoii/sash/raw/master/mapdata.lua"/*"https://raw.githubusercontent.com/bestkakkoii/SaHpPublicData/main/mapdata.lua"*/);
 
 	if (strdata.isEmpty())
@@ -1065,10 +1065,24 @@ void MapAnalyzer::setPixmapByIndex(qint64 index, const QPixmap& pix)
 	}
 }
 
+//取遊戲原始二進制地圖路徑
 QString MapAnalyzer::getCurrentMapPath(qint64 floor) const
 {
-	const QString path = directory + "/map/" + util::toQString(floor) + kDefaultSuffix;
+	const QString path = directory + "/map/" + util::toQString(floor) + kDefaultMapSuffix;
 	return path;
+}
+
+QString MapAnalyzer::getCurrentPreHandleMapPath(qint64 floor) const
+{
+	qint64 currentIndex = getIndex();
+	Injector& injector = Injector::getInstance(currentIndex);
+	const QString dirPath(QString("%1/lib/map/%2").arg(util::applicationDirPath()).arg(injector.currentServerListIndex));
+	QDir dir(dirPath);
+	if (!dir.exists())
+		dir.mkdir(dirPath);
+
+	const QString newFileName = QString("%1/%2%3").arg(dirPath).arg(floor).arg(kDefaultMapSuffix);
+	return newFileName;
 }
 
 bool MapAnalyzer::readFromBinary(qint64 floor, const QString& name, bool enableDraw, bool enableRewrite)
@@ -1076,7 +1090,7 @@ bool MapAnalyzer::readFromBinary(qint64 floor, const QString& name, bool enableD
 	if (floor < 0)
 		return false;
 
-	//{directory}/map/{floor}.dat
+	//%(GAME_DIRECTORY)/map/{floor}.dat
 	const QString path(getCurrentMapPath(floor));
 
 	//check file exist
@@ -1252,12 +1266,12 @@ bool MapAnalyzer::readFromBinary(qint64 floor, const QString& name, bool enableD
 			checkAndSetRockEx(map, point, sObject);
 
 			//調試專用
-#ifdef _DEBUG
-			if (point == injector.server->getPoint())
-			{
-				qDebug() << "ground:" << sGround << "object:" << sObject << "flag: HI[" << HIBYTE(sLabel) << "] LO[" << LOBYTE(sLabel) << "]";
-			}
-#endif
+//#ifdef _DEBUG
+//			if (point == injector.server->getPoint())
+//			{
+//				qDebug() << "ground:" << sGround << "object:" << sObject << "flag: HI[" << HIBYTE(sLabel) << "] LO[" << LOBYTE(sLabel) << "]";
+//			}
+//#endif
 
 			//排除樓梯或水晶
 			if ((util::OBJ_UP == typeOriginal) || (util::OBJ_DOWN == typeOriginal) || (util::OBJ_JUMP == typeOriginal) || (util::OBJ_WARP == typeOriginal) || (util::OBJ_ROCKEX == typeOriginal))
@@ -1399,16 +1413,7 @@ bool MapAnalyzer::loadFromBinary(qint64 floor, map_t* _map)
 	if (!floor)
 		return false;
 
-	qint64 currentIndex = getIndex();
-	Injector& injector = Injector::getInstance(currentIndex);
-	const QString dirPath(QString("%1/map/%2").arg(util::applicationDirPath()).arg(injector.currentServerListIndex));
-	QDir dir(dirPath);
-	if (!dir.exists())
-		dir.mkdir(dirPath);
-
-	const QString fileName(QString("%1/%2.dat").arg(dirPath).arg(floor));
-	if (!QFile::exists(fileName))
-		return false;
+	const QString fileName(getCurrentPreHandleMapPath(floor));
 
 	std::string f = fileName.toUtf8().constData();
 	std::ifstream ifs(f, std::ios::binary | std::ios::in);
@@ -1487,14 +1492,7 @@ bool MapAnalyzer::saveAsBinary(map_t map, const QString& fileName)
 	QString newFileName(fileName);
 	if (fileName.isEmpty())
 	{
-		qint64 currentIndex = getIndex();
-		Injector& injector = Injector::getInstance(currentIndex);
-		const QString dirPath(QString("%1/map/%2").arg(util::applicationDirPath()).arg(injector.currentServerListIndex));
-		QDir dir(dirPath);
-		if (!dir.exists())
-			dir.mkdir(dirPath);
-
-		newFileName = QString("%1/%2.dat").arg(dirPath).arg(map.floor);
+		newFileName = getCurrentPreHandleMapPath(map.floor);
 	}
 
 	//write to binary file
@@ -1643,9 +1641,9 @@ bool MapAnalyzer::calcNewRoute(CAStar& astar, qint64 floor, const QPoint& src, c
 		{
 			return astar.find(src, dst, pPaths);
 		}
-		catch (const std::exception& e)
+		catch (...)
 		{
-			qDebug() << __FUNCTION__ << " @" << __LINE__ << " " << e.what();
+			qDebug() << __FUNCTION__ << " @" << __LINE__ << " Exception.";
 		}
 	} while (false);
 
@@ -1689,9 +1687,9 @@ bool MapAnalyzer::isPassable(CAStar& astar, qint64 floor, const QPoint& src, con
 		{
 			return astar.find(src, dst, nullptr);
 		}
-		catch (const std::exception& e)
+		catch (...)
 		{
-			qDebug() << __FUNCTION__ << " @" << __LINE__ << " " << e.what();
+			qDebug() << __FUNCTION__ << " @" << __LINE__ << " Exception.";
 		}
 	} while (false);
 

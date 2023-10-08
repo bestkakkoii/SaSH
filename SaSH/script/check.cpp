@@ -84,6 +84,8 @@ qint64 Interpreter::waitpet(qint64 currentIndex, qint64 currentLine, const Token
 
 qint64 Interpreter::waitmap(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
 {
+	QElapsedTimer timer; timer.start();
+
 	Injector& injector = Injector::getInstance(currentIndex);
 
 	if (injector.server.isNull())
@@ -112,13 +114,16 @@ qint64 Interpreter::waitmap(qint64 currentIndex, qint64 currentLine, const Token
 			return floor == injector.server->getFloor();
 		else
 		{
+			QString currentFloorName = injector.server->getFloorName();
+			qint64 currentFloor = injector.server->getFloor();
+
 			for (const QString& mapname : mapnames)
 			{
 				bool ok;
 				qint64 fr = mapname.toLongLong(&ok);
 				if (ok)
 				{
-					if (fr == injector.server->getFloor())
+					if (fr == currentFloor)
 						return true;
 				}
 				else
@@ -126,13 +131,14 @@ qint64 Interpreter::waitmap(qint64 currentIndex, qint64 currentLine, const Token
 					if (mapname.startsWith("?"))
 					{
 						QString newName = mapname.mid(1);
-						return injector.server->getFloorName().contains(newName);
+						return currentFloorName.contains(newName);
 					}
 					else
-						return mapname == injector.server->getFloorName();
+						return mapname == currentFloorName;
 				}
 			}
 		}
+
 		return false;
 	};
 
@@ -151,7 +157,7 @@ qint64 Interpreter::waitmap(qint64 currentIndex, qint64 currentLine, const Token
 
 	if (!bret && timeout > 2000)
 		injector.server->EO();
-
+	qDebug() << "init cost" << timer.elapsed() << "ms";
 	return checkJump(TK, 3, bret, FailedJump);
 }
 

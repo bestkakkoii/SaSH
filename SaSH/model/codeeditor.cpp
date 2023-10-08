@@ -11,9 +11,9 @@
 
 #ifdef _WIN64
 #ifdef _DEBUG
-#pragma comment(lib, "qscintilla2_qt6d.lib")
+#pragma comment(lib, "qscintilla2_qt5x64d.lib")
 #else
-#pragma comment(lib, "qscintilla2_qt6.lib")
+#pragma comment(lib, "qscintilla2_qt5x64.lib")
 #endif
 #else
 #ifdef _DEBUG
@@ -149,9 +149,9 @@ CodeEditor::CodeEditor(QWidget* parent)
 	setMarginType(0, QsciScintilla::NumberMargin);//設置標號為0的頁邊顯示行號
 	setMarginLineNumbers(0, true);
 	QFont font = font_;
-	font.setPointSize(7);
-	QFontMetrics fontmetrics = QFontMetrics(font);
-	setMarginWidth(0, fontmetrics.horizontalAdvance("000000"));
+	font.setPointSize(12);
+	QFontMetrics fontmetrics(font);
+	setMarginWidth(0, fontmetrics.horizontalAdvance("00000000"));
 
 	setMarginsFont(font);//設置頁邊字體
 	setMarginOptions(QsciScintilla::MoSublineSelect);
