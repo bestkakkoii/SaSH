@@ -2253,8 +2253,13 @@ void MainObject::checkRecordableNpcInfo()
 			constDataInit = true;
 
 			QString content;
+			QStringList paths;
+			util::searchFiles(util::applicationDirPath(), "point", ".txt", &paths, false);
+			if (paths.isEmpty())
+				return;
+
 			//這裡是讀取預製傳點坐標
-			if (!util::readFile(util::applicationDirPath() + "/lib/map/point.txt", &content))
+			if (!util::readFile(paths.front(), &content))
 			{
 				qDebug() << "Failed to open point.dat";
 				return;

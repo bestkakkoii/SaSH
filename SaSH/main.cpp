@@ -433,8 +433,14 @@ int main(int argc, char* argv[])
 	util::writeFireWallOverXP(wsfullpath.c_str(), wsfullpath.c_str(), true);
 
 	//環境變量設置
-	QString path = currentWorkPath + "/settings/system.json";
-	qputenv("JSON_PATH", path.toUtf8());
+	{
+		QStringList paths;
+		QString path = currentWorkPath + "/settings/system.json";
+		util::searchFiles(currentWorkPath, "system", ".json", &paths, false);
+		if (!paths.isEmpty())
+			path = paths.first();
+		qputenv("JSON_PATH", path.toUtf8());
+	}
 
 	//清理臨時文件
 	QStringList filters;

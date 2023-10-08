@@ -688,7 +688,6 @@ void Injector::show()
 
 QString Injector::getPointFileName()
 {
-
 	const QString dirPath(QString("%1/lib/map/%2").arg(util::applicationDirPath()).arg(currentServerListIndex));
 	QDir dir(dirPath);
 	if (!dir.exists())
@@ -705,6 +704,6 @@ QString Injector::getPointFileName()
 	}
 	else
 	{
-		return (dirPath + QString("/point.json"));
+		return (dirPath + QString("/point_en_US.json"));
 	}
 }

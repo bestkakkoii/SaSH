@@ -78,7 +78,12 @@ MapWidget::MapWidget(qint64 index, QWidget* parent)
 		return;
 
 	QString content;
-	if (!util::readFile(util::applicationDirPath() + "/lib/map/point.txt", &content))
+	QStringList paths;
+	util::searchFiles(util::applicationDirPath(), "point", ".txt", &paths, false);
+	if (paths.isEmpty())
+		return;
+
+	if (!util::readFile(paths.front(), &content))
 	{
 		qDebug() << "Failed to open point.dat";
 		return;
