@@ -80,6 +80,8 @@ private:
 
 	void logExport(qint64 currentIndex, qint64 currentLine, const QString& text, qint64 color = 0);
 
+	void errorExport(qint64 currentIndex, qint64 currentLine, qint64 level, const QString& text);
+
 private: //註冊給Parser的函數
 	//system
 	qint64 press(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);
@@ -162,6 +164,12 @@ private: //註冊給Parser的函數
 	qint64 bend(qint64 currentIndex, qint64 currentLine, const TokenMap& TK);//wait
 
 private:
+	enum
+	{
+		WARN_LEVEL = 0,
+		ERROR_LEVEL = 1,
+	};
+
 	QThread* thread_ = nullptr;
 	Parser parser_;
 	qint64 beginLine_ = 0;

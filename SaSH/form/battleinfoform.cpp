@@ -239,15 +239,15 @@ void BattleInfoForm::onNotifyBattleActionState(qint64 index, bool left)
 		return;
 
 	QString text = item->text().mid(1);
-	if (text.simplified().startsWith("*"))
+	if (text.simplified().startsWith("＊"))
 		return;
 
 	//找到非空格的的第一個字符 前方插入 "*"
 	for (qint64 i = 0; i < text.size(); ++i)
 	{
-		if (text.at(i) != ' ')
+		if (text.at(i).unicode() != L'　')
 		{
-			text.insert(i, "*");
+			text.insert(i, "＊");
 			break;
 		}
 	}
@@ -300,7 +300,7 @@ void BattleInfoForm::updateItemInfoRowContents(TableWidget* tableWidget, const Q
 
 		QString content;
 		if (fill.first % 2)
-			content = " " + text;
+			content = "　" + text;
 		else
 			content = text;
 

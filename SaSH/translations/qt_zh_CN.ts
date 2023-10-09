@@ -3742,6 +3742,174 @@ New version:%2</source>
         <source>EnumWindows timeout</source>
         <translation>枚举窗口超时</translation>
     </message>
+    <message>
+        <source>mission name cannot be empty</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>pet name cannot be empty</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>invalid map name or floor number</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>pre-compare string cannot be empty</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>File name expected but got nothing</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Invalid path of file &apos;%1&apos; expected a file but got a directory</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Invalid suffix of file &apos;%1&apos;</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>original path &apos;%1&apos; of file not exist, try to auto search but found nothing</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>[warn]original path &apos;%1&apos; of file not exist, auto search and found file at &apos;%2&apos;</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>String expected but got nothing</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>invalid button string: %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>force stop by user input stop code</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>function type must be a number</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>function type must be a positive number</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>argument %1 must be a number or a string</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>invalid direction</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>invalid floor</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>unable to access map analyzer</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>sleep time must above 0</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>log file name cannot be empty</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>file &apos;%1&apos; does not exist</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>index must above 0</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>type must be 1 or 2</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Invalid value of &apos;dataplacenum&apos;</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>character name cannot be empty</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>vit must above 0</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>str must above 0</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>tgh must above 0</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>dex must above 0</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>vit + str + tgh + dex must equal to 20</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>earth must above 0</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>water must above 0</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>fire must above 0</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>wind must above 0</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>earth + water + fire + wind must equal to 10</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>hometown cannot be empty</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>index must between 1 and %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>password cannot be empty</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>type cannot be empty</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>unknown setting type: &apos;%1&apos;</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>the first parameter of the setting &apos;%1&apos; must be a number or boolean</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>R</source>
+        <translation type="unfinished">骑</translation>
+    </message>
 </context>
 <context>
     <name>QThumbnailFormClass</name>
@@ -4643,14 +4811,6 @@ New version:%2</source>
         <translation></translation>
     </message>
     <message>
-        <source>movetonpc with mod</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>movetonpc</source>
-        <translation></translation>
-    </message>
-    <message>
         <source>move</source>
         <translation></translation>
     </message>
@@ -4982,6 +5142,14 @@ New version:%2</source>
         <source>tool</source>
         <translation>工具列</translation>
     </message>
+    <message>
+        <source>findnpc with mod</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>findnpc</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>ScriptForm</name>
@@ -5125,6 +5293,14 @@ New version:%2</source>
     <message>
         <source>↑</source>
         <translation></translation>
+    </message>
+    <message>
+        <source>+</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>C</source>
+        <translation type="unfinished">清</translation>
     </message>
 </context>
 <context>

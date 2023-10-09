@@ -1252,7 +1252,7 @@ void ScriptEditor::on_treeWidget_functionList_itemDoubleClicked(QTreeWidgetItem*
 	{
 		str = QString("%1 i = 1, 10, 1\n    \nend").arg(str);
 	}
-	else if (str == "movetonpc")
+	else if (str == "findnpc")
 	{
 		QPoint pos = injector.server->getPoint();
 		QList<mapunit_t> units = injector.server->mapUnitHash.values();
@@ -1282,7 +1282,7 @@ void ScriptEditor::on_treeWidget_functionList_itemDoubleClicked(QTreeWidgetItem*
 		str = QString("%1 '%2', '%3', %4, %5, 10000, -1").arg(str).arg(unit.name).arg(unit.freeName).arg(unit.p.x()).arg(unit.p.y());
 
 	}
-	else if (str == "movetonpc with mod")
+	else if (str == "findnpc with mod")
 	{
 		QPoint pos = injector.server->getPoint();
 		QList<mapunit_t> units = injector.server->mapUnitHash.values();
@@ -1309,7 +1309,7 @@ void ScriptEditor::on_treeWidget_functionList_itemDoubleClicked(QTreeWidgetItem*
 		}
 
 		//移动至NPC 参数1:NPC名称, 参数2:NPC暱称, 参数3:东坐标, 参数4:南坐标, 参数5:超时时间, 参数6:错误跳转
-		str = QString("movetonpc %1, '', %2, %3, 10000, -1").arg(unit.modelid).arg(unit.p.x()).arg(unit.p.y());
+		str = QString("findnpc %1, '', %2, %3, 10000, -1").arg(unit.modelid).arg(unit.p.x()).arg(unit.p.y());
 	}
 	ui.widget->insert(str);
 }
@@ -1434,7 +1434,6 @@ void ScriptEditor::on_treeWidget_breakList_itemDoubleClicked(QTreeWidgetItem* it
 	if (item->text(3).isEmpty())
 		return;
 
-	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(getIndex());
 	injector.currentScriptFileName = item->text(3);
 	//emit signalDispatcher.loadFileToTable();
 	loadFile(item->text(3));
@@ -1799,8 +1798,6 @@ void ScriptEditor::onActionTriggered()
 		const QDir dir(directoryName);
 		if (!dir.exists())
 			dir.mkdir(directoryName);
-
-		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(getIndex());
 
 		QEventLoop loop;
 		QString path;

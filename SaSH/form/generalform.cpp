@@ -57,10 +57,13 @@ GeneralForm::GeneralForm(qint64 index, QWidget* parent)
 		}
 	}
 
-	pAfkForm_ = new AfkForm(index, nullptr);
-	Q_ASSERT(pAfkForm_ != nullptr);
-	if (pAfkForm_ != nullptr)
-		pAfkForm_->hide();
+	QScopedPointer <AfkForm> _pAfkForm(new AfkForm(index, nullptr));
+	Q_ASSERT(_pAfkForm.isNull());
+	if (_pAfkForm.isNull())
+		return;
+
+	pAfkForm_ = _pAfkForm.take();
+	pAfkForm_->hide();
 
 	emit ui.comboBox_paths->clicked();
 	emit signalDispatcher.applyHashSettingsToUI();
@@ -105,7 +108,7 @@ GeneralForm::GeneralForm(qint64 index, QWidget* parent)
 				else
 					MINT::NtTerminateProcess(GetCurrentProcess(), 0);
 			});
-	}
+}
 #endif
 #endif
 }
@@ -415,13 +418,14 @@ void GeneralForm::onButtonClicked()
 	{
 		if (pAfkForm_ == nullptr)
 		{
-			pAfkForm_ = new AfkForm(currentIndex, nullptr);
-			Q_ASSERT(pAfkForm_ != nullptr);
-			if (pAfkForm_ != nullptr)
-			{
-				emit pAfkForm_->resetControlTextLanguage();
-				pAfkForm_->show();
-			}
+			QScopedPointer <AfkForm> _pAfkForm(new AfkForm(currentIndex, nullptr));
+			Q_ASSERT(_pAfkForm.isNull());
+			if (_pAfkForm.isNull())
+				return;
+
+			emit _pAfkForm->resetControlTextLanguage();
+			_pAfkForm->show();
+			pAfkForm_ = _pAfkForm.take();
 		}
 		else
 		{
@@ -714,6 +718,12 @@ void GeneralForm::onCheckBoxStateChanged(int state)
 		return;
 	}
 
+	if (name == "checkBox_autoescape")
+	{
+		injector.setEnableHash(util::kAutoEscapeEnable, isChecked);
+		return;
+	}
+
 	if (name == "checkBox_lockattck")
 	{
 		bool bOriginal = injector.getEnableHash(util::kLockAttackEnable);
@@ -731,28 +741,17 @@ void GeneralForm::onCheckBoxStateChanged(int state)
 
 		QVariant d = injector.getUserData(util::kUserEnemyNames);
 		if (d.isValid())
-		{
 			srcSelectList = d.toStringList();
-		}
-		srcSelectList.removeDuplicates();
 
 		QString src = injector.getStringHash(util::kLockAttackString);
 		if (!src.isEmpty())
-		{
-			srcList = src.split("|", Qt::SkipEmptyParts);
-		}
+			srcList = src.split(util::rexOR, Qt::SkipEmptyParts);
 
 		if (!createSelectObjectForm(SelectObjectForm::kLockAttack, srcSelectList, srcList, &dstList, this))
 			return;
 
 		QString dst = dstList.join("|");
 		injector.setStringHash(util::kLockAttackString, dst);
-		return;
-	}
-
-	if (name == "checkBox_autoescape")
-	{
-		injector.setEnableHash(util::kAutoEscapeEnable, isChecked);
 		return;
 	}
 
@@ -773,18 +772,13 @@ void GeneralForm::onCheckBoxStateChanged(int state)
 
 		QVariant d = injector.getUserData(util::kUserEnemyNames);
 		if (d.isValid())
-		{
 			srcSelectList = d.toStringList();
-		}
-		srcSelectList.removeDuplicates();
 
 		QString src = injector.getStringHash(util::kLockEscapeString);
 		if (!src.isEmpty())
-		{
-			srcList = src.split("|", Qt::SkipEmptyParts);
-		}
+			srcList = src.split(util::rexOR, Qt::SkipEmptyParts);
 
-		if (!createSelectObjectForm(SelectObjectForm::kLockAttack, srcSelectList, srcList, &dstList, this))
+		if (!createSelectObjectForm(SelectObjectForm::kLockEscape, srcSelectList, srcList, &dstList, this))
 			return;
 
 		QString dst = dstList.join("|");
@@ -1119,14 +1113,15 @@ void GeneralForm::startGameAsync()
 		Injector& injector = Injector::getInstance(currentIndex);
 		injector.currentGameExePath = path;
 
-		injector.server.reset(new Server(currentIndex, this));
-		Q_ASSERT(!injector.server.isNull());
-		if (injector.server.isNull())
+		QScopedPointer <Server> _pServer(new Server(currentIndex, this));
+		Q_ASSERT(_pServer.isNull());
+		if (_pServer.isNull())
 			break;
 
-		if (!injector.server->start(this))
+		if (!_pServer->start(this))
 			break;
 
+		injector.server.reset(_pServer.take());
 
 		MainObject* pMainObject = nullptr;
 		if (!thread_manager.createThread(currentIndex, &pMainObject, nullptr) || (nullptr == pMainObject))

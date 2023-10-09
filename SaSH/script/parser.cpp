@@ -209,7 +209,8 @@ void hookProc(lua_State* L, lua_Debug* ar)
 		{
 			QString key = util::toQString(name);
 			QVariant value;
-			QPair<QString, QVariant> pair = luadebug::getVars(L, i, kMaxLuaTableDepth);
+			qint64 depth = kMaxLuaTableDepth;
+			QPair<QString, QVariant> pair = luadebug::getVars(L, i, depth);
 			if (key == "(temporary)")
 				key = QString("temporary_%1").arg(tmpIndex++);
 			else if (key == "(C temporary)")
@@ -462,7 +463,10 @@ void Parser::initialize(Parser* pparent)
 			for (const QString& str : buttonStrList)
 			{
 				if (!buttonMap.contains(str))
+				{
+					luadebug::showErrorMsg(s, luadebug::ERROR_LEVEL, QObject::tr("invalid button string: %1").arg(str));
 					return sol::lua_nil;
+				}
 				quint64 value = buttonMap.value(str);
 				buttonFlag |= value;
 			}
@@ -473,7 +477,7 @@ void Parser::initialize(Parser* pparent)
 			QElapsedTimer timer; timer.start();
 			for (;;)
 			{
-				if (isInterruptionRequested())
+				if (isInterruptionRequested() || injector.IS_SCRIPT_INTERRUPT.load(std::memory_order_acquire))
 					return sol::lua_nil;
 				if (timer.hasExpired(timeout))
 					break;
@@ -729,6 +733,7 @@ void Parser::initialize(Parser* pparent)
 			{
 				requestInterruption();
 				insertGlobalVar("vret", "nil");
+				luadebug::showErrorMsg(s, luadebug::WARN_LEVEL, QObject::tr("force stop by user input stop code"));
 				return sol::lua_nil;
 			}
 
@@ -2407,14 +2412,12 @@ QVariant Parser::getGlobalVarValue(const QString& name)
 //局變量保存到預備列表
 void Parser::importLocalVariablesToPreLuaList()
 {
-	sol::state& lua_ = pLua_->getLua();
-
 	//將局變量保存到預備列表、每次執行表達式時都會將局變量列表轉換lua語句插入表達式前
 	QVariantHash localVars = getLocalVars();
 	luaLocalVarStringList_->clear();
 	QString key, strvalue;
 	QVariant::Type type = QVariant::Invalid;
-	bool ok = false;
+
 	for (auto it = localVars.cbegin(); it != localVars.cend(); ++it)
 	{
 		key = it.key();
@@ -2733,7 +2736,7 @@ bool Parser::jump(const QString& name, bool noStack)
 
 QString Parser::getLuaTableString(const sol::table& t, qint64& depth)
 {
-	if (depth <= 0)
+	if (depth < 0)
 		return "{}";
 
 	if (t.size() == 0)
@@ -3007,8 +3010,6 @@ void Parser::processVariableCAOs()
 
 	QString followedExprStr = getToken<QString>(2);
 	QString expr;
-
-	sol::state& lua_ = pLua_->getLua();
 
 	if (typeFirst == QVariant::String)
 	{
@@ -3430,7 +3431,7 @@ void Parser::processDelay()
 		qint64 size = extraDelay / 1000ll;
 		for (i = 0; i < size; ++i)
 		{
-			if (isInterruptionRequested())
+			if (isInterruptionRequested() || injector.IS_SCRIPT_INTERRUPT.load(std::memory_order_acquire))
 				return;
 			QThread::msleep(1000L);
 		}
@@ -3741,7 +3742,7 @@ void Parser::processTokens()
 	qint64 currentIndex = getIndex();
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
 	Injector& injector = Injector::getInstance(currentIndex);
-	sol::state& lua_ = pLua_->getLua();
+
 	pLua_->setMax(size());
 
 	//同步模式時清空所有marker並重置UI顯示的堆棧訊息
@@ -3760,7 +3761,7 @@ void Parser::processTokens()
 
 	for (;;)
 	{
-		if (isInterruptionRequested())
+		if (isInterruptionRequested() || injector.IS_SCRIPT_INTERRUPT.load(std::memory_order_acquire))
 		{
 			break;
 		}
@@ -4597,8 +4598,8 @@ void Parser::updateSysConstKeyword(const QString& expr)
 
 			team[index]["name"] = party.name.toUtf8().constData();
 
-			if (injector.server->findUnit("", util::OBJ_HUMAN, &unit, "", party.id))
-				team[index]["fname"] = unit.freeName.toUtf8().constData();
+			if (injector.server->mapUnitHash.contains(party.id))
+				team[index]["fname"] = injector.server->mapUnitHash.value(party.id).freeName.toUtf8().constData();
 
 			team[index]["lv"] = party.level;
 

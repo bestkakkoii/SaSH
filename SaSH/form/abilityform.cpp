@@ -48,10 +48,14 @@ AbilityForm::AbilityForm(qint64 index, QWidget* parent)
 
 	emit signalDispatcher.applyHashSettingsToUI();
 
+	util::FormSettingManager formSettingManager(this);
+	formSettingManager.loadSettings();
 }
 
 AbilityForm::~AbilityForm()
 {
+	util::FormSettingManager formSettingManager(this);
+	formSettingManager.saveSettings();
 }
 
 void AbilityForm::onApplyHashSettingsToUI()
@@ -80,8 +84,8 @@ void AbilityForm::onApplyHashSettingsToUI()
 	qint64 count = 0;
 	for (qint64 i = 0; i < size; ++i)
 	{
-		QString str = list.at(i);
-		QStringList strList = str.split(util::rexComma);
+		QString s = list.at(i);
+		QStringList strList = s.split(util::rexComma);
 		if (strList.size() != 2)
 			continue;
 

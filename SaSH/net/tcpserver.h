@@ -522,6 +522,21 @@ private:
 
 	void sortBattleUnit(QVector<battleobject_t>& v) const;
 
+	enum BattleMatchType
+	{
+		MatchNotUsed,
+		MatchPos,
+		MatchLevel,
+		MatchHp,
+		MatchMaxHp,
+		MatchHPP,
+		MatchModel,
+		MatchName,
+		MatchStatus
+	};
+	bool matchBattleTarget(const QVector<battleobject_t>& btobjs, BattleMatchType matchtype, qint64 firstMatchPos, QString op, QVariant cmpvar, qint64* ppos);
+	bool conditionMatchTarget(QVector<battleobject_t> btobjs, const QString& conditionStr, qint64* ppos);
+
 	Q_REQUIRED_RESULT qint64 getBattleSelectableEnemyTarget(const battledata_t& bt) const;
 
 	Q_REQUIRED_RESULT qint64 getBattleSelectableEnemyOneRowTarget(const battledata_t& bt, bool front) const;
@@ -583,10 +598,6 @@ private:
 	std::atomic_bool IS_LOCKATTACK_ESCAPE_DISABLE = false;//鎖定攻擊不逃跑 (轉指定攻擊)
 
 	mutable QReadWriteLock pointMutex_;//用於保護人物座標更新順序
-
-	std::atomic_llong nowFloor_;
-	util::SafeData<QString> nowFloorName_;
-	util::SafeData<QPoint> nowPoint_;
 
 	PC pc_ = {};
 
@@ -652,6 +663,10 @@ private:
 #pragma endregion
 
 public:
+	std::atomic_llong nowFloor_;
+	util::SafeData<QString> nowFloorName_;
+	util::SafeData<QPoint> nowPoint_;
+
 	//custom
 	std::atomic_bool IS_TRADING = false;
 	std::atomic_bool IS_DISCONNECTED = false;

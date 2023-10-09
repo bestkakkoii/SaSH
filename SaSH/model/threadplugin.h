@@ -57,18 +57,28 @@ public:
 			QString errorMessage = QString("Terminating due to unhandled std::exception: %1").arg(QString::fromUtf8(e.what()));
 			std::wstring errorMessageW = errorMessage.toStdWString();
 			showErrorMessageBox(errorMessageW);
+
+			if (shouldTerminateProgram())
+			{
+				std::terminate();
+			}
 		}
 		catch (...)
 		{
 			showErrorMessageBox(L"Terminating due to unknown exception.");
+
+			if (shouldTerminateProgram())
+			{
+				std::terminate();
+			}
 		}
-		std::terminate();
 	}
 
 	static void handleUnexpected()
 	{
 		showErrorMessageBox(L"Unexpected exception.");
-		std::terminate();
+		if (shouldTerminateProgram())
+			std::terminate();
 	}
 
 	static void handleOutOfMemory()
@@ -77,7 +87,68 @@ public:
 		std::exit(EXIT_FAILURE);
 	}
 
+	static bool shouldTerminateProgram()
+	{
+		QStringList list = printStackTrace();
+		if (!list.isEmpty())
+		{
+			QString stackTrace = list.join("\n");
+			std::wstring stackTraceW = stackTrace.toStdWString();
+			showErrorMessageBox(stackTraceW);
+			return false;
+		}
+		return true;
+	}
+
 private:
+	static QStringList printStackTrace()
+	{
+		QStringList out;
+		HANDLE process = GetCurrentProcess();
+		SymInitialize(process, NULL, TRUE);
+
+		CONTEXT context;
+		memset(&context, 0, sizeof(CONTEXT));
+		context.ContextFlags = CONTEXT_FULL;
+		RtlCaptureContext(&context);
+
+		STACKFRAME stackFrame;
+		memset(&stackFrame, 0, sizeof(STACKFRAME));
+		DWORD machineType = IMAGE_FILE_MACHINE_I386;
+
+#if defined(_M_X64) || defined(__amd64__)
+		machineType = IMAGE_FILE_MACHINE_AMD64;
+#endif
+
+		stackFrame.AddrPC.Offset = context.Eip;
+		stackFrame.AddrPC.Mode = AddrModeFlat;
+		stackFrame.AddrFrame.Offset = context.Ebp;
+		stackFrame.AddrFrame.Mode = AddrModeFlat;
+		stackFrame.AddrStack.Offset = context.Esp;
+		stackFrame.AddrStack.Mode = AddrModeFlat;
+
+		SYMBOL_INFO* symbol = (SYMBOL_INFO*)calloc(sizeof(SYMBOL_INFO) + 256 * sizeof(char), 1);
+		if (symbol)
+		{
+			symbol->MaxNameLen = 255;
+			symbol->SizeOfStruct = sizeof(SYMBOL_INFO);
+
+			while (StackWalk(machineType, process, GetCurrentThread(), &stackFrame, &context, NULL, SymFunctionTableAccess, SymGetModuleBase, NULL))
+			{
+				SymFromAddr(process, stackFrame.AddrPC.Offset, NULL, symbol);
+
+				QString stackEntry = QString("%1: %2 - 0x%3").arg(out.size()).arg(QString::fromUtf8(symbol->Name)).arg(symbol->Address, 0, 16);
+				out.append(stackEntry);
+			}
+
+			free(symbol);
+		}
+
+		SymCleanup(process);
+		return out;
+	}
+
+
 	static void showErrorMessageBox(const std::wstring& message)
 	{
 		MessageBoxW(nullptr, message.c_str(), L"Fatal Error", MB_OK | MB_ICONERROR);

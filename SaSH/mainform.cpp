@@ -199,34 +199,24 @@ void MainForm::createMenu(QMenuBar* pMenuBar)
 		{ QObject::tr("checkupdate"), "actionUpdate", Qt::CTRL | Qt::Key_U },
 	};
 
-	QMenu* pMenuSystem = new QMenu(QObject::tr("system"));
-	if (pMenuSystem == nullptr)
+	QScopedPointer<QMenu> pMenuSystem(new QMenu(QObject::tr("system")));
+	QScopedPointer<QMenu> pMenuOther(new QMenu(QObject::tr("other")));
+	QScopedPointer<QMenu> pMenuFile(new QMenu(QObject::tr("file")));
+
+	if (pMenuSystem.isNull() || pMenuOther.isNull() || pMenuFile.isNull())
 		return;
 
-	pMenuBar->addMenu(pMenuSystem);
+	QMenu* _pMenuSystem = pMenuSystem.take();
+	QMenu* _pMenuOther = pMenuOther.take();
+	QMenu* _pMenuFile = pMenuFile.take();
 
-	QMenu* pMenuOther = new QMenu(QObject::tr("other"));
-	if (pMenuOther == nullptr)
-	{
-		delete pMenuSystem;
-		return;
-	}
+	pMenuBar->addMenu(_pMenuSystem);
+	pMenuBar->addMenu(_pMenuOther);
+	pMenuBar->addMenu(_pMenuFile);
 
-	pMenuBar->addMenu(pMenuOther);
-
-	QMenu* pMenuFile = new QMenu(QObject::tr("file"));
-	if (pMenuFile == nullptr)
-	{
-		delete pMenuSystem;
-		delete pMenuOther;
-		return;
-	}
-
-	pMenuBar->addMenu(pMenuFile);
-
-	create(systemTable, pMenuSystem);
-	create(otherTable, pMenuOther);
-	create(fileTable, pMenuFile);
+	create(systemTable, _pMenuSystem);
+	create(otherTable, _pMenuOther);
+	create(fileTable, _pMenuFile);
 }
 
 bool isValidChar(const char* charPtr)
@@ -264,7 +254,7 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 {
 	MSG* msg = static_cast<MSG*>(message);
 	qint64 currentIndex = getIndex();
-	Injector& injector = Injector::getInstance(currentIndex);
+
 	switch (msg->message)
 	{
 	case WM_MOUSEMOVE + WM_USER:
@@ -276,6 +266,7 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 	}
 	case WM_KEYUP + WM_USER + VK_DELETE:
 	{
+		Injector& injector = Injector::getInstance(currentIndex);
 		if (!injector.server.isNull())
 		{
 			injector.server->cleanChatHistory();
@@ -285,6 +276,7 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 	}
 	case kSetMove:
 	{
+		Injector& injector = Injector::getInstance(currentIndex);
 		if (injector.isValid() && !injector.server.isNull())
 		{
 			qint64 index = getIndex();
@@ -299,6 +291,7 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 	}
 	case kConnectionOK://TCP握手
 	{
+		Injector& injector = Injector::getInstance(currentIndex);
 		if (!injector.server.isNull())
 		{
 			injector.server->IS_TCP_CONNECTION_OK_TO_USE.store(true, std::memory_order_release);
@@ -750,10 +743,10 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 			}
 
 			QVector<HWND> hwnds;
-			for (const QString& str : strlist)
+			for (const QString& s : strlist)
 			{
 				bool ok = false;
-				qint64 nhwnd = str.simplified().toLongLong(&ok);
+				qint64 nhwnd = s.simplified().toLongLong(&ok);
 				if (!ok && nhwnd > 0)
 					continue;
 
@@ -817,10 +810,10 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 			}
 
 			QList<HWND> hwnds;
-			for (const QString& str : strlist)
+			for (const QString& s : strlist)
 			{
 				bool ok = false;
-				qint64 nhwnd = str.simplified().toLongLong(&ok);
+				qint64 nhwnd = s.simplified().toLongLong(&ok);
 				if (!ok && nhwnd > 0)
 					continue;
 

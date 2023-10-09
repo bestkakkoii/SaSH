@@ -615,6 +615,18 @@ namespace util
 		{ kBattlePetNormalActionEnemyValue, "BattlePetNormalActionEnemyValue" },
 		{ kBattlePetNormalActionLevelValue, "BattlePetNormalActionLevelValue" },
 
+		{ kBattlePetHealTargetValue, "BattlePetHealTargetValue" },
+		{ kBattlePetPurgTargetValue, "BattlePetPurgTargetValue" },
+		{ kBattleCharPurgTargetValue, "BattleCharPurgTargetValue" },
+
+		{ kBattlePetHealCharValue, "BattlePetHealCharValue" },
+		{ kBattlePetHealPetValue, "BattlePetHealPetValue" },
+		{ kBattlePetHealAllieValue, "BattlePetHealAllieValue" },
+
+		{ kBattlePetHealActionTypeValue, "BattlePetHealActionTypeValue" },
+		{ kBattlePetPurgActionTypeValue, "BattlePetPurgActionTypeValue" },
+		{ kBattleCharPurgActionTypeValue, "BattleCharPurgActionTypeValue" },
+
 		//afk->battle buttom
 		{ kBattleCharRoundActionTargetValue, "BattleCharRoundActionTargetValue" },
 		{ kBattleCharCrossActionTargetValue, "BattleCharCrossActionTargetValue" },

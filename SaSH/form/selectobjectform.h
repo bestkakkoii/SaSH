@@ -48,9 +48,9 @@ public:
 	void setRecviveList(QStringList* pList);
 
 public slots:
-	void setList(const QStringList& objectList);
+	void setList(QStringList objectList);
 
-	void setSelectList(const QStringList& objectList);
+	void setSelectList(QStringList objectList);
 
 protected:
 	virtual void showEvent(QShowEvent* e) override;
@@ -59,6 +59,10 @@ private slots:
 	void onButtonClicked();
 
 	void onAccept();
+
+	void on_listWidget_itemDoubleClicked(QListWidgetItem* item);
+
+	void on_listWidget_itemSelectionChanged();
 
 private:
 	void deleteItem();
@@ -71,11 +75,11 @@ private:
 	TitleType type_;
 };
 
-static bool createSelectObjectForm(SelectObjectForm::TitleType type, const QStringList& srcselectlist, const QStringList& srclist, QStringList* dst, QWidget* perent)
+static bool createSelectObjectForm(SelectObjectForm::TitleType type, const QStringList srcselectlist, const QStringList& srclist, QStringList* dst, QWidget* perent)
 {
 	QStringList recviveList;
 	SelectObjectForm* pObjForm = new SelectObjectForm(type, perent);
-	if (pObjForm)
+	if (pObjForm != nullptr)
 	{
 		pObjForm->setRecviveList(&recviveList);
 		pObjForm->setList(srclist);

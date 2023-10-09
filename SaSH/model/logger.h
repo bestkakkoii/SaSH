@@ -74,7 +74,7 @@ public:
 			nextBuffer_.setCapacity(bufferSize_);
 		}
 
-		if (static_cast<qint64>(currentBuffer_.size() + message.size()) > bufferSize_)
+		if (static_cast<qint64>(currentBuffer_.size()) + static_cast<qint64>(message.size()) > bufferSize_)
 			swapBuffersAndWrite();
 
 		currentBuffer_.append(newMessage);

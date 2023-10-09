@@ -38,6 +38,12 @@ namespace luadebug
 		ERROR_PARAM_TYPE,
 	};
 
+	enum
+	{
+		WARN_LEVEL = 0,
+		ERROR_LEVEL = 1,
+	};
+
 	static const QHash<LUA_ERROR_TYPE, QString> errormsg_str = {
 		{ ERROR_NOTUSED, QObject::tr("unknown") },
 		{ ERROR_FLAG_DETECT_STOP, QObject::tr("FLAG_DETECT_STOP") },
@@ -96,6 +102,7 @@ namespace luadebug
 
 	void tryPopCustomErrorMsg(const sol::this_state& s, const LUA_ERROR_TYPE element, const QVariant& p1 = 0, const QVariant& p2 = 0, const QVariant& p3 = 0, const QVariant& p4 = 0);
 
+
 	void checkStopAndPause(const sol::this_state& s);
 	bool checkBattleThenWait(const sol::this_state& s);
 	bool checkOnlineThenWait(const sol::this_state& s);
@@ -115,13 +122,14 @@ namespace luadebug
 	static const QRegularExpression reGetLineEx(R"(\]:(\d+)(?=\s*:))");
 	Q_REQUIRED_RESULT QString getErrorMsgLocatedLine(const QString& str, qint64* retline);
 
-	QPair<QString, QVariant> getVars(lua_State*& L, qint64 si, qint64 depth);
-	QString getTableVars(lua_State*& L, qint64 si, qint64 depth);
+	QPair<QString, QVariant> getVars(lua_State*& L, qint64 si, qint64& depth);
+	QString getTableVars(lua_State*& L, qint64 si, qint64& depth);
 
 	void hookProc(lua_State* L, lua_Debug* ar);
 
 	void logExport(const sol::this_state& s, const QStringList& datas, qint64 color, bool doNotAnnounce = false);
 	void logExport(const sol::this_state& s, const QString& data, qint64 color, bool doNotAnnounce = false);
+	void showErrorMsg(const sol::this_state& s, qint64 level, const QString& data);
 }
 
 class CLuaTest
@@ -299,7 +307,7 @@ public:
 	qint64 teleport(sol::this_state s);
 	qint64 findPath(sol::object p1, sol::object p2, sol::object p3, sol::object p4, sol::object p5, sol::object ofunction, sol::object jump, sol::this_state s);
 	qint64 downLoad(sol::object floor, sol::this_state s);
-	qint64 moveToNPC(sol::object, sol::object, qint64 x, qint64 y, qint64 otimeout, sol::object jump, sol::this_state s);
+	qint64 findNPC(sol::object, sol::object, qint64 x, qint64 y, qint64 otimeout, sol::object jump, sol::this_state s);
 };
 
 class CLuaBattle

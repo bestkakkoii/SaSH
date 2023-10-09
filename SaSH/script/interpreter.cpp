@@ -356,6 +356,9 @@ bool Interpreter::waitfor(qint64 timeout, std::function<bool()> exprfun)
 		if (isInterruptionRequested())
 			break;
 
+		if (injector.IS_SCRIPT_INTERRUPT.load(std::memory_order_acquire))
+			break;
+
 		if (injector.server.isNull())
 			break;
 
@@ -599,6 +602,9 @@ bool Interpreter::checkBattleThenWait()
 			if (isInterruptionRequested())
 				break;
 
+			if (injector.IS_SCRIPT_INTERRUPT.load(std::memory_order_acquire))
+				break;
+
 			if (injector.server.isNull())
 				break;
 
@@ -643,6 +649,9 @@ bool Interpreter::checkOnlineThenWait()
 			if (injector.server.isNull())
 				break;
 
+			if (injector.IS_SCRIPT_INTERRUPT.load(std::memory_order_acquire))
+				break;
+
 			checkPause();
 
 			if (injector.server->getOnlineFlag())
@@ -668,7 +677,10 @@ qint64 Interpreter::run(qint64 currentIndex, qint64 currentline, const TokenMap&
 	QString fileName;
 	checkString(TK, 1, &fileName);
 	if (fileName.isEmpty())
+	{
+		errorExport(currentIndex, currentline, ERROR_LEVEL, QObject::tr("File name expected but got nothing"));
 		return Parser::kArgError + 1ll;
+	}
 
 	VarShareMode varShareMode = kNotShare;
 	qint64 nShared = 0;
@@ -708,18 +720,37 @@ qint64 Interpreter::run(qint64 currentIndex, qint64 currentline, const TokenMap&
 
 	fileInfo = QFileInfo(fileName);
 	if (fileInfo.isDir())
+	{
+		errorExport(currentIndex, currentline, ERROR_LEVEL, QObject::tr("Invalid path of file '%1' expected a file but got a directory").arg(fileName));
 		return Parser::kArgError + 1ll;
+	}
 
 	QString suffix = fileInfo.suffix();
 	if (suffix.isEmpty())
 		fileName += ".txt";
 	else if (suffix != "txt" && suffix != "sac")
 	{
+		errorExport(currentIndex, currentline, ERROR_LEVEL, QObject::tr("Invalid suffix of file '%1'").arg(suffix));
 		return Parser::kArgError + 1ll;
 	}
 
+	//如果文件不存在則嘗試遍歷搜索腳本
 	if (!QFile::exists(fileName))
-		return Parser::kArgError + 1ll;
+	{
+		QStringList paths;
+		fileName = fileInfo.fileName();
+		QString withoutsuffix = fileName;
+		withoutsuffix.remove(fileInfo.suffix());
+		util::searchFiles(util::applicationDirPath(), fileName, "txt", &paths, false);
+		if (paths.isEmpty())
+		{
+			errorExport(currentIndex, currentline, ERROR_LEVEL, QObject::tr("original path '%1' of file not exist, try to auto search but found nothing").arg(fileName));
+			return Parser::kArgError + 1ll;
+		}
+
+		fileName = paths.first();
+		errorExport(currentIndex, currentline, WARN_LEVEL, QObject::tr("[warn]original path '%1' of file not exist, auto search and found file at '%2'").arg(fileName));
+	}
 
 	if (Parser::kSync == asyncMode)
 	{
@@ -802,7 +833,10 @@ qint64 Interpreter::dostr(qint64 currentIndex, qint64 currentline, const TokenMa
 	QString text;
 	checkString(TK, 1, &text);
 	if (text.isEmpty())
+	{
+		errorExport(currentIndex, currentline, ERROR_LEVEL, QObject::tr("String expected but got nothing"));
 		return Parser::kArgError + 1ll;
+	}
 
 	QString script = text;
 	script.replace("\\r\\n", "\r\n");
@@ -885,4 +919,10 @@ void Interpreter::logExport(qint64 currentIndex, qint64 currentline, const QStri
 
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
 	emit signalDispatcher.appendScriptLog(msg, color);
+}
+
+void Interpreter::errorExport(qint64 currentIndex, qint64 currentLine, qint64 level, const QString& data)
+{
+	QString newText = QString("%1%2").arg(level == WARN_LEVEL ? QObject::tr("[warn]") : QObject::tr("[error]")).arg(data);
+	logExport(currentIndex, currentLine, newText, 0);
 }

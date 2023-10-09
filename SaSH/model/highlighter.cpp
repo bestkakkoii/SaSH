@@ -54,7 +54,7 @@ const char* Highlighter::keywords(int set) const
 			"usemagic doffpet buy sell useitem doffitem swapitem pickup putitem "
 			"getitem putpet getpet make cook uequip requip "
 			"wequip pequip puequip skup join leave kick move "
-			"walkpos w dir findpath movetonpc lclick rclick ldbclick dragto warp "
+			"walkpos w dir findpath findnpc lclick rclick ldbclick dragto warp "
 			"learn trade run dostr sellpet mail reg "
 			"regex rex rexg trim upper lower half toint tostr todb replace find full "
 			"bh bj bp bs be bd bi bn bw bwf bwait bend "
@@ -230,7 +230,7 @@ QColor Highlighter::defaultColor(int style) const
 }
 
 // Returns the font of the text for a style.
-QFont Highlighter::defaultFont(int n) const
+QFont Highlighter::defaultFont(int) const
 {
 	return font_;
 }
@@ -243,7 +243,7 @@ QStringList Highlighter::autoCompletionWordSeparators() const
 }
 
 // Returns the background colour of the text for a style.
-QColor Highlighter::defaultPaper(int style) const
+QColor Highlighter::defaultPaper(int) const
 {
 	static QColor color(30, 30, 30);
 	return color;

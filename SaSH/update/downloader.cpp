@@ -689,7 +689,10 @@ Downloader::~Downloader()
 		networkManager_->deleteLater();
 
 	if (reply_ != nullptr)
+	{
 		reply_->deleteLater();
+		reply_ = nullptr;
+	}
 }
 
 void Downloader::showEvent(QShowEvent* e)
@@ -782,7 +785,10 @@ bool Downloader::download(const QString& url, QByteArray* pbyteArray)
 		qDebug() << "Failed to create request.";
 		emit labelTextChanged("Failed to create request.");
 		if (reply_ != nullptr)
+		{
 			reply_->deleteLater();
+			reply_ = nullptr;
+		}
 		return false;
 	}
 
@@ -945,7 +951,10 @@ void Downloader::start()
 		qDebug() << "Failed to create request.";
 		emit labelTextChanged("Failed to create request.");
 		if (reply_ != nullptr)
+		{
 			reply_->deleteLater();
+			reply_ = nullptr;
+		}
 		return;
 	}
 
@@ -980,33 +989,31 @@ void Downloader::onDownloadFinished()
 
 	if (reply_->error() == QNetworkReply::NoError)
 	{
-		util::ScopedFile file(rcPath_ + szDownloadedFileName_, QIODevice::WriteOnly);
-		if (file.isOpen())
-		{
-			file.write(reply_->readAll());
-			qDebug() << "Downloaded file saved to" << file.fileName();
-			emit labelTextChanged("Downloaded file saved to" + file.fileName());
-			emit progressReset(100);
-			isMain = false;
-			//QMetaObject::invokeMethod(this, "overwriteCurrentExecutable", Qt::QueuedConnection);
-			QtConcurrent::run([this]()
-				{
-					overwriteCurrentExecutable();
-				});
-		}
+		QByteArray ba = reply_->readAll();
+		QtConcurrent::run(this, &Downloader::overwriteCurrentExecutable, ba);
 	}
 
 	reply_->deleteLater();
 	reply_ = nullptr;
 }
 
-void Downloader::overwriteCurrentExecutable()
+void Downloader::overwriteCurrentExecutable(QByteArray ba)
 {
 	static bool ALREADY_RUN = false;
 	if (ALREADY_RUN)
 		return;
 
 	ALREADY_RUN = true;
+
+	util::ScopedFile file(rcPath_ + szDownloadedFileName_, QIODevice::WriteOnly);
+	if (file.isOpen())
+	{
+		file.write(ba);
+		qDebug() << "Downloaded file saved to" << file.fileName();
+		emit labelTextChanged("Downloaded file saved to" + file.fileName());
+		emit progressReset(100);
+		isMain = false;
+	}
 
 	emit progressReset(0);
 

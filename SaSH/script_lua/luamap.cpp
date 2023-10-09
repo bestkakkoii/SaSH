@@ -88,7 +88,10 @@ qint64 CLuaMap::move(sol::object obj, qint64 y, sol::this_state s)
 	else if (obj.is<std::string>())
 	{
 		if (!dirMap.contains(dirStr.toUpper().simplified()))
+		{
+			luadebug::showErrorMsg(s, luadebug::ERROR_LEVEL, QObject::tr("invalid direction"));
 			return FALSE;
+		}
 
 		DirType dir = dirMap.value(dirStr.toUpper().simplified());
 		//計算出往該方向10格的坐標
@@ -178,9 +181,9 @@ qint64 CLuaMap::downLoad(sol::object ofloor, sol::this_state s)
 			QRegularExpressionMatch match = reg.match(fileName.toLower());
 			if (match.hasMatch())
 			{
-				QString floor = match.captured(1);
+				QString szfl = match.captured(1);
 				int size = fileInfo.size();
-				list.append(map{ floor.toLongLong(), size });
+				list.append(map{ szfl.toLongLong(), size });
 			}
 		}
 
@@ -196,7 +199,10 @@ qint64 CLuaMap::downLoad(sol::object ofloor, sol::this_state s)
 		}
 	}
 	else
+	{
+		luadebug::showErrorMsg(s, luadebug::ERROR_LEVEL, QObject::tr("invalid floor"));
 		return FALSE;
+	}
 
 	return TRUE;
 }
@@ -236,10 +242,16 @@ bool __fastcall findPathProcess(
 	if (!mapAnalyzer.isNull())
 	{
 		if (mapAnalyzer.isNull())
+		{
+			luadebug::showErrorMsg(s, luadebug::ERROR_LEVEL, QObject::tr("unable to access map analyzer"));
 			return false;
+		}
 	}
 	else
+	{
+		luadebug::showErrorMsg(s, luadebug::ERROR_LEVEL, QObject::tr("unable to access map analyzer"));
 		return false;
+	}
 
 	if (injector.isScriptDebugModeEnable.load(std::memory_order_acquire))
 	{
@@ -253,7 +265,10 @@ bool __fastcall findPathProcess(
 	QSet<QPoint> blockList;
 	qint64 nret = -1;
 	if (mapAnalyzer.isNull())
+	{
+		luadebug::showErrorMsg(s, luadebug::ERROR_LEVEL, QObject::tr("unable to access map analyzer"));
 		return false;
+	}
 
 	if (!mapAnalyzer->calcNewRoute(astar, floor, src, dst, blockList, &path))
 	{
@@ -436,7 +451,7 @@ bool __fastcall findPathProcess(
 			luadebug::checkStopAndPause(s);
 
 			//查看前方是否存在NPC阻擋
-			QPoint point;
+			QPoint blockPoint;
 			mapunit_t unit; bool hasNPCBlock = false;
 			SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
 			bool isAutoEscape = injector.getEnableHash(util::kAutoEscapeEnable);
@@ -444,7 +459,7 @@ bool __fastcall findPathProcess(
 
 			for (const QPoint& it : util::fix_point)
 			{
-				point = src + it;
+				blockPoint = src + it;
 				if (!injector.server->findUnit(QString("%1|%2").arg(point.x()).arg(point.y()), util::OBJ_NPC, &unit) || !unit.isVisible)
 					continue;
 				hasNPCBlock = true;
@@ -458,7 +473,7 @@ bool __fastcall findPathProcess(
 				injector.setEnableHash(util::kAutoEscapeEnable, false);
 				injector.setEnableHash(util::kKNPCEnable, true);
 				emit signalDispatcher.applyHashSettingsToUI();
-				injector.server->move(point);
+				injector.server->move(blockPoint);
 				QThread::msleep(2000);
 				luadebug::checkBattleThenWait(s);
 				blockDetectTimer.restart();
@@ -484,8 +499,8 @@ bool __fastcall findPathProcess(
 			qint64 dir = injector.server->setCharFaceToPoint(lastTryPoint);
 			if (dir == -1)
 				dir = injector.server->getDir();
-			point = src + util::fix_point.value(dir);
-			blockList.insert(point);
+			blockPoint = src + util::fix_point.value(dir);
+			blockList.insert(blockPoint);
 			blockList.insert(lastTryPoint);
 			if (recordedStep == -1)
 				recordedStep = steplen_cache;
@@ -639,7 +654,9 @@ qint64 CLuaMap::findPath(sol::object p1, sol::object p2, sol::object p3, sol::ob
 			if (ok)
 				point.setY(strList.value(1).toLongLong(&ok));
 			if (!ok)
+			{
 				return FALSE;
+			}
 		}
 
 		for (const util::MapData& d : datas)
@@ -694,7 +711,7 @@ qint64 CLuaMap::findPath(sol::object p1, sol::object p2, sol::object p3, sol::ob
 	return FALSE;
 }
 
-qint64 CLuaMap::moveToNPC(sol::object p1, sol::object nicknames, qint64 x, qint64 y, qint64 otimeout, sol::object jump, sol::this_state s)
+qint64 CLuaMap::findNPC(sol::object p1, sol::object nicknames, qint64 x, qint64 y, qint64 otimeout, sol::object jump, sol::this_state s)
 {
 	sol::state_view lua(s);
 	qint64 currentIndex = lua["_INDEX"].get<qint64>();

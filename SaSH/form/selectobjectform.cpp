@@ -27,6 +27,11 @@ SelectObjectForm::SelectObjectForm(TitleType type, QWidget* parent)
 	setAttribute(Qt::WA_DeleteOnClose);
 	setWindowFlags(Qt::Tool | Qt::Dialog | Qt::WindowCloseButtonHint);
 	setModal(true);
+
+	QString listWidgetStyle = /*select item black*/ "QListWidget::item:selected{background-color: rgb(0, 0, 0);color: rgb(255, 255, 255);}";
+	ui.listWidget->setAttribute(Qt::WA_StyledBackground);
+	ui.listWidget->setStyleSheet(listWidgetStyle);
+
 	ui.listWidget->setUniformItemSizes(false);
 	ui.comboBox->setEditable(true);
 
@@ -44,21 +49,26 @@ SelectObjectForm::SelectObjectForm(TitleType type, QWidget* parent)
 		connect(button, &QPushButton::clicked, this, &SelectObjectForm::onButtonClicked, Qt::UniqueConnection);
 	}
 
+	util::FormSettingManager formSettingManager(this);
+	formSettingManager.loadSettings();
+
 	static const QHash<TitleType, QString> title_hash = {
-		{ kAutoDropItem, tr("auto drop item") },//自動丟棄
-		{ kLockAttack, tr("lock attack") },//鎖定攻擊
-		{ kLockEscape, tr("lock escape") },//鎖定逃跑
-		{ kAutoCatch, tr("auto catch") },//自動捉寵
-		{ kAutoDropPet, tr("auto drop pet") },//自動丟寵
-		{ kAutoLogOut, tr("auto logout") },//自動登出名單
-		{ kWhiteList, tr("white list") },//允許加入名單
-		{ kBlackList, tr("black list") },//自動踢除名單
+	{ kAutoDropItem, tr("auto drop item") },//自動丟棄
+	{ kLockAttack, tr("lock attack") },//鎖定攻擊
+	{ kLockEscape, tr("lock escape") },//鎖定逃跑
+	{ kAutoCatch, tr("auto catch") },//自動捉寵
+	{ kAutoDropPet, tr("auto drop pet") },//自動丟寵
+	{ kAutoLogOut, tr("auto logout") },//自動登出名單
+	{ kWhiteList, tr("white list") },//允許加入名單
+	{ kBlackList, tr("black list") },//自動踢除名單
 	};
 	setWindowTitle(title_hash.value(type_, tr("unknown type")));
 }
 
 SelectObjectForm::~SelectObjectForm()
 {
+	util::FormSettingManager formSettingManager(this);
+	formSettingManager.saveSettings();
 }
 
 void SelectObjectForm::showEvent(QShowEvent* e)
@@ -67,15 +77,25 @@ void SelectObjectForm::showEvent(QShowEvent* e)
 	QDialog::showEvent(e);
 }
 
-void SelectObjectForm::setList(const QStringList& objectList)
+void SelectObjectForm::setList(QStringList objectList)
 {
+	objectList.removeDuplicates();
+	for (auto& str : objectList)
+	{
+		str = str.simplified();
+	}
 	ui.listWidget->clear();
 	ui.listWidget->addItems(objectList);
 
 }
 
-void SelectObjectForm::setSelectList(const QStringList& objectList)
+void SelectObjectForm::setSelectList(QStringList objectList)
 {
+	objectList.removeDuplicates();
+	for (auto& str : objectList)
+	{
+		str = str.simplified();
+	}
 	ui.comboBox->clear();
 	ui.comboBox->addItems(objectList);
 }
@@ -92,15 +112,28 @@ void SelectObjectForm::onButtonClicked()
 
 	do
 	{
-		if (name == "pushButton_down")
+		if (name == "pushButton_add")
 		{
 			appendItem();
 			break;
 		}
 
+		if (name == "pushButton_clear")
+		{
+			ui.listWidget->clear();
+			break;
+		}
+
 		if (name == "pushButton_up")
 		{
-			deleteItem();
+			util::SwapRowUp(ui.listWidget);
+
+			break;
+		}
+
+		if (name == "pushButton_down")
+		{
+			util::SwapRowDown(ui.listWidget);
 			break;
 		}
 	} while (false);
@@ -132,24 +165,23 @@ void SelectObjectForm::deleteItem()
 void SelectObjectForm::appendItem()
 {
 	QString currentText = ui.comboBox->currentText().simplified();
+	currentText.replace(" ", "");
 	if (currentText.isEmpty())
-	{
 		return;
-	}
+
+	currentText.replace(" ", "");
 
 	QScopedPointer<QListWidgetItem> newItem(new QListWidgetItem(currentText));
 	if (newItem.isNull())
-	{
 		return;
-	}
 
 	QList<QListWidgetItem*> existingItems = ui.listWidget->findItems(currentText, Qt::MatchExactly);
+	if (!existingItems.isEmpty())
+		return;
 
-	if (existingItems.isEmpty())
-	{
-		ui.listWidget->addItem(newItem.take());
-		ui.listWidget->scrollToBottom();
-	}
+	ui.comboBox->setCurrentText(QString());
+	ui.listWidget->addItem(newItem.take());
+	ui.listWidget->scrollToBottom();
 }
 
 void SelectObjectForm::setRecviveList(QStringList* pList)
@@ -160,4 +192,26 @@ void SelectObjectForm::setRecviveList(QStringList* pList)
 	}
 
 	pRecviveList_ = pList;
+}
+
+//remove
+void SelectObjectForm::on_listWidget_itemDoubleClicked(QListWidgetItem* item)
+{
+	if (item == nullptr)
+		return;
+
+	deleteItem();
+}
+
+void SelectObjectForm::on_listWidget_itemSelectionChanged()
+{
+	QListWidgetItem* item = ui.listWidget->currentItem();
+	if (item == nullptr)
+		return;
+
+	QString text = item->text();
+	if (text.isEmpty())
+		return;
+
+	ui.comboBox->setCurrentText(text);
 }

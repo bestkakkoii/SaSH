@@ -197,7 +197,7 @@ qint64 Interpreter::useitem(qint64 currentIndex, qint64 currentLine, const Token
 				if (!injector.server->getItemIndexsByName(name, memo, &v, CHAR_EQUIPPLACENUM))
 					continue;
 
-				qint64 totalUse = target - 100;
+				totalUse = target - 100;
 
 				bool ok = false;
 				QHash<qint64, ITEM> items = injector.server->getItems();
@@ -238,7 +238,7 @@ qint64 Interpreter::useitem(qint64 currentIndex, qint64 currentLine, const Token
 				memo = itemMemos.takeFirst();
 
 			QVector<qint64> v;
-			if (!injector.server->getItemIndexsByName(itemName, memo, &v, CHAR_EQUIPPLACENUM))
+			if (!injector.server->getItemIndexsByName(name, memo, &v, CHAR_EQUIPPLACENUM))
 				continue;
 
 			if (totalUse == 1)
@@ -695,6 +695,9 @@ qint64 Interpreter::sellpet(qint64 currentIndex, qint64 currentLine, const Token
 	for (qint64 petIndex = min; petIndex <= max; ++petIndex)
 	{
 		if (isInterruptionRequested())
+			return Parser::kNoChange;
+
+		if (injector.IS_SCRIPT_INTERRUPT.load(std::memory_order_acquire))
 			return Parser::kNoChange;
 
 		if (injector.server.isNull())

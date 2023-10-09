@@ -49,6 +49,12 @@ SelectTargetForm::SelectTargetForm(qint64 index, qint64 type, QString* dst, QWid
 	selectflag_ = static_cast<quint64>(injector.getValueHash(static_cast<util::UserSetting>(type)));
 	checkControls();
 
+	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(index);
+	connect(&signalDispatcher, &SignalDispatcher::updateTeamInfo, this, &SelectTargetForm::onUpdateTeamInfo, Qt::UniqueConnection);
+
+	util::FormSettingManager formSettingManager(this);
+	formSettingManager.loadSettings();
+
 	const QHash<qint64, QString> title_hash = {
 		//afk->battle button
 		{ util::kBattleCharRoundActionTargetValue, tr("player specific round action") },
@@ -71,13 +77,12 @@ SelectTargetForm::SelectTargetForm(qint64 index, qint64 type, QString* dst, QWid
 	};
 
 	setWindowTitle(title_hash.value(type_, tr("unknown")));
-
-	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(index);
-	connect(&signalDispatcher, &SignalDispatcher::updateTeamInfo, this, &SelectTargetForm::onUpdateTeamInfo, Qt::UniqueConnection);
 }
 
 SelectTargetForm::~SelectTargetForm()
 {
+	util::FormSettingManager formSettingManager(this);
+	formSettingManager.saveSettings();
 }
 
 void SelectTargetForm::showEvent(QShowEvent* e)

@@ -338,6 +338,7 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 			//查找窗口句炳
 			for (;;)
 			{
+				QThread::msleep(2000);
 				::EnumWindows(EnumWindowsCallback, reinterpret_cast<LPARAM>(&pi));
 				if (pi.hWnd != nullptr)
 				{
@@ -352,8 +353,6 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 					emit signalDispatcher.messageBoxShow(QObject::tr("EnumWindows timeout"), QMessageBox::Icon::Critical);
 					break;
 				}
-
-				QThread::msleep(100);
 			}
 		}
 
@@ -365,6 +364,8 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 		}
 
 		qDebug() << "HWND OK, cost:" << timer.elapsed() << "ms";
+
+		QThread::msleep(2000);
 
 		//紀錄線程ID(目前沒有使用到只是先記錄著)
 		pi.dwThreadId = ::GetWindowThreadProcessId(pi.hWnd, nullptr);

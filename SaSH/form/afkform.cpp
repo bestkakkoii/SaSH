@@ -308,6 +308,12 @@ void AfkForm::onCheckBoxStateChanged(int state)
 		return;
 	}
 
+	if (name == "checkBox_noscapewhilelockpet")
+	{
+		injector.setEnableHash(util::kBattleNoEscapeWhileLockPetEnable, isChecked);
+		return;
+	}
+
 	//battle heal
 	if (name == "checkBox_magicheal")
 	{

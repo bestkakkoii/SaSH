@@ -1044,12 +1044,7 @@ enum TalkMode
 #pragma endregion
 
 #pragma region Structs
-#ifdef _WIN64
 #pragma pack(8)
-#else
-#pragma pack(4) 
-#endif
-
 #if 0
 typedef struct action
 {
@@ -1262,9 +1257,6 @@ typedef struct tagITEM
 
 typedef struct tagPC
 {
-	bool petFight[MAX_PET] = { 0, 0, 0, 0, 0 };;
-	bool petWait[MAX_PET] = { 0, 0, 0, 0, 0 };
-	bool petRide[MAX_PET] = { 0, 0, 0, 0, 0 };
 	qint64 selectPetNo[MAX_PET] = { 0, 0, 0, 0, 0 };
 	qint64 battlePetNo = -1;
 	qint64 mailPetNo = -1;

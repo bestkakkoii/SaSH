@@ -34,7 +34,10 @@ qint64 Interpreter::checkdaily(qint64 currentIndex, qint64 currentLine, const To
 	text = text.simplified();
 
 	if (text.isEmpty())
+	{
+		errorExport(currentIndex, currentLine, ERROR_LEVEL, QObject::tr("mission name cannot be empty"));
 		return Parser::kArgError + 1ll;
+	}
 
 	qint64 status = injector.server->checkJobDailyState(text);
 	if (status == 1)//已完成
@@ -57,7 +60,10 @@ qint64 Interpreter::waitpet(qint64 currentIndex, qint64 currentLine, const Token
 	petName = petName.simplified();
 
 	if (petName.isEmpty())
+	{
+		errorExport(currentIndex, currentLine, ERROR_LEVEL, QObject::tr("pet name cannot be empty"));
 		return Parser::kArgError + 1ll;
+	}
 
 	qint64 timeout = DEFAULT_FUNCTION_TIMEOUT;
 	checkInteger(TK, 2, &timeout);
@@ -106,7 +112,10 @@ qint64 Interpreter::waitmap(qint64 currentIndex, qint64 currentLine, const Token
 	checkInteger(TK, 2, &timeout);
 
 	if (floor == 0 && mapname.isEmpty())
+	{
+		errorExport(currentIndex, currentLine, ERROR_LEVEL, QObject::tr("invalid map name or floor number"));
 		return Parser::kServerNotReady;
+	}
 
 	auto check = [&injector, floor, mapnames]()
 	{
@@ -290,7 +299,10 @@ qint64 Interpreter::waitsay(qint64 currentIndex, qint64 currentLine, const Token
 	checkString(TK, 2, &cmpStr);
 	cmpStr = cmpStr.simplified();
 	if (cmpStr.isEmpty())
+	{
+		errorExport(currentIndex, currentLine, ERROR_LEVEL, QObject::tr("pre-compare string cannot be empty"));
 		return Parser::kArgError + 2ll;
+	}
 
 	QStringList cmpStrs = cmpStr.split(util::rexOR, Qt::SkipEmptyParts);
 

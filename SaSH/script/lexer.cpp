@@ -331,7 +331,7 @@ void Lexer::tokenized(qint64 currentLine, const QString& line, TokenMap* ptoken,
 			raw = raw.mid(0, commentIndex).trimmed();
 
 		static const QStringList tempReplacementList = {
-			"set", "print", "msg", "dlg", "findpath", "movetonpc", "rex", "regex", "rexg", "format", "run",
+			"set", "print", "msg", "dlg", "findpath", "findnpc", "rex", "regex", "rexg", "format", "run",
 			"say", "sleep", "saveset", "loadset", "lclick", "rclick", "dbclick", "dragto", "chmap", "w", "download",
 			"move", "cls", "eo", "logout", "logback", "runex", "openwindow", "rungame", "closegame", "setlogin", "dostrex",
 			"getgamestate", "loadsetex", "createch", "delch", "menu"
@@ -909,10 +909,10 @@ void Lexer::recordNode()
 
 	beginLuaCode_ = false;
 
-	for (auto it = map.cbegin(); it != map.cend(); ++it)
+	for (auto subit = map.cbegin(); subit != map.cend(); ++subit)
 	{
-		qint64 row = it.key();
-		TokenMap tk = it.value();
+		qint64 row = subit.key();
+		TokenMap tk = subit.value();
 
 		if (TK_LUABEGIN == tk.value(0).type)
 		{
@@ -934,9 +934,9 @@ void Lexer::recordNode()
 		{
 			bool ok = false;
 
-			for (auto it = forNodes.constBegin(); it != forNodes.constEnd(); ++it)
+			for (auto subit = forNodes.constBegin(); subit != forNodes.constEnd(); ++subit)
 			{
-				ForNode node = *it;
+				ForNode node = *subit;
 				if (row > node.beginLine && row < node.endLine)
 				{
 					ok = true;
@@ -1007,9 +1007,9 @@ void Lexer::recordNode()
 			{
 				bool ok = false;
 
-				for (auto it = forNodes.constBegin(); it != forNodes.constEnd(); ++it)
+				for (auto subit = forNodes.constBegin(); subit != forNodes.constEnd(); ++subit)
 				{
-					ForNode node = *it;
+					ForNode node = *subit;
 					if (row > node.beginLine && row < node.endLine)
 					{
 						ok = true;
@@ -1029,9 +1029,9 @@ void Lexer::recordNode()
 			{
 				bool ok = false;
 
-				for (auto it = functionNodes.constBegin(); it != functionNodes.constEnd(); ++it)
+				for (auto subit = functionNodes.constBegin(); subit != functionNodes.constEnd(); ++subit)
 				{
-					FunctionNode node = *it;
+					FunctionNode node = *subit;
 					if (row > node.beginLine && row < node.endLine)
 					{
 						ok = true;

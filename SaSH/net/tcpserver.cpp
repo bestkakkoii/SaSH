@@ -232,8 +232,12 @@ Server::Server(qint64 index, QObject* parent)
 
 	injector.autil.PersonalKey.set("upupupupp");
 
-	mapAnalyzer.reset(new MapAnalyzer(index));
-	Q_ASSERT(!mapAnalyzer.isNull());
+	QScopedPointer<MapAnalyzer> _mapAnalyzer(new MapAnalyzer(index));
+	Q_ASSERT(!_mapAnalyzer.isNull());
+	if (_mapAnalyzer.isNull())
+		return;
+
+	mapAnalyzer.reset(_mapAnalyzer.take());
 }
 
 Server::~Server()
@@ -2755,18 +2759,20 @@ void Server::createCharacter(qint64 dataplacenum
 	, qint64 hometown
 	, bool forcecover)
 {
-	//hometown: 薩姆0 漁村1 加加2 卡魯3
+
 	if (!forcecover)
 	{
+		//防複寫保護
 		if (getCharListTable(dataplacenum).valid)
 			return;
 	}
 
+	std::string sname = util::fromUnicode(charname);
+	lssproto_CreateNewChar_send(dataplacenum, const_cast<char*>(sname.c_str()), imgno, faceimgno, vit, str, tgh, dex, earth, water, fire, wind, hometown);
+
 	if (!checkWG(3, 11))
 		return;
 
-	std::string sname = util::fromUnicode(charname);
-	lssproto_CreateNewChar_send(dataplacenum, const_cast<char*>(sname.c_str()), imgno, faceimgno, vit, str, tgh, dex, earth, water, fire, wind, hometown);
 	qint64 currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
 	HANDLE hProcess = injector.getProcess();
@@ -5052,19 +5058,32 @@ void Server::setBattleEnd()
 
 		if (obj.pos == battleCharCurrentPos.load(std::memory_order_acquire))
 		{
-			temp = QString("*[%1]%2:%3:%4:%5%6").arg(obj.pos + 1).arg(obj.name).arg(obj.level)
+			temp = QString("　[%1]★%2%3 LV:%4(%5)%6")
+				.arg(obj.pos + 1)
+				.arg("")
+				.arg(obj.name)
+				.arg(obj.level)
 				.arg(obj.hp)
-				.arg(battleCharCurrentMp.load(std::memory_order_acquire))
 				.arg(statusStr);
 		}
 		else
 		{
 			if (obj.pos >= bt.enemymin && obj.pos <= bt.enemymax)
-				temp = QString("*[%1]%2:%3:%4:%5%6").arg(obj.pos + 1).arg(obj.modelid).arg(obj.name).arg(obj.level)
-				.arg(obj.hp).arg(statusStr);
+				temp = QString("　[%1]%2%3 LV:%4(%5)%6")
+				.arg(obj.pos + 1)
+				.arg(QString::number(obj.modelid) + ":")
+				.arg(obj.name)
+				.arg(obj.level)
+				.arg(obj.hp)
+				.arg(statusStr);
 			else
-				temp = QString("*[%1]%2:%3:%4%5").arg(obj.pos + 1).arg(obj.name).arg(obj.level)
-				.arg(obj.hp).arg(statusStr);
+				temp = QString("　[%1]%2%3 LV:%4(%5)%6")
+				.arg(obj.pos + 1)
+				.arg("")
+				.arg(obj.name)
+				.arg(obj.level)
+				.arg(obj.hp)
+				.arg(statusStr);
 		}
 
 		tempList.append(temp);
@@ -5072,7 +5091,10 @@ void Server::setBattleEnd()
 
 		if (obj.rideFlag == 1)
 		{
-			temp = QString(":R:%1").arg(obj.rideHp);
+			temp = QString(",%1LV:%2(%3)")
+				.arg(QObject::tr("R"))
+				.arg(obj.rideLevel)
+				.arg(obj.rideHp);
 		}
 
 		tempList.append(temp);
@@ -5481,6 +5503,261 @@ bool Server::isPetSpotEmpty() const
 	return true;
 }
 
+bool Server::matchBattleTarget(const QVector<battleobject_t>& btobjs, BattleMatchType matchtype, qint64 firstMatchPos, QString op, QVariant cmpvar, qint64* ppos)
+{
+	auto cmp = [op](QVariant a, QVariant b)
+	{
+		QString aStr = a.toString();
+		QString bStr = b.toString();
+
+		bool aNumOk = false, bNumOk = false;
+		qint64 bNum = b.toLongLong(&aNumOk);
+		qint64 aNum = a.toLongLong(&bNumOk);
+
+		if (aNumOk && bNumOk)
+		{
+			if (op == ">")
+				return aNum > bNum;
+			else if (op == "<")
+				return aNum < bNum;
+			else if (op == ">=")
+				return aNum >= bNum;
+			else if (op == "<=")
+				return aNum <= bNum;
+			else if (op == "==")
+				return aNum == bNum;
+			else if (op == "!=")
+				return aNum != bNum;
+			else
+				return aNum == bNum;
+		}
+
+		static const QLocale locale;
+		static const QCollator collator(locale);
+
+		if (op == ">")
+			return collator.compare(aStr, bStr) > 0;
+		else if (op == "<")
+			return collator.compare(aStr, bStr) < 0;
+		else if (op == ">=")
+			return collator.compare(aStr, bStr) >= 0;
+		else if (op == "<=")
+			return collator.compare(aStr, bStr) <= 0;
+		else if (op == "==")
+			return aStr == bStr;
+		else if (op == "!=")
+			return aStr != bStr;
+		else if (op == "!?")
+			return !aStr.contains(bStr);
+		else if (op == "?")
+			return aStr.contains(bStr);
+		else
+		{
+			return aStr == bStr;
+		}
+	};
+
+	auto it = std::find_if(btobjs.begin(), btobjs.end(), [this, &cmp, firstMatchPos, matchtype, cmpvar, op](const battleobject_t& obj)
+		{
+			bool isValidEnemy = obj.hp > 0 && obj.maxHp > 0 && !checkAND(obj.status, BC_FLG_HIDE) && !checkAND(obj.status, BC_FLG_DEAD);
+			bool bret = false;
+			switch (matchtype)
+			{
+			case MatchPos:
+				bret = cmp(obj.pos, cmpvar);
+				break;
+			case MatchModel:
+				bret = cmp(obj.modelid, cmpvar);
+				break;
+			case MatchLevel:
+				bret = cmp(obj.level, cmpvar);
+				break;
+			case MatchName:
+				bret = cmp(obj.name, cmpvar);
+				break;
+			case MatchHp:
+				bret = cmp(obj.hp, cmpvar);
+				break;
+			case MatchMaxHp:
+				bret = cmp(obj.maxHp, cmpvar);
+				break;
+			case MatchHPP:
+				bret = cmp(obj.hpPercent, cmpvar);
+				break;
+			case MatchStatus:
+				bret = cmp(getBadStatusString(obj.status), cmpvar);
+				break;
+			default:
+				break;
+			}
+
+			bret = isValidEnemy && bret;
+
+			//指匹配與第一次相同的 obj避免同時匹配到不同隻導致失敗
+			if (firstMatchPos != -1)
+				return bret && firstMatchPos == obj.pos;
+			return bret;
+		});
+
+	if (it != btobjs.end())
+	{
+		if (ppos != nullptr)
+			*ppos = it->pos;
+		return true;
+	}
+
+	return false;
+}
+
+//單/多條件匹配敵人
+bool Server::conditionMatchTarget(QVector<battleobject_t> btobjs, const QString& conditionStr, qint64* ppos)
+{
+	qint64 target = -1;
+	QStringList targetList = conditionStr.split(util::rexOR, Qt::SkipEmptyParts);
+	if (targetList.isEmpty())
+		return false;
+
+	QVector<battleobject_t> tempbattleObjects;
+
+	static const QHash <QString, BattleMatchType> hash = {
+		{ "%(EPOS)", MatchPos },
+		{ "%(ELV)", MatchLevel },
+		{ "%(EHP)", MatchHp },
+		{ "%(EMAXHP)", MatchMaxHp },
+		{ "%(EHPP)", MatchHPP },
+		{ "%(EMOD)", MatchModel },
+		{ "%(ENAME)", MatchName },
+		{ "%(ESTATUS)", MatchStatus },
+
+		{ "%(APOS)", MatchPos },
+		{ "%(ALV)", MatchLevel },
+		{ "%(AHP)", MatchHp },
+		{ "%(AMAXHP)", MatchMaxHp },
+		{ "%(AHPP)", MatchHPP },
+		{ "%(AMOD)", MatchModel },
+		{ "%(ANAME)", MatchName },
+		{ "%(ASTATUS)", MatchStatus }
+	};
+
+	auto matchCondition = [this, &btobjs](QString src, qint64 firstMatchPos, qint64* ppos)->bool
+	{
+		BattleMatchType matchType = BattleMatchType::MatchNotUsed;
+		//匹配環境變量
+		for (const QString& it : hash.keys())
+		{
+			if (src.contains(it))
+			{
+				//開頭為A切換成友方數據
+				if (src.startsWith("A"))
+					btobjs = getBattleData().allies;
+
+				matchType = hash.value(it);
+				src.remove(it);
+				break;
+			}
+		}
+
+		if (matchType == BattleMatchType::MatchNotUsed)
+			return false;
+
+		//正則拆解邏輯符號和比較數值
+		static const QRegularExpression rexOP(R"(\s*([<>\=\!\?]{1,2})\s*([\w\p{Han}]+)\s*)");
+		QRegularExpressionMatch match = rexOP.match(src);
+		if (!match.hasMatch() && match.capturedTexts().size() != 3)
+			return false;
+
+		QString op = match.captured(1);
+		QString str = match.captured(2);
+
+		bool ok = false;
+		qint64 num = str.toLongLong(&ok);
+		if (ok && matchType == MatchPos)
+			--num; //提供給用戶使用的索引多1要扣回
+
+		QVariant cmpVar = ok ? QVariant(num) : QVariant(str);
+		bool bret = matchBattleTarget(btobjs, matchType, firstMatchPos, op, cmpVar, ppos);
+		return bret;
+	};
+
+	bool bret = false;
+	for (const QString& it : targetList)
+	{
+		//多條條件(包含&&): name && modilid && pos 或 name && pos 或 pos && modelid...
+		QString newIt = it.simplified();
+		newIt.replace(" ", "");
+		QStringList andList = newIt.split("&&", Qt::SkipEmptyParts);
+		if (andList.isEmpty())
+			continue;
+
+		//依照包含的順序排序 > %(EPOS) > %(ELV) > %(EHP) > %(EMAXHP) > %(EHPP) > %(EMOD) > %(ENAME) > %(ESTATUS) 
+		std::sort(andList.begin(), andList.end(), [](const QString& a, const QString& b)
+			{
+				qint64 aIndex = -1, bIndex = -1;
+				for (const QString& it : hash.keys())
+				{
+					if (a.contains(it))
+					{
+						aIndex = hash.value(it);
+						break;
+					}
+				}
+
+				for (const QString& it : hash.keys())
+				{
+					if (b.contains(it))
+					{
+						bIndex = hash.value(it);
+						break;
+					}
+				}
+
+				return aIndex < bIndex;
+			});
+
+		qDebug() << "prepraser params" << andList;
+
+		qint64 passCount = 0;
+		//當passCount == andList.size()時，表示所有條件都通過
+		qint64 firstMatchPos = -1; //後續每個符合條件的都要是相同的pos
+
+		for (const QString& andIt : andList)
+		{
+			qint64 tempTarget = -1;
+			//這裡很重要必須傳入第一次匹配索引參與匹配
+			if (!matchCondition(andIt, firstMatchPos, &tempTarget))
+				continue;
+
+			//紀錄第一次匹配到的索引
+			if (firstMatchPos == -1)
+			{
+				firstMatchPos = tempTarget;
+				++passCount;
+				continue;
+			}
+
+			//只有索引相同才列入計算
+			if (firstMatchPos == tempTarget)
+			{
+				++passCount;
+				continue;
+			}
+		}
+
+		//匹配成功次數等同條件數量才算成功
+		if (passCount == andList.size() && firstMatchPos != -1)
+		{
+			bret = true;
+			target = firstMatchPos;
+			break;
+		}
+	}
+
+	if (ppos != nullptr)
+		*ppos = target;
+
+	return bret;
+}
+
 //人物戰鬥邏輯(這裡因為懶了所以寫了一坨狗屎)
 void Server::handleCharBattleLogics(const battledata_t& bt)
 {
@@ -5502,7 +5779,6 @@ void Server::handleCharBattleLogics(const battledata_t& bt)
 	sortBattleUnit(battleObjects);
 
 	qint64 target = -1;
-
 
 	//檢測隊友血量
 #pragma region CharBattleTools
@@ -5917,32 +6193,23 @@ void Server::handleCharBattleLogics(const battledata_t& bt)
 			break;
 
 		QString text = injector.getStringHash(util::kLockAttackString);
-		QStringList targetList = text.split(util::rexOR, Qt::SkipEmptyParts);
-		if (targetList.isEmpty())
+		if (text.isEmpty())
 			break;
 
-		bool bret = false;
-		for (const QString& it : targetList)
+		if (conditionMatchTarget(battleObjects, text, &target))
 		{
-			if (matchBattleEnemyByName(it, true, battleObjects, &tempbattleObjects))
-			{
-				bret = true;
-				battleObjects = tempbattleObjects;
-				target = battleObjects.front().pos;
-				break;
-			}
-		}
-
-		if (bret)
-		{
+			//這個標誌是為了確保目標死亡之後還會繼續戰鬥，而不是打完後就逃跑
 			IS_LOCKATTACK_ESCAPE_DISABLE.store(true, std::memory_order_release);
 			break;
 		}
 
-		if (IS_LOCKATTACK_ESCAPE_DISABLE.load(std::memory_order_acquire))
+		//鎖定攻擊條件不滿足時，是否不藥逃跑
+		bool doNotEscape = injector.getEnableHash(util::kBattleNoEscapeWhileLockPetEnable);
+
+		if (!doNotEscape && IS_LOCKATTACK_ESCAPE_DISABLE.load(std::memory_order_acquire))
 			break;
 
-		if (injector.getEnableHash(util::kBattleNoEscapeWhileLockPetEnable))
+		if (doNotEscape)
 			break;
 
 		sendBattleCharEscapeAct();
@@ -7993,6 +8260,18 @@ bool Server::matchBattleEnemyByName(const QString& name, bool isExact, const QVe
 
 	for (const battleobject_t& enemy : enemies)
 	{
+		if (enemy.hp == 0)
+			continue;
+
+		if (enemy.maxHp == 0)
+			continue;
+
+		if (enemy.modelid == 0)
+			continue;
+
+		if (checkAND(enemy.status, BC_FLG_HIDE))
+			continue;
+
 		if (isExact)
 		{
 			if (enemy.name == newName)
@@ -10111,23 +10390,36 @@ void Server::lssproto_B_recv(char* ccommand)
 
 				QString statusStr = getBadStatusString(obj.status);
 				if (!statusStr.isEmpty())
-					statusStr = QString("(%1)").arg(statusStr);
+					statusStr = QString("[%1]").arg(statusStr);
 
 				if (obj.pos == battleCharCurrentPos.load(std::memory_order_acquire))
 				{
-					temp = QString(" [%1]%2:%3:%4:%5%6").arg(obj.pos + 1).arg(obj.name).arg(obj.level)
+					temp = QString("　[%1]★%2%3 LV:%4(%5)%6")
+						.arg(obj.pos + 1)
+						.arg("")
+						.arg(obj.name)
+						.arg(obj.level)
 						.arg(obj.hp)
-						.arg(battleCharCurrentMp.load(std::memory_order_acquire))
 						.arg(statusStr);
 				}
 				else
 				{
 					if (obj.pos >= bt.enemymin && obj.pos <= bt.enemymax)
-						temp = QString(" [%1]%2:%3:%4:%5%6").arg(obj.pos + 1).arg(obj.modelid).arg(obj.name).arg(obj.level)
-						.arg(obj.hp).arg(statusStr);
+						temp = QString("　[%1]%2%3 LV:%4(%5)%6")
+						.arg(obj.pos + 1)
+						.arg(QString::number(obj.modelid) + ":")
+						.arg(obj.name)
+						.arg(obj.level)
+						.arg(obj.hp)
+						.arg(statusStr);
 					else
-						temp = QString(" [%1]%2:%3:%4%5").arg(obj.pos + 1).arg(obj.name).arg(obj.level)
-						.arg(obj.hp).arg(statusStr);
+						temp = QString("　[%1]%2%3 LV:%4(%5)%6")
+						.arg(obj.pos + 1)
+						.arg("")
+						.arg(obj.name)
+						.arg(obj.level)
+						.arg(obj.hp)
+						.arg(statusStr);
 				}
 
 				tempList.append(temp);
@@ -10135,7 +10427,9 @@ void Server::lssproto_B_recv(char* ccommand)
 
 				if (obj.rideFlag == 1)
 				{
-					temp = QString(" [%1]%2:%3:%4").arg(obj.pos + 1).arg(obj.rideName).arg(obj.rideLevel)
+					temp = QString(",%1LV:%2(%3)")
+						.arg(QObject::tr("R"))
+						.arg(obj.rideLevel)
 						.arg(obj.rideHp);
 				}
 
@@ -12330,9 +12624,9 @@ void Server::lssproto_S_recv(char* cdata)
 			emit signalDispatcher.updatePetHpProgressValue(0, 0, 100);
 		}
 
-		for (qint64 i = 0; i < MAX_PET; ++i)
+		for (qint64 j = 0; j < MAX_PET; ++j)
 		{
-			PET pet = pet_.value(i);
+			PET pet = pet_.value(j);
 			QVariantList varList;
 			if (pet.valid)
 			{
@@ -12351,13 +12645,13 @@ void Server::lssproto_S_recv(char* cdata)
 			}
 			else
 			{
-				for (qint64 i = 0; i < 12; ++i)
+				for (qint64 k = 0; k < 12; ++k)
 					varList.append("");
 			}
 
 			QVariant var = QVariant::fromValue(varList);
-			playerInfoColContents.insert(i + 1, var);
-			emit signalDispatcher.updateCharInfoColContents(i + 1, var);
+			playerInfoColContents.insert(j + 1, var);
+			emit signalDispatcher.updateCharInfoColContents(j + 1, var);
 		}
 	}
 #pragma endregion
@@ -13347,10 +13641,10 @@ void Server::lssproto_CustomTK_recv(const QString& data)
 	if (dataList.size() != 5)
 		return;
 
-	qint64 x = dataList.value(0).toLongLong();
-	qint64 y = dataList.value(1).toLongLong();
-	qint64 color = dataList.value(2).toLongLong();
-	qint64 area = dataList.value(3).toLongLong();
+	//qint64 x = dataList.value(0).toLongLong();
+	//qint64 y = dataList.value(1).toLongLong();
+	//qint64 color = dataList.value(2).toLongLong();
+	//qint64 area = dataList.value(3).toLongLong();
 	QString dataStr = dataList.value(4).simplified();
 	QStringList args = dataStr.split(" ", Qt::SkipEmptyParts);
 	if (args.isEmpty())

@@ -147,9 +147,11 @@ QString luadebug::getErrorMsgLocatedLine(const QString& str, qint64* retline)
 	return cmpstr;
 }
 
-QString luadebug::getTableVars(lua_State*& L, qint64 si, qint64 depth)
+QString luadebug::getTableVars(lua_State*& L, qint64 si, qint64& depth)
 {
-	if (!L) return "\0";
+	if (!L)
+		return "\0";
+
 	QPair<QString, QVariant> pair;
 	qint64 pos_si = si > 0 ? si : (si - 1);
 	QString ret;
@@ -157,13 +159,16 @@ QString luadebug::getTableVars(lua_State*& L, qint64 si, qint64 depth)
 	lua_pushnil(L);
 	qint64 empty = 1;
 	QStringList varList;
+
+	--depth;
+
 	while (lua_next(L, pos_si) != 0)
 	{
 		if (empty)
 			empty = 0;
 
 		QString key;
-		pair = getVars(L, -2, -1);
+		pair = getVars(L, -2, depth);
 		if (pair.first == "(string)")
 			ret += pair.second.toString();
 		else if (pair.first == "(integer)")
@@ -174,13 +179,13 @@ QString luadebug::getTableVars(lua_State*& L, qint64 si, qint64 depth)
 		else
 			continue;
 
-		if (depth > 50)
+		if (depth < 0)
 		{
 			ret += ("{}");
 		}
 		else
 		{
-			pair = getVars(L, -1, depth + 1);
+			pair = getVars(L, -1, depth);
 			if (pair.first == "(string)")
 				ret += QString("'%1'").arg(pair.second.toString());
 			else
@@ -196,7 +201,7 @@ QString luadebug::getTableVars(lua_State*& L, qint64 si, qint64 depth)
 	return ret.simplified();
 }
 
-QPair<QString, QVariant> luadebug::getVars(lua_State*& L, qint64 si, qint64 depth)
+QPair<QString, QVariant> luadebug::getVars(lua_State*& L, qint64 si, qint64& depth)
 {
 	switch (lua_type(L, si))
 	{
@@ -262,7 +267,6 @@ bool luadebug::isInterruptionRequested(const sol::this_state& s)
 void luadebug::checkStopAndPause(const sol::this_state& s)
 {
 	sol::state_view lua(s.lua_state());
-	lua_State* L = s.lua_state();
 	CLua* pLua = lua["_THIS_CLUA"].get<CLua*>();
 	if (pLua == nullptr)
 		return;
@@ -389,7 +393,7 @@ void luadebug::logExport(const sol::this_state& s, const QStringList& datas, qin
 {
 	for (const QString& data : datas)
 	{
-		logExport(s, data, color);
+		logExport(s, data, color, doNotAnnounce);
 	}
 }
 
@@ -413,13 +417,19 @@ void luadebug::logExport(const sol::this_state& s, const QString& data, qint64 c
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
 	emit signalDispatcher.appendScriptLog(msg, color);
 	Injector& injector = Injector::getInstance(currentIndex);
-	if (!injector.server.isNull())
+	if (!injector.server.isNull() && !doNotAnnounce)
 	{
 		injector.server->announce(data, color);
 	}
 
 	if (injector.log.isOpen())
 		injector.log.write(data, currentline);
+}
+
+void luadebug::showErrorMsg(const sol::this_state& s, qint64 level, const QString& data)
+{
+	QString newText = QString("%1%2").arg(level == 0 ? QObject::tr("[warn]") : QObject::tr("[error]")).arg(data);
+	logExport(s, newText, 0, true);
 }
 
 //根據傳入function的循環執行結果等待超時或條件滿足提早結束
@@ -553,7 +563,8 @@ void luadebug::hookProc(lua_State* L, lua_Debug* ar)
 		QVariantHash varhash;
 		for (i = 1; (name = lua_getlocal(L, ar, i)) != NULL; ++i)
 		{
-			QPair<QString, QVariant> vs = getVars(L, i, 5);
+			qint64 depth = 1024;
+			QPair<QString, QVariant> vs = getVars(L, i, depth);
 
 			QString key = QString("local|%1").arg(util::toQString(name));
 			varhash.insert(key, vs.second.toString());
@@ -608,7 +619,7 @@ void CLua::start()
 	moveToThread(thread_);
 
 	qint64 currentIndex = getIndex();
-	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
+
 	connect(this, &CLua::finished, thread_, &QThread::quit);
 	connect(thread_, &QThread::finished, thread_, &QThread::deleteLater);
 	connect(thread_, &QThread::started, this, &CLua::proc);
@@ -863,7 +874,7 @@ void CLua::open_maplibs(sol::state& lua)
 	lua.set_function("w", &CLuaMap::packetMove, &luaMap_);
 	lua.set_function("chmap", &CLuaMap::teleport, &luaMap_);
 	lua.set_function("download", &CLuaMap::downLoad, &luaMap_);
-	lua.set_function("movetonpc", &CLuaMap::moveToNPC, &luaMap_);
+	lua.set_function("findnpc", &CLuaMap::findNPC, &luaMap_);
 
 	lua.new_usertype<CLuaMap>("MapClass",
 		sol::call_constructor,

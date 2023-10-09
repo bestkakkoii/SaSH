@@ -107,11 +107,6 @@ public:
 		return m_scaleValue;
 	}
 
-	void setParent(QWidget* parent)
-	{
-		this->parent = parent;
-	}
-
 	QPointF characterPos;
 
 protected:
@@ -214,8 +209,6 @@ protected:
 	}
 
 private:
-	QWidget* parent = nullptr;
-
 	qreal       m_scaleValue = 0.0;
 
 	qreal m_scaleDafault = 0.0;
@@ -264,7 +257,6 @@ public:
 		imageItem_ = new ImageWidget(&map_);
 		scene_.addItem(imageItem_);
 		setScene(&scene_);//Sets the current scene to scene. If scene is already being viewed, this function does nothing.
-		imageItem_->setParent(this);
 
 		setViewportUpdateMode(QGraphicsView::FullViewportUpdate);
 		setCacheMode(QGraphicsView::CacheNone);

@@ -154,9 +154,15 @@ qint64 Interpreter::send(qint64 currentIndex, qint64 currentLine, const TokenMap
 
 	qint64 funId = -1;
 	if (!checkInteger(TK, 1, &funId))
+	{
+		errorExport(currentIndex, currentLine, ERROR_LEVEL, QObject::tr("function type must be a number"));
 		return Parser::kArgError + 1ll;
+	}
 	if (funId <= 0)
+	{
+		errorExport(currentIndex, currentLine, ERROR_LEVEL, QObject::tr("function type must be a positive number"));
 		return Parser::kArgError + 1ll;
+	}
 
 	std::vector<std::variant<int, std::string>> args;
 
@@ -169,7 +175,10 @@ qint64 Interpreter::send(qint64 currentIndex, qint64 currentLine, const TokenMap
 		if (!checkInteger(TK, i, &varIntValue))
 		{
 			if (!checkString(TK, i, &varStringValue))
+			{
+				errorExport(currentIndex, currentLine, ERROR_LEVEL, QObject::tr("argument %1 must be a number or a string").arg(i - 1));
 				return Parser::kArgError + i;
+			}
 			args.emplace_back(util::fromUnicode(varStringValue));
 		}
 		else

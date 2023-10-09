@@ -86,7 +86,8 @@ private:
 	QFuture<void> autosortitem_future_;
 	std::atomic_bool autosortitem_future_cancel_flag_ = false;
 
-	QFutureSynchronizer <void> pointerWriterSync_;
+	QFuture<void>  pointerwriter_future_;
+	std::atomic_bool pointerwriter_future_cancel_flag_ = false;
 
 	bool isFirstLogin_ = true;
 
@@ -182,7 +183,7 @@ public:
 
 	Q_REQUIRED_RESULT inline qint64 size() const
 	{
-		QMutex mutex_;
+		QMutexLocker locker(&mutex_);
 		return threads_.size();
 	}
 

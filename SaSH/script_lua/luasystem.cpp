@@ -23,8 +23,11 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 qint64 CLuaSystem::sleep(qint64 t, sol::this_state s)
 {
-	if (t <= 0)
+	if (t < 0)
+	{
+		luadebug::showErrorMsg(s, luadebug::ERROR_LEVEL, QObject::tr("sleep time must above 0"));
 		return FALSE;
+	}
 
 	if (t >= 1000)
 	{
@@ -38,13 +41,9 @@ qint64 CLuaSystem::sleep(qint64 t, sol::this_state s)
 
 		if (i % 1000 > 0)
 			QThread::msleep(static_cast<DWORD>(i) % 1000UL);
-		else
-			return FALSE;
 	}
 	else if (t > 0)
 		QThread::msleep(static_cast<DWORD>(t));
-	else
-		return FALSE;
 
 	return TRUE;
 }
@@ -103,7 +102,10 @@ qint64 CLuaSystem::openlog(std::string sfilename, sol::object oformat, sol::obje
 
 	QString filename = util::toQString(sfilename);
 	if (filename.isEmpty())
+	{
+		luadebug::showErrorMsg(s, luadebug::ERROR_LEVEL, QObject::tr("log file name cannot be empty"));
 		return false;
+	}
 
 	QString format = "[%(date) %(time)] | [@%(line)] | %(message)";
 	if (oformat.is<std::string>() && !oformat.as<std::string>().empty())
@@ -160,7 +162,8 @@ qint64 CLuaSystem::print(sol::object ocontent, sol::object ocolor, sol::this_sta
 	else if (ocontent.is<sol::table>())
 	{
 		//print table
-		raw = luadebug::getTableVars(s.L, 1, 50);
+		qint64 depth = 1024;
+		raw = luadebug::getTableVars(s.L, 1, depth);
 		msg = raw;
 
 	}
@@ -263,7 +266,8 @@ qint64 CLuaSystem::talk(sol::object ostr, sol::this_state s)
 		text = util::toQString(ostr);
 	else if (ostr.is<sol::table>())
 	{
-		text = luadebug::getTableVars(s.L, 1, 10);
+		qint64 depth = 1024;
+		text = luadebug::getTableVars(s.L, 1, depth);
 	}
 	else
 		luadebug::tryPopCustomErrorMsg(s, luadebug::ERROR_PARAM_TYPE, false, 1, QObject::tr("invalid value type"));
@@ -301,9 +305,6 @@ qint64 CLuaSystem::savesetting(const std::string& sfileName, sol::this_state s)
 	else if (suffix != "json")
 		fileName.replace(suffix, "json");
 
-	if (!QFile::exists(fileName))
-		return FALSE;
-
 	sol::state_view lua(s);
 	qint64 currentIndex = lua["_INDEX"].get<qint64>();
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
@@ -328,7 +329,10 @@ qint64 CLuaSystem::loadsetting(const std::string& sfileName, sol::this_state s)
 		fileName.replace(suffix, "json");
 
 	if (!QFile::exists(fileName))
+	{
+		luadebug::showErrorMsg(s, luadebug::ERROR_LEVEL, QObject::tr("file '%1' does not exist").arg(fileName));
 		return FALSE;
+	}
 
 	sol::state_view lua(s);
 	qint64 currentIndex = lua["_INDEX"].get<qint64>();
@@ -479,7 +483,10 @@ qint64 CLuaSystem::menu(qint64 index, sol::object otype, sol::this_state s)
 
 	--index;
 	if (index < 0)
+	{
+		luadebug::showErrorMsg(s, luadebug::ERROR_LEVEL, QObject::tr("index must above 0"));
 		return FALSE;
+	}
 
 	qint64 type = 1;
 	if (otype.is<qint64>())
@@ -487,7 +494,10 @@ qint64 CLuaSystem::menu(qint64 index, sol::object otype, sol::this_state s)
 
 	--type;
 	if (type < 0 || type > 1)
+	{
+		luadebug::showErrorMsg(s, luadebug::ERROR_LEVEL, QObject::tr("type must be 1 or 2"));
 		return FALSE;
+	}
 
 	if (type == 0)
 	{
@@ -530,19 +540,28 @@ qint64 CLuaSystem::createch(sol::object odataplacenum
 		else if (dataplace == "右")
 			dataplacenum = 1;
 		else
+		{
+			luadebug::showErrorMsg(s, luadebug::ERROR_LEVEL, QObject::tr("Invalid value of 'dataplacenum'"));
 			return FALSE;
+		}
 	}
 	else if (odataplacenum.is<qint64>())
 	{
 		dataplacenum = odataplacenum.as<qint64>();
 		if (dataplacenum != 1 && dataplacenum != 2)
+		{
+			luadebug::showErrorMsg(s, luadebug::ERROR_LEVEL, QObject::tr("Invalid value of 'dataplacenum'"));
 			return FALSE;
+		}
 		--dataplacenum;
 	}
 
 	QString charname = util::toQString(scharname);
 	if (charname.isEmpty())
+	{
+		luadebug::showErrorMsg(s, luadebug::ERROR_LEVEL, QObject::tr("character name cannot be empty"));
 		return FALSE;
+	}
 
 	if (imgno <= 0)
 		imgno = 100050;
@@ -551,34 +570,64 @@ qint64 CLuaSystem::createch(sol::object odataplacenum
 		faceimgno = 30250;
 
 	if (vit < 0)
+	{
+		luadebug::showErrorMsg(s, luadebug::ERROR_LEVEL, QObject::tr("vit must above 0"));
 		return FALSE;
+	}
 
 	if (str < 0)
+	{
+		luadebug::showErrorMsg(s, luadebug::ERROR_LEVEL, QObject::tr("str must above 0"));
 		return FALSE;
+	}
 
 	if (tgh < 0)
+	{
+		luadebug::showErrorMsg(s, luadebug::ERROR_LEVEL, QObject::tr("tgh must above 0"));
 		return FALSE;
+	}
 
 	if (dex < 0)
+	{
+		luadebug::showErrorMsg(s, luadebug::ERROR_LEVEL, QObject::tr("dex must above 0"));
 		return FALSE;
+	}
 
 	if (vit + str + tgh + dex != 20)
+	{
+		luadebug::showErrorMsg(s, luadebug::ERROR_LEVEL, QObject::tr("vit + str + tgh + dex must equal to 20"));
 		return FALSE;
+	}
 
 	if (earth < 0)
+	{
+		luadebug::showErrorMsg(s, luadebug::ERROR_LEVEL, QObject::tr("earth must above 0"));
 		return FALSE;
+	}
 
 	if (water < 0)
+	{
+		luadebug::showErrorMsg(s, luadebug::ERROR_LEVEL, QObject::tr("water must above 0"));
 		return FALSE;
+	}
 
 	if (fire < 0)
+	{
+		luadebug::showErrorMsg(s, luadebug::ERROR_LEVEL, QObject::tr("fire must above 0"));
 		return FALSE;
+	}
 
 	if (wind < 0)
+	{
+		luadebug::showErrorMsg(s, luadebug::ERROR_LEVEL, QObject::tr("wind must above 0"));
 		return FALSE;
+	}
 
 	if (earth + water + fire + wind != 10)
+	{
+		luadebug::showErrorMsg(s, luadebug::ERROR_LEVEL, QObject::tr("earth + water + fire + wind must equal to 10"));
 		return FALSE;
+	}
 
 	qint64 hometown = 1;
 	if (ohometown.is<std::string>())
@@ -593,7 +642,10 @@ qint64 CLuaSystem::createch(sol::object odataplacenum
 
 		QString hometownstr = util::toQString(ohometown.as<std::string>());
 		if (hometownstr.isEmpty())
+		{
+			luadebug::showErrorMsg(s, luadebug::ERROR_LEVEL, QObject::tr("hometown cannot be empty"));
 			return FALSE;
+		}
 
 		hometown = hash.value(hometownstr, -1);
 		if (hometown == -1)
@@ -642,11 +694,17 @@ qint64 CLuaSystem::delch(qint64 index, std::string spsw, sol::object option, sol
 
 	--index;
 	if (index < 0 || index > MAX_CHARACTER)
+	{
+		luadebug::showErrorMsg(s, luadebug::ERROR_LEVEL, QObject::tr("index must between 1 and %1").arg(MAX_CHARACTER));
 		return FALSE;
+	}
 
 	QString password = util::toQString(spsw);
 	if (password.isEmpty())
+	{
+		luadebug::showErrorMsg(s, luadebug::ERROR_LEVEL, QObject::tr("password cannot be empty"));
 		return FALSE;
+	}
 
 	bool backtofirst = false;
 	if (option.is<bool>())
@@ -669,7 +727,10 @@ qint64 CLuaSystem::set(std::string enumStr,
 
 	QString typeStr = util::toQString(enumStr);
 	if (typeStr.isEmpty())
+	{
+		luadebug::showErrorMsg(s, luadebug::ERROR_LEVEL, QObject::tr("type cannot be empty"));
 		return FALSE;
+	}
 
 	const QHash<QString, util::UserSetting> hash = {
 			{ "debug", util::kScriptDebugModeEnable },
@@ -944,7 +1005,10 @@ qint64 CLuaSystem::set(std::string enumStr,
 
 	util::UserSetting type = hash.value(typeStr, util::kSettingNotUsed);
 	if (type == util::kSettingNotUsed)
+	{
+		luadebug::showErrorMsg(s, luadebug::ERROR_LEVEL, QObject::tr("unknown setting type: '%1'").arg(typeStr));
 		return FALSE;
+	}
 
 	if (type == util::kScriptDebugModeEnable)
 	{
@@ -1046,7 +1110,10 @@ qint64 CLuaSystem::set(std::string enumStr,
 	case util::kBattleCatchModeValue://戰鬥捕捉模式
 	{
 		if (!p1.is<qint64>() && !p1.is<bool>())
+		{
+			luadebug::showErrorMsg(s, luadebug::ERROR_LEVEL, QObject::tr("the first parameter of the setting '%1' must be a number or boolean").arg(typeStr));
 			return FALSE;
+		}
 
 		qint64 value1 = 0;
 		if (p1.is<qint64>())
@@ -1088,7 +1155,10 @@ qint64 CLuaSystem::set(std::string enumStr,
 	case util::kBattleItemReviveTargetValue:
 	{
 		if (!p1.is<qint64>() && !p1.is<bool>())
+		{
+			luadebug::showErrorMsg(s, luadebug::ERROR_LEVEL, QObject::tr("the first parameter of the setting '%1' must be a number or boolean").arg(typeStr));
 			return FALSE;
+		}
 
 		qint64 value1 = 0;
 		if (p1.is<qint64>())
@@ -1156,7 +1226,10 @@ qint64 CLuaSystem::set(std::string enumStr,
 	case util::kSwitcherWorldEnable:
 	{
 		if (!p1.is<qint64>() && !p1.is<bool>())
+		{
+			luadebug::showErrorMsg(s, luadebug::ERROR_LEVEL, QObject::tr("the first parameter of the setting '%1' must be a number or boolean").arg(typeStr));
 			return FALSE;
+		}
 
 		qint64 value1 = 0;
 		if (p1.is<qint64>())
@@ -1207,7 +1280,10 @@ qint64 CLuaSystem::set(std::string enumStr,
 	case util::kLockPetScheduleEnable:
 	{
 		if (!p1.is<qint64>() && !p1.is<bool>())
+		{
+			luadebug::showErrorMsg(s, luadebug::ERROR_LEVEL, QObject::tr("the first parameter of the setting '%1' must be a number or boolean").arg(typeStr));
 			return FALSE;
+		}
 
 		qint64 value1 = 0;
 		if (p1.is<qint64>())
@@ -1278,7 +1354,10 @@ qint64 CLuaSystem::set(std::string enumStr,
 	case util::kLockRideEnable:
 	{
 		if (!p1.is<qint64>() && !p1.is<bool>())
+		{
+			luadebug::showErrorMsg(s, luadebug::ERROR_LEVEL, QObject::tr("the first parameter of the setting '%1' must be a number or boolean").arg(typeStr));
 			return FALSE;
+		}
 
 		qint64 value1 = 0;
 		if (p1.is<qint64>())
@@ -1326,7 +1405,10 @@ qint64 CLuaSystem::set(std::string enumStr,
 	case util::kBattleCatchCharMagicEnable:
 	{
 		if (!p1.is<qint64>() && !p1.is<bool>())
+		{
+			luadebug::showErrorMsg(s, luadebug::ERROR_LEVEL, QObject::tr("the first parameter of the setting '%1' must be a number or boolean").arg(typeStr));
 			return FALSE;
+		}
 
 		qint64 value1 = 0;
 		if (p1.is<qint64>())
@@ -1440,7 +1522,10 @@ qint64 CLuaSystem::set(std::string enumStr,
 	case util::kNormalMagicHealEnable:
 	{
 		if (!p1.is<qint64>() && !p1.is<bool>())
+		{
+			luadebug::showErrorMsg(s, luadebug::ERROR_LEVEL, QObject::tr("the first parameter of the setting '%1' must be a number or boolean").arg(typeStr));
 			return FALSE;
+		}
 
 		qint64 value1 = 0;
 		if (p1.is<qint64>())

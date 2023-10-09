@@ -123,7 +123,7 @@ void qtMessageHandler(QtMsgType type, const QMessageLogContext& context, const Q
 #if defined _M_X64 || defined _M_IX86
 LPTOP_LEVEL_EXCEPTION_FILTER WINAPI
 dummySetUnhandledExceptionFilter(
-	LPTOP_LEVEL_EXCEPTION_FILTER lpTopLevelExceptionFilter)
+	LPTOP_LEVEL_EXCEPTION_FILTER)
 {
 	return NULL;
 }

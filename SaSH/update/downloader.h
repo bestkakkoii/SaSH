@@ -48,7 +48,7 @@ private:
 	/////////////////////////////////////////////
 	Q_INVOKABLE void start();
 
-	Q_INVOKABLE void overwriteCurrentExecutable();
+	void overwriteCurrentExecutable(QByteArray ba);
 
 	void downloadAndUncompress(const QString& url, const QString& targetDir);
 

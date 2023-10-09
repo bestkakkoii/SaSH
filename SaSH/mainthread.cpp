@@ -108,7 +108,7 @@ void ThreadManager::close(qint64 index)
 MainObject::MainObject(qint64 index, QObject* parent)
 	: ThreadPlugin(index, parent)
 {
-	pointerWriterSync_.setCancelOnWait(true);
+
 }
 
 MainObject::~MainObject()
@@ -194,6 +194,13 @@ void MainObject::run()
 		emit signalDispatcher.updateStatusLabelTextChanged(util::kLabelStatusNotOpen);
 	}
 
+	if (pointerwriter_future_.isRunning())
+	{
+		pointerwriter_future_cancel_flag_.store(true, std::memory_order_release);
+		pointerwriter_future_.cancel();
+		pointerwriter_future_.waitForFinished();
+	}
+
 	//關閉走路遇敵線程
 	if (autowalk_future_.isRunning())
 	{
@@ -233,8 +240,6 @@ void MainObject::run()
 		autosortitem_future_.cancel();
 		autosortitem_future_.waitForFinished();
 	}
-
-	pointerWriterSync_.waitForFinished();
 
 	while (injector.IS_SCRIPT_FLAG.load(std::memory_order_acquire))
 	{
@@ -416,27 +421,6 @@ qint64 MainObject::checkAndRunFunctions()
 
 		//登入後的廣告公告
 		constexpr bool isbeta = true;
-		QDateTime current = QDateTime::currentDateTime();
-		QDateTime due = current.addYears(99);
-		const QString dueStr(due.toString("yyyy-MM-dd hh:mm:ss"));
-
-		const QString url("https://www.lovesa.cc");
-
-		QString currentVerStr;
-		QString newestVerStr;
-
-		if (!Downloader::checkUpdate(&currentVerStr, &newestVerStr, nullptr))
-		{
-			newestVerStr = "nil";
-		}
-
-		const QString version = QString("%1.%2.%3")
-			.arg(SASH_VERSION_MAJOR) \
-			.arg(SASH_VERSION_MINOR) \
-			.arg(newestVerStr);
-		injector.server->announce(tr("Welcome to use SaSH，For more information please visit %1").arg(url));
-		injector.server->announce(tr("You are using %1 account, due date is:%2").arg(isbeta ? tr("trial") : tr("subscribed")).arg(dueStr));
-		injector.server->announce(tr("StoneAge SaSH forum url:%1, newest version is %2").arg(url).arg(version));
 
 		//自動解鎖安全碼
 		QString securityCode = injector.getStringHash(util::kGameSecurityCodeString);
@@ -496,7 +480,6 @@ qint64 MainObject::checkAndRunFunctions()
 			subServerNameList.append(subList);
 		}
 
-		Injector& injector = Injector::getInstance(getIndex());
 		injector.serverNameList = serverNameList;
 		injector.subServerNameList = subServerNameList;
 
@@ -509,7 +492,27 @@ qint64 MainObject::checkAndRunFunctions()
 		mem::freeUnuseMemory(injector.getProcess());
 		if (isFirstLogin_)
 			isFirstLogin_ = false;
-		return 2;
+
+		QDateTime current = QDateTime::currentDateTime();
+		QDateTime due = current.addYears(99);
+		const QString dueStr(due.toString("yyyy-MM-dd hh:mm:ss"));
+		const QString url("https://www.lovesa.cc");
+		QString currentVerStr;
+		QString newestVerStr;
+
+		if (!Downloader::checkUpdate(&currentVerStr, &newestVerStr, nullptr))
+		{
+			newestVerStr = "nil";
+		}
+
+		const QString version = QString("%1.%2.%3")
+			.arg(SASH_VERSION_MAJOR) \
+			.arg(SASH_VERSION_MINOR) \
+			.arg(newestVerStr);
+		injector.server->announce(tr("Welcome to use SaSH，For more information please visit %1").arg(url));
+		injector.server->announce(tr("You are using %1 account, due date is:%2").arg(isbeta ? tr("trial") : tr("subscribed")).arg(dueStr));
+		injector.server->announce(tr("StoneAge SaSH forum url:%1, newest version is %2").arg(url).arg(version));
+		//return 2;
 	}
 
 	//更新掛機資訊
@@ -533,9 +536,6 @@ qint64 MainObject::checkAndRunFunctions()
 			battle_run_once_flag_ = true;
 			emit signalDispatcher.updateStatusLabelTextChanged(util::kLabelStatusInNormal);
 		}
-
-		//紀錄NPC
-		checkRecordableNpcInfo();
 
 		//檢查開關 (隊伍、交易、名片...等等)
 		checkEtcFlag();
@@ -563,6 +563,10 @@ qint64 MainObject::checkAndRunFunctions()
 
 		//自動加點
 		checkAutoAbility();
+
+		//紀錄NPC
+		checkRecordableNpcInfo();
+
 		return 2;
 	}
 	else //戰鬥中
@@ -654,7 +658,7 @@ void MainObject::updateAfkInfos()
 void MainObject::battleTimeThread()
 {
 	Injector& injector = Injector::getInstance(getIndex());
-	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(getIndex());
+
 	for (;;)
 	{
 		if (isInterruptionRequested())
@@ -2162,155 +2166,176 @@ void MainObject::checkRecordableNpcInfo()
 	if (injector.server.isNull())
 		return;
 
-	pointerWriterSync_.addFuture(QtConcurrent::run([this]()
+	if (pointerwriter_future_.isRunning())
+		return;
+
+	pointerwriter_future_cancel_flag_ = false;
+
+	pointerwriter_future_ = QtConcurrent::run([this]()
 		{
-			Injector& injector = Injector::getInstance(getIndex());
-			if (injector.server.isNull())
-				return;
-
-			CAStar astar;
-
-			QHash<qint64, mapunit_t> units = injector.server->mapUnitHash.toHash();
-			util::Config config(injector.getPointFileName());
-
-			for (const mapunit_t& unit : units)
+			for (;;)
 			{
+				QThread::msleep(1000);
+				Injector& injector = Injector::getInstance(getIndex());
+				if (injector.server.isNull())
+					return;
+
 				if (isInterruptionRequested())
+					return;
+
+				if (pointerwriter_future_cancel_flag_.load(std::memory_order_acquire))
 					return;
 
 				if (injector.server.isNull())
 					return;
 
-				if (!injector.server->getOnlineFlag())
-					break;
-
-				if ((unit.objType != util::OBJ_NPC)
-					|| unit.name.isEmpty()
-					|| (injector.server->getWorldStatus() != 9)
-					|| (injector.server->getGameStatus() != 3)
-					|| injector.server->npcUnitPointHash.contains(QPoint(unit.x, unit.y)))
-				{
-					continue;
-				}
-
-				injector.server->npcUnitPointHash.insert(QPoint(unit.x, unit.y), unit);
-
-				util::MapData d;
-				qint64 nowFloor = injector.server->getFloor();
-				QPoint nowPoint = injector.server->getPoint();
 				CAStar astar;
-				d.floor = nowFloor;
-				d.name = unit.name;
 
-				//npc前方一格
-				QPoint newPoint = util::fix_point.value(unit.dir) + unit.p;
-				//檢查是否可走
-				if (injector.server->mapAnalyzer->isPassable(astar, nowFloor, nowPoint, newPoint))
+				QHash<qint64, mapunit_t> units = injector.server->mapUnitHash.toHash();
+				util::Config config(injector.getPointFileName());
+
+				for (const mapunit_t& unit : units)
 				{
-					d.x = newPoint.x();
-					d.y = newPoint.y();
-				}
-				else
-				{
-					//再往前一格
-					QPoint additionPoint = util::fix_point.value(unit.dir) + newPoint;
-					//檢查是否可走
-					if (injector.server->mapAnalyzer->isPassable(astar, nowFloor, nowPoint, additionPoint))
+					if (isInterruptionRequested())
+						return;
+
+					if (pointerwriter_future_cancel_flag_.load(std::memory_order_acquire))
+						return;
+
+					if (injector.server.isNull())
+						return;
+
+					if (!injector.server->getOnlineFlag())
+						break;
+
+					if ((unit.objType != util::OBJ_NPC)
+						|| unit.name.isEmpty()
+						|| (injector.server->getWorldStatus() != 9)
+						|| (injector.server->getGameStatus() != 3)
+						|| injector.server->npcUnitPointHash.contains(QPoint(unit.x, unit.y)))
 					{
-						d.x = additionPoint.x();
-						d.y = additionPoint.y();
+						continue;
+					}
+
+					injector.server->npcUnitPointHash.insert(QPoint(unit.x, unit.y), unit);
+
+					util::MapData d;
+					qint64 nowFloor = injector.server->nowFloor_.load(std::memory_order_acquire);
+					QPoint nowPoint = injector.server->nowPoint_.get();
+
+					d.floor = nowFloor;
+					d.name = unit.name;
+
+					//npc前方一格
+					QPoint newPoint = util::fix_point.value(unit.dir) + unit.p;
+					//檢查是否可走
+					if (injector.server->mapAnalyzer->isPassable(astar, nowFloor, nowPoint, newPoint))
+					{
+						d.x = newPoint.x();
+						d.y = newPoint.y();
 					}
 					else
 					{
-						//檢查NPC周圍8格
-						bool flag = false;
-						for (qint64 i = 0; i < 8; ++i)
+						//再往前一格
+						QPoint additionPoint = util::fix_point.value(unit.dir) + newPoint;
+						//檢查是否可走
+						if (injector.server->mapAnalyzer->isPassable(astar, nowFloor, nowPoint, additionPoint))
 						{
-							newPoint = util::fix_point.value(i) + unit.p;
-							if (injector.server->mapAnalyzer->isPassable(astar, nowFloor, nowPoint, newPoint))
+							d.x = additionPoint.x();
+							d.y = additionPoint.y();
+						}
+						else
+						{
+							//檢查NPC周圍8格
+							bool flag = false;
+							for (qint64 i = 0; i < 8; ++i)
 							{
-								d.x = newPoint.x();
-								d.y = newPoint.y();
-								flag = true;
-								break;
+								newPoint = util::fix_point.value(i) + unit.p;
+								if (injector.server->mapAnalyzer->isPassable(astar, nowFloor, nowPoint, newPoint))
+								{
+									d.x = newPoint.x();
+									d.y = newPoint.y();
+									flag = true;
+									break;
+								}
+							}
+
+							if (!flag)
+							{
+								continue;
 							}
 						}
-
-						if (!flag)
-						{
-							continue;
-						}
 					}
+					config.writeMapData(unit.name, d);
 				}
-				config.writeMapData(unit.name, d);
-			}
 
-			static bool constDataInit = false;
+				static bool constDataInit = false;
 
-			if (constDataInit)
-				return;
-
-			constDataInit = true;
-
-			QString content;
-			QStringList paths;
-			util::searchFiles(util::applicationDirPath(), "point", ".txt", &paths, false);
-			if (paths.isEmpty())
-				return;
-
-			//這裡是讀取預製傳點坐標
-			if (!util::readFile(paths.front(), &content))
-			{
-				qDebug() << "Failed to open point.dat";
-				return;
-			}
-
-			QStringList entrances = content.simplified().split(" ");
-
-			for (const QString& entrance : entrances)
-			{
-				const QStringList entranceData(entrance.split(util::rexOR));
-				if (entranceData.size() != 3)
+				if (constDataInit)
 					continue;
 
-				bool ok = false;
-				const qint64 floor = entranceData.value(0).toLongLong(&ok);
-				if (!ok)
+				constDataInit = true;
+
+				QString content;
+				QStringList paths;
+				util::searchFiles(util::applicationDirPath(), "point", ".txt", &paths, false);
+				if (paths.isEmpty())
 					continue;
 
-				const QString pointStr(entranceData.value(1));
-				const QStringList pointData(pointStr.split(util::rexComma));
-				if (pointData.size() != 2)
+				//這裡是讀取預製傳點坐標
+				if (!util::readFile(paths.front(), &content))
+				{
+					qDebug() << "Failed to open point.dat";
 					continue;
+				}
 
-				qint64 x = pointData.value(0).toLongLong(&ok);
-				if (!ok)
-					continue;
+				QStringList entrances = content.simplified().split(" ");
 
-				qint64 y = pointData.value(1).toLongLong(&ok);
-				if (!ok)
-					continue;
+				for (const QString& entrance : entrances)
+				{
+					const QStringList entranceData(entrance.split(util::rexOR));
+					if (entranceData.size() != 3)
+						continue;
 
-				const QPoint pos(x, y);
+					bool ok = false;
+					const qint64 floor = entranceData.value(0).toLongLong(&ok);
+					if (!ok)
+						continue;
 
-				const QString name(entranceData.value(2));
+					const QString pointStr(entranceData.value(1));
+					const QStringList pointData(pointStr.split(util::rexComma));
+					if (pointData.size() != 2)
+						continue;
 
-				util::MapData d;
-				d.floor = floor;
-				d.name = name;
-				d.x = x;
-				d.y = y;
+					qint64 x = pointData.value(0).toLongLong(&ok);
+					if (!ok)
+						continue;
 
-				mapunit_t unit;
-				unit.x = x;
-				unit.y = y;
-				unit.p = pos;
-				unit.name = name;
+					qint64 y = pointData.value(1).toLongLong(&ok);
+					if (!ok)
+						continue;
 
-				injector.server->npcUnitPointHash.insert(pos, unit);
+					const QPoint pos(x, y);
 
-				config.writeMapData(name, d);
+					const QString name(entranceData.value(2));
+
+					util::MapData d;
+					d.floor = floor;
+					d.name = name;
+					d.x = x;
+					d.y = y;
+
+					mapunit_t unit;
+					unit.x = x;
+					unit.y = y;
+					unit.p = pos;
+					unit.name = name;
+
+					injector.server->npcUnitPointHash.insert(pos, unit);
+
+					config.writeMapData(name, d);
+				}
 			}
 		}
-	));
+	);
 }

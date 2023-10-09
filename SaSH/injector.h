@@ -293,6 +293,16 @@ private:
 
 		{ util::kNormalMagicHealMagicValue, 0 },
 
+		{ util::kBattlePetHealActionTypeValue, 0 },
+		{ util::kBattlePetPurgActionTypeValue, 0 },
+		{ util::kBattleCharPurgActionTypeValue, 0 },
+		{ util::kBattlePetHealTargetValue, 0 },
+		{ util::kBattlePetPurgTargetValue, 0 },
+		{ util::kBattleCharPurgTargetValue, 0 },
+		{ util::kBattlePetHealCharValue, 0 },
+		{ util::kBattlePetHealPetValue, 0 },
+		{ util::kBattlePetHealAllieValue, 0 },
+
 		//afk->heal spinbox
 		{ util::kBattleMagicHealCharValue, 50 },
 		{ util::kBattleMagicHealPetValue, 50 },

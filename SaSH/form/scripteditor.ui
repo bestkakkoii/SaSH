@@ -1110,22 +1110,22 @@ QSpinBox {
            </item>
            <item>
             <property name="text">
-             <string>movetonpc with mod</string>
-            </property>
-           </item>
-           <item>
-            <property name="text">
-             <string>movetonpc</string>
-            </property>
-           </item>
-           <item>
-            <property name="text">
              <string>move</string>
             </property>
            </item>
            <item>
             <property name="text">
              <string>findpath</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>findnpc with mod</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>findnpc</string>
             </property>
            </item>
            <item>
