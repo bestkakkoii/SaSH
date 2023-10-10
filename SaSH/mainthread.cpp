@@ -209,6 +209,14 @@ void MainObject::run()
 		autowalk_future_.waitForFinished();
 	}
 
+	//關閉自動丟棄道具線程
+	if (autodropitem_future_.isRunning())
+	{
+		autodropitem_future_cancel_flag_.store(true, std::memory_order_release);
+		autodropitem_future_.cancel();
+		autodropitem_future_.waitForFinished();
+	}
+
 	//關閉自動組隊線程
 	if (autojoin_future_.isRunning())
 	{
@@ -656,6 +664,8 @@ void MainObject::checkControl()
 	if (injector.server.isNull())
 		return;
 
+	qint64 value = 0;
+
 	//隱藏人物按下，異步隱藏
 	bool bChecked = injector.getEnableHash(util::kHideCharacterEnable);
 	if (flagHideCharacterEnable_ != bChecked)
@@ -776,7 +786,7 @@ void MainObject::checkControl()
 
 	//異步鎖定時間
 	bChecked = injector.getEnableHash(util::kLockTimeEnable);
-	qint64 value = injector.getValueHash(util::kLockTimeValue);
+	value = injector.getValueHash(util::kLockTimeValue);
 	if (flagLockTimeEnable_ != bChecked || flagLockTimeValue_ != value)
 	{
 		flagLockTimeEnable_ = bChecked;
@@ -1304,205 +1314,215 @@ void MainObject::checkAutoHeal()
 			{
 				Injector& injector = Injector::getInstance(getIndex());
 
-				QStringList items;
-				qint64 itemIndex = -1;
-
-				auto checkStatus = [this, &injector]()->bool
+				auto checkStatus = [this, &injector]()->qint64
 				{
 					//如果主線程關閉則自動退出
 					if (isInterruptionRequested())
-						return false;
+						return -1;
 
 					//如果停止標誌為真則自動退出
 					if (autoheal_future_cancel_flag_.load(std::memory_order_acquire))
-						return false;
+						return -1;
 
 					if (injector.server.isNull())
-						return false;
+						return -1;
 
 					if (!injector.server->getOnlineFlag())
-						return false;
+						return 0;
 
 					if (injector.server->getBattleFlag())
-						return false;
+						return 0;
 
-					return true;
+					return 1;
 				};
 
-				//平時道具補氣
 				for (;;)
 				{
-					if (!checkStatus())
+					QThread::msleep(100);
+					qint64 state = checkStatus();
+					if (-1 == state)
 						return;
+					else if (0 == state)
+						continue;
 
-					bool itemHealMpEnable = injector.getEnableHash(util::kNormalItemHealMpEnable);
-					if (!itemHealMpEnable)
-						break;
+					QStringList items;
+					qint64 itemIndex = -1;
 
-					qint64 cmpvalue = injector.getValueHash(util::kNormalItemHealMpValue);
-					if (!injector.server->checkCharMp(cmpvalue))
-						break;
-
-					QString text = injector.getStringHash(util::kNormalItemHealMpItemString).simplified();
-					if (text.isEmpty())
-						break;
-
-					items = text.split(util::rexOR, Qt::SkipEmptyParts);
-					if (items.isEmpty())
-						break;
-
-					itemIndex = -1;
-					for (const QString& str : items)
+					//平時道具補氣
+					for (;;)
 					{
-						itemIndex = injector.server->getItemIndexByName(str);
-						if (itemIndex != -1)
+						if (checkStatus() != 1)
 							break;
-					}
 
-					if (itemIndex == -1)
-						break;
+						bool itemHealMpEnable = injector.getEnableHash(util::kNormalItemHealMpEnable);
+						if (!itemHealMpEnable)
+							break;
 
-					injector.server->useItem(itemIndex, 0);
-					QThread::msleep(300);
-				}
+						qint64 cmpvalue = injector.getValueHash(util::kNormalItemHealMpValue);
+						if (!injector.server->checkCharMp(cmpvalue))
+							break;
 
-				//平時道具補血
-				for (;;)
-				{
-					if (!checkStatus())
-						return;
-
-					bool itemHealHpEnable = injector.getEnableHash(util::kNormalItemHealEnable);
-					if (!itemHealHpEnable)
-						break;
-
-					qint64 charPercent = injector.getValueHash(util::kNormalItemHealCharValue);
-					qint64 petPercent = injector.getValueHash(util::kNormalItemHealPetValue);
-					qint64 alliePercent = injector.getValueHash(util::kNormalItemHealAllieValue);
-
-					if (charPercent == 0 && petPercent == 0 && alliePercent == 0)
-						break;
-
-					qint64 target = -1;
-					bool ok = false;
-					if ((charPercent > 0) && injector.server->checkCharHp(charPercent))
-					{
-						ok = true;
-						target = 0;
-					}
-					else if (!ok && (petPercent > 0) && injector.server->checkPetHp(petPercent))
-					{
-						ok = true;
-						target = injector.server->getPC().battlePetNo + 1;
-					}
-					else if (!ok && (petPercent > 0) && injector.server->checkRideHp(petPercent))
-					{
-						ok = true;
-						target = injector.server->getPC().ridePetNo + 1;
-					}
-					else if (!ok && (alliePercent > 0) && injector.server->checkPartyHp(alliePercent, &target))
-					{
-						ok = true;
-						target += MAX_PET;
-					}
-
-					if (!ok || target == -1)
-						break;
-
-					itemIndex = -1;
-					bool meatProiory = injector.getEnableHash(util::kNormalItemHealMeatPriorityEnable);
-					if (meatProiory)
-					{
-						itemIndex = injector.server->getItemIndexByName("?肉", false, "耐久力");
-					}
-
-					if (itemIndex == -1)
-					{
-						QString text = injector.getStringHash(util::kNormalItemHealItemString).simplified();
+						QString text = injector.getStringHash(util::kNormalItemHealMpItemString).simplified();
+						if (text.isEmpty())
+							break;
 
 						items = text.split(util::rexOR, Qt::SkipEmptyParts);
+						if (items.isEmpty())
+							break;
+
+						itemIndex = -1;
 						for (const QString& str : items)
 						{
 							itemIndex = injector.server->getItemIndexByName(str);
 							if (itemIndex != -1)
 								break;
 						}
-					}
 
-					if (itemIndex == -1)
-						break;
-
-					qint64 targetType = injector.server->getItem(itemIndex).target;
-					if ((targetType != ITEM_TARGET_MYSELF) && (targetType != ITEM_TARGET_OTHER))
-						break;
-
-					if ((targetType == ITEM_TARGET_MYSELF) && (target != 0))
-						break;
-
-					injector.server->useItem(itemIndex, target);
-					QThread::msleep(300);
-				}
-
-				//平時精靈補血
-				for (;;)
-				{
-					if (!checkStatus())
-						return;
-
-					bool magicHealHpEnable = injector.getEnableHash(util::kNormalMagicHealEnable);
-					if (!magicHealHpEnable)
-						break;
-
-					qint64 charPercent = injector.getValueHash(util::kNormalMagicHealCharValue);
-					qint64 petPercent = injector.getValueHash(util::kNormalMagicHealPetValue);
-					qint64 alliePercent = injector.getValueHash(util::kNormalMagicHealAllieValue);
-
-					if (charPercent == 0 && petPercent == 0 && alliePercent == 0)
-						break;
-
-
-					qint64 target = -1;
-					bool ok = false;
-					if ((charPercent > 0) && injector.server->checkCharHp(charPercent))
-					{
-						ok = true;
-						target = 0;
-					}
-					else if (!ok && (petPercent > 0) && injector.server->checkPetHp(petPercent))
-					{
-						ok = true;
-						target = injector.server->getPC().battlePetNo + 1;
-					}
-					else if (!ok && (petPercent > 0) && injector.server->checkRideHp(petPercent))
-					{
-						ok = true;
-						target = injector.server->getPC().ridePetNo + 1;
-					}
-					else if (!ok && (alliePercent > 0) && injector.server->checkPartyHp(alliePercent, &target))
-					{
-						ok = true;
-						target += MAX_PET;
-					}
-
-					if (!ok || target == -1)
-						break;
-
-					qint64 magicIndex = injector.getValueHash(util::kNormalMagicHealMagicValue);
-					if (magicIndex < 0 || magicIndex >= MAX_ITEM)
-						break;
-
-					if (magicIndex < CHAR_EQUIPPLACENUM)
-					{
-						qint64 targetType = injector.server->getMagic(magicIndex).target;
-						if ((targetType != MAGIC_TARGET_MYSELF) && (targetType != MAGIC_TARGET_OTHER))
+						if (itemIndex == -1)
 							break;
 
-						if ((targetType == MAGIC_TARGET_MYSELF) && (target != 0))
-							break;
+						injector.server->useItem(itemIndex, 0);
+						QThread::msleep(300);
 					}
 
-					injector.server->useMagic(magicIndex, target);
-					QThread::msleep(300);
+					//平時道具補血
+					for (;;)
+					{
+						if (checkStatus() != 1)
+							break;
+
+						bool itemHealHpEnable = injector.getEnableHash(util::kNormalItemHealEnable);
+						if (!itemHealHpEnable)
+							break;
+
+						qint64 charPercent = injector.getValueHash(util::kNormalItemHealCharValue);
+						qint64 petPercent = injector.getValueHash(util::kNormalItemHealPetValue);
+						qint64 alliePercent = injector.getValueHash(util::kNormalItemHealAllieValue);
+
+						if (charPercent == 0 && petPercent == 0 && alliePercent == 0)
+							break;
+
+						qint64 target = -1;
+						bool ok = false;
+						if ((charPercent > 0) && injector.server->checkCharHp(charPercent))
+						{
+							ok = true;
+							target = 0;
+						}
+						else if (!ok && (petPercent > 0) && injector.server->checkPetHp(petPercent))
+						{
+							ok = true;
+							target = injector.server->getPC().battlePetNo + 1;
+						}
+						else if (!ok && (petPercent > 0) && injector.server->checkRideHp(petPercent))
+						{
+							ok = true;
+							target = injector.server->getPC().ridePetNo + 1;
+						}
+						else if (!ok && (alliePercent > 0) && injector.server->checkPartyHp(alliePercent, &target))
+						{
+							ok = true;
+							target += MAX_PET;
+						}
+
+						if (!ok || target == -1)
+							break;
+
+						itemIndex = -1;
+						bool meatProiory = injector.getEnableHash(util::kNormalItemHealMeatPriorityEnable);
+						if (meatProiory)
+						{
+							itemIndex = injector.server->getItemIndexByName("?肉", false, "耐久力");
+						}
+
+						if (itemIndex == -1)
+						{
+							QString text = injector.getStringHash(util::kNormalItemHealItemString).simplified();
+
+							items = text.split(util::rexOR, Qt::SkipEmptyParts);
+							for (const QString& str : items)
+							{
+								itemIndex = injector.server->getItemIndexByName(str);
+								if (itemIndex != -1)
+									break;
+							}
+						}
+
+						if (itemIndex == -1)
+							break;
+
+						qint64 targetType = injector.server->getItem(itemIndex).target;
+						if ((targetType != ITEM_TARGET_MYSELF) && (targetType != ITEM_TARGET_OTHER))
+							break;
+
+						if ((targetType == ITEM_TARGET_MYSELF) && (target != 0))
+							break;
+
+						injector.server->useItem(itemIndex, target);
+						QThread::msleep(300);
+					}
+
+					//平時精靈補血
+					for (;;)
+					{
+						if (checkStatus() != 1)
+							break;
+
+						bool magicHealHpEnable = injector.getEnableHash(util::kNormalMagicHealEnable);
+						if (!magicHealHpEnable)
+							break;
+
+						qint64 charPercent = injector.getValueHash(util::kNormalMagicHealCharValue);
+						qint64 petPercent = injector.getValueHash(util::kNormalMagicHealPetValue);
+						qint64 alliePercent = injector.getValueHash(util::kNormalMagicHealAllieValue);
+
+						if (charPercent == 0 && petPercent == 0 && alliePercent == 0)
+							break;
+
+
+						qint64 target = -1;
+						bool ok = false;
+						if ((charPercent > 0) && injector.server->checkCharHp(charPercent))
+						{
+							ok = true;
+							target = 0;
+						}
+						else if (!ok && (petPercent > 0) && injector.server->checkPetHp(petPercent))
+						{
+							ok = true;
+							target = injector.server->getPC().battlePetNo + 1;
+						}
+						else if (!ok && (petPercent > 0) && injector.server->checkRideHp(petPercent))
+						{
+							ok = true;
+							target = injector.server->getPC().ridePetNo + 1;
+						}
+						else if (!ok && (alliePercent > 0) && injector.server->checkPartyHp(alliePercent, &target))
+						{
+							ok = true;
+							target += MAX_PET;
+						}
+
+						if (!ok || target == -1)
+							break;
+
+						qint64 magicIndex = injector.getValueHash(util::kNormalMagicHealMagicValue);
+						if (magicIndex < 0 || magicIndex >= MAX_ITEM)
+							break;
+
+						if (magicIndex < CHAR_EQUIPPLACENUM)
+						{
+							qint64 targetType = injector.server->getMagic(magicIndex).target;
+							if ((targetType != MAGIC_TARGET_MYSELF) && (targetType != MAGIC_TARGET_OTHER))
+								break;
+
+							if ((targetType == MAGIC_TARGET_MYSELF) && (target != 0))
+								break;
+						}
+
+						injector.server->useMagic(magicIndex, target);
+						QThread::msleep(300);
+					}
 				}
 			}
 		);
@@ -1536,108 +1556,121 @@ void MainObject::checkAutoDropPet()
 		autodroppet_future_ = QtConcurrent::run([this]()->void
 			{
 				Injector& injector = Injector::getInstance(getIndex());
-				auto checkStatus = [this, &injector]()->bool
+				auto checkStatus = [this, &injector]()->qint64
 				{
 					//如果主線程關閉則自動退出
 					if (isInterruptionRequested())
-						return false;
+						return -1;
 
 					//如果停止標誌為真則自動退出
 					if (autoheal_future_cancel_flag_.load(std::memory_order_acquire))
-						return false;
+						return -1;
+
+					if (!injector.getEnableHash(util::kDropPetEnable))
+						return -1;
 
 					if (injector.server.isNull())
-						return false;
+						return -1;
 
 					if (!injector.server->getOnlineFlag())
-						return false;
+						return 0;
 
 					if (injector.server->getBattleFlag())
-						return false;
+						return 0;
 
-					return true;
+					return 1;
 				};
 
-				bool strLowAtEnable = injector.getEnableHash(util::kDropPetStrEnable);
-				bool defLowAtEnable = injector.getEnableHash(util::kDropPetDefEnable);
-				bool agiLowAtEnable = injector.getEnableHash(util::kDropPetAgiEnable);
-				bool aggregateLowAtEnable = injector.getEnableHash(util::kDropPetAggregateEnable);
-				double strLowAtValue = injector.getValueHash(util::kDropPetStrValue);
-				double defLowAtValue = injector.getValueHash(util::kDropPetDefValue);
-				double agiLowAtValue = injector.getValueHash(util::kDropPetAgiValue);
-				double aggregateLowAtValue = injector.getValueHash(util::kDropPetAggregateValue);
-				QString text = injector.getStringHash(util::kDropPetNameString);
-				QStringList nameList;
-				if (!text.isEmpty())
-					nameList = text.split(util::rexOR, Qt::SkipEmptyParts);
-
-				for (qint64 i = 0; i < MAX_PET; ++i)
+				for (;;)
 				{
-					if (!checkStatus())
+					QThread::msleep(100);
+					qint64 state = checkStatus();
+					if (-1 == state)
 						return;
-
-					PET pet = injector.server->getPet(i);
-					if (!pet.valid || pet.maxHp <= 0 || pet.level <= 0)
+					else if (0 == state)
 						continue;
 
-					double str = pet.atk;
-					double def = pet.def;
-					double agi = pet.agi;
-					double aggregate = ((str + def + agi + (static_cast<double>(pet.maxHp) / 4.0)) / static_cast<double>(pet.level)) * 100.0;
+					bool strLowAtEnable = injector.getEnableHash(util::kDropPetStrEnable);
+					bool defLowAtEnable = injector.getEnableHash(util::kDropPetDefEnable);
+					bool agiLowAtEnable = injector.getEnableHash(util::kDropPetAgiEnable);
+					bool aggregateLowAtEnable = injector.getEnableHash(util::kDropPetAggregateEnable);
+					double strLowAtValue = injector.getValueHash(util::kDropPetStrValue);
+					double defLowAtValue = injector.getValueHash(util::kDropPetDefValue);
+					double agiLowAtValue = injector.getValueHash(util::kDropPetAgiValue);
+					double aggregateLowAtValue = injector.getValueHash(util::kDropPetAggregateValue);
+					QString text = injector.getStringHash(util::kDropPetNameString);
+					QStringList nameList;
+					if (!text.isEmpty())
+						nameList = text.split(util::rexOR, Qt::SkipEmptyParts);
 
-					bool okDrop = false;
-					if (strLowAtEnable && (str < strLowAtValue))
+					for (qint64 i = 0; i < MAX_PET; ++i)
 					{
-						okDrop = true;
-					}
-					else if (defLowAtEnable && (def < defLowAtValue))
-					{
-						okDrop = true;
-					}
-					else if (agiLowAtEnable && (agi < agiLowAtValue))
-					{
-						okDrop = true;
-					}
-					else if (aggregateLowAtEnable && (aggregate < aggregateLowAtValue))
-					{
-						okDrop = true;
-					}
-					else
-					{
-						okDrop = false;
-					}
+						if (checkStatus() != 1)
+							break;
 
+						PET pet = injector.server->getPet(i);
+						if (!pet.valid || pet.maxHp <= 0 || pet.level <= 0)
+							continue;
 
-					if (okDrop)
-					{
-						if (!nameList.isEmpty())
+						double str = pet.atk;
+						double def = pet.def;
+						double agi = pet.agi;
+						double aggregate = ((str + def + agi + (static_cast<double>(pet.maxHp) / 4.0)) / static_cast<double>(pet.level)) * 100.0;
+
+						bool okDrop = false;
+						if (strLowAtEnable && (str < strLowAtValue))
 						{
-							bool isExact = true;
+							okDrop = true;
+						}
+						else if (defLowAtEnable && (def < defLowAtValue))
+						{
+							okDrop = true;
+						}
+						else if (agiLowAtEnable && (agi < agiLowAtValue))
+						{
+							okDrop = true;
+						}
+						else if (aggregateLowAtEnable && (aggregate < aggregateLowAtValue))
+						{
+							okDrop = true;
+						}
+						else
+						{
 							okDrop = false;
-							for (const QString& it : nameList)
-							{
-								QString newName = it.simplified();
-								if (newName.startsWith("?"))
-								{
-									isExact = false;
-									newName = newName.mid(1);
-								}
-
-								if (isExact && pet.name == newName)
-								{
-									okDrop = true;
-									break;
-								}
-								else if (isExact && pet.name.contains(newName))
-								{
-									okDrop = true;
-									break;
-								}
-							}
 						}
 
+
 						if (okDrop)
-							injector.server->dropPet(i);
+						{
+							if (!nameList.isEmpty())
+							{
+								bool isExact = true;
+								okDrop = false;
+								for (const QString& it : nameList)
+								{
+									QString newName = it.simplified();
+									if (newName.startsWith("?"))
+									{
+										isExact = false;
+										newName = newName.mid(1);
+									}
+
+									if (isExact && pet.name == newName)
+									{
+										okDrop = true;
+										break;
+									}
+									else if (isExact && pet.name.contains(newName))
+									{
+										okDrop = true;
+										break;
+									}
+								}
+							}
+
+							if (okDrop)
+								injector.server->dropPet(i);
+						}
 					}
 				}
 			}
@@ -1659,68 +1692,105 @@ void MainObject::checkAutoDropPet()
 void MainObject::checkAutoDropItems()
 {
 	Injector& injector = Injector::getInstance(getIndex());
-	auto checkEnable = [this, &injector]()->bool
+	if (injector.server.isNull())
+		return;
+
+	if (autodropitem_future_.isRunning())
+		return;
+
+	if (injector.getEnableHash(util::kAutoDropEnable))
 	{
-		if (isInterruptionRequested())
-			return false;
-
-		if (!injector.getEnableHash(util::kAutoDropEnable))
-			return false;
-
-		if (injector.server.isNull())
-			return false;
-
-		if (!injector.server->getOnlineFlag())
-			return false;
-
-		if (injector.server->getBattleFlag())
-			return false;
-
-		return true;
-	};
-
-	if (!checkEnable())
-		return;
-
-	QString strDropItems = injector.getStringHash(util::kAutoDropItemString);
-	if (strDropItems.isEmpty())
-		return;
-
-	QStringList dropItems = strDropItems.split(util::rexOR, Qt::SkipEmptyParts);
-	if (dropItems.isEmpty())
-		return;
-
-	QHash<qint64, ITEM> items = injector.server->getItems();
-	for (qint64 i = 0; i < MAX_ITEM; ++i)
-	{
-		ITEM item = items.value(i);
-		if (item.name.isEmpty())
-			continue;
-
-		for (const QString& cmpItem : dropItems)
-		{
-			if (!checkEnable())
-				return;
-
-			if (cmpItem.isEmpty())
-				continue;
-
-			if (cmpItem.startsWith("?"))//如果丟棄列表名稱前面有?則表示要模糊匹配
+		autodropitem_future_ = QtConcurrent::run([this]()
 			{
-				QString newCmpItem = cmpItem.mid(1);//去除問號
-				if (item.name.contains(newCmpItem))
+				Injector& injector = Injector::getInstance(getIndex());
+				auto checkEnable = [this, &injector]()->qint64
 				{
-					injector.server->dropItem(i);
-					continue;
+					if (isInterruptionRequested())
+						return -1;
+
+					if (autodropitem_future_cancel_flag_.load(std::memory_order_acquire))
+						return -1;
+
+					if (!injector.getEnableHash(util::kAutoDropEnable))
+						return -1;
+
+					if (injector.server.isNull())
+						return -1;
+
+					if (!injector.server->getOnlineFlag())
+						return 0;
+
+					if (injector.server->getBattleFlag())
+						return 0;
+
+					return 1;
+				};
+
+				for (;;)
+				{
+					QThread::msleep(100);
+
+					qint64 state = checkEnable();
+					if (-1 == state)
+						return;
+					else if (0 == state)
+						continue;
+
+					QString strDropItems = injector.getStringHash(util::kAutoDropItemString);
+					if (strDropItems.isEmpty())
+						continue;
+
+					QStringList dropItems = strDropItems.split(util::rexOR, Qt::SkipEmptyParts);
+					if (dropItems.isEmpty())
+						continue;
+
+					QHash<qint64, ITEM> items = injector.server->getItems();
+					for (qint64 i = 0; i < MAX_ITEM; ++i)
+					{
+						ITEM item = items.value(i);
+						if (item.name.isEmpty())
+							continue;
+
+						for (const QString& cmpItem : dropItems)
+						{
+							if (checkEnable() != 1)
+								break;
+
+							if (cmpItem.isEmpty())
+								continue;
+
+							if (cmpItem.startsWith("?"))//如果丟棄列表名稱前面有?則表示要模糊匹配
+							{
+								QString newCmpItem = cmpItem.mid(1);//去除問號
+								if (item.name.contains(newCmpItem))
+								{
+									injector.server->dropItem(i);
+									continue;
+								}
+							}
+							else if ((item.name == cmpItem))//精確匹配
+							{
+								injector.server->dropItem(i);
+							}
+						}
+					}
+
 				}
-			}
-			else if ((item.name == cmpItem))//精確匹配
-			{
-				injector.server->dropItem(i);
-			}
+
+			});
+	}
+	else
+	{
+		//如果線程正在執行就取消
+		if (autodropitem_future_.isRunning())
+		{
+			autodropitem_future_cancel_flag_.store(true, std::memory_order_release);
+			autodropitem_future_.cancel();
+			autodropitem_future_.waitForFinished();
 		}
 	}
-	injector.server->refreshItemInfo();
+
+
 }
 
 //自動吃經驗加乘道具
@@ -1749,7 +1819,6 @@ void MainObject::checkAutoEatBoostExpItem()
 
 	if (!checkEnable())
 		return;
-
 
 	QHash<qint64, ITEM> items = injector.server->getItems();
 	for (qint64 i = 0; i < MAX_ITEM; ++i)
@@ -1800,6 +1869,12 @@ void MainObject::checkRecordableNpcInfo()
 				if (injector.server.isNull())
 					return;
 
+				if (!injector.server->getOnlineFlag())
+					continue;
+
+				if (injector.server->getBattleFlag())
+					continue;
+
 				CAStar astar;
 
 				QHash<qint64, mapunit_t> units = injector.server->mapUnitHash.toHash();
@@ -1817,6 +1892,9 @@ void MainObject::checkRecordableNpcInfo()
 						return;
 
 					if (!injector.server->getOnlineFlag())
+						break;
+
+					if (injector.server->getBattleFlag())
 						break;
 
 					if ((unit.objType != util::OBJ_NPC)
@@ -2081,7 +2159,7 @@ void MainObject::checkAutoLockSchedule()
 
 			if (pet.state != kRide)
 				injector.server->setPetState(rindex, kRide);
-		}
+				}
 
 		if (bindex != -1)
 		{
@@ -2106,10 +2184,10 @@ void MainObject::checkAutoLockSchedule()
 				injector.server->setPetState(i, kRest);
 		}
 		return false;
-	};
+			};
 
 	if (injector.getEnableHash(util::kLockPetScheduleEnable) && !injector.getEnableHash(util::kLockPetEnable) && !injector.getEnableHash(util::kLockRideEnable))
 		checkSchedule(util::kLockPetScheduleString);
 
-}
+	}
 #endif

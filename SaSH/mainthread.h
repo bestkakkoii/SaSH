@@ -85,6 +85,9 @@ private:
 	QFuture<void> autodroppet_future_;
 	std::atomic_bool autodroppet_future_cancel_flag_ = false;
 
+	QFuture<void> autodropitem_future_;
+	std::atomic_bool autodropitem_future_cancel_flag_ = false;
+
 	QFuture<void> autosortitem_future_;
 	std::atomic_bool autosortitem_future_cancel_flag_ = false;
 

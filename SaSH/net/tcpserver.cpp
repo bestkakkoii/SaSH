@@ -413,9 +413,9 @@ void Server::onClientReadyRead()
 	if (badata.isEmpty())
 		return;
 
-	//QtConcurrent::run(this, &Server::handleData, badata);
+	QtConcurrent::run(this, &Server::handleData, badata);
 	//QMetaObject::invokeMethod(this, "handleData", Qt::QueuedConnection, Q_ARG(QByteArray, badata));
-	handleData(badata);
+	//handleData(badata);
 }
 
 //異步發送數據
@@ -5444,7 +5444,7 @@ void Server::asyncBattleAction(bool waitforBA)
 
 	battledata_t bt = getBattleData();
 	//人物和宠物分开发 TODO 修正多个BA人物多次发出战斗指令的问题
-	//if (!bt.charAlreadyAction)//!checkFlagState(battleCharCurrentPos) &&
+	if (!bt.charAlreadyAction)//!checkFlagState(battleCharCurrentPos) &&
 	{
 		bt.charAlreadyAction = true;
 
@@ -5463,7 +5463,7 @@ void Server::asyncBattleAction(bool waitforBA)
 	}
 
 	//TODO 修正宠物指令在多个BA时候重复发送的问题
-	//if (!bt.petAlreadyAction)
+	if (!bt.petAlreadyAction)
 	{
 		bt.petAlreadyAction = true;
 
@@ -9025,6 +9025,8 @@ void Server::sendBattleCharMagicAct(qint64 magicIndex, qint64  target)
 	if (magicIndex < 0 || magicIndex >= MAX_MAGIC)
 		return;
 
+
+
 	const QString qcmd = QString("J|%1|%2").arg(util::toQString(magicIndex, 16)).arg(util::toQString(target, 16));
 	lssproto_B_send(qcmd);
 
@@ -9441,7 +9443,7 @@ void Server::lssproto_AB_recv(char* cdata)
 		{
 			addressBook_.remove(i);
 			continue;
-		}
+	}
 
 		addressBook.valid = true;
 
@@ -9502,7 +9504,7 @@ void Server::lssproto_ABI_recv(int num, char* cdata)
 		addressBook.valid = valid;
 		addressBook.name.clear();
 		return;
-	}
+				}
 
 	addressBook.valid = valid;
 
@@ -9647,7 +9649,7 @@ void Server::lssproto_RS_recv(char* cdata)
 
 	checkAutoDropMeat();
 	checkAutoAbility();
-}
+			}
 
 //戰後經驗 (逃跑或被打死不會有)
 void Server::lssproto_RD_recv(char*)
@@ -10305,17 +10307,14 @@ void Server::lssproto_B_recv(char* ccommand)
 					emit signalDispatcher.notifyBattleActionState(i, battleCharCurrentPos.load(std::memory_order_acquire) < (MAX_ENEMY / 2));
 					objs[i].ready = true;
 				}
-			}
+				}
 
 			bt.objects = objs;
-		}
+			}
 
 		setBattleData(bt);
-
-		//這裡本不應該放的，放這裡就是無腦亂發，任何隊友作出動作後都會觸發
-		doBattleWork(true);
 		break;
-	}
+		}
 	case 'C':
 	{
 		battledata_t bt = getBattleData();
@@ -10754,7 +10753,7 @@ void Server::lssproto_B_recv(char* ccommand)
 		qDebug() << "lssproto_B_recv: unknown command" << command;
 		break;
 	}
-}
+	}
 
 //寵物取消戰鬥狀態 (不是每個私服都有)
 void Server::lssproto_PETST_recv(int petarray, int result)
@@ -11417,7 +11416,7 @@ void Server::lssproto_TK_recv(int index, char* cmessage, int color)
 		{
 			if (strcmp(TK, "TK") == 0)	InitSelectChar(msg, 0);
 			else if (strcmp(TK, "TE") == 0) InitSelectChar(msg, 1);
-		}
+	}
 		else
 		{
 			char temp[] = "告訴你：";
@@ -11472,7 +11471,7 @@ void Server::lssproto_MC_recv(int fl, int x1, int y1, int x2, int y2, int tileSu
 	Q_UNUSED(getFloorName());
 	Q_UNUSED(getDir());
 	Q_UNUSED(getPoint());
-}
+		}
 
 //地圖數據更新，重新寫入地圖
 void Server::lssproto_M_recv(int fl, int x1, int y1, int x2, int y2, char* cdata)
@@ -11723,7 +11722,7 @@ void Server::lssproto_C_recv(char* cdata)
 			mapUnitHash.insert(id, unit);
 
 			break;
-		}
+			}
 		case 2://OBJTYPE_ITEM
 		{
 			getStringToken(bigtoken, "|", 2, smalltoken);
@@ -12037,7 +12036,7 @@ void Server::lssproto_CA_recv(char* cdata)
 		unit.dir = dir;
 		mapUnitHash.insert(charindex, unit);
 	}
-}
+		}
 
 //刪除指定一個或多個周圍人、NPC單位
 void Server::lssproto_CD_recv(char* cdata)
@@ -12814,7 +12813,7 @@ void Server::lssproto_S_recv(char* cdata)
 			playerInfoColContents.insert(j + 1, var);
 			emit signalDispatcher.updateCharInfoColContents(j + 1, var);
 		}
-	}
+					}
 #pragma endregion
 #pragma region EncountPercentage
 	else if (first == "E") // E nowEncountPercentage 不知道幹嘛的
@@ -13260,7 +13259,7 @@ void Server::lssproto_S_recv(char* cdata)
 			{
 				petItems.remove(nPetIndex);
 				continue;
-			}
+		}
 
 			petItems[i].valid = true;
 			petItems[i].name = szData;
@@ -13316,10 +13315,10 @@ void Server::lssproto_S_recv(char* cdata)
 			petItems[i].itemup = getIntegerToken(data, "|", no + 15);
 
 			petItems[i].counttime = getIntegerToken(data, "|", no + 16);
-		}
+	}
 
 		petItem_.insert(nPetIndex, petItems);
-	}
+				}
 #pragma endregion
 #pragma region S_recv_Unknown
 	else if (first == "U")
@@ -13376,7 +13375,7 @@ void Server::lssproto_S_recv(char* cdata)
 	}
 
 	updateComboBoxList();
-}
+			}
 
 //客戶端登入(進去選人畫面)
 void Server::lssproto_ClientLogin_recv(char* cresult)
@@ -13726,7 +13725,7 @@ void Server::lssproto_TD_recv(char* cdata)//交易
 				}
 			}
 			return;
-		}
+	}
 
 		getStringToken(data, "|", 2, buf_sockfd);
 		getStringToken(data, "|", 3, buf_name);
@@ -13789,7 +13788,7 @@ void Server::lssproto_TD_recv(char* cdata)//交易
 			getStringToken(data, "|", 11, opp_itemdamage);// 显示物品耐久度
 			getStringToken(data, "|", 12, pilenum);//pilenum
 		}
-	}
+}
 
 	if (trade_kind.startsWith("P"))
 	{
@@ -13844,7 +13843,7 @@ void Server::lssproto_TD_recv(char* cdata)//交易
 		mypet_tradeList = QStringList{ "P|-1", "P|-1", "P|-1" , "P|-1", "P|-1" };
 		mygoldtrade = 0;
 	}
-}
+		}
 
 void Server::lssproto_CHAREFFECT_recv(char* cdata)
 {
