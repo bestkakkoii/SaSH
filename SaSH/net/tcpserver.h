@@ -37,6 +37,7 @@ static const QHash<QString, BUTTON_TYPE> buttonMap = {
 	{"PREVIOUS", BUTTON_PREVIOUS},
 	{"NEXT", BUTTON_NEXT},
 	{"AUTO", BUTTON_AUTO},
+	{"CLOSE", BUTTON_CLOSE },
 
 	//big5
 	{"確認", BUTTON_YES},
@@ -54,6 +55,7 @@ static const QHash<QString, BUTTON_TYPE> buttonMap = {
 	{"賣", BUTTON_SELL},
 	{"出去", BUTTON_OUT},
 	{"回上一頁", BUTTON_BACK},
+	{ "關閉", BUTTON_CLOSE },
 
 	//gb2312
 	{"确认", BUTTON_YES},
@@ -71,6 +73,7 @@ static const QHash<QString, BUTTON_TYPE> buttonMap = {
 	{"卖", BUTTON_SELL},
 	{"出去", BUTTON_OUT},
 	{"回上一页", BUTTON_BACK},
+	{ "关闭", BUTTON_CLOSE },
 };
 
 static const QHash<QString, PetState> petStateMap = {
@@ -422,8 +425,6 @@ public://actions
 	void setFloor(qint64 floor);
 
 	Q_REQUIRED_RESULT QString getFloorName();
-	void setFloorName(const QString& floorName);
-
 	//battle
 	void sendBattleCharAttackAct(qint64 target);
 	void sendBattleCharMagicAct(qint64 magicIndex, qint64 target);
@@ -560,6 +561,12 @@ private:
 
 	//自動鎖寵
 	void checkAutoLockPet();
+
+	//自動加點
+	void checkAutoAbility();
+
+	//檢查並自動吃肉、或丟肉
+	void checkAutoDropMeat();
 #pragma endregion
 
 #pragma region SAClientOriginal
@@ -596,8 +603,6 @@ private:
 	QFuture<void> skupFuture;
 
 	std::atomic_bool IS_LOCKATTACK_ESCAPE_DISABLE = false;//鎖定攻擊不逃跑 (轉指定攻擊)
-
-	mutable QReadWriteLock pointMutex_;//用於保護人物座標更新順序
 
 	PC pc_ = {};
 

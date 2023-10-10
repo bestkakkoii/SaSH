@@ -500,16 +500,20 @@ void Parser::initialize(Parser* pparent)
 			QHash<QString, BUTTON_TYPE> big5 = {
 				{ "OK", BUTTON_OK},
 				{ "CANCEL", BUTTON_CANCEL },
+				{ "CLOSE", BUTTON_CLOSE },
+				{ "關閉", BUTTON_CLOSE },
 				//big5
 				{ "確定", BUTTON_YES },
 				{ "取消", BUTTON_NO },
 				{ "上一頁", BUTTON_PREVIOUS },
 				{ "下一頁", BUTTON_NEXT },
+				{ "取消", BUTTON_NO },
 			};
 
 			QHash<QString, BUTTON_TYPE> gb2312 = {
 				{ "OK", BUTTON_OK},
 				{ "CANCEL", BUTTON_CANCEL },
+				{ "关闭", BUTTON_CLOSE },
 				//gb2312
 				{ "确定", BUTTON_YES },
 				{ "取消", BUTTON_NO },

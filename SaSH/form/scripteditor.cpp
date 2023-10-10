@@ -144,40 +144,36 @@ void ScriptEditor::init()
 
 	injector.isScriptEditorOpened.store(true, std::memory_order_release);
 
-	const QString fileName(qgetenv("JSON_PATH"));
-	if (fileName.isEmpty())
-		return;
-
-	if (!QFile::exists(fileName))
-		return;
-	util::Config config(fileName);
-
-	QString ObjectName = ui.widget->objectName();
-	qint64 fontSize = config.read<qint64>(objectName(), ObjectName, "FontSize");
-	if (fontSize > 0)
+	util::Config config;
+	if (config.isValid())
 	{
-		QFont font = ui.widget->getOldFont();
-		font.setPointSize(fontSize);
-		ui.widget->setNewFont(font);
-		ui.widget->zoomTo(3);
-	}
+		QString ObjectName = ui.widget->objectName();
+		qint64 fontSize = config.read<qint64>(objectName(), ObjectName, "FontSize");
+		if (fontSize > 0)
+		{
+			QFont font = ui.widget->getOldFont();
+			font.setPointSize(fontSize);
+			ui.widget->setNewFont(font);
+			ui.widget->zoomTo(3);
+		}
 
-	ObjectName = ui.listView_log->objectName();
-	fontSize = config.read<qint64>(objectName(), ObjectName, "FontSize");
-	if (fontSize > 0)
-	{
-		QFont f = ui.listView_log->font();
-		f.setPointSize(fontSize);
-		ui.listView_log->setFont(f);
-	}
+		ObjectName = ui.listView_log->objectName();
+		fontSize = config.read<qint64>(objectName(), ObjectName, "FontSize");
+		if (fontSize > 0)
+		{
+			QFont f = ui.listView_log->font();
+			f.setPointSize(fontSize);
+			ui.listView_log->setFont(f);
+		}
 
-	ObjectName = ui.textBrowser->objectName();
-	fontSize = config.read<qint64>(objectName(), ObjectName, "FontSize");
-	if (fontSize > 0)
-	{
-		QFont font = ui.textBrowser->font();
-		font.setPointSize(fontSize);
-		ui.textBrowser->setFont(font);
+		ObjectName = ui.textBrowser->objectName();
+		fontSize = config.read<qint64>(objectName(), ObjectName, "FontSize");
+		if (fontSize > 0)
+		{
+			QFont font = ui.textBrowser->font();
+			font.setPointSize(fontSize);
+			ui.textBrowser->setFont(font);
+		}
 	}
 }
 
@@ -351,42 +347,31 @@ void ScriptEditor::showEvent(QShowEvent* e)
 
 void ScriptEditor::closeEvent(QCloseEvent* e)
 {
-	do
-	{
-		Injector& injector = Injector::getInstance(getIndex());
-		injector.isScriptEditorOpened.store(false, std::memory_order_release);
+	Injector& injector = Injector::getInstance(getIndex());
+	injector.isScriptEditorOpened.store(false, std::memory_order_release);
 
-		if (usageTimer_ != nullptr)
-			usageTimer_->stop();
+	if (usageTimer_ != nullptr)
+		usageTimer_->stop();
 
-		util::FormSettingManager formSettingManager(this);
-		formSettingManager.saveSettings();
+	util::FormSettingManager formSettingManager(this);
+	formSettingManager.saveSettings();
 
-		const QString fileName(qgetenv("JSON_PATH"));
-		if (fileName.isEmpty())
-			break;
+	util::Config config;
 
-		if (!QFile::exists(fileName))
-			break;
+	if (!injector.currentScriptFileName.isEmpty())
+		config.write("Script", "LastModifyFile", injector.currentScriptFileName);
 
-		util::Config config(fileName);
+	QString ObjectName = ui.widget->objectName();
+	QFont font = ui.widget->getOldFont();
+	config.write(objectName(), ObjectName, "FontSize", font.pointSize());
 
-		if (!injector.currentScriptFileName.isEmpty())
-			config.write("Script", "LastModifyFile", injector.currentScriptFileName);
+	ObjectName = ui.listView_log->objectName();
+	font = ui.listView_log->font();
+	config.write(objectName(), ObjectName, "FontSize", font.pointSize());
 
-
-		QString ObjectName = ui.widget->objectName();
-		QFont font = ui.widget->getOldFont();
-		config.write(objectName(), ObjectName, "FontSize", font.pointSize());
-
-		ObjectName = ui.listView_log->objectName();
-		font = ui.listView_log->font();
-		config.write(objectName(), ObjectName, "FontSize", font.pointSize());
-
-		ObjectName = ui.textBrowser->objectName();
-		font = ui.textBrowser->font();
-		config.write(objectName(), ObjectName, "FontSize", font.pointSize());
-	} while (false);
+	ObjectName = ui.textBrowser->objectName();
+	font = ui.textBrowser->font();
+	config.write(objectName(), ObjectName, "FontSize", font.pointSize());
 
 	QMainWindow::closeEvent(e);
 }
@@ -1358,7 +1343,7 @@ void ScriptEditor::on_treeWidget_functionList_itemSelectionChanged()
 		std::sort(result.begin(), result.end(), [](const QString& a, const QString& b)
 			{
 				return a.length() < b.length();
-			});
+	});
 
 		QString markdownText = result.join("\n---\n");
 
@@ -1372,7 +1357,7 @@ void ScriptEditor::on_treeWidget_functionList_itemSelectionChanged()
 		ui.textBrowser->setUpdatesEnabled(false);
 		ui.textBrowser->setDocument(doc.data());
 		ui.textBrowser->setUpdatesEnabled(true);
-	} while (false);
+} while (false);
 }
 
 void ScriptEditor::on_treeWidget_scriptList_itemClicked(QTreeWidgetItem* item, int column)

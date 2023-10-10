@@ -1093,34 +1093,38 @@ bool MapAnalyzer::readFromBinary(qint64 floor, const QString& name, bool enableD
 	//%(GAME_DIRECTORY)/map/{floor}.dat
 	const QString path(getCurrentMapPath(floor));
 
-	//check file exist
-	util::ScopedFile file(path, QIODevice::ReadOnly);
-	if (!file.exists())
+	map_t map;
+	qint64 width = 0;
+	qint64 height = 0;
+	uchar* pFileMap = nullptr;
+
 	{
-		qDebug() << __FUNCTION__ << " @" << __LINE__ << " File not found.";
-		return false;
+		//check file exist
+		util::ScopedFile file(path);
+		if (!file.openRead())
+		{
+			qDebug() << __FUNCTION__ << " @" << __LINE__ << " Failed to open file.";
+			return false;
+		}
+
+		if (!file.mmap(pFileMap, 0, sizeof(mapheader_t)))
+		{
+			qDebug() << __FUNCTION__ << " @" << __LINE__ << " Failed to map file.";
+			return false;
+		}
+
+		//2個DWORD(4字節)的數據，第1個表示地圖長度 - 東(W)，第2個表示地圖長度 - 南(H)。
+		mapheader_t* _header = reinterpret_cast<mapheader_t*>(pFileMap);
+		if (_header == nullptr)
+		{
+			qDebug() << __FUNCTION__ << " Failed to map file.";
+			return false;
+		}
+
+		//獲取地圖寬高
+		width = _header->width;
+		height = _header->height;
 	}
-
-	if (!file.isOpen())
-	{
-		qDebug() << __FUNCTION__ << " @" << __LINE__ << " Failed to open file.";
-		return false;
-	}
-
-	uchar* pFileMap = file.map(0, file.size());
-
-	//2個DWORD(4字節)的數據，第1個表示地圖長度 - 東(W)，第2個表示地圖長度 - 南(H)。
-
-	mapheader_t* _header = reinterpret_cast<mapheader_t*>(pFileMap);
-	if (!_header)
-	{
-		qDebug() << __FUNCTION__ << " Failed to map file.";
-		return false;
-	}
-
-	//獲取地圖寬高
-	qint64 width = _header->width;
-	qint64 height = _header->height;
 
 	if (!CHECKSIZE(width, height))
 	{
@@ -1128,26 +1132,11 @@ bool MapAnalyzer::readFromBinary(qint64 floor, const QString& name, bool enableD
 		return false;
 	}
 
-	map_t map;
 	getMapDataByFloor(floor, &map);
 	map.floor = floor;
 	map.width = width;
 	map.height = height;
 	map.name = name;
-
-	//QHash<qint64, map_t>::iterator it = maps_.begin();
-	//for (auto it = maps_.begin(); it != maps_.end(); ++it)
-	//{
-	//	map_t& m = it.value();
-	//	if (m.floor == floor)
-	//		continue;
-
-	//	qint64 time = m.timer.elapsed();
-	//	if (time >= (5 * 60ll * 60ll) && m.refCount < 20)
-	//	{
-	//		pixMap_.remove(it.key());
-	//	}
-	//}
 
 	if (map.data.size() > 0
 		&& map.data.size() == (height * width)
@@ -1200,22 +1189,30 @@ bool MapAnalyzer::readFromBinary(qint64 floor, const QString& name, bool enableD
 	//隨後W* H * 2字節為地面數據，每2字節為1數據塊，表示地面的地圖編號，以製成基本地形。
 	//再隨後W * H * 2字節為地上物件 / 建築物數據，每2字節為1數據塊，表示該點上的物件 / 建築物地圖編號。
 	//再隨後 W * H * 2 字節為地圖標誌，每 2 字節為 1 數據塊，
-	QFutureSynchronizer<std::vector<unsigned short>> sync;
-#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
-	sync.addFuture(QtConcurrent::run(load, pFileMap, sectionOffset, 0));
-	sync.addFuture(QtConcurrent::run(load, pFileMap, sectionOffset, 1));
-	sync.addFuture(QtConcurrent::run(load, pFileMap, sectionOffset, 2));
-#else
-	sync.addFuture(QtConcurrent::run([this, pFileMap, sectionOffset]() {return load(pFileMap, sectionOffset, 0); }));
-	sync.addFuture(QtConcurrent::run([this, pFileMap, sectionOffset]() {return load(pFileMap, sectionOffset, 1); }));
-	sync.addFuture(QtConcurrent::run([this, pFileMap, sectionOffset]() {return load(pFileMap, sectionOffset, 2); }));
-#endif
 
-	sync.waitForFinished();
-	QList<QFuture<std::vector<unsigned short>>> futures = sync.futures();
-	const std::vector<unsigned short> bGround = futures[0].result();//load(pFileMap, sectionOffset, 0);
-	const std::vector<unsigned short> bObject = futures[1].result();//load(pFileMap, sectionOffset, 1);
-	const std::vector<unsigned short> bLabel = futures[2].result();//load(pFileMap, sectionOffset, 2);
+	QList<QFuture<std::vector<unsigned short>>> futures;
+	{
+		util::ScopedFile file(path);
+		if (file.openRead() && file.mmap(pFileMap, 0, file.size()))
+		{
+			QFutureSynchronizer<std::vector<unsigned short>> sync;
+			sync.addFuture(QtConcurrent::run(load, pFileMap, sectionOffset, 0));
+			sync.addFuture(QtConcurrent::run(load, pFileMap, sectionOffset, 1));
+			sync.addFuture(QtConcurrent::run(load, pFileMap, sectionOffset, 2));
+			sync.waitForFinished();
+			futures = sync.futures();
+		}
+	}
+
+	if (futures.size() != 3)
+	{
+		qDebug() << "map data error" << futures.size();
+		return false;
+	}
+
+	const std::vector<unsigned short> bGround = futures[0].result();
+	const std::vector<unsigned short> bObject = futures[1].result();
+	const std::vector<unsigned short> bLabel = futures[2].result();
 
 	if (bGround.size() != bObject.size() || bGround.size() != bLabel.size())
 	{

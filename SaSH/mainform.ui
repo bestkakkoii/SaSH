@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>290</width>
-    <height>481</height>
+    <width>282</width>
+    <height>490</height>
    </rect>
   </property>
   <property name="minimumSize">
@@ -32,7 +32,7 @@
    <property name="styleSheet">
     <string notr="true"/>
    </property>
-   <layout class="QVBoxLayout" name="verticalLayout_3">
+   <layout class="QVBoxLayout" name="verticalLayout">
     <property name="spacing">
      <number>0</number>
     </property>
@@ -49,11 +49,115 @@
      <number>0</number>
     </property>
     <item>
-     <widget class="QWidget" name="widget" native="true">
-      <layout class="QVBoxLayout" name="verticalLayout_2">
-       <property name="spacing">
-        <number>0</number>
-       </property>
+     <layout class="QGridLayout" name="gridLayout_progressbar">
+      <property name="spacing">
+       <number>0</number>
+      </property>
+      <item row="0" column="0">
+       <layout class="QHBoxLayout" name="horizontalLayout">
+        <property name="spacing">
+         <number>0</number>
+        </property>
+        <item>
+         <widget class="ProgressBar" name="progressBar_pchp">
+          <property name="value">
+           <number>80</number>
+          </property>
+          <property name="textVisible">
+           <bool>true</bool>
+          </property>
+          <property name="invertedAppearance">
+           <bool>false</bool>
+          </property>
+          <property name="format">
+           <string>%p%</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="ProgressBar" name="progressBar_pcmp">
+          <property name="value">
+           <number>80</number>
+          </property>
+          <property name="textVisible">
+           <bool>true</bool>
+          </property>
+          <property name="invertedAppearance">
+           <bool>false</bool>
+          </property>
+          <property name="format">
+           <string>%p%</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </item>
+      <item row="1" column="0">
+       <layout class="QHBoxLayout" name="horizontalLayout_2">
+        <property name="spacing">
+         <number>0</number>
+        </property>
+        <item>
+         <widget class="ProgressBar" name="progressBar_pethp">
+          <property name="value">
+           <number>80</number>
+          </property>
+          <property name="alignment">
+           <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
+          </property>
+          <property name="textVisible">
+           <bool>true</bool>
+          </property>
+          <property name="invertedAppearance">
+           <bool>false</bool>
+          </property>
+          <property name="textDirection">
+           <enum>QProgressBar::TopToBottom</enum>
+          </property>
+          <property name="format">
+           <string>%p%</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="ProgressBar" name="progressBar_ridehp">
+          <property name="value">
+           <number>80</number>
+          </property>
+          <property name="textVisible">
+           <bool>true</bool>
+          </property>
+          <property name="invertedAppearance">
+           <bool>false</bool>
+          </property>
+          <property name="format">
+           <string>%p%</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </item>
+     </layout>
+    </item>
+    <item>
+     <widget class="QTabWidget" name="tabWidget_main">
+      <property name="currentIndex">
+       <number>-1</number>
+      </property>
+      <property name="documentMode">
+       <bool>true</bool>
+      </property>
+      <property name="movable">
+       <bool>true</bool>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="QGroupBox" name="groupBox_basicinfo">
+      <property name="title">
+       <string>basic info</string>
+      </property>
+      <layout class="QGridLayout" name="gridLayout">
        <property name="leftMargin">
         <number>0</number>
        </property>
@@ -66,350 +170,289 @@
        <property name="bottomMargin">
         <number>0</number>
        </property>
-       <item>
-        <layout class="QGridLayout" name="gridLayout_progressbar">
-         <property name="spacing">
-          <number>0</number>
+       <property name="spacing">
+        <number>0</number>
+       </property>
+       <item row="0" column="0">
+        <widget class="QLabel" name="label_status_">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
          </property>
-         <item row="0" column="0">
-          <layout class="QHBoxLayout" name="horizontalLayout">
-           <property name="spacing">
-            <number>0</number>
-           </property>
-           <item>
-            <widget class="ProgressBar" name="progressBar_pchp">
-             <property name="value">
-              <number>80</number>
-             </property>
-             <property name="textVisible">
-              <bool>true</bool>
-             </property>
-             <property name="invertedAppearance">
-              <bool>false</bool>
-             </property>
-             <property name="format">
-              <string>%p%</string>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <widget class="ProgressBar" name="progressBar_pcmp">
-             <property name="value">
-              <number>80</number>
-             </property>
-             <property name="textVisible">
-              <bool>true</bool>
-             </property>
-             <property name="invertedAppearance">
-              <bool>false</bool>
-             </property>
-             <property name="format">
-              <string>%p%</string>
-             </property>
-            </widget>
-           </item>
-          </layout>
-         </item>
-         <item row="1" column="0">
-          <layout class="QHBoxLayout" name="horizontalLayout_2">
-           <property name="spacing">
-            <number>0</number>
-           </property>
-           <item>
-            <widget class="ProgressBar" name="progressBar_pethp">
-             <property name="value">
-              <number>80</number>
-             </property>
-             <property name="alignment">
-              <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
-             </property>
-             <property name="textVisible">
-              <bool>true</bool>
-             </property>
-             <property name="invertedAppearance">
-              <bool>false</bool>
-             </property>
-             <property name="textDirection">
-              <enum>QProgressBar::TopToBottom</enum>
-             </property>
-             <property name="format">
-              <string>%p%</string>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <widget class="ProgressBar" name="progressBar_ridehp">
-             <property name="value">
-              <number>80</number>
-             </property>
-             <property name="textVisible">
-              <bool>true</bool>
-             </property>
-             <property name="invertedAppearance">
-              <bool>false</bool>
-             </property>
-             <property name="format">
-              <string>%p%</string>
-             </property>
-            </widget>
-           </item>
-          </layout>
-         </item>
-        </layout>
-       </item>
-       <item>
-        <widget class="QTabWidget" name="tabWidget_main">
-         <property name="currentIndex">
-          <number>-1</number>
+         <property name="minimumSize">
+          <size>
+           <width>30</width>
+           <height>14</height>
+          </size>
          </property>
-         <property name="documentMode">
-          <bool>true</bool>
+         <property name="maximumSize">
+          <size>
+           <width>30</width>
+           <height>14</height>
+          </size>
          </property>
-         <property name="movable">
-          <bool>true</bool>
+         <property name="text">
+          <string>Status:</string>
          </property>
         </widget>
        </item>
-       <item>
-        <widget class="QGroupBox" name="groupBox_basicinfo">
-         <property name="title">
-          <string>basic info</string>
+       <item row="0" column="1">
+        <widget class="FastLabel" name="label_status" native="true">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
          </property>
-         <layout class="QVBoxLayout" name="verticalLayout">
-          <property name="spacing">
-           <number>0</number>
-          </property>
-          <property name="leftMargin">
-           <number>0</number>
-          </property>
-          <property name="topMargin">
-           <number>0</number>
-          </property>
-          <property name="rightMargin">
-           <number>0</number>
-          </property>
-          <property name="bottomMargin">
-           <number>0</number>
-          </property>
-          <item>
-           <layout class="QHBoxLayout" name="horizontalLayout_9">
-            <property name="spacing">
-             <number>0</number>
-            </property>
-            <item>
-             <layout class="QHBoxLayout" name="horizontalLayout_3">
-              <property name="spacing">
-               <number>0</number>
-              </property>
-              <item>
-               <widget class="QLabel" name="label_status_">
-                <property name="minimumSize">
-                 <size>
-                  <width>30</width>
-                  <height>14</height>
-                 </size>
-                </property>
-                <property name="maximumSize">
-                 <size>
-                  <width>30</width>
-                  <height>14</height>
-                 </size>
-                </property>
-                <property name="text">
-                 <string>Status:</string>
-                </property>
-               </widget>
-              </item>
-              <item>
-               <widget class="FastLabel" name="label_status" native="true">
-                <property name="minimumSize">
-                 <size>
-                  <width>140</width>
-                  <height>14</height>
-                 </size>
-                </property>
-                <property name="maximumSize">
-                 <size>
-                  <width>16777215</width>
-                  <height>14</height>
-                 </size>
-                </property>
-               </widget>
-              </item>
-             </layout>
-            </item>
-            <item>
-             <layout class="QHBoxLayout" name="horizontalLayout_8">
-              <property name="spacing">
-               <number>0</number>
-              </property>
-              <item>
-               <widget class="QLabel" name="label_stone_">
-                <property name="minimumSize">
-                 <size>
-                  <width>30</width>
-                  <height>14</height>
-                 </size>
-                </property>
-                <property name="maximumSize">
-                 <size>
-                  <width>30</width>
-                  <height>14</height>
-                 </size>
-                </property>
-                <property name="text">
-                 <string>Stone:</string>
-                </property>
-               </widget>
-              </item>
-              <item>
-               <widget class="FastLabel" name="label_stone" native="true">
-                <property name="minimumSize">
-                 <size>
-                  <width>0</width>
-                  <height>14</height>
-                 </size>
-                </property>
-                <property name="maximumSize">
-                 <size>
-                  <width>16777215</width>
-                  <height>14</height>
-                 </size>
-                </property>
-               </widget>
-              </item>
-             </layout>
-            </item>
-           </layout>
-          </item>
-          <item>
-           <layout class="QHBoxLayout" name="horizontalLayout_7">
-            <property name="spacing">
-             <number>0</number>
-            </property>
-            <item>
-             <layout class="QHBoxLayout" name="horizontalLayout_4">
-              <property name="spacing">
-               <number>0</number>
-              </property>
-              <item>
-               <widget class="QLabel" name="label_cursor_">
-                <property name="minimumSize">
-                 <size>
-                  <width>50</width>
-                  <height>14</height>
-                 </size>
-                </property>
-                <property name="maximumSize">
-                 <size>
-                  <width>50</width>
-                  <height>14</height>
-                 </size>
-                </property>
-                <property name="text">
-                 <string>Cursor:</string>
-                </property>
-               </widget>
-              </item>
-              <item>
-               <widget class="FastLabel" name="label_cursor" native="true">
-                <property name="minimumSize">
-                 <size>
-                  <width>120</width>
-                  <height>0</height>
-                 </size>
-                </property>
-               </widget>
-              </item>
-             </layout>
-            </item>
-            <item>
-             <layout class="QHBoxLayout" name="horizontalLayout_5">
-              <property name="spacing">
-               <number>0</number>
-              </property>
-              <item>
-               <widget class="QLabel" name="label_coords_">
-                <property name="minimumSize">
-                 <size>
-                  <width>30</width>
-                  <height>14</height>
-                 </size>
-                </property>
-                <property name="maximumSize">
-                 <size>
-                  <width>30</width>
-                  <height>14</height>
-                 </size>
-                </property>
-                <property name="text">
-                 <string>Coords:</string>
-                </property>
-               </widget>
-              </item>
-              <item>
-               <widget class="FastLabel" name="label_coords" native="true">
-                <property name="minimumSize">
-                 <size>
-                  <width>0</width>
-                  <height>14</height>
-                 </size>
-                </property>
-                <property name="maximumSize">
-                 <size>
-                  <width>16777215</width>
-                  <height>14</height>
-                 </size>
-                </property>
-               </widget>
-              </item>
-             </layout>
-            </item>
-           </layout>
-          </item>
-          <item>
-           <layout class="QHBoxLayout" name="horizontalLayout_6">
-            <property name="spacing">
-             <number>0</number>
-            </property>
-            <item>
-             <widget class="QLabel" name="label_map_">
-              <property name="minimumSize">
-               <size>
-                <width>30</width>
-                <height>14</height>
-               </size>
-              </property>
-              <property name="maximumSize">
-               <size>
-                <width>30</width>
-                <height>14</height>
-               </size>
-              </property>
-              <property name="text">
-               <string>Map:</string>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <widget class="FastLabel" name="label_map" native="true">
-              <property name="minimumSize">
-               <size>
-                <width>0</width>
-                <height>14</height>
-               </size>
-              </property>
-              <property name="maximumSize">
-               <size>
-                <width>16777215</width>
-                <height>14</height>
-               </size>
-              </property>
-             </widget>
-            </item>
-           </layout>
-          </item>
-         </layout>
+         <property name="minimumSize">
+          <size>
+           <width>125</width>
+           <height>14</height>
+          </size>
+         </property>
+         <property name="maximumSize">
+          <size>
+           <width>125</width>
+           <height>14</height>
+          </size>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="2">
+        <widget class="QLabel" name="label_stone_">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="minimumSize">
+          <size>
+           <width>30</width>
+           <height>14</height>
+          </size>
+         </property>
+         <property name="maximumSize">
+          <size>
+           <width>30</width>
+           <height>14</height>
+          </size>
+         </property>
+         <property name="text">
+          <string>Stone:</string>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="3">
+        <widget class="FastLabel" name="label_stone" native="true">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="minimumSize">
+          <size>
+           <width>95</width>
+           <height>14</height>
+          </size>
+         </property>
+         <property name="maximumSize">
+          <size>
+           <width>95</width>
+           <height>14</height>
+          </size>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="0">
+        <widget class="QLabel" name="label_cursor_">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="minimumSize">
+          <size>
+           <width>30</width>
+           <height>14</height>
+          </size>
+         </property>
+         <property name="maximumSize">
+          <size>
+           <width>30</width>
+           <height>14</height>
+          </size>
+         </property>
+         <property name="text">
+          <string>Cursor:</string>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="1">
+        <widget class="FastLabel" name="label_cursor" native="true">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="minimumSize">
+          <size>
+           <width>125</width>
+           <height>14</height>
+          </size>
+         </property>
+         <property name="maximumSize">
+          <size>
+           <width>125</width>
+           <height>14</height>
+          </size>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="2">
+        <widget class="QLabel" name="label_coords_">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="minimumSize">
+          <size>
+           <width>30</width>
+           <height>14</height>
+          </size>
+         </property>
+         <property name="maximumSize">
+          <size>
+           <width>30</width>
+           <height>14</height>
+          </size>
+         </property>
+         <property name="text">
+          <string>Coords:</string>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="3">
+        <widget class="FastLabel" name="label_coords" native="true">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="minimumSize">
+          <size>
+           <width>95</width>
+           <height>14</height>
+          </size>
+         </property>
+         <property name="maximumSize">
+          <size>
+           <width>95</width>
+           <height>14</height>
+          </size>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="0">
+        <widget class="QLabel" name="label_map_">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="minimumSize">
+          <size>
+           <width>30</width>
+           <height>14</height>
+          </size>
+         </property>
+         <property name="maximumSize">
+          <size>
+           <width>30</width>
+           <height>14</height>
+          </size>
+         </property>
+         <property name="text">
+          <string>Map:</string>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="1">
+        <widget class="FastLabel" name="label_map" native="true">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="minimumSize">
+          <size>
+           <width>125</width>
+           <height>14</height>
+          </size>
+         </property>
+         <property name="maximumSize">
+          <size>
+           <width>125</width>
+           <height>14</height>
+          </size>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="2">
+        <widget class="QLabel" name="label_time_">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="minimumSize">
+          <size>
+           <width>30</width>
+           <height>14</height>
+          </size>
+         </property>
+         <property name="maximumSize">
+          <size>
+           <width>30</width>
+           <height>14</height>
+          </size>
+         </property>
+         <property name="text">
+          <string>Time:</string>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="3">
+        <widget class="FastLabel" name="label_time" native="true">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="minimumSize">
+          <size>
+           <width>95</width>
+           <height>14</height>
+          </size>
+         </property>
+         <property name="maximumSize">
+          <size>
+           <width>95</width>
+           <height>14</height>
+          </size>
+         </property>
         </widget>
        </item>
       </layout>

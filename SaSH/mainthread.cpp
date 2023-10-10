@@ -267,7 +267,7 @@ void MainObject::mainProc()
 			nodelay = false;
 		}
 		else
-			QThread::msleep(200);
+			QThread::msleep(1);
 
 		//檢查是否接收到停止執行的訊號
 		if (isInterruptionRequested())
@@ -339,6 +339,55 @@ void MainObject::mainProc()
 	}
 }
 
+void MainObject::inGameInitialize()
+{
+	Injector& injector = Injector::getInstance(getIndex());
+	if (injector.server.isNull())
+		return;
+
+	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(getIndex());
+
+	//等待完全進入登入後的遊戲畫面
+	for (qint64 i = 0; i < 50; ++i)
+	{
+		if (isInterruptionRequested())
+			return;
+
+		if (injector.server.isNull())
+			return;
+
+		if (injector.server->getWorldStatus() == 9 && injector.server->getGameStatus() == 3)
+			break;
+
+		QThread::msleep(100);
+	}
+
+	if (!injector.server->getBattleFlag())
+		emit signalDispatcher.updateStatusLabelTextChanged(util::kLabelStatusInNormal);
+
+	QDateTime current = QDateTime::currentDateTime();
+	QDateTime due = current.addYears(99);
+	const QString dueStr(due.toString("yyyy-MM-dd hh:mm:ss"));
+	const QString url("https://www.lovesa.cc");
+	QString currentVerStr;
+	QString newestVerStr;
+
+	if (!Downloader::checkUpdate(&currentVerStr, &newestVerStr, nullptr))
+	{
+		newestVerStr = "nil";
+	}
+
+	//登入後的廣告公告
+	constexpr bool isbeta = true;
+	const QString version = QString("%1.%2.%3")
+		.arg(SASH_VERSION_MAJOR) \
+		.arg(SASH_VERSION_MINOR) \
+		.arg(newestVerStr);
+	injector.server->announce(tr("Welcome to use SaSH，For more information please visit %1").arg(url));
+	injector.server->announce(tr("You are using %1 account, due date is:%2").arg(isbeta ? tr("trial") : tr("subscribed")).arg(dueStr));
+	injector.server->announce(tr("StoneAge SaSH forum url:%1, newest version is %2").arg(url).arg(version));
+}
+
 qint64 MainObject::checkAndRunFunctions()
 {
 	Injector& injector = Injector::getInstance(getIndex());
@@ -402,118 +451,14 @@ qint64 MainObject::checkAndRunFunctions()
 	if (login_run_once_flag_)
 	{
 		login_run_once_flag_ = false;
-		for (qint64 i = 0; i < 50; ++i)
-		{
-			if (isInterruptionRequested())
-				return 0;
 
-			if (injector.server.isNull())
-				return 0;
+		QtConcurrent::run(this, &MainObject::inGameInitialize);
 
-			if (injector.server->getWorldStatus() == 9 && injector.server->getGameStatus() == 3)
-				break;
-
-			QThread::msleep(100);
-		}
-
-		emit signalDispatcher.updateStatusLabelTextChanged(util::kLabelStatusLoginSuccess);
-		emit signalDispatcher.updateMainFormTitle(injector.server->getPC().name);
-
-		//登入後的廣告公告
-		constexpr bool isbeta = true;
-
-		//自動解鎖安全碼
-		QString securityCode = injector.getStringHash(util::kGameSecurityCodeString);
-		if (!securityCode.isEmpty())
-		{
-			injector.server->unlockSecurityCode(securityCode);
-		}
-
-		injector.server->loginTimer.restart();
-
-		injector.server->battle_total_time.store(0, std::memory_order_release);
-
-		PC pc = injector.server->getPC();
-		util::AfkRecorder recorder;
-		recorder.levelrecord = pc.level;
-		recorder.exprecord = pc.exp;
-		recorder.goldearn = 0;
-		recorder.deadthcount = 0;
-		injector.server->recorder[0] = recorder;
-
-		for (qint64 i = 0; i < MAX_PET; ++i)
-		{
-			PET pet = injector.server->getPet(i);
-			recorder = {};
-			recorder.levelrecord = pet.level;
-			recorder.exprecord = pet.exp;
-			recorder.deadthcount = 0;
-			injector.server->recorder[i + 1] = recorder;
-		}
-
-		const QString fileName(qgetenv("JSON_PATH"));
-		QStringList list;
-
-		{
-			util::Config config(fileName);
-			list = config.readArray<QString>("System", "Server", QString("List_%1").arg(injector.currentServerListIndex));
-		}
-
-		QStringList serverNameList;
-		QStringList subServerNameList;
-		for (const QString& it : list)
-		{
-			QStringList subList = it.split(util::rexOR, Qt::SkipEmptyParts);
-			if (subList.isEmpty())
-				continue;
-
-			if (subList.size() != 2)
-				continue;
-
-			QString server = subList.takeFirst();
-
-			subList = subList.first().split(util::rexComma, Qt::SkipEmptyParts);
-			if (subList.isEmpty())
-				continue;
-
-			serverNameList.append(server);
-			subServerNameList.append(subList);
-		}
-
-		injector.serverNameList = serverNameList;
-		injector.subServerNameList = subServerNameList;
-
-		emit signalDispatcher.updateNpcList(injector.server->getFloor());
-		emit signalDispatcher.applyHashSettingsToUI();
-
-		injector.server->updateComboBoxList();
-		injector.server->EO();
-		mem::write<int>(injector.getProcess(), injector.getProcessModule() + 0x4200000, 0);
-		mem::freeUnuseMemory(injector.getProcess());
 		if (isFirstLogin_)
 			isFirstLogin_ = false;
-
-		QDateTime current = QDateTime::currentDateTime();
-		QDateTime due = current.addYears(99);
-		const QString dueStr(due.toString("yyyy-MM-dd hh:mm:ss"));
-		const QString url("https://www.lovesa.cc");
-		QString currentVerStr;
-		QString newestVerStr;
-
-		if (!Downloader::checkUpdate(&currentVerStr, &newestVerStr, nullptr))
-		{
-			newestVerStr = "nil";
-		}
-
-		const QString version = QString("%1.%2.%3")
-			.arg(SASH_VERSION_MAJOR) \
-			.arg(SASH_VERSION_MINOR) \
-			.arg(newestVerStr);
-		injector.server->announce(tr("Welcome to use SaSH，For more information please visit %1").arg(url));
-		injector.server->announce(tr("You are using %1 account, due date is:%2").arg(isbeta ? tr("trial") : tr("subscribed")).arg(dueStr));
-		injector.server->announce(tr("StoneAge SaSH forum url:%1, newest version is %2").arg(url).arg(version));
-		//return 2;
 	}
+
+	emit signalDispatcher.updateLoginTimeLabelTextChanged(util::formatMilliseconds(injector.server->loginTimer.elapsed(), true));
 
 	//更新掛機資訊
 	updateAfkInfos();
@@ -527,6 +472,21 @@ qint64 MainObject::checkAndRunFunctions()
 	//走路遇敵 或 快速遇敵 (封包)
 	checkAutoWalk();
 
+	//自動組隊、跟隨
+	checkAutoJoin();
+
+	//自動疊加
+	checkAutoSortItem();
+
+	//自動補血、氣
+	checkAutoHeal();
+
+	//自動丟寵
+	checkAutoDropPet();
+
+	//紀錄NPC
+	checkRecordableNpcInfo();
+
 	//平時
 	if (!injector.server->getBattleFlag())
 	{
@@ -534,38 +494,16 @@ qint64 MainObject::checkAndRunFunctions()
 		if (!battle_run_once_flag_)
 		{
 			battle_run_once_flag_ = true;
-			emit signalDispatcher.updateStatusLabelTextChanged(util::kLabelStatusInNormal);
 		}
 
 		//檢查開關 (隊伍、交易、名片...等等)
 		checkEtcFlag();
 
-		//自動組隊、跟隨
-		checkAutoJoin();
-
-		//自動補血、氣
-		checkAutoHeal();
-
-		//自動丟寵
-		checkAutoDropPet();
-
 		//檢查自動丟棄道具
 		checkAutoDropItems();
 
-		//自動丟/吃肉
-		checkAutoDropMeat();
-
 		//檢查自動吃道具
 		checkAutoEatBoostExpItem();
-
-		//自動疊加
-		checkAutoSortItem();
-
-		//自動加點
-		checkAutoAbility();
-
-		//紀錄NPC
-		checkRecordableNpcInfo();
 
 		return 2;
 	}
@@ -575,18 +513,13 @@ qint64 MainObject::checkAndRunFunctions()
 		if (battle_run_once_flag_)
 		{
 			battle_run_once_flag_ = false;
-			emit signalDispatcher.updateStatusLabelTextChanged(util::kLabelStatusInBattle);
 		}
 
 		//異步處理戰鬥時間刷新
 		if (!battleTime_future_.isRunning())
 		{
 			battleTime_future_cancel_flag_.store(false, std::memory_order_release);
-#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
 			battleTime_future_ = QtConcurrent::run(this, &MainObject::battleTimeThread);
-#else
-			battleTime_future_ = QtConcurrent::run([this]() { battleTimeThread(); });
-#endif
 		}
 
 		return 3;
@@ -677,7 +610,7 @@ void MainObject::battleTimeThread()
 			break;
 
 		injector.server->updateBattleTimeInfo();
-		QThread::msleep(50);
+		QThread::msleep(1);
 	}
 	battleTime_future_cancel_flag_.store(false, std::memory_order_release);
 }
@@ -986,7 +919,7 @@ void MainObject::checkAutoSortItem()
 		autosortitem_future_ = QtConcurrent::run([&injector, this]()
 			{
 				qint64	i = 0;
-				constexpr qint64 duration = 3;
+				constexpr qint64 duration = 30;
 
 				for (;;)
 				{
@@ -1001,7 +934,7 @@ void MainObject::checkAutoSortItem()
 						if (autosortitem_future_cancel_flag_.load(std::memory_order_acquire))
 							return;
 
-						QThread::msleep(1000);
+						QThread::msleep(100);
 					}
 
 					injector.server->sortItem();
@@ -1045,15 +978,21 @@ void MainObject::checkAutoWalk()
 				{
 					//如果主線程關閉則自動退出
 					if (isInterruptionRequested())
-						break;
+						return;
 
 					//如果停止標誌為真則自動退出
 					if (autowalk_future_cancel_flag_.load(std::memory_order_acquire))
-						break;
+						return;
+
+					//取設置
+					bool enableAutoWalk = injector.getEnableHash(util::kAutoWalkEnable);//走路遇敵開關
+					bool enableFastAutoWalk = injector.getEnableHash(util::kFastAutoWalkEnable);//快速遇敵開關
+					if (!enableAutoWalk && !enableFastAutoWalk)
+						return;
 
 					//如果人物不在線上則自動退出
 					if (!injector.server->getOnlineFlag())
-						break;
+						return;
 
 					//如果人物在戰鬥中則進入循環等待
 					if (injector.server->getBattleFlag())
@@ -1076,9 +1015,6 @@ void MainObject::checkAutoWalk()
 							continue;
 					}
 
-					//取設置
-					bool enableAutoWalk = injector.getEnableHash(util::kAutoWalkEnable);//走路遇敵開關
-					bool enableFastAutoWalk = injector.getEnableHash(util::kFastAutoWalkEnable);//快速遇敵開關
 					qint64 walk_speed = injector.getValueHash(util::kAutoWalkDelayValue);//走路速度
 
 					//走路遇敵
@@ -1145,237 +1081,6 @@ void MainObject::checkAutoWalk()
 			autowalk_future_.waitForFinished();
 		}
 	}
-}
-
-//自動加點
-void MainObject::checkAutoAbility()
-{
-	Injector& injector = Injector::getInstance(getIndex());
-	auto checkEnable = [this, &injector]()->bool
-	{
-		if (isInterruptionRequested())
-			return false;
-
-		if (!injector.getEnableHash(util::kAutoAbilityEnable))
-			return false;
-
-		if (injector.server.isNull())
-			return false;
-
-		if (!injector.server->getOnlineFlag())
-			return false;
-
-		if (injector.server->getBattleFlag())
-			return false;
-
-		return true;
-	};
-
-	if (!checkEnable())
-		return;
-
-	QString strAbility = injector.getStringHash(util::kAutoAbilityString);
-	if (strAbility.isEmpty())
-		return;
-
-	QStringList abilityList = strAbility.split(util::rexOR, Qt::SkipEmptyParts);
-	if (abilityList.isEmpty())
-		return;
-
-	static const QHash<QString, qint64> abilityNameHash = {
-		{ "vit", 0 },
-		{ "str", 1 },
-		{ "tgh", 2 },
-		{ "dex", 3 },
-
-		{ "體", 0 },
-		{ "腕", 1 },
-		{ "耐", 2 },
-		{ "速", 3 },
-
-		{ "体", 0 },
-		{ "腕", 1 },
-		{ "耐", 2 },
-		{ "速", 3 },
-	};
-
-	for (const QString& ability : abilityList)
-	{
-		if (!checkEnable())
-			return;
-
-		if (ability.isEmpty())
-			continue;
-
-		QStringList abilityInfo = ability.split(util::rexComma, Qt::SkipEmptyParts);
-		if (abilityInfo.isEmpty())
-			continue;
-
-		if (abilityInfo.size() != 2)
-			continue;
-
-		QString abilityName = abilityInfo.at(0);
-		QString abilityValue = abilityInfo.at(1);
-
-		if (abilityName.isEmpty() || abilityValue.isEmpty())
-			continue;
-
-		if (!abilityNameHash.contains(abilityName))
-			continue;
-
-		qint64 value = abilityValue.toInt();
-		if (value <= 0)
-			continue;
-
-		qint64 abilityIndex = abilityNameHash.value(abilityName, -1);
-		if (abilityIndex == -1)
-			continue;
-
-		PC pc = injector.server->getPC();
-		QVector<qint64> ability = { pc.vit, pc.str, pc.tgh, pc.dex };
-		qint64 abilityPoint = ability.value(abilityIndex, -1);
-		if (abilityPoint == -1)
-			continue;
-
-		if (abilityPoint >= value)
-			continue;
-
-		qint64 abilityPointLeft = pc.point;
-		if (abilityPointLeft <= 0)
-			continue;
-
-		qint64 abilityPointNeed = value - abilityPoint;
-		if (abilityPointNeed > abilityPointLeft)
-			abilityPointNeed = abilityPointLeft;
-
-		injector.server->addPoint(abilityIndex, abilityPointNeed);
-	}
-}
-
-//自動丟棄道具
-void MainObject::checkAutoDropItems()
-{
-	Injector& injector = Injector::getInstance(getIndex());
-	auto checkEnable = [this, &injector]()->bool
-	{
-		if (isInterruptionRequested())
-			return false;
-
-		if (!injector.getEnableHash(util::kAutoDropEnable))
-			return false;
-
-		if (injector.server.isNull())
-			return false;
-
-		if (!injector.server->getOnlineFlag())
-			return false;
-
-		if (injector.server->getBattleFlag())
-			return false;
-
-		return true;
-	};
-
-	if (!checkEnable())
-		return;
-
-	QString strDropItems = injector.getStringHash(util::kAutoDropItemString);
-	if (strDropItems.isEmpty())
-		return;
-
-	QStringList dropItems = strDropItems.split(util::rexOR, Qt::SkipEmptyParts);
-	if (dropItems.isEmpty())
-		return;
-
-	QHash<qint64, ITEM> items = injector.server->getItems();
-	for (qint64 i = 0; i < MAX_ITEM; ++i)
-	{
-		ITEM item = items.value(i);
-		if (item.name.isEmpty())
-			continue;
-
-		for (const QString& cmpItem : dropItems)
-		{
-			if (!checkEnable())
-				return;
-
-			if (cmpItem.isEmpty())
-				continue;
-
-			if (cmpItem.startsWith("?"))//如果丟棄列表名稱前面有?則表示要模糊匹配
-			{
-				QString newCmpItem = cmpItem.mid(1);//去除問號
-				if (item.name.contains(newCmpItem))
-				{
-					injector.server->dropItem(i);
-					continue;
-				}
-			}
-			else if ((item.name == cmpItem))//精確匹配
-			{
-				injector.server->dropItem(i);
-			}
-		}
-	}
-	injector.server->refreshItemInfo();
-}
-
-//檢查並自動吃肉、或丟肉
-void MainObject::checkAutoDropMeat()
-{
-	Injector& injector = Injector::getInstance(getIndex());
-	auto checkEnable = [this, &injector]()->bool
-	{
-		if (isInterruptionRequested())
-			return false;
-
-		if (!injector.getEnableHash(util::kAutoDropMeatEnable))
-			return false;
-
-		if (injector.server.isNull())
-			return false;
-
-		if (!injector.server->getOnlineFlag())
-			return false;
-
-		if (injector.server->getBattleFlag())
-			return false;
-
-		return true;
-	};
-
-	if (!checkEnable())
-		return;
-
-	bool bret = false;
-	constexpr const char* meat = "肉";
-	constexpr const char* memo = "耐久力";
-
-	QHash<qint64, ITEM> items = injector.server->getItems();
-
-	for (auto it = items.constBegin(); it != items.constEnd(); ++it)
-	{
-		if (!checkEnable())
-			return;
-
-		qint64 key = it.key();
-		ITEM item = it.value();
-
-		if (!item.valid)
-			continue;
-
-		QString newItemNmae = item.name.simplified();
-		QString newItemMemo = item.memo.simplified();
-		if (newItemNmae.contains(meat) && (newItemNmae != QString("味道爽口的肉湯")) && (newItemNmae != QString("味道爽口的肉汤")))
-		{
-			if (!newItemMemo.contains(memo))
-				injector.server->dropItem(key);//不可補且非肉湯肉丟棄
-			else
-				injector.server->useItem(key, injector.server->findInjuriedAllie());//優先餵給非滿血
-		}
-	}
-
-	injector.server->refreshItemInfo();
 }
 
 //自動組隊
@@ -1658,7 +1363,7 @@ void MainObject::checkAutoHeal()
 						break;
 
 					injector.server->useItem(itemIndex, 0);
-					QThread::msleep(200);
+					QThread::msleep(300);
 				}
 
 				//平時道具補血
@@ -1735,7 +1440,7 @@ void MainObject::checkAutoHeal()
 						break;
 
 					injector.server->useItem(itemIndex, target);
-					QThread::msleep(200);
+					QThread::msleep(300);
 				}
 
 				//平時精靈補血
@@ -1797,7 +1502,7 @@ void MainObject::checkAutoHeal()
 					}
 
 					injector.server->useMagic(magicIndex, target);
-					QThread::msleep(100);
+					QThread::msleep(300);
 				}
 			}
 		);
@@ -1812,7 +1517,6 @@ void MainObject::checkAutoHeal()
 			autoheal_future_.waitForFinished();
 		}
 	}
-
 }
 
 //自動丟寵
@@ -1951,165 +1655,72 @@ void MainObject::checkAutoDropPet()
 	}
 }
 
-//自動鎖寵排程
-void MainObject::checkAutoLockSchedule()
+//自動丟棄道具
+void MainObject::checkAutoDropItems()
 {
 	Injector& injector = Injector::getInstance(getIndex());
-	if (injector.server.isNull())
-		return;
-
-	auto checkSchedule = [this](util::UserSetting set)->bool
+	auto checkEnable = [this, &injector]()->bool
 	{
-		static const QHash <QString, PetState> hashType = {
-			{ "戰", kBattle },
-			{ "騎", kRide },
+		if (isInterruptionRequested())
+			return false;
 
-			{ "战", kBattle },
-			{ "骑", kRide },
+		if (!injector.getEnableHash(util::kAutoDropEnable))
+			return false;
 
-			{ "B", kBattle },
-			{ "R", kRide },
-		};
+		if (injector.server.isNull())
+			return false;
 
-		Injector& injector = Injector::getInstance(getIndex());
-		QString lockPetSchedule = injector.getStringHash(set);
-		qint64 rindex = -1;
-		qint64 bindex = -1;
-		do
-		{
-			if (lockPetSchedule.isEmpty())
-				break;
+		if (!injector.server->getOnlineFlag())
+			return false;
 
-			const QStringList scheduleList = lockPetSchedule.split(util::rexOR, Qt::SkipEmptyParts);
-			if (scheduleList.isEmpty())
-				break;
+		if (injector.server->getBattleFlag())
+			return false;
 
-			for (const QString& schedule : scheduleList)
-			{
-				if (schedule.isEmpty())
-					continue;
-
-				const QStringList schedules = schedule.split(util::rexSemicolon, Qt::SkipEmptyParts);
-				if (schedules.isEmpty())
-					continue;
-
-				for (const QString& it : schedules)
-				{
-					const QStringList args = it.split(util::rexComma, Qt::SkipEmptyParts);
-					if (args.isEmpty() || args.size() != 3)
-						continue;
-
-					QString name = args.value(0).simplified();
-					if (name.isEmpty())
-						continue;
-
-					QString nameStr = name.left(1);
-					qint64 petIndex = -1;
-					bool ok = false;
-					petIndex = nameStr.toLongLong(&ok);
-					if (!ok)
-						continue;
-					--petIndex;
-
-					if (petIndex < 0 || petIndex >= MAX_PET)
-						continue;
-
-					QString levelStr = args.value(1).simplified();
-					if (levelStr.isEmpty())
-						continue;
-
-					ok = false;
-					qint64 level = levelStr.toLongLong(&ok);
-					if (!ok)
-						continue;
-
-					if (level < 0 || level > 255)
-						continue;
-
-					QString typeStr = args.value(2).simplified();
-					if (typeStr.isEmpty())
-						continue;
-
-					PetState type = hashType.value(typeStr, kRest);
-
-					PET pet = injector.server->getPet(petIndex);
-
-					if (pet.level >= level)
-						continue;
-
-					if (type == kBattle)
-					{
-						if (bindex != -1)
-							continue;
-
-						if (rindex != -1 && rindex == petIndex)
-							continue;
-
-						bindex = petIndex;
-					}
-					else if (type == kRide)
-					{
-						if (rindex != -1)
-							continue;
-
-						if (bindex != -1 && bindex == petIndex)
-						{
-							bindex = -1;
-						}
-
-						rindex = petIndex;
-					}
-
-					if (rindex != -1 && bindex != -1)
-						break;
-				}
-
-				if (rindex != -1 || bindex != -1)
-					break;
-			}
-		} while (false);
-
-		if (rindex != -1)
-		{
-			PET pet = injector.server->getPet(rindex);
-			if (pet.hp <= 1)
-			{
-				injector.server->setPetState(rindex, kRest);
-				QThread::msleep(100);
-			}
-
-			if (pet.state != kRide)
-				injector.server->setPetState(rindex, kRide);
-		}
-
-		if (bindex != -1)
-		{
-			PET pet = injector.server->getPet(bindex);
-			if (pet.hp <= 1)
-			{
-				injector.server->setPetState(bindex, kRest);
-				QThread::msleep(100);
-			}
-
-			if (pet.state != kBattle)
-				injector.server->setPetState(bindex, kBattle);
-		}
-
-		for (qint64 i = 0; i < MAX_PET; ++i)
-		{
-			if (bindex == i || rindex == i)
-				continue;
-
-			PET pet = injector.server->getPet(i);
-			if ((pet.state != kRest && pet.state != kStandby) && set == util::kLockPetScheduleString)
-				injector.server->setPetState(i, kRest);
-		}
-		return false;
+		return true;
 	};
 
-	if (injector.getEnableHash(util::kLockPetScheduleEnable) && !injector.getEnableHash(util::kLockPetEnable) && !injector.getEnableHash(util::kLockRideEnable))
-		checkSchedule(util::kLockPetScheduleString);
+	if (!checkEnable())
+		return;
 
+	QString strDropItems = injector.getStringHash(util::kAutoDropItemString);
+	if (strDropItems.isEmpty())
+		return;
+
+	QStringList dropItems = strDropItems.split(util::rexOR, Qt::SkipEmptyParts);
+	if (dropItems.isEmpty())
+		return;
+
+	QHash<qint64, ITEM> items = injector.server->getItems();
+	for (qint64 i = 0; i < MAX_ITEM; ++i)
+	{
+		ITEM item = items.value(i);
+		if (item.name.isEmpty())
+			continue;
+
+		for (const QString& cmpItem : dropItems)
+		{
+			if (!checkEnable())
+				return;
+
+			if (cmpItem.isEmpty())
+				continue;
+
+			if (cmpItem.startsWith("?"))//如果丟棄列表名稱前面有?則表示要模糊匹配
+			{
+				QString newCmpItem = cmpItem.mid(1);//去除問號
+				if (item.name.contains(newCmpItem))
+				{
+					injector.server->dropItem(i);
+					continue;
+				}
+			}
+			else if ((item.name == cmpItem))//精確匹配
+			{
+				injector.server->dropItem(i);
+			}
+		}
+	}
+	injector.server->refreshItemInfo();
 }
 
 //自動吃經驗加乘道具
@@ -2339,3 +1950,166 @@ void MainObject::checkRecordableNpcInfo()
 		}
 	);
 }
+
+#if 0
+//自動鎖寵排程
+void MainObject::checkAutoLockSchedule()
+{
+	Injector& injector = Injector::getInstance(getIndex());
+	if (injector.server.isNull())
+		return;
+
+	auto checkSchedule = [this](util::UserSetting set)->bool
+	{
+		static const QHash <QString, PetState> hashType = {
+			{ "戰", kBattle },
+			{ "騎", kRide },
+
+			{ "战", kBattle },
+			{ "骑", kRide },
+
+			{ "B", kBattle },
+			{ "R", kRide },
+		};
+
+		Injector& injector = Injector::getInstance(getIndex());
+		QString lockPetSchedule = injector.getStringHash(set);
+		qint64 rindex = -1;
+		qint64 bindex = -1;
+		do
+		{
+			if (lockPetSchedule.isEmpty())
+				break;
+
+			const QStringList scheduleList = lockPetSchedule.split(util::rexOR, Qt::SkipEmptyParts);
+			if (scheduleList.isEmpty())
+				break;
+
+			for (const QString& schedule : scheduleList)
+			{
+				if (schedule.isEmpty())
+					continue;
+
+				const QStringList schedules = schedule.split(util::rexSemicolon, Qt::SkipEmptyParts);
+				if (schedules.isEmpty())
+					continue;
+
+				for (const QString& it : schedules)
+				{
+					const QStringList args = it.split(util::rexComma, Qt::SkipEmptyParts);
+					if (args.isEmpty() || args.size() != 3)
+						continue;
+
+					QString name = args.value(0).simplified();
+					if (name.isEmpty())
+						continue;
+
+					QString nameStr = name.left(1);
+					qint64 petIndex = -1;
+					bool ok = false;
+					petIndex = nameStr.toLongLong(&ok);
+					if (!ok)
+						continue;
+					--petIndex;
+
+					if (petIndex < 0 || petIndex >= MAX_PET)
+						continue;
+
+					QString levelStr = args.value(1).simplified();
+					if (levelStr.isEmpty())
+						continue;
+
+					ok = false;
+					qint64 level = levelStr.toLongLong(&ok);
+					if (!ok)
+						continue;
+
+					if (level < 0 || level > 255)
+						continue;
+
+					QString typeStr = args.value(2).simplified();
+					if (typeStr.isEmpty())
+						continue;
+
+					PetState type = hashType.value(typeStr, kRest);
+
+					PET pet = injector.server->getPet(petIndex);
+
+					if (pet.level >= level)
+						continue;
+
+					if (type == kBattle)
+					{
+						if (bindex != -1)
+							continue;
+
+						if (rindex != -1 && rindex == petIndex)
+							continue;
+
+						bindex = petIndex;
+					}
+					else if (type == kRide)
+					{
+						if (rindex != -1)
+							continue;
+
+						if (bindex != -1 && bindex == petIndex)
+						{
+							bindex = -1;
+						}
+
+						rindex = petIndex;
+					}
+
+					if (rindex != -1 && bindex != -1)
+						break;
+				}
+
+				if (rindex != -1 || bindex != -1)
+					break;
+			}
+		} while (false);
+
+		if (rindex != -1)
+		{
+			PET pet = injector.server->getPet(rindex);
+			if (pet.hp <= 1)
+			{
+				injector.server->setPetState(rindex, kRest);
+				QThread::msleep(100);
+			}
+
+			if (pet.state != kRide)
+				injector.server->setPetState(rindex, kRide);
+		}
+
+		if (bindex != -1)
+		{
+			PET pet = injector.server->getPet(bindex);
+			if (pet.hp <= 1)
+			{
+				injector.server->setPetState(bindex, kRest);
+				QThread::msleep(100);
+			}
+
+			if (pet.state != kBattle)
+				injector.server->setPetState(bindex, kBattle);
+		}
+
+		for (qint64 i = 0; i < MAX_PET; ++i)
+		{
+			if (bindex == i || rindex == i)
+				continue;
+
+			PET pet = injector.server->getPet(i);
+			if ((pet.state != kRest && pet.state != kStandby) && set == util::kLockPetScheduleString)
+				injector.server->setPetState(i, kRest);
+		}
+		return false;
+	};
+
+	if (injector.getEnableHash(util::kLockPetScheduleEnable) && !injector.getEnableHash(util::kLockPetEnable) && !injector.getEnableHash(util::kLockRideEnable))
+		checkSchedule(util::kLockPetScheduleString);
+
+}
+#endif

@@ -976,6 +976,7 @@ enum PetState
 
 enum BUTTON_TYPE
 {
+	BUTTON_CLOSE = -1,
 	BUTTON_NOTUSED = 0,
 	BUTTON_OK = 1LL << 0,	   //確定
 	BUTTON_CANCEL = 1LL << 1, //取消
@@ -1044,7 +1045,7 @@ enum TalkMode
 #pragma endregion
 
 #pragma region Structs
-#pragma pack(8)
+#pragma pack(4)
 #if 0
 typedef struct action
 {

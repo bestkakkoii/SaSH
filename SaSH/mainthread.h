@@ -39,6 +39,8 @@ public slots:
 	void run();
 
 private:
+	void inGameInitialize();
+
 	void mainProc();
 
 	void updateAfkInfos();
@@ -52,15 +54,15 @@ private:
 	void checkAutoSortItem();
 	void checkAutoWalk();
 	void checkAutoDropItems();
-	void checkAutoDropMeat();
+	//void checkAutoDropMeat();
 	void checkAutoJoin();
 	void checkAutoHeal();
 	void checkAutoDropPet();
 	//void checkAutoLockPet();
-	void checkAutoLockSchedule();
+	//void checkAutoLockSchedule();
 	void checkAutoEatBoostExpItem();
 	void checkRecordableNpcInfo();
-	void checkAutoAbility();
+	//void checkAutoAbility();
 private:
 	void battleTimeThread();
 

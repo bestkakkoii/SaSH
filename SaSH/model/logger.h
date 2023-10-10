@@ -18,7 +18,6 @@ public:
 	explicit Logger(qint64 index, QObject* parent = nullptr)
 		: QObject(parent)
 		, Indexer(index)
-		, stream_(&file_)
 	{
 		qRegisterMetaType <QContiguousCache<QString>>("QContiguousCache<QString>");
 		moveToThread(&workerThread_);
@@ -131,8 +130,9 @@ private slots:
 			return;
 		QString text = logText;
 		format(text);
-		stream_ << text << Qt::endl;
-		stream_.flush();
+		QByteArray data = text.toUtf8();
+		data.append("\n");
+		file_.write(data);
 	}
 
 private:
@@ -158,16 +158,11 @@ private:
 		fileName = logDir.absoluteFilePath(fileName);
 
 		file_.setFileName(fileName);
-		QFile file(fileName);
-		if (file.exists())
-		{
-			stream_.setGenerateByteOrderMark(false);
-		}
 
-		if (file_.open(QFile::WriteOnly | QFile::Text | QFile::Append))
+		if (file_.openWriteAppend())
 		{
-			stream_ << QString("========== [info] [index:%1] [datetime:%2] ==========\n").arg(getIndex()).arg(QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss"));
-			stream_.flush();
+			QString text = QString("========== [info] [index:%1] [datetime:%2] ==========\n").arg(getIndex()).arg(QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss"));
+			file_.write(text.toUtf8());
 			isInitialized_.store(true, std::memory_order_release);
 			return true;
 		}
@@ -227,8 +222,7 @@ private:
 private:
 	mutable QMutex mutex_;
 	std::atomic<bool> isInitialized_;
-	QFile file_;
-	util::TextStream stream_;
+	util::ScopedFile file_;
 	qint64 bufferSize_ = 1024;
 	QThread workerThread_;
 	QString logFormat_;

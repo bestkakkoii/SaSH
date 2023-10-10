@@ -110,12 +110,6 @@ void Injector::reset(qint64 index)//static
 
 Injector::CreateProcessResult Injector::createProcess(Injector::process_information_t& pi)
 {
-	const QString fileName(qgetenv("JSON_PATH"));
-	if (fileName.isEmpty())
-		return CreateProcessResult::CreateFail;
-
-	util::Config config(fileName);
-
 	QString path = currentGameExePath;
 	if (path.isEmpty() || !QFile::exists(path))
 	{
@@ -131,6 +125,8 @@ Injector::CreateProcessResult Injector::createProcess(Injector::process_informat
 	qint64 nEncode = 0;
 
 	bool canSave = false;
+
+	util::Config config;
 	qint64 tmp = config.read<qint64>("System", "Command", "realbin");
 	if (tmp)
 		nRealBin = tmp;
@@ -335,10 +331,10 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 		timer.restart();
 		if (nullptr == pi.hWnd)
 		{
+			QThread::msleep(2000);
 			//查找窗口句炳
 			for (;;)
 			{
-				QThread::msleep(2000);
 				::EnumWindows(EnumWindowsCallback, reinterpret_cast<LPARAM>(&pi));
 				if (pi.hWnd != nullptr)
 				{
@@ -365,8 +361,6 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 
 		qDebug() << "HWND OK, cost:" << timer.elapsed() << "ms";
 
-		QThread::msleep(2000);
-
 		//紀錄線程ID(目前沒有使用到只是先記錄著)
 		pi.dwThreadId = ::GetWindowThreadProcessId(pi.hWnd, nullptr);
 
@@ -380,6 +374,17 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 
 		if (!processHandle_.isValid())
 			processHandle_.reset(pi.dwProcessId);
+
+		timer.restart();
+		for (;;)
+		{
+			if (static_cast<qint64>(mem::read<int>(processHandle_, 0x400000LL + kOffsetWorldStatus)) == 1
+				&& static_cast<qint64>(mem::read<int>(processHandle_, 0x400000LL + kOffsetGameStatus)) == 2)
+				break;
+
+			if (timer.hasExpired(MAX_TIMEOUT))
+				break;
+		}
 
 		timer.restart();
 		QOperatingSystemVersion version = QOperatingSystemVersion::current();
@@ -467,7 +472,7 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 				break;
 			}
 
-			QThread::msleep(100);
+			QThread::msleep(10);
 		}
 
 		if (dwResult == 0)

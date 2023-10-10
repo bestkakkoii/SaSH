@@ -208,7 +208,6 @@ Server::Server(qint64 index, QObject* parent)
 	: ThreadPlugin(index, parent)
 	, Lssproto(&Injector::getInstance(index).autil)
 	, chatQueue(MAX_CHAT_HISTORY)
-	, pointMutex_(QReadWriteLock::Recursive)
 	, petInfoLock_(QReadWriteLock::Recursive)
 	, petSkillInfoLock_(QReadWriteLock::Recursive)
 	, charInfoLock_(QReadWriteLock::Recursive)
@@ -292,7 +291,7 @@ void Server::clear()
 
 	nowFloor_ = 0;
 	nowFloorName_ = QString();
-	QPoint nowPoint_ = QPoint();
+	nowPoint_ = QPoint();
 
 	currentBankPetList = QPair<qint64, QVector<bankpet_t>>{};
 	currentBankItemList.clear();
@@ -414,9 +413,9 @@ void Server::onClientReadyRead()
 	if (badata.isEmpty())
 		return;
 
-	QtConcurrent::run(this, &Server::handleData, badata);
+	//QtConcurrent::run(this, &Server::handleData, badata);
 	//QMetaObject::invokeMethod(this, "handleData", Qt::QueuedConnection, Q_ARG(QByteArray, badata));
-	//handleData(badata);
+	handleData(badata);
 }
 
 //異步發送數據
@@ -616,6 +615,7 @@ qint64 Server::dispatchMessage(const QByteArray& encoded)
 		QByteArray net_data(NETDATASIZE, '\0');
 		if (!injector.autil.util_Receive(net_data.data()))
 			return BC_INVALID;
+
 
 		//qDebug() << "LSSPROTO_RD_RECV" << util::toUnicode(data.data());
 		lssproto_RD_recv(net_data.data());
@@ -1851,7 +1851,6 @@ qint64 Server::getDir()
 
 QPoint Server::getPoint()
 {
-	QReadLocker locker(&pointMutex_);
 	qint64 currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
 	qint64 hModule = injector.getProcessModule();
@@ -1879,7 +1878,6 @@ QPoint Server::getPoint()
 
 qint64 Server::getFloor()
 {
-	QReadLocker locker(&pointMutex_);
 	qint64 currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
 	qint64 hModule = injector.getProcessModule();
@@ -1904,7 +1902,6 @@ qint64 Server::getFloor()
 
 QString Server::getFloorName()
 {
-	QReadLocker locker(&pointMutex_);
 	qint64 currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
 	qint64 hModule = injector.getProcessModule();
@@ -1927,11 +1924,6 @@ QString Server::getFloorName()
 	}
 
 	return mapname;
-}
-
-void Server::setFloorName(const QString& floorName)
-{
-	nowFloorName_ = floorName;
 }
 
 //檢查指定任務狀態，並同步等待封包返回
@@ -2460,7 +2452,7 @@ void Server::updateBattleTimeInfo()
 	{
 		timeLabelContents = battle_time_text;
 		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(getIndex());
-		emit signalDispatcher.updateTimeLabelContents(battle_time_text);
+		emit signalDispatcher.updateBattleTimeLabelTextChanged(battle_time_text);
 	}
 }
 
@@ -2570,7 +2562,6 @@ void Server::setWindowTitle()
 
 void Server::setPoint(const QPoint& point)
 {
-	QWriteLocker locker(&pointMutex_);
 	qint64 currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
 	qint64 hModule = injector.getProcessModule();
@@ -2952,8 +2943,7 @@ bool Server::login(qint64 s)
 	QString account = injector.getStringHash(util::kGameAccountString);
 	QString password = injector.getStringHash(util::kGamePasswordString);
 
-	const QString fileName(qgetenv("JSON_PATH"));
-	util::Config config(fileName);
+	util::Config config;
 	QElapsedTimer timer; timer.start();
 
 
@@ -2990,21 +2980,21 @@ bool Server::login(qint64 s)
 			mem::writeString(hProcess, hModule + kOffsetPassword, password);
 
 #ifndef USE_MOUSE
-		std::string saccount = util::fromUnicode(account);
-		std::string spassword = util::fromUnicode(password);
+		//std::string saccount = util::fromUnicode(account);
+		//std::string spassword = util::fromUnicode(password);
 
-		//sa_8001.exe+2086A - 09 09                 - or [ecx],ecx
-		char userAccount[32] = {};
-		char userPassword[32] = {};
-		_snprintf_s(userAccount, sizeof(userAccount), _TRUNCATE, "%s", saccount.c_str());
-		sacrypt::ecb_crypt("f;encor1c", userAccount, sizeof(userAccount), sacrypt::DES_ENCRYPT);
-		mem::write(hProcess, hModule + kOffsetAccountECB, userAccount, sizeof(userAccount));
-		qDebug() << "before encode" << account << "after encode" << QString(userAccount);
+		////sa_8001.exe+2086A - 09 09                 - or [ecx],ecx
+		//char userAccount[32] = {};
+		//char userPassword[32] = {};
+		//_snprintf_s(userAccount, sizeof(userAccount), _TRUNCATE, "%s", saccount.c_str());
+		//sacrypt::ecb_crypt("f;encor1c", userAccount, sizeof(userAccount), sacrypt::DES_ENCRYPT);
+		//mem::write(hProcess, hModule + kOffsetAccountECB, userAccount, sizeof(userAccount));
+		//qDebug() << "before encode" << account << "after encode" << QString(userAccount);
 
-		_snprintf_s(userPassword, sizeof(userPassword), _TRUNCATE, "%s", spassword.c_str());
-		sacrypt::ecb_crypt("f;encor1c", userPassword, sizeof(userPassword), sacrypt::DES_ENCRYPT);
-		mem::write(hProcess, hModule + kOffsetPasswordECB, userPassword, sizeof(userPassword));
-		qDebug() << "before encode" << password << "after encode" << QString(userPassword);
+		//_snprintf_s(userPassword, sizeof(userPassword), _TRUNCATE, "%s", spassword.c_str());
+		//sacrypt::ecb_crypt("f;encor1c", userPassword, sizeof(userPassword), sacrypt::DES_ENCRYPT);
+		//mem::write(hProcess, hModule + kOffsetPasswordECB, userPassword, sizeof(userPassword));
+		//qDebug() << "before encode" << password << "after encode" << QString(userPassword);
 	};
 
 	switch (status)
@@ -3127,9 +3117,6 @@ bool Server::login(qint64 s)
 	{
 		if (server < 0 && server >= 15)
 			break;
-
-		qDebug() << "cmp account:" << mem::readString(hProcess, hModule + kOffsetAccountECB, 32, false, true);
-		qDebug() << "cmp password:" << mem::readString(hProcess, hModule + kOffsetPasswordECB, 32, false, true);
 
 #ifndef USE_MOUSE
 		/*
@@ -3438,6 +3425,14 @@ void Server::createRemoteDialog(quint64 type, quint64 button, const QString& tex
 
 void Server::press(BUTTON_TYPE select, qint64 dialogid, qint64 unitid)
 {
+	if (select == BUTTON_CLOSE)
+	{
+		qint64 currentIndex = getIndex();
+		Injector& injector = Injector::getInstance(currentIndex);
+		injector.sendMessage(kDistoryDialog, NULL, NULL);
+		return;
+	}
+
 	dialog_t dialog = currentDialog;
 	if (dialogid == -1)
 		dialogid = dialog.dialogid;
@@ -4207,6 +4202,163 @@ void Server::checkAutoLockPet()
 		}
 	}
 }
+
+//自動加點
+void Server::checkAutoAbility()
+{
+	Injector& injector = Injector::getInstance(getIndex());
+	auto checkEnable = [this, &injector]()->bool
+	{
+		if (isInterruptionRequested())
+			return false;
+
+		if (!injector.getEnableHash(util::kAutoAbilityEnable))
+			return false;
+
+		if (!getOnlineFlag())
+			return false;
+
+		if (getBattleFlag())
+			return false;
+
+		return true;
+	};
+
+	if (!checkEnable())
+		return;
+
+	QString strAbility = injector.getStringHash(util::kAutoAbilityString);
+	if (strAbility.isEmpty())
+		return;
+
+	QStringList abilityList = strAbility.split(util::rexOR, Qt::SkipEmptyParts);
+	if (abilityList.isEmpty())
+		return;
+
+	static const QHash<QString, qint64> abilityNameHash = {
+		{ "vit", 0 },
+		{ "str", 1 },
+		{ "tgh", 2 },
+		{ "dex", 3 },
+
+		{ "體", 0 },
+		{ "腕", 1 },
+		{ "耐", 2 },
+		{ "速", 3 },
+
+		{ "体", 0 },
+		{ "腕", 1 },
+		{ "耐", 2 },
+		{ "速", 3 },
+	};
+
+	for (const QString& ability : abilityList)
+	{
+		if (!checkEnable())
+			return;
+
+		if (ability.isEmpty())
+			continue;
+
+		QStringList abilityInfo = ability.split(util::rexComma, Qt::SkipEmptyParts);
+		if (abilityInfo.isEmpty())
+			continue;
+
+		if (abilityInfo.size() != 2)
+			continue;
+
+		QString abilityName = abilityInfo.at(0);
+		QString abilityValue = abilityInfo.at(1);
+
+		if (abilityName.isEmpty() || abilityValue.isEmpty())
+			continue;
+
+		if (!abilityNameHash.contains(abilityName))
+			continue;
+
+		qint64 value = abilityValue.toInt();
+		if (value <= 0)
+			continue;
+
+		qint64 abilityIndex = abilityNameHash.value(abilityName, -1);
+		if (abilityIndex == -1)
+			continue;
+
+		PC pc = getPC();
+		QVector<qint64> ability = { pc.vit, pc.str, pc.tgh, pc.dex };
+		qint64 abilityPoint = ability.value(abilityIndex, -1);
+		if (abilityPoint == -1)
+			continue;
+
+		if (abilityPoint >= value)
+			continue;
+
+		qint64 abilityPointLeft = pc.point;
+		if (abilityPointLeft <= 0)
+			continue;
+
+		qint64 abilityPointNeed = value - abilityPoint;
+		if (abilityPointNeed > abilityPointLeft)
+			abilityPointNeed = abilityPointLeft;
+
+		addPoint(abilityIndex, abilityPointNeed);
+	}
+}
+
+//檢查並自動吃肉、或丟肉
+void Server::checkAutoDropMeat()
+{
+	Injector& injector = Injector::getInstance(getIndex());
+	auto checkEnable = [this, &injector]()->bool
+	{
+		if (isInterruptionRequested())
+			return false;
+
+		if (!injector.getEnableHash(util::kAutoDropMeatEnable))
+			return false;
+
+		if (!getOnlineFlag())
+			return false;
+
+		if (getBattleFlag())
+			return false;
+
+		return true;
+	};
+
+	if (!checkEnable())
+		return;
+
+	bool bret = false;
+	constexpr const char* meat = "肉";
+	constexpr const char* memo = "耐久力";
+
+	QHash<qint64, ITEM> items = injector.server->getItems();
+
+	for (auto it = items.constBegin(); it != items.constEnd(); ++it)
+	{
+		if (!checkEnable())
+			return;
+
+		qint64 key = it.key();
+		ITEM item = it.value();
+
+		if (!item.valid)
+			continue;
+
+		QString newItemNmae = item.name.simplified();
+		QString newItemMemo = item.memo.simplified();
+		if (newItemNmae.contains(meat) && (newItemNmae != QString("味道爽口的肉湯")) && (newItemNmae != QString("味道爽口的肉汤")))
+		{
+			if (!newItemMemo.contains(memo))
+				dropItem(key);//不可補且非肉湯肉丟棄
+			else
+				useItem(key, findInjuriedAllie());//優先餵給非滿血
+		}
+	}
+
+	refreshItemInfo();
+}
 #pragma endregion
 
 #pragma region MAP
@@ -4351,7 +4503,7 @@ void Server::move(const QPoint& p, const QString& dir)
 //移動(記憶體)
 void Server::move(const QPoint& p)
 {
-	QWriteLocker locker(&pointMutex_);
+	QMutexLocker locker(&net_mutex);
 	qint64 currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
 	if (injector.isValid())
@@ -5043,6 +5195,7 @@ void Server::setBattleEnd()
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(getIndex());
 
 	emit signalDispatcher.battleTableAllItemResetColor();
+	emit signalDispatcher.updateStatusLabelTextChanged(util::kLabelStatusInNormal);
 
 	battledata_t bt = getBattleData();
 	QSet <qint64> tempSet;
@@ -5161,11 +5314,11 @@ void Server::doBattleWork(bool waitforBA)
 	if (waitforBA)
 	{
 		//asyncBattleAction(waitforBA);
+		qint64 recordedRound = battleCurrentRound.load(std::memory_order_acquire);
 		QtConcurrent::run(this, &Server::asyncBattleAction, waitforBA);
-		QtConcurrent::run([this, waitforBA]()
+		QtConcurrent::run([this, recordedRound, waitforBA]()
 			{
 				//備用
-				qint64 recordedRound = battleCurrentRound;
 				Injector& injector = Injector::getInstance(getIndex());
 				qint64 delay = injector.getValueHash(util::kBattleActionDelayValue);
 				qint64 resendDelay = injector.getValueHash(util::kBattleResendDelayValue);
@@ -5183,7 +5336,7 @@ void Server::doBattleWork(bool waitforBA)
 					if (!fastChecked && !normalChecked)
 						return;
 
-					if (recordedRound != battleCurrentRound)
+					if (recordedRound != battleCurrentRound.load(std::memory_order_acquire))
 						return;
 
 					if (!getOnlineFlag())
@@ -5283,7 +5436,7 @@ void Server::asyncBattleAction(bool waitforBA)
 
 	battledata_t bt = getBattleData();
 	//人物和宠物分开发 TODO 修正多个BA人物多次发出战斗指令的问题
-	if (!bt.charAlreadyAction)//!checkFlagState(battleCharCurrentPos) &&
+	//if (!bt.charAlreadyAction)//!checkFlagState(battleCharCurrentPos) &&
 	{
 		bt.charAlreadyAction = true;
 
@@ -5302,7 +5455,7 @@ void Server::asyncBattleAction(bool waitforBA)
 	}
 
 	//TODO 修正宠物指令在多个BA时候重复发送的问题
-	if (!bt.petAlreadyAction)
+	//if (!bt.petAlreadyAction)
 	{
 		bt.petAlreadyAction = true;
 
@@ -9482,6 +9635,9 @@ void Server::lssproto_RS_recv(char* cdata)
 	Injector& injector = Injector::getInstance(currentIndex);
 	if (texts.size() > 1 && injector.getEnableHash(util::kShowExpEnable))
 		announce(texts.join(" "));
+
+	checkAutoDropMeat();
+	checkAutoAbility();
 }
 
 //戰後經驗 (逃跑或被打死不會有)
@@ -9896,7 +10052,9 @@ void Server::lssproto_WN_recv(int windowtype, int buttontype, int dialogid, int 
 	{
 		if (data.contains(it, Qt::CaseInsensitive))
 		{
-			press(BUTTON_AUTO, dialogid, unitid);
+			qint64 currentIndex = getIndex();
+			Injector& injector = Injector::getInstance(currentIndex);
+			injector.sendMessage(kDistoryDialog, NULL, NULL);
 			return;
 		}
 	}
@@ -9910,6 +10068,9 @@ void Server::lssproto_WN_recv(int windowtype, int buttontype, int dialogid, int 
 		if (!securityCode.isEmpty())
 		{
 			injector.server->unlockSecurityCode(securityCode);
+			qint64 currentIndex = getIndex();
+			Injector& injector = Injector::getInstance(currentIndex);
+			injector.sendMessage(kDistoryDialog, NULL, NULL);
 			return;
 		}
 	}
@@ -10026,6 +10187,8 @@ void Server::lssproto_EN_recv(int result, int field)
 		normalDurationTimer.restart();
 		battleDurationTimer.restart();
 		oneRoundDurationTimer.restart();
+		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(getIndex());
+		emit signalDispatcher.updateStatusLabelTextChanged(util::kLabelStatusInBattle);
 	}
 }
 
@@ -10139,6 +10302,9 @@ void Server::lssproto_B_recv(char* ccommand)
 		}
 
 		setBattleData(bt);
+
+		//這裡本不應該放的，放這裡就是無腦亂發，任何隊友作出動作後都會觸發
+		doBattleWork(true);
 		break;
 	}
 	case 'C':
@@ -10185,8 +10351,6 @@ void Server::lssproto_B_recv(char* ccommand)
 		bool valid = false;
 
 		bt.fieldAttr = getIntegerToken(data, "|", 1);
-
-		QElapsedTimer timer; timer.start();
 
 		{
 			QHash<qint64, PET> pets = pet_.toHash();
@@ -10566,10 +10730,8 @@ void Server::lssproto_B_recv(char* ccommand)
 			return;
 		}
 
-		//我方全部陣亡或敵方全部陣亡至戰鬥標誌為false
+		//正常的動作發包
 		doBattleWork(true);
-
-		qDebug() << "-------------------- cost:" << timer.elapsed() << "ms --------------------";
 		break;
 	}
 	case 'U':
@@ -13226,7 +13388,10 @@ void Server::lssproto_ClientLogin_recv(char* cresult)
 
 	if (result.contains(OKSTR, Qt::CaseInsensitive))
 	{
-
+		//更新UI顯示
+		qint64 currentIndex = getIndex();
+		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
+		emit signalDispatcher.updateStatusLabelTextChanged(util::kLabelStatusLoginSuccess);
 	}
 	else if (result.contains(CANCLE, Qt::CaseInsensitive))
 	{
@@ -13372,15 +13537,84 @@ void Server::lssproto_CharLogin_recv(char* cresult, char* cdata)
 	if (result.isEmpty() && data.isEmpty())
 		return;
 
-	if (result.contains(SUCCESSFULSTR, Qt::CaseInsensitive) || data.contains(SUCCESSFULSTR, Qt::CaseInsensitive))
+	if (!result.contains(SUCCESSFULSTR, Qt::CaseInsensitive) && !data.contains(SUCCESSFULSTR, Qt::CaseInsensitive))
+		return;
 
+	setOnlineFlag(true);
+
+	qint64 currentIndex = getIndex();
+	Injector& injector = Injector::getInstance(currentIndex);
+	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
+	emit signalDispatcher.updateStatusLabelTextChanged(util::kLabelStatusSignning);
+	//重置登入計時
+	loginTimer.restart();
+
+	//重置戰鬥總局數
+	battle_total_time.store(0, std::memory_order_release);
+
+	//重置掛機數據
+	PC pc = pc_;
+	recorder[0].levelrecord = pc.level;
+	recorder[0].exprecord = pc.exp;
+	recorder[0].goldearn = 0;
+	recorder[0].deadthcount = 0;
+
+	for (qint64 i = 1; i <= MAX_PET; ++i)
 	{
-		qint64 currentIndex = getIndex();
-		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
-		emit signalDispatcher.updateStatusLabelTextChanged(util::kLabelStatusSignning);
-		loginTimer.restart();
-		setOnlineFlag(true);
+		PET pet = pet_.value(i + 1);
+		recorder[i] = {};
+		recorder[i].levelrecord = pet.level;
+		recorder[i].exprecord = pet.exp;
+		recorder[i].deadthcount = 0;
 	}
+
+	updateComboBoxList();
+
+	//重置對話框開啟標誌(客製)
+	mem::write<int>(injector.getProcess(), injector.getProcessModule() + 0x4200000, 0);
+
+	//標題設置為人物名稱
+	emit signalDispatcher.updateMainFormTitle(injector.server->getPC().name);
+	//顯示NPC列表
+	emit signalDispatcher.updateNpcList(injector.server->getFloor());
+
+	emit signalDispatcher.applyHashSettingsToUI();
+
+
+	//讀取伺服器列表
+	QStringList list;
+	{
+		util::Config config;
+		list = config.readArray<QString>("System", "Server", QString("List_%1").arg(injector.currentServerListIndex));
+	}
+
+	QStringList serverNameList;
+	QStringList subServerNameList;
+	for (const QString& it : list)
+	{
+		QStringList subList = it.split(util::rexOR, Qt::SkipEmptyParts);
+		if (subList.isEmpty())
+			continue;
+
+		if (subList.size() != 2)
+			continue;
+
+		QString server = subList.takeFirst();
+
+		subList = subList.first().split(util::rexComma, Qt::SkipEmptyParts);
+		if (subList.isEmpty())
+			continue;
+
+		serverNameList.append(server);
+		subServerNameList.append(subList);
+	}
+
+	injector.serverNameList = serverNameList;
+	injector.subServerNameList = subServerNameList;
+
+	setWindowTitle();
+
+	mem::freeUnuseMemory(injector.getProcess());
 }
 
 void Server::lssproto_TD_recv(char* cdata)//交易

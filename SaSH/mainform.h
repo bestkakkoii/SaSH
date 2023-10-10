@@ -85,6 +85,7 @@ private slots:
 	void onUpdateMapLabelTextChanged(const QString& text);
 	void onUpdateCursorLabelTextChanged(const QString& text);
 	void onUpdateCoordsPosLabelTextChanged(const QString& text);
+	void onUpdateTimeLabelTextChanged(const QString& text);
 	void onUpdateStonePosLabelTextChanged(qint64 ntext);
 	void onUpdateMainFormTitle(const QString& text);
 

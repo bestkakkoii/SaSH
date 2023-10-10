@@ -131,7 +131,7 @@ void MainForm::createMenu(QMenuBar* pMenuBar)
 			{
 				bool bret = false;
 				{
-					util::Config config(QString::fromUtf8(qgetenv("JSON_PATH")));
+					util::Config config;
 					bret = config.read<bool>("MainFormClass", "Menu", "HideBar");
 				}
 				pAction->setChecked(bret);
@@ -142,7 +142,7 @@ void MainForm::createMenu(QMenuBar* pMenuBar)
 			{
 				bool bret = false;
 				{
-					util::Config config(QString::fromUtf8(qgetenv("JSON_PATH")));
+					util::Config config;
 					bret = config.read<bool>("MainFormClass", "Menu", "HideControl");
 				}
 				pAction->setChecked(bret);
@@ -640,17 +640,13 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 		}
 		case SelectServerList:
 		{
-			const QString fileName(qgetenv("JSON_PATH"));
-			if (fileName.isEmpty())
-				break;
-
 			if (arg < 0)
 			{
 				updateStatusText("invalid arg");
 				break;
 			}
 
-			util::Config config(fileName);
+			util::Config config;
 			config.write("System", "Server", "LastServerListSelection", arg);
 			SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(id);
 			emit signalDispatcher.applyHashSettingsToUI();
@@ -662,17 +658,13 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 		}
 		case SelectProcessList:
 		{
-			const QString fileName(qgetenv("JSON_PATH"));
-			if (fileName.isEmpty())
-				break;
-
 			if (arg < 0)
 			{
 				updateStatusText("invalid arg");
 				break;
 			}
 
-			util::Config config(fileName);
+			util::Config config;
 			config.write("System", "Command", "LastSelection", arg);
 			SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(id);
 			emit signalDispatcher.applyHashSettingsToUI();
@@ -1217,6 +1209,7 @@ MainForm::MainForm(qint64 index, QWidget* parent)
 	connect(&signalDispatcher, &SignalDispatcher::updateMapLabelTextChanged, this, &MainForm::onUpdateMapLabelTextChanged);
 	connect(&signalDispatcher, &SignalDispatcher::updateCursorLabelTextChanged, this, &MainForm::onUpdateCursorLabelTextChanged);
 	connect(&signalDispatcher, &SignalDispatcher::updateCoordsPosLabelTextChanged, this, &MainForm::onUpdateCoordsPosLabelTextChanged);
+	connect(&signalDispatcher, &SignalDispatcher::updateLoginTimeLabelTextChanged, this, &MainForm::onUpdateTimeLabelTextChanged);
 	connect(&signalDispatcher, &SignalDispatcher::updateCharInfoStone, this, &MainForm::onUpdateStonePosLabelTextChanged);
 
 	ui.tabWidget_main->clear();
@@ -1298,7 +1291,6 @@ void MainForm::closeEvent(QCloseEvent* e)
 
 	markAsClose_ = true;
 	hide();
-	mem::freeUnuseMemory(GetCurrentProcess());
 
 	Injector::getInstance(getIndex()).close();
 
@@ -1419,7 +1411,7 @@ void MainForm::onMenuActionTriggered()
 
 	if (actionName == "actionHideBar")
 	{
-		util::Config config(QString::fromUtf8(qgetenv("JSON_PATH")));
+		util::Config config;
 		config.write("MainFormClass", "Menu", "HideBar", pAction->isChecked());
 		if (pAction->isChecked())
 		{
@@ -1440,7 +1432,7 @@ void MainForm::onMenuActionTriggered()
 
 	if (actionName == "actionHideControl")
 	{
-		util::Config config(QString::fromUtf8(qgetenv("JSON_PATH")));
+		util::Config config;
 		config.write("MainFormClass", "Menu", "HideControl", pAction->isChecked());
 		if (pAction->isChecked())
 		{
@@ -1658,8 +1650,10 @@ void MainForm::resetControlTextLanguage()
 	this->ui.retranslateUi(this);
 
 	qint64 currentIndex = getIndex();
-
-	setWindowTitle(QString("[%1]").arg(currentIndex) + tr("SaSH - %1").arg(compile::buildDateTime(nullptr)));
+	QString buildTime = compile::buildDateTime(nullptr);
+	//take off year
+	buildTime = buildTime.mid(4);
+	setWindowTitle(QString("[%1]").arg(currentIndex) + tr("SaSH - %1").arg(buildTime));
 
 	if (pMenuBar_)
 	{
@@ -1745,6 +1739,11 @@ void MainForm::onUpdateCursorLabelTextChanged(const QString& text)
 void MainForm::onUpdateCoordsPosLabelTextChanged(const QString& text)
 {
 	ui.label_coords->setText(text);
+}
+
+void MainForm::onUpdateTimeLabelTextChanged(const QString& text)
+{
+	ui.label_time->setText(text);
 }
 
 void MainForm::onUpdateStonePosLabelTextChanged(qint64 ntext)

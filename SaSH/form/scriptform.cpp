@@ -66,13 +66,7 @@ ScriptForm::ScriptForm(qint64 index, QWidget* parent)
 
 	connect(ui.spinBox_speed, static_cast<void (QSpinBox::*)(int)>(&QSpinBox::valueChanged), this, &ScriptForm::onSpeedChanged);
 
-	const QString fileName(qgetenv("JSON_PATH"));
-	if (fileName.isEmpty())
-		return;
-
-	if (!QFile::exists(fileName))
-		return;
-	util::Config config(fileName);
+	util::Config config;
 
 	Injector& injector = Injector::getInstance(index);
 	QString currentScriptFileName = config.read<QString>("Script", "LastModifyFile");
@@ -80,10 +74,10 @@ ScriptForm::ScriptForm(qint64 index, QWidget* parent)
 	if (currentScriptFileName.isEmpty() || !QFile::exists(currentScriptFileName))
 	{
 		QString defaultScriptPath = util::applicationDirPath() + "/script/default.txt";
-		QFile fileDefault(defaultScriptPath);
+		util::ScopedFile fileDefault(defaultScriptPath);
 		if (!fileDefault.exists())
 		{
-			if (!fileDefault.open(QIODevice::WriteOnly | QIODevice::Text | QIODevice::Truncate))
+			if (!fileDefault.openWriteNew())
 				return;
 			fileDefault.close();
 		}

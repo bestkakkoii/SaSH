@@ -1114,7 +1114,7 @@ namespace util
 		return widgets;
 	}
 
-	QString formatMilliseconds(qint64 milliseconds);
+	QString formatMilliseconds(qint64 milliseconds, bool noSpace = false);
 
 	QString formatSeconds(qint64 seconds);
 
@@ -1848,175 +1848,6 @@ namespace util
 		QString name = "";
 	};
 
-	//Json配置讀寫
-	class Config
-	{
-	public:
-		explicit Config(const QString& fileName);
-		virtual ~Config();
-
-		bool open();
-		void sync();
-
-		void removeSec(const QString sec);
-
-		void write(const QString& key, const QVariant& value);
-		void write(const QString& sec, const QString& key, const QVariant& value);
-		void write(const QString& sec, const QString& key, const QString& sub, const QVariant& value);
-
-		void WriteHash(const QString& sec, const QString& key, QMap<QString, QPair<bool, QString>>& hash);
-		QMap<QString, QPair<bool, QString>> EnumString(const QString& sec, const QString& key) const;
-
-		template <typename T>
-		T read(const QString& sec, const QString& key, const QString& sub) const
-		{
-			if (!cache_.contains(sec))
-			{
-				return T();
-			}
-
-			QJsonObject json = cache_.value(sec).toJsonObject();
-			if (!json.contains(key))
-			{
-				return T();
-			}
-
-			QJsonObject subjson = json.value(key).toObject();
-			if (!subjson.contains(sub))
-			{
-				return T();
-			}
-			return subjson[sub].toVariant().value<T>();
-		}
-
-		template <typename T>
-		T read(const QString& sec, const QString& key) const
-		{
-			//read json value from cache_
-			if (cache_.contains(sec))
-			{
-				QJsonObject json = cache_.value(sec).toJsonObject();
-				if (json.contains(key))
-				{
-					return json.value(key).toVariant().value<T>();
-				}
-			}
-			return T();
-		}
-
-		template <typename T>
-		T read(const QString& key) const
-		{
-			if (cache_.contains(key))
-			{
-				return cache_.value(key).value<T>();
-			}
-
-			return T();
-		}
-
-		template <typename T>
-		QList<T> readArray(const QString& sec, const QString& key, const QString& sub) const
-		{
-			QList<T> result;
-			QVariant variant;
-
-			if (cache_.contains(sec))
-			{
-				QJsonObject json = cache_.value(sec).toJsonObject();
-
-				if (json.contains(key))
-				{
-					QJsonObject subJson = json.value(key).toObject();
-
-					if (subJson.contains(sub))
-					{
-						QJsonArray jsonArray = subJson.value(sub).toArray();
-
-						for (const QJsonValue& value : jsonArray)
-						{
-							variant = value.toVariant();
-							result.append(variant.value<T>());
-						}
-					}
-				}
-			}
-
-			return result;
-		}
-
-		template <typename T>
-		void writeArray(const QString& sec, const QString& key, const QList<T>& values)
-		{
-			if (!cache_.contains(sec))
-			{
-				cache_.insert(sec, QJsonObject());
-			}
-
-			QVariantList variantList;
-			for (const T& value : values)
-			{
-				variantList.append(value);
-			}
-
-			QJsonObject json = cache_.value(sec).toJsonObject();
-			json.insert(key, QJsonArray::fromVariantList(variantList));
-			cache_.insert(sec, json);
-
-			if (!hasChanged_)
-				hasChanged_ = true;
-		}
-
-		template <typename T>
-		void writeArray(const QString& sec, const QString& key, const QString& sub, const QList<T>& values)
-		{
-			QJsonObject json;
-
-			if (cache_.contains(sec))
-			{
-				json = cache_.value(sec).toJsonObject();
-			}
-
-			QJsonArray jsonArray;
-
-			for (const T& value : values)
-			{
-				jsonArray.append(value);
-			}
-
-			QJsonObject subJson;
-
-			if (json.contains(key))
-			{
-				subJson = json.value(key).toObject();
-			}
-
-			subJson.insert(sub, jsonArray);
-			json.insert(key, subJson);
-			cache_.insert(sec, json);
-
-			if (!hasChanged_)
-				hasChanged_ = true;
-		}
-
-		void writeMapData(const QString& sec, const util::MapData& data);
-
-		QList<util::MapData> readMapData(const QString& key) const;
-
-	private:
-		QJsonDocument document_;
-
-		QFile file_ = {};
-
-		QString fileName_ = "\0";
-
-		QVariantMap cache_ = {};
-
-		bool isVaild = false;
-
-		bool hasChanged_ = false;
-	};
-
 	class ScopedFileLocker
 	{
 	public:
@@ -2284,6 +2115,35 @@ namespace util
 		HANDLE hProcess = NULL;
 	};
 
+	class TextStream : public QTextStream
+	{
+	public:
+		explicit TextStream(FILE* file)
+			: QTextStream(file)
+		{
+			init();
+		}
+
+		explicit TextStream(QIODevice* device)
+			: QTextStream(device)
+		{
+			init();
+		}
+
+	private:
+		void init()
+		{
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+			setCodec(util::DEFAULT_CODEPAGE);
+#else
+			setEncoding(QStringConverter::Utf8);
+#endif
+			setGenerateByteOrderMark(true);
+
+			setAutoDetectUnicode(true);
+		}
+	};
+
 	//智能文件句柄類
 	class ScopedFile : public QFile
 	{
@@ -2291,7 +2151,84 @@ namespace util
 		ScopedFile(const QString& filename, OpenMode ioFlags)
 			: QFile(filename)
 		{
+			if (QFile::isOpen())
+			{
+				QFile::flush();
+				QFile::close();
+			}
 			QFile::open(ioFlags);
+		}
+
+		explicit ScopedFile(const QString& filename)
+			: QFile(filename)
+		{}
+
+		ScopedFile() = default;
+
+		bool openWriteNew()
+		{
+			if (QFile::isOpen())
+			{
+				QFile::flush();
+				QFile::close();
+			}
+
+			return QFile::open(QIODevice::WriteOnly | QIODevice::Truncate | QIODevice::Unbuffered);
+		}
+
+		bool openWrite()
+		{
+			if (QFile::isOpen())
+			{
+				QFile::flush();
+				QFile::close();
+			}
+
+			return QFile::open(QIODevice::WriteOnly | QIODevice::Unbuffered);
+		}
+
+		bool openRead()
+		{
+			if (QFile::isOpen())
+			{
+				QFile::flush();
+				QFile::close();
+			}
+
+			return QFile::open(QIODevice::ReadOnly | QIODevice::Unbuffered);
+		}
+
+		bool openReadWrite()
+		{
+			if (QFile::isOpen())
+			{
+				QFile::flush();
+				QFile::close();
+			}
+
+			return QFile::open(QIODevice::ReadWrite | QIODevice::Unbuffered);
+		}
+
+		bool openReadWriteNew()
+		{
+			if (QFile::isOpen())
+			{
+				QFile::flush();
+				QFile::close();
+			}
+
+			return QFile::open(QIODevice::ReadWrite | QIODevice::Truncate | QIODevice::Unbuffered);
+		}
+
+		bool openWriteAppend()
+		{
+			if (QFile::isOpen())
+			{
+				QFile::flush();
+				QFile::close();
+			}
+
+			return QFile::open(QIODevice::WriteOnly | QIODevice::Append | QIODevice::Unbuffered);
 		}
 
 		virtual ~ScopedFile()
@@ -2330,33 +2267,179 @@ namespace util
 		QSet<uchar*> m_maps;
 	};
 
-	class TextStream : public QTextStream
+	//Json配置讀寫
+	class Config
 	{
 	public:
-		explicit TextStream(FILE* file)
-			: QTextStream(file)
+		Config();
+		explicit Config(const QString& fileName);
+		explicit Config(const QByteArray& fileName);
+		virtual ~Config();
+
+		bool open();
+		void sync();
+
+		inline bool isValid() const { return isVaild; }
+
+		void removeSec(const QString sec);
+
+		void write(const QString& key, const QVariant& value);
+		void write(const QString& sec, const QString& key, const QVariant& value);
+		void write(const QString& sec, const QString& key, const QString& sub, const QVariant& value);
+
+		void WriteHash(const QString& sec, const QString& key, QMap<QString, QPair<bool, QString>>& hash);
+		QMap<QString, QPair<bool, QString>> EnumString(const QString& sec, const QString& key) const;
+
+		template <typename T>
+		T read(const QString& sec, const QString& key, const QString& sub) const
 		{
-			init();
+			if (!cache_.contains(sec))
+			{
+				return T();
+			}
+
+			QJsonObject json = cache_.value(sec).toJsonObject();
+			if (!json.contains(key))
+			{
+				return T();
+			}
+
+			QJsonObject subjson = json.value(key).toObject();
+			if (!subjson.contains(sub))
+			{
+				return T();
+			}
+			return subjson[sub].toVariant().value<T>();
 		}
 
-		explicit TextStream(QIODevice* device)
-			: QTextStream(device)
+		template <typename T>
+		T read(const QString& sec, const QString& key) const
 		{
-			init();
+			//read json value from cache_
+			if (cache_.contains(sec))
+			{
+				QJsonObject json = cache_.value(sec).toJsonObject();
+				if (json.contains(key))
+				{
+					return json.value(key).toVariant().value<T>();
+				}
+			}
+			return T();
 		}
+
+		template <typename T>
+		T read(const QString& key) const
+		{
+			if (cache_.contains(key))
+			{
+				return cache_.value(key).value<T>();
+			}
+
+			return T();
+		}
+
+		template <typename T>
+		QList<T> readArray(const QString& sec, const QString& key, const QString& sub) const
+		{
+			QList<T> result;
+			QVariant variant;
+
+			if (cache_.contains(sec))
+			{
+				QJsonObject json = cache_.value(sec).toJsonObject();
+
+				if (json.contains(key))
+				{
+					QJsonObject subJson = json.value(key).toObject();
+
+					if (subJson.contains(sub))
+					{
+						QJsonArray jsonArray = subJson.value(sub).toArray();
+
+						for (const QJsonValue& value : jsonArray)
+						{
+							variant = value.toVariant();
+							result.append(variant.value<T>());
+						}
+					}
+				}
+			}
+
+			return result;
+		}
+
+		template <typename T>
+		void writeArray(const QString& sec, const QString& key, const QList<T>& values)
+		{
+			if (!cache_.contains(sec))
+			{
+				cache_.insert(sec, QJsonObject());
+			}
+
+			QVariantList variantList;
+			for (const T& value : values)
+			{
+				variantList.append(value);
+			}
+
+			QJsonObject json = cache_.value(sec).toJsonObject();
+			json.insert(key, QJsonArray::fromVariantList(variantList));
+			cache_.insert(sec, json);
+
+			if (!hasChanged_)
+				hasChanged_ = true;
+		}
+
+		template <typename T>
+		void writeArray(const QString& sec, const QString& key, const QString& sub, const QList<T>& values)
+		{
+			QJsonObject json;
+
+			if (cache_.contains(sec))
+			{
+				json = cache_.value(sec).toJsonObject();
+			}
+
+			QJsonArray jsonArray;
+
+			for (const T& value : values)
+			{
+				jsonArray.append(value);
+			}
+
+			QJsonObject subJson;
+
+			if (json.contains(key))
+			{
+				subJson = json.value(key).toObject();
+			}
+
+			subJson.insert(sub, jsonArray);
+			json.insert(key, subJson);
+			cache_.insert(sec, json);
+
+			if (!hasChanged_)
+				hasChanged_ = true;
+		}
+
+		void writeMapData(const QString& sec, const util::MapData& data);
+
+		QList<util::MapData> readMapData(const QString& key) const;
 
 	private:
-		void init()
-		{
-#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
-			setCodec(util::DEFAULT_CODEPAGE);
-#else
-			setEncoding(QStringConverter::Utf8);
-#endif
-			setGenerateByteOrderMark(true);
+		QJsonDocument document_;
 
-			setAutoDetectUnicode(true);
-		}
+		ScopedFile file_;
+
+		QString fileName_ = "\0";
+
+		inline static SafeHash<QString, QVariantMap> cacheHash_ = {};
+
+		QVariantMap cache_ = {};
+
+		bool isVaild = false;
+
+		bool hasChanged_ = false;
 	};
 
 	//用於掛機訊息紀錄

@@ -117,6 +117,7 @@ CopyRightDialog::CopyRightDialog(QWidget* parent)
 	ui.setupUi(this);
 	setAttribute(Qt::WA_DeleteOnClose);
 	installEventFilter(this);
+	setFixedSize(800, 800);
 
 	setStyleSheet("QLabel { font-family: 'Consolas';}");
 
@@ -211,10 +212,16 @@ CopyRightDialog::CopyRightDialog(QWidget* parent)
 	connect(ui.pushButton_copyinfo, &PushButton::clicked, this, &CopyRightDialog::pushButton_copyinfo_clicked);
 	connect(ui.pushButton_sysinfo, &PushButton::clicked, this, &CopyRightDialog::pushButton_sysinfo_clicked);
 	connect(ui.pushButton_dxdiag, &PushButton::clicked, this, &CopyRightDialog::pushButton_dxdiag_clicked);
+
+	util::FormSettingManager formManager(this);
+	formManager.loadSettings();
 }
 
 CopyRightDialog::~CopyRightDialog()
-{}
+{
+	util::FormSettingManager formManager(this);
+	formManager.saveSettings();
+}
 
 bool CopyRightDialog::eventFilter(QObject* watched, QEvent* event)
 {

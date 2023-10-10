@@ -740,55 +740,71 @@ bool mem::enumProcess(QVector<qint64>* pprocesses, const QString& moduleName)
 #pragma endregion
 
 #pragma region Config
-QReadWriteLock g_fileLock;
+QMutex g_fileLock;
+
+util::Config::Config()
+	: fileName_(QString::fromUtf8(qgetenv("JSON_PATH")))
+{
+	g_fileLock.lock();//附加文件寫鎖
+	file_.setFileName(fileName_);
+	isVaild = open();
+}
 
 util::Config::Config(const QString& fileName)
 	: fileName_(fileName)
-	, file_(fileName)
 {
-	g_fileLock.lockForWrite();//附加文件寫鎖
+	g_fileLock.lock();//附加文件寫鎖
+	file_.setFileName(fileName_);
 	isVaild = open();
-	//g_fileLock.unlock();
+}
+
+util::Config::Config(const QByteArray& fileName)
+	: fileName_(QString::fromUtf8(fileName))
+{
+	g_fileLock.lock();//附加文件寫鎖
+	file_.setFileName(fileName_);
+	isVaild = open();
 }
 
 util::Config::~Config()
 {
-	//g_fileLock.lockForWrite();//附加文件寫鎖
 	sync();//同步數據
 	g_fileLock.unlock();//解鎖
 }
 
 bool util::Config::open()
 {
-	bool enableReopen = false;
+	//緩存存在則直接從緩存讀取
+	if (cacheHash_.contains(fileName_))
+	{
+		cache_ = cacheHash_.value(fileName_);
+		return true;
+	}
+
 	if (!file_.exists())
 	{
 		//文件不存在，以全新文件複寫方式打開
-		if (!file_.open(QIODevice::ReadWrite | QIODevice::Truncate | QIODevice::Text))
+		if (file_.openWriteNew())
 		{
-			return false;
+			//成功直接返回因為是全新的不需要往下讀
+			return true;
 		}
+		else
+			return false;
+
 	}
 	else
 	{
 		//文件存在，以普通讀寫方式打開
-		if (!file_.open(QIODevice::ReadWrite | QIODevice::Text))
+		if (!file_.openReadWrite())
 		{
 			return false;
 		}
-		enableReopen = true;
 	}
 
-	QTextStream in(&file_);
-#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
-	in.setCodec(util::DEFAULT_CODEPAGE);
-#else
-	in.setEncoding(QStringConverter::Utf8);
-#endif
-	in.setGenerateByteOrderMark(true);
-	QString text = in.readAll();
-	QByteArray allData = text.toUtf8();
+	QByteArray allData = file_.readAll();
 
+	//第一次使用所以是空的不需要解析成json
 	if (allData.simplified().isEmpty())
 	{
 		return true;
@@ -799,40 +815,46 @@ bool util::Config::open()
 	document_ = QJsonDocument::fromJson(allData, &jsonError);
 	if (jsonError.error != QJsonParseError::NoError)
 	{
-		// 解析错误
-		return false;
+		//解析錯誤則直接複寫新的
+		if (file_.isOpen())
+			file_.close();
+
+		if (file_.openWriteNew())
+			return true;//成功直接返回因為是全新的不需要往下讀
+		else
+			return false;
 	}
 
 	//把json轉換成qvariantmap
 	QJsonObject root = document_.object();
 	cache_ = root.toVariantMap();
 
+	//緩存起來
+	cacheHash_.insert(fileName_, cache_);
+
 	return true;
 }
 
 void util::Config::sync()
 {
-	if (isVaild && hasChanged_)
+	if (!isVaild && !hasChanged_)
 	{
-		QJsonObject root = QJsonObject::fromVariantMap(cache_);
-		document_.setObject(root);
-		QByteArray data = document_.toJson(QJsonDocument::Indented);
-
-		if (file_.isOpen())
-		{
-			file_.close();
-		}
-
-		//總是以全新寫入的方式
-		if (!file_.open(QIODevice::ReadWrite | QIODevice::Truncate))
-		{
-			return;
-		}
-
-		file_.write(data);
-		file_.flush();
+		return;
 	}
-	file_.close();
+
+	cacheHash_.insert(fileName_, cache_);
+
+	QJsonObject root = QJsonObject::fromVariantMap(cache_);
+	document_.setObject(root);
+	QByteArray data = document_.toJson(QJsonDocument::Indented);
+
+	if (!file_.openWriteNew())
+	{
+		return;
+	}
+
+	file_.write(data);
+	file_.flush();
 }
 
 void util::Config::removeSec(const QString sec)
@@ -1077,14 +1099,7 @@ QList<util::MapData> util::Config::readMapData(const QString& key) const
 void util::FormSettingManager::loadSettings()
 {
 	util::Crypt crypt;
-	const QString fileName(qgetenv("JSON_PATH"));
-	if (fileName.isEmpty())
-		return;
-
-	if (!QFile::exists(fileName))
-		return;
-
-	Config config(fileName);
+	Config config;
 
 	QString ObjectName;
 	if (mainwindow_ != nullptr)
@@ -1137,11 +1152,7 @@ void util::FormSettingManager::loadSettings()
 void util::FormSettingManager::saveSettings()
 {
 	util::Crypt crypt;
-	const QString fileName(qgetenv("JSON_PATH"));
-	if (fileName.isEmpty())
-		return;
-
-	Config config(fileName);
+	Config config;
 	QString ObjectName;
 	QString qstrGeometry;
 	QString qstrState;
@@ -1794,7 +1805,7 @@ bool util::customStringCompare(const QString& str1, const QString& str2)
 	return collator.compare(str1, str2) < 0;
 }
 
-QString util::formatMilliseconds(qint64 milliseconds)
+QString util::formatMilliseconds(qint64 milliseconds, bool noSpace)
 {
 	qint64 totalSeconds = milliseconds / 1000ll;
 	qint64 days = totalSeconds / (24ll * 60ll * 60ll);
@@ -1803,8 +1814,16 @@ QString util::formatMilliseconds(qint64 milliseconds)
 	qint64 seconds = totalSeconds % 60ll;
 	qint64 remainingMilliseconds = milliseconds % 1000ll;
 
-	return QString(QObject::tr("%1 day %2 hour %3 min %4 sec %5 msec"))
-		.arg(days).arg(hours).arg(minutes).arg(seconds).arg(remainingMilliseconds);
+	if (!noSpace)
+	{
+		return QString(QObject::tr("%1 day %2 hour %3 min %4 sec %5 msec"))
+			.arg(days).arg(hours).arg(minutes).arg(seconds).arg(remainingMilliseconds);
+	}
+	else
+	{
+		return QString(QObject::tr("%1d%2h%3m%4s"))
+			.arg(days).arg(hours).arg(minutes).arg(seconds);
+	}
 }
 
 QString util::formatSeconds(qint64 seconds)
@@ -1848,12 +1867,12 @@ bool util::readFile(const QString& fileName, QString* pcontent, bool* pisPrivate
 	if (fi.isDir())
 		return false;
 
-	util::ScopedFile f(fileName, QIODevice::ReadOnly | QIODevice::Text);
-	if (!f.isOpen())
+	util::ScopedFile f(fileName);
+	if (!f.openRead())
 		return false;
 
-	TextStream in(&f);
-	QString content = in.readAll();
+	QByteArray ba = f.readAll();
+	QString content = QString::fromUtf8(ba);
 
 	if (readFileFilter(fileName, content, pisPrivate))
 	{
@@ -1867,13 +1886,12 @@ bool util::readFile(const QString& fileName, QString* pcontent, bool* pisPrivate
 
 bool util::writeFile(const QString& fileName, const QString& content)
 {
-	util::ScopedFile f(fileName, QIODevice::WriteOnly | QIODevice::Text | QIODevice::Truncate);
-	if (!f.isOpen())
+	util::ScopedFile f(fileName);
+	if (!f.openWriteNew())
 		return false;
 
-	TextStream out(&f);
-	out << content;
-	out.flush();
+	QByteArray ba = content.toUtf8();
+	f.write(ba);
 	f.flush();
 	return true;
 }

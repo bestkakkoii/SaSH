@@ -23,6 +23,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include <QCommandLineParser>
 
 #pragma comment(lib, "ws2_32.lib")
+#include <DbgHelp.h>
+#pragma comment(lib, "dbghelp.lib")
+
 
 void CreateConsole()
 {
@@ -116,9 +119,6 @@ void qtMessageHandler(QtMsgType type, const QMessageLogContext& context, const Q
 	}
 
 }
-
-#include <DbgHelp.h>
-#pragma comment(lib, "dbghelp.lib")
 
 #if defined _M_X64 || defined _M_IX86
 LPTOP_LEVEL_EXCEPTION_FILTER WINAPI
@@ -297,7 +297,6 @@ LONG CALLBACK MinidumpCallback(PEXCEPTION_POINTERS pException)
 	return EXCEPTION_CONTINUE_SEARCH;
 }
 
-
 void fontInitialize(const QString& currentWorkPath)
 {
 	QStringList fontPaths;
@@ -353,20 +352,20 @@ int main(int argc, char* argv[])
 	QApplication::setAttribute(Qt::AA_Use96Dpi, true);// DPI support
 	QApplication::setAttribute(Qt::AA_EnableHighDpiScaling, true);
 	QApplication::setAttribute(Qt::AA_UseHighDpiPixmaps, true);
-	QApplication::setAttribute(Qt::AA_ShareOpenGLContexts, true);
-	QApplication::setAttribute(Qt::AA_UseDesktopOpenGL, true);//AA_UseDesktopOpenGL, AA_UseOpenGLES, AA_UseSoftwareOpenGL
-	QGuiApplication::setHighDpiScaleFactorRoundingPolicy(Qt::HighDpiScaleFactorRoundingPolicy::PassThrough);
+	//QApplication::setAttribute(Qt::AA_ShareOpenGLContexts, true);
+	//QApplication::setAttribute(Qt::AA_UseDesktopOpenGL, true);//AA_UseDesktopOpenGL, AA_UseOpenGLES, AA_UseSoftwareOpenGL
+	QApplication::setHighDpiScaleFactorRoundingPolicy(Qt::HighDpiScaleFactorRoundingPolicy::PassThrough);
 
 	//OpenGL相關設置
-	QSurfaceFormat format;
-	format.setRenderableType(QSurfaceFormat::DefaultRenderableType);//OpenGL, OpenGLES, OpenVG
-	format.setSwapBehavior(QSurfaceFormat::TripleBuffer);
-	format.setSamples(0);
-	format.setColorSpace(QSurfaceFormat::ColorSpace::DefaultColorSpace);
-	format.setProfile(QSurfaceFormat::OpenGLContextProfile::CompatibilityProfile);
-	format.setStereo(false);
-	format.setSwapInterval(0);
-	QSurfaceFormat::setDefaultFormat(format);
+	//QSurfaceFormat format;
+	//format.setRenderableType(QSurfaceFormat::DefaultRenderableType);//OpenGL, OpenGLES, OpenVG
+	//format.setSwapBehavior(QSurfaceFormat::SingleBuffer);
+	////format.setSamples(0);
+	//format.setColorSpace(QSurfaceFormat::ColorSpace::DefaultColorSpace);
+	//format.setProfile(QSurfaceFormat::OpenGLContextProfile::CompatibilityProfile);
+	//format.setStereo(false);
+	////format.setSwapInterval(0);
+	//QSurfaceFormat::setDefaultFormat(format);
 
 	//////// 以上必須在 QApplication a(argc, argv); 之前設置否則無效 ////////
 
@@ -376,15 +375,11 @@ int main(int argc, char* argv[])
 	//////// 以下必須在 QApplication a(argc, argv); 之後設置否則會崩潰 ////////
 
 	//調試相關設置
-#if QT_NO_DEBUG
-	qInstallMessageHandler(qtMessageHandler);
+	//qInstallMessageHandler(qtMessageHandler);
 	//SetUnhandledExceptionFilter(MinidumpCallback); //SEH
-	AddVectoredExceptionHandler(1, MinidumpCallback); //VEH
-	preventSetUnhandledExceptionFilter();
-
-#else
+	//AddVectoredExceptionHandler(1, MinidumpCallback); //VEH
+	//preventSetUnhandledExceptionFilter();
 	qSetMessagePattern("[%{threadid}] [@%{line}] [%{function}] [%{type}] %{message}");//%{file} 
-#endif
 
 	a.setStyle(QStyleFactory::create("windows"));
 	a.setDesktopSettingsAware(false);

@@ -2158,7 +2158,7 @@ New version:%2</source>
     </message>
     <message>
         <source>Cursor:</source>
-        <translation>滑鼠坐標:</translation>
+        <translation>鼠標:</translation>
     </message>
     <message>
         <source>Coords:</source>
@@ -2179,6 +2179,10 @@ New version:%2</source>
     <message>
         <source>Stone:</source>
         <translation>石幣:</translation>
+    </message>
+    <message>
+        <source>Time:</source>
+        <translation>時間:</translation>
     </message>
 </context>
 <context>
@@ -3908,7 +3912,11 @@ New version:%2</source>
     </message>
     <message>
         <source>R</source>
-        <translation type="unfinished">騎</translation>
+        <translation>騎</translation>
+    </message>
+    <message>
+        <source>%1d%2h%3m%4s</source>
+        <translation>%1日%2時%3分%4秒</translation>
     </message>
 </context>
 <context>
@@ -5144,11 +5152,11 @@ New version:%2</source>
     </message>
     <message>
         <source>findnpc with mod</source>
-        <translation type="unfinished"></translation>
+        <translation></translation>
     </message>
     <message>
         <source>findnpc</source>
-        <translation type="unfinished"></translation>
+        <translation></translation>
     </message>
 </context>
 <context>
@@ -5296,11 +5304,11 @@ New version:%2</source>
     </message>
     <message>
         <source>+</source>
-        <translation type="unfinished"></translation>
+        <translation></translation>
     </message>
     <message>
         <source>C</source>
-        <translation type="unfinished">清</translation>
+        <translation>清</translation>
     </message>
 </context>
 <context>

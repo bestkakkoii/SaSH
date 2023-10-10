@@ -194,122 +194,6 @@ bool enumAllFile(QStringList* pfilePaths, const QString& directory)
 	return true;
 }
 
-#if 0
-bool compress(const QString& source, const QString& destination)
-{
-	QString preCompressFolder = source;
-
-	QStringList list;
-	if (!enumAllFile(&list, preCompressFolder))
-	{
-		qDebug() << "enumAllFile failed";
-		return  false;
-	}
-
-	QZipWriter writer(destination);
-	writer.setCompressionPolicy(QZipWriter::AlwaysCompress);
-
-	//add files
-	for (const QString& filePath : list)
-	{
-		QFileInfo fileInfo(filePath);
-		QString relativePath = fileInfo.filePath().replace(preCompressFolder, "");
-
-		if (fileInfo.isDir())
-		{
-			writer.addDirectory(relativePath);
-			continue;
-		}
-
-		util::ScopedFile file(filePath, QIODevice::ReadOnly);
-		if (!file.isOpen())
-		{
-			qDebug() << "open file failed" << filePath;
-			continue;
-		}
-
-		writer.addFile(relativePath, &file);
-	}
-
-	//finish
-	writer.close();
-
-	return true;
-}
-
-void uncompress(const QString& savepath, const QString& filepath, bool one)
-{
-	QDir dir(savepath);
-	if (!dir.exists())
-	{
-		dir.mkpath(savepath);
-	}
-
-	QZipReader zipreader(filepath);
-	QVector<QZipReader::FileInfo> filelist = zipreader.fileInfoList();
-	qint64 size = filelist.size();
-
-	for (qint64 i = 0; i < size; ++i)
-	{
-		QZipReader::FileInfo info = filelist.value(i);
-
-		QStringList paths = info.filePath.split("/");
-		paths.removeLast();
-
-		QString path = paths.join("/");
-		path.replace("\\", "/");
-		path.replace("//", "/");
-
-		QString directory = savepath + "/" + path;
-		directory.replace("\\", "/");
-		directory.replace("//", "/");
-
-		QDir subdir(directory);
-		if (!subdir.exists())
-			dir.mkpath(directory);
-
-		QString realSavePath = savepath + "/" + info.filePath;
-		realSavePath.replace("\\", "/");
-		realSavePath.replace("//", "/");
-		if (realSavePath.contains("繁體"))
-			continue;
-
-		QFileInfo fileinfo(realSavePath);
-		if (fileinfo.suffix().isEmpty() || fileinfo.isDir())
-		{
-			QDir dir(realSavePath);
-			if (!dir.exists())
-				dir.mkpath(realSavePath);
-			continue;
-		}
-
-		QFile testfile(realSavePath);
-		if (testfile.exists())
-			testfile.remove();
-
-		if (one)
-			continue;
-
-		util::ScopedFile file(realSavePath, QIODevice::WriteOnly | QIODevice::Unbuffered | QIODevice::Truncate);
-		if (!file.isOpen())
-		{
-			qDebug() << "Failed to open file for writing: " << realSavePath;
-			continue;
-		}
-
-		QByteArray arr = zipreader.fileData(info.filePath);
-		if (!arr.isEmpty())
-			file.write(arr);
-	}
-
-	if (one)
-	{
-		zipreader.extractAll(savepath);
-	}
-}
-#endif
-
-
 bool Downloader::compress(const QString& source, const QString& destination)
 {
 	QVector<QPair<QString, QString>> list;
@@ -416,12 +300,14 @@ bool Downloader::uncompress(const QString& source, const QString& destination)
 
 QString Sha3_512(const QString& fileNamePath)
 {
-	QFile theFile(fileNamePath);
+	util::ScopedFile theFile(fileNamePath);
 	if (!theFile.exists())
 		return "\0";
-	theFile.open(QIODevice::ReadOnly);
+
+	if (!theFile.openRead())
+		return "";
+
 	const QByteArray ba = QCryptographicHash::hash(theFile.readAll(), QCryptographicHash::Sha3_512);
-	theFile.close();
 	const QString result = ba.toHex().constData();
 	return result;
 }
@@ -429,7 +315,7 @@ QString Sha3_512(const QString& fileNamePath)
 bool Downloader::checkUpdate(QString* current, QString* ptext, QString* pformated)
 {
 	{
-		util::Config config(qgetenv("JSON_PATH"));
+		util::Config config;
 		g_etag = config.read<QString>("System", "Update", "ETag");
 	}
 
@@ -652,7 +538,7 @@ Downloader::Downloader(QWidget* parent)
 		setGraphicsEffect(shadowEffect);
 	}
 
-	QMovie* movie = new QMovie("://image/jimmy.gif");
+	QMovie* movie = new QMovie(":/image/jimmy.gif");
 	if (movie != nullptr)
 	{
 		movie->setObjectName("movieLoading");
@@ -744,9 +630,7 @@ QProgressBar* Downloader::createProgressBar(qint64 startY)
 
 void Downloader::onLabelTextChanged(const QString& text)
 {
-	ui.label_3->setUpdatesEnabled(false);
 	ui.label_3->setText(text);
-	ui.label_3->setUpdatesEnabled(true);
 	ui.label_3->update();
 	ui.label_3->repaint();
 	QApplication::processEvents();
@@ -843,8 +727,8 @@ bool Downloader::downloadFile(const QString& url, const QString& filename)
 	}
 
 	bool bret = false;
-	util::ScopedFile file(filename, QIODevice::WriteOnly);
-	if (file.isOpen())
+	util::ScopedFile file(filename);
+	if (file.openWriteNew())
 	{
 		file.write(data);
 		bret = true;
@@ -987,14 +871,17 @@ void Downloader::onDownloadFinished()
 	if (reply_ == nullptr)
 		return;
 
+	QByteArray ba;
 	if (reply_->error() == QNetworkReply::NoError)
 	{
-		QByteArray ba = reply_->readAll();
-		QtConcurrent::run(this, &Downloader::overwriteCurrentExecutable, ba);
-	}
+		ba = reply_->readAll();
 
+	}
 	reply_->deleteLater();
 	reply_ = nullptr;
+	if (!ba.isEmpty())
+		overwriteCurrentExecutable(ba);
+
 }
 
 void Downloader::overwriteCurrentExecutable(QByteArray ba)
@@ -1005,17 +892,20 @@ void Downloader::overwriteCurrentExecutable(QByteArray ba)
 
 	ALREADY_RUN = true;
 
-	util::ScopedFile file(rcPath_ + szDownloadedFileName_, QIODevice::WriteOnly);
-	if (file.isOpen())
 	{
-		file.write(ba);
-		qDebug() << "Downloaded file saved to" << file.fileName();
-		emit labelTextChanged("Downloaded file saved to" + file.fileName());
-		emit progressReset(100);
-		isMain = false;
+		util::ScopedFile file(rcPath_ + szDownloadedFileName_);
+		if (file.openWriteNew())
+		{
+			file.write(ba);
+			qDebug() << "Downloaded file saved to" << file.fileName();
+			emit labelTextChanged("Downloaded file saved to" + file.fileName());
+			emit progressReset(100);
+			isMain = false;
+		}
 	}
 
 	emit progressReset(0);
+	QApplication::processEvents();
 
 	{
 		emit labelTextChanged("DOWNLOAD DOCUMENT...");
@@ -1024,6 +914,7 @@ void Downloader::overwriteCurrentExecutable(QByteArray ba)
 	}
 
 	emit progressReset(0);
+	QApplication::processEvents();
 
 	{
 		QFile tmpFile(szCurrentDotExeAsDotTmp_);
@@ -1034,6 +925,7 @@ void Downloader::overwriteCurrentExecutable(QByteArray ba)
 	emit progressReset(100);
 
 	emit labelTextChanged("BACKUPING...");
+	QApplication::processEvents();
 
 	//make a name for backup file
 	constexpr auto buildDateTime = []()
@@ -1110,11 +1002,16 @@ void Downloader::overwriteCurrentExecutable(QByteArray ba)
 	}
 
 	emit labelTextChanged("REPLACING...");
+	QApplication::processEvents();
 
 	//uncompress sash.7z to current directory
 	uncompress(rcPath_ + szDownloadedFileName_, szCurrentDirectory_.chopped(1));
 
 	emit labelTextChanged("FINISHED! READY TO RESTART!");
+	QApplication::processEvents();
+
+	QDir d(rcPath_);
+	d.removeRecursively();
 
 	{
 		// write and async run bat file
@@ -1139,7 +1036,7 @@ void Downloader::overwriteCurrentExecutable(QByteArray ba)
 	}
 
 	{
-		util::Config config(qgetenv("JSON_PATH"));
+		util::Config config;
 		config.write("System", "Update", "ETag", g_etag);
 	}
 

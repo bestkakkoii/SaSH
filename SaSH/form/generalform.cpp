@@ -58,7 +58,7 @@ GeneralForm::GeneralForm(qint64 index, QWidget* parent)
 	}
 
 	QScopedPointer <AfkForm> _pAfkForm(new AfkForm(index, nullptr));
-	Q_ASSERT(_pAfkForm.isNull());
+	Q_ASSERT(!_pAfkForm.isNull());
 	if (_pAfkForm.isNull())
 		return;
 
@@ -108,7 +108,7 @@ GeneralForm::GeneralForm(qint64 index, QWidget* parent)
 				else
 					MINT::NtTerminateProcess(GetCurrentProcess(), 0);
 			});
-}
+	}
 #endif
 #endif
 }
@@ -198,13 +198,7 @@ void GeneralForm::onComboBoxClicked()
 			pListView->setMaximumWidth(260);
 		}
 
-		const QString fileName(qgetenv("JSON_PATH"));
-		if (fileName.isEmpty())
-		{
-			return;
-		}
-
-		util::Config config(fileName);
+		util::Config config;
 		QStringList paths = config.readArray<QString>("System", "Command", "DirPath");
 		QStringList newPaths;
 
@@ -275,9 +269,6 @@ void GeneralForm::onButtonClicked()
 
 	if (name == "pushButton_addpath")
 	{
-		const QString fileName(qgetenv("JSON_PATH"));
-		if (fileName.isEmpty())
-			return;
 
 		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
 		QString newPath;
@@ -291,7 +282,7 @@ void GeneralForm::onButtonClicked()
 		if (!newPath.contains(SASH_SUPPORT_GAMENAME) || !QFile::exists(newPath))
 			return;
 
-		util::Config config(fileName);
+		util::Config config;
 		QStringList paths = config.readArray<QString>("System", "Command", "DirPath");
 		QStringList newPaths;
 
@@ -419,7 +410,7 @@ void GeneralForm::onButtonClicked()
 		if (pAfkForm_ == nullptr)
 		{
 			QScopedPointer <AfkForm> _pAfkForm(new AfkForm(currentIndex, nullptr));
-			Q_ASSERT(_pAfkForm.isNull());
+			Q_ASSERT(!_pAfkForm.isNull());
 			if (_pAfkForm.isNull())
 				return;
 
@@ -900,12 +891,8 @@ void GeneralForm::onComboBoxCurrentIndexChanged(int value)
 	Injector& injector = Injector::getInstance(currentIndex);
 	if (name == "comboBox_serverlist")
 	{
-		const QString fileName(qgetenv("JSON_PATH"));
-		if (fileName.isEmpty())
-			return;
-
 		{
-			util::Config config(fileName);
+			util::Config config;
 			config.write("System", "Server", "LastServerListSelection", ui.comboBox_serverlist->currentIndex());
 		}
 
@@ -942,10 +929,7 @@ void GeneralForm::onComboBoxCurrentIndexChanged(int value)
 
 	if (name == "comboBox_paths")
 	{
-		const QString fileName(qgetenv("JSON_PATH"));
-		if (fileName.isEmpty())
-			return;
-		util::Config config(fileName);
+		util::Config config;
 		qint64 current = ui.comboBox_paths->currentIndex();
 		if (current >= 0)
 			config.write("System", "Command", "LastSelection", ui.comboBox_paths->currentIndex());
@@ -961,10 +945,8 @@ void GeneralForm::onApplyHashSettingsToUI()
 	QHash<util::UserSetting, qint64> valueHash = injector.getValuesHash();
 	QHash<util::UserSetting, QString> stringHash = injector.getStringsHash();
 
-	const QString fileName(qgetenv("JSON_PATH"));
-	if (!fileName.isEmpty())
 	{
-		util::Config config(fileName);
+		util::Config config;
 		qint64 index = config.read<qint64>("System", "Command", "LastSelection");
 
 		if (index >= 0 && index < ui.comboBox_paths->count())
@@ -1114,7 +1096,7 @@ void GeneralForm::startGameAsync()
 		injector.currentGameExePath = path;
 
 		QScopedPointer <Server> _pServer(new Server(currentIndex, this));
-		Q_ASSERT(_pServer.isNull());
+		Q_ASSERT(!_pServer.isNull());
 		if (_pServer.isNull())
 			break;
 
@@ -1148,8 +1130,7 @@ void GeneralForm::createServerList()
 	Injector& injector = Injector::getInstance(currentIndex);
 
 	{
-		const QString fileName(qgetenv("JSON_PATH"));
-		util::Config config(fileName);
+		util::Config config;
 
 		injector.currentServerListIndex = currentListIndex;
 		list = config.readArray<QString>("System", "Server", QString("List_%1").arg(currentListIndex));

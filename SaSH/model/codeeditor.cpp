@@ -45,21 +45,21 @@ CodeEditor::CodeEditor(QWidget* parent)
 	setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Maximum);
 
 	//代碼提示autoCompletion
-#ifdef _DEBUG
-	QString apiFileName(R"(..\Debug\lib\completion_api.txt)");
-#else
-	QString apiFileName(R"(.\lib\completion_api.txt)");
-#endif
+	QStringList paths;
+	util::searchFiles(util::applicationDirPath(), "completion_api", ".txt", &paths, false);
 
-	QString content;
-	if (util::readFile(apiFileName, &content) && !content.isEmpty())
+	if (!paths.isEmpty())
 	{
-		QStringList list = content.split("\n");
-		for (const auto& it : list)
+		QString content;
+		if (util::readFile(paths.front(), &content) && !content.isEmpty())
 		{
-			apis.add(it.simplified());
+			QStringList list = content.split("\n");
+			for (const auto& it : list)
+			{
+				apis.add(it.simplified());
+			}
+			apis.prepare();
 		}
-		apis.prepare();
 	}
 
 	////Acs[None|All|Document|APIs]禁用自動補全提示功能|所有可用的資源|當前文檔中出現的名稱都自動補全提示|使用QsciAPIs類加入的名稱都自動補全提示

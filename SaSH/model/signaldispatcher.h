@@ -93,6 +93,7 @@ signals:
 	void updateMapLabelTextChanged(const QString& text);
 	void updateCursorLabelTextChanged(const QString& text);
 	void updateCoordsPosLabelTextChanged(const QString& text);
+	void updateLoginTimeLabelTextChanged(const QString& text);
 
 	void appendScriptLog(const QString& text, qint64 color = 0);
 	void appendChatLog(const QString& text, qint64 color = 0);
@@ -109,7 +110,7 @@ signals:
 	//battleForm
 	void updateTopInfoContents(const QVariant& data);
 	void updateBottomInfoContents(const QVariant& data);
-	void updateTimeLabelContents(const QString& text);
+	void updateBattleTimeLabelTextChanged(const QString& text);
 	void updateLabelCharAction(const QString& text);
 	void updateLabelPetAction(const QString& text);
 	void notifyBattleActionState(qint64 index, bool left);

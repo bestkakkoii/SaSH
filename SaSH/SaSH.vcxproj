@@ -130,6 +130,7 @@
       <StructMemberAlignment>Default</StructMemberAlignment>
       <PreprocessorDefinitions>QT_NO_BEARERMANAGEMENT;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AssemblerOutput>NoListing</AssemblerOutput>
+      <RuntimeLibrary>$(Qt_RUNTIME_)</RuntimeLibrary>
     </ClCompile>
     <Link>
       <UACExecutionLevel>RequireAdministrator</UACExecutionLevel>
@@ -151,6 +152,7 @@
       <BaseAddress>
       </BaseAddress>
       <SetChecksum>false</SetChecksum>
+      <AdditionalDependencies>$(CoreLibraryDependencies);%(AdditionalDependencies);$(Qt_LIBS_)</AdditionalDependencies>
     </Link>
     <QtTranslation>
       <BuildAction>lupdate</BuildAction>
@@ -310,7 +312,7 @@
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
-      <GenerateDebugInformation>DebugFull</GenerateDebugInformation>
+      <GenerateDebugInformation>false</GenerateDebugInformation>
     </Link>
     <QtMoc>
       <PrependInclude>stdafx.h;%(PrependInclude)</PrependInclude>

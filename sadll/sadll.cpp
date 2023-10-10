@@ -500,7 +500,7 @@ void GameService::New_lssproto_TK_send(int fd, int x, int y, const char* message
 //W2移動收包攔截
 void GameService::New_lssproto_W2_send(int fd, int x, int y, const char* message)
 {
-	PostMessageW(g_ParenthWnd, kSetMove, NULL, MAKELPARAM(x, y));
+	//PostMessageW(g_ParenthWnd, kSetMove, NULL, MAKELPARAM(x, y));
 	pLssproto_W2_send(fd, x, y, message);
 }
 
@@ -1259,25 +1259,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		DWORD numberOfBytesSent = 0UL;
 		constexpr DWORD flags = 0UL;
 		WSABUF buffer = { static_cast<ULONG>(lParam), reinterpret_cast<char*>(wParam) };
-		int nRet = WSASend(static_cast<SOCKET>(*g_GameService.g_sockfd), &buffer, 1, &numberOfBytesSent, flags, nullptr, nullptr);
-		//int nRet = g_GameService.psend(static_cast<SOCKET>(*g_GameService.g_sockfd), reinterpret_cast<char*>(wParam), static_cast<int>(lParam), NULL);
-#ifdef _DEBUG
-		if (nRet == 0)
-		{
-			std::cout << "SendPacket to GameServer:::"
-				<< " size:" << std::to_string(lParam)
-				<< " numberOfBytesSent:" << std::to_string(numberOfBytesSent)
-				<< std::endl;
-		}
-		else
-		{
-			std::cout << "SendPacket to GameServer:::"
-				<< " size:" << std::to_string(lParam)
-				<< " errorcode:" << WSAGetLastError() << std::endl;
-		}
-#else 
-		std::ignore = nRet;
-#endif
+		WSASend(static_cast<SOCKET>(*g_GameService.g_sockfd), &buffer, 1, &numberOfBytesSent, flags, nullptr, nullptr);
 		return numberOfBytesSent;
 	}
 	///////////////////////////////////////////////////////////
@@ -1564,17 +1546,17 @@ BOOL GameService::initialize(__int64 index, HWND parentHwnd, unsigned short type
 	DetourTransactionBegin();
 	DetourUpdateThread(g_MainThreadHandle);
 
-	DetourAttach(&(PVOID&)psocket, ::New_socket);
-	DetourAttach(&(PVOID&)psend, ::New_send);
+	//DetourAttach(&(PVOID&)psocket, ::New_socket);
+	//DetourAttach(&(PVOID&)psend, ::New_send);
 	DetourAttach(&(PVOID&)precv, ::New_recv);
 	DetourAttach(&(PVOID&)pclosesocket, ::New_closesocket);
 
 	//DetourAttach(&(PVOID&)pinet_addr, ::New_inet_addr);
 	//DetourAttach(&(PVOID&)pntohs, ::New_ntohs);
 
-#ifdef _DEBUG
-	DetourAttach(&(PVOID&)pconnect, ::New_connect);
-#endif
+//#ifdef _DEBUG
+//	DetourAttach(&(PVOID&)pconnect, ::New_connect);
+//#endif
 
 	DetourAttach(&(PVOID&)pSetWindowTextA, ::New_SetWindowTextA);
 	DetourAttach(&(PVOID&)pGetTickCount, ::New_GetTickCount);
@@ -1586,7 +1568,7 @@ BOOL GameService::initialize(__int64 index, HWND parentHwnd, unsigned short type
 	DetourAttach(&(PVOID&)pBattleProc, ::New_BattleProc);
 	DetourAttach(&(PVOID&)pTimeProc, ::New_TimeProc);
 	DetourAttach(&(PVOID&)pLssproto_EN_recv, ::New_lssproto_EN_recv);
-	DetourAttach(&(PVOID&)pLssproto_B_recv, ::New_lssproto_B_recv);
+	//DetourAttach(&(PVOID&)pLssproto_B_recv, ::New_lssproto_B_recv);
 	DetourAttach(&(PVOID&)pLssproto_WN_send, ::New_lssproto_WN_send);
 	DetourAttach(&(PVOID&)pLssproto_TK_send, ::New_lssproto_TK_send);
 	DetourAttach(&(PVOID&)pLssproto_W2_send, ::New_lssproto_W2_send);
@@ -1651,14 +1633,14 @@ void GameService::uninitialize()
 	DetourTransactionBegin();
 	DetourUpdateThread(g_MainThreadHandle);
 
-	DetourDetach(&(PVOID&)psocket, ::New_socket);
-	DetourDetach(&(PVOID&)psend, ::New_send);
+	//DetourDetach(&(PVOID&)psocket, ::New_socket);
+	//DetourDetach(&(PVOID&)psend, ::New_send);
 	DetourDetach(&(PVOID&)pclosesocket, ::New_closesocket);
 	//DetourDetach(&(PVOID&)pinet_addr, ::New_inet_addr);
 	//DetourDetach(&(PVOID&)pntohs, ::New_ntohs);
-#ifdef _DEBUG
-	DetourDetach(&(PVOID&)pconnect, ::New_connect);
-#endif
+//#ifdef _DEBUG
+//	DetourDetach(&(PVOID&)pconnect, ::New_connect);
+//#endif
 
 	DetourDetach(&(PVOID&)pSetWindowTextA, ::New_SetWindowTextA);
 	DetourDetach(&(PVOID&)pGetTickCount, ::New_GetTickCount);
@@ -1670,7 +1652,7 @@ void GameService::uninitialize()
 	DetourDetach(&(PVOID&)pBattleProc, ::New_BattleProc);
 	DetourDetach(&(PVOID&)pTimeProc, ::New_TimeProc);
 	DetourDetach(&(PVOID&)pLssproto_EN_recv, ::New_lssproto_EN_recv);
-	DetourDetach(&(PVOID&)pLssproto_B_recv, ::New_lssproto_B_recv);
+	//DetourDetach(&(PVOID&)pLssproto_B_recv, ::New_lssproto_B_recv);
 	DetourDetach(&(PVOID&)pLssproto_WN_send, ::New_lssproto_WN_send);
 	DetourDetach(&(PVOID&)pLssproto_TK_send, ::New_lssproto_TK_send);
 	DetourDetach(&(PVOID&)pLssproto_W2_send, ::New_lssproto_W2_send);
