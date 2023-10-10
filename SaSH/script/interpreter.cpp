@@ -179,7 +179,7 @@ void Interpreter::doString(const QString& content, Interpreter* pinterpretter, V
 
 	openLibs();
 
-	QtConcurrent::run([this]()
+	std::ignore = QtConcurrent::run([this]()
 		{
 			isRunning_.store(true, std::memory_order_release);
 			parser_.parse(0);
@@ -765,8 +765,8 @@ qint64 Interpreter::run(qint64 currentIndex, qint64 currentline, const TokenMap&
 		QString currentFileName = parser_.getScriptFileName();
 		qint64 currentLine = parser_.getCurrentLine();
 
-		QScopedPointer<Interpreter> interpreter(new Interpreter(currentIndex));
-		if (interpreter.isNull())
+		std::unique_ptr<Interpreter> interpreter(new Interpreter(currentIndex));
+		if (interpreter == nullptr)
 			return Parser::kError;
 
 		injector.currentScriptFileName = fileName;

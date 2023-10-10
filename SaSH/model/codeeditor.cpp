@@ -11,9 +11,9 @@
 
 #ifdef _WIN64
 #ifdef _DEBUG
-#pragma comment(lib, "qscintilla2_qt5x64d.lib")
+#pragma comment(lib, "qscintilla2_qt6d.lib")
 #else
-#pragma comment(lib, "qscintilla2_qt5x64.lib")
+#pragma comment(lib, "qscintilla2_qt6.lib")
 #endif
 #else
 #ifdef _DEBUG
@@ -419,7 +419,7 @@ void CodeEditor::commentSwitch()
 						index = v.value(i).indexOf("/*");
 					}
 					//remove first "--"
-					Q_UNUSED(v[i].remove(index, 2));
+					std::ignore = v[i].remove(index, 2);
 				}
 			}
 		}

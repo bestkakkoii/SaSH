@@ -2726,7 +2726,7 @@ ZRESULT TZip::Add(const TCHAR* odstzn, void* src, unsigned int len, DWORD flags)
 	keys[2] = 878082192L;
 	for (const char* cp = password; cp != 0 && *cp != 0; cp++) update_keys(keys, *cp);
 	// generate some random bytes
-	if (!has_seeded) srand(GetTickCount() ^ (unsigned long)GetDesktopWindow());
+	if (!has_seeded) srand(static_cast<int>(GetTickCount64() ^ (unsigned long long)GetDesktopWindow()));
 	char encbuf[12]; for (int i = 0; i < 12; i++) encbuf[i] = (char)((rand() >> 7) & 0xff);
 	encbuf[11] = (char)((zfi.tim >> 8) & 0xff);
 	for (int ei = 0; ei < 12; ei++) encbuf[ei] = zencode(keys, encbuf[ei]);

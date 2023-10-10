@@ -200,6 +200,16 @@ public:\
 #include <QTextStream>
 #include <QTextCodec>
 
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+#include <QGraphicsSvgItem>
+#else
+#include <QtSvgWidgets/QGraphicsSvgItem>
+#ifdef _DEBUG
+#pragma comment(lib, "Qt6SvgWidgetsd.lib")
+#else
+#pragma comment(lib, "Qt6SvgWidgets.lib")
+#endif
+#endif
 
 // container
 #include <QString>
@@ -219,7 +229,6 @@ public:\
 #include <QPointer>
 #include <QWeakPointer>
 #include <QSharedPointer>
-#include <QScopedPointer>
 // concurrent
 #include <QtConcurrentRun>
 #include <QtConcurrent/QtConcurrent>
@@ -248,8 +257,6 @@ public:\
 
 #include <3rdparty/zip.h>
 #include <3rdparty/unzip.h>
-
-#include "3rdparty/simplecrypt.h"
 
 //custom
 #include <model/indexer.h>

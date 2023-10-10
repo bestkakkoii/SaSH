@@ -115,7 +115,7 @@ bool pairCompareGreaerString(const QPair<int, QString>& pair1, const QPair<int, 
 
 void StringListModel::sort(int column, Qt::SortOrder order)
 {
-	Q_UNUSED(column);
+	std::ignore = column;
 	beginResetModel();
 
 	if (order == Qt::AscendingOrder)
@@ -177,7 +177,7 @@ void StringListModel::sort(int column, Qt::SortOrder order)
 
 bool StringListModel::insertRows(int row, int count, const QModelIndex& parent)
 {
-	Q_UNUSED(parent);
+	std::ignore = parent;
 	beginInsertRows(QModelIndex(), row, row + count - 1);
 	endInsertRows();
 	return true;
@@ -185,7 +185,7 @@ bool StringListModel::insertRows(int row, int count, const QModelIndex& parent)
 
 bool StringListModel::removeRows(int row, int count, const QModelIndex& parent)
 {
-	Q_UNUSED(parent);
+	std::ignore = parent;
 	beginRemoveRows(QModelIndex(), row, row + count - 1);
 	endRemoveRows();
 	return true;
@@ -193,8 +193,8 @@ bool StringListModel::removeRows(int row, int count, const QModelIndex& parent)
 
 bool StringListModel::moveRows(const QModelIndex& sourceParent, int sourceRow, int count, const QModelIndex& destinationParent, int destinationChild)
 {
-	Q_UNUSED(destinationParent);
-	Q_UNUSED(sourceParent);
+	std::ignore = destinationParent;
+	std::ignore = sourceParent;
 	beginMoveRows(QModelIndex(), sourceRow, sourceRow + count - 1, QModelIndex(), destinationChild);
 	endMoveRows();
 	return true;

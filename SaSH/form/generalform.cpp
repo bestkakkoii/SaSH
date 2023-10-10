@@ -57,12 +57,11 @@ GeneralForm::GeneralForm(qint64 index, QWidget* parent)
 		}
 	}
 
-	QScopedPointer <AfkForm> _pAfkForm(new AfkForm(index, nullptr));
-	Q_ASSERT(!_pAfkForm.isNull());
-	if (_pAfkForm.isNull())
+	std::unique_ptr<AfkForm> _pAfkForm(new AfkForm(index, nullptr));
+	if (_pAfkForm == nullptr)
 		return;
 
-	pAfkForm_ = _pAfkForm.take();
+	pAfkForm_ = _pAfkForm.release();
 	pAfkForm_->hide();
 
 	emit ui.comboBox_paths->clicked();
@@ -101,8 +100,8 @@ GeneralForm::GeneralForm(qint64 index, QWidget* parent)
 		QtConcurrent::run([this]()
 			{
 				Net::Authenticator* g_Authenticator = Net::Authenticator::getInstance(getIndex());
-				QScopedPointer<QString> username(new QString("satester"));
-				QScopedPointer<QString> encode_password(new QString("AwJk8DlkCUVxRMgaHDEMEHQR"));
+				std::unique_ptr<QString> username(new QString("satester"));
+				std::unique_ptr<QString> encode_password(new QString("AwJk8DlkCUVxRMgaHDEMEHQR"));
 				if (g_Authenticator->Login(*username, *encode_password))
 					isFirstInstance = true;
 				else
@@ -409,14 +408,13 @@ void GeneralForm::onButtonClicked()
 	{
 		if (pAfkForm_ == nullptr)
 		{
-			QScopedPointer <AfkForm> _pAfkForm(new AfkForm(currentIndex, nullptr));
-			Q_ASSERT(!_pAfkForm.isNull());
-			if (_pAfkForm.isNull())
+			std::unique_ptr<AfkForm> _pAfkForm(new AfkForm(currentIndex, nullptr));
+			if (_pAfkForm == nullptr)
 				return;
 
 			emit _pAfkForm->resetControlTextLanguage();
 			_pAfkForm->show();
-			pAfkForm_ = _pAfkForm.take();
+			pAfkForm_ = _pAfkForm.release();
 		}
 		else
 		{
@@ -1100,15 +1098,14 @@ void GeneralForm::startGameAsync()
 		Injector& injector = Injector::getInstance(currentIndex);
 		injector.currentGameExePath = path;
 
-		QScopedPointer <Server> _pServer(new Server(currentIndex, this));
-		Q_ASSERT(!_pServer.isNull());
-		if (_pServer.isNull())
+		std::unique_ptr<Server> _pServer(new Server(currentIndex, this));
+		if (_pServer == nullptr)
 			break;
 
 		if (!_pServer->start(this))
 			break;
 
-		injector.server.reset(_pServer.take());
+		injector.server.reset(_pServer.release());
 
 		MainObject* pMainObject = nullptr;
 		if (!thread_manager.createThread(currentIndex, &pMainObject, nullptr) || (nullptr == pMainObject))

@@ -85,6 +85,6 @@ private:
 
 	int selectedRow_ = 0;
 
-	QScopedPointer<Interpreter> interpreter_;
+	std::unique_ptr<Interpreter> interpreter_;
 
 };

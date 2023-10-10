@@ -71,31 +71,6 @@ void QThumbnailForm::initThumbnailWidget(const QList<HWND>& v)
 	m_hWnds = v;
 }
 
-//// 鼠標相對於窗體的位置 event->globalPos() - this->pos()
-//void QThumbnailForm::mousePressEvent(QMouseEvent* event)
-//{
-//	if (event->button() == Qt::LeftButton)
-//	{
-//		m_bPressed = true;
-//		m_point = event->pos();
-//	}
-//}
-//
-//// 若鼠標左鍵被按下，移動窗體位置
-//void QThumbnailForm::mouseMoveEvent(QMouseEvent* event)
-//{
-//	if (m_bPressed)
-//		move(event->pos() - m_point + pos());
-//}
-//
-//// 設置鼠標未被按下
-//void QThumbnailForm::mouseReleaseEvent(QMouseEvent* event)
-//{
-//	Q_UNUSED(event);
-//
-//	m_bPressed = false;
-//}
-
 void QThumbnailForm::start()
 {
 	show();

@@ -34,6 +34,12 @@ AfkInfoForm::AfkInfoForm(qint64 index, QWidget* parent)
 
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(index);
 	connect(&signalDispatcher, &SignalDispatcher::updateAfkInfoTable, this, &AfkInfoForm::onUpdateAfkInfoTable);
+
+	ui.tableWidget->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
+	ui.tableWidget->horizontalHeader()->setStretchLastSection(true);
+	ui.tableWidget->verticalHeader()->setSectionResizeMode(QHeaderView::Fixed);
+	ui.tableWidget->verticalHeader()->setDefaultSectionSize(11);
+
 }
 
 AfkInfoForm::~AfkInfoForm()

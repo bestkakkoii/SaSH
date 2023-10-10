@@ -976,7 +976,7 @@ void ScriptEditor::reshowBreakMarker()
 
 void ScriptEditor::on_widget_marginClicked(int margin, int line, Qt::KeyboardModifiers state)
 {
-	Q_UNUSED(margin);
+	std::ignore = margin;
 	qint64 mask = ui.widget->markersAtLine(line);
 
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(getIndex());
@@ -1132,7 +1132,7 @@ void ScriptEditor::on_comboBox_functions_currentIndexChanged(int)
 
 void ScriptEditor::on_treeWidget_functionList_itemDoubleClicked(QTreeWidgetItem* item, int column)
 {
-	Q_UNUSED(column);
+	std::ignore = column;
 	//insert selected item text to widget
 
 	if (!item)
@@ -1343,7 +1343,7 @@ void ScriptEditor::on_treeWidget_functionList_itemSelectionChanged()
 		std::sort(result.begin(), result.end(), [](const QString& a, const QString& b)
 			{
 				return a.length() < b.length();
-	});
+			});
 
 		QString markdownText = result.join("\n---\n");
 
@@ -1357,7 +1357,7 @@ void ScriptEditor::on_treeWidget_functionList_itemSelectionChanged()
 		ui.textBrowser->setUpdatesEnabled(false);
 		ui.textBrowser->setDocument(doc.data());
 		ui.textBrowser->setUpdatesEnabled(true);
-} while (false);
+	} while (false);
 }
 
 void ScriptEditor::on_treeWidget_scriptList_itemClicked(QTreeWidgetItem* item, int column)
@@ -1548,7 +1548,7 @@ void ScriptEditor::onScriptTreeWidgetDoubleClicked(QTreeWidgetItem* item, int co
 	if (!item)
 		return;
 
-	Q_UNUSED(column);
+	std::ignore = column;
 	if (item->text(0).isEmpty())
 		return;
 

@@ -227,18 +227,21 @@ Injector::CreateProcessResult Injector::createProcess(Injector::process_informat
 
 qint64 Injector::sendMessage(qint64 msg, qint64 wParam, qint64 lParam) const
 {
-	if (msg == WM_NULL)
+	if (WM_NULL == msg)
 		return 0;
 
 	DWORD_PTR dwResult = 0L;
-	SendMessageTimeoutW(pi_.hWnd, msg, wParam, lParam, SMTO_ABORTIFHUNG | SMTO_ERRORONEXIT, MessageTimeout, &dwResult);
+	SendMessageTimeoutW(pi_.hWnd, static_cast<UINT>(msg), static_cast<WPARAM>(wParam), static_cast<LPARAM>(lParam),
+		SMTO_ABORTIFHUNG | SMTO_ERRORONEXIT, static_cast<UINT>(MessageTimeout), &dwResult);
 	return static_cast<qint64>(dwResult);
 }
 
 bool Injector::postMessage(qint64 msg, qint64 wParam, qint64 lParam) const
 {
-	if (msg < 0) return false;
-	BOOL ret = PostMessageW(pi_.hWnd, msg, wParam, lParam);
+	if (WM_NULL == msg)
+		return false;
+
+	BOOL ret = PostMessageW(pi_.hWnd, static_cast<UINT>(msg), static_cast<UINT>(msg), static_cast<WPARAM>(wParam));
 	return  ret == TRUE;
 }
 
@@ -258,6 +261,7 @@ bool Injector::isHandleValid(qint64 pid)
 	return true;
 }
 
+#if 0
 DWORD WINAPI Injector::getFunAddr(const DWORD* DllBase, const char* FunName)
 {
 	// 遍歷導出表
@@ -278,6 +282,7 @@ DWORD WINAPI Injector::getFunAddr(const DWORD* DllBase, const char* FunName)
 	}
 	return (DWORD)NULL;
 }
+#endif
 
 bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short port, util::LPREMOVE_THREAD_REASON pReason)
 {
@@ -389,8 +394,13 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 		QOperatingSystemVersion version = QOperatingSystemVersion::current();
 		//Win7
 
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
 		if (mem::injectByWin7(currentIndex, pi.dwProcessId, processHandle_, dllPath, &hookdllModule_, &hGameModule_))
 			qDebug() << "inject cost:" << timer.elapsed() << "ms";
+#else
+		if (mem::injectBy64(currentIndex, processHandle_, dllPath, &hookdllModule_, &hGameModule_))
+			qDebug() << "inject cost:" << timer.elapsed() << "ms";
+#endif
 
 		if (nullptr == hookdllModule_)
 		{

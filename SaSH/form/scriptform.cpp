@@ -100,7 +100,7 @@ void ScriptForm::onScriptStarted()
 	if (injector.IS_SCRIPT_FLAG.load(std::memory_order_acquire))
 		return;
 
-	if (!interpreter_.isNull())
+	if (interpreter_ != nullptr)
 	{
 		interpreter_->requestInterruption();
 
@@ -113,7 +113,7 @@ void ScriptForm::onScriptStarted()
 	if (!injector.scriptLogModel.isNull())
 		injector.scriptLogModel->clear();
 
-	connect(interpreter_.data(), &Interpreter::finished, this, &ScriptForm::onScriptFinished, Qt::UniqueConnection);
+	connect(interpreter_.get(), &Interpreter::finished, this, &ScriptForm::onScriptFinished, Qt::UniqueConnection);
 
 	interpreter_->doFileWithThread(selectedRow_, injector.currentScriptFileName);
 
@@ -124,7 +124,7 @@ void ScriptForm::onScriptStarted()
 
 void ScriptForm::onScriptPaused()
 {
-	if (!interpreter_.isNull())
+	if (interpreter_ != nullptr)
 	{
 		if (!interpreter_->isPaused())
 		{
@@ -136,7 +136,7 @@ void ScriptForm::onScriptPaused()
 
 void ScriptForm::onScriptResumed()
 {
-	if (!interpreter_.isNull())
+	if (interpreter_ != nullptr)
 	{
 		if (interpreter_->isPaused())
 		{
@@ -148,7 +148,7 @@ void ScriptForm::onScriptResumed()
 
 void ScriptForm::onScriptStoped()
 {
-	if (!interpreter_.isNull())
+	if (interpreter_ != nullptr)
 	{
 		interpreter_->stop();
 		if (interpreter_->isPaused())
@@ -187,7 +187,7 @@ void ScriptForm::onButtonClicked()
 	}
 	else if (name == "pushButton_script_pause")
 	{
-		if (!interpreter_.isNull())
+		if (interpreter_ != nullptr)
 		{
 			if (!interpreter_->isPaused())
 				emit signalDispatcher.scriptPaused();
@@ -198,7 +198,7 @@ void ScriptForm::onButtonClicked()
 	}
 	else if (name == "pushButton_script_stop")
 	{
-		if (!interpreter_.isNull())
+		if (interpreter_ != nullptr)
 		{
 			emit signalDispatcher.scriptStoped();
 		}
@@ -256,7 +256,7 @@ void ScriptForm::loadFile(const QString& fileName, bool start)
 		return;
 
 	qint64 currentIndex = getIndex();
-	if (interpreter_.isNull())
+	if (interpreter_ == nullptr)
 	{
 		interpreter_.reset(new Interpreter(currentIndex));
 	}
@@ -390,7 +390,7 @@ void ScriptForm::onScriptTreeWidgetDoubleClicked(QTreeWidgetItem* item, int colu
 	if (!item)
 		return;
 
-	Q_UNUSED(column);
+	std::ignore = column;
 	if (item->text(0).isEmpty())
 		return;
 

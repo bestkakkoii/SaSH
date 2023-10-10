@@ -120,6 +120,13 @@ constexpr qint64 TARGET_SIDE_1_F_ROW = 24;  // 左上前一列
 constexpr qint64 TARGET_SIDE_1_B_ROW = 23;  // 左上後一列
 constexpr qint64 TARGER_THROUGH = 27;
 
+constexpr qint64 BATTLE_BP_JOIN = (1 << 0);//等待回合结束
+constexpr qint64 BATTLE_BP_PLAYER_MENU_NON = (1 << 1);//觀戰
+constexpr qint64 BATTLE_BP_BOOMERANG = (1 << 2);//迴旋鏢
+constexpr qint64 BATTLE_BP_PET_MENU_NON = (1 << 3);//觀戰
+constexpr qint64 BATTLE_BP_ENEMY_SURPRISAL = (1 << 4);//遭遇偷襲
+constexpr qint64 BATTLE_BP_PLAYER_SURPRISAL = (1 << 5);//出奇不意
+
 constexpr qint64 BC_FLG_NEW = (1LL << 0);
 constexpr qint64 BC_FLG_DEAD = (1LL << 1);	  //死亡
 constexpr qint64 BC_FLG_PLAYER = (1LL << 2);	  //玩家,玩家有異常狀態時要有此值

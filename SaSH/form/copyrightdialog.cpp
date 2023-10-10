@@ -19,11 +19,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "stdafx.h"
 #include "copyrightdialog.h"
 #include <QWhatsThis>
-#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
-#include <QGraphicsSvgItem>
-#else
-#include <QtSvgWidgets/QGraphicsSvgItem>
-#endif
+
 
 #include "util.h"
 
@@ -81,16 +77,16 @@ public:
 	}
 
 protected:
-	void mousePressEvent(QGraphicsSceneMouseEvent* event) override
+	void mousePressEvent(QGraphicsSceneMouseEvent* e) override
 	{
-		Q_UNUSED(event);
+		std::ignore = e;
 		if (!linkUrl_.isEmpty())
 			QDesktopServices::openUrl(QUrl(linkUrl_));
 	}
 
 	void paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget = nullptr) override
 	{
-		Q_UNUSED(widget);
+		std::ignore = widget;
 
 		// Draw a rounded rectangle around the item
 		QPainterPath path;

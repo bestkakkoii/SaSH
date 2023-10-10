@@ -31,6 +31,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include <exception>
 #include <stdexcept>
 
+#if 0
 class ExceptionHandler
 {
 public:
@@ -154,6 +155,7 @@ private:
 		MessageBoxW(nullptr, message.c_str(), L"Fatal Error", MB_OK | MB_ICONERROR);
 	}
 };
+#endif 
 
 class ThreadPlugin : public QObject, public Indexer
 {

@@ -674,7 +674,7 @@ void Autil::util_shrstring(QByteArray& dst, char* src, int offs)
 	if (!src || (strlen(src) < 1))
 		return;
 
-	offs = strlen(src) - (offs % strlen(src));
+	offs = static_cast<int>(strlen(src)) - (offs % strlen(src));
 	ptr = src + offs;
 	//strcpy_s(dst, dstlen, ptr);
 	dst = ptr;
@@ -768,7 +768,7 @@ int Autil::util_destring(int sliceno, char* value)
 
 	Autil::util_shr_64to256(value, slice.data(), const_cast<char*>(DEFAULTTABLE), PersonalKey.data().toUtf8().data());
 
-	return strlen(value);
+	return static_cast<int>(strlen(value));
 }
 
 // -------------------------------------------------------------------
@@ -782,9 +782,9 @@ int Autil::util_mkstring(char* buffer, char* value)
 	QByteArray t1(LBUFSIZE, '\0');
 	//memset(t1, 0, sizeof(t1));
 
-	Autil::util_256to64_shl(t1.data(), value, strlen(value), const_cast<char*>(DEFAULTTABLE), PersonalKey.data().toUtf8().data());
+	Autil::util_256to64_shl(t1.data(), value, static_cast<int>(strlen(value)), const_cast<char*>(DEFAULTTABLE), PersonalKey.data().toUtf8().data());
 	strcat_s(buffer, NETDATASIZE, ";");	// It's important to append a SEPARATOR between fields
 	strcat_s(buffer, NETDATASIZE, t1.data());
 
-	return strlen(value);
+	return static_cast<int>(strlen(value));
 }

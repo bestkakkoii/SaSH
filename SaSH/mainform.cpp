@@ -86,20 +86,16 @@ void MainForm::createMenu(QMenuBar* pMenuBar)
 	pMenuBar->setAttribute(Qt::WA_StyledBackground, true);
 	pMenuBar->clear();
 
-	auto createAction = [this](QMenu* parent, const QString& text, const QString& name, qint64 key)
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+	using KeyType = qint64;
+#else
+	using KeyType = QKeyCombination;
+#endif
+
+	auto createAction = [this](QMenu* parent, const QString& text, const QString& name, KeyType key)
 	{
 		if (!parent)
 			return;
-
-		//QString shortcutText = QKeySequence(key).toString(QKeySequence::NativeText);
-
-		//QFontMetrics fontMetrics(QApplication::font());
-		//qint64 textWidth = fontMetrics.horizontalAdvance(text);
-		//qint64 shortcutWidth = fontMetrics.horizontalAdvance(shortcutText);
-		//constexpr qint64 totalWidth = 130;  // 文本和快捷键部分的总宽度
-		//qint64 spaceCount = (totalWidth - textWidth - shortcutWidth) / fontMetrics.horizontalAdvance(' ');
-
-		//QString alignedText = text + QString(spaceCount, ' ') + shortcutText;
 
 		QString newText = text;
 		bool isCheck = false;
@@ -157,9 +153,9 @@ void MainForm::createMenu(QMenuBar* pMenuBar)
 		parent->addAction(pAction);
 	};
 
-	auto create = [&createAction](const QVector<std::tuple<QString, QString, qint64>>& table, QMenu* pMenu)
+	auto create = [&createAction](const QVector<std::tuple<QString, QString, KeyType>>& table, QMenu* pMenu)
 	{
-		for (const std::tuple<QString, QString, qint64>& tuple : table)
+		for (const std::tuple<QString, QString, KeyType>& tuple : table)
 		{
 			if (std::get<0>(tuple).isEmpty() || std::get<1>(tuple).isEmpty())
 			{
@@ -171,7 +167,7 @@ void MainForm::createMenu(QMenuBar* pMenuBar)
 		}
 	};
 
-	const QVector<std::tuple<QString, QString, qint64>> systemTable = {
+	const QVector<std::tuple<QString, QString, KeyType>> systemTable = {
 		{ QObject::tr("hide"), "actionHide", Qt::Key_F9},
 		{ "^" + QObject::tr("hidebar"), "actionHideBar", Qt::Key_unknown},
 		{ "^" + QObject::tr("hidecontrol"), "actionHideControl", Qt::Key_unknown},
@@ -185,30 +181,30 @@ void MainForm::createMenu(QMenuBar* pMenuBar)
 		{ QObject::tr("closeAll"), "actionCloseAll", Qt::Key_unknown },
 	};
 
-	const QVector<std::tuple<QString, QString, qint64>> otherTable = {
+	const QVector<std::tuple<QString, QString, KeyType>> otherTable = {
 		{ QObject::tr("otherinfo"), "actionOtherInfo", Qt::Key_F5 },
 		{ QObject::tr("scripteditor"), "actionScriptEditor", Qt::Key_F7 },
 		{ "","", Qt::Key_unknown },
 		{ QObject::tr("map"), "actionMap", Qt::Key_F8 },
 	};
 
-	const QVector<std::tuple<QString, QString, qint64>> fileTable = {
+	const QVector<std::tuple<QString, QString, KeyType>> fileTable = {
 		{ QObject::tr("save"), "actionSave", Qt::CTRL | Qt::Key_S },
 		{ QObject::tr("load"), "actionLoad", Qt::CTRL | Qt::Key_O },
 		{ "","", Qt::Key_unknown },
 		{ QObject::tr("checkupdate"), "actionUpdate", Qt::CTRL | Qt::Key_U },
 	};
 
-	QScopedPointer<QMenu> pMenuSystem(new QMenu(QObject::tr("system")));
-	QScopedPointer<QMenu> pMenuOther(new QMenu(QObject::tr("other")));
-	QScopedPointer<QMenu> pMenuFile(new QMenu(QObject::tr("file")));
+	std::unique_ptr<QMenu> pMenuSystem(new QMenu(QObject::tr("system")));
+	std::unique_ptr<QMenu> pMenuOther(new QMenu(QObject::tr("other")));
+	std::unique_ptr<QMenu> pMenuFile(new QMenu(QObject::tr("file")));
 
-	if (pMenuSystem.isNull() || pMenuOther.isNull() || pMenuFile.isNull())
+	if (pMenuSystem == nullptr || pMenuOther == nullptr || pMenuFile == nullptr)
 		return;
 
-	QMenu* _pMenuSystem = pMenuSystem.take();
-	QMenu* _pMenuOther = pMenuOther.take();
-	QMenu* _pMenuFile = pMenuFile.take();
+	QMenu* _pMenuSystem = pMenuSystem.release();
+	QMenu* _pMenuOther = pMenuOther.release();
+	QMenu* _pMenuFile = pMenuFile.release();
 
 	pMenuBar->addMenu(_pMenuSystem);
 	pMenuBar->addMenu(_pMenuOther);
@@ -280,9 +276,9 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 		if (injector.isValid() && !injector.server.isNull())
 		{
 			qint64 index = getIndex();
-			QtConcurrent::run([index]() {
+			std::ignore = QtConcurrent::run([index]() {
 				Injector& injector = Injector::getInstance(index);
-				Q_UNUSED(injector.server->getPoint());
+				std::ignore = injector.server->getPoint();
 				});
 
 		}
@@ -1653,7 +1649,11 @@ void MainForm::resetControlTextLanguage()
 	QString buildTime = compile::buildDateTime(nullptr);
 	//take off year
 	buildTime = buildTime.mid(4);
-	setWindowTitle(QString("[%1]").arg(currentIndex) + tr("SaSH - %1").arg(buildTime));
+#ifdef _WIN64
+	setWindowTitle(QString("[%1]").arg(currentIndex) + tr("SaSH - %1").arg(buildTime).simplified().replace("SaSH", "SaSHx64"));
+#else
+	setWindowTitle(QString("[%1]").arg(currentIndex) + tr("SaSH - %1").arg(buildTime).simplified());
+#endif
 
 	if (pMenuBar_)
 	{
@@ -1720,6 +1720,9 @@ void MainForm::onUpdateStatusLabelTextChanged(qint64 status)
 		{ util::kLabelNoUserNameOrPassword, tr("no username or password") },
 		{ util::kLabelStatusDisconnected, tr("disconnected")},
 		{ util::kLabelStatusConnecting, tr("connecting")},
+		{ util::kLabelStatusNoUsernameAndPassword, tr("no account and password")},
+		{ util::kLabelStatusNoUsername, tr("no account")},
+		{ util::kLabelStatusNoPassword, tr("no password")},
 	};
 
 	Injector& injector = Injector::getInstance(getIndex());
@@ -1754,7 +1757,11 @@ void MainForm::onUpdateStonePosLabelTextChanged(qint64 ntext)
 void MainForm::onUpdateMainFormTitle(const QString& text)
 {
 	qint64 currentIndex = getIndex();
+#ifdef _WIN64
+	setWindowTitle(QString("[%1]SaSH-%2").arg(currentIndex).arg(text).simplified().replace("SaSH-", "SaSHx64-"));
+#else
 	setWindowTitle(QString("[%1]SaSH-%2").arg(currentIndex).arg(text));
+#endif
 }
 
 void MainForm::onSaveHashSettings(const QString& name, bool isFullPath)
@@ -1960,7 +1967,7 @@ void MainForm::onMessageBoxShow(const QString& text, qint64 type, QString title,
 	else
 		icon = QMessageBox::Icon::Information;
 
-	QScopedPointer<QMessageBox> msgBox(new QMessageBox());
+	std::unique_ptr<QMessageBox> msgBox(new QMessageBox());
 	if (msgBox == nullptr)
 		return;
 
@@ -1998,13 +2005,17 @@ void MainForm::onMessageBoxShow(const QString& text, qint64 type, QString title,
 		msgBox->setText(topText);
 	}
 
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
 	msgBox->setButtonText(QMessageBox::Ok, tr("ok"));
 	msgBox->setButtonText(QMessageBox::Cancel, tr("cancel"));
 	msgBox->setButtonText(QMessageBox::Yes, tr("yes"));
 	msgBox->setButtonText(QMessageBox::No, tr("no"));
-
-	Q_UNUSED(tr("Show Details..."));
-	Q_UNUSED(tr("Hide Details..."));
+#else
+	//msgBox->addButton(tr("ok"), QMessageBox::ButtonRole::AcceptRole);
+	//msgBox->addButton(tr("cancel"), QMessageBox::ButtonRole::RejectRole);
+	msgBox->addButton(tr("yes"), QMessageBox::ButtonRole::YesRole);
+	msgBox->addButton(tr("no"), QMessageBox::ButtonRole::NoRole);
+#endif
 
 	qint64 ret = msgBox->exec();
 	if (ret == QDialog::Rejected)
@@ -2035,8 +2046,8 @@ void MainForm::onInputBoxShow(const QString& text, qint64 type, QVariant* retval
 	newText.replace("\\f", "\f");
 	newText.replace("\\a", "\a");
 
-	QScopedPointer<QInputDialog> inputDialog = QScopedPointer<QInputDialog>(new QInputDialog());
-	if (inputDialog.isNull())
+	std::unique_ptr<QInputDialog> inputDialog(new QInputDialog());
+	if (inputDialog == nullptr)
 		return;
 
 	if (pEventLoop != nullptr)
@@ -2124,13 +2135,13 @@ void MainForm::onFileDialogShow(const QString& name, qint64 acceptType, QString*
 		pEventLoop = static_cast<QEventLoop*>(p);
 	}
 
-	QScopedPointer<QFileDialog> dialog(new QFileDialog());
+	std::unique_ptr<QFileDialog> dialog(new QFileDialog());
 	if (dialog == nullptr)
 		return;
 
 	if (pEventLoop != nullptr)
 	{
-		connect(dialog.data(), &QFileDialog::finished, pEventLoop, &QEventLoop::quit);
+		connect(dialog.get(), &QFileDialog::finished, pEventLoop, &QEventLoop::quit);
 	}
 
 	dialog->setAttribute(Qt::WA_QuitOnClose);
@@ -2160,7 +2171,7 @@ void MainForm::onFileDialogShow(const QString& name, qint64 acceptType, QString*
 		dialog->setNameFilters(filters);
 	}
 
-	dialog->setOption(QFileDialog::ShowDirsOnly, true);
+	dialog->setOption(QFileDialog::ShowDirsOnly, false);
 	dialog->setOption(QFileDialog::DontResolveSymlinks, true);
 	dialog->setOption(QFileDialog::DontConfirmOverwrite, true);
 	dialog->setOption(QFileDialog::DontUseNativeDialog, true);

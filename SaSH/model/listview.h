@@ -67,7 +67,7 @@ private:
 	void getAllList(QVector<QString>& list, QVector<qint64>& colorlist) const { QReadLocker locker(&m_stringlistLocker); list = m_list; colorlist = m_colorlist; }
 	void setAllList(const QVector<QString>& list, const QVector<qint64>& colorlist) { QWriteLocker locker(&m_stringlistLocker); m_list = list; m_colorlist = colorlist; }
 
-	QModelIndex sibling(int row, int column, const QModelIndex& idx) const override { Q_UNUSED(idx); return createIndex(row, column); }
+	QModelIndex sibling(int row, int column, const QModelIndex& idx) const override { std::ignore = idx; return createIndex(row, column); }
 
 	bool insertRows(int row, int count, const QModelIndex& parent = QModelIndex()) override;
 
@@ -77,7 +77,7 @@ private:
 
 	QMap<int, QVariant> itemData(const QModelIndex& index) const override;
 
-	bool setItemData(const QModelIndex& index, const QMap<int, QVariant>& roles) override { Q_UNUSED(index); Q_UNUSED(roles); return true; }
+	bool setItemData(const QModelIndex& index, const QMap<int, QVariant>& roles) override { std::ignore = index; std::ignore = roles; return true; }
 
 	void sort(int column, Qt::SortOrder order = Qt::AscendingOrder) override;
 

@@ -1,13 +1,3 @@
-// 提示檔案會協助 Visual Studio IDE 解譯 Visual C++ 識別碼
+﻿// 提示檔案會協助 Visual Studio IDE 解譯 Visual C++ 識別碼
 // 例如函式和巨集的名稱。
 // 如需詳細資訊，請參閱 https://go.microsoft.com/fwlink/?linkid=865984
-#define Q_REQUIRED_RESULT
-#define Q_REQUIRED_RESULT __attribute__ ((__warn_unused_result__))
-#define Q_REQUIRED_RESULT [[nodiscard]]
-#define Q_DECLARE_METATYPE(TYPE) Q_DECLARE_METATYPE_IMPL(TYPE)
-#define slots
-#define Q_INVOKABLE QT_ANNOTATE_FUNCTION(qt_invokable)
-#define Q_INVOKABLE
-#define Q_D(Class) Class##Private * const d = d_func()
-#define Q_OBJECT public: QT_WARNING_PUSH Q_OBJECT_NO_OVERRIDE_WARNING static const QMetaObject staticMetaObject; virtual const QMetaObject *metaObject() const; virtual void *qt_metacast(const char *); virtual int qt_metacall(QMetaObject::Call, int, void **); QT_TR_FUNCTIONS private: Q_OBJECT_NO_ATTRIBUTES_WARNING Q_DECL_HIDDEN_STATIC_METACALL static void qt_static_metacall(QObject *, QMetaObject::Call, int, void **); QT_WARNING_POP struct QPrivateSignal {}; QT_ANNOTATE_CLASS(qt_qobject, "")
-#define Q_OBJECT

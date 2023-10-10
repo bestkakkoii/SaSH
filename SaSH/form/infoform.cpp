@@ -93,12 +93,12 @@ InfoForm::InfoForm(qint64 index, qint64 defaultPage, QWidget* parent)
 	//	ui.tabWidget->addTab(pPetInfoForm_, tr("petinfo"));
 	//}
 
-	//pAfkInfoForm_ = new AfkInfoForm(index, nullptr);
-	//Q_ASSERT(pAfkInfoForm_ != nullptr);
-	//if (pAfkInfoForm_ != nullptr)
-	//{
-	//	ui.tabWidget->addTab(pAfkInfoForm_, tr("afkinfo"));
-	//}
+	pAfkInfoForm_ = new AfkInfoForm(index, nullptr);
+	Q_ASSERT(pAfkInfoForm_ != nullptr);
+	if (pAfkInfoForm_ != nullptr)
+	{
+		ui.tabWidget->addTab(pAfkInfoForm_, tr("afkinfo"));
+	}
 
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(index);
 
@@ -155,7 +155,7 @@ void InfoForm::onResetControlTextLanguage()
 	ui.tabWidget->setTabText(n++, tr("chatinfo"));
 	//ui.tabWidget->setTabText(n++, tr("mailinfo"));
 	//ui.tabWidget->setTabText(n++, tr("petinfo"));
-	//ui.tabWidget->setTabText(n++, tr("afkinfo"));
+	ui.tabWidget->setTabText(n++, tr("afkinfo"));
 
 	pCharInfoForm_->onResetControlTextLanguage();
 	pItemInfoForm_->onResetControlTextLanguage();

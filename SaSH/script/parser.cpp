@@ -972,7 +972,7 @@ void Parser::initialize(Parser* pparent)
 			else if (ovalue.is<double>())
 			{
 				result = util::toQString(ovalue.as<double>());
-				while (!result.isEmpty() && result.back() == "0")
+				while (!result.isEmpty() && result.back() == '0')
 					result.chop(1);
 			}
 
@@ -5491,6 +5491,6 @@ void Parser::processVariableExpr()
 	}
 
 	insertVar(varName, result);
-		}
+}
 #endif
 #pragma endregion

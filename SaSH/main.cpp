@@ -256,9 +256,9 @@ LONG CALLBACK MinidumpCallback(PEXCEPTION_POINTERS pException)
 				"ExceptionFlags:%2\r\n"
 				"ExceptionCode:0x%3\r\n"
 				"NumberParameters:%4")
-				.arg(util::toQString((DWORD)pException->ExceptionRecord->ExceptionAddress, 16))
+				.arg(util::toQString((quint64)pException->ExceptionRecord->ExceptionAddress, 16))
 				.arg(pException->ExceptionRecord->ExceptionFlags == EXCEPTION_NONCONTINUABLE ? "NON CONTINUEABLE" : "CONTINUEABLE")
-				.arg(util::toQString((DWORD)pException->ExceptionRecord->ExceptionCode, 16))
+				.arg(util::toQString((quint64)pException->ExceptionRecord->ExceptionCode, 16))
 				.arg(pException->ExceptionRecord->NumberParameters);
 
 			//Open dump folder
@@ -285,7 +285,7 @@ LONG CALLBACK MinidumpCallback(PEXCEPTION_POINTERS pException)
 				"ExceptionFlags:%2\r\n"
 				"ExceptionCode:0x%3\r\n"
 				"NumberParameters:%4")
-				.arg(util::toQString((DWORD)pException->ExceptionRecord->ExceptionAddress, 16))
+				.arg(util::toQString(reinterpret_cast<qint64>(pException->ExceptionRecord->ExceptionAddress), 16))
 				.arg(pException->ExceptionRecord->ExceptionFlags == EXCEPTION_NONCONTINUABLE ? "NON CONTINUEABLE" : "CONTINUEABLE")
 				.arg(util::toQString((DWORD)pException->ExceptionRecord->ExceptionCode, 16))
 				.arg(pException->ExceptionRecord->NumberParameters);
@@ -350,8 +350,10 @@ int main(int argc, char* argv[])
 
 	//DPI相關設置
 	QApplication::setAttribute(Qt::AA_Use96Dpi, true);// DPI support
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
 	QApplication::setAttribute(Qt::AA_EnableHighDpiScaling, true);
 	QApplication::setAttribute(Qt::AA_UseHighDpiPixmaps, true);
+#endif
 	//QApplication::setAttribute(Qt::AA_ShareOpenGLContexts, true);
 	//QApplication::setAttribute(Qt::AA_UseDesktopOpenGL, true);//AA_UseDesktopOpenGL, AA_UseOpenGLES, AA_UseSoftwareOpenGL
 	QApplication::setHighDpiScaleFactorRoundingPolicy(Qt::HighDpiScaleFactorRoundingPolicy::PassThrough);
@@ -381,8 +383,10 @@ int main(int argc, char* argv[])
 	//preventSetUnhandledExceptionFilter();
 	qSetMessagePattern("[%{threadid}] [@%{line}] [%{function}] [%{type}] %{message}");//%{file} 
 
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
 	a.setStyle(QStyleFactory::create("windows"));
 	a.setDesktopSettingsAware(false);
+#endif
 
 	//Qt全局編碼設置
 	QTextCodec* codec = QTextCodec::codecForName(util::DEFAULT_CODEPAGE);

@@ -245,6 +245,7 @@ bool mem::virtualFree(HANDLE hProcess, quint64 baseAddress)
 	return ret == TRUE;
 }
 
+#ifndef _WIN64
 DWORD mem::getRemoteModuleHandle(DWORD dwProcessId, const QString& moduleName)
 {
 	//获取进程快照中包含在th32ProcessID中指定的进程的所有的模块。
@@ -273,6 +274,7 @@ DWORD mem::getRemoteModuleHandle(DWORD dwProcessId, const QString& moduleName)
 
 	return NULL;
 }
+#endif
 
 void mem::freeUnuseMemory(HANDLE hProcess)
 {
@@ -280,6 +282,8 @@ void mem::freeUnuseMemory(HANDLE hProcess)
 	K32EmptyWorkingSet(hProcess);
 }
 
+#if 0
+#ifdef _WIN64
 DWORD mem::getFunAddr(const DWORD* DllBase, const char* FunName)
 {
 	// 遍歷導出表
@@ -300,6 +304,8 @@ DWORD mem::getFunAddr(const DWORD* DllBase, const char* FunName)
 	}
 	return (DWORD)NULL;
 }
+#endif
+#endif
 
 HMODULE mem::getRemoteModuleHandleByProcessHandleW(HANDLE hProcess, const QString& szModuleName)
 {
@@ -339,7 +345,7 @@ long mem::getProcessExportTable32(HANDLE hProcess, const QString& ModuleName, IA
 	memset(strName, 0, sizeof(strName));
 
 	//拿到目標模塊的BASE
-	muBase = (ULONG)getRemoteModuleHandleByProcessHandleW(hProcess, ModuleName);
+	muBase = static_cast<ULONG>(reinterpret_cast<qint64>(getRemoteModuleHandleByProcessHandleW(hProcess, ModuleName)));
 	if (!muBase)
 	{
 		return 0;
@@ -416,6 +422,7 @@ ULONG64 mem::getProcAddressIn32BitProcess(HANDLE hProcess, const QString& Module
 	return RetAddr;
 }
 
+#ifndef _WIN64
 bool mem::injectByWin7(qint64 index, DWORD dwProcessId, HANDLE hProcess, QString dllPath, HMODULE* phDllModule, quint64* phGameModule)
 {
 	HMODULE hModule = nullptr;
@@ -487,6 +494,7 @@ bool mem::injectByWin7(qint64 index, DWORD dwProcessId, HANDLE hProcess, QString
 		qDebug() << "inject OK" << "0x" + util::toQString(reinterpret_cast<qint64>(hModule), 16) << "time:" << timer.elapsed() << "ms";
 	return true;
 }
+#endif
 
 bool mem::injectBy64(qint64 index, HANDLE hProcess, QString dllPath, HMODULE* phDllModule, quint64* phGameModule)
 {
@@ -591,7 +599,7 @@ bool mem::injectBy64(qint64 index, HANDLE hProcess, QString dllPath, HMODULE* ph
 	}
 
 	if (phDllModule != nullptr)
-		*phDllModule = reinterpret_cast<HMODULE>(d.remoteModule);
+		*phDllModule = reinterpret_cast<HMODULE>(static_cast<qint64>(d.remoteModule));
 
 	if (phGameModule != nullptr)
 		*phGameModule = d.gameModule;
@@ -600,6 +608,7 @@ bool mem::injectBy64(qint64 index, HANDLE hProcess, QString dllPath, HMODULE* ph
 	return d.gameModule > 0 && d.remoteModule > 0;
 }
 
+#if 0
 bool mem::inject(qint64 index, HANDLE hProcess, QString dllPath, HMODULE* phDllModule, quint64* phGameModule)
 {
 	struct InjectData
@@ -691,6 +700,7 @@ bool mem::inject(qint64 index, HANDLE hProcess, QString dllPath, HMODULE* phDllM
 	qDebug() << "inject OK" << "0x" + util::toQString(d.remoteModule, 16);
 	return d.gameModule > 0 && d.remoteModule > 0;
 }
+#endif
 
 bool mem::enumProcess(QVector<qint64>* pprocesses, const QString& moduleName)
 {
@@ -1098,7 +1108,6 @@ QList<util::MapData> util::Config::readMapData(const QString& key) const
 
 void util::FormSettingManager::loadSettings()
 {
-	util::Crypt crypt;
 	Config config;
 
 	QString ObjectName;
@@ -1127,14 +1136,14 @@ void util::FormSettingManager::loadSettings()
 	QByteArray geometry;
 	QString qstrGeometry = config.read<QString>("Form", ObjectName, "Geometry");
 	if (!qstrGeometry.isEmpty())
-		geometry = crypt.decryptToByteArray(qstrGeometry);//DECODE
+		geometry = util::hexStringToByteArray(qstrGeometry);//DECODE
 
 	if (mainwindow_ != nullptr)
 	{
 		QByteArray state;
 		QString qstrState = config.read<QString>("Form", ObjectName, "State");
 		if (!qstrState.isEmpty())
-			state = crypt.decryptToByteArray(qstrState);//DECODE
+			state = util::hexStringToByteArray(qstrState);//DECODE
 		mainwindow_->resize(size);
 		if (!geometry.isEmpty())
 			mainwindow_->restoreGeometry(geometry);
@@ -1151,7 +1160,6 @@ void util::FormSettingManager::loadSettings()
 }
 void util::FormSettingManager::saveSettings()
 {
-	util::Crypt crypt;
 	Config config;
 	QString ObjectName;
 	QString qstrGeometry;
@@ -1160,15 +1168,15 @@ void util::FormSettingManager::saveSettings()
 	if (mainwindow_ != nullptr)
 	{
 		ObjectName = mainwindow_->objectName();
-		qstrGeometry = crypt.encryptFromByteArray(mainwindow_->saveGeometry());//ENCODE
-		qstrState = crypt.encryptFromByteArray(mainwindow_->saveState(3));//ENCODE
+		qstrGeometry = util::byteArrayToHexString(mainwindow_->saveGeometry());//ENCODE
+		qstrState = util::byteArrayToHexString(mainwindow_->saveState(3));//ENCODE
 		size = mainwindow_->size();
 		config.write("Form", ObjectName, "State", qstrState);
 	}
 	else
 	{
 		ObjectName = widget_->objectName();
-		qstrGeometry = crypt.encryptFromByteArray(widget_->saveGeometry());//ENCODE
+		qstrGeometry = util::byteArrayToHexString(widget_->saveGeometry());//ENCODE
 		size = widget_->size();
 	}
 
@@ -1203,8 +1211,8 @@ QFileInfoList util::loadAllFileLists(
 		if (!readFile(item.absoluteFilePath(), &content))
 			continue;
 
-		QScopedPointer<TreeWidgetItem> child(new TreeWidgetItem(QStringList{ item.fileName() }, 1));
-		if (child.isNull())
+		std::unique_ptr<TreeWidgetItem> child(new TreeWidgetItem(QStringList{ item.fileName() }, 1));
+		if (child == nullptr)
 			continue;
 
 		child->setData(0, Qt::UserRole, "file");
@@ -1212,7 +1220,7 @@ QFileInfoList util::loadAllFileLists(
 		child->setIcon(0, QIcon(QPixmap(icon)));
 
 		if (root != nullptr)
-			root->addChild(child.take());
+			root->addChild(child.release());
 
 		if (list != nullptr)
 			list->append(item.fileName());
@@ -1229,15 +1237,15 @@ QFileInfoList util::loadAllFileLists(
 		if (list != nullptr)
 			list->append(name);
 
-		QScopedPointer<TreeWidgetItem> childroot(new TreeWidgetItem(QStringList{ name }, 1));
-		if (childroot.isNull())
+		std::unique_ptr<TreeWidgetItem> childroot(new TreeWidgetItem(QStringList{ name }, 1));
+		if (childroot == nullptr)
 			continue;
 
 		childroot->setToolTip(0, namepath);
 		childroot->setData(0, Qt::UserRole, "folder");
 		childroot->setIcon(0, QIcon(QPixmap(folderIcon)));
 
-		TreeWidgetItem* item = childroot.take();
+		TreeWidgetItem* item = childroot.release();
 
 		if (root != nullptr)
 			root->addChild(item); //將當前目錄添加成path的子項
@@ -1272,10 +1280,10 @@ QFileInfoList util::loadAllFileLists(
 
 	for (const QFileInfo& item : list_file)
 	{
-		QScopedPointer<TreeWidgetItem> child(new TreeWidgetItem(QStringList{ item.fileName() }, 1));
+		std::unique_ptr<TreeWidgetItem> child(new TreeWidgetItem(QStringList{ item.fileName() }, 1));
 		bool bret = false;
 
-		if (child.isNull())
+		if (child == nullptr)
 			continue;
 
 		QString content;
@@ -1288,7 +1296,7 @@ QFileInfoList util::loadAllFileLists(
 		child->setIcon(0, QIcon(QPixmap(fileIcon)));
 
 		if (root != nullptr)
-			root->addChild(child.take());
+			root->addChild(child.release());
 
 		if (list != nullptr)
 			list->append(item.fileName());
@@ -1306,8 +1314,8 @@ QFileInfoList util::loadAllFileLists(
 		const QFileInfo folderinfo = folder_list.value(i);
 		const QString name = folderinfo.fileName(); //獲取目錄名
 
-		QScopedPointer<TreeWidgetItem> childroot(new TreeWidgetItem());
-		if (childroot.isNull())
+		std::unique_ptr<TreeWidgetItem> childroot(new TreeWidgetItem());
+		if (childroot == nullptr)
 			continue;
 
 		childroot->setText(0, name);
@@ -1315,7 +1323,7 @@ QFileInfoList util::loadAllFileLists(
 		childroot->setData(0, Qt::UserRole, "folder");
 		childroot->setIcon(0, QIcon(QPixmap(folderIcon)));
 
-		TreeWidgetItem* item = childroot.take();
+		TreeWidgetItem* item = childroot.release();
 
 		//將當前目錄添加成path的子項
 		if (root != nullptr)
@@ -1716,7 +1724,7 @@ QFont util::getFont()
 	//font.setStyleName(const QString & styleName);
 	font.setStyleStrategy(QFont::StyleStrategy::NoAntialias/*QFont::StyleStrategy::PreferAntialias*/);
 	font.setUnderline(false);
-	font.setWeight(60);
+	font.setWeight(QFont::Weight::Medium);
 	font.setWordSpacing(0.0);
 	return font;
 }
@@ -1894,4 +1902,34 @@ bool util::writeFile(const QString& fileName, const QString& content)
 	f.write(ba);
 	f.flush();
 	return true;
+}
+
+// 將二進制數據轉換為16進制字符串
+QString util::byteArrayToHexString(const QByteArray& data)
+{
+	QString hexString;
+	for (char byte : data)
+	{
+		hexString.append(QString("%1").arg(static_cast<unsigned char>(byte), 2, 16, QChar('0')));
+	}
+	return hexString;
+}
+
+// 將16進制字符串轉換為二進制數據
+QByteArray util::hexStringToByteArray(const QString& hexString)
+{
+	QByteArray byteArray;
+	for (int i = 0; i < hexString.length(); i += 2)
+	{
+		bool ok;
+		QString byteString = hexString.mid(i, 2);
+		char byte = static_cast<char>(byteString.toInt(&ok, 16));
+		if (!ok)
+		{
+			// 處理轉換失敗的情況
+			return QByteArray();
+		}
+		byteArray.append(byte);
+	}
+	return byteArray;
 }

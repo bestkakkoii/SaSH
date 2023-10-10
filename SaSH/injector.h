@@ -180,7 +180,9 @@ private:
 
 	Q_REQUIRED_RESULT bool isHandleValid(qint64 pid);
 
+#if 0
 	DWORD WINAPI getFunAddr(const DWORD* DllBase, const char* FunName);
+#endif
 
 public:
 	QString currentGameExePath;//當前使用的遊戲進程完整路徑

@@ -56,7 +56,7 @@ private:
 
 	QHash<int, QPoint> npc_hash_;
 
-	QScopedPointer<Interpreter> interpreter_;
+	std::unique_ptr<Interpreter> interpreter_;
 
 	static QHash<qint64, QHash<QPoint, QString>> entrances_;
 };

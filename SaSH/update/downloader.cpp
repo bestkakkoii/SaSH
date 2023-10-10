@@ -42,7 +42,7 @@ void setHeader(QNetworkRequest* prequest)
 
 	QSslConfiguration sslConf = prequest->sslConfiguration();
 	sslConf.setPeerVerifyMode(QSslSocket::VerifyNone);
-	sslConf.setProtocol(QSsl::TlsV1SslV3);
+	sslConf.setProtocol(QSsl::TlsV1_3OrLater);
 	prequest->setSslConfiguration(sslConf);
 
 	prequest->setRawHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Safari/537.36 Edg/107.0.1418.35");
@@ -571,7 +571,7 @@ Downloader::Downloader(QWidget* parent)
 
 Downloader::~Downloader()
 {
-	if (!networkManager_.isNull())
+	if (networkManager_ != nullptr)
 		networkManager_->deleteLater();
 
 	if (reply_ != nullptr)
@@ -651,7 +651,7 @@ void Downloader::onProgressBarReset(qint64 value)
 
 bool Downloader::download(const QString& url, QByteArray* pbyteArray)
 {
-	if (networkManager_.isNull())
+	if (networkManager_ == nullptr)
 		return false;
 
 	networkManager_->clearAccessCache();
@@ -784,7 +784,7 @@ void Downloader::onErrorOccurred(QNetworkReply::NetworkError code)
 	emit labelTextChanged("Network error:" + errorString);
 
 	qint64 per = progressBar->value() / 10;
-	QtConcurrent::run([this, per]()
+	std::ignore = QtConcurrent::run([this, per]()
 		{
 			for (qint64 i = 10; i >= 0; --i)
 			{
@@ -818,7 +818,7 @@ QString Downloader::oneShotDownload(const QString& url)
 
 void Downloader::start()
 {
-	if (networkManager_.isNull())
+	if (nullptr == networkManager_)
 		return;
 
 	networkManager_->clearAccessCache();

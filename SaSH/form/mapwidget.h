@@ -111,7 +111,7 @@ private:
 
 	Ui::MapWidgetClass ui;
 
-	QScopedPointer<Interpreter> interpreter_;
+	std::unique_ptr<Interpreter> interpreter_;
 
 	QPointF curMousePos_ = { 0,0 };
 

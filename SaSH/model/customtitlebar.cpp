@@ -115,27 +115,27 @@ void CustomTitleBar::onTitleChanged(const QString& title)
 	}
 }
 
-void CustomTitleBar::mouseDoubleClickEvent(QMouseEvent* event)
+void CustomTitleBar::mouseDoubleClickEvent(QMouseEvent* e)
 {
-	Q_UNUSED(event);
+	std::ignore = e;
 	if (maximizeButton_ == nullptr)
 		return;
 	toggleMaximize();
 }
 
-void CustomTitleBar::mousePressEvent(QMouseEvent* event)
+void CustomTitleBar::mousePressEvent(QMouseEvent* e)
 {
-	if (event->button() == Qt::LeftButton)
+	if (e->button() == Qt::LeftButton)
 	{
-		dragStartPosition_ = event->pos();
+		dragStartPosition_ = e->pos();
 	}
 }
 
-void CustomTitleBar::mouseMoveEvent(QMouseEvent* event)
+void CustomTitleBar::mouseMoveEvent(QMouseEvent* e)
 {
-	if (event->buttons() & Qt::LeftButton)
+	if (e->buttons() & Qt::LeftButton)
 	{
-		if ((event->pos() - dragStartPosition_).manhattanLength() >= QApplication::startDragDistance())
+		if ((e->pos() - dragStartPosition_).manhattanLength() >= QApplication::startDragDistance())
 		{
 			QWidget* parentWindow = qobject_cast<QWidget*>(parent());
 			if (parentWindow && parentWindow->isMaximized())
@@ -143,16 +143,16 @@ void CustomTitleBar::mouseMoveEvent(QMouseEvent* event)
 				parentWindow->showNormal();
 			}
 
-			QPoint diff = event->pos() - dragStartPosition_;
+			QPoint diff = e->pos() - dragStartPosition_;
 			QPoint newpos = parentWidget()->pos() + diff;
 			parentWidget()->move(newpos);
 		}
 	}
 }
 
-void CustomTitleBar::mouseReleaseEvent(QMouseEvent* event)
+void CustomTitleBar::mouseReleaseEvent(QMouseEvent* e)
 {
-	Q_UNUSED(event);
+	std::ignore = e;
 	dragStartPosition_ = QPoint();
 }
 

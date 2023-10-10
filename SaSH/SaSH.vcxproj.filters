@@ -105,9 +105,6 @@
     <ClCompile Include="model\progressbar.cpp">
       <Filter>Source Files\model</Filter>
     </ClCompile>
-    <ClCompile Include="3rdparty\simplecrypt.cpp">
-      <Filter>Source Files\3rdparty</Filter>
-    </ClCompile>
     <ClCompile Include="util.cpp">
       <Filter>Source Files\util</Filter>
     </ClCompile>
@@ -444,9 +441,6 @@
   <ItemGroup>
     <ClInclude Include="stdafx.h">
       <Filter>Source Files\main</Filter>
-    </ClInclude>
-    <ClInclude Include="3rdparty\simplecrypt.h">
-      <Filter>Source Files\3rdparty</Filter>
     </ClInclude>
     <ClInclude Include="util.h">
       <Filter>Source Files\util</Filter>

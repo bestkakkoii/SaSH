@@ -64,8 +64,8 @@
     <QtBuildConfig>debug</QtBuildConfig>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="QtSettings">
-    <QtInstall>5.15.2_msvc2019_64</QtInstall>
-    <QtModules>opengl;network;gui;svg;widgets;printsupport;concurrent;core</QtModules>
+    <QtInstall>6.6.0_msvc2019_64</QtInstall>
+    <QtModules>core;gui;network;widgets;core5compat;concurrent;openglwidgets</QtModules>
     <QtBuildConfig>debug</QtBuildConfig>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|Win32'" Label="QtSettings">
@@ -74,8 +74,8 @@
     <QtBuildConfig>release</QtBuildConfig>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="QtSettings">
-    <QtInstall>5.15.2_msvc2019_64</QtInstall>
-    <QtModules>opengl;network;gui;svg;widgets;printsupport;concurrent;core</QtModules>
+    <QtInstall>6.6.0_msvc2019_64</QtInstall>
+    <QtModules>core;gui;network;widgets;core5compat;concurrent;openglwidgets</QtModules>
     <QtBuildConfig>release</QtBuildConfig>
   </PropertyGroup>
   <Target Name="QtMsBuildNotFound" BeforeTargets="CustomBuild;ClCompile" Condition="!Exists('$(QtMsBuild)\qt.targets') or !Exists('$(QtMsBuild)\qt.props')">
@@ -113,6 +113,12 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <RunCodeAnalysis>false</RunCodeAnalysis>
     <EnableClangTidyCodeAnalysis>false</EnableClangTidyCodeAnalysis>
+    <IntDir>$(SolutionDir)build\$(Configuration)\</IntDir>
+    <TargetName>$(ProjectName)_x64</TargetName>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <IntDir>$(SolutionDir)build\$(Configuration)\</IntDir>
+    <TargetName>$(ProjectName)_x64d</TargetName>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -175,10 +181,12 @@
       <WholeProgramOptimization>true</WholeProgramOptimization>
       <AdditionalOptions>/bigobj %(AdditionalOptions)</AdditionalOptions>
       <SupportJustMyCode>false</SupportJustMyCode>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <DisableSpecificWarnings>4996;</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <UACExecutionLevel>RequireAdministrator</UACExecutionLevel>
-      <AdditionalLibraryDirectories>$(SolutionDir)$(ProjectName)\lib\$(Platform);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(SolutionDir)$(ProjectName)\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
       <DelayLoadDLLs>%(DelayLoadDLLs)</DelayLoadDLLs>
       <GenerateMapFile>false</GenerateMapFile>
@@ -188,7 +196,8 @@
       <BuildAction>false</BuildAction>
     </QtTranslation>
     <PostBuildEvent>
-      <Command>$(SolutionDir)ReleaseTool\upload.bat</Command>
+      <Command>
+      </Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -258,10 +267,12 @@
       </WholeProgramOptimization>
       <SupportJustMyCode>false</SupportJustMyCode>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <DisableSpecificWarnings>4996;</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <UACExecutionLevel>RequireAdministrator</UACExecutionLevel>
-      <AdditionalLibraryDirectories>$(SolutionDir)$(ProjectName)\lib\$(Platform);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(SolutionDir)$(ProjectName)\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateMapFile>true</GenerateMapFile>
       <MapExports>true</MapExports>
       <AssemblyDebug>true</AssemblyDebug>
@@ -336,7 +347,6 @@
     </QtMoc>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="3rdparty\simplecrypt.cpp" />
     <ClCompile Include="3rdparty\unzip.cpp" />
     <ClCompile Include="3rdparty\zip.cpp" />
     <ClCompile Include="battle\battle.cpp" />
@@ -434,7 +444,6 @@
     <ClCompile Include="script_lua\luautil.cpp" />
     <ClCompile Include="update\downloader.cpp" />
     <ClCompile Include="util.cpp" />
-    <ClInclude Include="3rdparty\simplecrypt.h" />
     <QtMoc Include="form\infoform.h" />
     <QtMoc Include="form\generalform.h" />
     <QtMoc Include="form\afkform.h" />

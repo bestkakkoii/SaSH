@@ -141,7 +141,11 @@ void MapGLWidget::setPix(const QPixmap& image, const QRectF& src, const QRectF& 
 
 void MapGLWidget::mouseMoveEvent(QMouseEvent* e)
 {
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
 	emit notifyMouseMove(e->button(), e->globalPos(), e->pos());
+#else
+	emit notifyMouseMove(e->button(), e->globalPosition(), e->position());
+#endif
 	if (bClicked_)
 	{
 		offest_ = e->pos() - pLast_;
@@ -172,8 +176,14 @@ void MapGLWidget::mousePressEvent(QMouseEvent* e)
 	{
 		if (!bClicked_)
 			bClicked_ = true;
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
 		pLast_ = e->globalPos();
 		emit notifyLeftClick(e->globalPos(), e->pos());
+#else
+		pLast_ = e->globalPosition();
+		emit notifyLeftClick(e->globalPosition(), e->position());
+#endif
+
 	}
 }
 

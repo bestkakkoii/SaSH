@@ -300,7 +300,7 @@ HRESULT MyMACAddr::DisableEnableConnections(BOOL bEnable, const wchar_t* Adapter
 {
 	HRESULT hr = E_FAIL;
 
-	Q_UNUSED(CoInitialize(NULL));
+	std::ignore = CoInitialize(NULL);
 
 	INetConnectionManager* pNetConnectionManager = NULL;
 	hr = CoCreateInstance(CLSID_ConnectionManager,

@@ -171,8 +171,8 @@ void SelectObjectForm::appendItem()
 
 	currentText.replace(" ", "");
 
-	QScopedPointer<QListWidgetItem> newItem(new QListWidgetItem(currentText));
-	if (newItem.isNull())
+	std::unique_ptr<QListWidgetItem> newItem(new QListWidgetItem(currentText));
+	if (newItem == nullptr)
 		return;
 
 	QList<QListWidgetItem*> existingItems = ui.listWidget->findItems(currentText, Qt::MatchExactly);
@@ -180,7 +180,7 @@ void SelectObjectForm::appendItem()
 		return;
 
 	ui.comboBox->setCurrentText(QString());
-	ui.listWidget->addItem(newItem.take());
+	ui.listWidget->addItem(newItem.release());
 	ui.listWidget->scrollToBottom();
 }
 

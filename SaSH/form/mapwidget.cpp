@@ -516,7 +516,7 @@ void MapWidget::on_openGLWidget_notifyLeftDoubleClick(const QPointF& pos)
 	if (!injector.server->getOnlineFlag())
 		return;
 
-	if (!interpreter_.isNull() && interpreter_->isRunning())
+	if (nullptr != interpreter_ && interpreter_->isRunning())
 	{
 		interpreter_->stop();
 	}
@@ -706,7 +706,7 @@ void MapWidget::on_pushButton_findPath_clicked()
 	if (!injector.server->getOnlineFlag())
 		return;
 
-	if (!interpreter_.isNull() && interpreter_->isRunning())
+	if (nullptr != interpreter_ && interpreter_->isRunning())
 		return;
 
 	interpreter_.reset(new Interpreter(currentIndex));
@@ -721,7 +721,7 @@ void MapWidget::on_pushButton_findPath_clicked()
 
 void MapWidget::onClear()
 {
-	if (!interpreter_.isNull() && interpreter_->isRunning())
+	if (nullptr != interpreter_ && interpreter_->isRunning())
 	{
 		interpreter_->stop();
 	}
@@ -794,7 +794,7 @@ void MapWidget::on_tableWidget_NPCList_cellDoubleClicked(int row, int)
 	if (!injector.server->getOnlineFlag())
 		return;
 
-	if (!interpreter_.isNull() && interpreter_->isRunning())
+	if (nullptr != interpreter_ && interpreter_->isRunning())
 		return;
 
 	interpreter_.reset(new Interpreter(currentIndex));

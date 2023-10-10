@@ -17,7 +17,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 */
 
 #pragma once
-#include <QScopedPointer>
 #include <QRegularExpression>
 #include <QObject>
 #include <QWidget>
@@ -32,7 +31,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include <QCollator>
 #include <QHash>
 #include <type_traits>
-#include "3rdparty/simplecrypt.h"
 #include "model/treewidget.h"
 #include "model/treewidgetitem.h"
 
@@ -92,7 +90,9 @@ namespace mem
 	Q_REQUIRED_RESULT quint64 virtualAlloc(HANDLE hProcess, quint64 size);
 	Q_REQUIRED_RESULT quint64 virtualAllocW(HANDLE hProcess, const QString& str);
 	Q_REQUIRED_RESULT quint64 virtualAllocA(HANDLE hProcess, const QString& str);
+#ifndef _WIN64
 	Q_REQUIRED_RESULT DWORD getRemoteModuleHandle(DWORD dwProcessId, const QString& moduleName);
+#endif
 	void freeUnuseMemory(HANDLE hProcess);
 
 	typedef struct _IAT_EAT_INFO
@@ -125,13 +125,22 @@ namespace mem
 	}
 #endif
 
+#if 0
+#ifdef _WIN64
 	DWORD getFunAddr(const DWORD* DllBase, const char* FunName);
+#endif
+#endif
+
 	HMODULE getRemoteModuleHandleByProcessHandleW(HANDLE hProcess, const QString& szModuleName);
 	long getProcessExportTable32(HANDLE hProcess, const QString& ModuleName, IAT_EAT_INFO tbinfo[], int tb_info_max);
 	ULONG64 getProcAddressIn32BitProcess(HANDLE hProcess, const QString& ModuleName, const QString& FuncName);
+#ifndef _WIN64
 	bool injectByWin7(qint64 index, DWORD dwProcessId, HANDLE hProcess, QString dllPath, HMODULE* phDllModule, quint64* phGameModule);
+#endif
 	bool injectBy64(qint64 index, HANDLE hProcess, QString dllPath, HMODULE* phDllModule, quint64* phGameModule);//兼容64位注入32位
+#if 0
 	bool inject(qint64 index, HANDLE hProcess, QString dllPath, HMODULE* phDllModule, quint64* phGameModule);//32注入32
+#endif
 	bool enumProcess(QVector<qint64>* pprocesses, const QString& moduleName);
 }
 
@@ -203,6 +212,9 @@ namespace util
 		kLabelNoUserNameOrPassword,//無賬號密碼
 		kLabelStatusDisconnected,//斷線
 		kLabelStatusConnecting,//連線中
+		kLabelStatusNoUsernameAndPassword,//無賬號密碼
+		kLabelStatusNoUsername,//無賬號
+		kLabelStatusNoPassword,//無密碼
 	};
 
 	enum UserData
@@ -923,7 +935,9 @@ namespace util
 		}
 		else
 		{
-			static_assert(false, "Unsupported type for toQString");
+			qDebug() << "toQString: unknown type" << typeid(T).name();
+			MessageBoxA(NULL, typeid(T).name(), "toQString: unknown type", MB_OK | MB_ICONERROR);
+			Q_ASSUME(false);
 			return QString();
 		}
 
@@ -1133,6 +1147,12 @@ namespace util
 	bool writeFile(const QString& fileName, const QString& content);
 
 	void sortWindows(const QVector<HWND>& windowList, bool alignLeft);
+
+	// 將二進制數據轉換為16進制字符串
+	QString byteArrayToHexString(const QByteArray& data);
+
+	// 將16進制字符串轉換為二進制數據
+	QByteArray hexStringToByteArray(const QString& hexString);
 
 #pragma region swap_row
 	inline void SwapRow(QTableWidget* p, QListWidget* p2, qint64 selectRow, qint64 targetRow)
@@ -1902,68 +1922,6 @@ namespace util
 	private:
 		QMutex& lock_;
 		bool isLocked_ = false;
-
-	};
-
-	//簡易字符串加解密 主要用於將一些二進制數據轉換為可視字符串方便保存json
-	class Crypt
-	{
-	public:
-		Crypt()
-			:crypto_(new SimpleCrypt(0x7f5f6c3ee5bai64))
-		{
-
-		}
-
-		virtual ~Crypt() = default;
-
-		bool isBase64(const QString data) const
-		{
-			//正則式 + 長度判斷 + 字符集判斷 + 字符串判斷 是否為 Base64
-			QRegularExpression rx("^[A-Za-z0-9+/]+={0,2}$");
-			return rx.match(data).hasMatch() && data.length() % 4 == 0 && data.contains(QRegularExpression("[^A-Za-z0-9+/=]")) == false;
-		}
-
-		/* 加密數據 */
-		QString encryptToString(const QString& plaintext)
-		{
-			QString  ciphertext = crypto_->encryptToString(plaintext);
-			//QString str = QEncode(ciphertext);
-			return ciphertext;
-
-		}
-
-		QString encryptFromByteArray(QByteArray plaintext)
-		{
-			QString  ciphertext = crypto_->encryptToString(plaintext);
-			//QString str = QEncode(ciphertext);
-			return ciphertext;
-		}
-
-		/* 解密數據 */
-		QString decryptToString(const QString& plaintext)
-		{
-			//QString str = QDecode(plaintext);
-			QString ciphertext = crypto_->decryptToString(plaintext);
-			return ciphertext;
-		}
-
-		QString decryptFromByteArray(QByteArray plaintext)
-		{
-			//QString str = QDecode(plaintext);
-			QString ciphertext = crypto_->decryptToString(plaintext);
-			return ciphertext;
-		}
-
-		QByteArray decryptToByteArray(const QString& plaintext)
-		{
-			//QString str = QDecode(plaintext);
-			QByteArray ciphertext = crypto_->decryptToByteArray(plaintext);
-			return ciphertext;
-		}
-
-	private:
-		QScopedPointer<SimpleCrypt> crypto_;
 
 	};
 

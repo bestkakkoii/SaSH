@@ -462,14 +462,19 @@ qint64 MainObject::checkAndRunFunctions()
 	if (login_run_once_flag_)
 	{
 		login_run_once_flag_ = false;
-
-		QtConcurrent::run(this, &MainObject::inGameInitialize);
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+		std::ignore = QtConcurrent::run(this, &MainObject::inGameInitialize);
+#else
+		std::ignore = QtConcurrent::run(&MainObject::inGameInitialize, this);
+#endif
 
 		if (isFirstLogin_)
 			isFirstLogin_ = false;
 	}
 
 	emit signalDispatcher.updateLoginTimeLabelTextChanged(util::formatMilliseconds(injector.server->loginTimer.elapsed(), true));
+
+	updateAfkInfos();
 
 	//更新數據緩存(跨線程安全容器)
 	setUserDatas();
@@ -524,7 +529,11 @@ qint64 MainObject::checkAndRunFunctions()
 		if (!battleTime_future_.isRunning())
 		{
 			battleTime_future_cancel_flag_.store(false, std::memory_order_release);
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
 			battleTime_future_ = QtConcurrent::run(this, &MainObject::battleTimeThread);
+#else
+			battleTime_future_ = QtConcurrent::run(&MainObject::battleTimeThread, this);
+#endif
 		}
 
 		return 3;
@@ -979,10 +988,10 @@ void MainObject::checkAutoWalk()
 		autowalk_future_cancel_flag_.store(false, std::memory_order_release);
 		//紀錄當前人物座標
 		QPoint current_pos = injector.server->getPoint();
-
 		autowalk_future_ = QtConcurrent::run([&injector, current_pos, this]()
 			{
 				bool current_side = false;
+				QPoint posCache = current_pos;
 
 				for (;;)
 				{
@@ -1037,46 +1046,71 @@ void MainObject::checkAutoWalk()
 						//一次性移動walk_len格
 
 						qint64 x = 0, y = 0;
-						if (walk_dir == 0)
+						QString dirStr;
+						QString steps;
+						for (qint64 i = 0; i < 4; ++i)//4個字母為一組
 						{
-							if (current_side)
-								x = current_pos.x() + walk_len + 1;
+							if (walk_dir == 0)
+							{
+								if (current_side)//東
+								{
+									x = current_pos.x() + walk_len + 1;
+									dirStr = "b";
+								}
+								else//西
+								{
+									x = current_pos.x() - walk_len - 1;
+									dirStr = "f";
+								}
+
+								y = current_pos.y();
+							}
+							else if (walk_dir == 1)
+							{
+								x = current_pos.x();
+
+								if (current_side)//南
+								{
+									y = current_pos.y() + walk_len + 1;
+									dirStr = "e";
+								}
+								else//北
+								{
+									y = current_pos.y() - walk_len - 1;
+									dirStr = "a";
+								}
+							}
 							else
-								x = current_pos.x() - walk_len - 1;
+							{
+								//取隨機數
+								std::random_device rd;
+								std::mt19937_64 gen(rd());
+								std::uniform_int_distribution<qint64> distributionX(current_pos.x() - walk_len, current_pos.x() + walk_len);
+								std::uniform_int_distribution<qint64> distributionY(current_pos.y() - walk_len, current_pos.y() + walk_len);
+								x = distributionX(gen);
+								y = distributionY(gen);
+							}
 
-							y = current_pos.y();
-						}
-						else if (walk_dir == 1)
-						{
-							x = current_pos.x();
-
+							//每次循環切換方向
 							if (current_side)
-								y = current_pos.y() + walk_len + 1;
+								current_side = false;
 							else
-								y = current_pos.y() - walk_len - 1;
-						}
-						else
-						{
-							//取隨機數
-							std::random_device rd;
-							std::mt19937_64 gen(rd());
-							std::uniform_int_distribution<qint64> distributionX(current_pos.x() - walk_len, current_pos.x() + walk_len);
-							std::uniform_int_distribution<qint64> distributionY(current_pos.x() - walk_len, current_pos.x() + walk_len);
-							x = distributionX(gen);
-							y = distributionY(gen);
+								current_side = true;
+
+							for (qint64 j = 0; j < walk_len; ++j)
+								steps += dirStr;
 						}
 
-						//每次循環切換方向
-						if (current_side)
-							current_side = false;
+						if (walk_len <= 6 && walk_dir != 2)
+							injector.server->move(current_pos, steps);
 						else
-							current_side = true;
-
-						//移動
-						injector.server->move(QPoint(x, y));
+							injector.server->move(QPoint(x, y));
+						steps.clear();
 					}
 					else if (enableFastAutoWalk) //快速遇敵 (封包)
+					{
 						injector.server->move(QPoint(0, 0), "gcgc");
+					}
 					QThread::msleep(walk_speed + 1);//避免太快無論如何都+15ms (太快並不會遇比較快)
 				}
 			});
@@ -1087,8 +1121,6 @@ void MainObject::checkAutoWalk()
 		if (autowalk_future_.isRunning())
 		{
 			autowalk_future_cancel_flag_.store(true, std::memory_order_release);
-			autowalk_future_.cancel();
-			autowalk_future_.waitForFinished();
 		}
 	}
 }
@@ -1288,8 +1320,6 @@ void MainObject::checkAutoJoin()
 		if (autojoin_future_.isRunning())
 		{
 			autojoin_future_cancel_flag_.store(true, std::memory_order_release);
-			autojoin_future_.cancel();
-			autojoin_future_.waitForFinished();
 		}
 	}
 }
@@ -1533,8 +1563,6 @@ void MainObject::checkAutoHeal()
 		if (autoheal_future_.isRunning())
 		{
 			autoheal_future_cancel_flag_.store(true, std::memory_order_release);
-			autoheal_future_.cancel();
-			autoheal_future_.waitForFinished();
 		}
 	}
 }
@@ -1563,7 +1591,7 @@ void MainObject::checkAutoDropPet()
 						return -1;
 
 					//如果停止標誌為真則自動退出
-					if (autoheal_future_cancel_flag_.load(std::memory_order_acquire))
+					if (autodroppet_future_cancel_flag_.load(std::memory_order_acquire))
 						return -1;
 
 					if (!injector.getEnableHash(util::kDropPetEnable))
@@ -1682,8 +1710,6 @@ void MainObject::checkAutoDropPet()
 		if (autodroppet_future_.isRunning())
 		{
 			autodroppet_future_cancel_flag_.store(true, std::memory_order_release);
-			autodroppet_future_.cancel();
-			autodroppet_future_.waitForFinished();
 		}
 	}
 }
@@ -1785,8 +1811,6 @@ void MainObject::checkAutoDropItems()
 		if (autodropitem_future_.isRunning())
 		{
 			autodropitem_future_cancel_flag_.store(true, std::memory_order_release);
-			autodropitem_future_.cancel();
-			autodropitem_future_.waitForFinished();
 		}
 	}
 
@@ -2159,7 +2183,7 @@ void MainObject::checkAutoLockSchedule()
 
 			if (pet.state != kRide)
 				injector.server->setPetState(rindex, kRide);
-				}
+		}
 
 		if (bindex != -1)
 		{
@@ -2184,10 +2208,10 @@ void MainObject::checkAutoLockSchedule()
 				injector.server->setPetState(i, kRest);
 		}
 		return false;
-			};
+	};
 
 	if (injector.getEnableHash(util::kLockPetScheduleEnable) && !injector.getEnableHash(util::kLockPetEnable) && !injector.getEnableHash(util::kLockRideEnable))
 		checkSchedule(util::kLockPetScheduleString);
 
-	}
+}
 #endif

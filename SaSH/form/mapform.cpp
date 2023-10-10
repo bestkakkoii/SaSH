@@ -51,7 +51,7 @@ MapForm::MapForm(qint64 index, QWidget* parent)
 
 MapForm::~MapForm()
 {
-	if (!interpreter_.isNull() && interpreter_->isRunning())
+	if (nullptr != interpreter_ && interpreter_->isRunning())
 	{
 		interpreter_->stop();
 	}
@@ -91,14 +91,14 @@ void MapForm::onButtonClicked()
 		if (!injector.server->getOnlineFlag())
 			return;
 
-		if (!interpreter_.isNull() && interpreter_->isRunning())
+		if (nullptr != interpreter_ && interpreter_->isRunning())
 		{
 			interpreter_->stop();
 			return;
 		}
 
 		interpreter_.reset(new Interpreter(currentIndex));
-		connect(interpreter_.data(), &Interpreter::finished, this, &MapForm::onScriptFinished);
+		connect(interpreter_.get(), &Interpreter::finished, this, &MapForm::onScriptFinished);
 
 		qint64 x = ui.spinBox_findpath_x->value();
 		qint64 y = ui.spinBox_findpath_y->value();
@@ -109,7 +109,7 @@ void MapForm::onButtonClicked()
 	}
 	else if (name == "pushButton_findpath_stop")
 	{
-		if (interpreter_.isNull())
+		if (nullptr == interpreter_)
 		{
 			return;
 		}
@@ -199,14 +199,14 @@ void MapForm::onTableWidgetCellDoubleClicked(int row, int col)
 	if (!injector.server->getOnlineFlag())
 		return;
 
-	if (!interpreter_.isNull() && interpreter_->isRunning())
+	if (nullptr != interpreter_ && interpreter_->isRunning())
 	{
 		interpreter_->stop();
 		return;
 	}
 
 	interpreter_.reset(new Interpreter(currentIndex));
-	connect(interpreter_.data(), &Interpreter::finished, this, &MapForm::onScriptFinished);
+	connect(interpreter_.get(), &Interpreter::finished, this, &MapForm::onScriptFinished);
 
 	QPoint point = npc_hash_.value(row);
 	interpreter_->doString(QString("findpath(%1, %2, 3)").arg(point.x()).arg(point.y()), nullptr, Interpreter::kNotShare);
