@@ -731,7 +731,9 @@ void Parser::initialize(Parser* pparent)
 					var = QVariant(argList.value(2));
 			}
 
-			emit signalDispatcher.inputBoxShow(msg, type, &var);
+			QEventLoop loop;
+			emit signalDispatcher.inputBoxShow(msg, type, &var, &loop);
+			loop.exec();
 
 			if (var.toLongLong() == 987654321ll)
 			{
@@ -1593,15 +1595,37 @@ void Parser::initialize(Parser* pparent)
 		return t3;
 	};
 
-	lua_.set_function("split", [](std::string src, std::string del, sol::this_state s)->sol::object
+	lua_.set_function("split", [](std::string src, std::string del, sol::object skipEmpty, sol::object orex, sol::this_state s)->sol::object
 		{
 			sol::state_view lua(s);
 			sol::table t = lua.create_table();
 			QString qsrc = util::toQString(src);
 			QString qdel = util::toQString(del);
-			const QRegularExpression re(qdel);
-			QRegularExpression::NoMatchOption;
-			QStringList v = qsrc.split(re);
+			QStringList v;
+			bool useRex = false;
+			if (orex.is<bool>())
+				useRex = orex.as<bool>();
+			else if (orex.is<qint64>())
+				useRex = orex.as<qint64>() > 0;
+			else if (orex.is<double>())
+				useRex = orex.as<double>() > 0.0;
+
+			bool skip = true;
+			if (skipEmpty.is<bool>())
+				skip = skipEmpty.as<bool>();
+			else if (skipEmpty.is<qint64>())
+				skip = skipEmpty.as<qint64>() > 0;
+			else if (skipEmpty.is<double>())
+				skip = skipEmpty.as<double>() > 0.0;
+
+			if (useRex)
+			{
+				const QRegularExpression re(qdel);
+				v = qsrc.split(re, skip ? Qt::SkipEmptyParts : Qt::KeepEmptyParts);
+			}
+			else
+				v = qsrc.split(qdel, skip ? Qt::SkipEmptyParts : Qt::KeepEmptyParts);
+
 			if (v.size() > 1)
 			{
 				for (const QString& i : v)
@@ -5467,6 +5491,6 @@ void Parser::processVariableExpr()
 	}
 
 	insertVar(varName, result);
-}
+		}
 #endif
 #pragma endregion

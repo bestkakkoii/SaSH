@@ -348,7 +348,7 @@ void MainObject::inGameInitialize()
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(getIndex());
 
 	//等待完全進入登入後的遊戲畫面
-	for (qint64 i = 0; i < 50; ++i)
+	for (qint64 i = 0; i < 10; ++i)
 	{
 		if (isInterruptionRequested())
 			return;
@@ -356,10 +356,10 @@ void MainObject::inGameInitialize()
 		if (injector.server.isNull())
 			return;
 
-		if (injector.server->getWorldStatus() == 9 && injector.server->getGameStatus() == 3)
+		if (injector.server->checkWG(9, 3))
 			break;
 
-		QThread::msleep(100);
+		QThread::msleep(1000);
 	}
 
 	if (!injector.server->getBattleFlag())
@@ -404,6 +404,9 @@ qint64 MainObject::checkAndRunFunctions()
 	}
 	else
 	{
+		//檢查UI的設定是否有變化
+		checkControl();
+
 		switch (status)
 		{
 		default:
@@ -460,14 +463,8 @@ qint64 MainObject::checkAndRunFunctions()
 
 	emit signalDispatcher.updateLoginTimeLabelTextChanged(util::formatMilliseconds(injector.server->loginTimer.elapsed(), true));
 
-	//更新掛機資訊
-	//updateAfkInfos();
-
 	//更新數據緩存(跨線程安全容器)
 	setUserDatas();
-
-	//檢查UI的設定是否有變化
-	checkControl();
 
 	//走路遇敵 或 快速遇敵 (封包)
 	checkAutoWalk();
@@ -696,32 +693,6 @@ void MainObject::checkControl()
 
 	//////////////////////////////
 
-	//異步關閉特效
-	bChecked = injector.getEnableHash(util::kCloseEffectEnable);
-	if (flagCloseEffectEnable_ != bChecked)
-	{
-		flagCloseEffectEnable_ = bChecked;
-		injector.postMessage(kEnableEffect, !bChecked, NULL);
-	}
-
-	//異步關閉聲音
-	bChecked = injector.getEnableHash(util::kMuteEnable);
-	if (flagMuteEnable_ != bChecked)
-	{
-		flagMuteEnable_ = bChecked;
-		injector.postMessage(kEnableSound, !bChecked, NULL);
-	}
-
-	//異步鎖定時間
-	bChecked = injector.getEnableHash(util::kLockTimeEnable);
-	qint64 value = injector.getValueHash(util::kLockTimeValue);
-	if (flagLockTimeEnable_ != bChecked || flagLockTimeValue_ != value)
-	{
-		flagLockTimeEnable_ = bChecked;
-		flagLockTimeValue_ = value;
-		injector.postMessage(kSetTimeLock, bChecked, flagLockTimeValue_);
-	}
-
 	//異步加速
 	value = injector.getValueHash(util::kSpeedBoostValue);
 	if (flagSetBoostValue_ != value)
@@ -793,6 +764,35 @@ void MainObject::checkControl()
 	else
 	{
 		injector.postMessage(kSetBlockPacket, false, NULL);
+	}
+
+	//異步關閉特效
+	bChecked = injector.getEnableHash(util::kCloseEffectEnable);
+	if (flagCloseEffectEnable_ != bChecked)
+	{
+		flagCloseEffectEnable_ = bChecked;
+		injector.postMessage(kEnableEffect, !bChecked, NULL);
+	}
+
+	//異步鎖定時間
+	bChecked = injector.getEnableHash(util::kLockTimeEnable);
+	qint64 value = injector.getValueHash(util::kLockTimeValue);
+	if (flagLockTimeEnable_ != bChecked || flagLockTimeValue_ != value)
+	{
+		flagLockTimeEnable_ = bChecked;
+		flagLockTimeValue_ = value;
+		injector.postMessage(kSetTimeLock, bChecked, flagLockTimeValue_);
+	}
+
+	if (injector.server->loginTimer.elapsed() < 10000)
+		return;
+
+	//異步關閉聲音
+	bChecked = injector.getEnableHash(util::kMuteEnable);
+	if (flagMuteEnable_ != bChecked)
+	{
+		flagMuteEnable_ = bChecked;
+		injector.postMessage(kEnableSound, !bChecked, NULL);
 	}
 }
 

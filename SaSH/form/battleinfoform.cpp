@@ -46,6 +46,9 @@ BattleInfoForm::BattleInfoForm(qint64 index, QWidget* parent)
 	ui.tableWidget_bottom->verticalHeader()->setStretchLastSection(true);
 	ui.tableWidget_top->verticalHeader()->setStretchLastSection(true);
 
+	ui.tableWidget_bottom->setRowCount(max_row);
+	ui.tableWidget_top->setRowCount(max_row);
+
 	Injector& injector = Injector::getInstance(index);
 	if (!injector.server.isNull())
 	{
@@ -72,12 +75,6 @@ BattleInfoForm::BattleInfoForm(qint64 index, QWidget* parent)
 
 	connect(&signalDispatcher, &SignalDispatcher::battleTableItemForegroundColorChanged, this, &BattleInfoForm::onBattleTableItemForegroundColorChanged, Qt::UniqueConnection);
 	connect(&signalDispatcher, &SignalDispatcher::battleTableAllItemResetColor, this, &BattleInfoForm::onBattleTableAllItemResetColor, Qt::UniqueConnection);
-
-	for (qint64 i = 0; i < max_row; ++i)
-	{
-		ui.tableWidget_top->insertRow(i);
-		ui.tableWidget_bottom->insertRow(i);
-	}
 }
 
 BattleInfoForm::~BattleInfoForm()
@@ -266,6 +263,8 @@ void BattleInfoForm::updateItemInfoRowContents(TableWidget* tableWidget, const Q
 {
 	if (tableWidget == nullptr)
 		return;
+
+	tableWidget->setRowCount(max_row);
 
 	// 檢查是否為 QVector<QStringList>
 	if (dat.type() != QVariant::Type::UserType)

@@ -2372,27 +2372,22 @@ void Server::updateDatasFromMemory()
 	if (ridePetIndex < 0 || ridePetIndex >= MAX_PET)
 		ridePetIndex = -1;
 
-	if (pc_.ridePetNo != ridePetIndex)
-	{
-		if (pc_.ridePetNo >= 0 && pc_.ridePetNo < MAX_PET)
-			emit signalDispatcher.updatePetHpProgressValue(pets.value(pc_.ridePetNo).hp, pets.value(pc_.ridePetNo).maxHp, pets.value(pc_.ridePetNo).hpPercent);
-		else
-			emit signalDispatcher.updateRideHpProgressValue(0, 0, 100);
-		pc_.ridePetNo = ridePetIndex;
-	}
+	if (ridePetIndex >= 0 && ridePetIndex < MAX_PET)
+		emit signalDispatcher.updateRideHpProgressValue(pets.value(ridePetIndex).level, pets.value(ridePetIndex).hp, pets.value(ridePetIndex).maxHp);
+	else
+		emit signalDispatcher.updateRideHpProgressValue(0, 0, 0);
+	pc_.ridePetNo = ridePetIndex;
+
 
 	qint64 battlePetIndex = static_cast<qint64>(mem::read<short>(hProcess, hModule + kOffsetBattlePetIndex));
 	if (battlePetIndex < 0 || battlePetIndex >= MAX_PET)
 		battlePetIndex = -1;
 
-	if (pc_.battlePetNo != battlePetIndex)
-	{
-		if (pc_.battlePetNo >= 0 && pc_.battlePetNo < MAX_PET)
-			emit signalDispatcher.updatePetHpProgressValue(pets.value(pc_.battlePetNo).hp, pets.value(pc_.battlePetNo).maxHp, pets.value(pc_.battlePetNo).hpPercent);
-		else
-			emit signalDispatcher.updatePetHpProgressValue(0, 0, 100);
-		pc_.battlePetNo = battlePetIndex;
-	}
+	if (battlePetIndex >= 0 && battlePetIndex < MAX_PET)
+		emit signalDispatcher.updatePetHpProgressValue(pets.value(battlePetIndex).level, pets.value(battlePetIndex).hp, pets.value(battlePetIndex).maxHp);
+	else
+		emit signalDispatcher.updatePetHpProgressValue(0, 0, 0);
+	pc_.battlePetNo = battlePetIndex;
 
 	qint64 standyPetCount = static_cast<qint64>(mem::read<short>(hProcess, hModule + kOffsetStandbyPetCount));
 	pc_.standbyPet = standyPetCount;
@@ -10531,11 +10526,6 @@ void Server::lssproto_B_recv(char* ccommand)
 							mem::write <short>(hProcess, hModule + kOffsetRidePetIndex, -1);
 						}
 					}
-
-					if ((pc_.ridePetNo < 0) || (pc_.ridePetNo >= MAX_PET))
-					{
-						emit signalDispatcher.updateRideHpProgressValue(0, 0, 100);
-					}
 				}
 
 				//分開記錄敵我數據
@@ -10778,16 +10768,6 @@ void Server::lssproto_KS_recv(int petarray, int result)
 {
 	updateDatasFromMemory();
 	updateComboBoxList();
-
-	qint64 currentIndex = getIndex();
-	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
-	if (petarray < 0 || petarray >= MAX_PET)
-		emit signalDispatcher.updatePetHpProgressValue(0, 0, 100);
-	else
-	{
-		PET pet = getPet(petarray);
-		emit signalDispatcher.updatePetHpProgressValue(pet.level, pet.hp, pet.maxHp);
-	}
 }
 
 //寵物等待狀態改變 (不是每個私服都有)
@@ -12442,11 +12422,13 @@ void Server::lssproto_S_recv(char* cdata)
 
 			emit signalDispatcher.updateCharHpProgressValue(pc_.level, pc_.hp, pc_.maxHp);
 			emit signalDispatcher.updateCharMpProgressValue(pc_.level, pc_.mp, pc_.maxMp);
+
 			QHash<qint64, PET> pets = pet_.toHash();
 			if (pc_.ridePetNo != -1)
 				emit signalDispatcher.updateRideHpProgressValue(pets.value(pc_.ridePetNo).level, pets.value(pc_.ridePetNo).hp, pets.value(pc_.ridePetNo).maxHp);
 			if (pc_.battlePetNo != -1)
 				emit signalDispatcher.updatePetHpProgressValue(pets.value(pc_.battlePetNo).level, pets.value(pc_.battlePetNo).hp, pets.value(pc_.battlePetNo).maxHp);
+
 			emit signalDispatcher.updateCharInfoStone(pc_.gold);
 			qreal power = (((static_cast<double>(pc_.atk + pc_.def + pc_.agi) + (static_cast<double>(pc_.maxHp) / 4.0)) / static_cast<double>(pc_.level)) * 100.0);
 			qreal growth = (static_cast<double>(pc_.atk + pc_.def + pc_.agi - 20) / static_cast<double>(pc_.level - 1));
@@ -12790,7 +12772,7 @@ void Server::lssproto_S_recv(char* cdata)
 		}
 		else
 		{
-			emit signalDispatcher.updateRideHpProgressValue(0, 0, 100);
+			emit signalDispatcher.updateRideHpProgressValue(0, 0, 0);
 		}
 
 		if (pc.battlePetNo >= 0 && pc.battlePetNo < MAX_PET)
@@ -12800,7 +12782,7 @@ void Server::lssproto_S_recv(char* cdata)
 		}
 		else
 		{
-			emit signalDispatcher.updatePetHpProgressValue(0, 0, 100);
+			emit signalDispatcher.updatePetHpProgressValue(0, 0, 0);
 		}
 
 		for (qint64 j = 0; j < MAX_PET; ++j)
@@ -13557,81 +13539,98 @@ void Server::lssproto_CharLogin_recv(char* cresult, char* cdata)
 	if (!result.contains(SUCCESSFULSTR, Qt::CaseInsensitive) && !data.contains(SUCCESSFULSTR, Qt::CaseInsensitive))
 		return;
 
-	setOnlineFlag(true);
+	QtConcurrent::run([this]()
+		{
+			QElapsedTimer timer; timer.start();
+			for (;;)
+			{
+				if (checkWG(9, 3))
+					break;
 
-	qint64 currentIndex = getIndex();
-	Injector& injector = Injector::getInstance(currentIndex);
-	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
-	emit signalDispatcher.updateStatusLabelTextChanged(util::kLabelStatusSignning);
-	//重置登入計時
-	loginTimer.restart();
+				if (timer.hasExpired(10000))
+				{
+					return;
+				}
 
-	//重置戰鬥總局數
-	battle_total_time.store(0, std::memory_order_release);
+				QThread::msleep(100);
+			}
 
-	//重置掛機數據
-	PC pc = pc_;
-	recorder[0].levelrecord = pc.level;
-	recorder[0].exprecord = pc.exp;
-	recorder[0].goldearn = 0;
-	recorder[0].deadthcount = 0;
+			setOnlineFlag(true);
 
-	for (qint64 i = 1; i <= MAX_PET; ++i)
-	{
-		PET pet = pet_.value(i + 1);
-		recorder[i] = {};
-		recorder[i].levelrecord = pet.level;
-		recorder[i].exprecord = pet.exp;
-		recorder[i].deadthcount = 0;
-	}
+			qint64 currentIndex = getIndex();
+			Injector& injector = Injector::getInstance(currentIndex);
+			SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
+			emit signalDispatcher.updateStatusLabelTextChanged(util::kLabelStatusSignning);
+			//重置登入計時
+			loginTimer.restart();
 
-	updateComboBoxList();
+			//重置戰鬥總局數
+			battle_total_time.store(0, std::memory_order_release);
 
-	//重置對話框開啟標誌(客製)
-	mem::write<int>(injector.getProcess(), injector.getProcessModule() + 0x4200000, 0);
+			//重置掛機數據
+			PC pc = getPC();
+			recorder[0].levelrecord = pc.level;
+			recorder[0].exprecord = pc.exp;
+			recorder[0].goldearn = 0;
+			recorder[0].deadthcount = 0;
 
-	//標題設置為人物名稱
-	emit signalDispatcher.updateMainFormTitle(injector.server->getPC().name);
-	//顯示NPC列表
-	emit signalDispatcher.updateNpcList(injector.server->getFloor());
+			for (qint64 i = 1; i <= MAX_PET; ++i)
+			{
+				PET pet = pet_.value(i + 1);
+				recorder[i] = {};
+				recorder[i].levelrecord = pet.level;
+				recorder[i].exprecord = pet.exp;
+				recorder[i].deadthcount = 0;
+			}
 
-	emit signalDispatcher.applyHashSettingsToUI();
+			updateComboBoxList();
+
+			//重置對話框開啟標誌(客製)
+			mem::write<int>(injector.getProcess(), injector.getProcessModule() + 0x4200000, 0);
+
+			//標題設置為人物名稱
+			emit signalDispatcher.updateMainFormTitle(injector.server->getPC().name);
+			//顯示NPC列表
+			emit signalDispatcher.updateNpcList(injector.server->getFloor());
+
+			emit signalDispatcher.applyHashSettingsToUI();
 
 
-	//讀取伺服器列表
-	QStringList list;
-	{
-		util::Config config;
-		list = config.readArray<QString>("System", "Server", QString("List_%1").arg(injector.currentServerListIndex));
-	}
+			//讀取伺服器列表
+			QStringList list;
+			{
+				util::Config config;
+				list = config.readArray<QString>("System", "Server", QString("List_%1").arg(injector.currentServerListIndex));
+			}
 
-	QStringList serverNameList;
-	QStringList subServerNameList;
-	for (const QString& it : list)
-	{
-		QStringList subList = it.split(util::rexOR, Qt::SkipEmptyParts);
-		if (subList.isEmpty())
-			continue;
+			QStringList serverNameList;
+			QStringList subServerNameList;
+			for (const QString& it : list)
+			{
+				QStringList subList = it.split(util::rexOR, Qt::SkipEmptyParts);
+				if (subList.isEmpty())
+					continue;
 
-		if (subList.size() != 2)
-			continue;
+				if (subList.size() != 2)
+					continue;
 
-		QString server = subList.takeFirst();
+				QString server = subList.takeFirst();
 
-		subList = subList.first().split(util::rexComma, Qt::SkipEmptyParts);
-		if (subList.isEmpty())
-			continue;
+				subList = subList.first().split(util::rexComma, Qt::SkipEmptyParts);
+				if (subList.isEmpty())
+					continue;
 
-		serverNameList.append(server);
-		subServerNameList.append(subList);
-	}
+				serverNameList.append(server);
+				subServerNameList.append(subList);
+			}
 
-	injector.serverNameList = serverNameList;
-	injector.subServerNameList = subServerNameList;
+			injector.serverNameList = serverNameList;
+			injector.subServerNameList = subServerNameList;
 
-	setWindowTitle();
+			setWindowTitle();
 
-	mem::freeUnuseMemory(injector.getProcess());
+			mem::freeUnuseMemory(injector.getProcess());
+		});
 }
 
 void Server::lssproto_TD_recv(char* cdata)//交易

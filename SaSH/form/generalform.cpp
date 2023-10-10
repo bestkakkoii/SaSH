@@ -734,6 +734,11 @@ void GeneralForm::onCheckBoxStateChanged(int state)
 		if (d.isValid())
 			srcSelectList = d.toStringList();
 
+		for (QString& it : srcSelectList)
+		{
+			it.prepend("%(ename) == ");
+		}
+
 		QString src = injector.getStringHash(util::kLockAttackString);
 		if (!src.isEmpty())
 			srcList = src.split(util::rexOR, Qt::SkipEmptyParts);

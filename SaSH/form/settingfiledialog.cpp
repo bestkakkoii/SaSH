@@ -13,7 +13,7 @@ settingfiledialog::settingfiledialog(const QString& defaultName, QWidget* parent
 	setWindowTitle("");
 
 	QStringList list;
-	util::searchFiles(util::applicationDirPath(), "", ".json", &list, false);
+	util::searchFiles(util::applicationDirPath() + "/settings", "", ".json", &list, false);
 
 	if (list.isEmpty())
 		return;

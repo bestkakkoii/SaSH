@@ -1179,8 +1179,8 @@ MainForm::MainForm(qint64 index, QWidget* parent)
 
 	connect(&signalDispatcher, &SignalDispatcher::saveHashSettings, this, &MainForm::onSaveHashSettings, Qt::UniqueConnection);
 	connect(&signalDispatcher, &SignalDispatcher::loadHashSettings, this, &MainForm::onLoadHashSettings, Qt::UniqueConnection);
-	connect(&signalDispatcher, &SignalDispatcher::messageBoxShow, this, &MainForm::onMessageBoxShow, Qt::BlockingQueuedConnection);
-	connect(&signalDispatcher, &SignalDispatcher::inputBoxShow, this, &MainForm::onInputBoxShow, Qt::BlockingQueuedConnection);
+	connect(&signalDispatcher, &SignalDispatcher::messageBoxShow, this, &MainForm::onMessageBoxShow, Qt::QueuedConnection);
+	connect(&signalDispatcher, &SignalDispatcher::inputBoxShow, this, &MainForm::onInputBoxShow, Qt::QueuedConnection);
 	connect(&signalDispatcher, &SignalDispatcher::fileDialogShow, this, &MainForm::onFileDialogShow, Qt::QueuedConnection);
 	connect(&signalDispatcher, &SignalDispatcher::updateMainFormTitle, this, &MainForm::onUpdateMainFormTitle, Qt::UniqueConnection);
 	connect(&signalDispatcher, &SignalDispatcher::appendScriptLog, this, &MainForm::onAppendScriptLog, Qt::UniqueConnection);
@@ -1922,8 +1922,14 @@ void MainForm::onLoadHashSettings(const QString& name, bool isFullPath)
 }
 
 //消息框
-void MainForm::onMessageBoxShow(const QString& text, qint64 type, QString title, qint64* pnret, QString topText, QString detail)
+void MainForm::onMessageBoxShow(const QString& text, qint64 type, QString title, qint64* pnret, QString topText, QString detail, void* p)
 {
+	QEventLoop* pEventLoop = nullptr;
+	if (p != nullptr)
+	{
+		pEventLoop = static_cast<QEventLoop*>(p);
+	}
+
 	QMessageBox::StandardButton button = QMessageBox::StandardButton::NoButton;
 
 	QString newText = text;
@@ -1958,6 +1964,12 @@ void MainForm::onMessageBoxShow(const QString& text, qint64 type, QString title,
 	if (msgBox == nullptr)
 		return;
 
+	if (pEventLoop != nullptr)
+	{
+		connect(msgBox.get(), &QMessageBox::finished, pEventLoop, &QEventLoop::quit);
+	}
+
+	msgBox->setModal(false);
 	msgBox->setAttribute(Qt::WA_QuitOnClose);
 	msgBox->setWindowFlags(Qt::Dialog | Qt::WindowCloseButtonHint);
 
@@ -2003,10 +2015,16 @@ void MainForm::onMessageBoxShow(const QString& text, qint64 type, QString title,
 }
 
 //输入框
-void MainForm::onInputBoxShow(const QString& text, qint64 type, QVariant* retvalue)
+void MainForm::onInputBoxShow(const QString& text, qint64 type, QVariant* retvalue, void* p)
 {
 	if (retvalue == nullptr)
 		return;
+
+	QEventLoop* pEventLoop = nullptr;
+	if (p != nullptr)
+	{
+		pEventLoop = static_cast<QEventLoop*>(p);
+	}
 
 	QString newText = text;
 	newText.replace("\\r\\n", "\r\n");
@@ -2017,46 +2035,56 @@ void MainForm::onInputBoxShow(const QString& text, qint64 type, QVariant* retval
 	newText.replace("\\f", "\f");
 	newText.replace("\\a", "\a");
 
-	QInputDialog inputDialog;
-	inputDialog.setModal(true);
-	inputDialog.setLabelText(newText);
+	QScopedPointer<QInputDialog> inputDialog = QScopedPointer<QInputDialog>(new QInputDialog());
+	if (inputDialog.isNull())
+		return;
+
+	if (pEventLoop != nullptr)
+	{
+		connect(inputDialog.get(), &QInputDialog::finished, pEventLoop, &QEventLoop::quit);
+	}
+
+	inputDialog->setAttribute(Qt::WA_QuitOnClose);
+
+	inputDialog->setModal(false);
+	inputDialog->setLabelText(newText);
 	QInputDialog::InputMode mode = static_cast<QInputDialog::InputMode>(type);
-	inputDialog.setInputMode(mode);
+	inputDialog->setInputMode(mode);
 	if (mode == QInputDialog::IntInput)
 	{
-		inputDialog.setIntMinimum(INT_MIN);
-		inputDialog.setIntMaximum(INT_MAX);
+		inputDialog->setIntMinimum(INT_MIN);
+		inputDialog->setIntMaximum(INT_MAX);
 		if (retvalue->isValid())
-			inputDialog.setIntValue(retvalue->toLongLong());
+			inputDialog->setIntValue(retvalue->toLongLong());
 	}
 	else if (mode == QInputDialog::DoubleInput)
 	{
-		inputDialog.setDoubleMinimum(-DBL_MAX);
-		inputDialog.setDoubleMaximum(DBL_MAX);
+		inputDialog->setDoubleMinimum(-DBL_MAX);
+		inputDialog->setDoubleMaximum(DBL_MAX);
 		if (retvalue->isValid())
-			inputDialog.setDoubleValue(retvalue->toDouble());
+			inputDialog->setDoubleValue(retvalue->toDouble());
 	}
 	else
 	{
 		if (retvalue->isValid())
-			inputDialog.setTextValue(retvalue->toString());
+			inputDialog->setTextValue(retvalue->toString());
 	}
 
-	inputDialog.setWindowFlags(inputDialog.windowFlags() & ~Qt::WindowContextHelpButtonHint);
-	auto ret = inputDialog.exec();
+	inputDialog->setWindowFlags(inputDialog->windowFlags() & ~Qt::WindowContextHelpButtonHint);
+	auto ret = inputDialog->exec();
 	if (ret != QDialog::Accepted)
 		return;
 
 	switch (type)
 	{
 	case QInputDialog::IntInput:
-		*retvalue = static_cast<qint64>(inputDialog.intValue());
+		*retvalue = static_cast<qint64>(inputDialog->intValue());
 		break;
 	case QInputDialog::DoubleInput:
-		*retvalue = static_cast<qint64>(inputDialog.doubleValue());
+		*retvalue = static_cast<qint64>(inputDialog->doubleValue());
 		break;
 	case QInputDialog::TextInput:
-		*retvalue = inputDialog.textValue();
+		*retvalue = inputDialog->textValue();
 		break;
 	}
 }

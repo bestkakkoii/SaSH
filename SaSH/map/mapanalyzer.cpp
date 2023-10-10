@@ -913,7 +913,10 @@ MapAnalyzer::MapAnalyzer(qint64 index)
 	{
 		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(index);
 
-		emit signalDispatcher.messageBoxShow(QObject::tr("Map data download failed, please check your network connection!"), QMessageBox::Critical);
+		QEventLoop loop;
+		emit signalDispatcher.messageBoxShow(QObject::tr("Map data download failed, please check your network connection!"), QMessageBox::Critical, "", nullptr, "", "", &loop);
+		loop.exec();
+		MINT::NtTerminateProcess(GetCurrentProcess(), 0);
 		return;
 	}
 
