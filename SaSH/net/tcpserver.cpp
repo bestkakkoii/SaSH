@@ -5211,31 +5211,34 @@ void Server::setBattleEnd()
 
 		if (obj.pos == battleCharCurrentPos.load(std::memory_order_acquire))
 		{
-			temp = QString("　[%1]★%2%3 LV:%4(%5)%6")
+			temp = QString("　[%1]★%2%3 LV:%4(%5|%6)%7")
 				.arg(obj.pos + 1)
 				.arg("")
 				.arg(obj.name)
 				.arg(obj.level)
 				.arg(obj.hp)
+				.arg(obj.hpPercent)
 				.arg(statusStr);
 		}
 		else
 		{
 			if (obj.pos >= bt.enemymin && obj.pos <= bt.enemymax)
-				temp = QString("　[%1]%2%3 LV:%4(%5)%6")
+				temp = QString("　[%1]%2%3 LV:%4(%5|%6)%7")
 				.arg(obj.pos + 1)
 				.arg(QString::number(obj.modelid) + ":")
 				.arg(obj.name)
 				.arg(obj.level)
 				.arg(obj.hp)
+				.arg(obj.hpPercent)
 				.arg(statusStr);
 			else
-				temp = QString("　[%1]%2%3 LV:%4(%5)%6")
+				temp = QString("　[%1]%2%3 LV:%4(%5|%6)%7")
 				.arg(obj.pos + 1)
 				.arg("")
 				.arg(obj.name)
 				.arg(obj.level)
 				.arg(obj.hp)
+				.arg(obj.hpPercent)
 				.arg(statusStr);
 		}
 
@@ -5794,6 +5797,7 @@ bool Server::conditionMatchTarget(QVector<battleobject_t> btobjs, const QString&
 
 	auto matchCondition = [this, &btobjs](QString src, qint64 firstMatchPos, qint64* ppos)->bool
 	{
+		src = src.toUpper();
 		BattleMatchType matchType = BattleMatchType::MatchNotUsed;
 		//匹配環境變量
 		for (const QString& it : hash.keys())
@@ -9462,9 +9466,9 @@ void Server::lssproto_AB_recv(char* cdata)
 					break;
 				}
 			}
-		}
-#endif
 	}
+#endif
+}
 }
 
 //名片數據
@@ -9523,7 +9527,7 @@ void Server::lssproto_ABI_recv(int num, char* cdata)
 				break;
 			}
 		}
-	}
+}
 #endif
 }
 
@@ -10280,12 +10284,12 @@ void Server::lssproto_B_recv(char* ccommand)
 					else
 					{
 						qDebug() << QString("隊友 [%1]%2(%3) 已出手").arg(i + 1).arg(bt.objects.value(i, empty).name).arg(bt.objects.value(i, empty).freeName);
-					}
+			}
 #endif
 					emit signalDispatcher.notifyBattleActionState(i, battleCharCurrentPos.load(std::memory_order_acquire) >= (MAX_ENEMY / 2));
 					objs[i].ready = true;
-				}
-			}
+		}
+	}
 
 			for (qint64 i = bt.enemymin; i <= bt.enemymax; ++i)
 			{
@@ -10299,14 +10303,14 @@ void Server::lssproto_B_recv(char* ccommand)
 			}
 
 			bt.objects = objs;
-		}
+	}
 
 		setBattleData(bt);
 
 		//這裡本不應該放的，放這裡就是無腦亂發，任何隊友作出動作後都會觸發
 		doBattleWork(true);
 		break;
-	}
+}
 	case 'C':
 	{
 		battledata_t bt = getBattleData();
@@ -10558,31 +10562,34 @@ void Server::lssproto_B_recv(char* ccommand)
 
 				if (obj.pos == battleCharCurrentPos.load(std::memory_order_acquire))
 				{
-					temp = QString("　[%1]★%2%3 LV:%4(%5)%6")
+					temp = QString("　[%1]★%2%3 LV:%4(%5|%6)%7")
 						.arg(obj.pos + 1)
 						.arg("")
 						.arg(obj.name)
 						.arg(obj.level)
 						.arg(obj.hp)
+						.arg(obj.hpPercent)
 						.arg(statusStr);
 				}
 				else
 				{
 					if (obj.pos >= bt.enemymin && obj.pos <= bt.enemymax)
-						temp = QString("　[%1]%2%3 LV:%4(%5)%6")
+						temp = QString("　[%1]%2%3 LV:%4(%5|%6)%7")
 						.arg(obj.pos + 1)
 						.arg(QString::number(obj.modelid) + ":")
 						.arg(obj.name)
 						.arg(obj.level)
 						.arg(obj.hp)
+						.arg(obj.hpPercent)
 						.arg(statusStr);
 					else
-						temp = QString("　[%1]%2%3 LV:%4(%5)%6")
+						temp = QString("　[%1]%2%3 LV:%4(%5|%6)%7")
 						.arg(obj.pos + 1)
 						.arg("")
 						.arg(obj.name)
 						.arg(obj.level)
 						.arg(obj.hp)
+						.arg(obj.hpPercent)
 						.arg(statusStr);
 				}
 
@@ -11337,7 +11344,7 @@ void Server::lssproto_TK_recv(int index, char* cmessage, int color)
 			else
 			{
 				fontsize = 0;
-			}
+		}
 #endif
 			if (szToken.size() > 1)
 			{
@@ -11387,7 +11394,7 @@ void Server::lssproto_TK_recv(int index, char* cmessage, int color)
 
 				//SaveChatData(msg, szToken[0], false);
 			}
-		}
+	}
 		else
 			getStringToken(message, "|", 2, msg);
 #ifdef _TALK_WINDOW
@@ -11447,7 +11454,7 @@ void Server::lssproto_TK_recv(int index, char* cmessage, int color)
 #endif
 #endif
 #endif
-	}
+			}
 
 	chatQueue.enqueue(qMakePair(color, msg));
 	emit signalDispatcher.appendChatLog(msg, color);
@@ -11693,9 +11700,9 @@ void Server::lssproto_C_recv(char* cdata)
 				if (charType == 13 && noticeNo > 0)
 				{
 					setNpcNotice(ptAct, noticeNo);
-				}
-#endif
 			}
+#endif
+		}
 
 			if (name == "を�そó")//排除亂碼
 				break;
@@ -11833,7 +11840,7 @@ void Server::lssproto_C_recv(char* cdata)
 #endif
 #endif
 		break;
-		}
+	}
 #pragma region DISABLE
 #else
 		getStringToken(bigtoken, "|", 11, smalltoken);
@@ -11991,7 +11998,7 @@ void Server::lssproto_C_recv(char* cdata)
 					}
 				}
 			}
-		}
+}
 #endif
 #pragma endregion
 	}
