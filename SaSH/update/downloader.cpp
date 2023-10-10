@@ -693,6 +693,13 @@ bool Downloader::download(const QString& url, QByteArray* pbyteArray)
 	timer.singleShot(30000, &loop, &QEventLoop::quit);
 	loop.exec();
 
+	if (nullptr == reply_)
+	{
+		qDebug() << "Failed to download file: " << url;
+		emit labelTextChanged("Failed to download file: " + url);
+		return false;
+	}
+
 	bool bret = false;
 	if (reply_->error() != QNetworkReply::NoError)
 	{
@@ -772,26 +779,22 @@ void Downloader::downloadAndUncompress(const QString& url, const QString& target
 
 void Downloader::onErrorOccurred(QNetworkReply::NetworkError code)
 {
-	qDebug() << "Network error:" << code;
-	emit labelTextChanged("Network error:" + QString::number(code));
+	QString errorString = reply_->errorString();
+	qDebug() << "Network error:" << errorString;
+	emit labelTextChanged("Network error:" + errorString);
 
-	if (!isMain)
-	{
-		qint64 per = progressBar->value() / 10;
-		QtConcurrent::run([this, per]()
+	qint64 per = progressBar->value() / 10;
+	QtConcurrent::run([this, per]()
+		{
+			for (qint64 i = 10; i >= 0; --i)
 			{
-				for (qint64 i = 10; i >= 0; --i)
-				{
-					emit labelTextChanged(QString("DOWNLOAD FAIL! %1").arg(i));
-					emit progressReset(per * i);
-					QThread::msleep(1000);
-				}
+				emit labelTextChanged(QString("DOWNLOAD FAIL! %1").arg(i));
+				emit progressReset(per * i);
+				QThread::msleep(1000);
+			}
 
-				MINT::NtTerminateProcess(GetCurrentProcess(), 0);
-			});
-	}
-	else
-		emit progressReset(0);
+			MINT::NtTerminateProcess(GetCurrentProcess(), 0);
+		});
 
 	if (reply_ != nullptr)
 	{
@@ -823,8 +826,6 @@ void Downloader::start()
 	QUrl qurl(URL);
 	QNetworkRequest request(qurl);
 	setHeader(&request);
-
-	isMain = true;
 
 	try
 	{
@@ -900,7 +901,6 @@ void Downloader::overwriteCurrentExecutable(QByteArray ba)
 			qDebug() << "Downloaded file saved to" << file.fileName();
 			emit labelTextChanged("Downloaded file saved to" + file.fileName());
 			emit progressReset(100);
-			isMain = false;
 		}
 	}
 

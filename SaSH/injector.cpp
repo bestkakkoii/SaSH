@@ -331,7 +331,6 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 		timer.restart();
 		if (nullptr == pi.hWnd)
 		{
-			QThread::msleep(2000);
 			//查找窗口句炳
 			for (;;)
 			{

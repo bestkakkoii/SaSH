@@ -461,7 +461,7 @@ qint64 MainObject::checkAndRunFunctions()
 	emit signalDispatcher.updateLoginTimeLabelTextChanged(util::formatMilliseconds(injector.server->loginTimer.elapsed(), true));
 
 	//更新掛機資訊
-	updateAfkInfos();
+	//updateAfkInfos();
 
 	//更新數據緩存(跨線程安全容器)
 	setUserDatas();

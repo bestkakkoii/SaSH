@@ -9474,8 +9474,8 @@ void Server::lssproto_AB_recv(char* cdata)
 				{
 					sprintf_s(addressBook[i].planetname, "%s", gmsv[j].name);
 					break;
-	}
-}
+				}
+			}
 		}
 #endif
 	}
@@ -9535,7 +9535,7 @@ void Server::lssproto_ABI_recv(int num, char* cdata)
 			{
 				sprintf_s(addressBook[num].planetname, 64, "%s", gmsv[j].name);
 				break;
-}
+			}
 		}
 	}
 #endif
@@ -9810,10 +9810,10 @@ void Server::lssproto_I_recv(char* cdata)
 			items[i].itemup = getIntegerToken(data, "|", no + 16);
 
 			items[i].counttime = getIntegerToken(data, "|", no + 17);
-	}
+		}
 
 		item_ = items;
-}
+	}
 
 	refreshItemInfo();
 	updateComboBoxList();
@@ -10081,7 +10081,7 @@ void Server::lssproto_WN_recv(int windowtype, int buttontype, int dialogid, int 
 		QString securityCode = injector.getStringHash(util::kGameSecurityCodeString);
 		if (!securityCode.isEmpty())
 		{
-			injector.server->unlockSecurityCode(securityCode);
+			unlockSecurityCode(securityCode);
 			qint64 currentIndex = getIndex();
 			Injector& injector = Injector::getInstance(currentIndex);
 			injector.sendMessage(kDistoryDialog, NULL, NULL);
@@ -10298,8 +10298,8 @@ void Server::lssproto_B_recv(char* ccommand)
 #endif
 					emit signalDispatcher.notifyBattleActionState(i, battleCharCurrentPos.load(std::memory_order_acquire) >= (MAX_ENEMY / 2));
 					objs[i].ready = true;
+				}
 			}
-		}
 
 			for (qint64 i = bt.enemymin; i <= bt.enemymax; ++i)
 			{
@@ -10313,7 +10313,7 @@ void Server::lssproto_B_recv(char* ccommand)
 			}
 
 			bt.objects = objs;
-	}
+		}
 
 		setBattleData(bt);
 
@@ -10763,7 +10763,7 @@ void Server::lssproto_B_recv(char* ccommand)
 	default:
 		qDebug() << "lssproto_B_recv: unknown command" << command;
 		break;
-}
+	}
 }
 
 //寵物取消戰鬥狀態 (不是每個私服都有)
@@ -11464,11 +11464,11 @@ void Server::lssproto_TK_recv(int index, char* cmessage, int color)
 #endif
 #endif
 #endif
-		}
+	}
 
 	chatQueue.enqueue(qMakePair(color, msg));
 	emit signalDispatcher.appendChatLog(msg, color);
-			}
+}
 
 //地圖數據更新，重新繪製地圖
 void Server::lssproto_MC_recv(int fl, int x1, int y1, int x2, int y2, int tileSum, int partsSum, int eventSum, char* cdata)
@@ -11712,7 +11712,7 @@ void Server::lssproto_C_recv(char* cdata)
 					setNpcNotice(ptAct, noticeNo);
 				}
 #endif
-		}
+			}
 
 			if (name == "を�そó")//排除亂碼
 				break;
@@ -12006,13 +12006,13 @@ void Server::lssproto_C_recv(char* cdata)
 							//setMoneyCharObj(id, 24052, x, y, 0, money, info);
 						}
 					}
+				}
+			}
 		}
-	}
-}
 #endif
 #pragma endregion
-		}
 	}
+}
 
 //周圍人、NPC..等等狀態改變必定是 _C_recv已經新增過的單位
 void Server::lssproto_CA_recv(char* cdata)
@@ -13105,8 +13105,8 @@ void Server::lssproto_S_recv(char* cdata)
 				item.counttime = getIntegerToken(data, "|", no + 16);
 
 				item_.insert(i, item);
+			}
 		}
-	}
 
 		updateItemByMemory();
 		refreshItemInfo();
@@ -13130,7 +13130,7 @@ void Server::lssproto_S_recv(char* cdata)
 		emit signalDispatcher.updateComboBoxItemText(util::kComboBoxCharAction, magicNameList);
 		if (IS_WAITOFR_ITEM_CHANGE_PACKET.load(std::memory_order_acquire) > 0)
 			IS_WAITOFR_ITEM_CHANGE_PACKET.fetch_sub(1, std::memory_order_release);
-}
+	}
 #pragma endregion
 #pragma region PetSkill
 	else if (first == "W")//接收到的寵物技能
@@ -13334,10 +13334,10 @@ void Server::lssproto_S_recv(char* cdata)
 			petItems[i].itemup = getIntegerToken(data, "|", no + 15);
 
 			petItems[i].counttime = getIntegerToken(data, "|", no + 16);
-	}
+		}
 
 		petItem_.insert(nPetIndex, petItems);
-}
+	}
 #pragma endregion
 #pragma region S_recv_Unknown
 	else if (first == "U")
