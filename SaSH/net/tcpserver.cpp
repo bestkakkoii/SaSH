@@ -4330,30 +4330,40 @@ void Server::checkAutoDropMeat()
 		return;
 
 	bool bret = false;
-	constexpr const char* meat = "肉";
+	constexpr const char* meat = "?肉";
 	constexpr const char* memo = "耐久力";
 
-	QHash<qint64, ITEM> items = injector.server->getItems();
 
-	for (auto it = items.constBegin(); it != items.constEnd(); ++it)
+	QVector<qint64> items;
+	if (!getItemIndexsByName(meat, "", &items, CHAR_EQUIPPLACENUM, MAX_ITEM))
+	{
+		return;
+	}
+
+	for (const qint64 index : items)
 	{
 		if (!checkEnable())
 			return;
 
-		qint64 key = it.key();
-		ITEM item = it.value();
+		ITEM item = item_.value(index);
 
 		if (!item.valid)
 			continue;
 
-		QString newItemNmae = item.name.simplified();
-		QString newItemMemo = item.memo.simplified();
-		if (newItemNmae.contains(meat) && (newItemNmae != QString("味道爽口的肉湯")) && (newItemNmae != QString("味道爽口的肉汤")))
+		for (qint64 i = 0; i < item.stack; ++i)
 		{
-			if (!newItemMemo.contains(memo))
-				dropItem(key);//不可補且非肉湯肉丟棄
-			else
-				useItem(key, findInjuriedAllie());//優先餵給非滿血
+			if (!checkEnable())
+				return;
+
+			QString newItemNmae = item.name.simplified();
+			QString newItemMemo = item.memo.simplified();
+			if ((newItemNmae != QString("味道爽口的肉湯")) && (newItemNmae != QString("味道爽口的肉汤")))
+			{
+				if (!newItemMemo.contains(memo))
+					dropItem(index);//不可補且非肉湯肉丟棄
+				else
+					useItem(index, findInjuriedAllie());//優先餵給非滿血
+			}
 		}
 	}
 
@@ -9464,11 +9474,11 @@ void Server::lssproto_AB_recv(char* cdata)
 				{
 					sprintf_s(addressBook[i].planetname, "%s", gmsv[j].name);
 					break;
-				}
-			}
 	}
-#endif
 }
+		}
+#endif
+	}
 }
 
 //名片數據
@@ -9525,9 +9535,9 @@ void Server::lssproto_ABI_recv(int num, char* cdata)
 			{
 				sprintf_s(addressBook[num].planetname, 64, "%s", gmsv[j].name);
 				break;
-			}
-		}
 }
+		}
+	}
 #endif
 }
 
@@ -9800,10 +9810,10 @@ void Server::lssproto_I_recv(char* cdata)
 			items[i].itemup = getIntegerToken(data, "|", no + 16);
 
 			items[i].counttime = getIntegerToken(data, "|", no + 17);
-		}
+	}
 
 		item_ = items;
-	}
+}
 
 	refreshItemInfo();
 	updateComboBoxList();
@@ -10284,12 +10294,12 @@ void Server::lssproto_B_recv(char* ccommand)
 					else
 					{
 						qDebug() << QString("隊友 [%1]%2(%3) 已出手").arg(i + 1).arg(bt.objects.value(i, empty).name).arg(bt.objects.value(i, empty).freeName);
-			}
+					}
 #endif
 					emit signalDispatcher.notifyBattleActionState(i, battleCharCurrentPos.load(std::memory_order_acquire) >= (MAX_ENEMY / 2));
 					objs[i].ready = true;
+			}
 		}
-	}
 
 			for (qint64 i = bt.enemymin; i <= bt.enemymax; ++i)
 			{
@@ -10310,7 +10320,7 @@ void Server::lssproto_B_recv(char* ccommand)
 		//這裡本不應該放的，放這裡就是無腦亂發，任何隊友作出動作後都會觸發
 		doBattleWork(true);
 		break;
-}
+	}
 	case 'C':
 	{
 		battledata_t bt = getBattleData();
@@ -10753,7 +10763,7 @@ void Server::lssproto_B_recv(char* ccommand)
 	default:
 		qDebug() << "lssproto_B_recv: unknown command" << command;
 		break;
-	}
+}
 }
 
 //寵物取消戰鬥狀態 (不是每個私服都有)
@@ -11344,7 +11354,7 @@ void Server::lssproto_TK_recv(int index, char* cmessage, int color)
 			else
 			{
 				fontsize = 0;
-		}
+			}
 #endif
 			if (szToken.size() > 1)
 			{
@@ -11394,7 +11404,7 @@ void Server::lssproto_TK_recv(int index, char* cmessage, int color)
 
 				//SaveChatData(msg, szToken[0], false);
 			}
-	}
+		}
 		else
 			getStringToken(message, "|", 2, msg);
 #ifdef _TALK_WINDOW
@@ -11454,11 +11464,11 @@ void Server::lssproto_TK_recv(int index, char* cmessage, int color)
 #endif
 #endif
 #endif
-			}
+		}
 
 	chatQueue.enqueue(qMakePair(color, msg));
 	emit signalDispatcher.appendChatLog(msg, color);
-}
+			}
 
 //地圖數據更新，重新繪製地圖
 void Server::lssproto_MC_recv(int fl, int x1, int y1, int x2, int y2, int tileSum, int partsSum, int eventSum, char* cdata)
@@ -11700,7 +11710,7 @@ void Server::lssproto_C_recv(char* cdata)
 				if (charType == 13 && noticeNo > 0)
 				{
 					setNpcNotice(ptAct, noticeNo);
-			}
+				}
 #endif
 		}
 
@@ -11840,7 +11850,7 @@ void Server::lssproto_C_recv(char* cdata)
 #endif
 #endif
 		break;
-	}
+		}
 #pragma region DISABLE
 #else
 		getStringToken(bigtoken, "|", 11, smalltoken);
@@ -11996,13 +12006,13 @@ void Server::lssproto_C_recv(char* cdata)
 							//setMoneyCharObj(id, 24052, x, y, 0, money, info);
 						}
 					}
-				}
-			}
+		}
+	}
 }
 #endif
 #pragma endregion
+		}
 	}
-}
 
 //周圍人、NPC..等等狀態改變必定是 _C_recv已經新增過的單位
 void Server::lssproto_CA_recv(char* cdata)
@@ -13095,8 +13105,8 @@ void Server::lssproto_S_recv(char* cdata)
 				item.counttime = getIntegerToken(data, "|", no + 16);
 
 				item_.insert(i, item);
-			}
 		}
+	}
 
 		updateItemByMemory();
 		refreshItemInfo();
@@ -13120,7 +13130,7 @@ void Server::lssproto_S_recv(char* cdata)
 		emit signalDispatcher.updateComboBoxItemText(util::kComboBoxCharAction, magicNameList);
 		if (IS_WAITOFR_ITEM_CHANGE_PACKET.load(std::memory_order_acquire) > 0)
 			IS_WAITOFR_ITEM_CHANGE_PACKET.fetch_sub(1, std::memory_order_release);
-	}
+}
 #pragma endregion
 #pragma region PetSkill
 	else if (first == "W")//接收到的寵物技能
@@ -13324,10 +13334,10 @@ void Server::lssproto_S_recv(char* cdata)
 			petItems[i].itemup = getIntegerToken(data, "|", no + 15);
 
 			petItems[i].counttime = getIntegerToken(data, "|", no + 16);
-		}
+	}
 
 		petItem_.insert(nPetIndex, petItems);
-	}
+}
 #pragma endregion
 #pragma region S_recv_Unknown
 	else if (first == "U")
