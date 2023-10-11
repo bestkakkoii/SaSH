@@ -41,6 +41,7 @@ public:\
 #if defined __cplusplus
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // default
+
 #include <sdkddkver.h>
 #include <WinSock2.h>
 #include <windows.h>
@@ -198,7 +199,11 @@ public:\
 #include <QIODevice>
 #include <QTextCursor>
 #include <QTextStream>
-#include <QTextCodec>
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+#include <QtCore/QTextCodec>
+#else
+#include <QtCore5Compat/QTextCodec>
+#endif
 
 #if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
 #include <QGraphicsSvgItem>

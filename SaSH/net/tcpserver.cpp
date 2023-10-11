@@ -2446,10 +2446,13 @@ void Server::updateBattleTimeInfo()
 		.arg(util::toQString(cost))
 		.arg(util::toQString(total_time));
 
-	battle_time_text += " " + checkAND(battleBpFlag.load(std::memory_order_acquire), BATTLE_BP_PLAYER_SURPRISAL) ?
-		QObject::tr("(surprise)") :
-		checkAND(battleBpFlag.load(std::memory_order_acquire), BATTLE_BP_ENEMY_SURPRISAL) ?
-		QObject::tr("(be surprised)") : QObject::tr("(normal)");
+	qint64 bp = battleBpFlag.load(std::memory_order_acquire);
+	if (bp <= 0)
+		battle_time_text += " " + QObject::tr("(normal)");
+	else if (checkAND(battleBpFlag.load(std::memory_order_acquire), BATTLE_BP_PLAYER_SURPRISAL))
+		battle_time_text += " " + QObject::tr("(surprise)");
+	else if (checkAND(battleBpFlag.load(std::memory_order_acquire), BATTLE_BP_ENEMY_SURPRISAL))
+		battle_time_text += " " + QObject::tr("(be surprised)");
 
 	if (battle_time_text.isEmpty() || timeLabelContents != battle_time_text)
 	{

@@ -33,12 +33,14 @@
     <PlatformToolset>v143</PlatformToolset>
     <EnableASAN>false</EnableASAN>
     <EnableFuzzer>false</EnableFuzzer>
+    <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <PlatformToolset>v143</PlatformToolset>
     <EnableASAN>false</EnableASAN>
     <EnableFuzzer>false</EnableFuzzer>
+    <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
@@ -46,6 +48,7 @@
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <EnableASAN>false</EnableASAN>
     <EnableFuzzer>false</EnableFuzzer>
+    <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
@@ -53,6 +56,7 @@
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <EnableASAN>false</EnableASAN>
     <EnableFuzzer>false</EnableFuzzer>
+    <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Condition="Exists('$(QtMsBuild)\qt_defaults.props')">
@@ -64,7 +68,7 @@
     <QtBuildConfig>debug</QtBuildConfig>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="QtSettings">
-    <QtInstall>6.6.0_msvc2019_64</QtInstall>
+    <QtInstall>6.7.0_msvc2019_64</QtInstall>
     <QtModules>core;gui;network;widgets;core5compat;concurrent;openglwidgets</QtModules>
     <QtBuildConfig>debug</QtBuildConfig>
   </PropertyGroup>
@@ -74,7 +78,7 @@
     <QtBuildConfig>release</QtBuildConfig>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="QtSettings">
-    <QtInstall>6.6.0_msvc2019_64</QtInstall>
+    <QtInstall>6.7.0_msvc2019_64</QtInstall>
     <QtModules>core;gui;network;widgets;core5compat;concurrent;openglwidgets</QtModules>
     <QtBuildConfig>release</QtBuildConfig>
   </PropertyGroup>
@@ -101,24 +105,27 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|Win32'">
-    <IntDir>$(SolutionDir)build\$(Configuration)\</IntDir>
-    <TargetName>$(ProjectName)d</TargetName>
+    <IntDir>$(SolutionDir)build\$(Platform)\$(Configuration)\</IntDir>
+    <TargetName>$(ProjectName)_$(Platform)d</TargetName>
+    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|Win32'">
     <RunCodeAnalysis>false</RunCodeAnalysis>
     <EnableClangTidyCodeAnalysis>false</EnableClangTidyCodeAnalysis>
     <PostBuildEventUseInBuild>true</PostBuildEventUseInBuild>
-    <IntDir>$(SolutionDir)build\$(Configuration)\</IntDir>
+    <IntDir>$(SolutionDir)build\$(Platform)\$(Configuration)\</IntDir>
+    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
+    <TargetName>$(ProjectName)_$(Platform)</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <RunCodeAnalysis>false</RunCodeAnalysis>
     <EnableClangTidyCodeAnalysis>false</EnableClangTidyCodeAnalysis>
-    <IntDir>$(SolutionDir)build\$(Configuration)\</IntDir>
-    <TargetName>$(ProjectName)_x64</TargetName>
+    <IntDir>$(SolutionDir)build\$(Platform)\$(Configuration)\</IntDir>
+    <TargetName>$(ProjectName)_$(Platform)</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IntDir>$(SolutionDir)build\$(Configuration)\</IntDir>
-    <TargetName>$(ProjectName)_x64d</TargetName>
+    <IntDir>$(SolutionDir)build\$(Platform)\$(Configuration)\</IntDir>
+    <TargetName>$(ProjectName)_$(Platform)d</TargetName>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -171,7 +178,7 @@
     <ClCompile>
       <AdditionalIncludeDirectories>$(SolutionDir)$(ProjectName);$(SolutionDir)$(ProjectName)\include;$(SolutionDir)$(ProjectName)\include\lua;$(SolutionDir)$(ProjectName)\model;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <WarningLevel>Level3</WarningLevel>
-      <LanguageStandard>stdcpp17</LanguageStandard>
+      <LanguageStandard>stdcpplatest</LanguageStandard>
       <ExceptionHandling>Async</ExceptionHandling>
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
       <IntrinsicFunctions>true</IntrinsicFunctions>
@@ -183,6 +190,11 @@
       <SupportJustMyCode>false</SupportJustMyCode>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <DisableSpecificWarnings>4996;</DisableSpecificWarnings>
+      <LanguageStandard_C>stdc17</LanguageStandard_C>
+      <EnableModules>false</EnableModules>
+      <BuildStlModules>false</BuildStlModules>
+      <UseUnicodeForAssemblerListing>
+      </UseUnicodeForAssemblerListing>
     </ClCompile>
     <Link>
       <UACExecutionLevel>RequireAdministrator</UACExecutionLevel>
@@ -196,8 +208,23 @@
       <BuildAction>false</BuildAction>
     </QtTranslation>
     <PostBuildEvent>
-      <Command>
-      </Command>
+      <Command>cd "$(SolutionDir)Win32\Release\lib\"
+copy "sadll.dll" "$(SolutionDir)ReleaseTool\$(ProjectName)\lib\sadll.dll"
+copy "sadll.dll" "$(SolutionDir)$(Platform)\Debug\lib\sadll.dll"
+copy "sadll.dll" "$(SolutionDir)$(Platform)\Release\lib\sadll.dll"
+cd "$(SolutionDir)$(Platform)\Release\"
+copy "$(ProjectName)_$(Platform)" "$(SolutionDir)ReleaseTool\$(ProjectName)\$(ProjectName)_$(Platform)"
+cd "$(SolutionDir)$(ProjectName)\translations\"
+copy "*.qm" "$(SolutionDir)ReleaseTool\$(ProjectName)\lib\translations\"
+copy "*.qm" "$(SolutionDir)Win32\Release\lib\translations\"
+copy "*.qm" "$(SolutionDir)Win32\Debug\lib\translations\"
+copy "*.qm" "$(SolutionDir)$(Platform)\Release\lib\translations\"
+copy "*.qm" "$(SolutionDir)$(Platform)\Debug\lib\translations\"
+cd "$(SolutionDir)ReleaseTool\"
+del "sash.zip"
+qzip.exe "$(SolutionDir)ReleaseTool\$(ProjectName)" "$(SolutionDir)ReleaseTool\sash.zip"
+$(SolutionDir)ReleaseTool\UploadToServer.bat
+</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -251,8 +278,8 @@
     <ClCompile>
       <AdditionalIncludeDirectories>$(SolutionDir)$(ProjectName);$(SolutionDir)$(ProjectName)\include;$(SolutionDir)$(ProjectName)\include\lua;$(SolutionDir)$(ProjectName)\model;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <WarningLevel>Level3</WarningLevel>
-      <LanguageStandard>stdcpp17</LanguageStandard>
-      <AssemblerOutput>All</AssemblerOutput>
+      <LanguageStandard>stdcpplatest</LanguageStandard>
+      <AssemblerOutput>NoListing</AssemblerOutput>
       <ExceptionHandling>Async</ExceptionHandling>
       <AdditionalOptions>/bigobj %(AdditionalOptions)</AdditionalOptions>
       <IntrinsicFunctions>
@@ -269,6 +296,12 @@
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <DisableSpecificWarnings>4996;</DisableSpecificWarnings>
+      <LanguageStandard_C>stdc17</LanguageStandard_C>
+      <EnableModules>false</EnableModules>
+      <CompileAs>Default</CompileAs>
+      <BuildStlModules>false</BuildStlModules>
+      <UseUnicodeForAssemblerListing>
+      </UseUnicodeForAssemblerListing>
     </ClCompile>
     <Link>
       <UACExecutionLevel>RequireAdministrator</UACExecutionLevel>

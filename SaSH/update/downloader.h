@@ -87,6 +87,6 @@ private:
 	bool isMain = false;
 	qreal currentProgress_ = 0.0;
 	QProgressBar* progressBar = nullptr;
-	std::unique_ptr<QNetworkAccessManager> networkManager_;
+	static std::unique_ptr<QNetworkAccessManager> networkManager_;
 	QNetworkReply* reply_ = nullptr;
 };

@@ -76,19 +76,23 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <TargetName>sadll</TargetName>
-    <IntDir>$(SolutionDir)build\dll\$(Configuration)\</IntDir>
-    <OutDir>$(SolutionDir)$(Configuration)\lib\</OutDir>
+    <IntDir>$(SolutionDir)build\dll\$(Platform)\$(Configuration)\</IntDir>
+    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\lib\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <TargetName>sadll</TargetName>
+    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\lib\</OutDir>
+    <IntDir>$(SolutionDir)build\dll\$(Platform)\$(Configuration)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <TargetName>sadll</TargetName>
-    <IntDir>$(SolutionDir)build\dll\$(Configuration)\</IntDir>
-    <OutDir>$(SolutionDir)$(Configuration)\lib\</OutDir>
+    <IntDir>$(SolutionDir)build\dll\$(Platform)\$(Configuration)\</IntDir>
+    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\lib\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <TargetName>sadll</TargetName>
+    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\lib\</OutDir>
+    <IntDir>$(SolutionDir)build\dll\$(Platform)\$(Configuration)\</IntDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -129,7 +133,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
-      <WarningLevel>Level4</WarningLevel>
+      <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;_DEBUG;SADLL_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
@@ -139,7 +143,7 @@
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <ExceptionHandling>Async</ExceptionHandling>
       <AssemblerOutput>All</AssemblerOutput>
-      <LanguageStandard>stdcpp17</LanguageStandard>
+      <LanguageStandard>stdcpplatest</LanguageStandard>
       <InlineFunctionExpansion>
       </InlineFunctionExpansion>
       <IntrinsicFunctions>
@@ -152,6 +156,8 @@
       </EnableFiberSafeOptimizations>
       <WholeProgramOptimization>
       </WholeProgramOptimization>
+      <EnableModules>true</EnableModules>
+      <LanguageStandard_C>stdc17</LanguageStandard_C>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -235,9 +241,11 @@
       </OmitFramePointers>
       <EnableFiberSafeOptimizations>
       </EnableFiberSafeOptimizations>
-      <LanguageStandard>stdcpp17</LanguageStandard>
+      <LanguageStandard>stdcpp20</LanguageStandard>
       <WholeProgramOptimization>
       </WholeProgramOptimization>
+      <LanguageStandard_C>stdc17</LanguageStandard_C>
+      <EnableModules>true</EnableModules>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>

@@ -134,6 +134,7 @@ private:
 	bool flagLockEscapeEnable_ = false;
 	bool flagBattleTimeExtendEnable_ = false;
 	bool flagFallDownEscapeEnable_ = false;
+	bool flagBlockBattlePacketEnable_ = false;
 
 	// switcher
 	bool flagSwitcherTeamEnable_ = false;

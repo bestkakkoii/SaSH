@@ -241,7 +241,7 @@ bool Injector::postMessage(qint64 msg, qint64 wParam, qint64 lParam) const
 	if (WM_NULL == msg)
 		return false;
 
-	BOOL ret = PostMessageW(pi_.hWnd, static_cast<UINT>(msg), static_cast<UINT>(msg), static_cast<WPARAM>(wParam));
+	BOOL ret = PostMessageW(pi_.hWnd, static_cast<UINT>(msg), static_cast<WPARAM>(wParam), static_cast<LPARAM>(lParam));
 	return  ret == TRUE;
 }
 
