@@ -149,8 +149,8 @@ CopyRightDialog::CopyRightDialog(QWidget* parent)
 	QGraphicsScene* scene = new QGraphicsScene(this);
 	ui.graphicsView_webicon->setScene(scene);
 
-	ClickableSvgItem* item1 = new ClickableSvgItem(":/image/icon_cplusplus17.svg");
-	ClickableSvgItem* item2 = new ClickableSvgItem(":/image/icon_qt-5.15.svg");
+	ClickableSvgItem* item1 = new ClickableSvgItem(":/image/icon_cplusplus.svg");
+	ClickableSvgItem* item2 = new ClickableSvgItem(":/image/icon_qt.svg");
 	ClickableSvgItem* item3 = new ClickableSvgItem(":/image/icon_vs-2022.svg");
 	ClickableSvgItem* item4 = new ClickableSvgItem(":/image/icon_platform-Windows-blueviolet.svg");
 	ClickableSvgItem* item5 = new ClickableSvgItem(":/image/icon_windows_10_11.svg");

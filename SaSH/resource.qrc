@@ -17,8 +17,6 @@
         <file>image/icon_github.svg</file>
         <file>image/icon_license.svg</file>
         <file>image/icon_platform-Windows-blueviolet.svg</file>
-        <file>image/icon_cplusplus17.svg</file>
-        <file>image/icon_qt-5.15.svg</file>
         <file>image/icon_vs-2022.svg</file>
         <file>image/icon_windows_10_11.svg</file>
         <file>image/icon_restoredown.png</file>
@@ -64,5 +62,7 @@
         <file>image/icon_glyphup.svg</file>
         <file>image/icon_lock.svg</file>
         <file>image/icon_unlock.svg</file>
+        <file>image/icon_qt.svg</file>
+        <file>image/icon_cplusplus.svg</file>
     </qresource>
 </RCC>
