@@ -15,11 +15,11 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 */
-
+import Utility;
 #include "stdafx.h"
 #include <highlighter.h>
 
-constexpr qint64 NewlineArrow = 32;
+constexpr __int64 NewlineArrow = 32;
 
 Highlighter::Highlighter(QObject* parent)
 	: QsciLexerLua(parent)

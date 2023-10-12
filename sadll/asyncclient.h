@@ -32,7 +32,12 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include <mutex>
 #include <condition_variable>
 
+#ifndef MINT_USE_SEPARATE_NAMESPACE
+#define MINT_USE_SEPARATE_NAMESPACE
 #include <MINT/MINT.h>
+#endif
+
+#include <usermessage.h>
 
 constexpr const wchar_t* IPV6_DEFAULT = L"::1";
 constexpr const wchar_t* IPV4_DEFAULT = L"127.0.0.1";

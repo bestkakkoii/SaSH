@@ -27,7 +27,7 @@ class ChatInfoForm : public QWidget, public Indexer
 	Q_OBJECT
 
 public:
-	ChatInfoForm(qint64 index, QWidget* parent);
+	ChatInfoForm(__int64 index, QWidget* parent);
 
 	virtual ~ChatInfoForm();
 

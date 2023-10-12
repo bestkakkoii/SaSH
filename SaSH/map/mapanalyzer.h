@@ -16,26 +16,13 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 */
 
-#pragma once
-#if _MSC_VER >= 1600 
-#pragma execution_character_set("utf-8") 
-#endif
-
-#include <util.h>
+import astar;
+import Utility;
 #include <indexer.h>
-
-//取靠近目標的最佳座標和方向
-typedef struct qdistance_s
-{
-	qint64 dir;
-	qreal distance;//for euclidean distance
-	QPoint p;
-	QPointF pf;
-}qdistance_t;
 
 typedef struct qmappoint_s
 {
-	util::ObjectType type = util::OBJ_UNKNOWN;
+	ObjectType type = OBJ_UNKNOWN;
 	QPoint p = {};
 } qmappoint_t;
 
@@ -50,19 +37,19 @@ typedef struct mapheader_s
 
 typedef struct map_s
 {
-	qint64 floor = 0;
-	qint64 width = 0;
-	qint64 height = 0;
+	__int64 floor = 0;
+	__int64 width = 0;
+	__int64 height = 0;
 	QString name = "";
 	QVector<qmappoint_t> stair = {};
 	QSet<QPoint> workable = {};
 
-	QHash<QPoint, util::ObjectType> data;
-	QHash<QPoint, qint64> ground;
-	QHash<QPoint, qint64> object;
-	QHash<QPoint, qint64> flag;
+	QHash<QPoint, ObjectType> data;
+	QHash<QPoint, __int64> ground;
+	QHash<QPoint, __int64> object;
+	QHash<QPoint, __int64> flag;
 
-	qint64 refCount = 0;
+	__int64 refCount = 0;
 	QElapsedTimer timer;
 }map_t;
 
@@ -80,66 +67,66 @@ static inline uint qHash(const map_t& key, uint seed) Q_DECL_NOTHROW
 }
 #endif
 
-static const QHash<util::ObjectType, QColor> MAP_COLOR_HASH = {
-	{ util::OBJ_UNKNOWN,  QColor(0, 0, 1) },		 //黑
-	{ util::OBJ_ROAD,     QColor(64, 74, 41) },	     //墨綠
-	{ util::OBJ_UP,       QColor(255, 128, 128) },   //乳紅
-	{ util::OBJ_DOWN,     QColor(128, 128, 255) },   //乳紫
-	{ util::OBJ_JUMP,     QColor(200, 200, 65) },	 //乳黃
-	{ util::OBJ_WARP,     QColor(200, 137, 48) },    //乳橘
-	{ util::OBJ_WALL,     QColor(35, 35, 35) },	     //灰黑
-	{ util::OBJ_ROCK,     QColor(46, 55, 25) },		 //灰
-	{ util::OBJ_ROCKEX,   QColor(81, 53, 28) },		 //咖啡
-	{ util::OBJ_BOUNDARY, QColor(112, 146, 190) },   //湛藍
-	{ util::OBJ_WATER,    QColor(29, 73, 97) },		 //深湛藍
-	{ util::OBJ_EMPTY,    QColor(0, 0, 1) },		 //黑
-	{ util::OBJ_NPC,      QColor(198, 211, 255) },	 //淺紫
-	{ util::OBJ_ITEM,     QColor(32, 255, 141) },	 //青綠
-	{ util::OBJ_HUMAN,    QColor(255, 194, 194) },   //淺粉
-	{ util::OBJ_PET,      QColor(149, 153, 124) },   //亞麻
-	{ util::OBJ_GOLD,     QColor(247, 255, 0) },     //黃
-	{ util::OBJ_GM,       QColor(212, 25, 25) },     //紅
+static const QHash<ObjectType, QColor> MAP_COLOR_HASH = {
+	{ OBJ_UNKNOWN,  QColor(0, 0, 1) },		 //黑
+	{ OBJ_ROAD,     QColor(64, 74, 41) },	     //墨綠
+	{ OBJ_UP,       QColor(255, 128, 128) },   //乳紅
+	{ OBJ_DOWN,     QColor(128, 128, 255) },   //乳紫
+	{ OBJ_JUMP,     QColor(200, 200, 65) },	 //乳黃
+	{ OBJ_WARP,     QColor(200, 137, 48) },    //乳橘
+	{ OBJ_WALL,     QColor(35, 35, 35) },	     //灰黑
+	{ OBJ_ROCK,     QColor(46, 55, 25) },		 //灰
+	{ OBJ_ROCKEX,   QColor(81, 53, 28) },		 //咖啡
+	{ OBJ_BOUNDARY, QColor(112, 146, 190) },   //湛藍
+	{ OBJ_WATER,    QColor(29, 73, 97) },		 //深湛藍
+	{ OBJ_EMPTY,    QColor(0, 0, 1) },		 //黑
+	{ OBJ_NPC,      QColor(198, 211, 255) },	 //淺紫
+	{ OBJ_ITEM,     QColor(32, 255, 141) },	 //青綠
+	{ OBJ_HUMAN,    QColor(255, 194, 194) },   //淺粉
+	{ OBJ_PET,      QColor(149, 153, 124) },   //亞麻
+	{ OBJ_GOLD,     QColor(247, 255, 0) },     //黃
+	{ OBJ_GM,       QColor(212, 25, 25) },     //紅
 };
 
 class MapAnalyzer : public Indexer
 {
 public:
-	explicit MapAnalyzer(qint64 index);
+	explicit MapAnalyzer(__int64 index);
 	virtual ~MapAnalyzer();
 
-	bool readFromBinary(qint64  floor, const QString& name, bool enableDraw = false, bool enableRewrite = false);
+	bool readFromBinary(__int64  floor, const QString& name, bool enableDraw = false, bool enableRewrite = false);
 
-	bool getMapDataByFloor(qint64  floor, map_t* map);
+	bool getMapDataByFloor(__int64  floor, map_t* map);
 
-	bool calcNewRoute(CAStar& astar, qint64 floor, const QPoint& src, const QPoint& dst, const QSet<QPoint>& blockList, std::vector<QPoint>* pPaths);
+	bool calcNewRoute(AStar::Device& astar, __int64 floor, const QPoint& src, const QPoint& dst, const QSet<QPoint>& blockList, std::vector<QPoint>* pPaths);
 
-	inline void clear() { maps_.clear(); pixMap_.clear(); }
+	void clear();
 
-	inline void clear(qint64 floor) { maps_.remove(floor); pixMap_.remove(floor); }
+	void clear(__int64 floor);
+
+	[[nodiscard]] QPixmap getPixmapByIndex(__int64 index) const;
 
 	bool saveAsBinary(map_t map, const QString& fileName);
 
-	inline Q_REQUIRED_RESULT QPixmap getPixmapByIndex(qint64 index) const { return pixMap_.value(index); }
+	__int64  calcBestFollowPointByDstPoint(AStar::Device& astar, __int64 floor, const QPoint& src, const QPoint& dst, QPoint* ret, bool enableExt, __int64 npcdir);
 
-	qint64  calcBestFollowPointByDstPoint(CAStar& astar, qint64 floor, const QPoint& src, const QPoint& dst, QPoint* ret, bool enableExt, qint64 npcdir);
+	bool isPassable(AStar::Device& astar, __int64 floor, const QPoint& src, const QPoint& dst);
 
-	bool isPassable(CAStar& astar, qint64 floor, const QPoint& src, const QPoint& dst);
+	QString getGround(__int64 floor, const QString& name, const QPoint& src);
 
-	QString getGround(qint64 floor, const QString& name, const QPoint& src);
-
-	Q_REQUIRED_RESULT QString getCurrentPreHandleMapPath(qint64 floor) const;
+	[[nodiscard]] QString getCurrentPreHandleMapPath(__int64 floor) const;
 
 private:
-	Q_REQUIRED_RESULT QString getCurrentMapPath(qint64 floor) const;
+	[[nodiscard]] QString getCurrentMapPath(__int64 floor) const;
 
 
-	void setMapDataByFloor(qint64 floor, const map_t& map);
-	void setPixmapByIndex(qint64 index, const QPixmap& pix);
+	void setMapDataByFloor(__int64 floor, const map_t& map);
+	void setPixmapByIndex(__int64 index, const QPixmap& pix);
 
-	bool loadFromBinary(qint64 floor, map_t* _map);
+	bool loadFromBinary(__int64 floor, map_t* _map);
 
-	Q_REQUIRED_RESULT util::ObjectType getGroundType(const uint16_t data) const;
-	Q_REQUIRED_RESULT util::ObjectType getObjectType(const uint16_t data) const;
+	[[nodiscard]] ObjectType getGroundType(const uint16_t data) const;
+	[[nodiscard]] ObjectType getObjectType(const uint16_t data) const;
 
 public:
 #if 0
@@ -203,14 +190,12 @@ public:
 		bool CHECKRANGE(int y) const
 		{
 			return (((h()) - (y)) > 0) && (((h()) - (y)) < h());
-};
+		};
 	};
 #endif
 
 private:
 	QString directory = "";
-	static util::SafeHash<qint64, QPixmap> pixMap_;
-	static util::SafeHash<qint64, map_t> maps_;
 	QMutex mutex_;
 };
 

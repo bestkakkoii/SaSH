@@ -26,7 +26,7 @@ class PetInfoForm : public QWidget, public Indexer
 	Q_OBJECT
 
 public:
-	explicit PetInfoForm(qint64 index, QWidget* parent);
+	explicit PetInfoForm(__int64 index, QWidget* parent);
 
 	virtual ~PetInfoForm();
 
@@ -49,15 +49,15 @@ protected:
 private:
 	Ui::PetInfoFormClass ui;
 
-	qint64 base_level_ = 0;
-	qint64 base_maxHp_ = 0;
-	qint64 base_atk_ = 0;
-	qint64 base_def_ = 0;
-	qint64 base_agi_ = 0;
+	__int64 base_level_ = 0;
+	__int64 base_maxHp_ = 0;
+	__int64 base_atk_ = 0;
+	__int64 base_def_ = 0;
+	__int64 base_agi_ = 0;
 
-	qint64 cur_level_ = 0;
-	qint64 cur_maxHp_ = 0;
-	qint64 cur_atk_ = 0;
-	qint64 cur_def_ = 0;
-	qint64 cur_agi_ = 0;
+	__int64 cur_level_ = 0;
+	__int64 cur_maxHp_ = 0;
+	__int64 cur_atk_ = 0;
+	__int64 cur_def_ = 0;
+	__int64 cur_agi_ = 0;
 };

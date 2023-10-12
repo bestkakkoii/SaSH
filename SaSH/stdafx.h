@@ -265,7 +265,6 @@ public:\
 
 //custom
 #include <model/indexer.h>
-#include <model/scopedhandle.h>
 #include <model/combobox.h>
 #include <model/listview.h>
 #include <model/treewidgetitem.h>
@@ -283,14 +282,7 @@ public:\
 #include <model/treewidgetitem.h>
 #include <model/tablewidget.h>
 
-#include <net/descrypt.h>
-#include <net/macchanger.h>
-
-//#include "update/curldownload.h"
-
-#include "map/astar.h"
 #include <usermessage.h>
-#include "model/builddatetime.h"
 #include "interfacer.h"
 
 #endif // __cplusplus

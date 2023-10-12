@@ -1,7 +1,7 @@
-﻿#include "stdafx.h"
-#include "battlesettingfrom.h"
+﻿import Utility;
 
-#include "util.h"
+#include "stdafx.h"
+#include "battlesettingfrom.h"
 #include "signaldispatcher.h"
 #include "injector.h"
 #include "script/parser.h"
@@ -94,7 +94,7 @@ void BattleConditionTextItem::paint(QPainter* painter, const QStyleOptionGraphic
 	QGraphicsTextItem::paint(painter, option, widget);
 }
 
-BattleSettingFrom::BattleSettingFrom(qint64 index, QWidget* parent)
+BattleSettingFrom::BattleSettingFrom(__int64 index, QWidget* parent)
 	: QWidget(parent)
 	, Indexer(index)
 {
@@ -167,10 +167,10 @@ BattleSettingFrom::BattleSettingFrom(qint64 index, QWidget* parent)
 
 	// 添加更多映射...
 
-	qint64 x = 0;
-	qint64 y = 0;
-	qint64 itemWidth = 80; // 调整每个项的宽度，根据需要修改
-	qint64 itemHeight = 20; // 调整每个项的高度，根据需要修改
+	__int64 x = 0;
+	__int64 y = 0;
+	__int64 itemWidth = 80; // 调整每个项的宽度，根据需要修改
+	__int64 itemHeight = 20; // 调整每个项的高度，根据需要修改
 	for (const QPair<QString, QString>& textPair : textMapping)
 	{
 		if (textPair.first.isEmpty())//換行
@@ -213,7 +213,7 @@ BattleSettingFrom::BattleSettingFrom(qint64 index, QWidget* parent)
 	for (auto& button : buttonList)
 	{
 		if (button)
-			connect(button, &PushButton::clicked, this, &BattleSettingFrom::onButtonClicked, Qt::UniqueConnection);
+			connect(button, &PushButton::clicked, this, &BattleSettingFrom::onButtonClicked, Qt::QueuedConnection);
 	}
 
 }
@@ -289,14 +289,14 @@ void BattleSettingFrom::onButtonClicked()
 	if (name.isEmpty())
 		return;
 
-	qint64 currentIndex = getIndex();
+	__int64 currentIndex = getIndex();
 
 	Injector& injector = Injector::getInstance(currentIndex);
 
 	if (name == "pushButton_save")
 	{
 		QStringList logicList;
-		for (qint64 i = 0; i < ui.listWidget->count(); ++i)
+		for (__int64 i = 0; i < ui.listWidget->count(); ++i)
 		{
 			QListWidgetItem* item = ui.listWidget->item(i);
 			if (item == nullptr)
@@ -305,7 +305,7 @@ void BattleSettingFrom::onButtonClicked()
 			logicList.append(item->text());
 		}
 
-		injector.setStringHash(util::kBattleLogicsString, logicList.join("\n"));
+		injector.setStringHash(kBattleLogicsString, logicList.join("\n"));
 		return;
 	}
 
@@ -338,13 +338,13 @@ void BattleSettingFrom::onButtonClicked()
 
 	if (name == "pushButton_logicup")
 	{
-		util::SwapRowUp(ui.listWidget);
+		util::RowSwap::up(ui.listWidget);
 		return;
 	}
 
 	if (name == "pushButton_logicdown")
 	{
-		util::SwapRowDown(ui.listWidget);
+		util::RowSwap::down(ui.listWidget);
 		return;
 	}
 }

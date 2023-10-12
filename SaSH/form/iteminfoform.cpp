@@ -15,14 +15,14 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 */
-
+import String;
 #include "stdafx.h"
 #include "iteminfoform.h"
 
 #include "injector.h"
 #include "signaldispatcher.h"
 
-ItemInfoForm::ItemInfoForm(qint64 index, QWidget* parent)
+ItemInfoForm::ItemInfoForm(__int64 index, QWidget* parent)
 	: QWidget(parent)
 	, Indexer(index)
 {
@@ -46,13 +46,13 @@ ItemInfoForm::ItemInfoForm(qint64 index, QWidget* parent)
 	Injector& injector = Injector::getInstance(index);
 	if (!injector.server.isNull())
 	{
-		QHash<qint64, QVariant> hashItem = injector.server->itemInfoRowContents.toHash();
+		QHash<__int64, QVariant> hashItem = injector.server->itemInfoRowContents.toHash();
 		for (auto it = hashItem.begin(); it != hashItem.end(); ++it)
 		{
 			onUpdateItemInfoRowContents(it.key(), it.value());
 		}
 
-		QHash<qint64, QVariant> hashEquip = injector.server->equipInfoRowContents.toHash();
+		QHash<__int64, QVariant> hashEquip = injector.server->equipInfoRowContents.toHash();
 		for (auto it = hashEquip.begin(); it != hashEquip.end(); ++it)
 		{
 			onUpdateEquipInfoRowContents(it.key(), it.value());
@@ -64,14 +64,14 @@ ItemInfoForm::ItemInfoForm(qint64 index, QWidget* parent)
 			Injector& injector = Injector::getInstance(index);
 			if (!injector.server.isNull())
 			{
-				for (qint64 i = 0; i < 4; ++i)
+				for (__int64 i = 0; i < 4; ++i)
 					injector.server->sortItem(true);
 			}
 		});
 
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(index);
-	connect(&signalDispatcher, &SignalDispatcher::updateEquipInfoRowContents, this, &ItemInfoForm::onUpdateEquipInfoRowContents, Qt::UniqueConnection);
-	connect(&signalDispatcher, &SignalDispatcher::updateItemInfoRowContents, this, &ItemInfoForm::onUpdateItemInfoRowContents, Qt::UniqueConnection);
+	connect(&signalDispatcher, &SignalDispatcher::updateEquipInfoRowContents, this, &ItemInfoForm::onUpdateEquipInfoRowContents, Qt::QueuedConnection);
+	connect(&signalDispatcher, &SignalDispatcher::updateItemInfoRowContents, this, &ItemInfoForm::onUpdateItemInfoRowContents, Qt::QueuedConnection);
 }
 
 ItemInfoForm::~ItemInfoForm()
@@ -85,9 +85,9 @@ void ItemInfoForm::onResetControlTextLanguage()
 	};
 
 	//put on first col
-	qint64 size = equipVHeaderList.size();
+	__int64 size = equipVHeaderList.size();
 
-	for (qint64 row = 0; row < size; ++row)
+	for (__int64 row = 0; row < size; ++row)
 	{
 		if (row >= size)
 			break;
@@ -95,13 +95,13 @@ void ItemInfoForm::onResetControlTextLanguage()
 	}
 
 	size = MAX_ITEM - CHAR_EQUIPPLACENUM;
-	for (qint64 row = 0; row < size; ++row)
+	for (__int64 row = 0; row < size; ++row)
 	{
-		ui.tableWidget_item->setText(row, 0, util::toQString(row + 1), util::toQString(row + 1));
+		ui.tableWidget_item->setText(row, 0, toQString(row + 1), toQString(row + 1));
 	}
 }
 
-void ItemInfoForm::updateItemInfoRowContents(TableWidget* tableWidget, qint64 row, const QVariant& data)
+void ItemInfoForm::updateItemInfoRowContents(TableWidget* tableWidget, __int64 row, const QVariant& data)
 {
 
 	// 檢查是否為 QVariantList
@@ -112,15 +112,15 @@ void ItemInfoForm::updateItemInfoRowContents(TableWidget* tableWidget, qint64 ro
 	QVariantList list = data.toList();
 
 	// 取得 QVariantList 的大小
-	const qint64 size = list.size();
+	const __int64 size = list.size();
 
 	// 獲取當前表格的總行數
-	const qint64 colCount = tableWidget->rowCount();
+	const __int64 colCount = tableWidget->rowCount();
 	if (row < 0 || row >= colCount)
 		return;
 
 	// 開始填入內容
-	for (qint64 col = 0; col < colCount; ++col)
+	for (__int64 col = 0; col < colCount; ++col)
 	{
 		// 設置內容
 		if (col >= size)
@@ -136,34 +136,34 @@ void ItemInfoForm::updateItemInfoRowContents(TableWidget* tableWidget, qint64 ro
 	}
 }
 
-void ItemInfoForm::onUpdateEquipInfoRowContents(qint64 row, const QVariant& data)
+void ItemInfoForm::onUpdateEquipInfoRowContents(__int64 row, const QVariant& data)
 {
 	updateItemInfoRowContents(ui.tableWidget_equip, row, data);
 }
 
-void ItemInfoForm::onUpdateItemInfoRowContents(qint64 row, const QVariant& data)
+void ItemInfoForm::onUpdateItemInfoRowContents(__int64 row, const QVariant& data)
 {
 	updateItemInfoRowContents(ui.tableWidget_item, row - 9, data);
 }
 
 void ItemInfoForm::on_tableWidget_item_cellDoubleClicked(int row, int column)
 {
-	qint64 currentIndex = getIndex();
+	__int64 currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
 	if (injector.server.isNull())
 		return;
 
-	injector.server->useItem(static_cast<qint64>(row) + CHAR_EQUIPPLACENUM, 0);
+	injector.server->useItem(static_cast<__int64>(row) + CHAR_EQUIPPLACENUM, 0);
 }
 
 void ItemInfoForm::on_tableWidget_equip_cellDoubleClicked(int row, int column)
 {
-	qint64 currentIndex = getIndex();
+	__int64 currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
 	if (injector.server.isNull())
 		return;
 
-	qint64 spotIndex = injector.server->getItemEmptySpotIndex();
+	__int64 spotIndex = injector.server->getItemEmptySpotIndex();
 	if (spotIndex == -1)
 		return;
 

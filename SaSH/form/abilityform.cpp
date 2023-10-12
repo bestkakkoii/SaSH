@@ -16,12 +16,14 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 */
 
+import Config;
+import Global;
+import Utility;
 #include "stdafx.h"
 #include "abilityform.h"
-#include <util.h>
 #include <injector.h>
 
-AbilityForm::AbilityForm(qint64 index, QWidget* parent)
+AbilityForm::AbilityForm(__int64 index, QWidget* parent)
 	: QDialog(parent)
 	, Indexer(index)
 {
@@ -39,40 +41,40 @@ AbilityForm::AbilityForm(qint64 index, QWidget* parent)
 	for (auto& button : buttonList)
 	{
 		if (button)
-			connect(button, &PushButton::clicked, this, &AbilityForm::onButtonClicked, Qt::UniqueConnection);
+			connect(button, &PushButton::clicked, this, &AbilityForm::onButtonClicked, Qt::QueuedConnection);
 	}
 
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(index);
 
-	connect(&signalDispatcher, &SignalDispatcher::applyHashSettingsToUI, this, &AbilityForm::onApplyHashSettingsToUI, Qt::UniqueConnection);
+	connect(&signalDispatcher, &SignalDispatcher::applyHashSettingsToUI, this, &AbilityForm::onApplyHashSettingsToUI, Qt::QueuedConnection);
 
 	emit signalDispatcher.applyHashSettingsToUI();
 
-	util::FormSettingManager formSettingManager(this);
+	FormSettingManager formSettingManager(this);
 	formSettingManager.loadSettings();
 }
 
 AbilityForm::~AbilityForm()
 {
-	util::FormSettingManager formSettingManager(this);
+	FormSettingManager formSettingManager(this);
 	formSettingManager.saveSettings();
 }
 
 void AbilityForm::onApplyHashSettingsToUI()
 {
-	qint64 currentIndex = getIndex();
+	__int64 currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
-	QHash<util::UserSetting, bool> enableHash = injector.getEnablesHash();
-	QHash<util::UserSetting, qint64> valueHash = injector.getValuesHash();
-	QHash<util::UserSetting, QString> stringHash = injector.getStringsHash();
+	QHash<UserSetting, bool> enableHash = injector.getEnablesHash();
+	QHash<UserSetting, __int64> valueHash = injector.getValuesHash();
+	QHash<UserSetting, QString> stringHash = injector.getStringsHash();
 
-	ui.checkBox->setChecked(enableHash.value(util::kAutoAbilityEnable));
+	ui.checkBox->setChecked(enableHash.value(kAutoAbilityEnable));
 
-	QString str = stringHash.value(util::kAutoAbilityString);
+	QString str = stringHash.value(kAutoAbilityString);
 	if (str.isEmpty())
 		return;
 
-	QStringList list = str.split(util::rexOR);
+	QStringList list = str.split(rexOR);
 	if (list.isEmpty())
 		return;
 
@@ -80,12 +82,12 @@ void AbilityForm::onApplyHashSettingsToUI()
 	//resize row
 	ui.tableWidget->setRowCount(list.size());
 
-	qint64 size = list.size();
-	qint64 count = 0;
-	for (qint64 i = 0; i < size; ++i)
+	__int64 size = list.size();
+	__int64 count = 0;
+	for (__int64 i = 0; i < size; ++i)
 	{
 		QString s = list.at(i);
-		QStringList strList = s.split(util::rexComma);
+		QStringList strList = s.split(rexComma);
 		if (strList.size() != 2)
 			continue;
 
@@ -105,7 +107,7 @@ void AbilityForm::onApplyHashSettingsToUI()
 
 	if (size > count)
 	{
-		for (qint64 i = count; i < size; ++i)
+		for (__int64 i = count; i < size; ++i)
 			ui.tableWidget->removeRow(i);
 	}
 }
@@ -122,7 +124,7 @@ void AbilityForm::on_tableWidget_cellDoubleClicked(int row, int column)
 void AbilityForm::on_checkBox_stateChanged(int state)
 {
 	Injector& injector = Injector::getInstance(getIndex());
-	injector.setEnableHash(util::kAutoAbilityEnable, state == Qt::Checked);
+	injector.setEnableHash(kAutoAbilityEnable, state == Qt::Checked);
 }
 
 void AbilityForm::onButtonClicked()
@@ -137,19 +139,19 @@ void AbilityForm::onButtonClicked()
 
 	if (name == "pushButton_add")
 	{
-		qint64 point = ui.spinBox->value();
+		__int64 point = ui.spinBox->value();
 		if (point <= 0 || point > 1000)
 			return;
 
 		QString text = ui.comboBox->currentText();
 
-		qint64 size = ui.tableWidget->rowCount();
+		__int64 size = ui.tableWidget->rowCount();
 		ui.tableWidget->setText(size, 0, text);
 		ui.tableWidget->setText(size, 1, QString::number(point));
 
 		size = ui.tableWidget->rowCount();
 		QStringList list;
-		for (qint64 i = 0; i < size; ++i)
+		for (__int64 i = 0; i < size; ++i)
 		{
 			QTableWidgetItem* itemType = ui.tableWidget->item(i, 0);
 			if (nullptr == itemType)
@@ -178,29 +180,29 @@ void AbilityForm::onButtonClicked()
 
 		Injector& injector = Injector::getInstance(getIndex());
 
-		injector.setStringHash(util::kAutoAbilityString, str);
+		injector.setStringHash(kAutoAbilityString, str);
 		return;
 	}
 
 	if (name == "pushButton_clear")
 	{
-		qint64 size = ui.tableWidget->rowCount();
-		for (qint64 i = size - 1, j = 0; i >= j; --i)
+		__int64 size = ui.tableWidget->rowCount();
+		for (__int64 i = size - 1, j = 0; i >= j; --i)
 			ui.tableWidget->removeRow(i);
 		Injector& injector = Injector::getInstance(getIndex());
-		injector.setStringHash(util::kAutoAbilityString, "");
+		injector.setStringHash(kAutoAbilityString, "");
 		return;
 	}
 
 	if (name == "pushButton_up")
 	{
-		util::SwapRowUp(ui.tableWidget);
+		util::RowSwap::up(ui.tableWidget);
 		return;
 	}
 
 	if (name == "pushButton_down")
 	{
-		util::SwapRowDown(ui.tableWidget);
+		util::RowSwap::down(ui.tableWidget);
 		return;
 	}
 

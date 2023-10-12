@@ -15,19 +15,18 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 */
+import Utility;
+import Config;
+import Scoped;
 
 #include "stdafx.h"
 #include "scriptform.h"
-
-#include "util.h"
 #include "script/interpreter.h"
-
 #include "injector.h"
-
 #include "signaldispatcher.h"
 
 
-ScriptForm::ScriptForm(qint64 index, QWidget* parent)
+ScriptForm::ScriptForm(__int64 index, QWidget* parent)
 	: QWidget(parent)
 	, Indexer(index)
 {
@@ -38,7 +37,7 @@ ScriptForm::ScriptForm(qint64 index, QWidget* parent)
 	for (auto& button : buttonList)
 	{
 		if (button)
-			connect(button, &PushButton::clicked, this, &ScriptForm::onButtonClicked, Qt::UniqueConnection);
+			connect(button, &PushButton::clicked, this, &ScriptForm::onButtonClicked, Qt::QueuedConnection);
 	}
 
 	ui.tableWidget_script->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeMode::ResizeToContents);
@@ -61,12 +60,12 @@ ScriptForm::ScriptForm(qint64 index, QWidget* parent)
 	connect(&signalDispatcher, &SignalDispatcher::scriptResumed, this, &ScriptForm::onScriptResumed, Qt::QueuedConnection);
 	connect(&signalDispatcher, &SignalDispatcher::scriptBreaked, this, &ScriptForm::onScriptResumed, Qt::QueuedConnection);
 
-	connect(&signalDispatcher, &SignalDispatcher::applyHashSettingsToUI, this, &ScriptForm::onApplyHashSettingsToUI, Qt::UniqueConnection);
+	connect(&signalDispatcher, &SignalDispatcher::applyHashSettingsToUI, this, &ScriptForm::onApplyHashSettingsToUI, Qt::QueuedConnection);
 	emit signalDispatcher.reloadScriptList();
 
 	connect(ui.spinBox_speed, static_cast<void (QSpinBox::*)(int)>(&QSpinBox::valueChanged), this, &ScriptForm::onSpeedChanged);
 
-	util::Config config;
+	Config config;
 
 	Injector& injector = Injector::getInstance(index);
 	QString currentScriptFileName = config.read<QString>("Script", "LastModifyFile");
@@ -74,7 +73,7 @@ ScriptForm::ScriptForm(qint64 index, QWidget* parent)
 	if (currentScriptFileName.isEmpty() || !QFile::exists(currentScriptFileName))
 	{
 		QString defaultScriptPath = util::applicationDirPath() + "/script/default.txt";
-		util::ScopedFile fileDefault(defaultScriptPath);
+		ScopedFile fileDefault(defaultScriptPath);
 		if (!fileDefault.exists())
 		{
 			if (!fileDefault.openWriteNew())
@@ -95,17 +94,18 @@ ScriptForm::~ScriptForm()
 
 void ScriptForm::onScriptStarted()
 {
-	qint64 currentIndex = getIndex();
+	__int64 currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
 	if (injector.IS_SCRIPT_FLAG.load(std::memory_order_acquire))
 		return;
 
 	if (interpreter_ != nullptr)
 	{
-		interpreter_->requestInterruption();
-
 		if (interpreter_->isRunning())
+		{
+			interpreter_->requestInterruption();
 			return;
+		}
 	}
 
 	interpreter_.reset(new Interpreter(currentIndex));
@@ -113,7 +113,7 @@ void ScriptForm::onScriptStarted()
 	if (!injector.scriptLogModel.isNull())
 		injector.scriptLogModel->clear();
 
-	connect(interpreter_.get(), &Interpreter::finished, this, &ScriptForm::onScriptFinished, Qt::UniqueConnection);
+	connect(interpreter_.get(), &Interpreter::finished, this, &ScriptForm::onScriptFinished, Qt::QueuedConnection);
 
 	interpreter_->doFileWithThread(selectedRow_, injector.currentScriptFileName);
 
@@ -177,7 +177,7 @@ void ScriptForm::onButtonClicked()
 	if (name.isEmpty())
 		return;
 
-	qint64 currentIndex = getIndex();
+	__int64 currentIndex = getIndex();
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
 	if (name == "pushButton_script_start")
 	{
@@ -206,24 +206,24 @@ void ScriptForm::onButtonClicked()
 }
 
 //重設表格最大行數
-void ScriptForm::resizeTableWidgetRow(qint64 max)
+void ScriptForm::resizeTableWidgetRow(__int64 max)
 {
 	ui.tableWidget_script->clear();
 	//set header
 	QStringList header;
 	header << tr("command") << tr("params");
 	ui.tableWidget_script->setHorizontalHeaderLabels(header);
-	qint64 rowCount = ui.tableWidget_script->rowCount();
+	__int64 rowCount = ui.tableWidget_script->rowCount();
 	if (rowCount < max)
 	{
-		for (qint64 row = rowCount; row < max; ++row)
+		for (__int64 row = rowCount; row < max; ++row)
 		{
 			ui.tableWidget_script->insertRow(row);
 		}
 	}
 	else if (rowCount > max)
 	{
-		for (qint64 row = rowCount - 1; row >= max; --row)
+		for (__int64 row = rowCount - 1; row >= max; --row)
 		{
 			ui.tableWidget_script->removeRow(row);
 		}
@@ -233,14 +233,14 @@ void ScriptForm::resizeTableWidgetRow(qint64 max)
 //樹型框header點擊信號槽
 void ScriptForm::onScriptTreeWidgetHeaderClicked(int)
 {
-	qint64 currentIndex = getIndex();
+	__int64 currentIndex = getIndex();
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
 	emit signalDispatcher.reloadScriptList();
 	//qDebug() << "onScriptTreeWidgetClicked" << logicalIndex;
 }
 
 //更新當前行號label
-void ScriptForm::onScriptLabelRowTextChanged(qint64 row, qint64 max, bool noSelect)
+void ScriptForm::onScriptLabelRowTextChanged(__int64 row, __int64 max, bool noSelect)
 {
 	ui.label_row->setText(QString("%1/%2").arg(row).arg(max));
 	if (!noSelect)
@@ -255,7 +255,7 @@ void ScriptForm::loadFile(const QString& fileName, bool start)
 	if (fileName.isEmpty())
 		return;
 
-	qint64 currentIndex = getIndex();
+	__int64 currentIndex = getIndex();
 	if (interpreter_ == nullptr)
 	{
 		interpreter_.reset(new Interpreter(currentIndex));
@@ -273,18 +273,18 @@ void ScriptForm::loadFile(const QString& fileName, bool start)
 
 void ScriptForm::onScriptContentChanged(const QString& fileName, const QVariant& vtokens)
 {
-	QHash<qint64, TokenMap> tokens = vtokens.value<QHash<qint64, TokenMap>>();
+	QHash<__int64, TokenMap> tokens = vtokens.value<QHash<__int64, TokenMap>>();
 
-	qint64 rowCount = tokens.size();
+	__int64 rowCount = tokens.size();
 
 	resizeTableWidgetRow(rowCount);
-	qint64 i = 0;
-	for (qint64 row = 0; row < rowCount; ++row)
+	__int64 i = 0;
+	for (__int64 row = 0; row < rowCount; ++row)
 	{
 		TokenMap lineTokens = tokens.value(row);
 
 		QStringList params;
-		qint64 size = lineTokens.size();
+		__int64 size = lineTokens.size();
 
 		if (lineTokens.value(0).type == TK_COMMENT)
 		{
@@ -347,7 +347,7 @@ void ScriptForm::onScriptContentChanged(const QString& fileName, const QVariant&
 	QString newFileName = fileName;
 	newFileName.replace("\\", "/");
 
-	qint64 index = newFileName.indexOf("script/");
+	__int64 index = newFileName.indexOf("script/");
 	if (index >= 0)
 	{
 		QString shortPath = fileName.mid(index + 7);
@@ -360,9 +360,9 @@ void ScriptForm::onCurrentTableWidgetItemChanged(QTableWidgetItem* current, QTab
 {
 	if (!current)
 		return;
-	qint64 row = current->row();
+	__int64 row = current->row();
 	selectedRow_ = row;
-	qint64 currentIndex = getIndex();
+	__int64 currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
 	if (injector.IS_SCRIPT_FLAG.load(std::memory_order_acquire))
 		return;
@@ -396,7 +396,7 @@ void ScriptForm::onScriptTreeWidgetDoubleClicked(QTreeWidgetItem* item, int colu
 
 	do
 	{
-		qint64 currentIndex = getIndex();
+		__int64 currentIndex = getIndex();
 		Injector& injector = Injector::getInstance(currentIndex);
 		if (injector.IS_SCRIPT_FLAG.load(std::memory_order_acquire))
 			break;
@@ -410,8 +410,8 @@ void ScriptForm::onScriptTreeWidgetDoubleClicked(QTreeWidgetItem* item, int colu
 			itemfile = reinterpret_cast<TreeWidgetItem*>(itemfile->parent()); //將itemfile指向父item
 		}
 		QString strpath;
-		qint64 count = static_cast<qint64>(filepath.size()) - 1;
-		for (qint64 i = count; i >= 0; i--) //QStringlist類filepath反向存著初始item的路徑
+		__int64 count = static_cast<__int64>(filepath.size()) - 1;
+		for (__int64 i = count; i >= 0; i--) //QStringlist類filepath反向存著初始item的路徑
 		{ //將filepath反向輸出，相應的加入’/‘
 			if (filepath.value(i).isEmpty())
 				continue;
@@ -456,20 +456,20 @@ void ScriptForm::onReloadScriptList()
 
 void ScriptForm::onSpeedChanged(int value)
 {
-	qint64 currentIndex = getIndex();
+	__int64 currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
-	injector.setValueHash(util::kScriptSpeedValue, value);
+	injector.setValueHash(kScriptSpeedValue, value);
 
 	emit SignalDispatcher::getInstance(currentIndex).scriptSpeedChanged(value);
 }
 
 void ScriptForm::onApplyHashSettingsToUI()
 {
-	qint64 currentIndex = getIndex();
+	__int64 currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
-	QHash<util::UserSetting, bool> enableHash = injector.getEnablesHash();
-	QHash<util::UserSetting, qint64> valueHash = injector.getValuesHash();
-	QHash<util::UserSetting, QString> stringHash = injector.getStringsHash();
+	QHash<UserSetting, bool> enableHash = injector.getEnablesHash();
+	QHash<UserSetting, __int64> valueHash = injector.getValuesHash();
+	QHash<UserSetting, QString> stringHash = injector.getStringsHash();
 
-	ui.spinBox_speed->setValue(valueHash.value(util::kScriptSpeedValue));
+	ui.spinBox_speed->setValue(valueHash.value(kScriptSpeedValue));
 }

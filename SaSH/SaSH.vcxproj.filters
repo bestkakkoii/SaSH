@@ -71,11 +71,14 @@
     <Filter Include="Source Files\script_lua">
       <UniqueIdentifier>{583cb0c4-32dc-4b00-b31a-7ff9bbcff365}</UniqueIdentifier>
     </Filter>
-    <Filter Include="battle">
-      <UniqueIdentifier>{93b4403b-8e39-4fcf-9cd2-4f13fba881af}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Source Files\forms\script_editor">
       <UniqueIdentifier>{75b5d882-887f-4bd5-bbbd-bbe9d4ad517e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\module">
+      <UniqueIdentifier>{184e52de-8510-4e16-bba0-a4f1192c649e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\battle">
+      <UniqueIdentifier>{93b4403b-8e39-4fcf-9cd2-4f13fba881af}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -104,9 +107,6 @@
     </ClCompile>
     <ClCompile Include="model\progressbar.cpp">
       <Filter>Source Files\model</Filter>
-    </ClCompile>
-    <ClCompile Include="util.cpp">
-      <Filter>Source Files\util</Filter>
     </ClCompile>
     <ClCompile Include="mainthread.cpp">
       <Filter>Source Files\main</Filter>
@@ -164,9 +164,6 @@
     </ClCompile>
     <ClCompile Include="injector.cpp">
       <Filter>Source Files\util</Filter>
-    </ClCompile>
-    <ClCompile Include="map\astar.cpp">
-      <Filter>Source Files\map</Filter>
     </ClCompile>
     <ClCompile Include="map\mapanalyzer.cpp">
       <Filter>Source Files\map</Filter>
@@ -228,12 +225,6 @@
     <ClCompile Include="model\qthumbnailwidget.cpp">
       <Filter>Source Files\model</Filter>
     </ClCompile>
-    <ClCompile Include="model\scopedhandle.cpp">
-      <Filter>Source Files\model</Filter>
-    </ClCompile>
-    <ClCompile Include="model\builddatetime.cpp">
-      <Filter>Source Files\model</Filter>
-    </ClCompile>
     <ClCompile Include="script_lua\clua.cpp">
       <Filter>Source Files\script_lua</Filter>
     </ClCompile>
@@ -261,12 +252,6 @@
     <ClCompile Include="script_lua\luautil.cpp">
       <Filter>Source Files\script_lua</Filter>
     </ClCompile>
-    <ClCompile Include="net\macchanger.cpp">
-      <Filter>Source Files\net</Filter>
-    </ClCompile>
-    <ClCompile Include="net\descrypt.cpp">
-      <Filter>Source Files\net</Filter>
-    </ClCompile>
     <ClCompile Include="form\copyrightdialog.cpp">
       <Filter>Source Files\forms</Filter>
     </ClCompile>
@@ -280,7 +265,7 @@
       <Filter>Source Files\model</Filter>
     </ClCompile>
     <ClCompile Include="battle\battle.cpp">
-      <Filter>battle</Filter>
+      <Filter>Source Files\battle</Filter>
     </ClCompile>
     <ClCompile Include="form\battlesettingfrom.cpp">
       <Filter>Source Files\forms\afk</Filter>
@@ -288,11 +273,47 @@
     <ClCompile Include="form\settingfiledialog.cpp">
       <Filter>Source Files\forms\dialog</Filter>
     </ClCompile>
+    <ClCompile Include="module\astar.ixx">
+      <Filter>Source Files\module</Filter>
+    </ClCompile>
+    <ClCompile Include="module\compile.ixx">
+      <Filter>Source Files\module</Filter>
+    </ClCompile>
     <ClCompile Include="3rdparty\unzip.cpp">
       <Filter>Source Files\3rdparty</Filter>
     </ClCompile>
     <ClCompile Include="3rdparty\zip.cpp">
       <Filter>Source Files\3rdparty</Filter>
+    </ClCompile>
+    <ClCompile Include="module\mem.ixx">
+      <Filter>Source Files\module</Filter>
+    </ClCompile>
+    <ClCompile Include="module\scoped.ixx">
+      <Filter>Source Files\module</Filter>
+    </ClCompile>
+    <ClCompile Include="module\utility.ixx">
+      <Filter>Source Files\module</Filter>
+    </ClCompile>
+    <ClCompile Include="module\safe.ixx">
+      <Filter>Source Files\module</Filter>
+    </ClCompile>
+    <ClCompile Include="module\config.ixx">
+      <Filter>Source Files\module</Filter>
+    </ClCompile>
+    <ClCompile Include="module\global.ixx">
+      <Filter>Source Files\module</Filter>
+    </ClCompile>
+    <ClCompile Include="module\string.ixx">
+      <Filter>Source Files\module</Filter>
+    </ClCompile>
+    <ClCompile Include="model\signaldispatcher.cpp">
+      <Filter>Source Files\model</Filter>
+    </ClCompile>
+    <ClCompile Include="model\tablewidget.cpp">
+      <Filter>Source Files\model</Filter>
+    </ClCompile>
+    <ClCompile Include="module\logger.ixx">
+      <Filter>Source Files\module</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -410,9 +431,6 @@
     <QtMoc Include="model\pushButton.h">
       <Filter>Source Files\model</Filter>
     </QtMoc>
-    <QtMoc Include="model\openglwidget.h">
-      <Filter>Source Files\model</Filter>
-    </QtMoc>
     <QtMoc Include="model\tablewidget.h">
       <Filter>Source Files\model</Filter>
     </QtMoc>
@@ -428,9 +446,6 @@
     <QtMoc Include="interfacer.h">
       <Filter>Source Files\util</Filter>
     </QtMoc>
-    <QtMoc Include="model\logger.h">
-      <Filter>Source Files\util</Filter>
-    </QtMoc>
     <QtMoc Include="form\settingfiledialog.h">
       <Filter>Source Files\forms\dialog</Filter>
     </QtMoc>
@@ -442,17 +457,11 @@
     <ClInclude Include="stdafx.h">
       <Filter>Source Files\main</Filter>
     </ClInclude>
-    <ClInclude Include="util.h">
-      <Filter>Source Files\util</Filter>
-    </ClInclude>
     <ClInclude Include="net\autil.h">
       <Filter>Source Files\net</Filter>
     </ClInclude>
     <ClInclude Include="injector.h">
       <Filter>Source Files\util</Filter>
-    </ClInclude>
-    <ClInclude Include="map\astar.h">
-      <Filter>Source Files\map</Filter>
     </ClInclude>
     <ClInclude Include="map\mapanalyzer.h">
       <Filter>Source Files\map</Filter>
@@ -466,22 +475,10 @@
     <ClInclude Include="model\highlighter.h">
       <Filter>Source Files\model</Filter>
     </ClInclude>
-    <ClInclude Include="model\scopedhandle.h">
-      <Filter>Source Files\model</Filter>
-    </ClInclude>
-    <ClInclude Include="model\builddatetime.h">
-      <Filter>Source Files\model</Filter>
-    </ClInclude>
     <ClInclude Include="net\lssproto.h">
       <Filter>Source Files\net</Filter>
     </ClInclude>
     <ClInclude Include="net\database.h">
-      <Filter>Source Files\net</Filter>
-    </ClInclude>
-    <ClInclude Include="net\macchanger.h">
-      <Filter>Source Files\net</Filter>
-    </ClInclude>
-    <ClInclude Include="net\descrypt.h">
       <Filter>Source Files\net</Filter>
     </ClInclude>
     <ClInclude Include="resource1.h">
@@ -494,7 +491,7 @@
       <Filter>Source Files\model</Filter>
     </ClInclude>
     <ClInclude Include="battle\battle.h">
-      <Filter>battle</Filter>
+      <Filter>Source Files\battle</Filter>
     </ClInclude>
     <ClInclude Include="3rdparty\unzip.h">
       <Filter>Source Files\3rdparty</Filter>

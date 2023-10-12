@@ -15,16 +15,17 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 */
-
+import Global;
+import String;
 #include "stdafx.h"
 #include "clua.h"
 #include "injector.h"
 #include "signaldispatcher.h"
 
-qint64 CLuaItem::use(qint64 itemIndex, qint64 target, sol::this_state s)
+__int64 CLuaItem::use(__int64 itemIndex, __int64 target, sol::this_state s)
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<__int64>());
 	if (injector.server.isNull())
 		return FALSE;
 
@@ -35,10 +36,10 @@ qint64 CLuaItem::use(qint64 itemIndex, qint64 target, sol::this_state s)
 	return TRUE;
 }
 
-qint64 CLuaItem::drop(qint64 itemIndex, sol::this_state s)
+__int64 CLuaItem::drop(__int64 itemIndex, sol::this_state s)
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<__int64>());
 	if (injector.server.isNull())
 		return FALSE;
 
@@ -49,10 +50,10 @@ qint64 CLuaItem::drop(qint64 itemIndex, sol::this_state s)
 	return TRUE;
 }
 
-qint64 CLuaItem::pick(qint64 dir, sol::this_state s)
+__int64 CLuaItem::pick(__int64 dir, sol::this_state s)
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<__int64>());
 	if (injector.server.isNull())
 		return FALSE;
 
@@ -63,10 +64,10 @@ qint64 CLuaItem::pick(qint64 dir, sol::this_state s)
 	return TRUE;
 }
 
-qint64 CLuaItem::swap(qint64 from, qint64 to, sol::this_state s)
+__int64 CLuaItem::swap(__int64 from, __int64 to, sol::this_state s)
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<__int64>());
 	if (injector.server.isNull())
 		return FALSE;
 
@@ -77,10 +78,10 @@ qint64 CLuaItem::swap(qint64 from, qint64 to, sol::this_state s)
 	return TRUE;
 }
 
-qint64 CLuaItem::craft(qint64 type, sol::table ingres, sol::this_state s)
+__int64 CLuaItem::craft(__int64 type, sol::table ingres, sol::this_state s)
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<__int64>());
 	if (injector.server.isNull())
 		return FALSE;
 
@@ -96,19 +97,19 @@ qint64 CLuaItem::craft(qint64 type, sol::table ingres, sol::this_state s)
 		if (!ingre.second.is<std::string>())
 			continue;
 
-		QString str = util::toQString(ingre.second);
+		QString str = toQString(ingre.second);
 		ingreList.append(str);
 	}
 
-	injector.server->craft(static_cast<util::CraftType>(--type), ingreList);
+	injector.server->craft(static_cast<CraftType>(--type), ingreList);
 
 	return TRUE;
 }
 
-qint64 CLuaItem::buy(qint64 productIndex, qint64 amount, qint64 unitid, qint64 dialogid, sol::this_state s)
+__int64 CLuaItem::buy(__int64 productIndex, __int64 amount, __int64 unitid, __int64 dialogid, sol::this_state s)
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<__int64>());
 	if (injector.server.isNull())
 		return FALSE;
 
@@ -119,16 +120,16 @@ qint64 CLuaItem::buy(qint64 productIndex, qint64 amount, qint64 unitid, qint64 d
 	return TRUE;
 }
 
-qint64 CLuaItem::sell(qint64 itemIndex, qint64 unitid, qint64 dialogid, sol::this_state s)
+__int64 CLuaItem::sell(__int64 itemIndex, __int64 unitid, __int64 dialogid, sol::this_state s)
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<__int64>());
 	if (injector.server.isNull())
 		return FALSE;
 
 	luadebug::checkBattleThenWait(s);
 
-	if (itemIndex > 0 && itemIndex <= static_cast<qint64>(MAX_ITEM - CHAR_EQUIPPLACENUM))
+	if (itemIndex > 0 && itemIndex <= static_cast<__int64>(MAX_ITEM - CHAR_EQUIPPLACENUM))
 	{
 		itemIndex = itemIndex - 1 + CHAR_EQUIPPLACENUM;
 		injector.server->sell(itemIndex, dialogid, unitid);
@@ -139,10 +140,10 @@ qint64 CLuaItem::sell(qint64 itemIndex, qint64 unitid, qint64 dialogid, sol::thi
 	return FALSE;
 }
 
-qint64 CLuaItem::deposit(qint64 itemIndex, qint64 unitid, qint64 dialogid, sol::this_state s)
+__int64 CLuaItem::deposit(__int64 itemIndex, __int64 unitid, __int64 dialogid, sol::this_state s)
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<__int64>());
 	if (injector.server.isNull())
 		return FALSE;
 
@@ -153,10 +154,10 @@ qint64 CLuaItem::deposit(qint64 itemIndex, qint64 unitid, qint64 dialogid, sol::
 	return TRUE;
 }
 
-qint64 CLuaItem::withdraw(qint64 itemIndex, qint64 unitid, qint64 dialogid, sol::this_state s)
+__int64 CLuaItem::withdraw(__int64 itemIndex, __int64 unitid, __int64 dialogid, sol::this_state s)
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<__int64>());
 	if (injector.server.isNull())
 		return FALSE;
 

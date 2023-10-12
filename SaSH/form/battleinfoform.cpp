@@ -22,10 +22,10 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "signaldispatcher.h"
 #include "injector.h"
 
-//constexpr qint64 max_col = 2;
-constexpr qint64 max_row = 10;
+//constexpr __int64 max_col = 2;
+constexpr __int64 max_row = 10;
 
-BattleInfoForm::BattleInfoForm(qint64 index, QWidget* parent)
+BattleInfoForm::BattleInfoForm(__int64 index, QWidget* parent)
 	: QWidget(parent)
 	, Indexer(index)
 {
@@ -66,15 +66,15 @@ BattleInfoForm::BattleInfoForm(qint64 index, QWidget* parent)
 	}
 
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(index);
-	connect(&signalDispatcher, &SignalDispatcher::updateTopInfoContents, this, &BattleInfoForm::onUpdateTopInfoContents, Qt::UniqueConnection);
-	connect(&signalDispatcher, &SignalDispatcher::updateBottomInfoContents, this, &BattleInfoForm::onUpdateBottomInfoContents, Qt::UniqueConnection);
-	connect(&signalDispatcher, &SignalDispatcher::updateBattleTimeLabelTextChanged, this, &BattleInfoForm::onUpdateTimeLabelContents, Qt::UniqueConnection);
-	connect(&signalDispatcher, &SignalDispatcher::updateLabelCharAction, this, &BattleInfoForm::onUpdateLabelCharAction, Qt::UniqueConnection);
-	connect(&signalDispatcher, &SignalDispatcher::updateLabelPetAction, this, &BattleInfoForm::onUpdateLabelPetAction, Qt::UniqueConnection);
-	connect(&signalDispatcher, &SignalDispatcher::notifyBattleActionState, this, &BattleInfoForm::onNotifyBattleActionState, Qt::UniqueConnection);
+	connect(&signalDispatcher, &SignalDispatcher::updateTopInfoContents, this, &BattleInfoForm::onUpdateTopInfoContents, Qt::QueuedConnection);
+	connect(&signalDispatcher, &SignalDispatcher::updateBottomInfoContents, this, &BattleInfoForm::onUpdateBottomInfoContents, Qt::QueuedConnection);
+	connect(&signalDispatcher, &SignalDispatcher::updateBattleTimeLabelTextChanged, this, &BattleInfoForm::onUpdateTimeLabelContents, Qt::QueuedConnection);
+	connect(&signalDispatcher, &SignalDispatcher::updateLabelCharAction, this, &BattleInfoForm::onUpdateLabelCharAction, Qt::QueuedConnection);
+	connect(&signalDispatcher, &SignalDispatcher::updateLabelPetAction, this, &BattleInfoForm::onUpdateLabelPetAction, Qt::QueuedConnection);
+	connect(&signalDispatcher, &SignalDispatcher::notifyBattleActionState, this, &BattleInfoForm::onNotifyBattleActionState, Qt::QueuedConnection);
 
-	connect(&signalDispatcher, &SignalDispatcher::battleTableItemForegroundColorChanged, this, &BattleInfoForm::onBattleTableItemForegroundColorChanged, Qt::UniqueConnection);
-	connect(&signalDispatcher, &SignalDispatcher::battleTableAllItemResetColor, this, &BattleInfoForm::onBattleTableAllItemResetColor, Qt::UniqueConnection);
+	connect(&signalDispatcher, &SignalDispatcher::battleTableItemForegroundColorChanged, this, &BattleInfoForm::onBattleTableItemForegroundColorChanged, Qt::QueuedConnection);
+	connect(&signalDispatcher, &SignalDispatcher::battleTableAllItemResetColor, this, &BattleInfoForm::onBattleTableAllItemResetColor, Qt::QueuedConnection);
 }
 
 BattleInfoForm::~BattleInfoForm()
@@ -145,62 +145,62 @@ col 列1                     列2
 row
 */
 
-static const QHash<qint64, QPair<qint64, qint64>> fill_hash = {
-	{ 4, QPair<qint64, qint64>{ 0, 0 } },
-	{ 9, QPair<qint64, qint64>{ 1, 0 } },
-	{ 2, QPair<qint64, qint64>{ 2, 0 } },
-	{ 7, QPair<qint64, qint64>{ 3, 0 } },
-	{ 0, QPair<qint64, qint64>{ 4, 0 } },
-	{ 5, QPair<qint64, qint64>{ 5, 0 } },
-	{ 1, QPair<qint64, qint64>{ 6, 0 } },
-	{ 6, QPair<qint64, qint64>{ 7, 0 } },
-	{ 3, QPair<qint64, qint64>{ 8, 0 } },
-	{ 8, QPair<qint64, qint64>{ 9, 0 } },
+static const QHash<__int64, QPair<__int64, __int64>> fill_hash = {
+	{ 4, QPair<__int64, __int64>{ 0, 0 } },
+	{ 9, QPair<__int64, __int64>{ 1, 0 } },
+	{ 2, QPair<__int64, __int64>{ 2, 0 } },
+	{ 7, QPair<__int64, __int64>{ 3, 0 } },
+	{ 0, QPair<__int64, __int64>{ 4, 0 } },
+	{ 5, QPair<__int64, __int64>{ 5, 0 } },
+	{ 1, QPair<__int64, __int64>{ 6, 0 } },
+	{ 6, QPair<__int64, __int64>{ 7, 0 } },
+	{ 3, QPair<__int64, __int64>{ 8, 0 } },
+	{ 8, QPair<__int64, __int64>{ 9, 0 } },
 
-	{ 14, QPair<qint64, qint64>{ 0, 0 } },
-	{ 19, QPair<qint64, qint64>{ 1, 0 } },
-	{ 12, QPair<qint64, qint64>{ 2, 0 } },
-	{ 17, QPair<qint64, qint64>{ 3, 0 } },
-	{ 10, QPair<qint64, qint64>{ 4, 0 } },
-	{ 15, QPair<qint64, qint64>{ 5, 0 } },
-	{ 11, QPair<qint64, qint64>{ 6, 0 } },
-	{ 16, QPair<qint64, qint64>{ 7, 0 } },
-	{ 13, QPair<qint64, qint64>{ 8, 0 } },
-	{ 18, QPair<qint64, qint64>{ 9, 0 } },
+	{ 14, QPair<__int64, __int64>{ 0, 0 } },
+	{ 19, QPair<__int64, __int64>{ 1, 0 } },
+	{ 12, QPair<__int64, __int64>{ 2, 0 } },
+	{ 17, QPair<__int64, __int64>{ 3, 0 } },
+	{ 10, QPair<__int64, __int64>{ 4, 0 } },
+	{ 15, QPair<__int64, __int64>{ 5, 0 } },
+	{ 11, QPair<__int64, __int64>{ 6, 0 } },
+	{ 16, QPair<__int64, __int64>{ 7, 0 } },
+	{ 13, QPair<__int64, __int64>{ 8, 0 } },
+	{ 18, QPair<__int64, __int64>{ 9, 0 } },
 };
 
-void BattleInfoForm::onBattleTableItemForegroundColorChanged(qint64 index, const QColor& color)
+void BattleInfoForm::onBattleTableItemForegroundColorChanged(__int64 index, const QColor& color)
 {
 	if (index < 0 || index > MAX_ENEMY + 2)
 		return;
 
 	if (index == 20)
 	{
-		for (qint64 i = 0; i < max_row; ++i)
+		for (__int64 i = 0; i < max_row; ++i)
 			ui.tableWidget_bottom->setItemForeground(i, 0, color);
 	}
 	else if (index == 21)
 	{
-		for (qint64 i = 0; i < max_row; ++i)
+		for (__int64 i = 0; i < max_row; ++i)
 			ui.tableWidget_top->setItemForeground(i, 0, color);
 
 	}
 	else if (index == 22)
 	{
-		for (qint64 i = 0; i < max_row; ++i)
+		for (__int64 i = 0; i < max_row; ++i)
 		{
 			ui.tableWidget_top->setItemForeground(i, 0, color);
 			ui.tableWidget_bottom->setItemForeground(i, 0, color);
 		}
 	}
 
-	QPair<qint64, qint64> pair = fill_hash.value(index, qMakePair(-1, -1));
+	QPair<__int64, __int64> pair = fill_hash.value(index, qMakePair(-1, -1));
 	if (pair.first == -1)
 		return;
 	if (pair.first >= max_row)
 		return;
 
-	qint64 row = pair.first;
+	__int64 row = pair.first;
 
 	if (index >= 10)
 	{
@@ -214,19 +214,19 @@ void BattleInfoForm::onBattleTableItemForegroundColorChanged(qint64 index, const
 
 void BattleInfoForm::onBattleTableAllItemResetColor()
 {
-	for (qint64 i = 0; i < max_row; ++i)
+	for (__int64 i = 0; i < max_row; ++i)
 	{
 		ui.tableWidget_top->setItemForeground(i, 0, Qt::black);
 		ui.tableWidget_bottom->setItemForeground(i, 0, Qt::black);
 	}
 }
 
-void BattleInfoForm::onNotifyBattleActionState(qint64 index, bool left)
+void BattleInfoForm::onNotifyBattleActionState(__int64 index, bool left)
 {
 	if (!fill_hash.contains(index))
 		return;
 
-	const QPair<qint64, qint64> pair = fill_hash.value(index);
+	const QPair<__int64, __int64> pair = fill_hash.value(index);
 
 	QTableWidgetItem* item = nullptr;
 	if (left)
@@ -246,7 +246,7 @@ void BattleInfoForm::onNotifyBattleActionState(qint64 index, bool left)
 		return;
 
 	//找到非空格的的第一個字符 前方插入 "*"
-	for (qint64 i = 0; i < text.size(); ++i)
+	for (__int64 i = 0; i < text.size(); ++i)
 	{
 		if (text.at(i).unicode() != L'　')
 		{
@@ -288,7 +288,7 @@ void BattleInfoForm::updateItemInfoRowContents(TableWidget* tableWidget, const Q
 			continue;
 		}
 
-		qint64 pos = l.value(0).toLongLong(&ok);
+		__int64 pos = l.value(0).toLongLong(&ok);
 		if (!ok)
 		{
 			continue;
@@ -297,7 +297,7 @@ void BattleInfoForm::updateItemInfoRowContents(TableWidget* tableWidget, const Q
 		QString text = l.value(1);
 		const QString ride = l.value(2);
 
-		const QPair<qint64, qint64> fill = fill_hash.value(pos, qMakePair(-1, -1));
+		const QPair<__int64, __int64> fill = fill_hash.value(pos, qMakePair(-1, -1));
 		if (fill.first == -1)
 		{
 			continue;

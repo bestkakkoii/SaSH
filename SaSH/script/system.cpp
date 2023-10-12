@@ -16,14 +16,15 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 */
 
+import Utility;
+import String;
 #include "stdafx.h"
 #include "interpreter.h"
-#include "util.h"
 #include "injector.h"
 
 #include "signaldispatcher.h"
 
-qint64 Interpreter::press(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
+__int64 Interpreter::press(__int64 currentIndex, __int64 currentLine, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance(currentIndex);
 
@@ -33,7 +34,7 @@ qint64 Interpreter::press(qint64 currentIndex, qint64 currentLine, const TokenMa
 	checkBattleThenWait();
 
 	QString text;
-	qint64 row = 0;
+	__int64 row = 0;
 	if (!checkInteger(TK, 1, &row))
 	{
 		if (!checkString(TK, 1, &text))
@@ -43,17 +44,17 @@ qint64 Interpreter::press(qint64 currentIndex, qint64 currentLine, const TokenMa
 	}
 
 	QString npcName;
-	qint64 npcId = -1;
+	__int64 npcId = -1;
 	checkString(TK, 2, &npcName);
 
 	mapunit_t unit;
-	if (!npcName.isEmpty() && injector.server->findUnit(npcName, util::OBJ_NPC, &unit))
+	if (!npcName.isEmpty() && injector.server->findUnit(npcName, OBJ_NPC, &unit))
 		npcId = unit.id;
 
-	qint64 dialogid = -1;
+	__int64 dialogid = -1;
 	checkInteger(TK, 3, &dialogid);
 
-	qint64 ext = 0;
+	__int64 ext = 0;
 	checkInteger(TK, 4, &ext);
 
 	if (text.isEmpty() && row == 0)
@@ -84,7 +85,7 @@ qint64 Interpreter::press(qint64 currentIndex, qint64 currentLine, const TokenMa
 					return Parser::kNoChange;
 				}
 
-				for (qint64 i = 0; i < textList.size(); ++i)
+				for (__int64 i = 0; i < textList.size(); ++i)
 				{
 					if (!isExact && textList.value(i).toLower().contains(newText))
 					{
@@ -108,14 +109,14 @@ qint64 Interpreter::press(qint64 currentIndex, qint64 currentLine, const TokenMa
 
 ///////////////////////////////////////////////////////////////
 
-qint64 Interpreter::ocr(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
+__int64 Interpreter::ocr(__int64 currentIndex, __int64 currentLine, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance(currentIndex);
 
 	if (injector.server.isNull())
 		return Parser::kServerNotReady;
 
-	qint64 debugmode = 0;
+	__int64 debugmode = 0;
 	checkInteger(TK, 1, &debugmode);
 
 	QString key = "";
@@ -143,16 +144,16 @@ qint64 Interpreter::ocr(qint64 currentIndex, qint64 currentLine, const TokenMap&
 }
 
 #include "net/autil.h"
-qint64 Interpreter::send(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
+__int64 Interpreter::send(__int64 currentIndex, __int64 currentLine, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance(currentIndex);
 
 	if (injector.server.isNull())
 		return Parser::kServerNotReady;
 
-	qint64 size = TK.size();
+	__int64 size = TK.size();
 
-	qint64 funId = -1;
+	__int64 funId = -1;
 	if (!checkInteger(TK, 1, &funId))
 	{
 		errorExport(currentIndex, currentLine, ERROR_LEVEL, QObject::tr("function type must be a number"));
@@ -166,9 +167,9 @@ qint64 Interpreter::send(qint64 currentIndex, qint64 currentLine, const TokenMap
 
 	std::vector<std::variant<int, std::string>> args;
 
-	for (qint64 i = 2; i < size; ++i)
+	for (__int64 i = 2; i < size; ++i)
 	{
-		qint64 varIntValue;
+		__int64 varIntValue;
 		QString varStringValue;
 		std::variant<int, std::string> var;
 
@@ -179,7 +180,7 @@ qint64 Interpreter::send(qint64 currentIndex, qint64 currentLine, const TokenMap
 				errorExport(currentIndex, currentLine, ERROR_LEVEL, QObject::tr("argument %1 must be a number or a string").arg(i - 1));
 				return Parser::kArgError + i;
 			}
-			args.emplace_back(util::fromUnicode(varStringValue));
+			args.emplace_back(fromQUnicode(varStringValue));
 		}
 		else
 		{

@@ -16,9 +16,10 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 */
 
+import Utility;
+import Config;
 #include "stdafx.h"
 #include "selectobjectform.h"
-#include <util.h>
 
 SelectObjectForm::SelectObjectForm(TitleType type, QWidget* parent)
 	: QDialog(parent), type_(type)
@@ -46,10 +47,10 @@ SelectObjectForm::SelectObjectForm(TitleType type, QWidget* parent)
 
 	for (auto& button : buttonList)
 	{
-		connect(button, &QPushButton::clicked, this, &SelectObjectForm::onButtonClicked, Qt::UniqueConnection);
+		connect(button, &QPushButton::clicked, this, &SelectObjectForm::onButtonClicked, Qt::QueuedConnection);
 	}
 
-	util::FormSettingManager formSettingManager(this);
+	FormSettingManager formSettingManager(this);
 	formSettingManager.loadSettings();
 
 	static const QHash<TitleType, QString> title_hash = {
@@ -67,7 +68,7 @@ SelectObjectForm::SelectObjectForm(TitleType type, QWidget* parent)
 
 SelectObjectForm::~SelectObjectForm()
 {
-	util::FormSettingManager formSettingManager(this);
+	FormSettingManager formSettingManager(this);
 	formSettingManager.saveSettings();
 }
 
@@ -126,14 +127,14 @@ void SelectObjectForm::onButtonClicked()
 
 		if (name == "pushButton_up")
 		{
-			util::SwapRowUp(ui.listWidget);
+			util::RowSwap::up(ui.listWidget);
 
 			break;
 		}
 
 		if (name == "pushButton_down")
 		{
-			util::SwapRowDown(ui.listWidget);
+			util::RowSwap::down(ui.listWidget);
 			break;
 		}
 	} while (false);
@@ -145,8 +146,8 @@ void SelectObjectForm::onAccept()
 	if (pRecviveList_ != nullptr)
 	{
 		pRecviveList_->clear();
-		qint64 size = ui.listWidget->count();
-		for (qint64 i = 0; i < size; ++i)
+		__int64 size = ui.listWidget->count();
+		for (__int64 i = 0; i < size; ++i)
 		{
 			pRecviveList_->append(ui.listWidget->item(i)->text());
 		}

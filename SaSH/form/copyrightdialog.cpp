@@ -15,13 +15,14 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 */
+import Compile;
+import Utility;
+import Global;
+import Config;
 
 #include "stdafx.h"
 #include "copyrightdialog.h"
 #include <QWhatsThis>
-
-
-#include "util.h"
 
 static QStringList getInstalledProgramsByKeyword(const QStringList& keywords)
 {
@@ -129,8 +130,8 @@ CopyRightDialog::CopyRightDialog(QWidget* parent)
 	const QString companyName("Bestkakkoii llc.");
 	const QString AuthorName("Philip飞");
 	const QString webUrl("https://www.lovesa.cc");
-	constexpr qint64 nowSysBit = QSysInfo::WordSize;
-	constexpr qint64 yearStart = 2023;
+	constexpr __int64 nowSysBit = QSysInfo::WordSize;
+	constexpr __int64 yearStart = 2023;
 	const QString qqImage(R"(:/image/icon_group.png)");
 	const QString qqLink("https://qm.qq.com/cgi-bin/qm/qr?"
 		"k=Mm_Asx4CFMhLWttW10ScuPngFPFgGNFP" \
@@ -209,13 +210,13 @@ CopyRightDialog::CopyRightDialog(QWidget* parent)
 	connect(ui.pushButton_sysinfo, &PushButton::clicked, this, &CopyRightDialog::pushButton_sysinfo_clicked);
 	connect(ui.pushButton_dxdiag, &PushButton::clicked, this, &CopyRightDialog::pushButton_dxdiag_clicked);
 
-	util::FormSettingManager formManager(this);
+	FormSettingManager formManager(this);
 	formManager.loadSettings();
 }
 
 CopyRightDialog::~CopyRightDialog()
 {
-	util::FormSettingManager formManager(this);
+	FormSettingManager formManager(this);
 	formManager.saveSettings();
 }
 
@@ -246,8 +247,8 @@ void CopyRightDialog::pushButton_copyinfo_clicked()
 	infos.append(ui.label_copyrighttext->text());
 	infos.append(ui.label_txt->text());
 
-	qint64 size = ui.listWidget->count();
-	for (qint64 i = 0; i < size; ++i)
+	__int64 size = ui.listWidget->count();
+	for (__int64 i = 0; i < size; ++i)
 	{
 		QListWidgetItem* item = ui.listWidget->item(i);
 		if (item != nullptr && !item->text().isEmpty())

@@ -1,8 +1,11 @@
-﻿#pragma once
+﻿module;
 
-#if _MSC_VER >= 1600 
-#pragma execution_character_set("utf-8") 
-#endif
+#include <QString>
+#include <QDateTime>
+#include <QLocale>
+#include <QTimeZone>
+
+export module Compile;
 
 namespace compile
 {
@@ -11,11 +14,11 @@ namespace compile
 
 	static QDateTime g_buildDate;
 
-	static QString initializeBuildDateTime();
+	static const QString initializeBuildDateTime();
 
-	static QString g_buildDateTime = initializeBuildDateTime();
+	static const QString g_buildDateTime = initializeBuildDateTime();
 
-	static QString initializeBuildDateTime()
+	static const QString initializeBuildDateTime()
 	{
 		QString dateTimeStr(global_date);
 		dateTimeStr.replace("  ", " 0");// 注意" "是兩個空格，用於日期為單數時需要轉成“空格+0”
@@ -29,10 +32,10 @@ namespace compile
 
 		QDateTime dt(QDateTime::fromString(str, "yyyy-MM-dd hh:mm:ss"));
 
-		QTimeZone pacificTimeZone("America/Los_Angeles");
+		static const QTimeZone pacificTimeZone("America/Los_Angeles");
 		dt.setTimeZone(pacificTimeZone);
 
-		QTimeZone beijingTimeZone("Asia/Shanghai");
+		static const QTimeZone beijingTimeZone("Asia/Shanghai");
 		dt = dt.toTimeZone(beijingTimeZone);
 
 		g_buildDate = dt;
@@ -40,7 +43,7 @@ namespace compile
 		return dt.toString("yyyyMMdd-hh:mm:ss");
 	}
 
-	inline QString buildDateTime(QDateTime* date)
+	export const QString buildDateTime(QDateTime* date)
 	{
 		if (date != nullptr && g_buildDate.isValid())
 			*date = g_buildDate;

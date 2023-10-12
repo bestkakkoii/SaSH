@@ -44,7 +44,7 @@ protected:
 	virtual void showEvent(QShowEvent* event) override;
 
 private:
-	QProgressBar* createProgressBar(qint64 startY);
+	QProgressBar* createProgressBar(__int64 startY);
 	/////////////////////////////////////////////
 	Q_INVOKABLE void start();
 
@@ -61,19 +61,19 @@ private:
 
 signals:
 	void labelTextChanged(const QString& text);
-	void progressReset(qint64 value);
+	void progressReset(__int64 value);
 
 private slots:
-	void onDownloadProgress(qint64 bytesReceived, qint64 bytesTotal);
+	void onDownloadProgress(__int64 bytesReceived, __int64 bytesTotal);
 	void onDownloadFinished();
 	void onLabelTextChanged(const QString& text);
-	void onProgressBarReset(qint64 value);
+	void onProgressBarReset(__int64 value);
 	void onErrorOccurred(QNetworkReply::NetworkError code);
 
 private:
 	Ui::DownloaderClass ui;
 
-	const qint64 pid_ = _getpid();
+	const __int64 pid_ = _getpid();
 	const QString szCurrentDirectory_;
 	const QString szCurrentDotExe_;
 	const QString szCurrentDotExeAsDotTmp_;
@@ -87,6 +87,6 @@ private:
 	bool isMain = false;
 	qreal currentProgress_ = 0.0;
 	QProgressBar* progressBar = nullptr;
-	static std::unique_ptr<QNetworkAccessManager> networkManager_;
+	std::unique_ptr<QNetworkAccessManager> networkManager_;
 	QNetworkReply* reply_ = nullptr;
 };

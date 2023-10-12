@@ -15,7 +15,13 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 */
-
+import Compile;
+import Utility;
+import Config;
+import Safe;
+import Config;
+import Global;
+import String;
 #include "stdafx.h"
 #include "mainform.h"
 
@@ -40,11 +46,10 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 //utilities
 #include "signaldispatcher.h"
-#include <util.h>
 #include <injector.h>
 #include "script/interpreter.h"
 
-util::SafeHash<qint64, MainForm*> g_mainFormHash;
+SafeHash<__int64, MainForm*> g_mainFormHash;
 
 void MainForm::createMenu(QMenuBar* pMenuBar)
 {
@@ -87,7 +92,7 @@ void MainForm::createMenu(QMenuBar* pMenuBar)
 	pMenuBar->clear();
 
 #if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
-	using KeyType = qint64;
+	using KeyType = __int64;
 #else
 	using KeyType = QKeyCombination;
 #endif
@@ -127,7 +132,7 @@ void MainForm::createMenu(QMenuBar* pMenuBar)
 			{
 				bool bret = false;
 				{
-					util::Config config;
+					Config config;
 					bret = config.read<bool>("MainFormClass", "Menu", "HideBar");
 				}
 				pAction->setChecked(bret);
@@ -138,7 +143,7 @@ void MainForm::createMenu(QMenuBar* pMenuBar)
 			{
 				bool bret = false;
 				{
-					util::Config config;
+					Config config;
 					bret = config.read<bool>("MainFormClass", "Menu", "HideControl");
 				}
 				pAction->setChecked(bret);
@@ -249,7 +254,7 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 #endif
 {
 	MSG* msg = static_cast<MSG*>(message);
-	qint64 currentIndex = getIndex();
+	__int64 currentIndex = getIndex();
 
 	switch (msg->message)
 	{
@@ -275,7 +280,7 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 		Injector& injector = Injector::getInstance(currentIndex);
 		if (injector.isValid() && !injector.server.isNull())
 		{
-			qint64 index = getIndex();
+			__int64 index = getIndex();
 			std::ignore = QtConcurrent::run([index]() {
 				Injector& injector = Injector::getInstance(index);
 				std::ignore = injector.server->getPoint();
@@ -305,7 +310,7 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 	}
 	case InterfaceMessage::kRunScript:
 	{
-		qint64 id = msg->wParam;
+		__int64 id = msg->wParam;
 		QSharedPointer<Interpreter> interpreter(QSharedPointer<Interpreter>::create(id));
 		if (interpreter.isNull())
 		{
@@ -330,7 +335,7 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 
 		interpreter_hash_.insert(id, interpreter);
 
-		QString script = util::toQString(utf8str);
+		QString script = toQString(utf8str);
 		connect(interpreter.data(), &Interpreter::finished, this, [this, id]()
 			{
 				interpreter_hash_.remove(id);
@@ -345,7 +350,7 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 	}
 	case InterfaceMessage::kStopScript:
 	{
-		qint64 id = msg->wParam;
+		__int64 id = msg->wParam;
 		QSharedPointer<Interpreter> interpreter = interpreter_hash_.value(id, nullptr);
 		if (interpreter.isNull())
 		{
@@ -363,7 +368,7 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 	}
 	case InterfaceMessage::kRunFile:
 	{
-		qint64 id = msg->wParam;
+		__int64 id = msg->wParam;
 		Injector& injector = Injector::getInstance(id);
 		if (injector.IS_SCRIPT_FLAG.load(std::memory_order_acquire))
 		{
@@ -385,7 +390,7 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 			return true;
 		}
 
-		QString fileName = util::toQString(utf8str);
+		QString fileName = toQString(utf8str);
 		if (!QFile::exists(fileName))
 		{
 			updateStatusText(tr("file not exist"));
@@ -402,7 +407,7 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 	}
 	case InterfaceMessage::kStopFile:
 	{
-		qint64 id = msg->wParam;
+		__int64 id = msg->wParam;
 		Injector& injector = Injector::getInstance(id);
 		if (!injector.IS_SCRIPT_FLAG.load(std::memory_order_acquire))
 		{
@@ -420,7 +425,7 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 	}
 	case InterfaceMessage::kRunGame:
 	{
-		qint64 id = msg->wParam;
+		__int64 id = msg->wParam;
 		Injector& injector = Injector::getInstance(id);
 		if (!injector.server.isNull())
 		{
@@ -438,7 +443,7 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 	}
 	case InterfaceMessage::kCloseGame:
 	{
-		qint64 id = msg->wParam;
+		__int64 id = msg->wParam;
 		Injector& injector = Injector::getInstance(id);
 		if (injector.server.isNull())
 		{
@@ -457,9 +462,9 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 		if (result == nullptr)
 			return true;
 
-		qint64 id = msg->wParam;
+		__int64 id = msg->wParam;
 		Injector& injector = Injector::getInstance(id);
-		qint64 value = 0;
+		__int64 value = 0;
 		if (injector.server.isNull())
 			return true;
 
@@ -493,9 +498,9 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 		if (result == nullptr)
 			return true;
 
-		qint64 id = msg->wParam;
+		__int64 id = msg->wParam;
 		Injector& injector = Injector::getInstance(id);
-		qint64 value = 0;
+		__int64 value = 0;
 		if (injector.IS_SCRIPT_FLAG.load(std::memory_order_acquire))
 			value = 1;
 
@@ -506,9 +511,9 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 	}
 	case InterfaceMessage::kMultiFunction:
 	{
-		qint64 id = msg->wParam;
-		qint64 type = LOWORD(msg->lParam);
-		qint64 arg = HIWORD(msg->lParam);
+		__int64 id = msg->wParam;
+		__int64 type = LOWORD(msg->lParam);
+		__int64 arg = HIWORD(msg->lParam);
 		*result = 0;
 
 		switch (type)
@@ -642,7 +647,7 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 				break;
 			}
 
-			util::Config config;
+			Config config;
 			config.write("System", "Server", "LastServerListSelection", arg);
 			SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(id);
 			emit signalDispatcher.applyHashSettingsToUI();
@@ -660,7 +665,7 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 				break;
 			}
 
-			util::Config config;
+			Config config;
 			config.write("System", "Command", "LastSelection", arg);
 			SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(id);
 			emit signalDispatcher.applyHashSettingsToUI();
@@ -685,7 +690,7 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 		{
 			Injector& injector = Injector::getInstance(id);
 			SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(id);
-			injector.setEnableHash(util::kHideWindowEnable, arg > 0);
+			injector.setEnableHash(kHideWindowEnable, arg > 0);
 			emit signalDispatcher.applyHashSettingsToUI();
 			++interfaceCount_;
 			updateStatusText();
@@ -716,14 +721,14 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 				return true;
 			}
 
-			QString str = util::toQString(hwndstrs);
+			QString str = toQString(hwndstrs);
 			if (str.isEmpty())
 			{
 				updateStatusText(tr("hwndstr is empty"));
 				return true;
 			}
 
-			QStringList strlist = str.split(util::rexOR);
+			QStringList strlist = str.split(rexOR);
 			if (strlist.isEmpty())
 			{
 				updateStatusText(tr("invalid hwndstr str"));
@@ -734,7 +739,7 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 			for (const QString& s : strlist)
 			{
 				bool ok = false;
-				qint64 nhwnd = s.simplified().toLongLong(&ok);
+				__int64 nhwnd = s.simplified().toLongLong(&ok);
 				if (!ok && nhwnd > 0)
 					continue;
 
@@ -783,14 +788,14 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 				break;
 			}
 
-			QString str = util::toQString(hwndstrs);
+			QString str = toQString(hwndstrs);
 			if (str.isEmpty())
 			{
 				updateStatusText(tr("invalid hwndstr str"));
 				break;
 			}
 
-			QStringList strlist = str.split(util::rexOR);
+			QStringList strlist = str.split(rexOR);
 			if (strlist.isEmpty())
 			{
 				updateStatusText(tr("invalid hwndstr str"));
@@ -801,7 +806,7 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 			for (const QString& s : strlist)
 			{
 				bool ok = false;
-				qint64 nhwnd = s.simplified().toLongLong(&ok);
+				__int64 nhwnd = s.simplified().toLongLong(&ok);
 				if (!ok && nhwnd > 0)
 					continue;
 
@@ -864,13 +869,13 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 	{
 		*result = 0;
 		quint64 preid = msg->wParam;
-		qint64 id = -1;
+		__int64 id = -1;
 		if (preid < SASH_MAX_THREAD)
 		{
 			id = preid;
 		}
 
-		qint64* pId = reinterpret_cast<qint64*>(msg->lParam);
+		__int64* pId = reinterpret_cast<__int64*>(msg->lParam);
 		MainForm* p = MainForm::createNewWindow(id, pId);
 		if (p == nullptr)
 		{
@@ -887,7 +892,7 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 	case InterfaceMessage::kGetGamePid:
 	{
 		*result = 0;
-		qint64 id = msg->wParam;
+		__int64 id = msg->wParam;
 		Injector& injector = Injector::getInstance(id);
 		if (injector.server.isNull())
 		{
@@ -904,7 +909,7 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 	case InterfaceMessage::kGetGameHwnd:
 	{
 		*result = 0;
-		qint64 id = msg->wParam;
+		__int64 id = msg->wParam;
 		Injector& injector = Injector::getInstance(id);
 		if (injector.server.isNull())
 		{
@@ -914,14 +919,14 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 
 		++interfaceCount_;
 		updateStatusText();
-		*result = reinterpret_cast<qint64>(injector.getProcessWindow());
+		*result = reinterpret_cast<__int64>(injector.getProcessWindow());
 		return true;
 	}
 	case InterfaceMessage::kLoadSettings:
 	{
 		*result = 0;
-		qint64 id = msg->wParam;
-		qint64 pathptr = msg->lParam;
+		__int64 id = msg->wParam;
+		__int64 pathptr = msg->lParam;
 		if (pathptr == 0)
 		{
 			updateStatusText(tr("invalid lparam"));
@@ -935,7 +940,7 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 			return true;
 		}
 
-		QString utf8str = util::toQString(chwndstrs);
+		QString utf8str = toQString(chwndstrs);
 		if (utf8str.isEmpty())
 		{
 			updateStatusText(tr("path is empty"));
@@ -966,7 +971,7 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 	case InterfaceMessage::kSetAutoLogin:
 	{
 		*result = 0;
-		qint64 id = msg->wParam;
+		__int64 id = msg->wParam;
 		Injector& injector = Injector::getInstance(id);
 		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(id);
 		do
@@ -986,11 +991,11 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 				break;
 			}
 
-			qint64 server = pLoginInfo->server;
-			qint64 subserver = pLoginInfo->subserver;
-			qint64 position = pLoginInfo->position;
-			QString username = util::toQString(pLoginInfo->username);
-			QString password = util::toQString(pLoginInfo->password);
+			__int64 server = pLoginInfo->server;
+			__int64 subserver = pLoginInfo->subserver;
+			__int64 position = pLoginInfo->position;
+			QString username = toQString(pLoginInfo->username);
+			QString password = toQString(pLoginInfo->password);
 
 			if (server < 0 || server > 25)
 			{
@@ -1013,12 +1018,12 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 				break;
 			}
 
-			injector.setEnableHash(util::kAutoLoginEnable, true);
-			injector.setStringHash(util::kGameAccountString, username);
-			injector.setStringHash(util::kGamePasswordString, password);
-			injector.setValueHash(util::kServerValue, server);
-			injector.setValueHash(util::kSubServerValue, subserver);
-			injector.setValueHash(util::kPositionValue, position);
+			injector.setEnableHash(kAutoLoginEnable, true);
+			injector.setStringHash(kGameAccountString, username);
+			injector.setStringHash(kGamePasswordString, password);
+			injector.setValueHash(kServerValue, server);
+			injector.setValueHash(kSubServerValue, subserver);
+			injector.setValueHash(kPositionValue, position);
 			emit signalDispatcher.applyHashSettingsToUI();
 			++interfaceCount_;
 			updateStatusText();
@@ -1026,12 +1031,12 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 			return true;
 		} while (false);
 
-		injector.setEnableHash(util::kAutoLoginEnable, false);
-		injector.setStringHash(util::kGameAccountString, "");
-		injector.setStringHash(util::kGamePasswordString, "");
-		injector.setValueHash(util::kServerValue, 0);
-		injector.setValueHash(util::kSubServerValue, 0);
-		injector.setValueHash(util::kPositionValue, 0);
+		injector.setEnableHash(kAutoLoginEnable, false);
+		injector.setStringHash(kGameAccountString, "");
+		injector.setStringHash(kGamePasswordString, "");
+		injector.setValueHash(kServerValue, 0);
+		injector.setValueHash(kSubServerValue, 0);
+		injector.setValueHash(kPositionValue, 0);
 		emit signalDispatcher.applyHashSettingsToUI();
 		return true;
 	}
@@ -1068,13 +1073,13 @@ void MainForm::moveEvent(QMoveEvent* e)
 
 
 		QPoint pos = e->pos();
-		qint64 currentIndex = getIndex();
+		__int64 currentIndex = getIndex();
 		Injector& injector = Injector::getInstance(currentIndex);
 		HWND hWnd = injector.getProcessWindow();
 		if (hWnd == nullptr)
 			break;
 
-		if (!injector.getEnableHash(util::kWindowDockEnable))
+		if (!injector.getEnableHash(kWindowDockEnable))
 			break;
 
 		//HWND獲取寬度
@@ -1112,11 +1117,11 @@ void MainForm::updateStatusText(const QString text)
 	ui.groupBox_basicinfo->setTitle(msg);
 }
 
-MainForm* MainForm::createNewWindow(qint64 idToAllocate, qint64* pId)
+MainForm* MainForm::createNewWindow(__int64 idToAllocate, __int64* pId)
 {
 	do
 	{
-		qint64 uniqueId = UniqueIdManager::getInstance().allocateUniqueId(idToAllocate);
+		__int64 uniqueId = UniqueIdManager::getInstance().allocateUniqueId(idToAllocate);
 		if (uniqueId < 0)
 			break;
 
@@ -1152,7 +1157,7 @@ MainForm* MainForm::createNewWindow(qint64 idToAllocate, qint64* pId)
 	return nullptr;
 }
 
-MainForm::MainForm(qint64 index, QWidget* parent)
+MainForm::MainForm(__int64 index, QWidget* parent)
 	: QMainWindow(parent)
 	, Indexer(index)
 {
@@ -1173,14 +1178,14 @@ MainForm::MainForm(qint64 index, QWidget* parent)
 	WId wid = this->winId();
 	injector.setParentWidget(reinterpret_cast<HWND>(wid));
 
-	connect(&signalDispatcher, &SignalDispatcher::saveHashSettings, this, &MainForm::onSaveHashSettings, Qt::UniqueConnection);
-	connect(&signalDispatcher, &SignalDispatcher::loadHashSettings, this, &MainForm::onLoadHashSettings, Qt::UniqueConnection);
+	connect(&signalDispatcher, &SignalDispatcher::saveHashSettings, this, &MainForm::onSaveHashSettings, Qt::QueuedConnection);
+	connect(&signalDispatcher, &SignalDispatcher::loadHashSettings, this, &MainForm::onLoadHashSettings, Qt::QueuedConnection);
 	connect(&signalDispatcher, &SignalDispatcher::messageBoxShow, this, &MainForm::onMessageBoxShow, Qt::QueuedConnection);
 	connect(&signalDispatcher, &SignalDispatcher::inputBoxShow, this, &MainForm::onInputBoxShow, Qt::QueuedConnection);
 	connect(&signalDispatcher, &SignalDispatcher::fileDialogShow, this, &MainForm::onFileDialogShow, Qt::QueuedConnection);
-	connect(&signalDispatcher, &SignalDispatcher::updateMainFormTitle, this, &MainForm::onUpdateMainFormTitle, Qt::UniqueConnection);
-	connect(&signalDispatcher, &SignalDispatcher::appendScriptLog, this, &MainForm::onAppendScriptLog, Qt::UniqueConnection);
-	connect(&signalDispatcher, &SignalDispatcher::appendChatLog, this, &MainForm::onAppendChatLog, Qt::UniqueConnection);
+	connect(&signalDispatcher, &SignalDispatcher::updateMainFormTitle, this, &MainForm::onUpdateMainFormTitle, Qt::QueuedConnection);
+	connect(&signalDispatcher, &SignalDispatcher::appendScriptLog, this, &MainForm::onAppendScriptLog, Qt::QueuedConnection);
+	connect(&signalDispatcher, &SignalDispatcher::appendChatLog, this, &MainForm::onAppendChatLog, Qt::QueuedConnection);
 
 	QMenuBar* pMenuBar = new QMenuBar(this);
 	if (pMenuBar != nullptr)
@@ -1209,7 +1214,6 @@ MainForm::MainForm(qint64 index, QWidget* parent)
 	connect(&signalDispatcher, &SignalDispatcher::updateCharInfoStone, this, &MainForm::onUpdateStonePosLabelTextChanged);
 
 	ui.tabWidget_main->clear();
-	util::setTab(ui.tabWidget_main);
 
 	resetControlTextLanguage();
 
@@ -1244,10 +1248,10 @@ MainForm::MainForm(qint64 index, QWidget* parent)
 	ui.progressBar_pethp->onCurrentValueChanged(255, 9999, 9999);
 	ui.progressBar_ridehp->onCurrentValueChanged(255, 9999, 9999);
 
-	util::FormSettingManager formManager(this);
+	FormSettingManager formManager(this);
 	formManager.loadSettings();
 
-	emit signalDispatcher.updateStatusLabelTextChanged(util::kLabelStatusNotOpen);
+	emit signalDispatcher.updateStatusLabelTextChanged(kLabelStatusNotOpen);
 
 	onLoadHashSettings(util::applicationDirPath() + "/settings/default.json", true);
 }
@@ -1255,10 +1259,7 @@ MainForm::MainForm(qint64 index, QWidget* parent)
 MainForm::~MainForm()
 {
 	qDebug() << "MainForm::~MainForm()";
-	//qint64 currentIndex = getIndex();
-	//g_mainFormHash.remove(currentIndex);
-	//SignalDispatcher::remove(currentIndex);
-	//if (g_mainFormHash.isEmpty())
+	UniqueIdManager::getInstance().deallocateUniqueId(getIndex());
 	MINT::NtTerminateProcess(GetCurrentProcess(), 0);
 }
 
@@ -1273,7 +1274,7 @@ void MainForm::closeEvent(QCloseEvent* e)
 	e->ignore();
 	onSaveHashSettings(util::applicationDirPath() + "/settings/backup.json", true);
 
-	util::FormSettingManager formManager(this);
+	FormSettingManager formManager(this);
 	formManager.saveSettings();
 
 	if (pInfoForm_ != nullptr)
@@ -1311,7 +1312,7 @@ void MainForm::onMenuActionTriggered()
 	if (actionName.isEmpty())
 		return;
 
-	qint64 currentIndex = getIndex();
+	__int64 currentIndex = getIndex();
 
 	//system
 	if (actionName == "actionHide")
@@ -1407,7 +1408,7 @@ void MainForm::onMenuActionTriggered()
 
 	if (actionName == "actionHideBar")
 	{
-		util::Config config;
+		Config config;
 		config.write("MainFormClass", "Menu", "HideBar", pAction->isChecked());
 		if (pAction->isChecked())
 		{
@@ -1428,7 +1429,7 @@ void MainForm::onMenuActionTriggered()
 
 	if (actionName == "actionHideControl")
 	{
-		util::Config config;
+		Config config;
 		config.write("MainFormClass", "Menu", "HideControl", pAction->isChecked());
 		if (pAction->isChecked())
 		{
@@ -1563,7 +1564,7 @@ void MainForm::onMenuActionTriggered()
 		QString current;
 		QString result;
 		QString formatedDiff;
-		qint64 ret;
+		__int64 ret;
 
 		bool bret = Downloader::checkUpdate(&current, &result, &formatedDiff);
 		QString detail = tr("Current version:%1\nNew version:%2").arg(current).arg(result);
@@ -1588,7 +1589,7 @@ void MainForm::onMenuActionTriggered()
 				detail);
 		}
 
-		if (QMessageBox::No == ret)
+		if (ret >= 0)
 			return;
 
 		Downloader* downloader = q_check_ptr(new Downloader());
@@ -1645,7 +1646,7 @@ void MainForm::resetControlTextLanguage()
 	qApp->installTranslator(&translator_);
 	this->ui.retranslateUi(this);
 
-	qint64 currentIndex = getIndex();
+	__int64 currentIndex = getIndex();
 	QString buildTime = compile::buildDateTime(nullptr);
 	//take off year
 	buildTime = buildTime.mid(4);
@@ -1698,35 +1699,35 @@ void MainForm::resetControlTextLanguage()
 		emit pOtherForm_->resetControlTextLanguage();
 }
 
-void MainForm::onUpdateStatusLabelTextChanged(qint64 status)
+void MainForm::onUpdateStatusLabelTextChanged(__int64 status)
 {
-	const QHash<util::UserStatus, QString> hash = {
-		{ util::kLabelStatusNotUsed, tr("unknown") },
-		{ util::kLabelStatusNotOpen, tr("not open") },
-		{ util::kLabelStatusOpening, tr("opening") },
-		{ util::kLabelStatusOpened, tr("opened") },
-		{ util::kLabelStatusLogining, tr("logining") },
-		{ util::kLabelStatusSignning, tr("signning") },
-		{ util::kLabelStatusSelectServer, tr("select server") },
-		{ util::kLabelStatusSelectSubServer, tr("select sub server") },
-		{ util::kLabelStatusGettingCharList, tr("getting player list") },
-		{ util::kLabelStatusSelectPosition, tr("select position") },
-		{ util::kLabelStatusLoginSuccess, tr("login success") },
-		{ util::kLabelStatusInNormal, tr("in normal") },
-		{ util::kLabelStatusInBattle, tr("in battle") },
-		{ util::kLabelStatusBusy, tr("busy") },
-		{ util::kLabelStatusTimeout, tr("timeout") },
-		{ util::kLabelStatusLoginFailed, tr("login failed")},
-		{ util::kLabelNoUserNameOrPassword, tr("no username or password") },
-		{ util::kLabelStatusDisconnected, tr("disconnected")},
-		{ util::kLabelStatusConnecting, tr("connecting")},
-		{ util::kLabelStatusNoUsernameAndPassword, tr("no account and password")},
-		{ util::kLabelStatusNoUsername, tr("no account")},
-		{ util::kLabelStatusNoPassword, tr("no password")},
+	const QHash<UserStatus, QString> hash = {
+		{ kLabelStatusNotUsed, tr("unknown") },
+		{ kLabelStatusNotOpen, tr("not open") },
+		{ kLabelStatusOpening, tr("opening") },
+		{ kLabelStatusOpened, tr("opened") },
+		{ kLabelStatusLogining, tr("logining") },
+		{ kLabelStatusSignning, tr("signning") },
+		{ kLabelStatusSelectServer, tr("select server") },
+		{ kLabelStatusSelectSubServer, tr("select sub server") },
+		{ kLabelStatusGettingCharList, tr("getting player list") },
+		{ kLabelStatusSelectPosition, tr("select position") },
+		{ kLabelStatusLoginSuccess, tr("login success") },
+		{ kLabelStatusInNormal, tr("in normal") },
+		{ kLabelStatusInBattle, tr("in battle") },
+		{ kLabelStatusBusy, tr("busy") },
+		{ kLabelStatusTimeout, tr("timeout") },
+		{ kLabelStatusLoginFailed, tr("login failed")},
+		{ kLabelNoUserNameOrPassword, tr("no username or password") },
+		{ kLabelStatusDisconnected, tr("disconnected")},
+		{ kLabelStatusConnecting, tr("connecting")},
+		{ kLabelStatusNoUsernameAndPassword, tr("no account and password")},
+		{ kLabelStatusNoUsername, tr("no account")},
+		{ kLabelStatusNoPassword, tr("no password")},
 	};
 
 	Injector& injector = Injector::getInstance(getIndex());
-	ui.label_status->setText((injector.IS_SCRIPT_FLAG ? QString("[" + tr("script running") + "]") : "") + hash.value(static_cast<util::UserStatus>(status), tr("unknown")));
+	ui.label_status->setText((injector.IS_SCRIPT_FLAG ? QString("[" + tr("script running") + "]") : "") + hash.value(static_cast<UserStatus>(status), tr("unknown")));
 }
 
 void MainForm::onUpdateMapLabelTextChanged(const QString& text)
@@ -1749,14 +1750,14 @@ void MainForm::onUpdateTimeLabelTextChanged(const QString& text)
 	ui.label_time->setText(text);
 }
 
-void MainForm::onUpdateStonePosLabelTextChanged(qint64 ntext)
+void MainForm::onUpdateStonePosLabelTextChanged(__int64 ntext)
 {
-	ui.label_stone->setText(util::toQString(ntext));
+	ui.label_stone->setText(toQString(ntext));
 }
 
 void MainForm::onUpdateMainFormTitle(const QString& text)
 {
-	qint64 currentIndex = getIndex();
+	__int64 currentIndex = getIndex();
 #ifdef _WIN64
 	setWindowTitle(QString("[%1]SaSH-%2").arg(currentIndex).arg(text).simplified().replace("SaSH-", "SaSHx64-"));
 #else
@@ -1800,16 +1801,16 @@ void MainForm::onSaveHashSettings(const QString& name, bool isFullPath)
 			return;
 	}
 
-	qint64 currentIndex = getIndex();
+	__int64 currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
-	QHash<util::UserSetting, bool> enableHash = injector.getEnablesHash();
-	QHash<util::UserSetting, qint64> valueHash = injector.getValuesHash();
-	QHash<util::UserSetting, QString> stringHash = injector.getStringsHash();
+	QHash<UserSetting, bool> enableHash = injector.getEnablesHash();
+	QHash<UserSetting, __int64> valueHash = injector.getValuesHash();
+	QHash<UserSetting, QString> stringHash = injector.getStringsHash();
 	QString key;
-	util::UserSetting hkey = util::kSettingNotUsed;
-	const QHash<util::UserSetting, QString> jsonKeyHash = util::user_setting_string_hash;
+	UserSetting hkey = kSettingNotUsed;
+	const QHash<UserSetting, QString> jsonKeyHash = user_setting_string_hash;
 
-	util::Config config(fileName);
+	Config config(fileName);
 	for (auto iter = enableHash.constBegin(); iter != enableHash.constEnd(); ++iter)
 	{
 		hkey = iter.key();
@@ -1822,7 +1823,7 @@ void MainForm::onSaveHashSettings(const QString& name, bool isFullPath)
 	for (auto iter = valueHash.constBegin(); iter != valueHash.constEnd(); ++iter)
 	{
 		hkey = iter.key();
-		qint64 hvalue = iter.value();
+		__int64 hvalue = iter.value();
 		key = jsonKeyHash.value(hkey, "Invalid");
 		if (key.endsWith("Value"))
 			config.write("User", "Value", key, hvalue);
@@ -1877,18 +1878,18 @@ void MainForm::onLoadHashSettings(const QString& name, bool isFullPath)
 	if (!QFile::exists(fileName))
 		return;
 
-	qint64 currentIndex = getIndex();
+	__int64 currentIndex = getIndex();
 
 	Injector& injector = Injector::getInstance(currentIndex);
-	QHash<util::UserSetting, bool> enableHash;
-	QHash<util::UserSetting, qint64> valueHash;
-	QHash<util::UserSetting, QString> stringHash;
+	QHash<UserSetting, bool> enableHash;
+	QHash<UserSetting, __int64> valueHash;
+	QHash<UserSetting, QString> stringHash;
 	QString key;
-	util::UserSetting hkey = util::kSettingNotUsed;
-	const QHash<util::UserSetting, QString> jsonKeyHash = util::user_setting_string_hash;
+	UserSetting hkey = kSettingNotUsed;
+	const QHash<UserSetting, QString> jsonKeyHash = user_setting_string_hash;
 
 	{
-		util::Config config(fileName);
+		Config config(fileName);
 		for (auto iter = jsonKeyHash.constBegin(); iter != jsonKeyHash.constEnd(); ++iter)
 		{
 			key = iter.value();
@@ -1904,7 +1905,7 @@ void MainForm::onLoadHashSettings(const QString& name, bool isFullPath)
 			key = iter.value();
 			if (!key.endsWith("Value"))
 				continue;
-			qint64 value = config.read<qint64>("User", "Value", key);
+			__int64 value = config.read<__int64>("User", "Value", key);
 			hkey = iter.key();
 			valueHash.insert(hkey, value);
 		}
@@ -1928,8 +1929,20 @@ void MainForm::onLoadHashSettings(const QString& name, bool isFullPath)
 	emit signalDispatcher.applyHashSettingsToUI();
 }
 
+//對話日誌
+void MainForm::onAppendChatLog(const QString& text, __int64 color)
+{
+	__int64 currentIndex = getIndex();
+	Injector& injector = Injector::getInstance(currentIndex);
+	if (!injector.chatLogModel.isNull())
+	{
+		injector.chatLogModel->append(text, color);
+		emit injector.chatLogModel->dataAppended();
+	}
+}
+
 //消息框
-void MainForm::onMessageBoxShow(const QString& text, qint64 type, QString title, qint64* pnret, QString topText, QString detail, void* p)
+void MainForm::onMessageBoxShow(const QString& text, __int64 type, QString title, __int64* pnret, QString topText, QString detail, void* p)
 {
 	QEventLoop* pEventLoop = nullptr;
 	if (p != nullptr)
@@ -1979,16 +1992,8 @@ void MainForm::onMessageBoxShow(const QString& text, qint64 type, QString title,
 	msgBox->setModal(false);
 	msgBox->setAttribute(Qt::WA_QuitOnClose);
 	msgBox->setWindowFlags(Qt::Dialog | Qt::WindowCloseButtonHint);
-
-	//msgBox->setCheckBox(QCheckBox * cb)
-	//msgBox->setDefaultButton(QPushButton * button)
-	msgBox->setDefaultButton(QMessageBox::StandardButton::Yes);
-
-	//msgBox->setEscapeButton(QAbstractButton * button)
-	msgBox->setEscapeButton(QMessageBox::StandardButton::No);
 	msgBox->setIcon(icon);
-	//msgBox->setIconPixmap(const QPixmap & pixmap)
-	msgBox->setStandardButtons(QMessageBox::StandardButton::Yes | QMessageBox::StandardButton::No);
+	//msgBox->setStandardButtons(QMessageBox::StandardButton::Yes | QMessageBox::StandardButton::No);
 	msgBox->setTextFormat(Qt::TextFormat::RichText);
 	msgBox->setTextInteractionFlags(Qt::TextSelectableByMouse | Qt::TextSelectableByKeyboard | Qt::LinksAccessibleByMouse | Qt::LinksAccessibleByKeyboard);
 	msgBox->setWindowModality(Qt::ApplicationModal);
@@ -2006,18 +2011,14 @@ void MainForm::onMessageBoxShow(const QString& text, qint64 type, QString title,
 	}
 
 #if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
-	msgBox->setButtonText(QMessageBox::Ok, tr("ok"));
-	msgBox->setButtonText(QMessageBox::Cancel, tr("cancel"));
 	msgBox->setButtonText(QMessageBox::Yes, tr("yes"));
 	msgBox->setButtonText(QMessageBox::No, tr("no"));
 #else
-	//msgBox->addButton(tr("ok"), QMessageBox::ButtonRole::AcceptRole);
-	//msgBox->addButton(tr("cancel"), QMessageBox::ButtonRole::RejectRole);
 	msgBox->addButton(tr("yes"), QMessageBox::ButtonRole::YesRole);
 	msgBox->addButton(tr("no"), QMessageBox::ButtonRole::NoRole);
 #endif
 
-	qint64 ret = msgBox->exec();
+	__int64 ret = msgBox->exec();
 	if (ret == QDialog::Rejected)
 		return;
 
@@ -2026,7 +2027,7 @@ void MainForm::onMessageBoxShow(const QString& text, qint64 type, QString title,
 }
 
 //输入框
-void MainForm::onInputBoxShow(const QString& text, qint64 type, QVariant* retvalue, void* p)
+void MainForm::onInputBoxShow(const QString& text, __int64 type, QVariant* retvalue, void* p)
 {
 	if (retvalue == nullptr)
 		return;
@@ -2089,10 +2090,10 @@ void MainForm::onInputBoxShow(const QString& text, qint64 type, QVariant* retval
 	switch (type)
 	{
 	case QInputDialog::IntInput:
-		*retvalue = static_cast<qint64>(inputDialog->intValue());
+		*retvalue = static_cast<__int64>(inputDialog->intValue());
 		break;
 	case QInputDialog::DoubleInput:
-		*retvalue = static_cast<qint64>(inputDialog->doubleValue());
+		*retvalue = static_cast<__int64>(inputDialog->doubleValue());
 		break;
 	case QInputDialog::TextInput:
 		*retvalue = inputDialog->textValue();
@@ -2101,9 +2102,9 @@ void MainForm::onInputBoxShow(const QString& text, qint64 type, QVariant* retval
 }
 
 //腳本日誌
-void MainForm::onAppendScriptLog(const QString& text, qint64 color)
+void MainForm::onAppendScriptLog(const QString& text, __int64 color)
 {
-	qint64 currentIndex = getIndex();
+	__int64 currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
 	if (!injector.scriptLogModel.isNull())
 	{
@@ -2112,19 +2113,8 @@ void MainForm::onAppendScriptLog(const QString& text, qint64 color)
 	}
 }
 
-//對話日誌
-void MainForm::onAppendChatLog(const QString& text, qint64 color)
-{
-	qint64 currentIndex = getIndex();
-	Injector& injector = Injector::getInstance(currentIndex);
-	if (!injector.chatLogModel.isNull())
-	{
-		injector.chatLogModel->append(text, color);
-		emit injector.chatLogModel->dataAppended();
-	}
-}
-
-void MainForm::onFileDialogShow(const QString& name, qint64 acceptType, QString* retstring, void* p)
+//文件對話框
+void MainForm::onFileDialogShow(const QString& name, __int64 acceptType, QString* retstring, void* p)
 {
 	if (retstring != nullptr)
 		retstring->clear();

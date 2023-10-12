@@ -19,62 +19,32 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #pragma once
 #include <QObject>
 #include <indexer.h>
-#include "util.h"
 
 class SignalDispatcher : public QObject, public Indexer
 {
 	Q_OBJECT;
 private:
-	inline static util::SafeHash<qint64, SignalDispatcher*> instances;
-
-	explicit SignalDispatcher(qint64 index)
-		: Indexer(index)
-	{
-	}
+	explicit SignalDispatcher(__int64 index);
 
 public:
-	virtual ~SignalDispatcher()
-	{
-		qDebug() << "SignalDispatcher is distoryed!!";
-	}
+	virtual ~SignalDispatcher();
 
-	static SignalDispatcher& getInstance(qint64 index)
-	{
-		if (!instances.contains(index))
-		{
-			SignalDispatcher* instance = new SignalDispatcher(index);
-			instances.insert(index, instance);
-		}
-		return *instances.value(index);
-	}
+	static SignalDispatcher& getInstance(__int64 index);
 
-	static bool contains(qint64 index)
-	{
-		return instances.contains(index);
-	}
+	static bool contains(__int64 index);
 
 public:
-	inline void setParent(QObject* parent) { QObject::setParent(parent); }
+	void setParent(QObject* parent);
 
-	static inline void remove(qint64 index)
-	{
-		if (!instances.contains(index))
-			return;
-
-		SignalDispatcher* instance = instances.take(index);
-		if (instance != nullptr)
-		{
-			instance->deleteLater();
-		}
-	}
+	static void remove(__int64 index);
 
 signals:
 	//global
 	void nodifyAllStop();
 	void nodifyAllScriptStop();
-	void messageBoxShow(const QString& text, qint64 type = 0, QString title = "", qint64* pnret = nullptr, QString topText = "", QString detail = "", void* p = nullptr);
-	void inputBoxShow(const QString& text, qint64 type, QVariant* retvalue, void* p);
-	void fileDialogShow(const QString& name, qint64 acceptType, QString* retstring, void* p);
+	void messageBoxShow(const QString& text, __int64 type = 0, QString title = "", __int64* pnret = nullptr, QString topText = "", QString detail = "", void* p = nullptr);
+	void inputBoxShow(const QString& text, __int64 type, QVariant* retvalue, void* p);
+	void fileDialogShow(const QString& name, __int64 acceptType, QString* retstring, void* p);
 
 	void applyHashSettingsToUI();
 	void saveHashSettings(const QString& name = "default", bool isFullPath = false);
@@ -84,27 +54,27 @@ signals:
 
 	//mainform
 	void updateMainFormTitle(const QString& text);
-	void updateCharHpProgressValue(qint64 level, qint64 value, qint64 maxvalue);
-	void updateCharMpProgressValue(qint64 level, qint64 value, qint64 maxvalue);
-	void updatePetHpProgressValue(qint64 level, qint64 value, qint64 maxvalue);
-	void updateRideHpProgressValue(qint64 level, qint64 value, qint64 maxvalue);
+	void updateCharHpProgressValue(__int64 level, __int64 value, __int64 maxvalue);
+	void updateCharMpProgressValue(__int64 level, __int64 value, __int64 maxvalue);
+	void updatePetHpProgressValue(__int64 level, __int64 value, __int64 maxvalue);
+	void updateRideHpProgressValue(__int64 level, __int64 value, __int64 maxvalue);
 
-	void updateStatusLabelTextChanged(qint64 status);
+	void updateStatusLabelTextChanged(__int64 status);
 	void updateMapLabelTextChanged(const QString& text);
 	void updateCursorLabelTextChanged(const QString& text);
 	void updateCoordsPosLabelTextChanged(const QString& text);
 	void updateLoginTimeLabelTextChanged(const QString& text);
 
-	void appendScriptLog(const QString& text, qint64 color = 0);
-	void appendChatLog(const QString& text, qint64 color = 0);
+	void appendScriptLog(const QString& text, __int64 color = 0);
+	void appendChatLog(const QString& text, __int64 color = 0);
 
 	//infoform
-	void updateCharInfoColContents(qint64 col, const QVariant& data);
-	void updateCharInfoStone(qint64 stone);
-	void updateCharInfoPetState(qint64 petIndex, qint64 state);
+	void updateCharInfoColContents(__int64 col, const QVariant& data);
+	void updateCharInfoStone(__int64 stone);
+	void updateCharInfoPetState(__int64 petIndex, __int64 state);
 
-	void updateItemInfoRowContents(qint64 row, const QVariant& data);
-	void updateEquipInfoRowContents(qint64 row, const QVariant& data);
+	void updateItemInfoRowContents(__int64 row, const QVariant& data);
+	void updateEquipInfoRowContents(__int64 row, const QVariant& data);
 
 
 	//battleForm
@@ -113,27 +83,27 @@ signals:
 	void updateBattleTimeLabelTextChanged(const QString& text);
 	void updateLabelCharAction(const QString& text);
 	void updateLabelPetAction(const QString& text);
-	void notifyBattleActionState(qint64 index, bool left);
-	void battleTableItemForegroundColorChanged(qint64 index, const QColor& color);
+	void notifyBattleActionState(__int64 index, bool left);
+	void battleTableItemForegroundColorChanged(__int64 index, const QColor& color);
 	void battleTableAllItemResetColor();
 
 	void setStartButtonEnabled(bool enable);
 
 	//mapform
-	void updateNpcList(qint64 floor);
+	void updateNpcList(__int64 floor);
 
 	//afkform
-	void updateComboBoxItemText(qint64 type, const QStringList& textList);
+	void updateComboBoxItemText(__int64 type, const QStringList& textList);
 
 	//afkinfo
-	void updateAfkInfoTable(qint64 row, const QString& text);
+	void updateAfkInfoTable(__int64 row, const QString& text);
 
 	//otherform->group
 	void updateTeamInfo(const QStringList& text);
 
 
 	//script
-	void scriptLabelRowTextChanged(qint64 row, qint64 max, bool noSelect);
+	void scriptLabelRowTextChanged(__int64 row, __int64 max, bool noSelect);
 	void scriptPaused();
 	void scriptResumed();
 	void scriptBreaked();
@@ -146,12 +116,11 @@ signals:
 	void varInfoImported(void* p, const QVariantHash& d, const QStringList& globalNames);
 	void breakMarkInfoImport();
 
-	void scriptSpeedChanged(qint64 speed);
+	void scriptSpeedChanged(__int64 speed);
 
-	void addForwardMarker(qint64 liner, bool b);
-	void addErrorMarker(qint64 liner, bool b);
-	void addBreakMarker(qint64 liner, bool b);
-	void addStepMarker(qint64 liner, bool b);
+	void addForwardMarker(__int64 liner, bool b);
+	void addErrorMarker(__int64 liner, bool b);
+	void addBreakMarker(__int64 liner, bool b);
+	void addStepMarker(__int64 liner, bool b);
 	//void loadHashSettings(const QString& name = "default");
 };
-

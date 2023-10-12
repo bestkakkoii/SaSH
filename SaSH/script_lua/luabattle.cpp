@@ -21,10 +21,10 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "injector.h"
 #include "signaldispatcher.h"
 
-qint64 CLuaBattle::charUseAttack(qint64 objIndex, sol::this_state s)//atk
+__int64 CLuaBattle::charUseAttack(__int64 objIndex, sol::this_state s)//atk
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<__int64>());
 	if (injector.server.isNull())
 		return FALSE;
 
@@ -33,10 +33,10 @@ qint64 CLuaBattle::charUseAttack(qint64 objIndex, sol::this_state s)//atk
 	return TRUE;
 }
 
-qint64 CLuaBattle::charUseMagic(qint64 magicIndex, qint64 objIndex, sol::this_state s)//magic
+__int64 CLuaBattle::charUseMagic(__int64 magicIndex, __int64 objIndex, sol::this_state s)//magic
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<__int64>());
 	if (injector.server.isNull())
 		return FALSE;
 
@@ -45,10 +45,10 @@ qint64 CLuaBattle::charUseMagic(qint64 magicIndex, qint64 objIndex, sol::this_st
 	return TRUE;
 }
 
-qint64 CLuaBattle::charUseSkill(qint64 skillIndex, qint64 objIndex, sol::this_state s)//skill
+__int64 CLuaBattle::charUseSkill(__int64 skillIndex, __int64 objIndex, sol::this_state s)//skill
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<__int64>());
 	if (injector.server.isNull())
 		return FALSE;
 
@@ -57,10 +57,10 @@ qint64 CLuaBattle::charUseSkill(qint64 skillIndex, qint64 objIndex, sol::this_st
 	return TRUE;
 }
 
-qint64 CLuaBattle::switchPet(qint64 petIndex, sol::this_state s)//switch
+__int64 CLuaBattle::switchPet(__int64 petIndex, sol::this_state s)//switch
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<__int64>());
 	if (injector.server.isNull())
 		return FALSE;
 
@@ -69,10 +69,10 @@ qint64 CLuaBattle::switchPet(qint64 petIndex, sol::this_state s)//switch
 	return TRUE;
 }
 
-qint64 CLuaBattle::escape(sol::this_state s)//escape
+__int64 CLuaBattle::escape(sol::this_state s)//escape
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<__int64>());
 	if (injector.server.isNull())
 		return FALSE;
 
@@ -81,10 +81,10 @@ qint64 CLuaBattle::escape(sol::this_state s)//escape
 	return TRUE;
 }
 
-qint64 CLuaBattle::defense(sol::this_state s)//defense
+__int64 CLuaBattle::defense(sol::this_state s)//defense
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<__int64>());
 	if (injector.server.isNull())
 		return FALSE;
 
@@ -93,10 +93,10 @@ qint64 CLuaBattle::defense(sol::this_state s)//defense
 	return TRUE;
 }
 
-qint64 CLuaBattle::useItem(qint64 itemIndex, qint64 objIndex, sol::this_state s)//item
+__int64 CLuaBattle::useItem(__int64 itemIndex, __int64 objIndex, sol::this_state s)//item
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<__int64>());
 	if (injector.server.isNull())
 		return FALSE;
 
@@ -105,10 +105,10 @@ qint64 CLuaBattle::useItem(qint64 itemIndex, qint64 objIndex, sol::this_state s)
 	return TRUE;
 }
 
-qint64 CLuaBattle::catchPet(qint64 objIndex, sol::this_state s)//catch
+__int64 CLuaBattle::catchPet(__int64 objIndex, sol::this_state s)//catch
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<__int64>());
 	if (injector.server.isNull())
 		return FALSE;
 
@@ -117,10 +117,10 @@ qint64 CLuaBattle::catchPet(qint64 objIndex, sol::this_state s)//catch
 	return TRUE;
 }
 
-qint64 CLuaBattle::nothing(sol::this_state s)//nothing
+__int64 CLuaBattle::nothing(sol::this_state s)//nothing
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<__int64>());
 	if (injector.server.isNull())
 		return FALSE;
 
@@ -129,10 +129,10 @@ qint64 CLuaBattle::nothing(sol::this_state s)//nothing
 	return TRUE;
 }
 
-qint64 CLuaBattle::petUseSkill(qint64 petSkillIndex, qint64 objIndex, sol::this_state s)//petskill
+__int64 CLuaBattle::petUseSkill(__int64 petSkillIndex, __int64 objIndex, sol::this_state s)//petskill
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<__int64>());
 	if (injector.server.isNull())
 		return FALSE;
 
@@ -141,10 +141,10 @@ qint64 CLuaBattle::petUseSkill(qint64 petSkillIndex, qint64 objIndex, sol::this_
 	return TRUE;
 }
 
-qint64 CLuaBattle::petNothing(sol::this_state s)//pet nothing
+__int64 CLuaBattle::petNothing(sol::this_state s)//pet nothing
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<__int64>());
 	if (injector.server.isNull())
 		return FALSE;
 

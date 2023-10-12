@@ -15,13 +15,14 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 */
-
+import Utility;
+import String;
 #include "stdafx.h"
 #include "clua.h"
 #include "injector.h"
 #include "signaldispatcher.h"
 
-qint64 CLuaSystem::sleep(qint64 t, sol::this_state s)
+__int64 CLuaSystem::sleep(__int64 t, sol::this_state s)
 {
 	if (t < 0)
 	{
@@ -31,8 +32,8 @@ qint64 CLuaSystem::sleep(qint64 t, sol::this_state s)
 
 	if (t >= 1000)
 	{
-		qint64 i = 0;
-		qint64 size = t / 1000;
+		__int64 i = 0;
+		__int64 size = t / 1000;
 		for (; i < size; ++i)
 		{
 			QThread::msleep(1000UL);
@@ -48,10 +49,10 @@ qint64 CLuaSystem::sleep(qint64 t, sol::this_state s)
 	return TRUE;
 }
 
-qint64 CLuaSystem::logout(sol::this_state s)
+__int64 CLuaSystem::logout(sol::this_state s)
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<__int64>());
 	if (!injector.server.isNull())
 	{
 		injector.server->logOut();
@@ -61,10 +62,10 @@ qint64 CLuaSystem::logout(sol::this_state s)
 	return FALSE;
 }
 
-qint64 CLuaSystem::logback(sol::this_state s)
+__int64 CLuaSystem::logback(sol::this_state s)
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<__int64>());
 	if (!injector.server.isNull())
 	{
 		injector.server->logBack();
@@ -74,10 +75,10 @@ qint64 CLuaSystem::logback(sol::this_state s)
 	return FALSE;
 }
 
-qint64 CLuaSystem::eo(sol::this_state s)
+__int64 CLuaSystem::eo(sol::this_state s)
 {
 	sol::state_view lua(s);
-	qint64 currentIndex = lua["_INDEX"].get<qint64>();
+	__int64 currentIndex = lua["_INDEX"].get<__int64>();
 	Injector& injector = Injector::getInstance(currentIndex);
 	if (injector.server.isNull())
 		return 0;
@@ -89,18 +90,18 @@ qint64 CLuaSystem::eo(sol::this_state s)
 
 	bool bret = luadebug::waitfor(s, 5000, [currentIndex]() { return !Injector::getInstance(currentIndex).server->isEOTTLSend.load(std::memory_order_acquire); });
 
-	qint64 result = bret ? injector.server->lastEOTime.load(std::memory_order_acquire) : 0;
+	__int64 result = bret ? injector.server->lastEOTime.load(std::memory_order_acquire) : 0;
 
 	return result;
 }
 
-qint64 CLuaSystem::openlog(std::string sfilename, sol::object oformat, sol::object obuffersize, sol::this_state s)
+__int64 CLuaSystem::openlog(std::string sfilename, sol::object oformat, sol::object obuffersize, sol::this_state s)
 {
 	sol::state_view lua(s);
-	qint64 currentIndex = lua["_INDEX"].get<qint64>();
+	__int64 currentIndex = lua["_INDEX"].get<__int64>();
 	Injector& injector = Injector::getInstance(currentIndex);
 
-	QString filename = util::toQString(sfilename);
+	QString filename = toQString(sfilename);
 	if (filename.isEmpty())
 	{
 		luadebug::showErrorMsg(s, luadebug::ERROR_LEVEL, QObject::tr("log file name cannot be empty"));
@@ -109,18 +110,18 @@ qint64 CLuaSystem::openlog(std::string sfilename, sol::object oformat, sol::obje
 
 	QString format = "[%(date) %(time)] | [@%(line)] | %(message)";
 	if (oformat.is<std::string>() && !oformat.as<std::string>().empty())
-		format = util::toQString(oformat);
+		format = toQString(oformat);
 
-	qint64 buffersize = 1024;
-	if (obuffersize.is<qint64>())
-		buffersize = obuffersize.as<qint64>();
+	__int64 buffersize = 1024;
+	if (obuffersize.is<__int64>())
+		buffersize = obuffersize.as<__int64>();
 
-	bool bret = injector.log.initialize(filename, buffersize, format);
+	bool bret = injector.log->initialize(filename, buffersize, format);
 	return bret;
 }
 
 //這裡還沒想好format格式怎麼設計，暫時先放著
-qint64 CLuaSystem::print(sol::object ocontent, sol::object ocolor, sol::this_state s)
+__int64 CLuaSystem::print(sol::object ocontent, sol::object ocolor, sol::this_state s)
 {
 	sol::state_view lua(s);
 	luadebug::tryPopCustomErrorMsg(s, luadebug::ERROR_PARAM_SIZE_RANGE, 1, 3);
@@ -134,24 +135,24 @@ qint64 CLuaSystem::print(sol::object ocontent, sol::object ocolor, sol::this_sta
 	else if (ocontent.is<bool>())
 	{
 		bool value = ocontent.as<bool>();
-		raw = util::toQString(value);
+		raw = toQString(value);
 		msg = raw;
 	}
 	else if (ocontent.is<qlonglong>())
 	{
 		const qlonglong value = ocontent.as<qlonglong>();
-		raw = util::toQString(value);
+		raw = toQString(value);
 		msg = raw;
 	}
 	else if (ocontent.is<qreal>())
 	{
 		const qreal value = ocontent.as<qreal>();
-		raw = util::toQString(value);
+		raw = toQString(value);
 		msg = raw;
 	}
 	else if (ocontent.is<std::string>())
 	{
-		raw = util::toQString(ocontent);
+		raw = toQString(ocontent);
 		msg = raw;
 	}
 	else if (ocontent.is<const char*>())
@@ -162,14 +163,14 @@ qint64 CLuaSystem::print(sol::object ocontent, sol::object ocolor, sol::this_sta
 	else if (ocontent.is<sol::table>())
 	{
 		//print table
-		qint64 depth = 1024;
+		__int64 depth = 1024;
 		raw = luadebug::getTableVars(s.L, 1, depth);
 		msg = raw;
 
 	}
 	else
 	{
-		QString pointerStr = util::toQString(reinterpret_cast<qint64>(ocontent.pointer()), 16);
+		QString pointerStr = toQString(reinterpret_cast<__int64>(ocontent.pointer()), 16);
 		//print type name
 		switch (ocontent.get_type())
 		{
@@ -184,9 +185,9 @@ qint64 CLuaSystem::print(sol::object ocontent, sol::object ocolor, sol::this_sta
 	}
 
 	int color = 4;
-	if (ocolor.is<qint64>())
+	if (ocolor.is<__int64>())
 	{
-		color = ocolor.as<qint64>();
+		color = ocolor.as<__int64>();
 		if (color != -2 && (color < 0 || color > 10))
 			luadebug::tryPopCustomErrorMsg(s, luadebug::ERROR_PARAM_TYPE, false, 2, QObject::tr("invalid value of 'color'"));
 	}
@@ -195,7 +196,7 @@ qint64 CLuaSystem::print(sol::object ocontent, sol::object ocolor, sol::this_sta
 		color = QRandomGenerator64().bounded(0, 10);
 	}
 
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<__int64>());
 	bool split = false;
 	bool doNotAnnounce = color == -2 || injector.server.isNull();
 	QStringList l;
@@ -219,29 +220,29 @@ qint64 CLuaSystem::print(sol::object ocontent, sol::object ocolor, sol::this_sta
 	return FALSE;
 }
 
-qint64 CLuaSystem::messagebox(sol::object ostr, sol::object otype, sol::this_state s)
+__int64 CLuaSystem::messagebox(sol::object ostr, sol::object otype, sol::this_state s)
 {
 	sol::state_view lua(s);
-	qint64 currentIndex = lua["_INDEX"].get<qint64>();
+	__int64 currentIndex = lua["_INDEX"].get<__int64>();
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
 
 	QString text;
-	if (ostr.is<qint64>())
-		text = util::toQString(ostr.as<qint64>());
+	if (ostr.is<__int64>())
+		text = toQString(ostr.as<__int64>());
 	else if (ostr.is<double>())
-		text = util::toQString(ostr.as<double>());
+		text = toQString(ostr.as<double>());
 	else if (ostr.is<std::string>())
-		text = util::toQString(ostr);
+		text = toQString(ostr);
 	else
 		luadebug::tryPopCustomErrorMsg(s, luadebug::ERROR_PARAM_TYPE, false, 1, QObject::tr("invalid value type"));
 
-	qint64 type = 0;
-	if (ostr.is<qint64>())
-		type = ostr.as<qint64>();
+	__int64 type = 0;
+	if (ostr.is<__int64>())
+		type = ostr.as<__int64>();
 	else if (ostr != sol::lua_nil)
 		luadebug::tryPopCustomErrorMsg(s, luadebug::ERROR_PARAM_TYPE, false, 2, QObject::tr("invalid value of 'type'"));
 
-	qint64 nret = QMessageBox::StandardButton::NoButton;
+	__int64 nret = QMessageBox::StandardButton::NoButton;
 	emit signalDispatcher.messageBoxShow(text, type, "", &nret);
 	if (nret != QMessageBox::StandardButton::NoButton)
 	{
@@ -250,23 +251,23 @@ qint64 CLuaSystem::messagebox(sol::object ostr, sol::object otype, sol::this_sta
 	return 0;
 }
 
-qint64 CLuaSystem::talk(sol::object ostr, sol::this_state s)
+__int64 CLuaSystem::talk(sol::object ostr, sol::this_state s)
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<__int64>());
 	if (injector.server.isNull())
 		return FALSE;
 
 	QString text;
-	if (ostr.is<qint64>())
-		text = util::toQString(ostr.as<qint64>());
+	if (ostr.is<__int64>())
+		text = toQString(ostr.as<__int64>());
 	else if (ostr.is<double>())
-		text = util::toQString(ostr.as<double>());
+		text = toQString(ostr.as<double>());
 	else if (ostr.is<std::string>())
-		text = util::toQString(ostr);
+		text = toQString(ostr);
 	else if (ostr.is<sol::table>())
 	{
-		qint64 depth = 1024;
+		__int64 depth = 1024;
 		text = luadebug::getTableVars(s.L, 1, depth);
 	}
 	else
@@ -278,10 +279,10 @@ qint64 CLuaSystem::talk(sol::object ostr, sol::this_state s)
 	return TRUE;
 }
 
-qint64 CLuaSystem::cleanchat(sol::this_state s)
+__int64 CLuaSystem::cleanchat(sol::this_state s)
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<__int64>());
 	if (injector.server.isNull())
 		return FALSE;
 
@@ -290,9 +291,9 @@ qint64 CLuaSystem::cleanchat(sol::this_state s)
 	return TRUE;
 }
 
-qint64 CLuaSystem::savesetting(const std::string& sfileName, sol::this_state s)
+__int64 CLuaSystem::savesetting(const std::string& sfileName, sol::this_state s)
 {
-	QString fileName = util::toQString(sfileName);
+	QString fileName = toQString(sfileName);
 	fileName.replace("\\", "/");
 	fileName = util::applicationDirPath() + "/settings/" + fileName;
 	fileName.replace("\\", "/");
@@ -306,16 +307,16 @@ qint64 CLuaSystem::savesetting(const std::string& sfileName, sol::this_state s)
 		fileName.replace(suffix, "json");
 
 	sol::state_view lua(s);
-	qint64 currentIndex = lua["_INDEX"].get<qint64>();
+	__int64 currentIndex = lua["_INDEX"].get<__int64>();
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
 	emit signalDispatcher.saveHashSettings(fileName, true);
 
 	return TRUE;
 }
 
-qint64 CLuaSystem::loadsetting(const std::string& sfileName, sol::this_state s)
+__int64 CLuaSystem::loadsetting(const std::string& sfileName, sol::this_state s)
 {
-	QString fileName = util::toQString(sfileName);
+	QString fileName = toQString(sfileName);
 	fileName.replace("\\", "/");
 	fileName = util::applicationDirPath() + "/settings/" + fileName;
 	fileName.replace("\\", "/");
@@ -335,28 +336,28 @@ qint64 CLuaSystem::loadsetting(const std::string& sfileName, sol::this_state s)
 	}
 
 	sol::state_view lua(s);
-	qint64 currentIndex = lua["_INDEX"].get<qint64>();
+	__int64 currentIndex = lua["_INDEX"].get<__int64>();
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
 	emit signalDispatcher.loadHashSettings(fileName, true);
 
 	return TRUE;
 }
 
-qint64 CLuaSystem::press(std::string sbuttonStr, qint64 unitid, qint64 dialogid, sol::this_state s)
+__int64 CLuaSystem::press(std::string sbuttonStr, __int64 unitid, __int64 dialogid, sol::this_state s)
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<__int64>());
 	if (injector.server.isNull())
 		return FALSE;
 
 	luadebug::checkBattleThenWait(s);
 
-	QString text = util::toQString(sbuttonStr);
-	qint64 row = -1;
+	QString text = toQString(sbuttonStr);
+	__int64 row = -1;
 	BUTTON_TYPE button = buttonMap.value(text.toUpper(), BUTTON_NOTUSED);
 	if (button == BUTTON_NOTUSED)
 	{
-		qint64 row = -1;
+		__int64 row = -1;
 		dialog_t dialog = injector.server->currentDialog;
 		QStringList textList = dialog.linebuttontext;
 		if (!textList.isEmpty())
@@ -369,7 +370,7 @@ qint64 CLuaSystem::press(std::string sbuttonStr, qint64 unitid, qint64 dialogid,
 				isExact = false;
 			}
 
-			for (qint64 i = 0; i < textList.size(); ++i)
+			for (__int64 i = 0; i < textList.size(); ++i)
 			{
 				if (!isExact && textList.value(i).toUpper().contains(newText))
 				{
@@ -395,10 +396,10 @@ qint64 CLuaSystem::press(std::string sbuttonStr, qint64 unitid, qint64 dialogid,
 	return TRUE;
 }
 
-qint64 CLuaSystem::press(qint64 row, qint64 unitid, qint64 dialogid, sol::this_state s)
+__int64 CLuaSystem::press(__int64 row, __int64 unitid, __int64 dialogid, sol::this_state s)
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<__int64>());
 	if (injector.server.isNull())
 		return FALSE;
 
@@ -409,26 +410,26 @@ qint64 CLuaSystem::press(qint64 row, qint64 unitid, qint64 dialogid, sol::this_s
 	return TRUE;
 }
 
-qint64 CLuaSystem::input(const std::string& str, qint64 unitid, qint64 dialogid, sol::this_state s)
+__int64 CLuaSystem::input(const std::string& str, __int64 unitid, __int64 dialogid, sol::this_state s)
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<__int64>());
 	if (injector.server.isNull())
 		return FALSE;
 
 	luadebug::checkBattleThenWait(s);
 
-	QString text = util::toQString(str);
+	QString text = toQString(str);
 
 	injector.server->inputtext(text, dialogid, unitid);
 
 	return TRUE;
 }
 
-qint64 CLuaSystem::leftclick(qint64 x, qint64 y, sol::this_state s)
+__int64 CLuaSystem::leftclick(__int64 x, __int64 y, sol::this_state s)
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<__int64>());
 	if (injector.server.isNull())
 		return FALSE;
 
@@ -436,10 +437,10 @@ qint64 CLuaSystem::leftclick(qint64 x, qint64 y, sol::this_state s)
 	return TRUE;
 }
 
-qint64 CLuaSystem::rightclick(qint64 x, qint64 y, sol::this_state s)
+__int64 CLuaSystem::rightclick(__int64 x, __int64 y, sol::this_state s)
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<__int64>());
 	if (injector.server.isNull())
 		return FALSE;
 
@@ -447,10 +448,10 @@ qint64 CLuaSystem::rightclick(qint64 x, qint64 y, sol::this_state s)
 	return TRUE;
 }
 
-qint64 CLuaSystem::leftdoubleclick(qint64 x, qint64 y, sol::this_state s)
+__int64 CLuaSystem::leftdoubleclick(__int64 x, __int64 y, sol::this_state s)
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<__int64>());
 	if (injector.server.isNull())
 		return FALSE;
 
@@ -458,10 +459,10 @@ qint64 CLuaSystem::leftdoubleclick(qint64 x, qint64 y, sol::this_state s)
 	return TRUE;
 }
 
-qint64 CLuaSystem::mousedragto(qint64 x1, qint64 y1, qint64 x2, qint64 y2, sol::this_state s)
+__int64 CLuaSystem::mousedragto(__int64 x1, __int64 y1, __int64 x2, __int64 y2, sol::this_state s)
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<__int64>());
 	if (injector.server.isNull())
 		return FALSE;
 
@@ -469,10 +470,10 @@ qint64 CLuaSystem::mousedragto(qint64 x1, qint64 y1, qint64 x2, qint64 y2, sol::
 	return TRUE;
 }
 
-qint64 CLuaSystem::menu(qint64 index, sol::object otype, sol::this_state s)
+__int64 CLuaSystem::menu(__int64 index, sol::object otype, sol::this_state s)
 {
 	sol::state_view lua(s);
-	qint64 currentIndex = lua["_INDEX"].get<qint64>();
+	__int64 currentIndex = lua["_INDEX"].get<__int64>();
 	Injector& injector = Injector::getInstance(currentIndex);
 
 	if (injector.server.isNull())
@@ -488,9 +489,9 @@ qint64 CLuaSystem::menu(qint64 index, sol::object otype, sol::this_state s)
 		return FALSE;
 	}
 
-	qint64 type = 1;
-	if (otype.is<qint64>())
-		type = otype.as<qint64>();
+	__int64 type = 1;
+	if (otype.is<__int64>())
+		type = otype.as<__int64>();
 
 	--type;
 	if (type < 0 || type > 1)
@@ -511,30 +512,30 @@ qint64 CLuaSystem::menu(qint64 index, sol::object otype, sol::this_state s)
 	return TRUE;
 }
 
-qint64 CLuaSystem::createch(sol::object odataplacenum
+__int64 CLuaSystem::createch(sol::object odataplacenum
 	, std::string scharname
-	, qint64 imgno
-	, qint64 faceimgno
-	, qint64 vit
-	, qint64 str
-	, qint64 tgh
-	, qint64 dex
-	, qint64 earth
-	, qint64 water
-	, qint64 fire
-	, qint64 wind
+	, __int64 imgno
+	, __int64 faceimgno
+	, __int64 vit
+	, __int64 str
+	, __int64 tgh
+	, __int64 dex
+	, __int64 earth
+	, __int64 water
+	, __int64 fire
+	, __int64 wind
 	, sol::object ohometown, sol::object oforcecover, sol::this_state s)
 {
 	sol::state_view lua(s);
-	qint64 currentIndex = lua["_INDEX"].get<qint64>();
+	__int64 currentIndex = lua["_INDEX"].get<__int64>();
 	Injector& injector = Injector::getInstance(currentIndex);
 	if (injector.server.isNull())
 		return FALSE;
 
-	qint64 dataplacenum = 0;
+	__int64 dataplacenum = 0;
 	if (odataplacenum.is<std::string>())
 	{
-		QString dataplace = util::toQString(odataplacenum.as<std::string>());
+		QString dataplace = toQString(odataplacenum.as<std::string>());
 		if (dataplace == "左")
 			dataplacenum = 0;
 		else if (dataplace == "右")
@@ -545,9 +546,9 @@ qint64 CLuaSystem::createch(sol::object odataplacenum
 			return FALSE;
 		}
 	}
-	else if (odataplacenum.is<qint64>())
+	else if (odataplacenum.is<__int64>())
 	{
-		dataplacenum = odataplacenum.as<qint64>();
+		dataplacenum = odataplacenum.as<__int64>();
 		if (dataplacenum != 1 && dataplacenum != 2)
 		{
 			luadebug::showErrorMsg(s, luadebug::ERROR_LEVEL, QObject::tr("Invalid value of 'dataplacenum'"));
@@ -556,7 +557,7 @@ qint64 CLuaSystem::createch(sol::object odataplacenum
 		--dataplacenum;
 	}
 
-	QString charname = util::toQString(scharname);
+	QString charname = toQString(scharname);
 	if (charname.isEmpty())
 	{
 		luadebug::showErrorMsg(s, luadebug::ERROR_LEVEL, QObject::tr("character name cannot be empty"));
@@ -629,10 +630,10 @@ qint64 CLuaSystem::createch(sol::object odataplacenum
 		return FALSE;
 	}
 
-	qint64 hometown = 1;
+	__int64 hometown = 1;
 	if (ohometown.is<std::string>())
 	{
-		static const QHash<QString, qint64> hash = {
+		static const QHash<QString, __int64> hash = {
 			{ "薩姆吉爾",0 }, { "瑪麗娜絲", 1 }, { "加加", 2 }, { "卡魯它那", 3 },
 			{ "萨姆吉尔",0 }, { "玛丽娜丝", 1 }, { "加加", 2 }, { "卡鲁它那", 3 },
 
@@ -640,7 +641,7 @@ qint64 CLuaSystem::createch(sol::object odataplacenum
 			{ "萨姆吉尔村",0 }, { "玛丽娜丝村", 1 }, { "加加村", 2 }, { "卡鲁它那村", 3 },
 		};
 
-		QString hometownstr = util::toQString(ohometown.as<std::string>());
+		QString hometownstr = toQString(ohometown.as<std::string>());
 		if (hometownstr.isEmpty())
 		{
 			luadebug::showErrorMsg(s, luadebug::ERROR_LEVEL, QObject::tr("hometown cannot be empty"));
@@ -651,9 +652,9 @@ qint64 CLuaSystem::createch(sol::object odataplacenum
 		if (hometown == -1)
 			hometown = 1;
 	}
-	else if (ohometown.is<qint64>())
+	else if (ohometown.is<__int64>())
 	{
-		hometown = ohometown.as<qint64>();
+		hometown = ohometown.as<__int64>();
 		if (hometown <= 0 || hometown > 4)
 			hometown = 1;
 		else
@@ -663,31 +664,31 @@ qint64 CLuaSystem::createch(sol::object odataplacenum
 	bool forcecover = false;
 	if (oforcecover.is<bool>())
 		forcecover = oforcecover.as<bool>();
-	else if (oforcecover.is<qint64>())
-		forcecover = oforcecover.as<qint64>() > 0;
+	else if (oforcecover.is<__int64>())
+		forcecover = oforcecover.as<__int64>() > 0;
 
-	injector.server->createCharacter(static_cast<qint64>(dataplacenum)
+	injector.server->createCharacter(static_cast<__int64>(dataplacenum)
 		, charname
-		, static_cast<qint64>(imgno)
-		, static_cast<qint64>(faceimgno)
-		, static_cast<qint64>(vit)
-		, static_cast<qint64>(str)
-		, static_cast<qint64>(tgh)
-		, static_cast<qint64>(dex)
-		, static_cast<qint64>(earth)
-		, static_cast<qint64>(water)
-		, static_cast<qint64>(fire)
-		, static_cast<qint64>(wind)
-		, static_cast<qint64>(hometown)
+		, static_cast<__int64>(imgno)
+		, static_cast<__int64>(faceimgno)
+		, static_cast<__int64>(vit)
+		, static_cast<__int64>(str)
+		, static_cast<__int64>(tgh)
+		, static_cast<__int64>(dex)
+		, static_cast<__int64>(earth)
+		, static_cast<__int64>(water)
+		, static_cast<__int64>(fire)
+		, static_cast<__int64>(wind)
+		, static_cast<__int64>(hometown)
 		, forcecover);
 
 	return TRUE;
 }
 
-qint64 CLuaSystem::delch(qint64 index, std::string spsw, sol::object option, sol::this_state s)
+__int64 CLuaSystem::delch(__int64 index, std::string spsw, sol::object option, sol::this_state s)
 {
 	sol::state_view lua(s);
-	qint64 currentIndex = lua["_INDEX"].get<qint64>();
+	__int64 currentIndex = lua["_INDEX"].get<__int64>();
 	Injector& injector = Injector::getInstance(currentIndex);
 	if (injector.server.isNull())
 		return FALSE;
@@ -699,7 +700,7 @@ qint64 CLuaSystem::delch(qint64 index, std::string spsw, sol::object option, sol
 		return FALSE;
 	}
 
-	QString password = util::toQString(spsw);
+	QString password = toQString(spsw);
 	if (password.isEmpty())
 	{
 		luadebug::showErrorMsg(s, luadebug::ERROR_LEVEL, QObject::tr("password cannot be empty"));
@@ -709,8 +710,8 @@ qint64 CLuaSystem::delch(qint64 index, std::string spsw, sol::object option, sol
 	bool backtofirst = false;
 	if (option.is<bool>())
 		backtofirst = option.as<bool>();
-	else if (option.is<qint64>())
-		backtofirst = option.as<qint64>() > 0;
+	else if (option.is<__int64>())
+		backtofirst = option.as<__int64>() > 0;
 
 	injector.server->deleteCharacter(index, password, backtofirst);
 
@@ -718,316 +719,316 @@ qint64 CLuaSystem::delch(qint64 index, std::string spsw, sol::object option, sol
 }
 
 
-qint64 CLuaSystem::set(std::string enumStr,
+__int64 CLuaSystem::set(std::string enumStr,
 	sol::object p1, sol::object p2, sol::object p3, sol::object p4, sol::object p5, sol::object p6, sol::object p7, sol::this_state s)
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
-	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(lua["_INDEX"].get<qint64>());
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<__int64>());
+	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(lua["_INDEX"].get<__int64>());
 
-	QString typeStr = util::toQString(enumStr);
+	QString typeStr = toQString(enumStr);
 	if (typeStr.isEmpty())
 	{
 		luadebug::showErrorMsg(s, luadebug::ERROR_LEVEL, QObject::tr("type cannot be empty"));
 		return FALSE;
 	}
 
-	const QHash<QString, util::UserSetting> hash = {
-			{ "debug", util::kScriptDebugModeEnable },
+	const QHash<QString, UserSetting> hash = {
+			{ "debug", kScriptDebugModeEnable },
 #pragma region zh_TW
-			/*{"戰鬥道具補血戰寵", util::kBattleItemHealPetValue},
-			{ "戰鬥道具補血隊友", util::kBattleItemHealAllieValue },
-			{ "戰鬥道具補血人物", util::kBattleItemHealCharValue },*/
-			{ "戰鬥道具補血", util::kBattleItemHealEnable },//{ "戰鬥道具補血", util::kBattleItemHealItemString },//{ "戰鬥道具肉優先", util::kBattleItemHealMeatPriorityEnable },{ "BattleItemHealTargetValue", util::kBattleItemHealTargetValue },
+			/*{"戰鬥道具補血戰寵", kBattleItemHealPetValue},
+			{ "戰鬥道具補血隊友", kBattleItemHealAllieValue },
+			{ "戰鬥道具補血人物", kBattleItemHealCharValue },*/
+			{ "戰鬥道具補血", kBattleItemHealEnable },//{ "戰鬥道具補血", kBattleItemHealItemString },//{ "戰鬥道具肉優先", kBattleItemHealMeatPriorityEnable },{ "BattleItemHealTargetValue", kBattleItemHealTargetValue },
 
-			{ "戰鬥精靈復活", util::kBattleMagicReviveEnable },//{ "BattleMagicReviveMagicValue", util::kBattleMagicReviveMagicValue },{ "BattleMagicReviveTargetValue", util::kBattleMagicReviveTargetValue },
-			{ "戰鬥道具復活", util::kBattleItemReviveEnable },//{ "戰鬥道具復活", util::kBattleItemReviveItemString },{ "BattleItemReviveTargetValue", util::kBattleItemReviveTargetValue },
+			{ "戰鬥精靈復活", kBattleMagicReviveEnable },//{ "BattleMagicReviveMagicValue", kBattleMagicReviveMagicValue },{ "BattleMagicReviveTargetValue", kBattleMagicReviveTargetValue },
+			{ "戰鬥道具復活", kBattleItemReviveEnable },//{ "戰鬥道具復活", kBattleItemReviveItemString },{ "BattleItemReviveTargetValue", kBattleItemReviveTargetValue },
 
-			/*{"ItemHealCharNormalValue", util::kNormalItemHealCharValue},
-			{ "ItemHealPetNormalValue", util::kNormalItemHealPetValue },
-			{ "ItemHealAllieNormalValue", util::kNormalItemHealAllieValue },*/
-			{ "道具補血", util::kNormalItemHealEnable },//{ "平時道具補血", util::kNormalItemHealItemString },{ "道具肉優先", util::kNormalItemHealMeatPriorityEnable },
+			/*{"ItemHealCharNormalValue", kNormalItemHealCharValue},
+			{ "ItemHealPetNormalValue", kNormalItemHealPetValue },
+			{ "ItemHealAllieNormalValue", kNormalItemHealAllieValue },*/
+			{ "道具補血", kNormalItemHealEnable },//{ "平時道具補血", kNormalItemHealItemString },{ "道具肉優先", kNormalItemHealMeatPriorityEnable },
 
-			{ "自動丟棄寵物", util::kDropPetEnable },//{ "自動丟棄寵物名單", util::kDropPetNameString },
-			{ "自動丟棄寵物攻", util::kDropPetStrEnable },//{ "自動丟棄寵物攻數值", util::kDropPetStrValue },
-			{ "自動丟棄寵物防", util::kDropPetDefEnable },//{ "自動丟棄寵物防數值", util::kDropPetDefValue },
-			{ "自動丟棄寵物敏", util::kDropPetAgiEnable },//{ "自動丟棄寵物敏數值", util::kDropPetAgiValue },
-			{ "自動丟棄寵物血", util::kDropPetHpEnable },//{ "自動丟棄寵物血數值", util::kDropPetHpValue },
-			{ "自動丟棄寵物攻防敏", util::kDropPetAggregateEnable },//{ "自動丟棄寵物攻防敏數值", util::kDropPetAggregateValue },
+			{ "自動丟棄寵物", kDropPetEnable },//{ "自動丟棄寵物名單", kDropPetNameString },
+			{ "自動丟棄寵物攻", kDropPetStrEnable },//{ "自動丟棄寵物攻數值", kDropPetStrValue },
+			{ "自動丟棄寵物防", kDropPetDefEnable },//{ "自動丟棄寵物防數值", kDropPetDefValue },
+			{ "自動丟棄寵物敏", kDropPetAgiEnable },//{ "自動丟棄寵物敏數值", kDropPetAgiValue },
+			{ "自動丟棄寵物血", kDropPetHpEnable },//{ "自動丟棄寵物血數值", kDropPetHpValue },
+			{ "自動丟棄寵物攻防敏", kDropPetAggregateEnable },//{ "自動丟棄寵物攻防敏數值", kDropPetAggregateValue },
 
-			{ "自動加點", util::kAutoAbilityEnable },
+			{ "自動加點", kAutoAbilityEnable },
 
 			//ok
-			{ "主機", util::kServerValue },
-			{ "副機", util::kSubServerValue },
-			{ "位置", util::kPositionValue },
+			{ "主機", kServerValue },
+			{ "副機", kSubServerValue },
+			{ "位置", kPositionValue },
 
-			{ "加速", util::kSpeedBoostValue },
-			{ "帳號", util::kGameAccountString },
-			{ "賬號", util::kGameAccountString },
-			{ "密碼", util::kGamePasswordString },
-			{ "安全碼", util::kGameSecurityCodeString },
-			{ "遠程白名單", util::kMailWhiteListString },
+			{ "加速", kSpeedBoostValue },
+			{ "帳號", kGameAccountString },
+			{ "賬號", kGameAccountString },
+			{ "密碼", kGamePasswordString },
+			{ "安全碼", kGameSecurityCodeString },
+			{ "遠程白名單", kMailWhiteListString },
 
-			{ "自走延時", util::kAutoWalkDelayValue },
-			{ "自走步長", util::kAutoWalkDistanceValue },
-			{ "自走方向", util::kAutoWalkDirectionValue },
+			{ "自走延時", kAutoWalkDelayValue },
+			{ "自走步長", kAutoWalkDistanceValue },
+			{ "自走方向", kAutoWalkDirectionValue },
 
-			{ "腳本速度", util::kScriptSpeedValue },
+			{ "腳本速度", kScriptSpeedValue },
 
-			{ "自動登陸", util::kAutoLoginEnable },
-			{ "斷線重連", util::kAutoReconnectEnable },
-			{ "隱藏人物", util::kHideCharacterEnable },
-			{ "關閉特效", util::kCloseEffectEnable },
-			{ "資源優化", util::kOptimizeEnable },
-			{ "隱藏石器", util::kHideWindowEnable },
-			{ "屏蔽聲音", util::kMuteEnable },
+			{ "自動登陸", kAutoLoginEnable },
+			{ "斷線重連", kAutoReconnectEnable },
+			{ "隱藏人物", kHideCharacterEnable },
+			{ "關閉特效", kCloseEffectEnable },
+			{ "資源優化", kOptimizeEnable },
+			{ "隱藏石器", kHideWindowEnable },
+			{ "屏蔽聲音", kMuteEnable },
 
-			{ "自動調整內存", util::kAutoFreeMemoryEnable },
-			{ "快速走路", util::kFastWalkEnable },
-			{ "橫沖直撞", util::kPassWallEnable },
-			{ "鎖定原地", util::kLockMoveEnable },
-			{ "鎖定畫面", util::kLockImageEnable },
-			{ "自動丟肉", util::kAutoDropMeatEnable },
-			{ "自動疊加", util::kAutoStackEnable },
-			{ "自動疊加", util::kAutoStackEnable },
-			{ "自動KNPC", util::kKNPCEnable },
-			{ "自動猜謎", util::kAutoAnswerEnable },
-			{ "自動吃豆", util::kAutoEatBeanEnable },
-			{ "走路遇敵", util::kAutoWalkEnable },
-			{ "快速遇敵", util::kFastAutoWalkEnable },
-			{ "快速戰鬥", util::kFastBattleEnable },
-			{ "自動戰鬥", util::kAutoBattleEnable },
-			{ "自動捉寵", util::kAutoCatchEnable },
-			{ "自動逃跑", util::kAutoEscapeEnable },
-			{ "戰鬥99秒", util::kBattleTimeExtendEnable },
-			{ "落馬逃跑", util::kFallDownEscapeEnable },
-			{ "顯示經驗", util::kShowExpEnable },
-			{ "窗口吸附", util::kWindowDockEnable },
-			{ "自動換寵", util::kBattleAutoSwitchEnable },
-			{ "自動EO", util::kBattleAutoEOEnable },
+			{ "自動調整內存", kAutoFreeMemoryEnable },
+			{ "快速走路", kFastWalkEnable },
+			{ "橫沖直撞", kPassWallEnable },
+			{ "鎖定原地", kLockMoveEnable },
+			{ "鎖定畫面", kLockImageEnable },
+			{ "自動丟肉", kAutoDropMeatEnable },
+			{ "自動疊加", kAutoStackEnable },
+			{ "自動疊加", kAutoStackEnable },
+			{ "自動KNPC", kKNPCEnable },
+			{ "自動猜謎", kAutoAnswerEnable },
+			{ "自動吃豆", kAutoEatBeanEnable },
+			{ "走路遇敵", kAutoWalkEnable },
+			{ "快速遇敵", kFastAutoWalkEnable },
+			{ "快速戰鬥", kFastBattleEnable },
+			{ "自動戰鬥", kAutoBattleEnable },
+			{ "自動捉寵", kAutoCatchEnable },
+			{ "自動逃跑", kAutoEscapeEnable },
+			{ "戰鬥99秒", kBattleTimeExtendEnable },
+			{ "落馬逃跑", kFallDownEscapeEnable },
+			{ "顯示經驗", kShowExpEnable },
+			{ "窗口吸附", kWindowDockEnable },
+			{ "自動換寵", kBattleAutoSwitchEnable },
+			{ "自動EO", kBattleAutoEOEnable },
 
-			{ "隊伍開關", util::kSwitcherTeamEnable },
-			{ "PK開關", util::kSwitcherPKEnable },
-			{ "交名開關", util::kSwitcherCardEnable },
-			{ "交易開關", util::kSwitcherTradeEnable },
-			{ "組頻開關", util::kSwitcherGroupEnable },
-			{ "家頻開關", util::kSwitcherFamilyEnable },
-			{ "職頻開關", util::kSwitcherJobEnable },
-			{ "世界開關", util::kSwitcherWorldEnable },
+			{ "隊伍開關", kSwitcherTeamEnable },
+			{ "PK開關", kSwitcherPKEnable },
+			{ "交名開關", kSwitcherCardEnable },
+			{ "交易開關", kSwitcherTradeEnable },
+			{ "組頻開關", kSwitcherGroupEnable },
+			{ "家頻開關", kSwitcherFamilyEnable },
+			{ "職頻開關", kSwitcherJobEnable },
+			{ "世界開關", kSwitcherWorldEnable },
 
-			{ "鎖定戰寵", util::kLockPetEnable },//{ "戰後自動鎖定戰寵編號", util::kLockPetValue },
-			{ "鎖定騎寵", util::kLockRideEnable },//{ "戰後自動鎖定騎寵編號", util::kLockRideValue },
-			{ "鎖寵排程", util::kLockPetScheduleEnable },
-			{ "鎖定時間", util::kLockTimeEnable },//{ "時間", util::kLockTimeValue },
+			{ "鎖定戰寵", kLockPetEnable },//{ "戰後自動鎖定戰寵編號", kLockPetValue },
+			{ "鎖定騎寵", kLockRideEnable },//{ "戰後自動鎖定騎寵編號", kLockRideValue },
+			{ "鎖寵排程", kLockPetScheduleEnable },
+			{ "鎖定時間", kLockTimeEnable },//{ "時間", kLockTimeValue },
 
-			{ "捉寵模式", util::kBattleCatchModeValue },
-			{ "捉寵等級", util::kBattleCatchTargetLevelEnable },//{ "捉寵目標等級", util::kBattleCatchTargetLevelValue },
-			{ "捉寵血量", util::kBattleCatchTargetMaxHpEnable },//{ "捉寵目標最大耐久力", util::kBattleCatchTargetMaxHpValue },
-			{ "捉寵目標", util::kBattleCatchPetNameString },
-			{ "捉寵寵技能", util::kBattleCatchPetSkillEnable },////{ "捉寵戰寵技能索引", util::kBattleCatchPetSkillValue },
-			{ "捉寵道具", util::kBattleCatchCharItemEnable },//{ "捉寵使用道具直到血量低於", util::kBattleCatchTargetItemHpValue },{ "捉寵道具", util::kBattleCatchCharItemString },
-			{ "捉寵精靈", util::kBattleCatchCharMagicEnable },//{ "捉寵使用精靈直到血量低於", util::kBattleCatchTargetMagicHpValue },{ "捉寵人物精靈索引", util::kBattleCatchCharMagicValue },
+			{ "捉寵模式", kBattleCatchModeValue },
+			{ "捉寵等級", kBattleCatchTargetLevelEnable },//{ "捉寵目標等級", kBattleCatchTargetLevelValue },
+			{ "捉寵血量", kBattleCatchTargetMaxHpEnable },//{ "捉寵目標最大耐久力", kBattleCatchTargetMaxHpValue },
+			{ "捉寵目標", kBattleCatchPetNameString },
+			{ "捉寵寵技能", kBattleCatchPetSkillEnable },////{ "捉寵戰寵技能索引", kBattleCatchPetSkillValue },
+			{ "捉寵道具", kBattleCatchCharItemEnable },//{ "捉寵使用道具直到血量低於", kBattleCatchTargetItemHpValue },{ "捉寵道具", kBattleCatchCharItemString },
+			{ "捉寵精靈", kBattleCatchCharMagicEnable },//{ "捉寵使用精靈直到血量低於", kBattleCatchTargetMagicHpValue },{ "捉寵人物精靈索引", kBattleCatchCharMagicValue },
 
-			{ "自動組隊", util::kAutoJoinEnable },//{ "自動組隊名稱", util::kAutoFunNameString },	{ "自動移動功能編號", util::kAutoFunTypeValue },
-			{ "自動丟棄", util::kAutoDropEnable },//{ "自動丟棄名單", util::kAutoDropItemString },
-			{ "鎖定攻擊", util::kLockAttackEnable },//{ "鎖定攻擊名單", util::kLockAttackString },
-			{ "鎖定逃跑", util::kLockEscapeEnable },//{ "鎖定逃跑名單", util::kLockEscapeString },
-			{ "非鎖不逃", util::kBattleNoEscapeWhileLockPetEnable },
+			{ "自動組隊", kAutoJoinEnable },//{ "自動組隊名稱", kAutoFunNameString },	{ "自動移動功能編號", kAutoFunTypeValue },
+			{ "自動丟棄", kAutoDropEnable },//{ "自動丟棄名單", kAutoDropItemString },
+			{ "鎖定攻擊", kLockAttackEnable },//{ "鎖定攻擊名單", kLockAttackString },
+			{ "鎖定逃跑", kLockEscapeEnable },//{ "鎖定逃跑名單", kLockEscapeString },
+			{ "非鎖不逃", kBattleNoEscapeWhileLockPetEnable },
 
-			{ "道具補氣", util::kNormalItemHealMpEnable },//{ "ItemHealMpNormalValue", util::kNormalItemHealMpValue },{ "平時道具補氣", util::kNormalItemHealMpItemString },
-			{ "戰鬥道具補氣", util::kBattleItemHealMpEnable },//{ "戰鬥道具補氣人物", util::kBattleItemHealMpValue },{ "戰鬥道具補氣 ", util::kBattleItemHealMpItemString },
-			{ "戰鬥嗜血補氣", util::kBattleSkillMpEnable },//{ "戰鬥嗜血補氣技能", util::kBattleSkillMpSkillValue },{ "戰鬥嗜血補氣百分比", util::kBattleSkillMpValue },
+			{ "道具補氣", kNormalItemHealMpEnable },//{ "ItemHealMpNormalValue", kNormalItemHealMpValue },{ "平時道具補氣", kNormalItemHealMpItemString },
+			{ "戰鬥道具補氣", kBattleItemHealMpEnable },//{ "戰鬥道具補氣人物", kBattleItemHealMpValue },{ "戰鬥道具補氣 ", kBattleItemHealMpItemString },
+			{ "戰鬥嗜血補氣", kBattleSkillMpEnable },//{ "戰鬥嗜血補氣技能", kBattleSkillMpSkillValue },{ "戰鬥嗜血補氣百分比", kBattleSkillMpValue },
 
-			/*{"MagicHealCharNormalValue", util::kNormalMagicHealCharValue},
-			{ "MagicHealPetNormalValue", util::kNormalMagicHealPetValue },
-			{ "MagicHealAllieNormalValue", util::kNormalMagicHealAllieValue },*/
-			{ "精靈補血", util::kNormalMagicHealEnable },//{ "平時精靈補血精靈索引", util::kNormalMagicHealMagicValue },
-			/*{ "戰鬥精靈補血人物", util::kBattleMagicHealCharValue },
-			{"戰鬥精靈補血戰寵", util::kBattleMagicHealPetValue},
-			{ "戰鬥精靈補血隊友", util::kBattleMagicHealAllieValue },*/
-			{ "戰鬥精靈補血", util::kBattleMagicHealEnable },//util::kBattleMagicHealMagicValue, util::kBattleMagicHealTargetValue,
+			/*{"MagicHealCharNormalValue", kNormalMagicHealCharValue},
+			{ "MagicHealPetNormalValue", kNormalMagicHealPetValue },
+			{ "MagicHealAllieNormalValue", kNormalMagicHealAllieValue },*/
+			{ "精靈補血", kNormalMagicHealEnable },//{ "平時精靈補血精靈索引", kNormalMagicHealMagicValue },
+			/*{ "戰鬥精靈補血人物", kBattleMagicHealCharValue },
+			{"戰鬥精靈補血戰寵", kBattleMagicHealPetValue},
+			{ "戰鬥精靈補血隊友", kBattleMagicHealAllieValue },*/
+			{ "戰鬥精靈補血", kBattleMagicHealEnable },//kBattleMagicHealMagicValue, kBattleMagicHealTargetValue,
 
-			{ "戰鬥指定回合", util::kBattleCharRoundActionRoundValue },
-			{ "戰鬥間隔回合", util::kBattleCrossActionCharEnable },
-			{ "戰鬥一般", util::kBattleCharNormalActionTypeValue },
+			{ "戰鬥指定回合", kBattleCharRoundActionRoundValue },
+			{ "戰鬥間隔回合", kBattleCrossActionCharEnable },
+			{ "戰鬥一般", kBattleCharNormalActionTypeValue },
 
-			{ "戰鬥寵指定回合RoundValue", util::kBattlePetRoundActionRoundValue },
-			{ "戰鬥寵間隔回合", util::kBattleCrossActionPetEnable },
-			{ "戰鬥寵一般", util::kBattlePetNormalActionTypeValue },
+			{ "戰鬥寵指定回合RoundValue", kBattlePetRoundActionRoundValue },
+			{ "戰鬥寵間隔回合", kBattleCrossActionPetEnable },
+			{ "戰鬥寵一般", kBattlePetNormalActionTypeValue },
 
-			{ "攻擊延時", util::kBattleActionDelayValue },
-			{ "動作重發", util::kBattleResendDelayValue },
+			{ "攻擊延時", kBattleActionDelayValue },
+			{ "動作重發", kBattleResendDelayValue },
 #pragma endregion
 
 #pragma region zh_CN
 
-			/*{"战斗道具补血战宠", util::kBattleItemHealPetValue},
-			{ "战斗道具补血队友", util::kBattleItemHealAllieValue },
-			{ "战斗道具补血人物", util::kBattleItemHealCharValue },*/
-			{ "战斗道具补血", util::kBattleItemHealEnable },//{ "战斗道具补血", util::kBattleItemHealItemString },//{ "战斗道具肉优先", util::kBattleItemHealMeatPriorityEnable },{ "BattleItemHealTargetValue", util::kBattleItemHealTargetValue },
+			/*{"战斗道具补血战宠", kBattleItemHealPetValue},
+			{ "战斗道具补血队友", kBattleItemHealAllieValue },
+			{ "战斗道具补血人物", kBattleItemHealCharValue },*/
+			{ "战斗道具补血", kBattleItemHealEnable },//{ "战斗道具补血", kBattleItemHealItemString },//{ "战斗道具肉优先", kBattleItemHealMeatPriorityEnable },{ "BattleItemHealTargetValue", kBattleItemHealTargetValue },
 
-			{ "战斗精灵復活", util::kBattleMagicReviveEnable },//{ "BattleMagicReviveMagicValue", util::kBattleMagicReviveMagicValue },{ "BattleMagicReviveTargetValue", util::kBattleMagicReviveTargetValue },
-			{ "战斗道具復活", util::kBattleItemReviveEnable },//{ "战斗道具復活", util::kBattleItemReviveItemString },{ "BattleItemReviveTargetValue", util::kBattleItemReviveTargetValue },
+			{ "战斗精灵復活", kBattleMagicReviveEnable },//{ "BattleMagicReviveMagicValue", kBattleMagicReviveMagicValue },{ "BattleMagicReviveTargetValue", kBattleMagicReviveTargetValue },
+			{ "战斗道具復活", kBattleItemReviveEnable },//{ "战斗道具復活", kBattleItemReviveItemString },{ "BattleItemReviveTargetValue", kBattleItemReviveTargetValue },
 
-			/*{"ItemHealCharNormalValue", util::kNormalItemHealCharValue},
-			{ "ItemHealPetNormalValue", util::kNormalItemHealPetValue },
-			{ "ItemHealAllieNormalValue", util::kNormalItemHealAllieValue },*/
-			{ "道具补血", util::kNormalItemHealEnable },//{ "平时道具补血", util::kNormalItemHealItemString },{ "道具肉优先", util::kNormalItemHealMeatPriorityEnable },
+			/*{"ItemHealCharNormalValue", kNormalItemHealCharValue},
+			{ "ItemHealPetNormalValue", kNormalItemHealPetValue },
+			{ "ItemHealAllieNormalValue", kNormalItemHealAllieValue },*/
+			{ "道具补血", kNormalItemHealEnable },//{ "平时道具补血", kNormalItemHealItemString },{ "道具肉优先", kNormalItemHealMeatPriorityEnable },
 
-			{ "自动丢弃宠物", util::kDropPetEnable },//{ "自动丢弃宠物名单", util::kDropPetNameString },
-			{ "自动丢弃宠物攻", util::kDropPetStrEnable },//{ "自动丢弃宠物攻数值", util::kDropPetStrValue },
-			{ "自动丢弃宠物防", util::kDropPetDefEnable },//{ "自动丢弃宠物防数值", util::kDropPetDefValue },
-			{ "自动丢弃宠物敏", util::kDropPetAgiEnable },//{ "自动丢弃宠物敏数值", util::kDropPetAgiValue },
-			{ "自动丢弃宠物血", util::kDropPetHpEnable },//{ "自动丢弃宠物血数值", util::kDropPetHpValue },
-			{ "自动丢弃宠物攻防敏", util::kDropPetAggregateEnable },//{ "自动丢弃宠物攻防敏数值", util::kDropPetAggregateValue },
+			{ "自动丢弃宠物", kDropPetEnable },//{ "自动丢弃宠物名单", kDropPetNameString },
+			{ "自动丢弃宠物攻", kDropPetStrEnable },//{ "自动丢弃宠物攻数值", kDropPetStrValue },
+			{ "自动丢弃宠物防", kDropPetDefEnable },//{ "自动丢弃宠物防数值", kDropPetDefValue },
+			{ "自动丢弃宠物敏", kDropPetAgiEnable },//{ "自动丢弃宠物敏数值", kDropPetAgiValue },
+			{ "自动丢弃宠物血", kDropPetHpEnable },//{ "自动丢弃宠物血数值", kDropPetHpValue },
+			{ "自动丢弃宠物攻防敏", kDropPetAggregateEnable },//{ "自动丢弃宠物攻防敏数值", kDropPetAggregateValue },
 
-			{ "自动加点", util::kAutoAbilityEnable },
+			{ "自动加点", kAutoAbilityEnable },
 
 
 			//ok
-			{ "EO命令", util::kEOCommandString },
-			{ "主机", util::kServerValue },
-			{ "副机", util::kSubServerValue },
-			{ "位置", util::kPositionValue },
+			{ "EO命令", kEOCommandString },
+			{ "主机", kServerValue },
+			{ "副机", kSubServerValue },
+			{ "位置", kPositionValue },
 
-			{ "加速", util::kSpeedBoostValue },
-			{ "帐号", util::kGameAccountString },
-			{ "账号", util::kGameAccountString },
-			{ "密码", util::kGamePasswordString },
-			{ "安全码", util::kGameSecurityCodeString },
-			{ "远程白名单", util::kMailWhiteListString },
+			{ "加速", kSpeedBoostValue },
+			{ "帐号", kGameAccountString },
+			{ "账号", kGameAccountString },
+			{ "密码", kGamePasswordString },
+			{ "安全码", kGameSecurityCodeString },
+			{ "远程白名单", kMailWhiteListString },
 
-			{ "自走延时", util::kAutoWalkDelayValue },
-			{ "自走步长", util::kAutoWalkDistanceValue },
-			{ "自走方向", util::kAutoWalkDirectionValue },
+			{ "自走延时", kAutoWalkDelayValue },
+			{ "自走步长", kAutoWalkDistanceValue },
+			{ "自走方向", kAutoWalkDirectionValue },
 
-			{ "脚本速度", util::kScriptSpeedValue },
+			{ "脚本速度", kScriptSpeedValue },
 
-			{ "自动登陆", util::kAutoLoginEnable },
-			{ "断线重连", util::kAutoReconnectEnable },
-			{ "隐藏人物", util::kHideCharacterEnable },
-			{ "关闭特效", util::kCloseEffectEnable },
-			{ "资源优化", util::kOptimizeEnable },
-			{ "隐藏石器", util::kHideWindowEnable },
-			{ "屏蔽声音", util::kMuteEnable },
+			{ "自动登陆", kAutoLoginEnable },
+			{ "断线重连", kAutoReconnectEnable },
+			{ "隐藏人物", kHideCharacterEnable },
+			{ "关闭特效", kCloseEffectEnable },
+			{ "资源优化", kOptimizeEnable },
+			{ "隐藏石器", kHideWindowEnable },
+			{ "屏蔽声音", kMuteEnable },
 
-			{ "自动调整内存", util::kAutoFreeMemoryEnable },
-			{ "快速走路", util::kFastWalkEnable },
-			{ "横冲直撞", util::kPassWallEnable },
-			{ "锁定原地", util::kLockMoveEnable },
-			{ "锁定画面", util::kLockImageEnable },
-			{ "自动丢肉", util::kAutoDropMeatEnable },
-			{ "自动叠加", util::kAutoStackEnable },
-			{ "自动迭加", util::kAutoStackEnable },
-			{ "自动KNPC", util::kKNPCEnable },
-			{ "自动猜谜", util::kAutoAnswerEnable },
-			{ "自动吃豆", util::kAutoEatBeanEnable },
-			{ "走路遇敌", util::kAutoWalkEnable },
-			{ "快速遇敌", util::kFastAutoWalkEnable },
-			{ "快速战斗", util::kFastBattleEnable },
-			{ "自动战斗", util::kAutoBattleEnable },
-			{ "自动捉宠", util::kAutoCatchEnable },
-			{ "自动逃跑", util::kAutoEscapeEnable },
-			{ "战斗99秒", util::kBattleTimeExtendEnable },
-			{ "落马逃跑", util::kFallDownEscapeEnable },
-			{ "显示经验", util::kShowExpEnable },
-			{ "窗口吸附", util::kWindowDockEnable },
-			{ "自动换宠", util::kBattleAutoSwitchEnable },
-			{ "自动EO", util::kBattleAutoEOEnable },
+			{ "自动调整内存", kAutoFreeMemoryEnable },
+			{ "快速走路", kFastWalkEnable },
+			{ "横冲直撞", kPassWallEnable },
+			{ "锁定原地", kLockMoveEnable },
+			{ "锁定画面", kLockImageEnable },
+			{ "自动丢肉", kAutoDropMeatEnable },
+			{ "自动叠加", kAutoStackEnable },
+			{ "自动迭加", kAutoStackEnable },
+			{ "自动KNPC", kKNPCEnable },
+			{ "自动猜谜", kAutoAnswerEnable },
+			{ "自动吃豆", kAutoEatBeanEnable },
+			{ "走路遇敌", kAutoWalkEnable },
+			{ "快速遇敌", kFastAutoWalkEnable },
+			{ "快速战斗", kFastBattleEnable },
+			{ "自动战斗", kAutoBattleEnable },
+			{ "自动捉宠", kAutoCatchEnable },
+			{ "自动逃跑", kAutoEscapeEnable },
+			{ "战斗99秒", kBattleTimeExtendEnable },
+			{ "落马逃跑", kFallDownEscapeEnable },
+			{ "显示经验", kShowExpEnable },
+			{ "窗口吸附", kWindowDockEnable },
+			{ "自动换宠", kBattleAutoSwitchEnable },
+			{ "自动EO", kBattleAutoEOEnable },
 
-			{ "队伍开关", util::kSwitcherTeamEnable },
-			{ "PK开关", util::kSwitcherPKEnable },
-			{ "交名开关", util::kSwitcherCardEnable },
-			{ "交易开关", util::kSwitcherTradeEnable },
-			{ "组频开关", util::kSwitcherGroupEnable },
-			{ "家频开关", util::kSwitcherFamilyEnable },
-			{ "职频开关", util::kSwitcherJobEnable },
-			{ "世界开关", util::kSwitcherWorldEnable },
+			{ "队伍开关", kSwitcherTeamEnable },
+			{ "PK开关", kSwitcherPKEnable },
+			{ "交名开关", kSwitcherCardEnable },
+			{ "交易开关", kSwitcherTradeEnable },
+			{ "组频开关", kSwitcherGroupEnable },
+			{ "家频开关", kSwitcherFamilyEnable },
+			{ "职频开关", kSwitcherJobEnable },
+			{ "世界开关", kSwitcherWorldEnable },
 
-			{ "锁定战宠", util::kLockPetEnable },//{ "战后自动锁定战宠编号", util::kLockPetValue },
-			{ "锁定骑宠", util::kLockRideEnable },//{ "战后自动锁定骑宠编号", util::kLockRideValue },
-			{ "锁宠排程", util::kLockPetScheduleEnable },
-			{ "锁定时间", util::kLockTimeEnable },//{ "时间", util::kLockTimeValue },
+			{ "锁定战宠", kLockPetEnable },//{ "战后自动锁定战宠编号", kLockPetValue },
+			{ "锁定骑宠", kLockRideEnable },//{ "战后自动锁定骑宠编号", kLockRideValue },
+			{ "锁宠排程", kLockPetScheduleEnable },
+			{ "锁定时间", kLockTimeEnable },//{ "时间", kLockTimeValue },
 
-			{ "捉宠模式", util::kBattleCatchModeValue },
-			{ "捉宠等级", util::kBattleCatchTargetLevelEnable },//{ "捉宠目标等级", util::kBattleCatchTargetLevelValue },
-			{ "捉宠血量", util::kBattleCatchTargetMaxHpEnable },//{ "捉宠目标最大耐久力", util::kBattleCatchTargetMaxHpValue },
-			{ "捉宠目标", util::kBattleCatchPetNameString },
-			{ "捉宠宠技能", util::kBattleCatchPetSkillEnable },////{ "捉宠战宠技能索引", util::kBattleCatchPetSkillValue },
-			{ "捉宠道具", util::kBattleCatchCharItemEnable },//{ "捉宠使用道具直到血量低于", util::kBattleCatchTargetItemHpValue },{ "捉宠道具", util::kBattleCatchCharItemString },
-			{ "捉宠精灵", util::kBattleCatchCharMagicEnable },//{ "捉宠使用精灵直到血量低于", util::kBattleCatchTargetMagicHpValue },{ "捉宠人物精灵索引", util::kBattleCatchCharMagicValue },
+			{ "捉宠模式", kBattleCatchModeValue },
+			{ "捉宠等级", kBattleCatchTargetLevelEnable },//{ "捉宠目标等级", kBattleCatchTargetLevelValue },
+			{ "捉宠血量", kBattleCatchTargetMaxHpEnable },//{ "捉宠目标最大耐久力", kBattleCatchTargetMaxHpValue },
+			{ "捉宠目标", kBattleCatchPetNameString },
+			{ "捉宠宠技能", kBattleCatchPetSkillEnable },////{ "捉宠战宠技能索引", kBattleCatchPetSkillValue },
+			{ "捉宠道具", kBattleCatchCharItemEnable },//{ "捉宠使用道具直到血量低于", kBattleCatchTargetItemHpValue },{ "捉宠道具", kBattleCatchCharItemString },
+			{ "捉宠精灵", kBattleCatchCharMagicEnable },//{ "捉宠使用精灵直到血量低于", kBattleCatchTargetMagicHpValue },{ "捉宠人物精灵索引", kBattleCatchCharMagicValue },
 
-			{ "自动组队", util::kAutoJoinEnable },//{ "自动组队名称", util::kAutoFunNameString },	{ "自动移动功能编号", util::kAutoFunTypeValue },
-			{ "自动丢弃", util::kAutoDropEnable },//{ "自动丢弃名单", util::kAutoDropItemString },
-			{ "锁定攻击", util::kLockAttackEnable },//{ "锁定攻击名单", util::kLockAttackString },
-			{ "锁定逃跑", util::kLockEscapeEnable },//{ "锁定逃跑名单", util::kLockEscapeString },
-			{ "非锁不逃", util::kBattleNoEscapeWhileLockPetEnable },
+			{ "自动组队", kAutoJoinEnable },//{ "自动组队名称", kAutoFunNameString },	{ "自动移动功能编号", kAutoFunTypeValue },
+			{ "自动丢弃", kAutoDropEnable },//{ "自动丢弃名单", kAutoDropItemString },
+			{ "锁定攻击", kLockAttackEnable },//{ "锁定攻击名单", kLockAttackString },
+			{ "锁定逃跑", kLockEscapeEnable },//{ "锁定逃跑名单", kLockEscapeString },
+			{ "非锁不逃", kBattleNoEscapeWhileLockPetEnable },
 
-			{ "道具补气", util::kNormalItemHealMpEnable },//{ "ItemHealMpNormalValue", util::kNormalItemHealMpValue },{ "平时道具补气", util::kNormalItemHealMpItemString },
-			{ "战斗道具补气", util::kBattleItemHealMpEnable },//{ "战斗道具补气人物", util::kBattleItemHealMpValue },{ "战斗道具补气 ", util::kBattleItemHealMpItemString },
-			{ "战斗嗜血补气", util::kBattleSkillMpEnable },//{ "战斗嗜血补气技能", util::kBattleSkillMpSkillValue },{ "战斗嗜血补气百分比", util::kBattleSkillMpValue },
+			{ "道具补气", kNormalItemHealMpEnable },//{ "ItemHealMpNormalValue", kNormalItemHealMpValue },{ "平时道具补气", kNormalItemHealMpItemString },
+			{ "战斗道具补气", kBattleItemHealMpEnable },//{ "战斗道具补气人物", kBattleItemHealMpValue },{ "战斗道具补气 ", kBattleItemHealMpItemString },
+			{ "战斗嗜血补气", kBattleSkillMpEnable },//{ "战斗嗜血补气技能", kBattleSkillMpSkillValue },{ "战斗嗜血补气百分比", kBattleSkillMpValue },
 
-			/*{"MagicHealCharNormalValue", util::kNormalMagicHealCharValue},
-			{ "MagicHealPetNormalValue", util::kNormalMagicHealPetValue },
-			{ "MagicHealAllieNormalValue", util::kNormalMagicHealAllieValue },*/
-			{ "精灵补血", util::kNormalMagicHealEnable },//{ "平时精灵补血精灵索引", util::kNormalMagicHealMagicValue },
-			/*{ "战斗精灵补血人物", util::kBattleMagicHealCharValue },
-			{"战斗精灵补血战宠", util::kBattleMagicHealPetValue},
-			{ "战斗精灵补血队友", util::kBattleMagicHealAllieValue },*/
-			{ "战斗精灵补血", util::kBattleMagicHealEnable },//util::kBattleMagicHealMagicValue, util::kBattleMagicHealTargetValue,
+			/*{"MagicHealCharNormalValue", kNormalMagicHealCharValue},
+			{ "MagicHealPetNormalValue", kNormalMagicHealPetValue },
+			{ "MagicHealAllieNormalValue", kNormalMagicHealAllieValue },*/
+			{ "精灵补血", kNormalMagicHealEnable },//{ "平时精灵补血精灵索引", kNormalMagicHealMagicValue },
+			/*{ "战斗精灵补血人物", kBattleMagicHealCharValue },
+			{"战斗精灵补血战宠", kBattleMagicHealPetValue},
+			{ "战斗精灵补血队友", kBattleMagicHealAllieValue },*/
+			{ "战斗精灵补血", kBattleMagicHealEnable },//kBattleMagicHealMagicValue, kBattleMagicHealTargetValue,
 
-			{ "战斗指定回合", util::kBattleCharRoundActionRoundValue },
-			{ "战斗间隔回合", util::kBattleCrossActionCharEnable },
-			{ "战斗一般", util::kBattleCharNormalActionTypeValue },
+			{ "战斗指定回合", kBattleCharRoundActionRoundValue },
+			{ "战斗间隔回合", kBattleCrossActionCharEnable },
+			{ "战斗一般", kBattleCharNormalActionTypeValue },
 
-			{ "战斗宠指定回合RoundValue", util::kBattlePetRoundActionRoundValue },
-			{ "战斗宠间隔回合", util::kBattleCrossActionPetEnable },
-			{ "战斗宠一般", util::kBattlePetNormalActionTypeValue },
+			{ "战斗宠指定回合RoundValue", kBattlePetRoundActionRoundValue },
+			{ "战斗宠间隔回合", kBattleCrossActionPetEnable },
+			{ "战斗宠一般", kBattlePetNormalActionTypeValue },
 
-			{ "攻击延时", util::kBattleActionDelayValue },
-			{ "动作重发", util::kBattleResendDelayValue },
+			{ "攻击延时", kBattleActionDelayValue },
+			{ "动作重发", kBattleResendDelayValue },
 
 
-			{ "战斗回合目标", util::kBattleCharRoundActionTargetValue },
-			{ "战斗间隔目标",  util::kBattleCharCrossActionTargetValue },
-			{ "战斗一般目标", util::kBattleCharNormalActionTargetValue },
-			{ "战斗宠回合目标", util::kBattlePetRoundActionTargetValue },
-			{ "战斗宠间隔目标", util::kBattlePetCrossActionTargetValue },
-			{ "战斗宠一般目标",  util::kBattlePetNormalActionTargetValue },
-			{ "战斗精灵补血目标", util::kBattleMagicHealTargetValue },
-			{ "战斗道具补血目标", util::kBattleItemHealTargetValue },
-			{ "战斗精灵復活目标", util::kBattleMagicReviveTargetValue },
-			{ "战斗道具復活目标", util::kBattleItemReviveTargetValue },
+			{ "战斗回合目标", kBattleCharRoundActionTargetValue },
+			{ "战斗间隔目标",  kBattleCharCrossActionTargetValue },
+			{ "战斗一般目标", kBattleCharNormalActionTargetValue },
+			{ "战斗宠回合目标", kBattlePetRoundActionTargetValue },
+			{ "战斗宠间隔目标", kBattlePetCrossActionTargetValue },
+			{ "战斗宠一般目标",  kBattlePetNormalActionTargetValue },
+			{ "战斗精灵补血目标", kBattleMagicHealTargetValue },
+			{ "战斗道具补血目标", kBattleItemHealTargetValue },
+			{ "战斗精灵復活目标", kBattleMagicReviveTargetValue },
+			{ "战斗道具復活目标", kBattleItemReviveTargetValue },
 	#pragma endregion
 	};
 
 
-	util::UserSetting type = hash.value(typeStr, util::kSettingNotUsed);
-	if (type == util::kSettingNotUsed)
+	UserSetting type = hash.value(typeStr, kSettingNotUsed);
+	if (type == kSettingNotUsed)
 	{
 		luadebug::showErrorMsg(s, luadebug::ERROR_LEVEL, QObject::tr("unknown setting type: '%1'").arg(typeStr));
 		return FALSE;
 	}
 
-	if (type == util::kScriptDebugModeEnable)
+	if (type == kScriptDebugModeEnable)
 	{
-		qint64 value1 = 0;
-		if (p1.is<qint64>())
-			value1 = p1.as<qint64>();
+		__int64 value1 = 0;
+		if (p1.is<__int64>())
+			value1 = p1.as<__int64>();
 		else if (p1.is<bool>())
 			value1 = p1.as<bool>() ? 1 : 0;
 
-		injector.setEnableHash(util::kScriptDebugModeEnable, value1 > 0);
+		injector.setEnableHash(kScriptDebugModeEnable, value1 > 0);
 		emit signalDispatcher.applyHashSettingsToUI();
 		return TRUE;
 	}
 
-	if (type == util::kBattleCharNormalActionTypeValue)
+	if (type == kBattleCharNormalActionTypeValue)
 	{
-		qint64 value1 = 0;
-		if (p1.is<qint64>())
-			value1 = p1.as<qint64>();
+		__int64 value1 = 0;
+		if (p1.is<__int64>())
+			value1 = p1.as<__int64>();
 		else if (p1.is<bool>())
 			value1 = p1.as<bool>() ? 1 : 0;
 
@@ -1035,37 +1036,37 @@ qint64 CLuaSystem::set(std::string enumStr,
 		if (value1 < 0)
 			value1 = 0;
 
-		qint64 value2 = 0;
-		if (p2.is<qint64>())
-			value2 = p2.as<qint64>();
+		__int64 value2 = 0;
+		if (p2.is<__int64>())
+			value2 = p2.as<__int64>();
 		else if (p2.is<bool>())
 			value2 = p2.as<bool>() ? 1 : 0;
 		--value2;
 		if (value2 < 0)
 			value2 = 0;
 
-		qint64 value3 = 0;
-		if (p3.is<qint64>())
-			value3 = p3.as<qint64>();
+		__int64 value3 = 0;
+		if (p3.is<__int64>())
+			value3 = p3.as<__int64>();
 		else if (p2.is<bool>())
 			value3 = p3.as<bool>() ? 1 : 0;
 		--value3;
 		if (value3 < 0)
 			value3 = 0;
 
-		injector.setValueHash(util::kBattleCharNormalActionTypeValue, value1);
-		injector.setValueHash(util::kBattleCharNormalActionEnemyValue, value2);
-		injector.setValueHash(util::kBattleCharNormalActionLevelValue, value3);
-		//injector.setValueHash(util::kBattleCharNormalActionTargetValue, value4);
+		injector.setValueHash(kBattleCharNormalActionTypeValue, value1);
+		injector.setValueHash(kBattleCharNormalActionEnemyValue, value2);
+		injector.setValueHash(kBattleCharNormalActionLevelValue, value3);
+		//injector.setValueHash(kBattleCharNormalActionTargetValue, value4);
 
 		emit signalDispatcher.applyHashSettingsToUI();
 		return TRUE;
 	}
-	else if (type == util::kBattlePetNormalActionTypeValue)
+	else if (type == kBattlePetNormalActionTypeValue)
 	{
-		qint64 value1 = 0;
-		if (p1.is<qint64>())
-			value1 = p1.as<qint64>();
+		__int64 value1 = 0;
+		if (p1.is<__int64>())
+			value1 = p1.as<__int64>();
 		else if (p1.is<bool>())
 			value1 = p1.as<bool>() ? 1 : 0;
 
@@ -1073,28 +1074,28 @@ qint64 CLuaSystem::set(std::string enumStr,
 		if (value1 < 0)
 			value1 = 0;
 
-		qint64 value2 = 0;
-		if (p2.is<qint64>())
-			value2 = p2.as<qint64>();
+		__int64 value2 = 0;
+		if (p2.is<__int64>())
+			value2 = p2.as<__int64>();
 		else if (p2.is<bool>())
 			value2 = p2.as<bool>() ? 1 : 0;
 		--value2;
 		if (value2 < 0)
 			value2 = 0;
 
-		qint64 value3 = 0;
-		if (p3.is<qint64>())
-			value3 = p3.as<qint64>();
+		__int64 value3 = 0;
+		if (p3.is<__int64>())
+			value3 = p3.as<__int64>();
 		else if (p3.is<bool>())
 			value3 = p3.as<bool>() ? 1 : 0;
 		--value3;
 		if (value3 < 0)
 			value3 = 0;
 
-		injector.setValueHash(util::kBattlePetNormalActionTypeValue, value1);
-		injector.setValueHash(util::kBattlePetNormalActionEnemyValue, value2);
-		injector.setValueHash(util::kBattlePetNormalActionLevelValue, value3);
-		//injector.setValueHash(util::kBattlePetNormalActionTargetValue, value4);
+		injector.setValueHash(kBattlePetNormalActionTypeValue, value1);
+		injector.setValueHash(kBattlePetNormalActionEnemyValue, value2);
+		injector.setValueHash(kBattlePetNormalActionLevelValue, value3);
+		//injector.setValueHash(kBattlePetNormalActionTargetValue, value4);
 
 		emit signalDispatcher.applyHashSettingsToUI();
 		return TRUE;
@@ -1103,21 +1104,21 @@ qint64 CLuaSystem::set(std::string enumStr,
 	//start with 1
 	switch (type)
 	{
-	case util::kAutoWalkDirectionValue://自走方向
-	case util::kServerValue://主機
-	case util::kSubServerValue://副機
-	case util::kPositionValue://位置
-	case util::kBattleCatchModeValue://戰鬥捕捉模式
+	case kAutoWalkDirectionValue://自走方向
+	case kServerValue://主機
+	case kSubServerValue://副機
+	case kPositionValue://位置
+	case kBattleCatchModeValue://戰鬥捕捉模式
 	{
-		if (!p1.is<qint64>() && !p1.is<bool>())
+		if (!p1.is<__int64>() && !p1.is<bool>())
 		{
 			luadebug::showErrorMsg(s, luadebug::ERROR_LEVEL, QObject::tr("the first parameter of the setting '%1' must be a number or boolean").arg(typeStr));
 			return FALSE;
 		}
 
-		qint64 value1 = 0;
-		if (p1.is<qint64>())
-			value1 = p1.as<qint64>();
+		__int64 value1 = 0;
+		if (p1.is<__int64>())
+			value1 = p1.as<__int64>();
 		else if (p1.is<bool>())
 			value1 = p1.as<bool>() ? 1 : 0;
 
@@ -1136,33 +1137,33 @@ qint64 CLuaSystem::set(std::string enumStr,
 	//start with 0
 	switch (type)
 	{
-	case util::kAutoWalkDelayValue://自走延時
-	case util::kAutoWalkDistanceValue://自走步長
-	case util::kSpeedBoostValue://加速
-	case util::kScriptSpeedValue://腳本速度
-	case util::kBattleActionDelayValue://攻擊延時
-	case util::kBattleResendDelayValue://動作重發
+	case kAutoWalkDelayValue://自走延時
+	case kAutoWalkDistanceValue://自走步長
+	case kSpeedBoostValue://加速
+	case kScriptSpeedValue://腳本速度
+	case kBattleActionDelayValue://攻擊延時
+	case kBattleResendDelayValue://動作重發
 
-	case util::kBattleCharRoundActionTargetValue:
-	case util::kBattleCharCrossActionTargetValue:
-	case util::kBattleCharNormalActionTargetValue:
-	case util::kBattlePetRoundActionTargetValue:
-	case util::kBattlePetCrossActionTargetValue:
-	case util::kBattlePetNormalActionTargetValue:
-	case util::kBattleMagicHealTargetValue:
-	case util::kBattleItemHealTargetValue:
-	case util::kBattleMagicReviveTargetValue:
-	case util::kBattleItemReviveTargetValue:
+	case kBattleCharRoundActionTargetValue:
+	case kBattleCharCrossActionTargetValue:
+	case kBattleCharNormalActionTargetValue:
+	case kBattlePetRoundActionTargetValue:
+	case kBattlePetCrossActionTargetValue:
+	case kBattlePetNormalActionTargetValue:
+	case kBattleMagicHealTargetValue:
+	case kBattleItemHealTargetValue:
+	case kBattleMagicReviveTargetValue:
+	case kBattleItemReviveTargetValue:
 	{
-		if (!p1.is<qint64>() && !p1.is<bool>())
+		if (!p1.is<__int64>() && !p1.is<bool>())
 		{
 			luadebug::showErrorMsg(s, luadebug::ERROR_LEVEL, QObject::tr("the first parameter of the setting '%1' must be a number or boolean").arg(typeStr));
 			return FALSE;
 		}
 
-		qint64 value1 = 0;
-		if (p1.is<qint64>())
-			value1 = p1.as<qint64>();
+		__int64 value1 = 0;
+		if (p1.is<__int64>())
+			value1 = p1.as<__int64>();
 		else if (p1.is<bool>())
 			value1 = p1.as<bool>() ? 1 : 0;
 
@@ -1180,60 +1181,60 @@ qint64 CLuaSystem::set(std::string enumStr,
 	//0:close 1:open
 	switch (type)
 	{
-	case util::kAutoLoginEnable:
-	case util::kAutoReconnectEnable:
+	case kAutoLoginEnable:
+	case kAutoReconnectEnable:
 
-	case util::kHideCharacterEnable:
-	case util::kCloseEffectEnable:
-	case util::kOptimizeEnable:
-	case util::kHideWindowEnable:
-	case util::kMuteEnable:
+	case kHideCharacterEnable:
+	case kCloseEffectEnable:
+	case kOptimizeEnable:
+	case kHideWindowEnable:
+	case kMuteEnable:
 
-	case util::kAutoFreeMemoryEnable:
-	case util::kFastWalkEnable:
-	case util::kPassWallEnable:
-	case util::kLockMoveEnable:
-	case util::kLockImageEnable:
-	case util::kAutoDropMeatEnable:
-	case util::kAutoStackEnable:
-	case util::kKNPCEnable:
-	case util::kAutoAnswerEnable:
-	case util::kAutoEatBeanEnable:
-	case util::kAutoWalkEnable:
-	case util::kFastAutoWalkEnable:
-	case util::kFastBattleEnable:
-	case util::kAutoBattleEnable:
-	case util::kAutoCatchEnable:
+	case kAutoFreeMemoryEnable:
+	case kFastWalkEnable:
+	case kPassWallEnable:
+	case kLockMoveEnable:
+	case kLockImageEnable:
+	case kAutoDropMeatEnable:
+	case kAutoStackEnable:
+	case kKNPCEnable:
+	case kAutoAnswerEnable:
+	case kAutoEatBeanEnable:
+	case kAutoWalkEnable:
+	case kFastAutoWalkEnable:
+	case kFastBattleEnable:
+	case kAutoBattleEnable:
+	case kAutoCatchEnable:
 
-	case util::kAutoEscapeEnable:
-	case util::kBattleNoEscapeWhileLockPetEnable:
+	case kAutoEscapeEnable:
+	case kBattleNoEscapeWhileLockPetEnable:
 
-	case util::kBattleTimeExtendEnable:
-	case util::kFallDownEscapeEnable:
-	case util::kShowExpEnable:
-	case util::kWindowDockEnable:
-	case util::kBattleAutoSwitchEnable:
-	case util::kBattleAutoEOEnable:
+	case kBattleTimeExtendEnable:
+	case kFallDownEscapeEnable:
+	case kShowExpEnable:
+	case kWindowDockEnable:
+	case kBattleAutoSwitchEnable:
+	case kBattleAutoEOEnable:
 
 		//switcher
-	case util::kSwitcherTeamEnable:
-	case util::kSwitcherPKEnable:
-	case util::kSwitcherCardEnable:
-	case util::kSwitcherTradeEnable:
-	case util::kSwitcherGroupEnable:
-	case util::kSwitcherFamilyEnable:
-	case util::kSwitcherJobEnable:
-	case util::kSwitcherWorldEnable:
+	case kSwitcherTeamEnable:
+	case kSwitcherPKEnable:
+	case kSwitcherCardEnable:
+	case kSwitcherTradeEnable:
+	case kSwitcherGroupEnable:
+	case kSwitcherFamilyEnable:
+	case kSwitcherJobEnable:
+	case kSwitcherWorldEnable:
 	{
-		if (!p1.is<qint64>() && !p1.is<bool>())
+		if (!p1.is<__int64>() && !p1.is<bool>())
 		{
 			luadebug::showErrorMsg(s, luadebug::ERROR_LEVEL, QObject::tr("the first parameter of the setting '%1' must be a number or boolean").arg(typeStr));
 			return FALSE;
 		}
 
-		qint64 value1 = 0;
-		if (p1.is<qint64>())
-			value1 = p1.as<qint64>();
+		__int64 value1 = 0;
+		if (p1.is<__int64>())
+			value1 = p1.as<__int64>();
 		else if (p1.is<bool>())
 			value1 = p1.as<bool>() ? 1 : 0;
 
@@ -1242,22 +1243,22 @@ qint64 CLuaSystem::set(std::string enumStr,
 			value1 = 0;
 
 		injector.setEnableHash(type, ok);
-		if (type == util::kFastBattleEnable && ok)
+		if (type == kFastBattleEnable && ok)
 		{
-			injector.setEnableHash(util::kAutoBattleEnable, !ok);
+			injector.setEnableHash(kAutoBattleEnable, !ok);
 			if (ok && !injector.server.isNull())
 				injector.server->doBattleWork(false);
 		}
-		else if (type == util::kAutoBattleEnable && ok)
+		else if (type == kAutoBattleEnable && ok)
 		{
-			injector.setEnableHash(util::kFastBattleEnable, !ok);
+			injector.setEnableHash(kFastBattleEnable, !ok);
 			if (ok && !injector.server.isNull())
 				injector.server->doBattleWork(false);
 		}
-		else if (type == util::kAutoWalkEnable && ok)
-			injector.setEnableHash(util::kFastAutoWalkEnable, !ok);
-		else if (type == util::kFastAutoWalkEnable && ok)
-			injector.setEnableHash(util::kAutoWalkEnable, !ok);
+		else if (type == kAutoWalkEnable && ok)
+			injector.setEnableHash(kFastAutoWalkEnable, !ok);
+		else if (type == kFastAutoWalkEnable && ok)
+			injector.setEnableHash(kAutoWalkEnable, !ok);
 
 		emit signalDispatcher.applyHashSettingsToUI();
 		return TRUE;
@@ -1269,25 +1270,25 @@ qint64 CLuaSystem::set(std::string enumStr,
 	//0:close >1:open string value
 	switch (type)
 	{
-	case util::kAutoAbilityEnable:
-	case util::kBattleItemHealMpEnable:
-	case util::kNormalItemHealMpEnable:
-	case util::kBattleCatchCharItemEnable:
-	case util::kLockAttackEnable:
-	case util::kLockEscapeEnable:
-	case util::kAutoDropEnable:
-	case util::kAutoJoinEnable:
-	case util::kLockPetScheduleEnable:
+	case kAutoAbilityEnable:
+	case kBattleItemHealMpEnable:
+	case kNormalItemHealMpEnable:
+	case kBattleCatchCharItemEnable:
+	case kLockAttackEnable:
+	case kLockEscapeEnable:
+	case kAutoDropEnable:
+	case kAutoJoinEnable:
+	case kLockPetScheduleEnable:
 	{
-		if (!p1.is<qint64>() && !p1.is<bool>())
+		if (!p1.is<__int64>() && !p1.is<bool>())
 		{
 			luadebug::showErrorMsg(s, luadebug::ERROR_LEVEL, QObject::tr("the first parameter of the setting '%1' must be a number or boolean").arg(typeStr));
 			return FALSE;
 		}
 
-		qint64 value1 = 0;
-		if (p1.is<qint64>())
-			value1 = p1.as<qint64>();
+		__int64 value1 = 0;
+		if (p1.is<__int64>())
+			value1 = p1.as<__int64>();
 		else if (p1.is<bool>())
 			value1 = p1.as<bool>() ? 1 : 0;
 
@@ -1295,44 +1296,44 @@ qint64 CLuaSystem::set(std::string enumStr,
 		if (value1 < 0)
 			value1 = 0;
 
-		QString text = util::toQString(p2);
+		QString text = toQString(p2);
 
 		injector.setEnableHash(type, ok);
-		if (type == util::kLockPetScheduleEnable && ok)
+		if (type == kLockPetScheduleEnable && ok)
 		{
-			injector.setEnableHash(util::kLockPetEnable, !ok);
-			injector.setEnableHash(util::kLockRideEnable, !ok);
-			injector.setStringHash(util::kLockPetScheduleString, text);
+			injector.setEnableHash(kLockPetEnable, !ok);
+			injector.setEnableHash(kLockRideEnable, !ok);
+			injector.setStringHash(kLockPetScheduleString, text);
 		}
-		else if (type == util::kAutoJoinEnable && ok)
+		else if (type == kAutoJoinEnable && ok)
 		{
-			injector.setStringHash(util::kAutoFunNameString, text);
-			injector.setValueHash(util::kAutoFunTypeValue, 0);
+			injector.setStringHash(kAutoFunNameString, text);
+			injector.setValueHash(kAutoFunTypeValue, 0);
 		}
-		else if (type == util::kLockAttackEnable && ok)
-			injector.setStringHash(util::kLockAttackString, text);
-		else if (type == util::kLockEscapeEnable && ok)
-			injector.setStringHash(util::kLockEscapeString, text);
-		else if (type == util::kAutoDropEnable && ok)
-			injector.setStringHash(util::kAutoDropItemString, text);
-		else if (type == util::kBattleCatchCharItemEnable && ok)
+		else if (type == kLockAttackEnable && ok)
+			injector.setStringHash(kLockAttackString, text);
+		else if (type == kLockEscapeEnable && ok)
+			injector.setStringHash(kLockEscapeString, text);
+		else if (type == kAutoDropEnable && ok)
+			injector.setStringHash(kAutoDropItemString, text);
+		else if (type == kBattleCatchCharItemEnable && ok)
 		{
-			injector.setStringHash(util::kBattleCatchCharItemString, text);
-			injector.setValueHash(util::kBattleCatchTargetItemHpValue, value1 + 1);
+			injector.setStringHash(kBattleCatchCharItemString, text);
+			injector.setValueHash(kBattleCatchTargetItemHpValue, value1 + 1);
 		}
-		else if (type == util::kNormalItemHealMpEnable && ok)
+		else if (type == kNormalItemHealMpEnable && ok)
 		{
-			injector.setStringHash(util::kNormalItemHealMpItemString, text);
-			injector.setValueHash(util::kNormalItemHealMpValue, value1 + 1);
+			injector.setStringHash(kNormalItemHealMpItemString, text);
+			injector.setValueHash(kNormalItemHealMpValue, value1 + 1);
 		}
-		else if (type == util::kBattleItemHealMpEnable && ok)
+		else if (type == kBattleItemHealMpEnable && ok)
 		{
-			injector.setStringHash(util::kBattleItemHealMpItemString, text);
-			injector.setValueHash(util::kBattleItemHealMpValue, value1 + 1);
+			injector.setStringHash(kBattleItemHealMpItemString, text);
+			injector.setValueHash(kBattleItemHealMpValue, value1 + 1);
 		}
-		else if (type == util::kAutoAbilityEnable)
+		else if (type == kAutoAbilityEnable)
 		{
-			injector.setStringHash(util::kAutoAbilityString, text);
+			injector.setStringHash(kAutoAbilityString, text);
 		}
 
 		emit signalDispatcher.applyHashSettingsToUI();
@@ -1342,26 +1343,26 @@ qint64 CLuaSystem::set(std::string enumStr,
 		break;
 	}
 
-	//0:close >1:open qint64 value
+	//0:close >1:open __int64 value
 	switch (type)
 	{
-	case util::kBattleSkillMpEnable:
-	case util::kBattleCatchPetSkillEnable:
-	case util::kBattleCatchTargetMaxHpEnable:
-	case util::kBattleCatchTargetLevelEnable:
-	case util::kLockTimeEnable:
-	case util::kLockPetEnable:
-	case util::kLockRideEnable:
+	case kBattleSkillMpEnable:
+	case kBattleCatchPetSkillEnable:
+	case kBattleCatchTargetMaxHpEnable:
+	case kBattleCatchTargetLevelEnable:
+	case kLockTimeEnable:
+	case kLockPetEnable:
+	case kLockRideEnable:
 	{
-		if (!p1.is<qint64>() && !p1.is<bool>())
+		if (!p1.is<__int64>() && !p1.is<bool>())
 		{
 			luadebug::showErrorMsg(s, luadebug::ERROR_LEVEL, QObject::tr("the first parameter of the setting '%1' must be a number or boolean").arg(typeStr));
 			return FALSE;
 		}
 
-		qint64 value1 = 0;
-		if (p1.is<qint64>())
-			value1 = p1.as<qint64>();
+		__int64 value1 = 0;
+		if (p1.is<__int64>())
+			value1 = p1.as<__int64>();
 		else if (p1.is<bool>())
 			value1 = p1.as<bool>() ? 1 : 0;
 
@@ -1371,26 +1372,26 @@ qint64 CLuaSystem::set(std::string enumStr,
 			value1 = 0;
 
 		injector.setEnableHash(type, ok);
-		if (type == util::kLockPetEnable && ok)
+		if (type == kLockPetEnable && ok)
 		{
-			injector.setEnableHash(util::kLockPetScheduleEnable, !ok);
-			injector.setValueHash(util::kLockPetValue, value1);
+			injector.setEnableHash(kLockPetScheduleEnable, !ok);
+			injector.setValueHash(kLockPetValue, value1);
 		}
-		else if (type == util::kLockRideEnable && ok)
+		else if (type == kLockRideEnable && ok)
 		{
-			injector.setEnableHash(util::kLockPetScheduleEnable, !ok);
-			injector.setValueHash(util::kLockRideValue, value1);
+			injector.setEnableHash(kLockPetScheduleEnable, !ok);
+			injector.setValueHash(kLockRideValue, value1);
 		}
-		else if (type == util::kLockTimeEnable && ok)
-			injector.setValueHash(util::kLockTimeValue, value1 + 1);
-		else if (type == util::kBattleCatchTargetLevelEnable && ok)
-			injector.setValueHash(util::kBattleCatchTargetLevelValue, value1 + 1);
-		else if (type == util::kBattleCatchTargetMaxHpEnable && ok)
-			injector.setValueHash(util::kBattleCatchTargetMaxHpValue, value1 + 1);
-		else if (type == util::kBattleCatchPetSkillEnable && ok)
-			injector.setValueHash(util::kBattleCatchPetSkillValue, value1 + 1);
-		else if (type == util::kBattleSkillMpEnable)
-			injector.setValueHash(util::kBattleSkillMpValue, value1 + 1);
+		else if (type == kLockTimeEnable && ok)
+			injector.setValueHash(kLockTimeValue, value1 + 1);
+		else if (type == kBattleCatchTargetLevelEnable && ok)
+			injector.setValueHash(kBattleCatchTargetLevelValue, value1 + 1);
+		else if (type == kBattleCatchTargetMaxHpEnable && ok)
+			injector.setValueHash(kBattleCatchTargetMaxHpValue, value1 + 1);
+		else if (type == kBattleCatchPetSkillEnable && ok)
+			injector.setValueHash(kBattleCatchPetSkillValue, value1 + 1);
+		else if (type == kBattleSkillMpEnable)
+			injector.setValueHash(kBattleSkillMpValue, value1 + 1);
 
 		emit signalDispatcher.applyHashSettingsToUI();
 		return TRUE;
@@ -1399,20 +1400,20 @@ qint64 CLuaSystem::set(std::string enumStr,
 		break;
 	}
 
-	//0:close >1:open two qint64 value
+	//0:close >1:open two __int64 value
 	switch (type)
 	{
-	case util::kBattleCatchCharMagicEnable:
+	case kBattleCatchCharMagicEnable:
 	{
-		if (!p1.is<qint64>() && !p1.is<bool>())
+		if (!p1.is<__int64>() && !p1.is<bool>())
 		{
 			luadebug::showErrorMsg(s, luadebug::ERROR_LEVEL, QObject::tr("the first parameter of the setting '%1' must be a number or boolean").arg(typeStr));
 			return FALSE;
 		}
 
-		qint64 value1 = 0;
-		if (p1.is<qint64>())
-			value1 = p1.as<qint64>();
+		__int64 value1 = 0;
+		if (p1.is<__int64>())
+			value1 = p1.as<__int64>();
 		else if (p1.is<bool>())
 			value1 = p1.as<bool>() ? 1 : 0;
 
@@ -1420,9 +1421,9 @@ qint64 CLuaSystem::set(std::string enumStr,
 		if (value1 < 0)
 			value1 = 0;
 
-		qint64 value2 = 0;
-		if (p2.is<qint64>())
-			value2 = p2.as<qint64>();
+		__int64 value2 = 0;
+		if (p2.is<__int64>())
+			value2 = p2.as<__int64>();
 
 		--value2;
 		if (value2 < 0)
@@ -1430,10 +1431,10 @@ qint64 CLuaSystem::set(std::string enumStr,
 
 
 		injector.setEnableHash(type, ok);
-		if (type == util::kBattleCatchCharMagicEnable && ok)
+		if (type == kBattleCatchCharMagicEnable && ok)
 		{
-			injector.setValueHash(util::kBattleCatchTargetMagicHpValue, value1);
-			injector.setValueHash(util::kBattleCatchCharMagicValue, value2);
+			injector.setValueHash(kBattleCatchTargetMagicHpValue, value1);
+			injector.setValueHash(kBattleCatchCharMagicValue, value2);
 		}
 
 		emit signalDispatcher.applyHashSettingsToUI();
@@ -1446,17 +1447,17 @@ qint64 CLuaSystem::set(std::string enumStr,
 	//4int
 	switch (type)
 	{
-	case util::kBattlePetRoundActionRoundValue:
-	case util::kBattleCharRoundActionRoundValue:
+	case kBattlePetRoundActionRoundValue:
+	case kBattleCharRoundActionRoundValue:
 	{
-		qint64 value1 = p1.as<qint64>();
+		__int64 value1 = p1.as<__int64>();
 		bool ok = value1 > 0;
 		if (value1 < 0)
 			value1 = 0;
 
-		qint64 value2 = 0;
-		if (p2.is<qint64>())
-			value2 = p2.as<qint64>();
+		__int64 value2 = 0;
+		if (p2.is<__int64>())
+			value2 = p2.as<__int64>();
 		else if (p2.is<bool>())
 			value2 = p2.as<bool>() ? 1 : 0;
 
@@ -1464,46 +1465,46 @@ qint64 CLuaSystem::set(std::string enumStr,
 		if (value2 < 0)
 			value2 = 0;
 
-		qint64 value3 = 0;
-		if (p3.is<qint64>())
-			value3 = p3.as<qint64>();
+		__int64 value3 = 0;
+		if (p3.is<__int64>())
+			value3 = p3.as<__int64>();
 		else if (p2.is<bool>())
 			value3 = p3.as<bool>() ? 1 : 0;
 		--value3;
 		if (value3 < 0)
 			value3 = 0;
 
-		qint64 value4 = 0;
-		if (p4.is<qint64>())
-			value4 = p4.as<qint64>();
+		__int64 value4 = 0;
+		if (p4.is<__int64>())
+			value4 = p4.as<__int64>();
 		else if (p4.is<bool>())
 			value4 = p4.as<bool>() ? 1 : 0;
 		--value4;
 		if (value4 < 0)
 			value4 = 0;
 
-		qint64 value5 = 0;
-		if (p5.is<qint64>())
-			value5 = p5.as<qint64>();
+		__int64 value5 = 0;
+		if (p5.is<__int64>())
+			value5 = p5.as<__int64>();
 		else if (p5.is<bool>())
 			value5 = p5.as<bool>() ? 1 : 0;
 		if (value5 < 0)
-			value5 = util::kSelectEnemyAny;
+			value5 = kSelectEnemyAny;
 
 		injector.setValueHash(type, value1);
-		if (type == util::kBattleCharRoundActionRoundValue && ok)
+		if (type == kBattleCharRoundActionRoundValue && ok)
 		{
-			injector.setValueHash(util::kBattleCharRoundActionTypeValue, value2);
-			injector.setValueHash(util::kBattleCharRoundActionEnemyValue, value3);
-			injector.setValueHash(util::kBattleCharRoundActionLevelValue, value4);
-			//injector.setValueHash(util::kBattleCharRoundActionTargetValue, value5);
+			injector.setValueHash(kBattleCharRoundActionTypeValue, value2);
+			injector.setValueHash(kBattleCharRoundActionEnemyValue, value3);
+			injector.setValueHash(kBattleCharRoundActionLevelValue, value4);
+			//injector.setValueHash(kBattleCharRoundActionTargetValue, value5);
 		}
-		else if (type == util::kBattlePetRoundActionRoundValue && ok)
+		else if (type == kBattlePetRoundActionRoundValue && ok)
 		{
-			injector.setValueHash(util::kBattlePetRoundActionTypeValue, value2);
-			injector.setValueHash(util::kBattlePetRoundActionEnemyValue, value3);
-			injector.setValueHash(util::kBattlePetRoundActionLevelValue, value4);
-			//injector.setValueHash(util::kBattlePetRoundActionTargetValue, value5);
+			injector.setValueHash(kBattlePetRoundActionTypeValue, value2);
+			injector.setValueHash(kBattlePetRoundActionEnemyValue, value3);
+			injector.setValueHash(kBattlePetRoundActionLevelValue, value4);
+			//injector.setValueHash(kBattlePetRoundActionTargetValue, value5);
 		}
 
 		emit signalDispatcher.applyHashSettingsToUI();
@@ -1516,20 +1517,20 @@ qint64 CLuaSystem::set(std::string enumStr,
 	//1bool 4int
 	switch (type)
 	{
-	case util::kBattleCrossActionPetEnable:
-	case util::kBattleCrossActionCharEnable:
-	case util::kBattleMagicHealEnable:
-	case util::kNormalMagicHealEnable:
+	case kBattleCrossActionPetEnable:
+	case kBattleCrossActionCharEnable:
+	case kBattleMagicHealEnable:
+	case kNormalMagicHealEnable:
 	{
-		if (!p1.is<qint64>() && !p1.is<bool>())
+		if (!p1.is<__int64>() && !p1.is<bool>())
 		{
 			luadebug::showErrorMsg(s, luadebug::ERROR_LEVEL, QObject::tr("the first parameter of the setting '%1' must be a number or boolean").arg(typeStr));
 			return FALSE;
 		}
 
-		qint64 value1 = 0;
-		if (p1.is<qint64>())
-			value1 = p1.as<qint64>();
+		__int64 value1 = 0;
+		if (p1.is<__int64>())
+			value1 = p1.as<__int64>();
 		else if (p1.is<bool>())
 			value1 = p1.as<bool>() ? 1 : 0;
 
@@ -1540,63 +1541,63 @@ qint64 CLuaSystem::set(std::string enumStr,
 			value1 = 0;
 		injector.setEnableHash(type, ok);
 
-		qint64 value2 = 0;
-		if (p2.is<qint64>())
-			value2 = p2.as<qint64>();
+		__int64 value2 = 0;
+		if (p2.is<__int64>())
+			value2 = p2.as<__int64>();
 		else if (p2.is<bool>())
 			value2 = p2.as<bool>() ? 1 : 0;
 		--value2;
 		if (value2 < 0)
 			value2 = 0;
 
-		qint64 value3 = 0;
-		if (p3.is<qint64>())
-			value3 = p3.as<qint64>();
+		__int64 value3 = 0;
+		if (p3.is<__int64>())
+			value3 = p3.as<__int64>();
 		else if (p3.is<bool>())
 			value3 = p3.as<bool>() ? 1 : 0;
 		--value3;
 		if (value3 < 0)
 			value3 = 0;
 
-		qint64 value4 = 0;
-		if (p4.is<qint64>())
-			value4 = p4.as<qint64>();
+		__int64 value4 = 0;
+		if (p4.is<__int64>())
+			value4 = p4.as<__int64>();
 		else if (p4.is<bool>())
 			value4 = p4.as<bool>() ? 1 : 0;
 		--value4;
 		if (value4 < 0)
 			value4 = 0;
 
-		qint64 value5 = util::kSelectSelf | util::kSelectPet;
-		if (p5.is<qint64>())
-			value5 = p5.as<qint64>();
+		__int64 value5 = kSelectSelf | kSelectPet;
+		if (p5.is<__int64>())
+			value5 = p5.as<__int64>();
 
-		if (type == util::kNormalMagicHealEnable && ok)
+		if (type == kNormalMagicHealEnable && ok)
 		{
-			injector.setValueHash(util::kNormalMagicHealMagicValue, value1);
-			injector.setValueHash(util::kNormalMagicHealCharValue, value2 + 1);
-			injector.setValueHash(util::kNormalMagicHealPetValue, value3 + 1);
-			injector.setValueHash(util::kNormalMagicHealAllieValue, value4 + 1);
+			injector.setValueHash(kNormalMagicHealMagicValue, value1);
+			injector.setValueHash(kNormalMagicHealCharValue, value2 + 1);
+			injector.setValueHash(kNormalMagicHealPetValue, value3 + 1);
+			injector.setValueHash(kNormalMagicHealAllieValue, value4 + 1);
 		}
-		else if (type == util::kBattleMagicHealEnable && ok)
+		else if (type == kBattleMagicHealEnable && ok)
 		{
-			injector.setValueHash(util::kBattleMagicHealMagicValue, value1);
-			injector.setValueHash(util::kBattleMagicHealCharValue, value2 + 1);
-			injector.setValueHash(util::kBattleMagicHealPetValue, value3 + 1);
-			injector.setValueHash(util::kBattleMagicHealAllieValue, value4 + 1);
-			//injector.setValueHash(util::kBattleMagicHealTargetValue, value5);
+			injector.setValueHash(kBattleMagicHealMagicValue, value1);
+			injector.setValueHash(kBattleMagicHealCharValue, value2 + 1);
+			injector.setValueHash(kBattleMagicHealPetValue, value3 + 1);
+			injector.setValueHash(kBattleMagicHealAllieValue, value4 + 1);
+			//injector.setValueHash(kBattleMagicHealTargetValue, value5);
 		}
-		else if (type == util::kBattleCrossActionCharEnable && ok)
+		else if (type == kBattleCrossActionCharEnable && ok)
 		{
-			injector.setValueHash(util::kBattleCharCrossActionTypeValue, value1);
-			injector.setValueHash(util::kBattleCharCrossActionRoundValue, value2);
-			//injector.setValueHash(util::kBattleCharCrossActionTargetValue, value3);
+			injector.setValueHash(kBattleCharCrossActionTypeValue, value1);
+			injector.setValueHash(kBattleCharCrossActionRoundValue, value2);
+			//injector.setValueHash(kBattleCharCrossActionTargetValue, value3);
 		}
-		else if (type == util::kBattleCrossActionPetEnable && ok)
+		else if (type == kBattleCrossActionPetEnable && ok)
 		{
-			injector.setValueHash(util::kBattlePetCrossActionTypeValue, value1);
-			injector.setValueHash(util::kBattlePetCrossActionRoundValue, value2);
-			//injector.setValueHash(util::kBattlePetCrossActionTargetValue, value3);
+			injector.setValueHash(kBattlePetCrossActionTypeValue, value1);
+			injector.setValueHash(kBattlePetCrossActionRoundValue, value2);
+			//injector.setValueHash(kBattlePetCrossActionTargetValue, value3);
 		}
 
 		emit signalDispatcher.applyHashSettingsToUI();
@@ -1609,23 +1610,23 @@ qint64 CLuaSystem::set(std::string enumStr,
 	//string only
 	switch (type)
 	{
-	case util::kEOCommandString:
-	case util::kGameAccountString:
-	case util::kGamePasswordString:
-	case util::kGameSecurityCodeString:
-	case util::kMailWhiteListString:
-	case util::kBattleCatchPetNameString:
+	case kEOCommandString:
+	case kGameAccountString:
+	case kGamePasswordString:
+	case kGameSecurityCodeString:
+	case kMailWhiteListString:
+	case kBattleCatchPetNameString:
 	{
 		QString text;
 		if (!p1.is<std::string>())
 		{
-			if (!p1.is<qint64>())
+			if (!p1.is<__int64>())
 				return FALSE;
 
-			text = util::toQString(p1.as<qint64>());
+			text = toQString(p1.as<__int64>());
 		}
 		else
-			text = util::toQString(p1);
+			text = toQString(p1);
 
 		injector.setStringHash(type, text);
 		emit signalDispatcher.applyHashSettingsToUI();

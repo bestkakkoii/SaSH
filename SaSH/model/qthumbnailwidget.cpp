@@ -15,7 +15,7 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 */
-
+import String;
 #include "stdafx.h"
 #include "qthumbnailwidget.h"
 #include <QPixmapCache>
@@ -172,7 +172,7 @@ void QThumbnailWidget::repaintGL()
 		pixmap_ = screen->grabWindow(wid);
 		if (pixmap_.isNull()) { m_timer.stop(); return; }
 
-		QPixmapCache::insert("image_key" + util::toQString((int)wid), pixmap_);
+		QPixmapCache::insert("image_key" + toQString((int)wid), pixmap_);
 	}
 	catch (...)
 	{
@@ -190,14 +190,14 @@ void QThumbnailWidget::paintGL()
 	if (!wid) { m_timer.stop(); return; }
 
 	QPixmap cachedPixmap;
-	if (!QPixmapCache::find("image_key" + util::toQString((int)wid), &cachedPixmap))
+	if (!QPixmapCache::find("image_key" + toQString((int)wid), &cachedPixmap))
 	{
 		try
 		{
 			QPixmap pixmap = screen->grabWindow(wid);
 			if (pixmap.isNull()) { m_timer.stop(); return; }
 
-			QPixmapCache::insert("image_key" + util::toQString((int)wid), pixmap);
+			QPixmapCache::insert("image_key" + toQString((int)wid), pixmap);
 			cachedPixmap = pixmap;
 		}
 		catch (...)

@@ -17,9 +17,8 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 */
-
+import Safe;
 #pragma once
-#include <util.h>
 #include <indexer.h>
 
 constexpr size_t NETDATASIZE = 16384;
@@ -40,7 +39,7 @@ constexpr const char* DEFAULTFUNCEND = "#";
 class Autil : public Indexer
 {
 public:
-	explicit Autil(qint64 index);
+	explicit Autil(__int64 index);
 
 	void util_Init(void);
 	void util_Release(void);
@@ -48,7 +47,7 @@ public:
 	bool util_SplitMessage(const QByteArray& source, char separator);
 	void util_EncodeMessage(char* dst, size_t dstlen, char* src);
 	void util_DecodeMessage(QByteArray& dst, QByteArray src);
-	qint64 util_GetFunctionFromSlice(qint64* func, qint64* fieldcount, qint64 offest = 23);
+	__int64 util_GetFunctionFromSlice(__int64* func, __int64* fieldcount, __int64 offest = 23);
 	void util_DiscardMessage(void);
 	void util_SendMesg(int func, char* buffer);
 
@@ -162,11 +161,11 @@ public:
 	}
 
 public:
-	util::SafeData<size_t> SliceCount;
-	util::SafeData<QString> PersonalKey;
+	SafeData<size_t> SliceCount;
+	SafeData<QString> PersonalKey;
 
 
 private:
-	QHash<qint64, QByteArray> msgSlice_ = {};
+	QHash<__int64, QByteArray> msgSlice_ = {};
 	QMutex msgMutex_;
 };

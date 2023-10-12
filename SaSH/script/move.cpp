@@ -16,14 +16,15 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 */
 
+import Utility;
+
 #include "stdafx.h"
 #include "interpreter.h"
-#include "util.h"
 #include "injector.h"
 #include "map/mapanalyzer.h"
 
 //move
-qint64 Interpreter::setdir(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
+__int64 Interpreter::setdir(__int64 currentIndex, __int64 currentLine, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance(currentIndex);
 
@@ -34,7 +35,7 @@ qint64 Interpreter::setdir(qint64 currentIndex, qint64 currentLine, const TokenM
 	checkBattleThenWait();
 
 	QString dirStr = "";
-	qint64 dir = -1;
+	__int64 dir = -1;
 	checkInteger(TK, 1, &dir);
 	checkString(TK, 1, &dirStr);
 
@@ -55,7 +56,7 @@ qint64 Interpreter::setdir(qint64 currentIndex, qint64 currentLine, const TokenM
 	return Parser::kNoChange;
 }
 
-qint64 Interpreter::walkpos(qint64 currentIndex, qint64 currentLine, const TokenMap& TK)
+__int64 Interpreter::walkpos(__int64 currentIndex, __int64 currentLine, const TokenMap& TK)
 {
 	Injector& injector = Injector::getInstance(currentIndex);
 
@@ -65,13 +66,13 @@ qint64 Interpreter::walkpos(qint64 currentIndex, qint64 currentLine, const Token
 	checkOnlineThenWait();
 	checkBattleThenWait();
 
-	qint64 x = 0;
-	qint64 y = 0;
+	__int64 x = 0;
+	__int64 y = 0;
 	checkInteger(TK, 1, &x);
 	checkInteger(TK, 2, &y);
 	QPoint p(x, y);
 
-	qint64 timeout = DEFAULT_FUNCTION_TIMEOUT;
+	__int64 timeout = DEFAULT_FUNCTION_TIMEOUT;
 	checkInteger(TK, 3, &timeout);
 
 	if (p.x() < 0 || p.x() >= 1500)

@@ -16,13 +16,13 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 */
 
+import Utility;
+import String;
 #include "stdafx.h"
 #include "petinfoform.h"
-
-#include "util.h"
 #include "injector.h"
 
-PetInfoForm::PetInfoForm(qint64 index, QWidget* parent)
+PetInfoForm::PetInfoForm(__int64 index, QWidget* parent)
 	: QWidget(parent)
 	, Indexer(index)
 {
@@ -43,7 +43,7 @@ void PetInfoForm::on_comboBox_currentIndexChanged(int index)
 	if (cmpstr.isEmpty())
 		return;
 
-	QVector<qint64> v = ui.comboBox->currentData().value<QVector<qint64>>();
+	QVector<__int64> v = ui.comboBox->currentData().value<QVector<__int64>>();
 	cur_level_ = v[0];
 	cur_maxHp_ = v[1];
 	cur_atk_ = v[2];
@@ -60,11 +60,11 @@ void PetInfoForm::on_comboBox_currentIndexChanged(int index)
 	//找能匹配 4 組 則默認level為1 5組則第一個為level
 
 	QRegularExpressionMatch i = re.match(cmpstr);
-	//qint64 count = 0;
-	QVector<qint64> basev(MAX_PET, 0);
+	//__int64 count = 0;
+	QVector<__int64> basev(MAX_PET, 0);
 	if (i.hasMatch())
 	{
-		for (qint64 j = 0; j < MAX_PET; ++j)
+		for (__int64 j = 0; j < MAX_PET; ++j)
 			basev[j] = i.captured(j + 1).toLongLong();
 
 		base_level_ = basev[0];
@@ -77,7 +77,7 @@ void PetInfoForm::on_comboBox_currentIndexChanged(int index)
 	}
 	else
 	{
-		qint64 currentIndex = ui.comboBox->currentIndex();
+		__int64 currentIndex = ui.comboBox->currentIndex();
 
 		Injector& injector = Injector::getInstance(getIndex());
 		if (currentIndex >= 0 && currentIndex < MAX_PET)
@@ -112,19 +112,19 @@ void PetInfoForm::on_comboBox_currentIndexChanged(int index)
 
 void PetInfoForm::on_comboBox_clicked()
 {
-	qint64 currentIndex = getIndex();
+	__int64 currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
 	if (injector.server.isNull())
 		return;
 
-	qint64 current = ui.comboBox->currentIndex();
+	__int64 current = ui.comboBox->currentIndex();
 	ui.comboBox->clear();
 
-	for (qint64 i = 0; i < MAX_PET; ++i)
+	for (__int64 i = 0; i < MAX_PET; ++i)
 	{
-		QVector<qint64> v;
+		QVector<__int64> v;
 		PET pet = injector.server->getPet(i);
-		QString name = util::toQString(i + 1) + ":";
+		QString name = toQString(i + 1) + ":";
 		if (!pet.name.isEmpty() && pet.valid)
 		{
 			if (!pet.freeName.isEmpty())
@@ -149,12 +149,12 @@ void PetInfoForm::on_comboBox_clicked()
 		ui.comboBox->setCurrentIndex(0);
 }
 
-constexpr inline double calcRate(qint64 diff, qint64 diff_level)
+constexpr inline double calcRate(__int64 diff, __int64 diff_level)
 {
 	return diff / static_cast<double>(diff_level);
 }
 
-constexpr inline double calcExpectValue(double base, double growthRate, qint64 targetLevel)
+constexpr inline double calcExpectValue(double base, double growthRate, __int64 targetLevel)
 {
 	return (base + (growthRate * static_cast<double>(targetLevel - 1)));
 }
@@ -178,11 +178,11 @@ void PetInfoForm::on_pushButton_calc_clicked()
 	cur_def_ = ui.spinBox_current_def->value();
 	cur_agi_ = ui.spinBox_current_agi->value();
 
-	qint64 diff_level = cur_level_ - base_level_;
-	qint64 diff_maxHp = cur_maxHp_ - base_maxHp_;
-	qint64 diff_atk = cur_atk_ - base_atk_;
-	qint64 diff_def = cur_def_ - base_def_;
-	qint64 diff_agi = cur_agi_ - base_agi_;
+	__int64 diff_level = cur_level_ - base_level_;
+	__int64 diff_maxHp = cur_maxHp_ - base_maxHp_;
+	__int64 diff_atk = cur_atk_ - base_atk_;
+	__int64 diff_def = cur_def_ - base_def_;
+	__int64 diff_agi = cur_agi_ - base_agi_;
 
 	constexpr double rate_level = 1.0;
 	double rate_maxHp = calcRate(diff_maxHp, diff_level);
@@ -190,7 +190,7 @@ void PetInfoForm::on_pushButton_calc_clicked()
 	double rate_def = calcRate(diff_def, diff_level);
 	double rate_agi = calcRate(diff_agi, diff_level);
 
-	qint64 expect_level = ui.spinBox_expect_level->value();
+	__int64 expect_level = ui.spinBox_expect_level->value();
 
 	if (base_level_ >= expect_level)
 		return;

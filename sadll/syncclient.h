@@ -107,9 +107,9 @@ public:
 		}
 		extern HWND g_ParenthWnd;
 #ifdef _DEBUG
-		std::cout << "connect success. " << g_ParenthWnd << " " << SendMessageW(g_ParenthWnd, util::kConnectionOK, NULL, NULL) << std::endl;
+		std::cout << "connect success. " << g_ParenthWnd << " " << SendMessageW(g_ParenthWnd, kConnectionOK, NULL, NULL) << std::endl;
 #else
-		SendMessageW(g_ParenthWnd, util::kConnectionOK, NULL, NULL);
+		SendMessageW(g_ParenthWnd, kConnectionOK, NULL, NULL);
 #endif
 
 		return true;

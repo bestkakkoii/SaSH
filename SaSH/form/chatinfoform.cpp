@@ -16,14 +16,15 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 */
 
+import Utility;
+import String;
+
 #include "stdafx.h"
 #include "chatinfoform.h"
-
-#include "util.h"
 #include "injector.h"
 #include "signaldispatcher.h"
 
-static const QHash<qint64, QColor> combo_colorhash = {
+static const QHash<__int64, QColor> combo_colorhash = {
 	{ 0, QColor(255, 255, 255) },
 	{ 1, QColor(0, 255, 255) },
 	{ 2, QColor(255, 0, 255) },
@@ -59,7 +60,7 @@ public:
 	}
 };
 
-ChatInfoForm::ChatInfoForm(qint64 index, QWidget* parent)
+ChatInfoForm::ChatInfoForm(__int64 index, QWidget* parent)
 	: QWidget(parent)
 	, Indexer(index)
 {
@@ -68,7 +69,7 @@ ChatInfoForm::ChatInfoForm(qint64 index, QWidget* parent)
 	QFont font = util::getFont();
 	setFont(font);
 	ui.groupBox_2->hide();
-	connect(this, &ChatInfoForm::resetControlTextLanguage, this, &ChatInfoForm::onResetControlTextLanguage, Qt::UniqueConnection);
+	connect(this, &ChatInfoForm::resetControlTextLanguage, this, &ChatInfoForm::onResetControlTextLanguage, Qt::QueuedConnection);
 
 	ui.listView_log->setTextElideMode(Qt::ElideNone);
 	ui.listView_log->setResizeMode(QListView::Adjust);
@@ -78,7 +79,7 @@ ChatInfoForm::ChatInfoForm(qint64 index, QWidget* parent)
 	ui.comboBox_send->installEventFilter(this);
 
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(index);
-	connect(&signalDispatcher, &SignalDispatcher::applyHashSettingsToUI, this, &ChatInfoForm::onApplyHashSettingsToUI, Qt::UniqueConnection);
+	connect(&signalDispatcher, &SignalDispatcher::applyHashSettingsToUI, this, &ChatInfoForm::onApplyHashSettingsToUI, Qt::QueuedConnection);
 
 	Injector& injector = Injector::getInstance(index);
 
@@ -96,7 +97,7 @@ ChatInfoForm::ChatInfoForm(qint64 index, QWidget* parent)
 
 	for (auto it = combo_colorhash.begin(); it != combo_colorhash.end(); ++it)
 	{
-		ui.comboBox_color->addItem(util::toQString(it.key()), QVariant(it.value()));
+		ui.comboBox_color->addItem(toQString(it.key()), QVariant(it.value()));
 	}
 
 	onResetControlTextLanguage();
@@ -113,7 +114,7 @@ bool ChatInfoForm::eventFilter(QObject* watched, QEvent* e)
 		//QKeyEvent* keyEvent = reinterpret_cast<QKeyEvent*>(e);
 		//if (keyEvent->key() == Qt::Key_Delete)
 		//{
-		//	qint64 currentIndex = getIndex();
+		//	__int64 currentIndex = getIndex();
 		//	Injector& injector = Injector::getInstance(currentIndex);
 		//	if (!injector.server.isNull())
 		//		injector.server->cleanChatHistory();
@@ -128,14 +129,14 @@ bool ChatInfoForm::eventFilter(QObject* watched, QEvent* e)
 			QComboBox* comboBox = qobject_cast<QComboBox*>(watched);
 			if (comboBox)
 			{
-				qint64 currentIndex = getIndex();
+				__int64 currentIndex = getIndex();
 				QString text = comboBox->currentText();
 				Injector& injector = Injector::getInstance(currentIndex);
 				if (!injector.server.isNull())
 				{
-					qint64 nMode = ui.comboBox_channel->currentIndex();
+					__int64 nMode = ui.comboBox_channel->currentIndex();
 					TalkMode mode = static_cast<TalkMode>(nMode != -1 ? nMode : kTalkNormal);
-					if (nMode != (static_cast<qint64>(channelList_.size()) - 1))
+					if (nMode != (static_cast<__int64>(channelList_.size()) - 1))
 						injector.server->talk(text, ui.comboBox_color->currentIndex(), mode);
 					else
 						injector.server->inputtext(text);
@@ -153,7 +154,7 @@ bool ChatInfoForm::eventFilter(QObject* watched, QEvent* e)
 
 void ChatInfoForm::onApplyHashSettingsToUI()
 {
-	qint64 currentIndex = getIndex();
+	__int64 currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
 	if (!injector.chatLogModel.isNull())
 		ui.listView_log->setModel(injector.chatLogModel.get());
@@ -178,7 +179,7 @@ void ChatInfoForm::onResetControlTextLanguage()
 	channelList_ = QStringList{
 		tr("normal"), tr("team"), tr("family"), tr("world"), tr("global"), tr("dialog")
 	};
-	qint64 index = ui.comboBox_channel->currentIndex();
+	__int64 index = ui.comboBox_channel->currentIndex();
 	ui.comboBox_channel->clear();
 	ui.comboBox_channel->addItems(channelList_);
 	ui.comboBox_channel->setCurrentIndex(index);

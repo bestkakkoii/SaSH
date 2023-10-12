@@ -171,12 +171,13 @@
       <BuildAction>lupdate</BuildAction>
     </QtTranslation>
     <PostBuildEvent>
-      <Command>$(SolutionDir)ReleaseTool\uploadex.bat</Command>
+      <Command>
+      </Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
-      <AdditionalIncludeDirectories>$(SolutionDir)$(ProjectName);$(SolutionDir)$(ProjectName)\include;$(SolutionDir)$(ProjectName)\include\lua;$(SolutionDir)$(ProjectName)\model;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)$(ProjectName);$(SolutionDir)$(ProjectName)\include;$(SolutionDir)$(ProjectName)\include\lua;$(SolutionDir)$(ProjectName)\model;$(SolutionDir)$(ProjectName)\module;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <WarningLevel>Level3</WarningLevel>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <ExceptionHandling>Async</ExceptionHandling>
@@ -186,15 +187,15 @@
       <OmitFramePointers>true</OmitFramePointers>
       <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
       <WholeProgramOptimization>true</WholeProgramOptimization>
-      <AdditionalOptions>/bigobj %(AdditionalOptions)</AdditionalOptions>
       <SupportJustMyCode>false</SupportJustMyCode>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <DisableSpecificWarnings>4996;</DisableSpecificWarnings>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
-      <EnableModules>false</EnableModules>
-      <BuildStlModules>false</BuildStlModules>
+      <EnableModules>true</EnableModules>
+      <BuildStlModules>true</BuildStlModules>
       <UseUnicodeForAssemblerListing>
       </UseUnicodeForAssemblerListing>
+      <AdditionalOptions>/bigobj %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <UACExecutionLevel>RequireAdministrator</UACExecutionLevel>
@@ -221,9 +222,9 @@ copy "*.qm" "$(SolutionDir)Win32\Debug\lib\translations\"
 copy "*.qm" "$(SolutionDir)$(Platform)\Release\lib\translations\"
 copy "*.qm" "$(SolutionDir)$(Platform)\Debug\lib\translations\"
 cd "$(SolutionDir)ReleaseTool\"
-del "sash.zip"
-qzip.exe "$(SolutionDir)ReleaseTool\$(ProjectName)" "$(SolutionDir)ReleaseTool\sash.zip"
-$(SolutionDir)ReleaseTool\UploadToServer.bat
+del "sashx64.zip"
+qzip.exe "$(SolutionDir)ReleaseTool\$(ProjectName)" "$(SolutionDir)ReleaseTool\sashx64.zip"
+$(SolutionDir)ReleaseTool\UploadToServerx64.bat
 </Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
@@ -276,12 +277,11 @@ $(SolutionDir)ReleaseTool\UploadToServer.bat
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
-      <AdditionalIncludeDirectories>$(SolutionDir)$(ProjectName);$(SolutionDir)$(ProjectName)\include;$(SolutionDir)$(ProjectName)\include\lua;$(SolutionDir)$(ProjectName)\model;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)$(ProjectName);$(SolutionDir)$(ProjectName)\include;$(SolutionDir)$(ProjectName)\include\lua;$(SolutionDir)$(ProjectName)\model;$(SolutionDir)$(ProjectName)\module;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <WarningLevel>Level3</WarningLevel>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <AssemblerOutput>NoListing</AssemblerOutput>
       <ExceptionHandling>Async</ExceptionHandling>
-      <AdditionalOptions>/bigobj %(AdditionalOptions)</AdditionalOptions>
       <IntrinsicFunctions>
       </IntrinsicFunctions>
       <FavorSizeOrSpeed>
@@ -297,11 +297,12 @@ $(SolutionDir)ReleaseTool\UploadToServer.bat
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <DisableSpecificWarnings>4996;</DisableSpecificWarnings>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
-      <EnableModules>false</EnableModules>
+      <EnableModules>true</EnableModules>
       <CompileAs>Default</CompileAs>
-      <BuildStlModules>false</BuildStlModules>
+      <BuildStlModules>true</BuildStlModules>
       <UseUnicodeForAssemblerListing>
       </UseUnicodeForAssemblerListing>
+      <AdditionalOptions>/bigobj %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <UACExecutionLevel>RequireAdministrator</UACExecutionLevel>
@@ -334,7 +335,7 @@ $(SolutionDir)ReleaseTool\UploadToServer.bat
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <Optimization>Disabled</Optimization>
-      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>stdafx.h</PrecompiledHeaderFile>
     </ClCompile>
     <Link>
@@ -368,7 +369,7 @@ $(SolutionDir)ReleaseTool\UploadToServer.bat
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <DebugInformationFormat>None</DebugInformationFormat>
       <Optimization>MaxSpeed</Optimization>
-      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>stdafx.h</PrecompiledHeaderFile>
     </ClCompile>
     <Link>
@@ -432,7 +433,6 @@ $(SolutionDir)ReleaseTool\UploadToServer.bat
       <QtMocFileName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">%(Filename).moc</QtMocFileName>
       <QtMocFileName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">%(Filename).moc</QtMocFileName>
     </ClCompile>
-    <ClCompile Include="map\astar.cpp" />
     <ClCompile Include="map\mapanalyzer.cpp" />
     <ClCompile Include="model\codeeditor.cpp">
       <DynamicSource Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">input</DynamicSource>
@@ -447,18 +447,26 @@ $(SolutionDir)ReleaseTool\UploadToServer.bat
     <ClCompile Include="model\combobox.cpp" />
     <ClCompile Include="model\customtitlebar.cpp" />
     <ClCompile Include="model\fastlabel.cpp" />
-    <ClCompile Include="model\builddatetime.cpp" />
     <ClCompile Include="model\highlighter.cpp" />
     <ClCompile Include="model\listview.cpp" />
     <ClCompile Include="model\mapglwidget.cpp" />
     <ClCompile Include="model\pushbutton.cpp" />
-    <ClCompile Include="model\scopedhandle.cpp" />
     <ClCompile Include="model\qthumbnailform.cpp" />
     <ClCompile Include="model\qthumbnailwidget.cpp" />
+    <ClCompile Include="model\signaldispatcher.cpp" />
+    <ClCompile Include="model\tablewidget.cpp" />
+    <ClCompile Include="module\astar.ixx" />
+    <ClCompile Include="module\compile.ixx" />
+    <ClCompile Include="module\config.ixx" />
+    <ClCompile Include="module\global.ixx" />
+    <ClCompile Include="module\logger.ixx" />
+    <ClCompile Include="module\mem.ixx" />
+    <ClCompile Include="module\safe.ixx" />
+    <ClCompile Include="module\scoped.ixx" />
+    <ClCompile Include="module\string.ixx" />
+    <ClCompile Include="module\utility.ixx" />
     <ClCompile Include="net\autil.cpp" />
-    <ClCompile Include="net\descrypt.cpp" />
     <ClCompile Include="net\lssproto.cpp" />
-    <ClCompile Include="net\macchanger.cpp" />
     <ClCompile Include="net\tcpserver.cpp" />
     <ClCompile Include="script\action.cpp" />
     <ClCompile Include="script\check.cpp" />
@@ -476,7 +484,6 @@ $(SolutionDir)ReleaseTool\UploadToServer.bat
     <ClCompile Include="script_lua\luasystem.cpp" />
     <ClCompile Include="script_lua\luautil.cpp" />
     <ClCompile Include="update\downloader.cpp" />
-    <ClCompile Include="util.cpp" />
     <QtMoc Include="form\infoform.h" />
     <QtMoc Include="form\generalform.h" />
     <QtMoc Include="form\afkform.h" />
@@ -505,14 +512,12 @@ $(SolutionDir)ReleaseTool\UploadToServer.bat
     <QtMoc Include="form\settingfiledialog.h" />
     <ClInclude Include="injector.h" />
     <QtMoc Include="interfacer.h" />
-    <ClInclude Include="map\astar.h" />
     <ClInclude Include="map\mapanalyzer.h" />
     <QtMoc Include="model\mapglwidget.h" />
     <QtMoc Include="model\combobox.h" />
     <QtMoc Include="model\codeeditor.h" />
     <QtMoc Include="model\fastlabel.h" />
     <QtMoc Include="model\customtitlebar.h" />
-    <ClInclude Include="model\builddatetime.h" />
     <QtMoc Include="model\graphicview.h" />
     <ClInclude Include="model\highlighter.h" />
     <QtMoc Include="model\listview.h" />
@@ -521,25 +526,19 @@ $(SolutionDir)ReleaseTool\UploadToServer.bat
     <QtMoc Include="model\qthumbnailwidget.h" />
     <QtMoc Include="model\pushButton.h" />
     <ClInclude Include="model\indexer.h" />
-    <QtMoc Include="model\openglwidget.h" />
-    <QtMoc Include="model\logger.h" />
-    <ClInclude Include="model\scopedhandle.h" />
     <QtMoc Include="model\tablewidget.h" />
     <QtMoc Include="model\treewidget.h" />
     <ClInclude Include="model\treewidgetitem.h" />
     <ClInclude Include="net\autil.h" />
     <QtMoc Include="script\interpreter.h" />
     <ClInclude Include="net\database.h" />
-    <ClInclude Include="net\descrypt.h" />
     <ClInclude Include="net\lssproto.h" />
-    <ClInclude Include="net\macchanger.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="resource1.h" />
     <ClInclude Include="script\lexer.h" />
     <QtMoc Include="script\parser.h" />
     <QtMoc Include="script_lua\clua.h" />
     <QtMoc Include="update\downloader.h" />
-    <ClInclude Include="util.h" />
     <QtRcc Include="resource.qrc" />
     <QtUic Include="form\abilityform.ui" />
     <QtUic Include="form\afkform.ui" />

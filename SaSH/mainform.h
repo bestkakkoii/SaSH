@@ -20,7 +20,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 #include <QtWidgets/QMainWindow>
 #include "ui_mainform.h"
+#include <QTranslator>
 #include <indexer.h>
+
 
 class QTranslator;
 class QMenuBar;
@@ -47,10 +49,10 @@ class MainForm : public QMainWindow, public Indexer
 	Q_OBJECT
 
 public:
-	explicit MainForm(qint64 index, QWidget* parent);
+	explicit MainForm(__int64 index, QWidget* parent);
 	virtual ~MainForm();
 
-	static MainForm* createNewWindow(qint64 idToAllocate, qint64* pId = nullptr);
+	static MainForm* createNewWindow(__int64 idToAllocate, __int64* pId = nullptr);
 
 protected:
 	void showEvent(QShowEvent* e) override;
@@ -81,20 +83,20 @@ private slots:
 	void onSaveHashSettings(const QString& name = "default", bool isFullPath = false);
 	void onLoadHashSettings(const QString& name = "default", bool isFullPath = false);
 
-	void onUpdateStatusLabelTextChanged(qint64 status);
+	void onUpdateStatusLabelTextChanged(__int64 status);
 	void onUpdateMapLabelTextChanged(const QString& text);
 	void onUpdateCursorLabelTextChanged(const QString& text);
 	void onUpdateCoordsPosLabelTextChanged(const QString& text);
 	void onUpdateTimeLabelTextChanged(const QString& text);
-	void onUpdateStonePosLabelTextChanged(qint64 ntext);
+	void onUpdateStonePosLabelTextChanged(__int64 ntext);
 	void onUpdateMainFormTitle(const QString& text);
 
-	void onMessageBoxShow(const QString& text, qint64 type = 0, QString title = "", qint64* pnret = nullptr, QString topText = "", QString detail = "", void* p = nullptr);
-	void onInputBoxShow(const QString& text, qint64 type, QVariant* retvalue, void* p);
-	void onFileDialogShow(const QString& name, qint64 acceptType, QString* retstring, void* p);
+	void onMessageBoxShow(const QString& text, __int64 type = 0, QString title = "", __int64* pnret = nullptr, QString topText = "", QString detail = "", void* p = nullptr);
+	void onInputBoxShow(const QString& text, __int64 type, QVariant* retvalue, void* p);
+	void onFileDialogShow(const QString& name, __int64 acceptType, QString* retstring, void* p);
 
-	void onAppendScriptLog(const QString& text, qint64 color = 0);
-	void onAppendChatLog(const QString& text, qint64 color = 0);
+	void onAppendScriptLog(const QString& text, __int64 color = 0);
+	void onAppendChatLog(const QString& text, __int64 color = 0);
 
 private:
 	bool markAsClose_ = false;
@@ -110,7 +112,7 @@ private:
 	ScriptForm* pScriptForm_ = nullptr;
 	LuaScriptForm* pLuaScriptForm_ = nullptr;
 
-	qint64 interfaceCount_ = 0;
+	__int64 interfaceCount_ = 0;
 
 	InfoForm* pInfoForm_ = nullptr;
 	MapWidget* mapWidget_ = nullptr;
@@ -120,7 +122,7 @@ private:
 
 	QSystemTrayIcon* trayIcon = nullptr;
 
-	QHash<qint64, QSharedPointer<Interpreter>> interpreter_hash_;
+	QHash<__int64, QSharedPointer<Interpreter>> interpreter_hash_;
 
 	QAction* hideTrayAction_ = nullptr;
 };

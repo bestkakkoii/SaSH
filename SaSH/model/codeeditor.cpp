@@ -1,4 +1,5 @@
-﻿#include "stdafx.h"
+﻿import Utility;
+#include "stdafx.h"
 #include <codeeditor.h>
 #include <QApplication>
 #include <QTextCursor>

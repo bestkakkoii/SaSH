@@ -16,11 +16,13 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 */
 
+import Utility;
+import Global;
+
 #pragma once
 #include <QObject>
 #include <QSharedMemory>
 #include <threadplugin.h>
-#include <util.h>
 
 class QThread;
 class Server;
@@ -29,7 +31,7 @@ class MainObject : public ThreadPlugin
 {
 	Q_OBJECT
 public:
-	MainObject(qint64 index, QObject* parent);
+	MainObject(__int64 index, QObject* parent);
 	virtual ~MainObject();
 
 signals:
@@ -47,7 +49,7 @@ private:
 
 	void setUserDatas();
 
-	qint64 checkAndRunFunctions();
+	__int64 checkAndRunFunctions();
 
 	void checkControl();
 	void checkEtcFlag();
@@ -68,7 +70,7 @@ private:
 
 private:
 
-	util::REMOVE_THREAD_REASON remove_thread_reason = util::REASON_NO_ERROR;
+	REMOVE_THREAD_REASON remove_thread_reason = REASON_NO_ERROR;
 
 	QFuture<void> autowalk_future_;
 	std::atomic_bool autowalk_future_cancel_flag_ = false;
@@ -111,8 +113,8 @@ private:
 	bool flagMuteEnable_ = false;
 	bool flagAutoJoinEnable_ = false;
 	bool flagLockTimeEnable_ = false;
-	qint64 flagLockTimeValue_ = 0;
-	qint64 flagSetBoostValue_ = 0;
+	__int64 flagLockTimeValue_ = 0;
+	__int64 flagSetBoostValue_ = 0;
 	bool flagAutoFreeMemoryEnable_ = false;
 	bool flagFastWalkEnable_ = false;
 	bool flagPassWallEnable_ = false;
@@ -157,19 +159,19 @@ public:
 		return instance;
 	}
 
-	void close(qint64 index);
+	void close(__int64 index);
 
 	inline void close()
 	{
 		QMutexLocker locker(&mutex_);
-		QList<qint64> keys = threads_.keys();
+		QList<__int64> keys = threads_.keys();
 		for (auto& key : keys)
 		{
 			close(key);
 		}
 	}
 
-	inline void wait(qint64 index)
+	inline void wait(__int64 index)
 	{
 		QMutexLocker locker(&mutex_);
 		if (threads_.contains(index))
@@ -185,9 +187,9 @@ private:
 	ThreadManager() = default;
 
 public:
-	bool createThread(qint64 index, MainObject** ppObj, QObject* parent);
+	bool createThread(__int64 index, MainObject** ppObj, QObject* parent);
 
-	Q_REQUIRED_RESULT inline qint64 size() const
+	[[nodiscard]] inline __int64 size() const
 	{
 		QMutexLocker locker(&mutex_);
 		return threads_.size();
@@ -195,8 +197,8 @@ public:
 
 private:
 	mutable QMutex mutex_;
-	QHash<qint64, QThread*> threads_;
-	QHash<qint64, MainObject*> objects_;
+	QHash<__int64, QThread*> threads_;
+	QHash<__int64, MainObject*> objects_;
 
 };
 
@@ -224,7 +226,7 @@ public:
 	}
 
 public:
-	qint64 allocateUniqueId(qint64 id)
+	__int64 allocateUniqueId(__int64 id)
 	{
 		if (id < 0 || id >= SASH_MAX_THREAD)
 			id = -1;
@@ -232,7 +234,7 @@ public:
 		QSystemSemaphore semaphore("UniqueIdManagerSystemSemaphore", 1, QSystemSemaphore::Open);
 		semaphore.acquire();
 
-		qint64 allocatedId = -1;
+		__int64 allocatedId = -1;
 
 		// 嘗試連接到共享內存，如果不存在則創建
 		sharedMemory_.setKey("UniqueIdManagerSharedMemory");
@@ -243,7 +245,7 @@ public:
 			reset();
 		}
 
-		QSet<qint64> allocatedIds;
+		QSet<__int64> allocatedIds;
 
 		do
 		{
@@ -264,7 +266,7 @@ public:
 			}
 
 			// 分配唯一的ID
-			for (qint64 i = 0; i < SASH_MAX_THREAD; ++i)
+			for (__int64 i = 0; i < SASH_MAX_THREAD; ++i)
 			{
 				if (!allocatedIds.contains(i))
 				{
@@ -278,6 +280,41 @@ public:
 
 		semaphore.release();
 		return  allocatedId;
+	}
+
+	void deallocateUniqueId(__int64 id)
+	{
+		if (id < 0 || id >= SASH_MAX_THREAD)
+			return;
+
+		QSystemSemaphore semaphore("UniqueIdManagerSystemSemaphore", 1, QSystemSemaphore::Open);
+		semaphore.acquire();
+
+		// 嘗試連接到共享內存，如果不存在則創建
+		sharedMemory_.setKey("UniqueIdManagerSharedMemory");
+		if (!sharedMemory_.isAttached() && !sharedMemory_.attach())
+		{
+			qDebug() << "sharedMemory not exist, create new one now.";
+			sharedMemory_.create(totalBytes_);
+			reset();
+		}
+
+		QSet<__int64> allocatedIds;
+
+		do
+		{
+			bool bret = readSharedMemory(&allocatedIds);
+			if (!bret)
+				break;
+
+			if (allocatedIds.contains(id))
+			{
+				allocatedIds.remove(id);
+				updateSharedMemory(allocatedIds);
+			}
+		} while (false);
+
+		semaphore.release();
 	}
 
 private:
@@ -297,7 +334,7 @@ private:
 		_snprintf_s(reinterpret_cast<char*>(sharedMemory_.data()), sharedMemory_.size(), _TRUNCATE, "%s", from);
 	}
 
-	bool readSharedMemory(QSet<qint64>* pAllocatedIds)
+	bool readSharedMemory(QSet<__int64>* pAllocatedIds)
 	{
 		do
 		{
@@ -323,7 +360,7 @@ private:
 				break;
 			}
 
-			qint64 indexEof = data.indexOf('\0');
+			__int64 indexEof = data.indexOf('\0');
 			if (indexEof != -1)
 			{
 				data = data.left(indexEof);
@@ -365,12 +402,12 @@ private:
 		return false;
 	}
 
-	void updateSharedMemory(const QSet<qint64>& allocatedIds)
+	void updateSharedMemory(const QSet<__int64>& allocatedIds)
 	{
 		// 將分配的ID保存為JSON字符串，並寫入共享內存
 		QJsonObject obj;
 		QJsonArray idArray;
-		for (qint64 id : allocatedIds)
+		for (__int64 id : allocatedIds)
 		{
 			idArray.append(static_cast<int>(id));
 		}
@@ -396,6 +433,6 @@ private:
 private:
 
 	const QString jsonKey_ = "ids";
-	const qint64 totalBytes_ = 655360;
+	const __int64 totalBytes_ = 655360;
 	inline static QSharedMemory sharedMemory_;
 };

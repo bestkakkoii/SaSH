@@ -1,8 +1,8 @@
-﻿#include "stdafx.h"
-#include <windows.h>
+﻿#include <windows.h>
 #include <stdio.h>
 #include <tchar.h>
 #include "zip.h"
+
 
 // THIS FILE is almost entirely based upon code by info-zip.
 // It has been modified by Lucian Wischik. The modifications
@@ -2269,17 +2269,7 @@ ZRESULT GetFileInfo(HANDLE hf, ulg* attr, long* size, iztimes* times, ulg* times
 class TZip
 {
 public:
-	TZip(const char* pwd) : hfout(0), mustclosehfout(false),
-		hmapout(0), zfis(0), obuf(0), hfin(0), writ(0), oerr(false),
-		hasputcen(false), ooffset(0), encwriting(false), encbuf(0),
-		password(0), state(0)
-	{
-		if (pwd != 0 && *pwd != 0)
-		{
-			password = new char[strlen(pwd) + 1];
-			_snprintf_s(password, strlen(pwd) + 1, _TRUNCATE, "%s", pwd);
-		}
-	}
+	TZip(const char* pwd) : hfout(0), mustclosehfout(false), hmapout(0), zfis(0), obuf(0), hfin(0), writ(0), oerr(false), hasputcen(false), ooffset(0), encwriting(false), encbuf(0), password(0), state(0) { if (pwd != 0 && *pwd != 0) { password = new char[strlen(pwd) + 1]; strcpy(password, pwd); } }
 	~TZip() { if (state != 0) delete state; state = 0; if (encbuf != 0) delete[] encbuf; encbuf = 0; if (password != 0) delete[] password; password = 0; }
 
 	// These variables say about the file we're writing into
@@ -2919,3 +2909,4 @@ bool IsZipHandleZ(HZIP hz)
 	TZipHandleData* han = (TZipHandleData*)hz;
 	return (han->flag == 2);
 }
+

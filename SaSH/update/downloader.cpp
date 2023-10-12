@@ -15,12 +15,21 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 */
-
+import Compile;
+import Utility;
+import Mem;
+import Config;
+import Scoped;
+import Global;
+import String;
 #include "stdafx.h"
 #include "downloader.h"
-#include "util.h"
 
+#ifdef _WIN64
+constexpr const char* URL = "https://www.lovesa.cc/SaSH/update/sashx64.zip";
+#else
 constexpr const char* URL = "https://www.lovesa.cc/SaSH/update/sash.zip";
+#endif
 constexpr const char* doc_URL = "https://gitee.com/Bestkakkoii/sash/wikis/pages/export?type=markdown&doc_id=4046472";
 
 #ifdef _WIN64
@@ -33,16 +42,14 @@ constexpr const char* kBackupfileName1 = "sash_backup_%1.zip";
 constexpr const char* kBackupfileName2 = "sash_backup_%1_%2.zip";
 #endif
 static const QStringList preBackupFileNames = { util::applicationName(), QString(SASH_INJECT_DLLNAME) + ".dll", "settings", "script" };
-constexpr qint64 SHADOW_WIDTH = 10;
-constexpr qint64 MAX_BAR_HEIGHT = 20;
-constexpr qint64 MAX_BAR_SEP_LEN = 10;
-constexpr qint64 MAX_GIF_MOVE_WIDTH = 920;
-constexpr qint64 PROGRESS_BAR_BEGIN_Y = 85;
+constexpr __int64 SHADOW_WIDTH = 10;
+constexpr __int64 MAX_BAR_HEIGHT = 20;
+constexpr __int64 MAX_BAR_SEP_LEN = 10;
+constexpr __int64 MAX_GIF_MOVE_WIDTH = 920;
+constexpr __int64 PROGRESS_BAR_BEGIN_Y = 85;
 
 QString g_etag;
-constexpr qint64 UPDATE_TIME_MIN = 5 * 60;
-
-std::unique_ptr<QNetworkAccessManager> Downloader::networkManager_;
+constexpr __int64 UPDATE_TIME_MIN = 5 * 60;
 
 void setHeader(QNetworkRequest* prequest)
 {
@@ -51,8 +58,13 @@ void setHeader(QNetworkRequest* prequest)
 
 	QSslConfiguration sslConf = prequest->sslConfiguration();
 	sslConf.setPeerVerifyMode(QSslSocket::VerifyNone);
-	sslConf.setProtocol(QSsl::AnyProtocol);
+	sslConf.setProtocol(QSsl::TlsV1_2OrLater);
 	prequest->setSslConfiguration(sslConf);
+
+	prequest->setAttribute(QNetworkRequest::Http2AllowedAttribute, true);
+	prequest->setAttribute(QNetworkRequest::Http2CleartextAllowedAttribute, true);
+	//prequest->setAttribute(QNetworkRequest::Http2DirectAttribute, true);
+	prequest->setAttribute(QNetworkRequest::Http2WasUsedAttribute, true);
 
 	prequest->setRawHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Safari/537.36 Edg/107.0.1418.35");
 	//prequest->setRawHeader("authority", "www.lovesa.cc");
@@ -309,7 +321,7 @@ bool Downloader::uncompress(const QString& source, const QString& destination)
 
 QString Sha3_512(const QString& fileNamePath)
 {
-	util::ScopedFile theFile(fileNamePath);
+	ScopedFile theFile(fileNamePath);
 	if (!theFile.exists())
 		return "\0";
 
@@ -324,7 +336,7 @@ QString Sha3_512(const QString& fileNamePath)
 bool Downloader::checkUpdate(QString* current, QString* ptext, QString* pformated)
 {
 	{
-		util::Config config;
+		Config config;
 		g_etag = config.read<QString>("System", "Update", "ETag");
 	}
 
@@ -398,7 +410,7 @@ bool Downloader::checkUpdate(QString* current, QString* ptext, QString* pformate
 			//	//lastModifiedStr.replace("GMT", "");
 			//}
 
-			//const QHash<QString, qint64> hash = {
+			//const QHash<QString, __int64> hash = {
 			//	{ "Jan", 1 },
 			//	{ "Feb", 2 },
 			//	{ "Mar", 3 },
@@ -424,7 +436,7 @@ bool Downloader::checkUpdate(QString* current, QString* ptext, QString* pformate
 			//{
 			//	if (lastModifiedStr.contains(key))
 			//	{
-			//		qint64 index = hash.value(key);
+			//		__int64 index = hash.value(key);
 			//		if (index < 100)
 			//			lastModifiedStr.replace(key, QString::number(hash.value(key)));
 			//		else
@@ -476,8 +488,8 @@ bool Downloader::checkUpdate(QString* current, QString* ptext, QString* pformate
 
 		if (!bret)
 		{
-			qint64 timeDiffInSeconds = exeModified.secsTo(zipModified);
-			QString szTimeDiff = util::formatSeconds(std::abs(timeDiffInSeconds));
+			__int64 timeDiffInSeconds = exeModified.secsTo(zipModified);
+			QString szTimeDiff = formatSeconds(std::abs(timeDiffInSeconds));
 			if (pformated != nullptr)
 			{
 				*pformated = szTimeDiff;
@@ -555,7 +567,7 @@ Downloader::Downloader(QWidget* parent)
 	connect(this, &Downloader::labelTextChanged, this, &Downloader::onLabelTextChanged, Qt::QueuedConnection);
 	connect(this, &Downloader::progressReset, this, &Downloader::onProgressBarReset, Qt::QueuedConnection);
 
-	qint64 n = PROGRESS_BAR_BEGIN_Y;
+	__int64 n = PROGRESS_BAR_BEGIN_Y;
 	progressBar = createProgressBar(n);
 	//n += MAX_BAR_HEIGHT + MAX_BAR_SEP_LEN;
 
@@ -571,11 +583,11 @@ Downloader::Downloader(QWidget* parent)
 
 	if (networkManager_ == nullptr)
 	{
-		networkManager_.reset(new QNetworkAccessManager(this));
+		networkManager_.reset(new QNetworkAccessManager);
 
 		if (networkManager_ != nullptr)
 		{
-			networkManager_->setTransferTimeout(15000);
+			networkManager_->setTransferTimeout(60000);
 			networkManager_->setAutoDeleteReplies(true);
 		}
 	}
@@ -600,7 +612,7 @@ void Downloader::showEvent(QShowEvent* e)
 	QWidget::showEvent(e);
 }
 
-QProgressBar* Downloader::createProgressBar(qint64 startY)
+QProgressBar* Downloader::createProgressBar(__int64 startY)
 {
 	QProgressBar* pProgressBar = (new QProgressBar(ui.widget));
 	if (pProgressBar == nullptr)
@@ -642,7 +654,7 @@ void Downloader::onLabelTextChanged(const QString& text)
 	QApplication::processEvents();
 }
 
-void Downloader::onProgressBarReset(qint64 value)
+void Downloader::onProgressBarReset(__int64 value)
 {
 	currentProgress_ = static_cast<qreal>(value);
 	if (progressBar != nullptr)
@@ -692,7 +704,7 @@ bool Downloader::download(const QString& url, QByteArray* pbyteArray)
 	QTimer timer;
 	connect(&timer, &QTimer::timeout, &loop, &QEventLoop::quit);
 	connect(reply_, &QNetworkReply::finished, &loop, &QEventLoop::quit);
-	timer.singleShot(30000, &loop, &QEventLoop::quit);
+	timer.singleShot(15000, &loop, &QEventLoop::quit);
 	loop.exec();
 
 	if (nullptr == reply_)
@@ -706,6 +718,8 @@ bool Downloader::download(const QString& url, QByteArray* pbyteArray)
 	if (reply_->error() != QNetworkReply::NoError)
 	{
 		qDebug() << "Failed to download file: " << reply_->errorString();
+		std::wstring wstr = reply_->errorString().toStdWString();
+		MessageBoxW(nullptr, wstr.c_str(), L"Error", MB_OK);
 		emit labelTextChanged("Failed to download file: " + reply_->errorString());
 	}
 	else
@@ -735,7 +749,7 @@ bool Downloader::downloadFile(const QString& url, const QString& filename)
 	}
 
 	bool bret = false;
-	util::ScopedFile file(filename);
+	ScopedFile file(filename);
 	if (file.openWriteNew())
 	{
 		file.write(data);
@@ -784,12 +798,12 @@ void Downloader::onErrorOccurred(QNetworkReply::NetworkError code)
 	qDebug() << "Network error:" << errorString;
 	emit labelTextChanged("Network error:" + errorString);
 
-	qint64 per = progressBar->value() / 10;
-	std::ignore = QtConcurrent::run([this, per]()
+	__int64 per = progressBar->value() / 10;
+	std::ignore = QtConcurrent::run([this, per, errorString]()
 		{
-			for (qint64 i = 10; i >= 0; --i)
+			for (__int64 i = 10; i >= 0; --i)
 			{
-				emit labelTextChanged(QString("DOWNLOAD FAIL! %1").arg(i));
+				emit labelTextChanged(QString("DOWNLOAD FAIL!:%1 - %2").arg(errorString).arg(i));
 				emit progressReset(per * i);
 				QThread::msleep(1000);
 			}
@@ -808,7 +822,7 @@ QString Downloader::oneShotDownload(const QString& url)
 		return "";
 	}
 
-	QString result = util::toQString(data);
+	QString result = toQString(data);
 
 	return result;
 }
@@ -848,7 +862,7 @@ void Downloader::start()
 	connect(reply_, &QNetworkReply::errorOccurred, this, &Downloader::onErrorOccurred);
 }
 
-void Downloader::onDownloadProgress(qint64 bytesReceived, qint64 bytesTotal)
+void Downloader::onDownloadProgress(__int64 bytesReceived, __int64 bytesTotal)
 {
 	if (bytesTotal <= 0)
 		return;
@@ -886,7 +900,7 @@ void Downloader::overwriteCurrentExecutable(QByteArray ba)
 	ALREADY_RUN = true;
 
 	{
-		util::ScopedFile file(rcPath_ + szDownloadedFileName_);
+		ScopedFile file(rcPath_ + szDownloadedFileName_);
 		if (file.openWriteNew())
 		{
 			file.write(ba);
@@ -899,11 +913,11 @@ void Downloader::overwriteCurrentExecutable(QByteArray ba)
 	emit progressReset(0);
 	QApplication::processEvents();
 
-	{
-		emit labelTextChanged("DOWNLOAD DOCUMENT...");
-		QString mdFullPath = QString("%1/lib/doc").arg(util::applicationDirPath());
-		downloadAndUncompress(doc_URL, mdFullPath);
-	}
+	//{
+	//	emit labelTextChanged("DOWNLOAD DOCUMENT...");
+	//	QString mdFullPath = QString("%1/lib/doc").arg(util::applicationDirPath());
+	//	downloadAndUncompress(doc_URL, mdFullPath);
+	//}
 
 	emit progressReset(0);
 	QApplication::processEvents();
@@ -953,7 +967,7 @@ void Downloader::overwriteCurrentExecutable(QByteArray ba)
 	QString szBackup7zFileName = QString(kBackupfileName1).arg(buildDateTime());
 	QString szBackup7zFilePath = QString("%1%2").arg(rcPath_).arg(szBackup7zFileName);
 	QString szBackup7zNewFilePath = QString("%1%2").arg(szCurrentDirectory_).arg(szBackup7zFileName);
-	qint64 n = 0;
+	__int64 n = 0;
 	while (QFile::exists(szBackup7zNewFilePath)) //_2 _3 _4..increase until name is not duplicate
 	{
 		szBackup7zNewFilePath = QString("%1%2").arg(szCurrentDirectory_).arg(QString(kBackupfileName2).arg(buildDateTime()).arg(++n));
@@ -981,10 +995,10 @@ void Downloader::overwriteCurrentExecutable(QByteArray ba)
 
 	//close all .exe that has sadll.dll as module
 	{
-		QVector<qint64> processes;
+		QVector<__int64> processes;
 		if (mem::enumProcess(&processes, QString(SASH_INJECT_DLLNAME) + ".dll"))
 		{
-			for (qint64 pid : processes)
+			for (__int64 pid : processes)
 			{
 				ScopedHandle hProcess(pid);
 				if (hProcess.isValid())
@@ -1007,7 +1021,7 @@ void Downloader::overwriteCurrentExecutable(QByteArray ba)
 
 	{
 		// write and async run bat file
-		constexpr qint64 delay = 5;
+		constexpr __int64 delay = 5;
 		// rcpath/date.bat
 		QString bat;
 		bat += "@echo off\r\n";
@@ -1028,7 +1042,7 @@ void Downloader::overwriteCurrentExecutable(QByteArray ba)
 	}
 
 	{
-		util::Config config;
+		Config config;
 		config.write("System", "Update", "ETag", g_etag);
 	}
 
