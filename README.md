@@ -1,4 +1,4 @@
-<div align="center">
+﻿<div align="center">
 
 <img alt="LOGO" src="https://www.lovesa.cc/static/image/common/stoneii.png" width="256" height="256" />
 
