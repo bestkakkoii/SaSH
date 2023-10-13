@@ -114,11 +114,11 @@
     <RunCodeAnalysis>false</RunCodeAnalysis>
     <EnableClangTidyCodeAnalysis>false</EnableClangTidyCodeAnalysis>
     <IntDir>$(SolutionDir)build\$(Configuration)\</IntDir>
-    <TargetName>$(ProjectName)_x64</TargetName>
+    <TargetName>$(ProjectName)x64</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <IntDir>$(SolutionDir)build\$(Configuration)\</IntDir>
-    <TargetName>$(ProjectName)_x64d</TargetName>
+    <TargetName>$(ProjectName)x64d</TargetName>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -164,14 +164,33 @@
       <BuildAction>lupdate</BuildAction>
     </QtTranslation>
     <PostBuildEvent>
-      <Command>$(SolutionDir)ReleaseTool\uploadex.bat</Command>
+      <Command>cd $(SolutionDir)$(Platform)\$(Configuration)\lib
+copy sadll.dll $(SolutionDir)ReleaseTool\$(ProjectName)\lib\sadll.dll
+
+cd $(SolutionDir)$(Platform)\$(Configuration)
+copy $(ProjectName).exe $(SolutionDir)ReleaseTool\$(ProjectName)\$(ProjectName).exe
+
+cd  $(SolutionDir)$(ProjectName)\translations
+copy qt_zh_TW.qm $(SolutionDir)ReleaseTool\$(ProjectName)\lib\translations\qt_zh_TW.qm
+copy qt_zh_CN.qm $(SolutionDir)ReleaseTool\$(ProjectName)\lib\translations\qt_zh_CN.qm
+
+copy qt_zh_TW.qm $(SolutionDir)$(ProjectName)\$(Platform)\$(Configuration)\lib\translations\qt_zh_TW.qm
+copy qt_zh_CN.qm $(SolutionDir)$(ProjectName)\$(Platform)\$(Configuration)\lib\translations\qt_zh_CN.qm
+
+copy qt_zh_TW.qm $(SolutionDir)$(ProjectName)\$(Platform)\Debug\lib\translations\qt_zh_TW.qm
+copy qt_zh_CN.qm $(SolutionDir)$(ProjectName)\$(Platform)\Debug\lib\translations\qt_zh_CN.qm
+
+cd $(SolutionDir)ReleaseTool
+del $(ProjectName).7z
+
+$(SolutionDir)ReleaseTool\UploadToServerx.bat</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
       <AdditionalIncludeDirectories>$(SolutionDir)$(ProjectName);$(SolutionDir)$(ProjectName)\include;$(SolutionDir)$(ProjectName)\include\lua;$(SolutionDir)$(ProjectName)\model;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <WarningLevel>Level3</WarningLevel>
-      <LanguageStandard>stdcpp17</LanguageStandard>
+      <LanguageStandard>stdcpplatest</LanguageStandard>
       <ExceptionHandling>Async</ExceptionHandling>
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
       <IntrinsicFunctions>true</IntrinsicFunctions>
@@ -197,8 +216,21 @@
       <BuildAction>false</BuildAction>
     </QtTranslation>
     <PostBuildEvent>
-      <Command>
-      </Command>
+      <Command>cd  "$(SolutionDir)$(ProjectName)\translations"
+copy "qt_zh_TW.qm "$(OutputPath)lib\translations\qt_zh_TW.qm"
+copy "qt_zh_CN.qm "$(OutputPath)lib\translations\qt_zh_CN.qm"
+copy "qt_zh_TW.qm" "$(SolutionDir)$(Platform)\Debug\lib\translations\qt_zh_TW.qm"
+copy "qt_zh_CN.qm" "$(SolutionDir)$(Platform)\Debug\lib\translations\qt_zh_CN.qm"
+
+copy "qt_zh_TW.qm "$(SolutionDir)ReleaseTool\$(ProjectName)\lib\translations\qt_zh_TW.qm"
+copy "qt_zh_CN.qm "$(SolutionDir)ReleaseTool\$(ProjectName)\lib\translations\qt_zh_CN.qm"
+
+cd "$(OutputPath)lib"
+copy "sadll.dll" "$(SolutionDir)ReleaseTool\$(ProjectName)\lib\sadll.dll"
+cd "$(OutputPath)"
+copy "$(ProjectName)$(Platform).exe" "$(SolutionDir)ReleaseTool\$(ProjectName)\$(ProjectName)$(Platform).exe"
+
+$(SolutionDir)ReleaseTool\UploadToServerx64.bat</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -252,7 +284,7 @@
     <ClCompile>
       <AdditionalIncludeDirectories>$(SolutionDir)$(ProjectName);$(SolutionDir)$(ProjectName)\include;$(SolutionDir)$(ProjectName)\include\lua;$(SolutionDir)$(ProjectName)\model;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <WarningLevel>Level3</WarningLevel>
-      <LanguageStandard>stdcpp17</LanguageStandard>
+      <LanguageStandard>stdcpplatest</LanguageStandard>
       <AssemblerOutput>All</AssemblerOutput>
       <ExceptionHandling>Async</ExceptionHandling>
       <AdditionalOptions>/bigobj %(AdditionalOptions)</AdditionalOptions>

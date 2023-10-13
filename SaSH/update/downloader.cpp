@@ -20,12 +20,19 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "downloader.h"
 #include "util.h"
 
-constexpr const char* SASH_UPDATE_URL = "https://www.lovesa.cc/SaSH/update/sashx64.zip";
 constexpr const char* SASH_WIKI_URL = "https://gitee.com/Bestkakkoii/sash/wikis/pages/export?type=markdown&doc_id=4046472";
 constexpr const char* SASH_MAPDATA_URL = "https://gitee.com/Bestkakkoii/sash/raw/master/mapdata.lua";
-constexpr const char* kBackupfileName1 = "sashx64_backup_%1.zip";
-constexpr const char* kBackupfileName2 = "sashx64_backup_%1_%2.zip";
-constexpr const char* kBackupExecuteFileTmp = "SaSHx64.tmp";
+#ifdef _WIN64
+constexpr const char* SASH_UPDATE_URL = "https://www.lovesa.cc/SaSH/update/SaSHx64.zip";
+constexpr const char* kBackupfileName1 = "sash_x64_backup_%1.zip";
+constexpr const char* kBackupfileName2 = "sash_x64_backup_%1_%2.zip";
+constexpr const char* kBackupExecuteFileTmp = "SaSH_x64.tmp";
+#else
+constexpr const char* SASH_UPDATE_URL = "https://www.lovesa.cc/SaSH/update/SaSHx86.zip";
+constexpr const char* kBackupfileName1 = "sash_x86_backup_%1.zip";
+constexpr const char* kBackupfileName2 = "sash_x86_backup_%1_%2.zip";
+constexpr const char* kBackupExecuteFileTmp = "SaSH_x86.tmp";
+#endif
 static const QStringList preBackupFileNames = { util::applicationName(), QString(SASH_INJECT_DLLNAME) + ".dll", "settings", "script" };
 
 QString g_etag;

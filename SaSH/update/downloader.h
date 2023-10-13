@@ -18,7 +18,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 #pragma once
 #include <QObject>
-#include <QCoreApplication>
+#include <QApplication>
 #include <QDir>
 #include <QString>
 #include <QProgressDialog>
@@ -45,6 +45,11 @@ public:
 		setAttribute(Qt::WA_DeleteOnClose);
 
 		setCancelButtonText(tr("Cancel"));
+
+		QRect screenRect = QGuiApplication::primaryScreen()->geometry();
+		int x = (screenRect.width() - width()) / 2;
+		int y = (screenRect.height() - height()) / 2;
+		move(x, y);
 	}
 
 	~ProgressDialog()
