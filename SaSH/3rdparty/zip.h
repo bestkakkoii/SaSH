@@ -1,4 +1,4 @@
-#ifndef _zip_H
+﻿#ifndef _zip_H
 #define _zip_H
 
 
@@ -19,9 +19,9 @@ typedef DWORD ZRESULT;
 
 
 
-HZIP CreateZip(const TCHAR *fn, const char *password);
-HZIP CreateZip(void *buf,unsigned int len, const char *password);
-HZIP CreateZipHandle(HANDLE h, const char *password);
+HZIP CreateZip(const TCHAR* fn, const char* password);
+HZIP CreateZip(void* buf, unsigned int len, const char* password);
+HZIP CreateZipHandle(HANDLE h, const char* password);
 // CreateZip - call this to start the creation of a zip file.
 // As the zip is being created, it will be stored somewhere:
 // to a pipe:              CreateZipHandle(hpipe_write);
@@ -53,11 +53,11 @@ HZIP CreateZipHandle(HANDLE h, const char *password);
 // can close yours anytime.
 
 
-ZRESULT ZipAdd(HZIP hz,const TCHAR *dstzn, const TCHAR *fn);
-ZRESULT ZipAdd(HZIP hz,const TCHAR *dstzn, void *src,unsigned int len);
-ZRESULT ZipAddHandle(HZIP hz,const TCHAR *dstzn, HANDLE h);
-ZRESULT ZipAddHandle(HZIP hz,const TCHAR *dstzn, HANDLE h, unsigned int len);
-ZRESULT ZipAddFolder(HZIP hz,const TCHAR *dstzn);
+ZRESULT ZipAdd(HZIP hz, const TCHAR* dstzn, const TCHAR* fn);
+ZRESULT ZipAdd(HZIP hz, const TCHAR* dstzn, void* src, unsigned int len);
+ZRESULT ZipAddHandle(HZIP hz, const TCHAR* dstzn, HANDLE h);
+ZRESULT ZipAddHandle(HZIP hz, const TCHAR* dstzn, HANDLE h, unsigned int len);
+ZRESULT ZipAddFolder(HZIP hz, const TCHAR* dstzn);
 // ZipAdd - call this for each file to be added to the zip.
 // dstzn is the name that the file will be stored as in the zip file.
 // The file to be added to the zip can come
@@ -72,7 +72,7 @@ ZRESULT ZipAddFolder(HZIP hz,const TCHAR *dstzn);
 // compressed item itself, which in turn makes it easier when unzipping the
 // zipfile from a pipe.
 
-ZRESULT ZipGetMemory(HZIP hz, void **buf, unsigned long *len);
+ZRESULT ZipGetMemory(HZIP hz, void** buf, unsigned long* len);
 // ZipGetMemory - If the zip was created in memory, via ZipCreate(0,len),
 // then this function will return information about that memory block.
 // buf will receive a pointer to its start, and len its length.
@@ -81,7 +81,7 @@ ZRESULT ZipGetMemory(HZIP hz, void **buf, unsigned long *len);
 ZRESULT CloseZip(HZIP hz);
 // CloseZip - the zip handle must be closed with this function.
 
-unsigned int FormatZipMessage(ZRESULT code, TCHAR *buf,unsigned int len);
+unsigned int FormatZipMessage(ZRESULT code, TCHAR* buf, unsigned int len);
 // FormatZipMessage - given an error code, formats it as a string.
 // It returns the length of the error message. If buf/len points
 // to a real buffer, then it also writes as much as possible into there.
@@ -188,7 +188,7 @@ unsigned int FormatZipMessage(ZRESULT code, TCHAR *buf,unsigned int len);
 // one or the other of them based on a dynamic choice. If the header file
 // for only one is present, then we will bind to that particular one.
 ZRESULT CloseZipZ(HZIP hz);
-unsigned int FormatZipMessageZ(ZRESULT code, char *buf,unsigned int len);
+unsigned int FormatZipMessageZ(ZRESULT code, char* buf, unsigned int len);
 bool IsZipHandleZ(HZIP hz);
 #ifdef _unzip_H
 #undef CloseZip

@@ -1,7 +1,7 @@
-﻿import Utility;
-
-#include "stdafx.h"
+﻿#include "stdafx.h"
 #include "settingfiledialog.h"
+
+#include "util.h"
 
 settingfiledialog::settingfiledialog(const QString& defaultName, QWidget* parent)
 	: QDialog(parent)

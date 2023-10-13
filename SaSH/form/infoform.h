@@ -35,9 +35,9 @@ class InfoForm : public QWidget, public Indexer
 	Q_OBJECT
 
 public:
-	InfoForm(__int64 index, __int64 defaultPage, QWidget* parent);
+	InfoForm(qint64 index, qint64 defaultPage, QWidget* parent);
 	virtual ~InfoForm();
-	void setCurrentPage(__int64 page);
+	void setCurrentPage(qint64 page);
 
 signals:
 	void resetControlTextLanguage();

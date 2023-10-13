@@ -16,13 +16,12 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 */
 
-import Utility;
-import Config;
 #include "stdafx.h"
 #include "selecttargetform.h"
+#include <util.h>
 #include <injector.h>
 
-SelectTargetForm::SelectTargetForm(__int64 index, __int64 type, QString* dst, QWidget* parent)
+SelectTargetForm::SelectTargetForm(qint64 index, qint64 type, QString* dst, QWidget* parent)
 	: QDialog(parent)
 	, Indexer(index)
 	, type_(type)
@@ -43,38 +42,38 @@ SelectTargetForm::SelectTargetForm(__int64 index, __int64 type, QString* dst, QW
 	for (auto& checkBox : checkBoxList)
 	{
 		if (checkBox)
-			connect(checkBox, &QCheckBox::stateChanged, this, &SelectTargetForm::onCheckBoxStateChanged, Qt::QueuedConnection);
+			connect(checkBox, &QCheckBox::stateChanged, this, &SelectTargetForm::onCheckBoxStateChanged, Qt::UniqueConnection);
 	}
 
 	Injector& injector = Injector::getInstance(index);
-	selectflag_ = static_cast<quint64>(injector.getValueHash(static_cast<UserSetting>(type)));
+	selectflag_ = static_cast<quint64>(injector.getValueHash(static_cast<util::UserSetting>(type)));
 	checkControls();
 
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(index);
-	connect(&signalDispatcher, &SignalDispatcher::updateTeamInfo, this, &SelectTargetForm::onUpdateTeamInfo, Qt::QueuedConnection);
+	connect(&signalDispatcher, &SignalDispatcher::updateTeamInfo, this, &SelectTargetForm::onUpdateTeamInfo, Qt::UniqueConnection);
 
-	FormSettingManager formSettingManager(this);
+	util::FormSettingManager formSettingManager(this);
 	formSettingManager.loadSettings();
 
-	const QHash<__int64, QString> title_hash = {
+	const QHash<qint64, QString> title_hash = {
 		//afk->battle button
-		{ kBattleCharRoundActionTargetValue, tr("player specific round action") },
-		{ kBattleCharCrossActionTargetValue, tr("Char alternating round action") },
-		{ kBattleCharNormalActionTargetValue, tr("player normal round action") },
+		{ util::kBattleCharRoundActionTargetValue, tr("player specific round action") },
+		{ util::kBattleCharCrossActionTargetValue, tr("Char alternating round action") },
+		{ util::kBattleCharNormalActionTargetValue, tr("player normal round action") },
 
-		{ kBattlePetRoundActionTargetValue, tr("pet specific round action") },
-		{ kBattlePetCrossActionTargetValue, tr("pet alternating round action") },
-		{ kBattlePetNormalActionTargetValue, tr("pet normal round action") },
+		{ util::kBattlePetRoundActionTargetValue, tr("pet specific round action") },
+		{ util::kBattlePetCrossActionTargetValue, tr("pet alternating round action") },
+		{ util::kBattlePetNormalActionTargetValue, tr("pet normal round action") },
 
 		//afk->heal button
-		{ kBattleMagicHealTargetValue, tr("magic healing target") },
-		{ kBattleItemHealTargetValue, tr("item healing target") },
-		{ kBattleMagicReviveTargetValue, tr("magic revival target") },
-		{ kBattleItemReviveTargetValue, tr("item revival target") },
+		{ util::kBattleMagicHealTargetValue, tr("magic healing target") },
+		{ util::kBattleItemHealTargetValue, tr("item healing target") },
+		{ util::kBattleMagicReviveTargetValue, tr("magic revival target") },
+		{ util::kBattleItemReviveTargetValue, tr("item revival target") },
 
-		{ kBattlePetHealTargetValue, tr("pet healing target") },
-		{ kBattlePetPurgTargetValue, tr("pet purging target") },
-		{ kBattleCharPurgTargetValue, tr("char purging target") },
+		{ util::kBattlePetHealTargetValue, tr("pet healing target") },
+		{ util::kBattlePetPurgTargetValue, tr("pet purging target") },
+		{ util::kBattleCharPurgTargetValue, tr("char purging target") },
 	};
 
 	setWindowTitle(title_hash.value(type_, tr("unknown")));
@@ -82,7 +81,7 @@ SelectTargetForm::SelectTargetForm(__int64 index, __int64 type, QString* dst, QW
 
 SelectTargetForm::~SelectTargetForm()
 {
-	FormSettingManager formSettingManager(this);
+	util::FormSettingManager formSettingManager(this);
 	formSettingManager.saveSettings();
 }
 
@@ -97,36 +96,36 @@ void SelectTargetForm::onAccept()
 	if (dst_)
 	{
 		*dst_ = generateShortName(selectflag_);
-		__int64 currentIndex = getIndex();
+		qint64 currentIndex = getIndex();
 		Injector& injector = Injector::getInstance(currentIndex);
-		injector.setValueHash(static_cast<UserSetting>(type_), selectflag_);
+		injector.setValueHash(static_cast<util::UserSetting>(type_), selectflag_);
 	}
 	accept();
 }
 
 void SelectTargetForm::checkControls()
 {
-	ui.checkBox_self->setChecked(selectflag_ & kSelectSelf);
-	ui.checkBox_pet->setChecked(selectflag_ & kSelectPet);
-	ui.checkBox_any->setChecked(selectflag_ & kSelectAllieAny);
-	ui.checkBox_all->setChecked(selectflag_ & kSelectAllieAll);
-	ui.checkBox_enemy->setChecked(selectflag_ & kSelectEnemyAny);
-	ui.checkBox_enemy_all->setChecked(selectflag_ & kSelectEnemyAll);
-	ui.checkBox_enemy_front->setChecked(selectflag_ & kSelectEnemyFront);
-	ui.checkBox_enemy_back->setChecked(selectflag_ & kSelectEnemyBack);
-	ui.checkBox_leader->setChecked(selectflag_ & kSelectLeader);
-	ui.checkBox_leader_pet->setChecked(selectflag_ & kSelectLeaderPet);
-	ui.checkBox_teammate1->setChecked(selectflag_ & kSelectTeammate1);
-	ui.checkBox_teammate1_pet->setChecked(selectflag_ & kSelectTeammate1Pet);
-	ui.checkBox_teammate2->setChecked(selectflag_ & kSelectTeammate2);
-	ui.checkBox_teammate2_pet->setChecked(selectflag_ & kSelectTeammate2Pet);
-	ui.checkBox_teammate3->setChecked(selectflag_ & kSelectTeammate3);
-	ui.checkBox_teammate3_pet->setChecked(selectflag_ & kSelectTeammate3Pet);
-	ui.checkBox_teammate4->setChecked(selectflag_ & kSelectTeammate4);
-	ui.checkBox_teammate4_pet->setChecked(selectflag_ & kSelectTeammate4Pet);
+	ui.checkBox_self->setChecked(selectflag_ & util::kSelectSelf);
+	ui.checkBox_pet->setChecked(selectflag_ & util::kSelectPet);
+	ui.checkBox_any->setChecked(selectflag_ & util::kSelectAllieAny);
+	ui.checkBox_all->setChecked(selectflag_ & util::kSelectAllieAll);
+	ui.checkBox_enemy->setChecked(selectflag_ & util::kSelectEnemyAny);
+	ui.checkBox_enemy_all->setChecked(selectflag_ & util::kSelectEnemyAll);
+	ui.checkBox_enemy_front->setChecked(selectflag_ & util::kSelectEnemyFront);
+	ui.checkBox_enemy_back->setChecked(selectflag_ & util::kSelectEnemyBack);
+	ui.checkBox_leader->setChecked(selectflag_ & util::kSelectLeader);
+	ui.checkBox_leader_pet->setChecked(selectflag_ & util::kSelectLeaderPet);
+	ui.checkBox_teammate1->setChecked(selectflag_ & util::kSelectTeammate1);
+	ui.checkBox_teammate1_pet->setChecked(selectflag_ & util::kSelectTeammate1Pet);
+	ui.checkBox_teammate2->setChecked(selectflag_ & util::kSelectTeammate2);
+	ui.checkBox_teammate2_pet->setChecked(selectflag_ & util::kSelectTeammate2Pet);
+	ui.checkBox_teammate3->setChecked(selectflag_ & util::kSelectTeammate3);
+	ui.checkBox_teammate3_pet->setChecked(selectflag_ & util::kSelectTeammate3Pet);
+	ui.checkBox_teammate4->setChecked(selectflag_ & util::kSelectTeammate4);
+	ui.checkBox_teammate4_pet->setChecked(selectflag_ & util::kSelectTeammate4Pet);
 }
 
-void SelectTargetForm::onCheckBoxStateChanged(__int64 state)
+void SelectTargetForm::onCheckBoxStateChanged(qint64 state)
 {
 	QCheckBox* pCheckBox = qobject_cast<QCheckBox*>(sender());
 	if (!pCheckBox)
@@ -142,76 +141,76 @@ void SelectTargetForm::onCheckBoxStateChanged(__int64 state)
 
 	if (name == "checkBox_self")
 	{
-		tempFlg = kSelectSelf;
+		tempFlg = util::kSelectSelf;
 	}
 	else if (name == "checkBox_pet")
 	{
-		tempFlg = kSelectPet;
+		tempFlg = util::kSelectPet;
 	}
 	else if (name == "checkBox_any")
 	{
-		tempFlg = kSelectAllieAny;
+		tempFlg = util::kSelectAllieAny;
 	}
 	else if (name == "checkBox_all")
 	{
-		tempFlg = kSelectAllieAll;
+		tempFlg = util::kSelectAllieAll;
 	}
 	else if (name == "checkBox_enemy")
 	{
-		tempFlg = kSelectEnemyAny;
+		tempFlg = util::kSelectEnemyAny;
 	}
 	else if (name == "checkBox_enemy_all")
 	{
-		tempFlg = kSelectEnemyAll;
+		tempFlg = util::kSelectEnemyAll;
 	}
 	else if (name == "checkBox_enemy_front")
 	{
-		tempFlg = kSelectEnemyFront;
+		tempFlg = util::kSelectEnemyFront;
 	}
 	else if (name == "checkBox_enemy_back")
 	{
-		tempFlg = kSelectEnemyBack;
+		tempFlg = util::kSelectEnemyBack;
 	}
 
 	else if (name == "checkBox_leader")
 	{
-		tempFlg = kSelectLeader;
+		tempFlg = util::kSelectLeader;
 	}
 	else if (name == "checkBox_leader_pet")
 	{
-		tempFlg = kSelectLeaderPet;
+		tempFlg = util::kSelectLeaderPet;
 	}
 	else if (name == "checkBox_teammate1")
 	{
-		tempFlg = kSelectTeammate1;
+		tempFlg = util::kSelectTeammate1;
 	}
 	else if (name == "checkBox_teammate1_pet")
 	{
-		tempFlg = kSelectTeammate1Pet;
+		tempFlg = util::kSelectTeammate1Pet;
 	}
 	else if (name == "checkBox_teammate2")
 	{
-		tempFlg = kSelectTeammate2;
+		tempFlg = util::kSelectTeammate2;
 	}
 	else if (name == "checkBox_teammate2_pet")
 	{
-		tempFlg = kSelectTeammate2Pet;
+		tempFlg = util::kSelectTeammate2Pet;
 	}
 	else if (name == "checkBox_teammate3")
 	{
-		tempFlg = kSelectTeammate3;
+		tempFlg = util::kSelectTeammate3;
 	}
 	else if (name == "checkBox_teammate3_pet")
 	{
-		tempFlg = kSelectTeammate3Pet;
+		tempFlg = util::kSelectTeammate3Pet;
 	}
 	else if (name == "checkBox_teammate4")
 	{
-		tempFlg = kSelectTeammate4;
+		tempFlg = util::kSelectTeammate4;
 	}
 	else if (name == "checkBox_teammate4_pet")
 	{
-		tempFlg = kSelectTeammate4Pet;
+		tempFlg = util::kSelectTeammate4Pet;
 	}
 
 	if (isChecked)
@@ -227,75 +226,75 @@ void SelectTargetForm::onCheckBoxStateChanged(__int64 state)
 QString SelectTargetForm::generateShortName(quint64 flg)
 {
 	QString shortName;
-	if (flg & kSelectSelf)
+	if (flg & util::kSelectSelf)
 	{
 		shortName += tr("S");  // 己 (Self)
 	}
-	if (flg & kSelectPet)
+	if (flg & util::kSelectPet)
 	{
 		shortName += tr("P");  // 寵 (Pet)
 	}
-	if (flg & kSelectAllieAny)
+	if (flg & util::kSelectAllieAny)
 	{
 		shortName += tr("ANY");  // 我任 (Any ally)
 	}
-	if (flg & kSelectAllieAll)
+	if (flg & util::kSelectAllieAll)
 	{
 		shortName += tr("ALL");  // 我全 (All allies)
 	}
-	if (flg & kSelectEnemyAny)
+	if (flg & util::kSelectEnemyAny)
 	{
 		shortName += tr("EANY");  // 敵任 (Any enemy)
 	}
-	if (flg & kSelectEnemyAll)
+	if (flg & util::kSelectEnemyAll)
 	{
 		shortName += tr("EALL");  // 敵全 (All enemies)
 	}
-	if (flg & kSelectEnemyFront)
+	if (flg & util::kSelectEnemyFront)
 	{
 		shortName += tr("EF");  // 敵前 (Front enemy)
 	}
-	if (flg & kSelectEnemyBack)
+	if (flg & util::kSelectEnemyBack)
 	{
 		shortName += tr("EB");  // 敵後 (Back enemy)
 	}
-	if (flg & kSelectLeader)
+	if (flg & util::kSelectLeader)
 	{
 		shortName += tr("L");  // 隊 (Leader)
 	}
-	if (flg & kSelectLeaderPet)
+	if (flg & util::kSelectLeaderPet)
 	{
 		shortName += tr("LP");  // 隊寵 (Leader's pet)
 	}
-	if (flg & kSelectTeammate1)
+	if (flg & util::kSelectTeammate1)
 	{
 		shortName += tr("T1");  // 隊1 (Teammate 1)
 	}
-	if (flg & kSelectTeammate1Pet)
+	if (flg & util::kSelectTeammate1Pet)
 	{
 		shortName += tr("T1P");  // 隊1寵 (Teammate 1's pet)
 	}
-	if (flg & kSelectTeammate2)
+	if (flg & util::kSelectTeammate2)
 	{
 		shortName += tr("T2");  // 隊2 (Teammate 2)
 	}
-	if (flg & kSelectTeammate2Pet)
+	if (flg & util::kSelectTeammate2Pet)
 	{
 		shortName += tr("T2P");  // 隊2寵 (Teammate 2's pet)
 	}
-	if (flg & kSelectTeammate3)
+	if (flg & util::kSelectTeammate3)
 	{
 		shortName += tr("T3");  // 隊3 (Teammate 3)
 	}
-	if (flg & kSelectTeammate3Pet)
+	if (flg & util::kSelectTeammate3Pet)
 	{
 		shortName += tr("T3P");  // 隊3寵 (Teammate 3's pet)
 	}
-	if (flg & kSelectTeammate4)
+	if (flg & util::kSelectTeammate4)
 	{
 		shortName += tr("T4");  // 隊4 (Teammate 4)
 	}
-	if (flg & kSelectTeammate4Pet)
+	if (flg & util::kSelectTeammate4Pet)
 	{
 		shortName += tr("T4P");  // 隊4寵 (Teammate 4's pet)
 	}
@@ -305,7 +304,7 @@ QString SelectTargetForm::generateShortName(quint64 flg)
 
 void SelectTargetForm::onUpdateTeamInfo(const QStringList& strList)
 {
-	for (__int64 i = 0; i <= MAX_PARTY; ++i)
+	for (qint64 i = 0; i <= MAX_PARTY; ++i)
 	{
 		QString objName = QString("checkBox_teammate%1").arg(i);
 		QCheckBox* label = ui.groupBox->findChild<QCheckBox*>(objName);

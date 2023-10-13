@@ -48,9 +48,9 @@ QThumbnailForm::QThumbnailForm(const QList<HWND>& v, QWidget* parent)
 		else
 			m_glWidgets[i] = q_check_ptr(new QThumbnailWidget(col, row, nullptr, this));
 
-		connect(m_glWidgets[i], &QThumbnailWidget::sigmouseMoveEvent, this, &QThumbnailForm::on_mouseMoveEvent, Qt::QueuedConnection);
-		connect(m_glWidgets[i], &QThumbnailWidget::sigmousePressEvent, this, &QThumbnailForm::on_mousePressEvent, Qt::QueuedConnection);
-		connect(m_glWidgets[i], &QThumbnailWidget::sigmouseReleaseEvent, this, &QThumbnailForm::on_mouseReleaseEvent, Qt::QueuedConnection);
+		connect(m_glWidgets[i], &QThumbnailWidget::sigmouseMoveEvent, this, &QThumbnailForm::on_mouseMoveEvent, Qt::UniqueConnection);
+		connect(m_glWidgets[i], &QThumbnailWidget::sigmousePressEvent, this, &QThumbnailForm::on_mousePressEvent, Qt::UniqueConnection);
+		connect(m_glWidgets[i], &QThumbnailWidget::sigmouseReleaseEvent, this, &QThumbnailForm::on_mouseReleaseEvent, Qt::UniqueConnection);
 
 		col++;
 		if (col >= 9)

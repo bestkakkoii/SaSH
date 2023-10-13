@@ -16,21 +16,17 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 */
 
-import Safe;
-import Global;
-
 #pragma once
-#include <atomic>
-#include <QTcpServer>
-#include <QSharedPointer>
-#include <QTcpSocket>
-#include <QFuture>
-#include <QElapsedTimer>
-#include <QPair>
-#include <QMutex>
-#include <QVariant>
+#include <QCoreApplication>
+#include <QTimer>
+#include <iostream>
+#include <string>
+#include <vector>
+#include <WS2tcpip.h>
+
 #include <threadplugin.h>
 #include <indexer.h>
+#include <util.h>
 #include "lssproto.h"
 
 static const QHash<QString, BUTTON_TYPE> buttonMap = {
@@ -201,7 +197,7 @@ class Server : public ThreadPlugin, public Lssproto
 {
 	Q_OBJECT
 public:
-	QHash<__int64, QString> g_dirStrHash = {
+	QHash<qint64, QString> g_dirStrHash = {
 		{ 0, QObject::tr("North") },
 		{ 1, QObject::tr("ENorth") },
 		{ 2, QObject::tr("East") },
@@ -212,52 +208,52 @@ public:
 		{ 7, QObject::tr("WNorth") },
 	};
 
-	explicit Server(__int64 index, QObject* parent);
+	explicit Server(qint64 index, QObject* parent);
 
 	virtual ~Server();
 
-	[[nodiscard]] inline bool isListening() const { return  !server_.isNull() && server_->isListening(); }
+	Q_REQUIRED_RESULT inline bool isListening() const { return  !server_.isNull() && server_->isListening(); }
 
-	[[nodiscard]] inline bool hasClientExist() const { return  !server_.isNull() && !clientSockets_.isEmpty(); }
+	Q_REQUIRED_RESULT inline bool hasClientExist() const { return  !server_.isNull() && !clientSockets_.isEmpty(); }
 
 	bool start(QObject* parent);
 
-	[[nodiscard]] inline unsigned short getPort() const { return port_.load(std::memory_order_acquire); }
+	Q_REQUIRED_RESULT inline unsigned short getPort() const { return port_.load(std::memory_order_acquire); }
 
 signals:
-	void write(QTcpSocket* clientSocket, QByteArray ba, __int64 size);
+	void write(QTcpSocket* clientSocket, QByteArray ba, qint64 size);
 
 private slots:
-	void onWrite(QTcpSocket* clientSocket, QByteArray ba, __int64 size);
+	void onWrite(QTcpSocket* clientSocket, QByteArray ba, qint64 size);
 	void onNewConnection();
 	void onClientReadyRead();
 
 private:
-	__int64 dispatchMessage(const QByteArray& encoded);
+	qint64 dispatchMessage(const QByteArray& encoded);
 
 	bool handleCustomMessage(const QByteArray& data);
 
 	Q_INVOKABLE void handleData(QByteArray data);
 
 public://actions
-	[[nodiscard]] __int64 getWorldStatus();
+	Q_REQUIRED_RESULT qint64 getWorldStatus();
 
-	[[nodiscard]] __int64 getGameStatus();
+	Q_REQUIRED_RESULT qint64 getGameStatus();
 
-	[[nodiscard]] bool checkWG(__int64  w, __int64 g);
+	Q_REQUIRED_RESULT bool checkWG(qint64  w, qint64 g);
 
-	[[nodiscard]] __int64 getUnloginStatus();
-	void setWorldStatus(__int64 w);
-	void setGameStatus(__int64 g);
+	Q_REQUIRED_RESULT qint64 getUnloginStatus();
+	void setWorldStatus(qint64 w);
+	void setGameStatus(qint64 g);
 
-	bool login(__int64 s);
+	bool login(qint64 s);
 
 	void clientLogin(const QString& userName, const QString& password);
-	void playerLogin(__int64 index);
+	void playerLogin(qint64 index);
 
-	QString getBadStatusString(__int64 status);
+	QString getBadStatusString(qint64 status);
 
-	QString getFieldString(__int64 field);
+	QString getFieldString(qint64 field);
 
 	void unlockSecurityCode(const QString& code);
 
@@ -271,93 +267,93 @@ public://actions
 
 	void move(const QPoint& p);
 
-	void announce(const QString& msg, __int64 color = 4);
+	void announce(const QString& msg, qint64 color = 4);
 
-	void createCharacter(__int64 dataplacenum
+	void createCharacter(qint64 dataplacenum
 		, const QString& charname
-		, __int64 imgno
-		, __int64 faceimgno
-		, __int64 vit
-		, __int64 str
-		, __int64 tgh
-		, __int64 dex
-		, __int64 earth
-		, __int64 water
-		, __int64 fire
-		, __int64 wind
-		, __int64 hometown
+		, qint64 imgno
+		, qint64 faceimgno
+		, qint64 vit
+		, qint64 str
+		, qint64 tgh
+		, qint64 dex
+		, qint64 earth
+		, qint64 water
+		, qint64 fire
+		, qint64 wind
+		, qint64 hometown
 		, bool forcecover);
 
-	void deleteCharacter(__int64 index, const QString securityCode, bool backtofirst = false);
+	void deleteCharacter(qint64 index, const QString securityCode, bool backtofirst = false);
 
-	void talk(const QString& text, __int64 color = 0, TalkMode mode = kTalkNormal);
-	void inputtext(const QString& text, __int64 dialogid = -1, __int64 npcid = -1);
+	void talk(const QString& text, qint64 color = 0, TalkMode mode = kTalkNormal);
+	void inputtext(const QString& text, qint64 dialogid = -1, qint64 npcid = -1);
 
-	void windowPacket(const QString& command, __int64 dialogid, __int64 npcid);
+	void windowPacket(const QString& command, qint64 dialogid, qint64 npcid);
 
 	void EO();
 
-	void dropItem(__int64 index);
-	void dropItem(QVector<__int64> index);
+	void dropItem(qint64 index);
+	void dropItem(QVector<qint64> index);
 
-	void useItem(__int64 itemIndex, __int64 target);
+	void useItem(qint64 itemIndex, qint64 target);
 
 
-	void swapItem(__int64 from, __int64 to);
+	void swapItem(qint64 from, qint64 to);
 
-	void petitemswap(__int64 petIndex, __int64 from, __int64 to);
+	void petitemswap(qint64 petIndex, qint64 from, qint64 to);
 
-	void useMagic(__int64 magicIndex, __int64 target);
+	void useMagic(qint64 magicIndex, qint64 target);
 
-	void dropPet(__int64 petIndex);
+	void dropPet(qint64 petIndex);
 
-	void setSwitcher(__int64 flg, bool enable);
+	void setSwitcher(qint64 flg, bool enable);
 
-	void setSwitcher(__int64 flg);
+	void setSwitcher(qint64 flg);
 
-	void press(BUTTON_TYPE select, __int64 dialogid = -1, __int64 unitid = -1);
-	void press(__int64 row, __int64 dialogid = -1, __int64 unitid = -1);
+	void press(BUTTON_TYPE select, qint64 dialogid = -1, qint64 unitid = -1);
+	void press(qint64 row, qint64 dialogid = -1, qint64 unitid = -1);
 
-	void buy(__int64 index, __int64 amt, __int64 dialogid = -1, __int64 unitid = -1);
-	void sell(const QVector<__int64>& indexs, __int64 dialogid = -1, __int64 unitid = -1);
-	void sell(__int64 index, __int64 dialogid = -1, __int64 unitid = -1);
-	void sell(const QString& name, const QString& memo = "", __int64 dialogid = -1, __int64 unitid = -1);
-	void learn(__int64 skillIndex, __int64 petIndex, __int64 spot, __int64 dialogid = -1, __int64 unitid = -1);
+	void buy(qint64 index, qint64 amt, qint64 dialogid = -1, qint64 unitid = -1);
+	void sell(const QVector<qint64>& indexs, qint64 dialogid = -1, qint64 unitid = -1);
+	void sell(qint64 index, qint64 dialogid = -1, qint64 unitid = -1);
+	void sell(const QString& name, const QString& memo = "", qint64 dialogid = -1, qint64 unitid = -1);
+	void learn(qint64 skillIndex, qint64 petIndex, qint64 spot, qint64 dialogid = -1, qint64 unitid = -1);
 
-	void craft(CraftType type, const QStringList& ingres);
+	void craft(util::CraftType type, const QStringList& ingres);
 
 	void createRemoteDialog(quint64 type, quint64 button, const QString& text);
 
-	void mail(const QVariant& card, const QString& text, __int64 petIndex, const QString& itemName, const QString& itemMemo);
+	void mail(const QVariant& card, const QString& text, qint64 petIndex, const QString& itemName, const QString& itemMemo);
 
 	void warp();
 
-	void shopOk(__int64 n);
-	void saMenu(__int64 n);
+	void shopOk(qint64 n);
+	void saMenu(qint64 n);
 
-	bool addPoint(__int64 skillid, __int64 amt);
+	bool addPoint(qint64 skillid, qint64 amt);
 
-	void pickItem(__int64 dir);
+	void pickItem(qint64 dir);
 
-	void dropGold(__int64 gold);
+	void dropGold(qint64 gold);
 
-	void depositGold(__int64 gold, bool isPublic);
-	void withdrawGold(__int64 gold, bool isPublic);
+	void depositGold(qint64 gold, bool isPublic);
+	void withdrawGold(qint64 gold, bool isPublic);
 
-	void depositPet(__int64 petIndex, __int64 dialogid = -1, __int64 unitid = -1);
-	void withdrawPet(__int64 petIndex, __int64 dialogid = -1, __int64 unitid = -1);
+	void depositPet(qint64 petIndex, qint64 dialogid = -1, qint64 unitid = -1);
+	void withdrawPet(qint64 petIndex, qint64 dialogid = -1, qint64 unitid = -1);
 
-	void depositItem(__int64 index, __int64 dialogid = -1, __int64 unitid = -1);
-	void withdrawItem(__int64 itemIndex, __int64 dialogid = -1, __int64 unitid = -1);
+	void depositItem(qint64 index, qint64 dialogid = -1, qint64 unitid = -1);
+	void withdrawItem(qint64 itemIndex, qint64 dialogid = -1, qint64 unitid = -1);
 
 	bool captchaOCR(QString* pmsg);
 
 	void setAllPetState();
-	void setPetState(__int64 petIndex, PetState state);
-	void setFightPet(__int64 petIndex);
-	void setRidePet(__int64 petIndex);
-	void setPetStateSub(__int64 petIndex, __int64 state);
-	void setPetStandby(__int64 petIndex, __int64 state);
+	void setPetState(qint64 petIndex, PetState state);
+	void setFightPet(qint64 petIndex);
+	void setRidePet(qint64 petIndex);
+	void setPetStateSub(qint64 petIndex, qint64 state);
+	void setPetStandby(qint64 petIndex, qint64 state);
 
 	void updateItemByMemory();
 	void updateDatasFromMemory();
@@ -365,101 +361,101 @@ public://actions
 	void doBattleWork(bool waitforBA);
 	void asyncBattleAction(bool waitforBA);
 
-	void downloadMap(__int64 floor = -1);
-	void downloadMap(__int64 x, __int64 y, __int64 floor = -1);
+	void downloadMap(qint64 floor = -1);
+	void downloadMap(qint64 x, qint64 y, qint64 floor = -1);
 
-	bool tradeStart(const QString& name, __int64 timeout);
+	bool tradeStart(const QString& name, qint64 timeout);
 	void tradeComfirm(const QString& name);
 	void tradeCancel();
-	void tradeAppendItems(const QString& name, const QVector<__int64>& itemIndexs);
-	void tradeAppendGold(const QString& name, __int64 gold);
-	void tradeAppendPets(const QString& name, const QVector<__int64>& petIndex);
+	void tradeAppendItems(const QString& name, const QVector<qint64>& itemIndexs);
+	void tradeAppendGold(const QString& name, qint64 gold);
+	void tradeAppendPets(const QString& name, const QVector<qint64>& petIndex);
 	void tradeComplete(const QString& name);
 
 	void cleanChatHistory();
-	[[nodiscard]] QString getChatHistory(__int64 index);
+	Q_REQUIRED_RESULT QString getChatHistory(qint64 index);
 
-	bool findUnit(const QString& name, __int64 type, mapunit_t* unit, const QString& freeName = "", __int64 modelid = -1);
+	bool findUnit(const QString& name, qint64 type, mapunit_t* unit, const QString& freeName = "", qint64 modelid = -1);
 
-	[[nodiscard]] QString getGround();
+	Q_REQUIRED_RESULT QString getGround();
 
 	void setTeamState(bool join);
-	void kickteam(__int64 n);
+	void kickteam(qint64 n);
 
-	__int64 setCharFaceToPoint(const QPoint& pos);
-	void setCharFaceDirection(__int64 dir);
+	qint64 setCharFaceToPoint(const QPoint& pos);
+	void setCharFaceDirection(qint64 dir);
 	void setCharFaceDirection(const QString& dirStr);
 
-	[[nodiscard]] __int64 getPartySize() const;
-	[[nodiscard]] QStringList getJoinableUnitList() const;
-	[[nodiscard]] bool getItemIndexsByName(const QString& name, const QString& memo, QVector<__int64>* pv, __int64 from = 0, __int64 to = MAX_ITEM);
-	[[nodiscard]] __int64 getItemIndexByName(const QString& name, bool isExact = true, const QString& memo = "", __int64 from = 0, __int64 to = MAX_ITEM);
-	[[nodiscard]] __int64 getPetSkillIndexByName(__int64& petIndex, const QString& name) const;
-	[[nodiscard]] __int64 getSkillIndexByName(const QString& name) const;
-	[[nodiscard]] bool getPetIndexsByName(const QString& name, QVector<__int64>* pv) const;
-	[[nodiscard]] __int64 getMagicIndexByName(const QString& name, bool isExact = true) const;
-	[[nodiscard]] __int64 getItemEmptySpotIndex();
-	bool getItemEmptySpotIndexs(QVector<__int64>* pv);
+	Q_REQUIRED_RESULT qint64 getPartySize() const;
+	Q_REQUIRED_RESULT QStringList getJoinableUnitList() const;
+	Q_REQUIRED_RESULT bool getItemIndexsByName(const QString& name, const QString& memo, QVector<qint64>* pv, qint64 from = 0, qint64 to = MAX_ITEM);
+	Q_REQUIRED_RESULT qint64 getItemIndexByName(const QString& name, bool isExact = true, const QString& memo = "", qint64 from = 0, qint64 to = MAX_ITEM);
+	Q_REQUIRED_RESULT qint64 getPetSkillIndexByName(qint64& petIndex, const QString& name) const;
+	Q_REQUIRED_RESULT qint64 getSkillIndexByName(const QString& name) const;
+	Q_REQUIRED_RESULT bool getPetIndexsByName(const QString& name, QVector<qint64>* pv) const;
+	Q_REQUIRED_RESULT qint64 getMagicIndexByName(const QString& name, bool isExact = true) const;
+	Q_REQUIRED_RESULT qint64 getItemEmptySpotIndex();
+	bool getItemEmptySpotIndexs(QVector<qint64>* pv);
 	void clear();
 
-	[[nodiscard]] bool checkCharMp(__int64 cmpvalue, __int64* target = nullptr, bool useequal = false);
-	[[nodiscard]] bool checkCharHp(__int64 cmpvalue, __int64* target = nullptr, bool useequal = false);
-	[[nodiscard]] bool checkRideHp(__int64 cmpvalue, __int64* target = nullptr, bool useequal = false);
-	[[nodiscard]] bool checkPetHp(__int64 cmpvalue, __int64* target = nullptr, bool useequal = false);
-	[[nodiscard]] bool checkPartyHp(__int64 cmpvalue, __int64* target);
+	Q_REQUIRED_RESULT bool checkCharMp(qint64 cmpvalue, qint64* target = nullptr, bool useequal = false);
+	Q_REQUIRED_RESULT bool checkCharHp(qint64 cmpvalue, qint64* target = nullptr, bool useequal = false);
+	Q_REQUIRED_RESULT bool checkRideHp(qint64 cmpvalue, qint64* target = nullptr, bool useequal = false);
+	Q_REQUIRED_RESULT bool checkPetHp(qint64 cmpvalue, qint64* target = nullptr, bool useequal = false);
+	Q_REQUIRED_RESULT bool checkPartyHp(qint64 cmpvalue, qint64* target);
 
-	[[nodiscard]] bool isPetSpotEmpty() const;
-	[[nodiscard]] __int64 checkJobDailyState(const QString& missionName);
+	Q_REQUIRED_RESULT bool isPetSpotEmpty() const;
+	Q_REQUIRED_RESULT qint64 checkJobDailyState(const QString& missionName);
 
-	[[nodiscard]] bool isDialogVisible();
+	Q_REQUIRED_RESULT bool isDialogVisible();
 
 	void setCharFreeName(const QString& name);
-	void setPetFreeName(__int64 petIndex, const QString& name);
+	void setPetFreeName(qint64 petIndex, const QString& name);
 
-	[[nodiscard]] bool getBattleFlag();
-	[[nodiscard]] bool getOnlineFlag() const;
+	Q_REQUIRED_RESULT bool getBattleFlag();
+	Q_REQUIRED_RESULT bool getOnlineFlag() const;
 
 	void sortItem(bool deepSort = false);
 
-	[[nodiscard]] __int64 getDir();
-	[[nodiscard]] QPoint getPoint();
+	Q_REQUIRED_RESULT qint64 getDir();
+	Q_REQUIRED_RESULT QPoint getPoint();
 	void setPoint(const QPoint& pos);
 
-	[[nodiscard]] __int64 getFloor();
-	void setFloor(__int64 floor);
+	Q_REQUIRED_RESULT qint64 getFloor();
+	void setFloor(qint64 floor);
 
-	[[nodiscard]] QString getFloorName();
+	Q_REQUIRED_RESULT QString getFloorName();
 	//battle
-	void sendBattleCharAttackAct(__int64 target);
-	void sendBattleCharMagicAct(__int64 magicIndex, __int64 target);
-	void sendBattleCharJobSkillAct(__int64 skillIndex, __int64 target);
-	void sendBattleCharItemAct(__int64 itemIndex, __int64 target);
+	void sendBattleCharAttackAct(qint64 target);
+	void sendBattleCharMagicAct(qint64 magicIndex, qint64 target);
+	void sendBattleCharJobSkillAct(qint64 skillIndex, qint64 target);
+	void sendBattleCharItemAct(qint64 itemIndex, qint64 target);
 	void sendBattleCharDefenseAct();
 	void sendBattleCharEscapeAct();
-	void sendBattleCharCatchPetAct(__int64 petIndex);
-	void sendBattleCharSwitchPetAct(__int64 petIndex);
+	void sendBattleCharCatchPetAct(qint64 petIndex);
+	void sendBattleCharSwitchPetAct(qint64 petIndex);
 	void sendBattleCharDoNothing();
-	void sendBattlePetSkillAct(__int64 skillIndex, __int64 target);
+	void sendBattlePetSkillAct(qint64 skillIndex, qint64 target);
 	void sendBattlePetDoNothing();
 	void setBattleEnd();
 
 	void updateBattleTimeInfo();
 
-	inline [[nodiscard]] PC getPC() const { QReadLocker locker(&charInfoLock_); return pc_; }
+	inline Q_REQUIRED_RESULT PC getPC() const { QReadLocker locker(&charInfoLock_); return pc_; }
 	inline void setPC(PC pc) { pc_ = pc; }
 
-	inline [[nodiscard]] MAGIC getMagic(__int64 magicIndex) const { return magic_.value(magicIndex); }
+	inline Q_REQUIRED_RESULT MAGIC getMagic(qint64 magicIndex) const { return magic_.value(magicIndex); }
 
-	inline [[nodiscard]] PROFESSION_SKILL getSkill(__int64 skillIndex) const { QReadLocker locker(&charSkillInfoLock_); return profession_skill_.value(skillIndex); }
-	inline [[nodiscard]] QHash<__int64, PROFESSION_SKILL> getSkills() const { QReadLocker locker(&charSkillInfoLock_); return profession_skill_.toHash(); }
+	inline Q_REQUIRED_RESULT PROFESSION_SKILL getSkill(qint64 skillIndex) const { QReadLocker locker(&charSkillInfoLock_); return profession_skill_.value(skillIndex); }
+	inline Q_REQUIRED_RESULT QHash<qint64, PROFESSION_SKILL> getSkills() const { QReadLocker locker(&charSkillInfoLock_); return profession_skill_.toHash(); }
 
-	inline [[nodiscard]] PET getPet(__int64 petIndex) const { QReadLocker locker(&petInfoLock_); return pet_.value(petIndex); }
-	inline [[nodiscard]] QHash<__int64, PET> getPets() const { QReadLocker locker(&petInfoLock_); return pet_.toHash(); }
-	inline [[nodiscard]] __int64 getPetSize() const
+	inline Q_REQUIRED_RESULT PET getPet(qint64 petIndex) const { QReadLocker locker(&petInfoLock_); return pet_.value(petIndex); }
+	inline Q_REQUIRED_RESULT QHash<qint64, PET> getPets() const { QReadLocker locker(&petInfoLock_); return pet_.toHash(); }
+	inline Q_REQUIRED_RESULT qint64 getPetSize() const
 	{
 		QReadLocker locker(&petInfoLock_);
-		__int64 n = 0;
-		QHash<__int64, PET> pets = pet_.toHash();
+		qint64 n = 0;
+		QHash<qint64, PET> pets = pet_.toHash();
 		for (const PET& it : pets)
 		{
 			if (it.level > 0 && it.valid && it.maxHp > 0)
@@ -468,35 +464,35 @@ public://actions
 		return n;
 	}
 
-	inline [[nodiscard]] ITEM getItem(__int64 index) const { QReadLocker locker(&itemInfoLock_); return item_.value(index); }
-	inline [[nodiscard]] QHash<__int64, ITEM> getItems() const { QReadLocker locker(&itemInfoLock_); return item_.toHash(); }
+	inline Q_REQUIRED_RESULT ITEM getItem(qint64 index) const { QReadLocker locker(&itemInfoLock_); return item_.value(index); }
+	inline Q_REQUIRED_RESULT QHash<qint64, ITEM> getItems() const { QReadLocker locker(&itemInfoLock_); return item_.toHash(); }
 
-	inline [[nodiscard]] PET_SKILL getPetSkill(__int64 petIndex, __int64 skillIndex) const { QReadLocker locker(&petSkillInfoLock_); return petSkill_.value(petIndex).value(skillIndex); }
-	inline [[nodiscard]] QHash<__int64, PET_SKILL> getPetSkills(__int64 petIndex) const { QReadLocker locker(&petSkillInfoLock_); return petSkill_.value(petIndex); }
-	inline void setPetSkills(__int64 petIndex, const QHash<__int64, PET_SKILL>& skills) { petSkill_.insert(petIndex, skills); }
-	inline void setPetSkill(__int64 petIndex, __int64 skillIndex, const PET_SKILL& skill)
+	inline Q_REQUIRED_RESULT PET_SKILL getPetSkill(qint64 petIndex, qint64 skillIndex) const { QReadLocker locker(&petSkillInfoLock_); return petSkill_.value(petIndex).value(skillIndex); }
+	inline Q_REQUIRED_RESULT QHash<qint64, PET_SKILL> getPetSkills(qint64 petIndex) const { QReadLocker locker(&petSkillInfoLock_); return petSkill_.value(petIndex); }
+	inline void setPetSkills(qint64 petIndex, const QHash<qint64, PET_SKILL>& skills) { petSkill_.insert(petIndex, skills); }
+	inline void setPetSkill(qint64 petIndex, qint64 skillIndex, const PET_SKILL& skill)
 	{
-		QHash<__int64, PET_SKILL> skills = petSkill_.value(petIndex);
+		QHash<qint64, PET_SKILL> skills = petSkill_.value(petIndex);
 		skills.insert(skillIndex, skill);
 		petSkill_.insert(petIndex, skills);
 	}
 
-	inline [[nodiscard]] PARTY getParty(__int64 partyIndex) const { QReadLocker locker(&teamInfoLock_); return party_.value(partyIndex); }
-	inline [[nodiscard]] QHash<__int64, PARTY> getParties() const { QReadLocker locker(&teamInfoLock_);  return party_.toHash(); }
+	inline Q_REQUIRED_RESULT PARTY getParty(qint64 partyIndex) const { QReadLocker locker(&teamInfoLock_); return party_.value(partyIndex); }
+	inline Q_REQUIRED_RESULT QHash<qint64, PARTY> getParties() const { QReadLocker locker(&teamInfoLock_);  return party_.toHash(); }
 
-	inline [[nodiscard]] ITEM getPetEquip(__int64 petIndex, __int64 equipIndex) const { QReadLocker locker(&petEquipInfoLock_); return petItem_.value(petIndex).value(equipIndex); }
-	inline [[nodiscard]] QHash<__int64, ITEM> getPetEquips(__int64 petIndex) const { QReadLocker locker(&petEquipInfoLock_); return petItem_.value(petIndex); }
+	inline Q_REQUIRED_RESULT ITEM getPetEquip(qint64 petIndex, qint64 equipIndex) const { QReadLocker locker(&petEquipInfoLock_); return petItem_.value(petIndex).value(equipIndex); }
+	inline Q_REQUIRED_RESULT QHash<qint64, ITEM> getPetEquips(qint64 petIndex) const { QReadLocker locker(&petEquipInfoLock_); return petItem_.value(petIndex); }
 
-	inline [[nodiscard]] ADDRESS_BOOK getAddressBook(__int64 index) const { return addressBook_.value(index); }
-	inline [[nodiscard]] QHash<__int64, ADDRESS_BOOK> getAddressBooks() const { return addressBook_.toHash(); }
+	inline Q_REQUIRED_RESULT ADDRESS_BOOK getAddressBook(qint64 index) const { return addressBook_.value(index); }
+	inline Q_REQUIRED_RESULT QHash<qint64, ADDRESS_BOOK> getAddressBooks() const { return addressBook_.toHash(); }
 
-	inline [[nodiscard]] battledata_t getBattleData() const { return battleData.get(); }
-	inline [[nodiscard]] JOBDAILY getJobDaily(__int64 index) const { return jobdaily_.value(index); }
-	inline [[nodiscard]] QHash<__int64, JOBDAILY> getJobDailys() const { return jobdaily_.toHash(); }
-	inline [[nodiscard]] CHARLISTTABLE getCharListTable(__int64 index) const { return chartable_.value(index); }
-	inline [[nodiscard]] MAIL_HISTORY getMailHistory(__int64 index) const { return mailHistory_.value(index); }
+	inline Q_REQUIRED_RESULT battledata_t getBattleData() const { return battleData.get(); }
+	inline Q_REQUIRED_RESULT JOBDAILY getJobDaily(qint64 index) const { return jobdaily_.value(index); }
+	inline Q_REQUIRED_RESULT QHash<qint64, JOBDAILY> getJobDailys() const { return jobdaily_.toHash(); }
+	inline Q_REQUIRED_RESULT CHARLISTTABLE getCharListTable(qint64 index) const { return chartable_.value(index); }
+	inline Q_REQUIRED_RESULT MAIL_HISTORY getMailHistory(qint64 index) const { return mailHistory_.value(index); }
 
-	[[nodiscard]] __int64 findInjuriedAllie();
+	Q_REQUIRED_RESULT qint64 findInjuriedAllie();
 
 	void refreshItemInfo();
 
@@ -504,26 +500,26 @@ public://actions
 
 private:
 	void setWindowTitle();
-	void refreshItemInfo(__int64 index);
+	void refreshItemInfo(qint64 index);
 
 	void setBattleFlag(bool enable);
 	void setOnlineFlag(bool enable);
 
 	void getCharMaxCarryingCapacity();
-	inline [[nodiscard]] constexpr bool isItemStackable(__int64 flg) { return ((flg >> 2) & 1); }
-	QString getAreaString(__int64 target);
-	[[nodiscard]] bool matchPetNameByIndex(__int64 index, const QString& name);
-	[[nodiscard]] __int64 getProfessionSkillIndexByName(const QString& names) const;
+	inline Q_REQUIRED_RESULT constexpr bool isItemStackable(qint64 flg) { return ((flg >> 2) & 1); }
+	QString getAreaString(qint64 target);
+	Q_REQUIRED_RESULT bool matchPetNameByIndex(qint64 index, const QString& name);
+	Q_REQUIRED_RESULT qint64 getProfessionSkillIndexByName(const QString& names) const;
 
 #pragma region BattleFunctions
-	__int64 playerDoBattleWork(const battledata_t& bt);
+	qint64 playerDoBattleWork(const battledata_t& bt);
 	void handleCharBattleLogics(const battledata_t& bt);
-	__int64 petDoBattleWork(const battledata_t& bt);
+	qint64 petDoBattleWork(const battledata_t& bt);
 	void handlePetBattleLogics(const battledata_t& bt);
 
-	bool isCharMpEnoughForMagic(__int64 magicIndex) const;
-	bool isCharMpEnoughForSkill(__int64 magicIndex) const;
-	bool isCharHpEnoughForSkill(__int64 magicIndex) const;
+	bool isCharMpEnoughForMagic(qint64 magicIndex) const;
+	bool isCharMpEnoughForSkill(qint64 magicIndex) const;
+	bool isCharHpEnoughForSkill(qint64 magicIndex) const;
 
 	void sortBattleUnit(QVector<battleobject_t>& v) const;
 
@@ -539,27 +535,27 @@ private:
 		MatchName,
 		MatchStatus
 	};
-	bool matchBattleTarget(const QVector<battleobject_t>& btobjs, BattleMatchType matchtype, __int64 firstMatchPos, QString op, QVariant cmpvar, __int64* ppos);
-	bool conditionMatchTarget(QVector<battleobject_t> btobjs, const QString& conditionStr, __int64* ppos);
+	bool matchBattleTarget(const QVector<battleobject_t>& btobjs, BattleMatchType matchtype, qint64 firstMatchPos, QString op, QVariant cmpvar, qint64* ppos);
+	bool conditionMatchTarget(QVector<battleobject_t> btobjs, const QString& conditionStr, qint64* ppos);
 
-	[[nodiscard]] __int64 getBattleSelectableEnemyTarget(const battledata_t& bt) const;
+	Q_REQUIRED_RESULT qint64 getBattleSelectableEnemyTarget(const battledata_t& bt) const;
 
-	[[nodiscard]] __int64 getBattleSelectableEnemyOneRowTarget(const battledata_t& bt, bool front) const;
+	Q_REQUIRED_RESULT qint64 getBattleSelectableEnemyOneRowTarget(const battledata_t& bt, bool front) const;
 
-	[[nodiscard]] __int64 getBattleSelectableAllieTarget(const battledata_t& bt) const;
+	Q_REQUIRED_RESULT qint64 getBattleSelectableAllieTarget(const battledata_t& bt) const;
 
-	[[nodiscard]] bool matchBattleEnemyByName(const QString& name, bool isExact, const QVector<battleobject_t>& src, QVector<battleobject_t>* v) const;
-	[[nodiscard]] bool matchBattleEnemyByLevel(__int64 level, const QVector<battleobject_t>& src, QVector<battleobject_t>* v) const;
-	[[nodiscard]] bool matchBattleEnemyByMaxHp(__int64  maxHp, const QVector<battleobject_t>& src, QVector<battleobject_t>* v) const;
+	Q_REQUIRED_RESULT bool matchBattleEnemyByName(const QString& name, bool isExact, const QVector<battleobject_t>& src, QVector<battleobject_t>* v) const;
+	Q_REQUIRED_RESULT bool matchBattleEnemyByLevel(qint64 level, const QVector<battleobject_t>& src, QVector<battleobject_t>* v) const;
+	Q_REQUIRED_RESULT bool matchBattleEnemyByMaxHp(qint64  maxHp, const QVector<battleobject_t>& src, QVector<battleobject_t>* v) const;
 
-	[[nodiscard]] __int64 getGetPetSkillIndexByName(__int64 etIndex, const QString& name) const;
+	Q_REQUIRED_RESULT qint64 getGetPetSkillIndexByName(qint64 etIndex, const QString& name) const;
 
-	bool fixCharTargetByMagicIndex(__int64 magicIndex, __int64 oldtarget, __int64* target) const;
-	bool fixCharTargetBySkillIndex(__int64 magicIndex, __int64 oldtarget, __int64* target) const;
-	bool fixCharTargetByItemIndex(__int64 itemIndex, __int64 oldtarget, __int64* target) const;
-	bool fixPetTargetBySkillIndex(__int64 skillIndex, __int64 oldtarget, __int64* target) const;
+	bool fixCharTargetByMagicIndex(qint64 magicIndex, qint64 oldtarget, qint64* target) const;
+	bool fixCharTargetBySkillIndex(qint64 magicIndex, qint64 oldtarget, qint64* target) const;
+	bool fixCharTargetByItemIndex(qint64 itemIndex, qint64 oldtarget, qint64* target) const;
+	bool fixPetTargetBySkillIndex(qint64 skillIndex, qint64 oldtarget, qint64* target) const;
 	void updateCurrentSideRange(battledata_t& bt);
-	bool checkFlagState(__int64 pos);
+	bool checkFlagState(qint64 pos);
 
 	inline void setBattleData(const battledata_t& data) { battleData = data; }
 
@@ -576,7 +572,7 @@ private:
 #pragma region SAClientOriginal
 	//StoneAge Client Original Functions
 
-	void swapItemLocal(__int64 from, __int64 to);
+	void swapItemLocal(qint64 from, qint64 to);
 
 	void realTimeToSATime(LSTIME* lstime);
 
@@ -599,9 +595,9 @@ private:
 	QElapsedTimer eottlTimer;//伺服器響應時間(MS)
 	QElapsedTimer connectingTimer;
 	std::atomic_bool petEscapeEnableTempFlag = false;
-	__int64 tempCatchPetTargetIndex = -1;
+	qint64 tempCatchPetTargetIndex = -1;
 
-	SafeData<battledata_t> battleData;
+	util::SafeData<battledata_t> battleData;
 
 	std::atomic_bool IS_WAITFOT_SKUP_RECV = false;
 	QFuture<void> skupFuture;
@@ -610,22 +606,22 @@ private:
 
 	PC pc_ = {};
 
-	SafeHash<__int64, PARTY> party_ = {};
-	SafeHash<__int64, ITEM> item_ = {};
-	SafeHash<__int64, QHash<__int64, ITEM>> petItem_ = {};
-	SafeHash<__int64, PET> pet_ = {};
-	SafeHash<__int64, MAGIC> magic_ = {};
-	SafeHash<__int64, ADDRESS_BOOK> addressBook_ = {};
-	SafeHash<__int64, JOBDAILY> jobdaily_ = {};
-	SafeHash<__int64, CHARLISTTABLE> chartable_ = {};
-	SafeHash<__int64, MAIL_HISTORY> mailHistory_ = {};
-	SafeHash<__int64, PROFESSION_SKILL> profession_skill_ = {};
-	SafeHash<__int64, QHash<__int64, PET_SKILL>> petSkill_ = {};
+	util::SafeHash<qint64, PARTY> party_ = {};
+	util::SafeHash<qint64, ITEM> item_ = {};
+	util::SafeHash<qint64, QHash<qint64, ITEM>> petItem_ = {};
+	util::SafeHash<qint64, PET> pet_ = {};
+	util::SafeHash<qint64, MAGIC> magic_ = {};
+	util::SafeHash<qint64, ADDRESS_BOOK> addressBook_ = {};
+	util::SafeHash<qint64, JOBDAILY> jobdaily_ = {};
+	util::SafeHash<qint64, CHARLISTTABLE> chartable_ = {};
+	util::SafeHash<qint64, MAIL_HISTORY> mailHistory_ = {};
+	util::SafeHash<qint64, PROFESSION_SKILL> profession_skill_ = {};
+	util::SafeHash<qint64, QHash<qint64, PET_SKILL>> petSkill_ = {};
 
-	__int64 swapitemModeFlag = 0; //當前自動整理功能的階段
+	qint64 swapitemModeFlag = 0; //當前自動整理功能的階段
 	QHash<QString, bool>itemStackFlagHash = {};
 
-	SafeVector<bool> battlePetDisableList_ = {};
+	util::SafeVector<bool> battlePetDisableList_ = {};
 
 	//戰鬥相關
 	std::atomic_llong battleCharCurrentPos = 0;
@@ -640,16 +636,16 @@ private:
 
 	//遊戲內當前時間相關
 	LSTIME saTimeStruct = { 0 };
-	__int64 serverTime = 0LL;
-	__int64 FirstTime = 0LL;
+	qint64 serverTime = 0LL;
+	qint64 FirstTime = 0LL;
 
 	//交易相關
-	__int64 opp_showindex = 0;
+	qint64 opp_showindex = 0;
 	QString opp_sockfd;
 	QString opp_name;
 	QString opp_goldmount;
-	__int64 showindex[7] = { 0 };
-	__int64 tradeWndDropGoldGet = 0;
+	qint64 showindex[7] = { 0 };
+	qint64 tradeWndDropGoldGet = 0;
 	QString opp_itemgraph;
 	QString opp_itemname;
 	QString opp_itemeffect;
@@ -657,24 +653,24 @@ private:
 	QString opp_itemdamage;
 	QString trade_kind;
 	QString trade_command;
-	__int64 tradeStatus = 0;
-	__int64 tradePetIndex = -1;
+	qint64 tradeStatus = 0;
+	qint64 tradePetIndex = -1;
 	PET tradePet[2] = {};
 	showitem opp_item[MAX_MAXHAVEITEM];	//交易道具阵列增为15个
 	showpet opp_pet[MAX_PET];
 	QStringList myitem_tradeList;
 	QStringList mypet_tradeList = { "P|-1", "P|-1", "P|-1" , "P|-1", "P|-1" };
-	__int64 mygoldtrade = 0;
+	qint64 mygoldtrade = 0;
 
 	//郵件相關
-	__int64 mailHistoryWndSelectNo = 0;
-	__int64 mailHistoryWndPageNo = 0;
+	qint64 mailHistoryWndSelectNo = 0;
+	qint64 mailHistoryWndPageNo = 0;
 #pragma endregion
 
 public:
 	std::atomic_llong nowFloor_;
-	SafeData<QString> nowFloorName_;
-	SafeData<QPoint> nowPoint_;
+	util::SafeData<QString> nowFloorName_;
+	util::SafeData<QPoint> nowPoint_;
 
 	//custom
 	std::atomic_bool IS_TRADING = false;
@@ -705,31 +701,31 @@ public:
 
 	QSharedPointer<MapAnalyzer> mapAnalyzer;
 
-	SafeData<currencydata_t> currencyData = {};
-	SafeData<customdialog_t> customDialog = {};
+	util::SafeData<currencydata_t> currencyData = {};
+	util::SafeData<customdialog_t> customDialog = {};
 
-	SafeHash<__int64, mapunit_t> mapUnitHash;
-	SafeHash<QPoint, mapunit_t> npcUnitPointHash;
-	SafeQueue<QPair<__int64, QString>> chatQueue;
+	util::SafeHash<qint64, mapunit_t> mapUnitHash;
+	util::SafeHash<QPoint, mapunit_t> npcUnitPointHash;
+	util::SafeQueue<QPair<qint64, QString>> chatQueue;
 
-	QPair<__int64, QVector<bankpet_t>> currentBankPetList;
-	SafeVector<ITEM> currentBankItemList;
+	QPair<qint64, QVector<bankpet_t>> currentBankPetList;
+	util::SafeVector<ITEM> currentBankItemList;
 
 	QElapsedTimer repTimer;
-	AfkRecorder recorder[1 + MAX_PET] = {};
+	util::AfkRecorder recorder[1 + MAX_PET] = {};
 
-	SafeData<dialog_t> currentDialog = {};
+	util::SafeData<dialog_t> currentDialog = {};
 
 	//用於緩存要發送到UI的數據(開啟子窗口初始化並加載當前最新數據時使用)
-	SafeHash<__int64, QVariant> playerInfoColContents;
-	SafeHash<__int64, QVariant> itemInfoRowContents;
-	SafeHash<__int64, QVariant> equipInfoRowContents;
-	SafeData<QStringList> enemyNameListCache;
-	SafeData<QVariant> topInfoContents;
-	SafeData<QVariant> bottomInfoContents;
-	SafeData<QString> timeLabelContents;
-	SafeData<QString> labelCharAction;
-	SafeData<QString> labelPetAction;
+	util::SafeHash<qint64, QVariant> playerInfoColContents;
+	util::SafeHash<qint64, QVariant> itemInfoRowContents;
+	util::SafeHash<qint64, QVariant> equipInfoRowContents;
+	util::SafeData<QStringList> enemyNameListCache;
+	util::SafeData<QVariant> topInfoContents;
+	util::SafeData<QVariant> bottomInfoContents;
+	util::SafeData<QString> timeLabelContents;
+	util::SafeData<QString> labelCharAction;
+	util::SafeData<QString> labelPetAction;
 
 private:
 	std::atomic_uint16_t port_ = 0;
@@ -744,12 +740,12 @@ private:
 	QMutex net_mutex;
 
 private://lssproto
-	__int64 appendReadBuf(const QByteArray& data);
+	qint64 appendReadBuf(const QByteArray& data);
 	QByteArrayList splitLinesFromReadBuf();
-	__int64 a62toi(const QString& a) const;
-	__int64 getStringToken(const QString& src, const QString& delim, __int64 count, QString& out) const;
-	__int64 getIntegerToken(const QString& src, const QString& delim, __int64 count) const;
-	__int64 getInteger62Token(const QString& src, const QString& delim, __int64 count) const;
+	qint64 a62toi(const QString& a) const;
+	qint64 getStringToken(const QString& src, const QString& delim, qint64 count, QString& out) const;
+	qint64 getIntegerToken(const QString& src, const QString& delim, qint64 count) const;
+	qint64 getInteger62Token(const QString& src, const QString& delim, qint64 count) const;
 	void makeStringFromEscaped(QString& src) const;
 
 private://lssproto_recv

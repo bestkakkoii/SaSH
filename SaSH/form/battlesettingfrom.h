@@ -9,7 +9,7 @@ class BattleSettingFrom : public QWidget, public Indexer
 	Q_OBJECT
 
 public:
-	BattleSettingFrom(__int64 index, QWidget* parent);
+	BattleSettingFrom(qint64 index, QWidget* parent);
 	virtual ~BattleSettingFrom();
 
 private slots:

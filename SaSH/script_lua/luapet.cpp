@@ -15,16 +15,16 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 */
-import String;
+
 #include "stdafx.h"
 #include "clua.h"
 #include "injector.h"
 #include "signaldispatcher.h"
 
-__int64 CLuaPet::setState(__int64 petIndex, __int64 state, sol::this_state s)
+qint64 CLuaPet::setState(qint64 petIndex, qint64 state, sol::this_state s)
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<__int64>());
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
 	if (injector.server.isNull())
 		return FALSE;
 
@@ -35,10 +35,10 @@ __int64 CLuaPet::setState(__int64 petIndex, __int64 state, sol::this_state s)
 	return TRUE;
 }
 
-__int64 CLuaPet::drop(__int64 petIndex, sol::this_state s)
+qint64 CLuaPet::drop(qint64 petIndex, sol::this_state s)
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<__int64>());
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
 	if (injector.server.isNull())
 		return FALSE;
 
@@ -49,26 +49,26 @@ __int64 CLuaPet::drop(__int64 petIndex, sol::this_state s)
 	return TRUE;
 }
 
-__int64 CLuaPet::rename(__int64 petIndex, std::string name, sol::this_state s)
+qint64 CLuaPet::rename(qint64 petIndex, std::string name, sol::this_state s)
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<__int64>());
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
 	if (injector.server.isNull())
 		return FALSE;
 
 	luadebug::checkBattleThenWait(s);
 
-	QString qname = toQString(name);
+	QString qname = util::toQString(name);
 
 	injector.server->setPetFreeName(--petIndex, qname);
 
 	return TRUE;
 }
 
-__int64 CLuaPet::learn(__int64 fromSkillIndex, __int64 petIndex, __int64 toSkillIndex, __int64 unitid, __int64 dialogid, sol::this_state s)
+qint64 CLuaPet::learn(qint64 fromSkillIndex, qint64 petIndex, qint64 toSkillIndex, qint64 unitid, qint64 dialogid, sol::this_state s)
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<__int64>());
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
 	if (injector.server.isNull())
 		return FALSE;
 
@@ -79,10 +79,10 @@ __int64 CLuaPet::learn(__int64 fromSkillIndex, __int64 petIndex, __int64 toSkill
 	return TRUE;
 }
 
-__int64 CLuaPet::swap(__int64 petIndex, __int64 from, __int64 to, sol::this_state s)
+qint64 CLuaPet::swap(qint64 petIndex, qint64 from, qint64 to, sol::this_state s)
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<__int64>());
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
 	if (injector.server.isNull())
 		return FALSE;
 
@@ -93,10 +93,10 @@ __int64 CLuaPet::swap(__int64 petIndex, __int64 from, __int64 to, sol::this_stat
 	return TRUE;
 }
 
-__int64 CLuaPet::deposit(__int64 petIndex, __int64 unitid, __int64 dialogid, sol::this_state s)
+qint64 CLuaPet::deposit(qint64 petIndex, qint64 unitid, qint64 dialogid, sol::this_state s)
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<__int64>());
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
 	if (injector.server.isNull())
 		return FALSE;
 
@@ -107,10 +107,10 @@ __int64 CLuaPet::deposit(__int64 petIndex, __int64 unitid, __int64 dialogid, sol
 	return TRUE;
 }
 
-__int64 CLuaPet::withdraw(__int64 petIndex, __int64 unitid, __int64 dialogid, sol::this_state s)
+qint64 CLuaPet::withdraw(qint64 petIndex, qint64 unitid, qint64 dialogid, sol::this_state s)
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<__int64>());
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
 	if (injector.server.isNull())
 		return FALSE;
 

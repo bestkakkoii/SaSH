@@ -48,129 +48,129 @@ class InterfaceSender : public QObject {
 public:
 	explicit InterfaceSender(HWND targetWindow) : targetWindow_(targetWindow) {}
 
-	__int64 RunScript(__int64 windowID, const QString& scriptCode) {
+	qint64 RunScript(qint64 windowID, const QString& scriptCode) {
 		DWORD_PTR result = 0;
 		if (SendMessageTimeoutW(targetWindow_, kRunScript, windowID, (LPARAM)scriptCode.toUtf8().constData(), SMTO_ABORTIFHUNG | SMTO_ERRORONEXIT, 10000u, &result) != 0) {
-			return static_cast<__int64>(result);
+			return static_cast<qint64>(result);
 		}
 		return -1;
 	}
 
-	__int64 StopScript(__int64 windowID) {
+	qint64 StopScript(qint64 windowID) {
 		DWORD_PTR result = 0;
 		if (SendMessageTimeoutW(targetWindow_, kStopScript, windowID, 0, SMTO_ABORTIFHUNG | SMTO_ERRORONEXIT, 10000u, &result) != 0) {
-			return static_cast<__int64>(result);
+			return static_cast<qint64>(result);
 		}
 		return -1;
 	}
 
-	__int64 RunFile(__int64 windowID, const QString& filePath) {
+	qint64 RunFile(qint64 windowID, const QString& filePath) {
 		DWORD_PTR result = 0;
 		if (SendMessageTimeoutW(targetWindow_, kRunFile, windowID, (LPARAM)filePath.toUtf8().constData(), SMTO_ABORTIFHUNG | SMTO_ERRORONEXIT, 10000u, &result) != 0) {
-			return static_cast<__int64>(result);
+			return static_cast<qint64>(result);
 		}
 		return -1;
 	}
 
-	__int64 StopFile(__int64 windowID) {
+	qint64 StopFile(qint64 windowID) {
 		DWORD_PTR result = 0;
 		if (SendMessageTimeoutW(targetWindow_, kStopFile, windowID, 0, SMTO_ABORTIFHUNG | SMTO_ERRORONEXIT, 10000u, &result) != 0) {
-			return static_cast<__int64>(result);
+			return static_cast<qint64>(result);
 		}
 		return -1;
 	}
 
-	__int64 RunGame(__int64 windowID) {
+	qint64 RunGame(qint64 windowID) {
 		DWORD_PTR result = 0;
 		if (SendMessageTimeoutW(targetWindow_, kRunGame, windowID, 0, SMTO_ABORTIFHUNG | SMTO_ERRORONEXIT, 10000u, &result) != 0) {
-			return static_cast<__int64>(result);
+			return static_cast<qint64>(result);
 		}
 		return -1;
 	}
 
-	__int64 CloseGame(__int64 windowID) {
+	qint64 CloseGame(qint64 windowID) {
 		DWORD_PTR result = 0;
 		if (SendMessageTimeoutW(targetWindow_, kCloseGame, windowID, 0, SMTO_ABORTIFHUNG | SMTO_ERRORONEXIT, 10000u, &result) != 0) {
-			return static_cast<__int64>(result);
+			return static_cast<qint64>(result);
 		}
 		return -1;
 	}
 
-	__int64 GetGameState(__int64 windowID) {
+	qint64 GetGameState(qint64 windowID) {
 		DWORD_PTR result = 0;
 		if (SendMessageTimeoutW(targetWindow_, kGetGameState, windowID, 0, SMTO_ABORTIFHUNG | SMTO_ERRORONEXIT, 10000u, &result) != 0) {
-			return static_cast<__int64>(result);
+			return static_cast<qint64>(result);
 		}
 		return -1;
 	}
 
-	__int64 GetScriptState(__int64 windowID) {
+	qint64 GetScriptState(qint64 windowID) {
 		DWORD_PTR result = 0;
 		if (SendMessageTimeoutW(targetWindow_, kScriptState, windowID, 0, SMTO_ABORTIFHUNG | SMTO_ERRORONEXIT, 10000u, &result) != 0) {
-			return static_cast<__int64>(result);
+			return static_cast<qint64>(result);
 		}
 		return -1;
 	}
 
-	__int64 MultiFunction(__int64 windowID, __int64 functionType, __int64 lParam) {
-		__int64 nLParam = (functionType & 0xffff) | ((lParam & 0xffff) << 16);
+	qint64 MultiFunction(qint64 windowID, qint64 functionType, qint64 lParam) {
+		qint64 nLParam = (functionType & 0xffff) | ((lParam & 0xffff) << 16);
 		DWORD_PTR result = 0;
 		if (SendMessageTimeoutW(targetWindow_, kMultiFunction, windowID, nLParam, SMTO_ABORTIFHUNG | SMTO_ERRORONEXIT, 10000u, &result) != 0) {
-			return static_cast<__int64>(result);
+			return static_cast<qint64>(result);
 		}
 		return -1;
 	}
 
-	__int64 SortWindow(bool alignLeft, const QString& windowList) {
-		__int64 wParam = alignLeft ? 0 : 1;
+	qint64 SortWindow(bool alignLeft, const QString& windowList) {
+		qint64 wParam = alignLeft ? 0 : 1;
 		DWORD_PTR result = 0;
 		if (SendMessageTimeoutW(targetWindow_, kSortWindow, wParam, (LPARAM)windowList.toUtf8().constData(), SMTO_ABORTIFHUNG | SMTO_ERRORONEXIT, 10000u, &result) != 0) {
-			return static_cast<__int64>(result);
+			return static_cast<qint64>(result);
 		}
 		return -1;
 	}
 
-	__int64 Thumbnail(const QString& thumbnailInfo) {
+	qint64 Thumbnail(const QString& thumbnailInfo) {
 		DWORD_PTR result = 0;
 		if (SendMessageTimeoutW(targetWindow_, kThumbnail, 0, (LPARAM)thumbnailInfo.toUtf8().constData(), SMTO_ABORTIFHUNG | SMTO_ERRORONEXIT, 10000u, &result) != 0) {
-			return static_cast<__int64>(result);
+			return static_cast<qint64>(result);
 		}
 		return -1;
 	}
 
-	__int64 OpenNewWindow(__int64 windowID) {
+	qint64 OpenNewWindow(qint64 windowID) {
 		DWORD_PTR result = 0;
 		if (SendMessageTimeoutW(targetWindow_, kOpenNewWindow, windowID, 0, SMTO_ABORTIFHUNG | SMTO_ERRORONEXIT, 10000u, &result) != 0) {
-			return static_cast<__int64>(result);
+			return static_cast<qint64>(result);
 		}
 		return -1;
 	}
 
-	__int64 GetGamePid(__int64 windowID) {
+	qint64 GetGamePid(qint64 windowID) {
 		DWORD_PTR result = 0;
 		if (SendMessageTimeoutW(targetWindow_, kGetGamePid, windowID, 0, SMTO_ABORTIFHUNG | SMTO_ERRORONEXIT, 10000u, &result) != 0) {
-			return static_cast<__int64>(result);
+			return static_cast<qint64>(result);
 		}
 		return -1;
 	}
 
-	__int64 GetGameHwnd(__int64 windowID) {
+	qint64 GetGameHwnd(qint64 windowID) {
 		DWORD_PTR result = 0;
 		if (SendMessageTimeoutW(targetWindow_, kGetGameHwnd, windowID, 0, SMTO_ABORTIFHUNG | SMTO_ERRORONEXIT, 10000u, &result) != 0) {
-			return static_cast<__int64>(result);
+			return static_cast<qint64>(result);
 		}
 		return -1;
 	}
 
-	__int64 GetCurrentId(__int64 windowID) {
+	qint64 GetCurrentId(qint64 windowID) {
 		DWORD_PTR result = 0;
 		if (SendMessageTimeoutW(targetWindow_, kGetCurrentId, windowID, 0, SMTO_ABORTIFHUNG | SMTO_ERRORONEXIT, 10000u, &result) != 0) {
-			return static_cast<__int64>(result);
+			return static_cast<qint64>(result);
 		}
 		return -1;
 	}
 
-	__int64 SetAutoLogin(__int64 windowID, __int64 server, __int64 subserver, __int64 position, const QString& acccount, const QString& password)
+	qint64 SetAutoLogin(qint64 windowID, qint64 server, qint64 subserver, qint64 position, const QString& acccount, const QString& password)
 	{
 		DWORD_PTR result = 0;
 		LoginInfo info;
@@ -186,16 +186,16 @@ public:
 
 		if (SendMessageTimeoutW(targetWindow_, kSetAutoLogin, windowID, (LPARAM)&info, SMTO_ABORTIFHUNG | SMTO_ERRORONEXIT, 10000u, &result) != 0)
 		{
-			return static_cast<__int64>(result);
+			return static_cast<qint64>(result);
 		}
 
 		return -1;
 	}
 
-	__int64 LoadSettings(__int64 windowID, const QString& jsonConfigPath) {
+	qint64 LoadSettings(qint64 windowID, const QString& jsonConfigPath) {
 		DWORD_PTR result = 0;
 		if (SendMessageTimeoutW(targetWindow_, kLoadSettings, windowID, (LPARAM)jsonConfigPath.toUtf8().constData(), SMTO_ABORTIFHUNG | SMTO_ERRORONEXIT, 10000u, &result) != 0) {
-			return static_cast<__int64>(result);
+			return static_cast<qint64>(result);
 		}
 		return -1;
 	}

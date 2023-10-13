@@ -28,14 +28,14 @@ class MapForm : public QWidget, public Indexer
 	Q_OBJECT
 
 public:
-	explicit MapForm(__int64 index, QWidget* parent);
+	explicit MapForm(qint64 index, QWidget* parent);
 
 	virtual ~MapForm();
 
 private slots:
 	void onButtonClicked();
 
-	void onUpdateNpcList(__int64 floor);
+	void onUpdateNpcList(qint64 floor);
 
 	void onTableWidgetCellDoubleClicked(int row, int col);
 
@@ -49,7 +49,7 @@ protected:
 	}
 
 private:
-	void resizeTableWidgetRow(__int64 max);
+	void resizeTableWidgetRow(qint64 max);
 
 private:
 	Ui::MapFormClass ui;
@@ -58,5 +58,5 @@ private:
 
 	std::unique_ptr<Interpreter> interpreter_;
 
-	static QHash<__int64, QHash<QPoint, QString>> entrances_;
+	static QHash<qint64, QHash<QPoint, QString>> entrances_;
 };

@@ -1,12 +1,10 @@
-﻿import Utility;
-import Config;
-
-#include "stdafx.h"
+﻿#include "stdafx.h"
 #include "form/afkform.h"
 #include "generalform.h"
 #include "selectobjectform.h"
 
 #include "mainthread.h"
+#include <util.h>
 #include <injector.h>
 #include "signaldispatcher.h"
 
@@ -14,39 +12,39 @@ import Config;
 //#include "net/webauthenticator.h"
 //#endif
 
-GeneralForm::GeneralForm(__int64 index, QWidget* parent)
+GeneralForm::GeneralForm(qint64 index, QWidget* parent)
 	: QWidget(parent)
 	, Indexer(index)
 {
 	ui.setupUi(this);
 
-	connect(this, &GeneralForm::resetControlTextLanguage, this, &GeneralForm::onResetControlTextLanguage, Qt::QueuedConnection);
+	connect(this, &GeneralForm::resetControlTextLanguage, this, &GeneralForm::onResetControlTextLanguage, Qt::UniqueConnection);
 
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(index);
-	connect(&signalDispatcher, &SignalDispatcher::setStartButtonEnabled, ui.pushButton_start, &PushButton::setEnabled, Qt::QueuedConnection);
-	connect(&signalDispatcher, &SignalDispatcher::applyHashSettingsToUI, this, &GeneralForm::onApplyHashSettingsToUI, Qt::QueuedConnection);
-	connect(&signalDispatcher, &SignalDispatcher::gameStarted, this, &GeneralForm::onGameStart, Qt::QueuedConnection);
+	connect(&signalDispatcher, &SignalDispatcher::setStartButtonEnabled, ui.pushButton_start, &PushButton::setEnabled, Qt::UniqueConnection);
+	connect(&signalDispatcher, &SignalDispatcher::applyHashSettingsToUI, this, &GeneralForm::onApplyHashSettingsToUI, Qt::UniqueConnection);
+	connect(&signalDispatcher, &SignalDispatcher::gameStarted, this, &GeneralForm::onGameStart, Qt::UniqueConnection);
 
 
 	QList<PushButton*> buttonList = util::findWidgets<PushButton>(this);
 	for (auto& button : buttonList)
 	{
 		if (button)
-			connect(button, &PushButton::clicked, this, &GeneralForm::onButtonClicked, Qt::QueuedConnection);
+			connect(button, &PushButton::clicked, this, &GeneralForm::onButtonClicked, Qt::UniqueConnection);
 	}
 
 	QList <QCheckBox*> checkBoxList = util::findWidgets<QCheckBox>(this);
 	for (auto& checkBox : checkBoxList)
 	{
 		if (checkBox)
-			connect(checkBox, &QCheckBox::stateChanged, this, &GeneralForm::onCheckBoxStateChanged, Qt::QueuedConnection);
+			connect(checkBox, &QCheckBox::stateChanged, this, &GeneralForm::onCheckBoxStateChanged, Qt::UniqueConnection);
 	}
 
 	QList <QSpinBox*> spinBoxList = util::findWidgets<QSpinBox>(this);
 	for (auto& spinBox : spinBoxList)
 	{
 		if (spinBox)
-			connect(spinBox, SIGNAL(valueChanged(int)), this, SLOT(onSpinBoxValueChanged(int)), Qt::QueuedConnection);
+			connect(spinBox, SIGNAL(valueChanged(int)), this, SLOT(onSpinBoxValueChanged(int)), Qt::UniqueConnection);
 	}
 
 	QList <ComboBox*> comboBoxList = util::findWidgets<ComboBox>(this);
@@ -54,8 +52,8 @@ GeneralForm::GeneralForm(__int64 index, QWidget* parent)
 	{
 		if (comboBox)
 		{
-			connect(comboBox, SIGNAL(currentIndexChanged(int)), this, SLOT(onComboBoxCurrentIndexChanged(int)), Qt::QueuedConnection);
-			connect(comboBox, &ComboBox::clicked, this, &GeneralForm::onComboBoxClicked, Qt::QueuedConnection);
+			connect(comboBox, SIGNAL(currentIndexChanged(int)), this, SLOT(onComboBoxCurrentIndexChanged(int)), Qt::UniqueConnection);
+			connect(comboBox, &ComboBox::clicked, this, &GeneralForm::onComboBoxClicked, Qt::UniqueConnection);
 		}
 	}
 
@@ -75,8 +73,8 @@ GeneralForm::GeneralForm(__int64 index, QWidget* parent)
 		return;
 	}
 
-	__int64 idx = 0;
-	__int64 defaultIndex = -1;
+	qint64 idx = 0;
+	qint64 defaultIndex = -1;
 	ui.comboBox_setting->blockSignals(true);
 	ui.comboBox_setting->clear();
 	for (const QPair<QString, QString>& pair : fileList)
@@ -116,7 +114,7 @@ GeneralForm::GeneralForm(__int64 index, QWidget* parent)
 
 GeneralForm::~GeneralForm()
 {
-	__int64 currentIndex = getIndex();
+	qint64 currentIndex = getIndex();
 
 	if (pAfkForm_ != nullptr)
 	{
@@ -199,7 +197,7 @@ void GeneralForm::onComboBoxClicked()
 			pListView->setMaximumWidth(260);
 		}
 
-		Config config;
+		util::Config config;
 		QStringList paths = config.readArray<QString>("System", "Command", "DirPath");
 		QStringList newPaths;
 
@@ -264,7 +262,7 @@ void GeneralForm::onButtonClicked()
 	if (name.isEmpty())
 		return;
 
-	__int64 currentIndex = getIndex();
+	qint64 currentIndex = getIndex();
 
 	Injector& injector = Injector::getInstance(currentIndex);
 
@@ -283,7 +281,7 @@ void GeneralForm::onButtonClicked()
 		if (!newPath.contains(SASH_SUPPORT_GAMENAME) || !QFile::exists(newPath))
 			return;
 
-		Config config;
+		util::Config config;
 		QStringList paths = config.readArray<QString>("System", "Command", "DirPath");
 		QStringList newPaths;
 
@@ -332,14 +330,14 @@ void GeneralForm::onButtonClicked()
 
 	if (name == "pushButton_logout")
 	{
-		//bool flag = injector.getEnableHash(kLogOutEnable);
+		//bool flag = injector.getEnableHash(util::kLogOutEnable);
 		if (injector.isValid())
 		{
 			//QMessageBox::StandardButton button = QMessageBox::warning(this, tr("logout"), tr("Are you sure you want to logout now?"),
 			//	QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
 			//if (button == QMessageBox::Yes)
 			//{
-			injector.setEnableHash(kLogOutEnable, true);
+			injector.setEnableHash(util::kLogOutEnable, true);
 			//}
 		}
 		return;
@@ -353,7 +351,7 @@ void GeneralForm::onButtonClicked()
 			//	QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
 			//if (button == QMessageBox::Yes)
 			//{
-			injector.setEnableHash(kLogBackEnable, true);
+			injector.setEnableHash(util::kLogBackEnable, true);
 			//}
 		}
 
@@ -392,8 +390,8 @@ void GeneralForm::onButtonClicked()
 
 	if (name == "pushButton_dock")
 	{
-		bool flag = injector.getEnableHash(kWindowDockEnable);
-		injector.setEnableHash(kWindowDockEnable, !flag);
+		bool flag = injector.getEnableHash(util::kWindowDockEnable);
+		injector.setEnableHash(util::kWindowDockEnable, !flag);
 		if (flag)
 		{
 			ui.pushButton_dock->setText(tr("dock"));
@@ -436,7 +434,7 @@ void GeneralForm::onButtonClicked()
 
 	if (name == "pushButton_eo")
 	{
-		injector.setEnableHash(kEchoEnable, true);
+		injector.setEnableHash(util::kEchoEnable, true);
 		return;
 	}
 
@@ -478,44 +476,44 @@ void GeneralForm::onCheckBoxStateChanged(int state)
 	if (name.isEmpty())
 		return;
 
-	__int64 currentIndex = getIndex();
+	qint64 currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
 
 	//login
 	if (name == "checkBox_autologin")
 	{
-		injector.setEnableHash(kAutoLoginEnable, isChecked);
+		injector.setEnableHash(util::kAutoLoginEnable, isChecked);
 		return;
 	}
 
 	if (name == "checkBox_autoreconnect")
 	{
-		injector.setEnableHash(kAutoReconnectEnable, isChecked);
+		injector.setEnableHash(util::kAutoReconnectEnable, isChecked);
 		return;
 	}
 
 	//support
 	if (name == "checkBox_hidechar")
 	{
-		injector.setEnableHash(kHideCharacterEnable, isChecked);
+		injector.setEnableHash(util::kHideCharacterEnable, isChecked);
 		return;
 	}
 
 	if (name == "checkBox_closeeffect")
 	{
-		injector.setEnableHash(kCloseEffectEnable, isChecked);
+		injector.setEnableHash(util::kCloseEffectEnable, isChecked);
 		return;
 	}
 
 	if (name == "checkBox_optimize")
 	{
-		injector.setEnableHash(kOptimizeEnable, isChecked);
+		injector.setEnableHash(util::kOptimizeEnable, isChecked);
 		return;
 	}
 
 	if (name == "checkBox_hidewindow")
 	{
-		injector.setEnableHash(kHideWindowEnable, isChecked);
+		injector.setEnableHash(util::kHideWindowEnable, isChecked);
 		if (isChecked)
 			injector.hide();
 		else
@@ -526,17 +524,17 @@ void GeneralForm::onCheckBoxStateChanged(int state)
 
 	if (name == "checkBox_mute")
 	{
-		injector.setEnableHash(kMuteEnable, isChecked);
+		injector.setEnableHash(util::kMuteEnable, isChecked);
 		return;
 	}
 
 	if (name == "checkBox_autojoin")
 	{
-		injector.setEnableHash(kAutoJoinEnable, isChecked);
-		__int64 type = injector.getValueHash(kAutoFunTypeValue);
+		injector.setEnableHash(util::kAutoJoinEnable, isChecked);
+		qint64 type = injector.getValueHash(util::kAutoFunTypeValue);
 		if (isChecked && type != 0)
 		{
-			injector.setValueHash(kAutoFunTypeValue, 0);
+			injector.setValueHash(util::kAutoFunTypeValue, 0);
 		}
 
 		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
@@ -546,56 +544,56 @@ void GeneralForm::onCheckBoxStateChanged(int state)
 
 	if (name == "checkBox_locktime")
 	{
-		injector.setEnableHash(kLockTimeEnable, isChecked);
+		injector.setEnableHash(util::kLockTimeEnable, isChecked);
 		return;
 	}
 
 	if (name == "checkBox_autofreememory")
 	{
-		injector.setEnableHash(kAutoFreeMemoryEnable, isChecked);
+		injector.setEnableHash(util::kAutoFreeMemoryEnable, isChecked);
 		return;
 	}
 
 	//support2
 	if (name == "checkBox_fastwalk")
 	{
-		injector.setEnableHash(kFastWalkEnable, isChecked);
+		injector.setEnableHash(util::kFastWalkEnable, isChecked);
 		return;
 	}
 
 	if (name == "checkBox_passwall")
 	{
-		injector.setEnableHash(kPassWallEnable, isChecked);
+		injector.setEnableHash(util::kPassWallEnable, isChecked);
 		return;
 	}
 
 	if (name == "checkBox_lockmove")
 	{
-		injector.setEnableHash(kLockMoveEnable, isChecked);
+		injector.setEnableHash(util::kLockMoveEnable, isChecked);
 		injector.sendMessage(kEnableMoveLock, isChecked, NULL);
 		return;
 	}
 
 	if (name == "checkBox_lockimage")
 	{
-		injector.setEnableHash(kLockImageEnable, isChecked);
+		injector.setEnableHash(util::kLockImageEnable, isChecked);
 		return;
 	}
 
 	if (name == "checkBox_autodropmeat")
 	{
-		injector.setEnableHash(kAutoDropMeatEnable, isChecked);
+		injector.setEnableHash(util::kAutoDropMeatEnable, isChecked);
 
 		return;
 	}
 
 	if (name == "checkBox_autodrop")
 	{
-		bool bOriginal = injector.getEnableHash(kAutoDropEnable);
+		bool bOriginal = injector.getEnableHash(util::kAutoDropEnable);
 		if (bOriginal == isChecked)
 			return;
 
-		injector.setEnableHash(kAutoDropEnable, isChecked);
+		injector.setEnableHash(util::kAutoDropEnable, isChecked);
 
 		if (!isChecked)
 			return;
@@ -604,48 +602,48 @@ void GeneralForm::onCheckBoxStateChanged(int state)
 		QStringList dstList;
 		QStringList srcSelectList;
 
-		QVariant d = injector.getUserData(kUserItemNames);
+		QVariant d = injector.getUserData(util::kUserItemNames);
 		if (d.isValid())
 		{
 			srcSelectList = d.toStringList();
 		}
 
-		QString src = injector.getStringHash(kAutoDropItemString);
+		QString src = injector.getStringHash(util::kAutoDropItemString);
 		if (!src.isEmpty())
 		{
-			srcList = src.split(rexOR, Qt::SkipEmptyParts);
+			srcList = src.split(util::rexOR, Qt::SkipEmptyParts);
 		}
 
 		if (!createSelectObjectForm(SelectObjectForm::kAutoDropItem, srcSelectList, srcList, &dstList, this))
 			return;
 
 		QString dst = dstList.join("|");
-		injector.setStringHash(kAutoDropItemString, dst);
+		injector.setStringHash(util::kAutoDropItemString, dst);
 
 		return;
 	}
 
 	if (name == "checkBox_autostack")
 	{
-		injector.setEnableHash(kAutoStackEnable, isChecked);
+		injector.setEnableHash(util::kAutoStackEnable, isChecked);
 		return;
 	}
 
 	if (name == "checkBox_knpc")
 	{
-		injector.setEnableHash(kKNPCEnable, isChecked);
+		injector.setEnableHash(util::kKNPCEnable, isChecked);
 		return;
 	}
 
 	if (name == "checkBox_autoanswer")
 	{
-		injector.setEnableHash(kAutoAnswerEnable, isChecked);
+		injector.setEnableHash(util::kAutoAnswerEnable, isChecked);
 		return;
 	}
 
 	if (name == "checkBox_autoeatbean")
 	{
-		injector.setEnableHash(kAutoEatBeanEnable, isChecked);
+		injector.setEnableHash(util::kAutoEatBeanEnable, isChecked);
 		return;
 	}
 
@@ -656,7 +654,7 @@ void GeneralForm::onCheckBoxStateChanged(int state)
 		{
 			ui.checkBox_fastautowalk->setChecked(!isChecked);
 		}
-		injector.setEnableHash(kAutoWalkEnable, isChecked);
+		injector.setEnableHash(util::kAutoWalkEnable, isChecked);
 		return;
 	}
 
@@ -666,7 +664,7 @@ void GeneralForm::onCheckBoxStateChanged(int state)
 		{
 			ui.checkBox_autowalk->setChecked(!isChecked);
 		}
-		injector.setEnableHash(kFastAutoWalkEnable, isChecked);
+		injector.setEnableHash(util::kFastAutoWalkEnable, isChecked);
 		return;
 	}
 
@@ -677,8 +675,8 @@ void GeneralForm::onCheckBoxStateChanged(int state)
 			ui.checkBox_autobattle->setChecked(!isChecked);
 		}
 
-		bool bOriginal = injector.getEnableHash(kFastBattleEnable);
-		injector.setEnableHash(kFastBattleEnable, isChecked);
+		bool bOriginal = injector.getEnableHash(util::kFastBattleEnable);
+		injector.setEnableHash(util::kFastBattleEnable, isChecked);
 		if (!bOriginal && isChecked && !injector.server.isNull())
 		{
 			injector.server->doBattleWork(false);
@@ -693,8 +691,8 @@ void GeneralForm::onCheckBoxStateChanged(int state)
 			ui.checkBox_fastbattle->setChecked(!isChecked);
 		}
 
-		bool bOriginal = injector.getEnableHash(kAutoBattleEnable);
-		injector.setEnableHash(kAutoBattleEnable, isChecked);
+		bool bOriginal = injector.getEnableHash(util::kAutoBattleEnable);
+		injector.setEnableHash(util::kAutoBattleEnable, isChecked);
 		if (!bOriginal && isChecked && !injector.server.isNull())
 		{
 			injector.server->doBattleWork(false);
@@ -705,23 +703,23 @@ void GeneralForm::onCheckBoxStateChanged(int state)
 
 	if (name == "checkBox_autocatch")
 	{
-		injector.setEnableHash(kAutoCatchEnable, isChecked);
+		injector.setEnableHash(util::kAutoCatchEnable, isChecked);
 		return;
 	}
 
 	if (name == "checkBox_autoescape")
 	{
-		injector.setEnableHash(kAutoEscapeEnable, isChecked);
+		injector.setEnableHash(util::kAutoEscapeEnable, isChecked);
 		return;
 	}
 
 	if (name == "checkBox_lockattck")
 	{
-		bool bOriginal = injector.getEnableHash(kLockAttackEnable);
+		bool bOriginal = injector.getEnableHash(util::kLockAttackEnable);
 		if (bOriginal == isChecked)
 			return;
 
-		injector.setEnableHash(kLockAttackEnable, isChecked);
+		injector.setEnableHash(util::kLockAttackEnable, isChecked);
 
 		if (!isChecked)
 			return;
@@ -730,7 +728,7 @@ void GeneralForm::onCheckBoxStateChanged(int state)
 		QStringList dstList;
 		QStringList srcSelectList;
 
-		QVariant d = injector.getUserData(kUserEnemyNames);
+		QVariant d = injector.getUserData(util::kUserEnemyNames);
 		if (d.isValid())
 			srcSelectList = d.toStringList();
 
@@ -739,25 +737,25 @@ void GeneralForm::onCheckBoxStateChanged(int state)
 			it.prepend("%(ename) == ");
 		}
 
-		QString src = injector.getStringHash(kLockAttackString);
+		QString src = injector.getStringHash(util::kLockAttackString);
 		if (!src.isEmpty())
-			srcList = src.split(rexOR, Qt::SkipEmptyParts);
+			srcList = src.split(util::rexOR, Qt::SkipEmptyParts);
 
 		if (!createSelectObjectForm(SelectObjectForm::kLockAttack, srcSelectList, srcList, &dstList, this))
 			return;
 
 		QString dst = dstList.join("|");
-		injector.setStringHash(kLockAttackString, dst);
+		injector.setStringHash(util::kLockAttackString, dst);
 		return;
 	}
 
 	if (name == "checkBox_lockescape")
 	{
-		bool bOriginal = injector.getEnableHash(kLockEscapeEnable);
+		bool bOriginal = injector.getEnableHash(util::kLockEscapeEnable);
 		if (bOriginal == isChecked)
 			return;
 
-		injector.setEnableHash(kLockEscapeEnable, isChecked);
+		injector.setEnableHash(util::kLockEscapeEnable, isChecked);
 
 		if (!isChecked)
 			return;
@@ -766,98 +764,98 @@ void GeneralForm::onCheckBoxStateChanged(int state)
 		QStringList dstList;
 		QStringList srcSelectList;
 
-		QVariant d = injector.getUserData(kUserEnemyNames);
+		QVariant d = injector.getUserData(util::kUserEnemyNames);
 		if (d.isValid())
 			srcSelectList = d.toStringList();
 
-		QString src = injector.getStringHash(kLockEscapeString);
+		QString src = injector.getStringHash(util::kLockEscapeString);
 		if (!src.isEmpty())
-			srcList = src.split(rexOR, Qt::SkipEmptyParts);
+			srcList = src.split(util::rexOR, Qt::SkipEmptyParts);
 
 		if (!createSelectObjectForm(SelectObjectForm::kLockEscape, srcSelectList, srcList, &dstList, this))
 			return;
 
 		QString dst = dstList.join("|");
-		injector.setStringHash(kLockEscapeString, dst);
+		injector.setStringHash(util::kLockEscapeString, dst);
 		return;
 	}
 
 	if (name == "checkBox_battletimeextend")
 	{
-		injector.setEnableHash(kBattleTimeExtendEnable, isChecked);
+		injector.setEnableHash(util::kBattleTimeExtendEnable, isChecked);
 		return;
 	}
 
 	if (name == "checkBox_falldownescape")
 	{
-		injector.setEnableHash(kFallDownEscapeEnable, isChecked);
+		injector.setEnableHash(util::kFallDownEscapeEnable, isChecked);
 		return;
 	}
 
 	if (name == "checkBox_showexp")
 	{
-		injector.setEnableHash(kShowExpEnable, isChecked);
+		injector.setEnableHash(util::kShowExpEnable, isChecked);
 		return;
 	}
 
 	if (name == "checkBox_autoswitch")
 	{
-		injector.setEnableHash(kBattleAutoSwitchEnable, isChecked);
+		injector.setEnableHash(util::kBattleAutoSwitchEnable, isChecked);
 		return;
 	}
 
 	if (name == "checkBox_battleautoeo")
 	{
-		injector.setEnableHash(kBattleAutoEOEnable, isChecked);
+		injector.setEnableHash(util::kBattleAutoEOEnable, isChecked);
 		return;
 	}
 
 	//shortcut switcher
 	if (name == "checkBox_switcher_team")
 	{
-		injector.setEnableHash(kSwitcherTeamEnable, isChecked);
+		injector.setEnableHash(util::kSwitcherTeamEnable, isChecked);
 		return;
 	}
 
 	if (name == "checkBox_switcher_pk")
 	{
-		injector.setEnableHash(kSwitcherPKEnable, isChecked);
+		injector.setEnableHash(util::kSwitcherPKEnable, isChecked);
 		return;
 	}
 
 	if (name == "checkBox_switcher_card")
 	{
-		injector.setEnableHash(kSwitcherCardEnable, isChecked);
+		injector.setEnableHash(util::kSwitcherCardEnable, isChecked);
 		return;
 	}
 
 	if (name == "checkBox_switcher_trade")
 	{
-		injector.setEnableHash(kSwitcherTradeEnable, isChecked);
+		injector.setEnableHash(util::kSwitcherTradeEnable, isChecked);
 		return;
 	}
 
 	if (name == "checkBox_switcher_group")
 	{
-		injector.setEnableHash(kSwitcherGroupEnable, isChecked);
+		injector.setEnableHash(util::kSwitcherGroupEnable, isChecked);
 		return;
 	}
 
 	if (name == "checkBox_switcher_family")
 	{
-		injector.setEnableHash(kSwitcherFamilyEnable, isChecked);
+		injector.setEnableHash(util::kSwitcherFamilyEnable, isChecked);
 		return;
 	}
 
 	if (name == "checkBox_switcher_job")
 	{
-		injector.setEnableHash(kSwitcherJobEnable, isChecked);
+		injector.setEnableHash(util::kSwitcherJobEnable, isChecked);
 		return;
 	}
 
 	else if (name == "checkBox_switcher_world")
 	{
-		injector.setEnableHash(kSwitcherWorldEnable, isChecked);
+		injector.setEnableHash(util::kSwitcherWorldEnable, isChecked);
 		return;
 	}
 }
@@ -872,12 +870,12 @@ void GeneralForm::onSpinBoxValueChanged(int value)
 	if (name.isEmpty())
 		return;
 
-	__int64 currentIndex = getIndex();
+	qint64 currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
 
 	if (name == "spinBox_speedboost")
 	{
-		injector.setValueHash(kSpeedBoostValue, value);
+		injector.setValueHash(util::kSpeedBoostValue, value);
 		return;
 	}
 }
@@ -892,12 +890,12 @@ void GeneralForm::onComboBoxCurrentIndexChanged(int value)
 	if (name.isEmpty())
 		return;
 
-	__int64 currentIndex = getIndex();
+	qint64 currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
 	if (name == "comboBox_serverlist")
 	{
 		{
-			Config config;
+			util::Config config;
 			config.write("System", "Server", "LastServerListSelection", ui.comboBox_serverlist->currentIndex());
 		}
 
@@ -907,26 +905,26 @@ void GeneralForm::onComboBoxCurrentIndexChanged(int value)
 
 	if (name == "comboBox_server")
 	{
-		injector.setValueHash(kServerValue, value);
+		injector.setValueHash(util::kServerValue, value);
 		serverListReLoad();
 		return;
 	}
 
 	if (name == "comboBox_subserver")
 	{
-		injector.setValueHash(kSubServerValue, value);
+		injector.setValueHash(util::kSubServerValue, value);
 		return;
 	}
 
 	if (name == "comboBox_position")
 	{
-		injector.setValueHash(kPositionValue, value);
+		injector.setValueHash(util::kPositionValue, value);
 		return;
 	}
 
 	if (name == "comboBox_locktime")
 	{
-		injector.setValueHash(kLockTimeValue, value);
+		injector.setValueHash(util::kLockTimeValue, value);
 		if (ui.checkBox_locktime->isChecked())
 			injector.sendMessage(kSetTimeLock, true, value);
 		return;
@@ -934,8 +932,8 @@ void GeneralForm::onComboBoxCurrentIndexChanged(int value)
 
 	if (name == "comboBox_paths")
 	{
-		Config config;
-		__int64 current = ui.comboBox_paths->currentIndex();
+		util::Config config;
+		qint64 current = ui.comboBox_paths->currentIndex();
 		if (current >= 0)
 			config.write("System", "Command", "LastSelection", ui.comboBox_paths->currentIndex());
 		return;
@@ -944,15 +942,15 @@ void GeneralForm::onComboBoxCurrentIndexChanged(int value)
 
 void GeneralForm::onApplyHashSettingsToUI()
 {
-	__int64 currentIndex = getIndex();
+	qint64 currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
-	QHash<UserSetting, bool> enableHash = injector.getEnablesHash();
-	QHash<UserSetting, __int64> valueHash = injector.getValuesHash();
-	QHash<UserSetting, QString> stringHash = injector.getStringsHash();
+	QHash<util::UserSetting, bool> enableHash = injector.getEnablesHash();
+	QHash<util::UserSetting, qint64> valueHash = injector.getValuesHash();
+	QHash<util::UserSetting, QString> stringHash = injector.getStringsHash();
 
 	{
-		Config config;
-		__int64 index = config.read<__int64>("System", "Command", "LastSelection");
+		util::Config config;
+		qint64 index = config.read<qint64>("System", "Command", "LastSelection");
 
 		if (index >= 0 && index < ui.comboBox_paths->count())
 		{
@@ -963,7 +961,7 @@ void GeneralForm::onApplyHashSettingsToUI()
 		else if (ui.comboBox_paths->count() > 0)
 			ui.comboBox_paths->setCurrentIndex(0);
 
-		__int64 count = config.read<__int64>("System", "Server", "ListCount");
+		qint64 count = config.read<qint64>("System", "Server", "ListCount");
 		if (count <= 0)
 		{
 			count = 3;
@@ -973,12 +971,12 @@ void GeneralForm::onApplyHashSettingsToUI()
 		ui.comboBox_serverlist->blockSignals(true);
 
 		ui.comboBox_serverlist->clear();
-		for (__int64 i = 0; i < count; ++i)
+		for (qint64 i = 0; i < count; ++i)
 		{
 			ui.comboBox_serverlist->addItem(tr("ServerList%1").arg(i + 1), i);
 		}
 
-		__int64 lastServerListSelection = config.read<__int64>("System", "Server", "LastServerListSelection");
+		qint64 lastServerListSelection = config.read<qint64>("System", "Server", "LastServerListSelection");
 		if (lastServerListSelection >= 0 && lastServerListSelection < count)
 			ui.comboBox_serverlist->setCurrentIndex(lastServerListSelection);
 		else if (ui.comboBox_serverlist->count() > 0)
@@ -987,10 +985,10 @@ void GeneralForm::onApplyHashSettingsToUI()
 		ui.comboBox_serverlist->blockSignals(false);
 	}
 
-	__int64 value = 0;
+	qint64 value = 0;
 
 	//login
-	value = valueHash.value(kServerValue);
+	value = valueHash.value(util::kServerValue);
 	if (value >= 0 && value < ui.comboBox_server->count())
 		ui.comboBox_server->setCurrentIndex(value);
 	else
@@ -998,77 +996,77 @@ void GeneralForm::onApplyHashSettingsToUI()
 
 	serverListReLoad();
 
-	value = valueHash.value(kSubServerValue);
+	value = valueHash.value(util::kSubServerValue);
 	if (value >= 0 && value < ui.comboBox_subserver->count())
 		ui.comboBox_subserver->setCurrentIndex(value);
 	else
 		ui.comboBox_subserver->setCurrentIndex(0);
 
-	value = valueHash.value(kPositionValue);
+	value = valueHash.value(util::kPositionValue);
 	if (value >= 0 && value < ui.comboBox_position->count())
 		ui.comboBox_position->setCurrentIndex(value);
 	else
 		ui.comboBox_position->setCurrentIndex(0);
 
-	if (enableHash.value(kWindowDockEnable))
+	if (enableHash.value(util::kWindowDockEnable))
 		ui.pushButton_dock->setText(tr("undock"));
 	else
 		ui.pushButton_dock->setText(tr("dock"));
 
-	ui.comboBox_locktime->setCurrentIndex(valueHash.value(kLockTimeValue));
-	ui.checkBox_autologin->setChecked(enableHash.value(kAutoLoginEnable));
-	ui.checkBox_autoreconnect->setChecked(enableHash.value(kAutoReconnectEnable));
+	ui.comboBox_locktime->setCurrentIndex(valueHash.value(util::kLockTimeValue));
+	ui.checkBox_autologin->setChecked(enableHash.value(util::kAutoLoginEnable));
+	ui.checkBox_autoreconnect->setChecked(enableHash.value(util::kAutoReconnectEnable));
 
 	//support
-	ui.checkBox_hidechar->setChecked(enableHash.value(kHideCharacterEnable));
-	ui.checkBox_closeeffect->setChecked(enableHash.value(kCloseEffectEnable));
-	ui.checkBox_optimize->setChecked(enableHash.value(kOptimizeEnable));
-	ui.checkBox_hidewindow->setChecked(enableHash.value(kHideWindowEnable));
-	ui.checkBox_mute->setChecked(enableHash.value(kMuteEnable));
-	ui.checkBox_autojoin->setChecked(enableHash.value(kAutoJoinEnable));
-	ui.checkBox_locktime->setChecked(enableHash.value(kLockTimeEnable));
-	ui.checkBox_autofreememory->setChecked(enableHash.value(kAutoFreeMemoryEnable));
-	ui.checkBox_showexp->setChecked(enableHash.value(kShowExpEnable));
+	ui.checkBox_hidechar->setChecked(enableHash.value(util::kHideCharacterEnable));
+	ui.checkBox_closeeffect->setChecked(enableHash.value(util::kCloseEffectEnable));
+	ui.checkBox_optimize->setChecked(enableHash.value(util::kOptimizeEnable));
+	ui.checkBox_hidewindow->setChecked(enableHash.value(util::kHideWindowEnable));
+	ui.checkBox_mute->setChecked(enableHash.value(util::kMuteEnable));
+	ui.checkBox_autojoin->setChecked(enableHash.value(util::kAutoJoinEnable));
+	ui.checkBox_locktime->setChecked(enableHash.value(util::kLockTimeEnable));
+	ui.checkBox_autofreememory->setChecked(enableHash.value(util::kAutoFreeMemoryEnable));
+	ui.checkBox_showexp->setChecked(enableHash.value(util::kShowExpEnable));
 
 	//sp
-	ui.spinBox_speedboost->setValue(valueHash.value(kSpeedBoostValue));
+	ui.spinBox_speedboost->setValue(valueHash.value(util::kSpeedBoostValue));
 
 
 	//support2
-	ui.checkBox_fastwalk->setChecked(enableHash.value(kFastWalkEnable));
-	ui.checkBox_passwall->setChecked(enableHash.value(kPassWallEnable));
-	ui.checkBox_lockmove->setChecked(enableHash.value(kLockMoveEnable));
-	ui.checkBox_lockimage->setChecked(enableHash.value(kLockImageEnable));
-	ui.checkBox_autodropmeat->setChecked(enableHash.value(kAutoDropMeatEnable));
-	ui.checkBox_autodrop->setChecked(enableHash.value(kAutoDropEnable));
-	ui.checkBox_autostack->setChecked(enableHash.value(kAutoStackEnable));
-	ui.checkBox_knpc->setChecked(enableHash.value(kKNPCEnable));
-	ui.checkBox_autoanswer->setChecked(enableHash.value(kAutoAnswerEnable));
-	ui.checkBox_autoeatbean->setChecked(enableHash.value(kAutoEatBeanEnable));
+	ui.checkBox_fastwalk->setChecked(enableHash.value(util::kFastWalkEnable));
+	ui.checkBox_passwall->setChecked(enableHash.value(util::kPassWallEnable));
+	ui.checkBox_lockmove->setChecked(enableHash.value(util::kLockMoveEnable));
+	ui.checkBox_lockimage->setChecked(enableHash.value(util::kLockImageEnable));
+	ui.checkBox_autodropmeat->setChecked(enableHash.value(util::kAutoDropMeatEnable));
+	ui.checkBox_autodrop->setChecked(enableHash.value(util::kAutoDropEnable));
+	ui.checkBox_autostack->setChecked(enableHash.value(util::kAutoStackEnable));
+	ui.checkBox_knpc->setChecked(enableHash.value(util::kKNPCEnable));
+	ui.checkBox_autoanswer->setChecked(enableHash.value(util::kAutoAnswerEnable));
+	ui.checkBox_autoeatbean->setChecked(enableHash.value(util::kAutoEatBeanEnable));
 
 	//battle
-	ui.checkBox_autowalk->setChecked(enableHash.value(kAutoWalkEnable));
-	ui.checkBox_fastautowalk->setChecked(enableHash.value(kFastAutoWalkEnable));
-	ui.checkBox_fastbattle->setChecked(enableHash.value(kFastBattleEnable));
-	ui.checkBox_autobattle->setChecked(enableHash.value(kAutoBattleEnable));
-	ui.checkBox_autocatch->setChecked(enableHash.value(kAutoCatchEnable));
-	ui.checkBox_lockattck->setChecked(enableHash.value(kLockAttackEnable));
-	ui.checkBox_autoescape->setChecked(enableHash.value(kAutoEscapeEnable));
-	ui.checkBox_lockescape->setChecked(enableHash.value(kLockEscapeEnable));
-	ui.checkBox_battletimeextend->setChecked(enableHash.value(kBattleTimeExtendEnable));
-	ui.checkBox_falldownescape->setChecked(enableHash.value(kFallDownEscapeEnable));
-	ui.checkBox_autoswitch->setChecked(enableHash.value(kBattleAutoSwitchEnable));
-	ui.checkBox_battleautoeo->setChecked(enableHash.value(kBattleAutoEOEnable));
+	ui.checkBox_autowalk->setChecked(enableHash.value(util::kAutoWalkEnable));
+	ui.checkBox_fastautowalk->setChecked(enableHash.value(util::kFastAutoWalkEnable));
+	ui.checkBox_fastbattle->setChecked(enableHash.value(util::kFastBattleEnable));
+	ui.checkBox_autobattle->setChecked(enableHash.value(util::kAutoBattleEnable));
+	ui.checkBox_autocatch->setChecked(enableHash.value(util::kAutoCatchEnable));
+	ui.checkBox_lockattck->setChecked(enableHash.value(util::kLockAttackEnable));
+	ui.checkBox_autoescape->setChecked(enableHash.value(util::kAutoEscapeEnable));
+	ui.checkBox_lockescape->setChecked(enableHash.value(util::kLockEscapeEnable));
+	ui.checkBox_battletimeextend->setChecked(enableHash.value(util::kBattleTimeExtendEnable));
+	ui.checkBox_falldownescape->setChecked(enableHash.value(util::kFallDownEscapeEnable));
+	ui.checkBox_autoswitch->setChecked(enableHash.value(util::kBattleAutoSwitchEnable));
+	ui.checkBox_battleautoeo->setChecked(enableHash.value(util::kBattleAutoEOEnable));
 
 	//switcher
-	ui.checkBox_switcher_team->setChecked(enableHash.value(kSwitcherTeamEnable));
-	ui.checkBox_switcher_pk->setChecked(enableHash.value(kSwitcherPKEnable));
-	ui.checkBox_switcher_card->setChecked(enableHash.value(kSwitcherCardEnable));
-	ui.checkBox_switcher_trade->setChecked(enableHash.value(kSwitcherTradeEnable));
-	ui.checkBox_switcher_group->setChecked(enableHash.value(kSwitcherGroupEnable));
-	ui.checkBox_switcher_family->setChecked(enableHash.value(kSwitcherFamilyEnable));
-	ui.checkBox_switcher_job->setChecked(enableHash.value(kSwitcherJobEnable));
-	ui.checkBox_switcher_world->setChecked(enableHash.value(kSwitcherWorldEnable));
+	ui.checkBox_switcher_team->setChecked(enableHash.value(util::kSwitcherTeamEnable));
+	ui.checkBox_switcher_pk->setChecked(enableHash.value(util::kSwitcherPKEnable));
+	ui.checkBox_switcher_card->setChecked(enableHash.value(util::kSwitcherCardEnable));
+	ui.checkBox_switcher_trade->setChecked(enableHash.value(util::kSwitcherTradeEnable));
+	ui.checkBox_switcher_group->setChecked(enableHash.value(util::kSwitcherGroupEnable));
+	ui.checkBox_switcher_family->setChecked(enableHash.value(util::kSwitcherFamilyEnable));
+	ui.checkBox_switcher_job->setChecked(enableHash.value(util::kSwitcherJobEnable));
+	ui.checkBox_switcher_world->setChecked(enableHash.value(util::kSwitcherWorldEnable));
 }
 
 void GeneralForm::onGameStart()
@@ -1095,7 +1093,7 @@ void GeneralForm::startGameAsync()
 
 		ThreadManager& thread_manager = ThreadManager::getInstance();
 
-		__int64 currentIndex = getIndex();
+		qint64 currentIndex = getIndex();
 
 		Injector& injector = Injector::getInstance(currentIndex);
 		injector.currentGameExePath = path;
@@ -1126,15 +1124,15 @@ void GeneralForm::startGameAsync()
 
 void GeneralForm::createServerList()
 {
-	__int64 currentIndex = getIndex();
-	__int64 currentListIndex = ui.comboBox_serverlist->currentIndex();
+	qint64 currentIndex = getIndex();
+	qint64 currentListIndex = ui.comboBox_serverlist->currentIndex();
 	if (currentListIndex < 0)
 		currentListIndex = 0;
 	QStringList list;
 	Injector& injector = Injector::getInstance(currentIndex);
 
 	{
-		Config config;
+		util::Config config;
 
 		injector.currentServerListIndex = currentListIndex;
 		list = config.readArray<QString>("System", "Server", QString("List_%1").arg(currentListIndex));
@@ -1191,7 +1189,7 @@ void GeneralForm::createServerList()
 				defaultListXGSA,
 			};
 
-			for (__int64 i = 0; i < defaultList.size(); ++i)
+			for (qint64 i = 0; i < defaultList.size(); ++i)
 				config.writeArray<QString>("System", "Server", QString("List_%1").arg(i), defaultList.value(i));
 
 			if (currentListIndex >= 0 && currentListIndex < defaultList.size())
@@ -1200,7 +1198,7 @@ void GeneralForm::createServerList()
 	}
 
 	QString currentText = ui.comboBox_server->currentText();
-	__int64 current = ui.comboBox_server->currentIndex();
+	qint64 current = ui.comboBox_server->currentIndex();
 
 	ui.comboBox_server->setUpdatesEnabled(false);
 	ui.comboBox_subserver->setUpdatesEnabled(false);
@@ -1211,7 +1209,7 @@ void GeneralForm::createServerList()
 	QStringList subServerNameList;
 	for (const QString& it : list)
 	{
-		QStringList subList = it.split(rexOR, Qt::SkipEmptyParts);
+		QStringList subList = it.split(util::rexOR, Qt::SkipEmptyParts);
 		if (subList.isEmpty())
 			continue;
 
@@ -1225,7 +1223,7 @@ void GeneralForm::createServerList()
 
 		QString server = subList.takeFirst();
 
-		subList = subList.first().split(rexComma, Qt::SkipEmptyParts);
+		subList = subList.first().split(util::rexComma, Qt::SkipEmptyParts);
 		if (subList.isEmpty())
 			continue;
 
@@ -1251,8 +1249,8 @@ void GeneralForm::createServerList()
 
 void GeneralForm::serverListReLoad()
 {
-	__int64 current = ui.comboBox_subserver->currentIndex();
-	__int64 currentServerList = ui.comboBox_serverlist->currentIndex();
+	qint64 current = ui.comboBox_subserver->currentIndex();
+	qint64 currentServerList = ui.comboBox_serverlist->currentIndex();
 	if (currentServerList < 0)
 		currentServerList = 0;
 

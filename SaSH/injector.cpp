@@ -15,28 +15,23 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 */
-import Mem;
-import Config;
-import Utility;
-import Scoped;
-import Safe;
 
 #include "stdafx.h"
 #include <injector.h>
 #include "model/listview.h"
 
-SafeHash<__int64, Injector*> g_injectorInstances;
+util::SafeHash<qint64, Injector*> Injector::instances;
 
-constexpr __int64 MessageTimeout = 3000;
-constexpr __int64 MAX_TIMEOUT = 30000;
+constexpr qint64 MessageTimeout = 3000;
+constexpr qint64 MAX_TIMEOUT = 30000;
 
-Injector::Injector(__int64 index)
+Injector::Injector(qint64 index)
 	: Indexer(index)
+	, log(index, nullptr)
 	, autil(index)
 {
 	scriptLogModel.reset(new StringListModel);
 	chatLogModel.reset(new StringListModel);
-	log.reset(new Logger(index));
 }
 
 Injector::~Injector()
@@ -44,53 +39,21 @@ Injector::~Injector()
 	qDebug() << "Injector is destroyed!!";
 }
 
-Injector& Injector::getInstance(__int64 index)
-{
-	if (!g_injectorInstances.contains(index))
-	{
-		Injector* instance = new Injector(index);
-		Q_ASSERT(instance != nullptr);
-
-		if (instance != nullptr)
-			g_injectorInstances.insert(index, instance);
-
-	}
-	return *g_injectorInstances.value(index);
-}
-
-bool Injector::get(__int64 index, Injector** ppinstance)
-{
-	if (!g_injectorInstances.contains(index))
-		return false;
-
-	if (ppinstance != nullptr)
-		*ppinstance = g_injectorInstances.value(index);
-	return true;
-}
-
-void Injector::setIndex(__int64 index)
-{
-	if (!server.isNull())
-		server->setIndex(index);
-
-	Indexer::setIndex(index);
-}
-
 void Injector::reset()
 {
-	QList<__int64> keys = g_injectorInstances.keys();
-	for (__int64 key : keys)
+	QList<qint64> keys = instances.keys();
+	for (qint64 key : keys)
 	{
 		reset(key);
 	}
 }
 
-void Injector::reset(__int64 index)//static
+void Injector::reset(qint64 index)//static
 {
-	if (!g_injectorInstances.contains(index))
+	if (!instances.contains(index))
 		return;
 
-	Injector* instance = g_injectorInstances.value(index);
+	Injector* instance = instances.value(index);
 
 	instance->server.reset(nullptr);
 	instance->hGameModule_ = 0ULL;
@@ -107,15 +70,15 @@ void Injector::reset(__int64 index)//static
 	instance->IS_INJECT_OK = false;
 #if 0
 	//紀錄當前設置
-	QHash<UserSetting, bool> enableHash = instance->getEnablesHash();
-	QHash<UserSetting, __int64> valueHash = instance->getValuesHash();
-	QHash<UserSetting, QString> stringHash = instance->getStringsHash();
+	QHash<util::UserSetting, bool> enableHash = instance->getEnablesHash();
+	QHash<util::UserSetting, qint64> valueHash = instance->getValuesHash();
+	QHash<util::UserSetting, QString> stringHash = instance->getStringsHash();
 
 	QStringList _serverNameList = instance->serverNameList.get();
 
 	QStringList _subServerNameList = instance->subServerNameList.get();
 
-	__int64 _currentServerListIndex = instance->currentServerListIndex;
+	qint64 _currentServerListIndex = instance->currentServerListIndex;
 
 	QString _currentScriptFileName = instance->currentScriptFileName;
 
@@ -145,14 +108,6 @@ void Injector::reset(__int64 index)//static
 #endif
 }
 
-void Injector::close() const { if (processHandle_) MINT::NtTerminateProcess(processHandle_, 0); }
-
-HANDLE Injector::getProcess() const { return processHandle_; }
-
-bool Injector::isValid() const { return hGameModule_ != NULL && pi_.dwProcessId != NULL && pi_.hWnd != nullptr && processHandle_.isValid(); }
-
-
-
 Injector::CreateProcessResult Injector::createProcess(Injector::process_information_t& pi)
 {
 	QString path = currentGameExePath;
@@ -161,51 +116,51 @@ Injector::CreateProcessResult Injector::createProcess(Injector::process_informat
 		return CreateProcessResult::CreateFail;
 	}
 
-	__int64 nRealBin = 138;
-	__int64 nAdrnBin = 138;
-	__int64 nSprBin = 116;
-	__int64 nSprAdrnBin = 116;
-	__int64 nRealTrue = 13;
-	__int64 nAdrnTrue = 5;
-	__int64 nEncode = 0;
+	qint64 nRealBin = 138;
+	qint64 nAdrnBin = 138;
+	qint64 nSprBin = 116;
+	qint64 nSprAdrnBin = 116;
+	qint64 nRealTrue = 13;
+	qint64 nAdrnTrue = 5;
+	qint64 nEncode = 0;
 
 	bool canSave = false;
 
-	Config config;
-	__int64 tmp = config.read<__int64>("System", "Command", "realbin");
+	util::Config config;
+	qint64 tmp = config.read<qint64>("System", "Command", "realbin");
 	if (tmp)
 		nRealBin = tmp;
 	else
 		canSave = true;
 
-	tmp = config.read<__int64>("System", "Command", "adrnbin");
+	tmp = config.read<qint64>("System", "Command", "adrnbin");
 	if (tmp)
 		nAdrnBin = tmp;
 	else
 		canSave = true;
 
-	tmp = config.read<__int64>("System", "Command", "sprbin");
+	tmp = config.read<qint64>("System", "Command", "sprbin");
 	if (tmp)
 		nSprBin = tmp;
 	else
 		canSave = true;
 
-	tmp = config.read<__int64>("System", "Command", "spradrnbin");
+	tmp = config.read<qint64>("System", "Command", "spradrnbin");
 	if (tmp)
 		nSprAdrnBin = tmp;
-	tmp = config.read<__int64>("System", "Command", "realtrue");
+	tmp = config.read<qint64>("System", "Command", "realtrue");
 	if (tmp)
 		nRealTrue = tmp;
 	else
 		canSave = true;
 
-	tmp = config.read<__int64>("System", "Command", "adrntrue");
+	tmp = config.read<qint64>("System", "Command", "adrntrue");
 	if (tmp)
 		nAdrnTrue = tmp;
 	else
 		canSave = true;
 
-	tmp = config.read<__int64>("System", "Command", "encode");
+	tmp = config.read<qint64>("System", "Command", "encode");
 	if (tmp)
 		nEncode = tmp;
 	else
@@ -213,7 +168,7 @@ Injector::CreateProcessResult Injector::createProcess(Injector::process_informat
 
 	QString customCommand = config.read<QString>("System", "Command", "custom");
 
-	auto mkcmd = [](const QString& sec, __int64 value)->QString
+	auto mkcmd = [](const QString& sec, qint64 value)->QString
 	{
 		return QString("%1:%2").arg(sec).arg(value);
 	};
@@ -252,7 +207,7 @@ Injector::CreateProcessResult Injector::createProcess(Injector::process_informat
 	};
 
 	QProcess process;
-	__int64 pid = 0;
+	qint64 pid = 0;
 	process.setArguments(commandList);
 	process.setProgram(path);
 	process.setWorkingDirectory(QFileInfo(path).absolutePath());
@@ -270,7 +225,7 @@ Injector::CreateProcessResult Injector::createProcess(Injector::process_informat
 	return CreateProcessResult::CreateAboveWindow8Failed;
 }
 
-__int64 Injector::sendMessage(__int64 msg, __int64 wParam, __int64 lParam) const
+qint64 Injector::sendMessage(qint64 msg, qint64 wParam, qint64 lParam) const
 {
 	if (WM_NULL == msg)
 		return 0;
@@ -278,10 +233,10 @@ __int64 Injector::sendMessage(__int64 msg, __int64 wParam, __int64 lParam) const
 	DWORD_PTR dwResult = 0L;
 	SendMessageTimeoutW(pi_.hWnd, static_cast<UINT>(msg), static_cast<WPARAM>(wParam), static_cast<LPARAM>(lParam),
 		SMTO_ABORTIFHUNG | SMTO_ERRORONEXIT, static_cast<UINT>(MessageTimeout), &dwResult);
-	return static_cast<__int64>(dwResult);
+	return static_cast<qint64>(dwResult);
 }
 
-bool Injector::postMessage(__int64 msg, __int64 wParam, __int64 lParam) const
+bool Injector::postMessage(qint64 msg, qint64 wParam, qint64 lParam) const
 {
 	if (WM_NULL == msg)
 		return false;
@@ -290,7 +245,7 @@ bool Injector::postMessage(__int64 msg, __int64 wParam, __int64 lParam) const
 	return  ret == TRUE;
 }
 
-bool Injector::isHandleValid(__int64 pid)
+bool Injector::isHandleValid(qint64 pid)
 {
 	if (NULL == pid)
 		pid = pi_.dwProcessId;
@@ -329,9 +284,9 @@ DWORD WINAPI Injector::getFunAddr(const DWORD* DllBase, const char* FunName)
 }
 #endif
 
-bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short port, LPREMOVE_THREAD_REASON pReason)
+bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short port, util::LPREMOVE_THREAD_REASON pReason)
 {
-	__int64 currentIndex = getIndex();
+	qint64 currentIndex = getIndex();
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
 
 	if (pi.dwProcessId == 0)
@@ -404,7 +359,7 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 		if (nullptr == pi.hWnd)
 		{
 			emit signalDispatcher.messageBoxShow(QObject::tr("EnumWindows failed"), QMessageBox::Icon::Critical);
-			*pReason = REASON_ENUM_WINDOWS_FAIL;
+			*pReason = util::REASON_ENUM_WINDOWS_FAIL;
 			break;
 		}
 
@@ -417,7 +372,7 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 		if (!isHandleValid(pi.dwProcessId))
 		{
 			emit signalDispatcher.messageBoxShow(QObject::tr("OpenProcess failed"), QMessageBox::Icon::Critical);
-			*pReason = REASON_OPEN_PROCESS_FAIL;
+			*pReason = util::REASON_OPEN_PROCESS_FAIL;
 			break;
 		}
 
@@ -427,8 +382,8 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 		timer.restart();
 		for (;;)
 		{
-			if (static_cast<__int64>(mem::read<int>(processHandle_, 0x400000LL + kOffsetWorldStatus)) == 1
-				&& static_cast<__int64>(mem::read<int>(processHandle_, 0x400000LL + kOffsetGameStatus)) == 2)
+			if (static_cast<qint64>(mem::read<int>(processHandle_, 0x400000LL + kOffsetWorldStatus)) == 1
+				&& static_cast<qint64>(mem::read<int>(processHandle_, 0x400000LL + kOffsetGameStatus)) == 2)
 				break;
 
 			if (timer.hasExpired(MAX_TIMEOUT))
@@ -450,14 +405,14 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 		if (nullptr == hookdllModule_)
 		{
 			emit signalDispatcher.messageBoxShow(QObject::tr("Injected dll module is null"), QMessageBox::Icon::Critical);
-			*pReason = REASON_INJECT_LIBRARY_FAIL;
+			*pReason = util::REASON_INJECT_LIBRARY_FAIL;
 			break;
 		}
 
 		if (0 == hGameModule_)
 		{
 			emit signalDispatcher.messageBoxShow(QObject::tr("Game module is null"), QMessageBox::Icon::Critical);
-			*pReason = REASON_INJECT_LIBRARY_FAIL;
+			*pReason = util::REASON_INJECT_LIBRARY_FAIL;
 			break;
 		}
 
@@ -486,18 +441,18 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 		else
 			injectdate.type = kIPv4;
 
-		const mem::VirtualMemory lpStruct(processHandle_, sizeof(InitialData), true);
+		const util::VirtualMemory lpStruct(processHandle_, sizeof(InitialData), true);
 		if (!lpStruct.isValid())
 		{
 			emit signalDispatcher.messageBoxShow(QObject::tr("Remote virtualmemory alloc failed"), QMessageBox::Icon::Critical);
-			*pReason = REASON_INJECT_LIBRARY_FAIL;
+			*pReason = util::REASON_INJECT_LIBRARY_FAIL;
 			break;
 		}
 
 		if (!mem::write(processHandle_, lpStruct, &injectdate, sizeof(InitialData)))
 		{
 			emit signalDispatcher.messageBoxShow(QObject::tr("Remote virtualmemory write failed"), QMessageBox::Icon::Critical);
-			*pReason = REASON_INJECT_LIBRARY_FAIL;
+			*pReason = util::REASON_INJECT_LIBRARY_FAIL;
 			break;
 		}
 
@@ -512,7 +467,7 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 					if (dwResult == 0)
 					{
 						emit signalDispatcher.messageBoxShow(QObject::tr("Remote dll initialize failed"), QMessageBox::Icon::Critical);
-						*pReason = REASON_INJECT_LIBRARY_FAIL;
+						*pReason = util::REASON_INJECT_LIBRARY_FAIL;
 						break;
 					}
 					break;
@@ -522,7 +477,7 @@ bool Injector::injectLibrary(Injector::process_information_t& pi, unsigned short
 			if (timer.hasExpired(5000))
 			{
 				emit signalDispatcher.messageBoxShow(QObject::tr("SendMessageTimeoutW failed"), QMessageBox::Icon::Critical);
-				*pReason = REASON_INJECT_LIBRARY_FAIL;
+				*pReason = util::REASON_INJECT_LIBRARY_FAIL;
 				break;
 			}
 
@@ -600,14 +555,14 @@ bool Injector::isWindowAlive() const
 	return false;
 }
 
-void Injector::mouseMove(__int64 x, __int64 y) const
+void Injector::mouseMove(qint64 x, qint64 y) const
 {
 	LPARAM data = MAKELPARAM(x, y);
 	sendMessage(WM_MOUSEMOVE, NULL, data);
 }
 
 //滑鼠移動 + 左鍵
-void Injector::leftClick(__int64 x, __int64 y) const
+void Injector::leftClick(qint64 x, qint64 y) const
 {
 	LPARAM data = MAKELPARAM(x, y);
 	sendMessage(WM_MOUSEMOVE, NULL, data);
@@ -618,7 +573,7 @@ void Injector::leftClick(__int64 x, __int64 y) const
 	QThread::msleep(50);
 }
 
-void Injector::leftDoubleClick(__int64 x, __int64 y) const
+void Injector::leftDoubleClick(qint64 x, qint64 y) const
 {
 	LPARAM data = MAKELPARAM(x, y);
 	sendMessage(WM_MOUSEMOVE, NULL, data);
@@ -627,7 +582,7 @@ void Injector::leftDoubleClick(__int64 x, __int64 y) const
 	QThread::msleep(50);
 }
 
-void Injector::rightClick(__int64 x, __int64 y) const
+void Injector::rightClick(qint64 x, qint64 y) const
 {
 	LPARAM data = MAKELPARAM(x, y);
 	sendMessage(WM_MOUSEMOVE, NULL, data);
@@ -638,7 +593,7 @@ void Injector::rightClick(__int64 x, __int64 y) const
 	QThread::msleep(50);
 }
 
-void Injector::dragto(__int64 x1, __int64 y1, __int64 x2, __int64 y2) const
+void Injector::dragto(qint64 x1, qint64 y1, qint64 x2, qint64 y2) const
 {
 	LPARAM datafrom = MAKELPARAM(x1, y1);
 	LPARAM datato = MAKELPARAM(x2, y2);
@@ -652,7 +607,7 @@ void Injector::dragto(__int64 x1, __int64 y1, __int64 x2, __int64 y2) const
 	QThread::msleep(50);
 }
 
-void Injector::hide(__int64 mode)
+void Injector::hide(qint64 mode)
 {
 	HWND hWnd = getProcessWindow();
 	if (hWnd == nullptr)

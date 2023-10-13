@@ -15,15 +15,14 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 */
-import Safe;
-import Global;
-import String;
+
 #include "stdafx.h"
 #include "clua.h"
 
 #include "signaldispatcher.h"
 #include "injector.h"
 #include "../script/parser.h"
+
 
 #ifdef _WIN64
 #ifdef _DEBUG
@@ -62,7 +61,7 @@ void luadebug::tryPopCustomErrorMsg(const sol::this_state& s, const LUA_ERROR_TY
 	}
 	case ERROR_PARAM_SIZE://固定參數數量錯誤
 	{
-		__int64 topsize = lua_gettop(L);
+		qint64 topsize = lua_gettop(L);
 		const QString qmsgstr(QString(errormsg_str.value(element)).arg(p1.toLongLong()).arg(topsize));
 		const std::string str(qmsgstr.toUtf8().constData());
 		luaL_argcheck(L, topsize == p1.toLongLong(), topsize, str.c_str());
@@ -70,7 +69,7 @@ void luadebug::tryPopCustomErrorMsg(const sol::this_state& s, const LUA_ERROR_TY
 	}
 	case ERROR_PARAM_SIZE_NONE://無參數數量錯誤
 	{
-		__int64 topsize = lua_gettop(L);
+		qint64 topsize = lua_gettop(L);
 		const QString qmsgstr(QString(errormsg_str.value(element)).arg(topsize));
 		const std::string str(qmsgstr.toUtf8().constData());
 		luaL_argcheck(L, topsize == 0, 1, str.c_str());
@@ -78,7 +77,7 @@ void luadebug::tryPopCustomErrorMsg(const sol::this_state& s, const LUA_ERROR_TY
 	}
 	case ERROR_PARAM_SIZE_RANGE://範圍參數數量錯誤
 	{
-		__int64 topsize = lua_gettop(L);
+		qint64 topsize = lua_gettop(L);
 		const QString qmsgstr(QString(errormsg_str.value(element)).arg(p1.toLongLong()).arg(p2.toLongLong()).arg(topsize));
 		const std::string str(qmsgstr.toUtf8().constData());
 		luaL_argcheck(L, topsize >= p1.toLongLong() && topsize <= p2.toLongLong(), 1, str.c_str());
@@ -106,24 +105,24 @@ void luadebug::tryPopCustomErrorMsg(const sol::this_state& s, const LUA_ERROR_TY
 	}
 }
 
-QString luadebug::getErrorMsgLocatedLine(const QString& str, __int64* retline)
+QString luadebug::getErrorMsgLocatedLine(const QString& str, qint64* retline)
 {
 	const QString cmpstr(str.simplified());
 
 	QRegularExpressionMatch match = rexGetLine.match(cmpstr);
 	QRegularExpressionMatch match2 = reGetLineEx.match(cmpstr);
-	static const auto matchies = [](const QRegularExpressionMatch& m, __int64* retline)->void
+	static const auto matchies = [](const QRegularExpressionMatch& m, qint64* retline)->void
 	{
-		__int64 size = m.capturedTexts().size();
+		qint64 size = m.capturedTexts().size();
 		if (size > 1)
 		{
-			for (__int64 i = (size - 1); i >= 1; --i)
+			for (qint64 i = (size - 1); i >= 1; --i)
 			{
 				const QString s = m.captured(i).simplified();
 				if (!s.isEmpty())
 				{
 					bool ok = false;
-					__int64 row = s.simplified().toLongLong(&ok);
+					qint64 row = s.simplified().toLongLong(&ok);
 					if (ok)
 					{
 						if (retline)
@@ -148,17 +147,17 @@ QString luadebug::getErrorMsgLocatedLine(const QString& str, __int64* retline)
 	return cmpstr;
 }
 
-QString luadebug::getTableVars(lua_State*& L, __int64 si, __int64& depth)
+QString luadebug::getTableVars(lua_State*& L, qint64 si, qint64& depth)
 {
 	if (!L)
 		return "\0";
 
 	QPair<QString, QVariant> pair;
-	__int64 pos_si = si > 0 ? si : (si - 1);
+	qint64 pos_si = si > 0 ? si : (si - 1);
 	QString ret;
-	__int64 top = lua_gettop(L);
+	qint64 top = lua_gettop(L);
 	lua_pushnil(L);
-	__int64 empty = 1;
+	qint64 empty = 1;
 	QStringList varList;
 
 	--depth;
@@ -202,7 +201,7 @@ QString luadebug::getTableVars(lua_State*& L, __int64 si, __int64& depth)
 	return ret.simplified();
 }
 
-QPair<QString, QVariant> luadebug::getVars(lua_State*& L, __int64 si, __int64& depth)
+QPair<QString, QVariant> luadebug::getVars(lua_State*& L, qint64 si, qint64& depth)
 {
 	switch (lua_type(L, si))
 	{
@@ -212,19 +211,19 @@ QPair<QString, QVariant> luadebug::getVars(lua_State*& L, __int64 si, __int64& d
 	}
 	case LUA_TBOOLEAN:
 	{
-		return qMakePair(QString("(boolean)"), toQString(lua_toboolean(L, si) > 0));
+		return qMakePair(QString("(boolean)"), util::toQString(lua_toboolean(L, si) > 0));
 	}
 	case LUA_TSTRING:
 	{
-		return qMakePair(QString("(string)"), toQString(luaL_checklstring(L, si, nullptr)));
+		return qMakePair(QString("(string)"), util::toQString(luaL_checklstring(L, si, nullptr)));
 	}
 	case LUA_TNUMBER:
 	{
 		double d = static_cast<double>(luaL_checknumber(L, si));
-		if (d == static_cast<__int64>(d))
-			return qMakePair(QString("(integer)"), toQString(static_cast<__int64>(luaL_checkinteger(L, si))));
+		if (d == static_cast<qint64>(d))
+			return qMakePair(QString("(integer)"), util::toQString(static_cast<qint64>(luaL_checkinteger(L, si))));
 		else
-			return qMakePair(QString("(number)"), toQString(d));
+			return qMakePair(QString("(number)"), util::toQString(d));
 
 	}
 	case LUA_TFUNCTION:
@@ -232,17 +231,17 @@ QPair<QString, QVariant> luadebug::getVars(lua_State*& L, __int64 si, __int64& d
 		lua_CFunction func = lua_tocfunction(L, si);
 		if (func != nullptr)
 		{
-			return qMakePair(QString("(C function)"), QString("0x%1").arg(toQString(reinterpret_cast<__int64>(func), 16)));
+			return qMakePair(QString("(C function)"), QString("0x%1").arg(util::toQString(reinterpret_cast<qint64>(func), 16)));
 		}
 		else
 		{
-			return qMakePair(QString("(function)"), QString("0x%1").arg(toQString(reinterpret_cast<__int64>(func), 16)));
+			return qMakePair(QString("(function)"), QString("0x%1").arg(util::toQString(reinterpret_cast<qint64>(func), 16)));
 		}
 		break;
 	}
 	case LUA_TUSERDATA:
 	{
-		return qMakePair(QString("(user data)"), QString("0x%1").arg(toQString(reinterpret_cast<__int64>(lua_touserdata(L, si)), 16)));
+		return qMakePair(QString("(user data)"), QString("0x%1").arg(util::toQString(reinterpret_cast<qint64>(lua_touserdata(L, si)), 16)));
 	}
 	case LUA_TTABLE:
 	{
@@ -272,7 +271,7 @@ void luadebug::checkStopAndPause(const sol::this_state& s)
 	if (pLua == nullptr)
 		return;
 
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<__int64>());
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
 	if (pLua->isInterruptionRequested() || injector.IS_SCRIPT_INTERRUPT.load(std::memory_order_acquire))
 	{
 		luadebug::tryPopCustomErrorMsg(s, luadebug::ERROR_FLAG_DETECT_STOP);
@@ -285,7 +284,7 @@ bool luadebug::checkOnlineThenWait(const sol::this_state& s)
 {
 	checkStopAndPause(s);
 	sol::state_view lua(s.lua_state());
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<__int64>());
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
 	bool bret = false;
 	if (!injector.server->getOnlineFlag())
 	{
@@ -319,7 +318,7 @@ bool luadebug::checkBattleThenWait(const sol::this_state& s)
 	checkStopAndPause(s);
 
 	sol::state_view lua(s.lua_state());
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<__int64>());
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
 	bool bret = false;
 	if (injector.server->getBattleFlag())
 	{
@@ -351,13 +350,13 @@ bool luadebug::checkBattleThenWait(const sol::this_state& s)
 void luadebug::processDelay(const sol::this_state& s)
 {
 	sol::state_view lua(s.lua_state());
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<__int64>());
-	__int64 extraDelay = injector.getValueHash(kScriptSpeedValue);
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
+	qint64 extraDelay = injector.getValueHash(util::kScriptSpeedValue);
 	if (extraDelay > 1000ll)
 	{
 		//將超過1秒的延時分段
-		__int64 i = 0ll;
-		__int64 size = extraDelay / 1000ll;
+		qint64 i = 0ll;
+		qint64 size = extraDelay / 1000ll;
 		for (i = 0; i < size; ++i)
 		{
 			if (luadebug::isInterruptionRequested(s))
@@ -382,7 +381,7 @@ void luadebug::getPackagePath(const QString base, QStringList* result)
 	dir.setFilter(QDir::Dirs | QDir::NoDotAndDotDot);
 	dir.setSorting(QDir::DirsFirst);
 	QFileInfoList list = dir.entryInfoList();
-	for (__int64 i = 0; i < list.size(); ++i)
+	for (qint64 i = 0; i < list.size(); ++i)
 	{
 		QFileInfo fileInfo = list.value(i);
 		result->append(fileInfo.filePath());
@@ -390,7 +389,7 @@ void luadebug::getPackagePath(const QString base, QStringList* result)
 	}
 }
 
-void luadebug::logExport(const sol::this_state& s, const QStringList& datas, __int64 color, bool doNotAnnounce)
+void luadebug::logExport(const sol::this_state& s, const QStringList& datas, qint64 color, bool doNotAnnounce)
 {
 	for (const QString& data : datas)
 	{
@@ -398,7 +397,7 @@ void luadebug::logExport(const sol::this_state& s, const QStringList& datas, __i
 	}
 }
 
-void luadebug::logExport(const sol::this_state& s, const QString& data, __int64 color, bool doNotAnnounce)
+void luadebug::logExport(const sol::this_state& s, const QString& data, qint64 color, bool doNotAnnounce)
 {
 
 	//打印當前時間
@@ -407,14 +406,14 @@ void luadebug::logExport(const sol::this_state& s, const QString& data, __int64 
 	QString msg = "\0";
 	QString src = "\0";
 	sol::state_view lua(s);
-	__int64 currentline = lua["_LINE_"].get<__int64>();//getCurrentLine(s);
+	qint64 currentline = lua["_LINE_"].get<qint64>();//getCurrentLine(s);
 
 	msg = (QString("[%1 | @%2]: %3\0") \
 		.arg(timeStr)
 		.arg(currentline, 3, 10, QLatin1Char(' ')).arg(data));
 
 
-	__int64 currentIndex = lua["_INDEX"].get<__int64>();
+	qint64 currentIndex = lua["_INDEX"].get<qint64>();
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
 	emit signalDispatcher.appendScriptLog(msg, color);
 	Injector& injector = Injector::getInstance(currentIndex);
@@ -423,24 +422,24 @@ void luadebug::logExport(const sol::this_state& s, const QString& data, __int64 
 		injector.server->announce(data, color);
 	}
 
-	if (injector.log->isOpen())
-		injector.log->write(data, currentline);
+	if (injector.log.isOpen())
+		injector.log.write(data, currentline);
 }
 
-void luadebug::showErrorMsg(const sol::this_state& s, __int64 level, const QString& data)
+void luadebug::showErrorMsg(const sol::this_state& s, qint64 level, const QString& data)
 {
 	QString newText = QString("%1%2").arg(level == 0 ? QObject::tr("[warn]") : QObject::tr("[error]")).arg(data);
 	logExport(s, newText, 0, true);
 }
 
 //根據傳入function的循環執行結果等待超時或條件滿足提早結束
-bool luadebug::waitfor(const sol::this_state& s, __int64 timeout, std::function<bool()> exprfun)
+bool luadebug::waitfor(const sol::this_state& s, qint64 timeout, std::function<bool()> exprfun)
 {
 	if (timeout < 0)
-		timeout = std::numeric_limits<__int64>::max();
+		timeout = std::numeric_limits<qint64>::max();
 
 	sol::state_view lua(s.lua_state());
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<__int64>());
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
 	bool bret = false;
 	QElapsedTimer timer; timer.start();
 	for (;;)
@@ -507,11 +506,11 @@ void luadebug::hookProc(lua_State* L, lua_Debug* ar)
 			break;
 		}
 
-		__int64 currentLine = ar->currentline;
-		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(lua["_INDEX"].get<__int64>());
-		__int64 max = lua["_ROWCOUNT_"];
+		qint64 currentLine = ar->currentline;
+		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(lua["_INDEX"].get<qint64>());
+		qint64 max = lua["_ROWCOUNT_"];
 
-		Injector& injector = Injector::getInstance(lua["_INDEX"].get<__int64>());
+		Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
 
 		emit signalDispatcher.scriptLabelRowTextChanged(currentLine, max, false);
 
@@ -534,8 +533,8 @@ void luadebug::hookProc(lua_State* L, lua_Debug* ar)
 
 		QString scriptFileName = injector.currentScriptFileName;
 
-		SafeHash<__int64, break_marker_t> breakMarkers = injector.break_markers.value(scriptFileName);
-		const SafeHash<__int64, break_marker_t> stepMarkers = injector.step_markers.value(scriptFileName);
+		util::SafeHash<qint64, break_marker_t> breakMarkers = injector.break_markers.value(scriptFileName);
+		const util::SafeHash<qint64, break_marker_t> stepMarkers = injector.step_markers.value(scriptFileName);
 		if (!(breakMarkers.contains(currentLine) || stepMarkers.contains(currentLine)))
 		{
 			return;//檢查是否有中斷點
@@ -559,21 +558,21 @@ void luadebug::hookProc(lua_State* L, lua_Debug* ar)
 		emit signalDispatcher.addForwardMarker(currentLine, true);
 
 		//獲取區域變量數值
-		__int64 i;
+		qint64 i;
 		const char* name = nullptr;
 		QVariantHash varhash;
 		for (i = 1; (name = lua_getlocal(L, ar, i)) != NULL; ++i)
 		{
-			__int64 depth = 1024;
+			qint64 depth = 1024;
 			QPair<QString, QVariant> vs = getVars(L, i, depth);
 
-			QString key = QString("local|%1").arg(toQString(name));
+			QString key = QString("local|%1").arg(util::toQString(name));
 			varhash.insert(key, vs.second.toString());
 			//var.type = vs.first.replace("(", "").replace(")", "");
 			lua_pop(L, 1);// no match, then pop out the var's value
 		}
 
-		Parser parser(lua["_INDEX"].get<__int64>());
+		Parser parser(lua["_INDEX"].get<qint64>());
 		emit signalDispatcher.varInfoImported(&parser, varhash, QStringList{});
 
 		luadebug::checkStopAndPause(s);
@@ -587,22 +586,22 @@ void luadebug::hookProc(lua_State* L, lua_Debug* ar)
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-CLua::CLua(__int64 index, QObject* parent)
+CLua::CLua(qint64 index, QObject* parent)
 	: ThreadPlugin(index, parent)
 {
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(index);
-	connect(&signalDispatcher, &SignalDispatcher::nodifyAllStop, this, &CLua::requestInterruption, Qt::QueuedConnection);
-	connect(&signalDispatcher, &SignalDispatcher::nodifyAllScriptStop, this, &CLua::requestInterruption, Qt::QueuedConnection);
+	connect(&signalDispatcher, &SignalDispatcher::nodifyAllStop, this, &CLua::requestInterruption, Qt::UniqueConnection);
+	connect(&signalDispatcher, &SignalDispatcher::nodifyAllScriptStop, this, &CLua::requestInterruption, Qt::UniqueConnection);
 	qDebug() << "CLua 1";
 }
 
-CLua::CLua(__int64 index, const QString& content, QObject* parent)
+CLua::CLua(qint64 index, const QString& content, QObject* parent)
 	: ThreadPlugin(index, parent)
 	, scriptContent_(content)
 {
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(index);
-	connect(&signalDispatcher, &SignalDispatcher::nodifyAllStop, this, &CLua::requestInterruption, Qt::QueuedConnection);
-	connect(&signalDispatcher, &SignalDispatcher::nodifyAllScriptStop, this, &CLua::requestInterruption, Qt::QueuedConnection);
+	connect(&signalDispatcher, &SignalDispatcher::nodifyAllStop, this, &CLua::requestInterruption, Qt::UniqueConnection);
+	connect(&signalDispatcher, &SignalDispatcher::nodifyAllScriptStop, this, &CLua::requestInterruption, Qt::UniqueConnection);
 	qDebug() << "CLua 2";
 }
 
@@ -619,7 +618,7 @@ void CLua::start()
 
 	moveToThread(thread_);
 
-	__int64 currentIndex = getIndex();
+	qint64 currentIndex = getIndex();
 
 	connect(this, &CLua::finished, thread_, &QThread::quit);
 	connect(thread_, &QThread::finished, thread_, &QThread::deleteLater);
@@ -685,26 +684,26 @@ void CLua::open_enumlibs()
 	//kSelectTeammate4 = 0x10000,   // 隊4 (Teammate 4)
 	//kSelectTeammate4Pet = 0x20000 // 隊4寵 (Teammate 4's pet)
 
-	lua_.new_enum <SelectTarget>("TARGET",
+	lua_.new_enum <util::SelectTarget>("TARGET",
 		{
-			{ "SELF", kSelectSelf },
-			{ "PET", kSelectPet },
-			{ "ALLIE_ANY", kSelectAllieAny },
-			{ "ALLIE_ALL", kSelectAllieAll },
-			{ "ENEMY_ANY", kSelectEnemyAny },
-			{ "ENEMY_ALL", kSelectEnemyAll },
-			{ "ENEMY_FRONT", kSelectEnemyFront },
-			{ "ENEMY_BACK", kSelectEnemyBack },
-			{ "LEADER", kSelectLeader },
-			{ "LEADER_PET", kSelectLeaderPet },
-			{ "TEAM", kSelectTeammate1 },
-			{ "TEAM1_PET", kSelectTeammate1Pet },
-			{ "TEAM2", kSelectTeammate2 },
-			{ "TEAM2_PET", kSelectTeammate2Pet },
-			{ "TEAM3", kSelectTeammate3 },
-			{ "TEAM3_PET", kSelectTeammate3Pet },
-			{ "TEAM4", kSelectTeammate4 },
-			{ "TEAM4_PET", kSelectTeammate4Pet }
+			{ "SELF", util::kSelectSelf },
+			{ "PET", util::kSelectPet },
+			{ "ALLIE_ANY", util::kSelectAllieAny },
+			{ "ALLIE_ALL", util::kSelectAllieAll },
+			{ "ENEMY_ANY", util::kSelectEnemyAny },
+			{ "ENEMY_ALL", util::kSelectEnemyAll },
+			{ "ENEMY_FRONT", util::kSelectEnemyFront },
+			{ "ENEMY_BACK", util::kSelectEnemyBack },
+			{ "LEADER", util::kSelectLeader },
+			{ "LEADER_PET", util::kSelectLeaderPet },
+			{ "TEAM", util::kSelectTeammate1 },
+			{ "TEAM1_PET", util::kSelectTeammate1Pet },
+			{ "TEAM2", util::kSelectTeammate2 },
+			{ "TEAM2_PET", util::kSelectTeammate2Pet },
+			{ "TEAM3", util::kSelectTeammate3 },
+			{ "TEAM3_PET", util::kSelectTeammate3Pet },
+			{ "TEAM4", util::kSelectTeammate4 },
+			{ "TEAM4_PET", util::kSelectTeammate4Pet }
 		}
 	);
 	//在腳本中的使用方法: Target.Self Target.Pet
@@ -719,12 +718,12 @@ void CLua::open_testlibs()
 		sol::constructors<
 		//建構函數多載
 		CLuaTest(sol::this_state),
-		CLuaTest(__int64 a, sol::this_state)>(),
+		CLuaTest(qint64 a, sol::this_state)>(),
 
 		//成員函數多載
 		"add", sol::overload(
-			sol::resolve<__int64(__int64 a, __int64 b)>(&CLuaTest::add),
-			sol::resolve<__int64(__int64 b)>(&CLuaTest::add)
+			sol::resolve<qint64(qint64 a, qint64 b)>(&CLuaTest::add),
+			sol::resolve<qint64(qint64 b)>(&CLuaTest::add)
 		),
 
 		//成員函數聲明
@@ -808,8 +807,8 @@ void CLua::open_syslibs(sol::state& lua)
 		sol::call_constructor,
 		sol::constructors<CLuaSystem()>(),
 		"press", sol::overload(
-			sol::resolve<__int64(std::string, __int64, __int64, sol::this_state)>(&CLuaSystem::press),
-			sol::resolve<__int64(__int64, __int64, __int64, sol::this_state)>(&CLuaSystem::press)
+			sol::resolve<qint64(std::string, qint64, qint64, sol::this_state)>(&CLuaSystem::press),
+			sol::resolve<qint64(qint64, qint64, qint64, sol::this_state)>(&CLuaSystem::press)
 		)
 	);
 }
@@ -843,8 +842,8 @@ void CLua::open_charlibs(sol::state& lua)
 		"withdrawGold", &CLuaChar::withdrawGold,
 		"dropGold", &CLuaChar::dropGold,
 		"mail", sol::overload(
-			sol::resolve<__int64(__int64, std::string, __int64, std::string, std::string, sol::this_state)>(&CLuaChar::mail),
-			sol::resolve<__int64(__int64, std::string, sol::this_state)>(&CLuaChar::mail)
+			sol::resolve<qint64(qint64, std::string, qint64, std::string, std::string, sol::this_state)>(&CLuaChar::mail),
+			sol::resolve<qint64(qint64, std::string, sol::this_state)>(&CLuaChar::mail)
 		),
 		"skillUp", &CLuaChar::skillUp,
 
@@ -881,9 +880,9 @@ void CLua::open_maplibs(sol::state& lua)
 		sol::call_constructor,
 		sol::constructors<CLuaMap()>(),
 		"setDir", sol::overload(
-			sol::resolve<__int64(__int64, sol::this_state)>(&CLuaMap::setDir),
-			sol::resolve<__int64(__int64, __int64, sol::this_state) >(&CLuaMap::setDir),
-			sol::resolve<__int64(std::string, sol::this_state) >(&CLuaMap::setDir)
+			sol::resolve<qint64(qint64, sol::this_state)>(&CLuaMap::setDir),
+			sol::resolve<qint64(qint64, qint64, sol::this_state) >(&CLuaMap::setDir),
+			sol::resolve<qint64(std::string, sol::this_state) >(&CLuaMap::setDir)
 		)
 	);
 }
@@ -957,7 +956,7 @@ collectgarbage("step", 1024);
 	//Add additional package path.
 	QStringList paths;
 	std::string package_path = lua_["package"]["path"];
-	paths.append(toQString(package_path).replace("\\", "/"));
+	paths.append(util::toQString(package_path).replace("\\", "/"));
 
 	QStringList dirs;
 	luadebug::getPackagePath(util::applicationDirPath() + "/", &dirs);
@@ -1007,7 +1006,7 @@ void CLua::proc()
 			try
 			{
 				err = loaded_chunk;
-				qstrErr = toQString(err.what());
+				qstrErr = util::toQString(err.what());
 				errOk = true;
 			}
 			catch (...)
@@ -1019,7 +1018,7 @@ void CLua::proc()
 
 				if (errOk)
 				{
-					__int64 retline = -1;
+					qint64 retline = -1;
 					QString msg(luadebug::getErrorMsgLocatedLine(qstrErr, &retline));
 
 					if (msg.contains("FLAG_DETECT_STOP")
@@ -1087,20 +1086,20 @@ void CLua::proc()
 				}
 				if (retObject.is<bool>())
 				{
-					tableStrs << QString("> (boolean)%1").arg(toQString(retObject.as<bool>()));
+					tableStrs << QString("> (boolean)%1").arg(util::toQString(retObject.as<bool>()));
 				}
-				else if (retObject.is<__int64>())
+				else if (retObject.is<qint64>())
 				{
-					tableStrs << "> (integer)" + toQString(retObject.as<__int64>());
+					tableStrs << "> (integer)" + util::toQString(retObject.as<qint64>());
 
 				}
 				else if (retObject.is<double>())
 				{
-					tableStrs << "> (number)" + toQString(retObject.as<double>());
+					tableStrs << "> (number)" + util::toQString(retObject.as<double>());
 				}
 				else if (retObject.is<std::string>())
 				{
-					tableStrs << "> (string)" + toQString(retObject);
+					tableStrs << "> (string)" + util::toQString(retObject);
 				}
 				else if (retObject == sol::lua_nil)
 				{
@@ -1116,16 +1115,16 @@ void CLua::proc()
 						sol::object key = it.first;
 						sol::object val = it.second;
 						if (!key.valid() || !val.valid()) continue;
-						if (!key.is<std::string>() && !key.is<__int64>()) continue;
-						QString qkey = key.is<std::string>() ? toQString(key) : toQString(key.as<__int64>());
+						if (!key.is<std::string>() && !key.is<qint64>()) continue;
+						QString qkey = key.is<std::string>() ? util::toQString(key) : util::toQString(key.as<qint64>());
 
 						if (val.is<bool>())
 						{
-							tableStrs << QString(R"(>     ["%1"] = (boolean)%2,)").arg(qkey).arg(toQString(val.as<bool>()));
+							tableStrs << QString(R"(>     ["%1"] = (boolean)%2,)").arg(qkey).arg(util::toQString(val.as<bool>()));
 						}
-						else if (val.is<__int64>())
+						else if (val.is<qint64>())
 						{
-							tableStrs << QString(R"(>     ["%1"] = (integer)%2,)").arg(qkey).arg(val.as<__int64>());
+							tableStrs << QString(R"(>     ["%1"] = (integer)%2,)").arg(qkey).arg(val.as<qint64>());
 						}
 						else if (val.is<double>())
 						{
@@ -1133,7 +1132,7 @@ void CLua::proc()
 						}
 						else if (val.is<std::string>())
 						{
-							tableStrs << QString(R"(>     ["%1"] = (string)%2,)").arg(qkey).arg(toQString(val));
+							tableStrs << QString(R"(>     ["%1"] = (string)%2,)").arg(qkey).arg(util::toQString(val));
 						}
 						else if (val.is<sol::table>())
 						{
@@ -1161,7 +1160,7 @@ void CLua::proc()
 	isRunning_.store(false, std::memory_order_release);
 	emit finished();
 
-	__int64 currentIndex = getIndex();
+	qint64 currentIndex = getIndex();
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
 	emit signalDispatcher.scriptFinished();
 }

@@ -17,57 +17,58 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 */
 
-import Utility;
-import Config;
 #include "stdafx.h"
 #include "afkform.h"
+#include <util.h>
 #include <injector.h>
+
 #include "signaldispatcher.h"
 #include "selecttargetform.h"
 #include "selectobjectform.h"
 
-AfkForm::AfkForm(__int64 index, QWidget* parent)
+AfkForm::AfkForm(qint64 index, QWidget* parent)
 	: QWidget(parent)
 	, Indexer(index)
 {
 	ui.setupUi(this);
+	//util::setTab(ui.tabWidget_afk);
 
 	Qt::WindowFlags windowflag = this->windowFlags();
 	windowflag |= Qt::WindowType::Tool;
 	setWindowFlag(Qt::WindowType::Tool);
 
-	connect(this, &AfkForm::resetControlTextLanguage, this, &AfkForm::onResetControlTextLanguage, Qt::QueuedConnection);
+	connect(this, &AfkForm::resetControlTextLanguage, this, &AfkForm::onResetControlTextLanguage, Qt::UniqueConnection);
 
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(index);
-	connect(&signalDispatcher, &SignalDispatcher::applyHashSettingsToUI, this, &AfkForm::onApplyHashSettingsToUI, Qt::QueuedConnection);
-	connect(&signalDispatcher, &SignalDispatcher::updateComboBoxItemText, this, &AfkForm::onUpdateComboBoxItemText, Qt::QueuedConnection);
+	connect(&signalDispatcher, &SignalDispatcher::applyHashSettingsToUI, this, &AfkForm::onApplyHashSettingsToUI, Qt::UniqueConnection);
+	connect(&signalDispatcher, &SignalDispatcher::updateComboBoxItemText, this, &AfkForm::onUpdateComboBoxItemText, Qt::UniqueConnection);
 
 	QList<PushButton*> buttonList = util::findWidgets<PushButton>(this);
 	for (auto& button : buttonList)
 	{
 		if (button)
-			connect(button, &PushButton::clicked, this, &AfkForm::onButtonClicked, Qt::QueuedConnection);
+			connect(button, &PushButton::clicked, this, &AfkForm::onButtonClicked, Qt::UniqueConnection);
 	}
 
 	QList <QCheckBox*> checkBoxList = util::findWidgets<QCheckBox>(this);
 	for (auto& checkBox : checkBoxList)
 	{
 		if (checkBox)
-			connect(checkBox, &QCheckBox::stateChanged, this, &AfkForm::onCheckBoxStateChanged, Qt::QueuedConnection);
+			connect(checkBox, &QCheckBox::stateChanged, this, &AfkForm::onCheckBoxStateChanged, Qt::UniqueConnection);
 	}
 
 	QList <QSpinBox*> spinBoxList = util::findWidgets<QSpinBox>(this);
 	for (auto& spinBox : spinBoxList)
 	{
 		if (spinBox)
-			connect(spinBox, SIGNAL(valueChanged(int)), this, SLOT(onSpinBoxValueChanged(int)), Qt::QueuedConnection);
+			connect(spinBox, SIGNAL(valueChanged(int)), this, SLOT(onSpinBoxValueChanged(int)), Qt::UniqueConnection);
 	}
 
 	QList <ComboBox*> comboBoxList = util::findWidgets<ComboBox>(this);
 	for (auto& comboBox : comboBoxList)
 	{
 		if (comboBox)
-			connect(comboBox, SIGNAL(currentIndexChanged(int)), this, SLOT(onComboBoxCurrentIndexChanged(int)), Qt::QueuedConnection);
+			connect(comboBox, SIGNAL(currentIndexChanged(int)), this, SLOT(onComboBoxCurrentIndexChanged(int)), Qt::UniqueConnection);
 	}
 
 	QList <ComboBox*> ccomboBoxList = util::findWidgets<ComboBox>(this);
@@ -75,8 +76,8 @@ AfkForm::AfkForm(__int64 index, QWidget* parent)
 	{
 		if (comboBox)
 		{
-			connect(comboBox, &ComboBox::clicked, this, &AfkForm::onComboBoxClicked, Qt::QueuedConnection);
-			connect(comboBox, &ComboBox::currentTextChanged, this, &AfkForm::onComboBoxTextChanged, Qt::QueuedConnection);
+			connect(comboBox, &ComboBox::clicked, this, &AfkForm::onComboBoxClicked, Qt::UniqueConnection);
+			connect(comboBox, &ComboBox::currentTextChanged, this, &AfkForm::onComboBoxTextChanged, Qt::UniqueConnection);
 		}
 	}
 
@@ -86,7 +87,7 @@ AfkForm::AfkForm(__int64 index, QWidget* parent)
 	if (!injector.server.isNull())
 		injector.server->updateComboBoxList();
 
-	FormSettingManager formSettingManager(this);
+	util::FormSettingManager formSettingManager(this);
 	formSettingManager.loadSettings();
 
 	emit signalDispatcher.applyHashSettingsToUI();
@@ -109,7 +110,7 @@ void AfkForm::showEvent(QShowEvent* e)
 
 void AfkForm::closeEvent(QCloseEvent* event)
 {
-	FormSettingManager formSettingManager(this);
+	util::FormSettingManager formSettingManager(this);
 	formSettingManager.saveSettings();
 
 	QWidget::closeEvent(event);
@@ -130,44 +131,44 @@ void AfkForm::onButtonClicked()
 	QStringList dstList;
 	QStringList srcSelectList;
 
-	__int64 currentIndex = getIndex();
+	qint64 currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
 
 	//battle
 	if (name == "pushButton_roundaction_char")
 	{
-		if (createSelectTargetForm(currentIndex, kBattleCharRoundActionTargetValue, &temp, this))
+		if (createSelectTargetForm(currentIndex, util::kBattleCharRoundActionTargetValue, &temp, this))
 			pPushButton->setText(temp);
 		return;
 	}
 	if (name == "pushButton_crossaction_char")
 	{
-		if (createSelectTargetForm(currentIndex, kBattleCharCrossActionTargetValue, &temp, this))
+		if (createSelectTargetForm(currentIndex, util::kBattleCharCrossActionTargetValue, &temp, this))
 			pPushButton->setText(temp);
 		return;
 	}
 	if (name == "pushButton_normalaction_char")
 	{
-		if (createSelectTargetForm(currentIndex, kBattleCharNormalActionTargetValue, &temp, this))
+		if (createSelectTargetForm(currentIndex, util::kBattleCharNormalActionTargetValue, &temp, this))
 			pPushButton->setText(temp);
 		return;
 	}
 
 	if (name == "pushButton_roundaction_pet")
 	{
-		if (createSelectTargetForm(currentIndex, kBattlePetRoundActionTargetValue, &temp, this))
+		if (createSelectTargetForm(currentIndex, util::kBattlePetRoundActionTargetValue, &temp, this))
 			pPushButton->setText(temp);
 		return;
 	}
 	if (name == "pushButton_crossaction_pet")
 	{
-		if (createSelectTargetForm(currentIndex, kBattlePetCrossActionTargetValue, &temp, this))
+		if (createSelectTargetForm(currentIndex, util::kBattlePetCrossActionTargetValue, &temp, this))
 			pPushButton->setText(temp);
 		return;
 	}
 	if (name == "pushButton_normalaction_pet")
 	{
-		if (createSelectTargetForm(currentIndex, kBattlePetNormalActionTargetValue, &temp, this))
+		if (createSelectTargetForm(currentIndex, util::kBattlePetNormalActionTargetValue, &temp, this))
 			pPushButton->setText(temp);
 		return;
 	}
@@ -175,50 +176,50 @@ void AfkForm::onButtonClicked()
 	//heal
 	if (name == "pushButton_magicheal")
 	{
-		if (createSelectTargetForm(currentIndex, kBattleMagicHealTargetValue, &temp, this))
+		if (createSelectTargetForm(currentIndex, util::kBattleMagicHealTargetValue, &temp, this))
 			pPushButton->setText(temp);
 		return;
 	}
 	if (name == "pushButton_itemheal")
 	{
-		if (createSelectTargetForm(currentIndex, kBattleItemHealTargetValue, &temp, this))
+		if (createSelectTargetForm(currentIndex, util::kBattleItemHealTargetValue, &temp, this))
 			pPushButton->setText(temp);
 		return;
 	}
 	if (name == "pushButton_magicrevive")
 	{
-		if (createSelectTargetForm(currentIndex, kBattleMagicReviveTargetValue, &temp, this))
+		if (createSelectTargetForm(currentIndex, util::kBattleMagicReviveTargetValue, &temp, this))
 			pPushButton->setText(temp);
 		return;
 	}
 	if (name == "pushButton_itemrevive")
 	{
-		if (createSelectTargetForm(currentIndex, kBattleItemReviveTargetValue, &temp, this))
+		if (createSelectTargetForm(currentIndex, util::kBattleItemReviveTargetValue, &temp, this))
 			pPushButton->setText(temp);
 		return;
 	}
 	if (name == "pushButton_petheal")
 	{
-		if (createSelectTargetForm(currentIndex, kBattlePetHealTargetValue, &temp, this))
+		if (createSelectTargetForm(currentIndex, util::kBattlePetHealTargetValue, &temp, this))
 			pPushButton->setText(temp);
 		return;
 	}
 	if (name == "pushButton_petpurg")
 	{
-		if (createSelectTargetForm(currentIndex, kBattlePetPurgTargetValue, &temp, this))
+		if (createSelectTargetForm(currentIndex, util::kBattlePetPurgTargetValue, &temp, this))
 			pPushButton->setText(temp);
 		return;
 	}
 	if (name == "pushButton_charpurg")
 	{
-		if (createSelectTargetForm(currentIndex, kBattleCharPurgTargetValue, &temp, this))
+		if (createSelectTargetForm(currentIndex, util::kBattleCharPurgTargetValue, &temp, this))
 			pPushButton->setText(temp);
 		return;
 	}
 	//catch
 	if (name == "pushButton_autocatchpet")
 	{
-		QVariant dat = injector.getUserData(kUserEnemyNames);
+		QVariant dat = injector.getUserData(util::kUserEnemyNames);
 		if (dat.isValid())
 		{
 			srcSelectList = dat.toStringList();
@@ -228,31 +229,31 @@ void AfkForm::onButtonClicked()
 		QString src = ui.lineEdit_autocatchpet->text();
 		if (src.isEmpty())
 		{
-			src = injector.getStringHash(kBattleCatchPetNameString);
+			src = injector.getStringHash(util::kBattleCatchPetNameString);
 		}
 
 		if (!src.isEmpty())
 		{
-			srcList = src.split(rexOR, Qt::SkipEmptyParts);
+			srcList = src.split(util::rexOR, Qt::SkipEmptyParts);
 		}
 
 		if (!createSelectObjectForm(SelectObjectForm::kAutoCatch, srcSelectList, srcList, &dstList, this))
 			return;
 
 		QString dst = dstList.join("|");
-		injector.setStringHash(kBattleCatchPetNameString, dst);
+		injector.setStringHash(util::kBattleCatchPetNameString, dst);
 		ui.lineEdit_autocatchpet->setText(dst);
 		return;
 	}
 	if (name == "pushButton_autodroppet")
 	{
-		QVariant dat = injector.getUserData(kUserEnemyNames);
+		QVariant dat = injector.getUserData(util::kUserEnemyNames);
 		if (dat.isValid())
 		{
 			srcSelectList = dat.toStringList();
 		}
 
-		dat = injector.getUserData(kUserPetNames);
+		dat = injector.getUserData(util::kUserPetNames);
 		if (dat.isValid())
 		{
 			srcSelectList.append(dat.toStringList());
@@ -262,19 +263,19 @@ void AfkForm::onButtonClicked()
 		QString src = ui.lineEdit_autodroppet_name->text();
 		if (src.isEmpty())
 		{
-			src = injector.getStringHash(kDropPetNameString);
+			src = injector.getStringHash(util::kDropPetNameString);
 		}
 
 		if (!src.isEmpty())
 		{
-			srcList = src.split(rexOR, Qt::SkipEmptyParts);
+			srcList = src.split(util::rexOR, Qt::SkipEmptyParts);
 		}
 
 		if (!createSelectObjectForm(SelectObjectForm::kAutoDropPet, srcSelectList, srcList, &dstList, this))
 			return;
 
 		QString dst = dstList.join("|");
-		injector.setStringHash(kDropPetNameString, dst);
+		injector.setStringHash(util::kDropPetNameString, dst);
 		ui.lineEdit_autodroppet_name->setText(dst);
 		return;
 	}
@@ -292,184 +293,184 @@ void AfkForm::onCheckBoxStateChanged(int state)
 	if (name.isEmpty())
 		return;
 
-	__int64 currentIndex = getIndex();
+	qint64 currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
 
 	//battle
 	if (name == "checkBox_crossaction_char")
 	{
-		injector.setEnableHash(kBattleCrossActionCharEnable, isChecked);
+		injector.setEnableHash(util::kBattleCrossActionCharEnable, isChecked);
 		return;
 	}
 	if (name == "checkBox_crossaction_pet")
 	{
-		injector.setEnableHash(kBattleCrossActionPetEnable, isChecked);
+		injector.setEnableHash(util::kBattleCrossActionPetEnable, isChecked);
 		return;
 	}
 
 	if (name == "checkBox_noscapewhilelockpet")
 	{
-		injector.setEnableHash(kBattleNoEscapeWhileLockPetEnable, isChecked);
+		injector.setEnableHash(util::kBattleNoEscapeWhileLockPetEnable, isChecked);
 		return;
 	}
 
 	//battle heal
 	if (name == "checkBox_magicheal")
 	{
-		injector.setEnableHash(kBattleMagicHealEnable, isChecked);
+		injector.setEnableHash(util::kBattleMagicHealEnable, isChecked);
 		return;
 	}
 
 	if (name == "checkBox_itemheal")
 	{
-		injector.setEnableHash(kBattleItemHealEnable, isChecked);
+		injector.setEnableHash(util::kBattleItemHealEnable, isChecked);
 		return;
 	}
 
 	if (name == "checkBox_itemheal_meatpriority")
 	{
-		injector.setEnableHash(kBattleItemHealMeatPriorityEnable, isChecked);
+		injector.setEnableHash(util::kBattleItemHealMeatPriorityEnable, isChecked);
 		return;
 	}
 
 	if (name == "checkBox_itemhealmp")
 	{
-		injector.setEnableHash(kBattleItemHealMpEnable, isChecked);
+		injector.setEnableHash(util::kBattleItemHealMpEnable, isChecked);
 		return;
 	}
 
 	if (name == "checkBox_magicrevive")
 	{
-		injector.setEnableHash(kBattleMagicReviveEnable, isChecked);
+		injector.setEnableHash(util::kBattleMagicReviveEnable, isChecked);
 		return;
 	}
 
 	if (name == "checkBox_itemrevive")
 	{
-		injector.setEnableHash(kBattleItemReviveEnable, isChecked);
+		injector.setEnableHash(util::kBattleItemReviveEnable, isChecked);
 		return;
 	}
 
 	if (name == "checkBox_skillMp")
 	{
-		injector.setEnableHash(kBattleSkillMpEnable, isChecked);
+		injector.setEnableHash(util::kBattleSkillMpEnable, isChecked);
 		return;
 	}
 
 	if (name == "checkBox_petheal")
 	{
-		injector.setEnableHash(kBattlePetHealEnable, isChecked);
+		injector.setEnableHash(util::kBattlePetHealEnable, isChecked);
 		return;
 	}
 
 	if (name == "checkBox_petpurg")
 	{
-		injector.setEnableHash(kBattlePetPurgEnable, isChecked);
+		injector.setEnableHash(util::kBattlePetPurgEnable, isChecked);
 		return;
 	}
 
 	if (name == "checkBox_charpurg")
 	{
-		injector.setEnableHash(kBattleCharPurgEnable, isChecked);
+		injector.setEnableHash(util::kBattleCharPurgEnable, isChecked);
 		return;
 	}
 
 	//normal heal
 	if (name == "checkBox_magicheal_normal")
 	{
-		injector.setEnableHash(kNormalMagicHealEnable, isChecked);
+		injector.setEnableHash(util::kNormalMagicHealEnable, isChecked);
 		return;
 	}
 
 	if (name == "checkBox_itemheal_normal")
 	{
-		injector.setEnableHash(kNormalItemHealEnable, isChecked);
+		injector.setEnableHash(util::kNormalItemHealEnable, isChecked);
 		return;
 	}
 
 	if (name == "checkBox_itemheal_normal_meatpriority")
 	{
-		injector.setEnableHash(kNormalItemHealMeatPriorityEnable, isChecked);
+		injector.setEnableHash(util::kNormalItemHealMeatPriorityEnable, isChecked);
 		return;
 	}
 
 	if (name == "checkBox_itemhealmp_normal")
 	{
-		injector.setEnableHash(kNormalItemHealMpEnable, isChecked);
+		injector.setEnableHash(util::kNormalItemHealMpEnable, isChecked);
 		return;
 	}
 
 	//catch
 	if (name == "checkBox_autocatchpet_level")
 	{
-		injector.setEnableHash(kBattleCatchTargetLevelEnable, isChecked);
+		injector.setEnableHash(util::kBattleCatchTargetLevelEnable, isChecked);
 		return;
 	}
 
 	if (name == "checkBox_autocatchpet_hp")
 	{
-		injector.setEnableHash(kBattleCatchTargetMaxHpEnable, isChecked);
+		injector.setEnableHash(util::kBattleCatchTargetMaxHpEnable, isChecked);
 		return;
 	}
 
 	if (name == "checkBox_autocatchpet_magic")
 	{
-		injector.setEnableHash(kBattleCatchCharMagicEnable, isChecked);
+		injector.setEnableHash(util::kBattleCatchCharMagicEnable, isChecked);
 		return;
 	}
 
 	if (name == "checkBox_autocatchpet_item")
 	{
-		injector.setEnableHash(kBattleCatchCharItemEnable, isChecked);
+		injector.setEnableHash(util::kBattleCatchCharItemEnable, isChecked);
 		return;
 	}
 
 	if (name == "checkBox_autocatchpet_petskill")
 	{
-		injector.setEnableHash(kBattleCatchPetSkillEnable, isChecked);
+		injector.setEnableHash(util::kBattleCatchPetSkillEnable, isChecked);
 		return;
 	}
 
 	//catch->drop
 	if (name == "checkBox_autodroppet")
 	{
-		injector.setEnableHash(kDropPetEnable, isChecked);
+		injector.setEnableHash(util::kDropPetEnable, isChecked);
 		return;
 	}
 
 	if (name == "checkBox_autodroppet_str")
 	{
-		injector.setEnableHash(kDropPetStrEnable, isChecked);
+		injector.setEnableHash(util::kDropPetStrEnable, isChecked);
 		return;
 	}
 
 	if (name == "spinBox_autodroppet_def")
 	{
-		injector.setEnableHash(kDropPetDefEnable, isChecked);
+		injector.setEnableHash(util::kDropPetDefEnable, isChecked);
 		return;
 	}
 
 	if (name == "spinBox_autodroppet_agi")
 	{
-		injector.setEnableHash(kDropPetAgiEnable, isChecked);
+		injector.setEnableHash(util::kDropPetAgiEnable, isChecked);
 		return;
 	}
 
 	if (name == "checkBox_autodroppet_hp")
 	{
-		injector.setEnableHash(kDropPetHpEnable, isChecked);
+		injector.setEnableHash(util::kDropPetHpEnable, isChecked);
 		return;
 	}
 
 	if (name == "checkBox_autodroppet_hp")
 	{
-		injector.setEnableHash(kDropPetHpEnable, isChecked);
+		injector.setEnableHash(util::kDropPetHpEnable, isChecked);
 		return;
 	}
 
 	if (name == "checkBox_autodroppet_aggregate")
 	{
-		injector.setEnableHash(kDropPetAggregateEnable, isChecked);
+		injector.setEnableHash(util::kDropPetAggregateEnable, isChecked);
 		return;
 	}
 }
@@ -484,196 +485,196 @@ void AfkForm::onSpinBoxValueChanged(int value)
 	if (name.isEmpty())
 		return;
 
-	__int64 currentIndex = getIndex();
+	qint64 currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
 
 	//battle heal
 	if (name == "spinBox_magicheal_char")
 	{
-		injector.setValueHash(kBattleMagicHealCharValue, value);
+		injector.setValueHash(util::kBattleMagicHealCharValue, value);
 		return;
 	}
 
 	if (name == "spinBox_magicheal_pet")
 	{
-		injector.setValueHash(kBattleMagicHealPetValue, value);
+		injector.setValueHash(util::kBattleMagicHealPetValue, value);
 		return;
 	}
 
 	if (name == "spinBox_magicheal_allie")
 	{
-		injector.setValueHash(kBattleMagicHealAllieValue, value);
+		injector.setValueHash(util::kBattleMagicHealAllieValue, value);
 		return;
 	}
 
 	if (name == "spinBox_itemheal_char")
 	{
-		injector.setValueHash(kBattleItemHealCharValue, value);
+		injector.setValueHash(util::kBattleItemHealCharValue, value);
 		return;
 	}
 
 	if (name == "spinBox_itemheal_pet")
 	{
-		injector.setValueHash(kBattleItemHealPetValue, value);
+		injector.setValueHash(util::kBattleItemHealPetValue, value);
 		return;
 	}
 
 	if (name == "spinBox_itemheal_allie")
 	{
-		injector.setValueHash(kBattleItemHealAllieValue, value);
+		injector.setValueHash(util::kBattleItemHealAllieValue, value);
 		return;
 	}
 
 	if (name == "spinBox_itemhealmp")
 	{
-		injector.setValueHash(kBattleItemHealMpValue, value);
+		injector.setValueHash(util::kBattleItemHealMpValue, value);
 		return;
 	}
 
 	if (name == "spinBox_skillMp")
 	{
-		injector.setValueHash(kBattleSkillMpValue, value);
+		injector.setValueHash(util::kBattleSkillMpValue, value);
 		return;
 	}
 
 	if (name == "spinBox_petheal_char")
 	{
-		injector.setValueHash(kBattlePetHealCharValue, value);
+		injector.setValueHash(util::kBattlePetHealCharValue, value);
 		return;
 	}
 
 	if (name == "spinBox_petheal_pet")
 	{
-		injector.setValueHash(kBattlePetHealPetValue, value);
+		injector.setValueHash(util::kBattlePetHealPetValue, value);
 		return;
 	}
 
 	if (name == "spinBox_petheal_allie")
 	{
-		injector.setValueHash(kBattlePetHealAllieValue, value);
+		injector.setValueHash(util::kBattlePetHealAllieValue, value);
 		return;
 	}
 	//normal heal
 	if (name == "spinBox_magicheal_normal_char")
 	{
-		injector.setValueHash(kNormalMagicHealCharValue, value);
+		injector.setValueHash(util::kNormalMagicHealCharValue, value);
 		return;
 	}
 
 	if (name == "spinBox_magicheal_normal_pet")
 	{
-		injector.setValueHash(kNormalMagicHealPetValue, value);
+		injector.setValueHash(util::kNormalMagicHealPetValue, value);
 		return;
 	}
 
 	if (name == "spinBox_magicheal_normal_allie")
 	{
-		injector.setValueHash(kNormalMagicHealAllieValue, value);
+		injector.setValueHash(util::kNormalMagicHealAllieValue, value);
 		return;
 	}
 
 	if (name == "spinBox_itemheal_normal_char")
 	{
-		injector.setValueHash(kNormalItemHealCharValue, value);
+		injector.setValueHash(util::kNormalItemHealCharValue, value);
 		return;
 	}
 
 	if (name == "spinBox_itemheal_normal_pet")
 	{
-		injector.setValueHash(kNormalItemHealPetValue, value);
+		injector.setValueHash(util::kNormalItemHealPetValue, value);
 		return;
 	}
 
 	if (name == "spinBox_itemheal_normal_allie")
 	{
-		injector.setValueHash(kNormalItemHealAllieValue, value);
+		injector.setValueHash(util::kNormalItemHealAllieValue, value);
 		return;
 	}
 
 	if (name == "spinBox_itemhealmp_normal")
 	{
-		injector.setValueHash(kNormalItemHealMpValue, value);
+		injector.setValueHash(util::kNormalItemHealMpValue, value);
 		return;
 	}
 
 	//autowalk
 	if (name == "spinBox_autowalkdelay")
 	{
-		injector.setValueHash(kAutoWalkDelayValue, value);
+		injector.setValueHash(util::kAutoWalkDelayValue, value);
 		return;
 	}
 
 	if (name == "spinBox_autowalklen")
 	{
-		injector.setValueHash(kAutoWalkDistanceValue, value);
+		injector.setValueHash(util::kAutoWalkDistanceValue, value);
 		return;
 	}
 
 	//catch
 	if (name == "spinBox_autocatchpet_level")
 	{
-		injector.setValueHash(kBattleCatchTargetLevelValue, value);
+		injector.setValueHash(util::kBattleCatchTargetLevelValue, value);
 		return;
 	}
 
 	if (name == "spinBox_autocatchpet_hp")
 	{
-		injector.setValueHash(kBattleCatchTargetMaxHpValue, value);
+		injector.setValueHash(util::kBattleCatchTargetMaxHpValue, value);
 		return;
 	}
 
 	if (name == "spinBox_autocatchpet_magic")
 	{
-		injector.setValueHash(kBattleCatchTargetMagicHpValue, value);
+		injector.setValueHash(util::kBattleCatchTargetMagicHpValue, value);
 		return;
 	}
 
 	if (name == "spinBox_autocatchpet_item")
 	{
-		injector.setValueHash(kBattleCatchTargetItemHpValue, value);
+		injector.setValueHash(util::kBattleCatchTargetItemHpValue, value);
 		return;
 	}
 
 	//catch->drop
 	if (name == "spinBox_autodroppet_str")
 	{
-		injector.setValueHash(kDropPetStrValue, value);
+		injector.setValueHash(util::kDropPetStrValue, value);
 		return;
 	}
 
 	if (name == "spinBox_autodroppet_def")
 	{
-		injector.setValueHash(kDropPetDefValue, value);
+		injector.setValueHash(util::kDropPetDefValue, value);
 		return;
 	}
 
 	if (name == "spinBox_autodroppet_agi")
 	{
-		injector.setValueHash(kDropPetAgiValue, value);
+		injector.setValueHash(util::kDropPetAgiValue, value);
 		return;
 	}
 
 	if (name == "spinBox_autodroppet_hp")
 	{
-		injector.setValueHash(kDropPetHpValue, value);
+		injector.setValueHash(util::kDropPetHpValue, value);
 		return;
 	}
 
 	if (name == "spinBox_autodroppet_aggregate")
 	{
-		injector.setValueHash(kDropPetAggregateValue, value);
+		injector.setValueHash(util::kDropPetAggregateValue, value);
 		return;
 	}
 
 	if (name == "spinBox_rounddelay")
 	{
-		injector.setValueHash(kBattleActionDelayValue, value);
+		injector.setValueHash(util::kBattleActionDelayValue, value);
 		return;
 	}
 
 	if (name == "spinBox_resend_delay")
 	{
-		injector.setValueHash(kBattleResendDelayValue, value);
+		injector.setValueHash(util::kBattleResendDelayValue, value);
 		return;
 	}
 }
@@ -688,55 +689,55 @@ void AfkForm::onComboBoxCurrentIndexChanged(int value)
 	if (name.isEmpty())
 		return;
 
-	__int64 currentIndex = getIndex();
+	qint64 currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
 
 	//battle char
 	if (name == "comboBox_roundaction_char_round")
 	{
-		injector.setValueHash(kBattleCharRoundActionRoundValue, value != -1 ? value : 0);
+		injector.setValueHash(util::kBattleCharRoundActionRoundValue, value != -1 ? value : 0);
 		return;
 	}
 	if (name == "comboBox_roundaction_char_action")
 	{
-		injector.setValueHash(kBattleCharRoundActionTypeValue, value != -1 ? value : 0);
+		injector.setValueHash(util::kBattleCharRoundActionTypeValue, value != -1 ? value : 0);
 		return;
 	}
 	if (name == "comboBox_roundaction_char_enemy")
 	{
-		injector.setValueHash(kBattleCharRoundActionEnemyValue, value != -1 ? value : 0);
+		injector.setValueHash(util::kBattleCharRoundActionEnemyValue, value != -1 ? value : 0);
 		return;
 	}
 	if (name == "comboBox_roundaction_char_level")
 	{
-		injector.setValueHash(kBattleCharRoundActionLevelValue, value != -1 ? value : 0);
+		injector.setValueHash(util::kBattleCharRoundActionLevelValue, value != -1 ? value : 0);
 		return;
 	}
 
 	if (name == "comboBox_crossaction_char_action")
 	{
-		injector.setValueHash(kBattleCharCrossActionTypeValue, value != -1 ? value : 0);
+		injector.setValueHash(util::kBattleCharCrossActionTypeValue, value != -1 ? value : 0);
 		return;
 	}
 	if (name == "comboBox_crossaction_char_round")
 	{
-		injector.setValueHash(kBattleCharCrossActionRoundValue, value != -1 ? value : 0);
+		injector.setValueHash(util::kBattleCharCrossActionRoundValue, value != -1 ? value : 0);
 		return;
 	}
 
 	if (name == "comboBox_normalaction_char_action")
 	{
-		injector.setValueHash(kBattleCharNormalActionTypeValue, value != -1 ? value : 0);
+		injector.setValueHash(util::kBattleCharNormalActionTypeValue, value != -1 ? value : 0);
 		return;
 	}
 	if (name == "comboBox_normalaction_char_enemy")
 	{
-		injector.setValueHash(kBattleCharNormalActionEnemyValue, value != -1 ? value : 0);
+		injector.setValueHash(util::kBattleCharNormalActionEnemyValue, value != -1 ? value : 0);
 		return;
 	}
 	if (name == "comboBox_normalaction_char_level")
 	{
-		injector.setValueHash(kBattleCharNormalActionLevelValue, value != -1 ? value : 0);
+		injector.setValueHash(util::kBattleCharNormalActionLevelValue, value != -1 ? value : 0);
 		return;
 	}
 
@@ -744,108 +745,108 @@ void AfkForm::onComboBoxCurrentIndexChanged(int value)
 	//battle pet
 	if (name == "comboBox_roundaction_pet_round")
 	{
-		injector.setValueHash(kBattlePetRoundActionRoundValue, value != -1 ? value : 0);
+		injector.setValueHash(util::kBattlePetRoundActionRoundValue, value != -1 ? value : 0);
 		return;
 	}
 	if (name == "comboBox_roundaction_pet_action")
 	{
-		injector.setValueHash(kBattlePetRoundActionTypeValue, value != -1 ? value : 0);
+		injector.setValueHash(util::kBattlePetRoundActionTypeValue, value != -1 ? value : 0);
 		return;
 	}
 	if (name == "comboBox_roundaction_pet_enemy")
 	{
-		injector.setValueHash(kBattlePetRoundActionEnemyValue, value != -1 ? value : 0);
+		injector.setValueHash(util::kBattlePetRoundActionEnemyValue, value != -1 ? value : 0);
 		return;
 	}
 	if (name == "comboBox_roundaction_pet_level")
 	{
-		injector.setValueHash(kBattlePetRoundActionLevelValue, value != -1 ? value : 0);
+		injector.setValueHash(util::kBattlePetRoundActionLevelValue, value != -1 ? value : 0);
 		return;
 	}
 
 	if (name == "comboBox_crossaction_pet_action")
 	{
-		injector.setValueHash(kBattlePetCrossActionTypeValue, value != -1 ? value : 0);
+		injector.setValueHash(util::kBattlePetCrossActionTypeValue, value != -1 ? value : 0);
 		return;
 	}
 	if (name == "comboBox_crossaction_pet_round")
 	{
-		injector.setValueHash(kBattlePetCrossActionRoundValue, value != -1 ? value : 0);
+		injector.setValueHash(util::kBattlePetCrossActionRoundValue, value != -1 ? value : 0);
 		return;
 	}
 
 	if (name == "comboBox_normalaction_pet_action")
 	{
-		injector.setValueHash(kBattlePetNormalActionTypeValue, value != -1 ? value : 0);
+		injector.setValueHash(util::kBattlePetNormalActionTypeValue, value != -1 ? value : 0);
 		return;
 	}
 	if (name == "comboBox_normalaction_pet_enemy")
 	{
-		injector.setValueHash(kBattlePetNormalActionEnemyValue, value != -1 ? value : 0);
+		injector.setValueHash(util::kBattlePetNormalActionEnemyValue, value != -1 ? value : 0);
 		return;
 	}
 	if (name == "comboBox_normalaction_pet_level")
 	{
-		injector.setValueHash(kBattlePetNormalActionLevelValue, value != -1 ? value : 0);
+		injector.setValueHash(util::kBattlePetNormalActionLevelValue, value != -1 ? value : 0);
 		return;
 	}
 	if (name == "comboBox_healaction_pet_action")
 	{
-		injector.setValueHash(kBattlePetHealActionTypeValue, value != -1 ? value : 0);
+		injector.setValueHash(util::kBattlePetHealActionTypeValue, value != -1 ? value : 0);
 		return;
 	}
 	if (name == "comboBox_purgaction_pet_action")
 	{
-		injector.setValueHash(kBattlePetPurgActionTypeValue, value != -1 ? value : 0);
+		injector.setValueHash(util::kBattlePetPurgActionTypeValue, value != -1 ? value : 0);
 		return;
 	}
 	//magic purg
 	if (name == "comboBox_purgaction_char_action")
 	{
-		injector.setValueHash(kBattleCharPurgActionTypeValue, value != -1 ? value : 0);
+		injector.setValueHash(util::kBattleCharPurgActionTypeValue, value != -1 ? value : 0);
 		return;
 	}
 	//magic heal
 	if (name == "comboBox_magicheal")
 	{
-		injector.setValueHash(kBattleMagicHealMagicValue, value != -1 ? value : 0);
+		injector.setValueHash(util::kBattleMagicHealMagicValue, value != -1 ? value : 0);
 		return;
 	}
 
 	if (name == "comboBox_magicrevive")
 	{
-		injector.setValueHash(kBattleMagicReviveMagicValue, value != -1 ? value : 0);
+		injector.setValueHash(util::kBattleMagicReviveMagicValue, value != -1 ? value : 0);
 		return;
 	}
 
 	//normal
 	if (name == "comboBox_magicheal_normal")
 	{
-		injector.setValueHash(kNormalMagicHealMagicValue, value != -1 ? value : 0);
+		injector.setValueHash(util::kNormalMagicHealMagicValue, value != -1 ? value : 0);
 		return;
 	}
 
 	//walk
 	if (name == "comboBox_autowalkdir")
 	{
-		injector.setValueHash(kAutoWalkDirectionValue, value != -1 ? value : 0);
+		injector.setValueHash(util::kAutoWalkDirectionValue, value != -1 ? value : 0);
 		return;
 	}
 
 	//catch
 	if (name == "comboBox_autocatchpet_mode")
 	{
-		injector.setValueHash(kBattleCatchModeValue, value != -1 ? value : 0);
+		injector.setValueHash(util::kBattleCatchModeValue, value != -1 ? value : 0);
 		return;
 	}
 	if (name == "comboBox_autocatchpet_magic")
 	{
-		injector.setValueHash(kBattleCatchCharMagicValue, value != -1 ? value : 0);
+		injector.setValueHash(util::kBattleCatchCharMagicValue, value != -1 ? value : 0);
 		return;
 	}
 	if (name == "comboBox_autocatchpet_petskill")
 	{
-		injector.setValueHash(kBattleCatchPetSkillValue, value != -1 ? value : 0);
+		injector.setValueHash(util::kBattleCatchPetSkillValue, value != -1 ? value : 0);
 		return;
 	}
 }
@@ -864,47 +865,47 @@ void AfkForm::onComboBoxClicked()
 		return;
 	}
 
-	UserSetting settingType = kSettingNotUsed;
+	util::UserSetting settingType = util::kSettingNotUsed;
 
 	//battle
 	do
 	{
 		if (name == "comboBox_itemheal")
 		{
-			settingType = kBattleItemHealItemString;
+			settingType = util::kBattleItemHealItemString;
 			break;
 		}
 		if (name == "comboBox_itemhealmp")
 		{
-			settingType = kBattleItemHealMpItemString;
+			settingType = util::kBattleItemHealMpItemString;
 			break;
 		}
 		if (name == "comboBox_itemrevive")
 		{
-			settingType = kBattleItemReviveItemString;
+			settingType = util::kBattleItemReviveItemString;
 			break;
 		}
 		//normal
 		if (name == "comboBox_itemheal_normal")
 		{
-			settingType = kNormalItemHealItemString;
+			settingType = util::kNormalItemHealItemString;
 			break;
 		}
 		if (name == "comboBox_itemhealmp_normal")
 		{
-			settingType = kNormalItemHealMpItemString;
+			settingType = util::kNormalItemHealMpItemString;
 			break;
 		}
 
 		//catch
 		if (name == "comboBox_autocatchpet_item")
 		{
-			settingType = kBattleCatchCharItemString;
+			settingType = util::kBattleCatchCharItemString;
 			break;
 		}
 	} while (false);
 
-	__int64 currentIndex = getIndex();
+	qint64 currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
 	if (injector.server.isNull())
 		return;
@@ -913,7 +914,7 @@ void AfkForm::onComboBoxClicked()
 	{
 		QString currentText = pComboBox->currentText();
 		pComboBox->clear();
-		QStringList itemList = injector.getUserData(kUserItemNames).toStringList();
+		QStringList itemList = injector.getUserData(util::kUserItemNames).toStringList();
 		itemList.prepend(currentText);
 		itemList.removeDuplicates();
 		pComboBox->addItems(itemList);
@@ -935,34 +936,34 @@ void AfkForm::onComboBoxTextChanged(const QString& text)
 		return;
 
 	QString newText = text.simplified();
-	__int64 currentIndex = getIndex();
+	qint64 currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
 
 	//battle
 	if (name == "comboBox_itemheal")
 	{
-		injector.setStringHash(kBattleItemHealItemString, newText);
+		injector.setStringHash(util::kBattleItemHealItemString, newText);
 		return;
 	}
 	if (name == "comboBox_itemhealmp")
 	{
-		injector.setStringHash(kBattleItemHealMpItemString, newText);
+		injector.setStringHash(util::kBattleItemHealMpItemString, newText);
 		return;
 	}
 	if (name == "comboBox_itemrevive")
 	{
-		injector.setStringHash(kBattleItemReviveItemString, newText);
+		injector.setStringHash(util::kBattleItemReviveItemString, newText);
 		return;
 	}
 	//normal
 	if (name == "comboBox_itemheal_normal")
 	{
-		injector.setStringHash(kNormalItemHealItemString, newText);
+		injector.setStringHash(util::kNormalItemHealItemString, newText);
 		return;
 	}
 	if (name == "comboBox_itemhealmp_normal")
 	{
-		injector.setStringHash(kNormalItemHealMpItemString, newText);
+		injector.setStringHash(util::kNormalItemHealMpItemString, newText);
 		return;
 	}
 }
@@ -982,11 +983,11 @@ void AfkForm::onResetControlTextLanguage()
 
 		combo->clear();
 		combo->addItem(tr("not use"));
-		for (__int64 i = 1; i <= 100; ++i)
+		for (qint64 i = 1; i <= 100; ++i)
 		{
 			QString text = tr("at round %1").arg(i);
 			combo->addItem(text);
-			__int64 index = static_cast<__int64>(combo->count()) - 1;
+			qint64 index = static_cast<qint64>(combo->count()) - 1;
 			combo->setItemData(index, text, Qt::ToolTipRole);
 		}
 	};
@@ -1004,11 +1005,11 @@ void AfkForm::onResetControlTextLanguage()
 
 		combo->clear();
 		combo->addItem(tr("not use"));
-		for (__int64 i = 1; i <= 9; ++i)
+		for (qint64 i = 1; i <= 9; ++i)
 		{
 			QString text = tr("enemy amount > %1").arg(i);
 			combo->addItem(text);
-			__int64 index = static_cast<__int64>(combo->count()) - 1;
+			qint64 index = static_cast<qint64>(combo->count()) - 1;
 			combo->setItemData(index, text, Qt::ToolTipRole);
 		}
 	};
@@ -1025,11 +1026,11 @@ void AfkForm::onResetControlTextLanguage()
 			return;
 
 		combo->clear();
-		for (__int64 i = 1; i <= 100; ++i)
+		for (qint64 i = 1; i <= 100; ++i)
 		{
 			QString text = tr("every %1 round").arg(i);
 			combo->addItem(text);
-			__int64 index = static_cast<__int64>(combo->count()) - 1;
+			qint64 index = static_cast<qint64>(combo->count()) - 1;
 			combo->setItemData(index, text, Qt::ToolTipRole);
 		}
 	};
@@ -1047,11 +1048,11 @@ void AfkForm::onResetControlTextLanguage()
 
 		combo->clear();
 		combo->addItem(tr("not use"));
-		for (__int64 i = 10; i <= 250; i += 10)
+		for (qint64 i = 10; i <= 250; i += 10)
 		{
 			QString text = tr("enemy level > %1").arg(i);
 			combo->addItem(text);
-			__int64 index = static_cast<__int64>(combo->count()) - 1;
+			qint64 index = static_cast<qint64>(combo->count()) - 1;
 			combo->setItemData(index, text, Qt::ToolTipRole);
 		}
 	};
@@ -1075,29 +1076,29 @@ void AfkForm::onResetControlTextLanguage()
 			tr("gloves")
 		};
 
-		for (__int64 i = 0; i < actionList.size(); ++i)
+		for (qint64 i = 0; i < actionList.size(); ++i)
 		{
 			if (notBattle && i < 3)
 				continue;
 
 			combo->addItem(actionList[i] + (i >= 3 ? ":" : ""));
-			__int64 index = static_cast<__int64>(combo->count()) - 1;
+			qint64 index = static_cast<qint64>(combo->count()) - 1;
 			combo->setItemData(index, QString("%1").arg(actionList[i]), Qt::ToolTipRole);
 		}
 
 		if (notBattle)
 			return;
 
-		for (__int64 i = 0; i < MAX_PROFESSION_SKILL; ++i)
+		for (qint64 i = 0; i < MAX_PROFESSION_SKILL; ++i)
 		{
 			QString text = QString("%1:").arg(i + 1);
 			combo->addItem(text);
-			__int64 index = static_cast<__int64>(combo->count()) - 1;
+			qint64 index = static_cast<qint64>(combo->count()) - 1;
 			combo->setItemData(index, text, Qt::ToolTipRole);
 		}
 	};
 
-	auto appendNumbers = [](QComboBox* combo, __int64 max)->void
+	auto appendNumbers = [](QComboBox* combo, qint64 max)->void
 	{
 		if (combo == nullptr)
 			return;
@@ -1109,10 +1110,10 @@ void AfkForm::onResetControlTextLanguage()
 			return;
 
 		combo->clear();
-		for (__int64 i = 1; i <= max; ++i)
+		for (qint64 i = 1; i <= max; ++i)
 		{
 			combo->addItem(QString("%1:").arg(i));
-			__int64 index = static_cast<__int64>(combo->count()) - 1;
+			qint64 index = static_cast<qint64>(combo->count()) - 1;
 			combo->setItemData(index, QString("%1").arg(i), Qt::ToolTipRole);
 		}
 	};
@@ -1142,11 +1143,11 @@ void AfkForm::onResetControlTextLanguage()
 	appendCharAction(ui.comboBox_purgaction_char_action, false);
 
 	appendCharAction(ui.comboBox_magicheal_normal, true);
-	for (__int64 i = CHAR_EQUIPPLACENUM; i < MAX_ITEM; ++i)
+	for (qint64 i = CHAR_EQUIPPLACENUM; i < MAX_ITEM; ++i)
 	{
 		QString text = QString("%1:").arg(i + 1 - CHAR_EQUIPPLACENUM);
 		ui.comboBox_magicheal_normal->addItem(text);
-		__int64 index = static_cast<__int64>(ui.comboBox_magicheal_normal->count()) - 1;
+		qint64 index = static_cast<qint64>(ui.comboBox_magicheal_normal->count()) - 1;
 		ui.comboBox_magicheal_normal->setItemData(index, text, Qt::ToolTipRole);
 	}
 
@@ -1173,11 +1174,11 @@ void AfkForm::onResetControlTextLanguage()
 
 void AfkForm::onApplyHashSettingsToUI()
 {
-	__int64 currentIndex = getIndex();
+	qint64 currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
-	QHash<UserSetting, bool> enableHash = injector.getEnablesHash();
-	QHash<UserSetting, __int64> valueHash = injector.getValuesHash();
-	QHash<UserSetting, QString> stringHash = injector.getStringsHash();
+	QHash<util::UserSetting, bool> enableHash = injector.getEnablesHash();
+	QHash<util::UserSetting, qint64> valueHash = injector.getValuesHash();
+	QHash<util::UserSetting, QString> stringHash = injector.getStringsHash();
 
 	if (!injector.server.isNull() && injector.server->getOnlineFlag())
 	{
@@ -1187,134 +1188,134 @@ void AfkForm::onApplyHashSettingsToUI()
 	}
 
 	//battle
-	ui.checkBox_magicheal->setChecked(enableHash.value(kBattleMagicHealEnable));
-	ui.checkBox_itemheal->setChecked(enableHash.value(kBattleItemHealEnable));
-	ui.checkBox_itemheal_meatpriority->setChecked(enableHash.value(kBattleItemHealMeatPriorityEnable));
-	ui.checkBox_itemhealmp->setChecked(enableHash.value(kBattleItemHealMpEnable));
-	ui.checkBox_magicrevive->setChecked(enableHash.value(kBattleMagicReviveEnable));
-	ui.checkBox_itemrevive->setChecked(enableHash.value(kBattleItemReviveEnable));
+	ui.checkBox_magicheal->setChecked(enableHash.value(util::kBattleMagicHealEnable));
+	ui.checkBox_itemheal->setChecked(enableHash.value(util::kBattleItemHealEnable));
+	ui.checkBox_itemheal_meatpriority->setChecked(enableHash.value(util::kBattleItemHealMeatPriorityEnable));
+	ui.checkBox_itemhealmp->setChecked(enableHash.value(util::kBattleItemHealMpEnable));
+	ui.checkBox_magicrevive->setChecked(enableHash.value(util::kBattleMagicReviveEnable));
+	ui.checkBox_itemrevive->setChecked(enableHash.value(util::kBattleItemReviveEnable));
 
-	ui.checkBox_magicheal_normal->setChecked(enableHash.value(kNormalMagicHealEnable));
-	ui.checkBox_itemheal_normal->setChecked(enableHash.value(kNormalItemHealEnable));
-	ui.checkBox_itemheal_normal_meatpriority->setChecked(enableHash.value(kNormalItemHealMeatPriorityEnable));
-	ui.checkBox_itemhealmp_normal->setChecked(enableHash.value(kNormalItemHealMpEnable));
-	ui.checkBox_skillMp->setChecked(enableHash.value(kBattleSkillMpEnable));
+	ui.checkBox_magicheal_normal->setChecked(enableHash.value(util::kNormalMagicHealEnable));
+	ui.checkBox_itemheal_normal->setChecked(enableHash.value(util::kNormalItemHealEnable));
+	ui.checkBox_itemheal_normal_meatpriority->setChecked(enableHash.value(util::kNormalItemHealMeatPriorityEnable));
+	ui.checkBox_itemhealmp_normal->setChecked(enableHash.value(util::kNormalItemHealMpEnable));
+	ui.checkBox_skillMp->setChecked(enableHash.value(util::kBattleSkillMpEnable));
 
-	ui.comboBox_roundaction_char_round->setCurrentIndex(valueHash.value(kBattleCharRoundActionRoundValue));
-	ui.comboBox_roundaction_char_action->setCurrentIndex(valueHash.value(kBattleCharRoundActionTypeValue));
-	ui.comboBox_roundaction_char_enemy->setCurrentIndex(valueHash.value(kBattleCharRoundActionEnemyValue));
-	ui.comboBox_roundaction_char_level->setCurrentIndex(valueHash.value(kBattleCharRoundActionLevelValue));
+	ui.comboBox_roundaction_char_round->setCurrentIndex(valueHash.value(util::kBattleCharRoundActionRoundValue));
+	ui.comboBox_roundaction_char_action->setCurrentIndex(valueHash.value(util::kBattleCharRoundActionTypeValue));
+	ui.comboBox_roundaction_char_enemy->setCurrentIndex(valueHash.value(util::kBattleCharRoundActionEnemyValue));
+	ui.comboBox_roundaction_char_level->setCurrentIndex(valueHash.value(util::kBattleCharRoundActionLevelValue));
 
-	ui.comboBox_crossaction_char_action->setCurrentIndex(valueHash.value(kBattleCharCrossActionTypeValue));
-	ui.comboBox_crossaction_char_round->setCurrentIndex(valueHash.value(kBattleCharCrossActionRoundValue));
+	ui.comboBox_crossaction_char_action->setCurrentIndex(valueHash.value(util::kBattleCharCrossActionTypeValue));
+	ui.comboBox_crossaction_char_round->setCurrentIndex(valueHash.value(util::kBattleCharCrossActionRoundValue));
 
-	ui.comboBox_normalaction_char_action->setCurrentIndex(valueHash.value(kBattleCharNormalActionTypeValue));
-	ui.comboBox_normalaction_char_enemy->setCurrentIndex(valueHash.value(kBattleCharNormalActionEnemyValue));
-	ui.comboBox_normalaction_char_level->setCurrentIndex(valueHash.value(kBattleCharNormalActionLevelValue));
+	ui.comboBox_normalaction_char_action->setCurrentIndex(valueHash.value(util::kBattleCharNormalActionTypeValue));
+	ui.comboBox_normalaction_char_enemy->setCurrentIndex(valueHash.value(util::kBattleCharNormalActionEnemyValue));
+	ui.comboBox_normalaction_char_level->setCurrentIndex(valueHash.value(util::kBattleCharNormalActionLevelValue));
 
-	ui.comboBox_roundaction_pet_round->setCurrentIndex(valueHash.value(kBattlePetRoundActionRoundValue));
-	ui.comboBox_roundaction_pet_action->setCurrentIndex(valueHash.value(kBattlePetRoundActionTypeValue));
-	ui.comboBox_roundaction_pet_enemy->setCurrentIndex(valueHash.value(kBattlePetRoundActionEnemyValue));
-	ui.comboBox_roundaction_pet_level->setCurrentIndex(valueHash.value(kBattlePetRoundActionLevelValue));
+	ui.comboBox_roundaction_pet_round->setCurrentIndex(valueHash.value(util::kBattlePetRoundActionRoundValue));
+	ui.comboBox_roundaction_pet_action->setCurrentIndex(valueHash.value(util::kBattlePetRoundActionTypeValue));
+	ui.comboBox_roundaction_pet_enemy->setCurrentIndex(valueHash.value(util::kBattlePetRoundActionEnemyValue));
+	ui.comboBox_roundaction_pet_level->setCurrentIndex(valueHash.value(util::kBattlePetRoundActionLevelValue));
 
-	ui.comboBox_crossaction_pet_action->setCurrentIndex(valueHash.value(kBattlePetCrossActionTypeValue));
-	ui.comboBox_crossaction_pet_round->setCurrentIndex(valueHash.value(kBattlePetCrossActionRoundValue));
+	ui.comboBox_crossaction_pet_action->setCurrentIndex(valueHash.value(util::kBattlePetCrossActionTypeValue));
+	ui.comboBox_crossaction_pet_round->setCurrentIndex(valueHash.value(util::kBattlePetCrossActionRoundValue));
 
-	ui.comboBox_normalaction_pet_action->setCurrentIndex(valueHash.value(kBattlePetNormalActionTypeValue));
-	ui.comboBox_normalaction_pet_enemy->setCurrentIndex(valueHash.value(kBattlePetNormalActionEnemyValue));
-	ui.comboBox_normalaction_pet_level->setCurrentIndex(valueHash.value(kBattlePetNormalActionLevelValue));
+	ui.comboBox_normalaction_pet_action->setCurrentIndex(valueHash.value(util::kBattlePetNormalActionTypeValue));
+	ui.comboBox_normalaction_pet_enemy->setCurrentIndex(valueHash.value(util::kBattlePetNormalActionEnemyValue));
+	ui.comboBox_normalaction_pet_level->setCurrentIndex(valueHash.value(util::kBattlePetNormalActionLevelValue));
 
-	ui.comboBox_magicheal->setCurrentIndex(valueHash.value(kBattleMagicHealMagicValue));
-	ui.comboBox_magicrevive->setCurrentIndex(valueHash.value(kBattleMagicReviveMagicValue));
+	ui.comboBox_magicheal->setCurrentIndex(valueHash.value(util::kBattleMagicHealMagicValue));
+	ui.comboBox_magicrevive->setCurrentIndex(valueHash.value(util::kBattleMagicReviveMagicValue));
 
-	ui.comboBox_itemheal->setCurrentText(stringHash.value(kBattleItemHealItemString));
-	ui.comboBox_itemhealmp->setCurrentText(stringHash.value(kBattleItemHealMpItemString));
-	ui.comboBox_itemrevive->setCurrentText(stringHash.value(kBattleItemReviveItemString));
-	ui.comboBox_itemheal_normal->setCurrentText(stringHash.value(kNormalItemHealItemString));
-	ui.comboBox_itemhealmp_normal->setCurrentText(stringHash.value(kNormalItemHealMpItemString));
-	ui.comboBox_magicheal_normal->setCurrentIndex(valueHash.value(kNormalMagicHealMagicValue));
+	ui.comboBox_itemheal->setCurrentText(stringHash.value(util::kBattleItemHealItemString));
+	ui.comboBox_itemhealmp->setCurrentText(stringHash.value(util::kBattleItemHealMpItemString));
+	ui.comboBox_itemrevive->setCurrentText(stringHash.value(util::kBattleItemReviveItemString));
+	ui.comboBox_itemheal_normal->setCurrentText(stringHash.value(util::kNormalItemHealItemString));
+	ui.comboBox_itemhealmp_normal->setCurrentText(stringHash.value(util::kNormalItemHealMpItemString));
+	ui.comboBox_magicheal_normal->setCurrentIndex(valueHash.value(util::kNormalMagicHealMagicValue));
 
-	ui.checkBox_noscapewhilelockpet->setChecked(enableHash.value(kBattleNoEscapeWhileLockPetEnable));
+	ui.checkBox_noscapewhilelockpet->setChecked(enableHash.value(util::kBattleNoEscapeWhileLockPetEnable));
 
-	ui.checkBox_petheal->setChecked(enableHash.value(kBattlePetHealEnable));
-	ui.comboBox_healaction_pet_action->setCurrentIndex(valueHash.value(kBattlePetHealActionTypeValue));
-	ui.checkBox_petpurg->setChecked(enableHash.value(kBattlePetPurgEnable));
-	ui.comboBox_purgaction_pet_action->setCurrentIndex(valueHash.value(kBattlePetPurgActionTypeValue));
-	ui.checkBox_charpurg->setChecked(enableHash.value(kBattleCharPurgEnable));
-	ui.comboBox_purgaction_char_action->setCurrentIndex(valueHash.value(kBattleCharPurgActionTypeValue));
+	ui.checkBox_petheal->setChecked(enableHash.value(util::kBattlePetHealEnable));
+	ui.comboBox_healaction_pet_action->setCurrentIndex(valueHash.value(util::kBattlePetHealActionTypeValue));
+	ui.checkBox_petpurg->setChecked(enableHash.value(util::kBattlePetPurgEnable));
+	ui.comboBox_purgaction_pet_action->setCurrentIndex(valueHash.value(util::kBattlePetPurgActionTypeValue));
+	ui.checkBox_charpurg->setChecked(enableHash.value(util::kBattleCharPurgEnable));
+	ui.comboBox_purgaction_char_action->setCurrentIndex(valueHash.value(util::kBattleCharPurgActionTypeValue));
 	//heal
-	ui.spinBox_magicheal_char->setValue(valueHash.value(kBattleMagicHealCharValue));
-	ui.spinBox_magicheal_pet->setValue(valueHash.value(kBattleMagicHealPetValue));
-	ui.spinBox_magicheal_allie->setValue(valueHash.value(kBattleMagicHealAllieValue));
-	ui.spinBox_itemheal_char->setValue(valueHash.value(kBattleItemHealCharValue));
-	ui.spinBox_itemheal_pet->setValue(valueHash.value(kBattleItemHealPetValue));
-	ui.spinBox_itemheal_allie->setValue(valueHash.value(kBattleItemHealAllieValue));
-	ui.spinBox_itemhealmp->setValue(valueHash.value(kBattleItemHealMpValue));
-	ui.spinBox_skillMp->setValue(valueHash.value(kBattleSkillMpValue));
+	ui.spinBox_magicheal_char->setValue(valueHash.value(util::kBattleMagicHealCharValue));
+	ui.spinBox_magicheal_pet->setValue(valueHash.value(util::kBattleMagicHealPetValue));
+	ui.spinBox_magicheal_allie->setValue(valueHash.value(util::kBattleMagicHealAllieValue));
+	ui.spinBox_itemheal_char->setValue(valueHash.value(util::kBattleItemHealCharValue));
+	ui.spinBox_itemheal_pet->setValue(valueHash.value(util::kBattleItemHealPetValue));
+	ui.spinBox_itemheal_allie->setValue(valueHash.value(util::kBattleItemHealAllieValue));
+	ui.spinBox_itemhealmp->setValue(valueHash.value(util::kBattleItemHealMpValue));
+	ui.spinBox_skillMp->setValue(valueHash.value(util::kBattleSkillMpValue));
 
-	ui.spinBox_magicheal_normal_char->setValue(valueHash.value(kNormalMagicHealCharValue));
-	ui.spinBox_magicheal_normal_pet->setValue(valueHash.value(kNormalMagicHealPetValue));
-	ui.spinBox_magicheal_normal_allie->setValue(valueHash.value(kNormalMagicHealAllieValue));
-	ui.spinBox_itemheal_normal_char->setValue(valueHash.value(kNormalItemHealCharValue));
-	ui.spinBox_itemheal_normal_pet->setValue(valueHash.value(kNormalItemHealPetValue));
-	ui.spinBox_itemhealmp_normal->setValue(valueHash.value(kNormalItemHealMpValue));
+	ui.spinBox_magicheal_normal_char->setValue(valueHash.value(util::kNormalMagicHealCharValue));
+	ui.spinBox_magicheal_normal_pet->setValue(valueHash.value(util::kNormalMagicHealPetValue));
+	ui.spinBox_magicheal_normal_allie->setValue(valueHash.value(util::kNormalMagicHealAllieValue));
+	ui.spinBox_itemheal_normal_char->setValue(valueHash.value(util::kNormalItemHealCharValue));
+	ui.spinBox_itemheal_normal_pet->setValue(valueHash.value(util::kNormalItemHealPetValue));
+	ui.spinBox_itemhealmp_normal->setValue(valueHash.value(util::kNormalItemHealMpValue));
 
-	ui.spinBox_petheal_char->setValue(valueHash.value(kBattlePetHealCharValue));
-	ui.spinBox_petheal_pet->setValue(valueHash.value(kBattlePetHealPetValue));
-	ui.spinBox_petheal_allie->setValue(valueHash.value(kBattlePetHealAllieValue));
+	ui.spinBox_petheal_char->setValue(valueHash.value(util::kBattlePetHealCharValue));
+	ui.spinBox_petheal_pet->setValue(valueHash.value(util::kBattlePetHealPetValue));
+	ui.spinBox_petheal_allie->setValue(valueHash.value(util::kBattlePetHealAllieValue));
 	//walk
-	ui.comboBox_autowalkdir->setCurrentIndex(valueHash.value(kAutoWalkDirectionValue));
-	ui.spinBox_autowalkdelay->setValue(valueHash.value(kAutoWalkDelayValue));
-	ui.spinBox_autowalklen->setValue(valueHash.value(kAutoWalkDistanceValue));
-	ui.checkBox_crossaction_char->setChecked(enableHash.value(kBattleCrossActionCharEnable));
-	ui.checkBox_crossaction_pet->setChecked(enableHash.value(kBattleCrossActionPetEnable));
+	ui.comboBox_autowalkdir->setCurrentIndex(valueHash.value(util::kAutoWalkDirectionValue));
+	ui.spinBox_autowalkdelay->setValue(valueHash.value(util::kAutoWalkDelayValue));
+	ui.spinBox_autowalklen->setValue(valueHash.value(util::kAutoWalkDistanceValue));
+	ui.checkBox_crossaction_char->setChecked(enableHash.value(util::kBattleCrossActionCharEnable));
+	ui.checkBox_crossaction_pet->setChecked(enableHash.value(util::kBattleCrossActionPetEnable));
 
 	//catch
-	ui.comboBox_autocatchpet_mode->setCurrentIndex(valueHash.value(kBattleCatchModeValue));
-	ui.comboBox_autocatchpet_magic->setCurrentIndex(valueHash.value(kBattleCatchCharMagicValue));
-	ui.comboBox_autocatchpet_petskill->setCurrentIndex(valueHash.value(kBattleCatchPetSkillValue));
-	ui.checkBox_autocatchpet_level->setChecked(enableHash.value(kBattleCatchTargetLevelEnable));
-	ui.checkBox_autocatchpet_hp->setChecked(enableHash.value(kBattleCatchTargetMaxHpEnable));
-	ui.checkBox_autocatchpet_magic->setChecked(enableHash.value(kBattleCatchCharMagicEnable));
-	ui.checkBox_autocatchpet_item->setChecked(enableHash.value(kBattleCatchCharItemEnable));
-	ui.checkBox_autocatchpet_petskill->setChecked(enableHash.value(kBattleCatchPetSkillEnable));
-	ui.spinBox_autocatchpet_level->setValue(valueHash.value(kBattleCatchTargetLevelValue));
-	ui.spinBox_autocatchpet_hp->setValue(valueHash.value(kBattleCatchTargetMaxHpValue));
-	ui.lineEdit_autocatchpet->setText(stringHash.value(kBattleCatchPetNameString));
-	ui.comboBox_autocatchpet_item->setCurrentText(stringHash.value(kBattleCatchCharItemString));
-	ui.spinBox_autocatchpet_magic->setValue(valueHash.value(kBattleCatchTargetMagicHpValue));
-	ui.spinBox_autocatchpet_item->setValue(valueHash.value(kBattleCatchTargetItemHpValue));
+	ui.comboBox_autocatchpet_mode->setCurrentIndex(valueHash.value(util::kBattleCatchModeValue));
+	ui.comboBox_autocatchpet_magic->setCurrentIndex(valueHash.value(util::kBattleCatchCharMagicValue));
+	ui.comboBox_autocatchpet_petskill->setCurrentIndex(valueHash.value(util::kBattleCatchPetSkillValue));
+	ui.checkBox_autocatchpet_level->setChecked(enableHash.value(util::kBattleCatchTargetLevelEnable));
+	ui.checkBox_autocatchpet_hp->setChecked(enableHash.value(util::kBattleCatchTargetMaxHpEnable));
+	ui.checkBox_autocatchpet_magic->setChecked(enableHash.value(util::kBattleCatchCharMagicEnable));
+	ui.checkBox_autocatchpet_item->setChecked(enableHash.value(util::kBattleCatchCharItemEnable));
+	ui.checkBox_autocatchpet_petskill->setChecked(enableHash.value(util::kBattleCatchPetSkillEnable));
+	ui.spinBox_autocatchpet_level->setValue(valueHash.value(util::kBattleCatchTargetLevelValue));
+	ui.spinBox_autocatchpet_hp->setValue(valueHash.value(util::kBattleCatchTargetMaxHpValue));
+	ui.lineEdit_autocatchpet->setText(stringHash.value(util::kBattleCatchPetNameString));
+	ui.comboBox_autocatchpet_item->setCurrentText(stringHash.value(util::kBattleCatchCharItemString));
+	ui.spinBox_autocatchpet_magic->setValue(valueHash.value(util::kBattleCatchTargetMagicHpValue));
+	ui.spinBox_autocatchpet_item->setValue(valueHash.value(util::kBattleCatchTargetItemHpValue));
 
-	ui.spinBox_rounddelay->setValue(valueHash.value(kBattleActionDelayValue));
+	ui.spinBox_rounddelay->setValue(valueHash.value(util::kBattleActionDelayValue));
 
 	//catch->drop
-	ui.checkBox_autodroppet->setChecked(enableHash.value(kDropPetEnable));
-	ui.checkBox_autodroppet_str->setChecked(enableHash.value(kDropPetStrEnable));
-	ui.checkBox_autodroppet_def->setChecked(enableHash.value(kDropPetDefEnable));
-	ui.checkBox_autodroppet_agi->setChecked(enableHash.value(kDropPetAgiEnable));
-	ui.checkBox_autodroppet_hp->setChecked(enableHash.value(kDropPetHpEnable));
-	ui.checkBox_autodroppet_aggregate->setChecked(enableHash.value(kDropPetAggregateEnable));
-	ui.spinBox_autodroppet_str->setValue(valueHash.value(kDropPetStrValue));
-	ui.spinBox_autodroppet_def->setValue(valueHash.value(kDropPetDefValue));
-	ui.spinBox_autodroppet_agi->setValue(valueHash.value(kDropPetAgiValue));
-	ui.spinBox_autodroppet_hp->setValue(valueHash.value(kDropPetHpValue));
-	ui.spinBox_autodroppet_aggregate->setValue(valueHash.value(kDropPetAggregateValue));
-	ui.lineEdit_autodroppet_name->setText(stringHash.value(kDropPetNameString));
+	ui.checkBox_autodroppet->setChecked(enableHash.value(util::kDropPetEnable));
+	ui.checkBox_autodroppet_str->setChecked(enableHash.value(util::kDropPetStrEnable));
+	ui.checkBox_autodroppet_def->setChecked(enableHash.value(util::kDropPetDefEnable));
+	ui.checkBox_autodroppet_agi->setChecked(enableHash.value(util::kDropPetAgiEnable));
+	ui.checkBox_autodroppet_hp->setChecked(enableHash.value(util::kDropPetHpEnable));
+	ui.checkBox_autodroppet_aggregate->setChecked(enableHash.value(util::kDropPetAggregateEnable));
+	ui.spinBox_autodroppet_str->setValue(valueHash.value(util::kDropPetStrValue));
+	ui.spinBox_autodroppet_def->setValue(valueHash.value(util::kDropPetDefValue));
+	ui.spinBox_autodroppet_agi->setValue(valueHash.value(util::kDropPetAgiValue));
+	ui.spinBox_autodroppet_hp->setValue(valueHash.value(util::kDropPetHpValue));
+	ui.spinBox_autodroppet_aggregate->setValue(valueHash.value(util::kDropPetAggregateValue));
+	ui.lineEdit_autodroppet_name->setText(stringHash.value(util::kDropPetNameString));
 
 
-	ui.spinBox_resend_delay->setValue(valueHash.value(kBattleResendDelayValue));
+	ui.spinBox_resend_delay->setValue(valueHash.value(util::kBattleResendDelayValue));
 
 	updateTargetButtonText();
 }
 
-void AfkForm::onUpdateComboBoxItemText(__int64 type, const QStringList& textList)
+void AfkForm::onUpdateComboBoxItemText(qint64 type, const QStringList& textList)
 {
 	if (isHidden())
 		return;
 
-	__int64 currentIndex = getIndex();
+	qint64 currentIndex = getIndex();
 
-	auto appendText = [&textList](QComboBox* combo, __int64 max, bool noIndex)->void
+	auto appendText = [&textList](QComboBox* combo, qint64 max, bool noIndex)->void
 	{
 		if (combo == nullptr)
 			return;
@@ -1327,20 +1328,20 @@ void AfkForm::onUpdateComboBoxItemText(__int64 type, const QStringList& textList
 
 		combo->blockSignals(true);
 		combo->setUpdatesEnabled(false);
-		__int64 nOriginalIndex = combo->currentIndex();
+		qint64 nOriginalIndex = combo->currentIndex();
 		combo->clear();
-		__int64 size = textList.size();
-		__int64 n = 0;
-		for (__int64 i = 0; i < max; ++i)
+		qint64 size = textList.size();
+		qint64 n = 0;
+		for (qint64 i = 0; i < max; ++i)
 		{
-			__int64 index = 0;
+			qint64 index = 0;
 			QString text;
 			if (!noIndex)
 			{
 				if (i >= size)
 				{
 					combo->addItem(QString("%1:").arg(i + 1));
-					index = static_cast<__int64>(combo->count()) - 1;
+					index = static_cast<qint64>(combo->count()) - 1;
 					combo->setItemData(index, QString("%1:").arg(i + 1), Qt::ToolTipRole);
 					continue;
 				}
@@ -1355,7 +1356,7 @@ void AfkForm::onUpdateComboBoxItemText(__int64 type, const QStringList& textList
 			}
 
 			combo->addItem(text);
-			index = static_cast<__int64>(combo->count()) - 1;
+			index = static_cast<qint64>(combo->count()) - 1;
 			combo->setItemData(index, text, Qt::ToolTipRole);
 		}
 
@@ -1367,7 +1368,7 @@ void AfkForm::onUpdateComboBoxItemText(__int64 type, const QStringList& textList
 
 	switch (type)
 	{
-	case kComboBoxCharAction:
+	case util::kComboBoxCharAction:
 	{
 		QStringList actionList = {
 			tr("attack"), tr("defense"), tr("escape"),
@@ -1389,11 +1390,11 @@ void AfkForm::onUpdateComboBoxItemText(__int64 type, const QStringList& textList
 
 			combo->blockSignals(true);
 			combo->setUpdatesEnabled(false);
-			__int64 nOriginalIndex = combo->currentIndex();
+			qint64 nOriginalIndex = combo->currentIndex();
 			combo->clear();
-			__int64 size = actionList.size();
-			__int64 n = 0;
-			for (__int64 i = 0; i < size; ++i)
+			qint64 size = actionList.size();
+			qint64 n = 0;
+			for (qint64 i = 0; i < size; ++i)
 			{
 
 				QString text;
@@ -1410,13 +1411,13 @@ void AfkForm::onUpdateComboBoxItemText(__int64 type, const QStringList& textList
 					combo->addItem(text);
 				}
 
-				__int64 index = static_cast<__int64>(combo->count()) - 1;
+				qint64 index = static_cast<qint64>(combo->count()) - 1;
 				combo->setItemData(index, text, Qt::ToolTipRole);
 				++n;
 			}
 
-			__int64 textListSize = textList.size();
-			for (__int64 i = size - 3; i < textListSize; ++i)
+			qint64 textListSize = textList.size();
+			for (qint64 i = size - 3; i < textListSize; ++i)
 			{
 				if (notBattle)
 					continue;
@@ -1430,13 +1431,13 @@ void AfkForm::onUpdateComboBoxItemText(__int64 type, const QStringList& textList
 			if (!injector.server.isNull() && injector.server->getOnlineFlag() && combo == ui.comboBox_magicheal_normal)
 			{
 
-				QHash<__int64, ITEM> items = injector.server->getItems();
-				for (__int64 i = CHAR_EQUIPPLACENUM; i < MAX_ITEM; ++i)
+				QHash<qint64, ITEM> items = injector.server->getItems();
+				for (qint64 i = CHAR_EQUIPPLACENUM; i < MAX_ITEM; ++i)
 				{
 					ITEM item = items.value(i);
 					QString text = QString("%1:%2").arg(i - CHAR_EQUIPPLACENUM + 1).arg(item.name);
 					combo->addItem(text);
-					__int64 index = combo->count() - 1;
+					qint64 index = combo->count() - 1;
 					combo->setItemData(index, text, Qt::ToolTipRole);
 				}
 
@@ -1462,7 +1463,7 @@ void AfkForm::onUpdateComboBoxItemText(__int64 type, const QStringList& textList
 		appendMagicText(ui.comboBox_autocatchpet_magic);
 		break;
 	}
-	case kComboBoxPetAction:
+	case util::kComboBoxPetAction:
 	{
 		//battle
 		appendText(ui.comboBox_normalaction_pet_action, MAX_SKILL, false);
@@ -1475,7 +1476,7 @@ void AfkForm::onUpdateComboBoxItemText(__int64 type, const QStringList& textList
 		appendText(ui.comboBox_autocatchpet_petskill, MAX_SKILL, false);
 		break;
 	}
-	case kComboBoxItem:
+	case util::kComboBoxItem:
 	{
 		//appendText(ui.comboBox_itemheal, MAX_ITEM, true);
 		//appendText(ui.comboBox_itemhealmp, MAX_ITEM, true);
@@ -1488,26 +1489,26 @@ void AfkForm::onUpdateComboBoxItemText(__int64 type, const QStringList& textList
 
 void AfkForm::updateTargetButtonText()
 {
-	__int64 currentIndex = getIndex();
+	qint64 currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
-	QHash<UserSetting, __int64> valueHash = injector.getValuesHash();
+	QHash<util::UserSetting, qint64> valueHash = injector.getValuesHash();
 
 	auto get = [](quint64 value)->QString { return SelectTargetForm::generateShortName(value); };
 
-	ui.pushButton_roundaction_char->setText(get(valueHash.value(kBattleCharRoundActionTargetValue)));
-	ui.pushButton_crossaction_char->setText(get(valueHash.value(kBattleCharCrossActionTargetValue)));
-	ui.pushButton_normalaction_char->setText(get(valueHash.value(kBattleCharNormalActionTargetValue)));
+	ui.pushButton_roundaction_char->setText(get(valueHash.value(util::kBattleCharRoundActionTargetValue)));
+	ui.pushButton_crossaction_char->setText(get(valueHash.value(util::kBattleCharCrossActionTargetValue)));
+	ui.pushButton_normalaction_char->setText(get(valueHash.value(util::kBattleCharNormalActionTargetValue)));
 
-	ui.pushButton_roundaction_pet->setText(get(valueHash.value(kBattlePetRoundActionTargetValue)));
-	ui.pushButton_crossaction_pet->setText(get(valueHash.value(kBattlePetCrossActionTargetValue)));
-	ui.pushButton_normalaction_pet->setText(get(valueHash.value(kBattlePetNormalActionTargetValue)));
+	ui.pushButton_roundaction_pet->setText(get(valueHash.value(util::kBattlePetRoundActionTargetValue)));
+	ui.pushButton_crossaction_pet->setText(get(valueHash.value(util::kBattlePetCrossActionTargetValue)));
+	ui.pushButton_normalaction_pet->setText(get(valueHash.value(util::kBattlePetNormalActionTargetValue)));
 
-	ui.pushButton_magicheal->setText(get(valueHash.value(kBattleMagicHealTargetValue)));
-	ui.pushButton_magicrevive->setText(get(valueHash.value(kBattleItemReviveTargetValue)));
-	ui.pushButton_itemheal->setText(get(valueHash.value(kBattleItemHealTargetValue)));
-	ui.pushButton_itemrevive->setText(get(valueHash.value(kBattleItemReviveTargetValue)));
+	ui.pushButton_magicheal->setText(get(valueHash.value(util::kBattleMagicHealTargetValue)));
+	ui.pushButton_magicrevive->setText(get(valueHash.value(util::kBattleItemReviveTargetValue)));
+	ui.pushButton_itemheal->setText(get(valueHash.value(util::kBattleItemHealTargetValue)));
+	ui.pushButton_itemrevive->setText(get(valueHash.value(util::kBattleItemReviveTargetValue)));
 
-	ui.pushButton_petheal->setText(get(valueHash.value(kBattlePetHealTargetValue)));
-	ui.pushButton_petpurg->setText(get(valueHash.value(kBattlePetPurgTargetValue)));
-	ui.pushButton_charpurg->setText(get(valueHash.value(kBattleCharPurgTargetValue)));
+	ui.pushButton_petheal->setText(get(valueHash.value(util::kBattlePetHealTargetValue)));
+	ui.pushButton_petpurg->setText(get(valueHash.value(util::kBattlePetPurgTargetValue)));
+	ui.pushButton_charpurg->setText(get(valueHash.value(util::kBattleCharPurgTargetValue)));
 }

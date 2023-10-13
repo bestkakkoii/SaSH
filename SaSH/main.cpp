@@ -16,37 +16,14 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 */
 
-import Utility;
-import Safe;
-import Scoped;
-import String;
-#include <Windows.h>
-#include <DbgHelp.h>
-#include <iostream>
-#include <stdlib.h>
-#include <string>
-#include <cstdio>
-#include <QString>
-#include <QFontDatabase>
-#include <QSettings>
-#include <QThreadPool>
-#include <QFile>
-#include <QDir>
-#include <QDirIterator>
-#include <QException>
+#include "stdafx.h"
+#include "mainform.h"
+#include "util.h"
+#include "injector.h"
 #include <QCommandLineParser>
 
-#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
-#include <QtCore/QTextCodec>
-#else
-#include <QtCore5Compat/QTextCodec>
-#endif
-
-#include "mainform.h"
-#include "injector.h"
-
-
 #pragma comment(lib, "ws2_32.lib")
+#include <DbgHelp.h>
 #pragma comment(lib, "dbghelp.lib")
 
 
@@ -56,11 +33,10 @@ void CreateConsole()
 	{
 		return;
 	}
-
 	FILE* fDummy;
-	::freopen_s(&fDummy, "CONOUT$", "w", stdout);
-	::freopen_s(&fDummy, "CONOUT$", "w", stderr);
-	::freopen_s(&fDummy, "CONIN$", "r", stdin);
+	freopen_s(&fDummy, "CONOUT$", "w", stdout);
+	freopen_s(&fDummy, "CONOUT$", "w", stderr);
+	freopen_s(&fDummy, "CONIN$", "r", stdin);
 	std::cout.clear();
 	std::clog.clear();
 	std::cerr.clear();
@@ -84,7 +60,7 @@ void CreateConsole()
 
 void printStackTrace()
 {
-	TextStream out(stderr);
+	util::TextStream out(stderr);
 	void* stack[100];
 	unsigned short frames;
 	SYMBOL_INFO* symbol;
@@ -97,7 +73,7 @@ void printStackTrace()
 	{
 		symbol->MaxNameLen = 255;
 		symbol->SizeOfStruct = sizeof(SYMBOL_INFO);
-		for (__int64 i = 0; i < frames; ++i)
+		for (qint64 i = 0; i < frames; ++i)
 		{
 			SymFromAddr(process, (DWORD64)(stack[i]), 0, symbol);
 			out << i << ": " << QString(symbol->Name) << " - " << symbol->Address << Qt::endl;
@@ -125,15 +101,15 @@ void qtMessageHandler(QtMsgType type, const QMessageLogContext& context, const Q
 			return;
 		}
 
-		for (__int64 i = 0; i < SASH_MAX_THREAD; ++i)
+		for (qint64 i = 0; i < SASH_MAX_THREAD; ++i)
 		{
 			Injector* pinstance = nullptr;
 			if (Injector::get(i, &pinstance) && pinstance != nullptr)
-				pinstance->log->close();
+				pinstance->log.close();
 		}
 
 		CreateConsole();
-		TextStream out(stderr);
+		util::TextStream out(stderr);
 		out << QString("Qt exception caught: ") << QString(e.what()) << Qt::endl;
 		out << QString("Context: ") << context.file << ":" << context.line << " - " << context.function << Qt::endl;
 		out << QString("Message: ") << msg << QString(e.what()) << Qt::endl;
@@ -280,20 +256,20 @@ LONG CALLBACK MinidumpCallback(PEXCEPTION_POINTERS pException)
 				"ExceptionFlags:%2\r\n"
 				"ExceptionCode:0x%3\r\n"
 				"NumberParameters:%4")
-				.arg(toQString((quint64)pException->ExceptionRecord->ExceptionAddress, 16))
+				.arg(util::toQString((quint64)pException->ExceptionRecord->ExceptionAddress, 16))
 				.arg(pException->ExceptionRecord->ExceptionFlags == EXCEPTION_NONCONTINUABLE ? "NON CONTINUEABLE" : "CONTINUEABLE")
-				.arg(toQString((quint64)pException->ExceptionRecord->ExceptionCode, 16))
+				.arg(util::toQString((quint64)pException->ExceptionRecord->ExceptionCode, 16))
 				.arg(pException->ExceptionRecord->NumberParameters);
 
 			//Open dump folder
 			//QMessageBox::critical(nullptr, "Fatal Error", msg);
 			//ShellExecute(NULL, L"open", L"dump", NULL, NULL, SW_SHOWNORMAL);
 
-			for (__int64 i = 0; i < SASH_MAX_THREAD; ++i)
+			for (qint64 i = 0; i < SASH_MAX_THREAD; ++i)
 			{
 				Injector* pinstance = nullptr;
 				if (Injector::get(i, &pinstance) && pinstance != nullptr)
-					pinstance->log->close();
+					pinstance->log.close();
 			}
 
 			throw EXCEPTION_EXECUTE_HANDLER;
@@ -309,9 +285,9 @@ LONG CALLBACK MinidumpCallback(PEXCEPTION_POINTERS pException)
 				"ExceptionFlags:%2\r\n"
 				"ExceptionCode:0x%3\r\n"
 				"NumberParameters:%4")
-				.arg(toQString(reinterpret_cast<__int64>(pException->ExceptionRecord->ExceptionAddress), 16))
+				.arg(util::toQString(reinterpret_cast<qint64>(pException->ExceptionRecord->ExceptionAddress), 16))
 				.arg(pException->ExceptionRecord->ExceptionFlags == EXCEPTION_NONCONTINUABLE ? "NON CONTINUEABLE" : "CONTINUEABLE")
-				.arg(toQString((DWORD)pException->ExceptionRecord->ExceptionCode, 16))
+				.arg(util::toQString((DWORD)pException->ExceptionRecord->ExceptionCode, 16))
 				.arg(pException->ExceptionRecord->NumberParameters);
 			//QMessageBox::warning(nullptr, "Warning", msg);
 			//ShellExecute(NULL, L"open", L"dump", NULL, NULL, SW_SHOWNORMAL);
@@ -413,11 +389,11 @@ int main(int argc, char* argv[])
 #endif
 
 	//Qt全局編碼設置
-	QTextCodec* codec = QTextCodec::codecForName(SASH_DEFAULT_CODEPAGE);
+	QTextCodec* codec = QTextCodec::codecForName(util::DEFAULT_CODEPAGE);
 	QTextCodec::setCodecForLocale(codec);
 
 	//全局線程池設置
-	__int64 count = QThread::idealThreadCount();
+	qint64 count = QThread::idealThreadCount();
 	if (count > 8)
 		count = 8;
 
@@ -485,24 +461,18 @@ int main(int argc, char* argv[])
 	parser.process(a);
 
 	QStringList args = parser.positionalArguments();
-	QList<__int64> uniqueIdsToAllocate;
+	QList<qint64> uniqueIdsToAllocate;
 	// 解析啟動參數中的ID
 	for (const QString& arg : args)
 	{
 		bool ok;
-		__int64 id = arg.toLongLong(&ok);
+		qint64 id = arg.toLongLong(&ok);
 		if (ok && !uniqueIdsToAllocate.contains(id) && id >= 0 && id < SASH_MAX_THREAD)
 		{
 			uniqueIdsToAllocate.append(id);
 		}
 	}
-
-#if _MSVC_LANG > 201703L
-	std::ranges::sort(uniqueIdsToAllocate);
-#else
 	std::sort(uniqueIdsToAllocate.begin(), uniqueIdsToAllocate.end());
-#endif
-
 	qDebug() << "Unique IDs to allocate:" << uniqueIdsToAllocate;
 
 	if (uniqueIdsToAllocate.isEmpty())
@@ -510,12 +480,12 @@ int main(int argc, char* argv[])
 		uniqueIdsToAllocate.append(-1);
 	}
 
-	extern SafeHash<__int64, MainForm*> g_mainFormHash; //mainForm.cpp
+	extern util::SafeHash<qint64, MainForm*> g_mainFormHash; //mainForm.cpp
 
 	// 分配並輸出唯一ID
-	for (__int64 idToAllocate : uniqueIdsToAllocate)
+	for (qint64 idToAllocate : uniqueIdsToAllocate)
 	{
-		__int64 uniqueId = -1;
+		qint64 uniqueId = -1;
 		MainForm* w = MainForm::createNewWindow(idToAllocate, &uniqueId);
 		if (w != nullptr)
 		{

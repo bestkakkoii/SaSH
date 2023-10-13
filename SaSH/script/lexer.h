@@ -16,17 +16,16 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 */
 
-import Utility;
-
 #pragma once
 #include <QObject>
 #include <QHash>
 #include <QMap>
 #include <QVariant>
+#include "util.h"
 #include <indexer.h>
 
 constexpr const char* kFuzzyPrefix = "?";
-constexpr __int64 kMaxLuaTableDepth = 1024ll;
+constexpr qint64 kMaxLuaTableDepth = 1024ll;
 
 enum FTK
 {
@@ -147,7 +146,7 @@ struct Token
 };
 Q_DECLARE_METATYPE(Token)
 
-using TokenMap = QMap<__int64, Token>;
+using TokenMap = QMap<qint64, Token>;
 Q_DECLARE_METATYPE(TokenMap)
 
 class Node
@@ -159,10 +158,10 @@ public:
 	QString name = "";//函數名稱
 	QList<Node*> children; // 指向子節點的指針列表
 
-	__int64 beginLine = 0ll;
-	__int64 endLine = 0ll;
+	qint64 beginLine = 0ll;
+	qint64 endLine = 0ll;
 	Field field = kGlobal;
-	__int64 level = 0ll;
+	qint64 level = 0ll;
 	quint64 callCount = 0ui64;
 };
 Q_DECLARE_METATYPE(Node)
@@ -195,7 +194,7 @@ public:
 	QList<QPair<RESERVE, QVariant>> argList = {};
 	QHash<int, QStringList> returnTypes = {};
 
-	__int64 callFromLine = 0ll;
+	qint64 callFromLine = 0ll;
 
 	void clear()
 	{
@@ -243,15 +242,15 @@ Q_DECLARE_METATYPE(ForNode)
 class Lexer : public Indexer
 {
 public:
-	explicit Lexer(__int64 index) : Indexer(index) {}
+	explicit Lexer(qint64 index) : Indexer(index) {}
 
 	static bool tokenized(Lexer* pLexer, const QString& script);
 
 	QList<FunctionNode> getFunctionNodeList() const { return functionNodeList_; }
 	QList<ForNode> getForNodeList() const { return forNodeList_; }
 	QList<LuaNode> getLuaNodeList() const { return luaNodeList_; }
-	QHash<QString, __int64> getLabelList() const { return labelList_; }
-	QHash<__int64, TokenMap> getTokenMaps() const { return tokens_; }
+	QHash<QString, qint64> getLabelList() const { return labelList_; }
+	QHash<qint64, TokenMap> getTokenMaps() const { return tokens_; }
 
 private:
 	enum ErrorType
@@ -275,23 +274,23 @@ private:
 
 	void recordNode();
 
-	void tokenized(__int64 currentLine, const QString& line, TokenMap* ptoken, QHash<QString, __int64>* plabel);
+	void tokenized(qint64 currentLine, const QString& line, TokenMap* ptoken, QHash<QString, qint64>* plabel);
 
-	void createToken(__int64 index, RESERVE type, const QVariant& data, const QString& raw, TokenMap* ptoken);
+	void createToken(qint64 index, RESERVE type, const QVariant& data, const QString& raw, TokenMap* ptoken);
 
-	void insertToken(__int64 index, RESERVE type, const QVariant& data, const QString& raw, TokenMap* ptoken);
+	void insertToken(qint64 index, RESERVE type, const QVariant& data, const QString& raw, TokenMap* ptoken);
 
-	void createEmptyToken(__int64 index, TokenMap* ptoken);
+	void createEmptyToken(qint64 index, TokenMap* ptoken);
 
-	RESERVE getTokenType(__int64& pos, RESERVE previous, QString& str, const QString raw) const;
+	RESERVE getTokenType(qint64& pos, RESERVE previous, QString& str, const QString raw) const;
 
 	FTK getStringToken(QString& src, const QString& delim, QString& out) const;
 
-	void checkPairs(const QString& beginstr, const QString& endstr, const QHash<__int64, TokenMap>& stokenmaps);
+	void checkPairs(const QString& beginstr, const QString& endstr, const QHash<qint64, TokenMap>& stokenmaps);
 
-	void checkSingleRowPairs(const QString& beginstr, const QString& endstr, const QHash<__int64, TokenMap>& stokenmaps);
+	void checkSingleRowPairs(const QString& beginstr, const QString& endstr, const QHash<qint64, TokenMap>& stokenmaps);
 
-	void checkFunctionPairs(const QHash<__int64, TokenMap>& tokenmaps);
+	void checkFunctionPairs(const QHash<qint64, TokenMap>& tokenmaps);
 
 	inline void clear()
 	{
@@ -302,7 +301,7 @@ private:
 	}
 
 private:
-	__int64 currentLine_ = 0ll;
+	qint64 currentLine_ = 0ll;
 
 	LuaNode luaNode_ = {};
 	bool beginLuaCode_ = false;
@@ -312,8 +311,8 @@ private:
 	QList<LuaNode> luaNodeList_;
 	QList<FunctionNode> functionNodeList_;
 	QList<ForNode> forNodeList_;
-	QHash<QString, __int64> labelList_;
-	QHash<__int64, TokenMap> tokens_;
+	QHash<QString, qint64> labelList_;
+	QHash<qint64, TokenMap> tokens_;
 
 #ifdef TEST_LEXER
 	sol::state lua_;

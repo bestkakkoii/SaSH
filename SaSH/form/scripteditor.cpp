@@ -16,11 +16,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 */
 
-import Config;
-import Utility;
-import Safe;
-import String;
-
 #include "stdafx.h"
 #include "scripteditor.h"
 #include "model/customtitlebar.h"
@@ -31,7 +26,7 @@ import String;
 //#include "crypto.h"
 #include <QSpinBox>
 
-ScriptEditor::ScriptEditor(__int64 index, QWidget* parent)
+ScriptEditor::ScriptEditor(qint64 index, QWidget* parent)
 	: QMainWindow(parent)
 	, Indexer(index)
 {
@@ -39,7 +34,7 @@ ScriptEditor::ScriptEditor(__int64 index, QWidget* parent)
 	setAttribute(Qt::WA_DeleteOnClose);
 	setAttribute(Qt::WA_StyledBackground);
 
-	qRegisterMetaType<QVector<__int64>>();
+	qRegisterMetaType<QVector<qint64>>();
 
 	takeCentralWidget();
 
@@ -119,7 +114,7 @@ ScriptEditor::ScriptEditor(__int64 index, QWidget* parent)
 	connect(&signalDispatcher, &SignalDispatcher::varInfoImported, this, &ScriptEditor::onVarInfoImport, Qt::BlockingQueuedConnection);
 	connect(&signalDispatcher, &SignalDispatcher::breakMarkInfoImport, this, &ScriptEditor::onBreakMarkInfoImport, Qt::QueuedConnection);
 
-	FormSettingManager formSettingManager(this);
+	util::FormSettingManager formSettingManager(this);
 	formSettingManager.loadSettings();
 
 	initStaticLabel();
@@ -130,7 +125,7 @@ ScriptEditor::ScriptEditor(__int64 index, QWidget* parent)
 
 void ScriptEditor::init()
 {
-	__int64 index = getIndex();
+	qint64 index = getIndex();
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(index);
 	Injector& injector = Injector::getInstance(index);
 	if (!injector.scriptLogModel.isNull())
@@ -149,11 +144,11 @@ void ScriptEditor::init()
 
 	injector.isScriptEditorOpened.store(true, std::memory_order_release);
 
-	Config config;
+	util::Config config;
 	if (config.isValid())
 	{
 		QString ObjectName = ui.widget->objectName();
-		__int64 fontSize = config.read<__int64>(objectName(), ObjectName, "FontSize");
+		qint64 fontSize = config.read<qint64>(objectName(), ObjectName, "FontSize");
 		if (fontSize > 0)
 		{
 			QFont font = ui.widget->getOldFont();
@@ -163,7 +158,7 @@ void ScriptEditor::init()
 		}
 
 		ObjectName = ui.listView_log->objectName();
-		fontSize = config.read<__int64>(objectName(), ObjectName, "FontSize");
+		fontSize = config.read<qint64>(objectName(), ObjectName, "FontSize");
 		if (fontSize > 0)
 		{
 			QFont f = ui.listView_log->font();
@@ -172,7 +167,7 @@ void ScriptEditor::init()
 		}
 
 		ObjectName = ui.textBrowser->objectName();
-		fontSize = config.read<__int64>(objectName(), ObjectName, "FontSize");
+		fontSize = config.read<qint64>(objectName(), ObjectName, "FontSize");
 		if (fontSize > 0)
 		{
 			QFont font = ui.textBrowser->font();
@@ -225,7 +220,7 @@ void ScriptEditor::initStaticLabel()
 	usageTimer_->setInterval(1500);
 	connect(usageTimer_, &QTimer::timeout, this, [this]()
 		{
-			__int64 currentIndex = getIndex();
+			qint64 currentIndex = getIndex();
 			Injector& injector = Injector::getInstance(currentIndex);
 			quint64 threadId = reinterpret_cast<quint64>(QThread::currentThreadId());
 			if (injector.IS_SCRIPT_FLAG.load(std::memory_order_acquire))
@@ -240,9 +235,9 @@ void ScriptEditor::initStaticLabel()
 			if (util::monitorThreadResourceUsage(threadId, idleTime_, kernelTime_, userTime_, &cpuUsage, &memoryUsage, &memoryTotal))
 			{
 				usageLabel_->setText(QString(tr("Usage: cpu: %1% | memory: %2MB / %3MB"))
-					.arg(toQString(cpuUsage))
-					.arg(toQString(memoryUsage))
-					.arg(toQString(memoryTotal)));
+					.arg(util::toQString(cpuUsage))
+					.arg(util::toQString(memoryUsage))
+					.arg(util::toQString(memoryTotal)));
 			}
 		});
 
@@ -277,10 +272,10 @@ void ScriptEditor::createSpeedSpinBox()
 	Q_ASSERT(pSpeedSpinBox != nullptr);
 	pSpeedSpinBox->setStyleSheet("QLabel {color: #FAFAFA; font-size: 12pt;}");
 
-	__int64 currentIndex = getIndex();
+	qint64 currentIndex = getIndex();
 	pSpeedSpinBox->setRange(0, 10000);
 	Injector& injector = Injector::getInstance(currentIndex);
-	__int64 value = injector.getValueHash(kScriptSpeedValue);
+	qint64 value = injector.getValueHash(util::kScriptSpeedValue);
 	pSpeedSpinBox->setValue(value);
 	pSpeedSpinBox->setAttribute(Qt::WA_StyledBackground);
 	pSpeedSpinBox->setSingleStep(100);
@@ -358,10 +353,10 @@ void ScriptEditor::closeEvent(QCloseEvent* e)
 	if (usageTimer_ != nullptr)
 		usageTimer_->stop();
 
-	FormSettingManager formSettingManager(this);
+	util::FormSettingManager formSettingManager(this);
 	formSettingManager.saveSettings();
 
-	Config config;
+	util::Config config;
 
 	if (!injector.currentScriptFileName.isEmpty())
 		config.write("Script", "LastModifyFile", injector.currentScriptFileName);
@@ -501,7 +496,7 @@ QString ScriptEditor::formatCode(QString content)
 	content.replace("\r\n", "\n");
 	QStringList contents = content.split("\n");
 	QStringList newContents;
-	__int64 indentLevel = 0;
+	qint64 indentLevel = 0;
 	QString indentedLine;
 	QString tmpLine;
 
@@ -544,8 +539,8 @@ QString ScriptEditor::formatCode(QString content)
 
 	QString raw = "";
 	QString trimmedLine = "";
-	__int64 endIndex = -1;
-	__int64 commandIndex = -1;
+	qint64 endIndex = -1;
+	qint64 commandIndex = -1;
 	for (const QString& line : contents)
 	{
 		raw = line;
@@ -616,7 +611,7 @@ QString ScriptEditor::formatCode(QString content)
 
 void ScriptEditor::fileSave(QString content)
 {
-	__int64 currentIndex = getIndex();
+	qint64 currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
 	if (injector.IS_SCRIPT_FLAG.load(std::memory_order_acquire))
 		return;
@@ -684,9 +679,9 @@ void ScriptEditor::loadFile(const QString& fileName)
 	ui.widget->getSelection(&lineFrom, &indexFrom, &lineTo, &indexTo);
 
 	//紀錄滾動條位置
-	__int64 scollValue = ui.widget->verticalScrollBar()->value();
+	qint64 scollValue = ui.widget->verticalScrollBar()->value();
 
-	__int64 currentIndex = getIndex();
+	qint64 currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
 
 	if (!injector.server.isNull() && injector.server->getOnlineFlag())
@@ -738,7 +733,7 @@ void ScriptEditor::loadFile(const QString& fileName)
 
 void ScriptEditor::setContinue()
 {
-	__int64 currentIndex = getIndex();
+	qint64 currentIndex = getIndex();
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
 	Injector& injector = Injector::getInstance(currentIndex);
 
@@ -763,8 +758,8 @@ QString ScriptEditor::getFullPath(TreeWidgetItem* item)
 		itemfile = reinterpret_cast<TreeWidgetItem*>(itemfile->parent()); //將itemfile指向父item
 	}
 	QString strpath;
-	__int64 count = (static_cast<__int64>(filepath.size()) - 1);
-	for (__int64 i = count; i >= 0; i--) //QStringlist類filepath反向存著初始item的路徑
+	qint64 count = (static_cast<qint64>(filepath.size()) - 1);
+	for (qint64 i = count; i >= 0; i--) //QStringlist類filepath反向存著初始item的路徑
 	{ //將filepath反向輸出，相應的加入’/‘
 		if (filepath.value(i).isEmpty())
 			continue;
@@ -779,9 +774,9 @@ QString ScriptEditor::getFullPath(TreeWidgetItem* item)
 	QFileInfo info(strpath);
 	QString suffix = "." + info.suffix();
 	if (suffix.isEmpty())
-		strpath += SASH_SCRIPT_DEFAULT_SUFFIX;
-	if (suffix != SASH_PRIVATE_SCRIPT_DEFAULT_SUFFIX && suffix != SASH_SCRIPT_DEFAULT_SUFFIX && suffix != SASH_LUA_DEFAULT_SUFFIX)
-		strpath.replace(suffix, SASH_SCRIPT_DEFAULT_SUFFIX);
+		strpath += util::SCRIPT_DEFAULT_SUFFIX;
+	if (suffix != util::SCRIPT_PRIVATE_SUFFIX_DEFAULT && suffix != util::SCRIPT_DEFAULT_SUFFIX && suffix != util::SCRIPT_LUA_SUFFIX_DEFAULT)
+		strpath.replace(suffix, util::SCRIPT_DEFAULT_SUFFIX);
 
 	return strpath;
 };
@@ -808,7 +803,7 @@ void ScriptEditor::createScriptListContextMenu()
 			onScriptTreeWidgetDoubleClicked(item, 0);
 		});
 
-	__int64 currentIndex = getIndex();
+	qint64 currentIndex = getIndex();
 
 	// Connect the menu actions to your slots/functions
 	connect(deleteAction, &QAction::triggered, this, [this, currentIndex]()
@@ -875,7 +870,7 @@ void ScriptEditor::createScriptListContextMenu()
 		});
 }
 
-void ScriptEditor::setMark(CodeEditor::SymbolHandler element, SafeHash<QString, SafeHash<__int64, break_marker_t>>& hash, __int64 liner, bool b)
+void ScriptEditor::setMark(CodeEditor::SymbolHandler element, util::SafeHash<QString, util::SafeHash<qint64, break_marker_t>>& hash, qint64 liner, bool b)
 {
 	do
 	{
@@ -893,14 +888,14 @@ void ScriptEditor::setMark(CodeEditor::SymbolHandler element, SafeHash<QString, 
 			break;
 
 
-		SafeHash<__int64, break_marker_t> markers = hash.value(currentScriptFileName);
+		util::SafeHash<qint64, break_marker_t> markers = hash.value(currentScriptFileName);
 
 		if (b)
 		{
 			break_marker_t bk = markers.value(liner);
 			bk.line = liner;
 			bk.content = ui.widget->text(liner);
-			bk.maker = static_cast<__int64>(element);
+			bk.maker = static_cast<qint64>(element);
 			markers.insert(liner, bk);
 			hash.insert(currentScriptFileName, markers);
 			ui.widget->markerAdd(liner, element);
@@ -925,10 +920,10 @@ void ScriptEditor::setStepMarks()
 	if (list.isEmpty())
 		return;
 
-	__int64 maxliner = list.size();
-	__int64 index = 1;
+	qint64 maxliner = list.size();
+	qint64 index = 1;
 
-	__int64 currentIndex = getIndex();
+	qint64 currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
 
 
@@ -936,16 +931,16 @@ void ScriptEditor::setStepMarks()
 	if (currentScriptFileName.isEmpty())
 		return;
 
-	QHash<__int64, break_marker_t> markers = injector.step_markers.value(currentScriptFileName).toHash();
+	util::SafeHash<qint64, break_marker_t> markers = injector.step_markers.value(currentScriptFileName);
 	break_marker_t bk = {};
 
-	for (__int64 i = 0; i < maxliner; ++i)
+	for (qint64 i = 0; i < maxliner; ++i)
 	{
 		index = i + 1;
 		bk = markers.value(index);
 		bk.line = index;
 		bk.content = list.value(i);
-		bk.maker = static_cast<__int64>(CodeEditor::SymbolHandler::SYM_STEP);
+		bk.maker = static_cast<qint64>(CodeEditor::SymbolHandler::SYM_STEP);
 		markers.insert(index, bk);
 	}
 
@@ -954,9 +949,9 @@ void ScriptEditor::setStepMarks()
 
 void ScriptEditor::reshowBreakMarker()
 {
-	__int64 currentIndex = getIndex();
+	qint64 currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
-	const QHash<QString, SafeHash<__int64, break_marker_t>> mks = injector.break_markers.toHash();
+	const util::SafeHash<QString, util::SafeHash<qint64, break_marker_t>> mks = injector.break_markers;
 
 	QString currentScriptFileName = injector.currentScriptFileName;
 	if (currentScriptFileName.isEmpty())
@@ -968,7 +963,7 @@ void ScriptEditor::reshowBreakMarker()
 		if (fileName != currentScriptFileName)
 			continue;
 
-		const QHash<__int64, break_marker_t> mk = mks.value(fileName).toHash();
+		const util::SafeHash<qint64, break_marker_t> mk = mks.value(fileName);
 		for (const break_marker_t& bit : mk)
 		{
 			ui.widget->markerAdd(bit.line, CodeEditor::SymbolHandler::SYM_POINT);
@@ -982,7 +977,7 @@ void ScriptEditor::reshowBreakMarker()
 void ScriptEditor::on_widget_marginClicked(int margin, int line, Qt::KeyboardModifiers state)
 {
 	std::ignore = margin;
-	__int64 mask = ui.widget->markersAtLine(line);
+	qint64 mask = ui.widget->markersAtLine(line);
 
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(getIndex());
 	switch (state)
@@ -1047,11 +1042,11 @@ void ScriptEditor::on_comboBox_labels_clicked()
 
 	const QString contents = ui.widget->text();
 	const QStringList conlist = contents.split("\n");
-	__int64 cur = ui.comboBox_labels->currentIndex();
+	qint64 cur = ui.comboBox_labels->currentIndex();
 	ui.comboBox_labels->clear();
 
-	__int64 count = conlist.size();
-	for (__int64 i = 0; i < count; ++i)
+	qint64 count = conlist.size();
+	for (qint64 i = 0; i < count; ++i)
 	{
 		const QString linestr = conlist.value(i).simplified();
 		if (linestr.isEmpty())
@@ -1082,7 +1077,7 @@ void ScriptEditor::on_comboBox_labels_currentIndexChanged(int)
 	QVariant var = ui.comboBox_labels->currentData();
 	if (var.isValid())
 	{
-		__int64 line = var.toLongLong();
+		qint64 line = var.toLongLong();
 		emit editorCursorPositionChanged(line, NULL);
 	}
 }
@@ -1097,11 +1092,11 @@ void ScriptEditor::on_comboBox_functions_clicked()
 
 	const QString contents = ui.widget->text();
 	const QStringList conlist = contents.split("\n");
-	__int64 cur = ui.comboBox_functions->currentIndex();
+	qint64 cur = ui.comboBox_functions->currentIndex();
 	ui.comboBox_functions->clear();
 
-	__int64 count = conlist.size();
-	for (__int64 i = 0; i < count; ++i)
+	qint64 count = conlist.size();
+	for (qint64 i = 0; i < count; ++i)
 	{
 		const QString linestr = conlist.value(i).simplified();
 		if (linestr.isEmpty())
@@ -1130,7 +1125,7 @@ void ScriptEditor::on_comboBox_functions_currentIndexChanged(int)
 	QVariant var = ui.comboBox_functions->currentData();
 	if (var.isValid())
 	{
-		__int64 line = var.toLongLong();
+		qint64 line = var.toLongLong();
 		emit editorCursorPositionChanged(line, NULL);
 	}
 }
@@ -1198,7 +1193,7 @@ void ScriptEditor::on_treeWidget_functionList_itemDoubleClicked(QTreeWidgetItem*
 	}
 	else if (str == "dir")
 	{
-		__int64 dir = injector.server->getDir();
+		qint64 dir = injector.server->getDir();
 		str = QString("%1 %2").arg(str).arg(dir);
 	}
 	else if (str == "walkpos")
@@ -1209,7 +1204,7 @@ void ScriptEditor::on_treeWidget_functionList_itemDoubleClicked(QTreeWidgetItem*
 	else if (str == "w")
 	{
 		QPoint pos = injector.server->getPoint();
-		__int64 dir = injector.server->getDir();
+		qint64 dir = injector.server->getDir();
 		const QString dirStr = "ABCDEFGH";
 		if (dir < 0 || dir >= dirStr.size())
 			return;
@@ -1222,12 +1217,12 @@ void ScriptEditor::on_treeWidget_functionList_itemDoubleClicked(QTreeWidgetItem*
 	}
 	else if (str == "ifmap")
 	{
-		__int64 floor = injector.server->getFloor();
+		qint64 floor = injector.server->getFloor();
 		str = QString("%1 %2, +2").arg(str).arg(floor);
 	}
 	else if (str == "waitmap")
 	{
-		__int64 floor = injector.server->getFloor();
+		qint64 floor = injector.server->getFloor();
 		str = QString("%1 %2, 5000, +2").arg(str).arg(floor);
 	}
 	else if (str == "sleep")
@@ -1260,7 +1255,7 @@ void ScriptEditor::on_treeWidget_functionList_itemDoubleClicked(QTreeWidgetItem*
 		if (units.isEmpty())
 			return;
 		mapunit_t unit = units.first();
-		while (unit.objType != OBJ_NPC)
+		while (unit.objType != util::OBJ_NPC)
 		{
 			units.removeFirst();
 			if (units.isEmpty())
@@ -1290,7 +1285,7 @@ void ScriptEditor::on_treeWidget_functionList_itemDoubleClicked(QTreeWidgetItem*
 		if (units.isEmpty())
 			return;
 		mapunit_t unit = units.first();
-		while (unit.objType != OBJ_NPC)
+		while (unit.objType != util::OBJ_NPC)
 		{
 			units.removeFirst();
 			if (units.isEmpty())
@@ -1382,7 +1377,7 @@ void ScriptEditor::on_treeWidget_scriptList_itemClicked(QTreeWidgetItem* item, i
 	QRect textRect = fontMetrics.boundingRect(itemRect, Qt::TextSingleLine, str);
 
 	// 將文字區域邊界框擴展一些，以提供一個較大的可點擊範圍
-	constexpr __int64 padding = 20; // 可以根據需要調整
+	constexpr qint64 padding = 20; // 可以根據需要調整
 	textRect.adjust(-padding, -padding, padding, padding);
 
 	// 檢查滑鼠位置是否在文字範圍內
@@ -1427,7 +1422,7 @@ void ScriptEditor::on_treeWidget_breakList_itemDoubleClicked(QTreeWidgetItem* it
 	injector.currentScriptFileName = item->text(3);
 	//emit signalDispatcher.loadFileToTable();
 	loadFile(item->text(3));
-	__int64 line = item->text(2).toLongLong();
+	qint64 line = item->text(2).toLongLong();
 	QString text = ui.widget->text(line - 1);
 	ui.widget->setSelection(line - 1, 0, line - 1, text.length());
 	ui.widget->ensureLineVisible(line - 1);
@@ -1523,7 +1518,7 @@ void ScriptEditor::on_listView_log_doubleClicked(const QModelIndex& index)
 
 void ScriptEditor::onApplyHashSettingsToUI()
 {
-	__int64 currentIndex = getIndex();
+	qint64 currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
 	if (!injector.server.isNull() && injector.server->getOnlineFlag())
 	{
@@ -1536,7 +1531,7 @@ void ScriptEditor::onApplyHashSettingsToUI()
 		ui.listView_log->setModel(injector.scriptLogModel.get());
 
 	if (pSpeedSpinBox != nullptr)
-		pSpeedSpinBox->setValue(injector.getValueHash(kScriptSpeedValue));
+		pSpeedSpinBox->setValue(injector.getValueHash(util::kScriptSpeedValue));
 
 	ui.actionDebug->setChecked(injector.isScriptDebugModeEnable.load(std::memory_order_acquire));
 }
@@ -1559,7 +1554,7 @@ void ScriptEditor::onScriptTreeWidgetDoubleClicked(QTreeWidgetItem* item, int co
 
 	do
 	{
-		__int64 currnetIndex = getIndex();
+		qint64 currnetIndex = getIndex();
 		Injector& injector = Injector::getInstance(currnetIndex);
 		if (injector.IS_SCRIPT_FLAG.load(std::memory_order_acquire))
 			break;
@@ -1573,8 +1568,8 @@ void ScriptEditor::onScriptTreeWidgetDoubleClicked(QTreeWidgetItem* item, int co
 			itemfile = reinterpret_cast<TreeWidgetItem*>(itemfile->parent()); //將itemfile指向父item
 		}
 		QString strpath;
-		__int64 count = (static_cast<__int64>(filepath.size()) - 1);
-		for (__int64 i = count; i >= 0; i--) //QStringlist類filepath反向存著初始item的路徑
+		qint64 count = (static_cast<qint64>(filepath.size()) - 1);
+		for (qint64 i = count; i >= 0; i--) //QStringlist類filepath反向存著初始item的路徑
 		{ //將filepath反向輸出，相應的加入’/‘
 			if (filepath.value(i).isEmpty())
 				continue;
@@ -1696,18 +1691,18 @@ void ScriptEditor::onSpeedChanged(int value)
 	pSpeedSpinBox->setValue(value);
 	pSpeedSpinBox->blockSignals(false);
 
-	__int64 currentIndex = getIndex();
+	qint64 currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
-	injector.setValueHash(kScriptSpeedValue, value);
+	injector.setValueHash(util::kScriptSpeedValue, value);
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
 	emit signalDispatcher.applyHashSettingsToUI();
 }
 
 void ScriptEditor::onNewFile()
 {
-	__int64 currnetIndex = getIndex();
+	qint64 currnetIndex = getIndex();
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currnetIndex);
-	__int64 num = 1;
+	qint64 num = 1;
 	for (;;)
 	{
 		QString strpath = (util::applicationDirPath() + QString("/script/Untitled-%1.txt").arg(num));
@@ -1729,7 +1724,7 @@ void ScriptEditor::onActionTriggered()
 	QAction* pAction = qobject_cast<QAction*>(sender());
 	if (!pAction)
 		return;
-	__int64 currnetIndex = getIndex();
+	qint64 currnetIndex = getIndex();
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currnetIndex);
 	QString name = pAction->objectName();
 	if (name.isEmpty())
@@ -1827,7 +1822,7 @@ void ScriptEditor::onActionTriggered()
 			return;
 
 		if (injector.isValid())
-			injector.setEnableHash(kLogBackEnable, true);
+			injector.setEnableHash(util::kLogBackEnable, true);
 		return;
 	}
 
@@ -1976,7 +1971,7 @@ void ScriptEditor::onScriptStopMode()
 	onAddForwardMarker(-1, false);
 	onAddStepMarker(-1, false);
 
-	__int64 currnetIndex = getIndex();
+	qint64 currnetIndex = getIndex();
 	Injector& injector = Injector::getInstance(currnetIndex);
 
 	injector.forward_markers.clear();
@@ -2097,23 +2092,23 @@ void ScriptEditor::onScriptPauseMode()
 	ui.mainToolBar->setUpdatesEnabled(true);
 }
 
-void ScriptEditor::onAddForwardMarker(__int64 liner, bool b)
+void ScriptEditor::onAddForwardMarker(qint64 liner, bool b)
 {
-	__int64 currnetIndex = getIndex();
+	qint64 currnetIndex = getIndex();
 	Injector& injector = Injector::getInstance(currnetIndex);
 	setMark(CodeEditor::SymbolHandler::SYM_ARROW, injector.forward_markers, liner, b);
 }
 
-void ScriptEditor::onAddErrorMarker(__int64 liner, bool b)
+void ScriptEditor::onAddErrorMarker(qint64 liner, bool b)
 {
-	__int64 currnetIndex = getIndex();
+	qint64 currnetIndex = getIndex();
 	Injector& injector = Injector::getInstance(currnetIndex);
 	setMark(CodeEditor::SymbolHandler::SYM_TRIANGLE, injector.error_markers, liner, b);
 }
 
-void ScriptEditor::onAddStepMarker(__int64, bool b)
+void ScriptEditor::onAddStepMarker(qint64, bool b)
 {
-	__int64 currnetIndex = getIndex();
+	qint64 currnetIndex = getIndex();
 	if (!b)
 	{
 		ui.widget->setUpdatesEnabled(false);
@@ -2130,9 +2125,9 @@ void ScriptEditor::onAddStepMarker(__int64, bool b)
 	}
 }
 
-void ScriptEditor::onAddBreakMarker(__int64 liner, bool b)
+void ScriptEditor::onAddBreakMarker(qint64 liner, bool b)
 {
-	__int64 currnetIndex = getIndex();
+	qint64 currnetIndex = getIndex();
 	Injector& injector = Injector::getInstance(currnetIndex);
 	do
 	{
@@ -2148,14 +2143,14 @@ void ScriptEditor::onAddBreakMarker(__int64 liner, bool b)
 
 		if (b)
 		{
-			QHash<__int64, break_marker_t> markers = injector.break_markers.value(currentScriptFileName).toHash();
+			util::SafeHash<qint64, break_marker_t> markers = injector.break_markers.value(currentScriptFileName);
 			break_marker_t bk = markers.value(liner);
 			bk.line = liner;
 			bk.content = ui.widget->text(liner);
 			if (bk.content.simplified().isEmpty() || bk.content.simplified().indexOf("//") == 0 || bk.content.simplified().indexOf("--[[") == 0)
 				return;
 
-			bk.maker = static_cast<__int64>(CodeEditor::SymbolHandler::SYM_POINT);
+			bk.maker = static_cast<qint64>(CodeEditor::SymbolHandler::SYM_POINT);
 
 			markers.insert(liner, bk);
 			injector.break_markers.insert(currentScriptFileName, markers);
@@ -2163,7 +2158,7 @@ void ScriptEditor::onAddBreakMarker(__int64 liner, bool b)
 		}
 		else if (!b)
 		{
-			QHash<__int64, break_marker_t> markers = injector.break_markers.value(currentScriptFileName).toHash();
+			util::SafeHash<qint64, break_marker_t> markers = injector.break_markers.value(currentScriptFileName);
 			if (markers.contains(liner))
 			{
 				markers.remove(liner);
@@ -2180,21 +2175,21 @@ void ScriptEditor::onAddBreakMarker(__int64 liner, bool b)
 void ScriptEditor::onBreakMarkInfoImport()
 {
 	ui.treeWidget_breakList->setUpdatesEnabled(false);
-	__int64 currnetIndex = getIndex();
+	qint64 currnetIndex = getIndex();
 	Injector& injector = Injector::getInstance(currnetIndex);
 	QList<QTreeWidgetItem*> trees = {};
 	ui.treeWidget_breakList->clear();
 	ui.treeWidget_breakList->setColumnCount(4);
 	ui.treeWidget_breakList->setHeaderLabels(QStringList{ tr("CONTENT"),tr("COUNT"), tr("ROW"), tr("FILE") });
-	const QHash<QString, SafeHash<__int64, break_marker_t>> mks = injector.break_markers.toHash();
+	const util::SafeHash<QString, util::SafeHash<qint64, break_marker_t>> mks = injector.break_markers;
 	TreeWidgetItem* item = nullptr;
 	for (auto it = mks.cbegin(); it != mks.cend(); ++it)
 	{
 		QString fileName = it.key();
-		const QHash<__int64, break_marker_t> mk = mks.value(fileName).toHash();
+		const util::SafeHash<qint64, break_marker_t> mk = mks.value(fileName);
 		for (const break_marker_t& bit : mk)
 		{
-			item = new TreeWidgetItem({ bit.content, toQString(bit.count), toQString(bit.line + 1), fileName });
+			item = new TreeWidgetItem({ bit.content, util::toQString(bit.count), util::toQString(bit.line + 1), fileName });
 			if (item == nullptr)
 				continue;
 
@@ -2238,7 +2233,7 @@ void ScriptEditor::onVarInfoImport(void* p, const QVariantHash& d, const QString
 void ScriptEditor::onEncryptSave()
 {
 #ifdef CRYPTO_H
-	__int64 currnetIndex = getIndex();
+	qint64 currnetIndex = getIndex();
 	QInputDialog inputDialog(this);
 	inputDialog.setWindowTitle(tr("EncryptScript"));
 	inputDialog.setLabelText(tr("Please input password"));
@@ -2267,7 +2262,7 @@ void ScriptEditor::onEncryptSave()
 	if (crypto.encodeScript(injector.currentScriptFileName, password))
 	{
 		QString newFileName = injector.currentScriptFileName;
-		newFileName.replace(SASH_SCRIPT_DEFAULT_SUFFIX, SASH_PRIVATE_SCRIPT_DEFAULT_SUFFIX);
+		newFileName.replace(util::SCRIPT_DEFAULT_SUFFIX, util::SCRIPT_PRIVATE_SUFFIX_DEFAULT);
 		injector.currentScriptFileName = newFileName;
 		ui.statusBar->showMessage(QString(tr("Encrypt script %1 saved")).arg(newFileName), 3000);
 		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currnetIndex);
@@ -2283,7 +2278,7 @@ void ScriptEditor::onEncryptSave()
 void ScriptEditor::onDecryptSave()
 {
 #ifdef CRYPTO_H
-	__int64 currnetIndex = getIndex();
+	qint64 currnetIndex = getIndex();
 	QInputDialog inputDialog(this);
 	inputDialog.setWindowTitle(tr("DecryptScript"));
 	inputDialog.setLabelText(tr("Please input password"));
@@ -2313,7 +2308,7 @@ void ScriptEditor::onDecryptSave()
 	if (crypto.decodeScript(injector.currentScriptFileName, content))
 	{
 		QString newFileName = injector.currentScriptFileName;
-		newFileName.replace(SASH_PRIVATE_SCRIPT_DEFAULT_SUFFIX, SASH_SCRIPT_DEFAULT_SUFFIX);
+		newFileName.replace(util::SCRIPT_PRIVATE_SUFFIX_DEFAULT, util::SCRIPT_DEFAULT_SUFFIX);
 		injector.currentScriptFileName = newFileName;
 		ui.statusBar->showMessage(QString(tr("Decrypt script %1 saved")).arg(newFileName), 3000);
 		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currnetIndex);
@@ -2326,21 +2321,21 @@ void ScriptEditor::onDecryptSave()
 #endif
 }
 
-static const QHash<__int64, QString> hashSolLuaType = {
-	{ static_cast<__int64>(sol::type::none), QObject::tr("None") },
-	{ static_cast<__int64>(sol::type::lua_nil), QObject::tr("Nil") },
-	{ static_cast<__int64>(sol::type::string), QObject::tr("String") },
-	{ static_cast<__int64>(sol::type::number), QObject::tr("Number") },
-	{ static_cast<__int64>(sol::type::thread), QObject::tr("Thread") },
-	{ static_cast<__int64>(sol::type::boolean), QObject::tr("Boolean") },
-	{ static_cast<__int64>(sol::type::function), QObject::tr("Function") },
-	{ static_cast<__int64>(sol::type::userdata), QObject::tr("Userdata") },
-	{ static_cast<__int64>(sol::type::lightuserdata), QObject::tr("Lightuserdata") },
-	{ static_cast<__int64>(sol::type::table), QObject::tr("Table") },
-	{ static_cast<__int64>(sol::type::poly), QObject::tr("Poly") },
+static const QHash<qint64, QString> hashSolLuaType = {
+	{ static_cast<qint64>(sol::type::none), QObject::tr("None") },
+	{ static_cast<qint64>(sol::type::lua_nil), QObject::tr("Nil") },
+	{ static_cast<qint64>(sol::type::string), QObject::tr("String") },
+	{ static_cast<qint64>(sol::type::number), QObject::tr("Number") },
+	{ static_cast<qint64>(sol::type::thread), QObject::tr("Thread") },
+	{ static_cast<qint64>(sol::type::boolean), QObject::tr("Boolean") },
+	{ static_cast<qint64>(sol::type::function), QObject::tr("Function") },
+	{ static_cast<qint64>(sol::type::userdata), QObject::tr("Userdata") },
+	{ static_cast<qint64>(sol::type::lightuserdata), QObject::tr("Lightuserdata") },
+	{ static_cast<qint64>(sol::type::table), QObject::tr("Table") },
+	{ static_cast<qint64>(sol::type::poly), QObject::tr("Poly") },
 };
 
-bool luaTableToTreeWidgetItem(QString field, TreeWidgetItem* pParentNode, const sol::table& t, __int64& depth, const QString& fieldStr)
+bool luaTableToTreeWidgetItem(QString field, TreeWidgetItem* pParentNode, const sol::table& t, qint64& depth, const QString& fieldStr)
 {
 	if (pParentNode == nullptr)
 		return false;
@@ -2359,17 +2354,17 @@ bool luaTableToTreeWidgetItem(QString field, TreeWidgetItem* pParentNode, const 
 	TreeWidgetItem* pNode = nullptr;
 	for (const auto& pair : t)
 	{
-		__int64 nKey = 0;
+		qint64 nKey = 0;
 		QString key = "";
 		QString value = "";
 		QString varType = "";
 
-		if (pair.first.is<__int64>())
+		if (pair.first.is<qint64>())
 		{
-			key = QString("[%1]").arg(pair.first.as<__int64>());
+			key = QString("[%1]").arg(pair.first.as<qint64>());
 		}
 		else
-			key = toQString(pair.first);
+			key = util::toQString(pair.first);
 
 		if (pair.second.is<sol::table>())
 		{
@@ -2391,27 +2386,27 @@ bool luaTableToTreeWidgetItem(QString field, TreeWidgetItem* pParentNode, const 
 		else if (pair.second.is<std::string>())
 		{
 			varType = QObject::tr("String");
-			value = QString("'%1'").arg(toQString(pair.second));
+			value = QString("'%1'").arg(util::toQString(pair.second));
 		}
-		else if (pair.second.is<__int64>())
+		else if (pair.second.is<qint64>())
 		{
 			varType = QObject::tr("Int");
-			value = toQString(pair.second.as<__int64>());
+			value = util::toQString(pair.second.as<qint64>());
 		}
 		else if (pair.second.is<double>())
 		{
 			varType = QObject::tr("Double");
-			value = toQString(pair.second.as<double>());
+			value = util::toQString(pair.second.as<double>());
 		}
 		else if (pair.second.is<bool>())
 		{
 			varType = QObject::tr("Bool");
-			value = toQString(pair.second.as<bool>());
+			value = util::toQString(pair.second.as<bool>());
 		}
 		else if (pair.second.is<sol::function>())
 		{
 			varType = QObject::tr("Function");
-			value = QString("0x%1").arg(toQString(reinterpret_cast<__int64>(pair.second.as<sol::function>().pointer()), 16));
+			value = QString("0x%1").arg(util::toQString(reinterpret_cast<qint64>(pair.second.as<sol::function>().pointer()), 16));
 			continue;
 		}
 		else if (pair.second == sol::lua_nil)
@@ -2421,15 +2416,15 @@ bool luaTableToTreeWidgetItem(QString field, TreeWidgetItem* pParentNode, const 
 		}
 		else
 		{
-			varType = hashSolLuaType.value(static_cast<__int64>(pair.second.get_type()), QObject::tr("Unknown"));
-			value = QString("0x%1").arg(toQString(reinterpret_cast<__int64>(pair.second.pointer()), 16));
+			varType = hashSolLuaType.value(static_cast<qint64>(pair.second.get_type()), QObject::tr("Unknown"));
+			value = QString("0x%1").arg(util::toQString(reinterpret_cast<qint64>(pair.second.pointer()), 16));
 			continue;
 		}
 
 		if (varType.isEmpty())
 			continue;
 
-		pNode = new TreeWidgetItem({ field, key.isEmpty() ? toQString(nKey + 1) : key, value, QString("(%1)").arg(varType) });
+		pNode = new TreeWidgetItem({ field, key.isEmpty() ? util::toQString(nKey + 1) : key, value, QString("(%1)").arg(varType) });
 		if (pNode == nullptr)
 			continue;
 
@@ -2455,7 +2450,7 @@ void ScriptEditor::createTreeWidgetItems(TreeWidget* widgetA, TreeWidget* widget
 
 	QMap<QString, QVariant> map;
 	TreeWidgetItem* pNode = nullptr;
-	__int64 depth = kMaxLuaTableDepth;
+	qint64 depth = kMaxLuaTableDepth;
 
 	if (!d.isEmpty())
 	{
@@ -2467,7 +2462,7 @@ void ScriptEditor::createTreeWidgetItems(TreeWidget* widgetA, TreeWidget* widget
 		QStringList l;
 		for (auto it = map.cbegin(); it != map.cend(); ++it)
 		{
-			l = it.key().split(rexOR);
+			l = it.key().split(util::rexOR);
 			if (l.size() != 2)
 				continue;
 
@@ -2481,19 +2476,19 @@ void ScriptEditor::createTreeWidgetItems(TreeWidget* widgetA, TreeWidget* widget
 			case QVariant::Int:
 			{
 				varType = QObject::tr("Int");
-				varValueStr = toQString(var.toLongLong());
+				varValueStr = util::toQString(var.toLongLong());
 				break;
 			}
 			case QVariant::UInt:
 			{
 				varType = QObject::tr("UInt");
-				varValueStr = toQString(var.toLongLong());
+				varValueStr = util::toQString(var.toLongLong());
 				break;
 			}
 			case QVariant::Double:
 			{
 				varType = QObject::tr("Double");
-				varValueStr = toQString(var.toDouble());
+				varValueStr = util::toQString(var.toDouble());
 				break;
 			}
 			case QVariant::String:
@@ -2533,19 +2528,19 @@ void ScriptEditor::createTreeWidgetItems(TreeWidget* widgetA, TreeWidget* widget
 			case QVariant::Bool:
 			{
 				varType = QObject::tr("Bool");
-				varValueStr = toQString(var.toBool());
+				varValueStr = util::toQString(var.toBool());
 				break;
 			}
 			case QVariant::LongLong:
 			{
 				varType = QObject::tr("LongLong");
-				varValueStr = toQString(var.toLongLong());
+				varValueStr = util::toQString(var.toLongLong());
 				break;
 			}
 			case QVariant::ULongLong:
 			{
 				varType = QObject::tr("ULongLong");
-				varValueStr = toQString(var.toULongLong());
+				varValueStr = util::toQString(var.toULongLong());
 				break;
 			}
 			default:
@@ -2606,27 +2601,27 @@ void ScriptEditor::createTreeWidgetItems(TreeWidget* widgetA, TreeWidget* widget
 		else if (o.is<std::string>())
 		{
 			varType = QObject::tr("String");
-			varValueStr = QString("'%1'").arg(toQString(o.as<std::string>()));
+			varValueStr = QString("'%1'").arg(util::toQString(o.as<std::string>()));
 		}
-		else if (o.is<__int64>())
+		else if (o.is<qint64>())
 		{
 			varType = QObject::tr("Int");
-			varValueStr = toQString(o.as<__int64>());
+			varValueStr = util::toQString(o.as<qint64>());
 		}
 		else if (o.is<double>())
 		{
 			varType = QObject::tr("Double");
-			varValueStr = toQString(o.as<double>());
+			varValueStr = util::toQString(o.as<double>());
 		}
 		else if (o.is<bool>())
 		{
 			varType = QObject::tr("Bool");
-			varValueStr = toQString(o.as<bool>());
+			varValueStr = util::toQString(o.as<bool>());
 		}
 		else if (o.is<sol::function>())
 		{
 			varType = QObject::tr("Function");
-			varValueStr = QString("0x%1").arg(toQString(reinterpret_cast<__int64>(o.as<sol::function>().pointer()), 16));
+			varValueStr = QString("0x%1").arg(util::toQString(reinterpret_cast<qint64>(o.as<sol::function>().pointer()), 16));
 			continue;
 		}
 		else if (o == sol::lua_nil)
@@ -2636,8 +2631,8 @@ void ScriptEditor::createTreeWidgetItems(TreeWidget* widgetA, TreeWidget* widget
 		}
 		else
 		{
-			varType = hashSolLuaType.value(static_cast<__int64>(o.get_type()), QObject::tr("Unknown"));
-			varValueStr = QString("0x%1").arg(toQString(reinterpret_cast<__int64>(o.pointer()), 16));
+			varType = hashSolLuaType.value(static_cast<qint64>(o.get_type()), QObject::tr("Unknown"));
+			varValueStr = QString("0x%1").arg(util::toQString(reinterpret_cast<qint64>(o.pointer()), 16));
 		}
 
 		if (varType.isEmpty())

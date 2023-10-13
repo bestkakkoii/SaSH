@@ -15,7 +15,7 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 */
-import String;
+
 #include "stdafx.h"
 #include "lssproto.h"
 #include "autil.h"
@@ -255,7 +255,7 @@ void Lssproto::lssproto_HL_send(int flg)
 //戰鬥指令封包
 void Lssproto::lssproto_B_send(const QString& command)
 {
-	std::string cmd = fromQUnicode(command.toUpper());
+	std::string cmd = util::fromUnicode(command.toUpper());
 	autil_->util_Send(LSSPROTO_B_SEND, const_cast<char*>(cmd.c_str()));
 }
 

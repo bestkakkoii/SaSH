@@ -26,7 +26,7 @@ class AfkForm : public QWidget, public Indexer
 	Q_OBJECT
 
 public:
-	AfkForm(__int64 index, QWidget* parent);
+	AfkForm(qint64 index, QWidget* parent);
 	virtual ~AfkForm();
 
 signals:
@@ -49,7 +49,7 @@ private slots:
 
 	void onResetControlTextLanguage();
 
-	void onUpdateComboBoxItemText(__int64 type, const QStringList& textList);
+	void onUpdateComboBoxItemText(qint64 type, const QStringList& textList);
 
 protected:
 	virtual void showEvent(QShowEvent* e) override;

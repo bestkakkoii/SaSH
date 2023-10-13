@@ -15,32 +15,32 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 */
-import String;
+
 #include "stdafx.h"
 #include "clua.h"
 #include "injector.h"
 #include "signaldispatcher.h"
 
-__int64 CLuaChar::rename(std::string sfname, sol::this_state s)
+qint64 CLuaChar::rename(std::string sfname, sol::this_state s)
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<__int64>());
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
 	if (injector.server.isNull())
 		return FALSE;
 
 	luadebug::checkBattleThenWait(s);
 
-	QString name = toQString(sfname);
+	QString name = util::toQString(sfname);
 
 	injector.server->setCharFreeName(name);
 
 	return TRUE;
 }
 
-__int64 CLuaChar::useMagic(__int64 magicIndex, __int64 target, sol::this_state s)
+qint64 CLuaChar::useMagic(qint64 magicIndex, qint64 target, sol::this_state s)
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<__int64>());
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
 	if (injector.server.isNull())
 		return FALSE;
 
@@ -51,10 +51,10 @@ __int64 CLuaChar::useMagic(__int64 magicIndex, __int64 target, sol::this_state s
 	return TRUE;
 }
 
-__int64 CLuaChar::depositGold(__int64 gold, sol::object oispublic, sol::this_state s)
+qint64 CLuaChar::depositGold(qint64 gold, sol::object oispublic, sol::this_state s)
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<__int64>());
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
 	if (injector.server.isNull())
 		return FALSE;
 
@@ -65,10 +65,10 @@ __int64 CLuaChar::depositGold(__int64 gold, sol::object oispublic, sol::this_sta
 	return TRUE;
 }
 
-__int64 CLuaChar::withdrawGold(__int64 gold, sol::object oispublic, sol::this_state s)
+qint64 CLuaChar::withdrawGold(qint64 gold, sol::object oispublic, sol::this_state s)
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<__int64>());
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
 	if (injector.server.isNull())
 		return FALSE;
 
@@ -79,10 +79,10 @@ __int64 CLuaChar::withdrawGold(__int64 gold, sol::object oispublic, sol::this_st
 	return TRUE;
 }
 
-__int64 CLuaChar::dropGold(__int64 gold, sol::this_state s)
+qint64 CLuaChar::dropGold(qint64 gold, sol::this_state s)
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<__int64>());
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
 	if (injector.server.isNull())
 		return FALSE;
 
@@ -93,46 +93,46 @@ __int64 CLuaChar::dropGold(__int64 gold, sol::this_state s)
 	return TRUE;
 }
 
-__int64 CLuaChar::mail(__int64 cardIndex, std::string stext, __int64 petIndex, std::string sitemName, std::string sitemMemo, sol::this_state s)
+qint64 CLuaChar::mail(qint64 cardIndex, std::string stext, qint64 petIndex, std::string sitemName, std::string sitemMemo, sol::this_state s)
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<__int64>());
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
 	if (injector.server.isNull())
 		return FALSE;
 
 	luadebug::checkBattleThenWait(s);
 
-	QString text = toQString(stext);
+	QString text = util::toQString(stext);
 
-	QString itemName = toQString(sitemName);
+	QString itemName = util::toQString(sitemName);
 
-	QString itemMemo = toQString(sitemMemo);
+	QString itemMemo = util::toQString(sitemMemo);
 
 	injector.server->mail(--cardIndex, text, petIndex, itemName, itemMemo);
 
 	return TRUE;
 }
 
-__int64 CLuaChar::mail(__int64 cardIndex, std::string stext, sol::this_state s)
+qint64 CLuaChar::mail(qint64 cardIndex, std::string stext, sol::this_state s)
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<__int64>());
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
 	if (injector.server.isNull())
 		return FALSE;
 
 	luadebug::checkBattleThenWait(s);
 
-	QString text = toQString(stext);
+	QString text = util::toQString(stext);
 
 	injector.server->mail(--cardIndex, text, -1, "", "");
 
 	return TRUE;
 }
 
-__int64 CLuaChar::skillUp(__int64 abilityIndex, __int64 amount, sol::this_state s)
+qint64 CLuaChar::skillUp(qint64 abilityIndex, qint64 amount, sol::this_state s)
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<__int64>());
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
 	if (injector.server.isNull())
 		return FALSE;
 
@@ -144,10 +144,10 @@ __int64 CLuaChar::skillUp(__int64 abilityIndex, __int64 amount, sol::this_state 
 }
 
 //action-group
-__int64 CLuaChar::setTeamState(bool join, sol::this_state s)
+qint64 CLuaChar::setTeamState(bool join, sol::this_state s)
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<__int64>());
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
 	if (injector.server.isNull())
 		return FALSE;
 
@@ -158,10 +158,10 @@ __int64 CLuaChar::setTeamState(bool join, sol::this_state s)
 	return TRUE;
 }
 
-__int64 CLuaChar::kick(__int64 teammateIndex, sol::this_state s)
+qint64 CLuaChar::kick(qint64 teammateIndex, sol::this_state s)
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<__int64>());
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
 	if (injector.server.isNull())
 		return FALSE;
 

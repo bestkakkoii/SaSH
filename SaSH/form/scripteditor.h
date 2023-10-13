@@ -16,15 +16,12 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 */
 
-import Utility;
-import Safe;
-import Global;
-
 #pragma once
 
 #include <QMainWindow>
 #include "ui_scripteditor.h"
 #include <indexer.h>
+#include "util.h"
 #include "script/interpreter.h"
 
 
@@ -35,7 +32,7 @@ class ScriptEditor : public QMainWindow, public Indexer
 	Q_OBJECT
 
 public:
-	ScriptEditor(__int64 index, QWidget* parent);
+	ScriptEditor(qint64 index, QWidget* parent);
 
 	virtual ~ScriptEditor();
 
@@ -55,7 +52,7 @@ private:
 
 	void setStepMarks();
 
-	void setMark(CodeEditor::SymbolHandler element, SafeHash<QString, SafeHash<__int64, break_marker_t>>& hash, __int64 liner, bool b);
+	void setMark(CodeEditor::SymbolHandler element, util::SafeHash<QString, util::SafeHash<qint64, break_marker_t>>& hash, qint64 liner, bool b);
 
 	void reshowBreakMarker();
 
@@ -87,10 +84,10 @@ private slots:
 	void onActionTriggered();
 	void onWidgetModificationChanged(bool changed);
 	void onEditorCursorPositionChanged(int line, int index);
-	void onAddForwardMarker(__int64 liner, bool b);
-	void onAddErrorMarker(__int64 liner, bool b);
-	void onAddStepMarker(__int64 liner, bool b);
-	void onAddBreakMarker(__int64 liner, bool b);
+	void onAddForwardMarker(qint64 liner, bool b);
+	void onAddErrorMarker(qint64 liner, bool b);
+	void onAddStepMarker(qint64 liner, bool b);
+	void onAddBreakMarker(qint64 liner, bool b);
 	void onBreakMarkInfoImport();
 	void onScriptTreeWidgetItemChanged(QTreeWidgetItem* newitem, int column);
 
@@ -163,7 +160,7 @@ private slots:
 
 private:
 	Ui::ScriptEditorClass ui;
-	__int64 spinRecordedWidth_ = 0;
+	qint64 spinRecordedWidth_ = 0;
 
 	FILETIME idleTime_ = { 0, 0 };
 	FILETIME kernelTime_ = { 0, 0 };

@@ -32,7 +32,6 @@
 
 #include <detours.h>
 #include <usermessage.h>
-
 #include "util.h"
 
 #define USE_ASYNC_TCP

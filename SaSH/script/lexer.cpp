@@ -128,7 +128,7 @@ static const QHash<QString, RESERVE> keywords = {
 #pragma region  Tool
 void Lexer::showError(const QString text, ErrorType type)
 {
-	__int64 currentIndex = getIndex();
+	qint64 currentIndex = getIndex();
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
 
 	if (type == kTypeError)
@@ -147,8 +147,8 @@ bool Lexer::isDouble(const QString& str) const
 	if (str.count('.') != 1)
 		return false;
 
-	__int64 size = str.size();
-	for (__int64 i = 0; i < size; ++i)
+	qint64 size = str.size();
+	for (qint64 i = 0; i < size; ++i)
 	{
 		if (!str.at(i).isDigit() && str.at(i) != '.')
 			return false;
@@ -161,8 +161,8 @@ bool Lexer::isDouble(const QString& str) const
 
 bool Lexer::isInteger(const QString& str) const
 {
-	__int64 size = str.size();
-	for (__int64 i = 0; i < size; ++i)
+	qint64 size = str.size();
+	for (qint64 i = 0; i < size; ++i)
 	{
 		if (i == 0 && (str.at(i) == '+' || str.at(i) == '-'))
 		{
@@ -237,8 +237,8 @@ bool Lexer::tokenized(Lexer* pLexer, const QString& script)
 	pLexer->clear();
 
 	QStringList lines = script.split("\n");
-	__int64 size = lines.size();
-	for (__int64 i = 0; i < size; ++i)
+	qint64 size = lines.size();
+	for (qint64 i = 0; i < size; ++i)
 	{
 		TokenMap tk;
 		pLexer->tokenized(i, lines.value(i), &tk, &pLexer->labelList_);
@@ -253,12 +253,12 @@ bool Lexer::tokenized(Lexer* pLexer, const QString& script)
 }
 
 //解析單行內容至多個TOKEN
-void Lexer::tokenized(__int64 currentLine, const QString& line, TokenMap* ptoken, QHash<QString, __int64>* plabel)
+void Lexer::tokenized(qint64 currentLine, const QString& line, TokenMap* ptoken, QHash<QString, qint64>* plabel)
 {
 	if (ptoken == nullptr || plabel == nullptr)
 		return;
 
-	__int64 pos = 0;
+	qint64 pos = 0;
 	QString token;
 	QVariant data;
 	QString raw = line.trimmed();
@@ -316,7 +316,7 @@ void Lexer::tokenized(__int64 currentLine, const QString& line, TokenMap* ptoken
 			break;
 		}
 
-		__int64 commentIndex = raw.indexOf("//");
+		qint64 commentIndex = raw.indexOf("//");
 
 
 		//處理整行註釋
@@ -480,7 +480,7 @@ void Lexer::tokenized(__int64 currentLine, const QString& line, TokenMap* ptoken
 				QString varName = match.captured(1).simplified();
 				QString op = match.captured(2).simplified();
 				QString value = match.captured(3).simplified();
-				__int64 p = pos + 1;
+				qint64 p = pos + 1;
 				RESERVE optype = getTokenType(p, TK_CAOS, op, op);
 				++p;
 				RESERVE valuetype = getTokenType(p, optype, value, value);
@@ -589,7 +589,7 @@ void Lexer::tokenized(__int64 currentLine, const QString& line, TokenMap* ptoken
 					break;
 				token = "function";
 				QStringList args;
-				for (__int64 i = 1; i <= 3; ++i)
+				for (qint64 i = 1; i <= 3; ++i)
 				{
 					args.append(match.captured(i).simplified());
 				}
@@ -687,7 +687,7 @@ void Lexer::tokenized(__int64 currentLine, const QString& line, TokenMap* ptoken
 			if (type == TK_INT)//對整數進行轉換處理
 			{
 				bool ok;
-				__int64 intValue = token.toLongLong(&ok);
+				qint64 intValue = token.toLongLong(&ok);
 				if (ok)
 					data = QVariant::fromValue(intValue);
 			}
@@ -749,8 +749,8 @@ void Lexer::tokenized(__int64 currentLine, const QString& line, TokenMap* ptoken
 //更新並記錄每個函數塊的開始行和結束行
 void Lexer::recordNode()
 {
-	QHash<__int64, FunctionNode> chunkHash;
-	QMap<__int64, TokenMap> map;
+	QHash<qint64, FunctionNode> chunkHash;
+	QMap<qint64, TokenMap> map;
 	for (auto it = tokens_.cbegin(); it != tokens_.cend(); ++it)
 		map.insert(it.key(), it.value());
 
@@ -760,10 +760,10 @@ void Lexer::recordNode()
 	QStack<ForNode> forNodeStack;
 
 	QList<Node> extraEndNodeList;
-	__int64 currentIndentLevel = 0;
+	qint64 currentIndentLevel = 0;
 	for (auto it = map.cbegin(); it != map.cend(); ++it)
 	{
-		__int64 row = it.key();
+		qint64 row = it.key();
 		TokenMap tk = it.value();
 
 		if (TK_LUABEGIN == tk.value(0).type)
@@ -822,7 +822,7 @@ void Lexer::recordNode()
 		{
 			QStringList returnTypes;
 
-			for (__int64 i = 1; i < tk.size(); ++i)
+			for (qint64 i = 1; i < tk.size(); ++i)
 			{
 				Token token = tk.value(i);
 				if (token.type == TK_COMMENT)
@@ -911,7 +911,7 @@ void Lexer::recordNode()
 
 	for (auto subit = map.cbegin(); subit != map.cend(); ++subit)
 	{
-		__int64 row = subit.key();
+		qint64 row = subit.key();
 		TokenMap tk = subit.value();
 
 		if (TK_LUABEGIN == tk.value(0).type)
@@ -977,7 +977,7 @@ void Lexer::recordNode()
 		default:
 		{
 			RESERVE reserve = TK_UNK;
-			for (__int64 i = tk.size() - 1; i >= 0; --i)
+			for (qint64 i = tk.size() - 1; i >= 0; --i)
 			{
 				Token token = tk.value(i);
 				if (token.raw == "break")
@@ -1080,21 +1080,21 @@ void Lexer::recordNode()
 }
 
 //插入新TOKEN
-void Lexer::createToken(__int64 index, RESERVE type, const QVariant& data, const QString& raw, TokenMap* ptoken)
+void Lexer::createToken(qint64 index, RESERVE type, const QVariant& data, const QString& raw, TokenMap* ptoken)
 {
 	if (ptoken != nullptr)
 		ptoken->insert(index, Token{ type, data, raw });
 }
 
 //插入新TOKEN到index位置，將原本的TOKEN後移
-void Lexer::insertToken(__int64 index, RESERVE type, const QVariant& data, const QString& raw, TokenMap* ptoken)
+void Lexer::insertToken(qint64 index, RESERVE type, const QVariant& data, const QString& raw, TokenMap* ptoken)
 {
 	TokenMap tokenMap;
 	tokenMap.insert(index, Token{ type, data, raw });
 
 	for (auto it = ptoken->constBegin(); it != ptoken->constEnd(); ++it)
 	{
-		__int64 key = it.key();
+		qint64 key = it.key();
 		if (key + 1 <= index)
 			continue;
 
@@ -1106,13 +1106,13 @@ void Lexer::insertToken(__int64 index, RESERVE type, const QVariant& data, const
 };
 
 //插入空行TOKEN
-void Lexer::createEmptyToken(__int64 index, TokenMap* ptoken)
+void Lexer::createEmptyToken(qint64 index, TokenMap* ptoken)
 {
 	ptoken->insert(index, Token{ TK_WHITESPACE, "", "" });
 }
 
 //根據容取TOKEN應該定義的類型
-RESERVE Lexer::getTokenType(__int64& pos, RESERVE previous, QString& str, const QString raw) const
+RESERVE Lexer::getTokenType(qint64& pos, RESERVE previous, QString& str, const QString raw) const
 {
 	//findex = 0;
 
@@ -1240,19 +1240,19 @@ RESERVE Lexer::getTokenType(__int64& pos, RESERVE previous, QString& str, const 
 }
 
 //檢查指定詞組配對
-void Lexer::checkPairs(const QString& beginstr, const QString& endstr, const QHash<__int64, TokenMap>& stokenmaps)
+void Lexer::checkPairs(const QString& beginstr, const QString& endstr, const QHash<qint64, TokenMap>& stokenmaps)
 {
-	QMap<__int64, QString> unpairedFunctions;
-	QMap<__int64, QString> unpairedEnds;
-	QStack<__int64> functionStack;
+	QMap<qint64, QString> unpairedFunctions;
+	QMap<qint64, QString> unpairedEnds;
+	QStack<qint64> functionStack;
 
-	QMap <__int64, TokenMap> tokenmaps;//轉成有序容器方便按順序遍歷
+	QMap <qint64, TokenMap> tokenmaps;//轉成有序容器方便按順序遍歷
 	for (auto it = stokenmaps.cbegin(); it != stokenmaps.cend(); ++it)
 		tokenmaps.insert(it.key(), it.value());
 
 	for (auto it = tokenmaps.cbegin(); it != tokenmaps.cend(); ++it)
 	{
-		__int64 row = it.key();
+		qint64 row = it.key();
 		QString statement = it.value().value(0).data.toString().simplified();
 
 		if (statement != beginstr && statement != endstr)
@@ -1278,7 +1278,7 @@ void Lexer::checkPairs(const QString& beginstr, const QString& endstr, const QHa
 	// Any remaining functions on the stack are missing an "end"
 	while (!functionStack.isEmpty())
 	{
-		__int64 row = functionStack.pop();
+		qint64 row = functionStack.pop();
 		QString statement = tokenmaps.value(row).cbegin().value().data.toString().simplified();
 		unpairedFunctions.insert(row, statement);
 	}
@@ -1286,7 +1286,7 @@ void Lexer::checkPairs(const QString& beginstr, const QString& endstr, const QHa
 	// 打印所有不成對的 "function" 語句
 	for (auto it = unpairedFunctions.cbegin(); it != unpairedFunctions.cend(); ++it)
 	{
-		__int64 row = it.key();
+		qint64 row = it.key();
 		QString statement = it.value();
 		QString errorMessage = QObject::tr("@ %1 | Missing '%2' for statement '%3'").arg(row + 1).arg(endstr).arg(statement);
 		showError(errorMessage, kTypeWarning);
@@ -1295,7 +1295,7 @@ void Lexer::checkPairs(const QString& beginstr, const QString& endstr, const QHa
 	// 打印所有不成對的 "end" 語句
 	for (auto it = unpairedEnds.cbegin(); it != unpairedEnds.cend(); ++it)
 	{
-		__int64 row = it.key();
+		qint64 row = it.key();
 		QString statement = it.value();
 		QString errorMessage = QObject::tr("@ %1 | Extra '%2' for statement '%3'").arg(row + 1).arg(endstr).arg(statement);
 		showError(errorMessage, kTypeWarning);
@@ -1303,12 +1303,12 @@ void Lexer::checkPairs(const QString& beginstr, const QString& endstr, const QHa
 }
 
 //檢查單行字符配對
-void Lexer::checkSingleRowPairs(const QString& beginstr, const QString& endstr, const QHash<__int64, TokenMap>& stokenmaps)
+void Lexer::checkSingleRowPairs(const QString& beginstr, const QString& endstr, const QHash<qint64, TokenMap>& stokenmaps)
 {
-	QMap<__int64, QVector<__int64>> unpairedFunctions; // <Row, Vector of unpaired start indices>
-	QMap<__int64, QVector<__int64>> unpairedEnds;      // <Row, Vector of unpaired end indices>
+	QMap<qint64, QVector<qint64>> unpairedFunctions; // <Row, Vector of unpaired start indices>
+	QMap<qint64, QVector<qint64>> unpairedEnds;      // <Row, Vector of unpaired end indices>
 
-	QMap<__int64, TokenMap> tokenmaps;
+	QMap<qint64, TokenMap> tokenmaps;
 	for (auto it = stokenmaps.cbegin(); it != stokenmaps.cend(); ++it)
 		tokenmaps.insert(it.key(), it.value());
 
@@ -1317,7 +1317,7 @@ void Lexer::checkSingleRowPairs(const QString& beginstr, const QString& endstr, 
 	{
 
 
-		__int64 row = it.key();
+		qint64 row = it.key();
 		QStringList tmp;
 		bool skip = false;
 		for (auto it2 = it.value().cbegin(); it2 != it.value().cend(); ++it2)
@@ -1342,10 +1342,10 @@ void Lexer::checkSingleRowPairs(const QString& beginstr, const QString& endstr, 
 
 		QString statement = tmp.join(" ");
 
-		QVector<__int64> startIndices;
-		QVector<__int64> endIndices;
+		QVector<qint64> startIndices;
+		QVector<qint64> endIndices;
 
-		for (__int64 index = 0; index < statement.length(); ++index)
+		for (qint64 index = 0; index < statement.length(); ++index)
 		{
 			QChar currentChar = statement.at(index);
 
@@ -1376,8 +1376,8 @@ void Lexer::checkSingleRowPairs(const QString& beginstr, const QString& endstr, 
 	// 打印所有不成對的 beginstr 語句
 	for (auto it = unpairedFunctions.cbegin(); it != unpairedFunctions.cend(); ++it)
 	{
-		__int64 row = it.key();
-		QVector<__int64> unpairedIndices = it.value();
+		qint64 row = it.key();
+		QVector<qint64> unpairedIndices = it.value();
 
 		for (int index : unpairedIndices)
 		{
@@ -1390,10 +1390,10 @@ void Lexer::checkSingleRowPairs(const QString& beginstr, const QString& endstr, 
 	// 打印所有不成對的 endstr 語句
 	for (auto it = unpairedEnds.cbegin(); it != unpairedEnds.cend(); ++it)
 	{
-		__int64 row = it.key();
-		QVector<__int64> unpairedIndices = it.value();
+		qint64 row = it.key();
+		QVector<qint64> unpairedIndices = it.value();
 
-		for (__int64 index : unpairedIndices)
+		for (qint64 index : unpairedIndices)
 		{
 			QString statement = tokenmaps[row].value(0).data.toString().simplified();
 			QString errorMessage = QString(QObject::tr("@ %1 | Unpaired '%2' index %3: '%4'")).arg(row + 1).arg(endstr).arg(index).arg(statement);
@@ -1402,7 +1402,7 @@ void Lexer::checkSingleRowPairs(const QString& beginstr, const QString& endstr, 
 	}
 }
 
-void Lexer::checkFunctionPairs(const QHash<__int64, TokenMap>& stokenmaps)
+void Lexer::checkFunctionPairs(const QHash<qint64, TokenMap>& stokenmaps)
 {
 	checkSingleRowPairs("(", ")", stokenmaps);
 	//checkSingleRowPairs("[", "]", stokenmaps);
@@ -1418,9 +1418,9 @@ FTK Lexer::getStringToken(QString& src, const QString& delim, QString& out) cons
 	enum class State { Normal, DoubleQuoted, SingleQuoted, InParentheses, InBraces };
 	State state = State::Normal;
 
-	__int64 i = 0;
-	__int64 start = 0;
-	__int64 srcSize = src.size();
+	qint64 i = 0;
+	qint64 start = 0;
+	qint64 srcSize = src.size();
 
 	while (i < srcSize)
 	{

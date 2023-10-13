@@ -24,14 +24,14 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 class Indexer
 {
 public:
-	explicit Indexer(__int64 index) : index_(index) {}
+	explicit Indexer(qint64 index) : index_(index) {}
 
-	virtual inline void setIndex(__int64 index)
+	virtual inline void setIndex(qint64 index)
 	{
 		index_.store(index, std::memory_order_release);
 	}
 
-	virtual inline __int64 getIndex() const { return index_.load(std::memory_order_acquire); }
+	virtual inline qint64 getIndex() const { return index_.load(std::memory_order_acquire); }
 
 private:
 	std::atomic_int64_t index_ = -1;

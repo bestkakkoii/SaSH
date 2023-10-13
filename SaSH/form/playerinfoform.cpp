@@ -23,7 +23,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "signaldispatcher.h"
 #include "injector.h"
 
-CharInfoForm::CharInfoForm(__int64 index, QWidget* parent)
+CharInfoForm::CharInfoForm(qint64 index, QWidget* parent)
 	: QWidget(parent)
 	, Indexer(index)
 {
@@ -43,16 +43,16 @@ CharInfoForm::CharInfoForm(__int64 index, QWidget* parent)
 	Injector& injector = Injector::getInstance(index);
 	if (!injector.server.isNull())
 	{
-		QHash<__int64, QVariant> playerInfoColContents = injector.server->playerInfoColContents.toHash();
+		QHash<qint64, QVariant> playerInfoColContents = injector.server->playerInfoColContents.toHash();
 		for (auto it = playerInfoColContents.begin(); it != playerInfoColContents.end(); ++it)
 		{
 			onUpdateCharInfoColContents(it.key(), it.value());
 		}
 
-		__int64 stone = injector.server->getPC().gold;
+		qint64 stone = injector.server->getPC().gold;
 		onUpdateCharInfoStone(stone);
 
-		for (__int64 i = 0; i < MAX_PET; ++i)
+		for (qint64 i = 0; i < MAX_PET; ++i)
 		{
 			PET pet = injector.server->getPet(i);
 			onUpdateCharInfoPetState(i, pet.state);
@@ -78,14 +78,14 @@ void CharInfoForm::onResetControlTextLanguage()
 		tr("atk") + "/" + tr("def") + "/" + tr("agi"), tr("growth"), tr("power"),
 	};
 
-	__int64 size = equipVHeaderList.size();
-	for (__int64 row = 0; row < size; ++row)
+	qint64 size = equipVHeaderList.size();
+	for (qint64 row = 0; row < size; ++row)
 	{
 		ui.tableWidget->setText(row, 0, equipVHeaderList.value(row));
 	}
 }
 
-void CharInfoForm::onUpdateCharInfoColContents(__int64 col, const QVariant& data)
+void CharInfoForm::onUpdateCharInfoColContents(qint64 col, const QVariant& data)
 {
 	// 檢查是否為 QVariantList
 	if (data.type() != QVariant::List)
@@ -97,15 +97,15 @@ void CharInfoForm::onUpdateCharInfoColContents(__int64 col, const QVariant& data
 	QVariantList list = data.toList();
 
 	// 取得 QVariantList 的大小
-	const __int64 size = list.size();
+	const qint64 size = list.size();
 
 	// 獲取當前表格的總行數
-	const __int64 rowCount = ui.tableWidget->rowCount();
+	const qint64 rowCount = ui.tableWidget->rowCount();
 	if (col < 0 || col >= rowCount)
 		return;
 
 	// 開始填入內容
-	for (__int64 row = 0; row < rowCount; ++row)
+	for (qint64 row = 0; row < rowCount; ++row)
 	{
 		// 設置內容
 		if (row >= size)
@@ -122,14 +122,14 @@ void CharInfoForm::onUpdateCharInfoColContents(__int64 col, const QVariant& data
 }
 
 
-void CharInfoForm::onUpdateCharInfoStone(__int64 stone)
+void CharInfoForm::onUpdateCharInfoStone(qint64 stone)
 {
 	ui.label->setText(tr("stone:%1").arg(stone));
 }
 
-void CharInfoForm::onUpdateCharInfoPetState(__int64 petIndex, __int64 state)
+void CharInfoForm::onUpdateCharInfoPetState(qint64 petIndex, qint64 state)
 {
-	__int64 col = petIndex + 1;
+	qint64 col = petIndex + 1;
 	if (col < 0 || col >= ui.tableWidget->columnCount())
 		return;
 
@@ -148,9 +148,9 @@ void CharInfoForm::onUpdateCharInfoPetState(__int64 petIndex, __int64 state)
 	ui.tableWidget->setHorizontalHeaderText(col + 1, petName);
 }
 
-void CharInfoForm::onHeaderClicked(__int64 logicalIndex)
+void CharInfoForm::onHeaderClicked(qint64 logicalIndex)
 {
-	__int64 currentIndex = getIndex();
+	qint64 currentIndex = getIndex();
 	switch (logicalIndex)
 	{
 	case 1:
@@ -158,8 +158,8 @@ void CharInfoForm::onHeaderClicked(__int64 logicalIndex)
 		AbilityForm* abilityForm = new AbilityForm(currentIndex, this);
 		abilityForm->setModal(true);
 		QPoint mousePos = QCursor::pos();
-		__int64 x = static_cast<__int64>(mousePos.x()) - 10;
-		__int64 y = static_cast<__int64>(mousePos.y()) + 50;
+		qint64 x = static_cast<qint64>(mousePos.x()) - 10;
+		qint64 y = static_cast<qint64>(mousePos.y()) + 50;
 		abilityForm->move(x, y);
 		if (abilityForm->exec() == QDialog::Accepted)
 		{
@@ -169,7 +169,7 @@ void CharInfoForm::onHeaderClicked(__int64 logicalIndex)
 	}
 	default:
 	{
-		__int64 petIndex = logicalIndex - 2;
+		qint64 petIndex = logicalIndex - 2;
 		if (petIndex < 0 || petIndex >= MAX_PET)
 			break;
 		Injector& injector = Injector::getInstance(currentIndex);

@@ -16,11 +16,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 */
 
-import Utility;
-import Config;
-
 #include "stdafx.h"
 #include "infoform.h"
+#include <util.h>
 
 #include "battleinfoform.h"
 #include "playerinfoform.h"
@@ -33,7 +31,7 @@ import Config;
 #include "signaldispatcher.h"
 #include "injector.h"
 
-InfoForm::InfoForm(__int64 index, __int64 defaultPage, QWidget* parent)
+InfoForm::InfoForm(qint64 index, qint64 defaultPage, QWidget* parent)
 	: QWidget(parent)
 	, Indexer(index)
 {
@@ -48,9 +46,10 @@ InfoForm::InfoForm(__int64 index, __int64 defaultPage, QWidget* parent)
 	windowflag |= Qt::WindowType::Tool;
 	setWindowFlag(Qt::WindowType::Tool);
 
-	connect(this, &InfoForm::resetControlTextLanguage, this, &InfoForm::onResetControlTextLanguage, Qt::QueuedConnection);
+	connect(this, &InfoForm::resetControlTextLanguage, this, &InfoForm::onResetControlTextLanguage, Qt::UniqueConnection);
 
 	ui.tabWidget->clear();
+	util::setTab(ui.tabWidget);
 
 	pBattleInfoForm_ = new BattleInfoForm(index, nullptr);
 	Q_ASSERT(pBattleInfoForm_ != nullptr);
@@ -103,11 +102,11 @@ InfoForm::InfoForm(__int64 index, __int64 defaultPage, QWidget* parent)
 
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(index);
 
-	connect(&signalDispatcher, &SignalDispatcher::applyHashSettingsToUI, this, &InfoForm::onApplyHashSettingsToUI, Qt::QueuedConnection);
+	connect(&signalDispatcher, &SignalDispatcher::applyHashSettingsToUI, this, &InfoForm::onApplyHashSettingsToUI, Qt::UniqueConnection);
 
 	onResetControlTextLanguage();
 
-	FormSettingManager formManager(this);
+	util::FormSettingManager formManager(this);
 	formManager.loadSettings();
 
 	onApplyHashSettingsToUI();
@@ -115,7 +114,7 @@ InfoForm::InfoForm(__int64 index, __int64 defaultPage, QWidget* parent)
 	setCurrentPage(defaultPage);
 }
 
-void InfoForm::setCurrentPage(__int64 defaultPage)
+void InfoForm::setCurrentPage(qint64 defaultPage)
 {
 	if (defaultPage > 0 && defaultPage <= ui.tabWidget->count())
 	{
@@ -135,7 +134,7 @@ void InfoForm::showEvent(QShowEvent* e)
 }
 void InfoForm::closeEvent(QCloseEvent* e)
 {
-	FormSettingManager formManager(this);
+	util::FormSettingManager formManager(this);
 	formManager.saveSettings();
 	QWidget::closeEvent(e);
 }
@@ -143,13 +142,13 @@ void InfoForm::closeEvent(QCloseEvent* e)
 void InfoForm::onResetControlTextLanguage()
 {
 	//reset title
-	__int64 currentIndex = getIndex();
+	qint64 currentIndex = getIndex();
 	QString title = tr("InfoForm");
 	QString newTitle = QString("[%1] %2").arg(currentIndex).arg(title);
 	setWindowTitle(newTitle);
 
 	//reset tab text
-	__int64 n = 0;
+	qint64 n = 0;
 	ui.tabWidget->setTabText(n++, tr("battleinfo"));
 	ui.tabWidget->setTabText(n++, tr("playerinfo"));
 	ui.tabWidget->setTabText(n++, tr("iteminfo"));
@@ -165,7 +164,7 @@ void InfoForm::onResetControlTextLanguage()
 
 void InfoForm::onApplyHashSettingsToUI()
 {
-	__int64 currentIndex = getIndex();
+	qint64 currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
 	if (!injector.server.isNull() && injector.server->getOnlineFlag())
 	{

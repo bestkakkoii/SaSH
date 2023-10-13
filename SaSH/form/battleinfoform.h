@@ -27,7 +27,7 @@ class BattleInfoForm : public QWidget, public Indexer
 	Q_OBJECT
 
 public:
-	explicit BattleInfoForm(__int64 index, QWidget* parent);
+	explicit BattleInfoForm(qint64 index, QWidget* parent);
 
 	virtual ~BattleInfoForm();
 
@@ -42,9 +42,9 @@ private slots:
 
 	void onUpdateLabelPetAction(const QString& text);
 
-	void onNotifyBattleActionState(__int64 index, bool left);
+	void onNotifyBattleActionState(qint64 index, bool left);
 
-	void onBattleTableItemForegroundColorChanged(__int64 index, const QColor& color);
+	void onBattleTableItemForegroundColorChanged(qint64 index, const QColor& color);
 
 	void onBattleTableAllItemResetColor();
 

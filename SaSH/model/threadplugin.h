@@ -161,7 +161,7 @@ class ThreadPlugin : public QObject, public Indexer
 {
 	Q_OBJECT
 public:
-	ThreadPlugin(__int64 index, QObject* parent)
+	ThreadPlugin(qint64 index, QObject* parent)
 		: QObject(parent)
 		, Indexer(index)
 	{
@@ -171,7 +171,7 @@ public:
 
 	virtual ~ThreadPlugin() = default;
 
-	[[nodiscard]] inline bool isInterruptionRequested() const
+	Q_REQUIRED_RESULT inline bool isInterruptionRequested() const
 	{
 		std::shared_lock<std::shared_mutex> lock(rwLock_);
 		return isInterruptionRequested_.load(std::memory_order_acquire);

@@ -25,8 +25,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include <QPixmap>
 #include <QResizeEvent>
 #include <QWidget>
-#include <QPen>
-
 //#define OPENGL_LABEL
 class FastLabel
 #ifdef OPENGL_LABEL
@@ -70,7 +68,7 @@ private:
 	QString content_msg_;
 	QColor text_color_ = Qt::black;
 	QColor background_color_ = QColor("#F1F1F1");
-	__int64 new_font_size_ = 12;
+	qint64 new_font_size_ = 12;
 };
 #endif // MYLABEL_H
 

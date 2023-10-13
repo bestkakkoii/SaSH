@@ -27,7 +27,7 @@ class AbilityForm : public QDialog, public Indexer
 	Q_OBJECT
 
 public:
-	AbilityForm(__int64 index, QWidget* parent);
+	AbilityForm(qint64 index, QWidget* parent);
 	virtual ~AbilityForm();
 
 protected:

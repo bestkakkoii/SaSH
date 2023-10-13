@@ -16,19 +16,17 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 */
 
-import Utility;
-import Config;
-import Global;
-import String;
-
 #include "stdafx.h"
 #include "mapform.h"
+
+#include "util.h"
 #include "signaldispatcher.h"
+
 #include "injector.h"
 #include "script/interpreter.h"
 
 
-MapForm::MapForm(__int64 index, QWidget* parent)
+MapForm::MapForm(qint64 index, QWidget* parent)
 	: QWidget(parent)
 	, Indexer(index)
 {
@@ -41,13 +39,13 @@ MapForm::MapForm(__int64 index, QWidget* parent)
 	for (auto& button : buttonList)
 	{
 		if (button)
-			connect(button, &PushButton::clicked, this, &MapForm::onButtonClicked, Qt::QueuedConnection);
+			connect(button, &PushButton::clicked, this, &MapForm::onButtonClicked, Qt::UniqueConnection);
 	}
 
-	connect(ui.tableWidget_map, &QTableWidget::cellDoubleClicked, this, &MapForm::onTableWidgetCellDoubleClicked, Qt::QueuedConnection);
+	connect(ui.tableWidget_map, &QTableWidget::cellDoubleClicked, this, &MapForm::onTableWidgetCellDoubleClicked, Qt::UniqueConnection);
 
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(index);
-	connect(&signalDispatcher, &SignalDispatcher::updateNpcList, this, &MapForm::onUpdateNpcList, Qt::QueuedConnection);
+	connect(&signalDispatcher, &SignalDispatcher::updateNpcList, this, &MapForm::onUpdateNpcList, Qt::UniqueConnection);
 
 }
 
@@ -75,7 +73,7 @@ void MapForm::onButtonClicked()
 	if (name.isEmpty())
 		return;
 
-	__int64 currentIndex = getIndex();
+	qint64 currentIndex = getIndex();
 
 	if (name == "pushButton_findpath_start")
 	{
@@ -102,8 +100,8 @@ void MapForm::onButtonClicked()
 		interpreter_.reset(new Interpreter(currentIndex));
 		connect(interpreter_.get(), &Interpreter::finished, this, &MapForm::onScriptFinished);
 
-		__int64 x = ui.spinBox_findpath_x->value();
-		__int64 y = ui.spinBox_findpath_y->value();
+		qint64 x = ui.spinBox_findpath_x->value();
+		qint64 y = ui.spinBox_findpath_y->value();
 
 		interpreter_->doString(QString("findpath(%1, %2, 3)").arg(x).arg(y), nullptr, Interpreter::kNotShare);
 		ui.pushButton_findpath_stop->setEnabled(true);
@@ -125,15 +123,15 @@ void MapForm::onButtonClicked()
 	}
 }
 
-void MapForm::resizeTableWidgetRow(__int64 max)
+void MapForm::resizeTableWidgetRow(qint64 max)
 {
 	//set row count
 	ui.tableWidget_map->setRowCount(max);
-	__int64 current = ui.tableWidget_map->rowCount();
+	qint64 current = ui.tableWidget_map->rowCount();
 	if (current > max)
 	{
 		//insert till max
-		for (__int64 i = current; i < max; ++i)
+		for (qint64 i = current; i < max; ++i)
 		{
 			ui.tableWidget_map->insertRow(i);
 		}
@@ -142,36 +140,36 @@ void MapForm::resizeTableWidgetRow(__int64 max)
 	else if (current < max)
 	{
 		//remove till max
-		for (__int64 i = current; i > max; --i)
+		for (qint64 i = current; i > max; --i)
 		{
 			ui.tableWidget_map->removeRow(i);
 		}
 	}
 }
 
-void MapForm::onUpdateNpcList(__int64 floor)
+void MapForm::onUpdateNpcList(qint64 floor)
 {
 	npc_hash_.clear();
 	ui.tableWidget_map->clear();
 	QStringList header = { tr("location"), tr("cod") };
 	ui.tableWidget_map->setHorizontalHeaderLabels(header);
 
-	QString key = toQString(floor);
-	QList<MapData> datas;
-	__int64 currentIndex = getIndex();
+	QString key = util::toQString(floor);
+	QList<util::MapData> datas;
+	qint64 currentIndex = getIndex();
 	{
 		Injector& injector = Injector::getInstance(currentIndex);
-		Config config(injector.getPointFileName());
+		util::Config config(injector.getPointFileName());
 		datas = config.readMapData(key);
 		if (datas.isEmpty())
 			return;
 	}
 
-	__int64 size = datas.size();
+	qint64 size = datas.size();
 	resizeTableWidgetRow(size);
-	for (__int64 i = 0; i < size; ++i)
+	for (qint64 i = 0; i < size; ++i)
 	{
-		MapData d = datas.value(i);
+		util::MapData d = datas.value(i);
 		QPoint point(d.x, d.y);
 		npc_hash_.insert(i, point);
 
@@ -187,7 +185,7 @@ void MapForm::onTableWidgetCellDoubleClicked(int row, int col)
 	if (!npc_hash_.contains(row))
 		return;
 
-	__int64 currentIndex = getIndex();
+	qint64 currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
 	if (!injector.isValid())
 		return;

@@ -16,48 +16,48 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 */
 
-import Utility;
-
 #include "stdafx.h"
 #include "otherform.h"
+#include <util.h>
 #include <injector.h>
 #include "signaldispatcher.h"
 
-OtherForm::OtherForm(__int64 index, QWidget* parent)
+OtherForm::OtherForm(qint64 index, QWidget* parent)
 	: QWidget(parent)
 	, Indexer(index)
 {
 	ui.setupUi(this);
+	util::setTab(ui.tabWidge_other);
 
-	connect(this, &OtherForm::resetControlTextLanguage, this, &OtherForm::onResetControlTextLanguage, Qt::QueuedConnection);
+	connect(this, &OtherForm::resetControlTextLanguage, this, &OtherForm::onResetControlTextLanguage, Qt::UniqueConnection);
 
 
 	QList<PushButton*> buttonList = util::findWidgets<PushButton>(this);
 	for (auto& button : buttonList)
 	{
 		if (button)
-			connect(button, &PushButton::clicked, this, &OtherForm::onButtonClicked, Qt::QueuedConnection);
+			connect(button, &PushButton::clicked, this, &OtherForm::onButtonClicked, Qt::UniqueConnection);
 	}
 
 	QList <QCheckBox*> checkBoxList = util::findWidgets<QCheckBox>(this);
 	for (auto& checkBox : checkBoxList)
 	{
 		if (checkBox)
-			connect(checkBox, &QCheckBox::stateChanged, this, &OtherForm::onCheckBoxStateChanged, Qt::QueuedConnection);
+			connect(checkBox, &QCheckBox::stateChanged, this, &OtherForm::onCheckBoxStateChanged, Qt::UniqueConnection);
 	}
 
 	QList <QSpinBox*> spinBoxList = util::findWidgets<QSpinBox>(this);
 	for (auto& spinBox : spinBoxList)
 	{
 		if (spinBox)
-			connect(spinBox, SIGNAL(valueChanged(int)), this, SLOT(onSpinBoxValueChanged(int)), Qt::QueuedConnection);
+			connect(spinBox, SIGNAL(valueChanged(int)), this, SLOT(onSpinBoxValueChanged(int)), Qt::UniqueConnection);
 	}
 
 	QList <QListWidget*> listWidgetList = util::findWidgets<QListWidget>(this);
 	for (auto& listWidget : listWidgetList)
 	{
 		if (listWidget)
-			connect(listWidget, &QListWidget::itemDoubleClicked, this, &OtherForm::onListWidgetDoubleClicked, Qt::QueuedConnection);
+			connect(listWidget, &QListWidget::itemDoubleClicked, this, &OtherForm::onListWidgetDoubleClicked, Qt::UniqueConnection);
 	}
 
 	QList <ComboBox*> comboBoxList = util::findWidgets<ComboBox>(this);
@@ -65,9 +65,9 @@ OtherForm::OtherForm(__int64 index, QWidget* parent)
 	{
 		if (comboBox)
 		{
-			connect(comboBox, SIGNAL(currentIndexChanged(int)), this, SLOT(onComboBoxCurrentIndexChanged(int)), Qt::QueuedConnection);
-			connect(comboBox, &ComboBox::clicked, this, &OtherForm::onComboBoxClicked, Qt::QueuedConnection);
-			connect(comboBox, &ComboBox::currentTextChanged, this, &OtherForm::onComboBoxTextChanged, Qt::QueuedConnection);
+			connect(comboBox, SIGNAL(currentIndexChanged(int)), this, SLOT(onComboBoxCurrentIndexChanged(int)), Qt::UniqueConnection);
+			connect(comboBox, &ComboBox::clicked, this, &OtherForm::onComboBoxClicked, Qt::UniqueConnection);
+			connect(comboBox, &ComboBox::currentTextChanged, this, &OtherForm::onComboBoxTextChanged, Qt::UniqueConnection);
 		}
 	}
 
@@ -75,19 +75,19 @@ OtherForm::OtherForm(__int64 index, QWidget* parent)
 	for (auto& lineEdit : lineEditList)
 	{
 		if (lineEdit)
-			connect(lineEdit, &QLineEdit::textChanged, this, &OtherForm::onLineEditTextChanged, Qt::QueuedConnection);
+			connect(lineEdit, &QLineEdit::textChanged, this, &OtherForm::onLineEditTextChanged, Qt::UniqueConnection);
 	}
 
 	QList <QGroupBox*> groupBoxList = util::findWidgets<QGroupBox>(this);
 	for (auto& groupBox : groupBoxList)
 	{
 		if (groupBox)
-			connect(groupBox, &QGroupBox::clicked, this, &OtherForm::groupBoxClicked, Qt::QueuedConnection);
+			connect(groupBox, &QGroupBox::clicked, this, &OtherForm::groupBoxClicked, Qt::UniqueConnection);
 	}
 
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(index);
-	connect(&signalDispatcher, &SignalDispatcher::applyHashSettingsToUI, this, &OtherForm::onApplyHashSettingsToUI, Qt::QueuedConnection);
-	connect(&signalDispatcher, &SignalDispatcher::updateTeamInfo, this, &OtherForm::onUpdateTeamInfo, Qt::QueuedConnection);
+	connect(&signalDispatcher, &SignalDispatcher::applyHashSettingsToUI, this, &OtherForm::onApplyHashSettingsToUI, Qt::UniqueConnection);
+	connect(&signalDispatcher, &SignalDispatcher::updateTeamInfo, this, &OtherForm::onUpdateTeamInfo, Qt::UniqueConnection);
 
 	ui.spinBox_lockpetslevel->setEnabled(true);
 
@@ -106,17 +106,17 @@ void OtherForm::groupBoxClicked(bool checked)
 
 	QString name = pGroupBox->objectName();
 
-	__int64 currentIndex = getIndex();
+	qint64 currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
 
 	if (name == "groupBox_lockpets")
 	{
-		injector.setEnableHash(kLockPetScheduleEnable, checked);
+		injector.setEnableHash(util::kLockPetScheduleEnable, checked);
 		if (checked)
 		{
-			injector.setEnableHash(kLockPetEnable, !checked);
+			injector.setEnableHash(util::kLockPetEnable, !checked);
 			ui.checkBox_lockpet->setChecked(!checked);
-			injector.setEnableHash(kLockRideEnable, !checked);
+			injector.setEnableHash(util::kLockRideEnable, !checked);
 			ui.checkBox_lockride->setChecked(!checked);
 		}
 	}
@@ -132,22 +132,22 @@ void OtherForm::onListWidgetDoubleClicked(QListWidgetItem* item)
 	if (name.isEmpty())
 		return;
 
-	__int64 currentIndex = getIndex();
+	qint64 currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
 
 	if (name == "listWidget_prelockpets")
 	{
-		__int64 row = pListWidget->row(item);
+		qint64 row = pListWidget->row(item);
 		pListWidget->takeItem(row);
 	}
 	else if (name == "listWidget_lockpets")
 	{
 		//delete item
-		__int64 row = pListWidget->row(item);
+		qint64 row = pListWidget->row(item);
 		pListWidget->takeItem(row);
-		__int64 size = ui.listWidget_lockpets->count();
+		qint64 size = ui.listWidget_lockpets->count();
 		QStringList list;
-		for (__int64 i = 0; i < size; ++i)
+		for (qint64 i = 0; i < size; ++i)
 		{
 			QListWidgetItem* item = ui.listWidget_lockpets->item(i);
 			if (item)
@@ -158,7 +158,7 @@ void OtherForm::onListWidgetDoubleClicked(QListWidgetItem* item)
 				list.append(str);
 			}
 		}
-		injector.setStringHash(kLockPetScheduleString, list.join("|"));
+		injector.setStringHash(util::kLockPetScheduleString, list.join("|"));
 	}
 
 }
@@ -173,7 +173,7 @@ void OtherForm::onButtonClicked()
 	if (name.isEmpty())
 		return;
 
-	__int64 currentIndex = getIndex();
+	qint64 currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
 
 	if (name == "pushButton_lockpetsadd")
@@ -184,7 +184,7 @@ void OtherForm::onButtonClicked()
 		QString typeStr = ui.comboBox_locktype->currentText().simplified();
 		if (typeStr.isEmpty())
 			return;
-		__int64 level = ui.spinBox_lockpetslevel->value();
+		qint64 level = ui.spinBox_lockpetslevel->value();
 		QString str = QString("%1, %2, %3").arg(text).arg(level).arg(typeStr);
 		if (!str.isEmpty())
 			ui.listWidget_prelockpets->addItem(str);
@@ -192,9 +192,9 @@ void OtherForm::onButtonClicked()
 	}
 	else if (name == "pushButton_addlockpets")
 	{
-		__int64 size = ui.listWidget_prelockpets->count();
+		qint64 size = ui.listWidget_prelockpets->count();
 		QStringList list;
-		for (__int64 i = 0; i < size; ++i)
+		for (qint64 i = 0; i < size; ++i)
 		{
 			QListWidgetItem* item = ui.listWidget_prelockpets->item(i);
 			if (item)
@@ -213,7 +213,7 @@ void OtherForm::onButtonClicked()
 
 		size = ui.listWidget_lockpets->count();
 		list.clear();
-		for (__int64 i = 0; i < size; ++i)
+		for (qint64 i = 0; i < size; ++i)
 		{
 			QListWidgetItem* item = ui.listWidget_lockpets->item(i);
 			if (item)
@@ -225,14 +225,14 @@ void OtherForm::onButtonClicked()
 			}
 		}
 
-		injector.setStringHash(kLockPetScheduleString, list.join("|"));
+		injector.setStringHash(util::kLockPetScheduleString, list.join("|"));
 		ui.listWidget_prelockpets->clear();
 		return;
 	}
 	else if (name == "pushButton_clearlockpets")
 	{
 		ui.listWidget_lockpets->clear();
-		injector.setStringHash(kLockPetScheduleString, "");
+		injector.setStringHash(util::kLockPetScheduleString, "");
 	}
 	else if (name == "pushButton_lockpetsall")
 	{
@@ -240,9 +240,9 @@ void OtherForm::onButtonClicked()
 			return;
 
 		QString typeStr = ui.comboBox_locktype->currentText().simplified();
-		__int64 level = ui.spinBox_lockpetslevel->value();
+		qint64 level = ui.spinBox_lockpetslevel->value();
 		QStringList list;
-		for (__int64 i = 0; i < MAX_PET; ++i)
+		for (qint64 i = 0; i < MAX_PET; ++i)
 		{
 			QString text;
 			PET pet = injector.server->getPet(i);
@@ -260,11 +260,11 @@ void OtherForm::onButtonClicked()
 
 	else if (name == "pushButton_lockpetsup")
 	{
-		util::RowSwap::up(ui.listWidget_lockpets);
+		util::SwapRowUp(ui.listWidget_lockpets);
 	}
 	else if (name == "pushButton_lockpetsdown")
 	{
-		util::RowSwap::down(ui.listWidget_lockpets);
+		util::SwapRowDown(ui.listWidget_lockpets);
 	}
 
 
@@ -276,7 +276,7 @@ void OtherForm::onButtonClicked()
 		injector.server->setTeamState(false);
 	}
 
-	for (__int64 i = 1; i < MAX_PARTY; ++i)
+	for (qint64 i = 1; i < MAX_PARTY; ++i)
 	{
 		if (name == QString("pushButton_teammate%1kick").arg(i))
 		{
@@ -301,25 +301,25 @@ void OtherForm::onCheckBoxStateChanged(int state)
 	if (name.isEmpty())
 		return;
 
-	__int64 currentIndex = getIndex();
+	qint64 currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
 
 	//lockpet
 	if (name == "checkBox_lockpet")
 	{
-		injector.setEnableHash(kLockPetEnable, isChecked);
+		injector.setEnableHash(util::kLockPetEnable, isChecked);
 		if (isChecked)
 		{
-			injector.setEnableHash(kLockPetScheduleEnable, !isChecked);
+			injector.setEnableHash(util::kLockPetScheduleEnable, !isChecked);
 			ui.groupBox_lockpets->setChecked(!isChecked);
 		}
 	}
 	else if (name == "checkBox_lockride")
 	{
-		injector.setEnableHash(kLockRideEnable, isChecked);
+		injector.setEnableHash(util::kLockRideEnable, isChecked);
 		if (isChecked)
 		{
-			injector.setEnableHash(kLockPetScheduleEnable, !isChecked);
+			injector.setEnableHash(util::kLockPetScheduleEnable, !isChecked);
 			ui.groupBox_lockpets->setChecked(!isChecked);
 		}
 	}
@@ -347,23 +347,23 @@ void OtherForm::onComboBoxCurrentIndexChanged(int value)
 	if (name.isEmpty())
 		return;
 
-	__int64 currentIndex = getIndex();
+	qint64 currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
 
 	//group
 	if (name == "comboBox_autofuntype")
 	{
-		injector.setValueHash(kAutoFunTypeValue, value != -1 ? value : 0);
+		injector.setValueHash(util::kAutoFunTypeValue, value != -1 ? value : 0);
 	}
 
 	//lockpet
 	else if (name == "comboBox_lockpet")
 	{
-		injector.setValueHash(kLockPetValue, value != -1 ? value : 0);
+		injector.setValueHash(util::kLockPetValue, value != -1 ? value : 0);
 	}
 	else if (name == "comboBox_lockride")
 	{
-		injector.setValueHash(kLockRideValue, value != -1 ? value : 0);
+		injector.setValueHash(util::kLockRideValue, value != -1 ? value : 0);
 	}
 
 }
@@ -380,12 +380,12 @@ void OtherForm::onComboBoxTextChanged(const QString& text)
 
 	QString newText = text.simplified();
 
-	__int64 currentIndex = getIndex();
+	qint64 currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
 
 	if (name == "comboBox_autofunname")
 	{
-		injector.setStringHash(kAutoFunNameString, newText);
+		injector.setStringHash(util::kAutoFunNameString, newText);
 	}
 }
 
@@ -405,7 +405,7 @@ void OtherForm::onComboBoxClicked()
 		return;
 	}
 
-	__int64 currentIndex = getIndex();
+	qint64 currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
 
 	if (name == "comboBox_autofunname")
@@ -422,11 +422,11 @@ void OtherForm::onComboBoxClicked()
 
 	else if (name == "comboBox_lockpets" || name == "comboBox_lockrides" || name == "comboBox_lockpet" || name == "comboBox_lockride")
 	{
-		__int64 oldIndex = pComboBox->currentIndex();
+		qint64 oldIndex = pComboBox->currentIndex();
 		QStringList list;
 		if (!injector.server.isNull() && injector.server->getOnlineFlag())
 		{
-			for (__int64 i = 0; i < MAX_PET; ++i)
+			for (qint64 i = 0; i < MAX_PET; ++i)
 			{
 				PET pet = injector.server->getPet(i);
 				if (pet.name.isEmpty() || !pet.valid)
@@ -457,33 +457,33 @@ void OtherForm::onLineEditTextChanged(const QString& text)
 	if (name.isEmpty())
 		return;
 
-	__int64 currentIndex = getIndex();
+	qint64 currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
 
 	//other2
 	if (name == "lineEdit_gameaccount")
 	{
-		injector.setStringHash(UserSetting::kGameAccountString, text);
+		injector.setStringHash(util::UserSetting::kGameAccountString, text);
 	}
 
 	if (name == "lineEdit_gamepassword")
 	{
-		injector.setStringHash(UserSetting::kGamePasswordString, text);
+		injector.setStringHash(util::UserSetting::kGamePasswordString, text);
 	}
 
 	if (name == "lineEdit_gamesecuritycode")
 	{
-		injector.setStringHash(UserSetting::kGameSecurityCodeString, text);
+		injector.setStringHash(util::UserSetting::kGameSecurityCodeString, text);
 	}
 
 	if (name == "lineEdit_remotewhitelist")
 	{
-		injector.setStringHash(UserSetting::kMailWhiteListString, text);
+		injector.setStringHash(util::UserSetting::kMailWhiteListString, text);
 	}
 
 	if (name == "lineEdit_eocmd")
 	{
-		injector.setStringHash(UserSetting::kEOCommandString, text);
+		injector.setStringHash(util::UserSetting::kEOCommandString, text);
 	}
 }
 
@@ -507,16 +507,16 @@ void OtherForm::onResetControlTextLanguage()
 
 void OtherForm::onApplyHashSettingsToUI()
 {
-	__int64 currentIndex = getIndex();
+	qint64 currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
-	QHash<UserSetting, bool> enableHash = injector.getEnablesHash();
-	QHash<UserSetting, __int64> valueHash = injector.getValuesHash();
-	QHash<UserSetting, QString> stringHash = injector.getStringsHash();
+	QHash<util::UserSetting, bool> enableHash = injector.getEnablesHash();
+	QHash<util::UserSetting, qint64> valueHash = injector.getValuesHash();
+	QHash<util::UserSetting, QString> stringHash = injector.getStringsHash();
 
 	if (ui.comboBox_lockride->count() == 0 || ui.comboBox_lockpet->count() == 0)
 	{
 		QStringList list;
-		for (__int64 i = 0; i < MAX_PET; ++i)
+		for (qint64 i = 0; i < MAX_PET; ++i)
 		{
 			list.append(QString("%1:").arg(i + 1));
 		}
@@ -531,7 +531,7 @@ void OtherForm::onApplyHashSettingsToUI()
 	QStringList list;
 	if (!injector.server.isNull() && injector.server->getOnlineFlag())
 	{
-		for (__int64 i = 0; i < MAX_PET; ++i)
+		for (qint64 i = 0; i < MAX_PET; ++i)
 		{
 			PET pet = injector.server->getPet(i);
 			if (pet.name.isEmpty() || !pet.valid)
@@ -552,28 +552,28 @@ void OtherForm::onApplyHashSettingsToUI()
 	}
 
 	//group
-	ui.comboBox_autofuntype->setCurrentIndex(valueHash.value(kAutoFunTypeValue));
-	ui.comboBox_autofunname->setCurrentText(stringHash.value(kAutoFunNameString));
+	ui.comboBox_autofuntype->setCurrentIndex(valueHash.value(util::kAutoFunTypeValue));
+	ui.comboBox_autofunname->setCurrentText(stringHash.value(util::kAutoFunNameString));
 
 	//other2
-	ui.lineEdit_gameaccount->setText(stringHash.value(UserSetting::kGameAccountString));
-	ui.lineEdit_gamepassword->setText(stringHash.value(UserSetting::kGamePasswordString));
-	ui.lineEdit_gamesecuritycode->setText(stringHash.value(UserSetting::kGameSecurityCodeString));
+	ui.lineEdit_gameaccount->setText(stringHash.value(util::UserSetting::kGameAccountString));
+	ui.lineEdit_gamepassword->setText(stringHash.value(util::UserSetting::kGamePasswordString));
+	ui.lineEdit_gamesecuritycode->setText(stringHash.value(util::UserSetting::kGameSecurityCodeString));
 
 	//lockpet
-	ui.comboBox_lockpet->setCurrentIndex(valueHash.value(kLockPetValue));
-	ui.comboBox_lockride->setCurrentIndex(valueHash.value(kLockRideValue));
-	ui.checkBox_lockpet->setChecked(enableHash.value(kLockPetEnable));
-	ui.checkBox_lockride->setChecked(enableHash.value(kLockRideEnable));
+	ui.comboBox_lockpet->setCurrentIndex(valueHash.value(util::kLockPetValue));
+	ui.comboBox_lockride->setCurrentIndex(valueHash.value(util::kLockRideValue));
+	ui.checkBox_lockpet->setChecked(enableHash.value(util::kLockPetEnable));
+	ui.checkBox_lockride->setChecked(enableHash.value(util::kLockRideEnable));
 
-	ui.lineEdit_remotewhitelist->setText(stringHash.value(kMailWhiteListString));
-	ui.lineEdit_eocmd->setText(stringHash.value(kEOCommandString));
+	ui.lineEdit_remotewhitelist->setText(stringHash.value(util::kMailWhiteListString));
+	ui.lineEdit_eocmd->setText(stringHash.value(util::kEOCommandString));
 
 
-	ui.groupBox_lockpets->setChecked(enableHash.value(kLockPetScheduleEnable));
+	ui.groupBox_lockpets->setChecked(enableHash.value(util::kLockPetScheduleEnable));
 
-	QString schedule = stringHash.value(kLockPetScheduleString).simplified();
-	QStringList scheduleList = schedule.split(rexOR, Qt::SkipEmptyParts);
+	QString schedule = stringHash.value(util::kLockPetScheduleString).simplified();
+	QStringList scheduleList = schedule.split(util::rexOR, Qt::SkipEmptyParts);
 	ui.listWidget_lockpets->clear();
 	ui.listWidget_lockpets->addItems(scheduleList);
 
@@ -581,7 +581,7 @@ void OtherForm::onApplyHashSettingsToUI()
 
 void OtherForm::onUpdateTeamInfo(const QStringList& strList)
 {
-	for (__int64 i = 0; i <= MAX_PARTY; ++i)
+	for (qint64 i = 0; i <= MAX_PARTY; ++i)
 	{
 		QString objName = QString("label_teammate%1").arg(i);
 		QLabel* label = ui.groupBox_team->findChild<QLabel*>(objName);

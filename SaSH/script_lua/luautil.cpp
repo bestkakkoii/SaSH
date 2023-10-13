@@ -24,7 +24,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 bool CLuaUtil::getSys(sol::table dstTable, sol::this_state s)
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<__int64>());
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
 	if (injector.server.isNull())
 		return FALSE;
 
@@ -39,7 +39,7 @@ bool CLuaUtil::getSys(sol::table dstTable, sol::this_state s)
 bool CLuaUtil::getMap(sol::table dstTable, sol::this_state s)
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<__int64>());
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
 	if (injector.server.isNull())
 		return FALSE;
 
@@ -58,7 +58,7 @@ bool CLuaUtil::getMap(sol::table dstTable, sol::this_state s)
 bool CLuaUtil::getChar(sol::table dstTable, sol::this_state s)
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<__int64>());
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
 	if (injector.server.isNull())
 		return FALSE;
 
@@ -134,7 +134,7 @@ bool CLuaUtil::getChar(sol::table dstTable, sol::this_state s)
 bool CLuaUtil::getPet(sol::table dstTable, sol::this_state s)
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<__int64>());
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
 	if (injector.server.isNull())
 		return FALSE;
 
@@ -184,7 +184,7 @@ bool CLuaUtil::getPet(sol::table dstTable, sol::this_state s)
 bool CLuaUtil::getTeam(sol::table dstTable, sol::this_state s)
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<__int64>());
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
 	if (injector.server.isNull())
 		return FALSE;
 
@@ -215,7 +215,7 @@ bool CLuaUtil::getTeam(sol::table dstTable, sol::this_state s)
 bool CLuaUtil::getCard(sol::table dstTable, sol::this_state s)
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<__int64>());
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
 	if (injector.server.isNull())
 		return FALSE;
 
@@ -245,7 +245,7 @@ bool CLuaUtil::getCard(sol::table dstTable, sol::this_state s)
 bool CLuaUtil::getChat(sol::table dstTable, sol::this_state s)
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<__int64>());
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
 	if (injector.server.isNull())
 		return FALSE;
 
@@ -265,7 +265,7 @@ bool CLuaUtil::getChat(sol::table dstTable, sol::this_state s)
 bool CLuaUtil::getDialog(sol::table dstTable, sol::this_state s)
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<__int64>());
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
 	if (injector.server.isNull())
 		return FALSE;
 
@@ -291,7 +291,7 @@ bool CLuaUtil::getDialog(sol::table dstTable, sol::this_state s)
 bool CLuaUtil::getUnit(sol::table dstTable, sol::this_state s)
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<__int64>());
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
 	if (injector.server.isNull())
 		return FALSE;
 
@@ -341,7 +341,7 @@ bool CLuaUtil::getUnit(sol::table dstTable, sol::this_state s)
 bool CLuaUtil::getBattleUnit(sol::table dstTable, sol::this_state s)
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<__int64>());
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
 	if (injector.server.isNull())
 		return FALSE;
 
@@ -391,7 +391,7 @@ bool CLuaUtil::getBattleUnit(sol::table dstTable, sol::this_state s)
 bool CLuaUtil::getDaily(sol::table dstTable, sol::this_state s)
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<__int64>());
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
 	if (injector.server.isNull())
 		return FALSE;
 
@@ -417,14 +417,14 @@ bool CLuaUtil::getDaily(sol::table dstTable, sol::this_state s)
 bool CLuaUtil::getItem(sol::table dstTable, sol::this_state s)
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<__int64>());
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
 	if (injector.server.isNull())
 		return FALSE;
 
 	//clear table
 	dstTable.clear();
 
-	QHash<__int64, ITEM> items = injector.server->getItems();
+	QHash<qint64, ITEM> items = injector.server->getItems();
 	for (int i = 0; i < MAX_ITEM; ++i)
 	{
 		ITEM item = items.value(i);
@@ -451,7 +451,7 @@ bool CLuaUtil::getItem(sol::table dstTable, sol::this_state s)
 		damage.replace("%", "");
 		damage.replace("％", "");
 		bool ok = false;
-		__int64 nDamage = damage.toLongLong(&ok);
+		qint64 nDamage = damage.toLongLong(&ok);
 		if (!ok && !damage.isEmpty())
 			nDamage = 100;
 		dstTable[i + 1]["damage"] = nDamage;
@@ -467,7 +467,7 @@ bool CLuaUtil::getItem(sol::table dstTable, sol::this_state s)
 bool CLuaUtil::getSkill(sol::table dstTable, sol::this_state s)
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<__int64>());
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
 	if (injector.server.isNull())
 		return FALSE;
 
@@ -499,7 +499,7 @@ bool CLuaUtil::getSkill(sol::table dstTable, sol::this_state s)
 bool CLuaUtil::getMagic(sol::table dstTable, sol::this_state s)
 {
 	sol::state_view lua(s);
-	Injector& injector = Injector::getInstance(lua["_INDEX"].get<__int64>());
+	Injector& injector = Injector::getInstance(lua["_INDEX"].get<qint64>());
 	if (injector.server.isNull())
 		return FALSE;
 

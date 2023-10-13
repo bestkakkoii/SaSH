@@ -16,7 +16,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 */
 
-import Utility;
 #include "stdafx.h"
 #include <QApplication>
 #include <listview.h>
@@ -36,7 +35,7 @@ StringListModel::StringListModel(QObject* parent)
 void StringListModel::append(const QString& str, int color)
 {
 	QVector<QString> list;
-	QVector<__int64> colorlist;
+	QVector<qint64> colorlist;
 	getAllList(list, colorlist);
 	int size = list.size();
 
@@ -60,7 +59,7 @@ void StringListModel::append(const QString& str, int color)
 QString StringListModel::takeFirst()
 {
 	QVector<QString> list;
-	QVector<__int64> colorlist;
+	QVector<qint64> colorlist;
 	getAllList(list, colorlist);
 	int size = list.size();
 	QString str = "";
@@ -79,7 +78,7 @@ QString StringListModel::takeFirst()
 void StringListModel::remove(const QString& str)
 {
 	QVector<QString> list;
-	QVector<__int64> colorlist;
+	QVector<qint64> colorlist;
 	getAllList(list, colorlist);
 	int size = list.size();
 
@@ -98,7 +97,7 @@ void StringListModel::clear()
 {
 	beginResetModel();
 
-	setAllList(QVector<QString>(), QVector<__int64>());
+	setAllList(QVector<QString>(), QVector<qint64>());
 
 	endResetModel();
 }
@@ -122,7 +121,7 @@ void StringListModel::sort(int column, Qt::SortOrder order)
 	if (order == Qt::AscendingOrder)
 	{
 		QVector<QString> list;
-		QVector<__int64> colorlist;
+		QVector<qint64> colorlist;
 		getAllList(list, colorlist);
 		int size = list.size();
 		QVector<QPair<int, QString>> pairVector;
@@ -149,7 +148,7 @@ void StringListModel::sort(int column, Qt::SortOrder order)
 	else
 	{
 		QVector<QString> list;
-		QVector<__int64> colorlist;
+		QVector<qint64> colorlist;
 		getAllList(list, colorlist);
 		int size = list.size();
 		QVector<QPair<int, QString>> pairVector;
@@ -295,7 +294,7 @@ QVariant StringListModel::data(const QModelIndex& index, int role) const
 		static const QBrush colorInfo(QColor(181, 206, 168));
 		static const QBrush colorOther(QColor(212, 212, 212));
 
-		QVector<__int64> colorlist = getColorList();
+		QVector<qint64> colorlist = getColorList();
 		int i = index.row();
 		int size = colorlist.size();
 		if (i >= size || i < 0)
@@ -350,7 +349,7 @@ bool StringListModel::setData(const QModelIndex& index, const QVariant& value, i
 void StringListModel::swapRowUp(int source)
 {
 	QVector<QString> list;
-	QVector<__int64> colorlist;
+	QVector<qint64> colorlist;
 	getAllList(list, colorlist);
 	int size = list.size();
 
@@ -368,7 +367,7 @@ void StringListModel::swapRowUp(int source)
 void StringListModel::swapRowDown(int source)
 {
 	QVector<QString> list;
-	QVector<__int64> colorlist;
+	QVector<qint64> colorlist;
 	getAllList(list, colorlist);
 	int size = list.size();
 
@@ -457,13 +456,13 @@ void ListView::wheelEvent(QWheelEvent* e)
 		QFont font = this->font();
 
 		// 根据滚轮滚动的角度调整字体大小
-		__int64 delta = e->angleDelta().y();
-		__int64 fontSize = font.pointSize();
-		__int64 newFontSize = fontSize + delta / 120;  // 根据需要调整滚动速度
+		qint64 delta = e->angleDelta().y();
+		qint64 fontSize = font.pointSize();
+		qint64 newFontSize = fontSize + delta / 120;  // 根据需要调整滚动速度
 
 		// 限制字体大小的范围
-		constexpr __int64 minFontSize = 8;
-		constexpr __int64 maxFontSize = 48;
+		constexpr qint64 minFontSize = 8;
+		constexpr qint64 maxFontSize = 48;
 		newFontSize = qBound(minFontSize, newFontSize, maxFontSize);
 
 		// 设置新的字体大小

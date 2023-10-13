@@ -26,7 +26,7 @@ class ItemInfoForm : public QWidget, public Indexer
 	Q_OBJECT
 
 public:
-	explicit ItemInfoForm(__int64 index, QWidget* parent);
+	explicit ItemInfoForm(qint64 index, QWidget* parent);
 
 	virtual ~ItemInfoForm();
 
@@ -34,9 +34,9 @@ public slots:
 	void onResetControlTextLanguage();
 
 private slots:
-	void onUpdateItemInfoRowContents(__int64 row, const QVariant& data);
+	void onUpdateItemInfoRowContents(qint64 row, const QVariant& data);
 
-	void onUpdateEquipInfoRowContents(__int64 row, const QVariant& data);
+	void onUpdateEquipInfoRowContents(qint64 row, const QVariant& data);
 
 	void on_tableWidget_item_cellDoubleClicked(int row, int column);
 
@@ -50,7 +50,7 @@ protected:
 	}
 
 private:
-	void updateItemInfoRowContents(TableWidget* tableWidget, __int64 row, const QVariant& data);
+	void updateItemInfoRowContents(TableWidget* tableWidget, qint64 row, const QVariant& data);
 
 private:
 	Ui::ItemInfoFormClass ui;

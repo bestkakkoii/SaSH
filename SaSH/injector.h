@@ -16,32 +16,61 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 */
 
-import Scoped;
-import Logger;
 #pragma once
 #include <QObject>
 #include "net/tcpserver.h"
 #include <indexer.h>
+#include <model/scopedhandle.h>
+#include <util.h>
 #include "net/autil.h"
+#include "model/logger.h"
 
 class StringListModel;
-class Injector : public Indexer
+class Injector : public QObject, public Indexer
 {
 private:
-	explicit Injector(__int64 index);
+	static util::SafeHash<qint64, Injector*> instances;
+
+	explicit Injector(qint64 index);
 
 public:
 	virtual ~Injector();
 
-	static Injector& getInstance(__int64 index);
+	static Injector& getInstance(qint64 index)
+	{
+		if (!instances.contains(index))
+		{
+			Injector* instance = new Injector(index);
+			Q_ASSERT(instance != nullptr);
 
-	static bool get(__int64 index, Injector** ppinstance);
+			if (instance != nullptr)
+				instances.insert(index, instance);
+
+		}
+		return *instances.value(index);
+	}
+
+	static bool get(qint64 index, Injector** ppinstance)
+	{
+		if (!instances.contains(index))
+			return false;
+
+		if (ppinstance != nullptr)
+			*ppinstance = instances.value(index);
+		return true;
+	}
 
 public:
 	static void reset();
-	static void reset(__int64 index);
+	static void reset(qint64 index);
 
-	virtual void setIndex(__int64 index) override;
+	virtual inline void setIndex(qint64 index) override
+	{
+		if (!server.isNull())
+			server->setIndex(index);
+
+		Indexer::setIndex(index);
+	}
 
 public:
 	enum CreateProcessResult
@@ -55,72 +84,72 @@ public:
 
 	typedef struct process_information_s
 	{
-		__int64 dwProcessId = NULL;
-		__int64 dwThreadId = NULL;
+		qint64 dwProcessId = NULL;
+		qint64 dwThreadId = NULL;
 		HWND hWnd = nullptr;
 	} process_information_t, * pprocess_information_t, * lpprocess_information_t;
 
-	void close() const;
+	inline void close() const { if (processHandle_) MINT::NtTerminateProcess(processHandle_, 0); }
 
-	[[nodiscard]] HANDLE getProcess() const;
+	Q_REQUIRED_RESULT inline HANDLE getProcess() const { return processHandle_; }
 
-	[[nodiscard]] bool isValid() const;
+	Q_REQUIRED_RESULT inline HWND getProcessWindow() const { return pi_.hWnd; }
 
-	[[nodiscard]] inline HWND getProcessWindow() const { return pi_.hWnd; }
+	Q_REQUIRED_RESULT inline qint64 getProcessId() const { return pi_.dwProcessId; }
 
-	[[nodiscard]] inline __int64 getProcessId() const { return pi_.dwProcessId; }
+	Q_REQUIRED_RESULT inline qint64 getProcessModule() const { return hGameModule_; }
 
-	[[nodiscard]] inline __int64 getProcessModule() const { return hGameModule_; }
+	Q_REQUIRED_RESULT inline bool isValid() const { return hGameModule_ != NULL && pi_.dwProcessId != NULL && pi_.hWnd != nullptr && processHandle_.isValid(); }
 
 	CreateProcessResult createProcess(process_information_t& pi);
 
-	bool injectLibrary(process_information_t& pi, unsigned short port, LPREMOVE_THREAD_REASON pReason);
+	bool injectLibrary(process_information_t& pi, unsigned short port, util::LPREMOVE_THREAD_REASON pReason);
 
-	[[nodiscard]] bool isWindowAlive() const;
+	Q_REQUIRED_RESULT bool isWindowAlive() const;
 
-	__int64 sendMessage(__int64 msg, __int64 wParam, __int64 lParam) const;
+	qint64 sendMessage(qint64 msg, qint64 wParam, qint64 lParam) const;
 
-	bool postMessage(__int64 msg, __int64 wParam, __int64 lParam) const;
+	bool postMessage(qint64 msg, qint64 wParam, qint64 lParam) const;
 
-	inline void setValueHash(UserSetting setting, __int64 value) { userSetting_value_hash_.insert(setting, value); }
+	inline void setValueHash(util::UserSetting setting, qint64 value) { userSetting_value_hash_.insert(setting, value); }
 
-	inline void setEnableHash(UserSetting setting, bool enable) { userSetting_enable_hash_.insert(setting, enable); }
+	inline void setEnableHash(util::UserSetting setting, bool enable) { userSetting_enable_hash_.insert(setting, enable); }
 
-	inline void setStringHash(UserSetting setting, const QString& string) { userSetting_string_hash_.insert(setting, string); }
+	inline void setStringHash(util::UserSetting setting, const QString& string) { userSetting_string_hash_.insert(setting, string); }
 
-	[[nodiscard]] inline __int64 getValueHash(UserSetting setting) const { return userSetting_value_hash_.value(setting); }
+	Q_REQUIRED_RESULT inline qint64 getValueHash(util::UserSetting setting) const { return userSetting_value_hash_.value(setting); }
 
-	[[nodiscard]] inline bool getEnableHash(UserSetting setting) const { return userSetting_enable_hash_.value(setting); }
+	Q_REQUIRED_RESULT inline bool getEnableHash(util::UserSetting setting) const { return userSetting_enable_hash_.value(setting); }
 
-	[[nodiscard]] inline QString getStringHash(UserSetting setting) const { return userSetting_string_hash_.value(setting); }
+	Q_REQUIRED_RESULT inline QString getStringHash(util::UserSetting setting) const { return userSetting_string_hash_.value(setting); }
 
-	[[nodiscard]] inline QHash<UserSetting, __int64> getValuesHash() const { return userSetting_value_hash_.toHash(); }
+	Q_REQUIRED_RESULT inline QHash<util::UserSetting, qint64> getValuesHash() const { return userSetting_value_hash_.toHash(); }
 
-	[[nodiscard]] inline QHash<UserSetting, bool> getEnablesHash() const { return userSetting_enable_hash_.toHash(); }
+	Q_REQUIRED_RESULT inline QHash<util::UserSetting, bool> getEnablesHash() const { return userSetting_enable_hash_.toHash(); }
 
-	[[nodiscard]] inline QHash<UserSetting, QString> getStringsHash() const { return userSetting_string_hash_.toHash(); }
+	Q_REQUIRED_RESULT inline QHash<util::UserSetting, QString> getStringsHash() const { return userSetting_string_hash_.toHash(); }
 
-	inline void setValuesHash(const QHash<UserSetting, __int64>& hash) { userSetting_value_hash_ = hash; }
+	inline void setValuesHash(const QHash<util::UserSetting, qint64>& hash) { userSetting_value_hash_ = hash; }
 
-	inline void setEnablesHash(const QHash<UserSetting, bool>& hash) { userSetting_enable_hash_ = hash; }
+	inline void setEnablesHash(const QHash<util::UserSetting, bool>& hash) { userSetting_enable_hash_ = hash; }
 
-	inline void setStringsHash(const QHash<UserSetting, QString>& hash) { userSetting_string_hash_ = hash; }
+	inline void setStringsHash(const QHash<util::UserSetting, QString>& hash) { userSetting_string_hash_ = hash; }
 
-	[[nodiscard]] inline QVariant getUserData(UserData type) const { return userData_hash_.value(type); }
+	Q_REQUIRED_RESULT inline QVariant getUserData(util::UserData type) const { return userData_hash_.value(type); }
 
-	inline void setUserData(UserData type, const QVariant& data) { userData_hash_.insert(type, QVariant::fromValue(data)); }
+	inline void setUserData(util::UserData type, const QVariant& data) { userData_hash_.insert(type, QVariant::fromValue(data)); }
 
-	void mouseMove(__int64 x, __int64 y) const;
+	void mouseMove(qint64 x, qint64 y) const;
 
-	void leftClick(__int64 x, __int64 y) const;
+	void leftClick(qint64 x, qint64 y) const;
 
-	void leftDoubleClick(__int64 x, __int64 y) const;
+	void leftDoubleClick(qint64 x, qint64 y) const;
 
-	void rightClick(__int64 x, __int64 y) const;
+	void rightClick(qint64 x, qint64 y) const;
 
-	void dragto(__int64 x1, __int64 y1, __int64 x2, __int64 y2) const;
+	void dragto(qint64 x1, qint64 y1, qint64 x2, qint64 y2) const;
 
-	void hide(__int64 mode = 0);
+	void hide(qint64 mode = 0);
 
 	void show();
 
@@ -128,7 +157,7 @@ public:
 
 	inline void setParentWidget(HWND parentWidget) { parentWidget_ = parentWidget; }
 
-	[[nodiscard]] inline HWND getParentWidget() const { return parentWidget_; }
+	Q_REQUIRED_RESULT inline HWND getParentWidget() const { return parentWidget_; }
 
 private:
 	static BOOL CALLBACK EnumWindowsCallback(HWND handle, LPARAM lParam)
@@ -140,7 +169,7 @@ private:
 			if (!handle || !lParam) break;
 
 			::GetWindowThreadProcessId(handle, &dwProcessId);
-			if (data->dwProcessId == static_cast<__int64>(dwProcessId) && IsWindowVisible(handle))
+			if (data->dwProcessId == static_cast<qint64>(dwProcessId) && IsWindowVisible(handle))
 			{
 				data->hWnd = handle;
 				return FALSE;
@@ -149,7 +178,7 @@ private:
 		return TRUE;
 	}
 
-	[[nodiscard]] bool isHandleValid(__int64 pid);
+	Q_REQUIRED_RESULT bool isHandleValid(qint64 pid);
 
 #if 0
 	DWORD WINAPI getFunAddr(const DWORD* DllBase, const char* FunName);
@@ -169,11 +198,11 @@ public:
 
 	QSharedPointer<StringListModel> chatLogModel; //聊天日誌模型
 
-	SafeData<QStringList> serverNameList;
+	util::SafeData<QStringList> serverNameList;
 
-	SafeData<QStringList> subServerNameList;
+	util::SafeData<QStringList> subServerNameList;
 
-	__int64 currentServerListIndex = 0;
+	qint64 currentServerListIndex = 0;
 
 	std::atomic_bool isScriptDebugModeEnable = false;
 
@@ -183,12 +212,12 @@ public:
 
 	Autil autil;
 
-	std::unique_ptr<Logger> log = nullptr;
+	Logger log;
 
-	SafeHash<QString, SafeHash<__int64, break_marker_t>> break_markers;//interpreter.cpp//用於標記自訂義中斷點(紅點)
-	SafeHash<QString, SafeHash<__int64, break_marker_t>> forward_markers;//interpreter.cpp//用於標示當前執行中斷處(黃箭頭)
-	SafeHash<QString, SafeHash<__int64, break_marker_t>> error_markers;//interpreter.cpp//用於標示錯誤發生行(紅線)
-	SafeHash<QString, SafeHash<__int64, break_marker_t>> step_markers;//interpreter.cpp//隱式標記中斷點用於單步執行(無)
+	util::SafeHash<QString, util::SafeHash<qint64, break_marker_t>> break_markers;//interpreter.cpp//用於標記自訂義中斷點(紅點)
+	util::SafeHash<QString, util::SafeHash<qint64, break_marker_t>> forward_markers;//interpreter.cpp//用於標示當前執行中斷處(黃箭頭)
+	util::SafeHash<QString, util::SafeHash<qint64, break_marker_t>> error_markers;//interpreter.cpp//用於標示錯誤發生行(紅線)
+	util::SafeHash<QString, util::SafeHash<qint64, break_marker_t>> step_markers;//interpreter.cpp//隱式標記中斷點用於單步執行(無)
 
 	bool IS_INJECT_OK = false;//是否注入成功
 private:
@@ -199,264 +228,264 @@ private:
 	HWND parentWidget_ = nullptr;//主窗口句柄
 
 
-	__int64 nowChatRowCount_ = 0;
+	qint64 nowChatRowCount_ = 0;
 
-	SafeHash<UserData, QVariant> userData_hash_ = {
-		{ kUserItemNames, QStringList() },
+	util::SafeHash<util::UserData, QVariant> userData_hash_ = {
+		{ util::kUserItemNames, QStringList() },
 
 	};
 
-	SafeHash<UserSetting, __int64> userSetting_value_hash_ = {
-		{ kSettingNotUsed, kSettingNotUsed },
-		{ kSettingMinValue, kSettingMinValue },
+	util::SafeHash<util::UserSetting, qint64> userSetting_value_hash_ = {
+		{ util::kSettingNotUsed, util::kSettingNotUsed },
+		{ util::kSettingMinValue, util::kSettingMinValue },
 
-		{ kServerValue, 0 },
-		{ kSubServerValue, 0 },
-		{ kPositionValue, 0 },
-		{ kLockTimeValue, 0 },
-		{ kSpeedBoostValue, 10 },
+		{ util::kServerValue, 0 },
+		{ util::kSubServerValue, 0 },
+		{ util::kPositionValue, 0 },
+		{ util::kLockTimeValue, 0 },
+		{ util::kSpeedBoostValue, 10 },
 
 		//afk->battle button
-		{ kBattleCharRoundActionTargetValue, kSelectEnemyAny },
-		{ kBattleCharCrossActionTargetValue, kSelectEnemyAny },
-		{ kBattleCharNormalActionTargetValue, kSelectEnemyAny },
-		{ kBattlePetNormalActionTargetValue, kSelectEnemyAny },
+		{ util::kBattleCharRoundActionTargetValue, util::kSelectEnemyAny },
+		{ util::kBattleCharCrossActionTargetValue, util::kSelectEnemyAny },
+		{ util::kBattleCharNormalActionTargetValue, util::kSelectEnemyAny },
+		{ util::kBattlePetNormalActionTargetValue, util::kSelectEnemyAny },
 
-		{ kBattlePetRoundActionTargetValue, kSelectEnemyAny },
-		{ kBattlePetCrossActionTargetValue, kSelectEnemyAny },
+		{ util::kBattlePetRoundActionTargetValue, util::kSelectEnemyAny },
+		{ util::kBattlePetCrossActionTargetValue, util::kSelectEnemyAny },
 
 		//afk->battle combobox
-		{ kBattleCharRoundActionRoundValue, 0 },
-		{ kBattleCharRoundActionTypeValue, 0 },
-		{ kBattleCharRoundActionEnemyValue, 0 },
-		{ kBattleCharRoundActionLevelValue, 0 },
+		{ util::kBattleCharRoundActionRoundValue, 0 },
+		{ util::kBattleCharRoundActionTypeValue, 0 },
+		{ util::kBattleCharRoundActionEnemyValue, 0 },
+		{ util::kBattleCharRoundActionLevelValue, 0 },
 
-		{ kBattleCharCrossActionTypeValue, 0 },
-		{ kBattleCharCrossActionRoundValue, 0 },
+		{ util::kBattleCharCrossActionTypeValue, 0 },
+		{ util::kBattleCharCrossActionRoundValue, 0 },
 
-		{ kBattleCharNormalActionTypeValue, 0 },
-		{ kBattleCharNormalActionEnemyValue, 0 },
-		{ kBattleCharNormalActionLevelValue, 0 },
+		{ util::kBattleCharNormalActionTypeValue, 0 },
+		{ util::kBattleCharNormalActionEnemyValue, 0 },
+		{ util::kBattleCharNormalActionLevelValue, 0 },
 
-		{ kBattlePetRoundActionRoundValue, 0 },
-		{ kBattlePetRoundActionTypeValue, 0 },
-		{ kBattlePetRoundActionEnemyValue, 0 },
-		{ kBattlePetRoundActionLevelValue, 0 },
+		{ util::kBattlePetRoundActionRoundValue, 0 },
+		{ util::kBattlePetRoundActionTypeValue, 0 },
+		{ util::kBattlePetRoundActionEnemyValue, 0 },
+		{ util::kBattlePetRoundActionLevelValue, 0 },
 
-		{ kBattlePetCrossActionTypeValue, 0 },
-		{ kBattlePetCrossActionRoundValue, 0 },
+		{ util::kBattlePetCrossActionTypeValue, 0 },
+		{ util::kBattlePetCrossActionRoundValue, 0 },
 
-		{ kBattlePetNormalActionTypeValue, 0 },
-		{ kBattlePetNormalActionEnemyValue, 0 },
-		{ kBattlePetNormalActionLevelValue, 0 },
+		{ util::kBattlePetNormalActionTypeValue, 0 },
+		{ util::kBattlePetNormalActionEnemyValue, 0 },
+		{ util::kBattlePetNormalActionLevelValue, 0 },
 
 		//afk->heal button
-		{ kBattleMagicHealTargetValue, kSelectSelf | kSelectPet },
-		{ kBattleItemHealTargetValue, kSelectSelf | kSelectPet },
-		{ kBattleMagicReviveTargetValue, kSelectSelf | kSelectPet },
-		{ kBattleItemReviveTargetValue, kSelectSelf | kSelectPet },
+		{ util::kBattleMagicHealTargetValue, util::kSelectSelf | util::kSelectPet },
+		{ util::kBattleItemHealTargetValue, util::kSelectSelf | util::kSelectPet },
+		{ util::kBattleMagicReviveTargetValue, util::kSelectSelf | util::kSelectPet },
+		{ util::kBattleItemReviveTargetValue, util::kSelectSelf | util::kSelectPet },
 
-		{ kBattlePetHealTargetValue, kSelectSelf | kSelectPet },
-		{ kBattlePetPurgTargetValue, kSelectSelf | kSelectPet },
-		{ kBattleCharPurgTargetValue, kSelectSelf | kSelectPet },
+		{ util::kBattlePetHealTargetValue, util::kSelectSelf | util::kSelectPet },
+		{ util::kBattlePetPurgTargetValue, util::kSelectSelf | util::kSelectPet },
+		{ util::kBattleCharPurgTargetValue, util::kSelectSelf | util::kSelectPet },
 
 		//afk->heal combobox
-		{ kBattleMagicHealMagicValue, 0 },
-		{ kBattleMagicReviveMagicValue, 0 },
+		{ util::kBattleMagicHealMagicValue, 0 },
+		{ util::kBattleMagicReviveMagicValue, 0 },
 
-		{ kNormalMagicHealMagicValue, 0 },
+		{ util::kNormalMagicHealMagicValue, 0 },
 
-		{ kBattlePetHealActionTypeValue, 0 },
-		{ kBattlePetPurgActionTypeValue, 0 },
-		{ kBattleCharPurgActionTypeValue, 0 },
-		{ kBattlePetHealTargetValue, 0 },
-		{ kBattlePetPurgTargetValue, 0 },
-		{ kBattleCharPurgTargetValue, 0 },
-		{ kBattlePetHealCharValue, 0 },
-		{ kBattlePetHealPetValue, 0 },
-		{ kBattlePetHealAllieValue, 0 },
+		{ util::kBattlePetHealActionTypeValue, 0 },
+		{ util::kBattlePetPurgActionTypeValue, 0 },
+		{ util::kBattleCharPurgActionTypeValue, 0 },
+		{ util::kBattlePetHealTargetValue, 0 },
+		{ util::kBattlePetPurgTargetValue, 0 },
+		{ util::kBattleCharPurgTargetValue, 0 },
+		{ util::kBattlePetHealCharValue, 0 },
+		{ util::kBattlePetHealPetValue, 0 },
+		{ util::kBattlePetHealAllieValue, 0 },
 
 		//afk->heal spinbox
-		{ kBattleMagicHealCharValue, 50 },
-		{ kBattleMagicHealPetValue, 50 },
-		{ kBattleMagicHealAllieValue, 50 },
-		{ kBattleItemHealCharValue, 50 },
-		{ kBattleItemHealPetValue, 50 },
-		{ kBattleItemHealAllieValue, 50 },
-		{ kBattleItemHealMpValue, 50 },
-		{ kBattleSkillMpValue, 30 },
+		{ util::kBattleMagicHealCharValue, 50 },
+		{ util::kBattleMagicHealPetValue, 50 },
+		{ util::kBattleMagicHealAllieValue, 50 },
+		{ util::kBattleItemHealCharValue, 50 },
+		{ util::kBattleItemHealPetValue, 50 },
+		{ util::kBattleItemHealAllieValue, 50 },
+		{ util::kBattleItemHealMpValue, 50 },
+		{ util::kBattleSkillMpValue, 30 },
 
-		{ kNormalMagicHealCharValue, 50 },
-		{ kNormalMagicHealPetValue, 50 },
-		{ kNormalMagicHealAllieValue, 50 },
-		{ kNormalItemHealCharValue, 50 },
-		{ kNormalItemHealPetValue, 50 },
-		{ kNormalItemHealAllieValue, 50 },
-		{ kNormalItemHealMpValue, 50 },
+		{ util::kNormalMagicHealCharValue, 50 },
+		{ util::kNormalMagicHealPetValue, 50 },
+		{ util::kNormalMagicHealAllieValue, 50 },
+		{ util::kNormalItemHealCharValue, 50 },
+		{ util::kNormalItemHealPetValue, 50 },
+		{ util::kNormalItemHealAllieValue, 50 },
+		{ util::kNormalItemHealMpValue, 50 },
 
 		//afk->walk
-		{ kAutoWalkDelayValue, 10 },
-		{ kAutoWalkDistanceValue, 2 },
-		{ kAutoWalkDirectionValue, 0 },
+		{ util::kAutoWalkDelayValue, 10 },
+		{ util::kAutoWalkDistanceValue, 2 },
+		{ util::kAutoWalkDirectionValue, 0 },
 
 		//afk->catch
-		{ kBattleCatchModeValue, 0 },
-		{ kBattleCatchTargetLevelValue, 1 },
-		{ kBattleCatchTargetMaxHpValue, 10 },
-		{ kBattleCatchTargetMagicHpValue, 10 },
-		{ kBattleCatchTargetItemHpValue, 10 },
-		{ kBattleCatchCharMagicValue, 0 },
-		{ kBattleCatchPetSkillValue, 0 },
+		{ util::kBattleCatchModeValue, 0 },
+		{ util::kBattleCatchTargetLevelValue, 1 },
+		{ util::kBattleCatchTargetMaxHpValue, 10 },
+		{ util::kBattleCatchTargetMagicHpValue, 10 },
+		{ util::kBattleCatchTargetItemHpValue, 10 },
+		{ util::kBattleCatchCharMagicValue, 0 },
+		{ util::kBattleCatchPetSkillValue, 0 },
 
-		{ kBattleActionDelayValue, 0 },
-		{ kBattleResendDelayValue, 3000},
+		{ util::kBattleActionDelayValue, 0 },
+		{ util::kBattleResendDelayValue, 3000},
 
-		{ kDropPetStrValue, 10 },
-		{ kDropPetDefValue, 10 },
-		{ kDropPetAgiValue, 10 },
-		{ kDropPetHpValue, 50 },
-		{ kDropPetAggregateValue, 10 },
+		{ util::kDropPetStrValue, 10 },
+		{ util::kDropPetDefValue, 10 },
+		{ util::kDropPetAgiValue, 10 },
+		{ util::kDropPetHpValue, 50 },
+		{ util::kDropPetAggregateValue, 10 },
 
 		//other->group
-		{ kAutoFunTypeValue, 0 },
+		{ util::kAutoFunTypeValue, 0 },
 
 		//lockpet
-		{ kLockPetValue, 0 },
-		{ kLockRideValue, 0 },
+		{ util::kLockPetValue, 0 },
+		{ util::kLockRideValue, 0 },
 
 
 		//script
-		{kScriptSpeedValue, 0},
+		{util::kScriptSpeedValue, 0},
 
-		{ kSettingMaxValue, kSettingMaxValue },
-		{ kSettingMinString, kSettingMinString },
-		{ kSettingMaxString, kSettingMaxString },
+		{ util::kSettingMaxValue, util::kSettingMaxValue },
+		{ util::kSettingMinString, util::kSettingMinString },
+		{ util::kSettingMaxString, util::kSettingMaxString },
 
 	};
 
-	SafeHash<UserSetting, bool> userSetting_enable_hash_ = {
-		{ kAutoLoginEnable, false },
-		{ kAutoReconnectEnable, true },
+	util::SafeHash<util::UserSetting, bool> userSetting_enable_hash_ = {
+		{ util::kAutoLoginEnable, false },
+		{ util::kAutoReconnectEnable, true },
 
-		{ kLogOutEnable, false },
-		{ kLogBackEnable, false },
-		{ kEchoEnable, false },
+		{ util::kLogOutEnable, false },
+		{ util::kLogBackEnable, false },
+		{ util::kEchoEnable, false },
 
-		{ kHideCharacterEnable, false },
-		{ kCloseEffectEnable, true },
-		{ kOptimizeEnable, true },
-		{ kHideWindowEnable, false },
-		{ kMuteEnable, false },
-		{ kAutoJoinEnable, false },
-		{ kLockTimeEnable, false },
-		{ kAutoFreeMemoryEnable, true },
-		{ kFastWalkEnable, true },
-		{ kPassWallEnable, false },
-		{ kLockMoveEnable, false },
-		{ kLockImageEnable, false },
-		{ kAutoDropMeatEnable, true },
-		{ kAutoDropEnable, false },
-		{ kAutoStackEnable, true },
-		{ kKNPCEnable, true },
-		{ kAutoAnswerEnable, false },
-		{ kAutoEatBeanEnable, false },
-		{ kAutoWalkEnable, false },
-		{ kFastAutoWalkEnable, false },
-		{ kFastBattleEnable, true },
-		{ kAutoBattleEnable, false },
-		{ kAutoCatchEnable, false },
-		{ kLockAttackEnable, false },
-		{ kAutoEscapeEnable, false },
-		{ kLockEscapeEnable, false },
-		{ kBattleTimeExtendEnable, true },
-		{ kFallDownEscapeEnable, false },
-		{ kShowExpEnable, true },
-		{ kWindowDockEnable, false },
-		{ kBattleAutoSwitchEnable, true },
-		{ kBattleAutoEOEnable, true },
+		{ util::kHideCharacterEnable, false },
+		{ util::kCloseEffectEnable, true },
+		{ util::kOptimizeEnable, true },
+		{ util::kHideWindowEnable, false },
+		{ util::kMuteEnable, false },
+		{ util::kAutoJoinEnable, false },
+		{ util::kLockTimeEnable, false },
+		{ util::kAutoFreeMemoryEnable, true },
+		{ util::kFastWalkEnable, true },
+		{ util::kPassWallEnable, false },
+		{ util::kLockMoveEnable, false },
+		{ util::kLockImageEnable, false },
+		{ util::kAutoDropMeatEnable, true },
+		{ util::kAutoDropEnable, false },
+		{ util::kAutoStackEnable, true },
+		{ util::kKNPCEnable, true },
+		{ util::kAutoAnswerEnable, false },
+		{ util::kAutoEatBeanEnable, false },
+		{ util::kAutoWalkEnable, false },
+		{ util::kFastAutoWalkEnable, false },
+		{ util::kFastBattleEnable, true },
+		{ util::kAutoBattleEnable, false },
+		{ util::kAutoCatchEnable, false },
+		{ util::kLockAttackEnable, false },
+		{ util::kAutoEscapeEnable, false },
+		{ util::kLockEscapeEnable, false },
+		{ util::kBattleTimeExtendEnable, true },
+		{ util::kFallDownEscapeEnable, false },
+		{ util::kShowExpEnable, true },
+		{ util::kWindowDockEnable, false },
+		{ util::kBattleAutoSwitchEnable, true },
+		{ util::kBattleAutoEOEnable, true },
 
 		//switcher
-		{ kSwitcherTeamEnable, false },
-		{ kSwitcherPKEnable, false },
-		{ kSwitcherCardEnable, false },
-		{ kSwitcherTradeEnable, false },
-		{ kSwitcherGroupEnable, false },
-		{ kSwitcherFamilyEnable, false },
-		{ kSwitcherJobEnable, false },
-		{ kSwitcherWorldEnable, false },
+		{ util::kSwitcherTeamEnable, false },
+		{ util::kSwitcherPKEnable, false },
+		{ util::kSwitcherCardEnable, false },
+		{ util::kSwitcherTradeEnable, false },
+		{ util::kSwitcherGroupEnable, false },
+		{ util::kSwitcherFamilyEnable, false },
+		{ util::kSwitcherJobEnable, false },
+		{ util::kSwitcherWorldEnable, false },
 
 		//afk->battle
-		{ kBattleCrossActionCharEnable, false },
-		{ kBattleCrossActionPetEnable, false },
+		{ util::kBattleCrossActionCharEnable, false },
+		{ util::kBattleCrossActionPetEnable, false },
 
 		//afk->heal
-		{ kBattleMagicHealEnable, false },
-		{ kBattleItemHealEnable, false },
-		{ kBattleItemHealMeatPriorityEnable, false },
-		{ kBattleItemHealMpEnable, false },
-		{ kBattleMagicReviveEnable, false },
-		{ kBattleItemReviveEnable, false },
-		{ kBattleSkillMpEnable, false },
+		{ util::kBattleMagicHealEnable, false },
+		{ util::kBattleItemHealEnable, false },
+		{ util::kBattleItemHealMeatPriorityEnable, false },
+		{ util::kBattleItemHealMpEnable, false },
+		{ util::kBattleMagicReviveEnable, false },
+		{ util::kBattleItemReviveEnable, false },
+		{ util::kBattleSkillMpEnable, false },
 
-		{ kNormalMagicHealEnable, false },
-		{ kNormalItemHealEnable, false },
-		{ kNormalItemHealMeatPriorityEnable, false },
-		{ kNormalItemHealMpEnable, false },
+		{ util::kNormalMagicHealEnable, false },
+		{ util::kNormalItemHealEnable, false },
+		{ util::kNormalItemHealMeatPriorityEnable, false },
+		{ util::kNormalItemHealMpEnable, false },
 
 		//afk->catch
-		{ kBattleCatchTargetLevelEnable, false },
-		{ kBattleCatchTargetMaxHpEnable, false },
-		{ kBattleCatchCharMagicEnable, false },
-		{ kBattleCatchCharItemEnable, false },
-		{ kBattleCatchPetSkillEnable, false },
+		{ util::kBattleCatchTargetLevelEnable, false },
+		{ util::kBattleCatchTargetMaxHpEnable, false },
+		{ util::kBattleCatchCharMagicEnable, false },
+		{ util::kBattleCatchCharItemEnable, false },
+		{ util::kBattleCatchPetSkillEnable, false },
 
-		{ kDropPetEnable, false },
-		{ kDropPetStrEnable, false },
-		{ kDropPetDefEnable, false },
-		{ kDropPetAgiEnable, false },
-		{ kDropPetHpEnable, false },
-		{ kDropPetAggregateEnable, false },
+		{ util::kDropPetEnable, false },
+		{ util::kDropPetStrEnable, false },
+		{ util::kDropPetDefEnable, false },
+		{ util::kDropPetAgiEnable, false },
+		{ util::kDropPetHpEnable, false },
+		{ util::kDropPetAggregateEnable, false },
 
 		//lockpet
-		{ kLockPetEnable, false },
-		{ kLockRideEnable, false },
-		{ kLockPetScheduleEnable, false },
-		{ kBattleNoEscapeWhileLockPetEnable, false },
+		{ util::kLockPetEnable, false },
+		{ util::kLockRideEnable, false },
+		{ util::kLockPetScheduleEnable, false },
+		{ util::kBattleNoEscapeWhileLockPetEnable, false },
 
 
 
-		{ kScriptDebugModeEnable, false },
+		{ util::kScriptDebugModeEnable, false },
 
 	};
 
-	SafeHash<UserSetting, QString> userSetting_string_hash_ = {
-		{ kAutoDropItemString, "" },
-		{ kLockAttackString, "" },
-		{ kLockEscapeString, "" },
+	util::SafeHash<util::UserSetting, QString> userSetting_string_hash_ = {
+		{ util::kAutoDropItemString, "" },
+		{ util::kLockAttackString, "" },
+		{ util::kLockEscapeString, "" },
 
-		{ kBattleItemHealItemString, "" },
-		{ kBattleItemHealMpItemString, "" },
-		{ kBattleItemReviveItemString, "" },
-		{ kNormalItemHealItemString, "" },
-		{ kNormalItemHealMpItemString, "" },
+		{ util::kBattleItemHealItemString, "" },
+		{ util::kBattleItemHealMpItemString, "" },
+		{ util::kBattleItemReviveItemString, "" },
+		{ util::kNormalItemHealItemString, "" },
+		{ util::kNormalItemHealMpItemString, "" },
 
 		//afk->catch
-		{ kBattleCatchPetNameString, "" },
-		{ kBattleCatchCharItemString, "" },
-		{ kDropPetNameString, "" },
+		{ util::kBattleCatchPetNameString, "" },
+		{ util::kBattleCatchCharItemString, "" },
+		{ util::kDropPetNameString, "" },
 
-		{ kAutoFunNameString, "" },
+		{ util::kAutoFunNameString, "" },
 
 		//other->lockpet
-		{ kLockPetScheduleString, "" },
+		{ util::kLockPetScheduleString, "" },
 
-		{ kGameAccountString, "" },
-		{ kGamePasswordString, "" },
-		{ kGameSecurityCodeString, "" },
+		{ util::kGameAccountString, "" },
+		{ util::kGamePasswordString, "" },
+		{ util::kGameSecurityCodeString, "" },
 
-		{ kMailWhiteListString , "" },
+		{ util::kMailWhiteListString , "" },
 
-		{ kEOCommandString, "/EO" },
+		{ util::kEOCommandString, "/EO" },
 
 	};
 };
