@@ -1588,7 +1588,9 @@ void MainForm::onMenuActionTriggered()
 				detail);
 		}
 
-		if (ret >= 0)
+		qDebug() << "ret:" << ret;
+
+		if (ret > 0)
 			return;
 
 		Downloader* downloader = q_check_ptr(new Downloader());

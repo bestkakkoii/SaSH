@@ -457,15 +457,15 @@ bool Downloader::checkUpdate(QString* current, QString* ptext, QString* pformate
 	if (current)
 		*current = exeModified.toString("yyyy-MM-dd hh:mm:ss");
 
+	qint64 timeDiffInSeconds = exeModified.secsTo(zipModified);
+	QString szTimeDiff = util::formatSeconds(std::abs(timeDiffInSeconds));
+	if (pformated != nullptr)
+	{
+		*pformated = szTimeDiff;
+	}
+
 	if (!bret)
 	{
-		qint64 timeDiffInSeconds = exeModified.secsTo(zipModified);
-		QString szTimeDiff = util::formatSeconds(std::abs(timeDiffInSeconds));
-		if (pformated != nullptr)
-		{
-			*pformated = szTimeDiff;
-		}
-
 		if (timeDiffInSeconds > UPDATE_TIME_MIN)
 		{
 			if (zipModified > exeModified)
@@ -643,7 +643,7 @@ void Downloader::onDownloadFinished()
 
 	if (progressDialog_ != nullptr)
 	{
-		progressDialog_->reset();
+		progressDialog_->onProgressReset(100);
 		connect(this, &Downloader::progressReset, progressDialog_, &ProgressDialog::onProgressReset, Qt::QueuedConnection);
 		connect(this, &Downloader::labelTextChanged, progressDialog_, &ProgressDialog::setLabelText, Qt::QueuedConnection);
 	}
