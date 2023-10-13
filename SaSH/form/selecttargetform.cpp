@@ -42,7 +42,7 @@ SelectTargetForm::SelectTargetForm(qint64 index, qint64 type, QString* dst, QWid
 	for (auto& checkBox : checkBoxList)
 	{
 		if (checkBox)
-			connect(checkBox, &QCheckBox::stateChanged, this, &SelectTargetForm::onCheckBoxStateChanged, Qt::UniqueConnection);
+			connect(checkBox, &QCheckBox::stateChanged, this, &SelectTargetForm::onCheckBoxStateChanged, Qt::QueuedConnection);
 	}
 
 	Injector& injector = Injector::getInstance(index);
@@ -50,7 +50,7 @@ SelectTargetForm::SelectTargetForm(qint64 index, qint64 type, QString* dst, QWid
 	checkControls();
 
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(index);
-	connect(&signalDispatcher, &SignalDispatcher::updateTeamInfo, this, &SelectTargetForm::onUpdateTeamInfo, Qt::UniqueConnection);
+	connect(&signalDispatcher, &SignalDispatcher::updateTeamInfo, this, &SelectTargetForm::onUpdateTeamInfo, Qt::QueuedConnection);
 
 	util::FormSettingManager formSettingManager(this);
 	formSettingManager.loadSettings();

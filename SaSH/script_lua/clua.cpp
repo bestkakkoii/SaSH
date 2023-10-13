@@ -590,8 +590,8 @@ CLua::CLua(qint64 index, QObject* parent)
 	: ThreadPlugin(index, parent)
 {
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(index);
-	connect(&signalDispatcher, &SignalDispatcher::nodifyAllStop, this, &CLua::requestInterruption, Qt::UniqueConnection);
-	connect(&signalDispatcher, &SignalDispatcher::nodifyAllScriptStop, this, &CLua::requestInterruption, Qt::UniqueConnection);
+	connect(&signalDispatcher, &SignalDispatcher::nodifyAllStop, this, &CLua::requestInterruption, Qt::QueuedConnection);
+	connect(&signalDispatcher, &SignalDispatcher::nodifyAllScriptStop, this, &CLua::requestInterruption, Qt::QueuedConnection);
 	qDebug() << "CLua 1";
 }
 
@@ -600,8 +600,8 @@ CLua::CLua(qint64 index, const QString& content, QObject* parent)
 	, scriptContent_(content)
 {
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(index);
-	connect(&signalDispatcher, &SignalDispatcher::nodifyAllStop, this, &CLua::requestInterruption, Qt::UniqueConnection);
-	connect(&signalDispatcher, &SignalDispatcher::nodifyAllScriptStop, this, &CLua::requestInterruption, Qt::UniqueConnection);
+	connect(&signalDispatcher, &SignalDispatcher::nodifyAllStop, this, &CLua::requestInterruption, Qt::QueuedConnection);
+	connect(&signalDispatcher, &SignalDispatcher::nodifyAllScriptStop, this, &CLua::requestInterruption, Qt::QueuedConnection);
 	qDebug() << "CLua 2";
 }
 

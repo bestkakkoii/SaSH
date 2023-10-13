@@ -33,8 +33,8 @@ Interpreter::Interpreter(qint64 index)
 	futureSync_.setCancelOnWait(true);
 
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(index);
-	connect(&signalDispatcher, &SignalDispatcher::nodifyAllStop, this, &Interpreter::requestInterruption, Qt::UniqueConnection);
-	connect(&signalDispatcher, &SignalDispatcher::nodifyAllScriptStop, this, &Interpreter::requestInterruption, Qt::UniqueConnection);
+	connect(&signalDispatcher, &SignalDispatcher::nodifyAllStop, this, &Interpreter::requestInterruption, Qt::QueuedConnection);
+	connect(&signalDispatcher, &SignalDispatcher::nodifyAllScriptStop, this, &Interpreter::requestInterruption, Qt::QueuedConnection);
 }
 
 Interpreter::~Interpreter()
@@ -66,14 +66,14 @@ void Interpreter::doFileWithThread(qint64 beginLine, const QString& fileName)
 	moveToThread(thread_);
 	qint64 currentIndex = getIndex();
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
-	connect(this, &Interpreter::finished, thread_, &QThread::quit, Qt::UniqueConnection);
-	connect(thread_, &QThread::finished, thread_, &QThread::deleteLater, Qt::UniqueConnection);
-	connect(thread_, &QThread::started, this, &Interpreter::proc, Qt::UniqueConnection);
+	connect(this, &Interpreter::finished, thread_, &QThread::quit, Qt::QueuedConnection);
+	connect(thread_, &QThread::finished, thread_, &QThread::deleteLater, Qt::QueuedConnection);
+	connect(thread_, &QThread::started, this, &Interpreter::proc, Qt::QueuedConnection);
 	connect(this, &Interpreter::finished, this, [this]()
 		{
 			thread_ = nullptr;
 			qDebug() << "Interpreter::finished";
-		}, Qt::UniqueConnection);
+		}, Qt::QueuedConnection);
 
 	thread_->start();
 }
@@ -143,33 +143,33 @@ void Interpreter::doString(const QString& content, Interpreter* pinterpretter, V
 	if (pinterpretter != nullptr)
 	{
 		pCallback = [pinterpretter, this](qint64 currentIndex, qint64 currentLine, const TokenMap& TK)->qint64
-		{
-			if (pinterpretter->isInterruptionRequested())
-				return 0;
-
-			if (isInterruptionRequested())
-				return 0;
-
-			RESERVE currentType = TK.value(0).type;
-
-			bool skip = currentType == RESERVE::TK_WHITESPACE
-				|| currentType == RESERVE::TK_COMMENT
-				|| currentType == RESERVE::TK_UNK;
-
-			if (skip)
-				return 1;
-
-			if (TK.contains(0) && TK.value(0).type == TK_PAUSE)
 			{
-				pinterpretter->paused();
-				SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
-				emit signalDispatcher.scriptPaused();
-			}
+				if (pinterpretter->isInterruptionRequested())
+					return 0;
 
-			pinterpretter->checkPause();
+				if (isInterruptionRequested())
+					return 0;
 
-			return 1;
-		};
+				RESERVE currentType = TK.value(0).type;
+
+				bool skip = currentType == RESERVE::TK_WHITESPACE
+					|| currentType == RESERVE::TK_COMMENT
+					|| currentType == RESERVE::TK_UNK;
+
+				if (skip)
+					return 1;
+
+				if (TK.contains(0) && TK.value(0).type == TK_PAUSE)
+				{
+					pinterpretter->paused();
+					SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
+					emit signalDispatcher.scriptPaused();
+				}
+
+				pinterpretter->checkPause();
+
+				return 1;
+			};
 
 		parser_.setCallBack(pCallback);
 	}

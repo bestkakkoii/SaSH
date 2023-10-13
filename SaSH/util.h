@@ -937,7 +937,7 @@ namespace util
 		{
 			qDebug() << "toQString: unknown type" << typeid(T).name();
 			MessageBoxA(NULL, typeid(T).name(), "toQString: unknown type", MB_OK | MB_ICONERROR);
-			Q_ASSUME(false);
+			__assume(false);
 			return QString();
 		}
 

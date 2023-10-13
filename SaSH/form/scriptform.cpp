@@ -38,7 +38,7 @@ ScriptForm::ScriptForm(qint64 index, QWidget* parent)
 	for (auto& button : buttonList)
 	{
 		if (button)
-			connect(button, &PushButton::clicked, this, &ScriptForm::onButtonClicked, Qt::UniqueConnection);
+			connect(button, &PushButton::clicked, this, &ScriptForm::onButtonClicked, Qt::QueuedConnection);
 	}
 
 	ui.tableWidget_script->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeMode::ResizeToContents);
@@ -61,7 +61,7 @@ ScriptForm::ScriptForm(qint64 index, QWidget* parent)
 	connect(&signalDispatcher, &SignalDispatcher::scriptResumed, this, &ScriptForm::onScriptResumed, Qt::QueuedConnection);
 	connect(&signalDispatcher, &SignalDispatcher::scriptBreaked, this, &ScriptForm::onScriptResumed, Qt::QueuedConnection);
 
-	connect(&signalDispatcher, &SignalDispatcher::applyHashSettingsToUI, this, &ScriptForm::onApplyHashSettingsToUI, Qt::UniqueConnection);
+	connect(&signalDispatcher, &SignalDispatcher::applyHashSettingsToUI, this, &ScriptForm::onApplyHashSettingsToUI, Qt::QueuedConnection);
 	emit signalDispatcher.reloadScriptList();
 
 	connect(ui.spinBox_speed, static_cast<void (QSpinBox::*)(int)>(&QSpinBox::valueChanged), this, &ScriptForm::onSpeedChanged);
@@ -113,7 +113,7 @@ void ScriptForm::onScriptStarted()
 	if (!injector.scriptLogModel.isNull())
 		injector.scriptLogModel->clear();
 
-	connect(interpreter_.get(), &Interpreter::finished, this, &ScriptForm::onScriptFinished, Qt::UniqueConnection);
+	connect(interpreter_.get(), &Interpreter::finished, this, &ScriptForm::onScriptFinished, Qt::QueuedConnection);
 
 	interpreter_->doFileWithThread(selectedRow_, injector.currentScriptFileName);
 

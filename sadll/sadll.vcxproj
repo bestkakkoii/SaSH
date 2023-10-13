@@ -77,7 +77,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <TargetName>sadll</TargetName>
     <IntDir>$(SolutionDir)build\dll\$(Configuration)\</IntDir>
-    <OutDir>$(SolutionDir)$(Configuration)\lib\</OutDir>
+    <OutDir>$(SolutionDir)x64\$(Configuration)\lib\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <TargetName>sadll</TargetName>
@@ -85,7 +85,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <TargetName>sadll</TargetName>
     <IntDir>$(SolutionDir)build\dll\$(Configuration)\</IntDir>
-    <OutDir>$(SolutionDir)$(Configuration)\lib\</OutDir>
+    <OutDir>$(SolutionDir)x64\$(Configuration)\lib\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <TargetName>sadll</TargetName>
@@ -152,6 +152,7 @@
       </EnableFiberSafeOptimizations>
       <WholeProgramOptimization>
       </WholeProgramOptimization>
+      <LanguageStandard_C>stdc17</LanguageStandard_C>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -238,6 +239,7 @@
       <LanguageStandard>stdcpp17</LanguageStandard>
       <WholeProgramOptimization>
       </WholeProgramOptimization>
+      <LanguageStandard_C>stdc17</LanguageStandard_C>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>

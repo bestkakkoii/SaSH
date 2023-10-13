@@ -93,79 +93,79 @@ void MainForm::createMenu(QMenuBar* pMenuBar)
 #endif
 
 	auto createAction = [this](QMenu* parent, const QString& text, const QString& name, KeyType key)
-	{
-		if (!parent)
-			return;
-
-		QString newText = text;
-		bool isCheck = false;
-		if (newText.startsWith("^"))
 		{
-			newText.remove(0, 1);
-			isCheck = true;
-		}
+			if (!parent)
+				return;
 
-		QAction* pAction = new QAction(newText, parent);
-		if (pAction == nullptr)
-			return;
-
-		if (!newText.isEmpty() && !name.isEmpty())
-		{
-			pAction->setObjectName(name);
-			pAction->setShortcut(QKeySequence(key));
-			if (isCheck)
-				pAction->setCheckable(true);
-
-			connect(pAction, &QAction::triggered, this, &MainForm::onMenuActionTriggered);
-
-			if (name == "actionHide")
+			QString newText = text;
+			bool isCheck = false;
+			if (newText.startsWith("^"))
 			{
-				hideTrayAction_ = pAction;
+				newText.remove(0, 1);
+				isCheck = true;
 			}
 
-			if (name == "actionHideBar")
+			QAction* pAction = new QAction(newText, parent);
+			if (pAction == nullptr)
+				return;
+
+			if (!newText.isEmpty() && !name.isEmpty())
 			{
-				bool bret = false;
+				pAction->setObjectName(name);
+				pAction->setShortcut(QKeySequence(key));
+				if (isCheck)
+					pAction->setCheckable(true);
+
+				connect(pAction, &QAction::triggered, this, &MainForm::onMenuActionTriggered);
+
+				if (name == "actionHide")
 				{
-					util::Config config;
-					bret = config.read<bool>("MainFormClass", "Menu", "HideBar");
+					hideTrayAction_ = pAction;
 				}
-				pAction->setChecked(bret);
-				emit pAction->triggered();
-			}
 
-			if (name == "actionHideControl")
-			{
-				bool bret = false;
+				if (name == "actionHideBar")
 				{
-					util::Config config;
-					bret = config.read<bool>("MainFormClass", "Menu", "HideControl");
+					bool bret = false;
+					{
+						util::Config config;
+						bret = config.read<bool>("MainFormClass", "Menu", "HideBar");
+					}
+					pAction->setChecked(bret);
+					emit pAction->triggered();
 				}
-				pAction->setChecked(bret);
-				emit pAction->triggered();
+
+				if (name == "actionHideControl")
+				{
+					bool bret = false;
+					{
+						util::Config config;
+						bret = config.read<bool>("MainFormClass", "Menu", "HideControl");
+					}
+					pAction->setChecked(bret);
+					emit pAction->triggered();
+				}
+
+				parent->addAction(pAction);
 			}
+			else
+				pAction->setSeparator(true);
 
 			parent->addAction(pAction);
-		}
-		else
-			pAction->setSeparator(true);
-
-		parent->addAction(pAction);
-	};
+		};
 
 	auto create = [&createAction](const QVector<std::tuple<QString, QString, KeyType>>& table, QMenu* pMenu)
-	{
-		for (const std::tuple<QString, QString, KeyType>& tuple : table)
 		{
-			if (std::get<0>(tuple).isEmpty() || std::get<1>(tuple).isEmpty())
+			for (const std::tuple<QString, QString, KeyType>& tuple : table)
 			{
-				createAction(pMenu, "", "", Qt::Key_unknown);
-				continue;
-			}
+				if (std::get<0>(tuple).isEmpty() || std::get<1>(tuple).isEmpty())
+				{
+					createAction(pMenu, "", "", Qt::Key_unknown);
+					continue;
+				}
 
-			createAction(pMenu, std::get<0>(tuple), std::get<1>(tuple), std::get<2>(tuple));
-		}
-	};
+				createAction(pMenu, std::get<0>(tuple), std::get<1>(tuple), std::get<2>(tuple));
+			}
+		};
 
 	const QVector<std::tuple<QString, QString, KeyType>> systemTable = {
 		{ QObject::tr("hide"), "actionHide", Qt::Key_F9},
@@ -1173,14 +1173,14 @@ MainForm::MainForm(qint64 index, QWidget* parent)
 	WId wid = this->winId();
 	injector.setParentWidget(reinterpret_cast<HWND>(wid));
 
-	connect(&signalDispatcher, &SignalDispatcher::saveHashSettings, this, &MainForm::onSaveHashSettings, Qt::UniqueConnection);
-	connect(&signalDispatcher, &SignalDispatcher::loadHashSettings, this, &MainForm::onLoadHashSettings, Qt::UniqueConnection);
+	connect(&signalDispatcher, &SignalDispatcher::saveHashSettings, this, &MainForm::onSaveHashSettings, Qt::QueuedConnection);
+	connect(&signalDispatcher, &SignalDispatcher::loadHashSettings, this, &MainForm::onLoadHashSettings, Qt::QueuedConnection);
 	connect(&signalDispatcher, &SignalDispatcher::messageBoxShow, this, &MainForm::onMessageBoxShow, Qt::QueuedConnection);
 	connect(&signalDispatcher, &SignalDispatcher::inputBoxShow, this, &MainForm::onInputBoxShow, Qt::QueuedConnection);
 	connect(&signalDispatcher, &SignalDispatcher::fileDialogShow, this, &MainForm::onFileDialogShow, Qt::QueuedConnection);
-	connect(&signalDispatcher, &SignalDispatcher::updateMainFormTitle, this, &MainForm::onUpdateMainFormTitle, Qt::UniqueConnection);
-	connect(&signalDispatcher, &SignalDispatcher::appendScriptLog, this, &MainForm::onAppendScriptLog, Qt::UniqueConnection);
-	connect(&signalDispatcher, &SignalDispatcher::appendChatLog, this, &MainForm::onAppendChatLog, Qt::UniqueConnection);
+	connect(&signalDispatcher, &SignalDispatcher::updateMainFormTitle, this, &MainForm::onUpdateMainFormTitle, Qt::QueuedConnection);
+	connect(&signalDispatcher, &SignalDispatcher::appendScriptLog, this, &MainForm::onAppendScriptLog, Qt::QueuedConnection);
+	connect(&signalDispatcher, &SignalDispatcher::appendChatLog, this, &MainForm::onAppendChatLog, Qt::QueuedConnection);
 
 	QMenuBar* pMenuBar = new QMenuBar(this);
 	if (pMenuBar != nullptr)
@@ -1588,14 +1588,13 @@ void MainForm::onMenuActionTriggered()
 				detail);
 		}
 
-		if (QMessageBox::No == ret)
+		if (ret >= 0)
 			return;
 
 		Downloader* downloader = q_check_ptr(new Downloader());
 		if (downloader != nullptr)
 		{
-			hide();
-			downloader->show();
+			downloader->start(Downloader::Source::SaSHServer);
 		}
 		return;
 	}
@@ -1979,16 +1978,7 @@ void MainForm::onMessageBoxShow(const QString& text, qint64 type, QString title,
 	msgBox->setModal(false);
 	msgBox->setAttribute(Qt::WA_QuitOnClose);
 	msgBox->setWindowFlags(Qt::Dialog | Qt::WindowCloseButtonHint);
-
-	//msgBox->setCheckBox(QCheckBox * cb)
-	//msgBox->setDefaultButton(QPushButton * button)
-	msgBox->setDefaultButton(QMessageBox::StandardButton::Yes);
-
-	//msgBox->setEscapeButton(QAbstractButton * button)
-	msgBox->setEscapeButton(QMessageBox::StandardButton::No);
 	msgBox->setIcon(icon);
-	//msgBox->setIconPixmap(const QPixmap & pixmap)
-	msgBox->setStandardButtons(QMessageBox::StandardButton::Yes | QMessageBox::StandardButton::No);
 	msgBox->setTextFormat(Qt::TextFormat::RichText);
 	msgBox->setTextInteractionFlags(Qt::TextSelectableByMouse | Qt::TextSelectableByKeyboard | Qt::LinksAccessibleByMouse | Qt::LinksAccessibleByKeyboard);
 	msgBox->setWindowModality(Qt::ApplicationModal);
@@ -2006,13 +1996,14 @@ void MainForm::onMessageBoxShow(const QString& text, qint64 type, QString title,
 	}
 
 #if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+	msgBox->setDefaultButton(QMessageBox::StandardButton::Yes);
+	msgBox->setEscapeButton(QMessageBox::StandardButton::No);
+	msgBox->setStandardButtons(QMessageBox::StandardButton::Yes | QMessageBox::StandardButton::No);
 	msgBox->setButtonText(QMessageBox::Ok, tr("ok"));
 	msgBox->setButtonText(QMessageBox::Cancel, tr("cancel"));
 	msgBox->setButtonText(QMessageBox::Yes, tr("yes"));
 	msgBox->setButtonText(QMessageBox::No, tr("no"));
 #else
-	//msgBox->addButton(tr("ok"), QMessageBox::ButtonRole::AcceptRole);
-	//msgBox->addButton(tr("cancel"), QMessageBox::ButtonRole::RejectRole);
 	msgBox->addButton(tr("yes"), QMessageBox::ButtonRole::YesRole);
 	msgBox->addButton(tr("no"), QMessageBox::ButtonRole::NoRole);
 #endif

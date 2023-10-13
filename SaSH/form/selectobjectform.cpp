@@ -46,7 +46,7 @@ SelectObjectForm::SelectObjectForm(TitleType type, QWidget* parent)
 
 	for (auto& button : buttonList)
 	{
-		connect(button, &QPushButton::clicked, this, &SelectObjectForm::onButtonClicked, Qt::UniqueConnection);
+		connect(button, &QPushButton::clicked, this, &SelectObjectForm::onButtonClicked, Qt::QueuedConnection);
 	}
 
 	util::FormSettingManager formSettingManager(this);

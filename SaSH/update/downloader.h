@@ -17,47 +17,88 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 */
 
 #pragma once
-
-#include <QWidget>
-#include "ui_downloader.h"
-#include <QTimer>
-#include <QFutureSynchronizer>
-#include <QDir>
-#include <QProgressBar>
 #include <QObject>
-#include <QString>
 #include <QCoreApplication>
+#include <QDir>
+#include <QString>
+#include <QProgressDialog>
 
-class Downloader : public QWidget
+class ProgressDialog : public QProgressDialog
 {
 	Q_OBJECT
 public:
-	explicit Downloader(QWidget* parent = nullptr);
+	explicit ProgressDialog(QWidget* parent = nullptr, Qt::WindowFlags flags = Qt::WindowFlags())
+		: QProgressDialog(parent, flags)
+	{
+		setWindowModality(Qt::WindowModal);
+		setWindowFlags(Qt::Dialog | Qt::CustomizeWindowHint | Qt::WindowTitleHint);
+		setWindowTitle(tr("Downloading..."));
+		setLabelText(tr("Downloading..."));
+		setMinimum(0);
+		setMaximum(100);
+		setValue(0);
+		setFixedWidth(1200);
+
+		setMinimumDuration(0);
+		setAutoClose(false);
+		setAutoReset(false);
+		setAttribute(Qt::WA_DeleteOnClose);
+
+		setCancelButtonText(tr("Cancel"));
+	}
+
+	~ProgressDialog()
+	{
+		qDebug() << "ProgressDialog::~ProgressDialog()";
+	}
+
+public slots:
+	void onProgressReset(qint64 value)
+	{
+		reset();
+		setMaximum(100);
+		setValue(value);
+		QCoreApplication::processEvents();
+	}
+};
+
+class Downloader : public QObject
+{
+	Q_OBJECT
+public:
+	enum Mode
+	{
+		Async = 0,
+		Sync = 1
+	};
+
+	enum Source
+	{
+		SaSHServer,
+		GiteeWiki,
+		GiteeMapData,
+	};
+
+	Downloader();
 
 	virtual ~Downloader();
 
+	QString read();
+
+	bool write(const QString& fileName);
+
+	bool start(Source sourceType, QVariant* pvar = nullptr);
+
+	ProgressDialog* progressDialog_ = nullptr;
+public:
 	static bool checkUpdate(QString* current, QString* ptext, QString* pformated);
 
-	QString oneShotDownload(const QString& url);
-
-protected:
-	virtual void showEvent(QShowEvent* event) override;
+	static bool getHeader(const QUrl& url, QHash<QString, QString>* pheaders);
 
 private:
-	QProgressBar* createProgressBar(qint64 startY);
-	/////////////////////////////////////////////
-	Q_INVOKABLE void start();
+	void overwriteCurrentExecutable();
 
-	void overwriteCurrentExecutable(QByteArray ba);
-
-	void downloadAndUncompress(const QString& url, const QString& targetDir);
-
-	bool download(const QString& url, QByteArray* pbyteArray);
-
-	bool downloadFile(const QString& url, const QString& filename);
-
-	bool compress(const QString& source, const QString& destination);
-	bool uncompress(const QString& source, const QString& destination);
+	bool download(const QUrl& url, Mode mode = Sync);
 
 signals:
 	void labelTextChanged(const QString& text);
@@ -66,13 +107,10 @@ signals:
 private slots:
 	void onDownloadProgress(qint64 bytesReceived, qint64 bytesTotal);
 	void onDownloadFinished();
-	void onLabelTextChanged(const QString& text);
-	void onProgressBarReset(qint64 value);
 	void onErrorOccurred(QNetworkReply::NetworkError code);
+	void onCanceled();
 
 private:
-	Ui::DownloaderClass ui;
-
 	const qint64 pid_ = _getpid();
 	const QString szCurrentDirectory_;
 	const QString szCurrentDotExe_;
@@ -84,9 +122,11 @@ private:
 	QString szTmpDot7zFile_ = "\0";
 
 private:
+
 	bool isMain = false;
 	qreal currentProgress_ = 0.0;
-	QProgressBar* progressBar = nullptr;
 	std::unique_ptr<QNetworkAccessManager> networkManager_;
 	QNetworkReply* reply_ = nullptr;
+	QByteArray buffer_;
+	std::function<void()> callback_;
 };

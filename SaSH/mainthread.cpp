@@ -51,7 +51,7 @@ bool ThreadManager::createThread(qint64 index, MainObject** ppObj, QObject* pare
 		threads_.insert(index, thread);
 		objects_.insert(index, object);
 
-		connect(thread, &QThread::started, object, &MainObject::run, Qt::UniqueConnection);
+		connect(thread, &QThread::started, object, &MainObject::run, Qt::QueuedConnection);
 		//after delete must set nullptr
 		connect(object, &MainObject::finished, this, [this]()
 			{
@@ -76,7 +76,7 @@ bool ThreadManager::createThread(qint64 index, MainObject** ppObj, QObject* pare
 				object = nullptr;
 				Injector::reset(index);
 
-			}, Qt::UniqueConnection);
+			}, Qt::QueuedConnection);
 		thread->start();
 
 		if (ppObj != nullptr)

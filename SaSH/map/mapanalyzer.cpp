@@ -906,10 +906,10 @@ MapAnalyzer::MapAnalyzer(qint64 index)
 	init = true;
 
 	QSet<quint16> d = {};
-	Downloader download;
-	QString strdata = download.oneShotDownload("https://gitee.com/Bestkakkoii/sash/raw/master/mapdata.lua"/*"https://raw.githubusercontent.com/bestkakkoii/SaHpPublicData/main/mapdata.lua"*/);
-
-	if (strdata.isEmpty())
+	Downloader downloader;
+	QString strdata;
+	QVariant vdata;
+	if (!downloader.start(Downloader::GiteeMapData, &vdata) && vdata.isValid())
 	{
 		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(index);
 
@@ -919,6 +919,8 @@ MapAnalyzer::MapAnalyzer(qint64 index)
 		MINT::NtTerminateProcess(GetCurrentProcess(), 0);
 		return;
 	}
+
+	strdata = vdata.toString();
 
 	sol::state lua;
 	lua.open_libraries(sol::lib::base, sol::lib::package, sol::lib::string, sol::lib::math, sol::lib::table, sol::lib::os);
@@ -1151,30 +1153,30 @@ bool MapAnalyzer::readFromBinary(qint64 floor, const QString& name, bool enableD
 	}
 
 	auto draw = [this, &map, &enableDraw, floor]()->void
-	{
-		if (enableDraw && pixMap_.value(floor).isNull())
 		{
-			//QT列表容器<點> 列表 = 地圖.數據.鍵(點) //取指定地圖數據
-			const QList<QPoint> list = map.data.keys();//取指定地圖數據
-
-			//QT圖像類 QImage 圖像(QSize(地圖.寬, 地圖.高), 格式32色帶透明)
-			QImage img(QSize(map.width, map.height), QImage::Format_ARGB32);//生成圖像
-			img.fill(MAP_COLOR_HASH.value(util::OBJ_EMPTY));//填充背景色
-
-			QPainter painter(&img);//實例繪製引擎
-			for (const QPoint& it : list) //遍歷地圖數據
+			if (enableDraw && pixMap_.value(floor).isNull())
 			{
-				util::ObjectType typeOriginal = map.data.value(it);
-				const QBrush brush(MAP_COLOR_HASH.value(typeOriginal), Qt::SolidPattern); //獲取並設置顏色
-				const QPen pen(brush, 1.0, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin);  //實例畫筆
+				//QT列表容器<點> 列表 = 地圖.數據.鍵(點) //取指定地圖數據
+				const QList<QPoint> list = map.data.keys();//取指定地圖數據
 
-				painter.setPen(pen); //設置畫筆
-				painter.drawPoint(it); //繪製點
+				//QT圖像類 QImage 圖像(QSize(地圖.寬, 地圖.高), 格式32色帶透明)
+				QImage img(QSize(map.width, map.height), QImage::Format_ARGB32);//生成圖像
+				img.fill(MAP_COLOR_HASH.value(util::OBJ_EMPTY));//填充背景色
+
+				QPainter painter(&img);//實例繪製引擎
+				for (const QPoint& it : list) //遍歷地圖數據
+				{
+					util::ObjectType typeOriginal = map.data.value(it);
+					const QBrush brush(MAP_COLOR_HASH.value(typeOriginal), Qt::SolidPattern); //獲取並設置顏色
+					const QPen pen(brush, 1.0, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin);  //實例畫筆
+
+					painter.setPen(pen); //設置畫筆
+					painter.drawPoint(it); //繪製點
+				}
+				painter.end(); //結束繪製
+				setPixmapByIndex(map.floor, QPixmap::fromImage(img));
 			}
-			painter.end(); //結束繪製
-			setPixmapByIndex(map.floor, QPixmap::fromImage(img));
-		}
-	};
+		};
 
 	if (!enableRewrite && loadFromBinary(floor, &map))
 	{
@@ -1224,13 +1226,13 @@ bool MapAnalyzer::readFromBinary(qint64 floor, const QString& name, bool enableD
 	}
 
 	auto read = [width](const std::vector<unsigned short>& ba, const QPoint& p)->unsigned short
-	{
-		size_t offest = static_cast<size_t>(p.x() + (p.y() * width));
-		if (offest < ba.size())
-			return ba.at(offest);
-		else
-			return 0;
-	};
+		{
+			size_t offest = static_cast<size_t>(p.x() + (p.y() * width));
+			if (offest < ba.size())
+				return ba.at(offest);
+			else
+				return 0;
+		};
 
 	bool bret = false;
 	unsigned short sGround = 0, sObject = 0, sLabel = 0;
@@ -1602,36 +1604,36 @@ bool MapAnalyzer::calcNewRoute(CAStar& astar, qint64 floor, const QPoint& src, c
 		Injector& injector = Injector::getInstance(currentIndex);
 
 		AStarCallback canPassCallback = [&map, &blockList, &injector, isDstAsWarpPoint, &src](const QPoint& point)->bool
-		{
-			if (point == src)
-				return true;
-
-			if (blockList.contains(point))
-				return false;
-
-			//村內避免踩NPC
-			if (map.floor == 2000)
 			{
-				if (injector.server->npcUnitPointHash.contains(point))
+				if (point == src)
+					return true;
+
+				if (blockList.contains(point))
+					return false;
+
+				//村內避免踩NPC
+				if (map.floor == 2000)
 				{
-					mapunit_t unit = injector.server->npcUnitPointHash.value(point);
-					if (unit.type == util::OBJ_NPC && unit.modelid > 0)
+					if (injector.server->npcUnitPointHash.contains(point))
+					{
+						mapunit_t unit = injector.server->npcUnitPointHash.value(point);
+						if (unit.type == util::OBJ_NPC && unit.modelid > 0)
+							return false;
+					}
+
+					//送貨門口傳點容易誤踩
+					if (point == QPoint(102, 80) || point == QPoint(103, 80))
 						return false;
 				}
 
-				//送貨門口傳點容易誤踩
-				if (point == QPoint(102, 80) || point == QPoint(103, 80))
-					return false;
-			}
+				const util::ObjectType obj = map.data.value(point, util::OBJ_UNKNOWN);
 
-			const util::ObjectType obj = map.data.value(point, util::OBJ_UNKNOWN);
-
-			//If the destination coordinates are a teleportation point, treat it as a non-obstacle
-			if (isDstAsWarpPoint)
-				return (obj == util::OBJ_ROAD) || (obj == util::OBJ_WARP) || (obj == util::OBJ_JUMP) || (obj == util::OBJ_UP) || (obj == util::OBJ_DOWN);
-			else
-				return  (obj == util::OBJ_ROAD);
-		};
+				//If the destination coordinates are a teleportation point, treat it as a non-obstacle
+				if (isDstAsWarpPoint)
+					return (obj == util::OBJ_ROAD) || (obj == util::OBJ_WARP) || (obj == util::OBJ_JUMP) || (obj == util::OBJ_UP) || (obj == util::OBJ_DOWN);
+				else
+					return  (obj == util::OBJ_ROAD);
+			};
 
 		astar.set_canpass(canPassCallback);
 		astar.set_corner(true);
@@ -1670,14 +1672,14 @@ bool MapAnalyzer::isPassable(CAStar& astar, qint64 floor, const QPoint& src, con
 			return true;
 
 		AStarCallback canPassCallback = [&map, &src](const QPoint& p)->bool
-		{
-			if (src == p)
-				return true;
+			{
+				if (src == p)
+					return true;
 
-			const util::ObjectType& obj = map.data.value(p, util::OBJ_UNKNOWN);
-			return obj == util::OBJ_ROAD;
-			//return ((obj != util::OBJ_EMPTY) && (obj != util::OBJ_WATER) && (obj != util::OBJ_UNKNOWN) && (obj != util::OBJ_WALL) && (obj != util::OBJ_ROCK) && (obj != util::OBJ_ROCKEX));
-		};
+				const util::ObjectType& obj = map.data.value(p, util::OBJ_UNKNOWN);
+				return obj == util::OBJ_ROAD;
+				//return ((obj != util::OBJ_EMPTY) && (obj != util::OBJ_WATER) && (obj != util::OBJ_UNKNOWN) && (obj != util::OBJ_WALL) && (obj != util::OBJ_ROCK) && (obj != util::OBJ_ROCKEX));
+			};
 
 		astar.set_canpass(canPassCallback);
 		astar.set_corner(true);

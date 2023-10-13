@@ -39,12 +39,12 @@ AbilityForm::AbilityForm(qint64 index, QWidget* parent)
 	for (auto& button : buttonList)
 	{
 		if (button)
-			connect(button, &PushButton::clicked, this, &AbilityForm::onButtonClicked, Qt::UniqueConnection);
+			connect(button, &PushButton::clicked, this, &AbilityForm::onButtonClicked, Qt::QueuedConnection);
 	}
 
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(index);
 
-	connect(&signalDispatcher, &SignalDispatcher::applyHashSettingsToUI, this, &AbilityForm::onApplyHashSettingsToUI, Qt::UniqueConnection);
+	connect(&signalDispatcher, &SignalDispatcher::applyHashSettingsToUI, this, &AbilityForm::onApplyHashSettingsToUI, Qt::QueuedConnection);
 
 	emit signalDispatcher.applyHashSettingsToUI();
 

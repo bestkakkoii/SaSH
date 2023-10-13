@@ -1,94 +1,95 @@
 ﻿#ifndef _zip_H
 #define _zip_H
+namespace zipper
+{
 
-
-// ZIP functions -- for creating zip files
-// This file is a repackaged form of the Info-Zip source code available
-// at www.info-zip.org. The original copyright notice may be found in
-// zip.cpp. The repackaging was done by Lucian Wischik to simplify and
-// extend its use in Windows/C++. Also to add encryption and unicode.
+	// ZIP functions -- for creating zip files
+	// This file is a repackaged form of the Info-Zip source code available
+	// at www.info-zip.org. The original copyright notice may be found in
+	// zip.cpp. The repackaging was done by Lucian Wischik to simplify and
+	// extend its use in Windows/C++. Also to add encryption and unicode.
 
 
 #ifndef _unzip_H
-DECLARE_HANDLE(HZIP);
+	DECLARE_HANDLE(HZIP);
 #endif
-// An HZIP identifies a zip file that is being created
+	// An HZIP identifies a zip file that is being created
 
-typedef DWORD ZRESULT;
-// return codes from any of the zip functions. Listed later.
-
-
-
-HZIP CreateZip(const TCHAR* fn, const char* password);
-HZIP CreateZip(void* buf, unsigned int len, const char* password);
-HZIP CreateZipHandle(HANDLE h, const char* password);
-// CreateZip - call this to start the creation of a zip file.
-// As the zip is being created, it will be stored somewhere:
-// to a pipe:              CreateZipHandle(hpipe_write);
-// in a file (by handle):  CreateZipHandle(hfile);
-// in a file (by name):    CreateZip("c:\\test.zip");
-// in memory:              CreateZip(buf, len);
-// or in pagefile memory:  CreateZip(0, len);
-// The final case stores it in memory backed by the system paging file,
-// where the zip may not exceed len bytes. This is a bit friendlier than
-// allocating memory with new[]: it won't lead to fragmentation, and the
-// memory won't be touched unless needed. That means you can give very
-// large estimates of the maximum-size without too much worry.
-// As for the password, it lets you encrypt every file in the archive.
-// (This api doesn't support per-file encryption.)
-// Note: because pipes don't allow random access, the structure of a zipfile
-// created into a pipe is slightly different from that created into a file
-// or memory. In particular, the compressed-size of the item cannot be
-// stored in the zipfile until after the item itself. (Also, for an item added
-// itself via a pipe, the uncompressed-size might not either be known until
-// after.) This is not normally a problem. But if you try to unzip via a pipe
-// as well, then the unzipper will not know these things about the item until
-// after it has been unzipped. Therefore: for unzippers which don't just write
-// each item to disk or to a pipe, but instead pre-allocate memory space into
-// which to unzip them, then either you have to create the zip not to a pipe,
-// or you have to add items not from a pipe, or at least when adding items
-// from a pipe you have to specify the length.
-// Note: for windows-ce, you cannot close the handle until after CloseZip.
-// but for real windows, the zip makes its own copy of your handle, so you
-// can close yours anytime.
-
-
-ZRESULT ZipAdd(HZIP hz, const TCHAR* dstzn, const TCHAR* fn);
-ZRESULT ZipAdd(HZIP hz, const TCHAR* dstzn, void* src, unsigned int len);
-ZRESULT ZipAddHandle(HZIP hz, const TCHAR* dstzn, HANDLE h);
-ZRESULT ZipAddHandle(HZIP hz, const TCHAR* dstzn, HANDLE h, unsigned int len);
-ZRESULT ZipAddFolder(HZIP hz, const TCHAR* dstzn);
-// ZipAdd - call this for each file to be added to the zip.
-// dstzn is the name that the file will be stored as in the zip file.
-// The file to be added to the zip can come
-// from a pipe:  ZipAddHandle(hz,"file.dat", hpipe_read);
-// from a file:  ZipAddHandle(hz,"file.dat", hfile);
-// from a filen: ZipAdd(hz,"file.dat", "c:\\docs\\origfile.dat");
-// from memory:  ZipAdd(hz,"subdir\\file.dat", buf,len);
-// (folder):     ZipAddFolder(hz,"subdir");
-// Note: if adding an item from a pipe, and if also creating the zip file itself
-// to a pipe, then you might wish to pass a non-zero length to the ZipAddHandle
-// function. This will let the zipfile store the item's size ahead of the
-// compressed item itself, which in turn makes it easier when unzipping the
-// zipfile from a pipe.
-
-ZRESULT ZipGetMemory(HZIP hz, void** buf, unsigned long* len);
-// ZipGetMemory - If the zip was created in memory, via ZipCreate(0,len),
-// then this function will return information about that memory block.
-// buf will receive a pointer to its start, and len its length.
-// Note: you can't add any more after calling this.
-
-ZRESULT CloseZip(HZIP hz);
-// CloseZip - the zip handle must be closed with this function.
-
-unsigned int FormatZipMessage(ZRESULT code, TCHAR* buf, unsigned int len);
-// FormatZipMessage - given an error code, formats it as a string.
-// It returns the length of the error message. If buf/len points
-// to a real buffer, then it also writes as much as possible into there.
+	typedef DWORD ZRESULT;
+	// return codes from any of the zip functions. Listed later.
 
 
 
-// These are the result codes:
+	HZIP CreateZip(const TCHAR* fn, const char* password);
+	HZIP CreateZip(void* buf, unsigned int len, const char* password);
+	HZIP CreateZipHandle(HANDLE h, const char* password);
+	// CreateZip - call this to start the creation of a zip file.
+	// As the zip is being created, it will be stored somewhere:
+	// to a pipe:              CreateZipHandle(hpipe_write);
+	// in a file (by handle):  CreateZipHandle(hfile);
+	// in a file (by name):    CreateZip("c:\\test.zip");
+	// in memory:              CreateZip(buf, len);
+	// or in pagefile memory:  CreateZip(0, len);
+	// The final case stores it in memory backed by the system paging file,
+	// where the zip may not exceed len bytes. This is a bit friendlier than
+	// allocating memory with new[]: it won't lead to fragmentation, and the
+	// memory won't be touched unless needed. That means you can give very
+	// large estimates of the maximum-size without too much worry.
+	// As for the password, it lets you encrypt every file in the archive.
+	// (This api doesn't support per-file encryption.)
+	// Note: because pipes don't allow random access, the structure of a zipfile
+	// created into a pipe is slightly different from that created into a file
+	// or memory. In particular, the compressed-size of the item cannot be
+	// stored in the zipfile until after the item itself. (Also, for an item added
+	// itself via a pipe, the uncompressed-size might not either be known until
+	// after.) This is not normally a problem. But if you try to unzip via a pipe
+	// as well, then the unzipper will not know these things about the item until
+	// after it has been unzipped. Therefore: for unzippers which don't just write
+	// each item to disk or to a pipe, but instead pre-allocate memory space into
+	// which to unzip them, then either you have to create the zip not to a pipe,
+	// or you have to add items not from a pipe, or at least when adding items
+	// from a pipe you have to specify the length.
+	// Note: for windows-ce, you cannot close the handle until after CloseZip.
+	// but for real windows, the zip makes its own copy of your handle, so you
+	// can close yours anytime.
+
+
+	ZRESULT ZipAdd(HZIP hz, const TCHAR* dstzn, const TCHAR* fn);
+	ZRESULT ZipAdd(HZIP hz, const TCHAR* dstzn, void* src, unsigned int len);
+	ZRESULT ZipAddHandle(HZIP hz, const TCHAR* dstzn, HANDLE h);
+	ZRESULT ZipAddHandle(HZIP hz, const TCHAR* dstzn, HANDLE h, unsigned int len);
+	ZRESULT ZipAddFolder(HZIP hz, const TCHAR* dstzn);
+	// ZipAdd - call this for each file to be added to the zip.
+	// dstzn is the name that the file will be stored as in the zip file.
+	// The file to be added to the zip can come
+	// from a pipe:  ZipAddHandle(hz,"file.dat", hpipe_read);
+	// from a file:  ZipAddHandle(hz,"file.dat", hfile);
+	// from a filen: ZipAdd(hz,"file.dat", "c:\\docs\\origfile.dat");
+	// from memory:  ZipAdd(hz,"subdir\\file.dat", buf,len);
+	// (folder):     ZipAddFolder(hz,"subdir");
+	// Note: if adding an item from a pipe, and if also creating the zip file itself
+	// to a pipe, then you might wish to pass a non-zero length to the ZipAddHandle
+	// function. This will let the zipfile store the item's size ahead of the
+	// compressed item itself, which in turn makes it easier when unzipping the
+	// zipfile from a pipe.
+
+	ZRESULT ZipGetMemory(HZIP hz, void** buf, unsigned long* len);
+	// ZipGetMemory - If the zip was created in memory, via ZipCreate(0,len),
+	// then this function will return information about that memory block.
+	// buf will receive a pointer to its start, and len its length.
+	// Note: you can't add any more after calling this.
+
+	ZRESULT CloseZipZ(HZIP hz);
+	// CloseZip - the zip handle must be closed with this function.
+
+	unsigned int FormatZipMessageZ(ZRESULT code, TCHAR* buf, unsigned int len);
+	// FormatZipMessage - given an error code, formats it as a string.
+	// It returns the length of the error message. If buf/len points
+	// to a real buffer, then it also writes as much as possible into there.
+
+
+
+	// These are the result codes:
 #define ZR_OK         0x00000000     // nb. the pseudo-code zr-recent is never returned,
 #define ZR_RECENT     0x00000001     // but can be passed to FormatZipMessage.
 // The following come from general system stuff (e.g. files not openable)
@@ -187,17 +188,19 @@ unsigned int FormatZipMessage(ZRESULT code, TCHAR* buf, unsigned int len);
 // the cpp files for zip and unzip are both present, so we will call
 // one or the other of them based on a dynamic choice. If the header file
 // for only one is present, then we will bind to that particular one.
-ZRESULT CloseZipZ(HZIP hz);
-unsigned int FormatZipMessageZ(ZRESULT code, char* buf, unsigned int len);
-bool IsZipHandleZ(HZIP hz);
+	ZRESULT CloseZipZ(HZIP hz);
+	unsigned int FormatZipMessageZ(ZRESULT code, char* buf, unsigned int len);
+	bool IsZipHandleZ(HZIP hz);
 #ifdef _unzip_H
 #undef CloseZip
 #define CloseZip(hz) (IsZipHandleZ(hz)?CloseZipZ(hz):CloseZipU(hz))
 #else
+#if 0
 #define CloseZip CloseZipZ
 #define FormatZipMessage FormatZipMessageZ
 #endif
+#endif
 
 
-
+}
 #endif

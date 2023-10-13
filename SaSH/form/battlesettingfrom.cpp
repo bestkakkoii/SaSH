@@ -213,7 +213,7 @@ BattleSettingFrom::BattleSettingFrom(qint64 index, QWidget* parent)
 	for (auto& button : buttonList)
 	{
 		if (button)
-			connect(button, &PushButton::clicked, this, &BattleSettingFrom::onButtonClicked, Qt::UniqueConnection);
+			connect(button, &PushButton::clicked, this, &BattleSettingFrom::onButtonClicked, Qt::QueuedConnection);
 	}
 
 }

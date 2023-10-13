@@ -46,7 +46,7 @@ InfoForm::InfoForm(qint64 index, qint64 defaultPage, QWidget* parent)
 	windowflag |= Qt::WindowType::Tool;
 	setWindowFlag(Qt::WindowType::Tool);
 
-	connect(this, &InfoForm::resetControlTextLanguage, this, &InfoForm::onResetControlTextLanguage, Qt::UniqueConnection);
+	connect(this, &InfoForm::resetControlTextLanguage, this, &InfoForm::onResetControlTextLanguage, Qt::QueuedConnection);
 
 	ui.tabWidget->clear();
 	util::setTab(ui.tabWidget);
@@ -102,7 +102,7 @@ InfoForm::InfoForm(qint64 index, qint64 defaultPage, QWidget* parent)
 
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(index);
 
-	connect(&signalDispatcher, &SignalDispatcher::applyHashSettingsToUI, this, &InfoForm::onApplyHashSettingsToUI, Qt::UniqueConnection);
+	connect(&signalDispatcher, &SignalDispatcher::applyHashSettingsToUI, this, &InfoForm::onApplyHashSettingsToUI, Qt::QueuedConnection);
 
 	onResetControlTextLanguage();
 

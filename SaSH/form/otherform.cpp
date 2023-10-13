@@ -29,35 +29,35 @@ OtherForm::OtherForm(qint64 index, QWidget* parent)
 	ui.setupUi(this);
 	util::setTab(ui.tabWidge_other);
 
-	connect(this, &OtherForm::resetControlTextLanguage, this, &OtherForm::onResetControlTextLanguage, Qt::UniqueConnection);
+	connect(this, &OtherForm::resetControlTextLanguage, this, &OtherForm::onResetControlTextLanguage, Qt::QueuedConnection);
 
 
 	QList<PushButton*> buttonList = util::findWidgets<PushButton>(this);
 	for (auto& button : buttonList)
 	{
 		if (button)
-			connect(button, &PushButton::clicked, this, &OtherForm::onButtonClicked, Qt::UniqueConnection);
+			connect(button, &PushButton::clicked, this, &OtherForm::onButtonClicked, Qt::QueuedConnection);
 	}
 
 	QList <QCheckBox*> checkBoxList = util::findWidgets<QCheckBox>(this);
 	for (auto& checkBox : checkBoxList)
 	{
 		if (checkBox)
-			connect(checkBox, &QCheckBox::stateChanged, this, &OtherForm::onCheckBoxStateChanged, Qt::UniqueConnection);
+			connect(checkBox, &QCheckBox::stateChanged, this, &OtherForm::onCheckBoxStateChanged, Qt::QueuedConnection);
 	}
 
 	QList <QSpinBox*> spinBoxList = util::findWidgets<QSpinBox>(this);
 	for (auto& spinBox : spinBoxList)
 	{
 		if (spinBox)
-			connect(spinBox, SIGNAL(valueChanged(int)), this, SLOT(onSpinBoxValueChanged(int)), Qt::UniqueConnection);
+			connect(spinBox, SIGNAL(valueChanged(int)), this, SLOT(onSpinBoxValueChanged(int)), Qt::QueuedConnection);
 	}
 
 	QList <QListWidget*> listWidgetList = util::findWidgets<QListWidget>(this);
 	for (auto& listWidget : listWidgetList)
 	{
 		if (listWidget)
-			connect(listWidget, &QListWidget::itemDoubleClicked, this, &OtherForm::onListWidgetDoubleClicked, Qt::UniqueConnection);
+			connect(listWidget, &QListWidget::itemDoubleClicked, this, &OtherForm::onListWidgetDoubleClicked, Qt::QueuedConnection);
 	}
 
 	QList <ComboBox*> comboBoxList = util::findWidgets<ComboBox>(this);
@@ -65,9 +65,9 @@ OtherForm::OtherForm(qint64 index, QWidget* parent)
 	{
 		if (comboBox)
 		{
-			connect(comboBox, SIGNAL(currentIndexChanged(int)), this, SLOT(onComboBoxCurrentIndexChanged(int)), Qt::UniqueConnection);
-			connect(comboBox, &ComboBox::clicked, this, &OtherForm::onComboBoxClicked, Qt::UniqueConnection);
-			connect(comboBox, &ComboBox::currentTextChanged, this, &OtherForm::onComboBoxTextChanged, Qt::UniqueConnection);
+			connect(comboBox, SIGNAL(currentIndexChanged(int)), this, SLOT(onComboBoxCurrentIndexChanged(int)), Qt::QueuedConnection);
+			connect(comboBox, &ComboBox::clicked, this, &OtherForm::onComboBoxClicked, Qt::QueuedConnection);
+			connect(comboBox, &ComboBox::currentTextChanged, this, &OtherForm::onComboBoxTextChanged, Qt::QueuedConnection);
 		}
 	}
 
@@ -75,19 +75,19 @@ OtherForm::OtherForm(qint64 index, QWidget* parent)
 	for (auto& lineEdit : lineEditList)
 	{
 		if (lineEdit)
-			connect(lineEdit, &QLineEdit::textChanged, this, &OtherForm::onLineEditTextChanged, Qt::UniqueConnection);
+			connect(lineEdit, &QLineEdit::textChanged, this, &OtherForm::onLineEditTextChanged, Qt::QueuedConnection);
 	}
 
 	QList <QGroupBox*> groupBoxList = util::findWidgets<QGroupBox>(this);
 	for (auto& groupBox : groupBoxList)
 	{
 		if (groupBox)
-			connect(groupBox, &QGroupBox::clicked, this, &OtherForm::groupBoxClicked, Qt::UniqueConnection);
+			connect(groupBox, &QGroupBox::clicked, this, &OtherForm::groupBoxClicked, Qt::QueuedConnection);
 	}
 
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(index);
-	connect(&signalDispatcher, &SignalDispatcher::applyHashSettingsToUI, this, &OtherForm::onApplyHashSettingsToUI, Qt::UniqueConnection);
-	connect(&signalDispatcher, &SignalDispatcher::updateTeamInfo, this, &OtherForm::onUpdateTeamInfo, Qt::UniqueConnection);
+	connect(&signalDispatcher, &SignalDispatcher::applyHashSettingsToUI, this, &OtherForm::onApplyHashSettingsToUI, Qt::QueuedConnection);
+	connect(&signalDispatcher, &SignalDispatcher::updateTeamInfo, this, &OtherForm::onUpdateTeamInfo, Qt::QueuedConnection);
 
 	ui.spinBox_lockpetslevel->setEnabled(true);
 

@@ -68,7 +68,7 @@ ChatInfoForm::ChatInfoForm(qint64 index, QWidget* parent)
 	QFont font = util::getFont();
 	setFont(font);
 	ui.groupBox_2->hide();
-	connect(this, &ChatInfoForm::resetControlTextLanguage, this, &ChatInfoForm::onResetControlTextLanguage, Qt::UniqueConnection);
+	connect(this, &ChatInfoForm::resetControlTextLanguage, this, &ChatInfoForm::onResetControlTextLanguage, Qt::QueuedConnection);
 
 	ui.listView_log->setTextElideMode(Qt::ElideNone);
 	ui.listView_log->setResizeMode(QListView::Adjust);
@@ -78,7 +78,7 @@ ChatInfoForm::ChatInfoForm(qint64 index, QWidget* parent)
 	ui.comboBox_send->installEventFilter(this);
 
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(index);
-	connect(&signalDispatcher, &SignalDispatcher::applyHashSettingsToUI, this, &ChatInfoForm::onApplyHashSettingsToUI, Qt::UniqueConnection);
+	connect(&signalDispatcher, &SignalDispatcher::applyHashSettingsToUI, this, &ChatInfoForm::onApplyHashSettingsToUI, Qt::QueuedConnection);
 
 	Injector& injector = Injector::getInstance(index);
 
