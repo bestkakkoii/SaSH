@@ -22,16 +22,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 constexpr const char* URL = "https://www.lovesa.cc/SaSH/update/sash.zip";
 constexpr const char* doc_URL = "https://gitee.com/Bestkakkoii/sash/wikis/pages/export?type=markdown&doc_id=4046472";
-
-#ifdef _WIN64
-constexpr const char* kBackupExecuteFileTmp = "sash_x64.tmp";
-constexpr const char* kBackupfileName1 = "sash_x64_backup_%1.zip";
-constexpr const char* kBackupfileName2 = "sash_x64_backup_%1_%2.zip";
-#else
-constexpr const char* kBackupExecuteFileTmp = "sash.tmp";
 constexpr const char* kBackupfileName1 = "sash_backup_%1.zip";
 constexpr const char* kBackupfileName2 = "sash_backup_%1_%2.zip";
-#endif
+constexpr const char* kBackupExecuteFileTmp = "SaSH.tmp";
 static const QStringList preBackupFileNames = { util::applicationName(), QString(SASH_INJECT_DLLNAME) + ".dll", "settings", "script" };
 constexpr qint64 SHADOW_WIDTH = 10;
 constexpr qint64 MAX_BAR_HEIGHT = 20;
@@ -42,8 +35,6 @@ constexpr qint64 PROGRESS_BAR_BEGIN_Y = 85;
 QString g_etag;
 constexpr qint64 UPDATE_TIME_MIN = 5 * 60;
 
-std::unique_ptr<QNetworkAccessManager> Downloader::networkManager_;
-
 void setHeader(QNetworkRequest* prequest)
 {
 	if (prequest == nullptr)
@@ -51,7 +42,7 @@ void setHeader(QNetworkRequest* prequest)
 
 	QSslConfiguration sslConf = prequest->sslConfiguration();
 	sslConf.setPeerVerifyMode(QSslSocket::VerifyNone);
-	sslConf.setProtocol(QSsl::AnyProtocol);
+	sslConf.setProtocol(QSsl::TlsV1_3OrLater);
 	prequest->setSslConfiguration(sslConf);
 
 	prequest->setRawHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Safari/537.36 Edg/107.0.1418.35");
@@ -506,7 +497,11 @@ bool Downloader::checkUpdate(QString* current, QString* ptext, QString* pformate
 		}
 	}
 
+	reply->deleteLater();
+
 	return bret;
+
+
 }
 
 Downloader::Downloader(QWidget* parent)
@@ -569,22 +564,21 @@ Downloader::Downloader(QWidget* parent)
 	szDownloadedFileName_ = szFileName.mid(szFileName.lastIndexOf('/') + 1);
 	szTmpDot7zFile_ = rcPath_ + szDownloadedFileName_;// %Temp%/pid/SaSH.7z
 
-	if (networkManager_ == nullptr)
-	{
-		networkManager_.reset(new QNetworkAccessManager(this));
-
-		if (networkManager_ != nullptr)
-		{
-			networkManager_->setTransferTimeout(15000);
-			networkManager_->setAutoDeleteReplies(true);
-		}
-	}
+	networkManager_.reset(new QNetworkAccessManager(this));
 
 	emit progressReset(0);
 }
 
 Downloader::~Downloader()
 {
+	if (networkManager_ != nullptr)
+		networkManager_->deleteLater();
+
+	if (reply_ != nullptr)
+	{
+		reply_->deleteLater();
+		reply_ = nullptr;
+	}
 }
 
 void Downloader::showEvent(QShowEvent* e)
@@ -674,7 +668,11 @@ bool Downloader::download(const QString& url, QByteArray* pbyteArray)
 	{
 		qDebug() << "Failed to create request.";
 		emit labelTextChanged("Failed to create request.");
-		reply_ = nullptr;
+		if (reply_ != nullptr)
+		{
+			reply_->deleteLater();
+			reply_ = nullptr;
+		}
 		return false;
 	}
 
@@ -716,6 +714,7 @@ bool Downloader::download(const QString& url, QByteArray* pbyteArray)
 		bret = true;
 	}
 
+	reply_->deleteLater();
 	reply_ = nullptr;
 
 	return true;
@@ -797,7 +796,11 @@ void Downloader::onErrorOccurred(QNetworkReply::NetworkError code)
 			MINT::NtTerminateProcess(GetCurrentProcess(), 0);
 		});
 
-	reply_ = nullptr;
+	if (reply_ != nullptr)
+	{
+		reply_->deleteLater();
+		reply_ = nullptr;
+	}
 }
 
 QString Downloader::oneShotDownload(const QString& url)
@@ -832,7 +835,11 @@ void Downloader::start()
 	{
 		qDebug() << "Failed to create request.";
 		emit labelTextChanged("Failed to create request.");
-		reply_ = nullptr;
+		if (reply_ != nullptr)
+		{
+			reply_->deleteLater();
+			reply_ = nullptr;
+		}
 		return;
 	}
 
@@ -871,10 +878,11 @@ void Downloader::onDownloadFinished()
 		ba = reply_->readAll();
 
 	}
-
+	reply_->deleteLater();
 	reply_ = nullptr;
 	if (!ba.isEmpty())
 		overwriteCurrentExecutable(ba);
+
 }
 
 void Downloader::overwriteCurrentExecutable(QByteArray ba)

@@ -9,18 +9,6 @@
 
 //#define USE_MINIDUMP
 
-#define STD_NO_COUT_MACRO while (false) std::cout
-
-#ifndef _DEBUG
-#define SADLL_NO_DEBUG
-#endif
-
-#ifdef SADLL_NO_DEBUG
-#define print STD_NO_COUT_MACRO
-#else
-#define print std::cout
-#endif
-
 #pragma comment(lib, "detours.lib")
 #pragma comment(lib, "ws2_32.lib")
 #pragma comment(lib, "winmm.lib")
@@ -312,7 +300,7 @@ int WSAAPI GameService::New_connect(SOCKET s, const struct sockaddr* name, int n
 			if (inet_ntop(AF_INET, &(sockaddr_ipv4->sin_addr), ipStr, sizeof(ipStr)) != nullptr)
 			{
 				uint16_t port = ntohs(sockaddr_ipv4->sin_port);
-				print << "IPv4 Address: " << ipStr << " Port: " << port << std::endl;
+				std::cout << "IPv4 Address: " << ipStr << " Port: " << port << std::endl;
 			}
 		}
 	}
@@ -322,13 +310,13 @@ int WSAAPI GameService::New_connect(SOCKET s, const struct sockaddr* name, int n
 
 unsigned long WSAAPI GameService::New_inet_addr(const char* cp)
 {
-	print << "inet_addr: " << std::string(cp) << std::endl;
+	std::cout << "inet_addr: " << std::string(cp) << std::endl;
 	return pinet_addr(cp);
 }
 
 u_short WSAAPI GameService::New_ntohs(u_short netshort)
 {
-	print << "ntohs: " << std::to_string(netshort) << std::endl;
+	std::cout << "ntohs: " << std::to_string(netshort) << std::endl;
 	return pntohs(netshort);
 }
 
@@ -375,7 +363,7 @@ DWORD WINAPI GameService::New_GetTickCount()
 
 	DWORD tmpTick = pGetTickCount();
 
-	g_dwHookTick = g_dwHookTick + speedBoostValue.load(std::memory_order_acquire) * (tmpTick - g_dwRealTick);
+	g_dwHookTick = g_dwHookTick + speedBoostValue * (tmpTick - g_dwRealTick);
 	g_dwRealTick = tmpTick;
 
 	return g_dwHookTick;
@@ -385,7 +373,7 @@ BOOL WINAPI GameService::New_QueryPerformanceCounter(LARGE_INTEGER* lpPerformanc
 {
 	BOOL result = pQueryPerformanceCounter(lpPerformanceCount);
 
-	lpPerformanceCount->QuadPart *= static_cast<LONGLONG>(speedBoostValue.load(std::memory_order_acquire)); // 修改返回值为原始值的两倍
+	lpPerformanceCount->QuadPart *= static_cast<LONGLONG>(speedBoostValue); // 修改返回值为原始值的两倍
 
 	return result;
 }
@@ -397,7 +385,7 @@ DWORD WINAPI GameService::New_TimeGetTime()
 
 	DWORD tmpTime = pTimeGetTime();
 
-	g_dwHookTime = g_dwHookTime + speedBoostValue.load(std::memory_order_acquire) * (tmpTime - g_dwRealTime);
+	g_dwHookTime = g_dwHookTime + speedBoostValue * (tmpTime - g_dwRealTime);
 	g_dwRealTime = tmpTime;
 
 	return g_dwHookTime;
@@ -416,7 +404,7 @@ void WINAPI GameService::New_Sleep(DWORD dwMilliseconds)
 //音效
 void GameService::New_PlaySound(int a, int b, int c)
 {
-	if (FALSE == IS_SOUND_MUTE_FLAG.load(std::memory_order_acquire))
+	if (FALSE == IS_SOUND_MUTE_FLAG)
 	{
 		pPlaySound(a, b, c);
 	}
@@ -425,7 +413,7 @@ void GameService::New_PlaySound(int a, int b, int c)
 //戰鬥循環
 void GameService::New_BattleProc()
 {
-	if (TRUE == IS_BATTLE_PROC_FLAG.load(std::memory_order_acquire))
+	if (TRUE == IS_BATTLE_PROC_FLAG)
 	{
 		pBattleProc();
 	}
@@ -443,21 +431,21 @@ void GameService::New_BattleCommandReady()
 //遊戲時間刷新循環 (早上,下午....)
 void GameService::New_TimeProc(int fd)
 {
-	if (FALSE == IS_TIME_LOCK_FLAG.load(std::memory_order_acquire))
+	if (FALSE == IS_TIME_LOCK_FLAG)
 		pTimeProc(fd);
 }
 
 //EN封包攔截，戰鬥進場
 void GameService::New_lssproto_EN_recv(int fd, int result, int field)
 {
-	if (FALSE == IS_ENCOUNT_BLOCK_FLAG.load(std::memory_order_acquire))
+	if (FALSE == IS_ENCOUNT_BLOCK_FLAG)
 		pLssproto_EN_recv(fd, result, field);
 }
 
 //B封包攔截，戰鬥封包
 void GameService::New_lssproto_B_recv(int fd, char* command)
 {
-	if (FALSE == IS_ENCOUNT_BLOCK_FLAG.load(std::memory_order_acquire))
+	if (FALSE == IS_ENCOUNT_BLOCK_FLAG)
 		pLssproto_B_recv(fd, command);
 }
 
@@ -475,7 +463,7 @@ void GameService::New_lssproto_WN_send(int fd, int x, int y, int dialogid, int u
 
 		str += std::string(data);
 
-		print << "send: " << str << std::endl;
+		std::cout << "send: " << str << std::endl;
 
 		sendToServer(str + "\n");
 
@@ -531,8 +519,6 @@ void GameService::WM_SetGameStatus(int status)
 	if (nullptr == g_game_status)
 		return;
 
-	print << "WM_SetGameStatus: " << status << std::endl;
-
 	int G = *g_game_status;
 
 	if (G != status)
@@ -544,8 +530,6 @@ void GameService::WM_SetOptimize(BOOL enable)
 {
 	if (nullptr == g_hGameModule)
 		return;
-
-	print << "WM_SetOptimize: " << enable << std::endl;
 
 	//DWORD optimizeAddr = CONVERT_GAMEVAR<DWORD>(0x129E7);
 	if (FALSE == enable)
@@ -582,8 +566,8 @@ void GameService::WM_SetWindowHide(BOOL enable)
 		return;
 
 	//聊天紀錄顯示行數數量設為0
-	nowChatRowCount_.store(*CONVERT_GAMEVAR<int*>(0xA2674ul), std::memory_order_release);
-	if (nowChatRowCount_.load(std::memory_order_acquire) < 20)
+	nowChatRowCount_ = *CONVERT_GAMEVAR<int*>(0xA2674ul);
+	if (nowChatRowCount_ < 20)
 		*CONVERT_GAMEVAR<int*>(0xA2674ul) = 20;
 
 	if (FALSE == enable)
@@ -619,8 +603,7 @@ void GameService::WM_SetWindowHide(BOOL enable)
 //靜音
 void GameService::WM_MuteSound(BOOL enable)
 {
-	print << "WM_MuteSound: " << enable << std::endl;
-	IS_SOUND_MUTE_FLAG.store(enable, std::memory_order_release);
+	IS_SOUND_MUTE_FLAG = enable;
 }
 
 //戰鬥時間延長(99秒)
@@ -628,8 +611,6 @@ void GameService::WM_BattleTimeExtend(BOOL enable)
 {
 	if (nullptr == g_hGameModule)
 		return;
-
-	print << "WM_BattleTimeExtend: " << enable << std::endl;
 
 	DWORD* timerAddr = CONVERT_GAMEVAR<DWORD*>(0x9854ul);
 
@@ -702,7 +683,7 @@ void GameService::WM_EnableBattleDialog(BOOL enable)
 		util::MemoryMove(battleLoopAddr, "\x90\x90", 2u);
 	}
 
-	IS_BATTLE_PROC_FLAG.store(enable, std::memory_order_release);
+	IS_BATTLE_PROC_FLAG = enable;
 }
 
 //顯示特效
@@ -710,8 +691,6 @@ void GameService::WM_EnableEffect(BOOL enable)
 {
 	if (nullptr == g_hGameModule)
 		return;
-
-	print << "WM_EnableEffect: " << enable << std::endl;
 
 	DWORD effectAddr = CONVERT_GAMEVAR<DWORD>(0x434DDul);
 	//DWORD effectAddr2 = CONVERT_GAMEVAR<DWORD>(0x482F0ul);
@@ -775,8 +754,6 @@ void GameService::WM_EnableCharShow(BOOL enable)
 	if (nullptr == g_hGameModule)
 		return;
 
-	print << "WM_EnableCharShow: " << enable << std::endl;
-
 	DWORD playerShowAddr = CONVERT_GAMEVAR<DWORD>(0xEA30ul);
 	DWORD playerShowAddr2 = CONVERT_GAMEVAR<DWORD>(0xEFD0ul);
 	DWORD playerShowAddr3 = CONVERT_GAMEVAR<DWORD>(0xF180ul);
@@ -807,8 +784,6 @@ void GameService::WM_SetTimeLock(BOOL enable, unsigned int time)
 	if (nullptr == g_hGameModule)
 		return;
 
-	print << "WM_SetTimeLock: " << enable << " " << time << std::endl;
-
 	//DWORD timerefreshAddr = CONVERT_GAMEVAR<DWORD>(0x1E6D0);
 	//sa_8001sf.exe+1E6D0 - 56                    - push esi
 		//util::MemoryMove(timerefreshAddr, "\x56", 1);
@@ -833,6 +808,7 @@ void GameService::WM_SetTimeLock(BOOL enable, unsigned int time)
 
 			//sa_8001sf.exe+1E6D0 - C3                    - ret 
 			//util::MemoryMove(timerefreshAddr, "\xC3", 1);//把刷新時間的循環ret掉
+			IS_TIME_LOCK_FLAG = TRUE;
 
 			*pcurrentTime = set[time * 5u + 0u];
 			*pa = set[time * 5u + 1u];
@@ -842,7 +818,7 @@ void GameService::WM_SetTimeLock(BOOL enable, unsigned int time)
 		}
 	}
 
-	IS_TIME_LOCK_FLAG.store(enable, std::memory_order_release);
+	IS_TIME_LOCK_FLAG = enable;
 }
 
 //打開聲音
@@ -851,22 +827,20 @@ void GameService::WM_EnableSound(BOOL enable)
 	if (nullptr == g_hGameModule)
 		return;
 
-	print << "WM_EnableSound: " << enable << std::endl;
-
 	int* pBackgroundMusic = CONVERT_GAMEVAR<int*>(0xD36E0ul);
 	int* pSoundEffect = CONVERT_GAMEVAR<int*>(0xD36DCul);
 	auto pSetSound = CONVERT_GAMEVAR<void(__cdecl*)()>(0x880F0ul);
 
 	if (TRUE == enable)
 	{
-		*pBackgroundMusic = currentMusic_.load(std::memory_order_acquire);
-		*pSoundEffect = currentSound_.load(std::memory_order_acquire);
+		*pBackgroundMusic = currentMusic_;
+		*pSoundEffect = currentSound_;
 		pSetSound();
 	}
 	else
 	{
-		currentMusic_.store(*pBackgroundMusic, std::memory_order_release);
-		currentSound_.store(*pSoundEffect, std::memory_order_release);
+		currentMusic_ = *pBackgroundMusic;
+		currentSound_ = *pSoundEffect;
 		*pBackgroundMusic = 0;
 		*pSoundEffect = 0;
 		pSetSound();
@@ -878,8 +852,6 @@ void GameService::WM_EnableImageLock(BOOL enable)
 {
 	if (nullptr == g_hGameModule)
 		return;
-
-	print << "WM_EnableImageLock: " << enable << std::endl;
 
 	DWORD pImageLock = CONVERT_GAMEVAR<DWORD>(0x42A7Bul);
 
@@ -907,8 +879,6 @@ void GameService::WM_EnablePassWall(BOOL enable)
 	if (nullptr == g_hGameModule)
 		return;
 
-	print << "WM_EnablePassWall: " << enable << std::endl;
-
 	DWORD pPassWall = CONVERT_GAMEVAR<DWORD>(0x42051ul);
 
 	if (FALSE == enable)
@@ -929,8 +899,6 @@ void GameService::WM_EnableFastWalk(BOOL enable)
 	if (nullptr == g_hGameModule)
 		return;
 
-	print << "WM_EnableFastWalk: " << enable << std::endl;
-
 	DWORD pFastWalk = CONVERT_GAMEVAR<DWORD>(0x42EB8ul);
 
 	if (FALSE == enable)
@@ -950,8 +918,6 @@ void GameService::WM_SetBoostSpeed(BOOL enable, int speed)
 	if (nullptr == g_hGameModule)
 		return;
 
-	print << "WM_SetBoostSpeed: " << enable << " " << speed << std::endl;
-
 	DWORD pBoostSpeed = CONVERT_GAMEVAR<DWORD>(0x1DEE4ul);
 	int* pSpeed = CONVERT_GAMEVAR<int*>(0xAB7CCul);
 
@@ -963,7 +929,7 @@ void GameService::WM_SetBoostSpeed(BOOL enable, int speed)
 		//util::MemoryMove(pBoostSpeed, "\x83\xF9\x02", 3u);
 		*reinterpret_cast<BYTE*>(pBoostSpeed + 2) = 2;
 
-		speedBoostValue.store(1UL, std::memory_order_release);
+		speedBoostValue = 1UL;
 	}
 	else
 	{
@@ -975,7 +941,7 @@ void GameService::WM_SetBoostSpeed(BOOL enable, int speed)
 			//util::MemoryMove(pBoostSpeed, "\x83\xF9\x0E", 3u);
 			*reinterpret_cast<BYTE*>(pBoostSpeed + 2) = 14;
 
-			speedBoostValue.store(1UL, std::memory_order_release);
+			speedBoostValue = 1UL;
 		}
 		else if ((speed > 14) && (speed <= 125))
 		{
@@ -985,7 +951,7 @@ void GameService::WM_SetBoostSpeed(BOOL enable, int speed)
 
 			*pBoostSpeedValue = static_cast<BYTE>(speed + 2);
 
-			speedBoostValue.store(static_cast<DWORD>(speed) - 13UL, std::memory_order_release);
+			speedBoostValue = static_cast<DWORD>(speed) - 13UL;
 		}
 	}
 }
@@ -996,13 +962,11 @@ void GameService::WM_EnableMoveLock(BOOL enable)
 	if (nullptr == g_hGameModule)
 		return;
 
-	print << "WM_EnableMoveLock: " << enable << std::endl;
-
 	//DWORD pMoveLock = CONVERT_GAMEVAR<DWORD>(0x42773ul);
 
-	if (enable != IS_MOVE_LOCK.load(std::memory_order_acquire))
+	if (enable != IS_MOVE_LOCK)
 	{
-		IS_MOVE_LOCK.store(enable, std::memory_order_release);
+		IS_MOVE_LOCK = enable;
 		DWORD* pMoveStart = CONVERT_GAMEVAR<DWORD*>(0x42795ul + 0x6ul);
 		*pMoveStart = !enable ? 1UL : 0UL;
 	}
@@ -1150,15 +1114,13 @@ void GameService::WM_CreateDialog(int type, int button, const char* data)
 	//call 00464AC0
 	//add esp, 18
 
-	print << std::to_string(type) << " " << std::to_string(button) << std::endl;
+	std::cout << std::to_string(type) << " " << std::to_string(button) << std::endl;
 	pCreateDialog(0, type, button, 0x10E1, 0x4D2, data);
 }
 
 void GameService::WM_SetBLockPacket(BOOL enable)
 {
-	print << "WM_SetBLockPacket: " << enable << std::endl;
-
-	IS_ENCOUNT_BLOCK_FLAG.store(enable, std::memory_order_release);
+	IS_ENCOUNT_BLOCK_FLAG = enable;
 }
 #pragma endregion
 
@@ -1248,7 +1210,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	case kInitialize:
 	{
 #ifdef _DEBUG
-		print << "kInitialize" << std::endl;
+		std::cout << "kInitialize" << std::endl;
 #endif
 		struct InitialData
 		{
@@ -1263,7 +1225,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			return 0L;
 
 #ifdef _DEBUG
-		print << std::hex << "parentHWnd:0x" << pData->parentHWnd << " port:" << std::to_string(pData->port) << " type:" << std::to_string(pData->type) << std::endl;
+		std::cout << std::hex << "parentHWnd:0x" << pData->parentHWnd << " port:" << std::to_string(pData->port) << " type:" << std::to_string(pData->type) << std::endl;
 #endif
 
 		g_GameService.initialize(pData->index, reinterpret_cast<HWND>(pData->parentHWnd), static_cast<unsigned short>(pData->type), static_cast<unsigned short>(pData->port));
@@ -1272,7 +1234,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	case kUninitialize:
 	{
 #ifdef _DEBUG
-		print << "kUninitialize" << std::endl;
+		std::cout << "kUninitialize" << std::endl;
 #endif
 		g_GameService.uninitialize();
 		SetWindowLongW(g_MainHwnd, GWL_WNDPROC, reinterpret_cast<LONG_PTR>(g_OldWndProc));
@@ -1451,7 +1413,7 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID)
 #endif
 
 #ifdef _DEBUG
-		CreateConsole();
+		//CreateConsole();
 #endif
 		DisableThreadLibraryCalls(hModule);
 	}
@@ -1614,9 +1576,7 @@ BOOL GameService::initialize(__int64 index, HWND parentHwnd, unsigned short type
 
 	DetourTransactionCommit();
 
-	WM_SetOptimize(TRUE);
-	WM_EnableEffect(FALSE);
-	WM_SetBoostSpeed(TRUE, 14);
+	WM_SetOptimize(true);
 
 #ifdef USE_ASYNC_TCP
 	if (nullptr == asyncClient_)
@@ -1850,7 +1810,7 @@ int GameService::connectServer(SOCKET& rsocket, const char* ip, unsigned short p
 
 	if (inet_pton(AF_INET, ip, &(serverAddr.sin_addr)) <= 0)
 	{
-		print << "Invalid address/ Address not supported \n";
+		std::cout << "Invalid address/ Address not supported \n";
 		return -1;
 	}
 
@@ -1858,7 +1818,7 @@ int GameService::connectServer(SOCKET& rsocket, const char* ip, unsigned short p
 	int nTimeout = 35000;
 	if (setsockopt(rsocket, SOL_SOCKET, SO_RCVTIMEO, (char*)&nTimeout, sizeof(nTimeout)) == SOCKET_ERROR)
 	{
-		print << "setsockopt failed with error code : " << WSAGetLastError() << std::endl;
+		std::cout << "setsockopt failed with error code : " << WSAGetLastError() << std::endl;
 		return -2;
 	}
 
@@ -1867,7 +1827,7 @@ int GameService::connectServer(SOCKET& rsocket, const char* ip, unsigned short p
 	nRet = ioctlsocket(rsocket, FIONBIO, (unsigned long*)&nFlag);
 	if (nRet == SOCKET_ERROR)//把當前套接字設為非阻塞模式失敗!
 	{
-		print << "ioctlsocket failed with error code : " << WSAGetLastError() << std::endl;
+		std::cout << "ioctlsocket failed with error code : " << WSAGetLastError() << std::endl;
 		return -3;
 	}
 
@@ -1904,7 +1864,7 @@ int GameService::connectServer(SOCKET& rsocket, const char* ip, unsigned short p
 	//若連接失敗則返回
 	if (bConnected == FALSE)//與服務器建立連接失敗！
 	{
-		print << "connect failed with error code : " << WSAGetLastError() << std::endl;
+		std::cout << "connect failed with error code : " << WSAGetLastError() << std::endl;
 		return -4;
 	}
 

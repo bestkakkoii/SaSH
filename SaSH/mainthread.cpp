@@ -51,7 +51,7 @@ bool ThreadManager::createThread(qint64 index, MainObject** ppObj, QObject* pare
 		threads_.insert(index, thread);
 		objects_.insert(index, object);
 
-		connect(thread, &QThread::started, object, &MainObject::run, Qt::QueuedConnection);
+		connect(thread, &QThread::started, object, &MainObject::run, Qt::UniqueConnection);
 		//after delete must set nullptr
 		connect(object, &MainObject::finished, this, [this]()
 			{
@@ -76,7 +76,7 @@ bool ThreadManager::createThread(qint64 index, MainObject** ppObj, QObject* pare
 				object = nullptr;
 				Injector::reset(index);
 
-			}, Qt::QueuedConnection);
+			}, Qt::UniqueConnection);
 		thread->start();
 
 		if (ppObj != nullptr)
@@ -412,6 +412,9 @@ qint64 MainObject::checkAndRunFunctions()
 	}
 	else
 	{
+		//檢查UI的設定是否有變化
+		checkControl();
+
 		switch (status)
 		{
 		default:
@@ -472,9 +475,6 @@ qint64 MainObject::checkAndRunFunctions()
 	emit signalDispatcher.updateLoginTimeLabelTextChanged(util::formatMilliseconds(injector.server->loginTimer.elapsed(), true));
 
 	updateAfkInfos();
-
-	//檢查UI的設定是否有變化
-	checkControl();
 
 	//更新數據緩存(跨線程安全容器)
 	setUserDatas();
@@ -778,19 +778,11 @@ void MainObject::checkControl()
 	qint64 W = injector.server->getWorldStatus();
 	if (bCheckedFastBattle && W == 9) //如果有開啟快速戰鬥，且畫面不在戰鬥中
 	{
-		if (flagBlockBattlePacketEnable_ != true)
-		{
-			flagBlockBattlePacketEnable_ = true;
-			injector.postMessage(kSetBlockPacket, true, NULL);
-		}
+		injector.postMessage(kSetBlockPacket, true, NULL);
 	}
 	else
 	{
-		if (flagBlockBattlePacketEnable_ != false)
-		{
-			flagBlockBattlePacketEnable_ = false;
-			injector.postMessage(kSetBlockPacket, false, NULL);
-		}
+		injector.postMessage(kSetBlockPacket, false, NULL);
 	}
 
 	//異步關閉特效
@@ -2214,12 +2206,12 @@ void MainObject::checkAutoLockSchedule()
 			PET pet = injector.server->getPet(i);
 			if ((pet.state != kRest && pet.state != kStandby) && set == util::kLockPetScheduleString)
 				injector.server->setPetState(i, kRest);
-				}
+		}
 		return false;
-			};
+	};
 
 	if (injector.getEnableHash(util::kLockPetScheduleEnable) && !injector.getEnableHash(util::kLockPetEnable) && !injector.getEnableHash(util::kLockRideEnable))
 		checkSchedule(util::kLockPetScheduleString);
 
-	}
+}
 #endif

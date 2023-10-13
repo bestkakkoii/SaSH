@@ -174,17 +174,17 @@ private:
 #endif
 
 private:
-	std::atomic_int IS_BATTLE_PROC_FLAG = FALSE;
-	std::atomic_int IS_TIME_LOCK_FLAG = FALSE;
-	std::atomic_int IS_SOUND_MUTE_FLAG = FALSE;
-	std::atomic_int IS_ENCOUNT_BLOCK_FLAG = FALSE;
-	std::atomic_int IS_MOVE_LOCK = FALSE;
+	BOOL IS_BATTLE_PROC_FLAG = FALSE;
+	BOOL IS_TIME_LOCK_FLAG = FALSE;
+	BOOL IS_SOUND_MUTE_FLAG = FALSE;
+	BOOL IS_ENCOUNT_BLOCK_FLAG = FALSE;
+	BOOL IS_MOVE_LOCK = FALSE;
 
 private:
-	std::atomic_int currentMusic_ = 15;
-	std::atomic_int currentSound_ = 15;
-	std::atomic_int nowChatRowCount_ = 10;
-	std::atomic_ulong speedBoostValue = 1UL;
+	int currentMusic_ = 15;
+	int currentSound_ = 15;
+	int nowChatRowCount_ = 10;
+	DWORD speedBoostValue = 1UL;
 
 	std::atomic_int isInitialized_ = FALSE;
 	std::atomic_int enableSleepAdjust = FALSE;

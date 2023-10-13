@@ -3417,10 +3417,10 @@ New version:%2</source>
         <translation type="vanished">腳本編輯</translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="9137"/>
-        <location filename="../net/tcpserver.cpp" line="9178"/>
-        <location filename="../net/tcpserver.cpp" line="9219"/>
-        <location filename="../net/tcpserver.cpp" line="9374"/>
+        <location filename="../net/tcpserver.cpp" line="9134"/>
+        <location filename="../net/tcpserver.cpp" line="9175"/>
+        <location filename="../net/tcpserver.cpp" line="9216"/>
+        <location filename="../net/tcpserver.cpp" line="9371"/>
         <source>use %1 to %2</source>
         <translation>對 %2 使用 %1</translation>
     </message>
@@ -3441,12 +3441,12 @@ New version:%2</source>
         <translation type="vanished">對 %2 使用 道具 %1</translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="9241"/>
+        <location filename="../net/tcpserver.cpp" line="9238"/>
         <source>defense</source>
         <translation>防禦</translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="9258"/>
+        <location filename="../net/tcpserver.cpp" line="9255"/>
         <source>escape</source>
         <translation>逃跑</translation>
     </message>
@@ -3455,49 +3455,49 @@ New version:%2</source>
         <translation type="vanished">捕捉 %1</translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="9309"/>
+        <location filename="../net/tcpserver.cpp" line="9306"/>
         <source>switch pet to %1</source>
         <translation>戰寵切換成 %1</translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="9328"/>
-        <location filename="../net/tcpserver.cpp" line="9403"/>
+        <location filename="../net/tcpserver.cpp" line="9325"/>
+        <location filename="../net/tcpserver.cpp" line="9400"/>
         <source>do nothing</source>
         <translation>什麼都不做</translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="9655"/>
+        <location filename="../net/tcpserver.cpp" line="9652"/>
         <source>player exp:</source>
         <translation>人物經驗:</translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="9656"/>
+        <location filename="../net/tcpserver.cpp" line="9653"/>
         <source>ride exp:</source>
         <translation>騎寵經驗:</translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="9657"/>
+        <location filename="../net/tcpserver.cpp" line="9654"/>
         <source>pet exp:</source>
         <translation>戰寵經驗:</translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="9732"/>
+        <location filename="../net/tcpserver.cpp" line="9729"/>
         <source>rewards:</source>
         <translation>掉落物品:</translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="11015"/>
+        <location filename="../net/tcpserver.cpp" line="11012"/>
         <source>server response time:%1ms</source>
         <translation>伺服器響應時間:%1ms</translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="11448"/>
+        <location filename="../net/tcpserver.cpp" line="11445"/>
         <source>Tell you:</source>
         <translation>告訴你：</translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="12527"/>
-        <location filename="../net/tcpserver.cpp" line="12887"/>
+        <location filename="../net/tcpserver.cpp" line="12524"/>
+        <location filename="../net/tcpserver.cpp" line="12884"/>
         <source>%1(%2tr)</source>
         <translation>%1(%2轉)</translation>
     </message>
@@ -3547,68 +3547,68 @@ New version:%2</source>
         <translation>手套</translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="2451"/>
+        <location filename="../net/tcpserver.cpp" line="2452"/>
         <source>(normal)</source>
         <translation>(正常)</translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="2455"/>
+        <location filename="../net/tcpserver.cpp" line="2452"/>
         <source>(be surprised)</source>
         <translation>(遭遇偷襲)</translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="9099"/>
+        <location filename="../net/tcpserver.cpp" line="9096"/>
         <source>use attack [%1]%2</source>
         <translation>對 [%1]%2 使用 攻擊</translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="9133"/>
+        <location filename="../net/tcpserver.cpp" line="9130"/>
         <source>use magic %1 to [%2]%3</source>
         <translation>對 [%2]%3 使用精靈 %1</translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="9174"/>
+        <location filename="../net/tcpserver.cpp" line="9171"/>
         <source>use skill %1 to [%2]%3</source>
         <translation>對 [%2]%3 使用技能 %1</translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="9215"/>
+        <location filename="../net/tcpserver.cpp" line="9212"/>
         <source>use item %1 to [%2]%3</source>
         <translation>對 [%2]%3 使用道具 %1</translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="9280"/>
+        <location filename="../net/tcpserver.cpp" line="9277"/>
         <source>catch [%1]%2</source>
         <translation>捕捉 [%1]%2</translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="9370"/>
+        <location filename="../net/tcpserver.cpp" line="9367"/>
         <source>use %1 to [%2]%3</source>
         <translation>對 [%2]%3 使用 %1</translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="8274"/>
+        <location filename="../net/tcpserver.cpp" line="8271"/>
         <source>all allies</source>
         <translation>我方全體</translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="2453"/>
+        <location filename="../net/tcpserver.cpp" line="2450"/>
         <source>(surprise)</source>
         <translation>(出奇不意)</translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="8276"/>
+        <location filename="../net/tcpserver.cpp" line="8273"/>
         <source>all enemies</source>
         <translation>敵方全體</translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="8278"/>
+        <location filename="../net/tcpserver.cpp" line="8275"/>
         <source>all field</source>
         <translation>場地</translation>
     </message>
     <message>
         <location filename="../form/scripteditor.cpp" line="2548"/>
-        <location filename="../net/tcpserver.cpp" line="8280"/>
+        <location filename="../net/tcpserver.cpp" line="8277"/>
         <location filename="../script/parser.cpp" line="4240"/>
         <location filename="../script_lua/clua.h" line="48"/>
         <source>unknown</source>
@@ -3711,7 +3711,7 @@ New version:%2</source>
         <translation type="vanished">&lt;尋路&gt;地圖已變更，放棄尋路</translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="9368"/>
+        <location filename="../net/tcpserver.cpp" line="9365"/>
         <source>self</source>
         <translation>自己</translation>
     </message>
@@ -3833,12 +3833,12 @@ New version:%2</source>
         <translation type="vanished">備份</translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="2558"/>
+        <location filename="../net/tcpserver.cpp" line="2555"/>
         <source>left</source>
         <translation>左</translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="2558"/>
+        <location filename="../net/tcpserver.cpp" line="2555"/>
         <source>right</source>
         <translation>右</translation>
     </message>
@@ -4185,7 +4185,7 @@ New version:%2</source>
         <translation>@ %1 |  &apos;%3&apos; 中出現多於的 &apos;%2&apos;</translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="2629"/>
+        <location filename="../net/tcpserver.cpp" line="2626"/>
         <source>(cost:%1)</source>
         <translation>(消耗:%1)</translation>
     </message>
@@ -4552,7 +4552,7 @@ New version:%2</source>
         <translation>遠程內存空間分配失敗</translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="12527"/>
+        <location filename="../net/tcpserver.cpp" line="12524"/>
         <source>L:%1</source>
         <translation>運:%1</translation>
     </message>
@@ -4567,7 +4567,7 @@ New version:%2</source>
         <translation>隱藏控制台</translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="5437"/>
+        <location filename="../net/tcpserver.cpp" line="5434"/>
         <source>[warn]Battle command transmission timeout, initiating backup instructions.</source>
         <translation>[警告]戰鬥指令超時，啟動備用指令.</translation>
     </message>
@@ -4881,8 +4881,8 @@ New version:%2</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../net/tcpserver.cpp" line="5327"/>
-        <location filename="../net/tcpserver.cpp" line="10692"/>
+        <location filename="../net/tcpserver.cpp" line="5324"/>
+        <location filename="../net/tcpserver.cpp" line="10689"/>
         <source>R</source>
         <translation>騎</translation>
     </message>
