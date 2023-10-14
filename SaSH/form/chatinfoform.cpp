@@ -82,10 +82,9 @@ ChatInfoForm::ChatInfoForm(qint64 index, QWidget* parent)
 
 	Injector& injector = Injector::getInstance(index);
 
-	if (!injector.chatLogModel.isNull())
-		ui.listView_log->setModel(injector.chatLogModel.get());
+	ui.listView_log->setModel(&injector.chatLogModel);
 
-	delegate_ = new ColorDelegate(this);
+	delegate_ = q_check_ptr(new ColorDelegate(this));
 	Q_ASSERT(delegate_ != nullptr);
 	if (delegate_ == nullptr)
 		return;
@@ -155,8 +154,7 @@ void ChatInfoForm::onApplyHashSettingsToUI()
 {
 	qint64 currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
-	if (!injector.chatLogModel.isNull())
-		ui.listView_log->setModel(injector.chatLogModel.get());
+	ui.listView_log->setModel(&injector.chatLogModel);
 }
 
 void ChatInfoForm::onResetControlTextLanguage()

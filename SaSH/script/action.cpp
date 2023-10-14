@@ -1781,7 +1781,7 @@ qint64 Interpreter::trade(qint64 currentIndex, qint64 currentLine, const TokenMa
 
 	QPoint dst;
 	CAStar astar;
-	qint64 dir = injector.server->mapAnalyzer->calcBestFollowPointByDstPoint(astar, injector.server->getFloor(), injector.server->getPoint(), unit.p, &dst, true, unit.dir);
+	qint64 dir = injector.server->mapAnalyzer.calcBestFollowPointByDstPoint(astar, injector.server->getFloor(), injector.server->getPoint(), unit.p, &dst, true, unit.dir);
 	if (dir == -1)
 		return Parser::kNoChange;
 

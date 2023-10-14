@@ -21,13 +21,13 @@ settingfiledialog::settingfiledialog(const QString& defaultName, QWidget* parent
 	if (!defaultName.isEmpty())
 	{
 		QFileInfo info(defaultName);
-		firstItem_ = new QListWidgetItem(info.fileName());
+		firstItem_ = q_check_ptr(new QListWidgetItem(info.fileName()));
 		if (firstItem_ != nullptr)
 		{
 			firstItem_->setData(Qt::UserRole, QString("custom"));
 			firstItem_->setForeground(QColor("#BD5F5F"));
 			ui.listWidget->addItem(firstItem_);
-			lineEdit_ = new QLineEdit(info.fileName());
+			lineEdit_ = q_check_ptr(new QLineEdit(info.fileName()));
 			if (lineEdit_ != nullptr)
 				connect(lineEdit_, &QLineEdit::textChanged, this, &settingfiledialog::onLineEditTextChanged);
 			this->layout()->addWidget(lineEdit_);
@@ -41,7 +41,7 @@ settingfiledialog::settingfiledialog(const QString& defaultName, QWidget* parent
 
 		QFileInfo info(str);
 
-		QListWidgetItem* item = new QListWidgetItem(info.fileName());
+		QListWidgetItem* item = q_check_ptr(new QListWidgetItem(info.fileName()));
 		if (item == nullptr)
 			continue;
 

@@ -36,11 +36,11 @@ bool ThreadManager::createThread(qint64 index, MainObject** ppObj, QObject* pare
 
 	do
 	{
-		MainObject* object = new MainObject(index, nullptr);
+		MainObject* object = q_check_ptr(new MainObject(index, nullptr));
 		if (nullptr == object)
 			break;
 
-		QThread* thread = new QThread(this);
+		QThread* thread = q_check_ptr(new QThread(this));
 		if (nullptr == thread)
 			break;
 
@@ -275,7 +275,7 @@ void MainObject::mainProc()
 			nodelay = false;
 		}
 		else
-			QThread::msleep(1);
+			QThread::msleep(200);
 
 		//檢查是否接收到停止執行的訊號
 		if (isInterruptionRequested())
@@ -312,7 +312,7 @@ void MainObject::mainProc()
 		if (injector.getEnableHash(util::kAutoFreeMemoryEnable) && freeSelfMemTimer.hasExpired(60ll * 60ll * 1000ll))
 		{
 			freeSelfMemTimer.restart();
-			injector.server->mapAnalyzer->clear();
+			injector.server->mapAnalyzer.clear();
 		}
 		else
 			freeSelfMemTimer.restart();
@@ -439,8 +439,7 @@ qint64 MainObject::checkAndRunFunctions()
 				login_run_once_flag_ = true;
 
 				injector.server->clear();
-				if (!injector.chatLogModel.isNull())
-					injector.chatLogModel->clear();
+				injector.chatLogModel.clear();
 			}
 
 			injector.server->loginTimer.restart();
@@ -624,7 +623,7 @@ void MainObject::battleTimeThread()
 			break;
 
 		injector.server->updateBattleTimeInfo();
-		QThread::msleep(1);
+		QThread::msleep(50);
 	}
 	battleTime_future_cancel_flag_.store(false, std::memory_order_release);
 }
@@ -825,9 +824,9 @@ void MainObject::checkEtcFlag()
 	qint64 flg = injector.server->getPC().etcFlag;
 	bool hasChange = false;
 	auto toBool = [flg](qint64 f)->bool
-	{
-		return ((flg & f) != 0);
-	};
+		{
+			return ((flg & f) != 0);
+		};
 
 	bool bCurrent = injector.getEnableHash(util::kSwitcherTeamEnable);
 	if (toBool(PC_ETCFLAG_GROUP) != bCurrent)
@@ -1258,7 +1257,7 @@ void MainObject::checkAutoJoin()
 						}
 
 						//計算最短離靠近目標人物的坐標和面相的方向
-						dir = injector.server->mapAnalyzer->calcBestFollowPointByDstPoint(astar, floor, current_point, unit.p, &newpoint, false, -1);
+						dir = injector.server->mapAnalyzer.calcBestFollowPointByDstPoint(astar, floor, current_point, unit.p, &newpoint, false, -1);
 						if (-1 == dir)
 							break;
 
@@ -1267,13 +1266,13 @@ void MainObject::checkAutoJoin()
 
 						if (current_point != newpoint)
 						{
-							if (!injector.server->mapAnalyzer->getMapDataByFloor(floor, &map))
+							if (!injector.server->mapAnalyzer.getMapDataByFloor(floor, &map))
 							{
-								injector.server->mapAnalyzer->readFromBinary(floor, injector.server->getFloorName(), false);
+								injector.server->mapAnalyzer.readFromBinary(floor, injector.server->getFloorName(), false);
 								continue;
 							}
 
-							if (!injector.server->mapAnalyzer->calcNewRoute(astar, floor, current_point, newpoint, blockList, &path))
+							if (!injector.server->mapAnalyzer.calcNewRoute(astar, floor, current_point, newpoint, blockList, &path))
 								return;
 
 							len = MAX_SINGLE_STEP;
@@ -1345,26 +1344,26 @@ void MainObject::checkAutoHeal()
 				Injector& injector = Injector::getInstance(getIndex());
 
 				auto checkStatus = [this, &injector]()->qint64
-				{
-					//如果主線程關閉則自動退出
-					if (isInterruptionRequested())
-						return -1;
+					{
+						//如果主線程關閉則自動退出
+						if (isInterruptionRequested())
+							return -1;
 
-					//如果停止標誌為真則自動退出
-					if (autoheal_future_cancel_flag_.load(std::memory_order_acquire))
-						return -1;
+						//如果停止標誌為真則自動退出
+						if (autoheal_future_cancel_flag_.load(std::memory_order_acquire))
+							return -1;
 
-					if (injector.server.isNull())
-						return -1;
+						if (injector.server.isNull())
+							return -1;
 
-					if (!injector.server->getOnlineFlag())
-						return 0;
+						if (!injector.server->getOnlineFlag())
+							return 0;
 
-					if (injector.server->getBattleFlag())
-						return 0;
+						if (injector.server->getBattleFlag())
+							return 0;
 
-					return 1;
-				};
+						return 1;
+					};
 
 				for (;;)
 				{
@@ -1585,29 +1584,29 @@ void MainObject::checkAutoDropPet()
 			{
 				Injector& injector = Injector::getInstance(getIndex());
 				auto checkStatus = [this, &injector]()->qint64
-				{
-					//如果主線程關閉則自動退出
-					if (isInterruptionRequested())
-						return -1;
+					{
+						//如果主線程關閉則自動退出
+						if (isInterruptionRequested())
+							return -1;
 
-					//如果停止標誌為真則自動退出
-					if (autodroppet_future_cancel_flag_.load(std::memory_order_acquire))
-						return -1;
+						//如果停止標誌為真則自動退出
+						if (autodroppet_future_cancel_flag_.load(std::memory_order_acquire))
+							return -1;
 
-					if (!injector.getEnableHash(util::kDropPetEnable))
-						return -1;
+						if (!injector.getEnableHash(util::kDropPetEnable))
+							return -1;
 
-					if (injector.server.isNull())
-						return -1;
+						if (injector.server.isNull())
+							return -1;
 
-					if (!injector.server->getOnlineFlag())
-						return 0;
+						if (!injector.server->getOnlineFlag())
+							return 0;
 
-					if (injector.server->getBattleFlag())
-						return 0;
+						if (injector.server->getBattleFlag())
+							return 0;
 
-					return 1;
-				};
+						return 1;
+					};
 
 				for (;;)
 				{
@@ -1730,27 +1729,27 @@ void MainObject::checkAutoDropItems()
 			{
 				Injector& injector = Injector::getInstance(getIndex());
 				auto checkEnable = [this, &injector]()->qint64
-				{
-					if (isInterruptionRequested())
-						return -1;
+					{
+						if (isInterruptionRequested())
+							return -1;
 
-					if (autodropitem_future_cancel_flag_.load(std::memory_order_acquire))
-						return -1;
+						if (autodropitem_future_cancel_flag_.load(std::memory_order_acquire))
+							return -1;
 
-					if (!injector.getEnableHash(util::kAutoDropEnable))
-						return -1;
+						if (!injector.getEnableHash(util::kAutoDropEnable))
+							return -1;
 
-					if (injector.server.isNull())
-						return -1;
+						if (injector.server.isNull())
+							return -1;
 
-					if (!injector.server->getOnlineFlag())
-						return 0;
+						if (!injector.server->getOnlineFlag())
+							return 0;
 
-					if (injector.server->getBattleFlag())
-						return 0;
+						if (injector.server->getBattleFlag())
+							return 0;
 
-					return 1;
-				};
+						return 1;
+					};
 
 				for (;;)
 				{
@@ -1822,24 +1821,24 @@ void MainObject::checkAutoEatBoostExpItem()
 {
 	Injector& injector = Injector::getInstance(getIndex());
 	auto checkEnable = [this, &injector]()->bool
-	{
-		if (isInterruptionRequested())
-			return false;
+		{
+			if (isInterruptionRequested())
+				return false;
 
-		if (!injector.getEnableHash(util::kAutoEatBeanEnable))
-			return false;
+			if (!injector.getEnableHash(util::kAutoEatBeanEnable))
+				return false;
 
-		if (injector.server.isNull())
-			return false;
+			if (injector.server.isNull())
+				return false;
 
-		if (!injector.server->getOnlineFlag())
-			return false;
+			if (!injector.server->getOnlineFlag())
+				return false;
 
-		if (injector.server->getBattleFlag())
-			return false;
+			if (injector.server->getBattleFlag())
+				return false;
 
-		return true;
-	};
+			return true;
+		};
 
 	if (!checkEnable())
 		return;
@@ -1877,21 +1876,25 @@ void MainObject::checkRecordableNpcInfo()
 
 	pointerwriter_future_ = QtConcurrent::run([this]()
 		{
+			Injector& injector = Injector::getInstance(getIndex());
 			for (;;)
 			{
-				QThread::msleep(1000);
-				Injector& injector = Injector::getInstance(getIndex());
-				if (injector.server.isNull())
-					return;
+				for (__int64 i = 0; i < 5; ++i)
+				{
+					QThread::msleep(1000);
 
-				if (isInterruptionRequested())
-					return;
+					if (injector.server.isNull())
+						return;
 
-				if (pointerwriter_future_cancel_flag_.load(std::memory_order_acquire))
-					return;
+					if (isInterruptionRequested())
+						return;
 
-				if (injector.server.isNull())
-					return;
+					if (pointerwriter_future_cancel_flag_.load(std::memory_order_acquire))
+						return;
+
+					if (injector.server.isNull())
+						return;
+				}
 
 				if (!injector.server->getOnlineFlag())
 					continue;
@@ -1902,7 +1905,7 @@ void MainObject::checkRecordableNpcInfo()
 				CAStar astar;
 
 				QHash<qint64, mapunit_t> units = injector.server->mapUnitHash.toHash();
-				util::Config config(injector.getPointFileName());
+				util::Config config(injector.getPointFileName(), QString("%1|%2").arg(__FUNCTION__).arg(__LINE__));
 
 				for (const mapunit_t& unit : units)
 				{
@@ -1942,7 +1945,7 @@ void MainObject::checkRecordableNpcInfo()
 					//npc前方一格
 					QPoint newPoint = util::fix_point.value(unit.dir) + unit.p;
 					//檢查是否可走
-					if (injector.server->mapAnalyzer->isPassable(astar, nowFloor, nowPoint, newPoint))
+					if (injector.server->mapAnalyzer.isPassable(astar, nowFloor, nowPoint, newPoint))
 					{
 						d.x = newPoint.x();
 						d.y = newPoint.y();
@@ -1952,7 +1955,7 @@ void MainObject::checkRecordableNpcInfo()
 						//再往前一格
 						QPoint additionPoint = util::fix_point.value(unit.dir) + newPoint;
 						//檢查是否可走
-						if (injector.server->mapAnalyzer->isPassable(astar, nowFloor, nowPoint, additionPoint))
+						if (injector.server->mapAnalyzer.isPassable(astar, nowFloor, nowPoint, additionPoint))
 						{
 							d.x = additionPoint.x();
 							d.y = additionPoint.y();
@@ -1964,7 +1967,7 @@ void MainObject::checkRecordableNpcInfo()
 							for (qint64 i = 0; i < 8; ++i)
 							{
 								newPoint = util::fix_point.value(i) + unit.p;
-								if (injector.server->mapAnalyzer->isPassable(astar, nowFloor, nowPoint, newPoint))
+								if (injector.server->mapAnalyzer.isPassable(astar, nowFloor, nowPoint, newPoint))
 								{
 									d.x = newPoint.x();
 									d.y = newPoint.y();
@@ -2062,153 +2065,153 @@ void MainObject::checkAutoLockSchedule()
 		return;
 
 	auto checkSchedule = [this](util::UserSetting set)->bool
-	{
-		static const QHash <QString, PetState> hashType = {
-			{ "戰", kBattle },
-			{ "騎", kRide },
-
-			{ "战", kBattle },
-			{ "骑", kRide },
-
-			{ "B", kBattle },
-			{ "R", kRide },
-		};
-
-		Injector& injector = Injector::getInstance(getIndex());
-		QString lockPetSchedule = injector.getStringHash(set);
-		qint64 rindex = -1;
-		qint64 bindex = -1;
-		do
 		{
-			if (lockPetSchedule.isEmpty())
-				break;
+			static const QHash <QString, PetState> hashType = {
+				{ "戰", kBattle },
+				{ "騎", kRide },
 
-			const QStringList scheduleList = lockPetSchedule.split(util::rexOR, Qt::SkipEmptyParts);
-			if (scheduleList.isEmpty())
-				break;
+				{ "战", kBattle },
+				{ "骑", kRide },
 
-			for (const QString& schedule : scheduleList)
+				{ "B", kBattle },
+				{ "R", kRide },
+			};
+
+			Injector& injector = Injector::getInstance(getIndex());
+			QString lockPetSchedule = injector.getStringHash(set);
+			qint64 rindex = -1;
+			qint64 bindex = -1;
+			do
 			{
-				if (schedule.isEmpty())
-					continue;
+				if (lockPetSchedule.isEmpty())
+					break;
 
-				const QStringList schedules = schedule.split(util::rexSemicolon, Qt::SkipEmptyParts);
-				if (schedules.isEmpty())
-					continue;
+				const QStringList scheduleList = lockPetSchedule.split(util::rexOR, Qt::SkipEmptyParts);
+				if (scheduleList.isEmpty())
+					break;
 
-				for (const QString& it : schedules)
+				for (const QString& schedule : scheduleList)
 				{
-					const QStringList args = it.split(util::rexComma, Qt::SkipEmptyParts);
-					if (args.isEmpty() || args.size() != 3)
+					if (schedule.isEmpty())
 						continue;
 
-					QString name = args.value(0).simplified();
-					if (name.isEmpty())
+					const QStringList schedules = schedule.split(util::rexSemicolon, Qt::SkipEmptyParts);
+					if (schedules.isEmpty())
 						continue;
 
-					QString nameStr = name.left(1);
-					qint64 petIndex = -1;
-					bool ok = false;
-					petIndex = nameStr.toLongLong(&ok);
-					if (!ok)
-						continue;
-					--petIndex;
-
-					if (petIndex < 0 || petIndex >= MAX_PET)
-						continue;
-
-					QString levelStr = args.value(1).simplified();
-					if (levelStr.isEmpty())
-						continue;
-
-					ok = false;
-					qint64 level = levelStr.toLongLong(&ok);
-					if (!ok)
-						continue;
-
-					if (level < 0 || level > 255)
-						continue;
-
-					QString typeStr = args.value(2).simplified();
-					if (typeStr.isEmpty())
-						continue;
-
-					PetState type = hashType.value(typeStr, kRest);
-
-					PET pet = injector.server->getPet(petIndex);
-
-					if (pet.level >= level)
-						continue;
-
-					if (type == kBattle)
+					for (const QString& it : schedules)
 					{
-						if (bindex != -1)
+						const QStringList args = it.split(util::rexComma, Qt::SkipEmptyParts);
+						if (args.isEmpty() || args.size() != 3)
 							continue;
 
-						if (rindex != -1 && rindex == petIndex)
+						QString name = args.value(0).simplified();
+						if (name.isEmpty())
 							continue;
 
-						bindex = petIndex;
-					}
-					else if (type == kRide)
-					{
-						if (rindex != -1)
+						QString nameStr = name.left(1);
+						qint64 petIndex = -1;
+						bool ok = false;
+						petIndex = nameStr.toLongLong(&ok);
+						if (!ok)
+							continue;
+						--petIndex;
+
+						if (petIndex < 0 || petIndex >= MAX_PET)
 							continue;
 
-						if (bindex != -1 && bindex == petIndex)
+						QString levelStr = args.value(1).simplified();
+						if (levelStr.isEmpty())
+							continue;
+
+						ok = false;
+						qint64 level = levelStr.toLongLong(&ok);
+						if (!ok)
+							continue;
+
+						if (level < 0 || level > 255)
+							continue;
+
+						QString typeStr = args.value(2).simplified();
+						if (typeStr.isEmpty())
+							continue;
+
+						PetState type = hashType.value(typeStr, kRest);
+
+						PET pet = injector.server->getPet(petIndex);
+
+						if (pet.level >= level)
+							continue;
+
+						if (type == kBattle)
 						{
-							bindex = -1;
+							if (bindex != -1)
+								continue;
+
+							if (rindex != -1 && rindex == petIndex)
+								continue;
+
+							bindex = petIndex;
+						}
+						else if (type == kRide)
+						{
+							if (rindex != -1)
+								continue;
+
+							if (bindex != -1 && bindex == petIndex)
+							{
+								bindex = -1;
+							}
+
+							rindex = petIndex;
 						}
 
-						rindex = petIndex;
+						if (rindex != -1 && bindex != -1)
+							break;
 					}
 
-					if (rindex != -1 && bindex != -1)
+					if (rindex != -1 || bindex != -1)
 						break;
 				}
+			} while (false);
 
-				if (rindex != -1 || bindex != -1)
-					break;
-			}
-		} while (false);
-
-		if (rindex != -1)
-		{
-			PET pet = injector.server->getPet(rindex);
-			if (pet.hp <= 1)
+			if (rindex != -1)
 			{
-				injector.server->setPetState(rindex, kRest);
-				QThread::msleep(100);
+				PET pet = injector.server->getPet(rindex);
+				if (pet.hp <= 1)
+				{
+					injector.server->setPetState(rindex, kRest);
+					QThread::msleep(100);
+				}
+
+				if (pet.state != kRide)
+					injector.server->setPetState(rindex, kRide);
 			}
 
-			if (pet.state != kRide)
-				injector.server->setPetState(rindex, kRide);
-		}
-
-		if (bindex != -1)
-		{
-			PET pet = injector.server->getPet(bindex);
-			if (pet.hp <= 1)
+			if (bindex != -1)
 			{
-				injector.server->setPetState(bindex, kRest);
-				QThread::msleep(100);
+				PET pet = injector.server->getPet(bindex);
+				if (pet.hp <= 1)
+				{
+					injector.server->setPetState(bindex, kRest);
+					QThread::msleep(100);
+				}
+
+				if (pet.state != kBattle)
+					injector.server->setPetState(bindex, kBattle);
 			}
 
-			if (pet.state != kBattle)
-				injector.server->setPetState(bindex, kBattle);
-		}
+			for (qint64 i = 0; i < MAX_PET; ++i)
+			{
+				if (bindex == i || rindex == i)
+					continue;
 
-		for (qint64 i = 0; i < MAX_PET; ++i)
-		{
-			if (bindex == i || rindex == i)
-				continue;
-
-			PET pet = injector.server->getPet(i);
-			if ((pet.state != kRest && pet.state != kStandby) && set == util::kLockPetScheduleString)
-				injector.server->setPetState(i, kRest);
-		}
-		return false;
-	};
+				PET pet = injector.server->getPet(i);
+				if ((pet.state != kRest && pet.state != kStandby) && set == util::kLockPetScheduleString)
+					injector.server->setPetState(i, kRest);
+			}
+			return false;
+		};
 
 	if (injector.getEnableHash(util::kLockPetScheduleEnable) && !injector.getEnableHash(util::kLockPetEnable) && !injector.getEnableHash(util::kLockRideEnable))
 		checkSchedule(util::kLockPetScheduleString);

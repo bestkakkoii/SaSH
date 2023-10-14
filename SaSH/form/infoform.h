@@ -22,6 +22,14 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "ui_infoform.h"
 #include <indexer.h>
 
+#include "battleinfoform.h"
+#include "playerinfoform.h"
+#include "iteminfoform.h"
+#include "chatinfoform.h"
+#include "mailinfoform.h"
+#include "petinfoform.h"
+#include "afkinfoform.h"
+
 class BattleInfoForm;
 class CharInfoForm;
 class ItemInfoForm;
@@ -53,11 +61,11 @@ protected:
 private:
 	Ui::InfoFormClass ui;
 
-	BattleInfoForm* pBattleInfoForm_ = nullptr;
-	CharInfoForm* pCharInfoForm_ = nullptr;
-	ItemInfoForm* pItemInfoForm_ = nullptr;
-	ChatInfoForm* pChatInfoForm_ = nullptr;
-	MailInfoForm* pMailInfoForm_ = nullptr;
-	PetInfoForm* pPetInfoForm_ = nullptr;
-	AfkInfoForm* pAfkInfoForm_ = nullptr;
+	BattleInfoForm pBattleInfoForm_;
+	CharInfoForm pCharInfoForm_;
+	ItemInfoForm pItemInfoForm_;
+	ChatInfoForm pChatInfoForm_;
+	//MailInfoForm pMailInfoForm_;
+	//PetInfoForm pPetInfoForm_;
+	AfkInfoForm pAfkInfoForm_;
 };

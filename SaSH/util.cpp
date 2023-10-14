@@ -100,7 +100,7 @@ QString mem::readString(HANDLE hProcess, quint64 desiredAccess, quint64 size, bo
 	if (!desiredAccess)
 		return "\0";
 
-	QScopedArrayPointer <char> p(new char[size + 1]());
+	QScopedArrayPointer <char> p(q_check_ptr(new char[size + 1]()));
 	memset(p.get(), 0, size + 1);
 
 	BOOL ret = read(hProcess, desiredAccess, size, p.get());
@@ -159,7 +159,7 @@ bool mem::writeString(HANDLE hProcess, quint64 baseAddress, const QString& str)
 	char* pBuffer = ba.data();
 	quint64 len = ba.size();
 
-	QScopedArrayPointer <char> p(new char[len + 1]());
+	QScopedArrayPointer <char> p(q_check_ptr(new char[len + 1]()));
 	memset(p.get(), 0, len + 1);
 
 	_snprintf_s(p.get(), len + 1, _TRUNCATE, "%s\0", pBuffer);
@@ -337,9 +337,9 @@ HMODULE mem::getRemoteModuleHandleByProcessHandleW(HANDLE hProcess, const QStrin
 long mem::getProcessExportTable32(HANDLE hProcess, const QString& ModuleName, IAT_EAT_INFO tbinfo[], int tb_info_max)
 {
 	ULONG64 muBase = 0, count = 0;
-	PIMAGE_DOS_HEADER pDosHeader = (PIMAGE_DOS_HEADER)new BYTE[sizeof(IMAGE_DOS_HEADER)];
-	PIMAGE_NT_HEADERS32 pNtHeaders = (PIMAGE_NT_HEADERS32)new BYTE[sizeof(IMAGE_NT_HEADERS32)];
-	PIMAGE_EXPORT_DIRECTORY pExport = (PIMAGE_EXPORT_DIRECTORY)new BYTE[sizeof(IMAGE_EXPORT_DIRECTORY)];
+	PIMAGE_DOS_HEADER pDosHeader = (PIMAGE_DOS_HEADER)q_check_ptr(new BYTE[sizeof(IMAGE_DOS_HEADER)]);
+	PIMAGE_NT_HEADERS32 pNtHeaders = (PIMAGE_NT_HEADERS32)q_check_ptr(new BYTE[sizeof(IMAGE_NT_HEADERS32)]);
+	PIMAGE_EXPORT_DIRECTORY pExport = (PIMAGE_EXPORT_DIRECTORY)q_check_ptr(new BYTE[sizeof(IMAGE_EXPORT_DIRECTORY)]);
 
 	char strName[130] = {};
 	memset(strName, 0, sizeof(strName));
@@ -752,25 +752,31 @@ bool mem::enumProcess(QVector<qint64>* pprocesses, const QString& moduleName)
 #pragma region Config
 QMutex g_fileLock;
 
-util::Config::Config()
+util::Config::Config(const QString& callBy)
 	: fileName_(QString::fromUtf8(qgetenv("JSON_PATH")))
 {
+	callby = callBy;
+	qDebug() << "============= callBy::::" << callBy;
 	g_fileLock.lock();//附加文件寫鎖
 	file_.setFileName(fileName_);
 	isVaild = open();
 }
 
-util::Config::Config(const QString& fileName)
+util::Config::Config(const QString& fileName, const QString& callBy)
 	: fileName_(fileName)
 {
+	callby = callBy;
+	qDebug() << "============= callBy::::" << callBy;
 	g_fileLock.lock();//附加文件寫鎖
 	file_.setFileName(fileName_);
 	isVaild = open();
 }
 
-util::Config::Config(const QByteArray& fileName)
+util::Config::Config(const QByteArray& fileName, const QString& callBy)
 	: fileName_(QString::fromUtf8(fileName))
 {
+	callby = callBy;
+	qDebug() << "============= callBy::::" << callBy;
 	g_fileLock.lock();//附加文件寫鎖
 	file_.setFileName(fileName_);
 	isVaild = open();
@@ -779,6 +785,7 @@ util::Config::Config(const QByteArray& fileName)
 util::Config::~Config()
 {
 	sync();//同步數據
+	qDebug() << "============= callBy::::" << callby << "has unlock";
 	g_fileLock.unlock();//解鎖
 }
 
@@ -1108,7 +1115,7 @@ QList<util::MapData> util::Config::readMapData(const QString& key) const
 
 void util::FormSettingManager::loadSettings()
 {
-	Config config;
+	Config config(QString("%1|%2").arg(__FUNCTION__).arg(__LINE__));
 
 	QString ObjectName;
 	if (mainwindow_ != nullptr)
@@ -1160,7 +1167,7 @@ void util::FormSettingManager::loadSettings()
 }
 void util::FormSettingManager::saveSettings()
 {
-	Config config;
+	Config config(QString("%1|%2").arg(__FUNCTION__).arg(__LINE__));
 	QString ObjectName;
 	QString qstrGeometry;
 	QString qstrState;
@@ -1211,7 +1218,7 @@ QFileInfoList util::loadAllFileLists(
 		if (!readFile(item.absoluteFilePath(), &content))
 			continue;
 
-		std::unique_ptr<TreeWidgetItem> child(new TreeWidgetItem(QStringList{ item.fileName() }, 1));
+		std::unique_ptr<TreeWidgetItem> child(q_check_ptr(new TreeWidgetItem(QStringList{ item.fileName() }, 1)));
 		if (child == nullptr)
 			continue;
 
@@ -1237,7 +1244,7 @@ QFileInfoList util::loadAllFileLists(
 		if (list != nullptr)
 			list->append(name);
 
-		std::unique_ptr<TreeWidgetItem> childroot(new TreeWidgetItem(QStringList{ name }, 1));
+		std::unique_ptr<TreeWidgetItem> childroot(q_check_ptr(new TreeWidgetItem(QStringList{ name }, 1)));
 		if (childroot == nullptr)
 			continue;
 
@@ -1280,7 +1287,7 @@ QFileInfoList util::loadAllFileLists(
 
 	for (const QFileInfo& item : list_file)
 	{
-		std::unique_ptr<TreeWidgetItem> child(new TreeWidgetItem(QStringList{ item.fileName() }, 1));
+		std::unique_ptr<TreeWidgetItem> child(q_check_ptr(new TreeWidgetItem(QStringList{ item.fileName() }, 1)));
 		bool bret = false;
 
 		if (child == nullptr)
@@ -1314,7 +1321,7 @@ QFileInfoList util::loadAllFileLists(
 		const QFileInfo folderinfo = folder_list.value(i);
 		const QString name = folderinfo.fileName(); //獲取目錄名
 
-		std::unique_ptr<TreeWidgetItem> childroot(new TreeWidgetItem());
+		std::unique_ptr<TreeWidgetItem> childroot(q_check_ptr(new TreeWidgetItem()));
 		if (childroot == nullptr)
 			continue;
 
@@ -1932,4 +1939,86 @@ QByteArray util::hexStringToByteArray(const QString& hexString)
 		byteArray.append(byte);
 	}
 	return byteArray;
+}
+
+bool util::fileDialogShow(const QString& name, qint64 acceptType, QString* retstring, QWidget* pparent)
+{
+	if (retstring != nullptr)
+		retstring->clear();
+
+	std::unique_ptr<QFileDialog> dialog(new QFileDialog(pparent));
+	if (dialog == nullptr)
+		return false;
+
+	dialog->setAttribute(Qt::WA_QuitOnClose);
+	dialog->setModal(false);
+	dialog->setAcceptMode(static_cast<QFileDialog::AcceptMode>(acceptType));
+
+	QFileInfo fileInfo(name);
+	dialog->setDefaultSuffix(fileInfo.suffix());
+
+	dialog->setFileMode(QFileDialog::AnyFile);
+	//dialog->setFilter(QDir::Filters::
+	//dialog->setHistory(const QStringList & paths)
+	//dialog->setIconProvider(QFileIconProvider * provider)
+	//dialog->setItemDelegate(QAbstractItemDelegate * delegate)
+	dialog->setLabelText(QFileDialog::LookIn, QObject::tr("Look in:"));
+	dialog->setLabelText(QFileDialog::FileName, QObject::tr("File name:"));
+	dialog->setLabelText(QFileDialog::FileType, QObject::tr("File type:"));
+	dialog->setLabelText(QFileDialog::Accept, QObject::tr("Open"));
+	dialog->setLabelText(QFileDialog::Reject, QObject::tr("Cancel"));
+
+	dialog->setNameFilter("*.txt *.lua *.json *.exe");
+
+	if (!name.isEmpty())
+	{
+		QStringList filters;
+		filters << name;
+		dialog->setNameFilters(filters);
+	}
+
+	dialog->setOption(QFileDialog::ShowDirsOnly, false);
+	dialog->setOption(QFileDialog::DontResolveSymlinks, true);
+	dialog->setOption(QFileDialog::DontConfirmOverwrite, true);
+	dialog->setOption(QFileDialog::DontUseNativeDialog, true);
+	dialog->setOption(QFileDialog::ReadOnly, true);
+	dialog->setOption(QFileDialog::HideNameFilterDetails, false);
+	dialog->setOption(QFileDialog::DontUseCustomDirectoryIcons, true);
+
+	//dialog->setProxyModel(QAbstractProxyModel * proxyModel)
+	QList<QUrl> urls;
+	urls << QUrl::fromLocalFile(util::applicationDirPath())
+		<< QUrl::fromLocalFile(QStandardPaths::standardLocations(QStandardPaths::MusicLocation).first());
+
+	dialog->setSidebarUrls(urls);
+	dialog->setSupportedSchemes(QStringList());
+	dialog->setViewMode(QFileDialog::ViewMode::List);
+
+	//directory
+	//自身目錄往上一層
+	QString directory = util::applicationDirPath();
+	directory = QDir::toNativeSeparators(directory);
+	directory = QDir::cleanPath(directory + QDir::separator() + "..");
+	dialog->setDirectory(directory);
+
+	do
+	{
+		if (dialog->exec() != QDialog::Accepted)
+			break;
+
+		QStringList fileNames = dialog->selectedFiles();
+		if (fileNames.isEmpty())
+			break;
+
+		QString fileName = fileNames.value(0);
+		if (fileName.isEmpty())
+			break;
+
+		if (retstring != nullptr)
+			*retstring = fileName;
+
+		return true;
+	} while (false);
+
+	return false;
 }

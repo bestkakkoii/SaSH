@@ -18,7 +18,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 #include "stdafx.h"
 #include "playerinfoform.h"
-#include "abilityform.h"
+
 
 #include "signaldispatcher.h"
 #include "injector.h"
@@ -26,12 +26,15 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 CharInfoForm::CharInfoForm(qint64 index, QWidget* parent)
 	: QWidget(parent)
 	, Indexer(index)
+	, abilityForm_(index, nullptr)
 {
 	ui.setupUi(this);
 
 	//register meta type of QVariant
 	qRegisterMetaType<QVariant>("QVariant");
 	qRegisterMetaType<QVariant>("QVariant&");
+
+	abilityForm_.hide();
 
 	ui.tableWidget->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
 	ui.tableWidget->verticalHeader()->setSectionResizeMode(QHeaderView::Stretch);
@@ -155,16 +158,11 @@ void CharInfoForm::onHeaderClicked(qint64 logicalIndex)
 	{
 	case 1:
 	{
-		AbilityForm* abilityForm = new AbilityForm(currentIndex, this);
-		abilityForm->setModal(true);
 		QPoint mousePos = QCursor::pos();
 		qint64 x = static_cast<qint64>(mousePos.x()) - 10;
 		qint64 y = static_cast<qint64>(mousePos.y()) + 50;
-		abilityForm->move(x, y);
-		if (abilityForm->exec() == QDialog::Accepted)
-		{
-			//do nothing
-		}
+		abilityForm_.move(x, y);
+		abilityForm_.show();
 		break;
 	}
 	default:

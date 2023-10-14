@@ -78,7 +78,7 @@ private:
 static bool createSelectObjectForm(SelectObjectForm::TitleType type, const QStringList srcselectlist, const QStringList& srclist, QStringList* dst, QWidget* perent)
 {
 	QStringList recviveList;
-	SelectObjectForm* pObjForm = new SelectObjectForm(type, perent);
+	SelectObjectForm* pObjForm = q_check_ptr(new SelectObjectForm(type, perent));
 	if (pObjForm != nullptr)
 	{
 		pObjForm->setRecviveList(&recviveList);

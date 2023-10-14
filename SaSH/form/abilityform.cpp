@@ -28,7 +28,7 @@ AbilityForm::AbilityForm(qint64 index, QWidget* parent)
 	ui.setupUi(this);
 	setWindowFlags(Qt::Dialog | Qt::Tool);
 	setFixedSize(this->width(), this->height());
-	setAttribute(Qt::WA_DeleteOnClose);
+	setAttribute(Qt::WA_QuitOnClose);
 
 	ui.tableWidget->horizontalHeader()->setStretchLastSection(true);
 	ui.tableWidget->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);

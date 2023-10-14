@@ -23,6 +23,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 #include <util.h>
 #include <indexer.h>
+#include "update/downloader.h"
 
 //取靠近目標的最佳座標和方向
 typedef struct qdistance_s
@@ -106,6 +107,8 @@ class MapAnalyzer : public Indexer
 public:
 	explicit MapAnalyzer(qint64 index);
 	virtual ~MapAnalyzer();
+
+	static void loadHotData(Downloader& downloder);
 
 	bool readFromBinary(qint64  floor, const QString& name, bool enableDraw = false, bool enableRewrite = false);
 
@@ -203,7 +206,7 @@ public:
 		bool CHECKRANGE(int y) const
 		{
 			return (((h()) - (y)) > 0) && (((h()) - (y)) < h());
-};
+		};
 	};
 #endif
 

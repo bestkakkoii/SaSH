@@ -42,7 +42,7 @@ public:
 	{
 		if (!instances.contains(index))
 		{
-			SignalDispatcher* instance = new SignalDispatcher(index);
+			SignalDispatcher* instance = q_check_ptr(new SignalDispatcher(index));
 			instances.insert(index, instance);
 		}
 		return *instances.value(index);
@@ -74,7 +74,6 @@ signals:
 	void nodifyAllScriptStop();
 	void messageBoxShow(const QString& text, qint64 type = 0, QString title = "", qint64* pnret = nullptr, QString topText = "", QString detail = "", void* p = nullptr);
 	void inputBoxShow(const QString& text, qint64 type, QVariant* retvalue, void* p);
-	void fileDialogShow(const QString& name, qint64 acceptType, QString* retstring, void* p);
 
 	void applyHashSettingsToUI();
 	void saveHashSettings(const QString& name = "default", bool isFullPath = false);

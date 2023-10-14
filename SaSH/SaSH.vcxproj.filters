@@ -567,9 +567,6 @@
     <QtUic Include="form\copyrightdialog.ui">
       <Filter>Source Files\forms</Filter>
     </QtUic>
-    <QtUic Include="update\downloader.ui">
-      <Filter>Form Files</Filter>
-    </QtUic>
     <QtUic Include="form\battlesettingfrom.ui">
       <Filter>Source Files\forms</Filter>
     </QtUic>

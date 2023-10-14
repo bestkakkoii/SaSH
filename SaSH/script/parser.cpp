@@ -263,19 +263,19 @@ void Parser::initialize(Parser* pparent)
 	qint64 index = getIndex();
 
 	if (counter_.isNull())
-		counter_.reset(new Counter());
+		counter_.reset(q_check_ptr(new Counter()));
 
 	if (globalNames_.isNull())
-		globalNames_.reset(new QStringList());
+		globalNames_.reset(q_check_ptr(new QStringList()));
 
 	if (localVarStack_.isNull())
-		localVarStack_.reset(new QStack<QHash<QString, QVariant>>());
+		localVarStack_.reset(q_check_ptr(new QStack<QHash<QString, QVariant>>()));
 
 	if (luaLocalVarStringList_.isNull())
-		luaLocalVarStringList_.reset(new QStringList());
+		luaLocalVarStringList_.reset(q_check_ptr(new QStringList()));
 
 	if (pLua_.isNull())
-		pLua_.reset(new CLua(index));
+		pLua_.reset(q_check_ptr(new CLua(index)));
 
 	pLua_->setHookEnabled(false);
 
@@ -541,19 +541,19 @@ void Parser::initialize(Parser* pparent)
 	lua_.set_function("contains", [this](sol::object data, sol::object ocmp_data, sol::this_state s)->bool
 		{
 			auto toVariant = [](const sol::object& o)->QVariant
-			{
-				QVariant out;
-				if (o.is<std::string>())
-					out = util::toQString(o).simplified();
-				else if (o.is<qint64>())
-					out = o.as<qint64>();
-				else if (o.is<double>())
-					out = o.as<double>();
-				else if (o.is<bool>())
-					out = o.as<bool>();
+				{
+					QVariant out;
+					if (o.is<std::string>())
+						out = util::toQString(o).simplified();
+					else if (o.is<qint64>())
+						out = o.as<qint64>();
+					else if (o.is<double>())
+						out = o.as<double>();
+					else if (o.is<bool>())
+						out = o.as<bool>();
 
-				return out;
-			};
+					return out;
+				};
 
 			if (data.is<sol::table>() && ocmp_data.is<sol::table>())
 			{
@@ -623,76 +623,76 @@ void Parser::initialize(Parser* pparent)
 	sol::meta::unqualified_t<sol::table> timer = lua_["timer"];
 
 	timer["new"] = [this](sol::this_state s)->qint64
-	{
-		QSharedPointer<QElapsedTimer> timer(QSharedPointer<QElapsedTimer>::create());
-		if (timer.isNull())
-			return 0;
-
-		timer->start();
-		quint64 id = 0;
-		for (;;)
 		{
-			id = QRandomGenerator64::global()->generate64();
-			if (timerMap_.contains(id))
-				continue;
+			QSharedPointer<QElapsedTimer> timer(QSharedPointer<QElapsedTimer>::create());
+			if (timer.isNull())
+				return 0;
 
-			timerMap_.insert(id, timer);
-			break;
-		}
+			timer->start();
+			quint64 id = 0;
+			for (;;)
+			{
+				id = QRandomGenerator64::global()->generate64();
+				if (timerMap_.contains(id))
+					continue;
 
-		return id;
-	};
+				timerMap_.insert(id, timer);
+				break;
+			}
+
+			return id;
+		};
 
 	timer["get"] = [this](qint64 id, sol::this_state s)->qint64
-	{
-		if (id == 0)
-			return 0;
+		{
+			if (id == 0)
+				return 0;
 
-		QSharedPointer<QElapsedTimer> timer = timerMap_.value(id);
-		if (timer == nullptr)
-			return 0;
+			QSharedPointer<QElapsedTimer> timer = timerMap_.value(id);
+			if (timer == nullptr)
+				return 0;
 
-		return timer->elapsed();
-	};
+			return timer->elapsed();
+		};
 
 	timer["gets"] = [this](qint64 id, sol::this_state s)->qint64
-	{
-		if (id == 0)
-			return 0;
+		{
+			if (id == 0)
+				return 0;
 
-		QSharedPointer<QElapsedTimer> timer = timerMap_.value(id);
-		if (timer == nullptr)
-			return 0;
+			QSharedPointer<QElapsedTimer> timer = timerMap_.value(id);
+			if (timer == nullptr)
+				return 0;
 
-		return timer->elapsed() / 1000;
-	};
+			return timer->elapsed() / 1000;
+		};
 
 	timer["getstr"] = [this](qint64 id, sol::this_state s)->std::string
-	{
-		if (id == 0)
-			return "";
+		{
+			if (id == 0)
+				return "";
 
-		QSharedPointer<QElapsedTimer> timer = timerMap_.value(id);
-		if (timer == nullptr)
-			return "";
+			QSharedPointer<QElapsedTimer> timer = timerMap_.value(id);
+			if (timer == nullptr)
+				return "";
 
-		qint64 time = timer->elapsed();
-		QString formated = util::formatMilliseconds(time);
-		return formated.toUtf8().constData();
-	};
+			qint64 time = timer->elapsed();
+			QString formated = util::formatMilliseconds(time);
+			return formated.toUtf8().constData();
+		};
 
 	timer["del"] = [this](qint64 id, sol::this_state s)->bool
-	{
-		if (id == 0)
-			return "";
+		{
+			if (id == 0)
+				return "";
 
-		QSharedPointer<QElapsedTimer> timer = timerMap_.value(id);
-		if (timer == nullptr)
-			return false;
+			QSharedPointer<QElapsedTimer> timer = timerMap_.value(id);
+			if (timer == nullptr)
+				return false;
 
-		timerMap_.remove(id);
-		return true;
-	};
+			timerMap_.remove(id);
+			return true;
+		};
 
 	lua_.set_function("input", [this, index](sol::object oargs, sol::this_state s)->sol::object
 		{
@@ -1216,291 +1216,291 @@ void Parser::initialize(Parser* pparent)
 		});
 
 	lua_["mkpath"] = [](std::string sfilename, sol::object obj, sol::this_state s)->std::string
-	{
-		QString retstring = "\0";
-		QString fileName = util::toQString(sfilename);
-		QFileInfo fileinfo(fileName);
-		QString suffix = fileinfo.suffix();
-		if (suffix.isEmpty())
-			fileName += ".txt";
-		else if (suffix != "txt")
-			fileName.replace(suffix, "txt");
-
-		if (obj == sol::lua_nil)
 		{
-			retstring = util::findFileFromName(fileName);
-		}
-		else if (obj.is<std::string>())
-		{
-			retstring = util::findFileFromName(fileName, util::toQString(obj));
-		}
+			QString retstring = "\0";
+			QString fileName = util::toQString(sfilename);
+			QFileInfo fileinfo(fileName);
+			QString suffix = fileinfo.suffix();
+			if (suffix.isEmpty())
+				fileName += ".txt";
+			else if (suffix != "txt")
+				fileName.replace(suffix, "txt");
 
-		return retstring.toUtf8().constData();
-	};
+			if (obj == sol::lua_nil)
+			{
+				retstring = util::findFileFromName(fileName);
+			}
+			else if (obj.is<std::string>())
+			{
+				retstring = util::findFileFromName(fileName, util::toQString(obj));
+			}
+
+			return retstring.toUtf8().constData();
+		};
 
 	lua_["mktable"] = [](qint64 a, sol::object ob, sol::this_state s)->sol::object
-	{
-		sol::state_view lua(s);
+		{
+			sol::state_view lua(s);
 
-		sol::table t = lua.create_table();
+			sol::table t = lua.create_table();
 
-		if (ob.is<qint64>() && a > ob.as<qint64>())
-		{
-			for (qint64 i = ob.as<qint64>(); i < (a + 1); ++i)
+			if (ob.is<qint64>() && a > ob.as<qint64>())
 			{
-				t.add(i);
+				for (qint64 i = ob.as<qint64>(); i < (a + 1); ++i)
+				{
+					t.add(i);
+				}
 			}
-		}
-		else if (ob.is<qint64>() && a < ob.as<qint64>())
-		{
-			for (qint64 i = a; i < (ob.as<qint64>() + 1); ++i)
+			else if (ob.is<qint64>() && a < ob.as<qint64>())
 			{
-				t.add(i);
+				for (qint64 i = a; i < (ob.as<qint64>() + 1); ++i)
+				{
+					t.add(i);
+				}
 			}
-		}
-		else if (ob.is<qint64>() && a == ob.as<qint64>())
-		{
-			t.add(a);
-		}
-		else if (ob == sol::lua_nil && a >= 0)
-		{
-			for (qint64 i = 1; i < a + 1; ++i)
+			else if (ob.is<qint64>() && a == ob.as<qint64>())
 			{
-				t.add(i);
+				t.add(a);
 			}
-		}
-		else if (ob == sol::lua_nil && a < 0)
-		{
-			for (qint64 i = a; i < 2; ++i)
+			else if (ob == sol::lua_nil && a >= 0)
 			{
-				t.add(i);
+				for (qint64 i = 1; i < a + 1; ++i)
+				{
+					t.add(i);
+				}
 			}
-		}
-		else
-			t.add(a);
+			else if (ob == sol::lua_nil && a < 0)
+			{
+				for (qint64 i = a; i < 2; ++i)
+				{
+					t.add(i);
+				}
+			}
+			else
+				t.add(a);
 
-		return t;
-	};
+			return t;
+		};
 
 	static const auto Is_1DTable = [](sol::table t)->bool
-	{
-		for (const std::pair<sol::object, sol::object>& i : t)
 		{
-			if (i.second.is<sol::table>())
+			for (const std::pair<sol::object, sol::object>& i : t)
 			{
-				return false;
+				if (i.second.is<sol::table>())
+				{
+					return false;
+				}
 			}
-		}
-		return true;
-	};
+			return true;
+		};
 
 	lua_["tshuffle"] = [](sol::object t, sol::this_state s)->sol::object
-	{
-		if (!t.is<sol::table>())
-			return sol::lua_nil;
-		//檢查是否為1維
-		sol::table test = t.as<sol::table>();
-		if (test.size() == 0)
-			return sol::lua_nil;
-		if (!Is_1DTable(test))
-			return sol::lua_nil;
-
-		sol::state_view lua(s);
-		std::vector<sol::object> v = t.as<std::vector<sol::object>>();
-		std::vector<sol::object> v2 = Shuffle(v);
-		sol::table t2 = lua.create_table();
-		for (const sol::object& i : v2) { t2.add(i); }
-		auto copy = [&t](sol::table src)
 		{
-			//清空原表
-			t.as<sol::table>().clear();
-			//將篩選後的表複製到原表
-			for (const std::pair<sol::object, sol::object>& i : src)
-			{
-				t.as<sol::table>().add(i.second);
-			}
+			if (!t.is<sol::table>())
+				return sol::lua_nil;
+			//檢查是否為1維
+			sol::table test = t.as<sol::table>();
+			if (test.size() == 0)
+				return sol::lua_nil;
+			if (!Is_1DTable(test))
+				return sol::lua_nil;
+
+			sol::state_view lua(s);
+			std::vector<sol::object> v = t.as<std::vector<sol::object>>();
+			std::vector<sol::object> v2 = Shuffle(v);
+			sol::table t2 = lua.create_table();
+			for (const sol::object& i : v2) { t2.add(i); }
+			auto copy = [&t](sol::table src)
+				{
+					//清空原表
+					t.as<sol::table>().clear();
+					//將篩選後的表複製到原表
+					for (const std::pair<sol::object, sol::object>& i : src)
+					{
+						t.as<sol::table>().add(i.second);
+					}
+				};
+			copy(t2);
+			return t2;
 		};
-		copy(t2);
-		return t2;
-	};
 
 	lua_["trotate"] = [](sol::object t, sol::object oside, sol::this_state s)->sol::object
-	{
-		if (!t.is<sol::table>())
-			return sol::lua_nil;
-
-		qint64 len = 1;
-		if (oside == sol::lua_nil)
-			len = 1;
-		else if (oside.is<qint64>())
-			len = oside.as<qint64>();
-		else
-			return sol::lua_nil;
-
-		sol::table test = t.as<sol::table>();
-		if (test.size() == 0)
-			return sol::lua_nil;
-		if (!Is_1DTable(test))
-			return sol::lua_nil;
-
-		sol::state_view lua(s);
-		std::vector<sol::object> v = t.as<std::vector<sol::object>>();
-		std::vector<sol::object> v2 = Rotate(v, len);
-		sol::table t2 = lua.create_table();
-		for (const sol::object& i : v2) { t2.add(i); }
-		auto copy = [&t](sol::table src)
 		{
-			//清空原表
-			t.as<sol::table>().clear();
-			//將篩選後的表複製到原表
-			for (const std::pair<sol::object, sol::object>& i : src)
-			{
-				t.as<sol::table>().add(i.second);
-			}
+			if (!t.is<sol::table>())
+				return sol::lua_nil;
+
+			qint64 len = 1;
+			if (oside == sol::lua_nil)
+				len = 1;
+			else if (oside.is<qint64>())
+				len = oside.as<qint64>();
+			else
+				return sol::lua_nil;
+
+			sol::table test = t.as<sol::table>();
+			if (test.size() == 0)
+				return sol::lua_nil;
+			if (!Is_1DTable(test))
+				return sol::lua_nil;
+
+			sol::state_view lua(s);
+			std::vector<sol::object> v = t.as<std::vector<sol::object>>();
+			std::vector<sol::object> v2 = Rotate(v, len);
+			sol::table t2 = lua.create_table();
+			for (const sol::object& i : v2) { t2.add(i); }
+			auto copy = [&t](sol::table src)
+				{
+					//清空原表
+					t.as<sol::table>().clear();
+					//將篩選後的表複製到原表
+					for (const std::pair<sol::object, sol::object>& i : src)
+					{
+						t.as<sol::table>().add(i.second);
+					}
+				};
+			copy(t2);
+			return t2;
 		};
-		copy(t2);
-		return t2;
-	};
 
 	lua_["tsleft"] = [](sol::object t, qint64 i, sol::this_state s)->sol::object
-	{
-		if (!t.is<sol::table>())
-			return sol::lua_nil;
-		if (i < 0)
-			return sol::lua_nil;
-
-		sol::table test = t.as<sol::table>();
-		if (test.size() == 0)
-			return sol::lua_nil;
-		if (!Is_1DTable(test))
-			return sol::lua_nil;
-
-		sol::state_view lua(s);
-		std::vector<sol::object> v = t.as<std::vector<sol::object>>();
-		std::vector<sol::object> v2 = ShiftLeft(v, i);
-		sol::table t2 = lua.create_table();
-		for (const sol::object& it : v2) { t2.add(it); }
-		auto copy = [&t](sol::table src)
 		{
-			//清空原表
-			t.as<sol::table>().clear();
-			//將篩選後的表複製到原表
-			for (const std::pair<sol::object, sol::object>& i : src)
-			{
-				t.as<sol::table>().add(i.second);
-			}
+			if (!t.is<sol::table>())
+				return sol::lua_nil;
+			if (i < 0)
+				return sol::lua_nil;
+
+			sol::table test = t.as<sol::table>();
+			if (test.size() == 0)
+				return sol::lua_nil;
+			if (!Is_1DTable(test))
+				return sol::lua_nil;
+
+			sol::state_view lua(s);
+			std::vector<sol::object> v = t.as<std::vector<sol::object>>();
+			std::vector<sol::object> v2 = ShiftLeft(v, i);
+			sol::table t2 = lua.create_table();
+			for (const sol::object& it : v2) { t2.add(it); }
+			auto copy = [&t](sol::table src)
+				{
+					//清空原表
+					t.as<sol::table>().clear();
+					//將篩選後的表複製到原表
+					for (const std::pair<sol::object, sol::object>& i : src)
+					{
+						t.as<sol::table>().add(i.second);
+					}
+				};
+			copy(t2);
+			return t2;
 		};
-		copy(t2);
-		return t2;
-	};
 
 	lua_["tsright"] = [](sol::object t, qint64 i, sol::this_state s)->sol::object
-	{
-		if (!t.is<sol::table>())
-			return sol::lua_nil;
-		if (i < 0)
-			return sol::lua_nil;
-
-		sol::table test = t.as<sol::table>();
-		if (test.size() == 0)
-			return sol::lua_nil;
-		if (!Is_1DTable(test))
-			return sol::lua_nil;
-
-		sol::state_view lua(s);
-		std::vector<sol::object> v = t.as<std::vector<sol::object>>();
-		std::vector<sol::object> v2 = ShiftRight(v, i);
-		sol::table t2 = lua.create_table();
-		for (const sol::object& o : v2) { t2.add(o); }
-		auto copy = [&t](sol::table src)
 		{
-			//清空原表
-			t.as<sol::table>().clear();
-			//將篩選後的表複製到原表
-			for (const std::pair<sol::object, sol::object>& o : src)
-			{
-				t.as<sol::table>().add(o.second);
-			}
+			if (!t.is<sol::table>())
+				return sol::lua_nil;
+			if (i < 0)
+				return sol::lua_nil;
+
+			sol::table test = t.as<sol::table>();
+			if (test.size() == 0)
+				return sol::lua_nil;
+			if (!Is_1DTable(test))
+				return sol::lua_nil;
+
+			sol::state_view lua(s);
+			std::vector<sol::object> v = t.as<std::vector<sol::object>>();
+			std::vector<sol::object> v2 = ShiftRight(v, i);
+			sol::table t2 = lua.create_table();
+			for (const sol::object& o : v2) { t2.add(o); }
+			auto copy = [&t](sol::table src)
+				{
+					//清空原表
+					t.as<sol::table>().clear();
+					//將篩選後的表複製到原表
+					for (const std::pair<sol::object, sol::object>& o : src)
+					{
+						t.as<sol::table>().add(o.second);
+					}
+				};
+			copy(t2);
+			return t2;
 		};
-		copy(t2);
-		return t2;
-	};
 
 	lua_["tunique"] = [](sol::object t, sol::this_state s)->sol::object
-	{
-		if (!t.is<sol::table>())
-			return sol::lua_nil;
-
-		sol::table test = t.as<sol::table>();
-		if (test.size() == 0)
-			return sol::lua_nil;
-
-		auto isIntTable = [&test]()->bool
 		{
-			for (const std::pair<sol::object, sol::object>& i : test)
+			if (!t.is<sol::table>())
+				return sol::lua_nil;
+
+			sol::table test = t.as<sol::table>();
+			if (test.size() == 0)
+				return sol::lua_nil;
+
+			auto isIntTable = [&test]()->bool
+				{
+					for (const std::pair<sol::object, sol::object>& i : test)
+					{
+						if (!i.second.is<qint64>())
+							return false;
+					}
+					return true;
+				};
+
+			auto isStringTable = [&test]()->bool
+				{
+					for (const std::pair<sol::object, sol::object>& i : test)
+					{
+						if (!i.second.is<std::string>())
+							return false;
+					}
+					return true;
+				};
+
+			auto copy = [&t](sol::table src)
+				{
+					//清空原表
+					t.as<sol::table>().clear();
+					//將篩選後的表複製到原表
+					for (const std::pair<sol::object, sol::object>& i : src)
+					{
+						t.as<sol::table>().add(i.second);
+					}
+				};
+
+			sol::state_view lua(s);
+			sol::table t2 = lua.create_table();
+			if (isIntTable())
 			{
-				if (!i.second.is<qint64>())
-					return false;
+				std::vector<qint64> v = t.as<std::vector<qint64>>();
+				std::vector<qint64> v2 = Unique(v);
+				for (const qint64& i : v2) { t2.add(i); }
+				copy(t2);
+				return t2;
 			}
-			return true;
-		};
-
-		auto isStringTable = [&test]()->bool
-		{
-			for (const std::pair<sol::object, sol::object>& i : test)
+			else if (isStringTable())
 			{
-				if (!i.second.is<std::string>())
-					return false;
+				std::vector<std::string> v = t.as<std::vector<std::string>>();
+				std::vector<std::string> v2 = Unique(v);
+				for (const std::string& i : v2) { t2.add(i); }
+				copy(t2);
+				return t2;
 			}
-			return true;
+			else
+				return sol::lua_nil;
 		};
-
-		auto copy = [&t](sol::table src)
-		{
-			//清空原表
-			t.as<sol::table>().clear();
-			//將篩選後的表複製到原表
-			for (const std::pair<sol::object, sol::object>& i : src)
-			{
-				t.as<sol::table>().add(i.second);
-			}
-		};
-
-		sol::state_view lua(s);
-		sol::table t2 = lua.create_table();
-		if (isIntTable())
-		{
-			std::vector<qint64> v = t.as<std::vector<qint64>>();
-			std::vector<qint64> v2 = Unique(v);
-			for (const qint64& i : v2) { t2.add(i); }
-			copy(t2);
-			return t2;
-		}
-		else if (isStringTable())
-		{
-			std::vector<std::string> v = t.as<std::vector<std::string>>();
-			std::vector<std::string> v2 = Unique(v);
-			for (const std::string& i : v2) { t2.add(i); }
-			copy(t2);
-			return t2;
-		}
-		else
-			return sol::lua_nil;
-	};
 
 	lua_["tsort"] = [](sol::object t, sol::this_state s)->sol::object
-	{
-		sol::state_view lua(s);
-		if (!t.is<sol::table>())
-			return sol::lua_nil;
-
-		sol::protected_function sort = lua["table"]["sort"];
-		if (sort.valid())
 		{
-			sort(t);
-		}
-		return t;
-	};
+			sol::state_view lua(s);
+			if (!t.is<sol::table>())
+				return sol::lua_nil;
+
+			sol::protected_function sort = lua["table"]["sort"];
+			if (sort.valid())
+			{
+				sort(t);
+			}
+			return t;
+		};
 
 	lua_.safe_script(R"(
 		trsort = function(t)
@@ -1560,40 +1560,40 @@ void Parser::initialize(Parser* pparent)
 
 	//表合併
 	lua_["tmerge"] = [](sol::object t1, sol::object t2, sol::this_state s)->sol::object
-	{
-		if (!t1.is<sol::table>() || !t2.is<sol::table>())
-			return sol::lua_nil;
+		{
+			if (!t1.is<sol::table>() || !t2.is<sol::table>())
+				return sol::lua_nil;
 
-		sol::state_view lua(s);
-		sol::table t3 = lua.create_table();
-		sol::table lookup_table_1 = lua.create_table();
-		sol::table lookup_table_2 = lua.create_table();
-		//sol::protected_function _copy = lua["copy"];
-		sol::table test1 = t1.as<sol::table>();//_copy(t1, lookup_table_1, lua);
-		sol::table test2 = t2.as<sol::table>();//_copy(t2, lookup_table_2, lua);
-		if (!test1.valid() || !test2.valid())
-			return sol::lua_nil;
-		for (const std::pair<sol::object, sol::object>& i : test1)
-		{
-			t3.add(i.second);
-		}
-		for (const std::pair<sol::object, sol::object>& i : test2)
-		{
-			t3.add(i.second);
-		}
-		auto copy = [&t1](sol::table src)
-		{
-			//清空原表
-			t1.as<sol::table>().clear();
-			//將篩選後的表複製到原表
-			for (const std::pair<sol::object, sol::object>& i : src)
+			sol::state_view lua(s);
+			sol::table t3 = lua.create_table();
+			sol::table lookup_table_1 = lua.create_table();
+			sol::table lookup_table_2 = lua.create_table();
+			//sol::protected_function _copy = lua["copy"];
+			sol::table test1 = t1.as<sol::table>();//_copy(t1, lookup_table_1, lua);
+			sol::table test2 = t2.as<sol::table>();//_copy(t2, lookup_table_2, lua);
+			if (!test1.valid() || !test2.valid())
+				return sol::lua_nil;
+			for (const std::pair<sol::object, sol::object>& i : test1)
 			{
-				t1.as<sol::table>().add(i.second);
+				t3.add(i.second);
 			}
+			for (const std::pair<sol::object, sol::object>& i : test2)
+			{
+				t3.add(i.second);
+			}
+			auto copy = [&t1](sol::table src)
+				{
+					//清空原表
+					t1.as<sol::table>().clear();
+					//將篩選後的表複製到原表
+					for (const std::pair<sol::object, sol::object>& i : src)
+					{
+						t1.as<sol::table>().add(i.second);
+					}
+				};
+			copy(t3);
+			return t3;
 		};
-		copy(t3);
-		return t3;
-	};
 
 	lua_.set_function("split", [](std::string src, std::string del, sol::object skipEmpty, sol::object orex, sol::this_state s)->sol::object
 		{
@@ -1639,98 +1639,98 @@ void Parser::initialize(Parser* pparent)
 		});
 
 	lua_["tjoin"] = [this](sol::table t, std::string del, sol::this_state s)->std::string
-	{
-		QStringList l = {};
-		for (const std::pair<sol::object, sol::object>& i : t)
 		{
-			if (i.second.is<int>())
+			QStringList l = {};
+			for (const std::pair<sol::object, sol::object>& i : t)
 			{
-				l.append(util::toQString(i.second.as<int>()));
+				if (i.second.is<int>())
+				{
+					l.append(util::toQString(i.second.as<int>()));
+				}
+				else if (i.second.is<double>())
+				{
+					l.append(util::toQString(i.second.as<double>()));
+				}
+				else if (i.second.is<bool>())
+				{
+					l.append(util::toQString(i.second.as<bool>()));
+				}
+				else if (i.second.is<std::string>())
+				{
+					l.append(util::toQString(i.second));
+				}
 			}
-			else if (i.second.is<double>())
-			{
-				l.append(util::toQString(i.second.as<double>()));
-			}
-			else if (i.second.is<bool>())
-			{
-				l.append(util::toQString(i.second.as<bool>()));
-			}
-			else if (i.second.is<std::string>())
-			{
-				l.append(util::toQString(i.second));
-			}
-		}
-		QString ret = l.join(util::toQString(del));
-		insertGlobalVar("vret", ret);
-		return  ret.toUtf8().constData();
-	};
+			QString ret = l.join(util::toQString(del));
+			insertGlobalVar("vret", ret);
+			return  ret.toUtf8().constData();
+		};
 
 	//根據key交換表中的兩個元素
 	lua_["tswap"] = [](sol::table t, sol::object key1, sol::object key2, sol::this_state s)->sol::object
-	{
-		if (!t.valid())
-			return sol::lua_nil;
-		if (!t[key1].valid() || !t[key2].valid())
-			return sol::lua_nil;
-		sol::object temp = t[key1];
-		t[key1] = t[key2];
-		t[key2] = temp;
-		return t;
-	};
+		{
+			if (!t.valid())
+				return sol::lua_nil;
+			if (!t[key1].valid() || !t[key2].valid())
+				return sol::lua_nil;
+			sol::object temp = t[key1];
+			t[key1] = t[key2];
+			t[key2] = temp;
+			return t;
+		};
 
 	lua_["tadd"] = [](sol::table t, sol::object value, sol::this_state s)->sol::object
-	{
-		if (!t.valid())
-			return sol::lua_nil;
-		t.add(value);
-		return t;
-	};
+		{
+			if (!t.valid())
+				return sol::lua_nil;
+			t.add(value);
+			return t;
+		};
 
 	lua_["tpadd"] = [](sol::table t, sol::object value, sol::this_state s)->sol::object
-	{
-		sol::state_view lua(s);
-		if (!t.valid())
-			return sol::lua_nil;
-		sol::function insert = lua["table"]["insert"];
-		insert(t, 1, value);
-		return t;
-	};
+		{
+			sol::state_view lua(s);
+			if (!t.valid())
+				return sol::lua_nil;
+			sol::function insert = lua["table"]["insert"];
+			insert(t, 1, value);
+			return t;
+		};
 
 	lua_["tpopback"] = [](sol::table t, sol::this_state s)->sol::object
-	{
-		sol::state_view lua(s);
-		if (!t.valid())
-			return sol::lua_nil;
-		sol::function remove = lua["table"]["remove"];
-		sol::object temp = t[t.size()];
-		remove(t, t.size());
-		return t;
-	};
+		{
+			sol::state_view lua(s);
+			if (!t.valid())
+				return sol::lua_nil;
+			sol::function remove = lua["table"]["remove"];
+			sol::object temp = t[t.size()];
+			remove(t, t.size());
+			return t;
+		};
 
 	lua_["tpopfront"] = [](sol::table t, sol::this_state s)->sol::object
-	{
-		sol::state_view lua(s);
-		if (!t.valid())
-			return sol::lua_nil;
-		sol::function remove = lua["table"]["remove"];
-		sol::object temp = t[1];
-		remove(t, 1);
-		return t;
-	};
+		{
+			sol::state_view lua(s);
+			if (!t.valid())
+				return sol::lua_nil;
+			sol::function remove = lua["table"]["remove"];
+			sol::object temp = t[1];
+			remove(t, 1);
+			return t;
+		};
 
 	lua_["tfront"] = [](sol::table t, sol::this_state s)->sol::object
-	{
-		if (!t.valid())
-			return sol::lua_nil;
-		return t[1];
-	};
+		{
+			if (!t.valid())
+				return sol::lua_nil;
+			return t[1];
+		};
 
 	lua_["tback"] = [](sol::table t, sol::this_state s)->sol::object
-	{
-		if (!t.valid())
-			return sol::lua_nil;
-		return t[t.size()];
-	};
+		{
+			if (!t.valid())
+				return sol::lua_nil;
+			return t[t.size()];
+		};
 #pragma endregion
 
 	lua_State* L = lua_.lua_state();
@@ -4466,36 +4466,36 @@ void Parser::updateSysConstKeyword(const QString& expr)
 		item["isfull"] = itemIndexs.size() == 0;
 
 		auto getIndexs = [this, currentIndex](sol::object oitemnames, sol::object oitemmemos, bool includeEequip, sol::this_state s)->QVector<qint64>
-		{
-			QVector<qint64> itemIndexs;
-			qint64 count = 0;
-			Injector& injector = Injector::getInstance(currentIndex);
-			if (injector.server.isNull())
-				return itemIndexs;
-
-			QString itemnames;
-			if (oitemnames.is<std::string>())
-				itemnames = util::toQString(oitemnames);
-			QString itemmemos;
-			if (oitemmemos.is<std::string>())
-				itemmemos = util::toQString(oitemmemos);
-
-			if (itemnames.isEmpty() && itemmemos.isEmpty())
 			{
-				return itemIndexs;
-			}
+				QVector<qint64> itemIndexs;
+				qint64 count = 0;
+				Injector& injector = Injector::getInstance(currentIndex);
+				if (injector.server.isNull())
+					return itemIndexs;
 
-			qint64 min = CHAR_EQUIPPLACENUM;
-			qint64 max = MAX_ITEM;
-			if (includeEequip)
-				min = 0;
+				QString itemnames;
+				if (oitemnames.is<std::string>())
+					itemnames = util::toQString(oitemnames);
+				QString itemmemos;
+				if (oitemmemos.is<std::string>())
+					itemmemos = util::toQString(oitemmemos);
 
-			if (!injector.server->getItemIndexsByName(itemnames, itemmemos, &itemIndexs, min, max))
-			{
+				if (itemnames.isEmpty() && itemmemos.isEmpty())
+				{
+					return itemIndexs;
+				}
+
+				qint64 min = CHAR_EQUIPPLACENUM;
+				qint64 max = MAX_ITEM;
+				if (includeEequip)
+					min = 0;
+
+				if (!injector.server->getItemIndexsByName(itemnames, itemmemos, &itemIndexs, min, max))
+				{
+					return itemIndexs;
+				}
 				return itemIndexs;
-			}
-			return itemIndexs;
-		};
+			};
 
 
 		item.set_function("count", [this, currentIndex, getIndexs](sol::object oitemnames, sol::object oitemmemos, sol::object oincludeEequip, sol::this_state s)->qint64
@@ -4760,28 +4760,28 @@ void Parser::updateSysConstKeyword(const QString& expr)
 		}
 
 		chat["contains"] = [this, currentIndex](std::string str, sol::this_state s)->bool
-		{
-			Injector& injector = Injector::getInstance(currentIndex);
-			if (injector.server.isNull())
-				return false;
-
-			if (str.empty())
-				return false;
-
-			QStringList list = util::toQString(str).split(util::rexOR, Qt::SkipEmptyParts);
-			QString text = util::toQString(str);
-			for (qint64 i = 0; i < MAX_CHAT_HISTORY; ++i)
 			{
-				QString cmptext = injector.server->getChatHistory(i);
-				for (const QString& it : list)
-				{
-					if (cmptext.contains(it))
-						return true;
-				}
-			}
+				Injector& injector = Injector::getInstance(currentIndex);
+				if (injector.server.isNull())
+					return false;
 
-			return false;
-		};
+				if (str.empty())
+					return false;
+
+				QStringList list = util::toQString(str).split(util::rexOR, Qt::SkipEmptyParts);
+				QString text = util::toQString(str);
+				for (qint64 i = 0; i < MAX_CHAT_HISTORY; ++i)
+				{
+					QString cmptext = injector.server->getChatHistory(i);
+					for (const QString& it : list)
+					{
+						if (cmptext.contains(it))
+							return true;
+					}
+				}
+
+				return false;
+			};
 	}
 
 	//unit\[(?:'([^']*)'|"([^ "]*)"|(\d+))\]\.(\w+)
@@ -4829,60 +4829,60 @@ void Parser::updateSysConstKeyword(const QString& expr)
 		}
 
 		unit["find"] = [this, currentIndex](sol::object name, sol::object ofname, sol::this_state s)->sol::object
-		{
-			sol::state_view lua(s);
-			Injector& injector = Injector::getInstance(currentIndex);
-			if (injector.server.isNull())
-				return 0;
-
-			QString _name = "";
-			qint64 modelid = 0;
-			if (name.is<std::string>())
-				_name = util::toQString(name);
-			if (ofname.is<std::string>())
-				_name = util::toQString(ofname);
-
-			QString freeName = "";
-			if (ofname.is<std::string>())
-				freeName = util::toQString(ofname);
-
-			if (_name.isEmpty() && modelid == 0 && freeName.isEmpty())
-				return sol::lua_nil;
-
-			mapunit_t _unit = {};
-			if (!injector.server->findUnit(_name, util::OBJ_NPC, &_unit, freeName, modelid))
 			{
-				if (!injector.server->findUnit(_name, util::OBJ_HUMAN, &_unit, freeName, modelid))
+				sol::state_view lua(s);
+				Injector& injector = Injector::getInstance(currentIndex);
+				if (injector.server.isNull())
+					return 0;
+
+				QString _name = "";
+				qint64 modelid = 0;
+				if (name.is<std::string>())
+					_name = util::toQString(name);
+				if (ofname.is<std::string>())
+					_name = util::toQString(ofname);
+
+				QString freeName = "";
+				if (ofname.is<std::string>())
+					freeName = util::toQString(ofname);
+
+				if (_name.isEmpty() && modelid == 0 && freeName.isEmpty())
 					return sol::lua_nil;
-			}
 
-			sol::table t = lua.create_table();
-			t["valid"] = _unit.isVisible;
+				mapunit_t _unit = {};
+				if (!injector.server->findUnit(_name, util::OBJ_NPC, &_unit, freeName, modelid))
+				{
+					if (!injector.server->findUnit(_name, util::OBJ_HUMAN, &_unit, freeName, modelid))
+						return sol::lua_nil;
+				}
 
-			t["index"] = -1;
+				sol::table t = lua.create_table();
+				t["valid"] = _unit.isVisible;
 
-			t["id"] = _unit.id;
+				t["index"] = -1;
 
-			t["name"] = _unit.name.toUtf8().constData();
+				t["id"] = _unit.id;
 
-			t["fname"] = _unit.freeName.toUtf8().constData();
+				t["name"] = _unit.name.toUtf8().constData();
 
-			t["family"] = _unit.family.toUtf8().constData();
+				t["fname"] = _unit.freeName.toUtf8().constData();
 
-			t["lv"] = _unit.level;
+				t["family"] = _unit.family.toUtf8().constData();
 
-			t["dir"] = _unit.dir;
+				t["lv"] = _unit.level;
 
-			t["x"] = _unit.p.x();
+				t["dir"] = _unit.dir;
 
-			t["y"] = _unit.p.y();
+				t["x"] = _unit.p.x();
 
-			t["gold"] = _unit.gold;
+				t["y"] = _unit.p.y();
 
-			t["modelid"] = _unit.modelid;
+				t["gold"] = _unit.gold;
 
-			return t;
-		};
+				t["modelid"] = _unit.modelid;
+
+				return t;
+			};
 	}
 
 	//battle\[(?:'([^']*)'|"([^ "]*)"|(\d+))\]\.(\w+)
@@ -4991,33 +4991,33 @@ void Parser::updateSysConstKeyword(const QString& expr)
 		}
 
 		dlg["contains"] = [this, currentIndex](std::string str, sol::this_state s)->bool
-		{
-			Injector& injector = Injector::getInstance(currentIndex);
-			if (injector.server.isNull())
-				return false;
-
-			if (str.empty())
-				return false;
-
-			if (!injector.server->isDialogVisible())
-				return false;
-
-			QString text = util::toQString(str);
-			QStringList list = text.split(util::rexOR, Qt::SkipEmptyParts);
-			QStringList dialogstrs = injector.server->currentDialog.get().linedatas;
-			qint64 size = dialogstrs.size();
-			for (qint64 i = 0; i < size; ++i)
 			{
-				QString cmptext = dialogstrs.value(i);
-				for (const QString& it : list)
-				{
-					if (cmptext.contains(it))
-						return true;
-				}
-			}
+				Injector& injector = Injector::getInstance(currentIndex);
+				if (injector.server.isNull())
+					return false;
 
-			return false;
-		};
+				if (str.empty())
+					return false;
+
+				if (!injector.server->isDialogVisible())
+					return false;
+
+				QString text = util::toQString(str);
+				QStringList list = text.split(util::rexOR, Qt::SkipEmptyParts);
+				QStringList dialogstrs = injector.server->currentDialog.get().linedatas;
+				qint64 size = dialogstrs.size();
+				for (qint64 i = 0; i < size; ++i)
+				{
+					QString cmptext = dialogstrs.value(i);
+					for (const QString& it : list)
+					{
+						if (cmptext.contains(it))
+							return true;
+					}
+				}
+
+				return false;
+			};
 	}
 
 	//magic\[(?:'([^']*)'|"([^ "]*)"|(\d+))\]\.(\w+)
@@ -5040,38 +5040,38 @@ void Parser::updateSysConstKeyword(const QString& expr)
 		}
 
 		mg["find"] = [this, currentIndex](sol::object oname, sol::this_state s)->sol::object
-		{
-			sol::state_view lua(s);
-			Injector& injector = Injector::getInstance(currentIndex);
-			if (injector.server.isNull())
-				return 0;
+			{
+				sol::state_view lua(s);
+				Injector& injector = Injector::getInstance(currentIndex);
+				if (injector.server.isNull())
+					return 0;
 
-			QString name = "";
-			if (oname.is<std::string>())
-				name = util::toQString(oname);
+				QString name = "";
+				if (oname.is<std::string>())
+					name = util::toQString(oname);
 
-			if (name.isEmpty())
-				return sol::lua_nil;
+				if (name.isEmpty())
+					return sol::lua_nil;
 
 
-			qint64 index = injector.server->getMagicIndexByName(name);
-			if (index == -1)
-				return sol::lua_nil;
+				qint64 index = injector.server->getMagicIndexByName(name);
+				if (index == -1)
+					return sol::lua_nil;
 
-			MAGIC _magic = injector.server->getMagic(index);
+				MAGIC _magic = injector.server->getMagic(index);
 
-			sol::table t = lua.create_table();
+				sol::table t = lua.create_table();
 
-			t["valid"] = _magic.valid;
-			t["index"] = index;
-			t["costmp"] = _magic.costmp;
-			t["field"] = _magic.field;
-			t["name"] = _magic.name.toUtf8().constData();
-			t["memo"] = _magic.memo.toUtf8().constData();
-			t["target"] = _magic.target;
+				t["valid"] = _magic.valid;
+				t["index"] = index;
+				t["costmp"] = _magic.costmp;
+				t["field"] = _magic.field;
+				t["name"] = _magic.name.toUtf8().constData();
+				t["memo"] = _magic.memo.toUtf8().constData();
+				t["target"] = _magic.target;
 
-			return t;
-		};
+				return t;
+			};
 	}
 
 	//skill\[(?:'([^']*)'|"([^ "]*)"|(\d+))\]\.(\w+)
@@ -5097,40 +5097,40 @@ void Parser::updateSysConstKeyword(const QString& expr)
 		}
 
 		sk["find"] = [this, currentIndex](sol::object oname, sol::this_state s)->sol::object
-		{
-			sol::state_view lua(s);
-			Injector& injector = Injector::getInstance(currentIndex);
-			if (injector.server.isNull())
-				return 0;
+			{
+				sol::state_view lua(s);
+				Injector& injector = Injector::getInstance(currentIndex);
+				if (injector.server.isNull())
+					return 0;
 
-			QString name = "";
-			if (oname.is<std::string>())
-				name = util::toQString(oname);
+				QString name = "";
+				if (oname.is<std::string>())
+					name = util::toQString(oname);
 
-			if (name.isEmpty())
-				return sol::lua_nil;
+				if (name.isEmpty())
+					return sol::lua_nil;
 
-			qint64 index = injector.server->getSkillIndexByName(name);
-			if (index == -1)
-				return sol::lua_nil;
+				qint64 index = injector.server->getSkillIndexByName(name);
+				if (index == -1)
+					return sol::lua_nil;
 
-			PROFESSION_SKILL _skill = injector.server->getSkill(index);
+				PROFESSION_SKILL _skill = injector.server->getSkill(index);
 
-			sol::table t = lua.create_table();
+				sol::table t = lua.create_table();
 
-			t["valid"] = _skill.valid;
-			t["index"] = index;
-			t["costmp"] = _skill.costmp;
-			t["modelid"] = _skill.icon;
-			t["type"] = _skill.kind;
-			t["lv"] = _skill.skill_level;
-			t["id"] = _skill.skillId;
-			t["name"] = _skill.name.toUtf8().constData();
-			t["memo"] = _skill.memo.toUtf8().constData();
-			t["target"] = _skill.target;
+				t["valid"] = _skill.valid;
+				t["index"] = index;
+				t["costmp"] = _skill.costmp;
+				t["modelid"] = _skill.icon;
+				t["type"] = _skill.kind;
+				t["lv"] = _skill.skill_level;
+				t["id"] = _skill.skillId;
+				t["name"] = _skill.name.toUtf8().constData();
+				t["memo"] = _skill.memo.toUtf8().constData();
+				t["target"] = _skill.target;
 
-			return t;
-		};
+				return t;
+			};
 	}
 
 	//petskill\[(?:'([^']*)'|"([^ "]*)"|(\d+))\]\[(?:'([^']*)'|"([^ "]*)"|(\d+))\]\.(\w+)
@@ -5161,37 +5161,37 @@ void Parser::updateSysConstKeyword(const QString& expr)
 		}
 
 		psk["find"] = [this, currentIndex](qint64 petIndex, sol::object oname, sol::this_state s)->sol::object
-		{
-			sol::state_view lua(s);
-			Injector& injector = Injector::getInstance(currentIndex);
-			if (injector.server.isNull())
-				return 0;
+			{
+				sol::state_view lua(s);
+				Injector& injector = Injector::getInstance(currentIndex);
+				if (injector.server.isNull())
+					return 0;
 
-			QString name = "";
-			if (oname.is<std::string>())
-				name = util::toQString(oname);
+				QString name = "";
+				if (oname.is<std::string>())
+					name = util::toQString(oname);
 
-			if (name.isEmpty())
-				return sol::lua_nil;
+				if (name.isEmpty())
+					return sol::lua_nil;
 
-			qint64 index = injector.server->getPetSkillIndexByName(petIndex, name);
-			if (index == -1)
-				return sol::lua_nil;
+				qint64 index = injector.server->getPetSkillIndexByName(petIndex, name);
+				if (index == -1)
+					return sol::lua_nil;
 
-			PET_SKILL _skill = injector.server->getPetSkill(petIndex, index);
+				PET_SKILL _skill = injector.server->getPetSkill(petIndex, index);
 
-			sol::table t = lua.create_table();
+				sol::table t = lua.create_table();
 
-			t["valid"] = _skill.valid;
-			t["index"] = index;
-			t["id"] = _skill.skillId;
-			t["field"] = _skill.field;
-			t["target"] = _skill.target;
-			t["name"] = _skill.name.toUtf8().constData();
-			t["memo"] = _skill.memo.toUtf8().constData();
+				t["valid"] = _skill.valid;
+				t["index"] = index;
+				t["id"] = _skill.skillId;
+				t["field"] = _skill.field;
+				t["target"] = _skill.target;
+				t["name"] = _skill.name.toUtf8().constData();
+				t["memo"] = _skill.memo.toUtf8().constData();
 
-			return t;
-		};
+				return t;
+			};
 	}
 
 	//petequip\[(?:'([^']*)'|"([^ "]*)"|(\d+))\]\[(?:'([^']*)'|"([^ "]*)"|(\d+))\]\.(\w+)

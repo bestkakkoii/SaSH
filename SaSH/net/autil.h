@@ -105,34 +105,36 @@ public:
 	inline void util_Send(int func, Args... args)
 	{
 		int iChecksum = 0;
-		std::unique_ptr <char[]> buffer(new char[NETDATASIZE]);
-		std::fill(buffer.get(), buffer.get() + NETDATASIZE, 0);
+		//std::unique_ptr <char[]> buffer(q_check_ptr(new char[NETDATASIZE]));
+		//std::fill(buffer.get(), buffer.get() + NETDATASIZE, 0);
+		QByteArray buffer(NETDATASIZE, 0);
 
-		util_SendProcessArgs(iChecksum, buffer.get(), args...);
-		util_mkint(buffer.get(), iChecksum);
-		util_SendMesg(func, buffer.get());
+		util_SendProcessArgs(iChecksum, buffer.data(), args...);
+		util_mkint(buffer.data(), iChecksum);
+		util_SendMesg(func, buffer.data());
 	}
 
 	inline void util_SendArgs(int func, std::vector<std::variant<int, std::string>>& args)
 	{
 		int iChecksum = 0;
-		std::unique_ptr <char[]> buffer(new char[NETDATASIZE]());
-		std::fill(buffer.get(), buffer.get() + NETDATASIZE, 0);
+		//std::unique_ptr <char[]> buffer(q_check_ptr(new char[NETDATASIZE]()));
+		//std::fill(buffer.get(), buffer.get() + NETDATASIZE, 0);
+		QByteArray buffer(NETDATASIZE, 0);
 
 		for (const std::variant<int, std::string>& arg : args)
 		{
 			if (std::holds_alternative<int>(arg))
 			{
-				iChecksum += util_mkint(buffer.get(), std::get<int>(arg));
+				iChecksum += util_mkint(buffer.data(), std::get<int>(arg));
 			}
 			else if (std::holds_alternative<std::string>(arg))
 			{
-				iChecksum += util_mkstring(buffer.get(), const_cast<char*>(std::get<std::string>(arg).c_str()));
+				iChecksum += util_mkstring(buffer.data(), const_cast<char*>(std::get<std::string>(arg).c_str()));
 			}
 		}
 
-		util_mkint(buffer.get(), iChecksum);
-		util_SendMesg(func, buffer.get());
+		util_mkint(buffer.data(), iChecksum);
+		util_SendMesg(func, buffer.data());
 	}
 
 	template<typename... Args>
@@ -144,16 +146,16 @@ public:
 
 		// 解碼參數並累加到 iChecksum
 		auto decode_and_accumulate = [this, &iChecksum, &nextSlice](auto* val)
-		{
-			if constexpr (std::is_same_v<std::remove_pointer_t<decltype(val)>, int>)
 			{
-				iChecksum += util_deint(nextSlice++, val);
-			}
-			else if constexpr (std::is_same_v<std::remove_pointer_t<decltype(val)>, char>)
-			{
-				iChecksum += util_destring(nextSlice++, val);
-			}
-		};
+				if constexpr (std::is_same_v<std::remove_pointer_t<decltype(val)>, int>)
+				{
+					iChecksum += util_deint(nextSlice++, val);
+				}
+				else if constexpr (std::is_same_v<std::remove_pointer_t<decltype(val)>, char>)
+				{
+					iChecksum += util_destring(nextSlice++, val);
+				}
+			};
 		(decode_and_accumulate(args), ...);
 
 		// 獲取並校驗 iChecksum

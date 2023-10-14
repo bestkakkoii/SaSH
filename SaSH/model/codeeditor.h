@@ -136,12 +136,12 @@ public:
 		int currentLine, currentIndex;
 		parent->getCursorPosition(&currentLine, &currentIndex);
 
-		QLabel* label = new QLabel(tr("Current Line: %1 Index: %2").arg(currentLine + 1).arg(currentIndex), this);
-		QLineEdit* lineEdit = new QLineEdit(this);
+		QLabel* label = q_check_ptr(new QLabel(tr("Current Line: %1 Index: %2").arg(currentLine + 1).arg(currentIndex), this));
+		QLineEdit* lineEdit = q_check_ptr(new QLineEdit(this));
 		lineEdit->setPlaceholderText(tr(":"));
-		lineEdit->setValidator(new QIntValidator(1, parent->text().split("\n").size(), this));
+		lineEdit->setValidator(q_check_ptr(new QIntValidator(1, parent->text().split("\n").size(), this)));
 
-		QHBoxLayout* layout = new QHBoxLayout;
+		QHBoxLayout* layout = q_check_ptr(new QHBoxLayout);
 		layout->addWidget(lineEdit);
 		layout->addWidget(label);
 		setLayout(layout);

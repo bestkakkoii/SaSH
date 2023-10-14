@@ -254,7 +254,7 @@ public:
 		setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
 		setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
 
-		imageItem_ = new ImageWidget(&map_);
+		imageItem_ = q_check_ptr(new ImageWidget(&map_));
 		scene_.addItem(imageItem_);
 		setScene(&scene_);//Sets the current scene to scene. If scene is already being viewed, this function does nothing.
 

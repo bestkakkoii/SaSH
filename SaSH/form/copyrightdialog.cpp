@@ -66,7 +66,7 @@ public:
 	{
 		setFlags(QGraphicsItem::ItemIsSelectable | QGraphicsItem::ItemIsFocusable);
 
-		QGraphicsDropShadowEffect* shadowEffect = new QGraphicsDropShadowEffect;
+		QGraphicsDropShadowEffect* shadowEffect = q_check_ptr(new QGraphicsDropShadowEffect(this));
 		if (shadowEffect == nullptr)
 			return;
 
@@ -148,13 +148,13 @@ CopyRightDialog::CopyRightDialog(QWidget* parent)
 	QGraphicsScene* scene = new QGraphicsScene(this);
 	ui.graphicsView_webicon->setScene(scene);
 
-	ClickableSvgItem* item1 = new ClickableSvgItem(":/image/icon_cplusplus.svg");
-	ClickableSvgItem* item2 = new ClickableSvgItem(":/image/icon_qt.svg");
-	ClickableSvgItem* item3 = new ClickableSvgItem(":/image/icon_vs-2022.svg");
-	ClickableSvgItem* item4 = new ClickableSvgItem(":/image/icon_platform-Windows-blueviolet.svg");
-	ClickableSvgItem* item5 = new ClickableSvgItem(":/image/icon_windows_10_11.svg");
-	ClickableSvgItem* item6 = new ClickableSvgItem(":/image/icon_license.svg");
-	ClickableSvgItem* item7 = new ClickableSvgItem(":/image/icon_github.svg", "https://github.com/bestkakkoii/SaSH");
+	ClickableSvgItem* item1 = q_check_ptr(new ClickableSvgItem(":/image/icon_cplusplus.svg", ""));
+	ClickableSvgItem* item2 = q_check_ptr(new ClickableSvgItem(":/image/icon_qt.svg", ""));
+	ClickableSvgItem* item3 = q_check_ptr(new ClickableSvgItem(":/image/icon_vs-2022.svg", ""));
+	ClickableSvgItem* item4 = q_check_ptr(new ClickableSvgItem(":/image/icon_platform-Windows-blueviolet.svg", ""));
+	ClickableSvgItem* item5 = q_check_ptr(new ClickableSvgItem(":/image/icon_windows_10_11.svg", ""));
+	ClickableSvgItem* item6 = q_check_ptr(new ClickableSvgItem(":/image/icon_license.svg", ""));
+	ClickableSvgItem* item7 = q_check_ptr(new ClickableSvgItem(":/image/icon_github.svg", "https://github.com/bestkakkoii/SaSH"));
 
 	item1->setPos(70, 0);
 	item2->setPos(8, 25);

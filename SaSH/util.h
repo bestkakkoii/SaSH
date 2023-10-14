@@ -954,7 +954,7 @@ namespace util
 			// 繁體系統要轉繁體否則遊戲視窗標題會亂碼(一堆問號字)
 			std::wstring wstr = qstr.toStdWString();
 			qint64 size = lstrlenW(wstr.c_str());
-			QScopedArrayPointer <wchar_t> wbuf(new wchar_t[size + 1]());
+			QScopedArrayPointer <wchar_t> wbuf(q_check_ptr(new wchar_t[size + 1]()));
 			//繁體字碼表映射
 			LCMapStringEx(LOCALE_NAME_SYSTEM_DEFAULT, LCMAP_TRADITIONAL_CHINESE, wstr.c_str(), size, wbuf.data(), size, NULL, NULL, NULL);
 			qstr = util::toQString(wbuf.data());
@@ -975,7 +975,7 @@ namespace util
 		{
 			// 繁體系統要轉回簡體體否則遊戲視窗會亂碼
 			qint64 size = lstrlenW(wstr.c_str());
-			QScopedArrayPointer <wchar_t> wbuf(new wchar_t[size + 1]());
+			QScopedArrayPointer <wchar_t> wbuf(q_check_ptr(new wchar_t[size + 1]()));
 			LCMapStringEx(LOCALE_NAME_SYSTEM_DEFAULT, LCMAP_SIMPLIFIED_CHINESE, wstr.c_str(), size, wbuf.data(), size, NULL, NULL, NULL);
 			qstr = util::toQString(wbuf.data());
 		}
@@ -1147,6 +1147,8 @@ namespace util
 	bool writeFile(const QString& fileName, const QString& content);
 
 	void sortWindows(const QVector<HWND>& windowList, bool alignLeft);
+
+	bool fileDialogShow(const QString& name, qint64 acceptType, QString* retstring, QWidget* pparent = nullptr);
 
 	// 將二進制數據轉換為16進制字符串
 	QString byteArrayToHexString(const QByteArray& data);
@@ -2229,9 +2231,9 @@ namespace util
 	class Config
 	{
 	public:
-		Config();
-		explicit Config(const QString& fileName);
-		explicit Config(const QByteArray& fileName);
+		Config(const QString& callBy);
+		explicit Config(const QString& fileName, const QString& callBy);
+		explicit Config(const QByteArray& fileName, const QString& callBy);
 		virtual ~Config();
 
 		bool open();
@@ -2385,6 +2387,8 @@ namespace util
 		QList<util::MapData> readMapData(const QString& key) const;
 
 	private:
+		QString callby;
+
 		QJsonDocument document_;
 
 		ScopedFile file_;

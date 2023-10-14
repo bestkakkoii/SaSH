@@ -97,7 +97,7 @@ void MapForm::onButtonClicked()
 			return;
 		}
 
-		interpreter_.reset(new Interpreter(currentIndex));
+		interpreter_.reset(q_check_ptr(new Interpreter(currentIndex)));
 		connect(interpreter_.get(), &Interpreter::finished, this, &MapForm::onScriptFinished);
 
 		qint64 x = ui.spinBox_findpath_x->value();
@@ -159,7 +159,7 @@ void MapForm::onUpdateNpcList(qint64 floor)
 	qint64 currentIndex = getIndex();
 	{
 		Injector& injector = Injector::getInstance(currentIndex);
-		util::Config config(injector.getPointFileName());
+		util::Config config(injector.getPointFileName(), QString("%1|%2").arg(__FUNCTION__).arg(__LINE__));
 		datas = config.readMapData(key);
 		if (datas.isEmpty())
 			return;
@@ -205,7 +205,7 @@ void MapForm::onTableWidgetCellDoubleClicked(int row, int col)
 		return;
 	}
 
-	interpreter_.reset(new Interpreter(currentIndex));
+	interpreter_.reset(q_check_ptr(new Interpreter(currentIndex)));
 	connect(interpreter_.get(), &Interpreter::finished, this, &MapForm::onScriptFinished);
 
 	QPoint point = npc_hash_.value(row);

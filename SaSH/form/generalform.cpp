@@ -1,5 +1,4 @@
 ﻿#include "stdafx.h"
-#include "form/afkform.h"
 #include "generalform.h"
 #include "selectobjectform.h"
 
@@ -15,6 +14,7 @@
 GeneralForm::GeneralForm(qint64 index, QWidget* parent)
 	: QWidget(parent)
 	, Indexer(index)
+	, pAfkForm_(index, nullptr)
 {
 	ui.setupUi(this);
 
@@ -57,14 +57,11 @@ GeneralForm::GeneralForm(qint64 index, QWidget* parent)
 		}
 	}
 
-	std::unique_ptr<AfkForm> _pAfkForm(new AfkForm(index, nullptr));
-	if (_pAfkForm == nullptr)
-		return;
+	reloadPaths();
 
-	pAfkForm_ = _pAfkForm.release();
-	pAfkForm_->hide();
+	pAfkForm_.hide();
+	pAfkForm_.resetControlTextLanguage();
 
-	emit ui.comboBox_paths->clicked();
 	emit signalDispatcher.applyHashSettingsToUI();
 
 	QVector<QPair<QString, QString>> fileList;
@@ -90,6 +87,8 @@ GeneralForm::GeneralForm(qint64 index, QWidget* parent)
 
 	ui.comboBox_setting->blockSignals(false);
 
+
+
 	//驗證
 #ifdef WEBAUTHENTICATOR_H
 #ifndef _DEBUG
@@ -100,8 +99,8 @@ GeneralForm::GeneralForm(qint64 index, QWidget* parent)
 		QtConcurrent::run([this]()
 			{
 				Net::Authenticator* g_Authenticator = Net::Authenticator::getInstance(getIndex());
-				std::unique_ptr<QString> username(new QString("satester"));
-				std::unique_ptr<QString> encode_password(new QString("AwJk8DlkCUVxRMgaHDEMEHQR"));
+				std::unique_ptr<QString> username(q_check_ptr(new QString("satester")));
+				std::unique_ptr<QString> encode_password(q_check_ptr(new QString("AwJk8DlkCUVxRMgaHDEMEHQR")));
 				if (g_Authenticator->Login(*username, *encode_password))
 					isFirstInstance = true;
 				else
@@ -110,22 +109,22 @@ GeneralForm::GeneralForm(qint64 index, QWidget* parent)
 	}
 #endif
 #endif
+
 }
 
 GeneralForm::~GeneralForm()
 {
 	qint64 currentIndex = getIndex();
 
-	if (pAfkForm_ != nullptr)
-	{
-		pAfkForm_->close();
-		pAfkForm_->deleteLater();
-		pAfkForm_ = nullptr;
-	}
-
 	ThreadManager& thread_manager = ThreadManager::getInstance();
 	thread_manager.close(currentIndex);
 	qDebug() << "~GeneralForm()";
+}
+
+void GeneralForm::showEvent(QShowEvent* e)
+{
+	setAttribute(Qt::WA_Mapped);
+	QWidget::showEvent(e);
 }
 
 void GeneralForm::onResetControlTextLanguage()
@@ -190,14 +189,24 @@ void GeneralForm::onComboBoxClicked()
 
 	if (name == "comboBox_paths")
 	{
-		QListView* pListView = qobject_cast<QListView*>(ui.comboBox_paths->view());
-		if (pListView)
-		{
-			pListView->setMinimumWidth(260);
-			pListView->setMaximumWidth(260);
-		}
 
-		util::Config config;
+		reloadPaths();
+		return;
+	}
+}
+
+void GeneralForm::reloadPaths()
+{
+	QListView* pListView = qobject_cast<QListView*>(ui.comboBox_paths->view());
+	if (pListView)
+	{
+		pListView->setMinimumWidth(260);
+		pListView->setMaximumWidth(260);
+	}
+
+	__int64 currentIndex = -1;
+	{
+		util::Config config(QString("%1|%2").arg(__FUNCTION__).arg(__LINE__));
 		QStringList paths = config.readArray<QString>("System", "Command", "DirPath");
 		QStringList newPaths;
 
@@ -205,14 +214,8 @@ void GeneralForm::onComboBoxClicked()
 		{
 			QString path;
 			SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(getIndex());
-			QEventLoop loop;
-			emit signalDispatcher.fileDialogShow(SASH_SUPPORT_GAMENAME, QFileDialog::AcceptOpen, &path, &loop);
-			loop.exec();
-
-			if (path.isEmpty())
-			{
+			if (!util::fileDialogShow(SASH_SUPPORT_GAMENAME, QFileDialog::AcceptOpen, &path, this) || path.isEmpty())
 				return;
-			}
 
 			paths.append(path);
 		}
@@ -230,7 +233,7 @@ void GeneralForm::onComboBoxClicked()
 			return;
 		}
 
-		int currentIndex = ui.comboBox_paths->currentIndex();
+		currentIndex = ui.comboBox_paths->currentIndex();
 		ui.comboBox_paths->blockSignals(true);
 		ui.comboBox_paths->clear();
 		for (const QString& it : newPaths)
@@ -245,11 +248,11 @@ void GeneralForm::onComboBoxClicked()
 		}
 
 		config.writeArray<QString>("System", "Command", "DirPath", newPaths);
-		ui.comboBox_paths->setCurrentIndex(currentIndex);
-		ui.comboBox_paths->blockSignals(false);
-
-		return;
 	}
+
+	if (currentIndex != -1)
+		ui.comboBox_paths->setCurrentIndex(currentIndex);
+	ui.comboBox_paths->blockSignals(false);
 }
 
 void GeneralForm::onButtonClicked()
@@ -271,17 +274,15 @@ void GeneralForm::onButtonClicked()
 
 		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(currentIndex);
 		QString newPath;
-		QEventLoop loop;
-		emit signalDispatcher.fileDialogShow(SASH_SUPPORT_GAMENAME, QFileDialog::AcceptOpen, &newPath, &loop);
-		loop.exec();
 
-		if (newPath.isEmpty())
+		if (!util::fileDialogShow(SASH_SUPPORT_GAMENAME, QFileDialog::AcceptOpen, &newPath, this)
+			|| newPath.isEmpty())
 			return;
 
 		if (!newPath.contains(SASH_SUPPORT_GAMENAME) || !QFile::exists(newPath))
 			return;
 
-		util::Config config;
+		util::Config config(QString("%1|%2").arg(__FUNCTION__).arg(__LINE__));
 		QStringList paths = config.readArray<QString>("System", "Command", "DirPath");
 		QStringList newPaths;
 
@@ -406,23 +407,12 @@ void GeneralForm::onButtonClicked()
 
 	if (name == "pushButton_afksetting")
 	{
-		if (pAfkForm_ == nullptr)
-		{
-			std::unique_ptr<AfkForm> _pAfkForm(new AfkForm(currentIndex, nullptr));
-			if (_pAfkForm == nullptr)
-				return;
 
-			emit _pAfkForm->resetControlTextLanguage();
-			_pAfkForm->show();
-			pAfkForm_ = _pAfkForm.release();
-		}
+		if (pAfkForm_.isHidden())
+			pAfkForm_.show();
 		else
-		{
-			if (pAfkForm_->isHidden())
-				pAfkForm_->show();
-			else
-				pAfkForm_->hide();
-		}
+			pAfkForm_.hide();
+
 		return;
 	}
 
@@ -895,7 +885,7 @@ void GeneralForm::onComboBoxCurrentIndexChanged(int value)
 	if (name == "comboBox_serverlist")
 	{
 		{
-			util::Config config;
+			util::Config config(QString("%1|%2").arg(__FUNCTION__).arg(__LINE__));
 			config.write("System", "Server", "LastServerListSelection", ui.comboBox_serverlist->currentIndex());
 		}
 
@@ -932,7 +922,7 @@ void GeneralForm::onComboBoxCurrentIndexChanged(int value)
 
 	if (name == "comboBox_paths")
 	{
-		util::Config config;
+		util::Config config(QString("%1|%2").arg(__FUNCTION__).arg(__LINE__));
 		qint64 current = ui.comboBox_paths->currentIndex();
 		if (current >= 0)
 			config.write("System", "Command", "LastSelection", ui.comboBox_paths->currentIndex());
@@ -949,7 +939,7 @@ void GeneralForm::onApplyHashSettingsToUI()
 	QHash<util::UserSetting, QString> stringHash = injector.getStringsHash();
 
 	{
-		util::Config config;
+		util::Config config(QString("%1|%2").arg(__FUNCTION__).arg(__LINE__));
 		qint64 index = config.read<qint64>("System", "Command", "LastSelection");
 
 		if (index >= 0 && index < ui.comboBox_paths->count())
@@ -1098,7 +1088,7 @@ void GeneralForm::startGameAsync()
 		Injector& injector = Injector::getInstance(currentIndex);
 		injector.currentGameExePath = path;
 
-		std::unique_ptr<Server> _pServer(new Server(currentIndex, this));
+		std::unique_ptr<Server> _pServer(q_check_ptr(new Server(currentIndex, this)));
 		if (_pServer == nullptr)
 			break;
 
@@ -1132,7 +1122,7 @@ void GeneralForm::createServerList()
 	Injector& injector = Injector::getInstance(currentIndex);
 
 	{
-		util::Config config;
+		util::Config config(QString("%1|%2").arg(__FUNCTION__).arg(__LINE__));
 
 		injector.currentServerListIndex = currentListIndex;
 		list = config.readArray<QString>("System", "Server", QString("List_%1").arg(currentListIndex));

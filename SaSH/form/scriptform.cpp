@@ -66,7 +66,7 @@ ScriptForm::ScriptForm(qint64 index, QWidget* parent)
 
 	connect(ui.spinBox_speed, static_cast<void (QSpinBox::*)(int)>(&QSpinBox::valueChanged), this, &ScriptForm::onSpeedChanged);
 
-	util::Config config;
+	util::Config config(QString("%1|%2").arg(__FUNCTION__).arg(__LINE__));
 
 	Injector& injector = Injector::getInstance(index);
 	QString currentScriptFileName = config.read<QString>("Script", "LastModifyFile");
@@ -108,10 +108,9 @@ void ScriptForm::onScriptStarted()
 			return;
 	}
 
-	interpreter_.reset(new Interpreter(currentIndex));
+	interpreter_.reset(q_check_ptr(new Interpreter(currentIndex)));
 
-	if (!injector.scriptLogModel.isNull())
-		injector.scriptLogModel->clear();
+	injector.scriptLogModel.clear();
 
 	connect(interpreter_.get(), &Interpreter::finished, this, &ScriptForm::onScriptFinished, Qt::QueuedConnection);
 
@@ -258,7 +257,7 @@ void ScriptForm::loadFile(const QString& fileName, bool start)
 	qint64 currentIndex = getIndex();
 	if (interpreter_ == nullptr)
 	{
-		interpreter_.reset(new Interpreter(currentIndex));
+		interpreter_.reset(q_check_ptr(new Interpreter(currentIndex)));
 	}
 
 	Injector& injector = Injector::getInstance(currentIndex);
@@ -439,7 +438,7 @@ void ScriptForm::onScriptTreeWidgetDoubleClicked(QTreeWidgetItem* item, int colu
 void ScriptForm::onReloadScriptList()
 {
 	QStringList newScriptList = {};
-	TreeWidgetItem* item = new TreeWidgetItem();
+	TreeWidgetItem* item = q_check_ptr(new TreeWidgetItem());
 	if (nullptr == item)
 		return;
 

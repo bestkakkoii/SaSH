@@ -99,12 +99,12 @@ BattleSettingFrom::BattleSettingFrom(qint64 index, QWidget* parent)
 	, Indexer(index)
 {
 	ui.setupUi(this);
-	setAttribute(Qt::WA_DeleteOnClose);
+	setAttribute(Qt::WA_QuitOnClose);
 	QFont font = util::getFont();
 	setFont(font);
 
 	// 創建 QGraphicsScene 和 QGraphicsView
-	QGraphicsScene* scene = new QGraphicsScene(this);
+	QGraphicsScene* scene = q_check_ptr(new QGraphicsScene(this));
 	if (scene != nullptr)
 	{
 		ui.graphicsView_condition->setScene(scene);
@@ -180,7 +180,7 @@ BattleSettingFrom::BattleSettingFrom(qint64 index, QWidget* parent)
 			continue;
 		}
 
-		BattleConditionTextItem* item = new  BattleConditionTextItem(textPair.first);
+		BattleConditionTextItem* item = q_check_ptr(new  BattleConditionTextItem(textPair.first));
 		if (item == nullptr)
 			continue;
 
@@ -326,7 +326,7 @@ void BattleSettingFrom::onButtonClicked()
 		if (text.isEmpty())
 			return;
 
-		QListWidgetItem* item = new QListWidgetItem(text);
+		QListWidgetItem* item = q_check_ptr(new QListWidgetItem(text));
 		if (item == nullptr)
 			return;
 

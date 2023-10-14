@@ -172,7 +172,7 @@ private:
 	FastLabel* indexLabel_ = nullptr;
 	FastLabel* eolLabel_ = nullptr;
 
-	QTimer* usageTimer_ = nullptr;
+	QTimer usageTimer_;
 
 	bool isModified_ = false;
 	QStringList scriptList_;

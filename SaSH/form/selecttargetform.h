@@ -56,7 +56,7 @@ private:
 
 static bool createSelectTargetForm(qint64 index, qint64 type, QString* dst, QWidget* perent)
 {
-	SelectTargetForm* pObjForm = new SelectTargetForm(index, type, dst, perent);
+	SelectTargetForm* pObjForm = q_check_ptr(new SelectTargetForm(index, type, dst, perent));
 	if (pObjForm)
 	{
 		if (pObjForm->exec() == QDialog::Accepted)

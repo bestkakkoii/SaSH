@@ -29,7 +29,7 @@ public:
 		{
 			for (qint64 column = 0; column < columnCount; ++column)
 			{
-				QTableWidgetItem* item = new QTableWidgetItem("");
+				QTableWidgetItem* item = q_check_ptr(new QTableWidgetItem(""));
 				if (item == nullptr)
 					continue;
 
@@ -93,7 +93,7 @@ public:
 		}
 		else
 		{
-			item = new QTableWidgetItem(text);
+			item = q_check_ptr(new QTableWidgetItem(text));
 			if (item == nullptr)
 				return;
 
@@ -113,7 +113,7 @@ public:
 		QTableWidgetItem* item = QTableWidget::horizontalHeaderItem(col);
 		if (item == nullptr)
 		{
-			item = new QTableWidgetItem(text);
+			item = q_check_ptr(new QTableWidgetItem(text));
 			if (item == nullptr)
 				return;
 

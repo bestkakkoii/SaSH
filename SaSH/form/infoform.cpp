@@ -20,13 +20,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "infoform.h"
 #include <util.h>
 
-#include "battleinfoform.h"
-#include "playerinfoform.h"
-#include "iteminfoform.h"
-#include "chatinfoform.h"
-#include "mailinfoform.h"
-#include "petinfoform.h"
-#include "afkinfoform.h"
+
 
 #include "signaldispatcher.h"
 #include "injector.h"
@@ -34,10 +28,15 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 InfoForm::InfoForm(qint64 index, qint64 defaultPage, QWidget* parent)
 	: QWidget(parent)
 	, Indexer(index)
+	, pBattleInfoForm_(index, nullptr)
+	, pCharInfoForm_(index, nullptr)
+	, pItemInfoForm_(index, nullptr)
+	, pChatInfoForm_(index, nullptr)
+	, pAfkInfoForm_(index, nullptr)
 {
 	ui.setupUi(this);
 
-	setAttribute(Qt::WA_DeleteOnClose);
+	setAttribute(Qt::WA_QuitOnClose);
 	setAttribute(Qt::WA_StyledBackground, true);
 
 	setStyleSheet(R"(background-color: #F9F9F9)");
@@ -49,56 +48,22 @@ InfoForm::InfoForm(qint64 index, qint64 defaultPage, QWidget* parent)
 	connect(this, &InfoForm::resetControlTextLanguage, this, &InfoForm::onResetControlTextLanguage, Qt::QueuedConnection);
 
 	ui.tabWidget->clear();
-	util::setTab(ui.tabWidget);
 
-	pBattleInfoForm_ = new BattleInfoForm(index, nullptr);
-	Q_ASSERT(pBattleInfoForm_ != nullptr);
-	if (pBattleInfoForm_ != nullptr)
-	{
-		ui.tabWidget->addTab(pBattleInfoForm_, tr("battleinfo"));
-	}
 
-	pCharInfoForm_ = new CharInfoForm(index, nullptr);
-	Q_ASSERT(pCharInfoForm_ != nullptr);
-	if (pCharInfoForm_ != nullptr)
-	{
-		ui.tabWidget->addTab(pCharInfoForm_, tr("playerinfo"));
-	}
+	ui.tabWidget->addTab(&pBattleInfoForm_, tr("battleinfo"));
 
-	pItemInfoForm_ = new ItemInfoForm(index, nullptr);
-	Q_ASSERT(pItemInfoForm_ != nullptr);
-	if (pItemInfoForm_ != nullptr)
-	{
-		ui.tabWidget->addTab(pItemInfoForm_, tr("iteminfo"));
-	}
+	ui.tabWidget->addTab(&pCharInfoForm_, tr("playerinfo"));
 
-	pChatInfoForm_ = new ChatInfoForm(index, nullptr);
-	Q_ASSERT(pChatInfoForm_ != nullptr);
-	if (pChatInfoForm_ != nullptr)
-	{
-		ui.tabWidget->addTab(pChatInfoForm_, tr("chatinfo"));
-	}
+	ui.tabWidget->addTab(&pItemInfoForm_, tr("iteminfo"));
 
-	//pMailInfoForm_ = new MailInfoForm(index, nullptr);
-	//Q_ASSERT(pMailInfoForm_ != nullptr);
-	//if (pMailInfoForm_ != nullptr)
-	//{
-	//	ui.tabWidget->addTab(pMailInfoForm_, tr("mailinfo"));
-	//}
+	ui.tabWidget->addTab(&pChatInfoForm_, tr("chatinfo"));
 
-	//pPetInfoForm_ = new PetInfoForm(index, nullptr);
-	//Q_ASSERT(pPetInfoForm_ != nullptr);
-	//if (pPetInfoForm_ != nullptr)
-	//{
-	//	ui.tabWidget->addTab(pPetInfoForm_, tr("petinfo"));
-	//}
+	//	ui.tabWidget->addTab(&pMailInfoForm_, tr("mailinfo"));
 
-	pAfkInfoForm_ = new AfkInfoForm(index, nullptr);
-	Q_ASSERT(pAfkInfoForm_ != nullptr);
-	if (pAfkInfoForm_ != nullptr)
-	{
-		ui.tabWidget->addTab(pAfkInfoForm_, tr("afkinfo"));
-	}
+	//	ui.tabWidget->addTab(&pPetInfoForm_, tr("petinfo"));
+
+	ui.tabWidget->addTab(&pAfkInfoForm_, tr("afkinfo"));
+
 
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(index);
 
@@ -157,9 +122,9 @@ void InfoForm::onResetControlTextLanguage()
 	//ui.tabWidget->setTabText(n++, tr("petinfo"));
 	ui.tabWidget->setTabText(n++, tr("afkinfo"));
 
-	pCharInfoForm_->onResetControlTextLanguage();
-	pItemInfoForm_->onResetControlTextLanguage();
-	pChatInfoForm_->onResetControlTextLanguage();
+	pCharInfoForm_.onResetControlTextLanguage();
+	pItemInfoForm_.onResetControlTextLanguage();
+	pChatInfoForm_.onResetControlTextLanguage();
 }
 
 void InfoForm::onApplyHashSettingsToUI()

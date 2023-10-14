@@ -199,10 +199,10 @@ LONG CALLBACK MinidumpCallback(PEXCEPTION_POINTERS pException)
 		}
 
 		auto PathFileExists = [](const wchar_t* name)->BOOL
-		{
-			DWORD dwAttrib = GetFileAttributes(name);
-			return (dwAttrib != INVALID_FILE_ATTRIBUTES && !(dwAttrib & FILE_ATTRIBUTE_DIRECTORY));
-		};
+			{
+				DWORD dwAttrib = GetFileAttributes(name);
+				return (dwAttrib != INVALID_FILE_ATTRIBUTES && !(dwAttrib & FILE_ATTRIBUTE_DIRECTORY));
+			};
 
 		// Check if dump directory exists
 		if (!PathFileExists(L".\\lib\\dump"))
@@ -354,20 +354,20 @@ int main(int argc, char* argv[])
 	QApplication::setAttribute(Qt::AA_EnableHighDpiScaling, true);
 	QApplication::setAttribute(Qt::AA_UseHighDpiPixmaps, true);
 #endif
-	//QApplication::setAttribute(Qt::AA_ShareOpenGLContexts, true);
-	//QApplication::setAttribute(Qt::AA_UseDesktopOpenGL, true);//AA_UseDesktopOpenGL, AA_UseOpenGLES, AA_UseSoftwareOpenGL
+	QApplication::setAttribute(Qt::AA_ShareOpenGLContexts, true);
+	QApplication::setAttribute(Qt::AA_UseDesktopOpenGL, true);//AA_UseDesktopOpenGL, AA_UseOpenGLES, AA_UseSoftwareOpenGL
 	QApplication::setHighDpiScaleFactorRoundingPolicy(Qt::HighDpiScaleFactorRoundingPolicy::PassThrough);
 
 	//OpenGL相關設置
-	//QSurfaceFormat format;
-	//format.setRenderableType(QSurfaceFormat::DefaultRenderableType);//OpenGL, OpenGLES, OpenVG
-	//format.setSwapBehavior(QSurfaceFormat::SingleBuffer);
+	QSurfaceFormat format;
+	format.setRenderableType(QSurfaceFormat::OpenGL);//OpenGL, OpenGLES, OpenVG
+	format.setSwapBehavior(QSurfaceFormat::TripleBuffer);
 	////format.setSamples(0);
 	//format.setColorSpace(QSurfaceFormat::ColorSpace::DefaultColorSpace);
 	//format.setProfile(QSurfaceFormat::OpenGLContextProfile::CompatibilityProfile);
 	//format.setStereo(false);
 	////format.setSwapInterval(0);
-	//QSurfaceFormat::setDefaultFormat(format);
+	QSurfaceFormat::setDefaultFormat(format);
 
 	//////// 以上必須在 QApplication a(argc, argv); 之前設置否則無效 ////////
 
@@ -450,6 +450,41 @@ int main(int argc, char* argv[])
 		it.next();
 		QFile::remove(it.filePath());
 	}
+
+	//設置語言
+	const UINT acp = ::GetACP();
+
+	const QString defaultBaseDir = util::applicationDirPath();
+	QTranslator translator;
+	QStringList files;
+
+	switch (acp)
+	{
+	case 936://Simplified Chinese
+	{
+		util::searchFiles(defaultBaseDir, "qt_zh_CN", ".qm", &files, false);
+		if (!files.isEmpty() && translator.load(files.first()))
+			qApp->installTranslator(&translator);
+		break;
+	}
+	case 950://Traditional Chinese
+	{
+		util::searchFiles(defaultBaseDir, "qt_zh_TW", ".qm", &files, false);
+		if (!files.isEmpty() && translator.load(files.first()))
+			qApp->installTranslator(&translator);
+		break;
+	}
+	default://English
+	{
+		util::searchFiles(defaultBaseDir, "qt_en_US", ".qm", &files, false);
+		if (!files.isEmpty() && translator.load(files.first()))
+			qApp->installTranslator(&translator);
+		break;
+	}
+	}
+
+	Downloader downloader;
+	MapAnalyzer::loadHotData(downloader);
 
 	/* 實例化單個或多個主窗口 */
 

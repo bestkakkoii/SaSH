@@ -334,7 +334,7 @@ void CodeEditor::dropEvent(QDropEvent* e)
 
 void CodeEditor::findReplace()
 {
-	ReplaceDialog* replaceDialog = new ReplaceDialog(this);
+	ReplaceDialog* replaceDialog = q_check_ptr(new ReplaceDialog(this));
 	if (replaceDialog == nullptr)
 		return;
 
@@ -440,7 +440,7 @@ void CodeEditor::jumpToLineDialog()
 	if (pline.isNull())
 		return;
 
-	JumpToLineDialog* dialog = new JumpToLineDialog(this, pline.get());
+	JumpToLineDialog* dialog = q_check_ptr(new JumpToLineDialog(this, pline.get()));
 	if (dialog == nullptr)
 		return;
 

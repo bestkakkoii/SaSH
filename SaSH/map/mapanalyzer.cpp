@@ -21,7 +21,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "astar.h"
 #include <net/tcpserver.h>
 #include "injector.h"
-#include "update/downloader.h"
 
 constexpr const char* kDefaultMapSuffix = ".dat";
 
@@ -899,23 +898,23 @@ MapAnalyzer::MapAnalyzer(qint64 index)
 	, directory(util::toQString(qgetenv("GAME_DIR_PATH")))
 {
 
-	static bool init = false;
-	if (init)
-		return;
+}
 
-	init = true;
+MapAnalyzer::~MapAnalyzer()
+{
+	qDebug() << "MapAnalyzer distory!!";
+}
 
+void MapAnalyzer::loadHotData(Downloader& downloader)
+{
 	QSet<quint16> d = {};
-	Downloader downloader;
 	QString strdata;
 	QVariant vdata;
 	if (!downloader.start(Downloader::GiteeMapData, &vdata) && vdata.isValid())
 	{
-		SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(index);
-
-		QEventLoop loop;
-		emit signalDispatcher.messageBoxShow(QObject::tr("Map data download failed, please check your network connection!"), QMessageBox::Critical, "", nullptr, "", "", &loop);
-		loop.exec();
+		QString msg = QObject::tr("Map data download failed, please check your network connection!");
+		std::wstring wmsg = msg.toStdWString();
+		MessageBoxW(nullptr, wmsg.c_str(), L"Error", MB_OK | MB_ICONERROR);
 		MINT::NtTerminateProcess(GetCurrentProcess(), 0);
 		return;
 	}
@@ -969,11 +968,6 @@ MapAnalyzer::MapAnalyzer(qint64 index)
 		else if (key == "EMPTY")
 			EMPTY = d;
 	}
-}
-
-MapAnalyzer::~MapAnalyzer()
-{
-	qDebug() << "MapAnalyzer distory!!";
 }
 
 //查找地形
@@ -1400,7 +1394,7 @@ bool MapAnalyzer::readFromBinary(qint64 floor, const QString& name, bool enableD
 			if (!bret)
 				bret = true;
 		}
-	}
+}
 
 	//繪製地圖圖像(只能在PaintEvent中繪製)
 	draw();

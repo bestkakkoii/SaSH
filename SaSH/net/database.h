@@ -1052,7 +1052,7 @@ enum TalkMode
 #pragma endregion
 
 #pragma region Structs
-#pragma pack(4)
+#pragma pack(8)
 #if 0
 typedef struct action
 {

@@ -28,6 +28,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include <indexer.h>
 #include <util.h>
 #include "lssproto.h"
+#include "map/mapanalyzer.h"
 
 static const QHash<QString, BUTTON_TYPE> buttonMap = {
 	{"OK", BUTTON_OK},
@@ -212,9 +213,9 @@ public:
 
 	virtual ~Server();
 
-	Q_REQUIRED_RESULT inline bool isListening() const { return  !server_.isNull() && server_->isListening(); }
+	Q_REQUIRED_RESULT inline bool isListening() const { return  server_ != nullptr && server_->isListening(); }
 
-	Q_REQUIRED_RESULT inline bool hasClientExist() const { return  !server_.isNull() && !clientSockets_.isEmpty(); }
+	Q_REQUIRED_RESULT inline bool hasClientExist() const { return  server_ != nullptr && !clientSockets_.isEmpty(); }
 
 	bool start(QObject* parent);
 
@@ -699,7 +700,7 @@ public:
 
 	std::atomic_llong saCurrentGameTime = 0;//遊戲時間 LSTIME_SECTION
 
-	QSharedPointer<MapAnalyzer> mapAnalyzer;
+	MapAnalyzer mapAnalyzer;
 
 	util::SafeData<currencydata_t> currencyData = {};
 	util::SafeData<customdialog_t> customDialog = {};
@@ -730,7 +731,7 @@ public:
 private:
 	std::atomic_uint16_t port_ = 0;
 
-	QSharedPointer<QTcpServer> server_;
+	std::unique_ptr<QTcpServer> server_;
 
 	QList<QTcpSocket*> clientSockets_;
 

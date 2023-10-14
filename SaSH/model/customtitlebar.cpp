@@ -34,20 +34,20 @@ QPushButton:pressed, QPushButton:checked {
 
 	setStyleSheet(style);
 
-	QLabel* icon = new QLabel("");
+	QLabel* icon = q_check_ptr(new QLabel(""));
 	icon->setFixedSize(35, 35);
 	QPixmap originalPixmap(":/image/ico.png");
 	QPixmap scaledPixmap = originalPixmap.scaled(QSize(25, 25), Qt::KeepAspectRatio, Qt::SmoothTransformation);
 	icon->setPixmap(scaledPixmap);
 
-	titleLabel_ = new QLabel("sash");
+	titleLabel_ = q_check_ptr(new QLabel("sash"));
 	titleLabel_->setFixedHeight(35);
 	titleLabel_->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
 
 	QPushButton* minimizeButton = nullptr;
 	if (button & kMinimizeButton)
 	{
-		minimizeButton = new QPushButton("");
+		minimizeButton = q_check_ptr(new QPushButton(""));
 		if (minimizeButton != nullptr)
 		{
 			minimizeButton->setFixedSize(35, 35);
@@ -58,7 +58,7 @@ QPushButton:pressed, QPushButton:checked {
 
 	if (button & kMaximizeButton)
 	{
-		maximizeButton_ = new QPushButton("");
+		maximizeButton_ = q_check_ptr(new QPushButton(""));
 		if (maximizeButton_ != nullptr)
 		{
 			maximizeButton_->setFixedSize(35, 35);
@@ -74,7 +74,7 @@ QPushButton:pressed, QPushButton:checked {
 	QPushButton* closeButton = nullptr;
 	if (button & kCloseButton)
 	{
-		closeButton = new QPushButton("");
+		closeButton = q_check_ptr(new QPushButton(""));
 		if (closeButton != nullptr)
 		{
 			closeButton->setFixedSize(35, 35);
@@ -83,7 +83,7 @@ QPushButton:pressed, QPushButton:checked {
 		}
 	}
 
-	QHBoxLayout* layout = new QHBoxLayout(this);
+	QHBoxLayout* layout = q_check_ptr(new QHBoxLayout(this));
 	if (layout == nullptr)
 		return;
 

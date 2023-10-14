@@ -3,6 +3,7 @@
 #include <QWidget>
 #include "ui_generalform.h"
 #include <indexer.h>
+#include "form/afkform.h"
 
 class AfkForm;
 class GeneralForm : public QWidget, public Indexer
@@ -35,20 +36,17 @@ private slots:
 	void onGameStart();
 
 protected:
-	virtual void showEvent(QShowEvent* e) override
-	{
-		setAttribute(Qt::WA_Mapped);
-		QWidget::showEvent(e);
-	}
+	virtual void showEvent(QShowEvent* e) override;
 
 private:
 	void createServerList();
 	void serverListReLoad();
+	void reloadPaths();
 
 	Q_INVOKABLE void startGameAsync();
 
 private:
 	Ui::GeneralFormClass ui;
-	AfkForm* pAfkForm_ = nullptr;
+	AfkForm pAfkForm_;
 	QHash<qint64, QHash<QString, QStringList>> serverList;
 };

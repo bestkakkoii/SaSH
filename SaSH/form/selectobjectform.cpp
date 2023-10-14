@@ -171,7 +171,7 @@ void SelectObjectForm::appendItem()
 
 	currentText.replace(" ", "");
 
-	std::unique_ptr<QListWidgetItem> newItem(new QListWidgetItem(currentText));
+	std::unique_ptr<QListWidgetItem> newItem(q_check_ptr(new QListWidgetItem(currentText)));
 	if (newItem == nullptr)
 		return;
 

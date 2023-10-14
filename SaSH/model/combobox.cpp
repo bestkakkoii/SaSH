@@ -189,7 +189,7 @@ QComboBox QAbstractItemView {
     border: 0px solid #ccc;*/
 }
 )");
-	setView(q_check_ptr(new QListView()));
+	setView(q_check_ptr(q_check_ptr(new QListView())));
 	view()->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
 	//setFixedHeight(20);
 }

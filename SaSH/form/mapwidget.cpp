@@ -36,7 +36,6 @@ MapWidget::MapWidget(qint64 index, QWidget* parent)
 	, Indexer(index)
 {
 	ui.setupUi(this);
-	setAttribute(Qt::WA_DeleteOnClose);
 	setAttribute(Qt::WA_StyledBackground);
 	setWindowTitle(QString("[%1]").arg(index));
 
@@ -199,30 +198,30 @@ void MapWidget::onRefreshTimeOut()
 		caption += " " + tr("downloading(%1%2)").arg(util::toQString(downloadMapProgress_)).arg("%");
 	setWindowTitle(caption);
 
-	bool map_ret = injector.server->mapAnalyzer->readFromBinary(floor, injector.server->getFloorName(), true);
+	bool map_ret = injector.server->mapAnalyzer.readFromBinary(floor, injector.server->getFloorName(), true);
 	if (!map_ret)
 		return;
 
-	QPixmap ppix = injector.server->mapAnalyzer->getPixmapByIndex(floor);
+	QPixmap ppix = injector.server->mapAnalyzer.getPixmapByIndex(floor);
 	if (ppix.isNull())  return;
 
 	map_t m_map = {};
-	injector.server->mapAnalyzer->getMapDataByFloor(floor, &m_map);
+	injector.server->mapAnalyzer.getMapDataByFloor(floor, &m_map);
 
 	QHash<qint64, mapunit_t> unitHash = injector.server->mapUnitHash.toHash();
 	auto findMapUnitByPoint = [&unitHash](const QPoint& p, mapunit_t* u)->bool
-	{
-		for (auto it = unitHash.begin(); it != unitHash.end(); ++it)
 		{
-			if (it->p == p)
+			for (auto it = unitHash.begin(); it != unitHash.end(); ++it)
 			{
-				if (u)
-					*u = it.value();
-				return true;
+				if (it->p == p)
+				{
+					if (u)
+						*u = it.value();
+					return true;
+				}
 			}
-		}
-		return false;
-	};
+			return false;
+		};
 
 
 #if 1
@@ -521,7 +520,7 @@ void MapWidget::on_openGLWidget_notifyLeftDoubleClick(const QPointF& pos)
 		interpreter_->stop();
 	}
 
-	interpreter_.reset(new Interpreter(currentIndex));
+	interpreter_.reset(q_check_ptr(new Interpreter(currentIndex)));
 
 
 	const QPointF predst(pos / zoom_value_);
@@ -608,8 +607,8 @@ void MapWidget::onDownloadMapTimeout()
 		caption += " " + tr("downloading(%1%2)").arg(util::toQString(100.00)).arg("%");
 		setWindowTitle(caption);
 
-		injector.server->mapAnalyzer->clear(floor);
-		const QString fileName(injector.server->mapAnalyzer->getCurrentPreHandleMapPath(floor));
+		injector.server->mapAnalyzer.clear(floor);
+		const QString fileName(injector.server->mapAnalyzer.getCurrentPreHandleMapPath(floor));
 		QFile file(fileName);
 		if (file.exists())
 		{
@@ -617,7 +616,7 @@ void MapWidget::onDownloadMapTimeout()
 		}
 		isDownloadingMap_ = false;
 		injector.server->EO();
-		injector.server->mapAnalyzer->readFromBinary(floor, name, true, true);
+		injector.server->mapAnalyzer.readFromBinary(floor, name, true, true);
 		if (!ui.pushButton_download->isEnabled())
 			ui.pushButton_download->setEnabled(true);
 	}
@@ -638,7 +637,7 @@ void MapWidget::on_pushButton_download_clicked()
 	ui.pushButton_download->setEnabled(false);
 
 	map_t map = {};
-	injector.server->mapAnalyzer->getMapDataByFloor(injector.server->getFloor(), &map);
+	injector.server->mapAnalyzer.getMapDataByFloor(injector.server->getFloor(), &map);
 
 	downloadCount_ = 0;
 	downloadMapXSize_ = map.width;
@@ -664,16 +663,16 @@ void MapWidget::on_pushButton_clear_clicked()
 		return;
 
 	qint64 floor = injector.server->getFloor();
-	injector.server->mapAnalyzer->clear(floor);
+	injector.server->mapAnalyzer.clear(floor);
 
-	const QString fileName(injector.server->mapAnalyzer->getCurrentPreHandleMapPath(floor));
+	const QString fileName(injector.server->mapAnalyzer.getCurrentPreHandleMapPath(floor));
 	QFile file(fileName);
 	if (!file.exists())
 		return;
 
 	file.remove();
 
-	injector.server->mapAnalyzer->readFromBinary(floor, injector.server->getFloorName(), true, true);
+	injector.server->mapAnalyzer.readFromBinary(floor, injector.server->getFloorName(), true, true);
 }
 
 void MapWidget::on_pushButton_returnBase_clicked()
@@ -709,7 +708,7 @@ void MapWidget::on_pushButton_findPath_clicked()
 	if (nullptr != interpreter_ && interpreter_->isRunning())
 		return;
 
-	interpreter_.reset(new Interpreter(currentIndex));
+	interpreter_.reset(q_check_ptr(new Interpreter(currentIndex)));
 
 	qint64 x = ui.spinBox_findPathX->value();
 	qint64 y = ui.spinBox_findPathY->value();
@@ -797,7 +796,7 @@ void MapWidget::on_tableWidget_NPCList_cellDoubleClicked(int row, int)
 	if (nullptr != interpreter_ && interpreter_->isRunning())
 		return;
 
-	interpreter_.reset(new Interpreter(currentIndex));
+	interpreter_.reset(q_check_ptr(new Interpreter(currentIndex)));
 
 	QString name(item_name->text());
 	QString text(item->text());
@@ -856,7 +855,7 @@ void MapWidget::on_tableWidget_NPCList_cellDoubleClicked(int row, int)
 	QPoint newPoint = util::fix_point.value(unit.dir) + unit.p;
 
 	//檢查是否可走
-	if (injector.server->mapAnalyzer->isPassable(astar, floor, point, newPoint))
+	if (injector.server->mapAnalyzer.isPassable(astar, floor, point, newPoint))
 	{
 		x = newPoint.x();
 		y = newPoint.y();
@@ -866,7 +865,7 @@ void MapWidget::on_tableWidget_NPCList_cellDoubleClicked(int row, int)
 		//再往前一格
 		QPoint additionPoint = util::fix_point.value(unit.dir) + newPoint;
 		//檢查是否可走
-		if (injector.server->mapAnalyzer->isPassable(astar, floor, point, additionPoint))
+		if (injector.server->mapAnalyzer.isPassable(astar, floor, point, additionPoint))
 		{
 			x = additionPoint.x();
 			y = additionPoint.y();
@@ -878,7 +877,7 @@ void MapWidget::on_tableWidget_NPCList_cellDoubleClicked(int row, int)
 			for (qint64 i = 0; i < 8; ++i)
 			{
 				newPoint = util::fix_point.value(i) + unit.p;
-				if (injector.server->mapAnalyzer->isPassable(astar, floor, point, newPoint))
+				if (injector.server->mapAnalyzer.isPassable(astar, floor, point, newPoint))
 				{
 					x = newPoint.x();
 					y = newPoint.y();

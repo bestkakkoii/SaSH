@@ -22,21 +22,28 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "ui_mainform.h"
 #include <indexer.h>
 
+//TabWidget pages
+#include "form/selectobjectform.h"
+#include "form/generalform.h"
+#include "form/mapform.h"
+#include "form/otherform.h"
+#include "form/scriptform.h"
+#include "form/infoform.h"
+#include "form/mapwidget.h"
+
+#include "form/copyrightdialog.h"
+#include "form/settingfiledialog.h"
+
+//menu action forms
+#include "form/scripteditor.h"
+#include "model/qthumbnailform.h"
+#include "update/downloader.h"
+
 class QTranslator;
 class QMenuBar;
 class QShowEvent;
 class QCloseEvent;
 class QSystemTrayIcon;
-
-class GeneralForm;
-class MapForm;
-class OtherForm;
-class ScriptForm;
-class LuaScriptForm;
-
-class InfoForm;
-class MapWidget;
-class ScriptEditor;
 
 class QThumbnailForm;
 
@@ -70,12 +77,18 @@ protected:
 	void moveEvent(QMoveEvent* e) override;
 
 private:
-	void resetControlTextLanguage();
+
 	void updateStatusText(const QString text = "");
 
 	void createMenu(QMenuBar* pMenuBar);
+	void createTrayIcon();
+
+signals:
+	void resetControlTextLanguage();
 
 private slots:
+	bool onResetControlTextLanguage();
+
 	void onMenuActionTriggered();
 
 	void onSaveHashSettings(const QString& name = "default", bool isFullPath = false);
@@ -91,7 +104,6 @@ private slots:
 
 	void onMessageBoxShow(const QString& text, qint64 type = 0, QString title = "", qint64* pnret = nullptr, QString topText = "", QString detail = "", void* p = nullptr);
 	void onInputBoxShow(const QString& text, qint64 type, QVariant* retvalue, void* p);
-	void onFileDialogShow(const QString& name, qint64 acceptType, QString* retstring, void* p);
 
 	void onAppendScriptLog(const QString& text, qint64 color = 0);
 	void onAppendChatLog(const QString& text, qint64 color = 0);
@@ -100,25 +112,25 @@ private:
 	bool markAsClose_ = false;
 	Ui::MainFormClass ui;
 	QMenuBar* pMenuBar_ = nullptr;
-	QTranslator translator_;
+
 	QHash<QString, QAction*> menu_action_hash_;
 
-	GeneralForm* pGeneralForm_ = nullptr;
-	MapForm* pMapForm_ = nullptr;
-
-	OtherForm* pOtherForm_ = nullptr;
-	ScriptForm* pScriptForm_ = nullptr;
-	LuaScriptForm* pLuaScriptForm_ = nullptr;
+	GeneralForm pGeneralForm_;
+	MapForm pMapForm_;
+	OtherForm pOtherForm_;
+	ScriptForm pScriptForm_;
 
 	qint64 interfaceCount_ = 0;
 
-	InfoForm* pInfoForm_ = nullptr;
-	MapWidget* mapWidget_ = nullptr;
-	ScriptEditor* pScriptEditor_ = nullptr;
+	InfoForm pInfoForm_;
+	MapWidget mapWidget_;
+	ScriptEditor pScriptEditor_;
+
+	Downloader downloader_;
 
 	QThumbnailForm* pThumbnailForm_ = nullptr;
 
-	QSystemTrayIcon* trayIcon = nullptr;
+	QSystemTrayIcon trayIcon_ = nullptr;
 
 	QHash<qint64, QSharedPointer<Interpreter>> interpreter_hash_;
 

@@ -31,7 +31,7 @@ ScriptEditor::ScriptEditor(qint64 index, QWidget* parent)
 	, Indexer(index)
 {
 	ui.setupUi(this);
-	setAttribute(Qt::WA_DeleteOnClose);
+	setAttribute(Qt::WA_QuitOnClose);
 	setAttribute(Qt::WA_StyledBackground);
 
 	qRegisterMetaType<QVector<qint64>>();
@@ -128,8 +128,7 @@ void ScriptEditor::init()
 	qint64 index = getIndex();
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(index);
 	Injector& injector = Injector::getInstance(index);
-	if (!injector.scriptLogModel.isNull())
-		ui.listView_log->setModel(injector.scriptLogModel.get());
+	ui.listView_log->setModel(&injector.scriptLogModel);
 
 	emit signalDispatcher.scriptFinished();
 	emit signalDispatcher.reloadScriptList();
@@ -144,7 +143,7 @@ void ScriptEditor::init()
 
 	injector.isScriptEditorOpened.store(true, std::memory_order_release);
 
-	util::Config config;
+	util::Config config(QString("%1|%2").arg(__FUNCTION__).arg(__LINE__));
 	if (config.isValid())
 	{
 		QString ObjectName = ui.widget->objectName();
@@ -179,46 +178,44 @@ void ScriptEditor::init()
 
 void ScriptEditor::initStaticLabel()
 {
-	lineLable_ = new FastLabel(tr("row:%1").arg(1), QColor("#FFFFFF"), QColor(64, 53, 130), ui.statusBar);
+	lineLable_ = q_check_ptr(new FastLabel(tr("row:%1").arg(1), QColor("#FFFFFF"), QColor(64, 53, 130), ui.statusBar));
 	Q_ASSERT(lineLable_ != nullptr);
 	lineLable_->setFixedWidth(60);
 	lineLable_->setTextColor(QColor(255, 255, 255));
-	sizeLabel_ = new FastLabel("| " + tr("size:%1").arg(0), QColor("#FFFFFF"), QColor(64, 53, 130), ui.statusBar);
+	sizeLabel_ = q_check_ptr(new FastLabel("| " + tr("size:%1").arg(0), QColor("#FFFFFF"), QColor(64, 53, 130), ui.statusBar));
 	Q_ASSERT(sizeLabel_ != nullptr);
 	sizeLabel_->setFixedWidth(60);
 	sizeLabel_->setTextColor(QColor(255, 255, 255));
-	indexLabel_ = new FastLabel("| " + tr("index:%1").arg(1), QColor("#FFFFFF"), QColor(64, 53, 130), ui.statusBar);
+	indexLabel_ = q_check_ptr(new FastLabel("| " + tr("index:%1").arg(1), QColor("#FFFFFF"), QColor(64, 53, 130), ui.statusBar));
 	Q_ASSERT(indexLabel_ != nullptr);
 	indexLabel_->setFixedWidth(60);
 	indexLabel_->setTextColor(QColor(255, 255, 255));
 
 	const QsciScintilla::EolMode mode = ui.widget->eolMode();
 	const QString modeStr(mode == QsciScintilla::EolWindows ? "CRLF" : mode == QsciScintilla::EolUnix ? "  LF" : "  CR");
-	eolLabel_ = new FastLabel(QString("| %1").arg(modeStr), QColor("#FFFFFF"), QColor(64, 53, 130), ui.statusBar);
+	eolLabel_ = q_check_ptr(new FastLabel(QString("| %1").arg(modeStr), QColor("#FFFFFF"), QColor(64, 53, 130), ui.statusBar));
 	Q_ASSERT(eolLabel_ != nullptr);
 	eolLabel_->setFixedWidth(50);
 	eolLabel_->setTextColor(QColor(255, 255, 255));
 
-	usageLabel_ = new FastLabel(QString(tr("Usage: cpu: %1% | memory: %2MB / %3MB"))
-		.arg(0).arg(0).arg(0), QColor("#FFFFFF"), QColor(64, 53, 130), ui.statusBar);
+	usageLabel_ = q_check_ptr(new FastLabel(QString(tr("Usage: cpu: %1% | memory: %2MB / %3MB"))
+		.arg(0).arg(0).arg(0), QColor("#FFFFFF"), QColor(64, 53, 130), ui.statusBar));
 	Q_ASSERT(usageLabel_ != nullptr);
 	usageLabel_->setFixedWidth(350);
 	usageLabel_->setTextColor(QColor(255, 255, 255));
 
-	QLabel* spaceLabeRight = new QLabel("", ui.statusBar);
+	QLabel* spaceLabeRight = q_check_ptr(new QLabel("", ui.statusBar));
 	Q_ASSERT(spaceLabeRight != nullptr);
 	spaceLabeRight->setFrameStyle(QFrame::NoFrame);
 	spaceLabeRight->setFixedWidth(10);
 
-	QLabel* spaceLabelMiddle = new QLabel("", ui.statusBar);
+	QLabel* spaceLabelMiddle = q_check_ptr(new QLabel("", ui.statusBar));
 	Q_ASSERT(spaceLabelMiddle != nullptr);
 	spaceLabelMiddle->setFrameStyle(QFrame::NoFrame);
 	spaceLabelMiddle->setFixedWidth(100);
 
-	usageTimer_ = new QTimer(this);
-	Q_ASSERT(usageTimer_ != nullptr);
-	usageTimer_->setInterval(1500);
-	connect(usageTimer_, &QTimer::timeout, this, [this]()
+	usageTimer_.setInterval(1500);
+	connect(&usageTimer_, &QTimer::timeout, this, [this]()
 		{
 			qint64 currentIndex = getIndex();
 			Injector& injector = Injector::getInstance(currentIndex);
@@ -241,7 +238,7 @@ void ScriptEditor::initStaticLabel()
 			}
 		});
 
-	usageTimer_->start();
+	usageTimer_.start();
 
 	ui.statusBar->setAttribute(Qt::WA_StyledBackground);
 
@@ -264,11 +261,11 @@ void ScriptEditor::initStaticLabel()
 
 void ScriptEditor::createSpeedSpinBox()
 {
-	pSpeedDescLabel_ = new QLabel(tr("Script speed:"), ui.mainToolBar);
+	pSpeedDescLabel_ = q_check_ptr(new QLabel(tr("Script speed:"), ui.mainToolBar));
 	Q_ASSERT(pSpeedDescLabel_ != nullptr);
 	pSpeedDescLabel_->setAttribute(Qt::WA_StyledBackground);
 
-	pSpeedSpinBox = new QSpinBox(ui.mainToolBar);
+	pSpeedSpinBox = q_check_ptr(new QSpinBox(ui.mainToolBar));
 	Q_ASSERT(pSpeedSpinBox != nullptr);
 	pSpeedSpinBox->setStyleSheet("QLabel {color: #FAFAFA; font-size: 12pt;}");
 
@@ -350,13 +347,12 @@ void ScriptEditor::closeEvent(QCloseEvent* e)
 	Injector& injector = Injector::getInstance(getIndex());
 	injector.isScriptEditorOpened.store(false, std::memory_order_release);
 
-	if (usageTimer_ != nullptr)
-		usageTimer_->stop();
+	usageTimer_.stop();
 
 	util::FormSettingManager formSettingManager(this);
 	formSettingManager.saveSettings();
 
-	util::Config config;
+	util::Config config(QString("%1|%2").arg(__FUNCTION__).arg(__LINE__));
 
 	if (!injector.currentScriptFileName.isEmpty())
 		config.write("Script", "LastModifyFile", injector.currentScriptFileName);
@@ -503,26 +499,26 @@ QString ScriptEditor::formatCode(QString content)
 	bool beginLuaCode = false;
 
 	auto checkLua = [&beginLuaCode](QString& line)->bool
-	{
-		if (line.trimmed().toLower().startsWith("#lua") && !beginLuaCode)
 		{
-			beginLuaCode = true;
-			line = line.trimmed().toLower();
-			return true;
-		}
-		else if (line.trimmed().toLower().startsWith("#endlua") && beginLuaCode)
-		{
-			beginLuaCode = false;
-			line = line.trimmed().toLower();
-			return true;
-		}
-		else if (beginLuaCode)
-		{
-			return true;
-		}
+			if (line.trimmed().toLower().startsWith("#lua") && !beginLuaCode)
+			{
+				beginLuaCode = true;
+				line = line.trimmed().toLower();
+				return true;
+			}
+			else if (line.trimmed().toLower().startsWith("#endlua") && beginLuaCode)
+			{
+				beginLuaCode = false;
+				line = line.trimmed().toLower();
+				return true;
+			}
+			else if (beginLuaCode)
+			{
+				return true;
+			}
 
-		return false;
-	};
+			return false;
+		};
 
 	for (QString& line : contents)
 	{
@@ -784,7 +780,7 @@ QString ScriptEditor::getFullPath(TreeWidgetItem* item)
 void ScriptEditor::createScriptListContextMenu()
 {
 	// Create the custom context menu
-	QMenu* menu = new QMenu(this);
+	QMenu* menu = q_check_ptr(new QMenu(this));
 	Q_ASSERT(menu != nullptr);
 	if (menu == nullptr)
 		return;
@@ -1242,10 +1238,10 @@ void ScriptEditor::on_treeWidget_functionList_itemDoubleClicked(QTreeWidgetItem*
 		QPoint pos = injector.server->getPoint();
 		QList<mapunit_t> units = injector.server->mapUnitHash.values();
 		auto getdis = [&pos](QPoint p)
-		{
-			//歐幾里得
-			return sqrt(pow(pos.x() - p.x(), 2) + pow(pos.y() - p.y(), 2));
-		};
+			{
+				//歐幾里得
+				return sqrt(pow(pos.x() - p.x(), 2) + pow(pos.y() - p.y(), 2));
+			};
 
 		std::sort(units.begin(), units.end(), [&getdis](const mapunit_t& a, const mapunit_t& b)
 			{
@@ -1272,10 +1268,10 @@ void ScriptEditor::on_treeWidget_functionList_itemDoubleClicked(QTreeWidgetItem*
 		QPoint pos = injector.server->getPoint();
 		QList<mapunit_t> units = injector.server->mapUnitHash.values();
 		auto getdis = [&pos](QPoint p)
-		{
-			//歐幾里得
-			return sqrt(pow(pos.x() - p.x(), 2) + pow(pos.y() - p.y(), 2));
-		};
+			{
+				//歐幾里得
+				return sqrt(pow(pos.x() - p.x(), 2) + pow(pos.y() - p.y(), 2));
+			};
 
 		std::sort(units.begin(), units.end(), [&getdis](const mapunit_t& a, const mapunit_t& b)
 			{
@@ -1432,34 +1428,34 @@ void ScriptEditor::on_treeWidget_breakList_itemDoubleClicked(QTreeWidgetItem* it
 void ScriptEditor::on_lineEdit_searchFunction_textChanged(const QString& text)
 {
 	auto OnFindItem = [](QTreeWidget* tree, const QString& qsFilter)->void
-	{
-		if (!tree) return;
-		QTreeWidgetItemIterator it(tree);
-		while (*it)
 		{
-			//QTreeWidgetItem是否滿足條件---這里的條件可以自己修改
-			if ((*it)->text(0).contains(qsFilter))
+			if (!tree) return;
+			QTreeWidgetItemIterator it(tree);
+			while (*it)
 			{
-				(*it)->setExpanded(true);
-				(*it)->setHidden(false);
-				TreeWidgetItem* item = reinterpret_cast<TreeWidgetItem*>(*it);
-				//顯示父節點
-				while (item->parent())
+				//QTreeWidgetItem是否滿足條件---這里的條件可以自己修改
+				if ((*it)->text(0).contains(qsFilter))
 				{
-					item->parent()->setHidden(false);
-					item = reinterpret_cast<TreeWidgetItem*>(item->parent());
-					//展開
-					item->setExpanded(true);
+					(*it)->setExpanded(true);
+					(*it)->setHidden(false);
+					TreeWidgetItem* item = reinterpret_cast<TreeWidgetItem*>(*it);
+					//顯示父節點
+					while (item->parent())
+					{
+						item->parent()->setHidden(false);
+						item = reinterpret_cast<TreeWidgetItem*>(item->parent());
+						//展開
+						item->setExpanded(true);
+					}
 				}
+				else
+				{
+					//不滿足滿足條件先隱藏，它的子項目滿足條件時會再次讓它顯示
+					(*it)->setHidden(true);
+				}
+				++it;
 			}
-			else
-			{
-				//不滿足滿足條件先隱藏，它的子項目滿足條件時會再次讓它顯示
-				(*it)->setHidden(true);
-			}
-			++it;
-		}
-	};
+		};
 
 	if (!text.isEmpty())
 		OnFindItem(ui.treeWidget_functionList, text);
@@ -1527,8 +1523,7 @@ void ScriptEditor::onApplyHashSettingsToUI()
 		setWindowTitle(newTitle);
 	}
 
-	if (!injector.scriptLogModel.isNull())
-		ui.listView_log->setModel(injector.scriptLogModel.get());
+	ui.listView_log->setModel(&injector.scriptLogModel);
 
 	if (pSpeedSpinBox != nullptr)
 		pSpeedSpinBox->setValue(injector.getValueHash(util::kScriptSpeedValue));
@@ -1734,8 +1729,7 @@ void ScriptEditor::onActionTriggered()
 
 	if (name == "actionSave")
 	{
-		if (!injector.scriptLogModel.isNull())
-			injector.scriptLogModel->clear();
+		injector.scriptLogModel.clear();
 
 		fileSave(ui.widget->text());
 		emit signalDispatcher.loadFileToTable(injector.currentScriptFileName);
@@ -1784,10 +1778,9 @@ void ScriptEditor::onActionTriggered()
 		if (!dir.exists())
 			dir.mkdir(directoryName);
 
-		QEventLoop loop;
 		QString path;
-		emit signalDispatcher.fileDialogShow("*.txt", QFileDialog::AcceptSave, &path, &loop);
-		loop.exec();
+		if (!util::fileDialogShow("*.txt", QFileDialog::AcceptSave, &path, this))
+			return;
 
 		if (path.isEmpty() || !util::writeFile(path, ui.widget->text()))
 		{
@@ -2189,7 +2182,7 @@ void ScriptEditor::onBreakMarkInfoImport()
 		const util::SafeHash<qint64, break_marker_t> mk = mks.value(fileName);
 		for (const break_marker_t& bit : mk)
 		{
-			item = new TreeWidgetItem({ bit.content, util::toQString(bit.count), util::toQString(bit.line + 1), fileName });
+			item = q_check_ptr(new TreeWidgetItem({ bit.content, util::toQString(bit.count), util::toQString(bit.line + 1), fileName }));
 			if (item == nullptr)
 				continue;
 
@@ -2206,7 +2199,7 @@ void ScriptEditor::onBreakMarkInfoImport()
 void ScriptEditor::onReloadScriptList()
 {
 	QStringList newScriptList = {};
-	TreeWidgetItem* item = new TreeWidgetItem();
+	TreeWidgetItem* item = q_check_ptr(new TreeWidgetItem());
 	if (nullptr == item)
 		return;
 
@@ -2369,7 +2362,7 @@ bool luaTableToTreeWidgetItem(QString field, TreeWidgetItem* pParentNode, const 
 		if (pair.second.is<sol::table>())
 		{
 			varType = QObject::tr("Table");
-			pNode = new TreeWidgetItem({ field, key, "", QString("(%1)").arg(varType) });
+			pNode = q_check_ptr(new TreeWidgetItem({ field, key, "", QString("(%1)").arg(varType) }));
 			if (pNode == nullptr)
 				continue;
 
@@ -2424,7 +2417,7 @@ bool luaTableToTreeWidgetItem(QString field, TreeWidgetItem* pParentNode, const 
 		if (varType.isEmpty())
 			continue;
 
-		pNode = new TreeWidgetItem({ field, key.isEmpty() ? util::toQString(nKey + 1) : key, value, QString("(%1)").arg(varType) });
+		pNode = q_check_ptr(new TreeWidgetItem({ field, key.isEmpty() ? util::toQString(nKey + 1) : key, value, QString("(%1)").arg(varType) }));
 		if (pNode == nullptr)
 			continue;
 
@@ -2504,7 +2497,7 @@ void ScriptEditor::createTreeWidgetItems(TreeWidget* widgetA, TreeWidget* widget
 					pparser->luaDoString(QString("_TMP = %1").arg(var.toString()));
 					if (lua_["_TMP"].is<sol::table>())
 					{
-						pNode = new TreeWidgetItem(QStringList{ field, varName, "", QString("(%1)").arg(varType) });
+						pNode = q_check_ptr(new TreeWidgetItem(QStringList{ field, varName, "", QString("(%1)").arg(varType) }));
 						if (pNode == nullptr)
 							continue;
 
@@ -2551,7 +2544,7 @@ void ScriptEditor::createTreeWidgetItems(TreeWidget* widgetA, TreeWidget* widget
 			}
 			}
 
-			pNode = new TreeWidgetItem({ field, varName, varValueStr, QString("(%1)").arg(varType) });
+			pNode = q_check_ptr(new TreeWidgetItem({ field, varName, varValueStr, QString("(%1)").arg(varType) }));
 			if (pNode == nullptr)
 				continue;
 
@@ -2579,7 +2572,7 @@ void ScriptEditor::createTreeWidgetItems(TreeWidget* widgetA, TreeWidget* widget
 		if (o.is<sol::table>())
 		{
 			varType = QObject::tr("Table");
-			pNode = new TreeWidgetItem(QStringList{ field, varName, "", QString("(%1)").arg(varType) });
+			pNode = q_check_ptr(new TreeWidgetItem(QStringList{ field, varName, "", QString("(%1)").arg(varType) }));
 			if (pNode == nullptr)
 				continue;
 
@@ -2638,7 +2631,7 @@ void ScriptEditor::createTreeWidgetItems(TreeWidget* widgetA, TreeWidget* widget
 		if (varType.isEmpty())
 			continue;
 
-		pNode = new TreeWidgetItem({ field, varName, varValueStr, QString("(%1)").arg(varType) });
+		pNode = q_check_ptr(new TreeWidgetItem({ field, varName, varValueStr, QString("(%1)").arg(varType) }));
 		if (pNode == nullptr)
 			continue;
 

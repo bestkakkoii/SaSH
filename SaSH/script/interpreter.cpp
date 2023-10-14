@@ -55,7 +55,7 @@ void Interpreter::doFileWithThread(qint64 beginLine, const QString& fileName)
 	if (thread_ != nullptr)
 		return;
 
-	thread_ = new QThread();
+	thread_ = q_check_ptr(new QThread());
 	if (nullptr == thread_)
 		return;
 
@@ -118,7 +118,7 @@ bool Interpreter::doFile(qint64 beginLine, const QString& fileName, Interpreter*
 //新線程下執行一段腳本內容
 void Interpreter::doString(const QString& content, Interpreter* pinterpretter, VarShareMode shareMode)
 {
-	thread_ = new QThread();
+	thread_ = q_check_ptr(new QThread());
 	if (nullptr == thread_)
 		return;
 

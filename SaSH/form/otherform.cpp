@@ -27,7 +27,6 @@ OtherForm::OtherForm(qint64 index, QWidget* parent)
 	, Indexer(index)
 {
 	ui.setupUi(this);
-	util::setTab(ui.tabWidge_other);
 
 	connect(this, &OtherForm::resetControlTextLanguage, this, &OtherForm::onResetControlTextLanguage, Qt::QueuedConnection);
 

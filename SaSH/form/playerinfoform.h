@@ -21,6 +21,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include <QWidget>
 #include "ui_playerinfoform.h"
 #include <indexer.h>
+#include "abilityform.h"
+
 class CharInfoForm : public QWidget, public Indexer
 {
 	Q_OBJECT
@@ -47,4 +49,5 @@ protected:
 
 private:
 	Ui::CharInfoFormClass ui;
+	AbilityForm abilityForm_;
 };

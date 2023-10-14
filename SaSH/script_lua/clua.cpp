@@ -112,28 +112,28 @@ QString luadebug::getErrorMsgLocatedLine(const QString& str, qint64* retline)
 	QRegularExpressionMatch match = rexGetLine.match(cmpstr);
 	QRegularExpressionMatch match2 = reGetLineEx.match(cmpstr);
 	static const auto matchies = [](const QRegularExpressionMatch& m, qint64* retline)->void
-	{
-		qint64 size = m.capturedTexts().size();
-		if (size > 1)
 		{
-			for (qint64 i = (size - 1); i >= 1; --i)
+			qint64 size = m.capturedTexts().size();
+			if (size > 1)
 			{
-				const QString s = m.captured(i).simplified();
-				if (!s.isEmpty())
+				for (qint64 i = (size - 1); i >= 1; --i)
 				{
-					bool ok = false;
-					qint64 row = s.simplified().toLongLong(&ok);
-					if (ok)
+					const QString s = m.captured(i).simplified();
+					if (!s.isEmpty())
 					{
-						if (retline)
-							*retline = row - 1;
+						bool ok = false;
+						qint64 row = s.simplified().toLongLong(&ok);
+						if (ok)
+						{
+							if (retline)
+								*retline = row - 1;
 
-						break;
+							break;
+						}
 					}
 				}
 			}
-		}
-	};
+		};
 
 	if (match.hasMatch())
 	{
@@ -612,35 +612,29 @@ CLua::~CLua()
 
 void CLua::start()
 {
-	thread_ = new QThread();
-	if (nullptr == thread_)
-		return;
-
-	moveToThread(thread_);
+	moveToThread(&thread_);
 
 	qint64 currentIndex = getIndex();
 
-	connect(this, &CLua::finished, thread_, &QThread::quit);
-	connect(thread_, &QThread::finished, thread_, &QThread::deleteLater);
-	connect(thread_, &QThread::started, this, &CLua::proc);
+	connect(this, &CLua::finished, &thread_, &QThread::quit);
+	connect(&thread_, &QThread::finished, &thread_, &QThread::deleteLater);
+	connect(&thread_, &QThread::started, this, &CLua::proc);
 	connect(this, &CLua::finished, this, [this]()
 		{
 			requestInterruption();
-			thread_->requestInterruption();
-			thread_->quit();
-			thread_->wait();
-			thread_ = nullptr;
+			thread_.requestInterruption();
+			thread_.quit();
+			thread_.wait();
 			qDebug() << "CLua::finished";
 		});
 
 
-	thread_->start();
+	thread_.start();
 }
 
 void CLua::wait()
 {
-	if (nullptr != thread_)
-		thread_->wait();
+	thread_.wait();
 }
 
 void CLua::open_enumlibs()

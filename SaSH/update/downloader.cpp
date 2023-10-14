@@ -381,7 +381,7 @@ bool Downloader::getHeader(const QUrl& url, QHash<QString, QString>* pheaders)
 bool Downloader::checkUpdate(QString* current, QString* ptext, QString* pformated)
 {
 	{
-		util::Config config;
+		util::Config config(QString("%1|%2").arg(__FUNCTION__).arg(__LINE__));
 		g_etag = config.read<QString>("System", "Update", "ETag");
 	}
 
@@ -920,7 +920,7 @@ void Downloader::overwriteCurrentExecutable()
 
 	{
 		progressDialog_->setLabelText("recording new ETag...");
-		util::Config config;
+		util::Config config(QString("%1|%2").arg(__FUNCTION__).arg(__LINE__));
 		config.write("System", "Update", "ETag", g_etag);
 	}
 

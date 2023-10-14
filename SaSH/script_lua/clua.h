@@ -371,7 +371,7 @@ public:
 private:
 	qint64 max_ = 0;
 	CLua* parent_ = nullptr;
-	QThread* thread_ = nullptr;
+	QThread thread_;
 	DWORD tid_ = 0UL;
 	QElapsedTimer scriptTimer_;
 	QString scriptContent_;

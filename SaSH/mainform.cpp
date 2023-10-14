@@ -19,24 +19,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include "stdafx.h"
 #include "mainform.h"
 
-//TabWidget pages
-#include "form/selectobjectform.h"
-#include "form/generalform.h"
-#include "form/mapform.h"
-#include "form/otherform.h"
-#include "form/scriptform.h"
-#include "form/infoform.h"
-#include "form/mapwidget.h"
-
-#include "form/copyrightdialog.h"
-#include "form/settingfiledialog.h"
-
 #include "mainthread.h"
-
-//menu action forms
-#include "form/scripteditor.h"
-#include "model/qthumbnailform.h"
-#include "update/downloader.h"
 
 //utilities
 #include "signaldispatcher.h"
@@ -105,7 +88,7 @@ void MainForm::createMenu(QMenuBar* pMenuBar)
 				isCheck = true;
 			}
 
-			QAction* pAction = new QAction(newText, parent);
+			QAction* pAction = q_check_ptr(new QAction(newText, parent));
 			if (pAction == nullptr)
 				return;
 
@@ -127,7 +110,7 @@ void MainForm::createMenu(QMenuBar* pMenuBar)
 				{
 					bool bret = false;
 					{
-						util::Config config;
+						util::Config config(QString("%1|%2").arg(__FUNCTION__).arg(__LINE__));
 						bret = config.read<bool>("MainFormClass", "Menu", "HideBar");
 					}
 					pAction->setChecked(bret);
@@ -138,7 +121,7 @@ void MainForm::createMenu(QMenuBar* pMenuBar)
 				{
 					bool bret = false;
 					{
-						util::Config config;
+						util::Config config(QString("%1|%2").arg(__FUNCTION__).arg(__LINE__));
 						bret = config.read<bool>("MainFormClass", "Menu", "HideControl");
 					}
 					pAction->setChecked(bret);
@@ -195,9 +178,9 @@ void MainForm::createMenu(QMenuBar* pMenuBar)
 		{ QObject::tr("checkupdate"), "actionUpdate", Qt::CTRL | Qt::Key_U },
 	};
 
-	std::unique_ptr<QMenu> pMenuSystem(new QMenu(QObject::tr("system")));
-	std::unique_ptr<QMenu> pMenuOther(new QMenu(QObject::tr("other")));
-	std::unique_ptr<QMenu> pMenuFile(new QMenu(QObject::tr("file")));
+	std::unique_ptr<QMenu> pMenuSystem(q_check_ptr(new QMenu(QObject::tr("system"))));
+	std::unique_ptr<QMenu> pMenuOther(q_check_ptr(new QMenu(QObject::tr("other"))));
+	std::unique_ptr<QMenu> pMenuFile(q_check_ptr(new QMenu(QObject::tr("file"))));
 
 	if (pMenuSystem == nullptr || pMenuOther == nullptr || pMenuFile == nullptr)
 		return;
@@ -517,38 +500,16 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 		{
 			if (arg > 0)
 			{
-				if (pInfoForm_ == nullptr)
-				{
-					pInfoForm_ = new InfoForm(id, arg, nullptr);
-					if (pInfoForm_ != nullptr)
-					{
-						connect(pInfoForm_, &InfoForm::destroyed, [this]() { pInfoForm_ = nullptr; });
-						pInfoForm_->setAttribute(Qt::WA_DeleteOnClose);
-						pInfoForm_->show();
-
-						++interfaceCount_;
-						updateStatusText();
-						*result = static_cast<long>(pInfoForm_->winId());
-					}
-					else
-					{
-						updateStatusText(tr("create info form failed"));
-					}
-				}
-				else
-				{
-					pInfoForm_->setCurrentPage(arg);
-					pInfoForm_->hide();
-					pInfoForm_->show();
-					++interfaceCount_;
-					updateStatusText();
-					*result = static_cast<long>(pInfoForm_->winId());
-				}
+				pInfoForm_.setCurrentPage(arg);
+				pInfoForm_.hide();
+				pInfoForm_.show();
+				++interfaceCount_;
+				updateStatusText();
+				*result = static_cast<long>(pInfoForm_.winId());
 			}
 			else
 			{
-				if (pInfoForm_ != nullptr)
-					pInfoForm_->close();
+				pInfoForm_.hide();
 				++interfaceCount_;
 				updateStatusText();
 			}
@@ -558,37 +519,15 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 		{
 			if (arg > 0)
 			{
-				if (mapWidget_ == nullptr)
-				{
-					mapWidget_ = new MapWidget(id, nullptr);
-					if (mapWidget_)
-					{
-						connect(mapWidget_, &InfoForm::destroyed, [this]() { mapWidget_ = nullptr; });
-						mapWidget_->setAttribute(Qt::WA_DeleteOnClose);
-						mapWidget_->show();
-
-						++interfaceCount_;
-						updateStatusText();
-						*result = static_cast<long>(mapWidget_->winId());
-					}
-					else
-					{
-						updateStatusText(tr("create map widget failed"));
-					}
-				}
-				else
-				{
-					mapWidget_->hide();
-					mapWidget_->show();
-					++interfaceCount_;
-					updateStatusText();
-					*result = static_cast<long>(mapWidget_->winId());
-				}
+				mapWidget_.hide();
+				mapWidget_.show();
+				++interfaceCount_;
+				updateStatusText();
+				*result = static_cast<long>(mapWidget_.winId());
 			}
 			else
 			{
-				if (mapWidget_ != nullptr)
-					mapWidget_->close();
+				mapWidget_.hide();
 				++interfaceCount_;
 				updateStatusText();
 			}
@@ -598,37 +537,15 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 		{
 			if (arg > 0)
 			{
-				if (pScriptEditor_ == nullptr)
-				{
-					pScriptEditor_ = new ScriptEditor(id, nullptr);
-					if (pScriptEditor_)
-					{
-						connect(pScriptEditor_, &InfoForm::destroyed, [this]() { pScriptEditor_ = nullptr; });
-						pScriptEditor_->setAttribute(Qt::WA_DeleteOnClose);
-						pScriptEditor_->show();
-
-						++interfaceCount_;
-						updateStatusText();
-						*result = static_cast<long>(pScriptEditor_->winId());
-					}
-					else
-					{
-						updateStatusText(tr("create script setting form failed"));
-					}
-				}
-				else
-				{
-					pScriptEditor_->hide();
-					pScriptEditor_->show();
-					++interfaceCount_;
-					updateStatusText();
-					*result = static_cast<long>(pScriptEditor_->winId());
-				}
+				pScriptEditor_.hide();
+				pScriptEditor_.show();
+				++interfaceCount_;
+				updateStatusText();
+				*result = static_cast<long>(pScriptEditor_.winId());
 			}
 			else
 			{
-				if (pScriptEditor_ != nullptr)
-					pScriptEditor_->close();
+				pScriptEditor_.hide();
 				++interfaceCount_;
 				updateStatusText();
 			}
@@ -642,7 +559,7 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 				break;
 			}
 
-			util::Config config;
+			util::Config config(QString("%1|%2").arg(__FUNCTION__).arg(__LINE__));
 			config.write("System", "Server", "LastServerListSelection", arg);
 			SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(id);
 			emit signalDispatcher.applyHashSettingsToUI();
@@ -660,7 +577,7 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 				break;
 			}
 
-			util::Config config;
+			util::Config config(QString("%1|%2").arg(__FUNCTION__).arg(__LINE__));
 			config.write("System", "Command", "LastSelection", arg);
 			SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(id);
 			emit signalDispatcher.applyHashSettingsToUI();
@@ -1140,6 +1057,8 @@ MainForm* MainForm::createNewWindow(qint64 idToAllocate, qint64* pId)
 		if (pMainForm == nullptr)
 			break;
 
+		emit pMainForm->resetControlTextLanguage();
+
 		pMainForm->show();
 
 		g_mainFormHash.insert(uniqueId, pMainForm);
@@ -1155,6 +1074,13 @@ MainForm* MainForm::createNewWindow(qint64 idToAllocate, qint64* pId)
 MainForm::MainForm(qint64 index, QWidget* parent)
 	: QMainWindow(parent)
 	, Indexer(index)
+	, pGeneralForm_(index, nullptr)
+	, pMapForm_(index, nullptr)
+	, pOtherForm_(index, nullptr)
+	, pScriptForm_(index, nullptr)
+	, pInfoForm_(index, -1, nullptr)
+	, mapWidget_(index, nullptr)
+	, pScriptEditor_(index, nullptr)
 {
 	ui.setupUi(this);
 	setAttribute(Qt::WA_StyledBackground, true);
@@ -1165,6 +1091,12 @@ MainForm::MainForm(qint64 index, QWidget* parent)
 	setStyleSheet("background-color: #F1F1F1;");
 	qRegisterMetaType<QVariant>("QVariant");
 	qRegisterMetaType<QVariant>("QVariant&");
+
+	connect(this, &MainForm::resetControlTextLanguage, this, &MainForm::onResetControlTextLanguage, Qt::QueuedConnection);
+
+	pInfoForm_.hide();
+	mapWidget_.hide();
+	pScriptEditor_.hide();
 
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(index);
 	signalDispatcher.setParent(this);
@@ -1177,12 +1109,11 @@ MainForm::MainForm(qint64 index, QWidget* parent)
 	connect(&signalDispatcher, &SignalDispatcher::loadHashSettings, this, &MainForm::onLoadHashSettings, Qt::QueuedConnection);
 	connect(&signalDispatcher, &SignalDispatcher::messageBoxShow, this, &MainForm::onMessageBoxShow, Qt::QueuedConnection);
 	connect(&signalDispatcher, &SignalDispatcher::inputBoxShow, this, &MainForm::onInputBoxShow, Qt::QueuedConnection);
-	connect(&signalDispatcher, &SignalDispatcher::fileDialogShow, this, &MainForm::onFileDialogShow, Qt::QueuedConnection);
 	connect(&signalDispatcher, &SignalDispatcher::updateMainFormTitle, this, &MainForm::onUpdateMainFormTitle, Qt::QueuedConnection);
 	connect(&signalDispatcher, &SignalDispatcher::appendScriptLog, this, &MainForm::onAppendScriptLog, Qt::QueuedConnection);
 	connect(&signalDispatcher, &SignalDispatcher::appendChatLog, this, &MainForm::onAppendChatLog, Qt::QueuedConnection);
 
-	QMenuBar* pMenuBar = new QMenuBar(this);
+	QMenuBar* pMenuBar = q_check_ptr(new QMenuBar(this));
 	if (pMenuBar != nullptr)
 	{
 		pMenuBar_ = pMenuBar;
@@ -1190,6 +1121,7 @@ MainForm::MainForm(qint64 index, QWidget* parent)
 		setMenuBar(pMenuBar);
 	}
 
+	createTrayIcon();
 
 	ui.progressBar_pchp->setType(ProgressBar::kHP);
 	ui.progressBar_pcmp->setType(ProgressBar::kMP);
@@ -1209,36 +1141,19 @@ MainForm::MainForm(qint64 index, QWidget* parent)
 	connect(&signalDispatcher, &SignalDispatcher::updateCharInfoStone, this, &MainForm::onUpdateStonePosLabelTextChanged);
 
 	ui.tabWidget_main->clear();
-	util::setTab(ui.tabWidget_main);
 
-	resetControlTextLanguage();
+	ui.tabWidget_main->addTab(&pGeneralForm_, tr("general"));
 
-	pGeneralForm_ = new GeneralForm(index, nullptr);
-	if (pGeneralForm_ != nullptr)
-	{
-		ui.tabWidget_main->addTab(pGeneralForm_, tr("general"));
-	}
+	ui.tabWidget_main->addTab(&pMapForm_, tr("map"));
 
-	pMapForm_ = new MapForm(index, nullptr);
-	if (pMapForm_ != nullptr)
-	{
-		ui.tabWidget_main->addTab(pMapForm_, tr("map"));
-	}
+	ui.tabWidget_main->addTab(&pOtherForm_, tr("other"));
 
-	pOtherForm_ = new OtherForm(index, nullptr);
-	if (pOtherForm_ != nullptr)
-	{
-		ui.tabWidget_main->addTab(pOtherForm_, tr("other"));
-	}
+	ui.tabWidget_main->addTab(&pScriptForm_, tr("script"));
 
-	pScriptForm_ = new ScriptForm(index, nullptr);
-	if (pScriptForm_ != nullptr)
-	{
-		ui.tabWidget_main->addTab(pScriptForm_, tr("script"));
-	}
-
-	resetControlTextLanguage();
-
+	ui.progressBar_pchp->setName(tr("char"));
+	ui.progressBar_pcmp->setName(tr(""));
+	ui.progressBar_pethp->setName(tr("pet"));
+	ui.progressBar_ridehp->setName(tr("ride"));
 	ui.progressBar_pchp->onCurrentValueChanged(255, 9999, 9999);
 	ui.progressBar_pcmp->onCurrentValueChanged(255, 9999, 9999);
 	ui.progressBar_pethp->onCurrentValueChanged(255, 9999, 9999);
@@ -1247,7 +1162,7 @@ MainForm::MainForm(qint64 index, QWidget* parent)
 	util::FormSettingManager formManager(this);
 	formManager.loadSettings();
 
-	emit signalDispatcher.updateStatusLabelTextChanged(util::kLabelStatusNotOpen);
+	onUpdateStatusLabelTextChanged(util::kLabelStatusNotOpen);
 
 	onLoadHashSettings(util::applicationDirPath() + "/settings/default.json", true);
 }
@@ -1255,10 +1170,6 @@ MainForm::MainForm(qint64 index, QWidget* parent)
 MainForm::~MainForm()
 {
 	qDebug() << "MainForm::~MainForm()";
-	//qint64 currentIndex = getIndex();
-	//g_mainFormHash.remove(currentIndex);
-	//SignalDispatcher::remove(currentIndex);
-	//if (g_mainFormHash.isEmpty())
 	MINT::NtTerminateProcess(GetCurrentProcess(), 0);
 }
 
@@ -1276,15 +1187,6 @@ void MainForm::closeEvent(QCloseEvent* e)
 	util::FormSettingManager formManager(this);
 	formManager.saveSettings();
 
-	if (pInfoForm_ != nullptr)
-		pInfoForm_->close();
-
-	if (mapWidget_ != nullptr)
-		mapWidget_->close();
-
-	if (pScriptEditor_ != nullptr)
-		pScriptEditor_->close();
-
 	markAsClose_ = true;
 	hide();
 
@@ -1298,6 +1200,71 @@ void MainForm::closeEvent(QCloseEvent* e)
 		}
 	}
 	MINT::NtTerminateProcess(GetCurrentProcess(), 0);
+}
+
+void MainForm::createTrayIcon()
+{
+	QMenu* trayMenu = nullptr;
+	QAction* openAction = nullptr;
+	QAction* closeAction = nullptr;
+	do
+	{
+		trayIcon_.setParent(this);
+
+		QIcon icon = QIcon(":/image/ico.png");
+		trayIcon_.setIcon(icon);
+
+		trayMenu = q_check_ptr(new QMenu(this));
+		if (trayMenu == nullptr)
+			break;
+
+		openAction = q_check_ptr(new QAction(tr("open"), this));
+		if (openAction == nullptr)
+			break;
+
+		closeAction = q_check_ptr(new QAction(tr("close"), this));
+		if (closeAction == nullptr)
+			break;
+
+		trayMenu->addAction(openAction);
+		trayMenu->addAction(closeAction);
+		connect(openAction, &QAction::triggered, this, &QMainWindow::show);
+
+		connect(closeAction, &QAction::triggered, this, &QMainWindow::close);
+
+		trayIcon_.setContextMenu(trayMenu);
+
+		connect(&trayIcon_, &QSystemTrayIcon::activated, this, [this](QSystemTrayIcon::ActivationReason reason)
+			{
+				if (reason == QSystemTrayIcon::DoubleClick)
+				{
+					hide();
+					show();
+				}
+			});
+
+		trayIcon_.setToolTip(windowTitle());
+		trayIcon_.show();
+		return;
+	} while (false);
+
+	if (trayMenu != nullptr)
+	{
+		delete trayMenu;
+		trayMenu = nullptr;
+	}
+
+	if (openAction != nullptr)
+	{
+		delete openAction;
+		openAction = nullptr;
+	}
+
+	if (closeAction != nullptr)
+	{
+		delete closeAction;
+		closeAction = nullptr;
+	}
 }
 
 //菜單點擊事件
@@ -1316,98 +1283,21 @@ void MainForm::onMenuActionTriggered()
 	//system
 	if (actionName == "actionHide")
 	{
-		if (trayIcon == nullptr)
+		if (!isVisible())
 		{
-			QMenu* trayMenu = nullptr;
-			QAction* openAction = nullptr;
-			QAction* closeAction = nullptr;
-			do
-			{
-				trayIcon = new QSystemTrayIcon(this);
-				if (trayIcon == nullptr)
-					break;
-
-				QIcon icon = QIcon(":/image/ico.png");
-				trayIcon->setIcon(icon);
-				trayMenu = new QMenu(this);
-				if (trayMenu == nullptr)
-					break;
-
-				openAction = new QAction(tr("open"), this);
-				if (openAction == nullptr)
-					break;
-
-				closeAction = new QAction(tr("close"), this);
-				if (closeAction == nullptr)
-					break;
-
-				trayMenu->addAction(openAction);
-				trayMenu->addAction(closeAction);
-				connect(openAction, &QAction::triggered, this, &QMainWindow::show);
-				connect(openAction, &QAction::triggered, [this]()
-					{
-						trayIcon->hide();
-					});
-				connect(closeAction, &QAction::triggered, this, &QMainWindow::close);
-
-				trayIcon->setContextMenu(trayMenu);
-				connect(trayIcon, &QSystemTrayIcon::activated, this, [this](QSystemTrayIcon::ActivationReason reason)
-					{
-						if (reason == QSystemTrayIcon::DoubleClick)
-						{
-							this->show();
-							trayIcon->hide();
-						}
-					});
-				trayIcon->setToolTip(windowTitle());
-				hide();
-				trayIcon->showMessage(tr("Tip"), tr("The program has been minimized to the system tray"), QSystemTrayIcon::Information, 5000);
-				trayIcon->show();
-				return;
-			} while (false);
-
-			if (trayIcon != nullptr)
-			{
-				delete trayIcon;
-				trayIcon = nullptr;
-			}
-
-			if (trayMenu != nullptr)
-			{
-				delete trayMenu;
-				trayMenu = nullptr;
-			}
-
-			if (openAction != nullptr)
-			{
-				delete openAction;
-				openAction = nullptr;
-			}
-
-			if (closeAction != nullptr)
-			{
-				delete closeAction;
-				closeAction = nullptr;
-			}
+			show();
 		}
 		else
 		{
-			if (trayIcon->isVisible())
-				trayIcon->activated(QSystemTrayIcon::DoubleClick);
-			else
-			{
-				trayIcon->showMessage(tr("Tip"), tr("The program has been minimized to the system tray"), QSystemTrayIcon::Information, 5000);
-				hide();
-				trayIcon->show();
-			}
+			trayIcon_.showMessage(tr("Tip"), tr("The program has been minimized to the system tray"), QSystemTrayIcon::Information, 5000);
+			hide();
 		}
-
 		return;
 	}
 
 	if (actionName == "actionHideBar")
 	{
-		util::Config config;
+		util::Config config(QString("%1|%2").arg(__FUNCTION__).arg(__LINE__));
 		config.write("MainFormClass", "Menu", "HideBar", pAction->isChecked());
 		if (pAction->isChecked())
 		{
@@ -1428,7 +1318,7 @@ void MainForm::onMenuActionTriggered()
 
 	if (actionName == "actionHideControl")
 	{
-		util::Config config;
+		util::Config config(QString("%1|%2").arg(__FUNCTION__).arg(__LINE__));
 		config.write("MainFormClass", "Menu", "HideControl", pAction->isChecked());
 		if (pAction->isChecked())
 		{
@@ -1449,7 +1339,7 @@ void MainForm::onMenuActionTriggered()
 
 	if (actionName == "actionWebsite")
 	{
-		CopyRightDialog* pCopyRightDialog = new CopyRightDialog(this);
+		CopyRightDialog* pCopyRightDialog = q_check_ptr(new CopyRightDialog(this));
 		if (pCopyRightDialog != nullptr)
 		{
 			pCopyRightDialog->exec();
@@ -1487,52 +1377,39 @@ void MainForm::onMenuActionTriggered()
 	//other
 	if (actionName == "actionOtherInfo")
 	{
-		if (pInfoForm_ == nullptr)
+		if (pInfoForm_.isVisible())
 		{
-			pInfoForm_ = new InfoForm(currentIndex, -1, nullptr);
-			if (pInfoForm_ != nullptr)
-			{
-				connect(pInfoForm_, &InfoForm::destroyed, [this]() { pInfoForm_ = nullptr; });
-			}
-			else
-				return;
+			pInfoForm_.hide();
+			return;
 		}
-		pInfoForm_->hide();
-		pInfoForm_->show();
+
+		pInfoForm_.hide();
+		pInfoForm_.show();
 		return;
 	}
 
 	if (actionName == "actionMap")
 	{
-		if (mapWidget_ == nullptr)
+		if (mapWidget_.isVisible())
 		{
-			mapWidget_ = new MapWidget(currentIndex, nullptr);
-			if (mapWidget_ != nullptr)
-			{
-				connect(mapWidget_, &InfoForm::destroyed, [this]() { mapWidget_ = nullptr; });
-			}
-			else
-				return;
+			mapWidget_.hide();
+			return;
 		}
-		mapWidget_->hide();
-		mapWidget_->show();
+
+		mapWidget_.hide();
+		mapWidget_.show();
 		return;
 	}
 
 	if (actionName == "actionScriptEditor")
 	{
-		if (pScriptEditor_ == nullptr)
+		if (pScriptEditor_.isVisible())
 		{
-			pScriptEditor_ = new ScriptEditor(currentIndex, nullptr);
-			if (pScriptEditor_ != nullptr)
-			{
-				connect(pScriptEditor_, &InfoForm::destroyed, [this]() { pScriptEditor_ = nullptr; });
-			}
-			else
-				return;
+			pScriptEditor_.hide();
+			return;
 		}
-		pScriptEditor_->hide();
-		pScriptEditor_->show();
+		pScriptEditor_.hide();
+		pScriptEditor_.show();
 		return;
 	}
 
@@ -1589,61 +1466,20 @@ void MainForm::onMenuActionTriggered()
 		}
 
 		qDebug() << "ret:" << ret;
+		std::wstring sret = std::to_wstring(ret);
+		MessageBoxW(nullptr, sret.c_str(), L"ret", MB_OK);
 
-		if (ret > 0)
+		if (ret == 1)
 			return;
 
-		Downloader* downloader = q_check_ptr(new Downloader());
-		if (downloader != nullptr)
-		{
-			downloader->start(Downloader::Source::SaSHServer);
-		}
+		downloader_.start(Downloader::Source::SaSHServer);
+
 		return;
 	}
 }
 
-void MainForm::resetControlTextLanguage()
+bool MainForm::onResetControlTextLanguage()
 {
-	const UINT acp = ::GetACP();
-
-#ifdef _DEBUG
-	QString defaultBaseDir = "../SaSH";
-	QFileInfo fileInfo(defaultBaseDir);
-	defaultBaseDir = fileInfo.absoluteFilePath();
-#else
-	const QString defaultBaseDir = util::applicationDirPath();
-#endif
-	QStringList files;
-	switch (acp)
-	{
-		//Simplified Chinese
-	case 936:
-	{
-		util::searchFiles(defaultBaseDir, "qt_zh_CN", ".qm", &files, false);
-		if (!files.isEmpty() && !translator_.load(files.first()))
-			return;
-		break;
-	}
-
-	//Traditional Chinese
-	case 950:
-	{
-		util::searchFiles(defaultBaseDir, "qt_zh_TW", ".qm", &files, false);
-		if (!files.isEmpty() && !translator_.load(files.first()))
-			return;
-		break;
-	}
-	//English
-	default:
-	{
-		util::searchFiles(defaultBaseDir, "qt_en_US", ".qm", &files, false);
-		if (!files.isEmpty() && !translator_.load(files.first()))
-			return;
-		break;
-	}
-	}
-
-	qApp->installTranslator(&translator_);
 	this->ui.retranslateUi(this);
 
 	qint64 currentIndex = getIndex();
@@ -1656,25 +1492,9 @@ void MainForm::resetControlTextLanguage()
 	setWindowTitle(QString("[%1]").arg(currentIndex) + tr("SaSH - %1").arg(buildTime).simplified());
 #endif
 
-	if (pMenuBar_)
+	if (pMenuBar_ != nullptr)
 	{
 		createMenu(pMenuBar_);
-		//QList<QAction*> actions = pMenuBar_->actions();
-		//for (auto action : actions)
-		//{
-		//	if (action->menu())
-		//	{
-		//		QList<QAction*> sub_actions = action->menu()->actions();
-		//		for (auto sub_action : sub_actions)
-		//		{
-		//			connect(sub_action, &QAction::triggered, this, &MainForm::onMenuActionTriggered);
-		//		}
-		//	}
-		//	else
-		//	{
-		//		connect(action, &QAction::triggered, this, &MainForm::onMenuActionTriggered);
-		//	}
-		//}
 	}
 
 	ui.progressBar_pchp->setName(tr("char"));
@@ -1687,16 +1507,16 @@ void MainForm::resetControlTextLanguage()
 	ui.tabWidget_main->setTabText(1, tr("map"));
 	ui.tabWidget_main->setTabText(2, tr("other"));
 	ui.tabWidget_main->setTabText(3, tr("script"));
-	ui.tabWidget_main->setTabText(4, "lua");
+	//ui.tabWidget_main->setTabText(4, "lua");
 
-	if (pGeneralForm_)
-		emit pGeneralForm_->resetControlTextLanguage();
 
-	if (pInfoForm_)
-		emit pInfoForm_->resetControlTextLanguage();
+	emit pGeneralForm_.resetControlTextLanguage();
 
-	if (pOtherForm_)
-		emit pOtherForm_->resetControlTextLanguage();
+	emit pInfoForm_.resetControlTextLanguage();
+
+	emit pOtherForm_.resetControlTextLanguage();
+
+	return true;
 }
 
 void MainForm::onUpdateStatusLabelTextChanged(qint64 status)
@@ -1810,7 +1630,7 @@ void MainForm::onSaveHashSettings(const QString& name, bool isFullPath)
 	util::UserSetting hkey = util::kSettingNotUsed;
 	const QHash<util::UserSetting, QString> jsonKeyHash = util::user_setting_string_hash;
 
-	util::Config config(fileName);
+	util::Config config(fileName, QString("%1|%2").arg(__FUNCTION__).arg(__LINE__));
 	for (auto iter = enableHash.constBegin(); iter != enableHash.constEnd(); ++iter)
 	{
 		hkey = iter.key();
@@ -1889,7 +1709,7 @@ void MainForm::onLoadHashSettings(const QString& name, bool isFullPath)
 	const QHash<util::UserSetting, QString> jsonKeyHash = util::user_setting_string_hash;
 
 	{
-		util::Config config(fileName);
+		util::Config config(fileName, QString("%1|%2").arg(__FUNCTION__).arg(__LINE__));
 		for (auto iter = jsonKeyHash.constBegin(); iter != jsonKeyHash.constEnd(); ++iter)
 		{
 			key = iter.value();
@@ -1968,7 +1788,7 @@ void MainForm::onMessageBoxShow(const QString& text, qint64 type, QString title,
 	else
 		icon = QMessageBox::Icon::Information;
 
-	std::unique_ptr<QMessageBox> msgBox(new QMessageBox());
+	std::unique_ptr<QMessageBox> msgBox(q_check_ptr(new QMessageBox()));
 	if (msgBox == nullptr)
 		return;
 
@@ -2039,7 +1859,7 @@ void MainForm::onInputBoxShow(const QString& text, qint64 type, QVariant* retval
 	newText.replace("\\f", "\f");
 	newText.replace("\\a", "\a");
 
-	std::unique_ptr<QInputDialog> inputDialog(new QInputDialog());
+	std::unique_ptr<QInputDialog> inputDialog(q_check_ptr(new QInputDialog()));
 	if (inputDialog == nullptr)
 		return;
 
@@ -2098,11 +1918,9 @@ void MainForm::onAppendScriptLog(const QString& text, qint64 color)
 {
 	qint64 currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
-	if (!injector.scriptLogModel.isNull())
-	{
-		injector.scriptLogModel->append(text, color);
-		emit injector.scriptLogModel->dataAppended();
-	}
+
+	injector.scriptLogModel.append(text, color);
+	emit injector.scriptLogModel.dataAppended();
 }
 
 //對話日誌
@@ -2110,100 +1928,9 @@ void MainForm::onAppendChatLog(const QString& text, qint64 color)
 {
 	qint64 currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);
-	if (!injector.chatLogModel.isNull())
-	{
-		injector.chatLogModel->append(text, color);
-		emit injector.chatLogModel->dataAppended();
-	}
-}
 
-void MainForm::onFileDialogShow(const QString& name, qint64 acceptType, QString* retstring, void* p)
-{
-	if (retstring != nullptr)
-		retstring->clear();
-
-	QEventLoop* pEventLoop = nullptr;
-	if (p != nullptr)
-	{
-		pEventLoop = static_cast<QEventLoop*>(p);
-	}
-
-	std::unique_ptr<QFileDialog> dialog(new QFileDialog());
-	if (dialog == nullptr)
-		return;
-
-	if (pEventLoop != nullptr)
-	{
-		connect(dialog.get(), &QFileDialog::finished, pEventLoop, &QEventLoop::quit);
-	}
-
-	dialog->setAttribute(Qt::WA_QuitOnClose);
-	dialog->setModal(false);
-	dialog->setAcceptMode(static_cast<QFileDialog::AcceptMode>(acceptType));
-
-	QFileInfo fileInfo(name);
-	dialog->setDefaultSuffix(fileInfo.suffix());
-
-	dialog->setFileMode(QFileDialog::AnyFile);
-	//dialog->setFilter(QDir::Filters::
-	//dialog->setHistory(const QStringList & paths)
-	//dialog->setIconProvider(QFileIconProvider * provider)
-	//dialog->setItemDelegate(QAbstractItemDelegate * delegate)
-	dialog->setLabelText(QFileDialog::LookIn, tr("Look in:"));
-	dialog->setLabelText(QFileDialog::FileName, tr("File name:"));
-	dialog->setLabelText(QFileDialog::FileType, tr("File type:"));
-	dialog->setLabelText(QFileDialog::Accept, tr("Open"));
-	dialog->setLabelText(QFileDialog::Reject, tr("Cancel"));
-
-	dialog->setNameFilter("*.txt *.lua *.json *.exe");
-
-	if (!name.isEmpty())
-	{
-		QStringList filters;
-		filters << name;
-		dialog->setNameFilters(filters);
-	}
-
-	dialog->setOption(QFileDialog::ShowDirsOnly, false);
-	dialog->setOption(QFileDialog::DontResolveSymlinks, true);
-	dialog->setOption(QFileDialog::DontConfirmOverwrite, true);
-	dialog->setOption(QFileDialog::DontUseNativeDialog, true);
-	dialog->setOption(QFileDialog::ReadOnly, true);
-	dialog->setOption(QFileDialog::HideNameFilterDetails, false);
-	dialog->setOption(QFileDialog::DontUseCustomDirectoryIcons, true);
-
-	//dialog->setProxyModel(QAbstractProxyModel * proxyModel)
-	QList<QUrl> urls;
-	urls << QUrl::fromLocalFile(util::applicationDirPath())
-		<< QUrl::fromLocalFile(QStandardPaths::standardLocations(QStandardPaths::MusicLocation).first());
-
-	dialog->setSidebarUrls(urls);
-	dialog->setSupportedSchemes(QStringList());
-	dialog->setViewMode(QFileDialog::ViewMode::List);
-
-	//directory
-	//自身目錄往上一層
-	QString directory = util::applicationDirPath();
-	directory = QDir::toNativeSeparators(directory);
-	directory = QDir::cleanPath(directory + QDir::separator() + "..");
-	dialog->setDirectory(directory);
-
-	do
-	{
-		if (dialog->exec() != QDialog::Accepted)
-			break;
-
-		QStringList fileNames = dialog->selectedFiles();
-		if (fileNames.isEmpty())
-			break;
-
-		QString fileName = fileNames.value(0);
-		if (fileName.isEmpty())
-			break;
-
-		if (retstring != nullptr)
-			*retstring = fileName;
-	} while (false);
+	injector.chatLogModel.append(text, color);
+	emit injector.chatLogModel.dataAppended();
 }
 
 #if 0

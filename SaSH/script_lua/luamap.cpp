@@ -223,12 +223,12 @@ bool __fastcall findPathProcess(
 	QString output = "";
 
 	auto getPos = [hProcess, hModule, &injector]()->QPoint
-	{
-		if (!injector.server.isNull())
-			return injector.server->getPoint();
-		else
-			return QPoint();
-	};
+		{
+			if (!injector.server.isNull())
+				return injector.server->getPoint();
+			else
+				return QPoint();
+		};
 
 	if (injector.server.isNull())
 		return false;
@@ -237,21 +237,6 @@ bool __fastcall findPathProcess(
 	QPoint src(getPos());
 	if (src == dst)
 		return true;//已經抵達
-
-	QSharedPointer<MapAnalyzer> mapAnalyzer = injector.server->mapAnalyzer;
-	if (!mapAnalyzer.isNull())
-	{
-		if (mapAnalyzer.isNull())
-		{
-			luadebug::showErrorMsg(s, luadebug::ERROR_LEVEL, QObject::tr("unable to access map analyzer"));
-			return false;
-		}
-	}
-	else
-	{
-		luadebug::showErrorMsg(s, luadebug::ERROR_LEVEL, QObject::tr("unable to access map analyzer"));
-		return false;
-	}
 
 	if (injector.isScriptDebugModeEnable.load(std::memory_order_acquire))
 	{
@@ -264,13 +249,8 @@ bool __fastcall findPathProcess(
 	QElapsedTimer timer; timer.start();
 	QSet<QPoint> blockList;
 	qint64 nret = -1;
-	if (mapAnalyzer.isNull())
-	{
-		luadebug::showErrorMsg(s, luadebug::ERROR_LEVEL, QObject::tr("unable to access map analyzer"));
-		return false;
-	}
 
-	if (!mapAnalyzer->calcNewRoute(astar, floor, src, dst, blockList, &path))
+	if (!injector.server->mapAnalyzer.calcNewRoute(astar, floor, src, dst, blockList, &path))
 	{
 		output = QObject::tr("[error] <findpath>unable to findpath from %1, %2 to %3, %4").arg(src.x()).arg(src.y()).arg(dst.x()).arg(dst.y());
 		luadebug::logExport(s, output, 6);
@@ -410,10 +390,7 @@ bool __fastcall findPathProcess(
 
 			luadebug::checkStopAndPause(s);
 
-			if (mapAnalyzer.isNull())
-				break;
-
-			if (!mapAnalyzer->calcNewRoute(astar, floor, src, dst, blockList, &path))
+			if (!injector.server->mapAnalyzer.calcNewRoute(astar, floor, src, dst, blockList, &path))
 			{
 				output = QObject::tr("[error] <findpath>unable to findpath from %1, %2 to %3, %4").arg(src.x()).arg(src.y()).arg(dst.x()).arg(dst.y());
 				luadebug::logExport(s, output, 6);
@@ -619,27 +596,27 @@ qint64 CLuaMap::findPath(sol::object p1, sol::object p2, sol::object p3, sol::ob
 
 	CAStar astar;
 	auto findNpcCallBack = [&injector, &astar, &s](const QString& name, QPoint& dst, qint64* pdir)->bool
-	{
-		luadebug::checkStopAndPause(s);
-
-		mapunit_s unit;
-		if (!injector.server->findUnit(name, util::OBJ_NPC, &unit, ""))
 		{
-			if (!injector.server->findUnit(name, util::OBJ_HUMAN, &unit, ""))
-				return 0;//沒找到
-		}
+			luadebug::checkStopAndPause(s);
 
-		qint64 dir = injector.server->mapAnalyzer->calcBestFollowPointByDstPoint(astar, injector.server->getFloor(), injector.server->getPoint(), unit.p, &dst, true, unit.dir);
-		if (pdir)
-			*pdir = dir;
-		return dir != -1;//找到了
-	};
+			mapunit_s unit;
+			if (!injector.server->findUnit(name, util::OBJ_NPC, &unit, ""))
+			{
+				if (!injector.server->findUnit(name, util::OBJ_HUMAN, &unit, ""))
+					return 0;//沒找到
+			}
+
+			qint64 dir = injector.server->mapAnalyzer.calcBestFollowPointByDstPoint(astar, injector.server->getFloor(), injector.server->getPoint(), unit.p, &dst, true, unit.dir);
+			if (pdir)
+				*pdir = dir;
+			return dir != -1;//找到了
+		};
 
 	qint64 dir = -1;
 	if (!name.isEmpty())
 	{
 		QString key = util::toQString(injector.server->getFloor());
-		util::Config config(injector.getPointFileName());
+		util::Config config(injector.getPointFileName(), QString("%1|%2").arg(__FUNCTION__).arg(__LINE__));
 		QList<util::MapData> datas = config.readMapData(key);
 		if (datas.isEmpty())
 			return FALSE;
@@ -686,9 +663,9 @@ qint64 CLuaMap::findPath(sol::object p1, sol::object p2, sol::object p3, sol::ob
 	if (func.valid())
 	{
 		auto stdfun = [&injector, &func, &p, steplen, step_cost, timeout, &findNpcCallBack, &dir](QPoint& dst)->bool
-		{
-			return func(dst.x(), dst.y());
-		};
+			{
+				return func(dst.x(), dst.y());
+			};
 
 		if (findPathProcess(currentIndex, p, steplen, step_cost, timeout, stdfun, s))
 		{
@@ -756,23 +733,23 @@ qint64 CLuaMap::findNPC(sol::object p1, sol::object nicknames, qint64 x, qint64 
 	qint64 dir = -1;
 	CAStar astar;
 	auto findNpcCallBack = [&injector, &unit, cmpNpcName, cmpFreeName, modelid, &dir, &astar](QPoint& dst)->bool
-	{
-		if (modelid > 0)
 		{
-			if (!injector.server->findUnit("", util::OBJ_NPC, &unit, "", modelid))
+			if (modelid > 0)
 			{
-				return 0;//沒找到
+				if (!injector.server->findUnit("", util::OBJ_NPC, &unit, "", modelid))
+				{
+					return 0;//沒找到
+				}
 			}
-		}
-		else if (!injector.server->findUnit(cmpNpcName, util::OBJ_NPC, &unit, cmpFreeName))
-		{
-			if (!injector.server->findUnit(cmpNpcName, util::OBJ_HUMAN, &unit, cmpFreeName))
-				return 0;//沒找到
-		}
+			else if (!injector.server->findUnit(cmpNpcName, util::OBJ_NPC, &unit, cmpFreeName))
+			{
+				if (!injector.server->findUnit(cmpNpcName, util::OBJ_HUMAN, &unit, cmpFreeName))
+					return 0;//沒找到
+			}
 
-		dir = injector.server->mapAnalyzer->calcBestFollowPointByDstPoint(astar, injector.server->getFloor(), injector.server->getPoint(), unit.p, &dst, true, unit.dir);
-		return dir != -1 ? 1 : 0;//找到了
-	};
+			dir = injector.server->mapAnalyzer.calcBestFollowPointByDstPoint(astar, injector.server->getFloor(), injector.server->getPoint(), unit.p, &dst, true, unit.dir);
+			return dir != -1 ? 1 : 0;//找到了
+		};
 
 	if (findPathProcess(currentIndex, p, 1, 0, timeout, findNpcCallBack, s) && dir != -1)
 	{

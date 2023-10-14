@@ -30,8 +30,7 @@ Injector::Injector(qint64 index)
 	, log(index, nullptr)
 	, autil(index)
 {
-	scriptLogModel.reset(new StringListModel);
-	chatLogModel.reset(new StringListModel);
+
 }
 
 Injector::~Injector()
@@ -126,7 +125,7 @@ Injector::CreateProcessResult Injector::createProcess(Injector::process_informat
 
 	bool canSave = false;
 
-	util::Config config;
+	util::Config config(QString("%1|%2").arg(__FUNCTION__).arg(__LINE__));
 	qint64 tmp = config.read<qint64>("System", "Command", "realbin");
 	if (tmp)
 		nRealBin = tmp;
@@ -169,9 +168,9 @@ Injector::CreateProcessResult Injector::createProcess(Injector::process_informat
 	QString customCommand = config.read<QString>("System", "Command", "custom");
 
 	auto mkcmd = [](const QString& sec, qint64 value)->QString
-	{
-		return QString("%1:%2").arg(sec).arg(value);
-	};
+		{
+			return QString("%1:%2").arg(sec).arg(value);
+		};
 
 	QStringList commandList;
 	//啟動參數
@@ -195,16 +194,16 @@ Injector::CreateProcessResult Injector::createProcess(Injector::process_informat
 	}
 
 	auto save = [&config, nRealBin, nAdrnBin, nSprBin, nSprAdrnBin, nRealTrue, nAdrnTrue, nEncode]()
-	{
-		//保存啟動參數
-		config.write("System", "Command", "realbin", nRealBin);
-		config.write("System", "Command", "adrnbin", nAdrnBin);
-		config.write("System", "Command", "sprbin", nSprBin);
-		config.write("System", "Command", "spradrnbin", nSprAdrnBin);
-		config.write("System", "Command", "realtrue", nRealTrue);
-		config.write("System", "Command", "adrntrue", nAdrnTrue);
-		config.write("System", "Command", "encode", nEncode);
-	};
+		{
+			//保存啟動參數
+			config.write("System", "Command", "realbin", nRealBin);
+			config.write("System", "Command", "adrnbin", nAdrnBin);
+			config.write("System", "Command", "sprbin", nSprBin);
+			config.write("System", "Command", "spradrnbin", nSprAdrnBin);
+			config.write("System", "Command", "realtrue", nRealTrue);
+			config.write("System", "Command", "adrntrue", nAdrnTrue);
+			config.write("System", "Command", "encode", nEncode);
+		};
 
 	QProcess process;
 	qint64 pid = 0;
@@ -241,7 +240,7 @@ bool Injector::postMessage(qint64 msg, qint64 wParam, qint64 lParam) const
 	if (WM_NULL == msg)
 		return false;
 
-	BOOL ret = PostMessageW(pi_.hWnd, static_cast<UINT>(msg), static_cast<UINT>(msg), static_cast<WPARAM>(wParam));
+	BOOL ret = PostMessageW(pi_.hWnd, static_cast<UINT>(msg), static_cast<WPARAM>(wParam), static_cast<LPARAM>(lParam));
 	return  ret == TRUE;
 }
 

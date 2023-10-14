@@ -54,8 +54,8 @@ void CAStar::init(qint64 width, qint64 height)
 
 	height_ = height;
 	width_ = width;
-	resource_.reset(new std::pmr::monotonic_buffer_resource(width_ * height_ * sizeof(Node) * 2));
-	allocator_.reset(new std::pmr::polymorphic_allocator<Node>(resource_.get()));
+	resource_.reset(q_check_ptr(new std::pmr::monotonic_buffer_resource(width_ * height_ * sizeof(Node) * 2)));
+	allocator_.reset(q_check_ptr(new std::pmr::polymorphic_allocator<Node>(resource_.get())));
 	open_list_.clear();
 	mapping_.clear();
 	mapping_.resize(width_ * height_);
