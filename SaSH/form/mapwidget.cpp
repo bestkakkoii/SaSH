@@ -70,9 +70,6 @@ MapWidget::MapWidget(long long index, QWidget* parent)
 
 	connect(&downloadMapTimer_, &QTimer::timeout, this, &MapWidget::onDownloadMapTimeout);
 
-	util::FormSettingManager formManager(this);
-	formManager.loadSettings();
-
 	if (!entrances_.isEmpty())
 		return;
 
@@ -135,14 +132,46 @@ MapWidget::~MapWidget()
 	timer_.stop();
 #endif
 	qDebug() << "";
+
+
+	onClear();
+}
+
+void MapWidget::showEvent(QShowEvent*)
+{
+	setUpdatesEnabled(true);
+	blockSignals(false);
+	gltimer_.start(MAP_REFRESH_TIME);
+
+	ui.openGLWidget->setUpdatesEnabled(true);
+	ui.openGLWidget->blockSignals(false);
+	ui.graphicsView->setUpdatesEnabled(true);
+	ui.graphicsView->blockSignals(false);
+	ui.tableWidget_NPCList->setUpdatesEnabled(true);
+	ui.tableWidget_NPCList->blockSignals(false);
+
+	util::FormSettingManager formManager(this);
+	formManager.loadSettings();
+	setAttribute(Qt::WA_Mapped);
+	QWidget::showEvent(nullptr);
 }
 
 void MapWidget::closeEvent(QCloseEvent*)
 {
-	isDownloadingMap_ = false;
+	setUpdatesEnabled(false);
+	blockSignals(true);
+
+	ui.openGLWidget->setUpdatesEnabled(false);
+	ui.openGLWidget->blockSignals(true);
+	ui.graphicsView->setUpdatesEnabled(false);
+	ui.graphicsView->blockSignals(true);
+	ui.tableWidget_NPCList->setUpdatesEnabled(false);
+	ui.tableWidget_NPCList->blockSignals(true);
+	update();
 	gltimer_.stop();
 	downloadMapTimer_.stop();
-	onClear();
+	isDownloadingMap_ = false;
+
 	util::FormSettingManager formManager(this);
 	formManager.saveSettings();
 
@@ -176,16 +205,7 @@ static inline void zoom(QWidget* p, const QPixmap& pix, qreal* scaleWidth, qreal
 void MapWidget::onRefreshTimeOut()
 {
 	if (!isVisible())
-	{
-		setUpdatesEnabled(false);
-		blockSignals(true);
 		return;
-	}
-	else
-	{
-		setUpdatesEnabled(true);
-		blockSignals(false);
-	}
 
 	long long currentIndex = getIndex();
 	Injector& injector = Injector::getInstance(currentIndex);

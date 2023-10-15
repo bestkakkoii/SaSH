@@ -7203,6 +7203,22 @@ void Worker::handleCharBattleLogics(const battledata_t& bt)
 				}
 			}
 		}
+		else
+		{
+			magicIndex -= MAX_MAGIC;
+			if (fixCharTargetBySkillIndex(magicIndex, tempTarget, &target) && (target >= 0 && target <= (MAX_ENEMY + 1)))
+			{
+				if (isCharMpEnoughForSkill(magicIndex))
+				{
+					sendBattleCharJobSkillAct(magicIndex, target);
+					return;
+				}
+				else
+				{
+					break;
+				}
+			}
+		}
 	} while (false);
 #pragma endregion
 
@@ -10313,9 +10329,14 @@ QString Worker::battleStringFormat(const battleobject_t& obj, QString formatStr)
 		formatStr.replace("%(rmaxhp)", util::toQString(obj.rideMaxHp));
 		formatStr.replace("%(rhpp)", util::toQString(obj.rideHpPercent));
 		formatStr.replace("%(rname)", obj.rideName);
+		formatStr.remove("%(rb)");
+		formatStr.remove("%(re)");
 	}
 	else
 	{
+		long long i = formatStr.indexOf("%(rb)");//begin remove from
+		long long j = formatStr.indexOf("%(re)");//end remove to
+		formatStr.remove(i, j - i + 4);
 		formatStr.remove("%(rlv)");
 		formatStr.remove("%(rhp)");
 		formatStr.remove("%(rmaxhp)");
@@ -10854,12 +10875,15 @@ void Worker::lssproto_B_recv(char* ccommand)
 	}
 	case 'D':
 	case 'H':
+		break;
 	case 'b':
+	{
 		if (first.at(1).unicode() == 'u')
 		{
 			setBattleEnd();
 		}
 		break;
+	}
 	default:
 		qDebug() << "lssproto_B_recv: unknown command" << command;
 		break;
@@ -11495,7 +11519,7 @@ void Worker::lssproto_TK_recv(int index, char* cmessage, int color)
 
 				//SaveChatData(msg, szToken[0], false);
 			}
-	}
+		}
 		else
 			getStringToken(message, "|", 2, msg);
 #ifdef _TALK_WINDOW
@@ -11555,7 +11579,7 @@ void Worker::lssproto_TK_recv(int index, char* cmessage, int color)
 #endif
 #endif
 #endif
-			}
+	}
 
 	chatQueue.enqueue(qMakePair(color, msg));
 	emit signalDispatcher.appendChatLog(msg, color);
@@ -11801,7 +11825,7 @@ void Worker::lssproto_C_recv(char* cdata)
 				if (charType == 13 && noticeNo > 0)
 				{
 					setNpcNotice(ptAct, noticeNo);
-			}
+		}
 #endif
 		}
 
@@ -11834,7 +11858,7 @@ void Worker::lssproto_C_recv(char* cdata)
 			mapUnitHash.insert(id, unit);
 
 			break;
-		}
+	}
 		case 2://OBJTYPE_ITEM
 		{
 			getStringToken(bigtoken, "|", 2, smalltoken);
@@ -11941,7 +11965,7 @@ void Worker::lssproto_C_recv(char* cdata)
 #endif
 #endif
 		break;
-	}
+		}
 #pragma region DISABLE
 #else
 		getStringToken(bigtoken, "|", 11, smalltoken);
@@ -12098,12 +12122,12 @@ void Worker::lssproto_C_recv(char* cdata)
 						}
 					}
 				}
-			}
+}
 }
 #endif
 #pragma endregion
-			}
-		}
+	}
+}
 
 //周圍人、NPC..等等狀態改變必定是 _C_recv已經新增過的單位
 void Worker::lssproto_CA_recv(char* cdata)
@@ -13197,8 +13221,8 @@ void Worker::lssproto_S_recv(char* cdata)
 				item.counttime = getIntegerToken(data, "|", no + 16);
 
 				item_.insert(i, item);
-			}
 		}
+	}
 
 		updateItemByMemory();
 		refreshItemInfo();
@@ -13222,7 +13246,7 @@ void Worker::lssproto_S_recv(char* cdata)
 		emit signalDispatcher.updateComboBoxItemText(util::kComboBoxCharAction, magicNameList);
 		if (IS_WAITOFR_ITEM_CHANGE_PACKET.load(std::memory_order_acquire) > 0)
 			IS_WAITOFR_ITEM_CHANGE_PACKET.fetch_sub(1, std::memory_order_release);
-	}
+}
 #pragma endregion
 #pragma region PetSkill
 	else if (first == "W")//接收到的寵物技能
@@ -13426,7 +13450,7 @@ void Worker::lssproto_S_recv(char* cdata)
 			petItems[i].itemup = getIntegerToken(data, "|", no + 15);
 
 			petItems[i].counttime = getIntegerToken(data, "|", no + 16);
-		}
+	}
 
 		petItem_.insert(nPetIndex, petItems);
 	}
@@ -14074,5 +14098,5 @@ bool Worker::captchaOCR(QString* pmsg)
 		announce("<ocr>failed! error:" + errorMsg);
 
 	return false;
-	}
+			}
 #endif

@@ -79,25 +79,9 @@ InfoForm::InfoForm(long long index, long long defaultPage, QWidget* parent)
 
 	setCurrentPage(defaultPage);
 
-	timer = new QTimer(this);
-	connect(timer, &QTimer::timeout, this, [this]()
-		{
-
-			if (!isVisible())
-			{
-				setUpdatesEnabled(false);
-				blockSignals(true);
-				return;
-			}
-			else
-			{
-				setUpdatesEnabled(true);
-				blockSignals(false);
-			}
-		});
-
-	timer->start(5000);
-
+	hide();
+	setUpdatesEnabled(false);
+	blockSignals(true);
 }
 
 void InfoForm::setCurrentPage(long long defaultPage)
@@ -117,11 +101,16 @@ InfoForm::~InfoForm()
 
 void InfoForm::showEvent(QShowEvent* e)
 {
+	setUpdatesEnabled(true);
+	blockSignals(false);
+	update();
 	setAttribute(Qt::WA_Mapped);
 	QWidget::showEvent(e);
 }
 void InfoForm::closeEvent(QCloseEvent* e)
 {
+	setUpdatesEnabled(false);
+	blockSignals(true);
 	util::FormSettingManager formManager(this);
 	formManager.saveSettings();
 	QWidget::closeEvent(e);

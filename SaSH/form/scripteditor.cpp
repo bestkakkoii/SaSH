@@ -114,9 +114,6 @@ ScriptEditor::ScriptEditor(long long index, QWidget* parent)
 	connect(&signalDispatcher, &SignalDispatcher::varInfoImported, this, &ScriptEditor::onVarInfoImport, Qt::BlockingQueuedConnection);
 	connect(&signalDispatcher, &SignalDispatcher::breakMarkInfoImport, this, &ScriptEditor::onBreakMarkInfoImport, Qt::QueuedConnection);
 
-	util::FormSettingManager formSettingManager(this);
-	formSettingManager.loadSettings();
-
 	initStaticLabel();
 	createScriptListContextMenu();
 
@@ -214,20 +211,10 @@ void ScriptEditor::initStaticLabel()
 	spaceLabelMiddle->setFrameStyle(QFrame::NoFrame);
 	spaceLabelMiddle->setFixedWidth(100);
 
-	usageTimer_.setInterval(1500);
 	connect(&usageTimer_, &QTimer::timeout, this, [this]()
 		{
 			if (!isVisible())
-			{
-				setUpdatesEnabled(false);
-				blockSignals(true);
 				return;
-			}
-			else
-			{
-				setUpdatesEnabled(true);
-				blockSignals(false);
-			}
 
 			long long currentIndex = getIndex();
 			Injector& injector = Injector::getInstance(currentIndex);
@@ -249,8 +236,6 @@ void ScriptEditor::initStaticLabel()
 					.arg(util::toQString(memoryTotal)));
 			}
 		});
-
-	usageTimer_.start();
 
 	ui.statusBar->setAttribute(Qt::WA_StyledBackground);
 
@@ -343,6 +328,7 @@ void ScriptEditor::createSpeedSpinBox()
 
 ScriptEditor::~ScriptEditor()
 {
+	usageTimer_.stop();
 	qDebug() << "~ScriptEditor";
 	Injector& injector = Injector::getInstance(getIndex());
 	injector.isScriptEditorOpened.store(false, std::memory_order_release);
@@ -350,6 +336,22 @@ ScriptEditor::~ScriptEditor()
 
 void ScriptEditor::showEvent(QShowEvent* e)
 {
+	setUpdatesEnabled(true);
+	blockSignals(false);
+	ui.listView_log->setUpdatesEnabled(true);
+	ui.listView_log->blockSignals(false);
+	ui.treeWidget_debuger_custom->setUpdatesEnabled(true);
+	ui.treeWidget_debuger_custom->blockSignals(false);
+	ui.treeWidget_debuger_sys->setUpdatesEnabled(true);
+	ui.treeWidget_debuger_sys->blockSignals(false);
+	lineLable_->setUpdatesEnabled(true);
+	lineLable_->blockSignals(false);
+	update();
+	usageTimer_.start(1500);
+
+	util::FormSettingManager formSettingManager(this);
+	formSettingManager.loadSettings();
+
 	setAttribute(Qt::WA_Mapped);
 	QMainWindow::showEvent(e);
 }
@@ -359,7 +361,16 @@ void ScriptEditor::closeEvent(QCloseEvent* e)
 	Injector& injector = Injector::getInstance(getIndex());
 	injector.isScriptEditorOpened.store(false, std::memory_order_release);
 
-	usageTimer_.stop();
+	setUpdatesEnabled(false);
+	blockSignals(true);
+	ui.listView_log->setUpdatesEnabled(false);
+	ui.listView_log->blockSignals(true);
+	ui.treeWidget_debuger_custom->setUpdatesEnabled(false);
+	ui.treeWidget_debuger_custom->blockSignals(true);
+	ui.treeWidget_debuger_sys->setUpdatesEnabled(false);
+	ui.treeWidget_debuger_sys->blockSignals(true);
+	lineLable_->setUpdatesEnabled(false);
+	lineLable_->blockSignals(true);
 
 	util::FormSettingManager formSettingManager(this);
 	formSettingManager.saveSettings();

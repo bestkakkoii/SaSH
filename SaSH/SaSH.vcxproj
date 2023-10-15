@@ -139,6 +139,7 @@
       <PreprocessorDefinitions>QT_NO_BEARERMANAGEMENT;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AssemblerOutput>NoListing</AssemblerOutput>
       <RuntimeLibrary>$(Qt_RUNTIME_)</RuntimeLibrary>
+      <LanguageStandard_C>stdc17</LanguageStandard_C>
     </ClCompile>
     <Link>
       <UACExecutionLevel>RequireAdministrator</UACExecutionLevel>
@@ -166,26 +167,8 @@
       <BuildAction>lupdate</BuildAction>
     </QtTranslation>
     <PostBuildEvent>
-      <Command>cd $(SolutionDir)$(Platform)\$(Configuration)\lib
-copy sadll.dll $(SolutionDir)ReleaseTool\$(ProjectName)\lib\sadll.dll
-
-cd $(SolutionDir)$(Platform)\$(Configuration)
-copy $(ProjectName).exe $(SolutionDir)ReleaseTool\$(ProjectName)\$(ProjectName).exe
-
-cd  $(SolutionDir)$(ProjectName)\translations
-copy qt_zh_TW.qm $(SolutionDir)ReleaseTool\$(ProjectName)\lib\translations\qt_zh_TW.qm
-copy qt_zh_CN.qm $(SolutionDir)ReleaseTool\$(ProjectName)\lib\translations\qt_zh_CN.qm
-
-copy qt_zh_TW.qm $(SolutionDir)$(ProjectName)\$(Platform)\$(Configuration)\lib\translations\qt_zh_TW.qm
-copy qt_zh_CN.qm $(SolutionDir)$(ProjectName)\$(Platform)\$(Configuration)\lib\translations\qt_zh_CN.qm
-
-copy qt_zh_TW.qm $(SolutionDir)$(ProjectName)\$(Platform)\Debug\lib\translations\qt_zh_TW.qm
-copy qt_zh_CN.qm $(SolutionDir)$(ProjectName)\$(Platform)\Debug\lib\translations\qt_zh_CN.qm
-
-cd $(SolutionDir)ReleaseTool
-del $(ProjectName).7z
-
-$(SolutionDir)ReleaseTool\UploadToServerx.bat</Command>
+      <Command>
+      </Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">

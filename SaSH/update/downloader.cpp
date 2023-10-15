@@ -48,9 +48,11 @@ void setHeader(QNetworkRequest* prequest)
 	sslConf.setProtocol(QSsl::TlsV1_2OrLater);
 	prequest->setSslConfiguration(sslConf);
 
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
 	prequest->setAttribute(QNetworkRequest::Http2AllowedAttribute, true);
 	prequest->setAttribute(QNetworkRequest::Http2WasUsedAttribute, true);
 	prequest->setAttribute(QNetworkRequest::Http2CleartextAllowedAttribute, true);
+#endif
 
 	prequest->setRawHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Safari/537.36 Edg/107.0.1418.35");
 	//prequest->setRawHeader("authority", "www.lovesa.cc");
