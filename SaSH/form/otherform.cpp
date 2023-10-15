@@ -48,6 +48,7 @@ OtherForm::OtherForm(long long index, QWidget* parent)
 	{
 		if (checkBox && !nameCheckList.contains(checkBox->objectName()))
 		{
+			util::setCheckBox(checkBox);
 			nameCheckList.append(checkBox->objectName());
 			connect(checkBox, &QCheckBox::stateChanged, this, &OtherForm::onCheckBoxStateChanged, Qt::UniqueConnection);
 		}
@@ -58,6 +59,7 @@ OtherForm::OtherForm(long long index, QWidget* parent)
 	{
 		if (spinBox && !nameCheckList.contains(spinBox->objectName()))
 		{
+			util::setSpinBox(spinBox);
 			nameCheckList.append(spinBox->objectName());
 			connect(spinBox, SIGNAL(valueChanged(int)), this, SLOT(onSpinBoxValueChanged(int)), Qt::UniqueConnection);
 		}
@@ -356,6 +358,14 @@ void OtherForm::onSpinBoxValueChanged(int value)
 	if (name.isEmpty())
 		return;
 
+	Injector& injector = Injector::getInstance(getIndex());
+
+	if (name == "spinBox_tcpdelay")
+	{
+		injector.setValueHash(util::UserSetting::kTcpDelayValue, value);
+		return;
+	}
+
 }
 
 void OtherForm::onComboBoxCurrentIndexChanged(int value)
@@ -638,6 +648,8 @@ void OtherForm::onApplyHashSettingsToUI()
 	ui.lineEdit_battleinfo_space->setText(stringHash.value(util::kBattleSpaceMarkString));
 
 	ui.groupBox_lockpets->setChecked(enableHash.value(util::kLockPetScheduleEnable));
+
+	ui.spinBox_tcpdelay->setValue(valueHash.value(util::UserSetting::kTcpDelayValue));
 
 	QString schedule = stringHash.value(util::kLockPetScheduleString).simplified();
 	QStringList scheduleList = schedule.split(util::rexOR, Qt::SkipEmptyParts);

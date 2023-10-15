@@ -67,7 +67,7 @@ private:
 	QPixmap pixmap_;
 	QString content_msg_;
 	QColor text_color_ = Qt::black;
-	QColor background_color_ = QColor("#F1F1F1");
+	QColor background_color_ = QColor("#F0F4F8");
 	long long new_font_size_ = 12;
 };
 #endif // MYLABEL_H

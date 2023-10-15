@@ -47,6 +47,13 @@ MapForm::MapForm(long long index, QWidget* parent)
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(index);
 	connect(&signalDispatcher, &SignalDispatcher::updateNpcList, this, &MapForm::onUpdateNpcList, Qt::QueuedConnection);
 
+	QList <QSpinBox*> spinBoxList = util::findWidgets<QSpinBox>(this);
+	for (auto& spinBox : spinBoxList)
+	{
+		if (spinBox)
+			util::setSpinBox(spinBox);
+	}
+
 }
 
 MapForm::~MapForm()

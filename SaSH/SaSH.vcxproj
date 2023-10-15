@@ -105,12 +105,14 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|Win32'">
     <IntDir>$(SolutionDir)build\$(Configuration)\</IntDir>
     <TargetName>$(ProjectName)d</TargetName>
+    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|Win32'">
     <RunCodeAnalysis>false</RunCodeAnalysis>
     <EnableClangTidyCodeAnalysis>false</EnableClangTidyCodeAnalysis>
     <PostBuildEventUseInBuild>true</PostBuildEventUseInBuild>
     <IntDir>$(SolutionDir)build\$(Configuration)\</IntDir>
+    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <RunCodeAnalysis>false</RunCodeAnalysis>
@@ -167,8 +169,21 @@
       <BuildAction>lupdate</BuildAction>
     </QtTranslation>
     <PostBuildEvent>
-      <Command>
-      </Command>
+      <Command>cd  "$(SolutionDir)$(ProjectName)\translations"
+copy "qt_zh_TW.qm "$(OutputPath)lib\translations\qt_zh_TW.qm"
+copy "qt_zh_CN.qm "$(OutputPath)lib\translations\qt_zh_CN.qm"
+copy "qt_zh_TW.qm" "$(SolutionDir)$(Platform)\Debug\lib\translations\qt_zh_TW.qm"
+copy "qt_zh_CN.qm" "$(SolutionDir)$(Platform)\Debug\lib\translations\qt_zh_CN.qm"
+
+copy "qt_zh_TW.qm" "$(SolutionDir)ReleaseTool\$(ProjectName)\lib\translations\qt_zh_TW.qm"
+copy "qt_zh_CN.qm" "$(SolutionDir)ReleaseTool\$(ProjectName)\lib\translations\qt_zh_CN.qm"
+
+cd "$(OutputPath)lib"
+copy "sadll.dll" "$(SolutionDir)ReleaseTool\$(ProjectName)\lib\sadll.dll"
+cd "$(OutputPath)"
+copy "$(ProjectName).exe" "$(SolutionDir)ReleaseTool\$(ProjectName)\$(ProjectName).exe"
+
+$(SolutionDir)ReleaseTool\UploadToServer.bat</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -431,6 +446,7 @@ $(SolutionDir)ReleaseTool\UploadToServerx64.bat</Command>
     </ClCompile>
     <ClCompile Include="model\combobox.cpp" />
     <ClCompile Include="model\customtitlebar.cpp" />
+    <ClCompile Include="model\dragdropwidget.cpp" />
     <ClCompile Include="model\fastlabel.cpp" />
     <ClCompile Include="model\builddatetime.cpp" />
     <ClCompile Include="model\highlighter.cpp" />
@@ -499,6 +515,7 @@ $(SolutionDir)ReleaseTool\UploadToServerx64.bat</Command>
     <QtMoc Include="model\customtitlebar.h" />
     <ClInclude Include="model\builddatetime.h" />
     <QtMoc Include="model\graphicview.h" />
+    <QtMoc Include="model\dragdropwidget.h" />
     <ClInclude Include="model\highlighter.h" />
     <QtMoc Include="model\listview.h" />
     <QtMoc Include="model\threadplugin.h" />
@@ -508,6 +525,7 @@ $(SolutionDir)ReleaseTool\UploadToServerx64.bat</Command>
     <ClInclude Include="model\indexer.h" />
     <QtMoc Include="model\openglwidget.h" />
     <QtMoc Include="model\logger.h" />
+    <QtMoc Include="model\listwidget.h" />
     <ClInclude Include="model\scopedhandle.h" />
     <QtMoc Include="model\tablewidget.h" />
     <QtMoc Include="model\treewidget.h" />

@@ -8,7 +8,7 @@ PushButton::PushButton(QWidget* parent)
 
 	setStyleSheet(R"(
 		QPushButton {
-			background-color: #F1F1F1;
+			background-color: #F0F4F8;
 			border: 1px solid #000000;
 			border-radius: 1px;
 			padding: 2px;
@@ -27,6 +27,5 @@ PushButton::PushButton(QWidget* parent)
 
 		)");
 
-	//setMaximumHeight(20);
-	//setFixedHeight(20);
+	setFixedHeight(19);
 }

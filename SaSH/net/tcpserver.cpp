@@ -543,15 +543,19 @@ void Worker::handleData(QByteArray badata)
 	if (handleCustomMessage(badata))
 		return;
 
-	QThread::msleep(10);//avoid to fast
+	long long currentIndex = getIndex();
+	Injector& injector = Injector::getInstance(currentIndex);
+
+	long long delay = injector.getValueHash(util::UserSetting::kTcpDelayValue);
+	if (delay > 0)
+		QThread::msleep(delay);//avoid to fast
 
 	appendReadBuf(badata);
 
 	if (net_readbuf_.isEmpty())
 		return;
 
-	long long currentIndex = getIndex();
-	Injector& injector = Injector::getInstance(currentIndex);
+
 
 	QString key = mem::readString(injector.getProcess(), injector.getProcessModule() + kOffsetPersonalKey, PERSONALKEYSIZE, true, true);
 	if (key != injector.autil.PersonalKey)
@@ -3364,7 +3368,7 @@ bool Worker::login(long long s)
 			13, 3, 1,
 			14, 3, 2,
 			15, 3, 3,
-};
+		};
 
 		const long long a = table[server * 3 + 1];
 		const long long b = table[server * 3 + 2];
@@ -3515,7 +3519,7 @@ bool Worker::login(long long s)
 
 			}
 			break;
-	}
+		}
 
 		if (subserver >= 0 && subserver < 15)
 		{
@@ -3606,8 +3610,8 @@ bool Worker::login(long long s)
 	{
 		break;
 	}
-}
-return false;
+	}
+	return false;
 }
 
 #pragma endregion
@@ -5372,7 +5376,7 @@ LSTIME_SECTION getLSTime(LSTIME* lstime)
 	}
 	else
 		return LS_NOON;
-	}
+}
 
 #pragma endregion
 
@@ -6181,1173 +6185,1285 @@ void Worker::handleCharBattleLogics(const battledata_t& bt)
 		};
 #pragma endregion
 
-	//自動換寵
-#pragma region AutoSwitchPet
-	do
-	{
-		PC pc = getPC();
-
-		if (bt.objects.value(battleCharCurrentPos.load(std::memory_order_acquire) + 5).modelid > 0
-			|| !bt.objects.value(battleCharCurrentPos.load(std::memory_order_acquire) + 5).name.isEmpty()
-			|| bt.objects.value(battleCharCurrentPos.load(std::memory_order_acquire) + 5).level > 0
-			|| bt.objects.value(battleCharCurrentPos.load(std::memory_order_acquire) + 5).maxHp > 0)
-			break;
-
-		battleobject_t obj = bt.objects.value(battleCharCurrentPos.load(std::memory_order_acquire) + 5);
-
-		long long petIndex = -1;
-		for (long long i = 0; i < MAX_PET; ++i)
+#pragma region Actions
+	//落馬逃跑
+#pragma region FallDownEscape
+	auto fallDownEscapeFun = [this, &injector, &bt]()->bool
 		{
-			if (battlePetDisableList_.value(i))
-				continue;
-
-			if (pc.battlePetNo == i)
+			do
 			{
-				battlePetDisableList_[i] = true;
-				continue;
-			}
-
-			PET _pet = getPet(i);
-			if (_pet.level <= 0 || _pet.maxHp <= 0 || _pet.hp < 1 || _pet.modelid == 0 || _pet.name.isEmpty())
-			{
-				battlePetDisableList_[i] = true;
-				continue;
-			}
-
-			if (_pet.state == kRide || _pet.state != kStandby)
-			{
-				battlePetDisableList_[i] = true;
-				continue;
-			}
-
-			petIndex = i;
-			break;
-		}
-
-		if (petIndex == -1)
-			break;
-
-		bool autoSwitch = injector.getEnableHash(util::kBattleAutoSwitchEnable);
-		if (!autoSwitch)
-			break;
-
-		sendBattleCharSwitchPetAct(petIndex);
-		return;
-
-	} while (false);
-#pragma endregion
-
-	//自動捉寵
-#pragma region CatchPet
-	do
-	{
-		bool autoCatch = injector.getEnableHash(util::kAutoCatchEnable);
-		if (!autoCatch)
-			break;
-
-		if (isPetSpotEmpty())
-		{
-			petEscapeEnableTempFlag.store(true, std::memory_order_release);
-			sendBattleCharEscapeAct();
-			return;
-		}
-
-		long long tempTarget = -1;
-
-		//檢查等級條件
-		bool levelLimitEnable = injector.getEnableHash(util::kBattleCatchTargetLevelEnable);
-		if (levelLimitEnable)
-		{
-			long long levelLimit = injector.getValueHash(util::kBattleCatchTargetLevelValue);
-			if (levelLimit <= 0 || levelLimit > 255)
-				levelLimit = 1;
-
-			if (matchBattleEnemyByLevel(levelLimit, battleObjects, &tempbattleObjects))
-			{
-				battleObjects = tempbattleObjects;
-			}
-			else
-				battleObjects.clear();
-		}
-
-		//檢查最大血量條件
-		bool maxHpLimitEnable = injector.getEnableHash(util::kBattleCatchTargetMaxHpEnable);
-		if (maxHpLimitEnable && !battleObjects.isEmpty())
-		{
-			long long maxHpLimit = injector.getValueHash(util::kBattleCatchTargetMaxHpValue);
-			if (matchBattleEnemyByMaxHp(maxHpLimit, battleObjects, &tempbattleObjects))
-			{
-				battleObjects = tempbattleObjects;
-			}
-			else
-				battleObjects.clear();
-		}
-
-		//檢查名稱條件
-		QStringList targetList = injector.getStringHash(util::kBattleCatchPetNameString).split(util::rexOR, Qt::SkipEmptyParts);
-		if (!targetList.isEmpty() && !battleObjects.isEmpty())
-		{
-			bool bret = false;
-			for (const QString& it : targetList)
-			{
-				if (matchBattleEnemyByName(it, true, battleObjects, &tempbattleObjects))
-				{
-					if (!bret)
-						bret = true;
-					battleObjects = tempbattleObjects;
-				}
-			}
-
-			if (!bret)
-				battleObjects.clear();
-		}
-
-		//目標不存在的情況下
-		if (battleObjects.isEmpty())
-		{
-			long long catchMode = injector.getValueHash(util::kBattleCatchModeValue);
-			if (0 == catchMode)
-			{
-				//遇敵逃跑
-				petEscapeEnableTempFlag.store(true, std::memory_order_release);
-				sendBattleCharEscapeAct();
-				return;
-			}
-
-			//遇敵攻擊 (跳出while 往下檢查其他常規動作)
-			break;
-		}
-
-		battleobject_t obj = battleObjects.first();
-		battleObjects.pop_front();
-		tempTarget = obj.pos;
-		tempCatchPetTargetIndex = tempTarget;
-
-		//允許人物動作降低血量
-		bool allowCharAction = injector.getEnableHash(util::kBattleCatchCharMagicEnable);
-		long long hpLimit = injector.getValueHash(util::kBattleCatchTargetMagicHpValue);
-		if (allowCharAction && (obj.hpPercent >= hpLimit))
-		{
-			long long actionType = injector.getValueHash(util::kBattleCatchCharMagicValue);
-			if (actionType == 1)
-			{
-				sendBattleCharDefenseAct();
-				return;
-			}
-			else if (actionType == 2)
-			{
-				sendBattleCharEscapeAct();
-				return;
-			}
-
-			if (actionType == 0)
-			{
-				if (tempTarget >= 0 && tempTarget < MAX_ENEMY)
-				{
-					sendBattleCharAttackAct(tempTarget);
-					return;
-				}
-			}
-			else
-			{
-				long long magicIndex = actionType - 3;
-				bool isProfession = magicIndex > (MAX_MAGIC - 1);
-				if (isProfession) //0 ~ MAX_PROFESSION_SKILL
-				{
-					magicIndex -= MAX_MAGIC;
-					target = -1;
-					if (fixCharTargetBySkillIndex(magicIndex, tempTarget, &target) && (target >= 0 && target <= (MAX_ENEMY + 2)))
-					{
-						if (isCharMpEnoughForSkill(magicIndex))
-						{
-							sendBattleCharJobSkillAct(magicIndex, target);
-							return;
-						}
-						else
-						{
-							tempTarget = getBattleSelectableEnemyTarget(bt);
-							sendBattleCharAttackAct(tempTarget);
-						}
-					}
-				}
-				else
-				{
-					//如果敵方已經中狀態，則尋找下一個目標
-					for (;;)
-					{
-						if (hasBadStatus(obj.status))
-						{
-							if (!battleObjects.isEmpty())
-							{
-								obj = battleObjects.front();
-								tempTarget = obj.pos;
-								battleObjects.pop_front();
-								continue;
-							}
-							else
-							{
-								sendBattleCharDefenseAct();
-								return;
-							}
-						}
-						else
-							break;
-					}
-
-					target = -1;
-					if (fixCharTargetByMagicIndex(magicIndex, tempTarget, &target) && (target >= 0 && target <= (MAX_ENEMY + 2)))
-					{
-						if (isCharMpEnoughForMagic(magicIndex))
-						{
-							sendBattleCharMagicAct(magicIndex, target);
-							return;
-						}
-						else
-							break;
-					}
-				}
-			}
-		}
-
-		//允許人物道具降低血量
-		bool allowCharItem = injector.getEnableHash(util::kBattleCatchCharItemEnable);
-		hpLimit = injector.getValueHash(util::kBattleCatchTargetItemHpValue);
-		if (allowCharItem && (obj.hpPercent >= hpLimit))
-		{
-			long long itemIndex = -1;
-			QString text = injector.getStringHash(util::kBattleCatchCharItemString).simplified();
-			items = text.split(util::rexOR, Qt::SkipEmptyParts);
-			for (const QString& str : items)
-			{
-				itemIndex = getItemIndexByName(str, true, "", CHAR_EQUIPPLACENUM);
-				if (itemIndex != -1)
+				bool fallEscapeEnable = injector.getEnableHash(util::kFallDownEscapeEnable);
+				if (!fallEscapeEnable)
 					break;
-			}
 
-			target = -1;
-			if (itemIndex != -1)
-			{
-				if (fixCharTargetByItemIndex(itemIndex, tempTarget, &target) && (target >= 0 && target <= (MAX_ENEMY + 1)))
-				{
-					sendBattleCharItemAct(itemIndex, target);
-					return;
-				}
-			}
-		}
+				if (bt.player.rideFlag != 0)
+					break;
 
-		sendBattleCharCatchPetAct(tempTarget);
-		return;
-	} while (false);
+				sendBattleCharEscapeAct();
+				petEscapeEnableTempFlag.store(true, std::memory_order_release);
+				return true;
+			} while (false);
+			return false;
+		};
 #pragma endregion
 
 	//鎖定逃跑
 #pragma region LockEscape
-	do
-	{
-		bool lockEscapeEnable = injector.getEnableHash(util::kLockEscapeEnable);
-		if (!lockEscapeEnable)
-			break;
-
-		QString text = injector.getStringHash(util::kLockEscapeString);
-		QStringList targetList = text.split(util::rexOR, Qt::SkipEmptyParts);
-		if (targetList.isEmpty())
-			break;
-
-		for (const QString& it : targetList)
+	auto lockEscapeFun = [this, &injector, &battleObjects, &tempbattleObjects]()->bool
 		{
-			if (matchBattleEnemyByName(it, true, battleObjects, &tempbattleObjects))
+			do
 			{
-				sendBattleCharEscapeAct();
-				petEscapeEnableTempFlag.store(true, std::memory_order_release);
-				return;
-			}
-		}
-	} while (false);
+				bool lockEscapeEnable = injector.getEnableHash(util::kLockEscapeEnable);
+				if (!lockEscapeEnable)
+					break;
+
+				QString text = injector.getStringHash(util::kLockEscapeString);
+				QStringList targetList = text.split(util::rexOR, Qt::SkipEmptyParts);
+				if (targetList.isEmpty())
+					break;
+
+				for (const QString& it : targetList)
+				{
+					if (matchBattleEnemyByName(it, true, battleObjects, &tempbattleObjects))
+					{
+						sendBattleCharEscapeAct();
+						petEscapeEnableTempFlag.store(true, std::memory_order_release);
+						return true;
+					}
+				}
+			} while (false);
+
+			return false;
+		};
 #pragma endregion
 
 	//鎖定攻擊
 #pragma region LockAttack
-	do
-	{
-		bool lockAttackEnable = injector.getEnableHash(util::kLockAttackEnable);
-		if (!lockAttackEnable)
-			break;
-
-		QString text = injector.getStringHash(util::kLockAttackString);
-		if (text.isEmpty())
-			break;
-
-		if (conditionMatchTarget(battleObjects, text, &target))
+	auto lockAttackFun = [this, &injector, &battleObjects, &target]()->bool
 		{
-			//這個標誌是為了確保目標死亡之後還會繼續戰鬥，而不是打完後就逃跑
-			IS_LOCKATTACK_ESCAPE_DISABLE.store(true, std::memory_order_release);
-			break;
-		}
+			do
+			{
+				bool lockAttackEnable = injector.getEnableHash(util::kLockAttackEnable);
+				if (!lockAttackEnable)
+					break;
 
-		//鎖定攻擊條件不滿足時，是否不藥逃跑
-		bool doNotEscape = injector.getEnableHash(util::kBattleNoEscapeWhileLockPetEnable);
+				QString text = injector.getStringHash(util::kLockAttackString);
+				if (text.isEmpty())
+					break;
 
-		if (!doNotEscape && IS_LOCKATTACK_ESCAPE_DISABLE.load(std::memory_order_acquire))
-			break;
+				if (conditionMatchTarget(battleObjects, text, &target))
+				{
+					//這個標誌是為了確保目標死亡之後還會繼續戰鬥，而不是打完後就逃跑
+					IS_LOCKATTACK_ESCAPE_DISABLE.store(true, std::memory_order_release);
+					break;
+				}
 
-		if (doNotEscape)
-			break;
+				//鎖定攻擊條件不滿足時，是否不藥逃跑
+				bool doNotEscape = injector.getEnableHash(util::kBattleNoEscapeWhileLockPetEnable);
 
-		sendBattleCharEscapeAct();
-		petEscapeEnableTempFlag.store(true, std::memory_order_release);
-		return;
-	} while (false);
-#pragma endregion
+				if (!doNotEscape && IS_LOCKATTACK_ESCAPE_DISABLE.load(std::memory_order_acquire))
+					break;
 
-	//落馬逃跑
-#pragma region FallDownEscape
-	do
-	{
-		bool fallEscapeEnable = injector.getEnableHash(util::kFallDownEscapeEnable);
-		if (!fallEscapeEnable)
-			break;
+				if (doNotEscape)
+					break;
 
-		if (bt.player.rideFlag != 0)
-			break;
+				sendBattleCharEscapeAct();
+				petEscapeEnableTempFlag.store(true, std::memory_order_release);
+				return true;
+			} while (false);
 
-		sendBattleCharEscapeAct();
-		petEscapeEnableTempFlag.store(true, std::memory_order_release);
-		return;
-	} while (false);
+			return false;
+		};
 #pragma endregion
 
 	//道具復活
 #pragma region ItemRevive
-	do
-	{
-		bool itemRevive = injector.getEnableHash(util::kBattleItemReviveEnable);
-		if (!itemRevive)
-			break;
-
-		long long tempTarget = -1;
-		bool ok = false;
-		unsigned long long targetFlags = injector.getValueHash(util::kBattleItemReviveTargetValue);
-		if (checkAND(targetFlags, kSelectPet))
+	auto itemReviveFun = [this, &injector, &bt, &checkDeadAllie, &items, &target]()->bool
 		{
-			if (bt.objects.value(battleCharCurrentPos.load(std::memory_order_acquire) + 5).hp == 0
-				|| checkAND(bt.objects.value(battleCharCurrentPos.load(std::memory_order_acquire) + 5).status, BC_FLG_DEAD))
+			do
 			{
-				tempTarget = battleCharCurrentPos.load(std::memory_order_acquire) + 5;
-				ok = true;
-			}
-		}
-
-		if (!ok)
-		{
-			if (checkAND(targetFlags, kSelectAllieAny) || checkAND(targetFlags, kSelectAllieAll))
-			{
-				if (bt.objects.value(battleCharCurrentPos.load(std::memory_order_acquire) + 5).maxHp > 0 && checkDeadAllie(&tempTarget))
-				{
-					ok = true;
-				}
-			}
-		}
-
-		if (!ok)
-			break;
-
-		QString text = injector.getStringHash(util::kBattleItemReviveItemString).simplified();
-		if (text.isEmpty())
-			break;
-
-		items = text.split(util::rexOR, Qt::SkipEmptyParts);
-		if (items.isEmpty())
-			break;
-
-		long long itemIndex = -1;
-		for (const QString& str : items)
-		{
-			itemIndex = getItemIndexByName(str, true, "", CHAR_EQUIPPLACENUM);
-			if (itemIndex != -1)
-				break;
-		}
-
-		if (itemIndex == -1)
-			break;
-
-		target = -1;
-		if (fixCharTargetByItemIndex(itemIndex, tempTarget, &target) && (target >= 0 && target < MAX_ENEMY))
-		{
-			sendBattleCharItemAct(itemIndex, target);
-			return;
-		}
-	} while (false);
-#pragma endregion
-
-	//精靈復活
-#pragma region MagicRevive
-	do
-	{
-		bool magicRevive = injector.getEnableHash(util::kBattleMagicReviveEnable);
-		if (!magicRevive)
-			break;
-
-		long long tempTarget = -1;
-		bool ok = false;
-		unsigned long long targetFlags = injector.getValueHash(util::kBattleMagicReviveTargetValue);
-		if (checkAND(targetFlags, kSelectPet) && bt.objects.value(battleCharCurrentPos.load(std::memory_order_acquire) + 5).maxHp > 0)
-		{
-			if (bt.objects.value(battleCharCurrentPos.load(std::memory_order_acquire) + 5).hp == 0
-				|| checkAND(bt.objects.value(battleCharCurrentPos.load(std::memory_order_acquire) + 5).status, BC_FLG_DEAD))
-			{
-				tempTarget = battleCharCurrentPos.load(std::memory_order_acquire) + 5;
-				ok = true;
-			}
-		}
-
-		if (!ok)
-		{
-			if (checkAND(targetFlags, kSelectAllieAny) || checkAND(targetFlags, kSelectAllieAll))
-			{
-				if (checkDeadAllie(&tempTarget))
-				{
-					ok = true;
-				}
-			}
-		}
-
-		if (!ok)
-			break;
-
-		long long magicIndex = injector.getValueHash(util::kBattleMagicReviveMagicValue);
-		if (magicIndex <0 || magicIndex > MAX_MAGIC)
-			break;
-
-		bool isProfession = magicIndex > (3 + MAX_MAGIC - 1);
-		if (isProfession) //0 ~ MAX_PROFESSION_SKILL
-		{
-			magicIndex -= (3 + MAX_MAGIC);
-
-		}
-		else
-		{
-			target = -1;
-			if (fixCharTargetByMagicIndex(magicIndex, tempTarget, &target) && (target >= 0 && target < MAX_ENEMY))
-			{
-				if (isCharMpEnoughForMagic(magicIndex))
-				{
-					sendBattleCharMagicAct(magicIndex, target);
-					return;
-				}
-				else
-				{
+				bool itemRevive = injector.getEnableHash(util::kBattleItemReviveEnable);
+				if (!itemRevive)
 					break;
+
+				long long tempTarget = -1;
+				bool ok = false;
+				unsigned long long targetFlags = injector.getValueHash(util::kBattleItemReviveTargetValue);
+				if (checkAND(targetFlags, kSelectPet))
+				{
+					if (bt.objects.value(battleCharCurrentPos.load(std::memory_order_acquire) + 5).hp == 0
+						|| checkAND(bt.objects.value(battleCharCurrentPos.load(std::memory_order_acquire) + 5).status, BC_FLG_DEAD))
+					{
+						tempTarget = battleCharCurrentPos.load(std::memory_order_acquire) + 5;
+						ok = true;
+					}
 				}
-			}
-		}
-	} while (false);
-#pragma endregion
 
-	//嗜血補氣
-#pragma region SkillMp
-	do
-	{
-		bool skillMp = injector.getEnableHash(util::kBattleSkillMpEnable);
-		if (!skillMp)
-			break;
+				if (!ok)
+				{
+					if (checkAND(targetFlags, kSelectAllieAny) || checkAND(targetFlags, kSelectAllieAll))
+					{
+						if (bt.objects.value(battleCharCurrentPos.load(std::memory_order_acquire) + 5).maxHp > 0 && checkDeadAllie(&tempTarget))
+						{
+							ok = true;
+						}
+					}
+				}
 
-		long long charMp = injector.getValueHash(util::kBattleSkillMpValue);
-		if ((battleCharCurrentMp.load(std::memory_order_acquire) > charMp)
-			&& (battleCharCurrentMp.load(std::memory_order_acquire) > 0))
-			break;
+				if (!ok)
+					break;
 
-		long long skillIndex = getProfessionSkillIndexByName("?成性");
-		if (skillIndex < 0)
-			break;
+				QString text = injector.getStringHash(util::kBattleItemReviveItemString).simplified();
+				if (text.isEmpty())
+					break;
 
-		if (isCharHpEnoughForSkill(skillIndex))
-		{
-			sendBattleCharJobSkillAct(skillIndex, battleCharCurrentPos.load(std::memory_order_acquire));
-			return;
-		}
+				items = text.split(util::rexOR, Qt::SkipEmptyParts);
+				if (items.isEmpty())
+					break;
 
-	} while (false);
-#pragma endregion
+				long long itemIndex = -1;
+				for (const QString& str : items)
+				{
+					itemIndex = getItemIndexByName(str, true, "", CHAR_EQUIPPLACENUM);
+					if (itemIndex != -1)
+						break;
+				}
 
-	//道具補氣
-#pragma region ItemMp
-	do
-	{
-		bool itemHealMp = injector.getEnableHash(util::kBattleItemHealMpEnable);
-		if (!itemHealMp)
-			break;
+				if (itemIndex == -1)
+					break;
 
-		long long tempTarget = -1;
-		//bool ok = false;
-		long long charMpPercent = injector.getValueHash(util::kBattleItemHealMpValue);
-		if (!checkCharMp(charMpPercent, &tempTarget, true) && (battleCharCurrentMp.load(std::memory_order_acquire) > 0))
-		{
-			break;
-		}
+				target = -1;
+				if (fixCharTargetByItemIndex(itemIndex, tempTarget, &target) && (target >= 0 && target < MAX_ENEMY))
+				{
+					sendBattleCharItemAct(itemIndex, target);
+					return true;
+				}
+			} while (false);
 
-		QString text = injector.getStringHash(util::kBattleItemHealMpItemString).simplified();
-		if (text.isEmpty())
-			break;
-
-		items = text.split(util::rexOR, Qt::SkipEmptyParts);
-		if (items.isEmpty())
-			break;
-
-		long long itemIndex = -1;
-		for (const QString& str : items)
-		{
-			itemIndex = getItemIndexByName(str, true, "", CHAR_EQUIPPLACENUM);
-			if (itemIndex != -1)
-				break;
-		}
-
-		if (itemIndex == -1)
-			break;
-
-		target = 0;
-		if (fixCharTargetByItemIndex(itemIndex, tempTarget, &target)
-			&& (target == battleCharCurrentPos.load(std::memory_order_acquire)))
-		{
-			sendBattleCharItemAct(itemIndex, target);
-			return;
-		}
-	} while (false);
+			return false;
+		};
 #pragma endregion
 
 	//指定回合
 #pragma region SelectedRound
-	do
-	{
-		long long atRoundIndex = injector.getValueHash(util::kBattleCharRoundActionRoundValue);
-		if (atRoundIndex <= 0)
-			break;
-
-		if (atRoundIndex != battleCurrentRound.load(std::memory_order_acquire) + 1)
-			break;
-
-		long long tempTarget = -1;
-		///bool ok = false;
-
-		long long enemy = injector.getValueHash(util::kBattleCharRoundActionEnemyValue);
-		if (enemy != 0)
+	auto selectRoundFun = [this, &injector, &bt, &target]()->bool
 		{
-			if (bt.enemies.size() <= enemy) //敵人 <= 設置數量
+			do
 			{
-				break;
-			}
-		}
-
-		long long level = injector.getValueHash(util::kBattleCharRoundActionLevelValue);
-		if (level != 0)
-		{
-			auto minIt = std::min_element(bt.enemies.begin(), bt.enemies.end(),
-				[](const battleobject_t& obj1, const battleobject_t& obj2)
-				{
-					return obj1.level < obj2.level;
-				});
-
-			if (minIt->level <= (level * 10))
-			{
-				break;
-			}
-		}
-
-		long long actionType = injector.getValueHash(util::kBattleCharRoundActionTypeValue);
-		if (actionType == 1)
-		{
-			sendBattleCharDefenseAct();
-			return;
-		}
-		else if (actionType == 2)
-		{
-			sendBattleCharEscapeAct();
-			return;
-		}
-
-		unsigned long long targetFlags = injector.getValueHash(util::kBattleCharRoundActionTargetValue);
-		if (checkAND(targetFlags, kSelectEnemyAny))
-		{
-			if (target == -1)
-				tempTarget = getBattleSelectableEnemyTarget(bt);
-			else
-				tempTarget = target;
-		}
-		else if (checkAND(targetFlags, kSelectEnemyAll))
-		{
-			tempTarget = 21;
-		}
-		else if (checkAND(targetFlags, kSelectEnemyFront))
-		{
-			if (target == -1)
-				tempTarget = getBattleSelectableEnemyOneRowTarget(bt, true) + MAX_ENEMY;
-			else
-				tempTarget = target + MAX_ENEMY;
-
-		}
-		else if (checkAND(targetFlags, kSelectEnemyBack))
-		{
-			if (target == -1)
-				tempTarget = getBattleSelectableEnemyOneRowTarget(bt, false) + MAX_ENEMY;
-			else
-				tempTarget = target + MAX_ENEMY;
-		}
-		else if (checkAND(targetFlags, kSelectSelf))
-		{
-			tempTarget = battleCharCurrentPos.load(std::memory_order_acquire);
-		}
-		else if (checkAND(targetFlags, kSelectPet))
-		{
-			tempTarget = battleCharCurrentPos.load(std::memory_order_acquire) + 5;
-		}
-		else if (checkAND(targetFlags, kSelectAllieAny))
-		{
-			tempTarget = getBattleSelectableAllieTarget(bt);
-		}
-		else if (checkAND(targetFlags, kSelectAllieAll))
-		{
-			tempTarget = MAX_ENEMY;
-		}
-		else if (checkAND(targetFlags, kSelectLeader))
-		{
-			tempTarget = bt.alliemin + 0;
-		}
-		else if (checkAND(targetFlags, kSelectLeaderPet))
-		{
-			tempTarget = bt.alliemin + 0 + 5;
-		}
-		else if (checkAND(targetFlags, kSelectTeammate1))
-		{
-			tempTarget = bt.alliemin + 1;
-		}
-		else if (checkAND(targetFlags, kSelectTeammate1Pet))
-		{
-			tempTarget = bt.alliemin + 1 + 5;
-		}
-		else if (checkAND(targetFlags, kSelectTeammate2))
-		{
-			tempTarget = bt.alliemin + 2;
-		}
-		else if (checkAND(targetFlags, kSelectTeammate2Pet))
-		{
-			tempTarget = bt.alliemin + 2 + 5;
-		}
-		else if (checkAND(targetFlags, kSelectTeammate3))
-		{
-			tempTarget = bt.alliemin + 3;
-		}
-		else if (checkAND(targetFlags, kSelectTeammate3Pet))
-		{
-			tempTarget = bt.alliemin + 3 + 5;
-		}
-		else if (checkAND(targetFlags, kSelectTeammate4))
-		{
-			tempTarget = bt.alliemin + 4;
-		}
-		else if (checkAND(targetFlags, kSelectTeammate4Pet))
-		{
-			tempTarget = bt.alliemin + 4 + 5;
-		}
-
-		if (actionType == 0)
-		{
-			if (tempTarget >= 0 && tempTarget < MAX_ENEMY)
-			{
-				sendBattleCharAttackAct(tempTarget);
-				return;
-			}
-			else
-			{
-				tempTarget = getBattleSelectableEnemyTarget(bt);
-				if (tempTarget == -1)
+				long long atRoundIndex = injector.getValueHash(util::kBattleCharRoundActionRoundValue);
+				if (atRoundIndex <= 0)
 					break;
 
-				sendBattleCharAttackAct(tempTarget);
-				return;
-			}
-		}
-		else
-		{
-			long long magicIndex = actionType - 3;
-			bool isProfession = magicIndex > (MAX_MAGIC - 1);
-			if (isProfession) //0 ~ MAX_PROFESSION_SKILL
-			{
-				magicIndex -= MAX_MAGIC;
+				if (atRoundIndex != battleCurrentRound.load(std::memory_order_acquire) + 1)
+					break;
 
-				if (fixCharTargetBySkillIndex(magicIndex, tempTarget, &target) && (target >= 0 && target <= (MAX_ENEMY + 2)))
-				{
-					if (isCharMpEnoughForSkill(magicIndex))
-					{
-						sendBattleCharJobSkillAct(magicIndex, target);
-						return;
-					}
-					else
-					{
-						tempTarget = getBattleSelectableEnemyTarget(bt);
-						sendBattleCharAttackAct(tempTarget);
-					}
-				}
-			}
-			else
-			{
+				long long tempTarget = -1;
+				///bool ok = false;
 
-				if (fixCharTargetByMagicIndex(magicIndex, tempTarget, &target) && (target >= 0 && target <= (MAX_ENEMY + 2)))
+				long long enemy = injector.getValueHash(util::kBattleCharRoundActionEnemyValue);
+				if (enemy != 0)
 				{
-					if (isCharMpEnoughForMagic(magicIndex))
-					{
-						sendBattleCharMagicAct(magicIndex, target);
-						return;
-					}
-					else
+					if (bt.enemies.size() <= enemy) //敵人 <= 設置數量
 					{
 						break;
 					}
 				}
-			}
-		}
-	} while (false);
-#pragma endregion
 
-	//間隔回合
-#pragma region IntervalRound
-	do
-	{
-		bool crossActionEnable = injector.getEnableHash(util::kBattleCrossActionCharEnable);
-		if (!crossActionEnable)
-			break;
-
-		long long tempTarget = -1;
-
-		long long round = injector.getValueHash(util::kBattleCharCrossActionRoundValue) + 1;
-		if ((battleCurrentRound.load(std::memory_order_acquire) + 1) % round)
-		{
-			break;
-		}
-
-		long long actionType = injector.getValueHash(util::kBattleCharCrossActionTypeValue);
-		if (actionType == 1)
-		{
-			sendBattleCharDefenseAct();
-			return;
-		}
-		else if (actionType == 2)
-		{
-			sendBattleCharEscapeAct();
-			return;
-		}
-
-		unsigned long long targetFlags = injector.getValueHash(util::kBattleCharCrossActionTargetValue);
-		if (checkAND(targetFlags, kSelectEnemyAny))
-		{
-			if (target == -1)
-				tempTarget = getBattleSelectableEnemyTarget(bt);
-			else
-				tempTarget = target;
-		}
-		else if (checkAND(targetFlags, kSelectEnemyAll))
-		{
-			tempTarget = MAX_ENEMY + 1;
-		}
-		else if (checkAND(targetFlags, kSelectEnemyFront))
-		{
-			if (target == -1)
-				tempTarget = getBattleSelectableEnemyOneRowTarget(bt, true) + MAX_ENEMY;
-			else
-				tempTarget = target + MAX_ENEMY;
-		}
-		else if (checkAND(targetFlags, kSelectEnemyBack))
-		{
-			if (target == -1)
-				tempTarget = getBattleSelectableEnemyOneRowTarget(bt, false) + MAX_ENEMY;
-			else
-				tempTarget = target + MAX_ENEMY;
-		}
-		else if (checkAND(targetFlags, kSelectSelf))
-		{
-			tempTarget = battleCharCurrentPos.load(std::memory_order_acquire);
-		}
-		else if (checkAND(targetFlags, kSelectPet))
-		{
-			tempTarget = battleCharCurrentPos.load(std::memory_order_acquire) + 5;
-		}
-		else if (checkAND(targetFlags, kSelectAllieAny))
-		{
-			tempTarget = getBattleSelectableAllieTarget(bt);
-		}
-		else if (checkAND(targetFlags, kSelectAllieAll))
-		{
-			tempTarget = MAX_ENEMY;
-		}
-		else if (checkAND(targetFlags, kSelectLeader))
-		{
-			tempTarget = bt.alliemin + 0;
-		}
-		else if (checkAND(targetFlags, kSelectLeaderPet))
-		{
-			tempTarget = bt.alliemin + 0 + 5;
-		}
-		else if (checkAND(targetFlags, kSelectTeammate1))
-		{
-			tempTarget = bt.alliemin + 1;
-		}
-		else if (checkAND(targetFlags, kSelectTeammate1Pet))
-		{
-			tempTarget = bt.alliemin + 1 + 5;
-		}
-		else if (checkAND(targetFlags, kSelectTeammate2))
-		{
-			tempTarget = bt.alliemin + 2;
-		}
-		else if (checkAND(targetFlags, kSelectTeammate2Pet))
-		{
-			tempTarget = bt.alliemin + 2 + 5;
-		}
-		else if (checkAND(targetFlags, kSelectTeammate3))
-		{
-			tempTarget = bt.alliemin + 3;
-		}
-		else if (checkAND(targetFlags, kSelectTeammate3Pet))
-		{
-			tempTarget = bt.alliemin + 3 + 5;
-		}
-		else if (checkAND(targetFlags, kSelectTeammate4))
-		{
-			tempTarget = bt.alliemin + 4;
-		}
-		else if (checkAND(targetFlags, kSelectTeammate4Pet))
-		{
-			tempTarget = bt.alliemin + 4 + 5;
-		}
-
-		if (actionType == 0)
-		{
-			if (tempTarget >= 0 && tempTarget < MAX_ENEMY)
-			{
-				sendBattleCharAttackAct(tempTarget);
-				return;
-			}
-			else
-			{
-				tempTarget = getBattleSelectableEnemyTarget(bt);
-				if (tempTarget == -1)
-					break;
-
-				sendBattleCharAttackAct(tempTarget);
-				return;
-			}
-		}
-		else
-		{
-			long long magicIndex = actionType - 3;
-			bool isProfession = magicIndex > (MAX_MAGIC - 1);
-			if (isProfession) //0 ~ MAX_PROFESSION_SKILL
-			{
-				magicIndex -= MAX_MAGIC;
-
-				if (fixCharTargetBySkillIndex(magicIndex, tempTarget, &target) && (target >= 0 && target <= (MAX_ENEMY + 2)))
+				long long level = injector.getValueHash(util::kBattleCharRoundActionLevelValue);
+				if (level != 0)
 				{
-					if (isCharMpEnoughForSkill(magicIndex))
-					{
-						sendBattleCharJobSkillAct(magicIndex, target);
-						return;
-					}
-					else
-					{
-						tempTarget = getBattleSelectableEnemyTarget(bt);
-						sendBattleCharAttackAct(tempTarget);
-					}
-				}
-			}
-			else
-			{
+					auto minIt = std::min_element(bt.enemies.begin(), bt.enemies.end(),
+						[](const battleobject_t& obj1, const battleobject_t& obj2)
+						{
+							return obj1.level < obj2.level;
+						});
 
-				if (fixCharTargetByMagicIndex(magicIndex, tempTarget, &target) && (target >= 0 && target <= (MAX_ENEMY + 2)))
-				{
-					if (isCharMpEnoughForMagic(magicIndex))
-					{
-						sendBattleCharMagicAct(magicIndex, target);
-						return;
-					}
-					else
+					if (minIt->level <= (level * 10))
 					{
 						break;
 					}
 				}
-			}
-		}
-	} while (false);
-#pragma endregion
 
-	//精靈淨化
-#pragma region MagicPurify
-	do
-	{
-		bool charPurg = injector.getEnableHash(util::kBattleCharPurgEnable);
-		if (!charPurg)
-			break;
-
-		long long tempTarget = -1;
-		bool ok = false;
-		unsigned long long targetFlags = injector.getValueHash(util::kBattleCharPurgTargetValue);
-
-		if (checkAND(targetFlags, kSelectSelf))
-		{
-			if (hasBadStatus(bt.objects.value(battleCharCurrentPos).status))
-			{
-				ok = true;
-			}
-		}
-
-		if (checkAND(targetFlags, kSelectPet))
-		{
-			if (!ok && bt.objects.value(battleCharCurrentPos + 5).maxHp > 0)
-			{
-				if (hasBadStatus(bt.objects.value(battleCharCurrentPos + 5).status) && bt.objects.value(battleCharCurrentPos + 5).hp > 0 &&
-					!checkAND(bt.objects.value(battleCharCurrentPos + 5).status, BC_FLG_DEAD) && !checkAND(bt.objects.value(battleCharCurrentPos + 5).status, BC_FLG_HIDE))
+				long long actionType = injector.getValueHash(util::kBattleCharRoundActionTypeValue);
+				if (actionType == 1)
 				{
-					tempTarget = battleCharCurrentPos + 5;
-					ok = true;
+					sendBattleCharDefenseAct();
+					return true;
 				}
-			}
-			else if (!ok && bt.objects.value(battleCharCurrentPos).maxHp > 0)
-			{
-				if (hasBadStatus(bt.objects.value(battleCharCurrentPos).status) && bt.objects.value(battleCharCurrentPos).rideHp > 0 &&
-					!checkAND(bt.objects.value(battleCharCurrentPos).status, BC_FLG_DEAD) && !checkAND(bt.objects.value(battleCharCurrentPos).status, BC_FLG_HIDE))
+				else if (actionType == 2)
 				{
-					tempTarget = battleCharCurrentPos;
-					ok = true;
+					sendBattleCharEscapeAct();
+					return true;
 				}
-			}
-		}
 
-		if (!ok)
-		{
-			if (checkAND(targetFlags, kSelectAllieAny) || checkAND(targetFlags, kSelectAllieAll))
-			{
-				if (checkAllieStatus(&tempTarget, false))
+				unsigned long long targetFlags = injector.getValueHash(util::kBattleCharRoundActionTargetValue);
+				if (checkAND(targetFlags, kSelectEnemyAny))
 				{
-					ok = true;
+					if (target == -1)
+						tempTarget = getBattleSelectableEnemyTarget(bt);
+					else
+						tempTarget = target;
 				}
-			}
-		}
-
-		if (!ok)
-			break;
-
-		long long magicIndex = injector.getValueHash(util::kBattleCharPurgActionTypeValue);
-		if (magicIndex < 0 || magicIndex > MAX_MAGIC)
-			break;
-
-		bool isProfession = magicIndex > (MAX_MAGIC - 1);
-		if (!isProfession) // ifMagic
-		{
-			target = -1;
-			if (fixCharTargetByMagicIndex(magicIndex, tempTarget, &target) && (target >= 0 && target <= (MAX_ENEMY + 1)))
-			{
-				if (isCharMpEnoughForMagic(magicIndex))
+				else if (checkAND(targetFlags, kSelectEnemyAll))
 				{
-					sendBattleCharMagicAct(magicIndex, target);
-					return;
+					tempTarget = 21;
+				}
+				else if (checkAND(targetFlags, kSelectEnemyFront))
+				{
+					if (target == -1)
+						tempTarget = getBattleSelectableEnemyOneRowTarget(bt, true) + MAX_ENEMY;
+					else
+						tempTarget = target + MAX_ENEMY;
+
+				}
+				else if (checkAND(targetFlags, kSelectEnemyBack))
+				{
+					if (target == -1)
+						tempTarget = getBattleSelectableEnemyOneRowTarget(bt, false) + MAX_ENEMY;
+					else
+						tempTarget = target + MAX_ENEMY;
+				}
+				else if (checkAND(targetFlags, kSelectSelf))
+				{
+					tempTarget = battleCharCurrentPos.load(std::memory_order_acquire);
+				}
+				else if (checkAND(targetFlags, kSelectPet))
+				{
+					tempTarget = battleCharCurrentPos.load(std::memory_order_acquire) + 5;
+				}
+				else if (checkAND(targetFlags, kSelectAllieAny))
+				{
+					tempTarget = getBattleSelectableAllieTarget(bt);
+				}
+				else if (checkAND(targetFlags, kSelectAllieAll))
+				{
+					tempTarget = MAX_ENEMY;
+				}
+				else if (checkAND(targetFlags, kSelectLeader))
+				{
+					tempTarget = bt.alliemin + 0;
+				}
+				else if (checkAND(targetFlags, kSelectLeaderPet))
+				{
+					tempTarget = bt.alliemin + 0 + 5;
+				}
+				else if (checkAND(targetFlags, kSelectTeammate1))
+				{
+					tempTarget = bt.alliemin + 1;
+				}
+				else if (checkAND(targetFlags, kSelectTeammate1Pet))
+				{
+					tempTarget = bt.alliemin + 1 + 5;
+				}
+				else if (checkAND(targetFlags, kSelectTeammate2))
+				{
+					tempTarget = bt.alliemin + 2;
+				}
+				else if (checkAND(targetFlags, kSelectTeammate2Pet))
+				{
+					tempTarget = bt.alliemin + 2 + 5;
+				}
+				else if (checkAND(targetFlags, kSelectTeammate3))
+				{
+					tempTarget = bt.alliemin + 3;
+				}
+				else if (checkAND(targetFlags, kSelectTeammate3Pet))
+				{
+					tempTarget = bt.alliemin + 3 + 5;
+				}
+				else if (checkAND(targetFlags, kSelectTeammate4))
+				{
+					tempTarget = bt.alliemin + 4;
+				}
+				else if (checkAND(targetFlags, kSelectTeammate4Pet))
+				{
+					tempTarget = bt.alliemin + 4 + 5;
+				}
+
+				if (actionType == 0)
+				{
+					if (tempTarget >= 0 && tempTarget < MAX_ENEMY)
+					{
+						sendBattleCharAttackAct(tempTarget);
+						return true;
+					}
+					else
+					{
+						tempTarget = getBattleSelectableEnemyTarget(bt);
+						if (tempTarget == -1)
+							break;
+
+						sendBattleCharAttackAct(tempTarget);
+						return true;
+					}
 				}
 				else
 				{
-					break;
+					long long magicIndex = actionType - 3;
+					bool isProfession = magicIndex > (MAX_MAGIC - 1);
+					if (isProfession) //0 ~ MAX_PROFESSION_SKILL
+					{
+						magicIndex -= MAX_MAGIC;
+
+						if (fixCharTargetBySkillIndex(magicIndex, tempTarget, &target) && (target >= 0 && target <= (MAX_ENEMY + 2)))
+						{
+							if (isCharMpEnoughForSkill(magicIndex))
+							{
+								sendBattleCharJobSkillAct(magicIndex, target);
+								return true;
+							}
+							else
+							{
+								tempTarget = getBattleSelectableEnemyTarget(bt);
+								sendBattleCharAttackAct(tempTarget);
+								return true;
+							}
+						}
+					}
+					else
+					{
+
+						if (fixCharTargetByMagicIndex(magicIndex, tempTarget, &target) && (target >= 0 && target <= (MAX_ENEMY + 2)))
+						{
+							if (isCharMpEnoughForMagic(magicIndex))
+							{
+								sendBattleCharMagicAct(magicIndex, target);
+								return true;
+							}
+							else
+							{
+								break;
+							}
+						}
+					}
 				}
-			}
-		}
-	} while (false);
+			} while (false);
+
+			return false;
+		};
 #pragma endregion
 
 	//精靈補血
 #pragma region MagicHeal
-	do
-	{
-		bool magicHeal = injector.getEnableHash(util::kBattleMagicHealEnable);
-		if (!magicHeal)
-			break;
-
-		long long tempTarget = -1;
-		bool ok = false;
-		unsigned long long targetFlags = injector.getValueHash(util::kBattleMagicHealTargetValue);
-		long long charPercent = injector.getValueHash(util::kBattleMagicHealCharValue);
-		long long petPercent = injector.getValueHash(util::kBattleMagicHealPetValue);
-		long long alliePercent = injector.getValueHash(util::kBattleMagicHealAllieValue);
-
-		if (checkAND(targetFlags, kSelectSelf))
+	auto magicHealFun = [this, &injector, &bt, &checkAllieHp, &target]()->bool
 		{
-			if (checkCharHp(charPercent, &tempTarget))
+			do
 			{
-				ok = true;
-			}
-		}
+				bool magicHeal = injector.getEnableHash(util::kBattleMagicHealEnable);
+				if (!magicHeal)
+					break;
 
-		if (checkAND(targetFlags, kSelectPet))
-		{
-			if (!ok && bt.objects.value(battleCharCurrentPos.load(std::memory_order_acquire) + 5).maxHp > 0)
-			{
-				if (bt.objects.value(battleCharCurrentPos.load(std::memory_order_acquire) + 5).hpPercent <= petPercent
-					&& bt.objects.value(battleCharCurrentPos.load(std::memory_order_acquire) + 5).hp > 0
-					&& !checkAND(bt.objects.value(battleCharCurrentPos.load(std::memory_order_acquire) + 5).status, BC_FLG_DEAD)
-					&& !checkAND(bt.objects.value(battleCharCurrentPos.load(std::memory_order_acquire) + 5).status, BC_FLG_HIDE))
+				long long tempTarget = -1;
+				bool ok = false;
+				unsigned long long targetFlags = injector.getValueHash(util::kBattleMagicHealTargetValue);
+				long long charPercent = injector.getValueHash(util::kBattleMagicHealCharValue);
+				long long petPercent = injector.getValueHash(util::kBattleMagicHealPetValue);
+				long long alliePercent = injector.getValueHash(util::kBattleMagicHealAllieValue);
+
+				if (checkAND(targetFlags, kSelectSelf))
 				{
-					tempTarget = battleCharCurrentPos.load(std::memory_order_acquire) + 5;
-					ok = true;
+					if (checkCharHp(charPercent, &tempTarget))
+					{
+						ok = true;
+					}
 				}
-			}
-			else if (!ok && bt.objects.value(battleCharCurrentPos.load(std::memory_order_acquire)).maxHp > 0)
-			{
-				if (bt.objects.value(battleCharCurrentPos.load(std::memory_order_acquire)).rideHpPercent <= petPercent
-					&& bt.objects.value(battleCharCurrentPos.load(std::memory_order_acquire)).rideHp > 0
-					&& !checkAND(bt.objects.value(battleCharCurrentPos.load(std::memory_order_acquire)).status, BC_FLG_DEAD)
-					&& !checkAND(bt.objects.value(battleCharCurrentPos.load(std::memory_order_acquire)).status, BC_FLG_HIDE))
+
+				if (checkAND(targetFlags, kSelectPet))
 				{
-					tempTarget = battleCharCurrentPos.load(std::memory_order_acquire);
-					ok = true;
+					if (!ok && bt.objects.value(battleCharCurrentPos.load(std::memory_order_acquire) + 5).maxHp > 0)
+					{
+						if (bt.objects.value(battleCharCurrentPos.load(std::memory_order_acquire) + 5).hpPercent <= petPercent
+							&& bt.objects.value(battleCharCurrentPos.load(std::memory_order_acquire) + 5).hp > 0
+							&& !checkAND(bt.objects.value(battleCharCurrentPos.load(std::memory_order_acquire) + 5).status, BC_FLG_DEAD)
+							&& !checkAND(bt.objects.value(battleCharCurrentPos.load(std::memory_order_acquire) + 5).status, BC_FLG_HIDE))
+						{
+							tempTarget = battleCharCurrentPos.load(std::memory_order_acquire) + 5;
+							ok = true;
+						}
+					}
+					else if (!ok && bt.objects.value(battleCharCurrentPos.load(std::memory_order_acquire)).maxHp > 0)
+					{
+						if (bt.objects.value(battleCharCurrentPos.load(std::memory_order_acquire)).rideHpPercent <= petPercent
+							&& bt.objects.value(battleCharCurrentPos.load(std::memory_order_acquire)).rideHp > 0
+							&& !checkAND(bt.objects.value(battleCharCurrentPos.load(std::memory_order_acquire)).status, BC_FLG_DEAD)
+							&& !checkAND(bt.objects.value(battleCharCurrentPos.load(std::memory_order_acquire)).status, BC_FLG_HIDE))
+						{
+							tempTarget = battleCharCurrentPos.load(std::memory_order_acquire);
+							ok = true;
+						}
+					}
 				}
-			}
-		}
 
-		if (!ok)
-		{
-			if (checkAND(targetFlags, kSelectAllieAny) || checkAND(targetFlags, kSelectAllieAll))
-			{
-				if (checkAllieHp(alliePercent, &tempTarget, false))
+				if (!ok)
 				{
-					ok = true;
+					if (checkAND(targetFlags, kSelectAllieAny) || checkAND(targetFlags, kSelectAllieAll))
+					{
+						if (checkAllieHp(alliePercent, &tempTarget, false))
+						{
+							ok = true;
+						}
+					}
 				}
-			}
-		}
 
-		if (!ok)
-			break;
+				if (!ok)
+					break;
 
-		long long magicIndex = injector.getValueHash(util::kBattleMagicHealMagicValue) - 3;
-		if (magicIndex < 0 || magicIndex > MAX_MAGIC)
-			break;
+				long long magicIndex = injector.getValueHash(util::kBattleMagicHealMagicValue) - 3;
+				if (magicIndex < 0 || magicIndex > MAX_MAGIC)
+					break;
 
-		bool isProfession = magicIndex > (MAX_MAGIC - 1);
-		if (!isProfession) // ifMagic
-		{
-			target = -1;
-			if (fixCharTargetByMagicIndex(magicIndex, tempTarget, &target) && (target >= 0 && target <= (MAX_ENEMY + 1)))
-			{
-				if (isCharMpEnoughForMagic(magicIndex))
+				bool isProfession = magicIndex > (MAX_MAGIC - 1);
+				if (!isProfession) // ifMagic
 				{
-					sendBattleCharMagicAct(magicIndex, target);
-					return;
+					target = -1;
+					if (fixCharTargetByMagicIndex(magicIndex, tempTarget, &target) && (target >= 0 && target <= (MAX_ENEMY + 1)))
+					{
+						if (isCharMpEnoughForMagic(magicIndex))
+						{
+							sendBattleCharMagicAct(magicIndex, target);
+							return true;
+						}
+						else
+						{
+							break;
+						}
+					}
 				}
 				else
 				{
-					break;
+					magicIndex -= MAX_MAGIC;
+					if (fixCharTargetBySkillIndex(magicIndex, tempTarget, &target) && (target >= 0 && target <= (MAX_ENEMY + 1)))
+					{
+						if (isCharMpEnoughForSkill(magicIndex))
+						{
+							sendBattleCharJobSkillAct(magicIndex, target);
+							return true;
+						}
+						else
+						{
+							break;
+						}
+					}
 				}
-			}
-		}
-		else
-		{
-			magicIndex -= MAX_MAGIC;
-			if (fixCharTargetBySkillIndex(magicIndex, tempTarget, &target) && (target >= 0 && target <= (MAX_ENEMY + 1)))
-			{
-				if (isCharMpEnoughForSkill(magicIndex))
-				{
-					sendBattleCharJobSkillAct(magicIndex, target);
-					return;
-				}
-				else
-				{
-					break;
-				}
-			}
-		}
-	} while (false);
+			} while (false);
+
+			return false;
+		};
 #pragma endregion
 
 	//道具補血
 #pragma region ItemHeal
-	do
-	{
-		bool itemHeal = injector.getEnableHash(util::kBattleItemHealEnable);
-		if (!itemHeal)
-			break;
-
-		long long tempTarget = -1;
-		bool ok = false;
-
-		unsigned long long targetFlags = injector.getValueHash(util::kBattleItemHealTargetValue);
-		long long charPercent = injector.getValueHash(util::kBattleItemHealCharValue);
-		long long petPercent = injector.getValueHash(util::kBattleItemHealPetValue);
-		long long alliePercent = injector.getValueHash(util::kBattleItemHealAllieValue);
-		if (checkAND(targetFlags, kSelectSelf))
+	auto itemHealFun = [this, &injector, &bt, &checkAllieHp, &items, &target]()->bool
 		{
-			if (checkCharHp(charPercent, &tempTarget))
+			do
 			{
-				ok = true;
-			}
-		}
+				bool itemHeal = injector.getEnableHash(util::kBattleItemHealEnable);
+				if (!itemHeal)
+					break;
 
-		if (!ok)
+				long long tempTarget = -1;
+				bool ok = false;
+
+				unsigned long long targetFlags = injector.getValueHash(util::kBattleItemHealTargetValue);
+				long long charPercent = injector.getValueHash(util::kBattleItemHealCharValue);
+				long long petPercent = injector.getValueHash(util::kBattleItemHealPetValue);
+				long long alliePercent = injector.getValueHash(util::kBattleItemHealAllieValue);
+				if (checkAND(targetFlags, kSelectSelf))
+				{
+					if (checkCharHp(charPercent, &tempTarget))
+					{
+						ok = true;
+					}
+				}
+
+				if (!ok)
+				{
+					if (checkAND(targetFlags, kSelectPet) && bt.objects.value(battleCharCurrentPos.load(std::memory_order_acquire) + 5).maxHp > 0)
+					{
+						if (bt.objects.value(battleCharCurrentPos.load(std::memory_order_acquire) + 5).hpPercent <= petPercent
+							&& bt.objects.value(battleCharCurrentPos.load(std::memory_order_acquire) + 5).hp > 0
+							&& !checkAND(bt.objects.value(battleCharCurrentPos.load(std::memory_order_acquire) + 5).status, BC_FLG_DEAD)
+							&& !checkAND(bt.objects.value(battleCharCurrentPos.load(std::memory_order_acquire) + 5).status, BC_FLG_HIDE))
+						{
+							tempTarget = battleCharCurrentPos.load(std::memory_order_acquire) + 5;
+							ok = true;
+						}
+					}
+				}
+
+				if (!ok)
+				{
+					if (checkAND(targetFlags, kSelectAllieAny) || checkAND(targetFlags, kSelectAllieAll))
+					{
+						if (checkAllieHp(alliePercent, &tempTarget, false))
+						{
+							ok = true;
+						}
+					}
+				}
+
+				if (!ok)
+					break;
+
+				long long itemIndex = -1;
+				bool meatProiory = injector.getEnableHash(util::kBattleItemHealMeatPriorityEnable);
+				if (meatProiory)
+				{
+					itemIndex = getItemIndexByName("?肉", false, "耐久力", CHAR_EQUIPPLACENUM);
+				}
+
+				if (itemIndex == -1)
+				{
+					QString text = injector.getStringHash(util::kBattleItemHealItemString).simplified();
+					if (text.isEmpty())
+						break;
+
+					items = text.split(util::rexOR, Qt::SkipEmptyParts);
+					if (items.isEmpty())
+						break;
+
+					for (const QString& str : items)
+					{
+						itemIndex = getItemIndexByName(str, true, "", CHAR_EQUIPPLACENUM);
+						if (itemIndex != -1)
+							break;
+					}
+				}
+
+				if (itemIndex == -1)
+					break;
+
+				target = -1;
+				if (fixCharTargetByItemIndex(itemIndex, tempTarget, &target) && (target >= 0 && target <= (MAX_ENEMY + 1)))
+				{
+					sendBattleCharItemAct(itemIndex, target);
+					return true;
+				}
+			} while (false);
+
+			return false;
+		};
+#pragma endregion
+
+	//嗜血補氣
+#pragma region SkillMp
+	auto skillMpFun = [this, &injector]()->bool
 		{
-			if (checkAND(targetFlags, kSelectPet) && bt.objects.value(battleCharCurrentPos.load(std::memory_order_acquire) + 5).maxHp > 0)
+			do
 			{
-				if (bt.objects.value(battleCharCurrentPos.load(std::memory_order_acquire) + 5).hpPercent <= petPercent
-					&& bt.objects.value(battleCharCurrentPos.load(std::memory_order_acquire) + 5).hp > 0
-					&& !checkAND(bt.objects.value(battleCharCurrentPos.load(std::memory_order_acquire) + 5).status, BC_FLG_DEAD)
-					&& !checkAND(bt.objects.value(battleCharCurrentPos.load(std::memory_order_acquire) + 5).status, BC_FLG_HIDE))
+				bool skillMp = injector.getEnableHash(util::kBattleSkillMpEnable);
+				if (!skillMp)
+					break;
+
+				long long charMp = injector.getValueHash(util::kBattleSkillMpValue);
+				if ((battleCharCurrentMp.load(std::memory_order_acquire) > charMp)
+					&& (battleCharCurrentMp.load(std::memory_order_acquire) > 0))
+					break;
+
+				long long skillIndex = getProfessionSkillIndexByName("?成性");
+				if (skillIndex < 0)
+					break;
+
+				if (isCharHpEnoughForSkill(skillIndex))
+				{
+					sendBattleCharJobSkillAct(skillIndex, battleCharCurrentPos.load(std::memory_order_acquire));
+					return true;
+				}
+
+			} while (false);
+
+			return false;
+		};
+#pragma endregion
+
+	//道具補氣
+#pragma region ItemMp
+	auto itemMpFun = [this, &injector, &items, &target]()->bool
+		{
+			do
+			{
+				bool itemHealMp = injector.getEnableHash(util::kBattleItemHealMpEnable);
+				if (!itemHealMp)
+					break;
+
+				long long tempTarget = -1;
+				//bool ok = false;
+				long long charMpPercent = injector.getValueHash(util::kBattleItemHealMpValue);
+				if (!checkCharMp(charMpPercent, &tempTarget, true) && (battleCharCurrentMp.load(std::memory_order_acquire) > 0))
+				{
+					break;
+				}
+
+				QString text = injector.getStringHash(util::kBattleItemHealMpItemString).simplified();
+				if (text.isEmpty())
+					break;
+
+				items = text.split(util::rexOR, Qt::SkipEmptyParts);
+				if (items.isEmpty())
+					break;
+
+				long long itemIndex = -1;
+				for (const QString& str : items)
+				{
+					itemIndex = getItemIndexByName(str, true, "", CHAR_EQUIPPLACENUM);
+					if (itemIndex != -1)
+						break;
+				}
+
+				if (itemIndex == -1)
+					break;
+
+				target = 0;
+				if (fixCharTargetByItemIndex(itemIndex, tempTarget, &target)
+					&& (target == battleCharCurrentPos.load(std::memory_order_acquire)))
+				{
+					sendBattleCharItemAct(itemIndex, target);
+					return true;
+				}
+			} while (false);
+
+			return false;
+		};
+#pragma endregion
+
+	//精靈復活
+#pragma region MagicRevive
+	auto magicReviveFun = [this, &injector, &checkDeadAllie, &bt, &target]()->bool
+		{
+			do
+			{
+				bool magicRevive = injector.getEnableHash(util::kBattleMagicReviveEnable);
+				if (!magicRevive)
+					break;
+
+				long long tempTarget = -1;
+				bool ok = false;
+				unsigned long long targetFlags = injector.getValueHash(util::kBattleMagicReviveTargetValue);
+				if (checkAND(targetFlags, kSelectPet) && bt.objects.value(battleCharCurrentPos.load(std::memory_order_acquire) + 5).maxHp > 0)
+				{
+					if (bt.objects.value(battleCharCurrentPos.load(std::memory_order_acquire) + 5).hp == 0
+						|| checkAND(bt.objects.value(battleCharCurrentPos.load(std::memory_order_acquire) + 5).status, BC_FLG_DEAD))
+					{
+						tempTarget = battleCharCurrentPos.load(std::memory_order_acquire) + 5;
+						ok = true;
+					}
+				}
+
+				if (!ok)
+				{
+					if (checkAND(targetFlags, kSelectAllieAny) || checkAND(targetFlags, kSelectAllieAll))
+					{
+						if (checkDeadAllie(&tempTarget))
+						{
+							ok = true;
+						}
+					}
+				}
+
+				if (!ok)
+					break;
+
+				long long magicIndex = injector.getValueHash(util::kBattleMagicReviveMagicValue);
+				if (magicIndex <0 || magicIndex > MAX_MAGIC)
+					break;
+
+				bool isProfession = magicIndex > (3 + MAX_MAGIC - 1);
+				if (isProfession) //0 ~ MAX_PROFESSION_SKILL
+				{
+					magicIndex -= (3 + MAX_MAGIC);
+
+				}
+				else
+				{
+					target = -1;
+					if (fixCharTargetByMagicIndex(magicIndex, tempTarget, &target) && (target >= 0 && target < MAX_ENEMY))
+					{
+						if (isCharMpEnoughForMagic(magicIndex))
+						{
+							sendBattleCharMagicAct(magicIndex, target);
+							return true;
+						}
+						else
+						{
+							break;
+						}
+					}
+				}
+			} while (false);
+
+			return false;
+		};
+#pragma endregion
+
+	//間隔回合
+#pragma region IntervalRound
+	auto intervalRoundFun = [this, &injector, &bt, &target]()->bool
+		{
+			do
+			{
+				bool crossActionEnable = injector.getEnableHash(util::kBattleCrossActionCharEnable);
+				if (!crossActionEnable)
+					break;
+
+				long long tempTarget = -1;
+
+				long long round = injector.getValueHash(util::kBattleCharCrossActionRoundValue) + 1;
+				if ((battleCurrentRound.load(std::memory_order_acquire) + 1) % round)
+				{
+					break;
+				}
+
+				long long actionType = injector.getValueHash(util::kBattleCharCrossActionTypeValue);
+				if (actionType == 1)
+				{
+					sendBattleCharDefenseAct();
+					return true;
+				}
+				else if (actionType == 2)
+				{
+					sendBattleCharEscapeAct();
+					return true;
+				}
+
+				unsigned long long targetFlags = injector.getValueHash(util::kBattleCharCrossActionTargetValue);
+				if (checkAND(targetFlags, kSelectEnemyAny))
+				{
+					if (target == -1)
+						tempTarget = getBattleSelectableEnemyTarget(bt);
+					else
+						tempTarget = target;
+				}
+				else if (checkAND(targetFlags, kSelectEnemyAll))
+				{
+					tempTarget = MAX_ENEMY + 1;
+				}
+				else if (checkAND(targetFlags, kSelectEnemyFront))
+				{
+					if (target == -1)
+						tempTarget = getBattleSelectableEnemyOneRowTarget(bt, true) + MAX_ENEMY;
+					else
+						tempTarget = target + MAX_ENEMY;
+				}
+				else if (checkAND(targetFlags, kSelectEnemyBack))
+				{
+					if (target == -1)
+						tempTarget = getBattleSelectableEnemyOneRowTarget(bt, false) + MAX_ENEMY;
+					else
+						tempTarget = target + MAX_ENEMY;
+				}
+				else if (checkAND(targetFlags, kSelectSelf))
+				{
+					tempTarget = battleCharCurrentPos.load(std::memory_order_acquire);
+				}
+				else if (checkAND(targetFlags, kSelectPet))
 				{
 					tempTarget = battleCharCurrentPos.load(std::memory_order_acquire) + 5;
-					ok = true;
 				}
-			}
-		}
-
-		if (!ok)
-		{
-			if (checkAND(targetFlags, kSelectAllieAny) || checkAND(targetFlags, kSelectAllieAll))
-			{
-				if (checkAllieHp(alliePercent, &tempTarget, false))
+				else if (checkAND(targetFlags, kSelectAllieAny))
 				{
-					ok = true;
+					tempTarget = getBattleSelectableAllieTarget(bt);
 				}
-			}
-		}
+				else if (checkAND(targetFlags, kSelectAllieAll))
+				{
+					tempTarget = MAX_ENEMY;
+				}
+				else if (checkAND(targetFlags, kSelectLeader))
+				{
+					tempTarget = bt.alliemin + 0;
+				}
+				else if (checkAND(targetFlags, kSelectLeaderPet))
+				{
+					tempTarget = bt.alliemin + 0 + 5;
+				}
+				else if (checkAND(targetFlags, kSelectTeammate1))
+				{
+					tempTarget = bt.alliemin + 1;
+				}
+				else if (checkAND(targetFlags, kSelectTeammate1Pet))
+				{
+					tempTarget = bt.alliemin + 1 + 5;
+				}
+				else if (checkAND(targetFlags, kSelectTeammate2))
+				{
+					tempTarget = bt.alliemin + 2;
+				}
+				else if (checkAND(targetFlags, kSelectTeammate2Pet))
+				{
+					tempTarget = bt.alliemin + 2 + 5;
+				}
+				else if (checkAND(targetFlags, kSelectTeammate3))
+				{
+					tempTarget = bt.alliemin + 3;
+				}
+				else if (checkAND(targetFlags, kSelectTeammate3Pet))
+				{
+					tempTarget = bt.alliemin + 3 + 5;
+				}
+				else if (checkAND(targetFlags, kSelectTeammate4))
+				{
+					tempTarget = bt.alliemin + 4;
+				}
+				else if (checkAND(targetFlags, kSelectTeammate4Pet))
+				{
+					tempTarget = bt.alliemin + 4 + 5;
+				}
 
-		if (!ok)
-			break;
+				if (actionType == 0)
+				{
+					if (tempTarget >= 0 && tempTarget < MAX_ENEMY)
+					{
+						sendBattleCharAttackAct(tempTarget);
+						return true;
+					}
+					else
+					{
+						tempTarget = getBattleSelectableEnemyTarget(bt);
+						if (tempTarget == -1)
+							break;
 
-		long long itemIndex = -1;
-		bool meatProiory = injector.getEnableHash(util::kBattleItemHealMeatPriorityEnable);
-		if (meatProiory)
-		{
-			itemIndex = getItemIndexByName("?肉", false, "耐久力", CHAR_EQUIPPLACENUM);
-		}
+						sendBattleCharAttackAct(tempTarget);
+						return true;
+					}
+				}
+				else
+				{
+					long long magicIndex = actionType - 3;
+					bool isProfession = magicIndex > (MAX_MAGIC - 1);
+					if (isProfession) //0 ~ MAX_PROFESSION_SKILL
+					{
+						magicIndex -= MAX_MAGIC;
 
-		if (itemIndex == -1)
-		{
-			QString text = injector.getStringHash(util::kBattleItemHealItemString).simplified();
-			if (text.isEmpty())
-				break;
+						if (fixCharTargetBySkillIndex(magicIndex, tempTarget, &target) && (target >= 0 && target <= (MAX_ENEMY + 2)))
+						{
+							if (isCharMpEnoughForSkill(magicIndex))
+							{
+								sendBattleCharJobSkillAct(magicIndex, target);
+								return true;
+							}
+							else
+							{
+								tempTarget = getBattleSelectableEnemyTarget(bt);
+								sendBattleCharAttackAct(tempTarget);
+							}
+						}
+					}
+					else
+					{
 
-			items = text.split(util::rexOR, Qt::SkipEmptyParts);
-			if (items.isEmpty())
-				break;
+						if (fixCharTargetByMagicIndex(magicIndex, tempTarget, &target) && (target >= 0 && target <= (MAX_ENEMY + 2)))
+						{
+							if (isCharMpEnoughForMagic(magicIndex))
+							{
+								sendBattleCharMagicAct(magicIndex, target);
+								return true;
+							}
+							else
+							{
+								break;
+							}
+						}
+					}
+				}
+			} while (false);
 
-			for (const QString& str : items)
-			{
-				itemIndex = getItemIndexByName(str, true, "", CHAR_EQUIPPLACENUM);
-				if (itemIndex != -1)
-					break;
-			}
-		}
-
-		if (itemIndex == -1)
-			break;
-
-		target = -1;
-		if (fixCharTargetByItemIndex(itemIndex, tempTarget, &target) && (target >= 0 && target <= (MAX_ENEMY + 1)))
-		{
-			sendBattleCharItemAct(itemIndex, target);
-			return;
-		}
-	} while (false);
+			return false;
+		};
 #pragma endregion
+
+	//精靈淨化
+#pragma region MagicPurify
+	auto magicPurifyFun = [this, &injector, &bt, &checkAllieStatus, &target]()->bool
+		{
+			do
+			{
+				bool charPurg = injector.getEnableHash(util::kBattleCharPurgEnable);
+				if (!charPurg)
+					break;
+
+				long long tempTarget = -1;
+				bool ok = false;
+				unsigned long long targetFlags = injector.getValueHash(util::kBattleCharPurgTargetValue);
+
+				if (checkAND(targetFlags, kSelectSelf))
+				{
+					if (hasBadStatus(bt.objects.value(battleCharCurrentPos).status))
+					{
+						ok = true;
+					}
+				}
+
+				if (checkAND(targetFlags, kSelectPet))
+				{
+					if (!ok && bt.objects.value(battleCharCurrentPos + 5).maxHp > 0)
+					{
+						if (hasBadStatus(bt.objects.value(battleCharCurrentPos + 5).status) && bt.objects.value(battleCharCurrentPos + 5).hp > 0 &&
+							!checkAND(bt.objects.value(battleCharCurrentPos + 5).status, BC_FLG_DEAD) && !checkAND(bt.objects.value(battleCharCurrentPos + 5).status, BC_FLG_HIDE))
+						{
+							tempTarget = battleCharCurrentPos + 5;
+							ok = true;
+						}
+					}
+					else if (!ok && bt.objects.value(battleCharCurrentPos).maxHp > 0)
+					{
+						if (hasBadStatus(bt.objects.value(battleCharCurrentPos).status) && bt.objects.value(battleCharCurrentPos).rideHp > 0 &&
+							!checkAND(bt.objects.value(battleCharCurrentPos).status, BC_FLG_DEAD) && !checkAND(bt.objects.value(battleCharCurrentPos).status, BC_FLG_HIDE))
+						{
+							tempTarget = battleCharCurrentPos;
+							ok = true;
+						}
+					}
+				}
+
+				if (!ok)
+				{
+					if (checkAND(targetFlags, kSelectAllieAny) || checkAND(targetFlags, kSelectAllieAll))
+					{
+						if (checkAllieStatus(&tempTarget, false))
+						{
+							ok = true;
+						}
+					}
+				}
+
+				if (!ok)
+					break;
+
+				long long magicIndex = injector.getValueHash(util::kBattleCharPurgActionTypeValue);
+				if (magicIndex < 0 || magicIndex > MAX_MAGIC)
+					break;
+
+				bool isProfession = magicIndex > (MAX_MAGIC - 1);
+				if (!isProfession) // ifMagic
+				{
+					target = -1;
+					if (fixCharTargetByMagicIndex(magicIndex, tempTarget, &target) && (target >= 0 && target <= (MAX_ENEMY + 1)))
+					{
+						if (isCharMpEnoughForMagic(magicIndex))
+						{
+							sendBattleCharMagicAct(magicIndex, target);
+							return true;
+						}
+						else
+						{
+							break;
+						}
+					}
+				}
+			} while (false);
+
+			return false;
+		};
+#pragma endregion
+
+	//自動換寵
+#pragma region AutoSwitchPet
+	auto autoSwitchPetFun = [this, &injector, &bt]()->bool
+		{
+			do
+			{
+				PC pc = getPC();
+
+				if (bt.objects.value(battleCharCurrentPos.load(std::memory_order_acquire) + 5).modelid > 0
+					|| !bt.objects.value(battleCharCurrentPos.load(std::memory_order_acquire) + 5).name.isEmpty()
+					|| bt.objects.value(battleCharCurrentPos.load(std::memory_order_acquire) + 5).level > 0
+					|| bt.objects.value(battleCharCurrentPos.load(std::memory_order_acquire) + 5).maxHp > 0)
+					break;
+
+				battleobject_t obj = bt.objects.value(battleCharCurrentPos.load(std::memory_order_acquire) + 5);
+
+				long long petIndex = -1;
+				for (long long i = 0; i < MAX_PET; ++i)
+				{
+					if (battlePetDisableList_.value(i))
+						continue;
+
+					if (pc.battlePetNo == i)
+					{
+						battlePetDisableList_[i] = true;
+						continue;
+					}
+
+					PET _pet = getPet(i);
+					if (_pet.level <= 0 || _pet.maxHp <= 0 || _pet.hp < 1 || _pet.modelid == 0 || _pet.name.isEmpty())
+					{
+						battlePetDisableList_[i] = true;
+						continue;
+					}
+
+					if (_pet.state == kRide || _pet.state != kStandby)
+					{
+						battlePetDisableList_[i] = true;
+						continue;
+					}
+
+					petIndex = i;
+					break;
+				}
+
+				if (petIndex == -1)
+					break;
+
+				bool autoSwitch = injector.getEnableHash(util::kBattleAutoSwitchEnable);
+				if (!autoSwitch)
+					break;
+
+				sendBattleCharSwitchPetAct(petIndex);
+				return true;
+
+			} while (false);
+
+			return true;
+		};
+#pragma endregion
+
+	//自動捉寵
+#pragma region CatchPet
+	auto catchPetFun = [this, &injector, &bt, &battleObjects, &tempbattleObjects, &target, &items]()->bool
+		{
+			do
+			{
+				bool autoCatch = injector.getEnableHash(util::kAutoCatchEnable);
+				if (!autoCatch)
+					break;
+
+				if (isPetSpotEmpty())
+				{
+					petEscapeEnableTempFlag.store(true, std::memory_order_release);
+					sendBattleCharEscapeAct();
+					return true;
+				}
+
+				long long tempTarget = -1;
+
+				//檢查等級條件
+				bool levelLimitEnable = injector.getEnableHash(util::kBattleCatchTargetLevelEnable);
+				if (levelLimitEnable)
+				{
+					long long levelLimit = injector.getValueHash(util::kBattleCatchTargetLevelValue);
+					if (levelLimit <= 0 || levelLimit > 255)
+						levelLimit = 1;
+
+					if (matchBattleEnemyByLevel(levelLimit, battleObjects, &tempbattleObjects))
+					{
+						battleObjects = tempbattleObjects;
+					}
+					else
+						battleObjects.clear();
+				}
+
+				//檢查最大血量條件
+				bool maxHpLimitEnable = injector.getEnableHash(util::kBattleCatchTargetMaxHpEnable);
+				if (maxHpLimitEnable && !battleObjects.isEmpty())
+				{
+					long long maxHpLimit = injector.getValueHash(util::kBattleCatchTargetMaxHpValue);
+					if (matchBattleEnemyByMaxHp(maxHpLimit, battleObjects, &tempbattleObjects))
+					{
+						battleObjects = tempbattleObjects;
+					}
+					else
+						battleObjects.clear();
+				}
+
+				//檢查名稱條件
+				QStringList targetList = injector.getStringHash(util::kBattleCatchPetNameString).split(util::rexOR, Qt::SkipEmptyParts);
+				if (!targetList.isEmpty() && !battleObjects.isEmpty())
+				{
+					bool bret = false;
+					for (const QString& it : targetList)
+					{
+						if (matchBattleEnemyByName(it, true, battleObjects, &tempbattleObjects))
+						{
+							if (!bret)
+								bret = true;
+							battleObjects = tempbattleObjects;
+						}
+					}
+
+					if (!bret)
+						battleObjects.clear();
+				}
+
+				//目標不存在的情況下
+				if (battleObjects.isEmpty())
+				{
+					long long catchMode = injector.getValueHash(util::kBattleCatchModeValue);
+					if (0 == catchMode)
+					{
+						//遇敵逃跑
+						petEscapeEnableTempFlag.store(true, std::memory_order_release);
+						sendBattleCharEscapeAct();
+						return true;
+					}
+
+					//遇敵攻擊 (跳出while 往下檢查其他常規動作)
+					break;
+				}
+
+				battleobject_t obj = battleObjects.first();
+				battleObjects.pop_front();
+				tempTarget = obj.pos;
+				tempCatchPetTargetIndex = tempTarget;
+
+				//允許人物動作降低血量
+				bool allowCharAction = injector.getEnableHash(util::kBattleCatchCharMagicEnable);
+				long long hpLimit = injector.getValueHash(util::kBattleCatchTargetMagicHpValue);
+				if (allowCharAction && (obj.hpPercent >= hpLimit))
+				{
+					long long actionType = injector.getValueHash(util::kBattleCatchCharMagicValue);
+					if (actionType == 1)
+					{
+						sendBattleCharDefenseAct();
+						return true;
+					}
+					else if (actionType == 2)
+					{
+						sendBattleCharEscapeAct();
+						return true;
+					}
+
+					if (actionType == 0)
+					{
+						if (tempTarget >= 0 && tempTarget < MAX_ENEMY)
+						{
+							sendBattleCharAttackAct(tempTarget);
+							return true;
+						}
+					}
+					else
+					{
+						long long magicIndex = actionType - 3;
+						bool isProfession = magicIndex > (MAX_MAGIC - 1);
+						if (isProfession) //0 ~ MAX_PROFESSION_SKILL
+						{
+							magicIndex -= MAX_MAGIC;
+							target = -1;
+							if (fixCharTargetBySkillIndex(magicIndex, tempTarget, &target) && (target >= 0 && target <= (MAX_ENEMY + 2)))
+							{
+								if (isCharMpEnoughForSkill(magicIndex))
+								{
+									sendBattleCharJobSkillAct(magicIndex, target);
+									return true;
+								}
+								else
+								{
+									tempTarget = getBattleSelectableEnemyTarget(bt);
+									sendBattleCharAttackAct(tempTarget);
+								}
+							}
+						}
+						else
+						{
+							//如果敵方已經中狀態，則尋找下一個目標
+							for (;;)
+							{
+								if (hasBadStatus(obj.status))
+								{
+									if (!battleObjects.isEmpty())
+									{
+										obj = battleObjects.front();
+										tempTarget = obj.pos;
+										battleObjects.pop_front();
+										continue;
+									}
+									else
+									{
+										sendBattleCharDefenseAct();
+										return true;
+									}
+								}
+								else
+									break;
+							}
+
+							target = -1;
+							if (fixCharTargetByMagicIndex(magicIndex, tempTarget, &target) && (target >= 0 && target <= (MAX_ENEMY + 2)))
+							{
+								if (isCharMpEnoughForMagic(magicIndex))
+								{
+									sendBattleCharMagicAct(magicIndex, target);
+									return true;
+								}
+								else
+									break;
+							}
+						}
+					}
+				}
+
+				//允許人物道具降低血量
+				bool allowCharItem = injector.getEnableHash(util::kBattleCatchCharItemEnable);
+				hpLimit = injector.getValueHash(util::kBattleCatchTargetItemHpValue);
+				if (allowCharItem && (obj.hpPercent >= hpLimit))
+				{
+					long long itemIndex = -1;
+					QString text = injector.getStringHash(util::kBattleCatchCharItemString).simplified();
+					items = text.split(util::rexOR, Qt::SkipEmptyParts);
+					for (const QString& str : items)
+					{
+						itemIndex = getItemIndexByName(str, true, "", CHAR_EQUIPPLACENUM);
+						if (itemIndex != -1)
+							break;
+					}
+
+					target = -1;
+					if (itemIndex != -1)
+					{
+						if (fixCharTargetByItemIndex(itemIndex, tempTarget, &target) && (target >= 0 && target <= (MAX_ENEMY + 1)))
+						{
+							sendBattleCharItemAct(itemIndex, target);
+							return true;
+						}
+					}
+				}
+
+				sendBattleCharCatchPetAct(tempTarget);
+				return true;
+			} while (false);
+
+			return false;
+		};
+#pragma endregion
+#pragma endregion
+
+	QVector<std::function<bool()>> actions;
+	actions.append(fallDownEscapeFun);
+	actions.append(lockEscapeFun);
+	actions.append(lockAttackFun);
+	actions.append(itemReviveFun);
+	actions.append(selectRoundFun);
+	actions.append(magicHealFun);
+	actions.append(itemHealFun);
+	actions.append(skillMpFun);
+	actions.append(itemMpFun);
+	actions.append(magicReviveFun);
+	actions.append(intervalRoundFun);
+	actions.append(magicPurifyFun);
+	actions.append(autoSwitchPetFun);
+	actions.append(catchPetFun);
+
+	QString orderStr = injector.getStringHash(util::kBattleActionOrderString);
+	if (orderStr.isEmpty())
+	{
+		for (const auto& it : actions)
+		{
+			if (it())
+				return;
+		}
+	}
+	else
+	{
+		QStringList orderList = orderStr.split(util::rexOR, Qt::SkipEmptyParts);
+		for (const QString& it : orderList)
+		{
+			bool ok = false;
+			long long index = it.toLongLong(&ok) - 1;
+			if (!ok || index < 0 || index >= actions.size())
+				continue;
+
+			if (actions[index]())
+				return;
+		}
+	}
 
 	//一般動作
 #pragma region NormalAction
@@ -9607,7 +9723,7 @@ void Worker::lssproto_AB_recv(char* cdata)
 			}
 		}
 #endif
-}
+	}
 }
 
 //名片數據
@@ -9788,7 +9904,7 @@ void Worker::lssproto_RS_recv(char* cdata)
 	std::ignore = QtConcurrent::run(&Worker::checkAutoDropMeat, this);
 	std::ignore = QtConcurrent::run(&Worker::checkAutoAbility, this);
 #endif
-	}
+}
 
 //戰後經驗 (逃跑或被打死不會有)
 void Worker::lssproto_RD_recv(char*)
@@ -9947,10 +10063,10 @@ void Worker::lssproto_I_recv(char* cdata)
 			items[i].itemup = getIntegerToken(data, "|", no + 16);
 
 			items[i].counttime = getIntegerToken(data, "|", no + 17);
-			}
+		}
 
 		item_ = items;
-		}
+	}
 
 	refreshItemInfo();
 	updateComboBoxList();
@@ -10410,7 +10526,8 @@ void Worker::lssproto_B_recv(char* ccommand)
 		return;
 
 	QString first = command.left(2);
-	first.remove("B");
+	if (first.startsWith("B"))
+		first.remove(0, 1);
 
 	QString data = command.mid(3);
 	if (data.isEmpty())
@@ -10925,7 +11042,7 @@ void Worker::lssproto_B_recv(char* ccommand)
 		qDebug() << "lssproto_B_recv: unknown command" << command;
 		break;
 	}
-	}
+}
 
 //寵物取消戰鬥狀態 (不是每個私服都有)
 void Worker::lssproto_PETST_recv(int petarray, int result)
@@ -11341,7 +11458,7 @@ void Worker::lssproto_S2_recv(char* cdata)
 	{
 		getStringToken(data, "|", 2, szMessage);
 		pc.fame = szMessage.toLongLong();
-}
+	}
 
 	pc.ftype = 0;
 	pc.newfame = 0;
@@ -11478,7 +11595,7 @@ void Worker::lssproto_TK_recv(int index, char* cmessage, int color)
 					recorder[0].goldearn += nGold;
 				}
 			}
-				}
+		}
 
 #ifndef _CHANNEL_MODIFY
 		getStringToken(message, "|", 2, msg);
@@ -11538,8 +11655,8 @@ void Worker::lssproto_TK_recv(int index, char* cmessage, int color)
 						msg.clear();
 						msg = QString("[%1]%2").arg(tellName).arg(szMsgBuf);
 						lastSecretChatName = tellName;
+					}
 				}
-			}
 				// 家族頻道
 				else if (szToken.startsWith("F"))
 				{
@@ -11616,11 +11733,11 @@ void Worker::lssproto_TK_recv(int index, char* cmessage, int color)
 #endif
 #endif
 #endif
-		}
+	}
 
 	chatQueue.enqueue(qMakePair(color, msg));
 	emit signalDispatcher.appendChatLog(msg, color);
-			}
+}
 
 //地圖數據更新，重新繪製地圖
 void Worker::lssproto_MC_recv(int fl, int x1, int y1, int x2, int y2, int tileSum, int partsSum, int eventSum, char* cdata)
@@ -12158,8 +12275,8 @@ void Worker::lssproto_C_recv(char* cdata)
 							//setMoneyCharObj(id, 24052, x, y, 0, money, info);
 						}
 					}
-		}
-		}
+				}
+			}
 		}
 #endif
 #pragma endregion
@@ -12752,7 +12869,7 @@ void Worker::lssproto_S_recv(char* cdata)
 				pet.blessatk = getIntegerToken(data, "|", 33);
 				pet.blessdef = getIntegerToken(data, "|", 34);
 				pet.blessquick = getIntegerToken(data, "|", 35);
-		}
+			}
 			else
 			{
 				mask = 2;
@@ -12933,7 +13050,7 @@ void Worker::lssproto_S_recv(char* cdata)
 				/ static_cast<double>(pet.level - pet.oldlevel);
 
 			pet_.insert(no, pet);
-	}
+		}
 
 		PC pc = pc_;
 		if (pc.ridePetNo >= 0 && pc.ridePetNo < MAX_PET)
@@ -12985,7 +13102,7 @@ void Worker::lssproto_S_recv(char* cdata)
 			playerInfoColContents.insert(j + 1, var);
 			emit signalDispatcher.updateCharInfoColContents(j + 1, var);
 		}
-}
+	}
 #pragma endregion
 #pragma region EncountPercentage
 	else if (first == "E") // E nowEncountPercentage 不知道幹嘛的
@@ -13389,7 +13506,7 @@ void Worker::lssproto_S_recv(char* cdata)
 		}
 
 		profession_skill_ = profession_skill;
-			}
+	}
 #pragma endregion
 #pragma region PetEquip
 	else if (first == "B") // B 寵物道具
@@ -13547,7 +13664,7 @@ void Worker::lssproto_S_recv(char* cdata)
 	}
 
 	updateComboBoxList();
-		}
+}
 
 //客戶端登入(進去選人畫面)
 void Worker::lssproto_ClientLogin_recv(char* cresult)
@@ -13996,7 +14113,7 @@ void Worker::lssproto_TD_recv(char* cdata)//交易
 		mypet_tradeList = QStringList{ "P|-1", "P|-1", "P|-1" , "P|-1", "P|-1" };
 		mygoldtrade = 0;
 	}
-	}
+}
 
 void Worker::lssproto_CHAREFFECT_recv(char* cdata)
 {

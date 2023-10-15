@@ -1096,7 +1096,17 @@ MainForm::MainForm(long long index, QWidget* parent)
 	setWindowFlags(windowFlags() & ~Qt::WindowMaximizeButtonHint);
 	setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
 	setFixedWidth(290);
-	setStyleSheet("background-color: #F1F1F1;");
+	setStyleSheet(R"(
+QMenuBar::item:selected {
+	color:white;
+    background: #3282F6;
+}
+
+QMenuBar::item:pressed {
+	color:white;
+    background: #3282F6;
+}
+)");
 	qRegisterMetaType<QVariant>("QVariant");
 	qRegisterMetaType<QVariant>("QVariant&");
 

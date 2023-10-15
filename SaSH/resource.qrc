@@ -65,5 +65,10 @@
         <file>image/icon_qt.svg</file>
         <file>image/icon_cplusplus.svg</file>
         <file>image/icon_downarrow.svg</file>
+        <file>image/icon_check.svg</file>
+        <file>image/icon_uncheck.svg</file>
+        <file>image/icon_uparrow.svg</file>
+        <file>image/icon_downarrow_blue.svg</file>
+        <file>image/icon_uparrow_blue.svg</file>
     </qresource>
 </RCC>

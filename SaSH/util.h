@@ -418,6 +418,8 @@ namespace util
 		//script
 		kScriptSpeedValue,
 
+		kTcpDelayValue,
+
 		kSettingMaxValue,
 
 		///////////////////
@@ -566,6 +568,8 @@ namespace util
 		kBattleSelfMarkString,
 		kBattleActMarkString,
 		kBattleSpaceMarkString,
+
+		kBattleActionOrderString,
 
 		kBattleLogicsString,
 
@@ -725,6 +729,7 @@ namespace util
 
 		//script
 		{ kScriptSpeedValue, "ScriptSpeedValue" },
+		{ kTcpDelayValue, "TcpDelayValue" },
 
 		{ kSettingMaxValue, "SettingMaxValue" },
 
@@ -860,6 +865,8 @@ namespace util
 		{ kBattleSelfMarkString, "BattleSelfMarkString" },
 		{ kBattleActMarkString, "BattleActMarkString" },
 		{ kBattleSpaceMarkString, "BattleSpaceMarkString" },
+
+		{ kBattleActionOrderString, "BattleActionOrderString" },
 
 		{ kBattleLogicsString , "BattleLogicsString" },
 
@@ -1006,29 +1013,133 @@ namespace util
 		return s;
 	}
 
+	inline void __fastcall setSpinBox(QSpinBox* pCheck)
+	{
+		QString styleSheet = R"(
+QSpinBox {
+    border: 1px solid black;
+}
+
+QSpinBox:focus { 
+	border: 2px solid #3282F6;
+	background-color:#FFFFFF;
+}
+
+QSpinBox:hover{
+	border: 2px solid #3282F6;
+}
+
+QSpinBox::down-button, QSpinBox::up-button {
+    width: 13px;
+    border: 0px solid black;
+}
+
+QSpinBox::up-button:hover {
+    image: url(:/image/icon_uparrow_blue.svg);
+}
+
+QSpinBox::up-button:pressed {
+    image: url(:/image/icon_uparrow_blue.svg);
+}
+
+QSpinBox::up-arrow {
+    image: url(:/image/icon_uparrow.svg);
+    width: 9px;
+    height: 9px;
+}
+
+QSpinBox::down-button:hover {
+    image: url(:/image/icon_downarrow_blue.svg);
+}
+
+QSpinBox::down-button:pressed {
+    image: url(:/image/icon_downarrow_blue.svg);
+}
+
+QSpinBox::down-arrow {
+    image: url(:/image/icon_downarrow.svg);
+    width: 9px;
+    height: 9px;
+}
+		)";
+
+		pCheck->setStyleSheet(styleSheet);
+		pCheck->setAttribute(Qt::WA_StyledBackground);
+		pCheck->setFixedHeight(19);
+	}
+
+	inline void __fastcall setCheckBox(QCheckBox* pCheck)
+	{
+		QString styleSheet = R"(
+QCheckBox {
+    spacing: 1px;
+}
+
+QCheckBox::indicator {
+    width: 15px;
+    height: 15px;
+}
+
+QCheckBox::indicator:unchecked {
+	image: url(:/image/icon_uncheck.svg);
+}
+
+QCheckBox::indicator:unchecked:hover {
+	image: url(:/image/icon_uncheck.svg);
+}
+
+QCheckBox::indicator:unchecked:pressed {
+	image: url(:/image/icon_uncheck.svg);
+}
+
+QCheckBox::indicator:checked {
+	image: url(:/image/icon_check.svg);
+}
+
+QCheckBox::indicator:checked:hover {
+	image: url(:/image/icon_check.svg);
+}
+
+QCheckBox::indicator:checked:pressed {
+	image: url(:/image/icon_check.svg);
+}
+
+QCheckBox::indicator:indeterminate:pressed {
+	image: url(:/image/icon_uncheck.svg);
+}
+
+		)";
+
+		pCheck->setStyleSheet(styleSheet);
+		pCheck->setAttribute(Qt::WA_StyledBackground);
+		pCheck->setFixedHeight(19);
+	}
+
 	inline void __fastcall setLineEdit(QLineEdit* pEdit)
 	{
 		QString styleSheet = R"(
 QLineEdit {
-    border: 0px solid black;
+    border: 1px solid black;
     border-radius: 0px;
-    padding: 0 8px;
+    padding: 0 4px;
     background: none;
     selection-background-color: #3A79B8;
+	height: 20px;
 }
 
 QLineEdit:focus { 
-border: 2px solid #3282F6;
-background-color:#FFFFFF;
+	border: 2px solid #3282F6;
+	background-color:#FFFFFF;
 }
 
 QLineEdit:hover{
-border: 2px solid #3282F6;
+	border: 2px solid #3282F6;
 }
 		)";
 
 		pEdit->setStyleSheet(styleSheet);
 		pEdit->setAttribute(Qt::WA_StyledBackground);
+		pEdit->setFixedHeight(19);
 	}
 
 	inline void __fastcall setTab(QTabWidget* pTab)

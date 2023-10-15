@@ -11,6 +11,8 @@ settingfiledialog::settingfiledialog(const QString& defaultName, QWidget* parent
 	setModal(true);
 	setAttribute(Qt::WA_QuitOnClose);
 	setWindowTitle("");
+	setAttribute(Qt::WA_StyledBackground);
+
 
 	QStringList list;
 	util::searchFiles(util::applicationDirPath() + "/settings", "", ".json", &list, false);
@@ -29,8 +31,12 @@ settingfiledialog::settingfiledialog(const QString& defaultName, QWidget* parent
 			ui.listWidget->addItem(firstItem_);
 			lineEdit_ = q_check_ptr(new QLineEdit(info.fileName()));
 			if (lineEdit_ != nullptr)
+			{
+				util::setLineEdit(lineEdit_);
 				connect(lineEdit_, &QLineEdit::textChanged, this, &settingfiledialog::onLineEditTextChanged);
-			this->layout()->addWidget(lineEdit_);
+				this->layout()->addWidget(lineEdit_);
+			}
+
 		}
 	}
 
@@ -48,6 +54,7 @@ settingfiledialog::settingfiledialog(const QString& defaultName, QWidget* parent
 		item->setData(Qt::UserRole, str);
 		ui.listWidget->addItem(item);
 	}
+
 
 }
 

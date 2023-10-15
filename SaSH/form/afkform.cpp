@@ -38,6 +38,8 @@ AfkForm::AfkForm(long long index, QWidget* parent)
 
 	util::setTab(ui.tabWidget);
 
+	connect(ui.tableWidget, &DragDropWidget::orderChanged, this, &AfkForm::onDragDropWidgetItemChanged, Qt::QueuedConnection);
+
 	connect(this, &AfkForm::resetControlTextLanguage, this, &AfkForm::onResetControlTextLanguage, Qt::QueuedConnection);
 
 	SignalDispatcher& signalDispatcher = SignalDispatcher::getInstance(index);
@@ -60,6 +62,7 @@ AfkForm::AfkForm(long long index, QWidget* parent)
 	{
 		if (checkBox && !nameCheckList.contains(checkBox->objectName()))
 		{
+			util::setCheckBox(checkBox);
 			nameCheckList.append(checkBox->objectName());
 			connect(checkBox, &QCheckBox::stateChanged, this, &AfkForm::onCheckBoxStateChanged, Qt::UniqueConnection);
 		}
@@ -70,6 +73,7 @@ AfkForm::AfkForm(long long index, QWidget* parent)
 	{
 		if (spinBox && !nameCheckList.contains(spinBox->objectName()))
 		{
+			util::setSpinBox(spinBox);
 			nameCheckList.append(spinBox->objectName());
 			connect(spinBox, SIGNAL(valueChanged(int)), this, SLOT(onSpinBoxValueChanged(int)), Qt::UniqueConnection);
 		}
@@ -129,6 +133,11 @@ void AfkForm::closeEvent(QCloseEvent* event)
 	formSettingManager.saveSettings();
 
 	QWidget::closeEvent(event);
+}
+
+bool AfkForm::eventFilter(QObject* obj, QEvent* eve)
+{
+	return QWidget::eventFilter(obj, eve);
 }
 
 void AfkForm::onButtonClicked()
@@ -1234,6 +1243,8 @@ void AfkForm::onResetControlTextLanguage()
 	ui.comboBox_autowalkdir->addItems(QStringList{ tr("↖↘"), tr("↗↙"), tr("random") });
 
 	updateTargetButtonText();
+
+	ui.tableWidget->onResetControlTextLanguage();
 }
 
 void AfkForm::onApplyHashSettingsToUI()
@@ -1371,6 +1382,12 @@ void AfkForm::onApplyHashSettingsToUI()
 
 	ui.spinBox_resend_delay->setValue(valueHash.value(util::kBattleResendDelayValue));
 
+	QString orderString = stringHash.value(util::kBattleActionOrderString);
+	if (!orderString.isEmpty())
+	{
+		ui.tableWidget->reorderRows(orderString);
+	}
+
 	updateTargetButtonText();
 }
 
@@ -1380,66 +1397,6 @@ void AfkForm::onUpdateComboBoxItemText(long long type, const QStringList& textLi
 		return;
 
 	long long currentIndex = getIndex();
-
-	auto appendText = [&textList](QComboBox* combo, long long max, bool noIndex)->void
-		{
-			if (combo == nullptr)
-				return;
-
-			if (combo->hasFocus())
-				return;
-
-			if (combo->view()->hasFocus())
-				return;
-
-			combo->blockSignals(true);
-			combo->setUpdatesEnabled(false);
-			long long nOriginalIndex = combo->currentIndex();
-
-			long long size = textList.size();
-			long long n = 0;
-
-			if (combo->count() > max)
-			{
-				for (long long i = static_cast<long long>(combo->count()) - 1; i >= max; --i)
-					combo->removeItem(i);
-			}
-
-			for (long long i = 0; i < max; ++i)
-			{
-				if (i >= combo->count())
-					combo->addItem("");
-
-				long long index = 0;
-				QString text;
-				if (!noIndex)
-				{
-					if (i >= size)
-					{
-						combo->setItemText(i, QString("%1:").arg(i + 1));
-						//index = static_cast<long long>(combo->count()) - 1;
-						combo->setItemData(i, QString("%1:").arg(i + 1), Qt::ToolTipRole);
-						continue;
-					}
-					text = QString("%1:%2").arg(i + 1).arg(textList[i]);
-				}
-				else
-				{
-					if (i >= size)
-						break;
-					text = textList[n];
-					++n;
-				}
-
-				combo->addItem(text);
-				index = static_cast<long long>(combo->count()) - 1;
-				combo->setItemData(index, text, Qt::ToolTipRole);
-			}
-
-			combo->setCurrentIndex(nOriginalIndex);
-			combo->setUpdatesEnabled(true);
-			combo->blockSignals(false);
-		};
 
 	switch (type)
 	{
@@ -1543,6 +1500,66 @@ void AfkForm::onUpdateComboBoxItemText(long long type, const QStringList& textLi
 	}
 	case util::kComboBoxPetAction:
 	{
+		auto appendText = [&textList](QComboBox* combo, long long max, bool noIndex)->void
+			{
+				if (combo == nullptr)
+					return;
+
+				if (combo->hasFocus())
+					return;
+
+				if (combo->view()->hasFocus())
+					return;
+
+				combo->blockSignals(true);
+				combo->setUpdatesEnabled(false);
+				long long nOriginalIndex = combo->currentIndex();
+
+				long long size = textList.size();
+				long long n = 0;
+
+				if (combo->count() > max)
+				{
+					for (long long i = static_cast<long long>(combo->count()) - 1; i >= max; --i)
+						combo->removeItem(i);
+				}
+
+				for (long long i = 0; i < max; ++i)
+				{
+					if (i >= combo->count())
+						combo->addItem("");
+
+					long long index = 0;
+					QString text;
+					if (!noIndex)
+					{
+						if (i >= size)
+						{
+							combo->setItemText(i, QString("%1:").arg(i + 1));
+							//index = static_cast<long long>(combo->count()) - 1;
+							combo->setItemData(i, QString("%1:").arg(i + 1), Qt::ToolTipRole);
+							continue;
+						}
+						text = QString("%1:%2").arg(i + 1).arg(textList[i]);
+					}
+					else
+					{
+						if (i >= size)
+							break;
+						text = textList[n];
+						++n;
+					}
+
+					combo->setItemText(i, text);
+					index = static_cast<long long>(combo->count()) - 1;
+					combo->setItemData(index, text, Qt::ToolTipRole);
+				}
+
+				combo->setCurrentIndex(nOriginalIndex);
+				combo->setUpdatesEnabled(true);
+				combo->blockSignals(false);
+			};
+
 		//battle
 		appendText(ui.comboBox_normalaction_pet_action, MAX_SKILL, false);
 		appendText(ui.comboBox_crossaction_pet_action, MAX_SKILL, false);
@@ -1586,4 +1603,10 @@ void AfkForm::updateTargetButtonText()
 	ui.pushButton_petheal->setText(get(valueHash.value(util::kBattlePetHealTargetValue)));
 	ui.pushButton_petpurg->setText(get(valueHash.value(util::kBattlePetPurgTargetValue)));
 	ui.pushButton_charpurg->setText(get(valueHash.value(util::kBattleCharPurgTargetValue)));
+}
+
+void AfkForm::onDragDropWidgetItemChanged(const QStringList& order)
+{
+	Injector& injector = Injector::getInstance(getIndex());
+	injector.setStringHash(util::kBattleActionOrderString, order.join("|"));
 }

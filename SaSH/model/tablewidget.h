@@ -13,14 +13,65 @@ public:
 		setFont(util::getFont());
 		setAttribute(Qt::WA_StyledBackground);
 		setStyleSheet(R"(
-			QTableWidget {
-				font-size:12px;
-			} 
+QTableWidget::item {
+    color: black;
+    background: #FFFFFF;
+	min-height: 11px;
+    font-size:12px;
+}
 
-			QTableView::item:selected {
-				background-color: black;
-				color: white;
-			}
+QTableWidget::item:selected {
+    color: white;
+    background:black;
+}
+
+QTableWidget::item:hover {
+    color: white;
+    background:black;
+}
+
+QTableWidget {
+    color: black;
+    background: #FFFFFF;
+    border: 1px solid black;
+    alternate-background-color: rgb(214,214,214);
+    gridline-color: gray;
+	font-size:12px;
+}
+
+QScrollBar:vertical {
+	min-height: 30px;  
+    background: #F1F1F1; 
+}
+
+QScrollBar::handle:vertical {
+    background: #2D74DB;
+  	border: 3px solid  #F1F1F1;
+	min-height:50px;
+}
+
+QScrollBar::handle:hover:vertical,
+QScrollBar::handle:pressed:vertical {
+    background: #3487FF;
+}
+
+QScrollBar:horizontal {
+    background: #F1F1F1; 
+}
+
+QScrollBar::handle:horizontal {
+    background: #2D74DB;
+  	border: 3px solid  #F1F1F1;
+	min-width:50px;
+}
+
+QScrollBar::handle:hover:horizontal,
+QScrollBar::handle:pressed:horizontal {
+    background: #3487FF;
+}
+
+
+
 		)");
 
 		long long rowCount = this->rowCount();
@@ -49,8 +100,8 @@ public:
 		setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
 		setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
 
-		verticalHeader()->setDefaultSectionSize(12);
-		verticalHeader()->setMaximumSectionSize(12);
+		verticalHeader()->setDefaultSectionSize(11);
+		verticalHeader()->setMaximumSectionSize(11);
 		verticalHeader()->setStretchLastSection(false);
 		verticalHeader()->setHighlightSections(false);
 		verticalHeader()->setDefaultAlignment(Qt::AlignLeft);

@@ -41,6 +41,7 @@ GeneralForm::GeneralForm(long long index, QWidget* parent)
 	{
 		if (checkBox && !nameCheckList.contains(checkBox->objectName()))
 		{
+			util::setCheckBox(checkBox);
 			nameCheckList.append(checkBox->objectName());
 			connect(checkBox, &QCheckBox::stateChanged, this, &GeneralForm::onCheckBoxStateChanged, Qt::UniqueConnection);
 		}
@@ -51,6 +52,7 @@ GeneralForm::GeneralForm(long long index, QWidget* parent)
 	{
 		if (spinBox && !nameCheckList.contains(spinBox->objectName()))
 		{
+			util::setSpinBox(spinBox);
 			nameCheckList.append(spinBox->objectName());
 			connect(spinBox, SIGNAL(valueChanged(int)), this, SLOT(onSpinBoxValueChanged(int)), Qt::UniqueConnection);
 		}

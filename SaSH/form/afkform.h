@@ -53,10 +53,14 @@ private slots:
 
 	void onUpdateComboBoxItemText(long long type, const QStringList& textList);
 
+	void onDragDropWidgetItemChanged(const QStringList& order);
+
 protected:
 	virtual void showEvent(QShowEvent* e) override;
 
 	virtual void closeEvent(QCloseEvent* event) override;
+
+	virtual bool eventFilter(QObject* obj, QEvent* eve) override;
 
 private:
 	void updateTargetButtonText();

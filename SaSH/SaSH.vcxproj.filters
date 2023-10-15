@@ -294,6 +294,9 @@
     <ClCompile Include="3rdparty\zip.cpp">
       <Filter>Source Files\3rdparty</Filter>
     </ClCompile>
+    <ClCompile Include="model\dragdropwidget.cpp">
+      <Filter>Source Files\model</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="mainform.h">
@@ -435,6 +438,12 @@
       <Filter>Source Files\forms\dialog</Filter>
     </QtMoc>
     <QtMoc Include="model\graphicview.h">
+      <Filter>Source Files\model</Filter>
+    </QtMoc>
+    <QtMoc Include="model\dragdropwidget.h">
+      <Filter>Source Files\model</Filter>
+    </QtMoc>
+    <QtMoc Include="model\listwidget.h">
       <Filter>Source Files\model</Filter>
     </QtMoc>
   </ItemGroup>

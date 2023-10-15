@@ -108,7 +108,7 @@
       <number>1</number>
      </property>
      <item>
-      <widget class="QListWidget" name="listWidget">
+      <widget class="ListWidget" name="listWidget">
        <property name="frameShape">
         <enum>QFrame::StyledPanel</enum>
        </property>
@@ -193,6 +193,11 @@
    <class>PushButton</class>
    <extends>QPushButton</extends>
    <header location="global">pushbutton.h</header>
+  </customwidget>
+  <customwidget>
+   <class>ListWidget</class>
+   <extends>QListWidget</extends>
+   <header location="global">listwidget.h</header>
   </customwidget>
  </customwidgets>
  <resources/>

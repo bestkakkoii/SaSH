@@ -65,5 +65,5 @@ protected:
 private:
 	QPen pen_;
 	QFont font_;
-	QColor background_color_ = QColor("#F1F1F1");
+	QColor background_color_ = QColor("#F0F4F8");
 };

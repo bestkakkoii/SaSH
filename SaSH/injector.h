@@ -359,6 +359,8 @@ private:
 		//script
 		{util::kScriptSpeedValue, 0},
 
+		{ util::kTcpDelayValue, 10 },
+
 		{ util::kSettingMaxValue, util::kSettingMaxValue },
 		{ util::kSettingMinString, util::kSettingMinString },
 		{ util::kSettingMaxString, util::kSettingMaxString },
@@ -496,6 +498,8 @@ private:
 		{ util::kBattleSelfMarkString, "★" },
 		{ util::kBattleActMarkString, "＊" },
 		{ util::kBattleSpaceMarkString, "　" },
+
+		{ util::kBattleActionOrderString, "1|2|3|4|5|6|7|8|9|10|11|12|13|14" },
 
 	};
 };

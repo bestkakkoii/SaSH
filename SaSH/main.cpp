@@ -383,10 +383,10 @@ int main(int argc, char* argv[])
 	//preventSetUnhandledExceptionFilter();
 	qSetMessagePattern("[%{threadid}] [@%{line}] [%{function}] [%{type}] %{message}");//%{file} 
 
-#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
-	a.setStyle(QStyleFactory::create("windows"));
-	a.setDesktopSettingsAware(false);
-#endif
+	//#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+	//	a.setStyle(QStyleFactory::create("windows"));
+	//	a.setDesktopSettingsAware(false);
+	//#endif
 
 	//Qt全局編碼設置
 	QTextCodec* codec = QTextCodec::codecForName(util::DEFAULT_CODEPAGE);
