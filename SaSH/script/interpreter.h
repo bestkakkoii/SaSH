@@ -38,17 +38,17 @@ public:
 	explicit Interpreter(long long index);
 	virtual ~Interpreter();
 
-	inline bool isRunning() const { return isRunning_.load(std::memory_order_acquire) && !isInterruptionRequested(); }
+	inline bool __fastcall isRunning() const { return isRunning_.load(std::memory_order_acquire) && !isInterruptionRequested(); }
 
-	void preview(const QString& fileName);
+	void __fastcall preview(const QString& fileName);
 
-	void doString(const QString& script, Interpreter* pinterpretter, VarShareMode shareMode);
+	void __fastcall doString(const QString& script, Interpreter* pinterpretter, VarShareMode shareMode);
 
-	void doFileWithThread(long long beginLine, const QString& fileName);
+	void __fastcall doFileWithThread(long long beginLine, const QString& fileName);
 
-	bool doFile(long long beginLine, const QString& fileName, Interpreter* pinterpretter, Parser* pparser, bool issub, Parser::Mode mode);
+	bool __fastcall doFile(long long beginLine, const QString& fileName, Interpreter* pinterpretter, Parser* pparser, bool issub, Parser::Mode mode);
 
-	void stop();
+	void __fastcall stop();
 
 signals:
 	void finished();
@@ -62,24 +62,24 @@ private:
 private:
 
 	template<typename Func>
-	void registerFunction(const QString functionName, Func fun);
-	void openLibs();
+	void __fastcall registerFunction(const QString functionName, Func fun);
+	void __fastcall openLibs();
 
 private:
-	bool checkBattleThenWait();
-	bool checkOnlineThenWait();
+	bool __fastcall checkBattleThenWait();
+	bool __fastcall checkOnlineThenWait();
 
-	bool waitfor(long long timeout, std::function<bool()> exprfun);
-	bool checkString(const TokenMap& TK, long long idx, QString* ret);
-	bool checkInteger(const TokenMap& TK, long long idx, long long* ret);
+	bool __fastcall waitfor(long long timeout, std::function<bool()> exprfun);
+	bool __fastcall checkString(const TokenMap& TK, long long idx, QString* ret);
+	bool __fastcall checkInteger(const TokenMap& TK, long long idx, long long* ret);
 
-	long long checkJump(const TokenMap& TK, long long idx, bool expr, JumpBehavior behavior);
-	bool checkRange(const TokenMap& TK, long long idx, long long* min, long long* max);
-	bool checkRelationalOperator(const TokenMap& TK, long long idx, RESERVE* ret) const;
+	long long __fastcall checkJump(const TokenMap& TK, long long idx, bool expr, JumpBehavior behavior);
+	bool __fastcall checkRange(const TokenMap& TK, long long idx, long long* min, long long* max);
+	bool __fastcall checkRelationalOperator(const TokenMap& TK, long long idx, RESERVE* ret) const;
 
-	void logExport(long long currentIndex, long long currentLine, const QString& text, long long color = 0);
+	void __fastcall logExport(long long currentIndex, long long currentLine, const QString& text, long long color = 0);
 
-	void errorExport(long long currentIndex, long long currentLine, long long level, const QString& text);
+	void __fastcall errorExport(long long currentIndex, long long currentLine, long long level, const QString& text);
 
 private: //註冊給Parser的函數
 	//system

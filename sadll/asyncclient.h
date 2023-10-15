@@ -91,12 +91,12 @@ public:
 		WSACleanup();
 	}
 
-	inline void setCloseSocketFunction(int(__stdcall* p)(SOCKET s))
+	inline void __fastcall setCloseSocketFunction(int(__stdcall* p)(SOCKET s))
 	{
 		pclosesocket_ = p;
 	}
 
-	inline BOOL asyncConnect(unsigned short type, unsigned short serverPort)
+	inline BOOL __fastcall asyncConnect(unsigned short type, unsigned short serverPort)
 	{
 		ADDRESS_FAMILY family = AF_UNSPEC;
 		u_short port = htons(serverPort);
@@ -199,7 +199,7 @@ public:
 		return FALSE;
 	}
 
-	inline BOOL start()
+	inline BOOL __fastcall start()
 	{
 		DWORD threadId;
 		completionThread_ = CreateThread(nullptr, 0u, completionThreadProc, reinterpret_cast<LPVOID>(this), 0UL, &threadId);
@@ -212,7 +212,7 @@ public:
 		return TRUE;
 	}
 
-	inline BOOL syncSend(const std::string& msg)
+	inline BOOL __fastcall syncSend(const std::string& msg)
 	{
 		if (clientSocket_ == INVALID_SOCKET)
 			return FALSE;
@@ -229,7 +229,7 @@ public:
 		return TRUE;
 	}
 
-	inline BOOL asyncSend(const char* dataBuf, size_t dataLen)
+	inline BOOL __fastcall asyncSend(const char* dataBuf, size_t dataLen)
 	{
 		if (clientSocket_ == INVALID_SOCKET)
 			return FALSE;
@@ -256,7 +256,7 @@ public:
 		return TRUE;
 	}
 
-	inline void asyncReceive(LPWSABUF wsabuf)
+	inline void __fastcall asyncReceive(LPWSABUF wsabuf)
 	{
 		if (INVALID_SOCKET == clientSocket_)
 			return;
@@ -290,7 +290,7 @@ public:
 		}
 	}
 
-	void queueSendData(const char* data, size_t length)
+	void __fastcall queueSendData(const char* data, size_t length)
 	{
 		SendBuffer buffer;
 		buffer.data = getBuffer(length);
@@ -305,7 +305,7 @@ public:
 		sendCondition_.notify_one();
 	}
 
-	inline void startParallelProcessing()
+	inline void __fastcall startParallelProcessing()
 	{
 		sendThread_ = new std::thread([this]()
 			{
@@ -391,31 +391,31 @@ private:
 		return 0UL;
 	}
 
-	[[nodiscard]] inline OVERLAPPED* getOverlapped()
+	[[nodiscard]] inline OVERLAPPED* __fastcall getOverlapped()
 	{
 		OVERLAPPED* ptr = allocator_->allocate(1);
 		std::allocator_traits<std::pmr::polymorphic_allocator<OVERLAPPED>>::construct(*allocator_, ptr, OVERLAPPED{});
 		return ptr;
 	}
 
-	inline void releaseOverlapped(OVERLAPPED* overlapped)
+	inline void __fastcall releaseOverlapped(OVERLAPPED* overlapped)
 	{
 		allocator_->deallocate(overlapped, 1);
 	}
 
-	[[nodiscard]] inline char* getBuffer(size_t size)
+	[[nodiscard]] inline char* __fastcall getBuffer(size_t size)
 	{
 		char* ptr = allocatorChar_->allocate(size);
 		std::allocator_traits<std::pmr::polymorphic_allocator<char>>::construct(*allocatorChar_, ptr, '\0');
 		return ptr;
 	}
 
-	inline void releaseBuffer(char* buffer)
+	inline void __fastcall releaseBuffer(char* buffer)
 	{
 		allocatorChar_->deallocate(buffer, 1);
 	}
 
-	inline DWORD recordWSALastError(int line)
+	inline DWORD __fastcall recordWSALastError(int line)
 	{
 		lastError_ = static_cast<DWORD>(WSAGetLastError());
 		if (lastError_ != 0UL)
@@ -426,7 +426,7 @@ private:
 		return lastError_;
 	}
 
-	inline DWORD recordWinLastError(int line)
+	inline DWORD __fastcall recordWinLastError(int line)
 	{
 		lastError_ = GetLastError();
 		if (lastError_ != 0UL)
@@ -436,7 +436,7 @@ private:
 		return lastError_;
 	}
 
-	[[nodiscard]] inline std::wstring getLastErrorStringW()
+	[[nodiscard]] inline std::wstring __fastcall getLastErrorStringW()
 	{
 		if (0UL == lastError_)
 			return L"";
@@ -454,7 +454,7 @@ private:
 		return result;
 	}
 
-	void handleConnectError()
+	void __fastcall handleConnectError()
 	{
 		if (clientSocket_ != INVALID_SOCKET)
 		{

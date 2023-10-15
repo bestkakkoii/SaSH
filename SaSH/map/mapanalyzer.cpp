@@ -817,7 +817,7 @@ static const QSet<QPair<QPair<long long, long long >, QSet<unsigned short>>> ROC
 #pragma endregion
 
 //檢查地圖大小是否合法
-inline constexpr bool CHECKSIZE(long long w, long long h)
+inline constexpr bool __fastcall CHECKSIZE(long long w, long long h)
 {
 	if (w < 0 || h < 0 || w > 1500 || h > 1500)
 		return false;
@@ -826,7 +826,7 @@ inline constexpr bool CHECKSIZE(long long w, long long h)
 }
 
 //找大石頭(占用坐標超過1格)並設置標記
-void checkAndSetRockEx(map_t& map, const QPoint& p, unsigned short sObject)
+void __fastcall checkAndSetRockEx(map_t& map, const QPoint& p, unsigned short sObject)
 {
 	//    X = 12220 || 12222 為起點往右上畫6格長方形
 	// 
@@ -854,7 +854,7 @@ void checkAndSetRockEx(map_t& map, const QPoint& p, unsigned short sObject)
 };
 
 //重複檢查大石頭
-void reCheckAndRockEx(map_t& map, const QPoint& point, unsigned short sObject)
+void __fastcall reCheckAndRockEx(map_t& map, const QPoint& point, unsigned short sObject)
 {
 	for (const QPair<QPair<long long, long long>, QSet<unsigned short>>& it : ROCKEX_SET)
 	{

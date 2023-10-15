@@ -42,31 +42,29 @@ protected:
 	virtual void closeEvent(QCloseEvent* e) override;
 
 private:
-	void fileSave(QString content);
+	void __fastcall fileSave(QString content);
 
-	void replaceCommas(QString& inputList);
+	void __fastcall replaceCommas(QString& inputList);
 
-	QString formatCode(QString content);
+	QString __fastcall formatCode(QString content);
 
-	void onReloadScriptList();
+	void __fastcall setStepMarks();
 
-	void setStepMarks();
+	void __fastcall setMark(CodeEditor::SymbolHandler element, util::SafeHash<QString, util::SafeHash<long long, break_marker_t>>& hash, long long liner, bool b);
 
-	void setMark(CodeEditor::SymbolHandler element, util::SafeHash<QString, util::SafeHash<long long, break_marker_t>>& hash, long long liner, bool b);
+	void __fastcall reshowBreakMarker();
 
-	void reshowBreakMarker();
+	void __fastcall createSpeedSpinBox();
 
-	void createSpeedSpinBox();
+	void __fastcall createScriptListContextMenu();
 
-	void createScriptListContextMenu();
+	QString __fastcall getFullPath(TreeWidgetItem* item);
 
-	QString getFullPath(TreeWidgetItem* item);
+	void __fastcall setContinue();
 
-	void setContinue();
+	void __fastcall createTreeWidgetItems(TreeWidget* widgetA, TreeWidget* widgetB, Parser* pparser, const QHash<QString, QVariant>& d, const QStringList& globalNames);
 
-	void createTreeWidgetItems(TreeWidget* widgetA, TreeWidget* widgetB, Parser* pparser, const QHash<QString, QVariant>& d, const QStringList& globalNames);
-
-	void initStaticLabel();
+	void __fastcall initStaticLabel();
 
 	Q_INVOKABLE void init();
 
@@ -78,6 +76,7 @@ signals:
 	void breakMarkInfoImport();
 
 private slots:
+	void onReloadScriptList();
 	void onApplyHashSettingsToUI();
 	void onScriptTreeWidgetHeaderClicked(int logicalIndex);
 	void onScriptTreeWidgetDoubleClicked(QTreeWidgetItem* item, int column);

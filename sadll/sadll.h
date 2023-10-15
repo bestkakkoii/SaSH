@@ -39,47 +39,47 @@ private:
 
 public:
 	virtual ~GameService() = default;
-	BOOL initialize(long long index, HWND parentHwnd, unsigned short type, unsigned short port);
-	void uninitialize();
+	BOOL __fastcall initialize(long long index, HWND parentHwnd, unsigned short type, unsigned short port);
+	void __fastcall uninitialize();
 
 public:
-	void WM_EnableEffect(BOOL enable);
-	void WM_EnableCharShow(BOOL enable);
-	void WM_SetTimeLock(BOOL enable, unsigned int time);
-	void WM_EnableSound(BOOL enable);
-	void WM_EnableImageLock(BOOL enable);
-	void WM_EnablePassWall(BOOL enable);
-	void WM_EnableFastWalk(BOOL enable);
-	void WM_SetBoostSpeed(BOOL enable, int speed);
-	void WM_EnableMoveLock(BOOL enable);
-	void WM_MuteSound(BOOL enable);
-	void WM_BattleTimeExtend(BOOL enable);
-	void WM_EnableBattleDialog(BOOL enable);
-	void WM_SetGameStatus(int status);
-	void WM_SetOptimize(BOOL enable);
-	void WM_SetWindowHide(BOOL enable);
-	void WM_Announce(char* str, int color);
-	void WM_Move(int x, int y);
-	void WM_DistoryDialog();
-	void WM_CleanChatHistory();
-	void WM_CreateDialog(int type, int button, const char* data);
+	void __fastcall WM_EnableEffect(BOOL enable);
+	void __fastcall WM_EnableCharShow(BOOL enable);
+	void __fastcall WM_SetTimeLock(BOOL enable, unsigned int time);
+	void __fastcall WM_EnableSound(BOOL enable);
+	void __fastcall WM_EnableImageLock(BOOL enable);
+	void __fastcall WM_EnablePassWall(BOOL enable);
+	void __fastcall WM_EnableFastWalk(BOOL enable);
+	void __fastcall WM_SetBoostSpeed(BOOL enable, int speed);
+	void __fastcall WM_EnableMoveLock(BOOL enable);
+	void __fastcall WM_MuteSound(BOOL enable);
+	void __fastcall WM_BattleTimeExtend(BOOL enable);
+	void __fastcall WM_EnableBattleDialog(BOOL enable);
+	void __fastcall WM_SetGameStatus(int status);
+	void __fastcall WM_SetOptimize(BOOL enable);
+	void __fastcall WM_SetWindowHide(BOOL enable);
+	void __fastcall WM_Announce(char* str, int color);
+	void __fastcall WM_Move(int x, int y);
+	void __fastcall WM_DistoryDialog();
+	void __fastcall WM_CleanChatHistory();
+	void __fastcall WM_CreateDialog(int type, int button, const char* data);
 
-	void WM_SetBLockPacket(BOOL enable);
+	void __fastcall WM_SetBLockPacket(BOOL enable);
 
 public://hook
-	SOCKET WSAAPI New_socket(int af, int type, int protocol);
-	int WSAAPI New_closesocket(SOCKET s);
-	int WSAAPI New_send(SOCKET s, const char* buf, int len, int flags);
-	int WSAAPI New_recv(SOCKET s, char* buf, int len, int flags);
-	int WSAAPI New_connect(SOCKET s, const struct sockaddr* name, int namelen);
-	unsigned long WSAAPI New_inet_addr(const char* cp);
-	u_short WSAAPI New_ntohs(u_short netshort);
+	SOCKET __fastcall New_socket(int af, int type, int protocol);
+	int __fastcall New_closesocket(SOCKET s);
+	int __fastcall New_send(SOCKET s, const char* buf, int len, int flags);
+	int __fastcall New_recv(SOCKET s, char* buf, int len, int flags);
+	int __fastcall New_connect(SOCKET s, const struct sockaddr* name, int namelen);
+	unsigned long __fastcall New_inet_addr(const char* cp);
+	u_short __fastcall New_ntohs(u_short netshort);
 
-	BOOL WINAPI New_SetWindowTextA(HWND hWnd, LPCSTR lpString);
-	DWORD WINAPI New_GetTickCount();
-	BOOL WINAPI New_QueryPerformanceCounter(LARGE_INTEGER* lpPerformanceCount);
-	DWORD WINAPI New_TimeGetTime();
-	void WINAPI New_Sleep(DWORD dwMilliseconds);
+	BOOL __fastcall New_SetWindowTextA(HWND hWnd, LPCSTR lpString);
+	DWORD __fastcall New_GetTickCount();
+	BOOL __fastcall New_QueryPerformanceCounter(LARGE_INTEGER* lpPerformanceCount);
+	DWORD __fastcall New_TimeGetTime();
+	void __fastcall New_Sleep(DWORD dwMilliseconds);
 
 	void __cdecl New_PlaySound(int a, int b, int c);
 	void __cdecl New_BattleProc();
@@ -166,11 +166,11 @@ public://g-var
 	int* g_game_status = nullptr;
 
 private:
-	void sendToServer(const std::string& text);
-	void sendToServer(const char* buf, size_t len);
+	void __fastcall sendToServer(const std::string& text);
+	void __fastcall sendToServer(const char* buf, size_t len);
 #if 0
-	void hideModule(HMODULE hLibrary);
-	int connectServer(SOCKET& rsocket, const char* ip, unsigned short port);
+	void __fastcall hideModule(HMODULE hLibrary);
+	int __fastcall connectServer(SOCKET& rsocket, const char* ip, unsigned short port);
 #endif
 
 private:

@@ -244,13 +244,13 @@ class Lexer : public Indexer
 public:
 	explicit Lexer(long long index) : Indexer(index) {}
 
-	static bool tokenized(Lexer* pLexer, const QString& script);
+	static bool __fastcall tokenized(Lexer* pLexer, const QString& script);
 
-	QList<FunctionNode> getFunctionNodeList() const { return functionNodeList_; }
-	QList<ForNode> getForNodeList() const { return forNodeList_; }
-	QList<LuaNode> getLuaNodeList() const { return luaNodeList_; }
-	QHash<QString, long long> getLabelList() const { return labelList_; }
-	QHash<long long, TokenMap> getTokenMaps() const { return tokens_; }
+	QList<FunctionNode> __fastcall getFunctionNodeList() const { return functionNodeList_; }
+	QList<ForNode> __fastcall getForNodeList() const { return forNodeList_; }
+	QList<LuaNode> __fastcall getLuaNodeList() const { return luaNodeList_; }
+	QHash<QString, long long> __fastcall getLabelList() const { return labelList_; }
+	QHash<long long, TokenMap> __fastcall getTokenMaps() const { return tokens_; }
 
 private:
 	enum ErrorType
@@ -259,40 +259,40 @@ private:
 		kTypeWarning = 10,
 	};
 
-	void showError(const QString text, ErrorType type = kTypeError);
+	void __fastcall showError(const QString text, ErrorType type = kTypeError);
 
-	bool isTable(const QString& str) const;
-	bool isDouble(const QString& str) const;
-	bool isInteger(const QString& str) const;
-	bool isBool(const QString& str) const;
-	bool isLabelName(const QString& str, RESERVE previousType) const;
-	bool isConstString(const QString& str) const;
-	bool isSpace(const QChar& ch) const;
-	bool isComment(const QChar& ch) const;
-	bool isOperator(const QChar& ch) const;
-	bool isLabel(const QString& str) const;
+	bool __fastcall isTable(const QString& str) const;
+	bool __fastcall isDouble(const QString& str) const;
+	bool __fastcall isInteger(const QString& str) const;
+	bool __fastcall isBool(const QString& str) const;
+	bool __fastcall isLabelName(const QString& str, RESERVE previousType) const;
+	bool __fastcall isConstString(const QString& str) const;
+	bool __fastcall isSpace(const QChar& ch) const;
+	bool __fastcall isComment(const QChar& ch) const;
+	bool __fastcall isOperator(const QChar& ch) const;
+	bool __fastcall isLabel(const QString& str) const;
 
-	void recordNode();
+	void __fastcall recordNode();
 
-	void tokenized(long long currentLine, const QString& line, TokenMap* ptoken, QHash<QString, long long>* plabel);
+	void __fastcall tokenized(long long currentLine, const QString& line, TokenMap* ptoken, QHash<QString, long long>* plabel);
 
-	void createToken(long long index, RESERVE type, const QVariant& data, const QString& raw, TokenMap* ptoken);
+	void __fastcall createToken(long long index, RESERVE type, const QVariant& data, const QString& raw, TokenMap* ptoken);
 
-	void insertToken(long long index, RESERVE type, const QVariant& data, const QString& raw, TokenMap* ptoken);
+	void __fastcall insertToken(long long index, RESERVE type, const QVariant& data, const QString& raw, TokenMap* ptoken);
 
-	void createEmptyToken(long long index, TokenMap* ptoken);
+	void __fastcall createEmptyToken(long long index, TokenMap* ptoken);
 
-	RESERVE getTokenType(long long& pos, RESERVE previous, QString& str, const QString raw) const;
+	RESERVE __fastcall getTokenType(long long& pos, RESERVE previous, QString& str, const QString raw) const;
 
-	FTK getStringToken(QString& src, const QString& delim, QString& out) const;
+	FTK __fastcall getStringToken(QString& src, const QString& delim, QString& out) const;
 
-	void checkPairs(const QString& beginstr, const QString& endstr, const QHash<long long, TokenMap>& stokenmaps);
+	void __fastcall checkPairs(const QString& beginstr, const QString& endstr, const QHash<long long, TokenMap>& stokenmaps);
 
-	void checkSingleRowPairs(const QString& beginstr, const QString& endstr, const QHash<long long, TokenMap>& stokenmaps);
+	void __fastcall checkSingleRowPairs(const QString& beginstr, const QString& endstr, const QHash<long long, TokenMap>& stokenmaps);
 
-	void checkFunctionPairs(const QHash<long long, TokenMap>& tokenmaps);
+	void __fastcall checkFunctionPairs(const QHash<long long, TokenMap>& tokenmaps);
 
-	inline void clear()
+	inline void __fastcall clear()
 	{
 		functionNodeList_.clear();
 		forNodeList_.clear();

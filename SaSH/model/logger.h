@@ -38,7 +38,7 @@ public:
 		}
 	}
 
-	bool initialize(const QString& logFileName, int bufferSize = 1024, const QString& logFormat = "[%(date) %(time)] | [@%(line)] | %(message)")
+	bool __fastcall initialize(const QString& logFileName, int bufferSize = 1024, const QString& logFormat = "[%(date) %(time)] | [@%(line)] | %(message)")
 	{
 		QMutexLocker locker(&mutex_);
 		bufferSize_ = bufferSize;
@@ -52,7 +52,7 @@ public:
 		return openFile(logFileName);
 	}
 
-	void write(const QString& message, long long line = -1)
+	void __fastcall write(const QString& message, long long line = -1)
 	{
 		if (!isInitialized_.load(std::memory_order_acquire))
 			return;
@@ -79,36 +79,36 @@ public:
 		currentBuffer_.append(newMessage);
 	}
 
-	int size() const
+	int __fastcall size() const
 	{
 		QMutexLocker locker(&mutex_);
 		return currentBuffer_.size();
 	}
 
-	void flush()
+	void __fastcall flush()
 	{
 		QMutexLocker locker(&mutex_);
 		swapBuffersAndWrite();
 	}
 
-	bool isEmpty() const
+	bool __fastcall isEmpty() const
 	{
 		QMutexLocker locker(&mutex_);
 		return currentBuffer_.isEmpty() && nextBuffer_.isEmpty();
 	}
 
-	bool isFull() const
+	bool __fastcall isFull() const
 	{
 		QMutexLocker locker(&mutex_);
 		return currentBuffer_.size() >= bufferSize_;
 	}
 
-	bool isOpen() const
+	bool __fastcall isOpen() const
 	{
 		return isInitialized_.load(std::memory_order_acquire);
 	}
 
-	void close()
+	void __fastcall close()
 	{
 		QMutexLocker locker(&mutex_);
 		if (file_.isOpen())
@@ -137,7 +137,7 @@ private slots:
 
 private:
 
-	bool openFile(const QString& logFileName)
+	bool __fastcall openFile(const QString& logFileName)
 	{
 		if (file_.isOpen())
 		{
@@ -171,7 +171,7 @@ private:
 		return false;
 	}
 
-	void swapBuffersAndWrite()
+	void __fastcall swapBuffersAndWrite()
 	{
 		if (!isInitialized_.load(std::memory_order_acquire))
 			return;
@@ -191,7 +191,7 @@ private:
 		nextBuffer_.clear();
 	}
 
-	void format(QString& logText, bool isFileName = false) const
+	void __fastcall format(QString& logText, bool isFileName = false) const
 	{
 		QStringList logTextList = logText.split("@@@@@@@@@@", Qt::SkipEmptyParts);
 		static const QRegularExpression re(R"(%\((\w+)\))");

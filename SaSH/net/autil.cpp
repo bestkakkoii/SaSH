@@ -121,11 +121,9 @@ void Autil::util_EncodeMessage(char* dst, size_t dstlen, char* src)
 	std::uniform_int_distribution<int> distribution(0, 99);
 	int rn = distribution(generator);
 	int t1 = 0, t2 = 0;
-	//char t3[LBUFSIZE], tz[LBUFSIZE];
-	QByteArray t3(LBUFSIZE, '\0');
-	QByteArray tz(LBUFSIZE, '\0');
-	//memset(tz, 0, sizeof(tz));
-	//memset(t3, 0, sizeof(t3));
+	char t3[LBUFSIZE], tz[LBUFSIZE];
+	memset(tz, 0, sizeof(tz));
+	memset(t3, 0, sizeof(t3));
 
 #ifdef _BACK_VERSION
 	util_swapint(&t1, &rn, "3421");	// encode seed
@@ -134,13 +132,13 @@ void Autil::util_EncodeMessage(char* dst, size_t dstlen, char* src)
 #endif
 	//  t2 = t1 ^ 0x0f0f0f0f;
 	t2 = t1 ^ 0xffffffff;
-	Autil::util_256to64(tz.data(), reinterpret_cast<char*>(&t2), sizeof(int), const_cast<char*>(DEFAULTTABLE));
+	Autil::util_256to64(tz, reinterpret_cast<char*>(&t2), sizeof(int), const_cast<char*>(DEFAULTTABLE));
 
-	Autil::util_shlstring(t3.data(), dstlen, src, rn);
+	Autil::util_shlstring(t3, dstlen, src, rn);
 	//  printf("random number=%d\n", rn);
 	//strcat_s(tz.data(), t3.data());
-	strcat_s(tz.data(), LBUFSIZE, t3.data());
-	Autil::util_xorstring(dst, tz.data());
+	strcat_s(tz, LBUFSIZE, t3);
+	Autil::util_xorstring(dst, tz);
 
 }
 
@@ -159,28 +157,24 @@ void Autil::util_DecodeMessage(QByteArray& dst, QByteArray src)
 	int rn = 0;
 	int* t1 = nullptr;
 	int t2 = 0;
-	//char t3[4096], t4[4096];	// This buffer is enough for an integer.
-	//char tz[LBUFSIZE];
-	QByteArray t3(SBUFSIZE, '\0');
-	QByteArray t4(SBUFSIZE, '\0');
-	QByteArray tz(LBUFSIZE, '\0');
-
-	//memset(tz, 0, sizeof(tz));
-	//memset(t3, 0, sizeof(t3));
-	//memset(t4, 0, sizeof(t4));
+	char t3[4096], t4[4096];	// This buffer is enough for an integer.
+	char tz[LBUFSIZE];
+	memset(tz, 0, sizeof(tz));
+	memset(t3, 0, sizeof(t3));
+	memset(t4, 0, sizeof(t4));
 
 	//if (src[strlen(src) - 1] == '\n')
 	//	src[strlen(src) - 1] = 0;
 	src.replace('\n', '\0');
-	Autil::util_xorstring(tz.data(), src.data());
+	Autil::util_xorstring(tz, src.data());
 
 	rn = INTCODESIZE;
 	//  printf("INTCODESIZE=%d\n", rn);
 
-	strncpy_s(t4.data(), SBUFSIZE, tz.data(), INTCODESIZE);
-	t4.data()[INTCODESIZE] = '\0';
-	Autil::util_64to256(t3.data(), t4.data(), const_cast<char*>(DEFAULTTABLE));
-	t1 = reinterpret_cast<int*>(t3.data());
+	strncpy_s(t4, SBUFSIZE, tz, INTCODESIZE);
+	t4[INTCODESIZE] = '\0';
+	Autil::util_64to256(t3, t4, const_cast<char*>(DEFAULTTABLE));
+	t1 = reinterpret_cast<int*>(t3);
 
 	//  t2 = *t1 ^ 0x0f0f0f0f;
 	t2 = *t1 ^ 0xffffffff;
@@ -190,7 +184,7 @@ void Autil::util_DecodeMessage(QByteArray& dst, QByteArray src)
 	Autil::util_swapint(&rn, &t2, const_cast<char*>("3142"));
 #endif
 	//  printf("random number=%d\n", rn);
-	Autil::util_shrstring(dst, tz.data() + INTCODESIZE, rn);
+	Autil::util_shrstring(dst, tz + INTCODESIZE, rn);
 
 }
 
@@ -272,30 +266,28 @@ void Autil::util_SendMesg(int func, char* buffer)
 	if (!injector.isValid())
 		return;
 
-	//char t1[NETDATASIZE], t2[NETDATASIZE];
-	//memset(t1, 0, sizeof(t1));
-	//memset(t2, 0, sizeof(t2));
-	QByteArray t1(NETDATASIZE, '\0');
-	QByteArray t2(NETDATASIZE, '\0');
+	char t1[NETDATASIZE], t2[NETDATASIZE];
+	memset(t1, 0, sizeof(t1));
+	memset(t2, 0, sizeof(t2));
 
 	//sprintf_s(t1.data(), NETDATASIZE, "&;%d%s;#;", func + 13, buffer);
 	constexpr auto FUNCTION_OFFSET = 13;
 	constexpr auto FORMAT = "&;%d%s;#;";
-	_snprintf_s(t1.data(), NETDATASIZE, _TRUNCATE, FORMAT, func + FUNCTION_OFFSET, buffer);
+	_snprintf_s(t1, NETDATASIZE, _TRUNCATE, FORMAT, func + FUNCTION_OFFSET, buffer);
 #ifdef _NEWNET_
 	util_EncodeMessageTea(t2, t1);
 #else
-	Autil::util_EncodeMessage(t2.data(), NETDATASIZE, t1.data());
+	Autil::util_EncodeMessage(t2, NETDATASIZE, t1);
 #endif
 
-	int size = static_cast<int>(strlen(t2.data()));
-	t2.data()[size] = '\n';
+	int size = static_cast<int>(strlen(t2));
+	t2[size] = '\n';
 	size += 1;
 
 	HANDLE hProcess = injector.getProcess();
 	util::VirtualMemory ptr(hProcess, size, true);
 
-	mem::write(hProcess, ptr, t2.data(), size);
+	mem::write(hProcess, ptr, t2, size);
 	injector.sendMessage(kSendPacket, ptr, size);
 }
 
@@ -713,12 +705,11 @@ int Autil::util_deint(int sliceno, int* value)
 	QByteArray slice = msgSlice_.value(sliceno);
 	int* t1 = nullptr;
 	int t2 = 0;
-	//char t3[4096];	// This buffer is enough for an integer.
-	//memset(t3, 0, sizeof(t3));
-	QByteArray t3(SBUFSIZE, '\0');
+	char t3[4096];	// This buffer is enough for an integer.
+	memset(t3, 0, sizeof(t3));
 
-	Autil::util_shl_64to256(t3.data(), slice.data(), const_cast<char*>(DEFAULTTABLE), PersonalKey.get().toUtf8().data());
-	t1 = reinterpret_cast<int*>(t3.data());
+	Autil::util_shl_64to256(t3, slice.data(), const_cast<char*>(DEFAULTTABLE), PersonalKey.get().toUtf8().data());
+	t1 = reinterpret_cast<int*>(t3);
 	t2 = *t1 ^ 0xffffffff;
 #ifdef _BACK_VERSION
 	util_swapint(value, &t2, "3421");
@@ -736,9 +727,8 @@ int Autil::util_deint(int sliceno, int* value)
 int Autil::util_mkint(char* buffer, int value)
 {
 	int t1 = 0, t2 = 0;
-	//char t3[4096];	// This buffer is enough for an integer.
-	//memset(t3, 0, sizeof(t3));
-	QByteArray t3(SBUFSIZE, '\0');
+	char t3[4096];	// This buffer is enough for an integer.
+	memset(t3, 0, sizeof(t3));
 
 #ifdef _BACK_VERSION
 	util_swapint(&t1, &value, "4312");
@@ -746,9 +736,9 @@ int Autil::util_mkint(char* buffer, int value)
 	Autil::util_swapint(&t1, &value, const_cast<char*>("3142"));
 #endif
 	t2 = t1 ^ 0xffffffff;
-	Autil::util_256to64_shr(t3.data(), (char*)&t2, sizeof(int), const_cast<char*>(DEFAULTTABLE), PersonalKey.data().toUtf8().data());
+	Autil::util_256to64_shr(t3, (char*)&t2, sizeof(int), const_cast<char*>(DEFAULTTABLE), PersonalKey.data().toUtf8().data());
 	strcat_s(buffer, NETDATASIZE, ";");	// It's important to append a SEPARATOR between fields
-	strcat_s(buffer, NETDATASIZE, t3.data());
+	strcat_s(buffer, NETDATASIZE, t3);
 
 	return value;
 }
@@ -778,13 +768,12 @@ int Autil::util_destring(int sliceno, char* value)
 // ret: checksum, this value must match the one generated by util_destring
 int Autil::util_mkstring(char* buffer, char* value)
 {
-	//char t1[SLICE_SIZE];
-	QByteArray t1(LBUFSIZE, '\0');
-	//memset(t1, 0, sizeof(t1));
+	char t1[SLICE_SIZE];
+	memset(t1, 0, sizeof(t1));
 
-	Autil::util_256to64_shl(t1.data(), value, static_cast<int>(strlen(value)), const_cast<char*>(DEFAULTTABLE), PersonalKey.data().toUtf8().data());
+	Autil::util_256to64_shl(t1, value, static_cast<int>(strlen(value)), const_cast<char*>(DEFAULTTABLE), PersonalKey.data().toUtf8().data());
 	strcat_s(buffer, NETDATASIZE, ";");	// It's important to append a SEPARATOR between fields
-	strcat_s(buffer, NETDATASIZE, t1.data());
+	strcat_s(buffer, NETDATASIZE, t1);
 
 	return static_cast<int>(strlen(value));
 }

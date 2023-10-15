@@ -21,7 +21,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 #pragma region mem
 
-bool mem::read(HANDLE hProcess, unsigned long long desiredAccess, unsigned long long size, PVOID buffer)
+bool __fastcall mem::read(HANDLE hProcess, unsigned long long desiredAccess, unsigned long long size, PVOID buffer)
 {
 	if (!size)
 		return false;
@@ -46,7 +46,7 @@ bool mem::read(HANDLE hProcess, unsigned long long desiredAccess, unsigned long 
 }
 
 template<typename T, typename>
-T mem::read(HANDLE hProcess, unsigned long long desiredAccess)
+T __fastcall mem::read(HANDLE hProcess, unsigned long long desiredAccess)
 {
 	if (hProcess == nullptr)
 		return T();
@@ -62,7 +62,7 @@ T mem::read(HANDLE hProcess, unsigned long long desiredAccess)
 	return ret ? buffer : T();
 }
 
-float mem::readFloat(HANDLE hProcess, unsigned long long desiredAccess)
+float __fastcall mem::readFloat(HANDLE hProcess, unsigned long long desiredAccess)
 {
 	if (hProcess == nullptr)
 		return 0.0f;
@@ -77,7 +77,7 @@ float mem::readFloat(HANDLE hProcess, unsigned long long desiredAccess)
 	return (ret) ? (buffer) : 0.0f;
 }
 
-qreal mem::readDouble(HANDLE hProcess, unsigned long long desiredAccess)
+qreal __fastcall mem::readDouble(HANDLE hProcess, unsigned long long desiredAccess)
 {
 	if (hProcess == nullptr)
 		return 0.0;
@@ -92,7 +92,7 @@ qreal mem::readDouble(HANDLE hProcess, unsigned long long desiredAccess)
 	return (ret == TRUE) ? (buffer) : 0.0;
 }
 
-QString mem::readString(HANDLE hProcess, unsigned long long desiredAccess, unsigned long long size, bool enableTrim, bool keepOriginal)
+QString __fastcall mem::readString(HANDLE hProcess, unsigned long long desiredAccess, unsigned long long size, bool enableTrim, bool keepOriginal)
 {
 	if (hProcess == nullptr)
 		return "\0";
@@ -115,7 +115,7 @@ QString mem::readString(HANDLE hProcess, unsigned long long desiredAccess, unsig
 	return retstring;
 }
 
-bool mem::write(HANDLE hProcess, unsigned long long baseAddress, PVOID buffer, unsigned long long dwSize)
+bool __fastcall mem::write(HANDLE hProcess, unsigned long long baseAddress, PVOID buffer, unsigned long long dwSize)
 {
 	if (hProcess == nullptr)
 		return false;
@@ -132,7 +132,7 @@ bool mem::write(HANDLE hProcess, unsigned long long baseAddress, PVOID buffer, u
 }
 
 template<typename T, typename>
-bool mem::write(HANDLE hProcess, unsigned long long baseAddress, T data)
+bool __fastcall mem::write(HANDLE hProcess, unsigned long long baseAddress, T data)
 {
 	if (hProcess == nullptr)
 		return false;
@@ -146,7 +146,7 @@ bool mem::write(HANDLE hProcess, unsigned long long baseAddress, T data)
 	return ret == TRUE;
 }
 
-bool mem::writeString(HANDLE hProcess, unsigned long long baseAddress, const QString& str)
+bool __fastcall mem::writeString(HANDLE hProcess, unsigned long long baseAddress, const QString& str)
 {
 	if (hProcess == nullptr)
 		return false;
@@ -170,7 +170,7 @@ bool mem::writeString(HANDLE hProcess, unsigned long long baseAddress, const QSt
 	return ret == TRUE;
 }
 
-unsigned long long mem::virtualAlloc(HANDLE hProcess, unsigned long long size)
+unsigned long long __fastcall mem::virtualAlloc(HANDLE hProcess, unsigned long long size)
 {
 	if (hProcess == nullptr)
 		return 0;
@@ -185,7 +185,7 @@ unsigned long long mem::virtualAlloc(HANDLE hProcess, unsigned long long size)
 	return 0;
 }
 
-unsigned long long mem::virtualAllocA(HANDLE hProcess, const QString& str)
+unsigned long long __fastcall mem::virtualAllocA(HANDLE hProcess, const QString& str)
 {
 	unsigned long long ret = NULL;
 	do
@@ -206,7 +206,7 @@ unsigned long long mem::virtualAllocA(HANDLE hProcess, const QString& str)
 	return ret;
 }
 
-unsigned long long mem::virtualAllocW(HANDLE hProcess, const QString& str)
+unsigned long long __fastcall mem::virtualAllocW(HANDLE hProcess, const QString& str)
 {
 	unsigned long long ret = NULL;
 	do
@@ -231,7 +231,7 @@ unsigned long long mem::virtualAllocW(HANDLE hProcess, const QString& str)
 	return ret;
 }
 
-bool mem::virtualFree(HANDLE hProcess, unsigned long long baseAddress)
+bool __fastcall mem::virtualFree(HANDLE hProcess, unsigned long long baseAddress)
 {
 	if (hProcess == nullptr)
 		return false;
@@ -246,7 +246,7 @@ bool mem::virtualFree(HANDLE hProcess, unsigned long long baseAddress)
 }
 
 #ifndef _WIN64
-DWORD mem::getRemoteModuleHandle(DWORD dwProcessId, const QString& moduleName)
+DWORD __fastcall mem::getRemoteModuleHandle(DWORD dwProcessId, const QString& moduleName)
 {
 	//获取进程快照中包含在th32ProcessID中指定的进程的所有的模块。
 	ScopedHandle hSnapshot(ScopedHandle::CREATE_TOOLHELP32_SNAPSHOT, TH32CS_SNAPMODULE, dwProcessId);
@@ -276,7 +276,7 @@ DWORD mem::getRemoteModuleHandle(DWORD dwProcessId, const QString& moduleName)
 }
 #endif
 
-void mem::freeUnuseMemory(HANDLE hProcess)
+void __fastcall mem::freeUnuseMemory(HANDLE hProcess)
 {
 	SetProcessWorkingSetSizeEx(hProcess, static_cast<SIZE_T>(-1), static_cast<SIZE_T>(-1), 0);
 	K32EmptyWorkingSet(hProcess);
@@ -284,7 +284,7 @@ void mem::freeUnuseMemory(HANDLE hProcess)
 
 #if 0
 #ifdef _WIN64
-DWORD mem::getFunAddr(const DWORD* DllBase, const char* FunName)
+DWORD __fastcall mem::getFunAddr(const DWORD* DllBase, const char* FunName)
 {
 	// 遍歷導出表
 	PIMAGE_DOS_HEADER pDos = (PIMAGE_DOS_HEADER)DllBase;
@@ -307,7 +307,7 @@ DWORD mem::getFunAddr(const DWORD* DllBase, const char* FunName)
 #endif
 #endif
 
-HMODULE mem::getRemoteModuleHandleByProcessHandleW(HANDLE hProcess, const QString& szModuleName)
+HMODULE __fastcall mem::getRemoteModuleHandleByProcessHandleW(HANDLE hProcess, const QString& szModuleName)
 {
 	HMODULE hMods[1024] = {};
 	DWORD cbNeeded = 0, i = 0;
@@ -334,7 +334,7 @@ HMODULE mem::getRemoteModuleHandleByProcessHandleW(HANDLE hProcess, const QStrin
 	return NULL;
 }
 
-long mem::getProcessExportTable32(HANDLE hProcess, const QString& ModuleName, IAT_EAT_INFO tbinfo[], int tb_info_max)
+long __fastcall mem::getProcessExportTable32(HANDLE hProcess, const QString& ModuleName, IAT_EAT_INFO tbinfo[], int tb_info_max)
 {
 	ULONG64 muBase = 0, count = 0;
 	PIMAGE_DOS_HEADER pDosHeader = (PIMAGE_DOS_HEADER)q_check_ptr(new BYTE[sizeof(IMAGE_DOS_HEADER)]);
@@ -398,7 +398,7 @@ long mem::getProcessExportTable32(HANDLE hProcess, const QString& ModuleName, IA
 }
 
 //獲得32位進程中某個DLL導出函數的地址
-ULONG64 mem::getProcAddressIn32BitProcess(HANDLE hProcess, const QString& ModuleName, const QString& FuncName)
+ULONG64 __fastcall mem::getProcAddressIn32BitProcess(HANDLE hProcess, const QString& ModuleName, const QString& FuncName)
 {
 	ULONG64 RetAddr = 0;
 	PIAT_EAT_INFO pInfo = (PIAT_EAT_INFO)malloc(4096 * sizeof(IAT_EAT_INFO));
@@ -423,7 +423,7 @@ ULONG64 mem::getProcAddressIn32BitProcess(HANDLE hProcess, const QString& Module
 }
 
 #ifndef _WIN64
-bool mem::injectByWin7(long long index, DWORD dwProcessId, HANDLE hProcess, QString dllPath, HMODULE* phDllModule, unsigned long long* phGameModule)
+bool __fastcall mem::injectByWin7(long long index, DWORD dwProcessId, HANDLE hProcess, QString dllPath, HMODULE* phDllModule, unsigned long long* phGameModule)
 {
 	HMODULE hModule = nullptr;
 	QElapsedTimer timer; timer.start();
@@ -496,7 +496,7 @@ bool mem::injectByWin7(long long index, DWORD dwProcessId, HANDLE hProcess, QStr
 }
 #endif
 
-bool mem::injectBy64(long long index, HANDLE hProcess, QString dllPath, HMODULE* phDllModule, unsigned long long* phGameModule)
+bool __fastcall mem::injectBy64(long long index, HANDLE hProcess, QString dllPath, HMODULE* phDllModule, unsigned long long* phGameModule)
 {
 	QElapsedTimer timer; timer.start();
 	static unsigned char data[128] = {
@@ -609,7 +609,7 @@ bool mem::injectBy64(long long index, HANDLE hProcess, QString dllPath, HMODULE*
 }
 
 #if 0
-bool mem::inject(long long index, HANDLE hProcess, QString dllPath, HMODULE* phDllModule, unsigned long long* phGameModule)
+bool __fastcall mem::inject(long long index, HANDLE hProcess, QString dllPath, HMODULE* phDllModule, unsigned long long* phGameModule)
 {
 	struct InjectData
 	{
@@ -702,7 +702,7 @@ bool mem::inject(long long index, HANDLE hProcess, QString dllPath, HMODULE* phD
 }
 #endif
 
-bool mem::enumProcess(QVector<long long>* pprocesses, const QString& moduleName)
+bool __fastcall mem::enumProcess(QVector<long long>* pprocesses, const QString& moduleName)
 {
 	// 创建一个进程快照
 	ScopedHandle hSnapshot(ScopedHandle::CREATE_TOOLHELP32_SNAPSHOT, TH32CS_SNAPPROCESS, 0);
@@ -752,7 +752,7 @@ bool mem::enumProcess(QVector<long long>* pprocesses, const QString& moduleName)
 #pragma region Config
 QHash<QString, QMutex*> g_fileLockHash;
 
-void tryLock(const QString& fileName)
+void __fastcall tryLock(const QString& fileName)
 {
 	if (!g_fileLockHash.contains(fileName))
 	{
@@ -762,7 +762,7 @@ void tryLock(const QString& fileName)
 	g_fileLockHash.value(fileName)->lock();
 }
 
-void releaseLock(const QString& fileName)
+void __fastcall releaseLock(const QString& fileName)
 {
 	if (g_fileLockHash.contains(fileName))
 	{
@@ -1131,7 +1131,7 @@ QList<util::MapData> util::Config::readMapData(const QString& key) const
 }
 #pragma endregion
 
-void util::FormSettingManager::loadSettings()
+void __fastcall util::FormSettingManager::loadSettings()
 {
 	Config config(QString("%1|%2").arg(__FUNCTION__).arg(__LINE__));
 
@@ -1183,7 +1183,7 @@ void util::FormSettingManager::loadSettings()
 	}
 
 }
-void util::FormSettingManager::saveSettings()
+void __fastcall util::FormSettingManager::saveSettings()
 {
 	Config config(QString("%1|%2").arg(__FUNCTION__).arg(__LINE__));
 	QString ObjectName;
@@ -1209,7 +1209,7 @@ void util::FormSettingManager::saveSettings()
 	config.write("Form", ObjectName, "Size", QString("%1,%2").arg(size.width()).arg(size.height()));
 }
 
-QFileInfoList util::loadAllFileLists(
+QFileInfoList __fastcall util::loadAllFileLists(
 	TreeWidgetItem* root,
 	const QString& path,
 	const QString& suffix,
@@ -1281,7 +1281,7 @@ QFileInfoList util::loadAllFileLists(
 	return file_list;
 }
 
-QFileInfoList util::loadAllFileLists(
+QFileInfoList __fastcall util::loadAllFileLists(
 	TreeWidgetItem* root,
 	const QString& path,
 	QStringList* list,
@@ -1364,7 +1364,7 @@ QFileInfoList util::loadAllFileLists(
 	return file_list;
 }
 
-void util::searchFiles(const QString& dir, const QString& fileNamePart, const QString& suffixWithDot, QStringList* result, bool withcontent)
+void __fastcall util::searchFiles(const QString& dir, const QString& fileNamePart, const QString& suffixWithDot, QStringList* result, bool withcontent)
 {
 	QDir d(dir);
 	if (!d.exists())
@@ -1404,7 +1404,7 @@ void util::searchFiles(const QString& dir, const QString& fileNamePart, const QS
 	}
 }
 
-bool util::enumAllFiles(const QString dir, const QString suffix, QVector<QPair<QString, QString>>* result)
+bool __fastcall util::enumAllFiles(const QString dir, const QString suffix, QVector<QPair<QString, QString>>* result)
 {
 	QDir directory(dir);
 
@@ -1448,7 +1448,7 @@ bool util::enumAllFiles(const QString dir, const QString suffix, QVector<QPair<Q
 }
 
 //自身進程目錄 遞歸遍查找指定文件
-QString util::findFileFromName(const QString& fileName, const QString& dirpath)
+QString __fastcall util::findFileFromName(const QString& fileName, const QString& dirpath)
 {
 	QDir dir(dirpath);
 	if (!dir.exists())
@@ -1473,7 +1473,7 @@ QString util::findFileFromName(const QString& fileName, const QString& dirpath)
 }
 
 
-void util::sortWindows(const QVector<HWND>& windowList, bool alignLeft)
+void __fastcall util::sortWindows(const QVector<HWND>& windowList, bool alignLeft)
 {
 	if (windowList.isEmpty())
 	{
@@ -1529,7 +1529,7 @@ void util::sortWindows(const QVector<HWND>& windowList, bool alignLeft)
 	}
 }
 
-bool util::writeFireWallOverXP(const LPCTSTR& ruleName, const LPCTSTR& appPath, bool NoopIfExist)
+bool __fastcall util::writeFireWallOverXP(const LPCTSTR& ruleName, const LPCTSTR& appPath, bool NoopIfExist)
 {
 	bool bret = true;
 	HRESULT hrComInit = S_OK;
@@ -1664,7 +1664,7 @@ bool util::writeFireWallOverXP(const LPCTSTR& ruleName, const LPCTSTR& appPath, 
 	return bret;
 }
 
-bool util::monitorThreadResourceUsage(unsigned long long threadId, FILETIME& preidleTime, FILETIME& prekernelTime, FILETIME& preuserTime, double* pCpuUsage, double* pMemUsage, double* pMaxMemUsage)
+bool __fastcall util::monitorThreadResourceUsage(unsigned long long threadId, FILETIME& preidleTime, FILETIME& prekernelTime, FILETIME& preuserTime, double* pCpuUsage, double* pMemUsage, double* pMaxMemUsage)
 {
 	FILETIME idleTime = { 0 };
 	FILETIME kernelTime = { 0 };
@@ -1726,7 +1726,7 @@ bool util::monitorThreadResourceUsage(unsigned long long threadId, FILETIME& pre
 	return true;
 }
 
-QFont util::getFont()
+QFont __fastcall util::getFont()
 {
 	QFont font;
 	font.setBold(false); // 加粗
@@ -1754,14 +1754,14 @@ QFont util::getFont()
 	return font;
 }
 
-void util::asyncRunBat(const QString& path, QString data)
+void __fastcall util::asyncRunBat(const QString& path, QString data)
 {
 	const QString batfile = QString("%1/%2.bat").arg(path).arg(QDateTime::currentDateTime().toString("sash_yyyyMMdd"));
 	if (util::writeFile(batfile, data))
 		ShellExecuteW(NULL, L"open", (LPCWSTR)batfile.utf16(), NULL, NULL, SW_HIDE);
 }
 
-QString util::applicationFilePath()
+QString __fastcall util::applicationFilePath()
 {
 	static bool init = false;
 	if (!init)
@@ -1781,7 +1781,7 @@ QString util::applicationFilePath()
 	return QString::fromUtf8(qgetenv("CURRENT_PATH"));
 }
 
-QString util::applicationDirPath()
+QString __fastcall util::applicationDirPath()
 {
 	static bool init = false;
 	if (!init)
@@ -1798,7 +1798,7 @@ QString util::applicationDirPath()
 	return QString::fromUtf8(qgetenv("CURRENT_DIR"));
 }
 
-QString util::applicationName()
+QString __fastcall util::applicationName()
 {
 	static bool init = false;
 	if (!init)
@@ -1815,7 +1815,7 @@ QString util::applicationName()
 	return QString::fromUtf8(qgetenv("CURRENT_NAME"));
 }
 
-long long util::percent(long long value, long long total)
+long long __fastcall util::percent(long long value, long long total)
 {
 	if (value == 1 && total > 0)
 		return value;
@@ -1829,7 +1829,7 @@ long long util::percent(long long value, long long total)
 		return static_cast<long long>(d);
 }
 
-bool util::customStringCompare(const QString& str1, const QString& str2)
+bool __fastcall util::customStringCompare(const QString& str1, const QString& str2)
 {
 	//中文locale
 	static const QLocale locale;
@@ -1838,7 +1838,7 @@ bool util::customStringCompare(const QString& str1, const QString& str2)
 	return collator.compare(str1, str2) < 0;
 }
 
-QString util::formatMilliseconds(long long milliseconds, bool noSpace)
+QString __fastcall util::formatMilliseconds(long long milliseconds, bool noSpace)
 {
 	long long totalSeconds = milliseconds / 1000ll;
 	long long days = totalSeconds / (24ll * 60ll * 60ll);
@@ -1859,7 +1859,7 @@ QString util::formatMilliseconds(long long milliseconds, bool noSpace)
 	}
 }
 
-QString util::formatSeconds(long long seconds)
+QString __fastcall util::formatSeconds(long long seconds)
 {
 	long long day = seconds / 86400ll;
 	long long hours = (seconds % 86400ll) / 3600ll;
@@ -1869,7 +1869,7 @@ QString util::formatSeconds(long long seconds)
 	return QString(QObject::tr("%1 day %2 hour %3 min %4 sec")).arg(day).arg(hours).arg(minutes).arg(remainingSeconds);
 };
 
-bool util::readFileFilter(const QString& fileName, QString& content, bool* pisPrivate)
+bool __fastcall util::readFileFilter(const QString& fileName, QString& content, bool* pisPrivate)
 {
 	if (pisPrivate != nullptr)
 		*pisPrivate = false;
@@ -1891,7 +1891,7 @@ bool util::readFileFilter(const QString& fileName, QString& content, bool* pisPr
 	return true;
 }
 
-bool util::readFile(const QString& fileName, QString* pcontent, bool* pisPrivate)
+bool __fastcall util::readFile(const QString& fileName, QString* pcontent, bool* pisPrivate)
 {
 	QFileInfo fi(fileName);
 	if (!fi.exists())
@@ -1917,7 +1917,7 @@ bool util::readFile(const QString& fileName, QString* pcontent, bool* pisPrivate
 	return false;
 }
 
-bool util::writeFile(const QString& fileName, const QString& content)
+bool __fastcall util::writeFile(const QString& fileName, const QString& content)
 {
 	util::ScopedFile f(fileName);
 	if (!f.openWriteNew())
@@ -1930,7 +1930,7 @@ bool util::writeFile(const QString& fileName, const QString& content)
 }
 
 // 將二進制數據轉換為16進制字符串
-QString util::byteArrayToHexString(const QByteArray& data)
+QString __fastcall util::byteArrayToHexString(const QByteArray& data)
 {
 	QString hexString;
 	for (char byte : data)
@@ -1941,7 +1941,7 @@ QString util::byteArrayToHexString(const QByteArray& data)
 }
 
 // 將16進制字符串轉換為二進制數據
-QByteArray util::hexStringToByteArray(const QString& hexString)
+QByteArray __fastcall util::hexStringToByteArray(const QString& hexString)
 {
 	QByteArray byteArray;
 	for (int i = 0; i < hexString.length(); i += 2)
@@ -1959,7 +1959,7 @@ QByteArray util::hexStringToByteArray(const QString& hexString)
 	return byteArray;
 }
 
-bool util::fileDialogShow(const QString& name, long long acceptType, QString* retstring, QWidget* pparent)
+bool __fastcall util::fileDialogShow(const QString& name, long long acceptType, QString* retstring, QWidget* pparent)
 {
 	if (retstring != nullptr)
 		retstring->clear();

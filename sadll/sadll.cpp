@@ -277,19 +277,19 @@ extern "C"
 }
 
 //hooks
-SOCKET WSAAPI GameService::New_socket(int af, int type, int protocol)
+SOCKET __fastcall GameService::New_socket(int af, int type, int protocol)
 {
 	SOCKET ret = psocket(af, type, protocol);
 	return ret;
 }
 
-int WSAAPI GameService::New_send(SOCKET s, const char* buf, int len, int flags)
+int __fastcall GameService::New_send(SOCKET s, const char* buf, int len, int flags)
 {
 	int ret = psend(s, buf, len, flags);
 	return ret;
 }
 
-int WSAAPI GameService::New_connect(SOCKET s, const struct sockaddr* name, int namelen)
+int __fastcall GameService::New_connect(SOCKET s, const struct sockaddr* name, int namelen)
 {
 	if (s && name != nullptr)
 	{
@@ -308,20 +308,20 @@ int WSAAPI GameService::New_connect(SOCKET s, const struct sockaddr* name, int n
 	return pconnect(s, name, namelen);
 }
 
-unsigned long WSAAPI GameService::New_inet_addr(const char* cp)
+unsigned long __fastcall GameService::New_inet_addr(const char* cp)
 {
 	std::cout << "inet_addr: " << std::string(cp) << std::endl;
 	return pinet_addr(cp);
 }
 
-u_short WSAAPI GameService::New_ntohs(u_short netshort)
+u_short __fastcall GameService::New_ntohs(u_short netshort)
 {
 	std::cout << "ntohs: " << std::to_string(netshort) << std::endl;
 	return pntohs(netshort);
 }
 
 //hook recv將封包全部轉發給外掛，本來準備完全由外掛處理好再發回來，但效果不盡人意
-int WSAAPI GameService::New_recv(SOCKET s, char* buf, int len, int flags)
+int __fastcall GameService::New_recv(SOCKET s, char* buf, int len, int flags)
 {
 	int recvlen = precv(s, buf, len, flags);
 
@@ -333,7 +333,7 @@ int WSAAPI GameService::New_recv(SOCKET s, char* buf, int len, int flags)
 	return recvlen;
 }
 
-int WSAAPI GameService::New_closesocket(SOCKET s)
+int __fastcall GameService::New_closesocket(SOCKET s)
 {
 	if (g_sockfd != nullptr)
 	{
@@ -351,12 +351,12 @@ int WSAAPI GameService::New_closesocket(SOCKET s)
 }
 
 //防止其他私服使用A類函數導致標題亂碼
-BOOL WSAAPI GameService::New_SetWindowTextA(HWND, LPCSTR)
+BOOL __fastcall GameService::New_SetWindowTextA(HWND, LPCSTR)
 {
 	return TRUE;
 }
 
-DWORD WINAPI GameService::New_GetTickCount()
+DWORD __fastcall GameService::New_GetTickCount()
 {
 	static DWORD g_dwRealTick = pGetTickCount();
 	static DWORD g_dwHookTick = pGetTickCount();
@@ -369,7 +369,7 @@ DWORD WINAPI GameService::New_GetTickCount()
 	return g_dwHookTick;
 }
 
-BOOL WINAPI GameService::New_QueryPerformanceCounter(LARGE_INTEGER* lpPerformanceCount)
+BOOL __fastcall GameService::New_QueryPerformanceCounter(LARGE_INTEGER* lpPerformanceCount)
 {
 	BOOL result = pQueryPerformanceCounter(lpPerformanceCount);
 
@@ -378,7 +378,7 @@ BOOL WINAPI GameService::New_QueryPerformanceCounter(LARGE_INTEGER* lpPerformanc
 	return result;
 }
 
-DWORD WINAPI GameService::New_TimeGetTime()
+DWORD __fastcall GameService::New_TimeGetTime()
 {
 	static DWORD g_dwRealTime = pTimeGetTime();
 	static DWORD g_dwHookTime = pTimeGetTime();
@@ -391,7 +391,7 @@ DWORD WINAPI GameService::New_TimeGetTime()
 	return g_dwHookTime;
 }
 
-void WINAPI GameService::New_Sleep(DWORD dwMilliseconds)
+void __fastcall GameService::New_Sleep(DWORD dwMilliseconds)
 {
 	if ((TRUE == enableSleepAdjust.load(std::memory_order_acquire)) && (0UL == dwMilliseconds))
 		dwMilliseconds = 1UL;

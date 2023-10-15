@@ -42,7 +42,7 @@ static const QStringList exceptionList = {
 };
 
 #pragma region  LuaTools
-void makeTable(sol::state& lua, const char* name, long long i, long long j)
+void __fastcall makeTable(sol::state& lua, const char* name, long long i, long long j)
 {
 	if (!lua[name].valid())
 		lua[name] = lua.create_table();
@@ -68,7 +68,7 @@ void makeTable(sol::state& lua, const char* name, long long i, long long j)
 	}
 }
 
-void makeTable(sol::state& lua, const char* name, long long i)
+void __fastcall makeTable(sol::state& lua, const char* name, long long i)
 {
 	if (!lua[name].valid())
 		lua[name] = lua.create_table();
@@ -85,7 +85,7 @@ void makeTable(sol::state& lua, const char* name, long long i)
 	}
 }
 
-void makeTable(sol::state& lua, const char* name)
+void __fastcall makeTable(sol::state& lua, const char* name)
 {
 	if (!lua[name].valid())
 		lua[name] = lua.create_table();

@@ -42,35 +42,35 @@ class Autil : public Indexer
 public:
 	explicit Autil(long long index);
 
-	void util_Init(void);
-	void util_Release(void);
-	void util_Clear(void);
-	bool util_SplitMessage(const QByteArray& source, char separator);
-	void util_EncodeMessage(char* dst, size_t dstlen, char* src);
-	void util_DecodeMessage(QByteArray& dst, QByteArray src);
-	long long util_GetFunctionFromSlice(long long* func, long long* fieldcount, long long offest = 23);
-	void util_DiscardMessage(void);
-	void util_SendMesg(int func, char* buffer);
+	void __fastcall util_Init(void);
+	void __fastcall util_Release(void);
+	void __fastcall util_Clear(void);
+	bool __fastcall util_SplitMessage(const QByteArray& source, char separator);
+	void __fastcall util_EncodeMessage(char* dst, size_t dstlen, char* src);
+	void __fastcall util_DecodeMessage(QByteArray& dst, QByteArray src);
+	long long __fastcall util_GetFunctionFromSlice(long long* func, long long* fieldcount, long long offest = 23);
+	void __fastcall util_DiscardMessage(void);
+	void __fastcall util_SendMesg(int func, char* buffer);
 
 	// -------------------------------------------------------------------
 	// Encoding function units.  Use in Encrypting functions.
-	int util_256to64(char* dst, char* src, int len, char* table);
-	int util_64to256(char* dst, char* src, char* table);
-	int util_256to64_shr(char* dst, char* src, int len, char* table, char* key);
-	int util_shl_64to256(char* dst, char* src, char* table, char* key);
-	int util_256to64_shl(char* dst, char* src, int len, char* table, char* key);
-	int util_shr_64to256(char* dst, char* src, char* table, char* key);
+	int __fastcall util_256to64(char* dst, char* src, int len, char* table);
+	int __fastcall util_64to256(char* dst, char* src, char* table);
+	int __fastcall util_256to64_shr(char* dst, char* src, int len, char* table, char* key);
+	int __fastcall util_shl_64to256(char* dst, char* src, char* table, char* key);
+	int __fastcall util_256to64_shl(char* dst, char* src, int len, char* table, char* key);
+	int __fastcall util_shr_64to256(char* dst, char* src, char* table, char* key);
 
-	void util_swapint(int* dst, int* src, char* rule);
-	void util_xorstring(char* dst, char* src);
-	void util_shrstring(QByteArray& dst, char* src, int offs);
-	void util_shlstring(char* dst, size_t dstlen, char* src, int offs);
+	void __fastcall util_swapint(int* dst, int* src, char* rule);
+	void __fastcall util_xorstring(char* dst, char* src);
+	void __fastcall util_shrstring(QByteArray& dst, char* src, int offs);
+	void __fastcall util_shlstring(char* dst, size_t dstlen, char* src, int offs);
 	// -------------------------------------------------------------------
 	// Encrypting functions
-	int util_deint(int sliceno, int* value);
-	int util_mkint(char* buffer, int value);
-	int util_destring(int sliceno, char* value);
-	int util_mkstring(char* buffer, char* value);
+	int __fastcall util_deint(int sliceno, int* value);
+	int __fastcall util_mkint(char* buffer, int value);
+	int __fastcall util_destring(int sliceno, char* value);
+	int __fastcall util_mkstring(char* buffer, char* value);
 
 	// 輔助函數，處理整數參數
 	template<typename Arg>
@@ -107,11 +107,11 @@ public:
 		int iChecksum = 0;
 		//std::unique_ptr <char[]> buffer(q_check_ptr(new char[NETDATASIZE]));
 		//std::fill(buffer.get(), buffer.get() + NETDATASIZE, 0);
-		QByteArray buffer(NETDATASIZE, 0);
+		char buffer[NETDATASIZE] = { 0 };
 
-		util_SendProcessArgs(iChecksum, buffer.data(), args...);
-		util_mkint(buffer.data(), iChecksum);
-		util_SendMesg(func, buffer.data());
+		util_SendProcessArgs(iChecksum, buffer, args...);
+		util_mkint(buffer, iChecksum);
+		util_SendMesg(func, buffer);
 	}
 
 	inline void util_SendArgs(int func, std::vector<std::variant<int, std::string>>& args)
@@ -119,22 +119,22 @@ public:
 		int iChecksum = 0;
 		//std::unique_ptr <char[]> buffer(q_check_ptr(new char[NETDATASIZE]()));
 		//std::fill(buffer.get(), buffer.get() + NETDATASIZE, 0);
-		QByteArray buffer(NETDATASIZE, 0);
+		char buffer[NETDATASIZE] = { 0 };
 
 		for (const std::variant<int, std::string>& arg : args)
 		{
 			if (std::holds_alternative<int>(arg))
 			{
-				iChecksum += util_mkint(buffer.data(), std::get<int>(arg));
+				iChecksum += util_mkint(buffer, std::get<int>(arg));
 			}
 			else if (std::holds_alternative<std::string>(arg))
 			{
-				iChecksum += util_mkstring(buffer.data(), const_cast<char*>(std::get<std::string>(arg).c_str()));
+				iChecksum += util_mkstring(buffer, const_cast<char*>(std::get<std::string>(arg).c_str()));
 			}
 		}
 
-		util_mkint(buffer.data(), iChecksum);
-		util_SendMesg(func, buffer.data());
+		util_mkint(buffer, iChecksum);
+		util_SendMesg(func, buffer);
 	}
 
 	template<typename... Args>

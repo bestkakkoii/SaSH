@@ -213,7 +213,6 @@ bool isValidChar(const char* charPtr)
 		}
 		else
 		{
-			// charPtr 为 nullptr，不合法的指针
 			return false;
 		}
 	}
@@ -886,16 +885,27 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 		do
 		{
 			LoginInfo* pLoginInfo = reinterpret_cast<LoginInfo*>(msg->lParam);
+			qDebug() << __FUNCTION__ << "wParam:" << QString::number((int)(msg->wParam)) << "lParam:" << QString::number((int)(msg->lParam), 16);
 			if (pLoginInfo == nullptr)
 			{
 				*result = 0;
+				qDebug() << __FUNCTION__ << "pLoginInfo is nullptr";
 				updateStatusText(tr("invalid lparam"));
 				break;
 			}
 
-			if (!isValidChar(pLoginInfo->username) || !isValidChar(pLoginInfo->password))
+			if (!isValidChar(pLoginInfo->username))
 			{
 				*result = 2;
+				qDebug() << __FUNCTION__ << "invalid user:" << reinterpret_cast<long long>(pLoginInfo->username);
+				updateStatusText(tr("invalid user/psw"));
+				break;
+			}
+
+			if (!isValidChar(pLoginInfo->password))
+			{
+				*result = 2;
+				qDebug() << __FUNCTION__ << "invalid psw:" << reinterpret_cast<long long>(pLoginInfo->password);
 				updateStatusText(tr("invalid user/psw"));
 				break;
 			}
@@ -906,9 +916,12 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 			QString username = util::toQString(pLoginInfo->username);
 			QString password = util::toQString(pLoginInfo->password);
 
+			qDebug() << __FUNCTION__ << "server:" << server << "subserver:" << subserver << "position:" << position << "username:" << username << "password:" << password;
+
 			if (server < 0 || server > 25)
 			{
 				*result = 3;
+				qDebug() << __FUNCTION__ << "server out of range:" << server;
 				updateStatusText(tr("server out of range"));
 				break;
 			}
@@ -916,6 +929,7 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 			if (subserver < 0 || subserver > 25)
 			{
 				*result = 4;
+				qDebug() << __FUNCTION__ << "subserver out of range:" << subserver;
 				updateStatusText(tr("subser out of range"));
 				break;
 			}
@@ -923,6 +937,7 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 			if (position < 0 || position >= MAX_CHARACTER + 1)
 			{
 				*result = 5;
+				qDebug() << __FUNCTION__ << "pos out of range:" << position;
 				updateStatusText(tr("pos out of range"));
 				break;
 			}
@@ -933,6 +948,7 @@ bool MainForm::nativeEvent(const QByteArray& eventType, void* message, qintptr* 
 			injector.setValueHash(util::kServerValue, server);
 			injector.setValueHash(util::kSubServerValue, subserver);
 			injector.setValueHash(util::kPositionValue, position);
+			qDebug() << __FUNCTION__ << "set ok apply to ui now.";
 			emit signalDispatcher.applyHashSettingsToUI();
 			++interfaceCount_;
 			updateStatusText();

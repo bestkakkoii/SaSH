@@ -35,9 +35,9 @@ public:
 
 	virtual ~ScriptForm();
 
+private slots:
 	void loadFile(const QString& fileName, bool start = false);
 
-private slots:
 	void onButtonClicked();
 
 	void onReloadScriptList();

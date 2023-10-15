@@ -495,6 +495,8 @@ int main(int argc, char* argv[])
 
 	/* 實例化單個或多個主窗口 */
 
+	//CreateConsole();
+
 	// 解析啟動參數
 	QCommandLineParser parser;
 	parser.addHelpOption();

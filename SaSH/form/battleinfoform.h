@@ -56,7 +56,7 @@ protected:
 	}
 
 private:
-	void updateItemInfoRowContents(TableWidget* tableWidget, const QVariant& data);
+	void __fastcall updateItemInfoRowContents(TableWidget* tableWidget, const QVariant& data);
 
 
 private:

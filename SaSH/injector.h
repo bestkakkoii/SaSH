@@ -89,75 +89,75 @@ public:
 		HWND hWnd = nullptr;
 	} process_information_t, * pprocess_information_t, * lpprocess_information_t;
 
-	inline void close() const { if (processHandle_) MINT::NtTerminateProcess(processHandle_, 0); }
+	inline void __fastcall close() const { if (processHandle_) MINT::NtTerminateProcess(processHandle_, 0); }
 
-	Q_REQUIRED_RESULT inline HANDLE getProcess() const { return processHandle_; }
+	Q_REQUIRED_RESULT inline HANDLE __fastcall getProcess() const { return processHandle_; }
 
-	Q_REQUIRED_RESULT inline HWND getProcessWindow() const { return pi_.hWnd; }
+	Q_REQUIRED_RESULT inline HWND __fastcall getProcessWindow() const { return pi_.hWnd; }
 
-	Q_REQUIRED_RESULT inline long long getProcessId() const { return pi_.dwProcessId; }
+	Q_REQUIRED_RESULT inline long long __fastcall getProcessId() const { return pi_.dwProcessId; }
 
-	Q_REQUIRED_RESULT inline long long getProcessModule() const { return hGameModule_; }
+	Q_REQUIRED_RESULT inline long long __fastcall getProcessModule() const { return hGameModule_; }
 
-	Q_REQUIRED_RESULT inline bool isValid() const { return hGameModule_ != NULL && pi_.dwProcessId != NULL && pi_.hWnd != nullptr && processHandle_.isValid(); }
+	Q_REQUIRED_RESULT inline bool __fastcall isValid() const { return hGameModule_ != NULL && pi_.dwProcessId != NULL && pi_.hWnd != nullptr && processHandle_.isValid(); }
 
-	CreateProcessResult createProcess(process_information_t& pi);
+	CreateProcessResult __fastcall createProcess(process_information_t& pi);
 
-	bool injectLibrary(process_information_t& pi, unsigned short port, util::LPREMOVE_THREAD_REASON pReason);
+	bool __fastcall injectLibrary(process_information_t& pi, unsigned short port, util::LPREMOVE_THREAD_REASON pReason);
 
-	Q_REQUIRED_RESULT bool isWindowAlive() const;
+	Q_REQUIRED_RESULT bool __fastcall isWindowAlive() const;
 
-	long long sendMessage(long long msg, long long wParam, long long lParam) const;
+	long long __fastcall sendMessage(long long msg, long long wParam, long long lParam) const;
 
-	bool postMessage(long long msg, long long wParam, long long lParam) const;
+	bool __fastcall postMessage(long long msg, long long wParam, long long lParam) const;
 
-	inline void setValueHash(util::UserSetting setting, long long value) { userSetting_value_hash_.insert(setting, value); }
+	inline void __fastcall setValueHash(util::UserSetting setting, long long value) { userSetting_value_hash_.insert(setting, value); }
 
-	inline void setEnableHash(util::UserSetting setting, bool enable) { userSetting_enable_hash_.insert(setting, enable); }
+	inline void __fastcall setEnableHash(util::UserSetting setting, bool enable) { userSetting_enable_hash_.insert(setting, enable); }
 
-	inline void setStringHash(util::UserSetting setting, const QString& string) { userSetting_string_hash_.insert(setting, string); }
+	inline void __fastcall setStringHash(util::UserSetting setting, const QString& string) { userSetting_string_hash_.insert(setting, string); }
 
-	Q_REQUIRED_RESULT inline long long getValueHash(util::UserSetting setting) const { return userSetting_value_hash_.value(setting); }
+	Q_REQUIRED_RESULT inline long long __fastcall getValueHash(util::UserSetting setting) const { return userSetting_value_hash_.value(setting); }
 
-	Q_REQUIRED_RESULT inline bool getEnableHash(util::UserSetting setting) const { return userSetting_enable_hash_.value(setting); }
+	Q_REQUIRED_RESULT inline bool __fastcall getEnableHash(util::UserSetting setting) const { return userSetting_enable_hash_.value(setting); }
 
-	Q_REQUIRED_RESULT inline QString getStringHash(util::UserSetting setting) const { return userSetting_string_hash_.value(setting); }
+	Q_REQUIRED_RESULT inline QString __fastcall getStringHash(util::UserSetting setting) const { return userSetting_string_hash_.value(setting); }
 
-	Q_REQUIRED_RESULT inline QHash<util::UserSetting, long long> getValuesHash() const { return userSetting_value_hash_.toHash(); }
+	Q_REQUIRED_RESULT inline QHash<util::UserSetting, long long> __fastcall getValuesHash() const { return userSetting_value_hash_.toHash(); }
 
-	Q_REQUIRED_RESULT inline QHash<util::UserSetting, bool> getEnablesHash() const { return userSetting_enable_hash_.toHash(); }
+	Q_REQUIRED_RESULT inline QHash<util::UserSetting, bool> __fastcall getEnablesHash() const { return userSetting_enable_hash_.toHash(); }
 
-	Q_REQUIRED_RESULT inline QHash<util::UserSetting, QString> getStringsHash() const { return userSetting_string_hash_.toHash(); }
+	Q_REQUIRED_RESULT inline QHash<util::UserSetting, QString> __fastcall getStringsHash() const { return userSetting_string_hash_.toHash(); }
 
-	inline void setValuesHash(const QHash<util::UserSetting, long long>& hash) { userSetting_value_hash_ = hash; }
+	inline void __fastcall setValuesHash(const QHash<util::UserSetting, long long>& hash) { userSetting_value_hash_ = hash; }
 
-	inline void setEnablesHash(const QHash<util::UserSetting, bool>& hash) { userSetting_enable_hash_ = hash; }
+	inline void __fastcall setEnablesHash(const QHash<util::UserSetting, bool>& hash) { userSetting_enable_hash_ = hash; }
 
-	inline void setStringsHash(const QHash<util::UserSetting, QString>& hash) { userSetting_string_hash_ = hash; }
+	inline void __fastcall setStringsHash(const QHash<util::UserSetting, QString>& hash) { userSetting_string_hash_ = hash; }
 
-	Q_REQUIRED_RESULT inline QVariant getUserData(util::UserData type) const { return userData_hash_.value(type); }
+	Q_REQUIRED_RESULT inline QVariant __fastcall getUserData(util::UserData type) const { return userData_hash_.value(type); }
 
-	inline void setUserData(util::UserData type, const QVariant& data) { userData_hash_.insert(type, QVariant::fromValue(data)); }
+	inline void __fastcall setUserData(util::UserData type, const QVariant& data) { userData_hash_.insert(type, QVariant::fromValue(data)); }
 
-	void mouseMove(long long x, long long y) const;
+	void __fastcall mouseMove(long long x, long long y) const;
 
-	void leftClick(long long x, long long y) const;
+	void __fastcall leftClick(long long x, long long y) const;
 
-	void leftDoubleClick(long long x, long long y) const;
+	void __fastcall leftDoubleClick(long long x, long long y) const;
 
-	void rightClick(long long x, long long y) const;
+	void __fastcall rightClick(long long x, long long y) const;
 
-	void dragto(long long x1, long long y1, long long x2, long long y2) const;
+	void __fastcall dragto(long long x1, long long y1, long long x2, long long y2) const;
 
-	void hide(long long mode = 0);
+	void __fastcall hide(long long mode = 0);
 
-	void show();
+	void __fastcall show();
 
-	QString getPointFileName();
+	QString __fastcall getPointFileName();
 
-	inline void setParentWidget(HWND parentWidget) { parentWidget_ = parentWidget; }
+	inline void __fastcall setParentWidget(HWND parentWidget) { parentWidget_ = parentWidget; }
 
-	Q_REQUIRED_RESULT inline HWND getParentWidget() const { return parentWidget_; }
+	Q_REQUIRED_RESULT inline HWND __fastcall getParentWidget() const { return parentWidget_; }
 
 private:
 	static BOOL CALLBACK EnumWindowsCallback(HWND handle, LPARAM lParam)
@@ -178,10 +178,10 @@ private:
 		return TRUE;
 	}
 
-	Q_REQUIRED_RESULT bool isHandleValid(long long pid);
+	Q_REQUIRED_RESULT bool __fastcall isHandleValid(long long pid);
 
 #if 0
-	DWORD WINAPI getFunAddr(const DWORD* DllBase, const char* FunName);
+	DWORD WINAPI __fastcall getFunAddr(const DWORD* DllBase, const char* FunName);
 #endif
 
 public:

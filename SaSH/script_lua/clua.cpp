@@ -40,7 +40,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 #define OPEN_HOOK
 
-void luadebug::tryPopCustomErrorMsg(const sol::this_state& s, const LUA_ERROR_TYPE element, const QVariant& p1, const QVariant& p2, const QVariant& p3, const QVariant& p4)
+void __fastcall luadebug::tryPopCustomErrorMsg(const sol::this_state& s, const LUA_ERROR_TYPE element, const QVariant& p1, const QVariant& p2, const QVariant& p3, const QVariant& p4)
 {
 	std::ignore = p4;//reserved
 	lua_State* L = s;
@@ -105,7 +105,7 @@ void luadebug::tryPopCustomErrorMsg(const sol::this_state& s, const LUA_ERROR_TY
 	}
 }
 
-QString luadebug::getErrorMsgLocatedLine(const QString& str, long long* retline)
+QString __fastcall luadebug::getErrorMsgLocatedLine(const QString& str, long long* retline)
 {
 	const QString cmpstr(str.simplified());
 
@@ -147,7 +147,7 @@ QString luadebug::getErrorMsgLocatedLine(const QString& str, long long* retline)
 	return cmpstr;
 }
 
-QString luadebug::getTableVars(lua_State*& L, long long si, long long& depth)
+QString __fastcall luadebug::getTableVars(lua_State*& L, long long si, long long& depth)
 {
 	if (!L)
 		return "\0";
@@ -201,7 +201,7 @@ QString luadebug::getTableVars(lua_State*& L, long long si, long long& depth)
 	return ret.simplified();
 }
 
-QPair<QString, QVariant> luadebug::getVars(lua_State*& L, long long si, long long& depth)
+QPair<QString, QVariant> __fastcall luadebug::getVars(lua_State*& L, long long si, long long& depth)
 {
 	switch (lua_type(L, si))
 	{
@@ -254,7 +254,7 @@ QPair<QString, QVariant> luadebug::getVars(lua_State*& L, long long si, long lon
 	return qMakePair(QString("(nil)"), QString("nil"));
 }
 
-bool luadebug::isInterruptionRequested(const sol::this_state& s)
+bool __fastcall luadebug::isInterruptionRequested(const sol::this_state& s)
 {
 	sol::state_view lua(s.lua_state());
 	CLua* pLua = lua["_THIS"].get<CLua*>();
@@ -264,7 +264,7 @@ bool luadebug::isInterruptionRequested(const sol::this_state& s)
 	return pLua->isInterruptionRequested();
 }
 
-void luadebug::checkStopAndPause(const sol::this_state& s)
+void __fastcall luadebug::checkStopAndPause(const sol::this_state& s)
 {
 	sol::state_view lua(s.lua_state());
 	CLua* pLua = lua["_THIS_CLUA"].get<CLua*>();
@@ -280,7 +280,7 @@ void luadebug::checkStopAndPause(const sol::this_state& s)
 	pLua->checkPause();
 }
 
-bool luadebug::checkOnlineThenWait(const sol::this_state& s)
+bool __fastcall luadebug::checkOnlineThenWait(const sol::this_state& s)
 {
 	checkStopAndPause(s);
 	sol::state_view lua(s.lua_state());
@@ -313,7 +313,7 @@ bool luadebug::checkOnlineThenWait(const sol::this_state& s)
 	return bret;
 }
 
-bool luadebug::checkBattleThenWait(const sol::this_state& s)
+bool __fastcall luadebug::checkBattleThenWait(const sol::this_state& s)
 {
 	checkStopAndPause(s);
 
@@ -347,7 +347,7 @@ bool luadebug::checkBattleThenWait(const sol::this_state& s)
 	return bret;
 }
 
-void luadebug::processDelay(const sol::this_state& s)
+void __fastcall luadebug::processDelay(const sol::this_state& s)
 {
 	sol::state_view lua(s.lua_state());
 	Injector& injector = Injector::getInstance(lua["_INDEX"].get<long long>());
@@ -373,7 +373,7 @@ void luadebug::processDelay(const sol::this_state& s)
 }
 
 //遞歸獲取每一層目錄
-void luadebug::getPackagePath(const QString base, QStringList* result)
+void __fastcall luadebug::getPackagePath(const QString base, QStringList* result)
 {
 	QDir dir(base);
 	if (!dir.exists())
@@ -389,7 +389,7 @@ void luadebug::getPackagePath(const QString base, QStringList* result)
 	}
 }
 
-void luadebug::logExport(const sol::this_state& s, const QStringList& datas, long long color, bool doNotAnnounce)
+void __fastcall luadebug::logExport(const sol::this_state& s, const QStringList& datas, long long color, bool doNotAnnounce)
 {
 	for (const QString& data : datas)
 	{
@@ -397,7 +397,7 @@ void luadebug::logExport(const sol::this_state& s, const QStringList& datas, lon
 	}
 }
 
-void luadebug::logExport(const sol::this_state& s, const QString& data, long long color, bool doNotAnnounce)
+void __fastcall luadebug::logExport(const sol::this_state& s, const QString& data, long long color, bool doNotAnnounce)
 {
 
 	//打印當前時間
@@ -426,14 +426,14 @@ void luadebug::logExport(const sol::this_state& s, const QString& data, long lon
 		injector.log.write(data, currentline);
 }
 
-void luadebug::showErrorMsg(const sol::this_state& s, long long level, const QString& data)
+void __fastcall luadebug::showErrorMsg(const sol::this_state& s, long long level, const QString& data)
 {
 	QString newText = QString("%1%2").arg(level == 0 ? QObject::tr("[warn]") : QObject::tr("[error]")).arg(data);
 	logExport(s, newText, 0, true);
 }
 
 //根據傳入function的循環執行結果等待超時或條件滿足提早結束
-bool luadebug::waitfor(const sol::this_state& s, long long timeout, std::function<bool()> exprfun)
+bool __fastcall luadebug::waitfor(const sol::this_state& s, long long timeout, std::function<bool()> exprfun)
 {
 	if (timeout < 0)
 		timeout = std::numeric_limits<long long>::max();
@@ -465,7 +465,6 @@ bool luadebug::waitfor(const sol::this_state& s, long long timeout, std::functio
 	}
 	return bret;
 }
-
 
 //lua函數鉤子 這裡主要用於控制 暫停、終止腳本、獲取棧數據、變量數據...或其他操作
 void luadebug::hookProc(lua_State* L, lua_Debug* ar)

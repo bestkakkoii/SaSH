@@ -41,27 +41,27 @@ public slots:
 private:
 	void inGameInitialize();
 
-	void mainProc();
+	void __fastcall mainProc();
 
-	void updateAfkInfos();
+	void __fastcall updateAfkInfos();
 
-	void setUserDatas();
+	void __fastcall setUserDatas();
 
-	long long checkAndRunFunctions();
+	long long __fastcall checkAndRunFunctions();
 
-	void checkControl();
-	void checkEtcFlag();
-	void checkAutoSortItem();
-	void checkAutoWalk();
-	void checkAutoDropItems();
+	void __fastcall checkControl();
+	void __fastcall checkEtcFlag();
+	void __fastcall checkAutoSortItem();
+	void __fastcall checkAutoWalk();
+	void __fastcall checkAutoDropItems();
 	//void checkAutoDropMeat();
-	void checkAutoJoin();
-	void checkAutoHeal();
-	void checkAutoDropPet();
+	void __fastcall checkAutoJoin();
+	void __fastcall checkAutoHeal();
+	void __fastcall checkAutoDropPet();
 	//void checkAutoLockPet();
 	//void checkAutoLockSchedule();
-	void checkAutoEatBoostExpItem();
-	void checkRecordableNpcInfo();
+	void __fastcall checkAutoEatBoostExpItem();
+	void __fastcall checkRecordableNpcInfo();
 	//void checkAutoAbility();
 private:
 	void battleTimeThread();

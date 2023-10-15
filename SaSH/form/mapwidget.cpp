@@ -143,13 +143,6 @@ void MapWidget::showEvent(QShowEvent*)
 	blockSignals(false);
 	gltimer_.start(MAP_REFRESH_TIME);
 
-	ui.openGLWidget->setUpdatesEnabled(true);
-	ui.openGLWidget->blockSignals(false);
-	ui.graphicsView->setUpdatesEnabled(true);
-	ui.graphicsView->blockSignals(false);
-	ui.tableWidget_NPCList->setUpdatesEnabled(true);
-	ui.tableWidget_NPCList->blockSignals(false);
-
 	util::FormSettingManager formManager(this);
 	formManager.loadSettings();
 	setAttribute(Qt::WA_Mapped);
@@ -160,13 +153,6 @@ void MapWidget::closeEvent(QCloseEvent*)
 {
 	setUpdatesEnabled(false);
 	blockSignals(true);
-
-	ui.openGLWidget->setUpdatesEnabled(false);
-	ui.openGLWidget->blockSignals(true);
-	ui.graphicsView->setUpdatesEnabled(false);
-	ui.graphicsView->blockSignals(true);
-	ui.tableWidget_NPCList->setUpdatesEnabled(false);
-	ui.tableWidget_NPCList->blockSignals(true);
 	update();
 	gltimer_.stop();
 	downloadMapTimer_.stop();

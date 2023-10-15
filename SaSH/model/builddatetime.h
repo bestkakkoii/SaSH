@@ -11,11 +11,11 @@ namespace compile
 
 	static QDateTime g_buildDate;
 
-	static QString initializeBuildDateTime();
+	static QString __fastcall initializeBuildDateTime();
 
 	static QString g_buildDateTime = initializeBuildDateTime();
 
-	static QString initializeBuildDateTime()
+	static QString __fastcall initializeBuildDateTime()
 	{
 		QString dateTimeStr(global_date);
 		dateTimeStr.replace("  ", " 0");// 注意" "是兩個空格，用於日期為單數時需要轉成“空格+0”
@@ -40,7 +40,7 @@ namespace compile
 		return dt.toString("yyyyMMdd-hh:mm:ss");
 	}
 
-	inline QString buildDateTime(QDateTime* date)
+	inline QString __fastcall buildDateTime(QDateTime* date)
 	{
 		if (date != nullptr && g_buildDate.isValid())
 			*date = g_buildDate;

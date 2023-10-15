@@ -52,49 +52,49 @@ typedef struct break_marker_s
 
 namespace mem
 {
-	bool read(HANDLE hProcess, unsigned long long desiredAccess, unsigned long long size, PVOID buffer);
+	bool __fastcall read(HANDLE hProcess, unsigned long long desiredAccess, unsigned long long size, PVOID buffer);
 	template<typename T, typename = std::enable_if_t<std::is_arithmetic_v<T> && !std::is_pointer_v<T>>>
-	Q_REQUIRED_RESULT T read(HANDLE hProcess, unsigned long long desiredAccess);
+	Q_REQUIRED_RESULT T __fastcall read(HANDLE hProcess, unsigned long long desiredAccess);
 
-	template char read<char>(HANDLE hProcess, unsigned long long desiredAccess);
-	template short read<short>(HANDLE hProcess, unsigned long long desiredAccess);
-	template int read<int>(HANDLE hProcess, unsigned long long desiredAccess);
-	template float read<float>(HANDLE hProcess, unsigned long long desiredAccess);
-	template long read<long>(HANDLE hProcess, unsigned long long desiredAccess);
-	template long long read<long long>(HANDLE hProcess, unsigned long long desiredAccess);
-	template unsigned char read<unsigned char>(HANDLE hProcess, unsigned long long desiredAccess);
-	template unsigned short read<unsigned short>(HANDLE hProcess, unsigned long long desiredAccess);
-	template unsigned int read<unsigned int>(HANDLE hProcess, unsigned long long desiredAccess);
-	template unsigned long read<unsigned long>(HANDLE hProcess, unsigned long long desiredAccess);
-	template unsigned long long read<unsigned long long>(HANDLE hProcess, unsigned long long desiredAccess);
+	template char __fastcall read<char>(HANDLE hProcess, unsigned long long desiredAccess);
+	template short __fastcall read<short>(HANDLE hProcess, unsigned long long desiredAccess);
+	template int __fastcall read<int>(HANDLE hProcess, unsigned long long desiredAccess);
+	template float __fastcall read<float>(HANDLE hProcess, unsigned long long desiredAccess);
+	template long __fastcall read<long>(HANDLE hProcess, unsigned long long desiredAccess);
+	template long long __fastcall read<long long>(HANDLE hProcess, unsigned long long desiredAccess);
+	template unsigned char __fastcall read<unsigned char>(HANDLE hProcess, unsigned long long desiredAccess);
+	template unsigned short __fastcall read<unsigned short>(HANDLE hProcess, unsigned long long desiredAccess);
+	template unsigned int __fastcall read<unsigned int>(HANDLE hProcess, unsigned long long desiredAccess);
+	template unsigned long __fastcall read<unsigned long>(HANDLE hProcess, unsigned long long desiredAccess);
+	template unsigned long long __fastcall read<unsigned long long>(HANDLE hProcess, unsigned long long desiredAccess);
 
 	template<typename T, typename = std::enable_if_t<std::is_arithmetic_v<T> && !std::is_pointer_v<T>>>
-	bool write(HANDLE hProcess, unsigned long long baseAddress, T data);
-	template bool write<char>(HANDLE hProcess, unsigned long long baseAddress, char data);
-	template bool write<short>(HANDLE hProcess, unsigned long long baseAddress, short data);
-	template bool write<int>(HANDLE hProcess, unsigned long long baseAddress, int data);
-	template bool write<float>(HANDLE hProcess, unsigned long long baseAddress, float data);
-	template bool write<long>(HANDLE hProcess, unsigned long long baseAddress, long data);
-	template bool write<long long>(HANDLE hProcess, unsigned long long baseAddress, long long data);
-	template bool write<unsigned char>(HANDLE hProcess, unsigned long long baseAddress, unsigned char data);
-	template bool write<unsigned short>(HANDLE hProcess, unsigned long long baseAddress, unsigned short data);
-	template bool write<unsigned int>(HANDLE hProcess, unsigned long long baseAddress, unsigned int data);
-	template bool write<unsigned long>(HANDLE hProcess, unsigned long long baseAddress, unsigned long data);
-	template bool write<unsigned long long>(HANDLE hProcess, unsigned long long baseAddress, unsigned long long data);
+	bool __fastcall write(HANDLE hProcess, unsigned long long baseAddress, T data);
+	template bool __fastcall write<char>(HANDLE hProcess, unsigned long long baseAddress, char data);
+	template bool __fastcall write<short>(HANDLE hProcess, unsigned long long baseAddress, short data);
+	template bool __fastcall write<int>(HANDLE hProcess, unsigned long long baseAddress, int data);
+	template bool __fastcall write<float>(HANDLE hProcess, unsigned long long baseAddress, float data);
+	template bool __fastcall write<long>(HANDLE hProcess, unsigned long long baseAddress, long data);
+	template bool __fastcall write<long long>(HANDLE hProcess, unsigned long long baseAddress, long long data);
+	template bool __fastcall write<unsigned char>(HANDLE hProcess, unsigned long long baseAddress, unsigned char data);
+	template bool __fastcall write<unsigned short>(HANDLE hProcess, unsigned long long baseAddress, unsigned short data);
+	template bool __fastcall write<unsigned int>(HANDLE hProcess, unsigned long long baseAddress, unsigned int data);
+	template bool __fastcall write<unsigned long>(HANDLE hProcess, unsigned long long baseAddress, unsigned long data);
+	template bool __fastcall write<unsigned long long>(HANDLE hProcess, unsigned long long baseAddress, unsigned long long data);
 
-	Q_REQUIRED_RESULT float readFloat(HANDLE hProcess, unsigned long long desiredAccess);
-	Q_REQUIRED_RESULT qreal readDouble(HANDLE hProcess, unsigned long long desiredAccess);
-	Q_REQUIRED_RESULT QString readString(HANDLE hProcess, unsigned long long desiredAccess, unsigned long long size, bool enableTrim = true, bool keepOriginal = false);
-	bool write(HANDLE hProcess, unsigned long long baseAddress, PVOID buffer, unsigned long long dwSize);
-	bool writeString(HANDLE hProcess, unsigned long long baseAddress, const QString& str);
-	bool virtualFree(HANDLE hProcess, unsigned long long baseAddress);
-	Q_REQUIRED_RESULT unsigned long long virtualAlloc(HANDLE hProcess, unsigned long long size);
-	Q_REQUIRED_RESULT unsigned long long virtualAllocW(HANDLE hProcess, const QString& str);
-	Q_REQUIRED_RESULT unsigned long long virtualAllocA(HANDLE hProcess, const QString& str);
+	Q_REQUIRED_RESULT float __fastcall readFloat(HANDLE hProcess, unsigned long long desiredAccess);
+	Q_REQUIRED_RESULT qreal __fastcall readDouble(HANDLE hProcess, unsigned long long desiredAccess);
+	Q_REQUIRED_RESULT QString __fastcall readString(HANDLE hProcess, unsigned long long desiredAccess, unsigned long long size, bool enableTrim = true, bool keepOriginal = false);
+	bool __fastcall write(HANDLE hProcess, unsigned long long baseAddress, PVOID buffer, unsigned long long dwSize);
+	bool __fastcall writeString(HANDLE hProcess, unsigned long long baseAddress, const QString& str);
+	bool __fastcall virtualFree(HANDLE hProcess, unsigned long long baseAddress);
+	Q_REQUIRED_RESULT unsigned long long __fastcall virtualAlloc(HANDLE hProcess, unsigned long long size);
+	Q_REQUIRED_RESULT unsigned long long __fastcall virtualAllocW(HANDLE hProcess, const QString& str);
+	Q_REQUIRED_RESULT unsigned long long __fastcall virtualAllocA(HANDLE hProcess, const QString& str);
 #ifndef _WIN64
-	Q_REQUIRED_RESULT DWORD getRemoteModuleHandle(DWORD dwProcessId, const QString& moduleName);
+	Q_REQUIRED_RESULT DWORD __fastcall getRemoteModuleHandle(DWORD dwProcessId, const QString& moduleName);
 #endif
-	void freeUnuseMemory(HANDLE hProcess);
+	void __fastcall freeUnuseMemory(HANDLE hProcess);
 
 	typedef struct _IAT_EAT_INFO
 	{
@@ -120,7 +120,7 @@ namespace mem
 		}
 	}
 #else
-	inline DWORD* getKernel32()
+	inline DWORD* __fastcall getKernel32()
 	{
 		return (DWORD*)GetModuleHandleW(L"kernel32.dll");
 	}
@@ -128,21 +128,21 @@ namespace mem
 
 #if 0
 #ifdef _WIN64
-	DWORD getFunAddr(const DWORD* DllBase, const char* FunName);
+	DWORD __fastcall getFunAddr(const DWORD* DllBase, const char* FunName);
 #endif
 #endif
 
-	HMODULE getRemoteModuleHandleByProcessHandleW(HANDLE hProcess, const QString& szModuleName);
-	long getProcessExportTable32(HANDLE hProcess, const QString& ModuleName, IAT_EAT_INFO tbinfo[], int tb_info_max);
-	ULONG64 getProcAddressIn32BitProcess(HANDLE hProcess, const QString& ModuleName, const QString& FuncName);
+	HMODULE __fastcall getRemoteModuleHandleByProcessHandleW(HANDLE hProcess, const QString& szModuleName);
+	long __fastcall getProcessExportTable32(HANDLE hProcess, const QString& ModuleName, IAT_EAT_INFO tbinfo[], int tb_info_max);
+	ULONG64 __fastcall getProcAddressIn32BitProcess(HANDLE hProcess, const QString& ModuleName, const QString& FuncName);
 #ifndef _WIN64
-	bool injectByWin7(long long index, DWORD dwProcessId, HANDLE hProcess, QString dllPath, HMODULE* phDllModule, unsigned long long* phGameModule);
+	bool __fastcall injectByWin7(long long index, DWORD dwProcessId, HANDLE hProcess, QString dllPath, HMODULE* phDllModule, unsigned long long* phGameModule);
 #endif
-	bool injectBy64(long long index, HANDLE hProcess, QString dllPath, HMODULE* phDllModule, unsigned long long* phGameModule);//兼容64位注入32位
+	bool __fastcall injectBy64(long long index, HANDLE hProcess, QString dllPath, HMODULE* phDllModule, unsigned long long* phGameModule);//兼容64位注入32位
 #if 0
-	bool inject(long long index, HANDLE hProcess, QString dllPath, HMODULE* phDllModule, unsigned long long* phGameModule);//32注入32
+	bool __fastcall inject(long long index, HANDLE hProcess, QString dllPath, HMODULE* phDllModule, unsigned long long* phGameModule);//32注入32
 #endif
-	bool enumProcess(QVector<long long>* pprocesses, const QString& moduleName);
+	bool __fastcall enumProcess(QVector<long long>* pprocesses, const QString& moduleName);
 }
 
 namespace util
@@ -882,16 +882,16 @@ namespace util
 		{-1, -1}, //西北2
 	};
 
-	Q_REQUIRED_RESULT QString applicationFilePath();
+	Q_REQUIRED_RESULT QString __fastcall applicationFilePath();
 
-	Q_REQUIRED_RESULT QString applicationDirPath();
+	Q_REQUIRED_RESULT QString __fastcall applicationDirPath();
 
-	Q_REQUIRED_RESULT QString applicationName();
+	Q_REQUIRED_RESULT QString __fastcall applicationName();
 
-	Q_REQUIRED_RESULT long long percent(long long value, long long total);
+	Q_REQUIRED_RESULT long long __fastcall percent(long long value, long long total);
 
 	template<typename T>
-	inline Q_REQUIRED_RESULT QString toQString(T d, long long base = 10)
+	inline Q_REQUIRED_RESULT QString __fastcall toQString(T d, long long base = 10)
 	{
 		if constexpr (std::is_same_v<T, double>)
 		{
@@ -962,7 +962,7 @@ namespace util
 
 	}
 
-	inline Q_REQUIRED_RESULT QString toUnicode(const char* str, bool trim = true, bool ext = true)
+	inline Q_REQUIRED_RESULT QString __fastcall toUnicode(const char* str, bool trim = true, bool ext = true)
 	{
 		QTextCodec* codec = QTextCodec::codecForName(util::DEFAULT_GAME_CODEPAGE);//QTextCodec::codecForMib(2025);//取GB2312解碼器
 		QString qstr = codec->toUnicode(str);//先以GB2312解碼轉成UNICODE
@@ -985,7 +985,7 @@ namespace util
 			return qstr.simplified();
 	}
 
-	inline Q_REQUIRED_RESULT std::string fromUnicode(const QString& str, bool keppOrigin = false)
+	inline Q_REQUIRED_RESULT std::string __fastcall fromUnicode(const QString& str, bool keppOrigin = false)
 	{
 		QString qstr = str;
 		std::wstring wstr = qstr.toStdWString();
@@ -1006,7 +1006,7 @@ namespace util
 		return s;
 	}
 
-	inline void setLineEdit(QLineEdit* pEdit)
+	inline void __fastcall setLineEdit(QLineEdit* pEdit)
 	{
 		QString styleSheet = R"(
 QLineEdit {
@@ -1031,7 +1031,7 @@ border: 2px solid #3282F6;
 		pEdit->setAttribute(Qt::WA_StyledBackground);
 	}
 
-	inline void setTab(QTabWidget* pTab)
+	inline void __fastcall setTab(QTabWidget* pTab)
 	{
 		QString styleSheet = R"(
 			QTabWidget{
@@ -1120,30 +1120,30 @@ border: 2px solid #3282F6;
 		pTabBar->setExpanding(true);
 	}
 
-	bool customStringCompare(const QString& str1, const QString& str2);
+	bool __fastcall customStringCompare(const QString& str1, const QString& str2);
 
-	QFileInfoList loadAllFileLists(
+	QFileInfoList __fastcall loadAllFileLists(
 		TreeWidgetItem* root,
 		const QString& path,
 		QStringList* list = nullptr,
 		const QString& fileIcon = ":/image/icon_txt.png",
 		const QString& folderIcon = ":/image/icon_directory.png");
 
-	QFileInfoList loadAllFileLists(
+	QFileInfoList __fastcall loadAllFileLists(
 		TreeWidgetItem* root,
 		const QString& path,
 		const QString& suffix,
 		const QString& icon, QStringList* list = nullptr,
 		const QString& folderIcon = ":/image/icon_directory.png");
 
-	void searchFiles(const QString& dir, const QString& fileNamePart, const QString& suffixWithDot, QStringList* result, bool withcontent);
+	void __fastcall searchFiles(const QString& dir, const QString& fileNamePart, const QString& suffixWithDot, QStringList* result, bool withcontent);
 
-	bool enumAllFiles(const QString dir, const QString suffix, QVector<QPair<QString, QString>>* result);
+	bool __fastcall enumAllFiles(const QString dir, const QString suffix, QVector<QPair<QString, QString>>* result);
 
-	QString findFileFromName(const QString& fileName, const QString& dirpath = util::applicationDirPath());
+	QString __fastcall findFileFromName(const QString& fileName, const QString& dirpath = util::applicationDirPath());
 
 	template<typename T>
-	QList<T*> findWidgets(QWidget* widget)
+	QList<T*> __fastcall findWidgets(QWidget* widget)
 	{
 		QList<T*> widgets;
 
@@ -1169,36 +1169,36 @@ border: 2px solid #3282F6;
 		return widgets;
 	}
 
-	QString formatMilliseconds(long long milliseconds, bool noSpace = false);
+	QString __fastcall formatMilliseconds(long long milliseconds, bool noSpace = false);
 
-	QString formatSeconds(long long seconds);
+	QString __fastcall formatSeconds(long long seconds);
 
-	bool writeFireWallOverXP(const LPCTSTR& ruleName, const LPCTSTR& appPath, bool NoopIfExist);
+	bool __fastcall writeFireWallOverXP(const LPCTSTR& ruleName, const LPCTSTR& appPath, bool NoopIfExist);
 
-	bool monitorThreadResourceUsage(unsigned long long threadId, FILETIME& preidleTime, FILETIME& prekernelTime, FILETIME& preuserTime, double* pCpuUsage, double* pMemUsage, double* pMaxMemUsage);
+	bool __fastcall monitorThreadResourceUsage(unsigned long long threadId, FILETIME& preidleTime, FILETIME& prekernelTime, FILETIME& preuserTime, double* pCpuUsage, double* pMemUsage, double* pMaxMemUsage);
 
-	QFont getFont();
+	QFont __fastcall getFont();
 
-	void asyncRunBat(const QString& path, QString data);
+	void __fastcall asyncRunBat(const QString& path, QString data);
 
-	bool readFileFilter(const QString& fileName, QString& content, bool* pisPrivate);
+	bool __fastcall readFileFilter(const QString& fileName, QString& content, bool* pisPrivate);
 
-	bool readFile(const QString& fileName, QString* pcontent, bool* isPrivate = nullptr);
+	bool __fastcall readFile(const QString& fileName, QString* pcontent, bool* isPrivate = nullptr);
 
-	bool writeFile(const QString& fileName, const QString& content);
+	bool __fastcall writeFile(const QString& fileName, const QString& content);
 
-	void sortWindows(const QVector<HWND>& windowList, bool alignLeft);
+	void __fastcall sortWindows(const QVector<HWND>& windowList, bool alignLeft);
 
-	bool fileDialogShow(const QString& name, long long acceptType, QString* retstring, QWidget* pparent = nullptr);
+	bool __fastcall fileDialogShow(const QString& name, long long acceptType, QString* retstring, QWidget* pparent = nullptr);
 
 	// 將二進制數據轉換為16進制字符串
-	QString byteArrayToHexString(const QByteArray& data);
+	QString __fastcall byteArrayToHexString(const QByteArray& data);
 
 	// 將16進制字符串轉換為二進制數據
-	QByteArray hexStringToByteArray(const QString& hexString);
+	QByteArray __fastcall hexStringToByteArray(const QString& hexString);
 
 #pragma region swap_row
-	inline void SwapRow(QTableWidget* p, QListWidget* p2, long long selectRow, long long targetRow)
+	inline void __fastcall SwapRow(QTableWidget* p, QListWidget* p2, long long selectRow, long long targetRow)
 	{
 
 		if (p)
@@ -1243,7 +1243,7 @@ border: 2px solid #3282F6;
 		}
 	}
 
-	inline void SwapRowUp(QTableWidget* p)
+	inline void __fastcall SwapRowUp(QTableWidget* p)
 	{
 		if (p->rowCount() <= 0)
 			return; //至少有一行
@@ -1263,7 +1263,7 @@ border: 2px solid #3282F6;
 		p->setCurrentIndex(cur);
 	}
 
-	inline void SwapRowDown(QTableWidget* p)
+	inline void __fastcall SwapRowDown(QTableWidget* p)
 	{
 		if (p->rowCount() <= 0)
 			return; //至少有一行
@@ -1283,7 +1283,7 @@ border: 2px solid #3282F6;
 		p->setCurrentIndex(cur);
 	}
 
-	inline void SwapRowUp(QListWidget* p)
+	inline void __fastcall SwapRowUp(QListWidget* p)
 	{
 		if (p->count() <= 0)
 			return;
@@ -1302,7 +1302,7 @@ border: 2px solid #3282F6;
 		p->setCurrentIndex(cur);
 	}
 
-	inline void SwapRowDown(QListWidget* p)
+	inline void __fastcall SwapRowDown(QListWidget* p)
 	{
 		if (p->count() <= 0)
 			return;
@@ -1975,8 +1975,8 @@ border: 2px solid #3282F6;
 		explicit FormSettingManager(QWidget* widget) { widget_ = widget; }
 		explicit FormSettingManager(QMainWindow* widget) { mainwindow_ = widget; }
 
-		void loadSettings();
-		void saveSettings();
+		void __fastcall loadSettings();
+		void __fastcall saveSettings();
 
 	private:
 		QWidget* widget_ = nullptr;
@@ -2197,7 +2197,7 @@ border: 2px solid #3282F6;
 			}
 
 			return QFile::open(QIODevice::ReadOnly | QIODevice::Unbuffered);
-			}
+		}
 
 		bool openReadWrite()
 		{
@@ -2266,7 +2266,7 @@ border: 2px solid #3282F6;
 
 	private:
 		QSet<uchar*> m_maps;
-		};
+	};
 
 	//Json配置讀寫
 	class Config
@@ -2277,22 +2277,22 @@ border: 2px solid #3282F6;
 		explicit Config(const QByteArray& fileName, const QString& callBy);
 		virtual ~Config();
 
-		bool open();
-		void sync();
+		bool __fastcall open();
+		void __fastcall sync();
 
-		inline bool isValid() const { return isVaild; }
+		inline bool __fastcall isValid() const { return isVaild; }
 
-		void removeSec(const QString sec);
+		void __fastcall removeSec(const QString sec);
 
-		void write(const QString& key, const QVariant& value);
-		void write(const QString& sec, const QString& key, const QVariant& value);
-		void write(const QString& sec, const QString& key, const QString& sub, const QVariant& value);
+		void __fastcall write(const QString& key, const QVariant& value);
+		void __fastcall write(const QString& sec, const QString& key, const QVariant& value);
+		void __fastcall write(const QString& sec, const QString& key, const QString& sub, const QVariant& value);
 
-		void WriteHash(const QString& sec, const QString& key, QMap<QString, QPair<bool, QString>>& hash);
-		QMap<QString, QPair<bool, QString>> EnumString(const QString& sec, const QString& key) const;
+		void __fastcall WriteHash(const QString& sec, const QString& key, QMap<QString, QPair<bool, QString>>& hash);
+		QMap<QString, QPair<bool, QString>> __fastcall EnumString(const QString& sec, const QString& key) const;
 
 		template <typename T>
-		T read(const QString& sec, const QString& key, const QString& sub) const
+		T __fastcall read(const QString& sec, const QString& key, const QString& sub) const
 		{
 			if (!cache_.contains(sec))
 			{
@@ -2314,7 +2314,7 @@ border: 2px solid #3282F6;
 		}
 
 		template <typename T>
-		T read(const QString& sec, const QString& key) const
+		T __fastcall read(const QString& sec, const QString& key) const
 		{
 			//read json value from cache_
 			if (cache_.contains(sec))
@@ -2329,7 +2329,7 @@ border: 2px solid #3282F6;
 		}
 
 		template <typename T>
-		T read(const QString& key) const
+		T __fastcall read(const QString& key) const
 		{
 			if (cache_.contains(key))
 			{
@@ -2340,7 +2340,7 @@ border: 2px solid #3282F6;
 		}
 
 		template <typename T>
-		QList<T> readArray(const QString& sec, const QString& key, const QString& sub) const
+		QList<T> __fastcall readArray(const QString& sec, const QString& key, const QString& sub) const
 		{
 			QList<T> result;
 			QVariant variant;
@@ -2370,7 +2370,7 @@ border: 2px solid #3282F6;
 		}
 
 		template <typename T>
-		void writeArray(const QString& sec, const QString& key, const QList<T>& values)
+		void __fastcall writeArray(const QString& sec, const QString& key, const QList<T>& values)
 		{
 			if (!cache_.contains(sec))
 			{
@@ -2392,7 +2392,7 @@ border: 2px solid #3282F6;
 		}
 
 		template <typename T>
-		void writeArray(const QString& sec, const QString& key, const QString& sub, const QList<T>& values)
+		void __fastcall writeArray(const QString& sec, const QString& key, const QString& sub, const QList<T>& values)
 		{
 			QJsonObject json;
 
@@ -2423,9 +2423,9 @@ border: 2px solid #3282F6;
 				hasChanged_ = true;
 		}
 
-		void writeMapData(const QString& sec, const util::MapData& data);
+		void __fastcall writeMapData(const QString& sec, const util::MapData& data);
 
-		QList<util::MapData> readMapData(const QString& key) const;
+		QList<util::MapData> __fastcall readMapData(const QString& key) const;
 
 	private:
 		QString callby;
@@ -2476,5 +2476,4 @@ border: 2px solid #3282F6;
 	static const QRegularExpression rexSquareBrackets(R"(\[(\d+)\])");
 	//([\w\p{Han}]+)\[(\d+)\]
 
-	}
-
+}

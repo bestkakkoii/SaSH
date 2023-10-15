@@ -338,14 +338,6 @@ void ScriptEditor::showEvent(QShowEvent* e)
 {
 	setUpdatesEnabled(true);
 	blockSignals(false);
-	ui.listView_log->setUpdatesEnabled(true);
-	ui.listView_log->blockSignals(false);
-	ui.treeWidget_debuger_custom->setUpdatesEnabled(true);
-	ui.treeWidget_debuger_custom->blockSignals(false);
-	ui.treeWidget_debuger_sys->setUpdatesEnabled(true);
-	ui.treeWidget_debuger_sys->blockSignals(false);
-	lineLable_->setUpdatesEnabled(true);
-	lineLable_->blockSignals(false);
 	update();
 	usageTimer_.start(1500);
 
@@ -363,14 +355,6 @@ void ScriptEditor::closeEvent(QCloseEvent* e)
 
 	setUpdatesEnabled(false);
 	blockSignals(true);
-	ui.listView_log->setUpdatesEnabled(false);
-	ui.listView_log->blockSignals(true);
-	ui.treeWidget_debuger_custom->setUpdatesEnabled(false);
-	ui.treeWidget_debuger_custom->blockSignals(true);
-	ui.treeWidget_debuger_sys->setUpdatesEnabled(false);
-	ui.treeWidget_debuger_sys->blockSignals(true);
-	lineLable_->setUpdatesEnabled(false);
-	lineLable_->blockSignals(true);
 
 	util::FormSettingManager formSettingManager(this);
 	formSettingManager.saveSettings();

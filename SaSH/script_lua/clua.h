@@ -56,7 +56,7 @@ namespace luadebug
 		{ ERROR_PARAM_SIZE_RANGE, QObject::tr("request param size is between %1 to %2, but import %3") },
 	};
 
-	inline Q_REQUIRED_RESULT long long getCurrentLine(lua_State* L)
+	inline Q_REQUIRED_RESULT long long __fastcall getCurrentLine(lua_State* L)
 	{
 		if (L)
 		{
@@ -70,7 +70,7 @@ namespace luadebug
 		return -1;
 	}
 
-	inline Q_REQUIRED_RESULT long long getCurrentLine(const sol::this_state& s)
+	inline Q_REQUIRED_RESULT long long __fastcall getCurrentLine(const sol::this_state& s)
 	{
 		lua_State* L = s.lua_state();
 		if (L)
@@ -79,7 +79,7 @@ namespace luadebug
 			return -1;
 	}
 
-	inline Q_REQUIRED_RESULT lua_Debug getCurrentInfo(lua_State* L)
+	inline Q_REQUIRED_RESULT lua_Debug __fastcall getCurrentInfo(lua_State* L)
 	{
 		lua_Debug info = {};
 		if (L)
@@ -94,42 +94,42 @@ namespace luadebug
 		return info;
 	}
 
-	inline Q_REQUIRED_RESULT lua_Debug getCurrentInfo(const sol::this_state& s)
+	inline Q_REQUIRED_RESULT lua_Debug __fastcall getCurrentInfo(const sol::this_state& s)
 	{
 		lua_State* L = s.lua_state();
 		return getCurrentInfo(L);
 	}
 
-	void tryPopCustomErrorMsg(const sol::this_state& s, const LUA_ERROR_TYPE element, const QVariant& p1 = 0, const QVariant& p2 = 0, const QVariant& p3 = 0, const QVariant& p4 = 0);
+	void __fastcall tryPopCustomErrorMsg(const sol::this_state& s, const LUA_ERROR_TYPE element, const QVariant& p1 = 0, const QVariant& p2 = 0, const QVariant& p3 = 0, const QVariant& p4 = 0);
 
 
-	void checkStopAndPause(const sol::this_state& s);
-	bool checkBattleThenWait(const sol::this_state& s);
-	bool checkOnlineThenWait(const sol::this_state& s);
+	void __fastcall checkStopAndPause(const sol::this_state& s);
+	bool __fastcall checkBattleThenWait(const sol::this_state& s);
+	bool __fastcall checkOnlineThenWait(const sol::this_state& s);
 
-	void processDelay(const sol::this_state& s);
+	void __fastcall processDelay(const sol::this_state& s);
 
-	bool isInterruptionRequested(const sol::this_state& s);
+	bool __fastcall isInterruptionRequested(const sol::this_state& s);
 
 	//根據傳入function的循環執行結果等待超時或條件滿足提早結束
-	bool waitfor(const sol::this_state& s, long long timeout, std::function<bool()> exprfun);
+	bool __fastcall waitfor(const sol::this_state& s, long long timeout, std::function<bool()> exprfun);
 
 	//遞歸獲取每一層目錄
-	void getPackagePath(const QString base, QStringList* result);
+	void __fastcall getPackagePath(const QString base, QStringList* result);
 
 	//從錯誤訊息中擷取行號
 	static const QRegularExpression rexGetLine(R"(at[\s]*line[\s]*(\d+))");
 	static const QRegularExpression reGetLineEx(R"(\]:(\d+)(?=\s*:))");
-	Q_REQUIRED_RESULT QString getErrorMsgLocatedLine(const QString& str, long long* retline);
+	Q_REQUIRED_RESULT QString __fastcall getErrorMsgLocatedLine(const QString& str, long long* retline);
 
-	QPair<QString, QVariant> getVars(lua_State*& L, long long si, long long& depth);
-	QString getTableVars(lua_State*& L, long long si, long long& depth);
+	QPair<QString, QVariant> __fastcall getVars(lua_State*& L, long long si, long long& depth);
+	QString __fastcall getTableVars(lua_State*& L, long long si, long long& depth);
 
 	void hookProc(lua_State* L, lua_Debug* ar);
 
-	void logExport(const sol::this_state& s, const QStringList& datas, long long color, bool doNotAnnounce = false);
-	void logExport(const sol::this_state& s, const QString& data, long long color, bool doNotAnnounce = false);
-	void showErrorMsg(const sol::this_state& s, long long level, const QString& data);
+	void __fastcall logExport(const sol::this_state& s, const QStringList& datas, long long color, bool doNotAnnounce = false);
+	void __fastcall logExport(const sol::this_state& s, const QString& data, long long color, bool doNotAnnounce = false);
+	void __fastcall showErrorMsg(const sol::this_state& s, long long level, const QString& data);
 }
 
 class CLuaTest
@@ -337,9 +337,9 @@ public:
 	CLua(long long index, const QString& content, QObject* parent = nullptr);
 	virtual ~CLua();
 
-	void start();
-	void wait();
-	inline bool isRunning() const { return isRunning_.load(std::memory_order_acquire) && !isInterruptionRequested(); }
+	void __fastcall start();
+	void __fastcall wait();
+	inline bool __fastcall isRunning() const { return isRunning_.load(std::memory_order_acquire) && !isInterruptionRequested(); }
 
 signals:
 	void finished();
@@ -348,22 +348,22 @@ private slots:
 	void proc();
 
 public:
-	void openlibs();
+	void __fastcall openlibs();
 	sol::state& getLua() { return lua_; }
-	void setMax(long long max) { max_ = max; }
-	void setSubScript(bool isSubScript) { isSubScript_ = isSubScript; }
-	void setHookForStop(bool isHookForStop) { lua_["_HOOKFORSTOP"] = isHookForStop; }
-	void setHookEnabled(bool isHookEnabled) { isHookEnabled_ = isHookEnabled; }
+	void __fastcall setMax(long long max) { max_ = max; }
+	void __fastcall setSubScript(bool isSubScript) { isSubScript_ = isSubScript; }
+	void __fastcall setHookForStop(bool isHookForStop) { lua_["_HOOKFORSTOP"] = isHookForStop; }
+	void __fastcall setHookEnabled(bool isHookEnabled) { isHookEnabled_ = isHookEnabled; }
 private:
-	void open_enumlibs();
-	void open_testlibs();
-	void open_utillibs(sol::state& lua);
-	void open_syslibs(sol::state& lua);
-	void open_itemlibs(sol::state& lua);
-	void open_charlibs(sol::state& lua);
-	void open_petlibs(sol::state& lua);
-	void open_maplibs(sol::state& lua);
-	void open_battlelibs(sol::state& lua);
+	void __fastcall open_enumlibs();
+	void __fastcall open_testlibs();
+	void __fastcall open_utillibs(sol::state& lua);
+	void __fastcall open_syslibs(sol::state& lua);
+	void __fastcall open_itemlibs(sol::state& lua);
+	void __fastcall open_charlibs(sol::state& lua);
+	void __fastcall open_petlibs(sol::state& lua);
+	void __fastcall open_maplibs(sol::state& lua);
+	void __fastcall open_battlelibs(sol::state& lua);
 
 public:
 	sol::state lua_;
